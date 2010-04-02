@@ -2,7 +2,7 @@ import logging, random
 from time import sleep
 from logging import debug, info, critical
 import asyncore, socket, cPickle, tempfile
-import M2Crypto.RSA
+import M2Crypto.RSA, struct, base64, M2Crypto.Rand
 
 class anon_node():
 	def __init__(self, id, key_len, round_id, n_nodes,
@@ -21,18 +21,29 @@ class anon_node():
 		self.upstream_addr = upstream_addr
 		self.downstream_addr = downstream_addr
 
+		# A very unsecure initialization vector
+		self.iv = 'al*73lf9)982'
+
 		logger = logging.getLogger()
 		logger.setLevel(logging.DEBUG)
 
 		self.pub_keys = {}
 
 		self.run_phase1()
+		self.run_phase2()
+		self.run_phase3()
+
+	def datum_string(self):
+		return "Secret anonymous message from node %d" % (self.id)
 
 	def am_leader(self):
 		return self.id == 0
+	
+	def am_last(self):
+		return self.id == (self.n_nodes - 1)
 
 #
-# Protocol phases
+# PHASE 1
 #
 
 	def run_phase1(self):
@@ -42,7 +53,9 @@ class anon_node():
 		if self.am_leader():
 			self.debug('Leader starting phase 1')
 
-			(all_msgs, addrs) = self.recv_from_n(self.n_nodes-1)
+			# We need to save addresses so that we can
+			# broadcast to all nodes
+			(all_msgs, self.addrs) = self.recv_from_n(self.n_nodes-1)
 			addrs = self.unpickle_pub_keys(all_msgs)
 
 			if not self.have_all_keys():
@@ -50,9 +63,8 @@ class anon_node():
 			self.info('Leader has all public keys')
 
 			pick_keys_str = self.phase1b_msg()
-			for i in xrange(0, self.n_nodes-1):
-				ip, port = addrs[i]
-				self.send_to_addr(ip, port, pick_keys_str)
+			self.broadcast_to_all_nodes(pick_keys_str)
+
 			self.info('Leader sent all public keys')
 
 		else:
@@ -96,6 +108,119 @@ class anon_node():
 				self.pub_key_from_str(rem_key2))
 			addrs.append((rem_ip, rem_port))
 		return addrs
+
+	def phase1_msg(self):
+		return cPickle.dumps(
+				(self.id,
+					self.round_id, 
+					self.ip,
+					self.port,
+					self.key_from_file(1),
+					self.key_from_file(2)))
+	
+	def phase1b_msg(self):
+		newdict = {}
+		for i in xrange(0, self.n_nodes):
+			k1,k2 = self.pub_keys[i]
+			newdict[i] = (self.pub_key_to_str(k1), self.pub_key_to_str(k2))
+
+		return cPickle.dumps((self.round_id, newdict))
+
+#
+# PHASE 2
+#
+	def run_phase2(self):
+		self.info("Starting phase 2")
+
+		self.create_cipher_string()
+		if self.am_leader():
+			self.info("Leader waiting for ciphers")
+			(all_msgs, addrs) = self.recv_from_n(self.n_nodes-1)
+			self.info("Leader has all ciphertexts")
+			self.data_in = all_msgs
+		else:
+			self.info("Sending cipher to leader")
+			self.send_to_leader(cPickle.dumps((self.round_id, self.cipher)))
+			self.info("Finished phase 2")
+
+
+	def create_cipher_string(self):
+		self.cipher_prime = self.datum_string()
+		# Encrypt with all secondary keys from N ... 1
+		for i in xrange(self.n_nodes-1, -1, -1):
+			k1, k2 = self.pub_keys[i]
+			self.cipher_prime = self.encrypt_with_rsa(k2, self.cipher_prime)
+
+		self.cipher = self.cipher_prime
+
+		# Encrypt with all primary keys from N ... 1
+		for i in xrange(self.n_nodes-1, -1, -1):
+			k1, k2 = self.pub_keys[i]
+			self.cipher = self.encrypt_with_rsa(k1, self.cipher)
+
+#
+# Phase 3
+#
+	
+	def run_phase3(self):
+		self.info("Starting phase 3")
+	
+		# Everyone blocks waiting for msg from
+		# other node
+		if not self.am_leader():
+			self.data_in = self.recv_cipher_set()
+			self.debug("Got set of ciphers")
+		
+		self.shuffle_and_decrypt()
+		self.debug("Shuffled ciphers")
+		
+		if self.am_last():
+			self.debug("Sending ciphers to leader")
+			self.send_to_leader(cPickle.dumps(self.data_out))
+		else:
+			ip, port = self.downstream_addr
+			self.send_to_addr(ip, port,
+					cPickle.dumps(self.data_out))
+			self.debug("Sent set of ciphers")
+		
+		if self.am_leader():
+			# Leader waits for ciphers from member N
+			self.data_in = self.recv_cipher_set()
+
+#
+# Phase 4
+#
+	def run_phase4(self):
+		self.debug("Leader broadcasting ciphers to all nodes")
+		self.broadcast_to_all_nodes(cPickle.dumps(self.data_in))
+
+	def shuffle_and_decrypt(self):
+		random.shuffle(self.data_in)
+		self.data_out = []
+		for ctuple in self.data_in:
+			(rem_round, ctext) = cPickle.loads(ctuple)
+			if int(rem_round) != self.round_id:
+				raise RuntimeError, "Mismatched round numbers (mine:%d, other:%d)" % (self.round_id, rem_round)
+
+			new_ctext = self.decrypt_with_rsa(self.key1, ctext)	
+			pickled = cPickle.dumps((self.round_id, new_ctext))
+			self.data_out.append(pickled)
+
+#
+# Network Utility Functions
+#
+
+	def recv_cipher_set(self):
+		# data_in arrives as a singleton list of a pickled
+		# list of ciphers.  we need to unpickle the first
+		# element and use that as our array of ciphertexts
+		(data, addrs) = self.recv_from_n(1)
+		return cPickle.loads(data[0])
+
+	def broadcast_to_all_nodes(self, msg):
+		for i in xrange(0, self.n_nodes-1):
+			ip, port = self.addrs[i]
+			self.send_to_addr(ip, port, msg)
 
 	def recv_from_n(self, n_backlog):
 		self.debug('Setting up server socket')
@@ -171,7 +296,7 @@ class anon_node():
 	def get_server_socket(self, n_backlog):
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		s.setblocking(1)
-		s.settimeout(5.0 * self.n_nodes)
+		s.settimeout(30.0 * self.n_nodes)
 		try:
 			s.bind((self.ip, self.port))
 		except socket.error, (errno, errstr):
@@ -183,22 +308,7 @@ class anon_node():
 		
 		return s
 
-	def phase1_msg(self):
-		return cPickle.dumps(
-				(self.id,
-					self.round_id, 
-					self.ip,
-					self.port,
-					self.key_from_file(1),
-					self.key_from_file(2)))
-	
-	def phase1b_msg(self):
-		newdict = {}
-		for i in xrange(0, self.n_nodes):
-			k1,k2 = self.pub_keys[i]
-			newdict[i] = (self.pub_key_to_str(k1), self.pub_key_to_str(k2))
 
-		return cPickle.dumps((self.round_id, newdict))
 #
 # Network stuff
 #
@@ -209,6 +319,35 @@ class anon_node():
 		
 
 #
+# Encryption
+#
+
+	def encrypt_with_rsa(self, pubkey, msg):
+		session_key = M2Crypto.Rand.rand_bytes(32)
+		padding = '\0' * (16 - (len(msg) % 16))
+		encrypt = M2Crypto.EVP.Cipher('aes_256_cbc', 
+				session_key, self.iv, M2Crypto.encrypt)
+
+		# Output is tuple (E_rsa(session_key), E_aes(session_key, msg))
+		return cPickle.dumps((
+					pubkey.public_encrypt(session_key, M2Crypto.RSA.pkcs1_oaep_padding),
+					encrypt.update(msg+padding)))
+
+	def decrypt_with_rsa(self, privkey, ciphertuple):
+		session_cipher, ciphertext = cPickle.loads(ciphertuple) 
+		
+		# Get session key using RSA decryption
+		session_key = privkey.private_decrypt(session_cipher, 
+				M2Crypto.RSA.pkcs1_oaep_padding)
+		
+		# Use session key to recover string
+		dummy_block =  ' ' * 8
+		decrypt = M2Crypto.EVP.Cipher('aes_256_cbc', 
+				session_key, self.iv, M2Crypto.decrypt)
+		return decrypt.update(ciphertext) + decrypt.update(dummy_block)
+
+
+#
 # Key and file IO
 #
 
@@ -216,7 +355,6 @@ class anon_node():
 		(handle, filename) = tempfile.mkstemp()
 		pubkey.save_key(filename)
 		return self.key_from_filename(filename)
-
 
 	def pub_key_from_str(self, key_str):
 		(handle, filename) = tempfile.mkstemp()
