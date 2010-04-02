@@ -25,7 +25,7 @@ class node_set():
 			upstr_ip, upstr_port = self.nodes[(i+1)%len(self.nodes)] 
 			args = ['python', 'run_node.py',
 				str(i), str(self.key_len),
-				str(self.round_id), str(len(nodes)),
+				str(self.round_id), str(len(self.nodes)),
 				my_ip, str(my_port),
 				leader_ip, str(leader_port),
 				dnstr_ip, str(dnstr_port),
