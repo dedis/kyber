@@ -21,15 +21,15 @@ class node_set():
 		leader_ip, leader_port = self.nodes[0]
 		for i in xrange(0, len(self.nodes)):
 			my_ip, my_port = self.nodes[i]
-			dnstr_ip, dnstr_port = self.nodes[(i-1)%len(self.nodes)] 
-			upstr_ip, upstr_port = self.nodes[(i+1)%len(self.nodes)] 
+			prev_ip, prev_port = self.nodes[(i-1)%len(self.nodes)] 
+			next_ip, next_port = self.nodes[(i+1)%len(self.nodes)] 
 			args = ['python', 'run_node.py',
 				str(i), str(self.key_len),
 				str(self.round_id), str(len(self.nodes)),
 				my_ip, str(my_port),
 				leader_ip, str(leader_port),
-				dnstr_ip, str(dnstr_port),
-				upstr_ip, str(upstr_port)]
+				prev_ip, str(prev_port),
+				next_ip, str(next_port)]
 			debug(args)
 			processes.append(Popen(args))
 		return processes

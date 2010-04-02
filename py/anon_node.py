@@ -1,4 +1,4 @@
-import logging, random
+import logging, random, sys
 from time import sleep
 from logging import debug, info, critical
 import asyncore, socket, cPickle, tempfile
@@ -6,7 +6,7 @@ import M2Crypto.RSA, struct, base64, M2Crypto.Rand
 
 class anon_node():
 	def __init__(self, id, key_len, round_id, n_nodes,
-			my_addr, leader_addr, upstream_addr, downstream_addr):
+			my_addr, leader_addr, prev_addr, next_addr):
 		ip,port = my_addr
 		info("Node started (id=%d, addr=%s:%d, key_len=%d, round_id=%d, n_nodes=%d)"
 			% (id, ip, port, key_len, round_id, n_nodes))
@@ -18,8 +18,9 @@ class anon_node():
 		self.port = int(port)
 		self.round_id = round_id
 		self.leader_addr = leader_addr
-		self.upstream_addr = upstream_addr
-		self.downstream_addr = downstream_addr
+		self.prev_addr = prev_addr
+		self.next_addr = next_addr
+		self.phase = 0
 
 		# A very unsecure initialization vector
 		self.iv = 'al*73lf9)982'
@@ -29,9 +30,23 @@ class anon_node():
 
 		self.pub_keys = {}
 
+		'''
+		# Use this to test crypto functions
+		self.generate_keys()
+		m = ''
+		c = self.encrypt_with_rsa(self.key1, m)
+		print self.decrypt_with_rsa(self.key1, c)
+		sys.exit()
+		'''
+
 		self.run_phase1()
 		self.run_phase2()
 		self.run_phase3()
+		self.run_phase4()
+		self.run_phase5()
+
+	def advance_phase(self):
+		self.phase = self.phase + 1
 
 	def datum_string(self):
 		return "Secret anonymous message from node %d" % (self.id)
@@ -47,6 +62,7 @@ class anon_node():
 #
 
 	def run_phase1(self):
+		self.advance_phase()
 		self.public_keys = []
 		self.generate_keys()
 
@@ -55,8 +71,10 @@ class anon_node():
 
 			# We need to save addresses so that we can
 			# broadcast to all nodes
-			(all_msgs, self.addrs) = self.recv_from_n(self.n_nodes-1)
-			addrs = self.unpickle_pub_keys(all_msgs)
+			(all_msgs, addrs) = self.recv_from_n(self.n_nodes-1)
+			
+			# Get all node addrs via this msg
+			self.addrs = self.unpickle_pub_keys(all_msgs)
 
 			if not self.have_all_keys():
 				raise RuntimeError, "Missing public keys"
@@ -130,6 +148,7 @@ class anon_node():
 # PHASE 2
 #
 	def run_phase2(self):
+		self.advance_phase()
 		self.info("Starting phase 2")
 
 		self.create_cipher_string()
@@ -138,6 +157,10 @@ class anon_node():
 			(all_msgs, addrs) = self.recv_from_n(self.n_nodes-1)
 			self.info("Leader has all ciphertexts")
 			self.data_in = all_msgs
+
+			# Leader must add own cipher to the set
+			self.data_in.append(cPickle.dumps((self.round_id, self.cipher)))
+
 		else:
 			self.info("Sending cipher to leader")
 			self.send_to_leader(cPickle.dumps((self.round_id, self.cipher)))
@@ -159,18 +182,19 @@ class anon_node():
 			self.cipher = self.encrypt_with_rsa(k1, self.cipher)
 
 #
-# Phase 3
+# PHASE 3
 #
 	
 	def run_phase3(self):
+		self.advance_phase()
 		self.info("Starting phase 3")
 	
-		# Everyone blocks waiting for msg from
-		# other node
+		# Everyone (except leader) blocks waiting for msg from
+		# previous node in the group
 		if not self.am_leader():
 			self.data_in = self.recv_cipher_set()
 			self.debug("Got set of ciphers")
-		
+	
 		self.shuffle_and_decrypt()
 		self.debug("Shuffled ciphers")
 		
@@ -178,7 +202,7 @@ class anon_node():
 			self.debug("Sending ciphers to leader")
 			self.send_to_leader(cPickle.dumps(self.data_out))
 		else:
-			ip, port = self.downstream_addr
+			ip, port = self.next_addr
 			self.send_to_addr(ip, port,
 					cPickle.dumps(self.data_out))
 			self.debug("Sent set of ciphers")
@@ -186,13 +210,6 @@ class anon_node():
 		if self.am_leader():
 			# Leader waits for ciphers from member N
 			self.data_in = self.recv_cipher_set()
-
-#
-# Phase 4
-#
-	def run_phase4(self):
-		self.debug("Leader broadcasting ciphers to all nodes")
-		self.broadcast_to_all_nodes(cPickle.dumps(self.data_in))
 
 	def shuffle_and_decrypt(self):
 		random.shuffle(self.data_in)
@@ -207,6 +224,90 @@ class anon_node():
 			self.data_out.append(pickled)
 
 #
+# PHASE 4
+#
+	def run_phase4(self):
+		self.advance_phase()
+		if self.am_leader():
+			self.debug("Leader broadcasting ciphers to all nodes")
+			self.broadcast_to_all_nodes(cPickle.dumps(self.data_in))
+			self.debug("Cipher set len %d" % (len(self.data_in)))
+		else:
+			# Get C' ciphertexts from leader
+			self.data_in = self.recv_cipher_set()
+	
+		my_cipher_str = cPickle.dumps((self.round_id, self.cipher_prime))
+
+		go = False
+		if my_cipher_str in self.data_in:
+			self.info("Found my ciphertext in set")
+			go = True
+		else:
+			self.critical("ABORT! My ciphertext is not in set!")
+			go = False
+			#raise RuntimeError, "Protocol violation: My ciphertext is missing!"
+
+		hashval = self.hash_list(self.data_in)
+		go_msg = cPickle.dumps((
+					self.id,
+					self.round_id,
+					go,
+					hashval))
+		
+		go_data = ''
+		if self.am_leader():
+			# Collect go msgs
+			(data, addrs) = self.recv_from_n(self.n_nodes - 1)
+			
+			# Add leader's go message to set
+			data.append(go_msg)
+			go_data = cPickle.dumps((data))
+			self.broadcast_to_all_nodes(go_data)
+
+		else:
+			# Send go msg to leader
+			self.send_to_leader(go_msg)
+			(data, addrs) = self.recv_from_n(1)
+			go_data = data[0]
+		
+		self.check_go_data(hashval, go_data)
+		self.info("All nodes report GO")
+		return
+
+	def check_go_data(self, hashval, pickled_list):
+		go_lst = cPickle.loads(pickled_list)
+		for item in go_lst:
+			(r_id, r_round, r_go, r_hash) = cPickle.loads(item)
+			if r_round != self.round_id:
+			 	raise RuntimeError, "Mismatched round numbers"
+			if not r_go:
+			 	raise RuntimeError, "Node %d reports failure!" % (r_id)
+			if r_hash != hashval:
+			 	raise RuntimeError, "Node %d produced bad hash!" % (r_id)
+		return True
+
+#
+# PHASE 5
+#
+
+	def run_phase5(self):
+		self.advance_phase()
+
+		privkeys = []
+		mykeystr = self.priv_key_to_str(self.key2)
+
+		if self.am_leader():
+			(data, addr) = self.recv_from_n(self.n_nodes - 1)
+			# Concat 
+
+		else:
+			self.send_to_leader(mykeystr)
+			(data, addr) = self.recv_from_n(1)
+			keyarr = cPickle.loads(data[0])
+		
+
+
+#
 # Network Utility Functions
 #
 
@@ -218,6 +319,7 @@ class anon_node():
 		return cPickle.loads(data[0])
 
 	def broadcast_to_all_nodes(self, msg):
+		# Only leader can do this
 		for i in xrange(0, self.n_nodes-1):
 			ip, port = self.addrs[i]
 			self.send_to_addr(ip, port, msg)
@@ -241,6 +343,7 @@ class anon_node():
 		return (data, addrs)
 
 	def send_to_leader(self, msg):
+		sleep((self.id - 1) * 5.0)
 		ip,port = self.leader_addr
 		self.send_to_addr(ip, port, msg)
 
@@ -248,7 +351,7 @@ class anon_node():
 		self.debug("Trying to connect to (%s, %d)" % (ip, port))
 		sleep(random.randint(1,5))
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		for i in xrange(0, 10):
+		for i in xrange(0, 20):
 			try:
 				s.connect((ip, port))
 				break
@@ -300,8 +403,7 @@ class anon_node():
 		try:
 			s.bind((self.ip, self.port))
 		except socket.error, (errno, errstr):
-			if errno == 48:
-				critical('Leader cannot bind port')
+			if errno == 48: self.critical('Leader cannot bind port')
 			raise
 		s.listen(n_backlog)
 		self.debug("Socket listening at %s:%d" % (self.ip, self.port))
@@ -324,14 +426,22 @@ class anon_node():
 
 	def encrypt_with_rsa(self, pubkey, msg):
 		session_key = M2Crypto.Rand.rand_bytes(32)
-		padding = '\0' * (16 - (len(msg) % 16))
+		
+		# AES must be padded to make 16-byte blocks
+		# Since we prepend msg with # of padding bits
+		# we actually need one less padding bit
+		n_padding = ((16 - (len(msg) % 16)) - 1) % 16
+		padding = '\0' * n_padding
+
+		pad_struct = struct.pack('!B', n_padding)
+
 		encrypt = M2Crypto.EVP.Cipher('aes_256_cbc', 
 				session_key, self.iv, M2Crypto.encrypt)
 
 		# Output is tuple (E_rsa(session_key), E_aes(session_key, msg))
 		return cPickle.dumps((
 					pubkey.public_encrypt(session_key, M2Crypto.RSA.pkcs1_oaep_padding),
-					encrypt.update(msg+padding)))
+					encrypt.update(pad_struct + msg + padding)))
 
 	def decrypt_with_rsa(self, privkey, ciphertuple):
 		session_cipher, ciphertext = cPickle.loads(ciphertuple) 
@@ -344,12 +454,38 @@ class anon_node():
 		dummy_block =  ' ' * 8
 		decrypt = M2Crypto.EVP.Cipher('aes_256_cbc', 
 				session_key, self.iv, M2Crypto.decrypt)
-		return decrypt.update(ciphertext) + decrypt.update(dummy_block)
+
+		outstr = decrypt.update(ciphertext) + decrypt.update(dummy_block)
+		pad_data = outstr[0]
+		outstr = outstr[1:]
+
+		# Get num of bytes added at end
+		n_padding = struct.unpack('!B', pad_data)
+		
+		# Second element of tuple is always empty for some reason
+		n_padding = n_padding[0]
+		outstr = outstr[:(len(outstr) - n_padding)]
+
+		return outstr
 
 
 #
 # Key and file IO
 #
+
+	def hash_list(self, lst):
+		lstr = cPickle.dumps((lst))
+		return self.hash(lstr)
+
+	def hash(self, msg):
+		h = M2Crypto.EVP.MessageDigest('sha1')
+		h.update(msg)
+		return h.final()
+
+	def priv_key_to_str(self, privkey):
+		(handle, filename) = tempfile.mkstemp()
+		privkey.save_key(filename)
+		return self.key_from_filename(filename)		
 
 	def pub_key_to_str(self, pubkey):
 		(handle, filename) = tempfile.mkstemp()
@@ -404,10 +540,13 @@ class anon_node():
 	def debug(self, msg):
 		debug(self.debug_str(msg))
 
+	def critical(self, msg):
+		critical(self.debug_str(msg))
+
 	def info(self, msg):
 		info(" " + self.debug_str(msg))
 
 	def debug_str(self, msg):
-		return "(NODE %d - %s:%d) %s" % (self.id, self.ip, self.port, msg)
+		return "(NODE %d, PHZ %d - %s:%d) %s" % (self.id, self.phase, self.ip, self.port, msg)
 
 
