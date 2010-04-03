@@ -30,27 +30,20 @@ class anon_node():
 
 		self.pub_keys = {}
 
-		# Use this to test crypto functions
 		'''
+		# Use this to test crypto functions
 		self.generate_keys()
-		print self.priv_key_to_str(self.key2)
-	
 		m = ''
 		c = self.encrypt_with_rsa(self.key1, m)
 		print self.decrypt_with_rsa(self.key1, c)
 		sys.exit()
 		'''
-		self.initialize_sockets()
 
-		try:
-			self.run_phase1()
-			self.run_phase2()
-			self.run_phase3()
-			self.run_phase4()
-			self.run_phase5()
-		except KeyboardInterrupt, SystemExit:
-			self.close_sockets()
-			raise
+		self.run_phase1()
+		self.run_phase2()
+		self.run_phase3()
+		self.run_phase4()
+		self.run_phase5()
 
 	def advance_phase(self):
 		self.phase = self.phase + 1
@@ -76,10 +69,9 @@ class anon_node():
 		if self.am_leader():
 			self.debug('Leader starting phase 1')
 
-
 			# We need to save addresses so that we can
 			# broadcast to all nodes
-			(all_msgs, addrs) = self.recv_from_all_nodes()
+			(all_msgs, addrs) = self.recv_from_n(self.n_nodes-1)
 			
 			# Get all node addrs via this msg
 			self.addrs = self.unpickle_pub_keys(all_msgs)
@@ -89,16 +81,15 @@ class anon_node():
 			self.info('Leader has all public keys')
 
 			pick_keys_str = self.phase1b_msg()
-			self.send_to_all_nodes(pick_keys_str)
+			self.broadcast_to_all_nodes(pick_keys_str)
 
 			self.info('Leader sent all public keys')
 
 		else:
 			self.send_to_leader(self.phase1_msg())
-			junk = self.recv_from_leader()
-
+		
 			# Get all pub keys from leader
-			(keys, addrs) = self.recv_from_leader()
+			(keys, addrs) = self.recv_from_n(1)
 			self.unpickle_keyset(keys[0])
 
 			self.info('Got keys from leader!')
@@ -239,7 +230,7 @@ class anon_node():
 		self.advance_phase()
 		if self.am_leader():
 			self.debug("Leader broadcasting ciphers to all nodes")
-			self.send_to_all_nodes(cPickle.dumps(self.data_in))
+			self.broadcast_to_all_nodes(cPickle.dumps(self.data_in))
 			self.debug("Cipher set len %d" % (len(self.data_in)))
 		else:
 			# Get C' ciphertexts from leader
@@ -275,11 +266,8 @@ class anon_node():
 
 		else:
 			# Send go msg to leader
-			self.debug('Sending my GO message')
 			self.send_to_leader(go_msg)
-			self.debug('Waiting for collection of GO msgs')
 			(data, addrs) = self.recv_from_n(1)
-			self.debug('Got set of GO msgs')
 			go_data = data[0]
 		
 		self.check_go_data(hashval, go_data)
@@ -306,110 +294,22 @@ class anon_node():
 		self.advance_phase()
 
 		privkeys = []
-		mykeystr = cPickle.dumps((
-					self.id,
-					self.round_id,
-					self.priv_key_to_str(self.key2)))
+		mykeystr = self.priv_key_to_str(self.key2)
 
 		if self.am_leader():
 			(data, addr) = self.recv_from_n(self.n_nodes - 1)
-			data.append(mykeystr)
-			self.broadcast_to_all_nodes(cPickle.dumps((data)))
+			# Concat 
 
 		else:
-			self.info('Sending key to leader')
 			self.send_to_leader(mykeystr)
 			(data, addr) = self.recv_from_n(1)
-			self.info('Got key set from leader')
-			data = cPickle.loads(data[0])
+			keyarr = cPickle.loads(data[0])
 		
-		self.decrypt_ciphers(data)
-		self.info('Decrypted ciphertexts')
-		for c in self.anon_data:
-			self.info("MSG RECV'D: %s" % (c))
-
-	def decrypt_ciphers(self, keyset):
-		priv_keys = {}
-		for item in keyset:
-			(r_id, r_roundid, r_keystr) = cPickle.loads(item)
-			if r_roundid != self.round_id:
-				raise RuntimeError, 'Mismatched round numbers'
-			self.debug(r_keystr)
-			priv_keys[r_id] = self.priv_key_from_str(r_keystr)
-	
-		plaintexts = []
-		for cipher in self.data_in:
-			for i in xrange(self.n_nodes - 1, -1, -1):
-				plaintexts.append(self.decrypt_with_rsa(priv_keys[i], cipher))
-		
-		self.anon_data = plaintexts
 
 
 #
 # Network Utility Functions
 #
-
-	def initialize_sockets(self):
-		if self.am_leader():
-			self.setup_leader_sockets()
-			return
-
-		p_ip, p_port = self.prev_addr
-		n_ip, n_port = self.next_addr
-
-		self.sock_prev = self.get_server_socket(1)
-		self.info('Connected to prev node')
-		
-		self.socket_next = self.connect_to_addr(n_ip, n_port)
-		self.info('Connected to next node')
-
-		(l_ip, l_port) = self.leader_addr
-		self.socket_leader = self.connect_to_addr(l_ip, l_port)
-
-	def setup_leader_sockets(self):
-		self.sockets = []
-		data = []
-		server_sock = self.get_server_socket(self.n_nodes - 1)
-		for i in xrange(0, self.n_nodes):
-			self.debug('Waiting for connections...')
-			try:
-				(r_sock, (r_ip, r_port)) = server_sock.accept()
-			except KeyboardInterrupt:
-				server_sock.close()
-				raise
-			self.sockets.append(r_sock)
-		return server_sock
-
-	def close_sockets(self):
-		if self.am_leader():
-			for s in self.sockets: s.close()
-		else:
-			self.socket.close()
-
-	def connect_to_addr(self, ip, port):
-		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-		s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-		sleep(random.randint(1,5))
-		for i in xrange(0, 20):
-			try:
-				s.connect((ip, port))
-				break
-			except socket.error, (errno, errstr):
-				if errno == 61: # Server not awake yet
-					if i == 19:
-						raise RuntimeError, "Cannot connect to server"
-					self.debug("Waiting for server...")
-					sleep(random.randint(1,5))
-				elif errno == 22:
-					self.debug("Server (%s:%d) not listening yet..." % (ip, port))
-					sleep(random.randint(1,5))
-					if i == 19: raise
-				else: raise
-			except KeyboardInterrupt:
-				s.close()
-				raise
-		return s
 
 	def recv_cipher_set(self):
 		# data_in arrives as a singleton list of a pickled
@@ -418,101 +318,107 @@ class anon_node():
 		(data, addrs) = self.recv_from_n(1)
 		return cPickle.loads(data[0])
 
-	def send_to_all_nodes(self, msg):
-		if not self.am_leader():
-			raise RuntimeError, "Only leader can broadcast"
-		for s in self.sockets:
-			self.send_to_socket(s, msg)
+	def broadcast_to_all_nodes(self, msg):
+		# Only leader can do this
+		for i in xrange(0, self.n_nodes-1):
+			ip, port = self.addrs[i]
+			self.send_to_addr(ip, port, msg)
 
-	def recv_from_all_nodes(self):
+	def recv_from_n(self, n_backlog):
+		self.debug('Setting up server socket')
+		# set up server connection 
+		addrs = []
+		server_sock = self.get_server_socket(n_backlog)
 		data = []
-		if not self.am_leader():
-			raise RuntimeError, "Only leader can recv from all nodes"
-		for s in self.sockets:
-		 	(ip, port) = s.getpeername()
-		 	self.debug("Receiving from %s:%d" % (ip, port))
-			data.append(self.recv_from_socket(s))
-		return data
-
-	def recv_from_leader(self):
-		if self.am_leader():
-			raise RuntimeError, 'Leader cannot send to self'
-		return self.recv_from_socket(self.socket_leader)
+		for i in xrange(0, n_backlog):
+			self.debug("Listening...")
+			try:
+				(rem_sock, (rem_ip, rem_port)) = server_sock.accept()
+				addrs.append((rem_ip, rem_port))
+			except KeyboardInterrupt:
+				server_sock.close()
+				raise
+			data.append(self.recv_from_sock(rem_sock, rem_ip, rem_port))
+		server_sock.close()
+		return (data, addrs)
 
 	def send_to_leader(self, msg):
-		if self.am_leader():
-			raise RuntimeError, 'Leader cannot send to self'
-		self.send_to_socket(self.socket_leader, msg)
+		sleep((self.id - 1) * 5.0)
+		ip,port = self.leader_addr
+		self.send_to_addr(ip, port, msg)
 
-	def junk_str(self):
-		return ('JUNK' * 1024)
+	def send_to_addr(self, ip, port, msg):
+		self.debug("Trying to connect to (%s, %d)" % (ip, port))
+		sleep(random.randint(1,5))
+		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		for i in xrange(0, 20):
+			try:
+				s.connect((ip, port))
+				break
+			except socket.error, (errno, errstr):
+				if errno == 61 or errno == 22: # Server not awake yet
+					if i == 9:
+						raise RuntimeError, "Cannot connect to server"
+					self.debug("Waiting for server...")
+					sleep(random.randint(1,5))
+				else: raise
+			except KeyboardInterrupt:
+				s.close()
+				raise
 
-	def send_to_socket(self, sock, msg):
-		msg += self.junk_str()
-		# Prepend length of message in a long long int
-		msg = struct.pack("!Q", len(msg)) + msg
+		self.info("Connected to node")
+		self.send_to_socket(s, msg)
+		s.close()
+		self.debug("Closed socket to server")
 
+
+	def send_to_socket(self, socket, msg):
 		# Snippet from http://www.amk.ca/python/howto/sockets/
-		self.debug('Starting to send')
-
 		totalsent = 0
 		while totalsent < len(msg):
-			sent = sock.send(msg[totalsent:])
+			sent = socket.send(msg[totalsent:])
 			self.debug("Sent %d bytes" % (sent))
 			if sent == 0:
 				raise RuntimeError, "Socket broken"
 			totalsent = totalsent + sent
-		self.debug("Message sent")
-		return
 
-	def recv_from_socket(self, sock):
-		header_len = struct.calcsize("!Q")
-		self.info("Reading %d header bytes from socket..." % (header_len))
-		header = self.recv_n_bytes(sock, header_len)
-
-		# Use header to determine data length
-		# Second tuple is always empty for some reason
-		(data_len,) = struct.unpack("!Q", header)
-		self.info("Reading %d data bytes from socket" % (data_len))
-		data = self.recv_n_bytes(sock, data_len)
-		return data[:len(data) - len(self.junk_str())]
-	
-	def recv_n_bytes(self, sock, n_bytes):
+	def recv_from_sock(self, newsock, ip, port):
+		self.info("Reading from %s:%d" % (ip, port)) 
 		data = ""
-		bytes_left = n_bytes
 		while True:
 			try:
-				newdata = sock.recv(bytes_left)
-				self.debug("Got %d bytes" % (len(newdata)))
-				data = data + newdata
+				newdat = newsock.recv(4096)
 			except socket.error, (errno, errstr):
-				# Error 35 means nothing has been sent yet
 				if errno == 35: continue
 				else: raise
-			if len(data) == n_bytes:
-				break
-			elif len(data) == 0:
-			 	raise RuntimeError, "Remote peer cut the connection"
-			else:
-				bytes_left = bytes_left - len(newdata)
+			if len(newdat) == 0: break
+			data += newdat
 		return data
+
 
 	def get_server_socket(self, n_backlog):
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		s.setsockopt(socket.IPPROTO_TCP, socket.SO_KEEPALIVE, 1)
-		s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 		s.setblocking(1)
 		s.settimeout(30.0 * self.n_nodes)
 		try:
 			s.bind((self.ip, self.port))
 		except socket.error, (errno, errstr):
-			if errno == 48: self.critical('Cannot bind server port')
+			if errno == 48: self.critical('Leader cannot bind port')
 			raise
 		s.listen(n_backlog)
-		self.debug("Server listening at %s:%d" % (self.ip, self.port))
+		self.debug("Socket listening at %s:%d" % (self.ip, self.port))
 		
 		return s
 
+
+#
+# Network stuff
+#
+
+	def set_up_connections(self):
+		# Server for i-1, client to i+1
+		pass
+		
 
 #
 # Encryption
@@ -578,16 +484,8 @@ class anon_node():
 
 	def priv_key_to_str(self, privkey):
 		(handle, filename) = tempfile.mkstemp()
-		privkey.save_key(filename, callback = lambda x: '')
+		privkey.save_key(filename)
 		return self.key_from_filename(filename)		
-
-	def priv_key_from_str(self, key_str):
-		(handle, filename) = tempfile.mkstemp()
-		f = open(filename, 'w')
-		f.write(key_str)
-		f.close()
-
-		return M2Crypto.RSA.load_key(filename, callback = lambda x: '')
 
 	def pub_key_to_str(self, pubkey):
 		(handle, filename) = tempfile.mkstemp()
@@ -600,7 +498,8 @@ class anon_node():
 		f.write(key_str)
 		f.close()
 
-		return M2Crypto.RSA.load_pub_key(filename)
+		key = M2Crypto.RSA.load_pub_key(filename)
+		return key
 
 	def key_from_file(self, key_number):
 		return self.key_from_filename(self.key_filename(key_number))
