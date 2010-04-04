@@ -1,16 +1,18 @@
 import logging, random, sys
-from time import sleep
+from time import sleep, time
 from logging import debug, info, critical
-import asyncore, socket, cPickle, tempfile
-import M2Crypto.RSA, struct, base64, M2Crypto.Rand
+import socket, cPickle, tempfile
+import struct, base64
+from utils import Utilities
+import M2Crypto.RSA
+from anon_crypto import AnonCrypto
 
 class anon_node():
 	def __init__(self, id, key_len, round_id, n_nodes,
-			my_addr, leader_addr, prev_addr, next_addr):
+			my_addr, leader_addr, prev_addr, next_addr, msg_file):
 		ip,port = my_addr
-		info("Node started (id=%d, addr=%s:%d, key_len=%d, round_id=%d, n_nodes=%d)"
-			% (id, ip, port, key_len, round_id, n_nodes))
 
+		self.start_time = time()
 		self.id = id
 		self.key_len = key_len
 		self.n_nodes = n_nodes
@@ -22,36 +24,50 @@ class anon_node():
 		self.next_addr = next_addr
 		self.phase = 0
 
-		# A very unsecure initialization vector
-		self.iv = 'al*73lf9)982'
+		self.msg_contents = Utilities.read_file_to_str(msg_file)
+
+		info("Node started (id=%d, addr=%s:%d, key_len=%d, round_id=%d, n_nodes=%d)"
+			% (id, ip, port, key_len, round_id, n_nodes))
 
 		logger = logging.getLogger()
 		logger.setLevel(logging.DEBUG)
 
 		self.pub_keys = {}
 
-		
-		'''	
+		'''		
 		# Use this to test crypto functions
 		self.generate_keys()
 
-		m = 'this is the message'
+		if self.id > 0: sys.exit()
+		m = '1' * 1000000
 		c = self.encrypt_with_rsa(self.key1, m)
+		self.debug("LENGTH: %d" % len(c))
+		sys.exit()
 		print self.decrypt_with_rsa(self.key1, c)
 		sys.exit()
 		'''
 
+	def run_protocol(self):
 		self.run_phase1()
 		self.run_phase2()
 		self.run_phase3()
 		self.run_phase4()
 		self.run_phase5()
 
+		self.info("Finished in %g seconds" % (time() - self.start_time))
+
+	def output_filenames(self):
+		return self.write_anon_data_filenames()	
+
+#
+#
+#
+
 	def advance_phase(self):
 		self.phase = self.phase + 1
 
 	def datum_string(self):
-		return "Secret anonymous message from node %d" % (self.id)
+		return self.msg_contents
 
 	def am_leader(self):
 		return self.id == 0
@@ -105,8 +121,8 @@ class anon_node():
 		for i in keydict:
 			s1,s2 = keydict[i]
 
-			k1 = self.pub_key_from_str(s1)
-			k2 = self.pub_key_from_str(s2)
+			k1 = AnonCrypto.pub_key_from_str(s1)
+			k2 = AnonCrypto.pub_key_from_str(s2)
 			k1.check_key()
 			k2.check_key()
 			self.pub_keys[i] = (k1, k2)
@@ -124,8 +140,9 @@ class anon_node():
 				raise RuntimeError, "Mismatched round numbers! (mine: %d, other: %d)" % (
 						self.round_id, rem_round)
 
-			self.pub_keys[rem_id] = (self.pub_key_from_str(rem_key1),
-				self.pub_key_from_str(rem_key2))
+			self.pub_keys[rem_id] = (
+					AnonCrypto.pub_key_from_str(rem_key1),
+					AnonCrypto.pub_key_from_str(rem_key2))
 			addrs.append((rem_ip, rem_port))
 		return addrs
 
@@ -142,7 +159,9 @@ class anon_node():
 		newdict = {}
 		for i in xrange(0, self.n_nodes):
 			k1,k2 = self.pub_keys[i]
-			newdict[i] = (self.pub_key_to_str(k1), self.pub_key_to_str(k2))
+			newdict[i] = (
+				AnonCrypto.pub_key_to_str(k1),
+				 AnonCrypto.pub_key_to_str(k2))
 
 		return cPickle.dumps((self.round_id, newdict))
 
@@ -175,14 +194,14 @@ class anon_node():
 		
 		for i in xrange(self.n_nodes-1, -1, -1):
 			k1, k2 = self.pub_keys[i]
-			self.cipher_prime = self.encrypt_with_rsa(k2, self.cipher_prime)
+			self.cipher_prime = AnonCrypto.encrypt_with_rsa(k2, self.cipher_prime)
 
 		self.cipher = self.cipher_prime
 
 		# Encrypt with all primary keys from N ... 1
 		for i in xrange(self.n_nodes-1, -1, -1):
 			k1, k2 = self.pub_keys[i]
-			self.cipher = self.encrypt_with_rsa(k1, self.cipher)
+			self.cipher = AnonCrypto.encrypt_with_rsa(k1, self.cipher)
 
 #
 # PHASE 3
@@ -222,7 +241,7 @@ class anon_node():
 			if rem_round != self.round_id:
 				raise RuntimeError, "Mismatched round numbers (mine:%d, other:%d)" % (self.round_id, rem_round)
 
-			new_ctext = self.decrypt_with_rsa(self.key1, ctext)	
+			new_ctext = AnonCrypto.decrypt_with_rsa(self.key1, ctext)	
 			pickled = cPickle.dumps((self.round_id, new_ctext))
 			self.data_out.append(pickled)
 
@@ -252,7 +271,7 @@ class anon_node():
 			go = False
 			#raise RuntimeError, "Protocol violation: My ciphertext is missing!"
 
-		hashval = self.hash_list(self.final_ciphers)
+		hashval = AnonCrypto.hash_list(self.final_ciphers)
 		go_msg = cPickle.dumps((
 					self.id,
 					self.round_id,
@@ -301,7 +320,7 @@ class anon_node():
 		mykeystr = cPickle.dumps((
 							self.id,
 							self.round_id,
-							self.priv_key_to_str(self.key2)))
+							AnonCrypto.priv_key_to_str(self.key2)))
 
 		if self.am_leader():
 			(data, addr) = self.recv_from_n(self.n_nodes - 1)
@@ -315,11 +334,20 @@ class anon_node():
 			(data, addr) = self.recv_from_n(1)
 			self.info('Got key set from leader')
 			data = cPickle.loads(data[0])
-		
+
 		self.decrypt_ciphers(data)
 		self.info('Decrypted ciphertexts')
-		for c in self.anon_data:
-				self.info("MSG RECV'D: %s" % (c))
+		
+		return 
+
+	def write_anon_data_filenames(self):
+		filenames = []
+		for i in xrange(0, len(self.anon_data)):
+			handle, fname = tempfile.mkstemp()
+			Utilities.write_str_to_file(fname, self.anon_data[i])
+			filenames.append(fname)
+		return filenames
+
 
 	def decrypt_ciphers(self, keyset):
 		priv_keys = {}
@@ -327,7 +355,7 @@ class anon_node():
 			(r_id, r_roundid, r_keystr) = cPickle.loads(item)
 			if r_roundid != self.round_id:
 				raise RuntimeError, 'Mismatched round numbers'
-			priv_keys[r_id] = self.priv_key_from_str(r_keystr)
+			priv_keys[r_id] = AnonCrypto.priv_key_from_str(r_keystr)
 
 		plaintexts = []
 		for cipher in self.final_ciphers:
@@ -335,9 +363,8 @@ class anon_node():
 			if r_round != self.round_id:
 				raise RuntimeError, 'Mismatched round ids'
 			for i in xrange(0, self.n_nodes):
-				cipher_prime = self.decrypt_with_rsa(priv_keys[i], cipher_prime)
+				cipher_prime = AnonCrypto.decrypt_with_rsa(priv_keys[i], cipher_prime)
 			plaintexts.append(cipher_prime)
-			self.debug("Decrypted with key %d" % (i))
 		
 		self.anon_data = plaintexts
 
@@ -449,110 +476,20 @@ class anon_node():
 
 
 #
-# Encryption
+# Utility Functions 
 #
 
-	def encrypt_with_rsa(self, pubkey, msg):
-		session_key = M2Crypto.Rand.rand_bytes(32)
-		
-		# AES must be padded to make 16-byte blocks
-		# Since we prepend msg with # of padding bits
-		# we actually need one less padding bit
-		n_padding = ((16 - (len(msg) % 16)) - 1) % 16
-		padding = '\0' * n_padding
-
-		pad_struct = struct.pack('!B', n_padding)
-
-		encrypt = M2Crypto.EVP.Cipher('aes_256_cbc', 
-				session_key, self.iv, M2Crypto.encrypt)
-
-		# Output is tuple (E_rsa(session_key), E_aes(session_key, msg))
-		return cPickle.dumps((
-					pubkey.public_encrypt(session_key, M2Crypto.RSA.pkcs1_oaep_padding),
-					encrypt.update(pad_struct + msg + padding)))
-
-	def decrypt_with_rsa(self, privkey, ciphertuple):
-		# Input is tuple (E_rsa(session_key), E_aes(session_key, msg))
-		session_cipher, ciphertext = cPickle.loads(ciphertuple) 
-		
-		# Get session key using RSA decryption
-		session_key = privkey.private_decrypt(session_cipher, M2Crypto.RSA.pkcs1_oaep_padding)
-		
-		# Use session key to recover string
-		dummy_block =  ' ' * 8
-		decrypt = M2Crypto.EVP.Cipher('aes_256_cbc', 
-				session_key, self.iv, M2Crypto.decrypt)
-
-		outstr = decrypt.update(ciphertext) + decrypt.update(dummy_block)
-		pad_data = outstr[0]
-		outstr = outstr[1:]
-
-		# Get num of bytes added at end
-		n_padding = struct.unpack('!B', pad_data)
-		
-		# Second element of tuple is always empty for some reason
-		n_padding = n_padding[0]
-		outstr = outstr[:(len(outstr) - n_padding)]
-
-		return outstr
-
-
-#
-# Key and file IO
-#
-
-	def hash_list(self, lst):
-		lstr = cPickle.dumps((lst))
-		return self.hash(lstr)
-
-	def hash(self, msg):
-		h = M2Crypto.EVP.MessageDigest('sha1')
-		h.update(msg)
-		return h.final()
-
-	def key_password(self, input):
-		return '12f*d4&^#)!-1728410df'
-
-	def priv_key_to_str(self, privkey):
-		return privkey.as_pem(callback = self.key_password)
-
-	def priv_key_from_str(self, key_str):
-		(handle, filename) = tempfile.mkstemp()
-		f = open(filename, 'w')
-		f.write(key_str)
-		f.close()
-		key = M2Crypto.RSA.load_key(filename, callback = self.key_password)
-		if not key.check_key(): raise RuntimeError, 'Bad key decode'
-		return key
-
-	def pub_key_to_str(self, pubkey):
-		(handle, filename) = tempfile.mkstemp()
-		pubkey.save_key(filename)
-		return self.key_from_filename(filename)
-
-	def pub_key_from_str(self, key_str):
-		(handle, filename) = tempfile.mkstemp()
-		f = open(filename, 'w')
-		f.write(key_str)
-		f.close()
-		return M2Crypto.RSA.load_pub_key(filename)
 
 	def key_from_file(self, key_number):
-		return self.key_from_filename(self.key_filename(key_number))
-	
-	def key_from_filename(self, filename):
-		str = ""
-		with open(filename, 'r') as f:
-			for line in f:
-				str += line
-		return str
+		return Utilities.read_file_to_str(self.key_filename(key_number))
 
 	def have_all_keys(self):
 		return len(self.pub_keys) == self.n_nodes
 
-	def generate_keys(self):
-		self.key1 = self.random_key()
-		self.key2 = self.random_key()
+	def generate_keys(self):	
+		info("Generating keypair, please wait...")
+		self.key1 = AnonCrypto.random_key(self.key_len)
+		self.key2 = AnonCrypto.random_key(self.key_len)
 		self.save_pub_key(self.key1, 1)
 		self.save_pub_key(self.key2, 2)
 
@@ -568,10 +505,6 @@ class anon_node():
 
 	def node_key_filename(self, node_id, key_number):
 		return "/tmp/anon_node_%d_%d.pem" % (node_id, key_number)
-
-	def random_key(self):
-		info("Generating keypair, please wait...")
-		return M2Crypto.RSA.gen_key(self.key_len, 65537)
 
 	def debug(self, msg):
 		debug(self.debug_str(msg))

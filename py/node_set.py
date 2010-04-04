@@ -29,7 +29,8 @@ class node_set():
 				my_ip, str(my_port),
 				leader_ip, str(leader_port),
 				prev_ip, str(prev_port),
-				next_ip, str(next_port)]
+				next_ip, str(next_port),
+				"data/node%04i.msg" % i]
 			debug(args)
 			processes.append(Popen(args))
 		return processes
