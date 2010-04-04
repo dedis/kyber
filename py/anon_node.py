@@ -30,10 +30,12 @@ class anon_node():
 
 		self.pub_keys = {}
 
-		'''
+		
+		'''	
 		# Use this to test crypto functions
 		self.generate_keys()
-		m = ''
+
+		m = 'this is the message'
 		c = self.encrypt_with_rsa(self.key1, m)
 		print self.decrypt_with_rsa(self.key1, c)
 		sys.exit()
@@ -170,6 +172,7 @@ class anon_node():
 	def create_cipher_string(self):
 		self.cipher_prime = self.datum_string()
 		# Encrypt with all secondary keys from N ... 1
+		
 		for i in xrange(self.n_nodes-1, -1, -1):
 			k1, k2 = self.pub_keys[i]
 			self.cipher_prime = self.encrypt_with_rsa(k2, self.cipher_prime)
@@ -216,7 +219,7 @@ class anon_node():
 		self.data_out = []
 		for ctuple in self.data_in:
 			(rem_round, ctext) = cPickle.loads(ctuple)
-			if int(rem_round) != self.round_id:
+			if rem_round != self.round_id:
 				raise RuntimeError, "Mismatched round numbers (mine:%d, other:%d)" % (self.round_id, rem_round)
 
 			new_ctext = self.decrypt_with_rsa(self.key1, ctext)	
@@ -232,14 +235,16 @@ class anon_node():
 			self.debug("Leader broadcasting ciphers to all nodes")
 			self.broadcast_to_all_nodes(cPickle.dumps(self.data_in))
 			self.debug("Cipher set len %d" % (len(self.data_in)))
+			self.final_ciphers = self.data_in
 		else:
 			# Get C' ciphertexts from leader
-			self.data_in = self.recv_cipher_set()
-	
+			self.final_ciphers = self.recv_cipher_set()
+
+		# self.final_ciphers holds an array of pickled (round_id, cipher_prime) tuples
 		my_cipher_str = cPickle.dumps((self.round_id, self.cipher_prime))
 
 		go = False
-		if my_cipher_str in self.data_in:
+		if my_cipher_str in self.final_ciphers:
 			self.info("Found my ciphertext in set")
 			go = True
 		else:
@@ -247,7 +252,7 @@ class anon_node():
 			go = False
 			#raise RuntimeError, "Protocol violation: My ciphertext is missing!"
 
-		hashval = self.hash_list(self.data_in)
+		hashval = self.hash_list(self.final_ciphers)
 		go_msg = cPickle.dumps((
 					self.id,
 					self.round_id,
@@ -293,19 +298,48 @@ class anon_node():
 	def run_phase5(self):
 		self.advance_phase()
 
-		privkeys = []
-		mykeystr = self.priv_key_to_str(self.key2)
+		mykeystr = cPickle.dumps((
+							self.id,
+							self.round_id,
+							self.priv_key_to_str(self.key2)))
 
 		if self.am_leader():
 			(data, addr) = self.recv_from_n(self.n_nodes - 1)
-			# Concat 
+			data.append(mykeystr)
+			self.debug("Key data...")
+			self.broadcast_to_all_nodes(cPickle.dumps((data)))
 
 		else:
+			self.info('Sending key to leader')
 			self.send_to_leader(mykeystr)
 			(data, addr) = self.recv_from_n(1)
-			keyarr = cPickle.loads(data[0])
+			self.info('Got key set from leader')
+			data = cPickle.loads(data[0])
 		
+		self.decrypt_ciphers(data)
+		self.info('Decrypted ciphertexts')
+		for c in self.anon_data:
+				self.info("MSG RECV'D: %s" % (c))
 
+	def decrypt_ciphers(self, keyset):
+		priv_keys = {}
+		for item in keyset:
+			(r_id, r_roundid, r_keystr) = cPickle.loads(item)
+			if r_roundid != self.round_id:
+				raise RuntimeError, 'Mismatched round numbers'
+			priv_keys[r_id] = self.priv_key_from_str(r_keystr)
+
+		plaintexts = []
+		for cipher in self.final_ciphers:
+			(r_round, cipher_prime) = cPickle.loads(cipher)
+			if r_round != self.round_id:
+				raise RuntimeError, 'Mismatched round ids'
+			for i in xrange(0, self.n_nodes):
+				cipher_prime = self.decrypt_with_rsa(priv_keys[i], cipher_prime)
+			plaintexts.append(cipher_prime)
+			self.debug("Decrypted with key %d" % (i))
+		
+		self.anon_data = plaintexts
 
 #
 # Network Utility Functions
@@ -340,18 +374,19 @@ class anon_node():
 				raise
 			data.append(self.recv_from_sock(rem_sock, rem_ip, rem_port))
 		server_sock.close()
+		self.debug('Got all messages, closing socket')
 		return (data, addrs)
 
 	def send_to_leader(self, msg):
-		sleep((self.id - 1) * 5.0)
+#sleep((self.id - 1) * 5.0)
 		ip,port = self.leader_addr
 		self.send_to_addr(ip, port, msg)
 
 	def send_to_addr(self, ip, port, msg):
 		self.debug("Trying to connect to (%s, %d)" % (ip, port))
-		sleep(random.randint(1,5))
-		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#sleep(random.randint(1,5))
 		for i in xrange(0, 20):
+			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			try:
 				s.connect((ip, port))
 				break
@@ -361,6 +396,7 @@ class anon_node():
 						raise RuntimeError, "Cannot connect to server"
 					self.debug("Waiting for server...")
 					sleep(random.randint(1,5))
+					s.close()
 				else: raise
 			except KeyboardInterrupt:
 				s.close()
@@ -382,17 +418,18 @@ class anon_node():
 				raise RuntimeError, "Socket broken"
 			totalsent = totalsent + sent
 
-	def recv_from_sock(self, newsock, ip, port):
+	def recv_from_sock(self, sock, ip, port):
 		self.info("Reading from %s:%d" % (ip, port)) 
 		data = ""
 		while True:
 			try:
-				newdat = newsock.recv(4096)
+				newdat = sock.recv(4096)
 			except socket.error, (errno, errstr):
 				if errno == 35: continue
 				else: raise
 			if len(newdat) == 0: break
 			data += newdat
+		sock.close()
 		return data
 
 
@@ -410,15 +447,6 @@ class anon_node():
 		
 		return s
 
-
-#
-# Network stuff
-#
-
-	def set_up_connections(self):
-		# Server for i-1, client to i+1
-		pass
-		
 
 #
 # Encryption
@@ -444,11 +472,11 @@ class anon_node():
 					encrypt.update(pad_struct + msg + padding)))
 
 	def decrypt_with_rsa(self, privkey, ciphertuple):
+		# Input is tuple (E_rsa(session_key), E_aes(session_key, msg))
 		session_cipher, ciphertext = cPickle.loads(ciphertuple) 
 		
 		# Get session key using RSA decryption
-		session_key = privkey.private_decrypt(session_cipher, 
-				M2Crypto.RSA.pkcs1_oaep_padding)
+		session_key = privkey.private_decrypt(session_cipher, M2Crypto.RSA.pkcs1_oaep_padding)
 		
 		# Use session key to recover string
 		dummy_block =  ' ' * 8
@@ -482,10 +510,20 @@ class anon_node():
 		h.update(msg)
 		return h.final()
 
+	def key_password(self, input):
+		return '12f*d4&^#)!-1728410df'
+
 	def priv_key_to_str(self, privkey):
+		return privkey.as_pem(callback = self.key_password)
+
+	def priv_key_from_str(self, key_str):
 		(handle, filename) = tempfile.mkstemp()
-		privkey.save_key(filename)
-		return self.key_from_filename(filename)		
+		f = open(filename, 'w')
+		f.write(key_str)
+		f.close()
+		key = M2Crypto.RSA.load_key(filename, callback = self.key_password)
+		if not key.check_key(): raise RuntimeError, 'Bad key decode'
+		return key
 
 	def pub_key_to_str(self, pubkey):
 		(handle, filename) = tempfile.mkstemp()
@@ -497,9 +535,7 @@ class anon_node():
 		f = open(filename, 'w')
 		f.write(key_str)
 		f.close()
-
-		key = M2Crypto.RSA.load_pub_key(filename)
-		return key
+		return M2Crypto.RSA.load_pub_key(filename)
 
 	def key_from_file(self, key_number):
 		return self.key_from_filename(self.key_filename(key_number))
