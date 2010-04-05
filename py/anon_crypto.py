@@ -11,6 +11,7 @@ class AnonCrypto:
 	# A very unsecure initialization vector
 	AES_IV = 'al*73lf9)982'
 	KEYFILE_PASSWORD = '12f*d4&^#)!-1728410df' 
+	PRNG_SEED_LEN = 1024
 
 	
 	@ staticmethod
@@ -94,6 +95,14 @@ class AnonCrypto:
 		return AnonCrypto.hash(cPickle.dumps(lst))
 
 #
+# Random Numbers
+#
+
+	@staticmethod
+	def random_seed():
+		return M2Crypto.Rand.rand_bytes(AnonCrypto.PRNG_SEED_LEN)
+
+#
 # I/O Utility Functions
 #
 
@@ -120,5 +129,40 @@ class AnonCrypto:
 		(handle, filename) = tempfile.mkstemp()
 		Utilities.write_str_to_file(filename, key_str)
 		return M2Crypto.RSA.load_pub_key(filename)
-	
 
+#
+# Random Strings (Uses AES in counter mode)
+#
+
+class AnonRandom:
+	def __init__(self, seed):
+		self.encrypt = M2Crypto.EVP.Cipher('aes_256_cbc', 
+				seed, AnonCrypto.AES_IV, M2Crypto.encrypt)
+		self.counter = 0
+		self.hash = M2Crypto.EVP.MessageDigest('sha1')
+	
+	def rand_bytes(self, nbytes):
+		blocks = nbytes / 16
+		
+		out = ''
+		for i in xrange(0, blocks):
+			newblock = self.get_block()
+			self.hash.update(newblock)
+			out = out + newblock
+
+		if nbytes % 16 != 0:
+			lastblock = self.get_block()
+			lastbytes = lastblock[:(nbytes % 16)]
+			self.hash.update(lastbytes)
+			out = out + lastbytes
+
+		return out
+	
+	def get_block(self):
+		self.encrypt.update(struct.pack('>Q', self.counter))
+		block = self.encrypt.final()
+		self.counter = self.counter + 1
+		return block
+
+	def hash_value(self):
+		return self.hash.final()
