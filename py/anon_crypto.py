@@ -4,7 +4,8 @@
 
 import M2Crypto.EVP, M2Crypto.RSA, M2Crypto.Rand
 from utils import Utilities
-import tempfile, struct, cPickle
+import tempfile, struct, cPickle, base64
+from logging import debug
 
 class AnonCrypto: 
 	# A very unsecure initialization vector
@@ -28,7 +29,7 @@ class AnonCrypto:
 	@staticmethod
 	def encrypt_with_rsa(pubkey, msg):
 		session_key = M2Crypto.Rand.rand_bytes(32)
-		
+	
 		# AES must be padded to make 16-byte blocks
 		# Since we prepend msg with # of padding bits
 		# we actually need one less padding bit
@@ -41,18 +42,18 @@ class AnonCrypto:
 				session_key, AnonCrypto.AES_IV, M2Crypto.encrypt)
 
 		# Output is tuple (E_rsa(session_key), E_aes(session_key, msg))
-		return cPickle.dumps((
-					pubkey.public_encrypt(session_key,
-						M2Crypto.RSA.pkcs1_oaep_padding),
-					encrypt.update(pad_struct + msg + padding)))
+		enc_key = pubkey.public_encrypt(session_key, M2Crypto.RSA.pkcs1_oaep_padding)
+		enc_msg = encrypt.update(pad_struct + msg + padding) 
+
+		return enc_key + enc_msg
 
 	@staticmethod
-	def decrypt_with_rsa(privkey, ciphertuple):
-		# Input is tuple (E_rsa(session_key), E_aes(session_key, msg))
-		session_cipher, ciphertext = cPickle.loads(ciphertuple) 
+	def decrypt_with_rsa(privkey, cipherstr):
+		enc_key = cipherstr[:128]	# First 128 bytes are the key
+		enc_msg = cipherstr[128:]	# Rest is the padded AES ciphertext
 		
 		# Get session key using RSA decryption
-		session_key = privkey.private_decrypt(session_cipher, 
+		session_key = privkey.private_decrypt(enc_key, 
 				M2Crypto.RSA.pkcs1_oaep_padding)
 		
 		# Use session key to recover string
@@ -60,7 +61,7 @@ class AnonCrypto:
 		decrypt = M2Crypto.EVP.Cipher('aes_256_cbc', 
 				session_key, AnonCrypto.AES_IV, M2Crypto.decrypt)
 
-		outstr = decrypt.update(ciphertext) + decrypt.update(dummy_block)
+		outstr = decrypt.update(enc_msg) + decrypt.update(dummy_block)
 		pad_data = outstr[0]
 		outstr = outstr[1:]
 

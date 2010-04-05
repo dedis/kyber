@@ -1,5 +1,5 @@
 from logging import debug, info
-import anon_node, random
+import bulk_node, random
 from subprocess import Popen
 
 class node_set():
@@ -23,7 +23,7 @@ class node_set():
 			my_ip, my_port = self.nodes[i]
 			prev_ip, prev_port = self.nodes[(i-1)%len(self.nodes)] 
 			next_ip, next_port = self.nodes[(i+1)%len(self.nodes)] 
-			args = ['python', 'run_node.py',
+			args = ['python', 'run_bulk.py',
 				str(i), str(self.key_len),
 				str(self.round_id), str(len(self.nodes)),
 				my_ip, str(my_port),
