@@ -1,8 +1,7 @@
-import logging, random, sys, os
+import logging, random, sys, os, shutil
 from time import sleep, time
 from logging import debug, info, critical
-import socket, cPickle, tempfile
-import struct
+import cPickle, tempfile, struct, tarfile, base64
 from utils import Utilities
 import M2Crypto.RSA
 import M2Crypto.EVP
@@ -52,14 +51,12 @@ class bulk_node():
 		self.run_phase0()
 		self.run_phase1()
 		self.run_phase2()
+		self.run_phase3()
+		self.run_phase4()
 		self.info("Finished in %g seconds" % (time() - self.start_time))
 
 	def output_filenames(self):
-		return []
-
-#
-#
-#
+		return self.data_filenames
 
 	def advance_phase(self):
 		self.phase = self.phase + 1
@@ -177,15 +174,18 @@ class bulk_node():
 		(handle, self.cip_file) = tempfile.mkstemp()
 
 		blocksize = 8192
-
 		h = M2Crypto.EVP.MessageDigest('sha1')
 		with open(self.msg_file, 'r') as f_msg:
 			with open(self.cip_file, 'w') as f_cip:
 				block = f_msg.read(blocksize)
 				n_bytes = len(block)
 				for i in xrange(0, self.n_nodes):
+					# Don't XOR bits for self
+					if i == self.id: continue
+
 					r_bytes = self.gens[i].rand_bytes(n_bytes)
 					self.debug("l1: %d, l2: %d, n: %d" % (len(block), len(r_bytes), n_bytes))
+					self.debug("Bytes %d <<%s>>" % (i, r_bytes))
 					block = Utilities.xor_bytes(block, r_bytes)
 				f_cip.write(block)
 				h.update(block)
@@ -213,7 +213,6 @@ class bulk_node():
 				self.msg_len,
 				self.enc_seeds,
 				self.my_hashes), f)
-
 		return
 
 #
@@ -254,17 +253,21 @@ class bulk_node():
 #
 
 	def run_phase3(self):
+		self.advance_phase()
+		self.info("Starting data transmission phase")
+
 		self.responses = []
 		self.go_flag = False
 
-		self.tar_filename = tempfile.mkstemp()
-		tar = tarfile.TarFile(
-				self.tar_filename,
-				mode = 'w', # Create new archive
+		handle, self.tar_filename = tempfile.mkstemp()
+		tar = tarfile.open(
+				name = self.tar_filename,
+				mode = 'w:gz', # Create new archive
 				dereference = True)
 
 		# For each transmission slot
 		for i in xrange(0, self.n_nodes):
+			debug("Processing data for msg slot %d" % i)
 			slot_data = self.msg_data[i]
 			msg_len = slot_data[0]
 			enc_seeds = slot_data[1]
@@ -274,9 +277,10 @@ class bulk_node():
 				# If this is my seed, use the cheating message
 				self.go_flag = True
 				self.responses.append(self.dfilename)
+				tar.add(self.cip_file, "slot%d_node%d.dat" % (i, self.id))
 			else:
 				# Decrypt seed assigned to me
-				seed = self.decrypt_with_rsa(self.key1, enc_seeds[self.id])
+				seed = AnonCrypto.decrypt_with_rsa(self.key1, enc_seeds[self.id])
 				h_val, fname = self.generate_prng_file(seed, msg_len)
 
 				if h_val != hashes[self.id]:
@@ -285,23 +289,28 @@ class bulk_node():
 				tar.add(fname, "slot%d_node%d.dat" % (i, self.id))
 		tar.close()
 
+		if not self.go_flag:
+			raise RuntimeError, 'My ciphertext is missing'
+
 		if self.am_leader():
 			(fnames, addrs) = self.recv_files_from_n(self.n_nodes - 1)
 			fnames.append(self.tar_filename)
-			master_filename = self.create_master_tar(fnames)
-			self.broadcast_file_to_all_nodes(master_filename)
+			self.master_filename = self.create_master_tar(fnames)
+			self.broadcast_file_to_all_nodes(self.master_filename)
 		else:
 			self.send_file_to_leader(self.tar_filename)
 			(fnames, addrs) = self.recv_files_from_n(1)
+			self.master_filename = fnames[0]
 
 	def create_master_tar(self, fnames):
-		master_filename = tempfile.mkstemp()
-		tar = tarfile.TarFile(
+		handle, master_filename = tempfile.mkstemp()
+		tar = tarfile.open(
 				master_filename,
-				mode = 'w', # Create new archive
+				mode = 'w:gz', # Create new archive
 				dereference = True)
 
-		
+		for i in xrange(0, self.n_nodes):
+			tar.add(fnames[i], "row%d.mdat")
 
 		tar.close()
 		return master_filename
@@ -323,9 +332,113 @@ class bulk_node():
 
 				bytes_left = bytes_left - toread
 			
-		return (r.hash_value, filename)
+		return (r.hash_value(), filename)
 
+#
+# PHASE 4
+#
 
+	def run_phase4(self):
+		self.advance_phase()
+		self.info('Starting phase 4')
+
+		# We should now have a pointer to a master_filename, which
+		# is a tar of tars.  Each tar-set contains the message strings
+		# for a specific message slot.
+		
+		filenames = self.unpack_master_tar(self.master_filename)
+		self.data_filenames = []
+
+		for i in xrange(0, len(filenames)):
+			self.debug("Processing message slot %d" % i)
+			self.data_filenames.append(
+					self.process_msg_tar(filenames[i], self.msg_data[i]))
+
+	def process_msg_tar(self, subfiles, descrip_data):
+		# Process one message slot
+		hashes = []
+		handles = []
+
+		self.debug("Number of subfiles: %d" % len(subfiles))
+
+		# Make sure all files are the same size
+		size = os.path.getsize(subfiles[1])
+		for i in xrange(0, self.n_nodes):
+			thissize = os.path.getsize(subfiles[i])
+			self.debug("File size: %d" % thissize)
+
+			# Open all files and keep a running hash for each
+			hashes.append(M2Crypto.EVP.MessageDigest('sha1'))
+			handles.append(open(subfiles[i], 'r'))
+
+		oh, outfile = tempfile.mkstemp()
+
+		blocksize = 4096
+		more_to_read = True
+
+		# outfile holds the plaintext message for this slot 
+		with open(outfile, 'w') as f:
+			while more_to_read:
+				self.debug('Reading block from file...')
+				block_str = ''
+
+				# Iterate through contents from each user
+				for i in xrange(0, self.n_nodes):
+					bytes = handles[i].read(blocksize)
+
+					if bytes == '': 
+						more_to_read = False
+						break 	# Got to EOF
+
+					# XOR strings together
+					if i == 0: block_str = bytes
+					else: block_str = Utilities.xor_bytes(block_str, bytes)
+
+					hashes[i].update(bytes)
+				f.write(block_str)
+
+		hout = hashes[i].final()
+		for i in xrange(0, self.n_nodes):
+			if hout != descrip_data[2][i]:pass
+				raise RuntimeError, "Node %d sent bad hash (was: %s, expected: %s)" % (
+						i, base64.encodestring(hout), base64.encodestring(descrip_data[2][i]))
+		
+		return outfile
+
+	def unpack_master_tar(self, archive_filename):
+		# An array of tar archives -- one for each message
+		filenames = []
+		for i in xrange(0, self.n_nodes): filenames.append([])
+
+		tar = tarfile.open(archive_filename, 'r:*')
+
+		# Open the master tar file
+		for i in xrange(0, self.n_nodes):
+			# Create a new tempfile for each inner tar file.
+			# Inner tar holds message data for participant i
+			inner_tar_fname = self.copy_next_from_tar(tar)
+
+			# Open the inner tar file and iterate through its contents
+			innertar = tarfile.open(inner_tar_fname, 'r:*')
+			for j in xrange(0, self.n_nodes):
+				# filenames[j] holds filenames for message slot j
+				filenames[j].append(self.copy_next_from_tar(innertar))
+			innertar.close()
+		tar.close()	
+
+		return filenames
+
+	def copy_next_from_tar(self, tar):
+		finfo = tar.next()
+		if finfo == None: raise RuntimeError, 'Missing files in tar'
+
+		# Copy inner contents to a tempfile and save the file
+		h = tar.extractfile(finfo)
+		handle, file_name = tempfile.mkstemp()
+		with open(file_name, 'w') as f:
+			shutil.copyfileobj(h, f, 4096)
+		self.debug("File size: %d" % os.path.getsize(file_name))
+		return file_name
 
 #
 # Network Utility Functions
@@ -339,13 +452,19 @@ class bulk_node():
 		return cPickle.loads(data[0])
 
 	def broadcast_to_all_nodes(self, msg):
+		self.broadcast_using(AnonNet.send_to_addr, msg)
+
+	def broadcast_file_to_all_nodes(self, fname):
+		self.broadcast_using(AnonNet.send_file_to_addr, fname)
+
+	def broadcast_using(self, func, arg):
 		if not self.am_leader():
 			raise RuntimeError, 'Only leader can broadcast'
 
 		# Only leader can do this
 		for i in xrange(0, self.n_nodes-1):
 			ip, port = self.addrs[i]
-			AnonNet.send_to_addr(ip, port, msg)
+			func(ip, port, arg)	
 
 	def send_to_leader(self, msg):
 		ip,port = self.leader_addr

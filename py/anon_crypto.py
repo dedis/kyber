@@ -94,6 +94,17 @@ class AnonCrypto:
 	def hash_list(lst):
 		return AnonCrypto.hash(cPickle.dumps(lst))
 
+	@staticmethod
+	def hash_file(filename):
+		hash = M2Crypto.EVP.MessageDigest('sha1')
+		with open(filename, 'r') as f:
+			while True:
+				bytes = f.read(4096)
+				if bytes == '': break
+				hash.update(bytes)
+		return hash.final()
+
+
 #
 # Random Numbers
 #
@@ -142,6 +153,9 @@ class AnonRandom:
 		self.hash = M2Crypto.EVP.MessageDigest('sha1')
 	
 	def rand_bytes(self, nbytes):
+		### TEMP ###
+#return 'L' * nbytes
+
 		blocks = nbytes / 16
 		
 		out = ''

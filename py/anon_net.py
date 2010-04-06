@@ -24,25 +24,28 @@ class AnonNet:
 		with open(filename, 'r') as f:
 			while True:
 				bytes = f.read(blocksize)
-				if(bytes = '') break
+				if(bytes == ''): break
 				
-				debug("Sending %d bytes" % (bytes))
+				debug("Sending %d bytes" % len(bytes))
 				AnonNet.send_to_socket(sock, bytes)
 
 		sock.close()
 		debug('Closed socket to server')
 
 	@staticmethod
-	def recv_file_from_socket(sock):
+	def recv_file_from_sock(sock):
 		blocksize = 4096
-		filename = tempfile.mkstemp()
+		handle, filename = tempfile.mkstemp()
 
 		with open(filename, 'w') as f:
 			while True:
 				try:
-					newdat = sock.read(blocksize)
+					newdat = sock.recv(blocksize)
 				except KeyboardInterrupt, SystemExit:
 					sock.close()
+				except socket.error, (errno, errstr):
+					if errno == 35: continue
+					else: raise	
 
 				# File is done
 				if len(newdat) == 0: break
@@ -53,6 +56,7 @@ class AnonNet:
 
 		return filename
 
+	@staticmethod
 	def recv_files_from_n(server_ip, server_port, n_backlog):
 		debug('Setting up server socket')
 
@@ -148,7 +152,7 @@ class AnonNet:
 					if i == AnonNet.MAX_ATTEMPTS - 1:
 						raise RuntimeError, "Cannot connect to server"
 					debug("Waiting for server...")
-					sleep(random.randint(3,8))
+					sleep(random.randint(0,5))
 					sock.close()
 				else: raise
 			except KeyboardInterrupt:
