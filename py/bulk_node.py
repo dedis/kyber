@@ -175,20 +175,24 @@ class bulk_node():
 
 		blocksize = 8192
 		h = M2Crypto.EVP.MessageDigest('sha1')
+		self.debug('Starting to write data file')
 		with open(self.msg_file, 'r') as f_msg:
 			with open(self.cip_file, 'w') as f_cip:
-				block = f_msg.read(blocksize)
-				n_bytes = len(block)
-				for i in xrange(0, self.n_nodes):
-					# Don't XOR bits for self
-					if i == self.id: continue
+				while True: # Loop until file is done
+					block = f_msg.read(blocksize)
+					n_bytes = len(block)
+					if n_bytes == 0: break
+					for i in xrange(0, self.n_nodes):
+						# Don't XOR bits for self
+						if i == self.id: continue
 
-					r_bytes = self.gens[i].rand_bytes(n_bytes)
-					self.debug("l1: %d, l2: %d, n: %d" % (len(block), len(r_bytes), n_bytes))
-					self.debug("Bytes %d <<%s>>" % (i, r_bytes))
-					block = Utilities.xor_bytes(block, r_bytes)
-				f_cip.write(block)
-				h.update(block)
+						r_bytes = self.gens[i].rand_bytes(n_bytes)
+						#self.debug("l1: %d, l2: %d, n: %d" % (len(block), len(r_bytes), n_bytes))
+						block = Utilities.xor_bytes(block, r_bytes)
+					f_cip.write(block)
+					h.update(block)
+
+		self.debug('Finished writing my data file')
 
 		self.enc_seeds = []
 		for i in xrange(0, self.n_nodes):
@@ -277,16 +281,19 @@ class bulk_node():
 				# If this is my seed, use the cheating message
 				self.go_flag = True
 				self.responses.append(self.dfilename)
-				tar.add(self.cip_file, "slot%d_node%d.dat" % (i, self.id))
+				tar.add(self.cip_file, "%d" % (self.id))
 			else:
 				# Decrypt seed assigned to me
 				seed = AnonCrypto.decrypt_with_rsa(self.key1, enc_seeds[self.id])
 				h_val, fname = self.generate_prng_file(seed, msg_len)
 
 				if h_val != hashes[self.id]:
+					self.debug("Got: %s, Ex: %s" % (base64.encodestring(h_val), base64.encodestring(hashes[self.id])))
+					for q in xrange(0, len(hashes)):
+						self.debug("> %d - %s" % (q, base64.encodestring(hashes[q])))
 					raise RuntimeError, 'Mismatched hash values'
 
-				tar.add(fname, "slot%d_node%d.dat" % (i, self.id))
+				tar.add(fname, "%d" % (self.id))
 		tar.close()
 
 		if not self.go_flag:
@@ -310,7 +317,7 @@ class bulk_node():
 				dereference = True)
 
 		for i in xrange(0, self.n_nodes):
-			tar.add(fnames[i], "row%d.mdat")
+			tar.add(fnames[i], "-1")
 
 		tar.close()
 		return master_filename
@@ -352,9 +359,9 @@ class bulk_node():
 		for i in xrange(0, len(filenames)):
 			self.debug("Processing message slot %d" % i)
 			self.data_filenames.append(
-					self.process_msg_tar(filenames[i], self.msg_data[i]))
+					self.process_msg_tar(filenames[i], self.msg_data[i], i))
 
-	def process_msg_tar(self, subfiles, descrip_data):
+	def process_msg_tar(self, subfiles, descrip_data, slot_n):
 		# Process one message slot
 		hashes = []
 		handles = []
@@ -379,12 +386,12 @@ class bulk_node():
 		# outfile holds the plaintext message for this slot 
 		with open(outfile, 'w') as f:
 			while more_to_read:
-				self.debug('Reading block from file...')
 				block_str = ''
 
 				# Iterate through contents from each user
 				for i in xrange(0, self.n_nodes):
 					bytes = handles[i].read(blocksize)
+					hashes[i].update(bytes)
 
 					if bytes == '': 
 						more_to_read = False
@@ -394,21 +401,19 @@ class bulk_node():
 					if i == 0: block_str = bytes
 					else: block_str = Utilities.xor_bytes(block_str, bytes)
 
-					hashes[i].update(bytes)
 				f.write(block_str)
 
-		hout = hashes[i].final()
 		for i in xrange(0, self.n_nodes):
-			if hout != descrip_data[2][i]:pass
-				raise RuntimeError, "Node %d sent bad hash (was: %s, expected: %s)" % (
-						i, base64.encodestring(hout), base64.encodestring(descrip_data[2][i]))
+			hout = hashes[i].final()
+			if hout != descrip_data[2][i]:
+				raise RuntimeError, "Node %d sent bad hash for slot %d" (i, slot_n)
 		
 		return outfile
 
 	def unpack_master_tar(self, archive_filename):
 		# An array of tar archives -- one for each message
 		filenames = []
-		for i in xrange(0, self.n_nodes): filenames.append([])
+		for i in xrange(0, self.n_nodes): filenames.append({})
 
 		tar = tarfile.open(archive_filename, 'r:*')
 
@@ -416,13 +421,14 @@ class bulk_node():
 		for i in xrange(0, self.n_nodes):
 			# Create a new tempfile for each inner tar file.
 			# Inner tar holds message data for participant i
-			inner_tar_fname = self.copy_next_from_tar(tar)
+			(zero, inner_tar_fname) = self.copy_next_from_tar(tar)
 
 			# Open the inner tar file and iterate through its contents
 			innertar = tarfile.open(inner_tar_fname, 'r:*')
 			for j in xrange(0, self.n_nodes):
 				# filenames[j] holds filenames for message slot j
-				filenames[j].append(self.copy_next_from_tar(innertar))
+				node_id, fname = self.copy_next_from_tar(innertar)
+				filenames[j][node_id] = fname
 			innertar.close()
 		tar.close()	
 
@@ -437,8 +443,10 @@ class bulk_node():
 		handle, file_name = tempfile.mkstemp()
 		with open(file_name, 'w') as f:
 			shutil.copyfileobj(h, f, 4096)
-		self.debug("File size: %d" % os.path.getsize(file_name))
-		return file_name
+
+		# Get name of authoring node from filename within tar
+		node_id = int(finfo.name)
+		return (node_id, file_name)
 
 #
 # Network Utility Functions

@@ -50,7 +50,6 @@ class AnonNet:
 				# File is done
 				if len(newdat) == 0: break
 
-				debug("Got %d bytes" % len(newdat))
 				f.write(newdat)
 		sock.close()
 
@@ -129,7 +128,7 @@ class AnonNet:
 	def new_server_socket(ip, port, n_backlog):
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		sock.setblocking(1)
-		sock.settimeout(180.0)
+		sock.settimeout(360.0)
 		try:
 			sock.bind((ip, port))
 		except socket.error, (errno, errstr):
