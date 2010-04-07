@@ -3,6 +3,7 @@ from logging import debug, info
 import bulk_node
 import sys
 from shutil import copyfile
+import cProfile
 
 def __main__(argv):
 	min_key_len = 1024
@@ -25,7 +26,7 @@ def __main__(argv):
 
 	node = bulk_node.bulk_node(id, key_len, round_id, n_nodes,
 			my_addr, leader_addr, up_addr, dn_addr, msg_file)
-	node.run_protocol()
+	cProfile.runctx('mynode.run_protocol()', {'mynode': node}, {})
 	fnames = node.output_filenames()
 
 	for i in xrange(0, len(fnames)):

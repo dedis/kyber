@@ -7,8 +7,7 @@ from time import sleep
 from logging import debug, info, critical
 
 class AnonNet:
-	MAX_ATTEMPTS = 20
-
+	MAX_ATTEMPTS = 100
 
 
 #
@@ -26,7 +25,7 @@ class AnonNet:
 				bytes = f.read(blocksize)
 				if(bytes == ''): break
 				
-				debug("Sending %d bytes" % len(bytes))
+#debug("Sending %d bytes" % len(bytes))
 				AnonNet.send_to_socket(sock, bytes)
 
 		sock.close()
@@ -100,7 +99,7 @@ class AnonNet:
 			except KeyboardError, SystemExit:
 				sock.close()
 				raise
-			debug("Sent %d bytes" % (sent))
+#debug("Sent %d bytes" % (sent))
 			if sent == 0:
 				raise RuntimeError, "Socket broken"
 			totalsent = totalsent + sent
@@ -128,7 +127,7 @@ class AnonNet:
 	def new_server_socket(ip, port, n_backlog):
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		sock.setblocking(1)
-		sock.settimeout(360.0)
+		sock.settimeout(1000.0)
 		try:
 			sock.bind((ip, port))
 		except socket.error, (errno, errstr):
@@ -151,7 +150,7 @@ class AnonNet:
 					if i == AnonNet.MAX_ATTEMPTS - 1:
 						raise RuntimeError, "Cannot connect to server"
 					debug("Waiting for server...")
-					sleep(random.randint(0,5))
+					sleep(random.randint(5,10))
 					sock.close()
 				else: raise
 			except KeyboardInterrupt:

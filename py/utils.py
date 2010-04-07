@@ -1,5 +1,7 @@
 # UTILITY FUNCTIONS
 
+from numpy import frombuffer, bitwise_xor, byte, uint64
+
 class Utilities:
 	@staticmethod
 	def read_file_to_str(filename):
@@ -18,9 +20,22 @@ class Utilities:
 	def xor_bytes(str1, str2):
 		if len(str1) != len(str2):
 			raise RuntimeError, 'Strings must be equal length'
+		blocks = len(str1) / 64
+		chars = len(str1) % 64
+
+		sep = 64*blocks
 
 		out = ''
-		for i in xrange(0, len(str1)):
-			out = out + chr(ord(str1[i]) ^ ord(str2[i]))
+
+		if blocks > 0:
+			b1 = frombuffer(str1[:sep], dtype=uint64)
+			b2 = frombuffer(str2[:sep], dtype=uint64)
+			out = bitwise_xor(b1, b2).tostring()
+
+		if chars > 0:
+			b3 = frombuffer(str1[sep:], dtype=byte)
+			b4 = frombuffer(str2[sep:], dtype=byte)
+			out = out + bitwise_xor(b3, b4).tostring()
+
 		return out
 

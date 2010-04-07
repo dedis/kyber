@@ -380,7 +380,7 @@ class bulk_node():
 
 		oh, outfile = tempfile.mkstemp()
 
-		blocksize = 4096
+		blocksize = 4096 * 16
 		more_to_read = True
 
 		# outfile holds the plaintext message for this slot 
