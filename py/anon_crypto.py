@@ -6,6 +6,7 @@ import M2Crypto.EVP, M2Crypto.RSA, M2Crypto.Rand
 from utils import Utilities
 import tempfile, struct, cPickle, base64
 from logging import debug
+from cStringIO import StringIO
 
 class AnonCrypto: 
 	# A very unsecure initialization vector
@@ -158,25 +159,24 @@ class AnonRandom:
 
 		blocks = nbytes / 16
 		
-		out = ''
+		out = StringIO()
 		for i in xrange(0, blocks):
 			newblock = self.get_block()
 			self.hash.update(newblock)
-			out = out + newblock
+			out.write(newblock)
 
 		if nbytes % 16 != 0:
 			lastblock = self.get_block()
 			lastbytes = lastblock[:(nbytes % 16)]
 			self.hash.update(lastbytes)
-			out = out + lastbytes
+			out.write(lastbytes)
 
-		return out
+		return out.getvalue()
 	
 	def get_block(self):
 		self.encrypt.update(struct.pack('>Q', self.counter))
-		block = self.encrypt.final()
 		self.counter = self.counter + 1
-		return block
+		return self.encrypt.final()
 
 	def hash_value(self):
 		return self.hash.final()

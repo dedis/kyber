@@ -266,7 +266,7 @@ class bulk_node():
 		handle, self.tar_filename = tempfile.mkstemp()
 		tar = tarfile.open(
 				name = self.tar_filename,
-				mode = 'w:gz', # Create new archive
+				mode = 'w', # Create new archive
 				dereference = True)
 
 		# For each transmission slot
@@ -313,7 +313,7 @@ class bulk_node():
 		handle, master_filename = tempfile.mkstemp()
 		tar = tarfile.open(
 				master_filename,
-				mode = 'w:gz', # Create new archive
+				mode = 'w', # Create new archive
 				dereference = True)
 
 		for i in xrange(0, self.n_nodes):
@@ -353,7 +353,7 @@ class bulk_node():
 		# is a tar of tars.  Each tar-set contains the message strings
 		# for a specific message slot.
 		
-		filenames = self.unpack_master_tar(self.master_filename)
+		handles_to_close, filenames = self.unpack_master_tar(self.master_filename)
 		self.data_filenames = []
 
 		for i in xrange(0, len(filenames)):
@@ -361,22 +361,17 @@ class bulk_node():
 			self.data_filenames.append(
 					self.process_msg_tar(filenames[i], self.msg_data[i], i))
 
-	def process_msg_tar(self, subfiles, descrip_data, slot_n):
+		for h in handles_to_close: h.close()
+
+	def process_msg_tar(self, handles, descrip_data, slot_n):
 		# Process one message slot
 		hashes = []
-		handles = []
 
-		self.debug("Number of subfiles: %d" % len(subfiles))
+		self.debug("Number of subfiles: %d" % len(handles))
 
-		# Make sure all files are the same size
-		size = os.path.getsize(subfiles[1])
 		for i in xrange(0, self.n_nodes):
-			thissize = os.path.getsize(subfiles[i])
-			self.debug("File size: %d" % thissize)
-
 			# Open all files and keep a running hash for each
 			hashes.append(M2Crypto.EVP.MessageDigest('sha1'))
-			handles.append(open(subfiles[i], 'r'))
 
 		oh, outfile = tempfile.mkstemp()
 
@@ -407,12 +402,14 @@ class bulk_node():
 			hout = hashes[i].final()
 			if hout != descrip_data[2][i]:
 				raise RuntimeError, "Node %d sent bad hash for slot %d" (i, slot_n)
-		
+			handles[i].close()
+			
 		return outfile
 
 	def unpack_master_tar(self, archive_filename):
 		# An array of tar archives -- one for each message
 		filenames = []
+		handles_to_close = []
 		for i in xrange(0, self.n_nodes): filenames.append({})
 
 		tar = tarfile.open(archive_filename, 'r:*')
@@ -421,18 +418,19 @@ class bulk_node():
 		for i in xrange(0, self.n_nodes):
 			# Create a new tempfile for each inner tar file.
 			# Inner tar holds message data for participant i
-			(zero, inner_tar_fname) = self.copy_next_from_tar(tar)
+			(zero, inner_tar_handle) = self.copy_next_from_tar(tar)
 
 			# Open the inner tar file and iterate through its contents
-			innertar = tarfile.open(inner_tar_fname, 'r:*')
+			innertar = tarfile.open(fileobj=inner_tar_handle, mode='r:*')
 			for j in xrange(0, self.n_nodes):
 				# filenames[j] holds filenames for message slot j
-				node_id, fname = self.copy_next_from_tar(innertar)
-				filenames[j][node_id] = fname
-			innertar.close()
-		tar.close()	
+				node_id, fhandle = self.copy_next_from_tar(innertar)
+				filenames[j][node_id] = fhandle
+			handles_to_close.append(innertar)
+			handles_to_close.append(inner_tar_handle)
+		handles_to_close.append(tar)
 
-		return filenames
+		return (handles_to_close, filenames)
 
 	def copy_next_from_tar(self, tar):
 		finfo = tar.next()
@@ -440,13 +438,14 @@ class bulk_node():
 
 		# Copy inner contents to a tempfile and save the file
 		h = tar.extractfile(finfo)
+		'''
 		handle, file_name = tempfile.mkstemp()
 		with open(file_name, 'w') as f:
 			shutil.copyfileobj(h, f, 4096)
-
+		'''
 		# Get name of authoring node from filename within tar
 		node_id = int(finfo.name)
-		return (node_id, file_name)
+		return (node_id, h)
 
 #
 # Network Utility Functions
