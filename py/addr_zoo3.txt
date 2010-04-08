@@ -1,0 +1,3 @@
+cricket.zoo.cs.yale.edu 5000 8388608
+bumblebee.zoo.cs.yale.edu 5000 8388608
+turtle.zoo.cs.yale.edu 5000 8388608

@@ -3,12 +3,13 @@ from logging import debug, info
 import shuffle_node
 import sys
 from shutil import copyfile
+from anon_crypto import AnonCrypto
 
 def __main__(argv):
 	min_key_len = 1024
 
 	if(len(argv) != 14):
-		raise ValueError, "Usage: %s id key_len round_id n_nodes my_ip my_port leader_ip leader_port dnstr_ip dnstr_port upstr_ip upstr_port msg_file" % (argv[0])
+		raise ValueError, "Usage: %s id key_len round_id n_nodes my_ip my_port leader_ip leader_port dnstr_ip dnstr_port upstr_ip upstr_port msg_len" % (argv[0])
 
 	logger = logging.getLogger()
 	logger.setLevel(logging.DEBUG)
@@ -21,8 +22,9 @@ def __main__(argv):
 	leader_addr = (argv[7], int(argv[8]))
 	up_addr = (argv[9], int(argv[10]))
 	dn_addr = (argv[11], int(argv[12]))
-	msg_file = argv[13]
-
+	msg_len = int(argv[13])
+	
+	msg_file = AnonCrypto.random_file(msg_len)
 	node = shuffle_node.shuffle_node(id, key_len, round_id, n_nodes,
 			my_addr, leader_addr, up_addr, dn_addr, msg_file)
 	node.run_protocol()

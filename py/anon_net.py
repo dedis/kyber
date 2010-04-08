@@ -146,7 +146,7 @@ class AnonNet:
 				sock.connect((ip, port))
 				break
 			except socket.error, (errno, errstr):
-				if errno == 61 or errno == 22: # Server not awake yet
+				if errno == 61 or errno == 22 or errno == 111: # Server not awake yet
 					if i == AnonNet.MAX_ATTEMPTS - 1:
 						raise RuntimeError, "Cannot connect to server"
 					debug("Waiting for server...")

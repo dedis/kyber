@@ -114,6 +114,25 @@ class AnonCrypto:
 	def random_seed():
 		return M2Crypto.Rand.rand_bytes(AnonCrypto.PRNG_SEED_LEN)
 
+	@staticmethod
+	def random_file(length):
+		handle, fname = tempfile.mkstemp()
+		
+		blocksize = 8192
+		a = AnonRandom(M2Crypto.Rand.rand_bytes(32))
+		lleft = length
+		with open(fname, 'w') as f:
+			while lleft > 0:
+				if lleft < blocksize:
+					f.write(a.rand_bytes(lleft))
+				else:
+					f.write(a.rand_bytes(blocksize))
+				lleft = lleft - blocksize
+		return fname
+
+
+
+
 #
 # I/O Utility Functions
 #

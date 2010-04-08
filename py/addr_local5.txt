@@ -1,0 +1,5 @@
+localhost 50000 1024
+localhost 50001 1024
+localhost 50002 1024
+localhost 50003 1024
+localhost 50004 1024

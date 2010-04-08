@@ -1,3 +1,0 @@
-localhost 50000
-localhost 50001
-localhost 50002

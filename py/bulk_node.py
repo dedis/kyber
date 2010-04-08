@@ -14,7 +14,6 @@ class bulk_node():
 			my_addr, leader_addr, prev_addr, next_addr, msg_file):
 		ip,port = my_addr
 
-		self.start_time = time()
 		self.id = id
 		self.key_len = key_len
 		self.n_nodes = n_nodes
@@ -28,10 +27,15 @@ class bulk_node():
 
 		self.msg_file = msg_file
 
+		self.start_time = time()
+
 		info("Node started (id=%d, addr=%s:%d, key_len=%d, round_id=%d, n_nodes=%d)"
 			% (id, ip, port, key_len, round_id, n_nodes))
 
 		logger = logging.getLogger()
+		h = logging.FileHandler("logs/node%04d.final" % self.id)
+		h.setLevel(logging.CRITICAL)
+		logger.addHandler(h)
 		logger.setLevel(logging.DEBUG)
 
 		self.pub_keys = {}
@@ -53,7 +57,13 @@ class bulk_node():
 		self.run_phase2()
 		self.run_phase3()
 		self.run_phase4()
-		self.info("Finished in %g seconds" % (time() - self.start_time))
+		self.critical("SUCCESSROUND,%d,%d,%g%s" % (self.round_id, self.n_nodes, time() - self.start_time, self.size_string()))
+
+	def size_string(self):
+		c = ''
+		for f in self.output_filenames():
+			c = c + ",%d" % os.path.getsize(f)
+		return c
 
 	def output_filenames(self):
 		return self.data_filenames
