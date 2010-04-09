@@ -4,6 +4,7 @@ import shuffle_node
 import sys
 from shutil import copyfile
 from anon_crypto import AnonCrypto
+import cProfile
 
 def __main__(argv):
 	min_key_len = 1024
@@ -27,7 +28,8 @@ def __main__(argv):
 	msg_file = AnonCrypto.random_file(msg_len)
 	node = shuffle_node.shuffle_node(id, key_len, round_id, n_nodes,
 			my_addr, leader_addr, up_addr, dn_addr, msg_file)
-	node.run_protocol()
+	
+	cProfile.runctx('node.run_protocol()', {}, {'node': node})
 	fnames = node.output_filenames()
 
 	for i in xrange(0, len(fnames)):

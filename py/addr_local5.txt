@@ -1,5 +1,5 @@
-localhost 50000 1024
-localhost 50001 1024
-localhost 50002 1024
-localhost 50003 1024
-localhost 50004 1024
+localhost 50000 8000000
+localhost 50001 8000000
+localhost 50002 8000000
+localhost 50003 8000000
+localhost 50004 8000000

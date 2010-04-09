@@ -41,10 +41,9 @@ class shuffle_node():
 
 		if self.id > 0: sys.exit()
 		m = '1' * 1000000
-		c = AnonCrypto.encrypt_with_rsa(self.key1, m)
-		self.debug("LENGTH: %d" % len(c))
-		sys.exit()
-		print self.decrypt_with_rsa(self.key1, c)
+		signed = AnonCrypto.sign(self.key1, m)
+		output = AnonCrypto.verify(self.key1, signed)
+		self.debug(output)
 		sys.exit()
 		'''
 
@@ -90,7 +89,7 @@ class shuffle_node():
 
 			# We need to save addresses so that we can
 			# broadcast to all nodes
-			(all_msgs, addrs) = self.recv_from_n(self.n_nodes-1)
+			(all_msgs, addrs) = self.recv_from_n(self.n_nodes-1, False)
 			
 			# Get all node addrs via this msg
 			self.addrs = self.unpickle_pub_keys(all_msgs)
@@ -100,15 +99,15 @@ class shuffle_node():
 			self.info('Leader has all public keys')
 
 			pick_keys_str = self.phase1b_msg()
-			self.broadcast_to_all_nodes(pick_keys_str)
+			self.broadcast_to_all_nodes(pick_keys_str, False)
 
 			self.info('Leader sent all public keys')
 
 		else:
-			self.send_to_leader(self.phase1_msg())
+			self.send_to_leader(self.phase1_msg(), False)
 		
 			# Get all pub keys from leader
-			(keys, addrs) = self.recv_from_n(1)
+			(keys, addrs) = self.recv_from_n(1, False)
 			self.unpickle_keyset(keys[0])
 
 			self.info('Got keys from leader!')
@@ -155,6 +154,7 @@ class shuffle_node():
 					self.port,
 					self.key_from_file(1),
 					self.key_from_file(2)))
+
 	
 	def phase1b_msg(self):
 		newdict = {}
@@ -227,7 +227,7 @@ class shuffle_node():
 			self.send_to_leader(outstr)
 		else:
 			ip, port = self.next_addr
-			AnonNet.send_to_addr(ip, port, outstr)
+			self.send_to_addr(ip, port, outstr)
 			self.debug("Sent set of ciphers")
 		
 		if self.am_leader():
@@ -377,21 +377,38 @@ class shuffle_node():
 		(data, addrs) = self.recv_from_n(1)
 		return cPickle.loads(data[0])
 
-	def broadcast_to_all_nodes(self, msg):
+	def broadcast_to_all_nodes(self, msg, signed = True):
 		if not self.am_leader():
 			raise RuntimeError, 'Only leader can broadcast'
+
+		if signed: outmsg = AnonCrypto.sign(self.id, self.key1, msg)
+		else: outmsg = msg
 
 		# Only leader can do this
 		for i in xrange(0, self.n_nodes-1):
 			ip, port = self.addrs[i]
-			AnonNet.send_to_addr(ip, port, msg)
+			AnonNet.send_to_addr(ip, port, outmsg)
 
-	def send_to_leader(self, msg):
+	def send_to_addr(self, ip, port, msg, signed = True):
+		if signed: outmsg = AnonCrypto.sign(self.id, self.key1, msg)
+		else: outmsg = msg
+
+		AnonNet.send_to_addr(ip, port, outmsg)
+
+	def send_to_leader(self, msg, signed = True):
+		if signed: outmsg = AnonCrypto.sign(self.id, self.key1, msg)
+		else: outmsg = msg
 		ip,port = self.leader_addr
-		AnonNet.send_to_addr(ip, port, msg)
+		AnonNet.send_to_addr(ip, port, outmsg)
 
-	def recv_from_n(self, n_backlog):
-		return AnonNet.recv_from_n(self.ip, self.port, n_backlog)
+	def recv_from_n(self, n_backlog, verify = True):
+		(indata, addrs) = AnonNet.recv_from_n(self.ip, self.port, n_backlog)
+		if verify:
+			outdata = []
+			for d in indata:
+				outdata.append(AnonCrypto.verify(self.pub_keys, d))
+		else: outdata = indata
+		return (outdata, addrs)
 
 #
 # Utility Functions 
