@@ -108,18 +108,18 @@ class shuffle_node():
 			self.debug('Leader starting phase 1')
 
 			# We need to save addresses so that we can
-			# broadcast to all nodes
-			(all_msgs, addrs) = self.recv_from_n(self.n_nodes-1, False)
+			# broadcast to all nodes.  We can't verify this message
+			# because we don't have the public key yet...
+			(all_msgs, addrs) = self.recv_from_n(self.n_nodes - 1, False)
 			
 			# Get all node addrs via this msg
-			self.addrs = self.unpickle_pub_keys(all_msgs)
+			next_msg, self.addrs = self.unpickle_pub_keys(all_msgs)
 
 			if not self.have_all_keys():
 				raise RuntimeError, "Missing public keys"
 			self.info('Leader has all public keys')
 
-			pick_keys_str = self.phase1b_msg()
-			self.broadcast_to_all_nodes(pick_keys_str, False)
+			self.broadcast_to_all_nodes(next_msg, False)
 
 			self.info('Leader sent all public keys')
 
@@ -142,8 +142,10 @@ class shuffle_node():
 			s1,s2 = keydict[i]
 
 			k1 = AnonCrypto.pub_key_from_str(s1)
-			k2 = AnonCrypto.pub_key_from_str(s2)
 			k1.check_key()
+			self.pub_keys[i] = (k1, k1)
+			
+			k2 = AnonCrypto.pub_key_from_str(AnonCrypto.verify(self.pub_keys, s2))
 			k2.check_key()
 			self.pub_keys[i] = (k1, k2)
 
@@ -151,6 +153,11 @@ class shuffle_node():
 
 	def unpickle_pub_keys(self, msgs):
 		addrs = []
+		key_dict = {}
+		key_dict[self.id] = (
+				self.key_from_file(1),
+				AnonCrypto.sign(self.id, self.key1, self.key_from_file(2)))
+
 		for data in msgs:
 			(rem_id, rem_round, rem_ip, rem_port,
 			 rem_key1, rem_key2) = cPickle.loads(data)
@@ -160,11 +167,14 @@ class shuffle_node():
 				raise RuntimeError, "Mismatched round numbers! (mine: %d, other: %d)" % (
 						self.round_id, rem_round)
 
-			self.pub_keys[rem_id] = (
-					AnonCrypto.pub_key_from_str(rem_key1),
-					AnonCrypto.pub_key_from_str(rem_key2))
+			k1 = AnonCrypto.pub_key_from_str(rem_key1)
+			self.pub_keys[rem_id] = (k1, k1)
+			k2 = AnonCrypto.pub_key_from_str(AnonCrypto.verify(self.pub_keys, rem_key2))
+			self.pub_keys[rem_id] = (k1, k2)
 			addrs.append((rem_ip, rem_port))
-		return addrs
+			key_dict[rem_id] = (rem_key1, rem_key2)
+		
+		return (cPickle.dumps((self.round_id, key_dict)), addrs)
 
 	def phase1_msg(self):
 		return cPickle.dumps(
@@ -173,17 +183,8 @@ class shuffle_node():
 					self.ip,
 					self.port,
 					self.key_from_file(1),
-					self.key_from_file(2)))
-
+					AnonCrypto.sign(self.id, self.key1, self.key_from_file(2))))
 	
-	def phase1b_msg(self):
-		newdict = {}
-		for i in xrange(0, self.n_nodes):
-			k1,k2 = self.pub_keys[i]
-			newdict[i] = (
-				AnonCrypto.pub_key_to_str(k1),
-				 AnonCrypto.pub_key_to_str(k2))
-
 		return cPickle.dumps((self.round_id, newdict))
 
 #
@@ -302,10 +303,10 @@ class shuffle_node():
 		go_data = ''
 		if self.am_leader():
 			# Collect go msgs
-			(data, addrs) = self.recv_from_n(self.n_nodes - 1)
+			(data, addrs) = self.recv_from_n(self.n_nodes - 1, False)
 			
-			# Add leader's go message to set
-			data.append(go_msg)
+			# Add leader's signed GO message to set
+			data.append(AnonCrypto.sign(self.id, self.key1, go_msg))
 			go_data = cPickle.dumps((data))
 			self.broadcast_to_all_nodes(go_data)
 
@@ -322,7 +323,9 @@ class shuffle_node():
 	def check_go_data(self, hashval, pickled_list):
 		go_lst = cPickle.loads(pickled_list)
 		for item in go_lst:
-			(r_id, r_round, r_go, r_hash) = cPickle.loads(item)
+			# Verify signature on "GO" message
+			item_str = AnonCrypto.verify(self.pub_keys, item)
+			(r_id, r_round, r_go, r_hash) = cPickle.loads(item_str)
 			if r_round != self.round_id:
 			 	raise RuntimeError, "Mismatched round numbers"
 			if not r_go:
@@ -344,8 +347,10 @@ class shuffle_node():
 							AnonCrypto.priv_key_to_str(self.key2)))
 
 		if self.am_leader():
-			(data, addr) = self.recv_from_n(self.n_nodes - 1)
-			data.append(mykeystr)
+			(data, addr) = self.recv_from_n(self.n_nodes - 1, False)
+			
+			# Add leader's signed key to set
+			data.append(AnonCrypto.sign(self.id, self.key1, mykeystr))
 			self.debug("Key data...")
 			self.broadcast_to_all_nodes(cPickle.dumps((data)))
 
@@ -370,7 +375,9 @@ class shuffle_node():
 	def decrypt_ciphers(self, keyset):
 		priv_keys = {}
 		for item in keyset:
-			(r_id, r_roundid, r_keystr) = cPickle.loads(item)
+			# Verify signature on each key
+			item_str = AnonCrypto.verify(self.pub_keys, item)
+			(r_id, r_roundid, r_keystr) = cPickle.loads(item_str)
 			if r_roundid != self.round_id:
 				raise RuntimeError, 'Mismatched round numbers'
 			priv_keys[r_id] = AnonCrypto.priv_key_from_str(r_keystr)
