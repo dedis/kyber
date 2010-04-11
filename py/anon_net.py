@@ -7,7 +7,7 @@ from time import sleep
 from logging import debug, info, critical
 
 class AnonNet:
-	MAX_ATTEMPTS = 100
+	MAX_ATTEMPTS = 1000
 
 
 #
@@ -127,7 +127,7 @@ class AnonNet:
 	def new_server_socket(ip, port, n_backlog):
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		sock.setblocking(1)
-		sock.settimeout(1000.0)
+		sock.settimeout(None)
 		try:
 			sock.bind((ip, port))
 		except socket.error, (errno, errstr):

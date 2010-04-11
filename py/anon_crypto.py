@@ -114,13 +114,13 @@ class AnonCrypto:
 	def sign(my_id, signkey, msg):
 		return cPickle.dumps(
 				(my_id, msg,
-				 signkey.sign_rsassa_pss(
+				 signkey.sign(
 					 AnonCrypto.hash(msg))))
 		
 	@staticmethod
 	def verify(key_dict, msgstr):
 		((r_id, msg, sig)) = cPickle.loads(msgstr)
-		if key_dict[r_id][0].verify_rsassa_pss(AnonCrypto.hash(msg), sig):
+		if key_dict[r_id][0].verify(AnonCrypto.hash(msg), sig):
 			return msg
 		else:
 		 	raise RuntimeError, 'Invalid Signature'

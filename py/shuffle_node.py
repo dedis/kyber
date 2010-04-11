@@ -31,6 +31,9 @@ class shuffle_node():
 			% (id, ip, port, key_len, round_id, n_nodes))
 
 		logger = logging.getLogger()
+		h = logging.FileHandler("logs/node%04d.final" % self.id)
+		h.setLevel(logging.CRITICAL)
+		logger.addHandler(h)
 		logger.setLevel(logging.DEBUG)
 
 		self.pub_keys = {}
@@ -55,13 +58,17 @@ class shuffle_node():
 		self.run_phase5()
 
 		self.info("Finished in %g seconds" % (time() - self.start_time))
+		self.critical("SUCCESSROUND,%d,%d,%g%s" % (self.round_id, self.n_nodes, time()
+					- self.start_time, self.size_string()))
+
+	def size_string(self):
+		c = ''
+		for d in self.anon_data:
+			c = c + ",%d" % len(d)
+		return c
 
 	def output_filenames(self):
 		return self.write_anon_data_filenames()	
-
-#
-#
-#
 
 	def advance_phase(self):
 		self.phase = self.phase + 1

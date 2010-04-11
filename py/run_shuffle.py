@@ -29,11 +29,12 @@ def __main__(argv):
 	node = shuffle_node.shuffle_node(id, key_len, round_id, n_nodes,
 			my_addr, leader_addr, up_addr, dn_addr, msg_file)
 	
-	cProfile.runctx('node.run_protocol()', {}, {'node': node})
+#cProfile.runctx('node.run_protocol()', {}, {'node': node})
+	node.run_protocol()
 	fnames = node.output_filenames()
 
-	for i in xrange(0, len(fnames)):
-		copyfile(fnames[i], "data/node%04d-%04d.out" % (id, i))
+#	for i in xrange(0, len(fnames)):
+#		copyfile(fnames[i], "data/node%04d-%04d.out" % (id, i))
 
 	return
 
