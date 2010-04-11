@@ -7,6 +7,7 @@ import M2Crypto.RSA
 import M2Crypto.EVP
 from anon_crypto import AnonCrypto, AnonRandom
 from anon_net import AnonNet
+from math import log, ceil
 from shuffle_node import shuffle_node
 
 class bulk_node():
@@ -242,7 +243,9 @@ class bulk_node():
 			self.leader_addr,
 			self.prev_addr,
 			self.next_addr,
-			self.dfilename)
+			self.dfilename,
+			# Max msg length given the number of bits we need to represent the length
+			1 << int(ceil(log(os.path.getsize(self.dfilename),2))))
 		s.run_protocol()
 		fnames = s.output_filenames()
 

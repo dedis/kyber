@@ -10,7 +10,7 @@ from anon_net import AnonNet
 
 class shuffle_node():
 	def __init__(self, id, key_len, round_id, n_nodes,
-			my_addr, leader_addr, prev_addr, next_addr, msg_file):
+			my_addr, leader_addr, prev_addr, next_addr, msg_file, max_len):
 		ip,port = my_addr
 
 		self.start_time = time()
@@ -24,9 +24,9 @@ class shuffle_node():
 		self.prev_addr = prev_addr
 		self.next_addr = next_addr
 		self.phase = 0
+		self.max_len = max_len
 
-		self.msg_contents = Utilities.read_file_to_str(msg_file)
-
+		self.package_msg(msg_file)
 		info("Node started (id=%d, addr=%s:%d, key_len=%d, round_id=%d, n_nodes=%d)"
 			% (id, ip, port, key_len, round_id, n_nodes))
 
@@ -49,6 +49,19 @@ class shuffle_node():
 		self.debug(output)
 		sys.exit()
 		'''
+
+	def package_msg(self, msg_file):
+		msg = Utilities.read_file_to_str(msg_file)
+
+		# Pad msg so that is max_len bytes long
+		self.msg_contents = cPickle.dumps((len(msg), msg + 'X' * (self.max_len - len(msg))))
+
+	def unpackage_msg(self, msg_str):
+		(mlen, padded_msg) = cPickle.loads(msg_str)
+		self.debug("Got msg len %d, max_len %d" % (len(padded_msg), self.max_len))
+		if len(padded_msg) != self.max_len:
+		 	raise RuntimeError, 'Message strings are of differing lengths'
+		return padded_msg[:mlen]
 
 	def run_protocol(self):
 		self.run_phase1()
@@ -350,7 +363,7 @@ class shuffle_node():
 		filenames = []
 		for i in xrange(0, len(self.anon_data)):
 			handle, fname = tempfile.mkstemp()
-			Utilities.write_str_to_file(fname, self.anon_data[i])
+			Utilities.write_str_to_file(fname, self.unpackage_msg(self.anon_data[i]))
 			filenames.append(fname)
 		return filenames
 

@@ -63,6 +63,8 @@ class node_set():
 				prev_ip, str(prev_port),
 				next_ip, str(next_port),
 				str(self.lengths[i])]
+			if not self.bulk:
+				args = args + [str(max(self.lengths))]
 			debug(args)
 			processes.append(Popen(args))
 		return processes
