@@ -277,7 +277,7 @@ class bulk_node():
 	"""
 	PHASE 2
 
-	Data exchange.
+	Message descriptor exchange.
 	"""
 	def run_phase2(self):
 		""" Start up a shuffle node"""
@@ -291,14 +291,20 @@ class bulk_node():
 			self.prev_addr,
 			self.next_addr,
 			self.dfilename,
-			# Max msg length given the number of bits we need to represent the length
+			# Max msg length given the number of bits we need
+			# to represent the length
 			1 << int(ceil(log(os.path.getsize(self.dfilename),2))))
 		s.run_protocol()
 		fnames = s.output_filenames()
 
+		"""
+		Each message descriptor is stored in one of the files in the
+		fnames array.
+		"""
 		self.msg_data = []
 		for filename in fnames:
 			with open(filename, 'r') as f_in:
+				""" Read in each message descriptor """
 				(r_id,
 				 r_round_id,
 				 r_msg_len,
@@ -312,9 +318,11 @@ class bulk_node():
 			self.debug("Got data from node %d.  Msg len: %d" % (r_id, r_msg_len))
 			self.msg_data.append((r_msg_len, r_enc_seeds, r_hashes))
 
-#
-# PHASE 3
-#
+	"""
+	PHASE 3
+
+	Data exchange.
+	"""
 
 	def run_phase3(self):
 		self.advance_phase()
@@ -323,13 +331,17 @@ class bulk_node():
 		self.responses = []
 		self.go_flag = False
 
+		"""
+		We put all of the pseudo-random strings in a tar file
+		for transmission.
+		"""
 		handle, self.tar_filename = tempfile.mkstemp()
 		tar = tarfile.open(
 				name = self.tar_filename,
 				mode = 'w', # Create new archive
 				dereference = True)
 
-		# For each transmission slot
+		""" For each transmission slot... """
 		for i in xrange(0, self.n_nodes):
 			debug("Processing data for msg slot %d" % i)
 			slot_data = self.msg_data[i]
@@ -338,21 +350,34 @@ class bulk_node():
 			hashes = slot_data[2]
 
 			if enc_seeds[self.id] == self.my_seed:
-				# If this is my seed, use the cheating message
+				""" If this is my seed, use the cheating message. """
 				self.go_flag = True
 				self.responses.append(self.dfilename)
 				tar.add(self.cip_file, "%d" % (self.id))
 			else:
-				# Decrypt seed assigned to me
+				""" If this is not my msg slot, decrypt seed assigned to me. """
 				seed = AnonCrypto.decrypt_with_rsa(self.key1, enc_seeds[self.id])
 				h_val, fname = self.generate_prng_file(seed, msg_len)
 
+
+				"""
+				We encode everything in base64 to eliminate all NULL characters
+				if there are null characters in the string, cPickle uses 4 bytes
+				to encode every byte of data.  That ends up blowing up the size
+				of the encrypted data.
+				"""
 				if h_val != hashes[self.id]:
-					self.debug("Got: %s, Ex: %s" % (base64.encodestring(h_val), base64.encodestring(hashes[self.id])))
+					self.debug("Got: %s, Ex: %s" % \
+							(base64.encodestring(h_val),
+							 base64.encodestring(hashes[self.id])))
 					for q in xrange(0, len(hashes)):
 						self.debug("> %d - %s" % (q, base64.encodestring(hashes[q])))
 					raise RuntimeError, 'Mismatched hash values'
 
+				"""
+				Label each file in the tar with this node's id so that nodes can
+				match the files to the message hashes.
+				"""
 				tar.add(fname, "%d" % (self.id))
 		tar.close()
 
@@ -370,6 +395,10 @@ class bulk_node():
 			self.master_filename = fnames[0]
 
 	def create_master_tar(self, fnames):
+		"""
+		The master tar holds the pseudo-random strings for each
+		message slot.
+		"""
 		handle, master_filename = tempfile.mkstemp()
 		tar = tarfile.open(
 				master_filename,
@@ -383,6 +412,10 @@ class bulk_node():
 		return master_filename
 
 	def generate_prng_file(self, seed, msg_len):
+		"""
+		Generates the long pseudo-random string
+		for one message slot.
+		"""
 		(h, filename) = tempfile.mkstemp()
 		
 		bytes_left = msg_len
@@ -401,17 +434,21 @@ class bulk_node():
 			
 		return (r.hash_value(), filename)
 
-#
-# PHASE 4
-#
+	"""
+	PHASE 4
+
+	Verification
+	"""
 
 	def run_phase4(self):
 		self.advance_phase()
 		self.info('Starting phase 4')
 
-		# We should now have a pointer to a master_filename, which
-		# is a tar of tars.  Each tar-set contains the message strings
-		# for a specific message slot.
+		"""
+		We should now have a pointer to a master_filename, which
+		is a tar of tars.  Each tar-set contains the message strings
+		for a specific message slot.
+		"""
 		
 		handles_to_close, filenames = self.unpack_master_tar(self.master_filename)
 		self.data_filenames = []
@@ -424,13 +461,13 @@ class bulk_node():
 		for h in handles_to_close: h.close()
 
 	def process_msg_tar(self, handles, descrip_data, slot_n):
-		# Process one message slot
+		""" Process the tar file for one message slot. """
 		hashes = []
 
 		self.debug("Number of subfiles: %d" % len(handles))
 
 		for i in xrange(0, self.n_nodes):
-			# Open all files and keep a running hash for each
+			""" Open all files and keep a running hash for each. """
 			hashes.append(M2Crypto.EVP.MessageDigest('sha1'))
 
 		oh, outfile = tempfile.mkstemp()
@@ -438,12 +475,12 @@ class bulk_node():
 		blocksize = 4096 * 16
 		more_to_read = True
 
-		# outfile holds the plaintext message for this slot 
+		""" outfile holds the plaintext message for this slot. """
 		with open(outfile, 'w') as f:
 			while more_to_read:
 				block_str = ''
 
-				# Iterate through contents from each user
+				""" Iterate through contents from each user. """
 				for i in xrange(0, self.n_nodes):
 					bytes = handles[i].read(blocksize)
 					hashes[i].update(bytes)
@@ -452,12 +489,13 @@ class bulk_node():
 						more_to_read = False
 						break 	# Got to EOF
 
-					# XOR strings together
+					""" XOR strings together. """
 					if i == 0: block_str = bytes
 					else: block_str = Utilities.xor_bytes(block_str, bytes)
 
 				f.write(block_str)
 
+		""" Confirm that hashes are correct. """
 		for i in xrange(0, self.n_nodes):
 			hout = hashes[i].final()
 			if hout != descrip_data[2][i]:
@@ -467,25 +505,29 @@ class bulk_node():
 		return outfile
 
 	def unpack_master_tar(self, archive_filename):
-		# An array of tar archives -- one for each message
+		""" Master tar is a tar of tar archives -- one for each message """
 		filenames = []
 		handles_to_close = []
 		for i in xrange(0, self.n_nodes): filenames.append({})
 
 		tar = tarfile.open(archive_filename, 'r:*')
 
-		# Open the master tar file
+		""" Open the master tar file """
 		for i in xrange(0, self.n_nodes):
-			# Create a new tempfile for each inner tar file.
-			# Inner tar holds message data for participant i
+			"""
+			Create a new tempfile for each inner tar file.
+			Inner tar holds message data for participant i.
+			"""
 			(zero, inner_tar_handle) = self.copy_next_from_tar(tar)
 
-			# Open the inner tar file and iterate through its contents
+			""" Open the inner tar file and iterate through its contents. """
 			innertar = tarfile.open(fileobj=inner_tar_handle, mode='r:*')
 			for j in xrange(0, self.n_nodes):
-				# filenames[j] holds filenames for message slot j
+				""" filenames[j] holds filenames for message slot j. """
 				node_id, fhandle = self.copy_next_from_tar(innertar)
 				filenames[j][node_id] = fhandle
+			
+			""" Don't close files until all have been read. """
 			handles_to_close.append(innertar)
 			handles_to_close.append(inner_tar_handle)
 		handles_to_close.append(tar)
@@ -496,25 +538,23 @@ class bulk_node():
 		finfo = tar.next()
 		if finfo == None: raise RuntimeError, 'Missing files in tar'
 
-		# Copy inner contents to a tempfile and save the file
+		""" Copy inner contents to a tempfile and save the file. """
 		h = tar.extractfile(finfo)
-		'''
-		handle, file_name = tempfile.mkstemp()
-		with open(file_name, 'w') as f:
-			shutil.copyfileobj(h, f, 4096)
-		'''
-		# Get name of authoring node from filename within tar
+		
+		""" Get name of authoring node from filename within tar. """
 		node_id = int(finfo.name)
 		return (node_id, h)
 
-#
-# Network Utility Functions
-#
+	"""
+	Network Utility Functions
+	"""
 
 	def recv_cipher_set(self):
-		# data_in arrives as a singleton list of a pickled
-		# list of ciphers.  we need to unpickle the first
-		# element and use that as our array of ciphertexts
+		"""
+		data_in arrives as a singleton list of a pickled
+		list of ciphers.  we need to unpickle the first
+		element and use that as our array of ciphertexts
+		"""
 		(data, addrs) = self.recv_from_n(1)
 		return cPickle.loads(data[0])
 
@@ -528,7 +568,7 @@ class bulk_node():
 		if not self.am_leader():
 			raise RuntimeError, 'Only leader can broadcast'
 
-		# Only leader can do this
+		""" Only leader can broadcast """
 		for i in xrange(0, self.n_nodes-1):
 			ip, port = self.addrs[i]
 			func(ip, port, arg)	
@@ -548,10 +588,9 @@ class bulk_node():
 		return AnonNet.send_file_to_addr(ip, port, filename)
 		
 
-#
-# Utility Functions 
-#
-
+	"""
+	Utility Functions 
+	"""
 
 	def key_from_file(self, key_number):
 		return Utilities.read_file_to_str(self.key_filename(key_number))

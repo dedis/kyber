@@ -1,11 +1,19 @@
+"""
+Filename: shuffle_node.py
+Description: Implementation of the shuffle component
+of the anon protocol.
+"""
+
 import logging, random, sys
 from time import sleep, time
 from logging import debug, info, critical
 import socket, cPickle, tempfile
 import struct
-from utils import Utilities
+
 import M2Crypto.RSA
+
 from anon_crypto import AnonCrypto
+from utils import Utilities
 from anon_net import AnonNet
 
 class shuffle_node():
@@ -51,9 +59,12 @@ class shuffle_node():
 		'''
 
 	def package_msg(self, msg_file):
+		"""
+		Pad msg so that is max_len bytes long.  If nodes' messages
+		are different lengths, the anonymity of the protocol is broken.
+		"""
 		msg = Utilities.read_file_to_str(msg_file)
 
-		# Pad msg so that is max_len bytes long
 		self.msg_contents = cPickle.dumps((len(msg), msg + 'X' * (self.max_len - len(msg))))
 
 	def unpackage_msg(self, msg_str):
@@ -71,7 +82,8 @@ class shuffle_node():
 		self.run_phase5()
 
 		self.info("Finished in %g seconds" % (time() - self.start_time))
-		self.critical("SUCCESSROUND:SHUFFLE,%d,%d,%g%s" % (self.round_id, self.n_nodes, time()
+		self.critical("SUCCESSROUND:SHUFFLE,%d,%d,%g%s" % \
+				(self.round_id, self.n_nodes, time()
 					- self.start_time, self.size_string()))
 
 	def size_string(self):
@@ -95,9 +107,13 @@ class shuffle_node():
 	def am_last(self):
 		return self.id == (self.n_nodes - 1)
 
-#
-# PHASE 1
-#
+	"""
+	PHASE 1
+
+	Key exchange.  This is totally unsecure.  In a real 
+	implementation every node would have the primary
+	public key of every other node before the protocol begins.
+	"""
 
 	def run_phase1(self):
 		self.advance_phase()
@@ -107,12 +123,14 @@ class shuffle_node():
 		if self.am_leader():
 			self.debug('Leader starting phase 1')
 
-			# We need to save addresses so that we can
-			# broadcast to all nodes.  We can't verify this message
-			# because we don't have the public key yet...
+			"""
+			The leader needs to save addresses so that (s)he can
+			broadcast to all nodes.  We can't verify this message
+			because we don't have the public key yet...
+			"""
 			(all_msgs, addrs) = self.recv_from_n(self.n_nodes - 1, False)
 			
-			# Get all node addrs via this msg
+			""" Get all node addrs via this msg. """
 			next_msg, self.addrs = self.unpickle_pub_keys(all_msgs)
 
 			if not self.have_all_keys():
@@ -126,13 +144,14 @@ class shuffle_node():
 		else:
 			self.send_to_leader(self.phase1_msg(), False)
 		
-			# Get all pub keys from leader
+			""" Get all pub keys from leader. """
 			(keys, addrs) = self.recv_from_n(1, False)
 			self.unpickle_keyset(keys[0])
 
 			self.info('Got keys from leader!')
 
 	def unpickle_keyset(self, keys):
+		""" Non-leader nodes use this to decode leader's key msg """
 		(rem_round_id, keydict) = cPickle.loads(keys)
 
 		if rem_round_id != self.round_id:
@@ -152,6 +171,7 @@ class shuffle_node():
 		self.info('Unpickled public keys')
 
 	def unpickle_pub_keys(self, msgs):
+		""" Leader uses this method to unpack keys from other nodes """
 		addrs = []
 		key_dict = {}
 		key_dict[self.id] = (
@@ -177,6 +197,7 @@ class shuffle_node():
 		return (cPickle.dumps((self.round_id, key_dict)), addrs)
 
 	def phase1_msg(self):
+		""" Message that non-leader nodes send to the leader. """
 		return cPickle.dumps(
 				(self.id,
 					self.round_id, 
@@ -187,9 +208,11 @@ class shuffle_node():
 	
 		return cPickle.dumps((self.round_id, newdict))
 
-#
-# PHASE 2
-#
+	"""
+	PHASE 2
+
+	Data submission.
+	"""
 	def run_phase2(self):
 		self.advance_phase()
 		self.info("Starting phase 2")
@@ -200,7 +223,7 @@ class shuffle_node():
 			(self.data_in, addrs) = self.recv_from_n(self.n_nodes-1)
 			self.info("Leader has all ciphertexts")
 
-			# Leader must add own cipher to the set
+			""" Leader must add own cipher to the set. """
 			self.data_in.append(cPickle.dumps((self.round_id, self.cipher)))
 
 		else:
@@ -211,7 +234,7 @@ class shuffle_node():
 
 	def create_cipher_string(self):
 		self.cipher_prime = self.datum_string()
-		# Encrypt with all secondary keys from N ... 1
+		""" Encrypt with all secondary keys from N ... 1 """
 		
 		for i in xrange(self.n_nodes - 1, -1, -1):
 			k1, k2 = self.pub_keys[i]
@@ -219,26 +242,30 @@ class shuffle_node():
 
 		self.cipher = self.cipher_prime
 
-		# Encrypt with all primary keys from N ... 1
+		""" Encrypt with all primary keys from N ... 1 """
 		for i in xrange(self.n_nodes-1, -1, -1):
 			k1, k2 = self.pub_keys[i]
 			self.cipher = AnonCrypto.encrypt_with_rsa(k1, self.cipher)
 
-#
-# PHASE 3
-#
-	
+	"""
+	PHASE 3
+
+	Anonymization.
+	"""
+		
 	def run_phase3(self):
 		self.advance_phase()
 		self.info("Starting phase 3")
-	
-		# Everyone (except leader) blocks waiting for msg from
-		# previous node in the group
+
+		"""
+		Everyone (except leader) blocks waiting for msg from
+		previous node in the group.
+		"""
 		if not self.am_leader():
 			self.data_in = self.recv_cipher_set()
 			self.debug("Got set of ciphers")
 
-		# Shuffle ciphertexts
+		""" Shuffle ciphertexts. """
 		self.shuffle_and_decrypt()
 		self.debug("Shuffled ciphers")
 	
@@ -252,7 +279,7 @@ class shuffle_node():
 			self.debug("Sent set of ciphers")
 		
 		if self.am_leader():
-			# Leader waits for ciphers from member N
+			""" Leader waits for ciphers from member N. """
 			self.data_in = self.recv_cipher_set()
 
 	def shuffle_and_decrypt(self):
@@ -267,9 +294,12 @@ class shuffle_node():
 			pickled = cPickle.dumps((self.round_id, new_ctext))
 			self.data_out.append(pickled)
 
-#
-# PHASE 4
-#
+	"""
+	PHASE 4
+
+	Verification.
+	"""
+
 	def run_phase4(self):
 		self.advance_phase()
 		if self.am_leader():
@@ -278,10 +308,13 @@ class shuffle_node():
 			self.debug("Cipher set len %d" % (len(self.data_in)))
 			self.final_ciphers = self.data_in
 		else:
-			# Get C' ciphertexts from leader
+			""" Get C' ciphertexts from leader. """
 			self.final_ciphers = self.recv_cipher_set()
 
-		# self.final_ciphers holds an array of pickled (round_id, cipher_prime) tuples
+		"""
+		self.final_ciphers holds an array of
+		pickled (round_id, cipher_prime) tuples
+		"""
 		my_cipher_str = cPickle.dumps((self.round_id, self.cipher_prime))
 
 		go = False
@@ -302,16 +335,16 @@ class shuffle_node():
 		
 		go_data = ''
 		if self.am_leader():
-			# Collect go msgs
+			""" Collect go msgs """
 			(data, addrs) = self.recv_from_n(self.n_nodes - 1, False)
 			
-			# Add leader's signed GO message to set
+			""" Add leader's signed GO message to set """
 			data.append(AnonCrypto.sign(self.id, self.key1, go_msg))
 			go_data = cPickle.dumps((data))
 			self.broadcast_to_all_nodes(go_data)
 
 		else:
-			# Send go msg to leader
+			""" Send go msg to leader """
 			self.send_to_leader(go_msg)
 			(data, addrs) = self.recv_from_n(1)
 			go_data = data[0]
@@ -323,7 +356,7 @@ class shuffle_node():
 	def check_go_data(self, hashval, pickled_list):
 		go_lst = cPickle.loads(pickled_list)
 		for item in go_lst:
-			# Verify signature on "GO" message
+			""" Verify signature on "GO" message """
 			item_str = AnonCrypto.verify(self.pub_keys, item)
 			(r_id, r_round, r_go, r_hash) = cPickle.loads(item_str)
 			if r_round != self.round_id:
@@ -334,9 +367,11 @@ class shuffle_node():
 			 	raise RuntimeError, "Node %d produced bad hash!" % (r_id)
 		return True
 
-#
-# PHASE 5
-#
+	"""
+	PHASE 5
+
+	Decryption.
+	"""
 
 	def run_phase5(self):
 		self.advance_phase()
@@ -349,7 +384,7 @@ class shuffle_node():
 		if self.am_leader():
 			(data, addr) = self.recv_from_n(self.n_nodes - 1, False)
 			
-			# Add leader's signed key to set
+			""" Add leader's signed key to set """
 			data.append(AnonCrypto.sign(self.id, self.key1, mykeystr))
 			self.debug("Key data...")
 			self.broadcast_to_all_nodes(cPickle.dumps((data)))
@@ -375,7 +410,7 @@ class shuffle_node():
 	def decrypt_ciphers(self, keyset):
 		priv_keys = {}
 		for item in keyset:
-			# Verify signature on each key
+			""" Verify signature on each key """
 			item_str = AnonCrypto.verify(self.pub_keys, item)
 			(r_id, r_roundid, r_keystr) = cPickle.loads(item_str)
 			if r_roundid != self.round_id:
@@ -394,14 +429,16 @@ class shuffle_node():
 		self.anon_data = plaintexts
 		
 
-#
-# Network Utility Functions
-#
+	"""
+	Network Utility Functions
+	"""
 
 	def recv_cipher_set(self):
-		# data_in arrives as a singleton list of a pickled
-		# list of ciphers.  we need to unpickle the first
-		# element and use that as our array of ciphertexts
+		"""
+		data_in arrives as a singleton list of a pickled
+		list of ciphers.  we need to unpickle the first
+		element and use that as our array of ciphertexts
+		"""
 		(data, addrs) = self.recv_from_n(1)
 		return cPickle.loads(data[0])
 
@@ -412,7 +449,7 @@ class shuffle_node():
 		if signed: outmsg = AnonCrypto.sign(self.id, self.key1, msg)
 		else: outmsg = msg
 
-		# Only leader can do this
+		""" Only leader can broadcast """
 		for i in xrange(0, self.n_nodes-1):
 			ip, port = self.addrs[i]
 			AnonNet.send_to_addr(ip, port, outmsg)
@@ -438,9 +475,9 @@ class shuffle_node():
 		else: outdata = indata
 		return (outdata, addrs)
 
-#
-# Utility Functions 
-#
+	"""
+	Utility Functions 
+	"""
 
 
 	def key_from_file(self, key_number):
