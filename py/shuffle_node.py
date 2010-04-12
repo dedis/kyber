@@ -9,6 +9,7 @@ from time import sleep, time
 from logging import debug, info, critical
 import socket, cPickle, tempfile
 import struct
+import resource
 
 import M2Crypto.RSA
 
@@ -33,6 +34,9 @@ class shuffle_node():
 		self.next_addr = next_addr
 		self.phase = 0
 		self.max_len = max_len
+		self.rusage_start = (
+				resource.getrusage(resource.RUSAGE_SELF).ru_utime,
+				resource.getrusage(resource.RUSAGE_SELF).ru_stime)
 
 		self.package_msg(msg_file)
 		info("Node started (id=%d, addr=%s:%d, key_len=%d, round_id=%d, n_nodes=%d)"
@@ -82,9 +86,13 @@ class shuffle_node():
 		self.run_phase5()
 
 		self.info("Finished in %g seconds" % (time() - self.start_time))
-		self.critical("SUCCESSROUND:SHUFFLE,%d,%d,%g%s" % \
-				(self.round_id, self.n_nodes, time()
-					- self.start_time, self.size_string()))
+		self.critical("SUCCESSROUND:SHUFFLE, RID:%d, NNOD:%d, WALLTIME:%g, USR:%g, SYS:%g\n\t%s" % \
+				(self.round_id,
+				 self.n_nodes, 
+				 time() - self.start_time, 
+				 resource.getrusage(resource.RUSAGE_SELF).ru_utime - self.rusage_start[0],
+				 resource.getrusage(resource.RUSAGE_SELF).ru_stime - self.rusage_start[1],
+				 self.size_string()))
 
 	def size_string(self):
 		c = ''

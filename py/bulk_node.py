@@ -9,7 +9,7 @@ from time import sleep, time
 from logging import debug, info, critical
 from math import log, ceil
 import cPickle, tempfile, struct, tarfile, base64
-import threading
+import resource
 
 import M2Crypto.RSA
 import M2Crypto.EVP
@@ -34,6 +34,9 @@ class bulk_node():
 		self.prev_addr = prev_addr
 		self.next_addr = next_addr
 		self.phase = 0
+		self.rusage_start = (
+				resource.getrusage(resource.RUSAGE_SELF).ru_utime,
+				resource.getrusage(resource.RUSAGE_SELF).ru_stime)
 
 		self.msg_file = msg_file
 
@@ -67,8 +70,13 @@ class bulk_node():
 		self.run_phase2()
 		self.run_phase3()
 		self.run_phase4()
-		self.critical("SUCCESSROUND:BULK,%d,%d,%g%s" % \
-				(self.round_id, self.n_nodes, time() - self.start_time, self.size_string()))
+		self.critical("SUCCESSROUND:BULK, RID:%d, NNOD:%d, WALLTIME:%g, USR:%g, SYS:%g\n\t%s" % \
+				(self.round_id,
+				 self.n_nodes, 
+				 time() - self.start_time, 
+				 resource.getrusage(resource.RUSAGE_SELF).ru_utime - self.rusage_start[0],
+				 resource.getrusage(resource.RUSAGE_SELF).ru_stime - self.rusage_start[1],
+				 self.size_string()))
 
 	def size_string(self):
 		c = ''
