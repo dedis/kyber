@@ -9,6 +9,7 @@ from time import sleep, time
 from logging import debug, info, critical
 from math import log, ceil
 import cPickle, tempfile, struct, tarfile, base64
+import threading
 
 import M2Crypto.RSA
 import M2Crypto.EVP
@@ -559,19 +560,14 @@ class bulk_node():
 		return cPickle.loads(data[0])
 
 	def broadcast_to_all_nodes(self, msg):
-		self.broadcast_using(AnonNet.send_to_addr, msg)
-
-	def broadcast_file_to_all_nodes(self, fname):
-		self.broadcast_using(AnonNet.send_file_to_addr, fname)
-
-	def broadcast_using(self, func, arg):
 		if not self.am_leader():
 			raise RuntimeError, 'Only leader can broadcast'
+		AnonNet.broadcast_using(self.addrs, AnonNet.send_to_addr, msg)
 
-		""" Only leader can broadcast """
-		for i in xrange(0, self.n_nodes-1):
-			ip, port = self.addrs[i]
-			func(ip, port, arg)	
+	def broadcast_file_to_all_nodes(self, fname):
+		if not self.am_leader():
+			raise RuntimeError, 'Only leader can broadcast'
+		AnonNet.broadcast_using(self.addrs, AnonNet.send_file_to_addr, fname)
 
 	def send_to_leader(self, msg):
 		ip,port = self.leader_addr

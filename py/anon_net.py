@@ -7,6 +7,7 @@ anon protocol implementation.
 import socket, cPickle, random, struct, tempfile
 from time import sleep
 from logging import debug, info, critical
+import threading
 
 class AnonNet:
 	"""
@@ -63,26 +64,11 @@ class AnonNet:
 
 	@staticmethod
 	def recv_files_from_n(server_ip, server_port, n_backlog):
-		debug('Setting up server socket')
-
-		# Set up server connection 
-		addrs = []
-		server_sock = AnonNet.new_server_socket(
-				server_ip, server_port, n_backlog)
-
-		data = []
-		for i in xrange(0, n_backlog):
-			debug("Listening...")
-			try:
-				(rem_sock, (rem_ip, rem_port)) = server_sock.accept()
-				addrs.append((rem_ip, rem_port))
-			except KeyboardInterrupt:
-				server_sock.close()
-				raise
-			data.append(AnonNet.recv_file_from_sock(rem_sock))
-		server_sock.close()
-		debug('Got all messages, closing socket')
-		return (data, addrs)
+		return AnonNet.threaded_recv_from_n(
+				server_ip,
+				server_port, 
+				n_backlog,
+				AnonNet.recv_file_from_sock)
 
 	"""
 	Misc Network
@@ -166,14 +152,47 @@ class AnonNet:
 
 	@staticmethod
 	def recv_from_n(my_ip, my_port, n_backlog):
+		return AnonNet.threaded_recv_from_n(
+				my_ip,
+				my_port, 
+				n_backlog,
+				AnonNet.recv_from_sock)
+
+
+	"""
+	Threaded Net functions
+	"""
+
+	@staticmethod
+	def broadcast_using(addrs, func, arg):
+		threads = []
+
+		""" Only leader can broadcast """
+		for i in xrange(0, len(addrs)):
+			ip, port = addrs[i]
+			t = threading.Thread(
+					target = func,
+					args = (ip, port, arg))
+			debug("Starting thread %s" % t.name)
+			t.start()
+			threads.append(t)
+#func(ip, port, arg)	
+
+		for t in threads:
+			debug("Joining thread %s" % t.name)
+			t.join()
+
+	@staticmethod
+	def threaded_recv_from_n(server_ip, server_port, n_backlog, sock_function):
 		""" Receive a message from N nodes """
 
 		debug('Setting up server socket')
 
-		# set up server connection 
+		""" Set up server connection """
+		server_sock = AnonNet.new_server_socket(server_ip, server_port, n_backlog)
 		addrs = []
-		server_sock = AnonNet.new_server_socket(my_ip, my_port, n_backlog)
-		data = []
+		data = [None] * n_backlog
+		threads = []
 		for i in xrange(0, n_backlog):
 			debug("Listening...")
 			try:
@@ -182,8 +201,21 @@ class AnonNet:
 			except KeyboardInterrupt:
 				server_sock.close()
 				raise
-			data.append(AnonNet.recv_from_sock(rem_sock))
+			t = threading.Thread(
+				target = AnonNet.read_sock_into_array,
+				args = (data, i, sock_function, rem_sock))
+			t.start()
+			threads.append(t)
 		server_sock.close()
 		debug('Got all messages, closing socket')
+
+		for t in threads:
+			t.join()
+
 		return (data, addrs)
+
+
+	@staticmethod
+	def read_sock_into_array(data_array, index, sock_function, sock):
+		data_array[index] = sock_function(sock)
 

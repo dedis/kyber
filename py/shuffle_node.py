@@ -449,10 +449,7 @@ class shuffle_node():
 		if signed: outmsg = AnonCrypto.sign(self.id, self.key1, msg)
 		else: outmsg = msg
 
-		""" Only leader can broadcast """
-		for i in xrange(0, self.n_nodes-1):
-			ip, port = self.addrs[i]
-			AnonNet.send_to_addr(ip, port, outmsg)
+		AnonNet.broadcast_using(self.addrs, AnonNet.send_to_addr, outmsg)
 
 	def send_to_addr(self, ip, port, msg, signed = True):
 		if signed: outmsg = AnonCrypto.sign(self.id, self.key1, msg)
