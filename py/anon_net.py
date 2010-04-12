@@ -1,18 +1,26 @@
-#
-# ANONYMITY PROTOCOL NETWORK UTILITY FUNCTIONS
-#
+"""
+Filename: anon_net.py
+Description: Networking utility functions for the
+anon protocol implementation.
+"""
 
 import socket, cPickle, random, struct, tempfile
 from time import sleep
 from logging import debug, info, critical
 
 class AnonNet:
+	"""
+	Maximum number of times a client will try to connect
+	to a server node.
+	"""
 	MAX_ATTEMPTS = 1000
 
+	"""
+	Big file functions
 
-#
-# Big file functions
-#
+	Files in the bulk protocol may be very large, so we send
+	them block by block.
+	"""
 
 	@staticmethod
 	def send_file_to_addr(ip, port, filename):
@@ -25,7 +33,6 @@ class AnonNet:
 				bytes = f.read(blocksize)
 				if(bytes == ''): break
 				
-#debug("Sending %d bytes" % len(bytes))
 				AnonNet.send_to_socket(sock, bytes)
 
 		sock.close()
@@ -58,7 +65,7 @@ class AnonNet:
 	def recv_files_from_n(server_ip, server_port, n_backlog):
 		debug('Setting up server socket')
 
-		# set up server connection 
+		# Set up server connection 
 		addrs = []
 		server_sock = AnonNet.new_server_socket(
 				server_ip, server_port, n_backlog)
@@ -77,9 +84,9 @@ class AnonNet:
 		debug('Got all messages, closing socket')
 		return (data, addrs)
 
-#
-# Misc Network
-#
+	"""
+	Misc Network
+	"""
 
 	@staticmethod
 	def send_to_addr(ip, port, msg):
@@ -91,7 +98,7 @@ class AnonNet:
 
 	@staticmethod
 	def send_to_socket(sock, msg):
-		# Snippet inspired by http://www.amk.ca/python/howto/sockets/
+		""" Snippet inspired by http://www.amk.ca/python/howto/sockets/ """
 		totalsent = 0
 		while totalsent < len(msg):
 			try:
@@ -99,7 +106,6 @@ class AnonNet:
 			except KeyboardError, SystemExit:
 				sock.close()
 				raise
-#debug("Sent %d bytes" % (sent))
 			if sent == 0:
 				raise RuntimeError, "Socket broken"
 			totalsent = totalsent + sent
@@ -160,6 +166,8 @@ class AnonNet:
 
 	@staticmethod
 	def recv_from_n(my_ip, my_port, n_backlog):
+		""" Receive a message from N nodes """
+
 		debug('Setting up server socket')
 
 		# set up server connection 

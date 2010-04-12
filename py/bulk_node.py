@@ -1,13 +1,21 @@
+"""
+Filename: bulk_node.py
+Description: The main class that implements the
+shuffle+bulk anonymous data exchange protocol.
+"""
+
 import logging, random, sys, os, shutil
 from time import sleep, time
 from logging import debug, info, critical
+from math import log, ceil
 import cPickle, tempfile, struct, tarfile, base64
-from utils import Utilities
+
 import M2Crypto.RSA
 import M2Crypto.EVP
+
+from utils import Utilities
 from anon_crypto import AnonCrypto, AnonRandom
 from anon_net import AnonNet
-from math import log, ceil
 from shuffle_node import shuffle_node
 
 class bulk_node():
@@ -58,7 +66,8 @@ class bulk_node():
 		self.run_phase2()
 		self.run_phase3()
 		self.run_phase4()
-		self.critical("SUCCESSROUND,%d,%d,%g%s" % (self.round_id, self.n_nodes, time() - self.start_time, self.size_string()))
+		self.critical("SUCCESSROUND:BULK,%d,%d,%g%s" % \
+				(self.round_id, self.n_nodes, time() - self.start_time, self.size_string()))
 
 	def size_string(self):
 		c = ''
@@ -78,10 +87,15 @@ class bulk_node():
 	def am_last(self):
 		return self.id == (self.n_nodes - 1)
 
-#
-# PHASE 0
-#
+	"""
+	PHASE 0
 
+	Key exchange.  Since this is just a demo, we have all nodes
+	send each other their primary and secondary public keys.  Of course
+	in a real implementation, they should already have each other's
+	primary public keys so that they can sign this first message.
+	"""
+		
 	def run_phase0(self):
 		self.advance_phase()
 		self.public_keys = []
@@ -90,11 +104,13 @@ class bulk_node():
 		if self.am_leader():
 			self.debug('Leader starting phase 1')
 
-			# We need to save addresses so that we can
-			# broadcast to all nodes
+			"""
+			The leader needs to save addresses so that (s)he can
+			broadcast to all nodes.
+			"""
 			(all_msgs, addrs) = self.recv_from_n(self.n_nodes-1)
 			
-			# Get all node addrs via this msg
+			""" Get all node addrs via this msg """
 			self.addrs = self.unpickle_pub_keys(all_msgs)
 
 			if not self.have_all_keys():
@@ -103,19 +119,22 @@ class bulk_node():
 
 			pick_keys_str = self.phase0b_msg()
 			self.broadcast_to_all_nodes(pick_keys_str)
-
 			self.info('Leader sent all public keys')
 
 		else:
 			self.send_to_leader(self.phase0_msg())
 		
-			# Get all pub keys from leader
+			""" Get all pub keys from leader """
 			(keys, addrs) = self.recv_from_n(1)
 			self.unpickle_keyset(keys[0])
 
 			self.info('Got keys from leader!')
 
 	def unpickle_keyset(self, keys):
+		"""
+		Method that non-leader nodes use to unpack all 
+		public keys from the leader's message.
+		"""
 		(rem_round_id, keydict) = cPickle.loads(keys)
 
 		if rem_round_id != self.round_id:
@@ -133,6 +152,10 @@ class bulk_node():
 		self.info('Unpickled public keys')
 
 	def unpickle_pub_keys(self, msgs):
+		"""
+		Method that the leader uses to unpack
+		public keys from other nodes.
+		"""
 		addrs = []
 		for data in msgs:
 			(rem_id, rem_round, rem_ip, rem_port,
@@ -140,7 +163,8 @@ class bulk_node():
 			self.debug("Unpickled msg from node %d" % (rem_id))
 			
 			if rem_round != self.round_id:
-				raise RuntimeError, "Mismatched round numbers! (mine: %d, other: %d)" % (
+				raise RuntimeError, "Mismatched round numbers!\
+					(mine: %d, other: %d)" % (
 						self.round_id, rem_round)
 
 			self.pub_keys[rem_id] = (
@@ -150,6 +174,7 @@ class bulk_node():
 		return addrs
 
 	def phase0_msg(self):
+		""" Message all nodes send to the leader. """
 		return cPickle.dumps(
 				(self.id,
 					self.round_id, 
@@ -159,6 +184,7 @@ class bulk_node():
 					self.key_from_file(2)))
 	
 	def phase0b_msg(self):
+		""" Message the leader sends to all other nodes. """
 		newdict = {}
 		for i in xrange(0, self.n_nodes):
 			k1,k2 = self.pub_keys[i]
@@ -168,13 +194,15 @@ class bulk_node():
 
 		return cPickle.dumps((self.round_id, newdict))
 
-#
-# PHASE 1
-#
+	"""
+	PHASE 1
+
+	Message descriptor generation.
+	"""
 
 	def run_phase1(self):
 		self.seeds = []
-		self.gens = []
+		self.gens = []	
 		self.my_hashes = []
 		for i in xrange(0, self.n_nodes):
 			seed = AnonCrypto.random_seed()
@@ -185,16 +213,30 @@ class bulk_node():
 		(handle, self.cip_file) = tempfile.mkstemp()
 
 		blocksize = 8192
+
+		"""
+		The hash h holds a hash of the XOR of all
+		pseudo-random strings with the author's message.
+		"""
 		h = M2Crypto.EVP.MessageDigest('sha1')
 		self.debug('Starting to write data file')
+
 		with open(self.msg_file, 'r') as f_msg:
 			with open(self.cip_file, 'w') as f_cip:
-				while True: # Loop until file is done
+				""" Loop until we reach EOF """
+				while True:
 					block = f_msg.read(blocksize)
 					n_bytes = len(block)
 					if n_bytes == 0: break
+
+					"""
+					Get blocksize random bytes for each other node
+					and XOR them together with blocksize bytes of
+					my message, update the hash and write the XOR'd
+					block out to disk.
+					"""
 					for i in xrange(0, self.n_nodes):
-						# Don't XOR bits for self
+						""" Don't XOR bits for self """
 						if i == self.id: continue
 
 						r_bytes = self.gens[i].rand_bytes(n_bytes)
@@ -205,6 +247,7 @@ class bulk_node():
 
 		self.debug('Finished writing my data file')
 
+		""" Encrypt each of the pseudo-random generator seeds. """ 
 		self.enc_seeds = []
 		for i in xrange(0, self.n_nodes):
 			self.my_hashes.append(self.gens[i].hash_value())
@@ -214,12 +257,13 @@ class bulk_node():
 						self.pub_keys[i][0],
 						self.seeds[i]))
 		
-		# Insert "cheating" hash for self
+		""" Insert "cheating" hash for self. """
 		self.my_hashes[self.id] = h.final()
 
-		# Remember the seed encrypted for self
+		""" Remember the seed encrypted for self. """
 		self.my_seed = self.enc_seeds[self.id]
 
+		""" Write all the data to be sent out to disk. """
 		(dhandle, self.dfilename) = tempfile.mkstemp()
 		with open(self.dfilename, 'w') as f:
 			cPickle.dump((
@@ -230,10 +274,13 @@ class bulk_node():
 				self.my_hashes), f)
 		return
 
-#
-# PHASE 2
-#
+	"""
+	PHASE 2
+
+	Data exchange.
+	"""
 	def run_phase2(self):
+		""" Start up a shuffle node"""
 		s = shuffle_node(
 			self.id,
 			self.key_len,

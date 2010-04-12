@@ -1,4 +1,8 @@
-# UTILITY FUNCTIONS
+"""
+Filename: utils.py
+Description: Utility functions for the anon
+protocol implementation.
+"""
 
 from numpy import frombuffer, bitwise_xor, byte, uint64
 
@@ -18,6 +22,7 @@ class Utilities:
 
 	@staticmethod
 	def xor_bytes(str1, str2):
+		""" Quickly XOR two strings together using the numpy library """
 		if len(str1) != len(str2):
 			raise RuntimeError, 'Strings must be equal length'
 		blocks = len(str1) / 64

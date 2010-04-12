@@ -1,40 +1,44 @@
-#
-# CRYPTO PRIMITIVES FOR ANON PROTOCOL
-#
+"""
+Filename: anon_crypto.py
+Description: Crypto primitives for the anon
+protocol.
+"""
 
-import M2Crypto.EVP, M2Crypto.RSA, M2Crypto.Rand
 from utils import Utilities
-import tempfile, struct, cPickle, base64
 from logging import debug
+import tempfile, struct, cPickle, base64
 from cStringIO import StringIO
 
+import M2Crypto.EVP, M2Crypto.RSA, M2Crypto.Rand
+
 class AnonCrypto: 
-	# A very unsecure initialization vector
+	""" A very unsecure initialization vector for AES. """
 	AES_IV = 'al*73lf9)982'
 	KEYFILE_PASSWORD = '12f*d4&^#)!-1728410df' 
 	PRNG_SEED_LEN = 1024
-
 	
 	@ staticmethod
 	def key_password(input):
 		return AnonCrypto.KEYFILE_PASSWORD
 
-#
-# RSA Encryption
-#
-# We do this the standard way: 
-# 1) Encrypt the msg with a random AES key
-# 2) Encrypt the AES key with the RSA key
-# 3) The ciphertext is the (encrypted-AES-key, AES-ciphertext) tuple
-#
+	"""
+	 RSA Encryption
 
+	 We do this the standard way: 
+	 1) Encrypt the msg with a random AES key
+	 2) Encrypt the AES key with the RSA key
+	 3) The ciphertext is the (encrypted-AES-key, AES-ciphertext) tuple
+	"""
+	
 	@staticmethod
 	def encrypt_with_rsa(pubkey, msg):
 		session_key = M2Crypto.Rand.rand_bytes(32)
 	
-		# AES must be padded to make 16-byte blocks
-		# Since we prepend msg with # of padding bits
-		# we actually need one less padding bit
+		"""
+		AES must be padded to make 16-byte blocks
+		Since we prepend msg with # of padding bits
+		we actually need one less padding bit
+		"""
 		n_padding = ((16 - (len(msg) % 16)) - 1) % 16
 		padding = '\0' * n_padding
 
@@ -43,7 +47,7 @@ class AnonCrypto:
 		encrypt = M2Crypto.EVP.Cipher('aes_256_cbc', 
 				session_key, AnonCrypto.AES_IV, M2Crypto.encrypt)
 
-		# Output is tuple (E_rsa(session_key), E_aes(session_key, msg))
+		""" Output is tuple (E_rsa(session_key), E_aes(session_key, msg)) """
 		enc_key = pubkey.public_encrypt(session_key, M2Crypto.RSA.pkcs1_oaep_padding)
 		enc_msg = encrypt.update(pad_struct + msg + padding) 
 
@@ -54,11 +58,11 @@ class AnonCrypto:
 		enc_key = cipherstr[:128]	# First 128 bytes are the key
 		enc_msg = cipherstr[128:]	# Rest is the padded AES ciphertext
 		
-		# Get session key using RSA decryption
+		""" Get session key using RSA decryption """
 		session_key = privkey.private_decrypt(enc_key, 
 				M2Crypto.RSA.pkcs1_oaep_padding)
 		
-		# Use session key to recover string
+		""" Use session key to recover string """
 		dummy_block =  ' ' * 8
 		decrypt = M2Crypto.EVP.Cipher('aes_256_cbc', 
 				session_key, AnonCrypto.AES_IV, M2Crypto.decrypt)
@@ -67,10 +71,10 @@ class AnonCrypto:
 		pad_data = outstr[0]
 		outstr = outstr[1:]
 
-		# Get num of bytes added at end
+		""" Get num of bytes added at end """
 		n_padding = struct.unpack('!B', pad_data)
 		
-		# Second element of tuple is always empty for some reason
+		""" Second element of tuple is always empty for some reason """
 		n_padding = n_padding[0]
 		outstr = outstr[:(len(outstr) - n_padding)]
 
@@ -80,9 +84,9 @@ class AnonCrypto:
 	def random_key(key_len):
 		return M2Crypto.RSA.gen_key(key_len, 65537)
 
-#
-# HASH Function (We use SHA1)
-#
+	"""
+	Hash Function (We use SHA1)
+	"""
 
 	@staticmethod
 	def hash(msg):
@@ -90,9 +94,9 @@ class AnonCrypto:
 		h.update(msg)
 		return h.final()
 
-	# Get a hash value for a list
 	@staticmethod
 	def hash_list(lst):
+		""" Get a hash value for a list """
 		return AnonCrypto.hash(cPickle.dumps(lst))
 
 	@staticmethod
@@ -106,9 +110,9 @@ class AnonCrypto:
 		return hash.final()
 
 
-#
-# Signatures
-#
+	"""
+	RSA Signatures
+	"""
 
 	@staticmethod
 	def sign(my_id, signkey, msg):
@@ -127,36 +131,10 @@ class AnonCrypto:
 
 
 
-#
-# Random Numbers
-#
 
-	@staticmethod
-	def random_seed():
-		return M2Crypto.Rand.rand_bytes(AnonCrypto.PRNG_SEED_LEN)
-
-	@staticmethod
-	def random_file(length):
-		handle, fname = tempfile.mkstemp()
-		
-		blocksize = 8192
-		a = AnonRandom(M2Crypto.Rand.rand_bytes(32))
-		lleft = length
-		with open(fname, 'w') as f:
-			while lleft > 0:
-				if lleft < blocksize:
-					f.write(a.rand_bytes(lleft))
-				else:
-					f.write(a.rand_bytes(blocksize))
-				lleft = lleft - blocksize
-		return fname
-
-
-
-
-#
-# I/O Utility Functions
-#
+	"""
+	I/O Utility Functions
+	"""
 
 	@staticmethod
 	def priv_key_to_str(privkey):
@@ -182,11 +160,38 @@ class AnonCrypto:
 		Utilities.write_str_to_file(filename, key_str)
 		return M2Crypto.RSA.load_pub_key(filename)
 
-#
-# Random Strings (Uses AES in counter mode)
-#
+	"""
+	Pseudo-Random Number Generation
+
+	We uses AES in counter mode to generate cryptographically
+	strong random bitstrings.
+	"""
+	@staticmethod
+	def random_seed():
+		return M2Crypto.Rand.rand_bytes(AnonCrypto.PRNG_SEED_LEN)
+
+	@staticmethod
+	def random_file(length):
+		handle, fname = tempfile.mkstemp()
+		
+		blocksize = 8192
+		a = AnonRandom(M2Crypto.Rand.rand_bytes(32))
+		lleft = length
+		with open(fname, 'w') as f:
+			while lleft > 0:
+				if lleft < blocksize:
+					f.write(a.rand_bytes(lleft))
+				else:
+					f.write(a.rand_bytes(blocksize))
+				lleft = lleft - blocksize
+		return fname
 
 class AnonRandom:
+	"""
+		This class holds hash data and random state
+		data for a pseduo-random bitstring.
+	"""
+
 	def __init__(self, seed):
 		self.encrypt = M2Crypto.EVP.Cipher('aes_256_cbc', 
 				seed, AnonCrypto.AES_IV, M2Crypto.encrypt)
@@ -194,9 +199,6 @@ class AnonRandom:
 		self.hash = M2Crypto.EVP.MessageDigest('sha1')
 	
 	def rand_bytes(self, nbytes):
-		### TEMP ###
-#return 'L' * nbytes
-
 		blocks = nbytes / 16
 		
 		out = StringIO()

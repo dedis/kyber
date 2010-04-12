@@ -1,8 +1,15 @@
-from logging import debug, info
-import logging
-import bulk_node, random
+"""
+Filename: main.py
+Description: Test driver for anon protocol.  Designed to be
+used as a command-line tool.
+"""
+
 from subprocess import Popen
 import sys
+import logging
+from logging import debug, info
+
+import bulk_node, random
 
 class node_set():
 	def __init__(self, argv):
@@ -21,7 +28,36 @@ class node_set():
 		self.processes = self.create_nodes()
 
 	def process_args(self, argv):
-		usagestr = "Usage: %s [-r|-l] [-s|-b] total_len [each|one] n_nodes address_filename" % argv[0]
+		helpmsg = """
+			-r -- Remote mode.  Use SSH to log in to the remote host
+				  				and execute the node program there.
+			-l -- Local mode.   Run the node program on the local host.
+
+			-s -- Shuffle only. Exchange data using the shuffle protocol
+								only.
+			-b -- Bulk/shuffle. Exchange data using shuffle+bulk protocol.
+								This is what you want to use for long messages.
+			
+			total_len -- The total amount of data to be exchanged (in bytes).
+
+			each -- Equal data mode.  The total_len bytes are distributed 
+								among all nodes equally.  
+			one  -- One big message mode.  Each node sends 128 bytes of data
+								except one node, who sends a message of size
+								(total_len - 128 * (n_nodes - 1)) bytes.
+
+			n_nodes -- Number of nodes to run the protocol on.  The actual
+								number of nodes is the minimum of n_nodes and
+								the number of nodes listed in your address file.
+
+			address_filename -- Filename containing node addresses.  This is a
+								plain text file with one line per node.  Each
+								line has an IPv4 address/hostname and a port
+								number separated by whitespace.
+		"""
+		usagestr = "Usage: %s [-r|-l] [-s|-b] total_len [each|one] \
+					n_nodes address_filename \n\n %s " % (argv[0], helpmsg)
+
 		if len(argv) != 7: raise RuntimeError, usagestr
 
 		if argv[1] == '-r':		self.remote = True
@@ -80,6 +116,7 @@ class node_set():
 				if i == thenode: mylen = max(total_len - (128 * (n_nodes-1)), 128)
 				else: mylen = 128
 				self.lengths.append(mylen)
+		debug(self.lengths)
 
 	def parse_nodefile(self, n_nodes, filename):
 		nodes = []
@@ -92,4 +129,5 @@ class node_set():
 				nodes.append((parts[0],int(parts[1])))
 		return nodes
 
-node_set(sys.argv)
+if __name__ == '__main__':
+	node_set(sys.argv)

@@ -71,7 +71,7 @@ class shuffle_node():
 		self.run_phase5()
 
 		self.info("Finished in %g seconds" % (time() - self.start_time))
-		self.critical("SUCCESSROUND,%d,%d,%g%s" % (self.round_id, self.n_nodes, time()
+		self.critical("SUCCESSROUND:SHUFFLE,%d,%d,%g%s" % (self.round_id, self.n_nodes, time()
 					- self.start_time, self.size_string()))
 
 	def size_string(self):
@@ -368,7 +368,7 @@ class shuffle_node():
 		filenames = []
 		for i in xrange(0, len(self.anon_data)):
 			handle, fname = tempfile.mkstemp()
-			Utilities.write_str_to_file(fname, self.unpackage_msg(self.anon_data[i]))
+			Utilities.write_str_to_file(fname, self.anon_data[i])
 			filenames.append(fname)
 		return filenames
 
@@ -389,9 +389,10 @@ class shuffle_node():
 				raise RuntimeError, 'Mismatched round ids'
 			for i in xrange(0, self.n_nodes):
 				cipher_prime = AnonCrypto.decrypt_with_rsa(priv_keys[i], cipher_prime)
-			plaintexts.append(cipher_prime)
+			plaintexts.append(self.unpackage_msg(cipher_prime))
 		
 		self.anon_data = plaintexts
+		
 
 #
 # Network Utility Functions
