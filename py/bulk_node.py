@@ -65,18 +65,22 @@ class bulk_node():
 		'''
 
 	def run_protocol(self):
-		self.run_phase0()
-		self.run_phase1()
-		self.run_phase2()
-		self.run_phase3()
-		self.run_phase4()
-		self.critical("SUCCESSROUND:BULK, RID:%d, NNOD:%d, WALLTIME:%g, USR:%g, SYS:%g\n\t%s" % \
+		try:
+			self.setup_sockets()
+			self.run_phase0()
+			self.run_phase1()
+			self.run_phase2()
+			self.run_phase3()
+			self.run_phase4()
+			self.critical("SUCCESSROUND:BULK, RID:%d, NNOD:%d, WALLTIME:%g, USR:%g, SYS:%g\n\t%s" % \
 				(self.round_id,
 				 self.n_nodes, 
 				 time() - self.start_time, 
 				 resource.getrusage(resource.RUSAGE_SELF).ru_utime - self.rusage_start[0],
 				 resource.getrusage(resource.RUSAGE_SELF).ru_stime - self.rusage_start[1],
 				 self.size_string()))
+		finally:
+			self.cleanup_sockets()
 
 	def size_string(self):
 		c = ''
@@ -113,29 +117,24 @@ class bulk_node():
 		if self.am_leader():
 			self.debug('Leader starting phase 1')
 
-			"""
-			The leader needs to save addresses so that (s)he can
-			broadcast to all nodes.
-			"""
-			(all_msgs, addrs) = self.recv_from_n(self.n_nodes-1)
+			all_msgs = self.recv_from_all(False)
 			
-			""" Get all node addrs via this msg """
-			self.addrs = self.unpickle_pub_keys(all_msgs)
+			self.unpickle_pub_keys(all_msgs)
 
 			if not self.have_all_keys():
 				raise RuntimeError, "Missing public keys"
 			self.info('Leader has all public keys')
 
 			pick_keys_str = self.phase0b_msg()
-			self.broadcast_to_all_nodes(pick_keys_str)
+			self.broadcast_to_all_nodes(pick_keys_str, False)
 			self.info('Leader sent all public keys')
 
 		else:
-			self.send_to_leader(self.phase0_msg())
+			self.send_to_leader(self.phase0_msg(), False)
 		
 			""" Get all pub keys from leader """
-			(keys, addrs) = self.recv_from_n(1)
-			self.unpickle_keyset(keys[0])
+			keys = self.recv_from_leader(False)
+			self.unpickle_keyset(keys)
 
 			self.info('Got keys from leader!')
 
@@ -302,7 +301,8 @@ class bulk_node():
 			self.dfilename,
 			# Max msg length given the number of bits we need
 			# to represent the length
-			1 << int(ceil(log(os.path.getsize(self.dfilename),2))))
+			1 << int(ceil(log(os.path.getsize(self.dfilename),2))),
+			self.sockets)
 		s.run_protocol()
 		fnames = s.output_filenames()
 
@@ -394,14 +394,13 @@ class bulk_node():
 			raise RuntimeError, 'My ciphertext is missing'
 
 		if self.am_leader():
-			(fnames, addrs) = self.recv_files_from_n(self.n_nodes - 1)
+			fnames = AnonNet.recv_file_from_n(self.sockets)
 			fnames.append(self.tar_filename)
 			self.master_filename = self.create_master_tar(fnames)
 			self.broadcast_file_to_all_nodes(self.master_filename)
 		else:
-			self.send_file_to_leader(self.tar_filename)
-			(fnames, addrs) = self.recv_files_from_n(1)
-			self.master_filename = fnames[0]
+			AnonNet.send_file_to_sock(self.leader_socket, self.tar_filename)
+			self.master_filename = AnonNet.recv_file_from_sock(self.leader_socket)
 
 	def create_master_tar(self, fnames):
 		"""
@@ -558,39 +557,84 @@ class bulk_node():
 	Network Utility Functions
 	"""
 
-	def recv_cipher_set(self):
-		"""
-		data_in arrives as a singleton list of a pickled
-		list of ciphers.  we need to unpickle the first
-		element and use that as our array of ciphertexts
-		"""
-		(data, addrs) = self.recv_from_n(1)
-		return cPickle.loads(data[0])
-
-	def broadcast_to_all_nodes(self, msg):
+	def broadcast_to_all_nodes(self, msg, signed = True):
 		if not self.am_leader():
 			raise RuntimeError, 'Only leader can broadcast'
-		AnonNet.broadcast_using(self.addrs, AnonNet.send_to_addr, msg)
 
-	def broadcast_file_to_all_nodes(self, fname):
+		if signed: outmsg = AnonCrypto.sign(self.id, self.key1, msg)
+		else: outmsg = msg
+
+		AnonNet.broadcast_using(self.sockets, AnonNet.send_to_socket, outmsg)
+
+	def broadcast_file_to_all_nodes(self, filename):
+		AnonNet.broadcast_using(self.sockets, AnonNet.send_file_to_sock, filename)
+
+
+	def setup_sockets(self):
+		if self.am_leader():
+			self.debug("Opening leader sockets")
+			self.sockets = AnonNet.new_server_socket_set(self.ip, self.port, self.n_nodes - 1)
+
+			data = self.recv_from_all(False)
+			newsockets = [None] * (self.n_nodes - 1)
+			for i in xrange(0, self.n_nodes - 1):
+				s_id = cPickle.loads(data[i])
+				self.debug(s_id)
+				newsockets[s_id - 1] = self.sockets[i]
+			self.sockets = newsockets
+
+			self.debug("Opened sockets to all nodes")
+		else:
+			l_ip, l_port = self.leader_addr
+			self.debug("Opening client socket to leader")
+			self.leader_socket = AnonNet.new_client_sock(l_ip, l_port)
+			self.sockets = [self.leader_socket]
+			self.send_to_leader(cPickle.dumps(self.id), False)
+			self.debug("Opened client socket to leader")
+
+	def cleanup_sockets(self):
+		if self.am_leader():
+			for s in self.sockets:
+				s.close()
+		else:
+			self.leader_socket.close()
+
+	def recv_from_all(self, verify = True):
 		if not self.am_leader():
 			raise RuntimeError, 'Only leader can broadcast'
-		AnonNet.broadcast_using(self.addrs, AnonNet.send_file_to_addr, fname)
 
-	def send_to_leader(self, msg):
-		ip,port = self.leader_addr
-		AnonNet.send_to_addr(ip, port, msg)
+		indata = AnonNet.recv_from_n(self.sockets)
+		if verify:
+			outdata = []
+			for d in indata:
+				outdata.append(AnonCrypto.verify(self.pub_keys, d))
+			return outdata
+		else:
+			return indata
+	
+	def recv_from_leader(self, verify = True):
+		return self.recv_from_socket(self.leader_socket, verify)
 
-	def recv_from_n(self, n_backlog):
-		return AnonNet.recv_from_n(self.ip, self.port, n_backlog)
+	def recv_once(self, verify = True):
+		d = AnonNet.recv_once(self.ip, self.port)
+		if verify:
+			d = AnonCrypto.verify(self.pub_keys, d)
+		return d
 
-	def recv_files_from_n(self, n_backlog):
-		return AnonNet.recv_files_from_n(self.ip, self.port, n_backlog)
+	def recv_from_socket(self, sock, verify = True):
+		d = AnonNet.recv_from_socket(sock)
+		if verify:
+			d = AnonCrypto.verify(self.pub_keys, d)
+		return d
 
-	def send_file_to_leader(self, filename):
-		ip,port = self.leader_addr
-		return AnonNet.send_file_to_addr(ip, port, filename)
-		
+	def send_to_leader(self, msg, signed = True):
+		self.send_to_socket(self.leader_socket, msg, signed)
+
+	def send_to_socket(self, sock, msg, signed = True):
+		if signed: outmsg = AnonCrypto.sign(self.id, self.key1, msg)
+		else: outmsg = msg
+		AnonNet.send_to_socket(sock, outmsg)
+
 
 	"""
 	Utility Functions 

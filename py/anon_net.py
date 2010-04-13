@@ -26,30 +26,34 @@ class AnonNet:
 	"""
 
 	@staticmethod
-	def send_file_to_addr(ip, port, filename):
-		sock = AnonNet.new_client_sock(ip, port)
-		info("Connected to node")
-
+	def send_file_to_sock(sock, filename):
+		AnonNet.send_bytes(sock,
+				struct.pack(AnonNet.LEN_FORMAT,
+					os.path.getsize(filename)))
 		blocksize = 4096
 		with open(filename, 'r') as f:
 			while True:
 				bytes = f.read(blocksize)
 				if(bytes == ''): break
-				
-				AnonNet.send_to_socket(sock, bytes)
-
-		sock.close()
-		debug('Closed socket to server')
+				AnonNet.send_bytes(sock, bytes)
+		debug('Done sending file')
 
 	@staticmethod
 	def recv_file_from_sock(sock):
+		header_len = struct.calcsize(AnonNet.LEN_FORMAT)
+		header = AnonNet.recv_bytes(sock, header_len)
+
+		(left_to_read,) = struct.unpack(AnonNet.LEN_FORMAT, header)
+		
 		blocksize = 4096
 		handle, filename = tempfile.mkstemp()
 
 		with open(filename, 'w') as f:
-			while True:
+			while left_to_read > 0:
 				try:
-					newdat = sock.recv(blocksize)
+					newdat = AnonNet.recv_bytes(
+							sock,
+							min(left_to_read, blocksize))
 				except KeyboardInterrupt, SystemExit:
 					sock.close()
 				except socket.error, (errno, errstr):
@@ -57,13 +61,16 @@ class AnonNet:
 					else: raise	
 
 				# File is done
-				if len(newdat) == 0: break
+				if len(newdat) == 0:
+					break
+				else:
+					left_to_read = left_to_read - len(newdat)
 
 				f.write(newdat)
 		return filename
 
 	@staticmethod
-	def recv_files_from_n(sockets):
+	def recv_file_from_n(sockets):
 		return AnonNet.threaded_recv_from_n(
 				sockets,
 				AnonNet.recv_file_from_sock)
@@ -85,7 +92,6 @@ class AnonNet:
 	def send_to_socket(sock, msg):
 		""" Snippet inspired by http://www.amk.ca/python/howto/sockets/ """
 		AnonNet.send_bytes(sock, struct.pack(AnonNet.LEN_FORMAT, len(msg)))
-		debug("Sent header len: %d" % len(msg))
 		AnonNet.send_bytes(sock, msg)
 
 	@staticmethod
@@ -115,7 +121,6 @@ class AnonNet:
 	def recv_bytes(sock, n_bytes):
 		fd = sock.fileno()
 
-		debug("Reading %d bytes from socket" % n_bytes)
 		data = ""
 		blocksize = 4096
 		to_read = n_bytes
@@ -131,7 +136,6 @@ class AnonNet:
 			if len(newdat) == 0:
 			 	raise RuntimeError, "Socket closed unexpectedly"
 			to_read = to_read - len(newdat)
-			debug("Read %d bytes, waiting for %d more" % (len(newdat), to_read))
 			data += newdat
 		return data
 
@@ -194,6 +198,7 @@ class AnonNet:
 				AnonNet.recv_from_socket)
 
 
+
 	"""
 	Threaded Net functions
 	"""
@@ -207,13 +212,10 @@ class AnonNet:
 			t = threading.Thread(
 					target = func,
 					args = (sockets[i], arg))
-			debug("Starting thread %s" % t.name)
 			t.start()
 			threads.append(t)
-#func(ip, port, arg)	
 
 		for t in threads:
-			debug("Joining thread %s" % t.name)
 			t.join()
 
 	@staticmethod
