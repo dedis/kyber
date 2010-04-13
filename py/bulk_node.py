@@ -25,6 +25,7 @@ class bulk_node():
 		ip,port = my_addr
 
 		self.id = id
+		self.sockets = []
 		self.key_len = key_len
 		self.n_nodes = n_nodes
 		self.ip = ip
