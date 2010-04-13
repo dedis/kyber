@@ -19,10 +19,11 @@ from anon_net import AnonNet
 
 class shuffle_node():
 	def __init__(self, id, key_len, round_id, n_nodes,
-			my_addr, leader_addr, prev_addr, next_addr, msg_file, max_len):
+			my_addr, leader_addr, prev_addr, next_addr, msg_file, max_len, sockets = None):
 		ip,port = my_addr
 
 		self.start_time = time()
+		self.sockets = sockets
 		self.id = id
 		self.key_len = key_len
 		self.n_nodes = n_nodes
@@ -79,11 +80,19 @@ class shuffle_node():
 		return padded_msg[:mlen]
 
 	def run_protocol(self):
-		self.run_phase1()
-		self.run_phase2()
-		self.run_phase3()
-		self.run_phase4()
-		self.run_phase5()
+		if self.sockets == None:
+			self.setup_sockets()
+		try:
+			self.run_phase1()
+			self.run_phase2()
+			self.run_phase3()
+			self.run_phase4()
+			self.run_phase5()
+		except SystemExit, KeyboardInterrupt:
+			raise
+		finally:
+			self.debug("Here!")
+			self.cleanup_sockets()
 
 		self.info("Finished in %g seconds" % (time() - self.start_time))
 		self.critical("SUCCESSROUND:SHUFFLE, RID:%d, NNOD:%d, WALLTIME:%g, USR:%g, SYS:%g\n\t%s" % \
@@ -131,12 +140,7 @@ class shuffle_node():
 		if self.am_leader():
 			self.debug('Leader starting phase 1')
 
-			"""
-			The leader needs to save addresses so that (s)he can
-			broadcast to all nodes.  We can't verify this message
-			because we don't have the public key yet...
-			"""
-			(all_msgs, addrs) = self.recv_from_n(self.n_nodes - 1, False)
+			all_msgs = self.recv_from_all(False)
 			
 			""" Get all node addrs via this msg. """
 			next_msg, self.addrs = self.unpickle_pub_keys(all_msgs)
@@ -153,8 +157,7 @@ class shuffle_node():
 			self.send_to_leader(self.phase1_msg(), False)
 		
 			""" Get all pub keys from leader. """
-			(keys, addrs) = self.recv_from_n(1, False)
-			self.unpickle_keyset(keys[0])
+			self.unpickle_keyset(self.recv_from_leader(False))
 
 			self.info('Got keys from leader!')
 
@@ -228,7 +231,8 @@ class shuffle_node():
 		self.create_cipher_string()
 		if self.am_leader():
 			self.info("Leader waiting for ciphers")
-			(self.data_in, addrs) = self.recv_from_n(self.n_nodes-1)
+			self.data_in = self.recv_from_all()
+
 			self.info("Leader has all ciphertexts")
 
 			""" Leader must add own cipher to the set. """
@@ -269,8 +273,15 @@ class shuffle_node():
 		Everyone (except leader) blocks waiting for msg from
 		previous node in the group.
 		"""
-		if not self.am_leader():
-			self.data_in = self.recv_cipher_set()
+		if self.am_leader():
+			pass
+		elif self.id == 1:
+		 	self.debug("Node 1 waiting for ciphers from leader")
+			self.data_in = cPickle.loads(AnonNet.recv_from_socket(self.leader_socket))
+		 	self.debug("Node 1 got ciphers from leader")
+		else:
+			self.debug("Node waiting for set of ciphers")
+			self.data_in = cPickle.loads(self.recv_once())
 			self.debug("Got set of ciphers")
 
 		""" Shuffle ciphertexts. """
@@ -281,6 +292,9 @@ class shuffle_node():
 		if self.am_last():
 			self.debug("Sending ciphers to leader")
 			self.send_to_leader(outstr)
+		elif self.am_leader():
+			self.debug("Sending ciphers to node 1")
+			AnonNet.send_to_socket(self.sockets[0], outstr)
 		else:
 			ip, port = self.next_addr
 			self.send_to_addr(ip, port, outstr)
@@ -288,7 +302,9 @@ class shuffle_node():
 		
 		if self.am_leader():
 			""" Leader waits for ciphers from member N. """
-			self.data_in = self.recv_cipher_set()
+			self.data_in = cPickle.loads(
+					AnonNet.recv_from_socket(self.sockets[self.n_nodes - 1]))
+			self.debug("Got ciphers from other nodes len = %d" % len(self.data_in))
 
 	def shuffle_and_decrypt(self):
 		random.shuffle(self.data_in)
@@ -317,7 +333,7 @@ class shuffle_node():
 			self.final_ciphers = self.data_in
 		else:
 			""" Get C' ciphertexts from leader. """
-			self.final_ciphers = self.recv_cipher_set()
+			self.final_ciphers = cPickle.loads(self.recv_once())
 
 		"""
 		self.final_ciphers holds an array of
@@ -331,8 +347,9 @@ class shuffle_node():
 			go = True
 		else:
 			self.critical("ABORT! My ciphertext is not in set!")
+			self.debug(self.final_ciphers)
 			go = False
-			#raise RuntimeError, "Protocol violation: My ciphertext is missing!"
+			raise RuntimeError, "Protocol violation: My ciphertext is missing!"
 
 		hashval = AnonCrypto.hash_list(self.final_ciphers)
 		go_msg = cPickle.dumps((
@@ -344,7 +361,7 @@ class shuffle_node():
 		go_data = ''
 		if self.am_leader():
 			""" Collect go msgs """
-			(data, addrs) = self.recv_from_n(self.n_nodes - 1, False)
+			data = self.recv_from_all(False)
 			
 			""" Add leader's signed GO message to set """
 			data.append(AnonCrypto.sign(self.id, self.key1, go_msg))
@@ -354,8 +371,7 @@ class shuffle_node():
 		else:
 			""" Send go msg to leader """
 			self.send_to_leader(go_msg)
-			(data, addrs) = self.recv_from_n(1)
-			go_data = data[0]
+			go_data = self.recv_once()
 		
 		self.check_go_data(hashval, go_data)
 		self.info("All nodes report GO")
@@ -390,7 +406,7 @@ class shuffle_node():
 							AnonCrypto.priv_key_to_str(self.key2)))
 
 		if self.am_leader():
-			(data, addr) = self.recv_from_n(self.n_nodes - 1, False)
+			data = self.recv_from_all()
 			
 			""" Add leader's signed key to set """
 			data.append(AnonCrypto.sign(self.id, self.key1, mykeystr))
@@ -400,9 +416,9 @@ class shuffle_node():
 		else:
 			self.info('Sending key to leader')
 			self.send_to_leader(mykeystr)
-			(data, addr) = self.recv_from_n(1)
+			data = self.recv_once()
 			self.info('Got key set from leader')
-			data = cPickle.loads(data[0])
+			data = cPickle.loads(data)
 
 		self.decrypt_ciphers(data)
 		self.info('Decrypted ciphertexts')
@@ -441,14 +457,17 @@ class shuffle_node():
 	Network Utility Functions
 	"""
 
-	def recv_cipher_set(self):
-		"""
-		data_in arrives as a singleton list of a pickled
-		list of ciphers.  we need to unpickle the first
-		element and use that as our array of ciphertexts
-		"""
-		(data, addrs) = self.recv_from_n(1)
-		return cPickle.loads(data[0])
+	def recv_from_leader(self, verify = True):
+		d = AnonNet.recv_from_socket(self.leader_socket)
+		if verify:
+			d = AnonCrypto.verify(self.pub_keys, d)
+		return d
+
+	def recv_once(self, verify = True):
+		d = AnonNet.recv_once(self.ip, self.port)
+		if verify:
+			d = AnonCrypto.verify(self.pub_keys, d)
+		return d
 
 	def broadcast_to_all_nodes(self, msg, signed = True):
 		if not self.am_leader():
@@ -457,7 +476,7 @@ class shuffle_node():
 		if signed: outmsg = AnonCrypto.sign(self.id, self.key1, msg)
 		else: outmsg = msg
 
-		AnonNet.broadcast_using(self.addrs, AnonNet.send_to_addr, outmsg)
+		AnonNet.broadcast_using(self.sockets, AnonNet.send_to_socket, outmsg)
 
 	def send_to_addr(self, ip, port, msg, signed = True):
 		if signed: outmsg = AnonCrypto.sign(self.id, self.key1, msg)
@@ -469,16 +488,49 @@ class shuffle_node():
 		if signed: outmsg = AnonCrypto.sign(self.id, self.key1, msg)
 		else: outmsg = msg
 		ip,port = self.leader_addr
-		AnonNet.send_to_addr(ip, port, outmsg)
+		AnonNet.send_to_socket(self.leader_socket, outmsg)
 
-	def recv_from_n(self, n_backlog, verify = True):
-		(indata, addrs) = AnonNet.recv_from_n(self.ip, self.port, n_backlog)
+	def recv_from_all(self, verify = True):
+		if not self.am_leader():
+			raise RuntimeError, 'Only leader can broadcast'
+
+		indata = AnonNet.recv_from_n(self.sockets)
 		if verify:
 			outdata = []
 			for d in indata:
 				outdata.append(AnonCrypto.verify(self.pub_keys, d))
-		else: outdata = indata
-		return (outdata, addrs)
+			return outdata
+		else:
+			return indata
+
+	def setup_sockets(self):
+		if self.am_leader():
+			self.debug("Opening leader sockets")
+			self.sockets = AnonNet.new_server_socket_set(self.ip, self.port, self.n_nodes - 1)
+
+			data = self.recv_from_all(False)
+			newsockets = [None] * self.n_nodes
+			for i in xrange(0, self.n_nodes - 1):
+				s_id = cPickle.loads(data[i])
+				self.debug(s_id)
+				newsockets[s_id] = self.sockets[i]
+			self.sockets = newsockets
+
+			self.debug("Opened sockets to all nodes")
+		else:
+			l_ip, l_port = self.leader_addr
+			self.debug("Opening client socket to leader")
+			self.leader_socket = AnonNet.new_client_sock(l_ip, l_port)
+			self.send_to_leader(cPickle.dumps(self.id), False)
+			self.debug("Opened client socket to leader")
+
+	def cleanup_sockets(self):
+		if self.am_leader():
+			for s in self.sockets:
+				if s != None: s.close()
+		else:
+			self.leader_socket.close()
+
 
 	"""
 	Utility Functions 

@@ -4,7 +4,7 @@ Description: Networking utility functions for the
 anon protocol implementation.
 """
 
-import socket, cPickle, random, struct, tempfile
+import socket, cPickle, random, struct, tempfile, os
 from time import sleep
 from logging import debug, info, critical
 import threading
@@ -15,6 +15,8 @@ class AnonNet:
 	to a server node.
 	"""
 	MAX_ATTEMPTS = 1000
+
+	LEN_FORMAT = "!Q"
 
 	"""
 	Big file functions
@@ -58,16 +60,12 @@ class AnonNet:
 				if len(newdat) == 0: break
 
 				f.write(newdat)
-		sock.close()
-
 		return filename
 
 	@staticmethod
-	def recv_files_from_n(server_ip, server_port, n_backlog):
+	def recv_files_from_n(sockets):
 		return AnonNet.threaded_recv_from_n(
-				server_ip,
-				server_port, 
-				n_backlog,
+				sockets,
 				AnonNet.recv_file_from_sock)
 
 	"""
@@ -76,8 +74,9 @@ class AnonNet:
 
 	@staticmethod
 	def send_to_addr(ip, port, msg):
+		debug("Trying to connect to %s:%d" % (ip,port))
 		sock = AnonNet.new_client_sock(ip, port)
-		info("Connected to node")
+		debug("Connected to %s:%d" % (ip,port))
 		AnonNet.send_to_socket(sock, msg)
 		sock.close()
 		debug("Closed socket to server")
@@ -85,11 +84,26 @@ class AnonNet:
 	@staticmethod
 	def send_to_socket(sock, msg):
 		""" Snippet inspired by http://www.amk.ca/python/howto/sockets/ """
+		AnonNet.send_bytes(sock, struct.pack(AnonNet.LEN_FORMAT, len(msg)))
+		debug("Sent header len: %d" % len(msg))
+		AnonNet.send_bytes(sock, msg)
+
+	@staticmethod
+	def recv_from_socket(sock):
+		header_len = struct.calcsize(AnonNet.LEN_FORMAT)
+		header = AnonNet.recv_bytes(sock, header_len)
+
+		(msg_len,) = struct.unpack(AnonNet.LEN_FORMAT, header)
+		return AnonNet.recv_bytes(sock, msg_len)
+
+	@staticmethod
+	def send_bytes(sock, bytes):
+		fd = sock.fileno()
 		totalsent = 0
-		while totalsent < len(msg):
+		while totalsent < len(bytes):
 			try:
-				sent = sock.send(msg[totalsent:])
-			except KeyboardError, SystemExit:
+				sent = os.write(fd, bytes[totalsent:])
+			except KeyboardInterrupt, SystemExit:
 				sock.close()
 				raise
 			if sent == 0:
@@ -98,22 +112,45 @@ class AnonNet:
 		return
 
 	@staticmethod
-	def recv_from_sock(sock):
-		info("Reading from socket")
+	def recv_bytes(sock, n_bytes):
+		fd = sock.fileno()
+
+		debug("Reading %d bytes from socket" % n_bytes)
 		data = ""
-		while True:
+		blocksize = 4096
+		to_read = n_bytes
+		while to_read > 0:
 			try:
-				newdat = sock.recv(4096)
+				newdat = os.read(fd, min(blocksize, to_read))
 			except socket.error, (errno, errstr):
 				if errno == 35: continue
 				else: raise
-			except KeyboardInterrupt:
+			except KeyboardInterrupt, SystemExit:
 			 	sock.close()
 			 	raise
-			if len(newdat) == 0: break
+			if len(newdat) == 0:
+			 	raise RuntimeError, "Socket closed unexpectedly"
+			to_read = to_read - len(newdat)
+			debug("Read %d bytes, waiting for %d more" % (len(newdat), to_read))
 			data += newdat
-		sock.close()
 		return data
+
+	@staticmethod
+	def recv_once(my_ip, my_port):
+		debug("Setting up server socket at %s:%d" % (my_ip, my_port))
+		sock_list = AnonNet.new_server_socket_set(my_ip, my_port, 1)
+		s = sock_list[0]
+		debug("Set up server socket at %s:%d" % (my_ip, my_port))
+		d = AnonNet.recv_from_socket(s)
+		s.close()
+		return d
+
+	@staticmethod
+	def recv_file_once(my_ip, my_port):
+		s = AnonNet.new_client_sock(my_ip, my_port)
+		f = AnonNet.recv_file_from_sock(s)
+		s.close()
+		return f
 
 	@staticmethod
 	def new_server_socket(ip, port, n_backlog):
@@ -141,7 +178,7 @@ class AnonNet:
 				if errno == 61 or errno == 22 or errno == 111: # Server not awake yet
 					if i == AnonNet.MAX_ATTEMPTS - 1:
 						raise RuntimeError, "Cannot connect to server"
-					debug("Waiting for server...")
+					debug("Waiting for server %s:%d..." % (ip,port))
 					sleep(random.randint(5,10))
 					sock.close()
 				else: raise
@@ -151,12 +188,10 @@ class AnonNet:
 		return sock
 
 	@staticmethod
-	def recv_from_n(my_ip, my_port, n_backlog):
+	def recv_from_n(sockets):
 		return AnonNet.threaded_recv_from_n(
-				my_ip,
-				my_port, 
-				n_backlog,
-				AnonNet.recv_from_sock)
+				sockets,
+				AnonNet.recv_from_socket)
 
 
 	"""
@@ -164,15 +199,14 @@ class AnonNet:
 	"""
 
 	@staticmethod
-	def broadcast_using(addrs, func, arg):
+	def broadcast_using(sockets, func, arg):
 		threads = []
 
 		""" Only leader can broadcast """
-		for i in xrange(0, len(addrs)):
-			ip, port = addrs[i]
+		for i in xrange(0, len(sockets)):
 			t = threading.Thread(
 					target = func,
-					args = (ip, port, arg))
+					args = (sockets[i], arg))
 			debug("Starting thread %s" % t.name)
 			t.start()
 			threads.append(t)
@@ -183,37 +217,46 @@ class AnonNet:
 			t.join()
 
 	@staticmethod
-	def threaded_recv_from_n(server_ip, server_port, n_backlog, sock_function):
+	def threaded_recv_from_n(sockets, sock_function):
 		""" Receive a message from N nodes """
 
 		debug('Setting up server socket')
 
 		""" Set up server connection """
-		server_sock = AnonNet.new_server_socket(server_ip, server_port, n_backlog)
-		addrs = []
-		data = [None] * n_backlog
+		data = [None] * len(sockets)
 		threads = []
-		for i in xrange(0, n_backlog):
-			debug("Listening...")
-			try:
-				(rem_sock, (rem_ip, rem_port)) = server_sock.accept()
-				addrs.append((rem_ip, rem_port))
-			except KeyboardInterrupt:
-				server_sock.close()
-				raise
+		for i in xrange(0, len(sockets)):
 			t = threading.Thread(
 				target = AnonNet.read_sock_into_array,
-				args = (data, i, sock_function, rem_sock))
+				args = (data, i, sock_function, sockets[i]))
 			t.start()
 			threads.append(t)
-		server_sock.close()
-		debug('Got all messages, closing socket')
 
 		for t in threads:
 			t.join()
+		
+		debug("Got %d messages" % len(data))
+		return data
 
-		return (data, addrs)
+	@staticmethod
+	def	new_server_socket_set(server_ip, server_port, n_clients):
+		debug('Setting up server socket')
+		""" Set up server connection """
+		server_sock = AnonNet.new_server_socket(server_ip, server_port, n_clients)
+		socks = []
+		for i in xrange(0, n_clients):
+			debug("Listening...")
+			try:
+				(rem_sock, (rem_ip, rem_port)) = server_sock.accept()
+				socks.append(rem_sock)
+			except KeyboardInterrupt:
+				server_sock.close()
+				raise
+		server_sock.close()
 
+		debug('Got all messages, closing socket')
+
+		return socks
 
 	@staticmethod
 	def read_sock_into_array(data_array, index, sock_function, sock):
