@@ -4,6 +4,7 @@ Description: Crypto primitives for the anon
 protocol.
 """
 
+from __future__ import with_statement
 from utils import Utilities
 from logging import debug
 import tempfile, struct, cPickle, base64

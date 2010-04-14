@@ -4,6 +4,7 @@ Description: Test driver for anon protocol.  Designed to be
 used as a command-line tool.
 """
 
+from __future__ import with_statement
 from subprocess import Popen
 import sys
 import logging

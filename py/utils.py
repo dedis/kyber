@@ -4,6 +4,7 @@ Description: Utility functions for the anon
 protocol implementation.
 """
 
+from __future__ import with_statement
 from numpy import frombuffer, bitwise_xor, byte, uint64
 
 class Utilities:

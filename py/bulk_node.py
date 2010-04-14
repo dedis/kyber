@@ -4,6 +4,7 @@ Description: The main class that implements the
 shuffle+bulk anonymous data exchange protocol.
 """
 
+from __future__ import with_statement
 import logging, random, sys, os, shutil
 from time import sleep, time
 from logging import debug, info, critical

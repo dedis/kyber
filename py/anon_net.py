@@ -4,6 +4,7 @@ Description: Networking utility functions for the
 anon protocol implementation.
 """
 
+from __future__ import with_statement
 import socket, cPickle, random, struct, tempfile, os
 from time import sleep
 from logging import debug, info, critical

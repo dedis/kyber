@@ -1,3 +1,4 @@
+from __future__ import with_statement
 from logging import debug, info
 import logging
 import bulk_node, random
