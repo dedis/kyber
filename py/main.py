@@ -16,6 +16,8 @@ class node_set():
 		logger = logging.getLogger()
 		logger.setLevel(logging.DEBUG)
 
+		self.dir = 'cs490'
+		self.user = 'hnc4'
 		min_nodes = 3
 		self.key_len = 1024
 		self.round_id = random.randint(1, 10000)
@@ -33,6 +35,8 @@ class node_set():
 		-r -- Remote mode.  Use SSH to log in to the remote host
 							and execute the node program there.
 		-l -- Local mode.   Run the node program on the local host.
+		-e -- Emulab mode.  Run with SSH and change to the right
+							directory for emulab tests.
 
 		-s -- Shuffle only. Exchange data using the shuffle protocol
 							only.
@@ -63,6 +67,10 @@ class node_set():
 
 		if argv[1] == '-r':		self.remote = True
 		elif argv[1] == '-l':	self.remote = False
+		elif argv[1] == '-e':
+			self.remote = True
+			self.dir = '/proj/Tng/exp/anonprotocol/cs490'
+			self.user = 'henrycg'
 		else: raise RuntimeError, usagestr
 
 		if argv[2] == '-s':		self.bulk = False
@@ -91,7 +99,8 @@ class node_set():
 
 			# If connecting remotely, use SSH
 			if self.remote:
-				args = ['ssh', "hnc4@%s" % my_ip, 'cd cs490;']
+				args = ['ssh', '-q', '-oStrictHostKeyChecking no',
+				"%s@%s" % (self.user,my_ip), "cd %s;" % self.dir]
 			args = args + ['python', progstr,
 				str(i), str(self.key_len),
 				str(self.round_id), str(len(self.nodes)),
