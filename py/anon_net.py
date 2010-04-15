@@ -28,6 +28,7 @@ class AnonNet:
 
 	@staticmethod
 	def send_file_to_sock(sock, filename):
+		debug("Sending file of length: %d" % os.path.getsize(filename))
 		AnonNet.send_bytes(sock,
 				struct.pack(AnonNet.LEN_FORMAT,
 					os.path.getsize(filename)))
@@ -82,7 +83,7 @@ class AnonNet:
 
 	@staticmethod
 	def send_to_addr(ip, port, msg):
-		debug("Trying to connect to %s:%d" % (ip,port))
+		debug("Trying to connect to %s:%d (msg len: %d)" % (ip,port, len(msg)))
 		sock = AnonNet.new_client_sock(ip, port)
 		debug("Connected to %s:%d" % (ip,port))
 		AnonNet.send_to_socket(sock, msg)
@@ -92,6 +93,7 @@ class AnonNet:
 	@staticmethod
 	def send_to_socket(sock, msg):
 		""" Snippet inspired by http://www.amk.ca/python/howto/sockets/ """
+		debug("Sending message of length %d" % len(msg))
 		AnonNet.send_bytes(sock, struct.pack(AnonNet.LEN_FORMAT, len(msg)))
 		AnonNet.send_bytes(sock, msg)
 

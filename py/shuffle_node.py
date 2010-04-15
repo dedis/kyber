@@ -10,6 +10,7 @@ from logging import debug, info, critical
 import socket, cPickle, tempfile
 import struct
 import resource
+import base64
 
 import M2Crypto.RSA
 
@@ -34,6 +35,7 @@ class shuffle_node():
 		self.prev_addr = prev_addr
 		self.next_addr = next_addr
 		self.phase = 0
+		self.cleanup = False
 		self.max_len = max_len
 		self.rusage_start = (
 				resource.getrusage(resource.RUSAGE_SELF).ru_utime,
@@ -70,10 +72,13 @@ class shuffle_node():
 		"""
 		msg = Utilities.read_file_to_str(msg_file)
 
-		self.msg_contents = cPickle.dumps((len(msg), msg + 'X' * (self.max_len - len(msg))))
+		self.msg_contents = cPickle.dumps(
+				(len(msg), 
+				base64.b64encode(msg + ('X' * (self.max_len - len(msg))))))
 
 	def unpackage_msg(self, msg_str):
 		(mlen, padded_msg) = cPickle.loads(msg_str)
+		padded_msg = base64.b64decode(padded_msg)
 		self.debug("Got msg len %d, max_len %d" % (len(padded_msg), self.max_len))
 		if len(padded_msg) != self.max_len:
 		 	raise RuntimeError, 'Message strings are of differing lengths'
@@ -242,21 +247,25 @@ class shuffle_node():
 			self.info("Leader has all ciphertexts")
 
 			""" Leader must add own cipher to the set. """
-			self.data_in.append(cPickle.dumps((self.round_id, self.cipher)))
+			self.data_in.append(cPickle.dumps((self.round_id,
+							base64.b64encode(self.cipher))))
 
 		else:
 			self.info("Sending cipher to leader")
-			self.send_to_leader(cPickle.dumps((self.round_id, self.cipher)))
+			self.send_to_leader(cPickle.dumps((self.round_id,
+						base64.b64encode(self.cipher))))
 			self.info("Finished phase 2")
 
 
 	def create_cipher_string(self):
 		self.cipher_prime = self.datum_string()
 		""" Encrypt with all secondary keys from N ... 1 """
+		self.debug("Orig len: %d" % len(self.cipher_prime))
 		
 		for i in xrange(self.n_nodes - 1, -1, -1):
 			k1, k2 = self.pub_keys[i]
 			self.cipher_prime = AnonCrypto.encrypt_with_rsa(k2, self.cipher_prime)
+			self.debug("Cipher-prim len: %d" % len(self.cipher_prime))
 
 		self.cipher = self.cipher_prime
 
@@ -264,6 +273,7 @@ class shuffle_node():
 		for i in xrange(self.n_nodes-1, -1, -1):
 			k1, k2 = self.pub_keys[i]
 			self.cipher = AnonCrypto.encrypt_with_rsa(k1, self.cipher)
+			self.debug("Cipher len: %d" % len(self.cipher))
 
 	"""
 	PHASE 3
@@ -318,11 +328,12 @@ class shuffle_node():
 		self.data_out = []
 		for ctuple in self.data_in:
 			(rem_round, ctext) = cPickle.loads(ctuple)
+			ctext = base64.b64decode(ctext)
 			if rem_round != self.round_id:
 				raise RuntimeError, "Mismatched round numbers (mine:%d, other:%d)" % (self.round_id, rem_round)
 
 			new_ctext = AnonCrypto.decrypt_with_rsa(self.key1, ctext)	
-			pickled = cPickle.dumps((self.round_id, new_ctext))
+			pickled = cPickle.dumps((self.round_id, base64.b64encode(new_ctext)))
 			self.data_out.append(pickled)
 
 	"""
@@ -346,7 +357,8 @@ class shuffle_node():
 		pickled (round_id, cipher_prime) tuples
 		"""
 
-		my_cipher_str = cPickle.dumps((self.round_id, self.cipher_prime))
+		my_cipher_str = cPickle.dumps((self.round_id,
+					base64.b64encode(self.cipher_prime)))
 
 		go = False
 		if my_cipher_str in self.final_ciphers:
@@ -450,6 +462,7 @@ class shuffle_node():
 		plaintexts = []
 		for cipher in self.final_ciphers:
 			(r_round, cipher_prime) = cPickle.loads(cipher)
+			cipher_prime = base64.b64decode(cipher_prime)
 			if r_round != self.round_id:
 				raise RuntimeError, 'Mismatched round ids'
 			for i in xrange(0, self.n_nodes):

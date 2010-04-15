@@ -104,7 +104,7 @@ class node_set():
 			if self.remote:
 				args = ['ssh', '-q', '-oStrictHostKeyChecking no',
 				"%s@%s%s" % (self.user,my_ip,self.node_append), "cd %s;" % self.dir]
-			args = args + ['python', progstr,
+			args = args + ['time','python', progstr,
 				str(i), str(self.key_len),
 				str(self.round_id), str(len(self.nodes)),
 				my_ip, str(my_port),
