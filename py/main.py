@@ -19,6 +19,7 @@ class node_set():
 
 		self.dir = 'cs490'
 		self.user = 'hnc4'
+		self.node_append = ''
 		min_nodes = 3
 		self.key_len = 1024
 		self.round_id = random.randint(1, 10000)
@@ -72,6 +73,7 @@ class node_set():
 			self.remote = True
 			self.dir = '/proj/Tng/exp/anonprotocol/cs490'
 			self.user = 'henrycg'
+			self.node_append = '.anonprotocol.Tng.emulab.net'
 		else: raise RuntimeError, usagestr
 
 		if argv[2] == '-s':		self.bulk = False
@@ -101,7 +103,7 @@ class node_set():
 			# If connecting remotely, use SSH
 			if self.remote:
 				args = ['ssh', '-q', '-oStrictHostKeyChecking no',
-				"%s@%s" % (self.user,my_ip), "cd %s;" % self.dir]
+				"%s@%s%s" % (self.user,my_ip,self.node_append), "cd %s;" % self.dir]
 			args = args + ['python', progstr,
 				str(i), str(self.key_len),
 				str(self.round_id), str(len(self.nodes)),

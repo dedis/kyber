@@ -81,8 +81,11 @@ class bulk_node():
 				 resource.getrusage(resource.RUSAGE_SELF).ru_utime - self.rusage_start[0],
 				 resource.getrusage(resource.RUSAGE_SELF).ru_stime - self.rusage_start[1],
 				 self.size_string()))
-		finally:
+		except:
 			self.cleanup_sockets()
+			raise
+		self.debug('Starting cleanup')
+		self.cleanup_sockets()
 
 	def size_string(self):
 		c = ''
@@ -349,8 +352,8 @@ class bulk_node():
 		handle, self.tar_filename = tempfile.mkstemp()
 		tar = tarfile.open(
 				name = self.tar_filename,
-				mode = 'w', # Create new archive
-				dereference = True)
+				mode = 'w') # Create new archive
+#dereference = True)
 
 		""" For each transmission slot... """
 		for i in xrange(0, self.n_nodes):
@@ -412,8 +415,8 @@ class bulk_node():
 		handle, master_filename = tempfile.mkstemp()
 		tar = tarfile.open(
 				master_filename,
-				mode = 'w', # Create new archive
-				dereference = True)
+				mode = 'w') # Create new archive
+#	dereference = True)
 
 		for i in xrange(0, self.n_nodes):
 			tar.add(fnames[i], "-1")
@@ -520,7 +523,7 @@ class bulk_node():
 		handles_to_close = []
 		for i in xrange(0, self.n_nodes): filenames.append({})
 
-		tar = tarfile.open(archive_filename, 'r:*')
+		tar = tarfile.open(archive_filename, 'r')
 
 		""" Open the master tar file """
 		for i in xrange(0, self.n_nodes):
@@ -531,7 +534,7 @@ class bulk_node():
 			(zero, inner_tar_handle) = self.copy_next_from_tar(tar)
 
 			""" Open the inner tar file and iterate through its contents. """
-			innertar = tarfile.open(fileobj=inner_tar_handle, mode='r:*')
+			innertar = tarfile.open(name='',fileobj=inner_tar_handle, mode='r')
 			for j in xrange(0, self.n_nodes):
 				""" filenames[j] holds filenames for message slot j. """
 				node_id, fhandle = self.copy_next_from_tar(innertar)
@@ -550,6 +553,7 @@ class bulk_node():
 
 		""" Copy inner contents to a tempfile and save the file. """
 		h = tar.extractfile(finfo)
+		if h == None: raise RuntimeError, 'Missing files in tar'
 		
 		""" Get name of authoring node from filename within tar. """
 		node_id = int(finfo.name)
@@ -595,6 +599,7 @@ class bulk_node():
 			self.debug("Opened client socket to leader")
 
 	def cleanup_sockets(self):
+		self.debug('Closing sockets')
 		if self.am_leader():
 			for s in self.sockets:
 				s.close()

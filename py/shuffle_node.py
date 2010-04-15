@@ -84,15 +84,10 @@ class shuffle_node():
 		if self.sockets == None:
 			""" Need to set up sockets """
 			self.setup_sockets()
-			self.cleanup = True
 		elif len(self.sockets) == 1:
 			""" This is a non-leader node """
 			self.leader_socket = self.sockets[0]
 			self.sockets = None
-			self.cleanup = False
-		else:
-			self.cleanup = False
-			""" Sockets already set up """
 
 		try:
 			self.run_phase1()
@@ -100,11 +95,10 @@ class shuffle_node():
 			self.run_phase3()
 			self.run_phase4()
 			self.run_phase5()
-		except SystemExit, KeyboardInterrupt:
-			raise
-		finally:
-			self.debug("Here!")
+		except:
 			self.cleanup_sockets()
+			raise
+		self.cleanup_sockets()
 
 		self.info("Finished in %g seconds" % (time() - self.start_time))
 		self.critical("SUCCESSROUND:SHUFFLE, RID:%d, NNOD:%d, WALLTIME:%g, USR:%g, SYS:%g\n\t%s" % \
@@ -521,6 +515,7 @@ class shuffle_node():
 			return indata
 
 	def setup_sockets(self):
+		self.cleanup = True
 		if self.am_leader():
 			self.debug("Opening leader sockets")
 			self.sockets = AnonNet.new_server_socket_set(self.ip, self.port, self.n_nodes - 1)
@@ -543,10 +538,13 @@ class shuffle_node():
 
 	def cleanup_sockets(self):
 		if self.cleanup:
+			self.debug("Closing sockets")
 			if self.am_leader():
 				for s in self.sockets:
+					self.debug(s.getsockname())
 					s.close()
 			else:
+				self.debug(self.leader_socket.getsockname())
 				self.leader_socket.close()
 
 

@@ -8,13 +8,14 @@ source tb_compat.tcl
 set maxnodes 3
 set lanstr ""
 
-for {set i 1} {$i <= $maxnodes} {incr i} {
+for {set i 1} {$i < $maxnodes} {incr i} {
     set node($i) [$ns node]
     append lanstr "$node($i) "
-    tb-set-node-os $node($i) UBUNTU70-STD
+    tb-set-node-os $node($i) UbuntuAnon
 }
 
-set big-lan [$ns make-lan "$lanstr" 100Mb 0ms]
+set lan0 [$ns make-lan "$lanstr" 5Mb 50ms]
+tb-set-lan-los $lan0 0.01
 
 $ns rtproto Static
 $ns run           

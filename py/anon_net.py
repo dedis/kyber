@@ -147,6 +147,7 @@ class AnonNet:
 		s = sock_list[0]
 		debug("Set up server socket at %s:%d" % (my_ip, my_port))
 		d = AnonNet.recv_from_socket(s)
+		debug("Closing socket")
 		s.close()
 		return d
 
@@ -154,6 +155,7 @@ class AnonNet:
 	def recv_file_once(my_ip, my_port):
 		s = AnonNet.new_client_sock(my_ip, my_port)
 		f = AnonNet.recv_file_from_sock(s)
+		debug("Closing socket")
 		s.close()
 		return f
 
@@ -178,6 +180,7 @@ class AnonNet:
 			sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			try:
 				sock.connect((ip, port))
+				debug(sock.getsockname())
 				break
 			except socket.error, (errno, errstr):
 				if errno == 61 or errno == 22 or errno == 111: # Server not awake yet
