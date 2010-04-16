@@ -7,7 +7,7 @@ protocol.
 from __future__ import with_statement
 from utils import Utilities
 from logging import debug
-import tempfile, struct, cPickle, base64
+import tempfile, struct, marshal
 from cStringIO import StringIO
 
 import M2Crypto.EVP, M2Crypto.RSA, M2Crypto.Rand
@@ -98,7 +98,7 @@ class AnonCrypto:
 	@staticmethod
 	def hash_list(lst):
 		""" Get a hash value for a list """
-		return AnonCrypto.hash(cPickle.dumps(lst))
+		return AnonCrypto.hash(marshal.dumps(lst))
 
 	@staticmethod
 	def hash_file(filename):
@@ -117,14 +117,14 @@ class AnonCrypto:
 
 	@staticmethod
 	def sign(my_id, signkey, msg):
-		return cPickle.dumps(
+		return marshal.dumps(
 				(my_id, msg,
 				 signkey.sign(
 					 AnonCrypto.hash(msg))))
 		
 	@staticmethod
 	def verify(key_dict, msgstr):
-		((r_id, msg, sig)) = cPickle.loads(msgstr)
+		((r_id, msg, sig)) = marshal.loads(msgstr)
 		if key_dict[r_id][0].verify(AnonCrypto.hash(msg), sig):
 			return msg
 		else:

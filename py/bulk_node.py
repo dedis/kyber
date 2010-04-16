@@ -9,7 +9,7 @@ import logging, random, sys, os, shutil
 from time import sleep, time
 from logging import debug, info, critical
 from math import log, ceil
-import cPickle, tempfile, struct, tarfile, base64
+import marshal, tempfile, struct, tarfile
 import resource
 
 import M2Crypto.RSA
@@ -148,7 +148,7 @@ class bulk_node():
 		Method that non-leader nodes use to unpack all 
 		public keys from the leader's message.
 		"""
-		(rem_round_id, keydict) = cPickle.loads(keys)
+		(rem_round_id, keydict) = marshal.loads(keys)
 
 		if rem_round_id != self.round_id:
 			raise RuntimeError, "Mismatched round ids"
@@ -172,7 +172,7 @@ class bulk_node():
 		addrs = []
 		for data in msgs:
 			(rem_id, rem_round, rem_ip, rem_port,
-			 rem_key1, rem_key2) = cPickle.loads(data)
+			 rem_key1, rem_key2) = marshal.loads(data)
 			self.debug("Unpickled msg from node %d" % (rem_id))
 			
 			if rem_round != self.round_id:
@@ -188,7 +188,7 @@ class bulk_node():
 
 	def phase0_msg(self):
 		""" Message all nodes send to the leader. """
-		return cPickle.dumps(
+		return marshal.dumps(
 				(self.id,
 					self.round_id, 
 					self.ip,
@@ -205,7 +205,7 @@ class bulk_node():
 				AnonCrypto.pub_key_to_str(k1),
 				 AnonCrypto.pub_key_to_str(k2))
 
-		return cPickle.dumps((self.round_id, newdict))
+		return marshal.dumps((self.round_id, newdict))
 
 	"""
 	PHASE 1
@@ -285,7 +285,7 @@ class bulk_node():
 		""" Write all the data to be sent out to disk. """
 		(dhandle, self.dfilename) = tempfile.mkstemp()
 		with open(self.dfilename, 'w') as f:
-			cPickle.dump((
+			marshal.dump((
 				self.id,
 				self.round_id,
 				self.msg_len,
@@ -331,7 +331,7 @@ class bulk_node():
 				 r_msg_len,
 				 r_msg_hash,
 				 r_enc_seeds,
-				 r_hashes) = cPickle.load(f_in)
+				 r_hashes) = marshal.load(f_in)
 			if self.round_id != r_round_id:
 				raise RuntimeError, 'Mismatched round ids'
 			if r_id not in xrange(0, self.n_nodes):
@@ -382,18 +382,9 @@ class bulk_node():
 				h_val, fname = self.generate_prng_file(seed, msg_len)
 
 
-				"""
-				We encode everything in base64 to eliminate all NULL characters
-				if there are null characters in the string, cPickle uses 4 bytes
-				to encode every byte of data.  That ends up blowing up the size
-				of the encrypted data.
-				"""
 				if h_val != hashes[self.id]:
-					self.debug("Got: %s, Ex: %s" % \
-							(base64.encodestring(h_val),
-							 base64.encodestring(hashes[self.id])))
 					for q in xrange(0, len(hashes)):
-						self.debug("> %d - %s" % (q, base64.encodestring(hashes[q])))
+						self.debug("> %d - %s" % (q, hashes[q]))
 					raise RuntimeError, 'Mismatched hash values'
 
 				"""
@@ -569,7 +560,7 @@ class bulk_node():
 			data = self.recv_from_all(False)
 			newsockets = [None] * (self.n_nodes - 1)
 			for i in xrange(0, self.n_nodes - 1):
-				s_id = cPickle.loads(data[i])
+				s_id = marshal.loads(data[i])
 				self.debug(s_id)
 				newsockets[s_id - 1] = self.sockets[i]
 			self.sockets = newsockets
@@ -580,7 +571,7 @@ class bulk_node():
 			self.debug("Opening client socket to leader")
 			self.leader_socket = AnonNet.new_client_sock(l_ip, l_port)
 			self.sockets = [self.leader_socket]
-			self.send_to_leader(cPickle.dumps(self.id), False)
+			self.send_to_leader(marshal.dumps(self.id), False)
 			self.debug("Opened client socket to leader")
 
 	def cleanup_sockets(self):

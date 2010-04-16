@@ -7,10 +7,10 @@ of the anon protocol.
 import logging, random, sys
 from time import sleep, time
 from logging import debug, info, critical
-import socket, cPickle, tempfile
+import socket, tempfile
+import marshal
 import struct
 import resource
-import base64
 
 import M2Crypto.RSA
 
@@ -72,13 +72,12 @@ class shuffle_node():
 		"""
 		msg = Utilities.read_file_to_str(msg_file)
 
-		self.msg_contents = cPickle.dumps(
+		self.msg_contents = marshal.dumps(
 				(len(msg), 
-				base64.b64encode(msg + ('X' * (self.max_len - len(msg))))))
+				msg + ('X' * (self.max_len - len(msg)))))
 
 	def unpackage_msg(self, msg_str):
-		(mlen, padded_msg) = cPickle.loads(msg_str)
-		padded_msg = base64.b64decode(padded_msg)
+		(mlen, padded_msg) = marshal.loads(msg_str)
 		self.debug("Got msg len %d, max_len %d" % (len(padded_msg), self.max_len))
 		if len(padded_msg) != self.max_len:
 		 	raise RuntimeError, 'Message strings are of differing lengths'
@@ -174,7 +173,7 @@ class shuffle_node():
 
 	def unpickle_keyset(self, keys):
 		""" Non-leader nodes use this to decode leader's key msg """
-		(rem_round_id, keydict) = cPickle.loads(keys)
+		(rem_round_id, keydict) = marshal.loads(keys)
 
 		if rem_round_id != self.round_id:
 			raise RuntimeError, "Mismatched round ids"
@@ -202,7 +201,7 @@ class shuffle_node():
 
 		for data in msgs:
 			(rem_id, rem_round, rem_ip, rem_port,
-			 rem_key1, rem_key2) = cPickle.loads(data)
+			 rem_key1, rem_key2) = marshal.loads(data)
 			self.debug("Unpickled msg from node %d" % (rem_id))
 			
 			if rem_round != self.round_id:
@@ -216,11 +215,11 @@ class shuffle_node():
 			addrs.append((rem_ip, rem_port))
 			key_dict[rem_id] = (rem_key1, rem_key2)
 		
-		return (cPickle.dumps((self.round_id, key_dict)), addrs)
+		return (marshal.dumps((self.round_id, key_dict)), addrs)
 
 	def phase1_msg(self):
 		""" Message that non-leader nodes send to the leader. """
-		return cPickle.dumps(
+		return marshal.dumps(
 				(self.id,
 					self.round_id, 
 					self.ip,
@@ -228,7 +227,7 @@ class shuffle_node():
 					self.key_from_file(1),
 					AnonCrypto.sign(self.id, self.key1, self.key_from_file(2))))
 	
-		return cPickle.dumps((self.round_id, newdict))
+		return marshal.dumps((self.round_id, newdict))
 
 	"""
 	PHASE 2
@@ -247,13 +246,12 @@ class shuffle_node():
 			self.info("Leader has all ciphertexts")
 
 			""" Leader must add own cipher to the set. """
-			self.data_in.append(cPickle.dumps((self.round_id,
-							base64.b64encode(self.cipher))))
+			self.data_in.append(marshal.dumps((self.round_id,
+							self.cipher)))
 
 		else:
 			self.info("Sending cipher to leader")
-			self.send_to_leader(cPickle.dumps((self.round_id,
-						base64.b64encode(self.cipher))))
+			self.send_to_leader(marshal.dumps((self.round_id,self.cipher)))
 			self.info("Finished phase 2")
 
 
@@ -293,18 +291,18 @@ class shuffle_node():
 			pass
 		if self.id == 1:
 		 	self.debug("Node 1 waiting for ciphers from leader")
-			self.data_in = cPickle.loads(self.recv_from_socket(self.leader_socket))
+			self.data_in = marshal.loads(self.recv_from_socket(self.leader_socket))
 		 	self.debug("Node 1 got ciphers from leader")
 		if self.id > 1:
 			self.debug("Node waiting for set of ciphers")
-			self.data_in = cPickle.loads(self.recv_once())
+			self.data_in = marshal.loads(self.recv_once())
 			self.debug("Got set of ciphers")
 
 		""" Shuffle ciphertexts. """
 		self.shuffle_and_decrypt()
 		self.debug("Shuffled ciphers")
 	
-		outstr = cPickle.dumps(self.data_out)
+		outstr = marshal.dumps(self.data_out)
 		if self.am_last():
 			self.debug("Sending ciphers to leader")
 			self.send_to_leader(outstr)
@@ -318,7 +316,7 @@ class shuffle_node():
 		
 		if self.am_leader():
 			""" Leader waits for ciphers from member N. """
-			self.final_ciphers = cPickle.loads(
+			self.final_ciphers = marshal.loads(
 					self.recv_from_socket(self.sockets[self.n_nodes - 2]))
 			self.debug("Got ciphers from other nodes len = %d" % len(self.final_ciphers))
 
@@ -327,13 +325,12 @@ class shuffle_node():
 		self.debug("Shuffling len = %d" % len(self.data_in))
 		self.data_out = []
 		for ctuple in self.data_in:
-			(rem_round, ctext) = cPickle.loads(ctuple)
-			ctext = base64.b64decode(ctext)
+			(rem_round, ctext) = marshal.loads(ctuple)
 			if rem_round != self.round_id:
 				raise RuntimeError, "Mismatched round numbers (mine:%d, other:%d)" % (self.round_id, rem_round)
 
 			new_ctext = AnonCrypto.decrypt_with_rsa(self.key1, ctext)	
-			pickled = cPickle.dumps((self.round_id, base64.b64encode(new_ctext)))
+			pickled = marshal.dumps((self.round_id, new_ctext))
 			self.data_out.append(pickled)
 
 	"""
@@ -346,19 +343,18 @@ class shuffle_node():
 		self.advance_phase()
 		if self.am_leader():
 			self.debug("Leader broadcasting ciphers to all nodes")
-			self.broadcast_to_all_nodes(cPickle.dumps(self.final_ciphers))
+			self.broadcast_to_all_nodes(marshal.dumps(self.final_ciphers))
 			self.debug("Cipher set len %d" % (len(self.final_ciphers)))
 		else:
 			""" Get C' ciphertexts from leader. """
-			self.final_ciphers = cPickle.loads(self.recv_from_leader())
+			self.final_ciphers = marshal.loads(self.recv_from_leader())
 
 		"""
 		self.final_ciphers holds an array of
 		pickled (round_id, cipher_prime) tuples
 		"""
 
-		my_cipher_str = cPickle.dumps((self.round_id,
-					base64.b64encode(self.cipher_prime)))
+		my_cipher_str = marshal.dumps((self.round_id, self.cipher_prime))
 
 		go = False
 		if my_cipher_str in self.final_ciphers:
@@ -371,7 +367,7 @@ class shuffle_node():
 			raise RuntimeError, "Protocol violation: My ciphertext is missing!"
 
 		hashval = AnonCrypto.hash_list(self.final_ciphers)
-		go_msg = cPickle.dumps((
+		go_msg = marshal.dumps((
 					self.id,
 					self.round_id,
 					go,
@@ -384,7 +380,7 @@ class shuffle_node():
 			
 			""" Add leader's signed GO message to set """
 			data.append(AnonCrypto.sign(self.id, self.key1, go_msg))
-			go_data = cPickle.dumps((data))
+			go_data = marshal.dumps((data))
 			self.broadcast_to_all_nodes(go_data)
 
 		else:
@@ -397,11 +393,11 @@ class shuffle_node():
 		return
 
 	def check_go_data(self, hashval, pickled_list):
-		go_lst = cPickle.loads(pickled_list)
+		go_lst = marshal.loads(pickled_list)
 		for item in go_lst:
 			""" Verify signature on "GO" message """
 			item_str = AnonCrypto.verify(self.pub_keys, item)
-			(r_id, r_round, r_go, r_hash) = cPickle.loads(item_str)
+			(r_id, r_round, r_go, r_hash) = marshal.loads(item_str)
 			if r_round != self.round_id:
 			 	raise RuntimeError, "Mismatched round numbers"
 			if not r_go:
@@ -419,7 +415,7 @@ class shuffle_node():
 	def run_phase5(self):
 		self.advance_phase()
 
-		mykeystr = AnonCrypto.sign(self.id, self.key1, cPickle.dumps((
+		mykeystr = AnonCrypto.sign(self.id, self.key1, marshal.dumps((
 							self.id,
 							self.round_id,
 							AnonCrypto.priv_key_to_str(self.key2))))
@@ -430,12 +426,12 @@ class shuffle_node():
 			""" Add leader's signed key to set """
 			data.append(mykeystr)
 			self.debug("Key data... len = %d" % len(data))
-			self.broadcast_to_all_nodes(cPickle.dumps(data))
+			self.broadcast_to_all_nodes(marshal.dumps(data))
 
 		else:
 			self.info('Sending key to leader')
 			self.send_to_leader(mykeystr)
-			data = cPickle.loads(self.recv_from_leader())
+			data = marshal.loads(self.recv_from_leader())
 			self.info("Got key set from leader, len = %d" % len(data))
 
 		self.decrypt_ciphers(data)
@@ -454,15 +450,14 @@ class shuffle_node():
 		for item in keyset:
 			""" Verify signature on each key """
 			item_str = AnonCrypto.verify(self.pub_keys, item)
-			(r_id, r_roundid, r_keystr) = cPickle.loads(item_str)
+			(r_id, r_roundid, r_keystr) = marshal.loads(item_str)
 			if r_roundid != self.round_id:
 				raise RuntimeError, 'Mismatched round numbers'
 			priv_keys[r_id] = AnonCrypto.priv_key_from_str(r_keystr)
 
 		plaintexts = []
 		for cipher in self.final_ciphers:
-			(r_round, cipher_prime) = cPickle.loads(cipher)
-			cipher_prime = base64.b64decode(cipher_prime)
+			(r_round, cipher_prime) = marshal.loads(cipher)
 			if r_round != self.round_id:
 				raise RuntimeError, 'Mismatched round ids'
 			for i in xrange(0, self.n_nodes):
@@ -536,7 +531,7 @@ class shuffle_node():
 			data = self.recv_from_all(False)
 			newsockets = [None] * (self.n_nodes - 1)
 			for i in xrange(0, self.n_nodes - 1):
-				s_id = cPickle.loads(data[i])
+				s_id = marshal.loads(data[i])
 				self.debug(s_id)
 				newsockets[s_id - 1] = self.sockets[i]
 			self.sockets = newsockets
@@ -546,7 +541,7 @@ class shuffle_node():
 			l_ip, l_port = self.leader_addr
 			self.debug("Opening client socket to leader")
 			self.leader_socket = AnonNet.new_client_sock(l_ip, l_port)
-			self.send_to_leader(cPickle.dumps(self.id), False)
+			self.send_to_leader(marshal.dumps(self.id), False)
 			self.debug("Opened client socket to leader")
 
 	def cleanup_sockets(self):
