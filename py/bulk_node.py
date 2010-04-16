@@ -232,6 +232,9 @@ class bulk_node():
 		pseudo-random strings with the author's message.
 		"""
 		h = M2Crypto.EVP.MessageDigest('sha1')
+
+		""" Hash of final message """
+		h_msg = M2Crypto.EVP.MessageDigest('sha1')
 		self.debug('Starting to write data file')
 
 		with open(self.msg_file, 'r') as f_msg:
@@ -239,6 +242,7 @@ class bulk_node():
 				""" Loop until we reach EOF """
 				while True:
 					block = f_msg.read(blocksize)
+					h_msg.update(block)
 					n_bytes = len(block)
 					if n_bytes == 0: break
 
@@ -269,7 +273,9 @@ class bulk_node():
 					AnonCrypto.encrypt_with_rsa(
 						self.pub_keys[i][0],
 						self.seeds[i]))
-		
+	
+		self.my_msg_hash = h_msg.final()
+
 		""" Insert "cheating" hash for self. """
 		self.my_hashes[self.id] = h.final()
 
@@ -283,6 +289,7 @@ class bulk_node():
 				self.id,
 				self.round_id,
 				self.msg_len,
+				self.my_msg_hash,
 				self.enc_seeds,
 				self.my_hashes), f)
 		return
@@ -322,6 +329,7 @@ class bulk_node():
 				(r_id,
 				 r_round_id,
 				 r_msg_len,
+				 r_msg_hash,
 				 r_enc_seeds,
 				 r_hashes) = cPickle.load(f_in)
 			if self.round_id != r_round_id:
@@ -330,7 +338,7 @@ class bulk_node():
 				raise RuntimeError, 'Invalid node id'
 
 			self.debug("Got data from node %d.  Msg len: %d" % (r_id, r_msg_len))
-			self.msg_data.append((r_msg_len, r_enc_seeds, r_hashes))
+			self.msg_data.append((r_msg_len, r_enc_seeds, r_hashes, r_msg_hash))
 
 	"""
 	PHASE 3
@@ -401,28 +409,86 @@ class bulk_node():
 		if self.am_leader():
 			fnames = AnonNet.recv_file_from_n(self.sockets)
 			fnames.append(self.tar_filename)
-			self.master_filename = self.create_master_tar(fnames)
-			self.broadcast_file_to_all_nodes(self.master_filename)
+			self.message_tar = self.generate_msg_tar(fnames)
+			
+			""" Broadcast final messages """
+			self.debug("Broadcasting msg tar")
+			self.broadcast_file_to_all_nodes(self.message_tar)
+			self.debug("Sent msg tar")
 		else:
 			AnonNet.send_file_to_sock(self.leader_socket, self.tar_filename)
-			self.master_filename = AnonNet.recv_file_from_sock(self.leader_socket)
+			self.debug("Waiting for msg tar")
+			self.message_tar = AnonNet.recv_file_from_sock(self.leader_socket)
+			self.debug("Got for msg tar")
 
-	def create_master_tar(self, fnames):
-		"""
-		The master tar holds the pseudo-random strings for each
-		message slot.
-		"""
-		handle, master_filename = tempfile.mkstemp()
-		tar = tarfile.open(
-				master_filename,
-				mode = 'w') # Create new archive
-#	dereference = True)
+	def generate_msg_tar(self, files_in):
+		filenames = []
+		for i in xrange(0, self.n_nodes):
+			filenames.append({})
+		handles_to_close = []
 
 		for i in xrange(0, self.n_nodes):
-			tar.add(fnames[i], "-1")
 
-		tar.close()
-		return master_filename
+			""" The tar file from each participant iterate through its contents. """
+			innertar = tarfile.open(name = files_in[i], mode='r')
+		
+			self.debug("Processing message slot %d" % i)
+			for j in xrange(0, self.n_nodes):
+				""" filenames[j] holds filenames for message slot j. """
+				node_id, fhandle = self.copy_next_from_tar(innertar)
+				filenames[j][node_id] = fhandle
+			
+			""" Don't close files until all have been read. """
+			handles_to_close.append(innertar)
+
+		""" Copy final message files into a new tar """
+		tmp_handle, tar_out_name = tempfile.mkstemp()
+
+		tar_out = tarfile.open(name = tar_out_name, mode='w')
+		for i in xrange(0, self.n_nodes):
+			tf, hash = self.xor_files(filenames[i])
+			self.debug("Adding file %d to msg tar" %i)
+			tar_out.add(tf, "%d" % i)
+		tar_out.close()
+
+		for handle in handles_to_close:
+			handle.close()
+
+		return tar_out_name 
+	
+	def xor_files(self, handles):
+		handle,fout = tempfile.mkstemp()
+		
+		blocksize = 4096
+		h_files = M2Crypto.EVP.MessageDigest('sha1')
+
+		self.debug("XORing file")
+		with open(fout, 'w') as f:
+			while True:
+				block = ''
+				for i in xrange(0, len(handles)):
+					if i == 0:
+						block = handles[i].read(blocksize)
+					else:
+						block = Utilities.xor_bytes(block, handles[i].read(blocksize))
+					h_files.update(block)
+				f.write(block)
+				if block == '':
+				  	break
+				
+		return (fout, h_files.final())
+
+	def copy_next_from_tar(self, tar):
+		finfo = tar.next()
+		if finfo == None: raise RuntimeError, 'Missing files in tar'
+
+		""" Copy inner contents to a tempfile and save the file. """
+		h = tar.extractfile(finfo)
+		if h == None: raise RuntimeError, 'Missing files in tar'
+		
+		""" Get name of authoring node from filename within tar. """
+		node_id = int(finfo.name)
+		return (node_id, h)
 
 	def generate_prng_file(self, seed, msg_len):
 		"""
@@ -457,107 +523,26 @@ class bulk_node():
 		self.advance_phase()
 		self.info('Starting phase 4')
 
-		"""
-		We should now have a pointer to a master_filename, which
-		is a tar of tars.  Each tar-set contains the message strings
-		for a specific message slot.
-		"""
-		
-		handles_to_close, filenames = self.unpack_master_tar(self.master_filename)
-		self.data_filenames = []
+		self.data_filenames = self.unpack_msg_tar(self.message_tar)
+		for i in xrange(0, len(self.data_filenames)):
+			if AnonCrypto.hash_file(self.data_filenames[i]) != self.msg_data[i][3]:
+#raise RuntimeError, "Mismatched hash in slot %d" % i
+				self.critical("Mismatched hashes")
 
-		for i in xrange(0, len(filenames)):
-			self.debug("Processing message slot %d" % i)
-			self.data_filenames.append(
-					self.process_msg_tar(filenames[i], self.msg_data[i], i))
-
-		for h in handles_to_close: h.close()
-
-	def process_msg_tar(self, handles, descrip_data, slot_n):
-		""" Process the tar file for one message slot. """
-		hashes = []
-
-		self.debug("Number of subfiles: %d" % len(handles))
+	def unpack_msg_tar(self, tar_filename):
+		tar = tarfile.open(name=tar_filename, mode='r')
+		outfiles = []
 
 		for i in xrange(0, self.n_nodes):
-			""" Open all files and keep a running hash for each. """
-			hashes.append(M2Crypto.EVP.MessageDigest('sha1'))
+			node_id,fin = self.copy_next_from_tar(tar)
+			thandle, tfname = tempfile.mkstemp()
+			with open(tfname, 'w') as fout:
+				shutil.copyfileobj(fin, fout)
+			outfiles.append(tfname)
 
-		oh, outfile = tempfile.mkstemp()
+		tar.close()
+		return outfiles
 
-		blocksize = 4096 * 16
-		more_to_read = True
-
-		""" outfile holds the plaintext message for this slot. """
-		with open(outfile, 'w') as f:
-			while more_to_read:
-				block_str = ''
-
-				""" Iterate through contents from each user. """
-				for i in xrange(0, self.n_nodes):
-					bytes = handles[i].read(blocksize)
-					hashes[i].update(bytes)
-
-					if bytes == '': 
-						more_to_read = False
-						break 	# Got to EOF
-
-					""" XOR strings together. """
-					if i == 0: block_str = bytes
-					else: block_str = Utilities.xor_bytes(block_str, bytes)
-
-				f.write(block_str)
-
-		""" Confirm that hashes are correct. """
-		for i in xrange(0, self.n_nodes):
-			hout = hashes[i].final()
-			if hout != descrip_data[2][i]:
-				raise RuntimeError, "Node %d sent bad hash for slot %d" (i, slot_n)
-			handles[i].close()
-			
-		return outfile
-
-	def unpack_master_tar(self, archive_filename):
-		""" Master tar is a tar of tar archives -- one for each message """
-		filenames = []
-		handles_to_close = []
-		for i in xrange(0, self.n_nodes): filenames.append({})
-
-		tar = tarfile.open(archive_filename, 'r')
-
-		""" Open the master tar file """
-		for i in xrange(0, self.n_nodes):
-			"""
-			Create a new tempfile for each inner tar file.
-			Inner tar holds message data for participant i.
-			"""
-			(zero, inner_tar_handle) = self.copy_next_from_tar(tar)
-
-			""" Open the inner tar file and iterate through its contents. """
-			innertar = tarfile.open(name='',fileobj=inner_tar_handle, mode='r')
-			for j in xrange(0, self.n_nodes):
-				""" filenames[j] holds filenames for message slot j. """
-				node_id, fhandle = self.copy_next_from_tar(innertar)
-				filenames[j][node_id] = fhandle
-			
-			""" Don't close files until all have been read. """
-			handles_to_close.append(innertar)
-			handles_to_close.append(inner_tar_handle)
-		handles_to_close.append(tar)
-
-		return (handles_to_close, filenames)
-
-	def copy_next_from_tar(self, tar):
-		finfo = tar.next()
-		if finfo == None: raise RuntimeError, 'Missing files in tar'
-
-		""" Copy inner contents to a tempfile and save the file. """
-		h = tar.extractfile(finfo)
-		if h == None: raise RuntimeError, 'Missing files in tar'
-		
-		""" Get name of authoring node from filename within tar. """
-		node_id = int(finfo.name)
-		return (node_id, h)
 
 	"""
 	Network Utility Functions
