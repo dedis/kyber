@@ -81,7 +81,7 @@ class bulk_node():
 				 resource.getrusage(resource.RUSAGE_SELF).ru_utime - self.rusage_start[0],
 				 resource.getrusage(resource.RUSAGE_SELF).ru_stime - self.rusage_start[1],
 				 self.size_string()))
-		except:
+		except RuntimeError, SystemExit:
 			self.cleanup_sockets()
 			raise
 		self.debug('Starting cleanup')

@@ -15,7 +15,6 @@ for {set i 1} {$i < $maxnodes} {incr i} {
 }
 
 set lan0 [$ns make-lan "$lanstr" 5Mb 50ms]
-tb-set-lan-los $lan0 0.01
 
 $ns rtproto Static
 $ns run           
