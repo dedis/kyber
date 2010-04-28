@@ -18,6 +18,7 @@ class node_set():
 		logger = logging.getLogger()
 		logger.setLevel(logging.DEBUG)
 
+		self.user = ZOO_USERNAME
 		self.dir = ZOO_SUBDIR
 		self.node_append = ''
 		min_nodes = 3
@@ -34,7 +35,8 @@ class node_set():
 	def process_args(self, argv):
 		helpmsg = \
 		"""
-		-r -- Remote mode.  Use SSH to log in to the remote host
+		-z -- Zoo mode.  	(YALE INTERNAL USE ONLY)
+							Use SSH to log in to the remote host
 							and execute the node program there.
 		-l -- Local mode.   Run the node program on the local host.
 		-e -- Emulab mode.  Run with SSH and change to the right
@@ -62,16 +64,16 @@ class node_set():
 							line has an IPv4 address/hostname and a port
 							number separated by whitespace.
 		"""
-		usagestr = "Usage: %s [-r|-l] [-s|-b] total_len [each|one] " % argv[0] + \
+		usagestr = "Usage: %s [-z|-l|-e] [-s|-b] total_len [each|one] " % argv[0] + \
 					"n_nodes address_filename \n\n %s " % helpmsg
 
 		if len(argv) != 7: raise RuntimeError, usagestr
 
-		if argv[1] == '-r':		self.remote = True
+		if argv[1] == '-z':		self.remote = True
 		elif argv[1] == '-l':	self.remote = False
 		elif argv[1] == '-e':
 			self.remote = True
-			self.dir = EMULAB_ROOT
+			self.dir = EMULAB_ROOT_DIR
 			self.user = EMULAB_USERNAME
 			self.node_append = EMULAB_SUFFIX
 		else: raise RuntimeError, usagestr

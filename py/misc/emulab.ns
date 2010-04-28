@@ -1,0 +1,38 @@
+#
+# Anon protocol NS file.
+#
+# Change the maxnodes variable below
+# to the number of nodes you want to
+# use.  (Emulab will start up around 1.5*maxnodes
+# Emulab nodes because for every 2
+# protocol nodes, Emulab uses 1 traffic
+# shaping node.)
+
+# Nodes will be named:
+# node-X.EXPERIMENT_NAME.PROJECT_NAME.emulab.net
+# for X = 1, ..., maxnodes
+
+# This implements a simple "star" topology with
+# a 50ms delay between nodes and the router and
+# 5Mb link capacity for all links.  You can change
+# the topology to whatever you want as long as
+# the node names you create here match the node
+# names in your address file.
+
+set ns [new Simulator]                  
+source tb_compat.tcl
+
+set maxnodes 3
+set lanstr ""
+
+for {set i 1} {$i < $maxnodes} {incr i} {
+    set node($i) [$ns node]
+    append lanstr "$node($i) "
+    tb-set-node-os $node($i) UbuntuAnon
+}
+
+set lan0 [$ns make-lan "$lanstr" 5Mb 50ms]
+
+$ns rtproto Static
+$ns run           
+
