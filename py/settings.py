@@ -15,11 +15,13 @@ EMULAB_USERNAME='FAKEUSER'
 	address. '''
 EMULAB_SUFFIX='.EXPERIMENT_NAME.PROJECT_NAME.emulab.net'
 ''' The dir where you have copied all of the implementation files '''
-EMULAB_ROOT='/proj/PROJECT_NAME/exp/EXPERIMENT_NAME/DIR_TO_FILES'
+EMULAB_ROOT_DIR='/proj/PROJECT_NAME/exp/EXPERIMENT_NAME/DIR_TO_FILES'
 
 
 """
-Directories for storing logs and data.
+Directories for storing logs and data.  These names are RELATIVE
+to the EMULAB_ROOT_DIR you specify above.  Make sure that these
+directories exist before you try to run the implementation.
 """
 DATA_DIR='data'
 LOGS_DIR='logs'
