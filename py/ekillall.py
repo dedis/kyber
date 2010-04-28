@@ -1,7 +1,7 @@
 from __future__ import with_statement
 from logging import debug, info
 import logging
-import bulk_node, random
+from .. import bulk_node, random
 from subprocess import Popen
 import sys
 
