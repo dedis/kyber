@@ -1,0 +1,107 @@
+                                                             
+`7MM"""Yb.     db                                      mm    
+  MM    `Yb.                                           MM    
+  MM     `Mb `7MM  ,pP"Ybd ,pP"Ybd  .gP"Ya `7MMpMMMb.mmMMmm  
+  MM      MM   MM  8I   `" 8I   `" ,M'   Yb  MM    MM  MM    
+  MM     ,MP   MM  `YMMMa. `YMMMa. 8M""""""  MM    MM  MM    
+  MM    ,dP'   MM  L.   I8 L.   I8 YM.    ,  MM    MM  MM    
+.JMMmmmdP'   .JMML.M9mmmP' M9mmmP'  `Mbmmd'.JMML  JMML.`Mbmo 
+
+==============================================================
+== Dissent: Accountable Group Anonymity                     ==
+==                                                          ==
+== Henry Corrigan-Gibbs (henry.corrigan-gibbs @ yale.edu)   ==
+== Bryan Ford (bryan.ford @ yale.edu)                       ==
+==============================================================
+
+
+... I. Introduction ...
+
+This is a Python prototype of Dissent, a new protocol for
+anonymous message exchange between a small-to-medium sized 
+group of nodes (10s or 100s).
+
+For a technical description of the protocol, please see:
+http://arxiv4.library.cornell.edu/abs/1004.3057
+
+
+
+... II. Disclaimer ...
+
+THIS IS NOT A SECURE IMPLEMENTATION OF THE DISSENT PROTOCOL.
+DO NOT USE THIS SOFTWARE TO TRANSMIT SECRET OR SENSITIVE DATA.
+
+This implementation contains some obvious security holes:
+-- It does not use a public-key infrastructure.  Nodes exchange
+   public keys by sending them across open channels.
+-- It does not implement any of the "blame" portions of the
+   protocol, so it's not accountable yet.
+
+There are also some less obvious security holes:
+-- Nodes take different amounts of time in certain parts of the
+   protocol depending on the length of the message they want to
+   send.  A real implementation would need a method of avoiding
+   timing attacks.
+-- ...and many others.  
+
+
+
+... III. Installation ...
+
+Every node must be running:
+-- Python 2.6 (or better)
+-- M2Crypto 0.20.2
+    Available at: http://chandlerproject.org/Projects/MeTooCrypto
+
+We note that installing M2Crypto can be a big pain.  If you
+plan to run this implementation on Emulab, we have a pre-made
+OS image with these components pre-installed.  Contact us and
+we can send it to you.
+
+Configuration-specific instructions follow:
+
+LOCAL MACHINE
+	0) Unpack the install archive into a directory.
+	1) Edit the settings.py file to reflect your system config.
+	2) Run main.py with the -l flag any other options (below).
+
+EMULAB TESTBED
+	0) Edit the file misc/emulab.ns to reflect the number of
+	   Emulab nodes on which you want to run the protocol.
+	1) Get an Emulab account (www.emulab.net) and create a new
+	   experiment.  Use the file misc/emulab.ns as your network
+	   simulation file.
+	2) Append your public SSH public key to ~/.ssh/authorized_keys
+	   so that you don't have to type your password in to login
+	   to each node.
+	3) Unpack the install archive into a directory on your local
+	   (control) machine.
+	4) Unpack the archive into a directory on an Emulab node.
+	5) Edit the settings.py file, adding your Emulab username,
+	   Emulab network address, and the directory where you unpacked
+	   the archive.
+	6) Run main.py with the -e flag any other options (below).
+
+LOCAL LAN
+	Running the simulator on your local LAN will be similar to 
+	running on Emulab.  In the settings.py file, just set the Emulab
+	suffix to your local LAN network name.
+
+
+... IV. Use ...
+
+ADDRESS FILE
+	You must create a an address file contaning the addresses of the
+	nodes you want to use in your simulation.  Address files have one
+	line per node, no comments, and no blank spaces between lines.
+
+	The format of each line is:
+	NODE_NAME NODE_PORT
+
+If you run
+$ python main.py 
+you will get a description of the command-line switches.  All are required.
+
+
+
+
