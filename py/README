@@ -138,4 +138,6 @@ EXAMPLES
 
 	$ python main.py -e -b 1048576 one 40 addr/emu.txt
 
-
+MISC
+	The scripts killall.py and ekillall.py might be useful for stopping
+	run-away processes on remote nodes.
