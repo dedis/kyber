@@ -30,8 +30,8 @@ def __main__(argv):
 
 	node = bulk_node.bulk_node(id, key_len, round_id, n_nodes,
 			my_addr, leader_addr, up_addr, dn_addr, msg_file)
-	#cProfile.runctx('mynode.run_protocol()', {'mynode': node}, {})
-	node.run_protocol()
+	cProfile.runctx('mynode.run_protocol()', {'mynode': node}, {})
+#node.run_protocol()
 	fnames = node.output_filenames()
 
 	for i in xrange(0, len(fnames)):

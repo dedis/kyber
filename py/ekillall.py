@@ -5,10 +5,12 @@ import bulk_node, random
 from subprocess import Popen
 import sys
 
+from settings import *
+
 nodes = []
 with open(sys.argv[1], 'r') as f:
 	for line in f:
 		parts = line.split()
-		Popen(['ssh',"henrycg@%s.anonprotocol.Tng.emulab.net" % parts[0], 'killall','python'])
+		Popen(['ssh',"%s@%s%s" % (EMULAB_USERNAME, parts[0], EMULAB_SUFFIX), 'killall','python'])
 		debug("Killall: %s" % parts[0])
 

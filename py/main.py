@@ -11,14 +11,14 @@ import logging
 from logging import debug, info
 
 import bulk_node, random
+from settings import *
 
 class node_set():
 	def __init__(self, argv):
 		logger = logging.getLogger()
 		logger.setLevel(logging.DEBUG)
 
-		self.dir = 'cs490'
-		self.user = 'hnc4'
+		self.dir = ZOO_SUBDIR
 		self.node_append = ''
 		min_nodes = 3
 		self.key_len = 1024
@@ -71,9 +71,9 @@ class node_set():
 		elif argv[1] == '-l':	self.remote = False
 		elif argv[1] == '-e':
 			self.remote = True
-			self.dir = '/proj/Tng/exp/anonprotocol/cs490'
-			self.user = 'henrycg'
-			self.node_append = '.anonprotocol.Tng.emulab.net'
+			self.dir = EMULAB_ROOT
+			self.user = EMULAB_USERNAME
+			self.node_append = EMULAB_SUFFIX
 		else: raise RuntimeError, usagestr
 
 		if argv[2] == '-s':		self.bulk = False
