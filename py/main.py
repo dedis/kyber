@@ -86,10 +86,14 @@ class node_set():
 		elif argv[4] == 'one':	self.shared = False
 		else: raise RuntimeError, usagestr
 	
+		self.n_nodes = int(argv[5])
 		self.nodes = self.parse_nodefile(int(argv[5]), argv[6])
 		self.calculate_lengths(int(argv[3]), len(self.nodes))
 
 	def create_nodes(self):
+		if len(self.nodes) < self.n_nodes:
+			raise RuntimeError, "Trying to start %d nodes but only %d nodes in address file" % (self.n_nodes, len(self.nodes))
+
 		processes = []
 		leader_ip, leader_port = self.nodes[0]
 
