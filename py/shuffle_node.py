@@ -1,7 +1,13 @@
 """
+Dissent: Accountable Group Anonymity
+Copyright (C) 2010 Yale University
+Released under the GNU General Public License version 3:
+see the file COPYING for details.
+
 Filename: shuffle_node.py
 Description: Implementation of the shuffle component
 of the anon protocol.
+Author: Henry Corrigan-Gibbs
 """
 
 import logging, random, sys

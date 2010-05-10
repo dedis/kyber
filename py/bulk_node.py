@@ -1,7 +1,13 @@
 """
+Dissent: Accountable Group Anonymity
+Copyright (C) 2010 Yale University
+Released under the GNU General Public License version 3:
+see the file COPYING for details.
+
 Filename: bulk_node.py
 Description: The main class that implements the
 shuffle+bulk anonymous data exchange protocol.
+Author: Henry Corrigan-Gibbs
 """
 
 from __future__ import with_statement

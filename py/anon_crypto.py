@@ -1,7 +1,12 @@
 """
+Dissent: Accountable Group Anonymity
+Copyright (C) 2010 Yale University
+Released under the GNU General Public License version 3:
+see the file COPYING for details.
+
 Filename: anon_crypto.py
-Description: Crypto primitives for the anon
-protocol.
+Description: Crypto primitives for the anon protocol.
+Author: Henry Corrigan-Gibbs
 """
 
 from __future__ import with_statement

@@ -1,7 +1,13 @@
 """
+Dissent: Accountable Group Anonymity
+Copyright (C) 2010 Yale University
+Released under the GNU General Public License version 3:
+see the file COPYING for details.
+
 Filename: anon_net.py
 Description: Networking utility functions for the
 anon protocol implementation.
+Author: Henry Corrigan-Gibbs
 """
 
 from __future__ import with_statement

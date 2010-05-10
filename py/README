@@ -25,6 +25,11 @@ group of nodes (10s or 100s).
 For a technical description of the protocol, please see:
 http://arxiv4.library.cornell.edu/abs/1004.3057
 
+We are releasing this prototype under the GNU General Public
+License (GPL), version 3; see the file COPYING for details.
+If you would like to use this code in a way that makes this
+choice of open source licenses a problem, contact us.
+
 
 
 ...                ...
