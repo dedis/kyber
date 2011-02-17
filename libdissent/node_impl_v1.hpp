@@ -1,0 +1,129 @@
+/* libdissent/node_impl_v1.hpp
+   Dissent version 1 participant node implementation.
+
+   Author: Shu-Chun Weng <scweng _AT_ cs .DOT. yale *DOT* edu>
+ */
+/* ====================================================================
+ * Dissent: Accountable Group Anonymity
+ * Copyright (c) 2010 Yale University.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to
+ *
+ *   Free Software Foundation, Inc.,
+ *   51 Franklin Street, Fifth Floor,
+ *   Boston, MA  02110-1301  USA
+ */
+#ifndef _DISSENT_LIBDISSENT_NODE_IMPL_V1_H_
+#define _DISSENT_LIBDISSENT_NODE_IMPL_V1_H_ 1
+
+#include <QByteArray>
+#include <QHash>
+
+#include "node_impl.hpp"
+
+namespace Dissent{
+typename Key;
+
+class NodeImplShuffle : public NodeImpl{
+  Q_OBJECT
+  protected:
+    NodeImplShuffle(Node* node) : NodeImpl(node), _toBlame(-1){}
+
+  public:
+    virtual bool StartProtocol(int round);
+
+  protected:
+    virtual void GetShuffleData(QByteArray* data) = 0;
+
+  private slots:
+    void AcceptOnetimeKeys(int node_id);
+    void GetShuffleData(int node_id);
+    void CollectShuffleData(int node_id);
+    void GetFinalPermutation(int node_id);
+
+  private:
+    void DoDataSubmission();
+    void DoAnonymization();
+    void CheckPermutation();  // Check _shufflingData.
+
+    // the length of chunks are all the same, returns true if that's
+    // the case
+    static void QByteArrayToPermutation(
+            const QByteArray& byte_array,
+            const QList<QByteArray>* permutation);
+    static void PermutationToQByteArray(
+            const QList<QByteArray>& permutation,
+            QByteArray* byte_array);
+
+    // TODO(scw): we probably need extra information
+    void Blame(int node_id);
+
+    int _toBlame;
+
+    KeyScopedPointer _innerKey;
+    QHash<int, KeySharedPointer> _innerKeys;
+    QList<QByteArray> _randomness;
+
+    QHash<int, int> _shufflingDataReceived;
+    QList<QByteArray> _shufflingData;
+};
+
+class NodeImplShuffleOnly : public NodeImplShuffle{
+  Q_OBJECT
+  public:
+    NodeImplShuffleOnly(Node* node);
+
+  protected:
+    virtual void GetShuffleData(QByteArray* data);
+
+    virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
+};
+
+// Shuffle for version 1: msg_desc includes check sum of the message,
+// encrypted seeds, and hashes of seeds
+class NodeImplShuffleMsgDesc : public NodeImplShuffle{
+  Q_OBJECT
+  public:
+    NodeImplShuffleMsgDesc(Node* node);
+
+  protected:
+    virtual void GetShuffleData(QByteArray* data);
+
+    virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
+};
+
+// Shuffle for version 2: bulk_desc includes encrypted seeds and the
+// private key for message signatures
+class NodeImplShuffleBulkDesc : public NodeImplShuffle{
+  Q_OBJECT
+  public:
+    NodeImplShuffleBulkDesc(Node* node) : NodeImplShuffle(node){}
+
+  protected:
+    virtual void GetShuffleData(QByteArray* data);
+
+    virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
+};
+
+class NodeImplBulkSend : public NodeImpl{
+  Q_OBJECT
+  public:
+    NodeImplBulkSend(Node* node) : NodeImpl(node){}
+
+    virtual bool StartProtocol(int round);
+    virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
+};
+}
+#endif  // _DISSENT_LIBDISSENT_NODE_IMPL_V1_H_
+// -*- vim:sw=4:expandtab:cindent:
