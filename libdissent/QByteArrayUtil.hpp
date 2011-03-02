@@ -31,7 +31,7 @@
 
 class QByteArray;
 
-class QByteArrayUtil{
+struct QByteArrayUtil{
     static void AppendInt(quint32 n, QByteArray* byte_array);
     static void PrependInt(quint32 n, QByteArray* byte_array);
 

@@ -27,10 +27,7 @@
 
 #include "crypto.hpp"
 
-#include <openssl/objects.h>
-#include <openssl/rsa.h>
-#include <openssl/sha.h>
-#include <openssl/x509.h>
+#include <QtCrypto>
 
 namespace Dissent{
 Key* Crypto::GenerateKeys(int length){
@@ -110,6 +107,18 @@ bool Crypto::Verify(Key* key, const QByteArray& msg,
     (void) key;
     (void) msg;
     (void) signature;
+}
+
+bool Crypto::Hash(const QByteArray& msg,
+                  QByteArray* hash){
+    unsigned long msg_len = msg.size();
+    const unsigned char* msg_c =
+        reinterpret_cast<const unsigned char*>(msg.constData());
+    int digest_len = SHA_DIGEST_LENGTH;
+    const unsigned char* digest = SHA1(msg_c, msg_len, 0);
+    hash->clear();
+    hash->append(reinterpret_cast<const char*>(digest), digest_len);
+    return true;
 }
 }
 // -*- vim:sw=4:expandtab:cindent:

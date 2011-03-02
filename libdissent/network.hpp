@@ -53,8 +53,8 @@ class Network : public QObject{
     int Read(int node_id, QByteArray* data);
 
     struct LogEntry{
-        enum{ SEND, RECV }dir;
-        int node_id;
+        enum{ SEND, RECV, BROADCAST_SEND, BROADCAST_RECV }dir;
+        int node_id;  // receiver, sender, undefined, or sender according to dir
         QByteArray data;
         QByteArray signature;
 

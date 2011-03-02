@@ -1,5 +1,5 @@
-/* libdissent/node_impl_v1.hpp
-   Dissent version 1 participant node implementation.
+/* libdissent/node_impl_shuffle.hpp
+   Dissent shuffle protocol node implementation.
 
    Author: Shu-Chun Weng <scweng _AT_ cs .DOT. yale *DOT* edu>
  */
@@ -24,8 +24,8 @@
  *   51 Franklin Street, Fifth Floor,
  *   Boston, MA  02110-1301  USA
  */
-#ifndef _DISSENT_LIBDISSENT_NODE_IMPL_V1_H_
-#define _DISSENT_LIBDISSENT_NODE_IMPL_V1_H_ 1
+#ifndef _DISSENT_LIBDISSENT_NODE_IMPL_SHUFFLE_H_
+#define _DISSENT_LIBDISSENT_NODE_IMPL_SHUFFLE_H_ 1
 
 #include <QByteArray>
 #include <QHash>
@@ -33,8 +33,6 @@
 #include "node_impl.hpp"
 
 namespace Dissent{
-typename Key;
-
 class NodeImplShuffle : public NodeImpl{
   Q_OBJECT
   protected:
@@ -55,13 +53,13 @@ class NodeImplShuffle : public NodeImpl{
   private:
     void DoDataSubmission();
     void DoAnonymization();
-    void CheckPermutation();  // Check _shufflingData.
+    void CheckPermutation(const QList<QByteArray>& permutation);
 
     // the length of chunks are all the same, returns true if that's
     // the case
-    static void QByteArrayToPermutation(
+    static bool QByteArrayToPermutation(
             const QByteArray& byte_array,
-            const QList<QByteArray>* permutation);
+            QList<QByteArray>* permutation);
     static void PermutationToQByteArray(
             const QList<QByteArray>& permutation,
             QByteArray* byte_array);
@@ -73,7 +71,9 @@ class NodeImplShuffle : public NodeImpl{
 
     KeyScopedPointer _innerKey;
     QHash<int, KeySharedPointer> _innerKeys;
+
     QList<QByteArray> _randomness;
+    QByteArray _innerOnionEncryptedData;
 
     QHash<int, int> _shufflingDataReceived;
     QList<QByteArray> _shufflingData;
@@ -125,5 +125,5 @@ class NodeImplBulkSend : public NodeImpl{
     virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
 };
 }
-#endif  // _DISSENT_LIBDISSENT_NODE_IMPL_V1_H_
+#endif  // _DISSENT_LIBDISSENT_NODE_IMPL_SHUFFLE_H_
 // -*- vim:sw=4:expandtab:cindent:

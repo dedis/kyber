@@ -36,7 +36,7 @@ static void Int32ToCharArray(quint32 n, char buf[4]){
     buf[3] = static_cast<char>(n       & 0xff);
 }
 
-static quint32 CharArrayToInt32(char buf[4]){
+static quint32 CharArrayToInt32(const char buf[4]){
     // Big Indean
     return buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3];
 }
@@ -47,7 +47,7 @@ void QByteArrayUtil::AppendInt(quint32 n, QByteArray* byte_array){
     byte_array->append(buf, 4);
 }
 
-void QByteArrayUtil::AppendInt(quint32 n, QByteArray* byte_array){
+void QByteArrayUtil::PrependInt(quint32 n, QByteArray* byte_array){
     char buf[4];
     Int32ToCharArray(n, buf);
     byte_array->prepend(buf, 4);

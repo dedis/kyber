@@ -34,7 +34,7 @@
 #include "config.hpp"
 #include "network.hpp"
 #include "node.hpp"
-#include "node_impl_v1.hpp"
+#include "node_impl_shuffle.hpp"
 
 namespace Dissent{
 class NodeImplInitLeader : public NodeImpl{
@@ -115,7 +115,7 @@ void NodeImpl::NextStep(){
     StopListening();
 
     NodeImpl* nextImpl = GetNextImpl(_node->GetConfig()->protocol_version);
-    if(theNextImpl)
+    if(nextImpl)
         emit StepDone(nextImpl);
     else
         emit ProtocolFinished();
@@ -138,11 +138,12 @@ NodeImpl* NodeImplInitLeader::GetNextImpl(
         Configuration::ProtocolVersion version){
     switch(version){
         case Configuration::DISSENT_VERSION_1:
-            return new NodeImplShuffle(_node);
+            return new NodeImplShuffleMsgDesc(_node);
 
         default:
             qFatal("Dissent version %d not implemented yet",
                    version);
+            return 0;
     }
 }
 
@@ -168,6 +169,7 @@ NodeImpl* NodeImplInit::GetNextImpl(
         default:
             qFatal("Dissent version %d not implemented yet",
                    version);
+            return 0;
     }
 }
 

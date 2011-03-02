@@ -6,7 +6,7 @@ TEMPLATE = lib
 TARGET = 
 DEPENDPATH += .
 INCLUDEPATH += .
-CONFIG += dll debug
+CONFIG += qt crypto dll debug
 VERSION = 0.01
 
 # Input
@@ -15,7 +15,7 @@ HEADERS += config.hpp \
            network.hpp \
            node.hpp \
            node_impl.hpp \
-           node_impl_v1.hpp \
+           node_impl_shuffle.hpp \
            QByteArrayUtil.hpp \
            random_util.hpp
 SOURCES += config.cc \
@@ -23,8 +23,10 @@ SOURCES += config.cc \
            network.cc \
            node.cc \
            node_impl.cc \
-           node_impl_v1.cc \
+           node_impl_shuffle.cc \
            QByteArrayUtil.cc \
            random_util.cc
 
-QT += core network
+QT = core network
+
+# on Mac OS: qmake -spec macx-g++

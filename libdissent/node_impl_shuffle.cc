@@ -1,5 +1,5 @@
-/* libdissent/node_impl_v1.cc
-   Dissent version 1 participant node implementation.
+/* libdissent/node_impl_shuffle.cc
+   Dissent shuffle protocol node implementation.
 
    Author: Shu-Chun Weng <scweng _AT_ cs .DOT. yale *DOT* edu>
  */
@@ -24,7 +24,7 @@
  *   51 Franklin Street, Fifth Floor,
  *   Boston, MA  02110-1301  USA
  */
-#include "node_impl_v1.hpp"
+#include "node_impl_shuffle.hpp"
 
 #include <QtGlobal>
 #include <QByteArray>
@@ -37,6 +37,8 @@
 #include "config.hpp"
 #include "crypto.hpp"
 #include "random_util.hpp"
+#include "node.hpp"
+#include "network.hpp"
 
 namespace Dissent{
 // Member functions and slots of NodeImplShuffle are defined in *execution*
@@ -47,10 +49,11 @@ bool NodeImplShuffle::StartProtocol(int round){
     //           inner AND outer keys, or save the round number as encryption
     //           nonce.
     Q_UNUSED(round);
-    _innerKey = Crypto::GenerateKeys(_node->GetConfig()->disposable_key_length);
+    _node->GetNetwork()->ClearLog();
+    _innerKey.reset(Crypto::GenerateKeys(_node->GetConfig()->disposable_key_length));
 
     QByteArray publicKey;
-    Crypto::SerializePublicKey(_innerKey, &publicKey);
+    Crypto::SerializePublicKey(_innerKey.data(), &publicKey);
     _node->GetNetwork()->Broadcast(publicKey);
 
     StartListening(SLOT(AcceptOnetimeKeys(int)), "Shuffle exchange inner keys");
@@ -94,51 +97,49 @@ void NodeImplShuffle::DoDataSubmission(){
     const QList<NodeTopology>& topology = _node->GetConfig()->topology;
 
     // Inner key encryption
-    for(QListIterator<NodeTopology>::const_iterator it = topology.constBegin();
-        it != topology.constEnd(); ++it){
+    foreach(const NodeTopology& node, topology){
         QByteArray result;
 
-        if(it->node_id == my_node_id){
+        if(node.node_id == my_node_id){
             bool b = Crypto::Encrypt(_innerKey.data(), data, &result, 0);
             Q_ASSERT_X(b,
                        "NodeImplShuffle::DoDataSubmission",
                        "Self inner key encryption failed");
         }else{
             QHash<int, KeySharedPointer>::const_iterator jt =
-                _innerKeys.constFind(it->node_id);
+                _innerKeys.constFind(node.node_id);
             Q_ASSERT_X(jt != _innerKeys.constEnd(),
                        "NodeImplShuffle::DoDataSubmission",
                        "Missing inner keys in the topology");
 
-            if(!Crypto::Encrypt(jt->value().data(), data, &result, 0)){
-                Blame(it->node_id);
+            if(!Crypto::Encrypt(jt.value().data(), data, &result, 0)){
+                Blame(node.node_id);
                 return;
             }
         }
 
         data = result;
-        _randomness.append(randomness);
     }
 
+    _innerOnionEncryptedData = data;
     const QMap<int, NodeInfo>& nodes = _node->GetConfig()->nodes;
 
     // Primary key encryption -- randomness must be saved for blaming.
-    for(QListIterator<NodeTopology>::const_iterator it = topology.constBegin();
-        it != topology.constEnd(); ++it){
+    foreach(const NodeTopology& node, topology){
         QByteArray result;
         QByteArray randomness;
 
-        QMap<int, NodeInfo>::const_iterator jt = nodes.constFind(it->node_id);
+        QMap<int, NodeInfo>::const_iterator jt = nodes.constFind(node.node_id);
         Q_ASSERT_X(jt != nodes.constEnd(),
                   "NodeImplShuffle::DoDataSubmission",
                   "Missing primary keys in the topology");
 
-        if(!Crypto::Encrypt(jt->value().data(), data,
+        if(!Crypto::Encrypt(jt.value().identity_pk.data(), data,
                             &result, &randomness)){
-            Q_ASSERT_X(it->node_id != my_node_id,
+            Q_ASSERT_X(node.node_id != my_node_id,
                        "NodeImplShuffle::DoDataSubmission",
                        "Self primary key encryption failed");
-            Blame(it->node_id);
+            Blame(node.node_id);
             return;
         }
 
@@ -215,7 +216,7 @@ void NodeImplShuffle::DoAnonymization(){
     for(QList<QByteArray>::iterator it = _shufflingData.begin();
         it != _shufflingData.end(); ++it){
         QByteArray decrypted;
-        bool b = Crypto::Decrypt(config.identity_sk, *it, &decrypted);
+        bool b = Crypto::Decrypt(config.identity_sk.data(), *it, &decrypted);
         if(!b){
             Blame(config.my_position.prev_node_id);
             return;
@@ -227,7 +228,7 @@ void NodeImplShuffle::DoAnonymization(){
     PermutationToQByteArray(_shufflingData, &byte_array);
     if(config.my_position.next_node_id == -1){
         _node->GetNetwork()->Broadcast(byte_array);
-        CheckPermutation();
+        CheckPermutation(_shufflingData);
     }else{
         _node->GetNetwork()->Send(config.my_position.next_node_id, byte_array);
         StartListening(SLOT(GetFinalPermutation(int)), "Get final permutation");
@@ -247,18 +248,24 @@ void NodeImplShuffle::GetFinalPermutation(int node_id){
        _shufflingData.front().length() < config.shuffle_msg_length){
         Blame(node_id);
     }else{
-        CheckPermutation();
+        CheckPermutation(_shufflingData);
     }
 }
 
-void NodeImplShuffle::CheckPermutation(){
-    // TODO(scw)
+void NodeImplShuffle::CheckPermutation(const QList<QByteArray>& permutation){
+    bool found = false;
+    foreach(const QByteArray& data, permutation)
+        if(data == _innerOnionEncryptedData){
+            found = true;
+            break;
+        }
+    // TODO(scw): Broadcast hash, GO/NO-GO
     // TODO(scw): StartListening(SLOT(CollectInnerKeys(int)), "Collect inner keys")
 }
 
-void bool NodeImplShuffle::QByteArrayToPermutation(
+bool NodeImplShuffle::QByteArrayToPermutation(
         const QByteArray& byte_array,
-        const QList<QByteArray>* permutation){
+        QList<QByteArray>* permutation){
     QByteArray data = byte_array;
     int chunk_length = QByteArrayUtil::ExtractInt(true, &data);
     if(data.length() % chunk_length != 0)
@@ -271,6 +278,7 @@ void bool NodeImplShuffle::QByteArrayToPermutation(
         permutation->push_back(QByteArray(p, chunk_length));
         p += chunk_length;
     }
+    return true;
 }
 
 void NodeImplShuffle::PermutationToQByteArray(
@@ -279,15 +287,13 @@ void NodeImplShuffle::PermutationToQByteArray(
     Q_ASSERT(permutation.length() > 0);
 
     int data_length = permutation.front().length();
-    for(QList<QByteArray>::const_iterator it = permutation.constBegin();
-        it != permutation.constEnd(); ++it)
-        Q_ASSERT(it->length() == data_length);
+    foreach(const QByteArray& chunk, permutation)
+        Q_ASSERT(chunk.length() == data_length);
 
     byte_array->clear();
     QByteArrayUtil::AppendInt(data_length, byte_array);
-    for(QList<QByteArray>::const_iterator it = permutation.constBegin();
-        it != permutation.constEnd(); ++it)
-        byte_array->append(*it);
+    foreach(const QByteArray& chunk, permutation)
+        byte_array->append(chunk);
 }
 
 NodeImplShuffleOnly::NodeImplShuffleOnly(Node* node)
@@ -297,6 +303,7 @@ NodeImplShuffleOnly::NodeImplShuffleOnly(Node* node)
 
 void NodeImplShuffleOnly::GetShuffleData(QByteArray* data){
     // TODO(scw)
+    Q_UNUSED(data);
 }
 
 NodeImpl* NodeImplShuffleOnly::GetNextImpl(
@@ -305,13 +312,14 @@ NodeImpl* NodeImplShuffleOnly::GetNextImpl(
     return 0;
 }
 
-NodeImplShuffleOnly::NodeImplShuffleMsgDesc(Node* node)
+NodeImplShuffleMsgDesc::NodeImplShuffleMsgDesc(Node* node)
     : NodeImplShuffle(node){
     // TODO(scw): snapshot data
 }
 
 void NodeImplShuffleMsgDesc::GetShuffleData(QByteArray* data){
     // TODO(scw)
+    Q_UNUSED(data);
 }
 
 NodeImpl* NodeImplShuffleMsgDesc::GetNextImpl(
@@ -322,6 +330,7 @@ NodeImpl* NodeImplShuffleMsgDesc::GetNextImpl(
 
 void NodeImplShuffleBulkDesc::GetShuffleData(QByteArray* data){
     // TODO(scw)
+    Q_UNUSED(data);
 }
 
 NodeImpl* NodeImplShuffleBulkDesc::GetNextImpl(

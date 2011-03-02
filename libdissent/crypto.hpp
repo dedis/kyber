@@ -27,12 +27,11 @@
 #ifndef _DISSENT_LIBDISSENT_CRYPTO_H_
 #define _DISSENT_LIBDISSENT_CRYPTO_H_ 1
 
+#include <QtCrypto>
 #include <QObject>
 #include <QByteArray>
 #include <QScopedPointer>
 #include <QSharedPointer>
-
-#include <openssl/rsa.h>
 
 namespace Dissent{
 class KeyDeleter;
@@ -71,6 +70,9 @@ class Crypto{
     static bool Verify(Key* key,
                        const QByteArray& msg,
                        const QByteArray& signature);
+
+    static bool Hash(const QByteArray& msg,
+                     QByteArray* hash);
 
   private:
     Crypto(){}
