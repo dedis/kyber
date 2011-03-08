@@ -50,10 +50,17 @@ bool NodeImplShuffle::StartProtocol(int round){
     //           nonce.
     Q_UNUSED(round);
     _node->GetNetwork()->ClearLog();
-    _innerKey.reset(Crypto::GenerateKeys(_node->GetConfig()->disposable_key_length));
+    _innerKey.reset(new PrivateKey());
+    bool r = Crypto::GetInstance()->GenerateKey(
+            _node->GetConfig()->disposable_key_length, _innerKey.data());
+    Q_ASSERT_X(r, "NodeImplShuffle::StartProtocol",
+                  "Cannot generate inner key pair");
 
     QByteArray publicKey;
-    Crypto::SerializePublicKey(_innerKey.data(), &publicKey);
+    r = Crypto::GetInstance()->SerializePublicKey(
+            PublicKey(*_innerKey.data()), &publicKey);
+    Q_ASSERT_X(r, "NodeImplShuffle::StartProtocol",
+                  "Cannot serialize inner public key");
     _node->GetNetwork()->Broadcast(publicKey);
 
     StartListening(SLOT(AcceptOnetimeKeys(int)), "Shuffle exchange inner keys");
@@ -71,15 +78,14 @@ void NodeImplShuffle::AcceptOnetimeKeys(int node_id){
 
     QByteArray data;
     _node->GetNetwork()->Read(node_id, &data);
-    Key* key = Crypto::DeserializePublicKey(data);
-
-    if(!key){
+    PublicKey* key = new PublicKey();
+    if(!Crypto::GetInstance()->DeserializePublicKey(data, key)){
         StopListening();
         Blame(node_id);
         return;
     }
 
-    _innerKeys.insert(node_id, KeySharedPointer(key, KeyDeleter()));
+    _innerKeys.insert(node_id, QSharedPointer<PublicKey>(key));
     if(_innerKeys.size() == _node->GetConfig()->num_nodes){
         StopListening();
         DoDataSubmission();
@@ -95,24 +101,26 @@ void NodeImplShuffle::DoDataSubmission(){
 
     int my_node_id = _node->GetConfig()->my_node_id;
     const QList<NodeTopology>& topology = _node->GetConfig()->topology;
+    Crypto* crypto = Crypto::GetInstance();
 
     // Inner key encryption
     foreach(const NodeTopology& node, topology){
         QByteArray result;
 
         if(node.node_id == my_node_id){
-            bool b = Crypto::Encrypt(_innerKey.data(), data, &result, 0);
+            PublicKey pub_key(*_innerKey.data());
+            bool b = crypto->Encrypt(&pub_key, data, &result, 0);
             Q_ASSERT_X(b,
                        "NodeImplShuffle::DoDataSubmission",
                        "Self inner key encryption failed");
         }else{
-            QHash<int, KeySharedPointer>::const_iterator jt =
+            QHash<int, QSharedPointer<PublicKey> >::const_iterator jt =
                 _innerKeys.constFind(node.node_id);
             Q_ASSERT_X(jt != _innerKeys.constEnd(),
                        "NodeImplShuffle::DoDataSubmission",
                        "Missing inner keys in the topology");
 
-            if(!Crypto::Encrypt(jt.value().data(), data, &result, 0)){
+            if(!crypto->Encrypt(jt.value().data(), data, &result, 0)){
                 Blame(node.node_id);
                 return;
             }
@@ -122,19 +130,19 @@ void NodeImplShuffle::DoDataSubmission(){
     }
 
     _innerOnionEncryptedData = data;
-    const QMap<int, NodeInfo>& nodes = _node->GetConfig()->nodes;
+    QMap<int, NodeInfo>& nodes = _node->GetConfig()->nodes;
 
     // Primary key encryption -- randomness must be saved for blaming.
     foreach(const NodeTopology& node, topology){
         QByteArray result;
         QByteArray randomness;
 
-        QMap<int, NodeInfo>::const_iterator jt = nodes.constFind(node.node_id);
+        QMap<int, NodeInfo>::iterator jt = nodes.find(node.node_id);
         Q_ASSERT_X(jt != nodes.constEnd(),
                   "NodeImplShuffle::DoDataSubmission",
                   "Missing primary keys in the topology");
 
-        if(!Crypto::Encrypt(jt.value().identity_pk.data(), data,
+        if(!crypto->Encrypt(&jt.value().identity_pk, data,
                             &result, &randomness)){
             Q_ASSERT_X(node.node_id != my_node_id,
                        "NodeImplShuffle::DoDataSubmission",
@@ -202,7 +210,7 @@ void NodeImplShuffle::GetShuffleData(int node_id){
 }
 
 void NodeImplShuffle::DoAnonymization(){
-    const Configuration& config = *_node->GetConfig();
+    Configuration& config = *_node->GetConfig();
     Random* rand = Random::GetInstance();
 
     // Shuffle
@@ -216,7 +224,8 @@ void NodeImplShuffle::DoAnonymization(){
     for(QList<QByteArray>::iterator it = _shufflingData.begin();
         it != _shufflingData.end(); ++it){
         QByteArray decrypted;
-        bool b = Crypto::Decrypt(config.identity_sk.data(), *it, &decrypted);
+        bool b = Crypto::GetInstance()->Decrypt(
+                &config.identity_sk, *it, &decrypted);
         if(!b){
             Blame(config.my_position.prev_node_id);
             return;
@@ -261,6 +270,10 @@ void NodeImplShuffle::CheckPermutation(const QList<QByteArray>& permutation){
         }
     // TODO(scw): Broadcast hash, GO/NO-GO
     // TODO(scw): StartListening(SLOT(CollectInnerKeys(int)), "Collect inner keys")
+}
+
+void NodeImplShuffle::Blame(int node_id){
+    qFatal("NodeImplShuffle::Blame not implemented");
 }
 
 bool NodeImplShuffle::QByteArrayToPermutation(

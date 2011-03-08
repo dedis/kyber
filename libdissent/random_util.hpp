@@ -35,7 +35,11 @@ class Random{
     Random();
 
   public:
-    static Random* GetInstance();
+    static Random* GetInstance(){
+        if(_instance == 0)
+            _instance = new Random();
+        return _instance;
+    }
 
     quint32 GetInt();
 

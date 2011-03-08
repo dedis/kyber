@@ -30,65 +30,61 @@
 #include <QtCrypto>
 #include <QObject>
 #include <QByteArray>
-#include <QScopedPointer>
-#include <QSharedPointer>
+#include <QList>
 
 namespace Dissent{
-class KeyDeleter;
-
-typedef RSA Key;
-
-// Special instances for QScopedPointer and QSharedPointer on Key type.
-// Remember to use KeySharedPointer(p, KeyDeleter()) to construct shared
-// instances.
-typedef QScopedPointer<Key, KeyDeleter> KeyScopedPointer;
-typedef QSharedPointer<Key>             KeySharedPointer;
+typedef QCA::RSAPrivateKey PrivateKey;
+typedef QCA::RSAPublicKey PublicKey;
 
 class Crypto{
   public:
-    static Key* GenerateKeys(int length);
+    static Crypto* GetInstance(){
+        if(_instance == 0)
+            _instance = new Crypto();
+        return _instance;
+    }
 
-    static bool SerializePublicKey(Key* key, QByteArray* buf);
-    static bool SerializePrivateKey(Key* key, QByteArray* buf);
+    static void DeleteInstance(){
+        if(_instance){
+            delete _instance;
+            _instance = 0;
+        }
+    }
 
-    static Key* DeserializePublicKey(const QByteArray& buf);
-    static Key* DeserializePrivateKey(const QByteArray& buf);
+    bool GenerateKey(int length, PrivateKey* key);
 
-    // All functions return true on success.
+    bool SerializePublicKey(const PublicKey& key, QByteArray* buf);
+    bool SerializePrivateKey(const PrivateKey& key, QByteArray* buf);
+
+    bool DeserializePublicKey(const QByteArray& buf, PublicKey* key);
+    bool DeserializePrivateKey(const QByteArray& buf, PrivateKey* key);
+
+    // All functions return true on success. It seems that keys should
+    // be qualified 'const', however, QCA has those actions be non-const.
     // randomness: empty asks Encrypt() to generate random bits,
     //             otherwise use it to encrypt (mainly for replaying).
-    static bool Encrypt(Key* key,
-                        const QByteArray& msg,
-                        QByteArray* ctext,
-                        QByteArray* randomness);
-    static bool Decrypt(Key* key,
-                        const QByteArray& ctext,
-                        QByteArray* msg);
-    static bool Sign(Key* key,
-                     const QByteArray& msg,
-                     QByteArray* signature);
-    static bool Verify(Key* key,
-                       const QByteArray& msg,
-                       const QByteArray& signature);
+    bool Encrypt(PublicKey* key,
+                 const QByteArray& msg,
+                 QByteArray* ctext,
+                 QByteArray* randomness);
+    bool Decrypt(PrivateKey* key,
+                 const QByteArray& ctext,
+                 QByteArray* msg);
+    bool Sign(PrivateKey* key,
+              const QByteArray& msg,
+              QByteArray* signature);
+    bool Verify(PublicKey* key,
+                const QByteArray& msg,
+                const QByteArray& signature);
 
-    static bool Hash(const QByteArray& msg,
-                     QByteArray* hash);
+    bool Hash(const QList<QByteArray>& msgs,
+              QByteArray* hash);
 
   private:
-    Crypto(){}
-};
+    Crypto();
 
-class KeyDeleter{
-  public:
-    // Used by QScopedPointer
-    static inline void cleanup(Key* key){
-        RSA_free(key);
-    }
-
-    // Used by QSharedPointer
-    inline void operator() (Key* key){
-        cleanup(key);
-    }
+    static Crypto* _instance;
+    QCA::Initializer _init;
 };
 }
 #endif  // _DISSENT_LIBDISSENT_CRYPTO_H_

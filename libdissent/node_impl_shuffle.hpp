@@ -29,7 +29,10 @@
 
 #include <QByteArray>
 #include <QHash>
+#include <QScopedPointer>
+#include <QSharedPointer>
 
+#include "crypto.hpp"
 #include "node_impl.hpp"
 
 namespace Dissent{
@@ -69,8 +72,8 @@ class NodeImplShuffle : public NodeImpl{
 
     int _toBlame;
 
-    KeyScopedPointer _innerKey;
-    QHash<int, KeySharedPointer> _innerKeys;
+    QScopedPointer<PrivateKey> _innerKey;
+    QHash<int, QSharedPointer<PublicKey> > _innerKeys;
 
     QList<QByteArray> _randomness;
     QByteArray _innerOnionEncryptedData;

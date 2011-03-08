@@ -28,42 +28,55 @@
 #include "crypto.hpp"
 
 #include <QtCrypto>
+#include <QByteArray>
+#include <QList>
 
 namespace Dissent{
-Key* Crypto::GenerateKeys(int length){
-    // TODO(scw): RSA_generate_key
+Crypto* Crypto::_instance;
+
+Crypto::Crypto() : _init(){
+    Q_ASSERT(QCA::isSupported("sha1"));
+}
+
+bool Crypto::GenerateKey(int length, PrivateKey* key){
+    // TODO(scw)
     return 0;
     (void) length;
+    (void) key;
 }
 
-bool Crypto::SerializePublicKey(Key* key, QByteArray* buf){
-    // TODO(scw): i2d_RSAPublicKey
+bool Crypto::SerializePublicKey(const PublicKey& key, QByteArray* buf){
+    // TODO(scw)
     return false;
     (void) key;
     (void) buf;
 }
 
-bool Crypto::SerializePrivateKey(Key* key, QByteArray* buf){
-    // TODO(scw): i2d_RSAPrivateKey
+bool Crypto::SerializePrivateKey(const PrivateKey& key, QByteArray* buf){
+    // TODO(scw)
     return false;
     (void) key;
     (void) buf;
 }
 
-Key* Crypto::DeserializePublicKey(const QByteArray& buf){
-    // TODO(scw): d2i_RSAPublicKey
+bool Crypto::DeserializePublicKey(const QByteArray& buf, PublicKey* key){
+    // TODO(scw)
     return 0;
     (void) buf;
+    (void) key;
 }
 
-Key* Crypto::DeserializePrivateKey(const QByteArray& buf){
-    // TODO(scw): d2i_RSAPrivateKey
+bool Crypto::DeserializePrivateKey(const QByteArray& buf, PrivateKey* key){
+    // TODO(scw)
     return 0;
     (void) buf;
+    (void) key;
 }
 
-bool Crypto::Encrypt(Key* key, const QByteArray& msg,
+bool Crypto::Encrypt(PublicKey* key, const QByteArray& msg,
                      QByteArray* ctext, QByteArray* randomness){
+    Q_ASSERT(key->canEncrypt());
+    // XXX(scw): the following comments do not work with QCA.
     // TODO(scw): generate random bits if needed
     // TODO(scw): encrypt session key with RSA key
     // TODO(scw): encrypt msg using AES with session key
@@ -74,7 +87,7 @@ bool Crypto::Encrypt(Key* key, const QByteArray& msg,
     (void) randomness;
 }
 
-bool Crypto::Decrypt(Key* key, const QByteArray& ctext, QByteArray* msg){
+bool Crypto::Decrypt(PrivateKey* key, const QByteArray& ctext, QByteArray* msg){
     // TODO(scw): inverse of Encrypt()
     return false;
     (void) key;
@@ -82,43 +95,24 @@ bool Crypto::Decrypt(Key* key, const QByteArray& ctext, QByteArray* msg){
     (void) msg;
 }
 
-bool Crypto::Sign(Key* key, const QByteArray& msg, QByteArray* signature){
-    unsigned long msg_len = msg.size();
-    const unsigned char* msg_c =
-        reinterpret_cast<const unsigned char*>(msg.constData());
-    unsigned long digest_len = SHA_DIGEST_LENGTH;
-    const unsigned char* digest = SHA1(msg_c, msg_len, 0);
-    unsigned int sig_len = RSA_size(key);
-    unsigned char sig[sig_len];
-    int r = RSA_sign(NID_sha1, digest, digest_len,
-                     sig, &sig_len, key);
-    if(!r)
-        return false;
-
-    *signature = QByteArray(reinterpret_cast<char*>(sig),
-                            static_cast<int>(sig_len));
+bool Crypto::Sign(PrivateKey* key, const QByteArray& msg, QByteArray* signature){
+    Q_ASSERT(key->canSign());
+    *signature = key->signMessage(msg, QCA::EMSA1_SHA1);
     return true;
 }
 
-bool Crypto::Verify(Key* key, const QByteArray& msg,
+bool Crypto::Verify(PublicKey* key, const QByteArray& msg,
                     const QByteArray& signature){
-    // TODO(scw): inverse of Sign()
-    return false;
-    (void) key;
-    (void) msg;
-    (void) signature;
+    Q_ASSERT(key->canVerify());
+    return key->verifyMessage(msg, signature, QCA::EMSA1_SHA1);
 }
 
-bool Crypto::Hash(const QByteArray& msg,
+bool Crypto::Hash(const QList<QByteArray>& msgs,
                   QByteArray* hash){
-    unsigned long msg_len = msg.size();
-    const unsigned char* msg_c =
-        reinterpret_cast<const unsigned char*>(msg.constData());
-    int digest_len = SHA_DIGEST_LENGTH;
-    const unsigned char* digest = SHA1(msg_c, msg_len, 0);
-    hash->clear();
-    hash->append(reinterpret_cast<const char*>(digest), digest_len);
-    return true;
+    QCA::Hash shaHash("sha1");
+    foreach(const QByteArray& msg, msgs)
+        shaHash.update(msg);
+    *hash = shaHash.final().toByteArray();
 }
 }
 // -*- vim:sw=4:expandtab:cindent:

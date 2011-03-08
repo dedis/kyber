@@ -28,5 +28,25 @@
 
 namespace Dissent{
 Random* Random::_instance = 0;
+
+Random::Random(){
+}
+
+quint32 Random::GetInt(){
+    // TODO(scw)
+    return 32767;
+}
+
+// Range: [0, bound)
+quint32 Random::GetInt(quint32 bound){
+    // TODO(scw)
+    return bound - 1;
+}
+
+void Random::GetBlock(int length, char* buf){
+    // TODO(scw)
+    (void) length;
+    (void) buf;
+}
 }
 // -*- vim:sw=4:expandtab:cindent:

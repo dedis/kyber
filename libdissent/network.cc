@@ -56,8 +56,8 @@ Network::Network(Node* node)
 int Network::Send(int node_id, const QByteArray& data){
     // TODO(scw): add nonce and accumulated hash
     QByteArray sig;
-    bool r = Crypto::Sign(_node->GetConfig()->identity_sk.data(),
-                          data, &sig);
+    bool r = Crypto::GetInstance()->Sign(&_node->GetConfig()->identity_sk,
+                                         data, &sig);
     Q_ASSERT_X(r, "Network::Send", "message signing failed");
 
     // TODO(scw): send msg & signature
@@ -69,8 +69,8 @@ int Network::Send(int node_id, const QByteArray& data){
 int Network::Broadcast(const QByteArray& data){
     // TODO(scw): add nonce and accumulated hash
     QByteArray sig;
-    bool r = Crypto::Sign(_node->GetConfig()->identity_sk.data(),
-                          data, &sig);
+    bool r = Crypto::GetInstance()->Sign(&_node->GetConfig()->identity_sk,
+                                         data, &sig);
     Q_ASSERT_X(r, "Network::Broadcast", "message signing failed");
 
     // TODO(scw): send msg & signature

@@ -40,7 +40,7 @@ struct NodeInfo{
     int node_id;
     QString addr;
     int port;
-    KeySharedPointer identity_pk;
+    PublicKey identity_pk;
 
     bool excluded;
 };
@@ -58,7 +58,7 @@ struct NodeTopology{
 struct Configuration{
     // private members
     int my_node_id;
-    KeySharedPointer identity_sk;
+    PrivateKey identity_sk;
 
     // private but identical on all nodes
     QMap<int, NodeInfo> nodes;

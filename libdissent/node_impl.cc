@@ -38,21 +38,23 @@
 
 namespace Dissent{
 class NodeImplInitLeader : public NodeImpl{
-  Q_OBJECT
   public:
     NodeImplInitLeader(Node* node) : NodeImpl(node){}
 
     virtual bool StartProtocol(int round);
+
+  protected:
     virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
 };
 
 class NodeImplInit : public NodeImpl{
-  Q_OBJECT
   public:
     NodeImplInit(Node* node, int leader_id)
         : NodeImpl(node), _leader_id(leader_id){}
 
     virtual bool StartProtocol(int round);
+
+  protected:
     virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
 
   private slots:
