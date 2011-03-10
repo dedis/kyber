@@ -52,11 +52,15 @@ class NodeImplShuffle : public NodeImpl{
     void GetShuffleData(int node_id);
     void CollectShuffleData(int node_id);
     void GetFinalPermutation(int node_id);
+    void CollectGoNg(int node_id);
+    void CollectInnerKeys(int node_id);
 
   private:
     void DoDataSubmission();
     void DoAnonymization();
     void CheckPermutation(const QList<QByteArray>& permutation);
+    void TryDecrypt(const QHash<int, QByteArray>& go_nogo_data);
+    void DoDecryption(const QHash<int, QByteArray>& inner_key_data);
 
     // the length of chunks are all the same, returns true if that's
     // the case
@@ -66,6 +70,9 @@ class NodeImplShuffle : public NodeImpl{
     static void PermutationToQByteArray(
             const QList<QByteArray>& permutation,
             QByteArray* byte_array);
+
+    static const char* const GoMsgHeader;
+    static const char* const NoGoMsgHeader;
 
     // TODO(scw): we probably need extra information
     void Blame(int node_id);
@@ -78,7 +85,9 @@ class NodeImplShuffle : public NodeImpl{
     QList<QByteArray> _randomness;
     QByteArray _innerOnionEncryptedData;
 
-    QHash<int, int> _shufflingDataReceived;
+    // XXX(scw): used by both CollectShuffleData and GetGoNg
+    QHash<int, QByteArray> _dataCollected;
+
     QList<QByteArray> _shufflingData;
 };
 

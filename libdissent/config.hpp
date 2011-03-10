@@ -42,7 +42,7 @@ struct NodeInfo{
     int port;
     PublicKey identity_pk;
 
-    bool excluded;
+    bool excluded;  // derived from NodeTopology
 };
 
 // A topology is an array of form:

@@ -51,13 +51,17 @@ class Crypto{
         }
     }
 
-    bool GenerateKey(int length, PrivateKey* key);
+    // callers are responsable of delete'ing returned key
+    PrivateKey* GenerateKey(int length);
+    bool CheckKeyPair(const PrivateKey& private_key,
+                      const PublicKey& public_key);
 
     bool SerializePublicKey(const PublicKey& key, QByteArray* buf);
     bool SerializePrivateKey(const PrivateKey& key, QByteArray* buf);
 
-    bool DeserializePublicKey(const QByteArray& buf, PublicKey* key);
-    bool DeserializePrivateKey(const QByteArray& buf, PrivateKey* key);
+    // callers are responsable of delete'ing returned keys
+    PublicKey*  DeserializePublicKey(const QByteArray& buf);
+    PrivateKey*  DeserializePrivateKey(const QByteArray& buf);
 
     // All functions return true on success. It seems that keys should
     // be qualified 'const', however, QCA has those actions be non-const.

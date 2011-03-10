@@ -38,11 +38,15 @@ Crypto::Crypto() : _init(){
     Q_ASSERT(QCA::isSupported("sha1"));
 }
 
-bool Crypto::GenerateKey(int length, PrivateKey* key){
-    // TODO(scw)
-    return 0;
-    (void) length;
-    (void) key;
+PrivateKey* Crypto::GenerateKey(int length){
+    return QCA::KeyGenerator().createRSA(length);
+}
+
+bool Crypto::CheckKeyPair(const PrivateKey& private_key,
+                          const PublicKey& public_key){
+    PublicKey derived_key(private_key);
+    return (derived_key.e() == public_key.e() &&
+            derived_key.n() == public_key.n());
 }
 
 bool Crypto::SerializePublicKey(const PublicKey& key, QByteArray* buf){
@@ -59,24 +63,21 @@ bool Crypto::SerializePrivateKey(const PrivateKey& key, QByteArray* buf){
     (void) buf;
 }
 
-bool Crypto::DeserializePublicKey(const QByteArray& buf, PublicKey* key){
+PublicKey* Crypto::DeserializePublicKey(const QByteArray& buf){
     // TODO(scw)
     return 0;
     (void) buf;
-    (void) key;
 }
 
-bool Crypto::DeserializePrivateKey(const QByteArray& buf, PrivateKey* key){
+PrivateKey* Crypto::DeserializePrivateKey(const QByteArray& buf){
     // TODO(scw)
     return 0;
     (void) buf;
-    (void) key;
 }
 
 bool Crypto::Encrypt(PublicKey* key, const QByteArray& msg,
                      QByteArray* ctext, QByteArray* randomness){
     Q_ASSERT(key->canEncrypt());
-    // XXX(scw): the following comments do not work with QCA.
     // TODO(scw): generate random bits if needed
     // TODO(scw): encrypt session key with RSA key
     // TODO(scw): encrypt msg using AES with session key
@@ -113,6 +114,7 @@ bool Crypto::Hash(const QList<QByteArray>& msgs,
     foreach(const QByteArray& msg, msgs)
         shaHash.update(msg);
     *hash = shaHash.final().toByteArray();
+    return true;
 }
 }
 // -*- vim:sw=4:expandtab:cindent:
