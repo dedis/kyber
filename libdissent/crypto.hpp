@@ -31,11 +31,15 @@
 #include <QObject>
 #include <QByteArray>
 #include <QList>
+#include <QScopedPointer>
 
 namespace Dissent{
 typedef QCA::RSAPrivateKey PrivateKey;
 typedef QCA::RSAPublicKey PublicKey;
 
+// Crypto class is almost stateless. However, QCA needs initialization and
+// it would be nice to be able to clean up, too; therefore, it is a singleton
+// with all the functions being pure.
 class Crypto{
   public:
     static Crypto* GetInstance(){
@@ -89,6 +93,9 @@ class Crypto{
 
     static Crypto* _instance;
     QCA::Initializer _init;
+    QScopedPointer<QCA::Cipher> _cipher;
+
+    static int AESKeyLength;
 };
 }
 #endif  // _DISSENT_LIBDISSENT_CRYPTO_H_

@@ -31,9 +31,6 @@
 
 namespace Dissent{
 class Random{
-  private:
-    Random();
-
   public:
     static Random* GetInstance(){
         if(_instance == 0)
@@ -49,10 +46,13 @@ class Random{
     void GetBlock(int length, char* buf);
 
   private:
+    Random();
+
     static Random* _instance;
 };
 
 class PRNG{
+    // TODO(scw)
 };
 }
 #endif  // _DISSENT_LIBDISSENT_RANDOMUTIL_H_

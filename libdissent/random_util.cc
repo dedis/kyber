@@ -26,6 +26,8 @@
  */
 #include "random_util.hpp"
 
+#include <QtCrypto>
+
 namespace Dissent{
 Random* Random::_instance = 0;
 
@@ -33,20 +35,22 @@ Random::Random(){
 }
 
 quint32 Random::GetInt(){
-    // TODO(scw)
-    return 32767;
+    return static_cast<quint32>(QCA::Random::randomInt());
 }
 
 // Range: [0, bound)
 quint32 Random::GetInt(quint32 bound){
-    // TODO(scw)
-    return bound - 1;
+    if((bound & (bound - 1)) == 0)  // fancy way to say, is power of 2
+        return GetInt() % bound;
+    quint32 upperbound = 0xffffffff / bound * bound;
+    quint32 v;
+    while((v = GetInt()) >= upperbound)
+        continue;
+    return v % bound;
 }
 
 void Random::GetBlock(int length, char* buf){
-    // TODO(scw)
-    (void) length;
-    (void) buf;
+    memcpy(buf, QCA::Random::randomArray(length).constData(), length);
 }
 }
 // -*- vim:sw=4:expandtab:cindent:
