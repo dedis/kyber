@@ -48,10 +48,10 @@ class NodeImplShuffle : public NodeImpl{
     virtual void GetShuffleData(QByteArray* data) = 0;
 
   private slots:
-    void AcceptOnetimeKeys(int node_id);
-    void GetShuffleData(int node_id);
+    void CollectOnetimeKeys(int node_id);
+    void ReceiveShuffleData(int node_id);
     void CollectShuffleData(int node_id);
-    void GetFinalPermutation(int node_id);
+    void ReceiveFinalPermutation(int node_id);
     void CollectGoNg(int node_id);
     void CollectInnerKeys(int node_id);
 
@@ -85,7 +85,8 @@ class NodeImplShuffle : public NodeImpl{
     QList<QByteArray> _randomness;
     QByteArray _innerOnionEncryptedData;
 
-    // XXX(scw): used by both CollectShuffleData and GetGoNg
+    // XXX(scw): used by both CollectShuffleData, CollectGoNg, and
+    //           CollectInnerKeys
     QHash<int, QByteArray> _dataCollected;
 
     QList<QByteArray> _shufflingData;

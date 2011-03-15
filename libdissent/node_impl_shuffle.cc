@@ -73,11 +73,12 @@ bool NodeImplShuffle::StartProtocol(int round){
     _node->GetNetwork()->Broadcast(publicKey);
 
     // XXX(scw): refactor this out with the last block of DoDataSubmission()
-    StartListening(SLOT(AcceptOnetimeKeys(int)), "Shuffle exchange inner keys");
+    StartListening(SLOT(CollectOnetimeKeys(int)),
+                   "Shuffle exchange inner keys");
     return true;
 }
 
-void NodeImplShuffle::AcceptOnetimeKeys(int node_id){
+void NodeImplShuffle::CollectOnetimeKeys(int node_id){
     if(_innerKeys.contains(node_id))
         return;
     QMap<int, NodeInfo>::const_iterator it =
@@ -176,7 +177,7 @@ void NodeImplShuffle::DoDataSubmission(){
         StartListening(SLOT(CollectShuffleData(int)), "Collect shuffle data");
     }else{
         _node->GetNetwork()->Send(topology.front().node_id, data);
-        StartListening(SLOT(GetShuffleData(int)), "Get shuffle data");
+        StartListening(SLOT(ReceiveShuffleData(int)), "Receive shuffle data");
     }
 }
 
@@ -211,7 +212,7 @@ void NodeImplShuffle::CollectShuffleData(int node_id){
     }
 }
 
-void NodeImplShuffle::GetShuffleData(int node_id){
+void NodeImplShuffle::ReceiveShuffleData(int node_id){
     const Configuration& config = *_node->GetConfig();
     if(node_id != config.my_position.prev_node_id)
         return;
@@ -259,11 +260,12 @@ void NodeImplShuffle::DoAnonymization(){
         CheckPermutation(_shufflingData);
     }else{
         _node->GetNetwork()->Send(config.my_position.next_node_id, byte_array);
-        StartListening(SLOT(GetFinalPermutation(int)), "Get final permutation");
+        StartListening(SLOT(ReceiveFinalPermutation(int)),
+                       "Receive final permutation");
     }
 }
 
-void NodeImplShuffle::GetFinalPermutation(int node_id){
+void NodeImplShuffle::ReceiveFinalPermutation(int node_id){
     const Configuration& config = *_node->GetConfig();
     if(config.topology.back().node_id != node_id)
         return;
@@ -335,7 +337,6 @@ void NodeImplShuffle::CheckPermutation(const QList<QByteArray>& permutation){
     _dataCollected.clear();
     _dataCollected.insert(config.my_node_id, msg);
     StartListening(SLOT(CollectGoNg(int)), "Collect GO/NO-GO");
-    // TODO(scw): StartListening(SLOT(CollectInnerKeys(int)), "Collect inner keys")
 }
 
 void NodeImplShuffle::CollectGoNg(int node_id){
