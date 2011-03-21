@@ -44,13 +44,21 @@ Network::Network(Node* node)
       _inReceivingPhase(false){
     const Configuration& config = *node->GetConfig();
 
-    _server.listen(QHostAddress::Any, config.nodes[config.my_node_id].port);
-    // TODO(scw): start server, connect clients, connect signals
-    QSignalMapper* signalMapper = new QSignalMapper(this);
+    connect(&_server, SIGNAL(newConnection()),
+            this, SLOT(NewConnection()));
+    bool r = _server.listen(QHostAddress::Any,
+                            config.nodes[config.my_node_id].port)
+    Q_ASSERT_X(r, "Network::Network(Node*)",
+               _server.errorString().toLocal8Bit().data());
 
-    // TODO(scw): connect StartIncomingNetwork to node.startIncomingNetwork
-    //            and StopIncomingNetwork to node.stopIncomingNetwork.
-    (void) signalMapper;
+    // TODO(scw): setup timer to connect clients, in timer handler, connect
+    //            to other (node_id < my_node_id) nodes
+    _signalMapper = new QSignalMapper(this);
+
+    connect(node, SIGNAL(startIncomingNetwork),
+            this, SLOT(StartIncomingNetwork()));
+    connect(node, SIGNAL(stopIncomingNetwork),
+            this, SLOT(StopIncomingNetwork()));
 }
 
 int Network::Send(int node_id, const QByteArray& data){
@@ -84,6 +92,13 @@ int Network::Read(int node_id, QByteArray* data){
     return 0;
     (void) node_id;
     (void) data;
+}
+
+void Network::NewConnection(){
+    // TODO(scw): accept incoming connection and connect _signalMapper
+}
+
+void Network::TryConnect(){
 }
 
 void Network::ClientHaveReadyRead(int node_id){
