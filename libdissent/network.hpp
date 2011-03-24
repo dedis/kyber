@@ -33,6 +33,7 @@
 #include <QList>
 #include <QMap>
 #include <QObject>
+#include <QSignalMapper>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QQueue>
@@ -69,6 +70,9 @@ class Network : public QObject{
     void inputError(int node_id);
 
   protected slots:
+    void NewConnection();
+    void TryConnect();
+
     void ClientHaveReadyRead(int node_id);
 
     void StartIncomingNetwork();
@@ -78,6 +82,8 @@ class Network : public QObject{
     Node* _node;
     QList<LogEntry> _log;
 
+    QSignalMapper* _signalMapper;
+    QTimer* _connectTimer;
     QTcpServer _server;
     QMap<int, QTcpSocket> _clients;
     QMap<QTcpSocket*, int> _clientNodeId;
