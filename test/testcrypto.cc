@@ -92,6 +92,7 @@ void TestCrypto::TestKeySerialization() {
 }
 
 void TestCrypto::TestEncryptAndDecrypt() {
+ Q_ASSERT(false);
  QFETCH(PublicKey *, key);
  QFETCH(QByteArray, msg);
  QFETCH(QSharedPointer<QByteArray>, ctext);
