@@ -39,13 +39,12 @@ Crypto::Crypto() : _init(){
     Q_ASSERT(QCA::isSupported("sha1"));
     Q_ASSERT(QCA::isSupported("aes256-cbc-pkcs7"));
 
-        QCA::SymmetricKey key(AESKeyLength);
-        QCA::InitializationVector iv(AESKeyLength);
+    QCA::SymmetricKey key(AESKeyLength);
+    QCA::InitializationVector iv(AESKeyLength);
     _cipher.reset(new QCA::Cipher("aes256",
                                   QCA::Cipher::CBC,
                                   /* pad = */ QCA::Cipher::PKCS7,
                                   QCA::Encode, key, iv));
-    _cipher->blockSize();
     Q_ASSERT(_cipher->validKeyLength(AESKeyLength));
 }
 
@@ -103,9 +102,6 @@ bool Crypto::Encrypt(PublicKey* key, const QByteArray& msg,
         iv = randomness->mid(AESKeyLength, _cipher->blockSize());
     }else{
         aes_key = QCA::SymmetricKey(AESKeyLength);
-    std::cout << "--------------------: " << std::endl;
-    std::cout << _cipher.data() << std::endl;
-    std::cout << _cipher->blockSize() << std::endl;
         iv = QCA::SymmetricKey(_cipher->blockSize());
 
         if(randomness){

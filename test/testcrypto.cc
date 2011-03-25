@@ -26,6 +26,7 @@
  */
 
 #include <QtTest/QtTest>
+#include <QSharedPointer>
 
 #include "../libdissent/crypto.hpp"
 
@@ -41,7 +42,7 @@ class TestCrypto: public QObject {
   void TestKeyPairGenerationAndChecking();
   void TestKeySerialization();
   void TestEncryptAndDecrypt();
- // void TestEncryptAndDecrypt_data();
+  void TestEncryptAndDecrypt_data();
   void TestSignAndVerify();
   void TestHash();
   void TestHash_data();
@@ -61,7 +62,7 @@ void TestCrypto::initTestCase() {
 }
 
 void TestCrypto::cleanupTestCase() {
-  Crypto::DeleteInstance();
+  // Crypto::DeleteInstance();
 }
 
 void TestCrypto::TestSingletonImplementation() {
@@ -91,18 +92,14 @@ void TestCrypto::TestKeySerialization() {
 }
 
 void TestCrypto::TestEncryptAndDecrypt() {
- // QFETCH(PublicKey *, key);
- // QFETCH(QByteArray, msg);
- // QFETCH(QSharedPointer<QByteArray>, ctext);
- // QFETCH(QSharedPointer<QByteArray>, randomness);
+ QFETCH(PublicKey *, key);
+ QFETCH(QByteArray, msg);
+ QFETCH(QSharedPointer<QByteArray>, ctext);
+ QFETCH(QSharedPointer<QByteArray>, randomness);
 
- // QCOMPARE(crypto_->Encrypt(key, msg, ctext.data(), randomness.data()), true);
- 
- QByteArray msg("GGG");
- QByteArray ctext;
- QCOMPARE(crypto_->Encrypt(public_key_.data(), msg, &ctext, NULL), true);
+ QCOMPARE(crypto_->Encrypt(key, msg, ctext.data(), randomness.data()), true);
 }
-/*
+
 void TestCrypto::TestEncryptAndDecrypt_data() {
   QTest::addColumn<PublicKey *>("key");
   QTest::addColumn<QByteArray>("msg");
@@ -110,17 +107,25 @@ void TestCrypto::TestEncryptAndDecrypt_data() {
   QTest::addColumn<QSharedPointer<QByteArray> >("randomness");
 
   QByteArray msg("Hello, world!");
+  
+  QTest::newRow("no randomness") 
+    << public_key_.data() 
+    << msg
+    << QSharedPointer<QByteArray>(new QByteArray())
+    << QSharedPointer<QByteArray>(NULL);
 
-  QTest::newRow("no randomness") << public_key_.data() << msg 
-                                 << QSharedPointer<QByteArray>(new QByteArray())
-                                 << QSharedPointer<QByteArray>(NULL);
-  QTest::newRow("want to know") << public_key_.data() << msg 
-                                << QSharedPointer<QByteArray>(new QByteArray()) 
-                                << QSharedPointer<QByteArray>(new QByteArray());
-  //QByteArray *arr = new QByteArray()
-  //QTest::newRow("known randomness") << public_key_ << msg << new QByteArray()
+  QTest::newRow("get randomness") 
+    << public_key_.data() 
+    << msg
+    << QSharedPointer<QByteArray>(new QByteArray()) 
+    << QSharedPointer<QByteArray>(new QByteArray());
+
+  QTest::newRow("known randomness")
+    << public_key_.data() 
+    << msg
+    << QSharedPointer<QByteArray>(new QByteArray())
+    << QSharedPointer<QByteArray>(new QByteArray(48, '-'));
 }
-*/
 
 void TestCrypto::TestSignAndVerify() {
   QByteArray msg("Hello, world!");
@@ -156,8 +161,9 @@ void TestCrypto::TestHash_data() {
 }
 
 Q_DECLARE_METATYPE(Dissent::PublicKey *)
-Q_DECLARE_METATYPE(QList<QByteArray>)
 Q_DECLARE_METATYPE(QByteArray)
+Q_DECLARE_METATYPE(QSharedPointer<QByteArray>)
+Q_DECLARE_METATYPE(QList<QByteArray>)
 
 QTEST_MAIN(Dissent::TestCrypto)
 #include "testcrypto.moc"
