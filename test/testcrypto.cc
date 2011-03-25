@@ -92,7 +92,6 @@ void TestCrypto::TestKeySerialization() {
 }
 
 void TestCrypto::TestEncryptAndDecrypt() {
- Q_ASSERT(false);
  QFETCH(PublicKey *, key);
  QFETCH(QByteArray, msg);
  QFETCH(QSharedPointer<QByteArray>, ctext);
@@ -125,7 +124,7 @@ void TestCrypto::TestEncryptAndDecrypt_data() {
     << public_key_.data() 
     << msg
     << QSharedPointer<QByteArray>(new QByteArray())
-    << QSharedPointer<QByteArray>(new QByteArray(38, '-'));
+    << QSharedPointer<QByteArray>(new QByteArray(48, '-'));
 }
 
 void TestCrypto::TestSignAndVerify() {
