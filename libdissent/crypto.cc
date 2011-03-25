@@ -30,7 +30,7 @@
 #include <QtCrypto>
 #include <QByteArray>
 #include <QList>
-#include <iostream>
+
 namespace Dissent{
 Crypto* Crypto::_instance;
 int Crypto::AESKeyLength = 32;  // bytes
@@ -111,7 +111,6 @@ bool Crypto::Encrypt(PublicKey* key, const QByteArray& msg,
     }
 
     _cipher->setup(QCA::Encode, aes_key, iv);
-
     ctext->clear();
     ctext->append(key->encrypt(aes_key, QCA::EME_PKCS1_OAEP).toByteArray());
     ctext->append(iv.toByteArray());

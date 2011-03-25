@@ -27,7 +27,7 @@
 
 #include <QtTest/QtTest>
 #include <QSharedPointer>
-
+#include <iostream>
 #include "../libdissent/crypto.hpp"
 
 namespace Dissent {
@@ -92,17 +92,22 @@ void TestCrypto::TestKeySerialization() {
 }
 
 void TestCrypto::TestEncryptAndDecrypt() {
- Q_ASSERT(false);
- QFETCH(PublicKey *, key);
+ QFETCH(PublicKey *, public_key);
+ QFETCH(PrivateKey *, private_key);
  QFETCH(QByteArray, msg);
  QFETCH(QSharedPointer<QByteArray>, ctext);
  QFETCH(QSharedPointer<QByteArray>, randomness);
 
- QCOMPARE(crypto_->Encrypt(key, msg, ctext.data(), randomness.data()), true);
+ QCOMPARE(crypto_->Encrypt(public_key, msg, ctext.data(), randomness.data()), 
+          true);
+ QByteArray decrypted_msg;
+ QCOMPARE(crypto_->Decrypt(private_key, *ctext, &decrypted_msg), true);
+ QCOMPARE(msg == decrypted_msg, true);
 }
 
 void TestCrypto::TestEncryptAndDecrypt_data() {
-  QTest::addColumn<PublicKey *>("key");
+  QTest::addColumn<PublicKey *>("public_key");
+  QTest::addColumn<PrivateKey *>("private_key");
   QTest::addColumn<QByteArray>("msg");
   QTest::addColumn<QSharedPointer<QByteArray> >("ctext");
   QTest::addColumn<QSharedPointer<QByteArray> >("randomness");
@@ -111,20 +116,24 @@ void TestCrypto::TestEncryptAndDecrypt_data() {
   
   QTest::newRow("no randomness") 
     << public_key_.data() 
+    << private_key_.data()
     << msg
     << QSharedPointer<QByteArray>(new QByteArray())
     << QSharedPointer<QByteArray>(NULL);
 
   QTest::newRow("get randomness") 
     << public_key_.data() 
+    << private_key_.data()
     << msg
     << QSharedPointer<QByteArray>(new QByteArray()) 
     << QSharedPointer<QByteArray>(new QByteArray());
 
   QTest::newRow("known randomness")
     << public_key_.data() 
+    << private_key_.data()
     << msg
     << QSharedPointer<QByteArray>(new QByteArray())
+    // the length of randomness is hardwired: see Crypto::Encrypt() 
     << QSharedPointer<QByteArray>(new QByteArray(48, '-'));
 }
 
@@ -162,6 +171,7 @@ void TestCrypto::TestHash_data() {
 }
 
 Q_DECLARE_METATYPE(Dissent::PublicKey *)
+Q_DECLARE_METATYPE(Dissent::PrivateKey *)
 Q_DECLARE_METATYPE(QByteArray)
 Q_DECLARE_METATYPE(QSharedPointer<QByteArray>)
 Q_DECLARE_METATYPE(QList<QByteArray>)

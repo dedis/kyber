@@ -32,7 +32,7 @@
 #include <QByteArray>
 #include <QList>
 #include <QScopedPointer>
-
+#include <iostream>
 namespace Dissent{
 typedef QCA::RSAPrivateKey PrivateKey;
 typedef QCA::RSAPublicKey PublicKey;
@@ -49,9 +49,9 @@ class Crypto{
     }
 
     static void DeleteInstance(){
-        if(_instance){
+        if(_instance){std::cout << "DDDDDDDDDD\n";
             delete _instance;
-            _instance = 0;
+            _instance = 0;std::cout << "XXXXXX\n";
         }
     }
 
