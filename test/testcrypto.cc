@@ -27,7 +27,7 @@
 
 #include <QtTest/QtTest>
 #include <QSharedPointer>
-#include <iostream>
+
 #include "../libdissent/crypto.hpp"
 
 namespace Dissent {
