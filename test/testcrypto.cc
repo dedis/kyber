@@ -26,8 +26,6 @@
  */
 
 #include <QtTest/QtTest>
-#include <QSharedPointer>
-#include <iostream>
 
 #include "../libdissent/crypto.hpp"
 
@@ -46,6 +44,7 @@ class TestCrypto: public QObject {
  // void TestEncryptAndDecrypt_data();
   void TestSignAndVerify();
   void TestHash();
+  void TestHash_data();
  private:
   Crypto *crypto_;
   int key_length_;
@@ -56,6 +55,8 @@ class TestCrypto: public QObject {
 void TestCrypto::initTestCase() {
   crypto_ = Crypto::GetInstance();
   key_length_ = 2048;
+  private_key_.reset(crypto_->GenerateKey(key_length_));
+  public_key_.reset(new PublicKey(private_key_->toPublicKey().toRSA()));
 }
 
 void TestCrypto::cleanupTestCase() {
@@ -84,8 +85,8 @@ void TestCrypto::TestKeySerialization() {
                               crypto_->DeserializePublicKey(public_key_buf));
   QScopedPointer<PrivateKey> private_key_from_buf(
                               crypto_->DeserializePrivateKey(private_key_buf));
-  QCOMPARE(public_key_ == public_key_from_buf, true);
-  QCOMPARE(private_key_ == private_key_from_buf, true);
+  QCOMPARE(*public_key_ == *public_key_from_buf, true);
+  QCOMPARE(*private_key_ == *private_key_from_buf, true);
 }
 
 void TestCrypto::TestEncryptAndDecrypt() {
@@ -95,10 +96,10 @@ void TestCrypto::TestEncryptAndDecrypt() {
  // QFETCH(QSharedPointer<QByteArray>, randomness);
 
  // QCOMPARE(crypto_->Encrypt(key, msg, ctext.data(), randomness.data()), true);
- //QByteArray msg("GGG");
- //QByteArray ctext;
- //QCOMPARE(crypto_->Encrypt(public_key_.data(), msg, 
- //         &ctext, NULL), true);
+ 
+ QByteArray msg("GGG");
+ QByteArray ctext;
+ QCOMPARE(crypto_->Encrypt(public_key_.data(), msg, &ctext, NULL), true);
 }
 /*
 void TestCrypto::TestEncryptAndDecrypt_data() {
@@ -129,19 +130,33 @@ void TestCrypto::TestSignAndVerify() {
 }
 
 void TestCrypto::TestHash() {
-  QList<QByteArray> msgs;
-  QByteArray hash;
+  QFETCH(QList<QByteArray>, msgs);
+  QFETCH(QByteArray, hash);
 
-  msgs.append(QByteArray("Hello"));
-  msgs.append(QByteArray(", "));
-  msgs.append(QByteArray("world!"));
   QCOMPARE(crypto_->Hash(msgs, &hash), true);
+}
+
+void TestCrypto::TestHash_data() {
+  QTest::addColumn<QList<QByteArray> >("msgs");
+  QTest::addColumn<QByteArray>("hash");
+
+  QList<QByteArray> non_empty_msgs;
+  QByteArray non_empty_hash;
+  non_empty_msgs.append(QByteArray("Hello"));
+  non_empty_msgs.append(QByteArray(", "));
+  non_empty_msgs.append(QByteArray("world!"));
+  QTest::newRow("non empty msgs") << non_empty_msgs << non_empty_hash;
+
+  QList<QByteArray> empty_msgs;
+  QByteArray empty_hash;
+  QTest::newRow("empty msgs") << empty_msgs << empty_hash;
 }
 
 }
 
 Q_DECLARE_METATYPE(Dissent::PublicKey *)
-Q_DECLARE_METATYPE(QSharedPointer<QByteArray>)
+Q_DECLARE_METATYPE(QList<QByteArray>)
+Q_DECLARE_METATYPE(QByteArray)
 
 QTEST_MAIN(Dissent::TestCrypto)
 #include "testcrypto.moc"
