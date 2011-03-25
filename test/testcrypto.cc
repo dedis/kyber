@@ -124,7 +124,7 @@ void TestCrypto::TestEncryptAndDecrypt_data() {
     << public_key_.data() 
     << msg
     << QSharedPointer<QByteArray>(new QByteArray())
-    << QSharedPointer<QByteArray>(new QByteArray(48, '-'));
+    << QSharedPointer<QByteArray>(new QByteArray(38, '-'));
 }
 
 void TestCrypto::TestSignAndVerify() {
