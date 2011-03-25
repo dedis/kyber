@@ -45,6 +45,7 @@ class TestCrypto: public QObject {
   void TestSignAndVerify();
   void TestHash();
   void TestHash_data();
+
  private:
   Crypto *crypto_;
   int key_length_;
@@ -60,7 +61,7 @@ void TestCrypto::initTestCase() {
 }
 
 void TestCrypto::cleanupTestCase() {
-  
+  Crypto::DeleteInstance();
 }
 
 void TestCrypto::TestSingletonImplementation() {
