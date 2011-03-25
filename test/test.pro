@@ -10,4 +10,4 @@ INCLUDEPATH += .
 
 # Input
 HEADERS += ../libdissent/crypto.hpp
-SOURCES += testcrypto.cc testmain.cc ../libdissent/crypto.cc
+SOURCES += testcrypto.cc ../libdissent/crypto.cc
