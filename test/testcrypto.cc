@@ -49,6 +49,7 @@ class TestCrypto : public QObject {
 
  private:
   Crypto *crypto_;
+  QCA::Initializer init;
   int key_length_;
   QScopedPointer<PrivateKey> private_key_;
   QScopedPointer<PublicKey> public_key_;
@@ -62,7 +63,7 @@ void TestCrypto::initTestCase() {
 }
 
 void TestCrypto::cleanupTestCase() {
-  // Crypto::DeleteInstance();
+  Crypto::DeleteInstance();
 }
 
 void TestCrypto::TestSingletonImplementation() {
@@ -176,6 +177,6 @@ Q_DECLARE_METATYPE(QByteArray)
 Q_DECLARE_METATYPE(QSharedPointer<QByteArray>)
 Q_DECLARE_METATYPE(QList<QByteArray>)
 
-//QTEST_MAIN(Dissent::TestCrypto)
+QTEST_MAIN(Dissent::TestCrypto)
 #include "testcrypto.moc"
 

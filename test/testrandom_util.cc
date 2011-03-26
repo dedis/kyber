@@ -26,12 +26,13 @@
  */
 
 #include <QtTest/QtTest>
+#include <QtCrypto>
 
 #include "../libdissent/random_util.hpp"
 
 namespace Dissent {
 
-class TestRandom : public QObject {
+class TestRandomUtil : public QObject {
   Q_OBJECT
 
  private slots:
@@ -42,38 +43,37 @@ class TestRandom : public QObject {
   void TestGetBlock();
  private:
   Random *random_;
+  QCA::Initializer init_;
 };
 
-void TestRandom::initTestCase() {
+void TestRandomUtil::initTestCase() {
   random_ = Random::GetInstance();
-  random_->GetInt();
 }
 
-void TestRandom::cleanupTestCase() {
+void TestRandomUtil::cleanupTestCase() {
 
 }
 
-void TestRandom::TestSingletonImplementation() {
+void TestRandomUtil::TestSingletonImplementation() {
   Random *another = Random::GetInstance();
   QCOMPARE(random_ == another, true);
 }
 
-void TestRandom::TestGetInt() {
+void TestRandomUtil::TestGetInt() {
   // very rudimentary test
-  //quint32 rand1 = random_->GetInt();
-  //QCOMPARE(rand1 >= 0, true);
-
-  //quint32 bound = 1 << 20;
-  //quint32 rand2 = random_->GetInt(bound);
-  //QCOMPARE(rand2 >= 0 && rand2 < bound, true);
+  quint32 bound = 1 << 20;
+  quint32 rand2 = random_->GetInt(bound);
+  QCOMPARE(rand2 < bound, true);
 }
 
-void TestRandom::TestGetBlock() {
-
+void TestRandomUtil::TestGetBlock() {
+  const int kLength = 2048;
+  char buf[kLength];
+  random_->GetBlock(kLength, buf);
 }
 
 }
 
-QTEST_MAIN(Dissent::TestRandom)
+// QTEST_MAIN(Dissent::TestRandomUtil)
 #include "testrandom_util.moc"
 
