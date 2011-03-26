@@ -74,6 +74,6 @@ void TestRandomUtil::TestGetBlock() {
 
 }
 
-// QTEST_MAIN(Dissent::TestRandomUtil)
+QTEST_MAIN(Dissent::TestRandomUtil)
 #include "testrandom_util.moc"
 

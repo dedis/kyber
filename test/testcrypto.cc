@@ -177,6 +177,6 @@ Q_DECLARE_METATYPE(QByteArray)
 Q_DECLARE_METATYPE(QSharedPointer<QByteArray>)
 Q_DECLARE_METATYPE(QList<QByteArray>)
 
-QTEST_MAIN(Dissent::TestCrypto)
+// QTEST_MAIN(Dissent::TestCrypto)
 #include "testcrypto.moc"
 
