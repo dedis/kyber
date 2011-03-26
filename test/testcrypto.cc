@@ -62,7 +62,7 @@ void TestCrypto::initTestCase() {
 }
 
 void TestCrypto::cleanupTestCase() {
-  Crypto::DeleteInstance();
+  // Crypto::DeleteInstance();
 }
 
 void TestCrypto::TestSingletonImplementation() {
