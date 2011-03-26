@@ -56,14 +56,14 @@ void TestRandomUtil::cleanupTestCase() {
 
 void TestRandomUtil::TestSingletonImplementation() {
   Random *another = Random::GetInstance();
-  QCOMPARE(random_ == another, true);
+  QVERIFY(random_ == another);
 }
 
 void TestRandomUtil::TestGetInt() {
   // very rudimentary test
   quint32 bound = 1 << 20;
   quint32 rand2 = random_->GetInt(bound);
-  QCOMPARE(rand2 < bound, true);
+  QVERIFY(rand2 < bound);
 }
 
 void TestRandomUtil::TestGetBlock() {
@@ -74,6 +74,6 @@ void TestRandomUtil::TestGetBlock() {
 
 }
 
-// QTEST_MAIN(Dissent::TestRandomUtil)
+//QTEST_MAIN(Dissent::TestRandomUtil)
 #include "testrandom_util.moc"
 
