@@ -5,9 +5,4 @@ CONFIG
 1. How to configure CONFIG+=debug on Mac?
 
 crypto
-1. Crypto::SerializePrivateKey returns false in the implementation.
-2. In Crypto::Crypto(), Cipher(xxx, xxx, xxx) leaves the rest 3 parameters 
-   default (QCA::Encode, key, iv). Calling _cipher->blockSize() crashes after
-   that. This is resolved by explicitly initializing the rest 3 parameters 
-   using QCA::Encode, and key and iv of AESKeyLenght long.
 

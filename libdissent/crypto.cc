@@ -66,7 +66,7 @@ bool Crypto::SerializePublicKey(const PublicKey& key, QByteArray* buf){
 
 bool Crypto::SerializePrivateKey(const PrivateKey& key, QByteArray* buf){
     *buf = key.toDER().toByteArray();
-    return false;
+    return true;
 }
 
 PublicKey* Crypto::DeserializePublicKey(const QByteArray& buf){
