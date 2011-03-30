@@ -92,16 +92,16 @@ void TestCrypto::TestKeySerialization() {
 }
 
 void TestCrypto::TestEncryptAndDecrypt() {
- QFETCH(PublicKey *, public_key);
- QFETCH(PrivateKey *, private_key);
- QFETCH(QByteArray, msg);
- QFETCH(QSharedPointer<QByteArray>, ctext);
- QFETCH(QSharedPointer<QByteArray>, randomness);
+  QFETCH(PublicKey *, public_key);
+  QFETCH(PrivateKey *, private_key);
+  QFETCH(QByteArray, msg);
+  QFETCH(QSharedPointer<QByteArray>, ctext);
+  QFETCH(QSharedPointer<QByteArray>, randomness);
 
- QVERIFY(crypto_->Encrypt(public_key, msg, ctext.data(), randomness.data()));
- QByteArray decrypted_msg;
- QVERIFY(crypto_->Decrypt(private_key, *ctext, &decrypted_msg));
- QVERIFY(msg == decrypted_msg);
+  QVERIFY(crypto_->Encrypt(public_key, msg, ctext.data(), randomness.data()));
+  QByteArray decrypted_msg;
+  QVERIFY(crypto_->Decrypt(private_key, *ctext, &decrypted_msg));
+  QVERIFY(msg == decrypted_msg);
 }
 
 void TestCrypto::TestEncryptAndDecrypt_data() {
