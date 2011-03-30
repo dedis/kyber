@@ -81,7 +81,6 @@ void TestCrypto::TestKeySerialization() {
   QByteArray public_key_buf;
   QByteArray private_key_buf;
   QVERIFY(crypto_->SerializePublicKey(*public_key_, &public_key_buf));
-  QEXPECT_FAIL("", "return false in the implementation.", Continue);
   QVERIFY(crypto_->SerializePrivateKey(*private_key_, &private_key_buf));
 
   QScopedPointer<PublicKey> public_key_from_buf(
