@@ -40,6 +40,7 @@
 
 namespace Dissent{
 class Node;
+class NetworkPrepare;
 
 class Network : public QObject{
   Q_OBJECT
@@ -69,11 +70,11 @@ class Network : public QObject{
     void readyRead(int node_id);
     void inputError(int node_id);
 
-  protected slots:
-    void NewConnection();
-    void TryConnect();
+    void networkReady();
 
-    void ClientHaveReadyRead(int node_id);
+  protected slots:
+    void NetworkReady();
+    void ClientHasReadyRead(int node_id);
 
     void StartIncomingNetwork();
     void StopIncomingNetwork();
@@ -82,10 +83,11 @@ class Network : public QObject{
     Node* _node;
     QList<LogEntry> _log;
 
+    NetworkPrepare* _prepare;
+
     QSignalMapper* _signalMapper;
-    QTimer* _connectTimer;
     QTcpServer _server;
-    QMap<int, QTcpSocket> _clients;
+    QMap<int, QTcpSocket*> _clients;
     QMap<QTcpSocket*, int> _clientNodeId;
 
     struct Buffer{
@@ -104,6 +106,55 @@ class Network : public QObject{
     bool _inReceivingPhase;
 
     qint32 _nonce;
+};
+
+class Configuration;
+
+class NetworkPrepare : QObject{
+  Q_OBJECT
+  public:
+    NetworkPrepare(Configuration* config,
+                   QTcpServer* server,
+                   QMap<int, QTcpSocket*>* sockets);
+
+    bool DoPrepare(const QHostAddress & address, quint16 port);
+
+  protected:
+    void AddSocket(int node_id, QTcpSocket* socket);
+
+  signals:
+    void networkReady();
+
+  protected slots:
+    // slots for us being the server
+    void NewConnection();
+    void ReadNodeId(QObject*);
+    void ReadChallengeAnswer(QObject*);
+
+    // slots for us being the client
+    void TryConnect();
+
+    void Connected(QObject*);
+    void ConnectError(QObject*);
+
+    void ReadChallenge(QObject*);
+
+  private:
+    QSignalMapper* _incomeSignalMapper;
+    QSignalMapper* _answerSignalMapper;
+
+    QSignalMapper* _connectSignalMapper;
+    QSignalMapper* _errorSignalMapper;
+    QSignalMapper* _challengeSignalMapper;
+
+    Configuration* _config;
+    QTcpServer* _server;
+    QMap<int, QTcpSocket*>* _sockets;
+
+    const static char* const ChallengePropertyName;
+    const static int ChallengeLength;
+    const static char* const NodeIdPropertyName;
+    const static char* const AnswerLengthPropertyName;
 };
 }
 #endif  // _DISSENT_LIBDISSENT_NETWORK_H_
