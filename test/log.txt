@@ -1,0 +1,8 @@
+GENERAL
+1. When using QCA, "QCA::Initializer init" is very IMPORTANT!
+
+CONFIG
+1. How to configure CONFIG+=debug on Mac?
+
+crypto
+

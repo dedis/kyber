@@ -39,9 +39,12 @@ Crypto::Crypto() : _init(){
     Q_ASSERT(QCA::isSupported("sha1"));
     Q_ASSERT(QCA::isSupported("aes256-cbc-pkcs7"));
 
+    QCA::SymmetricKey key(AESKeyLength);
+    QCA::InitializationVector iv(AESKeyLength);
     _cipher.reset(new QCA::Cipher("aes256",
                                   QCA::Cipher::CBC,
-                                  /* pad = */ QCA::Cipher::PKCS7));
+                                  /* pad = */ QCA::Cipher::PKCS7,
+                                  QCA::Encode, key, iv));
     Q_ASSERT(_cipher->validKeyLength(AESKeyLength));
 }
 
@@ -63,7 +66,7 @@ bool Crypto::SerializePublicKey(const PublicKey& key, QByteArray* buf){
 
 bool Crypto::SerializePrivateKey(const PrivateKey& key, QByteArray* buf){
     *buf = key.toDER().toByteArray();
-    return false;
+    return true;
 }
 
 PublicKey* Crypto::DeserializePublicKey(const QByteArray& buf){
@@ -108,7 +111,6 @@ bool Crypto::Encrypt(PublicKey* key, const QByteArray& msg,
     }
 
     _cipher->setup(QCA::Encode, aes_key, iv);
-
     ctext->clear();
     ctext->append(key->encrypt(aes_key, QCA::EME_PKCS1_OAEP).toByteArray());
     ctext->append(iv.toByteArray());
