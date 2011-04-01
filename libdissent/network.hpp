@@ -25,9 +25,8 @@
  *   Boston, MA  02110-1301  USA
  */
 
-#ifndef _DISSENT_LIBDISSENT_NETWORK_H_
-#define _DISSENT_LIBDISSENT_NETWORK_H_ 1
-
+#ifndef _DISSENT_LIBDISSENT_NETWORK_HPP_
+#define _DISSENT_LIBDISSENT_NETWORK_HPP_ 1
 #include <QtGlobal>
 #include <QByteArray>
 #include <QList>
@@ -38,14 +37,17 @@
 #include <QTcpSocket>
 #include <QQueue>
 
+#include "dissent_global.hpp"
+
 namespace Dissent{
-class Node;
+class Configuration;
 class NetworkPrepare;
 
-class Network : public QObject{
+// export for testing purpose
+class DISSENT_EXPORT Network : public QObject{
   Q_OBJECT
   public:
-    Network(Node* node);
+    Network(Configuration* config);
 
     void SetNonce(qint32 word){ _nonce = word; }
 
@@ -72,15 +74,16 @@ class Network : public QObject{
 
     void networkReady();
 
+  public slots:
+    void StartIncomingNetwork();
+    void StopIncomingNetwork();
+
   protected slots:
     void NetworkReady();
     void ClientHasReadyRead(int node_id);
 
-    void StartIncomingNetwork();
-    void StopIncomingNetwork();
-
   private:
-    Node* _node;
+    Configuration* _config;
     QList<LogEntry> _log;
 
     NetworkPrepare* _prepare;
@@ -108,9 +111,7 @@ class Network : public QObject{
     qint32 _nonce;
 };
 
-class Configuration;
-
-class NetworkPrepare : QObject{
+class NetworkPrepare : public QObject{
   Q_OBJECT
   public:
     NetworkPrepare(Configuration* config,
@@ -157,5 +158,5 @@ class NetworkPrepare : QObject{
     const static char* const AnswerLengthPropertyName;
 };
 }
-#endif  // _DISSENT_LIBDISSENT_NETWORK_H_
+#endif  // _DISSENT_LIBDISSENT_NETWORK_HPP_
 // -*- vim:sw=4:expandtab:cindent:

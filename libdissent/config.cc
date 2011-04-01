@@ -27,6 +27,12 @@
 #include "config.hpp"
 
 namespace Dissent{
+Configuration::Configuration(){
+}
+
+Configuration::Configuration(int argc, char* argv[]){
+}
+
 bool Configuration::Serialize(QByteArray* byte_array) const{
     byte_array->clear();
     // not implemented yet

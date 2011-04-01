@@ -25,20 +25,20 @@
  *   Boston, MA  02110-1301  USA
  */
 
-#ifndef _DISSENT_LIBDISSENT_NODE_H_
-#define _DISSENT_LIBDISSENT_NODE_H_ 1
-
+#ifndef _DISSENT_LIBDISSENT_NODE_HPP_
+#define _DISSENT_LIBDISSENT_NODE_HPP_ 1
 #include <QObject>
 #include <QScopedPointer>
 #include <QString>
 
+#include "dissent_global.hpp"
 #include "config.hpp"
 #include "node_impl.hpp"
 
 namespace Dissent{
 class Network;
 
-class Node : public QObject{
+class DISSENT_EXPORT Node : public QObject{
   Q_OBJECT
   public:
     Node(const Configuration& config);
@@ -73,5 +73,5 @@ class Node : public QObject{
     int _protocolRound;
 };
 }
-#endif  // _DISSENT_LIBDISSENT_NODE_H_
+#endif  // _DISSENT_LIBDISSENT_NODE_HPP_
 // -*- vim:sw=4:expandtab:cindent:

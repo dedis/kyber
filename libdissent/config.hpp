@@ -26,17 +26,19 @@
  */
 #ifndef _DISSENT_LIBDISSENT_CONFIG_HPP_
 #define _DISSENT_LIBDISSENT_CONFIG_HPP_ 1
-
 #include <QByteArray>
 #include <QList>
 #include <QMap>
 #include <QSharedPointer>
 #include <QString>
 
+#include "dissent_global.hpp"
 #include "crypto.hpp"
 
 namespace Dissent{
-struct NodeInfo{
+// XXX(scw): don't export once Configuration::Serialize / Deserialize
+//           are working
+struct DISSENT_EXPORT NodeInfo{
     int node_id;
     QString addr;
     int port;
@@ -49,13 +51,15 @@ struct NodeInfo{
 //    { (NodeTopology){ node_id: 2, next_node_id:  3, prev_node_id: -1 },
 //      (NodeTopology){ node_id: 3, next_node_id:  1, prev_node_id:  2 },
 //      (NodeTopology){ node_id: 1, next_node_id: -1, prev_node_id:  3 } }
-struct NodeTopology{
+// XXX(scw): don't export once Configuration::Serialize / Deserialize
+//           are working
+struct DISSENT_EXPORT NodeTopology{
     int node_id;
     int next_node_id;
     int prev_node_id;
 };
 
-struct Configuration{
+struct DISSENT_EXPORT Configuration{
     // private members
     int my_node_id;
     PrivateKey identity_sk;

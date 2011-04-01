@@ -37,7 +37,13 @@
 namespace Dissent{
 Node::Node(const Configuration& config)
     : _config(config), _protocolRound(-1){
-    _network = new Network(this);
+    _network = new Network(&_config);
+    _network->setParent(this);
+
+    connect(this, SIGNAL(startIncomingNetwork()),
+            _network, SLOT(StartIncomingNetwork()));
+    connect(this, SIGNAL(stopIncomingNetwork()),
+            _network, SLOT(StopIncomingNetwork()));
 }
 
 void Node::StartProtocol(){

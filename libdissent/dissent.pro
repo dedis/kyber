@@ -12,6 +12,7 @@ VERSION = 0.01
 # Input
 HEADERS += config.hpp \
            crypto.hpp \
+           dissent_global.hpp \
            network.hpp \
            node.hpp \
            node_impl.hpp \

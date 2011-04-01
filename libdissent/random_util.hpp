@@ -24,10 +24,9 @@
  *   51 Franklin Street, Fifth Floor,
  *   Boston, MA  02110-1301  USA
  */
-#ifndef _DISSENT_LIBDISSENT_RANDOMUTIL_H_
-#define _DISSENT_LIBDISSENT_RANDOMUTIL_H_ 1
-
-#include <QtGlobal>
+#ifndef _DISSENT_LIBDISSENT_RANDOMUTIL_HPP_
+#define _DISSENT_LIBDISSENT_RANDOMUTIL_HPP_ 1
+#include "dissent_global.hpp"
 
 namespace Dissent{
 class Random{
@@ -55,5 +54,5 @@ class PRNG{
     // TODO(scw)
 };
 }
-#endif  // _DISSENT_LIBDISSENT_RANDOMUTIL_H_
+#endif  // _DISSENT_LIBDISSENT_RANDOMUTIL_HPP_
 // -*- vim:sw=4:expandtab:cindent:

@@ -24,15 +24,15 @@
  *   51 Franklin Street, Fifth Floor,
  *   Boston, MA  02110-1301  USA
  */
-#ifndef _DISSENT_LIBDISSENT_NODE_IMPL_SHUFFLE_H_
-#define _DISSENT_LIBDISSENT_NODE_IMPL_SHUFFLE_H_ 1
-
+#ifndef _DISSENT_LIBDISSENT_NODE_IMPL_SHUFFLE_HPP_
+#define _DISSENT_LIBDISSENT_NODE_IMPL_SHUFFLE_HPP_ 1
 #include <QByteArray>
 #include <QHash>
 #include <QScopedPointer>
 #include <QSharedPointer>
 
 #include "crypto.hpp"
+#include "dissent_global.hpp"
 #include "node_impl.hpp"
 
 namespace Dissent{
@@ -138,5 +138,5 @@ class NodeImplBulkSend : public NodeImpl{
     virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
 };
 }
-#endif  // _DISSENT_LIBDISSENT_NODE_IMPL_SHUFFLE_H_
+#endif  // _DISSENT_LIBDISSENT_NODE_IMPL_SHUFFLE_HPP_
 // -*- vim:sw=4:expandtab:cindent:

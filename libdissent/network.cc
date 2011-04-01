@@ -39,33 +39,25 @@
 #include "QByteArrayUtil.hpp"
 #include "config.hpp"
 #include "crypto.hpp"
-#include "node.hpp"
 #include "random_util.hpp"
 
 namespace Dissent{
-Network::Network(Node* node)
-    : QObject(node),
-      _node(node),
+Network::Network(Configuration* config)
+    : _config(config),
       _inReceivingPhase(false){
-    _prepare = new NetworkPrepare(node->GetConfig(), &_server, &_clients);
+    _prepare = new NetworkPrepare(config, &_server, &_clients);
 
-    const Configuration& config = *node->GetConfig();
     bool r = _prepare->DoPrepare(
             QHostAddress::Any,
-            config.nodes[config.my_node_id].port);
-    Q_ASSERT_X(r, "Network::Network(Node*)",
+            config->nodes[config->my_node_id].port);
+    Q_ASSERT_X(r, "Network::Network(Configuration*)",
                _server.errorString().toLocal8Bit().data());
-
-    connect(node, SIGNAL(startIncomingNetwork()),
-            this, SLOT(StartIncomingNetwork()));
-    connect(node, SIGNAL(stopIncomingNetwork()),
-            this, SLOT(StopIncomingNetwork()));
 }
 
 int Network::Send(int node_id, const QByteArray& data){
     // TODO(scw): add nonce and accumulated hash
     QByteArray sig;
-    bool r = Crypto::GetInstance()->Sign(&_node->GetConfig()->identity_sk,
+    bool r = Crypto::GetInstance()->Sign(&_config->identity_sk,
                                          data, &sig);
     Q_ASSERT_X(r, "Network::Send", "message signing failed");
 
@@ -78,7 +70,7 @@ int Network::Send(int node_id, const QByteArray& data){
 int Network::Broadcast(const QByteArray& data){
     // TODO(scw): add nonce and accumulated hash
     QByteArray sig;
-    bool r = Crypto::GetInstance()->Sign(&_node->GetConfig()->identity_sk,
+    bool r = Crypto::GetInstance()->Sign(&_config->identity_sk,
                                          data, &sig);
     Q_ASSERT_X(r, "Network::Broadcast", "message signing failed");
 

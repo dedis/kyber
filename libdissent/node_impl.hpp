@@ -25,12 +25,12 @@
  *   Boston, MA  02110-1301  USA
  */
 
-#ifndef _DISSENT_LIBDISSENT_NODE_IMPL_H_
-#define _DISSENT_LIBDISSENT_NODE_IMPL_H_ 1
-
+#ifndef _DISSENT_LIBDISSENT_NODE_IMPL_HPP_
+#define _DISSENT_LIBDISSENT_NODE_IMPL_HPP_ 1
 #include <QObject>
 
 #include "config.hpp"
+#include "dissent_global.hpp"
 
 class QTimer;
 
@@ -71,5 +71,5 @@ class NodeImpl : public QObject{
     const char* _listeningSlot;
 };
 }
-#endif  // _DISSENT_LIBDISSENT_NODE_IMPL_H_
+#endif  // _DISSENT_LIBDISSENT_NODE_IMPL_HPP_
 // -*- vim:sw=4:expandtab:cindent:

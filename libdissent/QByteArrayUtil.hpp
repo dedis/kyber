@@ -26,8 +26,7 @@
  */
 #ifndef _DISSENT_LIBDISSENT_QBYTEARRAYUTIL_HPP_
 #define _DISSENT_LIBDISSENT_QBYTEARRAYUTIL_HPP_ 1
-
-#include <QtGlobal>
+#include "dissent_global.hpp"
 
 class QByteArray;
 
@@ -37,6 +36,5 @@ struct QByteArrayUtil{
 
     static quint32 ExtractInt(bool remove, QByteArray* byte_array);
 };
-
 #endif  // _DISSENT_LIBDISSENT_QBYTEARRAYUTIL_HPP_
 // -*- vim:sw=4:expandtab:cindent:

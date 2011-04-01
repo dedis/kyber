@@ -24,14 +24,15 @@
  *   51 Franklin Street, Fifth Floor,
  *   Boston, MA  02110-1301  USA
  */
-#ifndef _DISSENT_LIBDISSENT_CRYPTO_H_
-#define _DISSENT_LIBDISSENT_CRYPTO_H_ 1
-
+#ifndef _DISSENT_LIBDISSENT_CRYPTO_HPP_
+#define _DISSENT_LIBDISSENT_CRYPTO_HPP_ 1
 #include <QtCrypto>
 #include <QObject>
 #include <QByteArray>
 #include <QList>
 #include <QScopedPointer>
+
+#include "dissent_global.hpp"
 
 namespace Dissent{
 typedef QCA::RSAPrivateKey PrivateKey;
@@ -98,5 +99,5 @@ class Crypto{
     static int AESKeyLength;
 };
 }
-#endif  // _DISSENT_LIBDISSENT_CRYPTO_H_
+#endif  // _DISSENT_LIBDISSENT_CRYPTO_HPP_
 // -*- vim:sw=4:expandtab:cindent:
