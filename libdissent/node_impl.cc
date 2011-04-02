@@ -129,7 +129,7 @@ bool NodeImplInitLeader::StartProtocol(int round){
     if(!config.Serialize(&data))
         return false;
 
-    _node->GetNetwork()->SetNonce(round);
+    _node->GetNetwork()->ResetSession(round);
     _node->GetNetwork()->Broadcast(data);
 
     NextStep();
@@ -151,7 +151,7 @@ NodeImpl* NodeImplInitLeader::GetNextImpl(
 
 bool NodeImplInit::StartProtocol(int round){
     _round = round;
-    _node->GetNetwork()->SetNonce(round);
+    _node->GetNetwork()->ResetSession(round);
     StartListening(SLOT(Read(int)), "Init");
     return true;
 }

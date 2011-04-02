@@ -35,6 +35,7 @@
 #include <QTcpSocket>
 #include <QTimer>
 #include <QVariant>
+#include <cstdio>
 
 #include "QByteArrayUtil.hpp"
 #include "config.hpp"
@@ -44,8 +45,11 @@
 namespace Dissent{
 Network::Network(Configuration* config)
     : _config(config),
-      _inReceivingPhase(false){
+      _inReceivingPhase(false),
+      _nonce(-1){
     _prepare = new NetworkPrepare(config, &_server, &_clients);
+    connect(_prepare, SIGNAL(networkReady()),
+            this, SLOT(NetworkReady()));
 
     bool r = _prepare->DoPrepare(
             QHostAddress::Any,
@@ -54,47 +58,92 @@ Network::Network(Configuration* config)
                _server.errorString().toLocal8Bit().data());
 }
 
-int Network::Send(int node_id, const QByteArray& data){
-    // TODO(scw): add nonce and accumulated hash
-    QByteArray sig;
-    bool r = Crypto::GetInstance()->Sign(&_config->identity_sk,
-                                         data, &sig);
-    Q_ASSERT_X(r, "Network::Send", "message signing failed");
+void Network::ResetSession(qint32 nonce){
+    _nonce = nonce;
+    ClearLog();
+    // clear accumulative hash
+}
 
-    // TODO(scw): send msg & signature
-    // TODO(scw): log
+int Network::Send(int node_id, const QByteArray& data){
+    QTcpSocket* socket = _clients[node_id];
+    Q_ASSERT(socket);
+    Q_ASSERT(socket->state() == QAbstractSocket::ConnectedState);
+
+    QByteArray plaintext, sig;
+    PrepareMessage(data, &plaintext, &sig);
+    socket->write(plaintext);
+    socket->write(sig);
+
+    LogEntry log = { LogEntry::SEND, node_id, data, sig, true };
+    _log.push_back(log);
     return 0;
-    (void) node_id;
 }
 
 int Network::Broadcast(const QByteArray& data){
-    // TODO(scw): add nonce and accumulated hash
-    QByteArray sig;
-    bool r = Crypto::GetInstance()->Sign(&_config->identity_sk,
-                                         data, &sig);
-    Q_ASSERT_X(r, "Network::Broadcast", "message signing failed");
+    QByteArray plaintext, sig;
+    PrepareMessage(data, &plaintext, &sig);
 
-    // TODO(scw): send msg & signature
-    // TODO(scw): log
+    foreach(const NodeInfo& node, _config->nodes)
+        if(!node.excluded){
+            QTcpSocket* socket = _clients[node.node_id];
+            Q_ASSERT_X(socket, "Network::Broadcast",
+                       (const char*) QString("socket[%d] = null").arg(node.node_id).data());
+            Q_ASSERT_X(socket->state() == QAbstractSocket::ConnectedState,
+                       "Network::Broadcast",
+                       (const char*) QString("socket[%d] wrong state").arg(node.node_id).data());
+            socket->write(plaintext);
+            socket->write(sig);
+        }
+
+    LogEntry log = { LogEntry::BROADCAST_SEND, -1, data, sig, true };
+    _log.push_back(log);
     return 0;
 }
 
 int Network::Read(int node_id, QByteArray* data){
-    // TODO(scw)
-    // TODO(scw): filter out message from excluded nodes
+    // TODO(scw): read from buffer
     return 0;
     (void) node_id;
     (void) data;
 }
 
-void Network::NetworkReady(){
-    _signalMapper = new QSignalMapper(this);
+void Network::PrepareMessage(const QByteArray& data,
+                             QByteArray* message, QByteArray* sig){
+    message->clear();
+    QByteArrayUtil::AppendInt(_nonce, message);
+    // TODO(scw): how to accumulate hash?
+    message->append(data);
 
-    // TODO(scw): fill in _clientNodeId, connect _signalMapper,
-    //            destroy _prepare, fire networkReady
+    bool r = Crypto::GetInstance()->Sign(&_config->identity_sk,
+                                         *message, sig);
+    Q_ASSERT_X(r, "Network::PrepareMessage", "message signing failed");
+
+    int message_length = message->size();
+    QByteArrayUtil::PrependInt(sig->size(), message);
+    QByteArrayUtil::PrependInt(message_length, message);
+}
+
+void Network::NetworkReady(){
+    // Or keep it so that hosts can reconnect if connection dropped?
+    delete _prepare; _prepare = 0;
+
+    _signalMapper = new QSignalMapper(this);
+    connect(_signalMapper, SIGNAL(mapped(int)),
+            this, SLOT(ClientHasReadyRead(int)));
+
+    _clientNodeId.clear();
+    for(QMap<int, QTcpSocket*>::const_iterator it =  _clients.constBegin();
+        it != _clients.constEnd(); ++it){
+        _clientNodeId.insert(it.value(), it.key());
+        _signalMapper->setMapping(it.value(), it.key());
+        connect(it.value(), SIGNAL(readyRead()),
+                _signalMapper, SLOT(map()));
+    }
+    emit networkReady();
 }
 
 void Network::ClientHasReadyRead(int node_id){
+    // TODO(scw): filter out message from excluded nodes
     QMap<int, QTcpSocket*>::const_iterator it = _clients.constFind(node_id);
     if(it == _clients.constEnd())
         qFatal("Unknown client notifying ready");
@@ -154,11 +203,13 @@ bool NetworkPrepare::DoPrepare(const QHostAddress & address, quint16 port){
 
 void NetworkPrepare::AddSocket(int node_id, QTcpSocket* socket){
     _sockets->insert(node_id, socket);
-    if(_sockets->size() < _config->nodes.size())
+    if(_sockets->size() < _config->num_nodes - 1)
         return;
 
     for(QMap<int, NodeInfo>::const_iterator it = _config->nodes.constBegin();
         it != _config->nodes.constEnd(); ++it){
+        if(it.key() == _config->my_node_id)
+            continue;
         QMap<int, QTcpSocket*>::const_iterator jt =
             _sockets->constFind(it.key());
         if(jt == _sockets->constEnd())
@@ -168,6 +219,8 @@ void NetworkPrepare::AddSocket(int node_id, QTcpSocket* socket){
             return;
     }
 
+    disconnect(_server, SIGNAL(newConnection()),
+               this, SLOT(NewConnection()));
     emit networkReady();
 }
 
@@ -198,6 +251,9 @@ void NetworkPrepare::ReadNodeId(QObject* o){
 
     if(socket->peerAddress() != QHostAddress(_config->nodes[node_id].addr)){
         // XXX(scw): wrong host message
+        printf("peer %d expect from %s but from %s\n",
+               node_id, _config->nodes[node_id].addr.data(),
+               socket->peerAddress().toString().data());
         socket->disconnectFromHost();
         delete socket;
         return;
@@ -209,6 +265,7 @@ void NetworkPrepare::ReadNodeId(QObject* o){
 
     disconnect(socket, SIGNAL(readyRead()), _incomeSignalMapper, SLOT(map()));
     connect(socket, SIGNAL(readyRead()), _answerSignalMapper, SLOT(map()));
+    ReadChallengeAnswer(o);
 }
 
 void NetworkPrepare::ReadChallengeAnswer(QObject* o){
@@ -238,6 +295,7 @@ void NetworkPrepare::ReadChallengeAnswer(QObject* o){
                 challenge,
                 answer)){
         // XXX(scw): challenge failed message
+        printf("node %d challenge failed\n", node_id);
         socket->disconnectFromHost();
         delete socket;
         return;
@@ -253,10 +311,10 @@ void NetworkPrepare::ReadChallengeAnswer(QObject* o){
 }
 
 void NetworkPrepare::TryConnect(){
-    connect(_connectSignalMapper, SIGNAL(mapped(int)),
-            this, SLOT(Connected(int)));
-    connect(_errorSignalMapper, SIGNAL(mapped(int)),
-            this, SLOT(ConnectError(int)));
+    connect(_connectSignalMapper, SIGNAL(mapped(QObject*)),
+            this, SLOT(Connected(QObject*)));
+    connect(_errorSignalMapper, SIGNAL(mapped(QObject*)),
+            this, SLOT(ConnectError(QObject*)));
 
     foreach(const NodeInfo& node, _config->nodes){
         if(node.node_id >= _config->my_node_id)
@@ -286,6 +344,7 @@ void NetworkPrepare::Connected(QObject* o){
     _challengeSignalMapper->setMapping(socket, socket);
     connect(socket, SIGNAL(readyRead()),
             _challengeSignalMapper, SLOT(map()));
+    ReadChallenge(o);
 }
 
 void NetworkPrepare::ConnectError(QObject* o){
@@ -325,6 +384,9 @@ void NetworkPrepare::ReadChallenge(QObject* o){
                    "node id property not an integer");
 
     socket->setProperty(NodeIdPropertyName, QVariant());
+    disconnect(socket, SIGNAL(readyRead()),
+               _challengeSignalMapper, SLOT(map()));
+
     AddSocket(node_id, socket);
 }
 }

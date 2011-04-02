@@ -49,7 +49,7 @@ class DISSENT_EXPORT Network : public QObject{
   public:
     Network(Configuration* config);
 
-    void SetNonce(qint32 word){ _nonce = word; }
+    void ResetSession(qint32 nonce);
 
     int Send(int node_id, const QByteArray& data);
     int Broadcast(const QByteArray& data);
@@ -59,6 +59,7 @@ class DISSENT_EXPORT Network : public QObject{
     struct LogEntry{
         enum{ SEND, RECV, BROADCAST_SEND, BROADCAST_RECV }dir;
         int node_id;  // receiver, sender, undefined, or sender according to dir
+        // XXX(scw): accumulative hash value
         QByteArray data;
         QByteArray signature;
 
@@ -67,6 +68,10 @@ class DISSENT_EXPORT Network : public QObject{
 
     void ClearLog(){ _log.clear(); }
     const QList<LogEntry>& GetLog() const{ return _log; }
+
+  protected:
+    void PrepareMessage(const QByteArray& data,
+                        QByteArray* message, QByteArray* sig);
 
   signals:
     void readyRead(int node_id);
@@ -111,6 +116,8 @@ class DISSENT_EXPORT Network : public QObject{
     qint32 _nonce;
 };
 
+// Internal functional object. Qt only support signals on moc classes, which
+// have to be defined in header files.
 class NetworkPrepare : public QObject{
   Q_OBJECT
   public:
