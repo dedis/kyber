@@ -55,7 +55,7 @@ Network::Network(Configuration* config)
             QHostAddress::Any,
             config->nodes[config->my_node_id].port);
     Q_ASSERT_X(r, "Network::Network(Configuration*)",
-               _server.errorString().toLocal8Bit().data());
+               _server.errorString().toUtf8().data());
 }
 
 void Network::ResetSession(qint32 nonce){
@@ -70,9 +70,16 @@ int Network::Send(int node_id, const QByteArray& data){
     Q_ASSERT(socket->state() == QAbstractSocket::ConnectedState);
 
     QByteArray plaintext, sig;
-    PrepareMessage(data, &plaintext, &sig);
-    socket->write(plaintext);
-    socket->write(sig);
+    PrepareMessage(LogEntry::SEND, data, &plaintext, &sig);
+    int w_count = socket->write(plaintext);
+    w_count += socket->write(sig);
+    Q_ASSERT(w_count == plaintext.size() + sig.size());
+
+    //printf("To %d: %s\n", node_id, (char*) plaintext.toHex().data());
+    //printf("Sig:  %s\n", (char*) sig.toHex().data());
+    //printf("-> %s:%d\n",
+    //       (char*) socket->peerAddress().toString().toUtf8().data(),
+    //       socket->peerPort());
 
     LogEntry log = { LogEntry::SEND, node_id, data, sig, true };
     _log.push_back(log);
@@ -81,16 +88,18 @@ int Network::Send(int node_id, const QByteArray& data){
 
 int Network::Broadcast(const QByteArray& data){
     QByteArray plaintext, sig;
-    PrepareMessage(data, &plaintext, &sig);
+    PrepareMessage(LogEntry::BROADCAST_SEND, data, &plaintext, &sig);
 
     foreach(const NodeInfo& node, _config->nodes)
-        if(!node.excluded){
+        if(node.node_id != _config->my_node_id && !node.excluded){
             QTcpSocket* socket = _clients[node.node_id];
             Q_ASSERT_X(socket, "Network::Broadcast",
-                       (const char*) QString("socket[%d] = null").arg(node.node_id).data());
+                       (const char*) QString("socket[%1] = null")
+                       .arg(node.node_id).toUtf8().data());
             Q_ASSERT_X(socket->state() == QAbstractSocket::ConnectedState,
                        "Network::Broadcast",
-                       (const char*) QString("socket[%d] wrong state").arg(node.node_id).data());
+                       (const char*) QString("socket[%1] wrong state")
+                       .arg(node.node_id).toUtf8().data());
             socket->write(plaintext);
             socket->write(sig);
         }
@@ -101,15 +110,22 @@ int Network::Broadcast(const QByteArray& data){
 }
 
 int Network::Read(int node_id, QByteArray* data){
-    // TODO(scw): read from buffer
-    return 0;
-    (void) node_id;
-    (void) data;
+    QList<Buffer>& buffer = _buffers[node_id];
+    if(buffer.size() == 0 || buffer.front().status != Buffer::DONE)
+        return 0;
+    const Buffer& buf = buffer.front();
+    *data = buf.entry.data;
+    _log.push_back(buf.entry);
+    buffer.pop_front();  // now we can drop it from buffer
+    return 1;
 }
 
-void Network::PrepareMessage(const QByteArray& data,
+void Network::PrepareMessage(int type, const QByteArray& data,
                              QByteArray* message, QByteArray* sig){
+    // Updates of this function should pair up with updates of
+    // ValidateLogEntry() and ClientHasReadyRead()
     message->clear();
+    QByteArrayUtil::AppendInt(type, message);
     QByteArrayUtil::AppendInt(_nonce, message);
     // TODO(scw): how to accumulate hash?
     message->append(data);
@@ -123,6 +139,75 @@ void Network::PrepareMessage(const QByteArray& data,
     QByteArrayUtil::PrependInt(message_length, message);
 }
 
+bool Network::ValidateLogEntry(LogEntry* entry){
+    // Updates of this function should pair up with updates of
+    // PrepareMessage() and ClientHasReadyRead()
+    bool valid_sig = Crypto::GetInstance()->Verify(
+            &_config->nodes[entry->node_id].identity_pk,
+            entry->data,
+            entry->signature);
+    entry->dir = static_cast<LogEntry::Dir>(
+            QByteArrayUtil::ExtractInt(true, &entry->data));
+    int nonce =
+            QByteArrayUtil::ExtractInt(true, &entry->data);
+    bool valid_dir = (entry->dir == LogEntry::SEND ||
+                      entry->dir == LogEntry::BROADCAST_SEND);
+    bool valid_nonce = (nonce == _nonce);
+
+    return entry->valid = (valid_sig && valid_dir && valid_nonce);
+}
+
+void Network::ClientHasReadyRead(int node_id){
+    // Updates of this function should pair up with updates of
+    // PrepareMessage() and ValidateLogEntry()
+    if(_config->nodes[node_id].excluded)
+        return;
+    QMap<int, QTcpSocket*>::const_iterator it = _clients.constFind(node_id);
+    if(it == _clients.constEnd())
+        qFatal("Unknown client notifying ready");
+    QTcpSocket* socket = it.value();
+
+    QList<Buffer>& buffer = _buffers[node_id];
+    if(buffer.size() == 0 || buffer.back().status == Buffer::DONE)
+        buffer.push_back(Buffer());
+    Buffer& buf = buffer.back();
+    QByteArray byte_array;
+    switch(buf.status){
+        case Buffer::NEW:
+            if(socket->bytesAvailable() < QByteArrayUtil::IntegerSize * 2)
+                break;
+            byte_array = socket->read(QByteArrayUtil::IntegerSize * 2);
+            buf.data_len = QByteArrayUtil::ExtractInt(true, &byte_array);
+            buf.sig_len = QByteArrayUtil::ExtractInt(true, &byte_array);
+            buf.status = Buffer::HAS_SIZE;
+            // fall through
+
+        case Buffer::HAS_SIZE:
+            if(socket->bytesAvailable() < buf.data_len)
+                break;
+            buf.entry.data = socket->read(buf.data_len);
+            buf.status = Buffer::DATA_DONE;
+            // fall through
+
+        case Buffer::DATA_DONE:
+            if(socket->bytesAvailable() < buf.sig_len)
+                break;
+            buf.entry.signature = socket->read(buf.sig_len);
+            buf.status = Buffer::DONE;
+            buf.entry.node_id = node_id;
+            if(ValidateLogEntry(&buf.entry) && _inReceivingPhase)
+                emit readyRead(node_id);
+            break;
+
+        default:
+            qFatal("Invalid buf.status: %d\n", buf.status);
+            break;
+    }
+
+    if(socket->bytesAvailable() > 0)
+        ClientHasReadyRead(node_id);
+}
+
 void Network::NetworkReady(){
     // Or keep it so that hosts can reconnect if connection dropped?
     delete _prepare; _prepare = 0;
@@ -134,31 +219,31 @@ void Network::NetworkReady(){
     _clientNodeId.clear();
     for(QMap<int, QTcpSocket*>::const_iterator it =  _clients.constBegin();
         it != _clients.constEnd(); ++it){
+        printf("node %d: %s:%d\n", it.key(),
+               it.value()->peerAddress().toString().toUtf8().data(),
+               it.value()->peerPort());
+        _buffers.insert(it.key(), QList<Buffer>());
         _clientNodeId.insert(it.value(), it.key());
         _signalMapper->setMapping(it.value(), it.key());
         connect(it.value(), SIGNAL(readyRead()),
                 _signalMapper, SLOT(map()));
+        ClientHasReadyRead(it.key());
     }
     emit networkReady();
-}
-
-void Network::ClientHasReadyRead(int node_id){
-    // TODO(scw): filter out message from excluded nodes
-    QMap<int, QTcpSocket*>::const_iterator it = _clients.constFind(node_id);
-    if(it == _clients.constEnd())
-        qFatal("Unknown client notifying ready");
-
-    // TODO(scw): buffer input, check signature, then enqueue
 }
 
 void Network::StartIncomingNetwork(){
     if(_inReceivingPhase)
         return;
+    printf("starting incoming network\n");
 
     _inReceivingPhase = true;
-    for(QQueue<int>::const_iterator it = _readyQueue.constBegin();
-        it != _readyQueue.constEnd(); ++it)
-        emit readyRead(_log.at(*it).node_id);
+    for(QMap<int, QList<Buffer> >::const_iterator it = _buffers.constBegin();
+        it != _buffers.constEnd(); ++it){
+        printf("node %d: size = %d\n", it.key(), it.value().size());
+        if(it.value().size() > 0 && it.value().front().status == Buffer::DONE)
+            emit readyRead(it.key());
+    }
 }
 
 void Network::StopIncomingNetwork(){
@@ -242,7 +327,7 @@ void NetworkPrepare::ReadNodeId(QObject* o){
     QTcpSocket* socket = qobject_cast<QTcpSocket*>(o);
     Q_ASSERT(socket);
 
-    if(socket->bytesAvailable() < 4 + 4)
+    if(socket->bytesAvailable() < QByteArrayUtil::IntegerSize * 2)
         return;
 
     QByteArray data = socket->read(8);
@@ -252,8 +337,9 @@ void NetworkPrepare::ReadNodeId(QObject* o){
     if(socket->peerAddress() != QHostAddress(_config->nodes[node_id].addr)){
         // XXX(scw): wrong host message
         printf("peer %d expect from %s but from %s\n",
-               node_id, _config->nodes[node_id].addr.data(),
-               socket->peerAddress().toString().data());
+               node_id,
+               (char*) _config->nodes[node_id].addr.toUtf8().data(),
+               (char*) socket->peerAddress().toString().toUtf8().data());
         socket->disconnectFromHost();
         delete socket;
         return;

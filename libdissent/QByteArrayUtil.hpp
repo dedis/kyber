@@ -31,6 +31,8 @@
 class QByteArray;
 
 struct QByteArrayUtil{
+    static const int IntegerSize = 4;
+
     static void AppendInt(quint32 n, QByteArray* byte_array);
     static void PrependInt(quint32 n, QByteArray* byte_array);
 

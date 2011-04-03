@@ -57,7 +57,7 @@ class DISSENT_EXPORT Network : public QObject{
     int Read(int node_id, QByteArray* data);
 
     struct LogEntry{
-        enum{ SEND, RECV, BROADCAST_SEND, BROADCAST_RECV }dir;
+        enum Dir{ SEND, RECV, BROADCAST_SEND, BROADCAST_RECV }dir;
         int node_id;  // receiver, sender, undefined, or sender according to dir
         // XXX(scw): accumulative hash value
         QByteArray data;
@@ -70,8 +70,9 @@ class DISSENT_EXPORT Network : public QObject{
     const QList<LogEntry>& GetLog() const{ return _log; }
 
   protected:
-    void PrepareMessage(const QByteArray& data,
+    void PrepareMessage(int type, const QByteArray& data,
                         QByteArray* message, QByteArray* sig);
+    bool ValidateLogEntry(LogEntry* entry);
 
   signals:
     void readyRead(int node_id);
@@ -84,8 +85,8 @@ class DISSENT_EXPORT Network : public QObject{
     void StopIncomingNetwork();
 
   protected slots:
-    void NetworkReady();
     void ClientHasReadyRead(int node_id);
+    void NetworkReady();
 
   private:
     Configuration* _config;
@@ -99,18 +100,16 @@ class DISSENT_EXPORT Network : public QObject{
     QMap<QTcpSocket*, int> _clientNodeId;
 
     struct Buffer{
-        // data_left < 0: nothing buffered
-        // data_left == 0: buffering signature
-        // data_left > 0: next data_left bytes are data body
-        int data_left;
-        int sig_left;
+        int data_len;
+        int sig_len;
+        enum{ NEW, HAS_SIZE, DATA_DONE, DONE }status;
 
-        QByteArray data;
-        QByteArray sig;
+        LogEntry entry;
+
+        Buffer() : data_len(0), sig_len(0), status(NEW){}
     };
 
-    // index of message in _log
-    QQueue<int> _readyQueue;
+    QMap<int, QList<Buffer> > _buffers;
     bool _inReceivingPhase;
 
     qint32 _nonce;

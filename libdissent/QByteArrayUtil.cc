@@ -28,6 +28,8 @@
 
 #include <QByteArray>
 
+const int QByteArrayUtil::IntegerSize;
+
 static void Int32ToCharArray(quint32 n, char buf[4]){
     // Big Indean
     buf[0] = static_cast<char>(n >> 24 & 0xff);
@@ -42,21 +44,21 @@ static quint32 CharArrayToInt32(const char buf[4]){
 }
 
 void QByteArrayUtil::AppendInt(quint32 n, QByteArray* byte_array){
-    char buf[4];
+    char buf[IntegerSize];
     Int32ToCharArray(n, buf);
-    byte_array->append(buf, 4);
+    byte_array->append(buf, IntegerSize);
 }
 
 void QByteArrayUtil::PrependInt(quint32 n, QByteArray* byte_array){
-    char buf[4];
+    char buf[IntegerSize];
     Int32ToCharArray(n, buf);
-    byte_array->prepend(buf, 4);
+    byte_array->prepend(buf, IntegerSize);
 }
 
 quint32 QByteArrayUtil::ExtractInt(bool remove, QByteArray* byte_array){
     quint32 n = CharArrayToInt32(byte_array->constData());
     if(remove)
-        byte_array->remove(0, 4);
+        byte_array->remove(0, IntegerSize);
     return n;
 }
 // -*- vim:sw=4:expandtab:cindent:
