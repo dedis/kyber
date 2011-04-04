@@ -79,8 +79,8 @@ void NodeImpl::StopListening(){
     _timeout_timer->stop();
 
     if(_listeningSlot){
-        connect(_node->GetNetwork(), SIGNAL(readyRead(int)),
-                this, _listeningSlot);
+        disconnect(_node->GetNetwork(), SIGNAL(readyRead(int)),
+                   this, _listeningSlot);
         _listeningSlot = 0;
     }
 }

@@ -67,12 +67,15 @@ bool NodeImplShuffle::StartProtocol(int round){
 
     QByteArray publicKey;
     bool r = Crypto::GetInstance()->SerializePublicKey(
-            PublicKey(*_innerKey.data()), &publicKey);
+            PublicKey(*_innerKey), &publicKey);
     Q_ASSERT_X(r, "NodeImplShuffle::StartProtocol",
                   "Cannot serialize inner public key");
     _node->GetNetwork()->Broadcast(publicKey);
 
     // XXX(scw): refactor this out with the last block of DoDataSubmission()
+    _innerKeys.clear();
+    _innerKeys.insert(_node->GetConfig()->my_node_id,
+                      QSharedPointer<PublicKey>(new PublicKey(*_innerKey)));
     StartListening(SLOT(CollectOnetimeKeys(int)),
                    "Shuffle exchange inner keys");
     return true;
@@ -122,7 +125,7 @@ void NodeImplShuffle::DoDataSubmission(){
         QByteArray result;
 
         if(node.node_id == my_node_id){
-            PublicKey pub_key(*_innerKey.data());
+            PublicKey pub_key(*_innerKey);
             bool b = crypto->Encrypt(&pub_key, data, &result, 0);
             Q_ASSERT_X(b,
                        "NodeImplShuffle::DoDataSubmission",

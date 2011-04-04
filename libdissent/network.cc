@@ -218,9 +218,6 @@ void Network::NetworkReady(){
     _clientNodeId.clear();
     for(QMap<int, QTcpSocket*>::const_iterator it =  _clients.constBegin();
         it != _clients.constEnd(); ++it){
-        printf("node %d: %s:%d\n", it.key(),
-               it.value()->peerAddress().toString().toUtf8().data(),
-               it.value()->peerPort());
         _buffers.insert(it.key(), QList<Buffer>());
         _clientNodeId.insert(it.value(), it.key());
         _signalMapper->setMapping(it.value(), it.key());
@@ -235,14 +232,16 @@ void Network::NetworkReady(){
 void Network::StartIncomingNetwork(){
     if(_inReceivingPhase)
         return;
-    printf("starting incoming network\n");
+    // fprintf(stderr, "starting incoming network\n");
 
     _inReceivingPhase = true;
     for(QMap<int, QList<Buffer> >::const_iterator it = _buffers.constBegin();
         it != _buffers.constEnd(); ++it){
-        printf("node %d: size = %d\n", it.key(), it.value().size());
-        if(it.value().size() > 0 && it.value().front().status == Buffer::DONE)
+        // fprintf(stderr, "node %d: size = %d\n", it.key(), it.value().size());
+        if(it.value().size() > 0 && it.value().front().status == Buffer::DONE){
+            // fprintf(stderr, "node %d readyRead\n", it.key());
             emit readyRead(it.key());
+        }
     }
 }
 
@@ -267,9 +266,9 @@ void NetworkPrepare::DoPrepare(const QHostAddress & address, quint16 port){
     connect(_server, SIGNAL(newConnection()),
             this, SLOT(NewConnection()));
     bool r = _server->listen(address, port);
-    printf("%s:%d: %s\n",
-           address.toString().toUtf8().data(), port,
-           r ? "true" : "false");
+    // fprintf(stderr, "%s:%d: %s\n",
+    //        address.toString().toUtf8().data(), port,
+    //        r ? "true" : "false");
     Q_ASSERT_X(r, "Network::Network(Configuration*)",
                _server->errorString().toUtf8().data());
 
@@ -339,7 +338,7 @@ void NetworkPrepare::ReadNodeId(QObject* o){
 
     if(socket->peerAddress() != QHostAddress(_config->nodes[node_id].addr)){
         // XXX(scw): wrong host message
-        printf("peer %d expect from %s but from %s\n",
+        fprintf(stderr, "peer %d expect from %s but from %s\n",
                node_id,
                (char*) _config->nodes[node_id].addr.toUtf8().data(),
                (char*) socket->peerAddress().toString().toUtf8().data());
@@ -384,7 +383,7 @@ void NetworkPrepare::ReadChallengeAnswer(QObject* o){
                 challenge,
                 answer)){
         // XXX(scw): challenge failed message
-        printf("node %d challenge failed\n", node_id);
+        fprintf(stderr, "node %d challenge failed\n", node_id);
         socket->disconnectFromHost();
         delete socket;
         return;

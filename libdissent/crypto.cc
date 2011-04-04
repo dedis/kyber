@@ -144,14 +144,14 @@ bool Crypto::Decrypt(PrivateKey* key, const QByteArray& ctext, QByteArray* msg){
 
 bool Crypto::Sign(PrivateKey* key, const QByteArray& msg, QByteArray* signature){
     Q_ASSERT(key->canSign());
-    *signature = key->signMessage(msg, QCA::EMSA1_SHA1);
+    *signature = key->signMessage(msg, QCA::EMSA3_SHA1);
     return true;
 }
 
 bool Crypto::Verify(PublicKey* key, const QByteArray& msg,
                     const QByteArray& signature){
     Q_ASSERT(key->canVerify());
-    return key->verifyMessage(msg, signature, QCA::EMSA1_SHA1);
+    return key->verifyMessage(msg, signature, QCA::EMSA3_SHA1);
 }
 
 bool Crypto::Hash(const QList<QByteArray>& msgs,
