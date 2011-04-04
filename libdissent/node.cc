@@ -40,13 +40,30 @@ Node::Node(const Configuration& config)
     _network = new Network(&_config);
     _network->setParent(this);
 
-    connect(this, SIGNAL(startIncomingNetwork()),
+    connect(this, SIGNAL(startIncomingNetwork(QString)),
             _network, SLOT(StartIncomingNetwork()));
     connect(this, SIGNAL(stopIncomingNetwork()),
             _network, SLOT(StopIncomingNetwork()));
 }
 
+void Node::RetrieveCurrentData(int max_len, QByteArray* data){
+    if(max_len < 0){
+        *data = _pendingData;
+        _pendingData.clear();
+    }else{
+        *data = _pendingData.left(max_len);
+        _pendingData = _pendingData.mid(max_len);
+    }
+}
+
 void Node::StartProtocol(){
+    if(!_network->IsReady()){
+        connect(_network, SIGNAL(networkReady()),
+                this, SLOT(StartProtocol()), Qt::UniqueConnection);
+        return;
+    }else
+        disconnect(_network, SIGNAL(networkReady()),
+                   this, SLOT(StartProtocol()));
     _impl.reset();
 
     ++_protocolRound;

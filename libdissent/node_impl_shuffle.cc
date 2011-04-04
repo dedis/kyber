@@ -493,17 +493,23 @@ void NodeImplShuffle::PermutationToQByteArray(
 
 NodeImplShuffleOnly::NodeImplShuffleOnly(Node* node)
     : NodeImplShuffle(node){
-    // TODO(scw): snapshot data
+    int data_len = node->GetConfig()->shuffle_msg_length;
+    node->RetrieveCurrentData(data_len, &_data);
+
+    // pad to the required length
+    _data = _data.leftJustified(data_len, '\0');
 }
 
 void NodeImplShuffleOnly::GetShuffleData(QByteArray* data){
-    // TODO(scw)
-    Q_UNUSED(data);
+    *data = _data;
 }
 
 NodeImpl* NodeImplShuffleOnly::GetNextImpl(
         Configuration::ProtocolVersion version){
     Q_ASSERT(version == Configuration::DISSENT_SHUFFLE_ONLY);
+    QList<QByteArray> data;
+    GetShuffledData(&data);
+    _node->SubmitShuffledData(data);
     return 0;
 }
 

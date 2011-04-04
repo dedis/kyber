@@ -49,6 +49,7 @@ class DISSENT_EXPORT Network : public QObject{
   public:
     Network(Configuration* config);
 
+    bool IsReady() const{ return _isReady; }
     void ResetSession(qint32 nonce);
 
     int Send(int node_id, const QByteArray& data);
@@ -94,6 +95,7 @@ class DISSENT_EXPORT Network : public QObject{
 
     NetworkPrepare* _prepare;
 
+    bool _isReady;
     QSignalMapper* _signalMapper;
     QTcpServer _server;
     QMap<int, QTcpSocket*> _clients;
@@ -124,7 +126,7 @@ class NetworkPrepare : public QObject{
                    QTcpServer* server,
                    QMap<int, QTcpSocket*>* sockets);
 
-    bool DoPrepare(const QHostAddress & address, quint16 port);
+    void DoPrepare(const QHostAddress & address, quint16 port);
 
   protected:
     void AddSocket(int node_id, QTcpSocket* socket);

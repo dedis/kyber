@@ -37,34 +37,6 @@
 #include "node_impl_shuffle.hpp"
 
 namespace Dissent{
-class NodeImplInitLeader : public NodeImpl{
-  public:
-    NodeImplInitLeader(Node* node) : NodeImpl(node){}
-
-    virtual bool StartProtocol(int round);
-
-  protected:
-    virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
-};
-
-class NodeImplInit : public NodeImpl{
-  public:
-    NodeImplInit(Node* node, int leader_id)
-        : NodeImpl(node), _leader_id(leader_id){}
-
-    virtual bool StartProtocol(int round);
-
-  protected:
-    virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
-
-  private slots:
-    void Read(int node_id);
-
-  private:
-    int _round;
-    int _leader_id;
-};
-
 NodeImpl* NodeImpl::GetInitLeader(Node* node){
     return new NodeImplInitLeader(node);
 }
@@ -126,8 +98,9 @@ void NodeImpl::NextStep(){
 bool NodeImplInitLeader::StartProtocol(int round){
     const Configuration& config = *_node->GetConfig();
     QByteArray data;
-    if(!config.Serialize(&data))
-        return false;
+    bool r = config.Serialize(&data);
+    Q_ASSERT_X(r, "NodeImplInitLeader::StartProtocol(int)",
+               "Failed serializing configuration");
 
     _node->GetNetwork()->ResetSession(round);
     _node->GetNetwork()->Broadcast(data);
@@ -139,6 +112,9 @@ bool NodeImplInitLeader::StartProtocol(int round){
 NodeImpl* NodeImplInitLeader::GetNextImpl(
         Configuration::ProtocolVersion version){
     switch(version){
+        case Configuration::DISSENT_SHUFFLE_ONLY:
+            return new NodeImplShuffleOnly(_node);
+
         case Configuration::DISSENT_VERSION_1:
             return new NodeImplShuffleMsgDesc(_node);
 

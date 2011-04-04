@@ -70,6 +70,35 @@ class NodeImpl : public QObject{
   private:
     const char* _listeningSlot;
 };
+
+class NodeImplInitLeader : public NodeImpl{
+  public:
+    NodeImplInitLeader(Node* node) : NodeImpl(node){}
+
+    virtual bool StartProtocol(int round);
+
+  protected:
+    virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
+};
+
+class NodeImplInit : public NodeImpl{
+  Q_OBJECT
+  public:
+    NodeImplInit(Node* node, int leader_id)
+        : NodeImpl(node), _leader_id(leader_id){}
+
+    virtual bool StartProtocol(int round);
+
+  protected:
+    virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
+
+  private slots:
+    void Read(int node_id);
+
+  private:
+    int _round;
+    int _leader_id;
+};
 }
 #endif  // _DISSENT_LIBDISSENT_NODE_IMPL_HPP_
 // -*- vim:sw=4:expandtab:cindent:

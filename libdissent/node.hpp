@@ -28,6 +28,7 @@
 #ifndef _DISSENT_LIBDISSENT_NODE_HPP_
 #define _DISSENT_LIBDISSENT_NODE_HPP_ 1
 #include <QObject>
+#include <QByteArray>
 #include <QScopedPointer>
 #include <QString>
 
@@ -47,12 +48,22 @@ class DISSENT_EXPORT Node : public QObject{
     Configuration* GetConfig(){ return &_config; }
     Network* GetNetwork() const{ return _network; }
 
+    void RetrieveCurrentData(int max_len, QByteArray* data);
+    void SubmitShuffledData(const QList<QByteArray>& data){
+        emit shuffledDataReady(data);
+    }
+
   signals:
     void startIncomingNetwork(QString phase);
     void stopIncomingNetwork();
 
+    void shuffledDataReady(const QList<QByteArray>& data);
+
   public slots:
     void StartProtocol();
+    void EnterData(const QByteArray& data){
+        _pendingData.append(data);
+    }
 
     void StartIncomingNetwork(const QString& phase){
         emit startIncomingNetwork(phase);
@@ -70,6 +81,7 @@ class DISSENT_EXPORT Node : public QObject{
     Configuration _config;
     QScopedPointer<NodeImpl> _impl;
     Network* _network;
+    QByteArray _pendingData;
     int _protocolRound;
 };
 }

@@ -45,17 +45,16 @@
 namespace Dissent{
 Network::Network(Configuration* config)
     : _config(config),
+      _isReady(false),
       _inReceivingPhase(false),
       _nonce(-1){
     _prepare = new NetworkPrepare(config, &_server, &_clients);
     connect(_prepare, SIGNAL(networkReady()),
             this, SLOT(NetworkReady()));
 
-    bool r = _prepare->DoPrepare(
+    _prepare->DoPrepare(
             QHostAddress::Any,
             config->nodes[config->my_node_id].port);
-    Q_ASSERT_X(r, "Network::Network(Configuration*)",
-               _server.errorString().toUtf8().data());
 }
 
 void Network::ResetSession(qint32 nonce){
@@ -229,6 +228,7 @@ void Network::NetworkReady(){
                 _signalMapper, SLOT(map()));
         ClientHasReadyRead(it.key());
     }
+    _isReady = true;
     emit networkReady();
 }
 
@@ -263,11 +263,15 @@ NetworkPrepare::NetworkPrepare(Configuration* config,
                                QMap<int, QTcpSocket*>* sockets)
     : _config(config), _server(server), _sockets(sockets) {}
 
-bool NetworkPrepare::DoPrepare(const QHostAddress & address, quint16 port){
+void NetworkPrepare::DoPrepare(const QHostAddress & address, quint16 port){
     connect(_server, SIGNAL(newConnection()),
             this, SLOT(NewConnection()));
-    if(!_server->listen(address, port))
-        return false;
+    bool r = _server->listen(address, port);
+    printf("%s:%d: %s\n",
+           address.toString().toUtf8().data(), port,
+           r ? "true" : "false");
+    Q_ASSERT_X(r, "Network::Network(Configuration*)",
+               _server->errorString().toUtf8().data());
 
     _incomeSignalMapper = new QSignalMapper(this);
     connect(_incomeSignalMapper, SIGNAL(mapped(QObject*)),
@@ -283,7 +287,6 @@ bool NetworkPrepare::DoPrepare(const QHostAddress & address, quint16 port){
             this, SLOT(ReadChallenge(QObject*)));
 
     QTimer::singleShot(1000, this, SLOT(TryConnect()));
-    return true;
 }
 
 void NetworkPrepare::AddSocket(int node_id, QTcpSocket* socket){

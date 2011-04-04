@@ -46,6 +46,9 @@ class NodeImplShuffle : public NodeImpl{
 
   protected:
     virtual void GetShuffleData(QByteArray* data) = 0;
+    void GetShuffledData(QList<QByteArray>* data){
+        *data = _shufflingData;
+    }
 
   private slots:
     void CollectOnetimeKeys(int node_id);
@@ -101,6 +104,9 @@ class NodeImplShuffleOnly : public NodeImplShuffle{
     virtual void GetShuffleData(QByteArray* data);
 
     virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
+
+  private:
+    QByteArray _data;
 };
 
 // Shuffle for version 1: msg_desc includes check sum of the message,
