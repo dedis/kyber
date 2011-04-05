@@ -61,6 +61,7 @@ class DISSENT_EXPORT Node : public QObject{
 
   public slots:
     void StartProtocol();
+    void StopProtocol();  // Stop after current run finishes
     void EnterData(const QByteArray& data){
         _pendingData.append(data);
     }
@@ -74,6 +75,7 @@ class DISSENT_EXPORT Node : public QObject{
 
   private slots:
     void ChangeImpl(NodeImpl* impl);
+    void RestartProtocol();
 
   private:
     void StartProtocolRound();
@@ -83,6 +85,7 @@ class DISSENT_EXPORT Node : public QObject{
     Network* _network;
     QByteArray _pendingData;
     int _protocolRound;
+    bool _protocolStopped;
 };
 }
 #endif  // _DISSENT_LIBDISSENT_NODE_HPP_

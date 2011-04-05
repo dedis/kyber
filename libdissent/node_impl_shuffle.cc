@@ -42,7 +42,7 @@
 #include "network.hpp"
 
 // XXX(scw): handle things better, i.e. revealing NODE_ID
-#define UNEXPECTED(NODE_ID,REASON) qFatal("Node %d malicious: " REASON, NODE_ID)
+#define UNEXPECTED(NODE_ID,REASON) qFatal("Node %d malicious: %s", NODE_ID, REASON)
 
 namespace Dissent{
 // assert(strlen(GoMsgHeader) == strlen(NoGoMsgHeader))
@@ -54,28 +54,42 @@ const char* const NodeImplShuffle::NoGoMsgHeader = "ng";
 // order, although their declarations are grouped by types because of C++
 // syntax.
 bool NodeImplShuffle::StartProtocol(int round){
-    // XXX(scw): to prevent the replay attack in the erratum, either generate
-    //           inner AND outer keys, or save the round number as encryption
-    //           nonce.
     Q_UNUSED(round);
     _node->GetNetwork()->ClearLog();
     _innerKey.reset(Crypto::GetInstance()->GenerateKey(
                 _node->GetConfig()->disposable_key_length));
+    _outerKey.reset(Crypto::GetInstance()->GenerateKey(
+                _node->GetConfig()->disposable_key_length));
     Q_ASSERT_X(_innerKey.data(),
                "NodeImplShuffle::StartProtocol",
                "Cannot generate inner key pair");
+    Q_ASSERT_X(_outerKey.data(),
+               "NodeImplShuffle::StartProtocol",
+               "Cannot generate inner key pair");
+    PublicKey* innerPublicKey = new PublicKey(*_innerKey);
+    PublicKey* outerPublicKey = new PublicKey(*_outerKey);
 
-    QByteArray publicKey;
+    QByteArray innerKeyBA;
+    QByteArray outerKeyBA;
     bool r = Crypto::GetInstance()->SerializePublicKey(
-            PublicKey(*_innerKey), &publicKey);
+            *innerPublicKey, &innerKeyBA);
     Q_ASSERT_X(r, "NodeImplShuffle::StartProtocol",
                   "Cannot serialize inner public key");
-    _node->GetNetwork()->Broadcast(publicKey);
+    r = Crypto::GetInstance()->SerializePublicKey(
+            *outerPublicKey, &outerKeyBA);
+    Q_ASSERT_X(r, "NodeImplShuffle::StartProtocol",
+                  "Cannot serialize outer public key");
+    Q_ASSERT(innerKeyBA.size() == outerKeyBA.size());
+    _node->GetNetwork()->Broadcast(innerKeyBA + outerKeyBA);
 
     // XXX(scw): refactor this out with the last block of DoDataSubmission()
     _innerKeys.clear();
+    _outerKeys.clear();
+    // Giving up ownership of innerPublicKey and outerPublicKey
     _innerKeys.insert(_node->GetConfig()->my_node_id,
-                      QSharedPointer<PublicKey>(new PublicKey(*_innerKey)));
+                      QSharedPointer<PublicKey>(innerPublicKey));
+    _outerKeys.insert(_node->GetConfig()->my_node_id,
+                      QSharedPointer<PublicKey>(outerPublicKey));
     StartListening(SLOT(CollectOnetimeKeys(int)),
                    "Shuffle exchange inner keys");
     return true;
@@ -92,14 +106,28 @@ void NodeImplShuffle::CollectOnetimeKeys(int node_id){
 
     QByteArray data;
     _node->GetNetwork()->Read(node_id, &data);
-    PublicKey* key = Crypto::GetInstance()->DeserializePublicKey(data);
-    if(!key){
+    QByteArray innerKeyBA = data.left(data.size() / 2);
+    QByteArray outerKeyBA = data.mid(data.size() / 2);
+    if(innerKeyBA.size() != outerKeyBA.size()){
         StopListening();
-        UNEXPECTED(node_id, "unable to deserialize inner public key");
+        UNEXPECTED(node_id, "onetime keys format unrecognized");
         return;
     }
 
-    _innerKeys.insert(node_id, QSharedPointer<PublicKey>(key));
+    PublicKey* innerKey =
+        Crypto::GetInstance()->DeserializePublicKey(innerKeyBA);
+    PublicKey* outerKey =
+        Crypto::GetInstance()->DeserializePublicKey(outerKeyBA);
+    if(!innerKey || !outerKey){
+        StopListening();
+        UNEXPECTED(node_id,
+                   innerKey ? "unable to deserialize inner public key"
+                            : "unable to deserialize outer public key");
+        return;
+    }
+
+    _innerKeys.insert(node_id, QSharedPointer<PublicKey>(innerKey));
+    _outerKeys.insert(node_id, QSharedPointer<PublicKey>(outerKey));
     if(_innerKeys.size() == _node->GetConfig()->num_nodes){
         StopListening();
         DoDataSubmission();
@@ -118,55 +146,51 @@ void NodeImplShuffle::DoDataSubmission(){
     Crypto* crypto = Crypto::GetInstance();
 
     // Inner key encryption
+    // QList doesn't provide const_reverse_iterator
     QListIterator<NodeTopology> it(topology);
     it.toBack();
     while(it.hasPrevious()){
         const NodeTopology& node = it.previous();
-        QByteArray result;
 
-        if(node.node_id == my_node_id){
-            PublicKey pub_key(*_innerKey);
-            bool b = crypto->Encrypt(&pub_key, data, &result, 0);
-            Q_ASSERT_X(b,
+        QHash<int, QSharedPointer<PublicKey> >::const_iterator jt =
+            _innerKeys.constFind(node.node_id);
+        Q_ASSERT_X(jt != _innerKeys.constEnd(),
+                   "NodeImplShuffle::DoDataSubmission",
+                   "Missing inner keys in the topology");
+
+        QByteArray result;
+        if(!crypto->Encrypt(jt.value().data(), data, &result, 0)){
+            Q_ASSERT_X(node.node_id != my_node_id,
                        "NodeImplShuffle::DoDataSubmission",
                        "Self inner key encryption failed");
-        }else{
-            QHash<int, QSharedPointer<PublicKey> >::const_iterator jt =
-                _innerKeys.constFind(node.node_id);
-            Q_ASSERT_X(jt != _innerKeys.constEnd(),
-                       "NodeImplShuffle::DoDataSubmission",
-                       "Missing inner keys in the topology");
-
-            if(!crypto->Encrypt(jt.value().data(), data, &result, 0)){
-                UNEXPECTED(node.node_id, "cannot encrypt with inner key");
-                return;
-            }
+            UNEXPECTED(node.node_id, "cannot encrypt with inner key");
+            return;
         }
 
         data = result;
     }
 
     _innerOnionEncryptedData = data;
-    QMap<int, NodeInfo>& nodes = _node->GetConfig()->nodes;
 
-    // Primary key encryption -- randomness must be saved for blaming.
+    // Outer key encryption -- randomness must be saved for blaming.
+    _randomness.clear();
     it.toBack();
     while(it.hasPrevious()){
         const NodeTopology& node = it.previous();
         QByteArray result;
         QByteArray randomness;
 
-        QMap<int, NodeInfo>::iterator jt = nodes.find(node.node_id);
-        Q_ASSERT_X(jt != nodes.constEnd(),
-                  "NodeImplShuffle::DoDataSubmission",
-                  "Missing primary keys in the topology");
+        QHash<int, QSharedPointer<PublicKey> >::const_iterator jt =
+            _outerKeys.constFind(node.node_id);
+        Q_ASSERT_X(jt != _outerKeys.constEnd(),
+                   "NodeImplShuffle::DoDataSubmission",
+                   "Missing inner keys in the topology");
 
-        if(!crypto->Encrypt(&jt.value().identity_pk, data,
-                            &result, &randomness)){
+        if(!crypto->Encrypt(jt.value().data(), data, &result, &randomness)){
             Q_ASSERT_X(node.node_id != my_node_id,
                        "NodeImplShuffle::DoDataSubmission",
-                       "Self primary key encryption failed");
-            UNEXPECTED(node.node_id, "cannot encrypt with primary key");
+                       "Self outer key encryption failed");
+            UNEXPECTED(node.node_id, "cannot encrypt with outer key");
             return;
         }
 
@@ -247,10 +271,9 @@ void NodeImplShuffle::DoAnonymization(){
     for(QList<QByteArray>::iterator it = _shufflingData.begin();
         it != _shufflingData.end(); ++it){
         QByteArray decrypted;
-        if(!Crypto::GetInstance()->Decrypt(
-                &config.identity_sk, *it, &decrypted)){
+        if(!Crypto::GetInstance()->Decrypt(_outerKey.data(), *it, &decrypted)){
             UNEXPECTED(config.my_position.prev_node_id,
-                       "unable to decrypt with own innerkey");
+                       "unable to decrypt with own outer key");
             return;
         }
         *it = decrypted;
@@ -297,25 +320,29 @@ void NodeImplShuffle::CheckPermutation(const QList<QByteArray>& permutation){
     const Configuration& config = *_node->GetConfig();
 
     // XXX(scw): Doing this instead of the simple "foreach network log which
-    // is broadcast append to broadcast" because of the possible reshuffle of
-    // broadcast messages. If this should not happen in the protocol, we
-    // should make it so and get rid of this.
+    // is broadcast append to broadcast" because of the possible reorder of
+    // broadcast messages. If this should not happen in the protocol, e.g.
+    // using atomic broadcast, we should make it so and get rid of this.
     QList<QByteArray> broadcasts;
-    for(int i = 0; i < config.topology.size(); ++i)
+    QMap<int, int> broadcast_slot_map;
+    foreach(const NodeTopology& node, config.topology){
         // allocate spaces for mu_11 ~ mu_N1
+        broadcast_slot_map.insert(node.node_id, broadcasts.size());
         broadcasts.push_back(QByteArray());
+    }
     foreach(const Network::LogEntry& entry, _node->GetNetwork()->GetLog()){
         int node_id = -1;
         if(entry.dir == Network::LogEntry::BROADCAST_SEND)
             node_id = config.my_node_id;
-        else if(entry.dir != Network::LogEntry::BROADCAST_RECV)
+        else if(entry.dir == Network::LogEntry::BROADCAST_RECV)
             node_id = entry.node_id;
         else
             continue;
 
-        if(broadcasts[node_id].isNull())
-            broadcasts[node_id] = entry.data;
-        else{
+        int slot = broadcast_slot_map[node_id];
+        if(broadcasts[slot].isNull()){
+            broadcasts[slot] = entry.data;
+        }else{
             Q_ASSERT_X(node_id == config.topology.back().node_id,
                        "NodeImplShuffle::CheckPermutation",
                        "Unexpected node gave us two broadcasts");
@@ -358,8 +385,9 @@ void NodeImplShuffle::CollectGoNg(int node_id){
     if(_dataCollected.size() == _node->GetConfig()->num_nodes){
         StopListening();
 
-        TryDecrypt(_dataCollected);
+        QHash<int, QByteArray> go_nogo_data = _dataCollected;
         _dataCollected.clear();  // GC
+        TryDecrypt(go_nogo_data);
     }
 }
 
@@ -412,8 +440,9 @@ void NodeImplShuffle::CollectInnerKeys(int node_id){
     if(_dataCollected.size() == _node->GetConfig()->num_nodes){
         StopListening();
 
-        DoDecryption(_dataCollected);
+        QHash<int, QByteArray> inner_keys = _dataCollected;
         _dataCollected.clear();  // GC
+        DoDecryption(inner_keys);
     }
 }
 
@@ -437,7 +466,7 @@ void NodeImplShuffle::DoDecryption(
         PrivateKey* private_key =
             inner_private_keys.value(node.node_id).data();
         if(node.node_id != config.my_node_id &&
-           crypto->CheckKeyPair(*private_key, *_innerKeys.value(node.node_id))){
+           !crypto->CheckKeyPair(*private_key, *_innerKeys.value(node.node_id))){
             UNEXPECTED(node.node_id, "inner key pair does not match");
             return;
         }
@@ -454,6 +483,9 @@ void NodeImplShuffle::DoDecryption(
             *it = decrypted;
         }
     }
+
+    // Now the shuffle is finally done.
+    NextStep();
 }
 
 void NodeImplShuffle::Blame(int node_id){
@@ -484,12 +516,12 @@ void NodeImplShuffle::PermutationToQByteArray(
         QByteArray* byte_array){
     Q_ASSERT(permutation.length() > 0);
 
-    int data_length = permutation.front().length();
+    int chunk_length = permutation.front().length();
     foreach(const QByteArray& chunk, permutation)
-        Q_ASSERT(chunk.length() == data_length);
+        Q_ASSERT(chunk.length() == chunk_length);
 
     byte_array->clear();
-    QByteArrayUtil::AppendInt(data_length, byte_array);
+    QByteArrayUtil::AppendInt(chunk_length, byte_array);
     foreach(const QByteArray& chunk, permutation)
         byte_array->append(chunk);
 }

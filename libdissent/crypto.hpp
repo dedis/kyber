@@ -58,6 +58,7 @@ class Crypto{
 
     // callers are responsable of delete'ing returned key
     PrivateKey* GenerateKey(int length);
+    // Returns true if the two keys are indeed a pair of public-private key
     bool CheckKeyPair(const PrivateKey& private_key,
                       const PublicKey& public_key);
 

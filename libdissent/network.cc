@@ -99,8 +99,9 @@ int Network::Broadcast(const QByteArray& data){
                        "Network::Broadcast",
                        (const char*) QString("socket[%1] wrong state")
                        .arg(node.node_id).toUtf8().data());
-            socket->write(plaintext);
-            socket->write(sig);
+            int w_count = socket->write(plaintext);
+            w_count += socket->write(sig);
+            Q_ASSERT(w_count == plaintext.size() + sig.size());
         }
 
     LogEntry log = { LogEntry::BROADCAST_SEND, -1, data, sig, true };
@@ -110,13 +111,16 @@ int Network::Broadcast(const QByteArray& data){
 
 int Network::Read(int node_id, QByteArray* data){
     QList<Buffer>& buffer = _buffers[node_id];
-    if(buffer.size() == 0 || buffer.front().status != Buffer::DONE)
-        return 0;
-    const Buffer& buf = buffer.front();
-    *data = buf.entry.data;
-    _log.push_back(buf.entry);
-    buffer.pop_front();  // now we can drop it from buffer
-    return 1;
+    while(buffer.size() > 0 && buffer.front().status == Buffer::DONE){
+        const Buffer& buf = buffer.front();
+        const bool valid = buf.entry.valid;
+        *data = buf.entry.data;
+        _log.push_back(buf.entry);
+        buffer.pop_front();  // now we can drop it from buffer
+        if(valid)
+            return 1;
+    }
+    return 0;
 }
 
 void Network::PrepareMessage(int type, const QByteArray& data,
@@ -152,6 +156,10 @@ bool Network::ValidateLogEntry(LogEntry* entry){
     bool valid_dir = (entry->dir == LogEntry::SEND ||
                       entry->dir == LogEntry::BROADCAST_SEND);
     bool valid_nonce = (nonce == _nonce);
+    if(entry->dir == LogEntry::SEND)
+        entry->dir = LogEntry::RECV;
+    else if(entry->dir == LogEntry::BROADCAST_SEND)
+        entry->dir = LogEntry::BROADCAST_RECV;
 
     return entry->valid = (valid_sig && valid_dir && valid_nonce);
 }
@@ -187,15 +195,22 @@ void Network::ClientHasReadyRead(int node_id){
             buf.entry.data = socket->read(buf.data_len);
             buf.status = Buffer::DATA_DONE;
             // fall through
+            // fprintf(stderr, "<%d> %s\n", node_id, (char*) buf.entry.data.toHex().data());
 
         case Buffer::DATA_DONE:
             if(socket->bytesAvailable() < buf.sig_len)
                 break;
             buf.entry.signature = socket->read(buf.sig_len);
-            buf.status = Buffer::DONE;
             buf.entry.node_id = node_id;
-            if(ValidateLogEntry(&buf.entry) && _inReceivingPhase)
+            buf.status = Buffer::DONE;
+            // fprintf(stderr, "s%d> %s\n", node_id, (char*) buf.entry.signature.toHex().data());
+            if(!ValidateLogEntry(&buf.entry)){
+                fprintf(stderr,
+                        "Package from node %d cannot be validated\n"
+                        ">> %s", node_id, buf.entry.data.toHex().data());
+            }else if(_inReceivingPhase){
                 emit readyRead(node_id);
+            }
             break;
 
         default:

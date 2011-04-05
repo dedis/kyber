@@ -36,7 +36,7 @@
 
 namespace Dissent{
 Node::Node(const Configuration& config)
-    : _config(config), _protocolRound(-1){
+    : _config(config), _protocolRound(-1), _protocolStopped(true){
     _network = new Network(&_config);
     _network->setParent(this);
 
@@ -57,6 +57,7 @@ void Node::RetrieveCurrentData(int max_len, QByteArray* data){
 }
 
 void Node::StartProtocol(){
+    _protocolStopped = false;
     if(!_network->IsReady()){
         connect(_network, SIGNAL(networkReady()),
                 this, SLOT(StartProtocol()), Qt::UniqueConnection);
@@ -70,13 +71,29 @@ void Node::StartProtocol(){
     StartProtocolRound();
 }
 
+void Node::StopProtocol(){
+    _protocolStopped = true;
+}
+
 void Node::ChangeImpl(NodeImpl* impl){
+    if(_protocolStopped){
+        _impl.reset(0);
+        delete impl;
+        return;
+    }
     _impl.reset(impl);
     connect(impl, SIGNAL(StepDone(NodeImpl*)),
             this, SLOT(ChangeImpl(NodeImpl*)));
     connect(impl, SIGNAL(ProtocolFinished()),
-            this, SLOT(StartProtocol()));
+            this, SLOT(RestartProtocol()));
     impl->StartProtocol(_protocolRound);
+}
+
+void Node::RestartProtocol(){
+    if(!_protocolStopped)
+        StartProtocol();
+    else
+        _impl.reset();
 }
 
 void Node::StartProtocolRound(){
