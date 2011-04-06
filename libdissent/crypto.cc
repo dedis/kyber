@@ -33,7 +33,17 @@
 
 namespace Dissent{
 Crypto* Crypto::_instance;
-int Crypto::AESKeyLength = 32;  // bytes
+const int Crypto::AESKeyLength;
+
+class IncrementalHashImpl : public Crypto::IncrementalHash{
+  public:
+    IncrementalHashImpl() : _impl("sha1"){}
+    virtual void Update(const QByteArray& data);
+    virtual void CurrentHash(QByteArray* value);
+
+  private:
+    QCA::Hash _impl;
+};
 
 Crypto::Crypto() : _init(){
     Q_ASSERT(QCA::isSupported("sha1"));
@@ -161,6 +171,19 @@ bool Crypto::Hash(const QList<QByteArray>& msgs,
         shaHash.update(msg);
     *hash = shaHash.final().toByteArray();
     return true;
+}
+
+Crypto::IncrementalHash* GetIncrementalHash(){
+    return new IncrementalHashImpl();
+}
+
+void IncrementalHashImpl::Update(const QByteArray& data){
+    _impl.update(data);
+}
+
+void IncrementalHashImpl::CurrentHash(QByteArray* value){
+    QCA::Hash snapshot = _impl;
+    *value = snapshot.final().toByteArray();
 }
 }
 // -*- vim:sw=4:expandtab:cindent:

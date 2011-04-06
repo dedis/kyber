@@ -26,6 +26,10 @@
  */
 #ifndef _DISSENT_LIBDISSENT_RANDOMUTIL_HPP_
 #define _DISSENT_LIBDISSENT_RANDOMUTIL_HPP_ 1
+#include <QtCrypto>
+#include <QByteArray>
+#include <QScopedPointer>
+
 #include "dissent_global.hpp"
 
 namespace Dissent{
@@ -51,7 +55,30 @@ class Random{
 };
 
 class PRNG{
-    // TODO(scw)
+  private:
+    static const int AESKeyLength = 32;  // bytes
+    static const int AESBlockSize = 16;
+
+  public:
+    typedef QByteArray Seed;
+    static const int SeedLength = PRNG::AESKeyLength + PRNG::AESBlockSize;
+
+    PRNG(Seed seed);
+
+    quint32 GetInt();
+
+    // Range: [0, bound)
+    quint32 GetInt(quint32 bound);
+
+    void GetBlock(int length, char* buf);
+
+
+  private:
+    void Generate(int bytes);
+
+    qulonglong _counter;
+    QScopedPointer<QCA::Cipher> _cipher;
+    QByteArray _buffer;
 };
 }
 #endif  // _DISSENT_LIBDISSENT_RANDOMUTIL_HPP_

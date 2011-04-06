@@ -90,6 +90,14 @@ class Crypto{
     bool Hash(const QList<QByteArray>& msgs,
               QByteArray* hash);
 
+    class IncrementalHash{
+      public:
+        virtual void Update(const QByteArray& data) = 0;
+        virtual void CurrentHash(QByteArray* value) = 0;
+    };
+
+    IncrementalHash* GetIncrementalHash();
+
   private:
     Crypto();
 
@@ -97,7 +105,7 @@ class Crypto{
     QCA::Initializer _init;
     QScopedPointer<QCA::Cipher> _cipher;
 
-    static int AESKeyLength;
+    static const int AESKeyLength = 32;  // bytes
 };
 }
 #endif  // _DISSENT_LIBDISSENT_CRYPTO_HPP_

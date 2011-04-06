@@ -129,6 +129,7 @@ void NodeImplShuffle::CollectOnetimeKeys(int node_id){
     _innerKeys.insert(node_id, QSharedPointer<PublicKey>(innerKey));
     _outerKeys.insert(node_id, QSharedPointer<PublicKey>(outerKey));
     if(_innerKeys.size() == _node->GetConfig()->num_nodes){
+        Q_ASSERT(_innerKeys.size() == _outerKeys.size());
         StopListening();
         DoDataSubmission();
     }
