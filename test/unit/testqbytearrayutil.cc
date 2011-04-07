@@ -28,7 +28,7 @@
 #include <QtTest/QtTest>
 #include <QSharedPointer>
 
-#include "../libdissent/QByteArrayUtil.hpp"
+#include "../../libdissent/QByteArrayUtil.hpp"
 
 namespace Dissent {
 
