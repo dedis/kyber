@@ -28,7 +28,7 @@
 #include <QtTest/QtTest>
 #include <QtCrypto>
 
-#include "../libdissent/random_util.hpp"
+#include "../../libdissent/random_util.hpp"
 
 namespace Dissent {
 

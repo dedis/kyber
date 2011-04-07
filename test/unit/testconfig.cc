@@ -27,7 +27,7 @@
 
 #include <QtTest/QtTest>
 
-#include "../libdissent/config.hpp"
+#include "../../libdissent/config.hpp"
 
 namespace Dissent {
 
