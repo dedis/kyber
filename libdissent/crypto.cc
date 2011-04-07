@@ -173,7 +173,7 @@ bool Crypto::Hash(const QList<QByteArray>& msgs,
     return true;
 }
 
-Crypto::IncrementalHash* GetIncrementalHash(){
+Crypto::IncrementalHash* Crypto::GetIncrementalHash(){
     return new IncrementalHashImpl();
 }
 
@@ -182,8 +182,10 @@ void IncrementalHashImpl::Update(const QByteArray& data){
 }
 
 void IncrementalHashImpl::CurrentHash(QByteArray* value){
-    QCA::Hash snapshot = _impl;
-    *value = snapshot.final().toByteArray();
+    QCA::MemoryRegion val = _impl.final();
+    _impl.clear();
+    _impl.update(val);
+    *value = val.toByteArray();
 }
 }
 // -*- vim:sw=4:expandtab:cindent:

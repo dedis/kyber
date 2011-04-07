@@ -93,7 +93,24 @@ class Crypto{
     class IncrementalHash{
       public:
         virtual void Update(const QByteArray& data) = 0;
+
+        // Note that
+        //   ihash.Update(a); ihash.Update(b); ihash.CurrentHash(&res);
+        // is equivalent to
+        //   ihash.Update(a + b); ihash.CurrentHash(&res);
+        // which can also be done by using the one-step function
+        //   crypto.Hash({a, b}, &res);
+        // but not
+        //   ihash.Update(a); ihash.CurrentHash(&res1);
+        //   ihash.Update(b); ihash.CurrentHash(&res);
+        //
+        // CurrentHash() has to restart the hashing buf still making sure
+        // that the following hash values still depend on the previous value.
+        // So that the last calling sequence is still be different from
+        //   crypto.Hash({a}, &res1);
+        //   crypto.Hash({b}, &res);
         virtual void CurrentHash(QByteArray* value) = 0;
+        virtual ~IncrementalHash(){}
     };
 
     IncrementalHash* GetIncrementalHash();
