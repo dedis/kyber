@@ -4,5 +4,7 @@ GENERAL
 CONFIG
 1. How to configure CONFIG+=debug on Mac?
 
-crypto
+PROBLEM
+1. crypto.cc: IncrementalHashImpl::Update or CurrentHash crashes when called for
+   multiple times.
 

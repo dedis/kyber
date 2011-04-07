@@ -173,7 +173,7 @@ bool Crypto::Hash(const QList<QByteArray>& msgs,
     return true;
 }
 
-Crypto::IncrementalHash* GetIncrementalHash(){
+Crypto::IncrementalHash* Crypto::GetIncrementalHash(){
     return new IncrementalHashImpl();
 }
 
