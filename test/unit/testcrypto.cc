@@ -179,13 +179,15 @@ void TestCrypto::TestGetIncrementalHash() {
   QByteArray expected;
   QByteArray actual;
   
-  // XXX(fh): i should be from [0, kSize). Crash issue in hash->Update or
-  // hash->CurrentHash
-  for (int i = 0; i < 1; ++i) {
-    hash->Update(parts[0]);
+  for (int i = 0; i < kSize; ++i) {
+    hash->Update(parts[i]);
     hash->CurrentHash(&actual);
-    msgs.append(parts[0]);
+
+    msgs.append(parts[i]);
     crypto_->Hash(msgs, &expected);
+    msgs.clear();
+    msgs.append(expected);
+
     QCOMPARE(actual, expected);
   }
 }
