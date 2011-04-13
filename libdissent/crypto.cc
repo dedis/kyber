@@ -173,6 +173,13 @@ bool Crypto::Hash(const QList<QByteArray>& msgs,
     return true;
 }
 
+bool Crypto::HashOne(const QByteArray& msg,
+                     QByteArray* hash){
+    QCA::Hash shaHash("sha1");
+    *hash = shaHash.hash(msg).toByteArray();
+    return true;
+}
+
 Crypto::IncrementalHash* Crypto::GetIncrementalHash(){
     return new IncrementalHashImpl();
 }

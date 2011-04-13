@@ -46,8 +46,11 @@ class NodeImplShuffle : public NodeImpl{
 
   protected:
     virtual void GetShuffleData(QByteArray* data) = 0;
-    void GetShuffledData(QList<QByteArray>* data){
-        *data = _shufflingData;
+    void GetShuffledData(QList<QByteArray>* data, int* position){
+        if(data)
+            *data = _shufflingData;
+        if(position)
+            *position = _myShuffledPosition;
     }
 
   private slots:
@@ -95,6 +98,7 @@ class NodeImplShuffle : public NodeImpl{
     QHash<int, QByteArray> _dataCollected;
 
     QList<QByteArray> _shufflingData;
+    int _myShuffledPosition;
 };
 
 class NodeImplShuffleOnly : public NodeImplShuffle{
@@ -113,15 +117,25 @@ class NodeImplShuffleOnly : public NodeImplShuffle{
 
 // Shuffle for version 1: msg_desc includes check sum of the message,
 // encrypted seeds, and hashes of seeds
+class NodeImplBulkSend;
+namespace BulkSend{
+    class MessageDescriptor;
+}
+
 class NodeImplShuffleMsgDesc : public NodeImplShuffle{
   Q_OBJECT
   public:
     NodeImplShuffleMsgDesc(Node* node);
+    virtual ~NodeImplShuffleMsgDesc();
 
   protected:
     virtual void GetShuffleData(QByteArray* data);
 
     virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
+
+  private:
+    QByteArray _data;
+    BulkSend::MessageDescriptor* _desc;
 };
 
 // Shuffle for version 2: bulk_desc includes encrypted seeds and the
@@ -134,15 +148,6 @@ class NodeImplShuffleBulkDesc : public NodeImplShuffle{
   protected:
     virtual void GetShuffleData(QByteArray* data);
 
-    virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
-};
-
-class NodeImplBulkSend : public NodeImpl{
-  Q_OBJECT
-  public:
-    NodeImplBulkSend(Node* node) : NodeImpl(node){}
-
-    virtual bool StartProtocol(int round);
     virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
 };
 }

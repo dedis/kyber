@@ -55,10 +55,13 @@ class DISSENT_EXPORT Network : public QObject{
     int Send(int node_id, const QByteArray& data);
     int Broadcast(const QByteArray& data);
 
+    int MulticastXor(const QByteArray& data);
+
+    static const int MulticastNodeId = -1;
     int Read(int node_id, QByteArray* data);
 
     struct LogEntry{
-        enum Dir{ SEND, RECV, BROADCAST_SEND, BROADCAST_RECV }dir;
+        enum Dir{ SEND, RECV, BROADCAST_SEND, BROADCAST_RECV, MULTICAST }dir;
         int node_id;  // receiver, sender, undefined, or sender according to dir
         // XXX(scw): accumulative hash value
         QByteArray data;
