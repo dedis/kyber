@@ -28,104 +28,42 @@
 #include <QtGui>
 
 #include "mainwindow.h"
-
-namespace {
-
-class MessageTableModel : public QAbstractTableModel {
-  Q_OBJECT
-
- public:
-  MessageTableModel(QObject *parent = 0);
-
-  int rowCount(const QModelIndex &parent) const;
-  int columnCount(const QModelIndex &parent) const;
-  QVariant data(const QModelIndex &index, int role) const;
-  QVariant headerData(int section, Qt::Orientation orientation, int role) const;
-  bool insertRows(int position, int rows, 
-                  const QModelIndex &index = QModelIndex());
-  bool removeRows(int position, int rows,
-                  const QModelIndex &index = QModelIndex());
- 
- private:
-  QList<QString> message_queue_;
-};
-
-MessageTableModel::MessageTableModel(QObject *parent) 
-  : QAbstractTableModel(parent) {}
-  
-int MessageTableModel::rowCount(const QModelIndex &parent) const {
-  Q_UNUSED(parent);
-  return message_queue_.size();
-}
-
-int MessageTableModel::columnCount(const QModelIndex &parent) const {
-  Q_UNUSED(parent);
-  return 1;
-}
-
-QVariant MessageTableModel::data(const QModelIndex &index, int role) const {
-  if (!index.isValid()) 
-    return QVariant();
-
-  if (index.row() >= message_queue_.size() || index.row() < 0) 
-    return QVariant();
-
-  if (role == Qt::DisplayRole) {
-    return message_queue_[index.row()];
-  }
-
-  return QVariant();
-}
-
-QVariant MessageTableModel::headerData(int section, 
-                                       Qt::Orientation orientation, int role) {
-  if (role != Qt::DisplayRole)
-    return QVariant();
-
-  if (orientation == Qt::Horizontal) {
-    if (section == 0)
-      return tr("Queued Messages");
-  }
-
-  return QVariant();
-}
-
-bool MessageTableModel::insertRows(int position, int rows, 
-                                   const QModelIndex &index) {
-  Q_UNUSED(index);
-  beginInsertRows(QModelIndex(), position, position+rows-1);
-
-  endInsertRows();
-  return true;
-}
-
-bool MessageTableModel::removeRows(int position, int rows,
-                                   const QModelIndex &index = QModelIndex());
-  Q_UNUSED(index);
-  beginRemoveRows(QModelIndex(), position, position+rows-1);
-
-  endRemoveRows();
-  return true;
-}
+#include "messagetablemodel.h"
 
 namespace Dissent {
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   setupUi(this);
 
-  // configure slot-signals
-  connect(inputLineEdit, SIGNAL(returnPressed()), sendButton, SLOT(clicked())); 
+  queued_message_model_ = new MessageTableModel;
+  queuedMsgView->setModel(queued_message_model_);
+  queuedMsgView->horizontalHeader()->setStretchLastSection(true);
+  queuedMsgView->verticalHeader()->hide();
+  
 }
 
 void MainWindow::on_inputLineEdit_textChanged() {
   sendButton->setEnabled(!inputLineEdit->text().isEmpty());
 }
 
+void MainWindow::on_inputLineEdit_returnPressed() {
+  SubmitMessage(inputLineEdit->text());
+}
+
 void MainWindow::on_sendButton_clicked() {
-  QString input = sendButton->text();
-  if (!input.isEmpty()) {
-    message_queue_.push_back(input);
-  }
+  SubmitMessage(inputLineEdit->text());
+}
+
+void MainWindow::SubmitMessage(const QString &msg) {
+  if (msg.isEmpty())
+    return;
+
+  int size = queued_message_model_->queue_size();
+  queued_message_model_->insertRows(size, 1, QModelIndex());
+  QModelIndex index = queued_message_model_->index(size, 0, QModelIndex());
+  queued_message_model_->setData(index, msg, Qt::EditRole);
+
+  inputLineEdit->clear();
 }
 
 }

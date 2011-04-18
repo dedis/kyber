@@ -36,6 +36,8 @@
 
 namespace Dissent {
 
+class MessageTableModel;
+
 class MainWindow : public QMainWindow, public Ui::MainWindow {
   Q_OBJECT
 
@@ -44,10 +46,13 @@ class MainWindow : public QMainWindow, public Ui::MainWindow {
 
  private slots:
   void on_inputLineEdit_textChanged();
+  void on_inputLineEdit_returnPressed();
   void on_sendButton_clicked();
 
+  void SubmitMessage(const QString &msg);
+
  private:
-  QList<QString> message_queue_; // store local queued messages
+  MessageTableModel *queued_message_model_;
 };
 
 }
