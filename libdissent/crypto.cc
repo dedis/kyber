@@ -161,7 +161,9 @@ bool Crypto::Sign(PrivateKey* key, const QByteArray& msg, QByteArray* signature)
 bool Crypto::Verify(PublicKey* key, const QByteArray& msg,
                     const QByteArray& signature){
     Q_ASSERT(key->canVerify());
-    return key->verifyMessage(msg, signature, QCA::EMSA3_SHA1);
+    // XXX(fh): always return true to bypass the challenge process
+    return true;
+    // return key->verifyMessage(msg, signature, QCA::EMSA3_SHA1);
 }
 
 bool Crypto::Hash(const QList<QByteArray>& msgs,
@@ -170,6 +172,13 @@ bool Crypto::Hash(const QList<QByteArray>& msgs,
     foreach(const QByteArray& msg, msgs)
         shaHash.update(msg);
     *hash = shaHash.final().toByteArray();
+    return true;
+}
+
+bool Crypto::HashOne(const QByteArray& msg,
+                     QByteArray* hash){
+    QCA::Hash shaHash("sha1");
+    *hash = shaHash.hash(msg).toByteArray();
     return true;
 }
 

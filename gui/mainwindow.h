@@ -1,7 +1,7 @@
-/* libdissent/config.cc
-   Node configuration data definition.
+/* gui/mainwindow.h
+   Main window for GUI.
 
-   Author: Shu-Chun Weng <scweng _AT_ cs .DOT. yale *DOT* edu>
+   Author: Fei Huang <felix.fei.huang@gmail.com>
  */
 /* ====================================================================
  * Dissent: Accountable Group Anonymity
@@ -24,29 +24,26 @@
  *   51 Franklin Street, Fifth Floor,
  *   Boston, MA  02110-1301  USA
  */
-#include "config.hpp"
 
-namespace Dissent{
-Configuration::Configuration(){
+#ifndef _DISSENT_GUI_MAINWINDOW_H_
+#define _DISSENT_GUI_MAINWINDOW_H_
+
+#include <QDialog>
+
+#include "ui_mainwindow.h"
+
+namespace Dissent {
+
+class MainWindow : public QMainWindow, public Ui::MainWindow {
+  Q_OBJECT
+
+ public:
+  MainWindow(QWidget *parent = 0);
+
+ private slots:
+  void on_inputLineEdit_textChanged();
+};
+
 }
 
-Configuration::Configuration(int argc, char* argv[]){
-}
-
-bool Configuration::Serialize(QByteArray* byte_array) const{
-    byte_array->clear();
-    // not implemented yet
-    // return false;
-    // XXX(fh): always return true to bypass serialization
-    return true;
-}
-
-bool Configuration::Deserialize(const QByteArray& byte_array){
-    // not implemented yet
-    // return false;
-    // (void) byte_array;
-    // XXX(fh): always return true to bypass deserialization
-    return true;
-}
-}
-// -*- vim:sw=4:expandtab:cindent:
+#endif

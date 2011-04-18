@@ -34,12 +34,15 @@
 #include <QMap>
 
 #include "QByteArrayUtil.hpp"
-
 #include "config.hpp"
 #include "crypto.hpp"
 #include "random_util.hpp"
 #include "node.hpp"
 #include "network.hpp"
+#include "node_impl_bulk.hpp"
+
+// XXX(fh)
+#include <QtDebug>
 
 // XXX(scw): handle things better, i.e. revealing NODE_ID
 #define UNEXPECTED(NODE_ID,REASON) qFatal("Node %d malicious: %s", NODE_ID, REASON)
@@ -138,6 +141,8 @@ void NodeImplShuffle::CollectOnetimeKeys(int node_id){
 void NodeImplShuffle::DoDataSubmission(){
     QByteArray data;
     GetShuffleData(&data);
+    qDebug() << data.length() << "\n"
+             << _node->GetConfig()->shuffle_msg_length;
     Q_ASSERT_X(data.length() == _node->GetConfig()->shuffle_msg_length,
                "NodeImplShuffle::DoDataSubmission",
                "Data being shuffled has length different from config");
@@ -242,7 +247,7 @@ void NodeImplShuffle::CollectShuffleData(int node_id){
 
 void NodeImplShuffle::ReceiveShuffleData(int node_id){
     const Configuration& config = *_node->GetConfig();
-    if(node_id != config.my_position.prev_node_id)
+    if(node_id != config.topology[config.my_position].prev_node_id)
         return;
     QByteArray all_data;
     _node->GetNetwork()->Read(node_id, &all_data);
@@ -260,6 +265,7 @@ void NodeImplShuffle::ReceiveShuffleData(int node_id){
 void NodeImplShuffle::DoAnonymization(){
     Configuration& config = *_node->GetConfig();
     Random* rand = Random::GetInstance();
+    const NodeTopology& position = config.topology[config.my_position];
 
     // Shuffle
     for(int i = _shufflingData.length() - 1; i > 0; --i){
@@ -273,7 +279,7 @@ void NodeImplShuffle::DoAnonymization(){
         it != _shufflingData.end(); ++it){
         QByteArray decrypted;
         if(!Crypto::GetInstance()->Decrypt(_outerKey.data(), *it, &decrypted)){
-            UNEXPECTED(config.my_position.prev_node_id,
+            UNEXPECTED(position.prev_node_id,
                        "unable to decrypt with own outer key");
             return;
         }
@@ -282,11 +288,11 @@ void NodeImplShuffle::DoAnonymization(){
 
     QByteArray byte_array;
     PermutationToQByteArray(_shufflingData, &byte_array);
-    if(config.my_position.next_node_id == -1){
+    if(position.next_node_id == -1){
         _node->GetNetwork()->Broadcast(byte_array);
         CheckPermutation(_shufflingData);
     }else{
-        _node->GetNetwork()->Send(config.my_position.next_node_id, byte_array);
+        _node->GetNetwork()->Send(position.next_node_id, byte_array);
         StartListening(SLOT(ReceiveFinalPermutation(int)),
                        "Receive final permutation");
     }
@@ -310,16 +316,18 @@ void NodeImplShuffle::ReceiveFinalPermutation(int node_id){
 }
 
 void NodeImplShuffle::CheckPermutation(const QList<QByteArray>& permutation){
-    bool found = false;
-    foreach(const QByteArray& data, permutation)
-        if(data == _innerOnionEncryptedData){
-            found = true;
-            break;
+    const Configuration& config = *_node->GetConfig();
+    _myShuffledPosition = -1;
+    if(permutation.size() == config.num_nodes){
+        for(int i = 0; i < permutation.size(); ++i){
+            if(permutation[i] == _innerOnionEncryptedData){
+                _myShuffledPosition = i;
+                break;
+            }
         }
+    }
 
     // Construct GO/NO-GO message
-    const Configuration& config = *_node->GetConfig();
-
     // XXX(scw): Doing this instead of the simple "foreach network log which
     // is broadcast append to broadcast" because of the possible reorder of
     // broadcast messages. If this should not happen in the protocol, e.g.
@@ -359,7 +367,7 @@ void NodeImplShuffle::CheckPermutation(const QList<QByteArray>& permutation){
     Q_ASSERT_X(r, "NodeImplShuffle::CheckPermutation",
                   "Broadcast messages hashing failed");
 
-    QByteArray msg(found ? GoMsgHeader : NoGoMsgHeader);
+    QByteArray msg(_myShuffledPosition >= 0 ? GoMsgHeader : NoGoMsgHeader);
     msg.append(bc_hash);
 
     _node->GetNetwork()->Broadcast(msg);
@@ -544,25 +552,45 @@ NodeImpl* NodeImplShuffleOnly::GetNextImpl(
         Configuration::ProtocolVersion version){
     Q_ASSERT(version == Configuration::DISSENT_SHUFFLE_ONLY);
     QList<QByteArray> data;
-    GetShuffledData(&data);
+    GetShuffledData(&data, 0);
     _node->SubmitShuffledData(data);
     return 0;
 }
 
 NodeImplShuffleMsgDesc::NodeImplShuffleMsgDesc(Node* node)
-    : NodeImplShuffle(node){
-    // TODO(scw): snapshot data
+    : NodeImplShuffle(node), _desc(0){
+    node->RetrieveCurrentData(-1, &_data);
 }
 
 void NodeImplShuffleMsgDesc::GetShuffleData(QByteArray* data){
-    // TODO(scw)
-    Q_UNUSED(data);
+    _desc = new BulkSend::MessageDescriptor(_node->GetConfig());
+    _desc->Initialize(_data);
+    _desc->Serialize(data);
 }
 
 NodeImpl* NodeImplShuffleMsgDesc::GetNextImpl(
         Configuration::ProtocolVersion version){
     Q_ASSERT(version == Configuration::DISSENT_VERSION_1);
-    return new NodeImplBulkSend(_node);
+    QList<QByteArray> shuffledData;
+    int index;
+    GetShuffledData(&shuffledData, &index);
+
+    QList<BulkSend::MessageDescriptor> descriptors;
+    BulkSend::MessageDescriptor desc(_node->GetConfig());
+    for(int i = 0; i < shuffledData.size(); ++i){
+        if(i == index)
+            descriptors.push_back(*_desc);
+        else{
+            desc.Deserialize(shuffledData[i]);
+            descriptors.push_back(desc);
+        }
+    }
+    return new NodeImplBulkSend(_node, _data, descriptors);
+}
+
+NodeImplShuffleMsgDesc::~NodeImplShuffleMsgDesc(){
+    delete _desc;
+    _desc = 0;
 }
 
 void NodeImplShuffleBulkDesc::GetShuffleData(QByteArray* data){
@@ -574,18 +602,6 @@ NodeImpl* NodeImplShuffleBulkDesc::GetNextImpl(
         Configuration::ProtocolVersion version){
     Q_ASSERT(version == Configuration::DISSENT_VERSION_2);
     return 0 /* TODO(scw): name the multi bulk send */;
-}
-
-bool NodeImplBulkSend::StartProtocol(int round){
-    // TODO(scw)
-    return false;
-    (void) round;
-}
-
-NodeImpl* NodeImplBulkSend::GetNextImpl(
-        Configuration::ProtocolVersion version){
-    Q_UNUSED(version);
-    return 0;  // no more step after this phase
 }
 }
 // -*- vim:sw=4:expandtab:cindent:

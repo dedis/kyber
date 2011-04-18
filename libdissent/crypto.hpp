@@ -89,6 +89,8 @@ class Crypto{
 
     bool Hash(const QList<QByteArray>& msgs,
               QByteArray* hash);
+    bool HashOne(const QByteArray& msg,
+                 QByteArray* hash);
 
     class IncrementalHash{
       public:

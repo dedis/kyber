@@ -73,7 +73,7 @@ struct DISSENT_EXPORT Configuration{
     int shuffle_msg_length;
 
     QList<NodeTopology> topology;
-    NodeTopology my_position;
+    int my_position;  // my position in the topology
 
     enum ProtocolVersion{
         DISSENT_SHUFFLE_ONLY,

@@ -82,7 +82,7 @@ int Network::Send(int node_id, const QByteArray& data){
 
     LogEntry log = { LogEntry::SEND, node_id, data, sig, true };
     _log.push_back(log);
-    return 0;
+    return w_count;
 }
 
 int Network::Broadcast(const QByteArray& data){
@@ -106,7 +106,26 @@ int Network::Broadcast(const QByteArray& data){
 
     LogEntry log = { LogEntry::BROADCAST_SEND, -1, data, sig, true };
     _log.push_back(log);
-    return 0;
+    return plaintext.size() + sig.size();
+}
+
+int Network::MulticastXor(const QByteArray& data){
+    const int collector_node_id = _config->topology.front().node_id;
+    if(collector_node_id == _config->my_node_id){
+        // TODO(scw)
+        return 0;
+    }
+
+    QTcpSocket* socket = _clients[collector_node_id];
+    Q_ASSERT(socket);
+    Q_ASSERT(socket->state() == QAbstractSocket::ConnectedState);
+
+    QByteArray plaintext, sig;
+    PrepareMessage(LogEntry::SEND, data, &plaintext, &sig);
+    int w_count = socket->write(plaintext);
+    w_count += socket->write(sig);
+    Q_ASSERT(w_count == plaintext.size() + sig.size());
+    return w_count;
 }
 
 int Network::Read(int node_id, QByteArray* data){

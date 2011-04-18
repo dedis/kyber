@@ -1,5 +1,5 @@
-/* libdissent/config.cc
-   Node configuration data definition.
+/* cli/handler.hpp
+   cli event handler
 
    Author: Shu-Chun Weng <scweng _AT_ cs .DOT. yale *DOT* edu>
  */
@@ -24,29 +24,46 @@
  *   51 Franklin Street, Fifth Floor,
  *   Boston, MA  02110-1301  USA
  */
-#include "config.hpp"
 
-namespace Dissent{
-Configuration::Configuration(){
-}
+#ifndef _DISSENT_CLI_HANDLER_HPP_
+#define _DISSENT_CLI_HANDLER_HPP_ 1
+#include <QObject>
+#include <QByteArray>
+#include <QList>
 
-Configuration::Configuration(int argc, char* argv[]){
-}
+#include "network.hpp"
 
-bool Configuration::Serialize(QByteArray* byte_array) const{
-    byte_array->clear();
-    // not implemented yet
-    // return false;
-    // XXX(fh): always return true to bypass serialization
-    return true;
-}
+class Handler : public QObject{
+  Q_OBJECT
+  public:
+    Handler(int node_id)
+        : _node_id(node_id), round(0){
+    }
 
-bool Configuration::Deserialize(const QByteArray& byte_array){
-    // not implemented yet
-    // return false;
-    // (void) byte_array;
-    // XXX(fh): always return true to bypass deserialization
-    return true;
-}
-}
-// -*- vim:sw=4:expandtab:cindent:
+    void SetNetwork(Dissent::Network* network){
+        _network = network;
+
+        connect(network, SIGNAL(readyRead(int)),
+                this, SLOT(ReadMsg(int)));
+    }
+
+  signals:
+    void finish();
+    void moreData(const QByteArray& data);
+
+  public slots:
+    void RunNode1();
+    void RunNode2();
+    void RunNode3();
+
+    void ReadMsg(int from_node_id);
+
+    void ShuffledData(const QList<QByteArray>& data);
+
+  protected:
+    int _node_id;
+    Dissent::Network* _network;
+
+    int round;
+};
+#endif  // _DISSENT_CLI_HANDLER_HPP_

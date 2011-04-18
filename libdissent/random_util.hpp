@@ -61,7 +61,10 @@ class PRNG{
 
   public:
     typedef QByteArray Seed;
-    static const int SeedLength = PRNG::AESKeyLength + PRNG::AESBlockSize;
+    // XXX(fh): change SeedLength
+    static const int SeedLength = PRNG::AESKeyLength * 2;
+    //static const int SeedLength = PRNG::AESKeyLength + 
+    //                              PRNG::AESBlockSize;
 
     PRNG(Seed seed);
 

@@ -32,12 +32,14 @@
 
 #include "QByteArrayUtil.hpp"
 
+// XXX(fh)
+#include <QtDebug>
+
 namespace Dissent{
 Random* Random::_instance = 0;
 
 const int PRNG::AESKeyLength;
 const int PRNG::AESBlockSize;
-const int PRNG::SeedLength;
 
 Random::Random(){
 }

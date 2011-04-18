@@ -1,7 +1,7 @@
-/* libdissent/config.cc
-   Node configuration data definition.
+/* gui/main.cc
+   Main function for GUI
 
-   Author: Shu-Chun Weng <scweng _AT_ cs .DOT. yale *DOT* edu>
+   Author: Fei Huang <felix.fei.huang@gmail.com>
  */
 /* ====================================================================
  * Dissent: Accountable Group Anonymity
@@ -24,29 +24,15 @@
  *   51 Franklin Street, Fifth Floor,
  *   Boston, MA  02110-1301  USA
  */
-#include "config.hpp"
 
-namespace Dissent{
-Configuration::Configuration(){
-}
+#include <QApplication>
+#include <QDialog>
 
-Configuration::Configuration(int argc, char* argv[]){
-}
+#include "mainwindow.h"
 
-bool Configuration::Serialize(QByteArray* byte_array) const{
-    byte_array->clear();
-    // not implemented yet
-    // return false;
-    // XXX(fh): always return true to bypass serialization
-    return true;
-}
-
-bool Configuration::Deserialize(const QByteArray& byte_array){
-    // not implemented yet
-    // return false;
-    // (void) byte_array;
-    // XXX(fh): always return true to bypass deserialization
-    return true;
-}
-}
-// -*- vim:sw=4:expandtab:cindent:
+int main(int argc, char *argv[]) {
+  QApplication app(argc, argv);
+  Dissent::MainWindow *window = new Dissent::MainWindow;
+  window->show();
+  return app.exec();
+} 
