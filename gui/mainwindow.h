@@ -48,7 +48,6 @@ class MainWindow : public QMainWindow, public Ui::MainWindow {
   void on_inputLineEdit_textChanged();
   void on_inputLineEdit_returnPressed();
   void on_sendButton_clicked();
-
   void SubmitMessage(const QString &msg);
 
  private:
