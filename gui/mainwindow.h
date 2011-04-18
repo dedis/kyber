@@ -29,6 +29,8 @@
 #define _DISSENT_GUI_MAINWINDOW_H_
 
 #include <QDialog>
+#include <QList>
+#include <QString>
 
 #include "ui_mainwindow.h"
 
@@ -42,8 +44,13 @@ class MainWindow : public QMainWindow, public Ui::MainWindow {
 
  private slots:
   void on_inputLineEdit_textChanged();
+  void on_sendButton_clicked();
+
+ private:
+  QList<QString> message_queue_; // store local queued messages
 };
 
 }
 
 #endif
+
