@@ -118,6 +118,8 @@ NodeImpl* NodeImplInitLeader::GetNextImpl(
         case Configuration::DISSENT_VERSION_1:
             return new NodeImplShuffleMsgDesc(_node);
 
+        case Configuration::DISSENT_VERSION_2:
+            return new NodeImplShuffleBulkDesc(_node);
         default:
             qFatal("Dissent version %d not implemented yet",
                    version);

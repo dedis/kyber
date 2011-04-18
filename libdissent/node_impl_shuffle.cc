@@ -41,6 +41,9 @@
 #include "network.hpp"
 #include "node_impl_bulk.hpp"
 
+// XXX(fh)
+#include <QtDebug>
+
 // XXX(scw): handle things better, i.e. revealing NODE_ID
 #define UNEXPECTED(NODE_ID,REASON) qFatal("Node %d malicious: %s", NODE_ID, REASON)
 
@@ -138,6 +141,8 @@ void NodeImplShuffle::CollectOnetimeKeys(int node_id){
 void NodeImplShuffle::DoDataSubmission(){
     QByteArray data;
     GetShuffleData(&data);
+    qDebug() << data.length() << "\n"
+             << _node->GetConfig()->shuffle_msg_length;
     Q_ASSERT_X(data.length() == _node->GetConfig()->shuffle_msg_length,
                "NodeImplShuffle::DoDataSubmission",
                "Data being shuffled has length different from config");

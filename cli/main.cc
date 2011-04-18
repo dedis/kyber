@@ -158,5 +158,5 @@ void InitializeDummyConfig(int node_id, Dissent::Configuration* config){
     config->topology.push_back(tp2);
     config->topology.push_back(tp3);
     config->my_position = node_id - 1;
-    config->protocol_version = Dissent::Configuration::DISSENT_SHUFFLE_ONLY;
+    config->protocol_version = Dissent::Configuration::DISSENT_VERSION_1;
 }
