@@ -141,8 +141,6 @@ void NodeImplShuffle::CollectOnetimeKeys(int node_id){
 void NodeImplShuffle::DoDataSubmission(){
     QByteArray data;
     GetShuffleData(&data);
-    qDebug() << data.length() << "\n"
-             << _node->GetConfig()->shuffle_msg_length;
     Q_ASSERT_X(data.length() == _node->GetConfig()->shuffle_msg_length,
                "NodeImplShuffle::DoDataSubmission",
                "Data being shuffled has length different from config");
