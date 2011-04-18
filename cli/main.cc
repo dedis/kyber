@@ -41,10 +41,9 @@ int main(int argc, char* argv[]){
                    expected.toHex().data());
         }
     }
-   
-    //return 0;
-   
-   Q_ASSERT(argc > 1);
+    return 0;
+
+    Q_ASSERT(argc > 1);
     bool ok = false;
     int node_id = QString(argv[1]).toInt(&ok);
     Q_ASSERT_X(ok, "main", "converting argv[1] to integer failed");
@@ -131,14 +130,11 @@ void InitializeDummyConfig(int node_id, Dissent::Configuration* config){
     Dissent::PrivateKey node_sk = sk.toRSA();
 
     Dissent::NodeInfo node1_info = {
-//        1, "128.36.232.45", 12347, node1_pk, false };
-          1, "127.0.0.1", 12345, node1_pk, false};
+        1, "128.36.232.45", 12347, node1_pk, false };
     Dissent::NodeInfo node2_info = {
-//        2, "128.36.232.42", 12347, node2_pk, false };
-          2, "127.0.0.1", 12346, node2_pk, false};
+        2, "128.36.232.42", 12347, node2_pk, false };
     Dissent::NodeInfo node3_info = {
-//        3, "128.36.232.42", 12348, node3_pk, false };
-          3, "127.0.0.1", 12347, node3_pk, false};
+        3, "128.36.232.42", 12348, node3_pk, false };
 
     config->my_node_id = node_id;
     config->identity_sk = node_sk;
@@ -157,6 +153,6 @@ void InitializeDummyConfig(int node_id, Dissent::Configuration* config){
     config->topology.push_back(tp1);
     config->topology.push_back(tp2);
     config->topology.push_back(tp3);
-    config->my_position = node_id - 1;
+    config->my_position = node_id;
     config->protocol_version = Dissent::Configuration::DISSENT_SHUFFLE_ONLY;
 }
