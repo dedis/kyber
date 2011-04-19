@@ -32,6 +32,7 @@
 #include <QList>
 #include <QString>
 #include <QByteArray>
+#include <QMutex>
 
 #include "ui_mainwindow.h"
 
@@ -69,6 +70,8 @@ class MainWindow : public QMainWindow, public Ui::MainWindow {
   int round_interval_;
   int round_;
   MessageTableModel *queued_message_model_;
+
+  QMutex output_lock_;
 };
 
 }

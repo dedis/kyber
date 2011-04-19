@@ -52,12 +52,12 @@ void MainWindow::Start() {
 }
 
 void MainWindow::ShuffledData(const QList<QByteArray> &data) {
-  PrintLine("====================");
+  output_lock_.lock();
   foreach (const QByteArray &bytearray, data) {
     PrintLine(bytearray.data());
   }
-  PrintLine("====================");
-  PrintLine("");
+  PrintLine("------------------------------------------");
+  output_lock_.unlock();
   ++round_;
   emit finish();
   // restart the protocol

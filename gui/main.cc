@@ -118,22 +118,6 @@ int main(int argc, char* argv[]){
             window, SIGNAL(feedData(const QByteArray &)),
             &node, SLOT(EnterData(const QByteArray &)));
     window->Start();
-    //node.StartProtocol();
-    /*
-    switch(node_id){
-        case 1:
-            node.EnterData("This is a secret.");
-            break;
-        case 2:
-            node.EnterData("This is another secret.");
-            break;
-        case 3:
-            node.EnterData("This is yet another secret.");
-            break;
-        default:
-            qFatal("wtf");
-    }
-    */
     return app.exec();
 }
 
