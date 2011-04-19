@@ -31,26 +31,43 @@
 #include <QDialog>
 #include <QList>
 #include <QString>
+#include <QByteArray>
 
 #include "ui_mainwindow.h"
 
 namespace Dissent {
 
 class MessageTableModel;
+class Node;
 
 class MainWindow : public QMainWindow, public Ui::MainWindow {
   Q_OBJECT
 
  public:
-  MainWindow(QWidget *parent = 0);
+  MainWindow(int node_id, Node *node, int interval, QWidget *parent = 0);
+  void Start();
+
+ signals:
+  void finish();
+  void feedData(const QByteArray &message);
+
+ public slots:
+  void ShuffledData(const QList<QByteArray> &messages);
+  void FeedData();
 
  private slots:
   void on_inputLineEdit_textChanged();
   void on_inputLineEdit_returnPressed();
   void on_sendButton_clicked();
-  void SubmitMessage(const QString &msg);
+  void on_clearButton_clicked();
+  void SubmitMessage(const QString &message);
+  void PrintLine(const QString &message);
 
  private:
+  int node_id_;
+  Node *node_;
+  int round_interval_;
+  int round_;
   MessageTableModel *queued_message_model_;
 };
 
