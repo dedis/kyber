@@ -41,7 +41,7 @@ void Handler::ReadMsg(int from_node_id){
     }
 }
 
-void Handler::ShuffledData(const QList<QByteArray>& data){
+void Handler::ShuffledData(QList<QByteArray> data){
     int i = 0;
     foreach(const QByteArray& byte_array, data){
         printf("=====%d=====\n", i++);

@@ -49,12 +49,12 @@ class Handler : public QObject{
 
   signals:
     void finish();
-    void moreData(const QByteArray& data);
+    void moreData(QByteArray data);
 
   public slots:
     void ReadMsg(int from_node_id);
 
-    void ShuffledData(const QList<QByteArray>& data);
+    void ShuffledData(QList<QByteArray> data);
 
   protected:
     int _node_id;

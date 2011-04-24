@@ -95,7 +95,7 @@ class DISSENT_EXPORT Network : public QObject{
     void ClientHasReadyRead(int node_id);
     void NetworkReady();
 
-    void MulticastReady(const QByteArray& data);
+    void MulticastReady(QByteArray data);
     void MulticastError(int node_id, const QString& reason);
 
   private:
@@ -187,7 +187,7 @@ class MulticastXorProcessor : public QObject{
     void EnterMessage(int node_id, const QByteArray& data);
 
   signals:
-    void multicastReady(const QByteArray& data);
+    void multicastReady(QByteArray data);
     void multicastError(int node_id, QString reason);
 
   private:

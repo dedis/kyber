@@ -311,7 +311,7 @@ void Network::NetworkReady(){
     emit networkReady();
 }
 
-void Network::MulticastReady(const QByteArray& data){
+void Network::MulticastReady(QByteArray data){
     QByteArray plaintext, sig;
     PrepareMessage(LogEntry::MULTICAST_FINAL, data, &plaintext, &sig);
 

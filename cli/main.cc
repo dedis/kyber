@@ -28,14 +28,14 @@ int main(int argc, char* argv[]){
     Dissent::Node node(config);
     Handler handler(node_id);
     QObject::connect(
-            &node, SIGNAL(shuffledDataReady(const QList<QByteArray>&)),
-            &handler, SLOT(ShuffledData(const QList<QByteArray>&)));
+            &node, SIGNAL(shuffledDataReady(QList<QByteArray>)),
+            &handler, SLOT(ShuffledData(QList<QByteArray>)));
     QObject::connect(
             &handler, SIGNAL(finish()),
             &node, SLOT(StopProtocol()));
     QObject::connect(
-            &handler, SIGNAL(moreData(const QByteArray&)),
-            &node, SLOT(EnterData(const QByteArray&)));
+            &handler, SIGNAL(moreData(QByteArray)),
+            &node, SLOT(EnterData(QByteArray)));
     node.StartProtocol();
     switch(node_id){
         case 1:

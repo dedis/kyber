@@ -57,7 +57,7 @@ class DISSENT_EXPORT Node : public QObject{
     void startIncomingNetwork(QString phase);
     void stopIncomingNetwork();
 
-    void shuffledDataReady(const QList<QByteArray>& data);
+    void shuffledDataReady(QList<QByteArray> data);
 
   public slots:
     void StartProtocol();
