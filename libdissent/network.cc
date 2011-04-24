@@ -30,6 +30,7 @@
 #include <QtGlobal>
 #include <QAbstractSocket>
 #include <QHostAddress>
+#include <QSet>
 #include <QSignalMapper>
 #include <QTcpServer>
 #include <QTcpSocket>
@@ -43,6 +44,8 @@
 #include "random_util.hpp"
 
 namespace Dissent{
+const int Network::MulticastNodeId;
+
 Network::Network(Configuration* config)
     : _config(config),
       _isReady(false),
@@ -110,10 +113,17 @@ int Network::Broadcast(const QByteArray& data){
 }
 
 int Network::MulticastXor(const QByteArray& data){
+    Q_ASSERT(_multicast == 0);
     const int collector_node_id = _config->topology.front().node_id;
     if(collector_node_id == _config->my_node_id){
-        // TODO(scw)
-        return 0;
+        _multicast = new MulticastXorProcessor(this, _config->num_nodes, data);
+        while(_multicastBuffer.size()){
+            Q_ASSERT(_multicastBuffer.front().status == Buffer::DONE);
+            const LogEntry& entry = _multicastBuffer.front().entry;
+            _multicast->EnterMessage(entry.node_id, entry.data);
+            _multicastBuffer.pop_front();
+        }
+        return data.size();
     }
 
     QTcpSocket* socket = _clients[collector_node_id];
@@ -121,10 +131,14 @@ int Network::MulticastXor(const QByteArray& data){
     Q_ASSERT(socket->state() == QAbstractSocket::ConnectedState);
 
     QByteArray plaintext, sig;
-    PrepareMessage(LogEntry::SEND, data, &plaintext, &sig);
+    PrepareMessage(LogEntry::MULTICAST, data, &plaintext, &sig);
     int w_count = socket->write(plaintext);
     w_count += socket->write(sig);
     Q_ASSERT(w_count == plaintext.size() + sig.size());
+
+    LogEntry log = { LogEntry::MULTICAST, collector_node_id,
+                     data, sig, true };
+    _log.push_back(log);
     return w_count;
 }
 
@@ -173,7 +187,9 @@ bool Network::ValidateLogEntry(LogEntry* entry){
     int nonce =
             QByteArrayUtil::ExtractInt(true, &entry->data);
     bool valid_dir = (entry->dir == LogEntry::SEND ||
-                      entry->dir == LogEntry::BROADCAST_SEND);
+                      entry->dir == LogEntry::BROADCAST_SEND ||
+                      entry->dir == LogEntry::MULTICAST ||
+                      entry->dir == LogEntry::MULTICAST_FINAL);
     bool valid_nonce = (nonce == _nonce);
     if(entry->dir == LogEntry::SEND)
         entry->dir = LogEntry::RECV;
@@ -227,7 +243,36 @@ void Network::ClientHasReadyRead(int node_id){
                 fprintf(stderr,
                         "Package from node %d cannot be validated\n"
                         ">> %s", node_id, buf.entry.data.toHex().data());
-            }else if(_inReceivingPhase){
+                break;
+            }else if(buf.entry.dir == LogEntry::MULTICAST){
+                if(_config->topology.front().node_id !=
+                        _config->my_node_id){
+                    fprintf(stderr,
+                            "multicast message from node %d to non-leader\n",
+                            node_id);
+                    break;
+                }
+
+                if(!_multicast){
+                    _multicastBuffer.push_back(buf);
+                }else{
+                    Q_ASSERT_X(_multicastBuffer.size() == 0,
+                               "Network::ClientHasReadyRead",
+                               "multicast and multicast buffer shouldn't"
+                               " coexist");
+                    _multicast->EnterMessage(node_id, buf.entry.data);
+                }
+
+                // No consumer, log it ourselves and pop off
+                _log.push_back(buf.entry);
+                buffer.pop_back();
+                break;
+            }else if(buf.entry.dir == LogEntry::MULTICAST_FINAL){
+                _buffers[MulticastNodeId].push_back(buf);
+                buffer.pop_back();
+            }
+            
+            if(_inReceivingPhase){
                 emit readyRead(node_id);
             }
             break;
@@ -237,6 +282,7 @@ void Network::ClientHasReadyRead(int node_id){
             break;
     }
 
+    // XXX(scw): change tail recursion to loop
     if(socket->bytesAvailable() > 0)
         ClientHasReadyRead(node_id);
 }
@@ -259,8 +305,45 @@ void Network::NetworkReady(){
                 _signalMapper, SLOT(map()));
         ClientHasReadyRead(it.key());
     }
+    _buffers.insert(MulticastNodeId, QList<Buffer>());
+
     _isReady = true;
     emit networkReady();
+}
+
+void Network::MulticastReady(const QByteArray& data){
+    QByteArray plaintext, sig;
+    PrepareMessage(LogEntry::MULTICAST_FINAL, data, &plaintext, &sig);
+
+    foreach(const NodeInfo& node, _config->nodes)
+        if(node.node_id != _config->my_node_id && !node.excluded){
+            QTcpSocket* socket = _clients[node.node_id];
+            Q_ASSERT_X(socket, "Network::MulticastReady",
+                       (const char*) QString("socket[%1] = null")
+                       .arg(node.node_id).toUtf8().data());
+            Q_ASSERT_X(socket->state() == QAbstractSocket::ConnectedState,
+                       "Network::MulticastReady",
+                       (const char*) QString("socket[%1] wrong state")
+                       .arg(node.node_id).toUtf8().data());
+            int w_count = socket->write(plaintext);
+            w_count += socket->write(sig);
+            Q_ASSERT(w_count == plaintext.size() + sig.size());
+        }
+
+    LogEntry entry = { LogEntry::MULTICAST_FINAL, -1, data, sig, true };
+    Buffer buffer;
+    buffer.status = Buffer::DONE;
+    buffer.entry = entry;
+    _buffers[MulticastNodeId].push_back(buffer);
+    if(_isReady)
+        emit readyRead(MulticastNodeId);
+
+    delete _multicast;
+    _multicast = 0;
+}
+
+void Network::MulticastError(int node_id, const QString& reason){
+    emit inputError(node_id, reason);
 }
 
 void Network::StartIncomingNetwork(){
@@ -296,7 +379,7 @@ NetworkPrepare::NetworkPrepare(Configuration* config,
                                QMap<int, QTcpSocket*>* sockets)
     : _config(config), _server(server), _sockets(sockets) {}
 
-void NetworkPrepare::DoPrepare(const QHostAddress & address, quint16 port){
+void NetworkPrepare::DoPrepare(const QHostAddress& address, quint16 port){
     connect(_server, SIGNAL(newConnection()),
             this, SLOT(NewConnection()));
     bool r = _server->listen(address, port);
@@ -510,6 +593,28 @@ void NetworkPrepare::ReadChallenge(QObject* o){
                _challengeSignalMapper, SLOT(map()));
 
     AddSocket(node_id, socket);
+}
+
+MulticastXorProcessor::MulticastXorProcessor(
+        Network* network, int num_nodes, const QByteArray& self_data)
+    : QObject(network), _numNodes(num_nodes), _data(self_data){}
+
+void MulticastXorProcessor::EnterMessage(
+        int node_id, const QByteArray& data){
+    if(_received.contains(node_id)){
+        emit multicastError(node_id, "Multiple message from the same node");
+        return;
+    }
+
+    char* p_d = _data.data();
+    const char* p_s = data.constData();
+    char* p_end = p_d + _data.size();
+    for(; p_d < p_end; ++p_d, ++p_s)
+        *p_d ^= *p_s;
+
+    _received.insert(node_id);
+    if(_received.size() == _numNodes - 1)
+        emit multicastReady(_data);
 }
 }
 // -*- vim:sw=4:expandtab:cindent:

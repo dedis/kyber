@@ -44,6 +44,8 @@ namespace BulkSend{
         void Serialize(QByteArray* byte_array);
         void Deserialize(const QByteArray& byte_array);
 
+        bool isPrivileged() const{ return !_xorData.isEmpty(); }
+
       private:
         Configuration* _config;
 
@@ -76,6 +78,7 @@ class NodeImplBulkSend : public NodeImpl{
 
   private:
     void Blame(int slot);
+    void BlameNode(int node_id);
 
     QByteArray _data;
     QList<BulkSend::MessageDescriptor> _descriptors;

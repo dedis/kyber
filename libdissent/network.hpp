@@ -32,6 +32,7 @@
 #include <QList>
 #include <QMap>
 #include <QObject>
+#include <QSet>
 #include <QSignalMapper>
 #include <QTcpServer>
 #include <QTcpSocket>
@@ -42,6 +43,7 @@
 namespace Dissent{
 class Configuration;
 class NetworkPrepare;
+class MulticastXorProcessor;
 
 // export for testing purpose
 class DISSENT_EXPORT Network : public QObject{
@@ -61,7 +63,8 @@ class DISSENT_EXPORT Network : public QObject{
     int Read(int node_id, QByteArray* data);
 
     struct LogEntry{
-        enum Dir{ SEND, RECV, BROADCAST_SEND, BROADCAST_RECV, MULTICAST }dir;
+        enum Dir{ SEND, RECV, BROADCAST_SEND, BROADCAST_RECV,
+                  MULTICAST, MULTICAST_FINAL }dir;
         int node_id;  // receiver, sender, undefined, or sender according to dir
         // XXX(scw): accumulative hash value
         QByteArray data;
@@ -80,7 +83,7 @@ class DISSENT_EXPORT Network : public QObject{
 
   signals:
     void readyRead(int node_id);
-    void inputError(int node_id);
+    void inputError(int node_id, QString reason);
 
     void networkReady();
 
@@ -92,11 +95,15 @@ class DISSENT_EXPORT Network : public QObject{
     void ClientHasReadyRead(int node_id);
     void NetworkReady();
 
+    void MulticastReady(const QByteArray& data);
+    void MulticastError(int node_id, const QString& reason);
+
   private:
     Configuration* _config;
     QList<LogEntry> _log;
 
     NetworkPrepare* _prepare;
+    MulticastXorProcessor* _multicast;
 
     bool _isReady;
     QSignalMapper* _signalMapper;
@@ -115,6 +122,7 @@ class DISSENT_EXPORT Network : public QObject{
     };
 
     QMap<int, QList<Buffer> > _buffers;
+    QList<Buffer> _multicastBuffer;
     bool _inReceivingPhase;
 
     qint32 _nonce;
@@ -129,7 +137,7 @@ class NetworkPrepare : public QObject{
                    QTcpServer* server,
                    QMap<int, QTcpSocket*>* sockets);
 
-    void DoPrepare(const QHostAddress & address, quint16 port);
+    void DoPrepare(const QHostAddress& address, quint16 port);
 
   protected:
     void AddSocket(int node_id, QTcpSocket* socket);
@@ -167,6 +175,25 @@ class NetworkPrepare : public QObject{
     const static int ChallengeLength;
     const static char* const NodeIdPropertyName;
     const static char* const AnswerLengthPropertyName;
+};
+
+// Internal functional object. Used only by multicast leader.
+class MulticastXorProcessor : public QObject{
+  Q_OBJECT
+  public:
+    MulticastXorProcessor(
+            Network* network, int num_nodes, const QByteArray& self_data);
+
+    void EnterMessage(int node_id, const QByteArray& data);
+
+  signals:
+    void multicastReady(const QByteArray& data);
+    void multicastError(int node_id, QString reason);
+
+  private:
+    int _numNodes;
+    QByteArray _data;
+    QSet<int> _received;
 };
 }
 #endif  // _DISSENT_LIBDISSENT_NETWORK_HPP_

@@ -36,6 +36,8 @@
 #include "node.hpp"
 #include "random_util.hpp"
 
+#define BULK_SEND_MULTICAST_HACK_NODE_ID (Network::MulticastNodeId - 1)
+
 namespace Dissent{
 namespace BulkSend{
 QByteArray MessageDescriptor::EmptyStringHash;
@@ -67,7 +69,7 @@ void MessageDescriptor::Initialize(const QByteArray& data){
         QByteArray encrypted;
         bool r = crypto->Encrypt(
                 &_config->nodes[node.node_id].identity_pk,
-                data,
+                seed,
                 &encrypted,
                 0);
         Q_ASSERT_X(r, "MessageDescriptor::Initialize",
@@ -150,12 +152,19 @@ bool NodeImplBulkSend::StartProtocol(int round){
     _allData.clear();
     _node->GetNetwork()->ResetSession(-1);
     StartListening(SLOT(CollectMulticasts(int)), "Bulk send");
-    CollectMulticasts(Network::MulticastNodeId + 1);
+    CollectMulticasts(BULK_SEND_MULTICAST_HACK_NODE_ID);
     return false;
     (void) round;
 }
 
 void NodeImplBulkSend::CollectMulticasts(int node_id){
+    if(node_id != Network::MulticastNodeId &&
+       node_id != BULK_SEND_MULTICAST_HACK_NODE_ID){
+        StopListening();
+        BlameNode(node_id);
+        return;
+    }
+
     Configuration* config = _node->GetConfig();
     Network* network = _node->GetNetwork();
     Crypto* crypto = Crypto::GetInstance();
@@ -185,7 +194,7 @@ void NodeImplBulkSend::CollectMulticasts(int node_id){
     QByteArray to_send;
     const BulkSend::MessageDescriptor desc = _descriptors[_allData.size()];
     if(desc._length > 0){
-        if(!desc._xorData.isEmpty()){
+        if(desc.isPrivileged()){
             to_send = desc._xorData;
         }else{
             QByteArray seed;
@@ -202,6 +211,11 @@ void NodeImplBulkSend::CollectMulticasts(int node_id){
 
 void NodeImplBulkSend::Blame(int slot){
     qFatal("NodeImplBulkSend::Blame not implemented (slot = %d)", slot);
+}
+
+void NodeImplBulkSend::BlameNode(int node_id){
+    qFatal("NodeImplBulkSend::BlameNode not implemented (node_id = %d)",
+           node_id);
 }
 
 NodeImpl* NodeImplBulkSend::GetNextImpl(
