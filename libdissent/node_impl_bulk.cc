@@ -41,11 +41,20 @@
 namespace Dissent{
 namespace BulkSend{
 QByteArray MessageDescriptor::EmptyStringHash;
+QByteArray MessageDescriptor::EmptyEncryptedSeed;
 
 MessageDescriptor::MessageDescriptor(Configuration* config)
     : _config(config), _length(-1){
-    if(EmptyStringHash.isNull())
+    if(EmptyStringHash.isNull()){
         Crypto::GetInstance()->Hash(QList<QByteArray>(), &EmptyStringHash);
+
+        PRNG::Seed seed(PRNG::SeedLength, ' ');
+        Crypto::GetInstance()->Encrypt(
+                &config->nodes[config->my_node_id].identity_pk,
+                seed,
+                &EmptyEncryptedSeed,
+                0);
+    }
 }
 
 void MessageDescriptor::Initialize(const QByteArray& data){
@@ -127,10 +136,10 @@ void MessageDescriptor::Deserialize(const QByteArray& byte_array){
 #define CUT(DEST,BA,LEN) do{ DEST (BA.left(LEN)); BA = BA.mid(LEN); }while(0)
     int hash_size = EmptyStringHash.size();
     CUT(_dataHash = , ba, hash_size);
-    for(int i = 0; _config->num_nodes; ++i)
+    for(int i = 0; i < _config->num_nodes; ++i)
         CUT(_checkSums.push_back, ba, hash_size);
-    for(int i = 0; _config->num_nodes; ++i)
-        CUT(_encryptedSeeds.push_back, ba, PRNG::SeedLength);
+    for(int i = 0; i < _config->num_nodes; ++i)
+        CUT(_encryptedSeeds.push_back, ba, EmptyEncryptedSeed.size());
     Q_ASSERT(ba.size() == 0);
 #undef CUT
 
@@ -199,7 +208,7 @@ void NodeImplBulkSend::CollectMulticasts(int node_id){
         }else{
             QByteArray seed;
             crypto->Decrypt(&config->identity_sk,
-                            desc._seeds[config->my_position],
+                            desc._encryptedSeeds[config->my_position],
                             &seed);
             PRNG prng(seed);
             to_send.fill(' ', desc._length);

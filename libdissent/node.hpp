@@ -48,6 +48,7 @@ class DISSENT_EXPORT Node : public QObject{
     Configuration* GetConfig(){ return &_config; }
     Network* GetNetwork() const{ return _network; }
 
+    // Returns all data if max_len < 0
     void RetrieveCurrentData(int max_len, QByteArray* data);
     void SubmitShuffledData(const QList<QByteArray>& data){
         emit shuffledDataReady(data);

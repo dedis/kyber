@@ -59,6 +59,7 @@ namespace BulkSend{
         QList<QByteArray> _seeds;
 
         static QByteArray EmptyStringHash;
+        static QByteArray EmptyEncryptedSeed;
     };
 }  // namespace BulkSend
 

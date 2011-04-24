@@ -116,7 +116,12 @@ int Network::MulticastXor(const QByteArray& data){
     Q_ASSERT(_multicast == 0);
     const int collector_node_id = _config->topology.front().node_id;
     if(collector_node_id == _config->my_node_id){
+printf("I'm multicast leader\n");
         _multicast = new MulticastXorProcessor(this, _config->num_nodes, data);
+        connect(_multicast, SIGNAL(multicastReady(QByteArray)),
+                this, SLOT(MulticastReady(QByteArray)));
+        connect(_multicast, SIGNAL(multicastError(int, QString)),
+                this, SLOT(MulticastError(int, QString)));
         while(_multicastBuffer.size()){
             Q_ASSERT(_multicastBuffer.front().status == Buffer::DONE);
             const LogEntry& entry = _multicastBuffer.front().entry;
@@ -242,7 +247,7 @@ void Network::ClientHasReadyRead(int node_id){
             if(!ValidateLogEntry(&buf.entry)){
                 fprintf(stderr,
                         "Package from node %d cannot be validated\n"
-                        ">> %s", node_id, buf.entry.data.toHex().data());
+                        ">> %s\n", node_id, buf.entry.data.toHex().data());
                 break;
             }else if(buf.entry.dir == LogEntry::MULTICAST){
                 if(_config->topology.front().node_id !=
@@ -268,6 +273,7 @@ void Network::ClientHasReadyRead(int node_id){
                 buffer.pop_back();
                 break;
             }else if(buf.entry.dir == LogEntry::MULTICAST_FINAL){
+                node_id = MulticastNodeId;
                 _buffers[MulticastNodeId].push_back(buf);
                 buffer.pop_back();
             }
@@ -312,6 +318,9 @@ void Network::NetworkReady(){
 }
 
 void Network::MulticastReady(QByteArray data){
+    delete _multicast;
+    _multicast = 0;
+
     QByteArray plaintext, sig;
     PrepareMessage(LogEntry::MULTICAST_FINAL, data, &plaintext, &sig);
 
@@ -337,9 +346,6 @@ void Network::MulticastReady(QByteArray data){
     _buffers[MulticastNodeId].push_back(buffer);
     if(_isReady)
         emit readyRead(MulticastNodeId);
-
-    delete _multicast;
-    _multicast = 0;
 }
 
 void Network::MulticastError(int node_id, const QString& reason){
