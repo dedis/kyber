@@ -5,6 +5,7 @@
 #include "config.hpp"
 #include "crypto.hpp"
 #include "node.hpp"
+#include "node_impl_bulk.hpp"
 
 #include "handler.hpp"
 
@@ -13,35 +14,6 @@
 void InitializeDummyConfig(int node_id, Dissent::Configuration* config);
 
 int main(int argc, char* argv[]){
-    Dissent::Crypto* crypto = Dissent::Crypto::GetInstance();
-    Dissent::Crypto::IncrementalHash* hash = crypto->GetIncrementalHash();
-    QByteArray parts[] = {
-        QByteArray(), QByteArray("Hello"), QByteArray(", "),
-        QByteArray("world!")
-    };
-    QList<QByteArray> msgs;
-
-    QByteArray expected;
-    QByteArray actual;
-
-    for (int i = 0; i < 4; ++i) {
-        hash->Update(parts[i]);
-        hash->CurrentHash(&actual);
-
-        msgs.append(parts[i]);
-        crypto->Hash(msgs, &expected);
-        msgs.clear();
-        msgs.append(expected);
-
-        if(actual == expected){
-            printf("Same for i = %d\n", i);
-        }else{
-            printf("i = %d:\nA %s\nE %s\n", i,
-                   actual.toHex().data(),
-                   expected.toHex().data());
-        }
-    }
-
     Q_ASSERT(argc > 1);
     bool ok = false;
     int node_id = QString(argv[1]).toInt(&ok);
@@ -74,26 +46,6 @@ int main(int argc, char* argv[]){
             break;
         case 3:
             node.EnterData("This is yet another secret.");
-            break;
-        default:
-            qFatal("wtf");
-    }
-    return app.exec();
-
-    Dissent::Network network(&config);
-    handler.SetNetwork(&network);
-    switch(node_id){
-        case 1:
-            QObject::connect(&network, SIGNAL(networkReady()),
-                             &handler, SLOT(RunNode1()));
-            break;
-        case 2:
-            QObject::connect(&network, SIGNAL(networkReady()),
-                             &handler, SLOT(RunNode2()));
-            break;
-        case 3:
-            QObject::connect(&network, SIGNAL(networkReady()),
-                             &handler, SLOT(RunNode3()));
             break;
         default:
             qFatal("wtf");
@@ -143,7 +95,7 @@ void InitializeDummyConfig(int node_id, Dissent::Configuration* config){
     config->nodes.insert(3, node3_info);
     config->num_nodes = config->nodes.size();
     config->disposable_key_length = 1024;
-    config->shuffle_msg_length = 32;
+    config->shuffle_msg_length = -1;  // set later
 
     Dissent::NodeTopology tp1 = { 1, 2, -1};
     Dissent::NodeTopology tp2 = { 2, 3, 1};
@@ -153,5 +105,12 @@ void InitializeDummyConfig(int node_id, Dissent::Configuration* config){
     config->topology.push_back(tp2);
     config->topology.push_back(tp3);
     config->my_position = node_id - 1;
-    config->protocol_version = Dissent::Configuration::DISSENT_SHUFFLE_ONLY;
+    config->protocol_version = Dissent::Configuration::DISSENT_VERSION_1;
+
+    QByteArray ba("");
+    Dissent::BulkSend::MessageDescriptor desc(config);
+    desc.Initialize(ba);
+    desc.Serialize(&ba);
+    config->shuffle_msg_length = ba.size();
+    printf("shuffle_msg_length = %d\n", config->shuffle_msg_length);
 }

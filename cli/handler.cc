@@ -33,35 +33,6 @@
 #include <QByteArray>
 #include <cstdio>
 
-void Handler::RunNode1(){
-    printf("Node 1 running\n");
-    _network->ResetSession(0x5269);
-    _network->Send(2, "How are you, 2?");
-    _network->Send(3, "Not much!");
-
-    _network->Broadcast("I AM LOUD AND ANONYING.");
-
-    _network->StartIncomingNetwork();
-}
-
-void Handler::RunNode2(){
-    printf("Node 2 running\n");
-    _network->ResetSession(0x5269);
-    _network->Send(3, "How is it going, 3?");
-    _network->Send(1, "OK.");
-
-    _network->StartIncomingNetwork();
-}
-
-void Handler::RunNode3(){
-    printf("Node 3 running\n");
-    _network->ResetSession(0x5269);
-    _network->Send(1, "Whazzup, 1?");
-    _network->Send(2, "Could be worse.");
-
-    _network->StartIncomingNetwork();
-}
-
 void Handler::ReadMsg(int from_node_id){
     QByteArray byte_array;
     while(_network->Read(from_node_id, &byte_array) != 0){

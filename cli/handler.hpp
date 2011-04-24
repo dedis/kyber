@@ -52,10 +52,6 @@ class Handler : public QObject{
     void moreData(const QByteArray& data);
 
   public slots:
-    void RunNode1();
-    void RunNode2();
-    void RunNode3();
-
     void ReadMsg(int from_node_id);
 
     void ShuffledData(const QList<QByteArray>& data);
