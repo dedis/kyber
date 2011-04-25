@@ -53,6 +53,7 @@ void Handler::ShuffledData(QList<QByteArray> data){
         emit moreData(data.arg(_node_id).toUtf8());
     }else{
         emit finish();
-        QTimer::singleShot(1000, qApp, SLOT(quit()));
+        // exit gracefully: let the main loop evacuate the event queue first
+        QTimer::singleShot(0, qApp, SLOT(quit()));
     }
 }

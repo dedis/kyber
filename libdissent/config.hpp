@@ -92,6 +92,8 @@ struct DISSENT_EXPORT Configuration{
     // Update shared members of this object according to the byte array.
     // Returns true if succeeded.
     bool Deserialize(const QByteArray& byte_array);
+
+    bool LoadFromFile(const QString& filename);
 };
 }
 #endif  // _DISSENT_LIBDISSENT_CONFIG_HPP_
