@@ -30,6 +30,7 @@
 #include <QtGlobal>
 #include <QAbstractSocket>
 #include <QHostAddress>
+#include <QHostInfo>
 #include <QSet>
 #include <QSignalMapper>
 #include <QTcpServer>
@@ -48,6 +49,7 @@ const int Network::MulticastNodeId;
 
 Network::Network(Configuration* config)
     : _config(config),
+      _multicast(0),
       _isReady(false),
       _inReceivingPhase(false),
       _nonce(-1){
@@ -222,7 +224,7 @@ void Network::ClientHasReadyRead(int node_id){
     switch(buf.status){
         case Buffer::NEW:
             if(socket->bytesAvailable() < QByteArrayUtil::IntegerSize * 2)
-                break;
+                return;
             byte_array = socket->read(QByteArrayUtil::IntegerSize * 2);
             buf.data_len = QByteArrayUtil::ExtractInt(true, &byte_array);
             buf.sig_len = QByteArrayUtil::ExtractInt(true, &byte_array);
@@ -231,7 +233,7 @@ void Network::ClientHasReadyRead(int node_id){
 
         case Buffer::HAS_SIZE:
             if(socket->bytesAvailable() < buf.data_len)
-                break;
+                return;
             buf.entry.data = socket->read(buf.data_len);
             buf.status = Buffer::DATA_DONE;
             // fall through
@@ -239,7 +241,7 @@ void Network::ClientHasReadyRead(int node_id){
 
         case Buffer::DATA_DONE:
             if(socket->bytesAvailable() < buf.sig_len)
-                break;
+                return;
             buf.entry.signature = socket->read(buf.sig_len);
             buf.entry.node_id = node_id;
             buf.status = Buffer::DONE;
@@ -459,7 +461,8 @@ void NetworkPrepare::ReadNodeId(QObject* o){
     int node_id = QByteArrayUtil::ExtractInt(true, &data);
     int answer_length = QByteArrayUtil::ExtractInt(true, &data);
 
-    if(socket->peerAddress() != QHostAddress(_config->nodes[node_id].addr)){
+    QHostInfo remote = QHostInfo::fromName(_config->nodes[node_id].addr);
+    if(!remote.addresses().contains(socket->peerAddress())){
         // XXX(scw): wrong host message
         fprintf(stderr, "peer %d expect from %s but from %s\n",
                node_id,
