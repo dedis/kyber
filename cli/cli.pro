@@ -4,7 +4,7 @@
 
 TEMPLATE = app
 TARGET = cli
-CONFIG += qt crypto debug
+CONFIG += qt crypto console
 DEPENDPATH += . ../libdissent
 INCLUDEPATH += . ../libdissent
 LIBS += -L../libdissent -ldissent

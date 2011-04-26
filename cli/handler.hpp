@@ -30,36 +30,40 @@
 #include <QObject>
 #include <QByteArray>
 #include <QList>
+#include <QTime>
 
 #include "network.hpp"
 
+class QTimer;
 class Handler : public QObject{
   Q_OBJECT
   public:
-    Handler(int node_id)
-        : _node_id(node_id), round(0){
-    }
-
-    void SetNetwork(Dissent::Network* network){
-        _network = network;
-
-        connect(network, SIGNAL(readyRead(int)),
-                this, SLOT(ReadMsg(int)));
-    }
+    Handler(int node_id, int argc, char* argv[]);
 
   signals:
     void finish();
     void moreData(QByteArray data);
 
   public slots:
-    void ReadMsg(int from_node_id);
-
+    void Start();
     void ShuffledData(QList<QByteArray> data);
+    void ProtocolStarted(int round);
+
+  protected slots:
+    void MoreData();
+    void TearDown();
 
   protected:
     int _node_id;
-    Dissent::Network* _network;
+    int _round;
 
-    int round;
+    int _maxRound;
+    int _wait;
+    bool _quiet;
+
+    QTimer* _timer;
+
+    QTime _time;
+    QList<QByteArray> _queue;
 };
 #endif  // _DISSENT_CLI_HANDLER_HPP_

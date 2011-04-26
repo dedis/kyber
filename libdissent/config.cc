@@ -64,7 +64,8 @@ Configuration::Configuration(int argc, char* argv[])
       disposable_key_length(1024),
       my_position(-1),
       protocol_version(DISSENT_VERSION_1){
-    for(int i = 1; i < argc; ++i){
+    int j = 1;
+    for(int i = 1; argv[i]; ++i){
         if(strcmp(argv[i], "-c") == 0)
             LoadFromFile(argv[++i]);
         else if(strcmp(argv[i], "-n") == 0)
@@ -79,7 +80,10 @@ Configuration::Configuration(int argc, char* argv[])
             identity_sk = sk.toRSA();
         }else if(strcmp(argv[i], "-h") == 0)
             Usage(argc, argv);
+        else if(i != j)  // leave the unknown options there
+            argv[j++] = argv[i];
     }
+    argv[j] = 0;
 
     if(my_node_id != -1){
         for(int i = 0; i < topology.size(); ++i)

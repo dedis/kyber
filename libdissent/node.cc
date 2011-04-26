@@ -30,6 +30,7 @@
 #include <QtGlobal>
 #include <QMap>
 #include <QMapIterator>
+#include <QTimer>
 
 #include "network.hpp"
 #include "node_impl.hpp"
@@ -80,6 +81,9 @@ void Node::ChangeImpl(NodeImpl* impl){
         _impl.reset(0);
         delete impl;
         return;
+    }else if(_protocolInitiating){
+        _protocolInitiating = false;
+        emit protocolStarted(_protocolRound);
     }
     _impl.reset(impl);
     connect(impl, SIGNAL(StepDone(NodeImpl*)),
@@ -91,7 +95,7 @@ void Node::ChangeImpl(NodeImpl* impl){
 
 void Node::RestartProtocol(){
     if(!_protocolStopped)
-        StartProtocol();
+        QTimer::singleShot(0, this, SLOT(StartProtocol()));
     else
         _impl.reset();
 }
@@ -119,6 +123,7 @@ void Node::StartProtocolRound(){
         impl = NodeImpl::GetInit(this, it.key());
 
     ChangeImpl(impl);
+    _protocolInitiating = true;
 }
 }
 // -*- vim:sw=4:expandtab:cindent:

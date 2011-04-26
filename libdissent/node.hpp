@@ -58,6 +58,7 @@ class DISSENT_EXPORT Node : public QObject{
     void startIncomingNetwork(QString phase);
     void stopIncomingNetwork();
 
+    void protocolStarted(int round);
     void shuffledDataReady(QList<QByteArray> data);
 
   public slots:
@@ -87,6 +88,7 @@ class DISSENT_EXPORT Node : public QObject{
     QByteArray _pendingData;
     int _protocolRound;
     bool _protocolStopped;
+    bool _protocolInitiating;
 };
 }
 #endif  // _DISSENT_LIBDISSENT_NODE_HPP_
