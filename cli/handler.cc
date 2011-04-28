@@ -45,7 +45,7 @@ Handler::Handler(int node_id, int argc, char* argv[])
     for(int i = 1; argv[i]; ++i)
         if(strcmp(argv[i], "-f") == 0){
             QFile file(argv[++i]);
-            if(!file.open(QIODevice::ReadOnly | QIODevice::Text)){
+            if(!file.open(QIODevice::ReadOnly)){
                 printf("Cannot open file %s\n", argv[i]);
                 continue;
             }
@@ -58,7 +58,7 @@ Handler::Handler(int node_id, int argc, char* argv[])
             _quiet = true;
         else if(i != j)  // leave the unknown options there
             argv[j++] = argv[i];
-    if(data.isEmpty()){
+    if(data.isNull()){
         QString str("Init node %1:");
         data = str.arg(_node_id).toUtf8();
         for(int i = 0; i < _node_id; ++i)
