@@ -66,6 +66,7 @@ class DISSENT_EXPORT Network : public QObject{
         enum Dir{ SEND, RECV, BROADCAST_SEND, BROADCAST_RECV,
                   MULTICAST, MULTICAST_FINAL }dir;
         int node_id;  // receiver, sender, undefined, or sender according to dir
+        int nonce;
         // XXX(scw): accumulative hash value
         QByteArray data;
         QByteArray signature;
@@ -75,6 +76,8 @@ class DISSENT_EXPORT Network : public QObject{
 
     void ClearLog(){ _log.clear(); }
     const QList<LogEntry>& GetLog() const{ return _log; }
+
+    void WaitForBytesWritten();
 
   protected:
     void PrepareMessage(int type, const QByteArray& data,
@@ -97,6 +100,8 @@ class DISSENT_EXPORT Network : public QObject{
 
     void MulticastReady(QByteArray data);
     void MulticastError(int node_id, const QString& reason);
+
+    void TearDown();
 
   private:
     Configuration* _config;

@@ -37,7 +37,9 @@
 
 namespace Dissent{
 Node::Node(const Configuration& config)
-    : _config(config), _protocolRound(-1), _protocolStopped(true){
+    : _config(config), _protocolRound(-1),
+      _protocolStopped(true),
+      _protocolInitiating(false){
     _network = new Network(&_config);
     _network->setParent(this);
 

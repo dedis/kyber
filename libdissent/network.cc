@@ -29,6 +29,7 @@
 
 #include <QtGlobal>
 #include <QAbstractSocket>
+#include <QCoreApplication>
 #include <QHostAddress>
 #include <QHostInfo>
 #include <QSet>
@@ -85,7 +86,7 @@ int Network::Send(int node_id, const QByteArray& data){
     //       (char*) socket->peerAddress().toString().toUtf8().data(),
     //       socket->peerPort());
 
-    LogEntry log = { LogEntry::SEND, node_id, data, sig, true };
+    LogEntry log = { LogEntry::SEND, node_id, _nonce, data, sig, true };
     _log.push_back(log);
     return w_count;
 }
@@ -109,7 +110,7 @@ int Network::Broadcast(const QByteArray& data){
             Q_ASSERT(w_count == plaintext.size() + sig.size());
         }
 
-    LogEntry log = { LogEntry::BROADCAST_SEND, -1, data, sig, true };
+    LogEntry log = { LogEntry::BROADCAST_SEND, -1, _nonce, data, sig, true };
     _log.push_back(log);
     return plaintext.size() + sig.size();
 }
@@ -118,7 +119,6 @@ int Network::MulticastXor(const QByteArray& data){
     Q_ASSERT(_multicast == 0);
     const int collector_node_id = _config->topology.front().node_id;
     if(collector_node_id == _config->my_node_id){
-printf("I'm multicast leader\n");
         _multicast = new MulticastXorProcessor(this, _config->num_nodes, data);
         connect(_multicast, SIGNAL(multicastReady(QByteArray)),
                 this, SLOT(MulticastReady(QByteArray)));
@@ -144,7 +144,7 @@ printf("I'm multicast leader\n");
     Q_ASSERT(w_count == plaintext.size() + sig.size());
 
     LogEntry log = { LogEntry::MULTICAST, collector_node_id,
-                     data, sig, true };
+                     _nonce, data, sig, true };
     _log.push_back(log);
     return w_count;
 }
@@ -154,10 +154,12 @@ int Network::Read(int node_id, QByteArray* data){
     while(buffer.size() > 0 && buffer.front().status == Buffer::DONE){
         const Buffer& buf = buffer.front();
         const bool valid = buf.entry.valid;
+        int nonce = buf.entry.nonce;
         *data = buf.entry.data;
         _log.push_back(buf.entry);
         buffer.pop_front();  // now we can drop it from buffer
-        if(valid)
+        if(nonce != _nonce) fprintf(stderr, "Invalid nonce\n");
+        if(valid && nonce == _nonce)
             return 1;
     }
     return 0;
@@ -191,19 +193,20 @@ bool Network::ValidateLogEntry(LogEntry* entry){
             entry->signature);
     entry->dir = static_cast<LogEntry::Dir>(
             QByteArrayUtil::ExtractInt(true, &entry->data));
-    int nonce =
+    entry->nonce =
             QByteArrayUtil::ExtractInt(true, &entry->data);
     bool valid_dir = (entry->dir == LogEntry::SEND ||
                       entry->dir == LogEntry::BROADCAST_SEND ||
                       entry->dir == LogEntry::MULTICAST ||
                       entry->dir == LogEntry::MULTICAST_FINAL);
-    bool valid_nonce = (nonce == _nonce);
     if(entry->dir == LogEntry::SEND)
         entry->dir = LogEntry::RECV;
     else if(entry->dir == LogEntry::BROADCAST_SEND)
         entry->dir = LogEntry::BROADCAST_RECV;
 
-    return entry->valid = (valid_sig && valid_dir && valid_nonce);
+    if(!valid_sig) fprintf(stderr, "Invalid signature\n");
+    if(!valid_dir) fprintf(stderr, "Invalid direction\n");
+    return entry->valid = (valid_sig && valid_dir);
 }
 
 void Network::ClientHasReadyRead(int node_id){
@@ -295,6 +298,22 @@ void Network::ClientHasReadyRead(int node_id){
         ClientHasReadyRead(node_id);
 }
 
+void Network::WaitForBytesWritten(){
+    foreach(const NodeInfo& node, _config->nodes)
+        if(node.node_id != _config->my_node_id && !node.excluded){
+            QTcpSocket* socket = _clients[node.node_id];
+            Q_ASSERT_X(socket, "Network::WaitForBytesWritten",
+                       (const char*) QString("socket[%1] = null")
+                       .arg(node.node_id).toUtf8().data());
+            while(socket->state() == QAbstractSocket::ConnectedState &&
+                  socket->bytesToWrite() > 0){
+                qApp->processEvents();
+                socket->flush();
+                socket->waitForBytesWritten(-1);
+            }
+        }
+}
+
 void Network::NetworkReady(){
     // Or keep it so that hosts can reconnect if connection dropped?
     delete _prepare; _prepare = 0;
@@ -317,6 +336,8 @@ void Network::NetworkReady(){
 
     _isReady = true;
     emit networkReady();
+    connect(qApp, SIGNAL(aboutToQuit()),
+            this, SLOT(TearDown()));
 }
 
 void Network::MulticastReady(QByteArray data){
@@ -341,7 +362,7 @@ void Network::MulticastReady(QByteArray data){
             Q_ASSERT(w_count == plaintext.size() + sig.size());
         }
 
-    LogEntry entry = { LogEntry::MULTICAST_FINAL, -1, data, sig, true };
+    LogEntry entry = { LogEntry::MULTICAST_FINAL, -1, _nonce, data, sig, true };
     Buffer buffer;
     buffer.status = Buffer::DONE;
     buffer.entry = entry;
@@ -352,6 +373,13 @@ void Network::MulticastReady(QByteArray data){
 
 void Network::MulticastError(int node_id, const QString& reason){
     emit inputError(node_id, reason);
+}
+
+void Network::TearDown(){
+    WaitForBytesWritten();
+    for(QMap<int, QTcpSocket*>::const_iterator it = _clients.constBegin();
+        it != _clients.constEnd(); ++it)
+        it.value()->close();
 }
 
 void Network::StartIncomingNetwork(){

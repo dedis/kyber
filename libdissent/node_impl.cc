@@ -36,7 +36,7 @@
 #include "node.hpp"
 #include "node_impl_shuffle.hpp"
 
-#define TIMEOUT 60000 // msec // XXX(scw): don't hard code this
+// #define TIMEOUT 60000 // msec // XXX(scw): don't hard code this
 
 namespace Dissent{
 NodeImpl* NodeImpl::GetInitLeader(Node* node){
@@ -49,10 +49,12 @@ NodeImpl* NodeImpl::GetInit(Node* node, int leader_id){
 
 NodeImpl::NodeImpl(Node* node) : _node(node), _listeningSlot(0){
     _timeout_timer = new QTimer(this);
+#if TIMEOUT > 0
     _timeout_timer->setSingleShot(true);
     _timeout_timer->setInterval(TIMEOUT);
     connect(_timeout_timer, SIGNAL(timeout()),
             this, SLOT(ListenTimeout()));
+#endif
 }
 
 NodeImpl::~NodeImpl(){
