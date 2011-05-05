@@ -35,29 +35,7 @@ class AnonCrypto:
 	 2) Encrypt the AES key with the RSA key
 	 3) The ciphertext is the (encrypted-AES-key, AES-ciphertext) tuple
 	"""
-	@staticmethod
-	def encrypt_with_rsa_seed(pubkey, msg, seed):
-		session_key = seed
 	
-		"""
-		AES must be padded to make 16-byte blocks
-		Since we prepend msg with # of padding bits
-		we actually need one less padding bit
-		"""
-		n_padding = ((16 - (len(msg) % 16)) - 1) % 16
-		padding = '\0' * n_padding
-
-		pad_struct = struct.pack('!B', n_padding)
-
-		encrypt = M2Crypto.EVP.Cipher('aes_256_cbc', 
-				session_key, AnonCrypto.AES_IV, M2Crypto.encrypt)
-
-		""" Output is tuple (E_rsa(session_key), E_aes(session_key, msg)) """
-		enc_key = pubkey.public_encrypt(session_key, M2Crypto.RSA.pkcs1_oaep_padding)
-		enc_msg = encrypt.update(pad_struct + msg + padding) 
-
-		return enc_key + enc_msg
-		
 	@staticmethod
 	def encrypt_with_rsa(pubkey, msg):
 		session_key = M2Crypto.Rand.rand_bytes(32)
@@ -89,6 +67,56 @@ class AnonCrypto:
 		""" Get session key using RSA decryption """
 		session_key = privkey.private_decrypt(enc_key, 
 				M2Crypto.RSA.pkcs1_oaep_padding)
+		
+		""" Use session key to recover string """
+		dummy_block =  ' ' * 8
+		decrypt = M2Crypto.EVP.Cipher('aes_256_cbc', 
+				session_key, AnonCrypto.AES_IV, M2Crypto.decrypt)
+
+		outstr = decrypt.update(enc_msg) + decrypt.update(dummy_block)
+		pad_data = outstr[0]
+		outstr = outstr[1:]
+
+		""" Get num of bytes added at end """
+		n_padding = struct.unpack('!B', pad_data)
+		
+		""" Second element of tuple is always empty for some reason """
+		n_padding = n_padding[0]
+		outstr = outstr[:(len(outstr) - n_padding)]
+
+		return outstr
+
+	@staticmethod
+	def encrypt_with_private_rsa(privkey, msg):
+		session_key = M2Crypto.Rand.rand_bytes(32)
+	
+		"""
+		AES must be padded to make 16-byte blocks
+		Since we prepend msg with # of padding bits
+		we actually need one less padding bit
+		"""
+		n_padding = ((16 - (len(msg) % 16)) - 1) % 16
+		padding = '\0' * n_padding
+
+		pad_struct = struct.pack('!B', n_padding)
+
+		encrypt = M2Crypto.EVP.Cipher('aes_256_cbc', 
+				session_key, AnonCrypto.AES_IV, M2Crypto.encrypt)
+
+		""" Output is tuple (E_rsa(session_key), E_aes(session_key, msg)) """
+		enc_key = privkey.private_encrypt(session_key, M2Crypto.RSA.pkcs1_padding)
+		enc_msg = encrypt.update(pad_struct + msg + padding) 
+
+		return enc_key + enc_msg
+
+	@staticmethod
+	def decrypt_with_public_rsa(pubkey, cipherstr):
+		enc_key = cipherstr[:128]	# First 128 bytes are the key
+		enc_msg = cipherstr[128:]	# Rest is the padded AES ciphertext
+		
+		""" Get session key using RSA decryption """
+		session_key = pubkey.public_decrypt(enc_key, 
+				M2Crypto.RSA.pkcs1_padding)
 		
 		""" Use session key to recover string """
 		dummy_block =  ' ' * 8
@@ -157,8 +185,20 @@ class AnonCrypto:
 		else:
 		 	raise RuntimeError, 'Invalid Signature'
 
+	@staticmethod
+	def verify_with_key(key, msgstr):
+		(msg, sig) = marshal.loads(msgstr)
+		if key.verify(AnonCrypto.hash(msg), sig):
+			return True
+		else:
+		 	return False
 
-
+	@staticmethod
+	def sign_with_key(signkey, msg):
+		return marshal.dumps(
+				(msg,
+				 signkey.sign(
+					 AnonCrypto.hash(msg))))
 
 	"""
 	I/O Utility Functions

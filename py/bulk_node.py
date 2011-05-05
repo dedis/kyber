@@ -28,16 +28,16 @@ from shuffle_node import shuffle_node
 
 class bulk_node():
 	def __init__(self, id, key_len, round_id, n_nodes,
-			my_addr, leader_addr, prev_addr, next_addr, msg_file):
+			my_addr, leader_addr, prev_addr, next_addr, msg_file, participants_vector, key1, key2):
 		ip,port = my_addr
 
 		self.id = id
 		self.sockets = []
-		self.key_len = key_len
-		self.n_nodes = n_nodes
+		self.key_len = int(key_len)
+		self.n_nodes = int(n_nodes)
 		self.ip = ip
 		self.port = int(port)
-		self.round_id = round_id
+		self.round_id = int(round_id)
 		self.leader_addr = leader_addr
 		self.prev_addr = prev_addr
 		self.next_addr = next_addr
@@ -60,6 +60,10 @@ class bulk_node():
 		logger.setLevel(logging.DEBUG)
 
 		self.pub_keys = {}
+		self.key1 = key1
+		self.key2 = key2
+		self.participants_vector = participants_vector
+		self.initialize_keys()
 
 		'''
 		if self.id > 0: sys.exit()
@@ -75,18 +79,18 @@ class bulk_node():
 	def run_protocol(self):
 		try:
 			self.setup_sockets()
-			self.run_phase0()
 			self.run_phase1()
 			self.run_phase2()
 			self.run_phase3()
 			self.run_phase4()
-			self.critical("SUCCESSROUND:BULK, RID:%d, NNOD:%d, WALLTIME:%g, USR:%g, SYS:%g\n\t%s" % \
+			self.critical("SUCCESSROUND:BULK, RID:%d, NNOD:%d, WALLTIME:%g, USR:%g, SYS:%g\n\t%s\n%s" % \
 				(self.round_id,
 				 self.n_nodes, 
 				 time() - self.start_time, 
 				 resource.getrusage(resource.RUSAGE_SELF).ru_utime - self.rusage_start[0],
 				 resource.getrusage(resource.RUSAGE_SELF).ru_stime - self.rusage_start[1],
-				 self.size_string()))
+				 self.size_string(),
+				 self.data_filenames))
 		except RuntimeError, SystemExit:
 			self.cleanup_sockets()
 			raise
@@ -114,104 +118,17 @@ class bulk_node():
 	"""
 	PHASE 0
 
-	Key exchange.  Since this is just a demo, we have all nodes
-	send each other their primary and secondary public keys.  Of course
-	in a real implementation, they should already have each other's
-	primary public keys so that they can sign this first message.
+	Set up keys.
 	"""
-		
-	def run_phase0(self):
+	def initialize_keys(self):
 		self.advance_phase()
-		self.public_keys = []
-		self.generate_keys()
-
-		if self.am_leader():
-			self.debug('Leader starting phase 1')
-
-			all_msgs = self.recv_from_all(False)
-			
-			self.unpickle_pub_keys(all_msgs)
-
-			if not self.have_all_keys():
-				raise RuntimeError, "Missing public keys"
-			self.info('Leader has all public keys')
-
-			pick_keys_str = self.phase0b_msg()
-			self.broadcast_to_all_nodes(pick_keys_str, False)
-			self.info('Leader sent all public keys')
-
-		else:
-			self.send_to_leader(self.phase0_msg(), False)
-		
-			""" Get all pub keys from leader """
-			keys = self.recv_from_leader(False)
-			self.unpickle_keyset(keys)
-
-			self.info('Got keys from leader!')
-
-	def unpickle_keyset(self, keys):
-		"""
-		Method that non-leader nodes use to unpack all 
-		public keys from the leader's message.
-		"""
-		(rem_round_id, keydict) = marshal.loads(keys)
-
-		if rem_round_id != self.round_id:
-			raise RuntimeError, "Mismatched round ids"
-
-		for i in keydict:
-			s1,s2 = keydict[i]
-
-			k1 = AnonCrypto.pub_key_from_str(s1)
-			k2 = AnonCrypto.pub_key_from_str(s2)
-			k1.check_key()
-			k2.check_key()
-			self.pub_keys[i] = (k1, k2)
-
+		for index, participant in enumerate(self.participants_vector):
+			msg, key = marshal.loads(participant[0])
+			(nonce, interest_ip, interest_gui_port, interest_com_port, pubkey1_str, pubkey2_str) = marshal.loads(msg)
+			k1 = AnonCrypto.pub_key_from_str(pubkey1_str)
+			k2 = AnonCrypto.pub_key_from_str(pubkey2_str)
+			self.pub_keys[index] = (k1, k2)
 		self.info('Unpickled public keys')
-
-	def unpickle_pub_keys(self, msgs):
-		"""
-		Method that the leader uses to unpack
-		public keys from other nodes.
-		"""
-		addrs = []
-		for data in msgs:
-			(rem_id, rem_round, rem_ip, rem_port,
-			 rem_key1, rem_key2) = marshal.loads(data)
-			self.debug("Unpickled msg from node %d" % (rem_id))
-			
-			if rem_round != self.round_id:
-				raise RuntimeError, "Mismatched round numbers!\
-					(mine: %d, other: %d)" % (
-						self.round_id, rem_round)
-
-			self.pub_keys[rem_id] = (
-					AnonCrypto.pub_key_from_str(rem_key1),
-					AnonCrypto.pub_key_from_str(rem_key2))
-			addrs.append((rem_ip, rem_port))
-		return addrs
-
-	def phase0_msg(self):
-		""" Message all nodes send to the leader. """
-		return marshal.dumps(
-				(self.id,
-					self.round_id, 
-					self.ip,
-					self.port,
-					self.key_from_file(1),
-					self.key_from_file(2)))
-	
-	def phase0b_msg(self):
-		""" Message the leader sends to all other nodes. """
-		newdict = {}
-		for i in xrange(0, self.n_nodes):
-			k1,k2 = self.pub_keys[i]
-			newdict[i] = (
-				AnonCrypto.pub_key_to_str(k1),
-				 AnonCrypto.pub_key_to_str(k2))
-
-		return marshal.dumps((self.round_id, newdict))
 
 	"""
 	PHASE 1
@@ -320,6 +237,9 @@ class bulk_node():
 			# Max msg length given the number of bits we need
 			# to represent the length
 			1 << int(ceil(log(os.path.getsize(self.dfilename),2))),
+			self.participants_vector,
+			self.key1,
+			self.key2,
 			self.sockets)
 		s.run_protocol()
 		fnames = s.output_filenames()

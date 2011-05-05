@@ -26,6 +26,7 @@ class Utilities:
 	def write_str_to_file(filename, msg):
 		with open(filename, 'w') as f:
 			f.write(msg)
+			f.close()
 
 	@staticmethod
 	def xor_bytes(str1, str2):

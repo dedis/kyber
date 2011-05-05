@@ -89,12 +89,12 @@ class AnonNet:
 
 	@staticmethod
 	def send_to_addr(ip, port, msg):
-		debug("Trying to connect to %s:%d (msg len: %d)" % (ip,port, len(msg)))
+		print "Trying to connect to %s:%d (msg len: %d)" % (ip,port, len(msg))
 		sock = AnonNet.new_client_sock(ip, port)
-		debug("Connected to %s:%d" % (ip,port))
+		print "Connected to %s:%d" % (ip,port)
 		AnonNet.send_to_socket(sock, msg)
 		sock.close()
-		debug("Closed socket to server")
+		print "Closed socket to server"
 
 	@staticmethod
 	def send_to_socket(sock, msg):
@@ -150,12 +150,12 @@ class AnonNet:
 
 	@staticmethod
 	def recv_once(my_ip, my_port):
-		debug("Setting up server socket at %s:%d" % (my_ip, my_port))
+		print "Setting up server socket at %s:%d" % (my_ip, my_port)
 		sock_list = AnonNet.new_server_socket_set(my_ip, my_port, 1)
 		s = sock_list[0]
-		debug("Set up server socket at %s:%d" % (my_ip, my_port))
+		print "Set up server socket at %s:%d" % (my_ip, my_port)
 		d = AnonNet.recv_from_socket(s)
-		debug("Closing socket")
+		print "Closing socket"
 		s.close()
 		return d
 
