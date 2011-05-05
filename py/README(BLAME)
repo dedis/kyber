@@ -1,0 +1,129 @@
+                                                             
+`7MM"""Yb.     db                                      mm    
+  MM    `Yb.                                           MM    
+  MM     `Mb `7MM  ,pP"Ybd ,pP"Ybd  .gP"Ya `7MMpMMMb.mmMMmm  
+  MM      MM   MM  8I   `" 8I   `" ,M'   Yb  MM    MM  MM    
+  MM     ,MP   MM  `YMMMa. `YMMMa. 8M""""""  MM    MM  MM    
+  MM    ,dP'   MM  L.   I8 L.   I8 YM.    ,  MM    MM  MM    
+.JMMmmmdP'   .JMML.M9mmmP' M9mmmP'  `Mbmmd'.JMML  JMML.`Mbmo 
+
+===================================================================
+""" Introduction """
+
+A BLAME phase is added into the prototype, which now can detect following exceptions and find the bad node respectively.
+
+Case 1: 
+--> An honest node finds duplicated ciphertexts in phase 3(Anonymization).
+Case 2: 
+--> An honest node finds faulty (undecryptable) ciphertexts in phase 3.
+Case 3:
+--> An honest node reports a "GO=False" in phase 4 (Verification)
+Case 4:
+--> An dishonest node reports a fake "GO=False" in phase 4.
+Case 5:
+--> An dishonest node sends a bad Hash(B) with the Go message in phase 4.
+Case 6:
+--> An bad node sends equivocated messages to other nodes in any phase.
+Case 7:
+--> An honest node finds a bad secondary private key in phase 5(a)
+
+Note that in BLAME phase, every member reveals to all members the random bits she saved in phase 2 and all messages she sent and received in phases 1-4. 
+A member SHOULD NOT reveal her primary private key for security reasons. 
+
+========================================================================
+
+""" Unimplemented """
+
+Case 8:
+--> An bad node submit a faulty encryption in phase 1.
+
+If so, problems can be found in phase 5(a) when an honest node checks the public-private key pair, and the bad node exposed.
+
+Case 9:
+--> An bad node submit false log information in Blame phase.
+
+Once receives log information from node C, an honest node A can authenticate the log by comparing all C's in-data with C's previous node B's out-data, and all C's out-data with D's next node's in-data. If there is any difference, A can check the signatures of the in-data or out-data to expose a bad node.
+
+We did not implement this detail in current program. 
+
+======================================================================
+
+"""  Test """
+
+We created several test cases to test the BLAME phase. To run the test cases, we add 2 arguments: [bad_node_id] [bad_mode]
+
+-> [bad_node_id] is the id of a bad node. The program will create a process which runs a malicious version of the protocol.
+
+-> [bad_mode] specifies the malicious behavior of the bad node. In current version we have 4 modes.
+     0: Duplicate or faulty ciphertext in phase 3, or Go-false in phase 4
+     1: Fake "Go=false" in phase 4
+     2: Incorrect Hash(B) in phase 4
+     3: Bad secondary key in phase 5(a) 
+     Mode 0 is default.
+
+Now the argument list should be like:
+
+		-z -- Zoo mode.  	(YALE INTERNAL USE ONLY)
+					Use SSH to log in to the remote host
+					and execute the node program there.
+		-l -- Local mode.   Run the node program on the local host.
+		-e -- Emulab mode.  Run with SSH and change to the right
+				    directory for emulab tests.
+
+		-s -- Shuffle only. Exchange data using the shuffle protocol
+							only.
+		-b -- Bulk/shuffle. Exchange data using shuffle+bulk protocol.
+				This is what you want to use for long messages.	
+		total_len -- The total amount of data to be exchanged 
+		each -- Equal data mode.  The total_len bytes are distributed 
+						among all nodes equally.  
+		one  -- One big message mode.  Each node sends 128 bytes of data
+				except one node, who sends a message of size
+					(total_len - 128 * (n_nodes - 1)) bytes.
+		n_nodes -- Number of nodes to run the protocol on.  The actual
+				number of nodes is the minimum of n_nodes and
+				the number of nodes listed in your address file.
+		address_filename -- Filename containing node addresses.  This 				is a plain text file with one line per node.  Each
+				line has an IPv4 address/hostname and a port
+				number separated by whitespace.
+		bad_node_number --  The id of the bad node
+		bad_node_mode   --  
+                            0: Duplicate or faulty ciphertext in  phase 3, 
+                               or Go-false in phase 4
+                            1: Fake "Go=false" in phase 4
+                            2: Incorrect Hash(B) in phase 4
+                            3: Bad secondary key in phase 5(a)
+
+EXAMPLE:
+
+Running Dissent locally with 4 nodes.  We run the shuffle protocol only and distribute 1048576 bytes of data (1MB) equally across all nodes.
+The addresses of these nodes is in address.txt (relative to main.py).
+Node 2 is a bad node and his bad mode is 1, which means node 2 will send a fake "Go=false" in phase 4 although his message is not missing.
+
+python main.py -l -s 1048576 each 4 address.txt 2 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -35,7 +35,29 @@ class AnonCrypto:
 	 2) Encrypt the AES key with the RSA key
 	 3) The ciphertext is the (encrypted-AES-key, AES-ciphertext) tuple
 	"""
+	@staticmethod
+	def encrypt_with_rsa_seed(pubkey, msg, seed):
+		session_key = seed
 	
+		"""
+		AES must be padded to make 16-byte blocks
+		Since we prepend msg with # of padding bits
+		we actually need one less padding bit
+		"""
+		n_padding = ((16 - (len(msg) % 16)) - 1) % 16
+		padding = '\0' * n_padding
+
+		pad_struct = struct.pack('!B', n_padding)
+
+		encrypt = M2Crypto.EVP.Cipher('aes_256_cbc', 
+				session_key, AnonCrypto.AES_IV, M2Crypto.encrypt)
+
+		""" Output is tuple (E_rsa(session_key), E_aes(session_key, msg)) """
+		enc_key = pubkey.public_encrypt(session_key, M2Crypto.RSA.pkcs1_oaep_padding)
+		enc_msg = encrypt.update(pad_struct + msg + padding) 
+
+		return enc_key + enc_msg
+		
 	@staticmethod
 	def encrypt_with_rsa(pubkey, msg):
 		session_key = M2Crypto.Rand.rand_bytes(32)

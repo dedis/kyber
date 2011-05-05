@@ -15,10 +15,10 @@ from time import sleep, time
 from logging import debug, info, critical
 import socket, tempfile
 import marshal
-import struct
+import struct,copy
 import resource
 
-import M2Crypto.RSA
+import M2Crypto.RSA,M2Crypto.Rand
 
 from anon_crypto import AnonCrypto
 from utils import Utilities
@@ -43,33 +43,42 @@ class shuffle_node():
 		self.phase = 0
 		self.cleanup = False
 		self.max_len = max_len
+		self.anon_data=[]
 		self.rusage_start = (
 				resource.getrusage(resource.RUSAGE_SELF).ru_utime,
 				resource.getrusage(resource.RUSAGE_SELF).ru_stime)
 
 		self.package_msg(msg_file)
-		info("Node started (id=%d, addr=%s:%d, key_len=%d, round_id=%d, n_nodes=%d)"
-			% (id, ip, port, key_len, round_id, n_nodes))
+		info("Node started (id=%d, addr=%s:%d, key_len=%d, round_id=%d, n_nodes=%d, msg_file=%s)"
+			% (id, ip, port, key_len, round_id, n_nodes,msg_file))
 
 		logger = logging.getLogger()
 		h = logging.FileHandler("logs/node%04d.final" % self.id)
 		h.setLevel(logging.CRITICAL)
 		logger.addHandler(h)
 		logger.setLevel(logging.DEBUG)
-
 		self.pub_keys = {}
-
 		'''
-		# Use this to test crypto functions
-		self.generate_keys()
-
-		if self.id > 0: sys.exit()
-		m = '1' * 1000000
-		signed = AnonCrypto.sign(self.key1, m)
-		output = AnonCrypto.verify(self.key1, signed)
-		self.debug(output)
-		sys.exit()
+		Log information for Blame
 		'''
+		self.c_primes= [0]*n_nodes
+		self.random_bits=[0]*n_nodes
+		self.c_data_ins=[0]*n_nodes
+		self.c_data_outs=[0]*n_nodes
+		self.priv_key1s=[]*n_nodes
+		self.seeds = [0]*n_nodes
+		self.ids = []
+		self.tempered = []
+		self.key2_strings = [0]*n_nodes
+		self.finals = [0]*n_nodes
+		'''
+		Flags denotes the success of each phase
+		'''
+		self.pass1 = False
+		self.pass2 = False
+		self.pass3 = False
+		self.pass4 = False
+		self.pass5 = False
 
 	def package_msg(self, msg_file):
 		"""
@@ -88,9 +97,8 @@ class shuffle_node():
 		if len(padded_msg) != self.max_len:
 		 	raise RuntimeError, 'Message strings are of differing lengths'
 		return padded_msg[:mlen]
-
-	def run_protocol(self):
-
+		
+	def run_bad_protocol(self,mode):
 		if self.sockets == None:
 			""" Need to set up sockets """
 			self.setup_sockets()
@@ -102,14 +110,28 @@ class shuffle_node():
 		try:
 			self.run_phase1()
 			self.run_phase2()
-			self.run_phase3()
-			self.run_phase4()
-			self.run_phase5()
+			if mode == 0:
+				self.pass3 = self.run_bad_phase3()
+			else:
+				self.pass3 = self.run_phase3()
+			if(self.pass3 == True):
+				if mode ==0 or mode ==3:
+					self.pass4 = self.run_phase4()
+				if mode == 1:
+					self.pass4 = self.run_bad_phase4_malicious_nogo()
+				if mode == 2:
+					self.pass4 = self.run_bad_phase4_incorrect_hash()
+				if(self.pass4 == True):
+					if mode == 3:
+						self.run_bad_phase5()
+					else:
+						self.run_phase5()
+			
 		except:
 			self.cleanup_sockets()
 			raise
 		self.cleanup_sockets()
-
+        """
 		self.info("Finished in %g seconds" % (time() - self.start_time))
 		self.critical("SUCCESSROUND:SHUFFLE, RID:%d, NNOD:%d, WALLTIME:%g, USR:%g, SYS:%g\n\t%s" % \
 				(self.round_id,
@@ -118,7 +140,39 @@ class shuffle_node():
 				 resource.getrusage(resource.RUSAGE_SELF).ru_utime - self.rusage_start[0],
 				 resource.getrusage(resource.RUSAGE_SELF).ru_stime - self.rusage_start[1],
 				 self.size_string()))
+		"""		 
+	def run_protocol(self):
+		if self.sockets == None:
+			""" Need to set up sockets """
+			self.setup_sockets()
+		elif len(self.sockets) == 1:
+			""" This is a non-leader node """
+			self.leader_socket = self.sockets[0]
+			self.sockets = None
 
+		try:
+			self.run_phase1()
+			self.run_phase2()
+			self.pass3 = self.run_phase3()
+			if(self.pass3 == True):
+				self.pass4 = self.run_phase4()
+				if(self.pass4 == True):
+					self.run_phase5()
+
+		except:
+			self.cleanup_sockets()
+			raise
+		self.cleanup_sockets()
+        """ 
+		self.info("Finished in %g seconds" % (time() - self.start_time))
+		self.critical("SUCCESSROUND:SHUFFLE, RID:%d, NNOD:%d, WALLTIME:%g, USR:%g, SYS:%g\n\t%s" % \
+				(self.round_id,
+				 self.n_nodes, 
+				 time() - self.start_time, 
+				 resource.getrusage(resource.RUSAGE_SELF).ru_utime - self.rusage_start[0],
+				 resource.getrusage(resource.RUSAGE_SELF).ru_stime - self.rusage_start[1],
+				 self.size_string()))
+        """
 	def size_string(self):
 		c = ''
 		for d in self.anon_data:
@@ -276,7 +330,8 @@ class shuffle_node():
 		""" Encrypt with all primary keys from N ... 1 """
 		for i in xrange(self.n_nodes-1, -1, -1):
 			k1, k2 = self.pub_keys[i]
-			self.cipher = AnonCrypto.encrypt_with_rsa(k1, self.cipher)
+			self.seeds[i] = M2Crypto.Rand.rand_bytes(32)
+			self.cipher = AnonCrypto.encrypt_with_rsa_seed(k1, self.cipher,self.seeds[i])
 			self.debug("Cipher len: %d" % len(self.cipher))
 
 	"""
@@ -284,9 +339,10 @@ class shuffle_node():
 
 	Anonymization.
 	"""
-		
-	def run_phase3(self):
+	def run_bad_phase3(self):
+		pass3 = True
 		self.advance_phase()
+		print "***********************************"
 		self.info("Starting phase 3")
 
 		"""
@@ -304,8 +360,32 @@ class shuffle_node():
 			self.data_in = marshal.loads(self.recv_once())
 			self.debug("Got set of ciphers")
 
-		""" Shuffle ciphertexts. """
-		self.shuffle_and_decrypt()
+		random.shuffle(self.data_in)	
+		self.data_out = []
+        
+		decrypted = []
+		for ctuple in self.data_in:
+			(rem_round, ctext) = marshal.loads(ctuple)
+			if rem_round != self.round_id:
+				raise RuntimeError, "Mismatched round numbers (mine:%d, other:%d)" % (self.round_id, rem_round)
+			try:
+				new_ctext = AnonCrypto.decrypt_with_rsa(self.key1, ctext)
+			except :
+				pass3 = False
+				new_ctext = "error"	+str(self.id)
+			"""
+			Check duplication
+			"""
+			if new_ctext in decrypted:
+				self.info("Find duplication in phase 3")
+				pass3 = False
+			decrypted.append(new_ctext) 
+			"""
+			Do some bad thing here
+			"""	
+			new_ctext = "junk" + new_ctext	
+			pickled = marshal.dumps((self.round_id, new_ctext))
+			self.data_out.append(pickled)
 		self.debug("Shuffled ciphers")
 	
 		outstr = marshal.dumps(self.data_out)
@@ -325,6 +405,162 @@ class shuffle_node():
 			self.final_ciphers = marshal.loads(
 					self.recv_from_socket(self.sockets[self.n_nodes - 2]))
 			self.debug("Got ciphers from other nodes len = %d" % len(self.final_ciphers))
+			
+		"""
+		Check if phrase 3 is passed for everyone
+		"""
+		hashval = AnonCrypto.hash_list(self.cipher)
+		pass3_msg = marshal.dumps((
+					self.id,
+					self.round_id,
+					pass3,
+					hashval))
+		
+		pass3_data = ''
+		if self.am_leader():
+			""" Collect pass3 msgs """
+			data = self.recv_from_all(False)
+			
+			""" Add leader's signed pass3 message to set """
+			data.append(AnonCrypto.sign(self.id, self.key1, pass3_msg))
+			pass3_data = marshal.dumps((data))
+			self.broadcast_to_all_nodes(pass3_data)
+
+		else:
+			""" Send pass3 msg to leader """
+			self.send_to_leader(pass3_msg)
+			pass3_data = self.recv_from_leader()		
+		result = self.check_pass3_data(hashval, pass3_data)
+		if result == True:		
+			self.info("All nodes pass phrase 3")
+			return True		
+		else: 
+			self.info("Nodes did not pass phrase 3")
+			return False
+			
+	def check_pass3_data(self, hashval, pickled_list):
+		pass3_lst = marshal.loads(pickled_list)
+		for item in pass3_lst:
+			""" Verify signature on "pass3" message """
+			item_str = AnonCrypto.verify(self.pub_keys, item)
+			(r_id, r_round, r_pass3, r_hash) = marshal.loads(item_str)
+			if r_round != self.round_id:
+			 	raise RuntimeError, "Mismatched round numbers"
+			if not r_pass3:
+			 	self.blame_share_log_for_phrase3()
+			 	self.blame_replay_phrase3()
+			 	return False
+		return True				
+						
+	def run_phase3(self):
+		pass3 = True
+		self.advance_phase()
+		self.info("Starting phase 3")
+
+		"""
+		Everyone (except leader) blocks waiting for msg from
+		previous node in the group.
+		"""
+		if self.am_leader():
+			pass
+		if self.id == 1:
+		 	self.debug("Node 1 waiting for ciphers from leader")
+			self.data_in = marshal.loads(self.recv_from_socket(self.leader_socket))
+		 	self.debug("Node 1 got ciphers from leader")
+		if self.id > 1:
+			self.debug("Node waiting for set of ciphers")
+			self.data_in = marshal.loads(self.recv_once())
+			self.debug("Got set of ciphers")
+
+		random.shuffle(self.data_in)
+		self.debug("Shuffling len = %d" % len(self.data_in))
+		self.data_out = []
+		decrypted = []
+		for ctuple in self.data_in:
+			(rem_round, ctext) = marshal.loads(ctuple)
+			if rem_round != self.round_id:
+				raise RuntimeError, "Mismatched round numbers (mine:%d, other:%d)" % (self.round_id, rem_round)
+			try:
+				new_ctext = AnonCrypto.decrypt_with_rsa(self.key1, ctext)
+			except :
+				pass3 = False
+				new_ctext = "error"	+str(self.id)
+			"""
+			Check duplication
+			"""
+			if new_ctext in decrypted:
+				self.info("Find duplication in phase 3")
+				pass3 = False
+			decrypted.append(new_ctext) 	
+				
+			pickled = marshal.dumps((self.round_id, new_ctext))
+			self.data_out.append(pickled)
+		self.debug("Shuffled ciphers")
+	
+		outstr = marshal.dumps(self.data_out)
+		if self.am_last():
+			self.debug("Sending ciphers to leader")
+			self.send_to_leader(outstr)
+		elif self.am_leader():
+			self.debug("Sending ciphers to node 1")
+			self.send_to_socket(self.sockets[0], outstr)
+		else:
+			ip, port = self.next_addr
+			self.send_to_addr(ip, port, outstr)
+			self.debug("Sent set of ciphers")
+		
+		if self.am_leader():
+			""" Leader waits for ciphers from member N. """
+			self.final_ciphers = marshal.loads(
+					self.recv_from_socket(self.sockets[self.n_nodes - 2]))
+			self.debug("Got ciphers from other nodes len = %d" % len(self.final_ciphers))
+					
+		"""
+		Check if phrase 3 is passed for everyone
+		"""
+		hashval = AnonCrypto.hash_list(self.cipher)
+		pass3_msg = marshal.dumps((
+					self.id,
+					self.round_id,
+					pass3,
+					hashval))
+		
+		pass3_data = ''
+		if self.am_leader():
+			""" Collect pass3 msgs """
+			data = self.recv_from_all(False)
+			
+			""" Add leader's signed pass3 message to set """
+			data.append(AnonCrypto.sign(self.id, self.key1, pass3_msg))
+			pass3_data = marshal.dumps((data))
+			self.broadcast_to_all_nodes(pass3_data)
+
+		else:
+			""" Send pass3 msg to leader """
+			self.send_to_leader(pass3_msg)
+			pass3_data = self.recv_from_leader()
+		
+		result = self.check_pass3_data(hashval, pass3_data)
+		if result == True:		
+			self.info("All nodes pass phrase 3")
+			return True		
+		else: 
+			self.info("Nodes did not pass phrase 3")
+			return False
+			
+	def check_pass3_data(self, hashval, pickled_list):
+		pass3_lst = marshal.loads(pickled_list)
+		for item in pass3_lst:
+			""" Verify signature on "pass3" message """
+			item_str = AnonCrypto.verify(self.pub_keys, item)
+			(r_id, r_round, r_pass3, r_hash) = marshal.loads(item_str)
+			if r_round != self.round_id:
+			 	raise RuntimeError, "Mismatched round numbers"
+			if not r_pass3:
+			 	self.blame_share_log_for_phrase3()
+			 	self.blame_replay_phrase3()
+			 	return False
+		return True				
 
 	def shuffle_and_decrypt(self):
 		random.shuffle(self.data_in)
@@ -368,11 +604,13 @@ class shuffle_node():
 			go = True
 		else:
 			self.critical("ABORT! My ciphertext is not in set!")
-			self.debug(self.final_ciphers)
 			go = False
-			raise RuntimeError, "Protocol violation: My ciphertext is missing!"
-
-		hashval = AnonCrypto.hash_list(self.final_ciphers)
+		keys = ""
+		for i in range(1,self.n_nodes):		
+			keys+= AnonCrypto.pub_key_to_str(self.pub_keys[i][1])
+		hashval = AnonCrypto.hash(keys)
+			
+		hashval += AnonCrypto.hash_list(self.final_ciphers)
 		go_msg = marshal.dumps((
 					self.id,
 					self.round_id,
@@ -394,9 +632,133 @@ class shuffle_node():
 			self.send_to_leader(go_msg)
 			go_data = self.recv_from_leader()
 		
-		self.check_go_data(hashval, go_data)
-		self.info("All nodes report GO")
-		return
+		result = self.check_go_data(hashval, go_data)
+		if result == True:		
+			self.info("All nodes report GO")
+			return True
+		else: 
+			return False
+	
+	def run_bad_phase4_incorrect_hash(self):
+		self.advance_phase()
+		if self.am_leader():
+			self.debug("Leader broadcasting ciphers to all nodes")
+			self.broadcast_to_all_nodes(marshal.dumps(self.final_ciphers))
+			self.debug("Cipher set len %d" % (len(self.final_ciphers)))
+		else:
+			""" Get C' ciphertexts from leader. """
+			self.final_ciphers = marshal.loads(self.recv_from_leader())
+
+		"""
+		self.final_ciphers holds an array of
+		pickled (round_id, cipher_prime) tuples
+		"""
+
+		my_cipher_str = marshal.dumps((self.round_id, self.cipher_prime))
+
+		go = False
+		if my_cipher_str in self.final_ciphers:
+			self.info("Found my ciphertext in set")
+			go = True
+		else:
+			self.critical("ABORT! My ciphertext is not in set!")
+			go = False
+		keys = ""
+		for i in range(1,self.n_nodes):		
+			keys+= AnonCrypto.pub_key_to_str(self.pub_keys[i][1])
+		hashval = AnonCrypto.hash(keys+"something")
+		"""
+	    Bad hash here
+		"""
+		hashval += AnonCrypto.hash_list(self.final_ciphers)
+		go_msg = marshal.dumps((
+					self.id,
+					self.round_id,
+					go,
+					hashval))
+		
+		go_data = ''
+		if self.am_leader():
+			""" Collect go msgs """
+			data = self.recv_from_all(False)
+			
+			""" Add leader's signed GO message to set """
+			data.append(AnonCrypto.sign(self.id, self.key1, go_msg))
+			go_data = marshal.dumps((data))
+			self.broadcast_to_all_nodes(go_data)
+
+		else:
+			""" Send go msg to leader """
+			self.send_to_leader(go_msg)
+			go_data = self.recv_from_leader()
+		
+		result = self.check_go_data(hashval, go_data)
+		if result == True:		
+			self.info("All nodes report GO")
+			return True
+		else: 
+			return False
+			
+	def run_bad_phase4_malicious_nogo(self):
+		self.advance_phase()
+		if self.am_leader():
+			self.debug("Leader broadcasting ciphers to all nodes")
+			self.broadcast_to_all_nodes(marshal.dumps(self.final_ciphers))
+			self.debug("Cipher set len %d" % (len(self.final_ciphers)))
+		else:
+			""" Get C' ciphertexts from leader. """
+			self.final_ciphers = marshal.loads(self.recv_from_leader())
+
+		"""
+		self.final_ciphers holds an array of
+		pickled (round_id, cipher_prime) tuples
+		"""
+
+		my_cipher_str = marshal.dumps((self.round_id, self.cipher_prime))
+
+		go = False
+		if my_cipher_str in self.final_ciphers:
+			self.info("Found my ciphertext in set")
+			"""
+			malicious no-go 
+			"""
+			go = False
+		else:
+			self.critical("ABORT! My ciphertext is not in set!")
+			go = False
+		keys = ""
+		for i in range(1,self.n_nodes):		
+			keys+= AnonCrypto.pub_key_to_str(self.pub_keys[i][1])
+		hashval = AnonCrypto.hash(keys)
+			
+		hashval += AnonCrypto.hash_list(self.final_ciphers)
+		go_msg = marshal.dumps((
+					self.id,
+					self.round_id,
+					go,
+					hashval))
+		
+		go_data = ''
+		if self.am_leader():
+			""" Collect go msgs """
+			data = self.recv_from_all(False)
+			
+			""" Add leader's signed GO message to set """
+			data.append(AnonCrypto.sign(self.id, self.key1, go_msg))
+			go_data = marshal.dumps((data))
+			self.broadcast_to_all_nodes(go_data)
+
+		else:
+			""" Send go msg to leader """
+			self.send_to_leader(go_msg)
+			go_data = self.recv_from_leader()
+		
+		result = self.check_go_data(hashval, go_data)
+		if result == True:		
+			self.info("All nodes report GO")
+			return True
+		else: 
+			return False
 
 	def check_go_data(self, hashval, pickled_list):
 		go_lst = marshal.loads(pickled_list)
@@ -407,10 +769,16 @@ class shuffle_node():
 			if r_round != self.round_id:
 			 	raise RuntimeError, "Mismatched round numbers"
 			if not r_go:
-			 	raise RuntimeError, "Node %d reports failure!" % (r_id)
+			 	self.blame_share_log_for_phrase3()
+			 	self.blame_check_no_go(r_id)
+			 	return False
 			if r_hash != hashval:
-			 	raise RuntimeError, "Node %d produced bad hash!" % (r_id)
+			 	self.blame_share_log_for_hash_value()
+			 	self.blame_check_wrong_hash(r_id,r_hash)
+			 	return False
 		return True
+	
+	
 
 	"""
 	PHASE 5
@@ -442,6 +810,31 @@ class shuffle_node():
 
 		self.decrypt_ciphers(data)
 		self.info('Decrypted ciphertexts')
+	
+	def run_bad_phase5(self):
+		self.advance_phase()
+   		"""
+		Send out a bad key 
+		"""
+		mykeystr = AnonCrypto.sign(self.id, self.key1, marshal.dumps((
+							self.id,
+							self.round_id,
+							AnonCrypto.priv_key_to_str(self.key1))))
+
+		if self.am_leader():
+			data = self.recv_from_all()
+			""" Add leader's signed key to set """
+			data.append(mykeystr)
+			self.debug("Key data... len = %d" % len(data))
+			self.broadcast_to_all_nodes(marshal.dumps(data))
+		else:
+			self.info('Sending key to leader')
+			self.send_to_leader(mykeystr)
+			data = marshal.loads(self.recv_from_leader())
+			self.info("Got key set from leader, len = %d" % len(data))
+
+		self.decrypt_ciphers(data)
+		self.info('Decrypted ciphertexts')
 		
 	def write_anon_data_filenames(self):
 		filenames = []
@@ -452,6 +845,7 @@ class shuffle_node():
 		return filenames
 
 	def decrypt_ciphers(self, keyset):
+		pass5 = True
 		priv_keys = {}
 		for item in keyset:
 			""" Verify signature on each key """
@@ -459,8 +853,32 @@ class shuffle_node():
 			(r_id, r_roundid, r_keystr) = marshal.loads(item_str)
 			if r_roundid != self.round_id:
 				raise RuntimeError, 'Mismatched round numbers'
-			priv_keys[r_id] = AnonCrypto.priv_key_from_str(r_keystr)
+			"""
+			Check if the private key matches the public key
+			"""
+			if (not self.check_secondary_pub_pri_key_pair(r_id,r_keystr)):
+				pass5 = False
+				pass5_msg = marshal.dumps((self.id,self.round_id,pass5,item_str))
+				pass5_data = ""
+				if self.am_leader():
+					""" Collect go msgs """
+					data = self.recv_from_all(False)			
+					""" Add leader's signed GO message to set """
+					data.append(AnonCrypto.sign(self.id, self.key1, pass5_msg))
+					pass5_data = marshal.dumps((data))
+					self.broadcast_to_all_nodes(pass5_data)
 
+				else:
+					""" Send go msg to leader """
+					self.send_to_leader(pass5_msg)
+					pass5_data = self.recv_from_leader()		
+				self.check_pass5_data(pass5_data)
+				return 
+			else:
+				priv_keys[r_id] = AnonCrypto.priv_key_from_str(r_keystr)
+			"""
+			Decryption
+			"""
 		plaintexts = []
 		for cipher in self.final_ciphers:
 			(r_round, cipher_prime) = marshal.loads(cipher)
@@ -468,11 +886,187 @@ class shuffle_node():
 				raise RuntimeError, 'Mismatched round ids'
 			for i in xrange(0, self.n_nodes):
 				cipher_prime = AnonCrypto.decrypt_with_rsa(priv_keys[i], cipher_prime)
-			plaintexts.append(self.unpackage_msg(cipher_prime))
-		
+			plaintexts.append(self.unpackage_msg(cipher_prime))		
 		self.anon_data = plaintexts
+	
+	def check_pass5_data(self, pickled_list):
+		pass5_lst = marshal.loads(pickled_list)
+		for item in pass5_lst:
+			""" Verify signature on "pass5" message """
+			item_str = AnonCrypto.verify(self.pub_keys, item)
+			(r_id, r_round, r_pass5, r_item_str) = marshal.loads(item_str)
+			if r_round != self.round_id:
+			 	raise RuntimeError, "Mismatched round numbers"
+			if not r_pass5:
+				(id, roundid, keystr) = marshal.loads(r_item_str)
+				if not self.check_secondary_pub_pri_key_pair(id,keystr):
+					self.info("**Node " + str(id)+" is bad, who sent a fake secret key in phrase 5**")
+				else:
+					self.info("**Node " + str(r_id)+" is bad, who report a false no-pass5 in phrase 5**")
+			 	return False		
+		return True
+	
+	def check_secondary_pub_pri_key_pair(self,id,pri_key_str):
+		try:
+			privatekey = AnonCrypto.priv_key_from_str(pri_key_str)
+			publickey = self.pub_keys[id][1]
+			message = "test"
+			result =  AnonCrypto.decrypt_with_rsa(privatekey, AnonCrypto.encrypt_with_rsa(publickey,message))
+			return (result=="test")
+		except:
+			return False;
 		
+	"""
+	Blame Functions
+    """ 
+		
+	def blame_share_log_for_phrase3(self):
+		if self.am_leader():
+			self.info("Collecting logs from all")
+			log_data = self.recv_from_all()
+			self.ids.append(self.id)
+			self.random_bits.append(self.seeds)
+			self.c_data_ins.append(self.data_in)
+			self.c_data_outs.append(self.data_out)
+			self.c_primes.append(self.cipher_prime)
+			for data in log_data:
+				(id,sds,c_prime,d_in,d_out) = marshal.loads((data))
+				self.random_bits.append(sds)
+				self.ids.append(id)
+				self.c_primes.append(c_prime)
+				self.c_data_ins.append(d_in)
+				self.c_data_outs.append(d_out)
+			for i in range(0,len(self.ids)): 
+				self.random_bits.remove(0)
+				self.c_data_ins.remove(0)
+				self.c_primes.remove(0)
+				self.c_data_outs.remove(0)
+				
+			self.info("Broadcasting logs to all")
+			log_out_data = marshal.dumps((self.ids,self.random_bits,self.c_primes,self.c_data_ins,self.c_data_outs))
+			self.broadcast_to_all_nodes(log_out_data)		
+		else:
+			self.info("Send Log to Leader....")
+			log_out_data = marshal.dumps((self.id,self.seeds,self.cipher_prime,self.data_in,self.data_out))
+			self.send_to_leader(log_out_data)
+			self.info("Receiving logs from leader")
+			log_in_data = self.recv_from_leader()
+			(ids,random_bits,c_primes,c_data_ins,c_data_outs) = marshal.loads((log_in_data))
+			self.ids= ids
+			self.random_bits = random_bits
+			self.c_primes = c_primes
+			self.c_data_ins = c_data_ins
+			self.c_data_outs=c_data_outs
 
+	def blame_replay_phrase3(self):
+		caught = 100000
+		for i in range(0,self.n_nodes):
+			data_in = self.c_data_ins[i]
+			data_out =self.c_data_outs[i]
+			"""
+			TBA
+			Authenticate data_in and data_out by comparing with previous node's data_out and next node's data_in
+			"""
+			for ctuple in data_out:
+				 found = 0
+				 (rem_round, ctext) = marshal.loads(ctuple)
+				 for j in range(0,self.n_nodes):
+					 seeds = self.random_bits[j]				
+					 randombits = seeds[i]
+					 k1, k2 = self.pub_keys[i]
+					 cipher = AnonCrypto.encrypt_with_rsa_seed(k1, ctext,randombits)
+					 for tuple in data_in: 
+					      (rem_round, text) = marshal.loads(tuple)
+					      if cmp(cipher[128:],text[128:]) == 0:
+							  found = 1
+							  break
+					 if found==1:
+						 break
+				 if found == 0:
+					 caught = i
+					 break
+			if caught != 100000:
+				break
+		if caught != 100000:			 
+			self.info("***NODE: "+str(caught)+" DID BAD THING IN PHASE 3***")
+			return False
+		else:
+			return True
+	"""
+	This function is not used
+	Private Keys should not be used for replaying phrase 3 for security reasons
+	"""	
+  	def blame_replay_phrase3_with_private_keys(self):
+		for i in range(0, self.n_nodes):
+			data_in = self.c_data_ins[i]
+			data_out =self.c_data_outs[i]
+			data_ins_decrypted = []
+			for ctuple in data_in:
+				(rem_round, ctext) = marshal.loads(ctuple)
+				new_ctext = AnonCrypto.decrypt_with_rsa(AnonCrypto.priv_key_from_str(self.priv_key1s[i]), ctext)
+				pickled = marshal.dumps((rem_round, new_ctext))
+				data_ins_decrypted.append(pickled)
+				if (not pickled in data_out):
+					self.info("**********NODE "+ str(i)+ " DID BAD THING IN PHASE 3**********************")
+					return
+			for element in data_out:
+			    if(not element in data_ins_decrypted):
+					self.info("**********NODE "+ str(i)+ " DID BAD THING IN PHASE 3**********************")
+					return
+	
+	def blame_check_no_go(self, no_go_reporter):
+		all_go = self.blame_replay_phrase3()
+		if all_go == True:
+			self.info("**********NODE "+ str(no_go_reporter)+ " IS BAD, HE REPORTED A FAKE \"no-go\" **********************")
+	
+	def blame_share_log_for_hash_value(self):
+		key2_list = []
+		for i in range(0,self.n_nodes):		
+			key2_list.append(AnonCrypto.pub_key_to_str(self.pub_keys[i][1]))
+		if self.am_leader():
+			self.info("Collecting logs from all")
+			log_data = self.recv_from_all()
+			self.ids.append(self.id)
+			self.key2_strings.append(key2_list)
+			self.finals.append(self.final_ciphers)
+			for data in log_data:
+				(id,key2s,final) = marshal.loads((data))
+				self.ids.append(self.id)
+				self.key2_strings.append(key2s)
+				self.finals.append(final)
+			for i in range(0,len(self.ids)): 
+				self.finals.remove(0)
+				self.key2_strings.remove(0)			
+			self.info("Broadcasting logs to all")
+			log_out_data = marshal.dumps((self.ids,self.key2_strings,self.finals))
+			self.broadcast_to_all_nodes(log_out_data)
+
+		
+		else:
+			self.info("Send Log to Leader....")
+			log_out_data = marshal.dumps((self.id,key2_list,self.final_ciphers))
+			self.send_to_leader(log_out_data)
+			self.info("Receiving logs from leader")
+			log_in_data = self.recv_from_leader()
+			(ids,key2s,finals) = marshal.loads((log_in_data))
+			self.ids= ids
+			self.key2_strings = key2s
+			self.finals = finals
+
+	def blame_check_wrong_hash(self,other_id,other_hash):
+		keys =""
+		for i in range(0,len(self.ids)):	
+			keys+= self.key2_strings[other_id][i]
+		hashval = AnonCrypto.hash(keys)
+		hashval += AnonCrypto.hash_list(self.finals[other_id])
+		if(hashval != other_hash):
+			self.info("******NODE "+str(other_id)+" IS BAD, HE SENT A BAD HASH*********")
+		else:
+			for j in range(0,len(self.ids)):
+				if (not self.key2_strings[self.id][j]== self.key2_strings[other_id][j]) or  (not self.finals[self.id][j]== self.finals[other_id][j]):
+						self.info("*********NODE "+str(j)+" IS BAD, HE SENT EQUIVOCATE MESSAGE TO OTHER NODES**********")
+						break
+			
 	"""
 	Network Utility Functions
 	"""

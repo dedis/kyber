@@ -1,0 +1,134 @@
+(NODE 3, PHZ 5 - localhost:7436) SUCCESSROUND:SHUFFLE, RID:1759, NNOD:6, WALLTIME:9.33932, USR:0.696894, SYS:0.008999
+	,174762,174762,174762,174762,174762,174762
+(NODE 3, PHZ 5 - localhost:7436) SUCCESSROUND:SHUFFLE, RID:6379, NNOD:6, WALLTIME:11.3046, USR:0.659899, SYS:0.008999
+	,174762,174762,174762,174762,174762,174762
+(NODE 3, PHZ 5 - localhost:7436) SUCCESSROUND:SHUFFLE, RID:2127, NNOD:6, WALLTIME:11.4178, USR:0.770883, SYS:0.015997
+	,174762,174762,174762,174762,174762,174762
+(NODE 3, PHZ 5 - localhost:8713) SUCCESSROUND:SHUFFLE, RID:9720, NNOD:4, WALLTIME:10.9513, USR:0.45893, SYS:0.014998
+	,262144,262144,262144,262144
+(NODE 3, PHZ 5 - localhost:8703) SUCCESSROUND:SHUFFLE, RID:1546, NNOD:4, WALLTIME:0.86266, USR:0.39594, SYS:0.015998
+	,262144,262144,262144,262144
+(NODE 3, PHZ 5 - localhost:8703) SUCCESSROUND:SHUFFLE, RID:1269, NNOD:4, WALLTIME:0.966376, USR:0.512922, SYS:0.008998
+	,262144,262144,262144,262144
+(NODE 3, PHZ 5 - localhost:8313) SUCCESSROUND:SHUFFLE, RID:7838, NNOD:4, WALLTIME:5.88792, USR:0.52292, SYS:0.017997
+	,262144,262144,262144,262144
+(NODE 3, PHZ 5 - localhost:8313) SUCCESSROUND:SHUFFLE, RID:1230, NNOD:4, WALLTIME:5.88909, USR:0.475927, SYS:0.012998
+	,262144,262144,262144,262144
+(NODE 3, PHZ 5 - localhost:5417) SUCCESSROUND:SHUFFLE, RID:9031, NNOD:4, WALLTIME:11.1738, USR:0.545917, SYS:0.076989
+	,262144,262144,262144,262144
+(NODE 3, PHZ 5 - localhost:5517) SUCCESSROUND:SHUFFLE, RID:2273, NNOD:4, WALLTIME:10.1625, USR:0.52692, SYS:0.081988
+	,262144,262144,262144,262144
+(NODE 3, PHZ 5 - localhost:7517) SUCCESSROUND:SHUFFLE, RID:6620, NNOD:4, WALLTIME:11.1296, USR:0.510922, SYS:0.084987
+	,262144,262144,262144,262144
+(NODE 3, PHZ 5 - localhost:7217) SUCCESSROUND:SHUFFLE, RID:7290, NNOD:4, WALLTIME:7.17888, USR:0.532919, SYS:0.080987
+	,262144,262144,262144,262144
+(NODE 3, PHZ 5 - localhost:7217) SUCCESSROUND:SHUFFLE, RID:7349, NNOD:4, WALLTIME:11.2097, USR:0.544917, SYS:0.084987
+	,262144,262144,262144,262144
+(NODE 3, PHZ 5 - localhost:7217) SUCCESSROUND:SHUFFLE, RID:9318, NNOD:4, WALLTIME:9.2746, USR:0.548916, SYS:0.083987
+	,262144,262144,262144,262144
+(NODE 3, PHZ 5 - localhost:7217) SUCCESSROUND:SHUFFLE, RID:5352, NNOD:4, WALLTIME:1.25078, USR:0.578912, SYS:0.088987
+	,262144,262144,262144,262144
+(NODE 3, PHZ 5 - localhost:7217) SUCCESSROUND:SHUFFLE, RID:609, NNOD:4, WALLTIME:11.2109, USR:0.567913, SYS:0.086986
+	,262144,262144,262144,262144
+(NODE 3, PHZ 5 - localhost:7217) SUCCESSROUND:SHUFFLE, RID:1606, NNOD:4, WALLTIME:8.27372, USR:0.556915, SYS:0.092986
+	,262144,262144,262144,262144
+(NODE 3, PHZ 5 - localhost:7217) SUCCESSROUND:SHUFFLE, RID:6762, NNOD:4, WALLTIME:7.25279, USR:0.539918, SYS:0.079988
+	,262144,262144,262144,262144
+(NODE 3, PHZ 4 - localhost:3213) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 5 - localhost:3213) SUCCESSROUND:SHUFFLE, RID:8132, NNOD:4, WALLTIME:0.985611, USR:0.52692, SYS:0.013998
+	,262144,262144,262144,262144
+(NODE 3, PHZ 5 - localhost:6213) SUCCESSROUND:SHUFFLE, RID:8160, NNOD:4, WALLTIME:9.88575, USR:0.403938, SYS:0.011998
+	,262144,262144,262144,262144
+(NODE 3, PHZ 4 - localhost:6213) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7213) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 5 - localhost:7213) SUCCESSROUND:SHUFFLE, RID:4889, NNOD:4, WALLTIME:0.887104, USR:0.506923, SYS:0.011998
+	,262144,262144,262144,262144
+(NODE 3, PHZ 5 - localhost:3213) SUCCESSROUND:SHUFFLE, RID:4864, NNOD:4, WALLTIME:6.8354, USR:0.466929, SYS:0.015998
+	,262144,262144,262144,262144
+(NODE 3, PHZ 5 - localhost:3213) SUCCESSROUND:SHUFFLE, RID:7823, NNOD:4, WALLTIME:5.88539, USR:0.46293, SYS:0.012998
+	,262144,262144,262144,262144
+(NODE 3, PHZ 4 - localhost:6213) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:9413) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 5 - localhost:7313) SUCCESSROUND:SHUFFLE, RID:9075, NNOD:4, WALLTIME:5.68371, USR:0.298955, SYS:0.005999
+	,262144,262144,262144,262144
+(NODE 3, PHZ 5 - localhost:7313) SUCCESSROUND:SHUFFLE, RID:4862, NNOD:4, WALLTIME:9.74161, USR:0.300954, SYS:0.005
+	,262144,262144,262144,262144
+(NODE 3, PHZ 4 - localhost:7314) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7315) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7316) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7317) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7317) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7312) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7312) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7312) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7312) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7311) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7311) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7311) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7313) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7314) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7314) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7314) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7314) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7314) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7314) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7314) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7314) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7313) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7313) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7313) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7314) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7315) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7311) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7312) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7312) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7311) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7311) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7313) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7313) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7313) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7313) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7313) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7313) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7314) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7314) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7314) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7314) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7314) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7315) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7315) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7315) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7316) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7314) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 5 - localhost:7314) SUCCESSROUND:SHUFFLE, RID:2875, NNOD:4, WALLTIME:8.64597, USR:0.336949, SYS:0.008998
+	,262144,262144,262144,262144
+(NODE 3, PHZ 5 - localhost:7314) SUCCESSROUND:SHUFFLE, RID:4887, NNOD:4, WALLTIME:10.6764, USR:0.300955, SYS:0.004999
+	,262144,262144,262144,262144
+(NODE 3, PHZ 5 - localhost:7313) SUCCESSROUND:SHUFFLE, RID:6431, NNOD:4, WALLTIME:6.6755, USR:0.290955, SYS:0.005999
+	,262144,262144,262144,262144
+(NODE 3, PHZ 4 - localhost:7312) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7312) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7311) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7311) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7311) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7310) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7320) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7320) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7322) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7322) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7324) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7324) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7324) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7324) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7327) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7327) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7325) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7325) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7325) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7326) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7324) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7322) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7321) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7124) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7126) ABORT! My ciphertext is not in set!
+(NODE 3, PHZ 4 - localhost:7126) ABORT! My ciphertext is not in set!
