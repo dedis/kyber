@@ -41,8 +41,8 @@ namespace BulkSend{
         MessageDescriptor(Configuration* config);
 
         void Initialize(const QByteArray& data);
-        void Serialize(int nonce, QByteArray* byte_array);
-        int Deserialize(const QByteArray& byte_array);  // return the nonce
+        void Serialize(QByteArray* byte_array);
+        void Deserialize(const QByteArray& byte_array);
 
         bool isPrivileged() const{ return !_xorData.isEmpty(); }
 
@@ -57,9 +57,6 @@ namespace BulkSend{
         // Privilege data
         QByteArray _xorData;
         QList<QByteArray> _seeds;
-
-        // Only when unprivileged
-        QByteArray _seed;
 
         static QByteArray EmptyStringHash;
         static QByteArray EmptyEncryptedSeed;

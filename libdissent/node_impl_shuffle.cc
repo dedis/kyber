@@ -563,7 +563,7 @@ NodeImplShuffleMsgDesc::NodeImplShuffleMsgDesc(Node* node)
 void NodeImplShuffleMsgDesc::GetShuffleData(QByteArray* data){
     _desc = new BulkSend::MessageDescriptor(_node->GetConfig());
     _desc->Initialize(_data);
-    _desc->Serialize(_node->GetNetwork()->GetNonce(), data);
+    _desc->Serialize(data);
 }
 
 NodeImpl* NodeImplShuffleMsgDesc::GetNextImpl(
@@ -579,9 +579,8 @@ NodeImpl* NodeImplShuffleMsgDesc::GetNextImpl(
         if(i == index)
             descriptors.push_back(*_desc);
         else{
-            int nonce = desc.Deserialize(shuffledData[i]);
-            if(_node->GetNetwork()->GetNonce() == nonce)
-                descriptors.push_back(desc);
+            desc.Deserialize(shuffledData[i]);
+            descriptors.push_back(desc);
         }
     }
     return new NodeImplBulkSend(_node, _data, descriptors);

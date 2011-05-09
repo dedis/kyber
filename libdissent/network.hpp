@@ -52,7 +52,6 @@ class DISSENT_EXPORT Network : public QObject{
     Network(Configuration* config);
 
     bool IsReady() const{ return _isReady; }
-    qint32 GetNonce() const{ return _nonce; }
     void ResetSession(qint32 nonce);
 
     int Send(int node_id, const QByteArray& data);

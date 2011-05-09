@@ -107,7 +107,7 @@ Configuration::Configuration(int argc, char* argv[])
                     QByteArray ba("");
                     Dissent::BulkSend::MessageDescriptor desc(this);
                     desc.Initialize(ba);
-                    desc.Serialize(0, &ba);
+                    desc.Serialize(&ba);
                     shuffle_msg_length = ba.size();
                     break;
                 }
