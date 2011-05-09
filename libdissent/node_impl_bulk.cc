@@ -49,6 +49,7 @@ MessageDescriptor::MessageDescriptor(Configuration* config)
         Crypto::GetInstance()->Hash(QList<QByteArray>(), &EmptyStringHash);
 
         PRNG::Seed seed(PRNG::SeedLength, ' ');
+        QByteArrayUtil::PrependInt(0,  &seed);
         Crypto::GetInstance()->Encrypt(
                 &config->nodes[config->my_node_id].identity_pk,
                 seed,
@@ -69,21 +70,11 @@ void MessageDescriptor::Initialize(const QByteArray& data){
     _length = length;
     crypto->HashOne(data, &_dataHash);
     _checkSums.clear();
-    _encryptedSeeds.clear();
     _seeds.clear();
     foreach(const NodeTopology& node, _config->topology){
         PRNG::Seed seed(PRNG::SeedLength, ' ');
         random->GetBlock(PRNG::SeedLength, seed.data());
         _seeds.push_back(seed);
-        QByteArray encrypted;
-        bool r = crypto->Encrypt(
-                &_config->nodes[node.node_id].identity_pk,
-                seed,
-                &encrypted,
-                0);
-        Q_ASSERT_X(r, "MessageDescriptor::Initialize",
-                      "Encryption with identity_pk failed");
-        _encryptedSeeds.push_back(encrypted);
 
         if(length == 0){
             _checkSums.push_back(EmptyStringHash);
@@ -112,22 +103,35 @@ void MessageDescriptor::Initialize(const QByteArray& data){
     delete[] rand_seq;
 
     Q_ASSERT(_checkSums.size() == _config->num_nodes);
-    Q_ASSERT(_encryptedSeeds.size() == _config->num_nodes);
     Q_ASSERT(_seeds.size() == _config->num_nodes);
 }
 
-void MessageDescriptor::Serialize(QByteArray* byte_array){
+void MessageDescriptor::Serialize(int nonce, QByteArray* byte_array){
+    Crypto* crypto = Crypto::GetInstance();
     Q_ASSERT(_length >= 0);
     byte_array->clear();
     QByteArrayUtil::AppendInt(_length, byte_array);
     byte_array->append(_dataHash);
     foreach(const QByteArray& h, _checkSums)
         byte_array->append(h);
-    foreach(const QByteArray& s, _encryptedSeeds)
-        byte_array->append(s);
+    for(int i = 0; i < _config->num_nodes; ++i){
+        QByteArray seed = _seeds[i];
+        const NodeTopology& node = _config->topology[i];
+        QByteArrayUtil::PrependInt(nonce, &seed);
+        QByteArray encrypted;
+        bool r = crypto->Encrypt(
+                &_config->nodes[node.node_id].identity_pk,
+                seed,
+                &encrypted,
+                0);
+        Q_ASSERT_X(r, "MessageDescriptor::Initialize",
+                      "Encryption with identity_pk failed");
+        _encryptedSeeds.push_back(encrypted);
+        byte_array->append(encrypted);
+    }
 }
 
-void MessageDescriptor::Deserialize(const QByteArray& byte_array){
+int MessageDescriptor::Deserialize(const QByteArray& byte_array){
     QByteArray ba = byte_array;
     _length = QByteArrayUtil::ExtractInt(true, &ba);
     _checkSums.clear();
@@ -145,6 +149,13 @@ void MessageDescriptor::Deserialize(const QByteArray& byte_array){
 
     _xorData.clear();
     _seeds.clear();
+
+    bool r = Crypto::GetInstance()->Decrypt(&_config->identity_sk,
+            _encryptedSeeds[_config->my_position],
+            &_seed);
+    if(!r)
+        _seed.fill(PRNG::SeedLength, ' ');
+    return QByteArrayUtil::ExtractInt(true, &_seed);
 }
 }  // namespace BulkSend
 
@@ -174,7 +185,6 @@ void NodeImplBulkSend::CollectMulticasts(int node_id){
         return;
     }
 
-    Configuration* config = _node->GetConfig();
     Network* network = _node->GetNetwork();
     Crypto* crypto = Crypto::GetInstance();
 
@@ -206,11 +216,7 @@ void NodeImplBulkSend::CollectMulticasts(int node_id){
         if(desc.isPrivileged()){
             to_send = desc._xorData;
         }else{
-            QByteArray seed;
-            crypto->Decrypt(&config->identity_sk,
-                            desc._encryptedSeeds[config->my_position],
-                            &seed);
-            PRNG prng(seed);
+            PRNG prng(desc._seed);
             to_send.fill(' ', desc._length);
             prng.GetBlock(desc._length, to_send.data());
         }
