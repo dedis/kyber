@@ -17,6 +17,7 @@ HEADERS += config.hpp \
            node.hpp \
            node_impl.hpp \
            node_impl_bulk.hpp \
+           node_impl_multibulk.hpp \
            node_impl_shuffle.hpp \
            QByteArrayUtil.hpp \
            random_util.hpp
@@ -26,6 +27,7 @@ SOURCES += config.cc \
            node.cc \
            node_impl.cc \
            node_impl_bulk.cc \
+           node_impl_multibulk.cc \
            node_impl_shuffle.cc \
            QByteArrayUtil.cc \
            random_util.cc

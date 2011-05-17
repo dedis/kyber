@@ -34,6 +34,8 @@
 #include "config.hpp"
 #include "network.hpp"
 #include "node.hpp"
+#include "node_impl_bulk.hpp"
+#include "node_impl_multibulk.hpp"
 #include "node_impl_shuffle.hpp"
 
 // #define TIMEOUT 60000 // msec // XXX(scw): don't hard code this

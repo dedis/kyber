@@ -554,52 +554,5 @@ NodeImpl* NodeImplShuffleOnly::GetNextImpl(
     _node->SubmitShuffledData(data);
     return 0;
 }
-
-NodeImplShuffleMsgDesc::NodeImplShuffleMsgDesc(Node* node)
-    : NodeImplShuffle(node), _desc(0){
-    node->RetrieveCurrentData(-1, &_data);
-}
-
-void NodeImplShuffleMsgDesc::GetShuffleData(QByteArray* data){
-    _desc = new BulkSend::MessageDescriptor(_node->GetConfig());
-    _desc->Initialize(_data);
-    _desc->Serialize(data);
-}
-
-NodeImpl* NodeImplShuffleMsgDesc::GetNextImpl(
-        Configuration::ProtocolVersion version){
-    Q_ASSERT(version == Configuration::DISSENT_VERSION_1);
-    QList<QByteArray> shuffledData;
-    int index;
-    GetShuffledData(&shuffledData, &index);
-
-    QList<BulkSend::MessageDescriptor> descriptors;
-    BulkSend::MessageDescriptor desc(_node->GetConfig());
-    for(int i = 0; i < shuffledData.size(); ++i){
-        if(i == index)
-            descriptors.push_back(*_desc);
-        else{
-            desc.Deserialize(shuffledData[i]);
-            descriptors.push_back(desc);
-        }
-    }
-    return new NodeImplBulkSend(_node, _data, descriptors);
-}
-
-NodeImplShuffleMsgDesc::~NodeImplShuffleMsgDesc(){
-    delete _desc;
-    _desc = 0;
-}
-
-void NodeImplShuffleBulkDesc::GetShuffleData(QByteArray* data){
-    // TODO(scw)
-    Q_UNUSED(data);
-}
-
-NodeImpl* NodeImplShuffleBulkDesc::GetNextImpl(
-        Configuration::ProtocolVersion version){
-    Q_ASSERT(version == Configuration::DISSENT_VERSION_2);
-    return 0 /* TODO(scw): name the multi bulk send */;
-}
 }
 // -*- vim:sw=4:expandtab:cindent:

@@ -148,6 +148,36 @@ void MessageDescriptor::Deserialize(const QByteArray& byte_array){
 }
 }  // namespace BulkSend
 
+NodeImplShuffleMsgDesc::NodeImplShuffleMsgDesc(Node* node)
+    : NodeImplShuffle(node), _desc(node->GetConfig()){
+    node->RetrieveCurrentData(-1, &_data);
+}
+
+void NodeImplShuffleMsgDesc::GetShuffleData(QByteArray* data){
+    _desc.Initialize(_data);
+    _desc.Serialize(data);
+}
+
+NodeImpl* NodeImplShuffleMsgDesc::GetNextImpl(
+        Configuration::ProtocolVersion version){
+    Q_ASSERT(version == Configuration::DISSENT_VERSION_1);
+    QList<QByteArray> shuffledData;
+    int index;
+    GetShuffledData(&shuffledData, &index);
+
+    QList<BulkSend::MessageDescriptor> descriptors;
+    BulkSend::MessageDescriptor desc(_node->GetConfig());
+    for(int i = 0; i < shuffledData.size(); ++i){
+        if(i == index)
+            descriptors.push_back(_desc);
+        else{
+            desc.Deserialize(shuffledData[i]);
+            descriptors.push_back(desc);
+        }
+    }
+    return new NodeImplBulkSend(_node, _data, descriptors);
+}
+
 NodeImplBulkSend::NodeImplBulkSend(
         Node* node,
         const QByteArray& data,

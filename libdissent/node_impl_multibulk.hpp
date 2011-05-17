@@ -1,5 +1,5 @@
-/* libdissent/node_impl_bulk.hpp
-   Dissent bulk send protocol node implementation.
+/* libdissent/node_impl_multibulk.hpp
+   Dissent multiple bulk send protocol node implementation.
 
    Author: Shu-Chun Weng <scweng _AT_ cs .DOT. yale *DOT* edu>
  */
@@ -24,85 +24,72 @@
  *   51 Franklin Street, Fifth Floor,
  *   Boston, MA  02110-1301  USA
  */
-#ifndef _DISSENT_LIBDISSENT_NODE_IMPL_BULK_HPP_
-#define _DISSENT_LIBDISSENT_NODE_IMPL_BULK_HPP_ 1
-#include <QByteArray>
-#include <QList>
+#ifndef _DISSENT_LIBDISSENT_NODE_IMPL_MULTIBULK_HPP_
+#define _DISSENT_LIBDISSENT_NODE_IMPL_MULTIBULK_HPP_ 1
+#include <QtGlobal>
 
-#include "config.hpp"
+#include "dissent_global.hpp"
 #include "node_impl.hpp"
 #include "node_impl_shuffle.hpp"
 
 namespace Dissent{
-class NodeImplBulkSend;
-namespace BulkSend{
-    class MessageDescriptor{
-      friend class ::Dissent::NodeImplBulkSend;
+class NodeImplMultipleBulkSend;
+namespace MultipleBulkSend{
+    class BulkSendDescriptor{
+      friend class ::Dissent::NodeImplMultipleBulkSend;
       public:
-        MessageDescriptor(Configuration* config);
+        BulkSendDescriptor(Configuration* config);
 
-        void Initialize(const QByteArray& data);
         void Serialize(QByteArray* byte_array);
         void Deserialize(const QByteArray& byte_array);
 
-        bool isPrivileged() const{ return !_xorData.isEmpty(); }
+        bool isPrivileged() const{ return !_seeds.isEmpty(); }
 
       private:
         Configuration* _config;
 
-        int _length;
-        QByteArray _dataHash;
-        QList<QByteArray> _checkSums;
         QList<QByteArray> _encryptedSeeds;
+        QList<QByteArray> _seedHash;  // Is this needed?
+        PublicKey _verifyKey;
 
         // Privilege data
-        QByteArray _xorData;
         QList<QByteArray> _seeds;
-
-        static QByteArray EmptyStringHash;
-        static QByteArray EmptyEncryptedSeed;
+        PrivateKey _signKey;
     };
-}  // namespace BulkSend
+}  // namespace MultipleBulkSend
 
-// Shuffle for version 1: _desc includes check sum of the message,
-// encrypted seeds, and hashes of seeds
-class NodeImplShuffleMsgDesc : public NodeImplShuffle{
+// Shuffle for version 2: bulk_desc includes encrypted seeds and the
+// private key for message signatures
+class NodeImplShuffleBulkDesc : public NodeImplShuffle{
   Q_OBJECT
   public:
-    NodeImplShuffleMsgDesc(Node* node);
+    NodeImplShuffleBulkDesc(Node* node) : NodeImplShuffle(node){}
 
   protected:
     virtual void GetShuffleData(QByteArray* data);
 
     virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
-
-  private:
-    QByteArray _data;
-    BulkSend::MessageDescriptor _desc;
 };
 
-class NodeImplBulkSend : public NodeImpl{
+class NodeImplMultipleBulkSend : public NodeImpl{
   Q_OBJECT
   public:
-    NodeImplBulkSend(Node* node,
-                     const QByteArray& data,
-                     const QList<BulkSend::MessageDescriptor>& descs);
+    NodeImplMultipleBulkSend(
+            Node* node,
+            const QList<MultipleBulkSend::BulkSendDescriptor>& descs);
 
-    virtual bool StartProtocol(int round);
+    virtual bool StartProtocol(int run);
     virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
-
-  private slots:
-    void CollectMulticasts(int node_id);
 
   private:
     void Blame(int slot);
     void BlameNode(int node_id);
 
-    QByteArray _data;
-    QList<BulkSend::MessageDescriptor> _descriptors;
+    int _round;
+    QList<MultipleBulkSend::BulkSendDescriptor> _descriptors;
 
     QList<QByteArray> _allData;
 };
 }
-#endif  // _DISSENT_LIBDISSENT_NODE_IMPL_BULK_HPP_
+#endif  // _DISSENT_LIBDISSENT_NODE_IMPL_MULTIBULK_HPP_
 // -*- vim:sw=4:expandtab:cindent:

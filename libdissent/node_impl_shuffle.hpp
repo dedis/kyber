@@ -114,42 +114,6 @@ class NodeImplShuffleOnly : public NodeImplShuffle{
   private:
     QByteArray _data;
 };
-
-// Shuffle for version 1: msg_desc includes check sum of the message,
-// encrypted seeds, and hashes of seeds
-class NodeImplBulkSend;
-namespace BulkSend{
-    class MessageDescriptor;
-}
-
-class NodeImplShuffleMsgDesc : public NodeImplShuffle{
-  Q_OBJECT
-  public:
-    NodeImplShuffleMsgDesc(Node* node);
-    virtual ~NodeImplShuffleMsgDesc();
-
-  protected:
-    virtual void GetShuffleData(QByteArray* data);
-
-    virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
-
-  private:
-    QByteArray _data;
-    BulkSend::MessageDescriptor* _desc;
-};
-
-// Shuffle for version 2: bulk_desc includes encrypted seeds and the
-// private key for message signatures
-class NodeImplShuffleBulkDesc : public NodeImplShuffle{
-  Q_OBJECT
-  public:
-    NodeImplShuffleBulkDesc(Node* node) : NodeImplShuffle(node){}
-
-  protected:
-    virtual void GetShuffleData(QByteArray* data);
-
-    virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
-};
 }
 #endif  // _DISSENT_LIBDISSENT_NODE_IMPL_SHUFFLE_HPP_
 // -*- vim:sw=4:expandtab:cindent:
