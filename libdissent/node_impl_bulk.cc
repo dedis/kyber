@@ -55,6 +55,7 @@ MessageDescriptor::MessageDescriptor(Configuration* config)
 }
 
 void MessageDescriptor::InitializeStatic(Configuration* config){
+    Q_UNUSED(config);
     if(EmptyStringHash.isNull()){
         Crypto::GetInstance()->Hash(QList<QByteArray>(), &EmptyStringHash);
     }

@@ -40,21 +40,28 @@ namespace MultipleBulkSend{
       public:
         BulkSendDescriptor(Configuration* config);
 
+        void Initialize(
+                const PrivateKey& session_key,
+                const QHash<int, QSharedPointer<PublicKey> >& session_keys);
         void Serialize(QByteArray* byte_array);
         void Deserialize(const QByteArray& byte_array);
 
         bool isPrivileged() const{ return !_seeds.isEmpty(); }
 
       private:
+        static void InitializeStatic(Configuration* config);
+
         Configuration* _config;
 
+        QSharedPointer<PublicKey> _verifyKey;
         QList<QByteArray> _encryptedSeeds;
         QList<QByteArray> _seedHash;  // Is this needed?
-        PublicKey _verifyKey;
 
         // Privilege data
         QList<QByteArray> _seeds;
-        PrivateKey _signKey;
+        QSharedPointer<PrivateKey> _signKey;
+
+        static QByteArray EmptyStringHash;
     };
 }  // namespace MultipleBulkSend
 
@@ -63,12 +70,15 @@ namespace MultipleBulkSend{
 class NodeImplShuffleBulkDesc : public NodeImplShuffle{
   Q_OBJECT
   public:
-    NodeImplShuffleBulkDesc(Node* node) : NodeImplShuffle(node){}
+    NodeImplShuffleBulkDesc(Node* node);
 
   protected:
     virtual void GetShuffleData(QByteArray* data);
 
     virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
+
+  private:
+    MultipleBulkSend::BulkSendDescriptor _desc;
 };
 
 class NodeImplMultipleBulkSend : public NodeImpl{
