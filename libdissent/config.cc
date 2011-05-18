@@ -33,7 +33,9 @@
 #include <QtCrypto>
 #include <QFile>
 #include <QIODevice>
+#include <QHash>
 #include <QList>
+#include <QSharedPointer>
 #include <QString>
 #include <QTextStream>
 
@@ -104,13 +106,23 @@ Configuration::Configuration(int argc, char* argv[])
                 Q_ASSERT(shuffle_msg_length > 0);
                 break;
             case DISSENT_VERSION_1: {
-                    QByteArray ba("");
-                    Dissent::BulkSend::MessageDescriptor desc(this);
-                    desc.Initialize(ba);
-                    desc.Serialize(&ba);
-                    shuffle_msg_length = ba.size();
-                    break;
-                }
+                PrivateKey* sk = Crypto::GetInstance()->GenerateKey(
+                        disposable_key_length);
+                QSharedPointer<PublicKey> pk(new PublicKey(*sk));
+                delete sk;
+
+                Dissent::BulkSend::MessageDescriptor desc(this);
+                QHash<int, QSharedPointer<PublicKey> > tbl;
+                for(QMap<int, NodeInfo>::const_iterator it = nodes.begin();
+                    it != nodes.end(); ++it)
+                    tbl.insert(it.key(), pk);
+
+                QByteArray ba("");
+                desc.Initialize(ba, tbl);
+                desc.Serialize(&ba);
+                shuffle_msg_length = ba.size();
+                break;
+            }
             case DISSENT_VERSION_2:
             case DISSENT_VERSION_2P:
                 printf("Warning: shuffle_msg_length not known for"

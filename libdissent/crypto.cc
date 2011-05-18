@@ -96,6 +96,14 @@ PrivateKey* Crypto::DeserializePrivateKey(const QByteArray& buf){
     return new PrivateKey(pkey.toRSA());
 }
 
+PublicKey* Crypto::CopyPublicKey(const PublicKey& key){
+    return new PublicKey(key.n(), key.e());
+}
+
+PrivateKey* Crypto::CopyPrivateKey(const PrivateKey& key){
+    return new PrivateKey(key.n(), key.e(), key.p(), key.q(), key.d());
+}
+
 bool Crypto::Encrypt(PublicKey* key, const QByteArray& msg,
                      QByteArray* ctext, QByteArray* randomness){
     // ctext = E_key(aes_key) + iv + AES(aes_key, iv, msg)

@@ -72,7 +72,6 @@ class PRNG{
 
     void GetBlock(int length, char* buf);
 
-
   private:
     void Generate(int bytes);
 

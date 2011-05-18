@@ -27,7 +27,9 @@
 #include "node_impl_bulk.hpp"
 
 #include <QByteArray>
+#include <QHash>
 #include <QList>
+#include <QMap>
 
 #include "QByteArrayUtil.hpp"
 #include "config.hpp"
@@ -41,23 +43,26 @@
 namespace Dissent{
 namespace BulkSend{
 QByteArray MessageDescriptor::EmptyStringHash;
-QByteArray MessageDescriptor::EmptyEncryptedSeed;
+
+template<typename X>
+inline static QSharedPointer<X> qSharedPointer(X* t){
+    return QSharedPointer<X>(t);
+}
 
 MessageDescriptor::MessageDescriptor(Configuration* config)
     : _config(config), _length(-1){
+    InitializeStatic(config);
+}
+
+void MessageDescriptor::InitializeStatic(Configuration* config){
     if(EmptyStringHash.isNull()){
         Crypto::GetInstance()->Hash(QList<QByteArray>(), &EmptyStringHash);
-
-        PRNG::Seed seed(PRNG::SeedLength, ' ');
-        Crypto::GetInstance()->Encrypt(
-                &config->nodes[config->my_node_id].identity_pk,
-                seed,
-                &EmptyEncryptedSeed,
-                0);
     }
 }
 
-void MessageDescriptor::Initialize(const QByteArray& data){
+void MessageDescriptor::Initialize(
+        const QByteArray& data,
+        const QHash<int, QSharedPointer<PublicKey> >& session_keys){
     Random* random = Random::GetInstance();
     Crypto* crypto = Crypto::GetInstance();
 
@@ -77,12 +82,12 @@ void MessageDescriptor::Initialize(const QByteArray& data){
         _seeds.push_back(seed);
         QByteArray encrypted;
         bool r = crypto->Encrypt(
-                &_config->nodes[node.node_id].identity_pk,
+                session_keys[node.node_id].data(),
                 seed,
                 &encrypted,
                 0);
         Q_ASSERT_X(r, "MessageDescriptor::Initialize",
-                      "Encryption with identity_pk failed");
+                      "Encryption with session key failed");
         _encryptedSeeds.push_back(encrypted);
 
         if(length == 0){
@@ -120,6 +125,7 @@ void MessageDescriptor::Serialize(QByteArray* byte_array){
     Q_ASSERT(_length >= 0);
     byte_array->clear();
     QByteArrayUtil::AppendInt(_length, byte_array);
+    QByteArrayUtil::AppendInt(_encryptedSeeds.front().size(), byte_array);
     byte_array->append(_dataHash);
     foreach(const QByteArray& h, _checkSums)
         byte_array->append(h);
@@ -130,6 +136,7 @@ void MessageDescriptor::Serialize(QByteArray* byte_array){
 void MessageDescriptor::Deserialize(const QByteArray& byte_array){
     QByteArray ba = byte_array;
     _length = QByteArrayUtil::ExtractInt(true, &ba);
+    int encrypted_seed_size = QByteArrayUtil::ExtractInt(true, &ba);
     _checkSums.clear();
     _encryptedSeeds.clear();
 
@@ -139,7 +146,7 @@ void MessageDescriptor::Deserialize(const QByteArray& byte_array){
     for(int i = 0; i < _config->num_nodes; ++i)
         CUT(_checkSums.push_back, ba, hash_size);
     for(int i = 0; i < _config->num_nodes; ++i)
-        CUT(_encryptedSeeds.push_back, ba, EmptyEncryptedSeed.size());
+        CUT(_encryptedSeeds.push_back, ba, encrypted_seed_size);
     Q_ASSERT(ba.size() == 0);
 #undef CUT
 
@@ -154,7 +161,7 @@ NodeImplShuffleMsgDesc::NodeImplShuffleMsgDesc(Node* node)
 }
 
 void NodeImplShuffleMsgDesc::GetShuffleData(QByteArray* data){
-    _desc.Initialize(_data);
+    _desc.Initialize(_data, _outerKeys);
     _desc.Serialize(data);
 }
 
@@ -175,14 +182,18 @@ NodeImpl* NodeImplShuffleMsgDesc::GetNextImpl(
             descriptors.push_back(desc);
         }
     }
-    return new NodeImplBulkSend(_node, _data, descriptors);
+    return new NodeImplBulkSend(
+            _node, Crypto::GetInstance()->CopyPrivateKey(*_outerKey),
+            _data, descriptors);
 }
 
 NodeImplBulkSend::NodeImplBulkSend(
         Node* node,
+        PrivateKey* session_key,  // Take over ownership
         const QByteArray& data,
         const QList<BulkSend::MessageDescriptor>& descs)
-    : NodeImpl(node), _data(data), _descriptors(descs){
+    : NodeImpl(node),
+      _session_key(session_key), _data(data), _descriptors(descs){
 }
 
 bool NodeImplBulkSend::StartProtocol(int round){
@@ -237,9 +248,11 @@ void NodeImplBulkSend::CollectMulticasts(int node_id){
             to_send = desc._xorData;
         }else{
             QByteArray seed;
-            crypto->Decrypt(&config->identity_sk,
-                            desc._encryptedSeeds[config->my_position],
-                            &seed);
+            bool r = crypto->Decrypt(_session_key.data(),
+                                     desc._encryptedSeeds[config->my_position],
+                                     &seed);
+            Q_ASSERT_X(r, "NodeImplBulkSend::CollectMulticasts",
+                          "Decrypt with session key failed");
             PRNG prng(seed);
             to_send.fill(' ', desc._length);
             prng.GetBlock(desc._length, to_send.data());

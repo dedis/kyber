@@ -77,6 +77,11 @@ class NodeImplShuffle : public NodeImpl{
             const QList<QByteArray>& permutation,
             QByteArray* byte_array);
 
+  protected:
+    QScopedPointer<PrivateKey> _outerKey;
+    QHash<int, QSharedPointer<PublicKey> > _outerKeys;
+
+  private:
     static const char* const GoMsgHeader;
     static const char* const NoGoMsgHeader;
 
@@ -86,9 +91,7 @@ class NodeImplShuffle : public NodeImpl{
     int _toBlame;
 
     QScopedPointer<PrivateKey> _innerKey;
-    QScopedPointer<PrivateKey> _outerKey;
     QHash<int, QSharedPointer<PublicKey> > _innerKeys;
-    QHash<int, QSharedPointer<PublicKey> > _outerKeys;
 
     QList<QByteArray> _randomness;
     QByteArray _innerOnionEncryptedData;

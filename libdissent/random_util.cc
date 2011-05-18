@@ -64,7 +64,7 @@ void Random::GetBlock(int length, char* buf){
 }
 
 PRNG::PRNG(Seed seed){
-    Q_ASSERT(seed.size() == AESKeyLength + AESBlockSize);
+    Q_ASSERT(seed.size() == SeedLength);
     QCA::SymmetricKey key(seed.left(AESKeyLength));
     QCA::InitializationVector iv(seed.mid(AESBlockSize));
     _cipher.reset(new QCA::Cipher("aes256",

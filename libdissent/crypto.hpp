@@ -69,6 +69,9 @@ class Crypto{
     PublicKey*  DeserializePublicKey(const QByteArray& buf);
     PrivateKey*  DeserializePrivateKey(const QByteArray& buf);
 
+    PublicKey* CopyPublicKey(const PublicKey& key);
+    PrivateKey* CopyPrivateKey(const PrivateKey& key);
+
     // All functions return true on success. It seems that keys should
     // be qualified 'const', however, QCA has those actions be non-const.
     // randomness: empty asks Encrypt() to generate random bits,

@@ -27,9 +27,13 @@
 #ifndef _DISSENT_LIBDISSENT_NODE_IMPL_BULK_HPP_
 #define _DISSENT_LIBDISSENT_NODE_IMPL_BULK_HPP_ 1
 #include <QByteArray>
+#include <QHash>
 #include <QList>
+#include <QSharedPointer>
+#include <QScopedPointer>
 
 #include "config.hpp"
+#include "crypto.hpp"
 #include "node_impl.hpp"
 #include "node_impl_shuffle.hpp"
 
@@ -39,15 +43,19 @@ namespace BulkSend{
     class MessageDescriptor{
       friend class ::Dissent::NodeImplBulkSend;
       public:
-        MessageDescriptor(Configuration* config);
+        explicit MessageDescriptor(Configuration* config);
 
-        void Initialize(const QByteArray& data);
+        void Initialize(
+                const QByteArray& data,
+                const QHash<int, QSharedPointer<PublicKey> >& session_keys);
         void Serialize(QByteArray* byte_array);
         void Deserialize(const QByteArray& byte_array);
 
         bool isPrivileged() const{ return !_xorData.isEmpty(); }
 
       private:
+        static void InitializeStatic(Configuration* config);
+
         Configuration* _config;
 
         int _length;
@@ -60,7 +68,6 @@ namespace BulkSend{
         QList<QByteArray> _seeds;
 
         static QByteArray EmptyStringHash;
-        static QByteArray EmptyEncryptedSeed;
     };
 }  // namespace BulkSend
 
@@ -85,6 +92,7 @@ class NodeImplBulkSend : public NodeImpl{
   Q_OBJECT
   public:
     NodeImplBulkSend(Node* node,
+                     PrivateKey* session_key,  // Take over ownership
                      const QByteArray& data,
                      const QList<BulkSend::MessageDescriptor>& descs);
 
@@ -97,6 +105,8 @@ class NodeImplBulkSend : public NodeImpl{
   private:
     void Blame(int slot);
     void BlameNode(int node_id);
+
+    QScopedPointer<PrivateKey> _session_key;
 
     QByteArray _data;
     QList<BulkSend::MessageDescriptor> _descriptors;

@@ -53,6 +53,11 @@ namespace Dissent{
 const char* const NodeImplShuffle::GoMsgHeader = "go";
 const char* const NodeImplShuffle::NoGoMsgHeader = "ng";
 
+template<typename X>
+inline static QSharedPointer<X> qSharedPointer(X* t){
+    return QSharedPointer<X>(t);
+}
+
 // Member functions and slots of NodeImplShuffle are defined in *execution*
 // order, although their declarations are grouped by types because of C++
 // syntax.
@@ -90,9 +95,9 @@ bool NodeImplShuffle::StartProtocol(int round){
     _outerKeys.clear();
     // Giving up ownership of innerPublicKey and outerPublicKey
     _innerKeys.insert(_node->GetConfig()->my_node_id,
-                      QSharedPointer<PublicKey>(innerPublicKey));
+                      qSharedPointer(innerPublicKey));
     _outerKeys.insert(_node->GetConfig()->my_node_id,
-                      QSharedPointer<PublicKey>(outerPublicKey));
+                      qSharedPointer(outerPublicKey));
     StartListening(SLOT(CollectOnetimeKeys(int)),
                    "Shuffle exchange inner keys");
     return true;
@@ -129,8 +134,8 @@ void NodeImplShuffle::CollectOnetimeKeys(int node_id){
         return;
     }
 
-    _innerKeys.insert(node_id, QSharedPointer<PublicKey>(innerKey));
-    _outerKeys.insert(node_id, QSharedPointer<PublicKey>(outerKey));
+    _innerKeys.insert(node_id, qSharedPointer(innerKey));
+    _outerKeys.insert(node_id, qSharedPointer(outerKey));
     if(_innerKeys.size() == _node->GetConfig()->num_nodes){
         Q_ASSERT(_innerKeys.size() == _outerKeys.size());
         StopListening();
@@ -464,7 +469,7 @@ void NodeImplShuffle::DoDecryption(
             UNEXPECTED(it.key(), "unable to deserialize inner private key");
             return;
         }
-        inner_private_keys.insert(it.key(), QSharedPointer<PrivateKey>(key));
+        inner_private_keys.insert(it.key(), qSharedPointer(key));
     }
 
     const Configuration& config = *_node->GetConfig();
