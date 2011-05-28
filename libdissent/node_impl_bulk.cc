@@ -30,6 +30,7 @@
 #include <QHash>
 #include <QList>
 #include <QMap>
+#include <QString>
 
 #include "QByteArrayUtil.hpp"
 #include "config.hpp"
@@ -161,6 +162,10 @@ NodeImplShuffleMsgDesc::NodeImplShuffleMsgDesc(Node* node)
     node->RetrieveCurrentData(-1, &_data);
 }
 
+QString NodeImplShuffleMsgDesc::StepName() const{
+    return "Shuffle message descriptor";
+}
+
 void NodeImplShuffleMsgDesc::GetShuffleData(QByteArray* data){
     _desc.Initialize(_data, _outerKeys);
     _desc.Serialize(data);
@@ -195,6 +200,10 @@ NodeImplBulkSend::NodeImplBulkSend(
         const QList<BulkSend::MessageDescriptor>& descs)
     : NodeImpl(node),
       _session_key(session_key), _data(data), _descriptors(descs){
+}
+
+QString NodeImplBulkSend::StepName() const{
+    return "Bulk send";
 }
 
 bool NodeImplBulkSend::StartProtocol(int round){

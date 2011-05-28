@@ -1,6 +1,7 @@
 #include <QtCrypto>
 #include <QCoreApplication>
 #include <QScopedPointer>
+#include <QString>
 
 #include "config.hpp"
 #include "node.hpp"
@@ -20,6 +21,9 @@ int main(int argc, char* argv[]){
     QObject::connect(
             &node, SIGNAL(protocolStarted(int)),
             &handler, SLOT(ProtocolStarted(int)));
+    QObject::connect(
+            &node, SIGNAL(stepEnded(QString)),
+            &handler, SLOT(StepEnded(QString)));
     QObject::connect(
             &handler, SIGNAL(finish()),
             &node, SLOT(StopProtocol()));

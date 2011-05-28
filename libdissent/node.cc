@@ -79,6 +79,7 @@ void Node::StopProtocol(){
 }
 
 void Node::ChangeImpl(NodeImpl* impl){
+    emit stepEnded(_impl->StepName());
     if(_protocolStopped){
         _impl.reset(0);
         delete impl;

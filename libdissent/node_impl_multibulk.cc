@@ -26,8 +26,11 @@
  */
 #include "node_impl_multibulk.hpp"
 
+#include <QByteArray>
 #include <QHash>
+#include <QList>
 #include <QSharedPointer>
+#include <QString>
 
 #include "QByteArrayUtil.hpp"
 #include "crypto.hpp"
@@ -134,6 +137,10 @@ NodeImplShuffleBulkDesc::NodeImplShuffleBulkDesc(Node* node)
     : NodeImplShuffle(node), _desc(node->GetConfig()){
 }
 
+QString NodeImplShuffleBulkDesc::StepName() const{
+    return "Shuffle bulk descriptor";
+}
+
 void NodeImplShuffleBulkDesc::GetShuffleData(QByteArray* data){
     _desc.Initialize(*_outerKey, _outerKeys);
     _desc.Serialize(data);
@@ -169,6 +176,10 @@ bool NodeImplMultipleBulkSend::StartProtocol(int run){
     _round = 0;
     // TODO(scw)
     return true;
+}
+
+QString NodeImplMultipleBulkSend::StepName() const{
+    return QString("Multiple busk send (%1 rounds)").arg(_round);
 }
 
 NodeImpl* NodeImplMultipleBulkSend::GetNextImpl(

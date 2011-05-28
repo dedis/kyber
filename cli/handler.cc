@@ -119,6 +119,14 @@ void Handler::ProtocolStarted(int round){
         _time.start();
 }
 
+void Handler::StepEnded(QString step_name){
+    if(_time.isValid()){
+        int msec = _time.elapsed();
+        printf("%s: %d.%03d seconds\n",
+               step_name.toUtf8().data(), msec / 1000, msec % 1000);
+    }
+}
+
 void Handler::MoreData(){
     QString data("Node %1 at round %2.");
     _queue.push_back(data.arg(_node_id).arg(_round).toUtf8());

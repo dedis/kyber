@@ -32,6 +32,7 @@
 #include <QList>
 #include <QListIterator>
 #include <QMap>
+#include <QString>
 
 #include "QByteArrayUtil.hpp"
 #include "config.hpp"
@@ -545,6 +546,10 @@ NodeImplShuffleOnly::NodeImplShuffleOnly(Node* node)
 
     // pad to the required length
     _data = _data.leftJustified(data_len, '\0');
+}
+
+QString NodeImplShuffleOnly::StepName() const{
+    return "Dissent shuffle";
 }
 
 void NodeImplShuffleOnly::GetShuffleData(QByteArray* data){

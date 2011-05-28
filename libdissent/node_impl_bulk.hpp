@@ -31,6 +31,7 @@
 #include <QList>
 #include <QSharedPointer>
 #include <QScopedPointer>
+#include <QString>
 
 #include "config.hpp"
 #include "crypto.hpp"
@@ -78,6 +79,8 @@ class NodeImplShuffleMsgDesc : public NodeImplShuffle{
   public:
     NodeImplShuffleMsgDesc(Node* node);
 
+    virtual QString StepName() const;
+
   protected:
     virtual void GetShuffleData(QByteArray* data);
 
@@ -97,6 +100,9 @@ class NodeImplBulkSend : public NodeImpl{
                      const QList<BulkSend::MessageDescriptor>& descs);
 
     virtual bool StartProtocol(int round);
+    virtual QString StepName() const;
+
+  protected:
     virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
 
   private slots:

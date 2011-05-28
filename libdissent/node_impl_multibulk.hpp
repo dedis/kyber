@@ -27,8 +27,14 @@
 #ifndef _DISSENT_LIBDISSENT_NODE_IMPL_MULTIBULK_HPP_
 #define _DISSENT_LIBDISSENT_NODE_IMPL_MULTIBULK_HPP_ 1
 #include <QtGlobal>
+#include <QByteArray>
+#include <QHash>
+#include <QList>
+#include <QSharedPointer>
+#include <QString>
 
 #include "dissent_global.hpp"
+#include "config.hpp"
 #include "node_impl.hpp"
 #include "node_impl_shuffle.hpp"
 
@@ -72,6 +78,8 @@ class NodeImplShuffleBulkDesc : public NodeImplShuffle{
   public:
     NodeImplShuffleBulkDesc(Node* node);
 
+    virtual QString StepName() const;
+
   protected:
     virtual void GetShuffleData(QByteArray* data);
 
@@ -89,6 +97,9 @@ class NodeImplMultipleBulkSend : public NodeImpl{
             const QList<MultipleBulkSend::BulkSendDescriptor>& descs);
 
     virtual bool StartProtocol(int run);
+    virtual QString StepName() const;
+
+  protected:
     virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
 
   private:

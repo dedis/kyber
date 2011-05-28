@@ -109,6 +109,8 @@ class NodeImplShuffleOnly : public NodeImplShuffle{
   public:
     NodeImplShuffleOnly(Node* node);
 
+    virtual QString StepName() const;
+
   protected:
     virtual void GetShuffleData(QByteArray* data);
 

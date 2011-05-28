@@ -28,6 +28,7 @@
 #ifndef _DISSENT_LIBDISSENT_NODE_IMPL_HPP_
 #define _DISSENT_LIBDISSENT_NODE_IMPL_HPP_ 1
 #include <QObject>
+#include <QString>
 
 #include "config.hpp"
 #include "dissent_global.hpp"
@@ -46,6 +47,7 @@ class NodeImpl : public QObject{
     // round is the number of times the whole protocol has been repeated.
     virtual bool StartProtocol(int round) = 0;
     virtual ~NodeImpl();
+    virtual QString StepName() const = 0;
 
     static NodeImpl* GetInitLeader(Node* node);
     static NodeImpl* GetInit(Node* node, int leader_id);
@@ -76,6 +78,7 @@ class NodeImplInitLeader : public NodeImpl{
     NodeImplInitLeader(Node* node) : NodeImpl(node){}
 
     virtual bool StartProtocol(int round);
+    virtual QString StepName() const;
 
   protected:
     virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
@@ -88,6 +91,7 @@ class NodeImplInit : public NodeImpl{
         : NodeImpl(node), _leader_id(leader_id){}
 
     virtual bool StartProtocol(int round);
+    virtual QString StepName() const;
 
   protected:
     virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);

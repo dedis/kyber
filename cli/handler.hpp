@@ -30,6 +30,7 @@
 #include <QObject>
 #include <QByteArray>
 #include <QList>
+#include <QString>
 #include <QTime>
 
 #include "network.hpp"
@@ -48,6 +49,7 @@ class Handler : public QObject{
     void Start();
     void ShuffledData(QList<QByteArray> data);
     void ProtocolStarted(int round);
+    void StepEnded(QString step_name);
 
   protected slots:
     void MoreData();

@@ -29,6 +29,7 @@
 
 #include <QtGlobal>
 #include <QByteArray>
+#include <QString>
 #include <QTimer>
 
 #include "config.hpp"
@@ -115,6 +116,10 @@ bool NodeImplInitLeader::StartProtocol(int round){
     return true;
 }
 
+QString NodeImplInitLeader::StepName() const{
+    return "Initialization (leader)";
+}
+
 NodeImpl* NodeImplInitLeader::GetNextImpl(
         Configuration::ProtocolVersion version){
     switch(version){
@@ -138,6 +143,10 @@ bool NodeImplInit::StartProtocol(int round){
     _node->GetNetwork()->ResetSession(round);
     StartListening(SLOT(Read(int)), "Init");
     return true;
+}
+
+QString NodeImplInit::StepName() const{
+    return "Initialization";
 }
 
 NodeImpl* NodeImplInit::GetNextImpl(
