@@ -37,6 +37,7 @@
 #include "config.hpp"
 #include "node_impl.hpp"
 #include "node_impl_shuffle.hpp"
+#include "random_util.hpp"
 
 namespace Dissent{
 class NodeImplMultipleBulkSend;
@@ -46,8 +47,13 @@ namespace MultipleBulkSend{
       public:
         BulkSendDescriptor(Configuration* config);
 
-        void Initialize(
+        void InitializeWithKeys(
+                int round,
                 const PrivateKey& session_key,
+                const QHash<int, QSharedPointer<PublicKey> >& session_keys);
+        void InitializeWithData(
+                int round,
+                const QByteArray& data,
                 const QHash<int, QSharedPointer<PublicKey> >& session_keys);
         void Serialize(QByteArray* byte_array);
         void Deserialize(const QByteArray& byte_array);
@@ -56,6 +62,9 @@ namespace MultipleBulkSend{
 
       private:
         static void InitializeStatic(Configuration* config);
+        void InitializeSeeds(
+                int round,
+                const QHash<int, QSharedPointer<PublicKey> >& session_keys);
 
         Configuration* _config;
 
@@ -64,8 +73,16 @@ namespace MultipleBulkSend{
         QList<QByteArray> _seedHash;  // Is this needed?
 
         // Privilege data
+        // Invariant:
+        //   When isPrivileged():
+        //        (_data.empty() || _signKey.isNull())
+        //     && (_verifyKey.isNull() == _signKey.isNull())
+        //   When !isPrivileged():
+        //        (_data.empty() || _verifyKeys.isNull())
+        //     && _signKey.isNull()
         QList<QByteArray> _seeds;
         QSharedPointer<PrivateKey> _signKey;
+        QByteArray _data;
 
         static QByteArray EmptyStringHash;
     };
@@ -92,9 +109,12 @@ class NodeImplShuffleBulkDesc : public NodeImplShuffle{
 class NodeImplMultipleBulkSend : public NodeImpl{
   Q_OBJECT
   public:
+    typedef QList<MultipleBulkSend::BulkSendDescriptor> DescriptorList;
     NodeImplMultipleBulkSend(
             Node* node,
-            const QList<MultipleBulkSend::BulkSendDescriptor>& descs);
+            PrivateKey* session_key,  // Take over ownership
+            const QHash<int, QSharedPointer<PublicKey> >& session_keys,
+            const DescriptorList& descs);
 
     virtual bool StartProtocol(int run);
     virtual QString StepName() const;
@@ -102,13 +122,42 @@ class NodeImplMultipleBulkSend : public NodeImpl{
   protected:
     virtual NodeImpl* GetNextImpl(Configuration::ProtocolVersion version);
 
+  private slots:
+    void CollectMulticasts(int node_id);
+    void StartRound();
+
   private:
+    void UpdateDescriptors(int round, const DescriptorList& descs);
+    Q_INVOKABLE void LengthInfoReady(const QList<QByteArray>& length_info);
+    Q_INVOKABLE void DataReady(const QList<QByteArray>& data);
+
+    void DoMultipleMulticast(
+            const QList<int>& lengths,
+            const QByteArray& to_send,
+            const char* next_step);
+
     void Blame(int slot);
     void BlameNode(int node_id);
 
     int _round;
-    QList<MultipleBulkSend::BulkSendDescriptor> _descriptors;
+    int _round_limit;
+    int _slot_position;
+    QScopedPointer<PrivateKey> _session_key;
+    QHash<int, QSharedPointer<PublicKey> > _session_keys;
 
+    DescriptorList _descriptors;
+    QList<QSharedPointer<PublicKey> > _verifyKeys;
+    QList<QSharedPointer<PRNG> > _prngsForOthers;
+    QList<QSharedPointer<PRNG> > _prngsForSelf;
+    QSharedPointer<PrivateKey> _signKey;
+
+    MultipleBulkSend::BulkSendDescriptor _nextDescriptor;
+    QByteArray _toSend;
+
+    // fields used by DoMultipleMulticast and CollectMulticasts
+    QByteArray _toBroadcast;
+    QList<int> _lengths;
+    const char* _next_step;
     QList<QByteArray> _allData;
 };
 }

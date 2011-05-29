@@ -42,13 +42,13 @@
 #define BULK_SEND_MULTICAST_HACK_NODE_ID (Network::MulticastNodeId - 1)
 
 namespace Dissent{
-namespace BulkSend{
-QByteArray MessageDescriptor::EmptyStringHash;
-
 template<typename X>
 inline static QSharedPointer<X> qSharedPointer(X* t){
     return QSharedPointer<X>(t);
 }
+
+namespace BulkSend{
+QByteArray MessageDescriptor::EmptyStringHash;
 
 MessageDescriptor::MessageDescriptor(Configuration* config)
     : _config(config), _length(-1){
@@ -242,7 +242,7 @@ void NodeImplBulkSend::CollectMulticasts(int node_id){
             return;
         }
         _allData.push_back(data);
-        if(_allData.size() == _node->GetConfig()->num_nodes){
+        if(_allData.size() == config->num_nodes){
             StopListening();
             _node->SubmitShuffledData(_allData);
             NextStep();

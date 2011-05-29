@@ -79,7 +79,9 @@ void Node::StopProtocol(){
 }
 
 void Node::ChangeImpl(NodeImpl* impl){
-    emit stepEnded(_impl->StepName());
+    Q_ASSERT(impl);
+    if(!_impl.isNull())
+        emit stepEnded(_impl->StepName());
     if(_protocolStopped){
         _impl.reset(0);
         delete impl;
@@ -98,7 +100,8 @@ void Node::ChangeImpl(NodeImpl* impl){
 
 void Node::RestartProtocol(){
     if(!_protocolStopped)
-        QTimer::singleShot(0, this, SLOT(StartProtocol()));
+        QTimer::singleShot(_config.wait_between_rounds,
+                           this, SLOT(StartProtocol()));
     else
         _impl.reset();
 }
@@ -125,8 +128,8 @@ void Node::StartProtocolRound(){
     else
         impl = NodeImpl::GetInit(this, it.key());
 
-    ChangeImpl(impl);
     _protocolInitiating = true;
+    ChangeImpl(impl);
 }
 }
 // -*- vim:sw=4:expandtab:cindent:

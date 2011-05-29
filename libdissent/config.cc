@@ -40,6 +40,7 @@
 #include <QTextStream>
 
 #include "node_impl_bulk.hpp"  // for shuffle_msg_length
+#include "node_impl_multibulk.hpp"  // for shuffle_msg_length
 
 namespace Dissent{
 void Usage(int argc, char* argv[]){
@@ -57,6 +58,7 @@ void Usage(int argc, char* argv[]){
 Configuration::Configuration()
     : my_node_id(-1),
       disposable_key_length(1024),
+      wait_between_rounds(30000),
       my_position(-1),
       protocol_version(DISSENT_VERSION_1){
 }
@@ -64,6 +66,7 @@ Configuration::Configuration()
 Configuration::Configuration(int argc, char* argv[])
     : my_node_id(-1),
       disposable_key_length(1024),
+      wait_between_rounds(30000),
       my_position(-1),
       protocol_version(DISSENT_VERSION_1){
     int j = 1;
@@ -124,10 +127,24 @@ Configuration::Configuration(int argc, char* argv[])
                 break;
             }
             case DISSENT_VERSION_2:
-            case DISSENT_VERSION_2P:
-                printf("Warning: shuffle_msg_length not known for"
-                       " this protocol yet\n");
+            case DISSENT_VERSION_2P: {
+                PrivateKey* sk = Crypto::GetInstance()->GenerateKey(
+                        disposable_key_length);
+                QSharedPointer<PublicKey> pk(new PublicKey(*sk));
+
+                Dissent::MultipleBulkSend::BulkSendDescriptor desc(this);
+                QHash<int, QSharedPointer<PublicKey> > tbl;
+                for(QMap<int, NodeInfo>::const_iterator it = nodes.begin();
+                    it != nodes.end(); ++it)
+                    tbl.insert(it.key(), pk);
+
+                QByteArray ba("");
+                desc.InitializeWithKeys(0, *sk, tbl);
+                desc.Serialize(&ba);
+                shuffle_msg_length = ba.size();
+                delete sk;
                 break;
+            }
         }
     }
 }
@@ -219,6 +236,12 @@ bool Configuration::LoadFromFile(const QString& filename){
             if(!ok)
                 BAD_LINE("cannot parse shuffle_msg_length");
             shuffle_msg_length = len;
+        }else if(key == "wait_between_rounds"){
+            bool ok;
+            int msec = value.toInt(&ok);
+            if(!ok)
+                BAD_LINE("cannot parse wait_between_rounds");
+            wait_between_rounds = msec;
         }else if(key == "protocol_version"){
             if(value == "shuffle_only")
                 protocol_version = DISSENT_SHUFFLE_ONLY;

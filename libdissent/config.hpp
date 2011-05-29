@@ -71,6 +71,7 @@ struct DISSENT_EXPORT Configuration{
     int num_nodes;
     int disposable_key_length;
     int shuffle_msg_length;
+    int wait_between_rounds;  // in msec
 
     QList<NodeTopology> topology;
     int my_position;  // my position in the topology
