@@ -239,8 +239,8 @@ void Network::ClientHasReadyRead(int node_id){
                 return;
             buf.entry.data = socket->read(buf.data_len);
             buf.status = Buffer::DATA_DONE;
-            // fall through
             // fprintf(stderr, "<%d> %s\n", node_id, (char*) buf.entry.data.toHex().data());
+            // fall through
 
         case Buffer::DATA_DONE:
             if(socket->bytesAvailable() < buf.sig_len)
@@ -265,17 +265,22 @@ void Network::ClientHasReadyRead(int node_id){
 
                 if(!_multicast){
                     _multicastBuffer.push_back(buf);
+                    buffer.pop_back();
+
+                    // No consumer, log it ourselves and pop off
+                    _log.push_back(buf.entry);
                 }else{
                     Q_ASSERT_X(_multicastBuffer.size() == 0,
                                "Network::ClientHasReadyRead",
                                "multicast and multicast buffer shouldn't"
                                " coexist");
-                    _multicast->EnterMessage(node_id, buf.entry.data);
-                }
+                    LogEntry entry = buf.entry;
+                    buffer.pop_back();
+                    _multicast->EnterMessage(node_id, entry.data);
 
-                // No consumer, log it ourselves and pop off
-                _log.push_back(buf.entry);
-                buffer.pop_back();
+                    // No consumer, log it ourselves and pop off
+                    _log.push_back(entry);
+                }
                 break;
             }else if(buf.entry.dir == LogEntry::MULTICAST_FINAL){
                 node_id = MulticastNodeId;
