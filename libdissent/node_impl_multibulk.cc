@@ -271,7 +271,7 @@ QString NodeImplMultipleBulkSend::StepName() const{
 }
 
 void NodeImplMultipleBulkSend::StartRound(){
-    if(++_round >= _round_limit){
+    if(++_round >= _round_limit || _node->ProtocolStopped()){
         NextStep();
         return;
     }

@@ -54,6 +54,8 @@ class DISSENT_EXPORT Node : public QObject{
         emit shuffledDataReady(data);
     }
 
+    bool ProtocolStopped() const{ return _protocolStopped; }
+
   signals:
     void startIncomingNetwork(QString phase);
     void stopIncomingNetwork();

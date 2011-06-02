@@ -99,6 +99,8 @@ void Node::ChangeImpl(NodeImpl* impl){
 }
 
 void Node::RestartProtocol(){
+    if(!_impl.isNull())
+        emit stepEnded(_impl->StepName());
     if(!_protocolStopped)
         QTimer::singleShot(_config.wait_between_rounds,
                            this, SLOT(StartProtocol()));
