@@ -215,7 +215,7 @@ NodeImplMultipleBulkSend::NodeImplMultipleBulkSend(
       _descriptors(descs), _nextDescriptor(node->GetConfig()){
     Q_ASSERT(descs.size() == node->GetConfig()->num_nodes);
     int n = node->GetConfig()->num_nodes;
-    _round_limit = n * n;
+    _round_limit = n * n * 10;
     _slot_position = -1;
     for(int i = 0; i < descs.size(); ++i){
         const MultipleBulkSend::BulkSendDescriptor& desc = descs[i];

@@ -50,6 +50,8 @@ Handler::Handler(int node_id, int argc, char* argv[])
                 continue;
             }
             data = file.readAll();
+            if(data.isNull())
+                data = "";
         }else if(strcmp(argv[i], "-r") == 0)
             _maxRound = atoi(argv[++i]);
         else if(strcmp(argv[i], "-w") == 0)

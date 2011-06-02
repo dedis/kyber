@@ -121,7 +121,7 @@ int Network::MulticastXor(const QByteArray& data){
     if(collector_node_id == _config->my_node_id){
         _multicast = new MulticastXorProcessor(this, _config->num_nodes, data);
         connect(_multicast, SIGNAL(multicastReady(QByteArray)),
-                this, SLOT(MulticastReady(QByteArray)));
+                this, SLOT(MulticastReady(QByteArray)), Qt::QueuedConnection);
         connect(_multicast, SIGNAL(multicastError(int, QString)),
                 this, SLOT(MulticastError(int, QString)));
         while(_multicastBuffer.size()){
