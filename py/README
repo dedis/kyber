@@ -1,0 +1,148 @@
+                                                             
+`7MM"""Yb.     db                                      mm    
+  MM    `Yb.                                           MM    
+  MM     `Mb `7MM  ,pP"Ybd ,pP"Ybd  .gP"Ya `7MMpMMMb.mmMMmm  
+  MM      MM   MM  8I   `" 8I   `" ,M'   Yb  MM    MM  MM    
+  MM     ,MP   MM  `YMMMa. `YMMMa. 8M""""""  MM    MM  MM    
+  MM    ,dP'   MM  L.   I8 L.   I8 YM.    ,  MM    MM  MM    
+.JMMmmmdP'   .JMML.M9mmmP' M9mmmP'  `Mbmmd'.JMML  JMML.`Mbmo 
+
+==============================================================
+== Dissent: Accountable Group Anonymity                     ==
+==                                                          ==
+== Henry Corrigan-Gibbs (henry.corrigan-gibbs @ yale.edu)   ==
+== Bryan Ford (bryan.ford @ yale.edu)                       ==
+==============================================================
+
+...                 ...
+... I. Introduction ...
+...                 ...
+
+This is a Python prototype of Dissent, a new protocol for
+anonymous message exchange between a small-to-medium sized 
+group of nodes (10s or 100s).
+
+For a technical description of the protocol, please see:
+http://arxiv4.library.cornell.edu/abs/1004.3057
+
+We are releasing this prototype under the GNU General Public
+License (GPL), version 3; see the file COPYING for details.
+If you would like to use this code in a way that makes this
+choice of open source licenses a problem, contact us.
+
+
+
+...                ...
+... II. Disclaimer ...
+...                ...
+
+THIS IS NOT A SECURE IMPLEMENTATION OF THE DISSENT PROTOCOL.
+DO NOT USE THIS SOFTWARE TO TRANSMIT SECRET OR SENSITIVE DATA.
+
+This implementation contains some obvious security holes:
+-- It does not use a public-key infrastructure.  Nodes exchange
+   public keys by sending them across open channels.
+-- It does not implement any of the "blame" portions of the
+   protocol, so it's not accountable yet.
+
+There are also some less obvious security holes:
+-- Nodes take different amounts of time in certain parts of the
+   protocol depending on the length of the message they want to
+   send.  A real implementation would need a method of avoiding
+   timing attacks.
+-- ...and many others.  
+
+
+
+...                   ...
+... III. Installation ...
+...                   ...
+
+
+Every node must be running:
+-- Python 2.6 (or better)
+-- M2Crypto 0.20.2
+    Available at: http://chandlerproject.org/Projects/MeTooCrypto
+
+For our tests we used Ubuntu 7.04.
+
+We note that installing M2Crypto can be a big pain.  If you
+plan to run this implementation on Emulab, we have a pre-made
+OS image called UbuntuAnon with these components pre-installed.
+Contact us and we can probably get it to you.
+
+Configuration-specific instructions follow:
+
+LOCAL MACHINE
+	0) Unpack the install archive into a directory.
+	1) Edit the settings.py file to reflect your system config.
+	2) Run main.py with the -l flag any other options (below).
+
+EMULAB TESTBED
+	0) Edit the file misc/emulab.ns to reflect the number of
+	   Emulab nodes on which you want to run the protocol.
+	1) Get an Emulab account (www.emulab.net) and create a new
+	   experiment.  Use the file misc/emulab.ns as your network
+	   simulation file.
+	2) Append your public SSH public key to ~/.ssh/authorized_keys
+	   so that you don't have to type your password in to login
+	   to each node.
+	3) Unpack the install archive into a directory on your local
+	   (control) machine.
+	4) Unpack the archive into a directory on an Emulab node.
+	5) Edit the settings.py file, adding your Emulab username,
+	   Emulab network address, and the directory where you unpacked
+	   the archive.
+	6) Run main.py with the -e flag any other options (below).
+
+LOCAL LAN
+	Running the simulator on your local LAN will be similar to 
+	running on Emulab.  In the settings.py file, just set the Emulab
+	suffix to your local LAN network name.
+
+...         ...
+... IV. Use ...
+...         ...
+
+ADDRESS FILE
+	You must create a an address file contaning the addresses of the
+	nodes you want to use in your simulation.  Address files have one
+	line per node, no comments, and no blank spaces between lines.
+
+	The format of each line is:
+	NODE_NAME NODE_PORT
+
+	If you're running locally, NODE_NAME will be localhost for every line
+	and NODE_PORT should be some high port number that's different for every
+	line (e.g. 50001, 50002, ...).  
+
+	If you're running on Emulab, NODE_NAME will be the name of the remote
+	host in your Emulab network (WITHOUT the network name).  If you used
+	our pre-made .ns file, NODE_NAME will be node-1, node-2, ...
+	NODE_PORTs for Emulab can be any high port (e.g. 50000) and can be
+	the same for all nodes.
+
+SWITCHES
+	If you run:
+
+	$ python main.py 
+	
+	you will get a description of the command-line switches.  All are required.
+
+EXAMPLES
+	Running Dissent locally with 5 nodes.  We run the shuffle protocol only
+	and distribute 1048576 bytes of data (1MB) equally across all nodes.
+	The addresses of these nodes is in addr/local.txt (relative to main.py).
+
+	$ python main.py -l -s 1048576 each 5 addr/local.txt
+
+	Running Dissent on Emulab with 40 nodes.  We run both the shuffle and bulk
+	protocols and give 1048576 bytes of data (1MB) to one random node, giving
+	all other nodes 128 bytes of data.  The addresses of these nodes is in
+	addr/emu.txt (relative to main.py).
+
+	$ python main.py -e -b 1048576 one 40 addr/emu.txt
+
+MISC
+	The scripts killall.py and ekillall.py might be useful for stopping
+	run-away processes on remote nodes.

@@ -1,0 +1,16 @@
+cricket.zoo.cs.yale.edu 5000 
+bumblebee.zoo.cs.yale.edu 5000
+turtle.zoo.cs.yale.edu 5000 
+ladybug.zoo.cs.yale.edu 5000 
+cicada.zoo.cs.yale.edu 5000 
+cobra.zoo.cs.yale.edu 5000 
+rattlesnake.zoo.cs.yale.edu 5000 
+monkey.zoo.cs.yale.edu 5000
+lion.zoo.cs.yale.edu 5000
+hippo.zoo.cs.yale.edu 5000
+jaguar.zoo.cs.yale.edu 5000
+macaw.zoo.cs.yale.edu 5000
+peacock.zoo.cs.yale.edu 5000
+perch.zoo.cs.yale.edu 5000
+scorpion.zoo.cs.yale.edu 5000
+aphid.zoo.cs.yale.edu 5000
