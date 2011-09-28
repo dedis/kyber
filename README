@@ -1,0 +1,62 @@
+Dissent Library and Applications for Provable Anonymous Communication
+
+Overview
+===============================================================================
+This library will eventually provide a framework for constructing provably
+anonymous overlays with the following key features.
+
+The library requires Qt and CryptoPP and can be built using qmake on
+dissent.pro (qmake -o makefile dissent.pro)
+
+While previous versions of the code focused on linkable libraries, because this
+has unnecessary complexities, we plan to only support unified binaries.
+
+Directory Structure
+===============================================================================
+ext - external sources required to build the code
+src - source code for the development branch
+legacy/libdissent - original, unmodified C++ version
+legacy/py - original, unmodified Python version
+
+Tests
+===============================================================================
+This suite contains many tests using googletest[1], use qmake on test.pro 
+(qmake -o makefile test.pro) to generate an appropriate makefile, which will
+create a binary to test the code.
+
+googletest was chosen because testing system code with QtTest would be quite
+inefficient.
+
+1 - http://code.google.com/p/googletest/
+
+Links
+===============================================================================
+Dedis -- Research group at Yale producing this software
+-- http://dedis.cs.yale.edu/
+Dissent -- Overview of the protocol
+-- http://dedis.cs.yale.edu/2010/anon/
+
+Contact
+===============================================================================
+TBA
+
+
+License
+===============================================================================
+While the code linked relies on a variety of licenses, which must be respected,
+the code contained herein shall use the following license:
+
+Copyright (C) 2011 Yale Dedis
+
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
+Street, Fifth Floor, Boston, MA  02110-1301, USA.
