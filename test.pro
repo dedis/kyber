@@ -42,4 +42,5 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/RpcTest.cpp \
            src/Tests/BufferEdgeTest.cpp \
            src/Tests/IdTest.cpp \
-           src/Tests/ConnectionTest.cpp
+           src/Tests/ConnectionTest.cpp \
+           src/Tests/SettingsTest.cpp

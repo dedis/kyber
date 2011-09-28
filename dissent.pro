@@ -31,6 +31,7 @@ HEADERS += src/Dissent.hpp \
            src/Transports/BufferEdgeListener.hpp \
            src/Transports/Edge.hpp \
            src/Transports/EdgeListener.hpp \
+           src/Utils/Settings.hpp \
            src/Utils/Sleeper.hpp \
            src/Utils/Time.hpp \
            src/Utils/Timer.hpp \
@@ -53,6 +54,7 @@ SOURCES += src/Init.cpp \
            src/Transports/BufferEdgeListener.cpp \
            src/Transports/Edge.cpp \
            src/Transports/EdgeListener.cpp \
+           src/Utils/Settings.cpp \
            src/Utils/Sleeper.cpp \
            src/Utils/Time.cpp \
            src/Utils/Timer.cpp \

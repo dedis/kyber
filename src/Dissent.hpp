@@ -23,6 +23,7 @@
 #include "Transports/Edge.hpp"
 #include "Transports/EdgeListener.hpp"
 
+#include "Utils/Settings.hpp"
 #include "Utils/Sleeper.hpp"
 #include "Utils/Time.hpp"
 #include "Utils/Timer.hpp"
