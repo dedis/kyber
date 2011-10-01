@@ -103,10 +103,6 @@ namespace Messaging {
     request["id"] = id;
     _requests[id] = cb;
     request["type"] = "request";
-    /*
-    QJson::Serializer serializer;
-    QByteArray data = serializer.serialize(request);
-    */
     QByteArray data;
     QDataStream stream(&data, QIODevice::WriteOnly);
     stream << request;
