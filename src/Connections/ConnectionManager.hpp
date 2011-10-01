@@ -55,6 +55,11 @@ namespace Connections {
        * Returns the incoming connection table
        */
       inline ConnectionTable &GetRemoteConnectionTable() { return _rem_con_tab; }
+
+      /**
+       * Returns the local Id
+       */
+      inline const Id &GetId() { return _local_id; }
       
     signals:
       /**
