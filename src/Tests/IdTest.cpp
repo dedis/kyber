@@ -3,8 +3,8 @@
 
 using Dissent::Connections::Id;
 
-namespace Testing {
-namespace Transports {
+namespace Dissent {
+namespace Tests {
   TEST(Id, Basic) {
     CryptoPP::SHA1 sha1;
     QByteArray hash(20, 0);

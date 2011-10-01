@@ -4,8 +4,8 @@ using Dissent::Transports::Address;
 using Dissent::Transports::AddressFactory;
 using Dissent::Transports::BufferAddress;
 
-namespace Testing {
-namespace Transports {
+namespace Dissent {
+namespace Tests {
   TEST(Address, Basic) {
     const Address addr = AddressFactory::CreateAddress("udp://localhost:11432");
     QUrl url = QUrl("udp://localhost:11432");
