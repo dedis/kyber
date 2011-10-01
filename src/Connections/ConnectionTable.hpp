@@ -43,13 +43,13 @@ namespace Connections {
        * Returns the connection matching to the Id or 0 if none exists
        * @param id the Id to lookup
        */
-      Connection *GetConnection(const Id &id);
+      Connection *GetConnection(const Id &id) const;
 
       /**
        * Returns a the connection matching to the edge or 0 if none exists
        * @param edge the edge to lookup
        */
-      Connection *GetConnection(const Edge *edge);
+      Connection *GetConnection(const Edge *edge) const;
 
       /**
        * Adds a Connection

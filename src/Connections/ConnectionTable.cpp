@@ -12,7 +12,7 @@ namespace Connections {
     return _edges.remove(edge) != 0;
   }
 
-  Connection *ConnectionTable::GetConnection(const Id &id)
+  Connection *ConnectionTable::GetConnection(const Id &id) const
   {
     if(_id_to_con.contains(id)) {
       return _id_to_con[id];
@@ -20,7 +20,7 @@ namespace Connections {
     return 0;
   }
 
-  Connection *ConnectionTable::GetConnection(const Edge *edge)
+  Connection *ConnectionTable::GetConnection(const Edge *edge) const
   {
     if(_edge_to_con.contains(edge)) {
       return _edge_to_con[edge];
