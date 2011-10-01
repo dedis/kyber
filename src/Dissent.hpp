@@ -1,6 +1,11 @@
 #ifndef DISSENT_DISSENT_H_GUARD
 #define DISSENT_DISSENT_H_GUARD
 
+#include "Anonymity/Group.hpp"
+#include "Anonymity/NullRound.hpp"
+#include "Anonymity/Round.hpp"
+#include "Anonymity/SessionManager.hpp"
+
 #include "Connections/Connection.hpp"
 #include "Connections/ConnectionManager.hpp"
 #include "Connections/ConnectionTable.hpp"

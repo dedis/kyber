@@ -11,6 +11,10 @@ CONFIG += qt debug
 # Input
 LIBS += -lqjson -lcryptopp
 HEADERS += src/Dissent.hpp \
+           src/Anonymity/Group.hpp \
+           src/Anonymity/NullRound.hpp \
+           src/Anonymity/Round.hpp \
+           src/Anonymity/SessionManager.hpp \
            src/Connections/Connection.hpp \
            src/Connections/ConnectionManager.hpp \
            src/Connections/ConnectionTable.hpp \
@@ -38,11 +42,14 @@ HEADERS += src/Dissent.hpp \
            src/Utils/TimerCallback.hpp \
            src/Utils/TimerEvent.hpp 
 SOURCES += src/Init.cpp \
+           src/Anonymity/Group.cpp \
+           src/Anonymity/NullRound.cpp \
+           src/Anonymity/Round.cpp \
+           src/Anonymity/SessionManager.cpp \
            src/Connections/Connection.cpp \
            src/Connections/ConnectionManager.cpp \
            src/Connections/ConnectionTable.cpp \
            src/Connections/Id.cpp \
-           src/Messaging/Filter.cpp \
            src/Messaging/RpcHandler.cpp \
            src/Messaging/RpcRequest.cpp \
            src/Messaging/RpcResponse.cpp \

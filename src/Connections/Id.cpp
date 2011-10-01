@@ -2,6 +2,8 @@
 
 namespace Dissent {
 namespace Connections {
+  const Id Id::Zero = Id(Integer(long(0)));
+
   Id::Id()
   {
     CryptoPP::AutoSeededX917RNG<CryptoPP::DES_EDE3> rng;
