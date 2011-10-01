@@ -1,8 +1,7 @@
 #ifndef DISSENT_SOURCE_H_GUARD
 #define DISSENT_SOURCE_H_GUARD
 
-#include <stdexcept>
-#include <string>
+#include <QDebug>
 
 #include "ISender.hpp"
 #include "ISink.hpp"

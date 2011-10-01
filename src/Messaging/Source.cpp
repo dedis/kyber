@@ -17,7 +17,8 @@ namespace Messaging {
   void Source::PushData(const QByteArray &data, ISender *from)
   {
     if(_sink == 0) {
-      throw std::logic_error("Sink not set.");
+      qWarning() << "Sink not set.";
+      return;
     }
     _sink->HandleData(data, from);
   }
