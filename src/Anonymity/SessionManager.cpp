@@ -22,19 +22,19 @@ namespace Anonymity {
 
   void SessionManager::IncomingData(RpcRequest &notification)
   {
-    QByteArray bid = notification.Message["round_id"].toByteArray();
+    QByteArray bid = notification.GetMessage()["round_id"].toByteArray();
     if(bid.isEmpty()) {
-      qDebug() << "Received a wayward session message from " << notification.From->ToString();
+      qDebug() << "Received a wayward session message from " << notification.GetFrom()->ToString();
       return;
     }
 
     Id id(bid);
     if(_id_to_round.contains(id)) {
-      QByteArray data = notification.Message["data"].toByteArray();
-      _id_to_round[id]->HandleData(data, notification.From);
+      QByteArray data = notification.GetMessage()["data"].toByteArray();
+      _id_to_round[id]->HandleData(data, notification.GetFrom());
     } else {
       qDebug() << "Received a wayward session message for session " <<
-        id.ToString() << " from " << notification.From->ToString();
+        id.ToString() << " from " << notification.GetFrom()->ToString();
     }
   }
 

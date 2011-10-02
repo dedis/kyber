@@ -3,6 +3,8 @@
 
 #include <stdexcept>
 
+#include <QDebug>
+#include <QSharedData>
 #include <QVariant>
 #include <QtCore/qdatastream.h>
 
@@ -10,6 +12,28 @@
 
 namespace Dissent {
 namespace Messaging {
+  class RpcRequestData : public QSharedData {
+    public:
+      RpcRequestData(const QVariantMap message, ISender *from) :
+        Message(message), From(from), Responded(false)
+      {
+      }
+
+      const QVariantMap Message;
+      ISender *From;
+      bool Responded;
+
+      RpcRequestData(const RpcRequestData &other) : QSharedData(other)
+      {
+        throw std::logic_error("Not callable");
+      }
+  
+      RpcRequestData &operator=(const RpcRequestData &)
+      {
+        throw std::logic_error("Not callable");
+      }
+  };
+
   /**
    * Represents the state of an Rpc Request
    */
@@ -29,20 +53,20 @@ namespace Messaging {
       /**
        * Was there a response sent yet?
        */
-      virtual bool Responded();
+      inline virtual bool Responded() const { return _data->Responded; }
 
       /**
        * The message sent from the remote peer
        */
-      const QVariantMap Message;
+      inline const QVariantMap &GetMessage() const { return _data->Message; }
 
       /**
        * Pathway back to the remote peer
        */
-      ISender *const From;
+      inline ISender *GetFrom() { return _data->From; }
 
     private:
-      bool _responded;
+      QExplicitlySharedDataPointer<RpcRequestData> _data;
   };
 }
 }

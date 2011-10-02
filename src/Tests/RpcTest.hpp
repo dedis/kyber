@@ -11,7 +11,7 @@ namespace Tests {
     public:
       void Add(RpcRequest& request)
       {
-        QVariantMap msg = request.Message;
+        QVariantMap msg = request.GetMessage();
         int x = msg["x"].toInt();
         int y = msg["y"].toInt();
         QVariantMap response;
@@ -28,7 +28,7 @@ namespace Tests {
 
       void HandleResponse(RpcRequest& response)
       {
-        value = response.Message["sum"].toInt();
+        value = response.GetMessage()["sum"].toInt();
       }
   };
 }

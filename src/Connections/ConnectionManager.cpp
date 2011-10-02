@@ -60,7 +60,7 @@ namespace Connections {
 
   void ConnectionManager::Inquired(RpcRequest &response)
   {
-    ISender *from = response.From;
+    ISender *from = response.GetFrom();
     Edge *edge = dynamic_cast<Edge *>(from);
     if(edge == 0) {
       qWarning() << "Received an inquired from a non-Edge: " << from->ToString();
@@ -70,7 +70,7 @@ namespace Connections {
       return;
     }
 
-    QByteArray brem_id = response.Message["peer_id"].toByteArray();
+    QByteArray brem_id = response.GetMessage()["peer_id"].toByteArray();
 
     if(brem_id.isEmpty()) {
       qWarning() << "Invalid ConnectionEstablished, no id";
@@ -106,13 +106,13 @@ namespace Connections {
 
   void ConnectionManager::Connect(RpcRequest &notification)
   {
-    Edge *edge = dynamic_cast<Edge *>(notification.From);
+    Edge *edge = dynamic_cast<Edge *>(notification.GetFrom());
     if(edge == 0) {
-      qWarning() << "Connection attempt not from an Edge: " << notification.From->ToString();
+      qWarning() << "Connection attempt not from an Edge: " << notification.GetFrom()->ToString();
       return;
     }
     
-    QByteArray brem_id = notification.Message["peer_id"].toByteArray();
+    QByteArray brem_id = notification.GetMessage()["peer_id"].toByteArray();
 
     if(brem_id.isEmpty()) {
       qWarning() << "Invalid ConnectionEstablished, no id";
@@ -133,9 +133,9 @@ namespace Connections {
 
   void ConnectionManager::Close(RpcRequest &notification)
   {
-    Edge *edge = dynamic_cast<Edge *>(notification.From);
+    Edge *edge = dynamic_cast<Edge *>(notification.GetFrom());
     if(edge == 0) {
-      qWarning() << "Connection attempt Edge close not from an Edge: " << notification.From->ToString();
+      qWarning() << "Connection attempt Edge close not from an Edge: " << notification.GetFrom()->ToString();
       return;
     }
 
@@ -172,9 +172,9 @@ namespace Connections {
 
   void ConnectionManager::Disconnect(RpcRequest &notification)
   {
-    Connection *con = dynamic_cast<Connection *>(notification.From);
+    Connection *con = dynamic_cast<Connection *>(notification.GetFrom());
     if(con == 0) {
-      qWarning() << "Received DisconnectResponse from a non-connection: " << notification.From->ToString();
+      qWarning() << "Received DisconnectResponse from a non-connection: " << notification.GetFrom()->ToString();
       return;
     }
 

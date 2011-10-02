@@ -3,34 +3,31 @@
 namespace Dissent {
 namespace Messaging {
   RpcRequest::RpcRequest(const QVariantMap &message, ISender *from) :
-    Message(message), From(from), _responded(false)
+    _data(new RpcRequestData(message, from))
   {
   }
 
   void RpcRequest::Respond(QVariantMap &response)
   {
-    if(Message["type"].toString() == "notification") {
-      throw std::logic_error("Notification cannot be replied to");
+    if(GetMessage()["type"].toString() == "notification") {
+      qWarning() << "Cannot Respond on a notification";
+      return;
     }
 
-    if(_responded) {
-      throw std::logic_error("Responded more than once.");
+    if(_data->Responded) {
+      qWarning() << "Cannot respond more than once.";
+      return;
     }
 
-    _responded = true;
-    response["id"] = Message["id"];
+    _data->Responded = true;
+    response["id"] = GetMessage()["id"];
     response["type"] = "response";
 
     QByteArray data;
     QDataStream stream(&data, QIODevice::WriteOnly);
     stream << response;
 
-    From->Send(data);
-  }
-
-  bool RpcRequest::Responded()
-  {
-    return _responded;
+    GetFrom()->Send(data);
   }
 }
 }
