@@ -2,44 +2,45 @@
 
 namespace Dissent {
 namespace Anonymity {
-  Group::Group(const QVector<Id> &group) :
-    _group_vector(group), _size(group.count())
+  Group::Group(const QVector<Id> &group)
   {
-    for(int idx = 0; idx < _size; idx++) {
-      _id_to_int[_group_vector[idx]] = idx;
+    QHash<const Id, int> id_to_int;
+    for(int idx = 0; idx < group.count(); idx++) {
+      id_to_int[group[idx]] = idx;
     }
+    _data = QSharedDataPointer<GroupData>(new GroupData(group, id_to_int));
   }
 
   const Id &Group::GetId(int idx) const
   {
-    if(idx >= _size) {
+    if(idx >= _data->Size) {
       return Id::Zero;
     }
-    return _group_vector[idx];
+    return _data->GroupVector[idx];
   }
 
   const Id &Group::Next(const Id &id) const
   {
-    if(!_id_to_int.contains(id)) {
+    if(!_data->IdtoInt.contains(id)) {
       return Id::Zero;
     }
 
-    int idx = _id_to_int[id];
-    if(++idx == _size) {
+    int idx = _data->IdtoInt[id];
+    if(++idx == _data->Size) {
       return Id::Zero;
     }
-    return _group_vector[idx];
+    return _data->GroupVector[idx];
   }
 
   bool Group::Contains(const Id &id) const
   {
-    return _id_to_int.contains(id);
+    return _data->IdtoInt.contains(id);
   }
 
   int Group::GetPosition(const Id &id) const
   {
-    if(_id_to_int.contains(id)) {
-      return _id_to_int[id];
+    if(_data->IdtoInt.contains(id)) {
+      return _data->IdtoInt[id];
     }
     return -1;
   }

@@ -2,6 +2,7 @@
 #define DISSENT_ANONYMITY_GROUP_H_GUARD
 
 #include <QHash>
+#include <QSharedData>
 #include <QVector>
 
 #include "../Connections/Id.hpp"
@@ -12,6 +13,20 @@ namespace Anonymity {
     using namespace Dissent::Connections;
   }
 
+  class GroupData : public QSharedData {
+    public:
+      GroupData(const QVector<Id> group_vector,
+          const QHash<const Id, int> id_to_int) :
+        GroupVector(group_vector), IdtoInt(id_to_int),
+        Size(group_vector.count())
+      {
+      }
+
+      const QVector<Id> GroupVector;
+      const QHash<const Id, int> IdtoInt;
+      const int Size;
+  };
+
   class Group {
     public:
       Group(const QVector<Id> &group);
@@ -19,12 +34,9 @@ namespace Anonymity {
       const Id &Next(const Id &id) const;
       bool Contains(const Id &id) const;
       int GetPosition(const Id &id) const;
-      int GetSize() const { return _size; }
-
+      int GetSize() const { return _data->Size; }
     private:
-      const QVector<Id> _group_vector;
-      QHash<const Id, int> _id_to_int;
-      int _size;
+      QSharedDataPointer<GroupData> _data;
   };
 }
 }
