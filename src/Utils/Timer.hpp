@@ -69,6 +69,11 @@ namespace Utils {
        */
       qint64 VirtualRun();
 
+      /**
+       * Clears all queued Timer events
+       */
+      void Clear();
+
     protected:
       /**
        * Singleton, disabled

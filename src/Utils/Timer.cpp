@@ -70,6 +70,7 @@ namespace Utils {
       return;
     }
 
+    Clear();
     _running = false;
     _stopped = true;
   }
@@ -79,6 +80,8 @@ namespace Utils {
     if(_running || !_stopped) {
       return;
     }
+
+    Clear();
     _running = true;
     _stopped = false;
   }
@@ -123,6 +126,11 @@ namespace Utils {
       return -1;
     }
     return Run();
+  }
+
+  void Timer::Clear()
+  {
+    _queue = TimerQueue(&(TimerEvent::ReverseComparer));
   }
 }
 }
