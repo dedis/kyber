@@ -2,6 +2,13 @@
 
 namespace Dissent {
 namespace Connections {
+  ConnectionTable::~ConnectionTable()
+  {
+    foreach(Connection *con, _cons) {
+      delete con;
+    }
+  }
+
   void ConnectionTable::AddEdge(Edge *edge)
   {
     _edges[edge] = edge;

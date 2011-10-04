@@ -20,6 +20,11 @@ namespace Connections {
   class ConnectionTable {
     public:
       /**
+       * Deconstructor
+       */
+      ~ConnectionTable();
+
+      /**
        * Add an edge
        * @param edge the edge to add
        */
