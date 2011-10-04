@@ -8,6 +8,11 @@ namespace Transports {
   {
   }
 
+  Edge::~Edge()
+  {
+    SetSink(0);
+  }
+
   QString Edge::ToString() const
   {
     return QString("Edge, Local: " + _local_address.ToString() +

@@ -13,8 +13,16 @@ namespace Transports {
    */
   class BufferEdge : public Edge {
     public:
+      /**
+       * Constructor
+       * @param local the local address of the edge
+       * @param remote the address of the remote point of the edge
+       * @param incoming true if the remote side requested the creation of this edge
+       * @param delay latency to the remote side in ms
+       */
       BufferEdge(const Address &local, const Address &remote,
           bool incoming, int delay = 10);
+      virtual ~BufferEdge();
       virtual void Send(const QByteArray &data);
       virtual void Close(const QString& reason);
       

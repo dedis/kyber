@@ -8,10 +8,16 @@ namespace Transports {
   {
   }
 
+  BufferEdge::~BufferEdge()
+  {
+    _remote_edge = 0;
+  }
+
   void BufferEdge::SetRemoteEdge(BufferEdge *remote_edge)
   {
     if(!_remote_edge == 0) {
-//      throw new std::runtime_error("Cannot call SetRemote twice");
+      qWarning() << "BufferEdge's remote already set.";
+      return;
     }
     _remote_edge = remote_edge;
   }

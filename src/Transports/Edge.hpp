@@ -31,6 +31,11 @@ namespace Transports {
       Edge(const Address &local, const Address &remote, bool incoming);
 
       /**
+       * Deconstructor
+       */
+      virtual ~Edge();
+
+      /**
        * Returns a string representation of the edge
        */
       virtual QString ToString() const;
