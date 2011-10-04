@@ -56,6 +56,8 @@ namespace Connections {
        */
       Connection *GetConnection(const Edge *edge) const;
 
+      inline QList<Connection *> GetConnections() { return _cons.values(); }
+
       /**
        * Adds a Connection
        * @param con the connection to add

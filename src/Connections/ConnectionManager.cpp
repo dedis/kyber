@@ -8,7 +8,7 @@ namespace Connections {
     _close(RpcMethod<ConnectionManager>(*this, &ConnectionManager::Close)),
     _connect(RpcMethod<ConnectionManager>(*this, &ConnectionManager::Connect)),
     _disconnect(RpcMethod<ConnectionManager>(*this, &ConnectionManager::Disconnect)),
-    _local_id(local_id), _rpc(rpc)
+    _local_id(local_id), _rpc(rpc), _closed(false)
   {
     _rpc->Register(&_inquire, "CM::Inquire");
     _rpc->Register(&_close, "CM::Close");
@@ -26,6 +26,11 @@ namespace Connections {
 
   void ConnectionManager::AddEdgeListener(EdgeListener *el)
   {
+    if(_closed) {
+      qWarning() << "Attempting to add an EdgeListener after calling Disconnect.";
+      return;
+    }
+
     _el.reset(el);
     QObject::connect(el, SIGNAL(NewEdgeSignal(Edge *)),
         this, SLOT(HandleNewEdge(Edge *)));
@@ -33,7 +38,26 @@ namespace Connections {
 
   void ConnectionManager::ConnectTo(const Address &addr)
   {
+    if(_closed) {
+      qWarning() << "Attempting to Connect to a remote node after calling Disconnect.";
+      return;
+    }
+
     _el->CreateEdgeTo(addr);
+  }
+
+  void ConnectionManager::Disconnect()
+  {
+    if(_closed) {
+      qWarning() << "Called Disconnect twice on ConnectionManager.";
+      return;
+    }
+
+    _closed = true;
+    foreach(Connection *con, _con_tab.GetConnections()) {
+      con->Disconnect();
+    }
+    _el->Stop();
   }
 
   void ConnectionManager::HandleNewEdge(Edge *edge)

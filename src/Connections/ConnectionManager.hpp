@@ -47,6 +47,11 @@ namespace Connections {
       void ConnectTo(const Address &addr);
 
       /**
+       * Disconnect from all Connections, in preparation for shutdown
+       */
+      void Disconnect();
+
+      /**
        * Returns the outgoing connection table
        */
       inline ConnectionTable &GetConnectionTable() { return _con_tab; }
@@ -107,6 +112,7 @@ namespace Connections {
        */
       QScopedPointer<EdgeListener> _el;
       RpcHandler *_rpc;
+      bool _closed;
 
     private slots:
       /**

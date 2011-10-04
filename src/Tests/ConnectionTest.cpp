@@ -227,5 +227,66 @@ namespace Tests {
     EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
     EXPECT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
   }
+
+  TEST(Connection, Disconnect)
+  {
+    Timer::GetInstance().UseVirtualTime();
+
+    const BufferAddress addr0(1000);
+    BufferEdgeListener *be0 = new BufferEdgeListener(addr0);
+    RpcHandler rpc0;
+    Id id0;
+    ConnectionManager cm0(id0, &rpc0);
+    cm0.AddEdgeListener(be0);
+
+    const BufferAddress addr1(10001);
+    BufferEdgeListener *be1 = new BufferEdgeListener(addr1);
+    RpcHandler rpc1;
+    Id id1;
+    ConnectionManager cm1(id1, &rpc1);
+    cm1.AddEdgeListener(be1);
+
+    EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
+    EXPECT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
+    cm1.ConnectTo(addr0);
+    cm0.ConnectTo(addr1);
+
+    qint64 next = Timer::GetInstance().VirtualRun();
+    while(next != -1) {
+      Time::GetInstance().IncrementVirtualClock(next);
+      next = Timer::GetInstance().VirtualRun();
+    }
+
+    EXPECT_TRUE(cm0.GetConnectionTable().GetConnection(id1));
+    EXPECT_TRUE(cm1.GetConnectionTable().GetConnection(id0));
+
+    cm1.Disconnect();
+    cm0.Disconnect();
+
+    next = Timer::GetInstance().VirtualRun();
+    while(next != -1) {
+      Time::GetInstance().IncrementVirtualClock(next);
+      next = Timer::GetInstance().VirtualRun();
+    }
+
+    EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
+    EXPECT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
+
+    DisableLogging();
+
+    cm1.ConnectTo(addr0);
+    cm0.ConnectTo(addr1);
+
+    next = Timer::GetInstance().VirtualRun();
+    while(next != -1) {
+      Time::GetInstance().IncrementVirtualClock(next);
+      next = Timer::GetInstance().VirtualRun();
+    }
+
+    EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
+    EXPECT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
+
+    EnableLogging();
+  }
 }
 }
