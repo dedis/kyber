@@ -1,0 +1,11 @@
+Connections
+- ConnectionManager should send a Disconnect signal when it has safely disconnected after calling CM::Disconnect
+- ConnectionTable should be a value type
+- ConnectionManager and maybe EL should turn reject requests for connections when closed
+
+Transports
+- BufferEdges should be able to safely disappear without there being consequences wht regards to Timers if an Edge is closed
+- Need a real networking transport
+
+Utils
+- VirtualTime should have a method that lets it be executed for a specific amount of time via QEvent mechanisms
