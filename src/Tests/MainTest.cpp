@@ -19,3 +19,17 @@ GTEST_API_ int main(int argc, char **argv)
   file.remove();
   return res;
 }
+
+void NoOutputHandler(QtMsgType, const char *)
+{
+}
+
+void DisableLogging()
+{
+    qInstallMsgHandler(NoOutputHandler);
+} 
+
+void EnableLogging()
+{
+    qInstallMsgHandler(0);
+}
