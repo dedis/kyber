@@ -14,6 +14,7 @@ HEADERS += src/Dissent.hpp \
            src/Anonymity/Group.hpp \
            src/Anonymity/NullRound.hpp \
            src/Anonymity/Round.hpp \
+           src/Anonymity/Session.hpp \
            src/Anonymity/SessionManager.hpp \
            src/Connections/Connection.hpp \
            src/Connections/ConnectionManager.hpp \
@@ -45,6 +46,7 @@ SOURCES += src/Init.cpp \
            src/Anonymity/Group.cpp \
            src/Anonymity/NullRound.cpp \
            src/Anonymity/Round.cpp \
+           src/Anonymity/Session.cpp \
            src/Anonymity/SessionManager.cpp \
            src/Connections/Connection.cpp \
            src/Connections/ConnectionManager.cpp \

@@ -8,7 +8,7 @@ namespace Anonymity {
     for(int idx = 0; idx < group.count(); idx++) {
       id_to_int[group[idx]] = idx;
     }
-    _data = QSharedDataPointer<GroupData>(new GroupData(group, id_to_int));
+    _data = new GroupData(group, id_to_int);
   }
 
   const Id &Group::GetId(int idx) const

@@ -32,7 +32,8 @@ HEADERS += ext/googletest/include/gtest/gtest-death-test.h \
            ext/googletest/include/gtest/internal/gtest-type-util.h \
            src/Tests/DissentTest.hpp \
            src/Tests/Mock.hpp \
-           src/Tests/RpcTest.hpp
+           src/Tests/RpcTest.hpp \
+           src/Tests/TestNode.hpp
 
 SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/AddressTest.cpp \

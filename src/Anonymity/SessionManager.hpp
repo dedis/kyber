@@ -2,7 +2,7 @@
 #define DISSENT_ANONYMITY_SESSION_MANAGER_H_GUARD
 
 #include "../Messaging/RpcHandler.hpp"
-#include "Round.hpp"
+#include "Session.hpp"
 
 namespace Dissent {
 namespace Anonymity {
@@ -10,20 +10,41 @@ namespace Anonymity {
     using namespace Dissent::Messaging;
   }
 
-  class SessionManager : public QObject, public Filter {
+  /**
+   * Used to filter incoming messages across many sessions.
+   */
+  class SessionManager : public QObject {
     Q_OBJECT
 
     public:
+      /**
+       * Constructor
+       * @param rpc
+       */
       SessionManager(RpcHandler *rpc);
+
+      /**
+       * Deconstructor
+       */
       ~SessionManager();
-      void AddRound(Round *round);
-      virtual void Send(const QByteArray &data);
+
+      /**
+       * Adds a Session for the SessionManager to handle. Does not start the session.
+       * @param session The session to be handled
+       */
+      void AddSession(Session *session);
 
     private:
+      Session *GetSession(RpcRequest &msg);
+      void Ready(RpcRequest &request);
       void IncomingData(RpcRequest &notification);
-      QHash<Id, Round *> _id_to_round;
+      QHash<Id, Session *> _id_to_session;
+      RpcMethod<SessionManager> _ready;
       RpcMethod<SessionManager> _data;
       RpcHandler *_rpc;
+
+    private slots:
+      void HandleSessionClose(Session *session);
   };
 }
 }

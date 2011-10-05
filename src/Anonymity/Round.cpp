@@ -2,10 +2,10 @@
 
 namespace Dissent {
 namespace Anonymity {
-  Round::Round(const Id &local_id, const Group &group, ConnectionTable &ct,
-      RpcHandler *rpc, const Id &round_id) :
-    _local_id(local_id), _group(group), _ct(ct), _rpc(rpc),
-    _round_id(round_id), _closed(false)
+  Round::Round(const Id &local_id, const Group &group, const ConnectionTable &ct,
+      RpcHandler *rpc, const Id &session_id) :
+    _local_id(local_id), _group(group), _successful(false), _ct(ct), _rpc(rpc),
+    _session_id(session_id), _closed(false)
   {
   }
 
@@ -60,7 +60,7 @@ namespace Anonymity {
     QVariantMap notification;
     notification["method"] = "SM::Data";
     notification["data"] = data;
-    notification["round_id"] = _round_id.GetByteArray();
+    notification["session_id"] = _session_id.GetByteArray();
     _rpc->SendNotification(notification, _ct.GetConnection(id));
   }
 

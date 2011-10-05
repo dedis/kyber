@@ -1,3 +1,7 @@
+Anonymity
+- Should keep a queue of ready messages for uninitialized leaders
+- Should keep a cache of closed sessions to respond to the remote peer that the session is dead and avoid race "wayward session messages"
+
 Connections
 - ConnectionManager should send a Disconnect signal when it has safely disconnected after calling CM::Disconnect
 - ConnectionTable should be a value type
