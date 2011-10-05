@@ -14,5 +14,6 @@
 void NoOutputHandler(QtMsgType, const char *);
 void DisableLogging();
 void EnableLogging();
+int random(int min = 0, int max = RAND_MAX);
 
 #endif

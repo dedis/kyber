@@ -1,4 +1,3 @@
-#include <stdlib.h>
 #include <time.h>
 
 #include <QtGlobal>
@@ -12,7 +11,7 @@ GTEST_API_ int main(int argc, char **argv)
   if(file.exists()) {
     qFatal("dissent.ini exists, move / delete and restart the test.");
   }
-  srand(time(NULL));
+  qsrand(time(NULL));
   testing::InitGoogleTest(&argc, argv);
   Dissent::Init();
   int res = RUN_ALL_TESTS();
@@ -32,4 +31,17 @@ void DisableLogging()
 void EnableLogging()
 {
     qInstallMsgHandler(0);
+}
+
+int random(int min, int max)
+{
+  if(max <= min) {
+    return min;
+  }
+
+  int value = qrand() % max;
+  while(value <= min) {
+    value = qrand() % max;
+  }
+  return value;
 }
