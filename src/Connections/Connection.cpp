@@ -14,12 +14,13 @@ namespace Connections {
   QString Connection::ToString() const
   {
     return QString("Connection, Local: " + _local_id.ToString() +
-        (_edge->Incoming() ? " <= " : " => ") + ", Remote: " +
+        (_edge->Outbound() ? " => " : " <= ") + ", Remote: " +
         _remote_id.ToString());
   }
 
   void Connection::Disconnect()
   {
+    SetSink(0);
     qDebug() << "Called disconnect on: " << this->ToString();
     emit CalledDisconnect(this);
   }

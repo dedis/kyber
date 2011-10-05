@@ -57,13 +57,26 @@ namespace Connections {
     foreach(Connection *con, _con_tab.GetConnections()) {
       con->Disconnect();
     }
+
+    foreach(Connection *con, _rem_con_tab.GetConnections()) {
+      con->Disconnect();
+    }
+
+    foreach(Edge *edge, _con_tab.GetEdges()) {
+      edge->Close("Disconnecting");
+    }
+
+    foreach(Edge *edge, _rem_con_tab.GetEdges()) {
+      edge->Close("Disconnecting");
+    }
+
     _el->Stop();
   }
 
   void ConnectionManager::HandleNewEdge(Edge *edge)
   {
     edge->SetSink(_rpc);
-    if(edge->Incoming()) {
+    if(!edge->Outbound()) {
       _rem_con_tab.AddEdge(edge);
       return;
     }
@@ -89,7 +102,7 @@ namespace Connections {
     if(edge == 0) {
       qWarning() << "Received an inquired from a non-Edge: " << from->ToString();
       return;
-    } else if(edge->Incoming()) {
+    } else if(!edge->Outbound()) {
       qWarning() << "We would never make an inquire call on an incoming edge: " << from->ToString();
       return;
     }
@@ -108,7 +121,7 @@ namespace Connections {
       QVariantMap notification;
       notification["method"] = "CM::Close";
       _rpc->SendNotification(notification, edge);
-      edge->DelayedClose("Duplicate connection");
+      edge->Close("Duplicate connection");
       return;
     }
 
@@ -151,6 +164,8 @@ namespace Connections {
     Connection *con = new Connection(edge, _local_id, rem_id);
     _rem_con_tab.AddConnection(con);
     qDebug() << _local_id.ToString() << ": Handle new connection from " << rem_id.ToString();
+    QObject::connect(con, SIGNAL(CalledDisconnect(Connection *)),
+        this, SLOT(HandleDisconnect(Connection *)));
     QObject::connect(con, SIGNAL(Disconnected(Connection *, const QString &)),
         this, SLOT(HandleDisconnected(Connection *, const QString &)));
   }
@@ -173,24 +188,28 @@ namespace Connections {
 
   void ConnectionManager::HandleDisconnect(Connection *con)
   {
-    _con_tab.Disconnect(con);
+    if(_con_tab.Contains(con)) {
+      _con_tab.Disconnect(con);
+    } else {
+      _rem_con_tab.Disconnect(con);
+    }
 
     QVariantMap notification;
     notification["method"] = "CM::Disconnect";
     _rpc->SendNotification(notification, con);
 
     qDebug() << "Handle disconnect on: " << con->ToString();
-    con->GetEdge()->DelayedClose("Local disconnect request");
+    con->GetEdge()->Close("Local disconnect request");
   }
 
   void ConnectionManager::HandleDisconnected(Connection *con, const QString &reason)
   {
     qDebug() << "Edge disconnected now removing Connection: " << con->ToString()
       << ", because: " << reason;
-    if(con->GetEdge()->Incoming()) {
-     _rem_con_tab.RemoveConnection(con);
-    } else {
+    if(con->GetEdge()->Outbound()) {
      _con_tab.RemoveConnection(con);
+    } else {
+     _rem_con_tab.RemoveConnection(con);
     }
   }
 
@@ -203,15 +222,17 @@ namespace Connections {
     }
 
     qDebug() << "Received disconnect for: " << con->ToString();
-    if(!_rem_con_tab.Disconnect(con)) {
-      qWarning() << "No connection information stored locally.";
+    if(_rem_con_tab.Contains(con)) {
+      _rem_con_tab.Disconnect(con);
+    } else {
+      _con_tab.Disconnect(con);
     }
     con->GetEdge()->Close("Remote disconnect");
   }
 
   void ConnectionManager::HandleEdgeClose(const Edge *edge, const QString &)
   {
-    ConnectionTable &con_tab = edge->Incoming() ? _rem_con_tab : _con_tab;
+    ConnectionTable &con_tab = edge->Outbound() ? _con_tab : _rem_con_tab;
     if(!con_tab.RemoveEdge(edge)) {
     }
   }

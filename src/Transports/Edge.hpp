@@ -26,9 +26,9 @@ namespace Transports {
        * Constructor
        * @param local the local address of the edge
        * @param remote the address of the remote point of the edge
-       * @param incoming true if the remote side requested the creation of this edge
+       * @param outbound true if the local side requested the creation of this edge
        */
-      Edge(const Address &local, const Address &remote, bool incoming);
+      Edge(const Address &local, const Address &remote, bool outbound);
 
       /**
        * Deconstructor
@@ -51,22 +51,15 @@ namespace Transports {
       inline const Address &GetRemoteAddress() const { return _remote_address; }
 
       /**
-       * True if the remtoe side reqeusted creation of this edge
+       * True if the local side requested creation of this edge
        */
-      inline bool Incoming() const { return _incoming; }
+      inline bool Outbound() const { return _outbound; }
 
       /**
        * Close the edge
        * @param reason the reason for closing the edge.
        */
       virtual void Close(const QString &reason);
-
-      /**
-       * Close the edge after the underlying communication device has finished
-       * transmitting data.  Do not allow new data to be transferred.
-       * @param reason the reason for closing the edge.
-       */
-      virtual void DelayedClose(const QString &reason);
 
       /**
        * True if the edge has been closed
@@ -84,7 +77,7 @@ namespace Transports {
     protected:
       const Address &_local_address;
       const Address &_remote_address;
-      bool _incoming;
+      bool _outbound;
       bool _closed;
   };
 }

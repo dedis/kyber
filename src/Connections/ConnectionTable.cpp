@@ -40,6 +40,7 @@ namespace Connections {
     _cons[con] = con;
     _id_to_con[con->GetRemoteId()] = con;
     _edge_to_con[con->GetEdge()] = con;
+    _edges.remove(con->GetEdge());
   }
 
   bool ConnectionTable::Disconnect(Connection *con)
@@ -68,20 +69,7 @@ namespace Connections {
 
   bool ConnectionTable::RemoveConnection(Connection *con)
   {
-    Edge * edge = con->GetEdge();
-    bool found = false;
-
-    if(_edges.contains(edge)) {
-      _edges.remove(edge);
-      found |= true;
-    }
-
-    if(_cons.contains(con)) {
-      _cons.remove(con);
-      found |= true;
-    }
-
-    return found;
+    return _cons.remove(con) != 0;
   }
 }
 }

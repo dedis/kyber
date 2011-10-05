@@ -36,6 +36,8 @@ namespace Connections {
        */
       bool RemoveEdge(const Edge *edge);
 
+      inline bool Contains(const Connection *con) { return _cons.contains(con); }
+
       /**
        * Remove a connection from being looked up by Id or Edge, returns
        * true if exists.  Should be called after calling disconnect but
@@ -57,6 +59,8 @@ namespace Connections {
       Connection *GetConnection(const Edge *edge) const;
 
       inline QList<Connection *> GetConnections() { return _cons.values(); }
+
+      inline QList<Edge *> GetEdges() { return _edges.values(); }
 
       /**
        * Adds a Connection

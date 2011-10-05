@@ -26,8 +26,8 @@ namespace Tests {
     EXPECT_FALSE(meh0.edge.isNull());
     EXPECT_FALSE(meh1.edge.isNull());
 
-    EXPECT_FALSE(meh1.edge->Incoming());
-    EXPECT_TRUE(meh0.edge->Incoming());
+    EXPECT_TRUE(meh1.edge->Outbound());
+    EXPECT_FALSE(meh0.edge->Outbound());
 
     RpcHandler rpc0;
     meh0.edge->SetSink(&rpc0);

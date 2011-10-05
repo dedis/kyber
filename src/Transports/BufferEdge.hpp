@@ -46,8 +46,32 @@ namespace Transports {
        * delayed the appropriate amount of time
        * @param data the data sent from the remote peer
        */
-      void DelayedReceived(const QByteArray &data);
+      void DelayedReceive(const QByteArray &data);
+
+      /**
+       * The remote edge
+       */
       BufferEdge *_remote_edge;
+
+      /**
+       * The Edge is closing ... waiting for incoming packets
+       */
+      bool _closing;
+
+      /**
+       * The Remote side is closing...
+       */
+      bool _rem_closing;
+
+      /**
+       * Packets sent but not arrived
+       */
+      int _incoming;
+
+      /**
+       * The reason for closing
+       */
+      QString _close_reason;
   };
 }
 }

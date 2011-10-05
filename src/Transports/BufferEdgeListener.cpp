@@ -31,8 +31,8 @@ namespace Transports {
       return;
     }
 
-    BufferEdge *local_edge(new BufferEdge(_local_address, to, false, 10));
-    BufferEdge *remote_edge(new BufferEdge(to, _local_address, true, 10));
+    BufferEdge *local_edge(new BufferEdge(_local_address, remote_el->_local_address, true, 10));
+    BufferEdge *remote_edge(new BufferEdge(remote_el->_local_address, _local_address, false, 10));
 
     local_edge->SetRemoteEdge(remote_edge);
     remote_edge->SetRemoteEdge(local_edge);
