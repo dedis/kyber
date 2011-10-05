@@ -75,8 +75,8 @@ namespace Transports {
       void Closed(const Edge *edge, const QString &reason);
 
     protected:
-      const Address &_local_address;
-      const Address &_remote_address;
+      const Address _local_address;
+      const Address _remote_address;
       bool _outbound;
       bool _closed;
   };
