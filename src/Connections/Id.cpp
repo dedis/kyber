@@ -35,7 +35,7 @@ namespace Connections {
       throw std::runtime_error("Bitsize too large: " + iid.BitCount());
     }
 
-    _data = QExplicitlySharedDataPointer<IdData>(new IdData(bid, iid, sid));
+    _data = new IdData(bid, iid, sid);
   }
 
   QString Id::ToString() const
