@@ -38,6 +38,7 @@ namespace Transports {
   class Address {
     public:
       Address(const QUrl &url);
+      Address(const Address &other);
       virtual ~Address() { }
       static const Address CreateAddress(const QUrl &url);
 
@@ -54,7 +55,7 @@ namespace Transports {
         return dynamic_cast<const T *>(_data.data());
       }
       Address() { }
-      QSharedDataPointer<AddressData> _data;
+      QExplicitlySharedDataPointer<AddressData> _data;
   };
 }
 }

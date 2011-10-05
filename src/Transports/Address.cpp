@@ -3,7 +3,11 @@
 
 namespace Dissent {
 namespace Transports {
-  Address::Address(const QUrl& url) : _data(QSharedDataPointer<AddressData>(new AddressData(url)))
+  Address::Address(const QUrl& url) : _data(new AddressData(url))
+  {
+  }
+
+  Address::Address(const Address &other) : _data(other._data)
   {
   }
 

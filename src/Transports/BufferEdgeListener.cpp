@@ -1,5 +1,4 @@
 #include "BufferEdgeListener.hpp"
-#include <typeinfo>
 #include <QDebug>
 
 namespace Dissent {
@@ -11,7 +10,9 @@ namespace Transports {
   {
     int id = local_address.GetId();
     if(_el_map.contains(id)) {
-//      throw std::runtime_error("EL already taken for: " + loc_ba->GetId());
+      qWarning() << "Attempting to create two BufferEdgeListeners with the same" <<
+        " address: " << local_address.ToString();
+      return;
     }
     _el_map[id] = this;
   }
@@ -27,7 +28,8 @@ namespace Transports {
     const BufferAddress &rem_ba = static_cast<const BufferAddress &>(to);
     BufferEdgeListener *remote_el = _el_map[rem_ba.GetId()];
     if(remote_el == 0) {
-//      _edge_failure(to, std::runtime_error("No remote peer."));
+      qDebug() << "Attempting to create an Edge to an EL that doesn't exist from " <<
+        _local_address.ToString() << " to " << to.ToString();
       return;
     }
 

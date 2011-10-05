@@ -49,6 +49,7 @@ namespace Transports {
       return;
     }
 
+    qDebug() << "Calling Close on " << ToString() << " with " << _incoming << " remaining messages.";
     _closing = true;
     if(!_rem_closing) {
       _remote_edge->_rem_closing = true;
@@ -65,6 +66,7 @@ namespace Transports {
     _incoming--;
     if(_closing) {
       if(_incoming == 0) {
+        qDebug() << "No more messages on calling Edge::Close";
         Edge::Close(_close_reason);
       }
       return;

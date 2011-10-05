@@ -14,13 +14,17 @@ namespace Transports {
       throw AddressException(QString("Invalid id: " + url.host()));
     }
 
-    _data = QSharedDataPointer<BufferAddressData>(new BufferAddressData(url, id));
+    _data = new BufferAddressData(url, id);
   }
 
   BufferAddress::BufferAddress(const int &id)
   {
-    QUrl url("buffer://" + id);
-    _data = QSharedDataPointer<BufferAddressData>(new BufferAddressData(url, id));
+    QUrl url("buffer://" + QString::number(id));
+    _data = new BufferAddressData(url, id);
+  }
+
+  BufferAddress::BufferAddress(const BufferAddress &other) : Address(other)
+  {
   }
 
   const Address BufferAddress::CreateAddress(const QUrl &url)

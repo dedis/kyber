@@ -35,6 +35,7 @@ namespace Transports {
     public:
       BufferAddress(const QUrl &url);
       BufferAddress(const int &id);
+      BufferAddress(const BufferAddress &other);
       static const Address CreateAddress(const QUrl &url);
 
       /**
