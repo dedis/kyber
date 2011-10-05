@@ -52,6 +52,10 @@ namespace Utils {
 
   void Timer::UseVirtualTime()
   {
+    if(!_real_time) {
+      return;
+    }
+
     _real_time = false;
     Stop();
     Time::GetInstance().UseVirtualTime();
@@ -59,6 +63,10 @@ namespace Utils {
 
   void Timer::UseRealTime()
   {
+    if(_real_time) {
+      return;
+    }
+
     _real_time = true;
     Start();
     Time::GetInstance().UseRealTime();
