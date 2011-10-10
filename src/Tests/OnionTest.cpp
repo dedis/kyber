@@ -21,11 +21,11 @@ namespace Tests {
     QVector<QByteArray> cleartexts;
     QVector<QByteArray> ciphertexts;
     QVector<QVector<QByteArray> > random_bits;
-    CryptoPP::AutoSeededX917RNG<CryptoPP::DES_EDE3> rng;
+    CppRandom rand;
 
     for(int idx = 0; idx < count; idx++) {
       QByteArray cleartext(1500, 0);
-      rng.GenerateBlock(reinterpret_cast<byte *>(cleartext.data()), cleartext.size());
+      rand.GenerateBlock(cleartext);
       QByteArray ciphertext;
       QVector<QByteArray> random;
       EXPECT_EQ(OnionEncryptor::GetInstance().Encrypt(public_keys, cleartext, ciphertext, random), -1);
@@ -81,11 +81,11 @@ namespace Tests {
     QVector<QByteArray> cleartexts;
     QVector<QByteArray> ciphertexts;
     QVector<QVector<QByteArray> > random_bits;
-    CryptoPP::AutoSeededX917RNG<CryptoPP::DES_EDE3> rng;
+    CppRandom rand;
 
     for(int idx = 0; idx < count; idx++) {
       QByteArray cleartext(1500, 0);
-      rng.GenerateBlock(reinterpret_cast<byte *>(cleartext.data()), cleartext.size());
+      rand.GenerateBlock(cleartext);
       QByteArray ciphertext;
       QVector<QByteArray> random;
       EXPECT_EQ(OnionEncryptor::GetInstance().Encrypt(public_keys, cleartext, ciphertext, random), -1);
@@ -137,11 +137,11 @@ namespace Tests {
     QVector<QByteArray> cleartexts;
     QVector<QByteArray> ciphertexts;
     QVector<QVector<QByteArray> > random_bits;
-    CryptoPP::AutoSeededX917RNG<CryptoPP::DES_EDE3> rng;
+    CppRandom rand;
 
     for(int idx = 0; idx < count; idx++) {
       QByteArray cleartext(1500, 0);
-      rng.GenerateBlock(reinterpret_cast<byte *>(cleartext.data()), cleartext.size());
+      rand.GenerateBlock(cleartext);
       QByteArray ciphertext;
       QVector<QByteArray> random;
       EXPECT_EQ(OnionEncryptor::GetInstance().Encrypt(public_keys, cleartext, ciphertext, random), -1);
@@ -160,7 +160,7 @@ namespace Tests {
     QVector<AsymmetricKey *> swap_keys(public_keys);
     swap_keys.resize(changed);
     QByteArray cleartext(1500, 0);
-    rng.GenerateBlock(reinterpret_cast<byte *>(cleartext.data()), cleartext.size());
+    rand.GenerateBlock(cleartext);
     QVector<QByteArray> random;
     EXPECT_EQ(OnionEncryptor::GetInstance().Encrypt(swap_keys, cleartext, onions[changed][mchanged], random), -1);
 
@@ -216,11 +216,11 @@ namespace Tests {
     QVector<QByteArray> cleartexts;
     QVector<QByteArray> ciphertexts;
     QVector<QVector<QByteArray> > random_bits;
-    CryptoPP::AutoSeededX917RNG<CryptoPP::DES_EDE3> rng;
+    CppRandom rand;
 
     for(int idx = 0; idx < count; idx++) {
       QByteArray cleartext(1500, 0);
-      rng.GenerateBlock(reinterpret_cast<byte *>(cleartext.data()), cleartext.size());
+      rand.GenerateBlock(cleartext);
       QByteArray ciphertext;
       QVector<QByteArray> random;
       EXPECT_EQ(OnionEncryptor::GetInstance().Encrypt(public_keys, cleartext, ciphertext, random), -1);
@@ -240,11 +240,11 @@ namespace Tests {
     swap_keys.resize(changed);
 
     QByteArray cleartext(1500, 0);
-    rng.GenerateBlock(reinterpret_cast<byte *>(cleartext.data()), cleartext.size());
+    rand.GenerateBlock(cleartext);
     QVector<QByteArray> random;
     EXPECT_EQ(OnionEncryptor::GetInstance().Encrypt(swap_keys, cleartext, onions[changed][mchanged0], random), -1);
 
-    rng.GenerateBlock(reinterpret_cast<byte *>(cleartext.data()), cleartext.size());
+    rand.GenerateBlock(cleartext);
     EXPECT_EQ(OnionEncryptor::GetInstance().Encrypt(swap_keys, cleartext, onions[changed][mchanged1], random), -1);
 
     for(int idx = changed - 1; idx >= 0; idx--) {
@@ -300,11 +300,11 @@ namespace Tests {
     QVector<QByteArray> cleartexts;
     QVector<QByteArray> ciphertexts;
     QVector<QVector<QByteArray> > random_bits;
-    CryptoPP::AutoSeededX917RNG<CryptoPP::DES_EDE3> rng;
+    CppRandom rand;
 
     for(int idx = 0; idx < count; idx++) {
       QByteArray cleartext(1500, 0);
-      rng.GenerateBlock(reinterpret_cast<byte *>(cleartext.data()), cleartext.size());
+      rand.GenerateBlock(cleartext);
       QByteArray ciphertext;
       QVector<QByteArray> random;
       EXPECT_EQ(OnionEncryptor::GetInstance().Encrypt(public_keys, cleartext, ciphertext, random), -1);
@@ -326,7 +326,7 @@ namespace Tests {
     swap_keys.resize(changed1);
 
     QByteArray cleartext(1500, 0);
-    rng.GenerateBlock(reinterpret_cast<byte *>(cleartext.data()), cleartext.size());
+    rand.GenerateBlock(cleartext);
     QVector<QByteArray> random;
     EXPECT_EQ(OnionEncryptor::GetInstance().Encrypt(swap_keys, cleartext, onions[changed1][mchanged1], random), -1);
 
@@ -338,7 +338,7 @@ namespace Tests {
 
     swap_keys.resize(changed0);
 
-    rng.GenerateBlock(reinterpret_cast<byte *>(cleartext.data()), cleartext.size());
+    rand.GenerateBlock(cleartext);
     EXPECT_EQ(OnionEncryptor::GetInstance().Encrypt(swap_keys, cleartext, onions[changed0][mchanged0], random), -1);
 
     for(int idx = changed0 - 1; idx >= 0; idx--) {

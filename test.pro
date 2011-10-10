@@ -48,4 +48,5 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/GroupTest.cpp \
            src/Tests/NullRoundTest.cpp \
            src/Tests/Crypto.cpp \
-           src/Tests/OnionTest.cpp
+           src/Tests/OnionTest.cpp \
+           src/Tests/RandomTest.cpp

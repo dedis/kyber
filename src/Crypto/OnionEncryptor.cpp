@@ -20,10 +20,6 @@ namespace Crypto {
     }
     intermediate.append(data);
 
-    if(keys.count() == 1) {
-      return -1;
-    }
-
     for(int idx = 1; idx < keys.count() - 1; idx++) {
       data = keys[idx]->Encrypt(intermediate.last());
       if(data.isEmpty()) {
