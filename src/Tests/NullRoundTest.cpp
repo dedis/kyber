@@ -238,6 +238,7 @@ namespace Tests {
       EXPECT_TRUE(nodes[idx]->session->Closed());
     }
 
+    delete nodes[disconnecter];
     nodes.remove(disconnecter);
     CleanUp(nodes);
   }
