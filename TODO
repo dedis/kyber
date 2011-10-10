@@ -3,6 +3,7 @@ Anonymity
 - Should keep a cache of closed sessions to respond to the remote peer that the session is dead and avoid race "wayward session messages"
 - At a minimum each member of a group will have a signing key pair, where should this be stored
 - Need some structure to communicate group status / change
+- Make sessions optionally multithreaded, we really don't want crypto computation in the main thread
 
 Connections
 - ConnectionManager should send a Disconnect signal when it has safely disconnected after calling CM::Disconnect
@@ -19,6 +20,4 @@ Overlay
 - A simple mechanism for bootstrapping all peers in a dissent system, should be this be flexible to support group creation?
 
 Cryptography
-- Need comparison of existing security APIs
-- Either a wrapper system for Qt or use QCA
-- Signing, encryption / decryption using symmetric and asymmetric keys, and hashing algorithms
+- Create a factory class for generating crypto objects so that we can easily switch between crypto libraries
