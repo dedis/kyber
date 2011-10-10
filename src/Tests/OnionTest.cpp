@@ -123,9 +123,6 @@ namespace Tests {
     int count = random(10, 20);
     int changed = random(0, count);
     int mchanged = random(0, count);
-    while(mchanged == changed) {
-      mchanged = random(0, count);
-    }
 
     QVector<AsymmetricKey *> private_keys;
     QVector<AsymmetricKey *> public_keys;
@@ -194,14 +191,9 @@ namespace Tests {
   {
     int count = random(10, 20);
     int changed = random(0, count);
-
     int mchanged0 = random(0, count);
-    while(mchanged0 == changed) {
-      mchanged0 = random(0, count);
-    }
-
     int mchanged1 = random(0, count);
-    while((mchanged1 == changed) || (mchanged1 == mchanged0)) {
+    while((mchanged1 == mchanged0)) {
       mchanged1 = random(0, count);
     }
 
@@ -268,8 +260,10 @@ namespace Tests {
       delete private_keys[idx];
       delete public_keys[idx];
     }
-    EXPECT_EQ(good_count, count - 2);
-    EXPECT_EQ(bad_count, 2);
+    EXPECT_TRUE(good_count >= count - 2);
+    EXPECT_TRUE(good_count < count);
+    EXPECT_TRUE(bad_count > 0);
+    EXPECT_TRUE(bad_count <= 2);
   }
 
   TEST(Crypto, SoMuchEvil)
@@ -277,16 +271,8 @@ namespace Tests {
     int count = random(10, 20);
     int changed0 = random(0, count - 5);
     int changed1 = random(changed0 + 1, count + 1);
-
     int mchanged0 = random(0, count);
-    while((mchanged0 == changed0) || (mchanged0 == changed1)) {
-      mchanged0 = random(0, count);
-    }
-
     int mchanged1 = random(0, count);
-    while((mchanged1 == changed0) || (mchanged1 == changed1) || (mchanged1 == mchanged0)) {
-      mchanged1 = random(0, count);
-    }
 
     QVector<AsymmetricKey *> private_keys;
     QVector<AsymmetricKey *> public_keys;
@@ -361,8 +347,10 @@ namespace Tests {
       delete private_keys[idx];
       delete public_keys[idx];
     }
-    EXPECT_EQ(good_count, count - 2);
-    EXPECT_EQ(bad_count, 2);
+    EXPECT_TRUE(good_count >= count - 2);
+    EXPECT_TRUE(good_count < count);
+    EXPECT_TRUE(bad_count > 0);
+    EXPECT_TRUE(bad_count <= 2);
   }
 }
 }
