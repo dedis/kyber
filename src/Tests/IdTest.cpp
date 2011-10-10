@@ -5,19 +5,12 @@ using Dissent::Connections::Id;
 namespace Dissent {
 namespace Tests {
   TEST(Id, Basic) {
-    CryptoPP::SHA1 sha1;
-    QByteArray hash(20, 0);
-    byte *hashb = reinterpret_cast<byte *>(hash.data());
-
+    Dissent::Crypto::CppHash sha1;
     QByteArray zero("hello");
-    const byte *zerob = reinterpret_cast<const byte *>(zero.data());
-    sha1.CalculateDigest(hashb, zerob, 5);
-    QByteArray hash0(hash.data());
+    QByteArray hash0 = sha1.ComputeHash(zero);
 
     QByteArray one("world");
-    const byte *oneb = reinterpret_cast<const byte *>(one.data());
-    sha1.CalculateDigest(hashb, oneb, 5);
-    QByteArray hash1(hash.data());
+    QByteArray hash1 = sha1.ComputeHash(one);
 
     EXPECT_NE(hash0, hash1);
     EXPECT_NE(zero, hash0);
