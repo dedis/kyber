@@ -9,6 +9,7 @@
 #include "Crypto/AsymmetricKey.hpp"
 #include "Crypto/CppPrivateKey.hpp"
 #include "Crypto/CppPublicKey.hpp"
+#include "Crypto/OnionEncryptor.hpp"
 
 #include "Connections/Connection.hpp"
 #include "Connections/ConnectionManager.hpp"

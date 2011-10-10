@@ -4,19 +4,49 @@
 
 #include "DissentTest.hpp"
 
+void FileExists(QString filename);
+void FileDelete(QString filename);
+void FilesExist();
+void FilesDelete();
+
 GTEST_API_ int main(int argc, char **argv)
 {
   QCoreApplication qca(argc, argv);
-  QFile file("dissent.ini");
-  if(file.exists()) {
-    qFatal("dissent.ini exists, move / delete and restart the test.");
-  }
+  FilesExist();
   qsrand(time(NULL));
   testing::InitGoogleTest(&argc, argv);
   Dissent::Init();
   int res = RUN_ALL_TESTS();
-  file.remove();
+  FilesDelete();
   return res;
+}
+
+void FilesExist()
+{
+  FileExists("dissent.ini");
+  FileExists("private_key");
+  FileExists("public_key");
+}
+
+void FilesDelete()
+{
+  FileDelete("dissent.ini");
+  FileDelete("private_key");
+  FileDelete("public_key");
+}
+
+void FileExists(QString filename)
+{
+  QFile file(filename);
+  if(file.exists()) {
+    qFatal(QString(filename + " exists, move / delete and restart the test.").toUtf8().data());
+  }
+}
+
+void FileDelete(QString filename)
+{
+  QFile file(filename);
+  file.remove();
 }
 
 void NoOutputHandler(QtMsgType, const char *)
