@@ -173,22 +173,21 @@ namespace Tests {
     EXPECT_FALSE(OnionEncryptor::GetInstance().VerifyAll(private_keys, onions, bad));
     EnableLogging();
 
+    int good_count = 0;
+    int bad_count = 0;
     for(int idx = 0; idx < count; idx++) {
       if(idx == changed) {
         EXPECT_TRUE(bad[idx]);
       } else {
         EXPECT_FALSE(bad[idx]);
       }
-
-      if(idx == mchanged) {
-        EXPECT_FALSE(onions.first().contains(cleartexts[idx]));
-      } else {
-        EXPECT_TRUE(onions.first().contains(cleartexts[idx]));
-      }
+      onions.first().contains(cleartexts[idx]) ? good_count++ : bad_count++;
 
       delete private_keys[idx];
       delete public_keys[idx];
     }
+    EXPECT_EQ(good_count, count - 1);
+    EXPECT_EQ(bad_count, 1);
   }
 
   TEST(Crypto, MultipleCryptoTextSwap)
@@ -256,22 +255,21 @@ namespace Tests {
     EXPECT_FALSE(OnionEncryptor::GetInstance().VerifyAll(private_keys, onions, bad));
     EnableLogging();
 
+    int good_count = 0;
+    int bad_count = 0;
     for(int idx = 0; idx < count; idx++) {
       if(idx == changed) {
         EXPECT_TRUE(bad[idx]);
       } else {
         EXPECT_FALSE(bad[idx]);
       }
-
-      if(idx == mchanged0 || idx == mchanged1) {
-        EXPECT_FALSE(onions.first().contains(cleartexts[idx]));
-      } else {
-        EXPECT_TRUE(onions.first().contains(cleartexts[idx]));
-      }
+      onions.first().contains(cleartexts[idx]) ? good_count++ : bad_count++;
 
       delete private_keys[idx];
       delete public_keys[idx];
     }
+    EXPECT_EQ(good_count, count - 2);
+    EXPECT_EQ(bad_count, 2);
   }
 
   TEST(Crypto, SoMuchEvil)
@@ -350,30 +348,21 @@ namespace Tests {
     EXPECT_FALSE(OnionEncryptor::GetInstance().VerifyAll(private_keys, onions, bad));
     EnableLogging();
 
+    int good_count = 0;
+    int bad_count = 0;
     for(int idx = 0; idx < count; idx++) {
       if(idx == changed0 || idx == changed1) {
         EXPECT_TRUE(bad[idx]);
       } else {
         EXPECT_FALSE(bad[idx]);
       }
-
-      if(idx == mchanged0 || idx == mchanged1) {
-        EXPECT_FALSE(onions.first().contains(cleartexts[idx]));
-      } else {
-        EXPECT_TRUE(onions.first().contains(cleartexts[idx]));
-      }
+      onions.first().contains(cleartexts[idx]) ? good_count++ : bad_count++;
 
       delete private_keys[idx];
       delete public_keys[idx];
     }
-
-    for(int idx = 0; idx < count; idx++) {
-      if(idx == mchanged0 || idx == mchanged1) {
-        EXPECT_FALSE(onions.first().contains(cleartexts[idx]));
-      } else {
-        EXPECT_TRUE(onions.first().contains(cleartexts[idx]));
-      }
-    }
+    EXPECT_EQ(good_count, count - 2);
+    EXPECT_EQ(bad_count, 2);
   }
 }
 }

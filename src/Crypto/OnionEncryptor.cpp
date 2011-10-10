@@ -48,6 +48,17 @@ namespace Crypto {
       cleartext.append(data);
     }
 
+    CppRandom rand;
+    for(int idx = 0; idx < ciphertext.count(); idx++) {
+      int jdx = rand.GetInt(0, ciphertext.count());
+      if(jdx == idx) {
+        continue;
+      }
+      QByteArray tmp = cleartext[idx];
+      cleartext[idx] = cleartext[jdx];
+      cleartext[jdx] = tmp;
+    }
+
     return -1;
   }
 

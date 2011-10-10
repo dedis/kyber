@@ -7,6 +7,7 @@
 #include <QVector>
 
 #include "AsymmetricKey.hpp"
+#include "CppRandom.hpp"
 
 namespace Dissent {
 namespace Crypto {
