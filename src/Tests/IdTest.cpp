@@ -1,5 +1,4 @@
 #include "DissentTest.hpp"
-//#include <cryptosha.h>
 
 using Dissent::Connections::Id;
 
