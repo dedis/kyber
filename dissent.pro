@@ -16,6 +16,9 @@ HEADERS += src/Dissent.hpp \
            src/Anonymity/Round.hpp \
            src/Anonymity/Session.hpp \
            src/Anonymity/SessionManager.hpp \
+           src/Crypto/AsymmetricKey.hpp \
+           src/Crypto/CppPrivateKey.hpp \
+           src/Crypto/CppPublicKey.hpp \
            src/Connections/Connection.hpp \
            src/Connections/ConnectionManager.hpp \
            src/Connections/ConnectionTable.hpp \
@@ -48,6 +51,8 @@ SOURCES += src/Init.cpp \
            src/Anonymity/Round.cpp \
            src/Anonymity/Session.cpp \
            src/Anonymity/SessionManager.cpp \
+           src/Crypto/CppPrivateKey.cpp \
+           src/Crypto/CppPublicKey.cpp \
            src/Connections/Connection.cpp \
            src/Connections/ConnectionManager.cpp \
            src/Connections/ConnectionTable.cpp \

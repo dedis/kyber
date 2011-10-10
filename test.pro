@@ -46,4 +46,5 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/ConnectionTest.cpp \
            src/Tests/SettingsTest.cpp \
            src/Tests/GroupTest.cpp \
-           src/Tests/NullRoundTest.cpp
+           src/Tests/NullRoundTest.cpp \
+           src/Tests/Crypto.cpp
