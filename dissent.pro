@@ -9,7 +9,7 @@ INCLUDEPATH +=
 CONFIG += qt debug
 
 # Input
-LIBS += -lqjson -lcryptopp
+LIBS += -lcryptopp
 HEADERS += src/Dissent.hpp \
            src/Anonymity/Group.hpp \
            src/Anonymity/NullRound.hpp \
