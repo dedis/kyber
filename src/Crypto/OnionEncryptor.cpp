@@ -12,23 +12,36 @@ namespace Crypto {
   int OnionEncryptor::Encrypt(const QVector<AsymmetricKey *> &keys,
       const QByteArray &cleartext,
       QByteArray &ciphertext,
-      QVector<QByteArray> &intermediate)
+      QVector<QByteArray> *intermediate)
   {
-    QByteArray data = keys.first()->Encrypt(cleartext);
-    if(data.isEmpty()) {
+    ciphertext = keys.first()->Encrypt(cleartext);
+
+    if(ciphertext.isEmpty()) {
       return 0;
     }
-    intermediate.append(data);
 
-    for(int idx = 1; idx < keys.count() - 1; idx++) {
-      data = keys[idx]->Encrypt(intermediate.last());
-      if(data.isEmpty()) {
-        return idx;
-      }
-      intermediate.append(data);
+    if(intermediate) {
+      intermediate->append(ciphertext);
     }
 
-    ciphertext = keys.last()->Encrypt(intermediate.last());
+    if(keys.count() == 1) {
+      return -1;
+    }
+
+    for(int idx = 1; idx < keys.count() - 1; idx++) {
+      ciphertext = keys[idx]->Encrypt(ciphertext);
+
+      if(ciphertext.isEmpty()) {
+        return idx;
+      }
+
+      if(intermediate) {
+        intermediate->append(ciphertext);
+      }
+    }
+
+    ciphertext = keys.last()->Encrypt(ciphertext);
+
     if(ciphertext.isEmpty()) {
       return keys.count() - 1;
     }
