@@ -33,10 +33,13 @@ namespace Tests {
       SessionManager sm;
       Session *session;
       static int calledback;
+      static int success;
+      static int failure;
 
     public slots:
-      void HandleRoundFinished(Session *, Round *)
+      void HandleRoundFinished(Session *, Round *round)
       {
+        round->Successful() ? success++ : failure++;
         calledback++;
       }
   };

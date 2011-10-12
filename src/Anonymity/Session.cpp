@@ -1,5 +1,7 @@
 #include "Session.hpp"
 
+#include "NullRound.hpp"
+
 namespace Dissent {
 namespace Anonymity {
   Session::Session(const Id &local_id, const Id &leader_id, const Group &group,

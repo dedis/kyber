@@ -4,7 +4,6 @@
 #include <QHash>
 #include <QQueue>
 
-#include "NullRound.hpp"
 #include "Group.hpp"
 #include "Round.hpp"
 

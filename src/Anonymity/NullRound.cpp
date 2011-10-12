@@ -3,15 +3,11 @@
 namespace Dissent {
 namespace Anonymity {
   NullRound::NullRound(const Id &local_id, const Group &group,
-      const ConnectionTable &ct, RpcHandler *rpc, const Id &session_id) :
-    Round(local_id, group, ct, rpc, session_id), _data(), _started(false)
-  {
-  }
-
-  NullRound::NullRound(const Id &local_id, const Group &group,
       const ConnectionTable &ct, RpcHandler *rpc, const Id &session_id,
       const QByteArray &data) :
-    Round(local_id, group, ct, rpc, session_id), _data(data), _started(false)
+    Round(local_id, group, ct, rpc, session_id),
+    _data(data),
+    _started(false)
   {
   }
 

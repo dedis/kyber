@@ -6,6 +6,8 @@ using namespace Dissent::Utils;
 namespace Dissent {
 namespace Tests {
   int Dissent::Tests::TestNode::calledback;
+  int Dissent::Tests::TestNode::success;
+  int Dissent::Tests::TestNode::failure;
 
   void ConstructOverlay(int count, QVector<TestNode *> &nodes, QVector<Id> &group_vector)
   {
@@ -63,6 +65,57 @@ namespace Tests {
     }
   }
 
+  TEST(NullRound, NullTest)
+  {
+    Timer::GetInstance().UseVirtualTime();
+
+    int count = random(10, 100);
+    int leader = random(0, count);
+
+    QVector<TestNode *> nodes;
+    QVector<Id> group_vector;
+
+    ConstructOverlay(count, nodes, group_vector);
+    Group group(group_vector);
+
+    for(int idx = 0; idx < count; idx++) {
+      for(int jdx = 0; jdx < count; jdx++) {
+        if(idx == jdx) {
+          continue;
+        }
+        EXPECT_TRUE(nodes[idx]->cm.GetConnectionTable().GetConnection(nodes[jdx]->cm.GetId()));
+      }
+    }
+
+    for(int idx = 0; idx < count; idx++) {
+      EXPECT_TRUE(nodes[idx]->sink.GetLastData().isEmpty());
+    }
+
+    Id leader_id = nodes[leader]->cm.GetId();
+    Id session_id;
+
+    CreateSession(nodes, group, leader_id, session_id);
+
+    for(int idx = 0; idx < count; idx++) {
+      nodes[idx]->session->Start();
+    }
+
+    TestNode::calledback = TestNode::failure = TestNode::success = 0;
+    qint64 next = Timer::GetInstance().VirtualRun();
+    while(next != -1 && TestNode::calledback < count) {
+      Time::GetInstance().IncrementVirtualClock(next);
+      next = Timer::GetInstance().VirtualRun();
+    }
+
+    for(int idx = 0; idx < count; idx++) {
+      EXPECT_TRUE(nodes[idx]->sink.GetLastData().isEmpty());
+    }
+
+    EXPECT_EQ(TestNode::success, count);
+    EXPECT_EQ(TestNode::failure, 0);
+
+    CleanUp(nodes);
+  }
 
   TEST(NullRound, Basic)
   {
@@ -96,8 +149,9 @@ namespace Tests {
 
     CreateSession(nodes, group, leader_id, session_id);
 
-    Id data;
-    QByteArray msg = data.GetByteArray();
+    Dissent::Crypto::CppRandom rand;
+    QByteArray msg(512, 0);
+    rand.GenerateBlock(msg);
     nodes[sender]->session->Send(msg);
 
     for(int idx = 0; idx < count; idx++) {
@@ -141,8 +195,9 @@ namespace Tests {
 
     CreateSession(nodes, group, leader_id, session_id);
 
-    Id data0;
-    QByteArray msg = data0.GetByteArray();
+    Dissent::Crypto::CppRandom rand;
+    QByteArray msg(512, 0);
+    rand.GenerateBlock(msg);
     nodes[sender0]->session->Send(msg);
 
     for(int idx = 0; idx < count; idx++) {
@@ -160,8 +215,7 @@ namespace Tests {
       EXPECT_EQ(msg, nodes[idx]->sink.GetLastData());
     }
 
-    Id data1;
-    msg = data1.GetByteArray();
+    rand.GenerateBlock(msg);
     nodes[sender1]->session->Send(msg);
 
     TestNode::calledback = 0;
@@ -222,8 +276,9 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    Id data;
-    QByteArray msg = data.GetByteArray();
+    Dissent::Crypto::CppRandom rand;
+    QByteArray msg(512, 0);
+    rand.GenerateBlock(msg);
     nodes[(leader + disconnecter) % count]->session->Send(msg);
 
     TestNode::calledback = 0;

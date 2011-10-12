@@ -13,18 +13,7 @@ namespace Anonymity {
 
     public:
       /**
-       * Constructor without data
-       * @param local_id The local peers id
-       * @param group The anonymity group
-       * @param ct Connections to the anonymity group
-       * @param rpc Rpc handler for sending messages
-       * @param session_id Session this round represents
-       */
-      NullRound(const Id &local_id, const Group &group, const ConnectionTable &ct,
-          RpcHandler *rpc, const Id &session_id);
-
-      /**
-       * Constructor with data
+       * Constructor
        * @param local_id The local peers id
        * @param group The anonymity group
        * @param ct Connections to the anonymity group
@@ -33,7 +22,7 @@ namespace Anonymity {
        * @param data Data to share this session
        */
       NullRound(const Id &local_id, const Group &group, const ConnectionTable &ct,
-          RpcHandler *rpc, const Id &session_id, const QByteArray &data);
+          RpcHandler *rpc, const Id &session_id, const QByteArray &data = QByteArray());
 
       virtual void Start();
 
