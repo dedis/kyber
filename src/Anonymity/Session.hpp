@@ -133,13 +133,24 @@ namespace Anonymity {
        * Called when the current round has finished
        * @param round The round that finished (should be _current_round)
        */
-      void HandleRoundFinished(Round *round);
+      virtual void HandleRoundFinished(Round *round);
 
-    /**
-     * Called when a remote peer has disconnected from the session
-     * @param con The connection that is disconnecting
-     */
-      void HandleDisconnect(Connection *con, const QString &reason);
+      /**
+       * Called when a remote peer has disconnected from the session
+       * @param con The connection that is disconnecting
+       */
+      virtual void HandleDisconnect(Connection *con, const QString &reason);
+
+      /**
+       * Obtains a new round
+       */
+      virtual Round *GetRound();
+
+      /**
+       * Obtains a new round
+       * @param data data to be transmitted
+       */
+      virtual Round *GetRound(const QByteArray &data);
   };
 }
 }

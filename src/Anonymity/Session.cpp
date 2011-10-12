@@ -132,10 +132,9 @@ namespace Anonymity {
     }
 
     if(_send_queue.isEmpty()) {
-      _current_round = new NullRound(_local_id, _group, _ct, _rpc, _session_id);
+      _current_round = GetRound();
     } else {
-      const QByteArray data = _send_queue.dequeue();
-      _current_round = new NullRound(_local_id, _group, _ct, _rpc, _session_id, data);
+      _current_round = GetRound(_send_queue.dequeue());
     }
 
     _current_round->SetSink(this);
@@ -150,6 +149,16 @@ namespace Anonymity {
       request["session_id"] = _session_id.GetByteArray();
       _rpc->SendRequest(request, _ct.GetConnection(_leader_id), &_ready);
     }
+  }
+
+  Round *Session::GetRound()
+  {
+    return new NullRound(_local_id, _group, _ct, _rpc, _session_id);
+  }
+
+  Round *Session::GetRound(const QByteArray &data)
+  {
+    return new NullRound(_local_id, _group, _ct, _rpc, _session_id, data);
   }
 
   void Session::Send(const QByteArray &data)
