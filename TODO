@@ -21,3 +21,7 @@ Overlay
 
 Cryptography
 - Create a factory class for generating crypto objects so that we can easily switch between crypto libraries
+
+Applications
+- Create a compatibility API to support old applications
+- Write a WEB Interface akin to the old GUI ... down with native Apps!
