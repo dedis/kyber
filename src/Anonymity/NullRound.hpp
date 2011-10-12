@@ -12,6 +12,8 @@ namespace Anonymity {
     Q_OBJECT
 
     public:
+      static const QByteArray DefaultData;
+
       /**
        * Constructor
        * @param local_id The local peers id
@@ -22,7 +24,14 @@ namespace Anonymity {
        * @param data Data to share this session
        */
       NullRound(const Id &local_id, const Group &group, const ConnectionTable &ct,
-          RpcHandler *rpc, const Id &session_id, const QByteArray &data = QByteArray());
+          RpcHandler &rpc, const Id &session_id, const QByteArray &data = DefaultData);
+
+      inline static Round *CreateNullRound(const Id &local_id,
+          const Group &group, const ConnectionTable &ct, RpcHandler &rpc,
+          const Id &session_id, const QByteArray &data)
+      {
+        return new NullRound(local_id, group, ct, rpc, session_id, data);
+      }
 
       virtual void Start();
 

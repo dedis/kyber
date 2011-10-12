@@ -2,19 +2,19 @@
 
 namespace Dissent {
 namespace Anonymity {
-  SessionManager::SessionManager(RpcHandler *rpc) :
+  SessionManager::SessionManager(RpcHandler &rpc) :
     _ready(*this, &SessionManager::Ready),
     _data(*this, &SessionManager::IncomingData),
     _rpc(rpc)
   {
-    _rpc->Register(&_data, "SM::Data");
-    _rpc->Register(&_ready, "SM::Ready");
+    _rpc.Register(&_data, "SM::Data");
+    _rpc.Register(&_ready, "SM::Ready");
   }
 
   SessionManager::~SessionManager()
   {
-    _rpc->Unregister("SM::Data");
-    _rpc->Unregister("SM::Ready");
+    _rpc.Unregister("SM::Data");
+    _rpc.Unregister("SM::Ready");
   }
 
   void SessionManager::AddSession(Session *session)

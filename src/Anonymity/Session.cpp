@@ -1,14 +1,22 @@
 #include "Session.hpp"
 
-#include "NullRound.hpp"
-
 namespace Dissent {
 namespace Anonymity {
   Session::Session(const Id &local_id, const Id &leader_id, const Group &group,
-      ConnectionTable &ct, RpcHandler *rpc, const Id &session_id) :
-    _local_id(local_id), _leader_id(leader_id), _group(group), _ct(ct),
-    _rpc(rpc), _session_id(session_id), _current_round(0),  _started(false),
-    _closed(false), _ready(*this, &Session::Ready)
+      ConnectionTable &ct, RpcHandler &rpc, const Id &session_id,
+      CreateRound create_round, const QByteArray &default_data) :
+    _local_id(local_id),
+    _leader_id(leader_id),
+    _group(group),
+    _ct(ct),
+    _rpc(rpc),
+    _session_id(session_id),
+    _default_data(default_data),
+    _current_round(0),
+    _started(false),
+    _closed(false),
+    _ready(*this, &Session::Ready),
+    _create_round(create_round)
   {
     foreach(const Id &id, _group.GetIds()) {
       Connection *con = _ct.GetConnection(id);
@@ -131,11 +139,8 @@ namespace Anonymity {
       delete _current_round;
     }
 
-    if(_send_queue.isEmpty()) {
-      _current_round = GetRound();
-    } else {
-      _current_round = GetRound(_send_queue.dequeue());
-    }
+    _current_round = GetRound((_send_queue.isEmpty()) ?
+        _default_data : _send_queue.dequeue());
 
     _current_round->SetSink(this);
     QObject::connect(_current_round, SIGNAL(Finished(Round *)),
@@ -147,18 +152,8 @@ namespace Anonymity {
       QVariantMap request;
       request["method"] = "SM::Ready";
       request["session_id"] = _session_id.GetByteArray();
-      _rpc->SendRequest(request, _ct.GetConnection(_leader_id), &_ready);
+      _rpc.SendRequest(request, _ct.GetConnection(_leader_id), &_ready);
     }
-  }
-
-  Round *Session::GetRound()
-  {
-    return new NullRound(_local_id, _group, _ct, _rpc, _session_id);
-  }
-
-  Round *Session::GetRound(const QByteArray &data)
-  {
-    return new NullRound(_local_id, _group, _ct, _rpc, _session_id, data);
   }
 
   void Session::Send(const QByteArray &data)
@@ -184,6 +179,11 @@ namespace Anonymity {
     }
     qDebug() << "Closing Session due to disconnect";
     Stop();
+  }
+
+  Round *Session::GetRound(const QByteArray &data)
+  {
+    return _create_round(_local_id, _group, _ct, _rpc, _session_id, data);
   }
 }
 }

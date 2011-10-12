@@ -35,7 +35,7 @@ namespace Anonymity {
        * @param session_id Session this round represents
        */
       Round(const Id &local_id, const Group &group, const ConnectionTable &ct,
-          RpcHandler *rpc, const Id &session_id);
+          RpcHandler &rpc, const Id &session_id);
 
       /**
        * Start the Round
@@ -137,7 +137,7 @@ namespace Anonymity {
 
       QString _closed_reason;
       const ConnectionTable &_ct;
-      RpcHandler *_rpc;
+      RpcHandler &_rpc;
       const Id _session_id;
       bool _closed;
 

@@ -2,8 +2,10 @@
 
 namespace Dissent {
 namespace Anonymity {
+  const QByteArray NullRound::DefaultData = QByteArray();
+
   NullRound::NullRound(const Id &local_id, const Group &group,
-      const ConnectionTable &ct, RpcHandler *rpc, const Id &session_id,
+      const ConnectionTable &ct, RpcHandler &rpc, const Id &session_id,
       const QByteArray &data) :
     Round(local_id, group, ct, rpc, session_id),
     _data(data),
@@ -30,7 +32,7 @@ namespace Anonymity {
     }
     _received_from.append(id);
 
-    if(!data.isEmpty()) {
+    if(data != DefaultData) {
       PushData(data, this);
     }
 

@@ -19,12 +19,17 @@ namespace Tests {
     EXPECT_EQ(group.GetSize(), 10);
     for(int idx = 0; idx < 10; idx++) {
       EXPECT_EQ(id[idx], group.GetId(idx));
-      EXPECT_EQ(idx, group.GetPosition(id[idx]));
+      EXPECT_EQ(idx, group.GetIndex(id[idx]));
       EXPECT_TRUE(group.Contains(id[idx]));
       if(idx == 9) {
         EXPECT_EQ(group.Next(id[idx]), Id::Zero);
+        EXPECT_EQ(group.Previous(id[idx]), group.GetId(idx - 1));
+      } else if(idx == 0) {
+        EXPECT_EQ(group.Next(id[idx]), group.GetId(idx + 1));
+        EXPECT_EQ(group.Previous(id[idx]), Id::Zero);
       } else {
         EXPECT_EQ(group.Next(id[idx]), group.GetId(idx + 1));
+        EXPECT_EQ(group.Previous(id[idx]), group.GetId(idx - 1));
       }
     }
 

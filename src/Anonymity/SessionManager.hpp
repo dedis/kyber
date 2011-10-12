@@ -21,7 +21,7 @@ namespace Anonymity {
        * Constructor
        * @param rpc
        */
-      SessionManager(RpcHandler *rpc);
+      SessionManager(RpcHandler &rpc);
 
       /**
        * Deconstructor
@@ -41,7 +41,7 @@ namespace Anonymity {
       QHash<Id, Session *> _id_to_session;
       RpcMethod<SessionManager> _ready;
       RpcMethod<SessionManager> _data;
-      RpcHandler *_rpc;
+      RpcHandler &_rpc;
 
     private slots:
       void HandleSessionClose(Session *session);

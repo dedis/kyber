@@ -3,7 +3,7 @@
 namespace Dissent {
 namespace Anonymity {
   Round::Round(const Id &local_id, const Group &group, const ConnectionTable &ct,
-      RpcHandler *rpc, const Id &session_id) :
+      RpcHandler &rpc, const Id &session_id) :
     _local_id(local_id), _group(group), _successful(false), _ct(ct), _rpc(rpc),
     _session_id(session_id), _closed(false)
   {
@@ -61,7 +61,7 @@ namespace Anonymity {
     notification["method"] = "SM::Data";
     notification["data"] = data;
     notification["session_id"] = _session_id.GetByteArray();
-    _rpc->SendNotification(notification, _ct.GetConnection(id));
+    _rpc.SendNotification(notification, _ct.GetConnection(id));
   }
 
   void Round::Send(const QByteArray &)

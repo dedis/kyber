@@ -33,7 +33,8 @@ HEADERS += ext/googletest/include/gtest/gtest-death-test.h \
            src/Tests/DissentTest.hpp \
            src/Tests/Mock.hpp \
            src/Tests/RpcTest.hpp \
-           src/Tests/TestNode.hpp
+           src/Tests/TestNode.hpp \
+           src/Tests/RoundTest.hpp
 
 SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/AddressTest.cpp \
@@ -50,4 +51,6 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/Crypto.cpp \
            src/Tests/OnionTest.cpp \
            src/Tests/RandomTest.cpp \
-           src/Tests/HashTest.cpp
+           src/Tests/HashTest.cpp \
+           src/Tests/RoundTest.cpp \
+           src/Tests/TestNode.cpp

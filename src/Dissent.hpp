@@ -4,6 +4,7 @@
 #include "Anonymity/Group.hpp"
 #include "Anonymity/NullRound.hpp"
 #include "Anonymity/Round.hpp"
+#include "Anonymity/Session.hpp"
 #include "Anonymity/SessionManager.hpp"
 
 #include "Crypto/AsymmetricKey.hpp"

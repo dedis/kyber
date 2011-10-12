@@ -21,11 +21,17 @@ namespace Anonymity {
     Q_OBJECT
 
     public:
+      typedef Round *(*CreateRound)(const Id &, const Group &,
+          const ConnectionTable &, RpcHandler &, const Id &,
+          const QByteArray &);
+
       /**
        * Constructor
        */
       Session(const Id &local_id, const Id &leader_id, const Group &group,
-          ConnectionTable &ct, RpcHandler *rpc, const Id &session_id);
+          ConnectionTable &ct, RpcHandler &rpc, const Id &session_id,
+          CreateRound create_round, const QByteArray &default_data);
+
       /**
        * Deconstructor
        */
@@ -88,6 +94,15 @@ namespace Anonymity {
        */
       void Closed(Session *session);
 
+    protected:
+      const Id _local_id;
+      const Id _leader_id;
+      const Group _group;
+      const ConnectionTable &_ct;
+      RpcHandler &_rpc;
+      const Id _session_id;
+      const QByteArray _default_data;
+
     private:
       /**
        * Checks to see if the leader has received all the Ready messsages and
@@ -99,6 +114,12 @@ namespace Anonymity {
        * Called to start the next Round
        */
       void NextRound();
+
+      /**
+       * Obtains a new round
+       * @param data data to be transmitted
+       */
+      virtual Round *GetRound(const QByteArray &data);
 
       /**
        * Called when a Ready has been responded to by the leader.  Calls Start
@@ -117,16 +138,11 @@ namespace Anonymity {
        */
       QQueue<QByteArray> _send_queue;
 
-      const Id _local_id;
-      const Id _leader_id;
-      const Group _group;
-      const ConnectionTable &_ct;
-      RpcHandler *_rpc;
-      const Id _session_id;
       Round *_current_round;
       bool _started;
       bool _closed;
       RpcMethod<Session> _ready;
+      CreateRound _create_round;
 
     private slots:
       /**
@@ -140,17 +156,6 @@ namespace Anonymity {
        * @param con The connection that is disconnecting
        */
       virtual void HandleDisconnect(Connection *con, const QString &reason);
-
-      /**
-       * Obtains a new round
-       */
-      virtual Round *GetRound();
-
-      /**
-       * Obtains a new round
-       * @param data data to be transmitted
-       */
-      virtual Round *GetRound(const QByteArray &data);
   };
 }
 }
