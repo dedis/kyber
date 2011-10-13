@@ -1,5 +1,7 @@
 #include "DissentTest.hpp"
 
+#include <QDataStream>
+
 using Dissent::Connections::Id;
 
 namespace Dissent {
@@ -38,7 +40,23 @@ namespace Tests {
     EXPECT_EQ(id0, id0_0);
     EXPECT_EQ(id0, id0_1);
     EXPECT_EQ(id0, id0_2);
+  }
 
+  TEST(Id, Serialization)
+  {
+    Id test0;
+    Id test0_out;
+
+    EXPECT_NE(test0, test0_out);
+
+    QByteArray data;
+    QDataStream out_stream(&data, QIODevice::WriteOnly);
+    out_stream << test0;
+
+    QDataStream in_stream(data);
+    in_stream >> test0_out;
+
+    EXPECT_EQ(test0, test0_out);
   }
 }
 }

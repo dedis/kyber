@@ -145,6 +145,30 @@ namespace Connections {
   {
     return qHash(id.GetByteArray());
   }
+
+  /**
+   * Serialize an Id
+   * @param stream where to store the serialized id
+   * @param id id to serialize
+   */
+  inline QDataStream &operator<<(QDataStream &stream, const Id &id)
+  {
+    return stream << id.GetByteArray();
+  }
+
+  /**
+   * Deserialize an Id, this is potentially slow since id was generated, consider
+   * making Id::Zero the default Id.
+   * @param stream where to read data from
+   * @param id where to store the id
+   */
+  inline QDataStream &operator>>(QDataStream &stream, Id &id)
+  {
+    QByteArray bid;
+    stream >> bid;
+    id = Id(bid);
+    return stream;
+  }
 }
 }
 
