@@ -12,6 +12,7 @@ CONFIG += qt debug
 LIBS += -lcryptopp
 HEADERS += src/Dissent.hpp \
            src/Anonymity/Group.hpp \
+           src/Anonymity/Log.hpp \
            src/Anonymity/NullRound.hpp \
            src/Anonymity/Round.hpp \
            src/Anonymity/Session.hpp \
@@ -52,6 +53,7 @@ HEADERS += src/Dissent.hpp \
            src/Utils/TimerEvent.hpp 
 SOURCES += src/Init.cpp \
            src/Anonymity/Group.cpp \
+           src/Anonymity/Log.cpp \
            src/Anonymity/NullRound.cpp \
            src/Anonymity/Round.cpp \
            src/Anonymity/Session.cpp \

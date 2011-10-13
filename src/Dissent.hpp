@@ -2,6 +2,7 @@
 #define DISSENT_DISSENT_H_GUARD
 
 #include "Anonymity/Group.hpp"
+#include "Anonymity/Log.hpp"
 #include "Anonymity/NullRound.hpp"
 #include "Anonymity/Round.hpp"
 #include "Anonymity/Session.hpp"
