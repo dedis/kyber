@@ -103,14 +103,14 @@ namespace Anonymity {
        * Send a message to all group members
        * @param data Data to be sent to all peers
        */
-      void Broadcast(const QByteArray &data);
+      virtual void Broadcast(const QByteArray &data);
 
       /**
        * Send a message to a specific group member
        * @param data The message
        * @param id The Id of the remote peer
        */
-      void Send(const QByteArray &data, const Id &id);
+      virtual void Send(const QByteArray &data, const Id &id);
 
       /**
        * The local peer's Id

@@ -5,8 +5,10 @@
 #include "Anonymity/Log.hpp"
 #include "Anonymity/NullRound.hpp"
 #include "Anonymity/Round.hpp"
+#include "Anonymity/SecureSession.hpp"
 #include "Anonymity/Session.hpp"
 #include "Anonymity/SessionManager.hpp"
+#include "Anonymity/ShuffleRound.hpp"
 
 #include "Crypto/AsymmetricKey.hpp"
 #include "Crypto/CppHash.hpp"

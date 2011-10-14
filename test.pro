@@ -54,4 +54,5 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/HashTest.cpp \
            src/Tests/RoundTest.cpp \
            src/Tests/TestNode.cpp \
-           src/Tests/LogTest.cpp
+           src/Tests/LogTest.cpp \
+           src/Tests/ShuffleRoundTest.cpp
