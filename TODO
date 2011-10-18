@@ -4,6 +4,7 @@ Anonymity
 - At a minimum each member of a group will have a signing key pair, where should this be stored
 - Need some structure to communicate group status / change
 - Make sessions optionally multithreaded, we really don't want crypto computation in the main thread
+- Need some means to initiate a group / session
 
 Connections
 - ConnectionManager should send a Disconnect signal when it has safely disconnected after calling CM::Disconnect
@@ -18,6 +19,7 @@ Utils
 
 Overlay
 - A simple mechanism for bootstrapping all peers in a dissent system, should be this be flexible to support group creation?
+- Implement Chord and use for overlay broadcasting and overall group dynamics
 
 Cryptography
 - Create a factory class for generating crypto objects so that we can easily switch between crypto libraries
@@ -25,3 +27,7 @@ Cryptography
 Applications
 - Create a compatibility API to support old applications
 - Write a WEB Interface akin to the old GUI ... down with native Apps!
+
+Overall
+- Replace all pointers with qscoped / qshared pointers
+- Consider removing qsharedata and replacing it with qsharedpointers
