@@ -104,7 +104,7 @@ namespace Anonymity {
       /**
        * Returns the size of the group
        */
-      int GetSize() const { return _data->Size; }
+      int Count() const { return _data->Size; }
 
     private:
       QSharedDataPointer<GroupData> _data;

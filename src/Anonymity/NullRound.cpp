@@ -4,24 +4,27 @@ namespace Dissent {
 namespace Anonymity {
   const QByteArray NullRound::DefaultData = QByteArray();
 
-  NullRound::NullRound(const Id &local_id, const Group &group,
-      const ConnectionTable &ct, RpcHandler &rpc, const Id &session_id,
+  NullRound::NullRound(const Group &group, const Id &local_id,
+      const Id &session_id, const ConnectionTable &ct, RpcHandler &rpc,
       const QByteArray &data) :
-    Round(local_id, group, ct, rpc, session_id),
+    Round(group, local_id, session_id, ct, rpc),
     _data(data),
     _started(false)
   {
   }
 
-  void NullRound::Start()
+  bool NullRound::Start()
   {
     if(_started) {
       qWarning() << "Called start on NullRound more than once.";
-      return;
+      return false;
     }
+
     _started = true;
     Broadcast(_data);
     ProcessData(_data, _local_id);
+
+    return true;
   }
 
   void NullRound::ProcessData(const QByteArray &data, const Id &id)
@@ -36,7 +39,7 @@ namespace Anonymity {
       PushData(data, this);
     }
 
-    if(_received_from.count() == _group.GetSize()) {
+    if(_received_from.count() == _group.Count()) {
       _successful = true;
       Close("Round successfully finished.");
     }

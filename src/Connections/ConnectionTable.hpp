@@ -58,9 +58,9 @@ namespace Connections {
        */
       Connection *GetConnection(const Edge *edge) const;
 
-      inline QList<Connection *> GetConnections() { return _cons.values(); }
+      inline const QList<Connection *> GetConnections() const { return _cons.values(); }
 
-      inline QList<Edge *> GetEdges() { return _edges.values(); }
+      inline const QList<Edge *> GetEdges() const { return _edges.values(); }
 
       /**
        * Adds a Connection

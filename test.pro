@@ -8,6 +8,7 @@ INCLUDEPATH += src \
                ext/googletest \
                ext/googletest/include
 DEFINES += QT_NO_DEBUG_OUTPUT
+DEFINES += QT_NO_WARNING_OUTPUT
 
 # Input
 HEADERS += ext/googletest/include/gtest/gtest-death-test.h \
@@ -34,7 +35,8 @@ HEADERS += ext/googletest/include/gtest/gtest-death-test.h \
            src/Tests/Mock.hpp \
            src/Tests/RpcTest.hpp \
            src/Tests/TestNode.hpp \
-           src/Tests/RoundTest.hpp
+           src/Tests/RoundTest.hpp \
+           src/Tests/ShuffleRoundHelpers.hpp
 
 SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/AddressTest.cpp \

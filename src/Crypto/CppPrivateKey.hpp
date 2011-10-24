@@ -29,7 +29,7 @@ namespace Crypto {
 
       virtual QByteArray Sign(const QByteArray &data);
       virtual QByteArray Decrypt(const QByteArray &data);
-      inline virtual bool IsPrivateKey() { return true; }
+      inline virtual bool IsPrivateKey() const { return true; }
 
     protected:
       RSA::PrivateKey *_private_key;

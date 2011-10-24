@@ -2,8 +2,8 @@
 
 namespace Dissent {
 namespace Anonymity {
-  Session::Session(const Id &local_id, const Id &leader_id, const Group &group,
-      ConnectionTable &ct, RpcHandler &rpc, const Id &session_id,
+  Session::Session(const Group &group, const Id &local_id, const Id &leader_id,
+      const Id &session_id, ConnectionTable &ct, RpcHandler &rpc,
       CreateRound create_round, const QByteArray &default_data) :
     _local_id(local_id),
     _leader_id(leader_id),
@@ -13,6 +13,7 @@ namespace Anonymity {
     _session_id(session_id),
     _default_data(default_data),
     _current_round(0),
+    _previous_round(0),
     _started(false),
     _closed(false),
     _ready(*this, &Session::Ready),
@@ -34,12 +35,19 @@ namespace Anonymity {
           this, SLOT(HandleRoundFinished(Round *)));
       delete _current_round;
     }
+    if(_previous_round) {
+      delete _previous_round;
+    }
   }
 
   void Session::Start()
   {
     if(_started) {
       qWarning() << "Called start twice.";
+      return;
+    }
+    if(_closed) {
+      qWarning() << "Already closed.";
       return;
     }
     _started = true;
@@ -62,7 +70,9 @@ namespace Anonymity {
     }
 
     _closed = true;
-    _current_round->Close("Session stopped");
+    if(_current_round) {
+      _current_round->Close("Session stopped");
+    }
     emit Closed(this);
   }
 
@@ -93,7 +103,7 @@ namespace Anonymity {
 
   bool Session::LeaderReady()
   {
-    if(_id_to_request.count() != _group.GetSize() - 1) {
+    if(_id_to_request.count() != _group.Count() - 1) {
       return false;
     }
 
@@ -136,9 +146,14 @@ namespace Anonymity {
     if(_current_round) {
       QObject::disconnect(_current_round, SIGNAL(Finished(Round *)),
           this, SLOT(HandleRoundFinished(Round *)));
-      delete _current_round;
-    }
 
+      if(_previous_round) {
+        delete _previous_round;
+      }
+
+      _previous_round = _current_round;
+    }
+    
     _current_round = GetRound((_send_queue.isEmpty()) ?
         _default_data : _send_queue.dequeue());
 
@@ -183,7 +198,7 @@ namespace Anonymity {
 
   Round *Session::GetRound(const QByteArray &data)
   {
-    return _create_round(_local_id, _group, _ct, _rpc, _session_id, data);
+    return _create_round(_group, _local_id, _session_id, _ct, _rpc, data);
   }
 }
 }

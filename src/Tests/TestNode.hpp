@@ -24,17 +24,12 @@ namespace Tests {
         BufferEdgeListener *be = new BufferEdgeListener(BufferAddress(idx));
         cm.AddEdgeListener(be);
         if(make_key) {
-          key = new CppPrivateKey();
-        } else {
-          key = 0;
+          key = QSharedPointer<AsymmetricKey>(new CppPrivateKey());
         }
       }
 
       ~TestNode()
       {
-        if(key) {
-          delete key;
-        }
         if(session) {
           delete session;
         }
@@ -45,7 +40,7 @@ namespace Tests {
       ConnectionManager cm;
       SessionManager sm;
       Session *session;
-      AsymmetricKey *key;
+      QSharedPointer<AsymmetricKey> key;
       static int calledback;
       static int success;
       static int failure;
@@ -64,9 +59,12 @@ namespace Tests {
   void ConstructOverlay(int count, QVector<TestNode *> &nodes,
       Group *&group, bool make_keys);
 
-  void CreateSession(const QVector<TestNode *> &nodes,
+  void CreateSessions(const QVector<TestNode *> &nodes,
       const Group &group, const Id &leader_id, const Id &session_id,
       CreateSessionCallback callback);
+
+  void CreateSession(TestNode * node, const Group &group, const Id &leader_id,
+      const Id &session_id, CreateSessionCallback callback);
 
   void CleanUp(const QVector<TestNode *> &nodes);
 }

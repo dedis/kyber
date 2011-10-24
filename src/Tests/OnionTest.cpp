@@ -50,7 +50,8 @@ namespace Tests {
     onions.last() = ciphertexts;
 
     for(int idx = count - 1; idx >= 0; idx--) {
-      EXPECT_EQ(OnionEncryptor::GetInstance().Decrypt(private_keys[idx], onions[idx + 1], onions[idx]), -1);
+      EXPECT_TRUE(OnionEncryptor::GetInstance().Decrypt(private_keys[idx], onions[idx + 1], onions[idx], 0));
+      OnionEncryptor::GetInstance().RandomizeBlocks(onions[idx]);
     }
 
     QBitArray bad;
@@ -95,21 +96,15 @@ namespace Tests {
     onions.last() = ciphertexts;
 
     for(int idx = count - 1; idx > changed; idx--) {
-      EXPECT_EQ(OnionEncryptor::GetInstance().Decrypt(private_keys[idx], onions[idx + 1], onions[idx]), -1);
+      EXPECT_TRUE(OnionEncryptor::GetInstance().Decrypt(private_keys[idx],onions[idx + 1], onions[idx], 0));
+      OnionEncryptor::GetInstance().RandomizeBlocks(onions[idx]);
     }
 
     DisableLogging();
-    EXPECT_EQ(OnionEncryptor::GetInstance().Decrypt(private_keys[changed], onions[changed + 1], onions[changed]), 0);
-    QBitArray bad;
-    EXPECT_FALSE(OnionEncryptor::GetInstance().VerifyAll(private_keys, onions, bad));
+    EXPECT_FALSE(OnionEncryptor::GetInstance().Decrypt(private_keys[changed], onions[changed + 1], onions[changed], 0));
     EnableLogging();
 
     for(int idx = 0; idx < count; idx++) {
-      if(idx == changed) {
-        EXPECT_TRUE(bad[idx]);
-      } else {
-        EXPECT_FALSE(bad[idx]);
-      }
       delete private_keys[idx];
       delete public_keys[idx];
     }
@@ -145,7 +140,8 @@ namespace Tests {
     onions.last() = ciphertexts;
 
     for(int idx = count - 1; idx >= changed; idx--) {
-      EXPECT_EQ(OnionEncryptor::GetInstance().Decrypt(private_keys[idx], onions[idx + 1], onions[idx]), -1);
+      EXPECT_TRUE(OnionEncryptor::GetInstance().Decrypt(private_keys[idx], onions[idx + 1], onions[idx], 0));
+      OnionEncryptor::GetInstance().RandomizeBlocks(onions[idx]);
     }
 
     QVector<AsymmetricKey *> swap_keys(public_keys);
@@ -155,7 +151,8 @@ namespace Tests {
     EXPECT_EQ(OnionEncryptor::GetInstance().Encrypt(swap_keys, cleartext, onions[changed][mchanged], 0), -1);
 
     for(int idx = changed - 1; idx >= 0; idx--) {
-      EXPECT_EQ(OnionEncryptor::GetInstance().Decrypt(private_keys[idx], onions[idx + 1], onions[idx]), -1);
+      EXPECT_TRUE(OnionEncryptor::GetInstance().Decrypt(private_keys[idx], onions[idx + 1], onions[idx], 0));
+      OnionEncryptor::GetInstance().RandomizeBlocks(onions[idx]);
     }
 
     DisableLogging();
@@ -214,7 +211,8 @@ namespace Tests {
     onions.last() = ciphertexts;
 
     for(int idx = count - 1; idx >= changed; idx--) {
-      EXPECT_EQ(OnionEncryptor::GetInstance().Decrypt(private_keys[idx], onions[idx + 1], onions[idx]), -1);
+      EXPECT_TRUE(OnionEncryptor::GetInstance().Decrypt(private_keys[idx], onions[idx + 1], onions[idx], 0));
+      OnionEncryptor::GetInstance().RandomizeBlocks(onions[idx]);
     }
 
     QVector<AsymmetricKey *> swap_keys(public_keys);
@@ -228,7 +226,8 @@ namespace Tests {
     EXPECT_EQ(OnionEncryptor::GetInstance().Encrypt(swap_keys, cleartext, onions[changed][mchanged1], 0), -1);
 
     for(int idx = changed - 1; idx >= 0; idx--) {
-      EXPECT_EQ(OnionEncryptor::GetInstance().Decrypt(private_keys[idx], onions[idx + 1], onions[idx]), -1);
+      EXPECT_TRUE(OnionEncryptor::GetInstance().Decrypt(private_keys[idx], onions[idx + 1], onions[idx], 0));
+      OnionEncryptor::GetInstance().RandomizeBlocks(onions[idx]);
     }
 
     DisableLogging();
@@ -289,7 +288,8 @@ namespace Tests {
     // Find first evil peer
 
     for(int idx = count - 1; idx >= changed1; idx--) {
-      EXPECT_EQ(OnionEncryptor::GetInstance().Decrypt(private_keys[idx], onions[idx + 1], onions[idx]), -1);
+      EXPECT_TRUE(OnionEncryptor::GetInstance().Decrypt(private_keys[idx], onions[idx + 1], onions[idx], 0));
+      OnionEncryptor::GetInstance().RandomizeBlocks(onions[idx]);
     }
 
     QVector<AsymmetricKey *> swap_keys(public_keys);
@@ -302,7 +302,8 @@ namespace Tests {
     // Find second evil peer
 
     for(int idx = changed1 - 1; idx >= changed0; idx--) {
-      EXPECT_EQ(OnionEncryptor::GetInstance().Decrypt(private_keys[idx], onions[idx + 1], onions[idx]), -1);
+      EXPECT_TRUE(OnionEncryptor::GetInstance().Decrypt(private_keys[idx], onions[idx + 1], onions[idx], 0));
+      OnionEncryptor::GetInstance().RandomizeBlocks(onions[idx]);
     }
 
     swap_keys.resize(changed0);
@@ -311,7 +312,8 @@ namespace Tests {
     EXPECT_EQ(OnionEncryptor::GetInstance().Encrypt(swap_keys, cleartext, onions[changed0][mchanged0], 0), -1);
 
     for(int idx = changed0 - 1; idx >= 0; idx--) {
-      EXPECT_EQ(OnionEncryptor::GetInstance().Decrypt(private_keys[idx], onions[idx + 1], onions[idx]), -1);
+      EXPECT_TRUE(OnionEncryptor::GetInstance().Decrypt(private_keys[idx], onions[idx + 1], onions[idx], 0));
+      OnionEncryptor::GetInstance().RandomizeBlocks(onions[idx]);
     }
 
     DisableLogging();

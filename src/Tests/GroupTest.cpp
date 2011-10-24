@@ -16,7 +16,7 @@ namespace Tests {
 
     Group group(group_vector);
 
-    EXPECT_EQ(group.GetSize(), 10);
+    EXPECT_EQ(group.Count(), 10);
     for(int idx = 0; idx < 10; idx++) {
       EXPECT_EQ(id[idx], group.GetId(idx));
       EXPECT_EQ(idx, group.GetIndex(id[idx]));

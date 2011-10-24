@@ -49,30 +49,37 @@ namespace Crypto {
     return -1;
   }
 
-  int OnionEncryptor::Decrypt(AsymmetricKey *key,
+  bool OnionEncryptor::Decrypt(AsymmetricKey *key,
       const QVector<QByteArray> &ciphertext,
-      QVector<QByteArray> &cleartext)
+      QVector<QByteArray> &cleartext, QVector<int> *bad)
   {
+    cleartext.clear();
+    bool res = true;
     for(int idx = 0; idx < ciphertext.count(); idx++) {
       QByteArray data = key->Decrypt(ciphertext[idx]);
       if(data.isEmpty()) {
-        return idx;
+        res = false;
+        if(bad) {
+          bad->append(idx);
+        }
       }
       cleartext.append(data);
     }
+    return res;
+  }
 
+  void OnionEncryptor::RandomizeBlocks(QVector<QByteArray> &text)
+  {
     CppRandom rand;
-    for(int idx = 0; idx < ciphertext.count(); idx++) {
-      int jdx = rand.GetInt(0, ciphertext.count());
+    for(int idx = 0; idx < text.count(); idx++) {
+      int jdx = rand.GetInt(0, text.count());
       if(jdx == idx) {
         continue;
       }
-      QByteArray tmp = cleartext[idx];
-      cleartext[idx] = cleartext[jdx];
-      cleartext[jdx] = tmp;
+      QByteArray tmp = text[idx];
+      text[idx] = text[jdx];
+      text[jdx] = tmp;
     }
-
-    return -1;
   }
 
   bool OnionEncryptor::VerifyOne(AsymmetricKey *key,

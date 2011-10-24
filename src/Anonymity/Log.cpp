@@ -18,6 +18,12 @@ namespace Anonymity {
     }
   }
 
+  void Log::Pop()
+  {
+    _entries.pop_back();
+    _remote.pop_back();
+  }
+
   void Log::Append(const QByteArray &entry, const Id &remote)
   {
     _entries.append(entry);

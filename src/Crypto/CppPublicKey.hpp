@@ -50,7 +50,7 @@ namespace Crypto {
       virtual AsymmetricKey *GetPublicKey();
 
       virtual bool Save(const QString &filename);
-      virtual QByteArray GetByteArray();
+      virtual QByteArray GetByteArray() const;
 
       /**
        * Returns nothing, not supported for public keys
@@ -64,9 +64,9 @@ namespace Crypto {
        */
       virtual QByteArray Decrypt(const QByteArray &data);
 
-      inline virtual bool IsPrivateKey() { return false; }
-      virtual bool VerifyKey(AsymmetricKey &key);
-      inline virtual bool IsValid() { return _valid; }
+      inline virtual bool IsPrivateKey() const { return false; }
+      virtual bool VerifyKey(AsymmetricKey &key) const;
+      inline virtual bool IsValid() const { return _valid; }
 
     protected:
       /**

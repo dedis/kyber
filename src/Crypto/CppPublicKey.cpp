@@ -77,7 +77,7 @@ namespace Crypto {
     return true;
   }
 
-  QByteArray CppPublicKey::GetByteArray()
+  QByteArray CppPublicKey::GetByteArray() const
   {
     if(!_valid) {
       return QByteArray();
@@ -145,7 +145,7 @@ namespace Crypto {
     return QByteArray();
   }
 
-  bool CppPublicKey::VerifyKey(AsymmetricKey &key)
+  bool CppPublicKey::VerifyKey(AsymmetricKey &key) const
   {
     if(!IsValid() || !key.IsValid() || (IsPrivateKey() == key.IsPrivateKey())) {
       return false;

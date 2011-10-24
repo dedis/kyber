@@ -21,15 +21,21 @@ namespace Anonymity {
     Q_OBJECT
 
     public:
-      typedef Round *(*CreateRound)(const Id &, const Group &,
-          const ConnectionTable &, RpcHandler &, const Id &,
-          const QByteArray &);
+      typedef Round *(*CreateRound)(const Group &, const Id &, const Id &,
+          const ConnectionTable &, RpcHandler &, const QByteArray &);
 
       /**
        * Constructor
+       * @param group an ordered member of peers for the group
+       * @param local_id the local node's ID
+       * @param leader_id the Id of the leader
+       * @param session_id Id for the session
+       * @param ct maps Ids to connections
+       * @param rpc for sending and receives remote procedure calls
+       * @param default_data default data
        */
-      Session(const Id &local_id, const Id &leader_id, const Group &group,
-          ConnectionTable &ct, RpcHandler &rpc, const Id &session_id,
+      Session(const Group &group, const Id &local_id, const Id &leader_id,
+          const Id &session_id, ConnectionTable &ct, RpcHandler &rpc,
           CreateRound create_round, const QByteArray &default_data);
 
       /**
@@ -78,6 +84,11 @@ namespace Anonymity {
        * Is the session still active?
        */
       inline bool Closed() { return _closed; }
+
+      /**
+       * Returns the current round
+       */
+      inline Round *GetCurrentRound() { return _current_round; }
 
     signals:
       /**
@@ -139,6 +150,7 @@ namespace Anonymity {
       QQueue<QByteArray> _send_queue;
 
       Round *_current_round;
+      Round *_previous_round;
       bool _started;
       bool _closed;
       RpcMethod<Session> _ready;

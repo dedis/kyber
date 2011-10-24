@@ -18,7 +18,9 @@ HEADERS += src/Dissent.hpp \
            src/Anonymity/SecureSession.hpp \
            src/Anonymity/Session.hpp \
            src/Anonymity/SessionManager.hpp \
+           src/Anonymity/ShuffleBlamer.hpp \
            src/Anonymity/ShuffleRound.hpp \
+           src/Anonymity/ShuffleRoundBlame.hpp \
            src/Crypto/AsymmetricKey.hpp \
            src/Crypto/CppHash.hpp \
            src/Crypto/CppPrivateKey.hpp \
@@ -47,12 +49,14 @@ HEADERS += src/Dissent.hpp \
            src/Transports/BufferEdgeListener.hpp \
            src/Transports/Edge.hpp \
            src/Transports/EdgeListener.hpp \
+           src/Utils/QRunTimeError.hpp \
            src/Utils/Settings.hpp \
            src/Utils/Sleeper.hpp \
            src/Utils/Time.hpp \
            src/Utils/Timer.hpp \
            src/Utils/TimerCallback.hpp \
            src/Utils/TimerEvent.hpp 
+
 SOURCES += src/Init.cpp \
            src/Anonymity/Group.cpp \
            src/Anonymity/Log.cpp \
@@ -61,7 +65,9 @@ SOURCES += src/Init.cpp \
            src/Anonymity/SecureSession.cpp \
            src/Anonymity/Session.cpp \
            src/Anonymity/SessionManager.cpp \
+           src/Anonymity/ShuffleBlamer.cpp \
            src/Anonymity/ShuffleRound.cpp \
+           src/Anonymity/ShuffleRoundBlame.cpp \
            src/Crypto/CppHash.cpp \
            src/Crypto/CppPrivateKey.cpp \
            src/Crypto/CppPublicKey.cpp \

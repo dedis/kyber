@@ -1,6 +1,8 @@
 #ifndef DISSENT_ANONYMITY_SECURE_SESSION_H_GUARD
 #define DISSENT_ANONYMITY_SECURE_SESSION_H_GUARD
 
+#include <QSharedPointer>
+
 #include "Session.hpp"
 
 namespace Dissent {
@@ -16,27 +18,29 @@ namespace Anonymity {
    */
   class SecureSession : public Session {
     public:
-      typedef Round *(*CreateSecureRound)(const Id &, const Group &,
-          const ConnectionTable &, RpcHandler &, const Id &, AsymmetricKey *key,
-          const QByteArray &);
+      typedef Round *(*CreateSecureRound)(const Group &, const Id &, const Id &,
+          const Id &, const ConnectionTable &, RpcHandler &,
+          QSharedPointer<AsymmetricKey>, const QByteArray &);
 
       /**
        * Constructor
+       * @param group an ordered member of peers for the group
        * @param local_id the local node's ID
        * @param leader_id the Id of the leader
-       * @param group an ordered member of peers for the group
+       * @param session_id Id for the session
        * @param ct maps Ids to connections
        * @param rpc for sending and receives remote procedure calls
        * @param signing_key the local nodes private signing key, pointer NOT
-       * owned by this object
+       * @param create_round a callback for creating a secure round
+       * @param default_data default data
        */
-      SecureSession(const Id &local_id, const Id &leader_id, const Group &group,
-          ConnectionTable &ct, RpcHandler &rpc, const Id &session_id,
-          AsymmetricKey *signing_key, CreateSecureRound create_round,
-          const QByteArray &default_data);
+      SecureSession(const Group &group, const Id &local_id,
+          const Id &leader_id, const Id &session_id, ConnectionTable &ct,
+          RpcHandler &rpc, QSharedPointer<AsymmetricKey> signing_key,
+          CreateSecureRound create_round, const QByteArray &default_data);
 
     private:
-      AsymmetricKey *_signing_key;
+      QSharedPointer<AsymmetricKey> _signing_key;
       CreateSecureRound _create_secure_round;
 
       virtual Round *GetRound(const QByteArray &data);

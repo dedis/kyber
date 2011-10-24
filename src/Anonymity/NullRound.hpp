@@ -16,24 +16,34 @@ namespace Anonymity {
 
       /**
        * Constructor
-       * @param local_id The local peers id
        * @param group The anonymity group
+       * @param local_id The local peers id
+       * @param session_id Session this round represents
        * @param ct Connections to the anonymity group
        * @param rpc Rpc handler for sending messages
-       * @param session_id Session this round represents
        * @param data Data to share this session
        */
-      NullRound(const Id &local_id, const Group &group, const ConnectionTable &ct,
-          RpcHandler &rpc, const Id &session_id, const QByteArray &data = DefaultData);
+      NullRound(const Group &group, const Id &local_id, const Id &session_id,
+          const ConnectionTable &ct, RpcHandler &rpc, 
+          const QByteArray &data = DefaultData);
 
-      inline static Round *CreateNullRound(const Id &local_id,
-          const Group &group, const ConnectionTable &ct, RpcHandler &rpc,
-          const Id &session_id, const QByteArray &data)
+      /**
+       * A callback (function pointer) used for creating a round
+       * @param group The anonymity group
+       * @param local_id The local peers id
+       * @param session_id Session this round represents
+       * @param ct Connections to the anonymity group
+       * @param rpc Rpc handler for sending messages
+       * @param data Data to share this session
+       */
+      inline static Round *CreateRound(const Group &group, const Id &local_id,
+          const Id &session_id, const ConnectionTable &ct, RpcHandler &rpc, 
+          const QByteArray &data)
       {
-        return new NullRound(local_id, group, ct, rpc, session_id, data);
+        return new NullRound(group, local_id, session_id, ct, rpc, data);
       }
 
-      virtual void Start();
+      virtual bool Start();
 
     private:
       /**

@@ -1,0 +1,72 @@
+#include "ShuffleRoundBlame.hpp"
+
+#include "../Crypto/OnionEncryptor.hpp"
+
+namespace Dissent {
+namespace Anonymity {
+  const ConnectionTable ShuffleRoundBlame::_empty_ct = ConnectionTable();
+  RpcHandler ShuffleRoundBlame::_empty_rpc = RpcHandler();
+
+  ShuffleRoundBlame::ShuffleRoundBlame(const Group &group, const Id &local_id,
+      const Id &session_id, const Id &round_id, AsymmetricKey *outer_key) :
+    ShuffleRound(group, local_id, session_id, round_id, _empty_ct, _empty_rpc,
+        QSharedPointer<AsymmetricKey>())
+  {
+    _outer_key.reset(new CppPrivateKey(outer_key->GetByteArray()));
+  }
+
+
+  int ShuffleRoundBlame::GetGo(int idx)
+  {
+    if(_go_received[idx]) {
+      return _go[idx] ? 1 : - 1;
+    }
+    return 0;
+  }
+
+  void ShuffleRoundBlame::ProcessMessage(const QByteArray &data, const Id &from)
+  {
+    ProcessData(data, from);
+  }
+
+  void ShuffleRoundBlame::BroadcastPublicKeys()
+  {
+    _state = KeySharing;
+  }
+
+  void ShuffleRoundBlame::SubmitData()
+  {
+    _state = WaitingForShuffle;
+  }
+
+  void ShuffleRoundBlame::Shuffle()
+  {
+    _state = ShuffleRound::Shuffling;
+
+    OnionEncryptor::GetInstance().Decrypt(_outer_key.data(),
+        _shuffle_ciphertext, _shuffle_cleartext, &_bad_members);
+
+    _state = ShuffleRound::ShuffleDone;
+  }
+
+  void ShuffleRoundBlame::Verify()
+  {
+  }
+
+  void ShuffleRoundBlame::StartBlame()
+  {
+  }
+
+  void ShuffleRoundBlame::BroadcastPrivateKey()
+  {
+  }
+
+  void ShuffleRoundBlame::Decrypt()
+  {
+  }
+
+  void ShuffleRoundBlame::BlameRound()
+  {
+  }
+}
+}

@@ -36,6 +36,11 @@ namespace Anonymity {
       void Append(const QByteArray &entry, const Id &remote);
 
       /**
+       * The last message added was bad, remove it
+       */
+      void Pop();
+
+      /**
        * Returns the log entry at the specified index, true if it returns
        * valid data, false otherwise
        * @param entry data in the log

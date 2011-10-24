@@ -1,6 +1,7 @@
 #ifndef DISSENT_CRYPTO_ASYMMETRIC_KEY_H_GUARD
 #define DISSENT_CRYPTO_ASYMMETRIC_KEY_H_GUARD
 
+#include <QDebug>
 #include <QByteArray>
 #include <QString>
 
@@ -34,7 +35,7 @@ namespace Crypto {
       /**
        * Returns the key in a byte array format
        */
-      virtual QByteArray GetByteArray() = 0;
+      virtual QByteArray GetByteArray() const = 0;
 
       /**
        * Signs the data, returning the signature
@@ -64,17 +65,27 @@ namespace Crypto {
       /**
        * Returns true if private key or private / public key pair
        */
-      virtual bool IsPrivateKey() = 0;
+      virtual bool IsPrivateKey() const = 0;
 
       /**
        * Verify the two keys are related private / public key pairs
+       * @param key the key to test with
        */
-      virtual bool VerifyKey(AsymmetricKey &key) = 0;
+      virtual bool VerifyKey(AsymmetricKey &key) const = 0;
+
+      /**
+       * Returns the equivalence of the given key with the current key
+       * @param key the given key
+       */
+      virtual bool operator==(const AsymmetricKey &key) const
+      {
+        return this->GetByteArray() == key.GetByteArray();
+      }
 
       /**
        * Returns true if the key loaded is a valid key
        */
-      virtual bool IsValid() = 0;
+      virtual bool IsValid() const = 0;
   };
 }
 }

@@ -31,15 +31,22 @@ namespace Crypto {
           QVector<QByteArray> *intermediate);
 
       /**
-       * Using the key it removes a layer of encryption from each of the
-       * ciphertexts inputted randomizing the cleartext output
+       * Using the key it removes a layer of encryption from ciphertexts,
+       * returns true if everything parses fine
        * @param key the private key used for decryption
        * @param ciphertext the set of data to decrypt
        * @param cleartext the resulting ciphertext permuted
+       * @param bad optionally returns index of malformed messages
        */
-      int Decrypt(AsymmetricKey *key,
+      bool Decrypt(AsymmetricKey *key,
           const QVector<QByteArray> &ciphertext,
-          QVector<QByteArray> &cleartext);
+          QVector<QByteArray> &cleartext, QVector<int> *bad);
+
+      /**
+       * Randomizes the inpuptted message blocks
+       * @param text the message blocks
+       */
+      void RandomizeBlocks(QVector<QByteArray> &text);
 
       /**
        * Verifies that the ciphertext and cleartext match, returning true

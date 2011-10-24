@@ -28,19 +28,19 @@ namespace Anonymity {
     public:
       /**
        * Constructor 
-       * @param local_id The local peers id
        * @param group The anonymity group
+       * @param local_id The local peers id
+       * @param session_id Session this round represents
        * @param ct Connections to the anonymity group
        * @param rpc Rpc handler for sending messages
-       * @param session_id Session this round represents
        */
-      Round(const Id &local_id, const Group &group, const ConnectionTable &ct,
-          RpcHandler &rpc, const Id &session_id);
+      Round(const Group &group, const Id &local_id, const Id &session_id,
+          const ConnectionTable &ct, RpcHandler &rpc);
 
       /**
        * Start the Round
        */
-      virtual void Start() = 0;
+      virtual bool Start() = 0;
 
       /**
        * Handle a data message from a remote peer
@@ -57,13 +57,13 @@ namespace Anonymity {
       /**
        * Close the round for no specific reason
        */
-      void Close();
+      bool Close();
 
       /**
        * Close the round with a specific reason
        * @param reason The specific reason
        */
-      void Close(const QString &reason);
+      bool Close(const QString &reason);
 
       /**
        * Returns the reason the Round was closed, empty string if it is not closed
@@ -84,6 +84,16 @@ namespace Anonymity {
        * Returns whether or not there were any problems in the round
        */
       inline bool Successful() const { return _successful; }
+
+      /**
+       * Returns the group used in the round
+       */
+      inline const Group &GetGroup() const { return _group; }
+
+      /**
+       * Returns the list of bad nodes discovered in the round
+       */
+      inline virtual const QVector<int> &GetBadMembers() { return _empty_list; }
 
       /**
        * Send is not implemented, it is here simply so we can reuse the Source
@@ -113,9 +123,11 @@ namespace Anonymity {
       virtual void Send(const QByteArray &data, const Id &id);
 
       /**
-       * The local peer's Id
+       * If data is from a legitimate group member, it is processed
+       * @param data Incoming data
+       * @param id the remote peer sending the data
        */
-      const Id _local_id;
+      virtual void ProcessData(const QByteArray &data, const Id &id) = 0;
 
       /**
        * The anonymity group
@@ -123,23 +135,22 @@ namespace Anonymity {
       const Group _group;
 
       /**
+       * The local peer's Id
+       */
+      const Id _local_id;
+
+      /**
        * Whether or not the Round was successful
        */
       bool _successful;
 
     private:
-      /**
-       * If data is from a legitimate group member, it is processed
-       * @param data Incoming data
-       * @param id the remote peer sending the data
-       */
-      virtual void ProcessData(const QByteArray &data, const Id &id) = 0;
-
       QString _closed_reason;
+      const Id _session_id;
       const ConnectionTable &_ct;
       RpcHandler &_rpc;
-      const Id _session_id;
       bool _closed;
+      QVector<int> _empty_list;
 
     private slots:
       /**

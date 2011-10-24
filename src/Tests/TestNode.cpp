@@ -40,18 +40,28 @@ namespace Tests {
     }
   }
 
-  void CreateSession(const QVector<TestNode *> &nodes,
+  void CreateSessions(const QVector<TestNode *> &nodes,
       const Group &group, const Id &leader_id, const Id &session_id,
       CreateSessionCallback callback)
   {
     for(int idx = 0; idx < nodes.count(); idx++) {
-      Session *session = callback(nodes[idx], group, leader_id, session_id);
-      nodes[idx]->session = session;
-      session->SetSink(&(nodes[idx]->sink));
-      nodes[idx]->sm.AddSession(session);
-      QObject::connect(session, SIGNAL(RoundFinished(Session *, Round *)),
-          nodes[idx], SLOT(HandleRoundFinished(Session *, Round *)));
+      CreateSession(nodes[idx], group, leader_id, session_id, callback);
     }
+  }
+
+  void CreateSession(TestNode * node, const Group &group, const Id &leader_id,
+      const Id &session_id, CreateSessionCallback callback)
+  {
+    if(node->session != 0) {
+      node->session->Stop();
+      delete node->session;
+    }
+    Session *session = callback(node, group, leader_id, session_id);
+    node->session = session;
+    session->SetSink(&(node->sink));
+    node->sm.AddSession(session);
+    QObject::connect(session, SIGNAL(RoundFinished(Session *, Round *)),
+        node, SLOT(HandleRoundFinished(Session *, Round *)));
   }
 
   void CleanUp(const QVector<TestNode *> &nodes)
