@@ -1,0 +1,193 @@
+Known Attacks Against Dissent and Solutions for Handling Them
+
+Overview
+===============================================================================
+There are various cases for potential attcks on the protocol some are solvable
+through the internal blaming mechanism and others are not.  This document will
+cover the attacks, solutions for those that have been solved and thoughts on
+how the unsolved can be handled.
+
+Attacks Cases
+===============================================================================
+01 - A member receives an invalid public keys
+02 - A member distributes different public keys to different members
+03 - A member inserts an invalid outer cipher block into the initial cipher
+04 - A member inserts an invalid inner cipher block into the initial cipher
+05 - A shuffler duplicates cipher blocks
+06 - A shuffler replaces cipher blocks
+07 - The final shuffler broadcasts different messages to different members
+08 - A member reports a false no go
+09 - A member reports a false no go to some members and a go to others
+10 - A member reports a false go
+11 - A member broadcasts an invalid inner private key
+12 - A member shares different private keys in a round
+13 - A member shares different or invalid outer private keys in a round
+14 - A member initiates blame when there is none
+15 - A member shares an invalid blame message
+16 - A member shares improper messages in their blame log
+17 - A member shares a blame log missing intermediate messages (before the end)
+18 - A member shares a blame log cutting off the end
+19 - A member does not send messages in an appropriate amount of time
+20 - A member sends a properly signed although malformed message
+
+Discovering the Attacks
+===============================================================================
+01 is discovered by verifying that a public key is valid.
+
+02 is handled by inspecting the hash of broadcast messages during the go / no
+go phase.
+
+03, attacks on the outer cipher blocks will be discovered during shuffling, a
+member will discover that a message cannot be decrypted.
+
+04, attacks on the inner cipher cannot be discovered until decryption at each
+site, where a decryption may fail.
+
+05, duplicating shuffle blocks can be discovered during shuffle by ensuring
+there are no duplicate messages at each shuffle round.
+
+06, to prevent replacing cipher blocks, all members need to verify their cipher
+block exists at the end of the shuffling, prior to releasing their keys.
+
+07, like 02, is handled by inspecting the hash of broadcast messages during
+the go / no go phase.
+
+08, must be handled during a blame phase.
+
+09 will create a blame phase for some members and not for others, therefore,
+after blame data has been broadcasted, thus needs an additional verification
+phase, as discussed below.
+
+10, this cannot be handled, as only the member individual members know whether or
+not their message is in the final data set.
+
+11, this is discovered at the end of the protocol run during decryption, this
+is similar to the attack 04, however, this attack can be resolved without
+revealing the identity of innocent members.
+
+12, this can only be discovered if a decryption fails.  This attack could be
+successful if the initial public keys are not uniformly distributed and
+verified during the go / no go phase.  Instead the likely outcome is that a
+member in the group will no be able to decipher a message given to them.
+
+13, this can be discovered during blame message reception.
+
+14, this requires a causal relationship between incoming and outgoing messages
+in order to narrow down during a blame phase where the blame message came from.
+Obviously, the first member(s) to start a blame phase are the guilty party.
+
+15, this requires a verification on the blame phase prior to investigating the
+logs.
+
+16, this will be discovered during replay of the blame messages
+
+17, this will be discovered during replay of the blame messages
+
+18, this can be discovered by comparing the state of members later in the group
+order.
+
+19, this is a complex problem.
+
+20, this is a complex problem.
+
+Handling Attacks on the Blame Phase
+===============================================================================
+An easy way for attacks to occur is by allowing imperfect messages from
+tainting the system.  Therefore, no messages are recorded if there is any
+problems with them.  This means a message will be entirely deciphered prior to
+making a state change or all memberss must verify that the data is consistent
+prior to using it.  Primarily this falls on invalid signatures as other
+messages can easily be verified via blame.
+
+Once a member has generated a log of only verified messages, it can be
+distributed to other members allowing them to rebuild the state of the system
+in a verifiable way (the remote peers signed messages) and then verify that
+that member's behavior is consistent with its claim.
+
+Unfortuantely, the blame state itself can be attacked, 14.  A malicious member
+owning several resource may want to partition the Dissent ring or avoid having
+a specific resource be identified during the blame phase.  In order to avoid
+partition attacks, blame messages should be verified in a post blame broadcast
+round.  Therefore, each member will distribute with their blame message a hash
+of the message that is signed with their key.  Upon collecting all blame
+messages, the members will share this verification data with other member. EAch
+member will be able to see that other members share their verification data or
+there is a mismatch.  A mismatch will occur because either the sender of the
+blame data sent different messages to different members, in which case it will
+be signed correctly, or the receipient changed messages and it is not signed
+properly.  Because of the second property, all peers must verify signatures
+prior to exchanging verifications.  If a signature fails, then the message is
+considered faulty and should be resolved similarly to a missing message, 15, or
+a well crafted malicious message, 16.
+
+The general format for blame message verifications are:
+- msg = [blame data packet id][round id / nonce][hash]
+- signature = {msg}signing_key
+- distributed message = [hash][signature]
+So each member will share with other memebers the distributed message, which
+can then be used to verify integrity during the blame phase.
+
+If an attack occurs during the blame phase initiation, progress is currently
+halted for simplicity reasons.  Alternatively, members could potentially
+progress forward excluding the faulty members in an attempt to find additional
+faulty members.  The current goal of the blame is to find at least 1 malicious
+peer and ending the blame scenarios at the end of each blame phase step.
+
+Executing the Blame Phase
+===============================================================================
+After receiving all blame messages and verifying their integrity, each member
+will have the same log and will run through an identical process of replaying
+messages.  Each member will reconstruct the round from each other members
+perspective, including their own.
+
+During replay, if a message fails, that member is to blame for including a
+faulty message in the blame log.  The process for replaying messages continues
+until completion.  All members with faulty logs are noted as bad members, and
+if there are any bad members, execution of the blame phase concludes.
+Otherwise the next stage begins.  This covers attacks 16 and 17.
+
+Each stage here out, follows the flow of the Dissent shuffle algorithm.
+Members confirm that all public keys match each other.  If there are any
+mismatches, then the mismatched peer is at fault.  If no mismatches execution
+continues.  This covers attack 02.
+
+The members will now execute through the shuffle rounds, if a members input
+does not match their output, they are to blame.  In otherwords, their output
+will be the input into the next peer of the shuffle.  This covers attacks
+03, 05, 06, 07
+
+Finally, each peer will be checked for faulty blame by independently cycling
+through the onion data by decrypting it in order without shuffling.  Then a
+peers incoming message to the first peer can be matched all the way to the
+final message distributed to the last peer.  If their message is in that final
+message, then they should announce go, otherwise no go.  This covers 08, 09,
+and 10.  Although 10 cannot be detected.
+
+Handling Network Failures or Faulty Messages
+===============================================================================
+Faulty messages could be potentially solved by simply broadcasting a properly
+signed albeit faulty message to the entire group.  The bounds of what
+constitues an incriminating faulty message depends on the intent of the
+message.  This is currently left as future work.  Attacks that fall into this
+category include 01, 11, 12, 13, and 20.
+
+A network failure would require all memberss to conclude that the peer has not
+sent a message and is either non-responsive or malicious.  Handling this is
+left for future work.  Attack 19 falls into this category.
+
+Unhandled
+===============================================================================
+14, false blame initiation, cannot be handled within the current approach as
+their is no means to guarantee message causalty.
+
+09 cannot be handled in the current protocol.  This could be solved by
+requiring a system wide ack much like the one discussed for the changing blame
+data.
+
+04 cannot be (easily) handled although it could be treated as a null data
+block.
+
+Notes
+===============================================================================
+This is an evolving document and is far from complete.  This document continues
+from the original discussion on blame from the file legacy/py/README(BLAME).
