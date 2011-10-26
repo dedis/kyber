@@ -21,8 +21,8 @@ namespace Tests {
     public:
       TestNode(int idx, bool make_key = false) : cm(Id(), &rpc), sm(rpc), session(0)
       {
-        BufferEdgeListener *be = new BufferEdgeListener(BufferAddress(idx));
-        cm.AddEdgeListener(be);
+        EdgeListener *be = new BufferEdgeListener(BufferAddress(idx));//EdgeListenerFactory::GetInstance().CreateEdgeListener(BufferAddress(idx));
+        cm.AddEdgeListener(QSharedPointer<EdgeListener>(be));
         if(make_key) {
           key = QSharedPointer<AsymmetricKey>(new CppPrivateKey());
         }

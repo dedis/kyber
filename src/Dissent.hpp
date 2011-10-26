@@ -39,7 +39,9 @@
 #include "Transports/BufferEdge.hpp"
 #include "Transports/BufferEdgeListener.hpp"
 #include "Transports/Edge.hpp"
+#include "Transports/EdgeFactory.hpp"
 #include "Transports/EdgeListener.hpp"
+#include "Transports/EdgeListenerFactory.hpp"
 
 #include "Utils/Settings.hpp"
 #include "Utils/Sleeper.hpp"
@@ -47,9 +49,5 @@
 #include "Utils/Timer.hpp"
 #include "Utils/TimerCallback.hpp"
 #include "Utils/TimerEvent.hpp"
-
-namespace Dissent {
-    void Init();
-}
 
 #endif

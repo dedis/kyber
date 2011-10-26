@@ -1,7 +1,7 @@
 #ifndef DISSENT_CONNECTIONS_CONNECTION_MANAGER_H_GUARD
 #define DISSENT_CONNECTIONS_CONNECTION_MANAGER_H_GUARD
 
-#include "../Transports/EdgeListener.hpp"
+#include "../Transports/EdgeFactory.hpp"
 #include "../Messaging/RpcHandler.hpp"
 #include "ConnectionTable.hpp"
 
@@ -38,7 +38,7 @@ namespace Connections {
        * deconstruction.
        * @param el an EdgeListener for the node to manage
        */
-      void AddEdgeListener(EdgeListener *el);
+      void AddEdgeListener(QSharedPointer<EdgeListener> el);
 
       /**
        * Connect to the specified transport address
@@ -107,10 +107,7 @@ namespace Connections {
       ConnectionTable _con_tab;
       ConnectionTable _rem_con_tab;
       const Id _local_id;
-      /**
-       * (XXX) This should be an EdgeFactory
-       */
-      QScopedPointer<EdgeListener> _el;
+      EdgeFactory _edge_factory;
       RpcHandler *_rpc;
       bool _closed;
 

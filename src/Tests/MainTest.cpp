@@ -15,7 +15,6 @@ GTEST_API_ int main(int argc, char **argv)
   FilesExist();
   qsrand(time(NULL));
   testing::InitGoogleTest(&argc, argv);
-  Dissent::Init();
   int res = RUN_ALL_TESTS();
   FilesDelete();
   return res;

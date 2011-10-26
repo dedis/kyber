@@ -2,26 +2,34 @@
 
 namespace Dissent {
 namespace Transports {
-  void AddressFactory::AddAddressConstructor(const QString &scheme, create callback)
+  AddressFactory &AddressFactory::GetInstance()
   {
-    _scheme_to_address[scheme] = callback;
+    static AddressFactory elf;
+    return elf;
   }
 
-  const Address AddressFactory::CreateAddress(const QString &url_string)
+  AddressFactory::AddressFactory()
   {
-    QUrl url = QUrl(url_string);
-    create func = _scheme_to_address[url.scheme()];
-    if(func == 0) {
-      return Address::CreateAddress(url);
+    AddCallback("buffer", BufferAddress::Create);
+  }
+
+  void AddressFactory::AddCallback(const QString &scheme, Callback cb)
+  {
+    _type_to_callback[scheme] = cb;
+  }
+
+  const Address AddressFactory::CreateAddress(const QString &surl) const
+  {
+    return CreateAddress(QUrl(surl));
+  }
+
+  const Address AddressFactory::CreateAddress(const QUrl &url) const
+  {
+    Callback cb = _type_to_callback[url.scheme()];
+    if(cb == 0) {
+      return Address::Create(url);
     }
-    return func(url);
-  }
-
-  QHash<QString, AddressFactory::create> AddressFactory::_scheme_to_address;
-
-  void AddressFactory::Init()
-  {
-    AddAddressConstructor("buffer", BufferAddress::CreateAddress);
+    return cb(url);
   }
 }
 }

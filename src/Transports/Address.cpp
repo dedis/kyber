@@ -11,7 +11,7 @@ namespace Transports {
   {
   }
 
-  const Address Address::CreateAddress(const QUrl& url)
+  const Address Address::Create(const QUrl& url)
   {
     return Address(url);
   }

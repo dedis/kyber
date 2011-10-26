@@ -36,7 +36,7 @@ namespace Transports {
       BufferAddress(const QUrl &url);
       BufferAddress(const int &id);
       BufferAddress(const BufferAddress &other);
-      static const Address CreateAddress(const QUrl &url);
+      static const Address Create(const QUrl &url);
 
       /**
        * An integer that uniquely identifies a BufferEdge endpoint

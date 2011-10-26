@@ -27,7 +27,7 @@ namespace Transports {
   {
   }
 
-  const Address BufferAddress::CreateAddress(const QUrl &url)
+  const Address BufferAddress::Create(const QUrl &url)
   {
     return BufferAddress(url);
   }

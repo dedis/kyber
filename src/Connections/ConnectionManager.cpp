@@ -24,15 +24,15 @@ namespace Connections {
     _rpc->Unregister("CM::Disconnect");
   }
 
-  void ConnectionManager::AddEdgeListener(EdgeListener *el)
+  void ConnectionManager::AddEdgeListener(QSharedPointer<EdgeListener> el)
   {
     if(_closed) {
       qWarning() << "Attempting to add an EdgeListener after calling Disconnect.";
       return;
     }
 
-    _el.reset(el);
-    QObject::connect(el, SIGNAL(NewEdgeSignal(Edge *)),
+    _edge_factory.AddEdgeListener(el);
+    QObject::connect(el.data(), SIGNAL(NewEdgeSignal(Edge *)),
         this, SLOT(HandleNewEdge(Edge *)));
   }
 
@@ -43,7 +43,7 @@ namespace Connections {
       return;
     }
 
-    _el->CreateEdgeTo(addr);
+    _edge_factory.CreateEdgeTo(addr);
   }
 
   void ConnectionManager::Disconnect()
@@ -70,7 +70,7 @@ namespace Connections {
       edge->Close("Disconnecting");
     }
 
-    _el->Stop();
+    _edge_factory.Stop();
   }
 
   void ConnectionManager::HandleNewEdge(Edge *edge)

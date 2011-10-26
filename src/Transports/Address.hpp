@@ -40,7 +40,7 @@ namespace Transports {
       Address(const QUrl &url);
       Address(const Address &other);
       virtual ~Address() { }
-      static const Address CreateAddress(const QUrl &url);
+      static const Address Create(const QUrl &url);
 
       QString ToString() const;
       inline const QString GetType() const { return _data->url.scheme(); }

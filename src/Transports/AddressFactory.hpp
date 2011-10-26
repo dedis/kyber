@@ -13,13 +13,17 @@ namespace Transports {
    */
   class AddressFactory {
     public:
-      typedef const Address (*create) (const QUrl &url);
-      static void AddAddressConstructor(const QString &scheme, create callback);
-      static const Address CreateAddress(const QString &url_string);
-      static void Init();
+      static AddressFactory &GetInstance();
+
+      typedef const Address (*Callback) (const QUrl &url);
+
+      AddressFactory();
+      void AddCallback(const QString &type, Callback cb);
+      const Address CreateAddress(const QString &surl) const;
+      const Address CreateAddress(const QUrl &url) const;
 
     private:
-      static QHash<QString, create> _scheme_to_address;
+      QHash<QString, Callback> _type_to_callback;
   };
 }
 }

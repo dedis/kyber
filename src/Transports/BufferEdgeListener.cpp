@@ -17,6 +17,12 @@ namespace Transports {
     _el_map[id] = this;
   }
 
+  EdgeListener *BufferEdgeListener::Create(const Address &local_address)
+  {
+    const BufferAddress &ba = static_cast<const BufferAddress &>(local_address);
+    return new BufferEdgeListener(ba);
+  }
+
   BufferEdgeListener::~BufferEdgeListener()
   {
     const BufferAddress &loc_ba = static_cast<const BufferAddress &>(_local_address);

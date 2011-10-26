@@ -48,7 +48,9 @@ HEADERS += src/Dissent.hpp \
            src/Transports/BufferEdge.hpp \
            src/Transports/BufferEdgeListener.hpp \
            src/Transports/Edge.hpp \
+           src/Transports/EdgeFactory.hpp \
            src/Transports/EdgeListener.hpp \
+           src/Transports/EdgeListenerFactory.hpp \
            src/Utils/QRunTimeError.hpp \
            src/Utils/Settings.hpp \
            src/Utils/Sleeper.hpp \
@@ -57,8 +59,7 @@ HEADERS += src/Dissent.hpp \
            src/Utils/TimerCallback.hpp \
            src/Utils/TimerEvent.hpp 
 
-SOURCES += src/Init.cpp \
-           src/Anonymity/Group.cpp \
+SOURCES += src/Anonymity/Group.cpp \
            src/Anonymity/Log.cpp \
            src/Anonymity/NullRound.cpp \
            src/Anonymity/Round.cpp \
@@ -87,7 +88,9 @@ SOURCES += src/Init.cpp \
            src/Transports/BufferEdge.cpp \
            src/Transports/BufferEdgeListener.cpp \
            src/Transports/Edge.cpp \
+           src/Transports/EdgeFactory.cpp \
            src/Transports/EdgeListener.cpp \
+           src/Transports/EdgeListenerFactory.cpp \
            src/Utils/Settings.cpp \
            src/Utils/Sleeper.cpp \
            src/Utils/Time.cpp \
