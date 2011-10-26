@@ -8,7 +8,7 @@ namespace Tests {
   void RoundTest_Null(CreateSessionCallback callback, bool keys = false)
   {
     Timer::GetInstance().UseVirtualTime();
-    int count = random(8, 8);
+    int count = random(10, 50);
     int leader = random(0, count);
 
     QVector<TestNode *> nodes;
@@ -60,7 +60,7 @@ namespace Tests {
   {
     Timer::GetInstance().UseVirtualTime();
 
-    int count = random(8, 8);
+    int count = random(10, 50);
     int leader = random(0, count);
     int sender = random(0, count);
 
@@ -114,7 +114,7 @@ namespace Tests {
   {
     Timer::GetInstance().UseVirtualTime();
 
-    int count = random(8, 8);
+    int count = random(10, 50);
     int leader = random(0, count);
     int sender0 = random(0, count);
     int sender1 = random(0, count);
@@ -173,7 +173,7 @@ namespace Tests {
   {
     Timer::GetInstance().UseVirtualTime();
 
-    int count = random(8, 8);
+    int count = random(10, 50);
     int leader = random(0, count);
     int disconnecter = random(0, count);
     while(leader != disconnecter) {
@@ -239,7 +239,7 @@ namespace Tests {
   {
     Timer::GetInstance().UseVirtualTime();
 
-    int count = random(8, 8);
+    int count = random(10, 50);
     int leader = random(0, count);
     int sender = random(0, count);
     int badguy = 7;//random(0, count);
