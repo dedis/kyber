@@ -45,6 +45,13 @@ namespace Crypto {
       ~CppPublicKey();
 
       /**
+       * Creates a public key based upon the seed data, same seed data same
+       * key.  This is mainly used for distributed tests, so other members can
+       * generate an appropriate public key.
+       */
+      static CppPublicKey *GenerateKey(const QByteArray &data);
+
+      /**
        * Get a copy of the public key
        */
       virtual AsymmetricKey *GetPublicKey();
@@ -70,11 +77,6 @@ namespace Crypto {
 
     protected:
       /**
-       * Creates a public key given a private key
-       */
-      CppPublicKey(RSA::PublicKey *key);
-
-      /**
        * Does not make sense to create random public keys
        */
       CppPublicKey() { }
@@ -93,6 +95,7 @@ namespace Crypto {
 
       RSA::PublicKey *_public_key;
       bool _valid;
+      static QByteArray GetByteArray(const CryptoMaterial &key);
   };
 }
 }

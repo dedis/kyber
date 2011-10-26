@@ -24,6 +24,13 @@ namespace Crypto {
        */
       CppPrivateKey();
 
+      /**
+       * Creates a private key based upon the seed data, same seed data same
+       * key.  This is mainly used for distributed tests, so other members can
+       * generate an appropriate public key.
+       */
+      static CppPrivateKey *GenerateKey(const QByteArray &data);
+
       CppPrivateKey(const QString &filename);
       CppPrivateKey(const QByteArray &data);
 

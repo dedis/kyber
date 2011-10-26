@@ -14,12 +14,6 @@ namespace Crypto {
     _valid = InitFromByteArray(data);
   }
 
-  CppPublicKey::CppPublicKey(RSA::PublicKey *key) :
-    _public_key(new RSA::PublicKey(*key))
-  {
-    _valid = true;
-  }
-
   CppPublicKey::~CppPublicKey()
   {
     if(_public_key) {
@@ -27,12 +21,35 @@ namespace Crypto {
     }
   }
 
+  CppPublicKey *CppPublicKey::GenerateKey(const QByteArray &data)
+  {
+    int value = 0;
+    for(int idx = 0; idx + 3 < data.count(); idx+=4) {
+      int tmp = data[idx];
+      tmp |= (data[idx + 1] << 8);
+      tmp |= (data[idx + 2] << 16);
+      tmp |= (data[idx + 3] << 24);
+      value ^= tmp;
+    }
+
+    LC_RNG rng(value);
+    RSA::PrivateKey key;
+    key.GenerateRandomWithKeySize(rng, KeySize);
+    RSA::PublicKey pkey(key);
+    return new CppPublicKey(GetByteArray(pkey));
+  }
+
   AsymmetricKey *CppPublicKey::GetPublicKey()
   {
     if(!_valid) {
       return 0;
     }
-    return new CppPublicKey(_public_key);
+
+    if(IsPrivateKey()) {
+      return new CppPublicKey(GetByteArray(RSA::PublicKey(*_public_key)));
+    } else {
+      return new CppPublicKey(GetByteArray(*_public_key));
+    }
   }
 
   bool CppPublicKey::InitFromFile(const QString &filename)
@@ -53,7 +70,7 @@ namespace Crypto {
     try {
       _public_key->Load(queue);
     } catch (std::exception &e) {
-      qWarning() << "In CppPublicKey::Decrypt: " << e.what();
+      qWarning() << "In CppPublicKey::InitFromByteArray: " << e.what();
       return false;
     }
     return true;
@@ -83,8 +100,13 @@ namespace Crypto {
       return QByteArray();
     }
 
+    return GetByteArray(*_public_key);
+  }
+
+  QByteArray CppPublicKey::GetByteArray(const CryptoMaterial &key)
+  {
     ByteQueue queue;
-    _public_key->Save(queue);
+    key.Save(queue);
     QByteArray data(queue.CurrentSize(), 0);
     queue.Get(reinterpret_cast<byte *>(data.data()), data.size());
     return data;
@@ -118,7 +140,7 @@ namespace Crypto {
     int data_start = encryptor.FixedCiphertextLength() + AES::BLOCKSIZE;
     QByteArray ciphertext(data_start + clength, 0);
 
-    CryptoPP::AutoSeededX917RNG<CryptoPP::DES_EDE3> rng;
+    AutoSeededX917RNG<DES_EDE3> rng;
 
     SecByteBlock skey(AES::DEFAULT_KEYLENGTH);
     rng.GenerateBlock(skey, skey.size());

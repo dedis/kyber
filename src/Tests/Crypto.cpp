@@ -8,8 +8,6 @@ namespace Tests {
 
   TEST(Crypto, CppAsymmetricKey)
   {
-    DisableLogging();
-
     CryptoPP::AutoSeededX917RNG<CryptoPP::DES_EDE3> rng;
     QByteArray data(1500, 0);
     rng.GenerateBlock(reinterpret_cast<byte *>(data.data()), data.size());
@@ -49,10 +47,12 @@ namespace Tests {
     AsymmetricKey *pu_key1 = new CppPublicKey(QString("public_key"));
     EXPECT_TRUE(pu_key1->IsValid());
 
+    DisableLogging();
     EXPECT_TRUE(pu_key0->Sign(data).isEmpty());
     EXPECT_TRUE(pu_key0->Decrypt(out0_0).isEmpty());
     EXPECT_TRUE(pu_key1->Sign(data).isEmpty());
     EXPECT_TRUE(pu_key1->Decrypt(out0_0).isEmpty());
+    EnableLogging();
 
     EXPECT_TRUE(pu_key0->Verify(data, sig0));
     EXPECT_TRUE(pu_key0->Verify(data, sig1));
@@ -97,8 +97,6 @@ namespace Tests {
     EXPECT_TRUE(key1->VerifyKey(*pu_key1));
     EXPECT_FALSE(key1->VerifyKey(*key0));
     EXPECT_FALSE(key1->VerifyKey(*key1));
-
-    EnableLogging();
 
     delete key0;
     delete key1;
@@ -185,6 +183,28 @@ namespace Tests {
 
     delete key0;
     delete key1;
+  }
+
+  TEST(Crypto, KeyGenerationFromId)
+  {
+    Dissent::Connections::Id id0;
+    Dissent::Connections::Id id1;
+    EXPECT_NE(id0, id1);
+
+    AsymmetricKey *pr_key0 = CppPrivateKey::GenerateKey(id0.GetByteArray());
+    AsymmetricKey *pu_key0 = CppPublicKey::GenerateKey(id0.GetByteArray());
+    AsymmetricKey *pr_key1 = CppPrivateKey::GenerateKey(id1.GetByteArray());
+    AsymmetricKey *pu_key1 = CppPublicKey::GenerateKey(id1.GetByteArray());
+    AsymmetricKey *pr_key0_0 = CppPrivateKey::GenerateKey(id0.GetByteArray());
+    AsymmetricKey *pr_key1_0 = CppPrivateKey::GenerateKey(id1.GetByteArray());
+
+    EXPECT_TRUE(pr_key0->VerifyKey(*pu_key0));
+    EXPECT_FALSE(pr_key0->VerifyKey(*pu_key1));
+    EXPECT_TRUE(pr_key1->VerifyKey(*pu_key1));
+    EXPECT_FALSE(pr_key0->VerifyKey(*pu_key1));
+    EXPECT_EQ(*pr_key0, *pr_key0_0);
+    EXPECT_EQ(*pr_key1, *pr_key1_0);
+    EXPECT_FALSE(*pr_key0 == *pr_key1);
   }
 }
 }
