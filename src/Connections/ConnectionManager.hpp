@@ -72,7 +72,7 @@ namespace Connections {
        * @param con the new connection
        * @param local true if owned locally
        */
-      void NewConnectionSignal(Connection *con, bool local);
+      void NewConnection(Connection *con, bool local);
 
     private:
       /**

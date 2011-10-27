@@ -32,7 +32,7 @@ namespace Connections {
     }
 
     _edge_factory.AddEdgeListener(el);
-    QObject::connect(el.data(), SIGNAL(NewEdgeSignal(Edge *)),
+    QObject::connect(el.data(), SIGNAL(NewEdge(Edge *)),
         this, SLOT(HandleNewEdge(Edge *)));
   }
 
@@ -148,7 +148,7 @@ namespace Connections {
         this, SLOT(HandleDisconnect(Connection *)));
     QObject::connect(con, SIGNAL(Disconnected(Connection *, const QString &)),
         this, SLOT(HandleDisconnected(Connection *, const QString &)));
-    emit NewConnectionSignal(con, true);
+    emit NewConnection(con, true);
   }
 
   void ConnectionManager::Connect(RpcRequest &notification)
@@ -178,7 +178,7 @@ namespace Connections {
         this, SLOT(HandleDisconnect(Connection *)));
     QObject::connect(con, SIGNAL(Disconnected(Connection *, const QString &)),
         this, SLOT(HandleDisconnected(Connection *, const QString &)));
-    emit NewConnectionSignal(con, false);
+    emit NewConnection(con, false);
   }
 
   void ConnectionManager::Close(RpcRequest &notification)

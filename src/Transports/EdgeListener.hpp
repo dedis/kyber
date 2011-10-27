@@ -52,11 +52,11 @@ namespace Transports {
       /**
        * Emitted whenever a new edge, incoming or outgoing, is created
        */
-      void NewEdgeSignal(Edge *edge);
+      void NewEdge(Edge *edge);
 
     protected:
       /**
-       * Called when a new edge is created and emits the NewEdgeSignal
+       * Called when a new edge is created and emits the NewEdge
        */
       virtual void ProcessNewEdge(Edge *edge);
 

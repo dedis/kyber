@@ -31,7 +31,7 @@ namespace Dissent {
 
     _started = true;
 
-    QObject::connect(&_cm, SIGNAL(NewConnectionSignal(Connection *, bool)),
+    QObject::connect(&_cm, SIGNAL(NewConnection(Connection *, bool)),
         this, SLOT(HandleConnection(Connection *,bool)));
 
     foreach(const Address &addr, _local_endpoints) {

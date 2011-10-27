@@ -39,7 +39,7 @@ namespace Tests {
 
   MockEdgeHandler::MockEdgeHandler(EdgeListener *el)
   {
-    QObject::connect(el, SIGNAL(NewEdgeSignal(Edge *)),
+    QObject::connect(el, SIGNAL(NewEdge(Edge *)),
         this, SLOT(HandleEdge(Edge *)));
   }
 

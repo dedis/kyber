@@ -11,7 +11,7 @@ namespace Transports {
   {
     QObject::connect(edge, SIGNAL(Closed(const Edge *, const QString &)),
         this, SLOT(HandleEdgeClose(const Edge *, const QString &)));
-    emit NewEdgeSignal(edge);
+    emit NewEdge(edge);
   }
 
   void EdgeListener::HandleEdgeClose(const Edge *edge, const QString &)
