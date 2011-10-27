@@ -19,7 +19,7 @@ namespace Tests {
     Q_OBJECT
 
     public:
-      TestNode(int idx, bool make_key = false) : cm(Id(), &rpc), sm(rpc), session(0)
+      TestNode(int idx, bool make_key = false) : cm(Id(), rpc), sm(rpc), session(0)
       {
         EdgeListener *be = new BufferEdgeListener(BufferAddress(idx));//EdgeListenerFactory::GetInstance().CreateEdgeListener(BufferAddress(idx));
         cm.AddEdgeListener(QSharedPointer<EdgeListener>(be));
@@ -28,18 +28,11 @@ namespace Tests {
         }
       }
 
-      ~TestNode()
-      {
-        if(session) {
-          delete session;
-        }
-      }
-
       MockSink sink;
       RpcHandler rpc;
       ConnectionManager cm;
       SessionManager sm;
-      Session *session;
+      QSharedPointer<Session> session;
       QSharedPointer<AsymmetricKey> key;
       static int calledback;
       static int success;

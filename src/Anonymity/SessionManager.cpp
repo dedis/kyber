@@ -17,9 +17,9 @@ namespace Anonymity {
     _rpc.Unregister("SM::Ready");
   }
 
-  void SessionManager::AddSession(Session *session)
+  void SessionManager::AddSession(QSharedPointer<Session> session)
   {
-    QObject::connect(session, SIGNAL(Closed(Session *)),
+    QObject::connect(session.data(), SIGNAL(Closed(Session *)),
           this, SLOT(HandleSessionClose(Session *)));
     _id_to_session[session->GetId()] = session;
     if(session->IsLeader()) {
@@ -29,8 +29,8 @@ namespace Anonymity {
 
   void SessionManager::Ready(RpcRequest &request)
   {
-    Session *session = GetSession(request);
-    if(session) {
+    QSharedPointer<Session> session = GetSession(request);
+    if(!session.isNull()) {
       session->ReceivedReady(request);
     } else {
       // queue it...
@@ -39,18 +39,18 @@ namespace Anonymity {
 
   void SessionManager::IncomingData(RpcRequest &notification)
   {
-    Session *session = GetSession(notification);
-    if(session) {
+    QSharedPointer<Session> session = GetSession(notification);
+    if(!session.isNull()) {
       session->IncomingData(notification);
     }
   }
 
-  Session *SessionManager::GetSession(RpcRequest &msg)
+  QSharedPointer<Session> SessionManager::GetSession(RpcRequest &msg)
   {
     QByteArray bid = msg.GetMessage()["session_id"].toByteArray();
     if(bid.isEmpty()) {
       qWarning() << "Received a wayward session message from " << msg.GetFrom()->ToString();
-      return 0;
+      return QSharedPointer<Session>();
     }
 
     Id id(bid);
@@ -59,7 +59,7 @@ namespace Anonymity {
     } else {
       qWarning() << "Received a wayward session message for session " <<
         id.ToString() << " from " << msg.GetFrom()->ToString();
-      return 0;
+      return QSharedPointer<Session>();
     }
   }
 

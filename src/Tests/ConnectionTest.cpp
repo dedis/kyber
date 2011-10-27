@@ -16,14 +16,14 @@ namespace Tests {
     EdgeListener *be0 = EdgeListenerFactory::GetInstance().CreateEdgeListener(addr0);
     RpcHandler rpc0;
     Id id0;
-    ConnectionManager cm0(id0, &rpc0);
+    ConnectionManager cm0(id0, rpc0);
     cm0.AddEdgeListener(QSharedPointer<EdgeListener>(be0));
 
     const BufferAddress addr1(10001);
     EdgeListener *be1 = EdgeListenerFactory::GetInstance().CreateEdgeListener(addr1);
     RpcHandler rpc1;
     Id id1;
-    ConnectionManager cm1(id1, &rpc1);
+    ConnectionManager cm1(id1, rpc1);
     cm1.AddEdgeListener(QSharedPointer<EdgeListener>(be1));
 
     EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
@@ -81,14 +81,14 @@ namespace Tests {
     EdgeListener *be0 = EdgeListenerFactory::GetInstance().CreateEdgeListener(addr0);
     RpcHandler rpc0;
     Id id0;
-    ConnectionManager cm0(id0, &rpc0);
+    ConnectionManager cm0(id0, rpc0);
     cm0.AddEdgeListener(QSharedPointer<EdgeListener>(be0));
 
     const BufferAddress addr1(10001);
     EdgeListener *be1 = EdgeListenerFactory::GetInstance().CreateEdgeListener(addr1);
     RpcHandler rpc1;
     Id id1;
-    ConnectionManager cm1(id1, &rpc1);
+    ConnectionManager cm1(id1, rpc1);
     cm1.AddEdgeListener(QSharedPointer<EdgeListener>(be1));
 
     EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
@@ -169,14 +169,14 @@ namespace Tests {
     EdgeListener *be0 = EdgeListenerFactory::GetInstance().CreateEdgeListener(addr0);
     RpcHandler rpc0;
     Id id0;
-    ConnectionManager cm0(id0, &rpc0);
+    ConnectionManager cm0(id0, rpc0);
     cm0.AddEdgeListener(QSharedPointer<EdgeListener>(be0));
 
     const BufferAddress addr1(10001);
     EdgeListener *be1 = EdgeListenerFactory::GetInstance().CreateEdgeListener(addr1);
     RpcHandler rpc1;
     Id id1;
-    ConnectionManager cm1(id1, &rpc1);
+    ConnectionManager cm1(id1, rpc1);
     cm1.AddEdgeListener(QSharedPointer<EdgeListener>(be1));
 
     EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
@@ -236,14 +236,14 @@ namespace Tests {
     EdgeListener *be0 = EdgeListenerFactory::GetInstance().CreateEdgeListener(addr0);
     RpcHandler rpc0;
     Id id0;
-    ConnectionManager cm0(id0, &rpc0);
+    ConnectionManager cm0(id0, rpc0);
     cm0.AddEdgeListener(QSharedPointer<EdgeListener>(be0));
 
     const BufferAddress addr1(10001);
     EdgeListener *be1 = EdgeListenerFactory::GetInstance().CreateEdgeListener(addr1);
     RpcHandler rpc1;
     Id id1;
-    ConnectionManager cm1(id1, &rpc1);
+    ConnectionManager cm1(id1, rpc1);
     cm1.AddEdgeListener(QSharedPointer<EdgeListener>(be1));
 
     EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
@@ -297,14 +297,14 @@ namespace Tests {
     EdgeListener *be0 = EdgeListenerFactory::GetInstance().CreateEdgeListener(addr0);
     RpcHandler rpc0;
     Id id0;
-    ConnectionManager cm0(id0, &rpc0);
+    ConnectionManager cm0(id0, rpc0);
     cm0.AddEdgeListener(QSharedPointer<EdgeListener>(be0));
 
     const BufferAddress addr1(10001);
     EdgeListener *be1 = EdgeListenerFactory::GetInstance().CreateEdgeListener(addr1);
     RpcHandler rpc1;
     Id id1;
-    ConnectionManager cm1(id1, &rpc1);
+    ConnectionManager cm1(id1, rpc1);
     cm1.AddEdgeListener(QSharedPointer<EdgeListener>(be1));
 
     EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));

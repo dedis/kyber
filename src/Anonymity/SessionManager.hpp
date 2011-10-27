@@ -1,6 +1,8 @@
 #ifndef DISSENT_ANONYMITY_SESSION_MANAGER_H_GUARD
 #define DISSENT_ANONYMITY_SESSION_MANAGER_H_GUARD
 
+#include <QSharedPointer>
+
 #include "../Messaging/RpcHandler.hpp"
 #include "Session.hpp"
 
@@ -32,13 +34,13 @@ namespace Anonymity {
        * Adds a Session for the SessionManager to handle. Does not start the session.
        * @param session The session to be handled
        */
-      void AddSession(Session *session);
+      void AddSession(QSharedPointer<Session> session);
 
     private:
-      Session *GetSession(RpcRequest &msg);
+      QSharedPointer<Session> GetSession(RpcRequest &msg);
       void Ready(RpcRequest &request);
       void IncomingData(RpcRequest &notification);
-      QHash<Id, Session *> _id_to_session;
+      QHash<Id, QSharedPointer<Session> > _id_to_session;
       RpcMethod<SessionManager> _ready;
       RpcMethod<SessionManager> _data;
       RpcHandler &_rpc;

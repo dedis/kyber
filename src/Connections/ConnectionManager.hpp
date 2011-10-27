@@ -25,7 +25,7 @@ namespace Connections {
        * @param local_id the local id
        * @param rpc the Rpc Handler used in connection signaling
        */
-      ConnectionManager(const Id &local_id, RpcHandler *rpc);
+      ConnectionManager(const Id &local_id, RpcHandler &rpc);
 
       /**
        * Deconstructor
@@ -69,8 +69,10 @@ namespace Connections {
     signals:
       /**
        * A new outgoing connection has been created
+       * @param con the new connection
+       * @param local true if owned locally
        */
-      void NewConnectionSignal(Connection *con);
+      void NewConnectionSignal(Connection *con, bool local);
 
     private:
       /**
@@ -108,7 +110,7 @@ namespace Connections {
       ConnectionTable _rem_con_tab;
       const Id _local_id;
       EdgeFactory _edge_factory;
-      RpcHandler *_rpc;
+      RpcHandler &_rpc;
       bool _closed;
 
     private slots:

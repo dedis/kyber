@@ -54,20 +54,20 @@ namespace Tests {
   {
     if(node->session != 0) {
       node->session->Stop();
-      delete node->session;
+      node->session.clear();
     }
-    Session *session = callback(node, group, leader_id, session_id);
+    QSharedPointer<Session> session(callback(node, group, leader_id, session_id));
     node->session = session;
     session->SetSink(&(node->sink));
-    node->sm.AddSession(session);
-    QObject::connect(session, SIGNAL(RoundFinished(Session *, Round *)),
+    node->sm.AddSession(node->session);
+    QObject::connect(session.data(), SIGNAL(RoundFinished(Session *, Round *)),
         node, SLOT(HandleRoundFinished(Session *, Round *)));
   }
 
   void CleanUp(const QVector<TestNode *> &nodes)
   {
     for(int idx = 0; idx < nodes.count(); idx++) {
-      if(nodes[idx]->session) {
+      if(!nodes[idx]->session.isNull()) {
         nodes[idx]->session->Stop();
       }
       nodes[idx]->cm.Disconnect();

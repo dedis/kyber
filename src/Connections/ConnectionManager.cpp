@@ -2,7 +2,7 @@
 
 namespace Dissent {
 namespace Connections {
-  ConnectionManager::ConnectionManager(const Id &local_id, RpcHandler *rpc) :
+  ConnectionManager::ConnectionManager(const Id &local_id, RpcHandler &rpc) :
     _inquire(RpcMethod<ConnectionManager>(*this, &ConnectionManager::Inquire)),
     _inquired(RpcMethod<ConnectionManager>(*this, &ConnectionManager::Inquired)),
     _close(RpcMethod<ConnectionManager>(*this, &ConnectionManager::Close)),
@@ -10,18 +10,18 @@ namespace Connections {
     _disconnect(RpcMethod<ConnectionManager>(*this, &ConnectionManager::Disconnect)),
     _local_id(local_id), _rpc(rpc), _closed(false)
   {
-    _rpc->Register(&_inquire, "CM::Inquire");
-    _rpc->Register(&_close, "CM::Close");
-    _rpc->Register(&_connect, "CM::Connect");
-    _rpc->Register(&_disconnect, "CM::Disconnect");
+    _rpc.Register(&_inquire, "CM::Inquire");
+    _rpc.Register(&_close, "CM::Close");
+    _rpc.Register(&_connect, "CM::Connect");
+    _rpc.Register(&_disconnect, "CM::Disconnect");
   }
 
   ConnectionManager::~ConnectionManager()
   {
-    _rpc->Unregister("CM::Inquire");
-    _rpc->Unregister("CM::Close");
-    _rpc->Unregister("CM::Connect");
-    _rpc->Unregister("CM::Disconnect");
+    _rpc.Unregister("CM::Inquire");
+    _rpc.Unregister("CM::Close");
+    _rpc.Unregister("CM::Connect");
+    _rpc.Unregister("CM::Disconnect");
   }
 
   void ConnectionManager::AddEdgeListener(QSharedPointer<EdgeListener> el)
@@ -75,7 +75,7 @@ namespace Connections {
 
   void ConnectionManager::HandleNewEdge(Edge *edge)
   {
-    edge->SetSink(_rpc);
+    edge->SetSink(&_rpc);
     if(!edge->Outbound()) {
       _rem_con_tab.AddEdge(edge);
       return;
@@ -85,7 +85,7 @@ namespace Connections {
     QVariantMap request;
     request["method"] = "CM::Inquire";
     request["peer_id"] = _local_id.GetByteArray();
-    _rpc->SendRequest(request, edge, &_inquired);
+    _rpc.SendRequest(request, edge, &_inquired);
   }
 
   void ConnectionManager::Inquire(RpcRequest &request)
@@ -115,12 +115,22 @@ namespace Connections {
     }
 
     Id rem_id(brem_id);
+
+    if(rem_id == _local_id) {
+      qDebug() << "Attempting to connect to ourself";
+      QVariantMap notification;
+      notification["method"] = "CM::Close";
+      _rpc.SendNotification(notification, edge);
+      edge->Close("Attempting to connect to ourself");
+      return;
+    }
+
     if(_con_tab.GetConnection(rem_id) != 0) {
       qWarning() << "Already have a connection to: " << rem_id.ToString() << 
         " closing Edge: " << edge->ToString();
       QVariantMap notification;
       notification["method"] = "CM::Close";
-      _rpc->SendNotification(notification, edge);
+      _rpc.SendNotification(notification, edge);
       edge->Close("Duplicate connection");
       return;
     }
@@ -128,7 +138,7 @@ namespace Connections {
     QVariantMap notification;
     notification["method"] = "CM::Connect";
     notification["peer_id"] = _local_id.GetByteArray();
-    _rpc->SendNotification(notification, edge);
+    _rpc.SendNotification(notification, edge);
 
     qDebug() << _local_id.ToString() << ": Creating new connection to " << rem_id.ToString();
     Connection *con = new Connection(edge, _local_id, rem_id);
@@ -138,7 +148,7 @@ namespace Connections {
         this, SLOT(HandleDisconnect(Connection *)));
     QObject::connect(con, SIGNAL(Disconnected(Connection *, const QString &)),
         this, SLOT(HandleDisconnected(Connection *, const QString &)));
-    emit NewConnectionSignal(con);
+    emit NewConnectionSignal(con, true);
   }
 
   void ConnectionManager::Connect(RpcRequest &notification)
@@ -168,6 +178,7 @@ namespace Connections {
         this, SLOT(HandleDisconnect(Connection *)));
     QObject::connect(con, SIGNAL(Disconnected(Connection *, const QString &)),
         this, SLOT(HandleDisconnected(Connection *, const QString &)));
+    emit NewConnectionSignal(con, false);
   }
 
   void ConnectionManager::Close(RpcRequest &notification)
@@ -196,7 +207,7 @@ namespace Connections {
 
     QVariantMap notification;
     notification["method"] = "CM::Disconnect";
-    _rpc->SendNotification(notification, con);
+    _rpc.SendNotification(notification, con);
 
     qDebug() << "Handle disconnect on: " << con->ToString();
     con->GetEdge()->Close("Local disconnect request");
