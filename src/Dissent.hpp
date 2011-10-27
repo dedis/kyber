@@ -32,6 +32,8 @@
 #include "Messaging/RpcResponse.hpp"
 #include "Messaging/Source.hpp"
 
+#include "Overlay/BasicGossip.hpp"
+
 #include "Transports/Address.hpp"
 #include "Transports/AddressException.hpp"
 #include "Transports/AddressFactory.hpp"

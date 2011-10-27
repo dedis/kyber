@@ -41,6 +41,7 @@ HEADERS += src/Dissent.hpp \
            src/Messaging/RpcRequest.hpp \
            src/Messaging/RpcResponse.hpp \
            src/Messaging/Source.hpp \
+           src/Overlay/BasicGossip.hpp \
            src/Transports/Address.hpp \
            src/Transports/AddressException.hpp \
            src/Transports/AddressFactory.hpp \
@@ -82,6 +83,7 @@ SOURCES += src/Anonymity/Group.cpp \
            src/Messaging/RpcRequest.cpp \
            src/Messaging/RpcResponse.cpp \
            src/Messaging/Source.cpp \
+           src/Overlay/BasicGossip.cpp \
            src/Transports/Address.cpp \
            src/Transports/AddressFactory.cpp \
            src/Transports/BufferAddress.cpp \
@@ -96,4 +98,3 @@ SOURCES += src/Anonymity/Group.cpp \
            src/Utils/Time.cpp \
            src/Utils/Timer.cpp \
            src/Utils/TimerEvent.cpp
-

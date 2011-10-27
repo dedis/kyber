@@ -1,0 +1,159 @@
+#include "BasicGossip.hpp"
+
+#include <QDataStream>
+
+namespace Dissent {
+  BasicGossip::BasicGossip(QList<Address> local_endpoints,
+      QList<Address> remote_endpoints) :
+    _local_endpoints(local_endpoints),
+    _remote_endpoints(remote_endpoints),
+    _started(false),
+    _cm(_local_id, _rpc),
+    _peer_list_inquire(*this, &BasicGossip::PeerListInquire),
+    _peer_list_response(*this, &BasicGossip::PeerListResponse),
+    _notify_peer(*this, &BasicGossip::PeerListIncrementalUpdate)
+  {
+    _rpc.Register(&_peer_list_inquire, "SN::PeerList");
+    _rpc.Register(&_notify_peer, "SN::Update");
+  }
+
+  BasicGossip::~BasicGossip()
+  {
+    _rpc.Unregister("SN::PeerList");
+    _rpc.Unregister("SN::Update");
+  }
+
+  bool BasicGossip::Start()
+  {
+    if(_started) {
+      return false;
+    }
+
+    _started = true;
+
+    QObject::connect(&_cm, SIGNAL(NewConnectionSignal(Connection *, bool)),
+        this, SLOT(HandleConnection(Connection *,bool)));
+
+    foreach(const Address &addr, _local_endpoints) {
+      EdgeListener *el = EdgeListenerFactory::GetInstance().CreateEdgeListener(addr);
+      QSharedPointer<EdgeListener> pel(el);
+      _edge_listeners.append(pel);
+      _cm.AddEdgeListener(pel);
+      pel->Start();
+    }
+
+    foreach(const Address &addr, _remote_endpoints) {
+      _cm.ConnectTo(addr);
+    }
+
+    return true;
+  }
+
+  void BasicGossip::HandleConnection(Connection *con, bool local)
+  {
+    if(!local) {
+      return;
+    }
+
+    SendUpdate(con);
+    RequestPeerList(con);
+  }
+
+  void BasicGossip::SendUpdate(Connection *con)
+  {
+    QVariantMap notification;
+    notification["method"] = "SN::Update";
+    notification["peer_id"] = con->GetRemoteId().GetByteArray();
+    notification["address"] = con->GetEdge()->GetRemoteAddress().GetUrl();
+
+    foreach(Connection *other_con, _cm.GetConnectionTable().GetConnections()) {
+      if(other_con == con) {
+        continue;
+      }
+      _rpc.SendNotification(notification, other_con);
+    }
+  }
+
+  void BasicGossip::RequestPeerList(Connection *con)
+  {
+    QVariantMap request;
+    request["method"] = "SN::PeerList";
+    request["peer_id"] = _cm.GetId().GetByteArray();
+
+    QList<QUrl> local_addresses;
+    foreach(QSharedPointer<EdgeListener> el, _edge_listeners) {
+      local_addresses.append(el->GetAddress().GetUrl());
+    }
+
+    QByteArray lam;
+    QDataStream stream(&lam, QIODevice::WriteOnly);
+    stream << local_addresses;
+    request["addresses"] = lam;
+
+    _rpc.SendRequest(request, con, &_peer_list_response);
+  }
+
+  void BasicGossip::PeerListInquire(RpcRequest &request)
+  {
+    QVariantMap msg = request.GetMessage();
+    QByteArray bid = msg["peer_id"].toByteArray();
+
+    QDataStream in_stream(msg["addresses"].toByteArray());
+    QList<QUrl> addresses;
+    in_stream >> addresses;
+
+    foreach(QUrl url, addresses) {
+      CheckAndConnect(bid, url);
+    }
+
+    QHash<QByteArray, QUrl> id_to_addr;
+    foreach(Connection *con, _cm.GetConnectionTable().GetConnections()) {
+      QUrl url = con->GetEdge()->GetRemoteAddress().GetUrl();
+      QByteArray id = con->GetRemoteId().GetByteArray();
+      id_to_addr[id] = url;
+    }
+
+    QByteArray plm;
+    QDataStream out_stream(&plm, QIODevice::WriteOnly);
+    out_stream << id_to_addr;
+
+    QVariantMap response;
+    response["peer_list"] = plm;
+    request.Respond(response);
+  }
+
+  void BasicGossip::PeerListResponse(RpcRequest &response)
+  {
+    QVariantMap msg = response.GetMessage();
+
+    QDataStream stream(msg["peer_list"].toByteArray());
+    QHash<QByteArray, QUrl> id_to_addr;
+    stream >> id_to_addr;
+
+    foreach(const QByteArray &bid, id_to_addr.keys()) {
+      CheckAndConnect(bid, id_to_addr[bid]);
+    }
+  }
+
+  void BasicGossip::PeerListIncrementalUpdate(RpcRequest &notification)
+  {
+    QVariantMap msg = notification.GetMessage();
+    CheckAndConnect(msg["peer_id"].toByteArray(), msg["address"].toUrl());
+  }
+
+  void BasicGossip::CheckAndConnect(const QByteArray &bid, const QUrl &url)
+  {
+    if(!url.isValid()) {
+      qWarning() << "Remote peer gave us an invalid url";
+      return;
+    }
+
+    Id id(bid);
+    if(_cm.GetConnectionTable().GetConnection(id) != 0) {
+      return;
+    }
+
+    Address addr = AddressFactory::GetInstance().CreateAddress(url);
+    _cm.ConnectTo(addr);
+  }
+}
