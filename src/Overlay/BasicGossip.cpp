@@ -8,6 +8,7 @@ namespace Dissent {
     _local_endpoints(local_endpoints),
     _remote_endpoints(remote_endpoints),
     _started(false),
+    _stopped(false),
     _cm(_local_id, _rpc),
     _peer_list_inquire(*this, &BasicGossip::PeerListInquire),
     _peer_list_response(*this, &BasicGossip::PeerListResponse),
@@ -46,6 +47,23 @@ namespace Dissent {
       _cm.ConnectTo(addr);
     }
 
+    return true;
+  }
+
+  bool BasicGossip::Stop()
+  {
+    if(_stopped) {
+      return false;
+    }
+
+    _stopped = true;
+
+    if(!_started) {
+      _started = true;
+      return false;
+    }
+
+    _cm.Disconnect();
     return true;
   }
 

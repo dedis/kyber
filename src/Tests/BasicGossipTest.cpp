@@ -23,7 +23,7 @@ namespace Tests {
     nodes.append(QSharedPointer<BasicGossip>(GenerateNode(1, remote)));
 
     remote.append(BufferAddress(1));
-    for(int idx = 1; idx < 40; idx++) {
+    for(int idx = 1; idx < count; idx++) {
       nodes.append(QSharedPointer<BasicGossip>(GenerateNode(idx + 1, remote)));
     }
 
@@ -39,6 +39,20 @@ namespace Tests {
 
     foreach(QSharedPointer<BasicGossip> sn, nodes) {
       EXPECT_EQ(sn->GetConnectionTable().GetConnections().count(), count - 1);
+    }
+
+    foreach(QSharedPointer<BasicGossip> sn, nodes) {
+      sn->Stop();
+    }
+
+    next = Timer::GetInstance().VirtualRun();
+    while(next != -1) {
+      Time::GetInstance().IncrementVirtualClock(next);
+      next = Timer::GetInstance().VirtualRun();
+    }
+
+    foreach(QSharedPointer<BasicGossip> sn, nodes) {
+      EXPECT_EQ(sn->GetConnectionTable().GetConnections().count(), 0);
     }
   }
 }

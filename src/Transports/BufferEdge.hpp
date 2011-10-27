@@ -40,6 +40,8 @@ namespace Transports {
        */
       const int Delay;
 
+      inline virtual bool IsClosed() { return _closing; }
+
     private:
       /**
        * On the receiver side, handle an incoming request after it has been

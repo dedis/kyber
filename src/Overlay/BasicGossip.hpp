@@ -42,6 +42,11 @@ namespace Dissent {
       bool Start();
 
       /**
+       * Disconnects the node from the overlay
+       */
+      bool Stop();
+
+      /**
        * Returns the RpcHandler for the member
        */
       inline RpcHandler &GetRpcHandler() { return _rpc; }
@@ -51,11 +56,20 @@ namespace Dissent {
        */
       inline ConnectionTable &GetConnectionTable() { return _cm.GetConnectionTable(); }
 
+    signals:
+      /**
+       * A new outgoing connection has been created
+       * @param con the new connection
+       * @param local true if owned locally
+       */
+      void NewConnection(Connection *con, bool local);
+
     private:
       QList<Address> _local_endpoints;
       QList<Address> _remote_endpoints;
 
       bool _started;
+      bool _stopped;
       Id _local_id;
       RpcHandler _rpc;
       ConnectionManager _cm;

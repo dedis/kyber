@@ -40,36 +40,41 @@ namespace Connections {
     _cons[con] = con;
     _id_to_con[con->GetRemoteId()] = con;
     _edge_to_con[con->GetEdge()] = con;
-    _edges.remove(con->GetEdge());
   }
 
   bool ConnectionTable::Disconnect(Connection *con)
   {
-    bool found = false;
-
     const Id &id = con->GetRemoteId();
     Edge *edge = con->GetEdge();
 
     if(_id_to_con.contains(id) && _id_to_con[id]->GetEdge() == edge) {
       _id_to_con.remove(id);
-      found |= true;
+      return true;
     } else {
       qWarning() << "Connection asked to be removed by Id but not found: " << con->ToString();
+      return false;
     }
-
-    if(_edge_to_con.contains(edge)) {
-      _edge_to_con.remove(edge);
-      found |= true;
-    } else {
-      qWarning() << "Connection asked to be removed by Edge but not found: " << con->ToString();
-    }
-
-    return found;
   }
 
   bool ConnectionTable::RemoveConnection(Connection *con)
   {
-    return _cons.remove(con) != 0;
+    Edge *edge = con->GetEdge();
+    bool found = false;
+
+    if(_edge_to_con.contains(edge)) {
+      _edge_to_con.remove(edge);
+      found = true;
+    } else {
+      qWarning() << "Connection asked to be removed by Edge but not found:" << con->ToString();
+    }
+
+    if(_cons.contains(con)) {
+      found |= (_cons.remove(con) != 0);
+    } else {
+      qWarning() << "Connection could not be found:" << con->ToString();
+    }
+
+    return found;
   }
 }
 }

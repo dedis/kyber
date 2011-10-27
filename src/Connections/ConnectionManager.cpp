@@ -63,11 +63,15 @@ namespace Connections {
     }
 
     foreach(Edge *edge, _con_tab.GetEdges()) {
-      edge->Close("Disconnecting");
+      if(!edge->IsClosed()) {
+        edge->Close("Disconnecting");
+      }
     }
-
+    
     foreach(Edge *edge, _rem_con_tab.GetEdges()) {
-      edge->Close("Disconnecting");
+      if(!edge->IsClosed()) {
+        edge->Close("Disconnecting");
+      }
     }
 
     _edge_factory.Stop();
@@ -76,6 +80,10 @@ namespace Connections {
   void ConnectionManager::HandleNewEdge(Edge *edge)
   {
     edge->SetSink(&_rpc);
+
+    QObject::connect(edge, SIGNAL(Closed(const Edge *, const QString &)),
+        this, SLOT(HandleEdgeClose(const Edge *, const QString &)));
+
     if(!edge->Outbound()) {
       _rem_con_tab.AddEdge(edge);
       return;
@@ -189,10 +197,6 @@ namespace Connections {
       return;
     }
 
-    Connection *con = _rem_con_tab.GetConnection(edge);
-    if(con != 0) {
-    }
-
     edge->Close("Closed from remote peer");
     delete edge;
   }
@@ -245,6 +249,7 @@ namespace Connections {
   {
     ConnectionTable &con_tab = edge->Outbound() ? _con_tab : _rem_con_tab;
     if(!con_tab.RemoveEdge(edge)) {
+      qWarning() << "Edge closed but no Edge found in CT:" << edge->ToString();
     }
   }
 }

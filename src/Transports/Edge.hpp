@@ -64,7 +64,7 @@ namespace Transports {
       /**
        * True if the edge has been closed
        */
-      inline bool IsClosed() { return _closed; }
+      inline virtual bool IsClosed() { return _closed; }
 
     signals:
       /**
