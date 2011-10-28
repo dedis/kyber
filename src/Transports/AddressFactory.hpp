@@ -15,15 +15,20 @@ namespace Transports {
     public:
       static AddressFactory &GetInstance();
 
-      typedef const Address (*Callback) (const QUrl &url);
+      typedef const Address (*CreateCallback) (const QUrl &url);
+      typedef const Address (*AnyCallback) ();
 
       AddressFactory();
-      void AddCallback(const QString &type, Callback cb);
+      void AddCreateCallback(const QString &type, CreateCallback cb);
       const Address CreateAddress(const QString &surl) const;
       const Address CreateAddress(const QUrl &url) const;
 
+      void AddAnyCallback(const QString &type, AnyCallback cb);
+      const Address CreateAny(const QString &type) const;
+
     private:
-      QHash<QString, Callback> _type_to_callback;
+      QHash<QString, CreateCallback> _type_to_create;
+      QHash<QString, AnyCallback> _type_to_any;
   };
 }
 }

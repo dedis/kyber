@@ -1,5 +1,8 @@
-#include "BufferEdgeListener.hpp"
 #include <QDebug>
+#include "BufferEdgeListener.hpp"
+#include "../Utils/Random.hpp"
+
+using Dissent::Utils::Random;
 
 namespace Dissent {
 namespace Transports {
@@ -9,9 +12,17 @@ namespace Transports {
     EdgeListener(local_address)
   {
     int id = local_address.GetId();
+
+    BufferAddress addr = local_address;
+    if(id == 0) {
+      while(_el_map.contains(id = Random::GetInstance().GetInt(1)));
+      addr = BufferAddress(id);
+      SetLocalAddress(addr);
+    }
+
     if(_el_map.contains(id)) {
       qWarning() << "Attempting to create two BufferEdgeListeners with the same" <<
-        " address: " << local_address.ToString();
+        " address: " << addr.ToString();
       return;
     }
     _el_map[id] = this;

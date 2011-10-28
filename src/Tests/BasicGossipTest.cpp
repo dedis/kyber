@@ -3,14 +3,8 @@
 namespace Dissent {
 namespace Tests {
   namespace {
+    using namespace Dissent::Overlay;
     using namespace Dissent::Utils;
-  }
-
-  BasicGossip *GenerateNode(int local_idx, QList<Address> remote)
-  {
-    QList<Address> local;
-    local.append(BufferAddress(local_idx));
-    return new BasicGossip(local, remote);
   }
 
   TEST(BasicGossip, Bootstrap)
@@ -19,16 +13,20 @@ namespace Tests {
     Timer::GetInstance().UseVirtualTime();
     QVector<QSharedPointer<BasicGossip> > nodes;
     QList<Address> remote;
+    QList<Address> local;
+    BufferAddress ba = BufferAddress(1);
+    local.append(ba);
+    remote.append(ba);
 
-    nodes.append(QSharedPointer<BasicGossip>(GenerateNode(1, remote)));
+    nodes.append(QSharedPointer<BasicGossip>(new BasicGossip(local, remote)));
 
-    remote.append(BufferAddress(1));
+    local[0] = AddressFactory::GetInstance().CreateAny("buffer");
     for(int idx = 1; idx < count; idx++) {
-      nodes.append(QSharedPointer<BasicGossip>(GenerateNode(idx + 1, remote)));
+      nodes.append(QSharedPointer<BasicGossip>(new BasicGossip(local, remote)));
     }
 
-    foreach(QSharedPointer<BasicGossip> sn, nodes) {
-      sn->Start();
+    foreach(QSharedPointer<BasicGossip> bg, nodes) {
+      bg->Start();
     }
 
     qint64 next = Timer::GetInstance().VirtualRun();
@@ -37,12 +35,12 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    foreach(QSharedPointer<BasicGossip> sn, nodes) {
-      EXPECT_EQ(sn->GetConnectionTable().GetConnections().count(), count - 1);
+    foreach(QSharedPointer<BasicGossip> bg, nodes) {
+      EXPECT_EQ(bg->GetConnectionTable().GetConnections().count(), count - 1);
     }
 
-    foreach(QSharedPointer<BasicGossip> sn, nodes) {
-      sn->Stop();
+    foreach(QSharedPointer<BasicGossip> bg, nodes) {
+      bg->Stop();
     }
 
     next = Timer::GetInstance().VirtualRun();
@@ -51,8 +49,8 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    foreach(QSharedPointer<BasicGossip> sn, nodes) {
-      EXPECT_EQ(sn->GetConnectionTable().GetConnections().count(), 0);
+    foreach(QSharedPointer<BasicGossip> bg, nodes) {
+      EXPECT_EQ(bg->GetConnectionTable().GetConnections().count(), 0);
     }
   }
 }

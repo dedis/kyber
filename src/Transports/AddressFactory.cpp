@@ -10,12 +10,13 @@ namespace Transports {
 
   AddressFactory::AddressFactory()
   {
-    AddCallback("buffer", BufferAddress::Create);
+    AddCreateCallback("buffer", BufferAddress::Create);
+    AddAnyCallback("buffer", BufferAddress::CreateAny);
   }
 
-  void AddressFactory::AddCallback(const QString &scheme, Callback cb)
+  void AddressFactory::AddCreateCallback(const QString &scheme, CreateCallback cb)
   {
-    _type_to_callback[scheme] = cb;
+    _type_to_create[scheme] = cb;
   }
 
   const Address AddressFactory::CreateAddress(const QString &surl) const
@@ -25,11 +26,25 @@ namespace Transports {
 
   const Address AddressFactory::CreateAddress(const QUrl &url) const
   {
-    Callback cb = _type_to_callback[url.scheme()];
+    CreateCallback cb = _type_to_create[url.scheme()];
     if(cb == 0) {
       return Address::Create(url);
     }
     return cb(url);
+  }
+
+  void AddressFactory::AddAnyCallback(const QString &scheme, AnyCallback cb)
+  {
+    _type_to_any[scheme] = cb;
+  }
+
+  const Address AddressFactory::CreateAny(const QString &type) const
+  {
+    AnyCallback cb = _type_to_any[type];
+    if(cb == 0) {
+      qFatal(QString("Attempted to CreateAny on a non scheme" + type).toUtf8().data());
+    }
+    return cb();
   }
 }
 }

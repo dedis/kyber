@@ -32,6 +32,11 @@ namespace Transports {
     return BufferAddress(url);
   }
 
+  const Address BufferAddress::CreateAny()
+  {
+    return BufferAddress(0);
+  }
+
   bool BufferAddressData::Equals(const AddressData *other) const
   {
     const BufferAddressData *bother = dynamic_cast<const BufferAddressData *>(other);

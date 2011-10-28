@@ -61,9 +61,15 @@ namespace Transports {
       virtual void ProcessNewEdge(Edge *edge);
 
       /**
+       * If the given local address is an Any address, it will need to be set
+       * after a valid address has been generated.
+       */
+      void SetLocalAddress(const Address &address) { _local_address = address; }
+
+      /**
        * The local transport address
        */
-      const Address _local_address;
+      Address _local_address;
 
     protected slots:
       /**
