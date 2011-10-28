@@ -8,8 +8,8 @@ namespace Tests {
   void RoundTest_Null(CreateSessionCallback callback, bool keys = false)
   {
     Timer::GetInstance().UseVirtualTime();
-    int count = random(10, 50);
-    int leader = random(0, count);
+    int count = Random::GetInstance().GetInt(10, 50);
+    int leader = Random::GetInstance().GetInt(0, count);
 
     QVector<TestNode *> nodes;
     Group *group;
@@ -60,9 +60,9 @@ namespace Tests {
   {
     Timer::GetInstance().UseVirtualTime();
 
-    int count = random(10, 50);
-    int leader = random(0, count);
-    int sender = random(0, count);
+    int count = Random::GetInstance().GetInt(10, 50);
+    int leader = Random::GetInstance().GetInt(0, count);
+    int sender = Random::GetInstance().GetInt(0, count);
 
     QVector<TestNode *> nodes;
     Group *group;
@@ -114,12 +114,12 @@ namespace Tests {
   {
     Timer::GetInstance().UseVirtualTime();
 
-    int count = random(10, 50);
-    int leader = random(0, count);
-    int sender0 = random(0, count);
-    int sender1 = random(0, count);
+    int count = Random::GetInstance().GetInt(10, 50);
+    int leader = Random::GetInstance().GetInt(0, count);
+    int sender0 = Random::GetInstance().GetInt(0, count);
+    int sender1 = Random::GetInstance().GetInt(0, count);
     while(sender0 != sender1) {
-      sender1 = random(0, count);
+      sender1 = Random::GetInstance().GetInt(0, count);
     }
 
     QVector<TestNode *> nodes;
@@ -173,11 +173,11 @@ namespace Tests {
   {
     Timer::GetInstance().UseVirtualTime();
 
-    int count = random(10, 50);
-    int leader = random(0, count);
-    int disconnecter = random(0, count);
+    int count = Random::GetInstance().GetInt(10, 50);
+    int leader = Random::GetInstance().GetInt(0, count);
+    int disconnecter = Random::GetInstance().GetInt(0, count);
     while(leader != disconnecter) {
-      disconnecter = random(0, count);
+      disconnecter = Random::GetInstance().GetInt(0, count);
     }
 
     QVector<TestNode *> nodes;
@@ -239,10 +239,10 @@ namespace Tests {
   {
     Timer::GetInstance().UseVirtualTime();
 
-    int count = random(10, 50);
-    int leader = random(0, count);
-    int sender = random(0, count);
-    int badguy = 7;//random(0, count);
+    int count = Random::GetInstance().GetInt(10, 50);
+    int leader = Random::GetInstance().GetInt(0, count);
+    int sender = Random::GetInstance().GetInt(0, count);
+    int badguy = Random::GetInstance().GetInt(0, count);
 
     QVector<TestNode *> nodes;
     Group *group;

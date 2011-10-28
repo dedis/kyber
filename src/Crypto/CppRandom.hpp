@@ -4,14 +4,14 @@
 #include <cryptopp/osrng.h> 
 #include <cryptopp/des.h>
 
-#include "Random.hpp"
+#include "../Utils/Random.hpp"
 
 namespace Dissent {
 namespace Crypto {
   /**
    * Implementation of Random using CryptoPP
    */
-  class CppRandom : public Random {
+  class CppRandom : public Dissent::Utils::Random {
     public:
       virtual int GetInt(int min = 0, int max = RAND_MAX);
       virtual void GenerateBlock(QByteArray &data);

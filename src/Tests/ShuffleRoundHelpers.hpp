@@ -10,6 +10,7 @@ namespace Tests {
     using namespace Dissent::Connections;
     using namespace Dissent::Crypto;
     using namespace Dissent::Messaging;
+    using namespace Dissent::Utils;
   }
 
   class ShuffleRoundBadInnerPrivateKey : public ShuffleRound {
@@ -102,10 +103,10 @@ namespace Tests {
           }
         }
 
-        int x = random(0, _shuffle_ciphertext.count());
-        int y = random(0, _shuffle_ciphertext.count());
+        int x = Random::GetInstance().GetInt(0, _shuffle_ciphertext.count());
+        int y = Random::GetInstance().GetInt(0, _shuffle_ciphertext.count());
         while(y == x) {
-          y = random(0, _shuffle_ciphertext.count());
+          y = Random::GetInstance().GetInt(0, _shuffle_ciphertext.count());
         }
 
         _shuffle_ciphertext[x] = _shuffle_ciphertext[y];
@@ -180,7 +181,7 @@ namespace Tests {
         OnionEncryptor::GetInstance().Encrypt(_public_inner_keys, data, inner_ct, 0);
         OnionEncryptor::GetInstance().Encrypt(outer_keys, inner_ct, outer_ct, 0);
 
-        int x = random(0, _shuffle_ciphertext.count());
+        int x = Random::GetInstance().GetInt(0, _shuffle_ciphertext.count());
         _shuffle_ciphertext[x] = outer_ct;
 
         ShuffleRound::Shuffle();
@@ -292,7 +293,7 @@ namespace Tests {
         OnionEncryptor::GetInstance().Encrypt(_public_inner_keys, _data,
             _inner_ciphertext, 0);
 
-        int count = random(1, _group.Count());
+        int count = Random::GetInstance().GetInt(1, _group.Count());
 
         QVector<AsymmetricKey *> tmp_keys(count, _public_outer_keys[count - 1]);
         QByteArray outer_tmp;

@@ -1,7 +1,5 @@
 #include <time.h>
 
-#include <QtGlobal>
-
 #include "DissentTest.hpp"
 
 void FileExists(QString filename);
@@ -13,7 +11,6 @@ GTEST_API_ int main(int argc, char **argv)
 {
   QCoreApplication qca(argc, argv);
   FilesExist();
-  qsrand(time(NULL));
   testing::InitGoogleTest(&argc, argv);
   int res = RUN_ALL_TESTS();
   FilesDelete();
@@ -60,17 +57,4 @@ void DisableLogging()
 void EnableLogging()
 {
     qInstallMsgHandler(0);
-}
-
-int random(int min, int max)
-{
-  if(max <= min) {
-    return min;
-  }
-
-  int value = qrand() % max;
-  while(value <= min) {
-    value = qrand() % max;
-  }
-  return value;
 }

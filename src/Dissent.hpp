@@ -17,7 +17,6 @@
 #include "Crypto/CppRandom.hpp"
 #include "Crypto/Hash.hpp"
 #include "Crypto/OnionEncryptor.hpp"
-#include "Crypto/Random.hpp"
 
 #include "Connections/Connection.hpp"
 #include "Connections/ConnectionManager.hpp"
@@ -45,6 +44,7 @@
 #include "Transports/EdgeListener.hpp"
 #include "Transports/EdgeListenerFactory.hpp"
 
+#include "Utils/Random.hpp"
 #include "Utils/Settings.hpp"
 #include "Utils/Sleeper.hpp"
 #include "Utils/Time.hpp"

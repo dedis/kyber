@@ -5,11 +5,12 @@ namespace Tests {
   namespace {
     using namespace Dissent::Crypto;
     using namespace Dissent::Anonymity;
+    using namespace Dissent::Utils;
   }
 
   TEST(Crypto, ShufflePrimitives)
   {
-    int count = random(10, 20);
+    int count = Random::GetInstance().GetInt(10, 20);
 
     QVector<AsymmetricKey *> private_keys;
     QVector<AsymmetricKey *> public_keys;
@@ -67,8 +68,8 @@ namespace Tests {
 
   TEST(Crypto, PublicKeySwap)
   {
-    int count = random(10, 20);
-    int changed = random(0, count);
+    int count = Random::GetInstance().GetInt(10, 20);
+    int changed = Random::GetInstance().GetInt(0, count);
 
     QVector<AsymmetricKey *> private_keys;
     QVector<AsymmetricKey *> public_keys;
@@ -112,9 +113,9 @@ namespace Tests {
 
   TEST(Crypto, CryptoTextSwap)
   {
-    int count = random(10, 20);
-    int changed = random(0, count);
-    int mchanged = random(0, count);
+    int count = Random::GetInstance().GetInt(10, 20);
+    int changed = Random::GetInstance().GetInt(0, count);
+    int mchanged = Random::GetInstance().GetInt(0, count);
 
     QVector<AsymmetricKey *> private_keys;
     QVector<AsymmetricKey *> public_keys;
@@ -179,12 +180,12 @@ namespace Tests {
 
   TEST(Crypto, MultipleCryptoTextSwap)
   {
-    int count = random(10, 20);
-    int changed = random(0, count);
-    int mchanged0 = random(0, count);
-    int mchanged1 = random(0, count);
+    int count = Random::GetInstance().GetInt(10, 20);
+    int changed = Random::GetInstance().GetInt(0, count);
+    int mchanged0 = Random::GetInstance().GetInt(0, count);
+    int mchanged1 = Random::GetInstance().GetInt(0, count);
     while((mchanged1 == mchanged0)) {
-      mchanged1 = random(0, count);
+      mchanged1 = Random::GetInstance().GetInt(0, count);
     }
 
     QVector<AsymmetricKey *> private_keys;
@@ -256,11 +257,11 @@ namespace Tests {
 
   TEST(Crypto, SoMuchEvil)
   {
-    int count = random(10, 20);
-    int changed0 = random(0, count - 5);
-    int changed1 = random(changed0 + 1, count + 1);
-    int mchanged0 = random(0, count);
-    int mchanged1 = random(0, count);
+    int count = Random::GetInstance().GetInt(10, 20);
+    int changed0 = Random::GetInstance().GetInt(0, count - 5);
+    int changed1 = Random::GetInstance().GetInt(changed0 + 1, count + 1);
+    int mchanged0 = Random::GetInstance().GetInt(0, count);
+    int mchanged1 = Random::GetInstance().GetInt(0, count);
 
     QVector<AsymmetricKey *> private_keys;
     QVector<AsymmetricKey *> public_keys;

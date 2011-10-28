@@ -28,7 +28,6 @@ HEADERS += src/Dissent.hpp \
            src/Crypto/CppRandom.hpp \
            src/Crypto/Hash.hpp \
            src/Crypto/OnionEncryptor.hpp \
-           src/Crypto/Random.hpp \
            src/Connections/Connection.hpp \
            src/Connections/ConnectionManager.hpp \
            src/Connections/ConnectionTable.hpp \
@@ -52,6 +51,7 @@ HEADERS += src/Dissent.hpp \
            src/Transports/EdgeFactory.hpp \
            src/Transports/EdgeListener.hpp \
            src/Transports/EdgeListenerFactory.hpp \
+           src/Utils/Random.hpp \
            src/Utils/QRunTimeError.hpp \
            src/Utils/Settings.hpp \
            src/Utils/Sleeper.hpp \
@@ -93,6 +93,7 @@ SOURCES += src/Anonymity/Group.cpp \
            src/Transports/EdgeFactory.cpp \
            src/Transports/EdgeListener.cpp \
            src/Transports/EdgeListenerFactory.cpp \
+           src/Utils/Random.cpp \
            src/Utils/Settings.cpp \
            src/Utils/Sleeper.cpp \
            src/Utils/Time.cpp \
