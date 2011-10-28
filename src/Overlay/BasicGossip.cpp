@@ -3,8 +3,9 @@
 #include <QDataStream>
 
 namespace Dissent {
-  BasicGossip::BasicGossip(QList<Address> local_endpoints,
-      QList<Address> remote_endpoints) :
+namespace Overlay {
+  BasicGossip::BasicGossip(const QList<Address> &local_endpoints,
+      const QList<Address> &remote_endpoints) :
     _local_endpoints(local_endpoints),
     _remote_endpoints(remote_endpoints),
     _started(false),
@@ -174,4 +175,5 @@ namespace Dissent {
     Address addr = AddressFactory::GetInstance().CreateAddress(url);
     _cm.ConnectTo(addr);
   }
+}
 }

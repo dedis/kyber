@@ -6,11 +6,11 @@
 #include "Dissent.hpp"
 
 namespace Dissent {
+namespace Overlay {
   namespace {
     using namespace Dissent::Messaging;
     using namespace Dissent::Transports;
     using namespace Dissent::Connections;
-    using namespace Dissent::Anonymity;
   }
 
   /**
@@ -27,8 +27,8 @@ namespace Dissent {
        * via EdgeListeners
        * @param remote_endpoints list of remote members
        */
-      BasicGossip(QList<Address> local_endpoints,
-          QList<Address> remote_endpoints);
+      BasicGossip(const QList<Address> &local_endpoints,
+          const QList<Address> &remote_endpoints);
 
       /**
        * Deconstructor
@@ -56,6 +56,11 @@ namespace Dissent {
        */
       inline ConnectionTable &GetConnectionTable() { return _cm.GetConnectionTable(); }
 
+      /**
+       * Returns the nodes Id
+       */
+      inline Id GetId() { return _local_id; }
+
     signals:
       /**
        * A new outgoing connection has been created
@@ -74,7 +79,7 @@ namespace Dissent {
       RpcHandler _rpc;
       ConnectionManager _cm;
 
-      QVector<QSharedPointer<EdgeListener> > _edge_listeners;
+      QList<QSharedPointer<EdgeListener> > _edge_listeners;
 
       RpcMethod<BasicGossip> _peer_list_inquire;
       RpcMethod<BasicGossip> _peer_list_response;
@@ -122,6 +127,7 @@ namespace Dissent {
        */
       void HandleConnection(Connection *con, bool local);
   };
+}
 }
 
 #endif
