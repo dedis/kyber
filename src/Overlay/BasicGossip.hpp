@@ -3,7 +3,7 @@
 
 #include <QObject>
 #include <QSharedPointer>
-#include "Dissent.hpp"
+#include "../Connections/ConnectionManager.hpp"
 
 namespace Dissent {
 namespace Overlay {
@@ -45,6 +45,11 @@ namespace Overlay {
        * Disconnects the node from the overlay
        */
       bool Stop();
+
+      /**
+       * True if the system needs to reinit bootstrap
+       */
+      bool NeedConnection();
 
       /**
        * Returns the RpcHandler for the member

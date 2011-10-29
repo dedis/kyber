@@ -1,6 +1,8 @@
-#include "BasicGossip.hpp"
-
 #include <QDataStream>
+
+#include "BasicGossip.hpp"
+#include "../Transports/AddressFactory.hpp"
+#include "../Transports/EdgeListenerFactory.hpp"
 
 namespace Dissent {
 namespace Overlay {
@@ -68,14 +70,18 @@ namespace Overlay {
     return true;
   }
 
+  bool BasicGossip::NeedConnection()
+  {
+    return _cm.GetConnectionTable().GetConnections().count() > 0;
+  }
+
   void BasicGossip::HandleConnection(Connection *con, bool local)
   {
-    if(!local) {
-      return;
+    if(local) {
+      SendUpdate(con);
+      RequestPeerList(con);
     }
-
-    SendUpdate(con);
-    RequestPeerList(con);
+    emit NewConnection(con, local);
   }
 
   void BasicGossip::SendUpdate(Connection *con)
