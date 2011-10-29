@@ -22,9 +22,20 @@ namespace Anonymity {
     QObject::connect(session.data(), SIGNAL(Closed(Session *)),
           this, SLOT(HandleSessionClose(Session *)));
     _id_to_session[session->GetId()] = session;
-    if(session->IsLeader()) {
-      // dequeue any notifications
+    if(!session->IsLeader()) {
+      return;
     }
+
+    const Id &id = session->GetId();
+    if(!_requests.contains(id)) {
+      return;
+    }
+
+    foreach(RpcRequest request, _requests[id]) {
+      Ready(request);
+    }
+
+    _requests.remove(id);
   }
 
   void SessionManager::Ready(RpcRequest &request)
@@ -33,7 +44,12 @@ namespace Anonymity {
     if(!session.isNull()) {
       session->ReceivedReady(request);
     } else {
-      // queue it...
+      QByteArray bid = request.GetMessage()["session_id"].toByteArray();
+      Id id(bid);
+      if(!_requests.contains(id)) {
+        _requests[id] = QList<RpcRequest>();
+      }
+      _requests[id].append(request);
     }
   }
 

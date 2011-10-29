@@ -44,6 +44,10 @@ namespace Anonymity {
       RpcMethod<SessionManager> _ready;
       RpcMethod<SessionManager> _data;
       RpcHandler &_rpc;
+      // XXX this should be replaced with each node registering (continuously
+      // poking until getting a response), then the leader begins the round
+      // by sending a notify...
+      QHash<Id, QList<RpcRequest> > _requests;
 
     private slots:
       void HandleSessionClose(Session *session);
