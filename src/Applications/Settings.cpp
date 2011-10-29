@@ -1,15 +1,50 @@
 #include "Settings.hpp"
 
 namespace Dissent {
-namespace Utils {
+namespace Applications {
   Settings::Settings(const QString &file) :
-    _use_file(true), _settings(file, QSettings::IniFormat)
+    GroupSize(40),
+    LocalNodeCount(1),
+    _use_file(true),
+    _settings(file, QSettings::IniFormat),
+    _reason()
   {
     QVariant peers = _settings.value("remote_peers");
     ParseUrlList("RemotePeer", peers, RemotePeers);
 
     QVariant endpoints = _settings.value("endpoints");
     ParseUrlList("EndPoint", endpoints, LocalEndPoints);
+
+    DemoMode = _settings.value("demo_mode").toBool();
+
+    if(_settings.contains("group_size")) {
+      GroupSize = _settings.value("group_size").toInt();
+    }
+
+    if(_settings.contains("local_nodes")) {
+      LocalNodeCount = _settings.value("local_nodes").toInt();
+    }
+  }
+
+  bool Settings::IsValid()
+  {
+    if(_settings.status() != QSettings::NoError) {
+      _reason = "File error";
+      return false;
+    }
+
+    if(LocalEndPoints.count() == 0) {
+      _reason = "No locally defined end points";
+      return false;
+    }
+
+    return true;
+  }
+
+  QString Settings::GetError()
+  {
+    IsValid();
+    return _reason;
   }
 
   Settings::Settings() : _use_file(false)
@@ -40,7 +75,7 @@ namespace Utils {
     if(url.isValid()) {
       list << url;
     } else {
-      qWarning() << "Invalid " << name << ": " << value.toString();
+      qCritical() << "Invalid " << name << ": " << value.toString();
     }
   }
 
@@ -67,6 +102,10 @@ namespace Utils {
     if(!endpoints.empty()) {
       _settings.setValue("endpoints", endpoints);
     }
+
+    _settings.setValue("group_size", GroupSize);
+    _settings.setValue("local_nodes", LocalNodeCount);
+    _settings.setValue("demo_mode", DemoMode);
   }
 }
 }

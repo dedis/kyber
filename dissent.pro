@@ -21,6 +21,7 @@ HEADERS += src/Dissent.hpp \
            src/Anonymity/ShuffleBlamer.hpp \
            src/Anonymity/ShuffleRound.hpp \
            src/Anonymity/ShuffleRoundBlame.hpp \
+           src/Applications/Settings.hpp \
            src/Crypto/AsymmetricKey.hpp \
            src/Crypto/CppHash.hpp \
            src/Crypto/CppPrivateKey.hpp \
@@ -53,7 +54,6 @@ HEADERS += src/Dissent.hpp \
            src/Transports/EdgeListenerFactory.hpp \
            src/Utils/Random.hpp \
            src/Utils/QRunTimeError.hpp \
-           src/Utils/Settings.hpp \
            src/Utils/Sleeper.hpp \
            src/Utils/Time.hpp \
            src/Utils/Timer.hpp \
@@ -70,6 +70,7 @@ SOURCES += src/Anonymity/Group.cpp \
            src/Anonymity/ShuffleBlamer.cpp \
            src/Anonymity/ShuffleRound.cpp \
            src/Anonymity/ShuffleRoundBlame.cpp \
+           src/Applications/Settings.cpp \
            src/Crypto/CppHash.cpp \
            src/Crypto/CppPrivateKey.cpp \
            src/Crypto/CppPublicKey.cpp \
@@ -94,7 +95,6 @@ SOURCES += src/Anonymity/Group.cpp \
            src/Transports/EdgeListener.cpp \
            src/Transports/EdgeListenerFactory.cpp \
            src/Utils/Random.cpp \
-           src/Utils/Settings.cpp \
            src/Utils/Sleeper.cpp \
            src/Utils/Time.cpp \
            src/Utils/Timer.cpp \

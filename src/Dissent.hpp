@@ -10,6 +10,8 @@
 #include "Anonymity/SessionManager.hpp"
 #include "Anonymity/ShuffleRound.hpp"
 
+#include "Applications/Settings.hpp"
+
 #include "Crypto/AsymmetricKey.hpp"
 #include "Crypto/CppHash.hpp"
 #include "Crypto/CppPrivateKey.hpp"
@@ -23,6 +25,7 @@
 #include "Connections/ConnectionTable.hpp"
 #include "Connections/Id.hpp"
 
+#include "Messaging/DummySink.hpp"
 #include "Messaging/ISender.hpp"
 #include "Messaging/ISink.hpp"
 #include "Messaging/RpcHandler.hpp"
@@ -45,7 +48,6 @@
 #include "Transports/EdgeListenerFactory.hpp"
 
 #include "Utils/Random.hpp"
-#include "Utils/Settings.hpp"
 #include "Utils/Sleeper.hpp"
 #include "Utils/Time.hpp"
 #include "Utils/Timer.hpp"
