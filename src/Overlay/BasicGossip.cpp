@@ -37,6 +37,8 @@ namespace Overlay {
 
     QObject::connect(&_cm, SIGNAL(NewConnection(Connection *, bool)),
         this, SLOT(HandleConnection(Connection *,bool)));
+    QObject::connect(&_cm, SIGNAL(Disconnected()),
+        this, SLOT(HandleDisconnected()));
 
     foreach(const Address &addr, _local_endpoints) {
       EdgeListener *el = EdgeListenerFactory::GetInstance().CreateEdgeListener(addr);
@@ -68,6 +70,11 @@ namespace Overlay {
 
     _cm.Disconnect();
     return true;
+  }
+
+  void BasicGossip::HandleDisconnected()
+  {
+    emit Disconnected();
   }
 
   bool BasicGossip::NeedConnection()

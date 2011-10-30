@@ -48,15 +48,19 @@ namespace Tests {
 
   void TerminateOverlay(const QList<QSharedPointer<Node> > &nodes)
   {
+    SignalCounter sc;
     foreach(QSharedPointer<Node> node, nodes) {
+      QObject::connect(&node->bg, SIGNAL(Disconnected()), &sc, SLOT(Counter()));
       node->bg.Stop();
     }
 
     qint64 next = Timer::GetInstance().VirtualRun();
-    while(next != -1) {
+    while(next != -1 && sc.GetCount() != nodes.count()) {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
     }
+
+    EXPECT_EQ(sc.GetCount(), nodes.count());
 
     foreach(QSharedPointer<Node> node, nodes) {
       EXPECT_EQ(node->bg.GetConnectionTable().GetConnections().count(), 0);

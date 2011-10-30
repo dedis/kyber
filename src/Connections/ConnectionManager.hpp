@@ -74,6 +74,11 @@ namespace Connections {
        */
       void NewConnection(Connection *con, bool local);
 
+      /**
+       * Emitted when disconnected
+       */
+      void Disconnected();
+
     private:
       /**
        * A remote peer is inquiring about the nodes Id

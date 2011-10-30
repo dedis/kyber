@@ -54,6 +54,7 @@ namespace Connections {
     }
 
     _closed = true;
+    bool emit_dis = _con_tab.GetEdges().count() == 0 && _rem_con_tab.GetEdges().count();
     foreach(Connection *con, _con_tab.GetConnections()) {
       con->Disconnect();
     }
@@ -75,6 +76,10 @@ namespace Connections {
     }
 
     _edge_factory.Stop();
+
+    if(emit_dis) {
+      emit Disconnected();
+    } 
   }
 
   void ConnectionManager::HandleNewEdge(Edge *edge)
@@ -250,6 +255,14 @@ namespace Connections {
     ConnectionTable &con_tab = edge->Outbound() ? _con_tab : _rem_con_tab;
     if(!con_tab.RemoveEdge(edge)) {
       qWarning() << "Edge closed but no Edge found in CT:" << edge->ToString();
+    }
+
+    if(!_closed) {
+      return;
+    }
+
+    if(_con_tab.GetEdges().count() == 0 && _rem_con_tab.GetEdges().count() == 0) {
+      emit Disconnected();
     }
   }
 }

@@ -74,6 +74,11 @@ namespace Overlay {
        */
       void NewConnection(Connection *con, bool local);
 
+      /**
+       * Emitted when disconnected
+       */
+      void Disconnected();
+
     private:
       QList<Address> _local_endpoints;
       QList<Address> _remote_endpoints;
@@ -131,6 +136,11 @@ namespace Overlay {
        * @param local true if owned locally
        */
       void HandleConnection(Connection *con, bool local);
+
+      /**
+       * Handles the CM disconnect message
+       */
+      void HandleDisconnected();
   };
 }
 }
