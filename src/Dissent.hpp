@@ -54,6 +54,7 @@
 #include "Transports/TcpAddress.hpp"
 
 #include "Utils/Random.hpp"
+#include "Utils/Serialization.hpp"
 #include "Utils/SignalCounter.hpp"
 #include "Utils/Sleeper.hpp"
 #include "Utils/Time.hpp"

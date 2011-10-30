@@ -61,6 +61,7 @@ HEADERS += src/Dissent.hpp \
            src/Transports/TcpAddress.hpp \
            src/Utils/Random.hpp \
            src/Utils/QRunTimeError.hpp \
+           src/Utils/Serialization.hpp \
            src/Utils/SignalCounter.hpp \
            src/Utils/Sleeper.hpp \
            src/Utils/Time.hpp \

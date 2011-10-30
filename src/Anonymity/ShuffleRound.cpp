@@ -1,3 +1,4 @@
+#include "../Utils/Serialization.hpp"
 #include "ShuffleRound.hpp"
 #include "ShuffleBlamer.hpp"
 #include "../Crypto/OnionEncryptor.hpp"
@@ -69,14 +70,7 @@ namespace Anonymity {
   QByteArray ShuffleRound::PrepareData(QByteArray data)
   {
     QByteArray msg(4, 0);
-
-    int size = data.size();
-    int idx = 0;
-    while(size > 0) {
-      msg[idx++] = (size & 0xFF);
-      size >>= 8;
-    }
-
+    Dissent::Utils::Serialization::WriteInt(data.size(), msg, 0);
     msg.append(data);
     msg.resize(BlockSize + 4);
     return msg;
@@ -84,11 +78,7 @@ namespace Anonymity {
 
   QByteArray ShuffleRound::GetData(QByteArray data)
   {
-    int size = 0;
-    for(int idx = 0; idx < 4; idx++) {
-      size |= (data[idx] << (8 * idx));
-    }
-
+    int size = Dissent::Utils::Serialization::ReadInt(data, 0);
     if(size == 0) {
       return QByteArray();
     }
