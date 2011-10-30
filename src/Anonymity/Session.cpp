@@ -42,6 +42,7 @@ namespace Anonymity {
 
   void Session::Start()
   {
+    qDebug() << "Session" << ToString() << "started";
     if(_started) {
       qWarning() << "Called start twice.";
       return;
@@ -98,7 +99,9 @@ namespace Anonymity {
     }
 
     _id_to_request.insert(con->GetRemoteId(), request);
-    LeaderReady();
+    if(_started) {
+      LeaderReady();
+    }
   }
 
   bool Session::LeaderReady()
@@ -124,6 +127,7 @@ namespace Anonymity {
 
   void Session::HandleRoundFinished(Round *round)
   {
+    qDebug() << "Session" << ToString() << "round finished";
     if(round != _current_round) {
       qWarning() << "Received an awry Round Finished notification";
       return;
@@ -144,6 +148,7 @@ namespace Anonymity {
   void Session::NextRound()
   {
     if(_current_round) {
+      qDebug() << "Session" << ToString() << "creating a new round";
       QObject::disconnect(_current_round, SIGNAL(Finished(Round *)),
           this, SLOT(HandleRoundFinished(Round *)));
 
