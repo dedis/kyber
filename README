@@ -6,7 +6,7 @@ This library will eventually provide a framework for constructing provably
 anonymous overlays with the following key features.
 
 The library requires Qt and CryptoPP and can be built using qmake on
-dissent.pro (qmake -makefile dissent.pro)
+dissent.pro (qmake dissent.pro)
 
 While previous versions of the code focused on linkable libraries, because this
 has unnecessary complexities, we plan to only support unified binaries.
@@ -17,6 +17,20 @@ ext - external sources required to build the code
 src - source code for the development branch
 legacy/libdissent - original, unmodified C++ version
 legacy/py - original, unmodified Python version
+
+Using
+===============================================================================
+Build the command-line (ConsoleApp):
+qmake console.pro
+make
+
+The default configuration will create a local overlay with 10 members, to use
+it execute:
+./console ./conf/local.conf
+
+This will launch a command-line interface, where commands can be typed.
+
+Type help to print out the commands.
 
 Tests
 ===============================================================================
