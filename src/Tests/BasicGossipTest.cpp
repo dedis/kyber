@@ -10,10 +10,11 @@ namespace Tests {
 
   QList<QSharedPointer<Node> > GenerateOverlay(int count, const QString &session_type)
   {
+    Address base = BufferAddress(1);
     QList<Address> local;
-    local.append(BufferAddress(1));
+    local.append(base);
     QList<Address> remote;
-    remote.append(BufferAddress(1));
+    remote.append(base);
 
     QList<QSharedPointer<Node> > nodes;
 
