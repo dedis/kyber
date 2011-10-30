@@ -18,7 +18,13 @@ namespace Utils {
   class TimerEventData : public QSharedData {
     public:
       TimerEventData(TimerCallback *callback, qint64 next, int period) :
-        callback(callback), next(next), period(period), stopped(false) { }
+        callback(callback),
+        next(next),
+        period(period),
+        stopped(false),
+        uid(_uid_count++)
+      { }
+
       ~TimerEventData()
       {
         delete callback;
@@ -28,6 +34,7 @@ namespace Utils {
       qint64 next;
       int period;
       bool stopped;
+      int uid;
 
       TimerEventData(const TimerEventData &other) : QSharedData(other)
       {
@@ -38,6 +45,9 @@ namespace Utils {
       {
         throw std::logic_error("Not callable");
       }
+
+      private:
+        static int _uid_count;
   };
 
   /**

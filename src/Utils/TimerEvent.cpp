@@ -2,6 +2,8 @@
 
 namespace Dissent {
 namespace Utils {
+  int TimerEventData::_uid_count = 0;
+
   TimerEvent::TimerEvent(TimerCallback *callback, int due_time, int period) :
     _state(new TimerEventData(callback,
           Time::GetInstance().MSecsSinceEpoch() + due_time,
@@ -36,22 +38,34 @@ namespace Utils {
 
   bool TimerEvent::operator<(const TimerEvent& other) const
   {
-    return _state->next < other._state->next;
+    if(_state->next < other._state->next) {
+      return true;
+    } else if(_state->next > other._state->next) {
+      return false;
+    } else {
+      return _state->uid < other._state->uid;
+    }
   }
 
   bool TimerEvent::operator>(const TimerEvent& other) const
   {
-    return _state->next > other._state->next;
+    if(_state->next > other._state->next) {
+      return true;
+    } else if(_state->next < other._state->next) {
+      return false;
+    } else {
+      return _state->uid > other._state->uid;
+    }
   }
 
   bool TimerEvent::operator==(const TimerEvent& other) const
   {
-    return _state->next == other._state->next;
+    return _state->uid == other._state->uid;
   }
 
   bool TimerEvent::operator!=(const TimerEvent& other) const
   {
-    return _state->next != other._state->next;
+    return _state->uid != other._state->uid;
   }
 }
 }
