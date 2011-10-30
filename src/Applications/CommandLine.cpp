@@ -91,7 +91,7 @@ namespace Applications {
         _qtout << endl << "Invalid entry: " << msg;
       }
     } else if(cmd == "send") {
-      QSharedPointer<Session> session = _nodes[idx]->session;
+      QSharedPointer<Session> session = _nodes[_current_node]->session;
       if(session.isNull()) {
         _qtout << endl << "No session set, try again later." << endl;
         return;
