@@ -3,9 +3,9 @@
 namespace Dissent {
 namespace Transports {
   BufferEdge::BufferEdge(const Address &local, const Address &remote,
-      bool incoming, int delay) :
-    Edge(local, remote, incoming), Delay(delay), _remote_edge(0),
-    _closing(false), _rem_closing(false), _incoming(0)
+      bool outgoing, int delay) :
+    Edge(local, remote, outgoing), Delay(delay), _remote_edge(0),
+    _rem_closing(false), _incoming(0)
   {
   }
 
@@ -25,7 +25,7 @@ namespace Transports {
 
   void BufferEdge::Send(const QByteArray &data)
   {
-    if(_closing) {
+    if(_closed) {
       qWarning() << "Attempted to send on a closed edge.";
       return;
     }
@@ -42,32 +42,31 @@ namespace Transports {
     _remote_edge->_incoming++;
   }
 
-  void BufferEdge::Close(const QString& reason)
+  bool BufferEdge::Close(const QString& reason)
   {
-    if(_closing) {
-      qWarning() << "BufferEdge already closed.";
-      return;
+    if(!Edge::Close(reason)) {
+      return false;
     }
 
     qDebug() << "Calling Close on " << ToString() << " with " << _incoming << " remaining messages.";
-    _closing = true;
     if(!_rem_closing) {
       _remote_edge->_rem_closing = true;
     }
-    _close_reason = reason;
 
     if(_incoming == 0) {
-      Edge::Close(_close_reason);
+      CloseCompleted();
     }
+
+    return true;
   }
 
   void BufferEdge::DelayedReceive(const QByteArray &data)
   {
     _incoming--;
-    if(_closing) {
+    if(_closed) {
       if(_incoming == 0) {
         qDebug() << "No more messages on calling Edge::Close";
-        Edge::Close(_close_reason);
+        CloseCompleted();
       }
       return;
     }

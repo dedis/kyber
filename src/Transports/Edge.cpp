@@ -19,15 +19,25 @@ namespace Transports {
         ", Remote: " + _remote_address.ToString());
   }
 
-  void Edge::Close(const QString &reason)
+  bool Edge::Close(const QString &reason)
   {
     if(_closed) {
       qWarning() << "Edge already closed.";
-      return;
+      return false;
     }
     _closed = true;
+    _close_reason = reason;
     
-    emit Closed(this, reason);
+    if(!RequiresCleanup()) {
+      CloseCompleted();
+    }
+
+    return true;
+  }
+
+  void Edge::CloseCompleted()
+  {
+    emit Closed(this, _close_reason);
   }
 }
 }

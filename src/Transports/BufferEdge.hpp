@@ -17,14 +17,14 @@ namespace Transports {
        * Constructor
        * @param local the local address of the edge
        * @param remote the address of the remote point of the edge
-       * @param incoming true if the remote side requested the creation of this edge
+       * @param outgoing true if the remote side requested the creation of this edge
        * @param delay latency to the remote side in ms
        */
       BufferEdge(const Address &local, const Address &remote,
-          bool incoming, int delay = 10);
+          bool outgoing, int delay = 10);
       virtual ~BufferEdge();
       virtual void Send(const QByteArray &data);
-      virtual void Close(const QString& reason);
+      virtual bool Close(const QString& reason);
       
       /**
        * BufferEdges just pass memory around, this matches this edge with
@@ -40,7 +40,8 @@ namespace Transports {
        */
       const int Delay;
 
-      inline virtual bool IsClosed() { return _closing; }
+    protected:
+      virtual bool RequiresCleanup() { return true; }
 
     private:
       /**
@@ -56,11 +57,6 @@ namespace Transports {
       BufferEdge *_remote_edge;
 
       /**
-       * The Edge is closing ... waiting for incoming packets
-       */
-      bool _closing;
-
-      /**
        * The Remote side is closing...
        */
       bool _rem_closing;
@@ -69,11 +65,6 @@ namespace Transports {
        * Packets sent but not arrived
        */
       int _incoming;
-
-      /**
-       * The reason for closing
-       */
-      QString _close_reason;
   };
 }
 }

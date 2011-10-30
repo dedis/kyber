@@ -59,7 +59,7 @@ namespace Transports {
        * Close the edge
        * @param reason the reason for closing the edge.
        */
-      virtual void Close(const QString &reason);
+      virtual bool Close(const QString &reason);
 
       /**
        * True if the edge has been closed
@@ -75,10 +75,21 @@ namespace Transports {
       void Closed(const Edge *edge, const QString &reason);
 
     protected:
+      /**
+       * Returns true if the object isn't fully closed
+       */
+      virtual bool RequiresCleanup() { return false; }
+
+      /**
+       * When the object is fully closed call this function
+       */
+      virtual void CloseCompleted();
+
       const Address _local_address;
       const Address _remote_address;
       bool _outbound;
       bool _closed;
+      QString _close_reason;
   };
 }
 }
