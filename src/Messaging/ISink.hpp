@@ -18,6 +18,11 @@ namespace Messaging {
        * @param from a path way back to the remote sender
        */
       virtual void HandleData(const QByteArray &data, ISender *from) = 0;
+
+      /**
+       * Virtual destructor...
+       */
+      virtual ~ISink() {};
   };
 }
 }

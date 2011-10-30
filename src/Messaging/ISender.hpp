@@ -17,7 +17,15 @@ namespace Messaging {
        */
       virtual void Send(const QByteArray &data) = 0;
 
+      /**
+       * Presents the ISender in a string format
+       */
       virtual QString ToString() const { return "Unknown ISender"; }
+
+      /**
+       * Virtual destructor
+       */
+      virtual ~ISender() {};
   };
 }
 }
