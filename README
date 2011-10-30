@@ -32,6 +32,21 @@ This will launch a command-line interface, where commands can be typed.
 
 Type help to print out the commands.
 
+Network Use
+===============================================================================
+Inspect conf/slave_tcp.conf and conf/master_tcp.conf
+
+Nodes using conf/master_tcp.conf are bootstrap peers
+Nodes using conf/slave_tcp.conf should have bootstrap peers end points in
+their remote_peers list
+
+Binding to 0.0.0.0 will result in the first non-loop backdevice IP address
+being used in exchanging IP address information.
+
+After changing the configuration files and distributing the application,
+begin by turning on the bootstrap peers first and then the client peers.
+Afterward interaction is the same as discussed in the "Using" section.
+
 Tests
 ===============================================================================
 This suite contains many tests using googletest[1], use qmake on test.pro 
