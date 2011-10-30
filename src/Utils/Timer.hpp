@@ -74,6 +74,9 @@ namespace Utils {
        */
       void Clear();
 
+    public slots:
+      void ExitExec();
+
     protected:
       /**
        * Singleton, disabled
@@ -112,11 +115,6 @@ namespace Utils {
       bool _real_time;
 
       /**
-       * Real time thread is running
-       */
-      bool _running;
-
-      /**
        * Real time thread isn't running
        */
       bool _stopped;
@@ -131,16 +129,6 @@ namespace Utils {
        * The QThread interface
        */
       virtual void timerEvent(QTimerEvent *event);
-
-      /**
-       * Starts the real time Timer thread
-       */
-      void Start();
-
-      /**
-       * Stops the real time Timer thread
-       */
-      void Stop();
 
       int _next_timer;
   };

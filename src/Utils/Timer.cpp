@@ -6,14 +6,12 @@ namespace Utils {
   Timer::Timer() : _next_timer(-1)
   {
     _queue = TimerQueue(&(TimerEvent::ReverseComparer));
-    _running = false;
-    _stopped = true;
     UseRealTime();
   }
 
   Timer::~Timer()
   {
-    Stop();
+    Clear();
   }
 
   Timer& Timer::GetInstance()
@@ -57,7 +55,7 @@ namespace Utils {
     }
 
     _real_time = false;
-    Stop();
+    Clear();
     Time::GetInstance().UseVirtualTime();
   }
 
@@ -68,30 +66,8 @@ namespace Utils {
     }
 
     _real_time = true;
-    Start();
+    Clear();
     Time::GetInstance().UseRealTime();
-  }
-
-  void Timer::Stop()
-  {
-    if(!_running) {
-      return;
-    }
-
-    Clear();
-    _running = false;
-    _stopped = true;
-  }
-
-  void Timer::Start()
-  {
-    if(_running || !_stopped) {
-      return;
-    }
-
-    Clear();
-    _running = true;
-    _stopped = false;
   }
 
   void Timer::timerEvent(QTimerEvent *event)
@@ -139,6 +115,11 @@ namespace Utils {
   void Timer::Clear()
   {
     _queue = TimerQueue(&(TimerEvent::ReverseComparer));
+  }
+
+  void Timer::ExitExec()
+  {
+    QCoreApplication::exit();
   }
 }
 }
