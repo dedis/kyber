@@ -4,7 +4,6 @@
 #include <QHash>
 
 #include "Address.hpp"
-#include "BufferAddress.hpp"
 
 namespace Dissent {
 namespace Transports {

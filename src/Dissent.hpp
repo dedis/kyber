@@ -51,6 +51,7 @@
 #include "Transports/EdgeFactory.hpp"
 #include "Transports/EdgeListener.hpp"
 #include "Transports/EdgeListenerFactory.hpp"
+#include "Transports/TcpAddress.hpp"
 
 #include "Utils/Random.hpp"
 #include "Utils/SignalCounter.hpp"

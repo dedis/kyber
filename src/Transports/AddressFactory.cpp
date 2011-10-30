@@ -1,4 +1,7 @@
 #include "AddressFactory.hpp"
+#include "BufferAddress.hpp"
+#include "TcpAddress.hpp"
+#include <QDebug>
 
 namespace Dissent {
 namespace Transports {
@@ -12,6 +15,8 @@ namespace Transports {
   {
     AddCreateCallback("buffer", BufferAddress::Create);
     AddAnyCallback("buffer", BufferAddress::CreateAny);
+    AddCreateCallback(TcpAddress::Scheme, TcpAddress::Create);
+    AddAnyCallback(TcpAddress::Scheme, TcpAddress::CreateAny);
   }
 
   void AddressFactory::AddCreateCallback(const QString &scheme, CreateCallback cb)

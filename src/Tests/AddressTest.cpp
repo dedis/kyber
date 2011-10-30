@@ -37,5 +37,27 @@ namespace Tests {
     const BufferAddress &baddr4 = static_cast<const BufferAddress &>(addr4);
     EXPECT_EQ(baddr4.GetId(), -1);
   }
+
+  TEST(Address, Tcp) {
+    const Address addr0 = AddressFactory::GetInstance().CreateAddress("tcp://:1000");
+    const Address addr1 = AddressFactory::GetInstance().CreateAddress("tcp://:9999");
+    const Address any = TcpAddress();
+    const TcpAddress &taddr0 = static_cast<const TcpAddress &>(addr0);
+    EXPECT_EQ(taddr0.GetPort(), 1000);
+    EXPECT_EQ(taddr0, addr0);
+    EXPECT_NE(taddr0, addr1);
+
+    Address addr3 = AddressFactory::GetInstance().CreateAddress("tcp://:1000");
+    EXPECT_EQ(taddr0, addr3);
+
+    DisableLogging();
+    addr3 = AddressFactory::GetInstance().CreateAddress("tcp://abcd:1000");
+    EXPECT_EQ(taddr0, addr3);
+    addr3 = TcpAddress("asdfasdf", -1);
+    EXPECT_EQ(addr3, any);
+    addr3 = TcpAddress("asdf://asdfasdf:654452345");
+    EXPECT_EQ(addr3, any);
+    EnableLogging();
+  }
 }
 }

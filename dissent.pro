@@ -7,6 +7,7 @@ TARGET = dissent
 DEPENDPATH += 
 INCLUDEPATH += 
 CONFIG += qt debug
+QT += network
 
 # Input
 LIBS += -lcryptopp
@@ -57,6 +58,7 @@ HEADERS += src/Dissent.hpp \
            src/Transports/EdgeFactory.hpp \
            src/Transports/EdgeListener.hpp \
            src/Transports/EdgeListenerFactory.hpp \
+           src/Transports/TcpAddress.hpp \
            src/Utils/Random.hpp \
            src/Utils/QRunTimeError.hpp \
            src/Utils/SignalCounter.hpp \
@@ -105,6 +107,7 @@ SOURCES += src/Anonymity/Group.cpp \
            src/Transports/EdgeFactory.cpp \
            src/Transports/EdgeListener.cpp \
            src/Transports/EdgeListenerFactory.cpp \
+           src/Transports/TcpAddress.cpp \
            src/Utils/Random.cpp \
            src/Utils/Sleeper.cpp \
            src/Utils/Time.cpp \
