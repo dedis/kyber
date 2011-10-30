@@ -1,5 +1,6 @@
 #include "EdgeListenerFactory.hpp"
 #include "BufferEdgeListener.hpp"
+#include "TcpEdgeListener.hpp"
 
 namespace Dissent {
 namespace Transports {
@@ -12,6 +13,7 @@ namespace Transports {
   EdgeListenerFactory::EdgeListenerFactory()
   {
     AddCallback("buffer", BufferEdgeListener::Create);
+    AddCallback(TcpEdgeListener::Scheme, TcpEdgeListener::Create);
   }
 
   void EdgeListenerFactory::AddCallback(const QString &type, Callback cb)

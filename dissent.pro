@@ -59,6 +59,8 @@ HEADERS += src/Dissent.hpp \
            src/Transports/EdgeListener.hpp \
            src/Transports/EdgeListenerFactory.hpp \
            src/Transports/TcpAddress.hpp \
+           src/Transports/TcpEdge.hpp \
+           src/Transports/TcpEdgeListener.hpp \
            src/Utils/Random.hpp \
            src/Utils/QRunTimeError.hpp \
            src/Utils/Serialization.hpp \
@@ -109,6 +111,8 @@ SOURCES += src/Anonymity/Group.cpp \
            src/Transports/EdgeListener.cpp \
            src/Transports/EdgeListenerFactory.cpp \
            src/Transports/TcpAddress.cpp \
+           src/Transports/TcpEdge.cpp \
+           src/Transports/TcpEdgeListener.cpp \
            src/Utils/Random.cpp \
            src/Utils/Sleeper.cpp \
            src/Utils/Time.cpp \
