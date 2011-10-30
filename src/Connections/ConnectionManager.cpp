@@ -63,13 +63,13 @@ namespace Connections {
       con->Disconnect();
     }
 
-    foreach(Edge *edge, _con_tab.GetEdges()) {
+    foreach(QSharedPointer<Edge> edge, _con_tab.GetEdges()) {
       if(!edge->IsClosed()) {
         edge->Close("Disconnecting");
       }
     }
     
-    foreach(Edge *edge, _rem_con_tab.GetEdges()) {
+    foreach(QSharedPointer<Edge> edge, _rem_con_tab.GetEdges()) {
       if(!edge->IsClosed()) {
         edge->Close("Disconnecting");
       }
@@ -148,13 +148,20 @@ namespace Connections {
       return;
     }
 
+    QSharedPointer<Edge> pedge = _con_tab.GetEdge(edge);
+    if(pedge.isNull()) {
+      qCritical() << "An edge attempted to create a connection, but there "
+       "is no record of it" << edge->ToString();
+      return;
+    }
+
     QVariantMap notification;
     notification["method"] = "CM::Connect";
     notification["peer_id"] = _local_id.GetByteArray();
     _rpc.SendNotification(notification, edge);
 
     qDebug() << _local_id.ToString() << ": Creating new connection to " << rem_id.ToString();
-    Connection *con = new Connection(edge, _local_id, rem_id);
+    Connection *con = new Connection(pedge, _local_id, rem_id);
     _con_tab.AddConnection(con);
 
     QObject::connect(con, SIGNAL(CalledDisconnect(Connection *)),
@@ -181,10 +188,19 @@ namespace Connections {
 
     Id rem_id(brem_id);
     Connection *old_con = _rem_con_tab.GetConnection(rem_id);
+    // XXX if there is an old connection and the node doesn't want it, we need
+    // to close it
     if(old_con != 0) {
     }
 
-    Connection *con = new Connection(edge, _local_id, rem_id);
+    QSharedPointer<Edge> pedge = _rem_con_tab.GetEdge(edge);
+    if(pedge.isNull()) {
+      qCritical() << "An edge attempted to create a connection, but there "
+       "is no record of it" << edge->ToString();
+      return;
+    }
+
+    Connection *con = new Connection(pedge, _local_id, rem_id);
     _rem_con_tab.AddConnection(con);
     qDebug() << _local_id.ToString() << ": Handle new connection from " << rem_id.ToString();
     QObject::connect(con, SIGNAL(CalledDisconnect(Connection *)),
@@ -203,7 +219,6 @@ namespace Connections {
     }
 
     edge->Close("Closed from remote peer");
-    delete edge;
   }
 
   void ConnectionManager::HandleDisconnect(Connection *con)
@@ -252,6 +267,7 @@ namespace Connections {
 
   void ConnectionManager::HandleEdgeClose(const Edge *edge, const QString &)
   {
+    qDebug() << "Edge closed: " << edge->ToString();
     ConnectionTable &con_tab = edge->Outbound() ? _con_tab : _rem_con_tab;
     if(!con_tab.RemoveEdge(edge)) {
       qWarning() << "Edge closed but no Edge found in CT:" << edge->ToString();

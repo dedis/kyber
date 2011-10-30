@@ -11,7 +11,11 @@ namespace Connections {
 
   void ConnectionTable::AddEdge(Edge *edge)
   {
-    _edges[edge] = edge;
+    if(edge->SafeToDelete()) {
+      _edges[edge] = QSharedPointer<Edge>(edge);
+    } else {
+      _edges[edge] = QSharedPointer<Edge>(edge, &QObject::deleteLater);
+    }
   }
 
   bool ConnectionTable::RemoveEdge(const Edge *edge)

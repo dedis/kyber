@@ -1,10 +1,8 @@
 #ifndef DISSENT_CONNECTIONS_CONNECTION_H_GUARD
 #define DISSENT_CONNECTIONS_CONNECTION_H_GUARD
 
-#include <ostream>
-
 #include <QDebug>
-#include <QScopedPointer>
+#include <QSharedPointer>
 
 #include "../Transports/Edge.hpp"
 #include "../Messaging/Filter.hpp"
@@ -34,7 +32,7 @@ namespace Connections {
        * @param local_id the Id of the local member
        * @param remote_id the Id of the remote member
        */
-      Connection(Edge *edge, const Id &local_id, const Id &remote_id);
+      Connection(QSharedPointer<Edge> edge, const Id &local_id, const Id &remote_id);
 
       virtual QString ToString() const;
 
@@ -75,7 +73,7 @@ namespace Connections {
       /**
        * The transport layer communication device
        */
-      QScopedPointer<Edge> _edge;
+      QSharedPointer<Edge> _edge;
 
       /**
        * The Id of the local member

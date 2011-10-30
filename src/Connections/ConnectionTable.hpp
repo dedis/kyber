@@ -60,7 +60,8 @@ namespace Connections {
 
       inline const QList<Connection *> GetConnections() const { return _cons.values(); }
 
-      inline const QList<Edge *> GetEdges() const { return _edges.values(); }
+      inline QSharedPointer<Edge> GetEdge(const Edge * edge) const { return _edges[edge]; }
+      inline const QList<QSharedPointer<Edge> > GetEdges() const { return _edges.values(); }
 
       /**
        * Adds a Connection
@@ -94,7 +95,7 @@ namespace Connections {
       /**
        * Stores Edges
        */
-      QHash<const Edge *, Edge *> _edges;
+      QHash<const Edge *, QSharedPointer<Edge> > _edges;
   };
 }
 }

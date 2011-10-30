@@ -2,12 +2,13 @@
 
 namespace Dissent {
 namespace Connections {
-  Connection::Connection(Edge *edge, const Id &local_id, const Id &remote_id) :
+  Connection::Connection(QSharedPointer<Edge> edge, const Id &local_id,
+      const Id &remote_id) :
     _edge(edge), _local_id(local_id), _remote_id(remote_id)
   {
     ISink *old_sink = _edge->SetSink(this);
     SetSink(old_sink);
-    QObject::connect(edge, SIGNAL(Closed(const Edge *, const QString &)),
+    QObject::connect(edge.data(), SIGNAL(Closed(const Edge *, const QString &)),
         this, SLOT(HandleEdgeClose(const Edge *, const QString &)));
   }
 
