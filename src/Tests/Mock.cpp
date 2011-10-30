@@ -37,6 +37,12 @@ namespace Tests {
     return _last_sender;
   }
 
+  void MockSinkWithSignal::HandleData(const QByteArray& data, ISender *from)
+  {
+    MockSink::HandleData(data, from);
+    emit ReadReady(this);
+  }
+
   MockEdgeHandler::MockEdgeHandler(EdgeListener *el)
   {
     QObject::connect(el, SIGNAL(NewEdge(Edge *)),

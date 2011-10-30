@@ -5,6 +5,7 @@ namespace Applications {
   Settings::Settings(const QString &file) :
     GroupSize(40),
     LocalNodeCount(1),
+    SessionType("null"),
     _use_file(true),
     _settings(file, QSettings::IniFormat),
     _reason()
@@ -23,6 +24,10 @@ namespace Applications {
 
     if(_settings.contains("local_nodes")) {
       LocalNodeCount = _settings.value("local_nodes").toInt();
+    }
+
+    if(_settings.contains("session_type")) {
+      SessionType = _settings.value("session_type").toString();
     }
   }
 

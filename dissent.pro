@@ -21,6 +21,11 @@ HEADERS += src/Dissent.hpp \
            src/Anonymity/ShuffleBlamer.hpp \
            src/Anonymity/ShuffleRound.hpp \
            src/Anonymity/ShuffleRoundBlame.hpp \
+           src/Applications/CommandLine.hpp \
+           src/Applications/ConsoleSink.hpp \
+           src/Applications/FileSink.hpp \
+           src/Applications/Node.hpp \
+           src/Applications/SessionFactory.hpp \
            src/Applications/Settings.hpp \
            src/Crypto/AsymmetricKey.hpp \
            src/Crypto/CppHash.hpp \
@@ -54,6 +59,7 @@ HEADERS += src/Dissent.hpp \
            src/Transports/EdgeListenerFactory.hpp \
            src/Utils/Random.hpp \
            src/Utils/QRunTimeError.hpp \
+           src/Utils/SignalCounter.hpp \
            src/Utils/Sleeper.hpp \
            src/Utils/Time.hpp \
            src/Utils/Timer.hpp \
@@ -70,6 +76,11 @@ SOURCES += src/Anonymity/Group.cpp \
            src/Anonymity/ShuffleBlamer.cpp \
            src/Anonymity/ShuffleRound.cpp \
            src/Anonymity/ShuffleRoundBlame.cpp \
+           src/Applications/CommandLine.cpp \
+           src/Applications/ConsoleSink.cpp \
+           src/Applications/FileSink.cpp \
+           src/Applications/Node.cpp \
+           src/Applications/SessionFactory.cpp \
            src/Applications/Settings.cpp \
            src/Crypto/CppHash.cpp \
            src/Crypto/CppPrivateKey.cpp \

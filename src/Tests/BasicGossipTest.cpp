@@ -3,30 +3,52 @@
 namespace Dissent {
 namespace Tests {
   namespace {
+    using namespace Dissent::Applications;
     using namespace Dissent::Overlay;
     using namespace Dissent::Utils;
   }
 
-  TEST(BasicGossip, Bootstrap)
+  QList<QSharedPointer<Node> > GenerateOverlay(int count, const QString &session_type)
   {
-    int count = 40;
-    Timer::GetInstance().UseVirtualTime();
-    QVector<QSharedPointer<BasicGossip> > nodes;
-    QList<Address> remote;
     QList<Address> local;
-    BufferAddress ba = BufferAddress(1);
-    local.append(ba);
-    remote.append(ba);
+    local.append(BufferAddress(1));
+    QList<Address> remote;
+    remote.append(BufferAddress(1));
 
-    nodes.append(QSharedPointer<BasicGossip>(new BasicGossip(local, remote)));
+    QList<QSharedPointer<Node> > nodes;
 
-    local[0] = AddressFactory::GetInstance().CreateAny("buffer");
-    for(int idx = 1; idx < count; idx++) {
-      nodes.append(QSharedPointer<BasicGossip>(new BasicGossip(local, remote)));
+    for(int idx = 0; idx < count; idx++) {
+      nodes.append(QSharedPointer<Node>(new Node(local, remote, count, session_type)));
+      AsymmetricKey *key = CppPrivateKey::GenerateKey(nodes[idx]->bg.GetId().GetByteArray());
+      nodes[idx]->key = QSharedPointer<AsymmetricKey>(key);
+      nodes[idx]->sink = QSharedPointer<ISink>(new MockSinkWithSignal());
+      local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
     }
 
-    foreach(QSharedPointer<BasicGossip> bg, nodes) {
-      bg->Start();
+    SignalCounter sc;
+
+    foreach(QSharedPointer<Node> node, nodes) {
+      QObject::connect(node.data(), SIGNAL(Ready(Node *)), &sc, SLOT(Counter()));
+      node->bg.Start();
+    }
+
+    qint64 next = Timer::GetInstance().VirtualRun();
+    while(next != -1 && sc.GetCount() != count) {
+      Time::GetInstance().IncrementVirtualClock(next);
+      next = Timer::GetInstance().VirtualRun();
+    }
+
+    foreach(QSharedPointer<Node> node, nodes) {
+      EXPECT_EQ(count - 1, node->bg.GetConnectionTable().GetConnections().count());
+    }
+
+    return nodes;
+  }
+
+  void TerminateOverlay(const QList<QSharedPointer<Node> > &nodes)
+  {
+    foreach(QSharedPointer<Node> node, nodes) {
+      node->bg.Stop();
     }
 
     qint64 next = Timer::GetInstance().VirtualRun();
@@ -35,23 +57,68 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    foreach(QSharedPointer<BasicGossip> bg, nodes) {
-      EXPECT_EQ(bg->GetConnectionTable().GetConnections().count(), count - 1);
+    foreach(QSharedPointer<Node> node, nodes) {
+      EXPECT_EQ(node->bg.GetConnectionTable().GetConnections().count(), 0);
+    }
+  }
+
+  void SendTest(const QList<QSharedPointer<Node> > &nodes)
+  {
+    Dissent::Crypto::CppRandom rand;
+    QByteArray msg(512, 0);
+    rand.GenerateBlock(msg);
+    nodes[0]->session->Send(msg);
+
+    SignalCounter sc;
+    foreach(QSharedPointer<Node> node, nodes) {
+      MockSinkWithSignal *sink = dynamic_cast<MockSinkWithSignal *>(node->sink.data());
+      if(sink == 0) {
+        qFatal("MockSinkWithSignal expected");
+      }
+      QObject::connect(sink, SIGNAL(ReadReady(MockSinkWithSignal *)), &sc, SLOT(Counter()));
     }
 
-    foreach(QSharedPointer<BasicGossip> bg, nodes) {
-      bg->Stop();
-    }
-
-    next = Timer::GetInstance().VirtualRun();
-    while(next != -1) {
+    int count = nodes.count();
+    qint64 next = Timer::GetInstance().VirtualRun();
+    while(next != -1 && sc.GetCount() != count) {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
     }
 
-    foreach(QSharedPointer<BasicGossip> bg, nodes) {
-      EXPECT_EQ(bg->GetConnectionTable().GetConnections().count(), 0);
+    foreach(QSharedPointer<Node> node, nodes) {
+      MockSinkWithSignal *sink = dynamic_cast<MockSinkWithSignal *>(node->sink.data());
+      if(sink == 0) {
+        qFatal("MockSinkWithSignal expected");
+      }
+      EXPECT_EQ(msg, sink->GetLastData());
     }
+  }
+
+
+  TEST(BasicGossip, Bootstrap)
+  {
+    int count = Random::GetInstance().GetInt(10, 50);
+    Timer::GetInstance().UseVirtualTime();
+    QList<QSharedPointer<Node> > nodes = GenerateOverlay(count, "null");
+    TerminateOverlay(nodes);
+  }
+
+  TEST(BasicGossip, Null)
+  {
+    int count = Random::GetInstance().GetInt(10, 50);
+    Timer::GetInstance().UseVirtualTime();
+    QList<QSharedPointer<Node> > nodes = GenerateOverlay(count, "null");
+    SendTest(nodes);
+    TerminateOverlay(nodes);
+  }
+
+  TEST(BasicGossip, Shuffle)
+  {
+    int count = Random::GetInstance().GetInt(10, 50);
+    Timer::GetInstance().UseVirtualTime();
+    QList<QSharedPointer<Node> > nodes = GenerateOverlay(count, "null");
+    SendTest(nodes);
+    TerminateOverlay(nodes);
   }
 }
 }

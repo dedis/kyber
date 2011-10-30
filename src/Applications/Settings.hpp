@@ -62,6 +62,11 @@ namespace Applications {
        */
       bool DemoMode;
 
+      /**
+       * The type of anonymity session / round to construct
+       */
+      QString SessionType;
+
     private:
       void ParseUrlList(const QString &name, const QVariant &values, QList<QUrl> &list);
       void ParseUrl(const QString &name, const QVariant &value, QList<QUrl> &list);

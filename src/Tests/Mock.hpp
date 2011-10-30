@@ -31,12 +31,23 @@ namespace Tests {
 
   class MockSink : public ISink {
     public:
+      virtual ~MockSink() {}
       virtual void HandleData(const QByteArray &data, ISender *from);
       const QByteArray GetLastData();
       ISender *GetLastSender();
     private:
       ISender *_last_sender;
       QByteArray _last_data;
+  };
+
+  class MockSinkWithSignal : public QObject, public MockSink {
+    Q_OBJECT
+
+    public:
+      virtual ~MockSinkWithSignal() {}
+      virtual void HandleData(const QByteArray &data, ISender *from);
+    signals:
+      void ReadReady(MockSinkWithSignal *sink);
   };
 
   class MockEdgeHandler : public QObject {

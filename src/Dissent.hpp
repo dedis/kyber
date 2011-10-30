@@ -10,6 +10,11 @@
 #include "Anonymity/SessionManager.hpp"
 #include "Anonymity/ShuffleRound.hpp"
 
+#include "Applications/CommandLine.hpp"
+#include "Applications/ConsoleSink.hpp"
+#include "Applications/FileSink.hpp"
+#include "Applications/Node.hpp"
+#include "Applications/SessionFactory.hpp"
 #include "Applications/Settings.hpp"
 
 #include "Crypto/AsymmetricKey.hpp"
@@ -48,6 +53,7 @@
 #include "Transports/EdgeListenerFactory.hpp"
 
 #include "Utils/Random.hpp"
+#include "Utils/SignalCounter.hpp"
 #include "Utils/Sleeper.hpp"
 #include "Utils/Time.hpp"
 #include "Utils/Timer.hpp"
