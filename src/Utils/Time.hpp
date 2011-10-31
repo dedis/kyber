@@ -53,6 +53,16 @@ namespace Utils {
        */
       qint64 _current_virtual_time;
 
+#if QT_VERSION < 0x040700
+      /**
+       * The Epoch!
+       */
+      QDateTime _epoch;
+
+      static const qint64 MSecsPerDay;
+#endif
+
+
       /**
        * Disabled for singleton
        */
