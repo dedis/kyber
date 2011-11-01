@@ -24,7 +24,7 @@ namespace Transports {
        * Redirects the edge creation to the appropriate EL, if one exists
        * @param to the remote peers address to create an edge to
        */
-      void CreateEdgeTo(const Address &to);
+      bool CreateEdgeTo(const Address &to);
 
       /**
        * Stops all the underlying ELs

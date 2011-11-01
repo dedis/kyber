@@ -15,7 +15,8 @@ namespace Overlay {
     _cm(_local_id, _rpc),
     _peer_list_inquire(*this, &BasicGossip::PeerListInquire),
     _peer_list_response(*this, &BasicGossip::PeerListResponse),
-    _notify_peer(*this, &BasicGossip::PeerListIncrementalUpdate)
+    _notify_peer(*this, &BasicGossip::PeerListIncrementalUpdate),
+    _outstanding_con_attempts(0)
   {
     _rpc.Register(&_peer_list_inquire, "SN::PeerList");
     _rpc.Register(&_notify_peer, "SN::Update");
@@ -37,6 +38,8 @@ namespace Overlay {
 
     QObject::connect(&_cm, SIGNAL(NewConnection(Connection *, bool)),
         this, SLOT(HandleConnection(Connection *,bool)));
+    QObject::connect(&_cm, SIGNAL(ConnectionAttemptFailure(const Address &, const QString &)),
+        this, SLOT(HandleConnectionAttemptFailure(const Address &, const QString &)));
     QObject::connect(&_cm, SIGNAL(Disconnected()),
         this, SLOT(HandleDisconnected()));
 
@@ -49,6 +52,7 @@ namespace Overlay {
     }
 
     foreach(const Address &addr, _remote_endpoints) {
+      _outstanding_con_attempts++;
       _cm.ConnectTo(addr);
     }
 
@@ -85,10 +89,16 @@ namespace Overlay {
   void BasicGossip::HandleConnection(Connection *con, bool local)
   {
     if(local) {
+      _outstanding_con_attempts--;
       SendUpdate(con);
       RequestPeerList(con);
     }
     emit NewConnection(con, local);
+  }
+
+  void BasicGossip::HandleConnectionAttemptFailure(const Address &to, const QString &error)
+  {
+    _outstanding_con_attempts--;
   }
 
   void BasicGossip::SendUpdate(Connection *con)
@@ -186,6 +196,7 @@ namespace Overlay {
     }
 
     Address addr = AddressFactory::GetInstance().CreateAddress(url);
+    _outstanding_con_attempts++;
     _cm.ConnectTo(addr);
   }
 }

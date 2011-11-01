@@ -91,6 +91,11 @@ namespace Tests {
     Address addr = TcpAddress("127.0.0.1", 51234);
     QList<QSharedPointer<Node> > nodes = GenerateLiveOverlay(addr, count, "null");
     LiveSendTest(nodes);
+
+    foreach(QSharedPointer<Node> node, nodes) {
+      EXPECT_EQ(node->bg.OutstandingConnectionAttempts(), 0);
+    }
+
     TerminateLiveOverlay(nodes);
   }
 }

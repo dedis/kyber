@@ -34,6 +34,8 @@ namespace Connections {
     _edge_factory.AddEdgeListener(el);
     QObject::connect(el.data(), SIGNAL(NewEdge(Edge *)),
         this, SLOT(HandleNewEdge(Edge *)));
+    QObject::connect(el.data(), SIGNAL(EdgeCreationFailure(const Address &, const QString &)),
+        this, SLOT(HandleEdgeCreationFailure(const Address &, const QString&)));
   }
 
   void ConnectionManager::ConnectTo(const Address &addr)
@@ -43,7 +45,10 @@ namespace Connections {
       return;
     }
 
-    _edge_factory.CreateEdgeTo(addr);
+    if(!_edge_factory.CreateEdgeTo(addr)) {
+      emit ConnectionAttemptFailure(addr,
+          "No EdgeListener to handle request");
+    }
   }
 
   void ConnectionManager::Disconnect()
@@ -101,6 +106,12 @@ namespace Connections {
     _rpc.SendRequest(request, edge, &_inquired);
   }
 
+  void ConnectionManager::HandleEdgeCreationFailure(const Address &to,
+      const QString &reason)
+  {
+    emit ConnectionAttemptFailure(to, reason);
+  }
+
   void ConnectionManager::Inquire(RpcRequest &request)
   {
     QVariantMap response;
@@ -135,6 +146,8 @@ namespace Connections {
       notification["method"] = "CM::Close";
       _rpc.SendNotification(notification, edge);
       edge->Close("Attempting to connect to ourself");
+      emit ConnectionAttemptFailure(edge->GetRemoteAddress(),
+          "Attempting to connect to ourself");
       return;
     }
 
@@ -145,6 +158,8 @@ namespace Connections {
       notification["method"] = "CM::Close";
       _rpc.SendNotification(notification, edge);
       edge->Close("Duplicate connection");
+      emit ConnectionAttemptFailure(edge->GetRemoteAddress(),
+          "Duplicate connection");
       return;
     }
 
@@ -191,6 +206,7 @@ namespace Connections {
     // XXX if there is an old connection and the node doesn't want it, we need
     // to close it
     if(old_con != 0) {
+      old_con->Disconnect();
     }
 
     QSharedPointer<Edge> pedge = _rem_con_tab.GetEdge(edge);

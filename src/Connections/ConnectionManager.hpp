@@ -75,6 +75,14 @@ namespace Connections {
       void NewConnection(Connection *con, bool local);
 
       /**
+       * A ConnectTo attempt failed, I guess ideally ConnectTo would take an Id
+       * and handle the translation internally, but then again...
+       * @param to the ConnectTo(to) that failed
+       * @param reason the reason it failed
+       */
+      void ConnectionAttemptFailure(const Address &to, const QString &reason);
+
+      /**
        * Emitted when disconnected
        */
       void Disconnected();
@@ -138,6 +146,11 @@ namespace Connections {
        * An Edge has been closed
        */
       void HandleEdgeClose(const Edge *edge, const QString &reason);
+
+      /**
+       * An Edge was never created
+       */
+      void HandleEdgeCreationFailure(const Address &to, const QString &reason);
   };
 }
 }

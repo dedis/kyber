@@ -66,6 +66,11 @@ namespace Overlay {
        */
       inline Id GetId() { return _local_id; }
 
+      /**
+       * Returns the number ouf outstanding connection attempts
+       */
+      inline int OutstandingConnectionAttempts() { return _outstanding_con_attempts; }
+
     signals:
       /**
        * A new outgoing connection has been created
@@ -94,6 +99,7 @@ namespace Overlay {
       RpcMethod<BasicGossip> _peer_list_inquire;
       RpcMethod<BasicGossip> _peer_list_response;
       RpcMethod<BasicGossip> _notify_peer;
+      int _outstanding_con_attempts;
 
       /**
        * Notify all peers about this new peer
@@ -137,6 +143,7 @@ namespace Overlay {
        */
       void HandleConnection(Connection *con, bool local);
 
+      void HandleConnectionAttemptFailure(const Address &to, const QString &error);
       /**
        * Handles the CM disconnect message
        */

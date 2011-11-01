@@ -31,7 +31,9 @@ namespace Tests {
     foreach(QSharedPointer<Node> node, nodes) {
       QObject::connect(node.data(), SIGNAL(Ready(Node *)), &sc, SLOT(Counter()));
       node->bg.Start();
+      EXPECT_NE(node->bg.OutstandingConnectionAttempts(), 0);
     }
+
 
     qint64 next = Timer::GetInstance().VirtualRun();
     while(next != -1 && sc.GetCount() != count) {
@@ -123,6 +125,11 @@ namespace Tests {
     Timer::GetInstance().UseVirtualTime();
     QList<QSharedPointer<Node> > nodes = GenerateOverlay(count, "null");
     SendTest(nodes);
+
+    foreach(QSharedPointer<Node> node, nodes) {
+      EXPECT_EQ(node->bg.OutstandingConnectionAttempts(), 0);
+    }
+
     TerminateOverlay(nodes);
   }
 }

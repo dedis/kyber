@@ -1,7 +1,6 @@
 Anonymity
 - The process for creating a session should be peers register, a leader not ready rejects, peers continue to register until successful, leader notifies all of starting
 - Should keep a cache of closed sessions to respond to the remote peer that the session is dead and avoid race "wayward session messages"
-- At a minimum each member of a group will have a signing key pair, where should this be stored
 - Need some structure to communicate group status / change
 - Make sessions optionally multithreaded, we really don't want crypto computation in the main thread
 - Need some means to initiate a group / session
@@ -9,7 +8,6 @@ Anonymity
 Connections
 - ConnectionTable should be a value type
 - ConnectionManager and maybe EL should turn reject requests for connections when closed
-- Should subscribe to EL::EdgeCreationFailure
 
 Transports
 - EdgeListeners should produce QSharedPointer<Edge>
@@ -19,7 +17,6 @@ Utils
 
 Overlay
 - When a node is stuck in bootstrapping mode, occassionally attempt to reconnect to the overlay
-- A simple mechanism for bootstrapping all peers in a dissent system, should be this be flexible to support group creation?
 - Implement Chord and use for overlay broadcasting and overall group dynamics
 
 Cryptography

@@ -11,13 +11,14 @@ namespace Transports {
     _type_to_el[el->GetAddressType()] = el;
   }
 
-  void EdgeFactory::CreateEdgeTo(const Address &to)
+  bool EdgeFactory::CreateEdgeTo(const Address &to)
   {
     if(_type_to_el.contains(to.GetType())) {
       _type_to_el[to.GetType()]->CreateEdgeTo(to);
-    } else {
-      qWarning() << "No EdgeListener registered for type:" << to.GetType();
-    }
+      return true;
+    } 
+    qWarning() << "No EdgeListener registered for type:" << to.GetType();
+    return false;
   }
 
   void EdgeFactory::Stop()
