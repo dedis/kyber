@@ -43,7 +43,7 @@ namespace Transports {
   void BufferEdgeListener::CreateEdgeTo(const Address &to)
   {
     const BufferAddress &rem_ba = static_cast<const BufferAddress &>(to);
-    BufferEdgeListener *remote_el = _el_map[rem_ba.GetId()];
+    BufferEdgeListener *remote_el = _el_map.value(rem_ba.GetId());
     if(remote_el == 0) {
       qDebug() << "Attempting to create an Edge to an EL that doesn't exist from " <<
         _local_address.ToString() << " to " << to.ToString();
