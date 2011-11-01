@@ -18,7 +18,7 @@ namespace Transports {
       static EdgeListener *Create(const Address &local_address);
       ~BufferEdgeListener();
       virtual void CreateEdgeTo(const Address &to);
-      
+
     private:
       static QHash<int, BufferEdgeListener *> _el_map;
   };

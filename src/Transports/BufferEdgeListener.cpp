@@ -47,6 +47,7 @@ namespace Transports {
     if(remote_el == 0) {
       qDebug() << "Attempting to create an Edge to an EL that doesn't exist from " <<
         _local_address.ToString() << " to " << to.ToString();
+      ProcessEdgeCreationFailure(to, "No such peer");
       return;
     }
 

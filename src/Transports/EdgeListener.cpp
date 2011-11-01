@@ -14,6 +14,11 @@ namespace Transports {
     emit NewEdge(edge);
   }
 
+  void EdgeListener::ProcessEdgeCreationFailure(const Address &to, const QString &reason)
+  {
+    emit EdgeCreationFailure(to, reason);
+  }
+
   void EdgeListener::HandleEdgeClose(const Edge *edge, const QString &)
   {
     QObject::disconnect(edge, SIGNAL(Closed(const Edge *, const QString &)),

@@ -98,11 +98,14 @@ namespace Transports {
     AddSocket(socket, true);
   }
 
-  void TcpEdgeListener::HandleError(QAbstractSocket::SocketError error)
+  void TcpEdgeListener::HandleError(QAbstractSocket::SocketError)
   {
     QTcpSocket *socket = qobject_cast<QTcpSocket *>(sender());
-    qCritical() << "Unable to connect to host: " << socket << error;
+    TcpAddress addr(socket->peerAddress().toString(), socket->peerPort());
+    QString error = socket->errorString();
+    qDebug() << "Unable to connect to host: " << addr.ToString() << error;
     socket->deleteLater();
+    ProcessEdgeCreationFailure(addr, error);
   }
 
   void TcpEdgeListener::AddSocket(QTcpSocket *socket, bool outgoing) {

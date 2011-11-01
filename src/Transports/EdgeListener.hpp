@@ -54,11 +54,22 @@ namespace Transports {
        */
       void NewEdge(Edge *edge);
 
+      /**
+       * CreateEdgeTo failed
+       */
+      void EdgeCreationFailure(const Address &to, const QString &reason);
+
     protected:
       /**
        * Called when a new edge is created and emits the NewEdge
        */
       virtual void ProcessNewEdge(Edge *edge);
+
+      /**
+       * emits EdgeCreationFailure, a CreateEdgeTo failed
+       */
+      virtual void ProcessEdgeCreationFailure(const Address &to,
+          const QString &reason = "None given");
 
       /**
        * If the given local address is an Any address, it will need to be set

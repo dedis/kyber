@@ -9,10 +9,10 @@ Anonymity
 Connections
 - ConnectionTable should be a value type
 - ConnectionManager and maybe EL should turn reject requests for connections when closed
+- Should subscribe to EL::EdgeCreationFailure
 
 Transports
 - EdgeListeners should produce QSharedPointer<Edge>
-- CreateEdgeTo should also takes a callback so one can find out a connection attempted failed (better event driven system)
 
 Utils
 - VirtualTime should have a method that lets it be executed for a specific amount of time via QEvent mechanisms
