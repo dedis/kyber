@@ -9,9 +9,11 @@ namespace Transports {
   {
     if(url.scheme() != Scheme) {
       qCritical() << "Invalid scheme:" << url.scheme() << " expected:" << Scheme;
+      _data = new AddressData(url);
+      return;
     }
 
-    Init(url.host(), url.port(0));
+    Init(url.host(), url.port());
   }
 
   TcpAddress::TcpAddress(const QString &ip, int port)
@@ -21,14 +23,17 @@ namespace Transports {
   
   void TcpAddress::Init(const QString &ip, int port)
   {
+    bool valid = true;
+
     if(port < 0 || port > 65535) {
-      qCritical() << "Invalid port:" << port;
-      port = 0;
+      qWarning() << "Invalid port:" << port;
+      valid = false;
     }
 
     QHostAddress host(ip);
     if(host.toString() != ip) {
-      qCritical() << "Invalid IP:" << ip;
+      qWarning() << "Invalid IP:" << ip;
+      valid = false;
     }
 
     if(host == QHostAddress::Null) {
@@ -40,7 +45,7 @@ namespace Transports {
     url.setHost(ip);
     url.setPort(port);
 
-    _data = new TcpAddressData(url, host, port);
+    _data = new TcpAddressData(url, host, port, valid);
   }
 
   TcpAddress::TcpAddress(const TcpAddress &other) : Address(other)
@@ -61,7 +66,7 @@ namespace Transports {
   {
     const TcpAddressData *bother = dynamic_cast<const TcpAddressData *>(other);
     if(bother) {
-      return ip == bother->ip && port == bother->port;
+      return ip == bother->ip && port == bother->port && valid == bother->valid;
     } else {
       return AddressData::Equals(other);
     }

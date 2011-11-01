@@ -49,7 +49,6 @@ HEADERS += src/Dissent.hpp \
            src/Messaging/Source.hpp \
            src/Overlay/BasicGossip.hpp \
            src/Transports/Address.hpp \
-           src/Transports/AddressException.hpp \
            src/Transports/AddressFactory.hpp \
            src/Transports/BufferAddress.hpp \
            src/Transports/BufferEdge.hpp \

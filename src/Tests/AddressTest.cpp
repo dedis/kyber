@@ -20,11 +20,14 @@ namespace Tests {
 
   TEST(Address, Buffer) {
     const Address addr0 = AddressFactory::GetInstance().CreateAddress("buffer://1000");
+    EXPECT_TRUE(addr0.Valid());
+
     const Address addr1 = AddressFactory::GetInstance().CreateAddress("buffer://9999");
-    try {
-      const Address tmp_addr = AddressFactory::GetInstance().CreateAddress("buffer://a");
-      throw std::logic_error("Should not get here");
-    } catch (Dissent::Transports::AddressException) { }
+    EXPECT_TRUE(addr1.Valid());
+
+    const Address bad_addr = AddressFactory::GetInstance().CreateAddress("buffer://a");
+    EXPECT_FALSE(bad_addr.Valid());
+
     const BufferAddress &baddr0 = static_cast<const BufferAddress &>(addr0);
     EXPECT_EQ(baddr0.GetId(), 1000);
     EXPECT_EQ(baddr0, addr0);
@@ -36,6 +39,8 @@ namespace Tests {
     const Address addr4 = AddressFactory::GetInstance().CreateAddress("test://a");
     const BufferAddress &baddr4 = static_cast<const BufferAddress &>(addr4);
     EXPECT_EQ(baddr4.GetId(), -1);
+    EXPECT_FALSE(addr4.Valid());
+    EXPECT_FALSE(baddr4.Valid());
   }
 
   TEST(Address, Tcp) {
@@ -50,14 +55,14 @@ namespace Tests {
     Address addr3 = AddressFactory::GetInstance().CreateAddress("tcp://:1000");
     EXPECT_EQ(taddr0, addr3);
 
-    DisableLogging();
     addr3 = AddressFactory::GetInstance().CreateAddress("tcp://abcd:1000");
-    EXPECT_EQ(taddr0, addr3);
+    EXPECT_NE(taddr0, addr3);
     addr3 = TcpAddress("asdfasdf", -1);
-    EXPECT_EQ(addr3, any);
+    EXPECT_FALSE(addr3.Valid());
     addr3 = TcpAddress("asdf://asdfasdf:654452345");
-    EXPECT_EQ(addr3, any);
-    EnableLogging();
+    EXPECT_FALSE(addr3.Valid());
+    addr3 = TcpAddress("http://asdfasdf:2345");
+    EXPECT_FALSE(addr3.Valid());
   }
 }
 }

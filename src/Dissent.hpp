@@ -42,7 +42,6 @@
 #include "Overlay/BasicGossip.hpp"
 
 #include "Transports/Address.hpp"
-#include "Transports/AddressException.hpp"
 #include "Transports/AddressFactory.hpp"
 #include "Transports/BufferAddress.hpp"
 #include "Transports/BufferEdge.hpp"
@@ -55,6 +54,7 @@
 #include "Transports/TcpEdge.hpp"
 #include "Transports/TcpEdgeListener.hpp"
 
+#include "Utils/QRunTimeError.hpp"
 #include "Utils/Random.hpp"
 #include "Utils/Serialization.hpp"
 #include "Utils/SignalCounter.hpp"

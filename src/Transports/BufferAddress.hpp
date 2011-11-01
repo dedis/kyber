@@ -2,7 +2,6 @@
 #define DISSENT_BUFFER_TRANSPORT_ADDRESS_H_GUARD
 
 #include "Address.hpp"
-#include "AddressException.hpp"
 
 namespace Dissent {
 namespace Transports {
@@ -11,11 +10,12 @@ namespace Transports {
    */
   class BufferAddressData : public AddressData {
     public:
-      BufferAddressData(const QUrl &url, const int &id) : AddressData(url), id(id) { }
+      BufferAddressData(const QUrl &url, int id) : AddressData(url), id(id) { }
       ~BufferAddressData() { }
       virtual bool Equals(const AddressData *other) const;
 
       const int id;
+      inline virtual bool Valid() const { return id > 0; }
       
       BufferAddressData(const BufferAddressData &other) : AddressData(other), id(0)
       {
@@ -33,8 +33,10 @@ namespace Transports {
    */
   class BufferAddress : public Address {
     public:
+      const static QString Scheme;
+
       BufferAddress(const QUrl &url);
-      BufferAddress(const int &id);
+      BufferAddress(int id = 0);
       BufferAddress(const BufferAddress &other);
       static const Address Create(const QUrl &url);
       static const Address CreateAny();
@@ -50,6 +52,9 @@ namespace Transports {
           return data->id;
         }
       }
+
+    private:
+      void Init(int id);
   };
 }
 }

@@ -1,25 +1,45 @@
 #include "BufferAddress.hpp"
+#include <QDebug>
 
 namespace Dissent {
 namespace Transports {
+  const QString BufferAddress::Scheme = "buffer";
+
   BufferAddress::BufferAddress(const QUrl &url)
   {
-    if(url.scheme() != "buffer") {
-      throw AddressException(QString("Invalid scheme: " + url.scheme()));
+    if(url.scheme() != Scheme) {
+      qWarning() << "Supplied an invalid scheme" << url.scheme();
+      _data = new AddressData(url);
+      return;
     }
 
     bool ok;
     int id = url.host().toInt(&ok);
     if(!ok) {
-      throw AddressException(QString("Invalid id: " + url.host()));
+      qWarning() << "Supplied an invalid Id" << QString::number(id);
+      _data = new AddressData(url);
+      return;
     }
 
+    Init(id);
     _data = new BufferAddressData(url, id);
   }
 
-  BufferAddress::BufferAddress(const int &id)
+  BufferAddress::BufferAddress(int id)
   {
-    QUrl url("buffer://" + QString::number(id));
+    if(id < 0) {
+      qWarning() << "Supplied an invalid Id" << QString::number(id);
+    }
+
+    Init(id);
+  }
+
+  void BufferAddress::Init(int id)
+  {
+    QUrl url;
+    url.setScheme(Scheme);
+    url.setHost(QString::number(id));
+
     _data = new BufferAddressData(url, id);
   }
 
@@ -34,7 +54,7 @@ namespace Transports {
 
   const Address BufferAddress::CreateAny()
   {
-    return BufferAddress(0);
+    return BufferAddress();
   }
 
   bool BufferAddressData::Equals(const AddressData *other) const

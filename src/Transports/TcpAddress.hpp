@@ -2,7 +2,6 @@
 #define DISSENT_TCP_TRANSPORT_ADDRESS_H_GUARD
 
 #include "Address.hpp"
-#include "AddressException.hpp"
 #include <QHostAddress>
 
 namespace Dissent {
@@ -12,14 +11,20 @@ namespace Transports {
    */
   class TcpAddressData : public AddressData {
     public:
-      TcpAddressData(const QUrl &url, const QHostAddress &ip, const int port) : AddressData(url), ip(ip), port(port) { }
+      TcpAddressData(const QUrl &url, const QHostAddress &ip, int port, bool valid) :
+        AddressData(url), ip(ip), port(port), valid(valid) { }
+
       ~TcpAddressData() { }
       virtual bool Equals(const AddressData *other) const;
 
       const QHostAddress ip;
       const int port;
+      const bool valid;
+
+      inline virtual bool Valid() const { return valid; }
       
-      TcpAddressData(const TcpAddressData &other) : AddressData(other), ip(), port(0)
+      TcpAddressData(const TcpAddressData &other) :
+        AddressData(other), ip(), port(0), valid(false)
       {
         throw std::logic_error("Not callable");
       }

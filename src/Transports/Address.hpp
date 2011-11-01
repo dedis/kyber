@@ -18,6 +18,8 @@ namespace Transports {
       virtual ~AddressData() { }
 
       QUrl url;
+      inline virtual bool Valid() const { return false; }
+
       virtual bool Equals(const AddressData *other) const;
       
       AddressData(const AddressData &other) : QSharedData(other)
@@ -49,6 +51,7 @@ namespace Transports {
       bool operator!=(const Address &other) const; 
 
       inline const QUrl GetUrl() const { return _data->url; }
+      inline bool Valid() const { return _data->Valid(); }
 
     protected:
       template<class T> inline const T *GetData() const {
