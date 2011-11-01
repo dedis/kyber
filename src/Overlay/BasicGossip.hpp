@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QSharedPointer>
 #include "../Connections/ConnectionManager.hpp"
+#include "../Utils/Timer.hpp"
 
 namespace Dissent {
 namespace Overlay {
@@ -11,6 +12,7 @@ namespace Overlay {
     using namespace Dissent::Messaging;
     using namespace Dissent::Transports;
     using namespace Dissent::Connections;
+    using namespace Dissent::Utils;
   }
 
   /**
@@ -100,6 +102,7 @@ namespace Overlay {
       RpcMethod<BasicGossip> _peer_list_response;
       RpcMethod<BasicGossip> _notify_peer;
       int _outstanding_con_attempts;
+      TimerEvent *_bootstrap_event;
 
       /**
        * Notify all peers about this new peer
@@ -134,6 +137,11 @@ namespace Overlay {
        * Handle a remote peers knowledge of another peer
        */
       void PeerListIncrementalUpdate(RpcRequest &notification);
+
+      /**
+       * Reconnects to all peers in the _remote_endpoints
+       */
+      void Bootstrap(const int &);
 
     private slots:
       /**

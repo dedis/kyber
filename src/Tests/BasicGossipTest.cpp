@@ -132,5 +132,67 @@ namespace Tests {
 
     TerminateOverlay(nodes);
   }
+
+  TEST(BasicGossip, UnorderedBootstrap)
+  {
+    int count = Random::GetInstance().GetInt(10, 50);
+    QString session_type = "null";
+    Timer::GetInstance().UseVirtualTime();
+
+    Address base = BufferAddress(1);
+    QList<Address> local;
+    local.append(base);
+    QList<Address> remote;
+    remote.append(base);
+
+    QList<QSharedPointer<Node> > nodes;
+
+    for(int idx = 0; idx < count - 1; idx++) {
+      local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
+      nodes.append(QSharedPointer<Node>(new Node(local, remote, count, session_type)));
+      AsymmetricKey *key = CppPrivateKey::GenerateKey(nodes[idx]->bg.GetId().GetByteArray());
+      nodes[idx]->key = QSharedPointer<AsymmetricKey>(key);
+      nodes[idx]->sink = QSharedPointer<ISink>(new MockSinkWithSignal());
+    }
+
+    SignalCounter sc;
+
+    foreach(QSharedPointer<Node> node, nodes) {
+      QObject::connect(node.data(), SIGNAL(Ready(Node *)), &sc, SLOT(Counter()));
+      node->bg.Start();
+      EXPECT_TRUE(node->bg.NeedConnection());
+    }
+
+    qint64 next = Timer::GetInstance().VirtualRun();
+    qint64 cnext = next + 10000;
+    while(0 <= cnext) {
+      Time::GetInstance().IncrementVirtualClock(next);
+      cnext -= next;
+      next = Timer::GetInstance().VirtualRun();
+    }
+
+    foreach(QSharedPointer<Node> node, nodes) {
+      EXPECT_TRUE(node->bg.NeedConnection());
+    }
+
+    local[0] = base;
+    nodes.append(QSharedPointer<Node>(new Node(local, remote, count, session_type)));
+    AsymmetricKey *key = CppPrivateKey::GenerateKey(nodes.last()->bg.GetId().GetByteArray());
+    nodes.last()->key = QSharedPointer<AsymmetricKey>(key);
+    nodes.last()->sink = QSharedPointer<ISink>(new MockSinkWithSignal());
+    QObject::connect(nodes.last().data(), SIGNAL(Ready(Node *)), &sc, SLOT(Counter()));
+    nodes.last()->bg.Start();
+
+    while(next != -1 && sc.GetCount() != count) {
+      Time::GetInstance().IncrementVirtualClock(next);
+      next = Timer::GetInstance().VirtualRun();
+    }
+
+    foreach(QSharedPointer<Node> node, nodes) {
+      EXPECT_EQ(count - 1, node->bg.GetConnectionTable().GetConnections().count());
+    }
+
+    TerminateOverlay(nodes);
+  }
 }
 }

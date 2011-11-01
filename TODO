@@ -16,7 +16,6 @@ Utils
 - VirtualTime should have a method that lets it be executed for a specific amount of time via QEvent mechanisms
 
 Overlay
-- When a node is stuck in bootstrapping mode, occassionally attempt to reconnect to the overlay
 - Implement Chord and use for overlay broadcasting and overall group dynamics
 
 Cryptography

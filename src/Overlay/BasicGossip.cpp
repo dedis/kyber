@@ -16,7 +16,8 @@ namespace Overlay {
     _peer_list_inquire(*this, &BasicGossip::PeerListInquire),
     _peer_list_response(*this, &BasicGossip::PeerListResponse),
     _notify_peer(*this, &BasicGossip::PeerListIncrementalUpdate),
-    _outstanding_con_attempts(0)
+    _outstanding_con_attempts(0),
+    _bootstrap_event(0)
   {
     _rpc.Register(&_peer_list_inquire, "SN::PeerList");
     _rpc.Register(&_notify_peer, "SN::Update");
@@ -26,6 +27,11 @@ namespace Overlay {
   {
     _rpc.Unregister("SN::PeerList");
     _rpc.Unregister("SN::Update");
+
+    if(_bootstrap_event) {
+      _bootstrap_event->Stop();
+      delete _bootstrap_event;
+    }
   }
 
   bool BasicGossip::Start()
@@ -51,11 +57,7 @@ namespace Overlay {
       pel->Start();
     }
 
-    foreach(const Address &addr, _remote_endpoints) {
-      _outstanding_con_attempts++;
-      _cm.ConnectTo(addr);
-    }
-
+    Bootstrap(0);
     return true;
   }
 
@@ -83,7 +85,7 @@ namespace Overlay {
 
   bool BasicGossip::NeedConnection()
   {
-    return _cm.GetConnectionTable().GetConnections().count() > 0;
+    return _cm.GetConnectionTable().GetConnections().count() == 0;
   }
 
   void BasicGossip::HandleConnection(Connection *con, bool local)
@@ -98,7 +100,30 @@ namespace Overlay {
 
   void BasicGossip::HandleConnectionAttemptFailure(const Address &to, const QString &error)
   {
-    _outstanding_con_attempts--;
+    if(--_outstanding_con_attempts > 0) {
+      return;
+    }
+
+    if(_bootstrap_event == 0) {
+      TimerCallback *cb = new TimerMethod<BasicGossip, int>(this, &BasicGossip::Bootstrap, 0);
+      _bootstrap_event = new TimerEvent(Timer::GetInstance().QueueCallback(cb, 0, 5000));
+    }
+  }
+
+  void BasicGossip::Bootstrap(const int &)
+  {
+    if(!NeedConnection()) {
+      if(_bootstrap_event) {
+        _bootstrap_event->Stop();
+        delete _bootstrap_event;
+        _bootstrap_event = 0;
+      }
+      return;
+    }
+    foreach(const Address &addr, _remote_endpoints) {
+      _outstanding_con_attempts++;
+      _cm.ConnectTo(addr);
+    }
   }
 
   void BasicGossip::SendUpdate(Connection *con)
