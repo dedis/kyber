@@ -28,3 +28,7 @@ Applications
 Overall
 - Replace all pointers with qscoped / qshared pointers
 - Consider removing qsharedata and replacing it with qsharedpointers
+
+Tests
+- Using QCoreApplication::exit in SignalCounter is certainly clever but it prevents QTimers from working... make MockExec take an interval to execute / check for a completion state on something...
+- With that in mind TimerTest (real) is broken until the above is fixed
