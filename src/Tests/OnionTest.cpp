@@ -101,9 +101,7 @@ namespace Tests {
       OnionEncryptor::GetInstance().RandomizeBlocks(onions[idx]);
     }
 
-    DisableLogging();
     EXPECT_FALSE(OnionEncryptor::GetInstance().Decrypt(private_keys[changed], onions[changed + 1], onions[changed], 0));
-    EnableLogging();
 
     for(int idx = 0; idx < count; idx++) {
       delete private_keys[idx];
@@ -156,10 +154,8 @@ namespace Tests {
       OnionEncryptor::GetInstance().RandomizeBlocks(onions[idx]);
     }
 
-    DisableLogging();
     QBitArray bad;
     EXPECT_FALSE(OnionEncryptor::GetInstance().VerifyAll(private_keys, onions, bad));
-    EnableLogging();
 
     int good_count = 0;
     int bad_count = 0;
@@ -231,10 +227,8 @@ namespace Tests {
       OnionEncryptor::GetInstance().RandomizeBlocks(onions[idx]);
     }
 
-    DisableLogging();
     QBitArray bad;
     EXPECT_FALSE(OnionEncryptor::GetInstance().VerifyAll(private_keys, onions, bad));
-    EnableLogging();
 
     int good_count = 0;
     int bad_count = 0;
@@ -317,10 +311,8 @@ namespace Tests {
       OnionEncryptor::GetInstance().RandomizeBlocks(onions[idx]);
     }
 
-    DisableLogging();
     QBitArray bad;
     EXPECT_FALSE(OnionEncryptor::GetInstance().VerifyAll(private_keys, onions, bad));
-    EnableLogging();
 
     int good_count = 0;
     int bad_count = 0;

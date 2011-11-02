@@ -47,12 +47,10 @@ namespace Tests {
     AsymmetricKey *pu_key1 = new CppPublicKey(QString("public_key"));
     EXPECT_TRUE(pu_key1->IsValid());
 
-    DisableLogging();
     EXPECT_TRUE(pu_key0->Sign(data).isEmpty());
     EXPECT_TRUE(pu_key0->Decrypt(out0_0).isEmpty());
     EXPECT_TRUE(pu_key1->Sign(data).isEmpty());
     EXPECT_TRUE(pu_key1->Decrypt(out0_0).isEmpty());
-    EnableLogging();
 
     EXPECT_TRUE(pu_key0->Verify(data, sig0));
     EXPECT_TRUE(pu_key0->Verify(data, sig1));
@@ -106,8 +104,6 @@ namespace Tests {
 
   TEST(Crypto, CppAsymmetricKeyFail)
   {
-    DisableLogging();
-
     CryptoPP::AutoSeededX917RNG<CryptoPP::DES_EDE3> rng;
     QByteArray data(1500, 0);
     rng.GenerateBlock(reinterpret_cast<byte *>(data.data()), data.size());
@@ -178,8 +174,6 @@ namespace Tests {
     EXPECT_TRUE(key1->Decrypt(key1->Encrypt(data)).isEmpty());
     EXPECT_FALSE(key1->Verify(data, key1->Sign(data)));
     EXPECT_TRUE(key1->GetPublicKey() == 0);
-
-    EnableLogging();
 
     delete key0;
     delete key1;

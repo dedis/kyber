@@ -272,8 +272,6 @@ namespace Tests {
     EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
     EXPECT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
 
-    DisableLogging();
-
     cm1.ConnectTo(addr0);
     cm0.ConnectTo(addr1);
 
@@ -285,8 +283,6 @@ namespace Tests {
 
     EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
     EXPECT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
-
-    EnableLogging();
   }
 
   TEST(Connection, OneWayDisconnect)
@@ -332,8 +328,6 @@ namespace Tests {
     EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
     EXPECT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
 
-    DisableLogging();
-
     cm1.ConnectTo(addr0);
     cm0.ConnectTo(addr1);
 
@@ -345,8 +339,6 @@ namespace Tests {
 
     EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
 //    EXPECT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
-
-    EnableLogging();
   }
 }
 }

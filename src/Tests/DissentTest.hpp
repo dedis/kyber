@@ -9,8 +9,4 @@
 #include "Mock.hpp"
 #include "RpcTest.hpp"
 
-void NoOutputHandler(QtMsgType, const char *);
-void DisableLogging();
-void EnableLogging();
-
 #endif

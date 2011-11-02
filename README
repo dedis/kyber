@@ -58,6 +58,21 @@ inefficient.
 
 1 - http://code.google.com/p/googletest/
 
+Logging and Debugging Output
+===============================================================================
+Logging outputs are compiled in by default but can be disabled by uncommenting
+the following lines in test.pro and console.pro:
+#DEFINES += QT_NO_DEBUG_OUTPUT
+#DEFINES += QT_NO_WARNING_OUTPUT
+
+Logging can be manipulated by using the Dissent::Utils::Logging class.  For the
+ConsoleApp this is done by using the Settings file (conf).
+
+To send logging output to standard error use log = "stderr".
+To send logging output to standard output use log = "stdout".
+To send logging output to a file use log = "filename".
+To disable logging use log = "" or exclude log altogether.
+
 Links
 ===============================================================================
 Dedis -- Research group at Yale producing this software

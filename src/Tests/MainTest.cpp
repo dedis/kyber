@@ -10,6 +10,8 @@ void FilesDelete();
 GTEST_API_ int main(int argc, char **argv)
 {
   QCoreApplication qca(argc, argv);
+  Logging::UseFile("test.log");
+  qDebug() << "Begging tests";
   FilesExist();
   testing::InitGoogleTest(&argc, argv);
   int res = RUN_ALL_TESTS();
@@ -43,18 +45,4 @@ void FileDelete(QString filename)
 {
   QFile file(filename);
   file.remove();
-}
-
-void NoOutputHandler(QtMsgType, const char *)
-{
-}
-
-void DisableLogging()
-{
-    qInstallMsgHandler(NoOutputHandler);
-} 
-
-void EnableLogging()
-{
-    qInstallMsgHandler(0);
 }

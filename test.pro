@@ -7,8 +7,8 @@ DEPENDPATH += ext/googletest/src \
 INCLUDEPATH += src \
                ext/googletest \
                ext/googletest/include
-DEFINES += QT_NO_DEBUG_OUTPUT
-DEFINES += QT_NO_WARNING_OUTPUT
+#DEFINES += QT_NO_DEBUG_OUTPUT
+#DEFINES += QT_NO_WARNING_OUTPUT
 
 # Input
 HEADERS += ext/googletest/include/gtest/gtest-death-test.h \

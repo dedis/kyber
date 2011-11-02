@@ -54,6 +54,7 @@
 #include "Transports/TcpEdge.hpp"
 #include "Transports/TcpEdgeListener.hpp"
 
+#include "Utils/Logging.hpp"
 #include "Utils/QRunTimeError.hpp"
 #include "Utils/Random.hpp"
 #include "Utils/Serialization.hpp"

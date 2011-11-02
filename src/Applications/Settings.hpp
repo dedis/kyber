@@ -67,6 +67,11 @@ namespace Applications {
        */
       QString SessionType;
 
+      /**
+       * Logging type: stderr, stdout, file, or empty (disabled)
+       */
+      QString Log;
+
     private:
       void ParseUrlList(const QString &name, const QVariant &values, QList<QUrl> &list);
       void ParseUrl(const QString &name, const QVariant &value, QList<QUrl> &list);

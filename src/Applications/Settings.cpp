@@ -1,4 +1,8 @@
 #include "Settings.hpp"
+#include "../Utils/Logging.hpp"
+#include <iostream>
+
+using namespace Dissent::Utils;
 
 namespace Dissent {
 namespace Applications {
@@ -28,6 +32,20 @@ namespace Applications {
 
     if(_settings.contains("session_type")) {
       SessionType = _settings.value("session_type").toString();
+    }
+
+    if(_settings.contains("log")) {
+      Log = _settings.value("log").toString();
+      QString lower = Log.toLower();
+      if(lower == "stderr") {
+        Logging::UseStderr();
+      } else if(lower == "stdout") {
+        Logging::UseStdout();
+      } else if(Log.isEmpty()) {
+        Logging::Disable();
+      } else {
+        Logging::UseFile(Log);
+      }
     }
   }
 
@@ -111,6 +129,7 @@ namespace Applications {
     _settings.setValue("group_size", GroupSize);
     _settings.setValue("local_nodes", LocalNodeCount);
     _settings.setValue("demo_mode", DemoMode);
+    _settings.setValue("log", Log);
   }
 }
 }
