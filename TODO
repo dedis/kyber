@@ -8,6 +8,7 @@ Anonymity
 Connections
 - ConnectionTable should be a value type
 - ConnectionManager and maybe EL should turn reject requests for connections when closed
+- ConnectionManager should monitor Id / Address to immediately return a ConnectionAttemptFailure in the case of duplicate ConnectTo statements
 
 Transports
 - EdgeListeners should produce QSharedPointer<Edge>
@@ -28,7 +29,3 @@ Applications
 Overall
 - Replace all pointers with qscoped / qshared pointers
 - Consider removing qsharedata and replacing it with qsharedpointers
-
-Tests
-- Using QCoreApplication::exit in SignalCounter is certainly clever but it prevents QTimers from working... make MockExec take an interval to execute / check for a completion state on something...
-- With that in mind TimerTest (real) is broken until the above is fixed
