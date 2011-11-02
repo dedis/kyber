@@ -61,6 +61,7 @@ namespace Tests {
   };
   
   void MockExec();
+  void MockExecLoop(SignalCounter &sc, int interval = 0);
 }
 }
 #endif

@@ -117,28 +117,27 @@ namespace Tests {
     QObject::connect(&te, SIGNAL(EdgeCreationFailure(const Address &, const QString &)),
         &sc, SLOT(Counter()));
 
-
     TcpAddress any;
     te.CreateEdgeTo(any);
-    QApplication::exec();
+    MockExecLoop(sc);
     EXPECT_EQ(sc.GetCount(), 1);
     sc.Reset();
 
     TcpAddress other_addr("255.255.255.255.", 1111);
     te.CreateEdgeTo(other_addr);
-    QApplication::exec();
+    MockExecLoop(sc);
     EXPECT_EQ(sc.GetCount(), 1);
     sc.Reset();
 
     TcpAddress bad_addr(QUrl("tcp://ha!"));
     te.CreateEdgeTo(bad_addr);
-    QApplication::exec();
+    MockExecLoop(sc);
     EXPECT_EQ(sc.GetCount(), 1);
     sc.Reset();
 
     TcpAddress another_addr("5.5.5.5", 12345);
     te.CreateEdgeTo(another_addr);
-    QApplication::exec();
+    MockExecLoop(sc);
     EXPECT_EQ(sc.GetCount(), 1);
   }
 }

@@ -2,9 +2,6 @@
 #define DISSENT_UTILS_SIGNAL_COUNTER_H_GUARD
 
 #include <QObject>
-#include <QDebug>
-
-#include <qcoreapplication.h>
 
 namespace Dissent {
 namespace Utils {
@@ -31,11 +28,16 @@ namespace Utils {
        */
       inline void Reset() { _count = 0; }
 
+      /**
+       * Returns the expected count
+       */
+      inline int Max() { return _max; }
+
     public slots:
       /**
        * Register all signals to this slot
        */
-      void Counter() { if(++_count == _max) { QCoreApplication::exit(); } }
+      void Counter() { ++_count; }
 
     private:
       int _max;

@@ -54,10 +54,22 @@ namespace Tests {
     this->edge.reset(edge);
   }
 
+  void MockExecLoop(SignalCounter &sc, int interval)
+  {
+    while(true) {
+      QCoreApplication::processEvents();
+      QCoreApplication::sendPostedEvents();
+      if(sc.GetCount() == sc.Max()) {
+        return;
+      }
+      Sleeper::MSleep(interval);
+    }
+  }
+
   void MockExec()
   {
     QCoreApplication::processEvents();
-    QCoreApplication::sendPostedEvents(0, 0);
+    QCoreApplication::sendPostedEvents();
   }
 }
 }

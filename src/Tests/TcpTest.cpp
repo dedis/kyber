@@ -33,7 +33,7 @@ namespace Tests {
       node->bg.Start();
     }
 
-    QCoreApplication::exec();
+    MockExecLoop(sc);
 
     foreach(QSharedPointer<Node> node, nodes) {
       EXPECT_EQ(count - 1, node->bg.GetConnectionTable().GetConnections().count());
@@ -50,7 +50,7 @@ namespace Tests {
       node->bg.Stop();
     }
 
-    QCoreApplication::exec();
+    MockExecLoop(sc);
 
     foreach(QSharedPointer<Node> node, nodes) {
       EXPECT_EQ(node->bg.GetConnectionTable().GetConnections().count(), 0);
@@ -73,7 +73,7 @@ namespace Tests {
       QObject::connect(sink, SIGNAL(ReadReady(MockSinkWithSignal *)), &sc, SLOT(Counter()));
     }
 
-    QCoreApplication::exec();
+    MockExecLoop(sc);
 
     foreach(QSharedPointer<Node> node, nodes) {
       MockSinkWithSignal *sink = dynamic_cast<MockSinkWithSignal *>(node->sink.data());
