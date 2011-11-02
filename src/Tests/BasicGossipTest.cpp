@@ -123,7 +123,7 @@ namespace Tests {
   {
     int count = Random::GetInstance().GetInt(10, 50);
     Timer::GetInstance().UseVirtualTime();
-    QList<QSharedPointer<Node> > nodes = GenerateOverlay(count, "null");
+    QList<QSharedPointer<Node> > nodes = GenerateOverlay(count, "shuffle");
     SendTest(nodes);
 
     foreach(QSharedPointer<Node> node, nodes) {
