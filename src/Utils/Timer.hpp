@@ -74,9 +74,6 @@ namespace Utils {
        */
       void Clear();
 
-    public slots:
-      void ExitExec();
-
     protected:
       /**
        * Singleton, disabled

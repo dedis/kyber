@@ -116,10 +116,5 @@ namespace Utils {
   {
     _queue = TimerQueue(&(TimerEvent::ReverseComparer));
   }
-
-  void Timer::ExitExec()
-  {
-    QCoreApplication::exit();
-  }
 }
 }
