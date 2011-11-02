@@ -5,7 +5,7 @@ namespace Transports {
   void EdgeFactory::AddEdgeListener(QSharedPointer<EdgeListener> el)
   {
     if(_type_to_el.contains(el->GetAddressType())) {
-      qFatal(QString("Attempting to create multiple EdgeListeners with the " 
+      qFatal("%s", QString("Attempting to create multiple EdgeListeners with the " 
         "same address type: " + el->GetAddressType()).toUtf8().data());
     }
     _type_to_el[el->GetAddressType()] = el;

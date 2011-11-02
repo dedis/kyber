@@ -98,7 +98,7 @@ namespace Overlay {
     emit NewConnection(con, local);
   }
 
-  void BasicGossip::HandleConnectionAttemptFailure(const Address &to, const QString &error)
+  void BasicGossip::HandleConnectionAttemptFailure(const Address &, const QString &)
   {
     if(--_outstanding_con_attempts > 0) {
       return;

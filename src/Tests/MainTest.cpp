@@ -35,7 +35,7 @@ void FileExists(QString filename)
 {
   QFile file(filename);
   if(file.exists()) {
-    qFatal(QString(filename + " exists, move / delete and restart the test.").toUtf8().data());
+    qFatal("%s", QString(filename + " exists, move / delete and restart the test.").toUtf8().data());
   }
 }
 

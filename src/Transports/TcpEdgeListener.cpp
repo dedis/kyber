@@ -27,7 +27,7 @@ namespace Transports {
     TcpAddress &addr = static_cast<TcpAddress &>(_local_address);
 
     if(!_server.listen(addr.GetIP(), addr.GetPort())) {
-      qFatal(QString("Unable to bind to " + addr.ToString()).toUtf8().data());
+      qFatal("%s", QString("Unable to bind to " + addr.ToString()).toUtf8().data());
     }
 
     QObject::connect(&_server, SIGNAL(newConnection()), this, SLOT(HandleAccept()));

@@ -47,7 +47,7 @@ namespace Transports {
   {
     AnyCallback cb = _type_to_any[type];
     if(cb == 0) {
-      qFatal(QString("Attempted to CreateAny on a non scheme" + type).toUtf8().data());
+      qFatal("%s", QString("Attempted to CreateAny on a non scheme" + type).toUtf8().data());
     }
     return cb();
   }
