@@ -74,10 +74,5 @@ namespace Anonymity {
   {
     throw std::logic_error("Not implemented");
   }
-
-  QString Round::ToString()
-  {
-    return "";
-  }
 }
 }

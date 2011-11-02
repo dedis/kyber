@@ -42,7 +42,8 @@ namespace Anonymity {
 
   void Session::Start()
   {
-    qDebug() << "Session" << ToString() << "started";
+    qDebug() << "Session" << ToString() << "started.";
+
     if(_started) {
       qWarning() << "Called start twice.";
       return;
@@ -127,7 +128,9 @@ namespace Anonymity {
 
   void Session::HandleRoundFinished(Round *round)
   {
-    qDebug() << "Session" << ToString() << "round finished";
+    qDebug() << "Session" << ToString() << "round" <<
+      _current_round->ToString() << "finished.";
+
     if(round != _current_round) {
       qWarning() << "Received an awry Round Finished notification";
       return;
@@ -148,7 +151,6 @@ namespace Anonymity {
   void Session::NextRound()
   {
     if(_current_round) {
-      qDebug() << "Session" << ToString() << "creating a new round";
       QObject::disconnect(_current_round, SIGNAL(Finished(Round *)),
           this, SLOT(HandleRoundFinished(Round *)));
 
@@ -161,6 +163,9 @@ namespace Anonymity {
     
     _current_round = GetRound((_send_queue.isEmpty()) ?
         _default_data : _send_queue.dequeue());
+
+    qDebug() << "Session" << ToString() << "starting new round" <<
+      _current_round->ToString() << "started.";
 
     _current_round->SetSink(this);
     QObject::connect(_current_round, SIGNAL(Finished(Round *)),

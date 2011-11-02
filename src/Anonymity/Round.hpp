@@ -50,11 +50,6 @@ namespace Anonymity {
       virtual void HandleData(const QByteArray &data, ISender *from);
 
       /**
-       * Produces a string representation of the round
-       */
-      virtual QString ToString();
-
-      /**
        * Close the round for no specific reason
        */
       bool Close();
@@ -100,6 +95,8 @@ namespace Anonymity {
        * paradigm and have the session recognize which round produced the result
        */
       virtual void Send(const QByteArray &data);
+
+      inline virtual QString ToString() { return "Round"; }
 
     signals:
       /**

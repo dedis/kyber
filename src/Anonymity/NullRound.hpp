@@ -45,6 +45,8 @@ namespace Anonymity {
 
       virtual bool Start();
 
+      inline virtual QString ToString() { return "NullRound"; }
+
     private:
       /**
        * Pushes the data into the subscribed Sink

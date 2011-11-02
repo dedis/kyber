@@ -90,6 +90,8 @@ namespace Anonymity {
        */
       inline Round *GetCurrentRound() { return _current_round; }
 
+      inline virtual QString ToString() { return "Session: " + GetId().ToString(); }
+
     signals:
       /**
        * Signals that a round has completed.  The round will be deleted after

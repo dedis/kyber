@@ -181,6 +181,8 @@ namespace Anonymity {
 
       bool Start();
 
+      inline virtual QString ToString() { return "ShuffleRound: " + _round_id.ToString(); }
+
     protected:
       virtual void Broadcast(const QByteArray &data);
       virtual void Send(const QByteArray &data, const Id &id);
