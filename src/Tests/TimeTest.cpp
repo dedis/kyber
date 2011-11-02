@@ -141,7 +141,6 @@ namespace Tests {
     epoch.setTimeSpec(Qt::UTC);
 
     Time &time = Time::GetInstance();
-
     time.UseRealTime();
 
     QDateTime now = time.CurrentTime();

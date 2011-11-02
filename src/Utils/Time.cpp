@@ -1,4 +1,6 @@
 #include "Time.hpp"
+#include "Timer.hpp"
+#include <QDebug>
 
 namespace Dissent {
 namespace Utils {
@@ -59,12 +61,22 @@ namespace Utils {
 
   void Time::UseRealTime()
   {
+    if(_real_time) {
+      return;
+    }
+
     _real_time = true;
+    Timer::GetInstance().UseRealTime();
   }
 
   void Time::UseVirtualTime()
   {
+    if(!_real_time) {
+      return;
+    }
+
     _real_time = false;
+    Timer::GetInstance().UseVirtualTime();
   }
 
   void Time::IncrementVirtualClock(qint64 time)
