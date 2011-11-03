@@ -26,9 +26,9 @@ namespace Tests {
     RoundTest_MultiRound(&CreateNullSession, false);
   }
 
-  TEST(NullRound, PeerDisconnect)
+  TEST(NullRound, PeerDisconnectEnd)
   {
-    RoundTest_PeerDisconnect(&CreateNullSession, false);
+    RoundTest_PeerDisconnectEnd(&CreateNullSession, false);
   }
 }
 }

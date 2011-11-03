@@ -169,7 +169,7 @@ namespace Tests {
     delete group;
   }
 
-  void RoundTest_PeerDisconnect(CreateSessionCallback callback, bool keys = false)
+  void RoundTest_PeerDisconnectEnd(CreateSessionCallback callback, bool keys = false)
   {
     Timer::GetInstance().UseVirtualTime();
 
@@ -233,6 +233,87 @@ namespace Tests {
     CleanUp(nodes);
     delete group;
   }
+
+  void RoundTest_PeerDisconnectMiddle(CreateSessionCallback callback, bool keys = false)
+  {
+    Timer::GetInstance().UseVirtualTime();
+
+    int count = Random::GetInstance().GetInt(10, 50);
+    int leader = Random::GetInstance().GetInt(0, count);
+    int sender = Random::GetInstance().GetInt(0, count);
+    int disconnecter = Random::GetInstance().GetInt(0, count);
+
+    QVector<TestNode *> nodes;
+    Group *group;
+    ConstructOverlay(count, nodes, group, keys);
+
+    for(int idx = 0; idx < count; idx++) {
+      for(int jdx = 0; jdx < count; jdx++) {
+        if(idx == jdx) {
+          continue;
+        }
+        EXPECT_TRUE(nodes[idx]->cm.GetConnectionTable().GetConnection(nodes[jdx]->cm.GetId()));
+      }
+    }
+
+    for(int idx = 0; idx < count; idx++) {
+      EXPECT_TRUE(nodes[idx]->sink.GetLastData().isEmpty());
+    }
+
+    Id leader_id = nodes[leader]->cm.GetId();
+    Id session_id;
+
+    CreateSessions(nodes, *group, leader_id, session_id, callback);
+
+    Dissent::Crypto::CppRandom rand;
+    QByteArray msg(512, 0);
+    rand.GenerateBlock(msg);
+    nodes[sender]->session->Send(msg);
+
+    for(int idx = 0; idx < count; idx++) {
+      nodes[idx]->session->Start();
+    }
+
+    TestNode::calledback = 0;
+    qint64 next = Timer::GetInstance().VirtualRun();
+    // XXX This needs to be improved, but what we are doing is issuing a
+    // disconnect approximately 1 to count steps into the Round
+    qint64 run_before_disc = Time::GetInstance().MSecsSinceEpoch() + 
+      Random::GetInstance().GetInt(10, 10 * count);
+
+    while(next != -1 && TestNode::calledback < count && 
+        Time::GetInstance().MSecsSinceEpoch() < run_before_disc)
+    {
+      Time::GetInstance().IncrementVirtualClock(next);
+      next = Timer::GetInstance().VirtualRun();
+    }
+
+    if(Time::GetInstance().MSecsSinceEpoch() >= run_before_disc) {
+      nodes[disconnecter]->cm.Disconnect();
+    }
+
+    while(next != -1 && TestNode::calledback < count) {
+      Time::GetInstance().IncrementVirtualClock(next);
+      next = Timer::GetInstance().VirtualRun();
+    }
+
+    if(Time::GetInstance().MSecsSinceEpoch() < run_before_disc) {
+      std::cout << "RoundTest_PeerDisconnectMiddle never caused a disconnect, "
+        "consider rerunning." << std::endl;
+
+      for(int idx = 0; idx < count; idx++) {
+        EXPECT_EQ(msg, nodes[idx]->sink.GetLastData());
+      }
+    } else {
+      foreach(TestNode *node, nodes) {
+        EXPECT_TRUE(node->session->Closed());
+      }
+    }
+
+    CleanUp(nodes);
+    delete group;
+  }
+
 
   void RoundTest_BadGuy(CreateSessionCallback good_callback,
       CreateSessionCallback bad_callback, bool keys = false)

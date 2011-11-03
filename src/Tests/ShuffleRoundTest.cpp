@@ -27,9 +27,14 @@ namespace Tests {
     RoundTest_MultiRound(&CreateShuffleSession, true);
   }
 
-  TEST(ShuffleRound, PeerDisconnect)
+  TEST(ShuffleRound, PeerDisconnectEnd)
   {
-    RoundTest_PeerDisconnect(&CreateShuffleSession, true);
+    RoundTest_PeerDisconnectEnd(&CreateShuffleSession, true);
+  }
+
+  TEST(ShuffleRound, PeerDisconnectMiddle)
+  {
+    RoundTest_PeerDisconnectMiddle(&CreateShuffleSession, true);
   }
 
   TEST(ShuffleRound, MessageDuplicator)
