@@ -15,6 +15,7 @@ namespace Anonymity {
     _current_round(0),
     _previous_round(0),
     _started(false),
+    _round_ready(false),
     _closed(false),
     _ready(*this, &Session::Ready),
     _create_round(create_round)
@@ -100,7 +101,7 @@ namespace Anonymity {
     }
 
     _id_to_request.insert(con->GetRemoteId(), request);
-    if(_started) {
+    if(_started && _round_ready) {
       LeaderReady();
     }
   }
@@ -117,12 +118,14 @@ namespace Anonymity {
     }
     _id_to_request.clear();
 
+    _round_ready = false;
     _current_round->Start();
     return true;
   }
 
   void Session::Ready(RpcRequest &)
   {
+    _round_ready = false;
     _current_round->Start();
   }
 
@@ -141,7 +144,7 @@ namespace Anonymity {
     if(_closed) {
       qDebug() << "Session closed.";
     } else 
-      if( round->Successful()) {
+      if(round->Successful()) {
       NextRound();
     } else {
       qWarning() << "Round ended unsuccessfully ... what to do...";
@@ -170,6 +173,8 @@ namespace Anonymity {
     _current_round->SetSink(this);
     QObject::connect(_current_round, SIGNAL(Finished(Round *)),
         this, SLOT(HandleRoundFinished(Round *)));
+
+    _round_ready = true;
 
     if(IsLeader()) {
       LeaderReady();

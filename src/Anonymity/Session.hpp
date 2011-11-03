@@ -154,6 +154,7 @@ namespace Anonymity {
       Round *_current_round;
       Round *_previous_round;
       bool _started;
+      bool _round_ready;
       bool _closed;
       RpcMethod<Session> _ready;
       CreateRound _create_round;
