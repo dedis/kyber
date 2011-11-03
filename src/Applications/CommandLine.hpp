@@ -26,6 +26,8 @@ namespace Applications {
        */
       CommandLine(const QList<QSharedPointer<Node> > &nodes);
 
+      virtual ~CommandLine();
+
       /**
        * Start the command line services
        */

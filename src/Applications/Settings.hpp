@@ -72,6 +72,11 @@ namespace Applications {
        */
       QString Log;
 
+      /**
+       * Console interaction -- read on stdin -- disable for non-interactive apps
+       */
+      bool Console;
+
     private:
       void ParseUrlList(const QString &name, const QVariant &values, QList<QUrl> &list);
       void ParseUrl(const QString &name, const QVariant &value, QList<QUrl> &list);

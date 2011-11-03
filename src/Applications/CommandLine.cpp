@@ -12,6 +12,11 @@ namespace Applications {
   {
   }
 
+  CommandLine::~CommandLine()
+  {
+    Stop();
+  }
+
   void CommandLine::Start()
   {
     if(_running) {

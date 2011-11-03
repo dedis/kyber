@@ -47,6 +47,8 @@ namespace Applications {
         Logging::UseFile(Log);
       }
     }
+
+    Console = _settings.value("console").toBool();
   }
 
   bool Settings::IsValid()

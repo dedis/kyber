@@ -53,13 +53,16 @@ int main(int argc, char **argv)
     node->bg.Start();
   }
 
-  QSharedPointer<CommandLine> cl(new CommandLine(nodes));
-  QObject::connect(nodes[0].data(), SIGNAL(Ready(Node *)), cl.data(), SLOT(Ready()));
-  nodes[0]->sink = cl;
+  if(settings.Console) {
+    QSharedPointer<CommandLine> cl(new CommandLine(nodes));
+    QObject::connect(nodes[0].data(), SIGNAL(Ready(Node *)), cl.data(), SLOT(Ready()));
+    nodes[0]->sink = cl;
+    cl->Start();
+  } else {
+    nodes[0]->sink = QSharedPointer<ISink>(new DummySink());
+  }
 
-  cl->Start();
   QCoreApplication::exec();
-  cl->Stop();
 
   foreach(QSharedPointer<Node> node, nodes) {
     node->bg.Stop();
