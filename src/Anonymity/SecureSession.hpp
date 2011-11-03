@@ -39,7 +39,7 @@ namespace Anonymity {
           RpcHandler &rpc, QSharedPointer<AsymmetricKey> signing_key,
           CreateSecureRound create_round, const QByteArray &default_data);
 
-      inline virtual QString ToString() { return "SecureSession: " + GetId().ToString(); }
+      inline virtual QString ToString() const { return "SecureSession: " + GetId().ToString(); }
 
     private:
       QSharedPointer<AsymmetricKey> _signing_key;

@@ -41,7 +41,7 @@ namespace Anonymity {
       /**
        * Deconstructor
        */
-      ~Session();
+      virtual ~Session();
 
       /**
        * Begin the Session
@@ -90,7 +90,7 @@ namespace Anonymity {
        */
       inline Round *GetCurrentRound() { return _current_round; }
 
-      inline virtual QString ToString() { return "Session: " + GetId().ToString(); }
+      inline virtual QString ToString() const { return "Session: " + GetId().ToString(); }
 
     signals:
       /**

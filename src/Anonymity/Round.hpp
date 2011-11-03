@@ -96,7 +96,7 @@ namespace Anonymity {
        */
       virtual void Send(const QByteArray &data);
 
-      inline virtual QString ToString() { return "Round"; }
+      inline virtual QString ToString() const { return "Round"; }
 
     signals:
       /**

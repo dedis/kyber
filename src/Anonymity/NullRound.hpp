@@ -45,7 +45,7 @@ namespace Anonymity {
 
       virtual bool Start();
 
-      inline virtual QString ToString() { return "NullRound"; }
+      inline virtual QString ToString() const { return "NullRound"; }
 
     private:
       /**
