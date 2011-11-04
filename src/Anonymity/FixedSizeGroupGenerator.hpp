@@ -14,13 +14,23 @@ namespace Anonymity {
   }
 
   /**
+   * Generates a subgroup of a fixed length from the provided group
    */
   class FixedSizeGroupGenerator : public GroupGenerator {
     public:
-      FixedSizeGroupGenerator(const Group &group, const Id &session_id,
-          const ConnectionTable &ct, RpcHandler &rpc,
+      /**
+       * Constructor
+       * @param group base group
+       * @param local_id the local nodes Id
+       * @param session_id Id for the session
+       * @param ct maps Ids to connections
+       * @param rpc for sending and receives remote procedure calls
+       * @param signing_key the local nodes private signing key, pointer NOT
+       */
+      FixedSizeGroupGenerator(const Group &group, const Id &local_id,
+          const Id &session_id, const ConnectionTable &ct, RpcHandler &rpc,
           QSharedPointer<AsymmetricKey> signing_key) :
-        GroupGenerator(group, session_id, ct, rpc, signing_key)
+        GroupGenerator(group, local_id, session_id, ct, rpc, signing_key)
       {
         QVector<Id> ids;
         QVector<QSharedPointer<AsymmetricKey> > keys;
@@ -32,11 +42,25 @@ namespace Anonymity {
         _current = *_fixed_group;
       }
 
-      static GroupGenerator *Create(const Group &group, const Id &session_id,
-          const ConnectionTable &ct, RpcHandler &rpc,
+      /**
+       * Destructor
+       */
+      virtual ~FixedSizeGroupGenerator() {}
+
+      /**
+       * CreateGroupGenerator static callback
+       * @param group base group
+       * @param local_id the local nodes Id
+       * @param session_id Id for the session
+       * @param ct maps Ids to connections
+       * @param rpc for sending and receives remote procedure calls
+       * @param signing_key the local nodes private signing key, pointer NOT
+       */
+      static GroupGenerator *Create(const Group &group, const Id &local_id,
+          const Id &session_id, const ConnectionTable &ct, RpcHandler &rpc,
           QSharedPointer<AsymmetricKey> signing_key)
       {
-        return new FixedSizeGroupGenerator(group, session_id, ct, rpc, signing_key);
+        return new FixedSizeGroupGenerator(group, local_id, session_id, ct, rpc, signing_key);
       }
 
       virtual const Group NextGroup()

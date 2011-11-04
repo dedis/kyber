@@ -10,7 +10,7 @@ namespace Anonymity {
     Session(group, local_id, leader_id, session_id, ct, rpc, 0, default_data),
     _signing_key(signing_key),
     _create_secure_round(create_round),
-    _generate_group(group_generator(group, session_id, ct, rpc, signing_key))
+    _generate_group(group_generator(group, local_id, session_id, ct, rpc, signing_key))
   {
   }
 

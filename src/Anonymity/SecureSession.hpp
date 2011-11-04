@@ -43,6 +43,9 @@ namespace Anonymity {
 
       inline virtual QString ToString() const { return "SecureSession: " + GetId().ToString(); }
 
+      /**
+       * Returns the underlying GroupGenerator
+       */
       inline const GroupGenerator &GetGroupGenerator() { return *_generate_group; }
 
     private:

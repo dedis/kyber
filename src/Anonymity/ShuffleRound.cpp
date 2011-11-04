@@ -498,8 +498,10 @@ namespace Anonymity {
       return;
     }
 
-    QByteArray inner_key = _inner_key->GetPublicKey()->GetByteArray();
-    QByteArray outer_key = _outer_key->GetPublicKey()->GetByteArray();
+    QScopedPointer<AsymmetricKey> in_key(_inner_key->GetPublicKey());
+    QScopedPointer<AsymmetricKey> out_key(_outer_key->GetPublicKey());
+    QByteArray inner_key = in_key->GetByteArray();
+    QByteArray outer_key = out_key->GetByteArray();
 
     QByteArray msg;
     QDataStream stream(&msg, QIODevice::WriteOnly);
