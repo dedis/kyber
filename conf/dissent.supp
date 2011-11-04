@@ -1,0 +1,36 @@
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Overlap
+   fun:*
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Value8
+   fun:*
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Value4
+   fun:*
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Addr8
+   fun:*
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Addr4
+   fun:*
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:*
+   ...
+}
