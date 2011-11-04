@@ -25,7 +25,7 @@ namespace Messaging {
       /**
        * Virtual destructor
        */
-      virtual ~ISender() {};
+      virtual ~ISender() {}
   };
 }
 }

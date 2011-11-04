@@ -42,7 +42,7 @@ namespace Crypto {
       /**
        * Deconstructor
        */
-      ~CppPublicKey();
+      virtual ~CppPublicKey();
 
       /**
        * Creates a public key based upon the seed data, same seed data same

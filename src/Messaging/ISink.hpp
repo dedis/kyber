@@ -22,7 +22,7 @@ namespace Messaging {
       /**
        * Virtual destructor...
        */
-      virtual ~ISink() {};
+      virtual ~ISink() {}
   };
 }
 }

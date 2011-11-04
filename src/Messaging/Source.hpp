@@ -25,6 +25,8 @@ namespace Messaging {
        */
       ISink *SetSink(ISink *sink);
 
+      virtual ~Source() {}
+
     protected:
       /**
        * Pushes data into the sink

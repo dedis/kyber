@@ -8,6 +8,9 @@ namespace Crypto {
    */
   class Hash {
     public:
+
+      virtual ~Hash() {}
+
       /**
        * Returns the blocksize of the underlying hash function
        */

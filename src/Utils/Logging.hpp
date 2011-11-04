@@ -7,13 +7,37 @@
 
 namespace Dissent {
 namespace Utils {
+  /**
+   * Interface into Qt's logging system
+   */
   class Logging {
     public:
+      /**
+       * Store all logs into the specified file
+       * @param filename the file in which to store logs
+       */
       static void UseFile(const QString &filename);
+
+      /**
+       * Output logs to stdout
+       */
       static void UseStdout();
+
+      /**
+       * Output logs to stderr
+       */
       static void UseStderr();
+
+      /**
+       * Use the default logging mechanism
+       */
       static void UseDefault();
+
+      /**
+       * Disable logging
+       */
       static void Disable();
+
     private:
       static QString _filename;
       static void File(QtMsgType type, const char *msg);

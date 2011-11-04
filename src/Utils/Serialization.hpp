@@ -5,6 +5,10 @@
 
 namespace Dissent {
 namespace Utils {
+  /**
+   * Provides some standard methods for serializing value types into a byte
+   * array without resorting to QDataStream
+   */
   class Serialization {
     public:
       /**

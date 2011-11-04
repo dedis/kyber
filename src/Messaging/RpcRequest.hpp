@@ -12,6 +12,9 @@
 
 namespace Dissent {
 namespace Messaging {
+  /**
+   * Private data holder for RpcRequest
+   */
   class RpcRequestData : public QSharedData {
     public:
       RpcRequestData(const QVariantMap message, ISender *from) :
@@ -43,6 +46,8 @@ namespace Messaging {
        * Constructor
        */
       RpcRequest(const QVariantMap &message, ISender *from);
+
+      virtual ~RpcRequest() {}
 
       /**
        * Response to a request

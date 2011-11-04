@@ -13,6 +13,8 @@ namespace Utils {
     public:
       static Random &GetInstance();
 
+      virtual ~Random() {}
+
       virtual void SetSeed(int seed);
 
       /**

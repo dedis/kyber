@@ -11,6 +11,9 @@
 
 namespace Dissent {
 namespace Crypto {
+  /**
+   * Provides a tool around onion encrypting messages
+   */
   class OnionEncryptor {
     public:
       /**

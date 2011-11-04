@@ -19,6 +19,8 @@ namespace Crypto {
        */
       static const int KeySize = 2048;
 
+      virtual ~AsymmetricKey() {}
+
       /**
        * Retrieves the PublicKey, if this is already a public key, return a new
        * copy of this object, otherwise return a new copy of the public material

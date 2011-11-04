@@ -15,6 +15,8 @@ namespace Messaging {
        */
       RpcResponse(const QVariantMap &message, ISender *from);
 
+      virtual ~RpcResponse() {}
+
       /**
        * Not implemented, throws exception
        */
