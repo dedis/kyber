@@ -2,7 +2,10 @@
 
 namespace Dissent {
 namespace Anonymity {
-  Group::Group(const QVector<Id> &group, const QVector<AsymmetricKey *> &keys)
+  const QSharedPointer<AsymmetricKey> Group::EmptyKey;
+
+  Group::Group(const QVector<Id> &group,
+      const QVector<QSharedPointer<AsymmetricKey> > &keys)
   {
     QHash<const Id, int> id_to_int;
     for(int idx = 0; idx < group.count(); idx++) {
@@ -42,19 +45,19 @@ namespace Anonymity {
     return -1;
   }
 
-  AsymmetricKey *Group::GetKey(const Id &id) const
+  QSharedPointer<AsymmetricKey> Group::GetKey(const Id &id) const
   {
     int idx = GetIndex(id);
     if(idx == -1) {
-      return 0;
+      return EmptyKey;
     }
     return GetKey(idx);
   }
 
-  AsymmetricKey *Group::GetKey(int idx) const
+  QSharedPointer<AsymmetricKey> Group::GetKey(int idx) const
   {
     if(idx >= _data->Keys.count() || idx < 0) {
-      return 0;
+      return EmptyKey;
     }
     return _data->Keys[idx];
   }

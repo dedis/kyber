@@ -41,7 +41,7 @@ namespace Applications {
   Group Node::GenerateGroup()
   {
     QVector<Id> ids;
-    QVector<AsymmetricKey *> public_keys;
+    QVector<QSharedPointer<AsymmetricKey> > public_keys;
 
     foreach(Connection *con, bg.GetConnectionTable().GetConnections()) {
       Id id = con->GetRemoteId();
@@ -52,7 +52,7 @@ namespace Applications {
 
     qSort(ids);
     foreach(const Id &id, ids) {
-      public_keys.append(CppPublicKey::GenerateKey(id.GetByteArray()));
+      public_keys.append(QSharedPointer<AsymmetricKey>(CppPublicKey::GenerateKey(id.GetByteArray())));
     }
 
     return Group(ids, public_keys);

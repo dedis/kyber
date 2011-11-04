@@ -23,10 +23,10 @@ namespace Anonymity {
         GroupGenerator(group, session_id, ct, rpc, signing_key)
       {
         QVector<Id> ids;
-        QVector<AsymmetricKey *> keys;
+        QVector<QSharedPointer<AsymmetricKey> > keys;
         for(int idx = 0; idx < group.Count() && idx < 10; idx++) {
           ids.append(group.GetId(idx));
-          keys.append(group.GetKey(idx)->GetPublicKey());
+          keys.append(group.GetKey(idx));
         }
         _fixed_group.reset(new Group(ids, keys));
         _current = *_fixed_group;

@@ -3,6 +3,7 @@
 
 #include <QHash>
 #include <QSharedData>
+#include <QSharedPointer>
 #include <QVector>
 
 #include "../Connections/Id.hpp"
@@ -22,7 +23,7 @@ namespace Anonymity {
     public:
       GroupData(const QVector<Id> group_vector,
           const QHash<const Id, int> id_to_int,
-          const QVector<AsymmetricKey *> keys) :
+          const QVector<QSharedPointer<AsymmetricKey> > &keys) :
         GroupVector(group_vector),
         IdtoInt(id_to_int),
         Keys(keys),
@@ -30,18 +31,9 @@ namespace Anonymity {
       {
       }
 
-      virtual ~GroupData()
-      {
-        foreach(AsymmetricKey *key, Keys) {
-          if(key) {
-            delete key;
-          }
-        }
-      }
-
       const QVector<Id> GroupVector;
       const QHash<const Id, int> IdtoInt;
-      const QVector<AsymmetricKey *> Keys;
+      const QVector<QSharedPointer<AsymmetricKey> > Keys;
       const int Size;
   };
 
@@ -53,9 +45,11 @@ namespace Anonymity {
       /**
        * Constructor
        * @param group an ordered group in vector format
+       * @param keys a set of keys mapped to the group if Ids, defaults to no keys
        */
       Group(const QVector<Id> &group,
-          const QVector<AsymmetricKey *> &keys = QVector<AsymmetricKey *>());
+          const QVector<QSharedPointer<AsymmetricKey> > &keys =
+            QVector<QSharedPointer<AsymmetricKey> >());
 
       inline const QVector<Id> &GetIds() const { return _data->GroupVector; }
 
@@ -93,18 +87,20 @@ namespace Anonymity {
        * Returns the key for the specified id
        * @param id the specified Id
        */
-      AsymmetricKey *GetKey(const Id &id) const;
+      QSharedPointer<AsymmetricKey> GetKey(const Id &id) const;
 
       /**
        * Returns the key for the specified index
        * @param idx the index
        */
-      AsymmetricKey *GetKey(int idx) const;
+      QSharedPointer<AsymmetricKey> GetKey(int idx) const;
 
       /**
        * Returns the size of the group
        */
       int Count() const { return _data->Size; }
+
+      static const QSharedPointer<AsymmetricKey> EmptyKey;
 
     private:
       QSharedDataPointer<GroupData> _data;

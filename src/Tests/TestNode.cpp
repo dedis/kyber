@@ -12,13 +12,13 @@ namespace Tests {
       Group *&group, bool make_keys)
   {
     QVector<Id> ids;
-    QVector<AsymmetricKey *> signing_keys;
+    QVector<QSharedPointer<AsymmetricKey> > signing_keys;
 
     for(int idx = 0; idx < count; idx++) {
       nodes.append(new TestNode(idx+1, make_keys));
       ids.append(nodes[idx]->cm.GetId());
       if(make_keys) {
-        signing_keys.append(nodes[idx]->key->GetPublicKey());
+        signing_keys.append(QSharedPointer<AsymmetricKey>(nodes[idx]->key->GetPublicKey()));
       }
     }
 

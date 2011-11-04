@@ -473,8 +473,8 @@ namespace Anonymity {
 
   bool ShuffleRound::Verify(const QByteArray &data, QByteArray &msg, const Id &id)
   {
-    AsymmetricKey *key = _group.GetKey(id);
-    if(!key) {
+    QSharedPointer<AsymmetricKey> key = _group.GetKey(id);
+    if(key.isNull()) {
       throw QRunTimeError("Received malsigned data block, no such peer");
     }
 
