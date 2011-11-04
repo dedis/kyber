@@ -39,11 +39,18 @@ namespace Applications {
       static void CreateShuffleRoundSession(Node *node);
 
       /**
+       * Create a SecureSession / FastShuffleRound
+       */
+      static void CreateFastShuffleRoundSession(Node *node);
+
+      /**
        * Create a Session / NullRound
        */
       static void CreateNullRoundSession(Node *node);
 
+
     private:
+      static void Common(Node *node, Session *session);
       SessionFactory();
       QHash<QString, Callback> _type_to_create;
   };
