@@ -12,6 +12,11 @@ namespace Utils {
        * Invoke the callback
        */
       virtual void Invoke() = 0;
+
+      /**
+       * Destructor
+       */
+      virtual ~TimerCallback() {}
   };
 
   /**
@@ -34,6 +39,11 @@ namespace Utils {
         _object(object), _method(method), _val(val)
       {
       }
+
+      /**
+       * Destructor
+       */
+      virtual ~TimerMethod() {}
 
       inline virtual void Invoke()
       {

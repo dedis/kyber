@@ -25,12 +25,7 @@ namespace Utils {
         uid(_uid_count++)
       { }
 
-      ~TimerEventData()
-      {
-        delete callback;
-      }
-
-      TimerCallback *callback;
+      QScopedPointer<TimerCallback> callback;
       qint64 next;
       int period;
       bool stopped;
