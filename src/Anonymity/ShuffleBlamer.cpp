@@ -5,10 +5,11 @@
 
 namespace Dissent {
 namespace Anonymity {
-  ShuffleBlamer::ShuffleBlamer(const Group &group, const Id &session_id,
-      const Id &round_id, const QVector<Log> &logs,
+  ShuffleBlamer::ShuffleBlamer(const Group &group, const Group &shufflers,
+      const Id &session_id, const Id &round_id, const QVector<Log> &logs,
       const QVector<AsymmetricKey *> private_keys) :
     _group(group),
+    _shufflers(shufflers),
     _logs(logs),
     _private_keys(private_keys),
     _bad_nodes(_group.Count(), false),
@@ -16,8 +17,13 @@ namespace Anonymity {
     _set(false)
   {
     for(int idx = 0; idx < _group.Count(); idx++) {
-      _rounds.append(new ShuffleRoundBlame(group, _group.GetId(idx), session_id,
-            round_id, _private_keys[idx]));
+      AsymmetricKey *key = 0;
+      int sidx = _shufflers.GetIndex(_group.GetId(idx));
+      if(sidx >= 0) {
+        key = _private_keys[sidx];
+      }
+      _rounds.append(new ShuffleRoundBlame(_group, _shufflers, _group.GetId(idx),
+            session_id, round_id, key));
     }
   }
 
@@ -113,7 +119,7 @@ namespace Anonymity {
       qCritical() << "Key sizes don't match";
     }
 
-    for(int idx = 0; idx < _group.Count(); idx++) {
+    for(int idx = 0; idx < _shufflers.Count(); idx++) {
       if(idx == first_good) {
         continue;
       }
@@ -122,10 +128,18 @@ namespace Anonymity {
         continue;
       }
 
-      const AsymmetricKey *p_outer_key = _rounds[idx]->GetPrivateOuterKey();
-      if(!p_outer_key->IsValid()) {
-        Set(idx, "Invalid private key");
-        continue;
+      int sidx = _shufflers.GetIndex(_group.GetId(idx));
+      if(sidx >= 0) {
+        const AsymmetricKey *p_outer_key = _rounds[idx]->GetPrivateOuterKey();
+        if(!p_outer_key->IsValid()) {
+          Set(idx, "Invalid private key");
+          continue;
+        }
+
+        int kdx = _rounds[0]->CalculateKidx(sidx);
+        if(!p_outer_key->VerifyKey(*(outer_keys[kdx]))) {
+          Set(idx, "Mismatched private key");
+        }
       }
 
       const QVector<AsymmetricKey *> cinner_keys = _rounds[idx]->GetPublicInnerKeys();
@@ -148,12 +162,6 @@ namespace Anonymity {
 
         Set(jdx, "Bad public keys");
       }
-
-
-      int kdx = _rounds[0]->CalculateKidx(idx);
-      if(!p_outer_key->VerifyKey(*(outer_keys[kdx]))) {
-        Set(idx, "Mismatched private key");
-      }
     }
   }
 
@@ -161,7 +169,7 @@ namespace Anonymity {
   {
     int last_shuffle = -1;
     bool verified = false;
-    for(int idx = 0; idx < _rounds.count() && !verified; idx++) {
+    for(int idx = 0; idx < _shufflers.Count() && !verified; idx++) {
       ShuffleRound::State cstate = _rounds[idx]->GetState();
 
       switch(cstate) {
@@ -170,8 +178,10 @@ namespace Anonymity {
         case ShuffleRound::DataSubmission:
         case ShuffleRound::WaitingForShuffle:
           break;
-        case ShuffleRound::ShuffleDone:
-          last_shuffle = idx;
+        case ShuffleRound::WaitingForEncryptedInnerData:
+          if(_shufflers.GetIndex(_group.GetId(idx)) >= 0) {
+            last_shuffle = idx;
+          }
           break;
         case ShuffleRound::Verification:
           last_shuffle = _rounds.count() - 1;
@@ -192,7 +202,7 @@ namespace Anonymity {
       ShuffleRound::State cstate = _rounds[idx]->GetState();
 
       switch(cstate) {
-        case ShuffleRound::ShuffleDone:
+        case ShuffleRound::WaitingForEncryptedInnerData:
         case ShuffleRound::Verification:
           continue;
         default:
@@ -206,8 +216,7 @@ namespace Anonymity {
       return;
     }
 
-    QVector<QByteArray> real_inner = _rounds[0]->GetShuffleCipherText();
-    QVector<QByteArray> indata = real_inner;
+    QVector<QByteArray> indata = _rounds[_group.GetIndex(_shufflers.GetId(0))]->GetShuffleCipherText();
 
     for(int idx = 0; idx < _private_keys.count(); idx++) {
       QVector<QByteArray> outdata;
@@ -223,27 +232,35 @@ namespace Anonymity {
     }
 
     // Check intermediary steps
-    for(int idx = 0; idx < last_shuffle; idx++) {
-      const QVector<QByteArray> outdata = _rounds[idx]->GetShuffleClearText();
-      const QVector<QByteArray> indata = _rounds[idx + 1]->GetShuffleCipherText();
+    for(int idx = 0; ; idx++) {
+      int pidx = _group.GetIndex(_shufflers.GetId(idx));
+      if(pidx >= last_shuffle) {
+        break;
+      }
+      int nidx = _group.GetIndex(_shufflers.GetId(idx + 1));
+
+      const QVector<QByteArray> outdata = _rounds[pidx]->GetShuffleClearText();
+      const QVector<QByteArray> indata = _rounds[nidx]->GetShuffleCipherText();
       
       if(indata.isEmpty()) {
         continue;
       }
       if(CountMatches(outdata, indata) != _rounds.count()) {
+        qDebug() << "Checking" << pidx << "output against" << nidx << "input: fail";
         Set(idx, "Changed data");
         return;
       }
+      qDebug() << "Checking" << pidx << "output against" << nidx << "input: success";
     }
 
-    if(last_shuffle != _rounds.count() - 1) {
+    if(last_shuffle != _group.GetIndex(_shufflers.GetId(_shufflers.Count() - 1))) {
       return;
     }
 
     // Check final step
-    const QVector<QByteArray> outdata = _rounds.last()->GetShuffleClearText();
+    const QVector<QByteArray> outdata = _rounds[last_shuffle]->GetShuffleClearText();
     if(outdata.isEmpty()) {
-      Set(_rounds.count() - 1, "No final data");
+      Set(last_shuffle, "No final data");
       return;
     }
 
@@ -253,7 +270,7 @@ namespace Anonymity {
         continue;
       }
       if(CountMatches(outdata, indata) != _rounds.count()) {
-        Set(_rounds.count() - 1, "Changed final data");
+        Set(last_shuffle, "Changed final data");
         return;
       }
     }
@@ -282,7 +299,7 @@ namespace Anonymity {
         if(go_val == 0) {
           continue;
         } else if(go_found[jdx]) {
-          if((go[jdx] && (go_val == 1)) || (go[jdx] && (go_val == -1))) {
+          if((go[jdx] && (go_val == 1)) || (!go[jdx] && (go_val == -1))) {
             continue;
           }
           Set(jdx, "Different go states different nodes");
@@ -293,8 +310,10 @@ namespace Anonymity {
       }
     }
 
-    QVector<QByteArray> cleartext = _rounds.last()->GetShuffleClearText();
-    QVector<QByteArray> ciphertext = _rounds.first()->GetShuffleCipherText();
+    int first = _group.GetIndex(_shufflers.GetId(0));
+    QVector<QByteArray> ciphertext = _rounds[first]->GetShuffleCipherText();
+    int last = _group.GetIndex(_shufflers.GetId(_shufflers.Count() - 1));
+    QVector<QByteArray> cleartext = _rounds[last]->GetShuffleClearText();
     QVector<QByteArray> calc_cleartext = ciphertext;
 
     foreach(AsymmetricKey *key, _private_keys) {
@@ -305,7 +324,7 @@ namespace Anonymity {
 
     for(int idx = 0; idx < _rounds.count(); idx++) {
       bool good = cleartext.contains(calc_cleartext[idx]);
-      if(!go_found[idx] || !(good ^ go[idx])) {
+      if(!go_found[idx] || (!good && !go[idx]) || (good && go[idx])) {
         continue;
       }
       Set(idx, "Bad go");

@@ -7,12 +7,15 @@ namespace Anonymity {
   const ConnectionTable ShuffleRoundBlame::_empty_ct = ConnectionTable();
   RpcHandler ShuffleRoundBlame::_empty_rpc = RpcHandler();
 
-  ShuffleRoundBlame::ShuffleRoundBlame(const Group &group, const Id &local_id,
-      const Id &session_id, const Id &round_id, AsymmetricKey *outer_key) :
-    ShuffleRound(group, local_id, session_id, round_id, _empty_ct, _empty_rpc,
-        QSharedPointer<AsymmetricKey>())
+  ShuffleRoundBlame::ShuffleRoundBlame(const Group &group,
+      const Group &shufflers, const Id &local_id, const Id &session_id,
+      const Id &round_id, AsymmetricKey *outer_key) :
+    ShuffleRound(group, shufflers, local_id, session_id, round_id, _empty_ct,
+        _empty_rpc, QSharedPointer<AsymmetricKey>())
   {
-    _outer_key.reset(new CppPrivateKey(outer_key->GetByteArray()));
+    if(outer_key) {
+      _outer_key.reset(new CppPrivateKey(outer_key->GetByteArray()));
+    }
   }
 
 
@@ -36,7 +39,11 @@ namespace Anonymity {
 
   void ShuffleRoundBlame::SubmitData()
   {
-    _state = WaitingForShuffle;
+    if(_shuffler) {
+      _state = WaitingForShuffle;
+    } else {
+      _state = ShuffleRound::WaitingForEncryptedInnerData;
+    }
   }
 
   void ShuffleRoundBlame::Shuffle()
@@ -46,7 +53,7 @@ namespace Anonymity {
     OnionEncryptor::GetInstance().Decrypt(_outer_key.data(),
         _shuffle_ciphertext, _shuffle_cleartext, &_bad_members);
 
-    _state = ShuffleRound::ShuffleDone;
+    _state = ShuffleRound::WaitingForEncryptedInnerData;
   }
 
   void ShuffleRoundBlame::Verify()

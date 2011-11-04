@@ -1,7 +1,9 @@
 #ifndef DISSENT_DISSENT_H_GUARD
 #define DISSENT_DISSENT_H_GUARD
 
+#include "Anonymity/FixedSizeGroupGenerator.hpp"
 #include "Anonymity/Group.hpp"
+#include "Anonymity/GroupGenerator.hpp"
 #include "Anonymity/Log.hpp"
 #include "Anonymity/NullRound.hpp"
 #include "Anonymity/Round.hpp"

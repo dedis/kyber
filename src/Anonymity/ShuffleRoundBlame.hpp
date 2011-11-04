@@ -21,8 +21,9 @@ namespace Anonymity {
        * @param round_id Unique round id (nonce)
        * @param outer_key the peers private outer key
        */
-      ShuffleRoundBlame(const Group &group, const Id &local_id,
-          const Id &session_id, const Id &round_id, AsymmetricKey *outer_key);
+      ShuffleRoundBlame(const Group &group, const Group &shufflers,
+          const Id &local_id, const Id &session_id, const Id &round_id,
+          AsymmetricKey *outer_key);
 
       /**
        * Need a means to push messages into the round manually

@@ -12,7 +12,9 @@ QT += network
 # Input
 LIBS += -lcryptopp
 HEADERS += src/Dissent.hpp \
+           src/Anonymity/FixedSizeGroupGenerator.hpp \
            src/Anonymity/Group.hpp \
+           src/Anonymity/GroupGenerator.hpp \
            src/Anonymity/Log.hpp \
            src/Anonymity/NullRound.hpp \
            src/Anonymity/Round.hpp \

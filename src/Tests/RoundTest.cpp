@@ -5,7 +5,8 @@ using namespace Dissent::Utils;
 
 namespace Dissent {
 namespace Tests {
-  void RoundTest_Null(CreateSessionCallback callback, bool keys = false)
+  void RoundTest_Null(CreateSessionCallback callback, CreateGroupGenerator cgg,
+      bool keys = false)
   {
     Timer::GetInstance().UseVirtualTime();
     int count = Random::GetInstance().GetInt(10, 50);
@@ -32,7 +33,7 @@ namespace Tests {
     Id leader_id = nodes[leader]->cm.GetId();
     Id session_id;
 
-    CreateSessions(nodes, *group, leader_id, session_id, callback);
+    CreateSessions(nodes, *group, leader_id, session_id, callback, cgg);
 
     for(int idx = 0; idx < count; idx++) {
       nodes[idx]->session->Start();
@@ -56,7 +57,8 @@ namespace Tests {
     delete group;
   }
 
-  void RoundTest_Basic(CreateSessionCallback callback, bool keys = false)
+  void RoundTest_Basic(CreateSessionCallback callback, CreateGroupGenerator cgg,
+      bool keys = false)
   {
     Timer::GetInstance().UseVirtualTime();
 
@@ -84,7 +86,7 @@ namespace Tests {
     Id leader_id = nodes[leader]->cm.GetId();
     Id session_id;
 
-    CreateSessions(nodes, *group, leader_id, session_id, callback);
+    CreateSessions(nodes, *group, leader_id, session_id, callback, cgg);
 
     Dissent::Crypto::CppRandom rand;
     QByteArray msg(512, 0);
@@ -110,7 +112,8 @@ namespace Tests {
     delete group;
   }
 
-  void RoundTest_MultiRound(CreateSessionCallback callback, bool keys = false)
+  void RoundTest_MultiRound(CreateSessionCallback callback, CreateGroupGenerator cgg, 
+      bool keys = false)
   {
     Timer::GetInstance().UseVirtualTime();
 
@@ -129,7 +132,7 @@ namespace Tests {
     Id leader_id = nodes[leader]->cm.GetId();
     Id session_id;
 
-    CreateSessions(nodes, *group, leader_id, session_id, callback);
+    CreateSessions(nodes, *group, leader_id, session_id, callback, cgg);
 
     Dissent::Crypto::CppRandom rand;
     QByteArray msg(512, 0);
@@ -169,7 +172,8 @@ namespace Tests {
     delete group;
   }
 
-  void RoundTest_PeerDisconnectEnd(CreateSessionCallback callback, bool keys = false)
+  void RoundTest_PeerDisconnectEnd(CreateSessionCallback callback,
+      CreateGroupGenerator cgg, bool keys = false)
   {
     Timer::GetInstance().UseVirtualTime();
 
@@ -187,7 +191,7 @@ namespace Tests {
     Id leader_id = nodes[leader]->cm.GetId();
     Id session_id;
 
-    CreateSessions(nodes, *group, leader_id, session_id, callback);
+    CreateSessions(nodes, *group, leader_id, session_id, callback, cgg);
 
     for(int idx = 0; idx < count; idx++) {
       nodes[idx]->session->Start();
@@ -234,7 +238,8 @@ namespace Tests {
     delete group;
   }
 
-  void RoundTest_PeerDisconnectMiddle(CreateSessionCallback callback, bool keys = false)
+  void RoundTest_PeerDisconnectMiddle(CreateSessionCallback callback,
+      CreateGroupGenerator cgg, bool keys = false)
   {
     Timer::GetInstance().UseVirtualTime();
 
@@ -263,7 +268,7 @@ namespace Tests {
     Id leader_id = nodes[leader]->cm.GetId();
     Id session_id;
 
-    CreateSessions(nodes, *group, leader_id, session_id, callback);
+    CreateSessions(nodes, *group, leader_id, session_id, callback, cgg);
 
     Dissent::Crypto::CppRandom rand;
     QByteArray msg(512, 0);
@@ -316,7 +321,8 @@ namespace Tests {
 
 
   void RoundTest_BadGuy(CreateSessionCallback good_callback,
-      CreateSessionCallback bad_callback, bool keys = false)
+      CreateSessionCallback bad_callback,
+      CreateGroupGenerator cgg, bool keys = false)
   {
     Timer::GetInstance().UseVirtualTime();
 
@@ -345,8 +351,19 @@ namespace Tests {
     Id leader_id = nodes[leader]->cm.GetId();
     Id session_id;
 
-    CreateSessions(nodes, *group, leader_id, session_id, good_callback);
-    CreateSession(nodes[badguy], *group, leader_id, session_id, bad_callback);
+    CreateSessions(nodes, *group, leader_id, session_id, good_callback, cgg);
+
+    SecureSession *session = dynamic_cast<SecureSession *>(nodes[0]->session.data());
+    if(session) {
+      const Group cg = session->GetGroupGenerator().CurrentGroup();
+      int badguy_sg = Random::GetInstance().GetInt(0, cg.Count());
+      Id badguy_id = cg.GetId(badguy_sg);
+      badguy = cg.GetIndex(badguy_id);
+    }
+
+    qDebug() << "Bad guy at" << badguy;
+
+    CreateSession(nodes[badguy], *group, leader_id, session_id, bad_callback, cgg);
 
     Dissent::Crypto::CppRandom rand;
     QByteArray msg(512, 0);

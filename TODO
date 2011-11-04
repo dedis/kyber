@@ -4,6 +4,8 @@ Anonymity
 - Need some structure to communicate group status / change
 - Make sessions optionally multithreaded, we really don't want crypto computation in the main thread
 - Need some means to initiate a group / session
+- (Memory) Provide mechanisms to clear out intermediate state from Rounds
+- (Memory) Move logic for individual states into separate classes
 
 Connections
 - ConnectionTable should be a value type

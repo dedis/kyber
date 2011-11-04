@@ -21,7 +21,7 @@ namespace Tests {
     public:
       TestNode(int idx, bool make_key = false) : cm(Id(), rpc), sm(rpc), session(0)
       {
-        EdgeListener *be = new BufferEdgeListener(BufferAddress(idx));//EdgeListenerFactory::GetInstance().CreateEdgeListener(BufferAddress(idx));
+        EdgeListener *be = EdgeListenerFactory::GetInstance().CreateEdgeListener(BufferAddress(idx));
         cm.AddEdgeListener(QSharedPointer<EdgeListener>(be));
         if(make_key) {
           key = QSharedPointer<AsymmetricKey>(new CppPrivateKey());
@@ -47,17 +47,19 @@ namespace Tests {
   };
 
   typedef Session *(*CreateSessionCallback)(TestNode *, const Group &,
-      const Id &, const Id &);
+      const Id &, const Id &, CreateGroupGenerator);
 
   void ConstructOverlay(int count, QVector<TestNode *> &nodes,
       Group *&group, bool make_keys);
 
   void CreateSessions(const QVector<TestNode *> &nodes,
       const Group &group, const Id &leader_id, const Id &session_id,
-      CreateSessionCallback callback);
+      CreateSessionCallback callback,
+      CreateGroupGenerator cgg);
 
   void CreateSession(TestNode * node, const Group &group, const Id &leader_id,
-      const Id &session_id, CreateSessionCallback callback);
+      const Id &session_id, CreateSessionCallback callback,
+      CreateGroupGenerator cgg);
 
   void CleanUp(const QVector<TestNode *> &nodes);
 }

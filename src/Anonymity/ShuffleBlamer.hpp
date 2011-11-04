@@ -22,8 +22,8 @@ namespace Anonymity {
        * @param logs all the incoming logs for nodes in the group
        * @param private_keys the outer private keys for nodes in the group
        */
-      ShuffleBlamer(const Group &group, const Id &session_id,
-          const Id &round_id, const QVector<Log> &logs,
+      ShuffleBlamer(const Group &group, const Group &shufflers,
+          const Id &session_id, const Id &round_id, const QVector<Log> &logs,
           const QVector<AsymmetricKey *> private_keys);
 
       /**
@@ -92,6 +92,7 @@ namespace Anonymity {
       void CheckVerification();
 
       const Group _group;
+      const Group _shufflers;
       QVector<Log> _logs;
       QVector<AsymmetricKey *> _private_keys;
       QBitArray _bad_nodes;

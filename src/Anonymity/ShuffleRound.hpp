@@ -40,7 +40,7 @@ namespace Anonymity {
         DataSubmission,
         WaitingForShuffle,
         Shuffling,
-        ShuffleDone,
+        WaitingForEncryptedInnerData,
         Verification,
         PrivateKeySharing,
         Decryption,
@@ -107,13 +107,13 @@ namespace Anonymity {
        * to the key in group
        * @param data Data to share this session
        */
-      inline static Round *CreateRound(const Group &group, const Id &local_id,
-          const Id &session_id, const Id &round_id, const ConnectionTable &ct,
-          RpcHandler &rpc, QSharedPointer<AsymmetricKey> signing_key,
-          const QByteArray &data)
+      inline static Round *CreateRound(const Group &group,
+          const Group &shufflers, const Id &local_id, const Id &session_id,
+          const Id &round_id, const ConnectionTable &ct, RpcHandler &rpc,
+          QSharedPointer<AsymmetricKey> signing_key, const QByteArray &data)
       {
-        return new ShuffleRound(group, local_id, session_id, round_id, ct, rpc,
-            signing_key, data);
+        return new ShuffleRound(group, shufflers, local_id, session_id,
+            round_id, ct, rpc, signing_key, data);
       }
 
       /**
@@ -128,8 +128,9 @@ namespace Anonymity {
        * to the key in group
        * @param data Data to share this session
        */
-      ShuffleRound(const Group &group, const Id &local_id, const Id &session_id,
-          const Id &round_id, const ConnectionTable &ct, RpcHandler &rpc,
+      ShuffleRound(const Group &group, const Group &shufflers,
+          const Id &local_id, const Id &session_id, const Id &round_id,
+          const ConnectionTable &ct, RpcHandler &rpc,
           QSharedPointer<AsymmetricKey> signing_key,
           const QByteArray &data = DefaultData);
 
@@ -172,7 +173,7 @@ namespace Anonymity {
        * the public key index for a given group index.
        * @param idx the group index
        */
-      inline int CalculateKidx(int idx) { return _group.Count() - 1 - idx; }
+      inline int CalculateKidx(int idx) { return _shufflers.Count() - 1 - idx; }
 
       /**
        * Returns a list of members who have been blamed in the round
@@ -315,6 +316,10 @@ namespace Anonymity {
        */
       virtual void BlameRound();
 
+      const Group _shufflers;
+
+      bool _shuffler;
+
       /**
        * Unique identifier for the round, serves as the nonce
        */
@@ -440,6 +445,11 @@ namespace Anonymity {
        * Stores peers incoming / outgoing broadcasted components
        */
       QVector<QByteArray> _broadcast_hashes;
+
+      /**
+       * Maintains who has and has not sent a blame message yet
+       */
+      QBitArray _blame_received;
 
       /**
        * Stores all the in blame logs

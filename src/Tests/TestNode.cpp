@@ -42,21 +42,22 @@ namespace Tests {
 
   void CreateSessions(const QVector<TestNode *> &nodes,
       const Group &group, const Id &leader_id, const Id &session_id,
-      CreateSessionCallback callback)
+      CreateSessionCallback callback, CreateGroupGenerator cgg)
   {
     for(int idx = 0; idx < nodes.count(); idx++) {
-      CreateSession(nodes[idx], group, leader_id, session_id, callback);
+      CreateSession(nodes[idx], group, leader_id, session_id, callback, cgg);
     }
   }
 
   void CreateSession(TestNode * node, const Group &group, const Id &leader_id,
-      const Id &session_id, CreateSessionCallback callback)
+      const Id &session_id, CreateSessionCallback callback,
+      CreateGroupGenerator cgg)
   {
     if(node->session != 0) {
       node->session->Stop();
       node->session.clear();
     }
-    QSharedPointer<Session> session(callback(node, group, leader_id, session_id));
+    QSharedPointer<Session> session(callback(node, group, leader_id, session_id, cgg));
     node->session = session;
     session->SetSink(&(node->sink));
     node->sm.AddSession(node->session);

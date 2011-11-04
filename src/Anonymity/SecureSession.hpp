@@ -4,6 +4,7 @@
 #include <QSharedPointer>
 
 #include "Session.hpp"
+#include "GroupGenerator.hpp"
 
 namespace Dissent {
 namespace Anonymity {
@@ -18,9 +19,9 @@ namespace Anonymity {
    */
   class SecureSession : public Session {
     public:
-      typedef Round *(*CreateSecureRound)(const Group &, const Id &, const Id &,
-          const Id &, const ConnectionTable &, RpcHandler &,
-          QSharedPointer<AsymmetricKey>, const QByteArray &);
+      typedef Round *(*CreateSecureRound)(const Group &, const Group &,
+          const Id &, const Id &, const Id &, const ConnectionTable &,
+          RpcHandler &, QSharedPointer<AsymmetricKey>, const QByteArray &);
 
       /**
        * Constructor
@@ -37,13 +38,17 @@ namespace Anonymity {
       SecureSession(const Group &group, const Id &local_id,
           const Id &leader_id, const Id &session_id, ConnectionTable &ct,
           RpcHandler &rpc, QSharedPointer<AsymmetricKey> signing_key,
-          CreateSecureRound create_round, const QByteArray &default_data);
+          CreateSecureRound create_round, const QByteArray &default_data,
+          CreateGroupGenerator group_generator = GroupGenerator::Create);
 
       inline virtual QString ToString() const { return "SecureSession: " + GetId().ToString(); }
+
+      inline const GroupGenerator &GetGroupGenerator() { return *_generate_group; }
 
     private:
       QSharedPointer<AsymmetricKey> _signing_key;
       CreateSecureRound _create_secure_round;
+      QScopedPointer<GroupGenerator> _generate_group;
 
       virtual Round *GetRound(const QByteArray &data);
   };

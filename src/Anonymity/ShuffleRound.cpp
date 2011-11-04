@@ -7,34 +7,40 @@ namespace Dissent {
 namespace Anonymity {
   const QByteArray ShuffleRound::DefaultData = QByteArray(ShuffleRound::BlockSize + 4, 0);
 
-  ShuffleRound::ShuffleRound(const Group &group, const Id &local_id,
-      const Id &session_id, const Id &round_id, const ConnectionTable &ct,
-      RpcHandler &rpc, QSharedPointer<AsymmetricKey> signing_key,
-      const QByteArray &data) :
+  ShuffleRound::ShuffleRound(const Group &group, const Group &shufflers,
+      const Id &local_id, const Id &session_id, const Id &round_id,
+      const ConnectionTable &ct, RpcHandler &rpc,
+      QSharedPointer<AsymmetricKey> signing_key, const QByteArray &data) :
     Round(group, local_id, session_id, ct, rpc),
+    _shufflers(shufflers),
+    _shuffler(_shufflers.Contains(local_id)),
     _round_id(round_id),
     _data(data),
     _signing_key(signing_key),
     _state(Offline),
     _blame_state(Offline),
-    _public_inner_keys(group.Count()),
-    _public_outer_keys(group.Count()),
+    _public_inner_keys(_shufflers.Count()),
+    _public_outer_keys(_shufflers.Count()),
     _keys_received(0),
-    _inner_key(new CppPrivateKey()),
-    _outer_key(new CppPrivateKey()),
-    _private_inner_keys(group.Count()),
-    _private_outer_keys(group.Count()),
+    _private_inner_keys(_shufflers.Count()),
+    _private_outer_keys(_shufflers.Count()),
     _data_received(0),
     _go_count(0),
     _go_received(_group.Count(), false),
     _go(_group.Count(), false),
     _broadcast_hashes(_group.Count()),
+    _blame_received(_group.Count(), false),
     _logs(group.Count()),
-    _blame_hash(group.Count()),
-    _blame_signatures(group.Count()),
+    _blame_hash(_group.Count()),
+    _blame_signatures(_group.Count()),
     _valid_blames(_group.Count(), false),
     _received_blame_verification(_group.Count(), false)
   {
+    if(_shuffler) {
+      _inner_key.reset(new CppPrivateKey());
+      _outer_key.reset(new CppPrivateKey());
+    }
+
     if(data == DefaultData) {
       _data = DefaultData;
     } else if(data.size() > BlockSize) {
@@ -117,7 +123,7 @@ namespace Anonymity {
       return false;
     }
 
-    if(_group.GetIndex(_local_id) == 0) {
+    if(_shufflers.GetIndex(_local_id) == 0) {
       _shuffle_ciphertext = QVector<QByteArray>(_group.Count());
     }
 
@@ -134,8 +140,12 @@ namespace Anonymity {
       throw QRunTimeError("Received a misordered key message");
     }
 
-    int idx = _group.GetIndex(id);
-    int kidx = CalculateKidx(idx);
+    int sidx = _shufflers.GetIndex(id);
+    if(sidx < 0) {
+      throw QRunTimeError("Received a public key message from a non-shuffler");
+    }
+
+    int kidx = CalculateKidx(sidx);
     if(_public_inner_keys[kidx] != 0 || _public_outer_keys[kidx] != 0) {
       throw QRunTimeError("Received duplicate public keys");
     }
@@ -151,7 +161,7 @@ namespace Anonymity {
       throw QRunTimeError("Received an invalid outer public key");
     }
 
-    if(++_keys_received == _group.Count()) {
+    if(++_keys_received == _shufflers.Count()) {
       _keys_received = 0;
       SubmitData();
     }
@@ -168,8 +178,8 @@ namespace Anonymity {
       throw QRunTimeError("Received a misordered data message");
     }
 
-    int idx = _group.GetIndex(_local_id);
-    if(idx != 0) {
+    int sidx = _shufflers.GetIndex(_local_id);
+    if(sidx != 0) {
       throw QRunTimeError("Received a data message while not the first"
           " node in the group");
     }
@@ -177,21 +187,21 @@ namespace Anonymity {
     QByteArray data;
     stream >> data;
 
-    idx = _group.GetIndex(id);
+    int gidx = _group.GetIndex(id);
 
     if(data.isEmpty()) {
       throw QRunTimeError("Received a null data");
     }
 
-    if(!_shuffle_ciphertext[idx].isEmpty()) {
-      if(_shuffle_ciphertext[idx] != data) {
+    if(!_shuffle_ciphertext[gidx].isEmpty()) {
+      if(_shuffle_ciphertext[gidx] != data) {
         throw QRunTimeError("Received a unique second data message");
       } else {
         throw QRunTimeError("Received multiples data messages from same identity");
       }
     }
 
-    _shuffle_ciphertext[idx] = data;
+    _shuffle_ciphertext[gidx] = data;
 
     if(++_data_received == _group.Count()) {
       _data_received = 0;
@@ -222,11 +232,11 @@ namespace Anonymity {
     qDebug() << _group.GetIndex(_local_id) << _local_id.ToString() <<
         ": received data broadcast from " << _group.GetIndex(id) << id.ToString();
 
-    if(_state != ShuffleDone) {
+    if(_state != WaitingForEncryptedInnerData) {
       throw QRunTimeError("Received a misordered data broadcast");
     }
 
-    if(_group.Count() - 1 != _group.GetIndex(id)) {
+    if(_shufflers.Count() - 1 != _shufflers.GetIndex(id)) {
       throw QRunTimeError("Received data broadcast from the wrong node");
     }
 
@@ -240,19 +250,19 @@ namespace Anonymity {
         ": received" << go << " from " << _group.GetIndex(id)
         << id.ToString();
 
-    if(_state != Verification && _state != ShuffleDone) {
+    if(_state != Verification && _state != WaitingForEncryptedInnerData) {
       throw QRunTimeError("Received a misordered Go / NoGo message");
     }
 
-    int idx = _group.GetIndex(id);
-    if(_go_received[idx]) {
+    int gidx = _group.GetIndex(id);
+    if(_go_received[gidx]) {
       throw QRunTimeError("Received multiples go messages from same identity");
     }
 
-    _go_received[idx] = true;
-    _go[idx] = go;
+    _go_received[gidx] = true;
+    _go[gidx] = go;
     if(go) {
-      stream >> _broadcast_hashes[idx];
+      stream >> _broadcast_hashes[gidx];
     }
 
     if(++_go_count < _group.Count()) {
@@ -260,7 +270,7 @@ namespace Anonymity {
     }
 
     for(int idx = 0; idx < _group.Count(); idx++) {
-      if(_broadcast_hashes[idx] != _broadcast_hash || !_go[idx])  {
+      if(!_go[idx] || _broadcast_hashes[idx] != _broadcast_hash) {
         StartBlame();
         return;
       }
@@ -278,17 +288,21 @@ namespace Anonymity {
       throw QRunTimeError("Received misordered private key message");
     }
 
-    int idx = _group.GetIndex(id);
-    if(_private_inner_keys[idx] != 0) {
+    int sidx = _shufflers.GetIndex(id);
+    if(sidx < 0) {
+      throw QRunTimeError("Received a private key message from a non-shuffler");
+    }
+
+    if(_private_inner_keys[sidx] != 0) {
       throw QRunTimeError("Received multiple private key messages from the same identity");
     }
 
     QByteArray key;
     stream >> key;
-    int kidx = CalculateKidx(idx);
-    _private_inner_keys[idx] = new CppPrivateKey(key);
+    int kidx = CalculateKidx(sidx);
+    _private_inner_keys[sidx] = new CppPrivateKey(key);
 
-    if(!_private_inner_keys[idx]->VerifyKey(*_public_inner_keys[kidx])) {
+    if(!_private_inner_keys[sidx]->VerifyKey(*_public_inner_keys[kidx])) {
       throw QRunTimeError("Received invalid inner key");
     }
 
@@ -304,35 +318,45 @@ namespace Anonymity {
         ": received blame data from " << _group.GetIndex(id) << 
         id.ToString() << ", received" << _data_received << "messages.";
 
-    int idx = _group.GetIndex(id);
-    if(_private_outer_keys[idx] != 0) {
+    int gidx = _group.GetIndex(id);
+    if(_blame_received[gidx]) {
       throw QRunTimeError("Received multiple blame messages from the same identity");
     }
 
-    QByteArray key, log, sig;
-    stream >> key >> log >> sig;
-
     CppHash hashalgo;
-    hashalgo.Update(key);
+
+    int sidx = _shufflers.GetIndex(id);
+    QByteArray key;
+    if(sidx >= 0) {
+      stream >> key;
+      hashalgo.Update(key);
+    }
+
+    QByteArray log, sig;
+    stream >> log >> sig;
+
     hashalgo.Update(log);
 
     QByteArray sigmsg;
     QDataStream sigstream(&sigmsg, QIODevice::WriteOnly);
     sigstream << BlameData << _round_id.GetByteArray() << hashalgo.ComputeHash();
-    if(!_group.GetKey(idx)->Verify(sigmsg, sig)) {
+
+    if(!_group.GetKey(gidx)->Verify(sigmsg, sig)) {
       throw QRunTimeError("Receiving invalid blame data");
     }
 
-    _private_outer_keys[idx] = new CppPrivateKey(key);
-
-    int kidx = CalculateKidx(idx);
-    if(!_private_outer_keys[idx]->VerifyKey(*_public_outer_keys[kidx])) {
-      throw QRunTimeError("Invalid outer key");
+    if(sidx >= 0) {
+      _private_outer_keys[sidx] = new CppPrivateKey(key);
+      int kidx = CalculateKidx(sidx);
+      if(!_private_outer_keys[sidx]->VerifyKey(*_public_outer_keys[kidx])) {
+        throw QRunTimeError("Invalid outer key");
+      }
     }
 
-    _logs[idx] = Log(log);
-    _blame_hash[idx] = sigmsg;
-    _blame_signatures[idx] = sig;
+    _blame_received[gidx] = true;
+    _logs[gidx] = Log(log);
+    _blame_hash[gidx] = sigmsg;
+    _blame_signatures[gidx] = sig;
 
     if(++_data_received == _group.Count()) {
       BroadcastBlameVerification();
@@ -347,8 +371,8 @@ namespace Anonymity {
         ": received blame verification from " << _group.GetIndex(id) << 
         id.ToString() << ", received" << _blame_verifications << "messages.";
 
-    int idx = _group.GetIndex(id);
-    if(_received_blame_verification[idx]) {
+    int gidx = _group.GetIndex(id);
+    if(_received_blame_verification[gidx]) {
       throw QRunTimeError("Received duplicate blame verification messages.");
     }
 
@@ -366,13 +390,13 @@ namespace Anonymity {
       QByteArray sigmsg;
       QDataStream sigstream(&sigmsg, QIODevice::WriteOnly);
       sigstream << BlameData << _round_id.GetByteArray() << blame_hash[jdx];
-      if(!_group.GetKey(idx)->Verify(sigmsg, blame_signatures[jdx])) {
+      if(!_group.GetKey(gidx)->Verify(sigmsg, blame_signatures[jdx])) {
         throw QRunTimeError("Received invalid hash / signature");
       }
       _valid_blames[jdx] = true;
     }
 
-    _received_blame_verification[idx] = true;
+    _received_blame_verification[gidx] = true;
     if(++_blame_verifications == _group.Count()) {
       BlameRound();
     }
@@ -470,6 +494,10 @@ namespace Anonymity {
   {
     _state = KeySharing;
 
+    if(!_shuffler) {
+      return;
+    }
+
     QByteArray inner_key = _inner_key->GetPublicKey()->GetByteArray();
     QByteArray outer_key = _outer_key->GetPublicKey()->GetByteArray();
 
@@ -494,14 +522,20 @@ namespace Anonymity {
     QDataStream stream(&msg, QIODevice::WriteOnly);
     stream << Data << _round_id.GetByteArray() << _outer_ciphertext;
 
-    _state = WaitingForShuffle;
-    Send(msg, _group.GetId(0));
+    if(_shuffler) {
+      _state = WaitingForShuffle;
+    } else {
+      _state = WaitingForEncryptedInnerData;
+    }
+
+    Send(msg, _shufflers.GetId(0));
   }
 
   void ShuffleRound::Shuffle()
   {
     _state = Shuffling;
-    qDebug() << _group.GetIndex(_local_id) << ": shuffling";
+    qDebug() << _shufflers.GetIndex(_local_id) << _group.GetIndex(_local_id)
+      << ": shuffling";
 
     for(int idx = 0; idx < _shuffle_ciphertext.count(); idx++) {
       for(int jdx = 0; jdx < _shuffle_ciphertext.count(); jdx++) {
@@ -521,22 +555,23 @@ namespace Anonymity {
     if(!OnionEncryptor::GetInstance().Decrypt(_outer_key.data(), _shuffle_ciphertext,
           _shuffle_cleartext, &bad))
     {
-      qWarning() << _group.GetIndex(_local_id) << _local_id.ToString() <<
-        ": failed to decrypt layer due to block at indexes" << bad;
+      qWarning() << _shufflers.GetIndex(_local_id) << _group.GetIndex(_local_id)
+        << _local_id.ToString() << ": failed to decrypt layer due to block at "
+        "indexes" << bad;
       StartBlame();
       return;
     }
 
     OnionEncryptor::GetInstance().RandomizeBlocks(_shuffle_cleartext);
 
-    const Id &next = _group.Next(_local_id);
+    const Id &next = _shufflers.Next(_local_id);
     MessageType mtype = (next == Id::Zero) ? EncryptedData : ShuffleData;
 
     QByteArray msg;
     QDataStream out_stream(&msg, QIODevice::WriteOnly);
     out_stream << mtype << _round_id.GetByteArray() << _shuffle_cleartext;
 
-    _state = ShuffleDone;
+    _state = WaitingForEncryptedInnerData;
 
     if(mtype == EncryptedData) {
       Broadcast(msg);
@@ -575,8 +610,16 @@ namespace Anonymity {
 
   void ShuffleRound::BroadcastPrivateKey()
   {
-    qDebug() << _group.GetIndex(_local_id) << _local_id.ToString() <<
-        ": received sufficient go messages, broadcasting private key.";
+    if(!_shuffler) {
+      qDebug() << _shufflers.GetIndex(_local_id) << _group.GetIndex(_local_id)
+        << _local_id.ToString() << ": received sufficient go messages, "
+        "waiting for keys.";
+      return;
+    }
+
+    qDebug() << _shufflers.GetIndex(_local_id) << _group.GetIndex(_local_id)
+      << _local_id.ToString() << ": received sufficient go messages, "
+      "broadcasting private key.";
 
     QByteArray msg;
     QDataStream stream(&msg, QIODevice::WriteOnly);
@@ -636,18 +679,24 @@ namespace Anonymity {
     _state = BlameInit;
     _blame_verifications = 0;
 
-    QByteArray key = _outer_key->GetByteArray();
     QByteArray log = _log.Serialize();
-
     QByteArray msg;
     QDataStream stream(&msg, QIODevice::WriteOnly);
-    stream << BlameData << _round_id.GetByteArray() << key << log;
+    stream << BlameData << _round_id.GetByteArray();
 
+    CppHash hashalgo;
+
+    if(_shuffler) {
+      QByteArray key = _outer_key->GetByteArray();
+      stream << key;
+
+      hashalgo.Update(key);
+    }
+
+    stream << log;
     QByteArray sigmsg;
     QDataStream sigstream(&sigmsg, QIODevice::WriteOnly);
 
-    CppHash hashalgo;
-    hashalgo.Update(key);
     hashalgo.Update(log);
 
     sigstream << BlameData << _round_id.GetByteArray() << hashalgo.ComputeHash();
@@ -687,7 +736,8 @@ namespace Anonymity {
       return;
     }
 
-    ShuffleBlamer sb(_group, GetId(), _round_id, _logs, _private_outer_keys);
+    ShuffleBlamer sb(_group, _shufflers, GetId(), _round_id, _logs,
+        _private_outer_keys);
     sb.Start();
     for(int idx = 0; idx < sb.GetBadNodes().count(); idx++) {
       if(sb.GetBadNodes()[idx]) {
