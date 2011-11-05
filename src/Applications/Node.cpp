@@ -40,7 +40,7 @@ namespace Applications {
     QObject::disconnect(this, SIGNAL(Ready()), 0 ,0);
   }
 
-  void Node::RoundFinished(Session *, Round *)
+  void Node::RoundFinished(QSharedPointer<Round>)
   {
   }
 

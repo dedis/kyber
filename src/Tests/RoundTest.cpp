@@ -382,7 +382,7 @@ namespace Tests {
     }
 
     foreach(TestNode *node, nodes) {
-      Round *pr = node->session->GetCurrentRound();
+      QSharedPointer<Round> pr = node->session->GetCurrentRound();
       EXPECT_EQ(pr->GetBadMembers().count(), 1);
       EXPECT_TRUE(pr->GetBadMembers()[0] == badguy);
       EXPECT_TRUE(node->sink.GetLastData().isEmpty());

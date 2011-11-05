@@ -65,7 +65,7 @@ namespace Applications {
 
     private slots:
       void HandleConnection(Connection *con, bool local);
-      void RoundFinished(Session *, Round *);
+      void RoundFinished(QSharedPointer<Round> round);
 
     private:
       bool _bootstrapped;

@@ -41,7 +41,7 @@ namespace Tests {
       static int failure;
 
     public slots:
-      void HandleRoundFinished(Session *, Round *round)
+      void HandleRoundFinished(QSharedPointer<Round> round)
       {
         round->Successful() ? success++ : failure++;
         calledback++;

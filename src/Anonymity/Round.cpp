@@ -28,7 +28,7 @@ namespace Anonymity {
     _closed_reason = reason;
     _closed = true;
 
-    emit Finished(this);
+    emit Finished();
     return true;
   }
 

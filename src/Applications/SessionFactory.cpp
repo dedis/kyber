@@ -76,8 +76,8 @@ namespace Applications {
     node->session = QSharedPointer<Session>(session);
     node->sm.AddSession(node->session);
 
-    QObject::connect(session, SIGNAL(RoundFinished(Session *, Round *)),
-        node, SLOT(RoundFinished(Session *, Round *)));
+    QObject::connect(session, SIGNAL(RoundFinished(QSharedPointer<Round>)),
+        node, SLOT(RoundFinished(QSharedPointer<Round>)));
 
     if(!node->sink.isNull()) {
       node->session->SetSink(node->sink.data());

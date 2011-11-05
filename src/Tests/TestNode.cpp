@@ -61,8 +61,8 @@ namespace Tests {
     node->session = session;
     session->SetSink(&(node->sink));
     node->sm.AddSession(node->session);
-    QObject::connect(session.data(), SIGNAL(RoundFinished(Session *, Round *)),
-        node, SLOT(HandleRoundFinished(Session *, Round *)));
+    QObject::connect(session.data(), SIGNAL(RoundFinished(QSharedPointer<Round>)),
+        node, SLOT(HandleRoundFinished(QSharedPointer<Round>)));
   }
 
   void CleanUp(const QVector<TestNode *> &nodes)

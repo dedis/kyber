@@ -13,7 +13,6 @@ namespace Anonymity {
     _session_id(session_id),
     _default_data(default_data),
     _current_round(0),
-    _previous_round(0),
     _started(false),
     _round_ready(false),
     _closed(false),
@@ -26,18 +25,6 @@ namespace Anonymity {
         QObject::connect(con, SIGNAL(Disconnected(Connection *, const QString &)),
             this, SLOT(HandleDisconnect(Connection *, const QString &)));
       }
-    }
-  }
-
-  Session::~Session()
-  {
-    if(_current_round) {
-      QObject::disconnect(_current_round, SIGNAL(Finished(Round *)),
-          this, SLOT(HandleRoundFinished(Round *)));
-      delete _current_round;
-    }
-    if(_previous_round) {
-      delete _previous_round;
     }
   }
 
@@ -76,7 +63,7 @@ namespace Anonymity {
     if(_current_round) {
       _current_round->Close("Session stopped");
     }
-    emit Closed(this);
+    emit Closing();
   }
 
   void Session::ReceivedReady(RpcRequest &request)
@@ -129,17 +116,18 @@ namespace Anonymity {
     _current_round->Start();
   }
 
-  void Session::HandleRoundFinished(Round *round)
+  void Session::HandleRoundFinished()
   {
-    qDebug() << "Session" << ToString() << "round" <<
-      _current_round->ToString() << "finished.";
-
-    if(round != _current_round) {
+    Round * round = qobject_cast<Round *>(sender());
+    if(round != _current_round.data()) {
       qWarning() << "Received an awry Round Finished notification";
       return;
     }
 
-    emit RoundFinished(this, _current_round);
+    qDebug() << "Session" << ToString() << "round" <<
+      _current_round->ToString() << "finished.";
+
+    emit RoundFinished(_current_round);
 
     if(_closed) {
       qDebug() << "Session closed.";
@@ -153,26 +141,17 @@ namespace Anonymity {
 
   void Session::NextRound()
   {
-    if(_current_round) {
-      QObject::disconnect(_current_round, SIGNAL(Finished(Round *)),
-          this, SLOT(HandleRoundFinished(Round *)));
-
-      if(_previous_round) {
-        delete _previous_round;
-      }
-
-      _previous_round = _current_round;
-    }
-    
-    _current_round = GetRound((_send_queue.isEmpty()) ?
+    Round * round = GetRound((_send_queue.isEmpty()) ?
         _default_data : _send_queue.dequeue());
+
+    _current_round = QSharedPointer<Round>(round);
 
     qDebug() << "Session" << ToString() << "starting new round" <<
       _current_round->ToString() << "started.";
 
     _current_round->SetSink(this);
-    QObject::connect(_current_round, SIGNAL(Finished(Round *)),
-        this, SLOT(HandleRoundFinished(Round *)));
+    QObject::connect(_current_round.data(), SIGNAL(Finished()), this,
+        SLOT(HandleRoundFinished()));
 
     _round_ready = true;
 

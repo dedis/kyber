@@ -106,9 +106,8 @@ namespace Anonymity {
     signals:
       /**
        * Emitted when the Round is closed for good or bad.
-       * @param round The actual Round (this)
        */
-      void Finished(Round *round);
+      void Finished();
 
     protected:
       /**

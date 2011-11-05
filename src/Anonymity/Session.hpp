@@ -41,7 +41,7 @@ namespace Anonymity {
       /**
        * Deconstructor
        */
-      virtual ~Session();
+      virtual ~Session() {}
 
       /**
        * Begin the Session
@@ -88,7 +88,7 @@ namespace Anonymity {
       /**
        * Returns the current round
        */
-      inline Round *GetCurrentRound() { return _current_round; }
+      inline QSharedPointer<Round> GetCurrentRound() { return _current_round; }
 
       inline virtual QString ToString() const { return "Session: " + GetId().ToString(); }
 
@@ -96,16 +96,14 @@ namespace Anonymity {
       /**
        * Signals that a round has completed.  The round will be deleted after
        * the signal has returned.
-       * @param session this
        * @param round _current_round
        */
-      void RoundFinished(Session *session, Round *round);
+      void RoundFinished(QSharedPointer<Round> round);
 
       /**
        * Signfies that the session has been closed / stopped
-       * @param session this
        */
-      void Closed(Session *session);
+      void Closing();
 
     protected:
       const Id _local_id;
@@ -151,8 +149,7 @@ namespace Anonymity {
        */
       QQueue<QByteArray> _send_queue;
 
-      Round *_current_round;
-      Round *_previous_round;
+      QSharedPointer<Round> _current_round;
       bool _started;
       bool _round_ready;
       bool _closed;
@@ -162,9 +159,8 @@ namespace Anonymity {
     private slots:
       /**
        * Called when the current round has finished
-       * @param round The round that finished (should be _current_round)
        */
-      virtual void HandleRoundFinished(Round *round);
+      virtual void HandleRoundFinished();
 
       /**
        * Called when a remote peer has disconnected from the session
