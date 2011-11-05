@@ -28,7 +28,7 @@ namespace Anonymity {
       /**
        * Deconstructor
        */
-      ~SessionManager();
+      virtual ~SessionManager();
 
       /**
        * Adds a Session for the SessionManager to handle. Does not start the session.

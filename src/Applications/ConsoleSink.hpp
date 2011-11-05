@@ -16,6 +16,12 @@ namespace Applications {
   class ConsoleSink : public ISink {
     public:
       ConsoleSink();
+
+      /**
+       * Destructor
+       */
+      virtual ~ConsoleSink() {}
+
       virtual void HandleData(const QByteArray &data, ISender *from);
 
     protected:

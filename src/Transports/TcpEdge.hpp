@@ -22,7 +22,12 @@ namespace Transports {
        */
       TcpEdge(const Address &local, const Address &remote, bool incoming,
           QTcpSocket *socket);
+
+      /**
+       * Destructor
+       */
       virtual ~TcpEdge();
+
       virtual void Send(const QByteArray &data);
       virtual bool Close(const QString& reason);
       inline virtual bool SafeToDelete() { return false; }
@@ -33,7 +38,6 @@ namespace Transports {
     private slots:
       void HandleDisconnect();
       void Read();
-//      void SendReady();
 
     private:
       QByteArray _in_buffer;

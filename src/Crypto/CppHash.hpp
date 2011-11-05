@@ -14,6 +14,11 @@ namespace Crypto {
    */
   class CppHash : public Hash {
     public:
+      /**
+       * Destructor
+       */
+      virtual ~CppHash() {}
+
       inline virtual int GetBlockSize() { return sha1.BlockSize(); }
       virtual void Restart();
       virtual void Update(const QByteArray &data);

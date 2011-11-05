@@ -26,6 +26,11 @@ namespace Anonymity {
           AsymmetricKey *outer_key);
 
       /**
+       * Destructor
+       */
+      virtual ~ShuffleRoundBlame() {}
+
+      /**
        * Need a means to push messages into the round manually
        * @param data incoming message data
        * @param from the sender of the message

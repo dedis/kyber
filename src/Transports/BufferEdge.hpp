@@ -22,6 +22,10 @@ namespace Transports {
        */
       BufferEdge(const Address &local, const Address &remote,
           bool outgoing, int delay = 10);
+      
+      /**
+       * Destructor
+       */
       virtual ~BufferEdge();
       virtual void Send(const QByteArray &data);
       virtual bool Close(const QString& reason);

@@ -21,7 +21,17 @@ namespace Applications {
        * @param file the file to store the output into
        */
       FileSink(const QString &file);
+
+      /**
+       * Destructor
+       */
+      virtual ~FileSink() {}
+
+      /**
+       * Was the file properly opened
+       */
       bool IsValid();
+
       virtual void HandleData(const QByteArray &data, ISender *from);
 
     private:

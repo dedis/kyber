@@ -35,7 +35,7 @@ namespace Overlay {
       /**
        * Deconstructor
        */
-      ~BasicGossip();
+      virtual ~BasicGossip();
 
       /**
        * The overlay starts connecting to remote peers and allows peers to

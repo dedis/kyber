@@ -16,6 +16,11 @@ namespace Messaging {
        * @param response map to store responses
        */
       virtual void Invoke(RpcRequest& request) = 0;
+
+      /**
+       * Destructor
+       */
+      virtual ~Callback() {}
   };
 
   /**
@@ -43,6 +48,11 @@ namespace Messaging {
       {
         (_object.*_method)(request);
       }
+
+      /**
+       * Destructor
+       */
+      virtual ~RpcMethod() {}
 
     private:
       T &_object;

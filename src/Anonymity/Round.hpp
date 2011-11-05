@@ -38,6 +38,11 @@ namespace Anonymity {
           const ConnectionTable &ct, RpcHandler &rpc);
 
       /**
+       * Destructor
+       */
+      virtual ~Round() {}
+
+      /**
        * Start the Round
        */
       virtual bool Start() = 0;

@@ -25,6 +25,8 @@ namespace Utils {
         uid(_uid_count++)
       { }
 
+      virtual ~TimerEventData() {}
+
       QScopedPointer<TimerCallback> callback;
       qint64 next;
       int period;

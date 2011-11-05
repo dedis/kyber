@@ -24,6 +24,8 @@ namespace Tests {
             signing_key, data)
       { }
 
+      virtual ~ShuffleRoundBadInnerPrivateKey() {}
+
       inline static Round *CreateRound(const Group &group, const Group &shufflers,
           const Id &local_id, const Id &session_id, const Id &round_id,
           const ConnectionTable &ct, RpcHandler &rpc,
@@ -72,6 +74,8 @@ namespace Tests {
         ShuffleRound(group, shufflers, local_id, session_id, round_id, ct, rpc,
             signing_key, data)
       { }
+
+      virtual ~ShuffleRoundMessageDuplicator() {}
 
       inline static Round *CreateRound(const Group &group, const Group &shufflers, const Id &local_id,
           const Id &session_id, const Id &round_id, const ConnectionTable &ct,
@@ -162,6 +166,8 @@ namespace Tests {
             signing_key, data)
       { }
 
+      virtual ~ShuffleRoundMessageSwitcher() {}
+
       inline static Round *CreateRound(const Group &group,
           const Group &shufflers, const Id &local_id, const Id &session_id,
           const Id &round_id, const ConnectionTable &ct, RpcHandler &rpc,
@@ -209,6 +215,8 @@ namespace Tests {
           const QByteArray &data = DefaultData) :
         ShuffleRound(group, shufflers, local_id, session_id, round_id, ct, rpc, signing_key, data) { }
 
+      virtual ~ShuffleRoundFalseBlame() {}
+
       inline static Round *CreateRound(const Group &group, const Group &shufflers, const Id &local_id,
           const Id &session_id, const Id &round_id, const ConnectionTable &ct,
           RpcHandler &rpc, QSharedPointer<AsymmetricKey> signing_key,
@@ -242,6 +250,8 @@ namespace Tests {
           RpcHandler &rpc, QSharedPointer<AsymmetricKey> signing_key,
           const QByteArray &data = DefaultData) :
         ShuffleRound(group, shufflers, local_id, session_id, round_id, ct, rpc, signing_key, data) { }
+
+      virtual ~ShuffleRoundFalseNoGo() {}
 
       inline static Round *CreateRound(const Group &group, const Group &shufflers, const Id &local_id,
           const Id &session_id, const Id &round_id, const ConnectionTable &ct,
@@ -281,6 +291,8 @@ namespace Tests {
           RpcHandler &rpc, QSharedPointer<AsymmetricKey> signing_key,
           const QByteArray &data = DefaultData) :
         ShuffleRound(group, shufflers, local_id, session_id, round_id, ct, rpc, signing_key, data) { }
+
+      virtual ~ShuffleRoundInvalidOuterEncryption() {}
 
       inline static Round *CreateRound(const Group &group, const Group &shufflers, const Id &local_id,
           const Id &session_id, const Id &round_id, const ConnectionTable &ct,

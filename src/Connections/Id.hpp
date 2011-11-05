@@ -23,7 +23,7 @@ namespace Connections {
     public:
       IdData(const QByteArray &bid, const Integer &iid, const QString &sid) :
         bid(bid), iid(iid), sid(sid) { }
-      ~IdData() { }
+      virtual ~IdData() {}
 
       QByteArray bid;
       Integer iid;

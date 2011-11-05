@@ -22,6 +22,7 @@ namespace Tests {
   class MockSender : public ISender {
     public:
       MockSender(MockSource *source);
+      virtual ~MockSender() {}
       virtual void Send(const QByteArray &data);
       void SetReturnPath(ISender *sender);
     private:
@@ -55,6 +56,7 @@ namespace Tests {
 
     public:
       MockEdgeHandler(EdgeListener *el);
+      virtual ~MockEdgeHandler() {}
       QScopedPointer<Edge> edge;
     private slots:
       void HandleEdge(Edge *edge);

@@ -15,6 +15,11 @@ namespace Messaging {
       {
         PushData(data, this);
       }
+
+      /**
+       * Destructor
+       */
+      virtual ~Filter() {}
   };
 }
 }

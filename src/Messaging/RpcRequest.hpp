@@ -22,6 +22,8 @@ namespace Messaging {
       {
       }
 
+      virtual ~RpcRequestData() {}
+
       const QVariantMap Message;
       ISender *From;
       bool Responded;

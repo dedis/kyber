@@ -21,6 +21,11 @@ namespace Transports {
       EdgeListener(const Address &local_address);
 
       /**
+       * Destructor
+       */
+      virtual ~EdgeListener() {}
+
+      /**
        * Returns the Address type
        */
       inline const QString GetAddressType() const { return _local_address.GetType(); }

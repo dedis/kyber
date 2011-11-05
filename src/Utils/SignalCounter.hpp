@@ -19,6 +19,11 @@ namespace Utils {
       SignalCounter(int max = -1) : _max(max), _count(0) { }
 
       /**
+       * Destructor
+       */
+      virtual ~SignalCounter() {}
+
+      /**
        * Returns the amount of signals that have been registered thus far
        */
       inline int GetCount() { return _count; }

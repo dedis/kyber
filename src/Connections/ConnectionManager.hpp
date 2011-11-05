@@ -30,7 +30,7 @@ namespace Connections {
       /**
        * Deconstructor
        */
-      ~ConnectionManager();
+      virtual ~ConnectionManager();
 
       /**
        * Add an EdgeListener for creating edges for incoming and outgoing

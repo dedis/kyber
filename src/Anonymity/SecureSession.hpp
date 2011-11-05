@@ -41,6 +41,11 @@ namespace Anonymity {
           CreateSecureRound create_round, const QByteArray &default_data,
           CreateGroupGenerator group_generator = GroupGenerator::Create);
 
+      /**
+       * Destructor
+       */
+      virtual ~SecureSession() {}
+
       inline virtual QString ToString() const { return "SecureSession: " + GetId().ToString(); }
 
       /**

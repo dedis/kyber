@@ -31,6 +31,8 @@ namespace Anonymity {
       {
       }
 
+      virtual ~GroupData() {}
+
       const QVector<Id> GroupVector;
       const QHash<const Id, int> IdtoInt;
       const QVector<QSharedPointer<AsymmetricKey> > Keys;

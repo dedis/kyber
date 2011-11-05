@@ -13,6 +13,11 @@ namespace Crypto {
    */
   class CppRandom : public Dissent::Utils::Random {
     public:
+      /**
+       * Destructor
+       */
+      virtual ~CppRandom() {}
+
       virtual int GetInt(int min = 0, int max = RAND_MAX);
       virtual void GenerateBlock(QByteArray &data);
     private:

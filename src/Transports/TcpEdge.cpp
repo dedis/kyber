@@ -33,7 +33,7 @@ namespace Transports {
 
     int written = _socket->write(msg);
     if(written != msg.size()) {
-      _out_buffer.append(msg.mid(written));
+      qCritical() << "Didn't write all data to the socket!!!!!";
     }
   }
 

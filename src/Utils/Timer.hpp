@@ -83,7 +83,7 @@ namespace Utils {
       /**
        * Singleton, protected
        */
-      ~Timer();
+      virtual ~Timer();
 
       /**
        * Singleton, disabled

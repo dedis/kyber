@@ -13,6 +13,11 @@ namespace Messaging {
       virtual void HandleData(const QByteArray &, ISender *)
       {
       }
+
+      /**
+       * Destructor
+       */
+      virtual ~DummySink() {}
   };
 }
 }

@@ -34,6 +34,11 @@ namespace Connections {
        */
       Connection(QSharedPointer<Edge> edge, const Id &local_id, const Id &remote_id);
 
+      /**
+       * Destructor
+       */
+      virtual ~Connection() {};
+
       virtual QString ToString() const;
 
       /**

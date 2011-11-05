@@ -24,7 +24,12 @@ namespace Transports {
 
       TcpEdgeListener(const TcpAddress &local_address);
       static EdgeListener *Create(const Address &local_address);
-      ~TcpEdgeListener();
+
+      /**
+       * Destructor
+       */
+      virtual ~TcpEdgeListener();
+
       virtual void CreateEdgeTo(const Address &to);
       virtual void Start();
       virtual void Stop();

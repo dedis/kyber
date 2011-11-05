@@ -28,6 +28,11 @@ namespace Anonymity {
           const QByteArray &data = DefaultData);
 
       /**
+       * Destructor
+       */
+      virtual ~NullRound() {}
+
+      /**
        * A callback (function pointer) used for creating a round
        * @param group The anonymity group
        * @param local_id The local peers id

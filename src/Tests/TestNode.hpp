@@ -28,6 +28,8 @@ namespace Tests {
         }
       }
 
+      virtual ~TestNode() {}
+
       MockSink sink;
       RpcHandler rpc;
       ConnectionManager cm;

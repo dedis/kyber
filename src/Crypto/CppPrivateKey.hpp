@@ -25,6 +25,11 @@ namespace Crypto {
       CppPrivateKey();
 
       /**
+       * Destructor
+       */
+      virtual ~CppPrivateKey() {}
+
+      /**
        * Creates a private key based upon the seed data, same seed data same
        * key.  This is mainly used for distributed tests, so other members can
        * generate an appropriate public key.

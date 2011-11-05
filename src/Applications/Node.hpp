@@ -32,6 +32,11 @@ namespace Applications {
        */
       Node(const QList<Address> &local, const QList<Address> &remote,
           int group_size, const QString &session_type);
+
+      /**
+       * Destructor
+       */
+      virtual ~Node() {}
       
       /**
        * Given the set of connected peers, generate a Group object

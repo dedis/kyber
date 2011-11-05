@@ -14,7 +14,11 @@ namespace Transports {
       TcpAddressData(const QUrl &url, const QHostAddress &ip, int port, bool valid) :
         AddressData(url), ip(ip), port(port), valid(valid) { }
 
-      ~TcpAddressData() { }
+      /**
+       * Destructor
+       */
+      virtual ~TcpAddressData() { }
+
       virtual bool Equals(const AddressData *other) const;
 
       const QHostAddress ip;
@@ -43,8 +47,20 @@ namespace Transports {
       const static QString Scheme;
 
       TcpAddress(const QUrl &url);
-      TcpAddress(const QString &ip = "0.0.0.0", int port = 0);
       TcpAddress(const TcpAddress &other);
+
+      /**
+       * Creates a Tcp Address using the ip address and port
+       * @param ip provided ip or any if non-specified (0.0.0.0)
+       * @param port provided port or any if non-specified (0)
+       */
+      TcpAddress(const QString &ip = "0.0.0.0", int port = 0);
+
+      /**
+       * Destructor
+       */
+      virtual ~TcpAddress() {}
+
       static const Address Create(const QUrl &url);
       static const Address CreateAny();
 

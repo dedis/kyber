@@ -30,7 +30,7 @@ namespace Messaging {
       /**
        * The destructor
        */
-      ~RpcHandler();
+      virtual ~RpcHandler();
 
       /**
        * Handle an incoming Rpc request

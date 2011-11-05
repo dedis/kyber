@@ -16,7 +16,12 @@ namespace Transports {
     public:
       BufferEdgeListener(const BufferAddress &local_address);
       static EdgeListener *Create(const Address &local_address);
-      ~BufferEdgeListener();
+
+      /**
+       * Destructor
+       */
+      virtual ~BufferEdgeListener();
+
       virtual void CreateEdgeTo(const Address &to);
 
     private:
