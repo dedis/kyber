@@ -59,7 +59,10 @@ namespace Connections {
     }
 
     _closed = true;
-    bool emit_dis = _con_tab.GetEdges().count() == 0 && _rem_con_tab.GetEdges().count();
+
+    bool emit_dis = (_con_tab.GetEdges().count() == 0)
+      && (_rem_con_tab.GetEdges().count() == 0);
+
     foreach(Connection *con, _con_tab.GetConnections()) {
       con->Disconnect();
     }
