@@ -29,7 +29,7 @@ namespace Tests {
     SignalCounter sc;
 
     foreach(QSharedPointer<Node> node, nodes) {
-      QObject::connect(node.data(), SIGNAL(Ready(Node *)), &sc, SLOT(Counter()));
+      QObject::connect(node.data(), SIGNAL(Ready()), &sc, SLOT(Counter()));
       node->bg.Start();
       EXPECT_NE(node->bg.OutstandingConnectionAttempts(), 0);
     }
@@ -158,7 +158,7 @@ namespace Tests {
     SignalCounter sc;
 
     foreach(QSharedPointer<Node> node, nodes) {
-      QObject::connect(node.data(), SIGNAL(Ready(Node *)), &sc, SLOT(Counter()));
+      QObject::connect(node.data(), SIGNAL(Ready()), &sc, SLOT(Counter()));
       node->bg.Start();
       EXPECT_TRUE(node->bg.NeedConnection());
     }
@@ -180,7 +180,7 @@ namespace Tests {
     AsymmetricKey *key = CppPrivateKey::GenerateKey(nodes.last()->bg.GetId().GetByteArray());
     nodes.last()->key = QSharedPointer<AsymmetricKey>(key);
     nodes.last()->sink = QSharedPointer<ISink>(new MockSinkWithSignal());
-    QObject::connect(nodes.last().data(), SIGNAL(Ready(Node *)), &sc, SLOT(Counter()));
+    QObject::connect(nodes.last().data(), SIGNAL(Ready()), &sc, SLOT(Counter()));
     nodes.last()->bg.Start();
 
     while(next != -1 && sc.GetCount() != count) {

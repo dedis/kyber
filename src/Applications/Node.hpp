@@ -36,7 +36,7 @@ namespace Applications {
       /**
        * Destructor
        */
-      virtual ~Node() {}
+      virtual ~Node();
       
       /**
        * Given the set of connected peers, generate a Group object
@@ -60,13 +60,12 @@ namespace Applications {
     signals:
       /**
        * Emitted when this node has created a session
-       * @param node this node
        */
-      void Ready(Node *node);
+      void Ready();
 
     private slots:
       void HandleConnection(Connection *con, bool local);
-      void RoundFinished(Session *session, Round *round);
+      void RoundFinished(Session *, Round *);
 
     private:
       bool _bootstrapped;

@@ -16,6 +16,11 @@ namespace Applications {
         this, SLOT(HandleConnection(Connection *, bool)));
   }
 
+  Node::~Node()
+  {
+    QObject::disconnect(this, SIGNAL(Ready()), 0 ,0);
+  }
+
   void Node::HandleConnection(Connection *, bool local)
   {
     if(!local) {
@@ -31,7 +36,8 @@ namespace Applications {
         this, SLOT(HandleConnection(Connection *, bool)));
     SessionFactory::GetInstance().Create(this, SessionType);
     _bootstrapped = true;
-    emit Ready(this);
+    emit Ready();
+    QObject::disconnect(this, SIGNAL(Ready()), 0 ,0);
   }
 
   void Node::RoundFinished(Session *, Round *)

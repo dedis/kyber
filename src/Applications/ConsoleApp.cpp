@@ -56,9 +56,10 @@ int main(int argc, char **argv)
 
   if(settings.Console) {
     QSharedPointer<CommandLine> cl(new CommandLine(nodes));
-    QObject::connect(nodes[0].data(), SIGNAL(Ready(Node *)), cl.data(), SLOT(Ready()));
+    QObject::connect(nodes[0].data(), SIGNAL(Ready()), cl.data(), SLOT(Ready()));
     nodes[0]->sink = cl;
     cl->Start();
+    QObject::connect(&qca, SIGNAL(aboutToQuit()), cl.data(), SLOT(Stop()));
   } else {
     nodes[0]->sink = QSharedPointer<ISink>(new DummySink());
   }

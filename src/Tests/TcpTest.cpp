@@ -29,7 +29,7 @@ namespace Tests {
     SignalCounter sc(count);
 
     foreach(QSharedPointer<Node> node, nodes) {
-      QObject::connect(node.data(), SIGNAL(Ready(Node *)), &sc, SLOT(Counter()));
+      QObject::connect(node.data(), SIGNAL(Ready()), &sc, SLOT(Counter()));
       node->bg.Start();
     }
 
