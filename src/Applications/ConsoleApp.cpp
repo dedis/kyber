@@ -50,6 +50,7 @@ int main(int argc, char **argv)
   }
 
   foreach(QSharedPointer<Node> node, nodes) {
+    QObject::connect(&qca, SIGNAL(aboutToQuit()), &node.data()->bg, SLOT(Stop()));
     node->bg.Start();
   }
 
@@ -62,11 +63,5 @@ int main(int argc, char **argv)
     nodes[0]->sink = QSharedPointer<ISink>(new DummySink());
   }
 
-  QCoreApplication::exec();
-
-  foreach(QSharedPointer<Node> node, nodes) {
-    node->bg.Stop();
-  }
-
-  return 0;
+  return QCoreApplication::exec();
 }
