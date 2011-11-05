@@ -1,6 +1,5 @@
 Anonymity
 - The process for creating a session should be peers register, a leader not ready rejects, peers continue to register until successful, leader notifies all of starting
-- Should keep a cache of closed sessions to respond to the remote peer that the session is dead and avoid race "wayward session messages"
 - Need some structure to communicate group status / change
 - Make sessions optionally multithreaded, we really don't want crypto computation in the main thread
 - Need some means to initiate a group / session
