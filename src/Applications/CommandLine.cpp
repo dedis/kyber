@@ -38,6 +38,7 @@ namespace Applications {
       return;
     }
 
+    _nodes.clear();
     _running = false;
 
     _notify.setEnabled(false);

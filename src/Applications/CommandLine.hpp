@@ -34,11 +34,6 @@ namespace Applications {
       void Start();
 
       /**
-       * Stop the commmand line services
-       */
-      void Stop();
-
-      /**
        * A sink input to print data to the console in a pretty way
        * @param data incoming data
        * @param from the sender of the data
@@ -51,6 +46,11 @@ namespace Applications {
        */
       void Ready();
 
+      /**
+       * Stop the commmand line services
+       */
+      void Stop();
+
     private slots:
       /**
        * Called when there is input on stdin
@@ -59,7 +59,7 @@ namespace Applications {
 
     protected:
       void PrintCommandLine();
-      const QList<QSharedPointer<Node> > _nodes;
+      QList<QSharedPointer<Node> > _nodes;
       int _current_node;
       bool _running;
       QSocketNotifier _notify;
