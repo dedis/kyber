@@ -27,6 +27,9 @@ Applications
 - Create a compatibility API to support old applications
 - Write a WEB Interface akin to the old GUI ... down with native Apps!
 
+Messaging
+- Rpc messages are not deterministic, ignored outgoing Requests are never removed from the local _requests stack ... do we push more work on the user (calling code) or into the Rpc...
+
 Overall
 - Replace all pointers with qscoped / qshared pointers
 - Consider removing qsharedata and replacing it with qsharedpointers
