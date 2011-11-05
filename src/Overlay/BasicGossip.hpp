@@ -44,11 +44,6 @@ namespace Overlay {
       bool Start();
 
       /**
-       * Disconnects the node from the overlay
-       */
-      bool Stop();
-
-      /**
        * True if the system needs to reinit bootstrap
        */
       bool NeedConnection();
@@ -72,6 +67,13 @@ namespace Overlay {
        * Returns the number ouf outstanding connection attempts
        */
       inline int OutstandingConnectionAttempts() { return _outstanding_con_attempts; }
+
+    public slots:
+      /**
+       * Disconnects the node from the overlay
+       */
+      bool Stop();
+
 
     signals:
       /**
