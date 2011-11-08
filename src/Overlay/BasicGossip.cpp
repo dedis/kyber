@@ -16,7 +16,6 @@ namespace Overlay {
     _peer_list_inquire(*this, &BasicGossip::PeerListInquire),
     _peer_list_response(*this, &BasicGossip::PeerListResponse),
     _notify_peer(*this, &BasicGossip::PeerListIncrementalUpdate),
-    _outstanding_con_attempts(0),
     _bootstrap_event(0)
   {
     _rpc.Register(&_peer_list_inquire, "SN::PeerList");
@@ -91,16 +90,17 @@ namespace Overlay {
   void BasicGossip::HandleConnection(Connection *con, bool local)
   {
     if(local) {
-      _outstanding_con_attempts--;
+      _active_attempts.remove(con->GetEdge()->GetRemoteAddress());
       SendUpdate(con);
       RequestPeerList(con);
     }
     emit NewConnection(con, local);
   }
 
-  void BasicGossip::HandleConnectionAttemptFailure(const Address &, const QString &)
+  void BasicGossip::HandleConnectionAttemptFailure(const Address &addr, const QString &)
   {
-    if(--_outstanding_con_attempts > 0) {
+    _active_attempts.remove(addr);
+    if(_active_attempts.count() > 0) {
       return;
     }
 
@@ -121,21 +121,7 @@ namespace Overlay {
       return;
     }
     foreach(const Address &addr, _remote_endpoints) {
-      bool skip = false;
-
-      foreach(QSharedPointer<EdgeListener> el, _edge_listeners) {
-        if(addr == el->GetAddress()) {
-          skip = true;
-          break;
-        }
-      }
-
-      if(skip) {
-        continue;
-      }
-
-      _outstanding_con_attempts++;
-      _cm.ConnectTo(addr);
+      ConnectTo(addr);
     }
   }
 
@@ -238,13 +224,21 @@ namespace Overlay {
     }
 
     Address addr = AddressFactory::GetInstance().CreateAddress(url);
+    ConnectTo(addr);
+  }
+
+  void BasicGossip::ConnectTo(const Address &addr)
+  {
     foreach(QSharedPointer<EdgeListener> el, _edge_listeners) {
       if(addr == el->GetAddress()) {
         return;
       }
     }
 
-    _outstanding_con_attempts++;
+    if(_active_attempts.contains(addr)) {
+      return;
+    }
+    _active_attempts[addr] = true;
     _cm.ConnectTo(addr);
   }
 }

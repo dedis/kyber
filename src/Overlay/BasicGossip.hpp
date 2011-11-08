@@ -66,7 +66,7 @@ namespace Overlay {
       /**
        * Returns the number ouf outstanding connection attempts
        */
-      inline int OutstandingConnectionAttempts() { return _outstanding_con_attempts; }
+      inline int OutstandingConnectionAttempts() { return _active_attempts.count(); }
 
     public slots:
       /**
@@ -91,6 +91,7 @@ namespace Overlay {
     private:
       QList<Address> _local_endpoints;
       QList<Address> _remote_endpoints;
+      QHash<Address, bool> _active_attempts;
 
       bool _started;
       bool _stopped;
@@ -103,7 +104,6 @@ namespace Overlay {
       RpcMethod<BasicGossip> _peer_list_inquire;
       RpcMethod<BasicGossip> _peer_list_response;
       RpcMethod<BasicGossip> _notify_peer;
-      int _outstanding_con_attempts;
       TimerEvent *_bootstrap_event;
 
       /**
@@ -144,6 +144,12 @@ namespace Overlay {
        * Reconnects to all peers in the _remote_endpoints
        */
       void Bootstrap(const int &);
+
+      /**
+       * Connect to the provided address iff it isn't us and we don't have
+       * an active attempt to this address already
+       */
+      void ConnectTo(const Address &addr);
 
     private slots:
       /**
