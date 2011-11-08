@@ -37,11 +37,14 @@ namespace Transports {
     private slots:
       void HandleAccept();
       void HandleConnect();
+      void HandleDisconnect();
       void HandleError(QAbstractSocket::SocketError error);
+      void HandleSocketClose(QTcpSocket *socket, const QString &reason);
 
     private:
       void AddSocket(QTcpSocket *socket, bool outgoing);
       QTcpServer _server;
+      QHash<QTcpSocket *, TcpAddress> _outstanding_sockets;
   };
 }
 }

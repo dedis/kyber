@@ -77,10 +77,12 @@ namespace Transports {
     QTcpSocket *socket = new QTcpSocket(this);
 
     QObject::connect(socket, SIGNAL(connected()), this, SLOT(HandleConnect()));
+    QObject::connect(socket, SIGNAL(disconnected()), this, SLOT(HandleDisconnect()));
     QObject::connect(socket, SIGNAL(error(QAbstractSocket::SocketError)),
         this, SLOT(HandleError(QAbstractSocket::SocketError)));
 
     const TcpAddress &rem_ta = static_cast<const TcpAddress &>(to);
+    _outstanding_sockets.insert(socket, rem_ta);
     socket->connectToHost(rem_ta.GetIP(), rem_ta.GetPort());
   }
 
@@ -93,19 +95,42 @@ namespace Transports {
     }
 
     QObject::disconnect(socket, SIGNAL(connected()), this, SLOT(HandleConnect()));
+    QObject::disconnect(socket, SIGNAL(disconnected()), this, SLOT(HandleDisconnect()));
     QObject::disconnect(socket, SIGNAL(error(QAbstractSocket::SocketError)),
         this, SLOT(HandleError(QAbstractSocket::SocketError)));
+    _outstanding_sockets.remove(socket);
     AddSocket(socket, true);
+  }
+
+  void TcpEdgeListener::HandleDisconnect()
+  {
+    QTcpSocket *socket = qobject_cast<QTcpSocket *>(sender());
+    if(socket == 0) {
+      qCritical() << "HandleDisconnect signal received a non-socket";
+      return;
+    }
+    HandleSocketClose(socket, "Disconnected");
   }
 
   void TcpEdgeListener::HandleError(QAbstractSocket::SocketError)
   {
     QTcpSocket *socket = qobject_cast<QTcpSocket *>(sender());
-    TcpAddress addr(socket->peerAddress().toString(), socket->peerPort());
-    QString error = socket->errorString();
-    qDebug() << "Unable to connect to host: " << addr.ToString() << error;
+    if(socket == 0) {
+      qCritical() << "HandleError signal received a non-socket";
+      return;
+    }
+    HandleSocketClose(socket, socket->errorString());
+  }
+
+  void TcpEdgeListener::HandleSocketClose(QTcpSocket *socket, const QString &reason)
+  {
+    Address addr = _outstanding_sockets.value(socket);
+    _outstanding_sockets.remove(socket);
+
+    qDebug() << "Unable to connect to host: " << addr.ToString() << reason;
+
     socket->deleteLater();
-    ProcessEdgeCreationFailure(addr, error);
+    ProcessEdgeCreationFailure(addr, reason);
   }
 
   void TcpEdgeListener::AddSocket(QTcpSocket *socket, bool outgoing) {
