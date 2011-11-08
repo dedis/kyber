@@ -31,7 +31,6 @@ namespace Tests {
     foreach(QSharedPointer<Node> node, nodes) {
       QObject::connect(node.data(), SIGNAL(Ready()), &sc, SLOT(Counter()));
       node->bg.Start();
-      EXPECT_NE(node->bg.OutstandingConnectionAttempts(), 0);
     }
 
 

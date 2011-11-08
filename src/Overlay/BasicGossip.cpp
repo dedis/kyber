@@ -121,6 +121,19 @@ namespace Overlay {
       return;
     }
     foreach(const Address &addr, _remote_endpoints) {
+      bool skip = false;
+
+      foreach(QSharedPointer<EdgeListener> el, _edge_listeners) {
+        if(addr == el->GetAddress()) {
+          skip = true;
+          break;
+        }
+      }
+
+      if(skip) {
+        continue;
+      }
+
       _outstanding_con_attempts++;
       _cm.ConnectTo(addr);
     }
@@ -220,7 +233,17 @@ namespace Overlay {
       return;
     }
 
+    if(_local_id == id) {
+      return;
+    }
+
     Address addr = AddressFactory::GetInstance().CreateAddress(url);
+    foreach(QSharedPointer<EdgeListener> el, _edge_listeners) {
+      if(addr == el->GetAddress()) {
+        return;
+      }
+    }
+
     _outstanding_con_attempts++;
     _cm.ConnectTo(addr);
   }
