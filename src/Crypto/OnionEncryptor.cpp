@@ -2,7 +2,6 @@
 
 namespace Dissent {
 namespace Crypto {
-  void Print(const QVector<QByteArray> &datas);
   OnionEncryptor &OnionEncryptor::GetInstance()
   {
     static OnionEncryptor onion_encryptor;
