@@ -3,6 +3,7 @@
 
 #include <stdexcept>
 
+#include <QHash>
 #include <QSharedData>
 #include <QString>
 #include <QUrl>
@@ -60,6 +61,16 @@ namespace Transports {
       Address() { }
       QExplicitlySharedDataPointer<AddressData> _data;
   };
+
+  /**
+   * Allows an Address to be used as a Key in a QHash table, uses the QString
+   * from the Url
+   * @param addr the key Address
+   */
+  inline uint qHash(const Address &addr)
+  {
+    return qHash(addr.GetUrl().toString());
+  }
 }
 }
 
