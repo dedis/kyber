@@ -100,8 +100,8 @@ namespace Anonymity {
   void ShuffleRound::Broadcast(const QByteArray &data)
   {
     QByteArray msg = data + _signing_key->Sign(data);
-    ProcessData(msg, _local_id);
     Round::Broadcast(msg);
+    ProcessData(msg, _local_id);
   }
 
   void ShuffleRound::Send(const QByteArray &data, const Id &id)
@@ -757,6 +757,8 @@ namespace Anonymity {
         _bad_members.append(idx);
       }
     }
+    _state = Finished;
+    Close("Round caused blame and finished unsuccessfully.");
   }
 }
 }
