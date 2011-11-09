@@ -10,9 +10,8 @@ void FilesDelete();
 GTEST_API_ int main(int argc, char **argv)
 {
   QCoreApplication qca(argc, argv);
-  Logging::Disable();
-//  Logging::UseFile("test.log");
-  qDebug() << "Begging tests";
+  Logging::UseFile("test.log");
+  qDebug() << "Beginning tests";
   FilesExist();
   testing::InitGoogleTest(&argc, argv);
   int res = RUN_ALL_TESTS();
