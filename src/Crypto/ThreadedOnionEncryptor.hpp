@@ -18,6 +18,11 @@ namespace Crypto {
   class ThreadedOnionEncryptor : public QObject, public OnionEncryptor {
     public:
       /**
+       * Access the OnionEncryptor singleton
+       */
+      static ThreadedOnionEncryptor& GetInstance();
+
+      /**
        * Using the key it removes a layer of encryption from ciphertexts,
        * returns true if everything parses fine
        * @param key the private key used for decryption
@@ -28,6 +33,22 @@ namespace Crypto {
       virtual bool Decrypt(const AsymmetricKey *key,
           const QVector<QByteArray> &ciphertext,
           QVector<QByteArray> &cleartext, QVector<int> *bad) const;
+
+      /**
+       * Destructor
+       */
+      virtual ~ThreadedOnionEncryptor() {}
+
+    protected:
+      /**
+       * Only inheritance is supported, this is a singleton object
+       */
+      ThreadedOnionEncryptor() {}
+
+      /**
+       * No copying of singleton objects
+       */
+      Q_DISABLE_COPY(ThreadedOnionEncryptor)
   };
 }
 }

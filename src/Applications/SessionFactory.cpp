@@ -27,7 +27,7 @@ namespace Applications {
     _type_to_create[type] = cb;
   }
 
-  void SessionFactory::Create(Node *node, const QString &type)
+  void SessionFactory::Create(Node *node, const QString &type) const
   {
     Callback cb = _type_to_create[type];
     if(cb == 0) {

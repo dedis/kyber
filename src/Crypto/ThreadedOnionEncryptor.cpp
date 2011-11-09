@@ -23,6 +23,12 @@ namespace Crypto {
     };
   }
 
+  ThreadedOnionEncryptor &ThreadedOnionEncryptor::GetInstance()
+  {
+    static ThreadedOnionEncryptor toe;
+    return toe;
+  }
+
   bool ThreadedOnionEncryptor::Decrypt(const AsymmetricKey *key,
       const QVector<QByteArray> &ciphertext, QVector<QByteArray> &cleartext,
       QVector<int> *bad) const

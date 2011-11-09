@@ -85,6 +85,22 @@ namespace Crypto {
        */
       int ReorderRandomBits(const QVector<QVector<QByteArray> > &in_bits,
           QVector<QVector<QByteArray> > &out_bits) const;
+
+      /**
+       * Destructor
+       */
+      virtual ~OnionEncryptor() {}
+
+    protected:
+      /**
+       * Only inheritance is supported, this is a singleton object
+       */
+      OnionEncryptor() {}
+
+      /**
+       * No copying of singleton objects
+       */
+      Q_DISABLE_COPY(OnionEncryptor)
   };
 }
 }

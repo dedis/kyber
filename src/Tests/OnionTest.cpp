@@ -380,8 +380,7 @@ namespace Tests {
 
   TEST(Crypto, MultithreadedDecrypt)
   {
-    ThreadedOnionEncryptor toe;
-    OnionEncryptorDecrypt(toe);
+    OnionEncryptorDecrypt(ThreadedOnionEncryptor::GetInstance());
   }
 }
 }

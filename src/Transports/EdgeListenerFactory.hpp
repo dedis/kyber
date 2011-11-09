@@ -17,12 +17,21 @@ namespace Transports {
 
       static EdgeListenerFactory &GetInstance();
 
-      EdgeListenerFactory();
       void AddCallback(const QString &scheme, Callback cb);
       EdgeListener *CreateEdgeListener(const Address &addr);
 
     private:
       QHash<QString, Callback> _type_to_callback;
+
+      /**
+       * No inheritance, this is a singleton object
+       */
+      EdgeListenerFactory();
+
+      /**
+       * No copying of singleton objects
+       */
+      Q_DISABLE_COPY(EdgeListenerFactory)
   };
 }
 }

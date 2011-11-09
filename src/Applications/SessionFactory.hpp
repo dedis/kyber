@@ -31,7 +31,7 @@ namespace Applications {
        * @param node the node to add the session to
        * @param type the type of session to create
        */
-      void Create(Node *node, const QString &type);
+      void Create(Node *node, const QString &type) const;
 
       /**
        * Create a SecureSession / ShuffleRound
@@ -48,10 +48,19 @@ namespace Applications {
        */
       static void CreateNullRoundSession(Node *node);
 
-
     private:
       static void Common(Node *node, Session *session);
-      SessionFactory();
+
+      /**
+       * No inheritance, this is a singleton object
+       */
+      SessionFactory(); 
+
+      /**
+       * No copying of singleton objects
+       */
+      Q_DISABLE_COPY(SessionFactory)
+
       QHash<QString, Callback> _type_to_create;
   };
 }

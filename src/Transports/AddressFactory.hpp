@@ -17,7 +17,6 @@ namespace Transports {
       typedef const Address (*CreateCallback) (const QUrl &url);
       typedef const Address (*AnyCallback) ();
 
-      AddressFactory();
       void AddCreateCallback(const QString &type, CreateCallback cb);
       const Address CreateAddress(const QString &surl) const;
       const Address CreateAddress(const QUrl &url) const;
@@ -28,6 +27,16 @@ namespace Transports {
     private:
       QHash<QString, CreateCallback> _type_to_create;
       QHash<QString, AnyCallback> _type_to_any;
+
+      /**
+       * No inheritance, this is a singleton object
+       */
+      AddressFactory();
+
+      /**
+       * No copying of singleton objects
+       */
+      Q_DISABLE_COPY(AddressFactory)
   };
 }
 }
