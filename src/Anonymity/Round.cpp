@@ -34,6 +34,11 @@ namespace Anonymity {
 
   void Round::HandleData(const QByteArray &data, ISender *from)
   {
+    if(_closed) {
+      qWarning() << "Received a message on a closed round:" << ToString();
+      return;
+    }
+      
     Connection *con = dynamic_cast<Connection *>(from);
     if(con == 0 || !_group.Contains(con->GetRemoteId())) {
       qDebug() << ToString() << " received wayward message from: " << from->ToString();
