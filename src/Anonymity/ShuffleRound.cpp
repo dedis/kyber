@@ -617,6 +617,8 @@ namespace Anonymity {
 
   void ShuffleRound::BroadcastPrivateKey()
   {
+    _state = PrivateKeySharing;
+
     if(!_shuffler) {
       qDebug() << _shufflers.GetIndex(_local_id) << _group.GetIndex(_local_id)
         << _local_id.ToString() << ": received sufficient go messages, "

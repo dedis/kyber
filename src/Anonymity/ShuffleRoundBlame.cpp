@@ -68,6 +68,7 @@ namespace Anonymity {
 
   void ShuffleRoundBlame::BroadcastPrivateKey()
   {
+    _state = PrivateKeySharing;
   }
 
   void ShuffleRoundBlame::Decrypt()
