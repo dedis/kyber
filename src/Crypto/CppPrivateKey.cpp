@@ -90,17 +90,18 @@ namespace Crypto {
 
     QByteArray cleartext(clength, 0);
     ArraySink *sink = new ArraySink(reinterpret_cast<byte *>(cleartext.data()), clength);
+    int size = -1;
 
     try {
       StringSource(reinterpret_cast<const byte *>(data.data() + data_start), clength, true,
           new StreamTransformationFilter(dec, sink));
+      size = sink->TotalPutLength();
     } catch (std::exception &e) {
       qWarning() << "In CppPrivateKey::Decrypt: " << e.what();
       return QByteArray();
     }
 
-    cleartext.resize(sink->TotalPutLength());
-
+    cleartext.resize(size);
     return cleartext;
   }
 }
