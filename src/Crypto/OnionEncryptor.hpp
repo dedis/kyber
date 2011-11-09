@@ -31,7 +31,7 @@ namespace Crypto {
       int Encrypt(const QVector<AsymmetricKey *> &keys,
           const QByteArray &cleartext,
           QByteArray &ciphertext,
-          QVector<QByteArray> *intermediate);
+          QVector<QByteArray> *intermediate = 0) const;
 
       /**
        * Using the key it removes a layer of encryption from ciphertexts,
@@ -41,15 +41,15 @@ namespace Crypto {
        * @param cleartext the resulting ciphertext permuted
        * @param bad optionally returns index of malformed messages
        */
-      bool Decrypt(AsymmetricKey *key,
+      virtual bool Decrypt(const AsymmetricKey *key,
           const QVector<QByteArray> &ciphertext,
-          QVector<QByteArray> &cleartext, QVector<int> *bad);
+          QVector<QByteArray> &cleartext, QVector<int> *bad = 0) const;
 
       /**
        * Randomizes the inpuptted message blocks
        * @param text the message blocks
        */
-      void RandomizeBlocks(QVector<QByteArray> &text);
+      void RandomizeBlocks(QVector<QByteArray> &text) const;
 
       /**
        * Verifies that the ciphertext and cleartext match, returning true
@@ -58,7 +58,7 @@ namespace Crypto {
        * @param cleartext the unencrypted data
        * @param ciphertext the encrypted data
        */
-      bool VerifyOne(AsymmetricKey *key,
+      bool VerifyOne(const AsymmetricKey *key,
           const QVector<QByteArray> &cleartext,
           const QVector<QByteArray> &ciphertext) const;
 
@@ -73,7 +73,7 @@ namespace Crypto {
        */
       bool VerifyAll(const QVector<AsymmetricKey *> &keys,
           const QVector<QVector<QByteArray> > &onion,
-          QBitArray &bad);
+          QBitArray &bad) const;
 
       /**
        * After receiving the various peers intermediate cipher texts, this
@@ -84,7 +84,7 @@ namespace Crypto {
        * @param out_bits output ordered by decrypting peer
        */
       int ReorderRandomBits(const QVector<QVector<QByteArray> > &in_bits,
-          QVector<QVector<QByteArray> > &out_bits);
+          QVector<QVector<QByteArray> > &out_bits) const;
   };
 }
 }

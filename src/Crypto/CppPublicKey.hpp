@@ -54,22 +54,22 @@ namespace Crypto {
       /**
        * Get a copy of the public key
        */
-      virtual AsymmetricKey *GetPublicKey();
+      virtual AsymmetricKey *GetPublicKey() const;
 
-      virtual bool Save(const QString &filename);
+      virtual bool Save(const QString &filename) const;
       virtual QByteArray GetByteArray() const;
 
       /**
        * Returns nothing, not supported for public keys
        */
-      virtual QByteArray Sign(const QByteArray &data);
-      virtual bool Verify(const QByteArray &data, const QByteArray &sig);
-      virtual QByteArray Encrypt(const QByteArray &data);
+      virtual QByteArray Sign(const QByteArray &data) const;
+      virtual bool Verify(const QByteArray &data, const QByteArray &sig) const;
+      virtual QByteArray Encrypt(const QByteArray &data) const;
 
       /**
        * Returns nothing, not supported for public keys
        */
-      virtual QByteArray Decrypt(const QByteArray &data);
+      virtual QByteArray Decrypt(const QByteArray &data) const;
 
       inline virtual bool IsPrivateKey() const { return false; }
       virtual bool VerifyKey(AsymmetricKey &key) const;
@@ -93,7 +93,7 @@ namespace Crypto {
        */
       bool InitFromFile(const QString &filename);
 
-      RSA::PublicKey *_public_key;
+      const RSA::PublicKey *_public_key;
       bool _valid;
       static QByteArray GetByteArray(const CryptoMaterial &key);
   };

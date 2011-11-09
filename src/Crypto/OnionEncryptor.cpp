@@ -9,9 +9,8 @@ namespace Crypto {
   }
 
   int OnionEncryptor::Encrypt(const QVector<AsymmetricKey *> &keys,
-      const QByteArray &cleartext,
-      QByteArray &ciphertext,
-      QVector<QByteArray> *intermediate)
+      const QByteArray &cleartext, QByteArray &ciphertext,
+      QVector<QByteArray> *intermediate) const
   {
     ciphertext = keys.first()->Encrypt(cleartext);
 
@@ -48,9 +47,9 @@ namespace Crypto {
     return -1;
   }
 
-  bool OnionEncryptor::Decrypt(AsymmetricKey *key,
+  bool OnionEncryptor::Decrypt(const AsymmetricKey *key,
       const QVector<QByteArray> &ciphertext,
-      QVector<QByteArray> &cleartext, QVector<int> *bad)
+      QVector<QByteArray> &cleartext, QVector<int> *bad) const
   {
     cleartext.clear();
     bool res = true;
@@ -67,7 +66,7 @@ namespace Crypto {
     return res;
   }
 
-  void OnionEncryptor::RandomizeBlocks(QVector<QByteArray> &text)
+  void OnionEncryptor::RandomizeBlocks(QVector<QByteArray> &text) const
   {
     CppRandom rand;
     for(int idx = 0; idx < text.count(); idx++) {
@@ -81,7 +80,7 @@ namespace Crypto {
     }
   }
 
-  bool OnionEncryptor::VerifyOne(AsymmetricKey *key,
+  bool OnionEncryptor::VerifyOne(const AsymmetricKey *key,
       const QVector<QByteArray> &cleartext,
       const QVector<QByteArray> &ciphertext) const
   {
@@ -95,8 +94,7 @@ namespace Crypto {
   }
 
   bool OnionEncryptor::VerifyAll(const QVector<AsymmetricKey *> &keys,
-      const QVector<QVector<QByteArray> > &onion,
-      QBitArray &bad)
+      const QVector<QVector<QByteArray> > &onion, QBitArray &bad) const
   {
     if(keys.count() != onion.count() - 1) {
       qWarning() << "Incorrect key to onion layers ratio: " << keys.count() <<
@@ -121,7 +119,7 @@ namespace Crypto {
 
   int OnionEncryptor::ReorderRandomBits(
       const QVector<QVector<QByteArray> > &in_bits,
-      QVector<QVector<QByteArray> > &out_bits)
+      QVector<QVector<QByteArray> > &out_bits) const
   {
     if(in_bits.isEmpty()) {
       qWarning() << "There should be at least one vector in in_bits";

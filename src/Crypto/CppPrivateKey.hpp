@@ -39,12 +39,12 @@ namespace Crypto {
       CppPrivateKey(const QString &filename);
       CppPrivateKey(const QByteArray &data);
 
-      virtual QByteArray Sign(const QByteArray &data);
-      virtual QByteArray Decrypt(const QByteArray &data);
+      virtual QByteArray Sign(const QByteArray &data) const;
+      virtual QByteArray Decrypt(const QByteArray &data) const;
       inline virtual bool IsPrivateKey() const { return true; }
 
     protected:
-      RSA::PrivateKey *_private_key;
+      const RSA::PrivateKey *_private_key;
   };
 }
 }

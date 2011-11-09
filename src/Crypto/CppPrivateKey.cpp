@@ -23,7 +23,8 @@ namespace Crypto {
   {
     _public_key = _private_key;
     AutoSeededX917RNG<DES_EDE3> rng;
-    _private_key->GenerateRandomWithKeySize(rng, KeySize);
+    RSA::PrivateKey &key = const_cast<RSA::PrivateKey &>(*_private_key);
+    key.GenerateRandomWithKeySize(rng, KeySize);
     _valid = true;
   }
 
@@ -44,13 +45,15 @@ namespace Crypto {
     return new CppPrivateKey(GetByteArray(key));
   }
 
-  QByteArray CppPrivateKey::Sign(const QByteArray &data)
+  QByteArray CppPrivateKey::Sign(const QByteArray &data) const
   {
     if(!_valid) {
+      qCritical() << "Trying to sign with an invalid key";
       return QByteArray();
     }
 
-    RSASS<PKCS1v15, SHA>::Signer signer(*_private_key);
+    const RSA::PrivateKey &private_key = *_private_key;
+    RSASS<PKCS1v15, SHA>::Signer signer(private_key);
     QByteArray sig(signer.MaxSignatureLength(), 0);
     AutoSeededX917RNG<DES_EDE3> rng;
     signer.SignMessage(rng, reinterpret_cast<const byte *>(data.data()),
@@ -58,14 +61,16 @@ namespace Crypto {
     return sig;
   }
 
-  QByteArray CppPrivateKey::Decrypt(const QByteArray &data)
+  QByteArray CppPrivateKey::Decrypt(const QByteArray &data) const
   {
     if(!_valid) {
+      qCritical() << "Trying to decrypt with an invalid key";
       return QByteArray();
     }
 
     AutoSeededX917RNG<DES_EDE3> rng;
-    RSAES<OAEP<SHA> >::Decryptor decryptor(*_private_key);
+    const RSA::PrivateKey &private_key = *_private_key;
+    RSAES<OAEP<SHA> >::Decryptor decryptor(private_key);
 
     int data_start = decryptor.FixedCiphertextLength() + AES::BLOCKSIZE;
     int clength = data.size() - data_start;
@@ -93,11 +98,10 @@ namespace Crypto {
     int size = -1;
 
     try {
-      StringSource(reinterpret_cast<const byte *>(data.data() + data_start), clength, true,
+      StringSource st(reinterpret_cast<const byte *>(data.data() + data_start), clength, true,
           new StreamTransformationFilter(dec, sink));
       size = sink->TotalPutLength();
     } catch (std::exception &e) {
-      qWarning() << "In CppPrivateKey::Decrypt: " << e.what();
       return QByteArray();
     }
 

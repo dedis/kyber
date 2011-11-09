@@ -39,7 +39,7 @@ namespace Crypto {
     return new CppPublicKey(GetByteArray(pkey));
   }
 
-  AsymmetricKey *CppPublicKey::GetPublicKey()
+  AsymmetricKey *CppPublicKey::GetPublicKey() const
   {
     if(!_valid) {
       return 0;
@@ -67,8 +67,11 @@ namespace Crypto {
   {
     ByteQueue queue;
     queue.Put2(reinterpret_cast<const byte *>(data.data()), data.size(), 0, true);
+
+    RSA::PublicKey *key = const_cast<RSA::PublicKey *>(_public_key);
+
     try {
-      _public_key->Load(queue);
+      key->Load(queue);
     } catch (std::exception &e) {
       qWarning() << "In CppPublicKey::InitFromByteArray: " << e.what();
       return false;
@@ -76,7 +79,7 @@ namespace Crypto {
     return true;
   }
 
-  bool CppPublicKey::Save(const QString &filename)
+  bool CppPublicKey::Save(const QString &filename) const
   {
     if(!_valid) {
       return false;
@@ -112,30 +115,32 @@ namespace Crypto {
     return data;
   }
 
-  QByteArray CppPublicKey::Sign(const QByteArray &)
+  QByteArray CppPublicKey::Sign(const QByteArray &) const
   {
     qWarning() << "In CppPublicKey::Sign: Attempting to sign with a public key";
     return QByteArray();
   }
 
-  bool CppPublicKey::Verify(const QByteArray &data, const QByteArray &sig)
+  bool CppPublicKey::Verify(const QByteArray &data, const QByteArray &sig) const
   {
     if(!_valid) {
       return false;
     }
 
-    RSASS<PKCS1v15, SHA>::Verifier verifier(*_public_key);
+    const RSA::PublicKey &public_key = *_public_key;
+    RSASS<PKCS1v15, SHA>::Verifier verifier(public_key);
     return verifier.VerifyMessage(reinterpret_cast<const byte *>(data.data()),
         data.size(), reinterpret_cast<const byte *>(sig.data()), sig.size());
   }
 
-  QByteArray CppPublicKey::Encrypt(const QByteArray &data)
+  QByteArray CppPublicKey::Encrypt(const QByteArray &data) const
   {
     if(!_valid) {
       return QByteArray();
     }
 
-    RSAES<OAEP<SHA> >::Encryptor encryptor(*_public_key);
+    const RSA::PublicKey &public_key = *_public_key;
+    RSAES<OAEP<SHA> >::Encryptor encryptor(public_key);
     int clength = ((data.size() / AES::BLOCKSIZE) + 1) * AES::BLOCKSIZE;
     int data_start = encryptor.FixedCiphertextLength() + AES::BLOCKSIZE;
     QByteArray ciphertext(data_start + clength, 0);
@@ -161,7 +166,7 @@ namespace Crypto {
     return ciphertext;
   }
 
-  QByteArray CppPublicKey::Decrypt(const QByteArray &)
+  QByteArray CppPublicKey::Decrypt(const QByteArray &) const
   {
     qWarning() << "In CppPublicKey::Decrypt: Attempting to decrypt with a public key";
     return QByteArray();
