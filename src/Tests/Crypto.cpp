@@ -6,7 +6,7 @@ namespace Tests {
     using namespace Dissent::Crypto;
   }
 
-  TEST(Crypto, CppAsymmetricKey)
+  void AssymetricKeyTest(Library *lib)
   {
     CryptoPP::AutoSeededX917RNG<CryptoPP::DES_EDE3> rng;
     QByteArray data(1500, 0);
@@ -14,10 +14,10 @@ namespace Tests {
     QByteArray other(1500, 0);
     rng.GenerateBlock(reinterpret_cast<byte *>(other.data()), other.size());
 
-    AsymmetricKey *key0 = new CppPrivateKey();
+    AsymmetricKey *key0 = lib->CreatePrivateKey();
     EXPECT_TRUE(key0->IsValid());
     key0->Save("private_key");
-    AsymmetricKey *key1 = new CppPrivateKey(QString("private_key"));
+    AsymmetricKey *key1 = lib->LoadPrivateKeyFromFile(QString("private_key"));
     EXPECT_TRUE(key1->IsValid());
 
     QByteArray out0_0 = key0->Encrypt(data);
@@ -44,7 +44,7 @@ namespace Tests {
     AsymmetricKey *pu_key0 = key0->GetPublicKey();
     EXPECT_TRUE(pu_key0->IsValid());
     pu_key0->Save("public_key");
-    AsymmetricKey *pu_key1 = new CppPublicKey(QString("public_key"));
+    AsymmetricKey *pu_key1 = lib->LoadPublicKeyFromFile(QString("public_key"));
     EXPECT_TRUE(pu_key1->IsValid());
 
     EXPECT_TRUE(pu_key0->Sign(data).isEmpty());
@@ -71,7 +71,7 @@ namespace Tests {
 
     delete key1;
     delete pu_key1;
-    key1 = new CppPrivateKey();
+    key1 = lib->CreatePrivateKey();
     pu_key1 = key1->GetPublicKey();
     EXPECT_TRUE(key1->IsValid());
     EXPECT_TRUE(pu_key1->IsValid());
@@ -102,7 +102,7 @@ namespace Tests {
     delete pu_key1;
   }
 
-  TEST(Crypto, CppAsymmetricKeyFail)
+  void AsymmetricKeyFail(Library *lib)
   {
     CryptoPP::AutoSeededX917RNG<CryptoPP::DES_EDE3> rng;
     QByteArray data(1500, 0);
@@ -111,8 +111,8 @@ namespace Tests {
     rng.GenerateBlock(reinterpret_cast<byte *>(small_data.data()), small_data.size());
     QByteArray empty;
 
-    AsymmetricKey *key0 = new CppPrivateKey();
-    AsymmetricKey *key1 = new CppPrivateKey();
+    AsymmetricKey *key0 = lib->CreatePrivateKey();
+    AsymmetricKey *key1 = lib->CreatePrivateKey();
     EXPECT_TRUE(key0->IsValid());
     EXPECT_TRUE(key1->IsValid());
 
@@ -142,7 +142,7 @@ namespace Tests {
 
     delete key1;
 
-    key1 = new CppPrivateKey(data);
+    key1 = lib->LoadPrivateKeyFromByteArray(data);
     EXPECT_TRUE(!key1->IsValid());
     EXPECT_TRUE(key1->Encrypt(data).isEmpty());
     EXPECT_TRUE(key1->Decrypt(key1->Encrypt(data)).isEmpty());
@@ -152,7 +152,7 @@ namespace Tests {
 
     QString filename = "test_private_key_load";
     EXPECT_FALSE(QFile(filename).exists());
-    key1 = new CppPrivateKey(filename);
+    key1 = lib->LoadPrivateKeyFromFile(filename);
     EXPECT_TRUE(!key1->IsValid());
     EXPECT_TRUE(key1->Encrypt(data).isEmpty());
     EXPECT_TRUE(key1->Decrypt(key1->Encrypt(data)).isEmpty());
@@ -160,7 +160,7 @@ namespace Tests {
     EXPECT_TRUE(key1->GetPublicKey() == 0);
     delete key1;
 
-    key1 = new CppPublicKey(data);
+    key1 = lib->LoadPublicKeyFromByteArray(data);
     EXPECT_TRUE(!key1->IsValid());
     EXPECT_TRUE(key1->Encrypt(data).isEmpty());
     EXPECT_TRUE(key1->Decrypt(key1->Encrypt(data)).isEmpty());
@@ -168,7 +168,7 @@ namespace Tests {
     EXPECT_TRUE(key1->GetPublicKey() == 0);
     delete key1;
 
-    key1 = new CppPublicKey(filename);
+    key1 = lib->LoadPublicKeyFromFile(filename);
     EXPECT_TRUE(!key1->IsValid());
     EXPECT_TRUE(key1->Encrypt(data).isEmpty());
     EXPECT_TRUE(key1->Decrypt(key1->Encrypt(data)).isEmpty());
@@ -179,18 +179,18 @@ namespace Tests {
     delete key1;
   }
 
-  TEST(Crypto, KeyGenerationFromId)
+  void KeyGenerationFromIdTest(Library *lib)
   {
     Dissent::Connections::Id id0;
     Dissent::Connections::Id id1;
     EXPECT_NE(id0, id1);
 
-    AsymmetricKey *pr_key0 = CppPrivateKey::GenerateKey(id0.GetByteArray());
-    AsymmetricKey *pu_key0 = CppPublicKey::GenerateKey(id0.GetByteArray());
-    AsymmetricKey *pr_key1 = CppPrivateKey::GenerateKey(id1.GetByteArray());
-    AsymmetricKey *pu_key1 = CppPublicKey::GenerateKey(id1.GetByteArray());
-    AsymmetricKey *pr_key0_0 = CppPrivateKey::GenerateKey(id0.GetByteArray());
-    AsymmetricKey *pr_key1_0 = CppPrivateKey::GenerateKey(id1.GetByteArray());
+    AsymmetricKey *pr_key0 = lib->GeneratePrivateKey(id0.GetByteArray());
+    AsymmetricKey *pu_key0 = lib->GeneratePublicKey(id0.GetByteArray());
+    AsymmetricKey *pr_key1 = lib->GeneratePrivateKey(id1.GetByteArray());
+    AsymmetricKey *pu_key1 = lib->GeneratePublicKey(id1.GetByteArray());
+    AsymmetricKey *pr_key0_0 = lib->GeneratePrivateKey(id0.GetByteArray());
+    AsymmetricKey *pr_key1_0 = lib->GeneratePrivateKey(id1.GetByteArray());
 
     EXPECT_TRUE(pr_key0->VerifyKey(*pu_key0));
     EXPECT_FALSE(pr_key0->VerifyKey(*pu_key1));
@@ -199,6 +199,24 @@ namespace Tests {
     EXPECT_EQ(*pr_key0, *pr_key0_0);
     EXPECT_EQ(*pr_key1, *pr_key1_0);
     EXPECT_FALSE(*pr_key0 == *pr_key1);
+  }
+
+  TEST(Crypto, CppAsymmetricKey)
+  {
+    QScopedPointer<Library> lib(new CppLibrary());
+    AssymetricKeyTest(lib.data());
+  }
+
+  TEST(Crypto, CppAsymmetricKeyFail)
+  {
+    QScopedPointer<Library> lib(new CppLibrary());
+    AsymmetricKeyFail(lib.data());
+  }
+
+  TEST(Crypto, KeyGenerationFromId)
+  {
+    QScopedPointer<Library> lib(new CppLibrary());
+    KeyGenerationFromIdTest(lib.data());
   }
 }
 }

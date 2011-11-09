@@ -1,7 +1,6 @@
 #include "../Utils/Serialization.hpp"
 #include "ShuffleRound.hpp"
 #include "ShuffleBlamer.hpp"
-#include "../Crypto/OnionEncryptor.hpp"
 
 namespace Dissent {
 namespace Anonymity {
@@ -37,8 +36,9 @@ namespace Anonymity {
     _received_blame_verification(_group.Count(), false)
   {
     if(_shuffler) {
-      _inner_key.reset(new CppPrivateKey());
-      _outer_key.reset(new CppPrivateKey());
+      Library *lib = CryptoFactory::GetInstance().GetLibrary();
+      _inner_key.reset(lib->CreatePrivateKey());
+      _outer_key.reset(lib->CreatePrivateKey());
     }
 
     if(data == DefaultData) {
@@ -152,8 +152,10 @@ namespace Anonymity {
 
     QByteArray inner_key, outer_key;
     stream >> inner_key >> outer_key;
-    _public_inner_keys[kidx] = new CppPublicKey(inner_key);
-    _public_outer_keys[kidx] = new CppPublicKey(outer_key);
+
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    _public_inner_keys[kidx] = lib->LoadPublicKeyFromByteArray(inner_key);
+    _public_outer_keys[kidx] = lib->LoadPublicKeyFromByteArray(outer_key);
 
     if(!_public_inner_keys[kidx]->IsValid()) {
       throw QRunTimeError("Received an invalid outer inner key");
@@ -300,7 +302,9 @@ namespace Anonymity {
     QByteArray key;
     stream >> key;
     int kidx = CalculateKidx(sidx);
-    _private_inner_keys[sidx] = new CppPrivateKey(key);
+
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    _private_inner_keys[sidx] = lib->LoadPrivateKeyFromByteArray(key);
 
     if(!_private_inner_keys[sidx]->VerifyKey(*_public_inner_keys[kidx])) {
       throw QRunTimeError("Received invalid inner key");
@@ -323,30 +327,31 @@ namespace Anonymity {
       throw QRunTimeError("Received multiple blame messages from the same identity");
     }
 
-    CppHash hashalgo;
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());;
 
     int sidx = _shufflers.GetIndex(id);
     QByteArray key;
     if(sidx >= 0) {
       stream >> key;
-      hashalgo.Update(key);
+      hashalgo->Update(key);
     }
 
     QByteArray log, sig;
     stream >> log >> sig;
 
-    hashalgo.Update(log);
+    hashalgo->Update(log);
 
     QByteArray sigmsg;
     QDataStream sigstream(&sigmsg, QIODevice::WriteOnly);
-    sigstream << BlameData << _round_id.GetByteArray() << hashalgo.ComputeHash();
+    sigstream << BlameData << _round_id.GetByteArray() << hashalgo->ComputeHash();
 
     if(!_group.GetKey(gidx)->Verify(sigmsg, sig)) {
       throw QRunTimeError("Receiving invalid blame data");
     }
 
     if(sidx >= 0) {
-      _private_outer_keys[sidx] = new CppPrivateKey(key);
+      _private_outer_keys[sidx] = lib->LoadPrivateKeyFromByteArray(key);
       int kidx = CalculateKidx(sidx);
       if(!_private_outer_keys[sidx]->VerifyKey(*_public_outer_keys[kidx])) {
         throw QRunTimeError("Invalid outer key");
@@ -514,10 +519,9 @@ namespace Anonymity {
   {
     _state = DataSubmission;
 
-    OnionEncryptor::GetInstance().Encrypt(_public_inner_keys, _data,
-        _inner_ciphertext, 0);
-    OnionEncryptor::GetInstance().Encrypt(_public_outer_keys, _inner_ciphertext,
-        _outer_ciphertext, 0);
+    OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
+    oe->Encrypt(_public_inner_keys, _data, _inner_ciphertext, 0);
+    oe->Encrypt(_public_outer_keys, _inner_ciphertext, _outer_ciphertext, 0);
 
 
     QByteArray msg;
@@ -554,9 +558,8 @@ namespace Anonymity {
     }
 
     QVector<int> bad;
-    if(!OnionEncryptor::GetInstance().Decrypt(_outer_key.data(), _shuffle_ciphertext,
-          _shuffle_cleartext, &bad))
-    {
+    OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
+    if(!oe->Decrypt(_outer_key.data(), _shuffle_ciphertext, _shuffle_cleartext, &bad)) {
       qWarning() << _shufflers.GetIndex(_local_id) << _group.GetIndex(_local_id)
         << _local_id.ToString() << ": failed to decrypt layer due to block at "
         "indexes" << bad;
@@ -564,7 +567,7 @@ namespace Anonymity {
       return;
     }
 
-    OnionEncryptor::GetInstance().RandomizeBlocks(_shuffle_cleartext);
+    oe->RandomizeBlocks(_shuffle_cleartext);
 
     const Id &next = _shufflers.Next(_local_id);
     MessageType mtype = (next == Id::Zero) ? EncryptedData : ShuffleData;
@@ -597,13 +600,15 @@ namespace Anonymity {
     out_stream << mtype << _round_id.GetByteArray();
 
     if(found) {
-      CppHash hash;
+      Library *lib = CryptoFactory::GetInstance().GetLibrary();
+      QScopedPointer<Hash> hash(lib->GetHashAlgorithm());
+
       for(int idx = 0; idx < _public_inner_keys.count(); idx++) {
-        hash.Update(_public_inner_keys[idx]->GetByteArray());
-        hash.Update(_public_outer_keys[idx]->GetByteArray());
-        hash.Update(_encrypted_data[idx]);
+        hash->Update(_public_inner_keys[idx]->GetByteArray());
+        hash->Update(_public_outer_keys[idx]->GetByteArray());
+        hash->Update(_encrypted_data[idx]);
       }
-      _broadcast_hash = hash.ComputeHash();
+      _broadcast_hash = hash->ComputeHash();
       out_stream << _broadcast_hash;
     }
 
@@ -640,7 +645,9 @@ namespace Anonymity {
       QVector<QByteArray> tmp;
       QVector<int> bad;
 
-      if(!OnionEncryptor::GetInstance().Decrypt(key, cleartexts, tmp, &bad)) {
+      OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
+
+      if(!oe->Decrypt(key, cleartexts, tmp, &bad)) {
         qWarning() << _group.GetIndex(_local_id) << _local_id.ToString() <<
           ": failed to decrypt final layers due to block at index" << bad;
         _state = Finished;
@@ -686,22 +693,23 @@ namespace Anonymity {
     QDataStream stream(&msg, QIODevice::WriteOnly);
     stream << BlameData << _round_id.GetByteArray();
 
-    CppHash hashalgo;
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());;
 
     if(_shuffler) {
       QByteArray key = _outer_key->GetByteArray();
       stream << key;
 
-      hashalgo.Update(key);
+      hashalgo->Update(key);
     }
 
     stream << log;
     QByteArray sigmsg;
     QDataStream sigstream(&sigmsg, QIODevice::WriteOnly);
 
-    hashalgo.Update(log);
+    hashalgo->Update(log);
 
-    sigstream << BlameData << _round_id.GetByteArray() << hashalgo.ComputeHash();
+    sigstream << BlameData << _round_id.GetByteArray() << hashalgo->ComputeHash();
     QByteArray signature = _signing_key->Sign(sigmsg);
     stream << signature;
     

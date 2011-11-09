@@ -5,7 +5,7 @@
 
 using Dissent::Anonymity::Log;
 using Dissent::Connections::Id;
-using Dissent::Crypto::CppRandom;
+using Dissent::Utils::Random;
 
 namespace Dissent {
 namespace Tests {
@@ -16,12 +16,13 @@ namespace Tests {
 
     Id id;
     QByteArray data(100, 0);
-    CppRandom rand;
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
 
     Log log;
 
     for(int idx = 0; idx < 100; idx++) {
-      rand.GenerateBlock(data);
+      rand->GenerateBlock(data);
       msgs.append(data);
       id = Id();
       ids.append(id);

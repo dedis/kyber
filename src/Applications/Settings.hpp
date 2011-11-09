@@ -77,6 +77,11 @@ namespace Applications {
        */
       bool Console;
 
+      /**
+       * Enable multhreaded operations
+       */
+      bool Multithreading;
+
     private:
       void ParseUrlList(const QString &name, const QVariant &values, QList<QUrl> &list);
       void ParseUrl(const QString &name, const QVariant &value, QList<QUrl> &list);

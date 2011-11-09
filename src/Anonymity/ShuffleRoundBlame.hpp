@@ -7,7 +7,7 @@
 #include <QDataStream>
 #include <QMetaEnum>
 
-#include "../Crypto/CppPrivateKey.hpp"
+#include "../Crypto/CryptoFactory.hpp"
 
 namespace Dissent {
 namespace Anonymity {

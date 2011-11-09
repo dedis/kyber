@@ -51,7 +51,8 @@ namespace Tests {
           _group.GetIndex(_local_id) << _local_id.ToString() <<
           ": received sufficient go messages, broadcasting private key.";
 
-        AsymmetricKey *tmp = new CppPrivateKey();
+        Library *lib = CryptoFactory::GetInstance().GetLibrary();
+        AsymmetricKey *tmp = lib->CreatePrivateKey();
 
         QByteArray msg;
         QDataStream stream(&msg, QIODevice::WriteOnly);
@@ -60,7 +61,7 @@ namespace Tests {
         Broadcast(msg);
         int idx = _shufflers.GetIndex(_local_id);
         delete _private_inner_keys[idx];
-        _private_inner_keys[idx] = new CppPrivateKey(_inner_key->GetByteArray());
+        _private_inner_keys[idx] = lib->LoadPrivateKeyFromByteArray(_inner_key->GetByteArray());
       }
   };
 
@@ -126,7 +127,8 @@ namespace Tests {
         _shuffle_ciphertext[x] = _shuffle_ciphertext[y];
   
         QVector<int> bad;
-        if(!OnionEncryptor::GetInstance().Decrypt(_outer_key.data(), _shuffle_ciphertext,
+        OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
+        if(!oe->Decrypt(_outer_key.data(), _shuffle_ciphertext,
               _shuffle_cleartext, &bad))
         {
           qWarning() << _group.GetIndex(_local_id) << _local_id.ToString() <<
@@ -135,7 +137,7 @@ namespace Tests {
           return; 
         } 
         
-        OnionEncryptor::GetInstance().RandomizeBlocks(_shuffle_cleartext);
+        oe->RandomizeBlocks(_shuffle_cleartext);
         
         const Id &next = _shufflers.Next(_local_id);
         MessageType mtype = (next == Id::Zero) ? EncryptedData : ShuffleData;
@@ -197,8 +199,9 @@ namespace Tests {
 
         QByteArray data = ShuffleRound::DefaultData;
         QByteArray inner_ct, outer_ct;
-        OnionEncryptor::GetInstance().Encrypt(_public_inner_keys, data, inner_ct, 0);
-        OnionEncryptor::GetInstance().Encrypt(outer_keys, inner_ct, outer_ct, 0);
+        OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
+        oe->Encrypt(_public_inner_keys, data, inner_ct, 0);
+        oe->Encrypt(outer_keys, inner_ct, outer_ct, 0);
 
         int x = Random::GetInstance().GetInt(0, _shuffle_ciphertext.count());
         _shuffle_ciphertext[x] = outer_ct;
@@ -318,19 +321,19 @@ namespace Tests {
       {
         _state = DataSubmission;
 
-        OnionEncryptor::GetInstance().Encrypt(_public_inner_keys, _data,
+        OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
+        oe->Encrypt(_public_inner_keys, _data,
             _inner_ciphertext, 0);
 
         int count = Random::GetInstance().GetInt(1, _shufflers.Count());
 
         QVector<AsymmetricKey *> tmp_keys(count, _public_outer_keys[count - 1]);
         QByteArray outer_tmp;
-        OnionEncryptor::GetInstance().Encrypt(tmp_keys, _inner_ciphertext, outer_tmp, 0);
+        oe->Encrypt(tmp_keys, _inner_ciphertext, outer_tmp, 0);
 
         QVector<AsymmetricKey *> public_outer_keys(_public_outer_keys);
         public_outer_keys.remove(0, count);
-        OnionEncryptor::GetInstance().Encrypt(public_outer_keys, outer_tmp,
-            _outer_ciphertext, 0);
+        oe->Encrypt(public_outer_keys, outer_tmp, _outer_ciphertext, 0);
 
 
         QByteArray msg;

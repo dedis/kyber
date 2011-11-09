@@ -1,6 +1,6 @@
 #include "ShuffleRoundBlame.hpp"
 
-#include "../Crypto/OnionEncryptor.hpp"
+#include "../Crypto/CryptoFactory.hpp"
 
 namespace Dissent {
 namespace Anonymity {
@@ -14,7 +14,8 @@ namespace Anonymity {
         _empty_rpc, QSharedPointer<AsymmetricKey>())
   {
     if(outer_key) {
-      _outer_key.reset(new CppPrivateKey(outer_key->GetByteArray()));
+      Library *lib = CryptoFactory::GetInstance().GetLibrary();
+      _outer_key.reset(lib->LoadPrivateKeyFromByteArray(outer_key->GetByteArray()));
     }
   }
 
@@ -50,8 +51,9 @@ namespace Anonymity {
   {
     _state = ShuffleRound::Shuffling;
 
-    OnionEncryptor::GetInstance().Decrypt(_outer_key.data(),
-        _shuffle_ciphertext, _shuffle_cleartext, &_bad_members);
+    OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
+    oe->Decrypt(_outer_key.data(), _shuffle_ciphertext, _shuffle_cleartext,
+        &_bad_members);
 
     _state = ShuffleRound::WaitingForEncryptedInnerData;
   }

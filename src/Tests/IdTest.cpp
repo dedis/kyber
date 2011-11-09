@@ -7,12 +7,14 @@ using Dissent::Connections::Id;
 namespace Dissent {
 namespace Tests {
   TEST(Id, Basic) {
-    Dissent::Crypto::CppHash sha1;
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Crypto::Hash> hashalgo(lib->GetHashAlgorithm());
+
     QByteArray zero("hello");
-    QByteArray hash0 = sha1.ComputeHash(zero);
+    QByteArray hash0 = hashalgo->ComputeHash(zero);
 
     QByteArray one("world");
-    QByteArray hash1 = sha1.ComputeHash(one);
+    QByteArray hash1 = hashalgo->ComputeHash(one);
 
     EXPECT_NE(hash0, hash1);
     EXPECT_NE(zero, hash0);

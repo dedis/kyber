@@ -1,7 +1,7 @@
 #include <QDebug>
 
 #include "ShuffleBlamer.hpp"
-#include "../Crypto/OnionEncryptor.hpp"
+#include "../Crypto/CryptoFactory.hpp"
 
 namespace Dissent {
 namespace Anonymity {
@@ -218,10 +218,11 @@ namespace Anonymity {
 
     QVector<QByteArray> indata = _rounds[_group.GetIndex(_shufflers.GetId(0))]->GetShuffleCipherText();
 
+    OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
     for(int idx = 0; idx < _private_keys.count(); idx++) {
       QVector<QByteArray> outdata;
       QVector<int> bad;
-      OnionEncryptor::GetInstance().Decrypt(_private_keys[idx], indata, outdata, &bad);
+      oe->Decrypt(_private_keys[idx], indata, outdata, &bad);
       indata = outdata;
       if(bad.count() == 0) {
         continue;
@@ -316,9 +317,10 @@ namespace Anonymity {
     QVector<QByteArray> cleartext = _rounds[last]->GetShuffleClearText();
     QVector<QByteArray> calc_cleartext = ciphertext;
 
+    OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
     foreach(AsymmetricKey *key, _private_keys) {
       QVector<QByteArray> tmp;
-      OnionEncryptor::GetInstance().Decrypt(key, calc_cleartext, tmp, 0);
+      oe->Decrypt(key, calc_cleartext, tmp, 0);
       calc_cleartext = tmp;
     }
 

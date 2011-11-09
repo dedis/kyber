@@ -21,10 +21,13 @@
 
 #include "Crypto/AsymmetricKey.hpp"
 #include "Crypto/CppHash.hpp"
+#include "Crypto/CppLibrary.hpp"
 #include "Crypto/CppPrivateKey.hpp"
 #include "Crypto/CppPublicKey.hpp"
 #include "Crypto/CppRandom.hpp"
+#include "Crypto/CryptoFactory.hpp"
 #include "Crypto/Hash.hpp"
+#include "Crypto/Library.hpp"
 #include "Crypto/OnionEncryptor.hpp"
 #include "Crypto/ThreadedOnionEncryptor.hpp"
 

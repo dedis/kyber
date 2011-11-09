@@ -18,9 +18,11 @@ namespace Tests {
 
     QList<QSharedPointer<Node> > nodes;
 
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+
     for(int idx = 0; idx < count; idx++) {
       nodes.append(QSharedPointer<Node>(new Node(local, remote, count, session_type)));
-      AsymmetricKey *key = CppPrivateKey::GenerateKey(nodes[idx]->bg.GetId().GetByteArray());
+      AsymmetricKey *key = lib->GeneratePrivateKey(nodes[idx]->bg.GetId().GetByteArray());
       nodes[idx]->key = QSharedPointer<AsymmetricKey>(key);
       nodes[idx]->sink = QSharedPointer<ISink>(new MockSinkWithSignal());
       local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
@@ -70,9 +72,11 @@ namespace Tests {
 
   void SendTest(const QList<QSharedPointer<Node> > &nodes)
   {
-    Dissent::Crypto::CppRandom rand;
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
+
     QByteArray msg(512, 0);
-    rand.GenerateBlock(msg);
+    rand->GenerateBlock(msg);
     nodes[0]->session->Send(msg);
 
     SignalCounter sc;
@@ -146,10 +150,12 @@ namespace Tests {
 
     QList<QSharedPointer<Node> > nodes;
 
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+
     for(int idx = 0; idx < count - 1; idx++) {
       local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
       nodes.append(QSharedPointer<Node>(new Node(local, remote, count, session_type)));
-      AsymmetricKey *key = CppPrivateKey::GenerateKey(nodes[idx]->bg.GetId().GetByteArray());
+      AsymmetricKey *key = lib->GeneratePrivateKey(nodes[idx]->bg.GetId().GetByteArray());
       nodes[idx]->key = QSharedPointer<AsymmetricKey>(key);
       nodes[idx]->sink = QSharedPointer<ISink>(new MockSinkWithSignal());
     }
@@ -176,7 +182,7 @@ namespace Tests {
 
     local[0] = base;
     nodes.append(QSharedPointer<Node>(new Node(local, remote, count, session_type)));
-    AsymmetricKey *key = CppPrivateKey::GenerateKey(nodes.last()->bg.GetId().GetByteArray());
+    AsymmetricKey *key = lib->GeneratePrivateKey(nodes.last()->bg.GetId().GetByteArray());
     nodes.last()->key = QSharedPointer<AsymmetricKey>(key);
     nodes.last()->sink = QSharedPointer<ISink>(new MockSinkWithSignal());
     QObject::connect(nodes.last().data(), SIGNAL(Ready()), &sc, SLOT(Counter()));

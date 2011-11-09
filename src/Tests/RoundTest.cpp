@@ -88,9 +88,11 @@ namespace Tests {
 
     CreateSessions(nodes, *group, leader_id, session_id, callback, cgg);
 
-    Dissent::Crypto::CppRandom rand;
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
+
     QByteArray msg(512, 0);
-    rand.GenerateBlock(msg);
+    rand->GenerateBlock(msg);
     nodes[sender]->session->Send(msg);
 
     for(int idx = 0; idx < count; idx++) {
@@ -134,9 +136,11 @@ namespace Tests {
 
     CreateSessions(nodes, *group, leader_id, session_id, callback, cgg);
 
-    Dissent::Crypto::CppRandom rand;
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
+
     QByteArray msg(512, 0);
-    rand.GenerateBlock(msg);
+    rand->GenerateBlock(msg);
     nodes[sender0]->session->Send(msg);
 
     for(int idx = 0; idx < count; idx++) {
@@ -154,7 +158,7 @@ namespace Tests {
       EXPECT_EQ(msg, nodes[idx]->sink.GetLastData());
     }
 
-    rand.GenerateBlock(msg);
+    rand->GenerateBlock(msg);
     nodes[sender1]->session->Send(msg);
 
     TestNode::calledback = 0;
@@ -215,9 +219,11 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    Dissent::Crypto::CppRandom rand;
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
+
     QByteArray msg(512, 0);
-    rand.GenerateBlock(msg);
+    rand->GenerateBlock(msg);
     nodes[(leader + disconnecter) % count]->session->Send(msg);
 
     TestNode::calledback = 0;
@@ -270,9 +276,11 @@ namespace Tests {
 
     CreateSessions(nodes, *group, leader_id, session_id, callback, cgg);
 
-    Dissent::Crypto::CppRandom rand;
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
+
     QByteArray msg(512, 0);
-    rand.GenerateBlock(msg);
+    rand->GenerateBlock(msg);
     nodes[sender]->session->Send(msg);
 
     for(int idx = 0; idx < count; idx++) {
@@ -365,9 +373,11 @@ namespace Tests {
 
     CreateSession(nodes[badguy], *group, leader_id, session_id, bad_callback, cgg);
 
-    Dissent::Crypto::CppRandom rand;
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
+
     QByteArray msg(512, 0);
-    rand.GenerateBlock(msg);
+    rand->GenerateBlock(msg);
     nodes[sender]->session->Send(msg);
 
     for(int idx = 0; idx < count; idx++) {

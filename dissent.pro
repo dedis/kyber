@@ -32,10 +32,13 @@ HEADERS += src/Dissent.hpp \
            src/Applications/Settings.hpp \
            src/Crypto/AsymmetricKey.hpp \
            src/Crypto/CppHash.hpp \
+           src/Crypto/CppLibrary.hpp \
            src/Crypto/CppPrivateKey.hpp \
            src/Crypto/CppPublicKey.hpp \
            src/Crypto/CppRandom.hpp \
+           src/Crypto/CryptoFactory.hpp \
            src/Crypto/Hash.hpp \
+           src/Crypto/Library.hpp \
            src/Crypto/OnionEncryptor.hpp \
            src/Crypto/ThreadedOnionEncryptor.hpp \
            src/Connections/Connection.hpp \
@@ -94,6 +97,7 @@ SOURCES += src/Anonymity/Group.cpp \
            src/Crypto/CppPrivateKey.cpp \
            src/Crypto/CppPublicKey.cpp \
            src/Crypto/CppRandom.cpp \
+           src/Crypto/CryptoFactory.cpp \
            src/Crypto/OnionEncryptor.cpp \
            src/Crypto/ThreadedOnionEncryptor.cpp \
            src/Connections/Connection.cpp \

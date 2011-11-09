@@ -1,6 +1,6 @@
+#include "../Crypto/CryptoFactory.hpp"
 #include "Node.hpp"
 #include "SessionFactory.hpp"
-#include "../Crypto/CppPrivateKey.hpp"
 
 namespace Dissent {
 namespace Applications {
@@ -58,7 +58,9 @@ namespace Applications {
 
     qSort(ids);
     foreach(const Id &id, ids) {
-      public_keys.append(QSharedPointer<AsymmetricKey>(CppPublicKey::GenerateKey(id.GetByteArray())));
+      Library *lib = CryptoFactory::GetInstance().GetLibrary();
+      AsymmetricKey *key = lib->GeneratePublicKey(id.GetByteArray());
+      public_keys.append(QSharedPointer<AsymmetricKey>(key));
     }
 
     return Group(ids, public_keys);

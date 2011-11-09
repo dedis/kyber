@@ -18,9 +18,11 @@ namespace Tests {
 
     QList<QSharedPointer<Node> > nodes;
 
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+
     for(int idx = 0; idx < count; idx++) {
       nodes.append(QSharedPointer<Node>(new Node(local, remote, count, session_type)));
-      AsymmetricKey *key = CppPrivateKey::GenerateKey(nodes[idx]->bg.GetId().GetByteArray());
+      AsymmetricKey *key = lib->GeneratePrivateKey(nodes[idx]->bg.GetId().GetByteArray());
       nodes[idx]->key = QSharedPointer<AsymmetricKey>(key);
       nodes[idx]->sink = QSharedPointer<ISink>(new MockSinkWithSignal());
       local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
@@ -59,9 +61,11 @@ namespace Tests {
 
   void LiveSendTest(const QList<QSharedPointer<Node> > &nodes)
   {
-    Dissent::Crypto::CppRandom rand;
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
+
     QByteArray msg(512, 0);
-    rand.GenerateBlock(msg);
+    rand->GenerateBlock(msg);
     nodes[0]->session->Send(msg);
 
     SignalCounter sc(nodes.count());

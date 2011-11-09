@@ -7,7 +7,6 @@
 #include <QVector>
 
 #include "AsymmetricKey.hpp"
-#include "CppRandom.hpp"
 
 namespace Dissent {
 namespace Crypto {
@@ -16,11 +15,6 @@ namespace Crypto {
    */
   class OnionEncryptor {
     public:
-      /**
-       * Access the OnionEncryptor singleton
-       */
-      static OnionEncryptor& GetInstance();
-
       /**
        * Encrypts a cleartext with each key in order, returns -1 if successful
        * or the index of the faulty key
@@ -90,17 +84,6 @@ namespace Crypto {
        * Destructor
        */
       virtual ~OnionEncryptor() {}
-
-    protected:
-      /**
-       * Only inheritance is supported, this is a singleton object
-       */
-      OnionEncryptor() {}
-
-      /**
-       * No copying of singleton objects
-       */
-      Q_DISABLE_COPY(OnionEncryptor)
   };
 }
 }

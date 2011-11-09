@@ -6,8 +6,6 @@
 #include <QVector>
 
 #include "AsymmetricKey.hpp"
-#include "CppRandom.hpp"
-
 #include "OnionEncryptor.hpp"
 
 namespace Dissent {
@@ -17,11 +15,6 @@ namespace Crypto {
    */
   class ThreadedOnionEncryptor : public QObject, public OnionEncryptor {
     public:
-      /**
-       * Access the OnionEncryptor singleton
-       */
-      static ThreadedOnionEncryptor& GetInstance();
-
       /**
        * Using the key it removes a layer of encryption from ciphertexts,
        * returns true if everything parses fine
@@ -38,17 +31,6 @@ namespace Crypto {
        * Destructor
        */
       virtual ~ThreadedOnionEncryptor() {}
-
-    protected:
-      /**
-       * Only inheritance is supported, this is a singleton object
-       */
-      ThreadedOnionEncryptor() {}
-
-      /**
-       * No copying of singleton objects
-       */
-      Q_DISABLE_COPY(ThreadedOnionEncryptor)
   };
 }
 }

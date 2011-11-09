@@ -31,11 +31,17 @@ int main(int argc, char **argv)
     remote.append(AddressFactory::GetInstance().CreateAddress(url));
   }
 
+  if(settings.Multithreading) {
+    CryptoFactory::GetInstance().SetThreading(CryptoFactory::MultiThreaded);
+  }
+
+  Library *lib = CryptoFactory::GetInstance().GetLibrary();
+
   QList<QSharedPointer<Node> > nodes;
 
   nodes.append(QSharedPointer<Node>(new Node(local, remote, settings.GroupSize, settings.SessionType)));
   if(settings.DemoMode) {
-    AsymmetricKey *key = CppPrivateKey::GenerateKey(nodes[0]->bg.GetId().GetByteArray());
+    AsymmetricKey *key = lib->GeneratePrivateKey(nodes[0]->bg.GetId().GetByteArray());
     nodes[0]->key = QSharedPointer<AsymmetricKey>(key);
   }
 
@@ -43,7 +49,7 @@ int main(int argc, char **argv)
     local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
     nodes.append(QSharedPointer<Node>(new Node(local, remote, settings.GroupSize, settings.SessionType)));
     if(settings.DemoMode) {
-      AsymmetricKey *key = CppPrivateKey::GenerateKey(nodes[idx]->bg.GetId().GetByteArray());
+      AsymmetricKey *key = lib->GeneratePrivateKey(nodes[idx]->bg.GetId().GetByteArray());
       nodes[idx]->key = QSharedPointer<AsymmetricKey>(key);
     }
     nodes[idx]->sink = QSharedPointer<ISink>(new DummySink());

@@ -48,7 +48,8 @@ namespace Applications {
 
   void SessionFactory::CreateShuffleRoundSession(Node *node)
   {
-    AsymmetricKey *key= CppPrivateKey::GenerateKey(node->bg.GetId().GetByteArray());
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    AsymmetricKey *key= lib->GeneratePrivateKey(node->bg.GetId().GetByteArray());
     node->key = QSharedPointer<AsymmetricKey>(key);
 
     Group group = node->GenerateGroup();
@@ -60,7 +61,8 @@ namespace Applications {
 
   void SessionFactory::CreateFastShuffleRoundSession(Node *node)
   {
-    AsymmetricKey *key= CppPrivateKey::GenerateKey(node->bg.GetId().GetByteArray());
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    AsymmetricKey *key= lib->GeneratePrivateKey(node->bg.GetId().GetByteArray());
     node->key = QSharedPointer<AsymmetricKey>(key);
 
     Group group = node->GenerateGroup();

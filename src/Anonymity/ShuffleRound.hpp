@@ -9,9 +9,7 @@
 
 #include "Log.hpp"
 #include "Round.hpp"
-#include "../Crypto/CppPrivateKey.hpp"
-#include "../Crypto/CppHash.hpp"
-#include "../Crypto/CppRandom.hpp"
+#include "../Crypto/CryptoFactory.hpp"
 #include "../Utils/QRunTimeError.hpp"
 
 namespace Dissent {

@@ -1,13 +1,8 @@
 #include "OnionEncryptor.hpp"
+#include "CryptoFactory.hpp"
 
 namespace Dissent {
 namespace Crypto {
-  OnionEncryptor &OnionEncryptor::GetInstance()
-  {
-    static OnionEncryptor onion_encryptor;
-    return onion_encryptor;
-  }
-
   int OnionEncryptor::Encrypt(const QVector<AsymmetricKey *> &keys,
       const QByteArray &cleartext, QByteArray &ciphertext,
       QVector<QByteArray> *intermediate) const
@@ -68,9 +63,11 @@ namespace Crypto {
 
   void OnionEncryptor::RandomizeBlocks(QVector<QByteArray> &text) const
   {
-    CppRandom rand;
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
+
     for(int idx = 0; idx < text.count(); idx++) {
-      int jdx = rand.GetInt(0, text.count());
+      int jdx = rand->GetInt(0, text.count());
       if(jdx == idx) {
         continue;
       }

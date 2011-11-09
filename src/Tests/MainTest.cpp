@@ -10,6 +10,7 @@ void FilesDelete();
 GTEST_API_ int main(int argc, char **argv)
 {
   QCoreApplication qca(argc, argv);
+  CryptoFactory::GetInstance().SetThreading(CryptoFactory::MultiThreaded);
   Logging::UseFile("test.log");
   qDebug() << "Beginning tests";
   FilesExist();

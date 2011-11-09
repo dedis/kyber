@@ -1,7 +1,6 @@
 #include "ThreadedOnionEncryptor.hpp"
 #include <qcoreapplication.h>
 #include <QtConcurrentMap>
-#include "CppPrivateKey.hpp"
 
 namespace Dissent {
 namespace Crypto {
@@ -21,12 +20,6 @@ namespace Crypto {
 
       const AsymmetricKey *_key;
     };
-  }
-
-  ThreadedOnionEncryptor &ThreadedOnionEncryptor::GetInstance()
-  {
-    static ThreadedOnionEncryptor toe;
-    return toe;
   }
 
   bool ThreadedOnionEncryptor::Decrypt(const AsymmetricKey *key,
