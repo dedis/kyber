@@ -26,6 +26,7 @@
 #include "Crypto/CppRandom.hpp"
 #include "Crypto/Hash.hpp"
 #include "Crypto/OnionEncryptor.hpp"
+#include "Crypto/ThreadedOnionEncryptor.hpp"
 
 #include "Connections/Connection.hpp"
 #include "Connections/ConnectionManager.hpp"

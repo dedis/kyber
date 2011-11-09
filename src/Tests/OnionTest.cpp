@@ -332,5 +332,56 @@ namespace Tests {
     EXPECT_TRUE(bad_count > 0);
     EXPECT_TRUE(bad_count <= 2);
   }
+
+  void OnionEncryptorDecrypt(OnionEncryptor &oe)
+  {
+    int count = 100;
+    QVector<AsymmetricKey *> private_keys;
+    QVector<AsymmetricKey *> public_keys;
+    for(int idx = 0; idx < count; idx++) {
+      private_keys.append(new CppPrivateKey());
+      public_keys.append(private_keys.last()->GetPublicKey());
+    }
+
+    QVector<QByteArray> cleartexts;
+    QVector<QByteArray> ciphertexts;
+    CppRandom rand;
+
+    for(int idx = 0; idx < count; idx++) {
+      QByteArray cleartext(1500, 0);
+      rand.GenerateBlock(cleartext);
+      QByteArray ciphertext;
+      EXPECT_EQ(oe.Encrypt(public_keys, cleartext, ciphertext), -1);
+      cleartexts.append(cleartext);
+      ciphertexts.append(ciphertext);
+    }
+
+    QVector<QVector<QByteArray> > onions(count + 1);
+    onions.last() = ciphertexts;
+
+    QVector<QVector<QByteArray> > oonions(count + 1);
+    oonions.last() = ciphertexts;
+
+    for(int idx = count - 1; idx >= 0; idx--) {
+      EXPECT_TRUE(oe.Decrypt(private_keys[idx], onions[idx + 1], onions[idx]));
+    }
+
+    for(int idx = 0; idx < count; idx++) {
+      EXPECT_TRUE(onions.first().contains(cleartexts[idx]));
+      delete private_keys[idx];
+      delete public_keys[idx];
+    }
+  }
+
+  TEST(Crypto, SingleThreadedDecrypt)
+  {
+    OnionEncryptorDecrypt(OnionEncryptor::GetInstance());
+  }
+
+  TEST(Crypto, MultithreadedDecrypt)
+  {
+    ThreadedOnionEncryptor toe;
+    OnionEncryptorDecrypt(toe);
+  }
 }
 }

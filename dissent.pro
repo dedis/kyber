@@ -37,6 +37,7 @@ HEADERS += src/Dissent.hpp \
            src/Crypto/CppRandom.hpp \
            src/Crypto/Hash.hpp \
            src/Crypto/OnionEncryptor.hpp \
+           src/Crypto/ThreadedOnionEncryptor.hpp \
            src/Connections/Connection.hpp \
            src/Connections/ConnectionManager.hpp \
            src/Connections/ConnectionTable.hpp \
@@ -94,6 +95,7 @@ SOURCES += src/Anonymity/Group.cpp \
            src/Crypto/CppPublicKey.cpp \
            src/Crypto/CppRandom.cpp \
            src/Crypto/OnionEncryptor.cpp \
+           src/Crypto/ThreadedOnionEncryptor.cpp \
            src/Connections/Connection.cpp \
            src/Connections/ConnectionManager.cpp \
            src/Connections/ConnectionTable.cpp \
