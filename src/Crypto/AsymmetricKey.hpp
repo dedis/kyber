@@ -19,6 +19,9 @@ namespace Crypto {
        */
       static const int KeySize = 2048;
 
+      /**
+       * Destructor
+       */
       virtual ~AsymmetricKey() {}
 
       /**

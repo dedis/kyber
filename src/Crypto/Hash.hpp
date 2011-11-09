@@ -8,7 +8,9 @@ namespace Crypto {
    */
   class Hash {
     public:
-
+      /**
+       * Descructor
+       */
       virtual ~Hash() {}
 
       /**
