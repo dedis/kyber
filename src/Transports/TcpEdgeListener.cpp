@@ -20,6 +20,9 @@ namespace Transports {
 
   TcpEdgeListener::~TcpEdgeListener()
   {
+    foreach(QTcpSocket *socket, _outstanding_sockets.keys()) {
+      socket->deleteLater();
+    }
   }
 
   void TcpEdgeListener::Start()

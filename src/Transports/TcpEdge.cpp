@@ -7,17 +7,13 @@ namespace Dissent {
 namespace Transports {
   TcpEdge::TcpEdge(const Address &local, const Address &remote, bool outgoing,
       QTcpSocket *socket) :
-    Edge(local, remote, outgoing), _socket(socket)
+    Edge(local, remote, outgoing),
+    _socket(socket, &QObject::deleteLater)
   {
     socket->setParent(0);
 
     QObject::connect(socket, SIGNAL(readyRead()), this, SLOT(Read()));
     QObject::connect(socket, SIGNAL(disconnected()), this, SLOT(HandleDisconnect()));
-  }
-
-  TcpEdge::~TcpEdge()
-  {
-    _socket->deleteLater();
   }
 
   void TcpEdge::Send(const QByteArray &data)

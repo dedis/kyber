@@ -1,6 +1,7 @@
 #ifndef DISSENT_TRANSPORTS_TCP_EDGE_H_GUARD
 #define DISSENT_TRANSPORTS_TCP_EDGE_H_GUARD
 
+#include <QSharedPointer>
 #include <QTcpSocket>
 #include "Edge.hpp"
 
@@ -26,7 +27,7 @@ namespace Transports {
       /**
        * Destructor
        */
-      virtual ~TcpEdge();
+      virtual ~TcpEdge() {}
 
       virtual void Send(const QByteArray &data);
       virtual bool Close(const QString& reason);
@@ -42,7 +43,7 @@ namespace Transports {
     private:
       QByteArray _in_buffer;
       QByteArray _out_buffer;
-      QTcpSocket *_socket;
+      QSharedPointer<QTcpSocket> _socket;
   };
 }
 }
