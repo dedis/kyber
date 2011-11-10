@@ -362,8 +362,13 @@ namespace Anonymity {
     _logs[gidx] = Log(log);
     _blame_hash[gidx] = sigmsg;
     _blame_signatures[gidx] = sig;
+    ++_data_received;
 
-    if(++_data_received == _group.Count()) {
+    if(_state == Verification) {
+      return;
+    }
+
+    if(_data_received == _group.Count()) {
       BroadcastBlameVerification();
     } else if(_state != BlameInit) {
       StartBlame();
