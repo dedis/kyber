@@ -9,7 +9,7 @@ namespace Tests {
       bool keys = false)
   {
     Timer::GetInstance().UseVirtualTime();
-    int count = Random::GetInstance().GetInt(10, 50);
+    int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     int leader = Random::GetInstance().GetInt(0, count);
 
     QVector<TestNode *> nodes;
@@ -62,7 +62,7 @@ namespace Tests {
   {
     Timer::GetInstance().UseVirtualTime();
 
-    int count = Random::GetInstance().GetInt(10, 50);
+    int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     int leader = Random::GetInstance().GetInt(0, count);
     int sender = Random::GetInstance().GetInt(0, count);
 
@@ -119,7 +119,7 @@ namespace Tests {
   {
     Timer::GetInstance().UseVirtualTime();
 
-    int count = Random::GetInstance().GetInt(10, 50);
+    int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     int leader = Random::GetInstance().GetInt(0, count);
     int sender0 = Random::GetInstance().GetInt(0, count);
     int sender1 = Random::GetInstance().GetInt(0, count);
@@ -181,7 +181,7 @@ namespace Tests {
   {
     Timer::GetInstance().UseVirtualTime();
 
-    int count = Random::GetInstance().GetInt(10, 50);
+    int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     int leader = Random::GetInstance().GetInt(0, count);
     int disconnecter = Random::GetInstance().GetInt(0, count);
     while(leader != disconnecter) {
@@ -249,7 +249,7 @@ namespace Tests {
   {
     Timer::GetInstance().UseVirtualTime();
 
-    int count = Random::GetInstance().GetInt(10, 50);
+    int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     int leader = Random::GetInstance().GetInt(0, count);
     int sender = Random::GetInstance().GetInt(0, count);
     int disconnecter = Random::GetInstance().GetInt(0, count);
@@ -334,7 +334,7 @@ namespace Tests {
   {
     Timer::GetInstance().UseVirtualTime();
 
-    int count = Random::GetInstance().GetInt(10, 50);
+    int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     int leader = Random::GetInstance().GetInt(0, count);
     int sender = Random::GetInstance().GetInt(0, count);
     int badguy = Random::GetInstance().GetInt(0, count);

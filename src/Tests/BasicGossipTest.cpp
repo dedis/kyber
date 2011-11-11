@@ -107,7 +107,7 @@ namespace Tests {
 
   TEST(BasicGossip, Bootstrap)
   {
-    int count = Random::GetInstance().GetInt(10, 50);
+    int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     Timer::GetInstance().UseVirtualTime();
     QList<QSharedPointer<Node> > nodes = GenerateOverlay(count, "null");
     TerminateOverlay(nodes);
@@ -115,7 +115,7 @@ namespace Tests {
 
   TEST(BasicGossip, Null)
   {
-    int count = Random::GetInstance().GetInt(10, 50);
+    int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     Timer::GetInstance().UseVirtualTime();
     QList<QSharedPointer<Node> > nodes = GenerateOverlay(count, "null");
     SendTest(nodes);
@@ -124,7 +124,7 @@ namespace Tests {
 
   TEST(BasicGossip, Shuffle)
   {
-    int count = Random::GetInstance().GetInt(10, 50);
+    int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     Timer::GetInstance().UseVirtualTime();
     QList<QSharedPointer<Node> > nodes = GenerateOverlay(count, "shuffle");
     SendTest(nodes);
@@ -138,7 +138,7 @@ namespace Tests {
 
   TEST(BasicGossip, UnorderedBootstrap)
   {
-    int count = Random::GetInstance().GetInt(10, 50);
+    int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     QString session_type = "null";
     Timer::GetInstance().UseVirtualTime();
 
