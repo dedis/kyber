@@ -19,7 +19,7 @@ namespace Crypto {
        */
       virtual ~CppHash() {}
 
-      inline virtual int GetBlockSize() { return sha1.BlockSize(); }
+      inline virtual int GetDigestSize() { return sha1.DigestSize(); }
       virtual void Restart();
       virtual void Update(const QByteArray &data);
       virtual QByteArray ComputeHash();

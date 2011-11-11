@@ -16,7 +16,7 @@ namespace Crypto {
       /**
        * Returns the blocksize of the underlying hash function
        */
-      virtual int GetBlockSize() = 0;
+      virtual int GetDigestSize() = 0;
 
       /**
        * Restarts the state of the hash object
