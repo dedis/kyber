@@ -94,6 +94,7 @@ SOURCES += src/Anonymity/Group.cpp \
            src/Applications/Node.cpp \
            src/Applications/SessionFactory.cpp \
            src/Applications/Settings.cpp \
+           src/Crypto/AsymmetricKey.cpp \
            src/Crypto/CppHash.cpp \
            src/Crypto/CppPrivateKey.cpp \
            src/Crypto/CppPublicKey.cpp \

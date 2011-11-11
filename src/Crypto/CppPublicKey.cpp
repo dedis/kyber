@@ -54,17 +54,6 @@ namespace Crypto {
     }
   }
 
-  bool CppPublicKey::InitFromFile(const QString &filename)
-  {
-    QFile file(filename);
-    if(!file.open(QIODevice::ReadOnly)) {
-      qWarning() << "Error (" << file.error() << ") reading file: " << filename;
-      return false;
-    }
-
-    return InitFromByteArray(file.readAll());
-  }
-
   bool CppPublicKey::InitFromByteArray(const QByteArray &data)
   {
     ByteQueue queue;
@@ -81,22 +70,14 @@ namespace Crypto {
     return true;
   }
 
-  bool CppPublicKey::Save(const QString &filename) const
+  bool CppPublicKey::InitFromFile(const QString &filename)
   {
-    if(!_valid) {
-      return false;
+    QByteArray key;
+    if(ReadFile(filename, key)) {
+      return InitFromByteArray(key);
     }
 
-    QByteArray data = GetByteArray();
-    QFile file(filename);
-    if(!file.open(QIODevice::Truncate | QIODevice::WriteOnly)) {
-      qWarning() << "Error (" << file.error() << ") saving file: " << filename;
-      return false;
-    }
-
-    file.write(data);
-    file.close();
-    return true;
+    return false;
   }
 
   QByteArray CppPublicKey::GetByteArray() const

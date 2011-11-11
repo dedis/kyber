@@ -3,7 +3,6 @@
 
 #include <QByteArray>
 #include <QDebug>
-#include <QFile>
 #include <QString>
 
 #include "CppPublicKey.hpp"

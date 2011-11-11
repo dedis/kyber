@@ -56,7 +56,6 @@ namespace Crypto {
        */
       virtual AsymmetricKey *GetPublicKey() const;
 
-      virtual bool Save(const QString &filename) const;
       virtual QByteArray GetByteArray() const;
 
       /**

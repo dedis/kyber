@@ -17,7 +17,7 @@ namespace Crypto {
       /**
        * Default recommended key size
        */
-      static const int DefaultKeySize = 2048;
+      static const int DefaultKeySize = 512;
 
       /**
        * Returns the default key size
@@ -40,7 +40,7 @@ namespace Crypto {
        * Saves the key to a file
        * @param filename the file to save the key into, will overwrite the file
        */
-      virtual bool Save(const QString &filename) const = 0;
+      virtual bool Save(const QString &filename) const;
 
       /**
        * Returns the key in a byte array format
@@ -101,6 +101,15 @@ namespace Crypto {
        * Returns the keys size in bits
        */
       virtual int GetKeySize() const = 0;
+
+    protected:
+      /**
+       * Reads the contents of the file into the provided QByteArray, returns
+       * true if no error, otherwise false
+       * @param filename the file containing the key
+       * @param data the data to store the key into
+       */
+      bool ReadFile(const QString &filename, QByteArray &data);
   };
 }
 }
