@@ -28,6 +28,10 @@
 #include "Crypto/CryptoFactory.hpp"
 #include "Crypto/Hash.hpp"
 #include "Crypto/Library.hpp"
+#include "Crypto/NullHash.hpp"
+#include "Crypto/NullLibrary.hpp"
+#include "Crypto/NullPrivateKey.hpp"
+#include "Crypto/NullPublicKey.hpp"
 #include "Crypto/OnionEncryptor.hpp"
 #include "Crypto/ThreadedOnionEncryptor.hpp"
 

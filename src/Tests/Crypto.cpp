@@ -8,15 +8,14 @@ namespace Tests {
 
   void AssymetricKeyTest(Library *lib)
   {
-    CryptoPP::AutoSeededX917RNG<CryptoPP::DES_EDE3> rng;
+    QScopedPointer<Random> rng(lib->GetRandomNumberGenerator());
     QByteArray data(1500, 0);
-    rng.GenerateBlock(reinterpret_cast<byte *>(data.data()), data.size());
+    rng->GenerateBlock(data);
     QByteArray other(1500, 0);
-    rng.GenerateBlock(reinterpret_cast<byte *>(other.data()), other.size());
+    rng->GenerateBlock(other);
 
     AsymmetricKey *key0 = lib->CreatePrivateKey();
     EXPECT_TRUE(key0->IsValid());
-    EXPECT_EQ(key0->GetKeySize(), key0->GetDefaultKeySize());
     key0->Save("private_key");
     AsymmetricKey *key1 = lib->LoadPrivateKeyFromFile(QString("private_key"));
     EXPECT_TRUE(key1->IsValid());
@@ -206,6 +205,9 @@ namespace Tests {
   {
     QScopedPointer<Library> lib(new CppLibrary());
     AssymetricKeyTest(lib.data());
+
+    QScopedPointer<AsymmetricKey> key(lib->CreatePrivateKey());
+    EXPECT_EQ(key->GetKeySize(), key->GetDefaultKeySize());
   }
 
   TEST(Crypto, CppAsymmetricKeyFail)
@@ -214,9 +216,27 @@ namespace Tests {
     AsymmetricKeyFail(lib.data());
   }
 
-  TEST(Crypto, KeyGenerationFromId)
+  TEST(Crypto, CppKeyGenerationFromId)
   {
     QScopedPointer<Library> lib(new CppLibrary());
+    KeyGenerationFromIdTest(lib.data());
+  }
+
+  TEST(Crypto, NullAsymmetricKey)
+  {
+    QScopedPointer<Library> lib(new NullLibrary());
+    AssymetricKeyTest(lib.data());
+  }
+
+  TEST(Crypto, NullAsymmetricKeyFail)
+  {
+    QScopedPointer<Library> lib(new NullLibrary());
+    AsymmetricKeyFail(lib.data());
+  }
+
+  TEST(Crypto, NullKeyGenerationFromId)
+  {
+    QScopedPointer<Library> lib(new NullLibrary());
     KeyGenerationFromIdTest(lib.data());
   }
 }

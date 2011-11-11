@@ -38,6 +38,10 @@ HEADERS += src/Dissent.hpp \
            src/Crypto/CppRandom.hpp \
            src/Crypto/CryptoFactory.hpp \
            src/Crypto/Hash.hpp \
+           src/Crypto/NullHash.hpp \
+           src/Crypto/NullLibrary.hpp \
+           src/Crypto/NullPublicKey.hpp \
+           src/Crypto/NullPrivateKey.hpp \
            src/Crypto/Library.hpp \
            src/Crypto/OnionEncryptor.hpp \
            src/Crypto/ThreadedOnionEncryptor.hpp \
@@ -100,6 +104,9 @@ SOURCES += src/Anonymity/Group.cpp \
            src/Crypto/CppPublicKey.cpp \
            src/Crypto/CppRandom.cpp \
            src/Crypto/CryptoFactory.cpp \
+           src/Crypto/NullHash.cpp \
+           src/Crypto/NullPublicKey.cpp \
+           src/Crypto/NullPrivateKey.cpp \
            src/Crypto/OnionEncryptor.cpp \
            src/Crypto/ThreadedOnionEncryptor.cpp \
            src/Connections/Connection.cpp \

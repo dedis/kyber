@@ -1,6 +1,7 @@
 #include <QDebug>
 
 #include "CppLibrary.hpp"
+#include "NullLibrary.hpp"
 #include "CryptoFactory.hpp"
 #include "ThreadedOnionEncryptor.hpp"
 
@@ -38,6 +39,9 @@ namespace Crypto {
     switch(type) {
       case CryptoPP:
         _library.reset(new CppLibrary());
+        break;
+      case Null:
+        _library.reset(new NullLibrary());
         break;
       default:
         qCritical() << "Invalid Library type:" << type;

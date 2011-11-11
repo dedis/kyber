@@ -15,7 +15,8 @@ namespace Crypto {
       };
 
       enum LibraryName {
-        CryptoPP
+        CryptoPP,
+        Null
       };
 
       /**
