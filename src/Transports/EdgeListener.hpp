@@ -4,13 +4,14 @@
 #include <QObject>
 
 #include "Edge.hpp"
+#include "../Utils/StartStop.hpp"
 
 namespace Dissent {
 namespace Transports {
   /**
    * Creates and handles transport layer links
    */
-  class EdgeListener : public QObject {
+  class EdgeListener : public QObject, public Dissent::Utils::StartStop {
     Q_OBJECT
 
     public:
@@ -42,17 +43,6 @@ namespace Transports {
        */
       virtual void CreateEdgeTo(const Address &to) = 0;
 
-      /**
-       * Start the EdgeListener, allowing for incoming and outgoing links
-       */
-      virtual void Start() { }
-
-      /**
-       * Stop the EdgeListener, close down existing links and prevent the
-       * creation of future links
-       */
-      virtual void Stop() { }
-
     signals:
       /**
        * Emitted whenever a new edge, incoming or outgoing, is created
@@ -80,12 +70,7 @@ namespace Transports {
        * If the given local address is an Any address, it will need to be set
        * after a valid address has been generated.
        */
-      void SetLocalAddress(const Address &address) { _local_address = address; }
-
-      /**
-       * The local transport address
-       */
-      Address _local_address;
+      void SetAddress(const Address &address) { _local_address = address; }
 
     protected slots:
       /**
@@ -94,6 +79,12 @@ namespace Transports {
        * @param reason the reason the edge was closed
        */
       virtual void HandleEdgeClose(const Edge *edge, const QString &reason); 
+
+    private:
+      /**
+       * The local transport address
+       */
+      Address _local_address;
   };
 }
 }

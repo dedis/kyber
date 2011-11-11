@@ -20,14 +20,16 @@ namespace Transports {
 
   TcpEdgeListener::~TcpEdgeListener()
   {
-    foreach(QTcpSocket *socket, _outstanding_sockets.keys()) {
-      socket->deleteLater();
-    }
+    DestructorCheck();
   }
 
-  void TcpEdgeListener::Start()
+  bool TcpEdgeListener::Start()
   {
-    TcpAddress &addr = static_cast<TcpAddress &>(_local_address);
+    if(!EdgeListener::Start()) {
+      return false;
+    }
+
+    const TcpAddress &addr = static_cast<const TcpAddress &>(GetAddress());
 
     if(!_server.listen(addr.GetIP(), addr.GetPort())) {
       qFatal("%s", QString("Unable to bind to " + addr.ToString()).toUtf8().data());
@@ -55,12 +57,23 @@ namespace Transports {
     }
 
     int port = _server.serverPort();
-    SetLocalAddress(TcpAddress(ip.toString(), port));
+    SetAddress(TcpAddress(ip.toString(), port));
+    return true;
   }
 
-  void TcpEdgeListener::Stop()
+  bool TcpEdgeListener::Stop()
   {
+    if(!EdgeListener::Stop()) {
+      return false;
+    }
+
     _server.close();
+    foreach(QTcpSocket *socket, _outstanding_sockets.keys()) {
+      HandleSocketClose(socket, "EdgeListner Stopped");
+    }
+    _outstanding_sockets.clear();
+
+    return true;
   }
 
   void TcpEdgeListener::HandleAccept()
@@ -76,6 +89,16 @@ namespace Transports {
 
   void TcpEdgeListener::CreateEdgeTo(const Address &to)
   {
+    if(Stopped()) {
+      qWarning() << "Cannot CreateEdgeTo Stopped EL";
+      return;
+    }
+
+    if(!Started()) {
+      qWarning() << "Cannot CreateEdgeTo non-Started EL";
+      return;
+    }
+
     qDebug() << "Connecting to" << to.ToString();
     QTcpSocket *socket = new QTcpSocket(this);
 
@@ -127,6 +150,10 @@ namespace Transports {
 
   void TcpEdgeListener::HandleSocketClose(QTcpSocket *socket, const QString &reason)
   {
+    if(_outstanding_sockets.contains(socket) == 0) {
+      return;
+    }
+
     Address addr = _outstanding_sockets.value(socket);
     _outstanding_sockets.remove(socket);
 
@@ -145,7 +172,7 @@ namespace Transports {
       qDebug() << "Incoming connection from" << remote.ToString();
     }
 
-    TcpEdge *edge = new TcpEdge(_local_address, remote, outgoing, socket);
+    TcpEdge *edge = new TcpEdge(GetAddress(), remote, outgoing, socket);
     ProcessNewEdge(edge);
   }
 }

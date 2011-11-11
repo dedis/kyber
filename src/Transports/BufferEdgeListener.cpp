@@ -9,23 +9,8 @@ namespace Transports {
   QHash<int, BufferEdgeListener *> BufferEdgeListener::_el_map;
 
   BufferEdgeListener::BufferEdgeListener(const BufferAddress &local_address) :
-    EdgeListener(local_address)
+    EdgeListener(local_address), _valid(false)
   {
-    int id = local_address.GetId();
-
-    BufferAddress addr = local_address;
-    if(id == 0) {
-      while(_el_map.contains(id = Random::GetInstance().GetInt(1)));
-      addr = BufferAddress(id);
-      SetLocalAddress(addr);
-    }
-
-    if(_el_map.contains(id)) {
-      qWarning() << "Attempting to create two BufferEdgeListeners with the same" <<
-        " address: " << addr.ToString();
-      return;
-    }
-    _el_map[id] = this;
   }
 
   EdgeListener *BufferEdgeListener::Create(const Address &local_address)
@@ -36,23 +21,71 @@ namespace Transports {
 
   BufferEdgeListener::~BufferEdgeListener()
   {
-    const BufferAddress &loc_ba = static_cast<const BufferAddress &>(_local_address);
+    DestructorCheck();
+  }
+
+  bool BufferEdgeListener::Start()
+  {
+    if(!EdgeListener::Start()) {
+      return false;
+    }
+
+    const BufferAddress addr = static_cast<const BufferAddress &>(GetAddress());
+    int id = addr.GetId();
+    if(id == 0) {
+      while(_el_map.contains(id = Random::GetInstance().GetInt(1)));
+      SetAddress(BufferAddress(id));
+    }
+
+    if(_el_map.contains(id)) {
+      qWarning() << "Attempting to create two BufferEdgeListeners with the same" <<
+        " address: " << addr.ToString();
+      return true;
+    }
+
+    _valid = true;
+    _el_map[id] = this;
+    return true;
+  }
+
+  bool BufferEdgeListener::Stop()
+  {
+    if(!EdgeListener::Stop()) {
+      return false;
+    }
+
+    if(!_valid) {
+      return true;
+    }
+
+    const BufferAddress &loc_ba = static_cast<const BufferAddress &>(GetAddress());
     _el_map.remove(loc_ba.GetId());
+    return true;
   }
 
   void BufferEdgeListener::CreateEdgeTo(const Address &to)
   {
+    if(Stopped()) {
+      qWarning() << "Cannot CreateEdgeTo Stopped EL";
+      return;
+    }
+
+    if(!Started()) {
+      qWarning() << "Cannot CreateEdgeTo non-Started EL";
+      return;
+    }
+
     const BufferAddress &rem_ba = static_cast<const BufferAddress &>(to);
     BufferEdgeListener *remote_el = _el_map.value(rem_ba.GetId());
     if(remote_el == 0) {
       qDebug() << "Attempting to create an Edge to an EL that doesn't exist from " <<
-        _local_address.ToString() << " to " << to.ToString();
+        GetAddress().ToString() << " to " << to.ToString();
       ProcessEdgeCreationFailure(to, "No such peer");
       return;
     }
 
-    BufferEdge *local_edge(new BufferEdge(_local_address, remote_el->_local_address, true, 10));
-    BufferEdge *remote_edge(new BufferEdge(remote_el->_local_address, _local_address, false, 10));
+    BufferEdge *local_edge(new BufferEdge(GetAddress(), remote_el->GetAddress(), true, 10));
+    BufferEdge *remote_edge(new BufferEdge(remote_el->GetAddress(), GetAddress(), false, 10));
 
     local_edge->SetRemoteEdge(remote_edge);
     remote_edge->SetRemoteEdge(local_edge);

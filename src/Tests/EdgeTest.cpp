@@ -14,10 +14,12 @@ namespace Tests {
     const BufferAddress addr0(1000);
     BufferEdgeListener be0(addr0);
     MockEdgeHandler meh0(&be0);
+    be0.Start();
 
     const BufferAddress addr1(10001);
     BufferEdgeListener be1(addr1);
     MockEdgeHandler meh1(&be1);
+    be1.Start();
 
     EXPECT_TRUE(meh0.edge.isNull());
     EXPECT_TRUE(meh1.edge.isNull());
@@ -64,6 +66,7 @@ namespace Tests {
 
     const BufferAddress addr(10001);
     BufferEdgeListener be(addr);
+    be.Start();
     MockEdgeHandler meh(&be);
     SignalCounter sc;
     QObject::connect(&be, SIGNAL(EdgeCreationFailure(const Address &, const QString &)),
@@ -112,6 +115,7 @@ namespace Tests {
 
     const TcpAddress addr("127.0.0.1", 33347);
     TcpEdgeListener te(addr);
+    te.Start();
     MockEdgeHandler meh(&te);
     SignalCounter sc(1);
     QObject::connect(&te, SIGNAL(EdgeCreationFailure(const Address &, const QString &)),

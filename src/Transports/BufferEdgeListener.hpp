@@ -22,10 +22,13 @@ namespace Transports {
        */
       virtual ~BufferEdgeListener();
 
+      virtual bool Start();
+      virtual bool Stop();
       virtual void CreateEdgeTo(const Address &to);
 
     private:
       static QHash<int, BufferEdgeListener *> _el_map;
+      bool _valid;
   };
 }
 }

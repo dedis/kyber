@@ -23,6 +23,7 @@ namespace Tests {
       {
         EdgeListener *be = EdgeListenerFactory::GetInstance().CreateEdgeListener(BufferAddress(idx));
         cm.AddEdgeListener(QSharedPointer<EdgeListener>(be));
+        be->Start();
         if(make_key) {
           Library *lib = CryptoFactory::GetInstance().GetLibrary();
           key = QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey());
