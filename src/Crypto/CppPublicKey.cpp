@@ -6,12 +6,14 @@ namespace Crypto {
     _public_key(new RSA::PublicKey())
   {
     _valid = InitFromFile(filename);
+    _key_size = _public_key->GetModulus().BitCount();
   }
 
   CppPublicKey::CppPublicKey(const QByteArray &data) :
     _public_key(new RSA::PublicKey())
   {
     _valid = InitFromByteArray(data);
+    _key_size = _public_key->GetModulus().BitCount();
   }
 
   CppPublicKey::~CppPublicKey()
@@ -34,7 +36,7 @@ namespace Crypto {
 
     LC_RNG rng(value);
     RSA::PrivateKey key;
-    key.GenerateRandomWithKeySize(rng, KeySize);
+    key.GenerateRandomWithKeySize(rng, DefaultKeySize);
     RSA::PublicKey pkey(key);
     return new CppPublicKey(GetByteArray(pkey));
   }

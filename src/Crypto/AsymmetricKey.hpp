@@ -17,7 +17,12 @@ namespace Crypto {
       /**
        * Default recommended key size
        */
-      static const int KeySize = 2048;
+      static const int DefaultKeySize = 2048;
+
+      /**
+       * Returns the default key size
+       */
+      int GetDefaultKeySize() const { return DefaultKeySize; }
 
       /**
        * Destructor
@@ -91,6 +96,11 @@ namespace Crypto {
        * Returns true if the key loaded is a valid key
        */
       virtual bool IsValid() const = 0;
+
+      /**
+       * Returns the keys size in bits
+       */
+      virtual int GetKeySize() const = 0;
   };
 }
 }

@@ -9,6 +9,7 @@ namespace Crypto {
   {
     _public_key = _private_key;
     _valid = InitFromFile(filename);
+    _key_size = _public_key->GetModulus().BitCount();
   }
 
   CppPrivateKey::CppPrivateKey(const QByteArray &data) :
@@ -16,6 +17,7 @@ namespace Crypto {
   {
     _public_key = _private_key;
     _valid = InitFromByteArray(data);
+    _key_size = _public_key->GetModulus().BitCount();
   }
 
   CppPrivateKey::CppPrivateKey() :
@@ -24,8 +26,9 @@ namespace Crypto {
     _public_key = _private_key;
     AutoSeededX917RNG<DES_EDE3> rng;
     RSA::PrivateKey &key = const_cast<RSA::PrivateKey &>(*_private_key);
-    key.GenerateRandomWithKeySize(rng, KeySize);
+    key.GenerateRandomWithKeySize(rng, DefaultKeySize);
     _valid = true;
+    _key_size = _public_key->GetModulus().BitCount();
   }
 
   CppPrivateKey *CppPrivateKey::GenerateKey(const QByteArray &data)
@@ -41,7 +44,7 @@ namespace Crypto {
 
     LC_RNG rng(value);
     RSA::PrivateKey key;
-    key.GenerateRandomWithKeySize(rng, KeySize);
+    key.GenerateRandomWithKeySize(rng, DefaultKeySize);
     return new CppPrivateKey(GetByteArray(key));
   }
 

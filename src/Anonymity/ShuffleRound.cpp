@@ -488,7 +488,7 @@ namespace Anonymity {
       throw QRunTimeError("Received malsigned data block, no such peer");
     }
 
-    int sig_size = AsymmetricKey::KeySize / 8;
+    int sig_size = key->GetKeySize() / 8;
     if(data.size() < sig_size) {
       QString error = QString("Received malsigned data block, not enough "
           "data blocks. Expected at least: %1 got %2").arg(sig_size).arg(data.size());

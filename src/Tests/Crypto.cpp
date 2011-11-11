@@ -16,6 +16,7 @@ namespace Tests {
 
     AsymmetricKey *key0 = lib->CreatePrivateKey();
     EXPECT_TRUE(key0->IsValid());
+    EXPECT_EQ(key0->GetKeySize(), key0->GetDefaultKeySize());
     key0->Save("private_key");
     AsymmetricKey *key1 = lib->LoadPrivateKeyFromFile(QString("private_key"));
     EXPECT_TRUE(key1->IsValid());

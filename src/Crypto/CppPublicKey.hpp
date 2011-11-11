@@ -74,6 +74,7 @@ namespace Crypto {
       inline virtual bool IsPrivateKey() const { return false; }
       virtual bool VerifyKey(AsymmetricKey &key) const;
       inline virtual bool IsValid() const { return _valid; }
+      inline virtual int GetKeySize() const { return _key_size; }
 
     protected:
       /**
@@ -95,6 +96,7 @@ namespace Crypto {
 
       const RSA::PublicKey *_public_key;
       bool _valid;
+      int _key_size;
       static QByteArray GetByteArray(const CryptoMaterial &key);
   };
 }
