@@ -28,7 +28,7 @@ namespace Utils {
     }
 
     int value = qrand() % max;
-    while(value <= min) {
+    while(value < min) {
       value = qrand() % max;
     }
     return value;

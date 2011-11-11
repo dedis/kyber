@@ -149,10 +149,11 @@ namespace Tests {
       oe.RandomizeBlocks(onions[idx]);
     }
 
-    QVector<AsymmetricKey *> swap_keys(public_keys);
-    swap_keys.resize(changed);
     QByteArray cleartext(1500, 0);
     rand->GenerateBlock(cleartext);
+
+    QVector<AsymmetricKey *> swap_keys(public_keys);
+    swap_keys.resize(changed);
     EXPECT_EQ(oe.Encrypt(swap_keys, cleartext, onions[changed][mchanged], 0), -1);
 
     for(int idx = changed - 1; idx >= 0; idx--) {

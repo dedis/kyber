@@ -322,19 +322,18 @@ namespace Tests {
         _state = DataSubmission;
 
         OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
-        oe->Encrypt(_public_inner_keys, _data,
-            _inner_ciphertext, 0);
+        oe->Encrypt(_public_inner_keys, _data, _inner_ciphertext, 0);
 
-        int count = Random::GetInstance().GetInt(1, _shufflers.Count());
+        int count = Random::GetInstance().GetInt(0, _shufflers.Count());
+        int opposite = CalculateKidx(count);
+        if(count == opposite) {
+          opposite = (opposite + 1) % _shufflers.Count();
+        }
 
-        QVector<AsymmetricKey *> tmp_keys(count, _public_outer_keys[count - 1]);
-        QByteArray outer_tmp;
-        oe->Encrypt(tmp_keys, _inner_ciphertext, outer_tmp, 0);
-
-        QVector<AsymmetricKey *> public_outer_keys(_public_outer_keys);
-        public_outer_keys.remove(0, count);
-        oe->Encrypt(public_outer_keys, outer_tmp, _outer_ciphertext, 0);
-
+        AsymmetricKey *tmp = _public_outer_keys[opposite];
+        _public_outer_keys[opposite] = _public_outer_keys[count];
+        oe->Encrypt(_public_outer_keys, _inner_ciphertext, _outer_ciphertext, 0);
+        _public_outer_keys[opposite] = tmp;
 
         QByteArray msg;
         QDataStream stream(&msg, QIODevice::WriteOnly);

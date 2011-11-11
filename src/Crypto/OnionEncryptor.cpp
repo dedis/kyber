@@ -7,6 +7,11 @@ namespace Crypto {
       const QByteArray &cleartext, QByteArray &ciphertext,
       QVector<QByteArray> *intermediate) const
   {
+    if(keys.count() == 0) {
+      ciphertext = cleartext;
+      return -1;
+    }
+
     ciphertext = keys.first()->Encrypt(cleartext);
 
     if(ciphertext.isEmpty()) {
