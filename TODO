@@ -1,4 +1,5 @@
 Anonymity
+- Design a dynamic group -- handles new connections, disconnections, and blame
 - The process for creating a session should be peers register, a leader not ready rejects, peers continue to register until successful, leader notifies all of starting
 - Need some structure to communicate group status / change
 - Make sessions optionally multithreaded, we really don't want crypto computation in the main thread
@@ -6,26 +7,15 @@ Anonymity
 - (Memory) Provide mechanisms to clear out intermediate state from Rounds
 - (Memory) Move logic for individual states into separate classes
 
+Applications
+- Create a web interface with the http service running internally see: http://doc.qt.nokia.com/solutions/4/qtservice/qtservice-example-server.html
+
 Connections
 - ConnectionTable should be a value type
 - ConnectionManager and maybe EL should turn reject requests for connections when closed
-- ConnectionManager should monitor Id / Address to immediately return a ConnectionAttemptFailure in the case of duplicate ConnectTo statements
 
-Transports
-- EdgeListeners should produce QSharedPointer<Edge>
-
-Utils
-- VirtualTime should have a method that lets it be executed for a specific amount of time via QEvent mechanisms
-
-Overlay
-- Implement Chord and use for overlay broadcasting and overall group dynamics
-
-Cryptography
-- Create a factory class for generating crypto objects so that we can easily switch between crypto libraries
-
-Applications
-- Create a compatibility API to support old applications
-- Write a WEB Interface akin to the old GUI ... down with native Apps!
+Crypto
+- Add QCA or Botan CryptoLibraries, take a look at the src/Crypto/CryptoFactory and other related files to get a general feel
 
 Messaging
 - Rpc messages are not deterministic, ignored outgoing Requests are never removed from the local _requests stack ... do we push more work on the user (calling code) or into the Rpc...
@@ -33,3 +23,13 @@ Messaging
 Overall
 - Replace all pointers with qscoped / qshared pointers
 - Consider removing qsharedata and replacing it with qsharedpointers
+
+Overlay
+- Implement Chord and use for overlay broadcasting and overall group dynamics
+
+Transports
+- EdgeListeners should produce QSharedPointer<Edge>
+- Implement a UdpEL and create a reliability layer so we can use it for UdpEL and if we do other tasks that require reliable transmission (such as overlay routing).
+
+Utils
+- VirtualTime should have a method that lets it be executed for a specific amount of time via QEvent mechanisms
