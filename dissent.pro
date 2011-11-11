@@ -72,6 +72,7 @@ HEADERS += src/Dissent.hpp \
            src/Utils/Serialization.hpp \
            src/Utils/SignalCounter.hpp \
            src/Utils/Sleeper.hpp \
+           src/Utils/StartStop.cpp \
            src/Utils/Time.hpp \
            src/Utils/Timer.hpp \
            src/Utils/TimerCallback.hpp \
@@ -124,6 +125,7 @@ SOURCES += src/Anonymity/Group.cpp \
            src/Utils/Logging.cpp \
            src/Utils/Random.cpp \
            src/Utils/Sleeper.cpp \
+           src/Utils/StartStop.cpp \
            src/Utils/Time.cpp \
            src/Utils/Timer.cpp \
            src/Utils/TimerEvent.cpp
