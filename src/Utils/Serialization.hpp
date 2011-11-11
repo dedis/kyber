@@ -38,6 +38,20 @@ namespace Utils {
           number >>= 8;
         }
       }
+
+      /**
+       * Writes an uint into a byte array at the specified offset
+       * @param number the uint to write
+       * @param data the byte array to write into
+       * @param offset where in the byte array to write the number
+       */
+      static void WriteUInt(uint number, QByteArray &data, int offset)
+      {
+        while(number > 0) {
+          data[offset++] = (number & 0xFF);
+          number >>= 8;
+        }
+      }
   };
 }
 }
