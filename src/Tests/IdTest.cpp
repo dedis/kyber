@@ -42,6 +42,16 @@ namespace Tests {
     EXPECT_EQ(id0, id0_0);
     EXPECT_EQ(id0, id0_1);
     EXPECT_EQ(id0, id0_2);
+
+    Id id2(zero);
+
+    Id id2_0(id2.GetBase64String());
+    Id id2_1(id2.GetByteArray());
+    Id id2_2(id2.GetInteger());
+
+    EXPECT_EQ(id2, id2_0);
+    EXPECT_EQ(id2, id2_1);
+    EXPECT_EQ(id2, id2_2);
   }
 
   TEST(Id, Serialization)

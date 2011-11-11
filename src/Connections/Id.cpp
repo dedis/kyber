@@ -1,4 +1,5 @@
 #include "Id.hpp"
+#include <QDebug>
 
 namespace Dissent {
 namespace Connections {
@@ -32,10 +33,15 @@ namespace Connections {
   void Id::Init(const QByteArray &bid, const Integer &iid, const QString &sid)
   {
     if(iid.BitCount() > BitSize) {
-      throw std::runtime_error("Bitsize too large: " + iid.BitCount());
+      qCritical() << "Bitsize too large:" << iid.BitCount();
     }
 
-    _data = new IdData(bid, iid, sid);
+    QByteArray rbid = bid;
+    if(uint(rbid.size()) != ByteSize) {
+      rbid = GetQByteArray(iid);
+    }
+
+    _data = new IdData(rbid, iid, sid);
   }
 
   QString Id::ToString() const
@@ -72,13 +78,20 @@ namespace Connections {
 
   inline const QByteArray Id::GetQByteArray(const QString &sid)
   {
-    QByteArray bid = QByteArray::fromBase64(sid.toLocal8Bit()).data();
+    const QChar *chs = sid.data();
+    QByteArray tmp;
+    int idx = 0;
+    for(; chs[idx] != '\0'; idx++) {
+      tmp.append(chs[idx].cell());
+    }
+
+    QByteArray bid = QByteArray::fromBase64(tmp);
     return bid;
   }
 
   inline const Integer Id::GetInteger(const QByteArray &bid)
   {
-    Integer iid(reinterpret_cast<const byte *>(bid.data()), ByteSize);
+    Integer iid(reinterpret_cast<const byte *>(bid.data()), bid.size());
     return iid;
   }
 
