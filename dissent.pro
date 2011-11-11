@@ -7,7 +7,7 @@ TARGET = dissent
 DEPENDPATH += 
 INCLUDEPATH += 
 CONFIG += qt debug
-QT += network
+QT = core network
 
 # Input
 LIBS += -lcryptopp
