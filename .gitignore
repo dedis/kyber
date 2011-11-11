@@ -4,3 +4,6 @@
 *~
 moc_*
 Makefile
+ext/
+console
+test
