@@ -40,7 +40,7 @@ namespace Transports {
     // XXX the following is a hack so I don't need to support multiple local addresses
     QHostAddress ip = _server.serverAddress();
     if(ip == QHostAddress::Any) {
-      ip = QHostAddress::Any;
+      ip = QHostAddress::LocalHost;
       foreach(QHostAddress local_ip, QNetworkInterface::allAddresses()) {
         if(local_ip == QHostAddress::Null ||
             local_ip == QHostAddress::LocalHost ||
