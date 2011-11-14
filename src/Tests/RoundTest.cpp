@@ -210,7 +210,7 @@ namespace Tests {
 
     nodes[disconnecter]->session->Stop();
     nodes[disconnecter]->cm.Disconnect();
-    EXPECT_TRUE(nodes[disconnecter]->session->Closed());
+    EXPECT_TRUE(nodes[disconnecter]->session->Stopped());
 
     TestNode::calledback = 0;
     next = Timer::GetInstance().VirtualRun();
@@ -235,7 +235,7 @@ namespace Tests {
 
     for(int idx = 0; idx < count; idx++) {
       EXPECT_TRUE(nodes[idx]->sink.GetLastData().isEmpty());
-      EXPECT_TRUE(nodes[idx]->session->Closed());
+      EXPECT_TRUE(nodes[idx]->session->Stopped());
     }
 
     delete nodes[disconnecter];
@@ -319,7 +319,7 @@ namespace Tests {
       }
     } else {
       foreach(TestNode *node, nodes) {
-        EXPECT_TRUE(node->session->Closed());
+        EXPECT_TRUE(node->session->Stopped());
       }
     }
 
@@ -361,7 +361,7 @@ namespace Tests {
 
     CreateSessions(nodes, *group, leader_id, session_id, good_callback, cgg);
 
-    SecureSession *session = dynamic_cast<SecureSession *>(nodes[0]->session.data());
+    Session *session = nodes[0]->session.data();
     if(session) {
       const Group cg = session->GetGroupGenerator().CurrentGroup();
       int badguy_sg = Random::GetInstance().GetInt(0, cg.Count());

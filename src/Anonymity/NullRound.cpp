@@ -7,23 +7,19 @@ namespace Anonymity {
   NullRound::NullRound(const Group &group, const Id &local_id,
       const Id &session_id, const ConnectionTable &ct, RpcHandler &rpc,
       const QByteArray &data) :
-    Round(group, local_id, session_id, ct, rpc),
-    _data(data),
-    _started(false)
+    Round(group, group, local_id, session_id, Id::Zero, ct, rpc,
+        QSharedPointer<AsymmetricKey>(), data)
   {
   }
 
   bool NullRound::Start()
   {
-    if(_started) {
-      qWarning() << "Called start on NullRound more than once.";
+    if(!Round::Start()) {
       return false;
     }
 
-    _started = true;
-    Broadcast(_data);
-    ProcessData(_data, _local_id);
-
+    Broadcast(GetData());
+    ProcessData(GetData(), GetLocalId());
     return true;
   }
 
@@ -36,12 +32,13 @@ namespace Anonymity {
     _received_from.append(id);
 
     if(data != DefaultData) {
+      SetPlaintextData(GetGroup().GetIndex(id), data);
       PushData(data, this);
     }
 
-    if(_received_from.count() == _group.Count()) {
-      _successful = true;
-      Close("Round successfully finished.");
+    if(_received_from.count() == GetGroup().Count()) {
+      SetSuccessful(true);
+      Stop("Round successfully finished.");
     }
   }
 }

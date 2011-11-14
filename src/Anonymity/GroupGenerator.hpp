@@ -5,6 +5,8 @@
 
 #include "Session.hpp"
 #include "GroupGenerator.hpp"
+#include "../Connections/ConnectionTable.hpp"
+#include "../Messaging/RpcHandler.hpp"
 
 namespace Dissent {
 namespace Anonymity {

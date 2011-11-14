@@ -9,43 +9,48 @@
 #include "../Messaging/ISender.hpp"
 #include "../Messaging/Source.hpp"
 #include "../Messaging/RpcHandler.hpp"
+#include "../Utils/StartStop.hpp"
 
 #include "Group.hpp"
 
 namespace Dissent {
 namespace Anonymity {
   namespace {
-    using namespace Dissent::Messaging;
     using namespace Dissent::Connections;
+    using namespace Dissent::Messaging;
+    using namespace Dissent::Utils;
   }
 
   /**
    * Represents a single instance of a cryptographically secure anonymous exchange
    */
-  class Round : public QObject, public Source, public ISender, public ISink {
+  class Round : public QObject, public StartStop, public Source,
+      public ISender, public ISink {
     Q_OBJECT
 
     public:
       /**
-       * Constructor 
+       * Constructor
        * @param group The anonymity group
+       * @param active_group The set of peers providing core services
        * @param local_id The local peers id
        * @param session_id Session this round represents
+       * @param round_id Unique round id (nonce)
        * @param ct Connections to the anonymity group
        * @param rpc Rpc handler for sending messages
+       * @param signing_key a signing key for the local node, matched to the
+       * node in the group
+       * @param data Data to share this session
        */
-      Round(const Group &group, const Id &local_id, const Id &session_id,
-          const ConnectionTable &ct, RpcHandler &rpc);
+      Round(const Group &group, const Group &active_group,
+          const Id &local_id, const Id &session_id, const Id &round_id,
+          const ConnectionTable &ct, RpcHandler &rpc,
+          QSharedPointer<AsymmetricKey> signing_key, const QByteArray &data);
 
       /**
        * Destructor
        */
       virtual ~Round() {}
-
-      /**
-       * Start the Round
-       */
-      virtual bool Start() = 0;
 
       /**
        * Handle a data message from a remote peer
@@ -57,23 +62,18 @@ namespace Anonymity {
       /**
        * Close the round for no specific reason
        */
-      bool Close();
+      virtual bool Stop();
 
       /**
-       * Close the round with a specific reason
+       * Stop the round with a specific reason
        * @param reason The specific reason
        */
-      bool Close(const QString &reason);
+      bool Stop(const QString &reason);
 
       /**
        * Returns the reason the Round was closed, empty string if it is not closed
        */
-      inline const QString &GetClosedReason() const { return _closed_reason; }
-
-      /**
-       * Returns whether or not the round has closed
-       */
-      inline bool Closed() const { return _closed; }
+      inline const QString &GetStoppedReason() const { return _stopped_reason; }
 
       /**
        * Returns the Session Id
@@ -86,20 +86,40 @@ namespace Anonymity {
       inline bool Successful() const { return _successful; }
 
       /**
+       * Returns the local id
+       */
+      inline const Id &GetLocalId() const { return _local_id; }
+
+      /**
+       * Returns the round id
+       */
+      inline const Id &GetRoundId() const { return _round_id; }
+
+      /**
        * Returns the group used in the round
        */
       inline const Group &GetGroup() const { return _group; }
 
       /**
+       * Returns the active group used in the round
+       */
+      inline const Group &GetActiveGroup() const { return _active_group; }
+
+      /**
        * Returns the list of bad nodes discovered in the round
        */
-      inline virtual const QVector<int> &GetBadMembers() { return _empty_list; }
+      inline virtual const QVector<int> &GetBadMembers() const { return _empty_list; }
 
       /**
        * Send is not implemented, it is here simply so we can reuse the Source
        * paradigm and have the session recognize which round produced the result
        */
       virtual void Send(const QByteArray &data);
+
+      /**
+       * Returns the data for the position specified.
+       */
+      QByteArray GetPlaintextData(int index);
 
       inline virtual QString ToString() const { return "Round"; }
 
@@ -131,27 +151,50 @@ namespace Anonymity {
       virtual void ProcessData(const QByteArray &data, const Id &id) = 0;
 
       /**
-       * The anonymity group
+       * Returns the data to be sent during this round
        */
-      const Group _group;
+      inline const QByteArray &GetData() { return _data; }
 
       /**
-       * The local peer's Id
+       * Returns the nodes signing key
        */
-      const Id _local_id;
+      inline const QSharedPointer<AsymmetricKey> GetSigningKey() { return _signing_key; }
 
       /**
-       * Whether or not the Round was successful
+       * Sets the received data for the specified peer, currently this API
+       * supports only a single plaintext per peer, so this returns true if
+       * this is the first time calling this function.
+       * @param index the order the message was received / position in the
+       * pseudonym range
+       * @param data the received data
        */
-      bool _successful;
+      bool SetPlaintextData(int index, const QByteArray &data);
+
+      /**
+       * If data exists, this appends this new byte array to the remote peer,
+       * otherwise it creates a new entry (like the SetPlaintextData does.
+       * @param index the order the message was received / position in the
+       * pseudonym range
+       * @param data the received data
+       */
+      bool SetOrAppendPlaintextData(int index, const QByteArray &data);
+
+      void SetSuccessful(bool successful) { _successful = successful; }
 
     private:
-      QString _closed_reason;
+      const Group _group;
+      const Group _active_group;
+      const Id _local_id;
       const Id _session_id;
+      const Id _round_id;
       const ConnectionTable &_ct;
       RpcHandler &_rpc;
-      bool _closed;
+      QSharedPointer<AsymmetricKey> _signing_key;
+      QByteArray _data;
+      bool _successful;
+      QString _stopped_reason;
       QVector<int> _empty_list;
+      QHash<int, QByteArray> _data_received;
 
     private slots:
       /**
@@ -161,6 +204,10 @@ namespace Anonymity {
        */
       virtual void HandleDisconnect(Connection *con, const QString &reason);
   };
+
+  typedef Round *(*CreateRound)(const Group &, const Group &,
+      const Id &, const Id &, const Id &, const ConnectionTable &,
+      RpcHandler &, QSharedPointer<AsymmetricKey>, const QByteArray &);
 }
 }
 

@@ -11,7 +11,7 @@ namespace Anonymity {
       const Group &shufflers, const Id &local_id, const Id &session_id,
       const Id &round_id, AsymmetricKey *outer_key) :
     ShuffleRound(group, shufflers, local_id, session_id, round_id, _empty_ct,
-        _empty_rpc, QSharedPointer<AsymmetricKey>())
+        _empty_rpc, QSharedPointer<AsymmetricKey>(), ShuffleRound::DefaultData)
   {
     if(outer_key) {
       Library *lib = CryptoFactory::GetInstance().GetLibrary();

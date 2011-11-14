@@ -18,7 +18,6 @@ HEADERS += src/Dissent.hpp \
            src/Anonymity/Log.hpp \
            src/Anonymity/NullRound.hpp \
            src/Anonymity/Round.hpp \
-           src/Anonymity/SecureSession.hpp \
            src/Anonymity/Session.hpp \
            src/Anonymity/SessionManager.hpp \
            src/Anonymity/ShuffleBlamer.hpp \
@@ -86,7 +85,6 @@ SOURCES += src/Anonymity/Group.cpp \
            src/Anonymity/Log.cpp \
            src/Anonymity/NullRound.cpp \
            src/Anonymity/Round.cpp \
-           src/Anonymity/SecureSession.cpp \
            src/Anonymity/Session.cpp \
            src/Anonymity/SessionManager.cpp \
            src/Anonymity/ShuffleBlamer.cpp \

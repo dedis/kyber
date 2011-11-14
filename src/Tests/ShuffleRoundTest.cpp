@@ -7,9 +7,10 @@ namespace Tests {
   Session *CreateShuffleSession(TestNode *node, const Group &group,
       const Id &leader_id, const Id &session_id, CreateGroupGenerator cgg)
   {
-    return new SecureSession(group, node->cm.GetId(), leader_id, session_id,
-                  node->cm.GetConnectionTable(), node->rpc, node->key,
-                  &ShuffleRound::CreateRound, ShuffleRound::DefaultData, cgg);
+    return new Session(group, node->cm.GetId(), leader_id, session_id,
+                  node->cm.GetConnectionTable(), node->rpc,
+                  &ShuffleRound::Create, node->key, ShuffleRound::DefaultData,
+                  cgg);
   }
 
   TEST(ShuffleRound, Null)

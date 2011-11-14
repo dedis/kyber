@@ -50,7 +50,7 @@ namespace Anonymity {
       QHash<Id, QList<RpcRequest> > _requests;
 
     private slots:
-      void HandleSessionClose();
+      void HandleSessionStop();
   };
 }
 }

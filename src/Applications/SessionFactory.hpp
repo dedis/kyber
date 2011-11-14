@@ -49,7 +49,8 @@ namespace Applications {
       static void CreateNullRoundSession(Node *node);
 
     private:
-      static void Common(Node *node, Session *session);
+      static void Common(Node *node, CreateRound cr, const QByteArray &dd,
+          CreateGroupGenerator cgg);
 
       /**
        * No inheritance, this is a singleton object

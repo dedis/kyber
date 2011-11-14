@@ -4,20 +4,21 @@ namespace Dissent {
 namespace Anonymity {
   Session::Session(const Group &group, const Id &local_id, const Id &leader_id,
       const Id &session_id, ConnectionTable &ct, RpcHandler &rpc,
-      CreateRound create_round, const QByteArray &default_data) :
+      CreateRound create_round, QSharedPointer<AsymmetricKey> signing_key, 
+      const QByteArray &default_data, CreateGroupGenerator group_generator) :
+    _group(group),
     _local_id(local_id),
     _leader_id(leader_id),
-    _group(group),
+    _session_id(session_id),
     _ct(ct),
     _rpc(rpc),
-    _session_id(session_id),
+    _create_round(create_round),
+    _signing_key(signing_key),
     _default_data(default_data),
-    _current_round(0),
-    _started(false),
+    _generate_group(group_generator(group, local_id, session_id, ct, rpc, signing_key)),
     _round_ready(false),
-    _closed(false),
-    _ready(*this, &Session::Ready),
-    _create_round(create_round)
+    _current_round(0),
+    _ready(*this, &Session::Ready)
   {
     foreach(const Id &id, _group.GetIds()) {
       Connection *con = _ct.GetConnection(id);
@@ -28,27 +29,21 @@ namespace Anonymity {
     }
   }
 
-  void Session::Start()
+  bool Session::Start()
   {
-    qDebug() << "Session" << ToString() << "started.";
+    if(!StartStop::Start()) {
+      return false;
+    }
 
-    if(_started) {
-      qWarning() << "Called start twice.";
-      return;
-    }
-    if(_closed) {
-      qWarning() << "Already closed.";
-      return;
-    }
-    _started = true;
+    qDebug() << "Session" << ToString() << "started.";
     NextRound();
+    return true;
   }
 
-  void Session::Stop()
+  bool Session::Stop()
   {
-    if(_closed) {
-      qDebug() << "Already closed.";
-      return;
+    if(!StartStop::Stop()) {
+      return false;
     }
 
     foreach(const Id &id, _group.GetIds()) {
@@ -59,11 +54,12 @@ namespace Anonymity {
       }
     }
 
-    _closed = true;
     if(_current_round) {
-      _current_round->Close("Session stopped");
+      _current_round->Stop("Session stopped");
     }
-    emit Closing();
+
+    emit Stopping();
+    return true;
   }
 
   void Session::ReceivedReady(RpcRequest &request)
@@ -88,7 +84,7 @@ namespace Anonymity {
     }
 
     _id_to_request.insert(con->GetRemoteId(), request);
-    if(_started && _round_ready) {
+    if(Started() && _round_ready) {
       LeaderReady();
     }
   }
@@ -129,8 +125,8 @@ namespace Anonymity {
 
     emit RoundFinished(_current_round);
 
-    if(_closed) {
-      qDebug() << "Session closed.";
+    if(Stopped()){ 
+      qDebug() << "Session stopped.";
     } else 
       if(round->Successful()) {
       NextRound();
@@ -167,8 +163,8 @@ namespace Anonymity {
 
   void Session::Send(const QByteArray &data)
   {
-    if(_closed) {
-      qWarning() << "Session is closed.";
+    if(Stopped()) {
+      qWarning() << "Session is stopped.";
       return;
     }
 
@@ -183,7 +179,7 @@ namespace Anonymity {
 
   void Session::HandleDisconnect(Connection *con, const QString &)
   {
-    if(!_group.Contains(con->GetRemoteId()) || _closed) {
+    if(!_group.Contains(con->GetRemoteId()) || Stopped()) {
       return;
     }
     qDebug() << "Closing Session due to disconnect";
@@ -192,7 +188,9 @@ namespace Anonymity {
 
   Round *Session::GetRound(const QByteArray &data)
   {
-    return _create_round(_group, _local_id, _session_id, _ct, _rpc, data);
+    const Group subgroup = _generate_group->NextGroup();
+    return _create_round(_group, subgroup, _local_id, _session_id,
+        Id::Zero, _ct, _rpc, _signing_key, data);
   }
 }
 }

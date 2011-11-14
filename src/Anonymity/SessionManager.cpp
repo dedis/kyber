@@ -19,7 +19,7 @@ namespace Anonymity {
 
   void SessionManager::AddSession(QSharedPointer<Session> session)
   {
-    QObject::connect(session.data(), SIGNAL(Closing()), this, SLOT(HandleSessionClose()));
+    QObject::connect(session.data(), SIGNAL(Stopping()), this, SLOT(HandleSessionStop()));
     _id_to_session[session->GetId()] = session;
     if(!session->IsLeader()) {
       return;
@@ -78,7 +78,7 @@ namespace Anonymity {
     }
   }
 
-  void SessionManager::HandleSessionClose()
+  void SessionManager::HandleSessionStop()
   {
     Session *session = qobject_cast<Session *>(sender());
     if(!session) {
@@ -86,7 +86,7 @@ namespace Anonymity {
       return;
     }
 
-    QObject::disconnect(session, SIGNAL(Closing()), this, SLOT(HandleSessionClose()));
+    QObject::disconnect(session, SIGNAL(Stopping()), this, SLOT(HandleSessionStop()));
     _id_to_session.remove(session->GetId());
   }
 }

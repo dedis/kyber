@@ -47,7 +47,7 @@ namespace Anonymity {
        */
       const QVector<QString> &GetReasons(int idx);
 
-    protected:
+    private:
       /**
        * Sets a node as bad with the given reason
        * @param id the id of the bad node

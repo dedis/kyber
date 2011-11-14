@@ -4,7 +4,6 @@
 #include "../Anonymity/FixedSizeGroupGenerator.hpp"
 #include "../Anonymity/NullRound.hpp"
 #include "../Anonymity/Session.hpp"
-#include "../Anonymity/SecureSession.hpp"
 #include "../Anonymity/ShuffleRound.hpp"
 
 namespace Dissent {
@@ -39,42 +38,34 @@ namespace Applications {
 
   void SessionFactory::CreateNullRoundSession(Node *node)
   {
-    Group group = node->GenerateGroup();
-    Session *session = new Session(group, node->bg.GetId(), group.GetId(0),
-        Id::Zero, node->bg.GetConnectionTable(), node->bg.GetRpcHandler(),
-        &NullRound::CreateRound, NullRound::DefaultData);
-    Common(node, session);
+    Common(node, NullRound::Create, NullRound::DefaultData,
+        GroupGenerator::Create);
   }
 
   void SessionFactory::CreateShuffleRoundSession(Node *node)
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    AsymmetricKey *key= lib->GeneratePrivateKey(node->bg.GetId().GetByteArray());
-    node->key = QSharedPointer<AsymmetricKey>(key);
-
-    Group group = node->GenerateGroup();
-    Session *session = new SecureSession(group, node->bg.GetId(), group.GetId(0),
-        Id::Zero, node->bg.GetConnectionTable(), node->bg.GetRpcHandler(),
-        node->key, &ShuffleRound::CreateRound, ShuffleRound::DefaultData);
-    Common(node, session);
+    Common(node, ShuffleRound::Create, ShuffleRound::DefaultData,
+        GroupGenerator::Create);
   }
 
   void SessionFactory::CreateFastShuffleRoundSession(Node *node)
   {
+    Common(node, ShuffleRound::Create, ShuffleRound::DefaultData,
+        FixedSizeGroupGenerator::Create);
+  }
+
+  void SessionFactory::Common(Node *node, CreateRound cr,
+      const QByteArray &dd, CreateGroupGenerator cgg)
+  {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     AsymmetricKey *key= lib->GeneratePrivateKey(node->bg.GetId().GetByteArray());
     node->key = QSharedPointer<AsymmetricKey>(key);
 
     Group group = node->GenerateGroup();
-    Session *session = new SecureSession(group, node->bg.GetId(), group.GetId(0),
+    Session *session = new Session(group, node->bg.GetId(), group.GetId(0),
         Id::Zero, node->bg.GetConnectionTable(), node->bg.GetRpcHandler(),
-        node->key, &ShuffleRound::CreateRound, ShuffleRound::DefaultData,
-        &FixedSizeGroupGenerator::Create);
-    Common(node, session);
-  }
+        cr, node->key, dd, cgg);
 
-  void SessionFactory::Common(Node *node, Session *session)
-  {
     node->session = QSharedPointer<Session>(session);
     node->sm.AddSession(node->session);
 

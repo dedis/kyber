@@ -4,12 +4,12 @@
 namespace Dissent {
 namespace Tests {
   Session *CreateNullSession(TestNode *node, const Group &group,
-      const Id &leader_id, const Id &session_id,
-      CreateGroupGenerator)
+      const Id &leader_id, const Id &session_id, CreateGroupGenerator)
   {
     return new Session(group, node->cm.GetId(), leader_id, session_id,
                   node->cm.GetConnectionTable(), node->rpc, 
-                  &NullRound::CreateRound, NullRound::DefaultData);
+                  &NullRound::Create, QSharedPointer<AsymmetricKey>(),
+                  NullRound::DefaultData);
   }
 
   TEST(NullRound, Null)

@@ -2,39 +2,42 @@
 
 namespace Dissent {
 namespace Anonymity {
-  Round::Round(const Group &group, const Id &local_id, const Id &session_id,
-      const ConnectionTable &ct, RpcHandler &rpc) :
+  Round::Round(const Group &group, const Group &active_group,
+      const Id &local_id, const Id &session_id, const Id &round_id,
+      const ConnectionTable &ct, RpcHandler &rpc,
+      QSharedPointer<AsymmetricKey> signing_key, const QByteArray &data) :
     _group(group),
+    _active_group(active_group),
     _local_id(local_id),
-    _successful(false),
     _session_id(session_id),
+    _round_id(round_id),
     _ct(ct),
     _rpc(rpc),
-    _closed(false)
+    _signing_key(signing_key),
+    _data(data),
+    _successful(false)
   {
   }
 
-  bool Round::Close()
+  bool Round::Stop()
   {
-    return Close("Explicitly closed");
+    return Stop("Explicitly closed");
   }
 
-  bool Round::Close(const QString &reason)
+  bool Round::Stop(const QString &reason)
   {
-    if(_closed) {
+    if(!StartStop::Stop()) {
       return false;
     }
 
-    _closed_reason = reason;
-    _closed = true;
-
+    _stopped_reason = reason;
     emit Finished();
     return true;
   }
 
   void Round::HandleData(const QByteArray &data, ISender *from)
   {
-    if(_closed) {
+    if(Stopped()) {
       qWarning() << "Received a message on a closed round:" << ToString();
       return;
     }
@@ -52,7 +55,7 @@ namespace Anonymity {
   {
     const Id id = con->GetRemoteId();
     if(_group.Contains(id)) {
-      Close(QString(id.ToString() + " disconnected"));
+      Stop(QString(id.ToString() + " disconnected"));
     }
   }
 
@@ -78,6 +81,29 @@ namespace Anonymity {
   void Round::Send(const QByteArray &)
   {
     throw std::logic_error("Not implemented");
+  }
+
+  QByteArray Round::GetPlaintextData(int index)
+  {
+    return _data_received.value(index);
+  }
+
+  bool Round::SetPlaintextData(int index, const QByteArray &data)
+  {
+    bool first = !_data_received.contains(index);
+    _data_received[index] = data;
+    return first;
+  }
+
+  bool Round::SetOrAppendPlaintextData(int index, const QByteArray &data)
+  {
+    bool first = !_data_received.contains(index);
+    if(first) {
+      _data_received[index] = data;
+    } else {
+      _data_received[index].append(data);
+    }
+    return first;
   }
 }
 }

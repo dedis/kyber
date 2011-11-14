@@ -5,25 +5,25 @@
 #include <QQueue>
 
 #include "Group.hpp"
+#include "GroupGenerator.hpp"
 #include "Round.hpp"
+#include "../Utils/StartStop.hpp"
 
 namespace Dissent {
 namespace Anonymity {
   namespace {
-    using namespace Dissent::Messaging;
     using namespace Dissent::Connections;
+    using namespace Dissent::Messaging;
+    using namespace Dissent::Utils;
   }
 
   /**
    * Maintains a group which is actively participating in anonymous exchanges
    */
-  class Session : public QObject, public Filter {
+  class Session : public QObject, public Filter, public StartStop {
     Q_OBJECT
 
     public:
-      typedef Round *(*CreateRound)(const Group &, const Id &, const Id &,
-          const ConnectionTable &, RpcHandler &, const QByteArray &);
-
       /**
        * Constructor
        * @param group an ordered member of peers for the group
@@ -32,11 +32,17 @@ namespace Anonymity {
        * @param session_id Id for the session
        * @param ct maps Ids to connections
        * @param rpc for sending and receives remote procedure calls
+       * @param signing_key the local nodes private signing key, pointer NOT
+       * @param create_round a callback for creating a secure round
        * @param default_data default data
+       * @param group_generator generates a subgroup of the primary group for
+       * use in the round
        */
       Session(const Group &group, const Id &local_id, const Id &leader_id,
           const Id &session_id, ConnectionTable &ct, RpcHandler &rpc,
-          CreateRound create_round, const QByteArray &default_data);
+          CreateRound create_round, QSharedPointer<AsymmetricKey> signing_key, 
+          const QByteArray &default_data,
+          CreateGroupGenerator group_generator = GroupGenerator::Create);
 
       /**
        * Deconstructor
@@ -44,14 +50,14 @@ namespace Anonymity {
       virtual ~Session() {}
 
       /**
-       * Begin the Session
+       * Starts the session
        */
-      void Start();
+      virtual bool Start();
 
       /**
-       * Stop the Session, emits closed when all state has finished
+       * Stops the session
        */
-      void Stop();
+      virtual bool Stop();
 
       /**
        * From the SessionManager, pass in a ReceiveReady
@@ -81,16 +87,24 @@ namespace Anonymity {
       inline const Id &GetId() const { return _session_id; }
 
       /**
-       * Is the session still active?
-       */
-      inline bool Closed() { return _closed; }
-
-      /**
        * Returns the current round
        */
       inline QSharedPointer<Round> GetCurrentRound() { return _current_round; }
 
-      inline virtual QString ToString() const { return "Session: " + GetId().ToString(); }
+      /**
+       * Returns the Session / Round information
+       */
+      inline virtual QString ToString() const
+      {
+        return "Session: " + GetId().ToString() + "|" +
+          (_current_round.isNull() ? "No current round" : 
+          _current_round->ToString());
+      }
+
+      /**
+       * Returns the underlying GroupGenerator
+       */
+      inline const GroupGenerator &GetGroupGenerator() { return *_generate_group; }
 
     signals:
       /**
@@ -103,17 +117,9 @@ namespace Anonymity {
       /**
        * Signfies that the session has been closed / stopped
        */
-      void Closing();
+      void Stopping();
 
     protected:
-      const Id _local_id;
-      const Id _leader_id;
-      const Group _group;
-      const ConnectionTable &_ct;
-      RpcHandler &_rpc;
-      const Id _session_id;
-      const QByteArray _default_data;
-
     private:
       /**
        * Checks to see if the leader has received all the Ready messsages and
@@ -149,12 +155,20 @@ namespace Anonymity {
        */
       QQueue<QByteArray> _send_queue;
 
-      QSharedPointer<Round> _current_round;
-      bool _started;
-      bool _round_ready;
-      bool _closed;
-      RpcMethod<Session> _ready;
+      const Group _group;
+      const Id _local_id;
+      const Id _leader_id;
+      const Id _session_id;
+      const ConnectionTable &_ct;
+      RpcHandler &_rpc;
       CreateRound _create_round;
+      QSharedPointer<AsymmetricKey> _signing_key;
+      const QByteArray _default_data;
+      QScopedPointer<GroupGenerator> _generate_group;
+
+      bool _round_ready;
+      QSharedPointer<Round> _current_round;
+      RpcMethod<Session> _ready;
 
     private slots:
       /**
