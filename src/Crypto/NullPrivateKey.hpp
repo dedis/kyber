@@ -10,7 +10,8 @@
 namespace Dissent {
 namespace Crypto {
   /**
-   * Implementation of PrivateKey that doesn't really do much
+   * Implementation of PrivateKey that provides unique encryptions without
+   * actually doing any encryption / signing, so it works in a Dissent Shuffle
    */
   class NullPrivateKey : public NullPublicKey {
     public:

@@ -10,7 +10,8 @@
 namespace Dissent {
 namespace Crypto {
   /**
-   * Implementation of PublicKey using CryptoPP
+   * Implementation of PublicKey that provides unique encryptions without actually
+   * doing any encryption, so it works in a Dissent Shuffle
    */
   class NullPublicKey : public AsymmetricKey {
     public:
