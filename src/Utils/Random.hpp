@@ -13,7 +13,7 @@ namespace Utils {
     public:
       static Random &GetInstance();
 
-      Random();
+      Random(const QByteArray &seed = QByteArray());
       virtual ~Random() {}
 
       virtual void SetSeed(int seed);
@@ -33,6 +33,8 @@ namespace Utils {
 
     protected:
       Random(const Random &) {}
+    private:
+      uint _seed;
   };
 }
 }

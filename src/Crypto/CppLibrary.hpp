@@ -77,6 +77,14 @@ namespace Crypto {
       }
 
       /**
+       * Returns a deterministic random number generator
+       */
+      inline virtual Dissent::Utils::Random *GetRandomNumberGenerator(const QByteArray &seed)
+      {
+        return new CppRandom(seed);
+      }
+
+      /**
        * Returns a hash algorithm
        */
       inline virtual Hash *GetHashAlgorithm() 

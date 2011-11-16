@@ -1,7 +1,9 @@
 #include <time.h>
 #include <QtGlobal>
+#include <QDebug>
 
 #include "Random.hpp"
+#include "Serialization.hpp"
 
 namespace Dissent {
 namespace Utils {
@@ -11,14 +13,24 @@ namespace Utils {
     return rand;
   }
 
-  Random::Random()
+  Random::Random(const QByteArray &seed)
   {
-    qsrand(time(NULL));
+    if(seed.isEmpty()) {
+      _seed = time(NULL);
+      return;
+    }
+
+    _seed = 0;
+    int offset = 0;
+    while(offset < seed.size()) {
+      _seed ^= Serialization::ReadInt(seed, offset);
+      offset += 4;
+    }
   }
 
   void Random::SetSeed(int seed)
   {
-    qsrand(seed);
+    _seed = seed;
   }
 
   int Random::GetInt(int min, int max)
@@ -27,10 +39,14 @@ namespace Utils {
       return min;
     }
 
-    int value = qrand() % max;
+    uint base = rand_r(&_seed);
+    int value = base % max;
     while(value < min) {
-      value = qrand() % max;
+      base = rand_r(&base);
+      value = base % max;
     }
+
+    _seed = base;
     return value;
   }
 

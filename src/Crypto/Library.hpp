@@ -50,6 +50,11 @@ namespace Crypto {
       virtual Dissent::Utils::Random *GetRandomNumberGenerator() = 0;
 
       /**
+       * Returns a deterministic random number generator
+       */
+      virtual Dissent::Utils::Random *GetRandomNumberGenerator(const QByteArray &seed) = 0;
+
+      /**
        * Returns a hash algorithm
        */
       virtual Hash *GetHashAlgorithm() = 0;
