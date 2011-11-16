@@ -37,6 +37,10 @@ namespace Anonymity {
       _inner_key.reset(lib->CreatePrivateKey());
       _outer_key.reset(lib->CreatePrivateKey());
     }
+
+    if(GetActiveGroup().GetIndex(GetLocalId()) == 0) {
+      _shuffle_ciphertext = QVector<QByteArray>(GetGroup().Count());
+    }
   }
 
   ShuffleRound::~ShuffleRound()
@@ -118,9 +122,8 @@ namespace Anonymity {
       return false;
     }
 
-    if(GetActiveGroup().GetIndex(GetLocalId()) == 0) {
-      _shuffle_ciphertext = QVector<QByteArray>(GetGroup().Count());
-    }
+    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
+      ": starting:" << ToString();
 
     BroadcastPublicKeys();
     return true;
@@ -507,7 +510,9 @@ namespace Anonymity {
 
   void ShuffleRound::BroadcastPublicKeys()
   {
-    _state = KeySharing;
+    if(_state == Offline) {
+      _state = KeySharing;
+    }
 
     if(!_shuffler) {
       qDebug() << GetActiveGroup().GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
