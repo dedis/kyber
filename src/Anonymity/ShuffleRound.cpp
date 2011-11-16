@@ -268,6 +268,16 @@ namespace Anonymity {
 
     for(int idx = 0; idx < GetGroup().Count(); idx++) {
       if(!_go[idx] || _broadcast_hashes[idx] != _broadcast_hash) {
+        if(!_go[idx]) {
+          qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
+              ": starting blame due to no go from" <<
+              GetGroup().GetId(idx).ToString() << idx;
+        } else {
+          qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
+              ": starting blame mismatched broadcast hashes" <<
+              GetGroup().GetId(idx).ToString() << idx;
+        }
+
         StartBlame();
         return;
       }
