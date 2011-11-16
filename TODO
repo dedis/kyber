@@ -33,3 +33,7 @@ Transports
 
 Utils
 - VirtualTime should have a method that lets it be executed for a specific amount of time via QEvent mechanisms
+
+Issues
+- The current protocol doesn't work properly if a non-shuffler receives an invalid go / no go message ... since no one is waiting for its private keys, thus the process will conclude potentially without his follow up.
+- A malicious peer or a bad network may redeliver the same message multiple times ... ignore duplicate messages by verifying they exist in the logs...
