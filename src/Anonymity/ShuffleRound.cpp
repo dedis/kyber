@@ -510,6 +510,8 @@ namespace Anonymity {
     _state = KeySharing;
 
     if(!_shuffler) {
+      qDebug() << GetActiveGroup().GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
+        << ": not sharing a key, waiting for keys.";
       return;
     }
 
@@ -521,6 +523,9 @@ namespace Anonymity {
     QByteArray msg;
     QDataStream stream(&msg, QIODevice::WriteOnly);
     stream << PublicKeys << GetRoundId().GetByteArray() << inner_key << outer_key;
+
+    qDebug() << GetActiveGroup().GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
+      << ": key shared waiting for other keys.";
 
     Broadcast(msg);
   }
@@ -543,6 +548,9 @@ namespace Anonymity {
     } else {
       _state = WaitingForEncryptedInnerData;
     }
+
+    qDebug() << GetActiveGroup().GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
+      << ": data submitted now in state:" << StateToString(_state);
 
     Send(msg, GetActiveGroup().GetId(0));
   }
@@ -588,6 +596,9 @@ namespace Anonymity {
 
     _state = WaitingForEncryptedInnerData;
 
+    qDebug() << GetActiveGroup().GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
+      << ": finished shuffling";
+
     if(mtype == EncryptedData) {
       Broadcast(msg);
     } else {
@@ -601,7 +612,9 @@ namespace Anonymity {
     if(found) {
       _state = Verification;
     } else {
-      qWarning() << "Did not find our message in the shuffled ciphertexts!";
+      qWarning() << GetActiveGroup().GetIndex(GetLocalId()) <<
+        GetGroup().GetIndex(GetLocalId()) <<
+        "Did not find our message in the shuffled ciphertexts!";
     }
 
     MessageType mtype = found ?  GoMessage : NoGoMessage;
@@ -620,6 +633,10 @@ namespace Anonymity {
       }
       _broadcast_hash = hash->ComputeHash();
       out_stream << _broadcast_hash;
+
+      qDebug() << GetActiveGroup().GetIndex(GetLocalId()) <<
+        GetGroup().GetIndex(GetLocalId()) <<
+        ": found our data in the shuffled ciphertexts";
     }
 
     Broadcast(msg);
