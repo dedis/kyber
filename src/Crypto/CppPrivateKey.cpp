@@ -1,6 +1,5 @@
-#include <cryptopp/randpool.h>
-
 #include "CppPrivateKey.hpp"
+#include "CppRandom.hpp"
 
 namespace Dissent {
 namespace Crypto {
@@ -33,18 +32,9 @@ namespace Crypto {
 
   CppPrivateKey *CppPrivateKey::GenerateKey(const QByteArray &data)
   {
-    int value = 0;
-    for(int idx = 0; idx + 3 < data.count(); idx+=4) {
-      int tmp = data[idx];
-      tmp |= (data[idx + 1] << 8);
-      tmp |= (data[idx + 2] << 16);
-      tmp |= (data[idx + 3] << 24);
-      value ^= tmp;
-    }
-
-    LC_RNG rng(value);
+    CppRandom rng(data);
     RSA::PrivateKey key;
-    key.GenerateRandomWithKeySize(rng, DefaultKeySize);
+    key.GenerateRandomWithKeySize(*rng.GetHandle(), DefaultKeySize);
     return new CppPrivateKey(GetByteArray(key));
   }
 
@@ -105,6 +95,7 @@ namespace Crypto {
           new StreamTransformationFilter(dec, sink));
       size = sink->TotalPutLength();
     } catch (std::exception &e) {
+      qWarning() << "In CppPrivateKey::Decrypt:AES: " << e.what();
       return QByteArray();
     }
 

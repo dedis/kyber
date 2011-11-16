@@ -6,7 +6,7 @@ namespace Tests {
     using namespace Dissent::Crypto;
   }
 
-  void AssymetricKeyTest(Library *lib)
+  void AsymmetricKeyTest(Library *lib)
   {
     QScopedPointer<Random> rng(lib->GetRandomNumberGenerator());
     QByteArray data(1500, 0);
@@ -97,11 +97,11 @@ namespace Tests {
 
   void AsymmetricKeyFail(Library *lib)
   {
-    CryptoPP::AutoSeededX917RNG<CryptoPP::DES_EDE3> rng;
+    CppRandom rng;
     QByteArray data(1500, 0);
-    rng.GenerateBlock(reinterpret_cast<byte *>(data.data()), data.size());
+    rng.GenerateBlock(data);
     QByteArray small_data(10, 0);
-    rng.GenerateBlock(reinterpret_cast<byte *>(small_data.data()), small_data.size());
+    rng.GenerateBlock(small_data);
     QByteArray empty;
 
     QScopedPointer<AsymmetricKey> key0(lib->CreatePrivateKey());
@@ -188,12 +188,31 @@ namespace Tests {
     EXPECT_EQ(*pr_key0, *pr_key0_0);
     EXPECT_EQ(*pr_key1, *pr_key1_0);
     EXPECT_FALSE(*pr_key0 == *pr_key1);
+
+    QScopedPointer<Random> rng(lib->GetRandomNumberGenerator());
+    QByteArray data(1500, 0);
+    rng->GenerateBlock(data);
+
+    QScopedPointer<AsymmetricKey> pu_key0_0(pr_key0->GetPublicKey());
+    EXPECT_EQ(pu_key0->GetByteArray(), pu_key0_0->GetByteArray());
+    EXPECT_EQ(pr_key0->GetByteArray(), pr_key0_0->GetByteArray());
+
+    QByteArray enc = pu_key0->Encrypt(data);
+    QByteArray dec0 = pr_key0->Decrypt(enc);
+    QByteArray dec0_0 = pr_key0_0->Decrypt(enc);
+    EXPECT_EQ(data, dec0);
+    EXPECT_EQ(data, dec0_0);
+
+    QByteArray sig0 = pr_key0->Sign(data);
+    QByteArray sig0_0 = pr_key0_0->Sign(data);
+    EXPECT_TRUE(pu_key0->Verify(data, sig0));
+    EXPECT_TRUE(pu_key0->Verify(data, sig0_0));
   }
 
   TEST(Crypto, CppAsymmetricKey)
   {
     QScopedPointer<Library> lib(new CppLibrary());
-    AssymetricKeyTest(lib.data());
+    AsymmetricKeyTest(lib.data());
 
     QScopedPointer<AsymmetricKey> key(lib->CreatePrivateKey());
     EXPECT_EQ(key->GetKeySize(), key->GetDefaultKeySize());
@@ -214,7 +233,7 @@ namespace Tests {
   TEST(Crypto, NullAsymmetricKey)
   {
     QScopedPointer<Library> lib(new NullLibrary());
-    AssymetricKeyTest(lib.data());
+    AsymmetricKeyTest(lib.data());
   }
 
   TEST(Crypto, NullAsymmetricKeyFail)
