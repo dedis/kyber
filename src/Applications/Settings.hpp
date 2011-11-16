@@ -82,6 +82,11 @@ namespace Applications {
        */
       bool Multithreading;
 
+      /**
+       * The id for the (first) local node, other nodes will be random
+       */
+      QString LocalId;
+
     private:
       void ParseUrlList(const QString &name, const QVariant &values, QList<QUrl> &list);
       void ParseUrl(const QString &name, const QVariant &value, QList<QUrl> &list);

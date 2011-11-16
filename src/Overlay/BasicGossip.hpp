@@ -25,11 +25,13 @@ namespace Overlay {
     public:
       /**
        * Constructor
+       * @param local_id Id for the local overlay
        * @param local_endpoints list of endpoints to be constructed locally
        * via EdgeListeners
        * @param remote_endpoints list of remote members
        */
-      BasicGossip(const QList<Address> &local_endpoints,
+      BasicGossip(const Id &local_id,
+          const QList<Address> &local_endpoints,
           const QList<Address> &remote_endpoints);
 
       /**

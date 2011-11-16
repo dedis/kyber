@@ -21,7 +21,7 @@ namespace Tests {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
 
     for(int idx = 0; idx < count; idx++) {
-      nodes.append(QSharedPointer<Node>(new Node(local, remote, count, session_type)));
+      nodes.append(QSharedPointer<Node>(new Node(Id(), local, remote, count, session_type)));
       AsymmetricKey *key = lib->GeneratePrivateKey(nodes[idx]->bg.GetId().GetByteArray());
       nodes[idx]->key = QSharedPointer<AsymmetricKey>(key);
       nodes[idx]->sink = QSharedPointer<ISink>(new MockSinkWithSignal());
@@ -154,7 +154,7 @@ namespace Tests {
 
     for(int idx = 0; idx < count - 1; idx++) {
       local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
-      nodes.append(QSharedPointer<Node>(new Node(local, remote, count, session_type)));
+      nodes.append(QSharedPointer<Node>(new Node(Id(), local, remote, count, session_type)));
       AsymmetricKey *key = lib->GeneratePrivateKey(nodes[idx]->bg.GetId().GetByteArray());
       nodes[idx]->key = QSharedPointer<AsymmetricKey>(key);
       nodes[idx]->sink = QSharedPointer<ISink>(new MockSinkWithSignal());
@@ -181,7 +181,7 @@ namespace Tests {
     }
 
     local[0] = base;
-    nodes.append(QSharedPointer<Node>(new Node(local, remote, count, session_type)));
+    nodes.append(QSharedPointer<Node>(new Node(Id(), local, remote, count, session_type)));
     AsymmetricKey *key = lib->GeneratePrivateKey(nodes.last()->bg.GetId().GetByteArray());
     nodes.last()->key = QSharedPointer<AsymmetricKey>(key);
     nodes.last()->sink = QSharedPointer<ISink>(new MockSinkWithSignal());
@@ -198,6 +198,18 @@ namespace Tests {
     }
 
     TerminateOverlay(nodes);
+  }
+
+  TEST(BasicGossip, IdGeneration)
+  {
+    Id local_id;
+    Id id(local_id.GetBase64String());
+    QList<Address> empty;
+    BasicGossip bg(id, empty, empty);
+    EXPECT_EQ(local_id, bg.GetId());
+
+    Node n(id, empty, empty, 1, "Null");
+    EXPECT_EQ(local_id, n.bg.GetId());
   }
 }
 }

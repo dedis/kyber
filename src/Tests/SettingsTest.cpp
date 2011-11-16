@@ -6,6 +6,7 @@ namespace Dissent {
 namespace Tests {
   TEST(Settings, Basic)
   {
+    Id id;
     QFile file("dissent.ini");
     file.remove();
 
@@ -14,6 +15,7 @@ namespace Tests {
     EXPECT_EQ(settings.RemotePeers.count(), 0);
     settings.LocalEndPoints.append(QUrl("buffer://5"));
     settings.RemotePeers.append(QUrl("buffer://6"));
+    settings.LocalId = id.GetBase64String();
     settings.Save();
 
     Settings settings0("dissent.ini");
@@ -32,6 +34,7 @@ namespace Tests {
     EXPECT_EQ(settings0.LocalEndPoints[1], QUrl("buffer://7"));
     EXPECT_EQ(settings0.RemotePeers[0], QUrl("buffer://6"));
     EXPECT_EQ(settings0.RemotePeers[1], QUrl("buffer://8"));
+    EXPECT_EQ(id, Id(settings1.LocalId));
   }
 }
 }

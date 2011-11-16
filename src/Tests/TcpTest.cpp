@@ -21,7 +21,7 @@ namespace Tests {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
 
     for(int idx = 0; idx < count; idx++) {
-      nodes.append(QSharedPointer<Node>(new Node(local, remote, count, session_type)));
+      nodes.append(QSharedPointer<Node>(new Node(Id(), local, remote, count, session_type)));
       AsymmetricKey *key = lib->GeneratePrivateKey(nodes[idx]->bg.GetId().GetByteArray());
       nodes[idx]->key = QSharedPointer<AsymmetricKey>(key);
       nodes[idx]->sink = QSharedPointer<ISink>(new MockSinkWithSignal());

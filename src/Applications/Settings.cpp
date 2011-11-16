@@ -50,6 +50,7 @@ namespace Applications {
 
     Console = _settings.value("console").toBool();
     Multithreading = _settings.value("multithreading").toBool();
+    LocalId = _settings.value("local_id").toString();
   }
 
   bool Settings::IsValid()
@@ -134,6 +135,7 @@ namespace Applications {
     _settings.setValue("demo_mode", DemoMode);
     _settings.setValue("log", Log);
     _settings.setValue("multithreading", Multithreading);
+    _settings.setValue("local_id", LocalId);
   }
 }
 }

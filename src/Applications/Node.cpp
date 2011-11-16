@@ -4,9 +4,10 @@
 
 namespace Dissent {
 namespace Applications {
-  Node::Node(const QList<Address> &local, const QList<Address> &remote,
-      int group_size, const QString &session_type) :
-    bg(local, remote),
+  Node::Node(const Id &local_id, const QList<Address> &local,
+      const QList<Address> &remote, int group_size,
+      const QString &session_type) :
+    bg(local_id, local, remote),
     sm(bg.GetRpcHandler()),
     GroupSize(group_size),
     SessionType(session_type),

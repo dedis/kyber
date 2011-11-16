@@ -6,12 +6,14 @@
 
 namespace Dissent {
 namespace Overlay {
-  BasicGossip::BasicGossip(const QList<Address> &local_endpoints,
+  BasicGossip::BasicGossip(const Id &local_id,
+      const QList<Address> &local_endpoints,
       const QList<Address> &remote_endpoints) :
     _local_endpoints(local_endpoints),
     _remote_endpoints(remote_endpoints),
     _started(false),
     _stopped(false),
+    _local_id(local_id),
     _cm(_local_id, _rpc),
     _peer_list_inquire(*this, &BasicGossip::PeerListInquire),
     _peer_list_response(*this, &BasicGossip::PeerListResponse),
@@ -38,6 +40,8 @@ namespace Overlay {
     if(_started) {
       return false;
     }
+
+    qDebug() << "Starting node" << _local_id.ToString();
 
     _started = true;
 

@@ -25,13 +25,15 @@ namespace Applications {
     public:
       /**
        * Constructor
+       * @param local_id Id for this node
        * @param local the EL addresses
        * @param remote the bootstrap peer list
        * @param group_size number of peers to wait for before creating the group
        * @param session_type type of session / round to create
        */
-      Node(const QList<Address> &local, const QList<Address> &remote,
-          int group_size, const QString &session_type);
+      Node(const Id &local_id, const QList<Address> &local,
+          const QList<Address> &remote, int group_size,
+          const QString &session_type);
 
       /**
        * Destructor
