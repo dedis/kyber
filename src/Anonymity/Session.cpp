@@ -18,7 +18,8 @@ namespace Anonymity {
     _generate_group(group_generator(group, local_id, session_id, ct, rpc, signing_key)),
     _round_ready(false),
     _current_round(0),
-    _ready(*this, &Session::Ready)
+    _ready(*this, &Session::Ready),
+    _round_idx(0)
   {
     foreach(const Id &id, _group.GetIds()) {
       Connection *con = _ct.GetConnection(id);
@@ -190,7 +191,7 @@ namespace Anonymity {
   {
     const Group subgroup = _generate_group->NextGroup();
     return _create_round(_group, subgroup, _local_id, _session_id,
-        Id::Zero, _ct, _rpc, _signing_key, data);
+        Id(Id::Zero.GetInteger() + _round_idx++), _ct, _rpc, _signing_key, data);
   }
 }
 }

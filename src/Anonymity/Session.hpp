@@ -169,6 +169,7 @@ namespace Anonymity {
       bool _round_ready;
       QSharedPointer<Round> _current_round;
       RpcMethod<Session> _ready;
+      int _round_idx;
 
     private slots:
       /**
