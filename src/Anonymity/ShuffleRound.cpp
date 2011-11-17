@@ -278,7 +278,9 @@ namespace Anonymity {
         } else {
           qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
               ": starting blame mismatched broadcast hashes" <<
-              GetGroup().GetId(idx).ToString() << idx;
+              GetGroup().GetId(idx).ToString() << idx << "... Got:" <<
+              _broadcast_hashes[idx].toBase64() << ", expected:" <<
+              _broadcast_hash.toBase64();
         }
 
         StartBlame();
