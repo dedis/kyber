@@ -455,7 +455,8 @@ namespace Anonymity {
 
     Id rid(round_id);
     if(rid != GetRoundId()) {
-      throw QRunTimeError("Invalid round found");
+      throw QRunTimeError("Not this round: " + rid.ToString() + " " +
+          GetRoundId().ToString());
     }
 
     switch(msg_type) {
