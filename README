@@ -84,6 +84,22 @@ Contact
 ===============================================================================
 TBA
 
+Workflow
+===============================================================================
+If you are considering contributing source code, please kindly follow these
+steps:
+
+At some point, you cloned the "master" repository and after some time you
+completed your changes.  In the meantime, the main repository may have changed.
+So after you have verified your code in the original context, you should call
+git fetch && git rebase.  This will place your code on top of the current
+master branch and will enable you to verify that your code will work in the
+current master branch.  When you have verified this, you should request a
+merge, preferably through github.
+
+Also note, when you submit code for inclusion in this library, you implicitly
+release your personal license to the software to Yale Dedis, see below.
+
 License
 ===============================================================================
 While the code linked relies on a variety of licenses, which must be respected,
