@@ -90,7 +90,8 @@ namespace Applications {
     } else if(cmd == "select") {
       bool valid;
       int current = msg.toInt(&valid);
-      if(valid) {
+      
+      if(valid && current < _nodes.count()) {
         _current_node = current;
         _qtout << endl << "New current node: " << msg;
       } else {
