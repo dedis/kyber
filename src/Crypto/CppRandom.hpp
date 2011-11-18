@@ -3,7 +3,6 @@
 
 #include <QScopedPointer>
 #include <cryptopp/osrng.h> 
-#include <cryptopp/des.h>
 
 #include "../Utils/Random.hpp"
 
@@ -24,6 +23,12 @@ namespace Crypto {
        * Destructor
        */
       virtual ~CppRandom() {}
+
+      /**
+       * Returns the optimal seed size, less than will provide suboptimal
+       * results and greater than will be compressed into the chosen seed.
+       */
+      static uint OptimalSeedSize() { return CryptoPP::AES::DEFAULT_KEYLENGTH; }
 
       virtual int GetInt(int min = 0, int max = RAND_MAX);
       virtual void GenerateBlock(QByteArray &data);

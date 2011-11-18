@@ -84,6 +84,11 @@ namespace Crypto {
         return new CppRandom(seed);
       }
 
+      inline virtual uint RngOptimalSeedSize()
+      {
+        return CppRandom::OptimalSeedSize();
+      }
+
       /**
        * Returns a hash algorithm
        */

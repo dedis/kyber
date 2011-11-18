@@ -13,10 +13,21 @@ namespace Utils {
     public:
       static Random &GetInstance();
 
+      /**
+       * Constructor
+       */
       Random(const QByteArray &seed = QByteArray());
+
+      /**
+       * Destructor
+       */
       virtual ~Random() {}
 
-      virtual void SetSeed(int seed);
+      /**
+       * Returns the optimal seed size, less than will provide suboptimal
+       * results and greater than will be compressed into the chosen seed.
+       */
+      static uint OptimalSeedSize() { return 4; }
 
       /**
        * Returns a random intger from min to max

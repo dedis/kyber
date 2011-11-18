@@ -28,11 +28,6 @@ namespace Utils {
     }
   }
 
-  void Random::SetSeed(int seed)
-  {
-    _seed = seed;
-  }
-
   int Random::GetInt(int min, int max)
   {
     if(max <= min) {

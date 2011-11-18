@@ -84,6 +84,11 @@ namespace Crypto {
         return new Dissent::Utils::Random(seed);
       }
 
+      inline virtual uint RngOptimalSeedSize()
+      {
+        return Dissent::Utils::Random::OptimalSeedSize();
+      }
+
       /**
        * Returns a hash algorithm
        */
