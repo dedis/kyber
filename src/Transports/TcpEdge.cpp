@@ -5,6 +5,8 @@ using Dissent::Utils::Serialization;
 
 namespace Dissent {
 namespace Transports {
+  const QByteArray TcpEdge::Zero = QByteArray(4, 0);
+
   TcpEdge::TcpEdge(const Address &local, const Address &remote, bool outgoing,
       QTcpSocket *socket) :
     Edge(local, remote, outgoing),
@@ -25,31 +27,42 @@ namespace Transports {
 
     QByteArray length(4, 0);
     Serialization::WriteInt(data.size(), length, 0);
-    QByteArray msg = length + data + QByteArray(4, 0);
-
-    int written = _socket->write(msg);
-    if(written != msg.size()) {
+    if((_socket->write(length) != 4) ||
+        (_socket->write(data) != data.size()) ||
+        (_socket->write(Zero) != 4))
+    {
       qCritical() << "Didn't write all data to the socket!!!!!";
     }
   }
 
   void TcpEdge::Read()
   {
-    QByteArray msg = _socket->readAll();
+    int total_length = _socket->bytesAvailable();
 
-    _in_buffer.append(msg);
-    int length = Serialization::ReadInt(_in_buffer, 0) + 8;
+    while(total_length >= 8) {
+      QByteArray length_arr = _socket->peek(4);
+      if(length_arr.isEmpty()) {
+        qCritical() << "Error reading Tcp socket in" << ToString();
+        return;
+      }
 
-    while(length > 0 && length <= _in_buffer.count()) {
-      QByteArray data = _in_buffer.mid(4, length - 8);
-      if(Serialization::ReadInt(_in_buffer, length - 4) != 0) {
+      int length = Serialization::ReadInt(length_arr, 0);
+      if(length + 8 > total_length) {
+        break;
+      }
+
+      QByteArray msg = _socket->read(length + 8);
+      if(msg.isEmpty()) {
+        qCritical() << "Error reading Tcp socket in" << ToString();
+        return;
+      }
+
+      if(Serialization::ReadInt(msg, length + 4) != 0) {
         qCritical() << "Mismatch on byte array!";
       }
 
-      PushData(data, this);
-
-      _in_buffer = _in_buffer.mid(length);
-      length = (_in_buffer.size() > 4) ? Serialization::ReadInt(_in_buffer, 0) + 8 : 0;
+      PushData(msg.mid(4, length), this);
+      total_length = _socket->bytesAvailable();
     }
   }
 

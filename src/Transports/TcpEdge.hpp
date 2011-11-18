@@ -14,6 +14,8 @@ namespace Transports {
     Q_OBJECT
 
     public:
+      static const QByteArray Zero;
+
       /**
        * Constructor
        * @param local the local address of the edge
@@ -41,8 +43,6 @@ namespace Transports {
       void Read();
 
     private:
-      QByteArray _in_buffer;
-      QByteArray _out_buffer;
       QSharedPointer<QTcpSocket> _socket;
   };
 }
