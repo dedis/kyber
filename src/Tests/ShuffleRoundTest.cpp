@@ -9,8 +9,7 @@ namespace Tests {
   {
     return new Session(group, node->cm.GetId(), leader_id, session_id,
                   node->cm.GetConnectionTable(), node->rpc,
-                  &ShuffleRound::Create, node->key, ShuffleRound::DefaultData,
-                  cgg);
+                  &ShuffleRound::Create, node->key, cgg);
   }
 
   TEST(ShuffleRound, Null)

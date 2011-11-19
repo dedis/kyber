@@ -2,13 +2,11 @@
 
 namespace Dissent {
 namespace Anonymity {
-  const QByteArray NullRound::DefaultData = QByteArray();
-
   NullRound::NullRound(const Group &group, const Id &local_id,
       const Id &session_id, const ConnectionTable &ct, RpcHandler &rpc,
-      const QByteArray &data) :
+      GetDataCallback &get_data) :
     Round(group, group, local_id, session_id, Id::Zero, ct, rpc,
-        QSharedPointer<AsymmetricKey>(), data)
+        QSharedPointer<AsymmetricKey>(), get_data)
   {
   }
 
@@ -18,8 +16,9 @@ namespace Anonymity {
       return false;
     }
 
-    Broadcast(GetData());
-    ProcessData(GetData(), GetLocalId());
+    QPair<QByteArray, bool> data = GetData(1024);
+    Broadcast(data.first);
+    ProcessData(data.first, GetLocalId());
     return true;
   }
 
@@ -31,7 +30,7 @@ namespace Anonymity {
     }
     _received_from.append(id);
 
-    if(data != DefaultData) {
+    if(!data.isEmpty()) {
       SetPlaintextData(GetGroup().GetIndex(id), data);
       PushData(data, this);
     }

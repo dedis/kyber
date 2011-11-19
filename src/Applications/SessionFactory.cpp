@@ -38,24 +38,20 @@ namespace Applications {
 
   void SessionFactory::CreateNullRoundSession(Node *node)
   {
-    Common(node, NullRound::Create, NullRound::DefaultData,
-        GroupGenerator::Create);
+    Common(node, NullRound::Create, GroupGenerator::Create);
   }
 
   void SessionFactory::CreateShuffleRoundSession(Node *node)
   {
-    Common(node, ShuffleRound::Create, ShuffleRound::DefaultData,
-        GroupGenerator::Create);
+    Common(node, ShuffleRound::Create, GroupGenerator::Create);
   }
 
   void SessionFactory::CreateFastShuffleRoundSession(Node *node)
   {
-    Common(node, ShuffleRound::Create, ShuffleRound::DefaultData,
-        FixedSizeGroupGenerator::Create);
+    Common(node, ShuffleRound::Create, FixedSizeGroupGenerator::Create);
   }
 
-  void SessionFactory::Common(Node *node, CreateRound cr,
-      const QByteArray &dd, CreateGroupGenerator cgg)
+  void SessionFactory::Common(Node *node, CreateRound cr, CreateGroupGenerator cgg)
   {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     AsymmetricKey *key= lib->GeneratePrivateKey(node->bg.GetId().GetByteArray());
@@ -64,7 +60,7 @@ namespace Applications {
     Group group = node->GenerateGroup();
     Session *session = new Session(group, node->bg.GetId(), group.GetId(0),
         Id::Zero, node->bg.GetConnectionTable(), node->bg.GetRpcHandler(),
-        cr, node->key, dd, cgg);
+        cr, node->key, cgg);
 
     node->session = QSharedPointer<Session>(session);
     node->sm.AddSession(node->session);

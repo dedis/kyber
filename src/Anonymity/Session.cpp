@@ -5,7 +5,7 @@ namespace Anonymity {
   Session::Session(const Group &group, const Id &local_id, const Id &leader_id,
       const Id &session_id, ConnectionTable &ct, RpcHandler &rpc,
       CreateRound create_round, QSharedPointer<AsymmetricKey> signing_key, 
-      const QByteArray &default_data, CreateGroupGenerator group_generator) :
+      CreateGroupGenerator group_generator) :
     _group(group),
     _local_id(local_id),
     _leader_id(leader_id),
@@ -14,11 +14,11 @@ namespace Anonymity {
     _rpc(rpc),
     _create_round(create_round),
     _signing_key(signing_key),
-    _default_data(default_data),
     _generate_group(group_generator(group, local_id, session_id, ct, rpc, signing_key)),
     _round_ready(false),
     _current_round(0),
     _ready(*this, &Session::Ready),
+    _get_data_cb(*this, &Session::GetData),
     _round_idx(0)
   {
     foreach(const Id &id, _group.GetIds()) {
@@ -138,8 +138,10 @@ namespace Anonymity {
 
   void Session::NextRound()
   {
-    Round * round = GetRound((_send_queue.isEmpty()) ?
-        _default_data : _send_queue.dequeue());
+    const Group subgroup = _generate_group->NextGroup();
+    Id c_rid(Id::Zero.GetInteger() + _round_idx++);
+    Round * round = _create_round(_group, subgroup, _local_id, _session_id,
+        c_rid, _ct, _rpc, _signing_key, _get_data_cb);
 
     _current_round = QSharedPointer<Round>(round);
 
@@ -187,11 +189,11 @@ namespace Anonymity {
     Stop();
   }
 
-  Round *Session::GetRound(const QByteArray &data)
+  QPair<QByteArray, bool> Session::GetData(int max)
   {
-    const Group subgroup = _generate_group->NextGroup();
-    return _create_round(_group, subgroup, _local_id, _session_id,
-        Id(Id::Zero.GetInteger() + _round_idx++), _ct, _rpc, _signing_key, data);
+    QByteArray data(_send_queue.left(max));
+    _send_queue = _send_queue.mid(max);
+    return QPair<QByteArray, bool>(data, !_send_queue.isEmpty());
   }
 }
 }

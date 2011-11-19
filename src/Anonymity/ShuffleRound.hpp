@@ -105,12 +105,12 @@ namespace Anonymity {
        * @param rpc Rpc handler for sending messages
        * @param signing_key a signing key for the local node, matched to the
        * node in the group
-       * @param data Data to share this session
+       * @param get_data requests data to share during this session
        */
       ShuffleRound(const Group &group, const Group &shufflers,
           const Id &local_id, const Id &session_id, const Id &round_id,
           const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key, const QByteArray &data);
+          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data);
 
       /**
        * function pointer access to the constructor
@@ -123,15 +123,15 @@ namespace Anonymity {
        * @param rpc Rpc handler for sending messages
        * @param signing_key a signing key for the local node, matched to the
        * node in the group
-       * @param data Data to share this session
+       * @param get_data requests data to share during this session
        */
       inline static Round *Create(const Group &group, const Group &shufflers,
           const Id &local_id, const Id &session_id, const Id &round_id,
           const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key, const QByteArray &data)
+          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data)
       {
         return new ShuffleRound(group, shufflers, local_id, session_id,
-            round_id, ct, rpc, signing_key, data);
+            round_id, ct, rpc, signing_key, get_data);
       }
 
       /**
@@ -148,12 +148,12 @@ namespace Anonymity {
       /**
        * Returns the systems current state
        */
-      inline State GetState() { return _state; }
+      inline State GetState() const { return _state; }
 
       /**
        * Returns the state at which the system began blame
        */
-      inline State GetBlameState() { return _blame_state; }
+      inline State GetBlameState() const { return _blame_state; }
 
       /**
        * Inner and outer public keys are kept in reversed order, this returns
@@ -165,7 +165,7 @@ namespace Anonymity {
       /**
        * Returns a list of members who have been blamed in the round
        */
-      inline virtual const QVector<int> &GetBadMembers() const { return _bad_members; }
+      inline virtual const QVector<int> &GetBadMembers() const { qWarning() << StateToString(GetState()); return _bad_members; }
 
       virtual bool Start();
 

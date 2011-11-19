@@ -34,14 +34,12 @@ namespace Anonymity {
        * @param rpc for sending and receives remote procedure calls
        * @param signing_key the local nodes private signing key, pointer NOT
        * @param create_round a callback for creating a secure round
-       * @param default_data default data
        * @param group_generator generates a subgroup of the primary group for
        * use in the round
        */
       Session(const Group &group, const Id &local_id, const Id &leader_id,
           const Id &session_id, ConnectionTable &ct, RpcHandler &rpc,
           CreateRound create_round, QSharedPointer<AsymmetricKey> signing_key, 
-          const QByteArray &default_data,
           CreateGroupGenerator group_generator = GroupGenerator::Create);
 
       /**
@@ -119,7 +117,6 @@ namespace Anonymity {
        */
       void Stopping();
 
-    protected:
     private:
       /**
        * Checks to see if the leader has received all the Ready messsages and
@@ -133,10 +130,12 @@ namespace Anonymity {
       void NextRound();
 
       /**
-       * Obtains a new round
-       * @param data data to be transmitted
+       * Retrieves data from the data waiting queue, returns the byte array
+       * containing data and a bool which is true if there is more data
+       * available.
+       * @param max the maximum amount of data to retrieve
        */
-      virtual Round *GetRound(const QByteArray &data);
+      QPair<QByteArray, bool> GetData(int max);
 
       /**
        * Called when a Ready has been responded to by the leader.  Calls Start
@@ -153,7 +152,7 @@ namespace Anonymity {
       /**
        * Used by a client to store messages to be sent for future rounds
        */
-      QQueue<QByteArray> _send_queue;
+      QByteArray _send_queue;
 
       const Group _group;
       const Id _local_id;
@@ -163,12 +162,12 @@ namespace Anonymity {
       RpcHandler &_rpc;
       CreateRound _create_round;
       QSharedPointer<AsymmetricKey> _signing_key;
-      const QByteArray _default_data;
       QScopedPointer<GroupGenerator> _generate_group;
 
       bool _round_ready;
       QSharedPointer<Round> _current_round;
       RpcMethod<Session> _ready;
+      GetDataMethod<Session> _get_data_cb;
       int _round_idx;
 
     private slots:

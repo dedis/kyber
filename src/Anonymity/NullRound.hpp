@@ -12,8 +12,6 @@ namespace Anonymity {
     Q_OBJECT
 
     public:
-      static const QByteArray DefaultData;
-
       /**
        * Constructor
        * @param group The anonymity group
@@ -21,10 +19,10 @@ namespace Anonymity {
        * @param session_id Session this round represents
        * @param ct Connections to the anonymity group
        * @param rpc Rpc handler for sending messages
-       * @param data Data to share this session
+       * @param get_data requests data to share during this session
        */
       NullRound(const Group &group, const Id &local_id, const Id &session_id,
-          const ConnectionTable &ct, RpcHandler &rpc, const QByteArray &data);
+          const ConnectionTable &ct, RpcHandler &rpc, GetDataCallback &get_data);
 
       /**
        * function pointer access to the constructor
@@ -36,15 +34,14 @@ namespace Anonymity {
        * @param ct Connections to the anonymity group
        * @param rpc Rpc handler for sending messages
        * @param signing_key unused
-       * node in the group
-       * @param data Data to share this session
+       * @param get_data requests data to share during this session
        */
       inline static Round *Create(const Group &group, const Group &,
           const Id &local_id, const Id &session_id, const Id &,
           const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey>, const QByteArray &data)
+          QSharedPointer<AsymmetricKey>, GetDataCallback &get_data)
       {
-        return new NullRound(group, local_id, session_id, ct, rpc, data);
+        return new NullRound(group, local_id, session_id, ct, rpc, get_data);
       }
 
       /**

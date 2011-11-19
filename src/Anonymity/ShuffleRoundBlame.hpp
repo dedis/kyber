@@ -94,6 +94,8 @@ namespace Anonymity {
        * Empty Rpc for this round since it won't be used
        */
       static RpcHandler _empty_rpc;
+
+      static EmptyGetDataCallback _empty_get_data;
   };
 }
 }

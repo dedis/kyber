@@ -18,10 +18,9 @@ namespace Tests {
       ShuffleRoundBadInnerPrivateKey(const Group &group, const Group &shufflers,
           const Id &local_id, const Id &session_id, const Id &round_id,
           const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key,
-          const QByteArray &data = DefaultData) :
+          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data) :
         ShuffleRound(group, shufflers, local_id, session_id, round_id, ct, rpc,
-            signing_key, data)
+            signing_key, get_data)
       { }
 
       virtual ~ShuffleRoundBadInnerPrivateKey() {}
@@ -29,20 +28,18 @@ namespace Tests {
       inline static Round *Create(const Group &group, const Group &shufflers,
           const Id &local_id, const Id &session_id, const Id &round_id,
           const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key, const QByteArray &data)
+          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data)
       {
-        return new ShuffleRoundBadInnerPrivateKey(group, shufflers, local_id, session_id,
-            round_id, ct, rpc, signing_key, data);
+        return new ShuffleRoundBadInnerPrivateKey(group, shufflers, local_id,
+            session_id, round_id, ct, rpc, signing_key, get_data);
       }
 
       inline static Session *CreateSession(TestNode *node, const Group &group,
-          const Id &leader_id, const Id &session_id,
-          CreateGroupGenerator cgg)
+          const Id &leader_id, const Id &session_id, CreateGroupGenerator cgg)
       {
         return new Session(group, node->cm.GetId(), leader_id, session_id,
                       node->cm.GetConnectionTable(), node->rpc, 
-                      ShuffleRoundBadInnerPrivateKey::Create, node->key,
-                      ShuffleRound::DefaultData, cgg);
+                      ShuffleRoundBadInnerPrivateKey::Create, node->key, cgg);
       }
 
       virtual void BroadcastPrivateKey()
@@ -70,10 +67,9 @@ namespace Tests {
       ShuffleRoundMessageDuplicator(const Group &group, const Group &shufflers,
           const Id &local_id, const Id &session_id, const Id &round_id,
           const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key,
-          const QByteArray &data = DefaultData) :
+          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data) :
         ShuffleRound(group, shufflers, local_id, session_id, round_id, ct, rpc,
-            signing_key, data)
+            signing_key, get_data)
       { }
 
       virtual ~ShuffleRoundMessageDuplicator() {}
@@ -81,20 +77,18 @@ namespace Tests {
       inline static Round *Create(const Group &group, const Group &shufflers,
           const Id &local_id, const Id &session_id, const Id &round_id,
           const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key, const QByteArray &data)
+          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data)
       {
-        return new ShuffleRoundMessageDuplicator(group, shufflers, local_id, session_id,
-            round_id, ct, rpc, signing_key, data);
+        return new ShuffleRoundMessageDuplicator(group, shufflers, local_id,
+            session_id, round_id, ct, rpc, signing_key, get_data);
       }
 
       inline static Session *CreateSession(TestNode *node, const Group &group,
-          const Id &leader_id, const Id &session_id,
-          CreateGroupGenerator cgg)
+          const Id &leader_id, const Id &session_id, CreateGroupGenerator cgg)
       {
         return new Session(group, node->cm.GetId(), leader_id, session_id,
                       node->cm.GetConnectionTable(), node->rpc, 
-                      ShuffleRoundMessageDuplicator::Create, node->key,
-                      ShuffleRound::DefaultData, cgg);
+                      ShuffleRoundMessageDuplicator::Create, node->key, cgg);
       }
 
     protected:
@@ -163,9 +157,9 @@ namespace Tests {
           const Id &local_id, const Id &session_id, const Id &round_id,
           const ConnectionTable &ct, RpcHandler &rpc,
           QSharedPointer<AsymmetricKey> signing_key,
-          const QByteArray &data = DefaultData) :
+          GetDataCallback &get_data) :
         ShuffleRound(group, shufflers, local_id, session_id, round_id, ct, rpc,
-            signing_key, data)
+            signing_key, get_data)
       { }
 
       virtual ~ShuffleRoundMessageSwitcher() {}
@@ -173,10 +167,10 @@ namespace Tests {
       inline static Round *Create(const Group &group,
           const Group &shufflers, const Id &local_id, const Id &session_id,
           const Id &round_id, const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key, const QByteArray &data)
+          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data)
       {
         return new ShuffleRoundMessageSwitcher(group, shufflers, local_id, session_id,
-            round_id, ct, rpc, signing_key, data);
+            round_id, ct, rpc, signing_key, get_data);
       }
 
       inline static Session *CreateSession(TestNode *node, const Group &group,
@@ -184,8 +178,7 @@ namespace Tests {
       {
         return new Session(group, node->cm.GetId(), leader_id, session_id,
                       node->cm.GetConnectionTable(), node->rpc, 
-                      ShuffleRoundMessageSwitcher::Create, node->key,
-                      ShuffleRound::DefaultData, cgg);
+                      ShuffleRoundMessageSwitcher::Create, node->key, cgg);
       }
 
     protected:
@@ -197,10 +190,10 @@ namespace Tests {
           outer_keys.append(_public_outer_keys[kidx]);
         }
 
-        QByteArray data = ShuffleRound::DefaultData;
+        QByteArray get_data = DefaultData;
         QByteArray inner_ct, outer_ct;
         OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
-        oe->Encrypt(_public_inner_keys, data, inner_ct, 0);
+        oe->Encrypt(_public_inner_keys, get_data, inner_ct, 0);
         oe->Encrypt(outer_keys, inner_ct, outer_ct, 0);
 
         int x = Random::GetInstance().GetInt(0, _shuffle_ciphertext.count());
@@ -212,21 +205,22 @@ namespace Tests {
 
   class ShuffleRoundFalseBlame : public ShuffleRound {
     public:
-      ShuffleRoundFalseBlame(const Group &group, const Group &shufflers, const Id &local_id,
-          const Id &session_id, const Id &round_id, const ConnectionTable &ct,
-          RpcHandler &rpc, QSharedPointer<AsymmetricKey> signing_key,
-          const QByteArray &data = DefaultData) :
-        ShuffleRound(group, shufflers, local_id, session_id, round_id, ct, rpc, signing_key, data) { }
+      ShuffleRoundFalseBlame(const Group &group, const Group &shufflers,
+          const Id &local_id, const Id &session_id, const Id &round_id,
+          const ConnectionTable &ct, RpcHandler &rpc,
+          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data) :
+        ShuffleRound(group, shufflers, local_id, session_id, round_id, ct, rpc,
+            signing_key, get_data) { }
 
       virtual ~ShuffleRoundFalseBlame() {}
 
       inline static Round *Create(const Group &group, const Group &shufflers,
           const Id &local_id, const Id &session_id, const Id &round_id,
           const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key, const QByteArray &data)
+          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data)
       {
         return new ShuffleRoundFalseBlame(group, shufflers, local_id, session_id,
-            round_id, ct, rpc, signing_key, data);
+            round_id, ct, rpc, signing_key, get_data);
       }
 
       inline static Session *CreateSession(TestNode *node, const Group &group,
@@ -235,8 +229,7 @@ namespace Tests {
       {
         return new Session(group, node->cm.GetId(), leader_id, session_id,
                       node->cm.GetConnectionTable(), node->rpc, 
-                      ShuffleRoundFalseBlame::Create, node->key,
-                      ShuffleRound::DefaultData, cgg);
+                      ShuffleRoundFalseBlame::Create, node->key, cgg);
       }
 
     protected:
@@ -248,21 +241,22 @@ namespace Tests {
 
   class ShuffleRoundFalseNoGo : public ShuffleRound {
     public:
-      ShuffleRoundFalseNoGo(const Group &group, const Group &shufflers, const Id &local_id,
-          const Id &session_id, const Id &round_id, const ConnectionTable &ct,
-          RpcHandler &rpc, QSharedPointer<AsymmetricKey> signing_key,
-          const QByteArray &data = DefaultData) :
-        ShuffleRound(group, shufflers, local_id, session_id, round_id, ct, rpc, signing_key, data) { }
+      ShuffleRoundFalseNoGo(const Group &group, const Group &shufflers,
+          const Id &local_id, const Id &session_id, const Id &round_id,
+          const ConnectionTable &ct, RpcHandler &rpc,
+          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data) :
+        ShuffleRound(group, shufflers, local_id, session_id, round_id, ct, rpc,
+            signing_key, get_data) { }
 
       virtual ~ShuffleRoundFalseNoGo() {}
 
       inline static Round *Create(const Group &group, const Group &shufflers,
           const Id &local_id, const Id &session_id, const Id &round_id,
           const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key, const QByteArray &data)
+          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data)
       {
         return new ShuffleRoundFalseNoGo(group, shufflers, local_id, session_id, round_id,
-            ct, rpc, signing_key, data);
+            ct, rpc, signing_key, get_data);
       }
 
       inline static Session *CreateSession(TestNode *node, const Group &group,
@@ -271,8 +265,7 @@ namespace Tests {
       {
         return new Session(group, node->cm.GetId(), leader_id, session_id,
                       node->cm.GetConnectionTable(), node->rpc, 
-                      ShuffleRoundFalseNoGo::Create, node->key,
-                      ShuffleRound::DefaultData, cgg);
+                      ShuffleRoundFalseNoGo::Create, node->key, cgg);
       }
 
     protected:
@@ -289,21 +282,22 @@ namespace Tests {
 
   class ShuffleRoundInvalidOuterEncryption : public ShuffleRound {
     public:
-      ShuffleRoundInvalidOuterEncryption(const Group &group, const Group &shufflers, const Id &local_id,
-          const Id &session_id, const Id &round_id, const ConnectionTable &ct,
-          RpcHandler &rpc, QSharedPointer<AsymmetricKey> signing_key,
-          const QByteArray &data = DefaultData) :
-        ShuffleRound(group, shufflers, local_id, session_id, round_id, ct, rpc, signing_key, data) { }
+      ShuffleRoundInvalidOuterEncryption(const Group &group,
+          const Group &shufflers, const Id &local_id, const Id &session_id,
+          const Id &round_id, const ConnectionTable &ct, RpcHandler &rpc,
+          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data) :
+        ShuffleRound(group, shufflers, local_id, session_id, round_id, ct, rpc,
+            signing_key, get_data) { }
 
       virtual ~ShuffleRoundInvalidOuterEncryption() {}
 
       inline static Round *Create(const Group &group, const Group &shufflers,
           const Id &local_id, const Id &session_id, const Id &round_id,
           const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key, const QByteArray &data)
+          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data)
       {
-        return new ShuffleRoundInvalidOuterEncryption(group, shufflers, local_id, session_id, round_id,
-            ct, rpc, signing_key, data);
+        return new ShuffleRoundInvalidOuterEncryption(group, shufflers,
+            local_id, session_id, round_id, ct, rpc, signing_key, get_data);
       }
 
       inline static Session *CreateSession(TestNode *node, const Group &group,
@@ -312,8 +306,7 @@ namespace Tests {
       {
         return new Session(group, node->cm.GetId(), leader_id, session_id,
                       node->cm.GetConnectionTable(), node->rpc, 
-                      ShuffleRoundInvalidOuterEncryption::Create, node->key,
-                      ShuffleRound::DefaultData, cgg);
+                      ShuffleRoundInvalidOuterEncryption::Create, node->key, cgg);
       }
 
     protected:

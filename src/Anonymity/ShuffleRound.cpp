@@ -9,9 +9,9 @@ namespace Anonymity {
   ShuffleRound::ShuffleRound(const Group &group, const Group &shufflers,
       const Id &local_id, const Id &session_id, const Id &round_id,
       const ConnectionTable &ct, RpcHandler &rpc,
-      QSharedPointer<AsymmetricKey> signing_key, const QByteArray &data) :
+      QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data) :
     Round(group, shufflers, local_id, session_id, round_id, ct, rpc,
-        signing_key, data),
+        signing_key, get_data),
     _shuffler(GetActiveGroup().Contains(local_id)),
     _state(Offline),
     _blame_state(Offline),
@@ -62,21 +62,22 @@ namespace Anonymity {
 
   QByteArray ShuffleRound::PrepareData()
   {
-    if(GetData() == DefaultData) {
+    QPair<QByteArray, bool> data = GetData(BlockSize);
+    if(data.first.isEmpty()) {
       return DefaultData;
-    } else if(GetData().size() > BlockSize) {
+    } else if(data.first.size() > BlockSize) {
       qWarning() << "Attempted to send a data larger than the block size:" <<
-        GetData().size() << ":" << BlockSize;
+        data.first.size() << ":" << BlockSize;
 
       return DefaultData;
     }
 
     qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
-      "Sending real data:" << GetData().size() << GetData().toBase64();
+      "Sending real data:" << data.first.size() << data.first.toBase64();
 
     QByteArray msg(4, 0);
-    Dissent::Utils::Serialization::WriteInt(GetData().size(), msg, 0);
-    msg.append(GetData());
+    Dissent::Utils::Serialization::WriteInt(data.first.size(), msg, 0);
+    msg.append(data.first);
     msg.resize(BlockSize + 4);
     return msg;
   }

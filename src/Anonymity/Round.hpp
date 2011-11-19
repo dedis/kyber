@@ -12,6 +12,7 @@
 #include "../Utils/StartStop.hpp"
 
 #include "Group.hpp"
+#include "GetDataCallback.hpp"
 
 namespace Dissent {
 namespace Anonymity {
@@ -40,12 +41,12 @@ namespace Anonymity {
        * @param rpc Rpc handler for sending messages
        * @param signing_key a signing key for the local node, matched to the
        * node in the group
-       * @param data Data to share this session
+       * @param get_data requests data to share during this session
        */
       Round(const Group &group, const Group &active_group,
           const Id &local_id, const Id &session_id, const Id &round_id,
           const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key, const QByteArray &data);
+          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data);
 
       /**
        * Destructor
@@ -153,7 +154,7 @@ namespace Anonymity {
       /**
        * Returns the data to be sent during this round
        */
-      inline const QByteArray &GetData() { return _data; }
+      inline const QPair<QByteArray, bool> GetData(int max) { return _get_data_cb(max); }
 
       /**
        * Returns the nodes signing key
@@ -190,7 +191,7 @@ namespace Anonymity {
       const ConnectionTable &_ct;
       RpcHandler &_rpc;
       QSharedPointer<AsymmetricKey> _signing_key;
-      QByteArray _data;
+      GetDataCallback &_get_data_cb;
       bool _successful;
       QString _stopped_reason;
       QVector<int> _empty_list;
@@ -207,7 +208,8 @@ namespace Anonymity {
 
   typedef Round *(*CreateRound)(const Group &, const Group &,
       const Id &, const Id &, const Id &, const ConnectionTable &,
-      RpcHandler &, QSharedPointer<AsymmetricKey>, const QByteArray &);
+      RpcHandler &, QSharedPointer<AsymmetricKey>,
+      GetDataCallback &get_data_cb);
 }
 }
 

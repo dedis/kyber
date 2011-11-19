@@ -5,7 +5,7 @@ namespace Anonymity {
   Round::Round(const Group &group, const Group &active_group,
       const Id &local_id, const Id &session_id, const Id &round_id,
       const ConnectionTable &ct, RpcHandler &rpc,
-      QSharedPointer<AsymmetricKey> signing_key, const QByteArray &data) :
+      QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data) :
     _group(group),
     _active_group(active_group),
     _local_id(local_id),
@@ -14,7 +14,7 @@ namespace Anonymity {
     _ct(ct),
     _rpc(rpc),
     _signing_key(signing_key),
-    _data(data),
+    _get_data_cb(get_data),
     _successful(false)
   {
   }

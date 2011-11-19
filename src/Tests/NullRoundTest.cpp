@@ -8,8 +8,7 @@ namespace Tests {
   {
     return new Session(group, node->cm.GetId(), leader_id, session_id,
                   node->cm.GetConnectionTable(), node->rpc, 
-                  &NullRound::Create, QSharedPointer<AsymmetricKey>(),
-                  NullRound::DefaultData);
+                  &NullRound::Create, QSharedPointer<AsymmetricKey>());
   }
 
   TEST(NullRound, Null)
