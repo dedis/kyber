@@ -54,6 +54,7 @@ namespace Messaging {
       return;
     }
 
+    qDebug() << "RpcHandler: Request: Method:" << method << ", from:" << from->ToString();
     RpcRequest rr(request, from);
     cb->Invoke(rr);
   }
