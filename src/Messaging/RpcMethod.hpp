@@ -13,7 +13,6 @@ namespace Messaging {
       /**
        * Invoke the underlying method with the request to receive a response
        * @param request map consisting of request variables
-       * @param response map to store responses
        */
       virtual void Invoke(RpcRequest& request) = 0;
 
@@ -37,7 +36,6 @@ namespace Messaging {
        * Constructor
        * @param object the object to make the call upon
        * @param method the method to call
-       * @param name name used to map to this callback
        */
       RpcMethod(T &object, Method method) :
         _object(object), _method(method)
