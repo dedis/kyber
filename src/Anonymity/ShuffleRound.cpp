@@ -352,10 +352,11 @@ namespace Anonymity {
     stream >> log >> sig;
 
     hashalgo->Update(log);
+    QByteArray blame_hash = hashalgo->ComputeHash();
 
     QByteArray sigmsg;
     QDataStream sigstream(&sigmsg, QIODevice::WriteOnly);
-    sigstream << BlameData << GetRoundId().GetByteArray() << hashalgo->ComputeHash();
+    sigstream << BlameData << GetRoundId().GetByteArray() << blame_hash;
 
     if(!GetGroup().GetKey(gidx)->Verify(sigmsg, sig)) {
       throw QRunTimeError("Receiving invalid blame data");
@@ -371,7 +372,7 @@ namespace Anonymity {
 
     _blame_received[gidx] = true;
     _logs[gidx] = Log(log);
-    _blame_hash[gidx] = sigmsg;
+    _blame_hash[gidx] = blame_hash;
     _blame_signatures[gidx] = sig;
     ++_data_received;
 
@@ -392,6 +393,10 @@ namespace Anonymity {
         ": received blame verification from " << GetGroup().GetIndex(id) << 
         id.ToString() << ", received" << _blame_verifications << "messages.";
 
+    if(_state != BlameInit && _state != BlameShare) {
+      throw QRunTimeError("Received a misordered blame verification message");
+    }
+
     int gidx = GetGroup().GetIndex(id);
     if(_received_blame_verification[gidx]) {
       throw QRunTimeError("Received duplicate blame verification messages.");
@@ -411,8 +416,8 @@ namespace Anonymity {
       QByteArray sigmsg;
       QDataStream sigstream(&sigmsg, QIODevice::WriteOnly);
       sigstream << BlameData << GetRoundId().GetByteArray() << blame_hash[jdx];
-      if(!GetGroup().GetKey(gidx)->Verify(sigmsg, blame_signatures[jdx])) {
-        throw QRunTimeError("Received invalid hash / signature");
+      if(!GetGroup().GetKey(jdx)->Verify(sigmsg, blame_signatures[jdx])) {
+        throw QRunTimeError("Received invalid hash / signature from " + QString::number(jdx));
       }
       _valid_blames[jdx] = true;
     }
