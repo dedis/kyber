@@ -29,7 +29,6 @@ namespace Anonymity {
     _logs(group.Count()),
     _blame_hash(GetGroup().Count()),
     _blame_signatures(GetGroup().Count()),
-    _valid_blames(GetGroup().Count(), false),
     _received_blame_verification(GetGroup().Count(), false)
   {
     if(_shuffler) {
@@ -407,20 +406,9 @@ namespace Anonymity {
     if(blame_hash.count() != GetGroup().Count() || blame_signatures.count() != GetGroup().Count()) {
       throw QRunTimeError("Missing signatures / hashes");
     }
-
-    for(int jdx = 0; jdx < GetGroup().Count(); jdx++) {
-      if(blame_hash[jdx] == _blame_hash[jdx]) {
-        continue;
-      }
-
-      QByteArray sigmsg;
-      QDataStream sigstream(&sigmsg, QIODevice::WriteOnly);
-      sigstream << BlameData << GetRoundId().GetByteArray() << blame_hash[jdx];
-      if(!GetGroup().GetKey(jdx)->Verify(sigmsg, blame_signatures[jdx])) {
-        throw QRunTimeError("Received invalid hash / signature from " + QString::number(jdx));
-      }
-      _valid_blames[jdx] = true;
-    }
+    
+    _blame_verification_msgs[gidx] = HashSig(blame_hash, blame_signatures);
+    QVector<QPair<QVector<QByteArray>, QVector<QByteArray> > >(GetGroup().Count());
 
     _received_blame_verification[gidx] = true;
     if(++_blame_verifications == GetGroup().Count()) {
@@ -727,6 +715,8 @@ namespace Anonymity {
     qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
         ": entering blame state.";
 
+    _blame_verification_msgs = QVector<HashSig>(GetGroup().Count());
+
     _blame_state = _state;
     _state = BlameInit;
     _blame_verifications = 0;
@@ -778,8 +768,23 @@ namespace Anonymity {
     qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
         ": entering blame round.";
 
-    for(int idx = 0; idx < _valid_blames.count(); idx++) {
-      if(_valid_blames[idx]) {
+    for(int idx = 0; idx < GetGroup().Count(); idx++ ) {
+      HashSig blame_ver = _blame_verification_msgs[idx];
+      QVector<QByteArray> blame_hash = blame_ver.first;
+      QVector<QByteArray> blame_sig = blame_ver.second;
+
+      for(int jdx = 0; jdx < GetGroup().Count(); jdx++) {
+        if(blame_hash[jdx] == _blame_hash[jdx]) {
+          continue;
+        }
+
+        QByteArray sigmsg;
+        QDataStream sigstream(&sigmsg, QIODevice::WriteOnly);
+        sigstream << BlameData << GetRoundId().GetByteArray() << blame_hash[jdx];
+        if(!GetGroup().GetKey(jdx)->Verify(sigmsg, blame_sig[jdx])) {
+          throw QRunTimeError("Received invalid hash / signature from " + QString::number(jdx));
+        }
+
         qWarning() << "Bad nodes: " << idx;
         _bad_members.append(idx);
       }

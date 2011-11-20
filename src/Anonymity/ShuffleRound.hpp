@@ -449,10 +449,12 @@ namespace Anonymity {
        */
       QVector<QByteArray> _blame_signatures;
 
+      typedef QPair<QVector<QByteArray>, QVector<QByteArray> > HashSig;
+
       /**
-       * Stores everyones blame verification data
+       * Store remote blame hash / signatures until we have received all blame data
        */
-      QBitArray _valid_blames;
+      QVector<HashSig> _blame_verification_msgs;
 
       /**
        * Received a blame verification from the remote peer
