@@ -38,8 +38,7 @@ namespace Anonymity {
           ids.append(group.GetId(idx));
           keys.append(group.GetKey(idx));
         }
-        _fixed_group.reset(new Group(ids, keys));
-        _current = *_fixed_group;
+        _current = Group(ids, keys);
       }
 
       /**
@@ -63,13 +62,12 @@ namespace Anonymity {
         return new FixedSizeGroupGenerator(group, local_id, session_id, ct, rpc, signing_key);
       }
 
-      virtual const Group NextGroup()
-      {
-        return _current;
-      }
+      inline virtual const Group NextGroup() { return _current; }
+
+      inline virtual const Group CurrentGroup() const { return _current; }
 
     private:
-      QScopedPointer<Group> _fixed_group;
+      Group _current;
   };
 }
 }

@@ -38,8 +38,7 @@ namespace Anonymity {
         _session_id(session_id),
         _ct(ct),
         _rpc(rpc),
-        _signing_key(signing_key),
-        _current(group)
+        _signing_key(signing_key)
       {
       }
 
@@ -67,21 +66,25 @@ namespace Anonymity {
       /**
        * Returns the next group to use
        */
-      virtual const Group NextGroup() { return _group; }
+      inline virtual const Group NextGroup() { return _group; }
 
       /**
        * Returns the last group returned via the NextGroup() method
        */
-      inline const Group CurrentGroup() const { return _current; }
+      inline virtual const Group CurrentGroup() const { return _group; }
 
-    protected:
+      /**
+       * Returns the entire group
+       */
+      inline const Group WholeGroup() const { return _group; }
+
+    private:
       const Group _group;
       const Id _local_id;
       const Id _session_id;
       const ConnectionTable &_ct;
       RpcHandler &_rpc;
       QSharedPointer<AsymmetricKey> _signing_key;
-      Group _current;
   };
 
   /**

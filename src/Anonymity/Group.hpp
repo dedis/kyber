@@ -49,7 +49,7 @@ namespace Anonymity {
        * @param group an ordered group in vector format
        * @param keys a set of keys mapped to the group if Ids, defaults to no keys
        */
-      Group(const QVector<Id> &group,
+      Group(const QVector<Id> &group = QVector<Id>(),
           const QVector<QSharedPointer<AsymmetricKey> > &keys =
             QVector<QSharedPointer<AsymmetricKey> >());
 
