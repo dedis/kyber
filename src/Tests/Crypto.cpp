@@ -215,7 +215,7 @@ namespace Tests {
     AsymmetricKeyTest(lib.data());
 
     QScopedPointer<AsymmetricKey> key(lib->CreatePrivateKey());
-    EXPECT_EQ(key->GetKeySize(), key->GetDefaultKeySize());
+    EXPECT_EQ(key->GetKeySize(), AsymmetricKey::DefaultKeySize);
   }
 
   TEST(Crypto, CppAsymmetricKeyFail)

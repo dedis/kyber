@@ -17,12 +17,7 @@ namespace Crypto {
       /**
        * Default recommended key size
        */
-      static const int DefaultKeySize = 2048;
-
-      /**
-       * Returns the default key size
-       */
-      int GetDefaultKeySize() const { return DefaultKeySize; }
+      static int DefaultKeySize;
 
       /**
        * Destructor

@@ -3,6 +3,8 @@
 
 namespace Dissent {
 namespace Crypto {
+  int AsymmetricKey::DefaultKeySize = 2048;
+
   bool AsymmetricKey::ReadFile(const QString &filename, QByteArray &data)
   {
     QFile file(filename);
