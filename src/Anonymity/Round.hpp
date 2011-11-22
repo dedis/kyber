@@ -79,7 +79,7 @@ namespace Anonymity {
       /**
        * Returns the Session Id
        */
-      inline const Id &GetId() const { return _session_id; }
+      inline const Id &GetSessionId() const { return _session_id; }
 
       /**
        * Returns whether or not there were any problems in the round

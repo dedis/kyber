@@ -438,7 +438,7 @@ namespace Anonymity {
     } catch (QRunTimeError &err) {
       qWarning() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
         "received a message from" << GetGroup().GetIndex(from) << from.ToString() <<
-        "in session / round" << GetRoundId().ToString() << GetId().ToString()
+        "in session / round" << GetRoundId().ToString() << GetSessionId().ToString()
         << "in state" << StateToString(_state) <<
         "causing the following exception: " << err.What();
       _log.Pop();
@@ -812,7 +812,7 @@ namespace Anonymity {
       return;
     }
 
-    ShuffleBlamer sb(GetGroupGenerator(), GetId(), GetRoundId(), _logs,
+    ShuffleBlamer sb(GetGroupGenerator(), GetSessionId(), GetRoundId(), _logs,
         _private_outer_keys);
     sb.Start();
     for(int idx = 0; idx < sb.GetBadNodes().count(); idx++) {
