@@ -14,7 +14,7 @@ namespace Anonymity {
     _rpc(rpc),
     _create_round(create_round),
     _signing_key(signing_key),
-    _generate_group(group_generator(group, local_id, session_id, ct, rpc, signing_key)),
+    _generate_group(group_generator(group)),
     _round_ready(false),
     _current_round(0),
     _ready(*this, &Session::Ready),

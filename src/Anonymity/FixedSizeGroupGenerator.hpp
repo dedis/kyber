@@ -1,9 +1,6 @@
 #ifndef DISSENT_ANONYMITY_FIXED_SIZE_GROUP_GENERATOR_H_GUARD
 #define DISSENT_ANONYMITY_FIXED_SIZE_GROUP_GENERATOR_H_GUARD
 
-#include <QSharedPointer>
-
-#include "Session.hpp"
 #include "GroupGenerator.hpp"
 
 namespace Dissent {
@@ -21,16 +18,9 @@ namespace Anonymity {
       /**
        * Constructor
        * @param group base group
-       * @param local_id the local nodes Id
-       * @param session_id Id for the session
-       * @param ct maps Ids to connections
-       * @param rpc for sending and receives remote procedure calls
-       * @param signing_key the local nodes private signing key, pointer NOT
        */
-      FixedSizeGroupGenerator(const Group &group, const Id &local_id,
-          const Id &session_id, const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key) :
-        GroupGenerator(group, local_id, session_id, ct, rpc, signing_key)
+      FixedSizeGroupGenerator(const Group &group) :
+        GroupGenerator(group)
       {
         QVector<Id> ids;
         QVector<QSharedPointer<AsymmetricKey> > keys;
@@ -49,17 +39,10 @@ namespace Anonymity {
       /**
        * CreateGroupGenerator static callback
        * @param group base group
-       * @param local_id the local nodes Id
-       * @param session_id Id for the session
-       * @param ct maps Ids to connections
-       * @param rpc for sending and receives remote procedure calls
-       * @param signing_key the local nodes private signing key, pointer NOT
        */
-      static GroupGenerator *Create(const Group &group, const Id &local_id,
-          const Id &session_id, const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key)
+      static GroupGenerator *Create(const Group &group)
       {
-        return new FixedSizeGroupGenerator(group, local_id, session_id, ct, rpc, signing_key);
+        return new FixedSizeGroupGenerator(group);
       }
 
       inline virtual const Group NextGroup() { return _current; }

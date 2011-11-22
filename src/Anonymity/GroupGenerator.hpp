@@ -3,8 +3,7 @@
 
 #include <QSharedPointer>
 
-#include "Session.hpp"
-#include "GroupGenerator.hpp"
+#include "Group.hpp"
 #include "../Connections/ConnectionTable.hpp"
 #include "../Messaging/RpcHandler.hpp"
 
@@ -24,38 +23,19 @@ namespace Anonymity {
       /**
        * CreateGroupGenerator static callback
        * @param group base group
-       * @param local_id the local nodes Id
-       * @param session_id Id for the session
-       * @param ct maps Ids to connections
-       * @param rpc for sending and receives remote procedure calls
-       * @param signing_key the local nodes private signing key, pointer NOT
        */
-      GroupGenerator(const Group &group, const Id &local_id,
-          const Id &session_id, const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key) :
-        _group(group),
-        _local_id(local_id),
-        _session_id(session_id),
-        _ct(ct),
-        _rpc(rpc),
-        _signing_key(signing_key)
+      GroupGenerator(const Group &group) :
+        _group(group)
       {
       }
 
       /**
        * CreateGroupGenerator static callback
        * @param group base group
-       * @param local_id the local nodes Id
-       * @param session_id Id for the session
-       * @param ct maps Ids to connections
-       * @param rpc for sending and receives remote procedure calls
-       * @param signing_key the local nodes private signing key, pointer NOT
        */
-      static GroupGenerator *Create(const Group &group, const Id &local_id,
-          const Id &session_id, const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key)
+      static GroupGenerator *Create(const Group &group)
       {
-        return new GroupGenerator(group, local_id, session_id, ct, rpc, signing_key);
+        return new GroupGenerator(group);
       }
 
       /**
@@ -80,19 +60,12 @@ namespace Anonymity {
 
     private:
       const Group _group;
-      const Id _local_id;
-      const Id _session_id;
-      const ConnectionTable &_ct;
-      RpcHandler &_rpc;
-      QSharedPointer<AsymmetricKey> _signing_key;
   };
 
   /**
    * A callback method for static constructor access for GroupGenerator objects
    */
-  typedef GroupGenerator *(*CreateGroupGenerator)(const Group &, const Id &,
-      const Id &, const ConnectionTable &, RpcHandler &,
-      QSharedPointer<AsymmetricKey>);
+  typedef GroupGenerator *(*CreateGroupGenerator)(const Group &);
 }
 }
 
