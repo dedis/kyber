@@ -1,12 +1,13 @@
 #include "DissentTest.hpp"
 #include "TestNode.hpp"
+#include "RoundTest.hpp"
 
 using namespace Dissent::Utils;
 
 namespace Dissent {
 namespace Tests {
   void RoundTest_Null(CreateSessionCallback callback, CreateGroupGenerator cgg,
-      bool keys = false)
+      bool keys)
   {
     Timer::GetInstance().UseVirtualTime();
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
@@ -58,7 +59,7 @@ namespace Tests {
   }
 
   void RoundTest_Basic(CreateSessionCallback callback, CreateGroupGenerator cgg,
-      bool keys = false)
+      bool keys)
   {
     Timer::GetInstance().UseVirtualTime();
 
@@ -115,7 +116,7 @@ namespace Tests {
   }
 
   void RoundTest_MultiRound(CreateSessionCallback callback, CreateGroupGenerator cgg, 
-      bool keys = false)
+      bool keys)
   {
     Timer::GetInstance().UseVirtualTime();
 
@@ -177,7 +178,7 @@ namespace Tests {
   }
 
   void RoundTest_PeerDisconnectEnd(CreateSessionCallback callback,
-      CreateGroupGenerator cgg, bool keys = false)
+      CreateGroupGenerator cgg, bool keys)
   {
     Timer::GetInstance().UseVirtualTime();
 
@@ -245,7 +246,7 @@ namespace Tests {
   }
 
   void RoundTest_PeerDisconnectMiddle(CreateSessionCallback callback,
-      CreateGroupGenerator cgg, bool keys = false)
+      CreateGroupGenerator cgg, bool keys)
   {
     Timer::GetInstance().UseVirtualTime();
 
@@ -327,10 +328,11 @@ namespace Tests {
     delete group;
   }
 
+  template<typename T> bool Triggered(T *obj) { return obj->Triggered(); }
 
   void RoundTest_BadGuy(CreateSessionCallback good_callback,
-      CreateSessionCallback bad_callback,
-      CreateGroupGenerator cgg, bool keys = false)
+      CreateSessionCallback bad_callback, CreateGroupGenerator cgg,
+      const BadGuyCB &cb, bool keys)
   {
     Timer::GetInstance().UseVirtualTime();
 
@@ -391,11 +393,19 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    foreach(TestNode *node, nodes) {
-      QSharedPointer<Round> pr = node->session->GetCurrentRound();
-      EXPECT_EQ(pr->GetBadMembers().count(), 1);
-      EXPECT_TRUE(pr->GetBadMembers()[0] == badguy);
-      EXPECT_TRUE(node->sink.GetLastData().isEmpty());
+
+    if(!cb(nodes[badguy]->session->GetCurrentRound().data())) {
+      std::cout << "RoundTest_BadGuy was never triggered, "
+        "consider rerunning." << std::endl;
+    } else {
+      foreach(TestNode *node, nodes) {
+        QSharedPointer<Round> pr = node->session->GetCurrentRound();
+        EXPECT_EQ(pr->GetBadMembers().count(), 1);
+        if(pr->GetBadMembers().count() > 0) {
+          EXPECT_TRUE(pr->GetBadMembers()[0] == badguy);
+        }
+        EXPECT_TRUE(node->sink.GetLastData().isEmpty());
+      }
     }
 
     CleanUp(nodes);

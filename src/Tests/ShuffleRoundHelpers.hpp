@@ -13,7 +13,7 @@ namespace Tests {
     using namespace Dissent::Utils;
   }
 
-  class ShuffleRoundBadInnerPrivateKey : public ShuffleRound {
+  class ShuffleRoundBadInnerPrivateKey : public ShuffleRound, public Triggerable {
     public:
       ShuffleRoundBadInnerPrivateKey(const Group &group, const Group &shufflers,
           const Id &local_id, const Id &session_id, const Id &round_id,
@@ -42,8 +42,11 @@ namespace Tests {
                       ShuffleRoundBadInnerPrivateKey::Create, node->key, cgg);
       }
 
+    protected:
       virtual void BroadcastPrivateKey()
       {
+        SetTriggered();
+
         qDebug() << GetActiveGroup().GetIndex(GetLocalId()) <<
           GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
           ": received sufficient go messages, broadcasting private key.";
@@ -62,7 +65,7 @@ namespace Tests {
       }
   };
 
-  class ShuffleRoundMessageDuplicator : public ShuffleRound {
+  class ShuffleRoundMessageDuplicator : public ShuffleRound, public Triggerable {
     public:
       ShuffleRoundMessageDuplicator(const Group &group, const Group &shufflers,
           const Id &local_id, const Id &session_id, const Id &round_id,
@@ -94,6 +97,8 @@ namespace Tests {
     protected:
       virtual void Shuffle()
       {
+        SetTriggered();
+
         _state = Shuffling;
         qDebug() << GetActiveGroup().GetIndex(GetLocalId()) <<
           GetGroup().GetIndex(GetLocalId()) << ": shuffling";
@@ -151,7 +156,7 @@ namespace Tests {
       }
   };
 
-  class ShuffleRoundMessageSwitcher : public ShuffleRound {
+  class ShuffleRoundMessageSwitcher : public ShuffleRound, public Triggerable {
     public:
       ShuffleRoundMessageSwitcher(const Group &group, const Group &shufflers,
           const Id &local_id, const Id &session_id, const Id &round_id,
@@ -184,6 +189,8 @@ namespace Tests {
     protected:
       virtual void Shuffle()
       {
+        SetTriggered();
+
         QVector<AsymmetricKey *> outer_keys;
         for(int idx = GetActiveGroup().Count() - 1; idx >= GetActiveGroup().GetIndex(GetLocalId()); idx--) {
           int kidx = CalculateKidx(idx);
@@ -203,7 +210,7 @@ namespace Tests {
       }
   };
 
-  class ShuffleRoundFalseBlame : public ShuffleRound {
+  class ShuffleRoundFalseBlame : public ShuffleRound, public Triggerable {
     public:
       ShuffleRoundFalseBlame(const Group &group, const Group &shufflers,
           const Id &local_id, const Id &session_id, const Id &round_id,
@@ -235,11 +242,13 @@ namespace Tests {
     protected:
       virtual void Shuffle()
       {
+        SetTriggered();
+
         StartBlame();
       }
   };
 
-  class ShuffleRoundFalseNoGo : public ShuffleRound {
+  class ShuffleRoundFalseNoGo : public ShuffleRound, public Triggerable {
     public:
       ShuffleRoundFalseNoGo(const Group &group, const Group &shufflers,
           const Id &local_id, const Id &session_id, const Id &round_id,
@@ -271,6 +280,8 @@ namespace Tests {
     protected:
       virtual void Verify()
       {
+        SetTriggered();
+
         MessageType mtype = NoGoMessage;
         QByteArray msg;
         QDataStream out_stream(&msg, QIODevice::WriteOnly);
@@ -280,7 +291,7 @@ namespace Tests {
       }
   };
 
-  class ShuffleRoundInvalidOuterEncryption : public ShuffleRound {
+  class ShuffleRoundInvalidOuterEncryption : public ShuffleRound, public Triggerable {
     public:
       ShuffleRoundInvalidOuterEncryption(const Group &group,
           const Group &shufflers, const Id &local_id, const Id &session_id,
@@ -312,6 +323,8 @@ namespace Tests {
     protected:
       virtual void SubmitData()
       {
+        SetTriggered();
+
         _state = DataSubmission;
 
         OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();

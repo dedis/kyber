@@ -42,29 +42,30 @@ namespace Tests {
   TEST(ShuffleRound, MessageDuplicator)
   {
     RoundTest_BadGuy(&CreateShuffleSession,
-        &ShuffleRoundMessageDuplicator::CreateSession,
-        &GroupGenerator::Create, true);
+        &ShuffleRoundMessageDuplicator::CreateSession, &GroupGenerator::Create,
+        BadGuyCBTemplate<ShuffleRoundMessageDuplicator>(), true);
   }
 
   TEST(ShuffleRound, MessageSwitcher)
   {
     RoundTest_BadGuy(&CreateShuffleSession,
-        &ShuffleRoundMessageSwitcher::CreateSession,
-        &GroupGenerator::Create, true);
+        &ShuffleRoundMessageSwitcher::CreateSession, &GroupGenerator::Create, 
+        BadGuyCBTemplate<ShuffleRoundMessageSwitcher>(), true);
   }
 
   TEST(ShuffleRound, FalseNoGo)
   {
     RoundTest_BadGuy(&CreateShuffleSession,
-        &ShuffleRoundFalseNoGo::CreateSession,
-        &GroupGenerator::Create, true);
+        &ShuffleRoundFalseNoGo::CreateSession, &GroupGenerator::Create, 
+        BadGuyCBTemplate<ShuffleRoundFalseNoGo>(), true);
   }
 
   TEST(ShuffleRound, InvalidOuterEncryption)
   {
     RoundTest_BadGuy(&CreateShuffleSession,
         &ShuffleRoundInvalidOuterEncryption::CreateSession,
-        &GroupGenerator::Create, true);
+        &GroupGenerator::Create,
+        BadGuyCBTemplate<ShuffleRoundInvalidOuterEncryption>(), true);
   }
 
   /*
@@ -72,7 +73,8 @@ namespace Tests {
   TEST(ShuffleRound, FalseBlame)
   {
     RoundTest_BadGuy(&CreateShuffleSession,
-        &ShuffleRoundFalseBlame::CreateSession, true);
+        &ShuffleRoundFalseBlame::CreateSession, 
+        BadGuyCBTemplate<ShuffleRoundFalseBlame>(), true);
   }
   */
 
@@ -81,7 +83,8 @@ namespace Tests {
   TEST(ShuffleRound, Bad inner private key)
   {
     RoundTest_BadGuy(&CreateShuffleSession,
-        &ShuffleRoundBadInnerPrivateKey::CreateSession, true);
+        &ShuffleRoundBadInnerPrivateKey::CreateSession, 
+        BadGuyCBTemplate<ShuffleRoundBadInnerPrivateKey>, true);
   }
   */
 
@@ -119,28 +122,32 @@ namespace Tests {
   {
     RoundTest_BadGuy(&CreateShuffleSession,
         &ShuffleRoundMessageDuplicator::CreateSession,
-        &FixedSizeGroupGenerator::Create, true);
+        &FixedSizeGroupGenerator::Create, 
+        BadGuyCBTemplate<ShuffleRoundMessageDuplicator>(), true);
   }
 
   TEST(ShuffleRound, MessageSwitcherFixed)
   {
     RoundTest_BadGuy(&CreateShuffleSession,
         &ShuffleRoundMessageSwitcher::CreateSession,
-        &FixedSizeGroupGenerator::Create, true);
+        &FixedSizeGroupGenerator::Create,
+        BadGuyCBTemplate<ShuffleRoundMessageSwitcher>(), true);
   }
 
   TEST(ShuffleRound, FalseNoGoFixed)
   {
     RoundTest_BadGuy(&CreateShuffleSession,
         &ShuffleRoundFalseNoGo::CreateSession,
-        &FixedSizeGroupGenerator::Create, true);
+        &FixedSizeGroupGenerator::Create,
+        BadGuyCBTemplate<ShuffleRoundFalseNoGo>(), true);
   }
 
   TEST(ShuffleRound, InvalidOuterEncryptionFixed)
   {
     RoundTest_BadGuy(&CreateShuffleSession,
         &ShuffleRoundInvalidOuterEncryption::CreateSession,
-        &FixedSizeGroupGenerator::Create, true);
+        &FixedSizeGroupGenerator::Create,
+        BadGuyCBTemplate<ShuffleRoundInvalidOuterEncryption>(), true);
   }
 }
 }

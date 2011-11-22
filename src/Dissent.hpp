@@ -74,5 +74,6 @@
 #include "Utils/Timer.hpp"
 #include "Utils/TimerCallback.hpp"
 #include "Utils/TimerEvent.hpp"
+#include "Utils/Triggerable.hpp"
 
 #endif
