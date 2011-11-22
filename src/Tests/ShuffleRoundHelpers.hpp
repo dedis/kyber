@@ -15,22 +15,22 @@ namespace Tests {
 
   class ShuffleRoundBadInnerPrivateKey : public ShuffleRound, public Triggerable {
     public:
-      ShuffleRoundBadInnerPrivateKey(const Group &group, const Group &shufflers,
+      ShuffleRoundBadInnerPrivateKey(QSharedPointer<GroupGenerator> group_gen,
           const Id &local_id, const Id &session_id, const Id &round_id,
           const ConnectionTable &ct, RpcHandler &rpc,
           QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data) :
-        ShuffleRound(group, shufflers, local_id, session_id, round_id, ct, rpc,
+        ShuffleRound(group_gen, local_id, session_id, round_id, ct, rpc,
             signing_key, get_data)
       { }
 
       virtual ~ShuffleRoundBadInnerPrivateKey() {}
 
-      inline static Round *Create(const Group &group, const Group &shufflers,
+      inline static Round *Create(QSharedPointer<GroupGenerator> group_gen,
           const Id &local_id, const Id &session_id, const Id &round_id,
           const ConnectionTable &ct, RpcHandler &rpc,
           QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data)
       {
-        return new ShuffleRoundBadInnerPrivateKey(group, shufflers, local_id,
+        return new ShuffleRoundBadInnerPrivateKey(group_gen, local_id,
             session_id, round_id, ct, rpc, signing_key, get_data);
       }
 
@@ -47,7 +47,7 @@ namespace Tests {
       {
         SetTriggered();
 
-        qDebug() << GetActiveGroup().GetIndex(GetLocalId()) <<
+        qDebug() << GetShufflers().GetIndex(GetLocalId()) <<
           GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
           ": received sufficient go messages, broadcasting private key.";
 
@@ -59,7 +59,7 @@ namespace Tests {
         stream << PrivateKey << GetRoundId().GetByteArray() << tmp->GetByteArray();
 
         Broadcast(msg);
-        int idx = GetActiveGroup().GetIndex(GetLocalId());
+        int idx = GetShufflers().GetIndex(GetLocalId());
         delete _private_inner_keys[idx];
         _private_inner_keys[idx] = lib->LoadPrivateKeyFromByteArray(_inner_key->GetByteArray());
       }
@@ -67,22 +67,22 @@ namespace Tests {
 
   class ShuffleRoundMessageDuplicator : public ShuffleRound, public Triggerable {
     public:
-      ShuffleRoundMessageDuplicator(const Group &group, const Group &shufflers,
+      ShuffleRoundMessageDuplicator(QSharedPointer<GroupGenerator> group_gen,
           const Id &local_id, const Id &session_id, const Id &round_id,
           const ConnectionTable &ct, RpcHandler &rpc,
           QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data) :
-        ShuffleRound(group, shufflers, local_id, session_id, round_id, ct, rpc,
+        ShuffleRound(group_gen, local_id, session_id, round_id, ct, rpc,
             signing_key, get_data)
       { }
 
       virtual ~ShuffleRoundMessageDuplicator() {}
 
-      inline static Round *Create(const Group &group, const Group &shufflers,
+      inline static Round *Create(QSharedPointer<GroupGenerator> group_gen,
           const Id &local_id, const Id &session_id, const Id &round_id,
           const ConnectionTable &ct, RpcHandler &rpc,
           QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data)
       {
-        return new ShuffleRoundMessageDuplicator(group, shufflers, local_id,
+        return new ShuffleRoundMessageDuplicator(group_gen, local_id,
             session_id, round_id, ct, rpc, signing_key, get_data);
       }
 
@@ -100,7 +100,7 @@ namespace Tests {
         SetTriggered();
 
         _state = Shuffling;
-        qDebug() << GetActiveGroup().GetIndex(GetLocalId()) <<
+        qDebug() << GetShufflers().GetIndex(GetLocalId()) <<
           GetGroup().GetIndex(GetLocalId()) << ": shuffling";
       
         for(int idx = 0; idx < _shuffle_ciphertext.count(); idx++) {
@@ -138,7 +138,7 @@ namespace Tests {
         
         oe->RandomizeBlocks(_shuffle_cleartext);
         
-        const Id &next = GetActiveGroup().Next(GetLocalId());
+        const Id &next = GetShufflers().Next(GetLocalId());
         MessageType mtype = (next == Id::Zero) ? EncryptedData : ShuffleData;
         
         QByteArray msg;
@@ -158,23 +158,23 @@ namespace Tests {
 
   class ShuffleRoundMessageSwitcher : public ShuffleRound, public Triggerable {
     public:
-      ShuffleRoundMessageSwitcher(const Group &group, const Group &shufflers,
+      ShuffleRoundMessageSwitcher(QSharedPointer<GroupGenerator> group_gen,
           const Id &local_id, const Id &session_id, const Id &round_id,
           const ConnectionTable &ct, RpcHandler &rpc,
           QSharedPointer<AsymmetricKey> signing_key,
           GetDataCallback &get_data) :
-        ShuffleRound(group, shufflers, local_id, session_id, round_id, ct, rpc,
+        ShuffleRound(group_gen, local_id, session_id, round_id, ct, rpc,
             signing_key, get_data)
       { }
 
       virtual ~ShuffleRoundMessageSwitcher() {}
 
-      inline static Round *Create(const Group &group,
-          const Group &shufflers, const Id &local_id, const Id &session_id,
-          const Id &round_id, const ConnectionTable &ct, RpcHandler &rpc,
+      inline static Round *Create(QSharedPointer<GroupGenerator> group_gen,
+          const Id &local_id, const Id &session_id, const Id &round_id,
+          const ConnectionTable &ct, RpcHandler &rpc,
           QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data)
       {
-        return new ShuffleRoundMessageSwitcher(group, shufflers, local_id, session_id,
+        return new ShuffleRoundMessageSwitcher(group_gen, local_id, session_id,
             round_id, ct, rpc, signing_key, get_data);
       }
 
@@ -192,7 +192,7 @@ namespace Tests {
         SetTriggered();
 
         QVector<AsymmetricKey *> outer_keys;
-        for(int idx = GetActiveGroup().Count() - 1; idx >= GetActiveGroup().GetIndex(GetLocalId()); idx--) {
+        for(int idx = GetShufflers().Count() - 1; idx >= GetShufflers().GetIndex(GetLocalId()); idx--) {
           int kidx = CalculateKidx(idx);
           outer_keys.append(_public_outer_keys[kidx]);
         }
@@ -212,21 +212,21 @@ namespace Tests {
 
   class ShuffleRoundFalseBlame : public ShuffleRound, public Triggerable {
     public:
-      ShuffleRoundFalseBlame(const Group &group, const Group &shufflers,
+      ShuffleRoundFalseBlame(QSharedPointer<GroupGenerator> group_gen,
           const Id &local_id, const Id &session_id, const Id &round_id,
           const ConnectionTable &ct, RpcHandler &rpc,
           QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data) :
-        ShuffleRound(group, shufflers, local_id, session_id, round_id, ct, rpc,
+        ShuffleRound(group_gen, local_id, session_id, round_id, ct, rpc,
             signing_key, get_data) { }
 
       virtual ~ShuffleRoundFalseBlame() {}
 
-      inline static Round *Create(const Group &group, const Group &shufflers,
+      inline static Round *Create(QSharedPointer<GroupGenerator> group_gen,
           const Id &local_id, const Id &session_id, const Id &round_id,
           const ConnectionTable &ct, RpcHandler &rpc,
           QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data)
       {
-        return new ShuffleRoundFalseBlame(group, shufflers, local_id, session_id,
+        return new ShuffleRoundFalseBlame(group_gen, local_id, session_id,
             round_id, ct, rpc, signing_key, get_data);
       }
 
@@ -250,21 +250,21 @@ namespace Tests {
 
   class ShuffleRoundFalseNoGo : public ShuffleRound, public Triggerable {
     public:
-      ShuffleRoundFalseNoGo(const Group &group, const Group &shufflers,
+      ShuffleRoundFalseNoGo(QSharedPointer<GroupGenerator> group_gen,
           const Id &local_id, const Id &session_id, const Id &round_id,
           const ConnectionTable &ct, RpcHandler &rpc,
           QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data) :
-        ShuffleRound(group, shufflers, local_id, session_id, round_id, ct, rpc,
+        ShuffleRound(group_gen, local_id, session_id, round_id, ct, rpc,
             signing_key, get_data) { }
 
       virtual ~ShuffleRoundFalseNoGo() {}
 
-      inline static Round *Create(const Group &group, const Group &shufflers,
+      inline static Round *Create(QSharedPointer<GroupGenerator> group_gen,
           const Id &local_id, const Id &session_id, const Id &round_id,
           const ConnectionTable &ct, RpcHandler &rpc,
           QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data)
       {
-        return new ShuffleRoundFalseNoGo(group, shufflers, local_id, session_id, round_id,
+        return new ShuffleRoundFalseNoGo(group_gen, local_id, session_id, round_id,
             ct, rpc, signing_key, get_data);
       }
 
@@ -292,21 +292,21 @@ namespace Tests {
 
   class ShuffleRoundInvalidOuterEncryption : public ShuffleRound, public Triggerable {
     public:
-      ShuffleRoundInvalidOuterEncryption(const Group &group,
-          const Group &shufflers, const Id &local_id, const Id &session_id,
-          const Id &round_id, const ConnectionTable &ct, RpcHandler &rpc,
+      ShuffleRoundInvalidOuterEncryption(QSharedPointer<GroupGenerator> group_gen,
+          const Id &local_id, const Id &session_id, const Id &round_id,
+          const ConnectionTable &ct, RpcHandler &rpc,
           QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data) :
-        ShuffleRound(group, shufflers, local_id, session_id, round_id, ct, rpc,
+        ShuffleRound(group_gen, local_id, session_id, round_id, ct, rpc,
             signing_key, get_data) { }
 
       virtual ~ShuffleRoundInvalidOuterEncryption() {}
 
-      inline static Round *Create(const Group &group, const Group &shufflers,
+      inline static Round *Create(QSharedPointer<GroupGenerator> group_gen,
           const Id &local_id, const Id &session_id, const Id &round_id,
           const ConnectionTable &ct, RpcHandler &rpc,
           QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data)
       {
-        return new ShuffleRoundInvalidOuterEncryption(group, shufflers,
+        return new ShuffleRoundInvalidOuterEncryption(group_gen,
             local_id, session_id, round_id, ct, rpc, signing_key, get_data);
       }
 
@@ -329,10 +329,10 @@ namespace Tests {
         OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
         oe->Encrypt(_public_inner_keys, PrepareData(), _inner_ciphertext, 0);
 
-        int count = Random::GetInstance().GetInt(0, GetActiveGroup().Count());
+        int count = Random::GetInstance().GetInt(0, GetShufflers().Count());
         int opposite = CalculateKidx(count);
         if(count == opposite) {
-          opposite = (opposite + 1) % GetActiveGroup().Count();
+          opposite = (opposite + 1) % GetShufflers().Count();
         }
 
         AsymmetricKey *tmp = _public_outer_keys[opposite];
@@ -345,7 +345,7 @@ namespace Tests {
         stream << Data << GetRoundId().GetByteArray() << _outer_ciphertext;
 
         _state = WaitingForShuffle;
-        Send(msg, GetActiveGroup().GetId(0));
+        Send(msg, GetShufflers().GetId(0));
       }
   };
 }

@@ -8,10 +8,10 @@ namespace Anonymity {
   RpcHandler ShuffleRoundBlame::_empty_rpc = RpcHandler();
   EmptyGetDataCallback ShuffleRoundBlame::_empty_get_data;
 
-  ShuffleRoundBlame::ShuffleRoundBlame(const Group &group,
-      const Group &shufflers, const Id &local_id, const Id &session_id,
-      const Id &round_id, AsymmetricKey *outer_key) :
-    ShuffleRound(group, shufflers, local_id, session_id, round_id, _empty_ct,
+  ShuffleRoundBlame::ShuffleRoundBlame(QSharedPointer<GroupGenerator> group_gen,
+      const Id &local_id, const Id &session_id, const Id &round_id,
+      AsymmetricKey *outer_key) :
+    ShuffleRound(group_gen, local_id, session_id, round_id, _empty_ct,
         _empty_rpc, QSharedPointer<AsymmetricKey>(), _empty_get_data)
   {
     if(outer_key) {
@@ -20,6 +20,13 @@ namespace Anonymity {
     }
   }
 
+  bool ShuffleRoundBlame::Start()
+  {
+    QScopedPointer<AsymmetricKey> tmp(_outer_key.take());
+    bool nstarted = ShuffleRound::Start();
+    _outer_key.reset(tmp.take());
+    return !nstarted;
+  }
 
   int ShuffleRoundBlame::GetGo(int idx)
   {

@@ -162,7 +162,7 @@ namespace Anonymity {
       RpcHandler &_rpc;
       CreateRound _create_round;
       QSharedPointer<AsymmetricKey> _signing_key;
-      QScopedPointer<GroupGenerator> _generate_group;
+      QSharedPointer<GroupGenerator> _generate_group;
 
       bool _round_ready;
       QSharedPointer<Round> _current_round;

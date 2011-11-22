@@ -6,40 +6,26 @@ namespace Dissent {
 namespace Anonymity {
   const QByteArray ShuffleRound::DefaultData = QByteArray(ShuffleRound::BlockSize + 4, 0);
 
-  ShuffleRound::ShuffleRound(const Group &group, const Group &shufflers,
+  ShuffleRound::ShuffleRound(QSharedPointer<GroupGenerator> group_gen,
       const Id &local_id, const Id &session_id, const Id &round_id,
       const ConnectionTable &ct, RpcHandler &rpc,
       QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data) :
-    Round(group, shufflers, local_id, session_id, round_id, ct, rpc,
-        signing_key, get_data),
-    _shuffler(GetActiveGroup().Contains(local_id)),
+    Round(group_gen, local_id, session_id, round_id, ct, rpc, signing_key,
+        get_data),
     _state(Offline),
     _blame_state(Offline),
-    _public_inner_keys(GetActiveGroup().Count()),
-    _public_outer_keys(GetActiveGroup().Count()),
     _keys_received(0),
-    _private_inner_keys(GetActiveGroup().Count()),
-    _private_outer_keys(GetActiveGroup().Count()),
     _data_received(0),
     _go_count(0),
     _go_received(GetGroup().Count(), false),
     _go(GetGroup().Count(), false),
     _broadcast_hashes(GetGroup().Count()),
     _blame_received(GetGroup().Count(), false),
-    _logs(group.Count()),
+    _logs(GetGroup().Count()),
     _blame_hash(GetGroup().Count()),
     _blame_signatures(GetGroup().Count()),
     _received_blame_verification(GetGroup().Count(), false)
   {
-    if(_shuffler) {
-      Library *lib = CryptoFactory::GetInstance().GetLibrary();
-      _inner_key.reset(lib->CreatePrivateKey());
-      _outer_key.reset(lib->CreatePrivateKey());
-    }
-
-    if(GetActiveGroup().GetIndex(GetLocalId()) == 0) {
-      _shuffle_ciphertext = QVector<QByteArray>(GetGroup().Count());
-    }
   }
 
   ShuffleRound::~ShuffleRound()
@@ -125,6 +111,23 @@ namespace Anonymity {
     qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
       ": starting:" << ToString();
 
+    GenerateShufflerGroup();
+    _shuffler = _shufflers.Contains(GetLocalId());
+
+    if(_shuffler) {
+      Library *lib = CryptoFactory::GetInstance().GetLibrary();
+      _inner_key.reset(lib->CreatePrivateKey());
+      _outer_key.reset(lib->CreatePrivateKey());
+      if(_shufflers.GetIndex(GetLocalId()) == 0) {
+        _shuffle_ciphertext = QVector<QByteArray>(GetGroup().Count());
+      }
+    }
+
+    _public_inner_keys.resize(_shufflers.Count());
+    _public_outer_keys.resize(_shufflers.Count());
+    _private_inner_keys.resize(_shufflers.Count());
+    _private_outer_keys.resize(_shufflers.Count());
+
     BroadcastPublicKeys();
 
     Id from(Id::Zero);
@@ -149,7 +152,7 @@ namespace Anonymity {
       throw QRunTimeError("Received a misordered key message");
     }
 
-    int sidx = GetActiveGroup().GetIndex(id);
+    int sidx = _shufflers.GetIndex(id);
     if(sidx < 0) {
       throw QRunTimeError("Received a public key message from a non-shuffler");
     }
@@ -172,7 +175,7 @@ namespace Anonymity {
       throw QRunTimeError("Received an invalid outer public key");
     }
 
-    if(++_keys_received == GetActiveGroup().Count()) {
+    if(++_keys_received == _shufflers.Count()) {
       _keys_received = 0;
       SubmitData();
     }
@@ -189,7 +192,7 @@ namespace Anonymity {
       throw QRunTimeError("Received a misordered data message");
     }
 
-    int sidx = GetActiveGroup().GetIndex(GetLocalId());
+    int sidx = _shufflers.GetIndex(GetLocalId());
     if(sidx != 0) {
       throw QRunTimeError("Received a data message while not the first"
           " node in the group");
@@ -247,7 +250,7 @@ namespace Anonymity {
       throw QRunTimeError("Received a misordered data broadcast");
     }
 
-    if(GetActiveGroup().Count() - 1 != GetActiveGroup().GetIndex(id)) {
+    if(_shufflers.Count() - 1 != _shufflers.GetIndex(id)) {
       throw QRunTimeError("Received data broadcast from the wrong node");
     }
 
@@ -311,7 +314,7 @@ namespace Anonymity {
       throw QRunTimeError("Received misordered private key message");
     }
 
-    int sidx = GetActiveGroup().GetIndex(id);
+    int sidx = _shufflers.GetIndex(id);
     if(sidx < 0) {
       throw QRunTimeError("Received a private key message from a non-shuffler");
     }
@@ -351,7 +354,7 @@ namespace Anonymity {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());;
 
-    int sidx = GetActiveGroup().GetIndex(id);
+    int sidx = _shufflers.GetIndex(id);
     QByteArray key;
     if(sidx >= 0) {
       stream >> key;
@@ -529,7 +532,7 @@ namespace Anonymity {
     }
 
     if(!_shuffler) {
-      qDebug() << GetActiveGroup().GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
+      qDebug() << _shufflers.GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
         << ": not sharing a key, waiting for keys.";
       return;
     }
@@ -543,7 +546,7 @@ namespace Anonymity {
     QDataStream stream(&msg, QIODevice::WriteOnly);
     stream << PublicKeys << GetRoundId().GetByteArray() << inner_key << outer_key;
 
-    qDebug() << GetActiveGroup().GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
+    qDebug() << _shufflers.GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
       << ": key shared waiting for other keys.";
 
     Broadcast(msg);
@@ -568,16 +571,16 @@ namespace Anonymity {
       _state = WaitingForEncryptedInnerData;
     }
 
-    qDebug() << GetActiveGroup().GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
+    qDebug() << _shufflers.GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
       << ": data submitted now in state:" << StateToString(_state);
 
-    Send(msg, GetActiveGroup().GetId(0));
+    Send(msg, _shufflers.GetId(0));
   }
 
   void ShuffleRound::Shuffle()
   {
     _state = Shuffling;
-    qDebug() << GetActiveGroup().GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
+    qDebug() << _shufflers.GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
       << ": shuffling";
 
     for(int idx = 0; idx < _shuffle_ciphertext.count(); idx++) {
@@ -597,7 +600,7 @@ namespace Anonymity {
     QVector<int> bad;
     OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
     if(!oe->Decrypt(_outer_key.data(), _shuffle_ciphertext, _shuffle_cleartext, &bad)) {
-      qWarning() << GetActiveGroup().GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
+      qWarning() << _shufflers.GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
         << GetLocalId().ToString() << ": failed to decrypt layer due to block at "
         "indexes" << bad;
       StartBlame();
@@ -606,7 +609,7 @@ namespace Anonymity {
 
     oe->RandomizeBlocks(_shuffle_cleartext);
 
-    const Id &next = GetActiveGroup().Next(GetLocalId());
+    const Id &next = _shufflers.Next(GetLocalId());
     MessageType mtype = (next == Id::Zero) ? EncryptedData : ShuffleData;
 
     QByteArray msg;
@@ -615,7 +618,7 @@ namespace Anonymity {
 
     _state = WaitingForEncryptedInnerData;
 
-    qDebug() << GetActiveGroup().GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
+    qDebug() << _shufflers.GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
       << ": finished shuffling";
 
     if(mtype == EncryptedData) {
@@ -647,11 +650,11 @@ namespace Anonymity {
       _broadcast_hash = hash->ComputeHash();
       out_stream << _broadcast_hash;
 
-      qDebug() << GetActiveGroup().GetIndex(GetLocalId()) <<
+      qDebug() << _shufflers.GetIndex(GetLocalId()) <<
         GetGroup().GetIndex(GetLocalId()) <<
         ": found our data in the shuffled ciphertexts";
     } else {
-      qWarning() << GetActiveGroup().GetIndex(GetLocalId()) <<
+      qWarning() << _shufflers.GetIndex(GetLocalId()) <<
         GetGroup().GetIndex(GetLocalId()) <<
         "Did not find our message in the shuffled ciphertexts!";
     }
@@ -664,13 +667,13 @@ namespace Anonymity {
     _state = PrivateKeySharing;
 
     if(!_shuffler) {
-      qDebug() << GetActiveGroup().GetIndex(GetLocalId()) <<
+      qDebug() << _shufflers.GetIndex(GetLocalId()) <<
         GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
         ": received sufficient go messages, waiting for keys.";
       return;
     }
 
-    qDebug() << GetActiveGroup().GetIndex(GetLocalId()) <<
+    qDebug() << _shufflers.GetIndex(GetLocalId()) <<
       GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString()
       << ": received sufficient go messages, broadcasting private key.";
 
@@ -809,7 +812,7 @@ namespace Anonymity {
       return;
     }
 
-    ShuffleBlamer sb(GetGroup(), GetActiveGroup(), GetId(), GetRoundId(), _logs,
+    ShuffleBlamer sb(GetGroupGenerator(), GetId(), GetRoundId(), _logs,
         _private_outer_keys);
     sb.Start();
     for(int idx = 0; idx < sb.GetBadNodes().count(); idx++) {

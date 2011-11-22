@@ -14,20 +14,20 @@ namespace Anonymity {
     public:
       /**
        * Constructor
-       * @param group The anonymity group
+       * @param group_gen Generate groups for use during this round
        * @param local_id The local peers id
        * @param session_id Session this round represents
        * @param ct Connections to the anonymity group
        * @param rpc Rpc handler for sending messages
        * @param get_data requests data to share during this session
        */
-      NullRound(const Group &group, const Id &local_id, const Id &session_id,
-          const ConnectionTable &ct, RpcHandler &rpc, GetDataCallback &get_data);
+      NullRound(QSharedPointer<GroupGenerator> group_gen, const Id &local_id,
+          const Id &session_id, const ConnectionTable &ct, RpcHandler &rpc,
+          GetDataCallback &get_data);
 
       /**
        * function pointer access to the constructor
-       * @param group The anonymity group
-       * @param active_group unused
+       * @param group_gen Generate groups for use during this round
        * @param local_id The local peers id
        * @param session_id Session this round represents
        * @param round_id unused
@@ -36,12 +36,12 @@ namespace Anonymity {
        * @param signing_key unused
        * @param get_data requests data to share during this session
        */
-      inline static Round *Create(const Group &group, const Group &,
+      inline static Round *Create(QSharedPointer<GroupGenerator> group_gen, 
           const Id &local_id, const Id &session_id, const Id &,
           const ConnectionTable &ct, RpcHandler &rpc,
           QSharedPointer<AsymmetricKey>, GetDataCallback &get_data)
       {
-        return new NullRound(group, local_id, session_id, ct, rpc, get_data);
+        return new NullRound(group_gen, local_id, session_id, ct, rpc, get_data);
       }
 
       /**

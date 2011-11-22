@@ -5,11 +5,11 @@
 
 namespace Dissent {
 namespace Anonymity {
-  ShuffleBlamer::ShuffleBlamer(const Group &group, const Group &shufflers,
+  ShuffleBlamer::ShuffleBlamer(QSharedPointer<GroupGenerator> group_gen,
       const Id &session_id, const Id &round_id, const QVector<Log> &logs,
       const QVector<AsymmetricKey *> private_keys) :
-    _group(group),
-    _shufflers(shufflers),
+    _group(group_gen->WholeGroup()),
+    _shufflers(group_gen->CurrentGroup()),
     _logs(logs),
     _private_keys(private_keys),
     _bad_nodes(_group.Count(), false),
@@ -22,7 +22,7 @@ namespace Anonymity {
       if(sidx >= 0) {
         key = _private_keys[sidx];
       }
-      _rounds.append(new ShuffleRoundBlame(_group, _shufflers, _group.GetId(idx),
+      _rounds.append(new ShuffleRoundBlame(group_gen, _group.GetId(idx),
             session_id, round_id, key));
     }
   }

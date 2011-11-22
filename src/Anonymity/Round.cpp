@@ -2,12 +2,12 @@
 
 namespace Dissent {
 namespace Anonymity {
-  Round::Round(const Group &group, const Group &active_group,
-      const Id &local_id, const Id &session_id, const Id &round_id,
-      const ConnectionTable &ct, RpcHandler &rpc,
-      QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data) :
-    _group(group),
-    _active_group(active_group),
+  Round::Round(QSharedPointer<GroupGenerator> group_gen, const Id &local_id,
+      const Id &session_id, const Id &round_id, const ConnectionTable &ct,
+      RpcHandler &rpc, QSharedPointer<AsymmetricKey> signing_key,
+      GetDataCallback &get_data) :
+    _group_gen(group_gen),
+    _group(_group_gen->WholeGroup()),
     _local_id(local_id),
     _session_id(session_id),
     _round_id(round_id),

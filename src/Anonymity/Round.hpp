@@ -12,6 +12,7 @@
 #include "../Utils/StartStop.hpp"
 
 #include "Group.hpp"
+#include "GroupGenerator.hpp"
 #include "GetDataCallback.hpp"
 
 namespace Dissent {
@@ -32,8 +33,7 @@ namespace Anonymity {
     public:
       /**
        * Constructor
-       * @param group The anonymity group
-       * @param active_group The set of peers providing core services
+       * @param group_gen Generate groups for use during this round
        * @param local_id The local peers id
        * @param session_id Session this round represents
        * @param round_id Unique round id (nonce)
@@ -43,10 +43,10 @@ namespace Anonymity {
        * node in the group
        * @param get_data requests data to share during this session
        */
-      Round(const Group &group, const Group &active_group,
-          const Id &local_id, const Id &session_id, const Id &round_id,
-          const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data);
+      Round(QSharedPointer<GroupGenerator> group_gen, const Id &local_id,
+          const Id &session_id, const Id &round_id, const ConnectionTable &ct,
+          RpcHandler &rpc, QSharedPointer<AsymmetricKey> signing_key,
+          GetDataCallback &get_data);
 
       /**
        * Destructor
@@ -97,14 +97,14 @@ namespace Anonymity {
       inline const Id &GetRoundId() const { return _round_id; }
 
       /**
+       * Returns the group generator if subgroups are necessary
+       */
+      inline QSharedPointer<GroupGenerator> GetGroupGenerator() const { return _group_gen; }
+
+      /**
        * Returns the group used in the round
        */
       inline const Group &GetGroup() const { return _group; }
-
-      /**
-       * Returns the active group used in the round
-       */
-      inline const Group &GetActiveGroup() const { return _active_group; }
 
       /**
        * Returns the list of bad nodes discovered in the round
@@ -183,8 +183,8 @@ namespace Anonymity {
       void SetSuccessful(bool successful) { _successful = successful; }
 
     private:
+      QSharedPointer<GroupGenerator> _group_gen;
       const Group _group;
-      const Group _active_group;
       const Id _local_id;
       const Id _session_id;
       const Id _round_id;
@@ -206,10 +206,9 @@ namespace Anonymity {
       virtual void HandleDisconnect(Connection *con, const QString &reason);
   };
 
-  typedef Round *(*CreateRound)(const Group &, const Group &,
-      const Id &, const Id &, const Id &, const ConnectionTable &,
-      RpcHandler &, QSharedPointer<AsymmetricKey>,
-      GetDataCallback &get_data_cb);
+  typedef Round *(*CreateRound)(QSharedPointer<GroupGenerator> , const Id &,
+      const Id &, const Id &, const ConnectionTable &, RpcHandler &,
+      QSharedPointer<AsymmetricKey>, GetDataCallback &get_data_cb);
 }
 }
 
