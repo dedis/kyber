@@ -415,6 +415,11 @@ namespace Anonymity {
       QByteArray _outer_ciphertext;
 
       /**
+       * Stores all validated messages that arrived before start was called
+       */
+      Log _offline_log;
+
+      /**
        * Stores all validated incoming messages
        */
       Log _log;

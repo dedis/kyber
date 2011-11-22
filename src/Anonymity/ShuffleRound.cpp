@@ -126,6 +126,17 @@ namespace Anonymity {
       ": starting:" << ToString();
 
     BroadcastPublicKeys();
+
+    Id from(Id::Zero);
+    QByteArray entry(0);
+
+    for(int idx = 0; idx < _offline_log.Count(); idx++) {
+      _offline_log.At(idx, entry, from);
+      ProcessData(entry, from);
+    }
+
+    _offline_log.Clear();
+
     return true;
   }
 
@@ -134,7 +145,7 @@ namespace Anonymity {
     qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
         ": received public keys from " << GetGroup().GetIndex(id) << id.ToString();
 
-    if(_state != Offline && _state != KeySharing) {
+    if(_state != KeySharing) {
       throw QRunTimeError("Received a misordered key message");
     }
 
@@ -437,6 +448,12 @@ namespace Anonymity {
     QByteArray payload;
     if(!Verify(data, payload, from)) {
       throw QRunTimeError("Invalid signature or data");
+    }
+
+    if(_state == Offline) {
+      _log.Pop();
+      _offline_log.Append(data, from);
+      return;
     }
 
     QDataStream stream(payload);

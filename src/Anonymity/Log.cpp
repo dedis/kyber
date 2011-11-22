@@ -47,5 +47,11 @@ namespace Anonymity {
     stream << _entries << _remote;
     return logdata;
   }
+
+  void Log::Clear()
+  {
+    _entries.clear();
+    _remote.clear();
+  }
 }
 }

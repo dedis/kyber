@@ -58,6 +58,11 @@ namespace Anonymity {
        */
       inline int Count() { return _entries.count(); }
 
+      /**
+       * Clears the log
+       */
+      void Clear();
+
     private:
       QVector<QByteArray> _entries;
       QVector<Id> _remote;
