@@ -287,7 +287,6 @@ namespace Tests {
         QDataStream out_stream(&msg, QIODevice::WriteOnly);
         out_stream << mtype << GetRoundId();
         Broadcast(msg);
-        StartBlame();
       }
   };
 

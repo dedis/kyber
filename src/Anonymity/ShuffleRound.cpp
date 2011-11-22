@@ -610,14 +610,8 @@ namespace Anonymity {
 
   void ShuffleRound::Verify()
   {
+    _state = Verification;
     bool found = _encrypted_data.contains(_inner_ciphertext);
-    if(found) {
-      _state = Verification;
-    } else {
-      qWarning() << GetActiveGroup().GetIndex(GetLocalId()) <<
-        GetGroup().GetIndex(GetLocalId()) <<
-        "Did not find our message in the shuffled ciphertexts!";
-    }
 
     MessageType mtype = found ?  GoMessage : NoGoMessage;
     QByteArray msg;
@@ -639,6 +633,10 @@ namespace Anonymity {
       qDebug() << GetActiveGroup().GetIndex(GetLocalId()) <<
         GetGroup().GetIndex(GetLocalId()) <<
         ": found our data in the shuffled ciphertexts";
+    } else {
+      qWarning() << GetActiveGroup().GetIndex(GetLocalId()) <<
+        GetGroup().GetIndex(GetLocalId()) <<
+        "Did not find our message in the shuffled ciphertexts!";
     }
 
     Broadcast(msg);
