@@ -84,5 +84,6 @@
 #include "Utils/TimerCallback.hpp"
 #include "Utils/TimerEvent.hpp"
 #include "Utils/Triggerable.hpp"
+#include "Utils/Triple.hpp"
 
 #endif

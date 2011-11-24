@@ -90,7 +90,8 @@ HEADERS += src/Dissent.hpp \
            src/Utils/Timer.hpp \
            src/Utils/TimerCallback.hpp \
            src/Utils/TimerEvent.hpp \
-           src/Utils/Triggerable.hpp
+           src/Utils/Triggerable.hpp \
+           src/Utils/Triple.hpp
 
 SOURCES += src/Anonymity/Group.cpp \
            src/Anonymity/Log.cpp \
