@@ -4,6 +4,7 @@
 #include "../Utils/Random.hpp"
 #include "AsymmetricKey.hpp"
 #include "Hash.hpp"
+#include "IntegerData.hpp"
 
 namespace Dissent {
 namespace Crypto {
@@ -63,6 +64,21 @@ namespace Crypto {
        * Returns a hash algorithm
        */
       virtual Hash *GetHashAlgorithm() = 0;
+
+      /**
+       * Returns an integer data
+       */
+      virtual IntegerData *GetIntegerData(int value) = 0;
+
+      /**
+       * Returns an integer data
+       */
+      virtual IntegerData *GetIntegerData(const QByteArray &value) = 0;
+
+      /**
+       * Returns an integer data
+       */
+      virtual IntegerData *GetIntegerData(const QString &value) = 0;
 
       /**
        * Destructor

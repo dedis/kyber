@@ -5,6 +5,7 @@
 #include "../Utils/Random.hpp"
 #include "NullPrivateKey.hpp"
 #include "NullPublicKey.hpp"
+#include "CppIntegerData.hpp"
 
 #include "Library.hpp"
 
@@ -95,6 +96,30 @@ namespace Crypto {
       inline virtual Hash *GetHashAlgorithm() 
       {
         return new NullHash();
+      }
+
+      /**
+       * Returns an integer data
+       */
+      inline virtual IntegerData *GetIntegerData(int value)
+      {
+        return new CppIntegerData(value);
+      }
+
+      /**
+       * Returns an integer data
+       */
+      inline virtual IntegerData *GetIntegerData(const QByteArray &value)
+      {
+        return new CppIntegerData(value);
+      }
+
+      /**
+       * Returns an integer data
+       */
+      inline virtual IntegerData *GetIntegerData(const QString &value)
+      {
+        return new CppIntegerData(value);
       }
   };
 }

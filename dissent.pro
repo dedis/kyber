@@ -32,12 +32,15 @@ HEADERS += src/Dissent.hpp \
            src/Applications/Settings.hpp \
            src/Crypto/AsymmetricKey.hpp \
            src/Crypto/CppHash.hpp \
+           src/Crypto/CppIntegerData.hpp \
            src/Crypto/CppLibrary.hpp \
            src/Crypto/CppPrivateKey.hpp \
            src/Crypto/CppPublicKey.hpp \
            src/Crypto/CppRandom.hpp \
            src/Crypto/CryptoFactory.hpp \
            src/Crypto/Hash.hpp \
+           src/Crypto/Integer.hpp \
+           src/Crypto/IntegerData.hpp \
            src/Crypto/NullHash.hpp \
            src/Crypto/NullLibrary.hpp \
            src/Crypto/NullPublicKey.hpp \

@@ -2,6 +2,7 @@
 #define DISSENT_CRYPTO_CPP_LIBRARY_H_GUARD
 
 #include "CppHash.hpp"
+#include "CppIntegerData.hpp"
 #include "CppRandom.hpp"
 #include "CppPrivateKey.hpp"
 #include "CppPublicKey.hpp"
@@ -95,6 +96,30 @@ namespace Crypto {
       inline virtual Hash *GetHashAlgorithm() 
       {
         return new CppHash();
+      }
+
+      /**
+       * Returns an integer data
+       */
+      inline virtual IntegerData *GetIntegerData(int value)
+      {
+        return new CppIntegerData(value);
+      }
+
+      /**
+       * Returns an integer data
+       */
+      inline virtual IntegerData *GetIntegerData(const QByteArray &value)
+      {
+        return new CppIntegerData(value);
+      }
+
+      /**
+       * Returns an integer data
+       */
+      inline virtual IntegerData *GetIntegerData(const QString &value)
+      {
+        return new CppIntegerData(value);
       }
   };
 }
