@@ -32,7 +32,7 @@ namespace Tests {
 
       virtual ~TestNode() {}
 
-      MockSink sink;
+      BufferSink sink;
       RpcHandler rpc;
       ConnectionManager cm;
       SessionManager sm;

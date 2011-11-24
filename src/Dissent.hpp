@@ -42,6 +42,7 @@
 #include "Connections/ConnectionTable.hpp"
 #include "Connections/Id.hpp"
 
+#include "Messaging/BufferSink.hpp"
 #include "Messaging/DummySink.hpp"
 #include "Messaging/ISender.hpp"
 #include "Messaging/ISink.hpp"

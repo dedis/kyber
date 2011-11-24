@@ -52,6 +52,7 @@ HEADERS += src/Dissent.hpp \
            src/Connections/ConnectionManager.hpp \
            src/Connections/ConnectionTable.hpp \
            src/Connections/Id.hpp \
+           src/Messaging/BufferSink.hpp \
            src/Messaging/DummySink.hpp \
            src/Messaging/Filter.hpp \
            src/Messaging/ISender.hpp \

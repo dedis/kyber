@@ -28,7 +28,7 @@ namespace Tests {
     }
 
     for(int idx = 0; idx < count; idx++) {
-      EXPECT_TRUE(nodes[idx]->sink.GetLastData().isEmpty());
+      EXPECT_TRUE(nodes[idx]->sink.Count() == 0);
     }
 
     Id leader_id = nodes[leader]->cm.GetId();
@@ -48,7 +48,7 @@ namespace Tests {
     }
 
     for(int idx = 0; idx < count; idx++) {
-      EXPECT_TRUE(nodes[idx]->sink.GetLastData().isEmpty());
+      EXPECT_TRUE(nodes[idx]->sink.Count() == 0);
     }
 
     EXPECT_EQ(TestNode::success, count);
@@ -81,7 +81,7 @@ namespace Tests {
     }
 
     for(int idx = 0; idx < count; idx++) {
-      EXPECT_TRUE(nodes[idx]->sink.GetLastData().isEmpty());
+      EXPECT_TRUE(nodes[idx]->sink.Count() == 0);
     }
 
     Id leader_id = nodes[leader]->cm.GetId();
@@ -108,7 +108,7 @@ namespace Tests {
     }
 
     for(int idx = 0; idx < count; idx++) {
-      EXPECT_EQ(msg, nodes[idx]->sink.GetLastData());
+      EXPECT_EQ(msg, nodes[idx]->sink.Last().first);
     }
 
     CleanUp(nodes);
@@ -156,7 +156,7 @@ namespace Tests {
     }
 
     for(int idx = 0; idx < count; idx++) {
-      EXPECT_EQ(msg, nodes[idx]->sink.GetLastData());
+      EXPECT_EQ(msg, nodes[idx]->sink.Last().first);
     }
 
     rand->GenerateBlock(msg);
@@ -170,7 +170,7 @@ namespace Tests {
     }
 
     for(int idx = 0; idx < count; idx++) {
-      EXPECT_EQ(msg, nodes[idx]->sink.GetLastData());
+      EXPECT_EQ(msg, nodes[idx]->sink.Last().first);
     }
 
     CleanUp(nodes);
@@ -235,7 +235,7 @@ namespace Tests {
     }
 
     for(int idx = 0; idx < count; idx++) {
-      EXPECT_TRUE(nodes[idx]->sink.GetLastData().isEmpty());
+      EXPECT_TRUE(nodes[idx]->sink.Count() == 0);
       EXPECT_TRUE(nodes[idx]->session->Stopped());
     }
 
@@ -269,7 +269,7 @@ namespace Tests {
     }
 
     for(int idx = 0; idx < count; idx++) {
-      EXPECT_TRUE(nodes[idx]->sink.GetLastData().isEmpty());
+      EXPECT_TRUE(nodes[idx]->sink.Count() == 0);
     }
 
     Id leader_id = nodes[leader]->cm.GetId();
@@ -316,7 +316,7 @@ namespace Tests {
         "consider rerunning." << std::endl;
 
       for(int idx = 0; idx < count; idx++) {
-        EXPECT_EQ(msg, nodes[idx]->sink.GetLastData());
+        EXPECT_EQ(msg, nodes[idx]->sink.Last().first);
       }
     } else {
       foreach(TestNode *node, nodes) {
@@ -355,7 +355,7 @@ namespace Tests {
     }
 
     for(int idx = 0; idx < count; idx++) {
-      EXPECT_TRUE(nodes[idx]->sink.GetLastData().isEmpty());
+      EXPECT_TRUE(nodes[idx]->sink.Count() == 0);
     }
 
     Id leader_id = nodes[leader]->cm.GetId();
@@ -404,7 +404,7 @@ namespace Tests {
         if(pr->GetBadMembers().count() > 0) {
           EXPECT_TRUE(pr->GetBadMembers()[0] == badguy);
         }
-        EXPECT_TRUE(node->sink.GetLastData().isEmpty());
+        EXPECT_TRUE(node->sink.Count() == 0);
       }
     }
 
