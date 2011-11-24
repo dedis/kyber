@@ -88,6 +88,15 @@ namespace Crypto {
       }
 
       /**
+       * Returns the not equivalence of the given key with the current key
+       * @param key the given key
+       */
+      virtual bool operator!=(const AsymmetricKey &key) const
+      {
+        return this->GetByteArray() != key.GetByteArray();
+      }
+
+      /**
        * Returns true if the key loaded is a valid key
        */
       virtual bool IsValid() const = 0;

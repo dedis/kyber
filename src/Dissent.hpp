@@ -39,6 +39,7 @@
 #include "Crypto/NullPrivateKey.hpp"
 #include "Crypto/NullPublicKey.hpp"
 #include "Crypto/OnionEncryptor.hpp"
+#include "Crypto/Serialization.hpp"
 #include "Crypto/ThreadedOnionEncryptor.hpp"
 
 #include "Connections/Connection.hpp"

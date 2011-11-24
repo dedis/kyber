@@ -95,6 +95,29 @@ namespace Tests {
     EXPECT_FALSE(key1->VerifyKey(*key1));
   }
 
+  void AsymmetricKeySerialization()
+  {
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<AsymmetricKey> key(lib->CreatePrivateKey());
+    QSharedPointer<AsymmetricKey> pkey(key->GetPublicKey());
+    QSharedPointer<AsymmetricKey> key0, pkey0;
+    EXPECT_NE(*key, *pkey);
+    EXPECT_TRUE(key.data() != 0);
+    EXPECT_TRUE(pkey.data() != 0);
+    EXPECT_TRUE(key0.data() == 0);
+    EXPECT_TRUE(pkey0.data() == 0);
+
+    QByteArray data;
+    QDataStream istream(&data, QIODevice::WriteOnly);
+    istream << key << pkey;
+
+    QDataStream ostream(data);
+    ostream >> key0 >> pkey0;
+
+    EXPECT_EQ(*key, *key0);
+    EXPECT_EQ(*pkey, *pkey0);
+  }
+
   void AsymmetricKeyFail(Library *lib)
   {
     CppRandom rng;
@@ -249,6 +272,15 @@ namespace Tests {
     KeyGenerationFromIdTest(lib.data());
   }
 
+  TEST(Crypto, CppKeySerialization)
+  {
+    CryptoFactory &cf = CryptoFactory::GetInstance();
+    CryptoFactory::LibraryName cname = cf.GetLibraryName();
+    cf.SetLibrary(CryptoFactory::CryptoPP);
+    AsymmetricKeySerialization();
+    cf.SetLibrary(cname);
+  }
+
   TEST(Crypto, NullAsymmetricKey)
   {
     QScopedPointer<Library> lib(new NullLibrary());
@@ -265,6 +297,15 @@ namespace Tests {
   {
     QScopedPointer<Library> lib(new NullLibrary());
     KeyGenerationFromIdTest(lib.data());
+  }
+
+  TEST(Crypto, NullKeySerialization)
+  {
+    CryptoFactory &cf = CryptoFactory::GetInstance();
+    CryptoFactory::LibraryName cname = cf.GetLibraryName();
+    cf.SetLibrary(CryptoFactory::Null);
+    AsymmetricKeySerialization();
+    cf.SetLibrary(cname);
   }
 
   TEST(Crypto, CppDiffieHellman)

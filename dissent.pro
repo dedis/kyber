@@ -51,6 +51,7 @@ HEADERS += src/Dissent.hpp \
            src/Crypto/Library.hpp \
            src/Crypto/OnionEncryptor.hpp \
            src/Crypto/ThreadedOnionEncryptor.hpp \
+           src/Crypto/Serialization.hpp \
            src/Connections/Connection.hpp \
            src/Connections/ConnectionManager.hpp \
            src/Connections/ConnectionTable.hpp \
