@@ -18,10 +18,6 @@
 
 namespace Dissent {
 namespace Crypto {
-  namespace {
-    using namespace CryptoPP;
-  }
-
   /**
    * Implementation of PublicKey using CryptoPP
    */
@@ -93,10 +89,10 @@ namespace Crypto {
        */
       bool InitFromFile(const QString &filename);
 
-      const RSA::PublicKey *_public_key;
+      const CryptoPP::RSA::PublicKey *_public_key;
       bool _valid;
       int _key_size;
-      static QByteArray GetByteArray(const CryptoMaterial &key);
+      static QByteArray GetByteArray(const CryptoPP::CryptoMaterial &key);
   };
 }
 }

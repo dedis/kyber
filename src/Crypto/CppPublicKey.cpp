@@ -2,6 +2,8 @@
 #include "CppPrivateKey.hpp"
 #include "CppRandom.hpp"
 
+using namespace CryptoPP;
+
 namespace Dissent {
 namespace Crypto {
   CppPublicKey::CppPublicKey(const QString &filename) :

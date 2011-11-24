@@ -9,10 +9,6 @@
 
 namespace Dissent {
 namespace Crypto {
-  namespace {
-    using namespace CryptoPP;
-  }
-
   /**
    * Implementation of PrivateKey using CryptoPP
    */
@@ -43,7 +39,7 @@ namespace Crypto {
       inline virtual bool IsPrivateKey() const { return true; }
 
     protected:
-      const RSA::PrivateKey *_private_key;
+      const CryptoPP::RSA::PrivateKey *_private_key;
   };
 }
 }
