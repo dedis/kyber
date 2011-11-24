@@ -1,48 +1,18 @@
 #ifndef DISSENT_CONNECTIONS_ADDRESS_H_GUARD
 #define DISSENT_CONNECTIONS_ADDRESS_H_GUARD
 
-#include <ostream>
-#include <stdexcept>
-
-#include <cryptopp/des.h>
-#include <cryptopp/integer.h>
-#include <cryptopp/osrng.h>
-
 #include <QByteArray>
-#include <QSharedData>
 #include <QString>
-
-using CryptoPP::Integer;
+#include "../Crypto/Integer.hpp"
 
 namespace Dissent {
 namespace Connections {
-  /**
-   * Private data structure for Id storage.
-   */
-  class IdData : public QSharedData {
-    public:
-      IdData(const QByteArray &bid, const Integer &iid, const QString &sid) :
-        bid(bid), iid(iid), sid(sid) { }
-      virtual ~IdData() {}
-
-      QByteArray bid;
-      Integer iid;
-      QString sid;
-
-      IdData(const IdData &other) : QSharedData(other)
-      {
-        throw std::logic_error("Not callable");
-      }
-
-      IdData &operator=(const IdData &)
-      {
-        throw std::logic_error("Not callable");
-      }
-  };
+  namespace {
+    using Dissent::Crypto::Integer;
+  }
 
   /**
-   * A globally unique identifier.  Uses shared state so no need to use pointers
-   * with Id objects.
+   * A globally unique identifier.
    */
   class Id {
     public:
@@ -76,65 +46,25 @@ namespace Connections {
       /**
        * Returns a printable Id string
        */
-      QString ToString() const;
+      inline QString ToString() const { return _integer.ToString(); }
 
-      bool operator<(const Id &other) const;
-      bool operator>(const Id &other) const;
-      bool operator==(const Id &other) const;
-      bool operator!=(const Id &other) const;
-
-      /**
-       * Returns a Base64 string rep of the Id
-       */
-      inline const QString &GetBase64String() const { return _data->sid; }
+      inline bool operator==(const Id &other) const { return _integer == other._integer; }
+      inline bool operator!=(const Id &other) const { return _integer != other._integer; }
+      inline bool operator<(const Id &other) const { return _integer < other._integer; }
+      inline bool operator>(const Id &other) const { return _integer > other._integer; }
 
       /**
        * Returns the byte array for the Id
        */
-      inline const QByteArray &GetByteArray() const { return _data->bid; }
+      inline const QByteArray &GetByteArray() const { return _integer.GetByteArray(); }
 
       /**
        * Returns the (big) Integer for the Id
        */
-      inline const Integer &GetInteger() const { return _data->iid; }
+      inline const Integer &GetInteger() const { return _integer; }
       
-      /**
-       * Convert an Integer Id into a QByteArray Id
-       * @param iid Integer Id
-       */
-      static const QByteArray GetQByteArray(const Integer &iid);
-      
-      /**
-       * Convert a String Id into a QByteArray Id
-       * @param sid String Id
-       */
-      static const QByteArray GetQByteArray(const QString &sid);
-      
-      /**
-       * Convert a QByteArray Id into an Integer Id
-       * @param bid QByteArray Id
-       */
-      static const Integer GetInteger(const QByteArray &bid);
-      
-      /**
-       * Convert a QByteArray Id into a QString
-       * @param bid QByteArray Id
-       */
-      static const QString GetQString(const QByteArray &bid);
-
     private:
-      /**
-       * Initializes IdData
-       * @param bid the QByteArray for the Id
-       * @param iid the Integer for the Id
-       * @param sid the QString for the sid
-       */
-      void Init(const QByteArray &bid, const Integer &iid, const QString &sid);
-
-      /**
-       * Underlying shared private data
-       */
-      QExplicitlySharedDataPointer<IdData> _data;
+      Integer _integer;
   };
 
   /**

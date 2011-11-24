@@ -15,7 +15,7 @@ namespace Tests {
     EXPECT_EQ(settings.RemotePeers.count(), 0);
     settings.LocalEndPoints.append(QUrl("buffer://5"));
     settings.RemotePeers.append(QUrl("buffer://6"));
-    settings.LocalId = id.GetBase64String();
+    settings.LocalId = id.ToString();
     settings.Save();
 
     Settings settings0("dissent.ini");

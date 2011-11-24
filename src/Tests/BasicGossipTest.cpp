@@ -203,7 +203,7 @@ namespace Tests {
   TEST(BasicGossip, IdGeneration)
   {
     Id local_id;
-    Id id(local_id.GetBase64String());
+    Id id(local_id.ToString());
     QList<Address> empty;
     BasicGossip bg(id, empty, empty);
     EXPECT_EQ(local_id, bg.GetId());

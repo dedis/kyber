@@ -26,16 +26,14 @@ namespace Tests {
     EXPECT_NE(id0, id1);
 
     if(id0 > id1) {
-      Id temp = id0;
-      id0 = id1;
-      id1 = temp;
+      std::swap(id0, id1);
     }
 
-    ASSERT_TRUE(id0 < id1);
-    ASSERT_TRUE(id1 > id0);
-    ASSERT_TRUE(id0 != id1);
+    EXPECT_TRUE(id0 < id1);
+    EXPECT_TRUE(id1 > id0);
+    EXPECT_TRUE(id0 != id1);
 
-    Id id0_0(id0.GetBase64String());
+    Id id0_0(id0.ToString());
     Id id0_1(id0.GetByteArray());
     Id id0_2(id0.GetInteger());
 
@@ -45,7 +43,7 @@ namespace Tests {
 
     Id id2(zero);
 
-    Id id2_0(id2.GetBase64String());
+    Id id2_0(id2.ToString());
     Id id2_1(id2.GetByteArray());
     Id id2_2(id2.GetInteger());
 
