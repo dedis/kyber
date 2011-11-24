@@ -1,6 +1,7 @@
 #ifndef DISSENT_CRYPTO_NULL_LIBRARY_H_GUARD
 #define DISSENT_CRYPTO_NULL_LIBRARY_H_GUARD
 
+#include "NullDiffieHellman.hpp"
 #include "NullHash.hpp"
 #include "../Utils/Random.hpp"
 #include "NullPrivateKey.hpp"
@@ -120,6 +121,14 @@ namespace Crypto {
       inline virtual IntegerData *GetIntegerData(const QString &value)
       {
         return new CppIntegerData(value);
+      }
+
+      /**
+       * Returns a DiffieHellman operator
+       */
+      virtual DiffieHellman *GetDiffieHellman()
+      {
+        return new NullDiffieHellman();
       }
   };
 }

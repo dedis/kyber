@@ -31,6 +31,7 @@ HEADERS += src/Dissent.hpp \
            src/Applications/SessionFactory.hpp \
            src/Applications/Settings.hpp \
            src/Crypto/AsymmetricKey.hpp \
+           src/Crypto/CppDiffieHellman.hpp \
            src/Crypto/CppHash.hpp \
            src/Crypto/CppIntegerData.hpp \
            src/Crypto/CppLibrary.hpp \
@@ -38,6 +39,8 @@ HEADERS += src/Dissent.hpp \
            src/Crypto/CppPublicKey.hpp \
            src/Crypto/CppRandom.hpp \
            src/Crypto/CryptoFactory.hpp \
+           src/Crypto/DiffieHellman.hpp \
+           src/Crypto/NullDiffieHellman.hpp \
            src/Crypto/Hash.hpp \
            src/Crypto/Integer.hpp \
            src/Crypto/IntegerData.hpp \
@@ -104,11 +107,14 @@ SOURCES += src/Anonymity/Group.cpp \
            src/Applications/SessionFactory.cpp \
            src/Applications/Settings.cpp \
            src/Crypto/AsymmetricKey.cpp \
+           src/Crypto/CppDiffieHellman.cpp \
            src/Crypto/CppHash.cpp \
            src/Crypto/CppPrivateKey.cpp \
            src/Crypto/CppPublicKey.cpp \
            src/Crypto/CppRandom.cpp \
            src/Crypto/CryptoFactory.cpp \
+           src/Crypto/DiffieHellman.cpp \
+           src/Crypto/NullDiffieHellman.cpp \
            src/Crypto/NullHash.cpp \
            src/Crypto/NullPublicKey.cpp \
            src/Crypto/NullPrivateKey.cpp \

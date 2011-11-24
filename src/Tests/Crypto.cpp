@@ -209,6 +209,25 @@ namespace Tests {
     EXPECT_TRUE(pu_key0->Verify(data, sig0_0));
   }
 
+  void DiffieHellmanTest(Library *lib)
+  {
+    QScopedPointer<DiffieHellman> dh0(lib->GetDiffieHellman());
+    QScopedPointer<DiffieHellman> dh1(lib->GetDiffieHellman());
+    QScopedPointer<DiffieHellman> dh2(lib->GetDiffieHellman());
+
+    QByteArray shared_0_1 = dh0->GetSharedSecret(dh1->GetPublicComponent());
+    QByteArray shared_1_0 = dh1->GetSharedSecret(dh0->GetPublicComponent());
+    QByteArray shared_0_2 = dh0->GetSharedSecret(dh2->GetPublicComponent());
+    QByteArray shared_2_0 = dh2->GetSharedSecret(dh0->GetPublicComponent());
+    QByteArray shared_1_2 = dh1->GetSharedSecret(dh2->GetPublicComponent());
+    QByteArray shared_2_1 = dh2->GetSharedSecret(dh1->GetPublicComponent());
+    EXPECT_EQ(shared_0_1, shared_1_0);
+    EXPECT_EQ(shared_0_2, shared_2_0);
+    EXPECT_EQ(shared_1_2, shared_2_1);
+    EXPECT_NE(shared_0_1, shared_0_2);
+    EXPECT_NE(shared_0_1, shared_1_2);
+  }
+
   TEST(Crypto, CppAsymmetricKey)
   {
     QScopedPointer<Library> lib(new CppLibrary());
@@ -246,6 +265,18 @@ namespace Tests {
   {
     QScopedPointer<Library> lib(new NullLibrary());
     KeyGenerationFromIdTest(lib.data());
+  }
+
+  TEST(Crypto, CppDiffieHellman)
+  {
+    QScopedPointer<Library> lib(new CppLibrary());
+    DiffieHellmanTest(lib.data());
+  }
+
+  TEST(Crypto, NullDiffieHellman)
+  {
+    QScopedPointer<Library> lib(new NullLibrary());
+    DiffieHellmanTest(lib.data());
   }
 }
 }

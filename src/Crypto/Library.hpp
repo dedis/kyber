@@ -3,6 +3,7 @@
 
 #include "../Utils/Random.hpp"
 #include "AsymmetricKey.hpp"
+#include "DiffieHellman.hpp"
 #include "Hash.hpp"
 #include "IntegerData.hpp"
 
@@ -79,6 +80,11 @@ namespace Crypto {
        * Returns an integer data
        */
       virtual IntegerData *GetIntegerData(const QString &value) = 0;
+
+      /**
+       * Returns a DiffieHellman operator
+       */
+      virtual DiffieHellman *GetDiffieHellman() = 0;
 
       /**
        * Destructor
