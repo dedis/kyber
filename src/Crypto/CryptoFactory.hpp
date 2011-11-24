@@ -30,9 +30,19 @@ namespace Crypto {
       void SetThreading(ThreadingType type);
 
       /**
+       * Returns the current threading type
+       */
+      inline ThreadingType GetThreadingType() { return _threading_type; }
+
+      /**
        * Sets the library used
        */
       void SetLibrary(LibraryName type);
+
+      /**
+       * Returns the current library name
+       */
+      inline LibraryName GetLibraryName() { return _library_name; }
 
       /**
        * Return the Onion Encryptor
@@ -64,6 +74,8 @@ namespace Crypto {
        * No copying of singleton objects
        */
       Q_DISABLE_COPY(CryptoFactory)
+      LibraryName _library_name;
+      ThreadingType _threading_type;
   };
 }
 }

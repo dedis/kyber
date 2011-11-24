@@ -15,7 +15,9 @@ namespace Crypto {
 
   CryptoFactory::CryptoFactory() :
     _library(new CppLibrary()),
-    _onion(new OnionEncryptor())
+    _onion(new OnionEncryptor()),
+    _library_name(CryptoPP),
+    _threading_type(SingleThreaded)
   {
   }
 
