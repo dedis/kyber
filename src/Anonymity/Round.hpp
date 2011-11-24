@@ -117,11 +117,6 @@ namespace Anonymity {
        */
       virtual void Send(const QByteArray &data);
 
-      /**
-       * Returns the data for the position specified.
-       */
-      QByteArray GetPlaintextData(int index);
-
       inline virtual QString ToString() const { return "Round"; }
 
     signals:
@@ -161,25 +156,6 @@ namespace Anonymity {
        */
       inline const QSharedPointer<AsymmetricKey> GetSigningKey() { return _signing_key; }
 
-      /**
-       * Sets the received data for the specified peer, currently this API
-       * supports only a single plaintext per peer, so this returns true if
-       * this is the first time calling this function.
-       * @param index the order the message was received / position in the
-       * pseudonym range
-       * @param data the received data
-       */
-      bool SetPlaintextData(int index, const QByteArray &data);
-
-      /**
-       * If data exists, this appends this new byte array to the remote peer,
-       * otherwise it creates a new entry (like the SetPlaintextData does.
-       * @param index the order the message was received / position in the
-       * pseudonym range
-       * @param data the received data
-       */
-      bool SetOrAppendPlaintextData(int index, const QByteArray &data);
-
       void SetSuccessful(bool successful) { _successful = successful; }
 
     private:
@@ -195,7 +171,6 @@ namespace Anonymity {
       bool _successful;
       QString _stopped_reason;
       QVector<int> _empty_list;
-      QHash<int, QByteArray> _data_received;
 
     private slots:
       /**

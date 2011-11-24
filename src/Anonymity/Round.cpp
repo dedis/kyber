@@ -82,28 +82,5 @@ namespace Anonymity {
   {
     throw std::logic_error("Not implemented");
   }
-
-  QByteArray Round::GetPlaintextData(int index)
-  {
-    return _data_received.value(index);
-  }
-
-  bool Round::SetPlaintextData(int index, const QByteArray &data)
-  {
-    bool first = !_data_received.contains(index);
-    _data_received[index] = data;
-    return first;
-  }
-
-  bool Round::SetOrAppendPlaintextData(int index, const QByteArray &data)
-  {
-    bool first = !_data_received.contains(index);
-    if(first) {
-      _data_received[index] = data;
-    } else {
-      _data_received[index].append(data);
-    }
-    return first;
-  }
 }
 }

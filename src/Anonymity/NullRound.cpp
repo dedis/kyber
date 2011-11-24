@@ -31,7 +31,6 @@ namespace Anonymity {
     _received_from.append(id);
 
     if(!data.isEmpty()) {
-      SetPlaintextData(GetGroup().GetIndex(id), data);
       PushData(data, this);
     }
 
