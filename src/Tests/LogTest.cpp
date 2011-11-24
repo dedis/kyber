@@ -46,24 +46,26 @@ namespace Tests {
     EXPECT_EQ(out_log.Count(), 100);
 
     for(int idx = 0; idx < 100; idx++) {
-      Id id0;
-      QByteArray data0;
-      log.At(idx, data0, id0);
+      QPair<QByteArray, Id> entry0 = log.At(idx);
 
-      EXPECT_EQ(data0, msgs[idx]);
-      EXPECT_EQ(id0, ids[idx]);
+      EXPECT_EQ(entry0.first, msgs[idx]);
+      EXPECT_EQ(entry0.second, ids[idx]);
 
-      Id id1;
-      QByteArray data1;
+      QPair<QByteArray, Id> entry1 = in_log.At(idx);
+      EXPECT_EQ(entry0.first, entry1.first);
+      EXPECT_EQ(entry0.second, entry1.second);
 
-      in_log.At(idx, data1, id1);
-      EXPECT_EQ(data0, data1);
-      EXPECT_EQ(id0, id1);
-
-      out_log.At(idx, data1, id1);
-      EXPECT_EQ(data0, data1);
-      EXPECT_EQ(id0, id1);
+      entry1 = out_log.At(idx);
+      EXPECT_EQ(entry0.first, entry1.first);
+      EXPECT_EQ(entry0.second, entry1.second);
     }
+
+    log.ToggleEnabled();
+    log.Append(data, id);
+    EXPECT_EQ(log.Count(), in_log.Count());
+    log.ToggleEnabled();
+    log.Append(data, id);
+    EXPECT_NE(log.Count(), in_log.Count());
   }
 }
 }

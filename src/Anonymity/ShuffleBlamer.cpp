@@ -84,15 +84,13 @@ namespace Anonymity {
     round->Start();
 
     for(int jdx = 0; jdx < clog.Count(); jdx++) {
-      QByteArray data;
-      Id remote;
-      clog.At(jdx, data, remote);
+      QPair<QByteArray, Id> entry = clog.At(jdx);
 
       try {
-        round->ProcessMessage(data, remote);
+        round->ProcessMessage(entry.first, entry.second);
       } catch (QRunTimeError &err) {
         qWarning() << idx << "received a message from" <<
-          _group.GetIndex(remote) << "in state" <<
+          _group.GetIndex(entry.second) << "in state" <<
           ShuffleRound::StateToString(round->GetState()) <<
           "causing the following exception: " << err.What();
         Set(idx, err.What());

@@ -2,6 +2,7 @@
 #define DISSENT_ANONYMITY_LOG_H_GUARD
 
 #include <QByteArray>
+#include <QPair>
 #include <QVector>
 
 #include "../Connections/Id.hpp"
@@ -20,7 +21,7 @@ namespace Anonymity {
       /**
        * Default constructor
        */
-      Log() { }
+      Log();
 
       /**
        * Construct using a serialized log
@@ -43,15 +44,14 @@ namespace Anonymity {
       /**
        * Returns the log entry at the specified index, true if it returns
        * valid data, false otherwise
-       * @param entry data in the log
-       * @param remote Id in the log
+       * @param idx index
        */
-      bool At(int idx, QByteArray &entry, Id &remote);
+      const QPair<QByteArray, Id> &At(int idx) const;
 
       /**
        * Returns a serialized Log
        */
-      QByteArray Serialize();
+      QByteArray Serialize() const;
 
       /**
        * Returns the amount of entries in the log
@@ -63,9 +63,20 @@ namespace Anonymity {
        */
       void Clear();
 
+      /**
+       * Disables logging
+       */
+      bool ToggleEnabled();
+
+      /**
+       * Returns if logging is enabled
+       */
+      inline bool Enabled() { return _enabled; }
+
     private:
-      QVector<QByteArray> _entries;
-      QVector<Id> _remote;
+      QVector<QPair<QByteArray, Id> > _entries;
+      bool _enabled;
+      static const QPair<QByteArray, Id> _empty;
   };
 }
 }

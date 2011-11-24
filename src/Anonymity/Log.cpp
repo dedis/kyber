@@ -1,57 +1,56 @@
 #include "Log.hpp"
-
-#include <QDebug>
 #include <QDataStream>
 
 namespace Dissent {
 namespace Anonymity {
-  Log::Log(const QByteArray &logdata)
-  {
-    QVector<QByteArray> entries;
-    QVector<Id> remote;
+  const QPair<QByteArray, Id> Log::_empty = QPair<QByteArray, Id>();
 
+  Log::Log() : _enabled(true)
+  {
+  }
+
+  Log::Log(const QByteArray &logdata) : _enabled(true)
+  {
     QDataStream stream(logdata);
-    stream >> entries >> remote;
-    if(entries.count() == remote.count()) {
-      _entries = entries;
-      _remote = remote;
-    }
+    stream >> _entries;
+  }
+
+  bool Log::ToggleEnabled()
+  {
+    return (_enabled = !_enabled);
   }
 
   void Log::Pop()
   {
     _entries.pop_back();
-    _remote.pop_back();
   }
 
   void Log::Append(const QByteArray &entry, const Id &remote)
   {
-    _entries.append(entry);
-    _remote.append(remote);
+    if(_enabled) {
+      _entries.append(QPair<QByteArray, Id>(entry, remote));
+    }
   }
 
-  bool Log::At(int idx, QByteArray &entry, Id &remote)
+  const QPair<QByteArray, Id> &Log::At(int idx) const
   {
     if(_entries.count() < idx || idx < 0) {
-      return false;
+      return _empty;
     }
-    entry = _entries[idx];
-    remote = _remote[idx];
-    return true;
+    return _entries[idx];
   }
 
-  QByteArray Log::Serialize()
+  QByteArray Log::Serialize() const
   {
     QByteArray logdata;
     QDataStream stream(&logdata, QIODevice::WriteOnly);
-    stream << _entries << _remote;
+    stream << _entries;
     return logdata;
   }
 
   void Log::Clear()
   {
     _entries.clear();
-    _remote.clear();
   }
 }
 }

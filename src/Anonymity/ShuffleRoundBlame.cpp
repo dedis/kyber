@@ -18,6 +18,7 @@ namespace Anonymity {
       Library *lib = CryptoFactory::GetInstance().GetLibrary();
       _outer_key.reset(lib->LoadPrivateKeyFromByteArray(outer_key->GetByteArray()));
     }
+    _log.ToggleEnabled();
   }
 
   bool ShuffleRoundBlame::Start()

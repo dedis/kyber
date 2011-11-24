@@ -134,8 +134,8 @@ namespace Anonymity {
     QByteArray entry(0);
 
     for(int idx = 0; idx < _offline_log.Count(); idx++) {
-      _offline_log.At(idx, entry, from);
-      ProcessData(entry, from);
+      QPair<QByteArray, Id> entry = _offline_log.At(idx);
+      ProcessData(entry.first, entry.second);
     }
 
     _offline_log.Clear();
