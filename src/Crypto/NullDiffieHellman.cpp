@@ -9,6 +9,19 @@ namespace Crypto {
     _rand.GenerateBlock(_key);
   }
 
+  NullDiffieHellman::NullDiffieHellman(const QByteArray &private_component) :
+    _key(private_component)
+  {
+  }
+
+  NullDiffieHellman *NullDiffieHellman::GenerateFromSeed(const QByteArray &seed)
+  {
+    Dissent::Utils::Random rand(seed);
+    QByteArray key(8, 0);
+    rand.GenerateBlock(key);
+    return new NullDiffieHellman(key);
+  }
+
   QByteArray NullDiffieHellman::GetSharedSecret(const QByteArray &remote_pub) const
   {
     int size = std::min(_key.size(), remote_pub.size());

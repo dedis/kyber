@@ -3,16 +3,25 @@
 
 namespace Dissent {
 namespace Crypto {
-  CppDiffieHellman::CppDiffieHellman()
+  CppDiffieHellman::CppDiffieHellman(const QByteArray &data, bool seed)
   {
     _dh_params.AccessGroupParameters().Initialize(GetPInt(), GetQInt(), GetGInt());
 
     _public_key = QByteArray(_dh_params.PublicKeyLength(), 0);
-    _private_key = QByteArray(_dh_params.PrivateKeyLength(), 0);
-    CppRandom rng;
-    _dh_params.GenerateKeyPair(*rng.GetHandle(),
-        reinterpret_cast<byte *>(_private_key.data()),
-        reinterpret_cast<byte *>(_public_key.data()));
+    CppRandom rng(data);
+
+    if(data.isEmpty() || seed) {
+      _private_key = QByteArray(_dh_params.PrivateKeyLength(), 0);
+      _dh_params.GenerateKeyPair(*rng.GetHandle(),
+          reinterpret_cast<byte *>(_private_key.data()),
+          reinterpret_cast<byte *>(_public_key.data()));
+    } else {
+      _private_key = data;
+      // This DOES NOT use the rng
+      _dh_params.GeneratePublicKey(*rng.GetHandle(), 
+          reinterpret_cast<byte *>(_private_key.data()),
+          reinterpret_cast<byte *>(_public_key.data()));
+    }
   }
 
   QByteArray CppDiffieHellman::GetSharedSecret(const QByteArray &remote_pub) const

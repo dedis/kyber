@@ -234,9 +234,9 @@ namespace Tests {
 
   void DiffieHellmanTest(Library *lib)
   {
-    QScopedPointer<DiffieHellman> dh0(lib->GetDiffieHellman());
-    QScopedPointer<DiffieHellman> dh1(lib->GetDiffieHellman());
-    QScopedPointer<DiffieHellman> dh2(lib->GetDiffieHellman());
+    QScopedPointer<DiffieHellman> dh0(lib->CreateDiffieHellman());
+    QScopedPointer<DiffieHellman> dh1(lib->CreateDiffieHellman());
+    QScopedPointer<DiffieHellman> dh2(lib->CreateDiffieHellman());
 
     QByteArray shared_0_1 = dh0->GetSharedSecret(dh1->GetPublicComponent());
     QByteArray shared_1_0 = dh1->GetSharedSecret(dh0->GetPublicComponent());
@@ -249,6 +249,16 @@ namespace Tests {
     EXPECT_EQ(shared_1_2, shared_2_1);
     EXPECT_NE(shared_0_1, shared_0_2);
     EXPECT_NE(shared_0_1, shared_1_2);
+
+    QScopedPointer<DiffieHellman> dh0_0(lib->LoadDiffieHellman(dh0->GetPrivateComponent()));
+    EXPECT_EQ(dh0->GetPublicComponent(), dh0_0->GetPublicComponent());
+    EXPECT_EQ(dh0->GetPrivateComponent(), dh0_0->GetPrivateComponent());
+
+    Id id;
+    QScopedPointer<DiffieHellman> dh3_0(lib->GenerateDiffieHellman(id.GetByteArray()));
+    QScopedPointer<DiffieHellman> dh3_1(lib->GenerateDiffieHellman(id.GetByteArray()));
+    EXPECT_EQ(dh3_0->GetPublicComponent(), dh3_1->GetPublicComponent());
+    EXPECT_EQ(dh3_0->GetPrivateComponent(), dh3_1->GetPrivateComponent());
   }
 
   TEST(Crypto, CppAsymmetricKey)

@@ -56,6 +56,7 @@ namespace Crypto {
        * @param remote_pub the other sides public component
        */
       virtual QByteArray GetSharedSecret(const QByteArray &remote_pub) const = 0;
+
     private:
       static void Init();
       static QByteArray _p, _g, _q;

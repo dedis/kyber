@@ -126,9 +126,27 @@ namespace Crypto {
       /**
        * Returns a DiffieHellman operator
        */
-      virtual DiffieHellman *GetDiffieHellman()
+      virtual DiffieHellman *CreateDiffieHellman()
       {
         return new CppDiffieHellman();
+      }
+
+      /**
+       * Generate a DiffieHellman operator using the given data as a seed to a RNG
+       * @param seed seed used to generate the DiffieHellman exchange
+       */
+      virtual DiffieHellman *GenerateDiffieHellman(const QByteArray &seed)
+      {
+        return new CppDiffieHellman(seed, true);
+      }
+
+      /**
+       * Loads a DiffieHellman key from a byte array
+       * @param private_component the private component in the DH exchange
+       */
+      virtual DiffieHellman *LoadDiffieHellman(const QByteArray &private_component)
+      {
+        return new CppDiffieHellman(private_component);
       }
   };
 }

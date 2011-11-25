@@ -13,13 +13,13 @@ namespace Tests {
     Id id0;
     QSharedPointer<AsymmetricKey> key0(lib->CreatePrivateKey());
     QSharedPointer<AsymmetricKey> pkey0(key0->GetPublicKey());
-    QSharedPointer<DiffieHellman> dh0(lib->GetDiffieHellman());
+    QSharedPointer<DiffieHellman> dh0(lib->CreateDiffieHellman());
     QByteArray pub0 = dh0->GetPublicComponent();
 
     Id id1;
     QSharedPointer<AsymmetricKey> key1(lib->CreatePrivateKey());
     QSharedPointer<AsymmetricKey> pkey1(key1->GetPublicKey());
-    QSharedPointer<DiffieHellman> dh1(lib->GetDiffieHellman());
+    QSharedPointer<DiffieHellman> dh1(lib->CreateDiffieHellman());
     QByteArray pub1 = dh1->GetPublicComponent();
 
     my_triple t0(id0, pkey0, pub0);

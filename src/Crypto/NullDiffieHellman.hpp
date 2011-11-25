@@ -14,6 +14,18 @@ namespace Crypto {
       NullDiffieHellman();
 
       /**
+       * Loads a DiffieHellman key from a byte array
+       * @param private_component the private component in the DH exchange
+       */
+      NullDiffieHellman(const QByteArray &private_component);
+
+      /**
+       * Generate a DiffieHellman operator using the given data as a seed to a RNG
+       * @param seed seed used to generate the DiffieHellman exchange
+       */
+      static NullDiffieHellman *GenerateFromSeed(const QByteArray &seed);
+
+      /**
        * Destructor
        */
       virtual ~NullDiffieHellman() {}
