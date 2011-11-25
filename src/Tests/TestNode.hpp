@@ -27,6 +27,7 @@ namespace Tests {
         if(make_key) {
           Library *lib = CryptoFactory::GetInstance().GetLibrary();
           key = QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey());
+          dh = QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman());
         }
       }
 
@@ -38,6 +39,7 @@ namespace Tests {
       SessionManager sm;
       QSharedPointer<Session> session;
       QSharedPointer<AsymmetricKey> key;
+      QSharedPointer<DiffieHellman> dh;
       static int calledback;
       static int success;
       static int failure;

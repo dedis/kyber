@@ -6,8 +6,10 @@
 #include <QSharedPointer>
 #include <QVector>
 
+#include "../Utils/Triple.hpp"
 #include "../Connections/Id.hpp"
 #include "../Crypto/AsymmetricKey.hpp"
+#include "../Crypto/DiffieHellman.hpp"
 
 namespace Dissent {
 namespace Anonymity {
@@ -16,26 +18,25 @@ namespace Anonymity {
     using Dissent::Crypto::AsymmetricKey;
   }
 
+  typedef Dissent::Utils::Triple<Id, QSharedPointer<AsymmetricKey>, QByteArray> GroupContainer;
+
   /**
    * Private data structure for Group storage.
    */
   class GroupData : public QSharedData {
     public:
-      GroupData(const QVector<Id> group_vector,
-          const QHash<const Id, int> id_to_int,
-          const QVector<QSharedPointer<AsymmetricKey> > &keys) :
-        GroupVector(group_vector),
+      GroupData(const QVector<GroupContainer> &group,
+          const QHash<const Id, int> &id_to_int) :
+        GroupRoster(group),
         IdtoInt(id_to_int),
-        Keys(keys),
-        Size(group_vector.count())
+        Size(group.count())
       {
       }
 
       virtual ~GroupData() {}
 
-      const QVector<Id> GroupVector;
+      const QVector<GroupContainer> GroupRoster;
       const QHash<const Id, int> IdtoInt;
-      const QVector<QSharedPointer<AsymmetricKey> > Keys;
       const int Size;
   };
 
@@ -46,14 +47,11 @@ namespace Anonymity {
     public:
       /**
        * Constructor
-       * @param group an ordered group in vector format
-       * @param keys a set of keys mapped to the group if Ids, defaults to no keys
+       * @param containers an ordered set of group containers
        */
-      Group(const QVector<Id> &group = QVector<Id>(),
-          const QVector<QSharedPointer<AsymmetricKey> > &keys =
-            QVector<QSharedPointer<AsymmetricKey> >());
+      Group(const QVector<GroupContainer> &containers = QVector<GroupContainer>());
 
-      inline const QVector<Id> &GetIds() const { return _data->GroupVector; }
+      inline const QVector<GroupContainer> &GetRoster() const { return _data->GroupRoster; }
 
       /**
        * Returns the Id of the peer based upon its ordered position in the group
@@ -98,12 +96,23 @@ namespace Anonymity {
       QSharedPointer<AsymmetricKey> GetKey(int idx) const;
 
       /**
+       * Returns the DiffieHellman public component
+       * @param id the specified id
+       */
+      QByteArray GetPublicDiffieHellman(const Id &id) const;
+
+      /**
+       * Returns the DiffieHellman public component
+       * @param idx the specified index
+       */
+      QByteArray GetPublicDiffieHellman(int idx) const;
+
+      /**
        * Returns the size of the group
        */
       int Count() const { return _data->Size; }
 
       static const QSharedPointer<AsymmetricKey> EmptyKey;
-
     private:
       QSharedDataPointer<GroupData> _data;
   };

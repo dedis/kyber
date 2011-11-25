@@ -11,18 +11,22 @@ namespace Tests {
   void ConstructOverlay(int count, QVector<TestNode *> &nodes,
       Group *&group, bool make_keys)
   {
-    QVector<Id> ids;
-    QVector<QSharedPointer<AsymmetricKey> > signing_keys;
-
+    QVector<GroupContainer> gr;
     for(int idx = 0; idx < count; idx++) {
       nodes.append(new TestNode(idx+1, make_keys));
-      ids.append(nodes[idx]->cm.GetId());
+      const Id &id(nodes[idx]->cm.GetId());
+      QSharedPointer<AsymmetricKey> signing_key(Group::EmptyKey);
+      QByteArray dh_pub;
+
       if(make_keys) {
-        signing_keys.append(QSharedPointer<AsymmetricKey>(nodes[idx]->key->GetPublicKey()));
+        signing_key = QSharedPointer<AsymmetricKey>(nodes[idx]->key->GetPublicKey());
+        dh_pub = nodes[idx]->dh->GetPublicComponent();
       }
+
+      gr.append(GroupContainer(id, signing_key, dh_pub));
     }
 
-    group = new Group(ids, signing_keys);
+    group = new Group(gr);
 
     for(int idx = 0; idx < count; idx++) {
       for(int jdx = 0; jdx < count; jdx++) {

@@ -47,24 +47,25 @@ namespace Applications {
 
   Group Node::GenerateGroup()
   {
-    QVector<Id> ids;
-    QVector<QSharedPointer<AsymmetricKey> > public_keys;
+    QVector<GroupContainer> group_roster;
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
 
     foreach(Connection *con, bg.GetConnectionTable().GetConnections()) {
       Id id = con->GetRemoteId();
-      ids.append(id);
+      QSharedPointer<AsymmetricKey> key(lib->GeneratePublicKey(id.GetByteArray()));
+      QScopedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(id.GetByteArray()));
+      group_roster.append(GroupContainer(id, key, dh->GetPublicComponent()));
     }
 
-    ids.append(bg.GetId());
 
-    qSort(ids);
-    foreach(const Id &id, ids) {
-      Library *lib = CryptoFactory::GetInstance().GetLibrary();
-      AsymmetricKey *key = lib->GeneratePublicKey(id.GetByteArray());
-      public_keys.append(QSharedPointer<AsymmetricKey>(key));
-    }
+    Id id(bg.GetId());
+    QSharedPointer<AsymmetricKey> key(lib->GeneratePublicKey(id.GetByteArray()));
+    QScopedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(id.GetByteArray()));
+    group_roster.append(GroupContainer(id, key, dh->GetPublicComponent()));
 
-    return Group(ids, public_keys);
+    qSort(group_roster);
+
+    return Group(group_roster);
   }
 }
 }

@@ -4,14 +4,13 @@ namespace Dissent {
 namespace Anonymity {
   const QSharedPointer<AsymmetricKey> Group::EmptyKey;
 
-  Group::Group(const QVector<Id> &group,
-      const QVector<QSharedPointer<AsymmetricKey> > &keys)
+  Group::Group(const QVector<GroupContainer> &containers)
   {
     QHash<const Id, int> id_to_int;
-    for(int idx = 0; idx < group.count(); idx++) {
-      id_to_int[group[idx]] = idx;
+    for(int idx = 0; idx < containers.count(); idx++) {
+      id_to_int[containers[idx].first] = idx;
     }
-    _data = new GroupData(group, id_to_int, keys);
+    _data = new GroupData(containers, id_to_int);
   }
 
   const Id &Group::GetId(int idx) const
@@ -19,7 +18,7 @@ namespace Anonymity {
     if(idx >= _data->Size || idx < 0) {
       return Id::Zero;
     }
-    return _data->GroupVector[idx];
+    return _data->GroupRoster[idx].first;
   }
 
   const Id &Group::Next(const Id &id) const
@@ -56,10 +55,27 @@ namespace Anonymity {
 
   QSharedPointer<AsymmetricKey> Group::GetKey(int idx) const
   {
-    if(idx >= _data->Keys.count() || idx < 0) {
+    if(idx >= _data->Size || idx < 0 || _data->GroupRoster[idx].second.isNull()) {
       return EmptyKey;
     }
-    return _data->Keys[idx];
+    return _data->GroupRoster[idx].second;
+  }
+
+  QByteArray Group::GetPublicDiffieHellman(const Id &id) const
+  {
+    int idx = GetIndex(id);
+    if(idx == -1) {
+      return QByteArray();
+    }
+    return GetPublicDiffieHellman(idx);
+  }
+
+  QByteArray Group::GetPublicDiffieHellman(int idx) const
+  {
+    if(idx >= _data->Size || idx < 0 || _data->GroupRoster[idx].second.isNull()) {
+      return QByteArray();
+    }
+    return _data->GroupRoster[idx].third;
   }
 }
 }

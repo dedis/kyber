@@ -9,12 +9,12 @@ namespace Tests {
   {
     Id id[10];
 
-    QVector<Id> group_vector;
+    QVector<GroupContainer> gr;
     for(int idx = 0; idx < 10; idx++) {
-      group_vector.append(id[idx]);
+      gr.append(GroupContainer(id[idx], Group::EmptyKey, QByteArray()));
     }
 
-    Group group(group_vector);
+    Group group(gr);
 
     EXPECT_EQ(group.Count(), 10);
     for(int idx = 0; idx < 10; idx++) {
@@ -36,11 +36,11 @@ namespace Tests {
     Id id0;
     EXPECT_FALSE(group.Contains(id0));
 
-    QVector<Id> group_vector0;
+    QVector<GroupContainer> gr0;
     for(int idx = 9; idx >= 0; idx--) {
-      group_vector0.append(id[idx]);
+      gr0.append(GroupContainer(id[idx], Group::EmptyKey, QByteArray()));
     }
-    Group group0(group_vector0);
+    Group group0(gr0);
     for(int idx = 0; idx < 10; idx++) {
       EXPECT_NE(group.GetId(idx), group0.GetId(idx));
       EXPECT_EQ(group.GetId(idx), group.GetId(idx));

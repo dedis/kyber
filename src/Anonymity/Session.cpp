@@ -21,8 +21,8 @@ namespace Anonymity {
     _get_data_cb(*this, &Session::GetData),
     _round_idx(0)
   {
-    foreach(const Id &id, _group.GetIds()) {
-      Connection *con = _ct.GetConnection(id);
+    foreach(const GroupContainer &gc, _group.GetRoster()) {
+      Connection *con = _ct.GetConnection(gc.first);
       if(con) {
         QObject::connect(con, SIGNAL(Disconnected(Connection *, const QString &)),
             this, SLOT(HandleDisconnect(Connection *, const QString &)));
@@ -47,8 +47,8 @@ namespace Anonymity {
       return false;
     }
 
-    foreach(const Id &id, _group.GetIds()) {
-      Connection *con = _ct.GetConnection(id);
+    foreach(const GroupContainer &gc, _group.GetRoster()) {
+      Connection *con = _ct.GetConnection(gc.first);
       if(con) {
         QObject::disconnect(con, SIGNAL(Disconnected(Connection *, const QString &)),
             this, SLOT(HandleDisconnect(Connection *, const QString &)));

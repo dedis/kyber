@@ -22,13 +22,9 @@ namespace Anonymity {
       FixedSizeGroupGenerator(const Group &group) :
         GroupGenerator(group)
       {
-        QVector<Id> ids;
-        QVector<QSharedPointer<AsymmetricKey> > keys;
-        for(int idx = 0; idx < group.Count() && idx < 10; idx++) {
-          ids.append(group.GetId(idx));
-          keys.append(group.GetKey(idx));
-        }
-        _current = Group(ids, keys);
+        QVector<GroupContainer> gr = group.GetRoster();
+        gr.resize(10);
+        _current = Group(gr);
       }
 
       /**

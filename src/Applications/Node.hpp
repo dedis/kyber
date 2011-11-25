@@ -56,6 +56,7 @@ namespace Applications {
       const QString SessionType;
 
       QSharedPointer<AsymmetricKey> key;
+      QSharedPointer<DiffieHellman> dh;
       QSharedPointer<Session> session;
       QSharedPointer<ISink> sink;
 

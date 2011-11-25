@@ -48,8 +48,9 @@ int main(int argc, char **argv)
           settings.GroupSize, settings.SessionType)));
 
   if(settings.DemoMode) {
-    AsymmetricKey *key = lib->GeneratePrivateKey(nodes[0]->bg.GetId().GetByteArray());
-    nodes[0]->key = QSharedPointer<AsymmetricKey>(key);
+    QByteArray id = nodes[0]->bg.GetId().GetByteArray();
+    nodes[0]->key = QSharedPointer<AsymmetricKey>(lib->GeneratePrivateKey(id));
+    nodes[0]->dh = QSharedPointer<DiffieHellman>(lib->GenerateDiffieHellman(id));
   }
 
   for(int idx = 1; idx < settings.LocalNodeCount; idx++) {
@@ -59,8 +60,9 @@ int main(int argc, char **argv)
             settings.GroupSize, settings.SessionType)));
 
     if(settings.DemoMode) {
-      AsymmetricKey *key = lib->GeneratePrivateKey(nodes[idx]->bg.GetId().GetByteArray());
-      nodes[idx]->key = QSharedPointer<AsymmetricKey>(key);
+      QByteArray id = nodes[idx]->bg.GetId().GetByteArray();
+      nodes[idx]->key = QSharedPointer<AsymmetricKey>(lib->GeneratePrivateKey(id));
+      nodes[idx]->dh = QSharedPointer<DiffieHellman>(lib->GenerateDiffieHellman(id));
     }
     nodes[idx]->sink = QSharedPointer<ISink>(new DummySink());
   }
