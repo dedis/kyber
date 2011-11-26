@@ -27,7 +27,7 @@ namespace Anonymity {
    * Represents a single instance of a cryptographically secure anonymous exchange
    */
   class Round : public QObject, public StartStop, public Source,
-      public ISender, public ISink {
+      public ISender {
     Q_OBJECT
 
     public:
@@ -55,10 +55,9 @@ namespace Anonymity {
 
       /**
        * Handle a data message from a remote peer
-       * @param data The remote peers data
-       * @param from The remote peer
+       * @param notification message from a remote peer
        */
-      virtual void HandleData(const QByteArray &data, ISender *from);
+      virtual void IncomingData(RpcRequest &notification);
 
       /**
        * Close the round for no specific reason

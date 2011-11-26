@@ -175,8 +175,9 @@ namespace Anonymity {
 
   void Session::IncomingData(RpcRequest &notification)
   {
-    QByteArray data = notification.GetMessage()["data"].toByteArray();
-    _current_round->HandleData(data, notification.GetFrom());
+    if(!_current_round.isNull()) {
+      _current_round->IncomingData(notification);
+    }
   }
 
   void Session::HandleDisconnect(Connection *con, const QString &)

@@ -35,20 +35,21 @@ namespace Anonymity {
     return true;
   }
 
-  void Round::HandleData(const QByteArray &data, ISender *from)
+  void Round::IncomingData(RpcRequest &notification)
   {
     if(Stopped()) {
       qWarning() << "Received a message on a closed round:" << ToString();
       return;
     }
       
+    ISender *from = notification.GetFrom();
     Connection *con = dynamic_cast<Connection *>(from);
     if(con == 0 || !_group.Contains(con->GetRemoteId())) {
       qDebug() << ToString() << " received wayward message from: " << from->ToString();
       return;
     }
 
-    ProcessData(data, con->GetRemoteId());
+    ProcessData(notification.GetMessage()["data"].toByteArray(), con->GetRemoteId());
   }
 
   void Round::HandleDisconnect(Connection *con, const QString &)
