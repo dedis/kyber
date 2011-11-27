@@ -23,8 +23,8 @@ namespace Anonymity {
     foreach(const GroupContainer &gc, _group.GetRoster()) {
       Connection *con = _network->GetConnection(gc.first);
       if(con) {
-        QObject::connect(con, SIGNAL(Disconnected(Connection *, const QString &)),
-            this, SLOT(HandleDisconnect(Connection *, const QString &)));
+        QObject::connect(con, SIGNAL(Disconnected(const QString &)),
+            this, SLOT(HandleDisconnect()));
       }
     }
 
@@ -54,8 +54,8 @@ namespace Anonymity {
     foreach(const GroupContainer &gc, _group.GetRoster()) {
       Connection *con = _network->GetConnection(gc.first);
       if(con) {
-        QObject::disconnect(con, SIGNAL(Disconnected(Connection *, const QString &)),
-            this, SLOT(HandleDisconnect(Connection *, const QString &)));
+        QObject::disconnect(con, SIGNAL(Disconnected(const QString &)),
+            this, SLOT(HandleDisconnect()));
       }
     }
 
@@ -186,8 +186,9 @@ namespace Anonymity {
     }
   }
 
-  void Session::HandleDisconnect(Connection *con, const QString &)
+  void Session::HandleDisconnect()
   {
+    Connection *con = qobject_cast<Connection *>(sender());
     if(!_group.Contains(con->GetRemoteId()) || Stopped()) {
       return;
     }

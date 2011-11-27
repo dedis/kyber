@@ -172,9 +172,8 @@ namespace Anonymity {
 
       /**
        * Called when a remote peer has disconnected from the session
-       * @param con The connection that is disconnecting
        */
-      virtual void HandleDisconnect(Connection *con, const QString &reason);
+      virtual void HandleDisconnect();
   };
 }
 }

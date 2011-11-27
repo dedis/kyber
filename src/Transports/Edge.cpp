@@ -37,7 +37,7 @@ namespace Transports {
 
   void Edge::CloseCompleted()
   {
-    emit Closed(this, _close_reason);
+    emit Closed(_close_reason);
   }
 }
 }

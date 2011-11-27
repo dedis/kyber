@@ -130,12 +130,12 @@ namespace Connections {
       /**
        * Called when Connection::Disconnect is executed
        */
-      void HandleDisconnect(Connection *con);
+      void HandleDisconnect();
 
       /**
        * An Edge has been disconnected and the resulting connection has been too
        */
-      void HandleDisconnected(Connection *con, const QString &reason);
+      void HandleDisconnected(const QString &reason);
 
       /**
        * A new Edge has been created
@@ -145,7 +145,7 @@ namespace Connections {
       /**
        * An Edge has been closed
        */
-      void HandleEdgeClose(const Edge *edge, const QString &reason);
+      void HandleEdgeClose(const QString &reason);
 
       /**
        * An Edge was never created

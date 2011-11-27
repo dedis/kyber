@@ -9,8 +9,8 @@ namespace Transports {
 
   void EdgeListener::ProcessNewEdge(Edge *edge)
   {
-    QObject::connect(edge, SIGNAL(Closed(const Edge *, const QString &)),
-        this, SLOT(HandleEdgeClose(const Edge *, const QString &)));
+    QObject::connect(edge, SIGNAL(Closed(const QString &)),
+        this, SLOT(HandleEdgeClose(const QString &)));
     emit NewEdge(edge);
   }
 
@@ -19,10 +19,8 @@ namespace Transports {
     emit EdgeCreationFailure(to, reason);
   }
 
-  void EdgeListener::HandleEdgeClose(const Edge *edge, const QString &)
+  void EdgeListener::HandleEdgeClose(const QString &)
   {
-    QObject::disconnect(edge, SIGNAL(Closed(const Edge *, const QString &)),
-        this, SLOT(HandleEdgeClose(const Edge *, const QString &)));
   }
 }
 }

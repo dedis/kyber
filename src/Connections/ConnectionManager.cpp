@@ -17,12 +17,11 @@ namespace Connections {
 
     Connection *con = _con_tab.GetConnection(_local_id);
     con->SetSink(&_rpc);
-    QObject::connect(con->GetEdge().data(), SIGNAL(Closed(const Edge *, const QString &)),
-        this, SLOT(HandleEdgeClose(const Edge *, const QString &)));
-    QObject::connect(con, SIGNAL(CalledDisconnect(Connection *)),
-        this, SLOT(HandleDisconnect(Connection *)));
-    QObject::connect(con, SIGNAL(Disconnected(Connection *, const QString &)),
-        this, SLOT(HandleDisconnected(Connection *, const QString &)));
+    QObject::connect(con->GetEdge().data(), SIGNAL(Closed(const QString &)),
+        this, SLOT(HandleEdgeClose(const QString &)));
+    QObject::connect(con, SIGNAL(CalledDisconnect()), this, SLOT(HandleDisconnect()));
+    QObject::connect(con, SIGNAL(Disconnected(const QString &)),
+        this, SLOT(HandleDisconnected(const QString &)));
   }
 
   ConnectionManager::~ConnectionManager()
@@ -103,8 +102,8 @@ namespace Connections {
   {
     edge->SetSink(&_rpc);
 
-    QObject::connect(edge, SIGNAL(Closed(const Edge *, const QString &)),
-        this, SLOT(HandleEdgeClose(const Edge *, const QString &)));
+    QObject::connect(edge, SIGNAL(Closed(const QString &)),
+        this, SLOT(HandleEdgeClose(const QString &)));
 
     if(!edge->Outbound()) {
       _rem_con_tab.AddEdge(edge);
@@ -191,10 +190,9 @@ namespace Connections {
     Connection *con = new Connection(pedge, _local_id, rem_id);
     _con_tab.AddConnection(con);
 
-    QObject::connect(con, SIGNAL(CalledDisconnect(Connection *)),
-        this, SLOT(HandleDisconnect(Connection *)));
-    QObject::connect(con, SIGNAL(Disconnected(Connection *, const QString &)),
-        this, SLOT(HandleDisconnected(Connection *, const QString &)));
+    QObject::connect(con, SIGNAL(CalledDisconnect()), this, SLOT(HandleDisconnect()));
+    QObject::connect(con, SIGNAL(Disconnected(const QString &)),
+        this, SLOT(HandleDisconnected(const QString &)));
     emit NewConnection(con, true);
   }
 
@@ -231,10 +229,9 @@ namespace Connections {
     Connection *con = new Connection(pedge, _local_id, rem_id);
     _rem_con_tab.AddConnection(con);
     qDebug() << _local_id.ToString() << ": Handle new connection from " << rem_id.ToString();
-    QObject::connect(con, SIGNAL(CalledDisconnect(Connection *)),
-        this, SLOT(HandleDisconnect(Connection *)));
-    QObject::connect(con, SIGNAL(Disconnected(Connection *, const QString &)),
-        this, SLOT(HandleDisconnected(Connection *, const QString &)));
+    QObject::connect(con, SIGNAL(CalledDisconnect()), this, SLOT(HandleDisconnect()));
+    QObject::connect(con, SIGNAL(Disconnected(const QString &)),
+        this, SLOT(HandleDisconnected(const QString &)));
     emit NewConnection(con, false);
   }
 
@@ -249,8 +246,9 @@ namespace Connections {
     edge->Close("Closed from remote peer");
   }
 
-  void ConnectionManager::HandleDisconnect(Connection *con)
+  void ConnectionManager::HandleDisconnect()
   {
+    Connection *con = qobject_cast<Connection *>(sender());
     if(_con_tab.Contains(con)) {
       _con_tab.Disconnect(con);
     } else {
@@ -267,8 +265,9 @@ namespace Connections {
     con->GetEdge()->Close("Local disconnect request");
   }
 
-  void ConnectionManager::HandleDisconnected(Connection *con, const QString &reason)
+  void ConnectionManager::HandleDisconnected(const QString &reason)
   {
+    Connection *con = qobject_cast<Connection *>(sender());
     qDebug() << "Edge disconnected now removing Connection: " << con->ToString()
       << ", because: " << reason;
     if(con->GetEdge()->Outbound()) {
@@ -295,8 +294,9 @@ namespace Connections {
     con->GetEdge()->Close("Remote disconnect");
   }
 
-  void ConnectionManager::HandleEdgeClose(const Edge *edge, const QString &)
+  void ConnectionManager::HandleEdgeClose(const QString &)
   {
+    Edge *edge = qobject_cast<Edge *>(sender());
     qDebug() << "Edge closed: " << edge->ToString();
     ConnectionTable &con_tab = edge->Outbound() ? _con_tab : _rem_con_tab;
     if(!con_tab.RemoveEdge(edge)) {

@@ -8,8 +8,8 @@ namespace Connections {
   {
     ISink *old_sink = _edge->SetSink(this);
     SetSink(old_sink);
-    QObject::connect(edge.data(), SIGNAL(Closed(const Edge *, const QString &)),
-        this, SLOT(HandleEdgeClose(const Edge *, const QString &)));
+    QObject::connect(edge.data(), SIGNAL(Closed(const QString &)),
+        this, SLOT(HandleEdgeClose(const QString &)));
   }
 
   QString Connection::ToString() const
@@ -23,7 +23,7 @@ namespace Connections {
   {
     SetSink(0);
     qDebug() << "Called disconnect on: " << this->ToString();
-    emit CalledDisconnect(this);
+    emit CalledDisconnect();
   }
 
   void Connection::Send(const QByteArray &data)
@@ -31,10 +31,11 @@ namespace Connections {
     _edge->Send(data);
   }
 
-  void Connection::HandleEdgeClose(const Edge *edge, const QString &reason)
+  void Connection::HandleEdgeClose(const QString &reason)
   {
+    Edge *edge = qobject_cast<Edge *>(sender());
     if(edge == _edge.data()) {
-      emit Disconnected(this, reason);
+      emit Disconnected(reason);
       delete this;
     }
   }

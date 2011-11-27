@@ -67,12 +67,12 @@ namespace Connections {
       /**
        * Disconnect emits this signal
        */
-      void CalledDisconnect(Connection *con);
+      void CalledDisconnect();
 
       /**
        * Once an edge has been closed, this is emitted
        */
-      void Disconnected(Connection *con, const QString &reason);
+      void Disconnected(const QString &reason);
 
     private:
       /**
@@ -96,7 +96,7 @@ namespace Connections {
        * @param edge should be the same as _edge
        * @param reason the reason why the edge was closed
        */
-      void HandleEdgeClose(const Edge *edge, const QString &reason);
+      void HandleEdgeClose(const QString &reason);
   };
 }
 }

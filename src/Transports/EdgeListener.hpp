@@ -78,7 +78,7 @@ namespace Transports {
        * @param edge the closed edge
        * @param reason the reason the edge was closed
        */
-      virtual void HandleEdgeClose(const Edge *edge, const QString &reason); 
+      virtual void HandleEdgeClose(const QString &reason); 
 
     private:
       /**

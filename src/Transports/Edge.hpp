@@ -74,10 +74,9 @@ namespace Transports {
     signals:
       /**
        * Emitted when an edge is completely closed, afterward the edge should be deleted
-       * @param edge this edge
        * @param reason the reason for closing the edge
        */
-      void Closed(const Edge *edge, const QString &reason);
+      void Closed(const QString &reason);
 
     protected:
       /**
