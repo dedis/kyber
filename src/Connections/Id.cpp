@@ -6,7 +6,11 @@ using namespace Dissent::Crypto;
 
 namespace Dissent {
 namespace Connections {
-  const Id Id::Zero = Id(QByteArray(ByteSize, 0));
+  const Id &Id::Zero()
+  {
+    static Id zero(QByteArray(Id::ByteSize, 0));
+    return zero;
+  }
 
   Id::Id()
   {

@@ -139,7 +139,7 @@ namespace Tests {
         oe->RandomizeBlocks(_shuffle_cleartext);
         
         const Id &next = GetShufflers().Next(GetLocalId());
-        MessageType mtype = (next == Id::Zero) ? EncryptedData : ShuffleData;
+        MessageType mtype = (next == Id::Zero()) ? EncryptedData : ShuffleData;
         
         QByteArray msg;
         QDataStream out_stream(&msg, QIODevice::WriteOnly);

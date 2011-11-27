@@ -59,7 +59,7 @@ namespace Applications {
 
     Group group = node->GenerateGroup();
     Session *session = new Session(group, node->bg.GetId(), group.GetId(0),
-        Id::Zero, node->bg.GetConnectionTable(), node->bg.GetRpcHandler(),
+        Id::Zero(), node->bg.GetConnectionTable(), node->bg.GetRpcHandler(),
         cr, node->key, cgg);
 
     node->session = QSharedPointer<Session>(session);

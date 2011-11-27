@@ -138,7 +138,7 @@ namespace Anonymity {
 
   void Session::NextRound()
   {
-    Id c_rid(Id::Zero.GetInteger() + _round_idx++);
+    Id c_rid(Id::Zero().GetInteger() + _round_idx++);
     Round * round = _create_round(_generate_group, _local_id,
         _session_id, c_rid, _ct, _rpc, _signing_key, _get_data_cb);
 

@@ -23,7 +23,7 @@ namespace Connections {
        * Constructor
        * @param local_id so we have a "connection" to ourself
        */
-      ConnectionTable(const Id &local_id = Id::Zero);
+      ConnectionTable(const Id &local_id = Id::Zero());
 
       /**
        * Deconstructor

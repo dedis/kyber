@@ -16,7 +16,7 @@ namespace Anonymity {
   const Id &Group::GetId(int idx) const
   {
     if(idx >= _data->Size || idx < 0) {
-      return Id::Zero;
+      return Id::Zero();
     }
     return _data->GroupRoster[idx].first;
   }

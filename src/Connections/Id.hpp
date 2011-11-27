@@ -21,7 +21,7 @@ namespace Connections {
        */
       static const size_t BitSize = 160;
       static const size_t ByteSize = 20;
-      static const Id Zero;
+      static const Id &Zero();
 
       /**
        * Create a random Id

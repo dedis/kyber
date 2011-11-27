@@ -129,7 +129,7 @@ namespace Anonymity {
 
     BroadcastPublicKeys();
 
-    Id from(Id::Zero);
+    Id from(Id::Zero());
     QByteArray entry(0);
 
     for(int idx = 0; idx < _offline_log.Count(); idx++) {
@@ -609,7 +609,7 @@ namespace Anonymity {
     oe->RandomizeBlocks(_shuffle_cleartext);
 
     const Id &next = _shufflers.Next(GetLocalId());
-    MessageType mtype = (next == Id::Zero) ? EncryptedData : ShuffleData;
+    MessageType mtype = (next == Id::Zero()) ? EncryptedData : ShuffleData;
 
     QByteArray msg;
     QDataStream out_stream(&msg, QIODevice::WriteOnly);
