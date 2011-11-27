@@ -8,12 +8,21 @@ namespace Connections {
     _close(RpcMethod<ConnectionManager>(*this, &ConnectionManager::Close)),
     _connect(RpcMethod<ConnectionManager>(*this, &ConnectionManager::Connect)),
     _disconnect(RpcMethod<ConnectionManager>(*this, &ConnectionManager::Disconnect)),
-    _local_id(local_id), _rpc(rpc), _closed(false)
+    _con_tab(local_id), _local_id(local_id), _rpc(rpc), _closed(false)
   {
     _rpc.Register(&_inquire, "CM::Inquire");
     _rpc.Register(&_close, "CM::Close");
     _rpc.Register(&_connect, "CM::Connect");
     _rpc.Register(&_disconnect, "CM::Disconnect");
+
+    Connection *con = _con_tab.GetConnection(_local_id);
+    con->SetSink(&_rpc);
+    QObject::connect(con->GetEdge().data(), SIGNAL(Closed(const Edge *, const QString &)),
+        this, SLOT(HandleEdgeClose(const Edge *, const QString &)));
+    QObject::connect(con, SIGNAL(CalledDisconnect(Connection *)),
+        this, SLOT(HandleDisconnect(Connection *)));
+    QObject::connect(con, SIGNAL(Disconnected(Connection *, const QString &)),
+        this, SLOT(HandleDisconnected(Connection *, const QString &)));
   }
 
   ConnectionManager::~ConnectionManager()
@@ -248,9 +257,11 @@ namespace Connections {
       _rem_con_tab.Disconnect(con);
     }
 
-    QVariantMap notification;
-    notification["method"] = "CM::Disconnect";
-    _rpc.SendNotification(notification, con);
+    if(con->GetRemoteId() != _local_id) {
+      QVariantMap notification;
+      notification["method"] = "CM::Disconnect";
+      _rpc.SendNotification(notification, con);
+    }
 
     qDebug() << "Handle disconnect on: " << con->ToString();
     con->GetEdge()->Close("Local disconnect request");

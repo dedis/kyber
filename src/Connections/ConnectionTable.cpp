@@ -1,12 +1,28 @@
 #include "ConnectionTable.hpp"
+#include "NullConnection.hpp"
 
 namespace Dissent {
 namespace Connections {
+  ConnectionTable::ConnectionTable(const Id &local_id)
+  {
+    if(local_id != Id::Zero()) {
+      Connection *con = new NullConnection(local_id, local_id);
+      QSharedPointer<Edge> edge = con->GetEdge();
+      AddEdge(edge);
+      AddConnection(con);
+    }
+  }
+
   ConnectionTable::~ConnectionTable()
   {
     foreach(Connection *con, _cons) {
       delete con;
     }
+  }
+
+  void ConnectionTable::AddEdge(QSharedPointer<Edge> edge)
+  {
+    _edges[edge.data()] = edge;
   }
 
   void ConnectionTable::AddEdge(Edge *edge)
@@ -43,13 +59,13 @@ namespace Connections {
   {
     _cons[con] = con;
     _id_to_con[con->GetRemoteId()] = con;
-    _edge_to_con[con->GetEdge()] = con;
+    _edge_to_con[con->GetEdge().data()] = con;
   }
 
   bool ConnectionTable::Disconnect(Connection *con)
   {
     const Id &id = con->GetRemoteId();
-    Edge *edge = con->GetEdge();
+    QSharedPointer<Edge> edge = con->GetEdge();
 
     if(_id_to_con.contains(id) && _id_to_con[id]->GetEdge() == edge) {
       _id_to_con.remove(id);
@@ -62,7 +78,7 @@ namespace Connections {
 
   bool ConnectionTable::RemoveConnection(Connection *con)
   {
-    Edge *edge = con->GetEdge();
+    Edge *edge = con->GetEdge().data();
     bool found = false;
 
     if(_edge_to_con.contains(edge)) {

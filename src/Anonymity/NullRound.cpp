@@ -5,7 +5,7 @@ namespace Anonymity {
   NullRound::NullRound(QSharedPointer<GroupGenerator> group_gen,
       const Id &local_id, const Id &session_id, const ConnectionTable &ct,
       RpcHandler &rpc, GetDataCallback &get_data) :
-    Round(group_gen, local_id, session_id, Id::Zero, ct, rpc,
+    Round(group_gen, local_id, session_id, Id::Zero(), ct, rpc,
         QSharedPointer<AsymmetricKey>(), get_data)
   {
   }
@@ -18,7 +18,6 @@ namespace Anonymity {
 
     QPair<QByteArray, bool> data = GetData(1024);
     Broadcast(data.first);
-    ProcessData(data.first, GetLocalId());
     return true;
   }
 

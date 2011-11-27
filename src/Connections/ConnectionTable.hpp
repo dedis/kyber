@@ -20,9 +20,21 @@ namespace Connections {
   class ConnectionTable {
     public:
       /**
+       * Constructor
+       * @param local_id so we have a "connection" to ourself
+       */
+      ConnectionTable(const Id &local_id = Id::Zero);
+
+      /**
        * Deconstructor
        */
       ~ConnectionTable();
+
+      /**
+       * Add an edge
+       * @param edge the edge to add
+       */
+      void AddEdge(QSharedPointer<Edge> edge);
 
       /**
        * Add an edge

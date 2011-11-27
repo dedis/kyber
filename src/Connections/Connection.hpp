@@ -44,14 +44,14 @@ namespace Connections {
       /**
        * The local node wants to remove this connection
        */
-      void Disconnect();
+      virtual void Disconnect();
 
       virtual void Send(const QByteArray &data);
 
       /**
        * Returns the underlying edge
        */
-      inline Edge * GetEdge() { return _edge.data(); }
+      inline QSharedPointer<Edge> GetEdge() { return _edge; }
 
       /**
        * Returns the local id

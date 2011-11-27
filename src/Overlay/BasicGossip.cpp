@@ -88,7 +88,7 @@ namespace Overlay {
 
   bool BasicGossip::NeedConnection()
   {
-    return _cm.GetConnectionTable().GetConnections().count() == 0;
+    return _cm.GetConnectionTable().GetConnections().count() == 1;
   }
 
   void BasicGossip::HandleConnection(Connection *con, bool local)
@@ -137,7 +137,7 @@ namespace Overlay {
     notification["address"] = con->GetEdge()->GetRemoteAddress().GetUrl();
 
     foreach(Connection *other_con, _cm.GetConnectionTable().GetConnections()) {
-      if(other_con == con) {
+      if(other_con == con || other_con->GetRemoteId() == GetId()) {
         continue;
       }
       _rpc.SendNotification(notification, other_con);
@@ -178,6 +178,9 @@ namespace Overlay {
 
     QHash<QByteArray, QUrl> id_to_addr;
     foreach(Connection *con, _cm.GetConnectionTable().GetConnections()) {
+      if(con->GetRemoteId() == GetId()) {
+        continue;
+      }
       QUrl url = con->GetEdge()->GetRemoteAddress().GetUrl();
       QByteArray id = con->GetRemoteId().GetByteArray();
       id_to_addr[id] = url;

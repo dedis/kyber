@@ -29,7 +29,7 @@ namespace Applications {
     }
 
     QList<Connection *> cons = bg.GetConnectionTable().GetConnections();
-    if(cons.count() != GroupSize - 1) {
+    if(cons.count() != GroupSize) {
       return;
     }
 
@@ -56,12 +56,6 @@ namespace Applications {
       QScopedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(id.GetByteArray()));
       group_roster.append(GroupContainer(id, key, dh->GetPublicComponent()));
     }
-
-
-    Id id(bg.GetId());
-    QSharedPointer<AsymmetricKey> key(lib->GeneratePublicKey(id.GetByteArray()));
-    QScopedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(id.GetByteArray()));
-    group_roster.append(GroupContainer(id, key, dh->GetPublicComponent()));
 
     qSort(group_roster);
 

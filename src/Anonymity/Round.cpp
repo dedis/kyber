@@ -64,9 +64,7 @@ namespace Anonymity {
   {
     for(int idx = 0; idx < _group.Count(); idx++) {
       Id id = _group.GetId(idx);
-      if(id != _local_id) {
-        Round::Send(data, _group.GetId(idx));
-      }
+      Round::Send(data, _group.GetId(idx));
     }
   }
 

@@ -38,7 +38,7 @@ namespace Tests {
     MockExecLoop(sc);
 
     foreach(QSharedPointer<Node> node, nodes) {
-      EXPECT_EQ(count - 1, node->bg.GetConnectionTable().GetConnections().count());
+      EXPECT_EQ(count, node->bg.GetConnectionTable().GetConnections().count());
     }
 
     return nodes;

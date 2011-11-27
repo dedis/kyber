@@ -86,7 +86,6 @@ namespace Anonymity {
   {
     QByteArray msg = data + GetSigningKey()->Sign(data);
     Round::Broadcast(msg);
-    ProcessData(msg, GetLocalId());
   }
 
   void ShuffleRound::Send(const QByteArray &data, const Id &id)
