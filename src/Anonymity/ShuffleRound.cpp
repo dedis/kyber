@@ -7,11 +7,9 @@ namespace Anonymity {
   const QByteArray ShuffleRound::DefaultData = QByteArray(ShuffleRound::BlockSize + 4, 0);
 
   ShuffleRound::ShuffleRound(QSharedPointer<GroupGenerator> group_gen,
-      const Id &local_id, const Id &session_id, const Id &round_id,
-      const ConnectionTable &ct, RpcHandler &rpc,
+      const Id &local_id, const Id &round_id, QSharedPointer<Network> network,
       QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data) :
-    Round(group_gen, local_id, session_id, round_id, ct, rpc, signing_key,
-        get_data),
+    Round(group_gen, local_id, round_id, network, signing_key, get_data),
     _state(Offline),
     _blame_state(Offline),
     _keys_received(0),
@@ -80,24 +78,6 @@ namespace Anonymity {
     }
 
     return QByteArray(data.data() + 4, size);
-  }
-
-  void ShuffleRound::Broadcast(const QByteArray &data)
-  {
-    QByteArray msg = data + GetSigningKey()->Sign(data);
-    Round::Broadcast(msg);
-  }
-
-  void ShuffleRound::Send(const QByteArray &data, const Id &id)
-  {
-    QByteArray msg = data + GetSigningKey()->Sign(data);
-
-    if(id == GetLocalId()) {
-      ProcessData(msg, id);
-      return;
-    }
-
-    Round::Send(msg, id);
   }
 
   bool ShuffleRound::Start()
@@ -437,9 +417,8 @@ namespace Anonymity {
     } catch (QRunTimeError &err) {
       qWarning() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
         "received a message from" << GetGroup().GetIndex(from) << from.ToString() <<
-        "in session / round" << GetRoundId().ToString() << GetSessionId().ToString()
-        << "in state" << StateToString(_state) <<
-        "causing the following exception: " << err.What();
+        "in session / round" << GetRoundId().ToString() << "in state" <<
+        StateToString(_state) << "causing the following exception: " << err.What();
       _log.Pop();
       return;
     }
@@ -811,7 +790,7 @@ namespace Anonymity {
       return;
     }
 
-    ShuffleBlamer sb(GetGroupGenerator(), GetSessionId(), GetRoundId(), _logs,
+    ShuffleBlamer sb(GetGroupGenerator(), GetRoundId(), _logs,
         _private_outer_keys);
     sb.Start();
     for(int idx = 0; idx < sb.GetBadNodes().count(); idx++) {

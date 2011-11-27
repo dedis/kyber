@@ -2,22 +2,15 @@
 
 namespace Dissent {
 namespace Tests {
-  class BadGuyCB {
-    public:
-      virtual bool operator()(Round *) const = 0;
-  };
-
-  template<typename T> class BadGuyCBTemplate : public BadGuyCB {
-    public:
-      virtual bool operator()(Round *pr) const
-      {
-        T *pt = dynamic_cast<T *>(pr);
-        if(pt) {
-          return pt->Triggered();
-        }
-        return false;
-      }
-  };
+  typedef bool (*BadGuyCB)(Round *);
+  template<typename T> bool TBadGuyCB(Round *pr)
+  {
+    T *pt = dynamic_cast<T *>(pr);
+    if(pt) {
+      return pt->Triggered();
+    }
+    return false;
+  }
 
   void RoundTest_Null(CreateSessionCallback callback,
       CreateGroupGenerator cgg, bool keys = false);

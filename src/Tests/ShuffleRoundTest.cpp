@@ -4,77 +4,71 @@
 
 namespace Dissent {
 namespace Tests {
-  Session *CreateShuffleSession(TestNode *node, const Group &group,
-      const Id &leader_id, const Id &session_id, CreateGroupGenerator cgg)
-  {
-    return new Session(group, node->cm.GetId(), leader_id, session_id,
-                  node->cm.GetConnectionTable(), node->rpc,
-                  &ShuffleRound::Create, node->key, cgg);
-  }
-
   TEST(ShuffleRound, Null)
   {
-    RoundTest_Null(&CreateShuffleSession, &GroupGenerator::Create, true);
+    RoundTest_Null(&TCreateSession<ShuffleRound>, &GroupGenerator::Create, true);
   }
 
   TEST(ShuffleRound, Basic)
   {
-    RoundTest_Basic(&CreateShuffleSession, &GroupGenerator::Create, true);
+    RoundTest_Basic(&TCreateSession<ShuffleRound>, &GroupGenerator::Create, true);
   }
 
   TEST(ShuffleRound, MultiRound)
   {
-    RoundTest_MultiRound(&CreateShuffleSession, &GroupGenerator::Create, true);
+    RoundTest_MultiRound(&TCreateSession<ShuffleRound>, &GroupGenerator::Create, true);
   }
 
   TEST(ShuffleRound, PeerDisconnectEnd)
   {
-    RoundTest_PeerDisconnectEnd(&CreateShuffleSession,
+    RoundTest_PeerDisconnectEnd(&TCreateSession<ShuffleRound>,
         &GroupGenerator::Create, true);
   }
 
   TEST(ShuffleRound, PeerDisconnectMiddle)
   {
-    RoundTest_PeerDisconnectMiddle(&CreateShuffleSession,
+    RoundTest_PeerDisconnectMiddle(&TCreateSession<ShuffleRound>,
         &GroupGenerator::Create, true);
   }
 
   TEST(ShuffleRound, MessageDuplicator)
   {
-    RoundTest_BadGuy(&CreateShuffleSession,
-        &ShuffleRoundMessageDuplicator::CreateSession, &GroupGenerator::Create,
-        BadGuyCBTemplate<ShuffleRoundMessageDuplicator>(), true);
+    RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
+        &TCreateSession<ShuffleRoundMessageDuplicator>
+        , &GroupGenerator::Create,
+        TBadGuyCB<ShuffleRoundMessageDuplicator>, true);
   }
 
   TEST(ShuffleRound, MessageSwitcher)
   {
-    RoundTest_BadGuy(&CreateShuffleSession,
-        &ShuffleRoundMessageSwitcher::CreateSession, &GroupGenerator::Create, 
-        BadGuyCBTemplate<ShuffleRoundMessageSwitcher>(), true);
-  }
+    RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
+        &TCreateSession<ShuffleRoundMessageSwitcher>,
+        &GroupGenerator::Create, 
+        TBadGuyCB<ShuffleRoundMessageSwitcher>, true); }
 
   TEST(ShuffleRound, FalseNoGo)
   {
-    RoundTest_BadGuy(&CreateShuffleSession,
-        &ShuffleRoundFalseNoGo::CreateSession, &GroupGenerator::Create, 
-        BadGuyCBTemplate<ShuffleRoundFalseNoGo>(), true);
+    RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
+        &TCreateSession<ShuffleRoundFalseNoGo>,
+        &GroupGenerator::Create, 
+        TBadGuyCB<ShuffleRoundFalseNoGo>, true);
   }
 
   TEST(ShuffleRound, InvalidOuterEncryption)
   {
-    RoundTest_BadGuy(&CreateShuffleSession,
-        &ShuffleRoundInvalidOuterEncryption::CreateSession,
+    RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
+        &TCreateSession<ShuffleRoundInvalidOuterEncryption>,
         &GroupGenerator::Create,
-        BadGuyCBTemplate<ShuffleRoundInvalidOuterEncryption>(), true);
+        TBadGuyCB<ShuffleRoundInvalidOuterEncryption>, true);
   }
 
   /*
   // At the present this test cannot be passed
   TEST(ShuffleRound, FalseBlame)
   {
-    RoundTest_BadGuy(&CreateShuffleSession,
-        &ShuffleRoundFalseBlame::CreateSession, 
-        BadGuyCBTemplate<ShuffleRoundFalseBlame>(), true);
+    RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
+        &TCreateSession<ShuffleRoundFalseBlame>,
+        TBadGuyCB<ShuffleRoundFalseBlame>, true);
   }
   */
 
@@ -82,72 +76,72 @@ namespace Tests {
   // At the present this test cannot be passed
   TEST(ShuffleRound, Bad inner private key)
   {
-    RoundTest_BadGuy(&CreateShuffleSession,
-        &ShuffleRoundBadInnerPrivateKey::CreateSession, 
-        BadGuyCBTemplate<ShuffleRoundBadInnerPrivateKey>, true);
+    RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
+        &TCreateSession<ShuffleRoundBadInnerPrivateKey>,
+        TBadGuyCB<ShuffleRoundBadInnerPrivateKey>, true);
   }
   */
 
   TEST(ShuffleRound, NullFixed)
   {
-    RoundTest_Null(&CreateShuffleSession,
+    RoundTest_Null(&TCreateSession<ShuffleRound>,
         &FixedSizeGroupGenerator::Create, true);
   }
 
   TEST(ShuffleRound, BasicFixed)
   {
-    RoundTest_Basic(&CreateShuffleSession,
+    RoundTest_Basic(&TCreateSession<ShuffleRound>,
         &FixedSizeGroupGenerator::Create, true);
   }
 
   TEST(ShuffleRound, MultiRoundFixed)
   {
-    RoundTest_MultiRound(&CreateShuffleSession,
+    RoundTest_MultiRound(&TCreateSession<ShuffleRound>,
         &FixedSizeGroupGenerator::Create, true);
   }
 
   TEST(ShuffleRound, PeerDisconnectEndFixed)
   {
-    RoundTest_PeerDisconnectEnd(&CreateShuffleSession,
+    RoundTest_PeerDisconnectEnd(&TCreateSession<ShuffleRound>,
         &FixedSizeGroupGenerator::Create, true);
   }
 
   TEST(ShuffleRound, PeerDisconnectMiddleFixed)
   {
-    RoundTest_PeerDisconnectMiddle(&CreateShuffleSession,
+    RoundTest_PeerDisconnectMiddle(&TCreateSession<ShuffleRound>,
         &FixedSizeGroupGenerator::Create, true);
   }
 
   TEST(ShuffleRound, MessageDuplicatorFixed)
   {
-    RoundTest_BadGuy(&CreateShuffleSession,
-        &ShuffleRoundMessageDuplicator::CreateSession,
+    RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
+        &TCreateSession<ShuffleRoundMessageDuplicator>,
         &FixedSizeGroupGenerator::Create, 
-        BadGuyCBTemplate<ShuffleRoundMessageDuplicator>(), true);
+        TBadGuyCB<ShuffleRoundMessageDuplicator>, true);
   }
 
   TEST(ShuffleRound, MessageSwitcherFixed)
   {
-    RoundTest_BadGuy(&CreateShuffleSession,
-        &ShuffleRoundMessageSwitcher::CreateSession,
+    RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
+        &TCreateSession<ShuffleRoundMessageSwitcher>,
         &FixedSizeGroupGenerator::Create,
-        BadGuyCBTemplate<ShuffleRoundMessageSwitcher>(), true);
+        TBadGuyCB<ShuffleRoundMessageSwitcher>, true);
   }
 
   TEST(ShuffleRound, FalseNoGoFixed)
   {
-    RoundTest_BadGuy(&CreateShuffleSession,
-        &ShuffleRoundFalseNoGo::CreateSession,
+    RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
+        &TCreateSession<ShuffleRoundFalseNoGo>,
         &FixedSizeGroupGenerator::Create,
-        BadGuyCBTemplate<ShuffleRoundFalseNoGo>(), true);
+        TBadGuyCB<ShuffleRoundFalseNoGo>, true);
   }
 
   TEST(ShuffleRound, InvalidOuterEncryptionFixed)
   {
-    RoundTest_BadGuy(&CreateShuffleSession,
-        &ShuffleRoundInvalidOuterEncryption::CreateSession,
+    RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
+        &TCreateSession<ShuffleRoundInvalidOuterEncryption>,
         &FixedSizeGroupGenerator::Create,
-        BadGuyCBTemplate<ShuffleRoundInvalidOuterEncryption>(), true);
+        TBadGuyCB<ShuffleRoundInvalidOuterEncryption>, true);
   }
 }
 }

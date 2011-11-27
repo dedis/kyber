@@ -4,19 +4,15 @@
 #include <QHash>
 #include <QQueue>
 
+#include "../Connections/Network.hpp"
+#include "../Utils/StartStop.hpp"
+
 #include "Group.hpp"
 #include "GroupGenerator.hpp"
 #include "Round.hpp"
-#include "../Utils/StartStop.hpp"
 
 namespace Dissent {
 namespace Anonymity {
-  namespace {
-    using namespace Dissent::Connections;
-    using namespace Dissent::Messaging;
-    using namespace Dissent::Utils;
-  }
-
   /**
    * Maintains a group which is actively participating in anonymous exchanges
    */
@@ -30,15 +26,14 @@ namespace Anonymity {
        * @param local_id the local node's ID
        * @param leader_id the Id of the leader
        * @param session_id Id for the session
-       * @param ct maps Ids to connections
-       * @param rpc for sending and receives remote procedure calls
+       * @param network handles message sending
        * @param signing_key the local nodes private signing key, pointer NOT
        * @param create_round a callback for creating a secure round
        * @param group_generator generates a subgroup of the primary group for
        * use in the round
        */
       Session(const Group &group, const Id &local_id, const Id &leader_id,
-          const Id &session_id, ConnectionTable &ct, RpcHandler &rpc,
+          const Id &session_id, QSharedPointer<Network> network,
           CreateRound create_round, QSharedPointer<AsymmetricKey> signing_key, 
           CreateGroupGenerator group_generator = GroupGenerator::Create);
 
@@ -158,8 +153,7 @@ namespace Anonymity {
       const Id _local_id;
       const Id _leader_id;
       const Id _session_id;
-      const ConnectionTable &_ct;
-      RpcHandler &_rpc;
+      QSharedPointer<Network> _network;
       CreateRound _create_round;
       QSharedPointer<AsymmetricKey> _signing_key;
       QSharedPointer<GroupGenerator> _generate_group;

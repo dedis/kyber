@@ -1,18 +1,16 @@
 #include "ShuffleRoundBlame.hpp"
 
 #include "../Crypto/CryptoFactory.hpp"
+#include "../Connections/EmptyNetwork.hpp"
 
 namespace Dissent {
 namespace Anonymity {
-  const ConnectionTable ShuffleRoundBlame::_empty_ct = ConnectionTable();
-  RpcHandler ShuffleRoundBlame::_empty_rpc = RpcHandler();
   EmptyGetDataCallback ShuffleRoundBlame::_empty_get_data;
 
   ShuffleRoundBlame::ShuffleRoundBlame(QSharedPointer<GroupGenerator> group_gen,
-      const Id &local_id, const Id &session_id, const Id &round_id,
-      AsymmetricKey *outer_key) :
-    ShuffleRound(group_gen, local_id, session_id, round_id, _empty_ct,
-        _empty_rpc, QSharedPointer<AsymmetricKey>(), _empty_get_data)
+      const Id &local_id, const Id &round_id, AsymmetricKey *outer_key) :
+    ShuffleRound(group_gen, local_id, round_id, EmptyNetwork::GetInstance(),
+        QSharedPointer<AsymmetricKey>(), _empty_get_data)
   {
     if(outer_key) {
       Library *lib = CryptoFactory::GetInstance().GetLibrary();
@@ -35,11 +33,6 @@ namespace Anonymity {
       return _go[idx] ? 1 : - 1;
     }
     return 0;
-  }
-
-  void ShuffleRoundBlame::ProcessMessage(const QByteArray &data, const Id &from)
-  {
-    ProcessData(data, from);
   }
 
   void ShuffleRoundBlame::BroadcastPublicKeys()

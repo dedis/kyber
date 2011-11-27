@@ -16,33 +16,14 @@ namespace Anonymity {
        * Constructor
        * @param group_gen Generate groups for use during this round
        * @param local_id The local peers id
-       * @param session_id Session this round represents
-       * @param ct Connections to the anonymity group
-       * @param rpc Rpc handler for sending messages
-       * @param get_data requests data to share during this session
-       */
-      NullRound(QSharedPointer<GroupGenerator> group_gen, const Id &local_id,
-          const Id &session_id, const ConnectionTable &ct, RpcHandler &rpc,
-          GetDataCallback &get_data);
-
-      /**
-       * function pointer access to the constructor
-       * @param group_gen Generate groups for use during this round
-       * @param local_id The local peers id
-       * @param session_id Session this round represents
        * @param round_id unused
-       * @param ct Connections to the anonymity group
-       * @param rpc Rpc handler for sending messages
+       * @param network handles message sending
        * @param signing_key unused
        * @param get_data requests data to share during this session
        */
-      inline static Round *Create(QSharedPointer<GroupGenerator> group_gen, 
-          const Id &local_id, const Id &session_id, const Id &,
-          const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey>, GetDataCallback &get_data)
-      {
-        return new NullRound(group_gen, local_id, session_id, ct, rpc, get_data);
-      }
+      NullRound(QSharedPointer<GroupGenerator> group_gen, const Id &local_id,
+          const Id &round_id, QSharedPointer<Network> network,
+          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data);
 
       /**
        * Destructor
@@ -53,7 +34,7 @@ namespace Anonymity {
 
       inline virtual QString ToString() const { return "NullRound"; }
 
-    private:
+    protected:
       /**
        * Pushes the data into the subscribed Sink
        * @param data the data to push
@@ -61,6 +42,7 @@ namespace Anonymity {
        */
       virtual void ProcessData(const QByteArray &data, const Id &id);
 
+    private:
       /**
        * Don't receive from a remote peer more than once...
        */

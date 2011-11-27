@@ -3,15 +3,14 @@
 namespace Dissent {
 namespace Anonymity {
   Session::Session(const Group &group, const Id &local_id, const Id &leader_id,
-      const Id &session_id, ConnectionTable &ct, RpcHandler &rpc,
+      const Id &session_id, QSharedPointer<Network> network,
       CreateRound create_round, QSharedPointer<AsymmetricKey> signing_key, 
       CreateGroupGenerator group_generator) :
     _group(group),
     _local_id(local_id),
     _leader_id(leader_id),
     _session_id(session_id),
-    _ct(ct),
-    _rpc(rpc),
+    _network(network),
     _create_round(create_round),
     _signing_key(signing_key),
     _generate_group(group_generator(group)),
@@ -22,12 +21,17 @@ namespace Anonymity {
     _round_idx(0)
   {
     foreach(const GroupContainer &gc, _group.GetRoster()) {
-      Connection *con = _ct.GetConnection(gc.first);
+      Connection *con = _network->GetConnection(gc.first);
       if(con) {
         QObject::connect(con, SIGNAL(Disconnected(Connection *, const QString &)),
             this, SLOT(HandleDisconnect(Connection *, const QString &)));
       }
     }
+
+    QVariantMap headers = _network->GetHeaders();
+    headers["method"] = "SM::Data";
+    headers["session_id"] = _session_id.GetByteArray();
+    _network->SetHeaders(headers);
   }
 
   bool Session::Start()
@@ -48,7 +52,7 @@ namespace Anonymity {
     }
 
     foreach(const GroupContainer &gc, _group.GetRoster()) {
-      Connection *con = _ct.GetConnection(gc.first);
+      Connection *con = _network->GetConnection(gc.first);
       if(con) {
         QObject::disconnect(con, SIGNAL(Disconnected(Connection *, const QString &)),
             this, SLOT(HandleDisconnect(Connection *, const QString &)));
@@ -139,8 +143,8 @@ namespace Anonymity {
   void Session::NextRound()
   {
     Id c_rid(Id::Zero().GetInteger() + _round_idx++);
-    Round * round = _create_round(_generate_group, _local_id,
-        _session_id, c_rid, _ct, _rpc, _signing_key, _get_data_cb);
+    Round * round = _create_round(_generate_group, _local_id, c_rid, _network,
+        _signing_key, _get_data_cb);
 
     _current_round = QSharedPointer<Round>(round);
 
@@ -159,7 +163,7 @@ namespace Anonymity {
       QVariantMap request;
       request["method"] = "SM::Ready";
       request["session_id"] = _session_id.GetByteArray();
-      _rpc.SendRequest(request, _ct.GetConnection(_leader_id), &_ready);
+      _network->SendRequest(request, _leader_id, &_ready);
     }
   }
 
@@ -177,6 +181,8 @@ namespace Anonymity {
   {
     if(!_current_round.isNull()) {
       _current_round->IncomingData(notification);
+    } else {
+      qWarning() << "Received a data message without having a valid round.";
     }
   }
 

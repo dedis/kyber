@@ -97,39 +97,15 @@ namespace Anonymity {
        * Constructor
        * @param group_gen Generate groups for use during this round
        * @param local_id The local peers id
-       * @param session_id Session this round represents
        * @param round_id Unique round id (nonce)
-       * @param ct Connections to the anonymity group
-       * @param rpc Rpc handler for sending messages
+       * @param network handles message sending
        * @param signing_key a signing key for the local node, matched to the
        * node in the group
        * @param get_data requests data to share during this session
        */
-      ShuffleRound(QSharedPointer<GroupGenerator> group_gen,
-          const Id &local_id, const Id &session_id, const Id &round_id,
-          const ConnectionTable &ct, RpcHandler &rpc,
+      ShuffleRound(QSharedPointer<GroupGenerator> group_gen, const Id &local_id,
+          const Id &round_id, QSharedPointer<Network> network,
           QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data);
-
-      /**
-       * function pointer access to the constructor
-       * @param group_gen Generate groups for use during this round
-       * @param local_id The local peers id
-       * @param session_id Session this round represents
-       * @param round_id Unique round id (nonce)
-       * @param ct Connections to the anonymity group
-       * @param rpc Rpc handler for sending messages
-       * @param signing_key a signing key for the local node, matched to the
-       * node in the group
-       * @param get_data requests data to share during this session
-       */
-      inline static Round *Create(QSharedPointer<GroupGenerator> group_gen,
-          const Id &local_id, const Id &session_id, const Id &round_id,
-          const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data)
-      {
-        return new ShuffleRound(group_gen, local_id, session_id, round_id, ct,
-            rpc, signing_key, get_data);
-      }
 
       /**
        * Deconstructor
@@ -162,7 +138,7 @@ namespace Anonymity {
       /**
        * Returns a list of members who have been blamed in the round
        */
-      inline virtual const QVector<int> &GetBadMembers() const { qWarning() << StateToString(GetState()); return _bad_members; }
+      inline virtual const QVector<int> &GetBadMembers() const { return _bad_members; }
 
       /**
        * Returns the shufflers group
@@ -174,9 +150,19 @@ namespace Anonymity {
       inline virtual QString ToString() const { return "ShuffleRound: " + GetRoundId().ToString(); }
 
     protected:
-      virtual void Broadcast(const QByteArray &data);
-      virtual void Send(const QByteArray &data, const Id &id);
-      void ProcessData(const QByteArray &data, const Id &from);
+      virtual inline void Broadcast(const QByteArray &data)
+      {
+        QByteArray msg = data + GetSigningKey()->Sign(data);
+        GetNetwork()->Broadcast(msg);
+      }
+
+      virtual inline void Send(const QByteArray &data, const Id &id)
+      {
+        QByteArray msg = data + GetSigningKey()->Sign(data);
+        GetNetwork()->Send(msg, id);
+      }
+
+      virtual void ProcessData(const QByteArray &data, const Id &from);
 
       /**
        * Called to generate the shufflers group

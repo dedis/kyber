@@ -17,25 +17,16 @@ namespace Anonymity {
        * Constructor
        * @param group_gen Generate groups for use during this round
        * @param local_id The local peers id
-       * @param session_id Session this round represents
        * @param round_id Unique round id (nonce)
        * @param outer_key the peers private outer key
        */
       ShuffleRoundBlame(QSharedPointer<GroupGenerator> group_gen,
-          const Id &local_id, const Id &session_id, const Id &round_id,
-          AsymmetricKey *outer_key);
+          const Id &local_id, const Id &round_id, AsymmetricKey *outer_key);
 
       /**
        * Destructor
        */
       virtual ~ShuffleRoundBlame() {}
-
-      /**
-       * Need a means to push messages into the round manually
-       * @param data incoming message data
-       * @param from the sender of the message
-       */
-      void ProcessMessage(const QByteArray &data, const Id &from);
 
       /**
        * Returns the nodes list of inner public keys
@@ -76,7 +67,15 @@ namespace Anonymity {
 
       virtual bool Start();
 
+      inline virtual void ProcessData(const QByteArray &data, const Id &from)
+      {
+        ShuffleRound::ProcessData(data, from);
+      }
+
     protected:
+      virtual inline void Broadcast(const QByteArray &) {}
+      virtual inline void Send(const QByteArray &, const Id &) {}
+
       virtual void GenerateShufflerGroup()
       {
         SetShufflers(GetGroupGenerator()->CurrentGroup());

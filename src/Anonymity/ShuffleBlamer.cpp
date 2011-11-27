@@ -6,7 +6,7 @@
 namespace Dissent {
 namespace Anonymity {
   ShuffleBlamer::ShuffleBlamer(QSharedPointer<GroupGenerator> group_gen,
-      const Id &session_id, const Id &round_id, const QVector<Log> &logs,
+      const Id &round_id, const QVector<Log> &logs,
       const QVector<AsymmetricKey *> private_keys) :
     _group(group_gen->WholeGroup()),
     _shufflers(group_gen->CurrentGroup()),
@@ -23,7 +23,7 @@ namespace Anonymity {
         key = _private_keys[sidx];
       }
       _rounds.append(new ShuffleRoundBlame(group_gen, _group.GetId(idx),
-            session_id, round_id, key));
+            round_id, key));
     }
   }
 
@@ -87,7 +87,7 @@ namespace Anonymity {
       QPair<QByteArray, Id> entry = clog.At(jdx);
 
       try {
-        round->ProcessMessage(entry.first, entry.second);
+        round->ProcessData(entry.first, entry.second);
       } catch (QRunTimeError &err) {
         qWarning() << idx << "received a message from" <<
           _group.GetIndex(entry.second) << "in state" <<

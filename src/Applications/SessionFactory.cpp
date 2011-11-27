@@ -5,6 +5,8 @@
 #include "../Anonymity/NullRound.hpp"
 #include "../Anonymity/Session.hpp"
 #include "../Anonymity/ShuffleRound.hpp"
+#include "../Anonymity/Round.hpp"
+#include "../Connections/DefaultNetwork.hpp"
 
 namespace Dissent {
 namespace Applications {
@@ -38,17 +40,17 @@ namespace Applications {
 
   void SessionFactory::CreateNullRoundSession(Node *node)
   {
-    Common(node, NullRound::Create, GroupGenerator::Create);
+    Common(node, &TCreateRound<NullRound>, GroupGenerator::Create);
   }
 
   void SessionFactory::CreateShuffleRoundSession(Node *node)
   {
-    Common(node, ShuffleRound::Create, GroupGenerator::Create);
+    Common(node, &TCreateRound<ShuffleRound>, GroupGenerator::Create);
   }
 
   void SessionFactory::CreateFastShuffleRoundSession(Node *node)
   {
-    Common(node, ShuffleRound::Create, FixedSizeGroupGenerator::Create);
+    Common(node, &TCreateRound<ShuffleRound>, FixedSizeGroupGenerator::Create);
   }
 
   void SessionFactory::Common(Node *node, CreateRound cr, CreateGroupGenerator cgg)
@@ -58,9 +60,12 @@ namespace Applications {
     node->key = QSharedPointer<AsymmetricKey>(key);
 
     Group group = node->GenerateGroup();
+    const ConnectionTable &ct = node->bg.GetConnectionTable();
+    RpcHandler &rpc = node->bg.GetRpcHandler();
+    QSharedPointer<Network> net(new DefaultNetwork(ct, rpc));
+
     Session *session = new Session(group, node->bg.GetId(), group.GetId(0),
-        Id::Zero(), node->bg.GetConnectionTable(), node->bg.GetRpcHandler(),
-        cr, node->key, cgg);
+        Id::Zero(), net, cr, node->key, cgg);
 
     node->session = QSharedPointer<Session>(session);
     node->sm.AddSession(node->session);

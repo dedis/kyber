@@ -5,10 +5,9 @@
 
 #include <QObject>
 
-#include "../Connections/ConnectionTable.hpp"
+#include "../Connections/Network.hpp"
 #include "../Messaging/ISender.hpp"
 #include "../Messaging/Source.hpp"
-#include "../Messaging/RpcHandler.hpp"
 #include "../Utils/StartStop.hpp"
 
 #include "Group.hpp"
@@ -26,8 +25,7 @@ namespace Anonymity {
   /**
    * Represents a single instance of a cryptographically secure anonymous exchange
    */
-  class Round : public QObject, public StartStop, public Source,
-      public ISender {
+  class Round : public QObject, public StartStop, public Source, public ISender {
     Q_OBJECT
 
     public:
@@ -35,17 +33,15 @@ namespace Anonymity {
        * Constructor
        * @param group_gen Generate groups for use during this round
        * @param local_id The local peers id
-       * @param session_id Session this round represents
        * @param round_id Unique round id (nonce)
-       * @param ct Connections to the anonymity group
-       * @param rpc Rpc handler for sending messages
+       * @param network handles message sending
        * @param signing_key a signing key for the local node, matched to the
        * node in the group
        * @param get_data requests data to share during this session
        */
       Round(QSharedPointer<GroupGenerator> group_gen, const Id &local_id,
-          const Id &session_id, const Id &round_id, const ConnectionTable &ct,
-          RpcHandler &rpc, QSharedPointer<AsymmetricKey> signing_key,
+          const Id &round_id, QSharedPointer<Network> network,
+          QSharedPointer<AsymmetricKey> signing_key,
           GetDataCallback &get_data);
 
       /**
@@ -74,11 +70,6 @@ namespace Anonymity {
        * Returns the reason the Round was closed, empty string if it is not closed
        */
       inline const QString &GetStoppedReason() const { return _stopped_reason; }
-
-      /**
-       * Returns the Session Id
-       */
-      inline const Id &GetSessionId() const { return _session_id; }
 
       /**
        * Returns whether or not there were any problems in the round
@@ -126,19 +117,6 @@ namespace Anonymity {
 
     protected:
       /**
-       * Send a message to all group members
-       * @param data Data to be sent to all peers
-       */
-      virtual void Broadcast(const QByteArray &data);
-
-      /**
-       * Send a message to a specific group member
-       * @param data The message
-       * @param id The Id of the remote peer
-       */
-      virtual void Send(const QByteArray &data, const Id &id);
-
-      /**
        * If data is from a legitimate group member, it is processed
        * @param data Incoming data
        * @param id the remote peer sending the data
@@ -157,14 +135,14 @@ namespace Anonymity {
 
       void SetSuccessful(bool successful) { _successful = successful; }
 
+      QSharedPointer<Network> &GetNetwork() { return _network; }
+
     private:
       QSharedPointer<GroupGenerator> _group_gen;
       const Group _group;
       const Id _local_id;
-      const Id _session_id;
       const Id _round_id;
-      const ConnectionTable &_ct;
-      RpcHandler &_rpc;
+      QSharedPointer<Network> _network;
       QSharedPointer<AsymmetricKey> _signing_key;
       GetDataCallback &_get_data_cb;
       bool _successful;
@@ -180,9 +158,16 @@ namespace Anonymity {
       virtual void HandleDisconnect(Connection *con, const QString &reason);
   };
 
-  typedef Round *(*CreateRound)(QSharedPointer<GroupGenerator> , const Id &,
-      const Id &, const Id &, const ConnectionTable &, RpcHandler &,
-      QSharedPointer<AsymmetricKey>, GetDataCallback &get_data_cb);
+  typedef Round *(*CreateRound)(QSharedPointer<GroupGenerator>, const Id &,
+      const Id &, QSharedPointer<Network>, QSharedPointer<AsymmetricKey>,
+      GetDataCallback &get_data_cb);
+
+  template <typename T> Round *TCreateRound(QSharedPointer<GroupGenerator> group_gen,
+      const Id &local_id, const Id &round_id, QSharedPointer<Network> network,
+      QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data)
+  {
+    return new T(group_gen, local_id, round_id, network, signing_key, get_data);
+  }
 }
 }
 

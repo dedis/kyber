@@ -17,13 +17,12 @@ namespace Anonymity {
       /**
        * Constructors
        * @param group_gen used to create the anonymity groups
-       * @param session_id Session this round represents
        * @param round_id Unique round id (nonce)
        * @param logs all the incoming logs for nodes in the group
        * @param private_keys the outer private keys for nodes in the group
        */
       ShuffleBlamer(QSharedPointer<GroupGenerator> group_gen,
-          const Id &session_id, const Id &round_id, const QVector<Log> &logs,
+          const Id &round_id, const QVector<Log> &logs,
           const QVector<AsymmetricKey *> private_keys);
 
       /**

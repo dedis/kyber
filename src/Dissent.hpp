@@ -45,7 +45,10 @@
 #include "Connections/Connection.hpp"
 #include "Connections/ConnectionManager.hpp"
 #include "Connections/ConnectionTable.hpp"
+#include "Connections/DefaultNetwork.hpp"
+#include "Connections/EmptyNetwork.hpp"
 #include "Connections/Id.hpp"
+#include "Connections/Network.hpp"
 
 #include "Messaging/BufferSink.hpp"
 #include "Messaging/DummySink.hpp"

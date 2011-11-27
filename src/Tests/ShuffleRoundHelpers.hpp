@@ -16,31 +16,11 @@ namespace Tests {
   class ShuffleRoundBadInnerPrivateKey : public ShuffleRound, public Triggerable {
     public:
       ShuffleRoundBadInnerPrivateKey(QSharedPointer<GroupGenerator> group_gen,
-          const Id &local_id, const Id &session_id, const Id &round_id,
-          const ConnectionTable &ct, RpcHandler &rpc,
+          const Id &local_id, const Id &round_id, QSharedPointer<Network> net,
           QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data) :
-        ShuffleRound(group_gen, local_id, session_id, round_id, ct, rpc,
-            signing_key, get_data)
-      { }
+        ShuffleRound(group_gen, local_id, round_id, net, signing_key, get_data) {}
 
       virtual ~ShuffleRoundBadInnerPrivateKey() {}
-
-      inline static Round *Create(QSharedPointer<GroupGenerator> group_gen,
-          const Id &local_id, const Id &session_id, const Id &round_id,
-          const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data)
-      {
-        return new ShuffleRoundBadInnerPrivateKey(group_gen, local_id,
-            session_id, round_id, ct, rpc, signing_key, get_data);
-      }
-
-      inline static Session *CreateSession(TestNode *node, const Group &group,
-          const Id &leader_id, const Id &session_id, CreateGroupGenerator cgg)
-      {
-        return new Session(group, node->cm.GetId(), leader_id, session_id,
-                      node->cm.GetConnectionTable(), node->rpc, 
-                      ShuffleRoundBadInnerPrivateKey::Create, node->key, cgg);
-      }
 
     protected:
       virtual void BroadcastPrivateKey()
@@ -68,31 +48,11 @@ namespace Tests {
   class ShuffleRoundMessageDuplicator : public ShuffleRound, public Triggerable {
     public:
       ShuffleRoundMessageDuplicator(QSharedPointer<GroupGenerator> group_gen,
-          const Id &local_id, const Id &session_id, const Id &round_id,
-          const ConnectionTable &ct, RpcHandler &rpc,
+          const Id &local_id, const Id &round_id, QSharedPointer<Network> net,
           QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data) :
-        ShuffleRound(group_gen, local_id, session_id, round_id, ct, rpc,
-            signing_key, get_data)
-      { }
+        ShuffleRound(group_gen, local_id, round_id, net, signing_key, get_data) {}
 
       virtual ~ShuffleRoundMessageDuplicator() {}
-
-      inline static Round *Create(QSharedPointer<GroupGenerator> group_gen,
-          const Id &local_id, const Id &session_id, const Id &round_id,
-          const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data)
-      {
-        return new ShuffleRoundMessageDuplicator(group_gen, local_id,
-            session_id, round_id, ct, rpc, signing_key, get_data);
-      }
-
-      inline static Session *CreateSession(TestNode *node, const Group &group,
-          const Id &leader_id, const Id &session_id, CreateGroupGenerator cgg)
-      {
-        return new Session(group, node->cm.GetId(), leader_id, session_id,
-                      node->cm.GetConnectionTable(), node->rpc, 
-                      ShuffleRoundMessageDuplicator::Create, node->key, cgg);
-      }
 
     protected:
       virtual void Shuffle()
@@ -159,32 +119,11 @@ namespace Tests {
   class ShuffleRoundMessageSwitcher : public ShuffleRound, public Triggerable {
     public:
       ShuffleRoundMessageSwitcher(QSharedPointer<GroupGenerator> group_gen,
-          const Id &local_id, const Id &session_id, const Id &round_id,
-          const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key,
-          GetDataCallback &get_data) :
-        ShuffleRound(group_gen, local_id, session_id, round_id, ct, rpc,
-            signing_key, get_data)
-      { }
+          const Id &local_id, const Id &round_id, QSharedPointer<Network> net,
+          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data) :
+        ShuffleRound(group_gen, local_id, round_id, net, signing_key, get_data) {}
 
       virtual ~ShuffleRoundMessageSwitcher() {}
-
-      inline static Round *Create(QSharedPointer<GroupGenerator> group_gen,
-          const Id &local_id, const Id &session_id, const Id &round_id,
-          const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data)
-      {
-        return new ShuffleRoundMessageSwitcher(group_gen, local_id, session_id,
-            round_id, ct, rpc, signing_key, get_data);
-      }
-
-      inline static Session *CreateSession(TestNode *node, const Group &group,
-          const Id &leader_id, const Id &session_id, CreateGroupGenerator cgg)
-      {
-        return new Session(group, node->cm.GetId(), leader_id, session_id,
-                      node->cm.GetConnectionTable(), node->rpc, 
-                      ShuffleRoundMessageSwitcher::Create, node->key, cgg);
-      }
 
     protected:
       virtual void Shuffle()
@@ -213,31 +152,11 @@ namespace Tests {
   class ShuffleRoundFalseBlame : public ShuffleRound, public Triggerable {
     public:
       ShuffleRoundFalseBlame(QSharedPointer<GroupGenerator> group_gen,
-          const Id &local_id, const Id &session_id, const Id &round_id,
-          const ConnectionTable &ct, RpcHandler &rpc,
+          const Id &local_id, const Id &round_id, QSharedPointer<Network> net,
           QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data) :
-        ShuffleRound(group_gen, local_id, session_id, round_id, ct, rpc,
-            signing_key, get_data) { }
+        ShuffleRound(group_gen, local_id, round_id, net, signing_key, get_data) {}
 
       virtual ~ShuffleRoundFalseBlame() {}
-
-      inline static Round *Create(QSharedPointer<GroupGenerator> group_gen,
-          const Id &local_id, const Id &session_id, const Id &round_id,
-          const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data)
-      {
-        return new ShuffleRoundFalseBlame(group_gen, local_id, session_id,
-            round_id, ct, rpc, signing_key, get_data);
-      }
-
-      inline static Session *CreateSession(TestNode *node, const Group &group,
-          const Id &leader_id, const Id &session_id,
-          CreateGroupGenerator cgg)
-      {
-        return new Session(group, node->cm.GetId(), leader_id, session_id,
-                      node->cm.GetConnectionTable(), node->rpc, 
-                      ShuffleRoundFalseBlame::Create, node->key, cgg);
-      }
 
     protected:
       virtual void Shuffle()
@@ -251,31 +170,11 @@ namespace Tests {
   class ShuffleRoundFalseNoGo : public ShuffleRound, public Triggerable {
     public:
       ShuffleRoundFalseNoGo(QSharedPointer<GroupGenerator> group_gen,
-          const Id &local_id, const Id &session_id, const Id &round_id,
-          const ConnectionTable &ct, RpcHandler &rpc,
+          const Id &local_id, const Id &round_id, QSharedPointer<Network> net,
           QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data) :
-        ShuffleRound(group_gen, local_id, session_id, round_id, ct, rpc,
-            signing_key, get_data) { }
+        ShuffleRound(group_gen, local_id, round_id, net, signing_key, get_data) {}
 
       virtual ~ShuffleRoundFalseNoGo() {}
-
-      inline static Round *Create(QSharedPointer<GroupGenerator> group_gen,
-          const Id &local_id, const Id &session_id, const Id &round_id,
-          const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data)
-      {
-        return new ShuffleRoundFalseNoGo(group_gen, local_id, session_id, round_id,
-            ct, rpc, signing_key, get_data);
-      }
-
-      inline static Session *CreateSession(TestNode *node, const Group &group,
-          const Id &leader_id, const Id &session_id,
-          CreateGroupGenerator cgg)
-      {
-        return new Session(group, node->cm.GetId(), leader_id, session_id,
-                      node->cm.GetConnectionTable(), node->rpc, 
-                      ShuffleRoundFalseNoGo::Create, node->key, cgg);
-      }
 
     protected:
       virtual void Verify()
@@ -293,31 +192,11 @@ namespace Tests {
   class ShuffleRoundInvalidOuterEncryption : public ShuffleRound, public Triggerable {
     public:
       ShuffleRoundInvalidOuterEncryption(QSharedPointer<GroupGenerator> group_gen,
-          const Id &local_id, const Id &session_id, const Id &round_id,
-          const ConnectionTable &ct, RpcHandler &rpc,
+          const Id &local_id, const Id &round_id, QSharedPointer<Network> net,
           QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data) :
-        ShuffleRound(group_gen, local_id, session_id, round_id, ct, rpc,
-            signing_key, get_data) { }
+        ShuffleRound(group_gen, local_id, round_id, net, signing_key, get_data) {}
 
       virtual ~ShuffleRoundInvalidOuterEncryption() {}
-
-      inline static Round *Create(QSharedPointer<GroupGenerator> group_gen,
-          const Id &local_id, const Id &session_id, const Id &round_id,
-          const ConnectionTable &ct, RpcHandler &rpc,
-          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data)
-      {
-        return new ShuffleRoundInvalidOuterEncryption(group_gen,
-            local_id, session_id, round_id, ct, rpc, signing_key, get_data);
-      }
-
-      inline static Session *CreateSession(TestNode *node, const Group &group,
-          const Id &leader_id, const Id &session_id,
-          CreateGroupGenerator cgg)
-      {
-        return new Session(group, node->cm.GetId(), leader_id, session_id,
-                      node->cm.GetConnectionTable(), node->rpc, 
-                      ShuffleRoundInvalidOuterEncryption::Create, node->key, cgg);
-      }
 
     protected:
       virtual void SubmitData()
