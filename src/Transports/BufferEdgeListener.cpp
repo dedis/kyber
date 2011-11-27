@@ -85,7 +85,6 @@ namespace Transports {
     }
 
     int delay = Dissent::Utils::Random::GetInstance().GetInt(10, 50);
-    qWarning() << "Delay:" << delay;
     BufferEdge *local_edge(new BufferEdge(GetAddress(), remote_el->GetAddress(), true, delay));
     BufferEdge *remote_edge(new BufferEdge(remote_el->GetAddress(), GetAddress(), false, delay));
 
