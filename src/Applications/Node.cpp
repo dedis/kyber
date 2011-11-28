@@ -7,15 +7,19 @@
 
 using Dissent::Anonymity::Group;
 using Dissent::Anonymity::GroupContainer;
+using Dissent::Connections::Id;
+using Dissent::Crypto::AsymmetricKey;
+using Dissent::Crypto::DiffieHellman;
 using Dissent::Crypto::Library;
 using Dissent::Crypto::CryptoFactory;
 
 namespace Dissent {
 namespace Applications {
-  Node::Node(const Id &local_id, const QList<Address> &local,
+  Node::Node(const Credentials &creds, const QList<Address> &local,
       const QList<Address> &remote, int group_size,
       const QString &session_type) :
-    bg(local_id, local, remote),
+    creds(creds),
+    bg(creds.GetLocalId(), local, remote),
     sm(bg.GetRpcHandler()),
     GroupSize(group_size),
     SessionType(session_type),

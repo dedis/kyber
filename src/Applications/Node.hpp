@@ -3,6 +3,7 @@
 
 #include <QObject>
 
+#include "../Anonymity/Credentials.hpp"
 #include "../Anonymity/SessionManager.hpp"
 #include "../Anonymity/Group.hpp"
 #include "../Overlay/BasicGossip.hpp"
@@ -31,27 +32,24 @@ namespace Applications {
     Q_OBJECT
 
     public:
+      typedef Dissent::Anonymity::Credentials Credentials;
       typedef Dissent::Anonymity::Group Group;
       typedef Dissent::Anonymity::Round Round;
       typedef Dissent::Anonymity::Session Session;
       typedef Dissent::Anonymity::SessionManager SessionManager;
       typedef Dissent::Connections::Connection Connection;
-      typedef Dissent::Connections::Id Id;
-      typedef Dissent::Crypto::AsymmetricKey AsymmetricKey;
-      typedef Dissent::Crypto::DiffieHellman DiffieHellman;
       typedef Dissent::Messaging::ISink ISink;
       typedef Dissent::Overlay::BasicGossip BasicGossip;
       typedef Dissent::Transports::Address Address;
 
       /**
        * Constructor
-       * @param local_id Id for this node
        * @param local the EL addresses
        * @param remote the bootstrap peer list
        * @param group_size number of peers to wait for before creating the group
        * @param session_type type of session / round to create
        */
-      Node(const Id &local_id, const QList<Address> &local,
+      Node(const Credentials &creds, const QList<Address> &local,
           const QList<Address> &remote, int group_size,
           const QString &session_type);
 
@@ -70,13 +68,12 @@ namespace Applications {
        */
       bool Bootstrapped() { return _bootstrapped; }
 
+      Credentials creds;
       BasicGossip bg;
       SessionManager sm;
       const int GroupSize;
       const QString SessionType;
 
-      QSharedPointer<AsymmetricKey> key;
-      QSharedPointer<DiffieHellman> dh;
       QSharedPointer<Session> session;
       QSharedPointer<ISink> sink;
 

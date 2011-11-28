@@ -91,16 +91,14 @@ namespace Anonymity {
       /**
        * Constructor
        * @param group_gen Generate groups for use during this round
-       * @param local_id The local peers id
+       * @param creds the local nodes credentials
        * @param round_id Unique round id (nonce)
        * @param network handles message sending
-       * @param signing_key a signing key for the local node, matched to the
-       * node in the group
        * @param get_data requests data to share during this session
        */
-      ShuffleRound(QSharedPointer<GroupGenerator> group_gen, const Id &local_id,
-          const Id &round_id, QSharedPointer<Network> network,
-          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data);
+      ShuffleRound(QSharedPointer<GroupGenerator> group_gen, 
+          const Credentials &creds, const Id &round_id,
+          QSharedPointer<Network> network, GetDataCallback &get_data);
 
       /**
        * Deconstructor

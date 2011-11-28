@@ -12,6 +12,7 @@ QT = core network
 # Input
 LIBS += -lcryptopp
 HEADERS += src/Dissent.hpp \
+           src/Anonymity/Credentials.hpp \
            src/Anonymity/FixedSizeGroupGenerator.hpp \
            src/Anonymity/Group.hpp \
            src/Anonymity/GroupGenerator.hpp \

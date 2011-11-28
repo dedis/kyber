@@ -15,9 +15,14 @@ namespace Tests {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
 
     for(int idx = 0; idx < count; idx++) {
-      nodes.append(QSharedPointer<Node>(new Node(Id(), local, remote, count, session_type)));
-      AsymmetricKey *key = lib->GeneratePrivateKey(nodes[idx]->bg.GetId().GetByteArray());
-      nodes[idx]->key = QSharedPointer<AsymmetricKey>(key);
+      Id id;
+      QByteArray bid(id.GetByteArray());
+      QSharedPointer<AsymmetricKey> key(lib->GeneratePrivateKey(bid));
+      QSharedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
+
+      nodes.append(QSharedPointer<Node>(new Node(Credentials(id, key, dh),
+              local, remote, count, session_type)));
+
       nodes[idx]->sink = QSharedPointer<ISink>(new MockSinkWithSignal());
       local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
     }

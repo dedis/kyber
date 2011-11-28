@@ -4,8 +4,7 @@
 
 namespace Dissent {
 namespace Tests {
-  void RoundTest_Null(CreateSessionCallback callback, CreateGroupGenerator cgg,
-      bool keys)
+  void RoundTest_Null(CreateSessionCallback callback, CreateGroupGenerator cgg)
   {
     Timer::GetInstance().UseVirtualTime();
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
@@ -13,7 +12,7 @@ namespace Tests {
 
     QVector<TestNode *> nodes;
     Group *group;
-    ConstructOverlay(count, nodes, group, keys);
+    ConstructOverlay(count, nodes, group);
 
 
     for(int idx = 0; idx < count; idx++) {
@@ -56,8 +55,7 @@ namespace Tests {
     delete group;
   }
 
-  void RoundTest_Basic(CreateSessionCallback callback, CreateGroupGenerator cgg,
-      bool keys)
+  void RoundTest_Basic(CreateSessionCallback callback, CreateGroupGenerator cgg)
   {
     Timer::GetInstance().UseVirtualTime();
 
@@ -67,7 +65,7 @@ namespace Tests {
 
     QVector<TestNode *> nodes;
     Group *group;
-    ConstructOverlay(count, nodes, group, keys);
+    ConstructOverlay(count, nodes, group);
 
     for(int idx = 0; idx < count; idx++) {
       for(int jdx = 0; jdx < count; jdx++) {
@@ -113,8 +111,7 @@ namespace Tests {
     delete group;
   }
 
-  void RoundTest_MultiRound(CreateSessionCallback callback, CreateGroupGenerator cgg, 
-      bool keys)
+  void RoundTest_MultiRound(CreateSessionCallback callback, CreateGroupGenerator cgg)
   {
     Timer::GetInstance().UseVirtualTime();
 
@@ -128,7 +125,7 @@ namespace Tests {
 
     QVector<TestNode *> nodes;
     Group *group;
-    ConstructOverlay(count, nodes, group, keys);
+    ConstructOverlay(count, nodes, group);
 
     Id leader_id = nodes[leader]->cm.GetId();
     Id session_id;
@@ -176,7 +173,7 @@ namespace Tests {
   }
 
   void RoundTest_PeerDisconnectEnd(CreateSessionCallback callback,
-      CreateGroupGenerator cgg, bool keys)
+      CreateGroupGenerator cgg)
   {
     Timer::GetInstance().UseVirtualTime();
 
@@ -189,7 +186,7 @@ namespace Tests {
 
     QVector<TestNode *> nodes;
     Group *group;
-    ConstructOverlay(count, nodes, group, keys);
+    ConstructOverlay(count, nodes, group);
 
     Id leader_id = nodes[leader]->cm.GetId();
     Id session_id;
@@ -244,7 +241,7 @@ namespace Tests {
   }
 
   void RoundTest_PeerDisconnectMiddle(CreateSessionCallback callback,
-      CreateGroupGenerator cgg, bool keys)
+      CreateGroupGenerator cgg)
   {
     Timer::GetInstance().UseVirtualTime();
 
@@ -255,7 +252,7 @@ namespace Tests {
 
     QVector<TestNode *> nodes;
     Group *group;
-    ConstructOverlay(count, nodes, group, keys);
+    ConstructOverlay(count, nodes, group);
 
     for(int idx = 0; idx < count; idx++) {
       for(int jdx = 0; jdx < count; jdx++) {
@@ -330,7 +327,7 @@ namespace Tests {
 
   void RoundTest_BadGuy(CreateSessionCallback good_callback,
       CreateSessionCallback bad_callback, CreateGroupGenerator cgg,
-      const BadGuyCB &cb, bool keys)
+      const BadGuyCB &cb)
   {
     Timer::GetInstance().UseVirtualTime();
 
@@ -341,7 +338,7 @@ namespace Tests {
 
     QVector<TestNode *> nodes;
     Group *group;
-    ConstructOverlay(count, nodes, group, keys);
+    ConstructOverlay(count, nodes, group);
 
     for(int idx = 0; idx < count; idx++) {
       for(int jdx = 0; jdx < count; jdx++) {

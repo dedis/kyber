@@ -3,6 +3,7 @@
 
 #include "ISink.hpp"
 #include <QVector>
+#include <QPair>
 
 namespace Dissent {
 namespace Messaging {

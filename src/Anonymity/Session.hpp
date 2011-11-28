@@ -11,6 +11,7 @@
 #include "../Messaging/RpcMethod.hpp"
 #include "../Utils/StartStop.hpp"
 
+#include "Credentials.hpp"
 #include "Group.hpp"
 #include "GroupGenerator.hpp"
 #include "Round.hpp"
@@ -47,19 +48,17 @@ namespace Anonymity {
       /**
        * Constructor
        * @param group an ordered member of peers for the group
-       * @param local_id the local node's ID
+       * @param creds the local nodes credentials
        * @param leader_id the Id of the leader
        * @param session_id Id for the session
        * @param network handles message sending
-       * @param signing_key the local nodes private signing key, pointer NOT
        * @param create_round a callback for creating a secure round
        * @param group_generator generates a subgroup of the primary group for
        * use in the round
        */
-      Session(const Group &group, const Id &local_id, const Id &leader_id,
+      Session(const Group &group, const Credentials &creds, const Id &leader_id,
           const Id &session_id, QSharedPointer<Network> network,
-          CreateRound create_round, QSharedPointer<AsymmetricKey> signing_key, 
-          CreateGroupGenerator group_generator = GroupGenerator::Create);
+          CreateRound create_round, CreateGroupGenerator group_generator);
 
       /**
        * Deconstructor
@@ -96,7 +95,7 @@ namespace Anonymity {
       /**
        * Returns true if the peer is the leader for this session
        */
-      inline bool IsLeader() { return _local_id == _leader_id; }
+      inline bool IsLeader() { return _creds.GetLocalId() == _leader_id; }
 
       /**
        * Returns the Session Id
@@ -174,12 +173,11 @@ namespace Anonymity {
       QByteArray _send_queue;
 
       const Group _group;
-      const Id _local_id;
+      const Credentials _creds;
       const Id _leader_id;
       const Id _session_id;
       QSharedPointer<Network> _network;
       CreateRound _create_round;
-      QSharedPointer<AsymmetricKey> _signing_key;
       QSharedPointer<GroupGenerator> _generate_group;
 
       bool _round_ready;

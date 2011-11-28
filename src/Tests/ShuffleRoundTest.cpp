@@ -6,29 +6,29 @@ namespace Dissent {
 namespace Tests {
   TEST(ShuffleRound, Null)
   {
-    RoundTest_Null(&TCreateSession<ShuffleRound>, &GroupGenerator::Create, true);
+    RoundTest_Null(&TCreateSession<ShuffleRound>, &GroupGenerator::Create);
   }
 
   TEST(ShuffleRound, Basic)
   {
-    RoundTest_Basic(&TCreateSession<ShuffleRound>, &GroupGenerator::Create, true);
+    RoundTest_Basic(&TCreateSession<ShuffleRound>, &GroupGenerator::Create);
   }
 
   TEST(ShuffleRound, MultiRound)
   {
-    RoundTest_MultiRound(&TCreateSession<ShuffleRound>, &GroupGenerator::Create, true);
+    RoundTest_MultiRound(&TCreateSession<ShuffleRound>, &GroupGenerator::Create);
   }
 
   TEST(ShuffleRound, PeerDisconnectEnd)
   {
     RoundTest_PeerDisconnectEnd(&TCreateSession<ShuffleRound>,
-        &GroupGenerator::Create, true);
+        &GroupGenerator::Create);
   }
 
   TEST(ShuffleRound, PeerDisconnectMiddle)
   {
     RoundTest_PeerDisconnectMiddle(&TCreateSession<ShuffleRound>,
-        &GroupGenerator::Create, true);
+        &GroupGenerator::Create);
   }
 
   TEST(ShuffleRound, MessageDuplicator)
@@ -36,7 +36,7 @@ namespace Tests {
     RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
         &TCreateSession<ShuffleRoundMessageDuplicator>
         , &GroupGenerator::Create,
-        TBadGuyCB<ShuffleRoundMessageDuplicator>, true);
+        TBadGuyCB<ShuffleRoundMessageDuplicator>);
   }
 
   TEST(ShuffleRound, MessageSwitcher)
@@ -44,14 +44,14 @@ namespace Tests {
     RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
         &TCreateSession<ShuffleRoundMessageSwitcher>,
         &GroupGenerator::Create, 
-        TBadGuyCB<ShuffleRoundMessageSwitcher>, true); }
+        TBadGuyCB<ShuffleRoundMessageSwitcher>); }
 
   TEST(ShuffleRound, FalseNoGo)
   {
     RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
         &TCreateSession<ShuffleRoundFalseNoGo>,
         &GroupGenerator::Create, 
-        TBadGuyCB<ShuffleRoundFalseNoGo>, true);
+        TBadGuyCB<ShuffleRoundFalseNoGo>);
   }
 
   TEST(ShuffleRound, InvalidOuterEncryption)
@@ -59,7 +59,7 @@ namespace Tests {
     RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
         &TCreateSession<ShuffleRoundInvalidOuterEncryption>,
         &GroupGenerator::Create,
-        TBadGuyCB<ShuffleRoundInvalidOuterEncryption>, true);
+        TBadGuyCB<ShuffleRoundInvalidOuterEncryption>);
   }
 
   /*
@@ -68,7 +68,7 @@ namespace Tests {
   {
     RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
         &TCreateSession<ShuffleRoundFalseBlame>,
-        TBadGuyCB<ShuffleRoundFalseBlame>, true);
+        TBadGuyCB<ShuffleRoundFalseBlame>);
   }
   */
 
@@ -78,38 +78,38 @@ namespace Tests {
   {
     RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
         &TCreateSession<ShuffleRoundBadInnerPrivateKey>,
-        TBadGuyCB<ShuffleRoundBadInnerPrivateKey>, true);
+        TBadGuyCB<ShuffleRoundBadInnerPrivateKey>);
   }
   */
 
   TEST(ShuffleRound, NullFixed)
   {
     RoundTest_Null(&TCreateSession<ShuffleRound>,
-        &FixedSizeGroupGenerator::Create, true);
+        &FixedSizeGroupGenerator::Create);
   }
 
   TEST(ShuffleRound, BasicFixed)
   {
     RoundTest_Basic(&TCreateSession<ShuffleRound>,
-        &FixedSizeGroupGenerator::Create, true);
+        &FixedSizeGroupGenerator::Create);
   }
 
   TEST(ShuffleRound, MultiRoundFixed)
   {
     RoundTest_MultiRound(&TCreateSession<ShuffleRound>,
-        &FixedSizeGroupGenerator::Create, true);
+        &FixedSizeGroupGenerator::Create);
   }
 
   TEST(ShuffleRound, PeerDisconnectEndFixed)
   {
     RoundTest_PeerDisconnectEnd(&TCreateSession<ShuffleRound>,
-        &FixedSizeGroupGenerator::Create, true);
+        &FixedSizeGroupGenerator::Create);
   }
 
   TEST(ShuffleRound, PeerDisconnectMiddleFixed)
   {
     RoundTest_PeerDisconnectMiddle(&TCreateSession<ShuffleRound>,
-        &FixedSizeGroupGenerator::Create, true);
+        &FixedSizeGroupGenerator::Create);
   }
 
   TEST(ShuffleRound, MessageDuplicatorFixed)
@@ -117,7 +117,7 @@ namespace Tests {
     RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
         &TCreateSession<ShuffleRoundMessageDuplicator>,
         &FixedSizeGroupGenerator::Create, 
-        TBadGuyCB<ShuffleRoundMessageDuplicator>, true);
+        TBadGuyCB<ShuffleRoundMessageDuplicator>);
   }
 
   TEST(ShuffleRound, MessageSwitcherFixed)
@@ -125,7 +125,7 @@ namespace Tests {
     RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
         &TCreateSession<ShuffleRoundMessageSwitcher>,
         &FixedSizeGroupGenerator::Create,
-        TBadGuyCB<ShuffleRoundMessageSwitcher>, true);
+        TBadGuyCB<ShuffleRoundMessageSwitcher>);
   }
 
   TEST(ShuffleRound, FalseNoGoFixed)
@@ -133,7 +133,7 @@ namespace Tests {
     RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
         &TCreateSession<ShuffleRoundFalseNoGo>,
         &FixedSizeGroupGenerator::Create,
-        TBadGuyCB<ShuffleRoundFalseNoGo>, true);
+        TBadGuyCB<ShuffleRoundFalseNoGo>);
   }
 
   TEST(ShuffleRound, InvalidOuterEncryptionFixed)
@@ -141,7 +141,7 @@ namespace Tests {
     RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
         &TCreateSession<ShuffleRoundInvalidOuterEncryption>,
         &FixedSizeGroupGenerator::Create,
-        TBadGuyCB<ShuffleRoundInvalidOuterEncryption>, true);
+        TBadGuyCB<ShuffleRoundInvalidOuterEncryption>);
   }
 }
 }

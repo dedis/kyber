@@ -42,26 +42,37 @@ int main(int argc, char **argv)
     local_id = Id(settings.LocalId);
   }
 
-  nodes.append(QSharedPointer<Node>(new Node(local_id, local, remote,
-          settings.GroupSize, settings.SessionType)));
+  QSharedPointer<AsymmetricKey> key;
+  QSharedPointer<DiffieHellman> dh;
 
   if(settings.DemoMode) {
     QByteArray id = nodes[0]->bg.GetId().GetByteArray();
-    nodes[0]->key = QSharedPointer<AsymmetricKey>(lib->GeneratePrivateKey(id));
-    nodes[0]->dh = QSharedPointer<DiffieHellman>(lib->GenerateDiffieHellman(id));
+    key = QSharedPointer<AsymmetricKey>(lib->GeneratePrivateKey(id));
+    dh = QSharedPointer<DiffieHellman>(lib->GenerateDiffieHellman(id));
+  } else {
+    qFatal("Only DemoMode supported at this time;");
   }
+
+  nodes.append(QSharedPointer<Node>(new Node(Credentials(local_id, key, dh),
+          local, remote, settings.GroupSize, settings.SessionType)));
 
   for(int idx = 1; idx < settings.LocalNodeCount; idx++) {
     Id local_id;
     local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
-    nodes.append(QSharedPointer<Node>(new Node(local_id, local, remote,
-            settings.GroupSize, settings.SessionType)));
+
+    QSharedPointer<AsymmetricKey> key;
+    QSharedPointer<DiffieHellman> dh;
 
     if(settings.DemoMode) {
       QByteArray id = nodes[idx]->bg.GetId().GetByteArray();
-      nodes[idx]->key = QSharedPointer<AsymmetricKey>(lib->GeneratePrivateKey(id));
-      nodes[idx]->dh = QSharedPointer<DiffieHellman>(lib->GenerateDiffieHellman(id));
+      key = QSharedPointer<AsymmetricKey>(lib->GeneratePrivateKey(id));
+      dh = QSharedPointer<DiffieHellman>(lib->GenerateDiffieHellman(id));
+    } else {
+      qFatal("Only DemoMode supported at this time;");
     }
+
+    nodes.append(QSharedPointer<Node>(new Node(Credentials(local_id, key, dh),
+            local, remote, settings.GroupSize, settings.SessionType)));
     nodes[idx]->sink = QSharedPointer<ISink>(new DummySink());
   }
 

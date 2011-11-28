@@ -11,18 +11,18 @@ namespace Tests {
     Q_OBJECT
 
     public:
-      TestNode(int idx, bool make_key = false) :
+      TestNode(int idx) :
         cm(Id(), rpc), sm(rpc),
-        net(new DefaultNetwork(cm.GetConnectionTable(), rpc))
+        net(new DefaultNetwork(cm.GetConnectionTable(), rpc)),
+        creds(cm.GetId(),
+            QSharedPointer<AsymmetricKey>(CryptoFactory::GetInstance().
+              GetLibrary()->CreatePrivateKey()),
+            QSharedPointer<DiffieHellman>(CryptoFactory::GetInstance().
+              GetLibrary()->CreateDiffieHellman()))
       {
         EdgeListener *be = EdgeListenerFactory::GetInstance().CreateEdgeListener(BufferAddress(idx));
         cm.AddEdgeListener(QSharedPointer<EdgeListener>(be));
         be->Start();
-        if(make_key) {
-          Library *lib = CryptoFactory::GetInstance().GetLibrary();
-          key = QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey());
-          dh = QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman());
-        }
       }
 
       virtual ~TestNode() {}
@@ -32,9 +32,8 @@ namespace Tests {
       ConnectionManager cm;
       SessionManager sm;
       QSharedPointer<Network> net;
+      Credentials creds;
       QSharedPointer<Session> session;
-      QSharedPointer<AsymmetricKey> key;
-      QSharedPointer<DiffieHellman> dh;
       static int calledback;
       static int success;
       static int failure;
@@ -51,7 +50,7 @@ namespace Tests {
       const Id &, const Id &, CreateGroupGenerator);
 
   void ConstructOverlay(int count, QVector<TestNode *> &nodes,
-      Group *&group, bool make_keys);
+      Group *&group);
 
   void CreateSessions(const QVector<TestNode *> &nodes,
       const Group &group, const Id &leader_id, const Id &session_id,
@@ -65,8 +64,8 @@ namespace Tests {
   template <typename T> Session *TCreateSession(TestNode *node, const Group &group,
           const Id &leader_id, const Id &session_id, CreateGroupGenerator cgg)
   {
-    return new Session(group, node->cm.GetId(), leader_id, session_id,
-        node->net, &TCreateRound<T>, node->key, cgg);
+    return new Session(group, node->creds, leader_id, session_id,
+        node->net, &TCreateRound<T>, cgg);
   }
 
   void CleanUp(const QVector<TestNode *> &nodes);

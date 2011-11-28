@@ -7,17 +7,15 @@ using Dissent::Connections::Connection;
 
 namespace Dissent {
 namespace Anonymity {
-  Session::Session(const Group &group, const Id &local_id, const Id &leader_id,
-      const Id &session_id, QSharedPointer<Network> network,
-      CreateRound create_round, QSharedPointer<AsymmetricKey> signing_key, 
-      CreateGroupGenerator group_generator) :
+  Session::Session(const Group &group, const Credentials &creds,
+      const Id &leader_id, const Id &session_id, QSharedPointer<Network> network,
+      CreateRound create_round, CreateGroupGenerator group_generator) :
     _group(group),
-    _local_id(local_id),
+    _creds(creds),
     _leader_id(leader_id),
     _session_id(session_id),
     _network(network),
     _create_round(create_round),
-    _signing_key(signing_key),
     _generate_group(group_generator(group)),
     _round_ready(false),
     _current_round(0),
@@ -148,8 +146,8 @@ namespace Anonymity {
   void Session::NextRound()
   {
     Id c_rid(Id::Zero().GetInteger() + _round_idx++);
-    Round * round = _create_round(_generate_group, _local_id, c_rid, _network,
-        _signing_key, _get_data_cb);
+    Round * round = _create_round(_generate_group, _creds, c_rid, _network,
+        _get_data_cb);
 
     _current_round = QSharedPointer<Round>(round);
 

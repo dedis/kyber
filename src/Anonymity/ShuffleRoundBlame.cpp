@@ -11,9 +11,10 @@ namespace Dissent {
 namespace Anonymity {
   ShuffleRoundBlame::ShuffleRoundBlame(QSharedPointer<GroupGenerator> group_gen,
       const Id &local_id, const Id &round_id, AsymmetricKey *outer_key) :
-    ShuffleRound(group_gen, local_id, round_id,
-        Dissent::Connections::EmptyNetwork::GetInstance(),
-        QSharedPointer<AsymmetricKey>(),
+    ShuffleRound(group_gen, Credentials(local_id,
+          QSharedPointer<AsymmetricKey>(),
+          QSharedPointer<DiffieHellman>()),
+        round_id, Dissent::Connections::EmptyNetwork::GetInstance(),
         Dissent::Messaging::EmptyGetDataCallback::GetInstance())
   {
     if(outer_key) {

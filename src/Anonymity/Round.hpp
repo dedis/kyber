@@ -11,6 +11,7 @@
 #include "../Messaging/Source.hpp"
 #include "../Utils/StartStop.hpp"
 
+#include "Credentials.hpp"
 #include "Group.hpp"
 #include "GroupGenerator.hpp"
 
@@ -22,6 +23,7 @@ namespace Connections {
 
 namespace Crypto {
   class AsymmetricKey;
+  class DiffieHellman;
 }
 
 namespace Messaging {
@@ -41,22 +43,21 @@ namespace Anonymity {
       typedef Dissent::Connections::Id Id;
       typedef Dissent::Connections::Network Network;
       typedef Dissent::Crypto::AsymmetricKey AsymmetricKey;
+      typedef Dissent::Crypto::DiffieHellman DiffieHellman;
       typedef Dissent::Messaging::GetDataCallback GetDataCallback;
       typedef Dissent::Messaging::RpcRequest RpcRequest;
 
       /**
        * Constructor
        * @param group_gen Generate groups for use during this round
-       * @param local_id The local peers id
+       * @param creds the local nodes credentials
        * @param round_id Unique round id (nonce)
        * @param network handles message sending
-       * @param signing_key a signing key for the local node, matched to the
-       * node in the group
        * @param get_data requests data to share during this session
        */
-      Round(QSharedPointer<GroupGenerator> group_gen, const Id &local_id,
-          const Id &round_id, QSharedPointer<Network> network,
-          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data);
+      Round(QSharedPointer<GroupGenerator> group_gen,
+          const Credentials &creds, const Id &round_id,
+          QSharedPointer<Network> network, GetDataCallback &get_data);
 
       /**
        * Destructor
@@ -93,7 +94,7 @@ namespace Anonymity {
       /**
        * Returns the local id
        */
-      inline const Id &GetLocalId() const { return _local_id; }
+      inline const Id &GetLocalId() const { return _creds.GetLocalId(); }
 
       /**
        * Returns the round id
@@ -145,7 +146,17 @@ namespace Anonymity {
       /**
        * Returns the nodes signing key
        */
-      inline const QSharedPointer<AsymmetricKey> GetSigningKey() { return _signing_key; }
+      inline QSharedPointer<AsymmetricKey> GetSigningKey() const { return _creds.GetSigningKey(); }
+
+      /**
+       * Returns the local credentials
+       */
+      inline const Credentials &GetCredentials() const { return _creds; }
+
+      /**
+       * Returns the DiffieHellman key
+       */
+      inline QSharedPointer<DiffieHellman> GetDhKey() const { return _creds.GetDhKey(); }
 
       void SetSuccessful(bool successful) { _successful = successful; }
 
@@ -154,10 +165,9 @@ namespace Anonymity {
     private:
       QSharedPointer<GroupGenerator> _group_gen;
       const Group _group;
-      const Id _local_id;
+      const Credentials _creds;
       const Id _round_id;
       QSharedPointer<Network> _network;
-      QSharedPointer<AsymmetricKey> _signing_key;
       GetDataCallback &_get_data_cb;
       bool _successful;
       QString _stopped_reason;
@@ -173,18 +183,16 @@ namespace Anonymity {
   };
 
   typedef Round *(*CreateRound)(QSharedPointer<GroupGenerator>,
-      const Dissent::Connections::Id &, const Dissent::Connections::Id &,
+      const Credentials &, const Dissent::Connections::Id &,
       QSharedPointer<Dissent::Connections::Network>,
-      QSharedPointer<Dissent::Crypto::AsymmetricKey>,
       Dissent::Messaging::GetDataCallback &get_data_cb);
 
   template <typename T> Round *TCreateRound(QSharedPointer<GroupGenerator> group_gen,
-      const Dissent::Connections::Id &local_id, const Dissent::Connections::Id &round_id,
+      const Credentials &creds, const Dissent::Connections::Id &round_id,
       QSharedPointer<Dissent::Connections::Network> network,
-      QSharedPointer<Dissent::Crypto::AsymmetricKey> signing_key,
       Dissent::Messaging::GetDataCallback &get_data)
   {
-    return new T(group_gen, local_id, round_id, network, signing_key, get_data);
+    return new T(group_gen, creds, round_id, network, get_data);
   }
 }
 }

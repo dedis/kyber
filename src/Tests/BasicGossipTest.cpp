@@ -15,9 +15,13 @@ namespace Tests {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
 
     for(int idx = 0; idx < count; idx++) {
-      nodes.append(QSharedPointer<Node>(new Node(Id(), local, remote, count, session_type)));
-      AsymmetricKey *key = lib->GeneratePrivateKey(nodes[idx]->bg.GetId().GetByteArray());
-      nodes[idx]->key = QSharedPointer<AsymmetricKey>(key);
+      Id id;
+      QByteArray bid(id.GetByteArray());
+      QSharedPointer<AsymmetricKey> key(lib->GeneratePrivateKey(bid));
+      QSharedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
+
+      nodes.append(QSharedPointer<Node>(new Node(Credentials(id, key, dh),
+              local, remote, count, session_type)));
       nodes[idx]->sink = QSharedPointer<ISink>(new MockSinkWithSignal());
       local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
     }
@@ -148,9 +152,14 @@ namespace Tests {
 
     for(int idx = 0; idx < count - 1; idx++) {
       local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
-      nodes.append(QSharedPointer<Node>(new Node(Id(), local, remote, count, session_type)));
-      AsymmetricKey *key = lib->GeneratePrivateKey(nodes[idx]->bg.GetId().GetByteArray());
-      nodes[idx]->key = QSharedPointer<AsymmetricKey>(key);
+
+      Id id;
+      QByteArray bid(id.GetByteArray());
+      QSharedPointer<AsymmetricKey> key(lib->GeneratePrivateKey(bid));
+      QSharedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
+
+      nodes.append(QSharedPointer<Node>(new Node(Credentials(id, key, dh),
+              local, remote, count, session_type)));
       nodes[idx]->sink = QSharedPointer<ISink>(new MockSinkWithSignal());
     }
 
@@ -175,9 +184,13 @@ namespace Tests {
     }
 
     local[0] = base;
-    nodes.append(QSharedPointer<Node>(new Node(Id(), local, remote, count, session_type)));
-    AsymmetricKey *key = lib->GeneratePrivateKey(nodes.last()->bg.GetId().GetByteArray());
-    nodes.last()->key = QSharedPointer<AsymmetricKey>(key);
+    Id id;
+    QByteArray bid(id.GetByteArray());
+    QSharedPointer<AsymmetricKey> key(lib->GeneratePrivateKey(bid));
+    QSharedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
+
+    nodes.append(QSharedPointer<Node>(new Node(Credentials(id, key, dh),
+            local, remote, count, session_type)));
     nodes.last()->sink = QSharedPointer<ISink>(new MockSinkWithSignal());
     QObject::connect(nodes.last().data(), SIGNAL(Ready()), &sc, SLOT(Counter()));
     nodes.last()->bg.Start();
@@ -202,7 +215,9 @@ namespace Tests {
     BasicGossip bg(id, empty, empty);
     EXPECT_EQ(local_id, bg.GetId());
 
-    Node n(id, empty, empty, 1, "Null");
+    QSharedPointer<AsymmetricKey> key;
+    QSharedPointer<DiffieHellman> dh;
+    Node n(Credentials(id, key, dh), empty, empty, 1, "Null");
     EXPECT_EQ(local_id, n.bg.GetId());
   }
 }

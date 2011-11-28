@@ -13,17 +13,17 @@ namespace Tests {
   }
 
   void RoundTest_Null(CreateSessionCallback callback,
-      CreateGroupGenerator cgg, bool keys = false);
+      CreateGroupGenerator cgg);
   void RoundTest_Basic(CreateSessionCallback callback,
-      CreateGroupGenerator cgg, bool keys = false);
+      CreateGroupGenerator cgg);
   void RoundTest_MultiRound(CreateSessionCallback callback,
-      CreateGroupGenerator cgg, bool keys = false);
+      CreateGroupGenerator cgg);
   void RoundTest_PeerDisconnectEnd(CreateSessionCallback callback,
-      CreateGroupGenerator cgg, bool keys = false);
+      CreateGroupGenerator cgg);
   void RoundTest_PeerDisconnectMiddle(CreateSessionCallback callback,
-      CreateGroupGenerator cgg, bool keys = false);
+      CreateGroupGenerator cgg);
   void RoundTest_BadGuy(CreateSessionCallback good_callback,
       CreateSessionCallback bad_callback, CreateGroupGenerator cgg,
-      const BadGuyCB &cb, bool keys = false);
+      const BadGuyCB &cb);
 }
 }

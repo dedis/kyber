@@ -6,22 +6,22 @@ namespace Dissent {
 namespace Tests {
   TEST(NullRound, Null)
   {
-    RoundTest_Null(&TCreateSession<NullRound>, &GroupGenerator::Create, false);
+    RoundTest_Null(&TCreateSession<NullRound>, &GroupGenerator::Create);
   }
 
   TEST(NullRound, Basic)
   {
-    RoundTest_Basic(&TCreateSession<NullRound>, &GroupGenerator::Create, false);
+    RoundTest_Basic(&TCreateSession<NullRound>, &GroupGenerator::Create);
   }
 
   TEST(NullRound, MultiRound)
   {
-    RoundTest_MultiRound(&TCreateSession<NullRound>, &GroupGenerator::Create, false);
+    RoundTest_MultiRound(&TCreateSession<NullRound>, &GroupGenerator::Create);
   }
 
   TEST(NullRound, PeerDisconnectEnd)
   {
-    RoundTest_PeerDisconnectEnd(&TCreateSession<NullRound>, &GroupGenerator::Create, false);
+    RoundTest_PeerDisconnectEnd(&TCreateSession<NullRound>, &GroupGenerator::Create);
   }
 }
 }

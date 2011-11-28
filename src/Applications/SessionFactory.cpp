@@ -74,17 +74,13 @@ namespace Applications {
 
   void SessionFactory::Common(Node *node, CreateRound cr, CreateGroupGenerator cgg)
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    AsymmetricKey *key= lib->GeneratePrivateKey(node->bg.GetId().GetByteArray());
-    node->key = QSharedPointer<AsymmetricKey>(key);
-
     Group group = node->GenerateGroup();
     const ConnectionTable &ct = node->bg.GetConnectionTable();
     RpcHandler &rpc = node->bg.GetRpcHandler();
     QSharedPointer<Network> net(new DefaultNetwork(ct, rpc));
 
-    Session *session = new Session(group, node->bg.GetId(), group.GetId(0),
-        Id::Zero(), net, cr, node->key, cgg);
+    Session *session = new Session(group, node->creds, group.GetId(0),
+        Id::Zero(), net, cr, cgg);
 
     node->session = QSharedPointer<Session>(session);
     node->sm.AddSession(node->session);
