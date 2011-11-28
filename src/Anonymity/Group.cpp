@@ -1,8 +1,11 @@
 #include "Group.hpp"
 
+using Dissent::Connections::Id;
+using Dissent::Crypto::AsymmetricKey;
+
 namespace Dissent {
 namespace Anonymity {
-  const QSharedPointer<AsymmetricKey> Group::EmptyKey;
+  const QSharedPointer<Group::AsymmetricKey> Group::EmptyKey;
 
   Group::Group(const QVector<GroupContainer> &containers)
   {

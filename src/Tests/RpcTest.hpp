@@ -3,10 +3,6 @@
 
 namespace Dissent {
 namespace Tests {
-  namespace {
-    using namespace Dissent::Messaging;
-  }
-
   class TestRpc {
     public:
       void Add(RpcRequest& request)

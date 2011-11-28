@@ -1,7 +1,5 @@
 #include "DissentTest.hpp"
 
-using namespace Dissent::Applications;
-
 namespace Dissent {
 namespace Tests {
   TEST(Settings, Basic)

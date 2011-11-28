@@ -3,18 +3,31 @@
 
 #include <QObject>
 #include <QSharedPointer>
+
 #include "../Connections/ConnectionManager.hpp"
-#include "../Utils/Timer.hpp"
+#include "../Connections/ConnectionTable.hpp"
+
+#include "../Messaging/RpcHandler.hpp"
+#include "../Messaging/RpcMethod.hpp"
 
 namespace Dissent {
-namespace Overlay {
-  namespace {
-    using namespace Dissent::Messaging;
-    using namespace Dissent::Transports;
-    using namespace Dissent::Connections;
-    using namespace Dissent::Utils;
-  }
+namespace Connections {
+  class Connection;
+}
 
+namespace Messaging {
+  class RpcRequest;
+}
+
+namespace Transports {
+  class EdgeListener;
+}
+
+namespace Utils {
+  class TimerEvent;
+}
+
+namespace Overlay {
   /**
    * A single member in a Gossip overlay, which attempts to connect all nodes
    * in the overlay to every other node, a fully connected graph.
@@ -23,6 +36,17 @@ namespace Overlay {
     Q_OBJECT
 
     public:
+      typedef Dissent::Connections::Connection Connection;
+      typedef Dissent::Connections::ConnectionManager ConnectionManager;
+      typedef Dissent::Connections::ConnectionTable ConnectionTable;
+      typedef Dissent::Connections::Id Id;
+      typedef Dissent::Messaging::RpcHandler RpcHandler;
+      typedef Dissent::Messaging::RpcMethod<BasicGossip> RpcMethod;
+      typedef Dissent::Messaging::RpcRequest RpcRequest;
+      typedef Dissent::Transports::Address Address;
+      typedef Dissent::Transports::EdgeListener EdgeListener;
+      typedef Dissent::Utils::TimerEvent TimerEvent;
+
       /**
        * Constructor
        * @param local_id Id for the local overlay
@@ -103,9 +127,9 @@ namespace Overlay {
 
       QList<QSharedPointer<EdgeListener> > _edge_listeners;
 
-      RpcMethod<BasicGossip> _peer_list_inquire;
-      RpcMethod<BasicGossip> _peer_list_response;
-      RpcMethod<BasicGossip> _notify_peer;
+      RpcMethod _peer_list_inquire;
+      RpcMethod _peer_list_response;
+      RpcMethod _notify_peer;
       TimerEvent *_bootstrap_event;
 
       /**

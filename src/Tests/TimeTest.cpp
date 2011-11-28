@@ -1,8 +1,6 @@
 #include <QDebug>
 #include "DissentTest.hpp"
 
-using namespace Dissent::Utils;
-
 namespace Dissent {
 namespace Tests {
 

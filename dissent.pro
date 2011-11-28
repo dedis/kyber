@@ -13,7 +13,6 @@ QT = core network
 LIBS += -lcryptopp
 HEADERS += src/Dissent.hpp \
            src/Anonymity/FixedSizeGroupGenerator.hpp \
-           src/Anonymity/GetDataCallback.hpp \
            src/Anonymity/Group.hpp \
            src/Anonymity/GroupGenerator.hpp \
            src/Anonymity/Log.hpp \
@@ -62,6 +61,7 @@ HEADERS += src/Dissent.hpp \
            src/Messaging/BufferSink.hpp \
            src/Messaging/DummySink.hpp \
            src/Messaging/Filter.hpp \
+           src/Messaging/GetDataCallback.hpp \
            src/Messaging/ISender.hpp \
            src/Messaging/ISink.hpp \
            src/Messaging/RpcHandler.hpp \

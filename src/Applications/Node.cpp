@@ -1,6 +1,14 @@
+#include "../Connections/Connection.hpp"
 #include "../Crypto/CryptoFactory.hpp"
+
 #include "Node.hpp"
 #include "SessionFactory.hpp"
+
+
+using Dissent::Anonymity::Group;
+using Dissent::Anonymity::GroupContainer;
+using Dissent::Crypto::Library;
+using Dissent::Crypto::CryptoFactory;
 
 namespace Dissent {
 namespace Applications {

@@ -2,12 +2,6 @@
 
 namespace Dissent {
 namespace Tests {
-  namespace {
-    using namespace Dissent::Crypto;
-    using namespace Dissent::Anonymity;
-    using namespace Dissent::Utils;
-  }
-
   void ShufflePrimitivesTest(OnionEncryptor &oe)
   {
     int count = Random::GetInstance().GetInt(10, 20);

@@ -4,28 +4,26 @@
 #include <QDebug>
 #include <QSharedPointer>
 
-#include "../Transports/Edge.hpp"
 #include "../Messaging/Filter.hpp"
 
 #include "Id.hpp"
 
-
 namespace Dissent {
+namespace Transports {
+  class Edge;
+}
+
 namespace Connections {
-
-  namespace {
-    using Dissent::Transports::Edge;
-    using namespace Dissent::Messaging;
-  }
-
   /**
    * A container class linking a global identifier to a transport layer
    * identifier
    */
-  class Connection : public QObject, public Filter {
+  class Connection : public QObject, public Dissent::Messaging::Filter {
     Q_OBJECT
 
     public:
+      typedef Dissent::Transports::Edge Edge;
+
       /**
        * Constructor
        * @param edge the transport layer communication device

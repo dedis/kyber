@@ -1,7 +1,5 @@
 #include "TestNode.hpp"
 
-using namespace Dissent::Utils;
-
 namespace Dissent {
 namespace Tests {
   int TestNode::calledback;

@@ -1,11 +1,11 @@
-#ifndef DISSENT_ANONYMITY_EMPTY_NETWORK_H_GUARD
-#define DISSENT_ANONYMITY_EMPTY_NETWORK_H_GUARD
+#ifndef DISSENT_CONNECTIONS_EMPTY_NETWORK_H_GUARD
+#define DISSENT_CONNECTIONS_EMPTY_NETWORK_H_GUARD
 
 #include <QSharedPointer>
 #include "Network.hpp"
 
 namespace Dissent {
-namespace Anonymity {
+namespace Connections {
   class EmptyNetwork : public Network {
     public:
       static QSharedPointer<Network> GetInstance()

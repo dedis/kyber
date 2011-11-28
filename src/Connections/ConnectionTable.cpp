@@ -1,3 +1,6 @@
+#include "../Transports/Edge.hpp"
+
+#include "Connection.hpp"
 #include "ConnectionTable.hpp"
 #include "NullConnection.hpp"
 

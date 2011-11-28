@@ -1,8 +1,5 @@
 #include "DissentTest.hpp"
 
-using namespace Dissent::Utils;
-using namespace Dissent::Crypto;
-
 namespace Dissent {
 namespace Tests {
   TEST(Triple, Basic)

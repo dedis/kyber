@@ -5,30 +5,45 @@
 
 #include <QObject>
 
-#include "../Connections/Network.hpp"
+#include "../Messaging/GetDataCallback.hpp"
+#include "../Connections/Id.hpp"
 #include "../Messaging/ISender.hpp"
 #include "../Messaging/Source.hpp"
 #include "../Utils/StartStop.hpp"
 
 #include "Group.hpp"
 #include "GroupGenerator.hpp"
-#include "GetDataCallback.hpp"
 
 namespace Dissent {
-namespace Anonymity {
-  namespace {
-    using namespace Dissent::Connections;
-    using namespace Dissent::Messaging;
-    using namespace Dissent::Utils;
-  }
+namespace Connections {
+  class Connection;
+  class Network;
+}
 
+namespace Crypto {
+  class AsymmetricKey;
+}
+
+namespace Messaging {
+  class RpcRequest;
+}
+
+namespace Anonymity {
   /**
    * Represents a single instance of a cryptographically secure anonymous exchange
    */
-  class Round : public QObject, public StartStop, public Source, public ISender {
+  class Round : public QObject, public Dissent::Utils::StartStop,
+      public Dissent::Messaging::Source, public Dissent::Messaging::ISender {
     Q_OBJECT
 
     public:
+      typedef Dissent::Connections::Connection Connection;
+      typedef Dissent::Connections::Id Id;
+      typedef Dissent::Connections::Network Network;
+      typedef Dissent::Crypto::AsymmetricKey AsymmetricKey;
+      typedef Dissent::Messaging::GetDataCallback GetDataCallback;
+      typedef Dissent::Messaging::RpcRequest RpcRequest;
+
       /**
        * Constructor
        * @param group_gen Generate groups for use during this round
@@ -41,8 +56,7 @@ namespace Anonymity {
        */
       Round(QSharedPointer<GroupGenerator> group_gen, const Id &local_id,
           const Id &round_id, QSharedPointer<Network> network,
-          QSharedPointer<AsymmetricKey> signing_key,
-          GetDataCallback &get_data);
+          QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data);
 
       /**
        * Destructor
@@ -158,13 +172,17 @@ namespace Anonymity {
       virtual void HandleDisconnect(Connection *con, const QString &reason);
   };
 
-  typedef Round *(*CreateRound)(QSharedPointer<GroupGenerator>, const Id &,
-      const Id &, QSharedPointer<Network>, QSharedPointer<AsymmetricKey>,
-      GetDataCallback &get_data_cb);
+  typedef Round *(*CreateRound)(QSharedPointer<GroupGenerator>,
+      const Dissent::Connections::Id &, const Dissent::Connections::Id &,
+      QSharedPointer<Dissent::Connections::Network>,
+      QSharedPointer<Dissent::Crypto::AsymmetricKey>,
+      Dissent::Messaging::GetDataCallback &get_data_cb);
 
   template <typename T> Round *TCreateRound(QSharedPointer<GroupGenerator> group_gen,
-      const Id &local_id, const Id &round_id, QSharedPointer<Network> network,
-      QSharedPointer<AsymmetricKey> signing_key, GetDataCallback &get_data)
+      const Dissent::Connections::Id &local_id, const Dissent::Connections::Id &round_id,
+      QSharedPointer<Dissent::Connections::Network> network,
+      QSharedPointer<Dissent::Crypto::AsymmetricKey> signing_key,
+      Dissent::Messaging::GetDataCallback &get_data)
   {
     return new T(group_gen, local_id, round_id, network, signing_key, get_data);
   }

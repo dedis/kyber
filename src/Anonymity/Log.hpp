@@ -5,19 +5,19 @@
 #include <QPair>
 #include <QVector>
 
-#include "../Connections/Id.hpp"
-
 namespace Dissent {
-namespace Anonymity {
-  namespace {
-    using Dissent::Connections::Id;
-  }
+namespace Connections {
+  class Id;
+}
 
+namespace Anonymity {
   /**
    * Maintains a historical mapping of a packet to an Id
    */
   class Log {
     public:
+      typedef Dissent::Connections::Id Id;
+
       /**
        * Default constructor
        */
@@ -72,7 +72,6 @@ namespace Anonymity {
        * Returns if logging is enabled
        */
       inline bool Enabled() { return _enabled; }
-
     private:
       QVector<QPair<QByteArray, Id> > _entries;
       bool _enabled;

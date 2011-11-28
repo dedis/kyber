@@ -1,17 +1,24 @@
 #ifndef DISSENT_CONNECTIONS_CONNECTION_MANAGER_H_GUARD
 #define DISSENT_CONNECTIONS_CONNECTION_MANAGER_H_GUARD
 
+#include "../Messaging/RpcMethod.hpp"
 #include "../Transports/EdgeFactory.hpp"
-#include "../Messaging/RpcHandler.hpp"
+
 #include "ConnectionTable.hpp"
 
 namespace Dissent {
-namespace Connections {
-  namespace {
-    using namespace Dissent::Messaging;
-    using namespace Dissent::Transports;
-  }
+namespace Messaging {
+  class RpcHandler;
+  class RpcRequest;
+}
 
+namespace Transports {
+  class Address;
+  class Edge;
+  class EdgeListener;
+}
+
+namespace Connections {
   /**
    * Manages incoming and outgoing connections -- A node should only
    * send requests on outgoing connections.
@@ -20,6 +27,14 @@ namespace Connections {
     Q_OBJECT
 
     public:
+      typedef Dissent::Messaging::RpcMethod<ConnectionManager> Callback;
+      typedef Dissent::Messaging::RpcHandler RpcHandler;
+      typedef Dissent::Messaging::RpcRequest RpcRequest;
+      typedef Dissent::Transports::Address Address;
+      typedef Dissent::Transports::Edge Edge;
+      typedef Dissent::Transports::EdgeListener EdgeListener;
+      typedef Dissent::Transports::EdgeFactory EdgeFactory;
+
       /**
        * Constructor
        * @param local_id the local id
@@ -113,11 +128,11 @@ namespace Connections {
        */
       void Disconnect(RpcRequest &notification);
 
-      RpcMethod<ConnectionManager> _inquire;
-      RpcMethod<ConnectionManager> _inquired;
-      RpcMethod<ConnectionManager> _close;
-      RpcMethod<ConnectionManager> _connect;
-      RpcMethod<ConnectionManager> _disconnect;
+      Callback _inquire;
+      Callback _inquired;
+      Callback _close;
+      Callback _connect;
+      Callback _disconnect;
 
       ConnectionTable _con_tab;
       ConnectionTable _rem_con_tab;

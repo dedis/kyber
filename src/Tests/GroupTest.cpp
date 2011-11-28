@@ -1,8 +1,5 @@
 #include "DissentTest.hpp"
 
-using namespace Dissent::Connections;
-using namespace Dissent::Anonymity;
-
 namespace Dissent {
 namespace Tests {
   TEST(Group, Basic)

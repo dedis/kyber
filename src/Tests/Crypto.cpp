@@ -2,10 +2,6 @@
 
 namespace Dissent {
 namespace Tests {
-  namespace {
-    using namespace Dissent::Crypto;
-  }
-
   void AsymmetricKeyTest(Library *lib)
   {
     QScopedPointer<Random> rng(lib->GetRandomNumberGenerator());

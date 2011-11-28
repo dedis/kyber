@@ -1,11 +1,7 @@
-#include "DissentTest.hpp"
-
 #include <QByteArray>
 #include <QDataStream>
 
-using Dissent::Anonymity::Log;
-using Dissent::Connections::Id;
-using Dissent::Utils::Random;
+#include "DissentTest.hpp"
 
 namespace Dissent {
 namespace Tests {

@@ -1,4 +1,8 @@
+#include "../Messaging/ISender.hpp"
+
 #include "FileSink.hpp"
+
+using Dissent::Messaging::ISender;
 
 namespace Dissent {
 namespace Applications {

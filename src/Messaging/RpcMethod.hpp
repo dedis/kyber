@@ -25,7 +25,7 @@ namespace Messaging {
   /**
    * Used to store an RpcMethod for either incoming requests or handling responses
    */
-  template<class T> class RpcMethod : public Callback {
+  template<typename T> class RpcMethod : public Callback {
     public:
       /**
        * T method signature
@@ -34,17 +34,17 @@ namespace Messaging {
 
       /**
        * Constructor
-       * @param object the object to make the call upon
+       * @param object the object to make the call upon, executed via pointer
        * @param method the method to call
        */
-      RpcMethod(T &object, Method method) :
+      RpcMethod(T *object, Method method) :
         _object(object), _method(method)
       {
       }
 
       inline virtual void Invoke(RpcRequest &request)
       {
-        (_object.*_method)(request);
+        (_object->*_method)(request);
       }
 
       /**
@@ -53,7 +53,7 @@ namespace Messaging {
       virtual ~RpcMethod() {}
 
     private:
-      T &_object;
+      T *_object;
       Method _method;
   };
 }

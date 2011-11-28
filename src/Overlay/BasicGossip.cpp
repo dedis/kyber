@@ -1,8 +1,17 @@
 #include <QDataStream>
 
-#include "BasicGossip.hpp"
+#include "../Connections/Connection.hpp"
 #include "../Transports/AddressFactory.hpp"
 #include "../Transports/EdgeListenerFactory.hpp"
+#include "../Utils/Timer.hpp"
+
+#include "BasicGossip.hpp"
+
+using Dissent::Transports::AddressFactory;
+using Dissent::Transports::EdgeListenerFactory;
+using Dissent::Utils::Timer;
+using Dissent::Utils::TimerCallback;
+using Dissent::Utils::TimerMethod;
 
 namespace Dissent {
 namespace Overlay {
@@ -15,9 +24,9 @@ namespace Overlay {
     _stopped(false),
     _local_id(local_id),
     _cm(_local_id, _rpc),
-    _peer_list_inquire(*this, &BasicGossip::PeerListInquire),
-    _peer_list_response(*this, &BasicGossip::PeerListResponse),
-    _notify_peer(*this, &BasicGossip::PeerListIncrementalUpdate),
+    _peer_list_inquire(this, &BasicGossip::PeerListInquire),
+    _peer_list_response(this, &BasicGossip::PeerListResponse),
+    _notify_peer(this, &BasicGossip::PeerListIncrementalUpdate),
     _bootstrap_event(0)
   {
     _rpc.Register(&_peer_list_inquire, "SN::PeerList");

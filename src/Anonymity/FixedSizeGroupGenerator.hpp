@@ -1,15 +1,12 @@
 #ifndef DISSENT_ANONYMITY_FIXED_SIZE_GROUP_GENERATOR_H_GUARD
 #define DISSENT_ANONYMITY_FIXED_SIZE_GROUP_GENERATOR_H_GUARD
 
+#include <QVector>
+
 #include "GroupGenerator.hpp"
 
 namespace Dissent {
 namespace Anonymity {
-  namespace {
-    using namespace Dissent::Messaging;
-    using namespace Dissent::Connections;
-  }
-
   /**
    * Generates a subgroup of a fixed length from the provided group
    */

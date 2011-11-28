@@ -1,10 +1,6 @@
 #include "DissentTest.hpp"
 #include <QDebug>
 
-using namespace Dissent::Messaging;
-using namespace Dissent::Transports;
-using namespace Dissent::Utils;
-
 namespace Dissent {
 namespace Tests {
   TEST(EdgeTest, BufferBasic)
@@ -35,13 +31,13 @@ namespace Tests {
     meh0.edge->SetSink(&rpc0);
 
     TestRpc test0;
-    rpc0.Register(new RpcMethod<TestRpc>(test0, &TestRpc::Add), "add");
+    rpc0.Register(new RpcMethod<TestRpc>(&test0, &TestRpc::Add), "add");
 
     RpcHandler rpc1;
     meh1.edge->SetSink(&rpc1);
 
     TestRpcResponse test1;
-    RpcMethod<TestRpcResponse> cb = RpcMethod<TestRpcResponse>(test1, &TestRpcResponse::HandleResponse);
+    RpcMethod<TestRpcResponse> cb = RpcMethod<TestRpcResponse>(&test1, &TestRpcResponse::HandleResponse);
 
     QVariantMap request;
     request["method"] = "add";

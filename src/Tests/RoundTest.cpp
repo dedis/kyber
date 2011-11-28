@@ -2,8 +2,6 @@
 #include "TestNode.hpp"
 #include "RoundTest.hpp"
 
-using namespace Dissent::Utils;
-
 namespace Dissent {
 namespace Tests {
   void RoundTest_Null(CreateSessionCallback callback, CreateGroupGenerator cgg,

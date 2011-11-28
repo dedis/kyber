@@ -1,10 +1,13 @@
+#include "../Messaging/RpcHandler.hpp"
+
+#include "Session.hpp"
 #include "SessionManager.hpp"
 
 namespace Dissent {
 namespace Anonymity {
   SessionManager::SessionManager(RpcHandler &rpc) :
-    _ready(*this, &SessionManager::Ready),
-    _data(*this, &SessionManager::IncomingData),
+    _ready(this, &SessionManager::Ready),
+    _data(this, &SessionManager::IncomingData),
     _rpc(rpc)
   {
     _rpc.Register(&_data, "SM::Data");

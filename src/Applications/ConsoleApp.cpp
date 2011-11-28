@@ -3,8 +3,6 @@
 
 #include "../Dissent.hpp"
 
-using namespace Dissent::Applications;
-
 int main(int argc, char **argv)
 {
   QCoreApplication qca(argc, argv);

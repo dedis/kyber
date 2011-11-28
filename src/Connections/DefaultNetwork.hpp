@@ -1,6 +1,7 @@
 #ifndef DISSENT_CONNECTIONS_DEFAULT_NETWORK_H_GUARD
 #define DISSENT_CONNECTIONS_DEFAULT_NETWORK_H_GUARD
 
+#include "../Connections/Connection.hpp"
 #include "../Connections/ConnectionTable.hpp"
 #include "../Messaging/RpcHandler.hpp"
 
@@ -8,6 +9,10 @@ namespace Dissent {
 namespace Connections {
   class DefaultNetwork : public Network {
     public:
+      typedef Dissent::Connections::ConnectionTable ConnectionTable;
+      typedef Dissent::Messaging::RpcHandler RpcHandler;
+      typedef Dissent::Messaging::ISender ISender;
+
       /**
        * Constructor
        * @param ct connection table providing id to sender
@@ -100,8 +105,6 @@ namespace Connections {
       }
 
     protected:
-      typedef Dissent::Messaging::RpcHandler RpcHandler;
-
       inline void Send(const QByteArray &data, ISender *to)
       {
         QVariantMap notification(_headers);

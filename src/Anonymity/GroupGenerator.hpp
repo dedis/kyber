@@ -1,19 +1,10 @@
 #ifndef DISSENT_ANONYMITY_GROUP_GENERATOR_H_GUARD
 #define DISSENT_ANONYMITY_GROUP_GENERATOR_H_GUARD
 
-#include <QSharedPointer>
-
 #include "Group.hpp"
-#include "../Connections/ConnectionTable.hpp"
-#include "../Messaging/RpcHandler.hpp"
 
 namespace Dissent {
 namespace Anonymity {
-  namespace {
-    using namespace Dissent::Messaging;
-    using namespace Dissent::Connections;
-  }
-
   /**
    * Generates a subgroup from the provided group, in this case the subgroup
    * and group are identical.

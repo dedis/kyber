@@ -1,9 +1,5 @@
 #include "DissentTest.hpp"
 
-using Dissent::Transports::Address;
-using Dissent::Transports::AddressFactory;
-using Dissent::Transports::BufferAddress;
-
 namespace Dissent {
 namespace Tests {
   TEST(Address, Basic) {

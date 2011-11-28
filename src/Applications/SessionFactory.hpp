@@ -3,6 +3,9 @@
 
 #include <QHash>
 
+#include "../Anonymity/Group.hpp"
+#include "../Anonymity/Round.hpp"
+
 #include "Node.hpp"
 
 namespace Dissent {
@@ -13,6 +16,8 @@ namespace Applications {
   class SessionFactory {
     public:
       typedef void (*Callback)(Node *);
+      typedef Dissent::Anonymity::CreateRound CreateRound;
+      typedef Dissent::Anonymity::CreateGroupGenerator CreateGroupGenerator;
 
       /**
        * Singleton implemention

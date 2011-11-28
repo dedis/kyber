@@ -3,14 +3,18 @@
 #include "../Crypto/CryptoFactory.hpp"
 #include "../Connections/EmptyNetwork.hpp"
 
+using Dissent::Crypto::CryptoFactory;
+using Dissent::Crypto::Library;
+using Dissent::Crypto::OnionEncryptor;
+
 namespace Dissent {
 namespace Anonymity {
-  EmptyGetDataCallback ShuffleRoundBlame::_empty_get_data;
-
   ShuffleRoundBlame::ShuffleRoundBlame(QSharedPointer<GroupGenerator> group_gen,
       const Id &local_id, const Id &round_id, AsymmetricKey *outer_key) :
-    ShuffleRound(group_gen, local_id, round_id, EmptyNetwork::GetInstance(),
-        QSharedPointer<AsymmetricKey>(), _empty_get_data)
+    ShuffleRound(group_gen, local_id, round_id,
+        Dissent::Connections::EmptyNetwork::GetInstance(),
+        QSharedPointer<AsymmetricKey>(),
+        Dissent::Messaging::EmptyGetDataCallback::GetInstance())
   {
     if(outer_key) {
       Library *lib = CryptoFactory::GetInstance().GetLibrary();

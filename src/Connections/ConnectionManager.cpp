@@ -1,13 +1,16 @@
+#include "../Messaging/RpcHandler.hpp"
+
+#include "Connection.hpp"
 #include "ConnectionManager.hpp"
 
 namespace Dissent {
 namespace Connections {
   ConnectionManager::ConnectionManager(const Id &local_id, RpcHandler &rpc) :
-    _inquire(RpcMethod<ConnectionManager>(*this, &ConnectionManager::Inquire)),
-    _inquired(RpcMethod<ConnectionManager>(*this, &ConnectionManager::Inquired)),
-    _close(RpcMethod<ConnectionManager>(*this, &ConnectionManager::Close)),
-    _connect(RpcMethod<ConnectionManager>(*this, &ConnectionManager::Connect)),
-    _disconnect(RpcMethod<ConnectionManager>(*this, &ConnectionManager::Disconnect)),
+    _inquire(this, &ConnectionManager::Inquire),
+    _inquired(this, &ConnectionManager::Inquired),
+    _close(this, &ConnectionManager::Close),
+    _connect(this, &ConnectionManager::Connect),
+    _disconnect(this, &ConnectionManager::Disconnect),
     _con_tab(local_id), _local_id(local_id), _rpc(rpc), _closed(false)
   {
     _rpc.Register(&_inquire, "CM::Inquire");
@@ -132,7 +135,7 @@ namespace Connections {
 
   void ConnectionManager::Inquired(RpcRequest &response)
   {
-    ISender *from = response.GetFrom();
+    Dissent::Messaging::ISender *from = response.GetFrom();
     Edge *edge = dynamic_cast<Edge *>(from);
     if(edge == 0) {
       qWarning() << "Received an inquired from a non-Edge: " << from->ToString();

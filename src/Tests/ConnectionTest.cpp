@@ -1,11 +1,6 @@
 #include "DissentTest.hpp"
 #include <QDebug>
 
-using namespace Dissent::Messaging;
-using namespace Dissent::Transports;
-using namespace Dissent::Connections;
-using namespace Dissent::Utils;
-
 namespace Dissent {
 namespace Tests {
   TEST(Connection, OneWay)
@@ -42,10 +37,10 @@ namespace Tests {
     EXPECT_TRUE(cm1.GetConnectionTable().GetConnection(id0));
 
     TestRpc test0;
-    rpc0.Register(new RpcMethod<TestRpc>(test0, &TestRpc::Add), "add");
+    rpc0.Register(new RpcMethod<TestRpc>(&test0, &TestRpc::Add), "add");
 
     TestRpcResponse test1;
-    RpcMethod<TestRpcResponse> cb = RpcMethod<TestRpcResponse>(test1, &TestRpcResponse::HandleResponse);
+    RpcMethod<TestRpcResponse> cb = RpcMethod<TestRpcResponse>(&test1, &TestRpcResponse::HandleResponse);
 
     QVariantMap request;
     request["method"] = "add";
@@ -121,10 +116,10 @@ namespace Tests {
     EXPECT_TRUE(cm1.GetConnectionTable().GetConnection(id0));
 
     TestRpc test0;
-    rpc0.Register(new RpcMethod<TestRpc>(test0, &TestRpc::Add), "add");
+    rpc0.Register(new RpcMethod<TestRpc>(&test0, &TestRpc::Add), "add");
 
     TestRpcResponse test1;
-    RpcMethod<TestRpcResponse> cb = RpcMethod<TestRpcResponse>(test1, &TestRpcResponse::HandleResponse);
+    RpcMethod<TestRpcResponse> cb = RpcMethod<TestRpcResponse>(&test1, &TestRpcResponse::HandleResponse);
 
     QVariantMap request;
     request["method"] = "add";
@@ -200,10 +195,10 @@ namespace Tests {
     EXPECT_TRUE(cm1.GetConnectionTable().GetConnection(id0));
 
     TestRpc test0;
-    rpc0.Register(new RpcMethod<TestRpc>(test0, &TestRpc::Add), "add");
+    rpc0.Register(new RpcMethod<TestRpc>(&test0, &TestRpc::Add), "add");
 
     TestRpcResponse test1;
-    RpcMethod<TestRpcResponse> cb = RpcMethod<TestRpcResponse>(test1, &TestRpcResponse::HandleResponse);
+    RpcMethod<TestRpcResponse> cb = RpcMethod<TestRpcResponse>(&test1, &TestRpcResponse::HandleResponse);
 
     QVariantMap request;
     request["method"] = "add";
@@ -348,7 +343,6 @@ namespace Tests {
     }
 
     EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
-//    EXPECT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
   }
 }
 }

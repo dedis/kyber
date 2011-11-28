@@ -7,14 +7,6 @@
 
 namespace Dissent {
 namespace Tests {
-  namespace {
-    using namespace Dissent::Messaging;
-    using namespace Dissent::Transports;
-    using namespace Dissent::Connections;
-    using namespace Dissent::Anonymity;
-    using namespace Dissent::Crypto;
-  }
-
   class TestNode : public QObject {
     Q_OBJECT
 

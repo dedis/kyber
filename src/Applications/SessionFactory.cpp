@@ -1,12 +1,31 @@
-#include "SessionFactory.hpp"
-
 #include "../Anonymity/GroupGenerator.hpp"
 #include "../Anonymity/FixedSizeGroupGenerator.hpp"
 #include "../Anonymity/NullRound.hpp"
 #include "../Anonymity/Session.hpp"
 #include "../Anonymity/ShuffleRound.hpp"
 #include "../Anonymity/Round.hpp"
+#include "../Connections/ConnectionTable.hpp"
 #include "../Connections/DefaultNetwork.hpp"
+#include "../Connections/Id.hpp"
+#include "../Messaging/RpcHandler.hpp"
+
+#include "SessionFactory.hpp"
+
+using Dissent::Anonymity::FixedSizeGroupGenerator;
+using Dissent::Anonymity::Group;
+using Dissent::Anonymity::GroupGenerator;
+using Dissent::Anonymity::NullRound;
+using Dissent::Anonymity::Session;
+using Dissent::Anonymity::ShuffleRound;
+using Dissent::Anonymity::TCreateRound;
+using Dissent::Connections::ConnectionTable;
+using Dissent::Connections::DefaultNetwork;
+using Dissent::Connections::Network;
+using Dissent::Connections::Id;
+using Dissent::Crypto::AsymmetricKey;
+using Dissent::Crypto::CryptoFactory;
+using Dissent::Crypto::Library;
+using Dissent::Messaging::RpcHandler;
 
 namespace Dissent {
 namespace Applications {

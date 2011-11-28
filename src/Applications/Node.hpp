@@ -3,17 +3,25 @@
 
 #include <QObject>
 
-#include "../Overlay/BasicGossip.hpp"
 #include "../Anonymity/SessionManager.hpp"
-#include "../Crypto/AsymmetricKey.hpp"
-
-using namespace Dissent::Anonymity;
-using namespace Dissent::Connections;
-using namespace Dissent::Crypto;
-using namespace Dissent::Overlay;
-using namespace Dissent::Messaging;
+#include "../Anonymity/Group.hpp"
+#include "../Overlay/BasicGossip.hpp"
 
 namespace Dissent {
+namespace Anonymity {
+  class Round;
+  class Session;
+}
+
+namespace Crypto {
+  class AsymmetricKey;
+  class DiffieHellman;
+}
+
+namespace Messaging {
+  class ISink;
+}
+
 namespace Applications {
   /**
    * A wrapper class combining an overlay, session manager, session, sink,
@@ -23,6 +31,18 @@ namespace Applications {
     Q_OBJECT
 
     public:
+      typedef Dissent::Anonymity::Group Group;
+      typedef Dissent::Anonymity::Round Round;
+      typedef Dissent::Anonymity::Session Session;
+      typedef Dissent::Anonymity::SessionManager SessionManager;
+      typedef Dissent::Connections::Connection Connection;
+      typedef Dissent::Connections::Id Id;
+      typedef Dissent::Crypto::AsymmetricKey AsymmetricKey;
+      typedef Dissent::Crypto::DiffieHellman DiffieHellman;
+      typedef Dissent::Messaging::ISink ISink;
+      typedef Dissent::Overlay::BasicGossip BasicGossip;
+      typedef Dissent::Transports::Address Address;
+
       /**
        * Constructor
        * @param local_id Id for this node

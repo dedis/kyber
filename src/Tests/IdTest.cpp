@@ -1,8 +1,6 @@
-#include "DissentTest.hpp"
-
 #include <QDataStream>
 
-using Dissent::Connections::Id;
+#include "DissentTest.hpp"
 
 namespace Dissent {
 namespace Tests {

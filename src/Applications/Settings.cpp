@@ -1,8 +1,8 @@
-#include "Settings.hpp"
 #include "../Utils/Logging.hpp"
-#include <iostream>
 
-using namespace Dissent::Utils;
+#include "Settings.hpp"
+
+using Dissent::Utils::Logging;
 
 namespace Dissent {
 namespace Applications {

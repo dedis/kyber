@@ -1,5 +1,5 @@
-#ifndef DISSENT_ANONYMITY_GET_DATA_CALLBACK_H_GUARD
-#define DISSENT_ANONYMITY_GET_DATA_CALLBACK_H_GUARD
+#ifndef DISSENT_MESSAGING_GET_DATA_CALLBACK_H_GUARD
+#define DISSENT_MESSAGING_GET_DATA_CALLBACK_H_GUARD
 
 #include <QByteArray>
 #include <QPair>
@@ -26,9 +26,16 @@ namespace Messaging {
 
   class EmptyGetDataCallback : public GetDataCallback {
     public:
+      static GetDataCallback &GetInstance()
+      {
+        static EmptyGetDataCallback callback;
+        return callback;
+      }
+
       virtual QPair<QByteArray, bool> operator()(int)
       {
-        return QPair<QByteArray, bool>(QByteArray(), false);
+        static QPair<QByteArray, bool> pair(QByteArray(), false);
+        return pair;
       }
 
       /**
@@ -44,7 +51,7 @@ namespace Messaging {
        */
       typedef QPair<QByteArray, bool> (T::*Method)(int max);
 
-      GetDataMethod(T &object, Method method) :
+      GetDataMethod(T *object, Method method) :
         _object(object), _method(method)
       {
       }
@@ -56,11 +63,11 @@ namespace Messaging {
 
       inline virtual QPair<QByteArray, bool> operator()(int max)
       {
-        return (_object.*_method)(max);
+        return (_object->*_method)(max);
       }
 
     private:
-      T &_object;
+      T *_object;
       Method _method;
   };
 }

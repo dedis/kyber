@@ -1,3 +1,5 @@
+#include "../Connections/Network.hpp"
+
 #include "NullRound.hpp"
 
 namespace Dissent {

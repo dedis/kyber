@@ -2,9 +2,13 @@
 #define DISSENT_ANONYMITY_SESSION_H_GUARD
 
 #include <QHash>
+#include <QObject>
 #include <QQueue>
 
-#include "../Connections/Network.hpp"
+#include "../Connections/Id.hpp"
+#include "../Messaging/Filter.hpp"
+#include "../Messaging/GetDataCallback.hpp"
+#include "../Messaging/RpcMethod.hpp"
 #include "../Utils/StartStop.hpp"
 
 #include "Group.hpp"
@@ -12,14 +16,34 @@
 #include "Round.hpp"
 
 namespace Dissent {
+namespace Connections {
+  class Network;
+}
+
+namespace Crypto {
+  class AsymmetricKey;
+}
+
+namespace Messaging {
+  class RpcRequest;
+}
+
 namespace Anonymity {
   /**
    * Maintains a group which is actively participating in anonymous exchanges
    */
-  class Session : public QObject, public Filter, public StartStop {
+  class Session : public QObject, public Dissent::Messaging::Filter,
+      public Dissent::Utils::StartStop {
     Q_OBJECT
 
     public:
+      typedef Dissent::Connections::Id Id;
+      typedef Dissent::Connections::Network Network;
+      typedef Dissent::Crypto::AsymmetricKey AsymmetricKey;
+      typedef Dissent::Messaging::RpcRequest RpcRequest;
+      typedef Dissent::Messaging::RpcMethod<Session> RpcMethod;
+      typedef Dissent::Messaging::GetDataMethod<Session> GetDataCallback;
+
       /**
        * Constructor
        * @param group an ordered member of peers for the group
@@ -160,8 +184,8 @@ namespace Anonymity {
 
       bool _round_ready;
       QSharedPointer<Round> _current_round;
-      RpcMethod<Session> _ready;
-      GetDataMethod<Session> _get_data_cb;
+      RpcMethod _ready;
+      GetDataCallback _get_data_cb;
       int _round_idx;
 
     private slots:

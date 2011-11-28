@@ -1,13 +1,11 @@
 #ifndef DISSENT_ANONYMITY_SHUFFLE_ROUND_BLAME_H_GUARD
 #define DISSENT_ANONYMITY_SHUFFLE_ROUND_BLAME_H_GUARD
 
-#include "ShuffleRound.hpp"
-
 #include <QBitArray>
 #include <QDataStream>
 #include <QMetaEnum>
 
-#include "../Crypto/CryptoFactory.hpp"
+#include "ShuffleRound.hpp"
 
 namespace Dissent {
 namespace Anonymity {
@@ -88,19 +86,6 @@ namespace Anonymity {
       virtual void BroadcastPrivateKey();
       virtual void Decrypt();
       virtual void BlameRound();
-
-    private:
-      /**
-       * Empty CT for this round since it won't be used
-       */
-      static const ConnectionTable _empty_ct;
-
-      /**
-       * Empty Rpc for this round since it won't be used
-       */
-      static RpcHandler _empty_rpc;
-
-      static EmptyGetDataCallback _empty_get_data;
   };
 }
 }

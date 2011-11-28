@@ -4,21 +4,17 @@
 #include <QObject>
 
 #include "Address.hpp"
+
 #include "../Messaging/ISink.hpp"
 #include "../Messaging/Source.hpp"
 
-//using namespace Dissent::Messaging;
-
 namespace Dissent {
 namespace Transports {
-  namespace {
-    namespace DM = Dissent::Messaging;
-  }
-
   /**
    * Stores the state for a transport layer link between two peers
    */
-  class Edge : public QObject, public DM::Source, public DM::ISender {
+  class Edge : public QObject, public Dissent::Messaging::Source,
+      public Dissent::Messaging::ISender {
     Q_OBJECT
 
     public:

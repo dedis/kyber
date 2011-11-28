@@ -7,18 +7,13 @@
 #include <QMetaEnum>
 #include <QSharedPointer>
 
+#include "../Connections/Network.hpp"
+
 #include "Log.hpp"
 #include "Round.hpp"
-#include "../Crypto/CryptoFactory.hpp"
-#include "../Utils/QRunTimeError.hpp"
 
 namespace Dissent {
 namespace Anonymity {
-  namespace {
-    using namespace Dissent::Crypto;
-    using Dissent::Utils::QRunTimeError;
-  }
-
   /**
    * Dissent's basic shuffling algorithm
    */

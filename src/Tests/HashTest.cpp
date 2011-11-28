@@ -1,7 +1,5 @@
 #include "DissentTest.hpp"
 
-using namespace Dissent::Crypto;
-
 namespace Dissent {
 namespace Tests {
   void HashTest(Hash *hashalgo)

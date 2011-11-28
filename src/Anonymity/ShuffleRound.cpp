@@ -1,6 +1,15 @@
+#include "../Crypto/CryptoFactory.hpp"
 #include "../Utils/Serialization.hpp"
+#include "../Utils/QRunTimeError.hpp"
+
 #include "ShuffleRound.hpp"
 #include "ShuffleBlamer.hpp"
+
+using Dissent::Crypto::CryptoFactory;
+using Dissent::Crypto::Hash;
+using Dissent::Crypto::Library;
+using Dissent::Crypto::OnionEncryptor;
+using Dissent::Utils::QRunTimeError;
 
 namespace Dissent {
 namespace Anonymity {

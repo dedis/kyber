@@ -1,7 +1,13 @@
 #include <QDebug>
 
-#include "ShuffleBlamer.hpp"
+#include "../Utils/QRunTimeError.hpp"
 #include "../Crypto/CryptoFactory.hpp"
+
+#include "ShuffleBlamer.hpp"
+
+using Dissent::Utils::QRunTimeError;
+using Dissent::Crypto::CryptoFactory;
+using Dissent::Crypto::OnionEncryptor;
 
 namespace Dissent {
 namespace Anonymity {

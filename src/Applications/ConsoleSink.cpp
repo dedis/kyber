@@ -1,5 +1,10 @@
-#include "ConsoleSink.hpp"
 #include <QDebug>
+
+#include "../Messaging/ISender.hpp"
+
+#include "ConsoleSink.hpp"
+
+using Dissent::Messaging::ISender;
 
 namespace Dissent {
 namespace Applications {

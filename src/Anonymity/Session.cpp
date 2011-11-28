@@ -1,4 +1,9 @@
+#include "../Connections/Connection.hpp"
+#include "../Connections/Network.hpp"
+
 #include "Session.hpp"
+
+using Dissent::Connections::Connection;
 
 namespace Dissent {
 namespace Anonymity {
@@ -16,8 +21,8 @@ namespace Anonymity {
     _generate_group(group_generator(group)),
     _round_ready(false),
     _current_round(0),
-    _ready(*this, &Session::Ready),
-    _get_data_cb(*this, &Session::GetData),
+    _ready(this, &Session::Ready),
+    _get_data_cb(this, &Session::GetData),
     _round_idx(0)
   {
     foreach(const GroupContainer &gc, _group.GetRoster()) {

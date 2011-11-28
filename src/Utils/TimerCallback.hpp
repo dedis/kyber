@@ -22,7 +22,7 @@ namespace Utils {
   /**
    * A common class for holding Timer callbacks with only a single state variable
    */
-  template<class S, class T> class TimerMethod : public TimerCallback {
+  template<typename S, typename T> class TimerMethod : public TimerCallback {
     public:
       /**
        * Typedef for Method callbacks

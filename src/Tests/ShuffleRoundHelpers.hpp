@@ -5,14 +5,6 @@
 
 namespace Dissent {
 namespace Tests {
-  namespace {
-    using namespace Dissent::Anonymity;
-    using namespace Dissent::Connections;
-    using namespace Dissent::Crypto;
-    using namespace Dissent::Messaging;
-    using namespace Dissent::Utils;
-  }
-
   class ShuffleRoundBadInnerPrivateKey : public ShuffleRound, public Triggerable {
     public:
       ShuffleRoundBadInnerPrivateKey(QSharedPointer<GroupGenerator> group_gen,

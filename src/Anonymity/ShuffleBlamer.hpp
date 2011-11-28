@@ -4,16 +4,25 @@
 #include <QObject>
 #include <QSharedPointer>
 
+#include "../Connections/Id.hpp"
+
 #include "ShuffleRoundBlame.hpp"
 #include "Log.hpp"
 
 namespace Dissent {
+namespace Crypto {
+  class AsymmetricKey;
+}
+
 namespace Anonymity {
   /**
    * Runs through the blame data to find faulty nodes
    */
   class ShuffleBlamer {
     public:
+      typedef Dissent::Connections::Id Id;
+      typedef Dissent::Crypto::AsymmetricKey AsymmetricKey;
+
       /**
        * Constructors
        * @param group_gen used to create the anonymity groups

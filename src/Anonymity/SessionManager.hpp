@@ -1,16 +1,20 @@
 #ifndef DISSENT_ANONYMITY_SESSION_MANAGER_H_GUARD
 #define DISSENT_ANONYMITY_SESSION_MANAGER_H_GUARD
 
+#include <QHash>
 #include <QSharedPointer>
 
-#include "../Messaging/RpcHandler.hpp"
-#include "Session.hpp"
+#include "../Connections/Id.hpp"
+#include "../Messaging/RpcMethod.hpp"
 
 namespace Dissent {
+namespace Messaging {
+  class RpcHandler;
+  class RpcRequest;
+}
+
 namespace Anonymity {
-  namespace {
-    using namespace Dissent::Messaging;
-  }
+  class Session;
 
   /**
    * Used to filter incoming messages across many sessions.
@@ -19,6 +23,11 @@ namespace Anonymity {
     Q_OBJECT
 
     public:
+      typedef Dissent::Messaging::RpcHandler RpcHandler;
+      typedef Dissent::Messaging::RpcMethod<SessionManager> RpcMethod;
+      typedef Dissent::Messaging::RpcRequest RpcRequest;
+      typedef Dissent::Connections::Id Id;
+
       /**
        * Constructor
        * @param rpc
@@ -41,8 +50,8 @@ namespace Anonymity {
       void Ready(RpcRequest &request);
       void IncomingData(RpcRequest &notification);
       QHash<Id, QSharedPointer<Session> > _id_to_session;
-      RpcMethod<SessionManager> _ready;
-      RpcMethod<SessionManager> _data;
+      RpcMethod _ready;
+      RpcMethod _data;
       RpcHandler &_rpc;
       // XXX this should be replaced with each node registering (continuously
       // poking until getting a response), then the leader begins the round

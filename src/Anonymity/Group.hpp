@@ -8,23 +8,24 @@
 
 #include "../Utils/Triple.hpp"
 #include "../Connections/Id.hpp"
-#include "../Crypto/AsymmetricKey.hpp"
-#include "../Crypto/DiffieHellman.hpp"
 
 namespace Dissent {
-namespace Anonymity {
-  namespace {
-    using Dissent::Connections::Id;
-    using Dissent::Crypto::AsymmetricKey;
-  }
+namespace Crypto {
+  class AsymmetricKey;
+}
 
-  typedef Dissent::Utils::Triple<Id, QSharedPointer<AsymmetricKey>, QByteArray> GroupContainer;
+namespace Anonymity {
+  typedef Dissent::Utils::Triple<Dissent::Connections::Id,
+          QSharedPointer<Dissent::Crypto::AsymmetricKey>,
+          QByteArray> GroupContainer;
 
   /**
    * Private data structure for Group storage.
    */
   class GroupData : public QSharedData {
     public:
+      typedef Dissent::Connections::Id Id;
+
       GroupData(const QVector<GroupContainer> &group,
           const QHash<const Id, int> &id_to_int) :
         GroupRoster(group),
@@ -45,6 +46,9 @@ namespace Anonymity {
    */
   class Group {
     public:
+      typedef Dissent::Crypto::AsymmetricKey AsymmetricKey;
+      typedef Dissent::Connections::Id Id;
+
       /**
        * Constructor
        * @param containers an ordered set of group containers

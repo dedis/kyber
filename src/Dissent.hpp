@@ -52,6 +52,7 @@
 
 #include "Messaging/BufferSink.hpp"
 #include "Messaging/DummySink.hpp"
+#include "Messaging/GetDataCallback.hpp" 
 #include "Messaging/ISender.hpp"
 #include "Messaging/ISink.hpp"
 #include "Messaging/RpcHandler.hpp"
@@ -88,5 +89,14 @@
 #include "Utils/TimerEvent.hpp"
 #include "Utils/Triggerable.hpp"
 #include "Utils/Triple.hpp"
+
+using namespace Dissent::Anonymity;
+using namespace Dissent::Applications;
+using namespace Dissent::Crypto;
+using namespace Dissent::Connections;
+using namespace Dissent::Messaging;
+using namespace Dissent::Overlay;
+using namespace Dissent::Transports;
+using namespace Dissent::Utils;
 
 #endif

@@ -6,15 +6,13 @@
 
 namespace Dissent {
 namespace Applications {
-  namespace {
-    using namespace Dissent::Messaging;
-  }
-
   /**
    * Print async output to the stdout
    */
-  class ConsoleSink : public ISink {
+  class ConsoleSink : public Dissent::Messaging::ISink {
     public:
+      typedef Dissent::Messaging::ISender ISender;
+
       ConsoleSink();
 
       /**

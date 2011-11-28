@@ -8,10 +8,11 @@
 #include <QTextStream>
 
 #include "ConsoleSink.hpp"
-#include "Node.hpp"
 
 namespace Dissent {
 namespace Applications {
+  class Node;
+
   /**
    * Allows for Asynchronous access to the commandline for input and output
    * purposes.  Useful for console applications.

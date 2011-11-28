@@ -5,20 +5,22 @@
 #include <QHash>
 
 #include "Id.hpp"
-#include "Connection.hpp"
-#include "../Transports/Edge.hpp"
 
 namespace Dissent {
+namespace Transports {
+  class Edge;
+}
+
 namespace Connections {
-  namespace {
-    using namespace Dissent::Transports;
-  }
+  class Connection;
 
   /**
    * Contains mappings for remote peers
    */
   class ConnectionTable {
     public:
+      typedef Dissent::Transports::Edge Edge;
+
       /**
        * Constructor
        * @param local_id so we have a "connection" to ourself

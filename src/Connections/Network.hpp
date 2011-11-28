@@ -4,14 +4,20 @@
 #include <QByteArray>
 #include <QVariant>
 
-#include "../Messaging/RpcMethod.hpp"
-#include "Connection.hpp"
 #include "Id.hpp"
 
 namespace Dissent {
+namespace Messaging {
+  class Callback;
+}
+
 namespace Connections {
+  class Connection;
+
   class Network {
     public:
+      typedef Dissent::Messaging::Callback Callback;
+
       /**
        * Virtual destructor
        */
@@ -62,9 +68,6 @@ namespace Connections {
        * @param id The Id of the remote peer
        */
       virtual void Send(const QByteArray &data, const Id &to) = 0;
-
-    protected:
-      typedef Dissent::Messaging::Callback Callback;
   };
 }
 }

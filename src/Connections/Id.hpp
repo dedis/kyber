@@ -7,10 +7,6 @@
 
 namespace Dissent {
 namespace Connections {
-  namespace {
-    using Dissent::Crypto::Integer;
-  }
-
   /**
    * A globally unique identifier.
    */
@@ -22,6 +18,7 @@ namespace Connections {
       static const size_t BitSize = 160;
       static const size_t ByteSize = 20;
       static const Id &Zero();
+      typedef Dissent::Crypto::Integer Integer;
 
       /**
        * Create a random Id

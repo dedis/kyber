@@ -9,11 +9,6 @@
 
 namespace Dissent {
 namespace Tests {
-  namespace {
-    using namespace Dissent::Messaging;
-    using namespace Dissent::Transports;
-  }
-
   class MockSource : public Source {
     public:
       void IncomingData(const QByteArray &data, ISender *from);

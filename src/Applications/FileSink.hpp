@@ -3,19 +3,18 @@
 
 #include <QFile>
 #include <QTextStream>
+
 #include "../Messaging/ISink.hpp"
 
 namespace Dissent {
 namespace Applications {
-  namespace {
-    using namespace Dissent::Messaging;
-  }
-
   /**
    * Print async output to the stdout
    */
-  class FileSink : public ISink {
+  class FileSink : public Dissent::Messaging::ISink {
     public:
+      typedef Dissent::Messaging::ISender ISender;
+
       /**
        * Constructor
        * @param file the file to store the output into

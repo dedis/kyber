@@ -1,3 +1,6 @@
+#include "../Connections/Connection.hpp"
+#include "../Messaging/RpcRequest.hpp"
+
 #include "Round.hpp"
 
 namespace Dissent {
@@ -39,7 +42,7 @@ namespace Anonymity {
       return;
     }
       
-    ISender *from = notification.GetFrom();
+    Dissent::Messaging::ISender *from = notification.GetFrom();
     Connection *con = dynamic_cast<Connection *>(from);
     const Id &id = con->GetRemoteId();
     if(con == 0 || !_group.Contains(id)) {

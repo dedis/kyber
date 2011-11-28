@@ -2,12 +2,6 @@
 
 namespace Dissent {
 namespace Tests {
-  namespace {
-    using namespace Dissent::Applications;
-    using namespace Dissent::Overlay;
-    using namespace Dissent::Utils;
-  }
-
   QList<QSharedPointer<Node> > GenerateLiveOverlay(const Address &base, int count,
       const QString &session_type)
   {

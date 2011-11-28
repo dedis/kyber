@@ -18,7 +18,9 @@ namespace Connections {
        * @param remote_id the Id of the remote member
        */
       NullConnection(const Id &local_id, const Id &remote_id) :
-        Connection(QSharedPointer<Edge>(new NullEdge()), local_id, remote_id) {}
+        Connection(QSharedPointer<Dissent::Transports::Edge>(
+              new Dissent::Transports::NullEdge()),
+            local_id, remote_id) {}
 
       /**
        * Destructor

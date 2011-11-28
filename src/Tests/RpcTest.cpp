@@ -1,7 +1,5 @@
 #include "DissentTest.hpp"
 
-using namespace Dissent::Messaging;
-
 namespace Dissent {
 namespace Tests {
   TEST(Rpc, HelloWorld)
@@ -19,7 +17,7 @@ namespace Tests {
     to_ms1.SetReturnPath(&to_ms0);
 
     TestRpc test0;
-    rpc0.Register(new RpcMethod<TestRpc>(test0, &TestRpc::Add), "add");
+    rpc0.Register(new RpcMethod<TestRpc>(&test0, &TestRpc::Add), "add");
 
     QVariantMap request;
     request["method"] = "add";
@@ -27,7 +25,7 @@ namespace Tests {
     request["y"] = 6;
 
     TestRpcResponse test1;
-    RpcMethod<TestRpcResponse> cb = RpcMethod<TestRpcResponse>(test1, &TestRpcResponse::HandleResponse);
+    RpcMethod<TestRpcResponse> cb = RpcMethod<TestRpcResponse>(&test1, &TestRpcResponse::HandleResponse);
     EXPECT_EQ(-1, test1.value);
     rpc1.SendRequest(request, &to_ms0, &cb);
     EXPECT_EQ(9, test1.value);
