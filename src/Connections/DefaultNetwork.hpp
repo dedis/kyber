@@ -104,6 +104,10 @@ namespace Connections {
         }
       }
 
+      /**
+       * Returns a copy
+       */
+      virtual Network *Clone() const { return new DefaultNetwork(*this); }
     protected:
       inline void Send(const QByteArray &data, ISender *to)
       {

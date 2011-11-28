@@ -58,9 +58,13 @@ namespace Connections {
        */
       virtual void Send(const QByteArray &, const Id &) {}
 
+      /**
+       * Returns a copy, not that this should happen too frequently...
+       */
+      virtual Network *Clone() const { return new EmptyNetwork(*this); }
     private:
       EmptyNetwork() {}
-      Q_DISABLE_COPY(EmptyNetwork)
+      EmptyNetwork(const EmptyNetwork &) {}
   };
 }
 }

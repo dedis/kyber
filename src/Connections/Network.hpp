@@ -68,6 +68,11 @@ namespace Connections {
        * @param id The Id of the remote peer
        */
       virtual void Send(const QByteArray &data, const Id &to) = 0;
+
+      /**
+       * Returns a copy of this object
+       */
+      virtual Network *Clone() const = 0;
   };
 }
 }
