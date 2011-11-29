@@ -517,7 +517,7 @@ namespace Anonymity {
     qDebug() << _shufflers.GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
       << ": key shared waiting for other keys.";
 
-    Broadcast(msg);
+    VerifiableBroadcast(msg);
   }
 
   void ShuffleRound::SubmitData()
@@ -542,7 +542,7 @@ namespace Anonymity {
     qDebug() << _shufflers.GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
       << ": data submitted now in state:" << StateToString(_state);
 
-    Send(msg, _shufflers.GetId(0));
+    VerifiableSend(msg, _shufflers.GetId(0));
   }
 
   void ShuffleRound::Shuffle()
@@ -590,9 +590,9 @@ namespace Anonymity {
       << ": finished shuffling";
 
     if(mtype == EncryptedData) {
-      Broadcast(msg);
+      VerifiableBroadcast(msg);
     } else {
-      Send(msg, next);
+      VerifiableSend(msg, next);
     }
   }
 
@@ -627,7 +627,7 @@ namespace Anonymity {
         "Did not find our message in the shuffled ciphertexts!";
     }
 
-    Broadcast(msg);
+    VerifiableBroadcast(msg);
   }
 
   void ShuffleRound::BroadcastPrivateKey()
@@ -649,7 +649,7 @@ namespace Anonymity {
     QDataStream stream(&msg, QIODevice::WriteOnly);
     stream << PrivateKey << GetRoundId().GetByteArray() << _inner_key->GetByteArray();
 
-    Broadcast(msg);
+    VerifiableBroadcast(msg);
   }
 
   void ShuffleRound::Decrypt()
@@ -732,7 +732,7 @@ namespace Anonymity {
     QByteArray signature = GetSigningKey()->Sign(sigmsg);
     stream << signature;
     
-    Broadcast(msg);
+    VerifiableBroadcast(msg);
   }
 
   void ShuffleRound::BroadcastBlameVerification()
@@ -746,7 +746,7 @@ namespace Anonymity {
     stream << BlameVerification << GetRoundId().GetByteArray() <<
       _blame_hash << _blame_signatures;
 
-    Broadcast(msg);
+    VerifiableBroadcast(msg);
   }
 
   void ShuffleRound::BlameRound()

@@ -71,8 +71,8 @@ namespace Anonymity {
       }
 
     protected:
-      virtual inline void Broadcast(const QByteArray &) {}
-      virtual inline void Send(const QByteArray &, const Id &) {}
+      virtual inline void VerifiableBroadcast(const QByteArray &) {}
+      virtual inline void VerifiableSend(const QByteArray &, const Id &) {}
 
       virtual void GenerateShufflerGroup()
       {

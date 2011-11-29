@@ -30,7 +30,7 @@ namespace Tests {
         QDataStream stream(&msg, QIODevice::WriteOnly);
         stream << PrivateKey << GetRoundId().GetByteArray() << tmp->GetByteArray();
 
-        Broadcast(msg);
+        VerifiableBroadcast(msg);
         int idx = GetShufflers().GetIndex(GetLocalId());
         delete _private_inner_keys[idx];
         _private_inner_keys[idx] = lib->LoadPrivateKeyFromByteArray(_inner_key->GetByteArray());
@@ -100,10 +100,10 @@ namespace Tests {
         _state = WaitingForEncryptedInnerData;
       
         if(mtype == EncryptedData) {
-          Broadcast(msg);
+          VerifiableBroadcast(msg);
           _encrypted_data = _shuffle_cleartext;
         } else {
-          Send(msg, next);
+          VerifiableSend(msg, next);
         }
       }
   };
@@ -177,7 +177,7 @@ namespace Tests {
         QByteArray msg;
         QDataStream out_stream(&msg, QIODevice::WriteOnly);
         out_stream << mtype << GetRoundId();
-        Broadcast(msg);
+        VerifiableBroadcast(msg);
       }
   };
 
@@ -216,7 +216,7 @@ namespace Tests {
         stream << Data << GetRoundId().GetByteArray() << _outer_ciphertext;
 
         _state = WaitingForShuffle;
-        Send(msg, GetShufflers().GetId(0));
+        VerifiableSend(msg, GetShufflers().GetId(0));
       }
   };
 }

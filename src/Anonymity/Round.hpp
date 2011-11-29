@@ -5,8 +5,9 @@
 
 #include <QObject>
 
-#include "../Messaging/GetDataCallback.hpp"
 #include "../Connections/Id.hpp"
+#include "../Connections/Network.hpp"
+#include "../Messaging/GetDataCallback.hpp"
 #include "../Messaging/ISender.hpp"
 #include "../Messaging/Source.hpp"
 #include "../Utils/StartStop.hpp"
@@ -18,7 +19,6 @@
 namespace Dissent {
 namespace Connections {
   class Connection;
-  class Network;
 }
 
 namespace Crypto {
@@ -146,6 +146,27 @@ namespace Anonymity {
        * @param from the signing peers id
        */
       bool Verify(const QByteArray &data, QByteArray &msg, const Id &from);
+
+      /**
+       * Signs and encrypts a message before broadcasting
+       * @param data the message to broadcast
+       */
+      virtual inline void VerifiableBroadcast(const QByteArray &data)
+      {
+        QByteArray msg = data + GetSigningKey()->Sign(data);
+        GetNetwork()->Broadcast(msg);
+      }
+
+      /**
+       * Signs and encrypts a message before sending it to a sepecific peer
+       * @param data the message to send
+       * @param to the peer to send it to
+       */
+      virtual inline void VerifiableSend(const QByteArray &data, const Id &to)
+      {
+        QByteArray msg = data + GetSigningKey()->Sign(data);
+        GetNetwork()->Send(msg, to);
+      }
 
       /**
        * Returns the data to be sent during this round

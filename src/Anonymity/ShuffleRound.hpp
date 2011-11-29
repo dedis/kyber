@@ -143,18 +143,6 @@ namespace Anonymity {
       inline virtual QString ToString() const { return "ShuffleRound: " + GetRoundId().ToString(); }
 
     protected:
-      virtual inline void Broadcast(const QByteArray &data)
-      {
-        QByteArray msg = data + GetSigningKey()->Sign(data);
-        GetNetwork()->Broadcast(msg);
-      }
-
-      virtual inline void Send(const QByteArray &data, const Id &id)
-      {
-        QByteArray msg = data + GetSigningKey()->Sign(data);
-        GetNetwork()->Send(msg, id);
-      }
-
       virtual void ProcessData(const QByteArray &data, const Id &from);
 
       /**
