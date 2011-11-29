@@ -81,7 +81,7 @@ namespace Anonymity {
       virtual void BroadcastPublicKeys();
       virtual void SubmitData();
       virtual void Shuffle();
-      virtual void Verify();
+      virtual void VerifyInnerCiphertext();
       virtual void StartBlame();
       virtual void BroadcastPrivateKey();
       virtual void Decrypt();

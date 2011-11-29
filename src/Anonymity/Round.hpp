@@ -139,6 +139,15 @@ namespace Anonymity {
       virtual void ProcessData(const QByteArray &data, const Id &id) = 0;
 
       /**
+       * Verifies that the provided data has a signature block and is properly
+       * signed, returning the data block via msg
+       * @param data the data + signature blocks
+       * @param msg the data block
+       * @param from the signing peers id
+       */
+      bool Verify(const QByteArray &data, QByteArray &msg, const Id &from);
+
+      /**
        * Returns the data to be sent during this round
        */
       inline const QPair<QByteArray, bool> GetData(int max) { return _get_data_cb(max); }

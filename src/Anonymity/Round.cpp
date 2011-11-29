@@ -52,6 +52,26 @@ namespace Anonymity {
     ProcessData(notification.GetMessage()["data"].toByteArray(), id);
   }
 
+  bool Round::Verify(const QByteArray &data, QByteArray &msg, const Id &from)
+  {
+    QSharedPointer<AsymmetricKey> key = GetGroup().GetKey(from);
+    if(key.isNull()) {
+      qDebug() << "Received malsigned data block, no such peer";
+      return false;
+    }
+
+    int sig_size = key->GetKeySize() / 8;
+    if(data.size() < sig_size) {
+      qDebug() << "Received malsigned data block, not enough data blocks." <<
+       "Expected at least:" << sig_size << "got" << data.size();
+      return false;
+    }
+
+    msg = QByteArray::fromRawData(data.data(), data.size() - sig_size);
+    QByteArray sig = QByteArray::fromRawData(data.data() + msg.size(), sig_size);
+    return key->Verify(msg, sig);
+  }
+
   void Round::HandleDisconnect(Connection *con, const QString &)
   {
     const Id id = con->GetRemoteId();

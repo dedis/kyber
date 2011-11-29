@@ -65,7 +65,7 @@ namespace Anonymity {
     _state = ShuffleRound::WaitingForEncryptedInnerData;
   }
 
-  void ShuffleRoundBlame::Verify()
+  void ShuffleRoundBlame::VerifyInnerCiphertext()
   {
   }
 

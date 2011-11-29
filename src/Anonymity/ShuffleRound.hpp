@@ -180,15 +180,6 @@ namespace Anonymity {
       void ProcessDataBase(const QByteArray &data, const Id &from);
 
       /**
-       * Verifies that the provided data has a signature block and is properly
-       * signed, returning the data block via msg
-       * @param data the data + signature blocks
-       * @param msg the data block
-       * @param id the signing peers id
-       */
-      bool Verify(const QByteArray &data, QByteArray &msg, const Id &id);
-
-      /**
        * Parses incoming public key messages
        * @param data serialized message
        * @param id the remote peer sending the message
@@ -267,7 +258,7 @@ namespace Anonymity {
        * After receiving the inner encrypted data, each node will send a go
        * or no go message.
        */
-      virtual void Verify();
+      virtual void VerifyInnerCiphertext();
       
       /**
        * Shares the inner private key with all nodes

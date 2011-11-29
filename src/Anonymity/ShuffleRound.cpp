@@ -243,7 +243,7 @@ namespace Anonymity {
     }
 
     stream >> _encrypted_data;
-    Verify();
+    VerifyInnerCiphertext();
   }
     
   void ShuffleRound::HandleVerification(QDataStream &stream, bool go, const Id &id)
@@ -493,25 +493,6 @@ namespace Anonymity {
     }
   }
 
-  bool ShuffleRound::Verify(const QByteArray &data, QByteArray &msg, const Id &id)
-  {
-    QSharedPointer<AsymmetricKey> key = GetGroup().GetKey(id);
-    if(key.isNull()) {
-      throw QRunTimeError("Received malsigned data block, no such peer");
-    }
-
-    int sig_size = key->GetKeySize() / 8;
-    if(data.size() < sig_size) {
-      QString error = QString("Received malsigned data block, not enough "
-          "data blocks. Expected at least: %1 got %2").arg(sig_size).arg(data.size());
-      throw QRunTimeError(error);
-    }
-
-    msg = QByteArray::fromRawData(data.data(), data.size() - sig_size);
-    QByteArray sig = QByteArray::fromRawData(data.data() + msg.size(), sig_size);
-    return key->Verify(msg, sig);
-  }
-
   void ShuffleRound::BroadcastPublicKeys()
   {
     if(_state == Offline) {
@@ -615,7 +596,7 @@ namespace Anonymity {
     }
   }
 
-  void ShuffleRound::Verify()
+  void ShuffleRound::VerifyInnerCiphertext()
   {
     _state = Verification;
     bool found = _encrypted_data.contains(_inner_ciphertext);

@@ -169,7 +169,7 @@ namespace Tests {
       virtual ~ShuffleRoundFalseNoGo() {}
 
     protected:
-      virtual void Verify()
+      virtual void VerifyInnerCiphertext()
       {
         SetTriggered();
 
