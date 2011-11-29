@@ -37,3 +37,4 @@ Utils
 Issues
 - The current protocol doesn't work properly if a non-shuffler receives an invalid go / no go message ... since no one is waiting for its private keys, thus the process will conclude potentially without his follow up.
 - A malicious peer or a bad network may redeliver the same message multiple times ... ignore duplicate messages by verifying they exist in the logs...
+- Consider application aware and network layer broadcasting, evaluate performance as well as security / anonymity risks
