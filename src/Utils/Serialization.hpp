@@ -19,8 +19,9 @@ namespace Utils {
       static int ReadInt(const QByteArray &data, int offset)
       {
         int number = 0;
-        for(int idx = offset; idx < offset + 4; idx++) {
-          number |= ((data[idx] & 0xFF) << (8 * idx));
+        for(int idx = offset + 3; idx >= offset; idx--) {
+          number <<= 8;
+          number |= (data[idx] & 0xFF);
         }
         return number;
       }
@@ -33,8 +34,8 @@ namespace Utils {
        */
       static void WriteInt(int number, QByteArray &data, int offset)
       {
-        while(number > 0) {
-          data[offset++] = (number & 0xFF);
+        for(int idx = offset; idx < offset + 4; idx++) {
+          data[idx] = (number & 0xFF);
           number >>= 8;
         }
       }
@@ -47,8 +48,8 @@ namespace Utils {
        */
       static void WriteUInt(uint number, QByteArray &data, int offset)
       {
-        while(number > 0) {
-          data[offset++] = (number & 0xFF);
+        for(int idx = offset; idx < offset + 4; idx++) {
+          data[idx] = (number & 0xFF);
           number >>= 8;
         }
       }

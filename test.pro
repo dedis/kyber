@@ -62,3 +62,4 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/TcpTest.cpp \
            src/Tests/IntegerTest.cpp \
            src/Tests/TripleTest.cpp \
+           src/Tests/SerializationTest.cpp
