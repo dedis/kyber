@@ -31,17 +31,17 @@ namespace Messaging {
        * Returns the messages processed by this sink, there is no guaratees
        * made about the state of the sender
        */
-      inline const QPair<QByteArray, ISender *> &At(int idx) { return _messages[idx]; }
+      inline const QPair<QByteArray, ISender *> &At(int idx) const { return _messages[idx]; }
 
       /**
        * Returns the number of entries in the BufferSink
        */
-      inline int Count() { return _messages.count(); }
+      inline int Count() const { return _messages.count(); }
 
       /**
        * Returns the last entry
        */
-      inline const QPair<QByteArray, ISender *> &Last() { return _messages.last(); }
+      inline const QPair<QByteArray, ISender *> &Last() const { return _messages.last(); }
 
     private:
       QVector<QPair<QByteArray, ISender *> > _messages;
