@@ -9,30 +9,33 @@ how the unsolved can be handled.
 
 Attacks Cases
 ===============================================================================
-01 - A member receives an invalid public keys
-02 - A member distributes different public keys to different members
-03 - A member inserts an invalid outer cipher block into the initial cipher
-04 - A member inserts an invalid inner cipher block into the initial cipher
-05 - A shuffler duplicates cipher blocks
-06 - A shuffler replaces cipher blocks
-07 - The final shuffler broadcasts different messages to different members
-08 - A member reports a false no go
-09 - A member reports a false no go to some members and a go to others
-10 - A member reports a false go
-11 - A member broadcasts an invalid inner private key
-12 - A member shares different private keys in a round
-13 - A member shares different or invalid outer private keys in a round
-14 - A member initiates blame when there is none
-15 - A member shares an invalid blame message
-16 - A member shares improper messages in their blame log
-17 - A member shares a blame log missing intermediate messages (before the end)
-18 - A member shares a blame log cutting off the end
-19 - A member does not send messages in an appropriate amount of time
-20 - A member sends a properly signed although malformed message
-21 - Shufflers ignore a no go from a non-shuffler
-22 - Shuffler exchanges different private keys to different nodes
-23 - A member distributes an xor message of the incorrect length
-24 - A member distributes different xor messages in the bulk phase
+01 - O - A member receives an invalid public keys
+02 - X - A member distributes different public keys to different members
+03 - X - A member inserts an invalid outer cipher block into the initial cipher
+04 - O - A member inserts an invalid inner cipher block into the initial cipher
+05 - X - A shuffler duplicates cipher blocks
+06 - X - A shuffler replaces cipher blocks
+07 - X - The final shuffler broadcasts different messages to different members
+08 - X - A member reports a false no go
+09 - O - A member reports a false no go to some members and a go to others
+10 - O - A member reports a false go
+11 - O - A member broadcasts an invalid inner private key
+12 - X - A member shares different inner or outer private keys in a round
+13 - O - A member initiates blame when there is none
+14 - X - A member shares an invalid blame message
+15 - X - A member shares improper messages in their blame log
+16 - X - A member shares a blame log missing intermediate messages
+17 - X - A member shares a blame log cutting off the end
+18 - O - A member does not send messages in an appropriate amount of time
+19 - O - A member sends a properly signed although malformed message
+20 - O - Shufflers ignore a no go from a non-shuffler
+21 - O - Shuffler exchanges different private keys to different nodes
+22 - O - A member distributes an xor message of the incorrect length
+23 - O - A member distributes different xor messages in the bulk phase
+24 - O - A member does not respect the message size requirements in the shuffle
+
+Legend:
+ID - Handled (X) - Description
 
 Discovering the Attacks
 ===============================================================================
@@ -69,40 +72,38 @@ not their message is in the final data set.
 is similar to the attack 04, however, this attack can be resolved without
 revealing the identity of innocent members.
 
-12, this can only be discovered if a decryption fails.  This attack could be
-successful if the initial public keys are not uniformly distributed and
-verified during the go / no go phase.  Instead the likely outcome is that a
-member in the group will no be able to decipher a message given to them.
+12, this will be discovered during the go / no go phase broadcast
+verification, where in it will be verified during a blame phase.
 
-13, this can be discovered during blame message reception.
-
-14, this requires a causal relationship between incoming and outgoing messages
+13, this requires a causal relationship between incoming and outgoing messages
 in order to narrow down during a blame phase where the blame message came from.
 Obviously, the first member(s) to start a blame phase are the guilty party.
 
-15, this requires a verification on the blame phase prior to investigating the
+14, this requires a verification on the blame phase prior to investigating the
 logs.
+
+15, this will be discovered during replay of the blame messages
 
 16, this will be discovered during replay of the blame messages
 
-17, this will be discovered during replay of the blame messages
-
-18, this can be discovered by comparing the state of members later in the group
+17, this can be discovered by comparing the state of members later in the group
 order.
+
+18, this is a complex problem.
 
 19, this is a complex problem.
 
-20, this is a complex problem.
-
-21, this is discovered when a member receives private keys instead of blame
+20, this is discovered when a member receives private keys instead of blame
 data, in the current protocol this will result in the node sharing blame data
 and other nodes being uncertain why.
 
-22, this is discovered in the final phase, when private keys are distributed.
+21, this is discovered in the final phase, when private keys are distributed.
+
+22, this is discovered during reception of a message in the bulk round.
 
 23, this is discovered during reception of a message in the bulk round.
 
-24, this is discovered during reception of a message in the bulk round.
+24, discovered by first shuffler node
 
 Handling Attacks on the Blame Phase
 ===============================================================================
@@ -118,7 +119,7 @@ distributed to other members allowing them to rebuild the state of the system
 in a verifiable way (the remote peers signed messages) and then verify that
 that member's behavior is consistent with its claim.
 
-Unfortuantely, the blame state itself can be attacked, 14.  A malicious member
+Unfortuantely, the blame state itself can be attacked, 13.  A malicious member
 owning several resource may want to partition the Dissent ring or avoid having
 a specific resource be identified during the blame phase.  In order to avoid
 partition attacks, blame messages should be verified in a post blame broadcast
@@ -131,8 +132,8 @@ blame data sent different messages to different members, in which case it will
 be signed correctly, or the receipient changed messages and it is not signed
 properly.  Because of the second property, all peers must verify signatures
 prior to exchanging verifications.  If a signature fails, then the message is
-considered faulty and should be resolved similarly to a missing message, 15, or
-a well crafted malicious message, 16.
+considered faulty and should be resolved similarly to a missing message, 14, or
+a well crafted malicious message, 15.
 
 The general format for blame message verifications are:
 - msg = [blame data packet id][round id / nonce][hash]
@@ -158,7 +159,7 @@ During replay, if a message fails, that member is to blame for including a
 faulty message in the blame log.  The process for replaying messages continues
 until completion.  All members with faulty logs are noted as bad members, and
 if there are any bad members, execution of the blame phase concludes.
-Otherwise the next stage begins.  This covers attacks 16 and 17.
+Otherwise the next stage begins.  This covers attacks 15 and 16.
 
 Each stage here out, follows the flow of the Dissent shuffle algorithm.
 Members confirm that all public keys match each other.  If there are any
@@ -193,7 +194,7 @@ the blame verification mentioned earlier.  In this session, a node will
 distribute a go, if everything is fine, otherwise it will distribute a no go
 and a copy of the invalid message.  If the message is not verifiable, the
 blaming node is blamed.  If the message is verifiable and of insufficient
-bytes, the sender is blamed, 23.  The rest of the attacks fall under 24.  If
+bytes, the sender is blamed, 22.  The rest of the attacks fall under 23.  If
 the message is verifiable, of sufficient bytes, and sent to all members, the
 anonymous sender and the sender are suspected.  The blame can be determined by
 having a shuffle round in which the anonymous sender reveals the means to
@@ -206,16 +207,16 @@ Faulty messages could be potentially solved by simply broadcasting a properly
 signed albeit faulty message to the entire group.  The bounds of what
 constitues an incriminating faulty message depends on the intent of the
 message.  This is currently left as future work.  Attacks that fall into this
-category include 01, 11, 12, 13, 20, 22, and to some degree 21.  21 is a
+category include 01, 11, 19, 21, and to some degree 20.  20 is a
 special case as it involves a significant compromise to the system, see below.
 
 A network failure would require all memberss to conclude that the peer has not
 sent a message and is either non-responsive or malicious.  Handling this is
-left for future work.  Attack 19 falls into this category.
+left for future work.  Attack 18 falls into this category.
 
 Unhandled
 ===============================================================================
-14, false blame initiation, cannot be handled within the current approach as
+13, false blame initiation, cannot be handled within the current approach as
 their is no means to guarantee message causalty.
 
 09 cannot be handled in the current protocol.  This could be solved by
@@ -225,7 +226,7 @@ data.
 04 cannot be (easily) handled although it could be treated as a null data
 block.
 
-21 results from a compromised group of shufflers, the node could potentially
+20 results from a compromised group of shufflers, the node could potentially
 share this knowledge with others, in which case the other members could force a
 blame phase.  How to handle this properly is open for discussion.
 
