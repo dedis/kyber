@@ -7,3 +7,4 @@ Makefile
 ext/
 console
 test
+docs/html
