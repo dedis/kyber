@@ -199,7 +199,24 @@ the message is verifiable, of sufficient bytes, and sent to all members, the
 anonymous sender and the sender are suspected.  The blame can be determined by
 having a shuffle round in which the anonymous sender reveals the means to
 verify the message.  Otherwise at least one member has a properly constructed
-message, which implies that th sender of the xor data is to blame.
+message, which implies that the sender of the xor data is to blame.
+
+Bulk phase consists of three communication stages, shuffle of descriptors, bulk
+messages, and a verification.  In the verification phase, nodes will distribute
+a message of the following form:
+
+[BulkVerification][good/bad][[X1,Y1][X2,Y2]], where X and Y are the nodes index
+and error they caused, either incorrect length or hash.
+
+If all honest nodes received incorrect length except the offending nodes, the
+node is blamed.  If all nodes receive an improperly hashed message, a shuffle
+cycle is required to reveal the seed used to generate the message so that it
+hashes properly.  If no seed is revealed, the shufflers will work together to
+reveal the submitter of the descriptor.  If the seed is correct, the bulk
+sender is blamed.  If the a correctly hashed message is received by at least
+one peer, it is distributed to all peers, and the peer is blamed.  If multiple
+invalid seeds are released, then the shufflers will reveal the identity of
+those seeds.
 
 Handling Network Failures or Faulty Messages
 ===============================================================================
