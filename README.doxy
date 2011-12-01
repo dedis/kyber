@@ -1,7 +1,8 @@
-Dissent - Dining-Cryptographers, Shuffled-Send Network
+/**
+\mainpage Dissent - Dining-Cryptographers, Shuffled-Send Network
 
-Overview
-===============================================================================
+\section Overview
+
 This library will eventually provide a framework for constructing provably
 anonymous overlays with the following key features.
 
@@ -11,8 +12,8 @@ dissent.pro (qmake dissent.pro)
 While previous versions of the code focused on linkable libraries, because this
 has unnecessary complexities, we plan to only support unified binaries.
 
-Directory Structure
-===============================================================================
+\section Directory Structure
+
 - ext - external sources required to build the code
 - src - source code for the development branch
 - src/Anonymous - Anonymity protocols
@@ -27,8 +28,8 @@ Directory Structure
 - legacy/libdissent - original, unmodified C++ version
 - legacy/py - original, unmodified Python version
 
-Using
-===============================================================================
+\section Using
+
 Build the command-line (ConsoleApp):
 qmake console.pro
 make
@@ -41,8 +42,8 @@ This will launch a command-line interface, where commands can be typed.
 
 Type help to print out the commands.
 
-Network Use
-===============================================================================
+\section Network Use
+
 Inspect conf/slave_tcp.conf and conf/master_tcp.conf
 
 Nodes using conf/master_tcp.conf are bootstrap peers
@@ -56,8 +57,8 @@ After changing the configuration files and distributing the application,
 begin by turning on the bootstrap peers first and then the client peers.
 Afterward interaction is the same as discussed in the "Using" section.
 
-Tests
-===============================================================================
+\section Tests
+
 This suite contains many tests using googletest[1], use qmake on test.pro
 (qmake test.pro) to generate an appropriate makefile, which will create a
 binary to test the code.
@@ -67,8 +68,8 @@ inefficient.
 
 1 - http://code.google.com/p/googletest/
 
-Logging and Debugging Output
-===============================================================================
+\section Logging and Debugging Output
+
 Logging outputs are compiled in by default but can be disabled by uncommenting
 the following lines in test.pro and console.pro:
 #DEFINES += QT_NO_DEBUG_OUTPUT
@@ -82,19 +83,19 @@ To send logging output to standard output use log = "stdout".
 To send logging output to a file use log = "filename".
 To disable logging use log = "" or exclude log altogether.
 
-Links
-===============================================================================
+\section Links
+
 Dedis -- Research group at Yale producing this software
 -- http://dedis.cs.yale.edu/
 Dissent -- Overview of the protocol
 -- http://dedis.cs.yale.edu/2010/anon/
 
-Contact
-===============================================================================
+\section Contact
+
 TBA
 
-Workflow
-===============================================================================
+\section Workflow
+
 More specifically, these are requirements that should be followed prior to
 asking for a code review / pull.  A code review / pull in this sense refers to
 the submission of a pull request not an academic discussion on design choices.
@@ -121,8 +122,8 @@ Commits:
 Also note, when you submit code for inclusion in this library, you implicitly
 release your personal license to the software to Yale Dedis, see below.
 
-License
-===============================================================================
+\section License
+
 While the code linked relies on a variety of licenses, which must be respected,
 the code contained herein shall use the following license:
 
@@ -140,3 +141,4 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
 Street, Fifth Floor, Boston, MA  02110-1301, USA.
+*/
