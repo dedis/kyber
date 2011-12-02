@@ -110,6 +110,8 @@ namespace Anonymity {
     _id_to_request.clear();
 
     _round_ready = false;
+    qDebug() << "Session" << ToString() << "starting ound" <<
+      _current_round->ToString();
     _current_round->Start();
     return true;
   }
@@ -117,6 +119,8 @@ namespace Anonymity {
   void Session::Ready(RpcRequest &)
   {
     _round_ready = false;
+    qDebug() << "Session" << ToString() << "starting ound" <<
+      _current_round->ToString();
     _current_round->Start();
   }
 
@@ -129,7 +133,8 @@ namespace Anonymity {
     }
 
     qDebug() << "Session" << ToString() << "round" <<
-      _current_round->ToString() << "finished.";
+      _current_round->ToString() << "finished due to" <<
+      _current_round->GetStoppedReason();
 
     emit RoundFinished(_current_round);
 
@@ -151,8 +156,8 @@ namespace Anonymity {
 
     _current_round = QSharedPointer<Round>(round);
 
-    qDebug() << "Session" << ToString() << "starting new round" <<
-      _current_round->ToString() << "started.";
+    qDebug() << "Session" << ToString() << "preparing new round" <<
+      _current_round->ToString();
 
     _current_round->SetSink(this);
     QObject::connect(_current_round.data(), SIGNAL(Finished()), this,
