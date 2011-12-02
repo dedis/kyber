@@ -67,7 +67,7 @@ namespace Anonymity {
       return false;
     }
 
-    msg = QByteArray::fromRawData(data.data(), data.size() - sig_size);
+    msg = data.left(data.size() - sig_size);
     QByteArray sig = QByteArray::fromRawData(data.data() + msg.size(), sig_size);
     return key->Verify(msg, sig);
   }
