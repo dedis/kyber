@@ -45,6 +45,15 @@ namespace Tests {
       QByteArray tmp = QByteArray::fromRawData(msg0.constData(), 3);
       EXPECT_EQ(msg1, tmp);
     }
+
+    QByteArray msg2(8, 0);
+    for(int idx = 0; idx < 10; idx++) {
+      uint index = rng0->GetInt(0, 1016);
+      QSharedPointer<Random> rng2(lib->GetRandomNumberGenerator(seed, index));
+      rng2->GenerateBlock(msg2);
+      QByteArray tmp = QByteArray::fromRawData(msg0.constData(), 8);
+      EXPECT_EQ(rng2->BytesGenerated(), index + 8);
+    }
   }
 
   TEST(Random, BaseRandomTest)

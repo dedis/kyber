@@ -49,17 +49,13 @@ namespace Crypto {
       /**
        * Returns a random number generator
        */
-      virtual Dissent::Utils::Random *GetRandomNumberGenerator() = 0;
+      virtual Dissent::Utils::Random *GetRandomNumberGenerator(
+          const QByteArray &seed = QByteArray(), uint index = 0) = 0;
 
       /**
        * Returns the optimal seed size for the RNG
        */
       virtual uint RngOptimalSeedSize() = 0;
-
-      /**
-       * Returns a deterministic random number generator
-       */
-      virtual Dissent::Utils::Random *GetRandomNumberGenerator(const QByteArray &seed) = 0;
 
       /**
        * Returns a hash algorithm

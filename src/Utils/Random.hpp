@@ -15,8 +15,10 @@ namespace Utils {
 
       /**
        * Constructor
+       * @param seed used to create a deterministic rng
+       * @param index moves the rng to a specific index
        */
-      Random(const QByteArray &seed = QByteArray());
+      Random(const QByteArray &seed = QByteArray(), uint index = 0);
 
       /**
        * Destructor
@@ -42,10 +44,27 @@ namespace Utils {
        */
       virtual void GenerateBlock(QByteArray &data);
 
+      /**
+       * Returns the amount of bytes generated thus far
+       */
+      inline uint BytesGenerated() { return _byte_count; }
+
     protected:
       Random(const Random &) {}
+      /**
+       * Increments the amount of bytes generated thus far.
+       */
+      inline void IncrementByteCount(uint count) { _byte_count+= count; }
+
+      /**
+       * Moves the rng to specified position
+       * @param index the position
+       */
+      void MoveRngPosition(uint index);
+
     private:
       uint _seed;
+      uint _byte_count;
   };
 }
 }
