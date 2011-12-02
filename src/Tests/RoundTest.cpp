@@ -323,8 +323,6 @@ namespace Tests {
     delete group;
   }
 
-  template<typename T> bool Triggered(T *obj) { return obj->Triggered(); }
-
   void RoundTest_BadGuy(CreateSessionCallback good_callback,
       CreateSessionCallback bad_callback, CreateGroupGenerator cgg,
       const BadGuyCB &cb)
@@ -387,7 +385,6 @@ namespace Tests {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
     }
-
 
     if(!cb(nodes[badguy]->session->GetCurrentRound().data())) {
       std::cout << "RoundTest_BadGuy was never triggered, "

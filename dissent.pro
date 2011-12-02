@@ -12,6 +12,7 @@ QT = core network
 # Input
 LIBS += -lcryptopp
 HEADERS += src/Dissent.hpp \
+           src/Anonymity/BulkRound.hpp \
            src/Anonymity/Credentials.hpp \
            src/Anonymity/FixedSizeGroupGenerator.hpp \
            src/Anonymity/Group.hpp \
@@ -97,7 +98,8 @@ HEADERS += src/Dissent.hpp \
            src/Utils/Triggerable.hpp \
            src/Utils/Triple.hpp
 
-SOURCES += src/Anonymity/Group.cpp \
+SOURCES += src/Anonymity/BulkRound.cpp \
+           src/Anonymity/Group.cpp \
            src/Anonymity/Log.cpp \
            src/Anonymity/NullRound.cpp \
            src/Anonymity/Round.cpp \
