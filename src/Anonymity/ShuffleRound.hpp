@@ -169,42 +169,42 @@ namespace Anonymity {
 
       /**
        * Parses incoming public key messages
-       * @param data serialized message
+       * @param stream serialized message
        * @param id the remote peer sending the message
        */
-      void HandlePublicKeys(QDataStream &data, const Id &id);
+      void HandlePublicKeys(QDataStream &stream, const Id &id);
 
       /**
        * First node receives data from all peers
-       * @param data serialized message
+       * @param stream serialized message
        * @param id the remote peer sending the message
        */
       void HandleData(QDataStream &stream, const Id &id);
 
       /**
        * Each node besides the first receives shuffled data
-       * @param data serialized message
+       * @param stream serialized message
        * @param id the remote peer sending the message
        */
       void HandleShuffle(QDataStream &stream, const Id &id);
 
       /**
        * The inner encrypted only messages sent by the last peer
-       * @param data serialized message
+       * @param stream serialized message
        * @param id the remote peer sending the message
        */
       void HandleDataBroadcast(QDataStream &stream, const Id &id);
 
       /**
        * Each peer sends a go / no go message
-       * @param data serialized message
+       * @param stream serialized message
        * @param id the remote peer sending the message
        */
       void HandleVerification(QDataStream &stream, bool go, const Id &id);
 
       /**
        * Each peer shares with each other their inner private keys
-       * @param data serialized message
+       * @param stream serialized message
        * @param id the remote peer sending the message
        */
       void HandlePrivateKey(QDataStream &stream, const Id &id);
@@ -212,7 +212,7 @@ namespace Anonymity {
       /**
        * Each peer shares their incoming messages logs with each other in order
        * to reconstruct where something bad may have occurred
-       * @param data serialized message
+       * @param stream serialized message
        * @param id the remote peer sending the message
        */
       void HandleBlame(QDataStream &stream, const Id &id);
@@ -220,7 +220,7 @@ namespace Anonymity {
       /**
        * Prior to reviewing the blame data, shares the signatures of the blames
        * that they received
-       * @param data serialized message
+       * @param stream serialized message
        * @param id the remote peer sending the message
        */
       void HandleBlameVerification(QDataStream &stream, const Id &id);
