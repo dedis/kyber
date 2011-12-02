@@ -27,6 +27,25 @@ namespace Tests {
     }
   }
 
+  void RandomWithOffsetAndSeedTest(Library *lib)
+  {
+    QScopedPointer<Random> rng(lib->GetRandomNumberGenerator());
+    QByteArray seed(20, 0);
+    rng->GenerateBlock(seed);
+
+    QScopedPointer<Random> rng0(lib->GetRandomNumberGenerator(seed));
+    QScopedPointer<Random> rng1(lib->GetRandomNumberGenerator(seed));
+
+    QByteArray msg0(1024, 0);
+    rng0->GenerateBlock(msg0);
+
+    QByteArray msg1(3, 0);
+    for(int idx = 0; idx < msg0.size(); idx+=3) {
+      rng1->GenerateBlock(msg1);
+      QByteArray tmp = QByteArray::fromRawData(msg0.constData(), 3);
+      EXPECT_EQ(msg1, tmp);
+    }
+  }
 
   TEST(Random, BaseRandomTest)
   {
@@ -46,6 +65,18 @@ namespace Tests {
   }
 
   TEST(Random, CppRandomSeedTest)
+  {
+    QScopedPointer<Library> lib(new CppLibrary());
+    SeededRandomTest(lib.data());
+  }
+
+  TEST(Random, NullRandomWithOffsetAndSeedTest)
+  {
+    QScopedPointer<Library> lib(new NullLibrary());
+    SeededRandomTest(lib.data());
+  }
+
+  TEST(Random, CppRandomWithOffsetAndSeedTest)
   {
     QScopedPointer<Library> lib(new CppLibrary());
     SeededRandomTest(lib.data());
