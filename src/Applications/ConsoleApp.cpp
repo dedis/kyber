@@ -46,7 +46,7 @@ int main(int argc, char **argv)
   QSharedPointer<DiffieHellman> dh;
 
   if(settings.DemoMode) {
-    QByteArray id = nodes[0]->bg.GetId().GetByteArray();
+    QByteArray id = local_id.GetByteArray();
     key = QSharedPointer<AsymmetricKey>(lib->GeneratePrivateKey(id));
     dh = QSharedPointer<DiffieHellman>(lib->GenerateDiffieHellman(id));
   } else {
@@ -64,7 +64,7 @@ int main(int argc, char **argv)
     QSharedPointer<DiffieHellman> dh;
 
     if(settings.DemoMode) {
-      QByteArray id = nodes[idx]->bg.GetId().GetByteArray();
+      QByteArray id = local_id.GetByteArray();
       key = QSharedPointer<AsymmetricKey>(lib->GeneratePrivateKey(id));
       dh = QSharedPointer<DiffieHellman>(lib->GenerateDiffieHellman(id));
     } else {
