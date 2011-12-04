@@ -27,7 +27,7 @@ namespace Tests {
 
       virtual ~TestNode() {}
 
-      BufferSink sink;
+      BufferSinkWithSignal sink;
       RpcHandler rpc;
       ConnectionManager cm;
       SessionManager sm;

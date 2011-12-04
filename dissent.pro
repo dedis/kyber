@@ -61,6 +61,7 @@ HEADERS += src/Dissent.hpp \
            src/Connections/Id.hpp \
            src/Connections/Network.hpp \
            src/Messaging/BufferSink.hpp \
+           src/Messaging/BufferSinkWithSignal.hpp \
            src/Messaging/DummySink.hpp \
            src/Messaging/Filter.hpp \
            src/Messaging/GetDataCallback.hpp \

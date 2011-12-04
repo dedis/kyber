@@ -92,13 +92,15 @@ namespace Tests {
     rand->GenerateBlock(msg);
     nodes[sender]->session->Send(msg);
 
+    SignalCounter sc;
     for(int idx = 0; idx < count; idx++) {
+      QObject::connect(&nodes[idx]->sink, SIGNAL(DataReceived()), &sc, SLOT(Counter()));
       nodes[idx]->session->Start();
     }
 
     TestNode::calledback = 0;
     qint64 next = Timer::GetInstance().VirtualRun();
-    while(next != -1 && TestNode::calledback < count) {
+    while(next != -1 && sc.GetCount() < count && TestNode::calledback < count) {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
     }
@@ -139,16 +141,20 @@ namespace Tests {
     rand->GenerateBlock(msg);
     nodes[sender0]->session->Send(msg);
 
+    SignalCounter sc;
     for(int idx = 0; idx < count; idx++) {
+      QObject::connect(&nodes[idx]->sink, SIGNAL(DataReceived()), &sc, SLOT(Counter()));
       nodes[idx]->session->Start();
     }
 
     TestNode::calledback = 0;
     qint64 next = Timer::GetInstance().VirtualRun();
-    while(next != -1 && TestNode::calledback < count) {
+    while(next != -1 && sc.GetCount() < count && TestNode::calledback < count) {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
     }
+
+    sc.Reset();
 
     for(int idx = 0; idx < count; idx++) {
       EXPECT_EQ(msg, nodes[idx]->sink.Last().first);
@@ -159,7 +165,7 @@ namespace Tests {
 
     TestNode::calledback = 0;
     next = Timer::GetInstance().VirtualRun();
-    while(next != -1 && TestNode::calledback < count * 2) {
+    while(next != -1 && sc.GetCount() < count && TestNode::calledback < count * 2) {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
     }

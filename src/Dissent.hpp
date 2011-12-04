@@ -53,6 +53,7 @@
 #include "Connections/Network.hpp"
 
 #include "Messaging/BufferSink.hpp"
+#include "Messaging/BufferSinkWithSignal.hpp"
 #include "Messaging/DummySink.hpp"
 #include "Messaging/GetDataCallback.hpp" 
 #include "Messaging/ISender.hpp"
