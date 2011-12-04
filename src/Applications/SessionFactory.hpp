@@ -53,6 +53,16 @@ namespace Applications {
        */
       static void CreateNullRoundSession(Node *node);
 
+      /**
+       * Create a Bulk "V1" using fast shuffle
+       */
+      static void CreateBulkRoundSession(Node *node);
+
+      /**
+       * Create a Bulk "V2" using fast shuffle
+       */
+      static void CreateRepeatingBulkRoundSession(Node *node);
+
     private:
       static void Common(Node *node, CreateRound cr, CreateGroupGenerator cgg);
 

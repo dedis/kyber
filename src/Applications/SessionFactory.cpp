@@ -1,3 +1,5 @@
+#include "../Anonymity/BulkRound.hpp"
+#include "../Anonymity/RepeatingBulkRound.hpp"
 #include "../Anonymity/GroupGenerator.hpp"
 #include "../Anonymity/FixedSizeGroupGenerator.hpp"
 #include "../Anonymity/NullRound.hpp"
@@ -11,6 +13,8 @@
 
 #include "SessionFactory.hpp"
 
+using Dissent::Anonymity::BulkRound;
+using Dissent::Anonymity::RepeatingBulkRound;
 using Dissent::Anonymity::FixedSizeGroupGenerator;
 using Dissent::Anonymity::Group;
 using Dissent::Anonymity::GroupGenerator;
@@ -40,6 +44,8 @@ namespace Applications {
     AddCreateCallback("null", &CreateNullRoundSession);
     AddCreateCallback("shuffle", &CreateShuffleRoundSession);
     AddCreateCallback("fastshuffle", &CreateFastShuffleRoundSession);
+    AddCreateCallback("bulk", &CreateBulkRoundSession);
+    AddCreateCallback("repeatingbulk", &CreateRepeatingBulkRoundSession);
   }
 
   void SessionFactory::AddCreateCallback(const QString &type, Callback cb)
@@ -70,6 +76,16 @@ namespace Applications {
   void SessionFactory::CreateFastShuffleRoundSession(Node *node)
   {
     Common(node, &TCreateRound<ShuffleRound>, FixedSizeGroupGenerator::Create);
+  }
+
+  void SessionFactory::CreateBulkRoundSession(Node *node)
+  {
+    Common(node, &TCreateRound<BulkRound>, FixedSizeGroupGenerator::Create);
+  }
+
+  void SessionFactory::CreateRepeatingBulkRoundSession(Node *node)
+  {
+    Common(node, &TCreateRound<RepeatingBulkRound>, FixedSizeGroupGenerator::Create);
   }
 
   void SessionFactory::Common(Node *node, CreateRound cr, CreateGroupGenerator cgg)
