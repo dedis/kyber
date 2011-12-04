@@ -8,6 +8,7 @@
 #include "Anonymity/GroupGenerator.hpp"
 #include "Anonymity/Log.hpp"
 #include "Anonymity/NullRound.hpp"
+#include "Anonymity/RepeatingBulkRound.hpp"
 #include "Anonymity/Round.hpp"
 #include "Anonymity/Session.hpp"
 #include "Anonymity/SessionManager.hpp"

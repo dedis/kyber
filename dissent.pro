@@ -19,6 +19,7 @@ HEADERS += src/Dissent.hpp \
            src/Anonymity/GroupGenerator.hpp \
            src/Anonymity/Log.hpp \
            src/Anonymity/NullRound.hpp \
+           src/Anonymity/RepeatingBulkRound.hpp \
            src/Anonymity/Round.hpp \
            src/Anonymity/Session.hpp \
            src/Anonymity/SessionManager.hpp \
@@ -103,6 +104,7 @@ SOURCES += src/Anonymity/BulkRound.cpp \
            src/Anonymity/Group.cpp \
            src/Anonymity/Log.cpp \
            src/Anonymity/NullRound.cpp \
+           src/Anonymity/RepeatingBulkRound.cpp \
            src/Anonymity/Round.cpp \
            src/Anonymity/Session.cpp \
            src/Anonymity/SessionManager.cpp \

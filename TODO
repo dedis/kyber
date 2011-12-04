@@ -31,10 +31,8 @@ Transports
 - EdgeListeners should produce QSharedPointer<Edge>
 - Implement a UdpEL and create a reliability layer so we can use it for UdpEL and if we do other tasks that require reliable transmission (such as overlay routing).
 
-Utils
-- VirtualTime should have a method that lets it be executed for a specific amount of time via QEvent mechanisms
-
 Issues
 - The current protocol doesn't work properly if a non-shuffler receives an invalid go / no go message ... since no one is waiting for its private keys, thus the process will conclude potentially without his follow up.
 - A malicious peer or a bad network may redeliver the same message multiple times ... ignore duplicate messages by verifying they exist in the logs...
 - Consider application aware and network layer broadcasting, evaluate performance as well as security / anonymity risks
+- Tests RoundTest Null and DisconnectEnd do not work for protocols that have "infinite" internal phases (i.e., subrounds)
