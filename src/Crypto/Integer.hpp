@@ -27,7 +27,8 @@ namespace Crypto {
       }
 
       Integer(const QByteArray &value) :
-        _data(CryptoFactory::GetInstance().GetLibrary()->GetIntegerData(value))
+        _data(CryptoFactory::GetInstance().GetLibrary()->GetIntegerData(
+              value.isEmpty() ? QByteArray(1, 0) : value))
       {
       }
 

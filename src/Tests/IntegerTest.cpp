@@ -30,12 +30,28 @@ namespace Tests {
     EXPECT_TRUE(int1 + 1 <= int0);
   }
 
+  void IntegerTestNull()
+  {
+    Dissent::Crypto::Integer int0 = Dissent::Crypto::Integer(QByteArray());
+    Dissent::Crypto::Integer int1 = Dissent::Crypto::Integer(0);
+    EXPECT_EQ(int0, int1);
+  }
+
   TEST(Integer, CppBasic)
   {
     CryptoFactory &cf = CryptoFactory::GetInstance();
     CryptoFactory::LibraryName cname = cf.GetLibraryName();
     cf.SetLibrary(CryptoFactory::CryptoPP);
     IntegerBasicTest();
+    cf.SetLibrary(cname);
+  }
+
+  TEST(Integer, CppNull)
+  {
+    CryptoFactory &cf = CryptoFactory::GetInstance();
+    CryptoFactory::LibraryName cname = cf.GetLibraryName();
+    cf.SetLibrary(CryptoFactory::CryptoPP);
+    IntegerTestNull();
     cf.SetLibrary(cname);
   }
 }
