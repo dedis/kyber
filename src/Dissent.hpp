@@ -13,6 +13,7 @@
 #include "Anonymity/Session.hpp"
 #include "Anonymity/SessionManager.hpp"
 #include "Anonymity/ShuffleRound.hpp"
+#include "Anonymity/TrustedBulkRound.hpp"
 
 #include "Applications/CommandLine.hpp"
 #include "Applications/ConsoleSink.hpp"

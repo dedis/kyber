@@ -38,7 +38,8 @@ HEADERS += ext/googletest/include/gtest/gtest-death-test.h \
            src/Tests/RoundTest.hpp \
            src/Tests/ShuffleRoundHelpers.hpp \
            src/Tests/BulkRoundHelpers.hpp \
-           src/Tests/RepeatingBulkRoundHelpers.hpp
+           src/Tests/RepeatingBulkRoundHelpers.hpp \
+           src/Tests/TrustedBulkRoundHelpers.hpp
 
 SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/AddressTest.cpp \
@@ -67,3 +68,4 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/SerializationTest.cpp \
            src/Tests/BulkRoundTest.cpp \
            src/Tests/RepeatingBulkRoundTest.cpp \
+           src/Tests/TrustedBulkRoundTest.cpp

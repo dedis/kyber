@@ -26,6 +26,7 @@ HEADERS += src/Dissent.hpp \
            src/Anonymity/ShuffleBlamer.hpp \
            src/Anonymity/ShuffleRound.hpp \
            src/Anonymity/ShuffleRoundBlame.hpp \
+           src/Anonymity/TrustedBulkRound.hpp \
            src/Applications/CommandLine.hpp \
            src/Applications/ConsoleSink.hpp \
            src/Applications/FileSink.hpp \
@@ -111,6 +112,7 @@ SOURCES += src/Anonymity/BulkRound.cpp \
            src/Anonymity/ShuffleBlamer.cpp \
            src/Anonymity/ShuffleRound.cpp \
            src/Anonymity/ShuffleRoundBlame.cpp \
+           src/Anonymity/TrustedBulkRound.cpp \
            src/Applications/CommandLine.cpp \
            src/Applications/ConsoleSink.cpp \
            src/Applications/FileSink.cpp \
