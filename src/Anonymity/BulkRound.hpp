@@ -24,8 +24,14 @@ namespace Anonymity {
    * exchange.
    *
    * The V1 bulk protocol consists of a shuffle round and a bulk transmission
-   * phase.  The current instantiation does not include any blame phase
-   * that, which is present within the shuffle round.
+   * phase.  The shuffle round includes an anonymous DH key and a hash for
+   * each message transmitted by other peers.  Each member combines their
+   * well known public key with the anonymous DH key to create seeds for a
+   * random number generator to generate an xor mask.  They then calculate
+   * the xor version of their message by xoring all other masks and the
+   * cleartext.  They transmit the xor mask with their xor message.  Each
+   * member will accumulate and xor all messages revealing the cleartext
+   * message.
    */
   class BulkRound : public Round {
     Q_OBJECT
@@ -80,9 +86,12 @@ namespace Anonymity {
       /**
        * Constructor
        * @param group_gen Generate groups for use during this round
+       * @param creds the local nodes credentials
        * @param round_id Unique round id (nonce)
        * @param network handles message sending
        * @param get_data requests data to share during this session
+       * @param create_shuffle optional parameter specifying a shuffle round
+       * to create, currently used for testing
        */
       BulkRound(QSharedPointer<GroupGenerator> group_gen, 
           const Credentials &creds, const Id &round_id, 
