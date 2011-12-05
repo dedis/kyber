@@ -24,17 +24,17 @@ namespace Anonymity {
    * exchange.
    *
    * The V1 bulk protocol consists of a shuffle round and a bulk transmission
-   * phase.  The shuffle round includes an anonymous DH key and a hash for
-   * each message transmitted by other peers.  Each member combines their
-   * well known public key with the anonymous DH key to create seeds for a
-   * random number generator to generate an xor mask.  They then calculate
-   * the xor version of their message by xoring all other masks and the
-   * cleartext.  They transmit the xor mask with their xor message.  Each
-   * member will accumulate and xor all messages revealing the cleartext
-   * message.
+   * phase.  The shuffle round includes an anonymous DH key and a hash for each
+   * message transmitted by other peers.  The final permuted position of the DH
+   * key and hash is their position or slot in the bulk message.  Using the
+   * RNG, a member generates an xor mask for the slot of the anonymous sender.
+   * If the member owns the slot, then they first calculate all others masks,
+   * xor them together, and then xor the cleartext to arrive at their mask.
+   * Each member accumulates the masks in the appropriate slot order and
+   * distributes them to all other peers.  Upon accumulating all xor masks and
+   * combining them via xor operations the cleartext messages are revealed.
    */
-  class BulkRound : public Round {
-    Q_OBJECT
+  class BulkRound : public Round { Q_OBJECT
 
     Q_ENUMS(State);
     Q_ENUMS(MessageType);

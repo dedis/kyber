@@ -30,10 +30,10 @@ namespace Anonymity {
    *
    * The "V2" bulk protocol consists of a shuffle round which shares an
    * anonymous DiffieHellman public component and public signing key.  The
-   * results of a tranmission will be a Length for the next rounds message,
-   * a message, and a signature.  The contents of these messages are
-   * constructed exactly as in V1, i.e., random string generation xored with
-   * the original message to produce the true message and all put on the wire.
+   * cleartext in each transmission is the phase number, length of the next
+   * phase's message, a message, and a signature.  The xor mask generation,
+   * distribution, and resolution  are the same as "V1".  See BulkRound
+   * comments for more information.
    */
   class RepeatingBulkRound : public Round {
     Q_OBJECT

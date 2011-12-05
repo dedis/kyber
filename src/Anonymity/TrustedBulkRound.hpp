@@ -14,15 +14,20 @@ namespace Anonymity {
    * keys.  The cleartext messages are still of the same form: phase,  next
    * phase message length, message, and signature.  The difference is in how
    * the xor texts are generated.  This model assumes that only a core set
-   * of resources are trusted allowing the non-trusted peers to be offline
-   * during transmissions so long as they have generated sufficient bits.
-   * In short, all members start with an xor mask by combining their anonymous
-   * DH with the trusted members well known public DH.  The trusted members
-   * include in their xor mask a combination of all anonymous DH keys with
-   * their well known public DH.  In short, each peer has an xor mask for
-   * each trusted peer.  Each trusted peer has an xor mask for every other
-   * peer.  Their cleartext message is xored directly into the message.  Thus
-   * after accumulating and xoring all the masks only the cleartext remains.
+   * of resources are trusted and allows for pregeneration of xor masks.  A
+   * peer can generate sufficient bits, share them with another peer who will
+   * transmit the bits for them, and then go offline.
+   *
+   * To generate the bits, creates a RNG for each trusted peer using DH shared
+   * secret created as a result of combining the anonymous private DH with the
+   * public trusted DH.  In addition, each trusted DH creates a RNG for each
+   * peer using their private DH and the anonymous public DH.  Each RNG is used
+   * to generate a message spanning the length of all anonymous messages in the
+   * given phase.  Each peer than combines via xor these masks to generate an
+   * xor mask.  The member then xors their message into their space inside the
+   * message.  This final message is the one distributed to all other peers.  A
+   * peer collecting all messages can xor them together to reveal all the
+   * original messages.
    */
   class TrustedBulkRound : public RepeatingBulkRound {
     public:

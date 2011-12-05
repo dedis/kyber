@@ -14,9 +14,35 @@
 
 namespace Dissent {
 namespace Anonymity {
+
   /**
-   * Dissent's basic shuffling algorithm
+   * Dissent's shuffling algorithm.
+   *
+   * A subset of members, shufflers, provide a pair of public encryption keys
+   * called inner and outer keys.  In the protocol these key pairs are
+   * distributed first.  Some other subset of peers has a message they want to
+   * share anonymously and those that do not have a null packet.  Each member
+   * encrypts their message first with each inner key and then with each outer
+   * key.  Keys are ordered by the peer Id of the owner from largest to
+   * smallest largest in Integer format.  The resulting message is sent to the
+   * first member in the shufflers group.  Each shuffler removes their outer
+   * encryption, shuffles (permutes) the message order, and transmits the
+   * resulting message to the next member.  When the last shuffler completes
+   * their decryption and permutation, the message is broadcasted to all
+   * members in the group.
+   *
+   * Each member broadcasts to a go along with the hash of all broadcast
+   * messages received thus far if their inner encrypted message is present or
+   * a no go if not.  If all members submit a go and have the same broadcast
+   * message hash, each shuffler reveals their private keys.  Otherwise peers
+   * begin a blame phase and broadcast their logs to each other.  Afterward,
+   * each peer distributes the hash of the messages and the signature, so that
+   * each other member can verify they are viewing the same state.  Each peer
+   * will replay the round and determine the faulty peer.
+   *
+   * The blame phase is still being evolved.
    */
+
   class ShuffleRound : public Round {
     Q_OBJECT
 
