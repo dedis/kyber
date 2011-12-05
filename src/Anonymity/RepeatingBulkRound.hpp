@@ -89,9 +89,12 @@ namespace Anonymity {
       /**
        * Constructor
        * @param group_gen Generate groups for use during this round
+       * @param creds the local nodes credentials
        * @param round_id Unique round id (nonce)
        * @param network handles message sending
        * @param get_data requests data to share during this session
+       * @param create_shuffle optional parameter specifying a shuffle round
+       * to create, currently used for testing
        */
       RepeatingBulkRound(QSharedPointer<GroupGenerator> group_gen, 
           const Credentials &creds, const Id &round_id, 
@@ -170,6 +173,53 @@ namespace Anonymity {
        * @param from the sender
        */
       void HandleBulkData(QDataStream &stream, const Id &from);
+
+      /**
+       * Returns this phases expected message size
+       */
+      uint GetExpectedBulkMessageSize() { return _expected_bulk_size; }
+
+      /**
+       * Sets the list of anonymous rngs
+       */
+      void SetAnonymousRngs(const QVector<QSharedPointer<Random> > &anon_rngs)
+      {
+        _anon_rngs = anon_rngs;
+      }
+
+      const QVector<QSharedPointer<Random> > &GetAnonymousRngs() { return _anon_rngs; }
+
+      /**
+       * Sets the internal state of the bulk round
+       */
+      void SetState(State state) { _state = state; }
+
+      /**
+       * Prepares the local members cleartext message
+       * returns the local members cleartext message
+       */
+      QByteArray GenerateMyCleartextMessage();
+
+      /**
+       * Returns the local members index
+       */
+      uint GetMyIndex() { return _my_idx; }
+
+      /**
+       * Returns the list of current phase message lengths
+       */
+      const QVector<uint> &GetMessageLengths() { return _message_lengths; }
+
+      /**
+       * Returns the list of static sized headers / footers
+       */
+      const QVector<uint> &GetHeaderLengths() { return _header_lengths; }
+
+      /**
+       * Returns the anonymous DiffieHellman key
+       */
+      QSharedPointer<DiffieHellman> GetAnonymousDh() { return _anon_dh; }
+
     private:
       /**
        * Once all bulk data messages have been received, parse them
@@ -177,12 +227,13 @@ namespace Anonymity {
       void ProcessMessages();
       
       /**
-       * Parse the deecriptor and retrieve the cleartext bulk data
+       * Parse the clear text message returning back the entry if the contents
+       * are valid
+       * @param cleartext the entire cleartext array
        * @param member_idx the anonymous owners index
-       * @param msg_ind an index into the message array
        * @returns the cleartext message
        */
-      QByteArray ProcessMessage(uint member_idx, uint &msg_index);
+      QByteArray ProcessMessage(const QByteArray &cleartext, uint member_idx);
 
       /**
        * Does all the prep work for the next phase, clearing and zeroing out
@@ -197,13 +248,16 @@ namespace Anonymity {
       void NextPhase();
 
       /**
-       * Generates the proper xor message for the given msg, this is for the
-       * local nodes clear text
-       * @param next_length the size of the next data the peer wants to send
-       * @param msg the message the peer wants to send in this round
-       * @returns the local nodes xor message
+       * Generates the entire xor message with the local members message
+       * embedded within
        */
-      QByteArray GenerateMessage(uint next_length, const QByteArray &msg);
+      virtual QByteArray GenerateXorMessage();
+
+      /**
+       * Generates the proper xor message for the local member
+       * @returns the local members xor message
+       */
+      QByteArray GenerateMyXorMessage();
 
       /**
        * Returns the descriptors for sending in the shuffle round

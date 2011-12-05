@@ -42,12 +42,6 @@ namespace Anonymity {
     _anon_dh = QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman());
     _anon_key = QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey());
 
-    foreach(GroupContainer gc, GetGroup().GetRoster()) {
-      QByteArray seed = _anon_dh->GetSharedSecret(gc.third);
-      QSharedPointer<Random> rng(lib->GetRandomNumberGenerator(seed));
-      _anon_rngs.append(rng);
-    }
-
     QSharedPointer<Network> net(GetNetwork()->Clone());
     headers["bulk"] = false;
     net->SetHeaders(headers);
@@ -70,6 +64,17 @@ namespace Anonymity {
     if(!Round::Start()) {
       return false;
     }
+
+    QVector<QSharedPointer<Random> > anon_rngs;
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+
+    foreach(GroupContainer gc, GetGroup().GetRoster()) {
+      QByteArray seed = _anon_dh->GetSharedSecret(gc.third);
+      QSharedPointer<Random> rng(lib->GetRandomNumberGenerator(seed));
+      anon_rngs.append(rng);
+    }
+
+    SetAnonymousRngs(anon_rngs);
 
     _state = Shuffling;
     _shuffle_round->Start();
@@ -214,45 +219,45 @@ namespace Anonymity {
 
   void RepeatingBulkRound::ProcessMessages()
   {
-    uint msg_idx = 0;
     uint size = GetGroup().Count();
+
+    QByteArray cleartext(_expected_bulk_size, 0);
+    foreach(QByteArray ciphertext, _messages) {
+      Xor(cleartext, cleartext, ciphertext);
+    }
+
+    uint msg_idx = 0;
     for(uint member_idx = 0; member_idx < size; member_idx++) {
-      QByteArray cleartext = ProcessMessage(member_idx, msg_idx);
-      if(!cleartext.isEmpty()) {
-        PushData(cleartext, this);
+      int length = _message_lengths[member_idx] + _header_lengths[member_idx];
+      QByteArray tcleartext = QByteArray::fromRawData(cleartext.constData() + msg_idx, length);
+      msg_idx += length;
+      QByteArray msg = ProcessMessage(tcleartext, member_idx);
+
+      if(!msg.isEmpty()) {
+        PushData(msg, this);
       }
     }
   }
 
-  QByteArray RepeatingBulkRound::ProcessMessage(uint member_idx, uint &msg_idx)
+  QByteArray RepeatingBulkRound::ProcessMessage(const QByteArray &cleartext, uint member_idx)
   {
-    uint count = _messages.size();
-    uint msg_length = _message_lengths[member_idx];
-    QSharedPointer<AsymmetricKey> verification_key(_descriptors[member_idx].second);
-
-    uint vkey_size = verification_key->GetKeySize() / 8;
-    uint packet_length = msg_length + 8 + vkey_size;
-    QByteArray packet(packet_length, 0);
-
-    for(uint idx = 0; idx < count; idx++) {
-      const char *ppacket = _messages[idx].constData() + msg_idx;
-      QByteArray xor_packet(QByteArray::fromRawData(ppacket, packet_length));
-      Xor(packet, packet, xor_packet);
-    }
-
-    uint found_phase = Serialization::ReadInt(packet, 0);
+    uint found_phase = Serialization::ReadInt(cleartext, 0);
     if(found_phase != _phase) {
       qWarning() << "Received a message for an invalid phase:" << found_phase;
       _message_lengths[member_idx] = 0;
       return QByteArray();
     }
 
-    QByteArray base = QByteArray::fromRawData(packet.constData(), packet.size() - vkey_size);
-    QByteArray sig = QByteArray::fromRawData(packet.constData() + packet.size() - vkey_size, vkey_size);
-    msg_idx += packet_length;
+    QSharedPointer<AsymmetricKey> verification_key(_descriptors[member_idx].second);
+    uint vkey_size = verification_key->GetKeySize() / 8;
+
+    qWarning() << Serialization::ReadInt(cleartext, 4);
+    QByteArray base = QByteArray::fromRawData(cleartext.constData(), cleartext.size() - vkey_size);
+    QByteArray sig = QByteArray::fromRawData(cleartext.constData() + cleartext.size() - vkey_size, vkey_size);
     if(verification_key->Verify(base, sig)) {
-      _message_lengths[member_idx] = Serialization::ReadInt(packet, 4);
-      return packet.mid(8, msg_length);
+      _message_lengths[member_idx] = Serialization::ReadInt(cleartext, 4);
+      qWarning() << _message_lengths[member_idx];
+      return base.mid(8);
     } else {
       qWarning() << "Unable to verify message for peer at" << member_idx;
       _message_lengths[member_idx] = 0;
@@ -274,16 +279,20 @@ namespace Anonymity {
 
   void RepeatingBulkRound::NextPhase()
   {
-    QPair<QByteArray, bool> pair = GetData(4096);
-    const QByteArray cur_msg = _next_msg;
-    _next_msg = pair.first;
-    const QByteArray my_msg = GenerateMessage(pair.first.size(), cur_msg);
+    QByteArray xor_msg = GenerateXorMessage();
+    QByteArray packet;
+    QDataStream stream(&packet, QIODevice::WriteOnly);
+    stream << BulkData << GetRoundId() << _phase << xor_msg;
+    VerifiableBroadcast(packet);
+  }
 
+  QByteArray RepeatingBulkRound::GenerateXorMessage()
+  {
     QByteArray msg;
     uint size = static_cast<uint>(_descriptors.size());
     for(uint idx = 0; idx < size; idx++) {
       if(idx == _my_idx) {
-        msg.append(my_msg);
+        msg.append(GenerateMyXorMessage());
         continue;
       }
       uint length = _message_lengths[idx] + _header_lengths[idx];
@@ -292,20 +301,12 @@ namespace Anonymity {
       msg.append(tmsg);
     }
 
-    QByteArray packet;
-    QDataStream stream(&packet, QIODevice::WriteOnly);
-    stream << BulkData << GetRoundId() << _phase << msg;
-    VerifiableBroadcast(packet);
+    return msg;
   }
 
-  QByteArray RepeatingBulkRound::GenerateMessage(uint next_length, const QByteArray &msg)
+  QByteArray RepeatingBulkRound::GenerateMyXorMessage()
   {
-    QByteArray cleartext(8, 0);
-    Serialization::WriteInt(_phase, cleartext, 0);
-    Serialization::WriteInt(next_length, cleartext, 4);
-    cleartext.append(msg);
-    QByteArray sig = _anon_key->Sign(cleartext);
-    cleartext.append(sig);
+    QByteArray cleartext = GenerateMyCleartextMessage();
 
     uint length = cleartext.size();
     uint my_idx = GetGroup().GetIndex(GetLocalId());
@@ -327,6 +328,22 @@ namespace Anonymity {
 
     _expected_msgs[_my_idx] = xor_msg;
     return xor_msg;
+  }
+
+  QByteArray RepeatingBulkRound::GenerateMyCleartextMessage()
+  {
+    QPair<QByteArray, bool> pair = GetData(4096);
+    const QByteArray cur_msg = _next_msg;
+    _next_msg = pair.first;
+
+    QByteArray cleartext(8, 0);
+    Serialization::WriteInt(_phase, cleartext, 0);
+    Serialization::WriteInt(_next_msg.size(), cleartext, 4);
+    cleartext.append(cur_msg);
+    QByteArray sig = _anon_key->Sign(cleartext);
+    cleartext.append(sig);
+
+    return cleartext;
   }
 
   QPair<QByteArray, bool> RepeatingBulkRound::GetShuffleData(int)
