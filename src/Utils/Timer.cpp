@@ -6,7 +6,7 @@ namespace Utils {
   Timer::Timer() : _next_timer(-1)
   {
     _queue = TimerQueue(&(TimerEvent::ReverseComparer));
-    UseRealTime();
+    _real_time = true;
   }
 
   Timer::~Timer()
