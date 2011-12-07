@@ -122,6 +122,12 @@ namespace Anonymity {
        */
       virtual void Send(const QByteArray &data);
 
+      /**
+       * If the ConnectionTable has a disconnect, the round may need to react
+       * @param con the Connection that disconnected
+       */
+      virtual void HandleDisconnect(Connection *con);
+
       inline virtual QString ToString() const { return "Round"; }
 
     signals:
@@ -192,7 +198,6 @@ namespace Anonymity {
 
       QSharedPointer<Network> &GetNetwork() { return _network; }
 
-    private:
       QSharedPointer<GroupGenerator> _group_gen;
       const Group _group;
       const Credentials _creds;
@@ -202,14 +207,6 @@ namespace Anonymity {
       bool _successful;
       QString _stopped_reason;
       QVector<int> _empty_list;
-
-    private slots:
-      /**
-       * If the ConnectionTable has a disconnect, the round may need to react
-       * @param con the Connection that disconnected
-       * @param reason the reason it was disconnected
-       */
-      virtual void HandleDisconnect(Connection *con, const QString &reason);
   };
 
   typedef Round *(*CreateRound)(QSharedPointer<GroupGenerator>,

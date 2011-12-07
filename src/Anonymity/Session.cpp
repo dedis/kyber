@@ -200,6 +200,8 @@ namespace Anonymity {
     if(!_group.Contains(con->GetRemoteId()) || Stopped()) {
       return;
     }
+
+    _current_round->HandleDisconnect(con);
     qDebug() << "Closing Session due to disconnect";
     Stop();
   }
