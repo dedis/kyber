@@ -1,6 +1,7 @@
 #ifndef DISSENT_ANONYMITY_GROUP_H_GUARD
 #define DISSENT_ANONYMITY_GROUP_H_GUARD
 
+#include<QDataStream>
 #include <QHash>
 #include <QSharedData>
 #include <QSharedPointer>
@@ -55,6 +56,9 @@ namespace Anonymity {
        */
       Group(const QVector<GroupContainer> &containers = QVector<GroupContainer>());
 
+      /**
+       * Returns the internal roster
+       */
       inline const QVector<GroupContainer> &GetRoster() const { return _data->GroupRoster; }
 
       /**
@@ -116,10 +120,34 @@ namespace Anonymity {
        */
       int Count() const { return _data->Size; }
 
+      /**
+       * Evaluates the equality of two groups (i.e., same order, same Ids,
+       * same keys, same DHs.
+       */
+      bool operator==(const Group &other) const;
+
       static const QSharedPointer<AsymmetricKey> EmptyKey;
     private:
       QSharedDataPointer<GroupData> _data;
   };
+
+  inline bool operator!=(const GroupContainer &lhs, const GroupContainer &rhs) 
+  {
+    return (lhs.first != rhs.first) ||
+          (*lhs.second != *rhs.second) ||
+          (lhs.third != rhs.third);
+  }
+
+  inline bool operator==(const GroupContainer &lhs, const GroupContainer &rhs) 
+  {
+    return (lhs.first == rhs.first) ||
+          (*lhs.second == *rhs.second) ||
+          (lhs.third == rhs.third);
+  }
+
+  QDataStream &operator<<(QDataStream &stream, const Group &group);
+
+  QDataStream &operator>>(QDataStream &stream, Group &group);
 }
 }
 

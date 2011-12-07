@@ -1,5 +1,7 @@
 #include "Group.hpp"
 
+#include "../Crypto/Serialization.hpp"
+
 using Dissent::Connections::Id;
 using Dissent::Crypto::AsymmetricKey;
 
@@ -80,5 +82,39 @@ namespace Anonymity {
     }
     return _data->GroupRoster[idx].third;
   }
+
+  bool Group::operator==(const Group &other) const
+  {
+    QVector<GroupContainer> gr0 = GetRoster();
+    QVector<GroupContainer> gr1 = other.GetRoster();
+
+    int size = gr0.size();
+    if(size != gr1.size()) {
+      qWarning() << "Size mismatch";
+      return false;
+    }
+
+    for(int idx = 0; idx < size; idx++) {
+      if(gr0[idx] != gr1[idx]) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  QDataStream &operator<<(QDataStream &stream, const Group &group)
+  {
+    return stream << group.GetRoster();
+  }
+
+  QDataStream &operator>>(QDataStream &stream, Group &group)
+  {
+    QVector<GroupContainer> group_roster;
+    stream >> group_roster;
+    group = Group(group_roster);
+    return stream;
+  }
+
 }
 }

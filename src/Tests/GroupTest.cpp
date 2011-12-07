@@ -44,5 +44,34 @@ namespace Tests {
       EXPECT_EQ(group0.GetId(idx), group0.GetId(idx));
     }
   }
+
+  TEST(Group, Serialization)
+  {
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+
+    QVector<GroupContainer> gr;
+    for(int idx = 0; idx < 100; idx++) {
+      Id id;
+      QByteArray bid = id.GetByteArray();
+      QSharedPointer<AsymmetricKey> key(lib->GeneratePublicKey(bid));
+      QScopedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
+      gr.append(GroupContainer(id, key, dh->GetPublicComponent()));
+    }
+
+    Group group_in(gr);
+
+    QByteArray msg;
+    QDataStream stream_in(&msg, QIODevice::WriteOnly);
+
+    stream_in << group_in;
+
+    QDataStream stream_out(msg);
+    Group group_out;
+    stream_out >> group_out;
+
+    EXPECT_EQ(group_in, group_out);
+    EXPECT_EQ(gr[0], gr[0]);
+    EXPECT_NE(gr[1], gr[0]);
+  }
 }
 }
