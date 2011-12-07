@@ -9,8 +9,9 @@
 #include <QSharedPointer>
 #include <QVector>
 
-#include "../Utils/Triple.hpp"
 #include "../Connections/Id.hpp"
+#include "../Crypto/NullPrivateKey.hpp"
+#include "../Utils/Triple.hpp"
 
 namespace Dissent {
 namespace Crypto {
@@ -45,7 +46,9 @@ namespace Anonymity {
   };
 
   /**
-   * Members of an anonymity session.  Ids represent overlay addresses for peers
+   * Members of an anonymity session sorted in ascending orde.
+   * Contains all the components attributed to another member in the anonymity
+   * group.
    */
   class Group {
     public:
@@ -132,7 +135,11 @@ namespace Anonymity {
        */
       bool operator==(const Group &other) const;
 
-      static const QSharedPointer<AsymmetricKey> EmptyKey;
+      inline static const QSharedPointer<AsymmetricKey> &EmptyKey()
+      {
+        static QSharedPointer<AsymmetricKey> key(new Dissent::Crypto::NullPrivateKey());
+        return key;
+      }
     private:
       QSharedDataPointer<GroupData> _data;
   };

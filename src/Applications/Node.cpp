@@ -69,8 +69,6 @@ namespace Applications {
       group_roster.append(GroupContainer(id, key, dh->GetPublicComponent()));
     }
 
-    qSort(group_roster);
-
     return Group(group_roster);
   }
 }

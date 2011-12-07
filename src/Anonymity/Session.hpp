@@ -172,7 +172,7 @@ namespace Anonymity {
        */
       QByteArray _send_queue;
 
-      const Group _group;
+      Group _group;
       const Credentials _creds;
       const Id _leader_id;
       const Id _session_id;

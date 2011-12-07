@@ -4,13 +4,14 @@ namespace Dissent {
 namespace Tests {
   TEST(Group, Basic)
   {
-    Id id[10];
+    QVector<Id> id(10);
 
     QVector<GroupContainer> gr;
     for(int idx = 0; idx < 10; idx++) {
-      gr.append(GroupContainer(id[idx], Group::EmptyKey, QByteArray()));
+      gr.append(GroupContainer(id[idx], Group::EmptyKey(), QByteArray()));
     }
 
+    qSort(id);
     Group group(gr);
 
     EXPECT_EQ(group.Count(), 10);
@@ -35,7 +36,7 @@ namespace Tests {
 
     QVector<GroupContainer> gr0;
     for(int idx = 9; idx >= 0; idx--) {
-      gr0.append(GroupContainer(id[idx], Group::EmptyKey, QByteArray()));
+      gr0.append(GroupContainer(Id(), Group::EmptyKey(), QByteArray()));
     }
     Group group0(gr0);
     for(int idx = 0; idx < 10; idx++) {
@@ -93,11 +94,10 @@ namespace Tests {
     }
 
     Group set(gr);
-
     QVector<GroupContainer> gr0;
 
     for(int idx = 0; idx < 10; idx++) {
-      int offset = Random::GetInstance().GetInt(10 * idx, 11 * idx);
+      int offset = Random::GetInstance().GetInt(10 * idx, 10 + 10 * idx);
       QByteArray bid = set.GetId(offset).GetByteArray();
       Id id(bid);
       QSharedPointer<AsymmetricKey> key(lib->GeneratePublicKey(bid));
@@ -108,6 +108,7 @@ namespace Tests {
     Group subset(gr0);
 
     EXPECT_TRUE(IsSubset(subset, subset));
+    EXPECT_TRUE(IsSubset(set, subset));
     EXPECT_FALSE(IsSubset(subset, set));
   }
 }

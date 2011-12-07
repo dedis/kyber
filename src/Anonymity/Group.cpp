@@ -7,15 +7,16 @@ using Dissent::Crypto::AsymmetricKey;
 
 namespace Dissent {
 namespace Anonymity {
-  const QSharedPointer<Group::AsymmetricKey> Group::EmptyKey;
-
   Group::Group(const QVector<GroupContainer> &containers)
   {
+    QVector<GroupContainer> sorted(containers);
+    qSort(sorted);
+
     QHash<const Id, int> id_to_int;
-    for(int idx = 0; idx < containers.count(); idx++) {
-      id_to_int[containers[idx].first] = idx;
+    for(int idx = 0; idx < sorted.count(); idx++) {
+      id_to_int[sorted[idx].first] = idx;
     }
-    _data = new GroupData(containers, id_to_int);
+    _data = new GroupData(sorted, id_to_int);
   }
 
   const Id &Group::GetId(int idx) const
@@ -53,7 +54,7 @@ namespace Anonymity {
   {
     int idx = GetIndex(id);
     if(idx == -1) {
-      return EmptyKey;
+      return EmptyKey();
     }
     return GetKey(idx);
   }
@@ -61,7 +62,7 @@ namespace Anonymity {
   QSharedPointer<AsymmetricKey> Group::GetKey(int idx) const
   {
     if(idx >= _data->Size || idx < 0 || _data->GroupRoster[idx].second.isNull()) {
-      return EmptyKey;
+      return EmptyKey();
     }
     return _data->GroupRoster[idx].second;
   }

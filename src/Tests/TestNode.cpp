@@ -8,13 +8,15 @@ namespace Tests {
 
   void ConstructOverlay(int count, QVector<TestNode *> &nodes, Group *&group)
   {
+    QVector<Id> ids(count);
+    qSort(ids);
+
     QVector<GroupContainer> gr;
     for(int idx = 0; idx < count; idx++) {
-      nodes.append(new TestNode(idx+1));
-      const Id &id(nodes[idx]->cm.GetId());
+      nodes.append(new TestNode(ids[idx], idx+1));
       QSharedPointer<AsymmetricKey> key(nodes[idx]->creds.GetSigningKey()->GetPublicKey());
       QByteArray dh_pub(nodes[idx]->creds.GetDhKey()->GetPublicComponent());
-      gr.append(GroupContainer(id, key, dh_pub));
+      gr.append(GroupContainer(ids[idx], key, dh_pub));
     }
 
     group = new Group(gr);
