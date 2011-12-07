@@ -1,7 +1,9 @@
 #ifndef DISSENT_ANONYMITY_GROUP_H_GUARD
 #define DISSENT_ANONYMITY_GROUP_H_GUARD
 
-#include<QDataStream>
+#include <algorithm>
+
+#include <QDataStream>
 #include <QHash>
 #include <QSharedData>
 #include <QSharedPointer>
@@ -49,6 +51,10 @@ namespace Anonymity {
     public:
       typedef Dissent::Crypto::AsymmetricKey AsymmetricKey;
       typedef Dissent::Connections::Id Id;
+      typedef QVector<GroupContainer>::const_iterator const_iterator;
+
+      inline const_iterator begin() const { return _data->GroupRoster.begin(); }
+      inline const_iterator end() const { return _data->GroupRoster.end(); }
 
       /**
        * Constructor
@@ -145,9 +151,31 @@ namespace Anonymity {
           (lhs.third == rhs.third);
   }
 
+  inline bool operator<(const GroupContainer &lhs, const GroupContainer &rhs)
+  {
+    return (lhs.first < rhs.first) ||
+      ((lhs.first == rhs.first) &&
+       ((lhs.second->GetByteArray() < rhs.second->GetByteArray()) ||
+        ((*lhs.second == *rhs.second) && (lhs.third < rhs.third))));
+  }
+
+  inline bool IsSubset(const Group &set, const Group &subset)
+  {
+    return std::includes(set.begin(), set.end(), subset.begin(), subset.end());
+  }
+
   QDataStream &operator<<(QDataStream &stream, const Group &group);
 
   QDataStream &operator>>(QDataStream &stream, Group &group);
+}
+}
+
+// Put these into the common namespace of Triple
+namespace Dissent {
+namespace Utils {
+  using Dissent::Anonymity::operator==;
+  using Dissent::Anonymity::operator!=;
+  using Dissent::Anonymity::operator<;
 }
 }
 

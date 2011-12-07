@@ -72,6 +72,43 @@ namespace Tests {
     EXPECT_EQ(group_in, group_out);
     EXPECT_EQ(gr[0], gr[0]);
     EXPECT_NE(gr[1], gr[0]);
+
+    foreach(const GroupContainer &gc, group_in) {
+      EXPECT_TRUE(group_out.Contains(gc.first));
+    }
+
+    EXPECT_TRUE(IsSubset(group_in, group_out));
+  }
+
+  TEST(Group, Subgroup)
+  {
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QVector<GroupContainer> gr;
+    for(int idx = 0; idx < 100; idx++) {
+      Id id;
+      QByteArray bid = id.GetByteArray();
+      QSharedPointer<AsymmetricKey> key(lib->GeneratePublicKey(bid));
+      QScopedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
+      gr.append(GroupContainer(id, key, dh->GetPublicComponent()));
+    }
+
+    Group set(gr);
+
+    QVector<GroupContainer> gr0;
+
+    for(int idx = 0; idx < 10; idx++) {
+      int offset = Random::GetInstance().GetInt(10 * idx, 11 * idx);
+      QByteArray bid = set.GetId(offset).GetByteArray();
+      Id id(bid);
+      QSharedPointer<AsymmetricKey> key(lib->GeneratePublicKey(bid));
+      QScopedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
+      gr0.append(GroupContainer(id, key, dh->GetPublicComponent()));
+    }
+
+    Group subset(gr0);
+
+    EXPECT_TRUE(IsSubset(subset, subset));
+    EXPECT_FALSE(IsSubset(subset, set));
   }
 }
 }
