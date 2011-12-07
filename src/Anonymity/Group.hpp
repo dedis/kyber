@@ -171,6 +171,12 @@ namespace Anonymity {
     return std::includes(set.begin(), set.end(), subset.begin(), subset.end());
   }
 
+  /**
+   * Returns a new group while removing the existing member for the group.
+   * Group is intended to be immutable, so we just return a new group.
+   */
+  Group RemoveMember(const Group &group, const Group::Id &id);
+
   QDataStream &operator<<(QDataStream &stream, const Group &group);
 
   QDataStream &operator>>(QDataStream &stream, Group &group);

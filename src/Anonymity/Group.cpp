@@ -104,6 +104,18 @@ namespace Anonymity {
     return true;
   }
 
+  Group RemoveMember(const Group &group, const Group::Id &id)
+  {
+    int index = group.GetIndex(id);
+    if(index < 0) {
+      return group;
+    }
+
+    QVector<GroupContainer> roster = group.GetRoster();
+    roster.remove(index);
+    return Group(roster);
+  }
+
   QDataStream &operator<<(QDataStream &stream, const Group &group)
   {
     return stream << group.GetRoster();

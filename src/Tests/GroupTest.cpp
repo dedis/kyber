@@ -111,5 +111,27 @@ namespace Tests {
     EXPECT_TRUE(IsSubset(set, subset));
     EXPECT_FALSE(IsSubset(subset, set));
   }
+
+  TEST(Group, Mutable)
+  {
+    QVector<GroupContainer> gr;
+    for(int idx = 0; idx < 10; idx++) {
+      Id id;
+      gr.append(GroupContainer(id, Group::EmptyKey(), QByteArray()));
+    }
+
+    Group group(gr);
+    Group removed(gr);
+
+    EXPECT_EQ(group.GetRoster(), removed.GetRoster());
+    EXPECT_TRUE(IsSubset(group, removed));
+    int count;
+    while((count = removed.Count())) {
+      int idx = Random::GetInstance().GetInt(0, count);
+      removed = RemoveMember(removed, removed.GetId(idx));
+      EXPECT_NE(group.GetRoster(), removed.GetRoster());
+      EXPECT_TRUE(IsSubset(group, removed));
+    }
+  }
 }
 }
