@@ -170,7 +170,6 @@ namespace Anonymity {
         HandleBulkData(stream, from);
         break;
       default:
-        qWarning() << msg_type << MessageTypeToString(msg_type);
         throw QRunTimeError("Unknown message type");
     }
   }
@@ -251,12 +250,10 @@ namespace Anonymity {
     QSharedPointer<AsymmetricKey> verification_key(_descriptors[member_idx].second);
     uint vkey_size = verification_key->GetKeySize() / 8;
 
-    qWarning() << Serialization::ReadInt(cleartext, 4);
     QByteArray base = QByteArray::fromRawData(cleartext.constData(), cleartext.size() - vkey_size);
     QByteArray sig = QByteArray::fromRawData(cleartext.constData() + cleartext.size() - vkey_size, vkey_size);
     if(verification_key->Verify(base, sig)) {
       _message_lengths[member_idx] = Serialization::ReadInt(cleartext, 4);
-      qWarning() << _message_lengths[member_idx];
       return base.mid(8);
     } else {
       qWarning() << "Unable to verify message for peer at" << member_idx;
