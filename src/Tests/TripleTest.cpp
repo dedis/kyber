@@ -35,7 +35,7 @@ namespace Tests {
     EXPECT_NE(t1, t1_0);
 
     ostream >> t1_0;
-    EXPECT_NE(t1, t1_0);
+    EXPECT_EQ(t1, t1_0);
     EXPECT_EQ(t1.first, t1_0.first);
     EXPECT_EQ(*t1.second, *t1_0.second);
     EXPECT_NE(t1.second, t1_0.second);
