@@ -6,14 +6,11 @@
 #include "../Anonymity/Credentials.hpp"
 #include "../Anonymity/SessionManager.hpp"
 #include "../Anonymity/Group.hpp"
+#include "../Anonymity/Round.hpp"
+#include "../Anonymity/Session.hpp"
 #include "../Overlay/BasicGossip.hpp"
 
 namespace Dissent {
-namespace Anonymity {
-  class Round;
-  class Session;
-}
-
 namespace Crypto {
   class AsymmetricKey;
   class DiffieHellman;

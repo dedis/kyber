@@ -5,14 +5,11 @@
 #include <QSharedPointer>
 
 #include "../Messaging/Filter.hpp"
+#include "../Transports/Edge.hpp"
 
 #include "Id.hpp"
 
 namespace Dissent {
-namespace Transports {
-  class Edge;
-}
-
 namespace Connections {
   /**
    * A container class linking a global identifier to a transport layer
