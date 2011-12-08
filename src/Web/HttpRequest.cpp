@@ -52,6 +52,7 @@ namespace Web {
   
   HttpRequest::HttpRequest() :
     _parsed(false),
+    _success(false),
     _last_header(QString())
   {
     _parser.data = (void*)this;
@@ -71,7 +72,7 @@ namespace Web {
   void HttpRequest::PrintDebug()
   {
     qDebug() << "=======HTTP Request======";
-    if(_parsed) {
+    if(_success) {
       qDebug() << "U |" << _url;
       qDebug() << "M |" << _method;
       QHash<QString,QString>::const_iterator i;
@@ -88,7 +89,7 @@ namespace Web {
 
   HttpRequest::RequestMethod HttpRequest::GetMethod()
   {
-    if(!_parsed) {
+    if(!_success) {
       qFatal("Cannot return request method on unparsed request");
     }
 
@@ -97,7 +98,7 @@ namespace Web {
 
   QUrl HttpRequest::GetUrl()
   {
-    if(!_parsed) {
+    if(!_success) {
       qFatal("Cannot return request URL on unparsed request");
     }
 
@@ -107,7 +108,7 @@ namespace Web {
 
   QString HttpRequest::GetBody()
   {
-    if(!_parsed) {
+    if(!_success) {
       qFatal("Cannot return body on unparsed request");
     }
 
@@ -116,7 +117,7 @@ namespace Web {
 
   QString HttpRequest::GetPath()
   {
-    if(!_parsed) {
+    if(!_success) {
       qFatal("Cannot return URL path on unparsed request");
     }
 
@@ -211,10 +212,18 @@ namespace Web {
   int HttpRequest::OnMessageComplete(struct http_parser* /* _parser */)
   {
     qDebug() << "OnMessageComplete()";
+    /* Only mark as ok when entire message has been
+       parsed */
+    _success = true;
     return 0;
   }
 
   bool HttpRequest::ParseRequest(QByteArray &raw_data) {
+    if(_parsed) {
+      qFatal("Cannot reparse request!");
+    }
+    _parsed = true;
+
     qDebug("Starting to parse");
     int len = raw_data.length();
     int bytes_proc = http_parser_execute(&_parser, 
@@ -226,9 +235,11 @@ namespace Web {
     }
 
     ParseUrl();
-  
-    _parsed = true;
-    return true;
+ 
+    /* Only mark as ok when entire message has been
+       parsed */
+    return _success;
+
   }
 
   void HttpRequest::ParseUrl()

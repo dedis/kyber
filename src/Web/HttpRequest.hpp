@@ -92,7 +92,7 @@ namespace Web {
       void ParseUrl();
 
     private:
-      bool _parsed;
+      bool _parsed, _success;
       QHash<QString, QString> _header_map;
       QString _last_header;
       QUrl _url;
