@@ -34,5 +34,24 @@ namespace Tests {
     EXPECT_EQ(settings0.RemotePeers[1], QUrl("buffer://8"));
     EXPECT_EQ(id, Id(settings1.LocalId));
   }
+
+  TEST(Settings, HostAddress)
+  {
+    Id id;
+    QFile file("dissent.ini");
+    file.remove();
+
+    Settings settings("dissent.ini");
+    settings.LocalEndPoints.append(QUrl("buffer://5"));
+    settings.RemotePeers.append(QUrl("buffer://6"));
+
+    settings.WebServerPort = 999999999;
+    EXPECT_FALSE(settings.IsValid());
+    settings.WebServerPort = 80;
+    EXPECT_TRUE(settings.IsValid());
+
+    settings.WebServerPort = -1;
+    EXPECT_FALSE(settings.IsValid());
+  }
 }
 }

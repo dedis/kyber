@@ -5,13 +5,15 @@
 TEMPLATE = lib
 TARGET = dissent
 DEPENDPATH += 
-INCLUDEPATH += 
+INCLUDEPATH += ext/joyent-http-parser/ ext/qt-json/
 CONFIG += qt debug
 QT = core network
 
 # Input
-LIBS += -lcryptopp
-HEADERS += src/Dissent.hpp \
+LIBS += -lcryptopp 
+HEADERS += ext/joyent-http-parser/http_parser.h \
+           ext/qt-json/json.h \
+           src/Dissent.hpp \
            src/Anonymity/BulkRound.hpp \
            src/Anonymity/Credentials.hpp \
            src/Anonymity/FixedSizeGroupGenerator.hpp \
@@ -73,6 +75,7 @@ HEADERS += src/Dissent.hpp \
            src/Messaging/RpcMethod.hpp \
            src/Messaging/RpcRequest.hpp \
            src/Messaging/RpcResponse.hpp \
+           src/Messaging/SignalSink.hpp \
            src/Messaging/Source.hpp \
            src/Overlay/BasicGossip.hpp \
            src/Transports/Address.hpp \
@@ -99,9 +102,26 @@ HEADERS += src/Dissent.hpp \
            src/Utils/TimerCallback.hpp \
            src/Utils/TimerEvent.hpp \
            src/Utils/Triggerable.hpp \
-           src/Utils/Triple.hpp
+           src/Utils/Triple.hpp \
+           src/Web/HttpRequest.hpp \
+           src/Web/HttpResponse.hpp \
+           src/Web/WebRequest.hpp \
+           src/Web/WebServer.hpp \
+           src/Web/Packagers/Packager.hpp \
+           src/Web/Packagers/JsonPackager.hpp \
+           src/Web/Services/GetNextMessageService.hpp \
+           src/Web/Services/GetMessagesService.hpp \
+           src/Web/Services/MessageWebService.hpp \
+           src/Web/Services/RoundIdService.hpp \
+           src/Web/Services/SendMessageService.hpp \
+           src/Web/Services/SessionIdService.hpp \
+           src/Web/Services/SessionWebService.hpp \
+           src/Web/Services/WebService.hpp 
 
-SOURCES += src/Anonymity/BulkRound.cpp \
+
+SOURCES += ext/joyent-http-parser/http_parser.c \
+           ext/qt-json/json.cpp \
+           src/Anonymity/BulkRound.cpp \
            src/Anonymity/Group.cpp \
            src/Anonymity/Log.cpp \
            src/Anonymity/NullRound.cpp \
@@ -140,6 +160,7 @@ SOURCES += src/Anonymity/BulkRound.cpp \
            src/Messaging/RpcHandler.cpp \
            src/Messaging/RpcRequest.cpp \
            src/Messaging/RpcResponse.cpp \
+           src/Messaging/SignalSink.cpp \
            src/Messaging/Source.cpp \
            src/Overlay/BasicGossip.cpp \
            src/Transports/Address.cpp \
@@ -160,4 +181,17 @@ SOURCES += src/Anonymity/BulkRound.cpp \
            src/Utils/StartStop.cpp \
            src/Utils/Time.cpp \
            src/Utils/Timer.cpp \
-           src/Utils/TimerEvent.cpp
+           src/Utils/TimerEvent.cpp \
+           src/Web/HttpRequest.cpp \
+           src/Web/HttpResponse.cpp \
+           src/Web/WebRequest.cpp \
+           src/Web/WebServer.cpp \
+           src/Web/Packagers/JsonPackager.cpp \
+           src/Web/Services/GetNextMessageService.cpp \
+           src/Web/Services/GetMessagesService.cpp \
+           src/Web/Services/MessageWebService.cpp \
+           src/Web/Services/RoundIdService.cpp \
+           src/Web/Services/SendMessageService.cpp \
+           src/Web/Services/SessionIdService.cpp \
+           src/Web/Services/SessionWebService.cpp \
+           src/Web/Services/WebService.cpp

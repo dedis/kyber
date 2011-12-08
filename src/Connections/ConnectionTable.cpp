@@ -35,6 +35,8 @@ namespace Connections {
     } else {
       _edges[edge] = QSharedPointer<Edge>(edge, &QObject::deleteLater);
     }
+
+    PrintConnectionTable();
   }
 
   bool ConnectionTable::RemoveEdge(const Edge *edge)
@@ -98,6 +100,18 @@ namespace Connections {
     }
 
     return found;
+  }
+
+
+  void ConnectionTable::PrintConnectionTable()
+  {
+    QHash<const Edge *, QSharedPointer<Edge> >::iterator i;
+
+    qDebug() << "======= Connection Table =======";
+    for(i = _edges.begin(); i != _edges.end(); ++i) {
+      qDebug() << i.key()->ToString();
+    }
+    qDebug() << "================================";
   }
 }
 }

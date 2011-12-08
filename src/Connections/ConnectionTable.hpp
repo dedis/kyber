@@ -92,6 +92,11 @@ namespace Connections {
 
     private:
       /**
+       * Print connection table to debug output
+       */
+      void PrintConnectionTable();
+
+      /**
        * Stores Id to Connection mappings
        */
       QHash<const Id, Connection *> _id_to_con;

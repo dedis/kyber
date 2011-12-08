@@ -1,3 +1,10 @@
+Web Server
+- Better error handling 
+- Index page with list of all URLs
+- HTTPS
+- Packaging formats
+
+===============
 Anonymity
 - Design a dynamic group -- handles new connections, disconnections, and blame
 - The process for creating a session should be peers register, a leader not ready rejects, peers continue to register until successful, leader notifies all of starting
@@ -6,9 +13,6 @@ Anonymity
 - Need some means to initiate a group / session
 - (Memory) Provide mechanisms to clear out intermediate state from Rounds
 - (Memory) Move logic for individual states into separate classes
-
-Applications
-- Create a web interface with the http service running internally see: http://doc.qt.nokia.com/solutions/4/qtservice/qtservice-example-server.html
 
 Connections
 - ConnectionTable should be a value type

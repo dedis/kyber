@@ -64,6 +64,7 @@
 #include "Messaging/RpcMethod.hpp"
 #include "Messaging/RpcRequest.hpp"
 #include "Messaging/RpcResponse.hpp"
+#include "Messaging/SignalSink.hpp"
 #include "Messaging/Source.hpp"
 
 #include "Overlay/BasicGossip.hpp"
@@ -103,5 +104,21 @@ using namespace Dissent::Messaging;
 using namespace Dissent::Overlay;
 using namespace Dissent::Transports;
 using namespace Dissent::Utils;
+
+#include "Web/HttpRequest.hpp"
+#include "Web/HttpResponse.hpp"
+#include "Web/WebRequest.hpp"
+#include "Web/WebServer.hpp"
+#include "Web/Packagers/Packager.hpp"
+#include "Web/Packagers/JsonPackager.hpp"
+#include "Web/Services/GetNextMessageService.hpp"
+#include "Web/Services/GetMessagesService.hpp"
+#include "Web/Services/MessageWebService.hpp"
+#include "Web/Services/RoundIdService.hpp"
+#include "Web/Services/SendMessageService.hpp"
+#include "Web/Services/SessionIdService.hpp"
+#include "Web/Services/SessionWebService.hpp"
+#include "Web/Services/WebService.hpp"
+
 
 #endif

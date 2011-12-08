@@ -8,3 +8,5 @@ ext/
 console
 test
 docs/html
+webapp
+test.log

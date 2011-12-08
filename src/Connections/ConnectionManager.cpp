@@ -219,6 +219,7 @@ namespace Connections {
     // XXX if there is an old connection and the node doesn't want it, we need
     // to close it
     if(old_con != 0) {
+      qDebug() << "Disconnecting old connection";
       old_con->Disconnect();
     }
 
