@@ -17,13 +17,13 @@ if test $? -ne 0; then
   exit 1
 fi
 
-make -j8
+make -j32
 if test $? -ne 0; then
   cleanup "Error make"
   exit 1
 fi
 
-./test --gtest_catch_exceptions=0
+./test --gtest_catch_exceptions=0 --gtest_throw_on_failure
 if test $? -ne 0; then
   cleanup "Error running test"
   exit 1
