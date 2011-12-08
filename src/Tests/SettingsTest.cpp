@@ -37,21 +37,24 @@ namespace Tests {
 
   TEST(Settings, HostAddress)
   {
-    Id id;
-    QFile file("dissent.ini");
-    file.remove();
+    Settings settings;
 
-    Settings settings("dissent.ini");
     settings.LocalEndPoints.append(QUrl("buffer://5"));
-    settings.RemotePeers.append(QUrl("buffer://6"));
-
-    settings.WebServerPort = 999999999;
-    EXPECT_FALSE(settings.IsValid());
-    settings.WebServerPort = 80;
     EXPECT_TRUE(settings.IsValid());
 
-    settings.WebServerPort = -1;
+    settings.WebServer = true;
+
+    settings.WebServerUrl = "xyz://127.1.34.1:-y";
     EXPECT_FALSE(settings.IsValid());
+
+    settings.WebServerUrl = "xyz://127.1.34.1:8080";
+    EXPECT_TRUE(settings.IsValid());
+
+    settings.WebServerUrl = "http://127.1.34.1:-1";
+    EXPECT_FALSE(settings.IsValid());
+
+    settings.WebServerUrl = "http://127.1.34.1:8888";
+    EXPECT_TRUE(settings.IsValid());
   }
 }
 }

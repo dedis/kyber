@@ -84,14 +84,9 @@ namespace Applications {
       bool WebServer;
 
       /**
-       * Port on which the HTTP server should listen
+       * IP:Port on which the HTTP server should listen
        */
-      int WebServerPort;
-
-      /**
-       * Hostname on which the HTTP server should listen
-       */ 
-      QHostAddress WebServerHost;
+      QUrl WebServerUrl;
 
       /**
        * Enable multhreaded operations
@@ -104,6 +99,7 @@ namespace Applications {
       QString LocalId;
 
     private:
+      void Init();
       void ParseUrlList(const QString &name, const QVariant &values, QList<QUrl> &list);
       void ParseUrl(const QString &name, const QVariant &value, QList<QUrl> &list);
 

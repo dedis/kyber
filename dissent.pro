@@ -189,9 +189,7 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Web/Packagers/JsonPackager.cpp \
            src/Web/Services/GetNextMessageService.cpp \
            src/Web/Services/GetMessagesService.cpp \
-           src/Web/Services/MessageWebService.cpp \
            src/Web/Services/RoundIdService.cpp \
            src/Web/Services/SendMessageService.cpp \
            src/Web/Services/SessionIdService.cpp \
-           src/Web/Services/SessionWebService.cpp \
            src/Web/Services/WebService.cpp

@@ -29,15 +29,15 @@ if test $? -ne 0; then
   exit 1
 fi
 
-qmake console.pro
+qmake application.pro
 if test $? -ne 0; then
-  cleanup "Error qmake console.pro"
+  cleanup "Error qmake application.pro"
   exit 1
 fi
 
 make
 if test $? -ne 0; then
-  cleanup "Error make console.pro"
+  cleanup "Error make application.pro"
   exit 1
 fi
 

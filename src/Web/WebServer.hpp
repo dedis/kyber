@@ -12,18 +12,10 @@
 #include <QTcpServer>
 #include <QTextStream>
 
-#include "Messaging/ISink.hpp"
-
 #include "Services/WebService.hpp"
-#include "Web/Services/GetNextMessageService.hpp"
 
 namespace Dissent {
 namespace Web {
-
-  namespace {
-    using namespace Dissent::Web::Services;
-  }
-
   /**
    * An HTTP server that enables interaction with a
    * Dissent node over HTTP.
@@ -33,6 +25,8 @@ namespace Web {
     Q_OBJECT
 
     public:
+      typedef Dissent::Web::Services::WebService WebService;
+
       /**
        * API Version Numbers
        */
@@ -42,10 +36,9 @@ namespace Web {
 
       /**
        * Constructor
-       * @param IP address on which to listen
-       * @param port on which to bind the server
+       * @param url where to listen
        */
-      WebServer(QHostAddress host, quint16 port);
+      WebServer(QUrl url);
 
       virtual ~WebServer();
 

@@ -96,15 +96,6 @@
 #include "Utils/Triggerable.hpp"
 #include "Utils/Triple.hpp"
 
-using namespace Dissent::Anonymity;
-using namespace Dissent::Applications;
-using namespace Dissent::Crypto;
-using namespace Dissent::Connections;
-using namespace Dissent::Messaging;
-using namespace Dissent::Overlay;
-using namespace Dissent::Transports;
-using namespace Dissent::Utils;
-
 #include "Web/HttpRequest.hpp"
 #include "Web/HttpResponse.hpp"
 #include "Web/WebRequest.hpp"
@@ -120,5 +111,16 @@ using namespace Dissent::Utils;
 #include "Web/Services/SessionWebService.hpp"
 #include "Web/Services/WebService.hpp"
 
+using namespace Dissent::Anonymity;
+using namespace Dissent::Applications;
+using namespace Dissent::Crypto;
+using namespace Dissent::Connections;
+using namespace Dissent::Messaging;
+using namespace Dissent::Overlay;
+using namespace Dissent::Transports;
+using namespace Dissent::Utils;
+using namespace Dissent::Web;
+using namespace Dissent::Web::Services;
+using namespace Dissent::Web::Packagers;
 
 #endif

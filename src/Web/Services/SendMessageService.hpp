@@ -9,34 +9,24 @@
 namespace Dissent {
 namespace Web {
 namespace Services {
-   
-  namespace {
-    using namespace Dissent::Web;
-  }
-
   /**
-   * WebService for posting a message to the session.
-   * The entire contents of the HTTP POST body are
-   * interpreted to be the message to send.
+   * WebService for posting a message to the session.  The entire contents of
+   * the HTTP POST body are interpreted to be the message to send.
    */
   class SendMessageService : public SessionWebService {
-
     public:
+      SendMessageService(QSharedPointer<Node> node);
       
-      SendMessageService(QSharedPointer<Session> session);
-      
-      virtual ~SendMessageService();
+      virtual ~SendMessageService() {}
 
+    private:
       /**
-       * The main method for the web service. 
-       * If the status code wrp->status 
-       * is not STATUS_OK, then the
-       * output data might not be set.
+       * The main method for the web service.  If the status code wrp->status 
+       * is not STATUS_OK, then the output data might not be set.
        * @param request to be handled
        */
-      void Handle(QSharedPointer<WebRequest> wrp);
+      virtual void Handle(QSharedPointer<WebRequest> wrp);
   };
-
 }
 }
 }

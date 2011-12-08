@@ -7,12 +7,6 @@
 namespace Dissent {
 namespace Web {
 namespace Services {
-  
-  GetMessagesService::GetMessagesService() :
-    MessageWebService() {}
-
-  GetMessagesService::~GetMessagesService() {}
-
   void GetMessagesService::Handle(QSharedPointer<WebRequest> wrp)
   {
     QList<QVariant> qvlist;
@@ -28,11 +22,10 @@ namespace Services {
     return;
   }
 
-  void GetMessagesService::HandleIncomingMessage(const QByteArray &data)
+  void GetMessagesService::HandleMessage(const QByteArray &data)
   {
     _message_list.append(data);
   }
-
 }
 }
 }

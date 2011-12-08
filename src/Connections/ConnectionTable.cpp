@@ -35,8 +35,6 @@ namespace Connections {
     } else {
       _edges[edge] = QSharedPointer<Edge>(edge, &QObject::deleteLater);
     }
-
-    PrintConnectionTable();
   }
 
   bool ConnectionTable::RemoveEdge(const Edge *edge)

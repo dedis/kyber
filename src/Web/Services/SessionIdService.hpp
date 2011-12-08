@@ -3,37 +3,27 @@
 
 #include <QObject>
 
-#include "Web/WebRequest.hpp"
 #include "SessionWebService.hpp"
 
 namespace Dissent {
 namespace Web {
 namespace Services {
-   
-  namespace {
-    using namespace Dissent::Web;
-  }
-
-  /** 
-   * WebService for returning the ID of the 
-   * current anonymity session.
+  /**
+   * WebService for returning the ID of the current anonymity session.
    */
   class SessionIdService : public SessionWebService {
-
     public:
-      
-      SessionIdService(QSharedPointer<Session> session);
+      SessionIdService(QSharedPointer<Node> node);
 
-      virtual ~SessionIdService();
+      virtual ~SessionIdService() {}
 
+    private:
       /**
-       * The main method for the web service. 
-       * If the status code wrp->status 
-       * is not STATUS_OK, then the
-       * output data might not be set.
+       * The main method for the web service. If the status code wrp->status
+       * is not STATUS_OK, then the output data might not be set.
        * @param request to be handled
        */
-      void Handle(QSharedPointer<WebRequest> wrp);
+      virtual void Handle(QSharedPointer<WebRequest> wrp);
   };
 
 }

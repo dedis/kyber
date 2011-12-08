@@ -9,25 +9,18 @@
 
 #include "Web/Packagers/JsonPackager.hpp"
 
-#include "Web/Services/GetMessagesService.hpp"
-#include "Web/Services/RoundIdService.hpp"
-#include "Web/Services/SendMessageService.hpp"
-#include "Web/Services/SessionIdService.hpp"
-
 #include "WebServer.hpp"
 
 namespace Dissent {
 namespace Web {
-
   namespace {
-    using namespace Dissent::Web::Services;
     using namespace Dissent::Web::Packagers;
   }
 
-  WebServer::WebServer(QHostAddress host, quint16 port) :
+  WebServer::WebServer(QUrl url) :
     QTcpServer(0),
-    _host(host),
-    _port(port),
+    _host(url.host()),
+    _port(url.port(8080)),
     _running(false),
     _ready(false),
     _qtin(stdin, QIODevice::ReadOnly),
@@ -174,7 +167,8 @@ namespace Web {
     qDebug() << "Socket closed";
   }
 
-  QSharedPointer<WebService> WebServer::GetRoute(HttpRequest &request) {
+  QSharedPointer<WebServer::WebService> WebServer::GetRoute(HttpRequest &request)
+  {
     QPair<HttpRequest::RequestMethod, QString> pair;
     pair.first = request.GetMethod();
     pair.second = request.GetPath();

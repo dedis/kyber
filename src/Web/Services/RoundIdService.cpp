@@ -1,26 +1,26 @@
-
-#include "Anonymity/Session.hpp"
 #include "RoundIdService.hpp"
 
 namespace Dissent {
 namespace Web {
 namespace Services {
-  
-  RoundIdService::RoundIdService(QSharedPointer<Session> session) :
-    SessionWebService(session) {}
-
-  RoundIdService::~RoundIdService() {}
+  RoundIdService::RoundIdService(QSharedPointer<Node> node) :
+    SessionWebService(node)
+  {
+  }
 
   void RoundIdService::Handle(QSharedPointer<WebRequest> wrp)
   {
+    QSharedPointer<Session> session = GetSession();
     QVariantMap map;
 
-    bool session_active = !_session.isNull();
+    bool session_active = !session.isNull();
     map["active"] = false;
     map["id"] = "";
 
     if(session_active) {
-      QSharedPointer<Round> round = _session->GetCurrentRound();
+      QSharedPointer<Dissent::Anonymity::Round> round =
+        session->GetCurrentRound();
+
       if(!round.isNull()) {
         map["active"] = true;
         map["id"] = round->GetRoundId().ToString();
@@ -32,7 +32,6 @@ namespace Services {
     emit FinishedWebRequest(wrp);
     return;
   }
-
 }
 }
 }

@@ -1,18 +1,14 @@
 #include <QCoreApplication>
-#include <QByteArray>
 #include <QDebug>
 
 #include "../Dissent.hpp"
-
-using namespace Dissent::Applications;
-using namespace Dissent::Web::Services;
 
 int main(int argc, char **argv)
 {
   QCoreApplication qca(argc, argv);
   QStringList args = QCoreApplication::arguments();
 
-  if(args.count() != 2) {
+  if(args.count() < 2) {
     qCritical() << "Usage:" << args[0] << "settings.conf";
     return -1;
   }
@@ -60,7 +56,6 @@ int main(int argc, char **argv)
   nodes.append(QSharedPointer<Node>(new Node(Credentials(local_id, key, dh),
           local, remote, settings.GroupSize, settings.SessionType)));
 
-
   for(int idx = 1; idx < settings.LocalNodeCount; idx++) {
     Id local_id;
     local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
@@ -86,48 +81,50 @@ int main(int argc, char **argv)
     node->bg.Start();
   }
 
-  Dissent::Web::WebServer ws(settings.WebServerHost, settings.WebServerPort);
-  if(settings.WebServer) {
-    /***
-     * START Set up web server
-     */
-    QObject::connect(nodes[0].data(), SIGNAL(Ready()), &ws, SLOT(Ready()));
+  QScopedPointer<WebServer> ws;
+
+  if(settings.Console) {
+    QSharedPointer<CommandLine> cl(new CommandLine(nodes));
+    QObject::connect(nodes[0].data(), SIGNAL(Ready()), cl.data(), SLOT(Ready()));
+    nodes[0]->sink = cl;
+    cl->Start();
+    QObject::connect(&qca, SIGNAL(aboutToQuit()), cl.data(), SLOT(Stop()));
+  } else if(settings.WebServer) {
+    ws.reset(new WebServer(settings.WebServerUrl));
+    QObject::connect(nodes[0].data(), SIGNAL(Ready()), ws.data(), SLOT(Ready()));
 
     /* Stop Web server when application is about to quit */
-    QObject::connect(&qca, SIGNAL(aboutToQuit()), &ws, SLOT(Stop()));
+    QObject::connect(&qca, SIGNAL(aboutToQuit()), ws.data(), SLOT(Stop()));
 
     /* When the web server stops, quit the application */
-    QObject::connect(&ws, SIGNAL(Stopped()), &qca, SLOT(quit()));
+    QObject::connect(ws.data(), SIGNAL(Stopped()), &qca, SLOT(quit()));
 
-    /***
-     * Set up Web Services
-     */
     QSharedPointer<Dissent::Messaging::SignalSink> signal_sink(new Dissent::Messaging::SignalSink());
     nodes[0]->sink = signal_sink;
 
     QSharedPointer<GetMessagesService> get_messages_sp(new GetMessagesService());
     QObject::connect(signal_sink.data(), SIGNAL(IncomingData(const QByteArray&)),
         get_messages_sp.data(), SLOT(HandleIncomingMessage(const QByteArray&)));
+    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/session/messages/all", get_messages_sp);
 
-    QSharedPointer<GetNextMessageService> get_next_message_sp(new GetNextMessageService());  
+    QSharedPointer<GetNextMessageService> get_next_message_sp(new GetNextMessageService());
     QObject::connect(signal_sink.data(), SIGNAL(IncomingData(const QByteArray&)),
         get_next_message_sp.data(), SLOT(HandleIncomingMessage(const QByteArray&)));
+    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/session/messages/next", get_next_message_sp);
 
-    QSharedPointer<RoundIdService> round_id_sp(new RoundIdService(nodes[0]->session));
-    QSharedPointer<SessionIdService> session_id_sp(new SessionIdService(nodes[0]->session));
-    QSharedPointer<SendMessageService> send_message_sp(new SendMessageService(nodes[0]->session));
+    QSharedPointer<RoundIdService> round_id_sp(new RoundIdService(nodes[0]));
+    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/round/id", round_id_sp);
 
-    ws.AddRoute(HttpRequest::METHOD_HTTP_GET, "/round/id", round_id_sp);
-    ws.AddRoute(HttpRequest::METHOD_HTTP_POST, "/session/send", send_message_sp);
-    ws.AddRoute(HttpRequest::METHOD_HTTP_GET, "/session/id", session_id_sp);
-    ws.AddRoute(HttpRequest::METHOD_HTTP_GET, "/session/messages/all", get_messages_sp);
-    ws.AddRoute(HttpRequest::METHOD_HTTP_GET, "/session/messages/next", get_next_message_sp);
+    QSharedPointer<SessionIdService> session_id_sp(new SessionIdService(nodes[0]));
+    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/session/id", session_id_sp);
 
-    ws.Start();
+    QSharedPointer<SendMessageService> send_message_sp(new SendMessageService(nodes[0]));
+    ws->AddRoute(HttpRequest::METHOD_HTTP_POST, "/session/send", send_message_sp);
+
+    ws->Start();
   } else {
     nodes[0]->sink = QSharedPointer<ISink>(new DummySink());
   }
 
   return QCoreApplication::exec();
 }
-

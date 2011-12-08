@@ -1,10 +1,10 @@
+#include <QDebug>
 
 #include "WebService.hpp"
 
 namespace Dissent {
 namespace Web {
 namespace Services {
-
   WebService::WebService()
   {
     connect(this, SIGNAL(WebServiceCalled(QSharedPointer<WebRequest>)),
@@ -23,7 +23,6 @@ namespace Services {
     emit WebServiceCalled(wrp);
     qDebug() << "Service: emitted 'called' signal";
   }
-
 }
 }
 }

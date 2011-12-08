@@ -9,7 +9,6 @@
 namespace Dissent {
 namespace Web {
 namespace Services {
-
   /**
    * A WebService that can handle messages
    * incoming from an anonymity Session object
@@ -18,19 +17,23 @@ namespace Services {
     Q_OBJECT
 
     public:
+      ~MessageWebService() {}
 
-      MessageWebService();
-      
     public slots:
-      
-      /** 
-       * Slot called when new data is arriving
-       * from a session
+      /**
+       * Slot called when new data is arriving from a session
        */
-      virtual void HandleIncomingMessage(const QByteArray &data) = 0;
+      void HandleIncomingMessage(const QByteArray &data)
+      {
+        HandleMessage(data);
+      }
 
+    private:
+      /**
+       * Called by HandleIncomingMessage
+       */
+      virtual void HandleMessage(const QByteArray &data) = 0;
   };
-
 }
 }
 }

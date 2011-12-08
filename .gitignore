@@ -5,8 +5,7 @@
 moc_*
 Makefile
 ext/
-console
+dissent
 test
 docs/html
-webapp
 test.log

@@ -5,22 +5,22 @@
 namespace Dissent {
 namespace Web {
 namespace Services {
+  SessionIdService::SessionIdService(QSharedPointer<Node> node) :
+    SessionWebService(node)
+  {
+  }
   
-  SessionIdService::SessionIdService(QSharedPointer<Session> session) :
-    SessionWebService(session) {}
-  
-  SessionIdService::~SessionIdService() {}
-
   void SessionIdService::Handle(QSharedPointer<WebRequest> wrp)
   {
+    QSharedPointer<Session> session = GetSession();
     QVariantMap map;
 
-    if(_session.isNull()) {
+    if(session.isNull()) {
       map["active"] = false;
       map["id"] = "";
     } else {
       map["active"] = true;
-      map["id"] = _session->GetId().ToString();
+      map["id"] = session->GetId().ToString();
     }
 
     wrp->GetOutputData().setValue(map);
@@ -28,8 +28,6 @@ namespace Services {
     emit FinishedWebRequest(wrp);
     return;
   }
-
 }
 }
 }
-

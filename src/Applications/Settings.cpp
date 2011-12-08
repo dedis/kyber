@@ -7,17 +7,11 @@ using Dissent::Utils::Logging;
 namespace Dissent {
 namespace Applications {
   Settings::Settings(const QString &file) :
-    GroupSize(40),
-    LocalNodeCount(1),
-    SessionType("null"),
-    Console(false),
-    WebServer(false),
-    WebServerPort(8080),
-    WebServerHost(QHostAddress::Any),
     _use_file(true),
     _settings(file, QSettings::IniFormat),
     _reason()
   {
+    Init();
     QVariant peers = _settings.value("remote_peers");
     ParseUrlList("RemotePeer", peers, RemotePeers);
 
@@ -34,17 +28,16 @@ namespace Applications {
       LocalNodeCount = _settings.value("local_nodes").toInt();
     }
 
-    if(_settings.contains("web_server_port")) {
-      WebServerPort = _settings.value("web_server_port").toInt();
-    }
+    if(_settings.contains("web_server_url")) {
+      QString url = _settings.value("web_server_url").toString();
+      WebServerUrl = QUrl(url);
+      if(WebServerUrl.toString() != url) {
+        WebServerUrl = QUrl();
+      }
 
-    if(_settings.contains("web_server_host")) {
-      QString hoststr = _settings.value("web_server_host").toString();
-
-      if(hoststr == "*") {
-        WebServerHost = QHostAddress::Any;
-      } else {
-        WebServerHost.setAddress(hoststr);
+      QString scheme = WebServerUrl.scheme();
+      if(scheme != "http") {
+        WebServerUrl = QUrl();
       }
     }
 
@@ -72,9 +65,23 @@ namespace Applications {
     LocalId = _settings.value("local_id").toString();
   }
 
+  Settings::Settings() : _use_file(false)
+  {
+    Init();
+  }
+
+  void Settings::Init()
+  {
+    GroupSize = 40;
+    LocalNodeCount = 1;
+    SessionType = "null";
+    Console = false;
+    WebServer = false;
+  }
+
   bool Settings::IsValid()
   {
-    if(_settings.status() != QSettings::NoError) {
+    if(_use_file && (_settings.status() != QSettings::NoError)) {
       _reason = "File error";
       return false;
     }
@@ -84,13 +91,8 @@ namespace Applications {
       return false;
     }
 
-    if((WebServerPort <= 0) || (WebServerPort > ((1 << 16) - 1))) {
-      _reason = "Invalid port number"; 
-      return false;
-    }
-
-    if(WebServerHost.isNull()) {
-      _reason = "Invalid web host address";
+    if(WebServer && !WebServerUrl.isValid()) {
+      _reason = "Invalid WebServerUrl";
       return false;
     }
 
@@ -101,10 +103,6 @@ namespace Applications {
   {
     IsValid();
     return _reason;
-  }
-
-  Settings::Settings() : _use_file(false)
-  {
   }
 
   void Settings::ParseUrlList(const QString &name, const QVariant &values,
@@ -161,8 +159,8 @@ namespace Applications {
 
     _settings.setValue("group_size", GroupSize);
     _settings.setValue("local_nodes", LocalNodeCount);
-    _settings.setValue("web_server_port", WebServerPort);
     _settings.setValue("web_server", WebServer);
+    _settings.setValue("web_server_url", WebServerUrl);
     _settings.setValue("console", Console);
     _settings.setValue("demo_mode", DemoMode);
     _settings.setValue("log", Log);
