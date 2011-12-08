@@ -16,6 +16,8 @@ namespace Tests {
       CreateGroupGenerator cgg);
   void RoundTest_Basic(CreateSessionCallback callback,
       CreateGroupGenerator cgg);
+  void RoundTest_Basic_SessionTest(CreateSessionCallback callback, 
+      CreateGroupGenerator cgg, SessionTestCallback session_cb);
   void RoundTest_MultiRound(CreateSessionCallback callback,
       CreateGroupGenerator cgg);
   void RoundTest_PeerDisconnectEnd(CreateSessionCallback callback,

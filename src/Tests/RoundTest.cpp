@@ -113,6 +113,76 @@ namespace Tests {
     delete group;
   }
 
+  /**
+   * This is a RoundTest that sets up a round and then has each
+   * node make a callback to a function that takes a Session pointer
+   * as an argument. This is useful for booting up a node and then
+   * using it to testi SessionWebService objects.
+   */
+  void RoundTest_Basic_SessionTest(CreateSessionCallback callback, CreateGroupGenerator cgg,
+        SessionTestCallback session_cb)
+  {
+    Timer::GetInstance().UseVirtualTime();
+
+    int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
+    int leader = Random::GetInstance().GetInt(0, count);
+    int sender = Random::GetInstance().GetInt(0, count);
+
+    QVector<TestNode *> nodes;
+    Group *group;
+    ConstructOverlay(count, nodes, group);
+
+    for(int idx = 0; idx < count; idx++) {
+      for(int jdx = 0; jdx < count; jdx++) {
+        if(idx == jdx) {
+          continue;
+        }
+        EXPECT_TRUE(nodes[idx]->cm.GetConnectionTable().GetConnection(nodes[jdx]->cm.GetId()));
+      }
+    }
+
+    for(int idx = 0; idx < count; idx++) {
+      EXPECT_TRUE(nodes[idx]->sink.Count() == 0);
+    }
+
+    Id leader_id = nodes[leader]->cm.GetId();
+    Id session_id;
+
+    CreateSessions(nodes, *group, leader_id, session_id, callback, cgg);
+
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
+
+    QByteArray msg(512, 0);
+    rand->GenerateBlock(msg);
+    nodes[sender]->session->Send(msg);
+
+    SignalCounter sc;
+    for(int idx = 0; idx < count; idx++) {
+      QObject::connect(&nodes[idx]->sink, SIGNAL(DataReceived()), &sc, SLOT(Counter()));
+      nodes[idx]->session->Start();
+    }
+
+    TestNode::calledback = 0;
+    qint64 next = Timer::GetInstance().VirtualRun();
+    while(next != -1 && sc.GetCount() < count && TestNode::calledback < count) {
+      Time::GetInstance().IncrementVirtualClock(next);
+      next = Timer::GetInstance().VirtualRun();
+    }
+
+    for(int idx = 0; idx < count; idx++) {
+      EXPECT_EQ(msg, nodes[idx]->sink.Last().first);
+    }
+
+    for(int idx = 0; idx < count; idx++) {
+      QSharedPointer<Session> sessionp(nodes[idx]->session);
+      session_cb(sessionp);
+    }
+
+    CleanUp(nodes);
+    delete group;
+  }
+
   void RoundTest_MultiRound(CreateSessionCallback callback, CreateGroupGenerator cgg)
   {
     Timer::GetInstance().UseVirtualTime();

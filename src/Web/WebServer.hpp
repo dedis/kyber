@@ -148,9 +148,7 @@ namespace Web {
        * routing table */
       QSet<QSharedPointer<WebService> > _service_set;
 
-      /** History of received messages */
       bool _running, _ready;
-
       QTextStream _qtin, _qtout;
       QSocketNotifier _qtin_notify;
   };

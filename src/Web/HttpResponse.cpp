@@ -47,13 +47,13 @@ namespace Web {
 
   QString HttpResponse::GetBody()
   {
-    if(!_body.isEmpty()) {
+    if(!_body.isEmpty() || _status_code == STATUS_OK) {
       return _body;
     } 
     
-    QString def = "<html><h1>";
+    QString def = QString("<html><body><h1>%1: ").arg((int)_status_code);
     def += _status_map[_status_code];
-    def += "</h1></html>";
+    def += "</h1></body></html>";
     return def;
   }
 

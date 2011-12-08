@@ -18,7 +18,7 @@ def main():
   print("Reading input from stdin...")
   data = sys.stdin.readlines()
 
-  conn.request("POST", "/session/send", "\n".join(data), {"Accept": "text/plain"})
+  conn.request("POST", "/session/send", "".join(data), {"Accept": "text/plain"})
 
   resp = conn.getresponse()
   if resp.status == 200:

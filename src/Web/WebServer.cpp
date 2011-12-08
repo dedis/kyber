@@ -257,6 +257,7 @@ namespace Web {
     response.AddHeader("Content-Type", "text/html");
     response.SetStatusCode(status);
 
+    /*
     response.body << "<html><body>";
     response.body << "<h1>Error ";
     response.body << (int)status;
@@ -264,7 +265,7 @@ namespace Web {
     response.body << response.TextForStatus(status);
     response.body << "</h1>\n";
     response.body << "</body></html>\n";
-
+    */
     response.WriteToSocket(socket);
   }
 

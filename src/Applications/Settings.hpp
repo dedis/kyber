@@ -82,7 +82,7 @@ namespace Applications {
        * Run an HTTP server?
        */
       bool WebServer;
-
+      
       /**
        * IP:Port on which the HTTP server should listen
        */

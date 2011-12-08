@@ -49,6 +49,8 @@ namespace Tests {
   typedef Session *(*CreateSessionCallback)(TestNode *, const Group &,
       const Id &, const Id &, CreateGroupGenerator);
 
+  typedef void(*SessionTestCallback)(QSharedPointer<Session>);
+
   void ConstructOverlay(int count, QVector<TestNode *> &nodes,
       Group *&group);
 

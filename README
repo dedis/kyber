@@ -24,12 +24,14 @@ Directory Structure
 - src/Tests - Test code for classes in other folders
 - src/Transports - Low level Networking interface
 - src/Utils - Miscellaneous tools
+- src/Web - Web server 
+- src/Web/Services - Web services
 - legacy/libdissent - original, unmodified C++ version
 - legacy/py - original, unmodified Python version
 
 Using
 ===============================================================================
-Build the command-line (ConsoleApp):
+Build the command-line (Application):
 qmake application.pro
 make
 
@@ -41,7 +43,7 @@ This will launch a command-line interface, where commands can be typed.
 
 Type help to print out the commands.
 
-Network Use
+Command Line Network Use
 ===============================================================================
 Inspect conf/slave_tcp.conf and conf/master_tcp.conf
 
@@ -52,9 +54,43 @@ their remote_peers list
 Binding to 0.0.0.0 will result in the first non-loop backdevice IP address
 being used in exchanging IP address information.
 
-After changing the configuration files and distributing the application, begin
-by turning on the bootstrap peers first and then the client peers.  Afterward
-interaction is the same as discussed in the "Using" section.
+After changing the configuration files and distributing the application,
+begin by turning on the bootstrap peers first and then the client peers.
+Afterward interaction is the same as discussed in the "Using" section.
+
+Web Server Use
+===============================================================================
+Inspect conf/local-web.conf
+
+Dissent has a built-in web server for interacting with the Dissent session
+using HTTP requests. To enable the web_server, add these lines to your .conf
+file:
+  web_server = true
+  web_server_url = "http://server_ip:port"
+If the server_ip is 0.0.0.0, then the web server will listen on any hostname.
+
+Look at the Web services defined in src/Web/Services to get a sense of what
+services are available. Web requests are routed to the services based on
+the URL and HTTP Method (GET, POST, etc). This routing is defined in 
+src/Application/Application.cpp.
+
+
+Web Server Use
+===============================================================================
+Inspect conf/local-web.conf
+
+Dissent has a built-in web server for interacting with the Dissent session
+using HTTP requests. To enable the web_server, add these lines to your .conf
+file:
+  web_server = true
+  web_server_url = "http://server_ip:port"
+If the server_ip is 0.0.0.0, then the web server will listen on any hostname.
+
+Look at the Web services defined in src/Web/Services to get a sense of what
+services are available. Web requests are routed to the services based on
+the URL and HTTP Method (GET, POST, etc). This routing is defined in 
+src/Application/Application.cpp.
+
 
 Tests
 ===============================================================================

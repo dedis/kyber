@@ -13,6 +13,7 @@ namespace Services {
    */
   class SessionIdService : public SessionWebService {
     public:
+      SessionIdService(QSharedPointer<Session> session);
       SessionIdService(QSharedPointer<Node> node);
 
       virtual ~SessionIdService() {}

@@ -5,11 +5,16 @@
 namespace Dissent {
 namespace Web {
 namespace Services {
+  SessionIdService::SessionIdService(QSharedPointer<Session> session) :
+    SessionWebService(session)
+  {
+  }
+  
   SessionIdService::SessionIdService(QSharedPointer<Node> node) :
     SessionWebService(node)
   {
   }
-  
+
   void SessionIdService::Handle(QSharedPointer<WebRequest> wrp)
   {
     QSharedPointer<Session> session = GetSession();
