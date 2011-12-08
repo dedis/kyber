@@ -30,12 +30,12 @@ Directory Structure
 Using
 ===============================================================================
 Build the command-line (ConsoleApp):
-qmake console.pro
+qmake application.pro
 make
 
 The default configuration will create a local overlay with 10 members, to use
 it execute:
-./console ./conf/local.conf
+./dissent ./conf/local-console.conf
 
 This will launch a command-line interface, where commands can be typed.
 
@@ -52,9 +52,9 @@ their remote_peers list
 Binding to 0.0.0.0 will result in the first non-loop backdevice IP address
 being used in exchanging IP address information.
 
-After changing the configuration files and distributing the application,
-begin by turning on the bootstrap peers first and then the client peers.
-Afterward interaction is the same as discussed in the "Using" section.
+After changing the configuration files and distributing the application, begin
+by turning on the bootstrap peers first and then the client peers.  Afterward
+interaction is the same as discussed in the "Using" section.
 
 Tests
 ===============================================================================
@@ -115,7 +115,7 @@ Commits:
 - The comments should be clear and only code chunks relevant to the commit
   message should be included
 - Merges should be rebased onto the current master and tested working before
-  merging (git fetch && git rebase)
+  merging (git checkout -b merge master && git merge --squash dev)
 - Incomplete work should not be committed nor merged
 
 Also note, when you submit code for inclusion in this library, you implicitly
