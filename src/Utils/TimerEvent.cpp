@@ -4,6 +4,10 @@ namespace Dissent {
 namespace Utils {
   int TimerEventData::_uid_count = 0;
 
+  TimerEvent::TimerEvent() : _state(new TimerEventData(0, 0, 0))
+  {
+  }
+
   TimerEvent::TimerEvent(TimerCallback *callback, int due_time, int period) :
     _state(new TimerEventData(callback,
           Time::GetInstance().MSecsSinceEpoch() + due_time,

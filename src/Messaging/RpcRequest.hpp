@@ -47,7 +47,7 @@ namespace Messaging {
       /**
        * Constructor
        */
-      RpcRequest(const QVariantMap &message, ISender *from);
+      RpcRequest(const QVariantMap &message = QVariantMap(), ISender *from = 0);
 
       virtual ~RpcRequest() {}
 

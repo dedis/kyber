@@ -7,7 +7,6 @@ Web Server
 ===============
 Anonymity
 - Design a dynamic group -- handles new connections, disconnections, and blame
-- The process for creating a session should be peers register, a leader not ready rejects, peers continue to register until successful, leader notifies all of starting
 - Need some structure to communicate group status / change
 - Make sessions optionally multithreaded, we really don't want crypto computation in the main thread
 - Need some means to initiate a group / session

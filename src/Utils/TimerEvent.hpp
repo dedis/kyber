@@ -17,7 +17,7 @@ namespace Utils {
    */
   class TimerEventData : public QSharedData {
     public:
-      TimerEventData(TimerCallback *callback, qint64 next, int period) :
+      TimerEventData(TimerCallback *callback = 0, qint64 next = 0, int period = 0) :
         callback(callback),
         next(next),
         period(period),
@@ -54,6 +54,7 @@ namespace Utils {
     friend class Timer;
 
     public:
+      TimerEvent();
       TimerEvent(const TimerEvent &other);
 
       typedef bool(*ComparerFuncPtr)(const TimerEvent &, const TimerEvent &);

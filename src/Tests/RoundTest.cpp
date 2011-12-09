@@ -377,22 +377,13 @@ namespace Tests {
       nodes[disconnecter]->cm.Disconnect();
     }
 
-    while(next != -1 && TestNode::calledback < count) {
+    while(next != -1) {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
     }
 
-    if(Time::GetInstance().MSecsSinceEpoch() < run_before_disc) {
-      std::cout << "RoundTest_PeerDisconnectMiddle never caused a disconnect, "
-        "consider rerunning." << std::endl;
-
-      for(int idx = 0; idx < count; idx++) {
-        EXPECT_EQ(msg, nodes[idx]->sink.Last().first);
-      }
-    } else {
-      foreach(TestNode *node, nodes) {
-        EXPECT_TRUE(node->session->Stopped());
-      }
+    foreach(TestNode *node, nodes) {
+      EXPECT_TRUE(node->session->Stopped());
     }
 
     CleanUp(nodes);

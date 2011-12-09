@@ -6,52 +6,63 @@
 namespace Dissent {
 namespace Anonymity {
   SessionManager::SessionManager(RpcHandler &rpc) :
-    _ready(this, &SessionManager::Ready),
+    _register(this, &SessionManager::Register),
+    _prepare(this, &SessionManager::Prepare),
+    _begin(this, &SessionManager::Begin),
     _data(this, &SessionManager::IncomingData),
     _rpc(rpc)
   {
+    _rpc.Register(&_register, "SM::Register");
+    _rpc.Register(&_prepare, "SM::Prepare");
+    _rpc.Register(&_begin, "SM::Begin");
     _rpc.Register(&_data, "SM::Data");
-    _rpc.Register(&_ready, "SM::Ready");
   }
 
   SessionManager::~SessionManager()
   {
+    _rpc.Unregister("SM::Register");
+    _rpc.Unregister("SM::Prepare");
+    _rpc.Unregister("SM::Begin");
     _rpc.Unregister("SM::Data");
-    _rpc.Unregister("SM::Ready");
   }
 
   void SessionManager::AddSession(QSharedPointer<Session> session)
   {
     QObject::connect(session.data(), SIGNAL(Stopping()), this, SLOT(HandleSessionStop()));
     _id_to_session[session->GetId()] = session;
-    if(!session->IsLeader()) {
-      return;
-    }
-
-    const Id &id = session->GetId();
-    if(!_requests.contains(id)) {
-      return;
-    }
-
-    foreach(RpcRequest request, _requests[id]) {
-      Ready(request);
-    }
-
-    _requests.remove(id);
   }
 
-  void SessionManager::Ready(RpcRequest &request)
+  void SessionManager::Register(RpcRequest &request)
   {
     QSharedPointer<Session> session = GetSession(request);
     if(!session.isNull()) {
-      session->ReceivedReady(request);
+      session->ReceivedRegister(request);
     } else {
-      QByteArray bid = request.GetMessage()["session_id"].toByteArray();
-      Id id(bid);
-      if(!_requests.contains(id)) {
-        _requests[id] = QList<RpcRequest>();
-      }
-      _requests[id].append(request);
+      QVariantMap response;
+      response["result"] = false;
+      response["online"] = false;
+      request.Respond(response);
+    }
+  }
+
+  void SessionManager::Prepare(RpcRequest &request)
+  {
+    QSharedPointer<Session> session = GetSession(request);
+    if(!session.isNull()) {
+      session->ReceivedPrepare(request);
+    } else {
+      QVariantMap response;
+      response["result"] = false;
+      response["online"] = false;
+      request.Respond(response);
+    }
+  }
+
+  void SessionManager::Begin(RpcRequest &notification)
+  {
+    QSharedPointer<Session> session = GetSession(notification);
+    if(!session.isNull()) {
+      session->ReceivedBegin(notification);
     }
   }
 

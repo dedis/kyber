@@ -91,7 +91,6 @@ namespace Anonymity {
 
     int size = gr0.size();
     if(size != gr1.size()) {
-      qWarning() << "Size mismatch";
       return false;
     }
 

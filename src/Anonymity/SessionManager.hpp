@@ -46,17 +46,37 @@ namespace Anonymity {
       void AddSession(QSharedPointer<Session> session);
 
     private:
+      /**
+       * Returns the session associated with the RpcRequest
+       * @param msg a session based rpc request
+       */
       QSharedPointer<Session> GetSession(RpcRequest &msg);
-      void Ready(RpcRequest &request);
+
+      /**
+       * A remote peer is requesting to join a session hosted by the local peer
+       * @param request a request to be included
+       */
+      void Register(RpcRequest &request);
+
+      /**
+       * A remote peer is notifying this peer it is ready for the next round
+       * @param request a request to be informed when to start
+       */
+      void Prepare(RpcRequest &request);
+      void Begin(RpcRequest &notification);
+
+      /**
+       * A remote peer is submitting data to this peer
+       * @param notification a data message
+       */
       void IncomingData(RpcRequest &notification);
+
       QHash<Id, QSharedPointer<Session> > _id_to_session;
-      RpcMethod _ready;
+      RpcMethod _register;
+      RpcMethod _prepare;
+      RpcMethod _begin;
       RpcMethod _data;
       RpcHandler &_rpc;
-      // XXX this should be replaced with each node registering (continuously
-      // poking until getting a response), then the leader begins the round
-      // by sending a notify...
-      QHash<Id, QList<RpcRequest> > _requests;
 
     private slots:
       void HandleSessionStop();

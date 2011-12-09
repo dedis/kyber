@@ -6,6 +6,7 @@
 #include "../Connections/Id.hpp"
 #include "../Crypto/AsymmetricKey.hpp"
 #include "../Crypto/DiffieHellman.hpp"
+#include "Group.hpp"
 
 namespace Dissent {
 namespace Anonymity {
@@ -49,6 +50,16 @@ namespace Anonymity {
       QSharedPointer<AsymmetricKey> _signing_key;
       QSharedPointer<DiffieHellman> _dh_key;
   };
+
+  inline GroupContainer GetPublicComponents(const Credentials &creds)
+  {
+    QSharedPointer<Credentials::AsymmetricKey> key(
+      creds.GetSigningKey()->GetPublicKey());
+
+    GroupContainer gc(creds.GetLocalId(), key,
+        creds.GetDhKey()->GetPublicComponent());
+    return gc;
+  }
 }
 }
 

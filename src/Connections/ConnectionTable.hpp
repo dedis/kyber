@@ -102,12 +102,12 @@ namespace Connections {
        */
       bool RemoveConnection(Connection *con);
 
-    private:
       /**
        * Print connection table to debug output
        */
       void PrintConnectionTable();
 
+    private:
       /**
        * Stores Id to Connection mappings
        */

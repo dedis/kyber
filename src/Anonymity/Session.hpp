@@ -10,6 +10,7 @@
 #include "../Messaging/GetDataCallback.hpp"
 #include "../Messaging/RpcMethod.hpp"
 #include "../Utils/StartStop.hpp"
+#include "../Utils/TimerEvent.hpp"
 
 #include "Credentials.hpp"
 #include "Group.hpp"
@@ -63,7 +64,7 @@ namespace Anonymity {
       /**
        * Deconstructor
        */
-      virtual ~Session() {}
+      virtual ~Session();
 
       /**
        * Starts the session
@@ -75,11 +76,15 @@ namespace Anonymity {
        */
       virtual bool Stop();
 
+      void ReceivedRegister(RpcRequest &request);
+
       /**
        * From the SessionManager, pass in a ReceiveReady
        * @param request The request from a group member
        */
-      void ReceivedReady(RpcRequest &request);
+      void ReceivedPrepare(RpcRequest &request);
+
+      void ReceivedBegin(RpcRequest &notification);
 
       /**
        * From the SessionManager, pass in incoming data
@@ -137,15 +142,29 @@ namespace Anonymity {
 
     private:
       /**
+       * Called upon starting to register this peer with the leader
+       * @param unused
+       */
+      void Register(const int &);
+
+      /**
+       * Contains acknowledgement from the registration request
+       * @param response the response may be positive or negative
+       */
+      void Registered(RpcRequest &response);
+
+      void Prepared(RpcRequest &response);
+
+      /**
        * Checks to see if the leader has received all the Ready messsages and
        * broadcasts responses if it has.
        */
-      bool LeaderReady();
+      bool SendPrepare();
 
       /**
        * Called to start the next Round
        */
-      void NextRound();
+      void NextRound(const Id &round_id);
 
       /**
        * Retrieves data from the data waiting queue, returns the byte array
@@ -173,6 +192,7 @@ namespace Anonymity {
       QByteArray _send_queue;
 
       Group _group;
+      Group _shared_group;
       const Credentials _creds;
       const Id _leader_id;
       const Id _session_id;
@@ -180,11 +200,16 @@ namespace Anonymity {
       CreateRound _create_round;
       QSharedPointer<GroupGenerator> _generate_group;
 
-      bool _round_ready;
       QSharedPointer<Round> _current_round;
-      RpcMethod _ready;
+      RpcMethod _registered;
+      RpcMethod _prepared;
+      Dissent::Utils::TimerEvent _register_event;
+      QHash<Id, Id> _registered_peers;
+      QHash<Id, Id> _prepared_peers;
       GetDataCallback _get_data_cb;
       int _round_idx;
+      RpcRequest _prepare_request;
+      bool _prepare_waiting;
 
     private slots:
       /**

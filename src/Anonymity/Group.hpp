@@ -135,6 +135,8 @@ namespace Anonymity {
        */
       bool operator==(const Group &other) const;
 
+      inline bool operator!=(const Group &other) const { return !(*this == other);}
+
       inline static const QSharedPointer<AsymmetricKey> &EmptyKey()
       {
         static QSharedPointer<AsymmetricKey> key(new Dissent::Crypto::NullPrivateKey());

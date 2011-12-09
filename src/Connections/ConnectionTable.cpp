@@ -107,8 +107,8 @@ namespace Connections {
     QHash<const Edge *, QSharedPointer<Edge> >::iterator i;
 
     qDebug() << "======= Connection Table =======";
-    for(i = _edges.begin(); i != _edges.end(); ++i) {
-      qDebug() << i.key()->ToString();
+    foreach(Connection *con, _cons) {
+      qDebug() << con->ToString();
     }
     qDebug() << "================================";
   }

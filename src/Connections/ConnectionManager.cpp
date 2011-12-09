@@ -259,7 +259,7 @@ namespace Connections {
       _rem_con_tab.Disconnect(con);
     }
 
-    if(con->GetRemoteId() != _local_id) {
+    if(!con->GetEdge()->IsClosed() && (con->GetLocalId() != con->GetRemoteId())) {
       QVariantMap notification;
       notification["method"] = "CM::Disconnect";
       _rpc.SendNotification(notification, con);
