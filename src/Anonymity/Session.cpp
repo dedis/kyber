@@ -41,6 +41,10 @@ namespace Anonymity {
 
   Session::~Session()
   {
+    // If SessionManager is being destructed causing this to be destructed and
+    // this hasn't stopped, the Stopping signal will cause a nasty segfault
+    // into a partially decomposed SessionManager
+    QObject::disconnect(this, 0, 0, 0);
     Stop();
   }
 
