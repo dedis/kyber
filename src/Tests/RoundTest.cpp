@@ -14,20 +14,6 @@ namespace Tests {
     Group *group;
     ConstructOverlay(count, nodes, group);
 
-
-    for(int idx = 0; idx < count; idx++) {
-      for(int jdx = 0; jdx < count; jdx++) {
-        if(idx == jdx) {
-          continue;
-        }
-        EXPECT_TRUE(nodes[idx]->cm.GetConnectionTable().GetConnection(nodes[jdx]->cm.GetId()));
-      }
-    }
-
-    for(int idx = 0; idx < count; idx++) {
-      EXPECT_TRUE(nodes[idx]->sink.Count() == 0);
-    }
-
     Id leader_id = nodes[leader]->cm.GetId();
     Id session_id;
 
@@ -66,19 +52,6 @@ namespace Tests {
     QVector<TestNode *> nodes;
     Group *group;
     ConstructOverlay(count, nodes, group);
-
-    for(int idx = 0; idx < count; idx++) {
-      for(int jdx = 0; jdx < count; jdx++) {
-        if(idx == jdx) {
-          continue;
-        }
-        EXPECT_TRUE(nodes[idx]->cm.GetConnectionTable().GetConnection(nodes[jdx]->cm.GetId()));
-      }
-    }
-
-    for(int idx = 0; idx < count; idx++) {
-      EXPECT_TRUE(nodes[idx]->sink.Count() == 0);
-    }
 
     Id leader_id = nodes[leader]->cm.GetId();
     Id session_id;
@@ -191,7 +164,7 @@ namespace Tests {
     int leader = Random::GetInstance().GetInt(0, count);
     int sender0 = Random::GetInstance().GetInt(0, count);
     int sender1 = Random::GetInstance().GetInt(0, count);
-    while(sender0 != sender1) {
+    while(sender0 == sender1) {
       sender1 = Random::GetInstance().GetInt(0, count);
     }
 
@@ -255,9 +228,13 @@ namespace Tests {
 
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     int leader = Random::GetInstance().GetInt(0, count);
-    int disconnecter = Random::GetInstance().GetInt(0, count);
-    while(leader != disconnecter) {
-      disconnecter = Random::GetInstance().GetInt(0, count);
+    int disconnector = Random::GetInstance().GetInt(0, count);
+    while(leader == disconnector) {
+      disconnector = Random::GetInstance().GetInt(0, count);
+    }
+    int sender = Random::GetInstance().GetInt(0, count);
+    while(sender == disconnector) {
+      sender = Random::GetInstance().GetInt(0, count);
     }
 
     QVector<TestNode *> nodes;
@@ -269,7 +246,9 @@ namespace Tests {
 
     CreateSessions(nodes, *group, leader_id, session_id, callback, cgg);
 
+    SignalCounter sc;
     for(int idx = 0; idx < count; idx++) {
+      QObject::connect(&nodes[idx]->sink, SIGNAL(DataReceived()), &sc, SLOT(Counter()));
       nodes[idx]->session->Start();
     }
 
@@ -280,38 +259,38 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    nodes[disconnecter]->session->Stop();
-    nodes[disconnecter]->cm.Disconnect();
-    EXPECT_TRUE(nodes[disconnecter]->session->Stopped());
+    nodes[disconnector]->session->Stop();
+    nodes[disconnector]->cm.Disconnect();
+    EXPECT_TRUE(nodes[disconnector]->session->Stopped());
 
-    TestNode::calledback = 0;
-    next = Timer::GetInstance().VirtualRun();
-    while(next != -1 && TestNode::calledback < count) {
-      Time::GetInstance().IncrementVirtualClock(next);
-      next = Timer::GetInstance().VirtualRun();
-    }
-
+    count -= 1;
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
 
     QByteArray msg(512, 0);
     rand->GenerateBlock(msg);
-    nodes[(leader + disconnecter) % count]->session->Send(msg);
+    nodes[sender]->session->Send(msg);
 
+    sc.Reset();
     TestNode::calledback = 0;
     next = Timer::GetInstance().VirtualRun();
-    while(next != -1 && TestNode::calledback < count) {
+    while(next != -1 && sc.GetCount() < count) {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
     }
 
     for(int idx = 0; idx < count; idx++) {
-      EXPECT_TRUE(nodes[idx]->sink.Count() == 0);
-      EXPECT_TRUE(nodes[idx]->session->Stopped());
+      if(idx == disconnector) {
+        EXPECT_EQ(nodes[idx]->sink.Count(), 0);
+        EXPECT_TRUE(nodes[idx]->session->Stopped());
+      } else {
+        EXPECT_EQ(nodes[idx]->sink.Count(), 1);
+        EXPECT_FALSE(nodes[idx]->session->Stopped());
+      }
     }
 
-    delete nodes[disconnecter];
-    nodes.remove(disconnecter);
+    delete nodes[disconnector];
+    nodes.remove(disconnector);
     CleanUp(nodes);
     delete group;
   }
@@ -323,25 +302,18 @@ namespace Tests {
 
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     int leader = Random::GetInstance().GetInt(0, count);
+    int disconnector = Random::GetInstance().GetInt(0, count);
+    while(leader == disconnector) {
+      disconnector = Random::GetInstance().GetInt(0, count);
+    }
     int sender = Random::GetInstance().GetInt(0, count);
-    int disconnecter = Random::GetInstance().GetInt(0, count);
+    while(sender == disconnector) {
+      sender = Random::GetInstance().GetInt(0, count);
+    }
 
     QVector<TestNode *> nodes;
     Group *group;
     ConstructOverlay(count, nodes, group);
-
-    for(int idx = 0; idx < count; idx++) {
-      for(int jdx = 0; jdx < count; jdx++) {
-        if(idx == jdx) {
-          continue;
-        }
-        EXPECT_TRUE(nodes[idx]->cm.GetConnectionTable().GetConnection(nodes[jdx]->cm.GetId()));
-      }
-    }
-
-    for(int idx = 0; idx < count; idx++) {
-      EXPECT_TRUE(nodes[idx]->sink.Count() == 0);
-    }
 
     Id leader_id = nodes[leader]->cm.GetId();
     Id session_id;
@@ -355,7 +327,9 @@ namespace Tests {
     rand->GenerateBlock(msg);
     nodes[sender]->session->Send(msg);
 
+    SignalCounter sc;
     for(int idx = 0; idx < count; idx++) {
+      QObject::connect(&nodes[idx]->sink, SIGNAL(DataReceived()), &sc, SLOT(Counter()));
       nodes[idx]->session->Start();
     }
 
@@ -373,17 +347,12 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    if(Time::GetInstance().MSecsSinceEpoch() >= run_before_disc) {
-      nodes[disconnecter]->cm.Disconnect();
-    }
-
-    while(next != -1) {
+    nodes[disconnector]->cm.Disconnect();
+    count -= 1;
+    sc.Reset();
+    while(next != -1 && sc.GetCount() < count) {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
-    }
-
-    foreach(TestNode *node, nodes) {
-      EXPECT_TRUE(node->session->Stopped());
     }
 
     CleanUp(nodes);
@@ -404,19 +373,6 @@ namespace Tests {
     QVector<TestNode *> nodes;
     Group *group;
     ConstructOverlay(count, nodes, group);
-
-    for(int idx = 0; idx < count; idx++) {
-      for(int jdx = 0; jdx < count; jdx++) {
-        if(idx == jdx) {
-          continue;
-        }
-        EXPECT_TRUE(nodes[idx]->cm.GetConnectionTable().GetConnection(nodes[jdx]->cm.GetId()));
-      }
-    }
-
-    for(int idx = 0; idx < count; idx++) {
-      EXPECT_TRUE(nodes[idx]->sink.Count() == 0);
-    }
 
     Id leader_id = nodes[leader]->cm.GetId();
     Id session_id;
@@ -442,13 +398,15 @@ namespace Tests {
     rand->GenerateBlock(msg);
     nodes[sender]->session->Send(msg);
 
+    SignalCounter sc;
     for(int idx = 0; idx < count; idx++) {
+      QObject::connect(&nodes[idx]->sink, SIGNAL(DataReceived()), &sc, SLOT(Counter()));
       nodes[idx]->session->Start();
     }
 
-    TestNode::calledback = 0;
+    count -= 1;
     qint64 next = Timer::GetInstance().VirtualRun();
-    while(next != -1 && TestNode::calledback < count) {
+    while(next != -1 && sc.GetCount() < count) {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
     }

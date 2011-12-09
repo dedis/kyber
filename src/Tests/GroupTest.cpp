@@ -128,7 +128,7 @@ namespace Tests {
     int count;
     while((count = removed.Count())) {
       int idx = Random::GetInstance().GetInt(0, count);
-      removed = RemoveMember(removed, removed.GetId(idx));
+      removed = RemoveGroupMember(removed, removed.GetId(idx));
       EXPECT_NE(group.GetRoster(), removed.GetRoster());
       EXPECT_TRUE(IsSubset(group, removed));
     }

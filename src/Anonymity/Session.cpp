@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "../Connections/Connection.hpp"
 #include "../Connections/Network.hpp"
 #include "../Utils/Timer.hpp"
@@ -23,7 +25,8 @@ namespace Anonymity {
     _prepared(this, &Session::Prepared),
     _get_data_cb(this, &Session::GetData),
     _round_idx(0),
-    _prepare_waiting(false)
+    _prepare_waiting(false),
+    _trim_send_queue(0)
   {
     foreach(const GroupContainer &gc, _group.GetRoster()) {
       Connection *con = _network->GetConnection(gc.first);
@@ -77,6 +80,9 @@ namespace Anonymity {
             this, SLOT(HandleDisconnect()));
       }
     }
+
+    QObject::disconnect(_current_round.data(), SIGNAL(Finished()), this,
+        SLOT(HandleRoundFinished()));
 
     if(_current_round) {
       _current_round->Stop("Session stopped");
@@ -157,6 +163,12 @@ namespace Anonymity {
 
   bool Session::SendPrepare()
   {
+    bool interrupt = false;
+    if(!_current_round.isNull()) {
+      interrupt = (!_current_round->Successful() &&
+        (_current_round->GetBadMembers().size() == 0));
+    }
+
     Id round_id(Id::Zero().GetInteger() + _round_idx++);
     NextRound(round_id);
 
@@ -164,6 +176,7 @@ namespace Anonymity {
     request["method"] = "SM::Prepare";
     request["session_id"] = _session_id.GetByteArray();
     request["round_id"] = round_id.GetByteArray();
+    request["interrupt"] = interrupt;
 
     if(_group != _shared_group) {
       _shared_group = _group;
@@ -173,6 +186,7 @@ namespace Anonymity {
       request["group"] = group;
     }
 
+    _prepared_peers.clear();
     foreach(const Id &id, _registered_peers) {
       _network->SendRequest(request, id, &_prepared);
     }
@@ -182,13 +196,15 @@ namespace Anonymity {
 
   void Session::ReceivedPrepare(RpcRequest &request)
   {
-    if(!_current_round.isNull() && !_current_round->Stopped()) {
+    QVariantMap msg = request.GetMessage();
+
+    if(!msg["interrupt"].toBool() && !_current_round.isNull() &&
+        !_current_round->Stopped())
+    {
       _prepare_waiting = true;
       _prepare_request = request;
       return;
     }
-
-    QVariantMap msg = request.GetMessage();
 
     QByteArray brid = msg["round_id"].toByteArray();
     if(brid.isEmpty()) {
@@ -203,12 +219,13 @@ namespace Anonymity {
       Group group;
       stream >> group;
       _group = group;
-//      _generate_group->Update(group);
+      _generate_group->Update(group);
     }
 
     NextRound(round_id);
     QVariantMap response;
     response["result"] = true;
+    response["round_id"] = msg["round_id"];
     request.Respond(response);
   }
 
@@ -223,6 +240,14 @@ namespace Anonymity {
     } else if(!_group.Contains(con->GetRemoteId())) {
       qWarning() << "Received a prepared message from a non-group member:" <<
         response.GetFrom()->ToString();
+      return;
+    }
+
+    Id round_id(message["round_id"].toByteArray());
+
+    if(_current_round->GetRoundId() != round_id) {
+      qWarning() << "Received a prepared message from the wrong round.  RoundId:" <<
+        round_id.ToString() << "from" << response.GetFrom()->ToString();
       return;
     }
 
@@ -278,11 +303,16 @@ namespace Anonymity {
 
     emit RoundFinished(_current_round);
 
-    if(Stopped()){ 
+    if(Stopped()) {
       qDebug() << "Session stopped.";
     } else if(round->GetBadMembers().size() != 0) {
       qWarning() << "Found some bad members...";
-      Stop();
+      if(IsLeader()) {
+        Group group = _group;
+        foreach(int idx, round->GetBadMembers()) {
+          RemoveMember(group.GetId(idx));
+        }
+      }
     } else if(IsLeader()) {
       SendPrepare();
     } else if(_prepare_waiting) {
@@ -294,6 +324,10 @@ namespace Anonymity {
 
   void Session::NextRound(const Id &round_id)
   {
+    if(!_current_round.isNull() && !_current_round->Successful()) {
+      _trim_send_queue = 0;
+    }
+
     Round * round = _create_round(_generate_group, _creds, round_id, _network,
         _get_data_cb);
 
@@ -333,19 +367,33 @@ namespace Anonymity {
       return;
     }
 
+    RemoveMember(con->GetRemoteId());
+
     if(!_current_round.isNull()) {
       _current_round->HandleDisconnect(con);
     }
-    qDebug() << _creds.GetLocalId().ToString() <<
-      "Closing Session due to disconnect";
-    Stop();
+  }
+
+  void Session::RemoveMember(const Id &id)
+  {
+    _group = RemoveGroupMember(_group, id);
+    _generate_group->Update(_group);
+
+    if(IsLeader()) {
+      _registered_peers.remove(id);
+    }
   }
 
   QPair<QByteArray, bool> Session::GetData(int max)
   {
+    if(_trim_send_queue > 0) {
+      _send_queue = _send_queue.mid(_trim_send_queue);
+    }
+
     QByteArray data(_send_queue.left(max));
-    _send_queue = _send_queue.mid(max);
-    return QPair<QByteArray, bool>(data, !_send_queue.isEmpty());
+    bool more = _send_queue.size() > max;
+    _trim_send_queue = std::min(_send_queue.size(), max);
+    return QPair<QByteArray, bool>(data, more);
   }
 }
 }

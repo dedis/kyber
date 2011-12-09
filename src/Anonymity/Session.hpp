@@ -57,9 +57,10 @@ namespace Anonymity {
        * @param group_generator generates a subgroup of the primary group for
        * use in the round
        */
-      Session(const Group &group, const Credentials &creds, const Id &leader_id,
-          const Id &session_id, QSharedPointer<Network> network,
-          CreateRound create_round, CreateGroupGenerator group_generator);
+      Session(const Group &group, const Credentials &creds,
+          const Id &leader_id, const Id &session_id,
+          QSharedPointer<Network> network, CreateRound create_round,
+          CreateGroupGenerator group_generator);
 
       /**
        * Deconstructor
@@ -153,6 +154,8 @@ namespace Anonymity {
        */
       void Registered(RpcRequest &response);
 
+      /**
+       */
       void Prepared(RpcRequest &response);
 
       /**
@@ -174,12 +177,7 @@ namespace Anonymity {
        */
       QPair<QByteArray, bool> GetData(int max);
 
-      /**
-       * Called when a Ready has been responded to by the leader.  Calls Start
-       * on the current round.
-       * @param response The response from the server (empty)
-       */
-      void Ready(RpcRequest &response);
+      void RemoveMember(const Id &id);
 
       /**
        * Used by the leader to queue Ready requests.
@@ -210,6 +208,7 @@ namespace Anonymity {
       int _round_idx;
       RpcRequest _prepare_request;
       bool _prepare_waiting;
+      int _trim_send_queue;
 
     private slots:
       /**

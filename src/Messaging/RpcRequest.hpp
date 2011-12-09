@@ -17,7 +17,7 @@ namespace Messaging {
    */
   class RpcRequestData : public QSharedData {
     public:
-      RpcRequestData(const QVariantMap message, ISender *from) :
+      RpcRequestData(const QVariantMap &message, ISender *from) :
         Message(message), From(from), Responded(false)
       {
       }
@@ -45,7 +45,7 @@ namespace Messaging {
   class RpcRequest {
     public:
       /**
-       * Constructor
+       * Constructor, default construction NOT recommended!
        */
       RpcRequest(const QVariantMap &message = QVariantMap(), ISender *from = 0);
 

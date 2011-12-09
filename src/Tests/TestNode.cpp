@@ -35,6 +35,16 @@ namespace Tests {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
     }
+
+    for(int idx = 0; idx < count; idx++) {
+      EXPECT_TRUE(nodes[idx]->sink.Count() == 0);
+      for(int jdx = 0; jdx < count; jdx++) {
+        if(idx == jdx) {
+          continue;
+        }
+        EXPECT_TRUE(nodes[idx]->cm.GetConnectionTable().GetConnection(nodes[jdx]->cm.GetId()));
+      }
+    }
   }
 
   void CreateSessions(const QVector<TestNode *> &nodes,

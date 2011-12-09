@@ -49,8 +49,13 @@ namespace Anonymity {
        */
       inline const Group WholeGroup() const { return _group; }
 
+      /**
+       * Updates the core group
+       */
+      inline virtual void Update(const Group &group) { _group = group; }
+
     private:
-      const Group _group;
+      Group _group;
   };
 
   /**

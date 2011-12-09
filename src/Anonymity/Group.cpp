@@ -103,7 +103,7 @@ namespace Anonymity {
     return true;
   }
 
-  Group RemoveMember(const Group &group, const Group::Id &id)
+  Group RemoveGroupMember(const Group &group, const Group::Id &id)
   {
     int index = group.GetIndex(id);
     if(index < 0) {

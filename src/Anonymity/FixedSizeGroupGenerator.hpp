@@ -19,9 +19,7 @@ namespace Anonymity {
       FixedSizeGroupGenerator(const Group &group) :
         GroupGenerator(group)
       {
-        QVector<GroupContainer> gr = group.GetRoster();
-        gr.resize(10);
-        _current = Group(gr);
+        UpdateCurrentGroup();
       }
 
       /**
@@ -42,7 +40,25 @@ namespace Anonymity {
 
       inline virtual const Group CurrentGroup() const { return _current; }
 
+      /**
+       * Updates the core group
+       */
+      inline virtual void Update(const Group &group)
+      {
+        GroupGenerator::Update(group);
+        UpdateCurrentGroup();
+      }
+
     private:
+      void UpdateCurrentGroup()
+      {
+        QVector<GroupContainer> gr = WholeGroup().GetRoster();
+        if(gr.size() > 10) {
+          gr.resize(10);
+        }
+        _current = Group(gr);
+      }
+
       Group _current;
   };
 }
