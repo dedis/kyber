@@ -20,7 +20,7 @@ namespace Utils {
       static void MSleep(unsigned long msecs);
 
     private:
-      Sleeper();
+      explicit Sleeper();
       ~Sleeper();
       Sleeper(Sleeper const&);
       void operator=(Sleeper const&);

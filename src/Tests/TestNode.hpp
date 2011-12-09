@@ -11,7 +11,7 @@ namespace Tests {
     Q_OBJECT
 
     public:
-      TestNode(const Id &id, int idx) :
+      explicit TestNode(const Id &id, int idx) :
         cm(id, rpc), sm(rpc),
         net(new DefaultNetwork(cm.GetConnectionTable(), rpc)),
         creds(cm.GetId(),

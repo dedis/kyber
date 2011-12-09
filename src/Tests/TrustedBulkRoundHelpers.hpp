@@ -7,7 +7,7 @@ namespace Dissent {
 namespace Tests {
   template<typename T> class TrustedBulkRoundBadShuffler : public TrustedBulkRound, public Triggerable {
     public:
-      TrustedBulkRoundBadShuffler(QSharedPointer<GroupGenerator> group_gen,
+      explicit TrustedBulkRoundBadShuffler(QSharedPointer<GroupGenerator> group_gen,
           const Credentials &creds, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data) :
         TrustedBulkRound(group_gen, creds, round_id, network, get_data, TCreateRound<T>)

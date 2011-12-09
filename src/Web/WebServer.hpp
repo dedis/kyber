@@ -38,7 +38,7 @@ namespace Web {
        * Constructor
        * @param url where to listen
        */
-      WebServer(QUrl url);
+      explicit WebServer(QUrl url);
 
       virtual ~WebServer();
 

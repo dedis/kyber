@@ -22,7 +22,7 @@ namespace Services {
       /**
        * Constructor
        */
-      WebService();
+      explicit WebService();
       
       virtual ~WebService();
 

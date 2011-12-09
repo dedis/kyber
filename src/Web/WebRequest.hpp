@@ -23,9 +23,9 @@ namespace Web {
       /**
        * Constructor
        */
-      WebRequest(QTcpSocket* socket);
+      explicit WebRequest(QTcpSocket* socket);
       
-      ~WebRequest();
+      virtual ~WebRequest();
 
       inline QTcpSocket* GetSocket() { Q_ASSERT(_socket); return _socket; }
 

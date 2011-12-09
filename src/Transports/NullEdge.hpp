@@ -13,7 +13,7 @@ namespace Transports {
       /**
        * Constructor
        */
-      NullEdge() : Edge(NullAddress(), NullAddress(), true) {}
+      explicit NullEdge() : Edge(NullAddress(), NullAddress(), true) {}
 
       /**
        * Deconstructor

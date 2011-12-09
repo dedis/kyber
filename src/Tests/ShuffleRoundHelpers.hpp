@@ -7,7 +7,7 @@ namespace Dissent {
 namespace Tests {
   class ShuffleRoundBadInnerPrivateKey : public ShuffleRound, public Triggerable {
     public:
-      ShuffleRoundBadInnerPrivateKey(QSharedPointer<GroupGenerator> group_gen,
+      explicit ShuffleRoundBadInnerPrivateKey(QSharedPointer<GroupGenerator> group_gen,
           const Credentials &creds, const Id &round_id,
           QSharedPointer<Network> net, GetDataCallback &get_data) :
         ShuffleRound(group_gen, creds, round_id, net, get_data) {}
@@ -39,7 +39,7 @@ namespace Tests {
 
   class ShuffleRoundMessageDuplicator : public ShuffleRound, public Triggerable {
     public:
-      ShuffleRoundMessageDuplicator(QSharedPointer<GroupGenerator> group_gen,
+      explicit ShuffleRoundMessageDuplicator(QSharedPointer<GroupGenerator> group_gen,
           const Credentials &creds, const Id &round_id,
           QSharedPointer<Network> net, GetDataCallback &get_data) :
         ShuffleRound(group_gen, creds, round_id, net, get_data) {}
@@ -110,7 +110,7 @@ namespace Tests {
 
   class ShuffleRoundMessageSwitcher : public ShuffleRound, public Triggerable {
     public:
-      ShuffleRoundMessageSwitcher(QSharedPointer<GroupGenerator> group_gen,
+      explicit ShuffleRoundMessageSwitcher(QSharedPointer<GroupGenerator> group_gen,
           const Credentials &creds, const Id &round_id,
           QSharedPointer<Network> net, GetDataCallback &get_data) :
         ShuffleRound(group_gen, creds, round_id, net, get_data) {}
@@ -143,7 +143,7 @@ namespace Tests {
 
   class ShuffleRoundFalseBlame : public ShuffleRound, public Triggerable {
     public:
-      ShuffleRoundFalseBlame(QSharedPointer<GroupGenerator> group_gen,
+      explicit ShuffleRoundFalseBlame(QSharedPointer<GroupGenerator> group_gen,
           const Credentials &creds, const Id &round_id,
           QSharedPointer<Network> net, GetDataCallback &get_data) :
         ShuffleRound(group_gen, creds, round_id, net, get_data) {}
@@ -161,7 +161,7 @@ namespace Tests {
 
   class ShuffleRoundFalseNoGo : public ShuffleRound, public Triggerable {
     public:
-      ShuffleRoundFalseNoGo(QSharedPointer<GroupGenerator> group_gen,
+      explicit ShuffleRoundFalseNoGo(QSharedPointer<GroupGenerator> group_gen,
           const Credentials &creds, const Id &round_id,
           QSharedPointer<Network> net, GetDataCallback &get_data) :
         ShuffleRound(group_gen, creds, round_id, net, get_data) {}
@@ -183,7 +183,7 @@ namespace Tests {
 
   class ShuffleRoundInvalidOuterEncryption : public ShuffleRound, public Triggerable {
     public:
-      ShuffleRoundInvalidOuterEncryption(QSharedPointer<GroupGenerator> group_gen,
+      explicit ShuffleRoundInvalidOuterEncryption(QSharedPointer<GroupGenerator> group_gen,
           const Credentials &creds, const Id &round_id,
           QSharedPointer<Network> net, GetDataCallback &get_data) :
         ShuffleRound(group_gen, creds, round_id, net, get_data) {}

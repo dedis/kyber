@@ -15,7 +15,7 @@ namespace Transports {
    */
   class AddressData : public QSharedData {
     public:
-      AddressData(const QUrl &url) : url(url) { }
+      explicit AddressData(const QUrl &url) : url(url) { }
       virtual ~AddressData() { }
 
       QUrl url;
@@ -40,7 +40,7 @@ namespace Transports {
    */
   class Address {
     public:
-      Address(const QUrl &url);
+      explicit Address(const QUrl &url);
       Address(const Address &other);
       virtual ~Address() { }
       static const Address Create(const QUrl &url);

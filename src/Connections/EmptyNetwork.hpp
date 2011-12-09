@@ -63,7 +63,7 @@ namespace Connections {
        */
       virtual Network *Clone() const { return new EmptyNetwork(*this); }
     private:
-      EmptyNetwork() {}
+      explicit EmptyNetwork() {}
       EmptyNetwork(const EmptyNetwork &) {}
   };
 }

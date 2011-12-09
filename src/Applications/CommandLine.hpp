@@ -25,7 +25,7 @@ namespace Applications {
        * Constructor
        * @param nodes the set of nodes running in this process
        */
-      CommandLine(const QList<QSharedPointer<Node> > &nodes);
+      explicit CommandLine(const QList<QSharedPointer<Node> > &nodes);
 
       virtual ~CommandLine();
 

@@ -37,7 +37,7 @@ namespace Messaging {
        * @param object the object to make the call upon, executed via pointer
        * @param method the method to call
        */
-      RpcMethod(T *object, Method method) :
+      explicit RpcMethod(T *object, Method method) :
         _object(object), _method(method)
       {
       }

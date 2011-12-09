@@ -30,7 +30,7 @@ namespace Anonymity {
     public:
       typedef Dissent::Connections::Id Id;
 
-      GroupData(const QVector<GroupContainer> &group,
+      explicit GroupData(const QVector<GroupContainer> &group,
           const QHash<const Id, int> &id_to_int) :
         GroupRoster(group),
         IdtoInt(id_to_int),
@@ -63,7 +63,8 @@ namespace Anonymity {
        * Constructor
        * @param containers an ordered set of group containers
        */
-      Group(const QVector<GroupContainer> &containers = QVector<GroupContainer>());
+      explicit Group(const QVector<GroupContainer> &containers =
+          QVector<GroupContainer>());
 
       /**
        * Returns the internal roster

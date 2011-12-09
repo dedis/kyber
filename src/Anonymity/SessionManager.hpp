@@ -32,7 +32,7 @@ namespace Anonymity {
        * Constructor
        * @param rpc
        */
-      SessionManager(RpcHandler &rpc);
+      explicit SessionManager(RpcHandler &rpc);
 
       /**
        * Deconstructor

@@ -26,7 +26,8 @@ namespace Anonymity {
        * @param signing_key local node's signing key
        * @param dh_key local node's DiffieHellman key
        */
-      Credentials(const Id &local_id, QSharedPointer<AsymmetricKey> signing_key,
+      explicit Credentials(const Id &local_id,
+          QSharedPointer<AsymmetricKey> signing_key,
           QSharedPointer<DiffieHellman> dh_key) :
         _local_id(local_id), _signing_key(signing_key), _dh_key(dh_key) {}
 

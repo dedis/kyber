@@ -13,7 +13,7 @@ namespace Applications {
     public:
       typedef Dissent::Messaging::ISender ISender;
 
-      ConsoleSink();
+      explicit ConsoleSink();
 
       /**
        * Destructor

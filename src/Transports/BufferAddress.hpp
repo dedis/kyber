@@ -10,7 +10,11 @@ namespace Transports {
    */
   class BufferAddressData : public AddressData {
     public:
-      BufferAddressData(const QUrl &url, int id) : AddressData(url), id(id) { }
+      explicit BufferAddressData(const QUrl &url, int id) :
+        AddressData(url), id(id)
+      {
+      }
+
       virtual ~BufferAddressData() { }
       virtual bool Equals(const AddressData *other) const;
 
@@ -35,14 +39,14 @@ namespace Transports {
     public:
       const static QString Scheme;
 
-      BufferAddress(const QUrl &url);
+      explicit BufferAddress(const QUrl &url);
       BufferAddress(const BufferAddress &other);
 
       /**
        * Creates a buffer address using the provided int
        * @param id the integer to use, defaults to "any"
        */
-      BufferAddress(int id = 0);
+      explicit BufferAddress(int id = 0);
 
       /**
        * Destructor

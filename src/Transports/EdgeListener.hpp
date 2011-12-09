@@ -20,7 +20,7 @@ namespace Transports {
        * Constructor
        * @param local_address the local address for binding purposes
        */
-      EdgeListener(const Address &local_address);
+      explicit EdgeListener(const Address &local_address);
 
       /**
        * Destructor

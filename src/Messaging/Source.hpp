@@ -16,7 +16,7 @@ namespace Messaging {
       /**
        * Constructor
        */
-      Source();
+      explicit Source();
 
       /**
        * Push data from this source into a sink return the old sink if

@@ -17,7 +17,7 @@ namespace Crypto {
        * Constructor
        * @param seed optional seed
        */
-      CppRandom(const QByteArray &seed = QByteArray(), uint index = 0);
+      explicit CppRandom(const QByteArray &seed = QByteArray(), uint index = 0);
 
       /**
        * Destructor

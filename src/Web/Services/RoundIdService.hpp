@@ -11,8 +11,8 @@ namespace Services {
    */
   class RoundIdService : public SessionWebService {
     public:
-      RoundIdService(QSharedPointer<Session> session);
-      RoundIdService(QSharedPointer<Node> node);
+      explicit RoundIdService(QSharedPointer<Session> session);
+      explicit RoundIdService(QSharedPointer<Node> node);
 
       virtual ~RoundIdService() {}
 

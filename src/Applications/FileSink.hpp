@@ -19,7 +19,7 @@ namespace Applications {
        * Constructor
        * @param file the file to store the output into
        */
-      FileSink(const QString &file);
+      explicit FileSink(const QString &file);
 
       /**
        * Destructor

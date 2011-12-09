@@ -23,8 +23,8 @@ namespace Transports {
        * @param incoming true if the remote side requested the creation of this edge
        * @param socket socket used for communication
        */
-      TcpEdge(const Address &local, const Address &remote, bool incoming,
-          QTcpSocket *socket);
+      explicit TcpEdge(const Address &local, const Address &remote,
+          bool incoming, QTcpSocket *socket);
 
       /**
        * Destructor

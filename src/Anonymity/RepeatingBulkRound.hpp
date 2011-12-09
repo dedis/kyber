@@ -96,7 +96,7 @@ namespace Anonymity {
        * @param create_shuffle optional parameter specifying a shuffle round
        * to create, currently used for testing
        */
-      RepeatingBulkRound(QSharedPointer<GroupGenerator> group_gen, 
+      explicit RepeatingBulkRound(QSharedPointer<GroupGenerator> group_gen, 
           const Credentials &creds, const Id &round_id, 
           QSharedPointer<Network> network, GetDataCallback &get_data,
           CreateRound create_shuffle = &TCreateRound<ShuffleRound>);

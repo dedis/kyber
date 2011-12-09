@@ -24,7 +24,7 @@ namespace Transports {
        * @param remote the address of the remote point of the edge
        * @param outbound true if the local side requested the creation of this edge
        */
-      Edge(const Address &local, const Address &remote, bool outbound);
+      explicit Edge(const Address &local, const Address &remote, bool outbound);
 
       /**
        * Deconstructor

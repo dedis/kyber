@@ -13,7 +13,7 @@ namespace Messaging {
       /**
        * Constructor
        */
-      RpcResponse(const QVariantMap &message, ISender *from);
+      explicit RpcResponse(const QVariantMap &message, ISender *from);
 
       virtual ~RpcResponse() {}
 

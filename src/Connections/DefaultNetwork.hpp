@@ -18,7 +18,7 @@ namespace Connections {
        * @param ct connection table providing id to sender
        * @param rpc messaging substrate
        */
-      DefaultNetwork(const ConnectionTable &ct, RpcHandler &rpc) :
+      explicit DefaultNetwork(const ConnectionTable &ct, RpcHandler &rpc) :
         _ct(ct), _rpc(rpc) {}
 
       /**

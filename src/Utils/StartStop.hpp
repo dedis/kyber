@@ -11,7 +11,7 @@ namespace Utils {
       /**
        * Constructor
        */
-      StartStop();
+      explicit StartStop();
 
       /**
        * Destructor - Please call destructor check in your code!

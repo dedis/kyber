@@ -15,7 +15,7 @@ namespace Utils {
      * @param t2 second
      * @param t3 third
      */
-    Triple(const T1 &t1, const T2 &t2, const T3 &t3) :
+    explicit Triple(const T1 &t1, const T2 &t2, const T3 &t3) :
       first(t1), second(t2), third(t3)
     {
     }

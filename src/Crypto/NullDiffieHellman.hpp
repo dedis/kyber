@@ -11,13 +11,13 @@ namespace Crypto {
    */
   class NullDiffieHellman : public DiffieHellman {
     public:
-      NullDiffieHellman();
+      explicit NullDiffieHellman();
 
       /**
        * Loads a DiffieHellman key from a byte array
        * @param private_component the private component in the DH exchange
        */
-      NullDiffieHellman(const QByteArray &private_component);
+      explicit NullDiffieHellman(const QByteArray &private_component);
 
       /**
        * Generate a DiffieHellman operator using the given data as a seed to a RNG

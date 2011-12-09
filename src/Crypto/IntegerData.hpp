@@ -15,19 +15,22 @@ namespace Crypto {
       /**
        * Base constructor
        */
-      IntegerData() {}
+      explicit IntegerData() {}
 
       /**
        * construct from byte array
        * @param byte_array the byte array to construct from
        */
-      IntegerData(const QByteArray &byte_array) : _byte_array(byte_array) {}
+      explicit IntegerData(const QByteArray &byte_array) :
+        _byte_array(byte_array)
+      {
+      }
 
       /**
        * Construct from string
        * @param string the string to create from
        */
-      IntegerData(const QString &string) : _string(string)
+      explicit IntegerData(const QString &string) : _string(string)
       {
         const QChar *chs = string.data();
         QByteArray tmp;

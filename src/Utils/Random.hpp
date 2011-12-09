@@ -18,7 +18,7 @@ namespace Utils {
        * @param seed used to create a deterministic rng
        * @param index moves the rng to a specific index
        */
-      Random(const QByteArray &seed = QByteArray(), uint index = 0);
+      explicit Random(const QByteArray &seed = QByteArray(), uint index = 0);
 
       /**
        * Destructor

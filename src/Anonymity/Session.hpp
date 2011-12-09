@@ -57,7 +57,7 @@ namespace Anonymity {
        * @param group_generator generates a subgroup of the primary group for
        * use in the round
        */
-      Session(const Group &group, const Credentials &creds,
+      explicit Session(const Group &group, const Credentials &creds,
           const Id &leader_id, const Id &session_id,
           QSharedPointer<Network> network, CreateRound create_round,
           CreateGroupGenerator group_generator);

@@ -78,7 +78,7 @@ namespace Utils {
       /**
        * Singleton, disabled
        */
-      Timer();
+      explicit Timer();
 
       /**
        * Singleton, protected

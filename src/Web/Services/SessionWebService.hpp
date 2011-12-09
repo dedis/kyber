@@ -4,6 +4,7 @@
 #include <QSharedPointer>
 
 #include "../../Applications/Node.hpp"
+#include "../../Anonymity/Session.hpp"
 
 #include "WebService.hpp"
 
@@ -24,8 +25,8 @@ namespace Services {
        * we pass in the Node. Other times (in Test), the Node is not easy to
        * fake, so we use Session.
        */
-      SessionWebService(QSharedPointer<Session> session) : _use_node(false), _session(session) {}
-      SessionWebService(QSharedPointer<Node> node) : _use_node(true), _node(node) {}
+      explicit SessionWebService(QSharedPointer<Session> session) : _use_node(false), _session(session) {}
+      explicit SessionWebService(QSharedPointer<Node> node) : _use_node(true), _node(node) {}
 
       virtual ~SessionWebService() {}
 
@@ -34,7 +35,7 @@ namespace Services {
        * Return the monitored session
        */
       QSharedPointer<Session> GetSession() { return (_use_node ? _node->session : _session); }
-
+ 
     private:
       bool _use_node;
       QSharedPointer<Node> _node;

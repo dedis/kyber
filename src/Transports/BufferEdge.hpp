@@ -20,7 +20,7 @@ namespace Transports {
        * @param outgoing true if the remote side requested the creation of this edge
        * @param delay latency to the remote side in ms
        */
-      BufferEdge(const Address &local, const Address &remote,
+      explicit BufferEdge(const Address &local, const Address &remote,
           bool outgoing, int delay = 10);
       
       /**

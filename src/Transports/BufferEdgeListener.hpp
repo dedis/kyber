@@ -14,7 +14,7 @@ namespace Transports {
    */
   class BufferEdgeListener : public EdgeListener {
     public:
-      BufferEdgeListener(const BufferAddress &local_address);
+      explicit BufferEdgeListener(const BufferAddress &local_address);
       static EdgeListener *Create(const Address &local_address);
 
       /**

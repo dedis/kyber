@@ -26,7 +26,7 @@ namespace Transports {
       /**
        * No inheritance, this is a singleton object
        */
-      EdgeListenerFactory();
+      explicit EdgeListenerFactory();
 
       /**
        * No copying of singleton objects

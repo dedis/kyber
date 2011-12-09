@@ -31,7 +31,7 @@ namespace Transports {
       /**
        * No inheritance, this is a singleton object
        */
-      AddressFactory();
+      explicit AddressFactory();
 
       /**
        * No copying of singleton objects

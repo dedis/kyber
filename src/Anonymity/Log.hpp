@@ -21,13 +21,13 @@ namespace Anonymity {
       /**
        * Default constructor
        */
-      Log();
+      explicit Log();
 
       /**
        * Construct using a serialized log
        * @param logdata serialized log
        */
-      Log(const QByteArray &logdata);
+      explicit Log(const QByteArray &logdata);
 
       /**
        * Adds a new message to the end of the log

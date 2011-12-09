@@ -16,7 +16,7 @@ namespace Utils {
       /**
        * Constructor
        */
-      SignalCounter(int max = -1) : _max(max), _count(0) { }
+      explicit SignalCounter(int max = -1) : _max(max), _count(0) { }
 
       /**
        * Destructor

@@ -15,9 +15,9 @@ namespace Crypto {
    */
   class NullPublicKey : public AsymmetricKey {
     public:
-      NullPublicKey(const QString &filename);
-      NullPublicKey(const QByteArray &data);
-      NullPublicKey(uint key_id);
+      explicit NullPublicKey(const QString &filename);
+      explicit NullPublicKey(const QByteArray &data);
+      explicit NullPublicKey(uint key_id);
       static NullPublicKey *GenerateKey(const QByteArray &seed);
 
       /**

@@ -16,7 +16,8 @@ namespace Crypto {
        * @param data empty, private key, or seed if seed is true
        * @param seed specifies is data is a private key or a seed
        */
-      CppDiffieHellman(const QByteArray &data = QByteArray(), bool seed = false);
+      explicit CppDiffieHellman(const QByteArray &data = QByteArray(),
+          bool seed = false);
 
       /**
        * Destructor

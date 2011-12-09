@@ -13,7 +13,7 @@ namespace Utils {
       /**
        * Constructor
        */
-      Triggerable() : _triggered(false) {}
+      explicit Triggerable() : _triggered(false) {}
 
       /**
        * Destructor

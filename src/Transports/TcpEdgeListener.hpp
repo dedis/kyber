@@ -22,7 +22,7 @@ namespace Transports {
     public:
       const static QString Scheme;
 
-      TcpEdgeListener(const TcpAddress &local_address);
+      explicit TcpEdgeListener(const TcpAddress &local_address);
       static EdgeListener *Create(const Address &local_address);
 
       /**

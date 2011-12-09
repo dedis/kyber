@@ -27,13 +27,13 @@ namespace Crypto {
        * Reads a key from a file
        * @param filename the file storing the key
        */
-      CppPublicKey(const QString &filename);
+      explicit CppPublicKey(const QString &filename);
 
       /**
        * Loads a key from memory
        * @param data byte array holding the key
        */
-      CppPublicKey(const QByteArray &data);
+      explicit CppPublicKey(const QByteArray &data);
 
       /**
        * Deconstructor

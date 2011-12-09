@@ -30,7 +30,7 @@ namespace Anonymity {
        * @param logs all the incoming logs for nodes in the group
        * @param private_keys the outer private keys for nodes in the group
        */
-      ShuffleBlamer(QSharedPointer<GroupGenerator> group_gen,
+      explicit ShuffleBlamer(QSharedPointer<GroupGenerator> group_gen,
           const Id &round_id, const QVector<Log> &logs,
           const QVector<AsymmetricKey *> private_keys);
 

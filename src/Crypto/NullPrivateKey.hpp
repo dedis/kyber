@@ -15,10 +15,10 @@ namespace Crypto {
    */
   class NullPrivateKey : public NullPublicKey {
     public:
-      NullPrivateKey(const QString &filename);
-      NullPrivateKey(const QByteArray &data);
-      NullPrivateKey(uint key_id);
-      NullPrivateKey();
+      explicit NullPrivateKey(const QString &filename);
+      explicit NullPrivateKey(const QByteArray &data);
+      explicit NullPrivateKey(uint key_id);
+      explicit NullPrivateKey();
 
       static NullPrivateKey *GenerateKey(const QByteArray &seed);
 

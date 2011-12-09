@@ -35,7 +35,7 @@ namespace Utils {
        * @param method the method to callback
        * @param val the state to callback
        */
-      TimerMethod(S *object, Method method, T val) :
+      explicit TimerMethod(S *object, Method method, T val) :
         _object(object), _method(method), _val(val)
       {
       }

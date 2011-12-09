@@ -16,7 +16,7 @@ namespace Anonymity {
        * Constructor
        * @param group base group
        */
-      FixedSizeGroupGenerator(const Group &group) :
+      explicit FixedSizeGroupGenerator(const Group &group) :
         GroupGenerator(group)
       {
         UpdateCurrentGroup();

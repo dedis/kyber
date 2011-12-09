@@ -62,11 +62,10 @@ namespace Utils {
       static const qint64 MSecsPerDay;
 #endif
 
-
       /**
        * Disabled for singleton
        */
-      Time();
+      explicit Time();
 
       /**
        * Disabled for singleton

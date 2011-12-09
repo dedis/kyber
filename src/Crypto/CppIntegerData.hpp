@@ -18,11 +18,11 @@ namespace Crypto {
        * Construct using an int
        * @param value the int value
        */
-      CppIntegerData(int value = 0) : _integer(value)
+      explicit CppIntegerData(int value = 0) : _integer(value)
       {
       }
 
-      CppIntegerData(CryptoPP::Integer integer) : _integer(integer)
+      explicit CppIntegerData(CryptoPP::Integer integer) : _integer(integer)
       {
       }
 
@@ -30,7 +30,7 @@ namespace Crypto {
        * Construct using an byte array
        * @param value the byte array
        */
-      CppIntegerData(const QByteArray &byte_array) :
+      explicit CppIntegerData(const QByteArray &byte_array) :
         IntegerData(byte_array),
         _integer(reinterpret_cast<const byte *>(GetByteArray().data()),
             GetByteArray().size())
@@ -41,7 +41,7 @@ namespace Crypto {
        * Construct using a string
        * @param value the string
        */
-      CppIntegerData(const QString &_string) :
+      explicit CppIntegerData(const QString &_string) :
         IntegerData(_string), 
         _integer(reinterpret_cast<const byte *>(GetByteArray().data()),
             GetByteArray().size())

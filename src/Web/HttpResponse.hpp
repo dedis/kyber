@@ -35,9 +35,9 @@ namespace Web {
       /**
        * Constructor
        */
-      HttpResponse();
+      explicit HttpResponse();
       
-      ~HttpResponse();
+      virtual ~HttpResponse();
 
       /**
        * Set the HTTP status code to use

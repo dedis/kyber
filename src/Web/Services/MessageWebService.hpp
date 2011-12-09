@@ -17,7 +17,7 @@ namespace Services {
     Q_OBJECT
 
     public:
-      ~MessageWebService() {}
+      virtual ~MessageWebService() {}
 
     public slots:
       /**

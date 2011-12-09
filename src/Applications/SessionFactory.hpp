@@ -69,7 +69,7 @@ namespace Applications {
       /**
        * No inheritance, this is a singleton object
        */
-      SessionFactory(); 
+      explicit SessionFactory(); 
 
       /**
        * No copying of singleton objects

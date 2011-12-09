@@ -25,7 +25,7 @@ namespace Messaging {
       /**
        * The constructor
        */
-      RpcHandler();
+      explicit RpcHandler();
 
       /**
        * The destructor

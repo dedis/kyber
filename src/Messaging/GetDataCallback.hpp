@@ -51,7 +51,7 @@ namespace Messaging {
        */
       typedef QPair<QByteArray, bool> (T::*Method)(int max);
 
-      GetDataMethod(T *object, Method method) :
+      explicit GetDataMethod(T *object, Method method) :
         _object(object), _method(method)
       {
       }

@@ -46,7 +46,7 @@ namespace Applications {
        * @param group_size number of peers to wait for before creating the group
        * @param session_type type of session / round to create
        */
-      Node(const Credentials &creds, const QList<Address> &local,
+      explicit Node(const Credentials &creds, const QList<Address> &local,
           const QList<Address> &remote, int group_size,
           const QString &session_type);
 

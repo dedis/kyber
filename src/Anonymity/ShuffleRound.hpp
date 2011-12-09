@@ -122,7 +122,7 @@ namespace Anonymity {
        * @param network handles message sending
        * @param get_data requests data to share during this session
        */
-      ShuffleRound(QSharedPointer<GroupGenerator> group_gen, 
+      explicit ShuffleRound(QSharedPointer<GroupGenerator> group_gen, 
           const Credentials &creds, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data);
 

@@ -15,9 +15,9 @@ namespace Packagers {
     Q_OBJECT
 
     public:
-      JsonPackager(); 
+      explicit JsonPackager(); 
 
-      ~JsonPackager();
+      virtual ~JsonPackager();
       
       bool Package(QVariant &vardata, HttpResponse &response);
 

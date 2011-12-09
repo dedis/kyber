@@ -15,7 +15,7 @@ namespace Utils {
        * Constructor
        * @param msg stores the msg into what
        */
-      QRunTimeError(const QString &msg) : _qwhat(msg) { }
+      explicit QRunTimeError(const QString &msg) : _qwhat(msg) { }
 
       /**
        * Desstructor

@@ -34,9 +34,9 @@ namespace Web {
       /**
        * Constructor
        */
-      HttpRequest();
+      explicit HttpRequest();
       
-      ~HttpRequest();
+      virtual ~HttpRequest();
 
       /**
        * Parse request from a QByteArray. Returns

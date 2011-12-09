@@ -17,7 +17,7 @@ namespace Crypto {
       /**
        * Creates a new random key
        */
-      CppPrivateKey();
+      explicit CppPrivateKey();
 
       /**
        * Destructor

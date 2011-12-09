@@ -18,7 +18,7 @@ namespace Anonymity {
        * @param round_id Unique round id (nonce)
        * @param outer_key the peers private outer key
        */
-      ShuffleRoundBlame(QSharedPointer<GroupGenerator> group_gen,
+      explicit ShuffleRoundBlame(QSharedPointer<GroupGenerator> group_gen,
           const Id &local_id, const Id &round_id, AsymmetricKey *outer_key);
 
       /**

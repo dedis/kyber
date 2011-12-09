@@ -17,7 +17,7 @@ namespace Crypto {
       /**
        * Construct from IntegerData
        */
-      Integer(IntegerData *data) : _data(data)
+      explicit Integer(IntegerData *data) : _data(data)
       {
       }
 
@@ -26,13 +26,13 @@ namespace Crypto {
       {
       }
 
-      Integer(const QByteArray &value) :
+      explicit Integer(const QByteArray &value) :
         _data(CryptoFactory::GetInstance().GetLibrary()->GetIntegerData(
               value.isEmpty() ? QByteArray(1, 0) : value))
       {
       }
 
-      Integer(const QString &value) :
+      explicit Integer(const QString &value) :
         _data(CryptoFactory::GetInstance().GetLibrary()->GetIntegerData(value))
       {
       }

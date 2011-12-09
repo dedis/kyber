@@ -68,7 +68,7 @@ namespace Crypto {
       /**
        * No inheritance, this is a singleton object
        */
-      CryptoFactory(); 
+      explicit CryptoFactory(); 
 
       /**
        * No copying of singleton objects

@@ -27,7 +27,8 @@ namespace Connections {
        * @param local_id the Id of the local member
        * @param remote_id the Id of the remote member
        */
-      Connection(QSharedPointer<Edge> edge, const Id &local_id, const Id &remote_id);
+      explicit Connection(QSharedPointer<Edge> edge, const Id &local_id,
+          const Id &remote_id);
 
       /**
        * Destructor

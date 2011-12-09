@@ -16,7 +16,7 @@ namespace Tests {
 
   class MockSender : public ISender {
     public:
-      MockSender(MockSource *source);
+      explicit MockSender(MockSource *source);
       virtual ~MockSender() {}
       virtual void Send(const QByteArray &data);
       void SetReturnPath(ISender *sender);
@@ -50,7 +50,7 @@ namespace Tests {
     Q_OBJECT
 
     public:
-      MockEdgeHandler(EdgeListener *el);
+      explicit MockEdgeHandler(EdgeListener *el);
       virtual ~MockEdgeHandler() {}
       QSharedPointer<Edge> edge;
     private slots:

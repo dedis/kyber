@@ -15,7 +15,7 @@ namespace Anonymity {
        * CreateGroupGenerator static callback
        * @param group base group
        */
-      GroupGenerator(const Group &group) :
+      explicit GroupGenerator(const Group &group) :
         _group(group)
       {
       }

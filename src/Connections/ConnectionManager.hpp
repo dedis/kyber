@@ -40,7 +40,7 @@ namespace Connections {
        * @param local_id the local id
        * @param rpc the Rpc Handler used in connection signaling
        */
-      ConnectionManager(const Id &local_id, RpcHandler &rpc);
+      explicit ConnectionManager(const Id &local_id, RpcHandler &rpc);
 
       /**
        * Deconstructor

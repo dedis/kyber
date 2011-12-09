@@ -54,7 +54,7 @@ namespace Overlay {
        * via EdgeListeners
        * @param remote_endpoints list of remote members
        */
-      BasicGossip(const Id &local_id,
+      explicit BasicGossip(const Id &local_id,
           const QList<Address> &local_endpoints,
           const QList<Address> &remote_endpoints);
 

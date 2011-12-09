@@ -28,17 +28,17 @@ namespace Connections {
       /**
        * Create an Id using a QByteArray
        */
-      Id(const QByteArray &bid);
+      explicit Id(const QByteArray &bid);
 
       /**
        * Create an Id using a QString
        */
-      Id(const QString &sid);
+      explicit Id(const QString &sid);
 
       /**
        * Create an Id using an (big) Integer
        */
-      Id(const Integer &iid);
+      explicit Id(const Integer &iid);
 
       /**
        * Returns a printable Id string

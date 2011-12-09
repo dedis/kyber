@@ -7,7 +7,7 @@ namespace Dissent {
 namespace Tests {
   template<typename T> class RepeatingBulkRoundBadShuffler : public RepeatingBulkRound, public Triggerable {
     public:
-      RepeatingBulkRoundBadShuffler(QSharedPointer<GroupGenerator> group_gen,
+      explicit RepeatingBulkRoundBadShuffler(QSharedPointer<GroupGenerator> group_gen,
           const Credentials &creds, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data) :
         RepeatingBulkRound(group_gen, creds, round_id, network, get_data, TCreateRound<T>)

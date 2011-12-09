@@ -55,7 +55,7 @@ namespace Anonymity {
        * @param network handles message sending
        * @param get_data requests data to share during this session
        */
-      Round(QSharedPointer<GroupGenerator> group_gen,
+      explicit Round(QSharedPointer<GroupGenerator> group_gen,
           const Credentials &creds, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data);
 

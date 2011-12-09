@@ -7,7 +7,7 @@ namespace Dissent {
 namespace Tests {
   template<typename T> class BulkRoundBadShuffler : public BulkRound, public Triggerable {
     public:
-      BulkRoundBadShuffler(QSharedPointer<GroupGenerator> group_gen,
+      explicit BulkRoundBadShuffler(QSharedPointer<GroupGenerator> group_gen,
           const Credentials &creds, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data) :
         BulkRound(group_gen, creds, round_id, network, get_data, TCreateRound<T>)
@@ -22,7 +22,7 @@ namespace Tests {
 
   class BulkRoundIncorrectMessageLength : public BulkRound, public Triggerable {
     public:
-      BulkRoundIncorrectMessageLength(QSharedPointer<GroupGenerator> group_gen,
+      explicit BulkRoundIncorrectMessageLength(QSharedPointer<GroupGenerator> group_gen,
           const Credentials &creds, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data) :
         BulkRound(group_gen, creds, round_id, network, get_data),
@@ -55,7 +55,7 @@ namespace Tests {
 
   class BulkRoundBadXorMessage : public BulkRound, public Triggerable {
     public:
-      BulkRoundBadXorMessage(QSharedPointer<GroupGenerator> group_gen,
+      explicit BulkRoundBadXorMessage(QSharedPointer<GroupGenerator> group_gen,
           const Credentials &creds, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data) :
         BulkRound(group_gen, creds, round_id, network, get_data),
@@ -88,7 +88,7 @@ namespace Tests {
   /// @todo not implemented
   class BulkRoundBadDescriptor : public BulkRound, public Triggerable {
     public:
-      BulkRoundBadDescriptor(QSharedPointer<GroupGenerator> group_gen,
+      explicit BulkRoundBadDescriptor(QSharedPointer<GroupGenerator> group_gen,
           const Credentials &creds, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data) :
         BulkRound(group_gen, creds, round_id, network, get_data)
@@ -99,7 +99,7 @@ namespace Tests {
   /// @todo not implemented
   class BulkRoundFalseAccusation : public BulkRound, public Triggerable {
     public:
-      BulkRoundFalseAccusation(QSharedPointer<GroupGenerator> group_gen,
+      explicit BulkRoundFalseAccusation(QSharedPointer<GroupGenerator> group_gen,
           const Credentials &creds, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data) :
         BulkRound(group_gen, creds, round_id, network, get_data)

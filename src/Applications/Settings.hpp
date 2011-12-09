@@ -16,12 +16,12 @@ namespace Applications {
       /**
        * Load configuration from disk
        */
-      Settings(const QString &file);
+      explicit Settings(const QString &file);
 
       /**
        * Create configuration in memory
        */
-      Settings();
+      explicit Settings();
 
       /**
        * Store the configuration data back to the file
