@@ -33,7 +33,6 @@ namespace Transports {
 
       virtual void Send(const QByteArray &data);
       virtual bool Close(const QString& reason);
-      inline virtual bool SafeToDelete() { return false; }
 
     protected:
       virtual bool RequiresCleanup() { return true; }

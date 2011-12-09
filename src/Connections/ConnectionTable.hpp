@@ -50,6 +50,12 @@ namespace Connections {
        */
       bool RemoveEdge(const Edge *edge);
 
+      /**
+       * Remove an edge, returns true if it is stored
+       * @param edge the edge to remvoe
+       */
+      bool RemoveEdge(QSharedPointer<Edge> edge);
+
       inline bool Contains(const Connection *con) { return _cons.contains(con); }
 
       /**
@@ -65,6 +71,12 @@ namespace Connections {
        * @param id the Id to lookup
        */
       Connection *GetConnection(const Id &id) const;
+
+      /**
+       * Returns the connection matching to the Id or 0 if none exists
+       * @param id the Id to lookup
+       */
+      Connection *GetConnection(QSharedPointer<Edge> edge) const;
 
       /**
        * Returns a the connection matching to the edge or 0 if none exists

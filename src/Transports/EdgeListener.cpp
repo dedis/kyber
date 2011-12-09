@@ -7,9 +7,9 @@ namespace Transports {
   {
   }
 
-  void EdgeListener::ProcessNewEdge(Edge *edge)
+  void EdgeListener::ProcessNewEdge(QSharedPointer<Edge> edge)
   {
-    QObject::connect(edge, SIGNAL(Closed(const QString &)),
+    QObject::connect(edge.data(), SIGNAL(Closed(const QString &)),
         this, SLOT(HandleEdgeClose(const QString &)));
     emit NewEdge(edge);
   }

@@ -32,7 +32,6 @@ Overlay
 - Implement Chord and use for overlay broadcasting and overall group dynamics
 
 Transports
-- EdgeListeners should produce QSharedPointer<Edge>
 - Implement a UdpEL and create a reliability layer so we can use it for UdpEL and if we do other tasks that require reliable transmission (such as overlay routing).
 
 Issues

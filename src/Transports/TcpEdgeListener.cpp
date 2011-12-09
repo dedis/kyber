@@ -172,7 +172,7 @@ namespace Transports {
       qDebug() << "Incoming connection from" << remote.ToString();
     }
 
-    TcpEdge *edge = new TcpEdge(GetAddress(), remote, outgoing, socket);
+    QSharedPointer<Edge> edge(new TcpEdge(GetAddress(), remote, outgoing, socket));
     ProcessNewEdge(edge);
   }
 }

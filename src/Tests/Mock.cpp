@@ -45,13 +45,13 @@ namespace Tests {
 
   MockEdgeHandler::MockEdgeHandler(EdgeListener *el)
   {
-    QObject::connect(el, SIGNAL(NewEdge(Edge *)),
-        this, SLOT(HandleEdge(Edge *)));
+    QObject::connect(el, SIGNAL(NewEdge(QSharedPointer<Edge>)),
+        this, SLOT(HandleEdge(QSharedPointer<Edge>)));
   }
 
-  void MockEdgeHandler::HandleEdge(Edge *edge)
+  void MockEdgeHandler::HandleEdge(QSharedPointer<Edge> edge)
   {
-    this->edge.reset(edge);
+    this->edge = edge;
   }
 
   void MockExecLoop(SignalCounter &sc, int interval)

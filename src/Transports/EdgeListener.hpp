@@ -2,6 +2,7 @@
 #define DISSENT_TRANSPORTS_EDGE_LISTENER_H_GUARD
 
 #include <QObject>
+#include <QSharedPointer>
 
 #include "Edge.hpp"
 #include "../Utils/StartStop.hpp"
@@ -47,7 +48,7 @@ namespace Transports {
       /**
        * Emitted whenever a new edge, incoming or outgoing, is created
        */
-      void NewEdge(Edge *edge);
+      void NewEdge(QSharedPointer<Edge> edge);
 
       /**
        * CreateEdgeTo failed
@@ -58,7 +59,7 @@ namespace Transports {
       /**
        * Called when a new edge is created and emits the NewEdge
        */
-      virtual void ProcessNewEdge(Edge *edge);
+      virtual void ProcessNewEdge(QSharedPointer<Edge> edge);
 
       /**
        * emits EdgeCreationFailure, a CreateEdgeTo failed

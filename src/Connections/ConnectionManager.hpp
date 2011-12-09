@@ -155,7 +155,7 @@ namespace Connections {
       /**
        * A new Edge has been created
        */
-      void HandleNewEdge(Edge *edge);
+      void HandleNewEdge(QSharedPointer<Edge> edge);
       
       /**
        * An Edge has been closed

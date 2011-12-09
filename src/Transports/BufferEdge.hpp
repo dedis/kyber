@@ -36,7 +36,7 @@ namespace Transports {
        * @param remote the remote peer which will handle incoming messages
        */
 
-      void SetRemoteEdge(BufferEdge *remote);
+      void SetRemoteEdge(QSharedPointer<BufferEdge> remote);
 
       /**
        * Time delay between when an edge sends a packet to when the remote
@@ -58,7 +58,7 @@ namespace Transports {
       /**
        * The remote edge
        */
-      BufferEdge *_remote_edge;
+      QSharedPointer<BufferEdge> _remote_edge;
 
       /**
        * The Remote side is closing...

@@ -43,8 +43,8 @@ namespace Connections {
     }
 
     _edge_factory.AddEdgeListener(el);
-    QObject::connect(el.data(), SIGNAL(NewEdge(Edge *)),
-        this, SLOT(HandleNewEdge(Edge *)));
+    QObject::connect(el.data(), SIGNAL(NewEdge(QSharedPointer<Edge>)),
+        this, SLOT(HandleNewEdge(QSharedPointer<Edge>)));
     QObject::connect(el.data(), SIGNAL(EdgeCreationFailure(const Address &, const QString &)),
         this, SLOT(HandleEdgeCreationFailure(const Address &, const QString&)));
   }
@@ -101,11 +101,11 @@ namespace Connections {
     } 
   }
 
-  void ConnectionManager::HandleNewEdge(Edge *edge)
+  void ConnectionManager::HandleNewEdge(QSharedPointer<Edge> edge)
   {
     edge->SetSink(&_rpc);
 
-    QObject::connect(edge, SIGNAL(Closed(const QString &)),
+    QObject::connect(edge.data(), SIGNAL(Closed(const QString &)),
         this, SLOT(HandleEdgeClose(const QString &)));
 
     if(!edge->Outbound()) {
@@ -117,7 +117,7 @@ namespace Connections {
     QVariantMap request;
     request["method"] = "CM::Inquire";
     request["peer_id"] = _local_id.GetByteArray();
-    _rpc.SendRequest(request, edge, &_inquired);
+    _rpc.SendRequest(request, edge.data(), &_inquired);
   }
 
   void ConnectionManager::HandleEdgeCreationFailure(const Address &to,

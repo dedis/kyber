@@ -52,9 +52,9 @@ namespace Tests {
     public:
       MockEdgeHandler(EdgeListener *el);
       virtual ~MockEdgeHandler() {}
-      QScopedPointer<Edge> edge;
+      QSharedPointer<Edge> edge;
     private slots:
-      void HandleEdge(Edge *edge);
+      void HandleEdge(QSharedPointer<Edge> edge);
   };
   
   void MockExec();

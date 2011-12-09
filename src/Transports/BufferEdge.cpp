@@ -1,5 +1,9 @@
 #include "BufferEdge.hpp"
 
+using Dissent::Utils::TimerCallback;
+using Dissent::Utils::Timer;
+using Dissent::Utils::TimerMethod;
+
 namespace Dissent {
 namespace Transports {
   BufferEdge::BufferEdge(const Address &local, const Address &remote,
@@ -11,12 +15,11 @@ namespace Transports {
 
   BufferEdge::~BufferEdge()
   {
-    _remote_edge = 0;
   }
 
-  void BufferEdge::SetRemoteEdge(BufferEdge *remote_edge)
+  void BufferEdge::SetRemoteEdge(QSharedPointer<BufferEdge> remote_edge)
   {
-    if(!_remote_edge == 0) {
+    if(!_remote_edge.isNull()) {
       qWarning() << "BufferEdge's remote already set.";
       return;
     }
@@ -34,11 +37,9 @@ namespace Transports {
       return;
     }
 
-    namespace DU = Dissent::Utils;
-
-    DU::TimerMethod<BufferEdge, QByteArray> *tm =
-      new DU::TimerMethod<BufferEdge, QByteArray>(_remote_edge, &BufferEdge::DelayedReceive, data);
-    DU::Timer::GetInstance().QueueCallback(tm, Delay);
+    TimerCallback *tm = new TimerMethod<BufferEdge, QByteArray>(_remote_edge.data(),
+        &BufferEdge::DelayedReceive, data);
+    Timer::GetInstance().QueueCallback(tm, Delay);
     _remote_edge->_incoming++;
   }
 
@@ -51,6 +52,7 @@ namespace Transports {
     qDebug() << "Calling Close on " << ToString() << " with " << _incoming << " remaining messages.";
     if(!_rem_closing) {
       _remote_edge->_rem_closing = true;
+      _remote_edge.clear();
     }
 
     if(_incoming == 0) {

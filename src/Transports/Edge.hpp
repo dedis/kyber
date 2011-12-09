@@ -62,11 +62,6 @@ namespace Transports {
        */
       inline virtual bool IsClosed() { return _closed; }
 
-      /**
-       * Some edges are unsafe to delete when they emit a signal
-       */
-      inline virtual bool SafeToDelete() { return true; }
-
     signals:
       /**
        * Emitted when an edge is completely closed, afterward the edge should be deleted

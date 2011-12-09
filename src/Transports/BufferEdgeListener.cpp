@@ -88,11 +88,14 @@ namespace Transports {
     BufferEdge *local_edge(new BufferEdge(GetAddress(), remote_el->GetAddress(), true, delay));
     BufferEdge *remote_edge(new BufferEdge(remote_el->GetAddress(), GetAddress(), false, delay));
 
-    local_edge->SetRemoteEdge(remote_edge);
-    remote_edge->SetRemoteEdge(local_edge);
+    QSharedPointer<BufferEdge> ledge(local_edge);
+    QSharedPointer<BufferEdge> redge(remote_edge);
 
-    ProcessNewEdge(local_edge);
-    remote_el->ProcessNewEdge(remote_edge);
+    local_edge->SetRemoteEdge(redge);
+    remote_edge->SetRemoteEdge(ledge);
+
+    ProcessNewEdge(ledge);
+    remote_el->ProcessNewEdge(redge);
   }
 }
 }

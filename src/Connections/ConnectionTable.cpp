@@ -28,18 +28,14 @@ namespace Connections {
     _edges[edge.data()] = edge;
   }
 
-  void ConnectionTable::AddEdge(Edge *edge)
-  {
-    if(edge->SafeToDelete()) {
-      _edges[edge] = QSharedPointer<Edge>(edge);
-    } else {
-      _edges[edge] = QSharedPointer<Edge>(edge, &QObject::deleteLater);
-    }
-  }
-
   bool ConnectionTable::RemoveEdge(const Edge *edge)
   {
     return _edges.remove(edge) != 0;
+  }
+
+  bool ConnectionTable::RemoveEdge(QSharedPointer<Edge> edge)
+  {
+    return RemoveEdge(edge.data());
   }
 
   Connection *ConnectionTable::GetConnection(const Id &id) const
@@ -56,6 +52,11 @@ namespace Connections {
       return _edge_to_con[edge];
     }
     return 0;
+  }
+
+  Connection *ConnectionTable::GetConnection(QSharedPointer<Edge> edge) const
+  {
+    return GetConnection(edge.data());
   }
 
   void ConnectionTable::AddConnection(Connection *con)
