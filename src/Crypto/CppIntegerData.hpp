@@ -32,7 +32,7 @@ namespace Crypto {
        */
       explicit CppIntegerData(const QByteArray &byte_array) :
         IntegerData(byte_array),
-        _integer(reinterpret_cast<const byte *>(GetByteArray().data()),
+        _integer(reinterpret_cast<const byte *>(GetByteArray().constData()),
             GetByteArray().size())
       {
       }
@@ -43,7 +43,7 @@ namespace Crypto {
        */
       explicit CppIntegerData(const QString &_string) :
         IntegerData(_string), 
-        _integer(reinterpret_cast<const byte *>(GetByteArray().data()),
+        _integer(reinterpret_cast<const byte *>(GetByteArray().constData()),
             GetByteArray().size())
       {
       }
@@ -84,6 +84,25 @@ namespace Crypto {
         } else {
           CppIntegerData cother(other->GetByteArray());
           return new CppIntegerData(_integer.Minus(cother._integer));
+        }
+      }
+
+      /**
+       * Assignment operator
+       * @param other the IntegerData to use for setting
+       */
+      virtual void Set(const IntegerData *other)
+      {
+        const CppIntegerData *pcother =
+          dynamic_cast<const CppIntegerData *>(other);
+
+        Reset();
+
+        if(pcother) {
+          _integer = pcother->_integer;
+        } else {
+          CppIntegerData cother(other->GetByteArray());
+          _integer.operator=(cother._integer);
         }
       }
 

@@ -19,6 +19,9 @@ namespace Crypto {
        */
       explicit Integer(IntegerData *data) : _data(data)
       {
+        if(data == 0) {
+          _data = CryptoFactory::GetInstance().GetLibrary()->GetIntegerData(0);
+        }
       }
 
       Integer(int value = 0) :
@@ -35,6 +38,13 @@ namespace Crypto {
       explicit Integer(const QString &value) :
         _data(CryptoFactory::GetInstance().GetLibrary()->GetIntegerData(value))
       {
+      }
+
+      
+      Integer(const Integer &other) : 
+        _data(CryptoFactory::GetInstance().GetLibrary()->GetIntegerData(0))
+      {
+        _data->Set(other._data.constData());
       }
 
       /**
@@ -59,7 +69,7 @@ namespace Crypto {
        */
       inline Integer Add(const Integer &term) const
       {
-        return Integer(_data->Add(term._data.data()));
+        return Integer(_data->Add(term._data.constData()));
       }
 
       /**
@@ -68,7 +78,7 @@ namespace Crypto {
        */
       inline Integer Subtract(const Integer &subtrahend) const
       {
-        return Integer(_data->Subtract(subtrahend._data.data()));
+        return Integer(_data->Subtract(subtrahend._data.constData()));
       }
 
       /**
@@ -77,7 +87,7 @@ namespace Crypto {
        */
       inline Integer &operator=(const Integer &other)
       {
-        _data = other._data;
+        _data->Set(other._data.constData());
         return *this;
       }
 
@@ -87,7 +97,7 @@ namespace Crypto {
        */
       inline Integer &operator+=(const Integer &other)
       {
-        _data->operator+=(other._data.data());
+        _data->operator+=(other._data.constData());
         return *this;
       }
 
@@ -97,7 +107,7 @@ namespace Crypto {
        */
       Integer &operator-=(const Integer &other)
       {
-        _data->operator-=(other._data.data());
+        _data->operator-=(other._data.constData());
         return *this;
       }
 
@@ -107,7 +117,7 @@ namespace Crypto {
        */
       bool operator==(const Integer &other) const
       {
-        return _data->operator==(other._data.data());
+        return _data->operator==(other._data.constData());
       }
 
       /**
@@ -116,7 +126,7 @@ namespace Crypto {
        */
       bool operator!=(const Integer &other) const
       {
-        return _data->operator!=(other._data.data());
+        return _data->operator!=(other._data.constData());
       }
 
       /**
@@ -125,7 +135,7 @@ namespace Crypto {
        */
       bool operator>(const Integer &other) const
       {
-        return _data->operator>(other._data.data());
+        return _data->operator>(other._data.constData());
       }
 
       /**
@@ -134,7 +144,7 @@ namespace Crypto {
        */
       bool operator>=(const Integer &other) const
       {
-        return _data->operator>=(other._data.data());
+        return _data->operator>=(other._data.constData());
       }
 
       /**
@@ -143,7 +153,7 @@ namespace Crypto {
        */
       bool operator<(const Integer &other) const
       {
-        return _data->operator<(other._data.data());
+        return _data->operator<(other._data.constData());
       }
 
       /**
@@ -152,7 +162,7 @@ namespace Crypto {
        */
       bool operator<=(const Integer &other) const
       {
-        return _data->operator<=(other._data.data());
+        return _data->operator<=(other._data.constData());
       }
     private:
       QExplicitlySharedDataPointer<IntegerData> _data;

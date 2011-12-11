@@ -32,7 +32,7 @@ namespace Crypto {
        */
       explicit IntegerData(const QString &string) : _string(string)
       {
-        const QChar *chs = string.data();
+        const QChar *chs = string.constData();
         QByteArray tmp;
         int idx = 0;
         for(; chs[idx] != '\0'; idx++) {
@@ -82,6 +82,12 @@ namespace Crypto {
        * @param other the Integer to subtract (subtrahend)
        */
       virtual IntegerData *Subtract(const IntegerData *other) const = 0;
+
+      /**
+       * Assignment operator
+       * @param other the IntegerData to use for setting
+       */
+      virtual void Set(const IntegerData *other) = 0;
 
       /**
        * Add operator, adds to current

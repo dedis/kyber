@@ -37,6 +37,16 @@ namespace Tests {
     EXPECT_EQ(int0, int1);
   }
 
+  void IntegerTestCopy()
+  {
+    Dissent::Crypto::Integer int0(5);
+    Dissent::Crypto::Integer int1 = int0;
+
+    EXPECT_EQ(int0, int1);
+    int0 += 5;
+    EXPECT_NE(int0, int1);
+  }
+
   TEST(Integer, CppBasic)
   {
     CryptoFactory &cf = CryptoFactory::GetInstance();
@@ -52,6 +62,15 @@ namespace Tests {
     CryptoFactory::LibraryName cname = cf.GetLibraryName();
     cf.SetLibrary(CryptoFactory::CryptoPP);
     IntegerTestNull();
+    cf.SetLibrary(cname);
+  }
+
+  TEST(Integer, CppTestCopy)
+  {
+    CryptoFactory &cf = CryptoFactory::GetInstance();
+    CryptoFactory::LibraryName cname = cf.GetLibraryName();
+    cf.SetLibrary(CryptoFactory::CryptoPP);
+    IntegerTestCopy();
     cf.SetLibrary(cname);
   }
 }
