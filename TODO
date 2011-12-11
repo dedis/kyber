@@ -1,10 +1,3 @@
-Web Server
-- Better error handling 
-- Index page with list of all URLs
-- HTTPS
-- Packaging formats
-
-===============
 Anonymity
 - Design a dynamic group -- handles new connections, disconnections, and blame
 - Need some structure to communicate group status / change
@@ -15,13 +8,16 @@ Anonymity
 
 Connections
 - ConnectionTable should be a value type
+- Connections should be stored via QSharedPointer
 - ConnectionManager and maybe EL should turn reject requests for connections when closed
 
 Crypto
 - Add QCA or Botan CryptoLibraries, take a look at the src/Crypto/CryptoFactory and other related files to get a general feel
+- Integer should be a pimpl with a QSharedPointer or QScopedPointer
 
 Messaging
 - Rpc messages are not deterministic, ignored outgoing Requests are never removed from the local _requests stack ... do we push more work on the user (calling code) or into the Rpc...
+- Outstanding Rpc requests with pointers to senders can have stale pointers
 
 Overall
 - Replace all pointers with qscoped / qshared pointers
@@ -29,6 +25,7 @@ Overall
 
 Overlay
 - Implement Chord and use for overlay broadcasting and overall group dynamics
+- Implement an actual gossip overlay with support for a gossip based broadcast medium
 
 Transports
 - Implement a UdpEL and create a reliability layer so we can use it for UdpEL and if we do other tasks that require reliable transmission (such as overlay routing).
@@ -38,3 +35,9 @@ Issues
 - A malicious peer or a bad network may redeliver the same message multiple times ... ignore duplicate messages by verifying they exist in the logs...
 - Consider application aware and network layer broadcasting, evaluate performance as well as security / anonymity risks
 - Tests RoundTest Null and DisconnectEnd do not work for protocols that have "infinite" internal phases (i.e., subrounds)
+
+Web Server
+- Better error handling 
+- Index page with list of all URLs
+- HTTPS
+- Packaging formats
