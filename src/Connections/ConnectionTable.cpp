@@ -101,7 +101,6 @@ namespace Connections {
     return found;
   }
 
-
   void ConnectionTable::PrintConnectionTable()
   {
     QHash<const Edge *, QSharedPointer<Edge> >::iterator i;

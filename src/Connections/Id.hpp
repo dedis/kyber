@@ -23,7 +23,7 @@ namespace Connections {
       /**
        * Create a random Id
        */
-      Id();
+      explicit Id();
 
       /**
        * Create an Id using a QByteArray

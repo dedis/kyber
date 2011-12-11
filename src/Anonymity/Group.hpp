@@ -169,10 +169,29 @@ namespace Anonymity {
         ((*lhs.second == *rhs.second) && (lhs.third < rhs.third))));
   }
 
+  /**
+   * Returns the whether or not the rhs is inside the lhs
+   * @param set the lhs, all members in subset should be in set
+   * @param subset the rhs, all members in subset should be in set
+   * @returns true if all members of subset are in set
+   */
   inline bool IsSubset(const Group &set, const Group &subset)
   {
     return std::includes(set.begin(), set.end(), subset.begin(), subset.end());
   }
+
+  /**
+   * Returns the set of lost members and gained members in both groups
+   * @param old_group the old group roster
+   * @param new_group the old group roster
+   * @param lost members removed from the group
+   * @param joined members new to the group
+   * returns true if there was some difference
+   */
+  bool Difference(const Group &old_group, const Group &new_group,
+      QVector<GroupContainer> &lost, QVector<GroupContainer> &gained);
+
+  Group AddGroupMember(const Group &group, const GroupContainer &gc);
 
   /**
    * Returns a new group while removing the existing member for the group.

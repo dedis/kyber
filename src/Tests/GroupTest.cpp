@@ -46,17 +46,26 @@ namespace Tests {
     }
   }
 
-  TEST(Group, Serialization)
+  GroupContainer CreateMember(const Id &id)
   {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
 
+    QByteArray bid = id.GetByteArray();
+    QSharedPointer<AsymmetricKey> key(lib->GeneratePublicKey(bid));
+    QScopedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
+    return GroupContainer(id, key, dh->GetPublicComponent());
+  }
+
+  void AddMember(QVector<GroupContainer> &group, const Id &id = Id())
+  {
+    group.append(CreateMember(id));
+  }
+
+  TEST(Group, Serialization)
+  {
     QVector<GroupContainer> gr;
     for(int idx = 0; idx < 100; idx++) {
-      Id id;
-      QByteArray bid = id.GetByteArray();
-      QSharedPointer<AsymmetricKey> key(lib->GeneratePublicKey(bid));
-      QScopedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
-      gr.append(GroupContainer(id, key, dh->GetPublicComponent()));
+      AddMember(gr);
     }
 
     Group group_in(gr);
@@ -83,14 +92,9 @@ namespace Tests {
 
   TEST(Group, Subgroup)
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QVector<GroupContainer> gr;
     for(int idx = 0; idx < 100; idx++) {
-      Id id;
-      QByteArray bid = id.GetByteArray();
-      QSharedPointer<AsymmetricKey> key(lib->GeneratePublicKey(bid));
-      QScopedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
-      gr.append(GroupContainer(id, key, dh->GetPublicComponent()));
+      AddMember(gr);
     }
 
     Group set(gr);
@@ -98,11 +102,7 @@ namespace Tests {
 
     for(int idx = 0; idx < 10; idx++) {
       int offset = Random::GetInstance().GetInt(10 * idx, 10 + 10 * idx);
-      QByteArray bid = set.GetId(offset).GetByteArray();
-      Id id(bid);
-      QSharedPointer<AsymmetricKey> key(lib->GeneratePublicKey(bid));
-      QScopedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
-      gr0.append(GroupContainer(id, key, dh->GetPublicComponent()));
+      AddMember(gr0, set.GetId(offset));
     }
 
     Group subset(gr0);
@@ -132,6 +132,58 @@ namespace Tests {
       EXPECT_NE(group.GetRoster(), removed.GetRoster());
       EXPECT_TRUE(IsSubset(group, removed));
     }
+  }
+
+  TEST(Group, JoinsAndLoses)
+  {
+    QVector<GroupContainer> gr;
+    for(int idx = 0; idx < 100; idx++) {
+      AddMember(gr);
+    }
+
+    Group group(gr);
+
+    QVector<GroupContainer> lost, gained;
+    EXPECT_FALSE(Difference(group, group, lost, gained));
+
+    Group lost_group(group.GetRoster());
+    Group lost_and_added_group(group.GetRoster());
+    Group added_group(group.GetRoster());
+    Group nc_group(group);
+
+    QVector<Id> removed;
+    for(int i = 0; i < 10; i++) {
+      int idx = Random::GetInstance().GetInt(0, lost_group.Count());
+      Id id = lost_group.GetId(idx);
+      removed.append(id);
+      lost_group = RemoveGroupMember(lost_group, id);
+      lost_and_added_group = RemoveGroupMember(lost_and_added_group, id);
+    }
+
+    QVector<Id> added;
+    for(int i = 0; i < 10; i++) {
+      Id id;
+      added.append(id);
+      GroupContainer gc = CreateMember(id);
+      lost_and_added_group = AddGroupMember(lost_and_added_group, gc);
+      added_group = AddGroupMember(added_group, gc);
+    }
+
+    EXPECT_EQ(nc_group, group);
+    EXPECT_NE(lost_group, group);
+    EXPECT_NE(lost_and_added_group, group);
+    EXPECT_NE(added_group, group);
+
+    EXPECT_FALSE(Difference(group, nc_group, lost, gained));
+
+    QVector<GroupContainer> lost0, gained0;
+    EXPECT_TRUE(Difference(group, lost_and_added_group, lost, gained));
+    EXPECT_TRUE(Difference(group, lost_group, lost0, gained0));
+    EXPECT_EQ(lost0, lost);
+    EXPECT_NE(gained, gained0);
+    EXPECT_TRUE(Difference(group, added_group, lost0, gained0));
+    EXPECT_NE(lost0, lost);
+    EXPECT_EQ(gained, gained0);
   }
 }
 }

@@ -115,6 +115,38 @@ namespace Anonymity {
     return Group(roster);
   }
 
+  Group AddGroupMember(const Group &group, const GroupContainer &gc)
+  {
+    if(group.Contains(gc.first)) {
+      return group;
+    }
+
+    QVector<GroupContainer> roster = group.GetRoster();
+    roster.append(gc);
+    return Group(roster);
+  }
+
+  bool Difference(const Group &old_group, const Group &new_group,
+      QVector<GroupContainer> &lost, QVector<GroupContainer> &gained)
+  {
+    QVector<GroupContainer> diff;
+    std::set_symmetric_difference(old_group.begin(), old_group.end(),
+        new_group.begin(), new_group.end(), std::back_inserter(diff));
+
+    lost.clear();
+    gained.clear();
+
+    foreach(GroupContainer gc, diff) {
+      if(old_group.Contains(gc.first)) {
+        lost.append(gc);
+      } else {
+        gained.append(gc);
+      }
+    }
+
+    return diff.size() > 0;
+  }
+
   QDataStream &operator<<(QDataStream &stream, const Group &group)
   {
     return stream << group.GetRoster();
@@ -127,6 +159,5 @@ namespace Anonymity {
     group = Group(group_roster);
     return stream;
   }
-
 }
 }
