@@ -3,9 +3,7 @@
 
 #include "Anonymity/BulkRound.hpp"
 #include "Anonymity/Credentials.hpp"
-#include "Anonymity/FixedSizeGroupGenerator.hpp"
 #include "Anonymity/Group.hpp"
-#include "Anonymity/GroupGenerator.hpp"
 #include "Anonymity/Log.hpp"
 #include "Anonymity/NullRound.hpp"
 #include "Anonymity/RepeatingBulkRound.hpp"

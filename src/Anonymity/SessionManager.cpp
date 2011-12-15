@@ -10,6 +10,8 @@ namespace Anonymity {
     _prepare(this, &SessionManager::Prepare),
     _begin(this, &SessionManager::Begin),
     _data(this, &SessionManager::IncomingData),
+    _default_session(Id::Zero()),
+    _default_set(false),
     _rpc(rpc)
   {
     _rpc.Register(&_register, "SM::Register");
@@ -30,6 +32,28 @@ namespace Anonymity {
   {
     QObject::connect(session.data(), SIGNAL(Stopping()), this, SLOT(HandleSessionStop()));
     _id_to_session[session->GetId()] = session;
+    if(!_default_set) {
+      _default_set = true;
+      _default_session = session->GetId();
+    }
+  }
+
+  QSharedPointer<Session> SessionManager::GetSession(const Id &id)
+  {
+    return _id_to_session.value(id);
+  }
+
+  void SessionManager::SetDefaultSession(const Id &id)
+  {
+    if(_id_to_session.contains(id)) {
+      _default_set = true;
+      _default_session = id;
+    }
+  }
+
+  QSharedPointer<Session> SessionManager::GetDefaultSession()
+  {
+    return _id_to_session.value(_default_session);
   }
 
   void SessionManager::Register(RpcRequest &request)

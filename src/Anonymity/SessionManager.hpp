@@ -5,6 +5,7 @@
 #include <QSharedPointer>
 
 #include "../Connections/Id.hpp"
+#include "../Messaging/RpcHandler.hpp"
 #include "../Messaging/RpcMethod.hpp"
 
 namespace Dissent {
@@ -28,11 +29,16 @@ namespace Anonymity {
       typedef Dissent::Messaging::RpcRequest RpcRequest;
       typedef Dissent::Connections::Id Id;
 
+      typedef QHash<Id, QSharedPointer<Session> >::const_iterator const_iterator;
+      typedef QHash<Id, QSharedPointer<Session> >::iterator iterator;
+      inline const_iterator begin() const { return _id_to_session.begin(); }
+      inline const_iterator end() const { return _id_to_session.end(); }
+
       /**
        * Constructor
        * @param rpc
        */
-      explicit SessionManager(RpcHandler &rpc);
+      explicit SessionManager(RpcHandler &rpc = RpcHandler::GetEmpty());
 
       /**
        * Deconstructor
@@ -44,6 +50,23 @@ namespace Anonymity {
        * @param session The session to be handled
        */
       void AddSession(QSharedPointer<Session> session);
+
+      /**
+       * Returns the session matched to the specified id
+       */
+      QSharedPointer<Session> GetSession(const Id &id);
+
+      /**
+       * Sets a default session.  By default the first session added is the
+       * default session
+       */
+      void SetDefaultSession(const Id &id);
+
+      /**
+       * Returns the default session.  By default the first session added is
+       * the default session.
+       */
+      QSharedPointer<Session> GetDefaultSession();
 
     private:
       /**
@@ -76,6 +99,8 @@ namespace Anonymity {
       RpcMethod _prepare;
       RpcMethod _begin;
       RpcMethod _data;
+      Id _default_session;
+      bool _default_set;
       RpcHandler &_rpc;
 
     private slots:

@@ -18,31 +18,6 @@ namespace Crypto {
       explicit IntegerData() {}
 
       /**
-       * construct from byte array
-       * @param byte_array the byte array to construct from
-       */
-      explicit IntegerData(const QByteArray &byte_array) :
-        _byte_array(byte_array)
-      {
-      }
-
-      /**
-       * Construct from string
-       * @param string the string to create from
-       */
-      explicit IntegerData(const QString &string) : _string(string)
-      {
-        const QChar *chs = string.constData();
-        QByteArray tmp;
-        int idx = 0;
-        for(; chs[idx] != '\0'; idx++) {
-          tmp.append(chs[idx].cell());
-        }
-
-        _byte_array = QByteArray::fromBase64(tmp);
-      }
-
-      /**
        * Destructor
        */
       virtual ~IntegerData() {}
@@ -136,6 +111,22 @@ namespace Crypto {
        * @param other the IntegerData to compare
        */
       virtual bool operator<=(const IntegerData *other) const = 0;
+
+      /**
+       * Convert a base64 number into a clean byte array
+       * @param string input base64 string
+       */
+      static QByteArray ToBase64(const QString &string)
+      {
+        const QChar *chs = string.constData();
+        QByteArray tmp;
+        int idx = 0;
+        for(; chs[idx] != '\0'; idx++) {
+          tmp.append(chs[idx].cell());
+        }
+
+        return QByteArray::fromBase64(tmp);
+      }
 
     protected:
       virtual void GenerateByteArray() = 0;

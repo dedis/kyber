@@ -2,7 +2,9 @@
 
 namespace Dissent {
 namespace Tests {
-  QList<QSharedPointer<Node> > GenerateOverlay(int count, const QString &session_type)
+
+  QList<QSharedPointer<Node> > GenerateOverlay(int count,
+      Group::SubgroupPolicy policy, const QString &session_type)
   {
     Address base = BufferAddress(1);
     QList<Address> local;
@@ -14,28 +16,33 @@ namespace Tests {
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
 
+    Id session_id;
+    Id leader_id;
+    Group group(QVector<GroupContainer>(), leader_id, policy);
+
     for(int idx = 0; idx < count; idx++) {
-      Id id;
+      Id id = idx == 0 ? leader_id : Id();
       QByteArray bid(id.GetByteArray());
       QSharedPointer<AsymmetricKey> key(lib->GeneratePrivateKey(bid));
       QSharedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
 
       nodes.append(QSharedPointer<Node>(new Node(Credentials(id, key, dh),
-              local, remote, count, session_type)));
+              local, remote, group, session_type)));
+
       nodes[idx]->sink = QSharedPointer<ISink>(new MockSinkWithSignal());
       local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
     }
 
     SignalCounter sc;
-
     foreach(QSharedPointer<Node> node, nodes) {
-      QObject::connect(node.data(), SIGNAL(Ready()), &sc, SLOT(Counter()));
+      QObject::connect(&node->bg, SIGNAL(NewConnection(Connection *, bool)),
+          &sc, SLOT(Counter()));
       node->bg.Start();
     }
 
-
     qint64 next = Timer::GetInstance().VirtualRun();
-    while(next != -1 && sc.GetCount() != count) {
+    int total_cons = count * (count - 1) * 2;
+    while(next != -1 && sc.GetCount() != total_cons) {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
     }
@@ -75,7 +82,7 @@ namespace Tests {
 
     QByteArray msg(512, 0);
     rand->GenerateBlock(msg);
-    nodes[0]->session->Send(msg);
+    nodes[0]->sm.GetDefaultSession()->Send(msg);
 
     SignalCounter sc;
     foreach(QSharedPointer<Node> node, nodes) {
@@ -91,7 +98,10 @@ namespace Tests {
     while(next != -1 && sc.GetCount() != count) {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
+      qWarning() << "GREAT" << sc.GetCount() << count;
     }
+
+    qWarning() << "HERE" << next << count << sc.GetCount();
 
     foreach(QSharedPointer<Node> node, nodes) {
       MockSinkWithSignal *sink = dynamic_cast<MockSinkWithSignal *>(node->sink.data());
@@ -107,7 +117,8 @@ namespace Tests {
   {
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     Timer::GetInstance().UseVirtualTime();
-    QList<QSharedPointer<Node> > nodes = GenerateOverlay(count, "null");
+    QList<QSharedPointer<Node> > nodes = GenerateOverlay(count,
+        Group::CompleteGroup, "null");
     TerminateOverlay(nodes);
   }
 
@@ -115,7 +126,8 @@ namespace Tests {
   {
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     Timer::GetInstance().UseVirtualTime();
-    QList<QSharedPointer<Node> > nodes = GenerateOverlay(count, "null");
+    QList<QSharedPointer<Node> > nodes = GenerateOverlay(count,
+        Group::CompleteGroup, "null");
     SendTest(nodes);
     TerminateOverlay(nodes);
   }
@@ -124,84 +136,12 @@ namespace Tests {
   {
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     Timer::GetInstance().UseVirtualTime();
-    QList<QSharedPointer<Node> > nodes = GenerateOverlay(count, "shuffle");
+    QList<QSharedPointer<Node> > nodes = GenerateOverlay(count,
+        Group::FixedSubgroup, "shuffle");
     SendTest(nodes);
 
     foreach(QSharedPointer<Node> node, nodes) {
       EXPECT_EQ(node->bg.OutstandingConnectionAttempts(), 0);
-    }
-
-    TerminateOverlay(nodes);
-  }
-
-  TEST(BasicGossip, UnorderedBootstrap)
-  {
-    int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
-    QString session_type = "null";
-    Timer::GetInstance().UseVirtualTime();
-
-    Address base = BufferAddress(1);
-    QList<Address> local;
-    local.append(base);
-    QList<Address> remote;
-    remote.append(base);
-
-    QList<QSharedPointer<Node> > nodes;
-
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-
-    for(int idx = 0; idx < count - 1; idx++) {
-      local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
-
-      Id id;
-      QByteArray bid(id.GetByteArray());
-      QSharedPointer<AsymmetricKey> key(lib->GeneratePrivateKey(bid));
-      QSharedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
-
-      nodes.append(QSharedPointer<Node>(new Node(Credentials(id, key, dh),
-              local, remote, count, session_type)));
-      nodes[idx]->sink = QSharedPointer<ISink>(new MockSinkWithSignal());
-    }
-
-    SignalCounter sc;
-
-    foreach(QSharedPointer<Node> node, nodes) {
-      QObject::connect(node.data(), SIGNAL(Ready()), &sc, SLOT(Counter()));
-      node->bg.Start();
-      EXPECT_TRUE(node->bg.NeedConnection());
-    }
-
-    qint64 next = Timer::GetInstance().VirtualRun();
-    qint64 cnext = next + 10000;
-    while(0 <= cnext) {
-      Time::GetInstance().IncrementVirtualClock(next);
-      cnext -= next;
-      next = Timer::GetInstance().VirtualRun();
-    }
-
-    foreach(QSharedPointer<Node> node, nodes) {
-      EXPECT_TRUE(node->bg.NeedConnection());
-    }
-
-    local[0] = base;
-    Id id;
-    QByteArray bid(id.GetByteArray());
-    QSharedPointer<AsymmetricKey> key(lib->GeneratePrivateKey(bid));
-    QSharedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
-
-    nodes.append(QSharedPointer<Node>(new Node(Credentials(id, key, dh),
-            local, remote, count, session_type)));
-    nodes.last()->sink = QSharedPointer<ISink>(new MockSinkWithSignal());
-    QObject::connect(nodes.last().data(), SIGNAL(Ready()), &sc, SLOT(Counter()));
-    nodes.last()->bg.Start();
-
-    while(next != -1 && sc.GetCount() != count) {
-      Time::GetInstance().IncrementVirtualClock(next);
-      next = Timer::GetInstance().VirtualRun();
-    }
-
-    foreach(QSharedPointer<Node> node, nodes) {
-      EXPECT_EQ(count, node->bg.GetConnectionTable().GetConnections().count());
     }
 
     TerminateOverlay(nodes);
@@ -217,7 +157,7 @@ namespace Tests {
 
     QSharedPointer<AsymmetricKey> key;
     QSharedPointer<DiffieHellman> dh;
-    Node n(Credentials(id, key, dh), empty, empty, 1, "Null");
+    Node n(Credentials(id, key, dh), empty, empty, Group(), "shuffle");
     EXPECT_EQ(local_id, n.bg.GetId());
   }
 }

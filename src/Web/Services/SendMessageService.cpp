@@ -3,13 +3,8 @@
 namespace Dissent {
 namespace Web {
 namespace Services {
-  SendMessageService::SendMessageService(QSharedPointer<Session> session) :
-    SessionWebService(session)
-  {
-  }
-
-  SendMessageService::SendMessageService(QSharedPointer<Node> node) :
-    SessionWebService(node)
+  SendMessageService::SendMessageService(SessionManager &sm) :
+    SessionWebService(sm)
   {
   }
 

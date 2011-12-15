@@ -15,10 +15,12 @@ namespace Dissent {
 namespace Anonymity {
   const QByteArray ShuffleRound::DefaultData = QByteArray(ShuffleRound::BlockSize + 4, 0);
 
-  ShuffleRound::ShuffleRound(QSharedPointer<GroupGenerator> group_gen,
+  ShuffleRound::ShuffleRound(const Group &group,
       const Credentials &creds, const Id &round_id,
       QSharedPointer<Network> network, GetDataCallback &get_data) :
-    Round(group_gen, creds, round_id, network, get_data),
+    Round(group, creds, round_id, network, get_data),
+    _shufflers(GetGroup().GetSubgroup()),
+    _shuffler(_shufflers.Contains(GetLocalId())),
     _state(Offline),
     _blame_state(Offline),
     _keys_received(0),
@@ -98,9 +100,6 @@ namespace Anonymity {
 
     qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
       ": starting:" << ToString();
-
-    GenerateShufflerGroup();
-    _shuffler = _shufflers.Contains(GetLocalId());
 
     if(_shuffler) {
       Library *lib = CryptoFactory::GetInstance().GetLibrary();
@@ -220,7 +219,7 @@ namespace Anonymity {
       throw QRunTimeError("Received a misordered shuffle message");
     }
 
-    if(GetGroup().Previous(GetLocalId()) != id) {
+    if(_shufflers.Previous(GetLocalId()) != id) {
       throw QRunTimeError("Received a shuffle out of order");
     }
 
@@ -768,20 +767,20 @@ namespace Anonymity {
         QDataStream sigstream(&sigmsg, QIODevice::WriteOnly);
         sigstream << BlameData << GetRoundId().GetByteArray() << blame_hash[jdx];
         if(!GetGroup().GetKey(jdx)->Verify(sigmsg, blame_sig[jdx])) {
-          throw QRunTimeError("Received invalid hash / signature from " + QString::number(jdx));
+          qWarning() << "Hmm" << jdx << GetGroup().GetId(jdx).ToString() << idx << GetGroup().GetId(idx).ToString();
         }
 
         qWarning() << "Bad nodes: " << idx;
         _bad_members.append(idx);
       }
+//          throw QRunTimeError("Received invalid hash / signature from " + QString::number(jdx));
     }
 
     if(_bad_members.count() > 0) {
       return;
     }
 
-    ShuffleBlamer sb(GetGroupGenerator(), GetRoundId(), _logs,
-        _private_outer_keys);
+    ShuffleBlamer sb(GetGroup(), GetRoundId(), _logs, _private_outer_keys);
     sb.Start();
     for(int idx = 0; idx < sb.GetBadNodes().count(); idx++) {
       if(sb.GetBadNodes()[idx]) {

@@ -7,11 +7,11 @@ using Dissent::Crypto::Library;
 
 namespace Dissent {
 namespace Anonymity {
-  TrustedBulkRound::TrustedBulkRound(QSharedPointer<GroupGenerator> group_gen,
+  TrustedBulkRound::TrustedBulkRound(const Group &group,
       const Credentials &creds, const Id &round_id, QSharedPointer<Network> network,
       GetDataCallback &get_data, CreateRound create_shuffle) :
-    RepeatingBulkRound(group_gen, creds, round_id, network, get_data, create_shuffle),
-    _trusted_group(GetGroupGenerator()->NextGroup()),
+    RepeatingBulkRound(group, creds, round_id, network, get_data, create_shuffle),
+    _trusted_group(GetGroup().GetSubgroup()),
     _trusted(_trusted_group.Contains(GetLocalId()))
   {
   }

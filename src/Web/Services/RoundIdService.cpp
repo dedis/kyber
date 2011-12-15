@@ -1,15 +1,12 @@
+#include "../../Anonymity/Round.hpp"
+
 #include "RoundIdService.hpp"
 
 namespace Dissent {
 namespace Web {
 namespace Services {
-  RoundIdService::RoundIdService(QSharedPointer<Session> session) :
-    SessionWebService(session)
-  {
-  }
-
-  RoundIdService::RoundIdService(QSharedPointer<Node> node) :
-    SessionWebService(node)
+  RoundIdService::RoundIdService(SessionManager &sm) :
+    SessionWebService(sm)
   {
   }
 

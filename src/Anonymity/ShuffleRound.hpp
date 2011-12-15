@@ -116,13 +116,13 @@ namespace Anonymity {
 
       /**
        * Constructor
-       * @param group_gen Generate groups for use during this round
+       * @param group Group used during this round
        * @param creds the local nodes credentials
        * @param round_id Unique round id (nonce)
        * @param network handles message sending
        * @param get_data requests data to share during this session
        */
-      explicit ShuffleRound(QSharedPointer<GroupGenerator> group_gen, 
+      explicit ShuffleRound(const Group &group, 
           const Credentials &creds, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data);
 
@@ -170,20 +170,6 @@ namespace Anonymity {
 
     protected:
       virtual void ProcessData(const QByteArray &data, const Id &from);
-
-      /**
-       * Called to generate the shufflers group
-       */
-      virtual void GenerateShufflerGroup()
-      {
-        SetShufflers(GetGroupGenerator()->NextGroup());
-      }
-
-      /**
-       * Sets the shufflers group
-       * @param shufflers the shufflers' group
-       */
-      void SetShufflers(Group shufflers) { _shufflers = shufflers; }
 
       /**
        * Allows direct access to the message parsing without a try / catch

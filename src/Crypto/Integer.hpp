@@ -39,7 +39,6 @@ namespace Crypto {
         _data(CryptoFactory::GetInstance().GetLibrary()->GetIntegerData(value))
       {
       }
-
       
       Integer(const Integer &other) : 
         _data(CryptoFactory::GetInstance().GetLibrary()->GetIntegerData(0))

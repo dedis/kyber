@@ -66,5 +66,15 @@ namespace Tests {
 
     EXPECT_EQ(test0, test0_out);
   }
+
+  TEST(Id, InvalidString)
+  {
+    Id id;
+    QString bad = "ABCD";
+    QString good = id.ToString();
+
+    EXPECT_EQ(Id::Zero(), Id(bad));
+    EXPECT_EQ(id, Id(good));
+  }
 }
 }

@@ -8,105 +8,81 @@ namespace Tests {
   TEST(BulkRound, NullFixed)
   {
     RoundTest_Null(&TCreateSession<BulkRound>,
-        &FixedSizeGroupGenerator::Create);
+        Group::FixedSubgroup);
   }
 
   TEST(BulkRound, BasicFixed)
   {
     RoundTest_Basic(&TCreateSession<BulkRound>,
-        &FixedSizeGroupGenerator::Create);
+        Group::FixedSubgroup);
   }
 
   TEST(BulkRound, MultiRoundFixed)
   {
     RoundTest_MultiRound(&TCreateSession<BulkRound>,
-        &FixedSizeGroupGenerator::Create);
+        Group::FixedSubgroup);
+  }
+
+  TEST(BulkRound, AddOne)
+  {
+    RoundTest_AddOne(&TCreateSession<BulkRound>,
+        Group::FixedSubgroup);
   }
 
   TEST(BulkRound, PeerDisconnectEndFixed)
   {
     RoundTest_PeerDisconnectEnd(&TCreateSession<BulkRound>,
-        &FixedSizeGroupGenerator::Create);
+        Group::FixedSubgroup);
   }
 
   TEST(BulkRound, PeerDisconnectMiddleFixed)
   {
     RoundTest_PeerDisconnectMiddle(&TCreateSession<BulkRound>,
-        &FixedSizeGroupGenerator::Create);
+        Group::FixedSubgroup);
   }
 
   TEST(BulkRound, MessageDuplicatorFixed)
   {
-    typedef BulkRoundBadShuffler<ShuffleRoundMessageSwitcher> badbulk;
+    typedef BulkRoundBadShuffler<BulkRound,
+            ShuffleRoundMessageSwitcher, 1> badbulk;
+
     RoundTest_BadGuy(&TCreateSession<BulkRound>,
         &TCreateSession<badbulk>,
-        &FixedSizeGroupGenerator::Create,
+        Group::FixedSubgroup,
         TBadGuyCB<badbulk>);
   }
 
   TEST(BulkRound, MessageSwitcherFixed)
   {
-    typedef BulkRoundBadShuffler<ShuffleRoundMessageSwitcher> badbulk;
+    typedef BulkRoundBadShuffler<BulkRound,
+            ShuffleRoundMessageSwitcher, 1> badbulk;
+
     RoundTest_BadGuy(&TCreateSession<BulkRound>,
         &TCreateSession<badbulk>,
-        &FixedSizeGroupGenerator::Create,
+        Group::FixedSubgroup,
         TBadGuyCB<badbulk>);
   }
 
   TEST(BulkRound, FalseNoGoFixed)
   {
-    typedef BulkRoundBadShuffler<ShuffleRoundFalseNoGo> badbulk;
+    typedef BulkRoundBadShuffler<BulkRound,
+            ShuffleRoundFalseNoGo, 1> badbulk;
+
     RoundTest_BadGuy(&TCreateSession<BulkRound>,
         &TCreateSession<badbulk>,
-        &FixedSizeGroupGenerator::Create,
+        Group::FixedSubgroup,
         TBadGuyCB<badbulk>);
   }
 
   TEST(BulkRound, InvalidOuterEncryptionFixed)
   {
-    typedef BulkRoundBadShuffler<ShuffleRoundInvalidOuterEncryption> badbulk;
-    RoundTest_BadGuy(&TCreateSession<BulkRound>,
-        &TCreateSession<badbulk>,
-        &FixedSizeGroupGenerator::Create,
-        TBadGuyCB<badbulk>);
-  }
+    typedef BulkRoundBadShuffler<BulkRound, 
+            ShuffleRoundInvalidOuterEncryption, 1> badbulk;
 
-  /* Not properly implemented
-  TEST(BulkRound, IncorrectMessageLength)
-  {
-    typedef BulkRoundIncorrectMessageLength badbulk;
     RoundTest_BadGuy(&TCreateSession<BulkRound>,
         &TCreateSession<badbulk>,
-        &FixedSizeGroupGenerator::Create,
+        Group::FixedSubgroup,
         TBadGuyCB<badbulk>);
   }
-
-  TEST(BulkRound, BadXorMessage)
-  {
-    typedef BulkRoundBadXorMessage badbulk;
-    RoundTest_BadGuy(&TCreateSession<BulkRound>,
-        &TCreateSession<badbulk>,
-        &FixedSizeGroupGenerator::Create,
-        TBadGuyCB<badbulk>);
-  }
-
-  TEST(BulkRound, BadDescriptor)
-  {
-    typedef BulkRoundBadDescriptor badbulk;
-    RoundTest_BadGuy(&TCreateSession<BulkRound>,
-        &TCreateSession<badbulk>,
-        &FixedSizeGroupGenerator::Create,
-        TBadGuyCB<badbulk>);
-  }
-
-  TEST(BulkRound, FalseAccusation)
-  {
-    typedef BulkRoundFalseAccusation badbulk;
-    RoundTest_BadGuy(&TCreateSession<BulkRound>,
-        &TCreateSession<badbulk>,
-        &FixedSizeGroupGenerator::Create,
-        TBadGuyCB<badbulk>);
-  }
-  */
 }
 }

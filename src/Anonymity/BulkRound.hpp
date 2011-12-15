@@ -85,7 +85,7 @@ namespace Anonymity {
 
       /**
        * Constructor
-       * @param group_gen Generate groups for use during this round
+       * @param group Group used during this round
        * @param creds the local nodes credentials
        * @param round_id Unique round id (nonce)
        * @param network handles message sending
@@ -93,9 +93,9 @@ namespace Anonymity {
        * @param create_shuffle optional parameter specifying a shuffle round
        * to create, currently used for testing
        */
-      explicit BulkRound(QSharedPointer<GroupGenerator> group_gen, 
-          const Credentials &creds, const Id &round_id, 
-          QSharedPointer<Network> network, GetDataCallback &get_data,
+      explicit BulkRound(const Group &group, const Credentials &creds,
+          const Id &round_id, QSharedPointer<Network> network,
+          GetDataCallback &get_data,
           CreateRound create_shuffle = &TCreateRound<ShuffleRound>);
 
       /**
@@ -200,11 +200,6 @@ namespace Anonymity {
        * Holder for the GetDataCallback GetBulkData()
        */
       BulkGetDataCallback _get_bulk_data;
-
-      /**
-       * Callback for creating the shuffle round
-       */
-      CreateRound _create_shuffle;
 
       /**
        * Holds the shuffle round

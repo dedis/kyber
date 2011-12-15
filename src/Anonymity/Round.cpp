@@ -5,11 +5,9 @@
 
 namespace Dissent {
 namespace Anonymity {
-  Round::Round(QSharedPointer<GroupGenerator> group_gen,
-      const Credentials &creds, const Id &round_id,
+  Round::Round(const Group &group, const Credentials &creds, const Id &round_id,
       QSharedPointer<Network> network, GetDataCallback &get_data) :
-    _group_gen(group_gen),
-    _group(_group_gen->WholeGroup()),
+    _group(group),
     _creds(creds),
     _round_id(round_id),
     _network(network),

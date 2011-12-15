@@ -13,13 +13,13 @@ namespace Anonymity {
     public:
       /**
        * Constructor
-       * @param group_gen Generate groups for use during this round
+       * @param group Group used during this round
        * @param local_id The local peers id
        * @param round_id Unique round id (nonce)
        * @param outer_key the peers private outer key
        */
-      explicit ShuffleRoundBlame(QSharedPointer<GroupGenerator> group_gen,
-          const Id &local_id, const Id &round_id, AsymmetricKey *outer_key);
+      explicit ShuffleRoundBlame(const Group &group, const Id &local_id,
+          const Id &round_id, AsymmetricKey *outer_key);
 
       /**
        * Destructor
@@ -74,10 +74,6 @@ namespace Anonymity {
       virtual inline void VerifiableBroadcast(const QByteArray &) {}
       virtual inline void VerifiableSend(const QByteArray &, const Id &) {}
 
-      virtual void GenerateShufflerGroup()
-      {
-        SetShufflers(GetGroupGenerator()->CurrentGroup());
-      }
       virtual void BroadcastPublicKeys();
       virtual void SubmitData();
       virtual void Shuffle();

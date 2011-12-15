@@ -47,6 +47,17 @@ namespace Tests {
     EXPECT_NE(int0, int1);
   }
 
+  void IntegerInvalidString()
+  {
+    Integer base;
+    QString bad = "ABCD";
+    QString good = base.ToString();
+
+    qWarning() << bad << Integer(bad).ToString();
+    EXPECT_NE(bad, Integer(bad).ToString());
+    EXPECT_EQ(base, Integer(good));
+  }
+
   TEST(Integer, CppBasic)
   {
     CryptoFactory &cf = CryptoFactory::GetInstance();
@@ -71,6 +82,15 @@ namespace Tests {
     CryptoFactory::LibraryName cname = cf.GetLibraryName();
     cf.SetLibrary(CryptoFactory::CryptoPP);
     IntegerTestCopy();
+    cf.SetLibrary(cname);
+  }
+
+  TEST(Integer, CppInvalidString)
+  {
+    CryptoFactory &cf = CryptoFactory::GetInstance();
+    CryptoFactory::LibraryName cname = cf.GetLibraryName();
+    cf.SetLibrary(CryptoFactory::CryptoPP);
+    IntegerInvalidString();
     cf.SetLibrary(cname);
   }
 }

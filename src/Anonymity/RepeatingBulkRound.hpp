@@ -88,7 +88,7 @@ namespace Anonymity {
 
       /**
        * Constructor
-       * @param group_gen Generate groups for use during this round
+       * @param group Group used during this round
        * @param creds the local nodes credentials
        * @param round_id Unique round id (nonce)
        * @param network handles message sending
@@ -96,9 +96,9 @@ namespace Anonymity {
        * @param create_shuffle optional parameter specifying a shuffle round
        * to create, currently used for testing
        */
-      explicit RepeatingBulkRound(QSharedPointer<GroupGenerator> group_gen, 
-          const Credentials &creds, const Id &round_id, 
-          QSharedPointer<Network> network, GetDataCallback &get_data,
+      explicit RepeatingBulkRound(const Group &group, const Credentials &creds,
+          const Id &round_id, QSharedPointer<Network> network,
+          GetDataCallback &get_data,
           CreateRound create_shuffle = &TCreateRound<ShuffleRound>);
 
       /**
@@ -140,6 +140,12 @@ namespace Anonymity {
        * Returns the ShuffleRound used to exchange descriptors
        */
       QSharedPointer<Round> GetShuffleRound() { return _shuffle_round; }
+
+      /**
+       * Notifies this round that a peer has joined the session.  This will
+       * cause this type of round to finished immediately.
+       */
+      virtual void PeerJoined() { _stop_next = true; qCritical() << "JOINED!"; }
 
     protected:
       /**
@@ -279,11 +285,6 @@ namespace Anonymity {
       BulkGetDataCallback _get_shuffle_data;
 
       /**
-       * Callback for creating the shuffle round
-       */
-      CreateRound _create_shuffle;
-
-      /**
        * Current state of the node
        */
       State _state;
@@ -382,6 +383,11 @@ namespace Anonymity {
        * List of bad nodes by group index
        */
       QVector<int> _bad_members;
+
+      /**
+       * Causes this round to stop after the current phase ends
+       */
+      bool _stop_next;
 
     private slots:
       /**

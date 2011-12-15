@@ -25,14 +25,15 @@ using Dissent::Utils::Serialization;
 
 namespace Dissent {
 namespace Anonymity {
-  RepeatingBulkRound::RepeatingBulkRound(QSharedPointer<GroupGenerator> group_gen,
-      const Credentials &creds, const Id &round_id, QSharedPointer<Network> network,
-      GetDataCallback &get_data, CreateRound create_shuffle) :
-    Round(group_gen, creds, round_id, network, get_data),
+  RepeatingBulkRound::RepeatingBulkRound(const Group &group,
+      const Credentials &creds, const Id &round_id,
+      QSharedPointer<Network> network, GetDataCallback &get_data,
+      CreateRound create_shuffle) :
+    Round(group, creds, round_id, network, get_data),
     _get_shuffle_data(this, &RepeatingBulkRound::GetShuffleData),
-    _create_shuffle(create_shuffle),
     _state(Offline),
-    _phase(0)
+    _phase(0),
+    _stop_next(false)
   {
     QVariantMap headers = GetNetwork()->GetHeaders();
     headers["bulk"] = true;
@@ -49,8 +50,8 @@ namespace Anonymity {
     QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
     Id sr_id(hashalgo->ComputeHash(GetRoundId().GetByteArray()));
 
-    Round *pr = _create_shuffle(GetGroupGenerator(), GetCredentials(), sr_id,
-        net, _get_shuffle_data);
+    Round *pr = create_shuffle(GetGroup(), GetCredentials(), sr_id, net,
+        _get_shuffle_data);
     _shuffle_round = QSharedPointer<Round>(pr);
 
     _shuffle_round->SetSink(&_shuffle_sink);
@@ -202,6 +203,10 @@ namespace Anonymity {
     if(++_received_messages == static_cast<uint>(GetGroup().Count())) {
       ProcessMessages();
       PrepForNextPhase();
+      if(Stopped()) {
+        return;
+      }
+
       _phase++;
 
       uint count = static_cast<uint>(_offline_log.Count());
@@ -264,6 +269,11 @@ namespace Anonymity {
 
   void RepeatingBulkRound::PrepForNextPhase()
   {
+    if(_stop_next) {
+      Stop("Stopped for join");
+      return;
+    }
+
     uint group_size = static_cast<uint>(GetGroup().Count());
     _messages = QVector<QByteArray>(group_size);
     _received_messages = 0;

@@ -23,13 +23,11 @@ using Dissent::Utils::Serialization;
 
 namespace Dissent {
 namespace Anonymity {
-  BulkRound::BulkRound(QSharedPointer<GroupGenerator> group_gen,
-      const Credentials &creds, const Id &round_id,
-      QSharedPointer<Network> network, GetDataCallback &get_data,
-      CreateRound create_shuffle) :
-    Round(group_gen, creds, round_id, network, get_data),
+  BulkRound::BulkRound(const Group &group, const Credentials &creds,
+      const Id &round_id, QSharedPointer<Network> network,
+      GetDataCallback &get_data, CreateRound create_shuffle) :
+    Round(group, creds, round_id, network, get_data),
     _get_bulk_data(this, &BulkRound::GetBulkData),
-    _create_shuffle(create_shuffle),
     _state(Offline),
     _messages(GetGroup().Count()),
     _received_messages(0)
@@ -49,8 +47,8 @@ namespace Anonymity {
     QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
     Id sr_id(hashalgo->ComputeHash(GetRoundId().GetByteArray()));
 
-    Round *pr = _create_shuffle(GetGroupGenerator(), GetCredentials(), sr_id,
-        net, _get_bulk_data);
+    Round *pr = create_shuffle(GetGroup(), GetCredentials(), sr_id, net,
+        _get_bulk_data);
     _shuffle_round = QSharedPointer<Round>(pr);
 
     _shuffle_round->SetSink(&_shuffle_sink);

@@ -87,6 +87,7 @@ namespace Transports {
       _close_reason = "Disconnected";
     }
     Edge::Close(_close_reason);
+    CloseCompleted();
   }
 }
 }

@@ -5,18 +5,26 @@
 
 namespace Dissent {
 namespace Tests {
-  class ShuffleRoundBadInnerPrivateKey : public ShuffleRound, public Triggerable {
+  template <int N> class ShuffleRoundBadInnerPrivateKey :
+      public ShuffleRound, public Triggerable
+  {
     public:
-      explicit ShuffleRoundBadInnerPrivateKey(QSharedPointer<GroupGenerator> group_gen,
+      explicit ShuffleRoundBadInnerPrivateKey(const Group &group,
           const Credentials &creds, const Id &round_id,
           QSharedPointer<Network> net, GetDataCallback &get_data) :
-        ShuffleRound(group_gen, creds, round_id, net, get_data) {}
+        ShuffleRound(group, creds, round_id, net, get_data) {}
 
       virtual ~ShuffleRoundBadInnerPrivateKey() {}
 
     protected:
       virtual void BroadcastPrivateKey()
       {
+        Random &rand = Random::GetInstance();
+        if((rand.GetInt(0, 1024) / 1024.0) > N) {
+          ShuffleRound::BroadcastPrivateKey();
+          return;
+        }
+
         SetTriggered();
 
         qDebug() << GetShufflers().GetIndex(GetLocalId()) <<
@@ -37,18 +45,26 @@ namespace Tests {
       }
   };
 
-  class ShuffleRoundMessageDuplicator : public ShuffleRound, public Triggerable {
+  template <int N> class ShuffleRoundMessageDuplicator :
+      public ShuffleRound, public Triggerable
+  {
     public:
-      explicit ShuffleRoundMessageDuplicator(QSharedPointer<GroupGenerator> group_gen,
+      explicit ShuffleRoundMessageDuplicator(const Group &group,
           const Credentials &creds, const Id &round_id,
           QSharedPointer<Network> net, GetDataCallback &get_data) :
-        ShuffleRound(group_gen, creds, round_id, net, get_data) {}
+        ShuffleRound(group, creds, round_id, net, get_data) {}
 
       virtual ~ShuffleRoundMessageDuplicator() {}
 
     protected:
       virtual void Shuffle()
       {
+        Random &rand = Random::GetInstance();
+        if((rand.GetInt(0, 1024) / 1024.0) > N) {
+          ShuffleRound::Shuffle();
+          return;
+        }
+
         SetTriggered();
 
         _state = Shuffling;
@@ -108,18 +124,26 @@ namespace Tests {
       }
   };
 
-  class ShuffleRoundMessageSwitcher : public ShuffleRound, public Triggerable {
+  template <int N> class ShuffleRoundMessageSwitcher :
+      public ShuffleRound, public Triggerable
+  {
     public:
-      explicit ShuffleRoundMessageSwitcher(QSharedPointer<GroupGenerator> group_gen,
+      explicit ShuffleRoundMessageSwitcher(const Group &group,
           const Credentials &creds, const Id &round_id,
           QSharedPointer<Network> net, GetDataCallback &get_data) :
-        ShuffleRound(group_gen, creds, round_id, net, get_data) {}
+        ShuffleRound(group, creds, round_id, net, get_data) {}
 
       virtual ~ShuffleRoundMessageSwitcher() {}
 
     protected:
       virtual void Shuffle()
       {
+        Random &rand = Random::GetInstance();
+        if((rand.GetInt(0, 1024) / 1024.0) > N) {
+          ShuffleRound::Shuffle();
+          return;
+        }
+
         SetTriggered();
 
         QVector<AsymmetricKey *> outer_keys;
@@ -141,36 +165,52 @@ namespace Tests {
       }
   };
 
-  class ShuffleRoundFalseBlame : public ShuffleRound, public Triggerable {
+  template <int N> class ShuffleRoundFalseBlame :
+      public ShuffleRound, public Triggerable
+  {
     public:
-      explicit ShuffleRoundFalseBlame(QSharedPointer<GroupGenerator> group_gen,
+      explicit ShuffleRoundFalseBlame(const Group &group,
           const Credentials &creds, const Id &round_id,
           QSharedPointer<Network> net, GetDataCallback &get_data) :
-        ShuffleRound(group_gen, creds, round_id, net, get_data) {}
+        ShuffleRound(group, creds, round_id, net, get_data) {}
 
       virtual ~ShuffleRoundFalseBlame() {}
 
     protected:
       virtual void Shuffle()
       {
+        Random &rand = Random::GetInstance();
+        if((rand.GetInt(0, 1024) / 1024.0) > N) {
+          ShuffleRound::Shuffle();
+          return;
+        }
+
         SetTriggered();
 
         StartBlame();
       }
   };
 
-  class ShuffleRoundFalseNoGo : public ShuffleRound, public Triggerable {
+  template <int N> class ShuffleRoundFalseNoGo :
+      public ShuffleRound, public Triggerable
+  {
     public:
-      explicit ShuffleRoundFalseNoGo(QSharedPointer<GroupGenerator> group_gen,
+      explicit ShuffleRoundFalseNoGo(const Group &group,
           const Credentials &creds, const Id &round_id,
           QSharedPointer<Network> net, GetDataCallback &get_data) :
-        ShuffleRound(group_gen, creds, round_id, net, get_data) {}
+        ShuffleRound(group, creds, round_id, net, get_data) {}
 
       virtual ~ShuffleRoundFalseNoGo() {}
 
     protected:
       virtual void VerifyInnerCiphertext()
       {
+        Random &rand = Random::GetInstance();
+        if((rand.GetInt(0, 1024) / 1024.0) > N) {
+          ShuffleRound::VerifyInnerCiphertext();
+          return;
+        }
+
         SetTriggered();
 
         MessageType mtype = NoGoMessage;
@@ -181,18 +221,26 @@ namespace Tests {
       }
   };
 
-  class ShuffleRoundInvalidOuterEncryption : public ShuffleRound, public Triggerable {
+  template <int N> class ShuffleRoundInvalidOuterEncryption :
+      public ShuffleRound, public Triggerable
+  {
     public:
-      explicit ShuffleRoundInvalidOuterEncryption(QSharedPointer<GroupGenerator> group_gen,
+      explicit ShuffleRoundInvalidOuterEncryption(const Group &group,
           const Credentials &creds, const Id &round_id,
           QSharedPointer<Network> net, GetDataCallback &get_data) :
-        ShuffleRound(group_gen, creds, round_id, net, get_data) {}
+        ShuffleRound(group, creds, round_id, net, get_data) {}
 
       virtual ~ShuffleRoundInvalidOuterEncryption() {}
 
     protected:
       virtual void SubmitData()
       {
+        Random &rand = Random::GetInstance();
+        if((rand.GetInt(0, 1024) / 1024.0) > N) {
+          ShuffleRound::SubmitData();
+          return;
+        }
+
         SetTriggered();
 
         _state = DataSubmission;

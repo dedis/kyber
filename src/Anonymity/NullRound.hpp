@@ -14,15 +14,15 @@ namespace Anonymity {
     public:
       /**
        * Constructor
-       * @param group_gen Generate groups for use during this round
+       * @param group Group used during this round
        * @param creds the local nodes credentials
        * @param round_id unused
        * @param network handles message sending
        * @param get_data requests data to share during this session
        */
-      explicit NullRound(QSharedPointer<GroupGenerator> group_gen,
-          const Credentials &creds, const Id &round_id, 
-          QSharedPointer<Network> network, GetDataCallback &get_data);
+      explicit NullRound(const Group &group, const Credentials &creds,
+          const Id &round_id, QSharedPointer<Network> network,
+          GetDataCallback &get_data);
 
       /**
        * Destructor
@@ -31,7 +31,7 @@ namespace Anonymity {
 
       virtual bool Start();
 
-      inline virtual QString ToString() const { return "NullRound"; }
+      inline virtual QString ToString() const { return "NullRound " + GetRoundId().ToString(); }
 
     protected:
       /**

@@ -4,10 +4,10 @@
 
 namespace Dissent {
 namespace Anonymity {
-  NullRound::NullRound(QSharedPointer<GroupGenerator> group_gen,
-      const Credentials &creds, const Id &round_id,
-      QSharedPointer<Network> network, GetDataCallback &get_data) :
-    Round(group_gen, creds, round_id, network, get_data)
+  NullRound::NullRound(const Group &group, const Credentials &creds,
+      const Id &round_id, QSharedPointer<Network> network,
+      GetDataCallback &get_data) :
+    Round(group, creds, round_id, network, get_data)
   {
   }
 
@@ -31,8 +31,13 @@ namespace Anonymity {
     _received_from.append(id);
 
     if(!data.isEmpty()) {
+      qDebug() << GetLocalId().ToString() << "received a real message from" <<
+        id.ToString();
       PushData(data, this);
     }
+
+    qDebug() << GetLocalId().ToString() << "received" << _received_from.count()
+      << "expecting" << GetGroup().Count() << "more.";
 
     if(_received_from.count() == GetGroup().Count()) {
       SetSuccessful(true);

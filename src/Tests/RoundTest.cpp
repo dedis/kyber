@@ -4,20 +4,16 @@
 
 namespace Dissent {
 namespace Tests {
-  void RoundTest_Null(CreateSessionCallback callback, CreateGroupGenerator cgg)
+  void RoundTest_Null(CreateSessionCallback callback,
+      Group::SubgroupPolicy sg_policy)
   {
     Timer::GetInstance().UseVirtualTime();
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
-    int leader = Random::GetInstance().GetInt(0, count);
 
     QVector<TestNode *> nodes;
-    Group *group;
-    ConstructOverlay(count, nodes, group);
-
-    Id leader_id = nodes[leader]->cm.GetId();
-    Id session_id;
-
-    CreateSessions(nodes, *group, leader_id, session_id, callback, cgg);
+    Group group;
+    ConstructOverlay(count, nodes, group, sg_policy);
+    CreateSessions(nodes, group, Id(), callback);
 
     for(int idx = 0; idx < count; idx++) {
       nodes[idx]->session->Start();
@@ -38,25 +34,20 @@ namespace Tests {
     EXPECT_EQ(TestNode::failure, 0);
 
     CleanUp(nodes);
-    delete group;
   }
 
-  void RoundTest_Basic(CreateSessionCallback callback, CreateGroupGenerator cgg)
+  void RoundTest_Basic(CreateSessionCallback callback,
+      Group::SubgroupPolicy sg_policy)
   {
     Timer::GetInstance().UseVirtualTime();
 
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
-    int leader = Random::GetInstance().GetInt(0, count);
     int sender = Random::GetInstance().GetInt(0, count);
 
     QVector<TestNode *> nodes;
-    Group *group;
-    ConstructOverlay(count, nodes, group);
-
-    Id leader_id = nodes[leader]->cm.GetId();
-    Id session_id;
-
-    CreateSessions(nodes, *group, leader_id, session_id, callback, cgg);
+    Group group;
+    ConstructOverlay(count, nodes, group, sg_policy);
+    CreateSessions(nodes, group, Id(), callback);
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
@@ -83,7 +74,6 @@ namespace Tests {
     }
 
     CleanUp(nodes);
-    delete group;
   }
 
   /**
@@ -92,36 +82,18 @@ namespace Tests {
    * as an argument. This is useful for booting up a node and then
    * using it to testi SessionWebService objects.
    */
-  void RoundTest_Basic_SessionTest(CreateSessionCallback callback, CreateGroupGenerator cgg,
-        SessionTestCallback session_cb)
+  void RoundTest_Basic_SessionTest(CreateSessionCallback callback, 
+      Group::SubgroupPolicy sg_policy, SessionTestCallback session_cb)
   {
     Timer::GetInstance().UseVirtualTime();
 
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
-    int leader = Random::GetInstance().GetInt(0, count);
     int sender = Random::GetInstance().GetInt(0, count);
 
     QVector<TestNode *> nodes;
-    Group *group;
-    ConstructOverlay(count, nodes, group);
-
-    for(int idx = 0; idx < count; idx++) {
-      for(int jdx = 0; jdx < count; jdx++) {
-        if(idx == jdx) {
-          continue;
-        }
-        EXPECT_TRUE(nodes[idx]->cm.GetConnectionTable().GetConnection(nodes[jdx]->cm.GetId()));
-      }
-    }
-
-    for(int idx = 0; idx < count; idx++) {
-      EXPECT_TRUE(nodes[idx]->sink.Count() == 0);
-    }
-
-    Id leader_id = nodes[leader]->cm.GetId();
-    Id session_id;
-
-    CreateSessions(nodes, *group, leader_id, session_id, callback, cgg);
+    Group group;
+    ConstructOverlay(count, nodes, group, sg_policy);
+    CreateSessions(nodes, group, Id(), callback);
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
@@ -148,20 +120,18 @@ namespace Tests {
     }
 
     for(int idx = 0; idx < count; idx++) {
-      QSharedPointer<Session> sessionp(nodes[idx]->session);
-      session_cb(sessionp);
+      session_cb(nodes[idx]->sm);
     }
 
     CleanUp(nodes);
-    delete group;
   }
 
-  void RoundTest_MultiRound(CreateSessionCallback callback, CreateGroupGenerator cgg)
+  void RoundTest_MultiRound(CreateSessionCallback callback,
+      Group::SubgroupPolicy sg_policy)
   {
     Timer::GetInstance().UseVirtualTime();
 
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
-    int leader = Random::GetInstance().GetInt(0, count);
     int sender0 = Random::GetInstance().GetInt(0, count);
     int sender1 = Random::GetInstance().GetInt(0, count);
     while(sender0 == sender1) {
@@ -169,13 +139,9 @@ namespace Tests {
     }
 
     QVector<TestNode *> nodes;
-    Group *group;
-    ConstructOverlay(count, nodes, group);
-
-    Id leader_id = nodes[leader]->cm.GetId();
-    Id session_id;
-
-    CreateSessions(nodes, *group, leader_id, session_id, callback, cgg);
+    Group group;
+    ConstructOverlay(count, nodes, group, sg_policy);
+    CreateSessions(nodes, group, Id(), callback);
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
@@ -218,16 +184,108 @@ namespace Tests {
     }
 
     CleanUp(nodes);
-    delete group;
   }
 
-  void RoundTest_PeerDisconnectEnd(CreateSessionCallback callback,
-      CreateGroupGenerator cgg)
+  void RoundTest_AddOne(CreateSessionCallback callback,
+      Group::SubgroupPolicy sg_policy)
   {
     Timer::GetInstance().UseVirtualTime();
 
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
-    int leader = Random::GetInstance().GetInt(0, count);
+    int sender0 = Random::GetInstance().GetInt(0, count);
+    int sender1 = Random::GetInstance().GetInt(0, count);
+    while(sender0 == sender1) {
+      sender1 = Random::GetInstance().GetInt(0, count);
+    }
+
+    QVector<TestNode *> nodes;
+    Group group;
+    ConstructOverlay(count, nodes, group, sg_policy);
+
+    Id session_id;
+    CreateSessions(nodes, group, session_id, callback);
+
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
+
+    QByteArray msg(512, 0);
+    rand->GenerateBlock(msg);
+    nodes[sender0]->session->Send(msg);
+
+    SignalCounter sc;
+    for(int idx = 0; idx < count; idx++) {
+      QObject::connect(&nodes[idx]->sink, SIGNAL(DataReceived()), &sc, SLOT(Counter()));
+      nodes[idx]->session->Start();
+    }
+
+    TestNode::calledback = 0;
+    qint64 next = Timer::GetInstance().VirtualRun();
+    while(next != -1 && sc.GetCount() < count && TestNode::calledback < count) {
+      Time::GetInstance().IncrementVirtualClock(next);
+      next = Timer::GetInstance().VirtualRun();
+    }
+
+    for(int idx = 0; idx < count; idx++) {
+      EXPECT_EQ(msg, nodes[idx]->sink.Last().first);
+    }
+
+    int ncount = count + 1;
+    nodes.append(new TestNode(Id(), ncount));
+    QObject::connect(&nodes.last()->sink, SIGNAL(DataReceived()), &sc, SLOT(Counter()));
+    for(int idx = 0; idx < count; idx++) {
+      nodes[idx]->cm.ConnectTo(BufferAddress(ncount));
+      nodes.last()->cm.ConnectTo(BufferAddress(idx + 1));
+    }
+
+    SignalCounter con_counter;
+    QObject::connect(&nodes.last()->cm, SIGNAL(NewConnection(Connection *, bool)),
+        &con_counter, SLOT(Counter()));
+
+    int total_cons = count * 2;
+    while(next != -1 && con_counter.GetCount() != total_cons) {
+      Time::GetInstance().IncrementVirtualClock(next);
+      next = Timer::GetInstance().VirtualRun();
+    }
+
+    ASSERT_EQ(total_cons, con_counter.GetCount());
+
+    CreateSession(nodes.last(), group, session_id, callback);
+    SignalCounter ready;
+    QObject::connect(nodes.last()->session.data(),
+        SIGNAL(RoundStarting(QSharedPointer<Round>)),
+        &ready, SLOT(Counter()));
+    nodes.last()->session->Start();
+
+    while(next != -1 && ready.GetCount() != 1) {
+      Time::GetInstance().IncrementVirtualClock(next);
+      next = Timer::GetInstance().VirtualRun();
+    }
+
+    rand->GenerateBlock(msg);
+    nodes[sender1]->session->Send(msg);
+
+    sc.Reset();
+    TestNode::calledback = 0;
+    next = Timer::GetInstance().VirtualRun();
+    while(next != -1 && sc.GetCount() < ncount && TestNode::calledback < ncount * 2) {
+      Time::GetInstance().IncrementVirtualClock(next);
+      next = Timer::GetInstance().VirtualRun();
+    }
+
+    for(int idx = 0; idx < ncount; idx++) {
+      EXPECT_EQ(msg, nodes[idx]->sink.Last().first);
+    }
+
+    CleanUp(nodes);
+  }
+
+  void RoundTest_PeerDisconnectEnd(CreateSessionCallback callback,
+      Group::SubgroupPolicy sg_policy)
+  {
+    Timer::GetInstance().UseVirtualTime();
+
+    int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
+    int leader = 0;
     int disconnector = Random::GetInstance().GetInt(0, count);
     while(leader == disconnector) {
       disconnector = Random::GetInstance().GetInt(0, count);
@@ -238,13 +296,9 @@ namespace Tests {
     }
 
     QVector<TestNode *> nodes;
-    Group *group;
-    ConstructOverlay(count, nodes, group);
-
-    Id leader_id = nodes[leader]->cm.GetId();
-    Id session_id;
-
-    CreateSessions(nodes, *group, leader_id, session_id, callback, cgg);
+    Group group;
+    ConstructOverlay(count, nodes, group, sg_policy);
+    CreateSessions(nodes, group, Id(), callback);
 
     SignalCounter sc;
     for(int idx = 0; idx < count; idx++) {
@@ -292,16 +346,15 @@ namespace Tests {
     delete nodes[disconnector];
     nodes.remove(disconnector);
     CleanUp(nodes);
-    delete group;
   }
 
   void RoundTest_PeerDisconnectMiddle(CreateSessionCallback callback,
-      CreateGroupGenerator cgg)
+      Group::SubgroupPolicy sg_policy)
   {
     Timer::GetInstance().UseVirtualTime();
 
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
-    int leader = Random::GetInstance().GetInt(0, count);
+    int leader = 0;
     int disconnector = Random::GetInstance().GetInt(0, count);
     while(leader == disconnector) {
       disconnector = Random::GetInstance().GetInt(0, count);
@@ -312,13 +365,9 @@ namespace Tests {
     }
 
     QVector<TestNode *> nodes;
-    Group *group;
-    ConstructOverlay(count, nodes, group);
-
-    Id leader_id = nodes[leader]->cm.GetId();
-    Id session_id;
-
-    CreateSessions(nodes, *group, leader_id, session_id, callback, cgg);
+    Group group;
+    ConstructOverlay(count, nodes, group, sg_policy);
+    CreateSessions(nodes, group, Id(), callback);
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
@@ -356,40 +405,50 @@ namespace Tests {
     }
 
     CleanUp(nodes);
-    delete group;
   }
 
   void RoundTest_BadGuy(CreateSessionCallback good_callback,
-      CreateSessionCallback bad_callback, CreateGroupGenerator cgg,
+      CreateSessionCallback bad_callback, Group::SubgroupPolicy sg_policy,
       const BadGuyCB &cb)
   {
     Timer::GetInstance().UseVirtualTime();
 
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
-    int leader = Random::GetInstance().GetInt(0, count);
-    int sender = Random::GetInstance().GetInt(0, count);
-    int badguy = Random::GetInstance().GetInt(0, count);
 
     QVector<TestNode *> nodes;
-    Group *group;
-    ConstructOverlay(count, nodes, group);
+    Group group;
+    ConstructOverlay(count, nodes, group, sg_policy);
 
-    Id leader_id = nodes[leader]->cm.GetId();
     Id session_id;
+    CreateSessions(nodes, group, session_id, good_callback);
 
-    CreateSessions(nodes, *group, leader_id, session_id, good_callback, cgg);
+    Group tmp_group(QVector<GroupContainer>(), group.GetLeader(),
+        group.GetSubgroupPolicy());
+    foreach(TestNode *node, nodes) {
+      tmp_group = AddGroupMember(tmp_group, GroupContainer(node->cm.GetId(),
+            Group::EmptyKey(), QByteArray()));
+    }
+    Group stmp_group = tmp_group.GetSubgroup();
 
-    Session *session = nodes[0]->session.data();
-    if(session) {
-      const Group cg = session->GetGroupGenerator().CurrentGroup();
-      int badguy_sg = Random::GetInstance().GetInt(0, cg.Count());
-      Id badguy_id = cg.GetId(badguy_sg);
-      badguy = cg.GetIndex(badguy_id);
+    int leader = tmp_group.GetIndex(tmp_group.GetLeader());
+    int sg_count = stmp_group.Count();
+
+    int badguy = Random::GetInstance().GetInt(0, sg_count);
+    int group_badguy = tmp_group.GetIndex(stmp_group.GetId(badguy));
+    while(group_badguy == leader) {
+      badguy = Random::GetInstance().GetInt(0, sg_count);
+      group_badguy = tmp_group.GetIndex(stmp_group.GetId(badguy));
+    }
+    Id badid = tmp_group.GetId(badguy);
+
+    int sender = Random::GetInstance().GetInt(0, count);
+    while(sender == group_badguy) {
+      sender = Random::GetInstance().GetInt(0, count);
     }
 
-    qDebug() << "Bad guy at" << badguy;
+    qDebug() << "Bad guy at" << badguy << badid.ToString();
 
-    CreateSession(nodes[badguy], *group, leader_id, session_id, bad_callback, cgg);
+    CreateSession(nodes[badguy], group, session_id, bad_callback);
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
@@ -415,18 +474,27 @@ namespace Tests {
       std::cout << "RoundTest_BadGuy was never triggered, "
         "consider rerunning." << std::endl;
     } else {
-      foreach(TestNode *node, nodes) {
-        QSharedPointer<Round> pr = node->session->GetCurrentRound();
-        EXPECT_EQ(pr->GetBadMembers().count(), 1);
-        if(pr->GetBadMembers().count() > 0) {
-          EXPECT_TRUE(pr->GetBadMembers()[0] == badguy);
+      for(int idx = 0; idx < nodes.size(); idx++) {
+        TestNode *node = nodes[idx];
+        if(idx == badguy) {
+          QSharedPointer<Round> round = node->session->GetCurrentRound();
+          EXPECT_TRUE(round->GetBadMembers().size() == 1);
+          if(round->GetBadMembers().size() == 1) {
+            EXPECT_TRUE(round->GetBadMembers()[0] == badguy);
+          }
+          continue;
         }
-        EXPECT_TRUE(node->sink.Count() == 0);
+
+        QSharedPointer<Round> pr = node->session->GetCurrentRound();
+        EXPECT_FALSE(node->session->GetGroup().Contains(badid));
+        EXPECT_TRUE(node->sink.Count() == 1);
+        if(node->sink.Count() == 1) {
+          EXPECT_EQ(node->sink.Last().first, msg);
+        }
       }
     }
 
     CleanUp(nodes);
-    delete group;
   }
 }
 }

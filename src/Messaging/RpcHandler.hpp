@@ -22,6 +22,12 @@ namespace Messaging {
    */
   class RpcHandler : public ISink {
     public:
+      static RpcHandler &GetEmpty()
+      {
+        static RpcHandler rpc;
+        return rpc;
+      }
+
       /**
        * The constructor
        */

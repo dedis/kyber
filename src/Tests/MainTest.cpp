@@ -12,6 +12,7 @@ GTEST_API_ int main(int argc, char **argv)
   QCoreApplication qca(argc, argv);
   CryptoFactory::GetInstance().SetThreading(CryptoFactory::MultiThreaded);
   Dissent::Crypto::AsymmetricKey::DefaultKeySize = 512;
+  Dissent::Crypto::AsymmetricKey::DefaultKeySize = 512;
   Logging::UseFile("test.log");
   qDebug() << "Beginning tests";
   FilesExist();

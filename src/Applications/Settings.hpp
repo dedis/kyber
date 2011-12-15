@@ -6,6 +6,9 @@
 #include <QHostAddress>
 #include <QSettings>
 
+#include "../Anonymity/Group.hpp"
+#include "../Connections/Id.hpp"
+
 namespace Dissent {
 namespace Applications {
   /**
@@ -13,6 +16,9 @@ namespace Applications {
    */
   class Settings {
     public:
+      typedef Dissent::Anonymity::Group Group;
+      typedef Dissent::Connections::Id Id;
+
       /**
        * Load configuration from disk
        */
@@ -96,7 +102,17 @@ namespace Applications {
       /**
        * The id for the (first) local node, other nodes will be random
        */
-      QString LocalId;
+      Id LocalId;
+
+      /**
+       * The id for the anonymity group's leader
+       */
+      Id LeaderId;
+
+      /**
+       * The subgroup policy employed at this node
+       */
+      Group::SubgroupPolicy SubgroupPolicy;
 
     private:
       void Init();

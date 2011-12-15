@@ -173,63 +173,63 @@ namespace Tests {
 
   }
 
-  void RoundIdServiceTest(QSharedPointer<Session> sessionp) 
+  void RoundIdServiceTest(SessionManager &sm)
   {
-    ASSERT_TRUE(!sessionp.isNull());
-    QSharedPointer<RoundIdService> ridp(new RoundIdService(sessionp));
+    ASSERT_TRUE(!sm.GetDefaultSession().isNull());
+    QSharedPointer<RoundIdService> ridp(new RoundIdService(sm));
     SessionServiceActiveTestWrapper(ridp, 4);
   }
 
   TEST(WebServices, RoundIdServiceActive)
   {
-    RoundTest_Basic_SessionTest(&TCreateSession<ShuffleRound>, &GroupGenerator::Create,
-      &RoundIdServiceTest);
+    RoundTest_Basic_SessionTest(&TCreateSession<ShuffleRound>,
+        Group::CompleteGroup, &RoundIdServiceTest);
   }
 
   TEST(WebServices, RoundIdServiceInactive)
   {
-    QSharedPointer<Session> sp;
-    QSharedPointer<RoundIdService> ridp(new RoundIdService(sp));
+    SessionManager sm;
+    QSharedPointer<RoundIdService> ridp(new RoundIdService(sm));
     SessionServiceInactiveTestWrapper(ridp);
   }
 
-  void SessionIdServiceTest(QSharedPointer<Session> sessionp) 
+  void SessionIdServiceTest(SessionManager &sm)
   {
-    ASSERT_TRUE(!sessionp.isNull());
-    QSharedPointer<SessionIdService> sisp(new SessionIdService(sessionp));
+    ASSERT_TRUE(!sm.GetDefaultSession().isNull());
+    QSharedPointer<SessionIdService> sisp(new SessionIdService(sm));
     SessionServiceActiveTestWrapper(sisp, 28);
   }
 
   TEST(WebServices, SessionIdServiceActive)
   {
-    RoundTest_Basic_SessionTest(&TCreateSession<ShuffleRound>, &GroupGenerator::Create,
-      &SessionIdServiceTest);
+    RoundTest_Basic_SessionTest(&TCreateSession<ShuffleRound>,
+        Group::CompleteGroup, &SessionIdServiceTest);
   }
 
   TEST(WebServices, SessionIdServiceInactive)
   {
-    QSharedPointer<Session> sp;
-    QSharedPointer<SessionIdService> sisp(new SessionIdService(sp));
+    SessionManager sm;
+    QSharedPointer<SessionIdService> sisp(new SessionIdService(sm));
     SessionServiceInactiveTestWrapper(sisp);
   }
 
-  void SendMessageServiceTest(QSharedPointer<Session> sessionp) 
+  void SendMessageServiceTest(SessionManager &sm)
   {
-    ASSERT_TRUE(!sessionp.isNull());
-    QSharedPointer<SendMessageService> smsp(new SendMessageService(sessionp));
+    ASSERT_TRUE(!sm.GetDefaultSession().isNull());
+    QSharedPointer<SendMessageService> smsp(new SendMessageService(sm));
     SessionServiceActiveTestWrapper(smsp, 28);
   }
 
   TEST(WebServices, SendMessageServiceActive)
   {
-    RoundTest_Basic_SessionTest(&TCreateSession<ShuffleRound>, &GroupGenerator::Create,
-      &SendMessageServiceTest);
+    RoundTest_Basic_SessionTest(&TCreateSession<ShuffleRound>,
+        Group::CompleteGroup, &SendMessageServiceTest);
   }
 
   TEST(WebServices, SendMessageServiceInactive)
   {
-    QSharedPointer<Session> sp;
-    QSharedPointer<SendMessageService> smsp(new SendMessageService(sp));
+    SessionManager sm;
+    QSharedPointer<SendMessageService> smsp(new SendMessageService(sm));
     SessionServiceInactiveTestWrapper(smsp);
   }
 }

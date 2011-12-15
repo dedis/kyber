@@ -2,8 +2,8 @@
 
 namespace Dissent {
 namespace Tests {
-  QList<QSharedPointer<Node> > GenerateLiveOverlay(const Address &base, int count,
-      const QString &session_type)
+  QList<QSharedPointer<Node> > GenerateLiveOverlay(const Address &base,
+      int count, Group::SubgroupPolicy policy, const QString &session_type)
   {
     QList<Address> local;
     local.append(base);
@@ -14,23 +14,29 @@ namespace Tests {
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
 
+    Id session_id;
+    Id leader_id;
+    Group group(QVector<GroupContainer>(), leader_id, policy);
+
     for(int idx = 0; idx < count; idx++) {
-      Id id;
+      Id id = idx == 0 ? leader_id : Id();
       QByteArray bid(id.GetByteArray());
       QSharedPointer<AsymmetricKey> key(lib->GeneratePrivateKey(bid));
       QSharedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
 
       nodes.append(QSharedPointer<Node>(new Node(Credentials(id, key, dh),
-              local, remote, count, session_type)));
+              local, remote, group, session_type)));
 
       nodes[idx]->sink = QSharedPointer<ISink>(new MockSinkWithSignal());
       local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
     }
 
-    SignalCounter sc(count);
+    int total_cons = count * (count - 1) * 2;
+    SignalCounter sc(total_cons);
 
     foreach(QSharedPointer<Node> node, nodes) {
-      QObject::connect(node.data(), SIGNAL(Ready()), &sc, SLOT(Counter()));
+      QObject::connect(&node->bg, SIGNAL(NewConnection(Connection *, bool)),
+          &sc, SLOT(Counter()));
       node->bg.Start();
     }
 
@@ -65,7 +71,7 @@ namespace Tests {
 
     QByteArray msg(512, 0);
     rand->GenerateBlock(msg);
-    nodes[0]->session->Send(msg);
+    nodes[0]->sm.GetDefaultSession()->Send(msg);
 
     SignalCounter sc(nodes.count());
     foreach(QSharedPointer<Node> node, nodes) {
@@ -92,7 +98,8 @@ namespace Tests {
     int count = Random::GetInstance().GetInt(8, 12);
     Timer::GetInstance().UseRealTime();
     Address addr = TcpAddress("127.0.0.1", 51234);
-    QList<QSharedPointer<Node> > nodes = GenerateLiveOverlay(addr, count, "null");
+    QList<QSharedPointer<Node> > nodes = GenerateLiveOverlay(addr, count,
+        Group::CompleteGroup, "null");
     LiveSendTest(nodes);
 
     foreach(QSharedPointer<Node> node, nodes) {

@@ -1,25 +1,24 @@
 #include <algorithm>
 
 #include "../Connections/Connection.hpp"
+#include "../Connections/ConnectionManager.hpp"
+#include "../Connections/ConnectionTable.hpp"
 #include "../Connections/Network.hpp"
+#include "../Crypto/Serialization.hpp"
 #include "../Utils/Timer.hpp"
 
 #include "Session.hpp"
 
-using Dissent::Connections::Connection;
-
 namespace Dissent {
 namespace Anonymity {
   Session::Session(const Group &group, const Credentials &creds,
-      const Id &leader_id, const Id &session_id, QSharedPointer<Network> network,
-      CreateRound create_round, CreateGroupGenerator group_generator) :
+      const Id &session_id, QSharedPointer<Network> network,
+      CreateRound create_round) :
     _group(group),
     _creds(creds),
-    _leader_id(leader_id),
     _session_id(session_id),
     _network(network),
     _create_round(create_round),
-    _generate_group(group_generator(group)),
     _current_round(0),
     _registered(this, &Session::Registered),
     _prepared(this, &Session::Prepared),
@@ -28,6 +27,15 @@ namespace Anonymity {
     _prepare_waiting(false),
     _trim_send_queue(0)
   {
+    QVariantMap headers = _network->GetHeaders();
+    headers["method"] = "SM::Data";
+    headers["session_id"] = _session_id.GetByteArray();
+    _network->SetHeaders(headers);
+
+    if(IsLeader()) {
+      _group = AddGroupMember(group, GetPublicComponents(_creds));
+    }
+
     foreach(const GroupContainer &gc, _group.GetRoster()) {
       Connection *con = _network->GetConnection(gc.first);
       if(con) {
@@ -36,10 +44,9 @@ namespace Anonymity {
       }
     }
 
-    QVariantMap headers = _network->GetHeaders();
-    headers["method"] = "SM::Data";
-    headers["session_id"] = _session_id.GetByteArray();
-    _network->SetHeaders(headers);
+    QObject::connect(&_network->GetConnectionManager(),
+        SIGNAL(NewConnection(Connection *, bool)),
+        this, SLOT(HandleConnection(Connection *, bool)));
   }
 
   Session::~Session()
@@ -81,14 +88,33 @@ namespace Anonymity {
       }
     }
 
-    QObject::disconnect(_current_round.data(), SIGNAL(Finished()), this,
-        SLOT(HandleRoundFinished()));
-
-    if(_current_round) {
+    if(!_current_round.isNull()) {
+      QObject::disconnect(_current_round.data(), SIGNAL(Finished()), this,
+          SLOT(HandleRoundFinished()));
       _current_round->Stop("Session stopped");
     }
 
     emit Stopping();
+    return true;
+  }
+
+  bool Session::CheckGroup()
+  {
+    Dissent::Connections::ConnectionTable &ct =
+      _network->GetConnectionManager().GetConnectionTable();
+
+    if(ct.GetConnections().size() < _group.Count()) {
+      qWarning() << "Not enough cons for group members";
+      return false;
+    }
+
+    foreach(const GroupContainer &gc, _group) {
+      if(ct.GetConnection(gc.first) == 0) {
+        qWarning() << "Missing a connection";
+        return false;
+      }
+    }
+
     return true;
   }
 
@@ -103,7 +129,7 @@ namespace Anonymity {
     stream << GetPublicComponents(_creds);
     request["creds"] = creds;
 
-    _network->SendRequest(request, _leader_id, &_registered);
+    _network->SendRequest(request, _group.GetLeader(), &_registered);
   }
 
   void Session::ReceivedRegister(RpcRequest &request)
@@ -112,30 +138,62 @@ namespace Anonymity {
 
     QVariantMap response;
     if(!IsLeader()) {
-      qWarning() << "Received a Ready message when not a leader.";
+      qWarning() << "Received a registration message when not a leader.";
       response["result"] = false;
       response["online"] = true;
       response["leader"] = false;
+      request.Respond(response);
       return;
     } else if(!Started()) {
+      qWarning() << "Received a registration message when not started.";
       response["result"] = false;
       response["online"] = true;
       response["leader"] = true;
+      request.Respond(response);
+      return;
     } else if(!con) {
-      qWarning() << "Received a Ready message from a non-connection: " <<
+      qWarning() << "Received a registration message from a non-connection: " <<
         request.GetFrom()->ToString();
       response["result"] = false;
       response["online"] = true;
       response["leader"] = true;
       response["msg"] = "Sent from non-connection";
-    } else {
-      response["result"] = true;
+      request.Respond(response);
+      return;
     }
 
-    _registered_peers.insert(con->GetRemoteId(), con->GetRemoteId());
+    const Id &remote = con->GetRemoteId();
+    QDataStream stream(request.GetMessage()["creds"].toByteArray());
+    GroupContainer creds;
+    stream >> creds;
+
+    if((creds.first != remote) || !creds.second->IsValid()) {
+      qWarning() << "Received a registration request with invalid credentials";
+      response["msg"] = "Credentials do not match Connection Id";
+      response["result"] = false;
+      request.Respond(response);
+      return;
+    }
+
+    qDebug() << "Received a valid registration message from:" <<
+      request.GetFrom()->ToString();
+
+    AddMember(creds);
+    response["result"] = true;
     request.Respond(response);
-    if(_registered_peers.size() == (_group.Count() - 1)) {
+
+    Connection *my_con = _network->GetConnection(remote);
+    if(my_con != 0) {
+      QObject::connect(con, SIGNAL(Disconnected(const QString &)),
+          this, SLOT(HandleDisconnect()));
+    }
+
+    if(_current_round.isNull() || (!_current_round->Started() ||
+          _current_round->Stopped()))
+    {
       SendPrepare();
+    } else if(IsLeader() && CheckGroup()) {
+      _current_round->PeerJoined();
     }
   }
 
@@ -153,7 +211,8 @@ namespace Anonymity {
 
     qDebug() << "Unable to register due to" <<
       "Online:" << msg["online"].toBool() <<
-      ", Leader:" << msg["leader"].toBool() <<
+      ", Leader:" << msg["leader"].toBool() << 
+      ", message:" << msg["msg"].toString() <<
       ", trying again later.";
 
     Dissent::Utils::TimerCallback *cb =
@@ -163,6 +222,12 @@ namespace Anonymity {
 
   bool Session::SendPrepare()
   {
+    if(!CheckGroup()) {
+      qWarning() << "All peers registered and ready but lack sufficient peers";
+      _prepare_waiting = true;
+      return false;
+    }
+
     bool interrupt = false;
     if(!_current_round.isNull()) {
       interrupt = (!_current_round->Successful() &&
@@ -170,7 +235,6 @@ namespace Anonymity {
     }
 
     Id round_id(Id::Zero().GetInteger() + _round_idx++);
-    NextRound(round_id);
 
     QVariantMap request;
     request["method"] = "SM::Prepare";
@@ -186,20 +250,27 @@ namespace Anonymity {
       request["group"] = group;
     }
 
+    qWarning() << "Sending prepare for round" << round_id.ToString() <<
+      "new group:" << request.contains("group");
+
     _prepared_peers.clear();
     foreach(const Id &id, _registered_peers) {
       _network->SendRequest(request, id, &_prepared);
     }
 
+    NextRound(round_id);
     return true;
   }
 
   void Session::ReceivedPrepare(RpcRequest &request)
   {
     QVariantMap msg = request.GetMessage();
+    if(_prepare_waiting) {
+      _prepare_waiting = false;
+    }
 
     if(!msg["interrupt"].toBool() && !_current_round.isNull() &&
-        !_current_round->Stopped())
+        !_current_round->Stopped() && _current_round->Started())
     {
       _prepare_waiting = true;
       _prepare_request = request;
@@ -215,11 +286,18 @@ namespace Anonymity {
     Id round_id(brid);
 
     if(msg.contains("group")) {
+      qWarning() << "Contains new group";
       QDataStream stream(msg["group"].toByteArray());
       Group group;
       stream >> group;
       _group = group;
-      _generate_group->Update(group);
+    }
+
+    if(!CheckGroup()) {
+      qWarning() << "Received a prepare message but lack of sufficient peers";
+      _prepare_waiting = true;
+      _prepare_request = request;
+      return;
     }
 
     NextRound(round_id);
@@ -227,6 +305,7 @@ namespace Anonymity {
     response["result"] = true;
     response["round_id"] = msg["round_id"];
     request.Respond(response);
+    _prepare_request = RpcRequest();
   }
 
   void Session::Prepared(RpcRequest &response)
@@ -259,6 +338,7 @@ namespace Anonymity {
     QVariantMap notification;
     notification["method"] = "SM::Begin";
     notification["session_id"] = _session_id.GetByteArray();
+    notification["round_id"] = round_id.GetByteArray();
     foreach(const Id &id, _prepared_peers) {
       _network->SendNotification(notification, id);
     }
@@ -267,6 +347,7 @@ namespace Anonymity {
 
     qDebug() << "Session" << ToString() << "starting round" <<
       _current_round->ToString();
+    emit RoundStarting(_current_round);
     _current_round->Start();
   }
 
@@ -278,14 +359,23 @@ namespace Anonymity {
       qWarning() << "Received a prepared message from a non-connection:" <<
         notification.GetFrom()->ToString();
       return;
-    } else if(_leader_id != con->GetRemoteId()) {
+    } else if(_group.GetLeader() != con->GetRemoteId()) {
       qWarning() << "Received a begin from someone other than the leader:" <<
         notification.GetFrom()->ToString();
       return;
     }
 
+    Id round_id(message["round_id"].toByteArray());
+    if(_current_round->GetRoundId() != round_id) {
+      qWarning() << "Received a begin for a different round, expected:" <<
+        _current_round->GetRoundId().ToString() << "got:" <<
+        round_id.ToString();
+      return;
+    }
+
     qDebug() << "Session" << ToString() << "starting round" <<
       _current_round->ToString();
+    emit RoundStarting(_current_round);
     _current_round->Start();
   }
 
@@ -305,7 +395,10 @@ namespace Anonymity {
 
     if(Stopped()) {
       qDebug() << "Session stopped.";
-    } else if(round->GetBadMembers().size() != 0) {
+      return;
+    }
+
+    if(round->GetBadMembers().size() != 0) {
       qWarning() << "Found some bad members...";
       if(IsLeader()) {
         Group group = _group;
@@ -313,12 +406,12 @@ namespace Anonymity {
           RemoveMember(group.GetId(idx));
         }
       }
-    } else if(IsLeader()) {
+    }
+
+    if(IsLeader()) {
       SendPrepare();
     } else if(_prepare_waiting) {
       ReceivedPrepare(_prepare_request);
-      _prepare_waiting = false;
-      _prepare_request = RpcRequest();
     }
   }
 
@@ -328,7 +421,7 @@ namespace Anonymity {
       _trim_send_queue = 0;
     }
 
-    Round * round = _create_round(_generate_group, _creds, round_id, _network,
+    Round * round = _create_round(_group, _creds, round_id, _network,
         _get_data_cb);
 
     _current_round = QSharedPointer<Round>(round);
@@ -360,6 +453,32 @@ namespace Anonymity {
     }
   }
 
+  void Session::HandleConnection(Connection *con, bool local)
+  {
+    if(!local) {
+      return;
+    }
+
+    if(!_group.Contains(con->GetRemoteId())) {
+      return;
+    }
+
+    QObject::connect(con, SIGNAL(Disconnected(const QString &)),
+        this, SLOT(HandleDisconnect()));
+
+    if(CheckGroup()) {
+      if(_prepare_waiting) {
+        if(IsLeader()) {
+          SendPrepare();
+        } else {
+          ReceivedPrepare(_prepare_request);
+        }
+      } else if(IsLeader()) {
+        _current_round->PeerJoined();
+      }
+    }
+  }
+
   void Session::HandleDisconnect()
   {
     Connection *con = qobject_cast<Connection *>(sender());
@@ -367,21 +486,29 @@ namespace Anonymity {
       return;
     }
 
-    RemoveMember(con->GetRemoteId());
+    if(IsLeader()) {
+      RemoveMember(con->GetRemoteId());
+    }
 
     if(!_current_round.isNull()) {
       _current_round->HandleDisconnect(con);
     }
   }
 
+  void Session::AddMember(const GroupContainer &gc)
+  {
+    if(!_group.Contains(gc.first)) {
+      _group = AddGroupMember(_group, gc);
+    }
+
+    _registered_peers.insert(gc.first, gc.first);
+  }
+
   void Session::RemoveMember(const Id &id)
   {
     _group = RemoveGroupMember(_group, id);
-    _generate_group->Update(_group);
-
-    if(IsLeader()) {
-      _registered_peers.remove(id);
-    }
+    _registered_peers.remove(id);
+    _prepared_peers.remove(id);
   }
 
   QPair<QByteArray, bool> Session::GetData(int max)

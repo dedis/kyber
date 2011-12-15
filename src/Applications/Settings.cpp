@@ -7,6 +7,9 @@ using Dissent::Utils::Logging;
 namespace Dissent {
 namespace Applications {
   Settings::Settings(const QString &file) :
+    LocalId(Id::Zero()),
+    LeaderId(Id::Zero()),
+    SubgroupPolicy(Group::CompleteGroup),
     _use_file(true),
     _settings(file, QSettings::IniFormat),
     _reason()
@@ -19,10 +22,6 @@ namespace Applications {
     ParseUrlList("EndPoint", endpoints, LocalEndPoints);
 
     DemoMode = _settings.value("demo_mode").toBool();
-
-    if(_settings.contains("group_size")) {
-      GroupSize = _settings.value("group_size").toInt();
-    }
 
     if(_settings.contains("local_nodes")) {
       LocalNodeCount = _settings.value("local_nodes").toInt();
@@ -45,6 +44,11 @@ namespace Applications {
       SessionType = _settings.value("session_type").toString();
     }
 
+    if(_settings.contains("subgroup_policy")) {
+      QString ptype = _settings.value("subgroup_policy").toString();
+      SubgroupPolicy = Group::StringToPolicyType(ptype);
+    }
+
     if(_settings.contains("log")) {
       Log = _settings.value("log").toString();
       QString lower = Log.toLower();
@@ -62,17 +66,27 @@ namespace Applications {
     Console = _settings.value("console").toBool();
     WebServer = _settings.value("web_server").toBool();
     Multithreading = _settings.value("multithreading").toBool();
-    LocalId = _settings.value("local_id").toString();
+
+    if(_settings.contains("local_id")) {
+      LocalId = Id(_settings.value("local_id").toString());
+    }
+
+    if(_settings.contains("leader_id")) {
+      LeaderId = Id(_settings.value("leader_id").toString());
+    }
   }
 
-  Settings::Settings() : _use_file(false)
+  Settings::Settings() :
+    LocalId(Id::Zero()),
+    LeaderId(Id::Zero()),
+    SubgroupPolicy(Group::CompleteGroup),
+    _use_file(false)
   {
     Init();
   }
 
   void Settings::Init()
   {
-    GroupSize = 40;
     LocalNodeCount = 1;
     SessionType = "null";
     Console = false;
@@ -93,6 +107,16 @@ namespace Applications {
 
     if(WebServer && !WebServerUrl.isValid()) {
       _reason = "Invalid WebServerUrl";
+      return false;
+    }
+
+    if(LeaderId == Id::Zero()) {
+      _reason = "No leader Id";
+      return false;
+    }
+
+    if(SubgroupPolicy == -1) {
+      _reason = "Invlaid subgroup policy";
       return false;
     }
 
@@ -157,7 +181,6 @@ namespace Applications {
       _settings.setValue("endpoints", endpoints);
     }
 
-    _settings.setValue("group_size", GroupSize);
     _settings.setValue("local_nodes", LocalNodeCount);
     _settings.setValue("web_server", WebServer);
     _settings.setValue("web_server_url", WebServerUrl);
@@ -165,7 +188,10 @@ namespace Applications {
     _settings.setValue("demo_mode", DemoMode);
     _settings.setValue("log", Log);
     _settings.setValue("multithreading", Multithreading);
-    _settings.setValue("local_id", LocalId);
+    _settings.setValue("local_id", LocalId.ToString());
+    _settings.setValue("leader_id", LeaderId.ToString());
+    _settings.setValue("subgroup_policy",
+        Group::PolicyTypeToString(SubgroupPolicy));
   }
 }
 }

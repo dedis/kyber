@@ -18,8 +18,8 @@ namespace Connections {
        * @param ct connection table providing id to sender
        * @param rpc messaging substrate
        */
-      explicit DefaultNetwork(const ConnectionTable &ct, RpcHandler &rpc) :
-        _ct(ct), _rpc(rpc) {}
+      explicit DefaultNetwork(ConnectionManager &cm, RpcHandler &rpc) :
+        _cm(cm), _rpc(rpc) {}
 
       /**
        * Virtual destructor
@@ -44,7 +44,15 @@ namespace Connections {
        */
       inline virtual Connection *GetConnection(const Id &id)
       {
-        return _ct.GetConnection(id);
+        return _cm.GetConnectionTable().GetConnection(id);
+      }
+
+      /**
+       * Returns a connection manager object capable of making connections
+       */
+      virtual ConnectionManager &GetConnectionManager()
+      {
+        return _cm;
       }
 
       /**
@@ -54,7 +62,7 @@ namespace Connections {
        */
       inline virtual void SendNotification(QVariantMap &notification, const Id &to)
       {
-        Connection *con = _ct.GetConnection(to);
+        Connection *con = _cm.GetConnectionTable().GetConnection(to);
         if(con == 0) {
           qWarning() << "Attempting to send a notification when no such peer exists," << to.ToString();
           return;
@@ -70,7 +78,7 @@ namespace Connections {
        */
       inline virtual void SendRequest(QVariantMap &request, const Id &to, Callback* cb)
       {
-        Connection *con = _ct.GetConnection(to);
+        Connection *con = _cm.GetConnectionTable().GetConnection(to);
         if(con == 0) {
           qWarning() << "Attempting to send a request when no such peer exists," << to.ToString();
           return;
@@ -85,7 +93,7 @@ namespace Connections {
        */
       inline virtual void Send(const QByteArray &data, const Id &to)
       {
-        Connection *con = _ct.GetConnection(to);
+        Connection *con = _cm.GetConnectionTable().GetConnection(to);
         if(con == 0) {
           qWarning() << "Attempting to send a notification when no such peer exists," << to.ToString();
           return;
@@ -99,7 +107,7 @@ namespace Connections {
        */
       inline virtual void Broadcast(const QByteArray &data)
       {
-        foreach(Connection *con, _ct.GetConnections()) {
+        foreach(Connection *con, _cm.GetConnectionTable().GetConnections()) {
           Send(data, con);
         }
       }
@@ -118,7 +126,7 @@ namespace Connections {
 
     private:
       QVariantMap _headers;
-      const ConnectionTable &_ct;
+      ConnectionManager &_cm;
       RpcHandler &_rpc;
   };
 }

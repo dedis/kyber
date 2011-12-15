@@ -4,10 +4,8 @@
 #include <QObject>
 
 #include "../Anonymity/Credentials.hpp"
-#include "../Anonymity/SessionManager.hpp"
 #include "../Anonymity/Group.hpp"
-#include "../Anonymity/Round.hpp"
-#include "../Anonymity/Session.hpp"
+#include "../Anonymity/SessionManager.hpp"
 #include "../Overlay/BasicGossip.hpp"
 
 namespace Dissent {
@@ -31,8 +29,6 @@ namespace Applications {
     public:
       typedef Dissent::Anonymity::Credentials Credentials;
       typedef Dissent::Anonymity::Group Group;
-      typedef Dissent::Anonymity::Round Round;
-      typedef Dissent::Anonymity::Session Session;
       typedef Dissent::Anonymity::SessionManager SessionManager;
       typedef Dissent::Connections::Connection Connection;
       typedef Dissent::Messaging::ISink ISink;
@@ -43,35 +39,20 @@ namespace Applications {
        * Constructor
        * @param local the EL addresses
        * @param remote the bootstrap peer list
-       * @param group_size number of peers to wait for before creating the group
-       * @param session_type type of session / round to create
        */
       explicit Node(const Credentials &creds, const QList<Address> &local,
-          const QList<Address> &remote, int group_size,
-          const QString &session_type);
+          const QList<Address> &remote, const Group &group, const QString &type);
 
       /**
        * Destructor
        */
       virtual ~Node();
       
-      /**
-       * Given the set of connected peers, generate a Group object
-       */
-      Group GenerateGroup();
-
-      /**
-       * Returns true once group_size is equal to peers connected to this node
-       */
-      bool Bootstrapped() { return _bootstrapped; }
-
       Credentials creds;
       BasicGossip bg;
       SessionManager sm;
-      const int GroupSize;
-      const QString SessionType;
-
-      QSharedPointer<Session> session;
+      Group base_group;
+      QString SessionType;
       QSharedPointer<ISink> sink;
 
     signals:
@@ -80,12 +61,11 @@ namespace Applications {
        */
       void Ready();
 
+    private:
+      void CreateSession();
+
     private slots:
       void HandleConnection(Connection *con, bool local);
-      void RoundFinished(QSharedPointer<Round> round);
-
-    private:
-      bool _bootstrapped;
   };
 }
 }

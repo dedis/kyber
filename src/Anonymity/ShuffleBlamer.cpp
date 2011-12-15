@@ -11,11 +11,10 @@ using Dissent::Crypto::OnionEncryptor;
 
 namespace Dissent {
 namespace Anonymity {
-  ShuffleBlamer::ShuffleBlamer(QSharedPointer<GroupGenerator> group_gen,
-      const Id &round_id, const QVector<Log> &logs,
-      const QVector<AsymmetricKey *> private_keys) :
-    _group(group_gen->WholeGroup()),
-    _shufflers(group_gen->CurrentGroup()),
+  ShuffleBlamer::ShuffleBlamer(const Group &group, const Id &round_id,
+      const QVector<Log> &logs, const QVector<AsymmetricKey *> private_keys) :
+    _group(group),
+    _shufflers(group.GetSubgroup()),
     _logs(logs),
     _private_keys(private_keys),
     _bad_nodes(_group.Count(), false),
@@ -28,7 +27,7 @@ namespace Anonymity {
       if(sidx >= 0) {
         key = _private_keys[sidx];
       }
-      _rounds.append(new ShuffleRoundBlame(group_gen, _group.GetId(idx),
+      _rounds.append(new ShuffleRoundBlame(_group, _group.GetId(idx),
             round_id, key));
     }
   }
@@ -174,7 +173,8 @@ namespace Anonymity {
     int last_shuffle = -1;
     bool verified = false;
     for(int idx = 0; idx < _shufflers.Count() && !verified; idx++) {
-      ShuffleRound::State cstate = _rounds[idx]->GetState();
+      int gidx = _group.GetIndex(_shufflers.GetId(idx));
+      ShuffleRound::State cstate = _rounds[gidx]->GetState();
 
       switch(cstate) {
         case ShuffleRound::Offline:
@@ -183,12 +183,11 @@ namespace Anonymity {
         case ShuffleRound::WaitingForShuffle:
           break;
         case ShuffleRound::WaitingForEncryptedInnerData:
-          if(_shufflers.GetIndex(_group.GetId(idx)) >= 0) {
-            last_shuffle = idx;
-          }
+        case ShuffleRound::Shuffling:
+          last_shuffle = idx;
           break;
         case ShuffleRound::Verification:
-          last_shuffle = _rounds.count() - 1;
+          last_shuffle = _shufflers.Count() - 1;
           verified = true;
           break;
         default:
@@ -203,7 +202,8 @@ namespace Anonymity {
 
     // Verify all nodes are in their proper state...
     for(int idx = 0; idx <= last_shuffle; idx++) {
-      ShuffleRound::State cstate = _rounds[idx]->GetState();
+      int gidx = _group.GetIndex(_shufflers.GetId(idx));
+      ShuffleRound::State cstate = _rounds[gidx]->GetState();
 
       switch(cstate) {
         case ShuffleRound::WaitingForEncryptedInnerData:
@@ -220,14 +220,14 @@ namespace Anonymity {
       return;
     }
 
-    QVector<QByteArray> indata = _rounds[_group.GetIndex(_shufflers.GetId(0))]->GetShuffleCipherText();
+    _inner_data = _rounds[_group.GetIndex(_shufflers.GetId(0))]->GetShuffleCipherText();
 
     OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
     for(int idx = 0; idx < _private_keys.count(); idx++) {
       QVector<QByteArray> outdata;
       QVector<int> bad;
-      oe->Decrypt(_private_keys[idx], indata, outdata, &bad);
-      indata = outdata;
+      oe->Decrypt(_private_keys[idx], _inner_data, outdata, &bad);
+      _inner_data = outdata;
       if(bad.count() == 0) {
         continue;
       }
@@ -237,22 +237,16 @@ namespace Anonymity {
     }
 
     // Check intermediary steps
-    for(int idx = 0; ; idx++) {
+    for(int idx = 0; idx < last_shuffle; idx++) {
       int pidx = _group.GetIndex(_shufflers.GetId(idx));
-      if(pidx >= last_shuffle) {
-        break;
-      }
       int nidx = _group.GetIndex(_shufflers.GetId(idx + 1));
 
       const QVector<QByteArray> outdata = _rounds[pidx]->GetShuffleClearText();
       const QVector<QByteArray> indata = _rounds[nidx]->GetShuffleCipherText();
       
-      if(indata.isEmpty()) {
-        continue;
-      }
       if(CountMatches(outdata, indata) != _rounds.count()) {
         qDebug() << "Checking" << pidx << "output against" << nidx << "input: fail";
-        Set(idx, "Changed data");
+        Set(pidx, "Changed data");
         return;
       }
       qDebug() << "Checking" << pidx << "output against" << nidx << "input: success";
@@ -269,9 +263,16 @@ namespace Anonymity {
       return;
     }
 
+    if(CountMatches(outdata, _inner_data) != _rounds.count()) {
+      Set(last_shuffle, "Changed final data");
+      return;
+    }
+
     for(int idx = 0; idx < _rounds.count(); idx++) {
       const QVector<QByteArray> indata = _rounds[idx]->GetEncryptedData();
+      qWarning() << "Ahh!";
       if(indata.count() == 0) {
+      qWarning() << "right!";
         continue;
       }
       if(CountMatches(outdata, indata) != _rounds.count()) {
@@ -319,17 +320,9 @@ namespace Anonymity {
     QVector<QByteArray> ciphertext = _rounds[first]->GetShuffleCipherText();
     int last = _group.GetIndex(_shufflers.GetId(_shufflers.Count() - 1));
     QVector<QByteArray> cleartext = _rounds[last]->GetShuffleClearText();
-    QVector<QByteArray> calc_cleartext = ciphertext;
-
-    OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
-    foreach(AsymmetricKey *key, _private_keys) {
-      QVector<QByteArray> tmp;
-      oe->Decrypt(key, calc_cleartext, tmp, 0);
-      calc_cleartext = tmp;
-    }
 
     for(int idx = 0; idx < _rounds.count(); idx++) {
-      bool good = cleartext.contains(calc_cleartext[idx]);
+      bool good = cleartext.contains(_inner_data[idx]);
       if(!go_found[idx] || (!good && !go[idx]) || (good && go[idx])) {
         continue;
       }

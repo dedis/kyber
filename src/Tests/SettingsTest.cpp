@@ -13,7 +13,7 @@ namespace Tests {
     EXPECT_EQ(settings.RemotePeers.count(), 0);
     settings.LocalEndPoints.append(QUrl("buffer://5"));
     settings.RemotePeers.append(QUrl("buffer://6"));
-    settings.LocalId = id.ToString();
+    settings.LocalId = id;
     settings.Save();
 
     Settings settings0("dissent.ini");
@@ -32,14 +32,32 @@ namespace Tests {
     EXPECT_EQ(settings0.LocalEndPoints[1], QUrl("buffer://7"));
     EXPECT_EQ(settings0.RemotePeers[0], QUrl("buffer://6"));
     EXPECT_EQ(settings0.RemotePeers[1], QUrl("buffer://8"));
-    EXPECT_EQ(id, Id(settings1.LocalId));
+    EXPECT_EQ(id, settings1.LocalId);
   }
 
-  TEST(Settings, HostAddress)
+  TEST(Settings, Invalid)
   {
     Settings settings;
+    EXPECT_FALSE(settings.IsValid());
 
     settings.LocalEndPoints.append(QUrl("buffer://5"));
+    EXPECT_FALSE(settings.IsValid());
+
+    settings.LeaderId = Id();
+    EXPECT_TRUE(settings.IsValid());
+
+    settings.SubgroupPolicy = static_cast<Group::SubgroupPolicy>(-1);
+    EXPECT_FALSE(settings.IsValid());
+
+    settings.SubgroupPolicy = Group::CompleteGroup;
+    EXPECT_TRUE(settings.IsValid());
+  }
+
+  TEST(Settings, WebServer)
+  {
+    Settings settings;
+    settings.LocalEndPoints.append(QUrl("buffer://5"));
+    settings.LeaderId = Id();
     EXPECT_TRUE(settings.IsValid());
 
     settings.WebServer = true;

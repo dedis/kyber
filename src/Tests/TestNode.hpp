@@ -13,7 +13,7 @@ namespace Tests {
     public:
       explicit TestNode(const Id &id, int idx) :
         cm(id, rpc), sm(rpc),
-        net(new DefaultNetwork(cm.GetConnectionTable(), rpc)),
+        net(new DefaultNetwork(cm, rpc)),
         creds(cm.GetId(),
             QSharedPointer<AsymmetricKey>(CryptoFactory::GetInstance().
               GetLibrary()->CreatePrivateKey()),
@@ -47,27 +47,21 @@ namespace Tests {
   };
 
   typedef Session *(*CreateSessionCallback)(TestNode *, const Group &,
-      const Id &, const Id &, CreateGroupGenerator);
+      const Id &);
 
-  typedef void(*SessionTestCallback)(QSharedPointer<Session>);
+  void ConstructOverlay(int count, QVector<TestNode *> &nodes, Group &group,
+      Group::SubgroupPolicy sg_policy);
 
-  void ConstructOverlay(int count, QVector<TestNode *> &nodes,
-      Group *&group);
+  void CreateSessions(const QVector<TestNode *> &nodes, const Group &group,
+      const Id &session_id, CreateSessionCallback callback);
 
-  void CreateSessions(const QVector<TestNode *> &nodes,
-      const Group &group, const Id &leader_id, const Id &session_id,
-      CreateSessionCallback callback,
-      CreateGroupGenerator cgg);
-
-  void CreateSession(TestNode * node, const Group &group, const Id &leader_id,
-      const Id &session_id, CreateSessionCallback callback,
-      CreateGroupGenerator cgg);
+  void CreateSession(TestNode *node, const Group &group, const Id &session_id,
+      CreateSessionCallback callback);
 
   template <typename T> Session *TCreateSession(TestNode *node, const Group &group,
-          const Id &leader_id, const Id &session_id, CreateGroupGenerator cgg)
+          const Id &session_id)
   {
-    return new Session(group, node->creds, leader_id, session_id,
-        node->net, &TCreateRound<T>, cgg);
+    return new Session(group, node->creds, session_id, node->net, &TCreateRound<T>);
   }
 
   void CleanUp(const QVector<TestNode *> &nodes);

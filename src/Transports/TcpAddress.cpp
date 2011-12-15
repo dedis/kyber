@@ -13,7 +13,7 @@ namespace Transports {
       return;
     }
 
-    Init(url.host(), url.port());
+    Init(url.host(), url.port(0));
   }
 
   TcpAddress::TcpAddress(const QString &ip, int port)

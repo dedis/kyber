@@ -5,6 +5,7 @@
 
 #include <QDataStream>
 #include <QHash>
+#include <QMetaEnum>
 #include <QSharedData>
 #include <QSharedPointer>
 #include <QVector>
@@ -30,19 +31,31 @@ namespace Anonymity {
     public:
       typedef Dissent::Connections::Id Id;
 
-      explicit GroupData(const QVector<GroupContainer> &group,
-          const QHash<const Id, int> &id_to_int) :
-        GroupRoster(group),
+      /**
+       * Default constructor for empty group
+       */
+      explicit GroupData(): SGPolicy(0), Size(0) {}
+
+      explicit GroupData(const QVector<GroupContainer> &roster,
+          const QHash<const Id, int> &id_to_int, const Id &leader,
+          int subgroup_policy) :
+        Roster(roster),
         IdtoInt(id_to_int),
-        Size(group.count())
+        Leader(leader),
+        SGPolicy(subgroup_policy),
+        Size(roster.count())
       {
       }
 
       virtual ~GroupData() {}
 
-      const QVector<GroupContainer> GroupRoster;
+      const QVector<GroupContainer> Roster;
       const QHash<const Id, int> IdtoInt;
+      const Id Leader;
+      const int SGPolicy;
       const int Size;
+
+    private:
   };
 
   /**
@@ -51,25 +64,70 @@ namespace Anonymity {
    * group.
    */
   class Group {
+    Q_GADGET
+    Q_ENUMS(SubgroupPolicy);
+
     public:
       typedef Dissent::Crypto::AsymmetricKey AsymmetricKey;
       typedef Dissent::Connections::Id Id;
       typedef QVector<GroupContainer>::const_iterator const_iterator;
 
-      inline const_iterator begin() const { return _data->GroupRoster.begin(); }
-      inline const_iterator end() const { return _data->GroupRoster.end(); }
+      enum SubgroupPolicy {
+        CompleteGroup = 0,
+        FixedSubgroup = 1,
+        DisabledGroup = 255,
+      };
+
+      static QString PolicyTypeToString(SubgroupPolicy policy)
+      {
+        int index = staticMetaObject.indexOfEnumerator("SubgroupPolicy");
+        return staticMetaObject.enumerator(index).valueToKey(policy);
+      }
+
+      static SubgroupPolicy StringToPolicyType(const QString &policy)
+      {
+        int index = staticMetaObject.indexOfEnumerator("SubgroupPolicy");
+        int key = staticMetaObject.enumerator(index).keyToValue(policy.toUtf8().data());
+        return static_cast<SubgroupPolicy>(key);
+      }
+
+      inline const_iterator begin() const { return _data->Roster.begin(); }
+      inline const_iterator end() const { return _data->Roster.end(); }
 
       /**
        * Constructor
-       * @param containers an ordered set of group containers
+       * @param roster a potentially unsorted set of peers
+       * @param leader the leader for the group
+       * @param subgroup_policy the rules used in governing the subgroup
        */
-      explicit Group(const QVector<GroupContainer> &containers =
-          QVector<GroupContainer>());
+      explicit Group(const QVector<GroupContainer> &roster,
+          const Id &leader = Id::Zero(),
+          SubgroupPolicy subgroup_policy = CompleteGroup);
+
+      /**
+       * Creates an empty group
+       */
+      explicit Group();
 
       /**
        * Returns the internal roster
        */
-      inline const QVector<GroupContainer> &GetRoster() const { return _data->GroupRoster; }
+      inline const QVector<GroupContainer> &GetRoster() const { return _data->Roster; }
+
+      /**
+       * Returns the inner subgroup
+       */
+      const Group &GetSubgroup() const;
+
+      /**
+       * Returns the subgroup policy
+       */
+      inline SubgroupPolicy GetSubgroupPolicy() const { return static_cast<SubgroupPolicy>(_data->SGPolicy); }
+
+      /**
+       * Returns the leader of the group
+       */
+      inline const Id &GetLeader() const { return _data->Leader; }
 
       /**
        * Returns the Id of the peer based upon its ordered position in the group
@@ -136,6 +194,9 @@ namespace Anonymity {
        */
       bool operator==(const Group &other) const;
 
+      /**
+       * Returns true if == returns false
+       */
       inline bool operator!=(const Group &other) const { return !(*this == other);}
 
       inline static const QSharedPointer<AsymmetricKey> &EmptyKey()
@@ -145,8 +206,15 @@ namespace Anonymity {
       }
     private:
       QSharedDataPointer<GroupData> _data;
+      QSharedPointer<const Group> _subgroup;
   };
 
+  /**
+   * not equals operator for group container
+   * @param lhs the container used on the left hand side of the operator
+   * @param rhs the container used on the right hand side of the operator
+   * @returns true if the groups are not equal
+   */
   inline bool operator!=(const GroupContainer &lhs, const GroupContainer &rhs) 
   {
     return (lhs.first != rhs.first) ||
@@ -154,6 +222,12 @@ namespace Anonymity {
           (lhs.third != rhs.third);
   }
 
+  /**
+   * equals operator for group container
+   * @param lhs the container used on the left hand side of the operator
+   * @param rhs the container used on the right hand side of the operator
+   * @returns true if the groups are equal
+   */
   inline bool operator==(const GroupContainer &lhs, const GroupContainer &rhs) 
   {
     return (lhs.first == rhs.first) ||
@@ -161,6 +235,12 @@ namespace Anonymity {
           (lhs.third == rhs.third);
   }
 
+  /**
+   * Less than operator for group container
+   * @param lhs the container used on the left hand side of the operator
+   * @param rhs the container used on the right hand side of the operator
+   * @returns true if the lhs < rhs
+   */
   inline bool operator<(const GroupContainer &lhs, const GroupContainer &rhs)
   {
     return (lhs.first < rhs.first) ||
@@ -199,8 +279,14 @@ namespace Anonymity {
    */
   Group RemoveGroupMember(const Group &group, const Group::Id &id);
 
+  /**
+   * Serialize a group into a QDataStream
+   */
   QDataStream &operator<<(QDataStream &stream, const Group &group);
 
+  /**
+   * Deserialize a group into a QDataStream
+   */
   QDataStream &operator>>(QDataStream &stream, Group &group);
 }
 }

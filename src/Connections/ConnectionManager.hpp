@@ -1,6 +1,7 @@
 #ifndef DISSENT_CONNECTIONS_CONNECTION_MANAGER_H_GUARD
 #define DISSENT_CONNECTIONS_CONNECTION_MANAGER_H_GUARD
 
+#include "../Messaging/RpcHandler.hpp"
 #include "../Messaging/RpcMethod.hpp"
 #include "../Transports/EdgeFactory.hpp"
 
@@ -8,7 +9,6 @@
 
 namespace Dissent {
 namespace Messaging {
-  class RpcHandler;
   class RpcRequest;
 }
 
@@ -34,6 +34,12 @@ namespace Connections {
       typedef Dissent::Transports::Edge Edge;
       typedef Dissent::Transports::EdgeListener EdgeListener;
       typedef Dissent::Transports::EdgeFactory EdgeFactory;
+
+      static ConnectionManager &GetEmpty()
+      {
+        static ConnectionManager cm(Id::Zero(), RpcHandler::GetEmpty());
+        return cm;
+      }
 
       /**
        * Constructor

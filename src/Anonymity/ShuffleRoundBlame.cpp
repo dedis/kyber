@@ -4,15 +4,15 @@
 #include "../Connections/EmptyNetwork.hpp"
 
 using Dissent::Crypto::CryptoFactory;
+using Dissent::Crypto::Hash;
 using Dissent::Crypto::Library;
 using Dissent::Crypto::OnionEncryptor;
 
 namespace Dissent {
 namespace Anonymity {
-  ShuffleRoundBlame::ShuffleRoundBlame(QSharedPointer<GroupGenerator> group_gen,
-      const Id &local_id, const Id &round_id, AsymmetricKey *outer_key) :
-    ShuffleRound(group_gen, Credentials(local_id,
-          QSharedPointer<AsymmetricKey>(),
+  ShuffleRoundBlame::ShuffleRoundBlame(const Group &group, const Id &local_id,
+      const Id &round_id, AsymmetricKey *outer_key) :
+    ShuffleRound(group, Credentials(local_id, QSharedPointer<AsymmetricKey>(),
           QSharedPointer<DiffieHellman>()),
         round_id, Dissent::Connections::EmptyNetwork::GetInstance(),
         Dissent::Messaging::EmptyGetDataCallback::GetInstance())
@@ -67,6 +67,15 @@ namespace Anonymity {
 
   void ShuffleRoundBlame::VerifyInnerCiphertext()
   {
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Hash> hash(lib->GetHashAlgorithm());
+
+    for(int idx = 0; idx < _public_inner_keys.count(); idx++) {
+      hash->Update(_public_inner_keys[idx]->GetByteArray());
+      hash->Update(_public_outer_keys[idx]->GetByteArray());
+      hash->Update(_encrypted_data[idx]);
+    }
+    _broadcast_hash = hash->ComputeHash();
   }
 
   void ShuffleRoundBlame::StartBlame()

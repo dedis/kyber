@@ -35,13 +35,12 @@ int main(int argc, char **argv)
 
   Library *lib = CryptoFactory::GetInstance().GetLibrary();
 
+  Group group(QVector<GroupContainer>(), Id(settings.LeaderId),
+      settings.SubgroupPolicy);
+
   QList<QSharedPointer<Node> > nodes;
 
-  Id local_id;
-  if(!settings.LocalId.isEmpty()) {
-    local_id = Id(settings.LocalId);
-  }
-
+  Id local_id = (settings.LocalId == Id::Zero()) ? Id() : settings.LocalId;
   QSharedPointer<AsymmetricKey> key;
   QSharedPointer<DiffieHellman> dh;
 
@@ -54,7 +53,7 @@ int main(int argc, char **argv)
   }
 
   nodes.append(QSharedPointer<Node>(new Node(Credentials(local_id, key, dh),
-          local, remote, settings.GroupSize, settings.SessionType)));
+          local, remote, group, settings.SessionType)));
 
   for(int idx = 1; idx < settings.LocalNodeCount; idx++) {
     Id local_id;
@@ -72,7 +71,7 @@ int main(int argc, char **argv)
     }
 
     nodes.append(QSharedPointer<Node>(new Node(Credentials(local_id, key, dh),
-            local, remote, settings.GroupSize, settings.SessionType)));
+            local, remote, group, settings.SessionType)));
     nodes[idx]->sink = QSharedPointer<ISink>(new DummySink());
   }
 
@@ -112,13 +111,13 @@ int main(int argc, char **argv)
         get_next_message_sp.data(), SLOT(HandleIncomingMessage(const QByteArray&)));
     ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/session/messages/next", get_next_message_sp);
 
-    QSharedPointer<RoundIdService> round_id_sp(new RoundIdService(nodes[0]));
+    QSharedPointer<RoundIdService> round_id_sp(new RoundIdService(nodes[0]->sm));
     ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/round/id", round_id_sp);
 
-    QSharedPointer<SessionIdService> session_id_sp(new SessionIdService(nodes[0]));
+    QSharedPointer<SessionIdService> session_id_sp(new SessionIdService(nodes[0]->sm));
     ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/session/id", session_id_sp);
 
-    QSharedPointer<SendMessageService> send_message_sp(new SendMessageService(nodes[0]));
+    QSharedPointer<SendMessageService> send_message_sp(new SendMessageService(nodes[0]->sm));
     ws->AddRoute(HttpRequest::METHOD_HTTP_POST, "/session/send", send_message_sp);
 
     ws->Start();

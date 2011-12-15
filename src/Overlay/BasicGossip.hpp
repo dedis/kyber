@@ -85,6 +85,11 @@ namespace Overlay {
       inline ConnectionTable &GetConnectionTable() { return _cm.GetConnectionTable(); }
 
       /**
+       * Returns the connection underlying connection manager
+       */
+      inline ConnectionManager &GetConnectionManager() { return _cm; }
+
+      /**
        * Returns the nodes Id
        */
       inline Id GetId() { return _local_id; }

@@ -5,6 +5,7 @@
 
 #include "../Anonymity/Group.hpp"
 #include "../Anonymity/Round.hpp"
+#include "../Connections/Id.hpp"
 
 #include "Node.hpp"
 
@@ -15,9 +16,10 @@ namespace Applications {
    */
   class SessionFactory {
     public:
-      typedef void (*Callback)(Node *);
       typedef Dissent::Anonymity::CreateRound CreateRound;
-      typedef Dissent::Anonymity::CreateGroupGenerator CreateGroupGenerator;
+      typedef Dissent::Anonymity::Group Group;
+      typedef Dissent::Connections::Id Id;
+      typedef void (*Callback)(Node *, const Id &, const Group &);
 
       /**
        * Singleton implemention
@@ -36,35 +38,42 @@ namespace Applications {
        * @param node the node to add the session to
        * @param type the type of session to create
        */
-      void Create(Node *node, const QString &type) const;
+      void Create(Node *node, const Id &session_id, const Group &group,
+          const QString &type) const;
 
       /**
        * Create a SecureSession / ShuffleRound
        */
-      static void CreateShuffleRoundSession(Node *node);
-
-      /**
-       * Create a SecureSession / FastShuffleRound
-       */
-      static void CreateFastShuffleRoundSession(Node *node);
+      static void CreateShuffleRoundSession(Node *node, const Id &session_id,
+          const Group &group);
 
       /**
        * Create a Session / NullRound
        */
-      static void CreateNullRoundSession(Node *node);
+      static void CreateNullRoundSession(Node *node, const Id &session_id,
+          const Group &group);
 
       /**
-       * Create a Bulk "V1" using fast shuffle
+       * Create a Bulk "V1"
        */
-      static void CreateBulkRoundSession(Node *node);
+      static void CreateBulkRoundSession(Node *node, const Id &session_id,
+          const Group &group);
 
       /**
-       * Create a Bulk "V2" using fast shuffle
+       * Create a Bulk "V2"
        */
-      static void CreateRepeatingBulkRoundSession(Node *node);
+      static void CreateRepeatingBulkRoundSession(Node *node,
+          const Id &session_id, const Group &group);
+
+      /**
+       * Create a Bulk "V3"
+       */
+      static void CreateTrustedBulkRoundSession(Node *node,
+          const Id &session_id, const Group &group);
 
     private:
-      static void Common(Node *node, CreateRound cr, CreateGroupGenerator cgg);
+      static void Common(Node *node, const Id &session_id, CreateRound cr,
+          const Group &group);
 
       /**
        * No inheritance, this is a singleton object

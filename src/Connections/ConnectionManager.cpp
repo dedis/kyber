@@ -253,20 +253,26 @@ namespace Connections {
   void ConnectionManager::HandleDisconnect()
   {
     Connection *con = qobject_cast<Connection *>(sender());
+    if(con == 0) {
+      return;
+    }
+
+    qDebug() << "Handle disconnect on: " << con->ToString();
     if(_con_tab.Contains(con)) {
       _con_tab.Disconnect(con);
     } else {
       _rem_con_tab.Disconnect(con);
     }
 
-    if(!con->GetEdge()->IsClosed() && (con->GetLocalId() != con->GetRemoteId())) {
-      QVariantMap notification;
-      notification["method"] = "CM::Disconnect";
-      _rpc.SendNotification(notification, con);
-    }
+    if(!con->GetEdge()->IsClosed()) {
+      if(con->GetLocalId() != con->GetRemoteId()) {
+        QVariantMap notification;
+        notification["method"] = "CM::Disconnect";
+        _rpc.SendNotification(notification, con);
+      }
 
-    qDebug() << "Handle disconnect on: " << con->ToString();
-    con->GetEdge()->Close("Local disconnect request");
+      con->GetEdge()->Close("Local disconnect request");
+    }
   }
 
   void ConnectionManager::HandleDisconnected(const QString &reason)
@@ -305,6 +311,11 @@ namespace Connections {
     ConnectionTable &con_tab = edge->Outbound() ? _con_tab : _rem_con_tab;
     if(!con_tab.RemoveEdge(edge)) {
       qWarning() << "Edge closed but no Edge found in CT:" << edge->ToString();
+    }
+
+    Connection *con = con_tab.GetConnection(edge);
+    if(con != 0) {
+      con->Disconnect();
     }
 
     if(!_closed) {

@@ -14,11 +14,11 @@
 
 #include "Credentials.hpp"
 #include "Group.hpp"
-#include "GroupGenerator.hpp"
 #include "Round.hpp"
 
 namespace Dissent {
 namespace Connections {
+  class Connection;
   class Network;
 }
 
@@ -39,6 +39,7 @@ namespace Anonymity {
     Q_OBJECT
 
     public:
+      typedef Dissent::Connections::Connection Connection;
       typedef Dissent::Connections::Id Id;
       typedef Dissent::Connections::Network Network;
       typedef Dissent::Crypto::AsymmetricKey AsymmetricKey;
@@ -50,17 +51,13 @@ namespace Anonymity {
        * Constructor
        * @param group an ordered member of peers for the group
        * @param creds the local nodes credentials
-       * @param leader_id the Id of the leader
        * @param session_id Id for the session
        * @param network handles message sending
        * @param create_round a callback for creating a secure round
-       * @param group_generator generates a subgroup of the primary group for
-       * use in the round
        */
       explicit Session(const Group &group, const Credentials &creds,
-          const Id &leader_id, const Id &session_id,
-          QSharedPointer<Network> network, CreateRound create_round,
-          CreateGroupGenerator group_generator);
+          const Id &session_id, QSharedPointer<Network> network,
+          CreateRound create_round);
 
       /**
        * Deconstructor
@@ -85,6 +82,11 @@ namespace Anonymity {
        */
       void ReceivedPrepare(RpcRequest &request);
 
+      /**
+       * From the SessionManager, pass in a Begin message from the Session
+       * leader to call start on the round
+       * @param notification The notification from the leader
+       */
       void ReceivedBegin(RpcRequest &notification);
 
       /**
@@ -101,7 +103,7 @@ namespace Anonymity {
       /**
        * Returns true if the peer is the leader for this session
        */
-      inline bool IsLeader() { return _creds.GetLocalId() == _leader_id; }
+      inline bool IsLeader() const { return _creds.GetLocalId() == _group.GetLeader(); }
 
       /**
        * Returns the Session Id
@@ -124,11 +126,17 @@ namespace Anonymity {
       }
 
       /**
-       * Returns the underlying GroupGenerator
+       * Returns the group being used in this session
        */
-      inline const GroupGenerator &GetGroupGenerator() { return *_generate_group; }
+      inline const Group &GetGroup() const { return _group; }
 
     signals:
+      /**
+       * Signals that a round is beginning.
+       * @param round _current_round
+       */
+      void RoundStarting(QSharedPointer<Round> round);
+
       /**
        * Signals that a round has completed.  The round will be deleted after
        * the signal has returned.
@@ -165,6 +173,11 @@ namespace Anonymity {
       bool SendPrepare();
 
       /**
+       * Ensures that the group policy is being maintained
+       */
+      bool CheckGroup();
+
+      /**
        * Called to start the next Round
        */
       void NextRound(const Id &round_id);
@@ -177,6 +190,7 @@ namespace Anonymity {
        */
       QPair<QByteArray, bool> GetData(int max);
 
+      void AddMember(const GroupContainer &gc);
       void RemoveMember(const Id &id);
 
       /**
@@ -192,11 +206,9 @@ namespace Anonymity {
       Group _group;
       Group _shared_group;
       const Credentials _creds;
-      const Id _leader_id;
       const Id _session_id;
       QSharedPointer<Network> _network;
       CreateRound _create_round;
-      QSharedPointer<GroupGenerator> _generate_group;
 
       QSharedPointer<Round> _current_round;
       RpcMethod _registered;
@@ -208,9 +220,15 @@ namespace Anonymity {
       int _round_idx;
       RpcRequest _prepare_request;
       bool _prepare_waiting;
+      bool _prepare_waiting_for_con;
       int _trim_send_queue;
 
     private slots:
+      /**
+       * Called when a new connection is created
+       */
+      void HandleConnection(Connection *con, bool local);
+
       /**
        * Called when the current round has finished
        */

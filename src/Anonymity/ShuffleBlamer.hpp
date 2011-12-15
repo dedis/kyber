@@ -25,14 +25,13 @@ namespace Anonymity {
 
       /**
        * Constructors
-       * @param group_gen used to create the anonymity groups
+       * @param group Group used during this round
        * @param round_id Unique round id (nonce)
        * @param logs all the incoming logs for nodes in the group
        * @param private_keys the outer private keys for nodes in the group
        */
-      explicit ShuffleBlamer(QSharedPointer<GroupGenerator> group_gen,
-          const Id &round_id, const QVector<Log> &logs,
-          const QVector<AsymmetricKey *> private_keys);
+      explicit ShuffleBlamer(const Group &group, const Id &round_id,
+          const QVector<Log> &logs, const QVector<AsymmetricKey *> private_keys);
 
       /**
        * Deconstructor
@@ -106,6 +105,7 @@ namespace Anonymity {
       QBitArray _bad_nodes;
       QVector<QVector<QString> > _reasons;
       QVector<ShuffleRoundBlame *> _rounds;
+      QVector<QByteArray> _inner_data;
       bool _set;
   };
 }

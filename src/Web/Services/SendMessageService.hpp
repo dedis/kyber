@@ -15,8 +15,7 @@ namespace Services {
    */
   class SendMessageService : public SessionWebService {
     public:
-      explicit SendMessageService(QSharedPointer<Session> session);
-      explicit SendMessageService(QSharedPointer<Node> node);
+      explicit SendMessageService(SessionManager &sm);
       
       virtual ~SendMessageService() {}
 

@@ -16,9 +16,7 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Dissent.hpp \
            src/Anonymity/BulkRound.hpp \
            src/Anonymity/Credentials.hpp \
-           src/Anonymity/FixedSizeGroupGenerator.hpp \
            src/Anonymity/Group.hpp \
-           src/Anonymity/GroupGenerator.hpp \
            src/Anonymity/Log.hpp \
            src/Anonymity/NullRound.hpp \
            src/Anonymity/RepeatingBulkRound.hpp \

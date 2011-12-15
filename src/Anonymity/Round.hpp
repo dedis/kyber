@@ -14,7 +14,6 @@
 
 #include "Credentials.hpp"
 #include "Group.hpp"
-#include "GroupGenerator.hpp"
 
 namespace Dissent {
 namespace Connections {
@@ -49,15 +48,15 @@ namespace Anonymity {
 
       /**
        * Constructor
-       * @param group_gen Generate groups for use during this round
+       * @param group Group used during this round
        * @param creds the local nodes credentials
        * @param round_id Unique round id (nonce)
        * @param network handles message sending
        * @param get_data requests data to share during this session
        */
-      explicit Round(QSharedPointer<GroupGenerator> group_gen,
-          const Credentials &creds, const Id &round_id,
-          QSharedPointer<Network> network, GetDataCallback &get_data);
+      explicit Round(const Group &group, const Credentials &creds,
+          const Id &round_id, QSharedPointer<Network> network,
+          GetDataCallback &get_data);
 
       /**
        * Destructor
@@ -102,11 +101,6 @@ namespace Anonymity {
       inline const Id &GetRoundId() const { return _round_id; }
 
       /**
-       * Returns the group generator if subgroups are necessary
-       */
-      inline QSharedPointer<GroupGenerator> GetGroupGenerator() const { return _group_gen; }
-
-      /**
        * Returns the group used in the round
        */
       inline const Group &GetGroup() const { return _group; }
@@ -129,6 +123,12 @@ namespace Anonymity {
       virtual void HandleDisconnect(Connection *con);
 
       inline virtual QString ToString() const { return "Round"; }
+
+      /**
+       * Notifies the round of a new peer wanting to join.  Default behavior is
+       * to do nothing and wait for the next round.
+       */
+      virtual void PeerJoined() {}
 
     signals:
       /**
@@ -196,9 +196,11 @@ namespace Anonymity {
 
       void SetSuccessful(bool successful) { _successful = successful; }
 
+      /**
+       * Returns the underlyign network
+       */
       QSharedPointer<Network> &GetNetwork() { return _network; }
 
-      QSharedPointer<GroupGenerator> _group_gen;
       const Group _group;
       const Credentials _creds;
       const Id _round_id;
@@ -209,17 +211,17 @@ namespace Anonymity {
       QVector<int> _empty_list;
   };
 
-  typedef Round *(*CreateRound)(QSharedPointer<GroupGenerator>,
+  typedef Round *(*CreateRound)(const Group &,
       const Credentials &, const Dissent::Connections::Id &,
       QSharedPointer<Dissent::Connections::Network>,
       Dissent::Messaging::GetDataCallback &get_data_cb);
 
-  template <typename T> Round *TCreateRound(QSharedPointer<GroupGenerator> group_gen,
+  template <typename T> Round *TCreateRound(const Group &group,
       const Credentials &creds, const Dissent::Connections::Id &round_id,
       QSharedPointer<Dissent::Connections::Network> network,
       Dissent::Messaging::GetDataCallback &get_data)
   {
-    return new T(group_gen, creds, round_id, network, get_data);
+    return new T(group, creds, round_id, network, get_data);
   }
 }
 }

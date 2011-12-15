@@ -5,7 +5,6 @@
 #include "SessionFactory.hpp"
 
 
-using Dissent::Anonymity::Group;
 using Dissent::Anonymity::GroupContainer;
 using Dissent::Connections::Id;
 using Dissent::Crypto::AsymmetricKey;
@@ -16,14 +15,12 @@ using Dissent::Crypto::CryptoFactory;
 namespace Dissent {
 namespace Applications {
   Node::Node(const Credentials &creds, const QList<Address> &local,
-      const QList<Address> &remote, int group_size,
-      const QString &session_type) :
+      const QList<Address> &remote, const Group &group, const QString &type) :
     creds(creds),
     bg(creds.GetLocalId(), local, remote),
     sm(bg.GetRpcHandler()),
-    GroupSize(group_size),
-    SessionType(session_type),
-    _bootstrapped(false)
+    base_group(group),
+    SessionType(type)
   {
     QObject::connect(&bg, SIGNAL(NewConnection(Connection *, bool)),
         this, SLOT(HandleConnection(Connection *, bool)));
@@ -34,42 +31,31 @@ namespace Applications {
     QObject::disconnect(this, SIGNAL(Ready()), 0 ,0);
   }
 
-  void Node::HandleConnection(Connection *, bool local)
+  void Node::HandleConnection(Connection *con, bool local)
   {
+    if(creds.GetLocalId() == base_group.GetLeader()) {
+      CreateSession();
+    }
+
     if(!local) {
       return;
     }
 
-    QList<Connection *> cons = bg.GetConnectionTable().GetConnections();
-    if(cons.count() != GroupSize) {
+    if(con->GetRemoteId() != base_group.GetLeader()) {
       return;
     }
 
+    CreateSession();
+  }
+
+  void Node::CreateSession()
+  {
     QObject::disconnect(&bg, SIGNAL(NewConnection(Connection *, bool)),
         this, SLOT(HandleConnection(Connection *, bool)));
-    SessionFactory::GetInstance().Create(this, SessionType);
-    _bootstrapped = true;
+    SessionFactory::GetInstance().Create(this, Id::Zero(),
+        base_group, SessionType);
     emit Ready();
     QObject::disconnect(this, SIGNAL(Ready()), 0 ,0);
-  }
-
-  void Node::RoundFinished(QSharedPointer<Round>)
-  {
-  }
-
-  Group Node::GenerateGroup()
-  {
-    QVector<GroupContainer> group_roster;
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-
-    foreach(Connection *con, bg.GetConnectionTable().GetConnections()) {
-      Id id = con->GetRemoteId();
-      QSharedPointer<AsymmetricKey> key(lib->GeneratePublicKey(id.GetByteArray()));
-      QScopedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(id.GetByteArray()));
-      group_roster.append(GroupContainer(id, key, dh->GetPublicComponent()));
-    }
-
-    return Group(group_roster);
   }
 }
 }

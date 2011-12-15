@@ -3,6 +3,7 @@
 
 #include <QSharedPointer>
 #include "Network.hpp"
+#include "ConnectionManager.hpp"
 
 namespace Dissent {
 namespace Connections {
@@ -47,6 +48,14 @@ namespace Connections {
        * Does nothing
        */
       virtual Connection *GetConnection(const Id &) { return 0;}
+
+      /**
+       * Does nothing
+       */
+      virtual ConnectionManager &GetConnectionManager()
+      {
+        return ConnectionManager::GetEmpty();
+      }
 
       /**
        * Does nothing

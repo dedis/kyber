@@ -38,8 +38,6 @@ HEADERS += ext/googletest/include/gtest/gtest-death-test.h \
            src/Tests/RoundTest.hpp \
            src/Tests/ShuffleRoundHelpers.hpp \
            src/Tests/BulkRoundHelpers.hpp \
-           src/Tests/RepeatingBulkRoundHelpers.hpp \
-           src/Tests/TrustedBulkRoundHelpers.hpp \
            src/Tests/WebServicesTest.hpp \
            src/Tests/TestWebClient.hpp
 

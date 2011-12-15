@@ -13,6 +13,7 @@ namespace Messaging {
 
 namespace Connections {
   class Connection;
+  class ConnectionManager;
 
   class Network {
     public:
@@ -40,6 +41,11 @@ namespace Connections {
        * @param id the Id to lookup
        */
       virtual Connection *GetConnection(const Id &id) = 0;
+
+      /**
+       * Returns a connection manager object capable of making connections
+       */
+      virtual ConnectionManager &GetConnectionManager() = 0;
 
       /**
        * Just reroutes to the underlying RpcHandler ignoring any additional headers

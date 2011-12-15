@@ -31,8 +31,16 @@ namespace Anonymity {
    */
   class TrustedBulkRound : public RepeatingBulkRound {
     public:
-      explicit TrustedBulkRound(QSharedPointer<GroupGenerator> group_gen,
-          const Credentials &creds, const Id &round_id, QSharedPointer<Network> network,
+      /**
+       * Constructor
+       * @param group Group used during this round
+       * @param creds the local nodes credentials
+       * @param round_id Unique round id (nonce)
+       * @param network handles message sending
+       * @param get_data requests data to share during this session
+       */
+      explicit TrustedBulkRound(const Group &group, const Credentials &creds,
+          const Id &round_id, QSharedPointer<Network> network,
           GetDataCallback &get_data,
           CreateRound create_shuffle = &TCreateRound<ShuffleRound>);
 

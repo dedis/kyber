@@ -1,12 +1,11 @@
 #include "../Anonymity/BulkRound.hpp"
 #include "../Anonymity/RepeatingBulkRound.hpp"
-#include "../Anonymity/GroupGenerator.hpp"
-#include "../Anonymity/FixedSizeGroupGenerator.hpp"
 #include "../Anonymity/NullRound.hpp"
+#include "../Anonymity/Round.hpp"
 #include "../Anonymity/Session.hpp"
 #include "../Anonymity/ShuffleRound.hpp"
-#include "../Anonymity/Round.hpp"
-#include "../Connections/ConnectionTable.hpp"
+#include "../Anonymity/TrustedBulkRound.hpp"
+#include "../Connections/ConnectionManager.hpp"
 #include "../Connections/DefaultNetwork.hpp"
 #include "../Connections/Id.hpp"
 #include "../Messaging/RpcHandler.hpp"
@@ -14,15 +13,14 @@
 #include "SessionFactory.hpp"
 
 using Dissent::Anonymity::BulkRound;
-using Dissent::Anonymity::RepeatingBulkRound;
-using Dissent::Anonymity::FixedSizeGroupGenerator;
 using Dissent::Anonymity::Group;
-using Dissent::Anonymity::GroupGenerator;
 using Dissent::Anonymity::NullRound;
+using Dissent::Anonymity::RepeatingBulkRound;
 using Dissent::Anonymity::Session;
 using Dissent::Anonymity::ShuffleRound;
 using Dissent::Anonymity::TCreateRound;
-using Dissent::Connections::ConnectionTable;
+using Dissent::Anonymity::TrustedBulkRound;
+using Dissent::Connections::ConnectionManager;
 using Dissent::Connections::DefaultNetwork;
 using Dissent::Connections::Network;
 using Dissent::Connections::Id;
@@ -43,9 +41,9 @@ namespace Applications {
   {
     AddCreateCallback("null", &CreateNullRoundSession);
     AddCreateCallback("shuffle", &CreateShuffleRoundSession);
-    AddCreateCallback("fastshuffle", &CreateFastShuffleRoundSession);
     AddCreateCallback("bulk", &CreateBulkRoundSession);
     AddCreateCallback("repeatingbulk", &CreateRepeatingBulkRoundSession);
+    AddCreateCallback("trustedbulk", &CreateTrustedBulkRoundSession);
   }
 
   void SessionFactory::AddCreateCallback(const QString &type, Callback cb)
@@ -53,61 +51,63 @@ namespace Applications {
     _type_to_create[type] = cb;
   }
 
-  void SessionFactory::Create(Node *node, const QString &type) const
+  void SessionFactory::Create(Node *node, const Id &session_id, const Group &group,
+      const QString &type) const
   {
     Callback cb = _type_to_create[type];
     if(cb == 0) {
       qCritical() << "No known type: " << type;
       return;
     }
-    cb(node);
+    cb(node, session_id, group);
   }
 
-  void SessionFactory::CreateNullRoundSession(Node *node)
+  void SessionFactory::CreateNullRoundSession(Node *node, const Id &session_id,
+      const Group &group)
   {
-    Common(node, &TCreateRound<NullRound>, GroupGenerator::Create);
+    Common(node, session_id, &TCreateRound<NullRound>, group);
   }
 
-  void SessionFactory::CreateShuffleRoundSession(Node *node)
+  void SessionFactory::CreateShuffleRoundSession(Node *node,
+      const Id &session_id, const Group &group)
   {
-    Common(node, &TCreateRound<ShuffleRound>, GroupGenerator::Create);
+    Common(node, session_id, &TCreateRound<ShuffleRound>, group);
   }
 
-  void SessionFactory::CreateFastShuffleRoundSession(Node *node)
+  void SessionFactory::CreateBulkRoundSession(Node *node, const Id &session_id,
+      const Group &group)
   {
-    Common(node, &TCreateRound<ShuffleRound>, FixedSizeGroupGenerator::Create);
+    Common(node, session_id, &TCreateRound<BulkRound>, group);
   }
 
-  void SessionFactory::CreateBulkRoundSession(Node *node)
+  void SessionFactory::CreateRepeatingBulkRoundSession(Node *node,
+      const Id &session_id, const Group &group)
   {
-    Common(node, &TCreateRound<BulkRound>, FixedSizeGroupGenerator::Create);
+    Common(node, session_id, &TCreateRound<RepeatingBulkRound>, group);
   }
 
-  void SessionFactory::CreateRepeatingBulkRoundSession(Node *node)
+  void SessionFactory::CreateTrustedBulkRoundSession(Node *node,
+      const Id &session_id, const Group &group)
   {
-    Common(node, &TCreateRound<RepeatingBulkRound>, FixedSizeGroupGenerator::Create);
+    Common(node, session_id, &TCreateRound<TrustedBulkRound>, group);
   }
 
-  void SessionFactory::Common(Node *node, CreateRound cr, CreateGroupGenerator cgg)
+  void SessionFactory::Common(Node *node, const Id &session_id, CreateRound cr,
+      const Group &group)
   {
-    Group group = node->GenerateGroup();
-    const ConnectionTable &ct = node->bg.GetConnectionTable();
+    ConnectionManager &cm = node->bg.GetConnectionManager();
     RpcHandler &rpc = node->bg.GetRpcHandler();
-    QSharedPointer<Network> net(new DefaultNetwork(ct, rpc));
+    QSharedPointer<Network> net(new DefaultNetwork(cm, rpc));
 
-    Session *session = new Session(group, node->creds, group.GetId(0),
-        Id::Zero(), net, cr, cgg);
+    Session *session = new Session(group, node->creds, session_id, net, cr);
+    QSharedPointer<Session> psession(session);
 
-    node->session = QSharedPointer<Session>(session);
-    node->sm.AddSession(node->session);
-
-    QObject::connect(session, SIGNAL(RoundFinished(QSharedPointer<Round>)),
-        node, SLOT(RoundFinished(QSharedPointer<Round>)));
+    node->sm.AddSession(psession);
 
     if(!node->sink.isNull()) {
-      node->session->SetSink(node->sink.data());
+      psession->SetSink(node->sink.data());
     }
-    node->session->Start();
+    psession->Start();
   }
 }
 }
