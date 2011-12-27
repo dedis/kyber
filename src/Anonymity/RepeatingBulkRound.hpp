@@ -55,6 +55,7 @@ namespace Anonymity {
       enum State {
         Offline,
         Shuffling,
+        PhasePreparation,
         DataSharing,
         Finished
       };
@@ -145,7 +146,12 @@ namespace Anonymity {
        * Notifies this round that a peer has joined the session.  This will
        * cause this type of round to finished immediately.
        */
-      virtual void PeerJoined() { _stop_next = true; qCritical() << "JOINED!"; }
+      virtual void PeerJoined() { _stop_next = true; }
+
+      /**
+       * Returns the internal phase.
+       */
+      virtual uint GetPhase() { return _phase; }
 
     protected:
       /**
@@ -226,6 +232,12 @@ namespace Anonymity {
        */
       QSharedPointer<DiffieHellman> GetAnonymousDh() { return _anon_dh; }
 
+      /**
+       * Does all the prep work for the next phase, clearing and zeroing out
+       * all the necessary fields
+       */
+      virtual void PrepForNextPhase();
+
     private:
       /**
        * Once all bulk data messages have been received, parse them
@@ -240,12 +252,6 @@ namespace Anonymity {
        * @returns the cleartext message
        */
       QByteArray ProcessMessage(const QByteArray &cleartext, uint member_idx);
-
-      /**
-       * Does all the prep work for the next phase, clearing and zeroing out
-       * all the necessary fields
-       */
-      void PrepForNextPhase();
 
       /**
        * Prepares the messages for the phase registered and sends the proper

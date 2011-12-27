@@ -77,7 +77,7 @@ namespace Anonymity {
 
     SetAnonymousRngs(anon_rngs);
 
-    _state = Shuffling;
+    SetState(Shuffling);
     _shuffle_round->Start();
 
     return true;
@@ -164,6 +164,10 @@ namespace Anonymity {
             QString::number(phase) + ", while in phase: " +
             QString::number(_phase));
       }
+    } else if(_state == PhasePreparation) {
+      _log.Pop();
+      _offline_log.Append(data, from);
+      return;
     }
 
     switch(msg_type) {
@@ -202,12 +206,15 @@ namespace Anonymity {
 
     if(++_received_messages == static_cast<uint>(GetGroup().Count())) {
       ProcessMessages();
+
+      SetState(PhasePreparation);
+      _phase++;
       PrepForNextPhase();
       if(Stopped()) {
         return;
       }
 
-      _phase++;
+      SetState(DataSharing);
 
       uint count = static_cast<uint>(_offline_log.Count());
       for(uint idx = 0; idx < count; idx++) {
@@ -387,12 +394,11 @@ namespace Anonymity {
       }
     }
 
+    SetState(PhasePreparation);
     PrepForNextPhase();
 
+    SetState(DataSharing);
     NextPhase();
-    // Avoid a race condition of phase 1 messages arriving before completing
-    // the full transition into phase 0 / DataSharing
-    _state = DataSharing;
 
     count = static_cast<uint>(_offline_log.Count());
     for(uint idx = 0; idx < count; idx++) {

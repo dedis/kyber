@@ -1,6 +1,8 @@
 #ifndef DISSENT_ANONYMITY_TRUSTED_BULK_ROUND_H_GUARD
 #define DISSENT_ANONYMITY_TRUSTED_BULK_ROUND_H_GUARD
 
+#include "../Crypto/Integer.hpp"
+
 #include "RepeatingBulkRound.hpp"
 
 namespace Dissent {
@@ -31,6 +33,8 @@ namespace Anonymity {
    */
   class TrustedBulkRound : public RepeatingBulkRound {
     public:
+      typedef Dissent::Crypto::Integer Integer;
+
       /**
        * Constructor
        * @param group Group used during this round
@@ -44,10 +48,12 @@ namespace Anonymity {
           GetDataCallback &get_data,
           CreateRound create_shuffle = &TCreateRound<ShuffleRound>);
 
+    protected:
       /**
-       * Start the bulk round
+       * Does all the prep work for the next phase, clearing and zeroing out
+       * all the necessary fields
        */
-      virtual bool Start();
+      virtual void PrepForNextPhase();
 
     private:
       /**
@@ -65,6 +71,8 @@ namespace Anonymity {
        * Is in the trusted group
        */
       bool _trusted;
+
+      QVector<Integer> _base_seeds;
   };
 }
 }

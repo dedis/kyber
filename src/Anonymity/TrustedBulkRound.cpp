@@ -4,6 +4,7 @@
 
 using Dissent::Crypto::CryptoFactory;
 using Dissent::Crypto::Library;
+using Dissent::Crypto::Integer;
 
 namespace Dissent {
 namespace Anonymity {
@@ -14,32 +15,23 @@ namespace Anonymity {
     _trusted_group(GetGroup().GetSubgroup()),
     _trusted(_trusted_group.Contains(GetLocalId()))
   {
-  }
-
-  bool TrustedBulkRound::Start()
-  {
-    if(!Round::Start()) {
-      return false;
-    }
-
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QVector<QSharedPointer<Random> > anon_rngs;
-
-    foreach(GroupContainer gc, _trusted_group.GetRoster()) {
-      if(gc.first == GetLocalId()) {
-        continue;
+    if(_trusted) {
+      foreach(GroupContainer gc, _group.GetRoster()) {
+        if(gc.first == GetLocalId()) {
+          continue;
+        }
+        QByteArray base_seed = GetCredentials().GetDhKey()->GetSharedSecret(gc.third);
+        _base_seeds.append(Integer(base_seed));
       }
-      QByteArray seed = GetAnonymousDh()->GetSharedSecret(gc.third);
-      QSharedPointer<Random> rng(lib->GetRandomNumberGenerator(seed));
-      anon_rngs.append(rng);
+    } else {
+      foreach(GroupContainer gc, _trusted_group.GetRoster()) {
+        if(gc.first == GetLocalId()) {
+          continue;
+        }
+        QByteArray base_seed = GetCredentials().GetDhKey()->GetSharedSecret(gc.third);
+        _base_seeds.append(Integer(base_seed));
+      }
     }
-
-    SetAnonymousRngs(anon_rngs);
-
-    SetState(Shuffling);
-    GetShuffleRound()->Start();
-
-    return true;
   }
 
   QByteArray TrustedBulkRound::GenerateXorMessage()
@@ -50,18 +42,6 @@ namespace Anonymity {
     foreach(const QSharedPointer<Random> &rng, GetAnonymousRngs()) {
       rng->GenerateBlock(tmsg);
       Xor(xor_msg, xor_msg, tmsg);
-    }
-
-    if(_trusted) {
-      const QVector<Descriptor> &descriptors = GetDescriptors();
-      uint count = static_cast<uint>(descriptors.size());
-      for(uint idx = 0; idx < count; idx++) {
-        if(GetMyIndex() == idx) {
-          continue;
-        }
-        descriptors[idx].third->GenerateBlock(tmsg);
-        Xor(xor_msg, xor_msg, tmsg);
-      }
     }
 
     QByteArray my_msg = GenerateMyCleartextMessage();
@@ -77,6 +57,22 @@ namespace Anonymity {
     xor_msg.replace(offset, my_msg.size(), my_msg);
 
     return xor_msg;
+  }
+
+  void TrustedBulkRound::PrepForNextPhase()
+  {
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QVector<QSharedPointer<Random> > anon_rngs;
+
+    foreach(const Integer &val, _base_seeds) {
+      QByteArray seed = (val + GetPhase()).GetByteArray();
+      QSharedPointer<Random> rng(lib->GetRandomNumberGenerator(seed));
+      anon_rngs.append(rng);
+    }
+
+    SetAnonymousRngs(anon_rngs);
+
+    RepeatingBulkRound::PrepForNextPhase();
   }
 }
 }
