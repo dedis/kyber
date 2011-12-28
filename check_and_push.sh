@@ -8,7 +8,6 @@ cd /tmp/dissent.$rand
 function cleanup {
   echo $1
   cd $wd
-  rm -rf /tmp/dissent.$rand
 }
 
 qmake test.pro
@@ -17,7 +16,7 @@ if test $? -ne 0; then
   exit 1
 fi
 
-make -j32
+make -j8
 if test $? -ne 0; then
   cleanup "Error make"
   exit 1
@@ -45,6 +44,7 @@ cd $wd
 git push $github_repo master
 if ! test -d $wd/docs/html; then
   cleanup "All done!"
+  rm -rf /tmp/dissent.$rand
   exit 0
 fi
 
