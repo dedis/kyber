@@ -21,8 +21,12 @@ namespace Applications {
 
       /**
        * Load configuration from disk
+       * @param file the file with the settings contained therein
+       * @param actions whether or not the settings file should change system
+       * configuration values or just be a container for configuration data,
+       * the default (true) is the latter.
        */
-      explicit Settings(const QString &file);
+      explicit Settings(const QString &file, bool actions = true);
 
       /**
        * Create configuration in memory

@@ -6,7 +6,7 @@ using Dissent::Utils::Logging;
 
 namespace Dissent {
 namespace Applications {
-  Settings::Settings(const QString &file) :
+  Settings::Settings(const QString &file, bool actions) :
     LocalId(Id::Zero()),
     LeaderId(Id::Zero()),
     SubgroupPolicy(Group::CompleteGroup),
@@ -52,14 +52,17 @@ namespace Applications {
     if(_settings.contains("log")) {
       Log = _settings.value("log").toString();
       QString lower = Log.toLower();
-      if(lower == "stderr") {
-        Logging::UseStderr();
-      } else if(lower == "stdout") {
-        Logging::UseStdout();
-      } else if(Log.isEmpty()) {
-        Logging::Disable();
-      } else {
-        Logging::UseFile(Log);
+
+      if(actions) {
+        if(lower == "stderr") {
+          Logging::UseStderr();
+        } else if(lower == "stdout") {
+          Logging::UseStdout();
+        } else if(Log.isEmpty()) {
+          Logging::Disable();
+        } else {
+          Logging::UseFile(Log);
+        }
       }
     }
 

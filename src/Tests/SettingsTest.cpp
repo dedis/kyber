@@ -8,7 +8,7 @@ namespace Tests {
     QFile file("dissent.ini");
     file.remove();
 
-    Settings settings("dissent.ini");
+    Settings settings("dissent.ini", false);
     EXPECT_EQ(settings.LocalEndPoints.count(), 0);
     EXPECT_EQ(settings.RemotePeers.count(), 0);
     settings.LocalEndPoints.append(QUrl("buffer://5"));
@@ -16,7 +16,7 @@ namespace Tests {
     settings.LocalId = id;
     settings.Save();
 
-    Settings settings0("dissent.ini");
+    Settings settings0("dissent.ini", false);
     EXPECT_EQ(settings0.LocalEndPoints.count(), 1);
     EXPECT_EQ(settings0.RemotePeers.count(), 1);
     EXPECT_EQ(settings0.LocalEndPoints[0], QUrl("buffer://5"));
@@ -25,7 +25,7 @@ namespace Tests {
     settings0.RemotePeers.append(QUrl("buffer://8"));
     settings0.Save();
 
-    Settings settings1("dissent.ini");
+    Settings settings1("dissent.ini", false);
     EXPECT_EQ(settings0.LocalEndPoints.count(), 2);
     EXPECT_EQ(settings0.RemotePeers.count(), 2);
     EXPECT_EQ(settings0.LocalEndPoints[0], QUrl("buffer://5"));
