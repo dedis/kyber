@@ -43,6 +43,11 @@ namespace Messaging {
        */
       inline const QPair<QByteArray, ISender *> &Last() const { return _messages.last(); }
 
+      /**
+       * Clears the message buffer
+       */
+      inline void Clear() { _messages.clear(); }
+
     private:
       QVector<QPair<QByteArray, ISender *> > _messages;
   };
