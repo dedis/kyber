@@ -50,6 +50,17 @@ namespace Anonymity {
           GetDataCallback &get_data,
           CreateRound create_shuffle = &TCreateRound<ShuffleRound>);
 
+      /**
+       * If the ConnectionTable has a disconnect, the round may need to react
+       * @param id the peer that was disconnected
+       */
+      virtual void HandleDisconnect(const Id &id);
+
+      /**
+       * This protocol supports peers in rejoining, but it isn't implemented.
+       */
+      virtual bool SupportsRejoins() { return false; }
+
     protected:
       /**
        * Does all the prep work for the next phase, clearing and zeroing out
@@ -65,6 +76,11 @@ namespace Anonymity {
       virtual QByteArray GenerateXorMessage();
 
       /**
+       * Prepares the random seeds
+       */
+      void Init();
+
+      /**
        * The group of trusted bulk nodes (i.e., generate xor text for all)
        */
       Group _trusted_group;
@@ -75,6 +91,8 @@ namespace Anonymity {
       bool _trusted;
 
       QVector<Integer> _base_seeds;
+
+      QHash<const Id, const Id> _offline_peers;
   };
 }
 }

@@ -70,9 +70,8 @@ namespace Anonymity {
     return key->Verify(msg, sig);
   }
 
-  void Round::HandleDisconnect(Connection *con)
+  void Round::HandleDisconnect(const Id &id)
   {
-    const Id id = con->GetRemoteId();
     if(_group.Contains(id)) {
       Stop(QString(id.ToString() + " disconnected"));
     }

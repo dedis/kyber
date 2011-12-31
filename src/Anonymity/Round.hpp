@@ -118,9 +118,9 @@ namespace Anonymity {
 
       /**
        * If the ConnectionTable has a disconnect, the round may need to react
-       * @param con the Connection that disconnected
+       * @param id the peer that was disconnected
        */
-      virtual void HandleDisconnect(Connection *con);
+      virtual void HandleDisconnect(const Id &id);
 
       inline virtual QString ToString() const { return "Round"; }
 
@@ -129,6 +129,12 @@ namespace Anonymity {
        * to do nothing and wait for the next round.
        */
       virtual void PeerJoined() {}
+
+      /**
+       * Returns true if the protocol supports nodes that have left the round
+       * to rejoin.
+       */
+      virtual bool SupportsRejoins() { return false; }
 
     signals:
       /**

@@ -15,22 +15,27 @@ namespace Anonymity {
     _trusted_group(GetGroup().GetSubgroup()),
     _trusted(_trusted_group.Contains(GetLocalId()))
   {
+    Init();
+  }
+
+  void TrustedBulkRound::Init()
+  {
+    QVector<GroupContainer> roster;
     if(_trusted) {
-      foreach(GroupContainer gc, _group.GetRoster()) {
-        if(gc.first == GetLocalId()) {
-          continue;
-        }
-        QByteArray base_seed = GetCredentials().GetDhKey()->GetSharedSecret(gc.third);
-        _base_seeds.append(Integer(base_seed));
-      }
+      roster = _group.GetRoster();
     } else {
-      foreach(GroupContainer gc, _trusted_group.GetRoster()) {
-        if(gc.first == GetLocalId()) {
-          continue;
-        }
-        QByteArray base_seed = GetCredentials().GetDhKey()->GetSharedSecret(gc.third);
-        _base_seeds.append(Integer(base_seed));
+      roster = _trusted_group.GetRoster();
+    }
+
+    foreach(GroupContainer gc, _group.GetRoster()) {
+      if(gc.first == GetLocalId()) {
+        continue;
       }
+      if(_offline_peers.contains(gc.first)) {
+        continue;
+      }
+      QByteArray base_seed = GetCredentials().GetDhKey()->GetSharedSecret(gc.third);
+      _base_seeds.append(Integer(base_seed));
     }
   }
 
@@ -73,6 +78,16 @@ namespace Anonymity {
     SetAnonymousRngs(anon_rngs);
 
     RepeatingBulkRound::PrepForNextPhase();
+  }
+
+  void TrustedBulkRound::HandleDisconnect(const Id &id)
+  {
+    if(_trusted_group.Contains(id)) {
+      Stop("Lost a member of the trusted group.");
+    } else if(_group.Contains(id)) {
+      Stop("Have not implemented the ability for trusted to support peers"
+         " going offline.");
+    }
   }
 }
 }

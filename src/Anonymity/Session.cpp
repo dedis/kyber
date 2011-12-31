@@ -482,16 +482,17 @@ namespace Anonymity {
   void Session::HandleDisconnect()
   {
     Connection *con = qobject_cast<Connection *>(sender());
-    if(!_group.Contains(con->GetRemoteId()) || Stopped()) {
+    const Id &remote_id = con->GetRemoteId();
+    if(!_group.Contains(remote_id) || Stopped()) {
       return;
     }
 
     if(IsLeader()) {
-      RemoveMember(con->GetRemoteId());
+      RemoveMember(remote_id);
     }
 
     if(!_current_round.isNull()) {
-      _current_round->HandleDisconnect(con);
+      _current_round->HandleDisconnect(remote_id);
     }
   }
 
