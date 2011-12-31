@@ -31,7 +31,7 @@ namespace Messaging {
 
 namespace Anonymity {
   /**
-   * Represents a single instance of a cryptographically secure anonymous exchange
+   * An anonymous exchange amongst peers of a static group.
    */
   class Round : public QObject, public Dissent::Utils::StartStop,
       public Dissent::Messaging::Source, public Dissent::Messaging::ISender {

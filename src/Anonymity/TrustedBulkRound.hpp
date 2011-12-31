@@ -7,29 +7,31 @@
 
 namespace Dissent {
 namespace Anonymity {
+
   /**
    * Represents a single instance of a cryptographically secure anonymous
    * exchange.
    *
    * The "V3" bulk protocol builds on the "V2" by reusing the shuffle to
-   * exchange anonymous DiffieHellman public components and public signing
-   * keys.  The cleartext messages are still of the same form: phase,  next
-   * phase message length, message, and signature.  The difference is in how
-   * the xor texts are generated.  This model assumes that only a core set
-   * of resources are trusted and allows for pregeneration of xor masks.  A
-   * peer can generate sufficient bits, share them with another peer who will
-   * transmit the bits for them, and then go offline.
+   * exchange public signing keys; however, the anonymous DiffieHellman keys
+   * are no longer used.  The cleartext messages are still of the same form:
+   * phase,  next phase message length, message, and signature.  The difference
+   * is in how the xor texts are generated.  This model assumes that only a
+   * core set of resources are trusted and allows for pregeneration of xor
+   * masks.  A peer can generate sufficient bits, share them with another peer
+   * who will transmit the bits for them, and then go offline.
    *
-   * To generate the bits, creates a RNG for each trusted peer using DH shared
-   * secret created as a result of combining the anonymous private DH with the
-   * public trusted DH.  In addition, each trusted DH creates a RNG for each
-   * peer using their private DH and the anonymous public DH.  Each RNG is used
+   * To generate the bits, each non-server creates a RNG for each server peer
+   * using DH shared secret created as a result of combining their private DH
+   * key with the servers' public DH.
+   * Each server creates a RNG for each peer (server and non-server) using
+   * their private DH and with each peers' public DH.  Each RNG is used
    * to generate a message spanning the length of all anonymous messages in the
    * given phase.  Each peer than combines via xor these masks to generate an
    * xor mask.  The member then xors their message into their space inside the
-   * message.  This final message is the one distributed to all other peers.  A
-   * peer collecting all messages can xor them together to reveal all the
-   * original messages.
+   * message.  This final message is distributed to all other peers.  Upon
+   * collecting all messages, An xor upon all of them will reveal the original
+   * messages for all peers.
    */
   class TrustedBulkRound : public RepeatingBulkRound {
     public:

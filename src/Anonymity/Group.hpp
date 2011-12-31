@@ -59,7 +59,7 @@ namespace Anonymity {
   };
 
   /**
-   * Members of an anonymity session sorted in ascending orde.
+   * Members of an anonymity session sorted in ascending order.
    * Contains all the components attributed to another member in the anonymity
    * group.
    */

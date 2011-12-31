@@ -32,7 +32,8 @@ namespace Messaging {
 
 namespace Anonymity {
   /**
-   * Maintains a group which is actively participating in anonymous exchanges
+   * Maintains a (variable) set of peers (group) which is actively
+   * participating in anonymous exchanges (rounds).
    */
   class Session : public QObject, public Dissent::Messaging::Filter,
       public Dissent::Utils::StartStop {
@@ -74,11 +75,15 @@ namespace Anonymity {
        */
       virtual bool Stop();
 
+      /**
+       * From the SessionManager, pass in a ReceivedRegister
+       * @param request The request from a group member
+       */
       void ReceivedRegister(RpcRequest &request);
 
       /**
        * From the SessionManager, pass in a ReceiveReady
-       * @param request The request from a group member
+       * @param request The request from the leader
        */
       void ReceivedPrepare(RpcRequest &request);
 
