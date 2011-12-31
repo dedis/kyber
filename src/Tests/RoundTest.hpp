@@ -53,6 +53,9 @@ namespace Tests {
       CreateSessionCallback bad_callback,
       Group::SubgroupPolicy sg_policy,
       const BadGuyCB &cb);
+  void RoundTest_BadGuyNoAction(CreateSessionCallback good_callback,
+      CreateSessionCallback bad_callback, Group::SubgroupPolicy sg_policy,
+      const BadGuyCB &cb);
 }
 }
 

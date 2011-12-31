@@ -27,7 +27,10 @@ namespace Anonymity {
       const Id &round_id, QSharedPointer<Network> network,
       GetDataCallback &get_data, CreateRound create_shuffle) :
     Round(group, creds, round_id, network, get_data),
+    _my_idx(-1),
+    _create_shuffle(create_shuffle),
     _get_bulk_data(this, &BulkRound::GetBulkData),
+    _get_blame_data(this, &BulkRound::GetBlameData),
     _state(Offline),
     _messages(GetGroup().Count()),
     _received_messages(0)
@@ -47,7 +50,7 @@ namespace Anonymity {
     QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
     Id sr_id(hashalgo->ComputeHash(GetRoundId().GetByteArray()));
 
-    Round *pr = create_shuffle(GetGroup(), GetCredentials(), sr_id, net,
+    Round *pr = _create_shuffle(GetGroup(), GetCredentials(), sr_id, net,
         _get_bulk_data);
     _shuffle_round = QSharedPointer<Round>(pr);
 
@@ -184,9 +187,14 @@ namespace Anonymity {
 
     if(++_received_messages == GetGroup().Count()) {
       ProcessMessages();
-      _state = Finished;
-      SetSuccessful(true);
-      Stop("Round successfully finished");
+
+      if(_bad_message_hash.isEmpty()) {
+        _state = Finished;
+        SetSuccessful(true);
+        Stop("Round successfully finished");
+      } else {
+        BeginBlame();
+      }
     }
   }
 
@@ -198,18 +206,18 @@ namespace Anonymity {
     int index = 0;
 
     for(int idx = 0; idx < size; idx++) {
-      Descriptor cdes = _descriptors[idx];
-      QByteArray cleartext = ProcessMessage(cdes, index);
+      QByteArray cleartext = ProcessMessage(idx, index);
       if(!cleartext.isEmpty()) {
         PushData(cleartext, this);
       }
-      index += cdes.first;
+      index += _descriptors[idx].first;
     }
   }
 
-  QByteArray BulkRound::ProcessMessage(const Descriptor &des, int msg_index)
+  QByteArray BulkRound::ProcessMessage(int des_idx, int msg_index)
   {
     int count = _messages.size();
+    const Descriptor &des = GetDescriptors()[des_idx];
     int length = des.first;
     QByteArray msg(length, 0);
 
@@ -223,7 +231,7 @@ namespace Anonymity {
 
       if(des.third[idx] != hashalgo->ComputeHash(xor_msg)) {
         qWarning() << "Xor message does not hash properly";
-        _bad_message_hash.append(BadHash(idx, des));
+        _bad_message_hash.append(BadHash(des_idx, idx));
         good = false;
       }
 
@@ -272,13 +280,18 @@ namespace Anonymity {
       Xor(xor_message, xor_message, msg);
     }
 
-    _my_xor_message = QByteArray(length, 0);
-    Xor(_my_xor_message, xor_message, data);
-    hashes[my_idx] = hashalgo->ComputeHash(_my_xor_message);
+    QByteArray my_xor_message = QByteArray(length, 0);
+    Xor(my_xor_message, xor_message, data);
+    SetMyXorMessage(my_xor_message);
+    hashes[my_idx] = hashalgo->ComputeHash(my_xor_message);
 
-    QDataStream desstream(&_my_descriptor, QIODevice::WriteOnly);
-    desstream << length << _anon_dh->GetPublicComponent() << hashes;
-    return QPair<QByteArray, bool>(_my_descriptor, false);
+    Descriptor descriptor(length, _anon_dh->GetPublicComponent(), hashes);
+    SetMyDescriptor(descriptor);
+
+    QByteArray my_desc;
+    QDataStream desstream(&my_desc, QIODevice::WriteOnly);
+    desstream << descriptor;
+    return QPair<QByteArray, bool>(my_desc, false);
   }
 
   void BulkRound::ShuffleFinished()
@@ -296,6 +309,8 @@ namespace Anonymity {
       Stop("Round successfully finished -- no bulk messages");
       return;
     }
+
+    PrepareBlameShuffle();
 
     GenerateXorMessages();
 
@@ -317,41 +332,141 @@ namespace Anonymity {
     _expected_bulk_size = 0;
     for(int idx = 0; idx < _shuffle_sink.Count(); idx++) {
       QPair<QByteArray, ISender *> pair(_shuffle_sink.At(idx));
-      stream << GenerateXorMessage(pair.first);
+      Descriptor des = ParseDescriptor(pair.first);
+      _descriptors.append(des);
+      if(_my_idx == -1 && _my_descriptor == des) {
+        _my_idx = idx;
+      }
+      stream << GenerateXorMessage(idx);
     }
     VerifiableBroadcast(msg);
   }
 
-  QByteArray BulkRound::GenerateXorMessage(const QByteArray &descriptor)
+  BulkRound::Descriptor BulkRound::ParseDescriptor(const QByteArray &data)
   {
-    int length;
-    QByteArray dh_public;
-    QVector<QByteArray> hashes;
+    Descriptor descriptor;
+    QDataStream desstream(data);
+    desstream >> descriptor;
+    _expected_bulk_size += descriptor.first;
+    return descriptor;
+  }
 
-    QDataStream desstream(descriptor);
-    desstream >> length >> dh_public >> hashes;
-    _expected_bulk_size += length;
-    _descriptors.append(Descriptor(length, dh_public, hashes));
-
-    if(descriptor == _my_descriptor) {
+  QByteArray BulkRound::GenerateXorMessage(int idx)
+  {
+    if(_my_idx == idx) {
       return _my_xor_message;
     }
 
-    QByteArray seed = GetDhKey()->GetSharedSecret(dh_public);
+    Descriptor descriptor = _descriptors[idx];
+    QByteArray seed = GetDhKey()->GetSharedSecret(descriptor.second);
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
     QScopedPointer<Random> rng(lib->GetRandomNumberGenerator(seed));
 
-    QByteArray msg(length, 0);
+    QByteArray msg(descriptor.first, 0);
     rng->GenerateBlock(msg);
     QByteArray hash = hashalgo->ComputeHash(msg);
 
-    if(hashes[GetGroup().GetIndex(GetLocalId())] != hash) {
+    if(descriptor.third[GetGroup().GetIndex(GetLocalId())] != hash) {
       qWarning() << "Invalid hash";
     }
 
     return msg;
+  }
+
+  void BulkRound::PrepareBlameShuffle()
+  {
+    QSharedPointer<Network> net(GetNetwork()->Clone());
+    QVariantMap headers = net->GetHeaders();
+    headers["bulk"] = false;
+    net->SetHeaders(headers);
+
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
+    QByteArray roundid = GetRoundId().GetByteArray();
+    roundid = hashalgo->ComputeHash(roundid);
+    roundid = hashalgo->ComputeHash(roundid);
+    Id sr_id(roundid);
+
+    Round *pr = _create_shuffle(GetGroup(), GetCredentials(), sr_id, net,
+        _get_blame_data);
+    _shuffle_round = QSharedPointer<Round>(pr);
+
+    _shuffle_round->SetSink(&_shuffle_sink);
+
+    QObject::connect(_shuffle_round.data(), SIGNAL(Finished()),
+        this, SLOT(BlameShuffleFinished()));
+  }
+
+  void BulkRound::BeginBlame()
+  {
+    _shuffle_sink.Clear();
+    _shuffle_round->Start();
+  }
+
+  QPair<QByteArray, bool> BulkRound::GetBlameData(int)
+  {
+    QVector<BlameEntry> blame;
+    foreach(const BadHash &bh, _bad_message_hash) {
+      if(bh.first != _my_idx) {
+        continue;
+      }
+      QByteArray dh_pub = GetGroup().GetPublicDiffieHellman(bh.second);
+      QByteArray secret = _anon_dh->GetSharedSecret(dh_pub);
+      blame.append(BlameEntry(bh.first, bh.second, secret));
+    }
+
+    if(blame.count()) {
+      QByteArray msg;
+      QDataStream stream(&msg, QIODevice::WriteOnly);
+      stream << blame;
+      return QPair<QByteArray, bool>(msg, false);
+    } else {
+      return QPair<QByteArray, bool>(QByteArray(), false);
+    }
+  }
+
+  void BulkRound::BlameShuffleFinished()
+  {
+    for(int idx = 0; idx < _shuffle_sink.Count(); idx++) {
+      QPair<QByteArray, ISender *> pair(_shuffle_sink.At(idx));
+      QDataStream stream(pair.first);
+      QVector<BlameEntry> blame_vector;
+      stream >> blame_vector;
+      if(blame_vector.count()) {
+        ProcessBlame(blame_vector);
+      }
+    }
+    _state = Finished;
+    SetSuccessful(false);
+    Stop("Round finished with blame");
+  }
+
+  void BulkRound::ProcessBlame(const QVector<BlameEntry> blame_vector)
+  {
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+
+    foreach(const BlameEntry &be, blame_vector) {
+      if(!_bad_message_hash.contains(BadHash(be.first, be.second))) {
+        qDebug() << "No knowledge of blame:" << be.first << be.second;
+        continue;
+      }
+
+      const Descriptor &des = _descriptors[be.first];
+      QByteArray msg(des.first, 0);
+      QScopedPointer<Random> rng(lib->GetRandomNumberGenerator(be.third));
+      rng->GenerateBlock(msg);
+
+      QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
+      QByteArray hash = hashalgo->ComputeHash(msg);
+      if(hash == des.third[be.second] && !_bad_members.contains(be.second)) {
+        qDebug() << "Blame verified for" << be.first << be.second;
+        _bad_members.append(be.second);
+      } else {
+        qDebug() << "Blame could not be verified for" << be.first << be.second;
+      }
+    }
   }
 }
 }

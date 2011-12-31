@@ -34,7 +34,8 @@ namespace Anonymity {
    * distributes them to all other peers.  Upon accumulating all xor masks and
    * combining them via xor operations the cleartext messages are revealed.
    */
-  class BulkRound : public Round { Q_OBJECT
+  class BulkRound : public Round {
+    Q_OBJECT
 
     Q_ENUMS(State);
     Q_ENUMS(MessageType);
@@ -43,8 +44,12 @@ namespace Anonymity {
       typedef Dissent::Crypto::DiffieHellman DiffieHellman;
       typedef Dissent::Messaging::BufferSink BufferSink;
       typedef Dissent::Messaging::GetDataMethod<BulkRound> BulkGetDataCallback;
+      // Length, DH Public, List of expected message hashes
       typedef Dissent::Utils::Triple<int, QByteArray, QVector<QByteArray> > Descriptor;
-      typedef QPair<int, Descriptor> BadHash;
+      // Descriptor index, peer index
+      typedef QPair<int, int> BadHash;
+      // Descriptor index, peer index, shared secret
+      typedef Dissent::Utils::Triple<int, int, QByteArray> BlameEntry;
 
       /**
        * Varius stages of the bulk
@@ -142,6 +147,11 @@ namespace Anonymity {
        */
       virtual void ProcessData(const QByteArray &data, const Id &from);
 
+      /**
+       * Does the dirty work of processing data
+       * @param data Incoming data
+       * @param id the remote peer sending the data
+       */
       void ProcessDataBase(const QByteArray &data, const Id &from);
 
       /**
@@ -151,12 +161,18 @@ namespace Anonymity {
       void GenerateXorMessages();
 
       /**
+       * Parses a descriptor returning the descriptor therein
+       * @param data the binary descriptor form
+       */
+      Descriptor ParseDescriptor(const QByteArray &data);
+
+      /**
        * Parses through an individual descriptor, setting the descriptor
        * state in the object and returns the message the descriptor
        * describes
-       * @param descriptor message descriptor
+       * @param descriptor index for message descriptor
        */
-      virtual QByteArray GenerateXorMessage(const QByteArray &descriptor);
+      virtual QByteArray GenerateXorMessage(int idx);
 
       /**
        * Returns the ShuffleSink to access serialized descriptors
@@ -174,6 +190,30 @@ namespace Anonymity {
        * @param from the sender
        */
       void HandleBulkData(QDataStream &stream, const Id &from);
+
+      /**
+       * Sets the local members descriptor for this round
+       * @param my_descriptor the descriptor for this round
+       */
+      void SetMyDescriptor(const Descriptor &my_descriptor)
+      {
+        _my_descriptor = my_descriptor;
+      }
+
+      /**
+       * Sets the local members xor message for this round
+       * @param my_xor_message the xor message to use in this round
+       */
+      void SetMyXorMessage(const QByteArray &my_xor_message)
+      {
+        _my_xor_message = my_xor_message;
+      }
+
+      /**
+       * Return the rounds anonymous dh
+       */
+      const DiffieHellman *GetAnonDh() { return _anon_dh.data(); }
+
     private:
       /**
        * GetDataCallback into bulk data
@@ -181,7 +221,15 @@ namespace Anonymity {
        * @returns a pair consisting of a qbytearray of up to max bytes and a
        * boolean true if there are more bytes to consume
        */
-      QPair<QByteArray, bool> GetBulkData(int max);
+      virtual QPair<QByteArray, bool> GetBulkData(int max);
+
+      /**
+       * GetDataCallback into bulk blame data
+       * @param mam the maximum amount of data to return
+       * @returns a pair consisting of a qbytearray of up to max bytes and a
+       * boolean true if there are more bytes to consume
+       */
+      QPair<QByteArray, bool> GetBlameData(int max);
 
       /**
        * Once all bulk data messages have been received, parse them
@@ -190,16 +238,48 @@ namespace Anonymity {
       
       /**
        * Parse the deecriptor and retrieve the cleartext bulk data
-       * @param des provided descriptor
+       * @param des_index index for the provided descriptor
        * @param msg_index an index into the message array
        * @returns the cleartext message
        */
-      QByteArray ProcessMessage(const Descriptor &des, int msg_index);
+      QByteArray ProcessMessage(int des_index, int msg_index);
+
+      /**
+       * Descriptor shuffle has finished and bulk has begun, prepare this
+       * incase we need it.
+       */
+      void PrepareBlameShuffle();
+
+      /**
+       * Bulk round didn't end quite right, start the blame handling.
+       */
+      void BeginBlame();
+      
+      /**
+       * Process a blame vector, sets bad members if any found
+       * @param blame_vector process blame accusations
+       */
+      void ProcessBlame(const QVector<BlameEntry> blame_vector);
+
+      /**
+       * The local members anonymous index
+       */
+      int _my_idx;
+
+      /**
+       * Callback for creating shuffles
+       */
+      CreateRound _create_shuffle;
 
       /**
        * Holder for the GetDataCallback GetBulkData()
        */
       BulkGetDataCallback _get_bulk_data;
+
+      /**
+       * Holder for the GetDataCallback GetBlameData()
+       */
+      BulkGetDataCallback _get_blame_data;
 
       /**
        * Holds the shuffle round
@@ -239,7 +319,7 @@ namespace Anonymity {
       /**
        * Local nodes descriptor
        */
-      QByteArray _my_descriptor;
+      Descriptor _my_descriptor;
       
       /**
        * Size determines by the accumulated length in the descriptors
@@ -276,8 +356,19 @@ namespace Anonymity {
        * Called when the descriptor shuffle ends
        */
       void ShuffleFinished();
+
+      /**
+       * Called when the blame shuffle ends
+       */
+      void BlameShuffleFinished();
   };
 
+  /**
+   * Xor operator for QByteArrays
+   * @param dst the destination byte array
+   * @param t1 lhs of the xor operation
+   * @param t2 rhs of the xor operation
+   */
   void Xor(QByteArray &dst, const QByteArray &t1, const QByteArray &t2);
 }
 }

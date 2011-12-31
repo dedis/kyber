@@ -84,5 +84,25 @@ namespace Tests {
         Group::FixedSubgroup,
         TBadGuyCB<badbulk>);
   }
+
+  TEST(BulkRound, BadXorMessage)
+  {
+    typedef BulkRoundBadXorMessage badbulk;
+
+    RoundTest_BadGuy(&TCreateSession<BulkRound>,
+        &TCreateSession<badbulk>,
+        Group::FixedSubgroup,
+        TBadGuyCB<badbulk>);
+  }
+
+  TEST(BulkRound, BadDescriptorMessage)
+  {
+    typedef BulkRoundBadDescriptor badbulk;
+
+    RoundTest_BadGuyNoAction(&TCreateSession<BulkRound>,
+        &TCreateSession<badbulk>,
+        Group::FixedSubgroup,
+        TBadGuyCB<badbulk>);
+  }
 }
 }

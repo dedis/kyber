@@ -442,7 +442,7 @@ namespace Tests {
     Id badid = tmp_group.GetId(badguy);
 
     int sender = Random::GetInstance().GetInt(0, count);
-    while(sender == group_badguy) {
+    while(sender == badguy) {
       sender = Random::GetInstance().GetInt(0, count);
     }
 
@@ -491,6 +491,75 @@ namespace Tests {
         if(node->sink.Count() == 1) {
           EXPECT_EQ(node->sink.Last().first, msg);
         }
+      }
+    }
+
+    CleanUp(nodes);
+  }
+
+  void RoundTest_BadGuyNoAction(CreateSessionCallback good_callback,
+      CreateSessionCallback bad_callback, Group::SubgroupPolicy sg_policy,
+      const BadGuyCB &cb)
+  {
+    Timer::GetInstance().UseVirtualTime();
+
+    int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
+
+    QVector<TestNode *> nodes;
+    Group group;
+    ConstructOverlay(count, nodes, group, sg_policy);
+
+    Id session_id;
+    CreateSessions(nodes, group, session_id, good_callback);
+
+    Group tmp_group(QVector<GroupContainer>(), group.GetLeader(),
+        group.GetSubgroupPolicy());
+    foreach(TestNode *node, nodes) {
+      tmp_group = AddGroupMember(tmp_group, GroupContainer(node->cm.GetId(),
+            Group::EmptyKey(), QByteArray()));
+    }
+    Group stmp_group = tmp_group.GetSubgroup();
+
+    int leader = tmp_group.GetIndex(tmp_group.GetLeader());
+    int sg_count = stmp_group.Count();
+
+    int badguy = Random::GetInstance().GetInt(0, sg_count);
+    int group_badguy = tmp_group.GetIndex(stmp_group.GetId(badguy));
+    while(group_badguy == leader) {
+      badguy = Random::GetInstance().GetInt(0, sg_count);
+      group_badguy = tmp_group.GetIndex(stmp_group.GetId(badguy));
+    }
+    Id badid = tmp_group.GetId(badguy);
+
+    qDebug() << "Bad guy at" << badguy << badid.ToString();
+
+    CreateSession(nodes[badguy], group, session_id, bad_callback);
+
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
+
+    SignalCounter sc;
+    for(int idx = 0; idx < count; idx++) {
+      QObject::connect(nodes[idx]->session.data(),
+          SIGNAL(RoundFinished(QSharedPointer<Round>)), &sc, SLOT(Counter()));
+      nodes[idx]->session->Start();
+    }
+
+    qint64 next = Timer::GetInstance().VirtualRun();
+    while(next != -1 && sc.GetCount() < count) {
+      Time::GetInstance().IncrementVirtualClock(next);
+      next = Timer::GetInstance().VirtualRun();
+    }
+
+    if(!cb(nodes[badguy]->session->GetCurrentRound().data())) {
+      std::cout << "RoundTest_BadGuy was never triggered, "
+        "consider rerunning." << std::endl;
+    } else {
+      for(int idx = 0; idx < nodes.size(); idx++) {
+        TestNode *node = nodes[idx];
+        QSharedPointer<Round> pr = node->session->GetCurrentRound();
+        EXPECT_EQ(pr->GetBadMembers().count(), 0);
+        EXPECT_FALSE(pr->Successful());
       }
     }
 
