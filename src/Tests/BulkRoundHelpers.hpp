@@ -107,56 +107,34 @@ namespace Tests {
       {
       }
 
-    private:
+    protected:
       virtual QPair<QByteArray, bool> GetBulkData(int)
       {
+        QByteArray data(1024, 0);
+        CreateDescriptor(data);
+
         SetTriggered();
-
-        int length = 2048;
-        QByteArray data(length, 0);
-
-        Library *lib = CryptoFactory::GetInstance().GetLibrary();
-        QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
-
-        QByteArray xor_message(length, 0);
-        QVector<QByteArray> hashes;
-
         int my_idx = GetGroup().GetIndex(GetLocalId());
-
-        foreach(const GroupContainer &gc, GetGroup().GetRoster()) {
-          QByteArray seed = GetAnonDh()->GetSharedSecret(gc.third);
-
-          if(hashes.size() == my_idx) {
-            hashes.append(QByteArray());
-            continue;
-          }
-
-          QByteArray msg(length, 0);
-          QScopedPointer<Random> rng(lib->GetRandomNumberGenerator(seed));
-          rng->GenerateBlock(msg);
-          hashes.append(hashalgo->ComputeHash(msg));
-          Xor(xor_message, xor_message, msg);
-        }
-
-        QByteArray my_xor_message = QByteArray(length, 0);
-        Xor(my_xor_message, xor_message, data);
-        SetMyXorMessage(my_xor_message);
-        hashes[my_idx] = hashalgo->ComputeHash(my_xor_message);
-
         int bad = Random::GetInstance().GetInt(0, GetGroup().Count());
         while(bad == my_idx) {
           bad = Random::GetInstance().GetInt(0, GetGroup().Count());
         }
 
         qDebug() << my_idx << "setting bad hash at" << bad;
-        hashes[bad] = hashalgo->ComputeHash(xor_message);
+        const Descriptor &cdes = GetMyDescriptor();
+        QVector<QByteArray> hashes = cdes.XorMessageHashes();
 
-        Descriptor descriptor(length, GetAnonDh()->GetPublicComponent(), hashes);
+        Library *lib = CryptoFactory::GetInstance().GetLibrary();
+        QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
+        hashes[bad] = hashalgo->ComputeHash(data);
+
+        Descriptor descriptor(cdes.Length(), cdes.PublicDh(), hashes,
+            cdes.CleartextHash());
         SetMyDescriptor(descriptor);
 
         QByteArray my_desc;
         QDataStream desstream(&my_desc, QIODevice::WriteOnly);
-        desstream << descriptor;
+        desstream << GetMyDescriptor();
         return QPair<QByteArray, bool>(my_desc, false);
       }
   };

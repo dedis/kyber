@@ -27,13 +27,15 @@ namespace Anonymity {
       const Id &round_id, QSharedPointer<Network> network,
       GetDataCallback &get_data, CreateRound create_shuffle) :
     Round(group, creds, round_id, network, get_data),
+    _app_broadcast(true),
     _my_idx(-1),
     _create_shuffle(create_shuffle),
     _get_bulk_data(this, &BulkRound::GetBulkData),
     _get_blame_data(this, &BulkRound::GetBlameData),
     _state(Offline),
     _messages(GetGroup().Count()),
-    _received_messages(0)
+    _received_messages(0),
+    _is_leader(GetGroup().GetLeader() == GetLocalId())
   {
     QVariantMap headers = GetNetwork()->GetHeaders();
     headers["bulk"] = true;
@@ -157,9 +159,105 @@ namespace Anonymity {
       case BulkData:
         HandleBulkData(stream, from);
         break;
+      case LoggedBulkData:
+        HandleLoggedBulkData(stream, from);
+        break;
+      case AggregatedBulkData:
+        HandleAggregatedBulkData(stream, from);
+        break;
       default:
         throw QRunTimeError("Unknown message type");
     }
+  }
+
+  void BulkRound::HandleLoggedBulkData(QDataStream &stream, const Id &from)
+  {
+    if(from == GetLocalId()) {
+      return;
+    }
+
+    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
+      ": received logged bulk data from " << GetGroup().GetIndex(from) <<
+      from.ToString();
+
+    if(GetGroup().GetLeader() != from) {
+      throw QRunTimeError("Received logged bulk data from non-leader.");
+    }
+
+    if(_state != ReceivingLeaderData) {
+      throw QRunTimeError("Not expected at this time.");
+    }
+
+    QByteArray binary_log;
+    stream >> binary_log;
+    Log log(binary_log);
+    
+    if(log.Count() != GetGroup().Count()) {
+      throw QRunTimeError("Incorrect number of log messages.");
+    }
+
+    _state = ProcessingLeaderData;
+    for(int idx = 0; idx < log.Count(); idx++) {
+      const QPair<QByteArray, Id> &res = log.At(idx);
+      try {
+        ProcessDataBase(res.first, res.second);
+      } catch (QRunTimeError &err) {
+        const Id &from = res.second;
+        qWarning() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
+          "leader equivocated in message from" << GetGroup().GetIndex(from) <<
+          from.ToString() << "in session / round" << GetRoundId().ToString() <<
+          "in state" << StateToString(_state) <<
+          "causing the following exception: " << err.What();
+        // Should end round.
+        break;
+      }
+    }
+  }
+
+  void BulkRound::HandleAggregatedBulkData(QDataStream &stream, const Id &from)
+  {
+    if(from == GetLocalId()) {
+      return;
+    }
+
+    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
+      ": received aggregated bulk data from " << GetGroup().GetIndex(from) <<
+      from.ToString();
+
+    if(GetGroup().GetLeader() != from) {
+      throw QRunTimeError("Received aggregated bulk data from non-leader.");
+    }
+
+    if(_state != ReceivingLeaderData) {
+      throw QRunTimeError("Not expected at this time.");
+    }
+
+    QVector<QByteArray> cleartexts;
+    stream >> cleartexts;
+
+    const QVector<Descriptor> &des = GetDescriptors();
+
+    if(cleartexts.count() != des.count()) {
+      throw QRunTimeError("Cleartext count does not match descriptor count: " +
+          QString::number(cleartexts.count()) + " " +
+          QString::number(des.count()));
+    }
+
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
+
+    for(int idx = 0; idx < cleartexts.count(); idx++) {
+      QByteArray cleartext = cleartexts[idx];
+      QByteArray hash = hashalgo->ComputeHash(cleartext);
+      if(hash != des[idx].CleartextHash()) {
+        throw QRunTimeError("Cleartext hash does not match descriptor hash.");
+      }
+      if(!cleartext.isEmpty()) {
+        PushData(cleartext, this);
+      }
+    }
+
+    Finish();
   }
 
   void BulkRound::HandleBulkData(QDataStream &stream, const Id &from)
@@ -167,8 +265,12 @@ namespace Anonymity {
     qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
       ": received bulk data from " << GetGroup().GetIndex(from) << from.ToString();
 
-    if(_state != DataSharing) {
-      throw QRunTimeError("Received a misordered BulkData message");
+    if(IsLeader() || !_app_broadcast) {
+      if(_state != DataSharing) {
+        throw QRunTimeError("Received a misordered BulkData message");
+      }
+    } else if(_app_broadcast && _state != ProcessingLeaderData) {
+      throw QRunTimeError("Waiting for data from leader, received something else.");
     }
 
     int idx = GetGroup().GetIndex(from);
@@ -187,14 +289,30 @@ namespace Anonymity {
 
     if(++_received_messages == GetGroup().Count()) {
       ProcessMessages();
+      Finish();
+    }
+  }
 
-      if(_bad_message_hash.isEmpty()) {
-        _state = Finished;
-        SetSuccessful(true);
-        Stop("Round successfully finished");
-      } else {
-        BeginBlame();
+  void BulkRound::Finish()
+  {
+    if(_bad_message_hash.isEmpty()) {
+      if(_app_broadcast && IsLeader()) {
+        QByteArray msg;
+        QDataStream stream(&msg, QIODevice::WriteOnly);
+        stream << AggregatedBulkData << GetRoundId() << _cleartexts;
+        VerifiableBroadcast(msg);
       }
+      _state = Finished;
+      SetSuccessful(true);
+      Stop("Round successfully finished");
+    } else {
+      if(_app_broadcast && IsLeader()) {
+        QByteArray msg;
+        QDataStream stream(&msg, QIODevice::WriteOnly);
+        stream << LoggedBulkData << GetRoundId() << _log.Serialize();
+        VerifiableBroadcast(msg);
+      }
+      BeginBlame();
     }
   }
 
@@ -207,10 +325,11 @@ namespace Anonymity {
 
     for(int idx = 0; idx < size; idx++) {
       QByteArray cleartext = ProcessMessage(idx, index);
+      _cleartexts.append(cleartext);
       if(!cleartext.isEmpty()) {
         PushData(cleartext, this);
       }
-      index += _descriptors[idx].first;
+      index += _descriptors[idx].Length();
     }
   }
 
@@ -218,7 +337,7 @@ namespace Anonymity {
   {
     int count = _messages.size();
     const Descriptor &des = GetDescriptors()[des_idx];
-    int length = des.first;
+    int length = des.Length();
     QByteArray msg(length, 0);
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
@@ -229,7 +348,7 @@ namespace Anonymity {
       const char *tmsg = _messages[idx].constData() + msg_index;
       QByteArray xor_msg(QByteArray::fromRawData(tmsg, length));
 
-      if(des.third[idx] != hashalgo->ComputeHash(xor_msg)) {
+      if(des.XorMessageHashes()[idx] != hashalgo->ComputeHash(xor_msg)) {
         qWarning() << "Xor message does not hash properly";
         _bad_message_hash.append(BadHash(des_idx, idx));
         good = false;
@@ -252,10 +371,21 @@ namespace Anonymity {
     QPair<QByteArray, bool> pair = GetData(max);
     const QByteArray &data = pair.first;
 
-    int length = data.size();
-    if(length == 0) {
+    if(data.size() == 0) {
       return QPair<QByteArray, bool>(QByteArray(), false);
     }
+
+    CreateDescriptor(pair.first);
+
+    QByteArray my_desc;
+    QDataStream desstream(&my_desc, QIODevice::WriteOnly);
+    desstream << GetMyDescriptor();
+    return QPair<QByteArray, bool>(my_desc, false);
+  }
+
+  void BulkRound::CreateDescriptor(const QByteArray &data)
+  {
+    int length = data.size();
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
@@ -285,13 +415,10 @@ namespace Anonymity {
     SetMyXorMessage(my_xor_message);
     hashes[my_idx] = hashalgo->ComputeHash(my_xor_message);
 
-    Descriptor descriptor(length, _anon_dh->GetPublicComponent(), hashes);
-    SetMyDescriptor(descriptor);
+    QByteArray hash = hashalgo->ComputeHash(data);
 
-    QByteArray my_desc;
-    QDataStream desstream(&my_desc, QIODevice::WriteOnly);
-    desstream << descriptor;
-    return QPair<QByteArray, bool>(my_desc, false);
+    Descriptor descriptor(length, _anon_dh->GetPublicComponent(), hashes, hash);
+    SetMyDescriptor(descriptor);
   }
 
   void BulkRound::ShuffleFinished()
@@ -314,7 +441,12 @@ namespace Anonymity {
 
     GenerateXorMessages();
 
-    _state = DataSharing;
+    if(_app_broadcast && !IsLeader()) {
+      _state = ReceivingLeaderData;
+    } else {
+      _state = DataSharing;
+    }
+
     for(int idx = 0; idx < _offline_log.Count(); idx++) {
       QPair<QByteArray, Id> entry = _offline_log.At(idx);
       ProcessData(entry.first, entry.second);
@@ -339,7 +471,12 @@ namespace Anonymity {
       }
       stream << GenerateXorMessage(idx);
     }
-    VerifiableBroadcast(msg);
+
+    if(_app_broadcast) {
+      VerifiableSend(msg, GetGroup().GetLeader());
+    } else {
+      VerifiableBroadcast(msg);
+    }
   }
 
   BulkRound::Descriptor BulkRound::ParseDescriptor(const QByteArray &data)
@@ -347,7 +484,7 @@ namespace Anonymity {
     Descriptor descriptor;
     QDataStream desstream(data);
     desstream >> descriptor;
-    _expected_bulk_size += descriptor.first;
+    _expected_bulk_size += descriptor.Length();
     return descriptor;
   }
 
@@ -358,17 +495,17 @@ namespace Anonymity {
     }
 
     Descriptor descriptor = _descriptors[idx];
-    QByteArray seed = GetDhKey()->GetSharedSecret(descriptor.second);
+    QByteArray seed = GetDhKey()->GetSharedSecret(descriptor.PublicDh());
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
     QScopedPointer<Random> rng(lib->GetRandomNumberGenerator(seed));
 
-    QByteArray msg(descriptor.first, 0);
+    QByteArray msg(descriptor.Length(), 0);
     rng->GenerateBlock(msg);
     QByteArray hash = hashalgo->ComputeHash(msg);
 
-    if(descriptor.third[GetGroup().GetIndex(GetLocalId())] != hash) {
+    if(descriptor.XorMessageHashes()[GetGroup().GetIndex(GetLocalId())] != hash) {
       qWarning() << "Invalid hash";
     }
 
@@ -454,19 +591,56 @@ namespace Anonymity {
       }
 
       const Descriptor &des = _descriptors[be.first];
-      QByteArray msg(des.first, 0);
+      QByteArray msg(des.Length(), 0);
       QScopedPointer<Random> rng(lib->GetRandomNumberGenerator(be.third));
       rng->GenerateBlock(msg);
 
       QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
       QByteArray hash = hashalgo->ComputeHash(msg);
-      if(hash == des.third[be.second] && !_bad_members.contains(be.second)) {
+      if(hash == des.XorMessageHashes()[be.second] && !_bad_members.contains(be.second)) {
         qDebug() << "Blame verified for" << be.first << be.second;
         _bad_members.append(be.second);
       } else {
         qDebug() << "Blame could not be verified for" << be.first << be.second;
       }
     }
+  }
+
+  bool operator==(const BulkRound::Descriptor &lhs,
+      const BulkRound::Descriptor &rhs)
+  {
+    return (lhs.Length() == rhs.Length()) &&
+      (lhs.PublicDh() == rhs.PublicDh()) &&
+      (lhs.XorMessageHashes() == rhs.XorMessageHashes()) &&
+      (lhs.CleartextHash() == rhs.CleartextHash());
+  }
+
+  QDataStream &operator<<(QDataStream &stream,
+      const BulkRound::Descriptor &des)
+  {
+    stream << des.Length();
+    stream << des.PublicDh();
+    stream << des.XorMessageHashes();
+    stream << des.CleartextHash();
+    return stream;
+  }
+
+  QDataStream &operator>>(QDataStream &stream, BulkRound::Descriptor &des)
+  {
+    int length;
+    stream >> length;
+
+    QByteArray dh;
+    stream >> dh;
+
+    QVector<QByteArray> hashes;
+    stream >> hashes;
+
+    QByteArray hash;
+    stream >> hash;
+
+    des = BulkRound::Descriptor(length, dh, hashes, hash);
+    return stream;
   }
 }
 }
