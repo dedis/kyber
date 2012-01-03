@@ -22,12 +22,12 @@ namespace Anonymity {
   {
     QVector<GroupContainer> roster;
     if(_trusted) {
-      roster = _group.GetRoster();
+      roster = GetGroup().GetRoster();
     } else {
       roster = _trusted_group.GetRoster();
     }
 
-    foreach(GroupContainer gc, _group.GetRoster()) {
+    foreach(GroupContainer gc, roster) {
       if(gc.first == GetLocalId()) {
         continue;
       }
@@ -84,7 +84,7 @@ namespace Anonymity {
   {
     if(_trusted_group.Contains(id)) {
       Stop("Lost a member of the trusted group.");
-    } else if(_group.Contains(id)) {
+    } else if(GetGroup().Contains(id)) {
       Stop("Have not implemented the ability for trusted to support peers"
          " going offline.");
     }

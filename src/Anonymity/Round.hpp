@@ -207,6 +207,7 @@ namespace Anonymity {
        */
       QSharedPointer<Network> &GetNetwork() { return _network; }
 
+    private:
       const Group _group;
       const Credentials _creds;
       const Id _round_id;
