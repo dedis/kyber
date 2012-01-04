@@ -98,6 +98,12 @@ namespace Tolerant {
     return true;
   }
 
+  void TolerantBulkRound::FoundBadMembers() 
+  {
+    SetSuccessful(false);
+    Stop("Found bad group member");
+  }
+
   void TolerantBulkRound::IncomingData(RpcRequest &notification)
   {
     if(Stopped()) {
@@ -976,12 +982,14 @@ namespace Tolerant {
     if(old_bad_members != _bad_members.count()) {
       // Blame finished
       qWarning("Blamed member, STOPPING");
+      FoundBadMembers();
       return;
     }
 
     if(old_bad_slots != _bad_slots.count()) {
       // Blame finished
       qWarning("Blamed anonymous slot owner, STOPPING");
+      FoundBadMembers();
       return;
     }
 
@@ -1099,6 +1107,8 @@ namespace Tolerant {
 
   void TolerantBulkRound::RunProofAnalysis()
   {
+    const int old_bad_members = _bad_members.count();
+
     qDebug() << "Starting proof analysis";
     for(int i=0; i<_conflicts.count(); i++) {
       uint slot_idx = _conflicts[i].GetSlotIndex();
@@ -1168,6 +1178,9 @@ namespace Tolerant {
     }
 
     qDebug() << "Done with proof analysis";
+    if(old_bad_members != _bad_members.count()) {
+      FoundBadMembers();
+    }
     return;
   }
 
