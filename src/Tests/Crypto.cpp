@@ -325,5 +325,39 @@ namespace Tests {
     QScopedPointer<Library> lib(new NullLibrary());
     DiffieHellmanTest(lib.data());
   }
+
+  void ZeroKnowledgeTest(Library* lib, bool test_bit_flip) 
+  {
+    QScopedPointer<DiffieHellman> dhA(lib->CreateDiffieHellman());
+    QScopedPointer<DiffieHellman> dhB(lib->CreateDiffieHellman());
+    QScopedPointer<DiffieHellman> dhC(lib->CreateDiffieHellman());
+
+    QByteArray shared_A_B = dhA->GetSharedSecret(dhB->GetPublicComponent());
+    QByteArray shared_B_A = dhB->GetSharedSecret(dhA->GetPublicComponent());
+    EXPECT_EQ(shared_A_B, shared_B_A);
+
+    QByteArray proof_A = dhA->ProveSharedSecret(dhB->GetPublicComponent());
+    QByteArray verif_A = dhC->VerifySharedSecret(dhA->GetPublicComponent(), dhB->GetPublicComponent(), proof_A);
+    EXPECT_EQ(shared_A_B, verif_A);
+
+    if(test_bit_flip) {
+      int idx = proof_A.size()-1;
+      proof_A[idx] = !proof_A[idx];
+      QByteArray verif_A2 = dhC->VerifySharedSecret(dhA->GetPublicComponent(), dhB->GetPublicComponent(), proof_A);
+      EXPECT_EQ(QByteArray(), verif_A2);
+    }
+  }
+
+  TEST(Crypto, NullZeroKnowledgeDhTest)
+  {
+    QScopedPointer<Library> lib(new NullLibrary());
+    ZeroKnowledgeTest(lib.data(), false);
+  }
+
+  TEST(Crypto, CppZeroKnowledgeDhTest)
+  {
+    QScopedPointer<Library> lib(new CppLibrary());
+    ZeroKnowledgeTest(lib.data(), true);
+  }
 }
 }

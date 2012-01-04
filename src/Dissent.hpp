@@ -5,6 +5,7 @@
 #include "Anonymity/Credentials.hpp"
 #include "Anonymity/Group.hpp"
 #include "Anonymity/Log.hpp"
+#include "Anonymity/MessageRandomizer.hpp"
 #include "Anonymity/NullRound.hpp"
 #include "Anonymity/RepeatingBulkRound.hpp"
 #include "Anonymity/Round.hpp"
@@ -12,6 +13,12 @@
 #include "Anonymity/SessionManager.hpp"
 #include "Anonymity/ShuffleRound.hpp"
 #include "Anonymity/TrustedBulkRound.hpp"
+#include "Anonymity/Tolerant/Accusation.hpp"
+#include "Anonymity/Tolerant/AlibiData.hpp"
+#include "Anonymity/Tolerant/BlameMatrix.hpp"
+#include "Anonymity/Tolerant/Conflict.hpp"
+#include "Anonymity/Tolerant/MessageHistory.hpp"
+#include "Anonymity/Tolerant/TolerantBulkRound.hpp"
 
 #include "Applications/CommandLine.hpp"
 #include "Applications/ConsoleSink.hpp"
@@ -110,6 +117,7 @@
 #include "Web/Services/WebService.hpp"
 
 using namespace Dissent::Anonymity;
+using namespace Dissent::Anonymity::Tolerant;
 using namespace Dissent::Applications;
 using namespace Dissent::Crypto;
 using namespace Dissent::Connections;

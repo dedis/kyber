@@ -31,5 +31,22 @@ namespace Crypto {
     }
     return shared;
   }
+
+  QByteArray NullDiffieHellman::ProveSharedSecret(const QByteArray &remote_pub) const
+  {
+    return GetSharedSecret(remote_pub);
+  }
+
+  QByteArray NullDiffieHellman::VerifySharedSecret(const QByteArray &,
+      const QByteArray &remote_pub, const QByteArray &proof) const
+  {
+    if(proof.size() == GetSharedSecret(remote_pub).size()) {
+      return proof;
+    } else {
+      return QByteArray(); 
+    }
+  }
+
 }
 }
+

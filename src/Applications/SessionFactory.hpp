@@ -71,6 +71,12 @@ namespace Applications {
       static void CreateTrustedBulkRoundSession(Node *node,
           const Id &session_id, const Group &group);
 
+      /**
+       * Create a Bulk "V3" with blame
+       */
+      static void CreateTolerantBulkRoundSession(Node *node,
+          const Id &session_id, const Group &group);
+
     private:
       static void Common(Node *node, const Id &session_id, CreateRound cr,
           const Group &group);

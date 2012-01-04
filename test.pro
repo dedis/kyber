@@ -42,6 +42,8 @@ HEADERS += ext/googletest/include/gtest/gtest-death-test.h \
            src/Tests/TestWebClient.hpp
 
 SOURCES += ext/googletest/src/gtest-all.cc \
+           src/Tests/BlameUtilsTest.cpp \
+           src/Tests/MessageRandomizerTest.cpp \
            src/Tests/AddressTest.cpp \
            src/Tests/MainTest.cpp \
            src/Tests/Mock.cpp \

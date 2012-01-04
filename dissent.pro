@@ -18,6 +18,7 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Anonymity/Credentials.hpp \
            src/Anonymity/Group.hpp \
            src/Anonymity/Log.hpp \
+           src/Anonymity/MessageRandomizer.hpp \
            src/Anonymity/NullRound.hpp \
            src/Anonymity/RepeatingBulkRound.hpp \
            src/Anonymity/Round.hpp \
@@ -27,6 +28,12 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Anonymity/ShuffleRound.hpp \
            src/Anonymity/ShuffleRoundBlame.hpp \
            src/Anonymity/TrustedBulkRound.hpp \
+           src/Anonymity/Tolerant/Accusation.hpp \
+           src/Anonymity/Tolerant/AlibiData.hpp \
+           src/Anonymity/Tolerant/BlameMatrix.hpp \
+           src/Anonymity/Tolerant/Conflict.hpp \
+           src/Anonymity/Tolerant/MessageHistory.hpp \
+           src/Anonymity/Tolerant/TolerantBulkRound.hpp \
            src/Applications/CommandLine.hpp \
            src/Applications/ConsoleSink.hpp \
            src/Applications/FileSink.hpp \
@@ -122,6 +129,7 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Anonymity/BulkRound.cpp \
            src/Anonymity/Group.cpp \
            src/Anonymity/Log.cpp \
+           src/Anonymity/MessageRandomizer.cpp \
            src/Anonymity/NullRound.cpp \
            src/Anonymity/RepeatingBulkRound.cpp \
            src/Anonymity/Round.cpp \
@@ -131,6 +139,11 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Anonymity/ShuffleRound.cpp \
            src/Anonymity/ShuffleRoundBlame.cpp \
            src/Anonymity/TrustedBulkRound.cpp \
+           src/Anonymity/Tolerant/Accusation.cpp \
+           src/Anonymity/Tolerant/AlibiData.cpp \
+           src/Anonymity/Tolerant/BlameMatrix.cpp \
+           src/Anonymity/Tolerant/MessageHistory.cpp \
+           src/Anonymity/Tolerant/TolerantBulkRound.cpp \
            src/Applications/CommandLine.cpp \
            src/Applications/ConsoleSink.cpp \
            src/Applications/FileSink.cpp \

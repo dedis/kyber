@@ -53,6 +53,11 @@ namespace Crypto {
       virtual ~CppIntegerData() {}
 
       /**
+       * Return the underlying Cpp integer object
+       */
+      inline const CryptoPP::Integer GetCryptoInteger() const { return _integer; }
+
+      /**
        * Add operator, produces a new Integer
        * @param other the Integer to add
        */
