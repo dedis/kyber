@@ -108,6 +108,11 @@ namespace Anonymity {
       return false;
     }
 
+    if(_group.Count() < MinimumRoundSize) {
+      qDebug() << "Not enough peers in group to support an anonymous session.";
+      return false;
+    }
+
     foreach(const GroupContainer &gc, _group) {
       if(ct.GetConnection(gc.first) == 0) {
         qDebug() << "Missing a connection";

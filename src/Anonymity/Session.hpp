@@ -135,6 +135,8 @@ namespace Anonymity {
        */
       inline const Group &GetGroup() const { return _group; }
 
+      static const int MinimumRoundSize = 3;
+
     signals:
       /**
        * Signals that a round is beginning.
