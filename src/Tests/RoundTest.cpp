@@ -285,7 +285,14 @@ namespace Tests {
     Timer::GetInstance().UseVirtualTime();
 
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
-    int leader = 0;
+
+    QVector<TestNode *> nodes;
+    Group group;
+    ConstructOverlay(count, nodes, group, sg_policy);
+    CreateSessions(nodes, group, Id(), callback);
+
+    group = BuildGroup(nodes, group);
+    int leader = group.GetIndex(group.GetLeader());
     int disconnector = Random::GetInstance().GetInt(0, count);
     while(leader == disconnector) {
       disconnector = Random::GetInstance().GetInt(0, count);
@@ -294,11 +301,6 @@ namespace Tests {
     while(sender == disconnector) {
       sender = Random::GetInstance().GetInt(0, count);
     }
-
-    QVector<TestNode *> nodes;
-    Group group;
-    ConstructOverlay(count, nodes, group, sg_policy);
-    CreateSessions(nodes, group, Id(), callback);
 
     SignalCounter sc;
     for(int idx = 0; idx < count; idx++) {
@@ -354,7 +356,14 @@ namespace Tests {
     Timer::GetInstance().UseVirtualTime();
 
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
-    int leader = 0;
+
+    QVector<TestNode *> nodes;
+    Group group;
+    ConstructOverlay(count, nodes, group, sg_policy);
+    CreateSessions(nodes, group, Id(), callback);
+
+    group = BuildGroup(nodes, group);
+    int leader = group.GetIndex(group.GetLeader());
     int disconnector = Random::GetInstance().GetInt(0, count);
     while(leader == disconnector) {
       disconnector = Random::GetInstance().GetInt(0, count);
@@ -363,11 +372,6 @@ namespace Tests {
     while(sender == disconnector) {
       sender = Random::GetInstance().GetInt(0, count);
     }
-
-    QVector<TestNode *> nodes;
-    Group group;
-    ConstructOverlay(count, nodes, group, sg_policy);
-    CreateSessions(nodes, group, Id(), callback);
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
@@ -422,24 +426,19 @@ namespace Tests {
     Id session_id;
     CreateSessions(nodes, group, session_id, good_callback);
 
-    Group tmp_group(QVector<GroupContainer>(), group.GetLeader(),
-        group.GetSubgroupPolicy());
-    foreach(TestNode *node, nodes) {
-      tmp_group = AddGroupMember(tmp_group, GroupContainer(node->cm.GetId(),
-            Group::EmptyKey(), QByteArray()));
-    }
-    Group stmp_group = tmp_group.GetSubgroup();
-
-    int leader = tmp_group.GetIndex(tmp_group.GetLeader());
-    int sg_count = stmp_group.Count();
+    Group egroup = group;
+    group = BuildGroup(nodes, group);
+    Group subgroup = group.GetSubgroup();
+    int leader = group.GetIndex(group.GetLeader());
+    int sg_count = subgroup.Count();
 
     int badguy = Random::GetInstance().GetInt(0, sg_count);
-    int group_badguy = tmp_group.GetIndex(stmp_group.GetId(badguy));
+    int group_badguy = group.GetIndex(subgroup.GetId(badguy));
     while(group_badguy == leader) {
       badguy = Random::GetInstance().GetInt(0, sg_count);
-      group_badguy = tmp_group.GetIndex(stmp_group.GetId(badguy));
+      group_badguy = group.GetIndex(subgroup.GetId(badguy));
     }
-    Id badid = tmp_group.GetId(badguy);
+    Id badid = group.GetId(badguy);
 
     int sender = Random::GetInstance().GetInt(0, count);
     while(sender == badguy) {
@@ -448,7 +447,7 @@ namespace Tests {
 
     qDebug() << "Bad guy at" << badguy << badid.ToString();
 
-    CreateSession(nodes[badguy], group, session_id, bad_callback);
+    CreateSession(nodes[badguy], egroup, session_id, bad_callback);
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
@@ -512,28 +511,23 @@ namespace Tests {
     Id session_id;
     CreateSessions(nodes, group, session_id, good_callback);
 
-    Group tmp_group(QVector<GroupContainer>(), group.GetLeader(),
-        group.GetSubgroupPolicy());
-    foreach(TestNode *node, nodes) {
-      tmp_group = AddGroupMember(tmp_group, GroupContainer(node->cm.GetId(),
-            Group::EmptyKey(), QByteArray()));
-    }
-    Group stmp_group = tmp_group.GetSubgroup();
-
-    int leader = tmp_group.GetIndex(tmp_group.GetLeader());
-    int sg_count = stmp_group.Count();
+    Group egroup = group;
+    group = BuildGroup(nodes, group);
+    Group subgroup = group.GetSubgroup();
+    int leader = group.GetIndex(group.GetLeader());
+    int sg_count = subgroup.Count();
 
     int badguy = Random::GetInstance().GetInt(0, sg_count);
-    int group_badguy = tmp_group.GetIndex(stmp_group.GetId(badguy));
+    int group_badguy = group.GetIndex(subgroup.GetId(badguy));
     while(group_badguy == leader) {
       badguy = Random::GetInstance().GetInt(0, sg_count);
-      group_badguy = tmp_group.GetIndex(stmp_group.GetId(badguy));
+      group_badguy = group.GetIndex(subgroup.GetId(badguy));
     }
-    Id badid = tmp_group.GetId(badguy);
+    Id badid = group.GetId(badguy);
 
     qDebug() << "Bad guy at" << badguy << badid.ToString();
 
-    CreateSession(nodes[badguy], group, session_id, bad_callback);
+    CreateSession(nodes[badguy], egroup, session_id, bad_callback);
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());

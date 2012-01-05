@@ -52,6 +52,8 @@ namespace Tests {
   void ConstructOverlay(int count, QVector<TestNode *> &nodes, Group &group,
       Group::SubgroupPolicy sg_policy);
 
+  Group BuildGroup(const QVector<TestNode *> &nodes, const Group &group);
+
   void CreateSessions(const QVector<TestNode *> &nodes, const Group &group,
       const Id &session_id, CreateSessionCallback callback);
 

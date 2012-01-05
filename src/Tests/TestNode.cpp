@@ -43,6 +43,16 @@ namespace Tests {
     }
   }
 
+  Group BuildGroup(const QVector<TestNode *> &nodes, const Group &group)
+  {
+    Group ngroup = Group(group.GetRoster(), group.GetLeader(), group.GetSubgroupPolicy());
+    foreach(TestNode *node, nodes) {
+      ngroup = AddGroupMember(ngroup, GroupContainer(node->cm.GetId(),
+            Group::EmptyKey(), QByteArray()));
+    }
+    return ngroup;
+  }
+
   void CreateSessions(const QVector<TestNode *> &nodes, const Group &group,
       const Id &session_id, CreateSessionCallback callback)
   {
