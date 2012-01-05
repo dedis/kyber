@@ -14,6 +14,10 @@ Connections
 Crypto
 - Add QCA or Botan CryptoLibraries, take a look at the src/Crypto/CryptoFactory and other related files to get a general feel
 - Integer should be a pimpl with a QSharedPointer or QScopedPointer
+- DH ZKP shouldn't have a serialized message type, should just return the various components independently and the lower level app should do the serialization
+- Remove Null implementations of non-slow things (DH is a good candidate)
+- Move XOR and MessageRandomizer into Utils
+- Remove Trusted and replace with Tolerant
 
 Messaging
 - Rpc messages are not deterministic, ignored outgoing Requests are never removed from the local _requests stack ... do we push more work on the user (calling code) or into the Rpc...
