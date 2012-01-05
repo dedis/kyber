@@ -5,7 +5,7 @@
 #include <QSharedPointer>
 
 #include "Edge.hpp"
-#include "../Utils/StartStop.hpp"
+#include "Utils/StartStop.hpp"
 
 namespace Dissent {
 namespace Transports {

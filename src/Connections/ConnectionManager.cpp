@@ -1,4 +1,4 @@
-#include "../Messaging/RpcHandler.hpp"
+#include "Messaging/RpcHandler.hpp"
 
 #include "Connection.hpp"
 #include "ConnectionManager.hpp"

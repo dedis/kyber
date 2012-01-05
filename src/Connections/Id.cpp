@@ -1,5 +1,5 @@
 #include "Id.hpp"
-#include "../Crypto/CryptoFactory.hpp"
+#include "Crypto/CryptoFactory.hpp"
 #include <QDebug>
 
 using namespace Dissent::Crypto;

@@ -1,5 +1,5 @@
 #include "TcpEdge.hpp"
-#include "../Utils/Serialization.hpp"
+#include "Utils/Serialization.hpp"
 
 using Dissent::Utils::Serialization;
 

@@ -5,12 +5,12 @@
 #include <QObject>
 #include <QQueue>
 
-#include "../Connections/Id.hpp"
-#include "../Messaging/Filter.hpp"
-#include "../Messaging/GetDataCallback.hpp"
-#include "../Messaging/RpcMethod.hpp"
-#include "../Utils/StartStop.hpp"
-#include "../Utils/TimerEvent.hpp"
+#include "Connections/Id.hpp"
+#include "Messaging/Filter.hpp"
+#include "Messaging/GetDataCallback.hpp"
+#include "Messaging/RpcMethod.hpp"
+#include "Utils/StartStop.hpp"
+#include "Utils/TimerEvent.hpp"
 
 #include "Credentials.hpp"
 #include "Group.hpp"

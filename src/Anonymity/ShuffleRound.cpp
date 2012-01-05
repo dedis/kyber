@@ -1,6 +1,6 @@
-#include "../Crypto/CryptoFactory.hpp"
-#include "../Utils/Serialization.hpp"
-#include "../Utils/QRunTimeError.hpp"
+#include "Crypto/CryptoFactory.hpp"
+#include "Utils/Serialization.hpp"
+#include "Utils/QRunTimeError.hpp"
 
 #include "ShuffleRound.hpp"
 #include "ShuffleBlamer.hpp"

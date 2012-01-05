@@ -6,8 +6,8 @@
 #include <QHostAddress>
 #include <QSettings>
 
-#include "../Anonymity/Group.hpp"
-#include "../Connections/Id.hpp"
+#include "Anonymity/Group.hpp"
+#include "Connections/Id.hpp"
 
 namespace Dissent {
 namespace Applications {

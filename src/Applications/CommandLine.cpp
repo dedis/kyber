@@ -1,6 +1,6 @@
 #include <qcoreapplication.h>
 
-#include "../Anonymity/Session.hpp"
+#include "Anonymity/Session.hpp"
 
 #include "CommandLine.hpp"
 #include "Node.hpp"

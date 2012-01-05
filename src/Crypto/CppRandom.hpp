@@ -4,7 +4,7 @@
 #include <QScopedPointer>
 #include <cryptopp/osrng.h> 
 
-#include "../Utils/Random.hpp"
+#include "Utils/Random.hpp"
 
 namespace Dissent {
 namespace Crypto {

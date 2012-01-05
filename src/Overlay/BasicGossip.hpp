@@ -4,11 +4,11 @@
 #include <QObject>
 #include <QSharedPointer>
 
-#include "../Connections/ConnectionManager.hpp"
-#include "../Connections/ConnectionTable.hpp"
+#include "Connections/ConnectionManager.hpp"
+#include "Connections/ConnectionTable.hpp"
 
-#include "../Messaging/RpcHandler.hpp"
-#include "../Messaging/RpcMethod.hpp"
+#include "Messaging/RpcHandler.hpp"
+#include "Messaging/RpcMethod.hpp"
 
 namespace Dissent {
 namespace Connections {

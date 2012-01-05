@@ -1,5 +1,5 @@
 #include "Connection.hpp"
-#include "../Transports/Edge.hpp"
+#include "Transports/Edge.hpp"
 
 namespace Dissent {
 namespace Connections {

@@ -7,7 +7,7 @@
 #include <QMetaEnum>
 #include <QSharedPointer>
 
-#include "../Connections/Network.hpp"
+#include "Connections/Network.hpp"
 
 #include "Log.hpp"
 #include "Round.hpp"

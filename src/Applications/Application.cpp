@@ -1,7 +1,7 @@
 #include <QCoreApplication>
 #include <QDebug>
 
-#include "../Dissent.hpp"
+#include "Dissent.hpp"
 
 int main(int argc, char **argv)
 {

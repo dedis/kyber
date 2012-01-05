@@ -3,8 +3,8 @@
 
 #include <QSharedPointer>
 
-#include "../../Anonymity/Session.hpp"
-#include "../../Anonymity/SessionManager.hpp"
+#include "Anonymity/Session.hpp"
+#include "Anonymity/SessionManager.hpp"
 
 #include "WebService.hpp"
 

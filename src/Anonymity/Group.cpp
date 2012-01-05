@@ -1,6 +1,6 @@
 #include "Group.hpp"
 
-#include "../Crypto/Serialization.hpp"
+#include "Crypto/Serialization.hpp"
 
 using Dissent::Connections::Id;
 using Dissent::Crypto::AsymmetricKey;

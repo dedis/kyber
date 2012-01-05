@@ -3,9 +3,9 @@
 
 #include <QHash>
 
-#include "../Anonymity/Group.hpp"
-#include "../Anonymity/Round.hpp"
-#include "../Connections/Id.hpp"
+#include "Anonymity/Group.hpp"
+#include "Anonymity/Round.hpp"
+#include "Connections/Id.hpp"
 
 #include "Node.hpp"
 

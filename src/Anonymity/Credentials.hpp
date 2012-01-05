@@ -3,9 +3,9 @@
 
 #include <QSharedPointer>
 
-#include "../Connections/Id.hpp"
-#include "../Crypto/AsymmetricKey.hpp"
-#include "../Crypto/DiffieHellman.hpp"
+#include "Connections/Id.hpp"
+#include "Crypto/AsymmetricKey.hpp"
+#include "Crypto/DiffieHellman.hpp"
 #include "Group.hpp"
 
 namespace Dissent {

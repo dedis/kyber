@@ -1,9 +1,9 @@
 #include <QDataStream>
 
-#include "../Connections/Connection.hpp"
-#include "../Transports/AddressFactory.hpp"
-#include "../Transports/EdgeListenerFactory.hpp"
-#include "../Utils/Timer.hpp"
+#include "Connections/Connection.hpp"
+#include "Transports/AddressFactory.hpp"
+#include "Transports/EdgeListenerFactory.hpp"
+#include "Utils/Timer.hpp"
 
 #include "BasicGossip.hpp"
 

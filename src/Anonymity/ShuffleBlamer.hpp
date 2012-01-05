@@ -4,7 +4,7 @@
 #include <QObject>
 #include <QSharedPointer>
 
-#include "../Connections/Id.hpp"
+#include "Connections/Id.hpp"
 
 #include "ShuffleRoundBlame.hpp"
 #include "Log.hpp"

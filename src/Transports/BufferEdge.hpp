@@ -4,7 +4,7 @@
 #include <stdexcept>
 
 #include "Edge.hpp"
-#include "../Utils/Timer.hpp"
+#include "Utils/Timer.hpp"
 
 namespace Dissent {
 namespace Transports {

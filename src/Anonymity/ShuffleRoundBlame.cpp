@@ -1,7 +1,7 @@
 #include "ShuffleRoundBlame.hpp"
 
-#include "../Crypto/CryptoFactory.hpp"
-#include "../Connections/EmptyNetwork.hpp"
+#include "Crypto/CryptoFactory.hpp"
+#include "Connections/EmptyNetwork.hpp"
 
 using Dissent::Crypto::CryptoFactory;
 using Dissent::Crypto::Hash;

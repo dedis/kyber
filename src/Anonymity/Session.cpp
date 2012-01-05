@@ -1,11 +1,11 @@
 #include <algorithm>
 
-#include "../Connections/Connection.hpp"
-#include "../Connections/ConnectionManager.hpp"
-#include "../Connections/ConnectionTable.hpp"
-#include "../Connections/Network.hpp"
-#include "../Crypto/Serialization.hpp"
-#include "../Utils/Timer.hpp"
+#include "Connections/Connection.hpp"
+#include "Connections/ConnectionManager.hpp"
+#include "Connections/ConnectionTable.hpp"
+#include "Connections/Network.hpp"
+#include "Crypto/Serialization.hpp"
+#include "Utils/Timer.hpp"
 
 #include "Session.hpp"
 

@@ -1,6 +1,6 @@
 #include <QDebug>
 
-#include "../Messaging/ISender.hpp"
+#include "Messaging/ISender.hpp"
 
 #include "ConsoleSink.hpp"
 

@@ -2,7 +2,7 @@
 #define DISSENT_CRYPTO_NULL_DIFFIE_HELLMAN_KEY_H_GUARD
 
 #include "DiffieHellman.hpp"
-#include "../Utils/Random.hpp"
+#include "Utils/Random.hpp"
 
 namespace Dissent {
 namespace Crypto {

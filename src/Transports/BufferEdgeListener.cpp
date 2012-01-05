@@ -1,6 +1,6 @@
 #include <QDebug>
 #include "BufferEdgeListener.hpp"
-#include "../Utils/Random.hpp"
+#include "Utils/Random.hpp"
 
 using Dissent::Utils::Random;
 

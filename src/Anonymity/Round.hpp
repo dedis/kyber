@@ -5,12 +5,12 @@
 
 #include <QObject>
 
-#include "../Connections/Id.hpp"
-#include "../Connections/Network.hpp"
-#include "../Messaging/GetDataCallback.hpp"
-#include "../Messaging/ISender.hpp"
-#include "../Messaging/Source.hpp"
-#include "../Utils/StartStop.hpp"
+#include "Connections/Id.hpp"
+#include "Connections/Network.hpp"
+#include "Messaging/GetDataCallback.hpp"
+#include "Messaging/ISender.hpp"
+#include "Messaging/Source.hpp"
+#include "Utils/StartStop.hpp"
 
 #include "Credentials.hpp"
 #include "Group.hpp"

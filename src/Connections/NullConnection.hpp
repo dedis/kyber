@@ -2,7 +2,7 @@
 #define DISSENT_CONNECTIONS_NULL_CONNECTION_H_GUARD
 
 #include "Connection.hpp"
-#include "../Transports/NullEdge.hpp"
+#include "Transports/NullEdge.hpp"
 
 namespace Dissent {
 namespace Connections {

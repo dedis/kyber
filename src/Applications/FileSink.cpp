@@ -1,4 +1,4 @@
-#include "../Messaging/ISender.hpp"
+#include "Messaging/ISender.hpp"
 
 #include "FileSink.hpp"
 

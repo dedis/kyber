@@ -4,7 +4,7 @@
 #include <QFile>
 #include <QTextStream>
 
-#include "../Messaging/ISink.hpp"
+#include "Messaging/ISink.hpp"
 
 namespace Dissent {
 namespace Applications {

@@ -1,7 +1,7 @@
 #ifndef DISSENT_ANONYMITY_TRUSTED_BULK_ROUND_H_GUARD
 #define DISSENT_ANONYMITY_TRUSTED_BULK_ROUND_H_GUARD
 
-#include "../Crypto/Integer.hpp"
+#include "Crypto/Integer.hpp"
 
 #include "RepeatingBulkRound.hpp"
 

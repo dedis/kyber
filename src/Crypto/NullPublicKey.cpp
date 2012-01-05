@@ -1,5 +1,5 @@
 #include "NullPublicKey.hpp"
-#include "../Utils/Serialization.hpp"
+#include "Utils/Serialization.hpp"
 #include <QHash>
 
 namespace Dissent {

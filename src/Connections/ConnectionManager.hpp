@@ -1,9 +1,9 @@
 #ifndef DISSENT_CONNECTIONS_CONNECTION_MANAGER_H_GUARD
 #define DISSENT_CONNECTIONS_CONNECTION_MANAGER_H_GUARD
 
-#include "../Messaging/RpcHandler.hpp"
-#include "../Messaging/RpcMethod.hpp"
-#include "../Transports/EdgeFactory.hpp"
+#include "Messaging/RpcHandler.hpp"
+#include "Messaging/RpcMethod.hpp"
+#include "Transports/EdgeFactory.hpp"
 
 #include "ConnectionTable.hpp"
 

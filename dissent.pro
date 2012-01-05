@@ -5,7 +5,7 @@
 TEMPLATE = lib
 TARGET = dissent
 DEPENDPATH += 
-INCLUDEPATH += ext/joyent-http-parser/ ext/qt-json/
+INCLUDEPATH += ext/joyent-http-parser/ ext/qt-json/ src/
 CONFIG += qt debug
 QT = core network
 

@@ -1,7 +1,7 @@
 #include <QDebug>
 
-#include "../Utils/QRunTimeError.hpp"
-#include "../Crypto/CryptoFactory.hpp"
+#include "Utils/QRunTimeError.hpp"
+#include "Crypto/CryptoFactory.hpp"
 
 #include "ShuffleBlamer.hpp"
 

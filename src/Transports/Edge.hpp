@@ -5,8 +5,8 @@
 
 #include "Address.hpp"
 
-#include "../Messaging/ISink.hpp"
-#include "../Messaging/Source.hpp"
+#include "Messaging/ISink.hpp"
+#include "Messaging/Source.hpp"
 
 namespace Dissent {
 namespace Transports {

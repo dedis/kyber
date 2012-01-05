@@ -3,10 +3,10 @@
 
 #include <QObject>
 
-#include "../Anonymity/Credentials.hpp"
-#include "../Anonymity/Group.hpp"
-#include "../Anonymity/SessionManager.hpp"
-#include "../Overlay/BasicGossip.hpp"
+#include "Anonymity/Credentials.hpp"
+#include "Anonymity/Group.hpp"
+#include "Anonymity/SessionManager.hpp"
+#include "Overlay/BasicGossip.hpp"
 
 namespace Dissent {
 namespace Crypto {

@@ -1,6 +1,6 @@
 #include <QDataStream>
 #include "Log.hpp"
-#include "../Connections/Id.hpp"
+#include "Connections/Id.hpp"
 
 using Dissent::Connections::Id;
 

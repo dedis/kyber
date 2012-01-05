@@ -4,9 +4,9 @@
 #include <QHash>
 #include <QSharedPointer>
 
-#include "../Connections/Id.hpp"
-#include "../Messaging/RpcHandler.hpp"
-#include "../Messaging/RpcMethod.hpp"
+#include "Connections/Id.hpp"
+#include "Messaging/RpcHandler.hpp"
+#include "Messaging/RpcMethod.hpp"
 
 namespace Dissent {
 namespace Messaging {

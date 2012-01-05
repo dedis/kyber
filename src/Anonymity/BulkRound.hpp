@@ -4,9 +4,9 @@
 #include <QMetaEnum>
 #include <QSharedPointer>
 
-#include "../Messaging/BufferSink.hpp"
-#include "../Messaging/GetDataCallback.hpp"
-#include "../Utils/Triple.hpp"
+#include "Messaging/BufferSink.hpp"
+#include "Messaging/GetDataCallback.hpp"
+#include "Utils/Triple.hpp"
 
 #include "Log.hpp"
 #include "Round.hpp"

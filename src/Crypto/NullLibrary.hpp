@@ -3,7 +3,7 @@
 
 #include "NullDiffieHellman.hpp"
 #include "NullHash.hpp"
-#include "../Utils/Random.hpp"
+#include "Utils/Random.hpp"
 #include "NullPrivateKey.hpp"
 #include "NullPublicKey.hpp"
 #include "CppIntegerData.hpp"

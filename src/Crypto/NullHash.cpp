@@ -1,6 +1,6 @@
 #include "NullHash.hpp"
 #include <QHash>
-#include "../Utils/Serialization.hpp"
+#include "Utils/Serialization.hpp"
 
 namespace Dissent {
 namespace Crypto {

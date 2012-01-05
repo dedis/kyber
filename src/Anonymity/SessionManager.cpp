@@ -1,4 +1,4 @@
-#include "../Messaging/RpcHandler.hpp"
+#include "Messaging/RpcHandler.hpp"
 
 #include "Session.hpp"
 #include "SessionManager.hpp"

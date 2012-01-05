@@ -1,4 +1,4 @@
-#include "../Connections/Network.hpp"
+#include "Connections/Network.hpp"
 
 #include "NullRound.hpp"
 

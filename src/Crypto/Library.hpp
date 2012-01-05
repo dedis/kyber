@@ -1,7 +1,7 @@
 #ifndef DISSENT_CRYPTO_LIBRARY_H_GUARD
 #define DISSENT_CRYPTO_LIBRARY_H_GUARD
 
-#include "../Utils/Random.hpp"
+#include "Utils/Random.hpp"
 #include "AsymmetricKey.hpp"
 #include "DiffieHellman.hpp"
 #include "Hash.hpp"

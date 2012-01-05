@@ -4,8 +4,8 @@
 #include <QDebug>
 #include <QSharedPointer>
 
-#include "../Messaging/Filter.hpp"
-#include "../Transports/Edge.hpp"
+#include "Messaging/Filter.hpp"
+#include "Transports/Edge.hpp"
 
 #include "Id.hpp"
 

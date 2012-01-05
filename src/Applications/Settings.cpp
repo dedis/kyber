@@ -1,4 +1,4 @@
-#include "../Utils/Logging.hpp"
+#include "Utils/Logging.hpp"
 
 #include "Settings.hpp"
 

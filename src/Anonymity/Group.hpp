@@ -10,9 +10,9 @@
 #include <QSharedPointer>
 #include <QVector>
 
-#include "../Connections/Id.hpp"
-#include "../Crypto/NullPrivateKey.hpp"
-#include "../Utils/Triple.hpp"
+#include "Connections/Id.hpp"
+#include "Crypto/NullPrivateKey.hpp"
+#include "Utils/Triple.hpp"
 
 namespace Dissent {
 namespace Crypto {

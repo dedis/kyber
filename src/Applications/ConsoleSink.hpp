@@ -2,7 +2,7 @@
 #define DISSENT_APPLICATIONS_CONSOLE_SINK_H_GUARD
 
 #include <QTextStream>
-#include "../Messaging/ISink.hpp"
+#include "Messaging/ISink.hpp"
 
 namespace Dissent {
 namespace Applications {

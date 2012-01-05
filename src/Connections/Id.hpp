@@ -3,7 +3,7 @@
 
 #include <QByteArray>
 #include <QString>
-#include "../Crypto/Integer.hpp"
+#include "Crypto/Integer.hpp"
 
 namespace Dissent {
 namespace Connections {

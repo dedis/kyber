@@ -1,5 +1,5 @@
-#include "../Connections/Connection.hpp"
-#include "../Messaging/RpcRequest.hpp"
+#include "Connections/Connection.hpp"
+#include "Messaging/RpcRequest.hpp"
 
 #include "Round.hpp"
 
