@@ -31,7 +31,6 @@ namespace Connections {
 
   Id::Id(const QString &sid) : _integer(sid)
   {
-    qWarning() << sid << _integer.ToString();
     if(_integer.ToString() != sid) {
       _integer = Integer(QByteArray(Id::ByteSize, 0));
     }

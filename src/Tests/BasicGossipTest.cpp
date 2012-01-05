@@ -98,10 +98,7 @@ namespace Tests {
     while(next != -1 && sc.GetCount() != count) {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
-      qWarning() << "GREAT" << sc.GetCount() << count;
     }
-
-    qWarning() << "HERE" << next << count << sc.GetCount();
 
     foreach(QSharedPointer<Node> node, nodes) {
       MockSinkWithSignal *sink = dynamic_cast<MockSinkWithSignal *>(node->sink.data());

@@ -104,13 +104,13 @@ namespace Anonymity {
       _network->GetConnectionManager().GetConnectionTable();
 
     if(ct.GetConnections().size() < _group.Count()) {
-      qWarning() << "Not enough cons for group members";
+      qDebug() << "Not enough cons for group members";
       return false;
     }
 
     foreach(const GroupContainer &gc, _group) {
       if(ct.GetConnection(gc.first) == 0) {
-        qWarning() << "Missing a connection";
+        qDebug() << "Missing a connection";
         return false;
       }
     }
@@ -145,7 +145,7 @@ namespace Anonymity {
       request.Respond(response);
       return;
     } else if(!Started()) {
-      qWarning() << "Received a registration message when not started.";
+      qDebug() << "Received a registration message when not started.";
       response["result"] = false;
       response["online"] = true;
       response["leader"] = true;
@@ -223,7 +223,7 @@ namespace Anonymity {
   bool Session::SendPrepare()
   {
     if(!CheckGroup()) {
-      qWarning() << "All peers registered and ready but lack sufficient peers";
+      qDebug() << "All peers registered and ready but lack sufficient peers";
       _prepare_waiting = true;
       return false;
     }
@@ -250,7 +250,7 @@ namespace Anonymity {
       request["group"] = group;
     }
 
-    qWarning() << "Sending prepare for round" << round_id.ToString() <<
+    qDebug() << "Sending prepare for round" << round_id.ToString() <<
       "new group:" << request.contains("group");
 
     _prepared_peers.clear();
@@ -279,14 +279,14 @@ namespace Anonymity {
 
     QByteArray brid = msg["round_id"].toByteArray();
     if(brid.isEmpty()) {
-      qWarning() << "ReceivedPrepare: Invalid round id";
+      qDebug() << "ReceivedPrepare: Invalid round id";
       return;
     }
 
     Id round_id(brid);
 
     if(msg.contains("group")) {
-      qWarning() << "Contains new group";
+      qDebug() << "Prepare contains new group";
       QDataStream stream(msg["group"].toByteArray());
       Group group;
       stream >> group;
@@ -294,7 +294,7 @@ namespace Anonymity {
     }
 
     if(!CheckGroup()) {
-      qWarning() << "Received a prepare message but lack of sufficient peers";
+      qDebug() << "Received a prepare message but lack of sufficient peers";
       _prepare_waiting = true;
       _prepare_request = request;
       return;
@@ -325,7 +325,7 @@ namespace Anonymity {
     Id round_id(message["round_id"].toByteArray());
 
     if(_current_round->GetRoundId() != round_id) {
-      qWarning() << "Received a prepared message from the wrong round.  RoundId:" <<
+      qDebug() << "Received a prepared message from the wrong round.  RoundId:" <<
         round_id.ToString() << "from" << response.GetFrom()->ToString();
       return;
     }

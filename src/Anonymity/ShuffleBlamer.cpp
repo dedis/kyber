@@ -270,9 +270,7 @@ namespace Anonymity {
 
     for(int idx = 0; idx < _rounds.count(); idx++) {
       const QVector<QByteArray> indata = _rounds[idx]->GetEncryptedData();
-      qWarning() << "Ahh!";
       if(indata.count() == 0) {
-      qWarning() << "right!";
         continue;
       }
       if(CountMatches(outdata, indata) != _rounds.count()) {
