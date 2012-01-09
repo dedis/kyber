@@ -33,6 +33,7 @@ Overlay
 
 Transports
 - Implement a UdpEL and create a reliability layer so we can use it for UdpEL and if we do other tasks that require reliable transmission (such as overlay routing).
+- TcpEL (maybe Qt) cannot handle running out of file descriptors -- causing the application to infinite loop on poll.
 
 Issues
 - The current protocol doesn't work properly if a non-shuffler receives an invalid go / no go message ... since no one is waiting for its private keys, thus the process will conclude potentially without his follow up.
