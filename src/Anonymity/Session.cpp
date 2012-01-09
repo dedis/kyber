@@ -104,12 +104,14 @@ namespace Anonymity {
       _network->GetConnectionManager().GetConnectionTable();
 
     if(ct.GetConnections().size() < _group.Count()) {
-      qDebug() << "Not enough cons for group members";
+      qDebug() << "Not enough cons for group members," <<
+        "need" << (_group.Count() - ct.GetConnections().size()) << "more";
       return false;
     }
 
     if(_group.Count() < MinimumRoundSize) {
-      qDebug() << "Not enough peers in group to support an anonymous session.";
+      qDebug() << "Not enough peers in group to support an anonymous session,"
+        "need" << (_group.Count() - MinimumRoundSize) << "more";
       return false;
     }
 
