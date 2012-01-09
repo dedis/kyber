@@ -5,7 +5,11 @@ namespace Crypto {
   CppRandom::CppRandom(const QByteArray &seed, uint index)
   {
     if(seed.isEmpty()) {
-      _rng.reset(new CryptoPP::AutoSeededX917RNG<CryptoPP::AES>());
+      try {
+        _rng.reset(new CryptoPP::AutoSeededX917RNG<CryptoPP::AES>());
+      } catch (CryptoPP::OS_RNG_Err &ex) {
+        qFatal("Ran out of file descriptors, when creating a CppRandom.");
+      }
       return;
     }
 
