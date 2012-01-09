@@ -281,6 +281,7 @@ namespace Anonymity {
       return;
     }
 
+    _log.Clear();
     uint group_size = static_cast<uint>(GetGroup().Count());
     _messages = QVector<QByteArray>(group_size);
     _received_messages = 0;
