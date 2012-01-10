@@ -124,7 +124,6 @@ namespace Connections {
 
     QString type = edge->GetLocalAddress().GetType();
     QSharedPointer<EdgeListener> el = _edge_factory.GetEdgeListener(type);
-    qWarning() << el->GetAddress().ToString();
     request["persistent"] = el->GetAddress().ToString();
 
     _rpc.SendRequest(request, edge.data(), &_inquired);
@@ -197,10 +196,10 @@ namespace Connections {
     if(_local_id < rem_id) {
       BindEdge(edge, rem_id);
     } else if(rem_id == _local_id) {
+      Address addr = edge->GetRemoteAddress();
       qDebug() << "Attempting to connect to ourself";
       edge->Close("Attempting to connect to ourself");
-      emit ConnectionAttemptFailure(edge->GetRemoteAddress(),
-          "Attempting to connect to ourself");
+      emit ConnectionAttemptFailure(addr, "Attempting to connect to ourself");
       return;
     }
   }
@@ -215,9 +214,9 @@ namespace Connections {
       QVariantMap notification;
       notification["method"] = "CM::Close";
       _rpc.SendNotification(notification, edge);
+      Address addr = edge->GetRemoteAddress();
       edge->Close("Duplicate connection");
-      emit ConnectionAttemptFailure(edge->GetRemoteAddress(),
-          "Duplicate connection");
+      emit ConnectionAttemptFailure(addr, "Duplicate connection");
       return;
     }
   
