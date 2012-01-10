@@ -12,7 +12,8 @@ namespace Anonymity {
     _round_id(round_id),
     _network(network),
     _get_data_cb(get_data),
-    _successful(false)
+    _successful(false),
+    _interrupted(false)
   {
   }
 

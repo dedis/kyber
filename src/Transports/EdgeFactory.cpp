@@ -21,6 +21,11 @@ namespace Transports {
     return false;
   }
 
+  QSharedPointer<EdgeListener> EdgeFactory::GetEdgeListener(QString type)
+  {
+    return _type_to_el.value(type);
+  }
+
   void EdgeFactory::Stop()
   {
     foreach(const QSharedPointer<EdgeListener> &el, _type_to_el) {

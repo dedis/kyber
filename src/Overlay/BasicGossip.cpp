@@ -54,8 +54,8 @@ namespace Overlay {
 
     _started = true;
 
-    QObject::connect(&_cm, SIGNAL(NewConnection(Connection *, bool)),
-        this, SLOT(HandleConnection(Connection *,bool)));
+    QObject::connect(&_cm, SIGNAL(NewConnection(Connection *)),
+        this, SLOT(HandleConnection(Connection *)));
     QObject::connect(&_cm, SIGNAL(ConnectionAttemptFailure(const Address &, const QString &)),
         this, SLOT(HandleConnectionAttemptFailure(const Address &, const QString &)));
     QObject::connect(&_cm, SIGNAL(Disconnected()),
@@ -100,14 +100,12 @@ namespace Overlay {
     return _cm.GetConnectionTable().GetConnections().count() == 1;
   }
 
-  void BasicGossip::HandleConnection(Connection *con, bool local)
+  void BasicGossip::HandleConnection(Connection *con)
   {
-    if(local) {
-      _active_attempts.remove(con->GetEdge()->GetRemoteAddress());
-      SendUpdate(con);
-      RequestPeerList(con);
-    }
-    emit NewConnection(con, local);
+    _active_attempts.remove(con->GetEdge()->GetRemotePersistentAddress());
+    SendUpdate(con);
+    RequestPeerList(con);
+    emit NewConnection(con);
   }
 
   void BasicGossip::HandleConnectionAttemptFailure(const Address &addr, const QString &)
@@ -143,7 +141,7 @@ namespace Overlay {
     QVariantMap notification;
     notification["method"] = "SN::Update";
     notification["peer_id"] = con->GetRemoteId().GetByteArray();
-    notification["address"] = con->GetEdge()->GetRemoteAddress().GetUrl();
+    notification["address"] = con->GetEdge()->GetRemotePersistentAddress().GetUrl();
 
     foreach(Connection *other_con, _cm.GetConnectionTable().GetConnections()) {
       if(other_con == con || other_con->GetRemoteId() == GetId()) {
@@ -190,7 +188,8 @@ namespace Overlay {
       if(con->GetRemoteId() == GetId()) {
         continue;
       }
-      QUrl url = con->GetEdge()->GetRemoteAddress().GetUrl();
+      
+      QUrl url = con->GetEdge()->GetRemotePersistentAddress().GetUrl();
       QByteArray id = con->GetRemoteId().GetByteArray();
       id_to_addr[id] = url;
     }
@@ -226,7 +225,7 @@ namespace Overlay {
   void BasicGossip::CheckAndConnect(const QByteArray &bid, const QUrl &url)
   {
     if(!url.isValid()) {
-      qWarning() << "Remote peer gave us an invalid url";
+      qWarning() << "Remote peer gave us an invalid url:" << url;
       return;
     }
 

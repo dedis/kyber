@@ -35,13 +35,13 @@ namespace Tests {
 
     SignalCounter sc;
     foreach(QSharedPointer<Node> node, nodes) {
-      QObject::connect(&node->bg, SIGNAL(NewConnection(Connection *, bool)),
+      QObject::connect(&node->bg, SIGNAL(NewConnection(Connection *)),
           &sc, SLOT(Counter()));
       node->bg.Start();
     }
 
     qint64 next = Timer::GetInstance().VirtualRun();
-    int total_cons = count * (count - 1) * 2;
+    int total_cons = count * (count - 1);
     while(next != -1 && sc.GetCount() != total_cons) {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();

@@ -65,7 +65,7 @@ namespace Applications {
       void CreateSession();
 
     private slots:
-      void HandleConnection(Connection *con, bool local);
+      void HandleConnection(Connection *con);
   };
 }
 }

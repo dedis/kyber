@@ -3,7 +3,10 @@
 namespace Dissent {
 namespace Transports {
   Edge::Edge(const Address &local, const Address &remote, bool outbound) :
-    _local_address(local), _remote_address(remote), _outbound(outbound),
+    _local_address(local),
+    _remote_address(remote),
+    _remote_p_addr(remote),
+    _outbound(outbound),
     _closed(false)
   {
   }

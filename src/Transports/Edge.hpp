@@ -47,6 +47,25 @@ namespace Transports {
       inline const Address &GetRemoteAddress() const { return _remote_address; }
 
       /**
+       * Returns what is suspected to be the persistent remote address
+       */
+      inline const Address &GetRemotePersistentAddress() const
+      {
+        return _remote_p_addr;
+      }
+
+      /**
+       * The remote address is the one the edge is actually using, the
+       * persistent address is the one the remote side will use for new
+       * connections
+       * @param addr the remote peers persistent address
+       */
+      inline void SetRemotePersistentAddress(const Address &addr)
+      {
+        _remote_p_addr = addr;
+      }
+
+      /**
        * True if the local side requested creation of this edge
        */
       inline bool Outbound() const { return _outbound; }
@@ -82,6 +101,7 @@ namespace Transports {
 
       const Address _local_address;
       const Address _remote_address;
+      Address _remote_p_addr;
       bool _outbound;
       bool _closed;
       QString _close_reason;

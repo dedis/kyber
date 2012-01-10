@@ -78,11 +78,6 @@ namespace Connections {
       inline ConnectionTable &GetConnectionTable() { return _con_tab; }
 
       /**
-       * Returns the incoming connection table
-       */
-      inline ConnectionTable &GetRemoteConnectionTable() { return _rem_con_tab; }
-
-      /**
        * Returns the local Id
        */
       inline const Id &GetId() { return _local_id; }
@@ -93,7 +88,7 @@ namespace Connections {
        * @param con the new connection
        * @param local true if owned locally
        */
-      void NewConnection(Connection *con, bool local);
+      void NewConnection(Connection *con);
 
       /**
        * A ConnectTo attempt failed, I guess ideally ConnectTo would take an Id
@@ -118,6 +113,22 @@ namespace Connections {
        * Handles an Inquire response
        */
       void Inquired(RpcRequest &response);
+
+      /**
+       * Bind the remote edge the specified Id via a connection ...
+       * that is create a connection, add it to the table, and inform the
+       * remote peer of this decision
+       * @param edge the edge used for the connection
+       * @param rem_id the Id binding edge -> con
+       */
+      void BindEdge(Edge *edge, const Id &rem_id);
+
+      /**
+       * Helper for BindEdge and Connect for actually creating the connection
+       * @param pedge the edge associated with the con
+       * @param rem_id the Id binding edge -> con
+       */
+      void CreateConnection(QSharedPointer<Edge> pedge, const Id &rem_id);
 
       /**
        * Based upon the Inquire response, the node wants to create a connection.
@@ -146,6 +157,7 @@ namespace Connections {
       EdgeFactory _edge_factory;
       RpcHandler &_rpc;
       bool _closed;
+      QHash<Address, bool> _outstanding_con_attempts;
 
     private slots:
       /**

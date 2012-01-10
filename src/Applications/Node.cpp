@@ -22,8 +22,8 @@ namespace Applications {
     base_group(group),
     SessionType(type)
   {
-    QObject::connect(&bg, SIGNAL(NewConnection(Connection *, bool)),
-        this, SLOT(HandleConnection(Connection *, bool)));
+    QObject::connect(&bg, SIGNAL(NewConnection(Connection *)),
+        this, SLOT(HandleConnection(Connection *)));
   }
 
   Node::~Node()
@@ -31,14 +31,10 @@ namespace Applications {
     QObject::disconnect(this, SIGNAL(Ready()), 0 ,0);
   }
 
-  void Node::HandleConnection(Connection *con, bool local)
+  void Node::HandleConnection(Connection *con)
   {
     if(creds.GetLocalId() == base_group.GetLeader()) {
       CreateSession();
-    }
-
-    if(!local) {
-      return;
     }
 
     if(con->GetRemoteId() != base_group.GetLeader()) {
@@ -50,8 +46,8 @@ namespace Applications {
 
   void Node::CreateSession()
   {
-    QObject::disconnect(&bg, SIGNAL(NewConnection(Connection *, bool)),
-        this, SLOT(HandleConnection(Connection *, bool)));
+    QObject::disconnect(&bg, SIGNAL(NewConnection(Connection *)),
+        this, SLOT(HandleConnection(Connection *)));
     SessionFactory::GetInstance().Create(this, Id::Zero(),
         base_group, SessionType);
     emit Ready();

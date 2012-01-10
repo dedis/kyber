@@ -37,7 +37,7 @@ namespace Anonymity {
     }
 
     qDebug() << GetLocalId().ToString() << "received" << _received_from.count()
-      << "expecting" << GetGroup().Count() << "more.";
+      << "expecting" << GetGroup().Count();
 
     if(_received_from.count() == GetGroup().Count()) {
       SetSuccessful(true);

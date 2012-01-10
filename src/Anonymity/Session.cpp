@@ -45,8 +45,8 @@ namespace Anonymity {
     }
 
     QObject::connect(&_network->GetConnectionManager(),
-        SIGNAL(NewConnection(Connection *, bool)),
-        this, SLOT(HandleConnection(Connection *, bool)));
+        SIGNAL(NewConnection(Connection *)),
+        this, SLOT(HandleConnection(Connection *)));
   }
 
   Session::~Session()
@@ -102,12 +102,6 @@ namespace Anonymity {
   {
     Dissent::Connections::ConnectionTable &ct =
       _network->GetConnectionManager().GetConnectionTable();
-
-    if(ct.GetConnections().size() < _group.Count()) {
-      qDebug() << "Not enough cons for group members," <<
-        "need" << (_group.Count() - ct.GetConnections().size()) << "more";
-      return false;
-    }
 
     if(_group.Count() < MinimumRoundSize) {
       qDebug() << "Not enough peers in group to support an anonymous session,"
@@ -189,17 +183,14 @@ namespace Anonymity {
     response["result"] = true;
     request.Respond(response);
 
-    Connection *my_con = _network->GetConnection(remote);
-    if(my_con != 0) {
-      QObject::connect(con, SIGNAL(Disconnected(const QString &)),
-          this, SLOT(HandleDisconnect()));
-    }
+    QObject::connect(con, SIGNAL(Disconnected(const QString &)),
+        this, SLOT(HandleDisconnect()));
 
     if(_current_round.isNull() || (!_current_round->Started() ||
           _current_round->Stopped()))
     {
       SendPrepare();
-    } else if(IsLeader() && CheckGroup()) {
+    } else if(IsLeader()) {
       _current_round->PeerJoined();
     }
   }
@@ -235,19 +226,14 @@ namespace Anonymity {
       return false;
     }
 
-    bool interrupt = false;
-    if(!_current_round.isNull()) {
-      interrupt = (!_current_round->Successful() &&
-        (_current_round->GetBadMembers().size() == 0));
-    }
-
     Id round_id(Id::Zero().GetInteger() + _round_idx++);
 
     QVariantMap request;
     request["method"] = "SM::Prepare";
     request["session_id"] = _session_id.GetByteArray();
     request["round_id"] = round_id.GetByteArray();
-    request["interrupt"] = interrupt;
+    request["interrupt"] = _current_round.isNull() ?
+      false : _current_round->Interrupted();
 
     if(_group != _shared_group) {
       _shared_group = _group;
@@ -276,11 +262,14 @@ namespace Anonymity {
       _prepare_waiting = false;
     }
 
-    if(!msg["interrupt"].toBool() && !_current_round.isNull() &&
-        !_current_round->Stopped() && _current_round->Started())
+    if(!_current_round.isNull() && !_current_round->Stopped() &&
+        _current_round->Started())
     {
       _prepare_waiting = true;
       _prepare_request = request;
+      if(msg["interrupt"].toBool()) {
+        _current_round->Stop("Round interrupted.");
+      }
       return;
     }
 
@@ -388,7 +377,7 @@ namespace Anonymity {
 
   void Session::HandleRoundFinished()
   {
-    Round * round = qobject_cast<Round *>(sender());
+    Round *round = qobject_cast<Round *>(sender());
     if(round != _current_round.data()) {
       qWarning() << "Received an awry Round Finished notification";
       return;
@@ -397,6 +386,12 @@ namespace Anonymity {
     qDebug() << "Session" << ToString() << "round" <<
       _current_round->ToString() << "finished due to" <<
       _current_round->GetStoppedReason();
+
+    if(!round->Successful()) {
+      _trim_send_queue = 0;
+    } else if(_trim_send_queue > 0) {
+      qWarning() << "Trimmed!";
+    }
 
     emit RoundFinished(_current_round);
 
@@ -424,10 +419,6 @@ namespace Anonymity {
 
   void Session::NextRound(const Id &round_id)
   {
-    if(!_current_round.isNull() && !_current_round->Successful()) {
-      _trim_send_queue = 0;
-    }
-
     Round * round = _create_round(_group, _creds, round_id, _network,
         _get_data_cb);
 
@@ -460,29 +451,17 @@ namespace Anonymity {
     }
   }
 
-  void Session::HandleConnection(Connection *con, bool local)
+  void Session::HandleConnection(Connection *con)
   {
-    if(!local) {
-      return;
-    }
-
     if(!_group.Contains(con->GetRemoteId())) {
       return;
-    }
+   }
 
     QObject::connect(con, SIGNAL(Disconnected(const QString &)),
         this, SLOT(HandleDisconnect()));
 
-    if(CheckGroup()) {
-      if(_prepare_waiting) {
-        if(IsLeader()) {
-          SendPrepare();
-        } else {
-          ReceivedPrepare(_prepare_request);
-        }
-      } else if(IsLeader()) {
-        _current_round->PeerJoined();
-      }
+    if(_prepare_waiting && CheckGroup()) {
+      ReceivedPrepare(_prepare_request);
     }
   }
 

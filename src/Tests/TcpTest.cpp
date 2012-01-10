@@ -31,11 +31,11 @@ namespace Tests {
       local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
     }
 
-    int total_cons = count * (count - 1) * 2;
+    int total_cons = count * (count - 1);
     SignalCounter sc(total_cons);
 
     foreach(QSharedPointer<Node> node, nodes) {
-      QObject::connect(&node->bg, SIGNAL(NewConnection(Connection *, bool)),
+      QObject::connect(&node->bg, SIGNAL(NewConnection(Connection *)),
           &sc, SLOT(Counter()));
       node->bg.Start();
     }

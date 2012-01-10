@@ -110,9 +110,8 @@ namespace Overlay {
       /**
        * A new outgoing connection has been created
        * @param con the new connection
-       * @param local true if owned locally
        */
-      void NewConnection(Connection *con, bool local);
+      void NewConnection(Connection *con);
 
       /**
        * Emitted when disconnected
@@ -186,11 +185,15 @@ namespace Overlay {
       /**
        * A new connection
        * @param con the new connection
-       * @param local true if owned locally
        */
-      void HandleConnection(Connection *con, bool local);
+      void HandleConnection(Connection *con);
 
-      void HandleConnectionAttemptFailure(const Address &to, const QString &error);
+      /**
+       * A connection attempt failed
+       */
+      void HandleConnectionAttemptFailure(const Address &to,
+          const QString &error);
+
       /**
        * Handles the CM disconnect message
        */

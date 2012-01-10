@@ -31,6 +31,12 @@ namespace Transports {
        */
       void Stop();
 
+      /**
+       * Returns the EL mapped to the type
+       * @param type the type of EL
+       */
+      QSharedPointer<EdgeListener> GetEdgeListener(QString type);
+
     private:
       QHash<QString, QSharedPointer<EdgeListener> > _type_to_el;
   };

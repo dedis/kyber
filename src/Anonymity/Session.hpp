@@ -234,7 +234,7 @@ namespace Anonymity {
       /**
        * Called when a new connection is created
        */
-      void HandleConnection(Connection *con, bool local);
+      void HandleConnection(Connection *con);
 
       /**
        * Called when the current round has finished

@@ -3,7 +3,7 @@
 
 namespace Dissent {
 namespace Tests {
-  TEST(Connection, OneWay)
+  TEST(Connection, SingleConnect)
   {
     Timer::GetInstance().UseVirtualTime();
 
@@ -23,8 +23,8 @@ namespace Tests {
     cm1.AddEdgeListener(QSharedPointer<EdgeListener>(be1));
     be1->Start();
 
-    EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
-    EXPECT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
+    ASSERT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
+    ASSERT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
     cm1.ConnectTo(addr0);
 
     qint64 next = Timer::GetInstance().VirtualRun();
@@ -33,8 +33,8 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
-    EXPECT_TRUE(cm1.GetConnectionTable().GetConnection(id0));
+    ASSERT_TRUE(cm0.GetConnectionTable().GetConnection(id1));
+    ASSERT_TRUE(cm1.GetConnectionTable().GetConnection(id0));
 
     TestRpc test0;
     rpc0.Register(new RpcMethod<TestRpc>(&test0, &TestRpc::Add), "add");
@@ -47,7 +47,7 @@ namespace Tests {
     request["x"] = 3;
     request["y"] = 6;
 
-    EXPECT_EQ(-1, test1.value);
+    ASSERT_EQ(-1, test1.value);
     rpc1.SendRequest(request, cm1.GetConnectionTable().GetConnection(id0), &cb);
 
     next = Timer::GetInstance().VirtualRun();
@@ -56,7 +56,7 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    EXPECT_EQ(9, test1.value);
+    ASSERT_EQ(9, test1.value);
 
     cm1.GetConnectionTable().GetConnection(id0)->Disconnect();
 
@@ -66,11 +66,11 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
-    EXPECT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
+    ASSERT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
+    ASSERT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
   }
 
-  TEST(Connection, Bidirectional)
+  TEST(Connection, SimultaneousConnect)
   {
     Timer::GetInstance().UseVirtualTime();
 
@@ -90,10 +90,11 @@ namespace Tests {
     cm1.AddEdgeListener(QSharedPointer<EdgeListener>(be1));
     be1->Start();
 
-    EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
-    EXPECT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
+    ASSERT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
+    ASSERT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
 
     cm1.ConnectTo(addr0);
+    cm0.ConnectTo(addr1);
 
     qint64 next = Timer::GetInstance().VirtualRun();
     while(next != -1) {
@@ -101,19 +102,8 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
-    EXPECT_TRUE(cm1.GetConnectionTable().GetConnection(id0));
-
-    cm0.ConnectTo(addr1);
-
-    next = Timer::GetInstance().VirtualRun();
-    while(next != -1) {
-      Time::GetInstance().IncrementVirtualClock(next);
-      next = Timer::GetInstance().VirtualRun();
-    }
-
-    EXPECT_TRUE(cm0.GetConnectionTable().GetConnection(id1));
-    EXPECT_TRUE(cm1.GetConnectionTable().GetConnection(id0));
+    ASSERT_TRUE(cm0.GetConnectionTable().GetConnection(id1));
+    ASSERT_TRUE(cm1.GetConnectionTable().GetConnection(id0));
 
     TestRpc test0;
     rpc0.Register(new RpcMethod<TestRpc>(&test0, &TestRpc::Add), "add");
@@ -126,7 +116,7 @@ namespace Tests {
     request["x"] = 3;
     request["y"] = 6;
 
-    EXPECT_EQ(-1, test1.value);
+    ASSERT_EQ(-1, test1.value);
     rpc1.SendRequest(request, cm1.GetConnectionTable().GetConnection(id0), &cb);
 
     next = Timer::GetInstance().VirtualRun();
@@ -135,7 +125,7 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    EXPECT_EQ(9, test1.value);
+    ASSERT_EQ(9, test1.value);
 
     cm1.GetConnectionTable().GetConnection(id0)->Disconnect();
 
@@ -145,22 +135,11 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    EXPECT_TRUE(cm0.GetConnectionTable().GetConnection(id1));
-    EXPECT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
-
-    cm0.GetConnectionTable().GetConnection(id1)->Disconnect();
-
-    next = Timer::GetInstance().VirtualRun();
-    while(next != -1) {
-      Time::GetInstance().IncrementVirtualClock(next);
-      next = Timer::GetInstance().VirtualRun();
-    }
-
-    EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
-    EXPECT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
+    ASSERT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
+    ASSERT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
   }
 
-  TEST(Connection, SameTime)
+  TEST(Connection, SimultaneousDisconnect)
   {
     Timer::GetInstance().UseVirtualTime();
 
@@ -180,8 +159,8 @@ namespace Tests {
     cm1.AddEdgeListener(QSharedPointer<EdgeListener>(be1));
     be1->Start();
 
-    EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
-    EXPECT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
+    ASSERT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
+    ASSERT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
     cm1.ConnectTo(addr0);
     cm0.ConnectTo(addr1);
 
@@ -191,8 +170,8 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    EXPECT_TRUE(cm0.GetConnectionTable().GetConnection(id1));
-    EXPECT_TRUE(cm1.GetConnectionTable().GetConnection(id0));
+    ASSERT_TRUE(cm0.GetConnectionTable().GetConnection(id1));
+    ASSERT_TRUE(cm1.GetConnectionTable().GetConnection(id0));
 
     TestRpc test0;
     rpc0.Register(new RpcMethod<TestRpc>(&test0, &TestRpc::Add), "add");
@@ -205,7 +184,7 @@ namespace Tests {
     request["x"] = 3;
     request["y"] = 6;
 
-    EXPECT_EQ(-1, test1.value);
+    ASSERT_EQ(-1, test1.value);
     rpc1.SendRequest(request, cm1.GetConnectionTable().GetConnection(id0), &cb);
 
     next = Timer::GetInstance().VirtualRun();
@@ -214,7 +193,7 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    EXPECT_EQ(9, test1.value);
+    ASSERT_EQ(9, test1.value);
 
     cm1.GetConnectionTable().GetConnection(id0)->Disconnect();
     cm0.GetConnectionTable().GetConnection(id1)->Disconnect();
@@ -225,8 +204,8 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
-    EXPECT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
+    ASSERT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
+    ASSERT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
   }
 
   TEST(Connection, Disconnect)
@@ -249,8 +228,8 @@ namespace Tests {
     cm1.AddEdgeListener(QSharedPointer<EdgeListener>(be1));
     be1->Start();
 
-    EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
-    EXPECT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
+    ASSERT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
+    ASSERT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
     cm1.ConnectTo(addr0);
     cm0.ConnectTo(addr1);
 
@@ -260,10 +239,9 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    EXPECT_TRUE(cm0.GetConnectionTable().GetConnection(id1));
-    EXPECT_TRUE(cm1.GetConnectionTable().GetConnection(id0));
+    ASSERT_TRUE(cm0.GetConnectionTable().GetConnection(id1));
+    ASSERT_TRUE(cm1.GetConnectionTable().GetConnection(id0));
 
-    cm1.Disconnect();
     cm0.Disconnect();
 
     next = Timer::GetInstance().VirtualRun();
@@ -272,8 +250,8 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
-    EXPECT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
+    ASSERT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
+    ASSERT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
 
     cm1.ConnectTo(addr0);
     cm0.ConnectTo(addr1);
@@ -284,11 +262,11 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
-    EXPECT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
+    ASSERT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
+    ASSERT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
   }
 
-  TEST(Connection, OneWayDisconnect)
+  TEST(Connection, Reconnect)
   {
     Timer::GetInstance().UseVirtualTime();
 
@@ -308,8 +286,8 @@ namespace Tests {
     cm1.AddEdgeListener(QSharedPointer<EdgeListener>(be1));
     be1->Start();
 
-    EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
-    EXPECT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
+    ASSERT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
+    ASSERT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
     cm1.ConnectTo(addr0);
     cm0.ConnectTo(addr1);
 
@@ -319,10 +297,10 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    EXPECT_TRUE(cm0.GetConnectionTable().GetConnection(id1));
-    EXPECT_TRUE(cm1.GetConnectionTable().GetConnection(id0));
+    ASSERT_TRUE(cm0.GetConnectionTable().GetConnection(id1));
+    ASSERT_TRUE(cm1.GetConnectionTable().GetConnection(id0));
 
-    cm0.Disconnect();
+    cm1.GetConnectionTable().GetConnection(id0)->Disconnect();
 
     next = Timer::GetInstance().VirtualRun();
     while(next != -1) {
@@ -330,8 +308,8 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
-    EXPECT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
+    ASSERT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
+    ASSERT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
 
     cm1.ConnectTo(addr0);
     cm0.ConnectTo(addr1);
@@ -342,7 +320,8 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    EXPECT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
+    ASSERT_TRUE(cm0.GetConnectionTable().GetConnection(id1));
+    ASSERT_TRUE(cm1.GetConnectionTable().GetConnection(id0));
   }
 }
 }

@@ -136,6 +136,16 @@ namespace Anonymity {
        */
       virtual bool SupportsRejoins() { return false; }
 
+      /**
+       * Was the round interrupted?  Should the leader interrupt others.
+       */
+      bool Interrupted() { return _interrupted; }
+
+      /**
+       * Round interrupted, leader should interrupt others.
+       */
+      void SetInterrupted() { _interrupted = true; }
+
     signals:
       /**
        * Emitted when the Round is closed for good or bad.
@@ -216,6 +226,7 @@ namespace Anonymity {
       bool _successful;
       QString _stopped_reason;
       QVector<int> _empty_list;
+      bool _interrupted;
   };
 
   typedef Round *(*CreateRound)(const Group &,

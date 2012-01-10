@@ -277,6 +277,7 @@ namespace Anonymity {
   void RepeatingBulkRound::PrepForNextPhase()
   {
     if(_stop_next) {
+      SetInterrupted();
       Stop("Stopped for join");
       return;
     }
