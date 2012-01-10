@@ -65,8 +65,9 @@ namespace Anonymity {
       /**
        * Does all the prep work for the next phase, clearing and zeroing out
        * all the necessary fields
+       * @returns true if all good, returns false if stopped
        */
-      virtual void PrepForNextPhase();
+      virtual bool PrepForNextPhase();
 
     private:
       /**

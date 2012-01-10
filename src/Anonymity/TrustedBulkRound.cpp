@@ -64,7 +64,7 @@ namespace Anonymity {
     return xor_msg;
   }
 
-  void TrustedBulkRound::PrepForNextPhase()
+  bool TrustedBulkRound::PrepForNextPhase()
   {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QVector<QSharedPointer<Random> > anon_rngs;
@@ -77,7 +77,7 @@ namespace Anonymity {
 
     SetAnonymousRngs(anon_rngs);
 
-    RepeatingBulkRound::PrepForNextPhase();
+    return RepeatingBulkRound::PrepForNextPhase();
   }
 
   void TrustedBulkRound::HandleDisconnect(const Id &id)

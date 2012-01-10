@@ -209,8 +209,7 @@ namespace Anonymity {
 
       SetState(PhasePreparation);
       _phase++;
-      PrepForNextPhase();
-      if(Stopped()) {
+      if(!PrepForNextPhase()) {
         return;
       }
 
@@ -274,12 +273,12 @@ namespace Anonymity {
     }
   }
 
-  void RepeatingBulkRound::PrepForNextPhase()
+  bool RepeatingBulkRound::PrepForNextPhase()
   {
     if(_stop_next) {
       SetInterrupted();
       Stop("Stopped for join");
-      return;
+      return false;
     }
 
     _log.Clear();
@@ -291,6 +290,8 @@ namespace Anonymity {
     for(uint idx = 0; idx < group_size; idx++) {
       _expected_bulk_size += _header_lengths[idx] + _message_lengths[idx];
     }
+
+    return true;
   }
 
   void RepeatingBulkRound::NextPhase()
@@ -397,7 +398,9 @@ namespace Anonymity {
     }
 
     SetState(PhasePreparation);
-    PrepForNextPhase();
+    if(!PrepForNextPhase()) {
+      return;
+    }
 
     SetState(DataSharing);
     NextPhase();
