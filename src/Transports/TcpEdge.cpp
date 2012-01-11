@@ -18,6 +18,11 @@ namespace Transports {
     QObject::connect(socket, SIGNAL(disconnected()), this, SLOT(HandleDisconnect()));
   }
 
+  TcpEdge::~TcpEdge()
+  {
+    QObject::disconnect();
+  }
+
   void TcpEdge::Send(const QByteArray &data)
   {
     if(_closed) {

@@ -29,7 +29,7 @@ namespace Transports {
       /**
        * Destructor
        */
-      virtual ~TcpEdge() {}
+      virtual ~TcpEdge();
 
       virtual void Send(const QByteArray &data);
       virtual bool Close(const QString& reason);
