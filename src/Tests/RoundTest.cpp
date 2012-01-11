@@ -70,7 +70,10 @@ namespace Tests {
     }
 
     for(int idx = 0; idx < count; idx++) {
-      ASSERT_EQ(msg, nodes[idx]->sink.Last().first);
+      EXPECT_TRUE(nodes[idx]->sink.Count());
+      if(nodes[idx]->sink.Count()) {
+        EXPECT_EQ(msg, nodes[idx]->sink.Last().first);
+      }
     }
 
     CleanUp(nodes);
@@ -166,7 +169,10 @@ namespace Tests {
     sc.Reset();
 
     for(int idx = 0; idx < count; idx++) {
-      ASSERT_EQ(msg, nodes[idx]->sink.Last().first);
+      EXPECT_TRUE(nodes[idx]->sink.Count());
+      if(nodes[idx]->sink.Count()) {
+        EXPECT_EQ(msg, nodes[idx]->sink.Last().first);
+      }
     }
 
     rand->GenerateBlock(msg);
@@ -257,6 +263,7 @@ namespace Tests {
     nodes.last()->session->Start();
 
     while(next != -1 && ready.GetCount() != 1) {
+      //qDebug() << "Ready count" << ready.GetCount() << nodes.last()->cm.GetId().ToString();
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
     }
@@ -483,9 +490,9 @@ namespace Tests {
         TestNode *node = nodes[idx];
         if(idx == badguy) {
           QSharedPointer<Round> round = node->session->GetCurrentRound();
-          ASSERT_TRUE(round->GetBadMembers().size() == 1);
+          EXPECT_EQ(1, round->GetBadMembers().size());
           if(round->GetBadMembers().size() == 1) {
-            ASSERT_TRUE(round->GetBadMembers()[0] == badguy);
+            EXPECT_EQ(badguy, round->GetBadMembers()[0]);
           }
           continue;
         }
@@ -497,6 +504,89 @@ namespace Tests {
           ASSERT_EQ(node->sink.Last().first, msg);
         }
       }
+    }
+
+    CleanUp(nodes);
+  }
+
+  /**
+   * BadGuyBulk is slightly different from BadGuy. 
+   * It assumes that all messages except one (the corrupted
+   * one) will be received before blame starts.
+   *
+   * BadGuy assumes that blame finishes before messages
+   * are received (as in the shuffle).
+   */
+  void RoundTest_BadGuyBulk(CreateSessionCallback good_callback,
+      CreateSessionCallback bad_callback, Group::SubgroupPolicy sg_policy,
+      const BadGuyCB &)
+  {
+    Timer::GetInstance().UseVirtualTime();
+
+    int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
+
+    QVector<TestNode *> nodes;
+    Group group;
+    ConstructOverlay(count, nodes, group, sg_policy);
+
+    Id session_id;
+    CreateSessions(nodes, group, session_id, good_callback);
+
+    Group egroup = group;
+    group = BuildGroup(nodes, group);
+    Group subgroup = group.GetSubgroup();
+    int leader = group.GetIndex(group.GetLeader());
+    int sg_count = subgroup.Count();
+
+    int badguy = Random::GetInstance().GetInt(0, sg_count);
+    int group_badguy = group.GetIndex(subgroup.GetId(badguy));
+    while(group_badguy == leader) {
+      badguy = Random::GetInstance().GetInt(0, sg_count);
+      group_badguy = group.GetIndex(subgroup.GetId(badguy));
+    }
+    Id badid = group.GetId(badguy);
+
+    int sender = Random::GetInstance().GetInt(0, count);
+    while(sender == badguy) {
+      sender = Random::GetInstance().GetInt(0, count);
+    }
+
+    qDebug() << "Bad guy at" << badguy << badid.ToString();
+
+    CreateSession(nodes[badguy], egroup, session_id, bad_callback);
+
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
+
+    QByteArray msg(512, 0);
+    rand->GenerateBlock(msg);
+    nodes[sender]->session->Send(msg);
+
+    SignalCounter started;
+    for(int idx = 0; idx < count; idx++) {
+      QObject::connect(nodes[idx]->session.data(), 
+          SIGNAL(RoundStarting(QSharedPointer<Round>)), &started, SLOT(Counter()));
+      nodes[idx]->session->Start();
+    }
+  
+    // Wait for first round to finish and for 
+    // the second round to start
+    qint64 next = Timer::GetInstance().VirtualRun();
+    while(next != -1 && started.GetCount() < ((2*count)-1)) {
+      Time::GetInstance().IncrementVirtualClock(next);
+      next = Timer::GetInstance().VirtualRun();
+      qDebug() << "STARTED" << started.GetCount();
+    }
+
+    qDebug() << "Nodes" << nodes[sender]->session->GetGroup().Count();
+   
+    // Make sure that the bad guy was found
+    for(int idx = 0; idx < nodes.size(); idx++) {
+      // Don't expect the bad guy to be honest
+      if(idx == badguy) continue;
+
+      EXPECT_EQ(count-1, nodes[idx]->session->GetGroup().Count());
+      EXPECT_FALSE(nodes[idx]->session->GetGroup().Contains(badid));
     }
 
     CleanUp(nodes);

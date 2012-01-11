@@ -4,6 +4,7 @@
 #include <QHash>
 #include <QObject>
 #include <QQueue>
+#include <QSet>
 
 #include "Connections/Id.hpp"
 #include "Messaging/Filter.hpp"
@@ -126,6 +127,11 @@ namespace Anonymity {
        */
       inline const Group &GetGroup() const { return _group; }
 
+      /**
+       * Get the set of bad group members
+       */
+      inline const QSet<Id> GetBadMembers() const { return _bad_members; }
+
       static const int MinimumRoundSize = 3;
 
     signals:
@@ -214,6 +220,7 @@ namespace Anonymity {
 
       Group _group;
       Group _shared_group;
+      QSet<Id> _bad_members;
       const Credentials _creds;
       const Id _session_id;
       QSharedPointer<Network> _network;

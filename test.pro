@@ -38,6 +38,8 @@ HEADERS += ext/googletest/include/gtest/gtest-death-test.h \
            src/Tests/RoundTest.hpp \
            src/Tests/ShuffleRoundHelpers.hpp \
            src/Tests/BulkRoundHelpers.hpp \
+           src/Tests/TolerantBulkRoundHelpers.hpp \
+           src/Tests/TolerantTreeRoundHelpers.hpp \
            src/Tests/WebServicesTest.hpp \
            src/Tests/TestWebClient.hpp
 
@@ -71,6 +73,8 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/BulkRoundTest.cpp \
            src/Tests/RepeatingBulkRoundTest.cpp \
            src/Tests/TrustedBulkRoundTest.cpp \
+           src/Tests/TolerantBulkRoundTest.cpp \
+           src/Tests/TolerantTreeRoundTest.cpp \
            src/Tests/PackagersTest.cpp \
            src/Tests/HttpRequestTest.cpp \
            src/Tests/HttpResponseTest.cpp \

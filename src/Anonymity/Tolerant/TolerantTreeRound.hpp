@@ -1,5 +1,5 @@
-#ifndef DISSENT_ANONYMITY_TOLERANT_TOLERANT_BULK_ROUND_H_GUARD
-#define DISSENT_ANONYMITY_TOLERANT_TOLERANT_BULK_ROUND_H_GUARD
+#ifndef DISSENT_ANONYMITY_TOLERANT_TOLERANT_TREE_ROUND_H_GUARD
+#define DISSENT_ANONYMITY_TOLERANT_TOLERANT_TREE_ROUND_H_GUARD
 
 #include <QMetaEnum>
 #include <QSharedPointer>
@@ -12,11 +12,6 @@
 #include "Messaging/RpcRequest.hpp"
 #include "Utils/Triple.hpp"
 #include "Utils/Random.hpp"
-
-#include "Accusation.hpp"
-#include "AlibiData.hpp"
-#include "Conflict.hpp"
-#include "MessageHistory.hpp"
 
 namespace Dissent {
 namespace Crypto {
@@ -34,9 +29,9 @@ namespace Anonymity {
 namespace Tolerant {
 
   /**
-   * Dissent "v3" Bulk
+   * Dissent "v3" Bulk with XOR Tree
    */
-  class TolerantBulkRound : public Dissent::Anonymity::Round {
+  class TolerantTreeRound : public Dissent::Anonymity::Round {
     Q_OBJECT
 
     Q_ENUMS(State);
@@ -46,14 +41,13 @@ namespace Tolerant {
 
     public:
       typedef Dissent::Anonymity::Log Log;
-      typedef Dissent::Anonymity::MessageRandomizer MessageRandomizer;
       typedef Dissent::Anonymity::Round Round;
       typedef Dissent::Crypto::DiffieHellman DiffieHellman;
       typedef Dissent::Crypto::Hash Hash;
       typedef Dissent::Crypto::Library Library;
       typedef Dissent::Messaging::BufferSink BufferSink;
       typedef Dissent::Messaging::RpcRequest RpcRequest;
-      typedef Dissent::Messaging::GetDataMethod<TolerantBulkRound> BulkGetDataCallback;
+      typedef Dissent::Messaging::GetDataMethod<TolerantTreeRound> BulkGetDataCallback;
       typedef Dissent::Utils::Random Random;
 
       /**
@@ -63,20 +57,10 @@ namespace Tolerant {
         State_Offline,
         State_SigningKeyShuffling,
         State_CommitSharing,
+        State_CommitReceiving,
         State_DataSharing,
-        State_BlameShuffling,
-        State_BlameAlibiSharing,
-        State_BlameProofSharing,
+        State_DataReceiving,
         State_Finished
-      };
-
-      /**
-       * States of gathering blame evidence
-       */
-      enum EvidenceState {
-        NotLookingForEvidence,
-        LookingForEvidence,
-        FoundEvidence 
       };
 
       /**
@@ -84,8 +68,7 @@ namespace Tolerant {
        */
       enum RoundTypeHeader {
         Header_SigningKeyShuffle,
-        Header_Bulk,
-        Header_BlameShuffle
+        Header_Bulk
       };
 
       /**
@@ -104,12 +87,10 @@ namespace Tolerant {
       enum MessageType {
         MessageType_UserCommitData = 0,
         MessageType_ServerCommitData = 1,
-        MessageType_UserBulkData = 2,
-        MessageType_ServerBulkData = 3,
-        MessageType_UserAlibiData = 4,
-        MessageType_ServerAlibiData = 5,
-        MessageType_UserProofData = 6,
-        MessageType_ServerProofData = 7
+        MessageType_LeaderCommitData = 2,
+        MessageType_UserBulkData = 3,
+        MessageType_ServerBulkData = 4,
+        MessageType_LeaderBulkData = 5
       };
 
       /**
@@ -132,7 +113,7 @@ namespace Tolerant {
        * @param create_shuffle optional parameter specifying a shuffle round
        * to create, currently used for testing
        */
-      explicit TolerantBulkRound(const Group &group, 
+      explicit TolerantTreeRound(const Group &group, 
           const Credentials &creds, const Id &round_id, 
           QSharedPointer<Network> network, GetDataCallback &get_data,
           CreateRound create_shuffle = &TCreateRound<ShuffleRound>);
@@ -140,7 +121,7 @@ namespace Tolerant {
       /**
        * Destructor
        */
-      virtual ~TolerantBulkRound() {}
+      virtual ~TolerantTreeRound() {}
 
       /**
        * Start the bulk round
@@ -154,20 +135,9 @@ namespace Tolerant {
       inline virtual void PeerJoined() { _stop_next = true; }
 
       /**
-       * Mark an anonymous transmission slot as bad
-       */
-      void FoundBadSlot(int idx);
-
-
-      /**
        * Stop the round because a bad member was found
        */
       void FoundBadMembers();
-
-      /**
-       * Returns a list of members who have been blamed in the round
-       */
-      inline virtual const QVector<int> &GetBadMembers() const { return _bad_members; }
 
       /**
        * Handle a data message from a remote peer
@@ -180,7 +150,7 @@ namespace Tolerant {
        */
       inline virtual QString ToString() const
       {
-        return "TolerantBulkRound: " + GetRoundId().ToString() +
+        return "TolerantTreeRound: " + GetRoundId().ToString() +
 
           " Phase: " + QString::number(_phase);
       }
@@ -195,10 +165,7 @@ namespace Tolerant {
        */
       QSharedPointer<Round> GetKeyShuffleRound() { return _key_shuffle_round; }
 
-      /**
-       * Returns the Blame ShuffleRound used to accuse a group member
-       */
-      QSharedPointer<Round> GetBlameShuffleRound() { return _blame_shuffle_round; }
+      inline void VerifiableSendToLeader(const QByteArray &msg) { VerifiableSend(msg, GetGroup().GetLeader()); }
 
     protected:
 
@@ -240,7 +207,7 @@ namespace Tolerant {
       QSharedPointer<AsymmetricKey> ParseSigningKey(const QByteArray &bdes);
 
       /*******************************************
-       * Commit Data Methods
+       * User/Server Commit Data Methods
        */
 
       void SendCommits();
@@ -258,6 +225,12 @@ namespace Tolerant {
        * Use alibis to figure out which nodes disagree on corrupted bit(s)
        */
       virtual void FinishCommitPhase();
+
+      /*******************************************
+       * Leader Commit Data Methods
+       */
+
+      void HandleLeaderCommitData(QDataStream &stream, const Id &from);
 
       /*******************************************
        * Bulk Data Methods
@@ -285,9 +258,24 @@ namespace Tolerant {
       bool HasAllDataMessages();
 
       /**
-       * Once all bulk data messages have been received, parse them
+       * XOR all user and server messages together and broadcast
+       * them to the group members
        */
-      void ProcessMessages();
+      void BroadcastXorMessages();
+
+      /**
+       * XOR user and server messages together
+       */
+      QByteArray XorMessages();
+
+      /*******************************************
+       * Leader Data Methods
+       */
+
+      /**
+       * Once all bulk data messages have been received, process them
+       */
+      void ProcessMessages(const QByteArray &input);
 
       /**
        * Make sure that every message hashes to the matching commit
@@ -320,7 +308,6 @@ namespace Tolerant {
        */
       QByteArray GenerateMyCleartextMessage();
 
-
       /**
        * Generate the XOR pad that the user should generate with
        * the specifed server 
@@ -347,159 +334,21 @@ namespace Tolerant {
        */
       virtual QByteArray GenerateServerXorMessage();
 
-      /**
-       * Copy all received messages to the message history data structure
-       */
-      void SaveMessagesToHistory();
-
-      /**
-       * Check if any bits in sent_msg were changed from zero to one in transmission
-       * Returns true if blame evidence was found
-       * @param message originally sent
-       * @param corrupted message received
-       */
-
-      bool SearchForEvidence(const QByteArray& sent_msg, const QByteArray& recvd_msg);
-
-
       /*******************************************
-       * Accusation/Blame Shuffle Methods
-       */
-      
-      /**
-       * Clear all blame and accusation data for a new blame shuffle
-       */
-      void ResetBlameData();
-
-      /**
-       * If there is a corrupted bulk message, run an accusation shuffle
-       */
-      void RunBlameShuffle();
-
-      /**
-       * Returns the accusation for sending in the shuffle round
-       * @param max maximum amount of bytes to return
-       * @returns the accusation and false
-       */
-      QPair<QByteArray, bool> GetBlameShuffleData(int max);
-
-
-
-      /*******************************************
-       * Alibi Data Methods
+       * Leader Commit Bulk Data Methods
        */
 
-      /**
-       * Broadcast bitmasks proving user innocence with respect to 
-       * a set of accusations in a blame round
-       * A mapping of slot_id => Accusation
-       */
-      virtual void SendUserAlibis(const QMap<int, Accusation> &map);
+      void HandleLeaderBulkData(QDataStream &stream, const Id &from);
 
-      /**
-       * Broadcast bitmasks proving server innocence with respect to 
-       * a set of accusations in a blame round
-       * A mapping of slot_id => Accusation
-       */
-      virtual void SendServerAlibis(const QMap<int, Accusation> &map);
-
-      /**
-       * Parses and handles user alibi data messages in blame process
-       * @param stream serialized message
-       * @param from the sender
-       */
-      void HandleUserAlibiData(QDataStream &stream, const Id &from);
-
-      /**
-       * Parses and handles server alibi data messages in blame process
-       * @param stream serialized message
-       * @param from the sender
-       */
-      void HandleServerAlibiData(QDataStream &stream, const Id &from);
-
-      /**
-       * True when a node has all alibi messages for a phase
-       */
-      bool HasAllAlibis();
-
-      /**
-       * Use alibis to figure out which nodes disagree on corrupted bit(s)
-       */
-      void RunAlibiAnalysis();
-
-      /**
-       * Look through blame conflicts and send proofs of innocence
-       * where necessary
-       */
-      void ProcessConflicts();
-
-
-      /*******************************************
-       * Proof Data Methods
-       */
-
-      /**
-       * Parses and handles proof messages in blame process
-       * @param stream serialized message
-       * @param from the sender
-       */
-      void HandleUserProofData(QDataStream &stream, const Id &from);
-
-      /**
-       * Parses and handles proof messages from servers
-       * @param stream serialized message
-       * @param from the sender
-       */
-      void HandleServerProofData(QDataStream &stream, const Id &from);
-
-      /**
-       * True when a node has all proof messages for a phase
-       */
-      bool HasAllProofs();
-
-      /**
-       * Use NZKPs to check revealed secrets
-       */
-      void RunProofAnalysis();
-
-      /**
-       * Send proof of a user's DH secret
-       */
-      void SendUserProof(int conflict_idx, uint server_idx);
-
-      /**
-       * Send proof of a server's DH secret
-       */
-      void SendServerProof(int conflict_idx, uint user_idx);
-
-      /**
-       * Get the bit that a should be in the bit index indicated by the
-       * accusation when the given RNG seed is used to seed the RNG
-       * @param the slot in which the bit was generated
-       * @param accusation indicating the bit to test
-       * @param the byte with which to seed the RNG
-       */
-      bool GetExpectedBit(uint slot_idx, Accusation &acc, QByteArray &seed);
-
-
-      /**************************************************/
-
-    
       /*******************************************
        * Phase Change Methods
        */
-
 
       /**
        * Does all the prep work for the next phase, clearing and zeroing out
        * all the necessary fields
        */
       void PrepForNextPhase();
-
-      /**
-       * Called when has received all bulk data messages
-       */
-      void FinishPhase();
 
       /**
        * Mark a single member as bad
@@ -513,7 +362,6 @@ namespace Tolerant {
        */
       void AddBadMembers(const QVector<int> &more); 
 
-      
       /*******************************************
        * Protected getters
        */
@@ -522,10 +370,6 @@ namespace Tolerant {
 
       inline QVector<QSharedPointer<Random> > &GetRngsWithUsers() { return _rngs_with_users; }
 
-      inline const AlibiData &GetUserAlibiData() const { return _user_alibi_data; }
-
-      inline const AlibiData &GetServerAlibiData() const { return _server_alibi_data; }
-
       inline uint GetPhase() const { return _phase; }
 
       inline bool IsServer() const { return _is_server; }
@@ -533,6 +377,8 @@ namespace Tolerant {
       inline const QByteArray &GetNextUserPacket() const { return _user_next_packet; }
 
       inline const QByteArray &GetNextServerPacket() const { return _server_next_packet; }
+
+      inline virtual const QVector<int> &GetBadMembers() const { return _bad_members; }
 
       /**
        * Change the round state and process logged messages
@@ -543,11 +389,6 @@ namespace Tolerant {
     private:
 
       /**
-       * Initialize a blame shuffle round
-       */
-      void CreateBlameShuffle();
-
-      /**
        * Whether the round is ready to process
        * messages of this type
        */
@@ -556,6 +397,7 @@ namespace Tolerant {
       /** 
        * Whether or not node holds these special roles
        */
+      bool _is_leader;
       bool _is_server;
 
       /**
@@ -563,12 +405,6 @@ namespace Tolerant {
        * of the next phase
        */
       bool _stop_next;
-
-      /**
-       * Whether or not the node is waiting to enter a blame 
-       * shuffle
-       */
-      bool _waiting_for_blame;
 
       /**
        * Secrets and RNGs that a user shares with servers
@@ -586,11 +422,6 @@ namespace Tolerant {
        * Called when it is time to generate the anon key 
        */
       BulkGetDataCallback _get_key_shuffle_data;
-
-      /**
-       * Called when it is time to run an accusation shuffle
-       */
-      BulkGetDataCallback _get_blame_shuffle_data;
 
       /**
        * Callback for creating the shuffle round
@@ -648,11 +479,6 @@ namespace Tolerant {
       BufferSink _key_shuffle_sink;
 
       /**
-       * Stores the output of the blame shuffle
-       */
-      BufferSink _blame_shuffle_sink;
-
-      /**
        * Size determines by the accumulated length in the descriptors
        */
       uint _expected_bulk_size;
@@ -683,6 +509,7 @@ namespace Tolerant {
        */
       QVector<QByteArray> _user_commits;
       QVector<QByteArray> _server_commits;
+      QByteArray _leader_commit;
 
       /**
        * Count of received commits
@@ -712,11 +539,6 @@ namespace Tolerant {
        * Utils for randomizing cleartext messages
        */
       MessageRandomizer _message_randomizer;
-
-      /**
-       * A history of all messages received (indexed by phase)
-       */
-      MessageHistory _message_history;
 
       /**
        * List of messages that should be in the local nodes slot
@@ -760,85 +582,15 @@ namespace Tolerant {
       uint _server_idx;
 
       /**
-       * List of bad nodes by group index
+       *
        */
       QVector<int> _bad_members;
-
-      /**
-       * List of bad anonymous slot owners
-       */
-      QSet<int> _bad_slots;
-
-      /**
-       * Slots whose signatures did not verify and who
-       * should send an accusation in an accusation
-       * shuffle
-       */
-      QSet<int> _corrupted_slots;
-
-      /**
-       * Whether or not this member has had its
-       * message slot corrupted and is looking
-       * for evidence for an accusation shuffle
-       */
-      EvidenceState _looking_for_evidence;
-
-      /**
-       * (phase, byte, bit) address of this node's corrupted bit
-       */
-      Accusation _accusation;
-
-      /**
-       * All of the accusations received in blame shuffle
-       * map of slot => accusation
-       */
-      QMap<int, Accusation> _acc_data;
-
-      /**
-       * Data to prove user innocence in blame phase
-       */
-      AlibiData _user_alibi_data;
-
-      /**
-       * Data to prove server innocence in blame phase
-       */
-      AlibiData _server_alibi_data;
-
-      /**
-       * received alibis
-       */
-      QVector<QByteArray> _user_alibis;
-      QVector<QByteArray> _server_alibis;
-
-      /**
-       * Number of corrupted slots in this blame shuffle
-       */
-      uint _expected_alibi_qty;
-      uint _user_alibis_received;
-      uint _server_alibis_received;
-
-      /**
-       * Set of (accusation_idx, (server_idx, user_idx)) conflicts --
-       * those whose bits disagree in the blame matrix
-       */
-      QList<Conflict> _conflicts;
-
-      QVector<QByteArray> _user_proofs;
-      QVector<QByteArray> _server_proofs;
-
-      uint _user_proofs_received;
-      uint _server_proofs_received;
 
     private slots:
       /**
        * Called when the descriptor shuffle ends
        */
       void KeyShuffleFinished();
-
-      /**
-       * Called when the accusation shuffle ends
-       */
-      void BlameShuffleFinished();
   };
 }
 }

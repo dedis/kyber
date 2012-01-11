@@ -1,8 +1,6 @@
 #ifndef DISSENT_UTILS_TRIGGERABLE_H_GUARD
 #define DISSENT_UTILS_TRIGGERABLE_H_GUARD
 
-#include <QDebug>
-
 namespace Dissent {
 namespace Utils {
   /**

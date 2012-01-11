@@ -1,11 +1,21 @@
+#ifndef DISSENT_TESTS_ROUND_TEST_H_GUARD
+#define DISSENT_TESTS_ROUND_TEST_H_GUARD
+
 #include "TestNode.hpp"
 
-#ifndef DISSENT_TESTS_TEST_NODE_H_GUARD
-#define DISSENT_TESTS_TEST_NODE_H_GUARD
+#include <QByteArray>
 
 namespace Dissent {
 namespace Tests {
   typedef bool (*BadGuyCB)(Round *);
+
+  inline void FlipByte(QByteArray &msg) {
+    QScopedPointer<Random> rand(CryptoFactory::GetInstance().GetLibrary()->GetRandomNumberGenerator());
+
+    // Invert one byte
+    const int idx = rand->GetInt(0, msg.count());
+    msg[idx] = ~msg[idx];
+  }
 
   template<typename T> bool TBadGuyCB(Round *pr)
   {
@@ -50,6 +60,10 @@ namespace Tests {
   void RoundTest_PeerDisconnectMiddle(CreateSessionCallback callback,
       Group::SubgroupPolicy sg_policy);
   void RoundTest_BadGuy(CreateSessionCallback good_callback,
+      CreateSessionCallback bad_callback,
+      Group::SubgroupPolicy sg_policy,
+      const BadGuyCB &cb);
+  void RoundTest_BadGuyBulk(CreateSessionCallback good_callback,
       CreateSessionCallback bad_callback,
       Group::SubgroupPolicy sg_policy,
       const BadGuyCB &cb);

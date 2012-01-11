@@ -335,8 +335,9 @@ namespace Anonymity {
 
     _prepared_peers.clear();
 
-    qDebug() << "Session" << ToString() << "starting round" <<
+    qDebug() << "Session leader" << ToString() << "starting round" <<
       _current_round->ToString();
+   
     emit RoundStarting(_current_round);
     _current_round->Start();
   }
@@ -346,7 +347,7 @@ namespace Anonymity {
     QVariantMap message = notification.GetMessage();
     Connection *con = dynamic_cast<Connection *>(notification.GetFrom());
     if(!con) {
-      qWarning() << "Received a prepared message from a non-connection:" <<
+      qWarning() << "Received a begin message from a non-connection:" <<
         notification.GetFrom()->ToString();
       return;
     } else if(_group.GetLeader() != con->GetRemoteId()) {
@@ -364,7 +365,7 @@ namespace Anonymity {
     }
 
     qDebug() << "Session" << ToString() << "starting round" <<
-      _current_round->ToString();
+      _current_round->ToString() << "started" << _current_round->Started();
     emit RoundStarting(_current_round);
     _current_round->Start();
   }
@@ -394,12 +395,15 @@ namespace Anonymity {
       return;
     }
 
+    const QVector<int> bad = round->GetBadMembers();
+    qWarning() << "Session bad members" << bad;
     if(round->GetBadMembers().size() != 0) {
       qWarning() << "Found some bad members...";
       if(IsLeader()) {
         Group group = _group;
         foreach(int idx, round->GetBadMembers()) {
           RemoveMember(group.GetId(idx));
+          _bad_members.insert(GetGroup().GetId(idx));
         }
       }
     }

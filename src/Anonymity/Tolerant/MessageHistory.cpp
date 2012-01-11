@@ -20,8 +20,7 @@ namespace Tolerant {
       _user_data[slot][phase].resize(_num_users);
     }
 
-    qDebug() << "User message phase" << phase << "slot" << slot << "user" << member << "b[0]" 
-      << (unsigned char)message[0];
+    //qDebug() << "User message phase" << phase << "slot" << slot << "user" << member;
     _user_data[slot][phase][member] = message;
   }
 
@@ -30,8 +29,7 @@ namespace Tolerant {
       _server_data[slot][phase].resize(_num_servers);
     }
 
-    qDebug() << "Server message phase" << phase << "slot" << slot << "server" << member << "b[0]" 
-      << (unsigned char)message[0];
+    //qDebug() << "Server message phase" << phase << "slot" << slot << "server" << member;
     _server_data[slot][phase][member] = message;
   }
 

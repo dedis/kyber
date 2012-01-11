@@ -29,7 +29,7 @@ namespace Tolerant {
   {
     _data[slot][phase].xor_messages.resize(_n_members);
     _data[slot][phase].xor_messages[member] = message;
-    qDebug() << "AlibiData.StoreMessage slot" << slot << "member" << member << "b0" << (unsigned char)message[0];
+    //qDebug() << "AlibiData.StoreMessage slot" << slot << "member" << member;
 
     // Number of bytes generated before this slot is equal to number
     // of bytes generated in all previous slots
@@ -40,19 +40,20 @@ namespace Tolerant {
       _data[slot][phase].slot_rng_byte_idx += _data[slot-1][phase].xor_messages[0].size();
     }
 
+    /*
     qDebug() << "Bytes generated. Phases:"
       << _data[slot][phase].phase_rng_byte_idx 
       << "Slots:"
       << _data[slot][phase].slot_rng_byte_idx;
-
+    */
   }
 
-  QByteArray AlibiData::GetAlibiBytes(uint slot, Accusation &acc)
+  QByteArray AlibiData::GetAlibiBytes(uint slot, const Accusation &acc) const
   {
     return GetAlibiBytes(acc.GetPhase(), slot, acc.GetByteIndex(), acc.GetBitIndex());
   }
 
-  QByteArray AlibiData::GetAlibiBytes(uint phase, uint slot, uint byte, ushort bit)
+  QByteArray AlibiData::GetAlibiBytes(uint phase, uint slot, uint byte, ushort bit) const
   {
     QBitArray bits(_n_members);
     QByteArray bytes(Serialization::BytesRequired(bits), '\0');

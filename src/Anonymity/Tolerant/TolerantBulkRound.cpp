@@ -17,7 +17,6 @@
 using Dissent::Connections::Connection;
 using Dissent::Crypto::CryptoFactory;
 using Dissent::Crypto::DiffieHellman;
-using Dissent::Crypto::Hash;
 using Dissent::Crypto::Library;
 using Dissent::Messaging::RpcRequest;
 using Dissent::Utils::QRunTimeError;
@@ -32,19 +31,23 @@ namespace Tolerant {
       GetDataCallback &get_data, CreateRound create_shuffle) :
     Round(group, creds, round_id, network, get_data),
     _is_server(GetGroup().GetSubgroup().Contains(GetLocalId())),
-    _server_public_dh_keys(GetGroup().GetSubgroup().Count()),
-    _user_public_dh_keys(GetGroup().Count()),
+    _stop_next(false),
+    _waiting_for_blame(false),
     _secrets_with_servers(GetGroup().GetSubgroup().Count()),
     _rngs_with_servers(GetGroup().GetSubgroup().Count()),
     _get_key_shuffle_data(this, &TolerantBulkRound::GetKeyShuffleData),
     _get_blame_shuffle_data(this, &TolerantBulkRound::GetBlameShuffleData),
     _create_shuffle(create_shuffle),
-    _state(Offline),
+    _state(State_Offline),
     _crypto_lib(CryptoFactory::GetInstance().GetLibrary()),
-    _user_dh_key(_crypto_lib->CreateDiffieHellman()),
+    _hash_algo(_crypto_lib->GetHashAlgorithm()),
     _anon_signing_key(_crypto_lib->CreatePrivateKey()),
     _phase(0),
-    _message_randomizer(_user_dh_key->GetPrivateComponent()),
+    _user_messages(GetGroup().Count()),
+    _server_messages(GetGroup().GetSubgroup().Count()),
+    _user_message_digests(GetGroup().Count()),
+    _server_message_digests(GetGroup().GetSubgroup().Count()),
+    _message_randomizer(creds.GetDhKey()->GetPrivateComponent()),
     _message_history(GetGroup().Count(), GetGroup().GetSubgroup().Count()),
     _user_idx(GetGroup().GetIndex(GetLocalId())),
     _looking_for_evidence(NotLookingForEvidence),
@@ -55,12 +58,31 @@ namespace Tolerant {
     headers["round"] = Header_Bulk;
     GetNetwork()->SetHeaders(headers);
 
+    // Get shared secrets with servers
+    const Group servers = GetGroup().GetSubgroup();
+    for(int server_idx=0; server_idx<servers.Count(); server_idx++) {
+      QByteArray server_pk = servers.GetPublicDiffieHellman(server_idx);
+      QByteArray secret = creds.GetDhKey()->GetSharedSecret(server_pk);
+
+      _secrets_with_servers[server_idx] = secret;
+      _rngs_with_servers[server_idx] = QSharedPointer<Random>(_crypto_lib->GetRandomNumberGenerator(secret));
+    }
+
     // Set up shared secrets
     if(_is_server) {
-      _server_dh_key = QSharedPointer<DiffieHellman>(_crypto_lib->CreateDiffieHellman());
       _secrets_with_users.resize(GetGroup().Count());
       _rngs_with_users.resize(GetGroup().Count());
       _server_idx = GetGroup().GetSubgroup().GetIndex(GetLocalId());
+
+      // Get shared secrets with users
+      const Group users = GetGroup();
+      for(int user_idx=0; user_idx<users.Count(); user_idx++) {
+        QByteArray user_pk = users.GetPublicDiffieHellman(user_idx);
+        QByteArray secret = creds.GetDhKey()->GetSharedSecret(user_pk);
+
+        _secrets_with_users[user_idx] = secret;
+        _rngs_with_users[user_idx] = QSharedPointer<Random>(_crypto_lib->GetRandomNumberGenerator(secret));
+      }
     }
 
     // Set up signing key shuffle
@@ -68,8 +90,7 @@ namespace Tolerant {
     headers["round"] = Header_SigningKeyShuffle;
     net->SetHeaders(headers);
 
-    QScopedPointer<Hash> hashalgo(_crypto_lib->GetHashAlgorithm());
-    Id sr_id(hashalgo->ComputeHash(GetRoundId().GetByteArray()));
+    Id sr_id(_hash_algo->ComputeHash(GetRoundId().GetByteArray()));
 
     Round *pr = _create_shuffle(GetGroup(), GetCredentials(), sr_id,
         net, _get_key_shuffle_data);
@@ -78,6 +99,8 @@ namespace Tolerant {
 
     QObject::connect(_key_shuffle_round.data(), SIGNAL(Finished()),
         this, SLOT(KeyShuffleFinished()));
+
+    CreateBlameShuffle();
   }
 
   bool TolerantBulkRound::Start()
@@ -86,14 +109,8 @@ namespace Tolerant {
       return false;
     }
 
-    qDebug() << "Starting Round. Server:" << _is_server;
-
-    _state = ExchangingDhKeys;
-    BroadcastPublicDhKey(MessageType_UserKey, _user_dh_key);
-
-    if(_is_server) {
-      BroadcastPublicDhKey(MessageType_ServerKey, _server_dh_key);
-    }
+    ChangeState(State_SigningKeyShuffling);
+    _key_shuffle_round->Start();
 
     return true;
   }
@@ -101,7 +118,22 @@ namespace Tolerant {
   void TolerantBulkRound::FoundBadMembers() 
   {
     SetSuccessful(false);
+    ChangeState(State_Finished);
     Stop("Found bad group member");
+    return;
+  }
+
+  void TolerantBulkRound::FoundBadSlot(int slot_idx) 
+  {
+    _message_lengths[slot_idx] = 0;
+    _header_lengths[slot_idx] = 0;
+    _bad_slots.insert(slot_idx);
+
+    _message_history.MarkSlotBlameFinished(slot_idx);
+    _user_alibi_data.MarkSlotBlameFinished(slot_idx);
+    if(_is_server) {
+      _server_alibi_data.MarkSlotBlameFinished(slot_idx);
+    }
   }
 
   void TolerantBulkRound::IncomingData(RpcRequest &notification)
@@ -159,7 +191,7 @@ namespace Tolerant {
       throw QRunTimeError("Invalid signature or data");
     }
 
-    if(_state == Offline) {
+    if(_state == State_Offline) {
       throw QRunTimeError("Should never receive a message in the bulk"
           " round while offline.");
     }
@@ -171,7 +203,7 @@ namespace Tolerant {
     uint phase;
     stream >> mtype >> round_id >> phase;
 
-    MessageType msg_type = (MessageType) mtype;
+    MessageType msg_type = static_cast<MessageType>(mtype);
 
     Id rid(round_id);
     if(rid != GetRoundId()) {
@@ -179,14 +211,16 @@ namespace Tolerant {
           GetRoundId().ToString());
     }
 
-    if(_state == SigningKeyShuffling) {
+    // Cache messages for future states in the offline log
+    if(!ReadyForMessage(msg_type)) {
       _log.Pop();
       _offline_log.Append(data, from);
       return;
     }
 
+    /*
     if(_phase != phase) {
-      if(_phase == phase - 1 && (_state == DataSharing || _state == BlameWaitingForShuffle)) {
+      if(_phase == phase - 1 && (_state == State_DataSharing)) {
         _log.Pop();
         _offline_log.Append(data, from);
         return;
@@ -196,19 +230,26 @@ namespace Tolerant {
             QString::number(_phase));
       }
     }
+    */
+
+    if(_phase != phase) {
+      throw QRunTimeError("Received a message for phase: " + 
+          QString::number(phase) + ", while in phase: " +
+          QString::number(_phase));
+    }
 
     switch(msg_type) {
-      case MessageType_UserKey:
-        HandleUserKey(stream, from);
+      case MessageType_UserCommitData:
+        HandleUserCommitData(stream, from);
         break;
-      case MessageType_ServerKey:
-        HandleServerKey(stream, from);
+      case MessageType_ServerCommitData:
+        HandleServerCommitData(stream, from);
         break;
       case MessageType_UserBulkData:
-        HandleUserBulkData(stream, from);
+        HandleUserBulkData(payload, stream, from);
         break;
       case MessageType_ServerBulkData:
-        HandleServerBulkData(stream, from);
+        HandleServerBulkData(payload, stream, from);
         break;
       case MessageType_UserAlibiData:
         HandleUserAlibiData(stream, from);
@@ -226,104 +267,6 @@ namespace Tolerant {
         throw QRunTimeError("Unknown message type");
     }
 
-  }
-
-
-  void TolerantBulkRound::HandleUserKey(QDataStream &stream, const Id &from)
-  {
-    qDebug() << _user_idx << GetLocalId().ToString() <<
-      ": received user's public DH key from " << GetGroup().GetIndex(from) << from.ToString();
-
-    if(_state != ExchangingDhKeys) {
-      throw QRunTimeError("Received a misordered user DH key message");
-    }
-
-    QByteArray payload;
-    stream >> payload;
-
-    uint key_size = _user_dh_key->GetPublicComponent().size();
-    if(static_cast<uint>(payload.size()) != key_size) {
-      throw QRunTimeError("Incorrect user DH key message length, got " +
-          QString::number(payload.size()) + " expected " +
-          QString::number(key_size));
-    }
-
-    qDebug() << "Recording public key from user " << GetGroup().GetIndex(from) << from.ToString();
-    uint idx = GetGroup().GetIndex(from);
-    _user_public_dh_keys[idx] = payload;
-
-    if(_is_server) {
-      qDebug() << "Recording shared secret with user " << GetGroup().GetIndex(from) << from.ToString();
-
-      QByteArray secret = _server_dh_key->GetSharedSecret(payload);
-      _secrets_with_users[idx] = secret;
-
-      _rngs_with_users[idx] = QSharedPointer<Random>(_crypto_lib->GetRandomNumberGenerator(secret));
-    } else {
-      qDebug() << "User ignoring user key from" << GetGroup().GetIndex(from) << from.ToString();
-    }
-
-    if(HasAllSharedSecrets()) {
-      qDebug() << "Have all shared secrets!";
-      RunKeyShuffle();
-    }
-  }
-
-  void TolerantBulkRound::HandleServerKey(QDataStream &stream, const Id &from)
-  {
-    qDebug() << _user_idx << GetLocalId().ToString() <<
-      ": received server's public DH key from " << GetGroup().GetIndex(from) << from.ToString();
-
-    if(_state != ExchangingDhKeys) {
-      throw QRunTimeError("Received a misordered server DH key message");
-    }
-
-    QByteArray payload;
-    stream >> payload;
-
-    uint key_size = _user_dh_key->GetPublicComponent().size();
-    if(static_cast<uint>(payload.size()) != key_size) {
-      throw QRunTimeError("Incorrect server DH key message length, got " +
-          QString::number(payload.size()) + " expected " +
-          QString::number(key_size));
-    }
-
-    qDebug() << "Recording shared secret with server " << GetGroup().GetIndex(from) << from.ToString();
-
-    uint idx = GetGroup().GetIndex(from);
-    QByteArray secret = _user_dh_key->GetSharedSecret(payload);
-    _secrets_with_servers[idx] = secret;
-    _server_public_dh_keys[idx] = payload;
-
-    _rngs_with_servers[idx] = QSharedPointer<Random>(_crypto_lib->GetRandomNumberGenerator(secret));
-
-    if(HasAllSharedSecrets()) {
-      qDebug() << "Have all shared secrets!";
-      RunKeyShuffle();
-    }
-  }
-
-  bool TolerantBulkRound::HasAllSharedSecrets() 
-  {
-    // Make sure node has one secret with each server
-    // and if it's a server, it should have a secret with
-    // every user too.
-    return !_secrets_with_servers.count(QByteArray()) &&
-      (!_is_server || !_secrets_with_users.count(QByteArray()));
-  }
-
-  void TolerantBulkRound::BroadcastPublicDhKey(MessageType mtype, QSharedPointer<DiffieHellman> key)
-  {
-    QByteArray packet;
-    QDataStream stream(&packet, QIODevice::WriteOnly);
-    stream << mtype << GetRoundId() << _phase << key->GetPublicComponent();
-    VerifiableBroadcast(packet);
-  }
-
-  void TolerantBulkRound::RunKeyShuffle()
-  {
-    _state = SigningKeyShuffling;
-    _key_shuffle_round->Start();
   }
 
   QPair<QByteArray, bool> TolerantBulkRound::GetKeyShuffleData(int)
@@ -349,12 +292,127 @@ namespace Tolerant {
     return key_pub;
   }
 
-  void TolerantBulkRound::HandleUserBulkData(QDataStream &stream, const Id &from)
+  void TolerantBulkRound::SendCommits()
+  {
+    qDebug() << "--";
+    qDebug() << "-- NEXT PHASE :" << _phase;
+    qDebug() << "--";
+
+    // Get the next data packet
+    QByteArray user_xor_msg = GenerateUserXorMessage();
+    QDataStream user_data_stream(&_user_next_packet, QIODevice::WriteOnly);
+    user_data_stream << MessageType_UserBulkData << GetRoundId() << _phase << user_xor_msg;
+
+    // Commit to next data packet
+    QByteArray user_commit_packet;
+    QByteArray user_digest = _hash_algo->ComputeHash(_user_next_packet);
+    QDataStream user_commit_stream(&user_commit_packet, QIODevice::WriteOnly);
+    user_commit_stream << MessageType_UserCommitData << GetRoundId() << _phase << user_digest;
+    VerifiableBroadcast(user_commit_packet);
+
+    if(_is_server) {
+      // Get the next data packet
+      QByteArray server_xor_msg = GenerateServerXorMessage();
+      QDataStream server_data_stream(&_server_next_packet, QIODevice::WriteOnly);
+      server_data_stream << MessageType_ServerBulkData << GetRoundId() << _phase << server_xor_msg;
+
+      // Commit to next data packet
+      QByteArray server_commit_packet;
+      QByteArray server_digest = _hash_algo->ComputeHash(_server_next_packet);
+      QDataStream server_commit_stream(&server_commit_packet, QIODevice::WriteOnly);
+      server_commit_stream << MessageType_ServerCommitData << GetRoundId() << _phase << server_digest;
+      VerifiableBroadcast(server_commit_packet);
+    }
+  }
+
+  void TolerantBulkRound::HandleUserCommitData(QDataStream &stream, const Id &from)
+  {
+    qDebug() << _user_idx << GetLocalId().ToString() <<
+      ": received user commit data from " << GetGroup().GetIndex(from) << from.ToString();
+
+    if(_state != State_CommitSharing) {
+      throw QRunTimeError("Received a misordered UserCommitData message");
+    }
+
+    uint idx = GetGroup().GetIndex(from);
+    if(!_user_commits[idx].isEmpty()) {
+      throw QRunTimeError("Already have bulk commit data.");
+    }
+
+    QByteArray payload;
+    stream >> payload;
+
+    const int hash_len = _hash_algo->GetDigestSize();
+
+    if(static_cast<uint>(payload.size()) != hash_len) {
+      throw QRunTimeError("Incorrect bulk commit message length, got " +
+          QString::number(payload.size()) + " expected " +
+          QString::number(hash_len));
+    }
+
+    _user_commits[idx] = payload;
+    _received_user_commits++;
+
+    if(HasAllCommits()) {
+      FinishCommitPhase();
+    }
+  }
+
+  void TolerantBulkRound::HandleServerCommitData(QDataStream &stream, const Id &from)
+  {
+    qDebug() << _user_idx << GetLocalId().ToString() <<
+      ": received server commit data from " << GetGroup().GetIndex(from) << from.ToString();
+
+    if(_state != State_CommitSharing) {
+      throw QRunTimeError("Received a misordered ServerCommitData message");
+    }
+
+    uint idx = GetGroup().GetSubgroup().GetIndex(from);
+    if(!_server_commits[idx].isEmpty()) {
+      throw QRunTimeError("Already have server bulk commit data.");
+    }
+
+    QByteArray payload;
+    stream >> payload;
+
+    const int hash_len = _hash_algo->GetDigestSize();
+
+    if(static_cast<uint>(payload.size()) != hash_len) {
+      throw QRunTimeError("Incorrect server bulk commit message length, got " +
+          QString::number(payload.size()) + " expected " +
+          QString::number(hash_len));
+    }
+
+    _server_commits[idx] = payload;
+    _received_server_commits++;
+
+    if(HasAllCommits()) {
+      FinishCommitPhase();
+    }
+  }
+
+  bool TolerantBulkRound::HasAllCommits()
+  {
+    return (_received_user_commits == static_cast<uint>(GetGroup().Count()) &&
+        _received_server_commits == static_cast<uint>(GetGroup().GetSubgroup().Count()));
+  }
+
+  void TolerantBulkRound::FinishCommitPhase()
+  {
+    ChangeState(State_DataSharing);
+
+    VerifiableBroadcast(_user_next_packet);
+    if(_is_server) {
+      VerifiableBroadcast(_server_next_packet);
+    }
+  }
+
+  void TolerantBulkRound::HandleUserBulkData(const QByteArray &packet, QDataStream &stream, const Id &from)
   {
     qDebug() << _user_idx << GetLocalId().ToString() <<
       ": received bulk user data from " << GetGroup().GetIndex(from) << from.ToString();
 
-    if(_state != DataSharing && _state != BlameWaitingForShuffle) {
+    if(_state != State_DataSharing) {
       throw QRunTimeError("Received a misordered UserBulkData message");
     }
 
@@ -366,7 +424,6 @@ namespace Tolerant {
     QByteArray payload;
     stream >> payload;
 
-    qDebug() << "First byte" << (unsigned char)payload[0];
     if(static_cast<uint>(payload.size()) != _expected_bulk_size) {
       throw QRunTimeError("Incorrect bulk user message length, got " +
           QString::number(payload.size()) + " expected " +
@@ -374,6 +431,7 @@ namespace Tolerant {
     }
 
     _user_messages[idx] = payload;
+    _user_message_digests[idx] = _hash_algo->ComputeHash(packet);
 
     _received_user_messages++;
     if(HasAllDataMessages()) {
@@ -381,16 +439,16 @@ namespace Tolerant {
     }
   }
 
-  void TolerantBulkRound::HandleServerBulkData(QDataStream &stream, const Id &from)
+  void TolerantBulkRound::HandleServerBulkData(const QByteArray &packet, QDataStream &stream, const Id &from)
   {
     qDebug() << _user_idx << GetLocalId().ToString() <<
-      ": received bulk server data from " << GetGroup().GetIndex(from) << from.ToString();
+      ": received bulk server data from " << GetGroup().GetSubgroup().GetIndex(from) << from.ToString();
 
-    if(_state != DataSharing && _state != BlameWaitingForShuffle) {
+    if(_state != State_DataSharing) {
       throw QRunTimeError("Received a misordered ServerBulkData message");
     }
 
-    uint idx = GetGroup().GetIndex(from);
+    uint idx = GetGroup().GetSubgroup().GetIndex(from);
     if(!_server_messages[idx].isEmpty()) {
       throw QRunTimeError("Already have bulk server data.");
     }
@@ -405,6 +463,7 @@ namespace Tolerant {
     }
 
     _server_messages[idx] = payload;
+    _server_message_digests[idx] = _hash_algo->ComputeHash(packet);
 
     qDebug() << "Received server" << _received_server_messages; 
 
@@ -426,6 +485,24 @@ namespace Tolerant {
 
     QByteArray cleartext(_expected_bulk_size, 0);
 
+    // Check user commits
+    QVector<int> bad_users;
+    CheckCommits(_user_commits, _user_message_digests, bad_users);
+    if(bad_users.count()) {
+      AddBadMembers(bad_users);
+      FoundBadMembers();
+      return;
+    }
+
+    // Check server commits
+    QVector<int> bad_servers;
+    CheckCommits(_server_commits, _server_message_digests, bad_servers);
+    if(bad_servers.count()) {
+      AddBadMembers(bad_servers);
+      FoundBadMembers();
+      return;
+    }
+
     for(int idx=0; idx<_user_messages.count(); idx++) {
       Xor(cleartext, cleartext, _user_messages[idx]);
     }
@@ -437,14 +514,33 @@ namespace Tolerant {
     SaveMessagesToHistory();
 
     uint msg_idx = 0;
-    for(uint member_idx = 0; member_idx < size; member_idx++) {
-      int length = _message_lengths[member_idx] + _header_lengths[member_idx];
+    for(uint slot_idx = 0; slot_idx < size; slot_idx++) {
+      int length = _message_lengths[slot_idx] + _header_lengths[slot_idx];
       QByteArray tcleartext = cleartext.mid(msg_idx, length);
-      QByteArray msg = ProcessMessage(tcleartext, member_idx);
+      if(_bad_slots.contains(slot_idx)) {
+        qDebug() << "Skipping bad slot" << slot_idx;
+      } else { 
+        QByteArray msg = ProcessMessage(tcleartext, slot_idx);
+        if(!msg.isEmpty()) {
+          PushData(msg, this);
+        }
+      }
       msg_idx += length;
-      
-      if(!msg.isEmpty()) {
-        PushData(msg, this);
+    }
+  }
+
+  void TolerantBulkRound::CheckCommits(const QVector<QByteArray> &commits, const QVector<QByteArray> &digests,
+      QVector<int> &bad)
+  {
+    if(commits.count() != digests.count()) {
+      qFatal("Commits and messages vectors must have same length");
+    }
+
+    bad.clear();
+    const int len = commits.count();
+    for(int idx=0; idx<len; idx++) {
+      if(commits[idx] != digests[idx]) {
+        bad.append(idx);
       }
     }
   }
@@ -464,7 +560,7 @@ namespace Tolerant {
 
     bool is_my_message = _anon_signing_key->VerifyKey(*verification_key);
 
-    qDebug() << "Slot" << slot_string.count() << "Clear" << cleartext.count() <<"base"<<base.count();
+    //qDebug() << "Slot" << slot_string.count() << "Clear" << cleartext.count() << "base" << base.count();
 
     // Verify the signature before doing anything
     if(verification_key->Verify(base, sig)) {
@@ -487,6 +583,7 @@ namespace Tolerant {
 
       _message_lengths[member_idx] = Serialization::ReadInt(cleartext, 4);
 
+      qDebug() << "Found a message ... PUSHING!";
       return base.mid(8);
     } 
 
@@ -521,12 +618,17 @@ namespace Tolerant {
     if(shuffle_byte) {
       qDebug() << "Got shuffle byte, going to accusation shuffle!";
       _corrupted_slots.insert(member_idx);
-      _state = BlameWaitingForShuffle;
+      _waiting_for_blame = true;
     } else {
       qDebug() << "No shuffle byte, ignoring invalid message.";
     }
     
     return QByteArray();
+  }
+
+  QByteArray TolerantBulkRound::SignMessage(const QByteArray &message)
+  {
+    return _anon_signing_key->Sign(message);
   }
 
   QByteArray TolerantBulkRound::GenerateMyCleartextMessage()
@@ -537,26 +639,20 @@ namespace Tolerant {
 
       const QByteArray cur_msg = _next_msg;
       _next_msg = pair.first;
+      qDebug() << "GetData(4096) =" << _next_msg;
 
       QByteArray cleartext(8, 0);
       Serialization::WriteInt(_phase, cleartext, 0);
       Serialization::WriteInt(_next_msg.size(), cleartext, 4);
       cleartext.append(cur_msg);
 
-      QByteArray sig = _anon_signing_key->Sign(cleartext);
-
-      // AHHHHHH SCREW UP THE SIG
-      /*
-      if(_user_idx == 2) {
-        qDebug() << "SCREWING UP THE SIGNATURE!";
-        sig[0] = ~sig[0];
-      }
-      */
-
+      QByteArray sig = SignMessage(cleartext);
+      
       cleartext.append(sig);
 
       /* The shuffle byte */
       cleartext.append('\0');
+
       _last_msg_cleartext = cleartext;
       
       QByteArray randomized = _message_randomizer.Randomize(cleartext);
@@ -570,6 +666,7 @@ namespace Tolerant {
       /* Repeat a re-randomized version of the
          last message until you find evidence */
       QByteArray randomized = _message_randomizer.Randomize(_last_msg_cleartext);
+      _last_msg = randomized;
 
       qDebug() << "RANDOMIZED:" << randomized.count();
       return randomized;
@@ -589,6 +686,22 @@ namespace Tolerant {
     }
   }
 
+  QByteArray TolerantBulkRound::GeneratePadWithServer(uint server_idx, uint length)
+  {
+    QByteArray server_pad(length, 0);
+    //qDebug() << "Bytes generated with server" << server_idx << "=" << _rngs_with_servers[server_idx]->BytesGenerated();
+    _rngs_with_servers[server_idx]->GenerateBlock(server_pad);
+    return server_pad;
+  }
+
+  QByteArray TolerantBulkRound::GeneratePadWithUser(uint user_idx, uint length)
+  {
+    QByteArray user_pad(length, 0);
+    //qDebug() << "Bytes generated with server" << server_idx << "=" << _rngs_with_servers[server_idx]->BytesGenerated();
+    _rngs_with_users[user_idx]->GenerateBlock(user_pad);
+    return user_pad;
+  }
+
   QByteArray TolerantBulkRound::GenerateUserXorMessage()
   {
     QByteArray msg;
@@ -600,33 +713,17 @@ namespace Tolerant {
     for(uint idx = 0; idx < size; idx++) {
       uint length = _message_lengths[idx] + _header_lengths[idx];
       QByteArray slot_msg(length, 0);
-      qDebug() << "=> STORE BYTES Phase" << _phase << " Slot" << idx << "Bytes=" << _rngs_with_servers[0]->BytesGenerated();
+      //qDebug() << "=> STORE BYTES Phase" << _phase << " Slot" << idx << "Bytes=" << _rngs_with_servers[0]->BytesGenerated();
 
       /* For each server, XOR that server's pad with the empty message */
       for(int server_idx = 0; server_idx < _rngs_with_servers.count(); server_idx++) {
-        QByteArray server_pad(length, 0);
-        qDebug() << "Bytes generated with server" << server_idx << "=" << _rngs_with_servers[server_idx]->BytesGenerated();
-
-        _rngs_with_servers[server_idx]->GenerateBlock(server_pad);
-        qDebug() << "Bytes[0]" << (unsigned char)server_pad[0];
-
-        // AHHH BIT FLIP
-        // Tweak bit of some guy's message
-       /* 
-        if(idx == 1 && server_idx == 0 && _user_idx == 2) {
-          qDebug() << "AHHHHHHHHHHHHH FLIPPING BIT from" << 
-            (unsigned char)server_pad[0] << "TO" << (unsigned char)(server_pad[0]^1);
-          server_pad[0] = (server_pad[0] ^ 1);  
-        }
-        */
-        
+        QByteArray server_pad = GeneratePadWithServer(server_idx, length);
        
-        qDebug() << "user ciphertext for slot" << idx << "server" 
-          << server_idx << "starts with" << (unsigned char)server_pad[0];
+        //qDebug() << "user ciphertext for slot" << idx;
         _user_alibi_data.StoreMessage(_phase, idx, server_idx, server_pad);
         Xor(slot_msg, slot_msg, server_pad);
       }
-      qDebug() << "slot" << idx << "message starts with" << (unsigned char)slot_msg[0];
+      qDebug() << "slot" << idx;
 
       /* This is my slot */
       if(idx == _my_idx) {
@@ -634,17 +731,8 @@ namespace Tolerant {
         Xor(slot_msg, slot_msg, my_msg);
       }
 
-      // Tweak byte of some guy's message
-      // AHHHH BIT FLIP
-      /*
-      if(idx == 1 && _user_idx == 2) {
-        qDebug() << "AHHHHHHHHHHHHH FLIPPING BIT from" << (unsigned char)slot_msg[0] << "TO" << (unsigned char)(slot_msg[0]^1);
-        slot_msg[0] = (slot_msg[0] ^ 1);  
-      }
-      */
-
       msg.append(slot_msg);
-      qDebug() << "XOR length" << msg.count();
+      //qDebug() << "XOR length" << msg.count();
     }
 
     return msg;
@@ -657,24 +745,14 @@ namespace Tolerant {
 
     _server_alibi_data.StorePhaseRngByteIndex(_rngs_with_users[0]->BytesGenerated());
 
-    /* For each slot */
+    // For each slot 
     for(uint idx = 0; idx < size; idx++) {
-      uint length = _message_lengths[idx] + _header_lengths[idx];
+      const uint length = _message_lengths[idx] + _header_lengths[idx];
+      
       QByteArray slot_msg(length, 0);
-
-      /* For each user, XOR that users pad with the empty message */
+      // For each user, XOR that users pad with the empty message
       for(int user_idx = 0; user_idx < _rngs_with_users.count(); user_idx++) {
-        QByteArray user_pad(length, 0);
-        _rngs_with_users[user_idx]->GenerateBlock(user_pad);
-
-        // AHHH FLIP BIT
-        /*
-        if(idx == 0 && user_idx == 0 && _user_idx == 1) {
-          qDebug() << "AHHHHHHHHHHHHH FLIPPING BIT from" << 
-            (unsigned char)user_pad[1] << "TO" << (unsigned char)(user_pad[1]^1);
-          user_pad[1] = (user_pad[1] ^ 1);  
-        }
-        */
+        QByteArray user_pad = GeneratePadWithUser(user_idx, length);
 
         _server_alibi_data.StoreMessage(_phase, idx, user_idx, user_pad);
         Xor(slot_msg, slot_msg, user_pad);
@@ -733,15 +811,23 @@ namespace Tolerant {
 
   void TolerantBulkRound::ResetBlameData()
   {
+    _waiting_for_blame = false;
+
     _acc_data.clear();
+
+    // Alibis
     _user_alibis.clear();
     _server_alibis.clear();
+
     _user_alibis_received = 0;
     _server_alibis_received = 0;
 
     _conflicts.clear();
+
+    // Proofs of innocence
     _user_proofs.clear();
     _server_proofs.clear();
+
     _user_proofs_received = 0;
     _server_proofs_received = 0;
   }
@@ -750,27 +836,7 @@ namespace Tolerant {
   {
     ResetBlameData();
 
-    QSharedPointer<Network> net(GetNetwork()->Clone());
-
-    QVariantMap headers = net->GetHeaders();
-    headers["round"] = Header_BlameShuffle;
-
-    net->SetHeaders(headers);
-
-    QScopedPointer<Hash> hashalgo(_crypto_lib->GetHashAlgorithm());
-    QByteArray rid = GetRoundId().GetByteArray();
-    rid.append("BLAME");
-    rid.append(_phase);
-    Id sr_id(hashalgo->ComputeHash(rid));
-
-    _blame_shuffle_round = QSharedPointer<Round>(_create_shuffle(GetGroup(), 
-          GetCredentials(), sr_id, net, _get_blame_shuffle_data));
-    _blame_shuffle_round->SetSink(&_blame_shuffle_sink);
-
-    QObject::connect(_blame_shuffle_round.data(), SIGNAL(Finished()),
-        this, SLOT(BlameShuffleFinished()));
-
-    qDebug() << "Starting blame shuffle with rid" << sr_id.ToString();
+    qDebug() << "Starting blame shuffle";
     _blame_shuffle_round->Start();
   }
 
@@ -789,10 +855,8 @@ namespace Tolerant {
     }
   }
 
-  void TolerantBulkRound::SendUserAlibis(QMap<int, Accusation> &map)
+  void TolerantBulkRound::SendUserAlibis(const QMap<int, Accusation> &map)
   {
-    _expected_alibi_qty = map.count();
-
     QByteArray alibi_bytes;
     for(QMap<int, Accusation>::const_iterator i=map.constBegin(); i!=map.constEnd(); ++i) {
       Accusation acc = i.value();
@@ -806,10 +870,8 @@ namespace Tolerant {
     VerifiableBroadcast(packet);
   }
 
-  void TolerantBulkRound::SendServerAlibis(QMap<int, Accusation> &map)
+  void TolerantBulkRound::SendServerAlibis(const QMap<int, Accusation> &map)
   {
-    _expected_alibi_qty = map.count();
-
     QByteArray alibi_bytes;
     for(QMap<int, Accusation>::const_iterator i=map.constBegin(); i!=map.constEnd(); ++i) {
       Accusation acc = i.value();
@@ -828,14 +890,15 @@ namespace Tolerant {
     qDebug() << _user_idx << GetLocalId().ToString() <<
       ": received user alibi data from " << GetGroup().GetIndex(from) << from.ToString();
 
+    if(_state != State_BlameAlibiSharing) {
+      throw QRunTimeError("Received a misordered user alibi message");
+    }
+
     if(!_user_alibis.size()) {
       qDebug() << "Resizing user alibi vector";
       _user_alibis.resize(GetGroup().Count());
     }
 
-    if(_state != BlameExchangingAlibis) {
-      throw QRunTimeError("Received a misordered user alibi message");
-    }
 
     uint idx = GetGroup().GetIndex(from);
     if(!_user_alibis[idx].isEmpty()) {
@@ -857,7 +920,7 @@ namespace Tolerant {
 
     qDebug() << "Received user alibi sets" << _user_alibis.count() << "len:" << payload.count() << "," << _user_alibis[idx].count(); 
     if(HasAllAlibis()) {
-      qDebug() << "Starting alibi analysis!";
+      qDebug() << _user_idx << "Starting alibi analysis!";
       RunAlibiAnalysis();
       return;
     }
@@ -868,12 +931,12 @@ namespace Tolerant {
     qDebug() << _user_idx << GetLocalId().ToString() <<
       ": received server alibi data from " << GetGroup().GetIndex(from) << from.ToString();
 
-    if(!_server_alibis.size()) {
-      _server_alibis.resize(GetGroup().GetSubgroup().Count());
+    if(_state != State_BlameAlibiSharing) {
+      throw QRunTimeError("Received a misordered server alibi message");
     }
 
-    if(_state != BlameExchangingAlibis) {
-      throw QRunTimeError("Received a misordered server alibi message");
+    if(!_server_alibis.size()) {
+      _server_alibis.resize(GetGroup().GetSubgroup().Count());
     }
 
     uint idx = GetGroup().GetIndex(from);
@@ -895,9 +958,9 @@ namespace Tolerant {
     _server_alibis_received++;
     _server_alibis[idx] = payload;
 
-    qDebug() << "Received server alibi sets" << _server_alibis.count(); 
+    qDebug() << _user_idx << "Received server alibi sets" << _server_alibis.count(); 
     if(HasAllAlibis()) {
-      qDebug() << "Ready to start blame!";
+      qDebug() << _user_idx << "Ready to start blame!";
       RunAlibiAnalysis();
       return;
     }
@@ -967,14 +1030,21 @@ namespace Tolerant {
 
       if(!bad_users.count() && !bad_servers.count() && !acc_conflicts.count()) {
         qWarning("No bad members found after investigating alibi data, blaming anonymous slot owner");
-        _bad_slots.insert(slot_idx);
+        qWarning("Setting slot and header length to zero");
+
+        FoundBadSlot(slot_idx);
       }
 
       count++;
     }
 
     if(_conflicts.count()) {
+      _user_proofs.resize(_conflicts.count());
+      _server_proofs.resize(_conflicts.count());
       qWarning() << "Found conflicts" << _conflicts.count();
+      qDebug() << "user proofs" << _user_proofs.size() << "server proofs" << _server_proofs.size();
+
+      ChangeState(State_BlameProofSharing);
       ProcessConflicts();
       return;
     } 
@@ -988,8 +1058,8 @@ namespace Tolerant {
 
     if(old_bad_slots != _bad_slots.count()) {
       // Blame finished
-      qWarning("Blamed anonymous slot owner, STOPPING");
-      FoundBadMembers();
+      qWarning("Blamed anonymous slot owner");
+      ChangeState(State_CommitSharing);
       return;
     }
 
@@ -1002,6 +1072,13 @@ namespace Tolerant {
     for(int i=0; i<_conflicts.count(); i++) {
       uint user_idx = _conflicts[i].GetUserIndex();
       uint server_idx = _conflicts[i].GetServerIndex();
+      qDebug() << "Conflict <" << user_idx << "," << server_idx << ">";
+
+      if(user_idx == server_idx) {
+        qDebug() << "Conflict between same user and server -- blaming" << user_idx;
+        AddBadMember(user_idx);
+        FoundBadMembers();
+      }
 
       if(user_idx == _user_idx) {
         qDebug() << "User" << _user_idx << "needs to send proof";
@@ -1020,7 +1097,7 @@ namespace Tolerant {
     qDebug() << _user_idx << GetLocalId().ToString() <<
       ": received user proof data from " << GetGroup().GetIndex(from) << from.ToString();
 
-    if(_state != BlameExchangingAlibis) {
+    if(_state != State_BlameProofSharing) {
       throw QRunTimeError("Received a misordered user proof message");
     }
 
@@ -1029,21 +1106,18 @@ namespace Tolerant {
     stream >> conflict_idx >> payload;
     qDebug() << "Conflict id" << conflict_idx;
 
-    if(conflict_idx > (GetGroup().Count() * GetGroup().GetSubgroup().Count())) {
+    if(conflict_idx > _conflicts.count()) {
       throw QRunTimeError("Conflict index out of range");
     }
-    
-    if((conflict_idx+1) > _user_proofs.size()) {
-      qDebug() << "Resizing user proof vector";
-      _user_proofs.resize(conflict_idx+1);
+   
+    const uint from_idx = GetGroup().GetIndex(from);
+    if(_conflicts[conflict_idx].GetUserIndex() != from_idx) {
+      AddBadMember(from_idx);
+      throw QRunTimeError("Got spoofed user proof message!");
     }
 
     if(!_user_proofs[conflict_idx].isEmpty()) {
       throw QRunTimeError("Already have user proof.");
-    }
-
-    if(_conflicts[conflict_idx].GetUserIndex() != static_cast<uint>(GetGroup().GetIndex(from))) {
-      throw QRunTimeError("Got spoofed proof message!");
     }
 
     _user_proofs_received++;
@@ -1062,7 +1136,7 @@ namespace Tolerant {
     qDebug() << _user_idx << GetLocalId().ToString() <<
       ": received server proof data from " << GetGroup().GetIndex(from) << from.ToString();
 
-    if(_state != BlameExchangingAlibis) {
+    if(_state != State_BlameProofSharing) {
       throw QRunTimeError("Received a misordered server proof message");
     }
 
@@ -1071,21 +1145,18 @@ namespace Tolerant {
     stream >> conflict_idx >> payload;
     qDebug() << "Conflict id" << conflict_idx;
 
-    if(conflict_idx > (GetGroup().Count() * GetGroup().GetSubgroup().Count())) {
-      throw QRunTimeError("Conflict index out of range");
+    const uint from_idx = GetGroup().GetSubgroup().GetIndex(from);
+    if(_conflicts[conflict_idx].GetServerIndex() != from_idx) {
+      AddBadMember(from_idx);
+      throw QRunTimeError("Got spoofed server proof message!");
     }
-    
-    if((conflict_idx+1) > _server_proofs.size()) {
-      qDebug() << "Resizing server proof vector";
-      _server_proofs.resize(conflict_idx+1);
+
+    if(conflict_idx > _conflicts.count()) {
+      throw QRunTimeError("Conflict index out of range");
     }
 
     if(!_server_proofs[conflict_idx].isEmpty()) {
       throw QRunTimeError("Already have server proof.");
-    }
-
-    if(_conflicts[conflict_idx].GetServerIndex() != static_cast<uint>(GetGroup().GetIndex(from))) {
-      throw QRunTimeError("Got spoofed server proof message!");
     }
 
     _server_proofs_received++;
@@ -1102,49 +1173,53 @@ namespace Tolerant {
   bool TolerantBulkRound::HasAllProofs() 
   {
     return (_user_proofs_received == static_cast<uint>(_conflicts.count()) &&
-        _server_proofs_received == static_cast<uint>(_conflicts.count()));
+      _server_proofs_received == static_cast<uint>(_conflicts.count()));
   }
 
   void TolerantBulkRound::RunProofAnalysis()
   {
     const int old_bad_members = _bad_members.count();
 
-    qDebug() << "Starting proof analysis";
+    qDebug() << "Starting proof analysis. Conflicts:" << _conflicts.count();
     for(int i=0; i<_conflicts.count(); i++) {
+
       uint slot_idx = _conflicts[i].GetSlotIndex();
       uint user_idx = _conflicts[i].GetUserIndex();
       uint server_idx = _conflicts[i].GetServerIndex();
 
       if(user_idx == server_idx) {
-        _bad_members.insert(user_idx);
         qWarning() << "User and server ID cannot be the same! Member" << user_idx << "is bad";
-        continue;
+        AddBadMember(user_idx);
+        FoundBadMembers();
+        return;
       }
 
-      QByteArray user_pub_key = _user_public_dh_keys[user_idx];
-      QByteArray server_pub_key = _server_public_dh_keys[server_idx];
+      QByteArray user_pub_key = GetGroup().GetPublicDiffieHellman(user_idx);
+      QByteArray server_pub_key = GetGroup().GetPublicDiffieHellman(server_idx);
 
       QByteArray user_proof = _user_proofs[i];
       qDebug() << "Proof:" << user_proof.toHex().constData();
       qDebug() << "Pub key:" << user_pub_key.toHex().constData();
       qDebug() << "Server key:" << server_pub_key.toHex().constData();
 
-      QByteArray user_valid = _user_dh_key->VerifySharedSecret(user_pub_key, server_pub_key, user_proof);
+      QByteArray user_valid = GetCredentials().GetDhKey()->VerifySharedSecret(user_pub_key, server_pub_key, user_proof);
       if(!user_valid.count()) {
         qWarning() << "User" << user_idx << "send bad proof";
-        _bad_members.insert(user_idx);
+        AddBadMember(user_idx);
+        FoundBadMembers();
       }
 
       QByteArray server_proof = _server_proofs[i];
-      QByteArray server_valid = _user_dh_key->VerifySharedSecret(server_pub_key, user_pub_key, server_proof);
+      QByteArray server_valid = GetCredentials().GetDhKey()->VerifySharedSecret(server_pub_key, user_pub_key, server_proof);
       if(!server_valid.count()) {
         qWarning() << "Server" << server_idx << "send bad proof";
-        _bad_members.insert(server_idx);
+        AddBadMember(server_idx);
+        FoundBadMembers();
       }
 
       if(!user_valid.count() || !server_valid.count()) {
           // We blamed one person, so we can stop now
-          continue;
+          return;
       }
 
       qDebug() << "Run RNGs to figure out which bit was right";
@@ -1161,15 +1236,19 @@ namespace Tolerant {
       qDebug() << "Bit check || Expected: " << expected_bit << "Server:" << server_bit << "User:" << user_bit;
 
       if(expected_bit != server_bit) {
-        _bad_members.insert(server_idx);
         qDebug() << "Blaming server" << server_idx;
         qWarning("Server revealed correct secret but sent bad bit!");
+        AddBadMember(server_idx);
+        FoundBadMembers();
+        return;
       }
 
       if(expected_bit != user_bit) {
-        _bad_members.insert(user_idx);
         qDebug() << "Blaming user" << user_idx;
         qWarning("User revealed correct secret but sent bad bit!");
+        AddBadMember(user_idx);
+        FoundBadMembers();
+        return;
       }
 
       if((expected_bit == server_bit) && (server_bit == user_bit)) {
@@ -1179,14 +1258,19 @@ namespace Tolerant {
 
     qDebug() << "Done with proof analysis";
     if(old_bad_members != _bad_members.count()) {
+      qDebug() << "Stopping after found" << _bad_members.count() << "bad members";
       FoundBadMembers();
+      return;
     }
+
+    qFatal("Should never reach here");
     return;
   }
 
   void TolerantBulkRound::SendUserProof(int conflict_idx, uint server_idx)
   {
-    QByteArray proof = _user_dh_key->ProveSharedSecret(_server_public_dh_keys[server_idx]);
+    QByteArray server_pk = GetGroup().GetPublicDiffieHellman(server_idx);
+    QByteArray proof = GetCredentials().GetDhKey()->ProveSharedSecret(server_pk);
     qDebug() << "Sending user proof len" << proof.count();
     qDebug() << "Proof:" << proof.toHex().constData();
 
@@ -1198,7 +1282,8 @@ namespace Tolerant {
 
   void TolerantBulkRound::SendServerProof(int conflict_idx, uint user_idx)
   {
-    QByteArray proof = _server_dh_key->ProveSharedSecret(_user_public_dh_keys[user_idx]);
+    QByteArray user_pk = GetGroup().GetPublicDiffieHellman(user_idx);
+    QByteArray proof = GetCredentials().GetDhKey()->ProveSharedSecret(user_pk);
 
     QByteArray packet;
     QDataStream stream(&packet, QIODevice::WriteOnly);
@@ -1235,10 +1320,25 @@ namespace Tolerant {
   void TolerantBulkRound::PrepForNextPhase()
   {
     uint group_size = static_cast<uint>(GetGroup().Count());
-    _user_messages = QVector<QByteArray>(group_size);
+
+    _user_commits.clear();
+    _user_commits.resize(group_size);
+    _received_user_commits = 0;
+
+    _server_commits.clear();
+    _server_commits.resize(GetGroup().GetSubgroup().Count());
+    _received_server_commits = 0;
+
+    _user_messages.clear();
+    _user_message_digests.clear();
+    _user_messages.resize(group_size);
+    _user_message_digests.resize(group_size);
     _received_user_messages = 0;
 
-    _server_messages = QVector<QByteArray>(GetGroup().GetSubgroup().Count());
+    _server_messages.clear();
+    _server_message_digests.clear();
+    _server_messages.resize(GetGroup().GetSubgroup().Count());
+    _server_message_digests.resize(GetGroup().GetSubgroup().Count());
     _received_server_messages = 0;
 
     _expected_bulk_size = 0;
@@ -1256,51 +1356,49 @@ namespace Tolerant {
     _corrupted_slots.clear();
   }
 
-  void TolerantBulkRound::NextPhase()
+  void TolerantBulkRound::FinishPhase() 
   {
-    qDebug() << "--";
-    qDebug() << "-- NEXT PHASE :" << _phase;
-    qDebug() << "--";
+    if(_state == State_DataSharing && _waiting_for_blame) {
+      qWarning("Entering blame shuffle");
+      ChangeState(State_BlameShuffling);
+      RunBlameShuffle();
+      return;
+    } 
 
-    QByteArray user_xor_msg = GenerateUserXorMessage();
-    QByteArray user_packet;
-    QDataStream user_stream(&user_packet, QIODevice::WriteOnly);
-    user_stream << MessageType_UserBulkData << GetRoundId() << _phase << user_xor_msg;
-    VerifiableBroadcast(user_packet);
+    ProcessMessages();
 
-    if(_is_server) {
-      QByteArray server_xor_msg = GenerateServerXorMessage();
-      QByteArray server_packet;
-      QDataStream server_stream(&server_packet, QIODevice::WriteOnly);
-      server_stream << MessageType_ServerBulkData << GetRoundId() << _phase << server_xor_msg;
-      VerifiableBroadcast(server_packet);
+    if(_state == State_DataSharing && _waiting_for_blame) {
+      RunBlameShuffle();
+      return;
+    } 
+   
+    if(_state == State_Finished) {
+      return;   
+    }
+
+    if(_stop_next) {
+      SetInterrupted();
+      Stop("Peer joined"); 
+      return;
+    }
+
+    PrepForNextPhase();
+    _phase++;
+    ChangeState(State_CommitSharing);
+
+    SendCommits();
+  }
+
+  void TolerantBulkRound::AddBadMember(int member_idx) {
+    if(!_bad_members.contains(member_idx)) {
+      _bad_members.append(member_idx);
     }
   }
 
-  void TolerantBulkRound::FinishPhase() 
-  {
-    if(_state == BlameWaitingForShuffle) {
-      qWarning("Entering blame shuffle");
-      RunBlameShuffle();
-      return;
-    } else {
-      ProcessMessages();
-      if(_state == BlameWaitingForShuffle) {
-        RunBlameShuffle();
-        return;
-      }
-      PrepForNextPhase();
-      _phase++;
-
-      uint count = static_cast<uint>(_offline_log.Count());
-      for(uint idx = 0; idx < count; idx++) {
-        QPair<QByteArray, Id> entry = _offline_log.At(idx);
-        ProcessData(entry.first, entry.second);
-      }
-
-      _offline_log.Clear();
-
-      NextPhase();
+  void TolerantBulkRound::AddBadMembers(const QVector<int> &more) {
+    for(int i=0; i<more.count(); i++) {
+      const int member_idx = more[i];
+      AddBadMember(member_idx);
     }
   }
 
@@ -1308,8 +1406,7 @@ namespace Tolerant {
   {
     if(!_key_shuffle_round->Successful()) {
       AddBadMembers(_key_shuffle_round->GetBadMembers());
-      _state = Finished;
-      Stop("ShuffleRound failed");
+      FoundBadMembers();
       return;
     }
 
@@ -1340,18 +1437,9 @@ namespace Tolerant {
 
     PrepForNextPhase();
 
-    NextPhase();
-    // Avoid a race condition of phase 1 messages arriving before completing
-    // the full transition into phase 0 / DataSharing
-    _state = DataSharing;
+    ChangeState(State_CommitSharing);
 
-    count = static_cast<uint>(_offline_log.Count());
-    for(uint idx = 0; idx < count; idx++) {
-      QPair<QByteArray, Id> entry = _offline_log.At(idx);
-      ProcessData(entry.first, entry.second);
-    }
-
-    _offline_log.Clear();
+    SendCommits();
   }
 
   void TolerantBulkRound::BlameShuffleFinished()
@@ -1359,10 +1447,11 @@ namespace Tolerant {
     qDebug() << "Finished blame/accusation shuffle";
     if(!_blame_shuffle_round->Successful()) {
       AddBadMembers(_blame_shuffle_round->GetBadMembers());
-      _state = Finished;
-      Stop("Blame ShuffleRound Failed");
+      FoundBadMembers();
       return;
     } 
+
+    CreateBlameShuffle();
   
     qDebug() << "Got" << _blame_shuffle_sink.Count() << "accusations";
 
@@ -1410,16 +1499,93 @@ namespace Tolerant {
     }
 
     if(_acc_data.count()) {
-      _state = BlameExchangingAlibis;
+      _expected_alibi_qty = _acc_data.count();
+
+      ChangeState(State_BlameAlibiSharing);
       SendUserAlibis(_acc_data); 
       if(_is_server) {
         SendServerAlibis(_acc_data);
       }
     } else {
       qWarning() << "No valid accusations. Blaming anonymous slot owners:" << _corrupted_slots;
-      _state = DataSharing;
+
+      for(QSet<int>::const_iterator i=_corrupted_slots.begin(); i!=_corrupted_slots.end(); i++) {
+        FoundBadSlot(*i);
+      }
+
+      PrepForNextPhase();
+      _phase++;
+
+      ChangeState(State_CommitSharing);
+      SendCommits();
     }
   }
+
+  void TolerantBulkRound::ChangeState(State new_state) 
+  {
+    _state = new_state;
+    uint count = static_cast<uint>(_offline_log.Count());
+    for(uint idx = 0; idx < count; idx++) {
+      QPair<QByteArray, Id> entry = _offline_log.At(idx);
+      ProcessData(entry.first, entry.second);
+    }
+
+    _offline_log.Clear();
+  }
+
+  void TolerantBulkRound::CreateBlameShuffle() 
+  {
+    QSharedPointer<Network> net(GetNetwork()->Clone());
+
+    QVariantMap headers = net->GetHeaders();
+    headers["round"] = Header_BlameShuffle;
+
+    net->SetHeaders(headers);
+
+    QByteArray rid = GetRoundId().GetByteArray();
+    rid.append("BLAME");
+    rid.append(_phase);
+    Id sr_id(_hash_algo->ComputeHash(rid));
+
+    _blame_shuffle_round = QSharedPointer<Round>(_create_shuffle(GetGroup(), 
+          GetCredentials(), sr_id, net, _get_blame_shuffle_data));
+    _blame_shuffle_round->SetSink(&_blame_shuffle_sink);
+
+    QObject::connect(_blame_shuffle_round.data(), SIGNAL(Finished()),
+        this, SLOT(BlameShuffleFinished()));
+  }
+
+  bool TolerantBulkRound::ReadyForMessage(MessageType mtype)
+  {
+    switch(_state) {
+      case State_Offline: 
+        return false;
+      case State_SigningKeyShuffling:
+        return false;
+      case State_CommitSharing:
+        return (mtype == MessageType_UserCommitData) ||
+          (mtype == MessageType_ServerCommitData);
+      case State_DataSharing:
+        return (mtype == MessageType_UserBulkData) ||
+          (mtype == MessageType_ServerBulkData);
+      case State_BlameShuffling:
+        return false;
+      case State_BlameAlibiSharing:
+        return (mtype == MessageType_UserAlibiData) ||
+          (mtype == MessageType_ServerAlibiData);
+      case State_BlameProofSharing:
+        return (mtype == MessageType_UserProofData) ||
+          (mtype == MessageType_ServerProofData);
+      case State_Finished:
+        qWarning() << "Received message after node finished";
+        return false;
+      default:
+        qFatal("Should never get here");
+
+      return false;
+    }
+  }
+
 }
 }
 }

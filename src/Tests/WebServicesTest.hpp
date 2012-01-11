@@ -1,3 +1,5 @@
+#ifndef DISSENT_TESTS_WEB_SERVICES_TEST_H_GUARD
+#define DISSENT_TESTS_WEB_SERVICES_TEST_H_GUARD
 
 #include <QList>
 #include <QObject>
@@ -46,3 +48,5 @@ namespace Tests {
   void SessionServiceInactiveTestWrapper(QSharedPointer<WebService> wsp);
 }
 }
+
+#endif

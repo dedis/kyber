@@ -34,6 +34,7 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Anonymity/Tolerant/Conflict.hpp \
            src/Anonymity/Tolerant/MessageHistory.hpp \
            src/Anonymity/Tolerant/TolerantBulkRound.hpp \
+           src/Anonymity/Tolerant/TolerantTreeRound.hpp \
            src/Applications/CommandLine.hpp \
            src/Applications/ConsoleSink.hpp \
            src/Applications/FileSink.hpp \
@@ -153,6 +154,7 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Anonymity/Tolerant/BlameMatrix.cpp \
            src/Anonymity/Tolerant/MessageHistory.cpp \
            src/Anonymity/Tolerant/TolerantBulkRound.cpp \
+           src/Anonymity/Tolerant/TolerantTreeRound.cpp \
            src/Applications/CommandLine.cpp \
            src/Applications/ConsoleSink.cpp \
            src/Applications/FileSink.cpp \

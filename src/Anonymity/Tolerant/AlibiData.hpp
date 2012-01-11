@@ -77,7 +77,7 @@ namespace Tolerant {
        * @param accusation describing the bit position for which to produce
        *        an alibi
        */
-      QByteArray GetAlibiBytes(uint slot, Accusation &acc);
+      QByteArray GetAlibiBytes(uint slot, const Accusation &acc) const;
 
       /**
        * Get a serlialized alibi proving this node's innocence in the given slot
@@ -86,7 +86,7 @@ namespace Tolerant {
        * @param byte index within the corrupted slot
        * @param bit index within the corrupted byte
        */
-      QByteArray GetAlibiBytes(uint phase, uint slot, uint byte, ushort bit);
+      QByteArray GetAlibiBytes(uint phase, uint slot, uint byte, ushort bit) const;
 
       /**
        * Indicate that the next transmission phase is starting. This allows
