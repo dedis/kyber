@@ -81,12 +81,19 @@ namespace Connections {
        * Returns the local Id
        */
       inline const Id &GetId() { return _local_id; }
+
+      /**
+       * Returns the number of outstanding connection attempts
+       */
+      int OutstandingConnectionAttempts()
+      {
+        return _outstanding_con_attempts.count();
+      }
       
     signals:
       /**
        * A new outgoing connection has been created
        * @param con the new connection
-       * @param local true if owned locally
        */
       void NewConnection(Connection *con);
 

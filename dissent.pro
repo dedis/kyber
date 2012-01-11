@@ -62,11 +62,14 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Crypto/OnionEncryptor.hpp \
            src/Crypto/ThreadedOnionEncryptor.hpp \
            src/Crypto/Serialization.hpp \
+           src/Connections/Bootstrapper.hpp \
            src/Connections/Connection.hpp \
+           src/Connections/ConnectionAcquirer.hpp \
            src/Connections/ConnectionManager.hpp \
            src/Connections/ConnectionTable.hpp \
            src/Connections/DefaultNetwork.hpp \
            src/Connections/EmptyNetwork.hpp \
+           src/Connections/FullyConnected.hpp \
            src/Connections/Id.hpp \
            src/Connections/Network.hpp \
            src/Messaging/BufferSink.hpp \
@@ -164,9 +167,11 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Crypto/NullPrivateKey.cpp \
            src/Crypto/OnionEncryptor.cpp \
            src/Crypto/ThreadedOnionEncryptor.cpp \
+           src/Connections/Bootstrapper.cpp \
            src/Connections/Connection.cpp \
            src/Connections/ConnectionManager.cpp \
            src/Connections/ConnectionTable.cpp \
+           src/Connections/FullyConnected.cpp \
            src/Connections/Id.cpp \
            src/Messaging/RpcHandler.cpp \
            src/Messaging/RpcRequest.cpp \

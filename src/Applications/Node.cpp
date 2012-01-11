@@ -22,7 +22,8 @@ namespace Applications {
     base_group(group),
     SessionType(type)
   {
-    QObject::connect(&bg, SIGNAL(NewConnection(Connection *)),
+    QObject::connect(&bg.GetConnectionManager(),
+        SIGNAL(NewConnection(Connection *)),
         this, SLOT(HandleConnection(Connection *)));
   }
 
@@ -46,7 +47,8 @@ namespace Applications {
 
   void Node::CreateSession()
   {
-    QObject::disconnect(&bg, SIGNAL(NewConnection(Connection *)),
+    QObject::disconnect(&bg.GetConnectionManager(),
+        SIGNAL(NewConnection(Connection *)),
         this, SLOT(HandleConnection(Connection *)));
     SessionFactory::GetInstance().Create(this, Id::Zero(),
         base_group, SessionType);

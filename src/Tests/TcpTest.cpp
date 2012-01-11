@@ -35,7 +35,8 @@ namespace Tests {
     SignalCounter sc(total_cons);
 
     foreach(QSharedPointer<Node> node, nodes) {
-      QObject::connect(&node->bg, SIGNAL(NewConnection(Connection *)),
+      QObject::connect(&node->bg.GetConnectionManager(),
+        SIGNAL(NewConnection(Connection *)),
           &sc, SLOT(Counter()));
       node->bg.Start();
     }
@@ -103,7 +104,7 @@ namespace Tests {
     LiveSendTest(nodes);
 
     foreach(QSharedPointer<Node> node, nodes) {
-      EXPECT_EQ(node->bg.OutstandingConnectionAttempts(), 0);
+      EXPECT_EQ(node->bg.GetConnectionManager().OutstandingConnectionAttempts(), 0);
     }
 
     TerminateLiveOverlay(nodes);

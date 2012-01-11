@@ -4,27 +4,19 @@
 #include <QObject>
 #include <QSharedPointer>
 
+#include "Connections/ConnectionAcquirer.hpp"
 #include "Connections/ConnectionManager.hpp"
 #include "Connections/ConnectionTable.hpp"
 
 #include "Messaging/RpcHandler.hpp"
-#include "Messaging/RpcMethod.hpp"
 
 namespace Dissent {
-namespace Connections {
-  class Connection;
-}
-
 namespace Messaging {
   class RpcRequest;
 }
 
 namespace Transports {
   class EdgeListener;
-}
-
-namespace Utils {
-  class TimerEvent;
 }
 
 namespace Overlay {
@@ -39,13 +31,11 @@ namespace Overlay {
       typedef Dissent::Connections::Connection Connection;
       typedef Dissent::Connections::ConnectionManager ConnectionManager;
       typedef Dissent::Connections::ConnectionTable ConnectionTable;
+      typedef Dissent::Connections::ConnectionAcquirer ConnectionAcquirer;
       typedef Dissent::Connections::Id Id;
       typedef Dissent::Messaging::RpcHandler RpcHandler;
-      typedef Dissent::Messaging::RpcMethod<BasicGossip> RpcMethod;
-      typedef Dissent::Messaging::RpcRequest RpcRequest;
       typedef Dissent::Transports::Address Address;
       typedef Dissent::Transports::EdgeListener EdgeListener;
-      typedef Dissent::Utils::TimerEvent TimerEvent;
 
       /**
        * Constructor
@@ -94,25 +84,13 @@ namespace Overlay {
        */
       inline Id GetId() { return _local_id; }
 
-      /**
-       * Returns the number ouf outstanding connection attempts
-       */
-      inline int OutstandingConnectionAttempts() { return _active_attempts.count(); }
-
     public slots:
       /**
        * Disconnects the node from the overlay
        */
       bool Stop();
 
-
     signals:
-      /**
-       * A new outgoing connection has been created
-       * @param con the new connection
-       */
-      void NewConnection(Connection *con);
-
       /**
        * Emitted when disconnected
        */
@@ -121,7 +99,6 @@ namespace Overlay {
     private:
       QList<Address> _local_endpoints;
       QList<Address> _remote_endpoints;
-      QHash<Address, bool> _active_attempts;
 
       bool _started;
       bool _stopped;
@@ -129,71 +106,9 @@ namespace Overlay {
       RpcHandler _rpc;
       ConnectionManager _cm;
 
-      QList<QSharedPointer<EdgeListener> > _edge_listeners;
-
-      RpcMethod _peer_list_inquire;
-      RpcMethod _peer_list_response;
-      RpcMethod _notify_peer;
-      TimerEvent *_bootstrap_event;
-
-      /**
-       * Notify all peers about this new peer
-       * @param con the new peer
-       */
-      void SendUpdate(Connection *con);
-
-      /**
-       * Request a peer list from this connection
-       * @param con the remote peer to request peer list from
-       */
-      void RequestPeerList(Connection *con);
-
-      /**
-       * Check if the local node is connect, connecting if not
-       * @param bid the byte array representation of the id
-       * @param url the url representation of the address
-       */
-      void CheckAndConnect(const QByteArray &bid, const QUrl &url);
-
-      /**
-       * Handle a request for a list of local nodes peers
-       */
-      void PeerListInquire(RpcRequest &request);
-
-      /**
-       * Handle a remote peers list of peers
-       */
-      void PeerListResponse(RpcRequest &response);
-
-      /**
-       * Handle a remote peers knowledge of another peer
-       */
-      void PeerListIncrementalUpdate(RpcRequest &notification);
-
-      /**
-       * Reconnects to all peers in the _remote_endpoints
-       */
-      void Bootstrap(const int &);
-
-      /**
-       * Connect to the provided address iff it isn't us and we don't have
-       * an active attempt to this address already
-       */
-      void ConnectTo(const Address &addr);
+      QList<QSharedPointer<ConnectionAcquirer> > _con_acquirers;
 
     private slots:
-      /**
-       * A new connection
-       * @param con the new connection
-       */
-      void HandleConnection(Connection *con);
-
-      /**
-       * A connection attempt failed
-       */
-      void HandleConnectionAttemptFailure(const Address &to,
-          const QString &error);
-
       /**
        * Handles the CM disconnect message
        */

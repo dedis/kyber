@@ -51,11 +51,14 @@
 #include "Crypto/Serialization.hpp"
 #include "Crypto/ThreadedOnionEncryptor.hpp"
 
+#include "Connections/Bootstrapper.hpp"
 #include "Connections/Connection.hpp"
+#include "Connections/ConnectionAcquirer.hpp"
 #include "Connections/ConnectionManager.hpp"
 #include "Connections/ConnectionTable.hpp"
 #include "Connections/DefaultNetwork.hpp"
 #include "Connections/EmptyNetwork.hpp"
+#include "Connections/FullyConnected.hpp"
 #include "Connections/Id.hpp"
 #include "Connections/Network.hpp"
 
