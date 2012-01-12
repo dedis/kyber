@@ -309,7 +309,7 @@ namespace Tolerant {
 
     const int hash_len = _hash_algo->GetDigestSize();
 
-    if(static_cast<uint>(payload.size()) != hash_len) {
+    if(payload.size() != hash_len) {
       throw QRunTimeError("Incorrect bulk commit message length, got " +
           QString::number(payload.size()) + " expected " +
           QString::number(hash_len));
@@ -346,7 +346,7 @@ namespace Tolerant {
 
     const int hash_len = _hash_algo->GetDigestSize();
 
-    if(static_cast<uint>(payload.size()) != hash_len) {
+    if(payload.size() != hash_len) {
       throw QRunTimeError("Incorrect server bulk commit message length, got " +
           QString::number(payload.size()) + " expected " +
           QString::number(hash_len));
@@ -407,7 +407,7 @@ namespace Tolerant {
 
     const int hash_len = _hash_algo->GetDigestSize();
 
-    if(static_cast<uint>(payload.size()) != hash_len) {
+    if(payload.size() != hash_len) {
       throw QRunTimeError("Incorrect leader commit message length, got " +
           QString::number(payload.size()) + " expected " +
           QString::number(hash_len));
