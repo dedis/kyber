@@ -77,6 +77,7 @@ namespace Transports {
       return false;
     }
 
+    QObject::disconnect();
     _socket->close();
     return true;
   }
