@@ -64,7 +64,7 @@ namespace Connections {
     Bootstrap(0);
   }
 
-  void Bootstrapper::Bootstrap(const int &)
+  void Bootstrapper::Bootstrap(const int &val)
   {
     if(!NeedConnection()) {
       if(_bootstrap_event) {
@@ -74,8 +74,10 @@ namespace Connections {
       }
       return;
     } else if(_bootstrap_event == 0) {
-      TimerCallback *cb = new TimerMethod<Bootstrapper, int>(this, &Bootstrapper::Bootstrap, 0);
+      TimerCallback *cb = new TimerMethod<Bootstrapper, int>(this, &Bootstrapper::Bootstrap, -1);
       _bootstrap_event = new TimerEvent(Timer::GetInstance().QueueCallback(cb, 5000, 5000));
+    } else if(val != -1) {
+      return;
     }
 
     foreach(const Address &addr, _remote_endpoints) {
