@@ -32,7 +32,7 @@ namespace Connections {
   Id::Id(const QString &sid) : _integer(sid)
   {
     if(_integer.ToString() != sid) {
-      _integer = Integer(QByteArray(Id::ByteSize, 0));
+      _integer = Zero()._integer;
     }
   }
 }
