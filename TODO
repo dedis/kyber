@@ -10,6 +10,7 @@ Connections
 - ConnectionTable should be a value type
 - Connections should be stored via QSharedPointer
 - ConnectionManager and maybe EL should turn reject requests for connections when closed
+- Relay assumes that Rpc always completes successfully ... needs timeout
 
 Crypto
 - Add QCA or Botan CryptoLibraries, take a look at the src/Crypto/CryptoFactory and other related files to get a general feel
