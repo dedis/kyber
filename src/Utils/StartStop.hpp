@@ -45,6 +45,10 @@ namespace Utils {
        */
       void DestructorCheck();
 
+      virtual void OnStart() {}
+
+      virtual void OnStop() {}
+
     private:
       bool _started;
       bool _stopped;

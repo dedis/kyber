@@ -15,6 +15,7 @@ namespace Utils {
     }
 
     _started = true;
+    OnStart();
     return true;
   }
 
@@ -25,6 +26,7 @@ namespace Utils {
     }
 
     _stopped = true;
+    OnStop();
     return true;
   }
 
