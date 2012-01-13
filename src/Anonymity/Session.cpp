@@ -109,14 +109,15 @@ namespace Anonymity {
       return false;
     }
 
+    bool good = true;
     foreach(const GroupContainer &gc, _group) {
       if(ct.GetConnection(gc.first) == 0) {
-        qDebug() << "Missing a connection";
-        return false;
+        qDebug() << "Missing a connection" << gc.first.ToString();
+        good = false;
       }
     }
 
-    return true;
+    return good;
   }
 
   void Session::Register(const int &)
@@ -328,6 +329,8 @@ namespace Anonymity {
 
     _prepared_peers.insert(con->GetRemoteId(), con->GetRemoteId());
     if(_prepared_peers.size() != _registered_peers.size()) {
+      qDebug() << "Waiting on" << (_registered_peers.size() - _prepared_peers.size()) <<
+        "more prepared resposnes.";
       return;
     }
 
