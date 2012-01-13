@@ -340,10 +340,10 @@ namespace Connections {
     con->GetEdge()->Close("Remote disconnect");
   }
 
-  void ConnectionManager::HandleEdgeClose(const QString &)
+  void ConnectionManager::HandleEdgeClose(const QString &reason)
   {
     Edge *edge = qobject_cast<Edge *>(sender());
-    qDebug() << "Edge closed: " << edge->ToString();
+    qDebug() << "Edge closed: " << edge->ToString() << reason;
     if(!_con_tab.RemoveEdge(edge)) {
       qWarning() << "Edge closed but no Edge found in CT:" << edge->ToString();
     }
