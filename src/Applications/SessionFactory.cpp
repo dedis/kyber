@@ -109,6 +109,7 @@ namespace Applications {
     QSharedPointer<Network> net(new DefaultNetwork(cm, rpc));
 
     Session *session = new Session(group, node->creds, session_id, net, cr);
+    QObject::connect(&node->bg, SIGNAL(Disconnecting()), session, SLOT(CallStop()));
     QSharedPointer<Session> psession(session);
 
     node->sm.AddSession(psession);

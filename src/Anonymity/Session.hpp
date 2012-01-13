@@ -9,7 +9,7 @@
 #include "Messaging/Filter.hpp"
 #include "Messaging/GetDataCallback.hpp"
 #include "Messaging/RpcMethod.hpp"
-#include "Utils/StartStop.hpp"
+#include "Utils/StartStopSlots.hpp"
 #include "Utils/TimerEvent.hpp"
 
 #include "Credentials.hpp"
@@ -35,8 +35,9 @@ namespace Anonymity {
    * Maintains a (variable) set of peers (group) which is actively
    * participating in anonymous exchanges (rounds).
    */
-  class Session : public QObject, public Dissent::Messaging::Filter,
-      public Dissent::Utils::StartStop {
+  class Session : public Dissent::Utils::StartStopSlots,
+                    public Dissent::Messaging::Filter
+  {
     Q_OBJECT
 
     public:
@@ -64,16 +65,6 @@ namespace Anonymity {
        * Deconstructor
        */
       virtual ~Session();
-
-      /**
-       * Starts the session
-       */
-      virtual bool Start();
-
-      /**
-       * Stops the session
-       */
-      virtual bool Stop();
 
       /**
        * From the SessionManager, pass in a ReceivedRegister
@@ -155,6 +146,17 @@ namespace Anonymity {
        * Signfies that the session has been closed / stopped
        */
       void Stopping();
+
+    protected:
+      /**
+       * Called when the session is started
+       */
+      virtual void OnStart();
+
+      /**
+       * Called when the session is stopped
+       */
+      virtual void OnStop();
 
     private:
       /**

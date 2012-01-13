@@ -58,26 +58,18 @@ namespace Anonymity {
     Stop();
   }
 
-  bool Session::Start()
+  void Session::OnStart()
   {
-    if(!StartStop::Start()) {
-      return false;
-    }
-
     qDebug() << _creds.GetLocalId().ToString() << "Session started:" <<
       _session_id.ToString();
-    if(!IsLeader()) {
+
+    if(!IsLeader() && (_network->GetConnection(GetGroup().GetLeader()) != 0)) {
       Register(0);
     }
-    return true;
   }
 
-  bool Session::Stop()
+  void Session::OnStop()
   {
-    if(!StartStop::Stop()) {
-      return false;
-    }
-
     _register_event.Stop();
 
     foreach(const GroupContainer &gc, _group.GetRoster()) {
@@ -95,7 +87,6 @@ namespace Anonymity {
     }
 
     emit Stopping();
-    return true;
   }
 
   bool Session::CheckGroup()
