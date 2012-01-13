@@ -24,10 +24,11 @@ namespace Tests {
       QSharedPointer<AsymmetricKey> key(lib->GeneratePrivateKey(bid));
       QSharedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
 
+      QSharedPointer<ISink> sink(QSharedPointer<ISink>(new MockSinkWithSignal()));
       nodes.append(QSharedPointer<Node>(new Node(Credentials(id, key, dh),
-              local, remote, group, session_type)));
+              local, remote, group, session_type, sink)));
+      nodes.last()->StartSession();
 
-      nodes[idx]->sink = QSharedPointer<ISink>(new MockSinkWithSignal());
       local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
     }
 

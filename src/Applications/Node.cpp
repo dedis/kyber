@@ -15,45 +15,25 @@ using Dissent::Crypto::CryptoFactory;
 namespace Dissent {
 namespace Applications {
   Node::Node(const Credentials &creds, const QList<Address> &local,
-      const QList<Address> &remote, const Group &group, const QString &type) :
+      const QList<Address> &remote, const Group &group, const QString &type,
+      const QSharedPointer<ISink> &sink) :
     creds(creds),
     bg(creds.GetLocalId(), local, remote),
     sm(bg.GetRpcHandler()),
     base_group(group),
-    SessionType(type)
+    SessionType(type),
+    sink(sink)
   {
-    QObject::connect(&bg.GetConnectionManager(),
-        SIGNAL(NewConnection(Connection *)),
-        this, SLOT(HandleConnection(Connection *)));
+  }
+
+  void Node::StartSession()
+  {
+    SessionFactory::GetInstance().Create(this, Id::Zero(),
+        base_group, SessionType);
   }
 
   Node::~Node()
   {
-    QObject::disconnect(this, SIGNAL(Ready()), 0 ,0);
-  }
-
-  void Node::HandleConnection(Connection *con)
-  {
-    if(creds.GetLocalId() == base_group.GetLeader()) {
-      CreateSession();
-    }
-
-    if(con->GetRemoteId() != base_group.GetLeader()) {
-      return;
-    }
-
-    CreateSession();
-  }
-
-  void Node::CreateSession()
-  {
-    QObject::disconnect(&bg.GetConnectionManager(),
-        SIGNAL(NewConnection(Connection *)),
-        this, SLOT(HandleConnection(Connection *)));
-    SessionFactory::GetInstance().Create(this, Id::Zero(),
-        base_group, SessionType);
-    emit Ready();
-    QObject::disconnect(this, SIGNAL(Ready()), 0 ,0);
   }
 }
 }

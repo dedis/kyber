@@ -65,12 +65,6 @@ namespace Applications {
     PrintCommandLine();
   }
 
-  void CommandLine::Ready()
-  {
-    _qtout << endl << "System operational, begin sending messages...";
-    PrintCommandLine();
-  }
-
   void CommandLine::Read()
   {
     QString msg = _qtin.readLine();

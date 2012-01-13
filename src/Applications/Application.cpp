@@ -84,13 +84,11 @@ int main(int argc, char **argv)
 
   if(settings.Console) {
     QSharedPointer<CommandLine> cl(new CommandLine(nodes));
-    QObject::connect(nodes[0].data(), SIGNAL(Ready()), cl.data(), SLOT(Ready()));
     nodes[0]->sink = cl;
     cl->Start();
     QObject::connect(&qca, SIGNAL(aboutToQuit()), cl.data(), SLOT(Stop()));
   } else if(settings.WebServer) {
     ws.reset(new WebServer(settings.WebServerUrl));
-    QObject::connect(nodes[0].data(), SIGNAL(Ready()), ws.data(), SLOT(Ready()));
 
     /* Stop Web server when application is about to quit */
     QObject::connect(&qca, SIGNAL(aboutToQuit()), ws.data(), SLOT(Stop()));
@@ -123,6 +121,10 @@ int main(int argc, char **argv)
     ws->Start();
   } else {
     nodes[0]->sink = QSharedPointer<ISink>(new DummySink());
+  }
+
+  foreach(QSharedPointer<Node> node, nodes) {
+    node->StartSession();
   }
 
   return QCoreApplication::exec();

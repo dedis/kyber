@@ -104,11 +104,6 @@ namespace Web {
       void HandleFinishedWebRequest(QSharedPointer<WebRequest> wrp);
 
       /**
-       * Called when session is ready to accept messages over HTTP
-       */
-      void Ready();
-
-      /**
        * Stop the web server 
        */
       void Stop();
@@ -148,7 +143,7 @@ namespace Web {
        * routing table */
       QSet<QSharedPointer<WebService> > _service_set;
 
-      bool _running, _ready;
+      bool _running;
       QTextStream _qtin, _qtout;
       QSocketNotifier _qtin_notify;
   };

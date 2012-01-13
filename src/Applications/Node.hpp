@@ -1,8 +1,6 @@
 #ifndef DISSENT_APPLICATIONS_NODE_H_GUARD
 #define DISSENT_APPLICATIONS_NODE_H_GUARD
 
-#include <QObject>
-
 #include "Anonymity/Credentials.hpp"
 #include "Anonymity/Group.hpp"
 #include "Anonymity/SessionManager.hpp"
@@ -23,9 +21,7 @@ namespace Applications {
    * A wrapper class combining an overlay, session manager, session, sink,
    * key, and whatever else might be necessary.
    */
-  class Node : public QObject {
-    Q_OBJECT
-
+  class Node {
     public:
       typedef Dissent::Anonymity::Credentials Credentials;
       typedef Dissent::Anonymity::Group Group;
@@ -41,12 +37,18 @@ namespace Applications {
        * @param remote the bootstrap peer list
        */
       explicit Node(const Credentials &creds, const QList<Address> &local,
-          const QList<Address> &remote, const Group &group, const QString &type);
+          const QList<Address> &remote, const Group &group, const QString &type,
+          const QSharedPointer<ISink> &sink = QSharedPointer<ISink>());
 
       /**
        * Destructor
        */
       virtual ~Node();
+
+      /**
+       * Hack to start session after sink has been set.
+       */
+      void StartSession();
       
       Credentials creds;
       BasicGossip bg;
@@ -54,18 +56,6 @@ namespace Applications {
       Group base_group;
       QString SessionType;
       QSharedPointer<ISink> sink;
-
-    signals:
-      /**
-       * Emitted when this node has created a session
-       */
-      void Ready();
-
-    private:
-      void CreateSession();
-
-    private slots:
-      void HandleConnection(Connection *con);
   };
 }
 }

@@ -22,7 +22,6 @@ namespace Web {
     _host(url.host()),
     _port(url.port(8080)),
     _running(false),
-    _ready(false),
     _qtin(stdin, QIODevice::ReadOnly),
     _qtout(stdout, QIODevice::WriteOnly),
     _qtin_notify(STDIN_FILENO, QSocketNotifier::Read)
@@ -79,11 +78,6 @@ namespace Web {
 
     /* kill the application */
     emit Stopped();
-  }
-
-  void WebServer::Ready()
-  {
-    _ready = true;
   }
 
   void WebServer::incomingConnection(int socket)

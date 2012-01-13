@@ -43,11 +43,6 @@ namespace Applications {
 
     public slots:
       /**
-       * Called when commands for sending data can be executed.
-       */
-      void Ready();
-
-      /**
        * Stop the commmand line services
        */
       void Stop();
