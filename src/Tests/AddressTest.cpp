@@ -60,5 +60,28 @@ namespace Tests {
     addr3 = TcpAddress("http://asdfasdf:2345");
     EXPECT_FALSE(addr3.Valid());
   }
+
+  TEST(Address, Relay) {
+    RelayAddress::AddressFactoryEnable();
+    Id id0;
+    Id id1;
+    const Address addr0 = AddressFactory::GetInstance().CreateAddress("relay:///" + id0.ToString());
+    const Address addr1 = AddressFactory::GetInstance().CreateAddress("relay:///" + id1.ToString());
+    const Address any = RelayAddress();
+    const RelayAddress &raddr0 = static_cast<const RelayAddress &>(addr0);
+    EXPECT_EQ(raddr0.GetId(), id0);
+    EXPECT_EQ(raddr0.GetId().ToString(), id0.ToString());
+    EXPECT_EQ(raddr0, addr0);
+    EXPECT_NE(raddr0, addr1);
+
+    Address addr3 = AddressFactory::GetInstance().CreateAddress("relay:///" + id0.ToString());
+    EXPECT_EQ(raddr0, addr3);
+
+    addr3 = AddressFactory::GetInstance().CreateAddress("relay:///#####");
+    EXPECT_NE(raddr0, addr3);
+    EXPECT_FALSE(addr3.Valid());
+    addr3 = RelayAddress(Id(QString("$$$$")));
+    EXPECT_FALSE(addr3.Valid());
+  }
 }
 }

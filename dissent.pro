@@ -69,9 +69,14 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Connections/ConnectionTable.hpp \
            src/Connections/DefaultNetwork.hpp \
            src/Connections/EmptyNetwork.hpp \
+           src/Connections/ForwardingSender.hpp \
            src/Connections/FullyConnected.hpp \
            src/Connections/Id.hpp \
            src/Connections/Network.hpp \
+           src/Connections/RelayAddress.hpp \
+           src/Connections/RelayEdge.hpp \
+           src/Connections/RelayEdgeListener.hpp \
+           src/Connections/RelayForwarder.hpp \
            src/Messaging/BufferSink.hpp \
            src/Messaging/BufferSinkWithSignal.hpp \
            src/Messaging/DummySink.hpp \
@@ -173,6 +178,10 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Connections/ConnectionTable.cpp \
            src/Connections/FullyConnected.cpp \
            src/Connections/Id.cpp \
+           src/Connections/RelayAddress.cpp \
+           src/Connections/RelayEdge.cpp \
+           src/Connections/RelayEdgeListener.cpp \
+           src/Connections/RelayForwarder.cpp \
            src/Messaging/RpcHandler.cpp \
            src/Messaging/RpcRequest.cpp \
            src/Messaging/RpcResponse.cpp \

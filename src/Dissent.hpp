@@ -61,6 +61,9 @@
 #include "Connections/FullyConnected.hpp"
 #include "Connections/Id.hpp"
 #include "Connections/Network.hpp"
+#include "Connections/RelayAddress.hpp"
+#include "Connections/RelayEdge.hpp"
+#include "Connections/RelayEdgeListener.hpp"
 
 #include "Messaging/BufferSink.hpp"
 #include "Messaging/BufferSinkWithSignal.hpp"
