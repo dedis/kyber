@@ -132,6 +132,7 @@ namespace Connections {
   void ConnectionManager::HandleEdgeCreationFailure(const Address &to,
       const QString &reason)
   {
+    _outstanding_con_attempts.remove(to);
     emit ConnectionAttemptFailure(to, reason);
   }
 
