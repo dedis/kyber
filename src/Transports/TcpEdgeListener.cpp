@@ -172,7 +172,9 @@ namespace Transports {
       qDebug() << "Incoming connection from" << remote.ToString();
     }
 
-    QSharedPointer<Edge> edge(new TcpEdge(GetAddress(), remote, outgoing, socket));
+    // deleteLater since a socket may potentially be closed during a read operation
+    QSharedPointer<Edge> edge(new TcpEdge(GetAddress(), remote, outgoing, socket),
+        &QObject::deleteLater);
     ProcessNewEdge(edge);
   }
 }

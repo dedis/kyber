@@ -20,7 +20,6 @@ namespace Transports {
 
   TcpEdge::~TcpEdge()
   {
-    QObject::disconnect();
   }
 
   void TcpEdge::Send(const QByteArray &data)
@@ -77,7 +76,6 @@ namespace Transports {
       return false;
     }
 
-    QObject::disconnect();
     _socket->close();
     return true;
   }
