@@ -94,7 +94,7 @@ namespace Messaging {
     to->Send(data);
   }
 
-  void RpcHandler::SendRequest(QVariantMap& request, ISender *to, Callback* cb)
+  int RpcHandler::SendRequest(QVariantMap& request, ISender *to, Callback* cb)
   {
     if(!request.contains("method")) {
       throw std::logic_error("No RPC method defined");
@@ -108,6 +108,7 @@ namespace Messaging {
     QDataStream stream(&data, QIODevice::WriteOnly);
     stream << request;
     to->Send(data);
+    return id;
   }
 
   int RpcHandler::IncrementId()

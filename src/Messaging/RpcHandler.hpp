@@ -57,8 +57,9 @@ namespace Messaging {
        * @param request message for the remote side
        * @param to path to destination
        * @param cb function to call when returning
+       * @returns the id of the request so that the callback can be cancelled
        */
-      void SendRequest(QVariantMap &request, ISender *to, Callback* cb);
+      int SendRequest(QVariantMap &request, ISender *to, Callback* cb);
 
       /**
        * Send a response for a request
@@ -80,6 +81,11 @@ namespace Messaging {
        * @param name name of method to remove
        */
       bool Unregister(QString name);
+
+      bool CancelRequest(int id)
+      {
+        return _requests.remove(id) != 0;
+      }
 
     private:
 
