@@ -3,6 +3,7 @@
 
 #include <QDebug>
 #include <QHash>
+#include <QSharedPointer>
 
 #include "Id.hpp"
 
