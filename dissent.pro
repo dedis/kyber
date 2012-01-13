@@ -109,7 +109,8 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Utils/Serialization.hpp \
            src/Utils/SignalCounter.hpp \
            src/Utils/Sleeper.hpp \
-           src/Utils/StartStop.cpp \
+           src/Utils/StartStop.hpp \
+           src/Utils/StartStopSlots.hpp \
            src/Utils/Time.hpp \
            src/Utils/Timer.hpp \
            src/Utils/TimerCallback.hpp \

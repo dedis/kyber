@@ -100,6 +100,7 @@
 #include "Utils/SignalCounter.hpp"
 #include "Utils/Sleeper.hpp"
 #include "Utils/StartStop.hpp"
+#include "Utils/StartStopSlots.hpp"
 #include "Utils/Time.hpp"
 #include "Utils/Timer.hpp"
 #include "Utils/TimerCallback.hpp"
