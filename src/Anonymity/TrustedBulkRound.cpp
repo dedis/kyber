@@ -83,8 +83,10 @@ namespace Anonymity {
   void TrustedBulkRound::HandleDisconnect(const Id &id)
   {
     if(_trusted_group.Contains(id)) {
+      SetInterrupted();
       Stop("Lost a member of the trusted group.");
     } else if(GetGroup().Contains(id)) {
+      SetInterrupted();
       Stop("Have not implemented the ability for trusted to support peers"
          " going offline.");
     }

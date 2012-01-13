@@ -74,6 +74,7 @@ namespace Anonymity {
   void Round::HandleDisconnect(const Id &id)
   {
     if(_group.Contains(id)) {
+      SetInterrupted();
       Stop(QString(id.ToString() + " disconnected"));
     }
   }
