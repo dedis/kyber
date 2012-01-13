@@ -110,6 +110,75 @@ namespace Tests {
     }
   }
 
+  void DisconnectLeader(QList<QSharedPointer<Node> > &nodes, const QString &session_type)
+  {
+    Group group = nodes[0]->sm.GetDefaultSession()->GetGroup();
+    Group::SubgroupPolicy policy = group.GetSubgroupPolicy();
+    Id leader_id = group.GetLeader();
+
+    int idx = 0;
+    for(; idx < nodes.size(); idx++) {
+      if(nodes[idx]->bg.GetId() == leader_id) {
+        break;
+      }
+    }
+
+    EXPECT_EQ(nodes[idx]->bg.GetId(), leader_id);
+    const QList<Connection *> &connections =
+      nodes[idx]->bg.GetConnectionManager().GetConnectionTable().GetConnections();
+
+    Address remote_addr = BufferAddress::CreateAny();
+    for(int jdx = 0; jdx < connections.size(); jdx++) {
+      if(connections[jdx]->GetRemoteId() == leader_id) {
+        continue;
+      }
+      remote_addr = connections[jdx]->GetEdge()->GetRemotePersistentAddress();
+    }
+
+    nodes[idx]->bg.Stop();
+
+    qint64 next = Timer::GetInstance().VirtualRun();
+    while(next != -1) {
+      Time::GetInstance().IncrementVirtualClock(next);
+      next = Timer::GetInstance().VirtualRun();
+    }
+
+    EXPECT_EQ(next, -1);
+
+    QByteArray bid(leader_id.GetByteArray());
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<AsymmetricKey> key(lib->GeneratePrivateKey(bid));
+    QSharedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
+
+    QList<Address> local;
+    local.append(BufferAddress::CreateAny());
+    QList<Address> remote;
+    remote.append(remote_addr);
+
+    group = Group(QVector<GroupContainer>(), leader_id, policy);
+    nodes[idx] = QSharedPointer<Node>(new Node(Credentials(leader_id, key, dh),
+              local, remote, group, session_type));
+    nodes[idx]->sink = QSharedPointer<ISink>(new MockSinkWithSignal());
+
+    SignalCounter sc;
+    foreach(QSharedPointer<Node> node, nodes) {
+      QObject::connect(&node->bg.GetConnectionManager(),
+          SIGNAL(NewConnection(Connection *)),
+          &sc, SLOT(Counter()));
+      node->bg.Start();
+    }
+
+    next = Timer::GetInstance().VirtualRun();
+    int total_cons = 2 * (nodes.size() - 1);
+    while(next != -1 && sc.GetCount() != total_cons) {
+      Time::GetInstance().IncrementVirtualClock(next);
+      next = Timer::GetInstance().VirtualRun();
+    }
+
+    foreach(QSharedPointer<Node> node, nodes) {
+      EXPECT_EQ(nodes.size(), node->bg.GetConnectionTable().GetConnections().count());
+    }
+  }
 
   TEST(BasicGossip, Bootstrap)
   {
@@ -136,6 +205,23 @@ namespace Tests {
     Timer::GetInstance().UseVirtualTime();
     QList<QSharedPointer<Node> > nodes = GenerateOverlay(count,
         Group::FixedSubgroup, "shuffle");
+    SendTest(nodes);
+
+    foreach(QSharedPointer<Node> node, nodes) {
+      EXPECT_EQ(node->bg.GetConnectionManager().OutstandingConnectionAttempts(), 0);
+    }
+
+    TerminateOverlay(nodes);
+  }
+
+  TEST(BasicGossip, DisconnectedLeader)
+  {
+    int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
+    Timer::GetInstance().UseVirtualTime();
+    QList<QSharedPointer<Node> > nodes = GenerateOverlay(count,
+        Group::FixedSubgroup, "shuffle");
+    SendTest(nodes);
+    DisconnectLeader(nodes, "shuffle");
     SendTest(nodes);
 
     foreach(QSharedPointer<Node> node, nodes) {

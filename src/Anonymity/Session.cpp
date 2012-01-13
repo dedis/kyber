@@ -234,7 +234,7 @@ namespace Anonymity {
     request["session_id"] = _session_id.GetByteArray();
     request["round_id"] = round_id.GetByteArray();
     request["interrupt"] = _current_round.isNull() ?
-      false : _current_round->Interrupted();
+      true : _current_round->Interrupted();
 
     if(_group != _shared_group) {
       _shared_group = _group;
@@ -456,7 +456,9 @@ namespace Anonymity {
 
   void Session::HandleConnection(Connection *con)
   {
-    if(!_group.Contains(con->GetRemoteId())) {
+    if(_group.GetLeader() == con->GetRemoteId()) {
+      Register(0);
+    } else if(!_group.Contains(con->GetRemoteId())) {
       return;
    }
 
@@ -482,6 +484,10 @@ namespace Anonymity {
 
     if(!_current_round.isNull()) {
       _current_round->HandleDisconnect(remote_id);
+    }
+
+    if(_group.GetLeader() == con->GetRemoteId()) {
+      qWarning() << "Leader disconnected!";
     }
   }
 
