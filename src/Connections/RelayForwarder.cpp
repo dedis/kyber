@@ -80,7 +80,8 @@ namespace Connections {
       int idx = rand.GetInt(0, cons.size());
       con = cons[idx];
       tested[idx] = true;
-      while(been.contains(con->GetRemoteId().ToString())) {
+      RelayEdge *redge = dynamic_cast<RelayEdge *>(con->GetEdge().data());
+      while(been.contains(con->GetRemoteId().ToString()) || (redge != 0)) {
         if(tested.size() == cons.size()) {
           qWarning() << "Packet has been to all of our connections.";
           return;
@@ -88,6 +89,7 @@ namespace Connections {
 
         idx = rand.GetInt(0, cons.size());
         con = cons[idx];
+        redge = dynamic_cast<RelayEdge *>(con->GetEdge().data());
         tested[idx] = true;
       }
     }
