@@ -5,6 +5,7 @@
 #include "Messaging/RpcMethod.hpp"
 
 #include "ConnectionAcquirer.hpp"
+#include "RelayEdgeListener.hpp"
 
 namespace Dissent {
 namespace Connections {
@@ -88,9 +89,11 @@ namespace Connections {
        * RpcHandler used for communicating with remote peers
        */
       RpcHandler &_rpc;
+      QSharedPointer<RelayEdgeListener> _relay_el;
       RpcMethod _peer_list_inquire;
       RpcMethod _peer_list_response;
       RpcMethod _notify_peer;
+      QHash<Address, Id> _waiting_on;
 
     private slots:
       /**

@@ -10,10 +10,12 @@ namespace Connections {
   FullyConnected::FullyConnected(ConnectionManager &cm, RpcHandler &rpc) :
     ConnectionAcquirer(cm),
     _rpc(rpc),
+    _relay_el(new RelayEdgeListener(cm.GetId(), cm.GetConnectionTable(), rpc)),
     _peer_list_inquire(this, &FullyConnected::PeerListInquire),
     _peer_list_response(this, &FullyConnected::PeerListResponse),
     _notify_peer(this, &FullyConnected::PeerListIncrementalUpdate)
   {
+    cm.AddEdgeListener(_relay_el);
     _rpc.Register(&_peer_list_inquire, "FC::PeerList");
     _rpc.Register(&_notify_peer, "FC::Update");
   }
@@ -26,13 +28,22 @@ namespace Connections {
 
   void FullyConnected::HandleConnection(Connection *con)
   {
+    _waiting_on.remove(con->GetEdge()->GetRemotePersistentAddress());
     SendUpdate(con);
     RequestPeerList(con);
   }
 
-  void FullyConnected::HandleConnectionAttemptFailure(const Address &,
+  void FullyConnected::HandleConnectionAttemptFailure(const Address &addr,
           const QString &)
   {
+    if(!_waiting_on.contains(addr)) {
+      return;
+    }
+    Id id = _waiting_on[addr];
+
+    qDebug() << "Unable to create a direct connection to" << id.ToString() <<
+      "(" << addr.ToString() << ") trying via relay.";
+    _relay_el->CreateEdgeTo(id);
   }
 
   void FullyConnected::HandleDisconnect(const QString &)
@@ -124,7 +135,12 @@ namespace Connections {
       return;
     }
 
+
     Address addr = Dissent::Transports::AddressFactory::GetInstance().CreateAddress(url);
+    if(_waiting_on.contains(addr)) {
+      return;
+    }
+    _waiting_on[addr] = id;
     GetConnectionManager().ConnectTo(addr);
   }
 }
