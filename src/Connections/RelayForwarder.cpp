@@ -94,8 +94,6 @@ namespace Connections {
       }
     }
 
-    qWarning() << _local_id.ToString() << con->GetRemoteId().ToString() << con->GetEdge()->ToString();
-
     QVariantMap notification;
     notification["method"] = "RF::Data";
     notification["data"] = data;
