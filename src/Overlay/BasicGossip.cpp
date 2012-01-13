@@ -18,8 +18,6 @@ namespace Overlay {
       const QList<Address> &remote_endpoints) :
     _local_endpoints(local_endpoints),
     _remote_endpoints(remote_endpoints),
-    _started(false),
-    _stopped(false),
     _local_id(local_id),
     _cm(_local_id, _rpc)
   {
@@ -29,15 +27,9 @@ namespace Overlay {
   {
   }
 
-  bool BasicGossip::Start()
+  void BasicGossip::OnStart()
   {
-    if(_started) {
-      return false;
-    }
-
     qDebug() << "Starting node" << _local_id.ToString();
-
-    _started = true;
 
     QObject::connect(&_cm, SIGNAL(Disconnected()),
         this, SLOT(HandleDisconnected()));
@@ -60,29 +52,16 @@ namespace Overlay {
     foreach(const QSharedPointer<ConnectionAcquirer> &ca, _con_acquirers) {
       ca->Start();
     }
-
-    return true;
   }
 
-  bool BasicGossip::Stop()
+  void BasicGossip::OnStop()
   {
-    if(_stopped) {
-      return false;
-    }
-
-    _stopped = true;
-
-    if(!_started) {
-      _started = true;
-      return false;
-    }
-
+    emit Disconnecting();
     foreach(const QSharedPointer<ConnectionAcquirer> &ca, _con_acquirers) {
-      ca->Start();
+      ca->Stop();
     }
 
     _cm.Disconnect();
-    return true;
   }
 
   void BasicGossip::HandleDisconnected()

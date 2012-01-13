@@ -7,6 +7,7 @@
 #include "Connections/ConnectionAcquirer.hpp"
 #include "Connections/ConnectionManager.hpp"
 #include "Connections/ConnectionTable.hpp"
+#include "Utils/StartStopSlots.hpp"
 
 #include "Messaging/RpcHandler.hpp"
 
@@ -24,7 +25,7 @@ namespace Overlay {
    * A single member in a Gossip overlay, which attempts to connect all nodes
    * in the overlay to every other node, a fully connected graph.
    */
-  class BasicGossip : public QObject {
+  class BasicGossip : public Dissent::Utils::StartStopSlots {
     Q_OBJECT
 
     public:
@@ -54,12 +55,6 @@ namespace Overlay {
       virtual ~BasicGossip();
 
       /**
-       * The overlay starts connecting to remote peers and allows peers to
-       * connect with it
-       */
-      bool Start();
-
-      /**
        * True if the system needs to reinit bootstrap
        */
       bool NeedConnection();
@@ -84,24 +79,25 @@ namespace Overlay {
        */
       inline Id GetId() { return _local_id; }
 
-    public slots:
-      /**
-       * Disconnects the node from the overlay
-       */
-      bool Stop();
-
     signals:
       /**
        * Emitted when disconnected
        */
       void Disconnected();
 
+      /**
+       * Emitted when disconnecting
+       */
+      void Disconnecting();
+
+    protected:
+      virtual void OnStart();
+      virtual void OnStop();
+
     private:
       QList<Address> _local_endpoints;
       QList<Address> _remote_endpoints;
 
-      bool _started;
-      bool _stopped;
       Id _local_id;
       RpcHandler _rpc;
       ConnectionManager _cm;

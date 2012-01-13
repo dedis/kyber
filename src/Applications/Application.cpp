@@ -76,7 +76,7 @@ int main(int argc, char **argv)
   }
 
   foreach(QSharedPointer<Node> node, nodes) {
-    QObject::connect(&qca, SIGNAL(aboutToQuit()), &node.data()->bg, SLOT(Stop()));
+    QObject::connect(&qca, SIGNAL(aboutToQuit()), &node.data()->bg, SLOT(CallStop()));
     node->bg.Start();
   }
 
