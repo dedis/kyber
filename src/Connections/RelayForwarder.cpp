@@ -2,6 +2,7 @@
 
 #include "Connection.hpp"
 #include "ForwardingSender.hpp"
+#include "RelayEdge.hpp"
 #include "RelayForwarder.hpp"
 
 namespace Dissent {
@@ -29,6 +30,11 @@ namespace Connections {
 
   void RelayForwarder::Send(const QByteArray &data, const Id &to)
   {
+    if(to == _local_id) {
+      _rpc.HandleData(data, new ForwardingSender(this, _local_id));
+      return;
+    }
+
     Forward(data, to, _base_been);
   }
 
@@ -58,35 +64,42 @@ namespace Connections {
       return;
     }
 
-    Forward(msg["data"].toByteArray(), destination, been);
+    Forward(msg["data"].toByteArray(), destination, (been + _base_been));
   }
 
   void RelayForwarder::Forward(const QByteArray &data, const Id &to,
       const QStringList &been)
   {
     QHash<int, bool> tested;
-    const QList<Connection *> cons = _ct.GetConnections();
 
-    Dissent::Utils::Random &rand = Dissent::Utils::Random::GetInstance();
-    int idx = rand.GetInt(0, cons.size());
-    Connection *con = cons[idx];
-    tested[idx] = true;
-    while(been.contains(con->GetRemoteId().ToString())) {
-      if(tested.size() == cons.size()) {
-        qWarning() << "Packet has been to all of our connections.";
-        return;
-      }
+    Connection *con = _ct.GetConnection(to);
+    if(con == 0 || (dynamic_cast<RelayEdge *>(con->GetEdge().data()) != 0)) {
+      const QList<Connection *> cons = _ct.GetConnections();
 
-      idx = rand.GetInt(0, cons.size());
+      Dissent::Utils::Random &rand = Dissent::Utils::Random::GetInstance();
+      int idx = rand.GetInt(0, cons.size());
       con = cons[idx];
       tested[idx] = true;
+      while(been.contains(con->GetRemoteId().ToString())) {
+        if(tested.size() == cons.size()) {
+          qWarning() << "Packet has been to all of our connections.";
+          return;
+        }
+
+        idx = rand.GetInt(0, cons.size());
+        con = cons[idx];
+        tested[idx] = true;
+      }
     }
+
+    qWarning() << _local_id.ToString() << con->GetRemoteId().ToString() << con->GetEdge()->ToString();
 
     QVariantMap notification;
     notification["method"] = "RF::Data";
     notification["data"] = data;
     notification["to"] = to.ToString();
     notification["been"] = been + _base_been;
+    
     _rpc.SendNotification(notification, con);
   }
 }

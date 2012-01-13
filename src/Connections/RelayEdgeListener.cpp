@@ -51,7 +51,7 @@ namespace Connections {
     */
   }
 
-  void RelayEdgeListener::CreateEdgeTo(const Id &id)
+  void RelayEdgeListener::CreateEdgeTo(const Id &id, int times)
   {
     QVariantMap request;
     request["method"] = "REL::CreateEdge";
@@ -66,7 +66,24 @@ namespace Connections {
     _edges[edge_id] = redge;
     request["x_edge_id"] = edge_id;
 
-    _rpc.SendRequest(request, forwarder, &_edge_created);
+    int req = _rpc.SendRequest(request, forwarder, &_edge_created);
+    TCallback *cb = new TCallback(this, &RelayEdgeListener::CheckEdge,
+        CallbackData(req, id, times));
+    Timer::GetInstance().QueueCallback(cb, 120000);
+  }
+
+  void RelayEdgeListener::CheckEdge(const CallbackData &data)
+  {
+    _rpc.CancelRequest(data.first);
+    if(_ct.GetConnection(data.second) != 0) {
+      return;
+    }
+
+    if(data.third < 5) {
+      CreateEdgeTo(data.second, data.third + 1);
+    } else {
+      qDebug() << _local_id.ToString() << "failed to create a connection to" << data.second.ToString();
+    }
   }
 
   void RelayEdgeListener::CreateEdge(RpcRequest &request)

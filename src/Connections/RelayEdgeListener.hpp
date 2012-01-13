@@ -7,8 +7,10 @@
 #include "Messaging/RpcHandler.hpp"
 #include "Messaging/RpcMethod.hpp"
 #include "Messaging/RpcRequest.hpp"
-
 #include "Transports/EdgeListener.hpp"
+#include "Utils/Timer.hpp"
+#include "Utils/TimerCallback.hpp"
+#include "Utils/Triple.hpp"
 
 #include "ConnectionTable.hpp"
 #include "Id.hpp"
@@ -28,6 +30,9 @@ namespace Connections {
       typedef Dissent::Messaging::RpcHandler RpcHandler;
       typedef Dissent::Messaging::RpcRequest RpcRequest;
       typedef Dissent::Transports::Address Address;
+      typedef Dissent::Utils::Timer Timer;
+      typedef Dissent::Utils::Triple<int, Id, int> CallbackData;
+      typedef Dissent::Utils::TimerMethod<RelayEdgeListener, CallbackData> TCallback;
 
       /**
        * Constructor
@@ -55,7 +60,7 @@ namespace Connections {
        * proper Address type
        * @param id The address of the remote peer
        */
-      void CreateEdgeTo(const Id &id);
+      void CreateEdgeTo(const Id &id, int times = 0);
 
     protected:
       virtual void OnStart();
@@ -81,6 +86,8 @@ namespace Connections {
        * Returns a unique edge id not found in edges
        */
       int GetEdgeId();
+
+      void CheckEdge(const CallbackData &data);
 
       /**
        * The local Id
