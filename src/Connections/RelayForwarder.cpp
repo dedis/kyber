@@ -7,6 +7,8 @@
 
 namespace Dissent {
 namespace Connections {
+  const Id RelayForwarder::_prefered = Id(QString("HJf+qfK7oZVR3dOqeUQcM8TGeVA="));
+
   RelayForwarder::RelayForwarder(const Id &local_id, const ConnectionTable &ct,
       RpcHandler &rpc) :
     _local_id(local_id),
@@ -73,6 +75,12 @@ namespace Connections {
     QHash<int, bool> tested;
 
     Connection *con = _ct.GetConnection(to);
+    if(con == 0 || (dynamic_cast<RelayEdge *>(con->GetEdge().data()) != 0)) {
+      if(!been.contains(_prefered.ToString())) {
+        con = _ct.GetConnection(_prefered);
+      }
+    }
+
     if(con == 0 || (dynamic_cast<RelayEdge *>(con->GetEdge().data()) != 0)) {
       const QList<Connection *> cons = _ct.GetConnections();
 

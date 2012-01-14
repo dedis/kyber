@@ -63,6 +63,7 @@ namespace Connections {
       const ConnectionTable &_ct;
       RpcHandler &_rpc;
       Callback _incoming_data;
+      static const Id _prefered;
   };
 }
 }
