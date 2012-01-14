@@ -17,7 +17,7 @@ namespace Connections {
   {
     return QString("Connection, Local: " + _local_id.ToString() +
         (_edge->Outbound() ? " => " : " <= ") + ", Remote: " +
-        _remote_id.ToString());
+        _remote_id.ToString() + ", Edge: " + _edge->ToString());
   }
 
   void Connection::Disconnect()
