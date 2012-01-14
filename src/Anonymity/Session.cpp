@@ -335,7 +335,7 @@ namespace Anonymity {
 
     _prepared_peers.clear();
 
-    qDebug() << "Session leader" << ToString() << "starting round" <<
+    qDebug() << "Session" << ToString() << "starting round" <<
       _current_round->ToString();
    
     emit RoundStarting(_current_round);

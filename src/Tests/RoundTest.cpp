@@ -263,7 +263,6 @@ namespace Tests {
     nodes.last()->session->Start();
 
     while(next != -1 && ready.GetCount() != 1) {
-      //qDebug() << "Ready count" << ready.GetCount() << nodes.last()->cm.GetId().ToString();
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
     }
@@ -575,11 +574,8 @@ namespace Tests {
     while(next != -1 && started.GetCount() < ((2*count)-1)) {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
-      qDebug() << "STARTED" << started.GetCount();
     }
 
-    qDebug() << "Nodes" << nodes[sender]->session->GetGroup().Count();
-   
     // Make sure that the bad guy was found
     for(int idx = 0; idx < nodes.size(); idx++) {
       // Don't expect the bad guy to be honest
