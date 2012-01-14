@@ -3,6 +3,7 @@
 
 #include "Messaging/RpcHandler.hpp"
 #include "Messaging/RpcMethod.hpp"
+#include "Utils/TimerEvent.hpp"
 
 #include "ConnectionAcquirer.hpp"
 #include "RelayEdgeListener.hpp"
@@ -19,6 +20,7 @@ namespace Connections {
       typedef Dissent::Messaging::RpcHandler RpcHandler;
       typedef Dissent::Messaging::RpcMethod<FullyConnected> RpcMethod;
       typedef Dissent::Messaging::RpcRequest RpcRequest;
+      typedef Dissent::Utils::TimerEvent TimerEvent;
 
       /**
        * Create a ConnectionAcquirer
@@ -37,6 +39,10 @@ namespace Connections {
        * Returns the RpcHandler
        */
       RpcHandler &GetRpcHandler() { return _rpc; }
+
+      virtual void OnStart();
+
+      virtual void OnStop();
 
     private:
       /**
@@ -86,6 +92,11 @@ namespace Connections {
       void PeerListIncrementalUpdate(RpcRequest &notification);
 
       /**
+       * Timer callback to help obtain and maintain all to all connectivity
+       */
+      void RequestPeerList(const int &);
+
+      /**
        * RpcHandler used for communicating with remote peers
        */
       RpcHandler &_rpc;
@@ -94,6 +105,8 @@ namespace Connections {
       RpcMethod _peer_list_response;
       RpcMethod _notify_peer;
       QHash<Address, Id> _waiting_on;
+      QByteArray _connection_list_hash;
+      TimerEvent *_check_event;
 
     private slots:
       /**

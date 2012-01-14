@@ -135,15 +135,15 @@ namespace Tests {
       remote_addr = connections[jdx]->GetEdge()->GetRemotePersistentAddress();
     }
 
+    SignalCounter sc;
+    QObject::connect(&nodes[idx]->bg, SIGNAL(Disconnected()), &sc, SLOT(Counter()));
     nodes[idx]->bg.Stop();
 
     qint64 next = Timer::GetInstance().VirtualRun();
-    while(next != -1) {
+    while(next != -1 && sc.GetCount() != 1) {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
     }
-
-    EXPECT_EQ(next, -1);
 
     QByteArray bid(leader_id.GetByteArray());
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
@@ -161,7 +161,7 @@ namespace Tests {
             local, remote, group, session_type, sink));
     nodes[idx]->StartSession();
 
-    SignalCounter sc;
+    sc.Reset();
     foreach(QSharedPointer<Node> node, nodes) {
       QObject::connect(&node->bg.GetConnectionManager(),
           SIGNAL(NewConnection(Connection *)),

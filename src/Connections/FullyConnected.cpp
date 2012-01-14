@@ -1,9 +1,14 @@
 #include <QVariant>
 
 #include "Transports/AddressFactory.hpp"
+#include "Utils/TimerCallback.hpp"
+#include "Utils/Timer.hpp"
 
 #include "Connection.hpp"
 #include "FullyConnected.hpp"
+
+using Dissent::Utils::Timer;
+using Dissent::Utils::TimerCallback;
 
 namespace Dissent {
 namespace Connections {
@@ -26,6 +31,22 @@ namespace Connections {
     _rpc.Unregister("FC::Update");
   }
 
+  void FullyConnected::OnStart()
+  {
+     TimerCallback *cb = new Dissent::Utils::TimerMethod<FullyConnected, int>(
+         this, &FullyConnected::RequestPeerList, -1);
+     _check_event = new TimerEvent(Timer::GetInstance().QueueCallback(cb, 60000, 60000));
+  }
+
+  void FullyConnected::OnStop()
+  {
+    if(_check_event != 0) {
+      _check_event->Stop();
+      delete _check_event;
+      _check_event = 0;
+    }
+  }
+
   void FullyConnected::HandleConnection(Connection *con)
   {
     _waiting_on.remove(con->GetEdge()->GetRemotePersistentAddress());
@@ -40,6 +61,7 @@ namespace Connections {
       return;
     }
     Id id = _waiting_on[addr];
+    _waiting_on.remove(addr);
 
     qDebug() << "Unable to create a direct connection to" << id.ToString() <<
       "(" << addr.ToString() << ") trying via relay.";
@@ -135,13 +157,25 @@ namespace Connections {
       return;
     }
 
-
     Address addr = Dissent::Transports::AddressFactory::GetInstance().CreateAddress(url);
-    if(_waiting_on.contains(addr)) {
+    if(_waiting_on.contains(addr) || (addr.GetType() == RelayAddress::Scheme)) {
       return;
     }
     _waiting_on[addr] = id;
     GetConnectionManager().ConnectTo(addr);
+  }
+
+  void FullyConnected::RequestPeerList(const int &)
+  {
+    Dissent::Utils::Random &rand = Dissent::Utils::Random::GetInstance();
+    const QList<Connection *> &cons =
+      GetConnectionManager().GetConnectionTable().GetConnections();
+
+    int idx = rand.GetInt(0, cons.size());
+    while(cons[idx]->GetRemoteId() == GetConnectionManager().GetId()) {
+      idx = rand.GetInt(0, cons.size());
+    }
+    RequestPeerList(cons[idx]);
   }
 }
 }
