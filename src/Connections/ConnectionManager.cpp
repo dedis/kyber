@@ -280,7 +280,7 @@ namespace Connections {
   {
     Connection *con = new Connection(pedge, _local_id, rem_id);
     _con_tab.AddConnection(con);
-    qDebug() << _local_id.ToString() << ": Handle new connection from " << rem_id.ToString();
+    qDebug() << "Handle new connection:" << con->ToString();
     QObject::connect(con, SIGNAL(CalledDisconnect()), this, SLOT(HandleDisconnect()));
     QObject::connect(con, SIGNAL(Disconnected(const QString &)),
         this, SLOT(HandleDisconnected(const QString &)));
