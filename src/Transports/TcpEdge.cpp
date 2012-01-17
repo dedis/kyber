@@ -47,6 +47,7 @@ namespace Transports {
       QByteArray length_arr = _socket->peek(4);
       if(length_arr.isEmpty()) {
         qCritical() << "Error reading Tcp socket in" << ToString();
+        Close("Error reading Tcp socket");
         return;
       }
 
@@ -55,8 +56,14 @@ namespace Transports {
         break;
       }
 
+      if(length < 0) {
+        Close("Error reading Tcp socket");
+        return;
+      }
+
       QByteArray msg = _socket->read(length + 8);
       if(msg.isEmpty()) {
+        Close("Error reading Tcp socket");
         qCritical() << "Error reading Tcp socket in" << ToString();
         return;
       }
