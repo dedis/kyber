@@ -134,6 +134,8 @@ namespace Anonymity {
 
       static const int MinimumRoundSize = 3;
 
+      static const int PeerJoinDelay = 10000;
+
     signals:
       /**
        * Signals that a round is beginning.
@@ -169,7 +171,13 @@ namespace Anonymity {
        * Called upon starting to register this peer with the leader
        * @param unused
        */
-      void Register(const int &);
+      void Register(const int&);
+
+      /**
+       * Called upon registration / round finished to start a new round
+       * @param unused
+       */
+      void CheckRegistration(const int&);
 
       /**
        * Contains acknowledgement from the registration request
@@ -230,6 +238,8 @@ namespace Anonymity {
       RpcMethod _registered;
       RpcMethod _prepared;
       Dissent::Utils::TimerEvent _register_event;
+      QDateTime _last_registration;
+      Dissent::Utils::TimerEvent _prepare_event;
       QHash<Id, Id> _registered_peers;
       QHash<Id, Id> _prepared_peers;
       GetDataCallback _get_data_cb;

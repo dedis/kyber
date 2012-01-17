@@ -71,6 +71,7 @@ namespace Anonymity {
   void Session::OnStop()
   {
     _register_event.Stop();
+    _prepare_event.Stop();
 
     foreach(const GroupContainer &gc, _group.GetRoster()) {
       Connection *con = _network->GetConnection(gc.first);
@@ -170,6 +171,7 @@ namespace Anonymity {
 
     qDebug() << "Received a valid registration message from:" <<
       request.GetFrom()->ToString();
+    _last_registration = Dissent::Utils::Time::GetInstance().CurrentTime();
 
     AddMember(creds);
     response["result"] = true;
@@ -177,6 +179,32 @@ namespace Anonymity {
 
     QObject::connect(con, SIGNAL(Disconnected(const QString &)),
         this, SLOT(HandleDisconnect()));
+
+    if(!_prepare_event.Stopped()) {
+      return;
+    }
+
+    Dissent::Utils::TimerCallback *cb =
+      new Dissent::Utils::TimerMethod<Session, int>(this,
+          &Session::CheckRegistration, 0);
+
+    _prepare_event = Dissent::Utils::Timer::GetInstance().QueueCallback(cb,
+        PeerJoinDelay * 1.1, PeerJoinDelay);
+  }
+
+  void Session::CheckRegistration(const int &)
+  {
+    QDateTime ctime = Dissent::Utils::Time::GetInstance().CurrentTime();
+    QDateTime min_delay = _last_registration.addMSecs(PeerJoinDelay);
+    if(ctime <= min_delay) {
+      qDebug() << "Not enough time has passed between peer joins to" <<
+        "start a session:" << _last_registration << "-" << ctime <<
+        "=" << min_delay.secsTo(ctime);
+      return;
+    }
+
+    qDebug() << "Enough time has passed between peer joins to start a round.";
+    _prepare_event.Stop();
 
     if(_current_round.isNull() || (!_current_round->Started() ||
           _current_round->Stopped()))
@@ -408,8 +436,10 @@ namespace Anonymity {
       }
     }
 
-    if(IsLeader()) {
-      SendPrepare();
+    if(IsLeader() && _prepare_event.Stopped()) {
+      Dissent::Utils::TimerCallback *cb =
+        new Dissent::Utils::TimerMethod<Session, int>(this, &Session::CheckRegistration, 0);
+      _prepare_event = Dissent::Utils::Timer::GetInstance().QueueCallback(cb, 0, 5000);
     } else if(_prepare_waiting) {
       ReceivedPrepare(_prepare_request);
     }
