@@ -22,7 +22,7 @@ namespace Utils {
         callback(callback),
         next(next),
         period(period),
-        stopped(false),
+        stopped(callback == 0),
         uid(_uid_count++)
       {
       }
