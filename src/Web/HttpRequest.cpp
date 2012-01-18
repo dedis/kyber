@@ -166,7 +166,7 @@ namespace Web {
       const char* at, size_t length)
   {
     QByteArray url_bytes = QByteArray(at, length);
-    _url.setEncodedPath(url_bytes);
+    _url.setEncodedUrl(url_bytes);
     
     qDebug() << "URL:" << _url;
     return 0;
