@@ -92,7 +92,7 @@ $(document).ready(function(){
   function initLog(){
     var chat_div = document.getElementById('chatbox');
     $.ajax({
-      url: "session/messages/?offset=" + offset + "&count=-1&wait=0",
+      url: "session/messages?offset=" + offset + "&count=-1&wait=0",
       cache: false,
       async: true,
       type: 'GET',

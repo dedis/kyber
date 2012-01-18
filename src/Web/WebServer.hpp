@@ -99,9 +99,11 @@ namespace Web {
        * a WebRequest. This slot serializes the request,
        * writes it out to the socket, and cleans up
        * the memory.
-       * @param the web request finished being handled
+       * @param wrp the web request finished being handled
+       * @param format whether to package using default packager (true) or
+       * leave as raw
        */
-      void HandleFinishedWebRequest(QSharedPointer<WebRequest> wrp, bool wrt);
+      void HandleFinishedWebRequest(QSharedPointer<WebRequest> wrp, bool format);
 
       /**
        * Stop the web server 

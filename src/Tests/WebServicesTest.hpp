@@ -29,7 +29,7 @@ namespace Tests {
   /** 
    * Generate a Fake WebRequest
    */
-  QSharedPointer<WebRequest> FakeRequest();
+  QSharedPointer<WebRequest> FakeRequest(const QString &url = "/session/send");
 
   /**
    * Run a test of a successful request on the web service when the

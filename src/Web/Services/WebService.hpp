@@ -41,12 +41,17 @@ namespace Services {
       /**
        * Emitted when a web request has been processed and is ready for the
        * server to pick it up. 
-       * @param pointer to the Web request. 
+       * @param wrp pointer to the Web request. 
+       * @param format whether to package using default packager (true) or
+       * leave as raw
        */
-      void FinishedWebRequest(QSharedPointer<WebRequest> wrp, bool wrt);
+      void FinishedWebRequest(QSharedPointer<WebRequest> wrp, bool format);
 
     private slots:
-      inline void HandleWrapper(QSharedPointer<WebRequest> wrp) { return Handle(wrp); }
+      inline void HandleWrapper(QSharedPointer<WebRequest> wrp)
+      {
+        return Handle(wrp);
+      }
 
     private:
       /**

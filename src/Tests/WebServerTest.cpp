@@ -22,7 +22,7 @@ namespace Tests {
     QSharedPointer<WebServer> ws(new WebServer(url));
 
     QSharedPointer<GetMessagesService> get_messages_sp(new GetMessagesService()); 
-    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/session/messages/all", get_messages_sp);
+    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/session/messages", get_messages_sp);
 
     return ws;
   }
@@ -36,16 +36,16 @@ namespace Tests {
     QSharedPointer<WebServer> ws = StartServer(url);
     ws->Start();
 
-    QByteArray output = "{ \"api_version\" : \"0.0.0\", "
-                        "\"copyright\" : \"2011 by Yale University\", "
-                        "\"output\" : [  ] }\n";
+    QByteArray output = "{ \"output\" : { \"messages\" : [  ], \"offset\" : 0, \"total\" : 0 }, "
+                          "\"api_version\" : \"0.0.0\", "
+                          "\"copyright\" : \"2011 by Yale University\" }\n";
     TestWebClient wc(false, output);
   
     /* Create a loop that waits for the Done() signal */
     QEventLoop loop;
     QObject::connect(&wc, SIGNAL(Done()), &loop, SLOT(quit()));
 
-    wc.Get(QUrl(QString("http://localhost:50123/session/messages/all")));
+    wc.Get(QUrl(QString("http://localhost:50123/session/messages?offset=0&count=-1")));
 
     /* Wait until HTTP request finishes */
     loop.exec();
@@ -60,9 +60,9 @@ namespace Tests {
     QSharedPointer<WebServer> ws = StartServer(url);
     ws->Start();
 
-    QByteArray output = "{ \"api_version\" : \"0.0.0\", "
-                        "\"copyright\" : \"2011 by Yale University\", "
-                        "\"output\" : [  ] }\n";
+    QByteArray output = "{ \"output\" : { \"messages\" : [  ], \"offset\" : 0, \"total\" : 0 }, "
+                          "\"api_version\" : \"0.0.0\", "
+                          "\"copyright\" : \"2011 by Yale University\" }\n";
 
     const int reqs = 100;
 
@@ -70,7 +70,7 @@ namespace Tests {
       QEventLoop loop;
       TestWebClient wc(false, output);
       QObject::connect(&wc, SIGNAL(Done()), &loop, SLOT(quit()));
-      wc.Get(QUrl(QString("http://localhost:50123/session/messages/all")));
+      wc.Get(QUrl(QString("http://localhost:50123/session/messages?offset=0&count=-1")));
       loop.exec();
     }
 

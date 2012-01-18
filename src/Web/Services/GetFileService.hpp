@@ -13,7 +13,7 @@ namespace Services {
 
   class GetFileService: public WebService {
     public:
-      explicit GetFileService();
+      explicit GetFileService(const QString &path);
 
       virtual ~GetFileService() {}
 
@@ -24,7 +24,7 @@ namespace Services {
        * @param request to be handled
        */
       virtual void Handle(QSharedPointer<WebRequest> wrp);
-      QString webpath; 
+      QString _webpath; 
   };
 
 }

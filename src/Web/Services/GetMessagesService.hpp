@@ -34,9 +34,10 @@ namespace Services {
       QList<QSharedPointer<WebRequest> > _pending_requests;
 
       QList<QByteArray> _message_list;
-      
-      QHash<QString, QVariant> _data; 
-      
+
+      static const QString _offset_field;
+      static const QString _count_field;
+      static const QString _wait_field;
   };
 
 }

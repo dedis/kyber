@@ -113,7 +113,7 @@ int main(int argc, char **argv)
     QSharedPointer<SendMessageService> send_message_sp(new SendMessageService(nodes[0]->sm));
     ws->AddRoute(HttpRequest::METHOD_HTTP_POST, "/session/send", send_message_sp);
 
-    QSharedPointer<GetFileService> get_webpage_sp(new GetFileService());
+    QSharedPointer<GetFileService> get_webpage_sp(new GetFileService("index.html"));
     ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/web", get_webpage_sp);
 
     ws->Start();

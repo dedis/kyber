@@ -5,13 +5,6 @@
 #include <QTextStream>
 #include <QVariant>
 
-#include "Web/WebRequest.hpp"
-#include "Web/Services/GetMessagesService.hpp"
-#include "Web/Services/GetNextMessageService.hpp"
-#include "Web/Services/RoundIdService.hpp"
-#include "Web/Services/SendMessageService.hpp"
-#include "Web/Services/SessionIdService.hpp"
-
 #include "DissentTest.hpp"
 #include "RoundTest.hpp"
 #include "ShuffleRoundHelpers.hpp"
@@ -21,22 +14,17 @@
 namespace Dissent {
 namespace Tests {
 
-  namespace {
-    using namespace Dissent::Web;
-    using namespace Dissent::Web::Services;
-  }
-
   void WebServiceTestSink::HandleDoneRequest(QSharedPointer<WebRequest> wrp)
   {
     handled.append(wrp);
   }
 
-  QSharedPointer<WebRequest> FakeRequest()
+  QSharedPointer<WebRequest> FakeRequest(const QString &url)
   {
     QTcpSocket *socketp = new QTcpSocket();
     QSharedPointer<WebRequest> wrp(new WebRequest(socketp));
 
-    QByteArray data = "POST /session/send HTTP/1.1\r\n\r\nHello!";
+    QByteArray data = QString("POST " + url + " HTTP/1.1\r\n\r\nHello!").toUtf8();
     wrp->GetRequest().ParseRequest(data);
     return wrp;
   }
@@ -45,7 +33,7 @@ namespace Tests {
   {
     WebServiceTestSink sink;
     GetMessagesService gsm;
-    QObject::connect(&gsm, SIGNAL(FinishedWebRequest(QSharedPointer<WebRequest>)),
+    QObject::connect(&gsm, SIGNAL(FinishedWebRequest(QSharedPointer<WebRequest>, bool)),
        &sink, SLOT(HandleDoneRequest(QSharedPointer<WebRequest>)));
 
     QByteArray data1, data2;
@@ -53,6 +41,7 @@ namespace Tests {
     data2 = "Test 2";
 
     ASSERT_EQ(sink.handled.count(), 0);
+    QString request = "/some/path?offset=0&count=-1";
 
     gsm.Call(FakeRequest());
     ASSERT_EQ(sink.handled.count(), 1);
@@ -61,36 +50,48 @@ namespace Tests {
     gsm.HandleIncomingMessage(data1);
     ASSERT_EQ(sink.handled.count(), 1);
     
-    gsm.Call(FakeRequest());
+    gsm.Call(FakeRequest(request));
     ASSERT_EQ(sink.handled.count(), 2);
     ASSERT_EQ(HttpResponse::STATUS_OK, sink.handled[1]->GetStatus());
 
-    QVariant var = sink.handled[1]->GetOutputData();
-    ASSERT_TRUE(var.canConvert(QVariant::List));
-    QList<QVariant> list = var.toList();
-    ASSERT_TRUE(list[0].canConvert(QVariant::ByteArray));
+    QVariantHash hash = sink.handled[1]->GetOutputData().toHash();
+    ASSERT_EQ(hash.count(), 3);
+    QList<QVariant> list = hash["messages"].toList();
+    ASSERT_EQ(list.count(), 1);
     ASSERT_EQ(data1, list[0].toByteArray());
-
     
     gsm.HandleIncomingMessage(data2);
     ASSERT_EQ(sink.handled.count(), 2);
     
-    gsm.Call(FakeRequest());
+    gsm.Call(FakeRequest(request));
     ASSERT_EQ(sink.handled.count(), 3);
     ASSERT_EQ(HttpResponse::STATUS_OK, sink.handled[2]->GetStatus());
 
-    var = sink.handled[2]->GetOutputData();
-    ASSERT_TRUE(var.canConvert(QVariant::List));
-    list = var.toList();
-    ASSERT_TRUE(list[1].canConvert(QVariant::ByteArray));
-    ASSERT_EQ(data1, list[1].toByteArray());
+    hash = sink.handled[2]->GetOutputData().toHash();
+    ASSERT_EQ(hash.count(), 3);
+    list = hash["messages"].toList();
+    ASSERT_EQ(list.count(), 2);
+    ASSERT_EQ(data1, list[0].toByteArray());
+    ASSERT_EQ(data2, list[1].toByteArray());
+
+    request = "/some/path?offset=1&count=1";
+
+    gsm.Call(FakeRequest(request));
+    ASSERT_EQ(sink.handled.count(), 4);
+    ASSERT_EQ(HttpResponse::STATUS_OK, sink.handled[3]->GetStatus());
+
+    hash = sink.handled[3]->GetOutputData().toHash();
+    ASSERT_EQ(hash.count(), 3);
+    list = hash["messages"].toList();
+    ASSERT_EQ(list.count(), 1);
+    ASSERT_EQ(data2, list[0].toByteArray());
   }
 
   TEST(WebServices, GetNextMessageService)
   {
     WebServiceTestSink sink;
-    GetNextMessageService gnm;
-    QObject::connect(&gnm, SIGNAL(FinishedWebRequest(QSharedPointer<WebRequest>)),
+    GetMessagesService gnm;
+    QObject::connect(&gnm, SIGNAL(FinishedWebRequest(QSharedPointer<WebRequest>, bool)),
        &sink, SLOT(HandleDoneRequest(QSharedPointer<WebRequest>)));
 
     QByteArray data1, data2;
@@ -99,30 +100,31 @@ namespace Tests {
 
     ASSERT_EQ(sink.handled.count(), 0);
 
-    gnm.Call(FakeRequest());
+    gnm.Call(FakeRequest("/some/path?offset=0&count=1&wait=true"));
     ASSERT_EQ(sink.handled.count(), 0);
 
     gnm.HandleIncomingMessage(data1);
     ASSERT_EQ(sink.handled.count(), 1);
     ASSERT_EQ(HttpResponse::STATUS_OK, sink.handled[0]->GetStatus());
 
-    QVariant var = sink.handled[0]->GetOutputData();
-    ASSERT_TRUE(var.canConvert(QVariant::Map));
-    QMap<QString,QVariant> map = var.toMap();
-    ASSERT_TRUE(map["message"].canConvert(QVariant::ByteArray));
-    ASSERT_EQ(data1, map["message"].toByteArray());
+    QVariantHash hash = sink.handled[0]->GetOutputData().toHash();
+    ASSERT_EQ(hash.count(), 3);
+    QList<QVariant> list = hash["messages"].toList();
+    ASSERT_EQ(list.count(), 1);
+    ASSERT_EQ(data1, list[0].toByteArray());
 
-    gnm.Call(FakeRequest());
+    gnm.Call(FakeRequest("/some/path?offset=1&count=1&wait=true"));
     ASSERT_EQ(sink.handled.count(), 1);
 
     gnm.HandleIncomingMessage(data2);
     ASSERT_EQ(sink.handled.count(), 2);
     ASSERT_EQ(HttpResponse::STATUS_OK, sink.handled[1]->GetStatus());
 
-    ASSERT_TRUE(var.canConvert(QVariant::Map));
-    map = var.toMap();
-    ASSERT_TRUE(map["message"].canConvert(QVariant::ByteArray));
-    ASSERT_EQ(data1, map["message"].toByteArray());
+    hash = sink.handled[1]->GetOutputData().toHash();
+    ASSERT_EQ(hash.count(), 3);
+    list = hash["messages"].toList();
+    ASSERT_EQ(list.count(), 1);
+    ASSERT_EQ(data2, list[0].toByteArray());
   }
 
   void SessionServiceActiveTestWrapper(QSharedPointer<WebService> wsp, int expected_id_len) 
@@ -130,7 +132,7 @@ namespace Tests {
     WebServiceTestSink sink;
     ASSERT_EQ(sink.handled.count(), 0);
 
-    QObject::connect(wsp.data(), SIGNAL(FinishedWebRequest(QSharedPointer<WebRequest>)),
+    QObject::connect(wsp.data(), SIGNAL(FinishedWebRequest(QSharedPointer<WebRequest>, bool)),
        &sink, SLOT(HandleDoneRequest(QSharedPointer<WebRequest>)));
    
     wsp->Call(FakeRequest());
@@ -145,7 +147,7 @@ namespace Tests {
     ASSERT_TRUE(map["id"].canConvert(QVariant::ByteArray));
     ASSERT_EQ(expected_id_len, map["id"].toByteArray().length());
     
-    QObject::disconnect(wsp.data(), SIGNAL(FinishedWebRequest(QSharedPointer<WebRequest>)),
+    QObject::disconnect(wsp.data(), SIGNAL(FinishedWebRequest(QSharedPointer<WebRequest>, bool)),
        &sink, SLOT(HandleDoneRequest(QSharedPointer<WebRequest>)));
   }
 
@@ -153,7 +155,7 @@ namespace Tests {
     WebServiceTestSink sink;
     ASSERT_EQ(sink.handled.count(), 0);
 
-    QObject::connect(wsp.data(), SIGNAL(FinishedWebRequest(QSharedPointer<WebRequest>)),
+    QObject::connect(wsp.data(), SIGNAL(FinishedWebRequest(QSharedPointer<WebRequest>, bool)),
        &sink, SLOT(HandleDoneRequest(QSharedPointer<WebRequest>)));
    
     wsp->Call(FakeRequest());
@@ -168,7 +170,7 @@ namespace Tests {
     ASSERT_TRUE(map["id"].canConvert(QVariant::ByteArray));
     ASSERT_EQ(0, map["id"].toByteArray().length());
     
-    QObject::disconnect(wsp.data(), SIGNAL(FinishedWebRequest(QSharedPointer<WebRequest>)),
+    QObject::disconnect(wsp.data(), SIGNAL(FinishedWebRequest(QSharedPointer<WebRequest>, bool)),
        &sink, SLOT(HandleDoneRequest(QSharedPointer<WebRequest>)));
 
   }

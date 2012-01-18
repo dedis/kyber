@@ -131,10 +131,10 @@ QByteArray Json::serialize(const QVariant &data, bool &success)
 
                 str = "[ " + join( values, ", " ) + " ]";
         }
-        else if(data.type() == QVariant::Map) // variant is a map?
+        else if(data.type() == QVariant::Hash) // variant is a hash?
         {
-                const QVariantMap vmap = data.toMap();
-                QMapIterator<QString, QVariant> it( vmap );
+                const QVariantHash vhash = data.toHash();
+                QHashIterator<QString, QVariant> it( vhash );
                 str = "{ ";
                 QList<QByteArray> pairs;
                 while(it.hasNext())
@@ -238,7 +238,7 @@ QVariant Json::parseValue(const QString &json, int &index, bool &success)
  */
 QVariant Json::parseObject(const QString &json, int &index, bool &success)
 {
-        QVariantMap map;
+        QVariantHash hash;
         int token;
 
         //Get rid of the whitespace and increment index
@@ -254,7 +254,7 @@ QVariant Json::parseObject(const QString &json, int &index, bool &success)
                 if(token == JsonTokenNone)
                 {
                          success = false;
-                         return QVariantMap();
+                         return QVariantHash();
                 }
                 else if(token == JsonTokenComma)
                 {
@@ -263,7 +263,7 @@ QVariant Json::parseObject(const QString &json, int &index, bool &success)
                 else if(token == JsonTokenCurlyClose)
                 {
                         Json::nextToken(json, index);
-                        return map;
+                        return hash;
                 }
                 else
                 {
@@ -272,7 +272,7 @@ QVariant Json::parseObject(const QString &json, int &index, bool &success)
 
                         if(!success)
                         {
-                                return QVariantMap();
+                                return QVariantHash();
                         }
 
                         //Get the next token
@@ -283,7 +283,7 @@ QVariant Json::parseObject(const QString &json, int &index, bool &success)
                         if(token != JsonTokenColon)
                         {
                                 success = false;
-                                return QVariant(QVariantMap());
+                                return QVariant(QVariantHash());
                         }
 
                         //Parse the key/value pair's value
@@ -291,16 +291,16 @@ QVariant Json::parseObject(const QString &json, int &index, bool &success)
 
                         if(!success)
                         {
-                                return QVariantMap();
+                                return QVariantHash();
                         }
 
-                        //Assign the value to the key in the map
-                        map[name] = value;
+                        //Assign the value to the key in the hash
+                        hash[name] = value;
                 }
         }
 
-        //Return the map successfully
-        return QVariant(map);
+        //Return the hash successfully
+        return QVariant(hash);
 }
 
 /**

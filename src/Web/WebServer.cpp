@@ -193,41 +193,41 @@ namespace Web {
     _service_set.insert(service);
   }
 
-  void WebServer::HandleFinishedWebRequest(QSharedPointer<WebRequest> wrp, bool wrt)
+  void WebServer::HandleFinishedWebRequest(QSharedPointer<WebRequest> wrp,
+      bool format)
   {
-    // Processing web API requests
-    if(wrt)
-    {
-      qDebug() << "Finished Web Request!";
+    qDebug() << "Finished Web Request!";
 
-      if(!wrp) {
-        qFatal("In HandleFinishedWebRequest(): pointer is NULL");
-      }
+    if(!wrp) {
+      qFatal("In HandleFinishedWebRequest(): pointer is NULL");
+    }
 
-      /* Before doing anything, make sure that the connection
-       * is still open */
-      if(!wrp->GetSocket()->isWritable()) {
-        return;
-      }
+    /* Before doing anything, make sure that the connection
+     * is still open */
+    if(!wrp->GetSocket()->isWritable()) {
+      return;
+    }
 
-      if(wrp->GetStatus() != HttpResponse::STATUS_OK) {
-        ReturnError(wrp->GetSocket(), wrp->GetStatus());
-        return;
-      }
+    if(wrp->GetStatus() != HttpResponse::STATUS_OK) {
+      ReturnError(wrp->GetSocket(), wrp->GetStatus());
+      return;
+    }
 
-      QVariant data = wrp->GetOutputData();
-      if(data.isNull() || !data.isValid()) {
-        qWarning("Invalid output data!");
-      
-        ReturnError(wrp->GetSocket(), HttpResponse::STATUS_INTERNAL_SERVER_ERROR);
-        return;
-      }
+    QVariant data = wrp->GetOutputData();
+    if(data.isNull() || !data.isValid()) {
+      qWarning("Invalid output data!");
+    
+      ReturnError(wrp->GetSocket(), HttpResponse::STATUS_INTERNAL_SERVER_ERROR);
+      return;
+    }
 
+    HttpResponse response;
+    response.SetStatusCode(wrp->GetStatus());
+
+    if(format) {
       JsonPackager pack;
-      HttpResponse response;
-      response.SetStatusCode(wrp->GetStatus());
 
-      QVariantMap package_data;
+      QVariantHash package_data;
       package_data["copyright"] = "2011 by Yale University";
       package_data["api_version"] = QString("%1.%2.%3")
           .arg(API_MajorVersionNumber)
@@ -245,45 +245,10 @@ namespace Web {
       }
   
       response.WriteToSocket(wrp->GetSocket());
-    }
-    
-    // Processing web page requests
-    else
-    {
-      qDebug() << "Finished Web Page Request!";
-
-      if(!wrp) {
-        qFatal("In HandleFinishedWebPageRequest(): pointer is NULL");
-      }
-
-      /* Before doing anything, make sure that the connection
-       * is still open */
-      if(!wrp->GetSocket()->isWritable()) {
-        return;
-      }
-
-      if(wrp->GetStatus() != HttpResponse::STATUS_OK) {
-        ReturnError(wrp->GetSocket(), wrp->GetStatus());
-        return;
-      }
-
-      QVariant data = wrp->GetOutputData();
-      if(data.isNull() || !data.isValid()) {
-        qWarning("Invalid output data!");
-      
-        ReturnError(wrp->GetSocket(), HttpResponse::STATUS_INTERNAL_SERVER_ERROR);
-        return;
-      }
-
-      HttpResponse response;
-
-      response.SetStatusCode(wrp->GetStatus());
- 
+    } else {
       response.body << wrp->GetOutputData().toString();
-
       response.WriteToSocket(wrp->GetSocket());
     }
-
   }
 
   void WebServer::ReturnError(QTcpSocket* socket, HttpResponse::StatusCode status)
