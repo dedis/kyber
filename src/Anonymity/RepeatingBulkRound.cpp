@@ -208,6 +208,7 @@ namespace Anonymity {
       ProcessMessages();
 
       SetState(PhasePreparation);
+      qDebug() << "In" << ToString() << "ending phase.";
       _phase++;
       if(!PrepForNextPhase()) {
         return;
@@ -296,6 +297,7 @@ namespace Anonymity {
 
   void RepeatingBulkRound::NextPhase()
   {
+    qDebug() << "In" << ToString() << "starting phase.";
     QByteArray xor_msg = GenerateXorMessage();
     QByteArray packet;
     QDataStream stream(&packet, QIODevice::WriteOnly);
