@@ -10,12 +10,15 @@ namespace Dissent {
 namespace Web {
 namespace Services {
   /** 
-   * Web service for getting the WebServer message
-   * cache. The number of messages returned is
-   * specified in WebServer
+   * Web service for getting the WebServer target messages from 
+   * message cache. Get total k number of messages from the beginning of i'th entered message to the (i+k-1)th message.
    */
   class GetMessagesService : public MessageWebService {
     public:
+      explicit GetMessagesService()
+      {
+      }
+
       virtual ~GetMessagesService() {}
 
     private:
@@ -28,7 +31,12 @@ namespace Services {
 
       virtual void HandleMessage(const QByteArray &data);
 
+      QList<QSharedPointer<WebRequest> > _pending_requests;
+
       QList<QByteArray> _message_list;
+      
+      QHash<QString, QVariant> _data; 
+      
   };
 
 }

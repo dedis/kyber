@@ -101,7 +101,7 @@ namespace Web {
        * the memory.
        * @param the web request finished being handled
        */
-      void HandleFinishedWebRequest(QSharedPointer<WebRequest> wrp);
+      void HandleFinishedWebRequest(QSharedPointer<WebRequest> wrp, bool wrt);
 
       /**
        * Stop the web server 

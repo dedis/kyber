@@ -43,7 +43,7 @@ namespace Services {
        * server to pick it up. 
        * @param pointer to the Web request. 
        */
-      void FinishedWebRequest(QSharedPointer<WebRequest> wrp);
+      void FinishedWebRequest(QSharedPointer<WebRequest> wrp, bool wrt);
 
     private slots:
       inline void HandleWrapper(QSharedPointer<WebRequest> wrp) { return Handle(wrp); }

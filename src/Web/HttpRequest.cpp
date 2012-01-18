@@ -231,9 +231,9 @@ namespace Web {
 
     if(bytes_proc != raw_data.length()) {
       qWarning("Parsing error!");
-      // Weird error that happens frequently
+      // Common but weird error
       if(bytes_proc != (raw_data.length() - 1)) {
-       return false;
+        return false;
       }
     }
 

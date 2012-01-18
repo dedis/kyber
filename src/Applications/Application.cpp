@@ -102,12 +102,7 @@ int main(int argc, char **argv)
     QSharedPointer<GetMessagesService> get_messages_sp(new GetMessagesService());
     QObject::connect(signal_sink.data(), SIGNAL(IncomingData(const QByteArray&)),
         get_messages_sp.data(), SLOT(HandleIncomingMessage(const QByteArray&)));
-    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/session/messages/all", get_messages_sp);
-
-    QSharedPointer<GetNextMessageService> get_next_message_sp(new GetNextMessageService());
-    QObject::connect(signal_sink.data(), SIGNAL(IncomingData(const QByteArray&)),
-        get_next_message_sp.data(), SLOT(HandleIncomingMessage(const QByteArray&)));
-    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/session/messages/next", get_next_message_sp);
+    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/session/messages", get_messages_sp);
 
     QSharedPointer<RoundIdService> round_id_sp(new RoundIdService(nodes[0]->sm));
     ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/round/id", round_id_sp);
@@ -117,6 +112,9 @@ int main(int argc, char **argv)
 
     QSharedPointer<SendMessageService> send_message_sp(new SendMessageService(nodes[0]->sm));
     ws->AddRoute(HttpRequest::METHOD_HTTP_POST, "/session/send", send_message_sp);
+
+    QSharedPointer<GetFileService> get_webpage_sp(new GetFileService());
+    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/web", get_webpage_sp);
 
     ws->Start();
   } else {

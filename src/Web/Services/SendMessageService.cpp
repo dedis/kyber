@@ -26,7 +26,7 @@ namespace Services {
 
     wrp->GetOutputData().setValue(map);
     wrp->SetStatus(HttpResponse::STATUS_OK);
-    emit FinishedWebRequest(wrp);
+    emit FinishedWebRequest(wrp, true);
     return;
   }
 

@@ -115,7 +115,7 @@
 #include "Web/WebServer.hpp"
 #include "Web/Packagers/Packager.hpp"
 #include "Web/Packagers/JsonPackager.hpp"
-#include "Web/Services/GetNextMessageService.hpp"
+#include "Web/Services/GetFileService.hpp"
 #include "Web/Services/GetMessagesService.hpp"
 #include "Web/Services/MessageWebService.hpp"
 #include "Web/Services/RoundIdService.hpp"
@@ -123,6 +123,7 @@
 #include "Web/Services/SessionIdService.hpp"
 #include "Web/Services/SessionWebService.hpp"
 #include "Web/Services/WebService.hpp"
+
 
 using namespace Dissent::Anonymity;
 using namespace Dissent::Anonymity::Tolerant;
