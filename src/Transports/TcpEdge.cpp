@@ -14,8 +14,12 @@ namespace Transports {
   {
     socket->setParent(0);
 
+    socket->setSocketOption(QAbstractSocket::KeepAliveOption, 1);
+
     QObject::connect(socket, SIGNAL(readyRead()), this, SLOT(Read()));
     QObject::connect(socket, SIGNAL(disconnected()), this, SLOT(HandleDisconnect()));
+    QObject::connect(socket, SIGNAL(error(QAbstractSocket::SocketError)),
+        this, SLOT(HandleError(QAbstractSocket::SocketError)));
   }
 
   TcpEdge::~TcpEdge()
@@ -83,8 +87,22 @@ namespace Transports {
       return false;
     }
 
-    _socket->close();
+    _socket->disconnectFromHost();
     return true;
+  }
+
+  void TcpEdge::HandleError(QAbstractSocket::SocketError)
+  {
+    // If the close reason isn't empty, it was closed by the other side, no
+    // need to report anything
+    if(_close_reason.isEmpty()) {
+      qWarning() << "Received warning from TcpEdge (" << ToString() << "):" <<
+        _socket->errorString();
+
+      _close_reason = _socket->errorString();
+    }
+
+    _socket->disconnectFromHost();
   }
 
   void TcpEdge::HandleDisconnect()

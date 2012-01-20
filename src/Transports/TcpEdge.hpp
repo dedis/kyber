@@ -39,6 +39,7 @@ namespace Transports {
 
     private slots:
       void HandleDisconnect();
+      void HandleError(QAbstractSocket::SocketError error);
       void Read();
 
     private:
