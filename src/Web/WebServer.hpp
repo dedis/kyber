@@ -143,7 +143,7 @@ namespace Web {
 
       /** Used to see if a service has already been added to the
        * routing table */
-      QSet<QSharedPointer<WebService> > _service_set;
+      QList<QSharedPointer<WebService> > _service_set;
 
       bool _running;
       QTextStream _qtin, _qtout;

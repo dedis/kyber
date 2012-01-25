@@ -34,9 +34,8 @@ namespace Web {
 
     qDebug() << "Destroying Web Server";
 
-    QSet<QSharedPointer<WebService> >::iterator j;
-    for(j=_service_set.begin(); j!=_service_set.end(); j++) {
-      disconnect(j->data(), SIGNAL(FinishedWebRequest(QSharedPointer<WebRequest>, bool)), 
+    for(int i=0; i<_service_set.count(); i++) {
+      disconnect(_service_set[i].data(), SIGNAL(FinishedWebRequest(QSharedPointer<WebRequest>, bool)), 
             this, SLOT(HandleFinishedWebRequest(QSharedPointer<WebRequest>, bool)));
     }
 
@@ -190,7 +189,7 @@ namespace Web {
             this, SLOT(HandleFinishedWebRequest(QSharedPointer<WebRequest>, bool)));
     }
 
-    _service_set.insert(service);
+    _service_set.append(service);
   }
 
   void WebServer::HandleFinishedWebRequest(QSharedPointer<WebRequest> wrp,
