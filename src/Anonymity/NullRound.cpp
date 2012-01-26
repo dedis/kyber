@@ -7,7 +7,9 @@ namespace Anonymity {
   NullRound::NullRound(const Group &group, const Credentials &creds,
       const Id &round_id, QSharedPointer<Network> network,
       GetDataCallback &get_data) :
-    Round(group, creds, round_id, network, get_data)
+    Round(group, creds, round_id, network, get_data),
+    _received(GetGroup().Count()),
+    _n_msgs(0)
   {
   }
 
@@ -24,25 +26,34 @@ namespace Anonymity {
 
   void NullRound::ProcessData(const QByteArray &data, const Id &id)
   {
-    if(_received_from.contains(id)) {
+    const int idx = GetGroup().GetIndex(id);
+
+    if(!_received[idx].isEmpty()) {
       qWarning() << "Receiving a second message from: " << id.ToString();
       return;
     }
-    _received_from.append(id);
 
     if(!data.isEmpty()) {
       qDebug() << GetLocalId().ToString() << "received a real message from" <<
         id.ToString();
-      PushData(data, this);
     }
 
-    qDebug() << GetLocalId().ToString() << "received" << _received_from.count()
-      << "expecting" << GetGroup().Count();
+    _received[idx] = data;
+    _n_msgs++;
 
-    if(_received_from.count() == GetGroup().Count()) {
-      SetSuccessful(true);
-      Stop("Round successfully finished.");
+    qDebug() << GetLocalId().ToString() << "received" << _n_msgs << "expecting" << GetGroup().Count();
+
+    if(_n_msgs != GetGroup().Count()) {
+      return;
     }
+
+    foreach(const QByteArray &msg, _received) {
+      if(!msg.isEmpty()) {
+        PushData(msg, this);
+      }
+    }
+    SetSuccessful(true);
+    Stop("Round successfully finished.");
   }
 }
 }

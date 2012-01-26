@@ -45,7 +45,8 @@ namespace Anonymity {
       /**
        * Don't receive from a remote peer more than once...
        */
-      QList<Id> _received_from;
+      QVector<QByteArray> _received;
+      int _n_msgs;
   };
 }
 }
