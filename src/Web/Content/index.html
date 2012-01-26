@@ -1,5 +1,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <title>Dissent_Web_Chat</title>
 <style type="text/css"> 
 body {
@@ -56,8 +58,8 @@ a {
 .msgln { margin:0 0 2px 0; }
  
 </style> 
-
 </head>
+
 <body>
 <div id="wrapper">
   <div id="menu">
@@ -89,10 +91,10 @@ $(document).ready(function(){
   });
   
   //Load the chat log from dissent server API /session/messages/all
-  function initLog(){
+  function getMessages(count){
     var chat_div = document.getElementById('chatbox');
     $.ajax({
-      url: "session/messages?offset=" + offset + "&count=-1&wait=0",
+      url: "session/messages?offset=" + offset + "&count=" + count + "&wait=1",
       cache: false,
       async: true,
       type: 'GET',
@@ -109,11 +111,16 @@ $(document).ready(function(){
       if(jsonObj.output.messages.length != 0){
         offset += jsonObj.output.messages.length;
         $("#chatbox").scrollTop($("#chatbox")[0].scrollHeight);
-      }    
+        getMessages(-1);
+      }  
+      else{
+        getMessages(1);
+      }  
   }
   });
 }
-  setInterval (initLog, 3000);
+  // Start 
+  getMessages(-1);
 
   //If user wants to end dissent chat
   $("#exit").click(function(){
