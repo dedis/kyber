@@ -116,6 +116,7 @@
 #include "Utils/TimerEvent.hpp"
 #include "Utils/Triggerable.hpp"
 #include "Utils/Triple.hpp"
+#include "Utils/Utils.hpp"
 
 #include "Web/HttpRequest.hpp"
 #include "Web/HttpResponse.hpp"

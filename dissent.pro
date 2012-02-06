@@ -126,6 +126,7 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Utils/TimerEvent.hpp \
            src/Utils/Triggerable.hpp \
            src/Utils/Triple.hpp \
+           src/Utils/Utils.hpp \
            src/Web/HttpRequest.hpp \
            src/Web/HttpResponse.hpp \
            src/Web/WebRequest.hpp \
@@ -223,6 +224,7 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Utils/Time.cpp \
            src/Utils/Timer.cpp \
            src/Utils/TimerEvent.cpp \
+           src/Utils/Utils.cpp \
            src/Web/HttpRequest.cpp \
            src/Web/HttpResponse.cpp \
            src/Web/WebRequest.cpp \
