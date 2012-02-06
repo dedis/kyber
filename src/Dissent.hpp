@@ -81,6 +81,14 @@
 
 #include "Overlay/BasicGossip.hpp"
 
+#include "PeerReview/Acknowledgement.hpp"
+#include "PeerReview/Entry.hpp"
+#include "PeerReview/EntryParser.hpp"
+#include "PeerReview/EntryLog.hpp"
+#include "PeerReview/PRManager.hpp"
+#include "PeerReview/ReceiveEntry.hpp"
+#include "PeerReview/SendEntry.hpp"
+
 #include "Transports/Address.hpp"
 #include "Transports/AddressFactory.hpp"
 #include "Transports/BufferAddress.hpp"

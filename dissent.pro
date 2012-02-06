@@ -92,6 +92,14 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Messaging/SignalSink.hpp \
            src/Messaging/Source.hpp \
            src/Overlay/BasicGossip.hpp \
+           src/PeerReview/Acknowledgement.hpp \
+           src/PeerReview/AcknowledgementLog.hpp \
+           src/PeerReview/Entry.hpp \
+           src/PeerReview/EntryParser.hpp \
+           src/PeerReview/EntryLog.hpp \
+           src/PeerReview/SendEntry.hpp \
+           src/PeerReview/PRManager.hpp \
+           src/PeerReview/ReceiveEntry.hpp \
            src/Transports/Address.hpp \
            src/Transports/AddressFactory.hpp \
            src/Transports/BufferAddress.hpp \
@@ -191,6 +199,11 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Messaging/SignalSink.cpp \
            src/Messaging/Source.cpp \
            src/Overlay/BasicGossip.cpp \
+           src/PeerReview/AcknowledgementLog.cpp \
+           src/PeerReview/Entry.cpp \
+           src/PeerReview/EntryLog.cpp \
+           src/PeerReview/EntryParser.cpp \
+           src/PeerReview/PRManager.cpp \
            src/Transports/Address.cpp \
            src/Transports/AddressFactory.cpp \
            src/Transports/BufferAddress.cpp \
