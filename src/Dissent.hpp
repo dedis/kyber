@@ -79,6 +79,7 @@
 #include "Messaging/SignalSink.hpp"
 #include "Messaging/Source.hpp"
 
+#include "Overlay/BaseOverlay.hpp"
 #include "Overlay/BasicGossip.hpp"
 
 #include "PeerReview/Acknowledgement.hpp"

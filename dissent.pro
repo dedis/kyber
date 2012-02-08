@@ -91,6 +91,7 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Messaging/RpcResponse.hpp \
            src/Messaging/SignalSink.hpp \
            src/Messaging/Source.hpp \
+           src/Overlay/BaseOverlay.hpp \
            src/Overlay/BasicGossip.hpp \
            src/PeerReview/Acknowledgement.hpp \
            src/PeerReview/AcknowledgementLog.hpp \
@@ -199,6 +200,7 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Messaging/RpcResponse.cpp \
            src/Messaging/SignalSink.cpp \
            src/Messaging/Source.cpp \
+           src/Overlay/BaseOverlay.cpp \
            src/Overlay/BasicGossip.cpp \
            src/PeerReview/AcknowledgementLog.cpp \
            src/PeerReview/Entry.cpp \
