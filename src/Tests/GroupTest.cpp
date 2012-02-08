@@ -46,7 +46,7 @@ namespace Tests {
     }
   }
 
-  GroupContainer CreateMember(const Id &id)
+  GroupContainer CreateMember(const Id &id = Id())
   {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
 
@@ -184,6 +184,78 @@ namespace Tests {
     EXPECT_TRUE(Difference(group, added_group, lost0, gained0));
     EXPECT_NE(lost0, lost);
     EXPECT_EQ(gained, gained0);
+  }
+
+  TEST(Group, ManagedGroup)
+  {
+    QSharedPointer<Random> rand(CryptoFactory::GetInstance().
+      GetLibrary()->GetRandomNumberGenerator());
+
+    QVector<GroupContainer> gr;
+    QVector<GroupContainer> sgr;
+    for(int idx = 0; idx < 100; idx++) {
+      AddMember(gr);
+      if(((double(rand->GetInt(0, 1000))) / 1000.0) < .5) {
+        sgr.append(gr.last());
+      }
+    }
+
+    ASSERT_NE(gr, sgr);
+    Group group(gr, gr[5].first, Group::ManagedSubgroup, sgr);
+    ASSERT_TRUE(IsSubset(group, group.GetSubgroup()));
+
+    GroupContainer gc0 = CreateMember();
+    group = AddGroupMember(group, gc0, true);
+    ASSERT_TRUE(group.Contains(gc0.first));
+    ASSERT_TRUE(group.GetSubgroup().Contains(gc0.first));
+
+    GroupContainer gc1 = CreateMember();
+    group = AddGroupMember(group, gc1, false);
+    ASSERT_TRUE(group.Contains(gc1.first));
+    ASSERT_FALSE(group.GetSubgroup().Contains(gc1.first));
+
+    int to_remove = rand->GetInt(0, group.GetSubgroup().Count());
+    while(to_remove == group.GetSubgroup().GetIndex(gc0.first)) {
+      to_remove = rand->GetInt(0, group.GetSubgroup().Count());
+    }
+    Id id0 = group.GetSubgroup().GetId(to_remove);
+    group = RemoveGroupMember(group, id0);
+
+    ASSERT_TRUE(group.Contains(gc0.first));
+    ASSERT_TRUE(group.GetSubgroup().Contains(gc0.first));
+    ASSERT_TRUE(group.Contains(gc1.first));
+    ASSERT_FALSE(group.GetSubgroup().Contains(gc1.first));
+    ASSERT_FALSE(group.Contains(id0));
+    ASSERT_FALSE(group.GetSubgroup().Contains(id0));
+
+    to_remove = rand->GetInt(0, group.Count());
+    Id id1 = group.GetId(to_remove);
+    while(id1 == gc1.first || group.GetSubgroup().Contains(id1)) {
+      to_remove = rand->GetInt(0, group.Count());
+      id1 = group.GetId(to_remove);
+    }
+
+    ASSERT_FALSE(group.GetSubgroup().Contains(id1));
+    group = RemoveGroupMember(group, id1);
+
+    ASSERT_TRUE(group.Contains(gc0.first));
+    ASSERT_TRUE(group.GetSubgroup().Contains(gc0.first));
+    ASSERT_TRUE(group.Contains(gc1.first));
+    ASSERT_FALSE(group.GetSubgroup().Contains(gc1.first));
+    ASSERT_FALSE(group.Contains(id0));
+    ASSERT_FALSE(group.GetSubgroup().Contains(id0));
+    ASSERT_FALSE(group.Contains(id1));
+    ASSERT_FALSE(group.GetSubgroup().Contains(id1));
+
+    QByteArray data;
+    QDataStream stream_in(&data, QIODevice::WriteOnly);
+    stream_in << group;
+
+    QDataStream stream_out(data);
+    Group group0;
+    stream_out >> group0;
+
+    EXPECT_EQ(group, group0);
   }
 }
 }

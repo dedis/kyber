@@ -75,6 +75,7 @@ namespace Anonymity {
       enum SubgroupPolicy {
         CompleteGroup = 0,
         FixedSubgroup = 1,
+        ManagedSubgroup = 2,
         DisabledGroup = 255,
       };
 
@@ -102,7 +103,8 @@ namespace Anonymity {
        */
       explicit Group(const QVector<GroupContainer> &roster,
           const Id &leader = Id::Zero(),
-          SubgroupPolicy subgroup_policy = CompleteGroup);
+          SubgroupPolicy subgroup_policy = CompleteGroup,
+          const QVector<GroupContainer> &subgroup = QVector<GroupContainer>());
 
       /**
        * Creates an empty group
@@ -117,7 +119,7 @@ namespace Anonymity {
       /**
        * Returns the inner subgroup
        */
-      const Group &GetSubgroup() const;
+      const Group &GetSubgroup() const { return *_subgroup; };
 
       /**
        * Returns the subgroup policy
@@ -271,7 +273,8 @@ namespace Anonymity {
   bool Difference(const Group &old_group, const Group &new_group,
       QVector<GroupContainer> &lost, QVector<GroupContainer> &gained);
 
-  Group AddGroupMember(const Group &group, const GroupContainer &gc);
+  Group AddGroupMember(const Group &group, const GroupContainer &gc,
+      bool subgroup = false);
 
   /**
    * Returns a new group while removing the existing member for the group.

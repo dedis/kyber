@@ -9,7 +9,7 @@ namespace Dissent {
 namespace Anonymity {
 
   Group::Group(const QVector<GroupContainer> &roster, const Id &leader,
-      SubgroupPolicy subgroup_policy)
+      SubgroupPolicy subgroup_policy, const QVector<GroupContainer> &subgroup)
   {
     QVector<GroupContainer> sorted(roster);
     qSort(sorted);
@@ -20,20 +20,12 @@ namespace Anonymity {
     }
 
     _data = new GroupData(sorted, id_to_int, leader, subgroup_policy);
-  }
-
-  Group::Group() : _data(new GroupData())
-  {
-  }
-
-  const Group &Group::GetSubgroup() const
-  {
-    if(!_subgroup.isNull()) {
-      return *_subgroup;
-    }
 
     Group *group = 0;
     switch(GetSubgroupPolicy()) {
+      case DisabledGroup:
+        group = new Group();
+        break;
       case FixedSubgroup:
       {
         QVector<GroupContainer> roster = GetRoster();
@@ -45,14 +37,19 @@ namespace Anonymity {
         group = new Group(sg_roster, GetLeader(), DisabledGroup);
       }
       break;
+      case ManagedSubgroup:
+        group = new Group(subgroup, GetLeader(), DisabledGroup);
+        break;
       default:
         QVector<GroupContainer> roster = GetRoster();
         group = new Group(roster, GetLeader(), DisabledGroup);
     }
 
-    Group *cl_this = const_cast<Group *>(this);
-    cl_this->_subgroup = QSharedPointer<Group>(group);
-    return *_subgroup;
+    _subgroup = QSharedPointer<Group>(group);
+  }
+
+  Group::Group() : _data(new GroupData())
+  {
   }
 
   const Id &Group::GetId(int idx) const
@@ -166,10 +163,20 @@ namespace Anonymity {
     QVector<GroupContainer> roster = group.GetRoster();
     roster.remove(index);
 
-    return Group(roster, group.GetLeader(), group.GetSubgroupPolicy());
+    if(group.GetSubgroupPolicy() == Group::ManagedSubgroup) {
+      QVector<GroupContainer> sg_roster = group.GetSubgroup().GetRoster();
+      index = group.GetSubgroup().GetIndex(id);
+      if(index >= 0) {
+        sg_roster.remove(index);
+      }
+      return Group(roster, group.GetLeader(), group.GetSubgroupPolicy(), sg_roster);
+    } else {
+      return Group(roster, group.GetLeader(), group.GetSubgroupPolicy());
+    }
   }
 
-  Group AddGroupMember(const Group &group, const GroupContainer &gc)
+  Group AddGroupMember(const Group &group, const GroupContainer &gc,
+      bool subgroup)
   {
     if(group.Contains(gc.first)) {
       return group;
@@ -177,7 +184,16 @@ namespace Anonymity {
 
     QVector<GroupContainer> roster = group.GetRoster();
     roster.append(gc);
-    return Group(roster, group.GetLeader(), group.GetSubgroupPolicy());
+
+    if(group.GetSubgroupPolicy() == Group::ManagedSubgroup) {
+      QVector<GroupContainer> sg = group.GetSubgroup().GetRoster();
+      if(subgroup) {
+        sg.append(gc);
+      }
+      return Group(roster, group.GetLeader(), group.GetSubgroupPolicy(), sg);
+    } else {
+      return Group(roster, group.GetLeader(), group.GetSubgroupPolicy());
+    }
   }
 
   bool Difference(const Group &old_group, const Group &new_group,
@@ -206,6 +222,9 @@ namespace Anonymity {
     stream << group.GetRoster();
     stream << group.GetLeader().GetByteArray();
     stream << group.GetSubgroupPolicy();
+    if(group.GetSubgroupPolicy() == Group::ManagedSubgroup) {
+      stream << group.GetSubgroup().GetRoster();
+    }
     return stream;
   }
 
@@ -221,7 +240,12 @@ namespace Anonymity {
     stream >> policy;
     Group::SubgroupPolicy sgpolicy = (Group::SubgroupPolicy) policy;
 
-    group = Group(roster, leader, sgpolicy);
+    QVector<GroupContainer> sg_roster;
+    if(sgpolicy == Group::ManagedSubgroup) {
+      stream >> sg_roster;
+    }
+
+    group = Group(roster, leader, sgpolicy, sg_roster);
     return stream;
   }
 }
