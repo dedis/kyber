@@ -41,6 +41,21 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Applications/Node.hpp \
            src/Applications/SessionFactory.hpp \
            src/Applications/Settings.hpp \
+           src/Connections/Bootstrapper.hpp \
+           src/Connections/Connection.hpp \
+           src/Connections/ConnectionAcquirer.hpp \
+           src/Connections/ConnectionManager.hpp \
+           src/Connections/ConnectionTable.hpp \
+           src/Connections/DefaultNetwork.hpp \
+           src/Connections/EmptyNetwork.hpp \
+           src/Connections/ForwardingSender.hpp \
+           src/Connections/FullyConnected.hpp \
+           src/Connections/Id.hpp \
+           src/Connections/Network.hpp \
+           src/Connections/RelayAddress.hpp \
+           src/Connections/RelayEdge.hpp \
+           src/Connections/RelayEdgeListener.hpp \
+           src/Connections/RelayForwarder.hpp \
            src/Crypto/AsymmetricKey.hpp \
            src/Crypto/CppDiffieHellman.hpp \
            src/Crypto/CppHash.hpp \
@@ -63,21 +78,6 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Crypto/OnionEncryptor.hpp \
            src/Crypto/ThreadedOnionEncryptor.hpp \
            src/Crypto/Serialization.hpp \
-           src/Connections/Bootstrapper.hpp \
-           src/Connections/Connection.hpp \
-           src/Connections/ConnectionAcquirer.hpp \
-           src/Connections/ConnectionManager.hpp \
-           src/Connections/ConnectionTable.hpp \
-           src/Connections/DefaultNetwork.hpp \
-           src/Connections/EmptyNetwork.hpp \
-           src/Connections/ForwardingSender.hpp \
-           src/Connections/FullyConnected.hpp \
-           src/Connections/Id.hpp \
-           src/Connections/Network.hpp \
-           src/Connections/RelayAddress.hpp \
-           src/Connections/RelayEdge.hpp \
-           src/Connections/RelayEdgeListener.hpp \
-           src/Connections/RelayForwarder.hpp \
            src/Messaging/BufferSink.hpp \
            src/Messaging/BufferSinkWithSignal.hpp \
            src/Messaging/DummySink.hpp \
@@ -171,6 +171,16 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Applications/Node.cpp \
            src/Applications/SessionFactory.cpp \
            src/Applications/Settings.cpp \
+           src/Connections/Bootstrapper.cpp \
+           src/Connections/Connection.cpp \
+           src/Connections/ConnectionManager.cpp \
+           src/Connections/ConnectionTable.cpp \
+           src/Connections/FullyConnected.cpp \
+           src/Connections/Id.cpp \
+           src/Connections/RelayAddress.cpp \
+           src/Connections/RelayEdge.cpp \
+           src/Connections/RelayEdgeListener.cpp \
+           src/Connections/RelayForwarder.cpp \
            src/Crypto/AsymmetricKey.cpp \
            src/Crypto/CppDiffieHellman.cpp \
            src/Crypto/CppHash.cpp \
@@ -185,16 +195,6 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Crypto/NullPrivateKey.cpp \
            src/Crypto/OnionEncryptor.cpp \
            src/Crypto/ThreadedOnionEncryptor.cpp \
-           src/Connections/Bootstrapper.cpp \
-           src/Connections/Connection.cpp \
-           src/Connections/ConnectionManager.cpp \
-           src/Connections/ConnectionTable.cpp \
-           src/Connections/FullyConnected.cpp \
-           src/Connections/Id.cpp \
-           src/Connections/RelayAddress.cpp \
-           src/Connections/RelayEdge.cpp \
-           src/Connections/RelayEdgeListener.cpp \
-           src/Connections/RelayForwarder.cpp \
            src/Messaging/RpcHandler.cpp \
            src/Messaging/RpcRequest.cpp \
            src/Messaging/RpcResponse.cpp \
