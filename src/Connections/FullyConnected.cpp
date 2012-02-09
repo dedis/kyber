@@ -33,9 +33,9 @@ namespace Connections {
 
   void FullyConnected::OnStart()
   {
-     TimerCallback *cb = new Dissent::Utils::TimerMethod<FullyConnected, int>(
-         this, &FullyConnected::RequestPeerList, -1);
-     _check_event = new TimerEvent(Timer::GetInstance().QueueCallback(cb, 60000, 60000));
+    TimerCallback *cb = new Dissent::Utils::TimerMethod<FullyConnected, int>(
+        this, &FullyConnected::RequestPeerList, -1);
+    _check_event = new TimerEvent(Timer::GetInstance().QueueCallback(cb, 60000, 60000));
   }
 
   void FullyConnected::OnStop()
