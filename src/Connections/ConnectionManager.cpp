@@ -55,7 +55,7 @@ namespace Connections {
   void ConnectionManager::ConnectTo(const Address &addr)
   {
     if(_closed) {
-      qWarning() << "Attempting to Connect to a remote node after calling Disconnect.";
+      qWarning() << "Attempting to connect to a remote node after calling Disconnect.";
       return;
     }
 
