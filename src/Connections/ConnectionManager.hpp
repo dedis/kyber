@@ -83,6 +83,14 @@ namespace Connections {
       inline const Id &GetId() { return _local_id; }
 
       /**
+       * Returns the number of actively used remote addresses
+       */
+      int ActiveAddresses()
+      {
+        return _active_addrs.count();
+      }
+
+      /**
        * Returns the number of outstanding connection attempts
        */
       int OutstandingConnectionAttempts()
@@ -165,6 +173,7 @@ namespace Connections {
       RpcHandler &_rpc;
       bool _closed;
       QHash<Address, bool> _outstanding_con_attempts;
+      QHash<Address, bool> _active_addrs;
 
     private slots:
       /**

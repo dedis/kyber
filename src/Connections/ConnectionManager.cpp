@@ -59,15 +59,17 @@ namespace Connections {
       return;
     }
 
-    if(_outstanding_con_attempts.contains(addr)) {
+    if(_active_addrs.contains(addr)) {
       qDebug() << "Attempting to connect multiple times to the same address:"
         << addr.ToString();
       return;
     }
 
+    _active_addrs[addr] = true;
     _outstanding_con_attempts[addr] = true;
     if(!_edge_factory.CreateEdgeTo(addr)) {
       _outstanding_con_attempts.remove(addr);
+      _active_addrs.remove(addr);
       emit ConnectionAttemptFailure(addr,
           "No EdgeListener to handle request");
     }
@@ -113,7 +115,8 @@ namespace Connections {
       return;
     }
 
-    if(_outstanding_con_attempts.remove(edge->GetRemoteAddress()) == 0) {
+    _outstanding_con_attempts.remove(edge->GetRemoteAddress());
+    if(!_active_addrs.contains(edge->GetRemoteAddress())) {
       qDebug() << "No record of attempting connection to" <<
         edge->GetRemoteAddress().ToString();
     }
@@ -132,6 +135,7 @@ namespace Connections {
   void ConnectionManager::HandleEdgeCreationFailure(const Address &to,
       const QString &reason)
   {
+    _active_addrs.remove(to);
     _outstanding_con_attempts.remove(to);
     emit ConnectionAttemptFailure(to, reason);
   }
@@ -343,6 +347,7 @@ namespace Connections {
   void ConnectionManager::HandleEdgeClose(const QString &reason)
   {
     Edge *edge = qobject_cast<Edge *>(sender());
+    _active_addrs.remove(edge->GetRemoteAddress());
     qDebug() << "Edge closed: " << edge->ToString() << reason;
     if(!_con_tab.RemoveEdge(edge)) {
       qWarning() << "Edge closed but no Edge found in CT:" << edge->ToString();
