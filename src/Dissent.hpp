@@ -28,6 +28,9 @@
 #include "Applications/SessionFactory.hpp"
 #include "Applications/Settings.hpp"
 
+#include "ClientServer/CSOverlay.hpp"
+#include "ClientServer/CSConnectionAcquirer.hpp"
+
 #include "Connections/Bootstrapper.hpp"
 #include "Connections/Connection.hpp"
 #include "Connections/ConnectionAcquirer.hpp"
@@ -138,6 +141,7 @@
 using namespace Dissent::Anonymity;
 using namespace Dissent::Anonymity::Tolerant;
 using namespace Dissent::Applications;
+using namespace Dissent::ClientServer;
 using namespace Dissent::Connections;
 using namespace Dissent::Crypto;
 using namespace Dissent::Messaging;

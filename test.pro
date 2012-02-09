@@ -81,4 +81,5 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/WebServicesTest.cpp \
            src/Tests/WebServerTest.cpp \
            src/Tests/TestWebClient.cpp \
-           src/Tests/PeerReviewTest.cpp
+           src/Tests/PeerReviewTest.cpp \
+           src/Tests/CSOverlayTest.cpp
