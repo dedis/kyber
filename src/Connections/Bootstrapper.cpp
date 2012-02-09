@@ -23,28 +23,18 @@ namespace Connections {
     }
   }
 
-  bool Bootstrapper::Start()
+  void Bootstrapper::OnStart()
   {
-    if(!ConnectionAcquirer::Start()) {
-      return false;
-    }
-
     Bootstrap(0);
-    return true;
   }
 
-  bool Bootstrapper::Stop()
+  void Bootstrapper::OnStop()
   {
-    if(!ConnectionAcquirer::Stop()) {
-      return false;
-    }
-
     if(_bootstrap_event) {
       _bootstrap_event->Stop();
       delete _bootstrap_event;
       _bootstrap_event = 0;
     }
-    return true;
   }
 
   void Bootstrapper::HandleConnection(Connection *con)
@@ -66,7 +56,7 @@ namespace Connections {
 
   void Bootstrapper::Bootstrap(const int &val)
   {
-    if(!NeedConnection()) {
+    if(!NeedConnection() || Stopped()) {
       if(_bootstrap_event) {
         _bootstrap_event->Stop();
         delete _bootstrap_event;

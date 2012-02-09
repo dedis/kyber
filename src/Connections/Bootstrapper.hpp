@@ -36,19 +36,20 @@ namespace Connections {
       virtual ~Bootstrapper();
 
       /**
+       * Return a list of potential remote peers
+       */
+      const QList<Address> GetRemoteEndpoints() { return _remote_endpoints; }
+
+    protected:
+      /**
        * Start creating connections!
        */
-      virtual bool Start();
+      virtual void OnStart();
 
       /**
        * Stop creating connections!
        */
-      virtual bool Stop();
-
-      /**
-       * Return a list of potential remote peers
-       */
-      const QList<Address> GetRemoteEndpoints() { return _remote_endpoints; }
+      virtual void OnStop();
 
     private:
       /**
