@@ -15,8 +15,6 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            ext/qt-json/json.h \
            src/Dissent.hpp \
            src/Anonymity/BulkRound.hpp \
-           src/Anonymity/Credentials.hpp \
-           src/Anonymity/Group.hpp \
            src/Anonymity/Log.hpp \
            src/Anonymity/MessageRandomizer.hpp \
            src/Anonymity/NullRound.hpp \
@@ -80,6 +78,8 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Crypto/OnionEncryptor.hpp \
            src/Crypto/ThreadedOnionEncryptor.hpp \
            src/Crypto/Serialization.hpp \
+           src/Identity/Credentials.hpp \
+           src/Identity/Group.hpp \
            src/Messaging/BufferSink.hpp \
            src/Messaging/BufferSinkWithSignal.hpp \
            src/Messaging/DummySink.hpp \
@@ -149,7 +149,6 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
 SOURCES += ext/joyent-http-parser/http_parser.c \
            ext/qt-json/json.cpp \
            src/Anonymity/BulkRound.cpp \
-           src/Anonymity/Group.cpp \
            src/Anonymity/Log.cpp \
            src/Anonymity/MessageRandomizer.cpp \
            src/Anonymity/NullRound.cpp \
@@ -199,6 +198,7 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Crypto/NullPrivateKey.cpp \
            src/Crypto/OnionEncryptor.cpp \
            src/Crypto/ThreadedOnionEncryptor.cpp \
+           src/Identity/Group.cpp \
            src/Messaging/RpcHandler.cpp \
            src/Messaging/RpcRequest.cpp \
            src/Messaging/RpcResponse.cpp \

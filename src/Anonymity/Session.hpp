@@ -7,14 +7,14 @@
 #include <QSet>
 
 #include "Connections/Id.hpp"
+#include "Identity/Credentials.hpp"
+#include "Identity/Group.hpp"
 #include "Messaging/Filter.hpp"
 #include "Messaging/GetDataCallback.hpp"
 #include "Messaging/RpcMethod.hpp"
 #include "Utils/StartStopSlots.hpp"
 #include "Utils/TimerEvent.hpp"
 
-#include "Credentials.hpp"
-#include "Group.hpp"
 #include "Round.hpp"
 
 namespace Dissent {
@@ -46,6 +46,9 @@ namespace Anonymity {
       typedef Dissent::Connections::Id Id;
       typedef Dissent::Connections::Network Network;
       typedef Dissent::Crypto::AsymmetricKey AsymmetricKey;
+      typedef Dissent::Identity::Credentials Credentials;
+      typedef Dissent::Identity::Group Group;
+      typedef Dissent::Identity::GroupContainer GroupContainer;
       typedef Dissent::Messaging::RpcRequest RpcRequest;
       typedef Dissent::Messaging::RpcMethod<Session> RpcMethod;
       typedef Dissent::Messaging::GetDataMethod<Session> GetDataCallback;

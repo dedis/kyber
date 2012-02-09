@@ -1,5 +1,5 @@
-#ifndef DISSENT_ANONYMITY_GROUP_H_GUARD
-#define DISSENT_ANONYMITY_GROUP_H_GUARD
+#ifndef DISSENT_IDENTITY_GROUP_H_GUARD
+#define DISSENT_IDENTITY_GROUP_H_GUARD
 
 #include <algorithm>
 
@@ -19,7 +19,7 @@ namespace Crypto {
   class AsymmetricKey;
 }
 
-namespace Anonymity {
+namespace Identity {
   typedef Dissent::Utils::Triple<Dissent::Connections::Id,
           QSharedPointer<Dissent::Crypto::AsymmetricKey>,
           QByteArray> GroupContainer;
@@ -297,9 +297,9 @@ namespace Anonymity {
 // Put these into the common namespace of Triple
 namespace Dissent {
 namespace Utils {
-  using Dissent::Anonymity::operator==;
-  using Dissent::Anonymity::operator!=;
-  using Dissent::Anonymity::operator<;
+  using Dissent::Identity::operator==;
+  using Dissent::Identity::operator!=;
+  using Dissent::Identity::operator<;
 }
 }
 

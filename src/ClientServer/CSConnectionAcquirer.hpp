@@ -1,10 +1,10 @@
 #ifndef DISSENT_CLIENT_SERVER_CS_CONNECTION_ACQUIRER_H_GUARD
 #define DISSENT_CLIENT_SERVER_CS_CONNECTION_ACQUIRER_H_GUARD
 
-#include "Anonymity/Group.hpp"
 #include "Connections/ConnectionAcquirer.hpp"
 #include "Connections/ConnectionManager.hpp"
 #include "Connections/Id.hpp"
+#include "Identity/Group.hpp"
 #include "Messaging/RpcHandler.hpp"
 #include "Messaging/RpcMethod.hpp"
 #include "Transports/Address.hpp"
@@ -19,10 +19,10 @@ namespace ClientServer {
    */
   class CSConnectionAcquirer : public Dissent::Connections::ConnectionAcquirer {
     public:
-      typedef Dissent::Anonymity::Group Group;
       typedef Dissent::Connections::Connection Connection;
       typedef Dissent::Connections::ConnectionManager ConnectionManager;
       typedef Dissent::Connections::Id Id;
+      typedef Dissent::Identity::Group Group;
       typedef Dissent::Messaging::RpcHandler RpcHandler;
       typedef Dissent::Messaging::RpcMethod<CSConnectionAcquirer> RpcMethod;
       typedef Dissent::Messaging::RpcRequest RpcRequest;

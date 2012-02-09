@@ -3,9 +3,9 @@
 
 #include <QHash>
 
-#include "Anonymity/Group.hpp"
 #include "Anonymity/Round.hpp"
 #include "Connections/Id.hpp"
+#include "Identity/Group.hpp"
 
 #include "Node.hpp"
 
@@ -17,7 +17,7 @@ namespace Applications {
   class SessionFactory {
     public:
       typedef Dissent::Anonymity::CreateRound CreateRound;
-      typedef Dissent::Anonymity::Group Group;
+      typedef Dissent::Identity::Group Group;
       typedef Dissent::Connections::Id Id;
       typedef void (*Callback)(Node *, const Id &, const Group &);
 

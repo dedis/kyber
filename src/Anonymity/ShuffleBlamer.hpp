@@ -5,6 +5,8 @@
 #include <QSharedPointer>
 
 #include "Connections/Id.hpp"
+#include "Identity/Credentials.hpp"
+#include "Identity/Group.hpp"
 
 #include "ShuffleRoundBlame.hpp"
 #include "Log.hpp"
@@ -22,6 +24,8 @@ namespace Anonymity {
     public:
       typedef Dissent::Connections::Id Id;
       typedef Dissent::Crypto::AsymmetricKey AsymmetricKey;
+      typedef Dissent::Identity::Credentials Credentials;
+      typedef Dissent::Identity::Group Group;
 
       /**
        * Constructors

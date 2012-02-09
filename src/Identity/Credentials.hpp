@@ -1,5 +1,5 @@
-#ifndef DISSENT_ANONYMITY_CREDENTIALS_H_GUARD
-#define DISSENT_ANONYMITY_CREDENTIALS_H_GUARD
+#ifndef DISSENT_IDENTITY_CREDENTIALS_H_GUARD
+#define DISSENT_IDENTITY_CREDENTIALS_H_GUARD
 
 #include <QSharedPointer>
 
@@ -9,7 +9,7 @@
 #include "Group.hpp"
 
 namespace Dissent {
-namespace Anonymity {
+namespace Identity {
   /**
    * A container class for holding a user's data.  Allows for making changes
    * to the user component in the session and round code easier.

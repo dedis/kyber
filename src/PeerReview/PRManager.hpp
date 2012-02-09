@@ -2,9 +2,9 @@
 #define DISSENT_PEER_REVIEW_PR_MANAGER_H_GUARD
 
 #include <QByteArray>
-#include "Anonymity/Credentials.hpp"
-#include "Anonymity/Group.hpp"
 #include "Connections/Id.hpp"
+#include "Identity/Credentials.hpp"
+#include "Identity/Group.hpp"
 
 #include "AcknowledgementLog.hpp"
 #include "EntryLog.hpp"
@@ -17,9 +17,9 @@ namespace PeerReview {
    */
   class PRManager {
     public:
-      typedef Dissent::Anonymity::Credentials Credentials;
-      typedef Dissent::Anonymity::Group Group;
       typedef Dissent::Connections::Id Id;
+      typedef Dissent::Identity::Credentials Credentials;
+      typedef Dissent::Identity::Group Group;
 
       /**
        * Constructs a new peer review log system

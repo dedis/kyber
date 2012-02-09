@@ -5,7 +5,7 @@
 #include "SessionFactory.hpp"
 
 
-using Dissent::Anonymity::GroupContainer;
+using Dissent::Identity::GroupContainer;
 using Dissent::Connections::Id;
 using Dissent::Crypto::AsymmetricKey;
 using Dissent::Crypto::DiffieHellman;

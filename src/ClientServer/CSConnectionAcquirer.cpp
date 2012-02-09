@@ -8,7 +8,7 @@
 
 #include "CSConnectionAcquirer.hpp"
 
-using Dissent::Anonymity::GroupContainer;
+using Dissent::Identity::GroupContainer;
 using Dissent::Connections::ConnectionTable;
 using Dissent::Crypto::CryptoFactory;
 using Dissent::Crypto::Library;

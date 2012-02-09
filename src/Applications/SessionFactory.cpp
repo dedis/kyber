@@ -15,7 +15,6 @@
 #include "SessionFactory.hpp"
 
 using Dissent::Anonymity::BulkRound;
-using Dissent::Anonymity::Group;
 using Dissent::Anonymity::NullRound;
 using Dissent::Anonymity::RepeatingBulkRound;
 using Dissent::Anonymity::Tolerant::TolerantBulkRound;
@@ -31,6 +30,7 @@ using Dissent::Connections::Id;
 using Dissent::Crypto::AsymmetricKey;
 using Dissent::Crypto::CryptoFactory;
 using Dissent::Crypto::Library;
+using Dissent::Identity::Group;
 using Dissent::Messaging::RpcHandler;
 
 namespace Dissent {

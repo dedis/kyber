@@ -1,8 +1,8 @@
 #ifndef DISSENT_APPLICATIONS_NODE_H_GUARD
 #define DISSENT_APPLICATIONS_NODE_H_GUARD
 
-#include "Anonymity/Credentials.hpp"
-#include "Anonymity/Group.hpp"
+#include "Identity/Credentials.hpp"
+#include "Identity/Group.hpp"
 #include "Anonymity/SessionManager.hpp"
 #include "Overlay/BasicGossip.hpp"
 
@@ -23,8 +23,8 @@ namespace Applications {
    */
   class Node {
     public:
-      typedef Dissent::Anonymity::Credentials Credentials;
-      typedef Dissent::Anonymity::Group Group;
+      typedef Dissent::Identity::Credentials Credentials;
+      typedef Dissent::Identity::Group Group;
       typedef Dissent::Anonymity::SessionManager SessionManager;
       typedef Dissent::Connections::Connection Connection;
       typedef Dissent::Messaging::ISink ISink;

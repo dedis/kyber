@@ -1,7 +1,7 @@
 #ifndef DISSENT_CLIENT_SERVER_CS_OVERLAY_H_GUARD
 #define DISSENT_CLIENT_SERVER_CS_OVERLAY_H_GUARD
 
-#include "Anonymity/Group.hpp"
+#include "Identity/Group.hpp"
 #include "Overlay/BaseOverlay.hpp"
 
 namespace Dissent {
@@ -12,7 +12,7 @@ namespace ClientServer {
    */
   class CSOverlay : public Dissent::Overlay::BaseOverlay {
     public:
-      typedef Dissent::Anonymity::Group Group;
+      typedef Dissent::Identity::Group Group;
 
       /**
        * Constructor

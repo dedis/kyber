@@ -6,8 +6,8 @@
 #include <QHostAddress>
 #include <QSettings>
 
-#include "Anonymity/Group.hpp"
 #include "Connections/Id.hpp"
+#include "Identity/Group.hpp"
 
 namespace Dissent {
 namespace Applications {
@@ -16,8 +16,8 @@ namespace Applications {
    */
   class Settings {
     public:
-      typedef Dissent::Anonymity::Group Group;
       typedef Dissent::Connections::Id Id;
+      typedef Dissent::Identity::Group Group;
 
       /**
        * Load configuration from disk

@@ -2,8 +2,6 @@
 #define DISSENT_DISSENT_H_GUARD
 
 #include "Anonymity/BulkRound.hpp"
-#include "Anonymity/Credentials.hpp"
-#include "Anonymity/Group.hpp"
 #include "Anonymity/Log.hpp"
 #include "Anonymity/MessageRandomizer.hpp"
 #include "Anonymity/NullRound.hpp"
@@ -68,6 +66,9 @@
 #include "Crypto/OnionEncryptor.hpp"
 #include "Crypto/Serialization.hpp"
 #include "Crypto/ThreadedOnionEncryptor.hpp"
+
+#include "Identity/Credentials.hpp"
+#include "Identity/Group.hpp"
 
 #include "Messaging/BufferSink.hpp"
 #include "Messaging/BufferSinkWithSignal.hpp"
@@ -144,6 +145,7 @@ using namespace Dissent::Applications;
 using namespace Dissent::ClientServer;
 using namespace Dissent::Connections;
 using namespace Dissent::Crypto;
+using namespace Dissent::Identity;
 using namespace Dissent::Messaging;
 using namespace Dissent::Overlay;
 using namespace Dissent::Transports;

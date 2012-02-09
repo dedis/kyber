@@ -6,7 +6,7 @@ using Dissent::Connections::Id;
 using Dissent::Crypto::AsymmetricKey;
 
 namespace Dissent {
-namespace Anonymity {
+namespace Identity {
 
   Group::Group(const QVector<GroupContainer> &roster, const Id &leader,
       SubgroupPolicy subgroup_policy, const QVector<GroupContainer> &subgroup)

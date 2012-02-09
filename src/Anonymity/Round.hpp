@@ -7,13 +7,12 @@
 
 #include "Connections/Id.hpp"
 #include "Connections/Network.hpp"
+#include "Identity/Group.hpp"
+#include "Identity/Credentials.hpp"
 #include "Messaging/GetDataCallback.hpp"
 #include "Messaging/ISender.hpp"
 #include "Messaging/Source.hpp"
 #include "Utils/StartStop.hpp"
-
-#include "Credentials.hpp"
-#include "Group.hpp"
 
 namespace Dissent {
 namespace Connections {
@@ -43,6 +42,9 @@ namespace Anonymity {
       typedef Dissent::Connections::Network Network;
       typedef Dissent::Crypto::AsymmetricKey AsymmetricKey;
       typedef Dissent::Crypto::DiffieHellman DiffieHellman;
+      typedef Dissent::Identity::Credentials Credentials;
+      typedef Dissent::Identity::Group Group;
+      typedef Dissent::Identity::GroupContainer GroupContainer;
       typedef Dissent::Messaging::GetDataCallback GetDataCallback;
       typedef Dissent::Messaging::RpcRequest RpcRequest;
 
@@ -229,13 +231,13 @@ namespace Anonymity {
       bool _interrupted;
   };
 
-  typedef Round *(*CreateRound)(const Group &,
-      const Credentials &, const Dissent::Connections::Id &,
+  typedef Round *(*CreateRound)(const Round::Group &,
+      const Round::Credentials &, const Dissent::Connections::Id &,
       QSharedPointer<Dissent::Connections::Network>,
       Dissent::Messaging::GetDataCallback &get_data_cb);
 
-  template <typename T> Round *TCreateRound(const Group &group,
-      const Credentials &creds, const Dissent::Connections::Id &round_id,
+  template <typename T> Round *TCreateRound(const Round::Group &group,
+      const Round::Credentials &creds, const Dissent::Connections::Id &round_id,
       QSharedPointer<Dissent::Connections::Network> network,
       Dissent::Messaging::GetDataCallback &get_data)
   {
