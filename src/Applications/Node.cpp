@@ -30,7 +30,7 @@ namespace Applications {
     _sm(_overlay->GetRpcHandler()),
     _sink(sink)
   {
-    SessionFactory::GetInstance().Create(this, Id::Zero(), _group, type);
+    SessionFactory::GetInstance().Create(this, Id::Zero(), type);
   }
 
   Node::~Node()

@@ -19,7 +19,7 @@ namespace Applications {
       typedef Dissent::Anonymity::CreateRound CreateRound;
       typedef Dissent::Identity::Group Group;
       typedef Dissent::Connections::Id Id;
-      typedef void (*Callback)(Node *, const Id &, const Group &);
+      typedef void (*Callback)(Node *, const Id &);
 
       /**
        * Singleton implemention
@@ -36,56 +36,52 @@ namespace Applications {
       /**
        * Adds the session expressed by type to the node
        * @param node the node to add the session to
+       * @param session_id the id for the new session
        * @param type the type of session to create
        */
-      void Create(Node *node, const Id &session_id, const Group &group,
-          const QString &type) const;
+      void Create(Node *node, const Id &session_id, const QString &type) const;
 
       /**
        * Create a SecureSession / ShuffleRound
        */
-      static void CreateShuffleRoundSession(Node *node, const Id &session_id,
-          const Group &group);
+      static void CreateShuffleRoundSession(Node *node, const Id &session_id);
 
       /**
        * Create a Session / NullRound
        */
-      static void CreateNullRoundSession(Node *node, const Id &session_id,
-          const Group &group);
+      static void CreateNullRoundSession(Node *node, const Id &session_id);
 
       /**
        * Create a Bulk "V1"
        */
-      static void CreateBulkRoundSession(Node *node, const Id &session_id,
-          const Group &group);
+      static void CreateBulkRoundSession(Node *node, const Id &session_id);
 
       /**
        * Create a Bulk "V2"
        */
       static void CreateRepeatingBulkRoundSession(Node *node,
-          const Id &session_id, const Group &group);
+          const Id &session_id);
 
       /**
        * Create a Bulk "V3"
        */
       static void CreateTrustedBulkRoundSession(Node *node,
-          const Id &session_id, const Group &group);
+          const Id &session_id);
 
       /**
        * Create a Bulk "V3" with blame
        */
       static void CreateTolerantBulkRoundSession(Node *node,
-          const Id &session_id, const Group &group);
+          const Id &session_id);
 
       /**
        * Create a Bulk "V3" with XORing tree
        */
       static void CreateTolerantTreeRoundSession(Node *node,
-          const Id &session_id, const Group &group);
+          const Id &session_id);
 
     private:
-      static void Common(Node *node, const Id &session_id, CreateRound cr,
-          const Group &group);
+      static void Common(Node *node, const Id &session_id, CreateRound cr);
 
       /**
        * No inheritance, this is a singleton object

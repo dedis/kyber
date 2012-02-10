@@ -57,7 +57,7 @@ namespace Applications {
     _type_to_create[type] = cb;
   }
 
-  void SessionFactory::Create(Node *node, const Id &session_id, const Group &group,
+  void SessionFactory::Create(Node *node, const Id &session_id,
       const QString &type) const
   {
     Callback cb = _type_to_create[type];
@@ -65,56 +65,53 @@ namespace Applications {
       qCritical() << "No known type: " << type;
       return;
     }
-    cb(node, session_id, group);
+    cb(node, session_id);
   }
 
-  void SessionFactory::CreateNullRoundSession(Node *node, const Id &session_id,
-      const Group &group)
+  void SessionFactory::CreateNullRoundSession(Node *node, const Id &session_id)
   {
-    Common(node, session_id, &TCreateRound<NullRound>, group);
+    Common(node, session_id, &TCreateRound<NullRound>);
   }
 
   void SessionFactory::CreateShuffleRoundSession(Node *node,
-      const Id &session_id, const Group &group)
+      const Id &session_id)
   {
-    Common(node, session_id, &TCreateRound<ShuffleRound>, group);
+    Common(node, session_id, &TCreateRound<ShuffleRound>);
   }
 
-  void SessionFactory::CreateBulkRoundSession(Node *node, const Id &session_id,
-      const Group &group)
+  void SessionFactory::CreateBulkRoundSession(Node *node, const Id &session_id)
   {
-    Common(node, session_id, &TCreateRound<BulkRound>, group);
+    Common(node, session_id, &TCreateRound<BulkRound>);
   }
 
   void SessionFactory::CreateRepeatingBulkRoundSession(Node *node,
-      const Id &session_id, const Group &group)
+      const Id &session_id)
   {
-    Common(node, session_id, &TCreateRound<RepeatingBulkRound>, group);
+    Common(node, session_id, &TCreateRound<RepeatingBulkRound>);
   }
 
   void SessionFactory::CreateTrustedBulkRoundSession(Node *node,
-      const Id &session_id, const Group &group)
+      const Id &session_id)
   {
-    Common(node, session_id, &TCreateRound<TrustedBulkRound>, group);
+    Common(node, session_id, &TCreateRound<TrustedBulkRound>);
   }
 
   void SessionFactory::CreateTolerantBulkRoundSession(Node *node,
-      const Id &session_id, const Group &group)
+      const Id &session_id)
   {
-    Common(node, session_id, &TCreateRound<TolerantBulkRound>, group);
+    Common(node, session_id, &TCreateRound<TolerantBulkRound>);
   }
 
   void SessionFactory::CreateTolerantTreeRoundSession(Node *node,
-      const Id &session_id, const Group &group)
+      const Id &session_id)
   {
-    Common(node, session_id, &TCreateRound<TolerantTreeRound>, group);
+    Common(node, session_id, &TCreateRound<TolerantTreeRound>);
   }
 
-  void SessionFactory::Common(Node *node, const Id &session_id, CreateRound cr,
-      const Group &group)
+  void SessionFactory::Common(Node *node, const Id &session_id, CreateRound cr)
   {
-    Session *session = new Session(group, node->GetCredentials(), session_id,
-        node->GetNetwork(), cr);
+    Session *session = new Session(node->GetGroup(), node->GetCredentials(),
+        session_id, node->GetNetwork(), cr);
 
     QObject::connect(node->GetOverlay().data(), SIGNAL(Disconnecting()),
         session, SLOT(CallStop()));
