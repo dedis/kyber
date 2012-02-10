@@ -113,18 +113,17 @@ namespace Applications {
   void SessionFactory::Common(Node *node, const Id &session_id, CreateRound cr,
       const Group &group)
   {
-    ConnectionManager &cm = node->bg.GetConnectionManager();
-    RpcHandler &rpc = node->bg.GetRpcHandler();
-    QSharedPointer<Network> net(new DefaultNetwork(cm, rpc));
+    Session *session = new Session(group, node->GetCredentials(), session_id,
+        node->GetNetwork(), cr);
 
-    Session *session = new Session(group, node->creds, session_id, net, cr);
-    QObject::connect(&node->bg, SIGNAL(Disconnecting()), session, SLOT(CallStop()));
+    QObject::connect(node->GetOverlay().data(), SIGNAL(Disconnecting()),
+        session, SLOT(CallStop()));
+
     QSharedPointer<Session> psession(session);
+    node->GetSessionManager().AddSession(psession);
 
-    node->sm.AddSession(psession);
-
-    if(!node->sink.isNull()) {
-      psession->SetSink(node->sink.data());
+    if(!node->GetSink().isNull()) {
+      psession->SetSink(node->GetSink().data());
     }
     psession->Start();
   }

@@ -28,17 +28,16 @@ namespace Tests {
 
       QSharedPointer<ISink> sink(QSharedPointer<ISink>(new MockSinkWithSignal()));
       nodes.append(QSharedPointer<Node>(new Node(Credentials(id, key, dh),
-              local, remote, group, session_type, sink)));
-      nodes.last()->StartSession();
+              group, local, remote, sink, session_type)));
       local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
     }
 
     SignalCounter sc;
     foreach(QSharedPointer<Node> node, nodes) {
-      QObject::connect(&node->bg.GetConnectionManager(),
+      QObject::connect(&node->GetOverlay()->GetConnectionManager(),
           SIGNAL(NewConnection(Connection *)),
           &sc, SLOT(Counter()));
-      node->bg.Start();
+      node->GetOverlay()->Start();
     }
 
     qint64 next = Timer::GetInstance().VirtualRun();
@@ -49,7 +48,7 @@ namespace Tests {
     }
 
     foreach(QSharedPointer<Node> node, nodes) {
-      EXPECT_EQ(count, node->bg.GetConnectionTable().GetConnections().count());
+      EXPECT_EQ(count, node->GetOverlay()->GetConnectionTable().GetConnections().count());
     }
 
     return nodes;
@@ -59,8 +58,8 @@ namespace Tests {
   {
     SignalCounter sc;
     foreach(QSharedPointer<Node> node, nodes) {
-      QObject::connect(&node->bg, SIGNAL(Disconnected()), &sc, SLOT(Counter()));
-      node->bg.Stop();
+      QObject::connect(node->GetOverlay().data(), SIGNAL(Disconnected()), &sc, SLOT(Counter()));
+      node->GetOverlay()->Stop();
     }
 
     qint64 next = Timer::GetInstance().VirtualRun();
@@ -72,7 +71,7 @@ namespace Tests {
     EXPECT_EQ(sc.GetCount(), nodes.count());
 
     foreach(QSharedPointer<Node> node, nodes) {
-      EXPECT_EQ(node->bg.GetConnectionTable().GetConnections().count(), 0);
+      EXPECT_EQ(node->GetOverlay()->GetConnectionTable().GetConnections().count(), 0);
     }
   }
 
@@ -83,11 +82,11 @@ namespace Tests {
 
     QByteArray msg(512, 0);
     rand->GenerateBlock(msg);
-    nodes[0]->sm.GetDefaultSession()->Send(msg);
+    nodes[0]->GetSessionManager().GetDefaultSession()->Send(msg);
 
     SignalCounter sc;
     foreach(QSharedPointer<Node> node, nodes) {
-      MockSinkWithSignal *sink = dynamic_cast<MockSinkWithSignal *>(node->sink.data());
+      MockSinkWithSignal *sink = dynamic_cast<MockSinkWithSignal *>(node->GetSink().data());
       if(sink == 0) {
         qFatal("MockSinkWithSignal expected");
       }
@@ -102,7 +101,7 @@ namespace Tests {
     }
 
     foreach(QSharedPointer<Node> node, nodes) {
-      MockSinkWithSignal *sink = dynamic_cast<MockSinkWithSignal *>(node->sink.data());
+      MockSinkWithSignal *sink = dynamic_cast<MockSinkWithSignal *>(node->GetSink().data());
       if(sink == 0) {
         qFatal("MockSinkWithSignal expected");
       }
@@ -112,20 +111,20 @@ namespace Tests {
 
   void DisconnectLeader(QList<QSharedPointer<Node> > &nodes, const QString &session_type)
   {
-    Group group = nodes[0]->sm.GetDefaultSession()->GetGroup();
+    Group group = nodes[0]->GetSessionManager().GetDefaultSession()->GetGroup();
     Group::SubgroupPolicy policy = group.GetSubgroupPolicy();
     Id leader_id = group.GetLeader();
 
     int idx = 0;
     for(; idx < nodes.size(); idx++) {
-      if(nodes[idx]->bg.GetId() == leader_id) {
+      if(nodes[idx]->GetOverlay()->GetId() == leader_id) {
         break;
       }
     }
 
-    EXPECT_EQ(nodes[idx]->bg.GetId(), leader_id);
+    EXPECT_EQ(nodes[idx]->GetOverlay()->GetId(), leader_id);
     const QList<Connection *> &connections =
-      nodes[idx]->bg.GetConnectionManager().GetConnectionTable().GetConnections();
+      nodes[idx]->GetOverlay()->GetConnectionManager().GetConnectionTable().GetConnections();
 
     Address remote_addr = BufferAddress::CreateAny();
     for(int jdx = 0; jdx < connections.size(); jdx++) {
@@ -136,8 +135,8 @@ namespace Tests {
     }
 
     SignalCounter sc;
-    QObject::connect(&nodes[idx]->bg, SIGNAL(Disconnected()), &sc, SLOT(Counter()));
-    nodes[idx]->bg.Stop();
+    QObject::connect(nodes[idx]->GetOverlay().data(), SIGNAL(Disconnected()), &sc, SLOT(Counter()));
+    nodes[idx]->GetOverlay()->Stop();
 
     qint64 next = Timer::GetInstance().VirtualRun();
     while(next != -1 && sc.GetCount() != 1) {
@@ -158,15 +157,14 @@ namespace Tests {
     group = Group(QVector<GroupContainer>(), leader_id, policy);
     QSharedPointer<ISink> sink(QSharedPointer<ISink>(new MockSinkWithSignal()));
     nodes[idx] = QSharedPointer<Node>(new Node(Credentials(leader_id, key, dh),
-            local, remote, group, session_type, sink));
-    nodes[idx]->StartSession();
+          group, local, remote, sink, session_type));
 
     sc.Reset();
     foreach(QSharedPointer<Node> node, nodes) {
-      QObject::connect(&node->bg.GetConnectionManager(),
+      QObject::connect(&node->GetOverlay()->GetConnectionManager(),
           SIGNAL(NewConnection(Connection *)),
           &sc, SLOT(Counter()));
-      node->bg.Start();
+      node->GetOverlay()->Start();
     }
 
     next = Timer::GetInstance().VirtualRun();
@@ -177,7 +175,7 @@ namespace Tests {
     }
 
     foreach(QSharedPointer<Node> node, nodes) {
-      EXPECT_EQ(nodes.size(), node->bg.GetConnectionTable().GetConnections().count());
+      EXPECT_EQ(nodes.size(), node->GetOverlay()->GetConnectionTable().GetConnections().count());
     }
   }
 
@@ -209,7 +207,7 @@ namespace Tests {
     SendTest(nodes);
 
     foreach(QSharedPointer<Node> node, nodes) {
-      EXPECT_EQ(node->bg.GetConnectionManager().OutstandingConnectionAttempts(), 0);
+      EXPECT_EQ(node->GetOverlay()->GetConnectionManager().OutstandingConnectionAttempts(), 0);
     }
 
     TerminateOverlay(nodes);
@@ -226,7 +224,7 @@ namespace Tests {
     SendTest(nodes);
 
     foreach(QSharedPointer<Node> node, nodes) {
-      EXPECT_EQ(node->bg.GetConnectionManager().OutstandingConnectionAttempts(), 0);
+      EXPECT_EQ(node->GetOverlay()->GetConnectionManager().OutstandingConnectionAttempts(), 0);
     }
 
     TerminateOverlay(nodes);
@@ -242,8 +240,9 @@ namespace Tests {
 
     QSharedPointer<AsymmetricKey> key;
     QSharedPointer<DiffieHellman> dh;
-    Node n(Credentials(id, key, dh), empty, empty, Group(), "shuffle");
-    EXPECT_EQ(local_id, n.bg.GetId());
+    Node n(Credentials(id, key, dh), Group(), empty, empty,
+        QSharedPointer<ISink>(new DummySink()), "shuffle");
+    EXPECT_EQ(local_id, n.GetOverlay()->GetId());
   }
 }
 }

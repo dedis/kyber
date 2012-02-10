@@ -55,7 +55,7 @@ namespace Applications {
 
     protected:
       void PrintCommandLine();
-      QList<QSharedPointer<Node> > _nodes;
+      const QList<QSharedPointer<Node> > &_nodes;
       int _current_node;
       bool _running;
       QSocketNotifier _notify;

@@ -40,6 +40,15 @@ int main(int argc, char **argv)
 
   QList<QSharedPointer<Node> > nodes;
 
+  QSharedPointer<ISink> default_sink(new DummySink());
+  QSharedPointer<ISink> app_sink = default_sink;
+
+  if(settings.Console) {
+    app_sink = QSharedPointer<CommandLine>(new CommandLine(nodes));
+  } else if(settings.WebServer) {
+    app_sink = QSharedPointer<SignalSink>(new SignalSink());
+  }
+
   Id local_id = (settings.LocalId == Id::Zero()) ? Id() : settings.LocalId;
   QSharedPointer<AsymmetricKey> key;
   QSharedPointer<DiffieHellman> dh;
@@ -53,7 +62,7 @@ int main(int argc, char **argv)
   }
 
   nodes.append(QSharedPointer<Node>(new Node(Credentials(local_id, key, dh),
-          local, remote, group, settings.SessionType)));
+          group, local, remote, app_sink, settings.SessionType)));
 
   for(int idx = 1; idx < settings.LocalNodeCount; idx++) {
     Id local_id;
@@ -71,22 +80,15 @@ int main(int argc, char **argv)
     }
 
     nodes.append(QSharedPointer<Node>(new Node(Credentials(local_id, key, dh),
-            local, remote, group, settings.SessionType)));
-    nodes[idx]->sink = QSharedPointer<ISink>(new DummySink());
-  }
-
-  foreach(QSharedPointer<Node> node, nodes) {
-    QObject::connect(&qca, SIGNAL(aboutToQuit()), &node.data()->bg, SLOT(CallStop()));
-    node->bg.Start();
+            group, local, remote, default_sink, settings.SessionType)));
   }
 
   QScopedPointer<WebServer> ws;
 
   if(settings.Console) {
-    QSharedPointer<CommandLine> cl(new CommandLine(nodes));
-    nodes[0]->sink = cl;
-    cl->Start();
+    QSharedPointer<CommandLine> cl = app_sink.dynamicCast<CommandLine>();
     QObject::connect(&qca, SIGNAL(aboutToQuit()), cl.data(), SLOT(Stop()));
+    cl->Start();
   } else if(settings.WebServer) {
     ws.reset(new WebServer(settings.WebServerUrl));
 
@@ -96,33 +98,34 @@ int main(int argc, char **argv)
     /* When the web server stops, quit the application */
     QObject::connect(ws.data(), SIGNAL(Stopped()), &qca, SLOT(quit()));
 
-    QSharedPointer<Dissent::Messaging::SignalSink> signal_sink(new Dissent::Messaging::SignalSink());
-    nodes[0]->sink = signal_sink;
+    QSharedPointer<SignalSink> signal_sink = app_sink.dynamicCast<SignalSink>();
 
     QSharedPointer<GetMessagesService> get_messages_sp(new GetMessagesService());
     QObject::connect(signal_sink.data(), SIGNAL(IncomingData(const QByteArray&)),
         get_messages_sp.data(), SLOT(HandleIncomingMessage(const QByteArray&)));
     ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/session/messages", get_messages_sp);
 
-    QSharedPointer<RoundIdService> round_id_sp(new RoundIdService(nodes[0]->sm));
-    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/round/id", round_id_sp);
-
-    QSharedPointer<SessionIdService> session_id_sp(new SessionIdService(nodes[0]->sm));
-    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/session/id", session_id_sp);
-
-    QSharedPointer<SendMessageService> send_message_sp(new SendMessageService(nodes[0]->sm));
-    ws->AddRoute(HttpRequest::METHOD_HTTP_POST, "/session/send", send_message_sp);
-
     QSharedPointer<GetFileService> get_webpage_sp(new GetFileService("index.html"));
     ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/web", get_webpage_sp);
 
+  nodes.append(QSharedPointer<Node>(new Node(Credentials(local_id, key, dh),
+          group, local, remote, app_sink, settings.SessionType)));
+    QSharedPointer<RoundIdService> round_id_sp(new RoundIdService(nodes[0]->GetSessionManager()));
+    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/round/id", round_id_sp);
+
+    QSharedPointer<SessionIdService> session_id_sp(new SessionIdService(nodes[0]->GetSessionManager()));
+    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/session/id", session_id_sp);
+
+    QSharedPointer<SendMessageService> send_message_sp(new SendMessageService(nodes[0]->GetSessionManager()));
+    ws->AddRoute(HttpRequest::METHOD_HTTP_POST, "/session/send", send_message_sp);
+
     ws->Start();
-  } else {
-    nodes[0]->sink = QSharedPointer<ISink>(new DummySink());
   }
 
   foreach(QSharedPointer<Node> node, nodes) {
-    node->StartSession();
+    QObject::connect(&qca, SIGNAL(aboutToQuit()),
+        node.data()->GetOverlay().data(), SLOT(CallStop()));
+    node->GetOverlay()->Start();
   }
 
   return QCoreApplication::exec();

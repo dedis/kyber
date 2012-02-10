@@ -26,8 +26,7 @@ namespace Tests {
 
       QSharedPointer<ISink> sink(QSharedPointer<ISink>(new MockSinkWithSignal()));
       nodes.append(QSharedPointer<Node>(new Node(Credentials(id, key, dh),
-              local, remote, group, session_type, sink)));
-      nodes.last()->StartSession();
+              group, local, remote, sink, session_type)));
 
       local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
     }
@@ -36,16 +35,16 @@ namespace Tests {
     SignalCounter sc(total_cons);
 
     foreach(QSharedPointer<Node> node, nodes) {
-      QObject::connect(&node->bg.GetConnectionManager(),
+      QObject::connect(&node->GetOverlay()->GetConnectionManager(),
         SIGNAL(NewConnection(Connection *)),
           &sc, SLOT(Counter()));
-      node->bg.Start();
+      node->GetOverlay()->Start();
     }
 
     MockExecLoop(sc);
 
     foreach(QSharedPointer<Node> node, nodes) {
-      EXPECT_EQ(count, node->bg.GetConnectionTable().GetConnections().count());
+      EXPECT_EQ(count, node->GetOverlay()->GetConnectionTable().GetConnections().count());
     }
 
     return nodes;
@@ -55,14 +54,14 @@ namespace Tests {
   {
     SignalCounter sc(nodes.count());
     foreach(QSharedPointer<Node> node, nodes) {
-      QObject::connect(&node->bg, SIGNAL(Disconnected()), &sc, SLOT(Counter()));
-      node->bg.Stop();
+      QObject::connect(node->GetOverlay().data(), SIGNAL(Disconnected()), &sc, SLOT(Counter()));
+      node->GetOverlay()->Stop();
     }
 
     MockExecLoop(sc);
 
     foreach(QSharedPointer<Node> node, nodes) {
-      EXPECT_EQ(node->bg.GetConnectionTable().GetConnections().count(), 0);
+      EXPECT_EQ(node->GetOverlay()->GetConnectionTable().GetConnections().count(), 0);
     }
   }
 
@@ -73,11 +72,11 @@ namespace Tests {
 
     QByteArray msg(512, 0);
     rand->GenerateBlock(msg);
-    nodes[0]->sm.GetDefaultSession()->Send(msg);
+    nodes[0]->GetSessionManager().GetDefaultSession()->Send(msg);
 
     SignalCounter sc(nodes.count());
     foreach(QSharedPointer<Node> node, nodes) {
-      MockSinkWithSignal *sink = dynamic_cast<MockSinkWithSignal *>(node->sink.data());
+      MockSinkWithSignal *sink = dynamic_cast<MockSinkWithSignal *>(node->GetSink().data());
       if(sink == 0) {
         qFatal("MockSinkWithSignal expected");
       }
@@ -87,7 +86,7 @@ namespace Tests {
     MockExecLoop(sc);
 
     foreach(QSharedPointer<Node> node, nodes) {
-      MockSinkWithSignal *sink = dynamic_cast<MockSinkWithSignal *>(node->sink.data());
+      MockSinkWithSignal *sink = dynamic_cast<MockSinkWithSignal *>(node->GetSink().data());
       if(sink == 0) {
         qFatal("MockSinkWithSignal expected");
       }
@@ -105,7 +104,7 @@ namespace Tests {
     LiveSendTest(nodes);
 
     foreach(QSharedPointer<Node> node, nodes) {
-      EXPECT_EQ(node->bg.GetConnectionManager().OutstandingConnectionAttempts(), 0);
+      EXPECT_EQ(node->GetOverlay()->GetConnectionManager().OutstandingConnectionAttempts(), 0);
     }
 
     TerminateLiveOverlay(nodes);

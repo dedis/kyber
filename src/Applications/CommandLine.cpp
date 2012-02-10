@@ -44,7 +44,6 @@ namespace Applications {
       return;
     }
 
-    _nodes.clear();
     _running = false;
 
     _notify.setEnabled(false);
@@ -98,7 +97,8 @@ namespace Applications {
         _qtout << endl << "Invalid entry: " << msg;
       }
     } else if(cmd == "send") {
-      QSharedPointer<Session> session = _nodes[_current_node]->sm.GetDefaultSession();
+      QSharedPointer<Session> session = _nodes[_current_node]->
+        GetSessionManager().GetDefaultSession();
       if(session.isNull()) {
         _qtout << endl << "No session set, try again later." << endl;
         return;
