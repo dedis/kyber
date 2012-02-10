@@ -30,7 +30,7 @@ def main():
   services = [
     ("GET", "/session/id"),
     ("GET", "/round/id"),
-    ("GET", "/session/messages/all"),
+    ("GET", "/session/messages?offset=0&count=-1"),
   ] 
 
   count = 0

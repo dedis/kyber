@@ -1,7 +1,6 @@
 #include <QByteArray>
 #include <QDebug>
 #include <QList>
-#include <QMap>
 #include <QTextStream>
 #include <QVariant>
 
@@ -140,12 +139,12 @@ namespace Tests {
     ASSERT_EQ(HttpResponse::STATUS_OK, sink.handled[0]->GetStatus());
     
     QVariant var = sink.handled[0]->GetOutputData();
-    ASSERT_TRUE(var.canConvert(QVariant::Map));
-    QMap<QString,QVariant> map = var.toMap();
-    ASSERT_TRUE(map["active"].canConvert(QVariant::Bool));
-    ASSERT_TRUE(map["active"].toBool());
-    ASSERT_TRUE(map["id"].canConvert(QVariant::ByteArray));
-    ASSERT_EQ(expected_id_len, map["id"].toByteArray().length());
+    ASSERT_TRUE(var.canConvert(QVariant::Hash));
+    QVariantHash hash = var.toHash();
+    ASSERT_TRUE(hash["active"].canConvert(QVariant::Bool));
+    ASSERT_TRUE(hash["active"].toBool());
+    ASSERT_TRUE(hash["id"].canConvert(QVariant::ByteArray));
+    ASSERT_EQ(expected_id_len, hash["id"].toByteArray().length());
     
     QObject::disconnect(wsp.data(), SIGNAL(FinishedWebRequest(QSharedPointer<WebRequest>, bool)),
        &sink, SLOT(HandleDoneRequest(QSharedPointer<WebRequest>)));
@@ -163,12 +162,12 @@ namespace Tests {
     ASSERT_EQ(HttpResponse::STATUS_OK, sink.handled[0]->GetStatus());
     
     QVariant var = sink.handled[0]->GetOutputData();
-    ASSERT_TRUE(var.canConvert(QVariant::Map));
-    QMap<QString,QVariant> map = var.toMap();
-    ASSERT_TRUE(map["active"].canConvert(QVariant::Bool));
-    ASSERT_FALSE(map["active"].toBool());
-    ASSERT_TRUE(map["id"].canConvert(QVariant::ByteArray));
-    ASSERT_EQ(0, map["id"].toByteArray().length());
+    ASSERT_TRUE(var.canConvert(QVariant::Hash));
+    QVariantHash hash = var.toHash();
+    ASSERT_TRUE(hash["active"].canConvert(QVariant::Bool));
+    ASSERT_FALSE(hash["active"].toBool());
+    ASSERT_TRUE(hash["id"].canConvert(QVariant::ByteArray));
+    ASSERT_EQ(0, hash["id"].toByteArray().length());
     
     QObject::disconnect(wsp.data(), SIGNAL(FinishedWebRequest(QSharedPointer<WebRequest>, bool)),
        &sink, SLOT(HandleDoneRequest(QSharedPointer<WebRequest>)));

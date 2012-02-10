@@ -11,17 +11,17 @@ namespace Services {
   void SessionIdService::Handle(QSharedPointer<WebRequest> wrp)
   {
     QSharedPointer<Session> session = GetSession();
-    QVariantMap map;
+    QVariantHash hash;
 
     if(session.isNull()) {
-      map["active"] = false;
-      map["id"] = "";
+      hash["active"] = false;
+      hash["id"] = "";
     } else {
-      map["active"] = true;
-      map["id"] = session->GetId().ToString();
+      hash["active"] = true;
+      hash["id"] = session->GetId().ToString();
     }
 
-    wrp->GetOutputData().setValue(map);
+    wrp->GetOutputData().setValue(hash);
     wrp->SetStatus(HttpResponse::STATUS_OK);
     emit FinishedWebRequest(wrp, true);
     return;

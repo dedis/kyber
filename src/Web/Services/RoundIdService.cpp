@@ -13,23 +13,23 @@ namespace Services {
   void RoundIdService::Handle(QSharedPointer<WebRequest> wrp)
   {
     QSharedPointer<Session> session = GetSession();
-    QVariantMap map;
+    QVariantHash hash;
 
     bool session_active = !session.isNull();
-    map["active"] = false;
-    map["id"] = "";
+    hash["active"] = false;
+    hash["id"] = "";
 
     if(session_active) {
       QSharedPointer<Dissent::Anonymity::Round> round =
         session->GetCurrentRound();
 
       if(!round.isNull()) {
-        map["active"] = true;
-        map["id"] = round->GetRoundId().ToString();
+        hash["active"] = true;
+        hash["id"] = round->GetRoundId().ToString();
       } 
     } 
 
-    wrp->GetOutputData().setValue(map);
+    wrp->GetOutputData().setValue(hash);
     wrp->SetStatus(HttpResponse::STATUS_OK);
     emit FinishedWebRequest(wrp, true);
     return;
