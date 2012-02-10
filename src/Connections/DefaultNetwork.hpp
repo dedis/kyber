@@ -1,9 +1,12 @@
 #ifndef DISSENT_CONNECTIONS_DEFAULT_NETWORK_H_GUARD
 #define DISSENT_CONNECTIONS_DEFAULT_NETWORK_H_GUARD
 
-#include "Connections/Connection.hpp"
-#include "Connections/ConnectionTable.hpp"
 #include "Messaging/RpcHandler.hpp"
+
+#include "Connection.hpp"
+#include "ConnectionManager.hpp"
+#include "ConnectionTable.hpp"
+#include "Network.hpp"
 
 namespace Dissent {
 namespace Connections {
