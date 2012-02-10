@@ -214,7 +214,7 @@ namespace Connections {
     /// @TODO add an extra variable to the connection message such as a session
     ///token so that quick reconnects can be enabled.
     if(_con_tab.GetConnection(rem_id) != 0) {
-      qWarning() << "Already have a connection to: " << rem_id.ToString() << 
+      qDebug() << "Already have a connection to: " << rem_id.ToString() << 
         " closing Edge: " << edge->ToString();
       QVariantMap notification;
       notification["method"] = "CM::Close";
