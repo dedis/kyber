@@ -27,8 +27,8 @@ namespace Tests {
       QSharedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
 
       QSharedPointer<ISink> sink(QSharedPointer<ISink>(new MockSinkWithSignal()));
-      nodes.append(QSharedPointer<Node>(new Node(Credentials(id, key, dh),
-              group, local, remote, sink, session_type)));
+      nodes.append(Node::CreateBasicGossip(Credentials(id, key, dh),
+              group, local, remote, sink, session_type));
       local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
     }
 
@@ -156,8 +156,8 @@ namespace Tests {
 
     group = Group(QVector<GroupContainer>(), leader_id, policy);
     QSharedPointer<ISink> sink(QSharedPointer<ISink>(new MockSinkWithSignal()));
-    nodes[idx] = QSharedPointer<Node>(new Node(Credentials(leader_id, key, dh),
-          group, local, remote, sink, session_type));
+    nodes[idx] = Node::CreateBasicGossip(Credentials(leader_id, key, dh),
+          group, local, remote, sink, session_type);
 
     sc.Reset();
     foreach(QSharedPointer<Node> node, nodes) {
@@ -240,9 +240,10 @@ namespace Tests {
 
     QSharedPointer<AsymmetricKey> key;
     QSharedPointer<DiffieHellman> dh;
-    Node n(Credentials(id, key, dh), Group(), empty, empty,
-        QSharedPointer<ISink>(new DummySink()), "shuffle");
-    EXPECT_EQ(local_id, n.GetOverlay()->GetId());
+    QSharedPointer<Node> n = Node::CreateBasicGossip(Credentials(id, key, dh),
+        Group(), empty, empty, QSharedPointer<ISink>(new DummySink()),
+        "shuffle");
+    EXPECT_EQ(local_id, n->GetOverlay()->GetId());
   }
 }
 }

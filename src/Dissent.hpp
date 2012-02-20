@@ -69,6 +69,7 @@
 
 #include "Identity/Credentials.hpp"
 #include "Identity/Group.hpp"
+#include "Identity/GroupHolder.hpp"
 
 #include "Messaging/BufferSink.hpp"
 #include "Messaging/BufferSinkWithSignal.hpp"

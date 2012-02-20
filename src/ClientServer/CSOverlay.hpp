@@ -4,6 +4,8 @@
 #include "Identity/Group.hpp"
 #include "Overlay/BaseOverlay.hpp"
 
+#include "CSConnectionAcquirer.hpp"
+
 namespace Dissent {
 namespace ClientServer {
   /**
@@ -11,6 +13,8 @@ namespace ClientServer {
    * in the overlay to every other node, a fully connected graph.
    */
   class CSOverlay : public Dissent::Overlay::BaseOverlay {
+    Q_OBJECT
+
     public:
       typedef Dissent::Identity::Group Group;
 
@@ -20,6 +24,7 @@ namespace ClientServer {
        * @param local_endpoints list of endpoints to be constructed locally
        * via EdgeListeners
        * @param remote_endpoints list of remote members
+       * @param group the base group
        */
       explicit CSOverlay(const Id &local_id,
           const QList<Address> &local_endpoints,
@@ -31,10 +36,14 @@ namespace ClientServer {
        */
       virtual ~CSOverlay();
 
+    public slots:
+      void GroupUpdated();
+
     protected:
       virtual void OnStart();
 
     private:
+      QSharedPointer<CSConnectionAcquirer> _csca;
       Group _group;
   };
 }

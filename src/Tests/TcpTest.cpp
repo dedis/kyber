@@ -25,8 +25,8 @@ namespace Tests {
       QSharedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
 
       QSharedPointer<ISink> sink(QSharedPointer<ISink>(new MockSinkWithSignal()));
-      nodes.append(QSharedPointer<Node>(new Node(Credentials(id, key, dh),
-              group, local, remote, sink, session_type)));
+      nodes.append(Node::CreateBasicGossip(Credentials(id, key, dh), group,
+            local, remote, sink, session_type));
 
       local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
     }

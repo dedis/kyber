@@ -3,19 +3,33 @@
 namespace Dissent {
 namespace Test {
 
-  bool CheckClientServer(const QList<QSharedPointer<CSOverlay> > &nodes,
+  QSharedPointer<Node> CreateNode(const Id &id, const Group &group,
+      const QList<Address> &local, const QList<Address> &remote,
+      const QSharedPointer<ISink> &sink, const QString &session)
+  {
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QByteArray bid(id.GetByteArray());
+    QSharedPointer<AsymmetricKey> key(lib->GeneratePrivateKey(bid));
+    QSharedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
+    Credentials creds(id, key, dh);
+    return Node::CreateClientServer(creds, group, local, remote, sink, session);
+  }
+
+  bool CheckClientServer(const QList<QSharedPointer<Node> > &nodes,
       const Group &group)
   {
-    foreach(const QSharedPointer<CSOverlay> &node, nodes) {
-      if(group.GetSubgroup().Contains(node->GetId())) {
+    foreach(const QSharedPointer<Node> &node, nodes) {
+      const QSharedPointer<BaseOverlay> &overlay(node->GetOverlay());
+
+      if(group.GetSubgroup().Contains(overlay->GetId())) {
         foreach(const GroupContainer &gc, group.GetSubgroup()) {
-          if(node->GetConnectionTable().GetConnection(gc.first) == 0) {
+          if(overlay->GetConnectionTable().GetConnection(gc.first) == 0) {
             return false;
           }
         }
       } else {
         bool found = false;
-        foreach(Connection *con, node->GetConnectionTable().GetConnections()) {
+        foreach(Connection *con, overlay->GetConnectionTable().GetConnections()) {
           if(group.GetSubgroup().Contains(con->GetRemoteId())) {
             found = true;
             break;
@@ -29,61 +43,70 @@ namespace Test {
     return true;
   }
 
-  QList<QSharedPointer<CSOverlay> > GenerateOverlay(int server_count,
+  QList<QSharedPointer<Node> > GenerateOverlay(int server_count,
       int client_count)
   {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
-
-    QVector<GroupContainer> clients;
-    QVector<GroupContainer> servers;
-
-    for(int idx = 0; idx < server_count; idx++) {
-      Id id;
-      QByteArray bid(id.GetByteArray());
-      QSharedPointer<AsymmetricKey> key(lib->GeneratePrivateKey(bid));
-      QSharedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
-      Credentials creds(id, key, dh);
-
-      servers.append(GetPublicComponents(creds));
-      clients.append(GetPublicComponents(creds));
-    }
-
-    for(int idx = 0; idx < client_count; idx++) {
-      Id id;
-      QByteArray bid(id.GetByteArray());
-      QSharedPointer<AsymmetricKey> key(lib->GeneratePrivateKey(bid));
-      QSharedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
-      Credentials creds(id, key, dh);
-
-      clients.append(GetPublicComponents(creds));
-    }
-
     QSharedPointer<Random> rand(lib->GetRandomNumberGenerator());
-    int leader_index = rand->GetInt(0, clients.size());
+    int leader_index = rand->GetInt(0, client_count + server_count);
+    int bootstrap_index = rand->GetInt(0, client_count + server_count);
 
-    Group group(clients, clients[leader_index].first,
-        Group::ManagedSubgroup, servers);
+    QList<QSharedPointer<Node> > nodes;
+    QVector<GroupContainer> clients, servers;
+    Group group = Group(QVector<GroupContainer>(), Id());
+    QSharedPointer<ISink> sink(new DummySink());
+    QString session = "null";
 
     QList<Address> local;
-    local.append(BufferAddress::CreateAny());
+    local.append(BufferAddress(1));
     QList<Address> remote;
     remote.append(BufferAddress(1));
 
-    QList<QSharedPointer<CSOverlay> > nodes;
-    foreach(const GroupContainer &gc, clients) {
-      QSharedPointer<CSOverlay> node(
-          new CSOverlay(gc.first, local, remote, group));
+    bootstrap_index = TEST_RANGE_MIN + 3;
+    leader_index = TEST_RANGE_MIN + 4;
 
-      nodes.append(node);
+    if(bootstrap_index == leader_index) {
+      nodes.append(CreateNode(group.GetLeader(), group, local, remote,
+            sink, session));
+      clients.append(GetPublicComponents(nodes.last()->GetCredentials()));
+      if(bootstrap_index <= server_count) {
+        servers.append(clients.last());
+      }
+
+      local[0] = BufferAddress::CreateAny();
+    } else {
+      nodes.append(CreateNode(Id(), group, local, remote, sink, session));
+      clients.append(GetPublicComponents(nodes.last()->GetCredentials()));
+      if(bootstrap_index <= server_count) {
+        servers.append(clients.last());
+      }
+
+      local[0] = BufferAddress::CreateAny();
+
+      nodes.append(CreateNode(group.GetLeader(), group, local, remote,
+            sink, session));
+      clients.append(GetPublicComponents(nodes.last()->GetCredentials()));
+      if(leader_index <= server_count) {
+        servers.append(clients.last());
+      }
     }
 
-    int bootstrap_index = rand->GetInt(0, group.Count());
-    QSharedPointer<CSOverlay> node(
-        new CSOverlay(nodes[bootstrap_index]->GetId(), remote, remote, group));
-    nodes[bootstrap_index] = node;
-    
-    foreach(QSharedPointer<CSOverlay> node, nodes) {
-      node->Start();
+    for(int idx = servers.count(); idx < server_count; idx++) {
+      nodes.append(CreateNode(Id(), group, local, remote, sink, session));
+      clients.append(GetPublicComponents(nodes.last()->GetCredentials()));
+      servers.append(clients.last());
+    }
+
+    for(int idx = (clients.count() - servers.count()); idx < client_count; idx++) {
+      nodes.append(CreateNode(Id(), group, local, remote, sink, session));
+      clients.append(GetPublicComponents(nodes.last()->GetCredentials()));
+    }
+
+    group = Group(clients, group.GetLeader(), Group::ManagedSubgroup, servers);
+
+    foreach(QSharedPointer<Node> node, nodes) {
+      node->GetGroupHolder()->UpdateGroup(group);
+      node->GetOverlay()->Start();
     }
 
     qint64 next = Timer::GetInstance().VirtualRun();
@@ -96,12 +119,13 @@ namespace Test {
     return nodes;
   }
 
-  void TerminateOverlay(const QList<QSharedPointer<CSOverlay> > &nodes)
+  void TerminateOverlay(const QList<QSharedPointer<Node> > &nodes)
   {
     SignalCounter sc;
-    foreach(QSharedPointer<CSOverlay> node, nodes) {
-      QObject::connect(node.data(), SIGNAL(Disconnected()), &sc, SLOT(Counter()));
-      node->Stop();
+    foreach(const QSharedPointer<Node> &node, nodes) {
+      QObject::connect(node->GetOverlay().data(), SIGNAL(Disconnected()),
+          &sc, SLOT(Counter()));
+      node->GetOverlay()->Stop();
     }
 
     qint64 next = Timer::GetInstance().VirtualRun();
@@ -112,8 +136,8 @@ namespace Test {
 
     EXPECT_EQ(sc.GetCount(), nodes.count());
 
-    foreach(QSharedPointer<CSOverlay> node, nodes) {
-      EXPECT_EQ(node->GetConnectionTable().GetConnections().count(), 0);
+    foreach(const QSharedPointer<Node> &node, nodes) {
+      EXPECT_EQ(node->GetOverlay()->GetConnectionTable().GetConnections().count(), 0);
     }
   }
 
@@ -122,7 +146,7 @@ namespace Test {
     int clients = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     int servers = Random::GetInstance().GetInt(4, TEST_RANGE_MIN);
     Timer::GetInstance().UseVirtualTime();
-    QList<QSharedPointer<CSOverlay> > nodes = GenerateOverlay(servers, clients);
+    QList<QSharedPointer<Node> > nodes = GenerateOverlay(servers, clients);
     TerminateOverlay(nodes);
   }
 }

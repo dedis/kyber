@@ -63,7 +63,8 @@ namespace Tests {
   template <typename T> Session *TCreateSession(TestNode *node, const Group &group,
           const Id &session_id)
   {
-    return new Session(group, node->creds, session_id, node->net, &TCreateRound<T>);
+    return new Session(QSharedPointer<GroupHolder>(new GroupHolder(group)),
+        node->creds, session_id, node->net, &TCreateRound<T>);
   }
 
   void CleanUp(const QVector<TestNode *> &nodes);

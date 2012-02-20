@@ -4,9 +4,9 @@
 #include "Anonymity/SessionManager.hpp"
 #include "Identity/Credentials.hpp"
 #include "Identity/Group.hpp"
+#include "Identity/GroupHolder.hpp"
 #include "Messaging/ISink.hpp"
 #include "Overlay/BaseOverlay.hpp"
-#include "Overlay/BasicGossip.hpp"
 #include "Transports/Address.hpp"
 
 namespace Dissent {
@@ -19,13 +19,23 @@ namespace Applications {
     public:
       typedef Dissent::Identity::Credentials Credentials;
       typedef Dissent::Identity::Group Group;
+      typedef Dissent::Identity::GroupHolder GroupHolder;
       typedef Dissent::Anonymity::SessionManager SessionManager;
       typedef Dissent::Connections::Connection Connection;
       typedef Dissent::Connections::Network Network;
       typedef Dissent::Messaging::ISink ISink;
       typedef Dissent::Overlay::BaseOverlay BaseOverlay;
-      typedef Dissent::Overlay::BasicGossip BasicGossip;
       typedef Dissent::Transports::Address Address;
+
+      static QSharedPointer<Node> CreateBasicGossip(const Credentials &creds,
+          const Group &group, const QList<Address> &local,
+          const QList<Address> &remote, const QSharedPointer<ISink> &sink,
+          const QString &session);
+
+      static QSharedPointer<Node> CreateClientServer(const Credentials &creds,
+          const Group &group, const QList<Address> &local,
+          const QList<Address> &remote, const QSharedPointer<ISink> &sink,
+          const QString &session);
 
       /**
        * Constructor
@@ -33,9 +43,8 @@ namespace Applications {
        * @param remote the bootstrap peer list
        */
       explicit Node(const Credentials &creds,
-          const Group &group,
-          const QList<Address> &local,
-          const QList<Address> &remote,
+          const QSharedPointer<GroupHolder> &group_holder,
+          const QSharedPointer<BaseOverlay> &overlay,
           const QSharedPointer<ISink> &sink,
           const QString &type);
 
@@ -45,7 +54,8 @@ namespace Applications {
       virtual ~Node();
 
       Credentials GetCredentials() const { return _creds; }
-      Group GetGroup() const { return _group; }
+      QSharedPointer<GroupHolder> GetGroupHolder() const { return _group_holder; }
+      Group GetGroup() const { return _group_holder->GetGroup(); }
       QSharedPointer<Network> GetNetwork() { return _net; }
       QSharedPointer<BaseOverlay> GetOverlay() { return _overlay; }
       SessionManager &GetSessionManager() { return _sm; }
@@ -53,7 +63,7 @@ namespace Applications {
 
     private:
       Credentials _creds;
-      Group _group;
+      QSharedPointer<GroupHolder> _group_holder;
       QSharedPointer<BaseOverlay> _overlay;
       QSharedPointer<Network> _net;
       SessionManager _sm;

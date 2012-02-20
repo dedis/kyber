@@ -9,6 +9,7 @@
 #include "Connections/Id.hpp"
 #include "Identity/Credentials.hpp"
 #include "Identity/Group.hpp"
+#include "Identity/GroupHolder.hpp"
 #include "Messaging/Filter.hpp"
 #include "Messaging/GetDataCallback.hpp"
 #include "Messaging/RpcMethod.hpp"
@@ -49,21 +50,22 @@ namespace Anonymity {
       typedef Dissent::Identity::Credentials Credentials;
       typedef Dissent::Identity::Group Group;
       typedef Dissent::Identity::GroupContainer GroupContainer;
+      typedef Dissent::Identity::GroupHolder GroupHolder;
       typedef Dissent::Messaging::RpcRequest RpcRequest;
       typedef Dissent::Messaging::RpcMethod<Session> RpcMethod;
       typedef Dissent::Messaging::GetDataMethod<Session> GetDataCallback;
 
       /**
        * Constructor
-       * @param group an ordered member of peers for the group
+       * @param group_holder contains the anonymity group
        * @param creds the local nodes credentials
        * @param session_id Id for the session
        * @param network handles message sending
        * @param create_round a callback for creating a secure round
        */
-      explicit Session(const Group &group, const Credentials &creds,
-          const Id &session_id, QSharedPointer<Network> network,
-          CreateRound create_round);
+      explicit Session(const QSharedPointer<GroupHolder> &group_holder,
+          const Credentials &creds, const Id &session_id,
+          QSharedPointer<Network> network, CreateRound create_round);
 
       /**
        * Deconstructor
@@ -103,7 +105,7 @@ namespace Anonymity {
       /**
        * Returns true if the peer is the leader for this session
        */
-      inline bool IsLeader() const { return _creds.GetLocalId() == _group.GetLeader(); }
+      inline bool IsLeader() const { return _creds.GetLocalId() == GetGroup().GetLeader(); }
 
       /**
        * Returns the Session Id
@@ -128,7 +130,7 @@ namespace Anonymity {
       /**
        * Returns the group being used in this session
        */
-      inline const Group &GetGroup() const { return _group; }
+      inline Group GetGroup() const { return _group_holder->GetGroup(); }
 
       /**
        * Get the set of bad group members
@@ -138,6 +140,8 @@ namespace Anonymity {
       static const int MinimumRoundSize = 3;
 
       static const int PeerJoinDelay = 10000;
+
+      const GroupHolder &GetGroupHolder();
 
     signals:
       /**
@@ -229,9 +233,9 @@ namespace Anonymity {
        */
       QByteArray _send_queue;
 
-      Group _group;
       Group _shared_group;
       QSet<Id> _bad_members;
+      QSharedPointer<GroupHolder> _group_holder;
       const Credentials _creds;
       const Id _session_id;
       QSharedPointer<Network> _network;

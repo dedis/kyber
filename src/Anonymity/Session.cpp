@@ -11,10 +11,10 @@
 
 namespace Dissent {
 namespace Anonymity {
-  Session::Session(const Group &group, const Credentials &creds,
-      const Id &session_id, QSharedPointer<Network> network,
-      CreateRound create_round) :
-    _group(group),
+  Session::Session(const QSharedPointer<GroupHolder> &group_holder,
+      const Credentials &creds, const Id &session_id,
+      QSharedPointer<Network> network, CreateRound create_round) :
+    _group_holder(group_holder),
     _creds(creds),
     _session_id(session_id),
     _network(network),
@@ -33,10 +33,10 @@ namespace Anonymity {
     _network->SetHeaders(headers);
 
     if(IsLeader()) {
-      _group = AddGroupMember(group, GetPublicComponents(_creds));
+      _group_holder->UpdateGroup(AddGroupMember(GetGroup(), GetPublicComponents(_creds)));
     }
 
-    foreach(const GroupContainer &gc, _group.GetRoster()) {
+    foreach(const GroupContainer &gc, GetGroup().GetRoster()) {
       Connection *con = _network->GetConnection(gc.first);
       if(con) {
         QObject::connect(con, SIGNAL(Disconnected(const QString &)),
@@ -73,7 +73,7 @@ namespace Anonymity {
     _register_event.Stop();
     _prepare_event.Stop();
 
-    foreach(const GroupContainer &gc, _group.GetRoster()) {
+    foreach(const GroupContainer &gc, GetGroup().GetRoster()) {
       Connection *con = _network->GetConnection(gc.first);
       if(con) {
         QObject::disconnect(con, SIGNAL(Disconnected(const QString &)),
@@ -95,14 +95,14 @@ namespace Anonymity {
     Dissent::Connections::ConnectionTable &ct =
       _network->GetConnectionManager().GetConnectionTable();
 
-    if(_group.Count() < MinimumRoundSize) {
+    if(GetGroup().Count() < MinimumRoundSize) {
       qDebug() << "Not enough peers in group to support an anonymous session,"
-        "need" << (_group.Count() - MinimumRoundSize) << "more";
+        "need" << (GetGroup().Count() - MinimumRoundSize) << "more";
       return false;
     }
 
     bool good = true;
-    foreach(const GroupContainer &gc, _group) {
+    foreach(const GroupContainer &gc, GetGroup()) {
       if(ct.GetConnection(gc.first) == 0) {
         qDebug() << "Missing a connection" << gc.first.ToString();
         good = false;
@@ -123,7 +123,7 @@ namespace Anonymity {
     stream << GetPublicComponents(_creds);
     request["creds"] = creds;
 
-    _network->SendRequest(request, _group.GetLeader(), &_registered);
+    _network->SendRequest(request, GetGroup().GetLeader(), &_registered);
   }
 
   void Session::ReceivedRegister(RpcRequest &request)
@@ -255,11 +255,11 @@ namespace Anonymity {
     request["interrupt"] = _current_round.isNull() ?
       true : _current_round->Interrupted();
 
-    if(_group != _shared_group) {
-      _shared_group = _group;
+    if(GetGroup() != _shared_group) {
+      _shared_group = GetGroup();
       QByteArray group;
       QDataStream stream(&group, QIODevice::WriteOnly);
-      stream << _group;
+      stream << _shared_group;
       request["group"] = group;
     }
 
@@ -306,7 +306,7 @@ namespace Anonymity {
       QDataStream stream(msg["group"].toByteArray());
       Group group;
       stream >> group;
-      _group = group;
+      _group_holder->UpdateGroup(group);
     }
 
     if(!CheckGroup()) {
@@ -332,7 +332,7 @@ namespace Anonymity {
       qWarning() << "Received a prepared message from a non-connection:" <<
         response.GetFrom()->ToString();
       return;
-    } else if(!_group.Contains(con->GetRemoteId())) {
+    } else if(!GetGroup().Contains(con->GetRemoteId())) {
       qWarning() << "Received a prepared message from a non-group member:" <<
         response.GetFrom()->ToString();
       return;
@@ -378,7 +378,7 @@ namespace Anonymity {
       qWarning() << "Received a begin message from a non-connection:" <<
         notification.GetFrom()->ToString();
       return;
-    } else if(_group.GetLeader() != con->GetRemoteId()) {
+    } else if(GetGroup().GetLeader() != con->GetRemoteId()) {
       qWarning() << "Received a begin from someone other than the leader:" <<
         notification.GetFrom()->ToString();
       return;
@@ -428,7 +428,7 @@ namespace Anonymity {
     if(round->GetBadMembers().size() != 0) {
       qWarning() << "Found some bad members...";
       if(IsLeader()) {
-        Group group = _group;
+        Group group = GetGroup();
         foreach(int idx, round->GetBadMembers()) {
           RemoveMember(group.GetId(idx));
           _bad_members.insert(GetGroup().GetId(idx));
@@ -447,7 +447,7 @@ namespace Anonymity {
 
   void Session::NextRound(const Id &round_id)
   {
-    Round * round = _create_round(_group, _creds, round_id, _network,
+    Round * round = _create_round(GetGroup(), _creds, round_id, _network,
         _get_data_cb);
 
     _current_round = QSharedPointer<Round>(round);
@@ -481,9 +481,9 @@ namespace Anonymity {
 
   void Session::HandleConnection(Connection *con)
   {
-    if(_group.GetLeader() == con->GetRemoteId()) {
+    if(GetGroup().GetLeader() == con->GetRemoteId()) {
       Register(0);
-    } else if(!_group.Contains(con->GetRemoteId())) {
+    } else if(!GetGroup().Contains(con->GetRemoteId())) {
       return;
    }
 
@@ -499,7 +499,7 @@ namespace Anonymity {
   {
     Connection *con = qobject_cast<Connection *>(sender());
     const Id &remote_id = con->GetRemoteId();
-    if(!_group.Contains(remote_id) || Stopped()) {
+    if(!GetGroup().Contains(remote_id) || Stopped()) {
       return;
     }
 
@@ -511,15 +511,15 @@ namespace Anonymity {
       _current_round->HandleDisconnect(remote_id);
     }
 
-    if(_group.GetLeader() == con->GetRemoteId()) {
+    if(GetGroup().GetLeader() == con->GetRemoteId()) {
       qWarning() << "Leader disconnected!";
     }
   }
 
   void Session::AddMember(const GroupContainer &gc)
   {
-    if(!_group.Contains(gc.first)) {
-      _group = AddGroupMember(_group, gc);
+    if(!GetGroup().Contains(gc.first)) {
+      _group_holder->UpdateGroup(AddGroupMember(GetGroup(), gc));
     }
 
     _registered_peers.insert(gc.first, gc.first);
@@ -527,7 +527,7 @@ namespace Anonymity {
 
   void Session::RemoveMember(const Id &id)
   {
-    _group = RemoveGroupMember(_group, id);
+    _group_holder->UpdateGroup(RemoveGroupMember(GetGroup(), id));
     _registered_peers.remove(id);
     _prepared_peers.remove(id);
   }

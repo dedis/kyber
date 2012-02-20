@@ -80,6 +80,7 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Crypto/Serialization.hpp \
            src/Identity/Credentials.hpp \
            src/Identity/Group.hpp \
+           src/Identity/GroupHolder.hpp \
            src/Messaging/BufferSink.hpp \
            src/Messaging/BufferSinkWithSignal.hpp \
            src/Messaging/DummySink.hpp \

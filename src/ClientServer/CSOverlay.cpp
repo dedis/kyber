@@ -1,5 +1,8 @@
-#include "CSConnectionAcquirer.hpp"
+#include "Identity/GroupHolder.hpp"
+
 #include "CSOverlay.hpp"
+
+using Dissent::Identity::GroupHolder;
 
 namespace Dissent {
 namespace ClientServer {
@@ -18,12 +21,20 @@ namespace ClientServer {
 
   void CSOverlay::OnStart()
   {
-    QSharedPointer<Dissent::Connections::ConnectionAcquirer> csca(
-      new CSConnectionAcquirer(
+    _csca = QSharedPointer<CSConnectionAcquirer>(new CSConnectionAcquirer(
         GetConnectionManager(), GetRpcHandler(), _group));
-    AddConnectionAcquirer(csca);
+    AddConnectionAcquirer(_csca);
 
     BaseOverlay::OnStart();
+  }
+
+  void CSOverlay::GroupUpdated()
+  {
+    GroupHolder *gh = qobject_cast<GroupHolder *>(sender());
+    _group = gh->GetGroup();
+    if(Started()) {
+      _csca->UpdateGroup(_group);
+    }
   }
 }
 }
