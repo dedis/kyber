@@ -49,7 +49,8 @@ namespace Test {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QSharedPointer<Random> rand(lib->GetRandomNumberGenerator());
     int leader_index = rand->GetInt(0, client_count + server_count);
-    int bootstrap_index = rand->GetInt(0, client_count + server_count);
+    int bootstrap_index = leader_index;
+//    int bootstrap_index = rand->GetInt(0, client_count + server_count);
 
     QList<QSharedPointer<Node> > nodes;
     QVector<GroupContainer> clients, servers;
@@ -62,14 +63,11 @@ namespace Test {
     QList<Address> remote;
     remote.append(BufferAddress(1));
 
-    bootstrap_index = TEST_RANGE_MIN + 3;
-    leader_index = TEST_RANGE_MIN + 4;
-
     if(bootstrap_index == leader_index) {
       nodes.append(CreateNode(group.GetLeader(), group, local, remote,
             sink, session));
       clients.append(GetPublicComponents(nodes.last()->GetCredentials()));
-      if(bootstrap_index <= server_count) {
+      if(bootstrap_index < server_count) {
         servers.append(clients.last());
       }
 
@@ -77,7 +75,7 @@ namespace Test {
     } else {
       nodes.append(CreateNode(Id(), group, local, remote, sink, session));
       clients.append(GetPublicComponents(nodes.last()->GetCredentials()));
-      if(bootstrap_index <= server_count) {
+      if(bootstrap_index < server_count) {
         servers.append(clients.last());
       }
 
@@ -86,7 +84,7 @@ namespace Test {
       nodes.append(CreateNode(group.GetLeader(), group, local, remote,
             sink, session));
       clients.append(GetPublicComponents(nodes.last()->GetCredentials()));
-      if(leader_index <= server_count) {
+      if(leader_index < server_count) {
         servers.append(clients.last());
       }
     }
@@ -104,13 +102,17 @@ namespace Test {
 
     group = Group(clients, group.GetLeader(), Group::ManagedSubgroup, servers);
 
+    SignalCounter sc;
     foreach(QSharedPointer<Node> node, nodes) {
       node->GetGroupHolder()->UpdateGroup(group);
+      QObject::connect(node->GetSessionManager().GetDefaultSession().data(),
+          SIGNAL(RoundStarting(QSharedPointer<Round>)), &sc, SLOT(Counter()));
       node->GetOverlay()->Start();
     }
 
+    int count = server_count + client_count;
     qint64 next = Timer::GetInstance().VirtualRun();
-    while(next != -1 && !CheckClientServer(nodes, group)) {
+    while(next != -1 && sc.GetCount() != count) {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
     }

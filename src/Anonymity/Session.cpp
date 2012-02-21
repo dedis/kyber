@@ -101,15 +101,38 @@ namespace Anonymity {
       return false;
     }
 
-    bool good = true;
-    foreach(const GroupContainer &gc, GetGroup()) {
-      if(ct.GetConnection(gc.first) == 0) {
-        qDebug() << "Missing a connection" << gc.first.ToString();
-        good = false;
+    const Group &group = GetGroup();
+    if(group.GetSubgroupPolicy() == Group::ManagedSubgroup) {
+      if(group.GetSubgroup().Contains(_creds.GetLocalId())) {
+        foreach(const GroupContainer &gc, group.GetSubgroup()) {
+          if(ct.GetConnection(gc.first) == 0) {
+            return false;
+          }
+        }
+      } else {
+        bool found = false;
+        foreach(Connection *con, ct.GetConnections()) {
+          if(group.GetSubgroup().Contains(con->GetRemoteId())) {
+            found = true;
+            break;
+          }
+        }
+        if(!found) {
+          return false;
+        }
       }
-    }
+      return true;
+    } else {
+      bool good = true;
+      foreach(const GroupContainer &gc, group) {
+        if(ct.GetConnection(gc.first) == 0) {
+          qDebug() << "Missing a connection" << gc.first.ToString();
+          good = false;
+        }
+      }
 
-    return good;
+      return good;
+    }
   }
 
   void Session::Register(const int &)
