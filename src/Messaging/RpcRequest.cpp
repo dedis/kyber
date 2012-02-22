@@ -7,7 +7,7 @@ namespace Messaging {
   {
   }
 
-  void RpcRequest::Respond(QVariantMap &response)
+  void RpcRequest::Respond(QVariantMap response)
   {
     if(GetMessage()["type"].toString() == "notification") {
       qWarning() << "Cannot Respond on a notification";

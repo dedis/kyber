@@ -26,9 +26,36 @@ namespace Tests {
 
     TestRpcResponse test1;
     RpcMethod<TestRpcResponse> cb = RpcMethod<TestRpcResponse>(&test1, &TestRpcResponse::HandleResponse);
-    EXPECT_EQ(-1, test1.value);
+    EXPECT_EQ(0, test1.GetValue());
     rpc1.SendRequest(request, &to_ms0, &cb);
-    EXPECT_EQ(9, test1.value);
+    EXPECT_EQ(9, test1.GetValue());
+    EXPECT_TRUE(test1.GetResponse().Successful());
+    EXPECT_FALSE(test1.GetResponse().LocalError());
+
+    request["y"] = "Haha";
+    rpc1.SendRequest(request, &to_ms0, &cb);
+    EXPECT_EQ(0, test1.GetValue());
+    EXPECT_FALSE(test1.GetResponse().Successful());
+    EXPECT_FALSE(test1.GetResponse().LocalError());
+
+    request["x"] = "Haha";
+    rpc1.SendRequest(request, &to_ms0, &cb);
+    EXPECT_EQ(0, test1.GetValue());
+    EXPECT_FALSE(test1.GetResponse().Successful());
+    EXPECT_FALSE(test1.GetResponse().LocalError());
+
+    request["x"] = 8;
+    request["y"] = 2;
+    rpc1.SendRequest(request, &to_ms0, &cb);
+    EXPECT_EQ(10, test1.GetValue());
+    EXPECT_TRUE(test1.GetResponse().Successful());
+    EXPECT_FALSE(test1.GetResponse().LocalError());
+
+    request["method"] = "Haha";
+    rpc1.SendRequest(request, &to_ms0, &cb);
+    EXPECT_EQ(0, test1.GetValue());
+    EXPECT_FALSE(test1.GetResponse().Successful());
+    EXPECT_FALSE(test1.GetResponse().LocalError());
   }
 }
 }

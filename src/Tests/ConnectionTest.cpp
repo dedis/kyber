@@ -47,7 +47,7 @@ namespace Tests {
     request["x"] = 3;
     request["y"] = 6;
 
-    ASSERT_EQ(-1, test1.value);
+    ASSERT_EQ(0, test1.GetValue());
     rpc1.SendRequest(request, cm1.GetConnectionTable().GetConnection(id0), &cb);
 
     next = Timer::GetInstance().VirtualRun();
@@ -56,7 +56,7 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    ASSERT_EQ(9, test1.value);
+    ASSERT_EQ(9, test1.GetValue());
 
     cm1.GetConnectionTable().GetConnection(id0)->Disconnect();
 
@@ -116,7 +116,7 @@ namespace Tests {
     request["x"] = 3;
     request["y"] = 6;
 
-    ASSERT_EQ(-1, test1.value);
+    ASSERT_EQ(0, test1.GetValue());
     rpc1.SendRequest(request, cm1.GetConnectionTable().GetConnection(id0), &cb);
 
     next = Timer::GetInstance().VirtualRun();
@@ -125,7 +125,7 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    ASSERT_EQ(9, test1.value);
+    ASSERT_EQ(9, test1.GetValue());
 
     cm1.GetConnectionTable().GetConnection(id0)->Disconnect();
 
@@ -184,7 +184,7 @@ namespace Tests {
     request["x"] = 3;
     request["y"] = 6;
 
-    ASSERT_EQ(-1, test1.value);
+    ASSERT_EQ(0, test1.GetValue());
     rpc1.SendRequest(request, cm1.GetConnectionTable().GetConnection(id0), &cb);
 
     next = Timer::GetInstance().VirtualRun();
@@ -193,7 +193,7 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    ASSERT_EQ(9, test1.value);
+    ASSERT_EQ(9, test1.GetValue());
 
     cm1.GetConnectionTable().GetConnection(id0)->Disconnect();
     cm0.GetConnectionTable().GetConnection(id1)->Disconnect();

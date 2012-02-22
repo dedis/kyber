@@ -56,7 +56,7 @@ namespace Messaging {
        * Response to a request
        * @param response encoded response for the remote peer
        */
-      virtual void Respond(QVariantMap &response);
+      virtual void Respond(QVariantMap response);
 
       /**
        * Was there a response sent yet?

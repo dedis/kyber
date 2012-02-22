@@ -31,6 +31,7 @@ namespace Messaging {
     } else if(type == "response") {
       HandleResponse(message, from);
     } else {
+      qDebug() << "Received an unknown Rpc type:" << type;
     }
   }
 
@@ -48,14 +49,15 @@ namespace Messaging {
       return;
     }
 
+    RpcRequest rr(request, from);
     Callback *cb = _callbacks[method];
     if(cb == 0) {
-      qWarning() << "RpcHandler: Request: No such method: " << method << ", from: " << from->ToString();
+      qDebug() << "RpcHandler: Request: No such method: " << method << ", from: " << from->ToString();
+      rr.Respond(RpcResponse::Failed(QString("No such method: " + method)));
       return;
     }
 
     qDebug() << "RpcHandler: Request: Method:" << method << ", from:" << from->ToString();
-    RpcRequest rr(request, from);
     cb->Invoke(rr);
   }
 

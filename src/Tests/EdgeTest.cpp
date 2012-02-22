@@ -44,7 +44,7 @@ namespace Tests {
     request["x"] = 3;
     request["y"] = 6;
 
-    EXPECT_EQ(-1, test1.value);
+    EXPECT_EQ(0, test1.GetValue());
     rpc1.SendRequest(request, meh1.edge.data(), &cb);
 
     qint64 next = Timer::GetInstance().VirtualRun();
@@ -53,7 +53,7 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    EXPECT_EQ(9, test1.value);
+    EXPECT_EQ(9, test1.GetValue());
   }
 
   TEST(EdgeTest, BufferFail)
