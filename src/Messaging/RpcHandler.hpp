@@ -50,7 +50,7 @@ namespace Messaging {
        * @param notification message for the remote side
        * @param to path to destination
        */
-      void SendNotification(QVariantMap &notification, ISender *to);
+      void SendNotification(RpcContainer &notification, ISender *to);
 
       /**
        * Send a request
@@ -59,7 +59,7 @@ namespace Messaging {
        * @param cb function to call when returning
        * @returns the id of the request so that the callback can be cancelled
        */
-      int SendRequest(QVariantMap &request, ISender *to, Callback* cb);
+      int SendRequest(RpcContainer &request, ISender *to, Callback* cb);
 
       /**
        * Send a response for a request
@@ -67,7 +67,7 @@ namespace Messaging {
        * @param to path to destination
        * @param request the original request
        */
-      void SendResponse(QVariantMap &response, ISender *to, QVariantMap &request);
+      void SendResponse(RpcContainer &response, ISender *to, RpcContainer &request);
 
       /**
        * Register a callback
@@ -94,14 +94,14 @@ namespace Messaging {
        * @param request the request
        * @param from the remote sending party
        */
-      void HandleRequest(QVariantMap &request, ISender *from);
+      void HandleRequest(RpcContainer &request, ISender *from);
 
       /**
        * Handle an incoming response
        * @param response the response
        * @param from the remote sending party
        */
-      void HandleResponse(QVariantMap &response, ISender *from);
+      void HandleResponse(RpcContainer &response, ISender *from);
 
       /**
        * Returns the _current_id and increments it to the next

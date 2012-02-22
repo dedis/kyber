@@ -74,7 +74,7 @@ namespace Connections {
 
   void FullyConnected::SendUpdate(Connection *con)
   {
-    QVariantMap notification;
+    Dissent::Messaging::RpcContainer notification;
     notification["method"] = "FC::Update";
     notification["peer_id"] = con->GetRemoteId().GetByteArray();
     notification["address"] = con->GetEdge()->GetRemotePersistentAddress().GetUrl();
@@ -92,7 +92,7 @@ namespace Connections {
 
   void FullyConnected::RequestPeerList(Connection *con)
   {
-    QVariantMap request;
+    Dissent::Messaging::RpcContainer request;
     request["method"] = "FC::PeerList";
     GetRpcHandler().SendRequest(request, con, &_peer_list_response);
   }
@@ -117,14 +117,14 @@ namespace Connections {
     QDataStream out_stream(&plm, QIODevice::WriteOnly);
     out_stream << id_to_addr;
 
-    QVariantMap response;
+    Dissent::Messaging::RpcContainer response;
     response["peer_list"] = plm;
     request.Respond(response);
   }
 
   void FullyConnected::PeerListResponse(RpcRequest &response)
   {
-    QVariantMap msg = response.GetMessage();
+    Dissent::Messaging::RpcContainer msg = response.GetMessage();
 
     QDataStream stream(msg["peer_list"].toByteArray());
     QHash<QByteArray, QUrl> id_to_addr;
@@ -137,7 +137,7 @@ namespace Connections {
 
   void FullyConnected::PeerListIncrementalUpdate(RpcRequest &notification)
   {
-    QVariantMap msg = notification.GetMessage();
+    Dissent::Messaging::RpcContainer msg = notification.GetMessage();
     CheckAndConnect(msg["peer_id"].toByteArray(), msg["address"].toUrl());
   }
 

@@ -1,15 +1,22 @@
 #include "RpcRequest.hpp"
+#include "RpcResponse.hpp"
 
 namespace Dissent {
 namespace Messaging {
-  RpcRequest::RpcRequest(const QVariantMap &message, ISender *from) :
+  const QString RpcRequest::IdField = QString("i");
+  const QString RpcRequest::NotificationType = QString("n");
+  const QString RpcRequest::RequestType = QString("r");
+  const QString RpcRequest::TypeField = QString("t");
+  const QString RpcRequest::MethodField = QString("method");
+
+  RpcRequest::RpcRequest(const RpcContainer &message, ISender *from) :
     _data(new RpcRequestData(message, from))
   {
   }
 
-  void RpcRequest::Respond(QVariantMap response)
+  void RpcRequest::Respond(RpcContainer response)
   {
-    if(GetMessage()["type"].toString() == "notification") {
+    if(GetMessage()[TypeField].toString() == NotificationType) {
       qWarning() << "Cannot Respond on a notification";
       return;
     }
@@ -20,8 +27,8 @@ namespace Messaging {
     }
 
     _data->Responded = true;
-    response["id"] = GetMessage()["id"];
-    response["type"] = "response";
+    response[IdField] = GetMessage()[IdField];
+    response[RpcRequest::TypeField] = RpcResponse::ResponseType;
 
     QByteArray data;
     QDataStream stream(&data, QIODevice::WriteOnly);

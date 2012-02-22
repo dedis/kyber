@@ -62,7 +62,7 @@ namespace Anonymity {
     if(!session.isNull()) {
       session->ReceivedRegister(request);
     } else {
-      QVariantMap response;
+      Dissent::Messaging::RpcContainer response;
       response["result"] = false;
       response["online"] = false;
       request.Respond(response);
@@ -75,7 +75,7 @@ namespace Anonymity {
     if(!session.isNull()) {
       session->ReceivedPrepare(request);
     } else {
-      QVariantMap response;
+      Dissent::Messaging::RpcContainer response;
       response["result"] = false;
       response["online"] = false;
       request.Respond(response);

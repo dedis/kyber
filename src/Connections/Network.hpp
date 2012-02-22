@@ -4,6 +4,7 @@
 #include <QByteArray>
 #include <QVariant>
 
+#include "Messaging/RpcRequest.hpp"
 #include "Id.hpp"
 
 namespace Dissent {
@@ -18,6 +19,7 @@ namespace Connections {
   class Network {
     public:
       typedef Dissent::Messaging::Callback Callback;
+      typedef Dissent::Messaging::RpcContainer RpcContainer;
 
       /**
        * Virtual destructor
@@ -29,12 +31,12 @@ namespace Connections {
        * @param headers a hashtable containing key / value pairs that she
        * be added to each outgoing message
        */
-      virtual void SetHeaders(const QVariantMap &headers) = 0;
+      virtual void SetHeaders(const RpcContainer &headers) = 0;
  
       /**
        * Returns the headers
        */
-      virtual QVariantMap GetHeaders() = 0;
+      virtual RpcContainer GetHeaders() = 0;
 
       /**
        * Returns the connection matching to the Id or 0 if none exists
@@ -52,7 +54,7 @@ namespace Connections {
        * @param request message for the remote side
        * @param to id for the remote destination
        */
-      virtual void SendNotification(QVariantMap &notification, const Id &to) = 0;
+      virtual void SendNotification(RpcContainer &notification, const Id &to) = 0;
 
       /**
        * Just reroutes to the underlying RpcHandler ignoring any additional headers
@@ -60,7 +62,7 @@ namespace Connections {
        * @param to id for the remote destination
        * @param cb function to call when returning
        */
-      virtual void SendRequest(QVariantMap &request, const Id &to, Callback* cb) = 0;
+      virtual void SendRequest(RpcContainer &request, const Id &to, Callback* cb) = 0;
 
       /**
        * Send a message to all group members

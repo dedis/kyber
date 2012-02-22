@@ -42,7 +42,7 @@ namespace Connections {
 
   void RelayForwarder::IncomingData(RpcRequest &notification)
   {
-    const QVariantMap &msg = notification.GetMessage();
+    const Dissent::Messaging::RpcContainer &msg = notification.GetMessage();
 
     Id destination = Id(msg["to"].toString());
     if(destination == Id::Zero()) {
@@ -102,7 +102,7 @@ namespace Connections {
       }
     }
 
-    QVariantMap notification;
+    Dissent::Messaging::RpcContainer notification;
     notification["method"] = "RF::Data";
     notification["data"] = data;
     notification["to"] = to.ToString();

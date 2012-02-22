@@ -13,21 +13,21 @@ namespace Messaging {
       /**
        * Constructor
        */
-      explicit RpcResponse(const QVariantMap &message, ISender *from);
+      explicit RpcResponse(const RpcContainer &message, ISender *from);
 
       /**
        * Failed attempt
        * @param reason the reason for the failure
        * @param local did the error happen locally or on the remote member
        */
-      static QVariantMap Failed(const QString &reason, bool local = false);
+      static RpcContainer Failed(const QString &reason, bool local = false);
 
       virtual ~RpcResponse() {}
 
       /**
        * Not implemented, throws exception
        */
-      virtual void Respond(QVariantMap);
+      virtual void Respond(RpcContainer);
 
       /**
        * Not implemented, throws exception
@@ -55,6 +55,7 @@ namespace Messaging {
 
       static const QString ErrorField;
       static const QString LocalErrorField;
+      static const QString ResponseType;
       static const QString SuccessField;
   };
 }

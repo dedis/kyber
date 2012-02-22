@@ -19,8 +19,8 @@ namespace Tests {
     TestRpc test0;
     rpc0.Register(new RpcMethod<TestRpc>(&test0, &TestRpc::Add), "add");
 
-    QVariantMap request;
-    request["method"] = "add";
+    RpcContainer request;
+    request[RpcRequest::MethodField] = "add";
     request["x"] = 3;
     request["y"] = 6;
 
@@ -51,7 +51,7 @@ namespace Tests {
     EXPECT_TRUE(test1.GetResponse().Successful());
     EXPECT_FALSE(test1.GetResponse().LocalError());
 
-    request["method"] = "Haha";
+    request[RpcRequest::MethodField] = "Haha";
     rpc1.SendRequest(request, &to_ms0, &cb);
     EXPECT_EQ(0, test1.GetValue());
     EXPECT_FALSE(test1.GetResponse().Successful());

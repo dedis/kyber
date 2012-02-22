@@ -51,7 +51,7 @@ namespace Tolerant {
     qDebug() << "Leader:" << _is_leader << "LocID" << GetLocalId().ToString() 
       << "LeadID" << GetGroup().GetLeader().ToString();
 
-    QVariantMap headers = GetNetwork()->GetHeaders();
+    Dissent::Messaging::RpcContainer headers = GetNetwork()->GetHeaders();
     headers["round"] = Header_Bulk;
     GetNetwork()->SetHeaders(headers);
 

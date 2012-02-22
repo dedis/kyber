@@ -35,7 +35,7 @@ namespace Connections {
 
   void RelayEdge::Send(const QByteArray &data)
   {
-    QVariantMap notification;
+    Dissent::Messaging::RpcContainer notification;
     notification["x_edge_id"] = _local_edge_id;
     notification["y_edge_id"] = _remote_edge_id;
     notification["data"] = data;

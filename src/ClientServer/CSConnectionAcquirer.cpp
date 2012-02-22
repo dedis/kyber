@@ -116,7 +116,7 @@ namespace ClientServer {
 
   void CSConnectionAcquirer::RequestServerState(Connection *con)
   {
-    QVariantMap request;
+    Dissent::Messaging::RpcContainer request;
     request["method"] = "CSCA::ServerList";
     _rpc.SendRequest(request, con, &_server_state_response);
   }
@@ -146,7 +146,7 @@ namespace ClientServer {
     QDataStream out_stream(&slm, QIODevice::WriteOnly);
     out_stream << id_to_addr;
 
-    QVariantMap response;
+    Dissent::Messaging::RpcContainer response;
     response["connections"] = ct.GetConnections().size();
     response["list"] = slm;
     request.Respond(response);
@@ -154,7 +154,7 @@ namespace ClientServer {
 
   void CSConnectionAcquirer::ServerStateResponse(RpcRequest &response)
   {
-    QVariantMap msg = response.GetMessage();
+    Dissent::Messaging::RpcContainer msg = response.GetMessage();
 
     Connection *con = dynamic_cast<Connection *>(response.GetFrom());
     if(con == 0) {

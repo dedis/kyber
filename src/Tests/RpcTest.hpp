@@ -7,7 +7,7 @@ namespace Tests {
     public:
       void Add(RpcRequest &request)
       {
-        QVariantMap msg = request.GetMessage();
+        RpcContainer msg = request.GetMessage();
 
         bool ok;
         int x = msg.value("x").toInt(&ok);
@@ -22,7 +22,7 @@ namespace Tests {
           return;
         }
 
-        QVariantMap response;
+        RpcContainer response;
         response["sum"] = x + y;
         request.Respond(response);
       }
@@ -30,7 +30,7 @@ namespace Tests {
 
   class TestRpcResponse {
     public:
-      TestRpcResponse() : _response(QVariantMap(), 0)
+      TestRpcResponse() : _response(RpcContainer(), 0)
       {
       }
 

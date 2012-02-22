@@ -34,12 +34,12 @@ namespace Connections {
        * @param headers a hashtable containing key / value pairs that she
        * be added to each outgoing message
        */
-      inline virtual void SetHeaders(const QVariantMap &headers) { _headers = headers; }
+      inline virtual void SetHeaders(const RpcContainer &headers) { _headers = headers; }
  
       /**
        * Returns the headers
        */
-      inline virtual QVariantMap GetHeaders() { return _headers; }
+      inline virtual RpcContainer GetHeaders() { return _headers; }
 
       /**
        * Returns the connection matching to the Id or 0 if none exists
@@ -63,7 +63,7 @@ namespace Connections {
        * @param request message for the remote side
        * @param to id for the remote destination
        */
-      inline virtual void SendNotification(QVariantMap &notification, const Id &to)
+      inline virtual void SendNotification(RpcContainer &notification, const Id &to)
       {
         Connection *con = _cm.GetConnectionTable().GetConnection(to);
         if(con == 0) {
@@ -79,7 +79,7 @@ namespace Connections {
        * @param to id for the remote destination
        * @param cb function to call when returning
        */
-      inline virtual void SendRequest(QVariantMap &request, const Id &to, Callback* cb)
+      inline virtual void SendRequest(RpcContainer &request, const Id &to, Callback* cb)
       {
         Connection *con = _cm.GetConnectionTable().GetConnection(to);
         if(con == 0) {
@@ -122,13 +122,13 @@ namespace Connections {
     protected:
       inline void Send(const QByteArray &data, ISender *to)
       {
-        QVariantMap notification(_headers);
+        RpcContainer notification(_headers);
         notification["data"] = data;
         _rpc.SendNotification(notification, to);
       }
 
     private:
-      QVariantMap _headers;
+      RpcContainer _headers;
       ConnectionManager &_cm;
       RpcHandler &_rpc;
   };

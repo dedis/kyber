@@ -17,7 +17,7 @@ namespace Messaging {
 
   void RpcHandler::HandleData(const QByteArray& data, ISender *from)
   {
-    QVariantMap message;
+    RpcContainer message;
     QDataStream stream(data);
     stream >> message;
 
@@ -25,25 +25,25 @@ namespace Messaging {
       return;
     }
 
-    QString type = message["type"].toString();
-    if(type == "request" || type == "notification") {
+    QString type = message[RpcRequest::TypeField].toString();
+    if(type == RpcRequest::RequestType || type == RpcRequest::NotificationType) {
       HandleRequest(message, from);
-    } else if(type == "response") {
+    } else if(type == RpcResponse::ResponseType) {
       HandleResponse(message, from);
     } else {
       qDebug() << "Received an unknown Rpc type:" << type;
     }
   }
 
-  void RpcHandler::HandleRequest(QVariantMap& request, ISender *from)
+  void RpcHandler::HandleRequest(RpcContainer& request, ISender *from)
   {
-    QString method = request["method"].toString();
+    QString method = request[RpcRequest::MethodField].toString();
     if(method.isEmpty()) {
       qWarning() << "RpcHandler: Request: No method, from: " << from->ToString();
       return;
     }
 
-    int id = request["id"].toInt();
+    int id = request[RpcRequest::IdField].toInt();
     if(id == 0) {
       qWarning() << "RpcHandler: Request: No ID, from: " << from->ToString();
       return;
@@ -61,9 +61,9 @@ namespace Messaging {
     cb->Invoke(rr);
   }
 
-  void RpcHandler::HandleResponse(QVariantMap& response, ISender *from)
+  void RpcHandler::HandleResponse(RpcContainer& response, ISender *from)
   {
-    int id = response["id"].toInt();
+    int id = response[RpcRequest::IdField].toInt();
     if(id == 0) {
       qWarning() << "RpcHandler: Response: No ID, from " << from->ToString();
       return;
@@ -82,30 +82,30 @@ namespace Messaging {
     cb->Invoke(rreq);
   }
 
-  void RpcHandler::SendNotification(QVariantMap& notification, ISender *to)
+  void RpcHandler::SendNotification(RpcContainer& notification, ISender *to)
   {
-    if(!notification.contains("method")) {
+    if(!notification.contains(RpcRequest::MethodField)) {
       throw std::logic_error("No RPC method defined");
     }
 
-    notification["id"] = IncrementId();
-    notification["type"] = "notification";
+    notification[RpcRequest::IdField] = IncrementId();
+    notification[RpcRequest::TypeField] = RpcRequest::NotificationType;
     QByteArray data;
     QDataStream stream(&data, QIODevice::WriteOnly);
     stream << notification;
     to->Send(data);
   }
 
-  int RpcHandler::SendRequest(QVariantMap& request, ISender *to, Callback* cb)
+  int RpcHandler::SendRequest(RpcContainer& request, ISender *to, Callback* cb)
   {
-    if(!request.contains("method")) {
+    if(!request.contains(RpcRequest::MethodField)) {
       throw std::logic_error("No RPC method defined");
     }
 
     int id = IncrementId();
-    request["id"] = id;
+    request[RpcRequest::IdField] = id;
     _requests[id] = cb;
-    request["type"] = "request";
+    request[RpcRequest::TypeField] = RpcRequest::RequestType;
     QByteArray data;
     QDataStream stream(&data, QIODevice::WriteOnly);
     stream << request;

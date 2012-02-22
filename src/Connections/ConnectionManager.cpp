@@ -121,7 +121,7 @@ namespace Connections {
         edge->GetRemoteAddress().ToString();
     }
 
-    QVariantMap request;
+    Dissent::Messaging::RpcContainer request;
     request["method"] = "CM::Inquire";
     request["peer_id"] = _local_id.GetByteArray();
 
@@ -161,7 +161,7 @@ namespace Connections {
 
     Id rem_id(brem_id);
 
-    QVariantMap response;
+    Dissent::Messaging::RpcContainer response;
     response["peer_id"] = _local_id.GetByteArray();
     request.Respond(response);
 
@@ -216,7 +216,7 @@ namespace Connections {
     if(_con_tab.GetConnection(rem_id) != 0) {
       qDebug() << "Already have a connection to: " << rem_id.ToString() << 
         " closing Edge: " << edge->ToString();
-      QVariantMap notification;
+      Dissent::Messaging::RpcContainer notification;
       notification["method"] = "CM::Close";
       _rpc.SendNotification(notification, edge);
       Address addr = edge->GetRemoteAddress();
@@ -232,7 +232,7 @@ namespace Connections {
       return;
     }
 
-    QVariantMap notification;
+    Dissent::Messaging::RpcContainer notification;
     notification["method"] = "CM::Connect";
     notification["peer_id"] = _local_id.GetByteArray();
     _rpc.SendNotification(notification, edge);
@@ -314,7 +314,7 @@ namespace Connections {
 
     if(!con->GetEdge()->IsClosed()) {
       if(con->GetLocalId() != con->GetRemoteId()) {
-        QVariantMap notification;
+        Dissent::Messaging::RpcContainer notification;
         notification["method"] = "CM::Disconnect";
         _rpc.SendNotification(notification, con);
       }

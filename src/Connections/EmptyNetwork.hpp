@@ -23,26 +23,26 @@ namespace Connections {
       /**
        * Does nothing
        */
-      virtual void SetHeaders(const QVariantMap &) {}
+      virtual void SetHeaders(const RpcContainer &) {}
  
       /**
        * Does nothing
        */
-      virtual QVariantMap GetHeaders()
+      virtual RpcContainer GetHeaders()
       {
-        static QVariantMap hash;
+        static RpcContainer hash;
         return hash;
       }
 
       /**
        * Does nothing
        */
-      virtual void SendNotification(QVariantMap &, const Id &) {}
+      virtual void SendNotification(RpcContainer &, const Id &) {}
 
       /**
        * Does nothing
        */
-      virtual void SendRequest(QVariantMap &, const Id &, Callback *) {}
+      virtual void SendRequest(RpcContainer &, const Id &, Callback *) {}
 
       /**
        * Does nothing

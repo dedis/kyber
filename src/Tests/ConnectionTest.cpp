@@ -42,7 +42,7 @@ namespace Tests {
     TestRpcResponse test1;
     RpcMethod<TestRpcResponse> cb = RpcMethod<TestRpcResponse>(&test1, &TestRpcResponse::HandleResponse);
 
-    QVariantMap request;
+    RpcContainer request;
     request["method"] = "add";
     request["x"] = 3;
     request["y"] = 6;
@@ -111,7 +111,7 @@ namespace Tests {
     TestRpcResponse test1;
     RpcMethod<TestRpcResponse> cb = RpcMethod<TestRpcResponse>(&test1, &TestRpcResponse::HandleResponse);
 
-    QVariantMap request;
+    RpcContainer request;
     request["method"] = "add";
     request["x"] = 3;
     request["y"] = 6;
@@ -179,7 +179,7 @@ namespace Tests {
     TestRpcResponse test1;
     RpcMethod<TestRpcResponse> cb = RpcMethod<TestRpcResponse>(&test1, &TestRpcResponse::HandleResponse);
 
-    QVariantMap request;
+    RpcContainer request;
     request["method"] = "add";
     request["x"] = 3;
     request["y"] = 6;

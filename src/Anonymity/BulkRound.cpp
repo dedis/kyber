@@ -37,7 +37,7 @@ namespace Anonymity {
     _received_messages(0),
     _is_leader(GetGroup().GetLeader() == GetLocalId())
   {
-    QVariantMap headers = GetNetwork()->GetHeaders();
+    Dissent::Messaging::RpcContainer headers = GetNetwork()->GetHeaders();
     headers["bulk"] = true;
     GetNetwork()->SetHeaders(headers);
 
@@ -515,7 +515,7 @@ namespace Anonymity {
   void BulkRound::PrepareBlameShuffle()
   {
     QSharedPointer<Network> net(GetNetwork()->Clone());
-    QVariantMap headers = net->GetHeaders();
+    Dissent::Messaging::RpcContainer headers = net->GetHeaders();
     headers["bulk"] = false;
     net->SetHeaders(headers);
 

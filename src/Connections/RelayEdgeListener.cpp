@@ -53,7 +53,7 @@ namespace Connections {
 
   void RelayEdgeListener::CreateEdgeTo(const Id &id, int times)
   {
-    QVariantMap request;
+    Dissent::Messaging::RpcContainer request;
     request["method"] = "REL::CreateEdge";
     request["x_peer_id"] = _local_id.ToString();
     request["y_peer_id"] = id.ToString();
@@ -88,11 +88,11 @@ namespace Connections {
 
   void RelayEdgeListener::CreateEdge(RpcRequest &request)
   {
-    const QVariantMap &msg = request.GetMessage();
+    const Dissent::Messaging::RpcContainer &msg = request.GetMessage();
 
     Id remote_peer = Id(msg["x_peer_id"].toString());
     if(remote_peer == Id::Zero()) {
-      QVariantMap response;
+      Dissent::Messaging::RpcContainer response;
       response["result"] = false;
       response["reason"] = "Unparseable peerid";
       request.Respond(response);
@@ -102,14 +102,14 @@ namespace Connections {
     bool ok;
     int x_edge_id = msg["x_edge_id"].toInt(&ok);
     if(!ok) {
-      QVariantMap response;
+      Dissent::Messaging::RpcContainer response;
       response["result"] = false;
       response["reason"] = "Invalid out_edge_id";
       request.Respond(response);
       return;
     }
 
-    QVariantMap response;
+    Dissent::Messaging::RpcContainer response;
     response["result"] = true;
     int y_edge_id = GetEdgeId();
     QSharedPointer<RelayEdge> redge(new RelayEdge(GetAddress(),
@@ -126,7 +126,7 @@ namespace Connections {
 
   void RelayEdgeListener::EdgeCreated(RpcRequest &response)
   {
-    const QVariantMap &msg = response.GetMessage();
+    const Dissent::Messaging::RpcContainer &msg = response.GetMessage();
 
     if(!msg["result"].toBool()) {
       qWarning() << "Received EdgeCreated but error on remote side:" <<
@@ -170,7 +170,7 @@ namespace Connections {
 
   void RelayEdgeListener::IncomingData(RpcRequest &notification)
   {
-    const QVariantMap &msg = notification.GetMessage();
+    const Dissent::Messaging::RpcContainer &msg = notification.GetMessage();
 
     bool ok;
     int x_edge_id = msg["x_edge_id"].toInt(&ok);

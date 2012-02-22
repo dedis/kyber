@@ -54,7 +54,7 @@ namespace Tolerant {
     _user_alibi_data(GetGroup().Count(), GetGroup().GetSubgroup().Count()),
     _server_alibi_data(GetGroup().Count(), GetGroup().Count())
   {
-    QVariantMap headers = GetNetwork()->GetHeaders();
+    Dissent::Messaging::RpcContainer headers = GetNetwork()->GetHeaders();
     headers["round"] = Header_Bulk;
     GetNetwork()->SetHeaders(headers);
 
@@ -1537,7 +1537,7 @@ namespace Tolerant {
   {
     QSharedPointer<Network> net(GetNetwork()->Clone());
 
-    QVariantMap headers = net->GetHeaders();
+    Dissent::Messaging::RpcContainer headers = net->GetHeaders();
     headers["round"] = Header_BlameShuffle;
 
     net->SetHeaders(headers);

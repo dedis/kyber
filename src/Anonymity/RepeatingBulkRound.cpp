@@ -35,7 +35,7 @@ namespace Anonymity {
     _phase(0),
     _stop_next(false)
   {
-    QVariantMap headers = GetNetwork()->GetHeaders();
+    Dissent::Messaging::RpcContainer headers = GetNetwork()->GetHeaders();
     headers["bulk"] = true;
     GetNetwork()->SetHeaders(headers);
 

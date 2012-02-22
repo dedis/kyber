@@ -27,7 +27,7 @@ namespace Anonymity {
     _prepare_waiting(false),
     _trim_send_queue(0)
   {
-    QVariantMap headers = _network->GetHeaders();
+    Dissent::Messaging::RpcContainer headers = _network->GetHeaders();
     headers["method"] = "SM::Data";
     headers["session_id"] = _session_id.GetByteArray();
     _network->SetHeaders(headers);
@@ -137,7 +137,7 @@ namespace Anonymity {
 
   void Session::Register(const int &)
   {
-    QVariantMap request;
+    Dissent::Messaging::RpcContainer request;
     request["method"] = "SM::Register";
     request["session_id"] = _session_id.GetByteArray();
 
@@ -153,7 +153,7 @@ namespace Anonymity {
   {
     Connection *con = dynamic_cast<Connection *>(request.GetFrom());
 
-    QVariantMap response;
+    Dissent::Messaging::RpcContainer response;
     if(!IsLeader()) {
       qWarning() << "Received a registration message when not a leader.";
       response["result"] = false;
@@ -244,7 +244,7 @@ namespace Anonymity {
       return;
     }
 
-    const QVariantMap &msg = response.GetMessage();
+    const Dissent::Messaging::RpcContainer &msg = response.GetMessage();
     if(msg["result"].toBool()) {
       qDebug() << _creds.GetLocalId().ToString() << "registered and waiting to go.";
       return;
@@ -271,7 +271,7 @@ namespace Anonymity {
 
     Id round_id(Id::Zero().GetInteger() + _round_idx++);
 
-    QVariantMap request;
+    Dissent::Messaging::RpcContainer request;
     request["method"] = "SM::Prepare";
     request["session_id"] = _session_id.GetByteArray();
     request["round_id"] = round_id.GetByteArray();
@@ -300,7 +300,7 @@ namespace Anonymity {
 
   void Session::ReceivedPrepare(RpcRequest &request)
   {
-    QVariantMap msg = request.GetMessage();
+    Dissent::Messaging::RpcContainer msg = request.GetMessage();
     if(_prepare_waiting) {
       _prepare_waiting = false;
     }
@@ -340,7 +340,7 @@ namespace Anonymity {
     }
 
     NextRound(round_id);
-    QVariantMap response;
+    Dissent::Messaging::RpcContainer response;
     response["result"] = true;
     response["round_id"] = msg["round_id"];
     request.Respond(response);
@@ -349,7 +349,7 @@ namespace Anonymity {
 
   void Session::Prepared(RpcRequest &response)
   {
-    QVariantMap message = response.GetMessage();
+    Dissent::Messaging::RpcContainer message = response.GetMessage();
     Connection *con = dynamic_cast<Connection *>(response.GetFrom());
     if(!con) {
       qWarning() << "Received a prepared message from a non-connection:" <<
@@ -376,7 +376,7 @@ namespace Anonymity {
       return;
     }
 
-    QVariantMap notification;
+    Dissent::Messaging::RpcContainer notification;
     notification["method"] = "SM::Begin";
     notification["session_id"] = _session_id.GetByteArray();
     notification["round_id"] = round_id.GetByteArray();
@@ -395,7 +395,7 @@ namespace Anonymity {
 
   void Session::ReceivedBegin(RpcRequest &notification)
   {
-    QVariantMap message = notification.GetMessage();
+    Dissent::Messaging::RpcContainer message = notification.GetMessage();
     Connection *con = dynamic_cast<Connection *>(notification.GetFrom());
     if(!con) {
       qWarning() << "Received a begin message from a non-connection:" <<
