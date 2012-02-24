@@ -20,7 +20,7 @@ namespace Connections {
    */
   class ConnectionTable {
     public:
-      typedef Dissent::Transports::Edge Edge;
+      typedef Transports::Edge Edge;
 
       /**
        * Constructor
@@ -37,13 +37,7 @@ namespace Connections {
        * Add an edge
        * @param edge the edge to add
        */
-      void AddEdge(QSharedPointer<Edge> edge);
-
-      /**
-       * Add an edge
-       * @param edge the edge to add
-       */
-      void AddEdge(Edge *edge);
+      void AddEdge(const QSharedPointer<Edge> &edge);
 
       /**
        * Remove an edge, returns true if it is stored
@@ -52,12 +46,12 @@ namespace Connections {
       bool RemoveEdge(const Edge *edge);
 
       /**
-       * Remove an edge, returns true if it is stored
-       * @param edge the edge to remvoe
+       * Returns true if the connection is in the table
        */
-      bool RemoveEdge(QSharedPointer<Edge> edge);
-
-      inline bool Contains(const Connection *con) { return _cons.contains(con); }
+      inline bool Contains(const Connection *con)
+      {
+        return _cons.contains(con);
+      }
 
       /**
        * Remove a connection from being looked up by Id or Edge, returns
@@ -71,30 +65,29 @@ namespace Connections {
        * Returns the connection matching to the Id or 0 if none exists
        * @param id the Id to lookup
        */
-      Connection *GetConnection(const Id &id) const;
-
-      /**
-       * Returns the connection matching to the Id or 0 if none exists
-       * @param id the Id to lookup
-       */
-      Connection *GetConnection(QSharedPointer<Edge> edge) const;
+      QSharedPointer<Connection> GetConnection(const Id &id) const;
 
       /**
        * Returns a the connection matching to the edge or 0 if none exists
        * @param edge the edge to lookup
        */
-      Connection *GetConnection(const Edge *edge) const;
+      QSharedPointer<Connection> GetConnection(const Edge *edge) const;
 
-      inline const QList<Connection *> GetConnections() const { return _cons.values(); }
+      inline const QList<QSharedPointer<Connection> > GetConnections() const
+      {
+        return _cons.values();
+      }
 
-      inline QSharedPointer<Edge> GetEdge(const Edge * edge) const { return _edges[edge]; }
-      inline const QList<QSharedPointer<Edge> > GetEdges() const { return _edges.values(); }
+      inline const QList<QSharedPointer<Edge> > GetEdges() const
+      {
+        return _edges.values();
+      }
 
       /**
        * Adds a Connection
        * @param con the connection to add
        */
-      void AddConnection(Connection *con);
+      void AddConnection(const QSharedPointer<Connection> &con);
 
       /**
        * Removes the connection from being stored, returns true if exists.
@@ -112,17 +105,17 @@ namespace Connections {
       /**
        * Stores Id to Connection mappings
        */
-      QHash<const Id, Connection *> _id_to_con;
+      QHash<const Id, QSharedPointer<Connection> > _id_to_con;
 
       /**
        * Stores Edge to Connection mappings
        */
-      QHash<const Edge *, Connection *> _edge_to_con;
+      QHash<const Edge *, QSharedPointer<Connection> > _edge_to_con;
 
       /**
        * Stores Connections
        */
-      QHash<const Connection *, Connection *> _cons;
+      QHash<const Connection *, QSharedPointer<Connection> > _cons;
 
       /**
        * Stores Edges

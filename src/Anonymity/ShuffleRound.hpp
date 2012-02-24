@@ -169,15 +169,15 @@ namespace Anonymity {
       inline virtual QString ToString() const { return "ShuffleRound: " + GetRoundId().ToString(); }
 
     protected:
-      virtual void ProcessData(const QByteArray &data, const Id &from);
+      virtual void ProcessData(const Id &from, const QByteArray &data);
 
       /**
        * Allows direct access to the message parsing without a try / catch
        * surrounding it
-       * @param data input data
        * @param from the node the data is from
+       * @param data input data
        */
-      void ProcessDataBase(const QByteArray &data, const Id &from);
+      void ProcessDataBase(const Id &from, const QByteArray &data);
 
       /**
        * Parses incoming public key messages

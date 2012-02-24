@@ -11,7 +11,7 @@ namespace Crypto {
   /**
    * Implementation of Random using CryptoPP
    */
-  class CppRandom : public Dissent::Utils::Random {
+  class CppRandom : public Utils::Random {
     public:
       /**
        * Constructor

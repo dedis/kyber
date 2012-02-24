@@ -16,8 +16,8 @@ namespace Applications {
    */
   class Settings {
     public:
-      typedef Dissent::Connections::Id Id;
-      typedef Dissent::Identity::Group Group;
+      typedef Connections::Id Id;
+      typedef Identity::Group Group;
 
       /**
        * Load configuration from disk

@@ -42,11 +42,11 @@ namespace Anonymity {
     Q_ENUMS(MessageType);
 
     public:
-      typedef Dissent::Crypto::DiffieHellman DiffieHellman;
-      typedef Dissent::Messaging::BufferSink BufferSink;
-      typedef Dissent::Messaging::GetDataMethod<RepeatingBulkRound> BulkGetDataCallback;
-      typedef Dissent::Utils::Random Random;
-      typedef Dissent::Utils::Triple<QByteArray, QSharedPointer<AsymmetricKey>,
+      typedef Crypto::DiffieHellman DiffieHellman;
+      typedef Messaging::BufferSink BufferSink;
+      typedef Messaging::GetDataMethod<RepeatingBulkRound> BulkGetDataCallback;
+      typedef Utils::Random Random;
+      typedef Utils::Triple<QByteArray, QSharedPointer<AsymmetricKey>,
               QSharedPointer<Random> > Descriptor;
 
       /**
@@ -116,7 +116,7 @@ namespace Anonymity {
        * Handle a data message from a remote peer
        * @param notification message from a remote peer
        */
-      virtual void IncomingData(RpcRequest &notification);
+      virtual void IncomingData(const Request &notification);
 
       /**
        * Returns a list of members who have been blamed in the round
@@ -159,7 +159,7 @@ namespace Anonymity {
        * @param data Incoming data
        * @param from the remote peer sending the data
        */
-      virtual void ProcessData(const QByteArray &data, const Id &from);
+      virtual void ProcessData(const Id &from, const QByteArray &data);
 
       /**
        * This function does the hard work of processing data packets and throws
@@ -167,12 +167,15 @@ namespace Anonymity {
        * @param data Incoming data
        * @param from sending peer
        */
-      void ProcessDataBase(const QByteArray &data, const Id &from);
+      void ProcessDataBase(const Id &from, const QByteArray &data);
 
       /**
        * Returns the ShuffleSink to access serialized descriptors
        */
-      const BufferSink &GetShuffleSink() const { return _shuffle_sink; }
+      const BufferSink &GetShuffleSink() const
+      {
+        return _shuffle_sink;
+      }
 
       /**
        * Returns the parsed descriptors

@@ -1,3 +1,4 @@
+#include "Messaging/RequestHandler.hpp"
 #include "Messaging/RpcHandler.hpp"
 #include "Transports/AddressFactory.hpp"
 
@@ -5,56 +6,74 @@
 #include "ConnectionManager.hpp"
 
 using Dissent::Transports::AddressFactory;
+using Dissent::Messaging::RequestHandler;
 
 namespace Dissent {
 namespace Connections {
-  ConnectionManager::ConnectionManager(const Id &local_id, RpcHandler &rpc) :
-    _inquire(this, &ConnectionManager::Inquire),
-    _inquired(this, &ConnectionManager::Inquired),
-    _close(this, &ConnectionManager::Close),
-    _connect(this, &ConnectionManager::Connect),
-    _disconnect(this, &ConnectionManager::Disconnect),
-    _con_tab(local_id), _local_id(local_id), _rpc(rpc), _closed(false)
+  ConnectionManager::ConnectionManager(const Id &local_id,
+      const QSharedPointer<RpcHandler> &rpc) :
+    _inquired(new ResponseHandler(this, "Inquired")),
+    _con_tab(local_id),
+    _local_id(local_id),
+    _rpc(rpc)
   {
-    _rpc.Register(&_inquire, "CM::Inquire");
-    _rpc.Register(&_close, "CM::Close");
-    _rpc.Register(&_connect, "CM::Connect");
-    _rpc.Register(&_disconnect, "CM::Disconnect");
+    QSharedPointer<RequestHandler> inquire(
+        new RequestHandler(this, "Inquire"));
+    _rpc->Register("CM::Inquire", inquire);
 
-    Connection *con = _con_tab.GetConnection(_local_id);
-    con->SetSink(&_rpc);
-    QObject::connect(con->GetEdge().data(), SIGNAL(Closed(const QString &)),
-        this, SLOT(HandleEdgeClose(const QString &)));
-    QObject::connect(con, SIGNAL(CalledDisconnect()), this, SLOT(HandleDisconnect()));
-    QObject::connect(con, SIGNAL(Disconnected(const QString &)),
+    QSharedPointer<RequestHandler> close(
+        new RequestHandler(this, "Close"));
+    _rpc->Register("CM::Close", close);
+
+    QSharedPointer<RequestHandler> connect(
+        new RequestHandler(this, "Connect"));
+    _rpc->Register("CM::Connect", connect);
+
+    QSharedPointer<RequestHandler> disconnect(
+        new RequestHandler(this, "Disconnect"));
+    _rpc->Register("CM::Disconnect", disconnect);
+
+    QSharedPointer<Connection> con = _con_tab.GetConnection(_local_id);
+    con->SetSink(_rpc.data());
+    QObject::connect(con->GetEdge().data(), SIGNAL(StoppedSignal()),
+        this, SLOT(HandleEdgeClose()));
+
+    QObject::connect(con.data(), SIGNAL(CalledDisconnect()),
+        this, SLOT(HandleDisconnect()));
+
+    QObject::connect(con.data(), SIGNAL(Disconnected(const QString &)),
         this, SLOT(HandleDisconnected(const QString &)));
   }
 
   ConnectionManager::~ConnectionManager()
   {
-    _rpc.Unregister("CM::Inquire");
-    _rpc.Unregister("CM::Close");
-    _rpc.Unregister("CM::Connect");
-    _rpc.Unregister("CM::Disconnect");
+    _rpc->Unregister("CM::Inquire");
+    _rpc->Unregister("CM::Close");
+    _rpc->Unregister("CM::Connect");
+    _rpc->Unregister("CM::Disconnect");
   }
 
-  void ConnectionManager::AddEdgeListener(QSharedPointer<EdgeListener> el)
+  void ConnectionManager::AddEdgeListener(const QSharedPointer<EdgeListener> &el)
   {
-    if(_closed) {
+    if(Stopped()) {
       qWarning() << "Attempting to add an EdgeListener after calling Disconnect.";
       return;
     }
 
     _edge_factory.AddEdgeListener(el);
-    QObject::connect(el.data(), SIGNAL(NewEdge(QSharedPointer<Edge>)),
-        this, SLOT(HandleNewEdge(QSharedPointer<Edge>)));
-    QObject::connect(el.data(), SIGNAL(EdgeCreationFailure(const Address &, const QString &)),
-        this, SLOT(HandleEdgeCreationFailure(const Address &, const QString&)));
+
+    QObject::connect(el.data(), SIGNAL(NewEdge(const QSharedPointer<Edge> &)),
+        this, SLOT(HandleNewEdge(const QSharedPointer<Edge> &)));
+
+    QObject::connect(el.data(),
+        SIGNAL(EdgeCreationFailure(const Address &, const QString &)),
+        this,
+        SLOT(HandleEdgeCreationFailure(const Address &, const QString&)));
   }
 
   void ConnectionManager::ConnectTo(const Address &addr)
   {
-    if(_closed) {
+    if(Stopped()) {
       qWarning() << "Attempting to connect to a remote node after calling Disconnect.";
       return;
     }
@@ -75,25 +94,16 @@ namespace Connections {
     }
   }
 
-  void ConnectionManager::Disconnect()
+  void ConnectionManager::OnStop()
   {
-    if(_closed) {
-      qWarning() << "Called Disconnect twice on ConnectionManager.";
-      return;
-    }
-
-    _closed = true;
-
     bool emit_dis = (_con_tab.GetEdges().count() == 0);
 
-    foreach(Connection *con, _con_tab.GetConnections()) {
+    foreach(const QSharedPointer<Connection> &con, _con_tab.GetConnections()) {
       con->Disconnect();
     }
 
-    foreach(QSharedPointer<Edge> edge, _con_tab.GetEdges()) {
-      if(!edge->IsClosed()) {
-        edge->Close("Disconnecting");
-      }
+    foreach(const QSharedPointer<Edge> &edge, _con_tab.GetEdges()) {
+      edge->Stop("Disconnecting");
     }
     
     _edge_factory.Stop();
@@ -103,13 +113,13 @@ namespace Connections {
     } 
   }
 
-  void ConnectionManager::HandleNewEdge(QSharedPointer<Edge> edge)
+  void ConnectionManager::HandleNewEdge(const QSharedPointer<Edge> &edge)
   {
     _con_tab.AddEdge(edge);
-    edge->SetSink(&_rpc);
+    edge->SetSink(_rpc.data());
 
-    QObject::connect(edge.data(), SIGNAL(Closed(const QString &)),
-        this, SLOT(HandleEdgeClose(const QString &)));
+    QObject::connect(edge.data(), SIGNAL(StoppedSignal()),
+        this, SLOT(HandleEdgeClose()));
 
     if(!edge->Outbound()) {
       return;
@@ -121,15 +131,14 @@ namespace Connections {
         edge->GetRemoteAddress().ToString();
     }
 
-    Dissent::Messaging::RpcContainer request;
-    request["method"] = "CM::Inquire";
+    QVariantHash request;
     request["peer_id"] = _local_id.GetByteArray();
 
     QString type = edge->GetLocalAddress().GetType();
     QSharedPointer<EdgeListener> el = _edge_factory.GetEdgeListener(type);
     request["persistent"] = el->GetAddress().ToString();
 
-    _rpc.SendRequest(request, edge.data(), &_inquired);
+    _rpc->SendRequest(edge, "CM::Inquire", request, _inquired);
   }
 
   void ConnectionManager::HandleEdgeCreationFailure(const Address &to,
@@ -140,19 +149,21 @@ namespace Connections {
     emit ConnectionAttemptFailure(to, reason);
   }
 
-  void ConnectionManager::Inquire(RpcRequest &request)
+  void ConnectionManager::Inquire(const Request &request)
   {
-    Dissent::Messaging::ISender *from = request.GetFrom();
-    Edge *edge = dynamic_cast<Edge *>(from);
-    if(edge == 0) {
-      qWarning() << "Received an inquired from a non-Edge: " << from->ToString();
+    QSharedPointer<Edge> edge = request.GetFrom().dynamicCast<Edge>();
+    if(!edge) {
+      qWarning() << "Received an inquired from a non-Edge: " <<
+        request.GetFrom()->ToString();
       return;
     } else if(edge->Outbound()) {
-      qWarning() << "We should never receive an inquire call on an outbound edge: " << from->ToString();
+      qWarning() << "We should never receive an inquire call on an" <<
+        "outbound edge: " << request.GetFrom()->ToString();
       return;
     }
 
-    QByteArray brem_id = request.GetMessage()["peer_id"].toByteArray();
+    QVariantHash data = request.GetData().toHash();
+    QByteArray brem_id = data.value("peer_id").toByteArray();
 
     if(brem_id.isEmpty()) {
       qWarning() << "Invalid Inqiure, no id";
@@ -161,35 +172,33 @@ namespace Connections {
 
     Id rem_id(brem_id);
 
-    Dissent::Messaging::RpcContainer response;
-    response["peer_id"] = _local_id.GetByteArray();
-    request.Respond(response);
+    request.Respond(_local_id.GetByteArray());
 
-    QString saddr = request.GetMessage()["persistent"].toString();
+    QString saddr = data.value("persistent").toString();
     Address addr = AddressFactory::GetInstance().CreateAddress(saddr);
     edge->SetRemotePersistentAddress(addr);
 
     if(_local_id < rem_id) {
       BindEdge(edge, rem_id);
     } else if(_local_id == rem_id) {
-      edge->Close("Attempting to connect to ourself");
+      edge->Stop("Attempting to connect to ourself");
     }
   }
 
-  void ConnectionManager::Inquired(RpcRequest &response)
+  void ConnectionManager::Inquired(const Response &response)
   {
-    Dissent::Messaging::ISender *from = response.GetFrom();
-    Edge *edge = dynamic_cast<Edge *>(from);
-    if(edge == 0) {
-      qWarning() << "Received an inquired from a non-Edge: " << from->ToString();
+    QSharedPointer<Edge> edge = response.GetFrom().dynamicCast<Edge>();
+    if(!edge) {
+      qWarning() << "Received an inquired from a non-Edge: " <<
+        response.GetFrom()->ToString();
       return;
     } else if(!edge->Outbound()) {
-      qWarning() << "We would never make an inquire call on an incoming edge: " << from->ToString();
+      qWarning() << "We would never make an inquire call on an" <<
+        "incoming edge: " << response.GetFrom()->ToString();
       return;
     }
 
-    QByteArray brem_id = response.GetMessage()["peer_id"].toByteArray();
-
+    QByteArray brem_id = response.GetData().toByteArray();
     if(brem_id.isEmpty()) {
       qWarning() << "Invalid ConnectionEstablished, no id";
       return;
@@ -203,53 +212,41 @@ namespace Connections {
     } else if(rem_id == _local_id) {
       Address addr = edge->GetRemoteAddress();
       qDebug() << "Attempting to connect to ourself";
-      edge->Close("Attempting to connect to ourself");
+      edge->Stop("Attempting to connect to ourself");
       emit ConnectionAttemptFailure(addr, "Attempting to connect to ourself");
-      return;
     }
   }
 
-  void ConnectionManager::BindEdge(Edge *edge, const Id &rem_id)
+  void ConnectionManager::BindEdge(const QSharedPointer<Edge> &edge,
+      const Id &rem_id)
   {
     /// @TODO add an extra variable to the connection message such as a session
     ///token so that quick reconnects can be enabled.
     if(_con_tab.GetConnection(rem_id) != 0) {
       qDebug() << "Already have a connection to: " << rem_id.ToString() << 
         " closing Edge: " << edge->ToString();
-      Dissent::Messaging::RpcContainer notification;
-      notification["method"] = "CM::Close";
-      _rpc.SendNotification(notification, edge);
+
+      _rpc->SendNotification(edge, "CM::Close", QVariant());
       Address addr = edge->GetRemoteAddress();
-      edge->Close("Duplicate connection");
+      edge->Stop("Duplicate connection");
       emit ConnectionAttemptFailure(addr, "Duplicate connection");
       return;
     }
   
-    QSharedPointer<Edge> pedge = _con_tab.GetEdge(edge);
-    if(pedge.isNull()) {
-      qCritical() << "An edge attempted to create a connection, but there "
-       "is no record of it" << edge->ToString();
-      return;
-    }
-
-    Dissent::Messaging::RpcContainer notification;
-    notification["method"] = "CM::Connect";
-    notification["peer_id"] = _local_id.GetByteArray();
-    _rpc.SendNotification(notification, edge);
-
-    CreateConnection(pedge, rem_id);
+    _rpc->SendNotification(edge, "CM::Connect", _local_id.GetByteArray());
+    CreateConnection(edge, rem_id);
   }
 
-  void ConnectionManager::Connect(RpcRequest &notification)
+  void ConnectionManager::Connect(const Request &notification)
   {
-    Edge *edge = dynamic_cast<Edge *>(notification.GetFrom());
-    if(edge == 0) {
-      qWarning() << "Connection attempt not from an Edge: " << notification.GetFrom()->ToString();
+    QSharedPointer<Edge> edge = notification.GetFrom().dynamicCast<Edge>();
+    if(!edge) {
+      qWarning() << "Connection attempt not from an Edge: " <<
+        notification.GetFrom()->ToString();
       return;
     }
     
-    QByteArray brem_id = notification.GetMessage()["peer_id"].toByteArray();
-
+    QByteArray brem_id = notification.GetData().toByteArray();
     if(brem_id.isEmpty()) {
       qWarning() << "Invalid ConnectionEstablished, no id";
       return;
@@ -261,45 +258,44 @@ namespace Connections {
       return;
     }
 
-    Connection *old_con = _con_tab.GetConnection(rem_id);
+    QSharedPointer<Connection> old_con = _con_tab.GetConnection(rem_id);
     // XXX if there is an old connection and the node doesn't want it, we need
     // to close it
-    if(old_con != 0) {
+    if(old_con) {
       qDebug() << "Disconnecting old connection";
       old_con->Disconnect();
     }
 
-    QSharedPointer<Edge> pedge = _con_tab.GetEdge(edge);
-    if(pedge.isNull()) {
-      qCritical() << "An edge attempted to create a connection, but there "
-       "is no record of it" << edge->ToString();
-      return;
-    }
-
-    CreateConnection(pedge, rem_id);
+    CreateConnection(edge, rem_id);
   }
 
-  void ConnectionManager::CreateConnection(QSharedPointer<Edge> pedge,
+  void ConnectionManager::CreateConnection(const QSharedPointer<Edge> &pedge,
       const Id &rem_id)
   {
-    Connection *con = new Connection(pedge, _local_id, rem_id);
+    QSharedPointer<Connection> con(new Connection(pedge, _local_id, rem_id));
+    con->SetSharedPointer(con);
     _con_tab.AddConnection(con);
     qDebug() << "Handle new connection:" << con->ToString();
-    QObject::connect(con, SIGNAL(CalledDisconnect()), this, SLOT(HandleDisconnect()));
-    QObject::connect(con, SIGNAL(Disconnected(const QString &)),
+
+    QObject::connect(con.data(), SIGNAL(CalledDisconnect()),
+        this, SLOT(HandleDisconnect()));
+
+    QObject::connect(con.data(), SIGNAL(Disconnected(const QString &)),
         this, SLOT(HandleDisconnected(const QString &)));
+
     emit NewConnection(con);
   }
 
-  void ConnectionManager::Close(RpcRequest &notification)
+  void ConnectionManager::Close(const Request &notification)
   {
-    Edge *edge = dynamic_cast<Edge *>(notification.GetFrom());
-    if(edge == 0) {
-      qWarning() << "Connection attempt Edge close not from an Edge: " << notification.GetFrom()->ToString();
+    QSharedPointer<Edge> edge = notification.GetFrom().dynamicCast<Edge>();
+    if(!edge) {
+      qWarning() << "Connection attempt Edge close not from an Edge: " <<
+        notification.GetFrom()->ToString();
       return;
     }
 
-    edge->Close("Closed from remote peer");
+    edge->Stop("Closed from remote peer");
   }
 
   void ConnectionManager::HandleDisconnect()
@@ -312,14 +308,13 @@ namespace Connections {
     qDebug() << "Handle disconnect on: " << con->ToString();
     _con_tab.Disconnect(con);
 
-    if(!con->GetEdge()->IsClosed()) {
+    if(!con->GetEdge()->Stopped()) {
       if(con->GetLocalId() != con->GetRemoteId()) {
-        Dissent::Messaging::RpcContainer notification;
-        notification["method"] = "CM::Disconnect";
-        _rpc.SendNotification(notification, con);
+        _rpc->SendNotification(con->GetSharedPointer(),
+            "CM::Disconnect", QVariant());
       }
 
-      con->GetEdge()->Close("Local disconnect request");
+      con->GetEdge()->Stop("Local disconnect request");
     }
   }
 
@@ -331,37 +326,40 @@ namespace Connections {
     _con_tab.RemoveConnection(con);
   }
 
-  void ConnectionManager::Disconnect(RpcRequest &notification)
+  void ConnectionManager::Disconnect(const Request &notification)
   {
-    Connection *con = dynamic_cast<Connection *>(notification.GetFrom());
-    if(con == 0) {
-      qWarning() << "Received DisconnectResponse from a non-connection: " << notification.GetFrom()->ToString();
+    QSharedPointer<Connection> con =
+      notification.GetFrom().dynamicCast<Connection>();
+
+    if(!con) {
+      qWarning() << "Received DisconnectResponse from a non-connection: " <<
+        notification.GetFrom()->ToString();
       return;
     }
 
     qDebug() << "Received disconnect for: " << con->ToString();
-    _con_tab.Disconnect(con);
-    con->GetEdge()->Close("Remote disconnect");
+    _con_tab.Disconnect(con.data());
+    con->GetEdge()->Stop("Remote disconnect");
   }
 
-  void ConnectionManager::HandleEdgeClose(const QString &reason)
+  void ConnectionManager::HandleEdgeClose()
   {
     Edge *edge = qobject_cast<Edge *>(sender());
     _active_addrs.remove(edge->GetRemoteAddress());
-    qDebug() << "Edge closed: " << edge->ToString() << reason;
+    qDebug() << "Edge closed: " << edge->ToString() << edge->GetStopReason();
     if(!_con_tab.RemoveEdge(edge)) {
       qWarning() << "Edge closed but no Edge found in CT:" << edge->ToString();
     }
 
-    Connection *con = _con_tab.GetConnection(edge);
-    if(con != 0) {
+    QSharedPointer<Connection> con = _con_tab.GetConnection(edge);
+    if(con) {
       con = _con_tab.GetConnection(con->GetRemoteId());
-      if(con != 0) {
+      if(con) {
         con->Disconnect();
       }
     }
 
-    if(!_closed) {
+    if(!Stopped()) {
       return;
     }
 

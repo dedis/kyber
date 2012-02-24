@@ -24,7 +24,7 @@ namespace Anonymity {
     return true;
   }
 
-  void NullRound::ProcessData(const QByteArray &data, const Id &id)
+  void NullRound::ProcessData(const Id &id, const QByteArray &data)
   {
     const int idx = GetGroup().GetIndex(id);
 
@@ -49,7 +49,7 @@ namespace Anonymity {
 
     foreach(const QByteArray &msg, _received) {
       if(!msg.isEmpty()) {
-        PushData(msg, this);
+        PushData(GetSharedPointer(), msg);
       }
     }
     SetSuccessful(true);

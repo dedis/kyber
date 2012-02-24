@@ -1,5 +1,9 @@
+#include <QSharedPointer>
 #include <QVariant>
 
+#include "Messaging/Request.hpp"
+#include "Messaging/Response.hpp"
+#include "Messaging/ResponseHandler.hpp"
 #include "Transports/AddressFactory.hpp"
 #include "Utils/TimerCallback.hpp"
 #include "Utils/Timer.hpp"
@@ -12,23 +16,22 @@ using Dissent::Utils::TimerCallback;
 
 namespace Dissent {
 namespace Connections {
-  FullyConnected::FullyConnected(ConnectionManager &cm, RpcHandler &rpc) :
+  FullyConnected::FullyConnected(const QSharedPointer<ConnectionManager> &cm,
+      const QSharedPointer<RpcHandler> &rpc) :
     ConnectionAcquirer(cm),
     _rpc(rpc),
-    _relay_el(new RelayEdgeListener(cm.GetId(), cm.GetConnectionTable(), rpc)),
-    _peer_list_inquire(this, &FullyConnected::PeerListInquire),
-    _peer_list_response(this, &FullyConnected::PeerListResponse),
-    _notify_peer(this, &FullyConnected::PeerListIncrementalUpdate)
+    _relay_el(new RelayEdgeListener(cm->GetId(), cm->GetConnectionTable(), rpc)),
+    _peer_list_response(new ResponseHandler(this, "PeerListResponse"))
   {
-    cm.AddEdgeListener(_relay_el);
-    _rpc.Register(&_peer_list_inquire, "FC::PeerList");
-    _rpc.Register(&_notify_peer, "FC::Update");
+    cm->AddEdgeListener(_relay_el);
+    _rpc->Register("FC::PeerList", this, "PeerListInquire");
+    _rpc->Register("FC::Update", this, "PeerListIncrementalUpdate");
   }
 
   FullyConnected::~FullyConnected()
   {
-    _rpc.Unregister("FC::PeerList");
-    _rpc.Unregister("FC::Update");
+    _rpc->Unregister("FC::PeerList");
+    _rpc->Unregister("FC::Update");
   }
 
   void FullyConnected::OnStart()
@@ -47,7 +50,7 @@ namespace Connections {
     }
   }
 
-  void FullyConnected::HandleConnection(Connection *con)
+  void FullyConnected::HandleConnection(const QSharedPointer<Connection> &con)
   {
     _waiting_on.remove(con->GetEdge()->GetRemotePersistentAddress());
     SendUpdate(con);
@@ -72,38 +75,36 @@ namespace Connections {
   {
   }
 
-  void FullyConnected::SendUpdate(Connection *con)
+  void FullyConnected::SendUpdate(const QSharedPointer<Connection> &con)
   {
-    Dissent::Messaging::RpcContainer notification;
-    notification["method"] = "FC::Update";
-    notification["peer_id"] = con->GetRemoteId().GetByteArray();
-    notification["address"] = con->GetEdge()->GetRemotePersistentAddress().GetUrl();
+    QVariantHash msg;
+    msg["peer_id"] = con->GetRemoteId().GetByteArray();
+    msg["address"] = con->GetEdge()->GetRemotePersistentAddress().GetUrl();
 
-    const Id &my_id = GetConnectionManager().GetId();
-    const ConnectionTable &ct = GetConnectionManager().GetConnectionTable();
+    const Id &my_id = GetConnectionManager()->GetId();
+    const ConnectionTable &ct = GetConnectionManager()->GetConnectionTable();
 
-    foreach(Connection *other_con, ct.GetConnections()) {
+    foreach(const QSharedPointer<Connection> &other_con, ct.GetConnections()) {
       if((other_con == con) || (other_con->GetRemoteId() == my_id)) {
         continue;
       }
-      GetRpcHandler().SendNotification(notification, other_con);
+      GetRpcHandler()->SendNotification(other_con, "FC::Update", msg);
     }
   }
 
-  void FullyConnected::RequestPeerList(Connection *con)
+  void FullyConnected::RequestPeerList(const QSharedPointer<Connection> &con)
   {
-    Dissent::Messaging::RpcContainer request;
-    request["method"] = "FC::PeerList";
-    GetRpcHandler().SendRequest(request, con, &_peer_list_response);
+    GetRpcHandler()->SendRequest(con, "FC::PeerList", QVariant(),
+        _peer_list_response);
   }
 
-  void FullyConnected::PeerListInquire(RpcRequest &request)
+  void FullyConnected::PeerListInquire(const Request &request)
   {
     QHash<QByteArray, QUrl> id_to_addr;
-    const Id &my_id = GetConnectionManager().GetId();
-    const ConnectionTable &ct = GetConnectionManager().GetConnectionTable();
+    const Id &my_id = GetConnectionManager()->GetId();
+    const ConnectionTable &ct = GetConnectionManager()->GetConnectionTable();
 
-    foreach(Connection *con, ct.GetConnections()) {
+    foreach(const QSharedPointer<Connection> &con, ct.GetConnections()) {
       if(con->GetRemoteId() == my_id) {
         continue;
       }
@@ -117,16 +118,12 @@ namespace Connections {
     QDataStream out_stream(&plm, QIODevice::WriteOnly);
     out_stream << id_to_addr;
 
-    Dissent::Messaging::RpcContainer response;
-    response["peer_list"] = plm;
-    request.Respond(response);
+    request.Respond(plm);
   }
 
-  void FullyConnected::PeerListResponse(RpcRequest &response)
+  void FullyConnected::PeerListResponse(const Response &response)
   {
-    Dissent::Messaging::RpcContainer msg = response.GetMessage();
-
-    QDataStream stream(msg["peer_list"].toByteArray());
+    QDataStream stream(response.GetData().toByteArray());
     QHash<QByteArray, QUrl> id_to_addr;
     stream >> id_to_addr;
 
@@ -135,10 +132,11 @@ namespace Connections {
     }
   }
 
-  void FullyConnected::PeerListIncrementalUpdate(RpcRequest &notification)
+  void FullyConnected::PeerListIncrementalUpdate(const Request &notification)
   {
-    Dissent::Messaging::RpcContainer msg = notification.GetMessage();
-    CheckAndConnect(msg["peer_id"].toByteArray(), msg["address"].toUrl());
+    QVariantHash msg = notification.GetData().toHash();
+    CheckAndConnect(msg.value("peer_id").toByteArray(),
+        msg.value("address").toUrl());
   }
 
   void FullyConnected::CheckAndConnect(const QByteArray &bid, const QUrl &url)
@@ -149,11 +147,11 @@ namespace Connections {
     }
 
     Id id(bid);
-    if(GetConnectionManager().GetConnectionTable().GetConnection(id) != 0) {
+    if(GetConnectionManager()->GetConnectionTable().GetConnection(id) != 0) {
       return;
     }
 
-    if(GetConnectionManager().GetId() == id) {
+    if(GetConnectionManager()->GetId() == id) {
       return;
     }
 
@@ -162,17 +160,17 @@ namespace Connections {
       return;
     }
     _waiting_on[addr] = id;
-    GetConnectionManager().ConnectTo(addr);
+    GetConnectionManager()->ConnectTo(addr);
   }
 
   void FullyConnected::RequestPeerList(const int &)
   {
     Dissent::Utils::Random &rand = Dissent::Utils::Random::GetInstance();
-    const QList<Connection *> &cons =
-      GetConnectionManager().GetConnectionTable().GetConnections();
+    const QList<QSharedPointer<Connection> > &cons =
+      GetConnectionManager()->GetConnectionTable().GetConnections();
 
     int idx = rand.GetInt(0, cons.size());
-    while(cons[idx]->GetRemoteId() == GetConnectionManager().GetId()) {
+    while(cons[idx]->GetRemoteId() == GetConnectionManager()->GetId()) {
       idx = rand.GetInt(0, cons.size());
     }
     RequestPeerList(cons[idx]);

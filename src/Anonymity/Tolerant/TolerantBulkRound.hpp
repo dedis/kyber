@@ -9,7 +9,6 @@
 #include "Anonymity/Round.hpp"
 #include "Messaging/BufferSink.hpp"
 #include "Messaging/GetDataCallback.hpp"
-#include "Messaging/RpcRequest.hpp"
 #include "Utils/Triple.hpp"
 #include "Utils/Random.hpp"
 
@@ -52,7 +51,7 @@ namespace Tolerant {
       typedef Dissent::Crypto::Hash Hash;
       typedef Dissent::Crypto::Library Library;
       typedef Dissent::Messaging::BufferSink BufferSink;
-      typedef Dissent::Messaging::RpcRequest RpcRequest;
+      typedef Dissent::Messaging::Request Request;
       typedef Dissent::Messaging::GetDataMethod<TolerantBulkRound> BulkGetDataCallback;
       typedef Dissent::Utils::Random Random;
 
@@ -173,7 +172,7 @@ namespace Tolerant {
        * Handle a data message from a remote peer
        * @param notification message from a remote peer
        */
-      virtual void IncomingData(RpcRequest &notification);
+      virtual void IncomingData(const Request &notification);
 
       /**
        * QString rep
@@ -208,18 +207,18 @@ namespace Tolerant {
 
       /**
        * If data is from a legitimate group member, it is processed
-       * @param data Incoming data
        * @param from the remote peer sending the data
+       * @param data Incoming data
        */
-      virtual void ProcessData(const QByteArray &data, const Id &from);
+      virtual void ProcessData(const Id &from, const QByteArray &data);
 
       /**
        * This function does the hard work of processing data packets and throws
        * exceptions for invalid data packets
-       * @param data Incoming data
        * @param from sending peer
+       * @param data Incoming data
        */
-      void ProcessDataBase(const QByteArray &data, const Id &from);
+      void ProcessDataBase(const Id &from, const QByteArray &data);
 
 
       /*******************************************

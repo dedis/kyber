@@ -39,7 +39,7 @@ namespace Anonymity {
        * @param data the data to push
        * @param id the source of the data
        */
-      virtual void ProcessData(const QByteArray &data, const Id &id);
+      virtual void ProcessData(const Id &id, const QByteArray &data);
 
     private:
       /**

@@ -18,9 +18,12 @@ namespace Connections {
        * @param remote_id the Id of the remote member
        */
       explicit NullConnection(const Id &local_id, const Id &remote_id) :
-        Connection(QSharedPointer<Dissent::Transports::Edge>(
-              new Dissent::Transports::NullEdge()),
-            local_id, remote_id) {}
+        Connection(QSharedPointer<Transports::Edge>(
+              new Transports::NullEdge()),
+            local_id, remote_id)
+      {
+        GetEdge()->SetSharedPointer(GetEdge());
+      }
 
       /**
        * Destructor
@@ -29,7 +32,7 @@ namespace Connections {
 
       inline virtual void Send(const QByteArray &data)
       {
-        PushData(data, this);
+        PushData(GetSharedPointer(), data);
       }
   };
 }

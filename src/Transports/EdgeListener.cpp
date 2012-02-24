@@ -7,10 +7,9 @@ namespace Transports {
   {
   }
 
-  void EdgeListener::ProcessNewEdge(QSharedPointer<Edge> edge)
+  void EdgeListener::ProcessNewEdge(const QSharedPointer<Edge> &edge)
   {
-    QObject::connect(edge.data(), SIGNAL(Closed(const QString &)),
-        this, SLOT(HandleEdgeClose(const QString &)));
+    Q_ASSERT(edge->GetSharedPointer());
     emit NewEdge(edge);
   }
 
@@ -19,8 +18,9 @@ namespace Transports {
     emit EdgeCreationFailure(to, reason);
   }
 
-  void EdgeListener::HandleEdgeClose(const QString &)
+  void EdgeListener::SetSharedPointer(const QSharedPointer<Edge> &edge)
   {
+    edge->SetSharedPointer(edge);
   }
 }
 }

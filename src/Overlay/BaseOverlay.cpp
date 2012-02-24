@@ -18,7 +18,8 @@ namespace Overlay {
     _local_endpoints(local_endpoints),
     _remote_endpoints(remote_endpoints),
     _local_id(local_id),
-    _cm(_local_id, _rpc)
+    _rpc(new RpcHandler()),
+    _cm(new ConnectionManager(_local_id, _rpc))
   {
   }
 
@@ -30,13 +31,13 @@ namespace Overlay {
   {
     qDebug() << "Starting node" << _local_id.ToString();
 
-    QObject::connect(&_cm, SIGNAL(Disconnected()),
+    QObject::connect(_cm.data(), SIGNAL(Disconnected()),
         this, SLOT(HandleDisconnected()));
 
     foreach(const Address &addr, _local_endpoints) {
       EdgeListener *el = EdgeListenerFactory::GetInstance().CreateEdgeListener(addr);
       QSharedPointer<EdgeListener> pel(el);
-      _cm.AddEdgeListener(pel);
+      _cm->AddEdgeListener(pel);
       pel->Start();
     }
 
@@ -49,7 +50,8 @@ namespace Overlay {
     }
   }
 
-  void BaseOverlay::AddConnectionAcquirer(QSharedPointer<ConnectionAcquirer> ca)
+  void BaseOverlay::AddConnectionAcquirer(
+      const QSharedPointer<ConnectionAcquirer> &ca)
   {
     _con_acquirers.append(ca);
     if(Started() && !Stopped()) {
@@ -64,7 +66,7 @@ namespace Overlay {
       ca->Stop();
     }
 
-    _cm.Disconnect();
+    _cm->Stop();
   }
 
   void BaseOverlay::HandleDisconnected()

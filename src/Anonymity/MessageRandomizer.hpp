@@ -16,8 +16,8 @@ namespace Anonymity {
   class MessageRandomizer {
     public:
 
-      typedef Dissent::Utils::Random Random;
-      typedef Dissent::Crypto::Library Library;
+      typedef Utils::Random Random;
+      typedef Crypto::Library Library;
 
       MessageRandomizer(const QByteArray &seed);
 

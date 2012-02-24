@@ -73,14 +73,14 @@ namespace Crypto {
       /**
        * Returns a random number generator
        */
-      inline virtual Dissent::Utils::Random *GetRandomNumberGenerator(const QByteArray &seed, uint index) 
+      inline virtual Utils::Random *GetRandomNumberGenerator(const QByteArray &seed, uint index) 
       {
-        return new Dissent::Utils::Random(seed, index);
+        return new Utils::Random(seed, index);
       }
 
       inline virtual uint RngOptimalSeedSize()
       {
-        return Dissent::Utils::Random::OptimalSeedSize();
+        return Utils::Random::OptimalSeedSize();
       }
 
       /**

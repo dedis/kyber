@@ -19,13 +19,13 @@ namespace Tests {
         bool ok;
         int x = data[0].toInt(&ok);
         if(!ok) {
-          request.Failed(QString("Term 0 is invalid"));
+          request.Failed(Response::InvalidInput, QString("Term 0 is invalid"));
           return;
         }
 
         int y = data[1].toInt(&ok);
         if(!ok) {
-          request.Failed(QString("Term 1 is invalid"));
+          request.Failed(Response::InvalidInput, QString("Term 1 is invalid"));
           return;
         }
 

@@ -3,6 +3,8 @@
 
 #include <QObject>
 
+#include "Response.hpp"
+
 class QVariant;
 
 namespace Dissent {
@@ -26,14 +28,16 @@ namespace Messaging {
         emit RespondSignal(request, data);
       }
 
-      inline void Failed(const Request &request, const QString &reason) const
+      void Failed(const Request &request, Response::ErrorTypes error,
+          const QString &reason, const QVariant &error_data) const
       {
-        emit FailedSignal(request, reason);
+        emit FailedSignal(request, error, reason, error_data);
       }
 
     signals:
       void RespondSignal(const Request &request, const QVariant &data) const;
-      void FailedSignal(const Request &request, const QString &reason) const;
+      void FailedSignal(const Request &request, Response::ErrorTypes error,
+          const QString &reason, const QVariant &error_data) const;
   };
 }
 }

@@ -28,7 +28,7 @@ namespace Transports {
 
   void TcpEdge::Send(const QByteArray &data)
   {
-    if(_closed) {
+    if(Stopped()) {
       qWarning() << "Attempted to send on a closed edge.";
       return;
     }
@@ -51,7 +51,7 @@ namespace Transports {
       QByteArray length_arr = _socket->peek(4);
       if(length_arr.isEmpty()) {
         qCritical() << "Error reading Tcp socket in" << ToString();
-        Close("Error reading Tcp socket");
+        Stop("Error reading Tcp socket");
         return;
       }
 
@@ -61,13 +61,13 @@ namespace Transports {
       }
 
       if(length < 0) {
-        Close("Error reading Tcp socket");
+        Stop("Error reading Tcp socket");
         return;
       }
 
       QByteArray msg = _socket->read(length + 8);
       if(msg.isEmpty()) {
-        Close("Error reading Tcp socket");
+        Stop("Error reading Tcp socket");
         qCritical() << "Error reading Tcp socket in" << ToString();
         return;
       }
@@ -76,47 +76,32 @@ namespace Transports {
         qCritical() << "Mismatch on byte array!";
       }
 
-      PushData(msg.mid(4, length), this);
+      PushData(GetSharedPointer(), msg.mid(4, length));
       total_length = _socket->bytesAvailable();
     }
   }
 
-  bool TcpEdge::Close(const QString& reason)
+  void TcpEdge::OnStop()
   {
-    if(!Edge::Close(reason)) {
-      return false;
-    }
-
+    Edge::OnStop();
     _socket->disconnectFromHost();
-    return true;
   }
 
   void TcpEdge::HandleError(QAbstractSocket::SocketError)
   {
     // If the close reason isn't empty, it was closed by the other side, no
     // need to report anything
-    if(_close_reason.isEmpty()) {
+    if(Stop(_socket->errorString())) {
       qWarning() << "Received warning from TcpEdge (" << ToString() << "):" <<
         _socket->errorString();
-
-      _close_reason = _socket->errorString();
     }
-
-    _socket->disconnectFromHost();
   }
 
   void TcpEdge::HandleDisconnect()
   {
-    if(_closed) {
-      CloseCompleted();
-      return;
-    }
-
-    if(_close_reason.isEmpty()) {
-      _close_reason = "Disconnected";
-    }
-    Edge::Close(_close_reason);
-    CloseCompleted();
+    // This will only succeed if Stop hasn't been called, so no loss...
+    Stop("Disconnected");
+    StopCompleted();
   }
 }
 }

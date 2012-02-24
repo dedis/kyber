@@ -30,9 +30,11 @@ namespace Transports {
        */
       virtual ~TcpEdgeListener();
 
-      virtual bool Start();
-      virtual bool Stop();
       virtual void CreateEdgeTo(const Address &to);
+
+    protected:
+      virtual void OnStart();
+      virtual void OnStop();
 
     private slots:
       void HandleAccept();

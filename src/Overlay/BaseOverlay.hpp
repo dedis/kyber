@@ -24,18 +24,18 @@ namespace Overlay {
   /**
    * A template for constructing an overlay node
    */
-  class BaseOverlay : public Dissent::Utils::StartStopSlots {
+  class BaseOverlay : public Utils::StartStopSlots {
     Q_OBJECT
 
     public:
-      typedef Dissent::Connections::Connection Connection;
-      typedef Dissent::Connections::ConnectionManager ConnectionManager;
-      typedef Dissent::Connections::ConnectionTable ConnectionTable;
-      typedef Dissent::Connections::ConnectionAcquirer ConnectionAcquirer;
-      typedef Dissent::Connections::Id Id;
-      typedef Dissent::Messaging::RpcHandler RpcHandler;
-      typedef Dissent::Transports::Address Address;
-      typedef Dissent::Transports::EdgeListener EdgeListener;
+      typedef Connections::Connection Connection;
+      typedef Connections::ConnectionManager ConnectionManager;
+      typedef Connections::ConnectionTable ConnectionTable;
+      typedef Connections::ConnectionAcquirer ConnectionAcquirer;
+      typedef Connections::Id Id;
+      typedef Messaging::RpcHandler RpcHandler;
+      typedef Transports::Address Address;
+      typedef Transports::EdgeListener EdgeListener;
 
       /**
        * Constructor
@@ -56,17 +56,23 @@ namespace Overlay {
       /**
        * Returns the RpcHandler for the member
        */
-      inline RpcHandler &GetRpcHandler() { return _rpc; }
+      inline QSharedPointer<RpcHandler> GetRpcHandler() { return _rpc; }
 
       /**
        * Returns the ConnectionTable associated with outbound connections
        */
-      inline ConnectionTable &GetConnectionTable() { return _cm.GetConnectionTable(); }
+      inline ConnectionTable &GetConnectionTable()
+      {
+        return _cm->GetConnectionTable();
+      }
 
       /**
        * Returns the connection underlying connection manager
        */
-      inline ConnectionManager &GetConnectionManager() { return _cm; }
+      inline QSharedPointer<ConnectionManager> GetConnectionManager()
+      {
+        return _cm;
+      }
 
       /**
        * Returns the nodes Id
@@ -87,15 +93,15 @@ namespace Overlay {
     protected:
       virtual void OnStart();
       virtual void OnStop();
-      void AddConnectionAcquirer(QSharedPointer<ConnectionAcquirer> ca);
+      void AddConnectionAcquirer(const QSharedPointer<ConnectionAcquirer> &ca);
 
     private:
       QList<Address> _local_endpoints;
       QList<Address> _remote_endpoints;
 
       Id _local_id;
-      RpcHandler _rpc;
-      ConnectionManager _cm;
+      QSharedPointer<RpcHandler> _rpc;
+      QSharedPointer<ConnectionManager> _cm;
 
       QList<QSharedPointer<ConnectionAcquirer> > _con_acquirers;
 

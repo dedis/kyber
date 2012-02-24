@@ -49,7 +49,7 @@ namespace Crypto {
       /**
        * Returns a random number generator
        */
-      virtual Dissent::Utils::Random *GetRandomNumberGenerator(
+      virtual Utils::Random *GetRandomNumberGenerator(
           const QByteArray &seed = QByteArray(), uint index = 0) = 0;
 
       /**

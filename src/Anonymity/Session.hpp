@@ -10,10 +10,10 @@
 #include "Identity/Credentials.hpp"
 #include "Identity/Group.hpp"
 #include "Identity/GroupHolder.hpp"
-#include "Messaging/Filter.hpp"
+#include "Messaging/FilterObject.hpp"
 #include "Messaging/GetDataCallback.hpp"
-#include "Messaging/RpcMethod.hpp"
-#include "Utils/StartStopSlots.hpp"
+#include "Messaging/Request.hpp"
+#include "Utils/StartStop.hpp"
 #include "Utils/TimerEvent.hpp"
 
 #include "Round.hpp"
@@ -29,7 +29,8 @@ namespace Crypto {
 }
 
 namespace Messaging {
-  class RpcRequest;
+  class Response;
+  class ResponseHandler;
 }
 
 namespace Anonymity {
@@ -37,23 +38,24 @@ namespace Anonymity {
    * Maintains a (variable) set of peers (group) which is actively
    * participating in anonymous exchanges (rounds).
    */
-  class Session : public Dissent::Utils::StartStopSlots,
-                    public Dissent::Messaging::Filter
+  class Session : public Messaging::FilterObject,
+    public Utils::StartStop
   {
     Q_OBJECT
 
     public:
-      typedef Dissent::Connections::Connection Connection;
-      typedef Dissent::Connections::Id Id;
-      typedef Dissent::Connections::Network Network;
-      typedef Dissent::Crypto::AsymmetricKey AsymmetricKey;
-      typedef Dissent::Identity::Credentials Credentials;
-      typedef Dissent::Identity::Group Group;
-      typedef Dissent::Identity::GroupContainer GroupContainer;
-      typedef Dissent::Identity::GroupHolder GroupHolder;
-      typedef Dissent::Messaging::RpcRequest RpcRequest;
-      typedef Dissent::Messaging::RpcMethod<Session> RpcMethod;
-      typedef Dissent::Messaging::GetDataMethod<Session> GetDataCallback;
+      typedef Connections::Connection Connection;
+      typedef Connections::Id Id;
+      typedef Connections::Network Network;
+      typedef Crypto::AsymmetricKey AsymmetricKey;
+      typedef Identity::Credentials Credentials;
+      typedef Identity::Group Group;
+      typedef Identity::GroupContainer GroupContainer;
+      typedef Identity::GroupHolder GroupHolder;
+      typedef Messaging::Request Request;
+      typedef Messaging::Response Response;
+      typedef Messaging::ResponseHandler ResponseHandler;
+      typedef Messaging::GetDataMethod<Session> GetDataCallback;
 
       /**
        * Constructor
@@ -76,26 +78,26 @@ namespace Anonymity {
        * From the SessionManager, pass in a ReceivedRegister
        * @param request The request from a group member
        */
-      void ReceivedRegister(RpcRequest &request);
+      void ReceivedRegister(const Request &request);
 
       /**
        * From the SessionManager, pass in a ReceiveReady
        * @param request The request from the leader
        */
-      void ReceivedPrepare(RpcRequest &request);
+      void ReceivedPrepare(const Request &request);
 
       /**
        * From the SessionManager, pass in a Begin message from the Session
        * leader to call start on the round
        * @param notification The notification from the leader
        */
-      void ReceivedBegin(RpcRequest &notification);
+      void ReceivedBegin(const Request &notification);
 
       /**
        * From the SessionManager, pass in incoming data
        * @param notification The message containing the data
        */
-      void IncomingData(RpcRequest &notification);
+      void IncomingData(const Request &notification);
 
       /**
        * From a client software, send a message anonymously
@@ -105,7 +107,10 @@ namespace Anonymity {
       /**
        * Returns true if the peer is the leader for this session
        */
-      inline bool IsLeader() const { return _creds.GetLocalId() == GetGroup().GetLeader(); }
+      inline bool IsLeader() const
+      {
+        return _creds.GetLocalId() == GetGroup().GetLeader();
+      }
 
       /**
        * Returns the Session Id
@@ -115,7 +120,10 @@ namespace Anonymity {
       /**
        * Returns the current round
        */
-      inline QSharedPointer<Round> GetCurrentRound() { return _current_round; }
+      inline QSharedPointer<Round> GetCurrentRound()
+      {
+        return _current_round;
+      }
 
       /**
        * Returns the Session / Round information
@@ -148,19 +156,36 @@ namespace Anonymity {
        * Signals that a round is beginning.
        * @param round _current_round
        */
-      void RoundStarting(QSharedPointer<Round> round);
+      void RoundStarting(const QSharedPointer<Round> &round);
 
       /**
        * Signals that a round has completed.  The round will be deleted after
        * the signal has returned.
        * @param round _current_round
        */
-      void RoundFinished(QSharedPointer<Round> round);
+      void RoundFinished(const QSharedPointer<Round> &round);
 
       /**
        * Signfies that the session has been closed / stopped
        */
       void Stopping();
+
+    public slots:
+      /**
+       * Calls start
+       */
+      void CallStart()
+      {
+        Start();
+      }
+
+      /**
+       * Calls stop
+       */
+      void CallStop()
+      {
+        Stop();
+      }
 
     protected:
       /**
@@ -185,16 +210,6 @@ namespace Anonymity {
        * @param unused
        */
       void CheckRegistration(const int&);
-
-      /**
-       * Contains acknowledgement from the registration request
-       * @param response the response may be positive or negative
-       */
-      void Registered(RpcRequest &response);
-
-      /**
-       */
-      void Prepared(RpcRequest &response);
 
       /**
        * Checks to see if the leader has received all the Ready messsages and
@@ -226,7 +241,7 @@ namespace Anonymity {
       /**
        * Used by the leader to queue Ready requests.
        */
-      QHash<Id, RpcRequest> _id_to_request;
+      QHash<Id, Request> _id_to_request;
 
       /**
        * Used by a client to store messages to be sent for future rounds
@@ -242,16 +257,16 @@ namespace Anonymity {
       CreateRound _create_round;
 
       QSharedPointer<Round> _current_round;
-      RpcMethod _registered;
-      RpcMethod _prepared;
-      Dissent::Utils::TimerEvent _register_event;
+      Utils::TimerEvent _register_event;
       QDateTime _last_registration;
-      Dissent::Utils::TimerEvent _prepare_event;
+      Utils::TimerEvent _prepare_event;
       QHash<Id, Id> _registered_peers;
       QHash<Id, Id> _prepared_peers;
+      QSharedPointer<ResponseHandler> _prepared;
+      QSharedPointer<ResponseHandler> _registered;
       GetDataCallback _get_data_cb;
       int _round_idx;
-      RpcRequest _prepare_request;
+      Request _prepare_request;
       bool _prepare_waiting;
       bool _prepare_waiting_for_con;
       int _trim_send_queue;
@@ -259,8 +274,9 @@ namespace Anonymity {
     private slots:
       /**
        * Called when a new connection is created
+       * @param con the new connection
        */
-      void HandleConnection(Connection *con);
+      void HandleConnection(const QSharedPointer<Connection> &con);
 
       /**
        * Called when the current round has finished
@@ -271,6 +287,16 @@ namespace Anonymity {
        * Called when a remote peer has disconnected from the session
        */
       virtual void HandleDisconnect();
+
+      /**
+       * Contains acknowledgement from the registration request
+       * @param response the response may be positive or negative
+       */
+      void Registered(const Response &response);
+
+      /**
+       */
+      void Prepared(const Response &response);
   };
 }
 }

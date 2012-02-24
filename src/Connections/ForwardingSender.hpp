@@ -1,6 +1,8 @@
 #ifndef DISSENT_CONNECTIONS_FORWARDING_SENDER_H_GUARD
 #define DISSENT_CONNECTIONS_FORWARDING_SENDER_H_GUARD
 
+#include <QSharedPointer>
+
 #include "Messaging/ISender.hpp"
 
 #include "Id.hpp"
@@ -12,15 +14,17 @@ namespace Connections {
    * Holds the state necessary for forwarding data to a remote sender using the
    * ISender primitives.
    */
-  class ForwardingSender : public Dissent::Messaging::ISender {
+  class ForwardingSender : public Messaging::ISender {
     public:
       /**
        * Constructor
        * @param forwarder The actual component doing the forwarding
        * @param to The remote destination
        */
-      ForwardingSender(RelayForwarder *forwarder, const Id &to) :
-        _forwarder(forwarder), _to(to)
+      ForwardingSender(const QSharedPointer<RelayForwarder> &forwarder,
+          const Id &to) :
+        _forwarder(forwarder),
+        _to(to)
       {
       }
 
@@ -30,11 +34,11 @@ namespace Connections {
        */
       inline virtual void Send(const QByteArray &data)
       {
-        _forwarder->Send(data, _to);
+        _forwarder->Send(_to, data);
       }
 
     private:
-      RelayForwarder *_forwarder;
+      QSharedPointer<RelayForwarder> _forwarder;
       const Id _to;
   };
 }

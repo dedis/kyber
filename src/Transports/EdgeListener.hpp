@@ -12,7 +12,7 @@ namespace Transports {
   /**
    * Creates and handles transport layer links
    */
-  class EdgeListener : public QObject, public Dissent::Utils::StartStop {
+  class EdgeListener : public QObject, public Utils::StartStop {
     Q_OBJECT
 
     public:
@@ -48,7 +48,7 @@ namespace Transports {
       /**
        * Emitted whenever a new edge, incoming or outgoing, is created
        */
-      void NewEdge(QSharedPointer<Edge> edge);
+      void NewEdge(const QSharedPointer<Edge> &edge);
 
       /**
        * CreateEdgeTo failed
@@ -59,7 +59,7 @@ namespace Transports {
       /**
        * Called when a new edge is created and emits the NewEdge
        */
-      virtual void ProcessNewEdge(QSharedPointer<Edge> edge);
+      virtual void ProcessNewEdge(const QSharedPointer<Edge> &edge);
 
       /**
        * emits EdgeCreationFailure, a CreateEdgeTo failed
@@ -73,13 +73,10 @@ namespace Transports {
        */
       void SetAddress(const Address &address) { _local_address = address; }
 
-    protected slots:
       /**
-       * Called when an edge is closed
-       * @param edge the closed edge
-       * @param reason the reason the edge was closed
+       * Used to set a shared pointer on an Edge after it has been created
        */
-      virtual void HandleEdgeClose(const QString &reason); 
+      void SetSharedPointer(const QSharedPointer<Edge> &edge);
 
     private:
       /**

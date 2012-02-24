@@ -22,7 +22,7 @@ namespace Tests {
         if(idx == jdx) {
           continue;
         }
-        nodes[idx]->cm.ConnectTo(BufferAddress(jdx+1));
+        nodes[idx]->cm->ConnectTo(BufferAddress(jdx+1));
       }
     }
 
@@ -38,7 +38,7 @@ namespace Tests {
         if(idx == jdx) {
           continue;
         }
-        EXPECT_TRUE(nodes[idx]->cm.GetConnectionTable().GetConnection(nodes[jdx]->cm.GetId()));
+        EXPECT_TRUE(nodes[idx]->cm->GetConnectionTable().GetConnection(nodes[jdx]->cm->GetId()));
       }
     }
   }
@@ -47,7 +47,7 @@ namespace Tests {
   {
     Group ngroup = Group(group.GetRoster(), group.GetLeader(), group.GetSubgroupPolicy());
     foreach(TestNode *node, nodes) {
-      ngroup = AddGroupMember(ngroup, GroupContainer(node->cm.GetId(),
+      ngroup = AddGroupMember(ngroup, GroupContainer(node->cm->GetId(),
             Group::EmptyKey(), QByteArray()));
     }
     return ngroup;
@@ -70,7 +70,7 @@ namespace Tests {
     }
     QSharedPointer<Session> session(callback(node, group, session_id));
     node->session = session;
-    session->SetSink(&(node->sink));
+    session->SetSink(&node->sink);
     node->sm.AddSession(node->session);
     QObject::connect(session.data(), SIGNAL(RoundFinished(QSharedPointer<Round>)),
         node, SLOT(HandleRoundFinished(QSharedPointer<Round>)));
@@ -82,7 +82,7 @@ namespace Tests {
       if(!nodes[idx]->session.isNull()) {
         nodes[idx]->session->Stop();
       }
-      nodes[idx]->cm.Disconnect();
+      nodes[idx]->cm->Stop();
     }
 
     qint64 next = Timer::GetInstance().VirtualRun();

@@ -9,7 +9,8 @@ namespace Connections {
   ConnectionTable::ConnectionTable(const Id &local_id)
   {
     if(local_id != Id::Zero()) {
-      Connection *con = new NullConnection(local_id, local_id);
+      QSharedPointer<Connection> con(new NullConnection(local_id, local_id));
+      con->SetSharedPointer(con);
       QSharedPointer<Edge> edge = con->GetEdge();
       AddEdge(edge);
       AddConnection(con);
@@ -18,12 +19,9 @@ namespace Connections {
 
   ConnectionTable::~ConnectionTable()
   {
-    foreach(Connection *con, _cons) {
-      delete con;
-    }
   }
 
-  void ConnectionTable::AddEdge(QSharedPointer<Edge> edge)
+  void ConnectionTable::AddEdge(const QSharedPointer<Edge> &edge)
   {
     _edges[edge.data()] = edge;
   }
@@ -33,35 +31,20 @@ namespace Connections {
     return _edges.remove(edge) != 0;
   }
 
-  bool ConnectionTable::RemoveEdge(QSharedPointer<Edge> edge)
+  QSharedPointer<Connection> ConnectionTable::GetConnection(const Id &id) const
   {
-    return RemoveEdge(edge.data());
+    return _id_to_con.value(id);
   }
 
-  Connection *ConnectionTable::GetConnection(const Id &id) const
+  QSharedPointer<Connection> ConnectionTable::GetConnection(
+      const Edge *edge) const
   {
-    if(_id_to_con.contains(id)) {
-      return _id_to_con[id];
-    }
-    return 0;
+    return _edge_to_con.value(edge);
   }
 
-  Connection *ConnectionTable::GetConnection(const Edge *edge) const
+  void ConnectionTable::AddConnection(const QSharedPointer<Connection> &con)
   {
-    if(_edge_to_con.contains(edge)) {
-      return _edge_to_con[edge];
-    }
-    return 0;
-  }
-
-  Connection *ConnectionTable::GetConnection(QSharedPointer<Edge> edge) const
-  {
-    return GetConnection(edge.data());
-  }
-
-  void ConnectionTable::AddConnection(Connection *con)
-  {
-    _cons[con] = con;
+    _cons[con.data()] = con;
     _id_to_con[con->GetRemoteId()] = con;
     _edge_to_con[con->GetEdge().data()] = con;
   }
@@ -103,10 +86,8 @@ namespace Connections {
 
   void ConnectionTable::PrintConnectionTable()
   {
-    QHash<const Edge *, QSharedPointer<Edge> >::iterator i;
-
     qDebug() << "======= Connection Table =======";
-    foreach(Connection *con, _cons) {
+    foreach(const QSharedPointer<Connection> &con, _cons) {
       qDebug() << con->ToString();
     }
     qDebug() << "================================";

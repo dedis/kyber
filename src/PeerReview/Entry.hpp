@@ -15,8 +15,8 @@ namespace PeerReview {
    */
   class Entry {
     public:
-      typedef Dissent::Connections::Id Id;
-      typedef Dissent::Crypto::AsymmetricKey AsymmetricKey;
+      typedef Connections::Id Id;
+      typedef Crypto::AsymmetricKey AsymmetricKey;
 
       enum Types {
         SEND = 1,

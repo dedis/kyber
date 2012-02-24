@@ -1,6 +1,10 @@
 #ifndef DISSENT_CONNECTIONS_DEFAULT_NETWORK_H_GUARD
 #define DISSENT_CONNECTIONS_DEFAULT_NETWORK_H_GUARD
 
+#include <QByteArray>
+#include <QSharedPointer>
+#include <QVariant>
+
 #include "Messaging/RpcHandler.hpp"
 
 #include "Connection.hpp"
@@ -12,17 +16,20 @@ namespace Dissent {
 namespace Connections {
   class DefaultNetwork : public Network {
     public:
-      typedef Dissent::Connections::ConnectionTable ConnectionTable;
-      typedef Dissent::Messaging::RpcHandler RpcHandler;
-      typedef Dissent::Messaging::ISender ISender;
+      typedef Messaging::RpcHandler RpcHandler;
+      typedef Messaging::ISender ISender;
 
       /**
        * Constructor
-       * @param ct connection table providing id to sender
+       * @param cm connection manager providing id to sender
        * @param rpc messaging substrate
        */
-      explicit DefaultNetwork(ConnectionManager &cm, RpcHandler &rpc) :
-        _cm(cm), _rpc(rpc) {}
+      explicit DefaultNetwork(const QSharedPointer<ConnectionManager> &cm,
+          const QSharedPointer<RpcHandler> &rpc) :
+        _cm(cm),
+        _rpc(rpc)
+      {
+      }
 
       /**
        * Virtual destructor
@@ -30,78 +37,102 @@ namespace Connections {
       virtual ~DefaultNetwork() {}
 
       /**
+       * Returns the destination method
+       */
+      inline virtual QString GetMethod() { return _method; }
+
+      /**
+       * Sets the remote receiving method
+       * @param method the method / location to send data
+       */
+      inline virtual void SetMethod(const QString &method)
+      {
+        _method = method;
+      }
+
+      /**
        * Sets the headers for Rpc messages, headers MUST contains a "method"
        * @param headers a hashtable containing key / value pairs that she
        * be added to each outgoing message
        */
-      inline virtual void SetHeaders(const RpcContainer &headers) { _headers = headers; }
+      inline virtual void SetHeaders(const QVariantHash &headers)
+      {
+        _headers = headers;
+      }
  
       /**
        * Returns the headers
        */
-      inline virtual RpcContainer GetHeaders() { return _headers; }
+      inline virtual QVariantHash GetHeaders() { return _headers; }
 
       /**
        * Returns the connection matching to the Id or 0 if none exists
        * @param id the Id to lookup
        */
-      inline virtual Connection *GetConnection(const Id &id)
+      inline virtual QSharedPointer<Connection> GetConnection(const Id &id)
       {
-        return _cm.GetConnectionTable().GetConnection(id);
+        return _cm->GetConnectionTable().GetConnection(id);
       }
 
       /**
        * Returns a connection manager object capable of making connections
        */
-      virtual ConnectionManager &GetConnectionManager()
+      virtual QSharedPointer<ConnectionManager> GetConnectionManager()
       {
         return _cm;
       }
 
       /**
-       * Just reroutes to the underlying RpcHandler ignoring any additional headers
-       * @param request message for the remote side
-       * @param to id for the remote destination
+       * Send a notification
+       * @param id the destination for the request
+       * @param method the remote method
+       * @param data the input data for that method
        */
-      inline virtual void SendNotification(RpcContainer &notification, const Id &to)
+      inline virtual void SendNotification(const Id &to, const QString &method,
+          const QVariant &data)
       {
-        Connection *con = _cm.GetConnectionTable().GetConnection(to);
-        if(con == 0) {
-          qWarning() << "Attempting to send a notification when no such peer exists," << to.ToString();
+        QSharedPointer<Connection> con = _cm->GetConnectionTable().GetConnection(to);
+        if(!con) {
+          qWarning() << "Attempting to send a notification when no such" <<
+           "peer exists," << to.ToString();
           return;
         }
-        _rpc.SendNotification(notification, con);
+        _rpc->SendNotification(con, method, data);
       }
 
       /**
-       * Just reroutes to the underlying RpcHandler ignoring any additional headers
-       * @param request message for the remote side
-       * @param to id for the remote destination
-       * @param cb function to call when returning
+       * Send a request
+       * @param id the destination for the request
+       * @param method the remote method
+       * @param data the input data for that method
+       * @param callback called when the request is complete
        */
-      inline virtual void SendRequest(RpcContainer &request, const Id &to, Callback* cb)
+      virtual void SendRequest(const Id &to, const QString &method,
+          const QVariant &data, QSharedPointer<ResponseHandler> &callback)
       {
-        Connection *con = _cm.GetConnectionTable().GetConnection(to);
-        if(con == 0) {
-          qWarning() << "Attempting to send a request when no such peer exists," << to.ToString();
+        QSharedPointer<Connection> con = _cm->GetConnectionTable().GetConnection(to);
+        if(!con) {
+          qWarning() << "Attempting to send a request when no such" <<
+            "peer exists," << to.ToString();
           return;
         }
-        _rpc.SendRequest(request, con, cb);
+        _rpc->SendRequest(con, method, data, callback);
       }
 
       /**
        * Send a notification -- a request without expecting a response
-       * @param notification message for the remote side
        * @param to id to destination
+       * @param data message to send to the remote side
        */
-      inline virtual void Send(const QByteArray &data, const Id &to)
+      inline virtual void Send(const Id &to, const QByteArray &data)
       {
-        Connection *con = _cm.GetConnectionTable().GetConnection(to);
-        if(con == 0) {
-          qWarning() << "Attempting to send a notification when no such peer exists," << to.ToString();
+        QSharedPointer<Connection> con = _cm->GetConnectionTable().GetConnection(to);
+        if(!con) {
+          qWarning() << "Attempting to send a message when no such" <<
+            "peer exists," << to.ToString();
           return;
         }
-        Send(data, con);
+        Send(con, data);
       }
 
       /**
@@ -110,8 +141,10 @@ namespace Connections {
        */
       inline virtual void Broadcast(const QByteArray &data)
       {
-        foreach(Connection *con, _cm.GetConnectionTable().GetConnections()) {
-          Send(data, con);
+        foreach(const QSharedPointer<Connection> &con,
+            _cm->GetConnectionTable().GetConnections())
+        {
+          Send(con, data);
         }
       }
 
@@ -120,17 +153,19 @@ namespace Connections {
        */
       virtual Network *Clone() const { return new DefaultNetwork(*this); }
     protected:
-      inline void Send(const QByteArray &data, ISender *to)
+      inline void Send(const QSharedPointer<ISender> &to,
+          const QByteArray &data)
       {
-        RpcContainer notification(_headers);
-        notification["data"] = data;
-        _rpc.SendNotification(notification, to);
+        QVariantHash msg(_headers);
+        msg["data"] = data;
+        _rpc->SendNotification(to, _method, msg);
       }
 
     private:
-      RpcContainer _headers;
-      ConnectionManager &_cm;
-      RpcHandler &_rpc;
+      QSharedPointer<ConnectionManager> _cm;
+      QSharedPointer<RpcHandler> _rpc;
+      QVariantHash _headers;
+      QString _method;
   };
 }
 }

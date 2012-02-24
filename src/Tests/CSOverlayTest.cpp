@@ -29,7 +29,9 @@ namespace Test {
         }
       } else {
         bool found = false;
-        foreach(Connection *con, overlay->GetConnectionTable().GetConnections()) {
+        foreach(const QSharedPointer<Connection> &con,
+            overlay->GetConnectionTable().GetConnections())
+        {
           if(group.GetSubgroup().Contains(con->GetRemoteId())) {
             found = true;
             break;

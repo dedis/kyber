@@ -1,6 +1,8 @@
 #ifndef DISSENT_CONNECTIONS_CONNECTION_ACQUIRER_H_GUARD
 #define DISSENT_CONNECTIONS_CONNECTION_ACQUIRER_H_GUARD
 
+#include <QSharedPointer>
+
 #include "Transports/Address.hpp"
 #include "Utils/StartStop.hpp"
 
@@ -14,23 +16,28 @@ namespace Connections {
   /**
    * Used to determine whom to connect to.
    */
-  class ConnectionAcquirer : public QObject, public Dissent::Utils::StartStop {
+  class ConnectionAcquirer : public QObject, public Utils::StartStop {
     Q_OBJECT
 
     public:
-      typedef Dissent::Transports::Address Address;
+      typedef Transports::Address Address;
 
       /**
        * Create a ConnectionAcquirer
        * @param cm Connection manager used for creating (and monitoring)
        * connections
        */
-      ConnectionAcquirer(ConnectionManager &cm) : _cm(cm)
+      ConnectionAcquirer(const QSharedPointer<ConnectionManager> &cm) : _cm(cm)
       {
-        QObject::connect(&_cm, SIGNAL(NewConnection(Connection *)),
-            this, SLOT(HandleConnectionSlot(Connection *)));
-        QObject::connect(&_cm,SIGNAL(ConnectionAttemptFailure(const Address &,const QString &)),
-            this, SLOT(HandleConnectionAttemptFailureSlot(const Address &, const QString &)));
+        QObject::connect(_cm.data(),
+            SIGNAL(NewConnection(const QSharedPointer<Connection> &)),
+            this,
+            SLOT(HandleConnectionSlot(const QSharedPointer<Connection> &)));
+
+        QObject::connect(_cm.data(),
+            SIGNAL(ConnectionAttemptFailure(const Address &,const QString &)),
+            this,
+            SLOT(HandleConnectionAttemptFailureSlot(const Address &, const QString &)));
       }
 
       /**
@@ -42,14 +49,14 @@ namespace Connections {
       /**
        * Returns the CM used for creating connections
        */
-      ConnectionManager &GetConnectionManager() { return _cm; }
+      QSharedPointer<ConnectionManager> GetConnectionManager() { return _cm; }
 
     private:
       /**
        * A new connection
        * @param con the new connection
        */
-      virtual void HandleConnection(Connection *con) = 0;
+      virtual void HandleConnection(const QSharedPointer<Connection> &con) = 0;
 
       /**
        * A connection attempt failed
@@ -57,14 +64,14 @@ namespace Connections {
       virtual void HandleConnectionAttemptFailure(const Address &addr,
           const QString &reason) = 0;
 
-      ConnectionManager &_cm;
+      QSharedPointer<ConnectionManager> _cm;
 
     private slots:
       /**
        * A new connection
        * @param con the new connection
        */
-      void HandleConnectionSlot(Connection *con)
+      void HandleConnectionSlot(const QSharedPointer<Connection> &con)
       {
         HandleConnection(con);
       }

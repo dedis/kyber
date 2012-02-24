@@ -12,11 +12,11 @@ namespace ClientServer {
    * A single member in a Gossip overlay, which attempts to connect all nodes
    * in the overlay to every other node, a fully connected graph.
    */
-  class CSOverlay : public Dissent::Overlay::BaseOverlay {
+  class CSOverlay : public Overlay::BaseOverlay {
     Q_OBJECT
 
     public:
-      typedef Dissent::Identity::Group Group;
+      typedef Identity::Group Group;
 
       /**
        * Constructor

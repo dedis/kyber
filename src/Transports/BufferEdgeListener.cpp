@@ -24,11 +24,9 @@ namespace Transports {
     DestructorCheck();
   }
 
-  bool BufferEdgeListener::Start()
+  void BufferEdgeListener::OnStart()
   {
-    if(!EdgeListener::Start()) {
-      return false;
-    }
+    EdgeListener::OnStart();
 
     const BufferAddress addr = static_cast<const BufferAddress &>(GetAddress());
     int id = addr.GetId();
@@ -40,27 +38,22 @@ namespace Transports {
     if(_el_map.contains(id)) {
       qWarning() << "Attempting to create two BufferEdgeListeners with the same" <<
         " address: " << addr.ToString();
-      return true;
+      return;
     }
 
     _valid = true;
     _el_map[id] = this;
-    return true;
   }
 
-  bool BufferEdgeListener::Stop()
+  void BufferEdgeListener::OnStop()
   {
-    if(!EdgeListener::Stop()) {
-      return false;
-    }
-
+    EdgeListener::OnStop();
     if(!_valid) {
-      return true;
+      return;
     }
 
     const BufferAddress &loc_ba = static_cast<const BufferAddress &>(GetAddress());
     _el_map.remove(loc_ba.GetId());
-    return true;
   }
 
   void BufferEdgeListener::CreateEdgeTo(const Address &to)
@@ -89,7 +82,9 @@ namespace Transports {
     BufferEdge *remote_edge(new BufferEdge(remote_el->GetAddress(), GetAddress(), false, delay));
 
     QSharedPointer<BufferEdge> ledge(local_edge);
+    SetSharedPointer(ledge);
     QSharedPointer<BufferEdge> redge(remote_edge);
+    SetSharedPointer(redge);
 
     local_edge->SetRemoteEdge(redge);
     remote_edge->SetRemoteEdge(ledge);

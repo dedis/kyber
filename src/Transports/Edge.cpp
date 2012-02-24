@@ -6,14 +6,12 @@ namespace Transports {
     _local_address(local),
     _remote_address(remote),
     _remote_p_addr(remote),
-    _outbound(outbound),
-    _closed(false)
+    _outbound(outbound)
   {
   }
 
   Edge::~Edge()
   {
-    SetSink(0);
   }
 
   QString Edge::ToString() const
@@ -22,25 +20,24 @@ namespace Transports {
         ", Remote: " + _remote_address.ToString());
   }
 
-  bool Edge::Close(const QString &reason)
+  bool Edge::Stop(const QString &reason)
   {
-    if(_closed) {
-      qWarning() << "Edge already closed.";
-      return false;
+    if(_stop_reason.isEmpty()) {
+      _stop_reason = reason;
     }
-    _closed = true;
-    _close_reason = reason;
-    
-    if(!RequiresCleanup()) {
-      CloseCompleted();
-    }
-
-    return true;
+    return Dissent::Utils::StartStop::Stop();
   }
 
-  void Edge::CloseCompleted()
+  void Edge::OnStop()
   {
-    emit Closed(_close_reason);
+    if(!RequiresCleanup()) {
+      StopCompleted();
+    }
+  }
+
+  void Edge::StopCompleted()
+  {
+    emit StoppedSignal();
   }
 }
 }

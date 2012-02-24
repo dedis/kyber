@@ -2,9 +2,10 @@
 #define DISSENT_CONNECTIONS_CONNECTION_H_GUARD
 
 #include <QDebug>
+#include <QObject>
 #include <QSharedPointer>
 
-#include "Messaging/Filter.hpp"
+#include "Messaging/FilterObject.hpp"
 #include "Transports/Edge.hpp"
 
 #include "Id.hpp"
@@ -13,13 +14,13 @@ namespace Dissent {
 namespace Connections {
   /**
    * A container class linking a global identifier to a transport layer
-   * identifier
+   * identifier, takes ownership of an Edge, SetSink externally (for now)
    */
-  class Connection : public QObject, public Dissent::Messaging::Filter {
+  class Connection : public Messaging::FilterObject {
     Q_OBJECT
 
     public:
-      typedef Dissent::Transports::Edge Edge;
+      typedef Transports::Edge Edge;
 
       /**
        * Constructor
@@ -27,7 +28,7 @@ namespace Connections {
        * @param local_id the Id of the local member
        * @param remote_id the Id of the remote member
        */
-      explicit Connection(QSharedPointer<Edge> edge, const Id &local_id,
+      explicit Connection(const QSharedPointer<Edge> &edge, const Id &local_id,
           const Id &remote_id);
 
       /**
@@ -42,6 +43,10 @@ namespace Connections {
        */
       virtual void Disconnect();
 
+      /**
+       * Send data through the connection!
+       * @param data the data to send
+       */
       virtual void Send(const QByteArray &data);
 
       /**
@@ -58,6 +63,12 @@ namespace Connections {
        * Returns the remote id
        */
       inline const Id GetRemoteId() const { return _remote_id; }
+
+      /**
+       * Sets the internal shared pointer
+       * @param filter the shared pointer
+       */
+      virtual void SetSharedPointer(const QSharedPointer<Filter> &filter);
 
     signals:
       /**
@@ -89,10 +100,8 @@ namespace Connections {
     private slots:
       /**
        * Called when the _edge is closed
-       * @param edge should be the same as _edge
-       * @param reason the reason why the edge was closed
        */
-      void HandleEdgeClose(const QString &reason);
+      void HandleEdgeClose();
   };
 }
 }

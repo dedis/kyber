@@ -19,7 +19,7 @@ namespace Connections {
     Q_OBJECT
 
     public:
-      typedef Dissent::Utils::TimerEvent TimerEvent;
+      typedef Utils::TimerEvent TimerEvent;
 
       /**
        * Create a ConnectionAcquirer
@@ -27,7 +27,7 @@ namespace Connections {
        * connections
        * @param remote_endpoints a list of potential remote end points
        */
-      Bootstrapper(ConnectionManager &cm,
+      Bootstrapper(const QSharedPointer<ConnectionManager> &cm,
           const QList<Address> &remote_endpoints);
 
       /**
@@ -56,7 +56,7 @@ namespace Connections {
        * A new connection
        * @param con the new connection
        */
-      virtual void HandleConnection(Connection *con);
+      virtual void HandleConnection(const QSharedPointer<Connection> &con);
 
       /**
        * A connection attempt failed

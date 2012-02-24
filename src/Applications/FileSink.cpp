@@ -1,8 +1,6 @@
-#include "Messaging/ISender.hpp"
-
 #include "FileSink.hpp"
 
-using Dissent::Messaging::ISender;
+#include "Messaging/ISender.hpp"
 
 namespace Dissent {
 namespace Applications {
@@ -23,7 +21,7 @@ namespace Applications {
     return _valid;
   }
 
-  void FileSink::HandleData(const QByteArray &data, ISender *from)
+  void FileSink::HandleData(const QSharedPointer<ISender> &from, const QByteArray &data)
   {
     _out << from->ToString() << data.data();
   }

@@ -1,7 +1,7 @@
 #ifndef DISSENT_SOURCE_H_GUARD
 #define DISSENT_SOURCE_H_GUARD
 
-#include <QDebug>
+#include <QObject>
 #include <QSharedPointer>
 
 #include "ISink.hpp"
@@ -15,17 +15,19 @@ namespace Messaging {
    */
   class Source {
     public:
-      /**
-       * Constructor
-       */
-      explicit Source();
+      explicit Source()
+      {
+      }
 
       /**
        * Push data from this source into a sink return the old sink if
        * one existed
        * @param sink the sink to push data into
        */
-      QSharedPointer<ISink> SetSink(const QSharedPointer<ISink> &sink);
+      ISink *SetSink(ISink *sink)
+      {
+        return GetSource()->SetSink(sink);
+      }
 
       virtual ~Source() {}
 
@@ -35,14 +37,14 @@ namespace Messaging {
        * @param from the remote sending party
        * @param data the message
        */
-      void PushData(const QSharedPointer<ISender> &from,
-          const QByteArray &data);
+      inline virtual void PushData(const QSharedPointer<ISender> &from,
+          const QByteArray &data)
+      {
+        GetSource()->PushData(from, data);
+      }
 
     private:
-      /**
-       * Where to push data
-       */
-      QSharedPointer<ISink> _sink;
+      virtual Source *GetSource() = 0;
   };
 }
 }

@@ -3,8 +3,9 @@
 namespace Dissent {
 namespace Connections {
   RelayEdge::RelayEdge(const Address &local, const Address &remote,
-      bool outbound, RpcHandler &rpc, ISender *forwarder,
-      int local_edge_id, int remote_edge_id) :
+      bool outbound, const QSharedPointer<RpcHandler> &rpc,
+      const QSharedPointer<ISender> &forwarder, int local_edge_id,
+      int remote_edge_id) :
     Edge(local, remote, outbound),
     _rpc(rpc),
     _forwarder(forwarder),
@@ -15,13 +16,12 @@ namespace Connections {
 
   RelayEdge::~RelayEdge()
   {
-    delete _forwarder;
   }
 
   QString RelayEdge::ToString() const
   {
-    return QString("RelayEdge, Local: " + _local_address.ToString() +
-        ", Remote: " + _remote_address.ToString());
+    return QString("RelayEdge, Local: " + GetLocalAddress().ToString() +
+        ", Remote: " + GetRemoteAddress().ToString());
   }
 
   void RelayEdge::SetRemoteEdgeId(int id)
@@ -35,18 +35,17 @@ namespace Connections {
 
   void RelayEdge::Send(const QByteArray &data)
   {
-    Dissent::Messaging::RpcContainer notification;
-    notification["x_edge_id"] = _local_edge_id;
-    notification["y_edge_id"] = _remote_edge_id;
-    notification["data"] = data;
-    notification["method"] = "REL::Data";
+    QVariantHash msg;
+    msg["x_edge_id"] = _local_edge_id;
+    msg["y_edge_id"] = _remote_edge_id;
+    msg["data"] = data;
 
-    _rpc.SendNotification(notification, _forwarder);
+    _rpc->SendNotification(_forwarder, "REL::Data", msg);
   }
 
   void RelayEdge::PushData(const QByteArray &data)
   {
-    Edge::PushData(data, this);
+    Edge::PushData(GetSharedPointer(), data);
   }
 }
 }

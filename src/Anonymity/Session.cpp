@@ -5,6 +5,8 @@
 #include "Connections/ConnectionTable.hpp"
 #include "Connections/Network.hpp"
 #include "Crypto/Serialization.hpp"
+#include "Messaging/Request.hpp"
+#include "Messaging/Response.hpp"
 #include "Utils/Timer.hpp"
 
 #include "Session.hpp"
@@ -20,33 +22,33 @@ namespace Anonymity {
     _network(network),
     _create_round(create_round),
     _current_round(0),
-    _registered(this, &Session::Registered),
-    _prepared(this, &Session::Prepared),
+    _prepared(new ResponseHandler(this, "Prepared")),
+    _registered(new ResponseHandler(this, "Registered")),
     _get_data_cb(this, &Session::GetData),
     _round_idx(0),
     _prepare_waiting(false),
     _trim_send_queue(0)
   {
-    Dissent::Messaging::RpcContainer headers = _network->GetHeaders();
-    headers["method"] = "SM::Data";
+    QVariantHash headers = _network->GetHeaders();
     headers["session_id"] = _session_id.GetByteArray();
     _network->SetHeaders(headers);
+    _network->SetMethod("SM::Data");
 
     if(IsLeader()) {
       _group_holder->UpdateGroup(AddGroupMember(GetGroup(), GetPublicComponents(_creds)));
     }
 
     foreach(const GroupContainer &gc, GetGroup().GetRoster()) {
-      Connection *con = _network->GetConnection(gc.first);
+      QSharedPointer<Connection> con = _network->GetConnection(gc.first);
       if(con) {
-        QObject::connect(con, SIGNAL(Disconnected(const QString &)),
+        QObject::connect(con.data(), SIGNAL(Disconnected(const QString &)),
             this, SLOT(HandleDisconnect()));
       }
     }
 
-    QObject::connect(&_network->GetConnectionManager(),
-        SIGNAL(NewConnection(Connection *)),
-        this, SLOT(HandleConnection(Connection *)));
+    QObject::connect(_network->GetConnectionManager().data(),
+        SIGNAL(NewConnection(const QSharedPointer<Connection> &)),
+        this, SLOT(HandleConnection(const QSharedPointer<Connection> &)));
   }
 
   Session::~Session()
@@ -74,9 +76,9 @@ namespace Anonymity {
     _prepare_event.Stop();
 
     foreach(const GroupContainer &gc, GetGroup().GetRoster()) {
-      Connection *con = _network->GetConnection(gc.first);
+      QSharedPointer<Connection> con = _network->GetConnection(gc.first);
       if(con) {
-        QObject::disconnect(con, SIGNAL(Disconnected(const QString &)),
+        QObject::disconnect(con.data(), SIGNAL(Disconnected(const QString &)),
             this, SLOT(HandleDisconnect()));
       }
     }
@@ -93,7 +95,7 @@ namespace Anonymity {
   bool Session::CheckGroup()
   {
     Dissent::Connections::ConnectionTable &ct =
-      _network->GetConnectionManager().GetConnectionTable();
+      _network->GetConnectionManager()->GetConnectionTable();
 
     if(GetGroup().Count() < MinimumRoundSize) {
       qDebug() << "Not enough peers in group to support an anonymous session,"
@@ -111,7 +113,7 @@ namespace Anonymity {
         }
       } else {
         bool found = false;
-        foreach(Connection *con, ct.GetConnections()) {
+        foreach(const QSharedPointer<Connection> &con, ct.GetConnections()) {
           if(group.GetSubgroup().Contains(con->GetRemoteId())) {
             found = true;
             break;
@@ -125,7 +127,7 @@ namespace Anonymity {
     } else {
       bool good = true;
       foreach(const GroupContainer &gc, group) {
-        if(ct.GetConnection(gc.first) == 0) {
+        if(!ct.GetConnection(gc.first)) {
           qDebug() << "Missing a connection" << gc.first.ToString();
           good = false;
         }
@@ -137,58 +139,36 @@ namespace Anonymity {
 
   void Session::Register(const int &)
   {
-    Dissent::Messaging::RpcContainer request;
-    request["method"] = "SM::Register";
-    request["session_id"] = _session_id.GetByteArray();
+    QVariantHash container;
+    container["session_id"] = _session_id.GetByteArray();
 
     QByteArray creds;
     QDataStream stream(&creds, QIODevice::WriteOnly);
     stream << GetPublicComponents(_creds);
-    request["creds"] = creds;
+    container["creds"] = creds;
 
-    _network->SendRequest(request, GetGroup().GetLeader(), &_registered);
+    _network->SendRequest(GetGroup().GetLeader(), "SM::Register", container, _registered);
   }
 
-  void Session::ReceivedRegister(RpcRequest &request)
+  void Session::ReceivedRegister(const Request &request)
   {
-    Connection *con = dynamic_cast<Connection *>(request.GetFrom());
-
-    Dissent::Messaging::RpcContainer response;
     if(!IsLeader()) {
       qWarning() << "Received a registration message when not a leader.";
-      response["result"] = false;
-      response["online"] = true;
-      response["leader"] = false;
-      request.Respond(response);
+      request.Failed(Response::WrongDestination, "Not the leader");
       return;
     } else if(!Started()) {
       qDebug() << "Received a registration message when not started.";
-      response["result"] = false;
-      response["online"] = true;
-      response["leader"] = true;
-      request.Respond(response);
-      return;
-    } else if(!con) {
-      qWarning() << "Received a registration message from a non-connection: " <<
-        request.GetFrom()->ToString();
-      response["result"] = false;
-      response["online"] = true;
-      response["leader"] = true;
-      response["msg"] = "Sent from non-connection";
-      request.Respond(response);
+      request.Failed(Response::InvalidInput, "Session not started");
       return;
     }
 
-    const Id &remote = con->GetRemoteId();
-    QDataStream stream(request.GetMessage()["creds"].toByteArray());
+    QDataStream stream(request.GetData().toHash().value("creds").toByteArray());
     GroupContainer creds;
     stream >> creds;
 
-    if((creds.first != remote) || !creds.second->IsValid()) {
+    if(!creds.second->IsValid()) {
       qWarning() << "Received a registration request with invalid credentials";
-      response["msg"] = "Credentials do not match Connection Id";
-      response["result"] = false;
-      request.Respond(response);
+      request.Failed(Response::InvalidInput, "Credentials do not match Id");
       return;
     }
 
@@ -197,11 +177,14 @@ namespace Anonymity {
     _last_registration = Dissent::Utils::Time::GetInstance().CurrentTime();
 
     AddMember(creds);
-    response["result"] = true;
-    request.Respond(response);
+    request.Respond(true);
 
-    QObject::connect(con, SIGNAL(Disconnected(const QString &)),
-        this, SLOT(HandleDisconnect()));
+    QSharedPointer<Connection> con =
+      request.GetFrom().dynamicCast<Connection>();
+    if(con) {
+      QObject::connect(con.data(), SIGNAL(Disconnected(const QString &)),
+          this, SLOT(HandleDisconnect()));
+    }
 
     if(!_prepare_event.Stopped()) {
       return;
@@ -238,23 +221,19 @@ namespace Anonymity {
     }
   }
 
-  void Session::Registered(RpcRequest &response)
+  void Session::Registered(const Response &response)
   {
     if(Stopped()) {
       return;
     }
 
-    const Dissent::Messaging::RpcContainer &msg = response.GetMessage();
-    if(msg["result"].toBool()) {
+    if(response.Successful() && response.GetData().toBool()) {
       qDebug() << _creds.GetLocalId().ToString() << "registered and waiting to go.";
       return;
     }
 
-    qDebug() << "Unable to register due to" <<
-      "Online:" << msg["online"].toBool() <<
-      ", Leader:" << msg["leader"].toBool() << 
-      ", message:" << msg["msg"].toString() <<
-      ", trying again later.";
+    qDebug() << "Unable to register due to" << response.GetData().toString() <<
+      "... trying again later.";
 
     Dissent::Utils::TimerCallback *cb =
       new Dissent::Utils::TimerMethod<Session, int>(this, &Session::Register, 0);
@@ -271,11 +250,10 @@ namespace Anonymity {
 
     Id round_id(Id::Zero().GetInteger() + _round_idx++);
 
-    Dissent::Messaging::RpcContainer request;
-    request["method"] = "SM::Prepare";
-    request["session_id"] = _session_id.GetByteArray();
-    request["round_id"] = round_id.GetByteArray();
-    request["interrupt"] = _current_round.isNull() ?
+    QVariantHash msg;
+    msg["session_id"] = _session_id.GetByteArray();
+    msg["round_id"] = round_id.GetByteArray();
+    msg["interrupt"] = _current_round.isNull() ?
       true : _current_round->Interrupted();
 
     if(GetGroup() != _shared_group) {
@@ -283,40 +261,41 @@ namespace Anonymity {
       QByteArray group;
       QDataStream stream(&group, QIODevice::WriteOnly);
       stream << _shared_group;
-      request["group"] = group;
+      msg["group"] = group;
     }
 
     qDebug() << "Sending prepare for round" << round_id.ToString() <<
-      "new group:" << request.contains("group");
+      "new group:" << msg.contains("group");
 
     _prepared_peers.clear();
     foreach(const Id &id, _registered_peers) {
-      _network->SendRequest(request, id, &_prepared);
+      _network->SendRequest(id, "SM::Prepare", msg, _prepared);
     }
 
     NextRound(round_id);
     return true;
   }
 
-  void Session::ReceivedPrepare(RpcRequest &request)
+  void Session::ReceivedPrepare(const Request &request)
   {
-    Dissent::Messaging::RpcContainer msg = request.GetMessage();
     if(_prepare_waiting) {
       _prepare_waiting = false;
     }
+
+    QVariantHash msg = request.GetData().toHash();
 
     if(!_current_round.isNull() && !_current_round->Stopped() &&
         _current_round->Started())
     {
       _prepare_waiting = true;
       _prepare_request = request;
-      if(msg["interrupt"].toBool()) {
+      if(msg.value("interrupt").toBool()) {
         _current_round->Stop("Round interrupted.");
       }
       return;
     }
 
-    QByteArray brid = msg["round_id"].toByteArray();
+    QByteArray brid = msg.value("round_id").toByteArray();
     if(brid.isEmpty()) {
       qDebug() << "ReceivedPrepare: Invalid round id";
       return;
@@ -326,7 +305,7 @@ namespace Anonymity {
 
     if(msg.contains("group")) {
       qDebug() << "Prepare contains new group";
-      QDataStream stream(msg["group"].toByteArray());
+      QDataStream stream(msg.value("group").toByteArray());
       Group group;
       stream >> group;
       _group_holder->UpdateGroup(group);
@@ -340,17 +319,15 @@ namespace Anonymity {
     }
 
     NextRound(round_id);
-    Dissent::Messaging::RpcContainer response;
-    response["result"] = true;
-    response["round_id"] = msg["round_id"];
-    request.Respond(response);
-    _prepare_request = RpcRequest();
+    request.Respond(brid);
+    _prepare_request = Request();
   }
 
-  void Session::Prepared(RpcRequest &response)
+  void Session::Prepared(const Response &response)
   {
-    Dissent::Messaging::RpcContainer message = response.GetMessage();
-    Connection *con = dynamic_cast<Connection *>(response.GetFrom());
+    QSharedPointer<Connection> con =
+      response.GetFrom().dynamicCast<Connection>();
+
     if(!con) {
       qWarning() << "Received a prepared message from a non-connection:" <<
         response.GetFrom()->ToString();
@@ -361,7 +338,7 @@ namespace Anonymity {
       return;
     }
 
-    Id round_id(message["round_id"].toByteArray());
+    Id round_id(response.GetData().toByteArray());
 
     if(_current_round->GetRoundId() != round_id) {
       qDebug() << "Received a prepared message from the wrong round.  RoundId:" <<
@@ -376,12 +353,11 @@ namespace Anonymity {
       return;
     }
 
-    Dissent::Messaging::RpcContainer notification;
-    notification["method"] = "SM::Begin";
-    notification["session_id"] = _session_id.GetByteArray();
-    notification["round_id"] = round_id.GetByteArray();
+    QVariantHash msg;
+    msg["session_id"] = _session_id.GetByteArray();
+    msg["round_id"] = round_id.GetByteArray();
     foreach(const Id &id, _prepared_peers) {
-      _network->SendNotification(notification, id);
+      _network->SendNotification(id, "SM::Begin", msg);
     }
 
     _prepared_peers.clear();
@@ -393,21 +369,22 @@ namespace Anonymity {
     _current_round->Start();
   }
 
-  void Session::ReceivedBegin(RpcRequest &notification)
+  void Session::ReceivedBegin(const Request &notification)
   {
-    Dissent::Messaging::RpcContainer message = notification.GetMessage();
-    Connection *con = dynamic_cast<Connection *>(notification.GetFrom());
-    if(!con) {
-      qWarning() << "Received a begin message from a non-connection:" <<
-        notification.GetFrom()->ToString();
-      return;
-    } else if(GetGroup().GetLeader() != con->GetRemoteId()) {
+    /*
+    if(GetGroup().GetLeader() != con->GetRemoteId()) {
       qWarning() << "Received a begin from someone other than the leader:" <<
         notification.GetFrom()->ToString();
       return;
     }
+    */
 
-    Id round_id(message["round_id"].toByteArray());
+    if(_current_round.isNull()) {
+      qWarning() << "Received a begin without having a valid round...";
+      return;
+    }
+
+    Id round_id(notification.GetData().toHash().value("round_id").toByteArray());
     if(_current_round->GetRoundId() != round_id) {
       qWarning() << "Received a begin for a different round, expected:" <<
         _current_round->GetRoundId().ToString() << "got:" <<
@@ -435,8 +412,6 @@ namespace Anonymity {
 
     if(!round->Successful()) {
       _trim_send_queue = 0;
-    } else if(_trim_send_queue > 0) {
-      qWarning() << "Trimmed!";
     }
 
     emit RoundFinished(_current_round);
@@ -447,7 +422,6 @@ namespace Anonymity {
     }
 
     const QVector<int> bad = round->GetBadMembers();
-    qWarning() << "Session bad members" << bad;
     if(round->GetBadMembers().size() != 0) {
       qWarning() << "Found some bad members...";
       if(IsLeader()) {
@@ -461,7 +435,8 @@ namespace Anonymity {
 
     if(IsLeader() && _prepare_event.Stopped()) {
       Dissent::Utils::TimerCallback *cb =
-        new Dissent::Utils::TimerMethod<Session, int>(this, &Session::CheckRegistration, 0);
+        new Dissent::Utils::TimerMethod<Session, int>(
+            this, &Session::CheckRegistration, 0);
       _prepare_event = Dissent::Utils::Timer::GetInstance().QueueCallback(cb, 0, 5000);
     } else if(_prepare_waiting) {
       ReceivedPrepare(_prepare_request);
@@ -470,10 +445,8 @@ namespace Anonymity {
 
   void Session::NextRound(const Id &round_id)
   {
-    Round * round = _create_round(GetGroup(), _creds, round_id, _network,
-        _get_data_cb);
-
-    _current_round = QSharedPointer<Round>(round);
+    _current_round = _create_round(GetGroup(), _creds, round_id,
+        _network, _get_data_cb);
 
     qDebug() << "Session" << ToString() << "preparing new round" <<
       _current_round->ToString();
@@ -493,7 +466,7 @@ namespace Anonymity {
     _send_queue.append(data);
   }
 
-  void Session::IncomingData(RpcRequest &notification)
+  void Session::IncomingData(const Request &notification)
   {
     if(!_current_round.isNull()) {
       _current_round->IncomingData(notification);
@@ -502,7 +475,7 @@ namespace Anonymity {
     }
   }
 
-  void Session::HandleConnection(Connection *con)
+  void Session::HandleConnection(const QSharedPointer<Connection> &con)
   {
     if(GetGroup().GetLeader() == con->GetRemoteId()) {
       Register(0);
@@ -510,7 +483,7 @@ namespace Anonymity {
       return;
    }
 
-    QObject::connect(con, SIGNAL(Disconnected(const QString &)),
+    QObject::connect(con.data(), SIGNAL(Disconnected(const QString &)),
         this, SLOT(HandleDisconnect()));
 
     if(_prepare_waiting && CheckGroup()) {

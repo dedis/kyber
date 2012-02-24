@@ -3,7 +3,7 @@
 #include "Crypto/DiffieHellman.hpp"
 #include "Crypto/Hash.hpp"
 #include "Crypto/Library.hpp"
-#include "Messaging/RpcRequest.hpp"
+#include "Messaging/Request.hpp"
 #include "Utils/QRunTimeError.hpp"
 #include "Utils/Random.hpp"
 #include "Utils/Serialization.hpp"
@@ -16,7 +16,7 @@ using Dissent::Crypto::CryptoFactory;
 using Dissent::Crypto::DiffieHellman;
 using Dissent::Crypto::Hash;
 using Dissent::Crypto::Library;
-using Dissent::Messaging::RpcRequest;
+using Dissent::Messaging::Request;
 using Dissent::Utils::QRunTimeError;
 using Dissent::Utils::Random;
 using Dissent::Utils::Serialization;
@@ -37,7 +37,7 @@ namespace Anonymity {
     _received_messages(0),
     _is_leader(GetGroup().GetLeader() == GetLocalId())
   {
-    Dissent::Messaging::RpcContainer headers = GetNetwork()->GetHeaders();
+    QVariantHash headers = GetNetwork()->GetHeaders();
     headers["bulk"] = true;
     GetNetwork()->SetHeaders(headers);
 
@@ -52,10 +52,8 @@ namespace Anonymity {
     QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
     Id sr_id(hashalgo->ComputeHash(GetRoundId().GetByteArray()));
 
-    Round *pr = _create_shuffle(GetGroup(), GetCredentials(), sr_id, net,
+    _shuffle_round = _create_shuffle(GetGroup(), GetCredentials(), sr_id, net,
         _get_bulk_data);
-    _shuffle_round = QSharedPointer<Round>(pr);
-
     _shuffle_round->SetSink(&_shuffle_sink);
 
     QObject::connect(_shuffle_round.data(), SIGNAL(Finished()),
@@ -85,34 +83,42 @@ namespace Anonymity {
     return true;
   }
 
-  void BulkRound::IncomingData(RpcRequest &notification)
+  void BulkRound::IncomingData(const Request &notification)
   {
     if(Stopped()) {
       qWarning() << "Received a message on a closed session:" << ToString();
       return;
     }
       
-    Dissent::Messaging::ISender *from = notification.GetFrom();
-    Connection *con = dynamic_cast<Connection *>(from);
-    const Id &id = con->GetRemoteId();
-    if(con == 0 || !GetGroup().Contains(id)) {
-      qDebug() << ToString() << " received wayward message from: " << from->ToString();
+    QSharedPointer<Connection> con = notification.GetFrom().dynamicCast<Connection>();
+    if(!con) {
+      qDebug() << ToString() << " received wayward message from: " <<
+        notification.GetFrom()->ToString();
       return;
     }
 
-    bool bulk = notification.GetMessage()["bulk"].toBool();
+    const Id &id = con->GetRemoteId();
+    if(!GetGroup().Contains(id)) {
+      qDebug() << ToString() << " received wayward message from: " << 
+        notification.GetFrom()->ToString();
+      return;
+    }
+
+    QVariantHash msg = notification.GetData().toHash();
+
+    bool bulk = msg.value("bulk").toBool();
     if(bulk) {
-      ProcessData(notification.GetMessage()["data"].toByteArray(), id);
+      ProcessData(id, msg.value("data").toByteArray());
     } else {
       _shuffle_round->IncomingData(notification);
     }
   }
 
-  void BulkRound::ProcessData(const QByteArray &data, const Id &from)
+  void BulkRound::ProcessData(const Id &from, const QByteArray &data)
   {
     _log.Append(data, from);
     try {
-      ProcessDataBase(data, from);
+      ProcessDataBase(from, data);
     } catch (QRunTimeError &err) {
       qWarning() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
         "received a message from" << GetGroup().GetIndex(from) << from.ToString() <<
@@ -123,10 +129,10 @@ namespace Anonymity {
     }
   }
 
-  void BulkRound::ProcessDataBase(const QByteArray &data, const Id &from)
+  void BulkRound::ProcessDataBase(const Id &from, const QByteArray &data)
   {
     QByteArray payload;
-    if(!Verify(data, payload, from)) {
+    if(!Verify(from, data, payload)) {
       throw QRunTimeError("Invalid signature or data");
     }
 
@@ -200,7 +206,7 @@ namespace Anonymity {
     for(int idx = 0; idx < log.Count(); idx++) {
       const QPair<QByteArray, Id> &res = log.At(idx);
       try {
-        ProcessDataBase(res.first, res.second);
+        ProcessDataBase(res.second, res.first);
       } catch (QRunTimeError &err) {
         const Id &from = res.second;
         qWarning() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
@@ -253,7 +259,7 @@ namespace Anonymity {
         throw QRunTimeError("Cleartext hash does not match descriptor hash.");
       }
       if(!cleartext.isEmpty()) {
-        PushData(cleartext, this);
+        PushData(GetSharedPointer(), cleartext);
       }
     }
 
@@ -327,7 +333,7 @@ namespace Anonymity {
       QByteArray cleartext = ProcessMessage(idx, index);
       _cleartexts.append(cleartext);
       if(!cleartext.isEmpty()) {
-        PushData(cleartext, this);
+        PushData(GetSharedPointer(), cleartext);
       }
       index += _descriptors[idx].Length();
     }
@@ -449,7 +455,7 @@ namespace Anonymity {
 
     for(int idx = 0; idx < _offline_log.Count(); idx++) {
       QPair<QByteArray, Id> entry = _offline_log.At(idx);
-      ProcessData(entry.first, entry.second);
+      ProcessData(entry.second, entry.first);
     }
 
     _offline_log.Clear();
@@ -463,8 +469,8 @@ namespace Anonymity {
 
     _expected_bulk_size = 0;
     for(int idx = 0; idx < _shuffle_sink.Count(); idx++) {
-      QPair<QByteArray, ISender *> pair(_shuffle_sink.At(idx));
-      Descriptor des = ParseDescriptor(pair.first);
+      QPair<QSharedPointer<ISender>, QByteArray> pair(_shuffle_sink.At(idx));
+      Descriptor des = ParseDescriptor(pair.second);
       _descriptors.append(des);
       if(_my_idx == -1 && _my_descriptor == des) {
         _my_idx = idx;
@@ -473,7 +479,7 @@ namespace Anonymity {
     }
 
     if(_app_broadcast) {
-      VerifiableSend(msg, GetGroup().GetLeader());
+      VerifiableSend(GetGroup().GetLeader(), msg);
     } else {
       VerifiableBroadcast(msg);
     }
@@ -515,7 +521,7 @@ namespace Anonymity {
   void BulkRound::PrepareBlameShuffle()
   {
     QSharedPointer<Network> net(GetNetwork()->Clone());
-    Dissent::Messaging::RpcContainer headers = net->GetHeaders();
+    QVariantHash headers = net->GetHeaders();
     headers["bulk"] = false;
     net->SetHeaders(headers);
 
@@ -526,9 +532,8 @@ namespace Anonymity {
     roundid = hashalgo->ComputeHash(roundid);
     Id sr_id(roundid);
 
-    Round *pr = _create_shuffle(GetGroup(), GetCredentials(), sr_id, net,
+    _shuffle_round = _create_shuffle(GetGroup(), GetCredentials(), sr_id, net,
         _get_blame_data);
-    _shuffle_round = QSharedPointer<Round>(pr);
 
     _shuffle_round->SetSink(&_shuffle_sink);
 
@@ -567,8 +572,8 @@ namespace Anonymity {
   void BulkRound::BlameShuffleFinished()
   {
     for(int idx = 0; idx < _shuffle_sink.Count(); idx++) {
-      QPair<QByteArray, ISender *> pair(_shuffle_sink.At(idx));
-      QDataStream stream(pair.first);
+      QPair<QSharedPointer<ISender>, QByteArray> pair(_shuffle_sink.At(idx));
+      QDataStream stream(pair.second);
       QVector<BlameEntry> blame_vector;
       stream >> blame_vector;
       if(blame_vector.count()) {

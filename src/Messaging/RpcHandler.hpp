@@ -9,7 +9,7 @@
 #include <QSharedPointer>
 
 #include "ISender.hpp"
-#include "ISink.hpp"
+#include "ISinkObject.hpp"
 #include "Request.hpp"
 #include "RequestHandler.hpp"
 #include "RequestResponder.hpp"
@@ -21,10 +21,16 @@ namespace Messaging {
   /**
    * Rpc mechanism assumes a reliable sending mechanism
    */
-  class RpcHandler : public QObject, public ISink {
+  class RpcHandler : public ISinkObject {
     Q_OBJECT
 
     public:
+      inline static QSharedPointer<RpcHandler> GetEmpty()
+      {
+        static QSharedPointer<RpcHandler> handler(new RpcHandler());
+        return handler;
+      }
+
       /**
        * The constructor
        */
@@ -73,6 +79,14 @@ namespace Messaging {
           const QSharedPointer<RequestHandler> &cb);
 
       /**
+       * Register a callback into the specified object
+       * @param name The string to match it with
+       * @param obj with the method name
+       */
+      bool Register(const QString &name, const QObject *obj,
+          const char *method);
+
+      /**
        * Unregister a callback
        * @param name name of method to remove
        */
@@ -96,7 +110,9 @@ namespace Messaging {
        * @param request the original request
        * @param reason the reason for the failure
        */
-      void SendFailedResponse(const Request &request, const QString &reason);
+      void SendFailedResponse(const Request &request,
+          Response::ErrorTypes error, const QString &reason,
+          const QVariant &error_data = QVariant());
 
     private:
       /**

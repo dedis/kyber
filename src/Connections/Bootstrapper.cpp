@@ -7,7 +7,7 @@ using Dissent::Utils::TimerMethod;
 
 namespace Dissent {
 namespace Connections {
-  Bootstrapper::Bootstrapper(ConnectionManager &cm,
+  Bootstrapper::Bootstrapper(const QSharedPointer<ConnectionManager> &cm,
       const QList<Address> &remote_endpoints) :
     ConnectionAcquirer(cm),
     _remote_endpoints(remote_endpoints),
@@ -37,14 +37,14 @@ namespace Connections {
     }
   }
 
-  void Bootstrapper::HandleConnection(Connection *con)
+  void Bootstrapper::HandleConnection(const QSharedPointer<Connection> &con)
   {
     const Address &addr = con->GetEdge()->GetRemotePersistentAddress();
     if(!_remote_endpoints.contains(addr)) {
       _remote_endpoints.append(addr);
     }
 
-    QObject::connect(con, SIGNAL(Disconnected(const QString &)),
+    QObject::connect(con.data(), SIGNAL(Disconnected(const QString &)),
         this, SLOT(HandleDisconnect(const QString &)));
   }
 
@@ -71,7 +71,7 @@ namespace Connections {
     }
 
     foreach(const Address &addr, _remote_endpoints) {
-      GetConnectionManager().ConnectTo(addr);
+      GetConnectionManager()->ConnectTo(addr);
     }
   }
 
@@ -82,7 +82,7 @@ namespace Connections {
 
   bool Bootstrapper::NeedConnection()
   {
-    return GetConnectionManager().GetConnectionTable().GetConnections().count() == 1;
+    return GetConnectionManager()->GetConnectionTable().GetConnections().count() == 1;
   }
 }
 }

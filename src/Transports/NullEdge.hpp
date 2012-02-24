@@ -26,7 +26,7 @@ namespace Transports {
        */
       inline virtual void Send(const QByteArray &data)
       {
-        PushData(data, this);
+        PushData(GetSharedPointer(), data);
       }
 
     private:

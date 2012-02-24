@@ -2,19 +2,22 @@
 #define DISSENT_TRANSPORTS_EDGE_H_GUARD
 
 #include <QObject>
+#include <QSharedPointer>
+
+#include "Messaging/ISender.hpp"
+#include "Messaging/SourceObject.hpp"
+#include "Utils/StartStop.hpp"
 
 #include "Address.hpp"
-
-#include "Messaging/ISink.hpp"
-#include "Messaging/Source.hpp"
 
 namespace Dissent {
 namespace Transports {
   /**
    * Stores the state for a transport layer link between two peers
    */
-  class Edge : public QObject, public Dissent::Messaging::Source,
-      public Dissent::Messaging::ISender {
+  class Edge : public Messaging::SourceObject, public Messaging::ISender,
+      public Utils::StartStop
+  {
     Q_OBJECT
 
     public:
@@ -74,19 +77,19 @@ namespace Transports {
        * Close the edge
        * @param reason the reason for closing the edge.
        */
-      virtual bool Close(const QString &reason);
+      bool Stop(const QString &reason);
 
-      /**
-       * True if the edge has been closed
-       */
-      inline virtual bool IsClosed() { return _closed; }
+      QSharedPointer<Edge> GetSharedPointer() { return _edge.toStrongRef(); }
+
+      QString GetStopReason() const { return _stop_reason; }
+
+      void SetSharedPointer(const QSharedPointer<Edge> &edge)
+      {
+        _edge = edge.toWeakRef();
+      }
 
     signals:
-      /**
-       * Emitted when an edge is completely closed, afterward the edge should be deleted
-       * @param reason the reason for closing the edge
-       */
-      void Closed(const QString &reason);
+      void StoppedSignal();
 
     protected:
       /**
@@ -97,14 +100,20 @@ namespace Transports {
       /**
        * When the object is fully closed call this function
        */
-      virtual void CloseCompleted();
+      virtual void StopCompleted();
 
+      /**
+       * Called as a result of Stop has been called
+       */
+      virtual void OnStop();
+
+    private:
+      QWeakPointer<Edge> _edge;
       const Address _local_address;
       const Address _remote_address;
       Address _remote_p_addr;
       bool _outbound;
-      bool _closed;
-      QString _close_reason;
+      QString _stop_reason;
   };
 }
 }

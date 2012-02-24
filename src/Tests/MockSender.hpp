@@ -22,17 +22,17 @@ namespace Tests {
 
       virtual void Send(const QByteArray &data)
       {
-        _source->IncomingData(_from, data);
+        _source->IncomingData(_from.toStrongRef(), data);
       }
 
       void SetReturnPath(const QSharedPointer<ISender> &sender)
       {
-        _from = sender;
+        _from = sender.toWeakRef();
       }
 
     private:
       QSharedPointer<MockSource> _source;
-      QSharedPointer<ISender> _from;
+      QWeakPointer<ISender> _from;
   };
 }
 }

@@ -18,8 +18,11 @@ namespace Messaging {
         this, SLOT(SendResponse(const Request &, const QVariant &)));
 
     QObject::connect(_responder.data(),
-        SIGNAL(FailedSignal(const Request &, const QString &)),
-        this, SLOT(SendFailedResponse(const Request &, const QString &)));
+        SIGNAL(FailedSignal(const Request &, Response::ErrorTypes,
+            const QString &, const QVariant &)),
+        this,
+        SLOT(SendFailedResponse(const Request &, Response::ErrorTypes,
+            const QString &, const QVariant &)));
   }
 
   RpcHandler::~RpcHandler()
@@ -36,8 +39,10 @@ namespace Messaging {
     if(container.size() < 2) {
       return;
     }
-
+    
     qWarning() << container;
+    qWarning() << container.at(3);
+
     QString type = container.at(0).toString();
     if(type == Request::RequestType ||
         type == Request::NotificationType)
@@ -64,7 +69,8 @@ namespace Messaging {
     if(cb.isNull()) {
       qDebug() << "RpcHandler: Request: No such method: " << method <<
         ", from: " << request.GetFrom()->ToString();
-      SendFailedResponse(request, QString("No such method: " + method));
+      SendFailedResponse(request, Response::InvalidMethod,
+          QString("No such method: " + method));
       return;
     }
 
@@ -129,9 +135,12 @@ namespace Messaging {
     request.GetFrom()->Send(msg);
   }
 
-  void RpcHandler::SendFailedResponse(const Request &request, const QString &reason)
+  void RpcHandler::SendFailedResponse(const Request &request,
+      Response::ErrorTypes error, const QString &reason,
+      const QVariant &error_data)
   {
-    QVariantList container = Response::Failed(request.GetId(), reason);
+    QVariantList container = Response::Failed(request.GetId(), error,
+        reason, error_data);
     QByteArray msg;
     QDataStream stream(&msg, QIODevice::WriteOnly);
     stream << container;
@@ -152,6 +161,18 @@ namespace Messaging {
     }
 
     _callbacks[name] = cb;
+    return true;
+  }
+
+  bool RpcHandler::Register(const QString &name, const QObject *obj,
+      const char *method)
+  {
+    if(_callbacks.contains(name)) {
+      return false;
+    }
+
+    _callbacks[name] =
+      QSharedPointer<RequestHandler>(new RequestHandler(obj, method));
     return true;
   }
 

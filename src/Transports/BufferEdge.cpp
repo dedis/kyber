@@ -2,14 +2,13 @@
 
 using Dissent::Utils::TimerCallback;
 using Dissent::Utils::Timer;
-using Dissent::Utils::TimerMethod;
+using Dissent::Utils::TimerMethodShared;
 
 namespace Dissent {
 namespace Transports {
   BufferEdge::BufferEdge(const Address &local, const Address &remote,
       bool outgoing, int delay) :
-    Edge(local, remote, outgoing), Delay(delay), _remote_edge(0),
-    _rem_closing(false), _incoming(0)
+    Edge(local, remote, outgoing), Delay(delay)
   {
   }
 
@@ -28,51 +27,33 @@ namespace Transports {
 
   void BufferEdge::Send(const QByteArray &data)
   {
-    if(_closed) {
+    if(Stopped()) {
       qWarning() << "Attempted to send on a closed edge.";
       return;
     }
 
-    if(_rem_closing) {
+    QSharedPointer<Edge> rem_edge = _remote_edge.toStrongRef();
+    if(!rem_edge) {
       return;
     }
 
-    TimerCallback *tm = new TimerMethod<BufferEdge, QByteArray>(_remote_edge.data(),
+    TimerCallback *tm = new TimerMethodShared<BufferEdge, QByteArray>(
+        rem_edge.dynamicCast<BufferEdge>(),
         &BufferEdge::DelayedReceive, data);
     Timer::GetInstance().QueueCallback(tm, Delay);
-    _remote_edge->_incoming++;
   }
 
-  bool BufferEdge::Close(const QString& reason)
+  void BufferEdge::OnStop()
   {
-    if(!Edge::Close(reason)) {
-      return false;
-    }
-
-    qDebug() << "Calling Close on " << ToString() << " with " << _incoming << " remaining messages.";
-    if(!_rem_closing) {
-      _remote_edge->_rem_closing = true;
-      _remote_edge.clear();
-    }
-
-    if(_incoming == 0) {
-      CloseCompleted();
-    }
-
-    return true;
+    Edge::OnStop();
   }
 
   void BufferEdge::DelayedReceive(const QByteArray &data)
   {
-    _incoming--;
-    if(_closed) {
-      if(_incoming == 0) {
-        qDebug() << "No more messages on calling Edge::Close";
-        CloseCompleted();
-      }
+    if(Stopped()) {
       return;
     }
-    PushData(data, this);
+    PushData(GetSharedPointer(), data);
   }
 }
 }

@@ -13,6 +13,18 @@ namespace Messaging {
    */
   class Response {
     public:
+      enum ErrorTypes {
+        CorruptResponse,
+        InvalidInput,
+        InvalidMessage,
+        InvalidMethod,
+        InvalidPermissions,
+        NoError,
+        Other,
+        Timeout,
+        WrongDestination,
+      };
+
       /**
        * Constructor
        * @param from The sender of the response
@@ -48,13 +60,16 @@ namespace Messaging {
        * @param id unique id from the sender
        * @param reason reason for the failure
        */
-      inline static QVariantList Failed(int id, const QString &reason)
+      inline static QVariantList Failed(int id, ErrorTypes error,
+          const QString &reason, const QVariant &data = QVariant())
       {
         QVariantList container;
         container.append(ResponseType);
         container.append(id);
         container.append(false);
+        container.append(error);
         container.append(reason);
+        container.append(data);
         return container;
       }
 
@@ -81,17 +96,41 @@ namespace Messaging {
       /**
        * Return data
        */
-      inline QVariant GetData() const { return _container.at(3); }
+      inline QVariant GetData() const
+      {
+        return Successful() ? _container.at(3) : QVariant();
+      }
+
+      ErrorTypes GetErrorType() const
+      {
+        if(Successful()) {
+          return NoError;
+        } else if(_container.size() < 6) {
+          return CorruptResponse;
+        }
+        return static_cast<ErrorTypes>(_container.at(3).toInt());
+      }
 
       /**
        * Returns the error string, if unsuccessful is true
        */
-      inline QString GetError() const
+      QString GetError() const
       {
-        if(Successful()) {
+        if(Successful() || _container.size() < 6) {
           return QString();
+        } 
+        return _container.at(4).toString();
+      }
+
+      /**
+       * Returns any additional error data
+       */
+      QVariant GetErrorData() const
+      {
+        if(Successful() && _container.size() < 6) {
+          return QVariant();
         }
-        return _container.at(3).toString();
+        return _container.at(5);
       }
 
       static const QString ResponseType;

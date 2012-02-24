@@ -3,17 +3,34 @@
 
 #include <QObject>
 
-#include "Response.hpp"
-
 namespace Dissent {
 namespace Messaging {
+  class Response;
+
   /**
-   * Used to create a response callback
+   * Used to create a response callback, note this does NOT keep a pointer,
+   * it internally uses slots and signals and func *must* be a valid slot.
    */
   class ResponseHandler : public QObject {
     Q_OBJECT
 
     public:
+      /**
+       * Constructor
+       * @param obj owner of the method
+       * @param func function name in the object
+       */
+      ResponseHandler(const QObject *obj, const char *func)
+      {
+        QString slot = QString::number(QSLOT_CODE) + func +
+          "(const Response &)" + QLOCATION;
+
+        QObject::connect(this,
+            SIGNAL(RequestCompleteSignal(const Response &)),
+            obj,
+            slot.toUtf8().data());
+      }
+
       /**
        * Destructor
        */

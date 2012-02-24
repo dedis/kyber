@@ -92,7 +92,7 @@ namespace Anonymity {
       QPair<QByteArray, Id> entry = clog.At(jdx);
 
       try {
-        round->ProcessData(entry.first, entry.second);
+        round->ProcessData(entry.second, entry.first);
       } catch (QRunTimeError &err) {
         qWarning() << idx << "received a message from" <<
           _group.GetIndex(entry.second) << "in state" <<

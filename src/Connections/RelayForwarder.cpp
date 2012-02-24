@@ -1,5 +1,7 @@
 #include <QList>
 
+#include "Messaging/Request.hpp"
+
 #include "Connection.hpp"
 #include "ForwardingSender.hpp"
 #include "RelayEdge.hpp"
@@ -10,47 +12,47 @@ namespace Connections {
   const Id RelayForwarder::_prefered = Id(QString("HJf+qfK7oZVR3dOqeUQcM8TGeVA="));
 
   RelayForwarder::RelayForwarder(const Id &local_id, const ConnectionTable &ct,
-      RpcHandler &rpc) :
+      const QSharedPointer<RpcHandler> &rpc) :
     _local_id(local_id),
     _base_been(local_id.ToString()),
     _ct(ct),
-    _rpc(rpc),
-    _incoming_data(this, &RelayForwarder::IncomingData)
+    _rpc(rpc)
   {
-    _rpc.Register(&_incoming_data, "RF::Data");
+    _rpc->Register("RF::Data", this, "IncomingData");
   }
 
   RelayForwarder::~RelayForwarder()
   {
-    _rpc.Unregister("RF::Data");
+    _rpc->Unregister("RF::Data");
   }
 
-  RelayForwarder::ISender *RelayForwarder::GetSender(const Id &to)
+  QSharedPointer<RelayForwarder::ISender> RelayForwarder::GetSender(const Id &to)
   {
-    return new ForwardingSender(this, to);
+    return QSharedPointer<ISender>(new ForwardingSender(GetSharedPointer(), to));
   }
 
-  void RelayForwarder::Send(const QByteArray &data, const Id &to)
+  void RelayForwarder::Send(const Id &to, const QByteArray &data)
   {
     if(to == _local_id) {
-      _rpc.HandleData(data, new ForwardingSender(this, _local_id));
+      _rpc->HandleData(QSharedPointer<ISender>(
+            new ForwardingSender(GetSharedPointer(), _local_id)), data);
       return;
     }
 
-    Forward(data, to, _base_been);
+    Forward(to, data, _base_been);
   }
 
-  void RelayForwarder::IncomingData(RpcRequest &notification)
+  void RelayForwarder::IncomingData(const Request &notification)
   {
-    const Dissent::Messaging::RpcContainer &msg = notification.GetMessage();
+    QVariantHash msg = notification.GetData().toHash();
 
-    Id destination = Id(msg["to"].toString());
+    Id destination = Id(msg.value("to").toString());
     if(destination == Id::Zero()) {
       qWarning() << "Received a forwarded message without a destination.";
       return;
     }
 
-    QStringList been = msg["been"].toStringList();
+    QStringList been = msg.value("been").toStringList();
     if(destination == _local_id) {
       if(been.size() == 0) {
         qWarning() << "Received a forwarded message without any history.";
@@ -62,27 +64,29 @@ namespace Connections {
         qWarning() << "Received a forwarded message without a valid source.";
       }
 
-      _rpc.HandleData(msg["data"].toByteArray(), new ForwardingSender(this, source));
+      _rpc->HandleData(QSharedPointer<ISender>(
+            new ForwardingSender(GetSharedPointer(), source)),
+          msg.value("data").toByteArray());
       return;
     }
 
-    Forward(msg["data"].toByteArray(), destination, (been + _base_been));
+    Forward(destination, msg.value("data").toByteArray(), (been + _base_been));
   }
 
-  void RelayForwarder::Forward(const QByteArray &data, const Id &to,
+  void RelayForwarder::Forward(const Id &to, const QByteArray &data,
       const QStringList &been)
   {
     QHash<int, bool> tested;
 
-    Connection *con = _ct.GetConnection(to);
-    if(con == 0 || (dynamic_cast<RelayEdge *>(con->GetEdge().data()) != 0)) {
+    QSharedPointer<Connection> con = _ct.GetConnection(to);
+    if(!con || (dynamic_cast<RelayEdge *>(con->GetEdge().data()) != 0)) {
       if(!been.contains(_prefered.ToString())) {
         con = _ct.GetConnection(_prefered);
       }
     }
 
-    if(con == 0 || (dynamic_cast<RelayEdge *>(con->GetEdge().data()) != 0)) {
-      const QList<Connection *> cons = _ct.GetConnections();
+    if(!con || (dynamic_cast<RelayEdge *>(con->GetEdge().data()) != 0)) {
+      const QList<QSharedPointer<Connection> > cons = _ct.GetConnections();
 
       Dissent::Utils::Random &rand = Dissent::Utils::Random::GetInstance();
       int idx = rand.GetInt(0, cons.size());
@@ -102,13 +106,12 @@ namespace Connections {
       }
     }
 
-    Dissent::Messaging::RpcContainer notification;
-    notification["method"] = "RF::Data";
-    notification["data"] = data;
-    notification["to"] = to.ToString();
-    notification["been"] = been + _base_been;
+    QVariantHash msg;
+    msg["to"] = to.ToString();
+    msg["data"] = data;
+    msg["been"] = been + _base_been;
     
-    _rpc.SendNotification(notification, con);
+    _rpc->SendNotification(con, "RF::Data", msg);
   }
 }
 }

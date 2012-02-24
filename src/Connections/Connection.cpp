@@ -3,14 +3,21 @@
 
 namespace Dissent {
 namespace Connections {
-  Connection::Connection(QSharedPointer<Edge> edge, const Id &local_id,
+  Connection::Connection(const QSharedPointer<Edge> &edge, const Id &local_id,
       const Id &remote_id) :
-    _edge(edge), _local_id(local_id), _remote_id(remote_id)
+    _edge(edge),
+    _local_id(local_id),
+    _remote_id(remote_id)
   {
-    ISink *old_sink = _edge->SetSink(this);
-    SetSink(old_sink);
-    QObject::connect(edge.data(), SIGNAL(Closed(const QString &)),
-        this, SLOT(HandleEdgeClose(const QString &)));
+    ISink *sink = _edge->SetSink(this);
+    SetSink(sink);
+    QObject::connect(_edge.data(), SIGNAL(StoppedSignal()),
+        this, SLOT(HandleEdgeClose()));
+  }
+
+  void Connection::SetSharedPointer(const QSharedPointer<Filter> &filter)
+  {
+    Filter::SetSharedPointer(filter);
   }
 
   QString Connection::ToString() const
@@ -22,7 +29,6 @@ namespace Connections {
 
   void Connection::Disconnect()
   {
-    SetSink(0);
     qDebug() << "Called disconnect on: " << this->ToString();
     emit CalledDisconnect();
   }
@@ -32,12 +38,11 @@ namespace Connections {
     _edge->Send(data);
   }
 
-  void Connection::HandleEdgeClose(const QString &reason)
+  void Connection::HandleEdgeClose()
   {
     Edge *edge = qobject_cast<Edge *>(sender());
     if(edge == _edge.data()) {
-      emit Disconnected(reason);
-      delete this;
+      emit Disconnected(edge->GetStopReason());
     }
   }
 }

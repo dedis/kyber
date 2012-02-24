@@ -20,8 +20,8 @@ namespace Crypto {
 }
 
 namespace Identity {
-  typedef Dissent::Utils::Triple<Dissent::Connections::Id,
-          QSharedPointer<Dissent::Crypto::AsymmetricKey>,
+  typedef Utils::Triple<Connections::Id,
+          QSharedPointer<Crypto::AsymmetricKey>,
           QByteArray> GroupContainer;
 
   /**
@@ -29,7 +29,7 @@ namespace Identity {
    */
   class GroupData : public QSharedData {
     public:
-      typedef Dissent::Connections::Id Id;
+      typedef Connections::Id Id;
 
       /**
        * Default constructor for empty group
@@ -68,8 +68,8 @@ namespace Identity {
     Q_ENUMS(SubgroupPolicy);
 
     public:
-      typedef Dissent::Crypto::AsymmetricKey AsymmetricKey;
-      typedef Dissent::Connections::Id Id;
+      typedef Crypto::AsymmetricKey AsymmetricKey;
+      typedef Connections::Id Id;
       typedef QVector<GroupContainer>::const_iterator const_iterator;
 
       enum SubgroupPolicy {
@@ -203,7 +203,7 @@ namespace Identity {
 
       inline static const QSharedPointer<AsymmetricKey> &EmptyKey()
       {
-        static QSharedPointer<AsymmetricKey> key(new Dissent::Crypto::NullPrivateKey());
+        static QSharedPointer<AsymmetricKey> key(new Crypto::NullPrivateKey());
         return key;
       }
     private:
@@ -297,9 +297,9 @@ namespace Identity {
 // Put these into the common namespace of Triple
 namespace Dissent {
 namespace Utils {
-  using Dissent::Identity::operator==;
-  using Dissent::Identity::operator!=;
-  using Dissent::Identity::operator<;
+  using Identity::operator==;
+  using Identity::operator!=;
+  using Identity::operator<;
 }
 }
 

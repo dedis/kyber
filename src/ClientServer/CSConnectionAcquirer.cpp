@@ -18,23 +18,21 @@ using Dissent::Utils::TimerCallback;
 
 namespace Dissent {
 namespace ClientServer {
-  CSConnectionAcquirer::CSConnectionAcquirer(ConnectionManager &cm,
-      RpcHandler &rpc, const Group &group) :
+  CSConnectionAcquirer::CSConnectionAcquirer(
+      const QSharedPointer<ConnectionManager> &cm,
+      const QSharedPointer<RpcHandler> &rpc, const Group &group) :
     ConnectionAcquirer(cm),
     _bootstrapping(true),
     _group(group),
     _rpc(rpc),
-    _server_state_request(this,
-        &CSConnectionAcquirer::ServerStateInquire),
-    _server_state_response(this,
-        &CSConnectionAcquirer::ServerStateResponse)
+    _server_state_response(new ResponseHandler(this, "ServerStateResponse"))
   {
-    _rpc.Register(&_server_state_request, "CSCA::ServerList");
+    _rpc->Register("CSCA::ServerList", this, "ServerStateInquire");
   }
 
   CSConnectionAcquirer::~CSConnectionAcquirer()
   {
-    _rpc.Unregister("CSCA::ServerList");
+    _rpc->Unregister("CSCA::ServerList");
   }
 
   void CSConnectionAcquirer::OnStart()
@@ -53,11 +51,12 @@ namespace ClientServer {
     }
   }
 
-  void CSConnectionAcquirer::HandleConnection(Connection *con)
+  void CSConnectionAcquirer::HandleConnection(
+      const QSharedPointer<Connection> &con)
   {
     Id remote = con->GetRemoteId();
     if(!_group.GetSubgroup().Contains(remote) && _group.GetLeader() != remote &&
-        GetConnectionManager().GetConnectionTable().GetConnections().size() == 2)
+        GetConnectionManager()->GetConnectionTable().GetConnections().size() == 2)
     {
       return;
     }
@@ -89,24 +88,24 @@ namespace ClientServer {
 
   void CSConnectionAcquirer::RequestServerState(const int &)
   {
-    const ConnectionTable &ct = GetConnectionManager().GetConnectionTable();
+    const ConnectionTable &ct = GetConnectionManager()->GetConnectionTable();
     if(ct.GetConnections().size() == 1) {
       return;
     }
 
     foreach(const GroupContainer &gc, _group.GetSubgroup()) {
-      if(gc.first == GetConnectionManager().GetId()) {
+      if(gc.first == GetConnectionManager()->GetId()) {
         continue;
       }
-      Connection *con = ct.GetConnection(gc.first);
+      QSharedPointer<Connection> con = ct.GetConnection(gc.first);
       if(con != 0) {
         RequestServerState(con);
         return;
       }
     }
 
-    foreach(Connection *con, ct.GetConnections()) {
-      if(con->GetRemoteId() == GetConnectionManager().GetId()) {
+    foreach(const QSharedPointer<Connection> &con, ct.GetConnections()) {
+      if(con->GetRemoteId() == GetConnectionManager()->GetId()) {
         continue;
       }
       RequestServerState(con);
@@ -114,18 +113,18 @@ namespace ClientServer {
     }
   }
 
-  void CSConnectionAcquirer::RequestServerState(Connection *con)
+  void CSConnectionAcquirer::RequestServerState(
+      const QSharedPointer<Connection> &con)
   {
-    Dissent::Messaging::RpcContainer request;
-    request["method"] = "CSCA::ServerList";
-    _rpc.SendRequest(request, con, &_server_state_response);
+    _rpc->SendRequest(con, "CSCA::ServerList", QVariant(),
+        _server_state_response);
   }
 
-  void CSConnectionAcquirer::ServerStateInquire(RpcRequest &request)
+  void CSConnectionAcquirer::ServerStateInquire(const Request &request)
   {
     QHash<QByteArray, QUrl> id_to_addr;
-    const Id &my_id = GetConnectionManager().GetId();
-    const ConnectionTable &ct = GetConnectionManager().GetConnectionTable();
+    const Id &my_id = GetConnectionManager()->GetId();
+    const ConnectionTable &ct = GetConnectionManager()->GetConnectionTable();
 
     foreach(const GroupContainer &gc, _group.GetSubgroup()) {
       const Id &gc_id = gc.first;
@@ -133,8 +132,8 @@ namespace ClientServer {
         continue;
       }
 
-      Connection *con = ct.GetConnection(gc_id);
-      if(con == 0) {
+      QSharedPointer<Connection> con = ct.GetConnection(gc_id);
+      if(!con) {
         continue;
       }
 
@@ -146,29 +145,29 @@ namespace ClientServer {
     QDataStream out_stream(&slm, QIODevice::WriteOnly);
     out_stream << id_to_addr;
 
-    Dissent::Messaging::RpcContainer response;
-    response["connections"] = ct.GetConnections().size();
-    response["list"] = slm;
-    request.Respond(response);
+    QVariantHash msg;
+    msg["connections"] = ct.GetConnections().size();
+    msg["list"] = slm;
+    request.Respond(msg);
   }
 
-  void CSConnectionAcquirer::ServerStateResponse(RpcRequest &response)
+  void CSConnectionAcquirer::ServerStateResponse(const Response &response)
   {
-    Dissent::Messaging::RpcContainer msg = response.GetMessage();
-
-    Connection *con = dynamic_cast<Connection *>(response.GetFrom());
-    if(con == 0) {
+    QSharedPointer<Connection> con =  response.GetFrom().dynamicCast<Connection>();
+    if(!con) {
       qCritical() << "Received an rpc request from a non-connection.";
       return;
     }
     Id remote = con->GetRemoteId();
 
-    QHash<QByteArray, QUrl> id_to_addr;
-    QDataStream stream(msg["list"].toByteArray());
-    stream >> id_to_addr;
-    int cons = msg["connections"].toInt();
+    QVariantHash msg = response.GetData().toHash();
 
-    if(_group.GetSubgroup().Contains(GetConnectionManager().GetId())) {
+    QHash<QByteArray, QUrl> id_to_addr;
+    QDataStream stream(msg.value("list").toByteArray());
+    stream >> id_to_addr;
+    int cons = msg.value("connections").toInt();
+
+    if(_group.GetSubgroup().Contains(GetConnectionManager()->GetId())) {
       ServerHandleServerStateResponse(remote, id_to_addr, cons);
     } else {
       ClientHandleServerStateResponse(remote, id_to_addr, cons);
@@ -182,7 +181,7 @@ namespace ClientServer {
       return;
     }
 
-    const ConnectionTable &ct = GetConnectionManager().GetConnectionTable();
+    const ConnectionTable &ct = GetConnectionManager()->GetConnectionTable();
     foreach(const GroupContainer &gc, _group.GetSubgroup()) {
       if(ct.GetConnection(gc.first) != 0) {
         return;
@@ -206,13 +205,13 @@ namespace ClientServer {
 
   bool CSConnectionAcquirer::CheckAndConnect(const QByteArray &bid, const QUrl &url)
   {
-    const ConnectionTable &ct = GetConnectionManager().GetConnectionTable();
+    const ConnectionTable &ct = GetConnectionManager()->GetConnectionTable();
     Id id(bid);
 
     if(id == Id::Zero()) {
       qDebug() << "Found a malformed Id";
       return false;
-    } else if(id == GetConnectionManager().GetId()) {
+    } else if(id == GetConnectionManager()->GetId()) {
       // It is me
       return false;
     } else if(ct.GetConnection(id) != 0) {
@@ -230,7 +229,7 @@ namespace ClientServer {
     }
 
     Address addr = Dissent::Transports::AddressFactory::GetInstance().CreateAddress(url);
-    GetConnectionManager().ConnectTo(addr);
+    GetConnectionManager()->ConnectTo(addr);
     _local_initiated[id] = true;
     _addr_to_id[addr] = id;
     return true;

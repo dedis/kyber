@@ -4,16 +4,16 @@
 #include <QFile>
 #include <QTextStream>
 
-#include "Messaging/ISink.hpp"
+#include "Messaging/ISinkObject.hpp"
 
 namespace Dissent {
 namespace Applications {
   /**
    * Print async output to the stdout
    */
-  class FileSink : public Dissent::Messaging::ISink {
+  class FileSink : public Messaging::ISinkObject {
     public:
-      typedef Dissent::Messaging::ISender ISender;
+      typedef Messaging::ISender ISender;
 
       /**
        * Constructor
@@ -31,7 +31,8 @@ namespace Applications {
        */
       bool IsValid();
 
-      virtual void HandleData(const QByteArray &data, ISender *from);
+      virtual void HandleData(const QSharedPointer<ISender> &from,
+          const QByteArray &data);
 
     private:
       QFile _file;

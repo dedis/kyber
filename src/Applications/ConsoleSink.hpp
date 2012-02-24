@@ -2,16 +2,16 @@
 #define DISSENT_APPLICATIONS_CONSOLE_SINK_H_GUARD
 
 #include <QTextStream>
-#include "Messaging/ISink.hpp"
+#include "Messaging/ISinkObject.hpp"
 
 namespace Dissent {
 namespace Applications {
   /**
    * Print async output to the stdout
    */
-  class ConsoleSink : public Dissent::Messaging::ISink {
+  class ConsoleSink : public Messaging::ISinkObject {
     public:
-      typedef Dissent::Messaging::ISender ISender;
+      typedef Messaging::ISender ISender;
 
       explicit ConsoleSink();
 
@@ -20,7 +20,8 @@ namespace Applications {
        */
       virtual ~ConsoleSink() {}
 
-      virtual void HandleData(const QByteArray &data, ISender *from);
+      virtual void HandleData(const QSharedPointer<ISender> &from,
+          const QByteArray &data);
 
     protected:
       QTextStream _qtout;

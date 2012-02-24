@@ -1,12 +1,13 @@
 #ifndef DISSENT_CLIENT_SERVER_CS_CONNECTION_ACQUIRER_H_GUARD
 #define DISSENT_CLIENT_SERVER_CS_CONNECTION_ACQUIRER_H_GUARD
 
+#include <QObject>
+
 #include "Connections/ConnectionAcquirer.hpp"
 #include "Connections/ConnectionManager.hpp"
 #include "Connections/Id.hpp"
 #include "Identity/Group.hpp"
 #include "Messaging/RpcHandler.hpp"
-#include "Messaging/RpcMethod.hpp"
 #include "Transports/Address.hpp"
 #include "Utils/StartStop.hpp"
 #include "Utils/TimerEvent.hpp"
@@ -17,16 +18,19 @@ namespace ClientServer {
   /**
    * Used to determine whom to connect to.
    */
-  class CSConnectionAcquirer : public Dissent::Connections::ConnectionAcquirer {
+  class CSConnectionAcquirer : public Connections::ConnectionAcquirer {
+    Q_OBJECT
+
     public:
-      typedef Dissent::Connections::Connection Connection;
-      typedef Dissent::Connections::ConnectionManager ConnectionManager;
-      typedef Dissent::Connections::Id Id;
-      typedef Dissent::Identity::Group Group;
-      typedef Dissent::Messaging::RpcHandler RpcHandler;
-      typedef Dissent::Messaging::RpcMethod<CSConnectionAcquirer> RpcMethod;
-      typedef Dissent::Messaging::RpcRequest RpcRequest;
-      typedef Dissent::Utils::TimerEvent TimerEvent;
+      typedef Connections::Connection Connection;
+      typedef Connections::ConnectionManager ConnectionManager;
+      typedef Connections::Id Id;
+      typedef Identity::Group Group;
+      typedef Messaging::Request Request;
+      typedef Messaging::Response Response;
+      typedef Messaging::ResponseHandler ResponseHandler;
+      typedef Messaging::RpcHandler RpcHandler;
+      typedef Utils::TimerEvent TimerEvent;
 
       /**
        * Create a Client Server ConnectionAcquirer
@@ -35,7 +39,8 @@ namespace ClientServer {
        * @param rpc
        * @param group
        */
-      CSConnectionAcquirer(ConnectionManager &cm, RpcHandler &rpc, const Group &group);
+      CSConnectionAcquirer(const QSharedPointer<ConnectionManager> &cm,
+          const QSharedPointer<RpcHandler> &rpc, const Group &group);
 
       /**
        */
@@ -52,13 +57,13 @@ namespace ClientServer {
 
     private:
       void RequestServerState(const int &);
-      void RequestServerState(Connection *con);
+      void RequestServerState(const QSharedPointer<Connection> &con);
 
       /**
        * A new connection
        * @param con the new connection
        */
-      virtual void HandleConnection(Connection *con);
+      virtual void HandleConnection(const QSharedPointer<Connection> &con);
 
       /**
        * A connection attempt failed
@@ -66,14 +71,12 @@ namespace ClientServer {
       virtual void HandleConnectionAttemptFailure(const Address &addr,
           const QString &reason);
 
-      void SendConnectionUpdate(Connection *con);
-      void ServerStateInquire(RpcRequest &request);
-      void ServerStateResponse(RpcRequest &response);
+      void SendConnectionUpdate(const QSharedPointer<Connection> &con);
       void ClientHandleServerStateResponse(const Id &remote,
           const QHash<QByteArray, QUrl> &id_to_addr, int cons);
       void ServerHandleServerStateResponse(const Id &remote,
           const QHash<QByteArray, QUrl> &id_to_addr, int cons);
-      void ServerIncrementalUpdate(RpcRequest &notification);
+      void ServerIncrementalUpdate(const Request &notification);
       bool CheckAndConnect(const QByteArray &bid, const QUrl &url);
 
       bool _bootstrapping;
@@ -81,10 +84,13 @@ namespace ClientServer {
       QHash<Id, bool> _local_initiated;
       QHash<Id, int> _server_state;
       QHash<Address, Id> _addr_to_id;
-      RpcHandler &_rpc;
-      RpcMethod _server_state_request;
-      RpcMethod _server_state_response;
+      QSharedPointer<RpcHandler> _rpc;
+      QSharedPointer<ResponseHandler> _server_state_response;
       TimerEvent *_check_event;
+
+    private slots:
+      void ServerStateInquire(const Request &request);
+      void ServerStateResponse(const Response &response);
   };
 }
 }

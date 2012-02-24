@@ -16,9 +16,9 @@ namespace Identity {
    */
   class Credentials {
     public:
-      typedef Dissent::Connections::Id Id;
-      typedef Dissent::Crypto::AsymmetricKey AsymmetricKey;
-      typedef Dissent::Crypto::DiffieHellman DiffieHellman;
+      typedef Connections::Id Id;
+      typedef Crypto::AsymmetricKey AsymmetricKey;
+      typedef Crypto::DiffieHellman DiffieHellman;
 
       /**
        * Constructor

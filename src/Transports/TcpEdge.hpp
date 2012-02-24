@@ -32,10 +32,14 @@ namespace Transports {
       virtual ~TcpEdge();
 
       virtual void Send(const QByteArray &data);
-      virtual bool Close(const QString& reason);
 
     protected:
       virtual bool RequiresCleanup() { return true; }
+
+      /**
+       * Called as a result of Stop has been called
+       */
+      virtual void OnStop();
 
     private slots:
       void HandleDisconnect();

@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include <QObject>
+#include <QSharedPointer>
 
 #include "Connections/Id.hpp"
 #include "Connections/Network.hpp"
@@ -11,7 +12,7 @@
 #include "Identity/Credentials.hpp"
 #include "Messaging/GetDataCallback.hpp"
 #include "Messaging/ISender.hpp"
-#include "Messaging/Source.hpp"
+#include "Messaging/SourceObject.hpp"
 #include "Utils/StartStop.hpp"
 
 namespace Dissent {
@@ -25,28 +26,30 @@ namespace Crypto {
 }
 
 namespace Messaging {
-  class RpcRequest;
+  class Request;
 }
 
 namespace Anonymity {
   /**
    * An anonymous exchange amongst peers of a static group.
    */
-  class Round : public QObject, public Dissent::Utils::StartStop,
-      public Dissent::Messaging::Source, public Dissent::Messaging::ISender {
+  class Round : public Messaging::SourceObject,
+      public Utils::StartStop,
+      public Messaging::ISender
+  {
     Q_OBJECT
 
     public:
-      typedef Dissent::Connections::Connection Connection;
-      typedef Dissent::Connections::Id Id;
-      typedef Dissent::Connections::Network Network;
-      typedef Dissent::Crypto::AsymmetricKey AsymmetricKey;
-      typedef Dissent::Crypto::DiffieHellman DiffieHellman;
-      typedef Dissent::Identity::Credentials Credentials;
-      typedef Dissent::Identity::Group Group;
-      typedef Dissent::Identity::GroupContainer GroupContainer;
-      typedef Dissent::Messaging::GetDataCallback GetDataCallback;
-      typedef Dissent::Messaging::RpcRequest RpcRequest;
+      typedef Connections::Connection Connection;
+      typedef Connections::Id Id;
+      typedef Connections::Network Network;
+      typedef Crypto::AsymmetricKey AsymmetricKey;
+      typedef Crypto::DiffieHellman DiffieHellman;
+      typedef Identity::Credentials Credentials;
+      typedef Identity::Group Group;
+      typedef Identity::GroupContainer GroupContainer;
+      typedef Messaging::GetDataCallback GetDataCallback;
+      typedef Messaging::Request Request;
 
       /**
        * Constructor
@@ -69,7 +72,7 @@ namespace Anonymity {
        * Handle a data message from a remote peer
        * @param notification message from a remote peer
        */
-      virtual void IncomingData(RpcRequest &notification);
+      virtual void IncomingData(const Request &notification);
 
       /**
        * Close the round for no specific reason
@@ -85,7 +88,10 @@ namespace Anonymity {
       /**
        * Returns the reason the Round was closed, empty string if it is not closed
        */
-      inline const QString &GetStoppedReason() const { return _stopped_reason; }
+      inline const QString &GetStoppedReason() const
+      {
+        return _stopped_reason;
+      }
 
       /**
        * Returns whether or not there were any problems in the round
@@ -110,7 +116,10 @@ namespace Anonymity {
       /**
        * Returns the list of bad nodes discovered in the round
        */
-      inline virtual const QVector<int> &GetBadMembers() const { return _empty_list; }
+      inline virtual const QVector<int> &GetBadMembers() const
+      {
+        return _empty_list;
+      }
 
       /**
        * Send is not implemented, it is here simply so we can reuse the Source
@@ -148,6 +157,16 @@ namespace Anonymity {
        */
       void SetInterrupted() { _interrupted = true; }
 
+      inline QSharedPointer<Round> GetSharedPointer()
+      {
+        return _shared.toStrongRef();
+      }
+
+      void SetSharedPointer(const QSharedPointer<Round> &shared)
+      {
+        _shared = shared.toWeakRef();
+      }
+
     signals:
       /**
        * Emitted when the Round is closed for good or bad.
@@ -160,16 +179,16 @@ namespace Anonymity {
        * @param data Incoming data
        * @param id the remote peer sending the data
        */
-      virtual void ProcessData(const QByteArray &data, const Id &id) = 0;
+      virtual void ProcessData(const Id &id, const QByteArray &data) = 0;
 
       /**
        * Verifies that the provided data has a signature block and is properly
        * signed, returning the data block via msg
+       * @param from the signing peers id
        * @param data the data + signature blocks
        * @param msg the data block
-       * @param from the signing peers id
        */
-      bool Verify(const QByteArray &data, QByteArray &msg, const Id &from);
+      bool Verify(const Id &from, const QByteArray &data, QByteArray &msg);
 
       /**
        * Signs and encrypts a message before broadcasting
@@ -183,24 +202,30 @@ namespace Anonymity {
 
       /**
        * Signs and encrypts a message before sending it to a sepecific peer
-       * @param data the message to send
        * @param to the peer to send it to
+       * @param data the message to send
        */
-      virtual inline void VerifiableSend(const QByteArray &data, const Id &to)
+      virtual inline void VerifiableSend(const Id &to, const QByteArray &data)
       {
         QByteArray msg = data + GetSigningKey()->Sign(data);
-        GetNetwork()->Send(msg, to);
+        GetNetwork()->Send(to, msg);
       }
 
       /**
        * Returns the data to be sent during this round
        */
-      inline const QPair<QByteArray, bool> GetData(int max) { return _get_data_cb(max); }
+      inline const QPair<QByteArray, bool> GetData(int max)
+      {
+        return _get_data_cb(max);
+      }
 
       /**
        * Returns the nodes signing key
        */
-      inline QSharedPointer<AsymmetricKey> GetSigningKey() const { return _creds.GetSigningKey(); }
+      inline QSharedPointer<AsymmetricKey> GetSigningKey() const
+      {
+        return _creds.GetSigningKey();
+      }
 
       /**
        * Returns the local credentials
@@ -210,7 +235,10 @@ namespace Anonymity {
       /**
        * Returns the DiffieHellman key
        */
-      inline QSharedPointer<DiffieHellman> GetDhKey() const { return _creds.GetDhKey(); }
+      inline QSharedPointer<DiffieHellman> GetDhKey() const
+      {
+        return _creds.GetDhKey();
+      }
 
       void SetSuccessful(bool successful) { _successful = successful; }
 
@@ -229,19 +257,23 @@ namespace Anonymity {
       QString _stopped_reason;
       QVector<int> _empty_list;
       bool _interrupted;
+      QWeakPointer<Round> _shared;
   };
 
-  typedef Round *(*CreateRound)(const Round::Group &,
-      const Round::Credentials &, const Dissent::Connections::Id &,
-      QSharedPointer<Dissent::Connections::Network>,
-      Dissent::Messaging::GetDataCallback &get_data_cb);
+  typedef QSharedPointer<Round> (*CreateRound)(const Round::Group &,
+      const Round::Credentials &, const Connections::Id &,
+      QSharedPointer<Connections::Network>,
+      Messaging::GetDataCallback &get_data_cb);
 
-  template <typename T> Round *TCreateRound(const Round::Group &group,
-      const Round::Credentials &creds, const Dissent::Connections::Id &round_id,
-      QSharedPointer<Dissent::Connections::Network> network,
-      Dissent::Messaging::GetDataCallback &get_data)
+  template <typename T> QSharedPointer<Round> TCreateRound(
+      const Round::Group &group, const Round::Credentials &creds,
+      const Connections::Id &round_id,
+      QSharedPointer<Connections::Network> network,
+      Messaging::GetDataCallback &get_data)
   {
-    return new T(group, creds, round_id, network, get_data);
+    QSharedPointer<T> round(new T(group, creds, round_id, network, get_data));
+    round->SetSharedPointer(round);
+    return round;
   }
 }
 }

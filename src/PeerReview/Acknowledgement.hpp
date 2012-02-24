@@ -13,7 +13,7 @@ namespace PeerReview {
    */
   class Acknowledgement : public Entry {
     public:
-      typedef Dissent::Crypto::AsymmetricKey AsymmetricKey;
+      typedef Crypto::AsymmetricKey AsymmetricKey;
 
       /**
        * Constructs an ack from a receive entry

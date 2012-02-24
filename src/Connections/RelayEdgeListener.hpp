@@ -4,9 +4,8 @@
 #include <QObject>
 #include <QSharedPointer>
 
+#include "Messaging/ResponseHandler.hpp"
 #include "Messaging/RpcHandler.hpp"
-#include "Messaging/RpcMethod.hpp"
-#include "Messaging/RpcRequest.hpp"
 #include "Transports/EdgeListener.hpp"
 #include "Utils/Timer.hpp"
 #include "Utils/TimerCallback.hpp"
@@ -19,20 +18,28 @@
 #include "RelayForwarder.hpp"
 
 namespace Dissent {
+namespace Messaging {
+  class Request;
+  class Response;
+}
+
 namespace Connections {
   /**
    * Creates transport layer links over other links (connections)
    */
-  class RelayEdgeListener : public Dissent::Transports::EdgeListener {
+  class RelayEdgeListener : public Transports::EdgeListener {
+    Q_OBJECT
+
     public:
-      typedef Dissent::Messaging::ISender ISender;
-      typedef Dissent::Messaging::RpcMethod<RelayEdgeListener> Callback;
-      typedef Dissent::Messaging::RpcHandler RpcHandler;
-      typedef Dissent::Messaging::RpcRequest RpcRequest;
-      typedef Dissent::Transports::Address Address;
-      typedef Dissent::Utils::Timer Timer;
-      typedef Dissent::Utils::Triple<int, Id, int> CallbackData;
-      typedef Dissent::Utils::TimerMethod<RelayEdgeListener, CallbackData> TCallback;
+      typedef Messaging::ISender ISender;
+      typedef Messaging::Request Request;
+      typedef Messaging::Response Response;
+      typedef Messaging::ResponseHandler ResponseHandler;
+      typedef Messaging::RpcHandler RpcHandler;
+      typedef Transports::Address Address;
+      typedef Utils::Timer Timer;
+      typedef Utils::Triple<int, Id, int> CallbackData;
+      typedef Utils::TimerMethod<RelayEdgeListener, CallbackData> TCallback;
 
       /**
        * Constructor
@@ -41,7 +48,7 @@ namespace Connections {
        * @param rpc for sending rpc messages to remote nodes
        */
       RelayEdgeListener(const Id &local_id, const ConnectionTable &ct,
-          RpcHandler &rpc);
+          const QSharedPointer<RpcHandler> &rpc);
 
       /**
        * Destructor
@@ -68,21 +75,6 @@ namespace Connections {
 
     private:
       /**
-       * Request from the remote side to create an edge
-       */
-      void CreateEdge(RpcRequest &request);
-
-      /**
-       * Response from the remote side indicating response for creating edge
-       */
-      void EdgeCreated(RpcRequest &response);
-
-      /**
-       * Incoming data for an edge
-       */
-      void IncomingData(RpcRequest &notification);
-
-      /**
        * Returns a unique edge id not found in edges
        */
       int GetEdgeId();
@@ -94,12 +86,27 @@ namespace Connections {
        */
       Id _local_id;
       const ConnectionTable &_ct;
-      RpcHandler &_rpc;
-      RelayForwarder _forwarder;
-      Callback _edge_created;
-      Callback _create_edge;
-      Callback _incoming_data;
+      QSharedPointer<RpcHandler> _rpc;
+      QSharedPointer<RelayForwarder> _forwarder;
+      QSharedPointer<ResponseHandler> _edge_created;
       QHash<int, QSharedPointer<RelayEdge> > _edges;
+
+    private slots:
+      /**
+       * Request from the remote side to create an edge
+       */
+      void CreateEdge(const Request &request);
+
+      /**
+       * Response from the remote side indicating response for creating edge
+       */
+      void EdgeCreated(const Response &response);
+
+      /**
+       * Incoming data for an edge
+       */
+      void IncomingData(const Request &notification);
+
   };
 }
 }

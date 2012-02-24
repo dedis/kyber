@@ -6,12 +6,11 @@
 
 #include "Connections/Id.hpp"
 #include "Messaging/RpcHandler.hpp"
-#include "Messaging/RpcMethod.hpp"
 
 namespace Dissent {
 namespace Messaging {
+  class Request;
   class RpcHandler;
-  class RpcRequest;
 }
 
 namespace Anonymity {
@@ -24,10 +23,9 @@ namespace Anonymity {
     Q_OBJECT
 
     public:
-      typedef Dissent::Messaging::RpcHandler RpcHandler;
-      typedef Dissent::Messaging::RpcMethod<SessionManager> RpcMethod;
-      typedef Dissent::Messaging::RpcRequest RpcRequest;
-      typedef Dissent::Connections::Id Id;
+      typedef Messaging::RpcHandler RpcHandler;
+      typedef Messaging::Request Request;
+      typedef Connections::Id Id;
 
       typedef QHash<Id, QSharedPointer<Session> >::const_iterator const_iterator;
       typedef QHash<Id, QSharedPointer<Session> >::iterator iterator;
@@ -38,7 +36,8 @@ namespace Anonymity {
        * Constructor
        * @param rpc
        */
-      explicit SessionManager(RpcHandler &rpc = RpcHandler::GetEmpty());
+      explicit SessionManager(const QSharedPointer<RpcHandler> &rpc =
+          RpcHandler::GetEmpty());
 
       /**
        * Deconstructor
@@ -49,7 +48,7 @@ namespace Anonymity {
        * Adds a Session for the SessionManager to handle. Does not start the session.
        * @param session The session to be handled
        */
-      void AddSession(QSharedPointer<Session> session);
+      void AddSession(const QSharedPointer<Session> &session);
 
       /**
        * Returns the session matched to the specified id
@@ -70,41 +69,45 @@ namespace Anonymity {
 
     private:
       /**
-       * Returns the session associated with the RpcRequest
+       * Returns the session associated with the Request
        * @param msg a session based rpc request
        */
-      QSharedPointer<Session> GetSession(RpcRequest &msg);
+      QSharedPointer<Session> GetSession(const Request &msg);
+
+      QHash<Id, QSharedPointer<Session> > _id_to_session;
+      Id _default_session;
+      bool _default_set;
+      QSharedPointer<RpcHandler> _rpc;
+
+    private slots:
+      /**
+       * Called when a session is stopped
+       */
+      void HandleSessionStop();
 
       /**
        * A remote peer is requesting to join a session hosted by the local peer
        * @param request a request to be included
        */
-      void Register(RpcRequest &request);
+      void Register(const Request &request);
 
       /**
        * A remote peer is notifying this peer it is ready for the next round
        * @param request a request to be informed when to start
        */
-      void Prepare(RpcRequest &request);
-      void Begin(RpcRequest &notification);
+      void Prepare(const Request &request);
+      
+      /**
+       * Leader is ready to start the session
+       * @param notification the notification containing begin message
+       */
+      void Begin(const Request &notification);
 
       /**
        * A remote peer is submitting data to this peer
        * @param notification a data message
        */
-      void IncomingData(RpcRequest &notification);
-
-      QHash<Id, QSharedPointer<Session> > _id_to_session;
-      RpcMethod _register;
-      RpcMethod _prepare;
-      RpcMethod _begin;
-      RpcMethod _data;
-      Id _default_session;
-      bool _default_set;
-      RpcHandler &_rpc;
-
-    private slots:
-      void HandleSessionStop();
+      void IncomingData(const Request &notification);
   };
 }
 }

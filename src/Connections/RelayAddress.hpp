@@ -10,9 +10,9 @@ namespace Connections {
   /**
    * Private data holder for RelayAddress
    */
-  class RelayAddressData : public Dissent::Transports::AddressData {
+  class RelayAddressData : public Transports::AddressData {
     public:
-      typedef Dissent::Transports::AddressData AddressData;
+      typedef Transports::AddressData AddressData;
 
       explicit RelayAddressData(const QUrl &url, const Id &id) :
         AddressData(url), id(id)
@@ -41,10 +41,10 @@ namespace Connections {
    * relay:///$id -- that is no host and path without the first / is the Id
    * Note: with this Address type the concept of *any* isn't valid.
    */
-  class RelayAddress : public Dissent::Transports::Address {
+  class RelayAddress : public Transports::Address {
     public:
-      typedef Dissent::Transports::AddressData AddressData;
-      typedef Dissent::Transports::Address Address;
+      typedef Transports::AddressData AddressData;
+      typedef Transports::Address Address;
 
       const static QString Scheme;
 

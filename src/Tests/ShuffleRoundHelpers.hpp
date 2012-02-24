@@ -119,7 +119,7 @@ namespace Tests {
           VerifiableBroadcast(msg);
           _encrypted_data = _shuffle_cleartext;
         } else {
-          VerifiableSend(msg, next);
+          VerifiableSend(next, msg);
         }
       }
   };
@@ -264,7 +264,7 @@ namespace Tests {
         stream << Data << GetRoundId().GetByteArray() << _outer_ciphertext;
 
         _state = WaitingForShuffle;
-        VerifiableSend(msg, GetShufflers().GetId(0));
+        VerifiableSend(GetShufflers().GetId(0), msg);
       }
   };
 }

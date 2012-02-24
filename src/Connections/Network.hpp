@@ -2,24 +2,26 @@
 #define DISSENT_CONNECTIONS_NETWORK_H_GUARD
 
 #include <QByteArray>
+#include <QSharedPointer>
 #include <QVariant>
-
-#include "Messaging/RpcRequest.hpp"
-#include "Id.hpp"
 
 namespace Dissent {
 namespace Messaging {
-  class Callback;
+  class ResponseHandler;
 }
 
 namespace Connections {
   class Connection;
   class ConnectionManager;
+  class Id;
 
+  /**
+   * Used to transmit data across the overlay while abstracting interaction
+   * directly w/ the overlay and other communication primitives.
+   */
   class Network {
     public:
-      typedef Dissent::Messaging::Callback Callback;
-      typedef Dissent::Messaging::RpcContainer RpcContainer;
+      typedef Messaging::ResponseHandler ResponseHandler;
 
       /**
        * Virtual destructor
@@ -27,42 +29,57 @@ namespace Connections {
       virtual ~Network() {}
 
       /**
+       * Returns the destination method
+       */
+      virtual QString GetMethod() = 0;
+
+      /**
+       * Sets the remote receiving method
+       * @param method the method / location to send data
+       */
+      virtual void SetMethod(const QString &method) = 0;
+
+      /**
        * Sets the headers for Rpc messages, headers MUST contains a "method"
        * @param headers a hashtable containing key / value pairs that she
        * be added to each outgoing message
        */
-      virtual void SetHeaders(const RpcContainer &headers) = 0;
+      virtual void SetHeaders(const QVariantHash &headers) = 0;
  
       /**
        * Returns the headers
        */
-      virtual RpcContainer GetHeaders() = 0;
+      virtual QVariantHash GetHeaders() = 0;
 
       /**
        * Returns the connection matching to the Id or 0 if none exists
        * @param id the Id to lookup
        */
-      virtual Connection *GetConnection(const Id &id) = 0;
+      virtual QSharedPointer<Connection> GetConnection(const Id &id) = 0;
 
       /**
        * Returns a connection manager object capable of making connections
        */
-      virtual ConnectionManager &GetConnectionManager() = 0;
+      virtual QSharedPointer<ConnectionManager> GetConnectionManager() = 0;
 
       /**
-       * Just reroutes to the underlying RpcHandler ignoring any additional headers
-       * @param request message for the remote side
-       * @param to id for the remote destination
+       * Send a notification
+       * @param id the destination for the request
+       * @param method the remote method
+       * @param data the input data for that method
        */
-      virtual void SendNotification(RpcContainer &notification, const Id &to) = 0;
+      virtual void SendNotification(const Id &to, const QString &method,
+          const QVariant &data) = 0;
 
       /**
-       * Just reroutes to the underlying RpcHandler ignoring any additional headers
-       * @param request message for the remote side
-       * @param to id for the remote destination
-       * @param cb function to call when returning
+       * Send a request
+       * @param id the destination for the request
+       * @param method the remote method
+       * @param data the input data for that method
+       * @param callback called when the request is complete
        */
-      virtual void SendRequest(RpcContainer &request, const Id &to, Callback* cb) = 0;
+      virtual void SendRequest(const Id &to, const QString &method,
+          const QVariant &data, QSharedPointer<ResponseHandler> &callback) = 0;
 
       /**
        * Send a message to all group members
@@ -75,7 +92,7 @@ namespace Connections {
        * @param data The message
        * @param id The Id of the remote peer
        */
-      virtual void Send(const QByteArray &data, const Id &to) = 0;
+      virtual void Send(const Id &to, const QByteArray &data) = 0;
 
       /**
        * Returns a copy of this object

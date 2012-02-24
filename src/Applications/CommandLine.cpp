@@ -58,9 +58,10 @@ namespace Applications {
     _qtout.flush();
   }
 
-  void CommandLine::HandleData(const QByteArray &data, ISender *from)
+  void CommandLine::HandleData(const QSharedPointer<ISender> &from,
+      const QByteArray &data)
   {
-    ConsoleSink::HandleData(data, from);
+    ConsoleSink::HandleData(from, data);
     PrintCommandLine();
   }
 

@@ -17,9 +17,9 @@ namespace PeerReview {
    */
   class PRManager {
     public:
-      typedef Dissent::Connections::Id Id;
-      typedef Dissent::Identity::Credentials Credentials;
-      typedef Dissent::Identity::Group Group;
+      typedef Connections::Id Id;
+      typedef Identity::Credentials Credentials;
+      typedef Identity::Group Group;
 
       /**
        * Constructs a new peer review log system

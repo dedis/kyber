@@ -22,10 +22,10 @@ namespace Anonymity {
    */
   class ShuffleBlamer {
     public:
-      typedef Dissent::Connections::Id Id;
-      typedef Dissent::Crypto::AsymmetricKey AsymmetricKey;
-      typedef Dissent::Identity::Credentials Credentials;
-      typedef Dissent::Identity::Group Group;
+      typedef Connections::Id Id;
+      typedef Crypto::AsymmetricKey AsymmetricKey;
+      typedef Identity::Credentials Credentials;
+      typedef Identity::Group Group;
 
       /**
        * Constructors

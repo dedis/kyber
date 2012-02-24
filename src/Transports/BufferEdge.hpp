@@ -28,7 +28,6 @@ namespace Transports {
        */
       virtual ~BufferEdge();
       virtual void Send(const QByteArray &data);
-      virtual bool Close(const QString& reason);
       
       /**
        * BufferEdges just pass memory around, this matches this edge with
@@ -45,7 +44,10 @@ namespace Transports {
       const int Delay;
 
     protected:
-      virtual bool RequiresCleanup() { return true; }
+      /**
+       * Called as a result of Stop has been called
+       */
+      virtual void OnStop();
 
     private:
       /**
@@ -58,17 +60,7 @@ namespace Transports {
       /**
        * The remote edge
        */
-      QSharedPointer<BufferEdge> _remote_edge;
-
-      /**
-       * The Remote side is closing...
-       */
-      bool _rem_closing;
-
-      /**
-       * Packets sent but not arrived
-       */
-      int _incoming;
+      QWeakPointer<BufferEdge> _remote_edge;
   };
 }
 }

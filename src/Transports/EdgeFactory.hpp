@@ -18,7 +18,7 @@ namespace Transports {
        * Add an EL to be managed by the EdgeFactory
        * @param the EL to be managed
        */
-      void AddEdgeListener(QSharedPointer<EdgeListener> el);
+      void AddEdgeListener(const QSharedPointer<EdgeListener> &el);
 
       /**
        * Redirects the edge creation to the appropriate EL, if one exists
@@ -35,7 +35,7 @@ namespace Transports {
        * Returns the EL mapped to the type
        * @param type the type of EL
        */
-      QSharedPointer<EdgeListener> GetEdgeListener(QString type);
+      QSharedPointer<EdgeListener> GetEdgeListener(const QString &type);
 
     private:
       QHash<QString, QSharedPointer<EdgeListener> > _type_to_el;

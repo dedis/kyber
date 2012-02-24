@@ -5,7 +5,7 @@
 #include <QObject>
 
 #include "ISender.hpp"
-#include "ISink.hpp"
+#include "ISinkObject.hpp"
 
 namespace Dissent {
 namespace Messaging {
@@ -13,7 +13,7 @@ namespace Messaging {
    * Handle asynchronous data input by emitting
    * a signal
    */
-  class SignalSink : public QObject, public ISink {
+  class SignalSink : public ISinkObject {
     Q_OBJECT
 
     public:

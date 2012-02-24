@@ -17,7 +17,7 @@ namespace Services {
     Q_OBJECT
 
     public:
-      typedef Dissent::Web::WebRequest WebRequest;
+      typedef Web::WebRequest WebRequest;
 
       /**
        * Constructor

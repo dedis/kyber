@@ -16,8 +16,8 @@ namespace Services {
    */
   class SessionWebService : public WebService {
     public:
-      typedef Dissent::Anonymity::Session Session;
-      typedef Dissent::Anonymity::SessionManager SessionManager;
+      typedef Anonymity::Session Session;
+      typedef Anonymity::SessionManager SessionManager;
 
       explicit SessionWebService(SessionManager &sm) : _sm(sm) {}
 

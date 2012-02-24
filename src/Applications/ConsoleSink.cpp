@@ -13,7 +13,8 @@ namespace Applications {
   {
   }
 
-  void ConsoleSink::HandleData(const QByteArray &data, ISender *from)
+  void ConsoleSink::HandleData(const QSharedPointer<ISender> &from,
+      const QByteArray &data)
   {
     QString msg = QString::fromUtf8(data.data());
     _qtout << endl << "Incoming data: " << from->ToString() << " " << msg << endl;

@@ -1,5 +1,5 @@
 #include "Connections/Connection.hpp"
-#include "Messaging/RpcRequest.hpp"
+#include "Messaging/Request.hpp"
 
 #include "Round.hpp"
 
@@ -33,25 +33,33 @@ namespace Anonymity {
     return true;
   }
 
-  void Round::IncomingData(RpcRequest &notification)
+  void Round::IncomingData(const Request &notification)
   {
     if(Stopped()) {
       qWarning() << "Received a message on a closed session:" << ToString();
       return;
     }
       
-    Dissent::Messaging::ISender *from = notification.GetFrom();
-    Connection *con = dynamic_cast<Connection *>(from);
-    const Id &id = con->GetRemoteId();
-    if(con == 0 || !_group.Contains(id)) {
-      qDebug() << ToString() << " received wayward message from: " << from->ToString();
+    QSharedPointer<Connection> con =
+      notification.GetFrom().dynamicCast<Connection>();
+
+    if(!con) {
+      qDebug() << ToString() << " received wayward message from: " <<
+        notification.GetFrom()->ToString();
       return;
     }
 
-    ProcessData(notification.GetMessage()["data"].toByteArray(), id);
+    const Id &id = con->GetRemoteId();
+    if(!_group.Contains(id)) {
+      qDebug() << ToString() << " received wayward message from: " <<
+        notification.GetFrom()->ToString();
+      return;
+    }
+
+    ProcessData(id, notification.GetData().toHash().value("data").toByteArray());
   }
 
-  bool Round::Verify(const QByteArray &data, QByteArray &msg, const Id &from)
+  bool Round::Verify(const Id &from, const QByteArray &data, QByteArray &msg)
   {
     QSharedPointer<AsymmetricKey> key = GetGroup().GetKey(from);
     if(key.isNull()) {

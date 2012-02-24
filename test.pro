@@ -31,55 +31,57 @@ HEADERS += ext/googletest/include/gtest/gtest-death-test.h \
            ext/googletest/include/gtest/internal/gtest-string.h \
            ext/googletest/include/gtest/internal/gtest-tuple.h \
            ext/googletest/include/gtest/internal/gtest-type-util.h \
+           src/Tests/BulkRoundHelpers.hpp \
            src/Tests/DissentTest.hpp \
            src/Tests/Mock.hpp \
-           src/Tests/RpcTest.hpp \
-           src/Tests/TestNode.hpp \
+           src/Tests/MockEdgeHandler.hpp \
+           src/Tests/MockSender.hpp \
+           src/Tests/MockSource.hpp \
            src/Tests/RoundTest.hpp \
+           src/Tests/RpcTest.hpp \
            src/Tests/ShuffleRoundHelpers.hpp \
-           src/Tests/BulkRoundHelpers.hpp \
+           src/Tests/TestNode.hpp \
+           src/Tests/TestWebClient.hpp \
            src/Tests/TolerantBulkRoundHelpers.hpp \
            src/Tests/TolerantTreeRoundHelpers.hpp \
-           src/Tests/WebServicesTest.hpp \
-           src/Tests/TestWebClient.hpp
+           src/Tests/WebServicesTest.hpp
 
 SOURCES += ext/googletest/src/gtest-all.cc \
-           src/Tests/BlameUtilsTest.cpp \
-           src/Tests/MessageRandomizerTest.cpp \
            src/Tests/AddressTest.cpp \
-           src/Tests/MainTest.cpp \
-           src/Tests/Mock.cpp \
-           src/Tests/TimeTest.cpp \
-           src/Tests/RpcTest.cpp \
-           src/Tests/EdgeTest.cpp \
-           src/Tests/IdTest.cpp \
-           src/Tests/ConnectionTest.cpp \
-           src/Tests/SettingsTest.cpp \
-           src/Tests/GroupTest.cpp \
-           src/Tests/NullRoundTest.cpp \
-           src/Tests/Crypto.cpp \
-           src/Tests/OnionTest.cpp \
-           src/Tests/RandomTest.cpp \
-           src/Tests/HashTest.cpp \
-           src/Tests/RoundTest.cpp \
-           src/Tests/TestNode.cpp \
-           src/Tests/LogTest.cpp \
-           src/Tests/ShuffleRoundTest.cpp \
            src/Tests/BasicGossipTest.cpp \
-           src/Tests/TcpTest.cpp \
-           src/Tests/IntegerTest.cpp \
-           src/Tests/TripleTest.cpp \
-           src/Tests/SerializationTest.cpp \
+           src/Tests/BlameUtilsTest.cpp \
            src/Tests/BulkRoundTest.cpp \
-           src/Tests/RepeatingBulkRoundTest.cpp \
-           src/Tests/TrustedBulkRoundTest.cpp \
-           src/Tests/TolerantBulkRoundTest.cpp \
-           src/Tests/TolerantTreeRoundTest.cpp \
-           src/Tests/PackagersTest.cpp \
+           src/Tests/ConnectionTest.cpp \
+           src/Tests/Crypto.cpp \
+           src/Tests/CSOverlayTest.cpp \
+           src/Tests/EdgeTest.cpp \
+           src/Tests/GroupTest.cpp \
+           src/Tests/HashTest.cpp \
            src/Tests/HttpRequestTest.cpp \
            src/Tests/HttpResponseTest.cpp \
-           src/Tests/WebServicesTest.cpp \
-           src/Tests/WebServerTest.cpp \
-           src/Tests/TestWebClient.cpp \
+           src/Tests/IdTest.cpp \
+           src/Tests/IntegerTest.cpp \
+           src/Tests/LogTest.cpp \
+           src/Tests/MainTest.cpp \
+           src/Tests/MessageRandomizerTest.cpp \
+           src/Tests/NullRoundTest.cpp \
+           src/Tests/OnionTest.cpp \
+           src/Tests/PackagersTest.cpp \
            src/Tests/PeerReviewTest.cpp \
-           src/Tests/CSOverlayTest.cpp
+           src/Tests/RandomTest.cpp \
+           src/Tests/RepeatingBulkRoundTest.cpp \
+           src/Tests/RpcTest.cpp \
+           src/Tests/RoundTest.cpp \
+           src/Tests/SerializationTest.cpp \
+           src/Tests/SettingsTest.cpp \
+           src/Tests/ShuffleRoundTest.cpp \
+           src/Tests/TcpTest.cpp \
+           src/Tests/TestNode.cpp \
+           src/Tests/TestWebClient.cpp \
+           src/Tests/TimeTest.cpp \
+           src/Tests/TolerantBulkRoundTest.cpp \
+           src/Tests/TolerantTreeRoundTest.cpp \
+           src/Tests/TripleTest.cpp \
+           src/Tests/TrustedBulkRoundTest.cpp \
+           src/Tests/WebServerTest.cpp \
+           src/Tests/WebServicesTest.cpp

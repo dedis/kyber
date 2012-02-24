@@ -93,13 +93,13 @@ namespace Anonymity {
           QByteArray _hash;
       };
 
-      typedef Dissent::Crypto::DiffieHellman DiffieHellman;
-      typedef Dissent::Messaging::BufferSink BufferSink;
-      typedef Dissent::Messaging::GetDataMethod<BulkRound> BulkGetDataCallback;
+      typedef Crypto::DiffieHellman DiffieHellman;
+      typedef Messaging::BufferSink BufferSink;
+      typedef Messaging::GetDataMethod<BulkRound> BulkGetDataCallback;
       // Descriptor index, peer index
       typedef QPair<int, int> BadHash;
       // Descriptor index, peer index, shared secret
-      typedef Dissent::Utils::Triple<int, int, QByteArray> BlameEntry;
+      typedef Utils::Triple<int, int, QByteArray> BlameEntry;
 
       /**
        * Varius stages of the bulk
@@ -171,7 +171,7 @@ namespace Anonymity {
        * Handle a data message from a remote peer
        * @param notification message from a remote peer
        */
-      virtual void IncomingData(RpcRequest &notification);
+      virtual void IncomingData(const Request &notification);
 
       /**
        * Returns a list of members who have been blamed in the round
@@ -210,17 +210,17 @@ namespace Anonymity {
 
       /**
        * If data is from a legitimate group member, it is processed
-       * @param data Incoming data
        * @param id the remote peer sending the data
+       * @param data Incoming data
        */
-      virtual void ProcessData(const QByteArray &data, const Id &from);
+      virtual void ProcessData(const Id &from, const QByteArray &data);
 
       /**
        * Does the dirty work of processing data
-       * @param data Incoming data
        * @param id the remote peer sending the data
+       * @param data Incoming data
        */
-      void ProcessDataBase(const QByteArray &data, const Id &from);
+      void ProcessDataBase(const Id &from, const QByteArray &data);
 
       /**
        * Parses through all the descriptors to generate a single transmission

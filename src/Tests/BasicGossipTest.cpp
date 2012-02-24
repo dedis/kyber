@@ -26,7 +26,7 @@ namespace Tests {
       QSharedPointer<AsymmetricKey> key(lib->GeneratePrivateKey(bid));
       QSharedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
 
-      QSharedPointer<ISink> sink(QSharedPointer<ISink>(new MockSinkWithSignal()));
+      QSharedPointer<ISink> sink(new BufferSink());
       nodes.append(Node::CreateBasicGossip(Credentials(id, key, dh),
               group, local, remote, sink, session_type));
       local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
@@ -34,8 +34,8 @@ namespace Tests {
 
     SignalCounter sc;
     foreach(QSharedPointer<Node> node, nodes) {
-      QObject::connect(&node->GetOverlay()->GetConnectionManager(),
-          SIGNAL(NewConnection(Connection *)),
+      QObject::connect(node->GetOverlay()->GetConnectionManager().data(),
+          SIGNAL(NewConnection(QSharedPointer<Connection>)),
           &sc, SLOT(Counter()));
       node->GetOverlay()->Start();
     }
@@ -86,11 +86,11 @@ namespace Tests {
 
     SignalCounter sc;
     foreach(QSharedPointer<Node> node, nodes) {
-      MockSinkWithSignal *sink = dynamic_cast<MockSinkWithSignal *>(node->GetSink().data());
-      if(sink == 0) {
-        qFatal("MockSinkWithSignal expected");
+      QSharedPointer<BufferSink> sink = node->GetSink().dynamicCast<BufferSink>();
+      if(!sink) {
+        qFatal("BufferSink expected");
       }
-      QObject::connect(sink, SIGNAL(ReadReady(MockSinkWithSignal *)), &sc, SLOT(Counter()));
+      QObject::connect(sink.data(), SIGNAL(DataReceived()), &sc, SLOT(Counter()));
     }
 
     int count = nodes.count();
@@ -101,11 +101,11 @@ namespace Tests {
     }
 
     foreach(QSharedPointer<Node> node, nodes) {
-      MockSinkWithSignal *sink = dynamic_cast<MockSinkWithSignal *>(node->GetSink().data());
-      if(sink == 0) {
-        qFatal("MockSinkWithSignal expected");
+      QSharedPointer<BufferSink> sink = node->GetSink().dynamicCast<BufferSink>();
+      if(!sink) {
+        qFatal("BufferSink expected");
       }
-      EXPECT_EQ(msg, sink->GetLastData());
+      EXPECT_EQ(msg, sink->Last().second);
     }
   }
 
@@ -123,8 +123,9 @@ namespace Tests {
     }
 
     EXPECT_EQ(nodes[idx]->GetOverlay()->GetId(), leader_id);
-    const QList<Connection *> &connections =
-      nodes[idx]->GetOverlay()->GetConnectionManager().GetConnectionTable().GetConnections();
+    const QList<QSharedPointer<Connection> > &connections =
+      nodes[idx]->GetOverlay()->GetConnectionManager()->
+        GetConnectionTable().GetConnections();
 
     Address remote_addr = BufferAddress::CreateAny();
     for(int jdx = 0; jdx < connections.size(); jdx++) {
@@ -155,14 +156,14 @@ namespace Tests {
     remote.append(remote_addr);
 
     group = Group(QVector<GroupContainer>(), leader_id, policy);
-    QSharedPointer<ISink> sink(QSharedPointer<ISink>(new MockSinkWithSignal()));
+    QSharedPointer<ISink> sink(new BufferSink());
     nodes[idx] = Node::CreateBasicGossip(Credentials(leader_id, key, dh),
           group, local, remote, sink, session_type);
 
     sc.Reset();
     foreach(QSharedPointer<Node> node, nodes) {
-      QObject::connect(&node->GetOverlay()->GetConnectionManager(),
-          SIGNAL(NewConnection(Connection *)),
+      QObject::connect(node->GetOverlay()->GetConnectionManager().data(),
+          SIGNAL(NewConnection(QSharedPointer<Connection> )),
           &sc, SLOT(Counter()));
       node->GetOverlay()->Start();
     }
@@ -207,7 +208,7 @@ namespace Tests {
     SendTest(nodes);
 
     foreach(QSharedPointer<Node> node, nodes) {
-      EXPECT_EQ(node->GetOverlay()->GetConnectionManager().OutstandingConnectionAttempts(), 0);
+      EXPECT_EQ(node->GetOverlay()->GetConnectionManager()->OutstandingConnectionAttempts(), 0);
     }
 
     TerminateOverlay(nodes);
@@ -224,7 +225,7 @@ namespace Tests {
     SendTest(nodes);
 
     foreach(QSharedPointer<Node> node, nodes) {
-      EXPECT_EQ(node->GetOverlay()->GetConnectionManager().OutstandingConnectionAttempts(), 0);
+      EXPECT_EQ(node->GetOverlay()->GetConnectionManager()->OutstandingConnectionAttempts(), 0);
     }
 
     TerminateOverlay(nodes);

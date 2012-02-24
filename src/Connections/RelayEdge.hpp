@@ -15,11 +15,11 @@ namespace Connections {
    * Stores the state for creating a transport layer link that utilizes other
    * types of links.
    */
-  class RelayEdge : public Dissent::Transports::Edge {
+  class RelayEdge : public Transports::Edge {
     public:
-      typedef Dissent::Messaging::ISender ISender;
-      typedef Dissent::Messaging::RpcHandler RpcHandler;
-      typedef Dissent::Transports::Address Address;
+      typedef Messaging::ISender ISender;
+      typedef Messaging::RpcHandler RpcHandler;
+      typedef Transports::Address Address;
 
       /**
        * Constructor
@@ -34,7 +34,8 @@ namespace Connections {
        * occur, defaults to -1
        */
       explicit RelayEdge(const Address &local, const Address &remote,
-          bool outbound, RpcHandler &rpc, ISender *forwarder,
+          bool outbound, const QSharedPointer<RpcHandler> &rpc,
+          const QSharedPointer<ISender> &forwarder,
           int local_edge_id, int remote_edge_id = -1);
 
       /**
@@ -74,8 +75,8 @@ namespace Connections {
       int GetRemoteEdgeId() { return _remote_edge_id; }
 
     private:
-      RpcHandler &_rpc;
-      ISender *_forwarder;
+      QSharedPointer<RpcHandler> _rpc;
+      QSharedPointer<ISender> _forwarder;
       int _local_edge_id;
       int _remote_edge_id;
   };

@@ -3,7 +3,7 @@
 
 #include "Dissent.hpp"
 
-class MockSource : public Source {
+class MockSource : public SourceObject {
   public:
     void IncomingData(const QSharedPointer<ISender> &from,
         const QByteArray &data)

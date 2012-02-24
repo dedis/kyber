@@ -23,11 +23,9 @@ namespace Transports {
     DestructorCheck();
   }
 
-  bool TcpEdgeListener::Start()
+  void TcpEdgeListener::OnStart()
   {
-    if(!EdgeListener::Start()) {
-      return false;
-    }
+    EdgeListener::OnStart();
 
     const TcpAddress &addr = static_cast<const TcpAddress &>(GetAddress());
 
@@ -58,22 +56,16 @@ namespace Transports {
 
     int port = _server.serverPort();
     SetAddress(TcpAddress(ip.toString(), port));
-    return true;
   }
 
-  bool TcpEdgeListener::Stop()
+  void TcpEdgeListener::OnStop()
   {
-    if(!EdgeListener::Stop()) {
-      return false;
-    }
-
+    EdgeListener::OnStop();
     _server.close();
     foreach(QTcpSocket *socket, _outstanding_sockets.keys()) {
       HandleSocketClose(socket, "EdgeListner Stopped");
     }
     _outstanding_sockets.clear();
-
-    return true;
   }
 
   void TcpEdgeListener::HandleAccept()
@@ -173,8 +165,8 @@ namespace Transports {
     }
 
     // deleteLater since a socket may potentially be closed during a read operation
-    QSharedPointer<Edge> edge(new TcpEdge(GetAddress(), remote, outgoing, socket),
-        &QObject::deleteLater);
+    QSharedPointer<Edge> edge(new TcpEdge(GetAddress(), remote, outgoing, socket));
+    SetSharedPointer(edge);
     ProcessNewEdge(edge);
   }
 }

@@ -122,7 +122,7 @@ namespace Anonymity {
 
     for(int idx = 0; idx < _offline_log.Count(); idx++) {
       QPair<QByteArray, Id> entry = _offline_log.At(idx);
-      ProcessData(entry.first, entry.second);
+      ProcessData(entry.second, entry.first);
     }
 
     _offline_log.Clear();
@@ -417,11 +417,11 @@ namespace Anonymity {
     }
   }
 
-  void ShuffleRound::ProcessData(const QByteArray &data, const Id &from)
+  void ShuffleRound::ProcessData(const Id &from, const QByteArray &data)
   {
     _log.Append(data, from);
     try {
-      ProcessDataBase(data, from);
+      ProcessDataBase(from, data);
     } catch (QRunTimeError &err) {
       qWarning() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
         "received a message from" << GetGroup().GetIndex(from) << from.ToString() <<
@@ -432,10 +432,10 @@ namespace Anonymity {
     }
   }
 
-  void ShuffleRound::ProcessDataBase(const QByteArray &data, const Id &from)
+  void ShuffleRound::ProcessDataBase(const Id &from, const QByteArray &data)
   {
     QByteArray payload;
-    if(!Verify(data, payload, from)) {
+    if(!Verify(from, data, payload)) {
       throw QRunTimeError("Invalid signature or data");
     }
 
@@ -541,7 +541,7 @@ namespace Anonymity {
     qDebug() << _shufflers.GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
       << ": data submitted now in state:" << StateToString(_state);
 
-    VerifiableSend(msg, _shufflers.GetId(0));
+    VerifiableSend(_shufflers.GetId(0), msg);
   }
 
   void ShuffleRound::Shuffle()
@@ -591,7 +591,7 @@ namespace Anonymity {
     if(mtype == EncryptedData) {
       VerifiableBroadcast(msg);
     } else {
-      VerifiableSend(msg, next);
+      VerifiableSend(next, msg);
     }
   }
 
@@ -680,7 +680,7 @@ namespace Anonymity {
         continue;
       }
       qDebug() << "Received a valid message: " << msg.size() << msg.toBase64();
-      PushData(msg, this);
+      PushData(GetSharedPointer(), msg);
     }
     SetSuccessful(true);
     _state = Finished;

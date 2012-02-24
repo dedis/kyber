@@ -24,7 +24,7 @@ namespace Tests {
       QSharedPointer<AsymmetricKey> key(lib->GeneratePrivateKey(bid));
       QSharedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
 
-      QSharedPointer<ISink> sink(QSharedPointer<ISink>(new MockSinkWithSignal()));
+      QSharedPointer<ISink> sink(new BufferSink());
       nodes.append(Node::CreateBasicGossip(Credentials(id, key, dh), group,
             local, remote, sink, session_type));
 
@@ -35,8 +35,8 @@ namespace Tests {
     SignalCounter sc(total_cons);
 
     foreach(QSharedPointer<Node> node, nodes) {
-      QObject::connect(&node->GetOverlay()->GetConnectionManager(),
-        SIGNAL(NewConnection(Connection *)),
+      QObject::connect(node->GetOverlay()->GetConnectionManager().data(),
+        SIGNAL(NewConnection(const QSharedPointer<Connection> &)),
           &sc, SLOT(Counter()));
       node->GetOverlay()->Start();
     }
@@ -76,21 +76,21 @@ namespace Tests {
 
     SignalCounter sc(nodes.count());
     foreach(QSharedPointer<Node> node, nodes) {
-      MockSinkWithSignal *sink = dynamic_cast<MockSinkWithSignal *>(node->GetSink().data());
-      if(sink == 0) {
-        qFatal("MockSinkWithSignal expected");
+      QSharedPointer<BufferSink> sink = node->GetSink().dynamicCast<BufferSink>();
+      if(!sink) {
+        qFatal("BufferSink expected");
       }
-      QObject::connect(sink, SIGNAL(ReadReady(MockSinkWithSignal *)), &sc, SLOT(Counter()));
+      QObject::connect(sink.data(), SIGNAL(DataReceived()), &sc, SLOT(Counter()));
     }
 
     MockExecLoop(sc);
 
     foreach(QSharedPointer<Node> node, nodes) {
-      MockSinkWithSignal *sink = dynamic_cast<MockSinkWithSignal *>(node->GetSink().data());
-      if(sink == 0) {
-        qFatal("MockSinkWithSignal expected");
+      QSharedPointer<BufferSink> sink = node->GetSink().dynamicCast<BufferSink>();
+      if(!sink) {
+        qFatal("BufferSink expected");
       }
-      EXPECT_EQ(msg, sink->GetLastData());
+      EXPECT_EQ(msg, sink->Last().second);
     }
   }
 
@@ -104,7 +104,7 @@ namespace Tests {
     LiveSendTest(nodes);
 
     foreach(QSharedPointer<Node> node, nodes) {
-      EXPECT_EQ(node->GetOverlay()->GetConnectionManager().OutstandingConnectionAttempts(), 0);
+      EXPECT_EQ(node->GetOverlay()->GetConnectionManager()->OutstandingConnectionAttempts(), 0);
     }
 
     TerminateLiveOverlay(nodes);

@@ -1,12 +1,22 @@
 #ifndef DISSENT_CONNECTIONS_EMPTY_NETWORK_H_GUARD
 #define DISSENT_CONNECTIONS_EMPTY_NETWORK_H_GUARD
 
+#include <QByteArray>
 #include <QSharedPointer>
+#include <QVariant>
+
 #include "Network.hpp"
-#include "ConnectionManager.hpp"
 
 namespace Dissent {
+namespace Messaging {
+  class ResponseHandler;
+}
+
 namespace Connections {
+  class Connection;
+  class ConnectionManager;
+  class Id;
+
   class EmptyNetwork : public Network {
     public:
       static QSharedPointer<Network> GetInstance()
@@ -23,54 +33,80 @@ namespace Connections {
       /**
        * Does nothing
        */
-      virtual void SetHeaders(const RpcContainer &) {}
+      inline virtual QString GetMethod() { return QString(); }
+
+      /**
+       * Does nothing
+       */
+      inline virtual void SetMethod(const QString &) { }
+
+      /**
+       * Does nothing
+       */
+      virtual void SetHeaders(const QVariantHash &) { }
  
       /**
        * Does nothing
        */
-      virtual RpcContainer GetHeaders()
+      virtual QVariantHash GetHeaders()
       {
-        static RpcContainer hash;
-        return hash;
+        return QVariantHash();
       }
 
       /**
        * Does nothing
        */
-      virtual void SendNotification(RpcContainer &, const Id &) {}
-
-      /**
-       * Does nothing
-       */
-      virtual void SendRequest(RpcContainer &, const Id &, Callback *) {}
-
-      /**
-       * Does nothing
-       */
-      virtual Connection *GetConnection(const Id &) { return 0;}
-
-      /**
-       * Does nothing
-       */
-      virtual ConnectionManager &GetConnectionManager()
+      virtual QSharedPointer<Connection> GetConnection(const Id &)
       {
-        return ConnectionManager::GetEmpty();
+        return QSharedPointer<Connection>();
       }
 
       /**
        * Does nothing
        */
-      virtual void Broadcast(const QByteArray &) {}
+      virtual QSharedPointer<ConnectionManager> GetConnectionManager()
+      {
+       return QSharedPointer<ConnectionManager>();
+      }
 
       /**
        * Does nothing
        */
-      virtual void Send(const QByteArray &, const Id &) {}
+      virtual void SendNotification(const Id &, const QString &,
+          const QVariant &)
+      {
+      }
 
       /**
-       * Returns a copy, not that this should happen too frequently...
+       * Does nothing
        */
-      virtual Network *Clone() const { return new EmptyNetwork(*this); }
+      virtual void SendRequest(const Id &, const QString &,
+          const QVariant &, QSharedPointer<ResponseHandler> &)
+      {
+      }
+
+      /**
+       * Does nothing
+       */
+      virtual void Broadcast(const QByteArray &)
+      {
+      }
+
+      /**
+       * Does nothing
+       */
+      virtual void Send(const Id &, const QByteArray &)
+      {
+      }
+
+      /**
+       * Returns a copy of this object
+       */
+      virtual Network *Clone() const
+      {
+        return new EmptyNetwork(*this);
+      }
+
     private:
       explicit EmptyNetwork() {}
       EmptyNetwork(const EmptyNetwork &) {}

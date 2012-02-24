@@ -16,7 +16,7 @@ namespace Anonymity {
    */
   class Log {
     public:
-      typedef Dissent::Connections::Id Id;
+      typedef Connections::Id Id;
 
       /**
        * Default constructor

@@ -35,7 +35,7 @@ namespace Anonymity {
    */
   class TrustedBulkRound : public RepeatingBulkRound {
     public:
-      typedef Dissent::Crypto::Integer Integer;
+      typedef Crypto::Integer Integer;
 
       /**
        * Constructor

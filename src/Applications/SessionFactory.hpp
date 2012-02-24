@@ -15,8 +15,8 @@ namespace Applications {
    */
   class SessionFactory {
     public:
-      typedef Dissent::Anonymity::CreateRound CreateRound;
-      typedef Dissent::Connections::Id Id;
+      typedef Anonymity::CreateRound CreateRound;
+      typedef Connections::Id Id;
       typedef void (*Callback)(Node *, const Id &);
 
       /**

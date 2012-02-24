@@ -17,7 +17,7 @@ namespace Applications {
    * Allows for Asynchronous access to the commandline for input and output
    * purposes.  Useful for console applications.
    */
-  class CommandLine : public QObject, public ConsoleSink {
+  class CommandLine : public ConsoleSink {
     Q_OBJECT
 
     public:
@@ -36,10 +36,11 @@ namespace Applications {
 
       /**
        * A sink input to print data to the console in a pretty way
-       * @param data incoming data
        * @param from the sender of the data
+       * @param data incoming data
        */
-      virtual void HandleData(const QByteArray &data, ISender *from);
+      virtual void HandleData(const QSharedPointer<ISender> &from,
+          const QByteArray &data);
 
     public slots:
       /**

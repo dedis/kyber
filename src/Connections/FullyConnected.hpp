@@ -2,13 +2,18 @@
 #define DISSENT_CONNECTIONS_FULLY_CONNECTED_H_GUARD
 
 #include "Messaging/RpcHandler.hpp"
-#include "Messaging/RpcMethod.hpp"
 #include "Utils/TimerEvent.hpp"
 
 #include "ConnectionAcquirer.hpp"
 #include "RelayEdgeListener.hpp"
 
 namespace Dissent {
+namespace Messaging {
+  class Request;
+  class Response;
+  class ResponseHandler;
+}
+
 namespace Connections {
   /**
    * Creates a fully connected overlay.
@@ -17,17 +22,20 @@ namespace Connections {
     Q_OBJECT
 
     public:
-      typedef Dissent::Messaging::RpcHandler RpcHandler;
-      typedef Dissent::Messaging::RpcMethod<FullyConnected> RpcMethod;
-      typedef Dissent::Messaging::RpcRequest RpcRequest;
-      typedef Dissent::Utils::TimerEvent TimerEvent;
+      typedef Messaging::Request Request;
+      typedef Messaging::Response Response;
+      typedef Messaging::ResponseHandler ResponseHandler;
+      typedef Messaging::RpcHandler RpcHandler;
+      typedef Utils::TimerEvent TimerEvent;
 
       /**
        * Create a ConnectionAcquirer
        * @param cm Connection manager used for creating (and monitoring)
+       * @param rpc method for sending requests to the remote member
        * connections
        */
-      FullyConnected(ConnectionManager &cm, RpcHandler &rpc);
+      FullyConnected(const QSharedPointer<ConnectionManager> &cm,
+          const QSharedPointer<RpcHandler> &rpc);
 
       /**
        * Allow for inheritance!
@@ -38,7 +46,7 @@ namespace Connections {
       /**
        * Returns the RpcHandler
        */
-      RpcHandler &GetRpcHandler() { return _rpc; }
+      const QSharedPointer<RpcHandler> GetRpcHandler() { return _rpc; }
 
       virtual void OnStart();
 
@@ -49,7 +57,7 @@ namespace Connections {
        * A new connection
        * @param con the new connection
        */
-      virtual void HandleConnection(Connection *con);
+      virtual void HandleConnection(const QSharedPointer<Connection> &con);
 
       /**
        * A connection attempt failed
@@ -61,13 +69,13 @@ namespace Connections {
        * Notify all peers about this new peer
        * @param con the new peer
        */
-      void SendUpdate(Connection *con);
+      void SendUpdate(const QSharedPointer<Connection> &con);
 
       /**
        * Request a peer list from this connection
        * @param con the remote peer to request peer list from
        */
-      void RequestPeerList(Connection *con);
+      void RequestPeerList(const QSharedPointer<Connection> &con);
 
       /**
        * Check if the local node is connect, connecting if not
@@ -77,21 +85,6 @@ namespace Connections {
       void CheckAndConnect(const QByteArray &bid, const QUrl &url);
 
       /**
-       * Handle a request for a list of local nodes peers
-       */
-      void PeerListInquire(RpcRequest &request);
-
-      /**
-       * Handle a remote peers list of peers
-       */
-      void PeerListResponse(RpcRequest &response);
-
-      /**
-       * Handle a remote peers knowledge of another peer
-       */
-      void PeerListIncrementalUpdate(RpcRequest &notification);
-
-      /**
        * Timer callback to help obtain and maintain all to all connectivity
        */
       void RequestPeerList(const int &);
@@ -99,11 +92,9 @@ namespace Connections {
       /**
        * RpcHandler used for communicating with remote peers
        */
-      RpcHandler &_rpc;
+      QSharedPointer<RpcHandler> _rpc;
       QSharedPointer<RelayEdgeListener> _relay_el;
-      RpcMethod _peer_list_inquire;
-      RpcMethod _peer_list_response;
-      RpcMethod _notify_peer;
+      QSharedPointer<ResponseHandler> _peer_list_response;
       QHash<Address, Id> _waiting_on;
       QByteArray _connection_list_hash;
       TimerEvent *_check_event;
@@ -114,6 +105,21 @@ namespace Connections {
        * @param reason the reason for the disconnect
        */
       void HandleDisconnect(const QString &reason);
+
+      /**
+       * Handle a request for a list of local nodes peers
+       */
+      void PeerListInquire(const Request &request);
+
+      /**
+       * Handle a remote peers list of peers
+       */
+      void PeerListResponse(const Response &response);
+
+      /**
+       * Handle a remote peers knowledge of another peer
+       */
+      void PeerListIncrementalUpdate(const Request &notification);
   };
 }
 }

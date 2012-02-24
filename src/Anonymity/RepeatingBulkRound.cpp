@@ -4,7 +4,7 @@
 #include "Crypto/Hash.hpp"
 #include "Crypto/Library.hpp"
 #include "Crypto/Serialization.hpp"
-#include "Messaging/RpcRequest.hpp"
+#include "Messaging/Request.hpp"
 #include "Utils/QRunTimeError.hpp"
 #include "Utils/Random.hpp"
 #include "Utils/Serialization.hpp"
@@ -18,7 +18,7 @@ using Dissent::Crypto::CryptoFactory;
 using Dissent::Crypto::DiffieHellman;
 using Dissent::Crypto::Hash;
 using Dissent::Crypto::Library;
-using Dissent::Messaging::RpcRequest;
+using Dissent::Messaging::Request;
 using Dissent::Utils::QRunTimeError;
 using Dissent::Utils::Random;
 using Dissent::Utils::Serialization;
@@ -35,7 +35,7 @@ namespace Anonymity {
     _phase(0),
     _stop_next(false)
   {
-    Dissent::Messaging::RpcContainer headers = GetNetwork()->GetHeaders();
+    QVariantHash headers = GetNetwork()->GetHeaders();
     headers["bulk"] = true;
     GetNetwork()->SetHeaders(headers);
 
@@ -50,10 +50,8 @@ namespace Anonymity {
     QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
     Id sr_id(hashalgo->ComputeHash(GetRoundId().GetByteArray()));
 
-    Round *pr = create_shuffle(GetGroup(), GetCredentials(), sr_id, net,
+    _shuffle_round = create_shuffle(GetGroup(), GetCredentials(), sr_id, net,
         _get_shuffle_data);
-    _shuffle_round = QSharedPointer<Round>(pr);
-
     _shuffle_round->SetSink(&_shuffle_sink);
 
     QObject::connect(_shuffle_round.data(), SIGNAL(Finished()),
@@ -83,34 +81,42 @@ namespace Anonymity {
     return true;
   }
 
-  void RepeatingBulkRound::IncomingData(RpcRequest &notification)
+  void RepeatingBulkRound::IncomingData(const Request &notification)
   {
     if(Stopped()) {
       qWarning() << "Received a message on a closed session:" << ToString();
       return;
     }
-      
-    Dissent::Messaging::ISender *from = notification.GetFrom();
-    Connection *con = dynamic_cast<Connection *>(from);
-    const Id &id = con->GetRemoteId();
-    if(con == 0 || !GetGroup().Contains(id)) {
-      qDebug() << ToString() << " received wayward message from: " << from->ToString();
+
+    QSharedPointer<Connection> con = notification.GetFrom().dynamicCast<Connection>();
+    if(!con) {
+      qDebug() << ToString() << " received wayward message from: " <<
+        notification.GetFrom()->ToString();
       return;
     }
 
-    bool bulk = notification.GetMessage()["bulk"].toBool();
+    const Id &id = con->GetRemoteId();
+    if(!GetGroup().Contains(id)) {
+      qDebug() << ToString() << " received wayward message from: " << 
+        notification.GetFrom()->ToString();
+      return;
+    }
+
+    QVariantHash msg = notification.GetData().toHash();
+
+    bool bulk = msg.value("bulk").toBool();
     if(bulk) {
-      ProcessData(notification.GetMessage()["data"].toByteArray(), id);
+      ProcessData(id, msg.value("data").toByteArray());
     } else {
       _shuffle_round->IncomingData(notification);
     }
   }
 
-  void RepeatingBulkRound::ProcessData(const QByteArray &data, const Id &from)
+  void RepeatingBulkRound::ProcessData(const Id &from, const QByteArray &data)
   {
     _log.Append(data, from);
     try {
-      ProcessDataBase(data, from);
+      ProcessDataBase(from, data);
     } catch (QRunTimeError &err) {
       qWarning() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
         "received a message from" << GetGroup().GetIndex(from) << from.ToString() <<
@@ -121,10 +127,10 @@ namespace Anonymity {
     }
   }
 
-  void RepeatingBulkRound::ProcessDataBase(const QByteArray &data, const Id &from)
+  void RepeatingBulkRound::ProcessDataBase(const Id &from, const QByteArray &data)
   {
     QByteArray payload;
-    if(!Verify(data, payload, from)) {
+    if(!Verify(from, data, payload)) {
       throw QRunTimeError("Invalid signature or data");
     }
 
@@ -219,7 +225,7 @@ namespace Anonymity {
       uint count = static_cast<uint>(_offline_log.Count());
       for(uint idx = 0; idx < count; idx++) {
         QPair<QByteArray, Id> entry = _offline_log.At(idx);
-        ProcessData(entry.first, entry.second);
+        ProcessData(entry.second, entry.first);
       }
 
       _offline_log.Clear();
@@ -245,7 +251,7 @@ namespace Anonymity {
       QByteArray msg = ProcessMessage(tcleartext, member_idx);
 
       if(!msg.isEmpty()) {
-        PushData(msg, this);
+        PushData(GetSharedPointer(), msg);
       }
     }
   }
@@ -390,11 +396,11 @@ namespace Anonymity {
 
     uint count = static_cast<uint>(_shuffle_sink.Count());
     for(uint idx = 0; idx < count; idx++) {
-      QPair<QByteArray, ISender *> pair(_shuffle_sink.At(idx));
-      _descriptors.append(ParseDescriptor(pair.first));
+      QPair<QSharedPointer<ISender>, QByteArray> pair(_shuffle_sink.At(idx));
+      _descriptors.append(ParseDescriptor(pair.second));
       _header_lengths.append(8 + (_descriptors.last().second->GetKeySize() / 8));
       _message_lengths.append(0);
-      if(_shuffle_data == pair.first) {
+      if(_shuffle_data == pair.second) {
         _my_idx = idx;
       }
     }
@@ -410,7 +416,7 @@ namespace Anonymity {
     count = static_cast<uint>(_offline_log.Count());
     for(uint idx = 0; idx < count; idx++) {
       QPair<QByteArray, Id> entry = _offline_log.At(idx);
-      ProcessData(entry.first, entry.second);
+      ProcessData(entry.second, entry.first);
     }
 
     _offline_log.Clear();

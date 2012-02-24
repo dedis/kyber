@@ -17,15 +17,15 @@ namespace Applications {
    */
   class Node {
     public:
-      typedef Dissent::Identity::Credentials Credentials;
-      typedef Dissent::Identity::Group Group;
-      typedef Dissent::Identity::GroupHolder GroupHolder;
-      typedef Dissent::Anonymity::SessionManager SessionManager;
-      typedef Dissent::Connections::Connection Connection;
-      typedef Dissent::Connections::Network Network;
-      typedef Dissent::Messaging::ISink ISink;
-      typedef Dissent::Overlay::BaseOverlay BaseOverlay;
-      typedef Dissent::Transports::Address Address;
+      typedef Identity::Credentials Credentials;
+      typedef Identity::Group Group;
+      typedef Identity::GroupHolder GroupHolder;
+      typedef Anonymity::SessionManager SessionManager;
+      typedef Connections::Connection Connection;
+      typedef Connections::Network Network;
+      typedef Messaging::ISink ISink;
+      typedef Overlay::BaseOverlay BaseOverlay;
+      typedef Transports::Address Address;
 
       static QSharedPointer<Node> CreateBasicGossip(const Credentials &creds,
           const Group &group, const QList<Address> &local,
