@@ -4,58 +4,58 @@ namespace Dissent {
 namespace Tests {
   TEST(Rpc, HelloWorld)
   {
-    RpcHandler rpc0;
-    MockSource ms0;
-    ms0.SetSink(&rpc0);
-    MockSender to_ms0(&ms0);
+    QSharedPointer<RpcHandler> rpc0(new RpcHandler());
+    QSharedPointer<MockSource> ms0(new MockSource());;
+    ms0->SetSink(rpc0);
+    QSharedPointer<MockSender> to_ms0(new MockSender(ms0));
 
-    RpcHandler rpc1;
-    MockSource ms1;
-    ms1.SetSink(&rpc1);
-    MockSender to_ms1(&ms1);
-    to_ms0.SetReturnPath(&to_ms1);
-    to_ms1.SetReturnPath(&to_ms0);
+    QSharedPointer<RpcHandler> rpc1(new RpcHandler());
+    QSharedPointer<MockSource> ms1(new MockSource());;
+    ms1->SetSink(rpc1);
+    QSharedPointer<MockSender> to_ms1(new MockSender(ms1));
+    to_ms0->SetReturnPath(to_ms1);
+    to_ms1->SetReturnPath(to_ms0);
 
     TestRpc test0;
-    rpc0.Register(new RpcMethod<TestRpc>(&test0, &TestRpc::Add), "add");
+    QSharedPointer<RequestHandler> req_h(new RequestHandler());
+    QObject::connect(req_h.data(), SIGNAL(MakeRequestSignal(const Request &)),
+        &test0, SLOT(Add(const Request &)));
+    rpc0->Register("add", req_h);
 
-    RpcContainer request;
-    request[RpcRequest::MethodField] = "add";
-    request["x"] = 3;
-    request["y"] = 6;
+    QVariantList data;
+    data.append(3);
+    data.append(6);
 
-    TestRpcResponse test1;
-    RpcMethod<TestRpcResponse> cb = RpcMethod<TestRpcResponse>(&test1, &TestRpcResponse::HandleResponse);
+    TestResponse test1;
+    QSharedPointer<ResponseHandler> res_h(new ResponseHandler());
+    QObject::connect(res_h.data(),
+        SIGNAL(RequestCompleteSignal(const Response &)),
+        &test1, SLOT(HandleResponse(const Response &)));
+
     EXPECT_EQ(0, test1.GetValue());
-    rpc1.SendRequest(request, &to_ms0, &cb);
+    rpc1->SendRequest(to_ms0, "add", data, res_h);
     EXPECT_EQ(9, test1.GetValue());
     EXPECT_TRUE(test1.GetResponse().Successful());
-    EXPECT_FALSE(test1.GetResponse().LocalError());
 
-    request["y"] = "Haha";
-    rpc1.SendRequest(request, &to_ms0, &cb);
+    data[1] = "Haha";
+    rpc1->SendRequest(to_ms0, "add", data, res_h);
     EXPECT_EQ(0, test1.GetValue());
     EXPECT_FALSE(test1.GetResponse().Successful());
-    EXPECT_FALSE(test1.GetResponse().LocalError());
 
-    request["x"] = "Haha";
-    rpc1.SendRequest(request, &to_ms0, &cb);
+    data[0] = "Haha";
+    rpc1->SendRequest(to_ms0, "add", data, res_h);
     EXPECT_EQ(0, test1.GetValue());
     EXPECT_FALSE(test1.GetResponse().Successful());
-    EXPECT_FALSE(test1.GetResponse().LocalError());
 
-    request["x"] = 8;
-    request["y"] = 2;
-    rpc1.SendRequest(request, &to_ms0, &cb);
+    data[0] = 8;
+    data[1] = 2;
+    rpc1->SendRequest(to_ms0, "add", data, res_h);
     EXPECT_EQ(10, test1.GetValue());
     EXPECT_TRUE(test1.GetResponse().Successful());
-    EXPECT_FALSE(test1.GetResponse().LocalError());
 
-    request[RpcRequest::MethodField] = "Haha";
-    rpc1.SendRequest(request, &to_ms0, &cb);
+    rpc1->SendRequest(to_ms0, "Haha", data, res_h);
     EXPECT_EQ(0, test1.GetValue());
     EXPECT_FALSE(test1.GetResponse().Successful());
-    EXPECT_FALSE(test1.GetResponse().LocalError());
   }
 }
 }

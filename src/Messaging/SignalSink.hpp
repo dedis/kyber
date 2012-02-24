@@ -19,10 +19,11 @@ namespace Messaging {
     public:
       /**
        * Handle incoming data from a source
-       * @param data message from the remote peer
        * @param from a path way back to the remote sender
+       * @param data message from the remote peer
        */
-      virtual void HandleData(const QByteArray &data, ISender *from);
+      virtual void HandleData(const QSharedPointer<ISender> & from,
+          const QByteArray &data);
 
       /**
        * Virtual destructor...

@@ -2,25 +2,25 @@
 
 namespace Dissent {
 namespace Messaging {
-  Source::Source() :
-    _sink(0)
+  Source::Source()
   {
   }
 
-  ISink *Source::SetSink(ISink *sink)
+  QSharedPointer<ISink> Source::SetSink(const QSharedPointer<ISink> &sink)
   {
-    ISink *old_sink = _sink;
+    QSharedPointer<ISink> old_sink = _sink;
     _sink = sink;
     return old_sink;
   }
 
-  void Source::PushData(const QByteArray &data, ISender *from)
+  void Source::PushData(const QSharedPointer<ISender> &from,
+      const QByteArray &data)
   {
-    if(_sink == 0) {
+    if(_sink.isNull()) {
       qWarning() << "Sink not set.";
       return;
     }
-    _sink->HandleData(data, from);
+    _sink->HandleData(from, data);
   }
 }
 }

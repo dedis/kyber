@@ -2,12 +2,14 @@
 #define DISSENT_SOURCE_H_GUARD
 
 #include <QDebug>
+#include <QSharedPointer>
 
-#include "ISender.hpp"
 #include "ISink.hpp"
 
 namespace Dissent {
 namespace Messaging {
+  class ISender;
+
   /**
    * Produces data to be received by a sink
    */
@@ -23,23 +25,24 @@ namespace Messaging {
        * one existed
        * @param sink the sink to push data into
        */
-      ISink *SetSink(ISink *sink);
+      QSharedPointer<ISink> SetSink(const QSharedPointer<ISink> &sink);
 
       virtual ~Source() {}
 
     protected:
       /**
        * Pushes data into the sink
-       * @param data the message
        * @param from the remote sending party
+       * @param data the message
        */
-      void PushData(const QByteArray &data, ISender *from);
+      void PushData(const QSharedPointer<ISender> &from,
+          const QByteArray &data);
 
     private:
       /**
        * Where to push data
        */
-      ISink *_sink;
+      QSharedPointer<ISink> _sink;
   };
 }
 }

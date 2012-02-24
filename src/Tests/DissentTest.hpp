@@ -10,6 +10,9 @@
 
 #include "Dissent.hpp"
 #include "Mock.hpp"
+//#include "MockEdgeHandler.hpp"
+#include "MockSender.hpp"
+#include "MockSource.hpp"
 #include "RpcTest.hpp"
 
 #endif

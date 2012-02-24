@@ -1,33 +1,30 @@
-#ifndef DISSENT_RPC_HANDLER_H_GUARD
-#define DISSENT_RPC_HANDLER_H_GUARD
-
-#include <stdexcept>
+#ifndef DISSENT_MESSAGING_RPC_HANDLER_H_GUARD
+#define DISSENT_MESSAGING_RPC_HANDLER_H_GUARD
 
 #include <QByteArray>
 #include <QDebug>
 #include <QHash>
+#include <QObject>
 #include <QString>
-#include <QtCore/qdatastream.h>
+#include <QSharedPointer>
 
 #include "ISender.hpp"
 #include "ISink.hpp"
-#include "RpcMethod.hpp"
-#include "RpcRequest.hpp"
-#include "RpcResponse.hpp"
+#include "Request.hpp"
+#include "RequestHandler.hpp"
+#include "RequestResponder.hpp"
+#include "Response.hpp"
+#include "ResponseHandler.hpp"
 
 namespace Dissent {
 namespace Messaging {
   /**
    * Rpc mechanism assumes a reliable sending mechanism
    */
-  class RpcHandler : public ISink {
-    public:
-      static RpcHandler &GetEmpty()
-      {
-        static RpcHandler rpc;
-        return rpc;
-      }
+  class RpcHandler : public QObject, public ISink {
+    Q_OBJECT
 
+    public:
       /**
        * The constructor
        */
@@ -40,68 +37,79 @@ namespace Messaging {
 
       /**
        * Handle an incoming Rpc request
-       * @param data serialized request message
        * @param from a return path to the requestor
+       * @param data serialized request message
        */
-      virtual void HandleData(const QByteArray &data, ISender *from);
-
-      /**
-       * Send a notification -- a request without expecting a response
-       * @param notification message for the remote side
-       * @param to path to destination
-       */
-      void SendNotification(RpcContainer &notification, ISender *to);
+      virtual void HandleData(const QSharedPointer<ISender> &from,
+          const QByteArray &data);
 
       /**
        * Send a request
-       * @param request message for the remote side
-       * @param to path to destination
-       * @param cb function to call when returning
+       * @param to the destination for the notification
+       * @param method the remote method
+       * @param data the input data for that method
        * @returns the id of the request so that the callback can be cancelled
        */
-      int SendRequest(RpcContainer &request, ISender *to, Callback* cb);
+      void SendNotification(const QSharedPointer<ISender> &to,
+          const QString &method, const QVariant &data);
 
       /**
-       * Send a response for a request
-       * @param response the data for the remote side
-       * @param to path to destination
-       * @param request the original request
+       * Send a request
+       * @param to the destination for the request
+       * @param method the remote method
+       * @param data the input data for that method
+       * @param callback called when the request is complete
+       * @returns the id of the request so that the callback can be cancelled
        */
-      void SendResponse(RpcContainer &response, ISender *to, RpcContainer &request);
+      int SendRequest(const QSharedPointer<ISender> &to, const QString &method,
+          const QVariant &data, const QSharedPointer<ResponseHandler> &callback);
 
       /**
        * Register a callback
-       * @param cb Method callback to register
        * @param name The string to match it with
+       * @param cb Method callback to register
        */
-      bool Register(Callback *cb, QString name);
+      bool Register(const QString &name,
+          const QSharedPointer<RequestHandler> &cb);
 
       /**
        * Unregister a callback
        * @param name name of method to remove
        */
-      bool Unregister(QString name);
+      bool Unregister(const QString &name);
 
       bool CancelRequest(int id)
       {
         return _requests.remove(id) != 0;
       }
 
-    private:
+    public slots:
+      /**
+       * Send a response for a request
+       * @param request the original request
+       * @param data the data for the remote side
+       */
+      void SendResponse(const Request &request, const QVariant &data);
 
+      /**
+       * Send a response for a request
+       * @param request the original request
+       * @param reason the reason for the failure
+       */
+      void SendFailedResponse(const Request &request, const QString &reason);
+
+    private:
       /**
        * Handle an incoming request
        * @param request the request
-       * @param from the remote sending party
        */
-      void HandleRequest(RpcContainer &request, ISender *from);
+      void HandleRequest(const Request &request);
 
       /**
        * Handle an incoming response
        * @param response the response
-       * @param from the remote sending party
        */
-      void HandleResponse(RpcContainer &response, ISender *from);
+      void HandleResponse(const Response &response);
 
       /**
        * Returns the _current_id and increments it to the next
@@ -111,17 +119,22 @@ namespace Messaging {
       /**
        * Maps a string to a method to call
        */
-      QHash<QString, Callback *> _callbacks;
+      QHash<QString, QSharedPointer<RequestHandler> > _callbacks;
 
       /**
        * Maps id to a callback method to handle responses
        */
-      QHash<int, Callback *> _requests;
+      QHash<int, QSharedPointer<ResponseHandler> > _requests;
 
       /**
        * Next request id
        */
       int _current_id;
+
+      /**
+       * Used to asynchronously respond to requests
+       */
+      QSharedPointer<RequestResponder> _responder;
   };
 }
 }

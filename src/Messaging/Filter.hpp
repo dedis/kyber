@@ -1,6 +1,7 @@
 #ifndef DISSENT_MESSAGING_FILTER_H_GUARD
 #define DISSENT_MESSAGING_FILTER_H_GUARD
 
+#include "ISender.hpp"
 #include "ISink.hpp"
 #include "Source.hpp"
 
@@ -11,7 +12,8 @@ namespace Messaging {
    */
   class Filter : public Source, public ISender, public ISink {
     public:
-      inline virtual void HandleData(const QByteArray &data, ISender *)
+      inline virtual void HandleData(const QSharedPointer<ISender> &,
+          const QByteArray &data)
       {
         PushData(data, this);
       }
@@ -20,6 +22,9 @@ namespace Messaging {
        * Destructor
        */
       virtual ~Filter() {}
+
+    private:
+
   };
 }
 }

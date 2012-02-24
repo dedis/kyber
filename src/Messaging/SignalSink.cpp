@@ -4,7 +4,8 @@
 namespace Dissent {
 namespace Messaging {
 
-  void SignalSink::HandleData(const QByteArray &data, ISender * /*from*/)
+  void SignalSink::HandleData(const QSharedPointer<ISender> &,
+      const QByteArray &data)
   {
     emit IncomingData(data);
   }

@@ -1,48 +1,58 @@
-#include "DissentTest.hpp"
+#ifndef DISSENT_TESTS_TEST_RPC_H_GUARD
+#define DISSENT_TESTS_TEST_RPC_H_GUARD
+
 #include <QDebug>
+#include <QObject>
+
+#include "Dissent.hpp"
 
 namespace Dissent {
 namespace Tests {
-  class TestRpc {
-    public:
-      void Add(RpcRequest &request)
+  class TestRpc : public QObject {
+    Q_OBJECT
+
+    public slots:
+      void Add(const Request &request)
       {
-        RpcContainer msg = request.GetMessage();
+        QVariantList data = request.GetData().toList();
 
         bool ok;
-        int x = msg.value("x").toInt(&ok);
+        int x = data[0].toInt(&ok);
         if(!ok) {
-          request.Respond(RpcResponse::Failed(QString("X is invalid")));
+          request.Failed(QString("Term 0 is invalid"));
           return;
         }
 
-        int y = msg.value("y").toInt(&ok);
+        int y = data[1].toInt(&ok);
         if(!ok) {
-          request.Respond(RpcResponse::Failed(QString("Y is invalid")));
+          request.Failed(QString("Term 1 is invalid"));
           return;
         }
 
-        RpcContainer response;
-        response["sum"] = x + y;
-        request.Respond(response);
+        request.Respond(x + y);
       }
   };
 
-  class TestRpcResponse {
+  class TestResponse : public QObject {
+    Q_OBJECT
     public:
-      TestRpcResponse() : _response(RpcContainer(), 0)
+      TestResponse() : _response(QSharedPointer<ISender>(), QVariantList())
       {
       }
 
-      void HandleResponse(RpcRequest &response)
+      int GetValue() { return _response.GetData().toInt(); }
+      Response GetResponse() { return _response; }
+
+    public slots:
+      void HandleResponse(const Response &response)
       {
-        _response = static_cast<RpcResponse &>(response);
+        _response = response;
       }
 
-      int GetValue() { return _response.GetMessage()["sum"].toInt(); }
-      RpcResponse GetResponse() { return _response; }
     private:
-      RpcResponse _response;
+      Response _response;
   };
 }
 }
+
+#endif
