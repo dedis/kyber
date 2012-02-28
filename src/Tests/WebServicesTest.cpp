@@ -20,8 +20,7 @@ namespace Tests {
 
   QSharedPointer<WebRequest> FakeRequest(const QString &url)
   {
-    QTcpSocket *socketp = new QTcpSocket();
-    QSharedPointer<WebRequest> wrp(new WebRequest(socketp));
+    QSharedPointer<WebRequest> wrp(new WebRequest(0));
 
     QByteArray data = QString("POST " + url + " HTTP/1.1\r\n\r\nHello!").toUtf8();
     wrp->GetRequest().ParseRequest(data);

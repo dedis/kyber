@@ -12,10 +12,11 @@ namespace Web {
 
   WebRequest::~WebRequest() 
   {
-    Q_ASSERT(_socket);
-    _socket->flush();
-    _socket->close();
-    _socket->deleteLater();
+    if(_socket) {
+      _socket->flush();
+      _socket->close();
+      _socket->deleteLater();
+    }
   };
 
 }

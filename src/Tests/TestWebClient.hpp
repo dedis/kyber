@@ -15,8 +15,11 @@ namespace Tests {
 
       TestWebClient(bool expect_error, QByteArray& output) : 
           _output(output),
-          _expect_error(expect_error) {};
+          _expect_error(expect_error)
+      {
+      }
 
+      ~TestWebClient() {}
       void Get(const QUrl url);
 
       void Post(const QUrl url, const QByteArray &body);
@@ -25,7 +28,7 @@ namespace Tests {
 
       void Done();
 
-      void Response(QSharedPointer<QByteArray> data);
+      void Response(QByteArray data);
 
       void Error(QNetworkReply::NetworkError error);
 
@@ -37,7 +40,7 @@ namespace Tests {
       QByteArray _output;
       bool _expect_error;
       QNetworkAccessManager _qnam;
-      QNetworkReply* _reply;
+      QSharedPointer<QNetworkReply> _reply;
       QUrl _url;
   };
 

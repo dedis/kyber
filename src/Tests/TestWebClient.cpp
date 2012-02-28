@@ -9,14 +9,16 @@ namespace Tests {
 
   void TestWebClient::Get(const QUrl url)
   {
-    _reply = _qnam.get(QNetworkRequest(url));
-    connect(_reply, SIGNAL(finished()), this, SLOT(HttpFinished()));
+    _reply = QSharedPointer<QNetworkReply>(_qnam.get(QNetworkRequest(url)),
+        &QObject::deleteLater);
+    connect(_reply.data(), SIGNAL(finished()), this, SLOT(HttpFinished()));
   }
   
   void TestWebClient::Post(const QUrl url, const QByteArray &body)
   {
-    _reply = _qnam.post(QNetworkRequest(url), body);
-    connect(_reply, SIGNAL(finished()), this, SLOT(HttpFinished()));
+    _reply = QSharedPointer<QNetworkReply>(_qnam.post(QNetworkRequest(url), body),
+        &QObject::deleteLater);
+    connect(_reply.data(), SIGNAL(finished()), this, SLOT(HttpFinished()));
   }
 
   void TestWebClient::HttpFinished() 
@@ -25,14 +27,12 @@ namespace Tests {
     if(_reply->error()) {
       emit Error(_reply->error());
     } 
-    QSharedPointer<QByteArray> data(new QByteArray(_reply->readAll()));
+    QByteArray data = _reply->readAll();
     emit Response(data);
 
-    EXPECT_EQ(_output.count(), data->count());
-    EXPECT_EQ(_output, *data);
+    EXPECT_EQ(_output.count(), data.count());
+    EXPECT_EQ(_output, data);
     emit Done();
-    _reply->deleteLater();
-    _reply = 0;
   }
 
 }
