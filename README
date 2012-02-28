@@ -154,14 +154,6 @@ Commits:
   merging (git checkout -b merge master && git merge --squash dev)
 - Incomplete work should not be committed nor merged
 
-Notes on running dissent on Ubuntu:
-
-- Apply to all ubuntu versions 10.04 LTS or greater
-- The following packages are not installed by default: qt-sdk, qt4-qmake, virtual-box-ose-qt (for running inside a virtualbox VM), and libcrypto++-dev. These packages permit an "out-of-the-box" compilation on a stock ubuntu machine. Howevevr, many of the qt modules are unnecessary. If compiling from qt source, the following packages are the only ones required:  QtNetwork and QtCore. These packages are considerably smaller to download, compile and install.
-- If going the Qt source route, make sure that the ./dissent binary does not use any libs other than libQtCore and libQtNetwork (use "ldd ./dissent" to verify this is the case). The size savings are significant.
-- For running in a virtual box and experimenting with the minimum possible physical memory for running dissent inside a default install comfortably, use the following command: "VBoxManage modifyvm --memory <memorysize>". If compiled from Qt sources, dissent can run in a "headless" X mode with less than 128 MB of memory. With GUIs, 512 MB is required for running the tests above comfortably.
- 
-
 Also note, when you submit code for inclusion in this library, you implicitly
 release your personal license to the software to Yale Dedis, see below.
 
