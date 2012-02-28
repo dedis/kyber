@@ -325,14 +325,14 @@ namespace Anonymity {
 
   void Session::Prepared(const Response &response)
   {
-    QSharedPointer<Connection> con =
-      response.GetFrom().dynamicCast<Connection>();
+    QSharedPointer<Connections::IOverlaySender> sender =
+      response.GetFrom().dynamicCast<Connections::IOverlaySender>();
 
-    if(!con) {
-      qWarning() << "Received a prepared message from a non-connection:" <<
+    if(!sender) {
+      qWarning() << "Received a prepared message from a non-IOverlaySender:" <<
         response.GetFrom()->ToString();
       return;
-    } else if(!GetGroup().Contains(con->GetRemoteId())) {
+    } else if(!GetGroup().Contains(sender->GetRemoteId())) {
       qWarning() << "Received a prepared message from a non-group member:" <<
         response.GetFrom()->ToString();
       return;
@@ -346,7 +346,7 @@ namespace Anonymity {
       return;
     }
 
-    _prepared_peers.insert(con->GetRemoteId(), con->GetRemoteId());
+    _prepared_peers.insert(sender->GetRemoteId(), sender->GetRemoteId());
     if(_prepared_peers.size() != _registered_peers.size()) {
       qDebug() << "Waiting on" << (_registered_peers.size() - _prepared_peers.size()) <<
         "more prepared resposnes.";
@@ -371,13 +371,20 @@ namespace Anonymity {
 
   void Session::ReceivedBegin(const Request &notification)
   {
-    /*
-    if(GetGroup().GetLeader() != con->GetRemoteId()) {
+    QSharedPointer<Connections::IOverlaySender> sender =
+      notification.GetFrom().dynamicCast<Connections::IOverlaySender>();
+
+    if(!sender) {
+      qWarning() << "Received a begin from a non-IOverlaySender." <<
+        notification.GetFrom()->ToString();
+      return;
+    }
+
+    if(GetGroup().GetLeader() != sender->GetRemoteId()) {
       qWarning() << "Received a begin from someone other than the leader:" <<
         notification.GetFrom()->ToString();
       return;
     }
-    */
 
     if(_current_round.isNull()) {
       qWarning() << "Received a begin without having a valid round...";

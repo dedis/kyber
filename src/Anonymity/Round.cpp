@@ -40,16 +40,16 @@ namespace Anonymity {
       return;
     }
       
-    QSharedPointer<Connection> con =
-      notification.GetFrom().dynamicCast<Connection>();
+    QSharedPointer<Connections::IOverlaySender> sender =
+      notification.GetFrom().dynamicCast<Connections::IOverlaySender>();
 
-    if(!con) {
+    if(!sender) {
       qDebug() << ToString() << " received wayward message from: " <<
         notification.GetFrom()->ToString();
       return;
     }
 
-    const Id &id = con->GetRemoteId();
+    const Id &id = sender->GetRemoteId();
     if(!_group.Contains(id)) {
       qDebug() << ToString() << " received wayward message from: " <<
         notification.GetFrom()->ToString();

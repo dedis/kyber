@@ -15,11 +15,6 @@ namespace Connections {
         this, SLOT(HandleEdgeClose()));
   }
 
-  void Connection::SetSharedPointer(const QSharedPointer<Filter> &filter)
-  {
-    Filter::SetSharedPointer(filter);
-  }
-
   QString Connection::ToString() const
   {
     return QString("Connection, Local: " + _local_id.ToString() +

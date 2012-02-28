@@ -1,6 +1,6 @@
 #include "Anonymity/BulkRound.hpp"
 #include "Anonymity/ShuffleRound.hpp"
-#include "Connections/Connection.hpp"
+#include "Connections/IOverlaySender.hpp"
 #include "Connections/Network.hpp"
 #include "Crypto/DiffieHellman.hpp"
 #include "Crypto/Hash.hpp"
@@ -14,7 +14,6 @@
 #include "TolerantBulkRound.hpp"
 #include "BlameMatrix.hpp"
 
-using Dissent::Connections::Connection;
 using Dissent::Crypto::CryptoFactory;
 using Dissent::Crypto::DiffieHellman;
 using Dissent::Crypto::Library;
@@ -141,14 +140,15 @@ namespace Tolerant {
       return;
     }
       
-    QSharedPointer<Connection> con = notification.GetFrom().dynamicCast<Connection>();
-    if(!con) {
+    QSharedPointer<Connections::IOverlaySender> sender =
+      notification.GetFrom().dynamicCast<Connections::IOverlaySender>();
+    if(!sender) {
       qDebug() << ToString() << " received wayward message from: " <<
         notification.GetFrom()->ToString();
       return;
     }
 
-    const Id &id = con->GetRemoteId();
+    const Id &id = sender->GetRemoteId();
     if(!GetGroup().Contains(id)) {
       qDebug() << ToString() << " received wayward message from: " << 
         notification.GetFrom()->ToString();

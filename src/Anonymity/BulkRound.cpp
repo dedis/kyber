@@ -1,4 +1,4 @@
-#include "Connections/Connection.hpp"
+#include "Connections/IOverlaySender.hpp"
 #include "Connections/Network.hpp"
 #include "Crypto/DiffieHellman.hpp"
 #include "Crypto/Hash.hpp"
@@ -11,7 +11,6 @@
 #include "BulkRound.hpp"
 #include "ShuffleRound.hpp"
 
-using Dissent::Connections::Connection;
 using Dissent::Crypto::CryptoFactory;
 using Dissent::Crypto::DiffieHellman;
 using Dissent::Crypto::Hash;
@@ -90,14 +89,15 @@ namespace Anonymity {
       return;
     }
       
-    QSharedPointer<Connection> con = notification.GetFrom().dynamicCast<Connection>();
-    if(!con) {
+    QSharedPointer<Connections::IOverlaySender> sender =
+      notification.GetFrom().dynamicCast<Connections::IOverlaySender>();
+    if(!sender) {
       qDebug() << ToString() << " received wayward message from: " <<
         notification.GetFrom()->ToString();
       return;
     }
 
-    const Id &id = con->GetRemoteId();
+    const Id &id = sender->GetRemoteId();
     if(!GetGroup().Contains(id)) {
       qDebug() << ToString() << " received wayward message from: " << 
         notification.GetFrom()->ToString();

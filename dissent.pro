@@ -51,6 +51,7 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Connections/ForwardingSender.hpp \
            src/Connections/FullyConnected.hpp \
            src/Connections/Id.hpp \
+           src/Connections/IOverlaySender.hpp \
            src/Connections/Network.hpp \
            src/Connections/RelayAddress.hpp \
            src/Connections/RelayEdge.hpp \

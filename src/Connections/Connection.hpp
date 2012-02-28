@@ -5,10 +5,12 @@
 #include <QObject>
 #include <QSharedPointer>
 
-#include "Messaging/FilterObject.hpp"
+#include "Messaging/ISink.hpp"
+#include "Messaging/SourceObject.hpp"
 #include "Transports/Edge.hpp"
 
 #include "Id.hpp"
+#include "IOverlaySender.hpp"
 
 namespace Dissent {
 namespace Connections {
@@ -16,7 +18,10 @@ namespace Connections {
    * A container class linking a global identifier to a transport layer
    * identifier, takes ownership of an Edge, SetSink externally (for now)
    */
-  class Connection : public Messaging::FilterObject {
+  class Connection : public Messaging::SourceObject,
+      public Messaging::ISink,
+      public IOverlaySender
+  {
     Q_OBJECT
 
     public:
@@ -57,19 +62,35 @@ namespace Connections {
       /**
        * Returns the local id
        */
-      inline const Id GetLocalId() const { return _local_id; }
+      inline virtual Id GetLocalId() const { return _local_id; }
 
       /**
        * Returns the remote id
        */
-      inline const Id GetRemoteId() const { return _remote_id; }
+      inline virtual Id GetRemoteId() const { return _remote_id; }
 
+      inline QSharedPointer<Connection> GetSharedPointer()
+      {
+        return _shared.toStrongRef();
+      }
+      
       /**
        * Sets the internal shared pointer
-       * @param filter the shared pointer
+       * @param shared the shared pointer
        */
-      virtual void SetSharedPointer(const QSharedPointer<Filter> &filter);
+      virtual void SetSharedPointer(const QSharedPointer<Connection> &shared)
+      {
+        _shared = shared.toWeakRef();
+      }
 
+      inline virtual const QObject *GetObject() { return this; }
+
+      inline virtual void HandleData(const QSharedPointer<ISender> &,
+          const QByteArray &data)
+      {
+        PushData(GetSharedPointer(), data);
+      }
+      
     signals:
       /**
        * Disconnect emits this signal
@@ -96,6 +117,8 @@ namespace Connections {
        * The Id of the remote member
        */
       const Id _remote_id;
+
+      QWeakPointer<Connection> _shared;
 
     private slots:
       /**

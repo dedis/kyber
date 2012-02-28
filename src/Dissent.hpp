@@ -40,6 +40,7 @@
 #include "Connections/EmptyNetwork.hpp"
 #include "Connections/FullyConnected.hpp"
 #include "Connections/Id.hpp"
+#include "Connections/IOverlaySender.hpp"
 #include "Connections/Network.hpp"
 #include "Connections/RelayAddress.hpp"
 #include "Connections/RelayEdge.hpp"
