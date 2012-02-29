@@ -10,9 +10,9 @@ namespace Tests {
   {
     public:
       explicit ShuffleRoundBadInnerPrivateKey(const Group &group,
-          const Credentials &creds, const Id &round_id,
+          const PrivateIdentity &ident, const Id &round_id,
           QSharedPointer<Network> net, GetDataCallback &get_data) :
-        ShuffleRound(group, creds, round_id, net, get_data) {}
+        ShuffleRound(group, ident, round_id, net, get_data) {}
 
       virtual ~ShuffleRoundBadInnerPrivateKey() {}
 
@@ -50,9 +50,9 @@ namespace Tests {
   {
     public:
       explicit ShuffleRoundMessageDuplicator(const Group &group,
-          const Credentials &creds, const Id &round_id,
+          const PrivateIdentity &ident, const Id &round_id,
           QSharedPointer<Network> net, GetDataCallback &get_data) :
-        ShuffleRound(group, creds, round_id, net, get_data) {}
+        ShuffleRound(group, ident, round_id, net, get_data) {}
 
       virtual ~ShuffleRoundMessageDuplicator() {}
 
@@ -129,9 +129,9 @@ namespace Tests {
   {
     public:
       explicit ShuffleRoundMessageSwitcher(const Group &group,
-          const Credentials &creds, const Id &round_id,
+          const PrivateIdentity &ident, const Id &round_id,
           QSharedPointer<Network> net, GetDataCallback &get_data) :
-        ShuffleRound(group, creds, round_id, net, get_data) {}
+        ShuffleRound(group, ident, round_id, net, get_data) {}
 
       virtual ~ShuffleRoundMessageSwitcher() {}
 
@@ -170,9 +170,9 @@ namespace Tests {
   {
     public:
       explicit ShuffleRoundFalseBlame(const Group &group,
-          const Credentials &creds, const Id &round_id,
+          const PrivateIdentity &ident, const Id &round_id,
           QSharedPointer<Network> net, GetDataCallback &get_data) :
-        ShuffleRound(group, creds, round_id, net, get_data) {}
+        ShuffleRound(group, ident, round_id, net, get_data) {}
 
       virtual ~ShuffleRoundFalseBlame() {}
 
@@ -196,9 +196,9 @@ namespace Tests {
   {
     public:
       explicit ShuffleRoundFalseNoGo(const Group &group,
-          const Credentials &creds, const Id &round_id,
+          const PrivateIdentity &ident, const Id &round_id,
           QSharedPointer<Network> net, GetDataCallback &get_data) :
-        ShuffleRound(group, creds, round_id, net, get_data) {}
+        ShuffleRound(group, ident, round_id, net, get_data) {}
 
       virtual ~ShuffleRoundFalseNoGo() {}
 
@@ -226,9 +226,9 @@ namespace Tests {
   {
     public:
       explicit ShuffleRoundInvalidOuterEncryption(const Group &group,
-          const Credentials &creds, const Id &round_id,
+          const PrivateIdentity &ident, const Id &round_id,
           QSharedPointer<Network> net, GetDataCallback &get_data) :
-        ShuffleRound(group, creds, round_id, net, get_data) {}
+        ShuffleRound(group, ident, round_id, net, get_data) {}
 
       virtual ~ShuffleRoundInvalidOuterEncryption() {}
 

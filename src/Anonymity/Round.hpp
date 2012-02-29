@@ -9,7 +9,7 @@
 #include "Connections/Id.hpp"
 #include "Connections/Network.hpp"
 #include "Identity/Group.hpp"
-#include "Identity/Credentials.hpp"
+#include "Identity/PrivateIdentity.hpp"
 #include "Messaging/GetDataCallback.hpp"
 #include "Messaging/ISender.hpp"
 #include "Messaging/SourceObject.hpp"
@@ -45,21 +45,20 @@ namespace Anonymity {
       typedef Connections::Network Network;
       typedef Crypto::AsymmetricKey AsymmetricKey;
       typedef Crypto::DiffieHellman DiffieHellman;
-      typedef Identity::Credentials Credentials;
       typedef Identity::Group Group;
-      typedef Identity::GroupContainer GroupContainer;
+      typedef Identity::PrivateIdentity PrivateIdentity;
       typedef Messaging::GetDataCallback GetDataCallback;
       typedef Messaging::Request Request;
 
       /**
        * Constructor
        * @param group Group used during this round
-       * @param creds the local nodes credentials
+       * @param ident the local nodes credentials
        * @param round_id Unique round id (nonce)
        * @param network handles message sending
        * @param get_data requests data to share during this session
        */
-      explicit Round(const Group &group, const Credentials &creds,
+      explicit Round(const Group &group, const PrivateIdentity &ident,
           const Id &round_id, QSharedPointer<Network> network,
           GetDataCallback &get_data);
 
@@ -101,7 +100,7 @@ namespace Anonymity {
       /**
        * Returns the local id
        */
-      inline const Id &GetLocalId() const { return _creds.GetLocalId(); }
+      inline const Id &GetLocalId() const { return _ident.GetLocalId(); }
 
       /**
        * Returns the round id
@@ -224,20 +223,20 @@ namespace Anonymity {
        */
       inline QSharedPointer<AsymmetricKey> GetSigningKey() const
       {
-        return _creds.GetSigningKey();
+        return _ident.GetSigningKey();
       }
 
       /**
        * Returns the local credentials
        */
-      inline const Credentials &GetCredentials() const { return _creds; }
+      inline const PrivateIdentity &GetPrivateIdentity() const { return _ident; }
 
       /**
        * Returns the DiffieHellman key
        */
       inline QSharedPointer<DiffieHellman> GetDhKey() const
       {
-        return _creds.GetDhKey();
+        return _ident.GetDhKey();
       }
 
       void SetSuccessful(bool successful) { _successful = successful; }
@@ -249,7 +248,7 @@ namespace Anonymity {
 
     private:
       const Group _group;
-      const Credentials _creds;
+      const PrivateIdentity _ident;
       const Id _round_id;
       QSharedPointer<Network> _network;
       GetDataCallback &_get_data_cb;
@@ -261,17 +260,17 @@ namespace Anonymity {
   };
 
   typedef QSharedPointer<Round> (*CreateRound)(const Round::Group &,
-      const Round::Credentials &, const Connections::Id &,
+      const Round::PrivateIdentity &, const Connections::Id &,
       QSharedPointer<Connections::Network>,
       Messaging::GetDataCallback &get_data_cb);
 
   template <typename T> QSharedPointer<Round> TCreateRound(
-      const Round::Group &group, const Round::Credentials &creds,
+      const Round::Group &group, const Round::PrivateIdentity &ident,
       const Connections::Id &round_id,
       QSharedPointer<Connections::Network> network,
       Messaging::GetDataCallback &get_data)
   {
-    QSharedPointer<T> round(new T(group, creds, round_id, network, get_data));
+    QSharedPointer<T> round(new T(group, ident, round_id, network, get_data));
     round->SetSharedPointer(round);
     return round;
   }

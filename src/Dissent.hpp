@@ -70,9 +70,12 @@
 #include "Crypto/OnionEncryptor.hpp"
 #include "Crypto/Serialization.hpp"
 #include "Crypto/ThreadedOnionEncryptor.hpp"
-#include "Identity/Credentials.hpp"
+
 #include "Identity/Group.hpp"
 #include "Identity/GroupHolder.hpp"
+#include "Identity/PrivateIdentity.hpp"
+#include "Identity/PublicIdentity.hpp"
+
 #include "Messaging/BufferSink.hpp"
 #include "Messaging/DummySink.hpp"
 #include "Messaging/Filter.hpp"

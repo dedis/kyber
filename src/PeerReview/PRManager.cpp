@@ -17,8 +17,8 @@ using Dissent::Crypto::Library;
 
 namespace Dissent {
 namespace PeerReview {
-  PRManager::PRManager(const Credentials &creds, const Group &group) :
-    _creds(creds),
+  PRManager::PRManager(const PrivateIdentity &ident, const Group &group) :
+    _ident(ident),
     _group(group)
   {
   }
@@ -95,7 +95,7 @@ namespace PeerReview {
       return false;
     }
 
-    if(send_entry->GetDestination() != _creds.GetLocalId()) {
+    if(send_entry->GetDestination() != _ident.GetLocalId()) {
       qWarning() << "Message directed to another member:" <<
         send_entry->GetDestination().ToString();
       return false;
@@ -112,7 +112,7 @@ namespace PeerReview {
         new ReceiveEntry(seq_id, src,
           _log.PreviousHash(), send_entry));
 
-    entry->Sign(_creds.GetSigningKey());
+    entry->Sign(_ident.GetSigningKey());
 
     if(!_log.AppendEntry(entry)) {
       qFatal("Attempted to append a ReceiveEntry and failed!");
@@ -135,7 +135,7 @@ namespace PeerReview {
         new SendEntry(_log.PreviousSequenceId() + 1,
           dest, _log.PreviousHash(), msg));
 
-    entry->Sign(_creds.GetSigningKey());
+    entry->Sign(_ident.GetSigningKey());
 
     if(!_log.AppendEntry(entry)) {
       qFatal("Attempted to append a SendEntry and failed!");

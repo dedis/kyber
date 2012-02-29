@@ -25,9 +25,9 @@ namespace Dissent {
 namespace Anonymity {
 namespace Tolerant {
   TolerantBulkRound::TolerantBulkRound(const Group &group,
-      const Credentials &creds, const Id &round_id, QSharedPointer<Network> network,
+      const PrivateIdentity &ident, const Id &round_id, QSharedPointer<Network> network,
       GetDataCallback &get_data, CreateRound create_shuffle) :
-    Round(group, creds, round_id, network, get_data),
+    Round(group, ident, round_id, network, get_data),
     _is_server(GetGroup().GetSubgroup().Contains(GetLocalId())),
     _stop_next(false),
     _waiting_for_blame(false),
@@ -45,7 +45,7 @@ namespace Tolerant {
     _server_messages(GetGroup().GetSubgroup().Count()),
     _user_message_digests(GetGroup().Count()),
     _server_message_digests(GetGroup().GetSubgroup().Count()),
-    _message_randomizer(creds.GetDhKey()->GetPrivateComponent()),
+    _message_randomizer(ident.GetDhKey()->GetPrivateComponent()),
     _message_history(GetGroup().Count(), GetGroup().GetSubgroup().Count()),
     _user_idx(GetGroup().GetIndex(GetLocalId())),
     _looking_for_evidence(NotLookingForEvidence),
@@ -60,7 +60,7 @@ namespace Tolerant {
     const Group servers = GetGroup().GetSubgroup();
     for(int server_idx=0; server_idx<servers.Count(); server_idx++) {
       QByteArray server_pk = servers.GetPublicDiffieHellman(server_idx);
-      QByteArray secret = creds.GetDhKey()->GetSharedSecret(server_pk);
+      QByteArray secret = ident.GetDhKey()->GetSharedSecret(server_pk);
 
       _secrets_with_servers[server_idx] = secret;
       _rngs_with_servers[server_idx] = QSharedPointer<Random>(_crypto_lib->GetRandomNumberGenerator(secret));
@@ -76,7 +76,7 @@ namespace Tolerant {
       const Group users = GetGroup();
       for(int user_idx=0; user_idx<users.Count(); user_idx++) {
         QByteArray user_pk = users.GetPublicDiffieHellman(user_idx);
-        QByteArray secret = creds.GetDhKey()->GetSharedSecret(user_pk);
+        QByteArray secret = ident.GetDhKey()->GetSharedSecret(user_pk);
 
         _secrets_with_users[user_idx] = secret;
         _rngs_with_users[user_idx] = QSharedPointer<Random>(_crypto_lib->GetRandomNumberGenerator(secret));
@@ -90,7 +90,7 @@ namespace Tolerant {
 
     Id sr_id(_hash_algo->ComputeHash(GetRoundId().GetByteArray()));
 
-    _key_shuffle_round = _create_shuffle(GetGroup(), GetCredentials(), sr_id,
+    _key_shuffle_round = _create_shuffle(GetGroup(), GetPrivateIdentity(), sr_id,
         net, _get_key_shuffle_data);
     _key_shuffle_round->SetSink(&_key_shuffle_sink);
 
@@ -1207,7 +1207,7 @@ namespace Tolerant {
       qDebug() << "Pub key:" << user_pub_key.toHex().constData();
       qDebug() << "Server key:" << server_pub_key.toHex().constData();
 
-      QByteArray user_valid = GetCredentials().GetDhKey()->VerifySharedSecret(user_pub_key, server_pub_key, user_proof);
+      QByteArray user_valid = GetPrivateIdentity().GetDhKey()->VerifySharedSecret(user_pub_key, server_pub_key, user_proof);
       if(!user_valid.count()) {
         qWarning() << "User" << user_idx << "send bad proof";
         AddBadMember(user_idx);
@@ -1215,7 +1215,7 @@ namespace Tolerant {
       }
 
       QByteArray server_proof = _server_proofs[i];
-      QByteArray server_valid = GetCredentials().GetDhKey()->VerifySharedSecret(server_pub_key, user_pub_key, server_proof);
+      QByteArray server_valid = GetPrivateIdentity().GetDhKey()->VerifySharedSecret(server_pub_key, user_pub_key, server_proof);
       if(!server_valid.count()) {
         qWarning() << "Server" << server_idx << "send bad proof";
         AddBadMember(server_idx);
@@ -1275,7 +1275,7 @@ namespace Tolerant {
   void TolerantBulkRound::SendUserProof(int conflict_idx, uint server_idx)
   {
     QByteArray server_pk = GetGroup().GetPublicDiffieHellman(server_idx);
-    QByteArray proof = GetCredentials().GetDhKey()->ProveSharedSecret(server_pk);
+    QByteArray proof = GetPrivateIdentity().GetDhKey()->ProveSharedSecret(server_pk);
     qDebug() << "Sending user proof len" << proof.count();
     qDebug() << "Proof:" << proof.toHex().constData();
 
@@ -1288,7 +1288,7 @@ namespace Tolerant {
   void TolerantBulkRound::SendServerProof(int conflict_idx, uint user_idx)
   {
     QByteArray user_pk = GetGroup().GetPublicDiffieHellman(user_idx);
-    QByteArray proof = GetCredentials().GetDhKey()->ProveSharedSecret(user_pk);
+    QByteArray proof = GetPrivateIdentity().GetDhKey()->ProveSharedSecret(user_pk);
 
     QByteArray packet;
     QDataStream stream(&packet, QIODevice::WriteOnly);
@@ -1553,7 +1553,7 @@ namespace Tolerant {
     Id sr_id(_hash_algo->ComputeHash(rid));
 
     _blame_shuffle_round = _create_shuffle(GetGroup(), 
-          GetCredentials(), sr_id, net, _get_blame_shuffle_data);
+          GetPrivateIdentity(), sr_id, net, _get_blame_shuffle_data);
     _blame_shuffle_round->SetSink(&_blame_shuffle_sink);
 
     QObject::connect(_blame_shuffle_round.data(), SIGNAL(Finished()),

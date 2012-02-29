@@ -5,6 +5,7 @@
 #include "Connections/ConnectionTable.hpp"
 #include "Connections/Network.hpp"
 #include "Crypto/Serialization.hpp"
+#include "Identity/PublicIdentity.hpp"
 #include "Messaging/Request.hpp"
 #include "Messaging/Response.hpp"
 #include "Utils/Timer.hpp"
@@ -14,10 +15,10 @@
 namespace Dissent {
 namespace Anonymity {
   Session::Session(const QSharedPointer<GroupHolder> &group_holder,
-      const Credentials &creds, const Id &session_id,
+      const PrivateIdentity &ident, const Id &session_id,
       QSharedPointer<Network> network, CreateRound create_round) :
     _group_holder(group_holder),
-    _creds(creds),
+    _ident(ident),
     _session_id(session_id),
     _network(network),
     _create_round(create_round),
@@ -35,11 +36,12 @@ namespace Anonymity {
     _network->SetMethod("SM::Data");
 
     if(IsLeader()) {
-      _group_holder->UpdateGroup(AddGroupMember(GetGroup(), GetPublicComponents(_creds)));
+      _group_holder->UpdateGroup(AddGroupMember(GetGroup(),
+            GetPublicIdentity(_ident)));
     }
 
-    foreach(const GroupContainer &gc, GetGroup().GetRoster()) {
-      QSharedPointer<Connection> con = _network->GetConnection(gc.first);
+    foreach(const PublicIdentity &gc, GetGroup().GetRoster()) {
+      QSharedPointer<Connection> con = _network->GetConnection(gc.GetId());
       if(con) {
         QObject::connect(con.data(), SIGNAL(Disconnected(const QString &)),
             this, SLOT(HandleDisconnect()));
@@ -62,7 +64,7 @@ namespace Anonymity {
 
   void Session::OnStart()
   {
-    qDebug() << _creds.GetLocalId().ToString() << "Session started:" <<
+    qDebug() << _ident.GetLocalId().ToString() << "Session started:" <<
       _session_id.ToString();
 
     if(!IsLeader() && (_network->GetConnection(GetGroup().GetLeader()) != 0)) {
@@ -75,8 +77,8 @@ namespace Anonymity {
     _register_event.Stop();
     _prepare_event.Stop();
 
-    foreach(const GroupContainer &gc, GetGroup().GetRoster()) {
-      QSharedPointer<Connection> con = _network->GetConnection(gc.first);
+    foreach(const PublicIdentity &gc, GetGroup().GetRoster()) {
+      QSharedPointer<Connection> con = _network->GetConnection(gc.GetId());
       if(con) {
         QObject::disconnect(con.data(), SIGNAL(Disconnected(const QString &)),
             this, SLOT(HandleDisconnect()));
@@ -105,9 +107,9 @@ namespace Anonymity {
 
     const Group &group = GetGroup();
     if(group.GetSubgroupPolicy() == Group::ManagedSubgroup) {
-      if(group.GetSubgroup().Contains(_creds.GetLocalId())) {
-        foreach(const GroupContainer &gc, group.GetSubgroup()) {
-          if(ct.GetConnection(gc.first) == 0) {
+      if(group.GetSubgroup().Contains(_ident.GetLocalId())) {
+        foreach(const PublicIdentity &gc, group.GetSubgroup()) {
+          if(ct.GetConnection(gc.GetId()) == 0) {
             return false;
           }
         }
@@ -126,9 +128,9 @@ namespace Anonymity {
       return true;
     } else {
       bool good = true;
-      foreach(const GroupContainer &gc, group) {
-        if(!ct.GetConnection(gc.first)) {
-          qDebug() << "Missing a connection" << gc.first.ToString();
+      foreach(const PublicIdentity &gc, group) {
+        if(!ct.GetConnection(gc.GetId())) {
+          qDebug() << "Missing a connection" << gc.GetId().ToString();
           good = false;
         }
       }
@@ -142,10 +144,10 @@ namespace Anonymity {
     QVariantHash container;
     container["session_id"] = _session_id.GetByteArray();
 
-    QByteArray creds;
-    QDataStream stream(&creds, QIODevice::WriteOnly);
-    stream << GetPublicComponents(_creds);
-    container["creds"] = creds;
+    QByteArray ident;
+    QDataStream stream(&ident, QIODevice::WriteOnly);
+    stream << GetPublicIdentity(_ident);
+    container["ident"] = ident;
 
     _network->SendRequest(GetGroup().GetLeader(), "SM::Register", container, _registered);
   }
@@ -162,13 +164,13 @@ namespace Anonymity {
       return;
     }
 
-    QDataStream stream(request.GetData().toHash().value("creds").toByteArray());
-    GroupContainer creds;
-    stream >> creds;
+    QDataStream stream(request.GetData().toHash().value("ident").toByteArray());
+    PublicIdentity ident;
+    stream >> ident;
 
-    if(!creds.second->IsValid()) {
+    if(!ident.GetVerificationKey()->IsValid()) {
       qWarning() << "Received a registration request with invalid credentials";
-      request.Failed(Response::InvalidInput, "Credentials do not match Id");
+      request.Failed(Response::InvalidInput, "PrivateIdentity do not match Id");
       return;
     }
 
@@ -176,7 +178,7 @@ namespace Anonymity {
       request.GetFrom()->ToString();
     _last_registration = Dissent::Utils::Time::GetInstance().CurrentTime();
 
-    AddMember(creds);
+    AddMember(ident);
     request.Respond(true);
 
     QSharedPointer<Connection> con =
@@ -228,7 +230,7 @@ namespace Anonymity {
     }
 
     if(response.Successful() && response.GetData().toBool()) {
-      qDebug() << _creds.GetLocalId().ToString() << "registered and waiting to go.";
+      qDebug() << _ident.GetLocalId().ToString() << "registered and waiting to go.";
       return;
     }
 
@@ -452,7 +454,7 @@ namespace Anonymity {
 
   void Session::NextRound(const Id &round_id)
   {
-    _current_round = _create_round(GetGroup(), _creds, round_id,
+    _current_round = _create_round(GetGroup(), _ident, round_id,
         _network, _get_data_cb);
 
     qDebug() << "Session" << ToString() << "preparing new round" <<
@@ -519,13 +521,13 @@ namespace Anonymity {
     }
   }
 
-  void Session::AddMember(const GroupContainer &gc)
+  void Session::AddMember(const PublicIdentity &gc)
   {
-    if(!GetGroup().Contains(gc.first)) {
+    if(!GetGroup().Contains(gc.GetId())) {
       _group_holder->UpdateGroup(AddGroupMember(GetGroup(), gc));
     }
 
-    _registered_peers.insert(gc.first, gc.first);
+    _registered_peers.insert(gc.GetId(), gc.GetId());
   }
 
   void Session::RemoveMember(const Id &id)

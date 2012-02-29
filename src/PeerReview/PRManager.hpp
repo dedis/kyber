@@ -3,7 +3,7 @@
 
 #include <QByteArray>
 #include "Connections/Id.hpp"
-#include "Identity/Credentials.hpp"
+#include "Identity/PrivateIdentity.hpp"
 #include "Identity/Group.hpp"
 
 #include "AcknowledgementLog.hpp"
@@ -18,15 +18,15 @@ namespace PeerReview {
   class PRManager {
     public:
       typedef Connections::Id Id;
-      typedef Identity::Credentials Credentials;
+      typedef Identity::PrivateIdentity PrivateIdentity;
       typedef Identity::Group Group;
 
       /**
        * Constructs a new peer review log system
-       * @param creds the log owners credentials
+       * @param ident the log owners credentials
        * @param group the key database for remote members
        */
-      PRManager(const Credentials &creds, const Group &group);
+      PRManager(const PrivateIdentity &ident, const Group &group);
 
       /**
        * prepare a serialized ack for the entry
@@ -72,7 +72,7 @@ namespace PeerReview {
 
     private:
       AcknowledgementLog _acks;
-      Credentials _creds;
+      PrivateIdentity _ident;
       Group _group;
       EntryLog _log;
   };

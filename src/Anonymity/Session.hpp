@@ -7,7 +7,8 @@
 #include <QSet>
 
 #include "Connections/Id.hpp"
-#include "Identity/Credentials.hpp"
+#include "Identity/PublicIdentity.hpp"
+#include "Identity/PrivateIdentity.hpp"
 #include "Identity/Group.hpp"
 #include "Identity/GroupHolder.hpp"
 #include "Messaging/FilterObject.hpp"
@@ -48,9 +49,9 @@ namespace Anonymity {
       typedef Connections::Id Id;
       typedef Connections::Network Network;
       typedef Crypto::AsymmetricKey AsymmetricKey;
-      typedef Identity::Credentials Credentials;
+      typedef Identity::PrivateIdentity PrivateIdentity;
+      typedef Identity::PublicIdentity PublicIdentity;
       typedef Identity::Group Group;
-      typedef Identity::GroupContainer GroupContainer;
       typedef Identity::GroupHolder GroupHolder;
       typedef Messaging::Request Request;
       typedef Messaging::Response Response;
@@ -60,13 +61,13 @@ namespace Anonymity {
       /**
        * Constructor
        * @param group_holder contains the anonymity group
-       * @param creds the local nodes credentials
+       * @param ident the local nodes credentials
        * @param session_id Id for the session
        * @param network handles message sending
        * @param create_round a callback for creating a secure round
        */
       explicit Session(const QSharedPointer<GroupHolder> &group_holder,
-          const Credentials &creds, const Id &session_id,
+          const PrivateIdentity &ident, const Id &session_id,
           QSharedPointer<Network> network, CreateRound create_round);
 
       /**
@@ -109,7 +110,7 @@ namespace Anonymity {
        */
       inline bool IsLeader() const
       {
-        return _creds.GetLocalId() == GetGroup().GetLeader();
+        return _ident.GetLocalId() == GetGroup().GetLeader();
       }
 
       /**
@@ -235,7 +236,7 @@ namespace Anonymity {
        */
       QPair<QByteArray, bool> GetData(int max);
 
-      void AddMember(const GroupContainer &gc);
+      void AddMember(const PublicIdentity &gc);
       void RemoveMember(const Id &id);
 
       /**
@@ -251,7 +252,7 @@ namespace Anonymity {
       Group _shared_group;
       QSet<Id> _bad_members;
       QSharedPointer<GroupHolder> _group_holder;
-      const Credentials _creds;
+      const PrivateIdentity _ident;
       const Id _session_id;
       QSharedPointer<Network> _network;
       CreateRound _create_round;

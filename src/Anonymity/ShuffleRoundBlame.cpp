@@ -2,20 +2,21 @@
 
 #include "Crypto/CryptoFactory.hpp"
 #include "Connections/EmptyNetwork.hpp"
+#include "Identity/PrivateIdentity.hpp"
 
 using Dissent::Crypto::CryptoFactory;
 using Dissent::Crypto::Hash;
 using Dissent::Crypto::Library;
 using Dissent::Crypto::OnionEncryptor;
+using Dissent::Identity::PrivateIdentity;
 
 namespace Dissent {
 namespace Anonymity {
   ShuffleRoundBlame::ShuffleRoundBlame(const Group &group, const Id &local_id,
       const Id &round_id, AsymmetricKey *outer_key) :
-    ShuffleRound(group, Credentials(local_id, QSharedPointer<AsymmetricKey>(),
-          QSharedPointer<DiffieHellman>()),
-        round_id, Dissent::Connections::EmptyNetwork::GetInstance(),
-        Dissent::Messaging::EmptyGetDataCallback::GetInstance())
+    ShuffleRound(group, PrivateIdentity(local_id), round_id,
+        Connections::EmptyNetwork::GetInstance(),
+        Messaging::EmptyGetDataCallback::GetInstance())
   {
     if(outer_key) {
       Library *lib = CryptoFactory::GetInstance().GetLibrary();

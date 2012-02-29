@@ -1,3 +1,6 @@
+#ifndef DISSENT_CRYPTO_SERIALIZATION_H_GUARD
+#define DISSENT_CRYPTO_SERIALIZATION_H_GUARD
+
 #include <QByteArray>
 #include <QDataStream>
 #include <QSharedPointer>
@@ -39,3 +42,5 @@ namespace Crypto {
   }
 }
 }
+
+#endif

@@ -3,6 +3,7 @@
 #include "Crypto/DiffieHellman.hpp"
 #include "Crypto/Hash.hpp"
 #include "Crypto/Library.hpp"
+#include "Identity/PublicIdentity.hpp"
 #include "Messaging/Request.hpp"
 #include "Utils/QRunTimeError.hpp"
 #include "Utils/Random.hpp"
@@ -11,21 +12,23 @@
 #include "BulkRound.hpp"
 #include "ShuffleRound.hpp"
 
-using Dissent::Crypto::CryptoFactory;
-using Dissent::Crypto::DiffieHellman;
-using Dissent::Crypto::Hash;
-using Dissent::Crypto::Library;
-using Dissent::Messaging::Request;
-using Dissent::Utils::QRunTimeError;
-using Dissent::Utils::Random;
-using Dissent::Utils::Serialization;
-
 namespace Dissent {
+
+using Crypto::CryptoFactory;
+using Crypto::DiffieHellman;
+using Crypto::Hash;
+using Crypto::Library;
+using Identity::PublicIdentity;
+using Messaging::Request;
+using Utils::QRunTimeError;
+using Utils::Random;
+using Utils::Serialization;
+
 namespace Anonymity {
-  BulkRound::BulkRound(const Group &group, const Credentials &creds,
+  BulkRound::BulkRound(const Group &group, const PrivateIdentity &ident,
       const Id &round_id, QSharedPointer<Network> network,
       GetDataCallback &get_data, CreateRound create_shuffle) :
-    Round(group, creds, round_id, network, get_data),
+    Round(group, ident, round_id, network, get_data),
     _app_broadcast(true),
     _my_idx(-1),
     _create_shuffle(create_shuffle),
@@ -51,7 +54,7 @@ namespace Anonymity {
     QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
     Id sr_id(hashalgo->ComputeHash(GetRoundId().GetByteArray()));
 
-    _shuffle_round = _create_shuffle(GetGroup(), GetCredentials(), sr_id, net,
+    _shuffle_round = _create_shuffle(GetGroup(), GetPrivateIdentity(), sr_id, net,
         _get_bulk_data);
     _shuffle_round->SetSink(&_shuffle_sink);
 
@@ -401,8 +404,8 @@ namespace Anonymity {
 
     int my_idx = GetGroup().GetIndex(GetLocalId());
 
-    foreach(const GroupContainer &gc, GetGroup().GetRoster()) {
-      QByteArray seed = _anon_dh->GetSharedSecret(gc.third);
+    foreach(const PublicIdentity &gc, GetGroup().GetRoster()) {
+      QByteArray seed = _anon_dh->GetSharedSecret(gc.GetDhKey());
 
       if(hashes.size() == my_idx) {
         hashes.append(QByteArray());
@@ -532,7 +535,7 @@ namespace Anonymity {
     roundid = hashalgo->ComputeHash(roundid);
     Id sr_id(roundid);
 
-    _shuffle_round = _create_shuffle(GetGroup(), GetCredentials(), sr_id, net,
+    _shuffle_round = _create_shuffle(GetGroup(), GetPrivateIdentity(), sr_id, net,
         _get_blame_data);
 
     _shuffle_round->SetSink(&_shuffle_sink);

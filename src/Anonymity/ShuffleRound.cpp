@@ -16,9 +16,9 @@ namespace Anonymity {
   const QByteArray ShuffleRound::DefaultData = QByteArray(ShuffleRound::BlockSize + 4, 0);
 
   ShuffleRound::ShuffleRound(const Group &group,
-      const Credentials &creds, const Id &round_id,
+      const PrivateIdentity &ident, const Id &round_id,
       QSharedPointer<Network> network, GetDataCallback &get_data) :
-    Round(group, creds, round_id, network, get_data),
+    Round(group, ident, round_id, network, get_data),
     _shufflers(GetGroup().GetSubgroup()),
     _shuffler(_shufflers.Contains(GetLocalId())),
     _state(Offline),

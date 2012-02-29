@@ -90,14 +90,14 @@ namespace Anonymity {
       /**
        * Constructor
        * @param group Group used during this round
-       * @param creds the local nodes credentials
+       * @param ident the local nodes credentials
        * @param round_id Unique round id (nonce)
        * @param network handles message sending
        * @param get_data requests data to share during this session
        * @param create_shuffle optional parameter specifying a shuffle round
        * to create, currently used for testing
        */
-      explicit RepeatingBulkRound(const Group &group, const Credentials &creds,
+      explicit RepeatingBulkRound(const Group &group, const PrivateIdentity &ident,
           const Id &round_id, QSharedPointer<Network> network,
           GetDataCallback &get_data,
           CreateRound create_shuffle = &TCreateRound<ShuffleRound>);

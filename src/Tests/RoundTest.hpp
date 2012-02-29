@@ -36,12 +36,12 @@ namespace Tests {
   }
 
   template <template <int> class T, int N> QSharedPointer<Round> TNCreateRound(
-      const Group &group, const Credentials &creds,
+      const Group &group, const PrivateIdentity &ident,
       const Dissent::Connections::Id &round_id,
       QSharedPointer<Dissent::Connections::Network> network,
       Dissent::Messaging::GetDataCallback &get_data)
   {
-    QSharedPointer<Round> round(new T<N>(group, creds, round_id,
+    QSharedPointer<Round> round(new T<N>(group, ident, round_id,
           network, get_data));
     round->SetSharedPointer(round);
     return round;

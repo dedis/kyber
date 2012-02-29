@@ -35,7 +35,7 @@ int main(int argc, char **argv)
 
   Library *lib = CryptoFactory::GetInstance().GetLibrary();
 
-  Group group(QVector<GroupContainer>(), Id(settings.LeaderId),
+  Group group(QVector<PublicIdentity>(), Id(settings.LeaderId),
       settings.SubgroupPolicy);
 
   QList<QSharedPointer<Node> > nodes;
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
     qFatal("Only DemoMode supported at this time;");
   }
 
-  nodes.append(Node::CreateBasicGossip(Credentials(local_id, key, dh), group,
+  nodes.append(Node::CreateBasicGossip(PrivateIdentity(local_id, key, dh), group,
         local, remote, app_sink, settings.SessionType));
 
   for(int idx = 1; idx < settings.LocalNodeCount; idx++) {
@@ -79,7 +79,7 @@ int main(int argc, char **argv)
       qFatal("Only DemoMode supported at this time;");
     }
 
-    nodes.append(Node::CreateBasicGossip(Credentials(local_id, key, dh), group,
+    nodes.append(Node::CreateBasicGossip(PrivateIdentity(local_id, key, dh), group,
           local, remote, default_sink, settings.SessionType));
   }
 
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
     QSharedPointer<GetFileService> get_webpage_sp(new GetFileService("index.html"));
     ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/web", get_webpage_sp);
 
-  nodes.append(Node::CreateBasicGossip(Credentials(local_id, key, dh), group,
+  nodes.append(Node::CreateBasicGossip(PrivateIdentity(local_id, key, dh), group,
         local, remote, app_sink, settings.SessionType));
     QSharedPointer<RoundIdService> round_id_sp(new RoundIdService(nodes[0]->GetSessionManager()));
     ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/round/id", round_id_sp);

@@ -17,7 +17,7 @@ namespace Tests {
 
     Id session_id;
     Id leader_id;
-    Group group(QVector<GroupContainer>(), leader_id, policy);
+    Group group(QVector<PublicIdentity>(), leader_id, policy);
 
     for(int idx = 0; idx < count; idx++) {
       Id id = idx == 0 ? leader_id : Id();
@@ -26,7 +26,7 @@ namespace Tests {
       QSharedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
 
       QSharedPointer<ISink> sink(new BufferSink());
-      nodes.append(Node::CreateBasicGossip(Credentials(id, key, dh), group,
+      nodes.append(Node::CreateBasicGossip(PrivateIdentity(id, key, dh), group,
             local, remote, sink, session_type));
 
       local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());

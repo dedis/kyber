@@ -2,21 +2,23 @@
 #include "Connections/ConnectionTable.hpp"
 #include "Crypto/CryptoFactory.hpp"
 #include "Crypto/Library.hpp"
+#include "Identity/PublicIdentity.hpp"
 #include "Transports/AddressFactory.hpp"
 #include "Utils/Random.hpp"
 #include "Utils/Timer.hpp"
 
 #include "CSConnectionAcquirer.hpp"
 
-using Dissent::Identity::GroupContainer;
-using Dissent::Connections::ConnectionTable;
-using Dissent::Crypto::CryptoFactory;
-using Dissent::Crypto::Library;
-using Dissent::Utils::Random;
-using Dissent::Utils::Timer;
-using Dissent::Utils::TimerCallback;
-
 namespace Dissent {
+
+using Identity::PublicIdentity;
+using Connections::ConnectionTable;
+using Crypto::CryptoFactory;
+using Crypto::Library;
+using Utils::Random;
+using Utils::Timer;
+using Utils::TimerCallback;
+
 namespace ClientServer {
   CSConnectionAcquirer::CSConnectionAcquirer(
       const QSharedPointer<ConnectionManager> &cm,
@@ -37,7 +39,7 @@ namespace ClientServer {
 
   void CSConnectionAcquirer::OnStart()
   {
-    TimerCallback *cb = new Dissent::Utils::TimerMethod<CSConnectionAcquirer, int>(
+    TimerCallback *cb = new Utils::TimerMethod<CSConnectionAcquirer, int>(
         this, &CSConnectionAcquirer::RequestServerState, -1);
     _check_event = new TimerEvent(Timer::GetInstance().QueueCallback(cb, 120000, 120000));
   }
@@ -93,11 +95,11 @@ namespace ClientServer {
       return;
     }
 
-    foreach(const GroupContainer &gc, _group.GetSubgroup()) {
-      if(gc.first == GetConnectionManager()->GetId()) {
+    foreach(const PublicIdentity &gc, _group.GetSubgroup()) {
+      if(gc.GetId() == GetConnectionManager()->GetId()) {
         continue;
       }
-      QSharedPointer<Connection> con = ct.GetConnection(gc.first);
+      QSharedPointer<Connection> con = ct.GetConnection(gc.GetId());
       if(con != 0) {
         RequestServerState(con);
         return;
@@ -126,8 +128,8 @@ namespace ClientServer {
     const Id &my_id = GetConnectionManager()->GetId();
     const ConnectionTable &ct = GetConnectionManager()->GetConnectionTable();
 
-    foreach(const GroupContainer &gc, _group.GetSubgroup()) {
-      const Id &gc_id = gc.first;
+    foreach(const PublicIdentity &gc, _group.GetSubgroup()) {
+      const Id &gc_id = gc.GetId();
       if(gc_id == my_id) {
         continue;
       }
@@ -182,8 +184,8 @@ namespace ClientServer {
     }
 
     const ConnectionTable &ct = GetConnectionManager()->GetConnectionTable();
-    foreach(const GroupContainer &gc, _group.GetSubgroup()) {
-      if(ct.GetConnection(gc.first) != 0) {
+    foreach(const PublicIdentity &gc, _group.GetSubgroup()) {
+      if(ct.GetConnection(gc.GetId()) != 0) {
         return;
       }
     }
@@ -228,7 +230,7 @@ namespace ClientServer {
       return false;
     }
 
-    Address addr = Dissent::Transports::AddressFactory::GetInstance().CreateAddress(url);
+    Address addr = Transports::AddressFactory::GetInstance().CreateAddress(url);
     GetConnectionManager()->ConnectTo(addr);
     _local_initiated[id] = true;
     _addr_to_id[addr] = id;

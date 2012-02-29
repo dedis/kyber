@@ -6,9 +6,9 @@ namespace Tests {
   {
     QVector<Id> id(10);
 
-    QVector<GroupContainer> gr;
+    QVector<PublicIdentity> gr;
     for(int idx = 0; idx < 10; idx++) {
-      gr.append(GroupContainer(id[idx], Group::EmptyKey(), QByteArray()));
+      gr.append(PublicIdentity(id[idx], Group::EmptyKey(), QByteArray()));
     }
 
     qSort(id);
@@ -34,9 +34,9 @@ namespace Tests {
     Id id0;
     EXPECT_FALSE(group.Contains(id0));
 
-    QVector<GroupContainer> gr0;
+    QVector<PublicIdentity> gr0;
     for(int idx = 9; idx >= 0; idx--) {
-      gr0.append(GroupContainer(Id(), Group::EmptyKey(), QByteArray()));
+      gr0.append(PublicIdentity(Id(), Group::EmptyKey(), QByteArray()));
     }
     Group group0(gr0);
     for(int idx = 0; idx < 10; idx++) {
@@ -46,24 +46,24 @@ namespace Tests {
     }
   }
 
-  GroupContainer CreateMember(const Id &id = Id())
+  PublicIdentity CreateMember(const Id &id = Id())
   {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
 
     QByteArray bid = id.GetByteArray();
     QSharedPointer<AsymmetricKey> key(lib->GeneratePublicKey(bid));
     QScopedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
-    return GroupContainer(id, key, dh->GetPublicComponent());
+    return PublicIdentity(id, key, dh->GetPublicComponent());
   }
 
-  void AddMember(QVector<GroupContainer> &group, const Id &id = Id())
+  void AddMember(QVector<PublicIdentity> &group, const Id &id = Id())
   {
     group.append(CreateMember(id));
   }
 
   TEST(Group, Serialization)
   {
-    QVector<GroupContainer> gr;
+    QVector<PublicIdentity> gr;
     for(int idx = 0; idx < 100; idx++) {
       AddMember(gr);
     }
@@ -83,8 +83,12 @@ namespace Tests {
     EXPECT_EQ(gr[0], gr[0]);
     EXPECT_NE(gr[1], gr[0]);
 
-    foreach(const GroupContainer &gc, group_in) {
-      EXPECT_TRUE(group_out.Contains(gc.first));
+    foreach(const PublicIdentity &gc, group_in) {
+      EXPECT_TRUE(group_out.Contains(gc.GetId()));
+    }
+
+    foreach(const PublicIdentity &gc, group_out) {
+      EXPECT_TRUE(group_in.Contains(gc.GetId()));
     }
 
     EXPECT_TRUE(IsSubset(group_in, group_out));
@@ -92,13 +96,13 @@ namespace Tests {
 
   TEST(Group, Subgroup)
   {
-    QVector<GroupContainer> gr;
+    QVector<PublicIdentity> gr;
     for(int idx = 0; idx < 100; idx++) {
       AddMember(gr);
     }
 
     Group set(gr);
-    QVector<GroupContainer> gr0;
+    QVector<PublicIdentity> gr0;
 
     for(int idx = 0; idx < 10; idx++) {
       int offset = Random::GetInstance().GetInt(10 * idx, 10 + 10 * idx);
@@ -114,10 +118,10 @@ namespace Tests {
 
   TEST(Group, Mutable)
   {
-    QVector<GroupContainer> gr;
+    QVector<PublicIdentity> gr;
     for(int idx = 0; idx < 10; idx++) {
       Id id;
-      gr.append(GroupContainer(id, Group::EmptyKey(), QByteArray()));
+      gr.append(PublicIdentity(id, Group::EmptyKey(), QByteArray()));
     }
 
     Group group(gr);
@@ -136,14 +140,14 @@ namespace Tests {
 
   TEST(Group, JoinsAndLoses)
   {
-    QVector<GroupContainer> gr;
+    QVector<PublicIdentity> gr;
     for(int idx = 0; idx < 100; idx++) {
       AddMember(gr);
     }
 
     Group group(gr);
 
-    QVector<GroupContainer> lost, gained;
+    QVector<PublicIdentity> lost, gained;
     EXPECT_FALSE(Difference(group, group, lost, gained));
 
     Group lost_group(group.GetRoster());
@@ -164,7 +168,7 @@ namespace Tests {
     for(int i = 0; i < 10; i++) {
       Id id;
       added.append(id);
-      GroupContainer gc = CreateMember(id);
+      PublicIdentity gc = CreateMember(id);
       lost_and_added_group = AddGroupMember(lost_and_added_group, gc);
       added_group = AddGroupMember(added_group, gc);
     }
@@ -176,7 +180,7 @@ namespace Tests {
 
     EXPECT_FALSE(Difference(group, nc_group, lost, gained));
 
-    QVector<GroupContainer> lost0, gained0;
+    QVector<PublicIdentity> lost0, gained0;
     EXPECT_TRUE(Difference(group, lost_and_added_group, lost, gained));
     EXPECT_TRUE(Difference(group, lost_group, lost0, gained0));
     EXPECT_EQ(lost0, lost);
@@ -191,8 +195,8 @@ namespace Tests {
     QSharedPointer<Random> rand(CryptoFactory::GetInstance().
       GetLibrary()->GetRandomNumberGenerator());
 
-    QVector<GroupContainer> gr;
-    QVector<GroupContainer> sgr;
+    QVector<PublicIdentity> gr;
+    QVector<PublicIdentity> sgr;
     for(int idx = 0; idx < 100; idx++) {
       AddMember(gr);
       if(((double(rand->GetInt(0, 1000))) / 1000.0) < .5) {
@@ -201,36 +205,36 @@ namespace Tests {
     }
 
     ASSERT_NE(gr, sgr);
-    Group group(gr, gr[5].first, Group::ManagedSubgroup, sgr);
+    Group group(gr, gr[5].GetId(), Group::ManagedSubgroup, sgr);
     ASSERT_TRUE(IsSubset(group, group.GetSubgroup()));
 
-    GroupContainer gc0 = CreateMember();
+    PublicIdentity gc0 = CreateMember();
     group = AddGroupMember(group, gc0, true);
-    ASSERT_TRUE(group.Contains(gc0.first));
-    ASSERT_TRUE(group.GetSubgroup().Contains(gc0.first));
+    ASSERT_TRUE(group.Contains(gc0.GetId()));
+    ASSERT_TRUE(group.GetSubgroup().Contains(gc0.GetId()));
 
-    GroupContainer gc1 = CreateMember();
+    PublicIdentity gc1 = CreateMember();
     group = AddGroupMember(group, gc1, false);
-    ASSERT_TRUE(group.Contains(gc1.first));
-    ASSERT_FALSE(group.GetSubgroup().Contains(gc1.first));
+    ASSERT_TRUE(group.Contains(gc1.GetId()));
+    ASSERT_FALSE(group.GetSubgroup().Contains(gc1.GetId()));
 
     int to_remove = rand->GetInt(0, group.GetSubgroup().Count());
-    while(to_remove == group.GetSubgroup().GetIndex(gc0.first)) {
+    while(to_remove == group.GetSubgroup().GetIndex(gc0.GetId())) {
       to_remove = rand->GetInt(0, group.GetSubgroup().Count());
     }
     Id id0 = group.GetSubgroup().GetId(to_remove);
     group = RemoveGroupMember(group, id0);
 
-    ASSERT_TRUE(group.Contains(gc0.first));
-    ASSERT_TRUE(group.GetSubgroup().Contains(gc0.first));
-    ASSERT_TRUE(group.Contains(gc1.first));
-    ASSERT_FALSE(group.GetSubgroup().Contains(gc1.first));
+    ASSERT_TRUE(group.Contains(gc0.GetId()));
+    ASSERT_TRUE(group.GetSubgroup().Contains(gc0.GetId()));
+    ASSERT_TRUE(group.Contains(gc1.GetId()));
+    ASSERT_FALSE(group.GetSubgroup().Contains(gc1.GetId()));
     ASSERT_FALSE(group.Contains(id0));
     ASSERT_FALSE(group.GetSubgroup().Contains(id0));
 
     to_remove = rand->GetInt(0, group.Count());
     Id id1 = group.GetId(to_remove);
-    while(id1 == gc1.first || group.GetSubgroup().Contains(id1)) {
+    while(id1 == gc1.GetId() || group.GetSubgroup().Contains(id1)) {
       to_remove = rand->GetInt(0, group.Count());
       id1 = group.GetId(to_remove);
     }
@@ -238,10 +242,10 @@ namespace Tests {
     ASSERT_FALSE(group.GetSubgroup().Contains(id1));
     group = RemoveGroupMember(group, id1);
 
-    ASSERT_TRUE(group.Contains(gc0.first));
-    ASSERT_TRUE(group.GetSubgroup().Contains(gc0.first));
-    ASSERT_TRUE(group.Contains(gc1.first));
-    ASSERT_FALSE(group.GetSubgroup().Contains(gc1.first));
+    ASSERT_TRUE(group.Contains(gc0.GetId()));
+    ASSERT_TRUE(group.GetSubgroup().Contains(gc0.GetId()));
+    ASSERT_TRUE(group.Contains(gc1.GetId()));
+    ASSERT_FALSE(group.GetSubgroup().Contains(gc1.GetId()));
     ASSERT_FALSE(group.Contains(id0));
     ASSERT_FALSE(group.GetSubgroup().Contains(id0));
     ASSERT_FALSE(group.Contains(id1));

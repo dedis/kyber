@@ -1,17 +1,20 @@
 #include "Crypto/Library.hpp"
+#include "Identity/PublicIdentity.hpp"
 #include "BulkRound.hpp"
 #include "TrustedBulkRound.hpp"
 
-using Dissent::Crypto::CryptoFactory;
-using Dissent::Crypto::Library;
-using Dissent::Crypto::Integer;
-
 namespace Dissent {
+
+using Crypto::CryptoFactory;
+using Crypto::Library;
+using Crypto::Integer;
+using Identity::PublicIdentity;
+
 namespace Anonymity {
   TrustedBulkRound::TrustedBulkRound(const Group &group,
-      const Credentials &creds, const Id &round_id, QSharedPointer<Network> network,
+      const PrivateIdentity &ident, const Id &round_id, QSharedPointer<Network> network,
       GetDataCallback &get_data, CreateRound create_shuffle) :
-    RepeatingBulkRound(group, creds, round_id, network, get_data, create_shuffle),
+    RepeatingBulkRound(group, ident, round_id, network, get_data, create_shuffle),
     _trusted_group(GetGroup().GetSubgroup()),
     _trusted(_trusted_group.Contains(GetLocalId()))
   {
@@ -20,21 +23,21 @@ namespace Anonymity {
 
   void TrustedBulkRound::Init()
   {
-    QVector<GroupContainer> roster;
+    QVector<PublicIdentity> roster;
     if(_trusted) {
       roster = GetGroup().GetRoster();
     } else {
       roster = _trusted_group.GetRoster();
     }
 
-    foreach(GroupContainer gc, roster) {
-      if(gc.first == GetLocalId()) {
+    foreach(PublicIdentity gc, roster) {
+      if(gc.GetId() == GetLocalId()) {
         continue;
       }
-      if(_offline_peers.contains(gc.first)) {
+      if(_offline_peers.contains(gc.GetId())) {
         continue;
       }
-      QByteArray base_seed = GetCredentials().GetDhKey()->GetSharedSecret(gc.third);
+      QByteArray base_seed = GetPrivateIdentity().GetDhKey()->GetSharedSecret(gc.GetDhKey());
       _base_seeds.append(Integer(base_seed));
     }
   }

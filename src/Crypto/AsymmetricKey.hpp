@@ -3,6 +3,7 @@
 
 #include <QDebug>
 #include <QByteArray>
+#include <QSharedPointer>
 #include <QString>
 
 namespace Dissent {
@@ -115,7 +116,15 @@ namespace Crypto {
        */
       bool ReadFile(const QString &filename, QByteArray &data);
   };
+
+  inline bool operator==(const QSharedPointer<AsymmetricKey> &lhs,
+      const QSharedPointer<AsymmetricKey> &rhs)
+  {
+    return *lhs == *rhs;
+  }
 }
 }
+
+using Dissent::Crypto::operator==;
 
 #endif

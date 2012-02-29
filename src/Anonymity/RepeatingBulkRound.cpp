@@ -4,6 +4,7 @@
 #include "Crypto/Hash.hpp"
 #include "Crypto/Library.hpp"
 #include "Crypto/Serialization.hpp"
+#include "Identity/PublicIdentity.hpp"
 #include "Messaging/Request.hpp"
 #include "Utils/QRunTimeError.hpp"
 #include "Utils/Random.hpp"
@@ -13,22 +14,24 @@
 #include "BulkRound.hpp"
 #include "ShuffleRound.hpp"
 
-using Dissent::Crypto::CryptoFactory;
-using Dissent::Crypto::DiffieHellman;
-using Dissent::Crypto::Hash;
-using Dissent::Crypto::Library;
-using Dissent::Messaging::Request;
-using Dissent::Utils::QRunTimeError;
-using Dissent::Utils::Random;
-using Dissent::Utils::Serialization;
-
 namespace Dissent {
+
+using Crypto::CryptoFactory;
+using Crypto::DiffieHellman;
+using Crypto::Hash;
+using Crypto::Library;
+using Identity::PublicIdentity;
+using Messaging::Request;
+using Utils::QRunTimeError;
+using Utils::Random;
+using Utils::Serialization;
+
 namespace Anonymity {
   RepeatingBulkRound::RepeatingBulkRound(const Group &group,
-      const Credentials &creds, const Id &round_id,
+      const PrivateIdentity &ident, const Id &round_id,
       QSharedPointer<Network> network, GetDataCallback &get_data,
       CreateRound create_shuffle) :
-    Round(group, creds, round_id, network, get_data),
+    Round(group, ident, round_id, network, get_data),
     _get_shuffle_data(this, &RepeatingBulkRound::GetShuffleData),
     _state(Offline),
     _phase(0),
@@ -49,7 +52,7 @@ namespace Anonymity {
     QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
     Id sr_id(hashalgo->ComputeHash(GetRoundId().GetByteArray()));
 
-    _shuffle_round = create_shuffle(GetGroup(), GetCredentials(), sr_id, net,
+    _shuffle_round = create_shuffle(GetGroup(), GetPrivateIdentity(), sr_id, net,
         _get_shuffle_data);
     _shuffle_round->SetSink(&_shuffle_sink);
 
@@ -66,8 +69,8 @@ namespace Anonymity {
     QVector<QSharedPointer<Random> > anon_rngs;
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
 
-    foreach(GroupContainer gc, GetGroup().GetRoster()) {
-      QByteArray seed = _anon_dh->GetSharedSecret(gc.third);
+    foreach(PublicIdentity gc, GetGroup().GetRoster()) {
+      QByteArray seed = _anon_dh->GetSharedSecret(gc.GetDhKey());
       QSharedPointer<Random> rng(lib->GetRandomNumberGenerator(seed));
       anon_rngs.append(rng);
     }

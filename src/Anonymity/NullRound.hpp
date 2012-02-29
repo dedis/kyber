@@ -15,12 +15,12 @@ namespace Anonymity {
       /**
        * Constructor
        * @param group Group used during this round
-       * @param creds the local nodes credentials
+       * @param ident the local nodes credentials
        * @param round_id unused
        * @param network handles message sending
        * @param get_data requests data to share during this session
        */
-      explicit NullRound(const Group &group, const Credentials &creds,
+      explicit NullRound(const Group &group, const PrivateIdentity &ident,
           const Id &round_id, QSharedPointer<Network> network,
           GetDataCallback &get_data);
 

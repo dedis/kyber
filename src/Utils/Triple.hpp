@@ -108,4 +108,11 @@ namespace Utils {
 }
 }
 
+using Dissent::Utils::operator==;
+using Dissent::Utils::operator!=;
+using Dissent::Utils::operator<;
+using Dissent::Utils::operator>;
+using Dissent::Utils::operator<=;
+using Dissent::Utils::operator>=;
+
 #endif

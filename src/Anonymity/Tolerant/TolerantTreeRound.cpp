@@ -25,9 +25,9 @@ namespace Dissent {
 namespace Anonymity {
 namespace Tolerant {
   TolerantTreeRound::TolerantTreeRound(const Group &group,
-      const Credentials &creds, const Id &round_id, QSharedPointer<Network> network,
+      const PrivateIdentity &ident, const Id &round_id, QSharedPointer<Network> network,
       GetDataCallback &get_data, CreateRound create_shuffle) :
-    Round(group, creds, round_id, network, get_data),
+    Round(group, ident, round_id, network, get_data),
     _is_leader((GetGroup().GetLeader() == GetLocalId())),
     _is_server(GetGroup().GetSubgroup().Contains(GetLocalId())),
     _stop_next(false),
@@ -44,7 +44,7 @@ namespace Tolerant {
     _server_messages(GetGroup().GetSubgroup().Count()),
     _user_message_digests(GetGroup().Count()),
     _server_message_digests(GetGroup().GetSubgroup().Count()),
-    _message_randomizer(creds.GetDhKey()->GetPrivateComponent()),
+    _message_randomizer(ident.GetDhKey()->GetPrivateComponent()),
     _user_idx(GetGroup().GetIndex(GetLocalId()))
   {
     qDebug() << "Leader:" << _is_leader << "LocID" << GetLocalId().ToString() 
@@ -58,7 +58,7 @@ namespace Tolerant {
     const Group servers = GetGroup().GetSubgroup();
     for(int server_idx=0; server_idx<servers.Count(); server_idx++) {
       QByteArray server_pk = servers.GetPublicDiffieHellman(server_idx);
-      QByteArray secret = creds.GetDhKey()->GetSharedSecret(server_pk);
+      QByteArray secret = ident.GetDhKey()->GetSharedSecret(server_pk);
 
       _secrets_with_servers[server_idx] = secret;
       _rngs_with_servers[server_idx] = QSharedPointer<Random>(_crypto_lib->GetRandomNumberGenerator(secret));
@@ -74,7 +74,7 @@ namespace Tolerant {
       const Group users = GetGroup();
       for(int user_idx=0; user_idx<users.Count(); user_idx++) {
         QByteArray user_pk = users.GetPublicDiffieHellman(user_idx);
-        QByteArray secret = creds.GetDhKey()->GetSharedSecret(user_pk);
+        QByteArray secret = ident.GetDhKey()->GetSharedSecret(user_pk);
 
         _secrets_with_users[user_idx] = secret;
         _rngs_with_users[user_idx] = QSharedPointer<Random>(_crypto_lib->GetRandomNumberGenerator(secret));
@@ -88,7 +88,7 @@ namespace Tolerant {
 
     Id sr_id(_hash_algo->ComputeHash(GetRoundId().GetByteArray()));
 
-    _key_shuffle_round = _create_shuffle(GetGroup(), GetCredentials(), sr_id,
+    _key_shuffle_round = _create_shuffle(GetGroup(), GetPrivateIdentity(), sr_id,
         net, _get_key_shuffle_data);
     _key_shuffle_round->SetSink(&_key_shuffle_sink);
 

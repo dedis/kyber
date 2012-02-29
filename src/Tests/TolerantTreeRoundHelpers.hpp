@@ -14,9 +14,9 @@ namespace Tests {
   {
     public:
       explicit TolerantTreeRoundBadKeyShuffler(const Group &group,
-          const Credentials &creds, const Id &round_id,
+          const PrivateIdentity &ident, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data) :
-        B(group, creds, round_id, network, get_data, TNCreateRound<S, N>)
+        B(group, ident, round_id, network, get_data, TNCreateRound<S, N>)
       {
       }
 

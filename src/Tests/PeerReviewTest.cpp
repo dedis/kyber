@@ -169,17 +169,17 @@ namespace Tests {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QSharedPointer<Random> rand(lib->GetRandomNumberGenerator());
 
-    Credentials cred0(Id(),
+    PrivateIdentity cred0(Id(),
           QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
           QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman()));
 
-    Credentials cred1(Id(),
+    PrivateIdentity cred1(Id(),
           QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
           QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman()));
 
     Group group;
-    group = AddGroupMember(group, GetPublicComponents(cred0));
-    group = AddGroupMember(group, GetPublicComponents(cred1));
+    group = AddGroupMember(group, GetPublicIdentity(cred0));
+    group = AddGroupMember(group, GetPublicIdentity(cred1));
 
     PRManager pr0(cred0, group);
     PRManager pr1(cred1, group);
@@ -187,7 +187,7 @@ namespace Tests {
     QByteArray msg(1024, 0);
     for(int idx = 0; idx < 100; idx++) {
       PRManager *sender, *receiver;
-      Credentials *c_sender, *c_receiver;
+      PrivateIdentity *c_sender, *c_receiver;
 
       double rand_val = ((double) rand->GetInt(0, 1000)) / 1000.0;
       if(rand_val < .5) {

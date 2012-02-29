@@ -12,7 +12,8 @@
 
 #include "Connections/Id.hpp"
 #include "Crypto/NullPrivateKey.hpp"
-#include "Utils/Triple.hpp"
+
+#include "PublicIdentity.hpp"
 
 namespace Dissent {
 namespace Crypto {
@@ -20,10 +21,6 @@ namespace Crypto {
 }
 
 namespace Identity {
-  typedef Utils::Triple<Connections::Id,
-          QSharedPointer<Crypto::AsymmetricKey>,
-          QByteArray> GroupContainer;
-
   /**
    * Private data structure for Group storage.
    */
@@ -36,7 +33,7 @@ namespace Identity {
        */
       explicit GroupData(): SGPolicy(0), Size(0) {}
 
-      explicit GroupData(const QVector<GroupContainer> &roster,
+      explicit GroupData(const QVector<PublicIdentity> &roster,
           const QHash<const Id, int> &id_to_int, const Id &leader,
           int subgroup_policy) :
         Roster(roster),
@@ -49,7 +46,7 @@ namespace Identity {
 
       virtual ~GroupData() {}
 
-      const QVector<GroupContainer> Roster;
+      const QVector<PublicIdentity> Roster;
       const QHash<const Id, int> IdtoInt;
       const Id Leader;
       const int SGPolicy;
@@ -70,7 +67,7 @@ namespace Identity {
     public:
       typedef Crypto::AsymmetricKey AsymmetricKey;
       typedef Connections::Id Id;
-      typedef QVector<GroupContainer>::const_iterator const_iterator;
+      typedef QVector<PublicIdentity>::const_iterator const_iterator;
 
       enum SubgroupPolicy {
         CompleteGroup = 0,
@@ -101,10 +98,10 @@ namespace Identity {
        * @param leader the leader for the group
        * @param subgroup_policy the rules used in governing the subgroup
        */
-      explicit Group(const QVector<GroupContainer> &roster,
+      explicit Group(const QVector<PublicIdentity> &roster,
           const Id &leader = Id::Zero(),
           SubgroupPolicy subgroup_policy = CompleteGroup,
-          const QVector<GroupContainer> &subgroup = QVector<GroupContainer>());
+          const QVector<PublicIdentity> &subgroup = QVector<PublicIdentity>());
 
       /**
        * Creates an empty group
@@ -114,7 +111,7 @@ namespace Identity {
       /**
        * Returns the internal roster
        */
-      inline const QVector<GroupContainer> &GetRoster() const { return _data->Roster; }
+      inline const QVector<PublicIdentity> &GetRoster() const { return _data->Roster; }
 
       /**
        * Returns the inner subgroup
@@ -212,46 +209,6 @@ namespace Identity {
   };
 
   /**
-   * not equals operator for group container
-   * @param lhs the container used on the left hand side of the operator
-   * @param rhs the container used on the right hand side of the operator
-   * @returns true if the groups are not equal
-   */
-  inline bool operator!=(const GroupContainer &lhs, const GroupContainer &rhs) 
-  {
-    return (lhs.first != rhs.first) ||
-          (*lhs.second != *rhs.second) ||
-          (lhs.third != rhs.third);
-  }
-
-  /**
-   * equals operator for group container
-   * @param lhs the container used on the left hand side of the operator
-   * @param rhs the container used on the right hand side of the operator
-   * @returns true if the groups are equal
-   */
-  inline bool operator==(const GroupContainer &lhs, const GroupContainer &rhs) 
-  {
-    return (lhs.first == rhs.first) ||
-          (*lhs.second == *rhs.second) ||
-          (lhs.third == rhs.third);
-  }
-
-  /**
-   * Less than operator for group container
-   * @param lhs the container used on the left hand side of the operator
-   * @param rhs the container used on the right hand side of the operator
-   * @returns true if the lhs < rhs
-   */
-  inline bool operator<(const GroupContainer &lhs, const GroupContainer &rhs)
-  {
-    return (lhs.first < rhs.first) ||
-      ((lhs.first == rhs.first) &&
-       ((lhs.second->GetByteArray() < rhs.second->GetByteArray()) ||
-        ((*lhs.second == *rhs.second) && (lhs.third < rhs.third))));
-  }
-
-  /**
    * Returns the whether or not the rhs is inside the lhs
    * @param set the lhs, all members in subset should be in set
    * @param subset the rhs, all members in subset should be in set
@@ -271,9 +228,9 @@ namespace Identity {
    * returns true if there was some difference
    */
   bool Difference(const Group &old_group, const Group &new_group,
-      QVector<GroupContainer> &lost, QVector<GroupContainer> &gained);
+      QVector<PublicIdentity> &lost, QVector<PublicIdentity> &gained);
 
-  Group AddGroupMember(const Group &group, const GroupContainer &gc,
+  Group AddGroupMember(const Group &group, const PublicIdentity &gc,
       bool subgroup = false);
 
   /**
@@ -291,15 +248,6 @@ namespace Identity {
    * Deserialize a group into a QDataStream
    */
   QDataStream &operator>>(QDataStream &stream, Group &group);
-}
-}
-
-// Put these into the common namespace of Triple
-namespace Dissent {
-namespace Utils {
-  using Identity::operator==;
-  using Identity::operator!=;
-  using Identity::operator<;
 }
 }
 

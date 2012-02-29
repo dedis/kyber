@@ -19,7 +19,7 @@ namespace Tests {
 
     Id session_id;
     Id leader_id;
-    Group group(QVector<GroupContainer>(), leader_id, policy);
+    Group group(QVector<PublicIdentity>(), leader_id, policy);
 
     for(int idx = 0; idx < count; idx++) {
       Id id = idx == 0 ? leader_id : Id();
@@ -28,7 +28,7 @@ namespace Tests {
       QSharedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
 
       QSharedPointer<ISink> sink(new BufferSink());
-      nodes.append(Node::CreateBasicGossip(Credentials(id, key, dh),
+      nodes.append(Node::CreateBasicGossip(PrivateIdentity(id, key, dh),
               group, local, remote, sink, session_type));
       local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
     }
@@ -101,9 +101,9 @@ namespace Tests {
     QList<Address> remote;
     remote.append(remote_addr);
 
-    group = Group(QVector<GroupContainer>(), leader_id, policy);
+    group = Group(QVector<PublicIdentity>(), leader_id, policy);
     QSharedPointer<ISink> sink(new BufferSink());
-    nodes[idx] = Node::CreateBasicGossip(Credentials(leader_id, key, dh),
+    nodes[idx] = Node::CreateBasicGossip(PrivateIdentity(leader_id, key, dh),
           group, local, remote, sink, session_type);
 
     sc.Reset();
@@ -187,7 +187,7 @@ namespace Tests {
 
     QSharedPointer<AsymmetricKey> key;
     QSharedPointer<DiffieHellman> dh;
-    QSharedPointer<Node> n = Node::CreateBasicGossip(Credentials(id, key, dh),
+    QSharedPointer<Node> n = Node::CreateBasicGossip(PrivateIdentity(id, key, dh),
         Group(), empty, empty, QSharedPointer<ISink>(new DummySink()),
         "shuffle");
     EXPECT_EQ(local_id, n->GetOverlay()->GetId());

@@ -14,9 +14,9 @@ namespace Tests {
   {
     public:
       explicit TolerantBulkRoundBadKeyShuffler(const Group &group,
-          const Credentials &creds, const Id &round_id,
+          const PrivateIdentity &ident, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data) :
-        B(group, creds, round_id, network, get_data, TNCreateRound<S, N>)
+        B(group, ident, round_id, network, get_data, TNCreateRound<S, N>)
       {
       }
 
@@ -31,9 +31,9 @@ namespace Tests {
     public:
       
       explicit TolerantBulkRoundBadUserMessageGenerator(const Group &group,
-          const Credentials &creds, const Id &round_id,
+          const PrivateIdentity &ident, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data) :
-        TolerantBulkRound(group, creds, round_id, network, get_data)
+        TolerantBulkRound(group, ident, round_id, network, get_data)
       {}
 
       virtual QByteArray GenerateUserXorMessage()
@@ -58,9 +58,9 @@ namespace Tests {
     public:
       
       explicit TolerantBulkRoundBadCleartextSigner(const Group &group,
-          const Credentials &creds, const Id &round_id,
+          const PrivateIdentity &ident, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data) :
-        TolerantBulkRound(group, creds, round_id, network, get_data)
+        TolerantBulkRound(group, ident, round_id, network, get_data)
       {}
 
       virtual QByteArray SignMessage(const QByteArray &message)
@@ -80,9 +80,9 @@ namespace Tests {
     public:
       
       explicit TolerantBulkRoundBadServerPad(const Group &group,
-          const Credentials &creds, const Id &round_id,
+          const PrivateIdentity &ident, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data) :
-        TolerantBulkRound(group, creds, round_id, network, get_data)
+        TolerantBulkRound(group, ident, round_id, network, get_data)
       {}
 
       virtual QByteArray GeneratePadWithServer(uint server_idx, uint length)
@@ -104,9 +104,9 @@ namespace Tests {
     public:
       
       explicit TolerantBulkRoundBadUserPad(const Group &group,
-          const Credentials &creds, const Id &round_id,
+          const PrivateIdentity &ident, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data) :
-        TolerantBulkRound(group, creds, round_id, network, get_data)
+        TolerantBulkRound(group, ident, round_id, network, get_data)
       {}
 
       virtual QByteArray GeneratePadWithUser(uint user_idx, uint length)
@@ -129,9 +129,9 @@ namespace Tests {
     public:
       
       explicit TolerantBulkRoundBadUserAlibi(const Group &group,
-          const Credentials &creds, const Id &round_id,
+          const PrivateIdentity &ident, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data) :
-        TolerantBulkRound(group, creds, round_id, network, get_data)
+        TolerantBulkRound(group, ident, round_id, network, get_data)
       {}
 
       virtual QByteArray GenerateUserXorMessage()
@@ -174,9 +174,9 @@ namespace Tests {
     public:
       
       explicit TolerantBulkRoundBadServerAlibi(const Group &group,
-          const Credentials &creds, const Id &round_id,
+          const PrivateIdentity &ident, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data) :
-        TolerantBulkRound(group, creds, round_id, network, get_data)
+        TolerantBulkRound(group, ident, round_id, network, get_data)
       {}
 
       virtual QByteArray GenerateUserXorMessage()
@@ -219,9 +219,9 @@ namespace Tests {
     public:
       
       explicit TolerantBulkRoundBadUserCommit(const Group &group,
-          const Credentials &creds, const Id &round_id,
+          const PrivateIdentity &ident, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data) :
-        TolerantBulkRound(group, creds, round_id, network, get_data)
+        TolerantBulkRound(group, ident, round_id, network, get_data)
       {}
 
       virtual void FinishCommitPhase()

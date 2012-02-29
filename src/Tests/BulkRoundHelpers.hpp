@@ -11,9 +11,9 @@ namespace Tests {
   {
     public:
       explicit BulkRoundBadShuffler(const Group &group,
-          const Credentials &creds, const Id &round_id,
+          const PrivateIdentity &ident, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data) :
-        B(group, creds, round_id, network, get_data, TNCreateRound<S, N>)
+        B(group, ident, round_id, network, get_data, TNCreateRound<S, N>)
       {
       }
 
@@ -24,21 +24,21 @@ namespace Tests {
   };
 
   template <typename B, template <int> class S, int N> Round *TBNCreateRound(
-      const Group &group, const Credentials &creds,
+      const Group &group, const PrivateIdentity &ident,
       const Dissent::Connections::Id &round_id,
       QSharedPointer<Dissent::Connections::Network> network,
       Dissent::Messaging::GetDataCallback &get_data)
   {
-    return new BulkRoundBadShuffler<B, S, N>(group, creds, round_id,
+    return new BulkRoundBadShuffler<B, S, N>(group, ident, round_id,
         network, get_data);
   };
 
   class BulkRoundIncorrectMessageLength : public BulkRound, public Triggerable {
     public:
       explicit BulkRoundIncorrectMessageLength(const Group &group,
-          const Credentials &creds, const Id &round_id,
+          const PrivateIdentity &ident, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data) :
-        BulkRound(group, creds, round_id, network, get_data),
+        BulkRound(group, ident, round_id, network, get_data),
         _bad(-1)
       {
       }
@@ -69,9 +69,9 @@ namespace Tests {
   class BulkRoundBadXorMessage : public BulkRound, public Triggerable {
     public:
       explicit BulkRoundBadXorMessage(const Group &group,
-          const Credentials &creds, const Id &round_id,
+          const PrivateIdentity &ident, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data) :
-        BulkRound(group, creds, round_id, network, get_data),
+        BulkRound(group, ident, round_id, network, get_data),
         _bad(-1)
       {
       }
@@ -101,9 +101,9 @@ namespace Tests {
   class BulkRoundBadDescriptor : public BulkRound, public Triggerable {
     public:
       explicit BulkRoundBadDescriptor(const Group &group,
-          const Credentials &creds, const Id &round_id,
+          const PrivateIdentity &ident, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data) :
-        BulkRound(group, creds, round_id, network, get_data)
+        BulkRound(group, ident, round_id, network, get_data)
       {
       }
 
@@ -143,9 +143,9 @@ namespace Tests {
   class BulkRoundFalseAccusation : public BulkRound, public Triggerable {
     public:
       explicit BulkRoundFalseAccusation(const Group &group,
-          const Credentials &creds, const Id &round_id,
+          const PrivateIdentity &ident, const Id &round_id,
           QSharedPointer<Network> network, GetDataCallback &get_data) :
-        BulkRound(group, creds, round_id, network, get_data)
+        BulkRound(group, ident, round_id, network, get_data)
       {
       }
   };

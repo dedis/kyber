@@ -10,7 +10,7 @@ namespace Tests {
       Group::SubgroupPolicy sg_policy)
   {
     QVector<Id> ids(count);
-    group = Group(QVector<GroupContainer>(), ids[0], sg_policy);
+    group = Group(QVector<PublicIdentity>(), ids[0], sg_policy);
     qSort(ids);
 
     for(int idx = 0; idx < count; idx++) {
@@ -47,7 +47,7 @@ namespace Tests {
   {
     Group ngroup = Group(group.GetRoster(), group.GetLeader(), group.GetSubgroupPolicy());
     foreach(TestNode *node, nodes) {
-      ngroup = AddGroupMember(ngroup, GroupContainer(node->cm->GetId(),
+      ngroup = AddGroupMember(ngroup, PublicIdentity(node->cm->GetId(),
             Group::EmptyKey(), QByteArray()));
     }
     return ngroup;

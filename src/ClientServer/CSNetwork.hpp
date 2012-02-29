@@ -13,6 +13,7 @@
 #include "Connections/RelayForwarder.hpp"
 #include "Identity/Group.hpp"
 #include "Identity/GroupHolder.hpp"
+#include "Identity/PublicIdentity.hpp"
 #include "Messaging/RpcHandler.hpp"
 
 namespace Dissent {
@@ -22,8 +23,8 @@ namespace ClientServer {
       typedef Connections::ConnectionManager ConnectionManager;
       typedef Connections::Id Id;
       typedef Connections::RelayForwarder RelayForwarder;
-      typedef Identity::GroupContainer GroupContainer;
       typedef Identity::GroupHolder GroupHolder;
+      typedef Identity::PublicIdentity PublicIdentity;
       typedef Messaging::RpcHandler RpcHandler;
       typedef Messaging::ISender ISender;
 
@@ -88,8 +89,8 @@ namespace ClientServer {
        */
       inline virtual void Broadcast(const QByteArray &data)
       {
-        foreach(const GroupContainer &gc, _group_holder->GetGroup().GetRoster()) {
-          DefaultNetwork::Send(GetSender(gc.first), data);
+        foreach(const PublicIdentity &gc, _group_holder->GetGroup().GetRoster()) {
+          DefaultNetwork::Send(GetSender(gc.GetId()), data);
         }
       }
 

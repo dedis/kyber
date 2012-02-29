@@ -16,7 +16,7 @@ namespace Tests {
         cm(new ConnectionManager(id, rpc)),
         sm(rpc),
         net(new DefaultNetwork(cm, rpc)),
-        creds(cm->GetId(),
+        ident(cm->GetId(),
             QSharedPointer<AsymmetricKey>(CryptoFactory::GetInstance().
               GetLibrary()->CreatePrivateKey()),
             QSharedPointer<DiffieHellman>(CryptoFactory::GetInstance().
@@ -37,7 +37,7 @@ namespace Tests {
       SessionManager sm;
       QSharedPointer<Network> net;
       BufferSink sink;
-      Credentials creds;
+      PrivateIdentity ident;
       QSharedPointer<Session> session;
       static int calledback;
       static int success;
@@ -70,7 +70,7 @@ namespace Tests {
   {
     QSharedPointer<Session> session(new Session(
         QSharedPointer<GroupHolder>(new GroupHolder(group)),
-        node->creds, session_id, node->net, &TCreateRound<T>));
+        node->ident, session_id, node->net, &TCreateRound<T>));
     session->SetSharedPointer(session);
     return session;
   }

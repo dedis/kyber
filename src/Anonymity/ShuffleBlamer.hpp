@@ -5,7 +5,7 @@
 #include <QSharedPointer>
 
 #include "Connections/Id.hpp"
-#include "Identity/Credentials.hpp"
+#include "Identity/PrivateIdentity.hpp"
 #include "Identity/Group.hpp"
 
 #include "ShuffleRoundBlame.hpp"
@@ -24,7 +24,7 @@ namespace Anonymity {
     public:
       typedef Connections::Id Id;
       typedef Crypto::AsymmetricKey AsymmetricKey;
-      typedef Identity::Credentials Credentials;
+      typedef Identity::PrivateIdentity Credentials;
       typedef Identity::Group Group;
 
       /**

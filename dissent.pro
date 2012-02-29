@@ -80,9 +80,10 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Crypto/OnionEncryptor.hpp \
            src/Crypto/ThreadedOnionEncryptor.hpp \
            src/Crypto/Serialization.hpp \
-           src/Identity/Credentials.hpp \
            src/Identity/Group.hpp \
            src/Identity/GroupHolder.hpp \
+           src/Identity/PrivateIdentity.hpp \
+           src/Identity/PublicIdentity.hpp \
            src/Messaging/BufferSink.hpp \
            src/Messaging/DummySink.hpp \
            src/Messaging/Filter.hpp \

@@ -3,12 +3,13 @@
 #include "Connections/Connection.hpp"
 #include "Connections/DefaultNetwork.hpp"
 #include "Crypto/CryptoFactory.hpp"
+#include "Identity/PublicIdentity.hpp"
 #include "Overlay/BasicGossip.hpp"
 
 #include "Node.hpp"
 #include "SessionFactory.hpp"
 
-using Dissent::Identity::GroupContainer;
+using Dissent::Identity::PublicIdentity;
 using Dissent::ClientServer::CSNetwork;
 using Dissent::ClientServer::CSOverlay;
 using Dissent::Connections::DefaultNetwork;
@@ -21,13 +22,13 @@ using Dissent::Overlay::BasicGossip;
 
 namespace Dissent {
 namespace Applications {
-  Node::Node(const Credentials &creds,
+  Node::Node(const PrivateIdentity &ident,
       const QSharedPointer<GroupHolder> &group_holder,
       const QSharedPointer<BaseOverlay> &overlay,
       const QSharedPointer<Network> &network,
       const QSharedPointer<ISink> &sink,
       const QString &type) :
-    _creds(creds),
+    _ident(ident),
     _group_holder(group_holder),
     _overlay(overlay),
     _net(network),
@@ -41,28 +42,28 @@ namespace Applications {
   {
   }
 
-  QSharedPointer<Node> Node::CreateBasicGossip(const Credentials &creds,
+  QSharedPointer<Node> Node::CreateBasicGossip(const PrivateIdentity &ident,
       const Group &group, const QList<Address> &local,
       const QList<Address> &remote, const QSharedPointer<ISink> &sink,
       const QString &session)
   {
     QSharedPointer<GroupHolder> gh(new GroupHolder(group));
-    QSharedPointer<BaseOverlay> overlay(new BasicGossip(creds.GetLocalId(),
+    QSharedPointer<BaseOverlay> overlay(new BasicGossip(ident.GetLocalId(),
           local, remote));
     QSharedPointer<Network> network(new DefaultNetwork(
           overlay->GetConnectionManager(),
           overlay->GetRpcHandler()));
-    return QSharedPointer<Node>(new Node(creds, gh, overlay,
+    return QSharedPointer<Node>(new Node(ident, gh, overlay,
           network, sink, session));
   }
 
-  QSharedPointer<Node> Node::CreateClientServer(const Credentials &creds,
+  QSharedPointer<Node> Node::CreateClientServer(const PrivateIdentity &ident,
       const Group &group, const QList<Address> &local,
       const QList<Address> &remote, const QSharedPointer<ISink> &sink,
       const QString &session)
   {
     QSharedPointer<GroupHolder> gh(new GroupHolder(group));
-    QSharedPointer<CSOverlay> overlay(new CSOverlay(creds.GetLocalId(),
+    QSharedPointer<CSOverlay> overlay(new CSOverlay(ident.GetLocalId(),
           local, remote, group));
     QObject::connect(gh.data(), SIGNAL(GroupUpdated()),
         overlay.data(), SLOT(GroupUpdated()));
@@ -70,7 +71,7 @@ namespace Applications {
           overlay->GetConnectionManager(),
           overlay->GetRpcHandler(),
           gh));
-    return QSharedPointer<Node>(new Node(creds, gh, overlay,
+    return QSharedPointer<Node>(new Node(ident, gh, overlay,
           network, sink, session));
   }
 }

@@ -110,7 +110,7 @@ namespace Applications {
 
   void SessionFactory::Common(Node *node, const Id &session_id, CreateRound cr)
   {
-    Session *session = new Session(node->GetGroupHolder(), node->GetCredentials(),
+    Session *session = new Session(node->GetGroupHolder(), node->GetPrivateIdentity(),
         session_id, node->GetNetwork(), cr);
 
     QObject::connect(node->GetOverlay().data(), SIGNAL(Disconnecting()),

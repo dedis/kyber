@@ -1,6 +1,7 @@
-#include "Group.hpp"
-
 #include "Crypto/Serialization.hpp"
+
+#include "Group.hpp"
+#include "PublicIdentity.hpp"
 
 using Dissent::Connections::Id;
 using Dissent::Crypto::AsymmetricKey;
@@ -8,15 +9,15 @@ using Dissent::Crypto::AsymmetricKey;
 namespace Dissent {
 namespace Identity {
 
-  Group::Group(const QVector<GroupContainer> &roster, const Id &leader,
-      SubgroupPolicy subgroup_policy, const QVector<GroupContainer> &subgroup)
+  Group::Group(const QVector<PublicIdentity> &roster, const Id &leader,
+      SubgroupPolicy subgroup_policy, const QVector<PublicIdentity> &subgroup)
   {
-    QVector<GroupContainer> sorted(roster);
+    QVector<PublicIdentity> sorted(roster);
     qSort(sorted);
 
     QHash<const Id, int> id_to_int;
     for(int idx = 0; idx < sorted.count(); idx++) {
-      id_to_int[sorted[idx].first] = idx;
+      id_to_int[sorted[idx].GetId()] = idx;
     }
 
     _data = new GroupData(sorted, id_to_int, leader, subgroup_policy);
@@ -28,9 +29,9 @@ namespace Identity {
         break;
       case FixedSubgroup:
       {
-        QVector<GroupContainer> roster = GetRoster();
+        QVector<PublicIdentity> roster = GetRoster();
         int size = std::min(roster.size(), 10);
-        QVector<GroupContainer> sg_roster(size);
+        QVector<PublicIdentity> sg_roster(size);
         for(int idx = 0; idx < size; idx++) {
           sg_roster[idx] = roster[idx];
         }
@@ -41,7 +42,7 @@ namespace Identity {
         group = new Group(subgroup, GetLeader(), DisabledGroup);
         break;
       default:
-        QVector<GroupContainer> roster = GetRoster();
+        QVector<PublicIdentity> roster = GetRoster();
         group = new Group(roster, GetLeader(), DisabledGroup);
     }
 
@@ -57,7 +58,7 @@ namespace Identity {
     if(idx >= _data->Size || idx < 0) {
       return Id::Zero();
     }
-    return _data->Roster[idx].first;
+    return _data->Roster[idx].GetId();
   }
 
   const Id &Group::Next(const Id &id) const
@@ -94,10 +95,12 @@ namespace Identity {
 
   QSharedPointer<AsymmetricKey> Group::GetKey(int idx) const
   {
-    if(idx >= _data->Size || idx < 0 || _data->Roster[idx].second.isNull()) {
+    if(idx >= _data->Size || idx < 0 ||
+        _data->Roster[idx].GetVerificationKey().isNull())
+    {
       return EmptyKey();
     }
-    return _data->Roster[idx].second;
+    return _data->Roster[idx].GetVerificationKey();
   }
 
   QByteArray Group::GetPublicDiffieHellman(const Id &id) const
@@ -111,16 +114,18 @@ namespace Identity {
 
   QByteArray Group::GetPublicDiffieHellman(int idx) const
   {
-    if(idx >= _data->Size || idx < 0 || _data->Roster[idx].second.isNull()) {
+    if(idx >= _data->Size || idx < 0 ||
+        _data->Roster[idx].GetVerificationKey().isNull())
+    {
       return QByteArray();
     }
-    return _data->Roster[idx].third;
+    return _data->Roster[idx].GetDhKey();
   }
 
   bool Group::operator==(const Group &other) const
   {
-    QVector<GroupContainer> gr0 = GetRoster();
-    QVector<GroupContainer> gr1 = other.GetRoster();
+    QVector<PublicIdentity> gr0 = GetRoster();
+    QVector<PublicIdentity> gr1 = other.GetRoster();
 
     int size = gr0.size();
     if(size != gr1.size()) {
@@ -160,11 +165,11 @@ namespace Identity {
       return group;
     }
 
-    QVector<GroupContainer> roster = group.GetRoster();
+    QVector<PublicIdentity> roster = group.GetRoster();
     roster.remove(index);
 
     if(group.GetSubgroupPolicy() == Group::ManagedSubgroup) {
-      QVector<GroupContainer> sg_roster = group.GetSubgroup().GetRoster();
+      QVector<PublicIdentity> sg_roster = group.GetSubgroup().GetRoster();
       index = group.GetSubgroup().GetIndex(id);
       if(index >= 0) {
         sg_roster.remove(index);
@@ -175,18 +180,18 @@ namespace Identity {
     }
   }
 
-  Group AddGroupMember(const Group &group, const GroupContainer &gc,
+  Group AddGroupMember(const Group &group, const PublicIdentity &gc,
       bool subgroup)
   {
-    if(group.Contains(gc.first)) {
+    if(group.Contains(gc.GetId())) {
       return group;
     }
 
-    QVector<GroupContainer> roster = group.GetRoster();
+    QVector<PublicIdentity> roster = group.GetRoster();
     roster.append(gc);
 
     if(group.GetSubgroupPolicy() == Group::ManagedSubgroup) {
-      QVector<GroupContainer> sg = group.GetSubgroup().GetRoster();
+      QVector<PublicIdentity> sg = group.GetSubgroup().GetRoster();
       if(subgroup) {
         sg.append(gc);
       }
@@ -197,17 +202,17 @@ namespace Identity {
   }
 
   bool Difference(const Group &old_group, const Group &new_group,
-      QVector<GroupContainer> &lost, QVector<GroupContainer> &gained)
+      QVector<PublicIdentity> &lost, QVector<PublicIdentity> &gained)
   {
-    QVector<GroupContainer> diff;
+    QVector<PublicIdentity> diff;
     std::set_symmetric_difference(old_group.begin(), old_group.end(),
         new_group.begin(), new_group.end(), std::back_inserter(diff));
 
     lost.clear();
     gained.clear();
 
-    foreach(GroupContainer gc, diff) {
-      if(old_group.Contains(gc.first)) {
+    foreach(PublicIdentity gc, diff) {
+      if(old_group.Contains(gc.GetId())) {
         lost.append(gc);
       } else {
         gained.append(gc);
@@ -230,7 +235,7 @@ namespace Identity {
 
   QDataStream &operator>>(QDataStream &stream, Group &group)
   {
-    QVector<GroupContainer> roster;
+    QVector<PublicIdentity> roster;
     stream >> roster;
 
     Id leader;
@@ -240,7 +245,7 @@ namespace Identity {
     stream >> policy;
     Group::SubgroupPolicy sgpolicy = (Group::SubgroupPolicy) policy;
 
-    QVector<GroupContainer> sg_roster;
+    QVector<PublicIdentity> sg_roster;
     if(sgpolicy == Group::ManagedSubgroup) {
       stream >> sg_roster;
     }
