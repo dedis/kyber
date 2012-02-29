@@ -40,9 +40,6 @@ namespace Messaging {
       return;
     }
     
-    qWarning() << container;
-    qWarning() << container.at(3);
-
     QString type = container.at(0).toString();
     if(type == Request::RequestType ||
         type == Request::NotificationType)
