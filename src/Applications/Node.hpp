@@ -45,6 +45,7 @@ namespace Applications {
       explicit Node(const Credentials &creds,
           const QSharedPointer<GroupHolder> &group_holder,
           const QSharedPointer<BaseOverlay> &overlay,
+          const QSharedPointer<Network> &network,
           const QSharedPointer<ISink> &sink,
           const QString &type);
 

@@ -39,7 +39,7 @@ namespace Connections {
       /**
        * Returns the destination method
        */
-      inline virtual QString GetMethod() { return _method; }
+      inline virtual QString GetMethod() const { return _method; }
 
       /**
        * Sets the remote receiving method
@@ -63,13 +63,13 @@ namespace Connections {
       /**
        * Returns the headers
        */
-      inline virtual QVariantHash GetHeaders() { return _headers; }
+      inline virtual QVariantHash GetHeaders() const { return _headers; }
 
       /**
        * Returns the connection matching to the Id or 0 if none exists
        * @param id the Id to lookup
        */
-      inline virtual QSharedPointer<Connection> GetConnection(const Id &id)
+      inline virtual QSharedPointer<Connection> GetConnection(const Id &id) const
       {
         return _cm->GetConnectionTable().GetConnection(id);
       }
@@ -77,7 +77,7 @@ namespace Connections {
       /**
        * Returns a connection manager object capable of making connections
        */
-      virtual QSharedPointer<ConnectionManager> GetConnectionManager()
+      virtual QSharedPointer<ConnectionManager> GetConnectionManager() const
       {
         return _cm;
       }
@@ -159,6 +159,11 @@ namespace Connections {
         QVariantHash msg(_headers);
         msg["data"] = data;
         _rpc->SendNotification(to, _method, msg);
+      }
+
+      inline QSharedPointer<RpcHandler> GetRpcHandler() const
+      {
+        return _rpc;
       }
 
     private:

@@ -31,7 +31,7 @@ namespace Connections {
       /**
        * Returns the destination method
        */
-      virtual QString GetMethod() = 0;
+      virtual QString GetMethod() const = 0;
 
       /**
        * Sets the remote receiving method
@@ -49,18 +49,18 @@ namespace Connections {
       /**
        * Returns the headers
        */
-      virtual QVariantHash GetHeaders() = 0;
+      virtual QVariantHash GetHeaders() const = 0;
 
       /**
        * Returns the connection matching to the Id or 0 if none exists
        * @param id the Id to lookup
        */
-      virtual QSharedPointer<Connection> GetConnection(const Id &id) = 0;
+      virtual QSharedPointer<Connection> GetConnection(const Id &id) const = 0;
 
       /**
        * Returns a connection manager object capable of making connections
        */
-      virtual QSharedPointer<ConnectionManager> GetConnectionManager() = 0;
+      virtual QSharedPointer<ConnectionManager> GetConnectionManager() const = 0;
 
       /**
        * Send a notification

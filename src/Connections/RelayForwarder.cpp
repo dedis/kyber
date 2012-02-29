@@ -28,14 +28,15 @@ namespace Connections {
 
   QSharedPointer<RelayForwarder::ISender> RelayForwarder::GetSender(const Id &to)
   {
-    return QSharedPointer<ISender>(new ForwardingSender(GetSharedPointer(), to));
+    return QSharedPointer<ISender>(new ForwardingSender(GetSharedPointer(),
+          _local_id, to));
   }
 
   void RelayForwarder::Send(const Id &to, const QByteArray &data)
   {
     if(to == _local_id) {
       _rpc->HandleData(QSharedPointer<ISender>(
-            new ForwardingSender(GetSharedPointer(), _local_id)), data);
+            new ForwardingSender(GetSharedPointer(), _local_id, _local_id)), data);
       return;
     }
 
@@ -65,7 +66,7 @@ namespace Connections {
       }
 
       _rpc->HandleData(QSharedPointer<ISender>(
-            new ForwardingSender(GetSharedPointer(), source)),
+            new ForwardingSender(GetSharedPointer(), _local_id, source)),
           msg.value("data").toByteArray());
       return;
     }

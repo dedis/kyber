@@ -33,7 +33,7 @@ namespace Connections {
       /**
        * Does nothing
        */
-      inline virtual QString GetMethod() { return QString(); }
+      inline virtual QString GetMethod() const { return QString(); }
 
       /**
        * Does nothing
@@ -48,7 +48,7 @@ namespace Connections {
       /**
        * Does nothing
        */
-      virtual QVariantHash GetHeaders()
+      virtual QVariantHash GetHeaders() const
       {
         return QVariantHash();
       }
@@ -56,7 +56,7 @@ namespace Connections {
       /**
        * Does nothing
        */
-      virtual QSharedPointer<Connection> GetConnection(const Id &)
+      virtual QSharedPointer<Connection> GetConnection(const Id &) const
       {
         return QSharedPointer<Connection>();
       }
@@ -64,7 +64,7 @@ namespace Connections {
       /**
        * Does nothing
        */
-      virtual QSharedPointer<ConnectionManager> GetConnectionManager()
+      virtual QSharedPointer<ConnectionManager> GetConnectionManager() const
       {
        return QSharedPointer<ConnectionManager>();
       }

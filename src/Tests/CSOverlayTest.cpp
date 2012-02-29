@@ -1,7 +1,8 @@
 #include "DissentTest.hpp"
+#include "OverlayHelper.hpp"
 
 namespace Dissent {
-namespace Test {
+namespace Tests {
 
   QSharedPointer<Node> CreateNode(const Id &id, const Group &group,
       const QList<Address> &local, const QList<Address> &remote,
@@ -46,7 +47,7 @@ namespace Test {
   }
 
   QList<QSharedPointer<Node> > GenerateOverlay(int server_count,
-      int client_count)
+      int client_count, const QString &session)
   {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QSharedPointer<Random> rand(lib->GetRandomNumberGenerator());
@@ -57,8 +58,7 @@ namespace Test {
     QList<QSharedPointer<Node> > nodes;
     QVector<GroupContainer> clients, servers;
     Group group = Group(QVector<GroupContainer>(), Id());
-    QSharedPointer<ISink> sink(new DummySink());
-    QString session = "null";
+    QSharedPointer<ISink> sink(new BufferSink());
 
     QList<Address> local;
     local.append(BufferAddress(1));
@@ -123,34 +123,23 @@ namespace Test {
     return nodes;
   }
 
-  void TerminateOverlay(const QList<QSharedPointer<Node> > &nodes)
-  {
-    SignalCounter sc;
-    foreach(const QSharedPointer<Node> &node, nodes) {
-      QObject::connect(node->GetOverlay().data(), SIGNAL(Disconnected()),
-          &sc, SLOT(Counter()));
-      node->GetOverlay()->Stop();
-    }
-
-    qint64 next = Timer::GetInstance().VirtualRun();
-    while(next != -1 && sc.GetCount() != nodes.count()) {
-      Time::GetInstance().IncrementVirtualClock(next);
-      next = Timer::GetInstance().VirtualRun();
-    }
-
-    EXPECT_EQ(sc.GetCount(), nodes.count());
-
-    foreach(const QSharedPointer<Node> &node, nodes) {
-      EXPECT_EQ(node->GetOverlay()->GetConnectionTable().GetConnections().count(), 0);
-    }
-  }
-
   TEST(CSOverlay, Bootstrap)
   {
     int clients = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     int servers = Random::GetInstance().GetInt(4, TEST_RANGE_MIN);
     Timer::GetInstance().UseVirtualTime();
-    QList<QSharedPointer<Node> > nodes = GenerateOverlay(servers, clients);
+    QList<QSharedPointer<Node> > nodes = GenerateOverlay(servers, clients, "null");
+    SendTest(nodes);
+    TerminateOverlay(nodes);
+  }
+
+  TEST(CSOverlay, Session)
+  {
+    int clients = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
+    int servers = Random::GetInstance().GetInt(4, TEST_RANGE_MIN);
+    Timer::GetInstance().UseVirtualTime();
+    QList<QSharedPointer<Node> > nodes = GenerateOverlay(servers, clients, "repeatingbulk");
+    SendTest(nodes);
     TerminateOverlay(nodes);
   }
 }

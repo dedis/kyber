@@ -26,15 +26,14 @@ namespace Connections {
       typedef Messaging::Request Request;
       typedef Messaging::RpcHandler RpcHandler;
 
-      /**
-       * Constructor
-       * @param local_id the id of the source node
-       * @param ct list of potential forwarders
-       * @param rpc rpc communication helper
-       */
-      RelayForwarder(const Id &local_id, const ConnectionTable &ct,
-          const QSharedPointer<RpcHandler> &rpc);
-  
+      static QSharedPointer<RelayForwarder> Get(const Id &local_id,
+          const ConnectionTable &ct, const QSharedPointer<RpcHandler> &rpc)
+      {
+        QSharedPointer<RelayForwarder> rf(new RelayForwarder(local_id, ct, rpc));
+        rf->SetSharedPointer(rf);
+        return rf;
+      }
+
       /**
        * Destructor
        */
@@ -55,6 +54,16 @@ namespace Connections {
          return _shared.toStrongRef();
       }
 
+    protected:
+      /**
+       * Constructor
+       * @param local_id the id of the source node
+       * @param ct list of potential forwarders
+       * @param rpc rpc communication helper
+       */
+      RelayForwarder(const Id &local_id, const ConnectionTable &ct,
+          const QSharedPointer<RpcHandler> &rpc);
+  
       void SetSharedPointer(const QSharedPointer<RelayForwarder> &shared)
       {
         _shared = shared.toWeakRef();

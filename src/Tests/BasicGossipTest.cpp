@@ -1,4 +1,5 @@
 #include "DissentTest.hpp"
+#include "OverlayHelper.hpp"
 
 namespace Dissent {
 namespace Tests {
@@ -52,61 +53,6 @@ namespace Tests {
     }
 
     return nodes;
-  }
-
-  void TerminateOverlay(const QList<QSharedPointer<Node> > &nodes)
-  {
-    SignalCounter sc;
-    foreach(QSharedPointer<Node> node, nodes) {
-      QObject::connect(node->GetOverlay().data(), SIGNAL(Disconnected()), &sc, SLOT(Counter()));
-      node->GetOverlay()->Stop();
-    }
-
-    qint64 next = Timer::GetInstance().VirtualRun();
-    while(next != -1 && sc.GetCount() != nodes.count()) {
-      Time::GetInstance().IncrementVirtualClock(next);
-      next = Timer::GetInstance().VirtualRun();
-    }
-
-    EXPECT_EQ(sc.GetCount(), nodes.count());
-
-    foreach(QSharedPointer<Node> node, nodes) {
-      EXPECT_EQ(node->GetOverlay()->GetConnectionTable().GetConnections().count(), 0);
-    }
-  }
-
-  void SendTest(const QList<QSharedPointer<Node> > &nodes)
-  {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
-
-    QByteArray msg(512, 0);
-    rand->GenerateBlock(msg);
-    nodes[0]->GetSessionManager().GetDefaultSession()->Send(msg);
-
-    SignalCounter sc;
-    foreach(QSharedPointer<Node> node, nodes) {
-      QSharedPointer<BufferSink> sink = node->GetSink().dynamicCast<BufferSink>();
-      if(!sink) {
-        qFatal("BufferSink expected");
-      }
-      QObject::connect(sink.data(), SIGNAL(DataReceived()), &sc, SLOT(Counter()));
-    }
-
-    int count = nodes.count();
-    qint64 next = Timer::GetInstance().VirtualRun();
-    while(next != -1 && sc.GetCount() != count) {
-      Time::GetInstance().IncrementVirtualClock(next);
-      next = Timer::GetInstance().VirtualRun();
-    }
-
-    foreach(QSharedPointer<Node> node, nodes) {
-      QSharedPointer<BufferSink> sink = node->GetSink().dynamicCast<BufferSink>();
-      if(!sink) {
-        qFatal("BufferSink expected");
-      }
-      EXPECT_EQ(msg, sink->Last().second);
-    }
   }
 
   void DisconnectLeader(QList<QSharedPointer<Node> > &nodes, const QString &session_type)

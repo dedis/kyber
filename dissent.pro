@@ -40,6 +40,7 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Applications/SessionFactory.hpp \
            src/Applications/Settings.hpp \
            src/ClientServer/CSConnectionAcquirer.hpp \
+           src/ClientServer/CSNetwork.hpp \
            src/ClientServer/CSOverlay.hpp \
            src/Connections/Bootstrapper.hpp \
            src/Connections/Connection.hpp \

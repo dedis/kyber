@@ -1,3 +1,4 @@
+#include "ClientServer/CSNetwork.hpp"
 #include "ClientServer/CSOverlay.hpp"
 #include "Connections/Connection.hpp"
 #include "Connections/DefaultNetwork.hpp"
@@ -8,6 +9,7 @@
 #include "SessionFactory.hpp"
 
 using Dissent::Identity::GroupContainer;
+using Dissent::ClientServer::CSNetwork;
 using Dissent::ClientServer::CSOverlay;
 using Dissent::Connections::DefaultNetwork;
 using Dissent::Connections::Id;
@@ -22,13 +24,13 @@ namespace Applications {
   Node::Node(const Credentials &creds,
       const QSharedPointer<GroupHolder> &group_holder,
       const QSharedPointer<BaseOverlay> &overlay,
+      const QSharedPointer<Network> &network,
       const QSharedPointer<ISink> &sink,
       const QString &type) :
     _creds(creds),
     _group_holder(group_holder),
     _overlay(overlay),
-    _net(new DefaultNetwork(_overlay->GetConnectionManager(),
-          _overlay->GetRpcHandler())),
+    _net(network),
     _sm(_overlay->GetRpcHandler()),
     _sink(sink)
   {
@@ -47,7 +49,11 @@ namespace Applications {
     QSharedPointer<GroupHolder> gh(new GroupHolder(group));
     QSharedPointer<BaseOverlay> overlay(new BasicGossip(creds.GetLocalId(),
           local, remote));
-    return QSharedPointer<Node>(new Node(creds, gh, overlay, sink, session));
+    QSharedPointer<Network> network(new DefaultNetwork(
+          overlay->GetConnectionManager(),
+          overlay->GetRpcHandler()));
+    return QSharedPointer<Node>(new Node(creds, gh, overlay,
+          network, sink, session));
   }
 
   QSharedPointer<Node> Node::CreateClientServer(const Credentials &creds,
@@ -60,7 +66,12 @@ namespace Applications {
           local, remote, group));
     QObject::connect(gh.data(), SIGNAL(GroupUpdated()),
         overlay.data(), SLOT(GroupUpdated()));
-    return QSharedPointer<Node>(new Node(creds, gh, overlay, sink, session));
+    QSharedPointer<Network> network(new CSNetwork(
+          overlay->GetConnectionManager(),
+          overlay->GetRpcHandler(),
+          gh));
+    return QSharedPointer<Node>(new Node(creds, gh, overlay,
+          network, sink, session));
   }
 }
 }

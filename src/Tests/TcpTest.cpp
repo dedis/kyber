@@ -1,4 +1,5 @@
 #include "DissentTest.hpp"
+#include "OverlayHelper.hpp"
 
 namespace Dissent {
 namespace Tests {
@@ -50,50 +51,6 @@ namespace Tests {
     return nodes;
   }
 
-  void TerminateLiveOverlay(const QList<QSharedPointer<Node> > &nodes)
-  {
-    SignalCounter sc(nodes.count());
-    foreach(QSharedPointer<Node> node, nodes) {
-      QObject::connect(node->GetOverlay().data(), SIGNAL(Disconnected()), &sc, SLOT(Counter()));
-      node->GetOverlay()->Stop();
-    }
-
-    MockExecLoop(sc);
-
-    foreach(QSharedPointer<Node> node, nodes) {
-      EXPECT_EQ(node->GetOverlay()->GetConnectionTable().GetConnections().count(), 0);
-    }
-  }
-
-  void LiveSendTest(const QList<QSharedPointer<Node> > &nodes)
-  {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
-
-    QByteArray msg(512, 0);
-    rand->GenerateBlock(msg);
-    nodes[0]->GetSessionManager().GetDefaultSession()->Send(msg);
-
-    SignalCounter sc(nodes.count());
-    foreach(QSharedPointer<Node> node, nodes) {
-      QSharedPointer<BufferSink> sink = node->GetSink().dynamicCast<BufferSink>();
-      if(!sink) {
-        qFatal("BufferSink expected");
-      }
-      QObject::connect(sink.data(), SIGNAL(DataReceived()), &sc, SLOT(Counter()));
-    }
-
-    MockExecLoop(sc);
-
-    foreach(QSharedPointer<Node> node, nodes) {
-      QSharedPointer<BufferSink> sink = node->GetSink().dynamicCast<BufferSink>();
-      if(!sink) {
-        qFatal("BufferSink expected");
-      }
-      EXPECT_EQ(msg, sink->Last().second);
-    }
-  }
-
   TEST(BasicGossip, BootstrapTcp)
   {
     int count = Random::GetInstance().GetInt(8, 12);
@@ -101,13 +58,13 @@ namespace Tests {
     Address addr = TcpAddress("127.0.0.1", 51234);
     QList<QSharedPointer<Node> > nodes = GenerateLiveOverlay(addr, count,
         Group::CompleteGroup, "null");
-    LiveSendTest(nodes);
+    SendTest(nodes, true);
 
     foreach(QSharedPointer<Node> node, nodes) {
       EXPECT_EQ(node->GetOverlay()->GetConnectionManager()->OutstandingConnectionAttempts(), 0);
     }
 
-    TerminateLiveOverlay(nodes);
+    TerminateOverlay(nodes, true);
   }
 }
 }

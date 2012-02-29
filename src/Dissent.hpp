@@ -28,8 +28,9 @@
 #include "Applications/SessionFactory.hpp"
 #include "Applications/Settings.hpp"
 
-#include "ClientServer/CSOverlay.hpp"
 #include "ClientServer/CSConnectionAcquirer.hpp"
+#include "ClientServer/CSNetwork.hpp"
+#include "ClientServer/CSOverlay.hpp"
 
 #include "Connections/Bootstrapper.hpp"
 #include "Connections/Connection.hpp"

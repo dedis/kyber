@@ -37,6 +37,7 @@ HEADERS += ext/googletest/include/gtest/gtest-death-test.h \
            src/Tests/MockEdgeHandler.hpp \
            src/Tests/MockSender.hpp \
            src/Tests/MockSource.hpp \
+           src/Tests/OverlayHelper.hpp \
            src/Tests/RoundTest.hpp \
            src/Tests/RpcTest.hpp \
            src/Tests/ShuffleRoundHelpers.hpp \
@@ -66,6 +67,7 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/MessageRandomizerTest.cpp \
            src/Tests/NullRoundTest.cpp \
            src/Tests/OnionTest.cpp \
+           src/Tests/OverlayHelper.cpp \
            src/Tests/PackagersTest.cpp \
            src/Tests/PeerReviewTest.cpp \
            src/Tests/RandomTest.cpp \

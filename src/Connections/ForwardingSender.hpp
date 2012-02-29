@@ -3,9 +3,8 @@
 
 #include <QSharedPointer>
 
-#include "Messaging/ISender.hpp"
-
 #include "Id.hpp"
+#include "IOverlaySender.hpp"
 #include "RelayForwarder.hpp"
 
 namespace Dissent {
@@ -14,7 +13,7 @@ namespace Connections {
    * Holds the state necessary for forwarding data to a remote sender using the
    * ISender primitives.
    */
-  class ForwardingSender : public Messaging::ISender {
+  class ForwardingSender : public IOverlaySender {
     public:
       /**
        * Constructor
@@ -22,8 +21,9 @@ namespace Connections {
        * @param to The remote destination
        */
       ForwardingSender(const QSharedPointer<RelayForwarder> &forwarder,
-          const Id &to) :
+          const Id &from, const Id &to) :
         _forwarder(forwarder),
+        _from(from),
         _to(to)
       {
       }
@@ -37,8 +37,25 @@ namespace Connections {
         _forwarder->Send(_to, data);
       }
 
+      virtual QString ToString() const
+      {
+        return QString("ForwardingSender: Source: " + _from.ToString() +
+            ", Destination: " + _to.ToString());
+      }
+
+      /**
+       * Returns the local id
+       */
+      virtual Id GetLocalId() const { return _from; }
+
+      /**
+       * Returns the remote id
+       */
+      virtual Id GetRemoteId() const { return _to; }
+
     private:
       QSharedPointer<RelayForwarder> _forwarder;
+      const Id _from;
       const Id _to;
   };
 }

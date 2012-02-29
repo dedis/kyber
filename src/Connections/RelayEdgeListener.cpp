@@ -10,10 +10,9 @@ namespace Connections {
     _local_id(local_id),
     _ct(ct),
     _rpc(rpc),
-    _forwarder(new RelayForwarder(local_id, ct, rpc)),
+    _forwarder(RelayForwarder::Get(local_id, ct, rpc)),
     _edge_created(new ResponseHandler(this, "EdgeCreated"))
   {
-    _forwarder->SetSharedPointer(_forwarder);
     _rpc->Register("REL::CreateEdge", this, "CreateEdge");
     _rpc->Register("REL::Data", this, "IncomingData");
   }
