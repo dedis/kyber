@@ -1,6 +1,7 @@
 #ifndef DISSENT_UTILS_SIGNAL_COUNTER_H_GUARD
 #define DISSENT_UTILS_SIGNAL_COUNTER_H_GUARD
 
+#include <QDebug>
 #include <QObject>
 
 namespace Dissent {
@@ -42,7 +43,7 @@ namespace Utils {
       /**
        * Register all signals to this slot
        */
-      void Counter() { ++_count; }
+      void Counter() { ++_count; qWarning() << _count << "Yay";}
 
     private:
       int _max;

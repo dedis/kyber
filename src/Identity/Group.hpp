@@ -183,6 +183,18 @@ namespace Identity {
       QByteArray GetPublicDiffieHellman(int idx) const;
 
       /**
+       * Returns the public identity associated with the index
+       * @param idx the index in the group roster
+       */
+      PublicIdentity GetIdentity(int idx) const;
+
+      /**
+       * Returns the public identity associated with the member's Id
+       * @param id the member's Id in the group
+       */
+      PublicIdentity GetIdentity(const Id &id) const;
+
+      /**
        * Returns the size of the group
        */
       int Count() const { return _data->Size; }

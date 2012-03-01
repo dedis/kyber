@@ -10,11 +10,12 @@
 #include "Connections/ConnectionTable.hpp"
 #include "Connections/DefaultNetwork.hpp"
 #include "Connections/Id.hpp"
-#include "Connections/RelayForwarder.hpp"
 #include "Identity/Group.hpp"
 #include "Identity/GroupHolder.hpp"
 #include "Identity/PublicIdentity.hpp"
 #include "Messaging/RpcHandler.hpp"
+
+#include "CSForwarder.hpp"
 
 namespace Dissent {
 namespace ClientServer {
@@ -22,7 +23,6 @@ namespace ClientServer {
     public:
       typedef Connections::ConnectionManager ConnectionManager;
       typedef Connections::Id Id;
-      typedef Connections::RelayForwarder RelayForwarder;
       typedef Identity::GroupHolder GroupHolder;
       typedef Identity::PublicIdentity PublicIdentity;
       typedef Messaging::RpcHandler RpcHandler;
@@ -39,7 +39,8 @@ namespace ClientServer {
           const QSharedPointer<GroupHolder> &group_holder) :
         DefaultNetwork(cm, rpc),
         _group_holder(group_holder),
-        _forwarder(RelayForwarder::Get(cm->GetId(), cm->GetConnectionTable(), rpc))
+        _forwarder(CSForwarder::Get(cm->GetId(), cm->GetConnectionTable(),
+              rpc, group_holder))
       {
       }
 
@@ -118,7 +119,7 @@ namespace ClientServer {
 
     private:
       QSharedPointer<GroupHolder> _group_holder;
-      QSharedPointer<RelayForwarder> _forwarder;
+      QSharedPointer<CSForwarder> _forwarder;
   };
 }
 }

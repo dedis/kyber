@@ -107,6 +107,12 @@ namespace Connections {
       }
     }
 
+    Send(con, to, data, been);
+  }
+
+  void RelayForwarder::Send(const QSharedPointer<Connection> &con,
+      const Id &to, const QByteArray &data, const QStringList &been)
+  {
     QVariantHash msg;
     msg["to"] = to.ToString();
     msg["data"] = data;

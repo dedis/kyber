@@ -122,6 +122,19 @@ namespace Identity {
     return _data->Roster[idx].GetDhKey();
   }
 
+  PublicIdentity Group::GetIdentity(int idx) const
+  {
+    if(idx >= _data->Size || idx < 0) {
+      return PublicIdentity();
+    }
+    return _data->Roster[idx];
+  }
+
+  PublicIdentity Group::GetIdentity(const Id &id) const
+  {
+    return GetIdentity(GetIndex(id));
+  }
+
   bool Group::operator==(const Group &other) const
   {
     QVector<PublicIdentity> gr0 = GetRoster();

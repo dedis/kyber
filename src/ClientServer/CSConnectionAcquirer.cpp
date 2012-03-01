@@ -220,8 +220,13 @@ namespace ClientServer {
       // Already connected
       return false;
     } else if(!_group.GetSubgroup().Contains(id)) {
-      qWarning() << "Found a connection in another servers list that is not a"
-        << "server in my own list:" << id.ToString();
+      if(_group.Contains(id)) {
+        qWarning() << "Found a connection in another servers list that is not a"
+          << "server in my own list:" << id.ToString();
+      } else {
+        qDebug() << "Found an unknown identity in another servers list:"
+          << id.ToString() << "Must have stale info";
+      }
       return false;
     }
 

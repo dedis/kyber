@@ -15,6 +15,8 @@ namespace Messaging {
 }
 
 namespace Connections {
+  class Connection;
+
   /**
    * Does the hard work in forwarding packets over the overlay
    */
@@ -69,11 +71,18 @@ namespace Connections {
         _shared = shared.toWeakRef();
       }
 
+      void Send(const QSharedPointer<Connection> &con, const Id &to,
+          const QByteArray &data, const QStringList &been);
+
+      const ConnectionTable &GetConnectionTable() const { return _ct; }
+
+      const QStringList GetBaseBeen() const { return _base_been; }
+
     private:
       /**
        * Helper function for forwarding data -- does the hard work
        */
-      void Forward(const Id &to, const QByteArray &data,
+      virtual void Forward(const Id &to, const QByteArray &data,
           const QStringList &been);
 
       const Id _local_id;

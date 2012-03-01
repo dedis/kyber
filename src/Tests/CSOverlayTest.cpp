@@ -46,19 +46,18 @@ namespace Tests {
     return true;
   }
 
-  QList<QSharedPointer<Node> > GenerateOverlay(int server_count,
-      int client_count, const QString &session)
+  QList<QSharedPointer<Node> > GenerateOverlay(int server_total,
+      int client_total, const QString &session)
   {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QSharedPointer<Random> rand(lib->GetRandomNumberGenerator());
-    int leader_index = rand->GetInt(0, client_count + server_count);
+    int leader_index = rand->GetInt(0, client_total + server_total);
     int bootstrap_index = leader_index;
-//    int bootstrap_index = rand->GetInt(0, client_count + server_count);
+//    int bootstrap_index = rand->GetInt(0, client_total + server_total);
 
     QList<QSharedPointer<Node> > nodes;
-    QVector<PublicIdentity> clients, servers;
+    int client_count = 0, server_count = 0;
     Group group = Group(QVector<PublicIdentity>(), Id());
-    QSharedPointer<ISink> sink(new BufferSink());
 
     QList<Address> local;
     local.append(BufferAddress(1));
@@ -66,60 +65,58 @@ namespace Tests {
     remote.append(BufferAddress(1));
 
     if(bootstrap_index == leader_index) {
+      QSharedPointer<ISink> sink(new BufferSink());
       nodes.append(CreateNode(group.GetLeader(), group, local, remote,
             sink, session));
-      clients.append(GetPublicIdentity(nodes.last()->GetPrivateIdentity()));
-      if(bootstrap_index < server_count) {
-        servers.append(clients.last());
-      }
+      bootstrap_index < server_total ? server_count++ : client_count++;
 
       local[0] = BufferAddress::CreateAny();
     } else {
+      QSharedPointer<ISink> sink(new BufferSink());
       nodes.append(CreateNode(Id(), group, local, remote, sink, session));
-      clients.append(GetPublicIdentity(nodes.last()->GetPrivateIdentity()));
-      if(bootstrap_index < server_count) {
-        servers.append(clients.last());
-      }
+      bootstrap_index < server_total ? server_count++ : client_count++;
 
       local[0] = BufferAddress::CreateAny();
 
+      sink = QSharedPointer<ISink>(new BufferSink());
       nodes.append(CreateNode(group.GetLeader(), group, local, remote,
             sink, session));
-      clients.append(GetPublicIdentity(nodes.last()->GetPrivateIdentity()));
-      if(leader_index < server_count) {
+      leader_index < server_total ? server_count++ : client_count++;
+    }
+
+    for(int idx = server_count; idx < server_total; idx++) {
+      QSharedPointer<ISink> sink(new BufferSink());
+      nodes.append(CreateNode(Id(), group, local, remote, sink, session));
+    }
+
+    for(int idx = client_count; idx < client_total; idx++) {
+      QSharedPointer<ISink> sink(new BufferSink());
+      nodes.append(CreateNode(Id(), group, local, remote, sink, session));
+    }
+
+    QVector<PublicIdentity> clients;
+    QVector<PublicIdentity> servers;
+
+    SignalCounter sc;
+    foreach(QSharedPointer<Node> node, nodes) {
+      QObject::connect(node->GetSessionManager().GetDefaultSession().data(),
+          SIGNAL(RoundStarting(QSharedPointer<Round>)), &sc, SLOT(Counter()));
+      node->GetOverlay()->Start();
+      clients.append(GetPublicIdentity(node->GetPrivateIdentity()));
+      if(clients.last().GetSuperPeer()) {
         servers.append(clients.last());
       }
     }
 
-    for(int idx = servers.count(); idx < server_count; idx++) {
-      nodes.append(CreateNode(Id(), group, local, remote, sink, session));
-      clients.append(GetPublicIdentity(nodes.last()->GetPrivateIdentity()));
-      servers.append(clients.last());
-    }
-
-    for(int idx = (clients.count() - servers.count()); idx < client_count; idx++) {
-      nodes.append(CreateNode(Id(), group, local, remote, sink, session));
-      clients.append(GetPublicIdentity(nodes.last()->GetPrivateIdentity()));
-    }
-
-    group = Group(clients, group.GetLeader(), Group::ManagedSubgroup, servers);
-
-    SignalCounter sc;
-    foreach(QSharedPointer<Node> node, nodes) {
-      node->GetGroupHolder()->UpdateGroup(group);
-      QObject::connect(node->GetSessionManager().GetDefaultSession().data(),
-          SIGNAL(RoundStarting(QSharedPointer<Round>)), &sc, SLOT(Counter()));
-      node->GetOverlay()->Start();
-    }
-
-    int count = server_count + client_count;
+    int count = server_total + client_total;
     qint64 next = Timer::GetInstance().VirtualRun();
     while(next != -1 && sc.GetCount() != count) {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
     }
 
-    EXPECT_TRUE(CheckClientServer(nodes, group));
+    Group fullgroup(clients, group.GetLeader(), Group::ManagedSubgroup, servers);
+    EXPECT_TRUE(CheckClientServer(nodes, fullgroup));
     return nodes;
   }
 
@@ -129,7 +126,6 @@ namespace Tests {
     int servers = Random::GetInstance().GetInt(4, TEST_RANGE_MIN);
     Timer::GetInstance().UseVirtualTime();
     QList<QSharedPointer<Node> > nodes = GenerateOverlay(servers, clients, "null");
-    SendTest(nodes);
     TerminateOverlay(nodes);
   }
 

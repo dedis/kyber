@@ -524,7 +524,9 @@ namespace Anonymity {
   void Session::AddMember(const PublicIdentity &gc)
   {
     if(!GetGroup().Contains(gc.GetId())) {
-      _group_holder->UpdateGroup(AddGroupMember(GetGroup(), gc));
+      bool subgroup = (GetGroup().GetSubgroupPolicy() == Group::ManagedSubgroup)
+        && gc.GetSuperPeer();
+      _group_holder->UpdateGroup(AddGroupMember(GetGroup(), gc, subgroup));
     }
 
     _registered_peers.insert(gc.GetId(), gc.GetId());

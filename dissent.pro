@@ -40,6 +40,7 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Applications/SessionFactory.hpp \
            src/Applications/Settings.hpp \
            src/ClientServer/CSConnectionAcquirer.hpp \
+           src/ClientServer/CSForwarder.hpp \
            src/ClientServer/CSNetwork.hpp \
            src/ClientServer/CSOverlay.hpp \
            src/Connections/Bootstrapper.hpp \
@@ -180,6 +181,7 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Applications/SessionFactory.cpp \
            src/Applications/Settings.cpp \
            src/ClientServer/CSConnectionAcquirer.cpp \
+           src/ClientServer/CSForwarder.cpp \
            src/ClientServer/CSOverlay.cpp \
            src/Connections/Bootstrapper.cpp \
            src/Connections/Connection.cpp \
