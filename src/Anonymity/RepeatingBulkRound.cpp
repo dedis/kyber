@@ -254,6 +254,7 @@ namespace Anonymity {
       QByteArray msg = ProcessMessage(tcleartext, member_idx);
 
       if(!msg.isEmpty()) {
+        qDebug() << ToString() << "received a valid message.";
         PushData(GetSharedPointer(), msg);
       }
     }
