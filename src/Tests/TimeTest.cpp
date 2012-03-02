@@ -43,7 +43,7 @@ namespace Tests {
   {
     Timer &timer = Timer::GetInstance();
     timer.UseRealTime();
-    int sleep = 5;
+    int sleep = 50;
     MockTimerCallback mtc = MockTimerCallback(2);
     TimerMethod<MockTimerCallback, int> *cb0 =
       new TimerMethod<MockTimerCallback, int>(&mtc, &MockTimerCallback::Set, 5);
@@ -72,7 +72,7 @@ namespace Tests {
   {
     Timer &timer = Timer::GetInstance();
     timer.UseRealTime();
-    int sleep = 5;
+    int sleep = 50;
     MockTimerCallback mtc = MockTimerCallback(2);
     TimerMethod<MockTimerCallback, int> *cb0 =
       new TimerMethod<MockTimerCallback, int>(&mtc, &MockTimerCallback::Set, 6);
