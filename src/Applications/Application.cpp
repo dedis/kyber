@@ -61,8 +61,9 @@ int main(int argc, char **argv)
     qFatal("Only DemoMode supported at this time;");
   }
 
-  nodes.append(Node::CreateBasicGossip(PrivateIdentity(local_id, key, dh), group,
-        local, remote, app_sink, settings.SessionType));
+  nodes.append(Node::CreateBasicGossip(
+        PrivateIdentity(local_id, key, dh, settings.SuperPeer),
+        group, local, remote, app_sink, settings.SessionType));
 
   for(int idx = 1; idx < settings.LocalNodeCount; idx++) {
     Id local_id;
@@ -79,8 +80,9 @@ int main(int argc, char **argv)
       qFatal("Only DemoMode supported at this time;");
     }
 
-    nodes.append(Node::CreateBasicGossip(PrivateIdentity(local_id, key, dh), group,
-          local, remote, default_sink, settings.SessionType));
+    nodes.append(Node::CreateBasicGossip(
+          PrivateIdentity(local_id, key, dh, settings.SuperPeer),
+          group, local, remote, default_sink, settings.SessionType));
   }
 
   QScopedPointer<WebServer> ws;
@@ -108,8 +110,6 @@ int main(int argc, char **argv)
     QSharedPointer<GetFileService> get_webpage_sp(new GetFileService("index.html"));
     ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/web", get_webpage_sp);
 
-  nodes.append(Node::CreateBasicGossip(PrivateIdentity(local_id, key, dh), group,
-        local, remote, app_sink, settings.SessionType));
     QSharedPointer<RoundIdService> round_id_sp(new RoundIdService(nodes[0]->GetSessionManager()));
     ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/round/id", round_id_sp);
 
