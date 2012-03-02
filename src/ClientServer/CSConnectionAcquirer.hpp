@@ -54,9 +54,10 @@ namespace ClientServer {
     protected:
       virtual void OnStart();
       virtual void OnStop();
+      bool IsServer() { return _group.GetSubgroup().Contains(GetConnectionManager()->GetId()); }
 
     private:
-      void RequestServerState(const int &);
+      void RequestServerState(const int &nothing = 0);
       void RequestServerState(const QSharedPointer<Connection> &con);
 
       /**

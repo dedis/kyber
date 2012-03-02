@@ -57,9 +57,9 @@ namespace ClientServer {
       const QSharedPointer<Connection> &con)
   {
     Id remote = con->GetRemoteId();
-    if(!_group.GetSubgroup().Contains(remote) && _group.GetLeader() != remote &&
-        GetConnectionManager()->GetConnectionTable().GetConnections().size() == 2)
-    {
+
+    if(!IsServer() && _group.GetSubgroup().Contains(remote)) {
+      _bootstrapping = false;
       return;
     }
 
@@ -74,6 +74,18 @@ namespace ClientServer {
   void CSConnectionAcquirer::UpdateGroup(const Group &group)
   {
     _group = group;
+
+    if(!IsServer() && !_bootstrapping) {
+      return;
+    }
+
+    foreach(const PublicIdentity &gc, _group.GetSubgroup()) {
+      if(GetConnectionManager()->GetConnectionTable().GetConnection(gc.GetId())) {
+        continue;
+      }
+      RequestServerState();
+      break;
+    }
   }
 
   void CSConnectionAcquirer::HandleConnectionAttemptFailure(
@@ -169,7 +181,7 @@ namespace ClientServer {
     stream >> id_to_addr;
     int cons = msg.value("connections").toInt();
 
-    if(_group.GetSubgroup().Contains(GetConnectionManager()->GetId())) {
+    if(IsServer()) {
       ServerHandleServerStateResponse(remote, id_to_addr, cons);
     } else {
       ClientHandleServerStateResponse(remote, id_to_addr, cons);
