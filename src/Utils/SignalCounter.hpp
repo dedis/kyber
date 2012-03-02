@@ -43,7 +43,7 @@ namespace Utils {
       /**
        * Register all signals to this slot
        */
-      void Counter() { ++_count; qWarning() << _count << "Yay";}
+      void Counter() { ++_count; }
 
     private:
       int _max;
