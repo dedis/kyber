@@ -27,10 +27,7 @@ namespace Utils {
       if(_next_timer != -1) {
         killTimer(_next_timer);
       }
-      qint64 next = Run();
-      if(next > -1) {
-        _next_timer = startTimer(next);
-      }
+      _next_timer = startTimer(0);
     }
   }
 
