@@ -100,11 +100,7 @@ namespace ClientServer {
        */
       virtual Network *Clone() const
       {
-        Network *net = new CSNetwork(GetConnectionManager(),
-            GetRpcHandler(), _group_holder);
-        net->SetHeaders(GetHeaders());
-        net->SetMethod(GetMethod());
-        return net;
+        return new CSNetwork(*this);
       }
 
     protected:
