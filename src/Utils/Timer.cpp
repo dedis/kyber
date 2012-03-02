@@ -92,8 +92,6 @@ namespace Utils {
       TimerEvent te = _queue.top();
       if(te.GetNextRun() <= Time::GetInstance().MSecsSinceEpoch()) {
         _queue.pop();
-        if(_real_time) {
-        }
         te.Run();
         if(te.GetPeriod() > 0) {
           _queue.push(te);
