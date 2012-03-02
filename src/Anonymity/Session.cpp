@@ -489,7 +489,7 @@ namespace Anonymity {
       Register(0);
     } else if(!GetGroup().Contains(con->GetRemoteId())) {
       return;
-   }
+    }
 
     QObject::connect(con.data(), SIGNAL(Disconnected(const QString &)),
         this, SLOT(HandleDisconnect()));
