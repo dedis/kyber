@@ -110,7 +110,7 @@ namespace Tests {
 
     int count = server_total + client_total;
     qint64 next = Timer::GetInstance().VirtualRun();
-    while(next != -1 && sc.GetCount() != count) {
+    while(next != -1 && sc.GetCount() < count) {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
     }
