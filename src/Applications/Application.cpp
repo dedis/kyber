@@ -61,8 +61,12 @@ int main(int argc, char **argv)
     qFatal("Only DemoMode supported at this time;");
   }
 
-  nodes.append(Node::CreateBasicGossip(
-        PrivateIdentity(local_id, key, dh, settings.SuperPeer),
+  Node::CreateNode create = &Node::CreateBasicGossip;
+  if(settings.SubgroupPolicy == Group::ManagedSubgroup) {
+    create = &Node::CreateClientServer;
+  }
+
+  nodes.append(create(PrivateIdentity(local_id, key, dh, settings.SuperPeer),
         group, local, remote, app_sink, settings.SessionType));
 
   for(int idx = 1; idx < settings.LocalNodeCount; idx++) {
@@ -80,8 +84,7 @@ int main(int argc, char **argv)
       qFatal("Only DemoMode supported at this time;");
     }
 
-    nodes.append(Node::CreateBasicGossip(
-          PrivateIdentity(local_id, key, dh, settings.SuperPeer),
+    nodes.append(create(PrivateIdentity(local_id, key, dh, settings.SuperPeer),
           group, local, remote, default_sink, settings.SessionType));
   }
 

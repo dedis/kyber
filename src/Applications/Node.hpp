@@ -27,6 +27,10 @@ namespace Applications {
       typedef Overlay::BaseOverlay BaseOverlay;
       typedef Transports::Address Address;
 
+      typedef QSharedPointer<Node> (*CreateNode)(const PrivateIdentity &,
+          const Group &, const QList<Address> &, const QList<Address> &,
+          const QSharedPointer<ISink> &, const QString &);
+
       static QSharedPointer<Node> CreateBasicGossip(const PrivateIdentity &ident,
           const Group &group, const QList<Address> &local,
           const QList<Address> &remote, const QSharedPointer<ISink> &sink,
