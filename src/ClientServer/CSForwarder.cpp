@@ -41,7 +41,7 @@ namespace ClientServer {
       tested[idx] = true;
       while(been.contains(con->GetRemoteId().ToString()) ||
           con->GetEdge().dynamicCast<Connections::RelayEdge>() ||
-          _group_holder->GetGroup().GetSubgroup().Contains(con->GetRemoteId()))
+          !_group_holder->GetGroup().GetSubgroup().Contains(con->GetRemoteId()))
       {
         if(tested.size() == cons.size()) {
           qWarning() << "Packet has been to all of our connections.";
