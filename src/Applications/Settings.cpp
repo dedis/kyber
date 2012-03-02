@@ -77,6 +77,10 @@ namespace Applications {
     if(_settings.contains("leader_id")) {
       LeaderId = Id(_settings.value("leader_id").toString());
     }
+
+    if(_settings.contains("super_peer")) {
+      SuperPeer = _settings.value("super_peer").toBool();
+    }
   }
 
   Settings::Settings() :

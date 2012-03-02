@@ -118,6 +118,11 @@ namespace Applications {
        */
       Group::SubgroupPolicy SubgroupPolicy;
 
+      /**
+       * SuperPeer capable?
+       */
+      bool SuperPeer;
+
     private:
       void Init();
       void ParseUrlList(const QString &name, const QVariant &values, QList<QUrl> &list);
