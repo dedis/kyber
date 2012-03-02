@@ -272,7 +272,8 @@ namespace Connections {
   void ConnectionManager::CreateConnection(const QSharedPointer<Edge> &pedge,
       const Id &rem_id)
   {
-    QSharedPointer<Connection> con(new Connection(pedge, _local_id, rem_id));
+    QSharedPointer<Connection> con(new Connection(pedge, _local_id, rem_id),
+        &QObject::deleteLater);
     con->SetSharedPointer(con);
     _con_tab.AddConnection(con);
     qDebug() << "Handle new connection:" << con->ToString();
