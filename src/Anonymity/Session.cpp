@@ -36,8 +36,7 @@ namespace Anonymity {
     _network->SetMethod("SM::Data");
 
     if(IsLeader()) {
-      _group_holder->UpdateGroup(AddGroupMember(GetGroup(),
-            GetPublicIdentity(_ident)));
+      AddMember(GetPublicIdentity(_ident));
     }
 
     foreach(const PublicIdentity &gc, GetGroup().GetRoster()) {
