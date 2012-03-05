@@ -11,7 +11,7 @@ namespace Tests {
     Q_OBJECT
 
     public:
-      explicit TestNode(const Id &id, int idx) :
+      explicit TestNode(const Id &id, int idx, bool server = true) :
         rpc(new RpcHandler()),
         cm(new ConnectionManager(id, rpc)),
         sm(rpc),
@@ -20,7 +20,7 @@ namespace Tests {
             QSharedPointer<AsymmetricKey>(CryptoFactory::GetInstance().
               GetLibrary()->CreatePrivateKey()),
             QSharedPointer<DiffieHellman>(CryptoFactory::GetInstance().
-              GetLibrary()->CreateDiffieHellman()))
+              GetLibrary()->CreateDiffieHellman()), server)
       {
         EdgeListener *be = EdgeListenerFactory::GetInstance().CreateEdgeListener(BufferAddress(idx));
         cm->AddEdgeListener(QSharedPointer<EdgeListener>(be));
@@ -68,9 +68,13 @@ namespace Tests {
   template <typename T> QSharedPointer<Session> TCreateSession(TestNode *node,
       const Group &group, const Id &session_id)
   {
-    QSharedPointer<Session> session(new Session(
-        QSharedPointer<GroupHolder>(new GroupHolder(group)),
-        node->ident, session_id, node->net, &TCreateRound<T>));
+    QSharedPointer<GroupHolder> gh(new GroupHolder(group));
+    if(group.GetSubgroupPolicy() == Group::ManagedSubgroup) {
+      node->net = QSharedPointer<Network>(new CSNetwork(node->cm, node->rpc, gh));
+    }
+
+    QSharedPointer<Session> session(new Session(gh, node->ident,
+          session_id, node->net, &TCreateRound<T>));
     session->SetSharedPointer(session);
     return session;
   }

@@ -62,7 +62,7 @@ namespace Tests {
   void RoundTest_PeerDisconnectEnd(CreateSessionCallback callback,
       Group::SubgroupPolicy sg_policy);
   void RoundTest_PeerDisconnectMiddle(CreateSessionCallback callback,
-      Group::SubgroupPolicy sg_policy);
+      Group::SubgroupPolicy sg_policy, bool transient = false);
   void RoundTest_BadGuy(CreateSessionCallback good_callback,
       CreateSessionCallback bad_callback,
       Group::SubgroupPolicy sg_policy,

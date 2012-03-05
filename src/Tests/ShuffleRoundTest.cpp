@@ -40,6 +40,12 @@ namespace Tests {
         Group::CompleteGroup);
   }
 
+  TEST(ShuffleRound, PeerTransientIssueMiddle)
+  {
+    RoundTest_PeerDisconnectMiddle(&TCreateSession<ShuffleRound>,
+        Group::CompleteGroup, true);
+  }
+
   TEST(ShuffleRound, MessageDuplicator)
   {
     typedef ShuffleRoundMessageDuplicator<1> bad_shuffle;
@@ -154,6 +160,30 @@ namespace Tests {
         &TCreateSession<bad_shuffle>,
         Group::FixedSubgroup,
         TBadGuyCB<bad_shuffle>);
+  }
+
+  TEST(ShuffleRound, NullCS)
+  {
+    RoundTest_Null(&TCreateSession<ShuffleRound>,
+        Group::ManagedSubgroup);
+  }
+
+  TEST(ShuffleRound, BasicCS)
+  {
+    RoundTest_Basic(&TCreateSession<ShuffleRound>,
+        Group::ManagedSubgroup);
+  }
+
+  TEST(ShuffleRound, PeerDisconnectMiddleCS)
+  {
+    RoundTest_PeerDisconnectMiddle(&TCreateSession<ShuffleRound>,
+        Group::ManagedSubgroup);
+  }
+
+  TEST(ShuffleRound, PeerTransientIssueMiddleCS)
+  {
+    RoundTest_PeerDisconnectMiddle(&TCreateSession<ShuffleRound>,
+        Group::ManagedSubgroup, true);
   }
 }
 }

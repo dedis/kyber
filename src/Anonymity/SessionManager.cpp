@@ -32,6 +32,8 @@ namespace Anonymity {
     QSharedPointer<RequestHandler> data(
         new RequestHandler(this, "IncomingData"));
     _rpc->Register("SM::Data", data);
+
+    _rpc->Register("SM::Disconnect", this, "LinkDisconnect");
   }
 
   SessionManager::~SessionManager()
@@ -68,6 +70,14 @@ namespace Anonymity {
   QSharedPointer<Session> SessionManager::GetDefaultSession()
   {
     return _id_to_session.value(_default_session);
+  }
+
+  void SessionManager::LinkDisconnect(const Request &notification)
+  {
+    QSharedPointer<Session> session = GetSession(notification);
+    if(session) {
+      session->LinkDisconnect(notification);
+    }
   }
 
   void SessionManager::Register(const Request &request)

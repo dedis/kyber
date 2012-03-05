@@ -363,7 +363,7 @@ namespace Tests {
   }
 
   void RoundTest_PeerDisconnectMiddle(CreateSessionCallback callback,
-      Group::SubgroupPolicy sg_policy)
+      Group::SubgroupPolicy sg_policy, bool transient)
   {
     Timer::GetInstance().UseVirtualTime();
 
@@ -392,19 +392,26 @@ namespace Tests {
     rand->GenerateBlock(msg);
     nodes[sender]->session->Send(msg);
 
-    SignalCounter sc;
+    SignalCounter sc_data, sc_round;
     for(int idx = 0; idx < count; idx++) {
+      QObject::connect(nodes[idx]->sm.GetDefaultSession().data(),
+          SIGNAL(RoundStarting(QSharedPointer<Round>)), &sc_round, SLOT(Counter()));
       QObject::connect(&nodes[idx]->sink, SIGNAL(DataReceived()),
-          &sc, SLOT(Counter()));
+          &sc_data, SLOT(Counter()));
       nodes[idx]->session->Start();
     }
 
-    TestNode::calledback = 0;
     qint64 next = Timer::GetInstance().VirtualRun();
+    while(next != -1 && sc_round.GetCount() < count) {
+      Time::GetInstance().IncrementVirtualClock(next);
+      next = Timer::GetInstance().VirtualRun();
+    }
+
+    TestNode::calledback = 0;
     // XXX This needs to be improved, but what we are doing is issuing a
     // disconnect approximately 1 to count steps into the Round
     qint64 run_before_disc = Time::GetInstance().MSecsSinceEpoch() + 
-      Random::GetInstance().GetInt(10, 10 * count);
+      Random::GetInstance().GetInt(20, 10 * count);
 
     while(next != -1 && TestNode::calledback < count && 
         Time::GetInstance().MSecsSinceEpoch() < run_before_disc)
@@ -413,12 +420,69 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
-    nodes[disconnector]->cm->Stop();
-    count -= 1;
-    sc.Reset();
-    while(next != -1 && sc.GetCount() < count) {
+    if(transient) {
+      QList<QSharedPointer<Connection> > cons =
+        nodes[disconnector]->cm->GetConnectionTable().GetConnections();
+      int other_disconnector = Random::GetInstance().GetInt(0, cons.size());
+      while(cons[other_disconnector]->GetRemoteId() ==
+          nodes[disconnector]->cm->GetId())
+      {
+        other_disconnector = Random::GetInstance().GetInt(0, cons.size());
+      }
+
+      SignalCounter edge_close;
+
+      Address remote = cons[other_disconnector]->GetEdge()->GetRemotePersistentAddress();
+      QObject::connect(cons[other_disconnector]->GetEdge().data(),
+          SIGNAL(StoppedSignal()), &edge_close, SLOT(Counter()));
+      cons[other_disconnector]->Disconnect();
+
+      Id other = cons[other_disconnector]->GetRemoteId();
+      for(int idx = 0; idx < nodes.count(); idx++) {
+        if(nodes[idx]->cm->GetId() == other) {
+          other_disconnector = idx;
+          break;
+        }
+      }
+
+      QSharedPointer<Connection> other_con = nodes[other_disconnector]->cm->
+        GetConnectionTable().GetConnection(nodes[disconnector]->cm->GetId());
+      QObject::connect(other_con->GetEdge().data(),
+          SIGNAL(StoppedSignal()), &edge_close, SLOT(Counter()));
+      other_con->Disconnect();
+
+      qDebug() << "Disconnecting";
+
+      qint64 next = Timer::GetInstance().VirtualRun();
+      while(next != -1 && edge_close.GetCount() < 2) {
+        Time::GetInstance().IncrementVirtualClock(next);
+        next = Timer::GetInstance().VirtualRun();
+      }
+
+      qDebug() << "Finished disconnecting";
+
+      nodes[disconnector]->cm->ConnectTo(remote);
+    } else {
+      nodes[disconnector]->cm->Stop();
+      count -= 1;
+    }
+
+    sc_data.Reset();
+    next = Timer::GetInstance().VirtualRun();
+    while(next != -1 && sc_data.GetCount() < count) {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
+    }
+
+    for(int idx = 0; idx < nodes.count(); idx++) {
+      if((idx == disconnector) && !transient) {
+        continue;
+      }
+      TestNode *node = nodes[idx];
+      EXPECT_EQ(node->sink.Count(), 1);
+      if(node->sink.Count() == 1) {
+        EXPECT_EQ(node->sink.Last().second, msg);
+      }
     }
 
     CleanUp(nodes);

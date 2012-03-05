@@ -76,6 +76,12 @@ namespace Anonymity {
       virtual ~Session();
 
       /**
+       * A remote peer is notifying a leader that a link was disconnected
+       * @param notification contains the id of the disconnected member
+       */
+      void LinkDisconnect(const Request &notification);
+
+      /**
        * From the SessionManager, pass in a ReceivedRegister
        * @param request The request from a group member
        */
@@ -271,6 +277,7 @@ namespace Anonymity {
       bool _prepare_waiting;
       bool _prepare_waiting_for_con;
       int _trim_send_queue;
+      bool _registering;
 
     private slots:
       /**

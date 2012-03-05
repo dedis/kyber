@@ -86,6 +86,12 @@ namespace Anonymity {
       void HandleSessionStop();
 
       /**
+       * A remote peer is notifying a leader that a link was disconnected
+       * @param notification contains the id of the disconnected member
+       */
+      void LinkDisconnect(const Request &notification);
+
+      /**
        * A remote peer is requesting to join a session hosted by the local peer
        * @param request a request to be included
        */

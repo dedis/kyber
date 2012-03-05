@@ -28,7 +28,8 @@ namespace Anonymity {
     _get_data_cb(this, &Session::GetData),
     _round_idx(0),
     _prepare_waiting(false),
-    _trim_send_queue(0)
+    _trim_send_queue(0),
+    _registering(false)
   {
     QVariantHash headers = _network->GetHeaders();
     headers["session_id"] = _session_id.GetByteArray();
@@ -39,12 +40,11 @@ namespace Anonymity {
       AddMember(GetPublicIdentity(_ident));
     }
 
-    foreach(const PublicIdentity &gc, GetGroup().GetRoster()) {
-      QSharedPointer<Connection> con = _network->GetConnection(gc.GetId());
-      if(con) {
-        QObject::connect(con.data(), SIGNAL(Disconnected(const QString &)),
-            this, SLOT(HandleDisconnect()));
-      }
+    foreach(const QSharedPointer<Connection> con,
+        _network->GetConnectionManager()->GetConnectionTable().GetConnections())
+    {
+      QObject::connect(con.data(), SIGNAL(Disconnected(const QString &)),
+          this, SLOT(HandleDisconnect()));
     }
 
     QObject::connect(_network->GetConnectionManager().data(),
@@ -66,7 +66,10 @@ namespace Anonymity {
     qDebug() << _ident.GetLocalId().ToString() << "Session started:" <<
       _session_id.ToString();
 
-    if(!IsLeader() && (_network->GetConnection(GetGroup().GetLeader()) != 0)) {
+    if(!IsLeader() && ((_network->GetConnection(GetGroup().GetLeader()) != 0) ||
+          ((GetGroup().GetSubgroupPolicy() == Group::ManagedSubgroup) &&
+           (_network->GetConnectionManager()->GetConnectionTable().GetConnections().count() > 1))))
+    {
       Register(0);
     }
   }
@@ -76,13 +79,7 @@ namespace Anonymity {
     _register_event.Stop();
     _prepare_event.Stop();
 
-    foreach(const PublicIdentity &gc, GetGroup().GetRoster()) {
-      QSharedPointer<Connection> con = _network->GetConnection(gc.GetId());
-      if(con) {
-        QObject::disconnect(con.data(), SIGNAL(Disconnected(const QString &)),
-            this, SLOT(HandleDisconnect()));
-      }
-    }
+    QObject::disconnect(this, SLOT(HandleDisconnect()));
 
     if(!_current_round.isNull()) {
       QObject::disconnect(_current_round.data(), SIGNAL(Finished()), this,
@@ -140,6 +137,7 @@ namespace Anonymity {
 
   void Session::Register(const int &)
   {
+    _registering = true;
     QVariantHash container;
     container["session_id"] = _session_id.GetByteArray();
 
@@ -179,13 +177,6 @@ namespace Anonymity {
 
     AddMember(ident);
     request.Respond(true);
-
-    QSharedPointer<Connection> con =
-      request.GetFrom().dynamicCast<Connection>();
-    if(con) {
-      QObject::connect(con.data(), SIGNAL(Disconnected(const QString &)),
-          this, SLOT(HandleDisconnect()));
-    }
 
     if(!_prepare_event.Stopped()) {
       return;
@@ -485,10 +476,10 @@ namespace Anonymity {
 
   void Session::HandleConnection(const QSharedPointer<Connection> &con)
   {
-    if(GetGroup().GetLeader() == con->GetRemoteId()) {
+    if(!_registering && ((GetGroup().GetLeader() == con->GetRemoteId()) ||
+        (GetGroup().GetSubgroupPolicy() == Group::ManagedSubgroup)))
+    {
       Register(0);
-    } else if(!GetGroup().Contains(con->GetRemoteId())) {
-      return;
     }
 
     QObject::connect(con.data(), SIGNAL(Disconnected(const QString &)),
@@ -507,8 +498,31 @@ namespace Anonymity {
       return;
     }
 
+    if((GetGroup().GetLeader() == remote_id) ||
+        (_network->GetConnectionManager()->GetConnectionTable().GetConnections().count() == 1))
+    {
+      _registering = false;
+    }
+
     if(IsLeader()) {
       RemoveMember(remote_id);
+    } else if((GetGroup().GetSubgroupPolicy() == Group::ManagedSubgroup) &&
+        (GetGroup().GetSubgroup().Contains(_ident.GetLocalId())))
+    {
+      // Ideally the above would only include disconnects between a client
+      // and a server unfortunately due to the behavior of the current rounds,
+      // if two servers disconnect they livelock...
+      QVariantHash container;
+      container["session_id"] = _session_id.GetByteArray();
+      container["remote_id"] = remote_id.GetByteArray();
+      _network->SendNotification(GetGroup().GetLeader(), "SM::Disconnect", container);
+    } else {
+      // The same situation as above, if there exists a disconnect, notify the
+      // leader to restart the session...
+      QVariantHash container;
+      container["session_id"] = _session_id.GetByteArray();
+      container["remote_id"] = remote_id.GetByteArray();
+      _network->SendNotification(GetGroup().GetLeader(), "SM::Disconnect", container);
     }
 
     if(!_current_round.isNull()) {
@@ -517,6 +531,30 @@ namespace Anonymity {
 
     if(GetGroup().GetLeader() == con->GetRemoteId()) {
       qWarning() << "Leader disconnected!";
+    }
+  }
+
+  void Session::LinkDisconnect(const Request &notification)
+  {
+    Id remote_id = Id(notification.GetData().toHash().value("remote_id").toByteArray());
+    if(!GetGroup().Contains(remote_id) || _current_round.isNull()) {
+      return;
+    }
+
+    // Ideally we should just push a handle disconnect into the round and
+    // then let a timeout occur on the prepare message...
+    if(GetGroup().GetSubgroupPolicy() == Group::ManagedSubgroup) {
+      // In both cases, the system cannot distinguish (or more accurately handle)
+      // transient problems, so unfortunately a disconnected client does not
+      // differ from one on a poor network link
+      if(!GetGroup().GetSubgroup().Contains(remote_id)) {
+        RemoveMember(remote_id);
+      }
+      _current_round->HandleDisconnect(remote_id);
+    } else {
+      // We'll either get a disconnect or it was transient and the round needs
+      // to restart ... the process is the same either way
+      _current_round->HandleDisconnect(remote_id);
     }
   }
 
