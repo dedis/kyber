@@ -35,16 +35,25 @@ namespace ClientServer {
       const QList<QSharedPointer<Connection> > cons =
         GetConnectionTable().GetConnections();
 
+      if(cons.size() == 0) {
+        return;
+      }
+
       Dissent::Utils::Random &rand = Dissent::Utils::Random::GetInstance();
       int idx = rand.GetInt(0, cons.size());
       con = cons[idx];
       tested[idx] = true;
+
+      bool consider_group = _group_holder->GetGroup().Count() > 0;
+
       while(been.contains(con->GetRemoteId().ToString()) ||
           con->GetEdge().dynamicCast<Connections::RelayEdge>() ||
-          !_group_holder->GetGroup().GetSubgroup().Contains(con->GetRemoteId()))
+          (consider_group &&
+           !_group_holder->GetGroup().GetSubgroup().Contains(con->GetRemoteId())))
       {
         if(tested.size() == cons.size()) {
-          qWarning() << "Packet has been to all of our connections.";
+          qWarning() << "Packet has been to all of our connections." <<
+           "Destination:" << to.ToString();
           return;
         }
 
