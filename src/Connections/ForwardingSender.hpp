@@ -2,6 +2,7 @@
 #define DISSENT_CONNECTIONS_FORWARDING_SENDER_H_GUARD
 
 #include <QSharedPointer>
+#include <QStringList>
 
 #include "Id.hpp"
 #include "IOverlaySender.hpp"
@@ -21,10 +22,12 @@ namespace Connections {
        * @param to The remote destination
        */
       ForwardingSender(const QSharedPointer<RelayForwarder> &forwarder,
-          const Id &from, const Id &to) :
+          const Id &from, const Id &to,
+          const QStringList &been = QStringList()) :
         _forwarder(forwarder),
         _from(from),
-        _to(to)
+        _to(to),
+        _been(been)
       {
       }
 
@@ -34,7 +37,7 @@ namespace Connections {
        */
       inline virtual void Send(const QByteArray &data)
       {
-        _forwarder->Send(_to, data);
+        _forwarder->Send(_to, data, _been);
       }
 
       virtual QString ToString() const
@@ -53,10 +56,13 @@ namespace Connections {
        */
       virtual Id GetRemoteId() const { return _to; }
 
+      QStringList GetReverse() { return _been; }
+
     private:
       QSharedPointer<RelayForwarder> _forwarder;
       const Id _from;
       const Id _to;
+      QStringList _been;
   };
 }
 }

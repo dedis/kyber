@@ -1,6 +1,7 @@
 #ifndef DISSENT_CONNECTIONS_RELAY_FORWARDER_H_GUARD
 #define DISSENT_CONNECTIONS_RELAY_FORWARDER_H_GUARD
 
+#include <QCache>
 #include <QObject>
 #include <QStringList>
 
@@ -16,6 +17,7 @@ namespace Messaging {
 
 namespace Connections {
   class Connection;
+  class ForwardingSender;
 
   /**
    * Does the hard work in forwarding packets over the overlay
@@ -49,7 +51,8 @@ namespace Connections {
       /**
        * The forwarding sender should call this to forward a message along
        */
-      virtual void Send(const Id &to, const QByteArray &data);
+      virtual void Send(const Id &to, const QByteArray &data,
+          const QStringList &been = QStringList());
 
       QSharedPointer<RelayForwarder> GetSharedPointer()
       {
@@ -72,7 +75,8 @@ namespace Connections {
       }
 
       void Send(const QSharedPointer<Connection> &con, const Id &to,
-          const QByteArray &data, const QStringList &been);
+          const QByteArray &data, const QStringList &been,
+          const QStringList &reverse = QStringList());
 
       const ConnectionTable &GetConnectionTable() const { return _ct; }
 
@@ -85,12 +89,16 @@ namespace Connections {
       virtual void Forward(const Id &to, const QByteArray &data,
           const QStringList &been);
 
+      virtual bool Reverse(const Id &to, const QByteArray &data,
+          const QStringList &been, const QStringList &reverse);
+
       const Id _local_id;
       const QStringList _base_been;
       const ConnectionTable &_ct;
       QSharedPointer<RpcHandler> _rpc;
       static const Id _prefered;
       QWeakPointer<RelayForwarder> _shared;
+      QCache<Id, QSharedPointer<ForwardingSender> > _cache;
       
     private slots:
       /**

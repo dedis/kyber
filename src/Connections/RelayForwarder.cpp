@@ -28,11 +28,20 @@ namespace Connections {
 
   QSharedPointer<RelayForwarder::ISender> RelayForwarder::GetSender(const Id &to)
   {
-    return QSharedPointer<ISender>(new ForwardingSender(GetSharedPointer(),
-          _local_id, to));
+    QSharedPointer<ForwardingSender> *psender = _cache.take(to);
+    if(!psender) {
+      psender = new QSharedPointer<ForwardingSender>(
+          new ForwardingSender(GetSharedPointer(), _local_id, to));
+    }
+
+    QSharedPointer<ForwardingSender> sender(*psender);
+    _cache.insert(to, psender);
+
+    return sender;
   }
 
-  void RelayForwarder::Send(const Id &to, const QByteArray &data)
+  void RelayForwarder::Send(const Id &to, const QByteArray &data,
+      const QStringList &been)
   {
     if(to == _local_id) {
       _rpc->HandleData(QSharedPointer<ISender>(
@@ -40,7 +49,10 @@ namespace Connections {
       return;
     }
 
-    Forward(to, data, _base_been);
+
+    if(been.isEmpty() || !Reverse(to, data, QStringList(), been)) {
+      Forward(to, data, QStringList());
+    }
   }
 
   void RelayForwarder::IncomingData(const Request &notification)
@@ -65,13 +77,46 @@ namespace Connections {
         qWarning() << "Received a forwarded message without a valid source.";
       }
 
-      _rpc->HandleData(QSharedPointer<ISender>(
-            new ForwardingSender(GetSharedPointer(), _local_id, source)),
-          msg.value("data").toByteArray());
+      QSharedPointer<ForwardingSender> *psender = _cache.take(source);
+      if(!psender || (*psender)->GetReverse().isEmpty()) {
+        if(psender) {
+          delete psender;
+        }
+        psender = new QSharedPointer<ForwardingSender>(
+            new ForwardingSender(GetSharedPointer(), _local_id, source, been));
+      }
+
+      QSharedPointer<ForwardingSender> sender(*psender);
+      _cache.insert(source, psender);
+
+      _rpc->HandleData(sender, msg.value("data").toByteArray());
       return;
     }
 
-    Forward(destination, msg.value("data").toByteArray(), (been + _base_been));
+    QStringList reverse = msg.value("reverse").toStringList();
+    QByteArray data = msg.value("data").toByteArray();
+    if(reverse.isEmpty() || !Reverse(destination, data, been, reverse)) {
+      Forward(destination, data, been);
+    }
+  }
+
+  bool RelayForwarder::Reverse(const Id &to, const QByteArray &data,
+      const QStringList &been, const QStringList &reverse)
+  {
+    if(to != Id(reverse.value(0))) {
+      qDebug() << "to and starting position are not equal" << reverse << reverse.isEmpty();
+    }
+    QSharedPointer<Connection> con;
+    QStringList nreverse;
+    for(int idx = 0; idx < reverse.count(); idx++) {
+      con = _ct.GetConnection(Id(reverse[idx]));
+      if(con) {
+        Send(con, to, data, been, reverse.mid(0, idx));
+        return true;
+      }
+    }
+
+    return false;
   }
 
   void RelayForwarder::Forward(const Id &to, const QByteArray &data,
@@ -111,12 +156,21 @@ namespace Connections {
   }
 
   void RelayForwarder::Send(const QSharedPointer<Connection> &con,
-      const Id &to, const QByteArray &data, const QStringList &been)
+      const Id &to, const QByteArray &data, const QStringList &been,
+      const QStringList &reverse)
   {
     QVariantHash msg;
     msg["to"] = to.ToString();
     msg["data"] = data;
     msg["been"] = been + _base_been;
+
+    if(!reverse.isEmpty()) {
+      msg["reverse"] = reverse;
+    }
+
+    qDebug() << con->GetLocalId().ToString() << "Forwarding message from" <<
+      msg["been"].toStringList().value(0) << "to" << to.ToString() << "via" <<
+      con->GetRemoteId().ToString() << "Reverse path" << !reverse.isEmpty();
     
     _rpc->SendNotification(con, "RF::Data", msg);
   }
