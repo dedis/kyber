@@ -221,6 +221,8 @@ namespace Tests {
     nodes[sender0]->session->Send(msg);
     QByteArray first = msg;
 
+    qDebug() << "Session started";
+
     SignalCounter sc;
     for(int idx = 0; idx < count; idx++) {
       QObject::connect(&nodes[idx]->sink, SIGNAL(DataReceived()),
@@ -236,11 +238,14 @@ namespace Tests {
     }
 
     for(int idx = 0; idx < count; idx++) {
-      ASSERT_EQ(msg, nodes[idx]->sink.Last().second);
+      EXPECT_EQ(msg, nodes[idx]->sink.Last().second);
     }
+
 
     int ncount = count + 1;
     nodes.append(new TestNode(Id(), ncount));
+    qDebug() << "Adding node:" << nodes.last()->cm->GetId().ToString();
+
     QObject::connect(&nodes.last()->sink, SIGNAL(DataReceived()),
         &sc, SLOT(Counter()));
     for(int idx = 0; idx < count; idx++) {
@@ -258,6 +263,8 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
+    qDebug() << "Node fully connected";
+
     ASSERT_EQ(count, con_counter.GetCount());
 
     CreateSession(nodes.last(), group, session_id, callback);
@@ -272,6 +279,8 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
+    qDebug() << "Round started";
+
     rand->GenerateBlock(msg);
     nodes[sender1]->session->Send(msg);
 
@@ -283,8 +292,10 @@ namespace Tests {
       next = Timer::GetInstance().VirtualRun();
     }
 
+    qDebug() << "Send successful";
+
     for(int idx = 0; idx < ncount; idx++) {
-      ASSERT_EQ(msg, nodes[idx]->sink.Last().second);
+      EXPECT_EQ(msg, nodes[idx]->sink.Last().second);
     }
 
     CleanUp(nodes);
