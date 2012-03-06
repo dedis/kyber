@@ -187,7 +187,7 @@ namespace Anonymity {
           &Session::CheckRegistration, 0);
 
     _prepare_event = Dissent::Utils::Timer::GetInstance().QueueCallback(cb,
-        PeerJoinDelay * 1.1, PeerJoinDelay);
+        static_cast<int>(PeerJoinDelay * 1.1), PeerJoinDelay);
   }
 
   void Session::CheckRegistration(const int &)

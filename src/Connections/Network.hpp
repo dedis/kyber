@@ -5,6 +5,9 @@
 #include <QSharedPointer>
 #include <QVariant>
 
+#include "ConnectionManager.hpp"
+#include "Connection.hpp"
+
 namespace Dissent {
 namespace Messaging {
   class ResponseHandler;
@@ -12,7 +15,6 @@ namespace Messaging {
 
 namespace Connections {
   class Connection;
-  class ConnectionManager;
   class Id;
 
   /**

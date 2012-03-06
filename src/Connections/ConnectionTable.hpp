@@ -5,6 +5,7 @@
 #include <QHash>
 #include <QSharedPointer>
 
+#include "Connection.hpp"
 #include "Id.hpp"
 
 namespace Dissent {
@@ -13,8 +14,6 @@ namespace Transports {
 }
 
 namespace Connections {
-  class Connection;
-
   /**
    * Contains mappings for remote peers
    */

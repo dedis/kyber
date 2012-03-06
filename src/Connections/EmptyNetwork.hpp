@@ -109,7 +109,7 @@ namespace Connections {
 
     private:
       explicit EmptyNetwork() {}
-      EmptyNetwork(const EmptyNetwork &) {}
+      EmptyNetwork(const EmptyNetwork &) : Network() {}
   };
 }
 }
