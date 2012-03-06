@@ -35,6 +35,18 @@ namespace Crypto {
       }
 
       /**
+       * Returns the canonical byte array representation of the number
+       */
+      const QByteArray &GetCanonicalRep() const
+      {
+        if(_canonical.isEmpty()) {
+          IntegerData *cfree_this = const_cast<IntegerData *>(this);
+          cfree_this->GenerateCanonicalRep();
+        }
+        return _canonical;
+      }
+
+      /**
        * Returns the string representation
        */
       const QString &ToString() const
@@ -130,15 +142,19 @@ namespace Crypto {
 
     protected:
       virtual void GenerateByteArray() = 0;
+      virtual void GenerateCanonicalRep() = 0;
       void SetByteArray(const QByteArray &byte_array) { _byte_array = byte_array; }
+      void SetCanonicalRep(const QByteArray &canonical) { _canonical = canonical; }
       void Reset()
       {
         _byte_array.clear();
+        _canonical.clear();
         _string.clear();
       }
 
     private:
       QByteArray _byte_array;
+      QByteArray _canonical;
       QString _string;
   };
 }

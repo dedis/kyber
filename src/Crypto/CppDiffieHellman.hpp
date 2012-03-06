@@ -64,6 +64,12 @@ namespace Crypto {
       virtual QByteArray VerifySharedSecret(const QByteArray &prover_pub,
           const QByteArray &remote_pub, const QByteArray &proof) const;
 
+      /**
+       * Get the digest of a list of integers (represented as ByteArrays)
+       * @param list of integers
+       */
+      QByteArray HashIntegers(const QList<QByteArray> &list) const;
+
       inline static const CryptoPP::Integer &GetPInt()
       {
         if(_p_int == CryptoPP::Integer::Zero()) {

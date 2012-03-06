@@ -1,7 +1,11 @@
 #ifndef DISSENT_CRYPTO_CPP_INTEGER_DATA_H_GUARD
 #define DISSENT_CRYPTO_CPP_INTEGER_DATA_H_GUARD
 
+#include <string>
+
+#include <cryptopp/cryptlib.h>
 #include <cryptopp/integer.h>
+
 #include <QSharedData>
 #include <QByteArray>
 #include <QString>
@@ -257,6 +261,16 @@ namespace Crypto {
         QByteArray byte_array(size, 0);
         _integer.Encode(reinterpret_cast<byte *>(byte_array.data()), size);
         SetByteArray(byte_array);
+      }
+
+      virtual void GenerateCanonicalRep()
+      {
+        std::string der;
+        CryptoPP::StringSink der_sink(der);
+        _integer.DEREncode(der_sink);
+        der_sink.MessageEnd();
+
+        SetCanonicalRep(QByteArray(der.data(), der.size()));
       }
 
     private:

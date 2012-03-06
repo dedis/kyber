@@ -1,6 +1,6 @@
-#include "cryptopp/modarith.h"
+#include <QDataStream>
 
-#include "Utils/Serialization.hpp"
+#include "cryptopp/modarith.h"
 
 #include "CppDiffieHellman.hpp"
 #include "CppHash.hpp"
@@ -41,6 +41,7 @@ namespace Crypto {
     if(!valid) {
       shared.clear();
     }
+
     return shared;
   }
 
@@ -55,8 +56,6 @@ namespace Crypto {
     // Arithmetic modulo phi(N) = N-1
     CryptoPP::ModularArithmetic mod_arith_phi(modulus-1);
 
-
-    CppHash hash;
     CppDiffieHellman rand_key;
 
     // A random value v in the group Z_q
@@ -76,47 +75,40 @@ namespace Crypto {
     QByteArray dh_secret = GetSharedSecret(other_pub);
 
     // t_1 = g^v
-    CryptoPP::Integer commit_1_int = mod_arith.Exponentiate(generator, value.GetCryptoInteger());
-    QByteArray commit_1 = CppIntegerData(commit_1_int).GetByteArray();
+    QByteArray commit_1 = rand_key.GetPublicComponent();
 
     // t_2 = (g^b)^v  -- Where b is the other guy's secret
     QByteArray commit_2 = rand_key.GetSharedSecret(other_pub);
 
+    QList<QByteArray> list;
+    list << gen << prover_pub << other_pub << dh_secret << commit_1 << commit_2;
+
     // c = HASH(g, g^a, g^b, g^ab, t_1, t_2)
-    QByteArray challenge_bytes = hash.ComputeHash(gen + prover_pub + other_pub + dh_secret + commit_1 + commit_2);
+    QByteArray challenge_bytes = HashIntegers(list);
+
     CppIntegerData challenge_data(challenge_bytes);
     CryptoPP::Integer challenge = challenge_data.GetCryptoInteger();
 
     // a = prover secret 
     CryptoPP::Integer prover_priv = CppIntegerData(GetPrivateComponent()).GetCryptoInteger();
 
-    // prod = c*a mod n
+    // prod = c*a mod phi_n
     CryptoPP::Integer product_ca = mod_arith_phi.Multiply(challenge, prover_priv);
 
-    // r = v - ca mod n
+    // r = v - ca mod phi_n
     CryptoPP::Integer response = mod_arith_phi.Subtract(value.GetCryptoInteger(), product_ca);
-    CppIntegerData response_data(response);
 
-    // TEST
-    CryptoPP::Integer commit_1p = mod_arith.CascadeExponentiate(generator, 
-        response, CppIntegerData(prover_pub).GetCryptoInteger(), challenge);
+    CppIntegerData response_data(response);
 
     // Get encoded version of data
     QByteArray challenge_enc = challenge_data.GetByteArray();
     QByteArray response_enc = response_data.GetByteArray();
+  
+    QByteArray out;
+    QDataStream stream(&out, QIODevice::WriteOnly);
 
-    // The header is 3 4-byte lengths
-    QByteArray header(ZeroKnowledgeProofHeaderSize, 0); 
-    int len_dh_secret = dh_secret.count();
-    int len_challenge = challenge_enc.count();
-    int len_response = response_enc.count();
-    
-    Utils::Serialization::WriteInt(len_dh_secret, header, 0);
-    Utils::Serialization::WriteInt(len_challenge, header, 4);
-    Utils::Serialization::WriteInt(len_response, header, 8);
-
-    // We return (dh_secret, challenge, response)
-    return header + dh_secret + challenge_enc + response_enc;
+    stream << dh_secret << challenge_enc << response_enc;
+    return out;
   }
 
   QByteArray CppDiffieHellman::VerifySharedSecret(const QByteArray &prover_pub,
@@ -127,32 +119,10 @@ namespace Crypto {
     CryptoPP::Integer generator = _dh_params.GetGroupParameters().GetGenerator();
     CryptoPP::ModularArithmetic mod_arith(modulus);
 
-    CppHash hash;
+    QDataStream stream(proof);
+    QByteArray bytes_dh_secret, bytes_challenge, bytes_response;
+    stream >> bytes_dh_secret >> bytes_challenge >> bytes_response;
 
-    QByteArray header = proof.mid(0, ZeroKnowledgeProofHeaderSize);
-    QByteArray body = proof.mid(ZeroKnowledgeProofHeaderSize);
-
-    int len_dh_secret = Utils::Serialization::ReadInt(header, 0);
-    if(len_dh_secret < 1) return QByteArray();
-
-    int len_challenge = Utils::Serialization::ReadInt(header, 4);
-    if(len_challenge < 1) return QByteArray();
-
-    int len_response = Utils::Serialization::ReadInt(header, 8);
-    if(len_response < 1) return QByteArray();
-
-    if(proof.size() < (ZeroKnowledgeProofHeaderSize+len_dh_secret+len_challenge+len_response)) {
-      return QByteArray();
-    }
-
-    // Recover byte arrays of integers
-    int offset = 0;
-    QByteArray bytes_dh_secret = body.mid(offset, len_dh_secret);
-    offset += len_dh_secret;
-    QByteArray bytes_challenge = body.mid(offset, len_challenge);
-    offset += len_challenge;
-    QByteArray bytes_response = body.mid(offset, len_response);
-   
     CppIntegerData dh_secret(bytes_dh_secret);
     CppIntegerData challenge(bytes_challenge);
     CppIntegerData response(bytes_response);
@@ -165,7 +135,6 @@ namespace Crypto {
 
     // commit'_2 = (g^b)^r * (g^ab)^c
     // commit'_2 = (public_key_b)^response * (dh_secret)^challenge
-
     CppIntegerData public_key_b(remote_pub);
     CryptoPP::Integer commit_2 = mod_arith.CascadeExponentiate(public_key_b.GetCryptoInteger(), 
         response.GetCryptoInteger(), dh_secret.GetCryptoInteger(), challenge.GetCryptoInteger());
@@ -173,15 +142,31 @@ namespace Crypto {
     // Group generator g
     QByteArray gen = CppIntegerData(generator).GetByteArray();
 
-    // HASH(g, g^a, g^b
-    QByteArray expected_challenge = hash.ComputeHash(gen + prover_pub + remote_pub + 
-        bytes_dh_secret + CppIntegerData(commit_1).GetByteArray() + CppIntegerData(commit_2).GetByteArray());
+    QList<QByteArray> list;
+    list << gen << prover_pub << remote_pub << bytes_dh_secret;
+    list << CppIntegerData(commit_1).GetByteArray() << CppIntegerData(commit_2).GetByteArray();
 
-    if(bytes_challenge == expected_challenge) {
+    // HASH(g, g^a, g^b, g^(ab), t_1, t_2)
+    QByteArray expected_challenge = HashIntegers(list);
+
+    if(CppIntegerData(bytes_challenge).GetCanonicalRep() 
+        == CppIntegerData(expected_challenge).GetCanonicalRep()) {
       return bytes_dh_secret;
     } else {
       return QByteArray();
     }
+  }
+
+  QByteArray CppDiffieHellman::HashIntegers(const QList<QByteArray> &list) const {
+    CppHash hash;
+    QByteArray str;
+
+    for(int i=0; i<list.count(); i++) {
+      str += CppIntegerData(list[i]).GetCanonicalRep();
+    }
+
+    QByteArray ret = hash.ComputeHash(str);
+    return ret;
   }
 
   CryptoPP::Integer CppDiffieHellman::_p_int;

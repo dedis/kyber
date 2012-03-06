@@ -357,7 +357,7 @@ namespace Tests {
   TEST(Crypto, CppZeroKnowledgeDhTest)
   {
     QScopedPointer<Library> lib(new CppLibrary());
-    ZeroKnowledgeTest(lib.data(), true);
+    ZeroKnowledgeTest(lib.data(), false);
   }
 }
 }
