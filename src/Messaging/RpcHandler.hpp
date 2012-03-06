@@ -8,6 +8,9 @@
 #include <QString>
 #include <QSharedPointer>
 
+#include "Utils/TimerCallback.hpp"
+#include "Utils/TimerEvent.hpp"
+
 #include "ISender.hpp"
 #include "ISinkObject.hpp"
 #include "Request.hpp"
@@ -18,6 +21,8 @@
 
 namespace Dissent {
 namespace Messaging {
+  class RequestState;
+
   /**
    * Rpc mechanism assumes a reliable sending mechanism
    */
@@ -25,6 +30,9 @@ namespace Messaging {
     Q_OBJECT
 
     public:
+      typedef Utils::TimerMethod<RpcHandler, int> TimerCallback;
+      static const int TimeoutDelta = 60000;
+
       inline static QSharedPointer<RpcHandler> GetEmpty()
       {
         static QSharedPointer<RpcHandler> handler(new RpcHandler());
@@ -115,6 +123,9 @@ namespace Messaging {
           const QVariant &error_data = QVariant());
 
     private:
+      void StartTimer();
+      void Timeout(const int &);
+
       /**
        * Handle an incoming request
        * @param request the request
@@ -140,7 +151,7 @@ namespace Messaging {
       /**
        * Maps id to a callback method to handle responses
        */
-      QHash<int, QSharedPointer<ResponseHandler> > _requests;
+      QMap<int, QSharedPointer<RequestState> > _requests;
 
       /**
        * Next request id
@@ -151,6 +162,32 @@ namespace Messaging {
        * Used to asynchronously respond to requests
        */
       QSharedPointer<RequestResponder> _responder;
+
+      QSharedPointer<TimerCallback> _timer_callback;
+      Utils::TimerEvent _next_call;
+  };
+
+  class RequestState {
+    public:
+      RequestState(const QSharedPointer<ResponseHandler> &res_h,
+          qint64 start_time, const Utils::TimerEvent &timer) :
+        _res_h(res_h), _start_time(start_time), _timer(timer)
+      {
+      }
+
+      inline QSharedPointer<ResponseHandler> GetResponseHandler()
+      {
+        return _res_h;
+      }
+
+      inline qint64 GetStartTime() { return _start_time; }
+
+      void StopTimer() { _timer.Stop(); }
+
+    private:
+      QSharedPointer<ResponseHandler> _res_h;
+      qint64 _start_time;
+      Utils::TimerEvent _timer;
   };
 }
 }

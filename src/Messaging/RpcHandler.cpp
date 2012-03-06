@@ -1,6 +1,9 @@
 #include <QDataStream>
 #include <QVariant>
 
+#include "Utils/Time.hpp"
+#include "Utils/Timer.hpp"
+
 #include "RpcHandler.hpp"
 
 namespace Dissent {
@@ -27,6 +30,11 @@ namespace Messaging {
 
   RpcHandler::~RpcHandler()
   {
+  }
+
+  void RpcHandler::Timeout(const int &id)
+  {
+    qDebug() << "Timed out:" << id << _requests.contains(id);
   }
 
   void RpcHandler::HandleData(const QSharedPointer<ISender> &from,
@@ -80,20 +88,20 @@ namespace Messaging {
   {
     int id = response.GetId();
     if(id == 0) {
-      qWarning() << "RpcHandler: Response: No ID, from " <<
+      qWarning() << "RpcHandler: Response: No ID, from" <<
         response.GetFrom()->ToString();
       return;
     }
 
-    QSharedPointer<ResponseHandler> cb = _requests[id];
-    if(cb.isNull()) {
-      qWarning() << "RpcHandler: Response: No handler for " << id;
+    QSharedPointer<RequestState> state = _requests[id];
+    if(!state) {
+      qWarning() << "RpcHandler: Response: No handler for" << id;
       return;
     }
 
+    state->StopTimer();
     _requests.remove(id);
-
-    cb->RequestComplete(response);
+    state->GetResponseHandler()->RequestComplete(response);
   }
 
   void RpcHandler::SendNotification(const QSharedPointer<ISender> &to,
@@ -113,13 +121,20 @@ namespace Messaging {
       const QSharedPointer<ResponseHandler> &cb)
   {
     int id = IncrementId();
-    _requests[id] = cb;
+    qint64 ctime = Utils::Time::GetInstance().MSecsSinceEpoch();
+
+    TimerCallback *callback = new TimerCallback(this, &RpcHandler::Timeout, id);
+    Utils::TimerEvent timer = Utils::Timer::GetInstance().QueueCallback(callback,
+        ctime + TimeoutDelta);
+
+    _requests[id] = QSharedPointer<RequestState>(new RequestState(cb, ctime, timer));
     QVariantList container = Request::BuildRequest(id, method, data);
 
     QByteArray msg;
     QDataStream stream(&msg, QIODevice::WriteOnly);
     stream << container;
     to->Send(msg);
+
     return id;
   }
 
@@ -146,8 +161,7 @@ namespace Messaging {
 
   int RpcHandler::IncrementId()
   {
-    int id = _current_id++;
-    return id;
+    return _current_id++;
   }
 
   bool RpcHandler::Register(const QString &name,
