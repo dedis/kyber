@@ -41,6 +41,9 @@ namespace Anonymity {
    * will replay the round and determine the faulty peer.
    *
    * The blame phase is still being evolved.
+   *
+   * @TODO XXX: In the client/server model, the servers should each decrypt
+   * the ciphertext set and send the signed plaintex messages to the clients
    */
 
   class ShuffleRound : public Round {
