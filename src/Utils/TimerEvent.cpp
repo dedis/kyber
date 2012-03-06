@@ -15,6 +15,14 @@ namespace Utils {
   {
   }
 
+  TimerEvent::TimerEvent(const QSharedPointer<TimerCallback> &callback,
+      int due_time, int period) :
+    _state(new TimerEventData(callback,
+          Time::GetInstance().MSecsSinceEpoch() + due_time,
+          period))
+  {
+  }
+
   TimerEvent::TimerEvent(const TimerEvent &other) : _state(other._state)
   {
   }
@@ -33,6 +41,7 @@ namespace Utils {
 
     _state->next += _state->period;
     _state->callback->Invoke();
+    _state->stopped = _state->stopped || _state->period == 0;
   }
 
   bool TimerEvent::ReverseComparer(const TimerEvent &lhs, const TimerEvent &rhs)

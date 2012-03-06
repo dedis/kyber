@@ -64,6 +64,23 @@ namespace Utils {
       TimerEvent QueueCallback(TimerCallback *callback, int due_time, int period);
 
       /**
+       * Execute a callback at a future point in time
+       * @param callback the callback to execute
+       * @param due_time time in ms from now to execute the callback
+       */
+      TimerEvent QueueCallback(const QSharedPointer<TimerCallback> &callback,
+          int due_time);
+
+      /**
+       * Execute a callback at a future point in time and each period thereafter
+       * @param callback the callback to execute
+       * @param due_time time in ms from now to execute the callback
+       * @param period time in ms between follow up callbacks
+       */
+      TimerEvent QueueCallback(const QSharedPointer<TimerCallback> &callback,
+          int due_time, int period);
+
+      /**
        * When running Virtual time, executes all events scheduled up to the
        * current time and returns the next time an event is scheduled.
        */

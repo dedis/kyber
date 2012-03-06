@@ -6,6 +6,7 @@
 #include <QtCore>
 #include <QSharedData>
 #include <QSharedDataPointer>
+#include <QSharedPointer>
 
 #include "Time.hpp"
 #include "TimerCallback.hpp"
@@ -27,9 +28,19 @@ namespace Utils {
       {
       }
 
+      explicit TimerEventData(const QSharedPointer<TimerCallback> callback,
+          qint64 next, int period) :
+        callback(callback),
+        next(next),
+        period(period),
+        stopped(callback == 0),
+        uid(_uid_count++)
+      {
+      }
+
       virtual ~TimerEventData() {}
 
-      QScopedPointer<TimerCallback> callback;
+      QSharedPointer<TimerCallback> callback;
       qint64 next;
       int period;
       bool stopped;
@@ -65,7 +76,7 @@ namespace Utils {
       void Stop();
       inline qint64 GetNextRun() { return _state->next; }
       inline int GetPeriod() { return _state->period; }
-      inline bool Stopped () { return _state->stopped; }
+      inline bool Stopped() { return _state->stopped; }
 
       bool operator<(const TimerEvent& other) const;
       bool operator>(const TimerEvent& other) const;
@@ -74,6 +85,8 @@ namespace Utils {
 
     private:
       TimerEvent(TimerCallback *callback, int due_time, int period = 0);
+      TimerEvent(const QSharedPointer<TimerCallback> &callback, int due_time,
+          int period = 0);
       void Run();
       QExplicitlySharedDataPointer<TimerEventData> _state;
   };

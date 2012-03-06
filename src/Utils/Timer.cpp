@@ -31,6 +31,22 @@ namespace Utils {
     }
   }
 
+  TimerEvent Timer::QueueCallback(const QSharedPointer<TimerCallback> &callback,
+      int due_time)
+  {
+    TimerEvent te(callback, due_time);
+    QueueEvent(te);
+    return te;
+  }
+
+  TimerEvent Timer::QueueCallback(const QSharedPointer<TimerCallback> &callback,
+      int due_time, int period)
+  {
+    TimerEvent te(callback, due_time, period);
+    QueueEvent(te);
+    return te;
+  }
+
   TimerEvent Timer::QueueCallback(TimerCallback *callback, int due_time)
   {
     TimerEvent te(callback, due_time);
