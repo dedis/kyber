@@ -28,6 +28,20 @@ namespace Tests {
     EXPECT_NE(other, out1_1);
     EXPECT_NE(data, other);
 
+    QScopedPointer<AsymmetricKey> prv_key(lib->CreatePrivateKey());
+    QByteArray msig = prv_key->Sign(data);
+    QScopedPointer<AsymmetricKey> pub_key(prv_key->GetPublicKey());
+    QByteArray pk_bytes = pub_key->GetByteArray();
+
+    QScopedPointer<AsymmetricKey> pub_key2(lib->LoadPublicKeyFromByteArray(pk_bytes));
+    EXPECT_TRUE(pub_key2->Verify(data, msig));
+
+    QScopedPointer<AsymmetricKey> prv_key3(lib->CreatePrivateKey());
+    QScopedPointer<AsymmetricKey> pub_key3(prv_key3->GetPublicKey());
+    QByteArray pk_bytes3 = pub_key3->GetByteArray();
+
+    EXPECT_NE(pk_bytes, pk_bytes3);
+
     QByteArray sig0 = key0->Sign(data);
     QByteArray sig1 = key1->Sign(data);
 
