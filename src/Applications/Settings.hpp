@@ -84,12 +84,12 @@ namespace Applications {
       QString Log;
 
       /**
-       * Run an console interface?
+       * Provide a Console UI
        */
       bool Console;
 
       /**
-       * Run an HTTP server?
+       * Provide a WebServer interface
        */
       bool WebServer;
       
@@ -97,6 +97,21 @@ namespace Applications {
        * IP:Port on which the HTTP server should listen
        */
       QUrl WebServerUrl;
+
+      /**
+       * Provide a IP Tunnel Entry point
+       */
+      bool EntryTunnel;
+
+      /**
+       * IP:Port on which the Tunnel Entry point will run
+       */
+      QUrl EntryTunnelUrl;
+
+      /**
+       * Provide a IP Tunnel Exit point
+       */
+      bool ExitTunnel;
 
       /**
        * Enable multhreaded operations
@@ -127,6 +142,7 @@ namespace Applications {
       void Init();
       void ParseUrlList(const QString &name, const QVariant &values, QList<QUrl> &list);
       void ParseUrl(const QString &name, const QVariant &value, QList<QUrl> &list);
+      QUrl TryParseUrl(const QString &string_rep, const QString &scheme);
 
       bool _use_file;
       QSettings _settings;

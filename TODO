@@ -47,3 +47,14 @@ Web Server
 - Index page with list of all URLs
 - HTTPS
 - Packaging formats
+
+Tunnel
+- Better fairness/queuing strategy. Tunnels should only read as much data from sockets as it can send to the next session. This will allow TCP to throttle the connection and not overwhelm the RemoteTunnel's buffers. Tunnels should send data packets to the next session in random order from every connection -- that way one connection doesn't dominate the channel.
+- Session ID in network messages
+- Have RemoteTunnel sign messages it sends back to LocalTunnel
+- Encryption on packets in both directions
+- Have every server function as a well-known remote tunnel
+- FinishPacket should have a "reason" field
+- Options for SOCKS 4[a] protocols
+
+

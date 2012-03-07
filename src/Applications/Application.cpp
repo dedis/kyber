@@ -9,14 +9,12 @@ int main(int argc, char **argv)
   QStringList args = QCoreApplication::arguments();
 
   if(args.count() < 2) {
-    qCritical() << "Usage:" << args[0] << "settings.conf";
-    return -1;
+    qFatal(QString("Usage: " + args[0] + " settings.conf").toUtf8().constData());
   }
 
   Settings settings(args[1]);
   if(!settings.IsValid()) {
-    qCritical() << settings.GetError();
-    return -1;
+    qFatal(settings.GetError().toUtf8().constData());
   }
 
   QList<Address> local;
@@ -45,7 +43,7 @@ int main(int argc, char **argv)
 
   if(settings.Console) {
     app_sink = QSharedPointer<CommandLine>(new CommandLine(nodes));
-  } else if(settings.WebServer) {
+  } else if(settings.WebServer || settings.EntryTunnel || settings.ExitTunnel) {
     app_sink = QSharedPointer<SignalSink>(new SignalSink());
   }
 
@@ -89,6 +87,8 @@ int main(int argc, char **argv)
   }
 
   QScopedPointer<WebServer> ws;
+  QScopedPointer<EntryTunnel> tun_entry;
+  QScopedPointer<ExitTunnel> tun_exit;
 
   if(settings.Console) {
     QSharedPointer<CommandLine> cl = app_sink.dynamicCast<CommandLine>();
@@ -123,6 +123,24 @@ int main(int argc, char **argv)
     ws->AddRoute(HttpRequest::METHOD_HTTP_POST, "/session/send", send_message_sp);
 
     ws->Start();
+
+  } else if(settings.EntryTunnel) {
+    tun_entry.reset(new EntryTunnel(settings.EntryTunnelUrl, nodes[0]->GetSessionManager(), 
+          nodes[0]->GetOverlay()->GetRpcHandler()));
+
+    QSharedPointer<SignalSink> signal_sink = app_sink.dynamicCast<SignalSink>();
+    QObject::connect(signal_sink.data(), SIGNAL(IncomingData(const QByteArray&)),
+        tun_entry.data(), SLOT(DownstreamData(const QByteArray&)));
+
+    tun_entry->Start();
+  } else if(settings.ExitTunnel) {
+    tun_exit.reset(new ExitTunnel(nodes[0]->GetSessionManager(), nodes[0]->GetNetwork()));
+
+    QSharedPointer<SignalSink> signal_sink = app_sink.dynamicCast<SignalSink>();
+    QObject::connect(signal_sink.data(), SIGNAL(IncomingData(const QByteArray&)),
+        tun_exit.data(), SLOT(SessionData(const QByteArray&)));
+
+    tun_exit->Start();
   }
 
   foreach(QSharedPointer<Node> node, nodes) {

@@ -117,6 +117,20 @@
 #include "Transports/TcpEdge.hpp"
 #include "Transports/TcpEdgeListener.hpp"
 
+#include "Tunnel/EntryTunnel.hpp"
+#include "Tunnel/ExitTunnel.hpp"
+#include "Tunnel/SocksConnection.hpp"
+#include "Tunnel/SocksHostAddress.hpp"
+#include "Tunnel/TunnelConnectionTable.hpp"
+#include "Tunnel/Packets/Packet.hpp"
+#include "Tunnel/Packets/FinishPacket.hpp"
+#include "Tunnel/Packets/TcpRequestPacket.hpp"
+#include "Tunnel/Packets/UdpRequestPacket.hpp"
+#include "Tunnel/Packets/TcpResponsePacket.hpp"
+#include "Tunnel/Packets/UdpResponsePacket.hpp"
+#include "Tunnel/Packets/TcpStartPacket.hpp"
+#include "Tunnel/Packets/UdpStartPacket.hpp"
+
 #include "Utils/Logging.hpp"
 #include "Utils/QRunTimeError.hpp"
 #include "Utils/Random.hpp"
@@ -158,6 +172,8 @@ using namespace Dissent::Identity;
 using namespace Dissent::Messaging;
 using namespace Dissent::Overlay;
 using namespace Dissent::Transports;
+using namespace Dissent::Tunnel;
+using namespace Dissent::Tunnel::Packets;
 using namespace Dissent::Utils;
 using namespace Dissent::Web;
 using namespace Dissent::Web::Services;

@@ -27,18 +27,14 @@ namespace Applications {
       LocalNodeCount = _settings.value("local_nodes").toInt();
     }
 
-    if(_settings.contains("web_server_url")) {
-      QString url = _settings.value("web_server_url").toString();
-      WebServerUrl = QUrl(url);
-      if(WebServerUrl.toString() != url) {
-        WebServerUrl = QUrl();
-      }
+    Console = _settings.value("console").toBool();
+    WebServer = _settings.value("web_server").toBool();
+    EntryTunnel = _settings.value("entry_tunnel").toBool();
+    ExitTunnel = _settings.value("exit_tunnel").toBool();
+    Multithreading = _settings.value("multithreading").toBool();
 
-      QString scheme = WebServerUrl.scheme();
-      if(scheme != "http") {
-        WebServerUrl = QUrl();
-      }
-    }
+    WebServerUrl = TryParseUrl(_settings.value("web_server_url").toString(), "http");
+    EntryTunnelUrl = TryParseUrl(_settings.value("entry_tunnel_url").toString(), "tcp");
 
     if(_settings.contains("session_type")) {
       SessionType = _settings.value("session_type").toString();
@@ -66,10 +62,6 @@ namespace Applications {
       }
     }
 
-    Console = _settings.value("console").toBool();
-    WebServer = _settings.value("web_server").toBool();
-    Multithreading = _settings.value("multithreading").toBool();
-
     if(_settings.contains("local_id")) {
       LocalId = Id(_settings.value("local_id").toString());
     }
@@ -84,6 +76,10 @@ namespace Applications {
   }
 
   Settings::Settings() :
+    Console(false),
+    WebServer(false),
+    EntryTunnel(false),
+    ExitTunnel(false),
     LocalId(Id::Zero()),
     LeaderId(Id::Zero()),
     SubgroupPolicy(Group::CompleteGroup),
@@ -112,18 +108,25 @@ namespace Applications {
       return false;
     }
 
-    if(WebServer && !WebServerUrl.isValid()) {
+    if(WebServer && (!WebServerUrl.isValid() || WebServerUrl.isEmpty())) {
+      _reason = "Invalid WebServerUrl";
+      return false;
+    }
+
+    if(EntryTunnel && (!EntryTunnelUrl.isValid() || EntryTunnelUrl.isEmpty())) {
       _reason = "Invalid WebServerUrl";
       return false;
     }
 
     if(LeaderId == Id::Zero()) {
+      qWarning() << "HERE?" << LeaderId.ToString();
       _reason = "No leader Id";
       return false;
     }
 
     if(SubgroupPolicy == -1) {
-      _reason = "Invlaid subgroup policy";
+      qWarning() << "HERE?!" << SubgroupPolicy;
+      _reason = "Invalid subgroup policy";
       return false;
     }
 
@@ -162,6 +165,19 @@ namespace Applications {
     } else {
       qCritical() << "Invalid " << name << ": " << value.toString();
     }
+  }
+
+  QUrl Settings::TryParseUrl(const QString &string_rep, const QString &scheme)
+  {
+    QUrl url = QUrl(string_rep);
+    if(url.toString() != string_rep) {
+      return QUrl();
+    }
+
+    if(url.scheme() != scheme) {
+      return QUrl();
+    }
+    return url;
   }
 
   void Settings::Save()

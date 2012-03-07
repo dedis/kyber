@@ -23,6 +23,7 @@ Directory Structure
 - src/Overlay - Manages connections
 - src/Tests - Test code for classes in other folders
 - src/Transports - Low level Networking interface
+- src/Tunnel - SOCKS proxy
 - src/Utils - Miscellaneous tools
 - src/Web - Web server 
 - src/Web/Services - Web services
@@ -74,23 +75,27 @@ services are available. Web requests are routed to the services based on
 the URL and HTTP Method (GET, POST, etc). This routing is defined in 
 src/Application/Application.cpp.
 
-
-Web Server Use
+Proxy Server Use
 ===============================================================================
-Inspect conf/local-web.conf
+Inspect conf/tunnel-entry.conf and conf/tunnel-exit.conf
 
-Dissent has a built-in web server for interacting with the Dissent session
-using HTTP requests. To enable the web_server, add these lines to your .conf
-file:
-  web_server = true
-  web_server_url = "http://server_ip:port"
-If the server_ip is 0.0.0.0, then the web server will listen on any hostname.
+Dissent has a built-in SOCKS 5 server for tunneling TCP traffic through a 
+Dissent session. SOCKS tunneling requires two special nodes: an entry node and 
+an exit node. The entry node runs the SOCKS server and inserts SOCKS traffic 
+into a Dissent session. The exit node receives SOCKS traffic from a Dissent 
+session and forwards it to its destination.
 
-Look at the Web services defined in src/Web/Services to get a sense of what
-services are available. Web requests are routed to the services based on
-the URL and HTTP Method (GET, POST, etc). This routing is defined in 
-src/Application/Application.cpp.
+To enable a SOCKS entry node, add these lines to your .conf file:
+  entry_tunnel = true
+  entry_tunnel_url = "tcp://socks_server_ip:port"
+If the socks_server_ip is 0.0.0.0, then the SOCKS server will listen on any 
+hostname.
 
+The SOCKS server handles only TCP traffic, but it can resolve hostname-type
+addresses.
+
+To enable a SOCKS exit node, add this line to your .conf file:
+  exit_tunnel = true
 
 Tests
 ===============================================================================
