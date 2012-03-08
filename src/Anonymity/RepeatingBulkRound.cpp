@@ -1,3 +1,5 @@
+#include <QCoreApplication>
+
 #include "Connections/IOverlaySender.hpp"
 #include "Connections/Network.hpp"
 #include "Crypto/DiffieHellman.hpp"
@@ -191,7 +193,8 @@ namespace Anonymity {
   void RepeatingBulkRound::HandleBulkData(QDataStream &stream, const Id &from)
   {
     qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
-      ": received bulk data from " << GetGroup().GetIndex(from) << from.ToString();
+      ": received bulk data from " << GetGroup().GetIndex(from) << from.ToString()
+      << "Have" << (_received_messages + 1) << "expecting" << _messages.count();
 
     if(_state != DataSharing) {
       throw QRunTimeError("Received a misordered BulkData message");
@@ -286,6 +289,9 @@ namespace Anonymity {
 
   bool RepeatingBulkRound::PrepForNextPhase()
   {
+    QCoreApplication::processEvents();
+    QCoreApplication::sendPostedEvents();
+
     if(_stop_next) {
       SetInterrupted();
       Stop("Stopped for join");

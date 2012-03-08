@@ -106,6 +106,7 @@ namespace Anonymity {
       if(group.GetSubgroup().Contains(_ident.GetLocalId())) {
         foreach(const PublicIdentity &gc, group.GetSubgroup()) {
           if(ct.GetConnection(gc.GetId()) == 0) {
+            qDebug() << "Missing a subgroup connection.";
             return false;
           }
         }
@@ -118,6 +119,7 @@ namespace Anonymity {
           }
         }
         if(!found) {
+          qDebug() << "Missing a subgroup connection.";
           return false;
         }
       }
@@ -182,6 +184,8 @@ namespace Anonymity {
       return;
     }
 
+    qDebug() << "Starting a new prepare event due to peer join.";
+
     Dissent::Utils::TimerCallback *cb =
       new Dissent::Utils::TimerMethod<Session, int>(this,
           &Session::CheckRegistration, 0);
@@ -204,11 +208,12 @@ namespace Anonymity {
     qDebug() << "Enough time has passed between peer joins to start a round.";
     _prepare_event.Stop();
 
-    if(_current_round.isNull() || (!_current_round->Started() ||
-          _current_round->Stopped()))
+    if(_current_round.isNull() || !_current_round->Started() ||
+          _current_round->Stopped())
     {
       SendPrepare();
     } else if(IsLeader()) {
+      qDebug() << "Letting the current round know that a peer joined event occurred.";
       _current_round->PeerJoined();
     }
   }
@@ -341,7 +346,7 @@ namespace Anonymity {
     _prepared_peers.insert(sender->GetRemoteId(), sender->GetRemoteId());
     if(_prepared_peers.size() != _registered_peers.size()) {
       qDebug() << "Waiting on" << (_registered_peers.size() - _prepared_peers.size()) <<
-        "more prepared resposnes.";
+        "more prepared responses.";
       return;
     }
 
