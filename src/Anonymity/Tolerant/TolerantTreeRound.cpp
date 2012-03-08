@@ -548,6 +548,7 @@ namespace Tolerant {
       QByteArray tcleartext = input.mid(msg_idx, length);
       QByteArray msg = ProcessMessage(tcleartext, slot_idx);
       if(!msg.isEmpty()) {
+        qDebug() << ToString() << "received a valid message.";
         PushData(GetSharedPointer(), msg);
       }
       msg_idx += length;
