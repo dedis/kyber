@@ -87,10 +87,7 @@ namespace Tests {
     }
 
     for(int idx = 0; idx < count; idx++) {
-      for(int jdx = 0; jdx < count; jdx++) {
-        if(idx == jdx) {
-          continue;
-        }
+      for(int jdx = idx + 1; jdx < count; jdx++) {
         nodes[idx]->cm->ConnectTo(BufferAddress(jdx+1));
       }
     }
