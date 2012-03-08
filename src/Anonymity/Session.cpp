@@ -582,9 +582,24 @@ namespace Anonymity {
       _send_queue = _send_queue.mid(_trim_send_queue);
     }
 
-    QByteArray data(_send_queue.left(max));
-    bool more = _send_queue.size() > max;
-    _trim_send_queue = std::min(_send_queue.size(), max);
+    QByteArray data;
+    int idx = 0;
+    while(idx < _send_queue.count()) {
+      if(max < _send_queue[idx].count()) {
+        qDebug() << "Messaging in queue is bigger than max data:" <<
+          _send_queue[idx].count() << "/" << max;
+        idx++;
+        continue;
+      } else if(max < (data.count() + _send_queue[idx].count())) {
+        break;
+      }
+
+      data.append(_send_queue[idx++]);
+    }
+
+    _trim_send_queue = idx;
+
+    bool more = _send_queue.count() < _trim_send_queue;
     return QPair<QByteArray, bool>(data, more);
   }
 }

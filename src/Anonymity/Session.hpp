@@ -1,6 +1,7 @@
 #ifndef DISSENT_ANONYMITY_SESSION_H_GUARD
 #define DISSENT_ANONYMITY_SESSION_H_GUARD
 
+#include <QList>
 #include <QHash>
 #include <QObject>
 #include <QQueue>
@@ -253,7 +254,7 @@ namespace Anonymity {
       /**
        * Used by a client to store messages to be sent for future rounds
        */
-      QByteArray _send_queue;
+      QList<QByteArray> _send_queue;
 
       Group _shared_group;
       QSet<Id> _bad_members;
