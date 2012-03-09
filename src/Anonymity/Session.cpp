@@ -358,12 +358,6 @@ namespace Anonymity {
     }
 
     _prepared_peers.clear();
-
-    qDebug() << "Session" << ToString() << "starting round" <<
-      _current_round->ToString();
-   
-    emit RoundStarting(_current_round);
-    _current_round->Start();
   }
 
   void Session::ReceivedBegin(const Request &notification)
