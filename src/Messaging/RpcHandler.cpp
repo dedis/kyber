@@ -146,7 +146,7 @@ namespace Messaging {
 
     TimerCallback *callback = new TimerCallback(this, &RpcHandler::Timeout, id);
     Utils::TimerEvent timer = Utils::Timer::GetInstance().QueueCallback(callback,
-        ctime + TimeoutDelta);
+        TimeoutDelta);
 
     _requests[id] = QSharedPointer<RequestState>(
         new RequestState(to, cb, ctime, timer, timeout));
