@@ -182,7 +182,7 @@ namespace Connections {
         edge->Stop("Timed out");
       } else {
         qDebug() << "Testing edge:" << edge->ToString();
-        _rpc->SendRequest(edge, "CM::Ping", QVariant(), _ping_handler);
+        _rpc->SendRequest(edge, "CM::Ping", QVariant(), _ping_handler, true);
       }
     }
   }

@@ -35,6 +35,18 @@ namespace Messaging {
   void RpcHandler::Timeout(const int &id)
   {
     qDebug() << "Timed out:" << id << _requests.contains(id);
+    if(!_requests.contains(id) || !_requests[id]->TimeoutCapable()) {
+      return;
+    }
+
+    qDebug() << "Pushing timeout message";
+
+    QSharedPointer<RequestState> state = _requests[id];
+    _requests.remove(id);
+
+    QVariantList msg = Response::Failed(id, Response::Timeout, "Local timeout");
+    Response response(state->GetSender(), msg);
+    state->GetResponseHandler()->RequestComplete(response);
   }
 
   void RpcHandler::HandleData(const QSharedPointer<ISender> &from,
@@ -99,6 +111,15 @@ namespace Messaging {
       return;
     }
 
+    if(state->GetSender() != response.GetFrom()) {
+      qDebug() << "Received a response from a different source than " <<
+        "the path the request was sent by.  Sent by:" <<
+        state->GetSender()->ToString() << "Received by:" <<
+        response.GetFrom()->ToString();
+      // Eventually we need to not allow this behavior, but that means making
+      // better equality comparator
+    }
+
     state->StopTimer();
     _requests.remove(id);
     state->GetResponseHandler()->RequestComplete(response);
@@ -118,7 +139,7 @@ namespace Messaging {
 
   int RpcHandler::SendRequest(const QSharedPointer<ISender> &to,
       const QString &method, const QVariant &data,
-      const QSharedPointer<ResponseHandler> &cb)
+      const QSharedPointer<ResponseHandler> &cb, bool timeout)
   {
     int id = IncrementId();
     qint64 ctime = Utils::Time::GetInstance().MSecsSinceEpoch();
@@ -127,7 +148,8 @@ namespace Messaging {
     Utils::TimerEvent timer = Utils::Timer::GetInstance().QueueCallback(callback,
         ctime + TimeoutDelta);
 
-    _requests[id] = QSharedPointer<RequestState>(new RequestState(cb, ctime, timer));
+    _requests[id] = QSharedPointer<RequestState>(
+        new RequestState(to, cb, ctime, timer, timeout));
     QVariantList container = Request::BuildRequest(id, method, data);
 
     QByteArray msg;

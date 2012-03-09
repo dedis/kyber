@@ -469,6 +469,15 @@ namespace Tests {
 
     ASSERT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
     ASSERT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
+
+    cm1.Stop();
+    cm0.Stop();
+
+    qint64 next = Timer::GetInstance().VirtualRun();
+    while(next != -1) {
+      Time::GetInstance().IncrementVirtualClock(next);
+      next = Timer::GetInstance().VirtualRun();
+    }
   }
 }
 }

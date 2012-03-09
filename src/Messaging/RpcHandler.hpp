@@ -73,10 +73,15 @@ namespace Messaging {
        * @param method the remote method
        * @param data the input data for that method
        * @param callback called when the request is complete
+       * @param timeout specifies whether or not to let the request timeout.
+       * It is a temporary parameter that will be phased out in the future,
+       * all future Rpc Methods should be implemented with potential timeouts
+       * in mind.
        * @returns the id of the request so that the callback can be cancelled
        */
       int SendRequest(const QSharedPointer<ISender> &to, const QString &method,
-          const QVariant &data, const QSharedPointer<ResponseHandler> &callback);
+          const QVariant &data, const QSharedPointer<ResponseHandler> &callback,
+          bool timeout = false);
 
       /**
        * Register a callback
@@ -169,25 +174,36 @@ namespace Messaging {
 
   class RequestState {
     public:
-      RequestState(const QSharedPointer<ResponseHandler> &res_h,
-          qint64 start_time, const Utils::TimerEvent &timer) :
-        _res_h(res_h), _start_time(start_time), _timer(timer)
+      RequestState(const QSharedPointer<ISender> sender,
+          const QSharedPointer<ResponseHandler> &res_h,
+          qint64 start_time, const Utils::TimerEvent &timer, bool timeout) :
+        _sender(sender),
+        _res_h(res_h),
+        _start_time(start_time),
+        _timer(timer),
+        _timeout(timeout)
       {
       }
 
-      inline QSharedPointer<ResponseHandler> GetResponseHandler()
+      inline QSharedPointer<ISender> GetSender() const { return _sender; }
+
+      inline QSharedPointer<ResponseHandler> GetResponseHandler() const
       {
         return _res_h;
       }
 
-      inline qint64 GetStartTime() { return _start_time; }
+      inline qint64 GetStartTime() const { return _start_time; }
 
       void StopTimer() { _timer.Stop(); }
 
+      bool TimeoutCapable() const { return _timeout; }
+
     private:
+      QSharedPointer<ISender> _sender;
       QSharedPointer<ResponseHandler> _res_h;
       qint64 _start_time;
       Utils::TimerEvent _timer;
+      bool _timeout;
   };
 }
 }
