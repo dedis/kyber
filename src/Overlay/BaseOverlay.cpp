@@ -45,6 +45,7 @@ namespace Overlay {
       new Dissent::Connections::Bootstrapper(_cm, _remote_endpoints));
     _con_acquirers.append(cab);
 
+    _cm->Start();
     foreach(const QSharedPointer<ConnectionAcquirer> &ca, _con_acquirers) {
       ca->Start();
     }
