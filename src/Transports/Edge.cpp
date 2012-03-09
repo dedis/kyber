@@ -6,7 +6,8 @@ namespace Transports {
     _local_address(local),
     _remote_address(remote),
     _remote_p_addr(remote),
-    _outbound(outbound)
+    _outbound(outbound),
+    _last_incoming(Utils::Time::GetInstance().MSecsSinceEpoch())
   {
   }
 
