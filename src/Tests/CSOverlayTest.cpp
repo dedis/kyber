@@ -108,8 +108,10 @@ namespace Tests {
       }
     }
 
+    qDebug() << "Running until first round is started";
     int count = server_total + client_total;
     RunUntil(sc, count);
+    qDebug() << "First round started";
 
     Group fullgroup(clients, group.GetLeader(), Group::ManagedSubgroup, servers);
     EXPECT_TRUE(CheckClientServer(nodes, fullgroup));

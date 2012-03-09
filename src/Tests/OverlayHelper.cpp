@@ -20,11 +20,15 @@ namespace Tests {
       QObject::connect(sink.data(), SIGNAL(DataReceived()), &sc, SLOT(Counter()));
     }
 
+    qDebug() << "Sending data";
+
     if(live) {
       MockExecLoop(sc);
     } else {
       RunUntil(sc, nodes.count());
     }
+
+    qDebug() << "Data received";
 
     foreach(QSharedPointer<Node> node, nodes) {
       QSharedPointer<BufferSink> sink = node->GetSink().dynamicCast<BufferSink>();
@@ -44,11 +48,15 @@ namespace Tests {
       node->GetOverlay()->Stop();
     }
 
+    qDebug() << "Stopping nodes";
+
     if(live) {
       MockExecLoop(sc);
     } else {
       RunUntil(sc, nodes.count());
     }
+
+    qDebug() << "Nodes stopped";
 
     EXPECT_EQ(sc.GetCount(), nodes.count());
 
