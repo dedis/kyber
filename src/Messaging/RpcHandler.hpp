@@ -185,6 +185,11 @@ namespace Messaging {
       {
       }
 
+      ~RequestState()
+      {
+        _timer.Stop();
+      }
+
       inline QSharedPointer<ISender> GetSender() const { return _sender; }
 
       inline QSharedPointer<ResponseHandler> GetResponseHandler() const
