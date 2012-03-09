@@ -23,12 +23,7 @@ namespace Tests {
     if(live) {
       MockExecLoop(sc);
     } else {
-      int count = nodes.count();
-      qint64 next = Timer::GetInstance().VirtualRun();
-      while(next != -1 && sc.GetCount() != count) {
-        Time::GetInstance().IncrementVirtualClock(next);
-        next = Timer::GetInstance().VirtualRun();
-      }
+      RunUntil(sc, nodes.count());
     }
 
     foreach(QSharedPointer<Node> node, nodes) {
@@ -52,11 +47,7 @@ namespace Tests {
     if(live) {
       MockExecLoop(sc);
     } else {
-      qint64 next = Timer::GetInstance().VirtualRun();
-      while(next != -1 && sc.GetCount() != nodes.count()) {
-        Time::GetInstance().IncrementVirtualClock(next);
-        next = Timer::GetInstance().VirtualRun();
-      }
+      RunUntil(sc, nodes.count());
     }
 
     EXPECT_EQ(sc.GetCount(), nodes.count());

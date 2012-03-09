@@ -1,18 +1,26 @@
 #include "Messaging/RequestHandler.hpp"
 #include "Messaging/RpcHandler.hpp"
 #include "Transports/AddressFactory.hpp"
+#include "Utils/Timer.hpp"
+#include "Utils/TimerCallback.hpp"
 
 #include "Connection.hpp"
 #include "ConnectionManager.hpp"
 
-using Dissent::Transports::AddressFactory;
-using Dissent::Messaging::RequestHandler;
-
 namespace Dissent {
+using Transports::AddressFactory;
+using Messaging::RequestHandler;
+
 namespace Connections {
+  bool ConnectionManager::UseTimer = true;
+  const int ConnectionManager::TimeBetweenEdgeCheck = 10000;
+  const int ConnectionManager::EdgeCheckTimeout = 30000;
+  const int ConnectionManager::EdgeCloseTimeout = 60000;
+
   ConnectionManager::ConnectionManager(const Id &local_id,
       const QSharedPointer<RpcHandler> &rpc) :
     _inquired(new ResponseHandler(this, "Inquired")),
+    _ping_handler(new ResponseHandler(this, "HandlePingResponse")),
     _con_tab(local_id),
     _local_id(local_id),
     _rpc(rpc)
@@ -33,6 +41,8 @@ namespace Connections {
         new RequestHandler(this, "Disconnect"));
     _rpc->Register("CM::Disconnect", disconnect);
 
+    _rpc->Register("CM::Ping", this, "HandlePingRequest");
+
     QSharedPointer<Connection> con = _con_tab.GetConnection(_local_id);
     con->SetSink(_rpc.data());
     QObject::connect(con->GetEdge().data(), SIGNAL(StoppedSignal()),
@@ -51,6 +61,7 @@ namespace Connections {
     _rpc->Unregister("CM::Close");
     _rpc->Unregister("CM::Connect");
     _rpc->Unregister("CM::Disconnect");
+    _rpc->Unregister("CM::Ping");
   }
 
   void ConnectionManager::AddEdgeListener(const QSharedPointer<EdgeListener> &el)
@@ -94,8 +105,21 @@ namespace Connections {
     }
   }
 
+  void ConnectionManager::OnStart()
+  {
+    if(UseTimer) {
+      qDebug() << "Starting timer";
+      Utils::TimerCallback *cb =
+        new Utils::TimerMethod<ConnectionManager, int>(this,
+            &ConnectionManager::EdgeCheck, 0);
+      _edge_check = Utils::Timer::GetInstance().QueueCallback(cb,
+          TimeBetweenEdgeCheck, TimeBetweenEdgeCheck);
+    }
+  }
+
   void ConnectionManager::OnStop()
   {
+    _edge_check.Stop();
     bool emit_dis = (_con_tab.GetEdges().count() == 0);
 
     foreach(const QSharedPointer<Connection> &con, _con_tab.GetConnections()) {
@@ -139,6 +163,37 @@ namespace Connections {
     request["persistent"] = el->GetAddress().ToString();
 
     _rpc->SendRequest(edge, "CM::Inquire", request, _inquired);
+  }
+
+  void ConnectionManager::EdgeCheck(const int &)
+  {
+    qDebug() << "Checking edges";
+    QList<QSharedPointer<Edge> > edges_to_close;
+    qint64 now = Utils::Time::GetInstance().MSecsSinceEpoch();
+    qint64 check_time = now - EdgeCheckTimeout;
+    qint64 close_time = now - EdgeCloseTimeout;
+
+    foreach(const QSharedPointer<Edge> &edge, _con_tab.GetEdges()) {
+      qint64 last_msg = edge->GetLastIncomingMessage();
+      if(check_time < last_msg) {
+        continue;
+      } else if(last_msg < close_time) {
+        qDebug() << "Closing edge:" << edge->ToString();
+        edge->Stop("Timed out");
+      } else {
+        qDebug() << "Testing edge:" << edge->ToString();
+        _rpc->SendRequest(edge, "CM::Ping", QVariant(), _ping_handler);
+      }
+    }
+  }
+
+  void ConnectionManager::HandlePingRequest(const Request &request)
+  {
+    request.Respond(request.GetData());
+  }
+
+  void ConnectionManager::HandlePingResponse(const Response &)
+  {
   }
 
   void ConnectionManager::HandleEdgeCreationFailure(const Address &to,

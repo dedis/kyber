@@ -43,12 +43,8 @@ namespace Tests {
 
     qDebug() << "Bootstrapping";
 
-    qint64 next = Timer::GetInstance().VirtualRun();
     int total_cons = count * (count - 1);
-    while(next != -1 && sc.GetCount() != total_cons) {
-      Time::GetInstance().IncrementVirtualClock(next);
-      next = Timer::GetInstance().VirtualRun();
-    }
+    RunUntil(sc, total_cons);
 
     qDebug() << "Finished bootstrapping";
 
@@ -91,11 +87,7 @@ namespace Tests {
 
     qDebug() << "Disconnecting leader";
 
-    qint64 next = Timer::GetInstance().VirtualRun();
-    while(next != -1 && sc.GetCount() != 1) {
-      Time::GetInstance().IncrementVirtualClock(next);
-      next = Timer::GetInstance().VirtualRun();
-    }
+    RunUntil(sc, 1);
 
     qDebug() << "Leader disconnected";
 
@@ -124,12 +116,8 @@ namespace Tests {
 
     qDebug() << "Adding leader";
 
-    next = Timer::GetInstance().VirtualRun();
     int total_cons = 2 * (nodes.size() - 1);
-    while(next != -1 && sc.GetCount() != total_cons) {
-      Time::GetInstance().IncrementVirtualClock(next);
-      next = Timer::GetInstance().VirtualRun();
-    }
+    RunUntil(sc, total_cons);
 
     qDebug() << "Leader added";
 

@@ -15,4 +15,13 @@
 #include "MockSource.hpp"
 #include "RpcTest.hpp"
 
+inline void RunUntil(const SignalCounter &sc, int count)
+{
+  Time &time = Time::GetInstance();
+  Timer &timer = Timer::GetInstance();
+  while(sc.GetCount() != count) {
+    time.IncrementVirtualClock(timer.VirtualRun());
+  }
+}
+
 #endif

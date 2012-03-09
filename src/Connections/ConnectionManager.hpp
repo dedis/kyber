@@ -4,6 +4,7 @@
 #include "Messaging/RpcHandler.hpp"
 #include "Transports/EdgeFactory.hpp"
 #include "Utils/StartStop.hpp"
+#include "Utils/TimerEvent.hpp"
 
 #include "ConnectionTable.hpp"
 
@@ -93,12 +94,31 @@ namespace Connections {
         return _outstanding_con_attempts.count();
       }
 
+      /**
+       * Hack to enable / disable the use of the Edge check.  Many tests
+       * assume that there are no background checking processes and therefore
+       * have the event loop will eventually have no callbacks even in an
+       * active system, therefore this is kept as a means to ensure that
+       * behavior is propogated forward.  Should be set back to true upon
+       * the end of each test.
+       */
+      static bool UseTimer;
+
+      static const int TimeBetweenEdgeCheck;
+      static const int EdgeCheckTimeout;
+      static const int EdgeCloseTimeout;
+
     protected:
+      /**
+       * Called after start has been called
+       */
+      virtual void OnStart();
+      
       /**
        * Called after stop has been called
        */
       virtual void OnStop();
-      
+
     signals:
       /**
        * A new outgoing connection has been created
@@ -137,7 +157,15 @@ namespace Connections {
       void CreateConnection(const QSharedPointer<Edge> &pedge,
           const Id &rem_id);
 
+      /**
+       * Check the edges stored in the ConnectionTable to ensure they are
+       * still active.  Tcp is not enough to make sure funny NAT box behavior
+       * doesn't create visibly alive but physically dead links.
+       */
+      void EdgeCheck(const int &noop);
+
       QSharedPointer<ResponseHandler> _inquired;
+      QSharedPointer<ResponseHandler> _ping_handler;
 
       ConnectionTable _con_tab;
       ConnectionTable _rem_con_tab;
@@ -146,6 +174,7 @@ namespace Connections {
       QSharedPointer<RpcHandler> _rpc;
       QHash<Address, bool> _outstanding_con_attempts;
       QHash<Address, bool> _active_addrs;
+      Utils::TimerEvent _edge_check;
 
     private slots:
       /**
@@ -197,6 +226,18 @@ namespace Connections {
        * An Edge was never created
        */
       void HandleEdgeCreationFailure(const Address &to, const QString &reason);
+
+      /**
+       * Echos back the message sent by the remote peer
+       * @param request contains the message
+       */
+      void HandlePingRequest(const Request &request);
+
+      /**
+       * Handles the echo back of a ping message
+       * @param response contains the echoed back message
+       */
+      void HandlePingResponse(const Response &response);
   };
 }
 }

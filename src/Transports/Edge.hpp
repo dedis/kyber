@@ -7,6 +7,7 @@
 #include "Messaging/ISender.hpp"
 #include "Messaging/SourceObject.hpp"
 #include "Utils/StartStop.hpp"
+#include "Utils/Time.hpp"
 
 #include "Address.hpp"
 
@@ -81,6 +82,9 @@ namespace Transports {
 
       QSharedPointer<Edge> GetSharedPointer() { return _edge.toStrongRef(); }
 
+      /**
+       * Returns the reason the Edge was stopped (closed)
+       */
       QString GetStopReason() const { return _stop_reason; }
 
       void SetSharedPointer(const QSharedPointer<Edge> &edge)
@@ -88,10 +92,25 @@ namespace Transports {
         _edge = edge.toWeakRef();
       }
 
+      /**
+       * Gets the time for the last incoming packet
+       */
+      virtual qint64 GetLastIncomingMessage() const { return _last_incoming; }
+
     signals:
       void StoppedSignal();
 
     protected:
+      /**
+       * Overloaded to set the time the last message came in
+       */
+      inline virtual void PushData(const QSharedPointer<ISender> &from,
+          const QByteArray &data)
+      {
+        _last_incoming = Utils::Time::GetInstance().MSecsSinceEpoch();
+        SourceObject::PushData(from, data);
+      }
+
       /**
        * Returns true if the object isn't fully closed
        */
@@ -114,6 +133,7 @@ namespace Transports {
       Address _remote_p_addr;
       bool _outbound;
       QString _stop_reason;
+      qint64 _last_incoming;
   };
 }
 }

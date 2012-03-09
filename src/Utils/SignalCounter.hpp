@@ -27,7 +27,7 @@ namespace Utils {
       /**
        * Returns the amount of signals that have been registered thus far
        */
-      inline int GetCount() { return _count; }
+      inline int GetCount() const { return _count; }
 
       /**
        * Resets the count of signals to 0
@@ -37,7 +37,7 @@ namespace Utils {
       /**
        * Returns the expected count
        */
-      inline int Max() { return _max; }
+      inline int Max() const { return _max; }
 
     public slots:
       /**

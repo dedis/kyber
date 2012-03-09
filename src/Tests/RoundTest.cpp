@@ -7,6 +7,7 @@ namespace Tests {
   void RoundTest_Null(CreateSessionCallback callback,
       Group::SubgroupPolicy sg_policy)
   {
+    ConnectionManager::UseTimer = false;
     Timer::GetInstance().UseVirtualTime();
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
 
@@ -34,11 +35,13 @@ namespace Tests {
     ASSERT_EQ(TestNode::failure, 0);
 
     CleanUp(nodes);
+    ConnectionManager::UseTimer = true;
   }
 
   void RoundTest_Basic(CreateSessionCallback callback,
       Group::SubgroupPolicy sg_policy)
   {
+    ConnectionManager::UseTimer = false;
     Timer::GetInstance().UseVirtualTime();
 
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
@@ -77,6 +80,7 @@ namespace Tests {
     }
 
     CleanUp(nodes);
+    ConnectionManager::UseTimer = true;
   }
 
   /**
@@ -88,6 +92,7 @@ namespace Tests {
   void RoundTest_Basic_SessionTest(CreateSessionCallback callback, 
       Group::SubgroupPolicy sg_policy, SessionTestCallback session_cb)
   {
+    ConnectionManager::UseTimer = false;
     Timer::GetInstance().UseVirtualTime();
 
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
@@ -128,11 +133,13 @@ namespace Tests {
     }
 
     CleanUp(nodes);
+    ConnectionManager::UseTimer = true;
   }
 
   void RoundTest_MultiRound(CreateSessionCallback callback,
       Group::SubgroupPolicy sg_policy)
   {
+    ConnectionManager::UseTimer = false;
     Timer::GetInstance().UseVirtualTime();
 
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
@@ -192,11 +199,13 @@ namespace Tests {
     }
 
     CleanUp(nodes);
+    ConnectionManager::UseTimer = true;
   }
 
   void RoundTest_AddOne(CreateSessionCallback callback,
       Group::SubgroupPolicy sg_policy)
   {
+    ConnectionManager::UseTimer = false;
     Timer::GetInstance().UseVirtualTime();
 
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
@@ -299,11 +308,13 @@ namespace Tests {
     }
 
     CleanUp(nodes);
+    ConnectionManager::UseTimer = true;
   }
 
   void RoundTest_PeerDisconnectEnd(CreateSessionCallback callback,
       Group::SubgroupPolicy sg_policy)
   {
+    ConnectionManager::UseTimer = false;
     Timer::GetInstance().UseVirtualTime();
 
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
@@ -371,11 +382,13 @@ namespace Tests {
     delete nodes[disconnector];
     nodes.remove(disconnector);
     CleanUp(nodes);
+    ConnectionManager::UseTimer = true;
   }
 
   void RoundTest_PeerDisconnectMiddle(CreateSessionCallback callback,
       Group::SubgroupPolicy sg_policy, bool transient)
   {
+    ConnectionManager::UseTimer = false;
     Timer::GetInstance().UseVirtualTime();
 
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
@@ -497,12 +510,14 @@ namespace Tests {
     }
 
     CleanUp(nodes);
+    ConnectionManager::UseTimer = true;
   }
 
   void RoundTest_BadGuy(CreateSessionCallback good_callback,
       CreateSessionCallback bad_callback, Group::SubgroupPolicy sg_policy,
       const BadGuyCB &cb)
   {
+    ConnectionManager::UseTimer = false;
     Timer::GetInstance().UseVirtualTime();
 
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
@@ -583,6 +598,7 @@ namespace Tests {
     }
 
     CleanUp(nodes);
+    ConnectionManager::UseTimer = true;
   }
 
   /**
@@ -597,6 +613,7 @@ namespace Tests {
       CreateSessionCallback bad_callback, Group::SubgroupPolicy sg_policy,
       const BadGuyCB &)
   {
+    ConnectionManager::UseTimer = false;
     Timer::GetInstance().UseVirtualTime();
 
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
@@ -664,12 +681,14 @@ namespace Tests {
     }
 
     CleanUp(nodes);
+    ConnectionManager::UseTimer = true;
   }
 
   void RoundTest_BadGuyNoAction(CreateSessionCallback good_callback,
       CreateSessionCallback bad_callback, Group::SubgroupPolicy sg_policy,
       const BadGuyCB &cb)
   {
+    ConnectionManager::UseTimer = false;
     Timer::GetInstance().UseVirtualTime();
 
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
@@ -729,6 +748,7 @@ namespace Tests {
     }
 
     CleanUp(nodes);
+    ConnectionManager::UseTimer = true;
   }
 }
 }

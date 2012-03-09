@@ -5,6 +5,7 @@ namespace Dissent {
 namespace Tests {
   TEST(Connection, SingleConnect)
   {
+    ConnectionManager::UseTimer = false;
     Timer::GetInstance().UseVirtualTime();
 
     const BufferAddress addr0(1000);
@@ -70,10 +71,12 @@ namespace Tests {
 
     ASSERT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
     ASSERT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
+    ConnectionManager::UseTimer = true;
   }
 
   TEST(Connection, SimultaneousConnect)
   {
+    ConnectionManager::UseTimer = false;
     Timer::GetInstance().UseVirtualTime();
 
     const BufferAddress addr0(1000);
@@ -137,10 +140,12 @@ namespace Tests {
 
     ASSERT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
     ASSERT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
+    ConnectionManager::UseTimer = true;
   }
 
   TEST(Connection, SimultaneousDisconnect)
   {
+    ConnectionManager::UseTimer = false;
     Timer::GetInstance().UseVirtualTime();
 
     const BufferAddress addr0(1000);
@@ -206,10 +211,12 @@ namespace Tests {
 
     ASSERT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
     ASSERT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
+    ConnectionManager::UseTimer = true;
   }
 
   TEST(Connection, Disconnect)
   {
+    ConnectionManager::UseTimer = false;
     Timer::GetInstance().UseVirtualTime();
 
     const BufferAddress addr0(1000);
@@ -264,10 +271,12 @@ namespace Tests {
 
     ASSERT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
     ASSERT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
+    ConnectionManager::UseTimer = true;
   }
 
   TEST(Connection, Reconnect)
   {
+    ConnectionManager::UseTimer = false;
     Timer::GetInstance().UseVirtualTime();
 
     const BufferAddress addr0(1000);
@@ -322,10 +331,12 @@ namespace Tests {
 
     ASSERT_TRUE(cm0.GetConnectionTable().GetConnection(id1));
     ASSERT_TRUE(cm1.GetConnectionTable().GetConnection(id0));
+    ConnectionManager::UseTimer = true;
   }
 
   TEST(Connection, Relay)
   {
+    ConnectionManager::UseTimer = false;
     Timer::GetInstance().UseVirtualTime();
 
     const BufferAddress addr0(10000);
@@ -401,6 +412,63 @@ namespace Tests {
     ASSERT_TRUE(cm1.GetConnectionTable().GetConnection(id2));
     ASSERT_TRUE(cm2.GetConnectionTable().GetConnection(id0));
     ASSERT_TRUE(cm2.GetConnectionTable().GetConnection(id1));
+    ConnectionManager::UseTimer = true;
+  }
+
+  TEST(Connection, Timeout)
+  {
+    Timer::GetInstance().UseVirtualTime();
+
+    SignalCounter sc_new;
+    SignalCounter sc_close;
+
+    const BufferAddress addr0(1000);
+    QSharedPointer<EdgeListener> be0(EdgeListenerFactory::GetInstance().CreateEdgeListener(addr0));
+    QSharedPointer<RpcHandler> rpc0(new RpcHandler());
+    Id id0;
+    ConnectionManager cm0(id0, rpc0);
+    QObject::connect(&cm0, SIGNAL(NewConnection(const QSharedPointer<Connection> &)),
+        &sc_new, SLOT(Counter()));
+    cm0.AddEdgeListener(be0);
+    be0->Start();
+    cm0.Start();
+
+    const BufferAddress addr1(10001);
+    QSharedPointer<EdgeListener> be1(EdgeListenerFactory::GetInstance().CreateEdgeListener(addr1));
+    QSharedPointer<RpcHandler> rpc1(new RpcHandler());
+    Id id1;
+    ConnectionManager cm1(id1, rpc1);
+    QObject::connect(&cm1, SIGNAL(NewConnection(const QSharedPointer<Connection> &)),
+        &sc_new, SLOT(Counter()));
+    cm1.AddEdgeListener(QSharedPointer<EdgeListener>(be1));
+    be1->Start();
+    cm1.Start();
+
+    ASSERT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
+    ASSERT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
+    cm1.ConnectTo(addr0);
+
+    RunUntil(sc_new, 2);
+
+    ASSERT_TRUE(cm0.GetConnectionTable().GetConnection(id1));
+    ASSERT_TRUE(cm1.GetConnectionTable().GetConnection(id0));
+
+    QObject::connect(cm0.GetConnectionTable().GetConnection(id1)->GetEdge().data(),
+        SIGNAL(StoppedSignal()), &sc_close, SLOT(Counter()));
+    QObject::connect(cm1.GetConnectionTable().GetConnection(id0)->GetEdge().data(),
+        SIGNAL(StoppedSignal()), &sc_close, SLOT(Counter()));
+
+    cm0.GetConnectionTable().GetConnection(id1)->GetEdge()->Stop("For fun");
+
+    RunUntil(sc_close, 1);
+
+    ASSERT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
+    ASSERT_TRUE(cm1.GetConnectionTable().GetConnection(id0));
+
+    RunUntil(sc_close, 2);
+
+    ASSERT_FALSE(cm0.GetConnectionTable().GetConnection(id1));
+    ASSERT_FALSE(cm1.GetConnectionTable().GetConnection(id0));
   }
 }
 }
