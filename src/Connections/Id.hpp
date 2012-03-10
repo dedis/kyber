@@ -73,6 +73,12 @@ namespace Connections {
     return qHash(id.GetByteArray());
   }
 
+  inline QDebug operator<<(QDebug dbg, const Id &id)
+  {
+    dbg.nospace() << id.ToString();
+    return dbg.space();
+  }
+
   /**
    * Serialize an Id
    * @param stream where to store the serialized id

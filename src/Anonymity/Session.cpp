@@ -184,15 +184,16 @@ namespace Anonymity {
       return;
     }
 
-    qDebug() << "Received a valid registration message from:" <<
-      request.GetFrom()->ToString();
-    _last_registration = Dissent::Utils::Time::GetInstance().CurrentTime();
-
     if(!AllowRegistration(request.GetFrom(), ident)) {
+      qDebug() << "Peer," << ident << ", has connectivity problems," <<
+       "deferring registration until later.";
       request.Failed(Response::Other,
           "Unable to register at this time, try again later.");
       return;
     }
+
+    qDebug() << "Received a valid registration message from:" << ident;
+    _last_registration = Dissent::Utils::Time::GetInstance().CurrentTime();
 
     AddMember(ident);
     request.Respond(true);

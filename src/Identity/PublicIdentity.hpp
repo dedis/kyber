@@ -2,6 +2,7 @@
 #define DISSENT_IDENTITY_PUBLIC_IDENTITY_H_GUARD
 
 #include <QByteArray>
+#include <QDebug>
 #include <QSharedPointer>
 
 #include "Connections/Id.hpp"
@@ -68,6 +69,12 @@ namespace Identity {
        */
       bool GetSuperPeer() const { return _super_peer; }
 
+      inline QString ToString() const
+      {
+        return QString("Public identity: ( Id: %1, SuperPeer: %2)").arg(
+            GetId().ToString(), GetSuperPeer());
+      }
+
     private:
       Id _id;
       QSharedPointer<AsymmetricKey> _verification_key;
@@ -125,6 +132,12 @@ namespace Identity {
     return (lhs_v_key < rhs_v_key) ||
       ((lhs_v_key == rhs_v_key) && ((lhs_dh < rhs_dh) ||
        ((lhs_dh == rhs_dh) && (lhs_sp < rhs_sp))));
+  }
+
+  inline QDebug operator<<(QDebug dbg, const PublicIdentity &ident)
+  {
+    dbg.nospace() << ident.ToString();
+    return dbg.space();
   }
 
   inline QDataStream &operator<<(QDataStream &stream, const PublicIdentity &ident)
