@@ -49,7 +49,7 @@ namespace Connections {
        */
       inline bool Contains(const Connection *con)
       {
-        return _cons.contains(con);
+        return _id_to_con.contains(con->GetRemoteId());
       }
 
       /**
@@ -74,7 +74,7 @@ namespace Connections {
 
       inline const QList<QSharedPointer<Connection> > GetConnections() const
       {
-        return _cons.values();
+        return _id_to_con.values();
       }
 
       inline const QList<QSharedPointer<Edge> > GetEdges() const
@@ -110,11 +110,6 @@ namespace Connections {
        * Stores Edge to Connection mappings
        */
       QHash<const Edge *, QSharedPointer<Connection> > _edge_to_con;
-
-      /**
-       * Stores Connections
-       */
-      QHash<const Connection *, QSharedPointer<Connection> > _cons;
 
       /**
        * Stores Edges

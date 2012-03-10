@@ -168,7 +168,6 @@ namespace Connections {
       QSharedPointer<ResponseHandler> _ping_handler;
 
       ConnectionTable _con_tab;
-      ConnectionTable _rem_con_tab;
       const Id _local_id;
       EdgeFactory _edge_factory;
       QSharedPointer<RpcHandler> _rpc;

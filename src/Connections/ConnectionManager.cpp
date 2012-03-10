@@ -182,7 +182,11 @@ namespace Connections {
         edge->Stop("Timed out");
       } else {
         qDebug() << "Testing edge:" << edge->ToString();
-        _rpc->SendRequest(edge, "CM::Ping", QVariant(), _ping_handler, true);
+        QSharedPointer<Messaging::ISender> sender = _con_tab.GetConnection(edge.data());
+        if(!sender) {
+          sender = edge;
+        }
+        _rpc->SendRequest(sender, "CM::Ping", QVariant(), _ping_handler, true);
       }
     }
   }
@@ -221,7 +225,7 @@ namespace Connections {
     QByteArray brem_id = data.value("peer_id").toByteArray();
 
     if(brem_id.isEmpty()) {
-      qWarning() << "Invalid Inqiure, no id";
+      qWarning() << "Invalid Inquire, no id";
       return;
     }
 
