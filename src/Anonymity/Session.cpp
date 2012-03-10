@@ -8,6 +8,7 @@
 #include "Identity/PublicIdentity.hpp"
 #include "Messaging/Request.hpp"
 #include "Messaging/Response.hpp"
+#include "Utils/Time.hpp"
 #include "Utils/Timer.hpp"
 
 #include "Session.hpp"
@@ -72,10 +73,20 @@ namespace Anonymity {
     {
       Register(0);
     }
+
+    if(IsLeader()) {
+      Dissent::Utils::TimerCallback *cb =
+        new Dissent::Utils::TimerMethod<Session, int>(this,
+            &Session::CheckLogOffTimes, 0);
+
+      _check_log_off_event = Dissent::Utils::Timer::GetInstance().QueueCallback(cb,
+          LogOffCheckPeriod, LogOffCheckPeriod);
+    }
   }
 
   void Session::OnStop()
   {
+    _check_log_off_event.Stop();
     _register_event.Stop();
     _prepare_event.Stop();
 
@@ -177,6 +188,12 @@ namespace Anonymity {
       request.GetFrom()->ToString();
     _last_registration = Dissent::Utils::Time::GetInstance().CurrentTime();
 
+    if(!AllowRegistration(request.GetFrom(), ident)) {
+      request.Failed(Response::Other,
+          "Unable to register at this time, try again later.");
+      return;
+    }
+
     AddMember(ident);
     request.Respond(true);
 
@@ -192,6 +209,22 @@ namespace Anonymity {
 
     _prepare_event = Dissent::Utils::Timer::GetInstance().QueueCallback(cb,
         static_cast<int>(PeerJoinDelay * 1.1), PeerJoinDelay);
+  }
+
+  bool Session::AllowRegistration(const QSharedPointer<ISender> &,
+      const PublicIdentity &ident)
+  {
+    return !_log_off_time.contains(ident.GetId());
+  }
+
+  void Session::CheckLogOffTimes(const int &)
+  {
+    qint64 cleared = Utils::Time::GetInstance().MSecsSinceEpoch() - LogOffPeriod;
+    foreach(const Id &id, _log_off_time.keys()) {
+      if(_log_off_time[id] < cleared) {
+        _log_off_time.remove(id);
+      }
+    }
   }
 
   void Session::CheckRegistration(const int &)
@@ -491,9 +524,18 @@ namespace Anonymity {
 
   void Session::HandleDisconnect()
   {
+    if(Stopped()) {
+      return;
+    }
+
     Connection *con = qobject_cast<Connection *>(sender());
     const Id &remote_id = con->GetRemoteId();
-    if(!GetGroup().Contains(remote_id) || Stopped()) {
+
+    if(IsLeader()) {
+      _log_off_time[remote_id] = Utils::Time::GetInstance().MSecsSinceEpoch();
+    }
+
+    if(!GetGroup().Contains(remote_id)) {
       return;
     }
 

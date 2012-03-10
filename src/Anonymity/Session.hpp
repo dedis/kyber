@@ -157,6 +157,17 @@ namespace Anonymity {
 
       static const int PeerJoinDelay = 10000;
 
+      /**
+       * Period between checking log off times
+       */
+      static const int LogOffCheckPeriod = 60000;
+
+      /**
+       * How long a period a peer needs to wait before they can register for a
+       * session again
+       */
+      static const int LogOffPeriod = 600000;
+
       const GroupHolder &GetGroupHolder();
 
     signals:
@@ -211,13 +222,19 @@ namespace Anonymity {
        * Called upon starting to register this peer with the leader
        * @param unused
        */
-      void Register(const int&);
+      void Register(const int &);
 
       /**
        * Called upon registration / round finished to start a new round
        * @param unused
        */
-      void CheckRegistration(const int&);
+      void CheckRegistration(const int &);
+
+      /**
+       * Log off times to see if we can allow recent disconnects to reconnect
+       * @param unused
+       */
+      void CheckLogOffTimes(const int &);
 
       /**
        * Checks to see if the leader has received all the Ready messsages and
@@ -245,6 +262,8 @@ namespace Anonymity {
 
       void AddMember(const PublicIdentity &gc);
       void RemoveMember(const Id &id);
+      bool AllowRegistration(const QSharedPointer<ISender> &from,
+          const PublicIdentity &ident);
 
       /**
        * Used by the leader to queue Ready requests.
@@ -268,6 +287,7 @@ namespace Anonymity {
       Utils::TimerEvent _register_event;
       QDateTime _last_registration;
       Utils::TimerEvent _prepare_event;
+      Utils::TimerEvent _check_log_off_event;
       QHash<Id, Id> _registered_peers;
       QHash<Id, Id> _prepared_peers;
       QSharedPointer<ResponseHandler> _prepared;
@@ -279,6 +299,7 @@ namespace Anonymity {
       bool _prepare_waiting_for_con;
       int _trim_send_queue;
       bool _registering;
+      QHash <Id, qint64> _log_off_time;
 
     private slots:
       /**
