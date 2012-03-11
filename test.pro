@@ -9,6 +9,7 @@ INCLUDEPATH += src \
                ext/googletest/include
 #DEFINES += QT_NO_DEBUG_OUTPUT
 #DEFINES += QT_NO_WARNING_OUTPUT
+DEFINES += DISSENT_TEST
 
 # Input
 HEADERS += ext/googletest/include/gtest/gtest-death-test.h \

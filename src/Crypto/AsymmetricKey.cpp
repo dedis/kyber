@@ -3,7 +3,12 @@
 
 namespace Dissent {
 namespace Crypto {
+
+#ifdef DISSENT_TEST
   int AsymmetricKey::DefaultKeySize = 512;
+#else
+  int AsymmetricKey::DefaultKeySize = 2048;
+#endif
 
   bool AsymmetricKey::ReadFile(const QString &filename, QByteArray &data)
   {
