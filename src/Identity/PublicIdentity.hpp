@@ -71,8 +71,8 @@ namespace Identity {
 
       inline QString ToString() const
       {
-        return QString("Public identity: ( Id: %1, SuperPeer: %2)").arg(
-            GetId().ToString(), GetSuperPeer());
+        return QString("Public identity: (Id: %1, SuperPeer: %2)").arg(
+            GetId().ToString(), (GetSuperPeer() ? "true" : "false"));
       }
 
     private:
