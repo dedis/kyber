@@ -24,6 +24,7 @@ namespace Utils {
 
 namespace Anonymity {
   class ShuffleRound;
+  class NullRound;
 
 namespace Tolerant {
 
@@ -54,11 +55,11 @@ namespace Tolerant {
        */
       enum State {
         State_Offline,
-        State_SigningKeyShuffling,
-        State_CommitSharing,
-        State_CommitReceiving,
-        State_DataSharing,
-        State_DataReceiving,
+        State_SigningKeyShuffling,     
+        State_ServerUserDataReceiving, // Servers waiting for user data streams
+        State_ServerCommitSharing,     // Servers waiting for other server commits
+        State_ServerDataSharing,       // Servers waiting for other server data streams
+        State_UserFinalDataReceiving,  // Users waiting for final data from their server
         State_Finished
       };
 
@@ -84,12 +85,10 @@ namespace Tolerant {
        * Various message types sent and received
        */
       enum MessageType {
-        MessageType_UserCommitData = 0,
+        MessageType_UserBulkData = 0,
         MessageType_ServerCommitData = 1,
-        MessageType_LeaderCommitData = 2,
-        MessageType_UserBulkData = 3,
-        MessageType_ServerBulkData = 4,
-        MessageType_LeaderBulkData = 5
+        MessageType_ServerBulkData = 2,
+        MessageType_ServerFinalData = 3
       };
 
       /**
@@ -209,42 +208,50 @@ namespace Tolerant {
       QSharedPointer<AsymmetricKey> ParseSigningKey(const QByteArray &bdes);
 
       /*******************************************
-       * User/Server Commit Data Methods
+       * User Data Sending Methods
        */
+       
+      /**
+       * Send the user's XOR message to the user's assigned server
+       */
+      void SendUserBulkData();
 
-      void SendCommits();
+      /**
+       * Parses and handles bulk data messages from users
+       * @param stream serialized message
+       * @param from the sender
+       */
+      void HandleUserBulkData(QDataStream &stream, const Id &from);
 
-      void HandleUserCommitData(QDataStream &stream, const Id &from);
+      /**
+       * True when a server has all user bulk data messages for a phase
+       */
+      bool HasAllUserDataMessages();
 
+
+      /*******************************************
+       * Server Commit Methods
+       */
+      void SendServerCommit();
+
+      /**
+       * Generates the server's entire xor message
+       */
+      virtual QByteArray GenerateServerXorMessage();
+
+      /**
+       * Handle commit data from servers
+       */
       void HandleServerCommitData(QDataStream &stream, const Id &from);
 
       /**
        * True when a node has all commit messages for a phase
        */
-      bool HasAllCommits();
-
-      /**
-       * Use alibis to figure out which nodes disagree on corrupted bit(s)
-       */
-      virtual void FinishCommitPhase();
+      bool HasAllServerCommits();
 
       /*******************************************
-       * Leader Commit Data Methods
+       * Server Bulk Data Methods
        */
-
-      void HandleLeaderCommitData(QDataStream &stream, const Id &from);
-
-      /*******************************************
-       * Bulk Data Methods
-       */
-
-      /**
-       * Parses and handles bulk data messages from users
-       * @param verified packet contents (including headers)
-       * @param stream serialized message
-       * @param from the sender
-       */
-      void HandleUserBulkData(const QByteArray &packet, QDataStream &stream, const Id &from);
 
       /**
        * Parses and handles bulk data messages from servers
@@ -255,24 +262,25 @@ namespace Tolerant {
       void HandleServerBulkData(const QByteArray &packet, QDataStream &stream, const Id &from);
 
       /**
-       * True when a node has all bulk data messages for a phase
+       * True when a server has all user bulk data messages for a phase
        */
-      bool HasAllDataMessages();
-
-      /**
-       * XOR all user and server messages together and broadcast
-       * them to the group members
-       */
-      void BroadcastXorMessages();
-
-      /**
-       * XOR user and server messages together
-       */
-      QByteArray XorMessages();
+      bool HasAllServerDataMessages();
 
       /*******************************************
-       * Leader Data Methods
+       * FinalData Methods
        */
+
+      /**
+       * Send the cleartext output messages to this server's client users
+       */
+      void BroadcastFinalMessages();
+
+      /**
+       * Parses and handles bulk final cleartext message from servers
+       * @param stream serialized message
+       * @param from the sender
+       */
+      void HandleServerFinalData(QDataStream &stream, const Id &from);
 
       /**
        * Once all bulk data messages have been received, process them
@@ -331,17 +339,6 @@ namespace Tolerant {
        */
       virtual QByteArray GenerateUserXorMessage();
 
-      /**
-       * Generates the server's entire xor message
-       */
-      virtual QByteArray GenerateServerXorMessage();
-
-      /*******************************************
-       * Leader Commit Bulk Data Methods
-       */
-
-      void HandleLeaderBulkData(QDataStream &stream, const Id &from);
-
       /*******************************************
        * Phase Change Methods
        */
@@ -376,10 +373,6 @@ namespace Tolerant {
 
       inline bool IsServer() const { return _is_server; }
 
-      inline const QByteArray &GetNextUserPacket() const { return _user_next_packet; }
-
-      inline const QByteArray &GetNextServerPacket() const { return _server_next_packet; }
-
       inline virtual const QVector<int> &GetBadMembers() const { return _bad_members; }
 
       /**
@@ -396,11 +389,43 @@ namespace Tolerant {
        */
       bool ReadyForMessage(MessageType mtype);
 
+      /**
+       * Get the index of this node's server
+       */
+      inline int GetMyServerIndex() const { 
+        return GetGroup().GetIndex(GetLocalId()) % GetGroup().GetSubgroup().Count(); 
+      } 
+     
+      /**
+       * Get the ID of this node's server
+       */
+      inline Id GetMyServerId() const {
+        return GetGroup().GetSubgroup().GetId(GetMyServerIndex());
+      }
+
+      /**
+       * Send message to user's assigned server
+       * @param message to send
+       */
+      inline void VerifiableSendToServer(const QByteArray &msg) { return VerifiableSend(GetMyServerId(), msg); }
+
+      /**
+       * Send messages to a server's assigned users
+       * @param message to send
+       */
+      void VerifiableSendToUsers(const QByteArray &msg);
+
+      /**
+       * Send messages to all servers
+       * @param message to send
+       */
+      void VerifiableSendToServers(const QByteArray &msg);  
+
       /** 
        * Whether or not node holds these special roles
        */
-      bool _is_leader;
       bool _is_server;
+      bool _is_leader;
 
       /**
        * Whether or not the round should end at the start
@@ -503,21 +528,13 @@ namespace Tolerant {
       /**
        * The next packet to be sent by a user/server
        */
-      QByteArray _user_next_packet;
       QByteArray _server_next_packet;
 
       /**
        * received bulk user and server commits
        */
-      QVector<QByteArray> _user_commits;
       QVector<QByteArray> _server_commits;
       QByteArray _leader_commit;
-
-      /**
-       * Count of received commits
-       */
-      uint _received_user_commits;
-      uint _received_server_commits;
 
       /**
        * received bulk user and server messages
@@ -528,7 +545,7 @@ namespace Tolerant {
       /**
        * received bulk user and server message packet hashes
        */
-      QVector<QByteArray> _user_message_digests;
+      uint _received_server_commits;
       QVector<QByteArray> _server_message_digests;
 
       /**
@@ -588,12 +605,15 @@ namespace Tolerant {
        */
       QVector<int> _bad_members;
 
+      QList<Id> _my_users;
+
     private slots:
       /**
        * Called when the descriptor shuffle ends
        */
       void KeyShuffleFinished();
   };
+
 }
 }
 }

@@ -28,8 +28,8 @@ namespace Tolerant {
       const PrivateIdentity &ident, const Id &round_id, QSharedPointer<Network> network,
       GetDataCallback &get_data, CreateRound create_shuffle) :
     Round(group, ident, round_id, network, get_data),
-    _is_leader((GetGroup().GetLeader() == GetLocalId())),
     _is_server(GetGroup().GetSubgroup().Contains(GetLocalId())),
+    _is_leader((GetGroup().GetLeader() == GetLocalId())),
     _stop_next(false),
     _secrets_with_servers(GetGroup().GetSubgroup().Count()),
     _rngs_with_servers(GetGroup().GetSubgroup().Count()),
@@ -40,14 +40,12 @@ namespace Tolerant {
     _hash_algo(_crypto_lib->GetHashAlgorithm()),
     _anon_signing_key(_crypto_lib->CreatePrivateKey()),
     _phase(0),
-    _user_messages(GetGroup().Count()),
     _server_messages(GetGroup().GetSubgroup().Count()),
-    _user_message_digests(GetGroup().Count()),
     _server_message_digests(GetGroup().GetSubgroup().Count()),
     _message_randomizer(ident.GetDhKey()->GetPrivateComponent()),
     _user_idx(GetGroup().GetIndex(GetLocalId()))
   {
-    qDebug() << "Leader:" << _is_leader << "LocID" << GetLocalId().ToString() 
+    qDebug() << "LocID" << GetLocalId().ToString() 
       << "LeadID" << GetGroup().GetLeader().ToString();
 
     QVariantHash headers = GetNetwork()->GetHeaders();
@@ -78,7 +76,12 @@ namespace Tolerant {
 
         _secrets_with_users[user_idx] = secret;
         _rngs_with_users[user_idx] = QSharedPointer<Random>(_crypto_lib->GetRandomNumberGenerator(secret));
+
+        if((user_idx % GetGroup().GetSubgroup().Count()) == _server_idx) {
+          _my_users.append(GetGroup().GetId(user_idx));
+        }
       }
+      _user_messages.resize(_my_users.count());
     }
 
     // Set up signing key shuffle
@@ -98,10 +101,6 @@ namespace Tolerant {
 
   bool TolerantTreeRound::Start()
   {
-    if(!Round::Start()) {
-      return false;
-    }
-
     ChangeState(State_SigningKeyShuffling);
     _key_shuffle_round->Start();
 
@@ -198,6 +197,7 @@ namespace Tolerant {
 
     // Cache messages for future states in the offline log
     if(!ReadyForMessage(msg_type)) {
+      qDebug() << _my_idx << "[" << StateToString(_state) << "] Storing message of type" << MessageTypeToString(msg_type) << _log.Count();
       _log.Pop();
       _offline_log.Append(data, from);
       return;
@@ -210,28 +210,21 @@ namespace Tolerant {
     }
 
     switch(msg_type) {
-      case MessageType_UserCommitData:
-        HandleUserCommitData(stream, from);
+      case MessageType_UserBulkData:
+        HandleUserBulkData(stream, from);
         break;
       case MessageType_ServerCommitData:
         HandleServerCommitData(stream, from);
         break;
-      case MessageType_LeaderCommitData:
-        HandleLeaderCommitData(stream, from);
-        break;
-      case MessageType_UserBulkData:
-        HandleUserBulkData(payload, stream, from);
-        break;
       case MessageType_ServerBulkData:
         HandleServerBulkData(payload, stream, from);
         break;
-      case MessageType_LeaderBulkData:
-        HandleLeaderBulkData(stream, from);
+      case MessageType_ServerFinalData:
+        HandleServerFinalData(stream, from);
         break;
       default:
         throw QRunTimeError("Unknown message type");
     }
-
   }
 
   QPair<QByteArray, bool> TolerantTreeRound::GetKeyShuffleData(int)
@@ -257,89 +250,122 @@ namespace Tolerant {
     return key_pub;
   }
 
-  void TolerantTreeRound::SendCommits()
+  void TolerantTreeRound::SendUserBulkData()
   {
-    ChangeState(_is_leader ? State_CommitSharing : State_CommitReceiving);
 
-    qDebug() << "--";
-    qDebug() << "-- NEXT PHASE :" << _phase;
-    qDebug() << "--";
-
-    // Get the next data packet
     QByteArray user_xor_msg = GenerateUserXorMessage();
-    QDataStream user_data_stream(&_user_next_packet, QIODevice::WriteOnly);
+    QByteArray packet;
+    QDataStream user_data_stream(&packet, QIODevice::WriteOnly);
     user_data_stream << MessageType_UserBulkData << GetRoundId() << _phase << user_xor_msg;
 
-    // Commit to next data packet
-    QByteArray user_commit_packet;
-    QByteArray user_digest = _hash_algo->ComputeHash(_user_next_packet);
-    QDataStream user_commit_stream(&user_commit_packet, QIODevice::WriteOnly);
-    user_commit_stream << MessageType_UserCommitData << GetRoundId() << _phase << user_digest;
-    VerifiableSendToLeader(user_commit_packet);
-
-    if(_is_server) {
-      // Get the next data packet
-      QByteArray server_xor_msg = GenerateServerXorMessage();
-      QDataStream server_data_stream(&_server_next_packet, QIODevice::WriteOnly);
-      server_data_stream << MessageType_ServerBulkData << GetRoundId() << _phase << server_xor_msg;
-
-      // Commit to next data packet
-      QByteArray server_commit_packet;
-      QByteArray server_digest = _hash_algo->ComputeHash(_server_next_packet);
-      QDataStream server_commit_stream(&server_commit_packet, QIODevice::WriteOnly);
-      server_commit_stream << MessageType_ServerCommitData << GetRoundId() << _phase << server_digest;
-      VerifiableSendToLeader(server_commit_packet);
-    }
+    ChangeState(_is_server ? State_ServerUserDataReceiving : State_UserFinalDataReceiving);
+    VerifiableSendToServer(packet);
   }
 
-  void TolerantTreeRound::HandleUserCommitData(QDataStream &stream, const Id &from)
+  void TolerantTreeRound::HandleUserBulkData(QDataStream &stream, const Id &from)
   {
     qDebug() << _user_idx << GetLocalId().ToString() <<
-      ": received user commit data from " << GetGroup().GetIndex(from) << from.ToString();
+      ": received bulk user data from " << GetGroup().GetIndex(from) << from.ToString();
 
-    if(_state != State_CommitSharing) {
-      throw QRunTimeError("Received a misordered UserCommitData message");
+    if(!_is_server) {
+      throw QRunTimeError("Non-server received a UserBulkData message");
     }
 
-    if(!_is_leader) {
-      throw QRunTimeError("Non-leader received a UserCommitData message");
+    if(_state != State_ServerUserDataReceiving) {
+      throw QRunTimeError("Received a misordered UserBulkData message");
     }
 
-    uint idx = GetGroup().GetIndex(from);
-    if(!_user_commits[idx].isEmpty()) {
-      throw QRunTimeError("Already have bulk commit data.");
+    if(!_my_users.contains(from)) {
+      throw QRunTimeError("Server received a UserBulkData message from non-user");
+    }
+
+    const int user_idx = _my_users.indexOf(from);
+    if(!_user_messages[user_idx].isEmpty()) {
+      throw QRunTimeError("Already have bulk user data.");
     }
 
     QByteArray payload;
     stream >> payload;
 
-    const int hash_len = _hash_algo->GetDigestSize();
-
-    if(payload.size() != hash_len) {
-      throw QRunTimeError("Incorrect bulk commit message length, got " +
+    if(static_cast<uint>(payload.size()) != _expected_bulk_size) {
+      throw QRunTimeError("Incorrect bulk user message length, got " +
           QString::number(payload.size()) + " expected " +
-          QString::number(hash_len));
+          QString::number(_expected_bulk_size));
     }
 
-    _user_commits[idx] = payload;
-    _received_user_commits++;
-
-    if(HasAllCommits()) {
-      FinishCommitPhase();
+    _user_messages[user_idx] = payload;
+    _received_user_messages++;
+    if(HasAllUserDataMessages()) {
+      //qDebug() << _my_idx << "Sending server commit";
+      SendServerCommit();
     }
+  }
+
+  bool TolerantTreeRound::HasAllUserDataMessages() 
+  {
+    return (_received_user_messages == static_cast<uint>(_my_users.count()));
+  }
+
+  void TolerantTreeRound::SendServerCommit()
+  {
+    if(!_is_server) {
+      qFatal("Non-server cannot send server commits");
+    }
+
+    // Get the next data packet
+    QByteArray server_xor_msg = GenerateServerXorMessage();
+    QDataStream server_data_stream(&_server_next_packet, QIODevice::WriteOnly);
+    server_data_stream << MessageType_ServerBulkData << GetRoundId() << _phase << server_xor_msg;
+
+    // Commit to next data packet
+    QByteArray server_commit_packet;
+    QByteArray server_digest = _hash_algo->ComputeHash(_server_next_packet);
+    QDataStream server_commit_stream(&server_commit_packet, QIODevice::WriteOnly);
+    server_commit_stream << MessageType_ServerCommitData << GetRoundId() << _phase << server_digest;
+
+    ChangeState(State_ServerCommitSharing);
+    VerifiableSendToServers(server_commit_packet);
+  }
+
+  QByteArray TolerantTreeRound::GenerateServerXorMessage()
+  {
+    QByteArray msg;
+    uint size = static_cast<uint>(_slot_signing_keys.size());
+
+    // For each slot 
+    for(uint idx = 0; idx < size; idx++) {
+      const uint length = _message_lengths[idx] + _header_lengths[idx];
+      
+      QByteArray slot_msg(length, 0);
+      // For each user, XOR that users pad with the empty message
+      for(int user_idx = 0; user_idx < _rngs_with_users.count(); user_idx++) {
+        QByteArray user_pad = GeneratePadWithUser(user_idx, length);
+        Xor(slot_msg, slot_msg, user_pad);
+      }
+      
+      msg.append(slot_msg);
+      //qDebug() << "XOR length" << msg.count();
+    }
+
+    // XOR messages received from my users
+    for(int client_idx = 0; client_idx < _my_users.count(); client_idx++) {
+      Xor(msg, msg, _user_messages[client_idx]);
+    }
+
+    return msg;
   }
 
   void TolerantTreeRound::HandleServerCommitData(QDataStream &stream, const Id &from)
   {
     qDebug() << _user_idx << GetLocalId().ToString() <<
-      ": received server commit data from " << GetGroup().GetIndex(from) << from.ToString();
+      ": received server commit data from " << GetGroup().GetSubgroup().GetIndex(from) << from.ToString();
 
-    if(_state != State_CommitSharing) {
+    if(_state != State_ServerCommitSharing) {
       throw QRunTimeError("Received a misordered ServerCommitData message");
     }
 
-    if(!_is_leader) {
-      throw QRunTimeError("Non-leader received a ServerCommitData message");
+    if(!GetGroup().GetSubgroup().Contains(from)) {
+      throw QRunTimeError("Receiving ServerCommitData message from a non-server");
     }
 
     uint idx = GetGroup().GetSubgroup().GetIndex(from);
@@ -361,110 +387,16 @@ namespace Tolerant {
     _server_commits[idx] = payload;
     _received_server_commits++;
 
-    if(HasAllCommits()) {
-      FinishCommitPhase();
+    if(HasAllServerCommits()) {
+      //qDebug() << _my_idx << "Sending server messages";
+      ChangeState(State_ServerDataSharing);
+      VerifiableSendToServers(_server_next_packet);
     }
   }
 
-  bool TolerantTreeRound::HasAllCommits()
+  bool TolerantTreeRound::HasAllServerCommits()
   {
-    return (_received_user_commits == static_cast<uint>(GetGroup().Count()) &&
-        _received_server_commits == static_cast<uint>(GetGroup().GetSubgroup().Count()));
-  }
-
-  void TolerantTreeRound::FinishCommitPhase()
-  {
-    qDebug() << "LEADER has all commits";
-    ChangeState(State_CommitReceiving);
-
-    _hash_algo->Restart();
-    for(int user_idx=0; user_idx<_user_commits.count(); user_idx++) {
-      _hash_algo->Update(_user_commits[user_idx]);
-    }
-
-    for(int server_idx=0; server_idx<_server_commits.count(); server_idx++) {
-      _hash_algo->Update(_server_commits[server_idx]);
-    }
-
-    QByteArray leader_digest = _hash_algo->ComputeHash();
-
-    QByteArray leader_commit_packet;
-    QDataStream leader_commit_stream(&leader_commit_packet, QIODevice::WriteOnly);
-    leader_commit_stream << MessageType_LeaderCommitData << GetRoundId() << _phase << leader_digest;
-
-    VerifiableBroadcast(leader_commit_packet);
-  }
-
-  void TolerantTreeRound::HandleLeaderCommitData(QDataStream &stream, const Id &from)
-  {
-    qDebug() << _user_idx << GetLocalId().ToString() <<
-      ": received leader commit data from " << GetGroup().GetIndex(from) << from.ToString();
-
-    if(_state != State_CommitReceiving) {
-      throw QRunTimeError("Received a misordered LeaderCommitData message");
-    }
-
-    if(from != GetGroup().GetLeader()) {
-      throw QRunTimeError("Received a LeaderCommitData message from a non-leader");
-    }
-
-    QByteArray payload;
-    stream >> payload;
-
-    const int hash_len = _hash_algo->GetDigestSize();
-
-    if(payload.size() != hash_len) {
-      throw QRunTimeError("Incorrect leader commit message length, got " +
-          QString::number(payload.size()) + " expected " +
-          QString::number(hash_len));
-    }
-
-    // Right now we have no way to verify the leader's commit message,
-    // so we just continue to the data transmission phase once we
-    // get the leader's commit message
-    ChangeState(_is_leader ? State_DataSharing : State_DataReceiving);
-
-    VerifiableSendToLeader(_user_next_packet);
-    if(_is_server) {
-      VerifiableSendToLeader(_server_next_packet);
-    }
-
-  }
-
-  void TolerantTreeRound::HandleUserBulkData(const QByteArray &packet, QDataStream &stream, const Id &from)
-  {
-    qDebug() << _user_idx << GetLocalId().ToString() <<
-      ": received bulk user data from " << GetGroup().GetIndex(from) << from.ToString();
-
-    if(_state != State_DataSharing) {
-      throw QRunTimeError("Received a misordered UserBulkData message");
-    }
-
-    if(!_is_leader) {
-      throw QRunTimeError("Non-leader received a UserBulkData message");
-    }
-
-    uint idx = GetGroup().GetIndex(from);
-    if(!_user_messages[idx].isEmpty()) {
-      throw QRunTimeError("Already have bulk user data.");
-    }
-
-    QByteArray payload;
-    stream >> payload;
-
-    if(static_cast<uint>(payload.size()) != _expected_bulk_size) {
-      throw QRunTimeError("Incorrect bulk user message length, got " +
-          QString::number(payload.size()) + " expected " +
-          QString::number(_expected_bulk_size));
-    }
-
-    _user_messages[idx] = payload;
-    _user_message_digests[idx] = _hash_algo->ComputeHash(packet);
-
-    _received_user_messages++;
-    if(HasAllDataMessages()) {
-      BroadcastXorMessages();
-    }
+    return (_received_server_commits == static_cast<uint>(GetGroup().GetSubgroup().Count()));
   }
 
   void TolerantTreeRound::HandleServerBulkData(const QByteArray &packet, QDataStream &stream, const Id &from)
@@ -472,12 +404,16 @@ namespace Tolerant {
     qDebug() << _user_idx << GetLocalId().ToString() <<
       ": received bulk server data from " << GetGroup().GetSubgroup().GetIndex(from) << from.ToString();
 
-    if(_state != State_DataSharing) {
+    if(_state != State_ServerDataSharing) {
       throw QRunTimeError("Received a misordered ServerBulkData message");
     }
 
-    if(!_is_leader) {
-      throw QRunTimeError("Non-leader received a ServerBulkData message");
+    if(!_is_server) {
+      throw QRunTimeError("Non-server received a ServerBulkData message");
+    }
+
+    if(!GetGroup().GetSubgroup().Contains(from)) {
+      throw QRunTimeError("Got ServerBulkData message from a non-server");
     }
 
     uint idx = GetGroup().GetSubgroup().GetIndex(from);
@@ -500,44 +436,78 @@ namespace Tolerant {
     qDebug() << "Received server" << _received_server_messages; 
 
     _received_server_messages++;
-    if(HasAllDataMessages()) {
-      BroadcastXorMessages();
+    if(HasAllServerDataMessages()) {
+      BroadcastFinalMessages();
     }
   }
 
-  bool TolerantTreeRound::HasAllDataMessages() 
+  bool TolerantTreeRound::HasAllServerDataMessages() 
   {
-    return (_received_user_messages == static_cast<uint>(GetGroup().Count()) &&
-        _received_server_messages == static_cast<uint>(GetGroup().GetSubgroup().Count()));
+    return (_received_server_messages == static_cast<uint>(GetGroup().GetSubgroup().Count()));
   }
 
-  void TolerantTreeRound::BroadcastXorMessages() 
+  void TolerantTreeRound::BroadcastFinalMessages() 
   {
-    ChangeState(State_DataReceiving);
-
-    QByteArray xor_data = XorMessages();
-
-    QByteArray leader_data_packet;
-    QDataStream leader_data_stream(&leader_data_packet, QIODevice::WriteOnly);
-    leader_data_stream << MessageType_LeaderBulkData << GetRoundId() << _phase << xor_data;
-    VerifiableBroadcast(leader_data_packet);
-  }
-
-  QByteArray TolerantTreeRound::XorMessages() 
-  {
-    QByteArray cleartext(_expected_bulk_size, 0);
-
-    for(int idx=0; idx<_user_messages.count(); idx++) {
-      Xor(cleartext, cleartext, _user_messages[idx]);
+    QVector<int> bad;
+    CheckCommits(_server_commits, _server_message_digests, bad);
+    if(bad.count()) {
+      qDebug() << "Bad servers" << bad;
+      qFatal("Server sent bad commit");
     }
+
+    QByteArray xor_data(_expected_bulk_size, 0);
 
     for(int idx=0; idx<_server_messages.count(); idx++) {
-      Xor(cleartext, cleartext, _server_messages[idx]);
+      Xor(xor_data, xor_data, _server_messages[idx]);
     }
 
-    return cleartext;
+    QByteArray final_data_packet;
+    QDataStream final_data_stream(&final_data_packet, QIODevice::WriteOnly);
+    final_data_stream << MessageType_ServerFinalData << GetRoundId() << _phase << xor_data;
+
+    ChangeState(State_UserFinalDataReceiving);
+    VerifiableSendToUsers(final_data_packet);
   }
 
+  void TolerantTreeRound::HandleServerFinalData(QDataStream &stream, const Id &from)
+  {
+    qDebug() << _user_idx << GetLocalId().ToString() <<
+      ": received final bulk data from " << GetGroup().GetIndex(from) << from.ToString();
+
+    if(_state != State_UserFinalDataReceiving) {
+      throw QRunTimeError("Received a misordered FinalData message");
+    }
+
+    if(from != GetMyServerId()) {
+      throw QRunTimeError("Received a LeaderBulkData message from a non-server");
+    }
+
+    QByteArray payload;
+    stream >> payload;
+
+    if(static_cast<uint>(payload.size()) != _expected_bulk_size) {
+      throw QRunTimeError("Incorrect leader bulk message length, got " +
+          QString::number(payload.size()) + " expected " +
+          QString::number(_expected_bulk_size));
+    }
+
+    // Split up messages into various slots
+    ProcessMessages(payload);
+
+    if(_state == State_Finished) {
+      return;   
+    }
+
+    if(_stop_next) {
+      SetInterrupted();
+      Stop("Peer joined"); 
+      return;
+    }
+
+    PrepForNextPhase();
+    _phase++;
+    SendUserBulkData();
+  }
   void TolerantTreeRound::ProcessMessages(const QByteArray &input)
   {
     const uint size = GetGroup().Count();
@@ -600,7 +570,7 @@ namespace Tolerant {
 
       _message_lengths[member_idx] = Serialization::ReadInt(cleartext, 4);
 
-      qDebug() << "Found a message ... PUSHING!";
+      qDebug() << "Found a message ... PUSHING! len=" << base.mid(8).count();
       return base.mid(8);
     } 
 
@@ -619,11 +589,11 @@ namespace Tolerant {
   QByteArray TolerantTreeRound::GenerateMyCleartextMessage()
   {
 
-    QPair<QByteArray, bool> pair = GetData(4096);
+    QPair<QByteArray, bool> pair = GetData(1 << 16);
 
     const QByteArray cur_msg = _next_msg;
     _next_msg = pair.first;
-    qDebug() << "GetData(4096) =" << _next_msg;
+    //qDebug() << "GetData(4096) =" << _next_msg;
 
     QByteArray cleartext(8, 0);
     Serialization::WriteInt(_phase, cleartext, 0);
@@ -693,90 +663,23 @@ namespace Tolerant {
     return msg;
   }
 
-  QByteArray TolerantTreeRound::GenerateServerXorMessage()
-  {
-    QByteArray msg;
-    uint size = static_cast<uint>(_slot_signing_keys.size());
-
-    // For each slot 
-    for(uint idx = 0; idx < size; idx++) {
-      const uint length = _message_lengths[idx] + _header_lengths[idx];
-      
-      QByteArray slot_msg(length, 0);
-      // For each user, XOR that users pad with the empty message
-      for(int user_idx = 0; user_idx < _rngs_with_users.count(); user_idx++) {
-        QByteArray user_pad = GeneratePadWithUser(user_idx, length);
-        Xor(slot_msg, slot_msg, user_pad);
-      }
-      
-      msg.append(slot_msg);
-      qDebug() << "XOR length" << msg.count();
-    }
-
-    return msg;
-  }
-
-  void TolerantTreeRound::HandleLeaderBulkData(QDataStream &stream, const Id &from)
-  {
-    qDebug() << _user_idx << GetLocalId().ToString() <<
-      ": received leader bulk data from " << GetGroup().GetIndex(from) << from.ToString();
-
-    if(_state != State_DataReceiving) {
-      throw QRunTimeError("Received a misordered LeaderBulkData message");
-    }
-
-    if(from != GetGroup().GetLeader()) {
-      throw QRunTimeError("Received a LeaderBulkData message from a non-leader");
-    }
-
-    QByteArray payload;
-    stream >> payload;
-
-    if(static_cast<uint>(payload.size()) != _expected_bulk_size) {
-      throw QRunTimeError("Incorrect leader bulk message length, got " +
-          QString::number(payload.size()) + " expected " +
-          QString::number(_expected_bulk_size));
-    }
-
-    // Split up messages into various slots
-    ProcessMessages(payload);
-
-    if(_state == State_Finished) {
-      return;   
-    }
-
-    if(_stop_next) {
-      SetInterrupted();
-      Stop("Peer joined"); 
-      return;
-    }
-
-    PrepForNextPhase();
-    _phase++;
-    SendCommits();
-  }
 
   void TolerantTreeRound::PrepForNextPhase()
   {
     uint group_size = static_cast<uint>(GetGroup().Count());
-
-    _user_commits.clear();
-    _user_commits.resize(group_size);
-    _received_user_commits = 0;
 
     _server_commits.clear();
     _server_commits.resize(GetGroup().GetSubgroup().Count());
     _received_server_commits = 0;
 
     _user_messages.clear();
-    _user_message_digests.clear();
-    _user_messages.resize(group_size);
-    _user_message_digests.resize(group_size);
+    _user_messages.resize(_my_users.count());
     _received_user_messages = 0;
 
     _server_messages.clear();
-    _server_message_digests.clear();
     _server_messages.resize(GetGroup().GetSubgroup().Count());
+
+    _server_message_digests.clear();
     _server_message_digests.resize(GetGroup().GetSubgroup().Count());
     _received_server_messages = 0;
 
@@ -784,8 +687,9 @@ namespace Tolerant {
     for(uint idx = 0; idx < group_size; idx++) {
       _expected_bulk_size += _header_lengths[idx] + _message_lengths[idx];
     }
-  }
 
+    _server_next_packet.clear();
+  }
 
   void TolerantTreeRound::AddBadMember(int member_idx) {
     if(!_bad_members.contains(member_idx)) {
@@ -812,8 +716,8 @@ namespace Tolerant {
       qWarning() << "Did not receive a descriptor from everyone.";
     }
 
-    qDebug() << "Finished key shuffle";
     uint count = static_cast<uint>(_key_shuffle_sink.Count());
+    qDebug() << "Finished key shuffle" << count << "keys";
     for(uint idx = 0; idx < count; idx++) {
       QPair<QSharedPointer<ISender>, QByteArray> pair(_key_shuffle_sink.At(idx));
       _slot_signing_keys.append(ParseSigningKey(pair.second));
@@ -836,19 +740,24 @@ namespace Tolerant {
 
     PrepForNextPhase();
 
-    SendCommits();
+    SendUserBulkData();
   }
 
   void TolerantTreeRound::ChangeState(State new_state) 
   {
+    // Make a temp copy of the log
+    Log log(_offline_log.Serialize());
+    _offline_log.Clear();
+
     _state = new_state;
-    uint count = static_cast<uint>(_offline_log.Count());
+
+    uint count = static_cast<uint>(log.Count());
     for(uint idx = 0; idx < count; idx++) {
-      QPair<QByteArray, Id> entry = _offline_log.At(idx);
+      QPair<QByteArray, Id> entry = log.At(idx);
       ProcessData(entry.second, entry.first);
     }
 
-    _offline_log.Clear();
+    qDebug() << "Done changing state";
   }
 
   bool TolerantTreeRound::ReadyForMessage(MessageType mtype)
@@ -858,16 +767,14 @@ namespace Tolerant {
         return false;
       case State_SigningKeyShuffling:
         return false;
-      case State_CommitSharing:
-        return (mtype == MessageType_UserCommitData) ||
-          (mtype == MessageType_ServerCommitData);
-      case State_CommitReceiving:
-        return (mtype == MessageType_LeaderCommitData);
-      case State_DataSharing:
-        return (mtype == MessageType_UserBulkData) ||
-          (mtype == MessageType_ServerBulkData);
-      case State_DataReceiving:
-        return (mtype == MessageType_LeaderBulkData);
+      case State_ServerUserDataReceiving:
+        return (mtype == MessageType_UserBulkData);
+      case State_ServerCommitSharing:  
+        return (mtype == MessageType_ServerCommitData);
+      case State_ServerDataSharing:
+        return (mtype == MessageType_ServerBulkData);
+      case State_UserFinalDataReceiving:
+        return (mtype == MessageType_ServerFinalData);
       case State_Finished:
         qWarning() << "Received message after node finished";
         return false;
@@ -875,6 +782,21 @@ namespace Tolerant {
         qFatal("Should never get here");
 
       return false;
+    }
+  }
+
+  void TolerantTreeRound::VerifiableSendToUsers(const QByteArray &msg) 
+  {
+    for(int idx=0; idx<_my_users.count(); idx++) {
+      qDebug() << GetGroup().GetIndex(GetLocalId()) << "Sending msg len" << msg.count() << "to user" << idx;
+      VerifiableSend(_my_users[idx], msg);
+    }
+  }
+
+  void TolerantTreeRound::VerifiableSendToServers(const QByteArray &msg) { 
+    for(int idx=0; idx<GetGroup().GetSubgroup().Count(); idx++) {
+      qDebug() << GetGroup().GetIndex(GetLocalId()) << "Sending msg len" << msg.count() << "to server" << idx;
+      VerifiableSend(GetGroup().GetSubgroup().GetId(idx), msg); 
     }
   }
 
