@@ -20,12 +20,14 @@ namespace Tests {
       nodes[idx]->session->Start();
     }
 
+    qDebug() << "Session started, waiting for round start.";
     TestNode::calledback = TestNode::failure = TestNode::success = 0;
     qint64 next = Timer::GetInstance().VirtualRun();
     while(next != -1 && TestNode::calledback < count) {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
     }
+    qDebug() << "Round started, shutting down";
 
     for(int idx = 0; idx < count; idx++) {
       ASSERT_TRUE(nodes[idx]->sink.Count() == 0);
@@ -35,6 +37,7 @@ namespace Tests {
     ASSERT_EQ(TestNode::failure, 0);
 
     CleanUp(nodes);
+    qDebug() << "Shut down";
     ConnectionManager::UseTimer = true;
   }
 
