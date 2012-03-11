@@ -15,6 +15,8 @@
 
 namespace Dissent {
 namespace Anonymity {
+  bool Session::EnableLogOffMonitor = true;
+
   Session::Session(const QSharedPointer<GroupHolder> &group_holder,
       const PrivateIdentity &ident, const Id &session_id,
       QSharedPointer<Network> network, CreateRound create_round) :
@@ -214,7 +216,7 @@ namespace Anonymity {
   bool Session::AllowRegistration(const QSharedPointer<ISender> &,
       const PublicIdentity &ident)
   {
-    return !_log_off_time.contains(ident.GetId());
+    return !EnableLogOffMonitor || !_log_off_time.contains(ident.GetId());
   }
 
   void Session::CheckLogOffTimes(const int &)

@@ -392,6 +392,7 @@ namespace Tests {
       Group::SubgroupPolicy sg_policy, bool transient)
   {
     ConnectionManager::UseTimer = false;
+    Session::EnableLogOffMonitor = false;
     Timer::GetInstance().UseVirtualTime();
 
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
@@ -514,6 +515,7 @@ namespace Tests {
 
     CleanUp(nodes);
     ConnectionManager::UseTimer = true;
+    Session::EnableLogOffMonitor = true;
   }
 
   void RoundTest_BadGuy(CreateSessionCallback good_callback,

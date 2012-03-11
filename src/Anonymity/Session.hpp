@@ -170,6 +170,8 @@ namespace Anonymity {
 
       const GroupHolder &GetGroupHolder();
 
+      static bool EnableLogOffMonitor;
+
     signals:
       /**
        * Signals that a round is beginning.
