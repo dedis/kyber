@@ -39,6 +39,7 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Applications/Node.hpp \
            src/Applications/SessionFactory.hpp \
            src/Applications/Settings.hpp \
+           src/ClientServer/CSBroadcast.hpp \
            src/ClientServer/CSConnectionAcquirer.hpp \
            src/ClientServer/CSForwarder.hpp \
            src/ClientServer/CSNetwork.hpp \
@@ -193,8 +194,10 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Applications/Node.cpp \
            src/Applications/SessionFactory.cpp \
            src/Applications/Settings.cpp \
+           src/ClientServer/CSBroadcast.cpp \
            src/ClientServer/CSConnectionAcquirer.cpp \
            src/ClientServer/CSForwarder.cpp \
+           src/ClientServer/CSNetwork.cpp \
            src/ClientServer/CSOverlay.cpp \
            src/Connections/Bootstrapper.cpp \
            src/Connections/Connection.cpp \

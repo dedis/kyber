@@ -56,6 +56,12 @@ namespace Messaging {
     QDataStream stream(data);
     stream >> container;
 
+    HandleData(from, container);
+  }
+
+  void RpcHandler::HandleData(const QSharedPointer<ISender> &from,
+      const QVariantList &container)
+  {
     if(container.size() < 2) {
       return;
     }

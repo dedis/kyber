@@ -58,6 +58,14 @@ namespace Messaging {
           const QByteArray &data);
 
       /**
+       * Handle an incoming Rpc request
+       * @param from a return path to the requestor
+       * @param container deserialized request message
+       */
+      void HandleData(const QSharedPointer<ISender> &from,
+          const QVariantList &container);
+
+      /**
        * Send a request
        * @param to the destination for the notification
        * @param method the remote method
@@ -105,6 +113,10 @@ namespace Messaging {
        */
       bool Unregister(const QString &name);
 
+      /**
+       * Used to cancel handling a request result
+       * @param id the id of the request
+       */
       bool CancelRequest(int id)
       {
         return _requests.remove(id) != 0;

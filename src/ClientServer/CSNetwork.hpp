@@ -15,6 +15,7 @@
 #include "Identity/PublicIdentity.hpp"
 #include "Messaging/RpcHandler.hpp"
 
+#include "CSBroadcast.hpp"
 #include "CSForwarder.hpp"
 
 namespace Dissent {
@@ -36,18 +37,12 @@ namespace ClientServer {
        */
       CSNetwork(const QSharedPointer<ConnectionManager> &cm,
           const QSharedPointer<RpcHandler> &rpc,
-          const QSharedPointer<GroupHolder> &group_holder) :
-        DefaultNetwork(cm, rpc),
-        _group_holder(group_holder),
-        _forwarder(CSForwarder::Get(cm->GetId(), cm->GetConnectionTable(),
-              rpc, group_holder))
-      {
-      }
+          const QSharedPointer<GroupHolder> &group_holder);
 
       /**
        * Virtual destructor
        */
-      virtual ~CSNetwork() {}
+      virtual ~CSNetwork();
 
       /**
        * Send a notification
@@ -68,7 +63,7 @@ namespace ClientServer {
        * @param data the input data for that method
        * @param callback called when the request is complete
        */
-      virtual void SendRequest(const Id &to, const QString &method,
+      inline virtual void SendRequest(const Id &to, const QString &method,
           const QVariant &data, QSharedPointer<ResponseHandler> &callback)
       {
         GetRpcHandler()->SendRequest(GetSender(to), method, data, callback);
@@ -88,12 +83,7 @@ namespace ClientServer {
        * Send a message to all group members
        * @param data Data to be sent to all peers
        */
-      inline virtual void Broadcast(const QByteArray &data)
-      {
-        foreach(const PublicIdentity &gc, _group_holder->GetGroup().GetRoster()) {
-          DefaultNetwork::Send(GetSender(gc.GetId()), data);
-        }
-      }
+      virtual void Broadcast(const QByteArray &data);
 
       /**
        * Returns a copy
@@ -116,6 +106,8 @@ namespace ClientServer {
     private:
       QSharedPointer<GroupHolder> _group_holder;
       QSharedPointer<CSForwarder> _forwarder;
+      QSharedPointer<CSBroadcast> _broadcaster;
+
   };
 }
 }
