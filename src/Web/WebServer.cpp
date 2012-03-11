@@ -21,10 +21,7 @@ namespace Web {
     QTcpServer(0),
     _host(url.host()),
     _port(url.port(8080)),
-    _running(false),
-    _qtin(stdin, QIODevice::ReadOnly),
-    _qtout(stdout, QIODevice::WriteOnly),
-    _qtin_notify(STDIN_FILENO, QSocketNotifier::Read)
+    _running(false)
   {
   }
 
@@ -49,15 +46,8 @@ namespace Web {
       return;
     }
 
-    connect(&_qtin_notify, SIGNAL(activated(int)), this, SLOT(HandleStdin()));
-    _qtin_notify.setEnabled(true);
-
     listen(_host, _port);
-
     _running = true;
-
-    _qtout << "Server started on " << _host.toString() << ":" 
-          << _port << ". Type 'quit' to exit." << endl;
   }
 
   void WebServer::Stop()
@@ -66,9 +56,6 @@ namespace Web {
     if(!_running) {
       return;
     }
-
-    _qtin_notify.setEnabled(false);
-    disconnect(&_qtin_notify, SIGNAL(activated(int)), this, SLOT(HandleStdin()));
 
     /* stop listening */
     close();
@@ -89,18 +76,6 @@ namespace Web {
     s->setSocketDescriptor(socket);
 
     qDebug() << "New incoming connectionz";
-  }
-
-
-  void WebServer::HandleStdin()
-  {
-    QString msg = _qtin.readLine();
-    if(msg == "quit") {
-      _qtout << "Stopping web server." << endl;
-      Stop();
-    } else {
-      _qtout << "Ignoring unknown command. Type 'quit' to exit." << endl;
-    }
   }
 
   void WebServer::ReadFromClient()

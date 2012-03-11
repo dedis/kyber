@@ -129,11 +129,6 @@ namespace Web {
        */
       void HandleError(QAbstractSocket::SocketError);
 
-      /**
-       * Handle input from stdin command line
-       */
-      void HandleStdin();
-
     private:
       QHostAddress _host;
       quint16 _port;
@@ -146,8 +141,6 @@ namespace Web {
       QList<QSharedPointer<WebService> > _service_set;
 
       bool _running;
-      QTextStream _qtin, _qtout;
-      QSocketNotifier _qtin_notify;
   };
 }
 }
