@@ -17,22 +17,10 @@ namespace Anonymity {
     _default_set(false),
     _rpc(rpc)
   {
-    QSharedPointer<RequestHandler> reg(
-        new RequestHandler(this, "Register"));
-    _rpc->Register("SM::Register", reg);
-
-    QSharedPointer<RequestHandler> prepare(
-        new RequestHandler(this, "Prepare"));
-    _rpc->Register("SM::Prepare", prepare);
-
-    QSharedPointer<RequestHandler> begin(
-        new RequestHandler(this, "Begin"));
-    _rpc->Register("SM::Begin", begin);
-
-    QSharedPointer<RequestHandler> data(
-        new RequestHandler(this, "IncomingData"));
-    _rpc->Register("SM::Data", data);
-
+    _rpc->Register("SM::Register", this, "Register");
+    _rpc->Register("SM::Prepare", this, "Prepare");
+    _rpc->Register("SM::Begin", this, "Begin");
+    _rpc->Register("SM::Data", this, "IncomingData");
     _rpc->Register("SM::Disconnect", this, "LinkDisconnect");
   }
 
@@ -42,6 +30,7 @@ namespace Anonymity {
     _rpc->Unregister("SM::Prepare");
     _rpc->Unregister("SM::Begin");
     _rpc->Unregister("SM::Data");
+    _rpc->Unregister("SM::Disconnect");
   }
 
   void SessionManager::AddSession(const QSharedPointer<Session> &session)

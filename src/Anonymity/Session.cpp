@@ -64,8 +64,7 @@ namespace Anonymity {
 
   void Session::OnStart()
   {
-    qDebug() << _ident.GetLocalId().ToString() << "Session started:" <<
-      _session_id.ToString();
+    qDebug() << _ident.GetLocalId() << "Session started:" << _session_id;
 
     if(!IsLeader() && ((_network->GetConnection(GetGroup().GetLeader()) != 0) ||
           ((GetGroup().GetSubgroupPolicy() == Group::ManagedSubgroup) &&
@@ -139,7 +138,7 @@ namespace Anonymity {
       bool good = true;
       foreach(const PublicIdentity &gc, group) {
         if(!ct.GetConnection(gc.GetId())) {
-          qDebug() << "Missing a connection" << gc.GetId().ToString();
+          qDebug() << "Missing a connection" << gc.GetId();
           good = false;
         }
       }
@@ -259,12 +258,12 @@ namespace Anonymity {
     }
 
     if(response.Successful() && response.GetData().toBool()) {
-      qDebug() << _ident.GetLocalId().ToString() << "registered and waiting to go.";
+      qDebug() << _ident.GetLocalId() << "registered and waiting to go.";
       return;
     }
 
-    qDebug() << "Unable to register due to" << response.GetData().toString() <<
-      "... trying again later.";
+    qDebug() << "Unable to register due to" << response.GetError() <<
+      "Trying again later.";
 
     Dissent::Utils::TimerCallback *cb =
       new Dissent::Utils::TimerMethod<Session, int>(this, &Session::Register, 0);
@@ -295,7 +294,7 @@ namespace Anonymity {
       msg["group"] = group;
     }
 
-    qDebug() << "Sending prepare for round" << round_id.ToString() <<
+    qDebug() << "Sending prepare for round" << round_id <<
       "new group:" << msg.contains("group");
 
     _prepared_peers.clear();
@@ -373,7 +372,7 @@ namespace Anonymity {
 
     if(_current_round->GetRoundId() != round_id) {
       qDebug() << "Received a prepared message from the wrong round.  RoundId:" <<
-        round_id.ToString() << "from" << response.GetFrom()->ToString();
+        round_id << "from" << response.GetFrom()->ToString();
       return;
     }
 
@@ -419,8 +418,7 @@ namespace Anonymity {
     Id round_id(notification.GetData().toHash().value("round_id").toByteArray());
     if(_current_round->GetRoundId() != round_id) {
       qWarning() << "Received a begin for a different round, expected:" <<
-        _current_round->GetRoundId().ToString() << "got:" <<
-        round_id.ToString();
+        _current_round->GetRoundId() << "got:" << round_id;
       return;
     }
 
