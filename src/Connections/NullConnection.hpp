@@ -32,7 +32,7 @@ namespace Connections {
 
       inline virtual void Send(const QByteArray &data)
       {
-        PushData(GetSharedPointer(), data);
+        GetEdge()->Send(data);
       }
   };
 }
