@@ -11,6 +11,8 @@
 #include "Utils/QRunTimeError.hpp"
 #include "Utils/Random.hpp"
 #include "Utils/Serialization.hpp"
+#include "Utils/Timer.hpp"
+#include "Utils/TimerCallback.hpp"
 
 #include "RepeatingBulkRound.hpp"
 #include "BulkRound.hpp"
@@ -37,7 +39,8 @@ namespace Anonymity {
     _get_shuffle_data(this, &RepeatingBulkRound::GetShuffleData),
     _state(Offline),
     _phase(0),
-    _stop_next(false)
+    _stop_next(false),
+    _last_phase(0)
   {
     QVariantHash headers = GetNetwork()->GetHeaders();
     headers["bulk"] = true;
@@ -62,12 +65,9 @@ namespace Anonymity {
         this, SLOT(ShuffleFinished()));
   }
 
-  bool RepeatingBulkRound::Start()
+  void RepeatingBulkRound::OnStart()
   {
-    if(!Round::Start()) {
-      return false;
-    }
-
+    Round::OnStart();
     QVector<QSharedPointer<Random> > anon_rngs;
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
 
@@ -77,12 +77,40 @@ namespace Anonymity {
       anon_rngs.append(rng);
     }
 
+    Utils::TimerCallback *cb = new Utils::TimerMethod<RepeatingBulkRound, int>(
+        this, &RepeatingBulkRound::CheckState, 0);
+    _check_event = Utils::Timer::GetInstance().QueueCallback( cb, 60000, 60000);
+
     SetAnonymousRngs(anon_rngs);
 
     SetState(Shuffling);
     _shuffle_round->Start();
+  }
 
-    return true;
+  void RepeatingBulkRound::OnStop()
+  {
+    Round::OnStop();
+    _check_event.Stop();
+  }
+
+  void RepeatingBulkRound::CheckState(const int &)
+  {
+    if(_last_phase != _phase) {
+      qDebug() << "In CheckState, system appears to be progressing normally.";
+      _last_phase = _phase;
+      return;
+    } else if(_state == Shuffling) {
+      qDebug() << "In CheckState, shuffling";
+      return;
+    }
+
+    qDebug() << "In CheckState, progress seems slow.  Missing" <<
+      (_messages.size() - _received_messages) << "ciphertexts for:";
+    for(int idx = 0; idx < _messages.size(); idx++) {
+      if(_messages[idx].isEmpty()) {
+        qDebug() << "\t" << GetGroup().GetId(idx);
+      }
+    }
   }
 
   void RepeatingBulkRound::IncomingData(const Request &notification)

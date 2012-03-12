@@ -6,6 +6,7 @@
 
 #include "Messaging/BufferSink.hpp"
 #include "Messaging/GetDataCallback.hpp"
+#include "Utils/TimerEvent.hpp"
 #include "Utils/Triple.hpp"
 #include "Utils/Random.hpp"
 
@@ -108,11 +109,6 @@ namespace Anonymity {
       virtual ~RepeatingBulkRound() {}
 
       /**
-       * Start the bulk round
-       */
-      virtual bool Start();
-
-      /**
        * Handle a data message from a remote peer
        * @param notification message from a remote peer
        */
@@ -153,7 +149,22 @@ namespace Anonymity {
        */
       virtual uint GetPhase() { return _phase; }
 
+      /**
+       * Checks and prints the state of the round
+       */
+      void CheckState(const int &undef);
+
     protected:
+      /**
+       * Called when the BulkRound is started
+       */
+      virtual void OnStart();
+
+      /**
+       * Called when the BulkRound is stopped
+       */
+      virtual void OnStop();
+
       /**
        * If data is from a legitimate group member, it is processed
        * @param data Incoming data
@@ -398,6 +409,10 @@ namespace Anonymity {
        * Causes this round to stop after the current phase ends
        */
       bool _stop_next;
+
+      Utils::TimerEvent _check_event;
+
+      uint _last_phase;
 
     private slots:
       /**
