@@ -179,6 +179,11 @@ namespace Connections {
         continue;
       } else if(last_msg < close_time) {
         qDebug() << "Closing edge:" << edge->ToString();
+        QSharedPointer<Connection> con = _con_tab.GetConnection(edge.data());
+        if(con && (con->GetRemoteId() == _local_id)) {
+          qDebug() << "Attempted to close loopback connection.";
+          continue;
+        }
         edge->Stop("Timed out");
       } else {
         qDebug() << "Testing edge:" << edge->ToString();
