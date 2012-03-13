@@ -317,8 +317,9 @@ namespace Anonymity {
 
   bool RepeatingBulkRound::PrepForNextPhase()
   {
-    QCoreApplication::processEvents();
-    QCoreApplication::sendPostedEvents();
+    if(!ProcessEvents()) {
+      return false;
+    }
 
     if(_stop_next) {
       SetInterrupted();

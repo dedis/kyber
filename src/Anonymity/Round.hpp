@@ -232,6 +232,21 @@ namespace Anonymity {
        */
       QSharedPointer<Network> &GetNetwork() { return _network; }
 
+      /**
+       * Used to process background events in CPU / I/O heavy portions
+       * of the code.
+       * @returns true if processing should continue, false if the round
+       * is stopped
+       */
+      inline bool ProcessEvents()
+      {
+        // Safe way to ensure the round doesn't close on us unexpectedly
+        QSharedPointer<Round> round = GetSharedPointer();
+        QCoreApplication::processEvents();
+        QCoreApplication::sendPostedEvents();
+        return !Stopped();
+      }
+
     private:
       const Group _group;
       const PrivateIdentity _ident;

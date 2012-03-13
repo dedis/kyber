@@ -515,6 +515,9 @@ namespace Anonymity {
 
     OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
     oe->Encrypt(_public_inner_keys, PrepareData(), _inner_ciphertext, 0);
+    if(!ProcessEvents()) {
+      return;
+    }
     oe->Encrypt(_public_outer_keys, _inner_ciphertext, _outer_ciphertext, 0);
 
 
@@ -662,6 +665,10 @@ namespace Anonymity {
       }
 
       cleartexts = tmp;
+
+      if(!ProcessEvents()) {
+        return;
+      }
     }
 
     foreach(QByteArray cleartext, cleartexts) {
