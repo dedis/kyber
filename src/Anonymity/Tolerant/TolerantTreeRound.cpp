@@ -99,12 +99,10 @@ namespace Tolerant {
         this, SLOT(KeyShuffleFinished()));
   }
 
-  bool TolerantTreeRound::Start()
+  void TolerantTreeRound::OnStart()
   {
     ChangeState(State_SigningKeyShuffling);
     _key_shuffle_round->Start();
-
-    return true;
   }
 
   void TolerantTreeRound::FoundBadMembers() 

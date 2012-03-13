@@ -25,12 +25,11 @@ namespace Anonymity {
     _log.ToggleEnabled();
   }
 
-  bool ShuffleRoundBlame::Start()
+  void ShuffleRoundBlame::OnStart()
   {
     QScopedPointer<AsymmetricKey> tmp(_outer_key.take());
-    bool nstarted = ShuffleRound::Start();
+    ShuffleRound::OnStart();
     _outer_key.reset(tmp.take());
-    return !nstarted;
   }
 
   int ShuffleRoundBlame::GetGo(int idx)

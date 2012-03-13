@@ -167,11 +167,14 @@ namespace Anonymity {
        */
       const Group &GetShufflers() { return _shufflers; }
 
-      virtual bool Start();
-
       inline virtual QString ToString() const { return "ShuffleRound: " + GetRoundId().ToString(); }
 
     protected:
+      /**
+       * Called when the ShuffleRound is started
+       */
+      virtual void OnStart();
+
       virtual void ProcessData(const Id &from, const QByteArray &data);
 
       /**

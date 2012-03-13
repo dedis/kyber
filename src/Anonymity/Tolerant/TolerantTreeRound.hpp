@@ -122,11 +122,6 @@ namespace Tolerant {
       virtual ~TolerantTreeRound() {}
 
       /**
-       * Start the bulk round
-       */
-      virtual bool Start();
-
-      /**
        * Notifies the round that a new peer has joined the session.
        * This causes a tolerant round to stop after the next phase.
        */
@@ -169,6 +164,10 @@ namespace Tolerant {
       }
 
     protected:
+      /**
+       * Called when the BulkRound is started
+       */
+      virtual void OnStart();
 
       /*******************************************
        * Methods Shared Among Message Types

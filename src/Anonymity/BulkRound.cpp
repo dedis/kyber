@@ -73,16 +73,11 @@ namespace Anonymity {
     }
   }
 
-  bool BulkRound::Start()
+  void BulkRound::OnStart()
   {
-    if(!Round::Start()) {
-      return false;
-    }
-
+    Round::OnStart();
     _state = Shuffling;
     _shuffle_round->Start();
-
-    return true;
   }
 
   void BulkRound::IncomingData(const Request &notification)

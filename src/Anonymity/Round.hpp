@@ -74,25 +74,6 @@ namespace Anonymity {
       virtual void IncomingData(const Request &notification);
 
       /**
-       * Close the round for no specific reason
-       */
-      virtual bool Stop();
-
-      /**
-       * Stop the round with a specific reason
-       * @param reason The specific reason
-       */
-      bool Stop(const QString &reason);
-
-      /**
-       * Returns the reason the Round was closed, empty string if it is not closed
-       */
-      inline const QString &GetStoppedReason() const
-      {
-        return _stopped_reason;
-      }
-
-      /**
        * Returns whether or not there were any problems in the round
        */
       inline bool Successful() const { return _successful; }
@@ -174,6 +155,11 @@ namespace Anonymity {
 
     protected:
       /**
+       * Called on Round Stop
+       */
+      virtual void OnStop();
+
+      /**
        * If data is from a legitimate group member, it is processed
        * @param data Incoming data
        * @param id the remote peer sending the data
@@ -253,7 +239,6 @@ namespace Anonymity {
       QSharedPointer<Network> _network;
       GetDataCallback &_get_data_cb;
       bool _successful;
-      QString _stopped_reason;
       QVector<int> _empty_list;
       bool _interrupted;
       QWeakPointer<Round> _shared;

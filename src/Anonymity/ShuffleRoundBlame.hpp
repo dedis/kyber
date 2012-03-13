@@ -63,14 +63,13 @@ namespace Anonymity {
        */
       int GetGo(int idx);
 
-      virtual bool Start();
-
       inline virtual void ProcessData(const Id &from, const QByteArray &data)
       {
         ShuffleRound::ProcessData(from, data);
       }
 
     protected:
+      virtual void OnStart();
       virtual inline void VerifiableBroadcast(const QByteArray &) {}
       virtual inline void VerifiableSend(const QByteArray &, const Id &) {}
 

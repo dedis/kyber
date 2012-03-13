@@ -29,11 +29,14 @@ namespace Anonymity {
        */
       virtual ~NullRound() {}
 
-      virtual bool Start();
-
       inline virtual QString ToString() const { return "NullRound " + GetRoundId().ToString(); }
 
     protected:
+      /**
+       * Called when the NullRound is started
+       */
+      virtual void OnStart();
+
       /**
        * Pushes the data into the subscribed Sink
        * @param data the data to push

@@ -100,16 +100,11 @@ namespace Tolerant {
     CreateBlameShuffle();
   }
 
-  bool TolerantBulkRound::Start()
+  void TolerantBulkRound::OnStart()
   {
-    if(!Round::Start()) {
-      return false;
-    }
-
+    Round::OnStart();
     ChangeState(State_SigningKeyShuffling);
     _key_shuffle_round->Start();
-
-    return true;
   }
 
   void TolerantBulkRound::FoundBadMembers() 

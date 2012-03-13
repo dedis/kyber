@@ -91,13 +91,9 @@ namespace Anonymity {
     return QByteArray(data.data() + 4, size);
   }
 
-  bool ShuffleRound::Start()
+  void ShuffleRound::OnStart()
   {
-    if(!Round::Start()) {
-      qWarning() << "Called start on ShuffleRound more than once.";
-      return false;
-    }
-
+    Round::OnStart();
     qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
       ": starting:" << ToString();
 
@@ -126,8 +122,6 @@ namespace Anonymity {
     }
 
     _offline_log.Clear();
-
-    return true;
   }
 
   void ShuffleRound::HandlePublicKeys(QDataStream &stream, const Id &id)

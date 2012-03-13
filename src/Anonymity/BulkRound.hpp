@@ -163,11 +163,6 @@ namespace Anonymity {
       virtual ~BulkRound() {}
 
       /**
-       * Start the bulk round
-       */
-      virtual bool Start();
-
-      /**
        * Handle a data message from a remote peer
        * @param notification message from a remote peer
        */
@@ -194,6 +189,11 @@ namespace Anonymity {
       QSharedPointer<Round> GetShuffleRound() { return _shuffle_round; }
 
     protected:
+      /**
+       * Called when the BulkRound is started
+       */
+      virtual void OnStart();
+
       /**
        * GetDataCallback into bulk data
        * @param mam the maximum amount of data to return

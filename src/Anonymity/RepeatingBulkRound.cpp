@@ -89,8 +89,8 @@ namespace Anonymity {
 
   void RepeatingBulkRound::OnStop()
   {
-    Round::OnStop();
     _check_event.Stop();
+    Round::OnStop();
   }
 
   void RepeatingBulkRound::CheckState(const int &)

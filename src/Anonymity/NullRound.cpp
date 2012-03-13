@@ -13,15 +13,11 @@ namespace Anonymity {
   {
   }
 
-  bool NullRound::Start()
+  void NullRound::OnStart()
   {
-    if(!Round::Start()) {
-      return false;
-    }
-
+    Round::OnStart();
     QPair<QByteArray, bool> data = GetData(1024);
     GetNetwork()->Broadcast(data.first);
-    return true;
   }
 
   void NullRound::ProcessData(const Id &id, const QByteArray &data)

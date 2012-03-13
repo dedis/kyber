@@ -18,20 +18,9 @@ namespace Anonymity {
   {
   }
 
-  bool Round::Stop()
+  void Round::OnStop()
   {
-    return Stop("Explicitly closed");
-  }
-
-  bool Round::Stop(const QString &reason)
-  {
-    if(!StartStop::Stop()) {
-      return false;
-    }
-
-    _stopped_reason = reason;
     emit Finished();
-    return true;
   }
 
   void Round::IncomingData(const Request &notification)
