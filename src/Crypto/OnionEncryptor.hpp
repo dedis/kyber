@@ -22,7 +22,7 @@ namespace Crypto {
        * @param ciphertext the resulting ciphertext
        * @param intermediate optional parameter, if set returns the onion layers
        */
-      int Encrypt(const QVector<AsymmetricKey *> &keys,
+      int Encrypt(const QVector<QSharedPointer<AsymmetricKey> > &keys,
           const QByteArray &cleartext,
           QByteArray &ciphertext,
           QVector<QByteArray> *intermediate = 0) const;
@@ -35,7 +35,7 @@ namespace Crypto {
        * @param cleartext the resulting ciphertext permuted
        * @param bad optionally returns index of malformed messages
        */
-      virtual bool Decrypt(const AsymmetricKey *key,
+      virtual bool Decrypt(const QSharedPointer<AsymmetricKey> &key,
           const QVector<QByteArray> &ciphertext,
           QVector<QByteArray> &cleartext, QVector<int> *bad = 0) const;
 
@@ -52,7 +52,7 @@ namespace Crypto {
        * @param cleartext the unencrypted data
        * @param ciphertext the encrypted data
        */
-      bool VerifyOne(const AsymmetricKey *key,
+      bool VerifyOne(const QSharedPointer<AsymmetricKey> &key,
           const QVector<QByteArray> &cleartext,
           const QVector<QByteArray> &ciphertext) const;
 
@@ -65,7 +65,7 @@ namespace Crypto {
        * encrypted and the maximum index being the most encrypted
        * @param bad indexes are set if the key had issue decrypting
        */
-      bool VerifyAll(const QVector<AsymmetricKey *> &keys,
+      bool VerifyAll(const QVector<QSharedPointer<AsymmetricKey> > &keys,
           const QVector<QVector<QByteArray> > &onion,
           QBitArray &bad) const;
 

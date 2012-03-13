@@ -8,11 +8,11 @@ namespace Tests {
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
 
-    QVector<AsymmetricKey *> private_keys;
-    QVector<AsymmetricKey *> public_keys;
+    QVector<QSharedPointer<AsymmetricKey> > private_keys;
+    QVector<QSharedPointer<AsymmetricKey> > public_keys;
     for(int idx = 0; idx < count; idx++) {
-      private_keys.append(lib->CreatePrivateKey());
-      public_keys.append(private_keys.last()->GetPublicKey());
+      private_keys.append(QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()));
+      public_keys.append(QSharedPointer<AsymmetricKey>(private_keys.last()->GetPublicKey()));
     }
 
     QVector<QByteArray> cleartexts;
@@ -57,8 +57,6 @@ namespace Tests {
     for(int idx = 0; idx < count; idx++) {
       EXPECT_TRUE(onions.first().contains(cleartexts[idx]));
       EXPECT_FALSE(bad[idx]);
-      delete private_keys[idx];
-      delete public_keys[idx];
     }
   }
 
@@ -69,14 +67,13 @@ namespace Tests {
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
 
-    QVector<AsymmetricKey *> private_keys;
-    QVector<AsymmetricKey *> public_keys;
+    QVector<QSharedPointer<AsymmetricKey> > private_keys;
+    QVector<QSharedPointer<AsymmetricKey> > public_keys;
     for(int idx = 0; idx < count; idx++) {
-      private_keys.append(lib->CreatePrivateKey());
-      public_keys.append(private_keys.last()->GetPublicKey());
+      private_keys.append(QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()));
+      public_keys.append(QSharedPointer<AsymmetricKey>(private_keys.last()->GetPublicKey()));
     }
-    delete private_keys[changed];
-    private_keys[changed] = lib->CreatePrivateKey();
+    private_keys[changed] = QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey());
 
     QVector<QByteArray> cleartexts;
     QVector<QByteArray> ciphertexts;
@@ -100,11 +97,6 @@ namespace Tests {
     }
 
     EXPECT_FALSE(oe.Decrypt(private_keys[changed], onions[changed + 1], onions[changed], 0));
-
-    for(int idx = 0; idx < count; idx++) {
-      delete private_keys[idx];
-      delete public_keys[idx];
-    }
   }
 
   void CryptoTextSwapTest(OnionEncryptor &oe)
@@ -115,11 +107,11 @@ namespace Tests {
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
 
-    QVector<AsymmetricKey *> private_keys;
-    QVector<AsymmetricKey *> public_keys;
+    QVector<QSharedPointer<AsymmetricKey> > private_keys;
+    QVector<QSharedPointer<AsymmetricKey> > public_keys;
     for(int idx = 0; idx < count; idx++) {
-      private_keys.append(lib->CreatePrivateKey());
-      public_keys.append(private_keys.last()->GetPublicKey());
+      private_keys.append(QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()));
+      public_keys.append(QSharedPointer<AsymmetricKey>(private_keys.last()->GetPublicKey()));
     }
 
     QVector<QByteArray> cleartexts;
@@ -146,7 +138,7 @@ namespace Tests {
     QByteArray cleartext(1500, 0);
     rand->GenerateBlock(cleartext);
 
-    QVector<AsymmetricKey *> swap_keys(public_keys);
+    QVector<QSharedPointer<AsymmetricKey> > swap_keys(public_keys);
     swap_keys.resize(changed);
     EXPECT_EQ(oe.Encrypt(swap_keys, cleartext, onions[changed][mchanged], 0), -1);
 
@@ -167,9 +159,6 @@ namespace Tests {
         EXPECT_FALSE(bad[idx]);
       }
       onions.first().contains(cleartexts[idx]) ? good_count++ : bad_count++;
-
-      delete private_keys[idx];
-      delete public_keys[idx];
     }
     EXPECT_EQ(good_count, count - 1);
     EXPECT_EQ(bad_count, 1);
@@ -187,11 +176,11 @@ namespace Tests {
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
 
-    QVector<AsymmetricKey *> private_keys;
-    QVector<AsymmetricKey *> public_keys;
+    QVector<QSharedPointer<AsymmetricKey> > private_keys;
+    QVector<QSharedPointer<AsymmetricKey> > public_keys;
     for(int idx = 0; idx < count; idx++) {
-      private_keys.append(lib->CreatePrivateKey());
-      public_keys.append(private_keys.last()->GetPublicKey());
+      private_keys.append(QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()));
+      public_keys.append(QSharedPointer<AsymmetricKey>(private_keys.last()->GetPublicKey()));
     }
 
     QVector<QByteArray> cleartexts;
@@ -215,7 +204,7 @@ namespace Tests {
       oe.RandomizeBlocks(onions[idx]);
     }
 
-    QVector<AsymmetricKey *> swap_keys(public_keys);
+    QVector<QSharedPointer<AsymmetricKey> > swap_keys(public_keys);
     swap_keys.resize(changed);
 
     QByteArray cleartext(1500, 0);
@@ -242,9 +231,6 @@ namespace Tests {
         EXPECT_FALSE(bad[idx]);
       }
       onions.first().contains(cleartexts[idx]) ? good_count++ : bad_count++;
-
-      delete private_keys[idx];
-      delete public_keys[idx];
     }
     EXPECT_TRUE(good_count >= count - 2);
     EXPECT_TRUE(good_count < count);
@@ -262,11 +248,11 @@ namespace Tests {
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
 
-    QVector<AsymmetricKey *> private_keys;
-    QVector<AsymmetricKey *> public_keys;
+    QVector<QSharedPointer<AsymmetricKey> > private_keys;
+    QVector<QSharedPointer<AsymmetricKey> > public_keys;
     for(int idx = 0; idx < count; idx++) {
-      private_keys.append(lib->CreatePrivateKey());
-      public_keys.append(private_keys.last()->GetPublicKey());
+      private_keys.append(QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()));
+      public_keys.append(QSharedPointer<AsymmetricKey>(private_keys.last()->GetPublicKey()));
     }
 
     QVector<QByteArray> cleartexts;
@@ -292,7 +278,7 @@ namespace Tests {
       oe.RandomizeBlocks(onions[idx]);
     }
 
-    QVector<AsymmetricKey *> swap_keys(public_keys);
+    QVector<QSharedPointer<AsymmetricKey> > swap_keys(public_keys);
     swap_keys.resize(changed1);
 
     QByteArray cleartext(1500, 0);
@@ -328,9 +314,6 @@ namespace Tests {
         EXPECT_FALSE(bad[idx]);
       }
       onions.first().contains(cleartexts[idx]) ? good_count++ : bad_count++;
-
-      delete private_keys[idx];
-      delete public_keys[idx];
     }
     EXPECT_TRUE(good_count >= count - 2);
     EXPECT_TRUE(good_count < count);
@@ -344,11 +327,11 @@ namespace Tests {
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
 
-    QVector<AsymmetricKey *> private_keys;
-    QVector<AsymmetricKey *> public_keys;
+    QVector<QSharedPointer<AsymmetricKey> > private_keys;
+    QVector<QSharedPointer<AsymmetricKey> > public_keys;
     for(int idx = 0; idx < count; idx++) {
-      private_keys.append(lib->CreatePrivateKey());
-      public_keys.append(private_keys.last()->GetPublicKey());
+      private_keys.append(QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()));
+      public_keys.append(QSharedPointer<AsymmetricKey>(private_keys.last()->GetPublicKey()));
     }
 
     QVector<QByteArray> cleartexts;
@@ -376,8 +359,6 @@ namespace Tests {
 
     for(int idx = 0; idx < count; idx++) {
       EXPECT_TRUE(onions.first().contains(cleartexts[idx]));
-      delete private_keys[idx];
-      delete public_keys[idx];
     }
   }
 

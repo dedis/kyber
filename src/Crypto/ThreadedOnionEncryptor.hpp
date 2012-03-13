@@ -23,7 +23,7 @@ namespace Crypto {
        * @param cleartext the resulting ciphertext permuted
        * @param bad optionally returns index of malformed messages
        */
-      virtual bool Decrypt(const AsymmetricKey *key,
+      virtual bool Decrypt(const QSharedPointer<AsymmetricKey> &key,
           const QVector<QByteArray> &ciphertext,
           QVector<QByteArray> &cleartext, QVector<int> *bad) const;
 

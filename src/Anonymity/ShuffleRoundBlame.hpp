@@ -19,7 +19,7 @@ namespace Anonymity {
        * @param outer_key the peers private outer key
        */
       explicit ShuffleRoundBlame(const Group &group, const Id &local_id,
-          const Id &round_id, AsymmetricKey *outer_key);
+          const Id &round_id, const QSharedPointer<AsymmetricKey> &outer_key);
 
       /**
        * Destructor
@@ -29,32 +29,32 @@ namespace Anonymity {
       /**
        * Returns the nodes list of inner public keys
        */
-      inline const QVector<AsymmetricKey *> &GetPublicInnerKeys() { return _public_inner_keys; }
+      inline QVector<QSharedPointer<AsymmetricKey> > GetPublicInnerKeys() { return _public_inner_keys; }
 
       /**
        * Returns the nodes list of outer public keys
        */
-      inline const QVector<AsymmetricKey *> &GetPublicOuterKeys() { return _public_outer_keys; }
+      inline QVector<QSharedPointer<AsymmetricKey> > &GetPublicOuterKeys() { return _public_outer_keys; }
 
       /**
        * Returns the nodes outer public key
        */
-      inline const AsymmetricKey *GetPrivateOuterKey() { return _outer_key.data(); }
+      inline QSharedPointer<AsymmetricKey> GetPrivateOuterKey() { return _outer_key; }
 
       /**
        * Returns the nodes inputted shuffle cipher text
        */
-      inline const QVector<QByteArray> &GetShuffleCipherText() { return _shuffle_ciphertext; }
+      inline QVector<QByteArray> GetShuffleCipherText() { return _shuffle_ciphertext; }
 
       /**
        * Returns the ndoes outputted shuffle cipher text
        */
-      inline const QVector<QByteArray> &GetShuffleClearText() { return _shuffle_cleartext; }
+      inline QVector<QByteArray> GetShuffleClearText() { return _shuffle_cleartext; }
 
       /**
        * Returns the inner encrypted only data
        */
-      inline const QVector<QByteArray> &GetEncryptedData() { return _encrypted_data; }
+      inline QVector<QByteArray> GetEncryptedData() { return _encrypted_data; }
 
       /**
        * Returns 1, 0, -1, if the given index is go, no message, or no for the

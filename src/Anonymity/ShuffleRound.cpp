@@ -39,10 +39,6 @@ namespace Anonymity {
 
   ShuffleRound::~ShuffleRound()
   {
-    DeleteKeys(_public_inner_keys);
-    DeleteKeys(_public_outer_keys);
-    DeleteKeys(_private_inner_keys);
-    DeleteKeys(_private_outer_keys);
   }
 
   void ShuffleRound::DeleteKeys(QVector<AsymmetricKey *> &keys)
@@ -99,8 +95,8 @@ namespace Anonymity {
 
     if(_shuffler) {
       Library *lib = CryptoFactory::GetInstance().GetLibrary();
-      _inner_key.reset(lib->CreatePrivateKey());
-      _outer_key.reset(lib->CreatePrivateKey());
+      _inner_key = QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey());
+      _outer_key = QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey());
       if(_shufflers.GetIndex(GetLocalId()) == 0) {
         _shuffle_ciphertext = QVector<QByteArray>(GetGroup().Count());
       }
@@ -147,8 +143,8 @@ namespace Anonymity {
     stream >> inner_key >> outer_key;
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    _public_inner_keys[kidx] = lib->LoadPublicKeyFromByteArray(inner_key);
-    _public_outer_keys[kidx] = lib->LoadPublicKeyFromByteArray(outer_key);
+    _public_inner_keys[kidx] = QSharedPointer<AsymmetricKey>(lib->LoadPublicKeyFromByteArray(inner_key));
+    _public_outer_keys[kidx] = QSharedPointer<AsymmetricKey>(lib->LoadPublicKeyFromByteArray(outer_key));
 
     if(!_public_inner_keys[kidx]->IsValid()) {
       throw QRunTimeError("Received an invalid outer inner key");
@@ -309,7 +305,7 @@ namespace Anonymity {
     int kidx = CalculateKidx(sidx);
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    _private_inner_keys[sidx] = lib->LoadPrivateKeyFromByteArray(key);
+    _private_inner_keys[sidx] = QSharedPointer<AsymmetricKey>(lib->LoadPrivateKeyFromByteArray(key));
 
     if(!_private_inner_keys[sidx]->VerifyKey(*_public_inner_keys[kidx])) {
       throw QRunTimeError("Received invalid inner key");
@@ -357,7 +353,7 @@ namespace Anonymity {
     }
 
     if(sidx >= 0) {
-      _private_outer_keys[sidx] = lib->LoadPrivateKeyFromByteArray(key);
+      _private_outer_keys[sidx] = QSharedPointer<AsymmetricKey>(lib->LoadPrivateKeyFromByteArray(key));
       int kidx = CalculateKidx(sidx);
       if(!_private_outer_keys[sidx]->VerifyKey(*_public_outer_keys[kidx])) {
         throw QRunTimeError("Invalid outer key");
@@ -560,7 +556,7 @@ namespace Anonymity {
 
     QVector<int> bad;
     OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
-    if(!oe->Decrypt(_outer_key.data(), _shuffle_ciphertext, _shuffle_cleartext, &bad)) {
+    if(!oe->Decrypt(_outer_key, _shuffle_ciphertext, _shuffle_cleartext, &bad)) {
       qWarning() << _shufflers.GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
         << GetLocalId().ToString() << ": failed to decrypt layer due to block at "
         "indexes" << bad;
@@ -651,7 +647,7 @@ namespace Anonymity {
 
     QVector<QByteArray> cleartexts = _encrypted_data;
 
-    foreach(AsymmetricKey *key, _private_inner_keys) {
+    foreach(const QSharedPointer<AsymmetricKey> &key, _private_inner_keys) {
       QVector<QByteArray> tmp;
       QVector<int> bad;
 

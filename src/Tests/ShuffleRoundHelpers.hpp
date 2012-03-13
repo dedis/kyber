@@ -40,7 +40,6 @@ namespace Tests {
 
         VerifiableBroadcast(msg);
         int idx = GetShufflers().GetIndex(GetLocalId());
-        delete _private_inner_keys[idx];
         _private_inner_keys[idx] = lib->LoadPrivateKeyFromByteArray(_inner_key->GetByteArray());
       }
   };
@@ -95,9 +94,7 @@ namespace Tests {
   
         QVector<int> bad;
         OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
-        if(!oe->Decrypt(_outer_key.data(), _shuffle_ciphertext,
-              _shuffle_cleartext, &bad))
-        {
+        if(!oe->Decrypt(_outer_key, _shuffle_ciphertext, _shuffle_cleartext, &bad)) {
           qWarning() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
             ": failed to decrypt layer due to block at indexes" << bad;
           StartBlame();
@@ -146,7 +143,7 @@ namespace Tests {
 
         SetTriggered();
 
-        QVector<AsymmetricKey *> outer_keys;
+        QVector<QSharedPointer<AsymmetricKey> > outer_keys;
         for(int idx = GetShufflers().Count() - 1; idx >= GetShufflers().GetIndex(GetLocalId()); idx--) {
           int kidx = CalculateKidx(idx);
           outer_keys.append(_public_outer_keys[kidx]);
@@ -254,7 +251,7 @@ namespace Tests {
           opposite = (opposite + 1) % GetShufflers().Count();
         }
 
-        AsymmetricKey *tmp = _public_outer_keys[opposite];
+        QSharedPointer<AsymmetricKey> tmp(_public_outer_keys[opposite]);
         _public_outer_keys[opposite] = _public_outer_keys[count];
         oe->Encrypt(_public_outer_keys, _inner_ciphertext, _outer_ciphertext, 0);
         _public_outer_keys[opposite] = tmp;

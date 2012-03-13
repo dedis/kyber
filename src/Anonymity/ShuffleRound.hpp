@@ -1,7 +1,6 @@
 #ifndef  DISSENT_ANONYMITY_SHUFFLE_ROUND_H_GUARD
 #define DISSENT_ANONYMITY_SHUFFLE_ROUND_H_GUARD
 
-
 #include <QBitArray>
 #include <QDataStream>
 #include <QMetaEnum>
@@ -330,12 +329,12 @@ namespace Anonymity {
       /**
        * All the remote peers inner keys, in reverse order
        */
-      QVector<AsymmetricKey *> _public_inner_keys;
+      QVector<QSharedPointer<AsymmetricKey> > _public_inner_keys;
 
       /**
        * All the remote peers outer keys, in reverse order
        */
-      QVector<AsymmetricKey *> _public_outer_keys;
+      QVector<QSharedPointer<AsymmetricKey> > _public_outer_keys;
 
       /**
        * Counter for keeping track of keys received
@@ -345,22 +344,22 @@ namespace Anonymity {
       /**
        * The private inner encrypting key
        */
-      QScopedPointer<AsymmetricKey> _inner_key;
+      QSharedPointer<AsymmetricKey> _inner_key;
 
       /**
        * The private outer encrypting key
        */
-      QScopedPointer<AsymmetricKey> _outer_key;
+      QSharedPointer<AsymmetricKey> _outer_key;
 
       /**
        * All the remote peers inner private keys
        */
-      QVector<AsymmetricKey *> _private_inner_keys;
+      QVector<QSharedPointer<AsymmetricKey> > _private_inner_keys;
 
       /**
        * All the remote peers outer private keys, used during a blame
        */
-      QVector<AsymmetricKey *> _private_outer_keys;
+      QVector<QSharedPointer<AsymmetricKey> > _private_outer_keys;
 
 
       /**

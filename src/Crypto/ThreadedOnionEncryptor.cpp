@@ -9,7 +9,7 @@ namespace Crypto {
      * Provides a method object decrypting a single QByteArray, useful for QtConcurrent
      */
     struct Decryptor {
-      Decryptor(const AsymmetricKey *key) : _key(key) {}
+      Decryptor(const QSharedPointer<AsymmetricKey> &key) : _key(key) {}
 
       typedef QByteArray result_type;
 
@@ -18,11 +18,11 @@ namespace Crypto {
         return _key->Decrypt(ciphertext);
       }
 
-      const AsymmetricKey *_key;
+      const QSharedPointer<AsymmetricKey> _key;
     };
   }
 
-  bool ThreadedOnionEncryptor::Decrypt(const AsymmetricKey *key,
+  bool ThreadedOnionEncryptor::Decrypt(const QSharedPointer<AsymmetricKey> &key,
       const QVector<QByteArray> &ciphertext, QVector<QByteArray> &cleartext,
       QVector<int> *bad) const
   {

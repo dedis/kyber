@@ -13,23 +13,20 @@ using Dissent::Identity::PrivateIdentity;
 namespace Dissent {
 namespace Anonymity {
   ShuffleRoundBlame::ShuffleRoundBlame(const Group &group, const Id &local_id,
-      const Id &round_id, AsymmetricKey *outer_key) :
+      const Id &round_id, const QSharedPointer<AsymmetricKey> &outer_key) :
     ShuffleRound(group, PrivateIdentity(local_id), round_id,
         Connections::EmptyNetwork::GetInstance(),
         Messaging::EmptyGetDataCallback::GetInstance())
   {
-    if(outer_key) {
-      Library *lib = CryptoFactory::GetInstance().GetLibrary();
-      _outer_key.reset(lib->LoadPrivateKeyFromByteArray(outer_key->GetByteArray()));
-    }
+    _outer_key = outer_key;
     _log.ToggleEnabled();
   }
 
   void ShuffleRoundBlame::OnStart()
   {
-    QScopedPointer<AsymmetricKey> tmp(_outer_key.take());
+    QSharedPointer<AsymmetricKey> key = _outer_key;
     ShuffleRound::OnStart();
-    _outer_key.reset(tmp.take());
+    _outer_key = key;
   }
 
   int ShuffleRoundBlame::GetGo(int idx)
@@ -59,7 +56,7 @@ namespace Anonymity {
     _state = ShuffleRound::Shuffling;
 
     OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
-    oe->Decrypt(_outer_key.data(), _shuffle_ciphertext, _shuffle_cleartext,
+    oe->Decrypt(_outer_key, _shuffle_ciphertext, _shuffle_cleartext,
         &_bad_members);
 
     _state = ShuffleRound::WaitingForEncryptedInnerData;

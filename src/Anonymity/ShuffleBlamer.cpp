@@ -11,8 +11,10 @@ using Dissent::Crypto::OnionEncryptor;
 
 namespace Dissent {
 namespace Anonymity {
-  ShuffleBlamer::ShuffleBlamer(const Group &group, const Id &round_id,
-      const QVector<Log> &logs, const QVector<AsymmetricKey *> private_keys) :
+  ShuffleBlamer::ShuffleBlamer(const Group &group,
+      const Id &round_id,
+      const QVector<Log> &logs,
+      const QVector<QSharedPointer<AsymmetricKey> > &private_keys) :
     _group(group),
     _shufflers(group.GetSubgroup()),
     _logs(logs),
@@ -22,7 +24,7 @@ namespace Anonymity {
     _set(false)
   {
     for(int idx = 0; idx < _group.Count(); idx++) {
-      AsymmetricKey *key = 0;
+      QSharedPointer<AsymmetricKey> key;
       int sidx = _shufflers.GetIndex(_group.GetId(idx));
       if(sidx >= 0) {
         key = _private_keys[sidx];
@@ -116,8 +118,8 @@ namespace Anonymity {
       }
     }
 
-    const QVector<AsymmetricKey *> inner_keys = _rounds[first_good]->GetPublicInnerKeys();
-    const QVector<AsymmetricKey *> outer_keys = _rounds[first_good]->GetPublicOuterKeys();
+    QVector<QSharedPointer<AsymmetricKey> > inner_keys = _rounds[first_good]->GetPublicInnerKeys();
+    QVector<QSharedPointer<AsymmetricKey> > outer_keys = _rounds[first_good]->GetPublicOuterKeys();
     if(inner_keys.count() != outer_keys.count()) {
       qCritical() << "Key sizes don't match";
     }
@@ -133,7 +135,7 @@ namespace Anonymity {
 
       int sidx = _shufflers.GetIndex(_group.GetId(idx));
       if(sidx >= 0) {
-        const AsymmetricKey *p_outer_key = _rounds[idx]->GetPrivateOuterKey();
+        QSharedPointer<AsymmetricKey> p_outer_key = _rounds[idx]->GetPrivateOuterKey();
         if(!p_outer_key->IsValid()) {
           Set(idx, "Invalid private key");
           continue;
@@ -145,8 +147,8 @@ namespace Anonymity {
         }
       }
 
-      const QVector<AsymmetricKey *> cinner_keys = _rounds[idx]->GetPublicInnerKeys();
-      const QVector<AsymmetricKey *> couter_keys = _rounds[idx]->GetPublicOuterKeys();
+      QVector<QSharedPointer<AsymmetricKey> > cinner_keys = _rounds[idx]->GetPublicInnerKeys();
+      QVector<QSharedPointer<AsymmetricKey> > couter_keys = _rounds[idx]->GetPublicOuterKeys();
 
       if(inner_keys.count() != cinner_keys.count() || 
           outer_keys.count() != couter_keys.count()) {

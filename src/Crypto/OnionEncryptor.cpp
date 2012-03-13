@@ -3,7 +3,7 @@
 
 namespace Dissent {
 namespace Crypto {
-  int OnionEncryptor::Encrypt(const QVector<AsymmetricKey *> &keys,
+  int OnionEncryptor::Encrypt(const QVector<QSharedPointer<AsymmetricKey> > &keys,
       const QByteArray &cleartext, QByteArray &ciphertext,
       QVector<QByteArray> *intermediate) const
   {
@@ -47,7 +47,7 @@ namespace Crypto {
     return -1;
   }
 
-  bool OnionEncryptor::Decrypt(const AsymmetricKey *key,
+  bool OnionEncryptor::Decrypt(const QSharedPointer<AsymmetricKey> &key,
       const QVector<QByteArray> &ciphertext,
       QVector<QByteArray> &cleartext, QVector<int> *bad) const
   {
@@ -82,7 +82,7 @@ namespace Crypto {
     }
   }
 
-  bool OnionEncryptor::VerifyOne(const AsymmetricKey *key,
+  bool OnionEncryptor::VerifyOne(const QSharedPointer<AsymmetricKey> &key,
       const QVector<QByteArray> &cleartext,
       const QVector<QByteArray> &ciphertext) const
   {
@@ -95,7 +95,7 @@ namespace Crypto {
     return true;
   }
 
-  bool OnionEncryptor::VerifyAll(const QVector<AsymmetricKey *> &keys,
+  bool OnionEncryptor::VerifyAll(const QVector<QSharedPointer<AsymmetricKey> > &keys,
       const QVector<QVector<QByteArray> > &onion, QBitArray &bad) const
   {
     if(keys.count() != onion.count() - 1) {
