@@ -33,7 +33,7 @@ namespace Utils {
        */
       void CallStop()
       {
-        Stop();
+        Stop("Signal");
       }
   };
 }

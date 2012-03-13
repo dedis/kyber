@@ -1,6 +1,8 @@
 #ifndef DISSENT_UTILS_START_STOP_H_GUARD
 #define DISSENT_UTILS_START_STOP_H_GUARD
 
+#include <QString>
+
 namespace Dissent {
 namespace Utils {
   /**
@@ -29,14 +31,22 @@ namespace Utils {
       virtual bool Stop();
 
       /**
+       * Returns true if the first time stopped
+       * @param reason the reason for stopping
+       */
+      virtual bool Stop(const QString &reason);
+
+      /**
        * Returns true if started
        */
-      virtual bool Started() { return _started; }
+      virtual bool Started() const { return _started; }
 
       /**
        * Returns true if stopped
        */
-      virtual bool Stopped() { return _stopped; }
+      virtual bool Stopped() const { return _stopped; }
+
+      virtual QString GetStoppedReason() const { return _stop_reason; }
 
     protected:
       /**
@@ -52,6 +62,7 @@ namespace Utils {
     private:
       bool _started;
       bool _stopped;
+      QString _stop_reason;
   };
 }
 }

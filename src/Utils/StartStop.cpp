@@ -21,11 +21,17 @@ namespace Utils {
 
   bool StartStop::Stop()
   {
+    return Stop("Explicit");
+  }
+
+  bool StartStop::Stop(const QString &reason)
+  {
     if(_stopped) {
       return false;
     }
 
     _stopped = true;
+    _stop_reason = reason;
     OnStop();
     return true;
   }
@@ -33,7 +39,7 @@ namespace Utils {
   void StartStop::DestructorCheck()
   {
     if(!Stopped() && Started()) {
-      Stop();
+      Stop("Destructor");
     }
   }
 }
