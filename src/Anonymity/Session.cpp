@@ -264,12 +264,16 @@ namespace Anonymity {
       return;
     }
 
+    int delay = 5000;
+    if(response.GetErrorType() == Response::Other) {
+      delay = 60000;
+    }
     qDebug() << "Unable to register due to" << response.GetError() <<
       "Trying again later.";
 
     Dissent::Utils::TimerCallback *cb =
       new Dissent::Utils::TimerMethod<Session, int>(this, &Session::Register, 0);
-    _register_event = Dissent::Utils::Timer::GetInstance().QueueCallback(cb, 5000);
+    _register_event = Dissent::Utils::Timer::GetInstance().QueueCallback(cb, delay);
   }
 
   bool Session::SendPrepare()
