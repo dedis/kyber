@@ -411,7 +411,7 @@ namespace Connections {
   {
     Edge *edge = qobject_cast<Edge *>(sender());
     _active_addrs.remove(edge->GetRemoteAddress());
-    qDebug() << "Edge closed: " << edge->ToString() << edge->GetStopReason();
+    qDebug() << "Edge closed: " << edge->ToString() << edge->GetStoppedReason();
     if(!_con_tab.RemoveEdge(edge)) {
       qWarning() << "Edge closed but no Edge found in CT:" << edge->ToString();
     }

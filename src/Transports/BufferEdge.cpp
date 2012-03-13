@@ -43,11 +43,6 @@ namespace Transports {
     Timer::GetInstance().QueueCallback(tm, Delay);
   }
 
-  void BufferEdge::OnStop()
-  {
-    Edge::OnStop();
-  }
-
   void BufferEdge::DelayedReceive(const QByteArray &data)
   {
     if(Stopped()) {

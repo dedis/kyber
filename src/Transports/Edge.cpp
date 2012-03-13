@@ -21,14 +21,6 @@ namespace Transports {
         ", Remote: " + _remote_address.ToString());
   }
 
-  bool Edge::Stop(const QString &reason)
-  {
-    if(_stop_reason.isEmpty()) {
-      _stop_reason = reason;
-    }
-    return Dissent::Utils::StartStop::Stop();
-  }
-
   void Edge::OnStop()
   {
     if(!RequiresCleanup()) {

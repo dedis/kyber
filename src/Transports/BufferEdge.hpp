@@ -43,12 +43,6 @@ namespace Transports {
        */
       const int Delay;
 
-    protected:
-      /**
-       * Called as a result of Stop has been called
-       */
-      virtual void OnStop();
-
     private:
       /**
        * On the receiver side, handle an incoming request after it has been

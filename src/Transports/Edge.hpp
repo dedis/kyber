@@ -74,18 +74,7 @@ namespace Transports {
        */
       inline bool Outbound() const { return _outbound; }
 
-      /**
-       * Close the edge
-       * @param reason the reason for closing the edge.
-       */
-      bool Stop(const QString &reason);
-
       QSharedPointer<Edge> GetSharedPointer() { return _edge.toStrongRef(); }
-
-      /**
-       * Returns the reason the Edge was stopped (closed)
-       */
-      QString GetStopReason() const { return _stop_reason; }
 
       void SetSharedPointer(const QSharedPointer<Edge> &edge)
       {
@@ -132,7 +121,6 @@ namespace Transports {
       const Address _remote_address;
       Address _remote_p_addr;
       bool _outbound;
-      QString _stop_reason;
       qint64 _last_incoming;
   };
 }
