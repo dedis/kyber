@@ -9,6 +9,7 @@
 #include "Anonymity/Round.hpp"
 #include "Messaging/BufferSink.hpp"
 #include "Messaging/GetDataCallback.hpp"
+#include "Utils/Timer.hpp"
 #include "Utils/Triple.hpp"
 #include "Utils/Random.hpp"
 
@@ -57,6 +58,7 @@ namespace Tolerant {
         State_Offline,
         State_SigningKeyShuffling,     
         State_ServerUserDataReceiving, // Servers waiting for user data streams
+        State_ServerClientListSharing, // Servers waiting for other servers' client lists
         State_ServerCommitSharing,     // Servers waiting for other server commits
         State_ServerDataSharing,       // Servers waiting for other server data streams
         State_UserFinalDataReceiving,  // Users waiting for final data from their server
@@ -87,8 +89,9 @@ namespace Tolerant {
       enum MessageType {
         MessageType_UserBulkData = 0,
         MessageType_ServerCommitData = 1,
-        MessageType_ServerBulkData = 2,
-        MessageType_ServerFinalData = 3
+        MessageType_ServerClientListData = 2,
+        MessageType_ServerBulkData = 3,
+        MessageType_ServerFinalData = 4
       };
 
       /**
@@ -119,7 +122,7 @@ namespace Tolerant {
       /**
        * Destructor
        */
-      virtual ~TolerantTreeRound() {}
+      virtual ~TolerantTreeRound();
 
       /**
        * Notifies the round that a new peer has joined the session.
@@ -229,6 +232,23 @@ namespace Tolerant {
 
 
       /*******************************************
+       * Server Client List Methods
+       * @param phase for which to send the list -- used to determine
+       *        if this call was triggered by the timer object
+       */
+      void SendServerClientList(const int&);
+
+      /**
+       * Handle commit data from servers
+       */
+      void HandleServerClientListData(QDataStream &stream, const Id &from);
+
+      /**
+       * True when a node has all client lists for a phase
+       */
+      bool HasAllServerClientLists();
+
+      /*******************************************
        * Server Commit Methods
        */
       void SendServerCommit();
@@ -236,7 +256,7 @@ namespace Tolerant {
       /**
        * Generates the server's entire xor message
        */
-      virtual QByteArray GenerateServerXorMessage();
+      virtual QByteArray GenerateServerXorMessage(const QList<uint>& active_clients);
 
       /**
        * Handle commit data from servers
@@ -409,6 +429,12 @@ namespace Tolerant {
       inline void VerifiableSendToServer(const QByteArray &msg) { return VerifiableSend(GetMyServerId(), msg); }
 
       /**
+       * How long to wait each phase before rejecting
+       * user ciphertexts (milliseconds)
+       */
+      inline int GetUserCutoffInterval() { return 10000; }
+
+      /**
        * Send messages to a server's assigned users
        * @param message to send
        */
@@ -538,11 +564,22 @@ namespace Tolerant {
       /**
        * received bulk user and server messages
        */
-      QVector<QByteArray> _user_messages;
+      QHash<uint, QByteArray> _user_messages;
       QVector<QByteArray> _server_messages;
 
       /**
-       * received bulk user and server message packet hashes
+       * received server client lists
+       */
+      uint _received_server_client_lists;
+      QVector<QList<uint> > _server_client_lists;
+
+      /**
+       * Union of all server client lists
+       */
+      QSet<uint> _active_clients_set;
+
+      /**
+       * received server message packet hashes
        */
       uint _received_server_commits;
       QVector<QByteArray> _server_message_digests;
@@ -550,7 +587,6 @@ namespace Tolerant {
       /**
        * Count of received messages
        */
-      uint _received_user_messages;
       uint _received_server_messages;
 
       /**
@@ -600,11 +636,19 @@ namespace Tolerant {
       uint _server_idx;
 
       /**
-       *
+       * Known bad users
        */
       QVector<int> _bad_members;
 
+      /**
+       * List of potential clients of this server
+       */
       QList<Id> _my_users;
+
+      /**
+       * Timer for receiving user ciphertexts
+       */
+      Utils::TimerEvent _timer_user_cutoff;
 
     private slots:
       /**

@@ -446,7 +446,7 @@ namespace Anonymity {
       _current_round->ToString() << "finished due to" <<
       _current_round->GetStoppedReason();
 
-    if(!round->Successful()) {
+    if(!_current_round->Successful()) {
       _trim_send_queue = 0;
     }
 
@@ -457,12 +457,12 @@ namespace Anonymity {
       return;
     }
 
-    const QVector<int> bad = round->GetBadMembers();
-    if(round->GetBadMembers().size() != 0) {
+    const QVector<int> bad = _current_round->GetBadMembers();
+    if(_current_round->GetBadMembers().size() != 0) {
       qWarning() << "Found some bad members...";
       if(IsLeader()) {
         Group group = GetGroup();
-        foreach(int idx, round->GetBadMembers()) {
+        foreach(int idx, _current_round->GetBadMembers()) {
           RemoveMember(group.GetId(idx));
           _bad_members.insert(GetGroup().GetId(idx));
         }

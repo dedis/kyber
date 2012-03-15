@@ -4,9 +4,10 @@
 #include <QByteArray>
 #include <QSharedPointer>
 
+#include "ISender.hpp"
+
 namespace Dissent {
 namespace Messaging {
-  class ISender;
 
   /**
    * Handle asynchronous data input

@@ -4,9 +4,10 @@
 #include <QSharedPointer>
 #include <QVariant>
 
+#include "ISender.hpp"
+
 namespace Dissent {
 namespace Messaging {
-  class ISender;
 
   /**
    * Represents the state of an  Response
