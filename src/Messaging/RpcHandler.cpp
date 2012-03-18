@@ -97,8 +97,8 @@ namespace Messaging {
       return;
     }
 
-    qDebug() << "RpcHandler: Request: Method:" << method << ", from:" << 
-      request.GetFrom()->ToString();
+    qDebug() << "RpcHandler: Request " << request.GetId()  << "Method:" <<
+      method << ", from:" << request.GetFrom()->ToString();
     cb->MakeRequest(request);
   }
 
@@ -140,6 +140,9 @@ namespace Messaging {
     QByteArray msg;
     QDataStream stream(&msg, QIODevice::WriteOnly);
     stream << container;
+
+    qDebug() << "RpcHandler: Sending notification" << id << "for" << method <<
+      "to" << to->ToString();
     to->Send(msg);
   }
 
@@ -161,8 +164,9 @@ namespace Messaging {
     QByteArray msg;
     QDataStream stream(&msg, QIODevice::WriteOnly);
     stream << container;
+    qDebug() << "RpcHandler: Sending request" << id << "for" << method <<
+      "to" << to->ToString();
     to->Send(msg);
-
     return id;
   }
 
@@ -172,6 +176,8 @@ namespace Messaging {
     QByteArray msg;
     QDataStream stream(&msg, QIODevice::WriteOnly);
     stream << container;
+    qDebug() << "RpcHandler: Sending response" << request.GetId() <<
+      "to" << request.GetFrom()->ToString();
     request.GetFrom()->Send(msg);
   }
 
@@ -184,6 +190,8 @@ namespace Messaging {
     QByteArray msg;
     QDataStream stream(&msg, QIODevice::WriteOnly);
     stream << container;
+    qDebug() << "RpcHandler: Sending failed response" << request.GetId() <<
+      "to" << request.GetFrom()->ToString();
     request.GetFrom()->Send(msg);
   }
 
