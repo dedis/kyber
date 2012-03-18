@@ -134,12 +134,6 @@ namespace Anonymity {
       virtual ~ShuffleRound();
 
       /**
-       * Deletes each individual entry in a QVector of AsymmetricKeys
-       * @param keys keys to delete
-       */
-      void DeleteKeys(QVector<AsymmetricKey *> &keys);
-
-      /**
        * Returns the systems current state
        */
       inline State GetState() const { return _state; }

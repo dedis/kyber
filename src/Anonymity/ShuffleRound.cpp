@@ -41,15 +41,6 @@ namespace Anonymity {
   {
   }
 
-  void ShuffleRound::DeleteKeys(QVector<AsymmetricKey *> &keys)
-  {
-    foreach(AsymmetricKey *key, keys) {
-      if(key) {
-        delete key;
-      }
-    }
-  }
-
   QByteArray ShuffleRound::PrepareData()
   {
     QPair<QByteArray, bool> data = GetData(BlockSize);
