@@ -161,6 +161,7 @@ namespace Connections {
     QString type = edge->GetLocalAddress().GetType();
     QSharedPointer<EdgeListener> el = _edge_factory.GetEdgeListener(type);
     request["persistent"] = el->GetAddress().ToString();
+    request["version"] = VERSION;
 
     _rpc->SendRequest(edge, "CM::Inquire", request, _inquired);
   }
@@ -219,18 +220,28 @@ namespace Connections {
     if(!edge) {
       qWarning() << "Received an inquired from a non-Edge: " <<
         request.GetFrom()->ToString();
+      request.Failed(Response::InvalidMessage, "Received on a non-Edge");
       return;
     } else if(edge->Outbound()) {
       qWarning() << "We should never receive an inquire call on an" <<
         "outbound edge: " << request.GetFrom()->ToString();
+      request.Failed(Response::InvalidMessage, "Received on outbound edge");
       return;
     }
 
     QVariantHash data = request.GetData().toHash();
+    if(data.value("version").toInt() != VERSION) {
+      qDebug() << "Received an inquired from a different version." <<
+        "Expected:" << VERSION << "Found:" << data.value("version");
+      request.Failed(Response::InvalidInput, "Invalid version");
+      return;
+    }
+
     QByteArray brem_id = data.value("peer_id").toByteArray();
 
     if(brem_id.isEmpty()) {
       qWarning() << "Invalid Inquire, no id";
+      request.Failed(Response::InvalidInput, "No remote id");
       return;
     }
 
