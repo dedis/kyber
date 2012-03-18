@@ -29,7 +29,7 @@ namespace Transports {
   void TcpEdge::Send(const QByteArray &data)
   {
     if(Stopped()) {
-      qWarning() << "Attempted to send on a closed edge.";
+      qWarning() << "Attempted to send on a closed edge:" << ToString();
       return;
     }
 
