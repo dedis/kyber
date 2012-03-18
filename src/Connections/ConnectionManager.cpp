@@ -178,19 +178,19 @@ namespace Connections {
       if(check_time < last_msg) {
         continue;
       } else if(last_msg < close_time) {
-        qDebug() << "Closing edge:" << edge->ToString();
         QSharedPointer<Connection> con = _con_tab.GetConnection(edge.data());
         if(con && (con->GetRemoteId() == _local_id)) {
           qDebug() << "Attempted to close loopback connection.";
           continue;
         }
+        qDebug() << "Closing edge:" << edge->ToString();
         edge->Stop("Timed out");
       } else {
-        qDebug() << "Testing edge:" << edge->ToString();
         QSharedPointer<Messaging::ISender> sender = _con_tab.GetConnection(edge.data());
         if(!sender) {
           sender = edge;
         }
+        qDebug() << "Testing:" << sender->ToString();
         _rpc->SendRequest(sender, "CM::Ping", QVariant(), _ping_handler, true);
       }
     }
