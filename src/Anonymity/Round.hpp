@@ -244,7 +244,8 @@ namespace Anonymity {
         QSharedPointer<Round> round = GetSharedPointer();
         QCoreApplication::processEvents();
         QCoreApplication::sendPostedEvents();
-        return !Stopped();
+        bool stopped = round->Stopped();
+        return !stopped;
       }
 
     private:
