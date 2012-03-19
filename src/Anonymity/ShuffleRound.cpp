@@ -1,3 +1,5 @@
+#include <QRunnable>
+
 #include "Crypto/CryptoFactory.hpp"
 #include "Utils/Serialization.hpp"
 #include "Utils/QRunTimeError.hpp"
@@ -5,14 +7,19 @@
 #include "ShuffleRound.hpp"
 #include "ShuffleBlamer.hpp"
 
-using Dissent::Crypto::CryptoFactory;
-using Dissent::Crypto::Hash;
-using Dissent::Crypto::Library;
-using Dissent::Crypto::OnionEncryptor;
-using Dissent::Utils::QRunTimeError;
 
 namespace Dissent {
+
+using Crypto::CryptoFactory;
+using Crypto::Hash;
+using Crypto::Library;
+using Crypto::OnionEncryptor;
+using Utils::QRunTimeError;
+
 namespace Anonymity {
+
+using namespace ShuffleRoundPrivate;
+
   const QByteArray ShuffleRound::DefaultData = QByteArray(ShuffleRound::BlockSize + 4, 0);
 
   ShuffleRound::ShuffleRound(const Group &group,
@@ -35,6 +42,7 @@ namespace Anonymity {
     _blame_signatures(GetGroup().Count()),
     _received_blame_verification(GetGroup().Count(), false)
   {
+    RegisterMetaTypes();
   }
 
   ShuffleRound::~ShuffleRound()
@@ -639,27 +647,22 @@ namespace Anonymity {
   {
     _state = Decryption;
 
-    QVector<QByteArray> cleartexts = _encrypted_data;
+    Decryptor *decryptor = new Decryptor(_private_inner_keys, _encrypted_data);
+    qDebug() << QObject::connect(decryptor,
+        SIGNAL(Finished(const QVector<QByteArray> &, const QVector<int> &)),
+        this,
+        SLOT(DecryptDone(const QVector<QByteArray> &, const QVector<int> &)), Qt::QueuedConnection);
+    QThreadPool::globalInstance()->start(decryptor);
+  }
 
-    foreach(const QSharedPointer<AsymmetricKey> &key, _private_inner_keys) {
-      QVector<QByteArray> tmp;
-      QVector<int> bad;
-
-      OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
-
-      if(!oe->Decrypt(key, cleartexts, tmp, &bad)) {
-        qWarning() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
-          ": failed to decrypt final layers due to block at index" << bad;
-        _state = Finished;
-        Stop("Round unsuccessfully finished.");
-        return;
-      }
-
-      cleartexts = tmp;
-
-      if(!ProcessEvents()) {
-        return;
-      }
+  void ShuffleRound::DecryptDone(const QVector<QByteArray> &cleartexts,
+      const QVector<int> &bad)
+  {
+    if(!bad.isEmpty()) {
+      qWarning() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
+        ": failed to decrypt final layers due to block at index" << bad;
+      _state = Finished;
+      Stop("Round unsuccessfully finished.");
     }
 
     foreach(QByteArray cleartext, cleartexts) {
@@ -779,5 +782,28 @@ namespace Anonymity {
     _state = Finished;
     Stop("Round caused blame and finished unsuccessfully.");
   }
+
+namespace ShuffleRoundPrivate {
+  void Decryptor::run()
+  {
+    QVector<QByteArray> cleartexts = _encrypted_data;
+
+    foreach(const QSharedPointer<AsymmetricKey> &key, _keys) {
+      QVector<QByteArray> tmp;
+      QVector<int> bad;
+
+      OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
+
+      if(!oe->Decrypt(key, cleartexts, tmp, &bad)) {
+        emit Finished(QVector<QByteArray>(), bad);
+        return;
+      }
+
+      cleartexts = tmp;
+    }
+
+    emit Finished(cleartexts, QVector<int>());
+  }
+}
 }
 }

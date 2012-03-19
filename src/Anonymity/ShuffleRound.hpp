@@ -462,7 +462,59 @@ namespace Anonymity {
        * List of the index of all bad peers
        */
       QVector<int> _bad_members;
+
+    private slots:
+      void DecryptDone(const QVector<QByteArray> &cleartexts,
+          const QVector<int> &bad);
+
+    private:
+      static void RegisterMetaTypes()
+      {
+        static bool registered = false;
+        if(registered) {
+          return;
+        }
+        registered = true;
+        qRegisterMetaType<QVector<int> >("QVector<int>");
+        qRegisterMetaType<QVector<QByteArray> >("QVector<QByteArray>");
+      }
   };
+
+namespace ShuffleRoundPrivate {
+  /**
+   * A class for handling decryption in another thread.
+   * Decryption can be quite slow and incoming pings will not be responded to
+   * thus the remote node will appear offline and a connection will be broken.
+   * By placing this in another thread, this will not be a concern.
+   */
+  class Decryptor : public QObject, public QRunnable {
+    Q_OBJECT
+
+    public:
+      typedef Crypto::AsymmetricKey AsymmetricKey;
+
+      Decryptor(const QVector<QSharedPointer<AsymmetricKey> > &keys,
+          const QVector<QByteArray> encrypted_data) :
+        _keys(keys),
+        _encrypted_data(encrypted_data)
+      {
+      }
+
+      virtual ~Decryptor()
+      {
+      }
+
+      virtual void run();
+
+    signals:
+      void Finished(const QVector<QByteArray> &cleartexts,
+          const QVector<int> &bad);
+
+    private:
+      QVector<QSharedPointer<AsymmetricKey> > _keys;
+      QVector<QByteArray> _encrypted_data;
+  };
+}
 }
 }
 
