@@ -1,5 +1,7 @@
-#include "Timer.hpp"
 #include <QDebug>
+
+#include "Sleeper.hpp"
+#include "Timer.hpp"
 
 namespace Dissent {
 namespace Utils {
@@ -122,7 +124,17 @@ namespace Utils {
     if(_real_time) {
       return -1;
     }
-    return Run();
+
+    qint64 next = Run();
+    if(next == -1 && QThreadPool::globalInstance()->activeThreadCount()) {
+      Sleeper::MSleep(100);
+      next = 0;
+    }
+
+    QCoreApplication::processEvents();
+    QCoreApplication::sendPostedEvents();
+
+    return next;
   }
 
   void Timer::Clear()
