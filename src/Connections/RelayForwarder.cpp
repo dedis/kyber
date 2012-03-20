@@ -49,7 +49,6 @@ namespace Connections {
       return;
     }
 
-
     if(been.isEmpty() || !Reverse(to, data, QStringList(), been)) {
       Forward(to, data, QStringList());
     }
@@ -110,7 +109,7 @@ namespace Connections {
     QStringList nreverse;
     for(int idx = 0; idx < reverse.count(); idx++) {
       con = _ct.GetConnection(Id(reverse[idx]));
-      if(con) {
+      if(con && !con->GetEdge().dynamicCast<RelayEdge>()) {
         Send(con, to, data, been, reverse.mid(0, idx));
         return true;
       }
