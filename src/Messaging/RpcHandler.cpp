@@ -100,12 +100,22 @@ namespace Messaging {
     qDebug() << "RpcHandler: Request " << request.GetId()  << "Method:" <<
       method << ", from:" << request.GetFrom()->ToString();
     cb->MakeRequest(request);
+#ifdef RESPOND_NOTIFICATION
+    if(request.GetType() == Request::NotificationType) {
+      request.Respond(Request::NotificationType);
+    }
+#endif
   }
 
   void RpcHandler::HandleResponse(const Response &response)
   {
     int id = response.GetId();
     if(id == 0) {
+#ifdef RESPOND_NOTIFICATION
+      if(response.GetData().toString() == Request::NotificationType) {
+        return;
+      }
+#endif
       qWarning() << "RpcHandler: Response: No ID, from" <<
         response.GetFrom()->ToString();
       return;
@@ -113,6 +123,9 @@ namespace Messaging {
 
     QSharedPointer<RequestState> state = _requests[id];
     if(!state) {
+      if(response.GetData().toString() == Request::NotificationType) {
+        return;
+      }
       qWarning() << "RpcHandler: Response: No handler for" << id;
       return;
     }
