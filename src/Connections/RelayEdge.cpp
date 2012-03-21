@@ -41,6 +41,7 @@ namespace Connections {
     msg["data"] = data;
 
     _rpc->SendNotification(_forwarder, "REL::Data", msg);
+    Sent();
   }
 
   void RelayEdge::PushData(const QByteArray &data)

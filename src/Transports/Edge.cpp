@@ -15,6 +15,12 @@ namespace Transports {
   {
   }
 
+  QByteArray Edge::PingPacket()
+  {
+    static QByteArray packet(16, char(0));
+    return packet;
+  }
+
   QString Edge::ToString() const
   {
     return QString("Edge, Local: " + _local_address.ToString() +

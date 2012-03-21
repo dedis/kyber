@@ -41,6 +41,7 @@ namespace Transports {
     {
       qCritical() << "Didn't write all data to the socket!!!!!";
     }
+    Sent();
   }
 
   void TcpEdge::Read()

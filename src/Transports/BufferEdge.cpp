@@ -41,6 +41,7 @@ namespace Transports {
         rem_edge.dynamicCast<BufferEdge>(),
         &BufferEdge::DelayedReceive, data);
     Timer::GetInstance().QueueCallback(tm, Delay);
+    Sent();
   }
 
   void BufferEdge::DelayedReceive(const QByteArray &data)

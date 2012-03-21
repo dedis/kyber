@@ -86,6 +86,15 @@ namespace Transports {
        */
       virtual qint64 GetLastIncomingMessage() const { return _last_incoming; }
 
+      /**
+       * Gets the time for the last outgoing packet
+       */
+      virtual qint64 GetLastOutgoingMessage() const { return _last_outgoing; }
+
+      static QByteArray PingPacket();
+
+      static const int MaximumInterpacketDelay = 15000;
+
     signals:
       void StoppedSignal();
 
@@ -97,7 +106,17 @@ namespace Transports {
           const QByteArray &data)
       {
         _last_incoming = Utils::Time::GetInstance().MSecsSinceEpoch();
+        if(data == PingPacket()) {
+          return;
+        } else if(_last_incoming - _last_outgoing > MaximumInterpacketDelay) {
+          Send(PingPacket());
+        }
         SourceObject::PushData(from, data);
+      }
+
+      inline void Sent()
+      {
+        _last_outgoing = Utils::Time::GetInstance().MSecsSinceEpoch();
       }
 
       /**
@@ -122,6 +141,7 @@ namespace Transports {
       Address _remote_p_addr;
       bool _outbound;
       qint64 _last_incoming;
+      qint64 _last_outgoing;
   };
 }
 }
