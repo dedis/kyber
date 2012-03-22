@@ -126,10 +126,9 @@ namespace Utils {
     }
 
     qint64 next = Run();
-    if(next == -1 && QThreadPool::globalInstance()->activeThreadCount()) {
-      Sleeper::MSleep(100);
-      next = 0;
-    }
+    // @TODO make Utils::ThreadPool that for virtual clock runs the task
+    // inline as opposed to another thread
+    QThreadPool::globalInstance()->waitForDone();
 
     QCoreApplication::processEvents();
     QCoreApplication::sendPostedEvents();
