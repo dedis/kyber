@@ -238,6 +238,10 @@ namespace Anonymity {
       }
     }
 
+    if(_set) {
+      return;
+    }
+
     // Check intermediary steps
     for(int idx = 0; idx < last_shuffle; idx++) {
       int pidx = _group.GetIndex(_shufflers.GetId(idx));
