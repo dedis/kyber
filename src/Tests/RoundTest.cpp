@@ -454,12 +454,12 @@ namespace Tests {
     }
 
     if(transient) {
+      TestNode *disc_node = nodes[disconnector];
+
       QList<QSharedPointer<Connection> > cons =
-        nodes[disconnector]->cm->GetConnectionTable().GetConnections();
+        disc_node->cm->GetConnectionTable().GetConnections();
       int other_disconnector = Random::GetInstance().GetInt(0, cons.size());
-      while(cons[other_disconnector]->GetRemoteId() ==
-          nodes[disconnector]->cm->GetId())
-      {
+      while(cons[other_disconnector]->GetRemoteId() == disc_node->cm->GetId()) {
         other_disconnector = Random::GetInstance().GetInt(0, cons.size());
       }
 
@@ -479,36 +479,39 @@ namespace Tests {
       }
 
       QSharedPointer<Connection> other_con = nodes[other_disconnector]->cm->
-        GetConnectionTable().GetConnection(nodes[disconnector]->cm->GetId());
+        GetConnectionTable().GetConnection(disc_node->cm->GetId());
       QObject::connect(other_con->GetEdge().data(),
           SIGNAL(StoppedSignal()), &edge_close, SLOT(Counter()));
       other_con->Disconnect();
 
       qDebug() << "Disconnecting";
 
-      qint64 next = Timer::GetInstance().VirtualRun();
-      while(next != -1 && edge_close.GetCount() < 2) {
-        Time::GetInstance().IncrementVirtualClock(next);
-        next = Timer::GetInstance().VirtualRun();
-      }
+      RunUntil(edge_close, 2);
 
       qDebug() << "Finished disconnecting";
 
-      nodes[disconnector]->cm->ConnectTo(remote);
+      disc_node->cm->ConnectTo(remote);
+
+      SignalCounter round_start;
+      QObject::connect(disc_node->sm.GetDefaultSession().data(),
+          SIGNAL(RoundStarting(const QSharedPointer<Round> &)),
+          &round_start, SLOT(Counter()));
+      RunUntil(round_start, 1);
+      if(sc_data.GetCount() > 1) {
+        count -= 1;
+      }
     } else {
       nodes[disconnector]->cm->Stop();
       count -= 1;
     }
 
-    sc_data.Reset();
-    next = Timer::GetInstance().VirtualRun();
-    while(next != -1 && sc_data.GetCount() < count) {
-      Time::GetInstance().IncrementVirtualClock(next);
-      next = Timer::GetInstance().VirtualRun();
-    }
+    RunUntil(sc_data, count);
 
     for(int idx = 0; idx < nodes.count(); idx++) {
-      if((idx == disconnector) && !transient) {
+      if((idx == disconnector) && count != nodes.count()) {
+        if(transient) {
+          std::cout << "disconnector didn't receive message due to timing delays";
+        }
         continue;
       }
       TestNode *node = nodes[idx];
