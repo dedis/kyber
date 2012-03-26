@@ -156,6 +156,16 @@ namespace Tolerant {
     }
   }
 
+  void TolerantTreeRound::HandleDisconnect(const Id &id)
+  {
+    if(GetGroup().GetSubgroup().Contains(id)) {
+      SetInterrupted();
+      Stop("Server " + QString(id.ToString() + " disconnected"));
+    } else {
+      qDebug() << "Ignoring disconnected client" << id.ToString();
+    }
+  }
+
   void TolerantTreeRound::ProcessData(const Id &from, const QByteArray &data)
   {
     _log.Append(data, from);

@@ -166,6 +166,12 @@ namespace Tolerant {
         VerifiableSend(GetGroup().GetLeader(), msg);
       }
 
+      /**
+       * If the ConnectionTable has a disconnect, the round may need to react
+       * @param id the peer that was disconnected
+       */
+      virtual void HandleDisconnect(const Id &id);
+
     protected:
       /**
        * Called when the BulkRound is started
