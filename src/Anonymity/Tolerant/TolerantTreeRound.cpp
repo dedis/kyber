@@ -343,6 +343,8 @@ namespace Tolerant {
     // Stop accepting new messages 
     ChangeState(State_ServerClientListSharing);
 
+    qDebug() << "My clients:" << _user_messages.keys();
+
     // Commit to next data packet
     QByteArray packet;
     QDataStream stream(&packet, QIODevice::WriteOnly);
