@@ -677,12 +677,9 @@ namespace Tolerant {
       return base.mid(8);
     } 
 
-    if(_active_clients_set.contains(member_idx)) {
-      // What to do if sig doesn't verify
-      qWarning() << "Verification failed for message of length" << (base.size()-8) << "for ACTIVE slot owner" << member_idx;
-    } else {
-      qDebug() << "Ignoring bad signature on slot of non-active member" << member_idx;
-    }
+    // What to do if sig doesn't verify
+    qWarning() << "Verification failed for message of length" << (base.size()-8) << ", slot: " << member_idx
+      << "Message was either tampered with or user is offline";
 
     // Round should still go ahead even if verification
     // fails b/c of blame process
