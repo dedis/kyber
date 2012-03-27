@@ -107,6 +107,9 @@ namespace Crypto {
        */
       virtual int GetKeySize() const = 0;
 
+      virtual bool SupportsEncryption() { return true; }
+      virtual bool SupportsVerification() { return true; }
+
     protected:
       /**
        * Reads the contents of the file into the provided QByteArray, returns
