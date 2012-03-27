@@ -2,86 +2,26 @@
 
 namespace Dissent {
 namespace Tests {
+
   void AsymmetricKeyTest(Library *lib)
   {
-    QScopedPointer<Random> rng(lib->GetRandomNumberGenerator());
-    QByteArray data(1500, 0);
-    rng->GenerateBlock(data);
-    QByteArray other(1500, 0);
-    rng->GenerateBlock(other);
-
-    QScopedPointer<AsymmetricKey> key0(lib->CreatePrivateKey());
-    EXPECT_TRUE(key0->IsValid());
-    key0->Save("private_key");
-    QScopedPointer<AsymmetricKey> key1(lib->LoadPrivateKeyFromFile(QString("private_key")));
-    EXPECT_TRUE(key1->IsValid());
-
-    QByteArray out0_0 = key0->Encrypt(data);
-    QByteArray out1_0 = key1->Encrypt(data);
-    QByteArray out0_1 = key0->Decrypt(out0_0);
-    QByteArray out1_1 = key1->Decrypt(out1_0);
-
-    EXPECT_NE(out0_0, out1_0);
-    EXPECT_EQ(data, out0_1);
-    EXPECT_EQ(data, out1_1);
-    EXPECT_NE(other, out0_1);
-    EXPECT_NE(other, out1_1);
-    EXPECT_NE(data, other);
-
-    QScopedPointer<AsymmetricKey> prv_key(lib->CreatePrivateKey());
-    QByteArray msig = prv_key->Sign(data);
-    QScopedPointer<AsymmetricKey> pub_key(prv_key->GetPublicKey());
-    QByteArray pk_bytes = pub_key->GetByteArray();
-
-    QScopedPointer<AsymmetricKey> pub_key2(lib->LoadPublicKeyFromByteArray(pk_bytes));
-    EXPECT_TRUE(pub_key2->Verify(data, msig));
-
-    QScopedPointer<AsymmetricKey> prv_key3(lib->CreatePrivateKey());
-    QScopedPointer<AsymmetricKey> pub_key3(prv_key3->GetPublicKey());
-    QByteArray pk_bytes3 = pub_key3->GetByteArray();
-
-    EXPECT_NE(pk_bytes, pk_bytes3);
-
-    QByteArray sig0 = key0->Sign(data);
-    QByteArray sig1 = key1->Sign(data);
-
-    EXPECT_EQ(sig0, sig1);
-    EXPECT_TRUE(key0->Verify(data, sig0));
-    EXPECT_TRUE(key0->Verify(data, sig1));
-    EXPECT_TRUE(key1->Verify(data, sig0));
-    EXPECT_TRUE(key1->Verify(data, sig1));
-
+    QScopedPointer<AsymmetricKey> key0(lib->CreatePrivateKey()); EXPECT_TRUE(key0->IsValid());
     QScopedPointer<AsymmetricKey> pu_key0(key0->GetPublicKey());
     EXPECT_TRUE(pu_key0->IsValid());
+
+    key0->Save("private_key");
+    QScopedPointer<AsymmetricKey> key0_0(
+        lib->LoadPrivateKeyFromFile(QString("private_key")));
+    EXPECT_TRUE(key0_0->IsValid());
+
     pu_key0->Save("public_key");
-    QScopedPointer<AsymmetricKey> pu_key1(lib->LoadPublicKeyFromFile(QString("public_key")));
-    EXPECT_TRUE(pu_key1->IsValid());
+    QScopedPointer<AsymmetricKey> pu_key0_0(
+        lib->LoadPublicKeyFromFile(QString("public_key")));
+    EXPECT_TRUE(pu_key0_0->IsValid());
 
-    EXPECT_TRUE(pu_key0->Sign(data).isEmpty());
-    EXPECT_TRUE(pu_key0->Decrypt(out0_0).isEmpty());
-    EXPECT_TRUE(pu_key1->Sign(data).isEmpty());
-    EXPECT_TRUE(pu_key1->Decrypt(out0_0).isEmpty());
-
-    EXPECT_TRUE(pu_key0->Verify(data, sig0));
-    EXPECT_TRUE(pu_key0->Verify(data, sig1));
-    EXPECT_TRUE(pu_key1->Verify(data, sig0));
-    EXPECT_TRUE(pu_key1->Verify(data, sig1));
-
-    out0_0 = pu_key0->Encrypt(data);
-    out1_0 = pu_key1->Encrypt(data);
-    out0_1 = key0->Decrypt(out0_0);
-    out1_1 = key1->Decrypt(out1_0);
-
-    EXPECT_NE(out0_0, out1_0);
-    EXPECT_EQ(data, out0_1);
-    EXPECT_EQ(data, out1_1);
-    EXPECT_NE(other, out0_1);
-    EXPECT_NE(other, out1_1);
-    EXPECT_NE(data, other);
-
-    key1.reset(lib->CreatePrivateKey());
-    pu_key1.reset(key1->GetPublicKey());
+    QScopedPointer<AsymmetricKey> key1(lib->CreatePrivateKey());
     EXPECT_TRUE(key1->IsValid());
+    QScopedPointer<AsymmetricKey> pu_key1(key1->GetPublicKey());
     EXPECT_TRUE(pu_key1->IsValid());
 
     EXPECT_FALSE(pu_key0->VerifyKey(*pu_key0));
@@ -103,6 +43,112 @@ namespace Tests {
     EXPECT_TRUE(key1->VerifyKey(*pu_key1));
     EXPECT_FALSE(key1->VerifyKey(*key0));
     EXPECT_FALSE(key1->VerifyKey(*key1));
+
+    QScopedPointer<Random> rng(lib->GetRandomNumberGenerator());
+    QByteArray data(1500, 0);
+    rng->GenerateBlock(data);
+    QByteArray small_data(10, 0);
+    rng->GenerateBlock(small_data);
+    QByteArray empty;
+
+    QScopedPointer<AsymmetricKey> bad_key_mem(
+        lib->LoadPrivateKeyFromByteArray(data));
+    EXPECT_TRUE(!bad_key_mem->IsValid());
+    QScopedPointer<AsymmetricKey> empty_key(bad_key_mem->GetPublicKey());
+    EXPECT_TRUE(empty_key.isNull());
+
+    QString filename = "test_private_key_load";
+    EXPECT_FALSE(QFile(filename).exists());
+    QScopedPointer<AsymmetricKey> bad_key_file(
+        lib->LoadPrivateKeyFromFile(filename));
+
+    EXPECT_FALSE(bad_key_file->IsValid());
+    empty_key.reset(bad_key_file->GetPublicKey());
+    EXPECT_TRUE(empty_key.isNull());
+
+    if(key0->SupportsVerification()) {
+      QByteArray sig0 = key0->Sign(data);
+      QByteArray sig1 = key0_0->Sign(data);
+
+      EXPECT_EQ(sig0, sig1);
+      EXPECT_TRUE(pu_key0->Verify(data, sig0));
+      EXPECT_TRUE(pu_key0->Verify(data, sig1));
+      EXPECT_TRUE(pu_key0_0->Verify(data, sig0));
+      EXPECT_TRUE(pu_key0_0->Verify(data, sig1));
+
+      EXPECT_TRUE(pu_key0->Sign(data).isEmpty());
+      EXPECT_TRUE(pu_key1->Sign(data).isEmpty());
+
+      EXPECT_TRUE(key0->Verify(data, sig0));
+      EXPECT_TRUE(key0->Verify(data, sig1));
+      EXPECT_TRUE(key0_0->Verify(data, sig0));
+      EXPECT_TRUE(key0_0->Verify(data, sig1));
+
+      QByteArray sig = key1->Sign(data);
+      EXPECT_TRUE(key1->Verify(data, sig));
+      EXPECT_FALSE(key0->Verify(data, sig));
+      sig = key1->Sign(small_data);
+      EXPECT_TRUE(key1->Verify(small_data, sig));
+      EXPECT_FALSE(key0->Verify(small_data, sig));
+      sig = key1->Sign(empty);
+      EXPECT_TRUE(key1->Verify(empty, sig));
+      EXPECT_FALSE(key0->Verify(empty, sig));
+
+      EXPECT_FALSE(key0->Verify(data, empty));
+      EXPECT_FALSE(key0->Verify(data, small_data));
+      EXPECT_FALSE(key0->Verify(data, data));
+
+      EXPECT_FALSE(bad_key_mem->Verify(data, bad_key_mem->Sign(data)));
+      EXPECT_FALSE(bad_key_file->Verify(data, bad_key_file->Sign(data)));
+    }
+
+    if(key0->SupportsEncryption()) {
+      QByteArray out0_0 = key0->Encrypt(data);
+      QByteArray out1_0 = key0_0->Encrypt(data);
+      QByteArray out0_1 = key0->Decrypt(out0_0);
+      QByteArray out1_1 = key0_0->Decrypt(out1_0);
+
+      QByteArray other(1500, 0);
+      rng->GenerateBlock(other);
+
+      EXPECT_NE(out0_0, out1_0);
+      EXPECT_EQ(data, out0_1);
+      EXPECT_EQ(data, out1_1);
+      EXPECT_NE(other, out0_1);
+      EXPECT_NE(other, out1_1);
+      EXPECT_NE(data, other);
+
+      out0_0 = pu_key0->Encrypt(data);
+      out1_0 = pu_key0_0->Encrypt(data);
+      out0_1 = key0->Decrypt(out0_0);
+      out1_1 = key0_0->Decrypt(out1_0);
+
+      EXPECT_NE(out0_0, out1_0);
+      EXPECT_EQ(data, out0_1);
+      EXPECT_EQ(data, out1_1);
+      EXPECT_NE(other, out0_1);
+      EXPECT_NE(other, out1_1);
+      EXPECT_NE(data, other);
+
+      EXPECT_TRUE(pu_key0->Decrypt(out0_0).isEmpty());
+      EXPECT_TRUE(pu_key0_0->Decrypt(out0_0).isEmpty());
+
+      EXPECT_TRUE(key0->Decrypt(data).isEmpty());
+      EXPECT_TRUE(key1->Decrypt(small_data).isEmpty());
+      EXPECT_TRUE(key1->Decrypt(empty).isEmpty());
+
+      QByteArray ciphertext = key0->Encrypt(data);
+      EXPECT_TRUE(key1->Decrypt(ciphertext).isEmpty());
+
+      ciphertext = key1->Encrypt(empty);
+      EXPECT_EQ(key1->Decrypt(ciphertext), empty);
+
+      EXPECT_TRUE(bad_key_mem->Encrypt(data).isEmpty());
+      EXPECT_TRUE(bad_key_mem->Decrypt(key1->Encrypt(data)).isEmpty());
+
+      EXPECT_TRUE(bad_key_file->Encrypt(data).isEmpty());
+      EXPECT_TRUE(bad_key_file->Decrypt(key1->Encrypt(data)).isEmpty());
+    }
   }
 
   void AsymmetricKeySerialization()
@@ -126,79 +172,6 @@ namespace Tests {
 
     EXPECT_EQ(*key, *key0);
     EXPECT_EQ(*pkey, *pkey0);
-  }
-
-  void AsymmetricKeyFail(Library *lib)
-  {
-    CppRandom rng;
-    QByteArray data(1500, 0);
-    rng.GenerateBlock(data);
-    QByteArray small_data(10, 0);
-    rng.GenerateBlock(small_data);
-    QByteArray empty;
-
-    QScopedPointer<AsymmetricKey> key0(lib->CreatePrivateKey());
-    QScopedPointer<AsymmetricKey> key1(lib->CreatePrivateKey());
-    EXPECT_TRUE(key0->IsValid());
-    EXPECT_TRUE(key1->IsValid());
-
-    EXPECT_TRUE(key0->Decrypt(data).isEmpty());
-    EXPECT_TRUE(key1->Decrypt(small_data).isEmpty());
-    EXPECT_TRUE(key1->Decrypt(empty).isEmpty());
-
-    QByteArray ciphertext = key0->Encrypt(data);
-    EXPECT_TRUE(key1->Decrypt(ciphertext).isEmpty());
-
-    ciphertext = key1->Encrypt(empty);
-    EXPECT_EQ(key1->Decrypt(ciphertext), empty);
-
-    QByteArray sig = key1->Sign(data);
-    EXPECT_TRUE(key1->Verify(data, sig));
-    EXPECT_FALSE(key0->Verify(data, sig));
-    sig = key1->Sign(small_data);
-    EXPECT_TRUE(key1->Verify(small_data, sig));
-    EXPECT_FALSE(key0->Verify(small_data, sig));
-    sig = key1->Sign(empty);
-    EXPECT_TRUE(key1->Verify(empty, sig));
-    EXPECT_FALSE(key0->Verify(empty, sig));
-
-    EXPECT_FALSE(key0->Verify(data, empty));
-    EXPECT_FALSE(key0->Verify(data, small_data));
-    EXPECT_FALSE(key0->Verify(data, data));
-
-    key1.reset(lib->LoadPrivateKeyFromByteArray(data));
-    EXPECT_TRUE(!key1->IsValid());
-    EXPECT_TRUE(key1->Encrypt(data).isEmpty());
-    EXPECT_TRUE(key1->Decrypt(key1->Encrypt(data)).isEmpty());
-    EXPECT_FALSE(key1->Verify(data, key1->Sign(data)));
-    QScopedPointer<AsymmetricKey> empty_key(key1->GetPublicKey());
-    EXPECT_TRUE(empty_key.isNull());
-
-    QString filename = "test_private_key_load";
-    EXPECT_FALSE(QFile(filename).exists());
-    key1.reset(lib->LoadPrivateKeyFromFile(filename));
-    EXPECT_TRUE(!key1->IsValid());
-    EXPECT_TRUE(key1->Encrypt(data).isEmpty());
-    EXPECT_TRUE(key1->Decrypt(key1->Encrypt(data)).isEmpty());
-    EXPECT_FALSE(key1->Verify(data, key1->Sign(data)));
-    empty_key.reset(key1->GetPublicKey());
-    EXPECT_TRUE(empty_key.isNull());
-
-    key1.reset(lib->LoadPublicKeyFromByteArray(data));
-    EXPECT_TRUE(!key1->IsValid());
-    EXPECT_TRUE(key1->Encrypt(data).isEmpty());
-    EXPECT_TRUE(key1->Decrypt(key1->Encrypt(data)).isEmpty());
-    EXPECT_FALSE(key1->Verify(data, key1->Sign(data)));
-    empty_key.reset(key1->GetPublicKey());
-    EXPECT_TRUE(empty_key.isNull());
-
-    key1.reset(lib->LoadPublicKeyFromFile(filename));
-    EXPECT_TRUE(!key1->IsValid());
-    EXPECT_TRUE(key1->Encrypt(data).isEmpty());
-    EXPECT_TRUE(key1->Decrypt(key1->Encrypt(data)).isEmpty());
-    EXPECT_FALSE(key1->Verify(data, key1->Sign(data)));
-    empty_key.reset(key1->GetPublicKey());
-    EXPECT_TRUE(empty_key.isNull());
   }
 
   void KeyGenerationFromIdTest(Library *lib)
@@ -230,16 +203,20 @@ namespace Tests {
     EXPECT_EQ(pu_key0->GetByteArray(), pu_key0_0->GetByteArray());
     EXPECT_EQ(pr_key0->GetByteArray(), pr_key0_0->GetByteArray());
 
-    QByteArray enc = pu_key0->Encrypt(data);
-    QByteArray dec0 = pr_key0->Decrypt(enc);
-    QByteArray dec0_0 = pr_key0_0->Decrypt(enc);
-    EXPECT_EQ(data, dec0);
-    EXPECT_EQ(data, dec0_0);
+    if(pu_key0->SupportsEncryption()) {
+      QByteArray enc = pu_key0->Encrypt(data);
+      QByteArray dec0 = pr_key0->Decrypt(enc);
+      QByteArray dec0_0 = pr_key0_0->Decrypt(enc);
+      EXPECT_EQ(data, dec0);
+      EXPECT_EQ(data, dec0_0);
+    }
 
-    QByteArray sig0 = pr_key0->Sign(data);
-    QByteArray sig0_0 = pr_key0_0->Sign(data);
-    EXPECT_TRUE(pu_key0->Verify(data, sig0));
-    EXPECT_TRUE(pu_key0->Verify(data, sig0_0));
+    if(pu_key0->SupportsVerification()) {
+      QByteArray sig0 = pr_key0->Sign(data);
+      QByteArray sig0_0 = pr_key0_0->Sign(data);
+      EXPECT_TRUE(pu_key0->Verify(data, sig0));
+      EXPECT_TRUE(pu_key0->Verify(data, sig0_0));
+    }
   }
 
   void DiffieHellmanTest(Library *lib)
@@ -271,6 +248,28 @@ namespace Tests {
     EXPECT_EQ(dh3_0->GetPrivateComponent(), dh3_1->GetPrivateComponent());
   }
 
+  void ZeroKnowledgeTest(Library* lib, bool test_bit_flip) 
+  {
+    QScopedPointer<DiffieHellman> dhA(lib->CreateDiffieHellman());
+    QScopedPointer<DiffieHellman> dhB(lib->CreateDiffieHellman());
+    QScopedPointer<DiffieHellman> dhC(lib->CreateDiffieHellman());
+
+    QByteArray shared_A_B = dhA->GetSharedSecret(dhB->GetPublicComponent());
+    QByteArray shared_B_A = dhB->GetSharedSecret(dhA->GetPublicComponent());
+    EXPECT_EQ(shared_A_B, shared_B_A);
+
+    QByteArray proof_A = dhA->ProveSharedSecret(dhB->GetPublicComponent());
+    QByteArray verif_A = dhC->VerifySharedSecret(dhA->GetPublicComponent(), dhB->GetPublicComponent(), proof_A);
+    EXPECT_EQ(shared_A_B, verif_A);
+
+    if(test_bit_flip) {
+      int idx = proof_A.size()-1;
+      proof_A[idx] = !proof_A[idx];
+      QByteArray verif_A2 = dhC->VerifySharedSecret(dhA->GetPublicComponent(), dhB->GetPublicComponent(), proof_A);
+      EXPECT_EQ(QByteArray(), verif_A2);
+    }
+  }
+
   TEST(Crypto, CppAsymmetricKey)
   {
     QScopedPointer<Library> lib(new CppLibrary());
@@ -278,18 +277,6 @@ namespace Tests {
 
     QScopedPointer<AsymmetricKey> key(lib->CreatePrivateKey());
     EXPECT_EQ(key->GetKeySize(), AsymmetricKey::DefaultKeySize);
-  }
-
-  TEST(Crypto, CppAsymmetricKeyFail)
-  {
-    QScopedPointer<Library> lib(new CppLibrary());
-    AsymmetricKeyFail(lib.data());
-  }
-
-  TEST(Crypto, CppKeyGenerationFromId)
-  {
-    QScopedPointer<Library> lib(new CppLibrary());
-    KeyGenerationFromIdTest(lib.data());
   }
 
   TEST(Crypto, CppKeySerialization)
@@ -305,18 +292,6 @@ namespace Tests {
   {
     QScopedPointer<Library> lib(new NullLibrary());
     AsymmetricKeyTest(lib.data());
-  }
-
-  TEST(Crypto, NullAsymmetricKeyFail)
-  {
-    QScopedPointer<Library> lib(new NullLibrary());
-    AsymmetricKeyFail(lib.data());
-  }
-
-  TEST(Crypto, NullKeyGenerationFromId)
-  {
-    QScopedPointer<Library> lib(new NullLibrary());
-    KeyGenerationFromIdTest(lib.data());
   }
 
   TEST(Crypto, NullKeySerialization)
@@ -338,28 +313,6 @@ namespace Tests {
   {
     QScopedPointer<Library> lib(new NullLibrary());
     DiffieHellmanTest(lib.data());
-  }
-
-  void ZeroKnowledgeTest(Library* lib, bool test_bit_flip) 
-  {
-    QScopedPointer<DiffieHellman> dhA(lib->CreateDiffieHellman());
-    QScopedPointer<DiffieHellman> dhB(lib->CreateDiffieHellman());
-    QScopedPointer<DiffieHellman> dhC(lib->CreateDiffieHellman());
-
-    QByteArray shared_A_B = dhA->GetSharedSecret(dhB->GetPublicComponent());
-    QByteArray shared_B_A = dhB->GetSharedSecret(dhA->GetPublicComponent());
-    EXPECT_EQ(shared_A_B, shared_B_A);
-
-    QByteArray proof_A = dhA->ProveSharedSecret(dhB->GetPublicComponent());
-    QByteArray verif_A = dhC->VerifySharedSecret(dhA->GetPublicComponent(), dhB->GetPublicComponent(), proof_A);
-    EXPECT_EQ(shared_A_B, verif_A);
-
-    if(test_bit_flip) {
-      int idx = proof_A.size()-1;
-      proof_A[idx] = !proof_A[idx];
-      QByteArray verif_A2 = dhC->VerifySharedSecret(dhA->GetPublicComponent(), dhB->GetPublicComponent(), proof_A);
-      EXPECT_EQ(QByteArray(), verif_A2);
-    }
   }
 
   TEST(Crypto, NullZeroKnowledgeDhTest)
