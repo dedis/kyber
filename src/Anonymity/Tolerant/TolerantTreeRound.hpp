@@ -61,6 +61,7 @@ namespace Tolerant {
         State_ServerClientListSharing, // Servers waiting for other servers' client lists
         State_ServerCommitSharing,     // Servers waiting for other server commits
         State_ServerDataSharing,       // Servers waiting for other server data streams
+        State_ServerFinalSigSharing,   // Servers waiting for other server sigs on final data
         State_UserFinalDataReceiving,  // Users waiting for final data from their server
         State_Finished
       };
@@ -91,7 +92,8 @@ namespace Tolerant {
         MessageType_ServerCommitData = 1,
         MessageType_ServerClientListData = 2,
         MessageType_ServerBulkData = 3,
-        MessageType_ServerFinalData = 4
+        MessageType_ServerFinalSig = 4,
+        MessageType_ServerFinalData = 5
       };
 
       /**
@@ -290,6 +292,27 @@ namespace Tolerant {
        * True when a server has all user bulk data messages for a phase
        */
       bool HasAllServerDataMessages();
+
+      /*******************************************
+       * Server Final Signature Sending Methods
+       */
+       
+      /**
+       * Send the server's signature on the final data
+       */
+      void SendServerFinalSig();
+
+      /**
+       * Parses and handles the server signatures
+       * @param stream serialized message
+       * @param from the sender
+       */
+      void HandleServerFinalSigData(QDataStream &stream, const Id &from);
+
+      /**
+       * True when a server has all final 
+       */
+      bool HasAllServerFinalSigMessages();
 
       /*******************************************
        * FinalData Methods
@@ -589,6 +612,18 @@ namespace Tolerant {
        */
       uint _received_server_commits;
       QVector<QByteArray> _server_message_digests;
+
+
+      /**
+       * final data message to be signed
+       */
+      QByteArray _final_data;
+      
+      /**
+       * received server final data signatures 
+       */
+      uint _received_server_final_sigs;
+      QVector<QByteArray> _server_final_sigs;
 
       /**
        * Count of received messages

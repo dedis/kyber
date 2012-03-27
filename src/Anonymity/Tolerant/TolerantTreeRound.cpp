@@ -43,6 +43,7 @@ namespace Tolerant {
     _server_messages(GetGroup().GetSubgroup().Count()),
     _server_client_lists(GetGroup().GetSubgroup().Count()),
     _server_message_digests(GetGroup().GetSubgroup().Count()),
+    _server_final_sigs(GetGroup().GetSubgroup().Count()),
     _message_randomizer(ident.GetDhKey()->GetPrivateComponent()),
     _user_idx(GetGroup().GetIndex(GetLocalId()))
   {
@@ -234,6 +235,9 @@ namespace Tolerant {
         break;
       case MessageType_ServerBulkData:
         HandleServerBulkData(payload, stream, from);
+        break;
+      case MessageType_ServerFinalSig:
+        HandleServerFinalSigData(stream, from);
         break;
       case MessageType_ServerFinalData:
         HandleServerFinalData(stream, from);
@@ -539,7 +543,7 @@ namespace Tolerant {
 
     _received_server_messages++;
     if(HasAllServerDataMessages()) {
-      BroadcastFinalMessages();
+      SendServerFinalSig();
     }
   }
 
@@ -548,8 +552,13 @@ namespace Tolerant {
     return (_received_server_messages == static_cast<uint>(GetGroup().GetSubgroup().Count()));
   }
 
-  void TolerantTreeRound::BroadcastFinalMessages() 
+
+  void TolerantTreeRound::SendServerFinalSig()
   {
+    if(!_is_server) {
+      qFatal("Non-server cannot send server commits");
+    }
+
     QVector<int> bad;
     CheckCommits(_server_commits, _server_message_digests, bad);
     if(bad.count()) {
@@ -557,15 +566,65 @@ namespace Tolerant {
       qFatal("Server sent bad commit");
     }
 
-    QByteArray xor_data(_expected_bulk_size, 0);
+    _final_data.clear();
+    _final_data = QByteArray(_expected_bulk_size, 0);
 
     for(int idx=0; idx<_server_messages.count(); idx++) {
-      Xor(xor_data, xor_data, _server_messages[idx]);
+      Xor(_final_data, _final_data, _server_messages[idx]);
     }
 
+    QByteArray server_sig = GetPrivateIdentity().GetSigningKey()->Sign(_final_data);
+
+    // Send server packet
+    QByteArray server_final_sig_packet;
+    QDataStream stream(&server_final_sig_packet, QIODevice::WriteOnly);
+    stream << MessageType_ServerFinalSig << GetRoundId() << _phase << server_sig;
+
+    ChangeState(State_ServerFinalSigSharing);
+    VerifiableSendToServers(server_final_sig_packet);
+  }
+
+  void TolerantTreeRound::HandleServerFinalSigData(QDataStream &stream, const Id &from)
+  {
+    qDebug() << _user_idx << GetLocalId().ToString() <<
+      ": received server final sig data from " << GetGroup().GetSubgroup().GetIndex(from) << from.ToString();
+
+    if(_state != State_ServerFinalSigSharing) {
+      throw QRunTimeError("Received a misordered ServerCommitData message");
+    }
+
+    if(!GetGroup().GetSubgroup().Contains(from)) {
+      throw QRunTimeError("Receiving ServerCommitData message from a non-server");
+    }
+
+    uint idx = GetGroup().GetSubgroup().GetIndex(from);
+    if(!_server_final_sigs[idx].isEmpty()) {
+      throw QRunTimeError("Already have server final sig data.");
+    }
+
+    QByteArray payload;
+    stream >> payload;
+
+    _server_final_sigs[idx] = payload;
+    _received_server_final_sigs++;
+
+    if(HasAllServerFinalSigMessages()) {
+      ChangeState(State_UserFinalDataReceiving);
+      BroadcastFinalMessages();
+    }
+  }
+
+  bool TolerantTreeRound::HasAllServerFinalSigMessages()
+  {
+    return (_received_server_final_sigs == static_cast<uint>(GetGroup().GetSubgroup().Count()));
+  }
+
+  void TolerantTreeRound::BroadcastFinalMessages() 
+  {
     QByteArray final_data_packet;
     QDataStream final_data_stream(&final_data_packet, QIODevice::WriteOnly);
-    final_data_stream << MessageType_ServerFinalData << GetRoundId() << _phase << xor_data;
+    final_data_stream << MessageType_ServerFinalData << GetRoundId() << _phase 
+      << _final_data << _server_final_sigs;
 
     ChangeState(State_UserFinalDataReceiving);
     VerifiableSendToUsers(final_data_packet);
@@ -584,17 +643,31 @@ namespace Tolerant {
       throw QRunTimeError("Received a LeaderBulkData message from a non-server");
     }
 
-    QByteArray payload;
-    stream >> payload;
+    QVector<QByteArray> server_sigs;
+    QByteArray final_data;
+    stream >> final_data >> server_sigs;
+    
+    if(static_cast<uint>(server_sigs.count()) != GetGroup().GetSubgroup().Count()) {
+      throw QRunTimeError("Incorrect server sig vector length, got " +
+          QString::number(server_sigs.count()) + " expected " +
+          QString::number(GetGroup().GetSubgroup().Count()));
+    }
 
-    if(static_cast<uint>(payload.size()) != _expected_bulk_size) {
+    if(static_cast<uint>(final_data.size()) != _expected_bulk_size) {
       throw QRunTimeError("Incorrect leader bulk message length, got " +
-          QString::number(payload.size()) + " expected " +
+          QString::number(final_data.size()) + " expected " +
           QString::number(_expected_bulk_size));
     }
 
+    for(int server_idx=0; server_idx<GetGroup().GetSubgroup().Count(); server_idx++) {
+      QSharedPointer<AsymmetricKey> verif_key = GetGroup().GetSubgroup().GetIdentity(server_idx).GetVerificationKey();
+      if(!verif_key->Verify(final_data, server_sigs[server_idx])) {
+        throw QRunTimeError("Signature on final data did not verify. Aborting.");
+      }
+    }
+
     // Split up messages into various slots
-    ProcessMessages(payload);
+    ProcessMessages(final_data);
 
     if(_state == State_Finished) {
       return;   
@@ -790,6 +863,10 @@ namespace Tolerant {
     _server_message_digests.resize(GetGroup().GetSubgroup().Count());
     _received_server_messages = 0;
 
+    _server_final_sigs.clear();
+    _server_final_sigs.resize(GetGroup().GetSubgroup().Count());
+    _received_server_final_sigs = 0;
+
     _expected_bulk_size = 0;
     for(uint idx = 0; idx < group_size; idx++) {
       _expected_bulk_size += _header_lengths[idx] + _message_lengths[idx];
@@ -883,6 +960,8 @@ namespace Tolerant {
         return (mtype == MessageType_ServerCommitData);
       case State_ServerDataSharing:
         return (mtype == MessageType_ServerBulkData);
+      case State_ServerFinalSigSharing:
+        return (mtype == MessageType_ServerFinalSig);
       case State_UserFinalDataReceiving:
         return (mtype == MessageType_ServerFinalData);
       case State_Finished:
