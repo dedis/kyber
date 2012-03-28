@@ -1,6 +1,7 @@
 #include "CppPublicKey.hpp"
 #include "CppDsaPublicKey.hpp"
 #include "CppDsaPrivateKey.hpp"
+#include "CppIntegerData.hpp"
 #include "CppRandom.hpp"
 
 using namespace CryptoPP;
@@ -8,27 +9,37 @@ using namespace CryptoPP;
 namespace Dissent {
 namespace Crypto {
   CppDsaPublicKey::CppDsaPublicKey(const QString &filename) :
-    _key(new CryptoPP::DSA::PublicKey())
+    _key(new KeyBase::PublicKey())
   {
-    _valid = InitFromFile(filename);
-    if(_valid) {
-      _key_size = GetDsaPublicKey()->GetGroupParameters().GetModulus().BitCount();
+    if(InitFromFile(filename)) {
+      Validate();
     }
   }
 
   CppDsaPublicKey::CppDsaPublicKey(const QByteArray &data) :
-    _key(new CryptoPP::DSA::PublicKey())
+    _key(new KeyBase::PublicKey())
   {
-    _valid = InitFromByteArray(data);
-    if(_valid) {
-      _key_size = GetDsaPublicKey()->GetGroupParameters().GetModulus().BitCount();
-    }
+    if(InitFromByteArray(data)) {
+      Validate();
+    };
+  }
+
+  CppDsaPublicKey::CppDsaPublicKey(const Integer &modulus,
+      const Integer &subgroup, const Integer &generator,
+      const Integer &public_element) :
+    _key(new KeyBase::PublicKey())
+  {
+    KeyBase::PublicKey *key = const_cast<KeyBase::PublicKey *>(GetDsaPublicKey());
+    key->Initialize(CppIntegerData::GetInteger(modulus),
+        CppIntegerData::GetInteger(subgroup),
+        CppIntegerData::GetInteger(generator),
+        CppIntegerData::GetInteger(public_element));
+    Validate();
   }
 
   CppDsaPublicKey::CppDsaPublicKey(Key *key) :
     _key(key)
   {
-    _valid = true;
   }
 
   CppDsaPublicKey::~CppDsaPublicKey()
@@ -50,7 +61,10 @@ namespace Crypto {
       return 0;
     }
 
-    return new CppDsaPublicKey(new DSA::PublicKey(*GetDsaPublicKey()));
+    CppDsaPublicKey *key = new CppDsaPublicKey(
+        new KeyBase::PublicKey(*GetDsaPublicKey()));
+    key->Validate();
+    return key;
   }
 
   bool CppDsaPublicKey::InitFromByteArray(const QByteArray &data)
@@ -58,8 +72,7 @@ namespace Crypto {
     ByteQueue queue;
     queue.Put2(reinterpret_cast<const byte *>(data.data()), data.size(), 0, true);
 
-    CryptoPP::CryptoMaterial *key =
-      const_cast<CryptoPP::CryptoMaterial *>(GetCryptoMaterial());
+    CryptoMaterial *key = const_cast<CryptoMaterial *>(GetCryptoMaterial());
 
     try {
       key->Load(queue);
@@ -101,7 +114,7 @@ namespace Crypto {
       return false;
     }
 
-    DSA::Verifier verifier(*GetDsaPublicKey());
+    KeyBase::Verifier verifier(*GetDsaPublicKey());
     return verifier.VerifyMessage(reinterpret_cast<const byte *>(data.data()),
         data.size(), reinterpret_cast<const byte *>(sig.data()), sig.size());
   }
@@ -130,6 +143,34 @@ namespace Crypto {
     }
 
     return (*other->GetDsaPublicKey()) == (*this->GetDsaPublicKey());
+  }
+
+  Integer CppDsaPublicKey::GetGenerator() const
+  {
+    CryptoPP::Integer generator = GetGroupParameters().GetGenerator();
+    IntegerData *data = new CppIntegerData(generator);
+    return Integer(data);
+  }
+
+  Integer CppDsaPublicKey::GetModulus() const
+  {
+    CryptoPP::Integer modulus = GetGroupParameters().GetModulus();
+    IntegerData *data = new CppIntegerData(modulus);
+    return Integer(data);
+  }
+
+  Integer CppDsaPublicKey::GetSubgroup() const
+  {
+    CryptoPP::Integer subgroup = GetGroupParameters().GetSubgroupOrder();
+    IntegerData *data = new CppIntegerData(subgroup);
+    return Integer(data);
+  }
+
+  Integer CppDsaPublicKey::GetPublicElement() const 
+  {
+    CryptoPP::Integer public_element = GetDsaPublicKey()->GetPublicElement();
+    IntegerData *data = new CppIntegerData(public_element);
+    return Integer(data);
   }
 }
 }

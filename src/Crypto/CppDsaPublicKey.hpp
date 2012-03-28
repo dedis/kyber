@@ -11,19 +11,23 @@
 #include <cryptopp/aes.h>
 #include <cryptopp/ccm.h>
 #include <cryptopp/des.h>
-#include <cryptopp/osrng.h> 
 #include <cryptopp/dsa.h>
+#include <cryptopp/osrng.h> 
+#include <cryptopp/sha.h>
 
 #include "AsymmetricKey.hpp"
+#include "Integer.hpp"
 
 namespace Dissent {
 namespace Crypto {
   /**
-   * Implementation of PublicKey using CryptoPP
+   * Implementation of KeyBase::PublicKey using CryptoPP
    */
   class CppDsaPublicKey : public AsymmetricKey {
     public:
-      typedef  CryptoPP::DL_Key<CryptoPP::DL_GroupParameters_DSA::Element> Key;
+      typedef CryptoPP::GDSA<CryptoPP::SHA256> KeyBase;
+      typedef CryptoPP::DL_GroupParameters_GFP Parameters;
+      typedef CryptoPP::DL_Key<Parameters::Element> Key;
 
       /**
        * Reads a key from a file
@@ -36,6 +40,17 @@ namespace Crypto {
        * @param data byte array holding the key
        */
       explicit CppDsaPublicKey(const QByteArray &data);
+
+      /**
+       * Creates a public Dsa key given the public parameters
+       * @param modulus the p of the public key
+       * @param subgroup the q of the public key
+       * @param generator the g of the public key
+       * @param public_element the y of the public key (g^x)
+       */
+      explicit CppDsaPublicKey(const Integer &modulus,
+          const Integer &subgroup, const Integer &generator,
+          const Integer &public_element);
 
       /**
        * Deconstructor
@@ -76,10 +91,43 @@ namespace Crypto {
       virtual bool VerifyKey(AsymmetricKey &key) const;
       inline virtual bool IsValid() const { return _valid; }
       inline virtual int GetKeySize() const { return _key_size; }
+
+      /**
+       * DSA does not explicitly allow encryption
+       */
       virtual bool SupportsEncryption() { return false; }
+
+      /**
+       * DSA does not work with keys below 1024
+       */
       static inline int GetMinimumKeySize() { return 1024; }
 
+      /**
+       * Returns the g of the DSA public key
+       */
+      Integer GetGenerator() const;
+
+      /**
+       * Returns the p of the DSA public key
+       */
+      Integer GetModulus() const;
+
+      /**
+       * Returns the q of the DSA public key
+       */
+      Integer GetSubgroup() const;
+
+      /**
+       * Returns the y = g^x mod p of the DSA public key
+       */
+      Integer GetPublicElement() const;
+
     protected:
+      inline virtual const Parameters &GetGroupParameters() const
+      {
+        return GetDsaPublicKey()->GetGroupParameters();
+      }
+
       /**
        * Does not make sense to create random public keys
        */
@@ -102,11 +150,37 @@ namespace Crypto {
        */
       bool InitFromFile(const QString &filename);
 
-      virtual const CryptoPP::DSA::PublicKey *GetDsaPublicKey() const
+      /**
+       * Prevents a remote user from giving a malicious DSA key
+       */
+      inline bool Validate()
       {
-        return dynamic_cast<const CryptoPP::DSA::PublicKey *>(_key);
+        _valid = false;
+        _key_size = 0;
+        if(!_key) {
+          return false;
+        }
+        
+        CryptoPP::AutoSeededX917RNG<CryptoPP::DES_EDE3> rng;
+        if(GetCryptoMaterial()->Validate(rng, 3)) {
+          _key_size = GetGroupParameters().GetModulus().BitCount();
+          _valid = true;
+          return true;
+        }
+        return false;
       }
 
+      /**
+       * Returns the internal Dsa Public Key
+       */
+      virtual const KeyBase::PublicKey *GetDsaPublicKey() const
+      {
+        return dynamic_cast<const KeyBase::PublicKey *>(_key);
+      }
+
+      /**
+       * Returns the internal cryptomaterial
+       */
       virtual const CryptoPP::CryptoMaterial *GetCryptoMaterial() const
       {
         return dynamic_cast<const CryptoPP::CryptoMaterial *>(GetDsaPublicKey());
