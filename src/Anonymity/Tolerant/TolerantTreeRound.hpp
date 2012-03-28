@@ -264,7 +264,7 @@ namespace Tolerant {
       /**
        * Generates the server's entire xor message
        */
-      virtual QByteArray GenerateServerXorMessage(const QList<uint>& active_clients);
+      virtual QByteArray GenerateServerXorMessage(const QSet<uint>& active_clients);
 
       /**
        * Handle commit data from servers

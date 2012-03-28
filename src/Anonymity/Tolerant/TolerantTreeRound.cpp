@@ -62,6 +62,7 @@ namespace Tolerant {
 
       _secrets_with_servers[server_idx] = secret;
       _rngs_with_servers[server_idx] = QSharedPointer<Random>(_crypto_lib->GetRandomNumberGenerator(secret));
+      qDebug() << "RNG with server" << server_idx << "Generated" << _rngs_with_servers[server_idx]->BytesGenerated();
     }
 
     // Set up shared secrets
@@ -78,8 +79,9 @@ namespace Tolerant {
 
         _secrets_with_users[user_idx] = secret;
         _rngs_with_users[user_idx] = QSharedPointer<Random>(_crypto_lib->GetRandomNumberGenerator(secret));
+        qDebug() << "RNG with user" << user_idx << "Generated" << _rngs_with_users[user_idx]->BytesGenerated();
 
-        if((user_idx % GetGroup().GetSubgroup().Count()) == _server_idx) {
+        if(static_cast<uint>(user_idx % GetGroup().GetSubgroup().Count()) == _server_idx) {
           _my_users.append(GetGroup().GetId(user_idx));
         }
       }
@@ -328,7 +330,7 @@ namespace Tolerant {
 
   bool TolerantTreeRound::HasAllUserDataMessages() 
   {
-    return (_user_messages.count() == static_cast<uint>(_my_users.count()));
+    return (_user_messages.count() == _my_users.count());
   }
 
   void TolerantTreeRound::SendServerClientList(const int& code)
@@ -417,7 +419,7 @@ namespace Tolerant {
     qDebug() << "XORING for clients" << _active_clients_set;
 
     // Get the next data packet
-    QByteArray server_xor_msg = GenerateServerXorMessage(_active_clients_set.toList());
+    QByteArray server_xor_msg = GenerateServerXorMessage(_active_clients_set);
     QDataStream server_data_stream(&_server_next_packet, QIODevice::WriteOnly);
     server_data_stream << MessageType_ServerBulkData << GetRoundId() << _phase << server_xor_msg;
 
@@ -431,20 +433,25 @@ namespace Tolerant {
     VerifiableSendToServers(server_commit_packet);
   }
 
-  QByteArray TolerantTreeRound::GenerateServerXorMessage(const QList<uint>& active_clients)
+  QByteArray TolerantTreeRound::GenerateServerXorMessage(const QSet<uint>& active_clients)
   {
     QByteArray msg;
     uint size = static_cast<uint>(_slot_signing_keys.size());
 
     // For each slot 
-    for(uint idx = 0; idx < size; idx++) {
-      const uint length = _message_lengths[idx] + _header_lengths[idx];
+    for(uint slot_idx = 0; slot_idx < size; slot_idx++) {
+      const uint length = _message_lengths[slot_idx] + _header_lengths[slot_idx];
       
       QByteArray slot_msg(length, 0);
       // For each user, XOR that users pad with the empty message
-      for(int active_idx = 0; active_idx < active_clients.count(); active_idx++) {
-        QByteArray user_pad = GeneratePadWithUser(active_clients[active_idx], length);
-        Xor(slot_msg, slot_msg, user_pad);
+      for(int user_idx = 0; user_idx < GetGroup().Count(); user_idx++) {
+
+        // Always generate string so that RNG is up to date
+        QByteArray user_pad = GeneratePadWithUser(user_idx, length);
+
+        if(active_clients.contains(user_idx)) {
+          Xor(slot_msg, slot_msg, user_pad);
+        }
       }
       
       msg.append(slot_msg);
@@ -647,7 +654,7 @@ namespace Tolerant {
     QByteArray final_data;
     stream >> final_data >> server_sigs;
     
-    if(static_cast<uint>(server_sigs.count()) != GetGroup().GetSubgroup().Count()) {
+    if(server_sigs.count() != GetGroup().GetSubgroup().Count()) {
       throw QRunTimeError("Incorrect server sig vector length, got " +
           QString::number(server_sigs.count()) + " expected " +
           QString::number(GetGroup().GetSubgroup().Count()));
@@ -797,7 +804,7 @@ namespace Tolerant {
   QByteArray TolerantTreeRound::GeneratePadWithServer(uint server_idx, uint length)
   {
     QByteArray server_pad(length, 0);
-    //qDebug() << "Bytes generated with server" << server_idx << "=" << _rngs_with_servers[server_idx]->BytesGenerated();
+    //qDebug() << "User bytes generated with server" << server_idx << "-- user" << _user_idx << "=" << _rngs_with_servers[server_idx]->BytesGenerated();
     _rngs_with_servers[server_idx]->GenerateBlock(server_pad);
     return server_pad;
   }
@@ -805,7 +812,7 @@ namespace Tolerant {
   QByteArray TolerantTreeRound::GeneratePadWithUser(uint user_idx, uint length)
   {
     QByteArray user_pad(length, 0);
-    //qDebug() << "Bytes generated with server" << server_idx << "=" << _rngs_with_servers[server_idx]->BytesGenerated();
+    //qDebug() << "Server bytes generated with user" << user_idx << "-- server" << _server_idx << "=" << _rngs_with_users[user_idx]->BytesGenerated();
     _rngs_with_users[user_idx]->GenerateBlock(user_pad);
     return user_pad;
   }
@@ -917,7 +924,7 @@ namespace Tolerant {
       // Everyone starts out with a zero-length message
       _message_lengths.append(0);
 
-      qDebug() << "MSGLEN" << idx;
+      qDebug() << "MSGLEN" << idx << "=" << _message_lengths[idx] << ", HEADER =" << _header_lengths[idx];
       if(_key_shuffle_data == pair.second) {
         _my_idx = idx;
       }
