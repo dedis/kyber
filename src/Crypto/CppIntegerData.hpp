@@ -10,6 +10,7 @@
 #include <QByteArray>
 #include <QString>
 #include "IntegerData.hpp"
+#include "Integer.hpp"
 
 namespace Dissent {
 namespace Crypto {
@@ -67,15 +68,7 @@ namespace Crypto {
        */
       virtual IntegerData *Add(const IntegerData *other) const
       {
-        const CppIntegerData *pcother =
-          dynamic_cast<const CppIntegerData *>(other);
-
-        if(pcother) {
-          return new CppIntegerData(_integer.Plus(pcother->_integer));
-        } else {
-          CppIntegerData cother(other->GetByteArray());
-          return new CppIntegerData(_integer.Plus(cother._integer));
-        }
+        return new CppIntegerData(_integer.Plus(GetInteger(other)));
       }
 
       /**
@@ -84,15 +77,7 @@ namespace Crypto {
        */
       virtual IntegerData *Subtract(const IntegerData *other) const
       {
-        const CppIntegerData *pcother =
-          dynamic_cast<const CppIntegerData *>(other);
-
-        if(pcother) {
-          return new CppIntegerData(_integer.Minus(pcother->_integer));
-        } else {
-          CppIntegerData cother(other->GetByteArray());
-          return new CppIntegerData(_integer.Minus(cother._integer));
-        }
+        return new CppIntegerData(_integer.Minus(GetInteger(other)));
       }
 
       /**
@@ -102,20 +87,8 @@ namespace Crypto {
       virtual IntegerData *Pow(const IntegerData *pow,
           const IntegerData *mod) const
       {
-        const CppIntegerData *cpow =
-          dynamic_cast<const CppIntegerData *>(pow);
-        const CppIntegerData *cmod =
-          dynamic_cast<const CppIntegerData *>(mod);
-
-        if(cpow && cmod) {
-          return new CppIntegerData(a_exp_b_mod_c(_integer, cpow->_integer,
-                cmod->_integer));
-        } else {
-          CppIntegerData cpow(pow->GetByteArray());
-          CppIntegerData cmod(mod->GetByteArray());
-          return new CppIntegerData(a_exp_b_mod_c(_integer, cpow._integer,
-                cmod._integer));
-        }
+        return new CppIntegerData(a_exp_b_mod_c(_integer,
+              GetInteger(pow), GetInteger(mod)));
       }
 
       /**
@@ -124,17 +97,8 @@ namespace Crypto {
        */
       virtual void Set(const IntegerData *other)
       {
-        const CppIntegerData *pcother =
-          dynamic_cast<const CppIntegerData *>(other);
-
         Reset();
-
-        if(pcother) {
-          _integer = pcother->_integer;
-        } else {
-          CppIntegerData cother(other->GetByteArray());
-          _integer.operator=(cother._integer);
-        }
+        _integer.operator=(GetInteger(other));
       }
 
       /**
@@ -143,17 +107,8 @@ namespace Crypto {
        */
       virtual void operator+=(const IntegerData *other)
       {
-        const CppIntegerData *pcother =
-          dynamic_cast<const CppIntegerData *>(other);
-
         Reset();
-
-        if(pcother) {
-          _integer.operator+=(pcother->_integer);
-        } else {
-          CppIntegerData cother(other->GetByteArray());
-          _integer.operator+=(cother._integer);
-        }
+        _integer.operator+=(GetInteger(other));
       }
 
       /**
@@ -162,17 +117,8 @@ namespace Crypto {
        */
       virtual void operator-=(const IntegerData *other)
       {
-        const CppIntegerData *pcother =
-          dynamic_cast<const CppIntegerData *>(other);
-
         Reset();
-
-        if(pcother) {
-          _integer.operator-=(pcother->_integer);
-        } else {
-          CppIntegerData cother(other->GetByteArray());
-          _integer.operator-=(cother._integer);
-        }
+        _integer.operator-=(GetInteger(other));
       }
 
       /**
@@ -181,15 +127,7 @@ namespace Crypto {
        */
       virtual bool operator==(const IntegerData *other) const
       {
-        const CppIntegerData *pcother =
-          dynamic_cast<const CppIntegerData *>(other);
-
-        if(pcother) {
-          return _integer == pcother->_integer;
-        } else {
-          CppIntegerData cother(other->GetByteArray());
-          return _integer == cother._integer;
-        }
+        return _integer == GetInteger(other);
       }
 
       /**
@@ -198,15 +136,7 @@ namespace Crypto {
        */
       virtual bool operator!=(const IntegerData *other) const
       {
-        const CppIntegerData *pcother =
-          dynamic_cast<const CppIntegerData *>(other);
-
-        if(pcother) {
-          return _integer != pcother->_integer;
-        } else {
-          CppIntegerData cother(other->GetByteArray());
-          return _integer != cother._integer;
-        }
+        return _integer != GetInteger(other);
       }
 
       /**
@@ -215,15 +145,7 @@ namespace Crypto {
        */
       virtual bool operator>(const IntegerData *other) const
       {
-        const CppIntegerData *pcother =
-          dynamic_cast<const CppIntegerData *>(other);
-
-        if(pcother) {
-          return _integer > pcother->_integer;
-        } else {
-          CppIntegerData cother(other->GetByteArray());
-          return _integer > cother._integer;
-        }
+        return _integer > GetInteger(other);
       }
 
       /**
@@ -232,15 +154,7 @@ namespace Crypto {
        */
       virtual bool operator>=(const IntegerData *other) const
       {
-        const CppIntegerData *pcother =
-          dynamic_cast<const CppIntegerData *>(other);
-
-        if(pcother) {
-          return _integer >= pcother->_integer;
-        } else {
-          CppIntegerData cother(other->GetByteArray());
-          return _integer >= cother._integer;
-        }
+        return _integer >= GetInteger(other);
       }
 
       /**
@@ -249,15 +163,7 @@ namespace Crypto {
        */
       virtual bool operator<(const IntegerData *other) const
       {
-        const CppIntegerData *pcother =
-          dynamic_cast<const CppIntegerData *>(other);
-
-        if(pcother) {
-          return _integer < pcother->_integer;
-        } else {
-          CppIntegerData cother(other->GetByteArray());
-          return _integer < cother._integer;
-        }
+        return _integer < GetInteger(other);
       }
 
       /**
@@ -266,21 +172,38 @@ namespace Crypto {
        */
       virtual bool operator<=(const IntegerData *other) const
       {
-        const CppIntegerData *pcother =
-          dynamic_cast<const CppIntegerData *>(other);
-
-        if(pcother) {
-          return _integer <= pcother->_integer;
-        } else {
-          CppIntegerData cother(other->GetByteArray());
-          return _integer <= cother._integer;
-        }
+        return _integer <= GetInteger(other);
       }
 
       /**
        * Returns the internal CryptoPP::Integer
        */
-      const CryptoPP::Integer &GetInteger() const { return _integer; }
+      inline static CryptoPP::Integer GetInteger(const Crypto::Integer &data)
+      {
+        const CppIntegerData *pcdata =
+          dynamic_cast<const CppIntegerData *>(data.GetData());
+        if(pcdata) {
+          return pcdata->_integer;
+        }
+
+        CppIntegerData cother(data.GetByteArray());
+        return cother._integer;
+      }
+
+      /**
+       * Returns the internal CryptoPP::Integer
+       */
+      inline static CryptoPP::Integer GetInteger(const IntegerData *data)
+      {
+        const CppIntegerData *pcdata =
+          dynamic_cast<const CppIntegerData *>(data);
+        if(pcdata) {
+          return pcdata->_integer;
+        }
+
+        CppIntegerData cother(data->GetByteArray());
+        return cother._integer;
+      }
 
     protected:
       virtual void GenerateByteArray()

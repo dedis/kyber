@@ -53,7 +53,6 @@ namespace Tests {
     QString bad = "ABCD";
     QString good = base.ToString();
 
-    qWarning() << bad << Integer(bad).ToString();
     EXPECT_NE(bad, Integer(bad).ToString());
     EXPECT_EQ(base, Integer(good));
   }
