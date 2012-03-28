@@ -96,6 +96,29 @@ namespace Crypto {
       }
 
       /**
+       * Exponentiating operator
+       * @param pow raise this to other
+       */
+      virtual IntegerData *Pow(const IntegerData *pow,
+          const IntegerData *mod) const
+      {
+        const CppIntegerData *cpow =
+          dynamic_cast<const CppIntegerData *>(pow);
+        const CppIntegerData *cmod =
+          dynamic_cast<const CppIntegerData *>(mod);
+
+        if(cpow && cmod) {
+          return new CppIntegerData(a_exp_b_mod_c(_integer, cpow->_integer,
+                cmod->_integer));
+        } else {
+          CppIntegerData cpow(pow->GetByteArray());
+          CppIntegerData cmod(mod->GetByteArray());
+          return new CppIntegerData(a_exp_b_mod_c(_integer, cpow._integer,
+                cmod._integer));
+        }
+      }
+
+      /**
        * Assignment operator
        * @param other the IntegerData to use for setting
        */
@@ -253,6 +276,11 @@ namespace Crypto {
           return _integer <= cother._integer;
         }
       }
+
+      /**
+       * Returns the internal CryptoPP::Integer
+       */
+      const CryptoPP::Integer &GetInteger() const { return _integer; }
 
     protected:
       virtual void GenerateByteArray()

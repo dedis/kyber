@@ -93,5 +93,13 @@ namespace Tests {
     IntegerInvalidString();
     cf.SetLibrary(cname);
   }
+
+  TEST(Integer, CppPow)
+  {
+    Integer base(10);
+    Integer exp(100);
+    EXPECT_EQ(exp, base.Pow(Integer(10), Integer(101)));
+    EXPECT_EQ(Integer(0), base.Pow(Integer(10), Integer(100)));
+  }
 }
 }

@@ -81,6 +81,16 @@ namespace Crypto {
       }
 
       /**
+       * Exponentiating operator
+       * @param pow raise this to other
+       * @param mod modulus for the exponentiation
+       */
+      Integer Pow(const Integer &pow, const Integer &mod) const
+      {
+        return Integer(_data->Pow(pow._data.constData(), mod._data.constData()));
+      }
+
+      /**
        * Assignment operator
        * @param other the other Integer
        */
@@ -163,6 +173,12 @@ namespace Crypto {
       {
         return _data->operator<=(other._data.constData());
       }
+
+      /**
+       * returns the internal integer data, not particularly safe
+       */
+      const IntegerData *GetData() const { return _data.constData(); }
+
     private:
       QExplicitlySharedDataPointer<IntegerData> _data;
   };

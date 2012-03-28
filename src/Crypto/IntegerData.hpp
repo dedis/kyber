@@ -71,6 +71,14 @@ namespace Crypto {
       virtual IntegerData *Subtract(const IntegerData *other) const = 0;
 
       /**
+       * Exponentiating operator
+       * @param pow raise this to other
+       * @param mod modulus for the exponentiation
+       */
+      virtual IntegerData *Pow(const IntegerData *pow,
+          const IntegerData *mod) const = 0;
+
+      /**
        * Assignment operator
        * @param other the IntegerData to use for setting
        */
