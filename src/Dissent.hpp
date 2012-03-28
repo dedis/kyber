@@ -51,6 +51,9 @@
 
 #include "Crypto/AsymmetricKey.hpp"
 #include "Crypto/CppDiffieHellman.hpp"
+#include "Crypto/CppDsaLibrary.hpp"
+#include "Crypto/CppDsaPrivateKey.hpp"
+#include "Crypto/CppDsaPublicKey.hpp"
 #include "Crypto/CppHash.hpp"
 #include "Crypto/CppIntegerData.hpp"
 #include "Crypto/CppLibrary.hpp"

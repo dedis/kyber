@@ -1,5 +1,5 @@
-#ifndef DISSENT_CRYPTO_CPP_PUBLIC_KEY_H_GUARD
-#define DISSENT_CRYPTO_CPP_PUBLIC_KEY_H_GUARD
+#ifndef DISSENT_CRYPTO_CPP_DSA_PUBLIC_KEY_H_GUARD
+#define DISSENT_CRYPTO_CPP_DSA_PUBLIC_KEY_H_GUARD
 
 #include <stdexcept>
 
@@ -12,7 +12,7 @@
 #include <cryptopp/ccm.h>
 #include <cryptopp/des.h>
 #include <cryptopp/osrng.h> 
-#include <cryptopp/rsa.h>
+#include <cryptopp/dsa.h>
 
 #include "AsymmetricKey.hpp"
 
@@ -21,31 +21,33 @@ namespace Crypto {
   /**
    * Implementation of PublicKey using CryptoPP
    */
-  class CppPublicKey : public AsymmetricKey {
+  class CppDsaPublicKey : public AsymmetricKey {
     public:
+      typedef  CryptoPP::DL_Key<CryptoPP::DL_GroupParameters_DSA::Element> Key;
+
       /**
        * Reads a key from a file
        * @param filename the file storing the key
        */
-      explicit CppPublicKey(const QString &filename);
+      explicit CppDsaPublicKey(const QString &filename);
 
       /**
        * Loads a key from memory
        * @param data byte array holding the key
        */
-      explicit CppPublicKey(const QByteArray &data);
+      explicit CppDsaPublicKey(const QByteArray &data);
 
       /**
        * Deconstructor
        */
-      virtual ~CppPublicKey();
+      virtual ~CppDsaPublicKey();
 
       /**
        * Creates a public key based upon the seed data, same seed data same
        * key.  This is mainly used for distributed tests, so other members can
        * generate an appropriate public key.
        */
-      static CppPublicKey *GenerateKey(const QByteArray &data);
+      static CppDsaPublicKey *GenerateKey(const QByteArray &data);
 
       /**
        * Get a copy of the public key
@@ -59,10 +61,14 @@ namespace Crypto {
        */
       virtual QByteArray Sign(const QByteArray &data) const;
       virtual bool Verify(const QByteArray &data, const QByteArray &sig) const;
+
+      /**
+       * Returns nothing, not supported for DSA
+       */
       virtual QByteArray Encrypt(const QByteArray &data) const;
 
       /**
-       * Returns nothing, not supported for public keys
+       * Returns nothing, not supported for DSA
        */
       virtual QByteArray Decrypt(const QByteArray &data) const;
 
@@ -70,14 +76,19 @@ namespace Crypto {
       virtual bool VerifyKey(AsymmetricKey &key) const;
       inline virtual bool IsValid() const { return _valid; }
       inline virtual int GetKeySize() const { return _key_size; }
-      static QByteArray GetByteArray(const CryptoPP::CryptoMaterial &key);
-      static inline int GetMinimumKeySize() { return 512; }
+      virtual bool SupportsEncryption() { return false; }
+      static inline int GetMinimumKeySize() { return 1024; }
 
     protected:
       /**
        * Does not make sense to create random public keys
        */
-      CppPublicKey() { }
+      CppDsaPublicKey() { }
+
+      /**
+       * Used to construct private key
+       */
+      CppDsaPublicKey(Key *key);
 
       /**
        * Loads a key from the provided byte array
@@ -91,9 +102,20 @@ namespace Crypto {
        */
       bool InitFromFile(const QString &filename);
 
-      const CryptoPP::RSA::PublicKey *_public_key;
+      virtual const CryptoPP::DSA::PublicKey *GetDsaPublicKey() const
+      {
+        return dynamic_cast<const CryptoPP::DSA::PublicKey *>(_key);
+      }
+
+      virtual const CryptoPP::CryptoMaterial *GetCryptoMaterial() const
+      {
+        return dynamic_cast<const CryptoPP::CryptoMaterial *>(GetDsaPublicKey());
+      }
+
+      const Key *_key;
       bool _valid;
       int _key_size;
+      static QByteArray GetByteArray(const CryptoPP::CryptoMaterial &key);
   };
 }
 }

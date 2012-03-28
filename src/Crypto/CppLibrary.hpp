@@ -71,6 +71,11 @@ namespace Crypto {
       }
 
       /**
+       * Returns the minimum asymmetric key size
+       */
+      inline virtual int MinimumKeySize() const { return CppPublicKey::GetMinimumKeySize(); }
+
+      /**
        * Returns a deterministic random number generator
        */
       inline virtual Dissent::Utils::Random *GetRandomNumberGenerator(const QByteArray &seed, uint index)

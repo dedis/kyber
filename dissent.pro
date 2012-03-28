@@ -63,6 +63,8 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Connections/RelayForwarder.hpp \
            src/Crypto/AsymmetricKey.hpp \
            src/Crypto/CppDiffieHellman.hpp \
+           src/Crypto/CppDsaPrivateKey.hpp \
+           src/Crypto/CppDsaPublicKey.hpp \
            src/Crypto/CppHash.hpp \
            src/Crypto/CppIntegerData.hpp \
            src/Crypto/CppLibrary.hpp \
@@ -212,6 +214,8 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Connections/RelayForwarder.cpp \
            src/Crypto/AsymmetricKey.cpp \
            src/Crypto/CppDiffieHellman.cpp \
+           src/Crypto/CppDsaPrivateKey.cpp \
+           src/Crypto/CppDsaPublicKey.cpp \
            src/Crypto/CppHash.cpp \
            src/Crypto/CppPrivateKey.cpp \
            src/Crypto/CppPublicKey.cpp \

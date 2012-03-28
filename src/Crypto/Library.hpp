@@ -47,6 +47,11 @@ namespace Crypto {
       virtual AsymmetricKey *CreatePrivateKey() = 0;
 
       /**
+       * Returns the minimum asymmetric key size
+       */
+      virtual int MinimumKeySize() const = 0;
+
+      /**
        * Returns a random number generator
        */
       virtual Utils::Random *GetRandomNumberGenerator(

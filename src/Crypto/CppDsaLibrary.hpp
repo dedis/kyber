@@ -1,25 +1,25 @@
-#ifndef DISSENT_CRYPTO_NULL_LIBRARY_H_GUARD
-#define DISSENT_CRYPTO_NULL_LIBRARY_H_GUARD
+#ifndef DISSENT_CRYPTO_CPP_DSA_LIBRARY_H_GUARD
+#define DISSENT_CRYPTO_CPP_DSA_LIBRARY_H_GUARD
 
-#include "NullDiffieHellman.hpp"
-#include "NullHash.hpp"
-#include "Utils/Random.hpp"
-#include "NullPrivateKey.hpp"
-#include "NullPublicKey.hpp"
+#include "CppDiffieHellman.hpp"
+#include "CppHash.hpp"
 #include "CppIntegerData.hpp"
+#include "CppRandom.hpp"
+#include "CppDsaPrivateKey.hpp"
+#include "CppDsaPublicKey.hpp"
 
 #include "Library.hpp"
 
 namespace Dissent {
 namespace Crypto {
-  class NullLibrary : public Library {
+  class CppDsaLibrary : public Library {
     public:
       /**
        * Load a public key from a file
        */
       inline virtual AsymmetricKey *LoadPublicKeyFromFile(const QString &filename)
       {
-        return new NullPublicKey(filename);
+        return new CppDsaPublicKey(filename);
       }
 
       /**
@@ -27,15 +27,15 @@ namespace Crypto {
        */
       inline virtual AsymmetricKey *LoadPublicKeyFromByteArray(const QByteArray &data) 
       {
-        return new NullPublicKey(data);
+        return new CppDsaPublicKey(data);
       }
 
       /**
        * Generate a public key using the given data as a seed to a RNG
        */
-      inline virtual AsymmetricKey *GeneratePublicKey(const QByteArray &seed)
+      inline virtual AsymmetricKey *GeneratePublicKey(const QByteArray &seed) 
       {
-        return NullPublicKey::GenerateKey(seed);
+        return CppDsaPublicKey::GenerateKey(seed);
       }
 
       /**
@@ -43,7 +43,7 @@ namespace Crypto {
        */
       inline virtual AsymmetricKey *LoadPrivateKeyFromFile(const QString &filename) 
       {
-        return new NullPrivateKey(filename);
+        return new CppDsaPrivateKey(filename);
       }
 
       /**
@@ -51,7 +51,7 @@ namespace Crypto {
        */
       inline virtual AsymmetricKey *LoadPrivateKeyFromByteArray(const QByteArray &data) 
       {
-        return new NullPrivateKey(data);
+        return new CppDsaPrivateKey(data);
       }
 
       /**
@@ -59,7 +59,7 @@ namespace Crypto {
        */
       inline virtual AsymmetricKey *GeneratePrivateKey(const QByteArray &seed) 
       {
-        return NullPrivateKey::GenerateKey(seed);
+        return CppDsaPrivateKey::GenerateKey(seed);
       }
 
       /**
@@ -67,25 +67,25 @@ namespace Crypto {
        */
       inline virtual AsymmetricKey *CreatePrivateKey() 
       {
-        return new NullPrivateKey();
+        return new CppDsaPrivateKey();
       }
 
       /**
        * Returns the minimum asymmetric key size
        */
-      inline virtual int MinimumKeySize() const { return NullPublicKey::GetMinimumKeySize(); }
+      inline virtual int MinimumKeySize() const { return CppDsaPublicKey::GetMinimumKeySize(); }
 
       /**
-       * Returns a random number generator
+       * Returns a deterministic random number generator
        */
-      inline virtual Utils::Random *GetRandomNumberGenerator(const QByteArray &seed, uint index) 
+      inline virtual Dissent::Utils::Random *GetRandomNumberGenerator(const QByteArray &seed, uint index)
       {
-        return new Utils::Random(seed, index);
+        return new CppRandom(seed, index);
       }
 
       inline virtual uint RngOptimalSeedSize()
       {
-        return Utils::Random::OptimalSeedSize();
+        return CppRandom::OptimalSeedSize();
       }
 
       /**
@@ -93,7 +93,7 @@ namespace Crypto {
        */
       inline virtual Hash *GetHashAlgorithm() 
       {
-        return new NullHash();
+        return new CppHash();
       }
 
       /**
@@ -125,7 +125,7 @@ namespace Crypto {
        */
       virtual DiffieHellman *CreateDiffieHellman()
       {
-        return new NullDiffieHellman();
+        return new CppDiffieHellman();
       }
 
       /**
@@ -134,7 +134,7 @@ namespace Crypto {
        */
       virtual DiffieHellman *GenerateDiffieHellman(const QByteArray &seed)
       {
-        return NullDiffieHellman::GenerateFromSeed(seed);
+        return new CppDiffieHellman(seed, true);
       }
 
       /**
@@ -143,7 +143,7 @@ namespace Crypto {
        */
       virtual DiffieHellman *LoadDiffieHellman(const QByteArray &private_component)
       {
-        return new NullDiffieHellman(private_component);
+        return new CppDiffieHellman(private_component);
       }
   };
 }

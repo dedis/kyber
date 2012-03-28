@@ -1,6 +1,7 @@
 #include <QDebug>
 
 #include "CppLibrary.hpp"
+#include "CppDsaLibrary.hpp"
 #include "NullLibrary.hpp"
 #include "CryptoFactory.hpp"
 #include "ThreadedOnionEncryptor.hpp"
@@ -17,7 +18,8 @@ namespace Crypto {
     _library(new CppLibrary()),
     _onion(new OnionEncryptor()),
     _library_name(CryptoPP),
-    _threading_type(SingleThreaded)
+    _threading_type(SingleThreaded),
+    _previous(0)
   {
   }
 
@@ -38,9 +40,19 @@ namespace Crypto {
 
   void CryptoFactory::SetLibrary(LibraryName type)
   {
+    if(_previous != 0) {
+      AsymmetricKey::DefaultKeySize = std::min(_previous,
+          AsymmetricKey::DefaultKeySize);
+    }
+
+    _previous = AsymmetricKey::DefaultKeySize;
+
     switch(type) {
       case CryptoPP:
         _library.reset(new CppLibrary());
+        break;
+      case CryptoPPDsa:
+        _library.reset(new CppDsaLibrary());
         break;
       case Null:
         _library.reset(new NullLibrary());
@@ -49,6 +61,9 @@ namespace Crypto {
         qCritical() << "Invalid Library type:" << type;
         _library.reset(new CppLibrary());
     }
+
+    AsymmetricKey::DefaultKeySize = std::max(_library->MinimumKeySize(),
+        AsymmetricKey::DefaultKeySize);
   }
 }
 }

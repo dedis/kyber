@@ -5,19 +5,22 @@ namespace Tests {
 
   void AsymmetricKeyTest(Library *lib)
   {
-    QScopedPointer<AsymmetricKey> key0(lib->CreatePrivateKey()); EXPECT_TRUE(key0->IsValid());
+    QScopedPointer<AsymmetricKey> key0(lib->CreatePrivateKey());
+    EXPECT_TRUE(key0->IsValid());
     QScopedPointer<AsymmetricKey> pu_key0(key0->GetPublicKey());
     EXPECT_TRUE(pu_key0->IsValid());
 
-    key0->Save("private_key");
+    EXPECT_TRUE(key0->Save("private_key"));
     QScopedPointer<AsymmetricKey> key0_0(
         lib->LoadPrivateKeyFromFile(QString("private_key")));
     EXPECT_TRUE(key0_0->IsValid());
+    QFile("private_key").remove();
 
-    pu_key0->Save("public_key");
+    EXPECT_TRUE(pu_key0->Save("public_key"));
     QScopedPointer<AsymmetricKey> pu_key0_0(
         lib->LoadPublicKeyFromFile(QString("public_key")));
     EXPECT_TRUE(pu_key0_0->IsValid());
+    QFile("public_key").remove();
 
     QScopedPointer<AsymmetricKey> key1(lib->CreatePrivateKey());
     EXPECT_TRUE(key1->IsValid());
@@ -70,7 +73,6 @@ namespace Tests {
       QByteArray sig0 = key0->Sign(data);
       QByteArray sig1 = key0_0->Sign(data);
 
-      EXPECT_EQ(sig0, sig1);
       EXPECT_TRUE(pu_key0->Verify(data, sig0));
       EXPECT_TRUE(pu_key0->Verify(data, sig1));
       EXPECT_TRUE(pu_key0_0->Verify(data, sig0));
@@ -276,7 +278,8 @@ namespace Tests {
     AsymmetricKeyTest(lib.data());
 
     QScopedPointer<AsymmetricKey> key(lib->CreatePrivateKey());
-    EXPECT_EQ(key->GetKeySize(), AsymmetricKey::DefaultKeySize);
+    EXPECT_EQ(key->GetKeySize(),
+        std::max(AsymmetricKey::DefaultKeySize, lib->MinimumKeySize()));
   }
 
   TEST(Crypto, CppKeySerialization)
@@ -284,6 +287,25 @@ namespace Tests {
     CryptoFactory &cf = CryptoFactory::GetInstance();
     CryptoFactory::LibraryName cname = cf.GetLibraryName();
     cf.SetLibrary(CryptoFactory::CryptoPP);
+    AsymmetricKeySerialization();
+    cf.SetLibrary(cname);
+  }
+
+  TEST(Crypto, CppDsaAsymmetricKey)
+  {
+    QScopedPointer<Library> lib(new CppDsaLibrary());
+    AsymmetricKeyTest(lib.data());
+
+    QScopedPointer<AsymmetricKey> key(lib->CreatePrivateKey());
+    EXPECT_EQ(key->GetKeySize(),
+        std::max(AsymmetricKey::DefaultKeySize, lib->MinimumKeySize()));
+  }
+
+  TEST(Crypto, CppDsaKeySerialization)
+  {
+    CryptoFactory &cf = CryptoFactory::GetInstance();
+    CryptoFactory::LibraryName cname = cf.GetLibraryName();
+    cf.SetLibrary(CryptoFactory::CryptoPPDsa);
     AsymmetricKeySerialization();
     cf.SetLibrary(cname);
   }

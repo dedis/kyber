@@ -45,6 +45,8 @@ namespace Crypto {
       inline virtual bool IsValid() const { return _valid; }
       inline virtual int GetKeySize() const { return 64; }
 
+      static inline int GetMinimumKeySize() { return 64; }
+
     protected:
       NullPublicKey() {}
       bool InitFromFile(const QString &filename);

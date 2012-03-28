@@ -16,6 +16,7 @@ namespace Crypto {
 
       enum LibraryName {
         CryptoPP,
+        CryptoPPDsa,
         Null
       };
 
@@ -76,6 +77,7 @@ namespace Crypto {
       Q_DISABLE_COPY(CryptoFactory)
       LibraryName _library_name;
       ThreadingType _threading_type;
+      int _previous;
   };
 }
 }
