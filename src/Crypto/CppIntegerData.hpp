@@ -110,6 +110,24 @@ namespace Crypto {
       }
 
       /**
+       * Subtraction operator, produces a new Integer
+       * @param multiplicand the Integer to multiply this
+       */
+      virtual IntegerData *Multiply(const IntegerData *multiplicand) const
+      {
+        return new CppIntegerData(_integer.Times(GetInteger(multiplicand)));
+      }
+
+      /**
+       * Division operator, produces a new Integer
+       * @param divisor the Integer to divide into this
+       */
+      virtual IntegerData *Divide(const IntegerData *divisor) const
+      {
+        return new CppIntegerData(_integer.DividedBy(GetInteger(divisor)));
+      }
+
+      /**
        * Exponentiating operator
        * @param pow raise this to other
        */

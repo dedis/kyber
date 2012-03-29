@@ -71,6 +71,18 @@ namespace Crypto {
       virtual IntegerData *Subtract(const IntegerData *other) const = 0;
 
       /**
+       * Subtraction operator, produces a new Integer
+       * @param multiplicand the Integer to multiply this
+       */
+      virtual IntegerData *Multiply(const IntegerData *multiplicand) const = 0;
+
+      /**
+       * Division operator, produces a new Integer
+       * @param divisor the Integer to divide into this
+       */
+      virtual IntegerData *Divide(const IntegerData *divisor) const = 0;
+
+      /**
        * Exponentiating operator
        * @param pow raise this to other
        * @param mod modulus for the exponentiation

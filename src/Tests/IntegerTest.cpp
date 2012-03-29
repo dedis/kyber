@@ -28,6 +28,10 @@ namespace Tests {
     EXPECT_TRUE(int1 <= int0);
     EXPECT_TRUE(int0 - 1 >= int1);
     EXPECT_TRUE(int1 + 1 <= int0);
+
+    EXPECT_EQ(int0 * int1, Integer(30));
+    EXPECT_EQ(Integer(30) / int0, int1);
+    EXPECT_EQ(Integer(30) / int1, int0);
   }
 
   void IntegerTestNull()

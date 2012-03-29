@@ -95,6 +95,24 @@ namespace Crypto {
       }
 
       /**
+       * Subtraction operator, produces a new Integer
+       * @param multiplicand the Integer to multiply this
+       */
+      inline Integer Multiply(const Integer &multiplicand) const
+      {
+        return Integer(_data->Multiply(multiplicand._data.constData()));
+      }
+
+      /**
+       * Division operator, produces a new Integer
+       * @param divisor the Integer to divide into this
+       */
+      inline Integer Divide(const Integer &divisor) const
+      {
+        return Integer(_data->Divide(divisor._data.constData()));
+      }
+
+      /**
        * Exponentiating operator
        * @param pow raise this to other
        * @param mod modulus for the exponentiation
@@ -231,6 +249,26 @@ namespace Crypto {
   inline Integer operator-(const Integer &lhs, const Integer &rhs)
   {
     return Integer(lhs.Subtract(rhs));
+  }
+
+  /**
+   * Multiplication operator, produces a new Integer
+   * @param lhs left multiplicand
+   * @param rhs right multiplicand
+   */
+  inline Integer operator*(const Integer &lhs, const Integer &rhs)
+  {
+    return Integer(lhs.Multiply(rhs));
+  }
+
+  /**
+   * Division operator, produces a new Integer (quotient)
+   * @param lhs dividend
+   * @param rhs divisor
+   */
+  inline Integer operator/(const Integer &lhs, const Integer &rhs)
+  {
+    return Integer(lhs.Divide(rhs));
   }
 }
 }
