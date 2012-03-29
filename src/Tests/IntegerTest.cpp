@@ -57,6 +57,19 @@ namespace Tests {
     EXPECT_EQ(base, Integer(good));
   }
 
+  void IntegerRandom()
+  {
+    Integer val0 = Integer::GetRandomInteger(1024);
+    Integer val1 = Integer::GetRandomInteger(1024, val0);
+    Integer val2 = Integer::GetRandomInteger(1024, val0, true);
+
+    EXPECT_NE(val0, val1);
+    EXPECT_NE(val0, val2);
+    EXPECT_NE(val1, val2);
+    EXPECT_TRUE(val1 < val0);
+    EXPECT_TRUE(val2 < val0);
+  }
+
   TEST(Integer, CppBasic)
   {
     CryptoFactory &cf = CryptoFactory::GetInstance();
@@ -99,6 +112,15 @@ namespace Tests {
     Integer exp(100);
     EXPECT_EQ(exp, base.Pow(Integer(10), Integer(101)));
     EXPECT_EQ(Integer(0), base.Pow(Integer(10), Integer(100)));
+  }
+
+  TEST(Integer, CppRandom)
+  {
+    CryptoFactory &cf = CryptoFactory::GetInstance();
+    CryptoFactory::LibraryName cname = cf.GetLibraryName();
+    cf.SetLibrary(CryptoFactory::CryptoPP);
+    IntegerRandom();
+    cf.SetLibrary(cname);
   }
 }
 }

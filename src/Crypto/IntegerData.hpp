@@ -133,6 +133,16 @@ namespace Crypto {
       virtual bool operator<=(const IntegerData *other) const = 0;
 
       /**
+       * Returns the integer's count in bits
+       */
+      virtual int GetBitCount() const = 0;
+
+      /**
+       * Returns the integer's count in bytes
+       */
+      virtual int GetByteCount() const = 0;
+
+      /**
        * Convert a base64 number into a clean byte array
        * @param string input base64 string
        */

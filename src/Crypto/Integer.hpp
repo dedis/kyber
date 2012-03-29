@@ -47,6 +47,20 @@ namespace Crypto {
       }
 
       /**
+       * returns a random integer data
+       * @param bit_count the amount of bits in the integer
+       * @param mod the modulus of the integer
+       * @param prime if the integer should be prime 
+       */
+      static Integer GetRandomInteger(int bit_count,
+          const Integer &mod = Integer(), bool prime = false)
+      {
+        IntegerData *data = CryptoFactory::GetInstance().
+          GetLibrary()->GetRandomInteger(bit_count, mod.GetData(), prime);
+        return Integer(data);
+      }
+
+      /**
        * Returns the byte array representation of the number
        */
       inline const QByteArray &GetByteArray() const
@@ -172,6 +186,22 @@ namespace Crypto {
       bool operator<=(const Integer &other) const
       {
         return _data->operator<=(other._data.constData());
+      }
+
+      /**
+       * Returns the integer's count in bits
+       */
+      inline int GetBitCount() const
+      {
+        return _data->GetBitCount();
+      }
+
+      /**
+       * Returns the integer's count in bytes
+       */
+      inline int GetByteCount() const
+      {
+        return _data->GetByteCount();
       }
 
       /**

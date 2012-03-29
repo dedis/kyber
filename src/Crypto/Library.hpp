@@ -83,6 +83,15 @@ namespace Crypto {
       virtual IntegerData *GetIntegerData(const QString &value) = 0;
 
       /**
+       * returns a random integer data
+       * @param bit_count the amount of bits in the integer
+       * @param mod the modulus of the integer
+       * @param prime if the integer should be prime 
+       */
+      virtual IntegerData *GetRandomInteger(int bit_count,
+          const IntegerData *mod, bool prime) = 0;
+
+      /**
        * Returns a DiffieHellman operator
        */
       virtual DiffieHellman *CreateDiffieHellman() = 0;

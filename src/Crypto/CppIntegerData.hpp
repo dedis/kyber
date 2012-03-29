@@ -5,6 +5,13 @@
 
 #include <cryptopp/cryptlib.h>
 #include <cryptopp/integer.h>
+#include <cryptopp/aes.h>
+#include <cryptopp/ccm.h>
+#include <cryptopp/des.h>
+#include <cryptopp/osrng.h> 
+
+#include "AsymmetricKey.hpp"
+#include "Integer.hpp"
 
 #include <QSharedData>
 #include <QByteArray>
@@ -50,6 +57,28 @@ namespace Crypto {
         QByteArray data = ToBase64(string);
         _integer = CryptoPP::Integer(
             reinterpret_cast<const byte *>(data.constData()), data.size());
+      }
+
+      /**
+       * returns a random integer data
+       * @param bit_count the amount of bits in the integer
+       * @param mod the modulus of the integer
+       * @param prime if the integer should be prime 
+       */
+      static CppIntegerData *GetRandomInteger(int bit_count,
+          const IntegerData *mod, bool prime)
+      {
+        CryptoPP::AutoSeededX917RNG<CryptoPP::DES_EDE3> rng;
+
+        CryptoPP::Integer max = CppIntegerData::GetInteger(mod);
+        if(max == 0) {
+          max = CryptoPP::Integer::Power2(bit_count);
+        }
+        max--;
+
+        CryptoPP::Integer value(rng, 0, max,
+            prime ? CryptoPP::Integer::PRIME : CryptoPP::Integer::ANY);
+        return new CppIntegerData(value);
       }
 
       /**
@@ -173,6 +202,22 @@ namespace Crypto {
       virtual bool operator<=(const IntegerData *other) const
       {
         return _integer <= GetInteger(other);
+      }
+
+      /**
+       * Returns the integer's count in bits
+       */
+      virtual int GetBitCount() const
+      {
+        return _integer.BitCount();
+      }
+
+      /**
+       * Returns the integer's count in bytes
+       */
+      virtual int GetByteCount() const
+      {
+        return _integer.ByteCount();
       }
 
       /**
