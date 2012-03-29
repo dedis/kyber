@@ -432,9 +432,8 @@ namespace Tests {
 
     CryptoPP::GDSA<CryptoPP::SHA256>::PrivateKey key1;
     key1.Initialize(rng, key.GetGroupParameters().GetModulus(), key.GetGroupParameters().GetGenerator());
-    // These fail since we ignore the subgroup
-    for(int idx = 0; idx < 4; idx++)
-      EXPECT_FALSE(key1.Validate(rng, idx));
+    // Some of these will fail since we ignore the subgoup
+    EXPECT_FALSE(key1.Validate(rng, 3));
 
     CryptoPP::GDSA<CryptoPP::SHA256>::PrivateKey key2;
     key2.Initialize(key.GetGroupParameters().GetModulus(), key.GetGroupParameters().GetSubgroupOrder(),
