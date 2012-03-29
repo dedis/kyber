@@ -14,6 +14,12 @@ namespace Tests {
         Group::FixedSubgroup);
   }
 
+  TEST(TolerantTreeRound, BasicCS)
+  {
+    RoundTest_Basic(&TCreateSession<TolerantTreeRound>,
+        Group::ManagedSubgroup);
+  }
+
   TEST(TolerantTreeRound, MultiRoundFixed)
   {
     RoundTest_MultiRound(&TCreateSession<TolerantTreeRound>,
