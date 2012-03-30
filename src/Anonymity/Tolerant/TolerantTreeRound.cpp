@@ -164,6 +164,9 @@ namespace Tolerant {
     if(GetGroup().GetSubgroup().Contains(id)) {
       SetInterrupted();
       Stop("Server " + QString(id.ToString() + " disconnected"));
+    } else if((_state == State_Offline) || (_state == State_SigningKeyShuffling)) {
+      SetInterrupted();
+      Stop("Client " + QString(id.ToString() + " disconnected prior to DC-net"));
     } else {
       qDebug() << "Ignoring disconnected client" << id.ToString();
     }
@@ -274,6 +277,7 @@ namespace Tolerant {
 
   void TolerantTreeRound::SendUserBulkData()
   {
+    qDebug() << "In" << ToString() << "starting phase.";
 
     QByteArray user_xor_msg = GenerateUserXorMessage();
     QByteArray packet;
@@ -686,6 +690,7 @@ namespace Tolerant {
       return;
     }
 
+    qDebug() << "In" << ToString() << "ending phase.";
     PrepForNextPhase();
     _phase++;
     SendUserBulkData();
