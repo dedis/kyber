@@ -284,13 +284,6 @@ namespace Tolerant {
     QDataStream user_data_stream(&packet, QIODevice::WriteOnly);
     user_data_stream << MessageType_UserBulkData << GetRoundId() << _phase << user_xor_msg;
 
-    if(_is_server) {
-      // Set timeout clock running on finish, clock calls SendServerClientList()
-      Utils::TimerCallback *timer_cb = new Dissent::Utils::TimerMethod<TolerantTreeRound, int>(this, 
-          &TolerantTreeRound::SendServerClientList, 1);
-      _timer_user_cutoff = Dissent::Utils::Timer::GetInstance().QueueCallback(timer_cb, GetUserCutoffInterval());
-    }
-
     ChangeState(_is_server ? State_ServerUserDataReceiving : State_UserFinalDataReceiving);
     VerifiableSendToServer(packet);
   }
@@ -327,6 +320,15 @@ namespace Tolerant {
     }
 
     _user_messages[user_idx] = payload;
+
+    // If this is my message, start timeout for other messages
+    if(user_idx == static_cast<int>(_user_idx)) {
+      // Set timeout clock running on finish, clock calls SendServerClientList()
+      Utils::TimerCallback *timer_cb = new Dissent::Utils::TimerMethod<TolerantTreeRound, int>(this, 
+          &TolerantTreeRound::SendServerClientList, 1);
+      _timer_user_cutoff = Dissent::Utils::Timer::GetInstance().QueueCallback(timer_cb, GetUserCutoffInterval());
+    }
+
     if(HasAllUserDataMessages()) {
       SendServerClientList(0);
     }
@@ -463,7 +465,6 @@ namespace Tolerant {
     }
 
     // XOR messages received from my users
-  
     for(QHash<uint, QByteArray>::const_iterator i=_user_messages.begin();
         i!=_user_messages.end(); i++) {
       Xor(msg, msg, _user_messages[i.key()]);
