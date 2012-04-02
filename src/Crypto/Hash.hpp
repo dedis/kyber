@@ -1,6 +1,8 @@
 #ifndef DISSENT_CRYPTO_HASH_H_GUARD
 #define DISSENT_CRYPTO_HASH_H_GUARD
 
+#include <QByteArray>
+
 namespace Dissent {
 namespace Crypto {
   /**
