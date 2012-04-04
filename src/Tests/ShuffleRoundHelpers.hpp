@@ -28,19 +28,18 @@ namespace Tests {
         SetTriggered();
 
         qDebug() << GetShufflers().GetIndex(GetLocalId()) <<
-          GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
-          ": received sufficient go messages, broadcasting private key.";
+          GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
+          ": received sufficient go messages, broadcasting evil private key.";
 
         Library *lib = CryptoFactory::GetInstance().GetLibrary();
         AsymmetricKey *tmp = lib->CreatePrivateKey();
 
         QByteArray msg;
         QDataStream stream(&msg, QIODevice::WriteOnly);
-        stream << PrivateKey << GetRoundId().GetByteArray() << tmp->GetByteArray();
+        stream << PRIVATE_KEY << GetRoundId() << tmp->GetByteArray();
 
         VerifiableBroadcast(msg);
-        int idx = GetShufflers().GetIndex(GetLocalId());
-        _private_inner_keys[idx] = lib->LoadPrivateKeyFromByteArray(_inner_key->GetByteArray());
+        _state_machine.StateComplete();
       }
   };
 
@@ -66,58 +65,53 @@ namespace Tests {
 
         SetTriggered();
 
-        _state = Shuffling;
-        qDebug() << GetShufflers().GetIndex(GetLocalId()) <<
-          GetGroup().GetIndex(GetLocalId()) << ": shuffling";
-      
-        for(int idx = 0; idx < _shuffle_ciphertext.count(); idx++) {
-          for(int jdx = 0; jdx < _shuffle_ciphertext.count(); jdx++) {
+        for(int idx = 0; idx < _server_state->shuffle_input.count(); idx++) {
+          for(int jdx = 0; jdx < _server_state->shuffle_input.count(); jdx++) {
             if(idx == jdx) {
               continue;
             }
-            if(_shuffle_ciphertext[idx] != _shuffle_ciphertext[jdx]) {
+            if(_server_state->shuffle_input[idx] != _server_state->shuffle_input[jdx]) {
               continue;
             }
             qWarning() << "Found duplicate cipher texts... blaming";
-            StartBlame();
-            return;
+            _state->blame = true;
           }
         }
 
-        int x = Random::GetInstance().GetInt(0, _shuffle_ciphertext.count());
-        int y = Random::GetInstance().GetInt(0, _shuffle_ciphertext.count());
+        int x = Random::GetInstance().GetInt(0, _server_state->shuffle_input.count());
+        int y = Random::GetInstance().GetInt(0, _server_state->shuffle_input.count());
         while(y == x) {
-          y = Random::GetInstance().GetInt(0, _shuffle_ciphertext.count());
+          y = Random::GetInstance().GetInt(0, _server_state->shuffle_input.count());
         }
 
-        _shuffle_ciphertext[x] = _shuffle_ciphertext[y];
+        _server_state->shuffle_input[x] = _server_state->shuffle_input[y];
   
         QVector<int> bad;
         OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
-        if(!oe->Decrypt(_outer_key, _shuffle_ciphertext, _shuffle_cleartext, &bad)) {
-          qWarning() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
+        if(!oe->Decrypt(_server_state->outer_key, _server_state->shuffle_input,
+              _server_state->shuffle_output, &bad))
+        {
+          qWarning() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
             ": failed to decrypt layer due to block at indexes" << bad;
-          StartBlame();
-          return; 
+          _state->blame = true;
         } 
         
-        oe->RandomizeBlocks(_shuffle_cleartext);
+        oe->RandomizeBlocks(_server_state->shuffle_output);
         
         const Id &next = GetShufflers().Next(GetLocalId());
-        MessageType mtype = (next == Id::Zero()) ? EncryptedData : ShuffleData;
+        MessageType mtype = (next == Id::Zero()) ? ENCRYPTED_DATA : SHUFFLE_DATA;
         
         QByteArray msg;
         QDataStream out_stream(&msg, QIODevice::WriteOnly);
-        out_stream << mtype << GetRoundId().GetByteArray() << _shuffle_cleartext;
+        out_stream << mtype << GetRoundId() << _server_state->shuffle_output;
           
-        _state = WaitingForEncryptedInnerData;
-      
-        if(mtype == EncryptedData) {
+        if(mtype == ENCRYPTED_DATA) {
           VerifiableBroadcast(msg);
-          _encrypted_data = _shuffle_cleartext;
         } else {
           VerifiableSend(next, msg);
         }
+
+        _state_machine.StateComplete();
       }
   };
 
@@ -144,47 +138,25 @@ namespace Tests {
         SetTriggered();
 
         QVector<QSharedPointer<AsymmetricKey> > outer_keys;
-        for(int idx = GetShufflers().Count() - 1; idx >= GetShufflers().GetIndex(GetLocalId()); idx--) {
+        for(int idx = GetShufflers().Count() - 1;
+            idx >= GetShufflers().GetIndex(GetLocalId()); idx--)
+        {
           int kidx = CalculateKidx(idx);
-          outer_keys.append(_public_outer_keys[kidx]);
+          outer_keys.append(_state->public_outer_keys[kidx]);
         }
 
         QByteArray get_data = DefaultData;
         QByteArray inner_ct, outer_ct;
         OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
-        oe->Encrypt(_public_inner_keys, get_data, inner_ct, 0);
+        oe->Encrypt(_state->public_inner_keys, get_data, inner_ct, 0);
         oe->Encrypt(outer_keys, inner_ct, outer_ct, 0);
 
-        int x = Random::GetInstance().GetInt(0, _shuffle_ciphertext.count());
-        _shuffle_ciphertext[x] = outer_ct;
+        int x = Random::GetInstance().GetInt(0,
+            _server_state->shuffle_input.count());
+        _server_state->shuffle_input[x] = outer_ct;
 
         ShuffleRound::Shuffle();
-      }
-  };
-
-  template <int N> class ShuffleRoundFalseBlame :
-      public ShuffleRound, public Triggerable
-  {
-    public:
-      explicit ShuffleRoundFalseBlame(const Group &group,
-          const PrivateIdentity &ident, const Id &round_id,
-          QSharedPointer<Network> net, GetDataCallback &get_data) :
-        ShuffleRound(group, ident, round_id, net, get_data) {}
-
-      virtual ~ShuffleRoundFalseBlame() {}
-
-    protected:
-      virtual void Shuffle()
-      {
-        Random &rand = Random::GetInstance();
-        if((rand.GetInt(0, 1024) / 1024.0) > N) {
-          ShuffleRound::Shuffle();
-          return;
-        }
-
-        SetTriggered();
-
-        StartBlame();
+        _state_machine.StateComplete();
       }
   };
 
@@ -210,11 +182,11 @@ namespace Tests {
 
         SetTriggered();
 
-        MessageType mtype = NoGoMessage;
         QByteArray msg;
         QDataStream out_stream(&msg, QIODevice::WriteOnly);
-        out_stream << mtype << GetRoundId();
+        out_stream << GO_MESSAGE << GetRoundId() << false;
         VerifiableBroadcast(msg);
+        _state_machine.StateComplete();
       }
   };
 
@@ -230,20 +202,19 @@ namespace Tests {
       virtual ~ShuffleRoundInvalidOuterEncryption() {}
 
     protected:
-      virtual void SubmitData()
+      virtual void SubmitCiphertext()
       {
         Random &rand = Random::GetInstance();
         if((rand.GetInt(0, 1024) / 1024.0) > N) {
-          ShuffleRound::SubmitData();
+          ShuffleRound::SubmitCiphertext();
           return;
         }
 
         SetTriggered();
 
-        _state = DataSubmission;
-
         OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
-        oe->Encrypt(_public_inner_keys, PrepareData(), _inner_ciphertext, 0);
+        oe->Encrypt(_state->public_inner_keys, PrepareData(),
+            _state->inner_ciphertext, 0);
 
         int count = Random::GetInstance().GetInt(0, GetShufflers().Count());
         int opposite = CalculateKidx(count);
@@ -251,17 +222,19 @@ namespace Tests {
           opposite = (opposite + 1) % GetShufflers().Count();
         }
 
-        QSharedPointer<AsymmetricKey> tmp(_public_outer_keys[opposite]);
-        _public_outer_keys[opposite] = _public_outer_keys[count];
-        oe->Encrypt(_public_outer_keys, _inner_ciphertext, _outer_ciphertext, 0);
-        _public_outer_keys[opposite] = tmp;
+        QSharedPointer<AsymmetricKey> tmp(_state->public_outer_keys[opposite]);
+        _state->public_outer_keys[opposite] = _state->public_outer_keys[count];
+        QByteArray outer_ciphertext;
+        oe->Encrypt(_state->public_outer_keys, _state->inner_ciphertext,
+            outer_ciphertext, 0);
+        _state->public_outer_keys[opposite] = tmp;
 
         QByteArray msg;
         QDataStream stream(&msg, QIODevice::WriteOnly);
-        stream << Data << GetRoundId().GetByteArray() << _outer_ciphertext;
+        stream << DATA << GetRoundId() << outer_ciphertext;
 
-        _state = WaitingForShuffle;
         VerifiableSend(GetShufflers().GetId(0), msg);
+        _state_machine.StateComplete();
       }
   };
 }

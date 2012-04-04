@@ -27,22 +27,138 @@ using namespace ShuffleRoundPrivate;
       QSharedPointer<Network> network, GetDataCallback &get_data) :
     Round(group, ident, round_id, network, get_data),
     _shufflers(GetGroup().GetSubgroup()),
-    _shuffler(_shufflers.Contains(GetLocalId())),
-    _state(Offline),
-    _blame_state(Offline),
-    _keys_received(0),
-    _data_received(0),
-    _go_count(0),
-    _go_received(GetGroup().Count(), false),
-    _go(GetGroup().Count(), false),
-    _broadcast_hashes(GetGroup().Count()),
-    _blame_received(GetGroup().Count(), false),
-    _logs(GetGroup().Count()),
-    _blame_hash(GetGroup().Count()),
-    _blame_signatures(GetGroup().Count()),
-    _received_blame_verification(GetGroup().Count(), false)
+    _state_machine(RoundStateMachine<ShuffleRound>(this))
   {
     RegisterMetaTypes();
+
+    _state_machine.AddState(OFFLINE);
+    _state_machine.AddState(FINISHED);
+
+    _state_machine.AddState(WAITING_FOR_PUBLIC_KEYS, PUBLIC_KEYS,
+        &ShuffleRound::HandlePublicKeys);
+
+    _state_machine.AddState(CIPHERTEXT_GENERATION, -1, 0,
+        &ShuffleRound::GenerateCiphertext);
+
+    _state_machine.AddState(SUBMIT_CIPHERTEXT, -1, 0,
+        &ShuffleRound::SubmitCiphertext);
+
+    _state_machine.AddState(WAITING_FOR_ENCRYPTED_INNER_DATA, ENCRYPTED_DATA,
+        &ShuffleRound::HandleDataBroadcast);
+
+    _state_machine.AddState(VERIFICATION, -1, 0,
+        &ShuffleRound::VerifyInnerCiphertext);
+
+    _state_machine.AddState(WAITING_FOR_PRIVATE_KEYS, PRIVATE_KEY,
+        &ShuffleRound::HandlePrivateKey,
+        &ShuffleRound::PrepareForPrivateKeys);
+
+    _state_machine.AddState(DECRYPTION, -1, 0,
+        &ShuffleRound::Decrypt);
+
+    _state_machine.AddState(BLAME_SHARE, BLAME_DATA,
+        &ShuffleRound::HandleBlame,
+        &ShuffleRound::StartBlame);
+
+    _state_machine.AddState(BLAME_VERIFY, BLAME_VERIFICATION,
+        &ShuffleRound::HandleBlameVerification,
+        &ShuffleRound::BroadcastBlameVerification);
+
+    _state_machine.AddState(BLAME_REVIEWING, -1, 0,
+        &ShuffleRound::BlameRound);
+
+    if(_shufflers.Contains(GetLocalId())) {
+      InitServer();
+    } else {
+      InitClient();
+    }
+
+    _state_machine.AddTransition(WAITING_FOR_PRIVATE_KEYS, DECRYPTION);
+
+    _state_machine.AddTransition(BLAME_SHARE, BLAME_VERIFY);
+    _state_machine.AddTransition(BLAME_VERIFY, BLAME_REVIEWING);
+
+    _state_machine.SetState(OFFLINE);
+  }
+
+  void ShuffleRound::InitServer()
+  {
+    bool first_server = GetGroup().GetSubgroup().GetIndex(GetLocalId()) == 0;
+    _server_state = QSharedPointer<ServerState>(new ServerState());
+    _state = _server_state;
+
+    _state_machine.AddState(KEY_SHARING, -1, 0,
+        &ShuffleRound::BroadcastPublicKeys);
+
+    if(first_server) {
+      _state_machine.AddState(WAITING_FOR_INITIAL_DATA, DATA,
+          &ShuffleRound::HandleData, &ShuffleRound::PrepareForInitialData);
+    } else {
+      _state_machine.AddState(WAITING_FOR_SHUFFLE, SHUFFLE_DATA,
+          &ShuffleRound::HandleShuffle);
+    }
+
+    _state_machine.AddState(SHUFFLING, -1, 0, &ShuffleRound::Shuffle);
+
+    _state_machine.AddState(WAITING_FOR_VERIFICATION_MESSAGES, GO_MESSAGE,
+        &ShuffleRound::HandleVerification, &ShuffleRound::PrepareForVerification);
+
+    _state_machine.AddState(PRIVATE_KEY_SHARING, -1, 0,
+        &ShuffleRound::BroadcastPrivateKey);
+
+    _state_machine.AddTransition(OFFLINE, KEY_SHARING);
+    _state_machine.AddTransition(KEY_SHARING, WAITING_FOR_PUBLIC_KEYS);
+    _state_machine.AddTransition(WAITING_FOR_PUBLIC_KEYS,
+        CIPHERTEXT_GENERATION);
+    _state_machine.AddTransition(CIPHERTEXT_GENERATION, SUBMIT_CIPHERTEXT);
+
+    if(first_server) {
+      _state_machine.AddTransition(SUBMIT_CIPHERTEXT,
+          WAITING_FOR_INITIAL_DATA);
+      _state_machine.AddTransition(WAITING_FOR_INITIAL_DATA, SHUFFLING);
+    } else {
+      _state_machine.AddTransition(SUBMIT_CIPHERTEXT,
+          WAITING_FOR_SHUFFLE);
+      _state_machine.AddTransition(WAITING_FOR_SHUFFLE, SHUFFLING);
+    }
+
+    _state_machine.AddTransition(SHUFFLING,
+        WAITING_FOR_ENCRYPTED_INNER_DATA);
+    _state_machine.AddTransition(WAITING_FOR_ENCRYPTED_INNER_DATA,
+        VERIFICATION);
+    _state_machine.AddTransition(VERIFICATION,
+        WAITING_FOR_VERIFICATION_MESSAGES);
+    _state_machine.AddTransition(WAITING_FOR_VERIFICATION_MESSAGES,
+        PRIVATE_KEY_SHARING);
+    _state_machine.AddTransition(PRIVATE_KEY_SHARING,
+        WAITING_FOR_PRIVATE_KEYS);
+  }
+
+  void ShuffleRound::InitClient()
+  {
+    _state = QSharedPointer<State>(new State());
+
+    _state_machine.AddTransition(OFFLINE,
+        WAITING_FOR_PUBLIC_KEYS);
+    _state_machine.AddTransition(WAITING_FOR_PUBLIC_KEYS,
+        CIPHERTEXT_GENERATION);
+    _state_machine.AddTransition(CIPHERTEXT_GENERATION,
+        SUBMIT_CIPHERTEXT);
+    _state_machine.AddTransition(SUBMIT_CIPHERTEXT,
+        WAITING_FOR_ENCRYPTED_INNER_DATA);
+    _state_machine.AddTransition(WAITING_FOR_ENCRYPTED_INNER_DATA,
+        VERIFICATION);
+#if 0
+    // Ideally servers would either send back private keys or a failed message
+    _state_machine.AddTransition(VERIFICATION, WAITING_FOR_PRIVATE_KEYS);
+#else
+    _state_machine.AddState(WAITING_FOR_VERIFICATION_MESSAGES, GO_MESSAGE,
+        &ShuffleRound::HandleVerification, &ShuffleRound::PrepareForVerification);
+
+    _state_machine.AddTransition(VERIFICATION, WAITING_FOR_VERIFICATION_MESSAGES);
+    _state_machine.AddTransition(WAITING_FOR_VERIFICATION_MESSAGES,
+        WAITING_FOR_PRIVATE_KEYS);
+#endif
   }
 
   ShuffleRound::~ShuffleRound()
@@ -61,7 +177,7 @@ using namespace ShuffleRoundPrivate;
       return DefaultData;
     }
 
-    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
+    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
       "Sending real data:" << data.first.size() << data.first.toBase64();
 
     QByteArray msg(4, 0);
@@ -89,241 +205,196 @@ using namespace ShuffleRoundPrivate;
   void ShuffleRound::OnStart()
   {
     Round::OnStart();
-    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
-      ": starting:" << ToString();
 
-    if(_shuffler) {
-      Library *lib = CryptoFactory::GetInstance().GetLibrary();
-      _inner_key = QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey());
-      _outer_key = QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey());
-      if(_shufflers.GetIndex(GetLocalId()) == 0) {
-        _shuffle_ciphertext = QVector<QByteArray>(GetGroup().Count());
-      }
-    }
+    _state->public_inner_keys.resize(_shufflers.Count());
+    _state->public_outer_keys.resize(_shufflers.Count());
 
-    _public_inner_keys.resize(_shufflers.Count());
-    _public_outer_keys.resize(_shufflers.Count());
-    _private_inner_keys.resize(_shufflers.Count());
-    _private_outer_keys.resize(_shufflers.Count());
-
-    BroadcastPublicKeys();
-
-    Id from(Id::Zero());
-    QByteArray entry(0);
-
-    for(int idx = 0; idx < _offline_log.Count(); idx++) {
-      QPair<QByteArray, Id> entry = _offline_log.At(idx);
-      ProcessData(entry.second, entry.first);
-    }
-
-    _offline_log.Clear();
+    _state_machine.StateComplete();
   }
 
-  void ShuffleRound::HandlePublicKeys(QDataStream &stream, const Id &id)
+  void ShuffleRound::OnStop()
   {
-    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
-        ": received public keys from " << GetGroup().GetIndex(id) << id.ToString();
+    _state_machine.SetState(FINISHED);
+    Round::OnStop();
+  }
 
-    if(_state != KeySharing) {
-      throw QRunTimeError("Received a misordered key message");
-    }
-
+  void ShuffleRound::HandlePublicKeys(const Id &id, QDataStream &stream)
+  {
     int sidx = _shufflers.GetIndex(id);
     if(sidx < 0) {
       throw QRunTimeError("Received a public key message from a non-shuffler");
     }
 
     int kidx = CalculateKidx(sidx);
-    if(_public_inner_keys[kidx] != 0 || _public_outer_keys[kidx] != 0) {
+    if(_state->public_inner_keys[kidx] || _state->public_outer_keys[kidx]) {
       throw QRunTimeError("Received duplicate public keys");
     }
 
-    QByteArray inner_key, outer_key;
+    QSharedPointer<AsymmetricKey> inner_key, outer_key;
     stream >> inner_key >> outer_key;
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    _public_inner_keys[kidx] = QSharedPointer<AsymmetricKey>(lib->LoadPublicKeyFromByteArray(inner_key));
-    _public_outer_keys[kidx] = QSharedPointer<AsymmetricKey>(lib->LoadPublicKeyFromByteArray(outer_key));
-
-    if(!_public_inner_keys[kidx]->IsValid()) {
-      throw QRunTimeError("Received an invalid outer inner key");
-    } else if(!_public_outer_keys[kidx]->IsValid()) {
+    if(!inner_key->IsValid()) {
+      throw QRunTimeError("Received an invalid inner public key");
+    } else if(!outer_key->IsValid()) {
       throw QRunTimeError("Received an invalid outer public key");
     }
 
-    if(++_keys_received == _shufflers.Count()) {
-      _keys_received = 0;
-      SubmitData();
+    _state->public_inner_keys[kidx] = inner_key;
+    _state->public_outer_keys[kidx] = outer_key;
+
+    ++_state->keys_received;
+
+    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
+        ": received public keys from" << GetGroup().GetIndex(id) << id <<
+        "Have:" << _state->keys_received << "expect:" << _shufflers.Count();
+
+    if(_state->keys_received == _shufflers.Count()) {
+      _state_machine.StateComplete();
     }
   }
 
-  void ShuffleRound::HandleData(QDataStream &stream, const Id &id)
+  void ShuffleRound::HandleData(const Id &id, QDataStream &stream)
   {
-    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
-        ": received initial data from " << GetGroup().GetIndex(id) << id.ToString();
-
-    if(_state != KeySharing && _state != DataSubmission &&
-        _state != WaitingForShuffle)
-    {
-      throw QRunTimeError("Received a misordered data message");
-    }
-
-    int sidx = _shufflers.GetIndex(GetLocalId());
-    if(sidx != 0) {
-      throw QRunTimeError("Received a data message while not the first"
-          " node in the group");
-    }
-
     QByteArray data;
     stream >> data;
-
-    int gidx = GetGroup().GetIndex(id);
 
     if(data.isEmpty()) {
       throw QRunTimeError("Received a null data");
     }
 
-    if(!_shuffle_ciphertext[gidx].isEmpty()) {
-      if(_shuffle_ciphertext[gidx] != data) {
-        throw QRunTimeError("Received a unique second data message");
-      } else {
-        throw QRunTimeError("Received multiples data messages from same identity");
-      }
+    int gidx = GetGroup().GetIndex(id);
+
+    if(!_server_state->shuffle_input[gidx].isEmpty()) {
+      throw QRunTimeError("Received multiples data messages.");
     }
 
-    _shuffle_ciphertext[gidx] = data;
+    _server_state->shuffle_input[gidx] = data;
 
-    if(++_data_received == GetGroup().Count()) {
-      _data_received = 0;
-      Shuffle();
+    ++_server_state->data_received;
+
+    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
+        ": received initial data from" << GetGroup().GetIndex(id) << id <<
+        "Have:" << _server_state->data_received << "expect:" << GetGroup().Count();
+
+    if(_server_state->data_received == GetGroup().Count()) {
+      _state_machine.StateComplete();
     }
   }
 
-  void ShuffleRound::HandleShuffle(QDataStream &stream, const Id &id)
+  void ShuffleRound::HandleShuffle(const Id &id, QDataStream &stream)
   {
-    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
-        ": received shuffle data from " << GetGroup().GetIndex(id) << id.ToString();
-
-    if(_state != WaitingForShuffle) {
-      throw QRunTimeError("Received a misordered shuffle message");
-    }
-
     if(_shufflers.Previous(GetLocalId()) != id) {
       throw QRunTimeError("Received a shuffle out of order");
     }
 
-    stream >> _shuffle_ciphertext;
+    stream >> _server_state->shuffle_input;
 
-    Shuffle();
+    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
+        ": received shuffle data from" << GetGroup().GetIndex(id) << id;
+
+    _state_machine.StateComplete();
   }
 
-  void ShuffleRound::HandleDataBroadcast(QDataStream &stream, const Id &id)
+  void ShuffleRound::HandleDataBroadcast(const Id &id, QDataStream &stream)
   {
-    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
-        ": received data broadcast from " << GetGroup().GetIndex(id) << id.ToString();
-
-    if(_state != WaitingForEncryptedInnerData) {
-      throw QRunTimeError("Received a misordered data broadcast");
-    }
-
     if(_shufflers.Count() - 1 != _shufflers.GetIndex(id)) {
       throw QRunTimeError("Received data broadcast from the wrong node");
     }
 
-    stream >> _encrypted_data;
-    VerifyInnerCiphertext();
+    stream >> _state->encrypted_data;
+
+    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
+        ": received data broadcast from" << GetGroup().GetIndex(id) << id;
+
+    _state_machine.StateComplete();
   }
     
-  void ShuffleRound::HandleVerification(QDataStream &stream, bool go, const Id &id)
+  void ShuffleRound::HandleVerification(const Id &id, QDataStream &stream)
   {
-    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
-        ": received" << go << " from " << GetGroup().GetIndex(id)
-        << id.ToString();
-
-    if(_state != Verification && _state != WaitingForEncryptedInnerData) {
-      throw QRunTimeError("Received a misordered Go / NoGo message");
-    }
-
     int gidx = GetGroup().GetIndex(id);
-    if(_go_received[gidx]) {
+    if(_state->go.contains(gidx)) {
       throw QRunTimeError("Received multiples go messages from same identity");
     }
 
-    _go_received[gidx] = true;
-    _go[gidx] = go;
+    bool go;
+    stream >> go;
+
+    _state->go[gidx] = go;
     if(go) {
-      stream >> _broadcast_hashes[gidx];
+      stream >> _state->state_hashes[gidx];
     }
 
-    if(++_go_count < GetGroup().Count()) {
+    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
+        ": received" << go << "from" << GetGroup().GetIndex(id) << id <<
+        "Have:" << _state->go.count() << "expect:" << _shufflers.Count();
+
+    if(_state->go.count() < GetGroup().Count()) {
       return;
     }
 
-    for(int idx = 0; idx < GetGroup().Count(); idx++) {
-      if(!_go[idx] || _broadcast_hashes[idx] != _broadcast_hash) {
-        if(!_go[idx]) {
-          qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
+    for(int idx = 0; idx < _shufflers.Count(); idx++) {
+      if(!_state->go[idx] ||
+          (_state->state_hashes[idx] != _state->state_hash))
+      {
+        if(!_state->go[idx]) {
+          qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
               ": starting blame due to no go from" <<
-              GetGroup().GetId(idx).ToString() << idx;
+              GetGroup().GetId(idx) << idx;
         } else {
-          qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
-              ": starting blame mismatched broadcast hashes" <<
-              GetGroup().GetId(idx).ToString() << idx << "... Got:" <<
-              _broadcast_hashes[idx].toBase64() << ", expected:" <<
-              _broadcast_hash.toBase64();
+          qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
+              ": starting blame mismatched state hashes" <<
+              GetGroup().GetId(idx) << idx << "... Got:" <<
+              _state->state_hashes[idx].toBase64() << ", expected:" <<
+              _state->state_hash.toBase64();
         }
 
-        StartBlame();
+        _state_machine.SetState(BLAME_SHARE);
         return;
       }
     }
-    BroadcastPrivateKey();
+
+    _state_machine.StateComplete();
   }
 
-  void ShuffleRound::HandlePrivateKey(QDataStream &stream, const Id &id)
+  void ShuffleRound::HandlePrivateKey(const Id &id, QDataStream &stream)
   {
-    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
-        ": received private key from " << GetGroup().GetIndex(id) << 
-        id.ToString() << ", received" << _keys_received << "keys.";
-
-    if(_state != Verification && _state != PrivateKeySharing) {
-      throw QRunTimeError("Received misordered private key message");
-    }
-
     int sidx = _shufflers.GetIndex(id);
     if(sidx < 0) {
       throw QRunTimeError("Received a private key message from a non-shuffler");
     }
 
-    if(_private_inner_keys[sidx] != 0) {
+    if(_state->private_inner_keys[sidx] != 0) {
       throw QRunTimeError("Received multiple private key messages from the same identity");
     }
 
-    QByteArray key;
+    QSharedPointer<AsymmetricKey> key;
     stream >> key;
-    int kidx = CalculateKidx(sidx);
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    _private_inner_keys[sidx] = QSharedPointer<AsymmetricKey>(lib->LoadPrivateKeyFromByteArray(key));
-
-    if(!_private_inner_keys[sidx]->VerifyKey(*_public_inner_keys[kidx])) {
+    if(!key->IsValid()) {
       throw QRunTimeError("Received invalid inner key");
     }
 
-    if(++_keys_received == _private_inner_keys.count()) {
-      _keys_received = 0;
-      Decrypt();
+    int kidx = CalculateKidx(sidx);
+    if(!key->VerifyKey(*_state->public_inner_keys[kidx])) {
+      throw QRunTimeError("Received mismatched inner key");
+    }
+
+    _state->private_inner_keys[sidx] = key;
+    ++_state->keys_received;
+
+    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
+        ": received private key from" << GetGroup().GetIndex(id) << 
+        id << "Have:" << _state->keys_received << "expect:" << _shufflers.Count();
+
+    if(_state->keys_received == _state->private_inner_keys.count()) {
+      _state_machine.StateComplete();
     }
   }
 
-  void ShuffleRound::HandleBlame(QDataStream &stream, const Id &id)
+  void ShuffleRound::HandleBlame(const Id &id, QDataStream &stream)
   {
-    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
-        ": received blame data from " << GetGroup().GetIndex(id) << 
-        id.ToString() << ", received" << _data_received << "messages.";
-
     int gidx = GetGroup().GetIndex(id);
-    if(_blame_received[gidx]) {
+    if(!_state->blame_hash[gidx].isEmpty()) {
       throw QRunTimeError("Received multiple blame messages from the same identity");
     }
 
@@ -331,10 +402,10 @@ using namespace ShuffleRoundPrivate;
     QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());;
 
     int sidx = _shufflers.GetIndex(id);
-    QByteArray key;
+    QSharedPointer<AsymmetricKey> outer_key;
     if(sidx >= 0) {
-      stream >> key;
-      hashalgo->Update(key);
+      stream >> outer_key;
+      hashalgo->Update(outer_key->GetByteArray());
     }
 
     QByteArray log, sig;
@@ -345,269 +416,170 @@ using namespace ShuffleRoundPrivate;
 
     QByteArray sigmsg;
     QDataStream sigstream(&sigmsg, QIODevice::WriteOnly);
-    sigstream << BlameData << GetRoundId().GetByteArray() << blame_hash;
+    sigstream << BLAME_DATA << GetRoundId() << blame_hash;
 
     if(!GetGroup().GetKey(gidx)->Verify(sigmsg, sig)) {
       throw QRunTimeError("Receiving invalid blame data");
     }
 
     if(sidx >= 0) {
-      _private_outer_keys[sidx] = QSharedPointer<AsymmetricKey>(lib->LoadPrivateKeyFromByteArray(key));
       int kidx = CalculateKidx(sidx);
-      if(!_private_outer_keys[sidx]->VerifyKey(*_public_outer_keys[kidx])) {
+      if(!outer_key->VerifyKey(*_state->public_outer_keys[kidx])) {
         throw QRunTimeError("Invalid outer key");
       }
+      _state->private_outer_keys[sidx] = outer_key;
     }
 
-    _blame_received[gidx] = true;
-    _logs[gidx] = Log(log);
-    _blame_hash[gidx] = blame_hash;
-    _blame_signatures[gidx] = sig;
-    ++_data_received;
+    _state->logs[gidx] = Log(log);
+    _state->blame_hash[gidx] = blame_hash;
+    _state->blame_signatures[gidx] = sig;
+    ++_state->data_received;
 
-    if(_state == Verification) {
-      return;
-    }
+    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
+        ": received blame data from" << GetGroup().GetIndex(id) << id <<
+        "Have:" << _state->data_received << "expect:" << GetGroup().Count();
 
-    if(_data_received == GetGroup().Count()) {
-      BroadcastBlameVerification();
-    } else if(_state != BlameInit) {
-      StartBlame();
+    if(_state->data_received == GetGroup().Count()) {
+      _state_machine.StateComplete();
     }
   }
 
-  void ShuffleRound::HandleBlameVerification(QDataStream &stream, const Id &id)
+  void ShuffleRound::HandleBlameVerification(const Id &id, QDataStream &stream)
   {
-    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
-        ": received blame verification from " << GetGroup().GetIndex(id) << 
-        id.ToString() << ", received" << _blame_verifications << "messages.";
-
-    if(_state != BlameInit && _state != BlameShare) {
-      throw QRunTimeError("Received a misordered blame verification message");
-    }
-
     int gidx = GetGroup().GetIndex(id);
-    if(_received_blame_verification[gidx]) {
+    if(_state->blame_verification_msgs[gidx] != HashSig()) {
       throw QRunTimeError("Received duplicate blame verification messages.");
     }
 
     QVector<QByteArray> blame_hash, blame_signatures;
     stream >> blame_hash >> blame_signatures;
-    if(blame_hash.count() != GetGroup().Count() || blame_signatures.count() != GetGroup().Count()) {
+    if((blame_hash.count() != GetGroup().Count()) ||
+        (blame_signatures.count() != GetGroup().Count()))
+    {
       throw QRunTimeError("Missing signatures / hashes");
     }
     
-    _blame_verification_msgs[gidx] = HashSig(blame_hash, blame_signatures);
+    _state->blame_verification_msgs[gidx] = HashSig(blame_hash, blame_signatures);
     QVector<QPair<QVector<QByteArray>, QVector<QByteArray> > >(GetGroup().Count());
 
-    _received_blame_verification[gidx] = true;
-    if(++_blame_verifications == GetGroup().Count()) {
-      BlameRound();
-    }
-  }
+    ++_state->blame_verifications;
 
-  void ShuffleRound::ProcessData(const Id &from, const QByteArray &data)
-  {
-    _log.Append(data, from);
-    try {
-      ProcessDataBase(from, data);
-    } catch (QRunTimeError &err) {
-      qWarning() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
-        "received a message from" << GetGroup().GetIndex(from) << from.ToString() <<
-        "in session / round" << GetRoundId().ToString() << "in state" <<
-        StateToString(_state) << "causing the following exception: " << err.What();
-      _log.Pop();
-      return;
-    }
-  }
+    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
+        ": received blame verification from" << GetGroup().GetIndex(id) << id
+        << "Have:" << _state->blame_verifications << "expect:" << GetGroup().Count();
 
-  void ShuffleRound::ProcessDataBase(const Id &from, const QByteArray &data)
-  {
-    QByteArray payload;
-    if(!Verify(from, data, payload)) {
-      throw QRunTimeError("Invalid signature or data");
-    }
-
-    if(_state == Offline) {
-      _log.Pop();
-      _offline_log.Append(data, from);
-      return;
-    }
-
-    QDataStream stream(payload);
-
-    int mtype;
-    QByteArray round_id;
-    stream >> mtype >> round_id;
-
-    MessageType msg_type = (MessageType) mtype;
-
-    Id rid(round_id);
-    if(rid != GetRoundId()) {
-      throw QRunTimeError("Not this round: " + rid.ToString() + " " +
-          GetRoundId().ToString());
-    }
-
-    switch(msg_type) {
-      case PublicKeys:
-        HandlePublicKeys(stream, from);
-        break;
-      case Data:
-        HandleData(stream, from);
-        break;
-      case ShuffleData:
-        HandleShuffle(stream, from);
-        break;
-      case EncryptedData:
-        HandleDataBroadcast(stream, from);
-        break;
-      case GoMessage:
-        HandleVerification(stream, true, from);
-        break;
-      case NoGoMessage:
-        HandleVerification(stream, false, from);
-        break;
-      case PrivateKey:
-        HandlePrivateKey(stream, from);
-        break;
-      case BlameData:
-        HandleBlame(stream, from);
-        break;
-      case BlameVerification:
-        HandleBlameVerification(stream, from);
-        break;
-      default:
-        throw QRunTimeError("Unknown message type");
+    if(_state->blame_verifications == GetGroup().Count()) {
+      _state_machine.StateComplete();
     }
   }
 
   void ShuffleRound::BroadcastPublicKeys()
   {
-    if(_state == Offline) {
-      _state = KeySharing;
-    }
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    _server_state->inner_key = QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey());
+    _server_state->outer_key = QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey());
 
-    if(!_shuffler) {
-      qDebug() << _shufflers.GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
-        << ": not sharing a key, waiting for keys.";
-      return;
-    }
-
-    QScopedPointer<AsymmetricKey> in_key(_inner_key->GetPublicKey());
-    QScopedPointer<AsymmetricKey> out_key(_outer_key->GetPublicKey());
-    QByteArray inner_key = in_key->GetByteArray();
-    QByteArray outer_key = out_key->GetByteArray();
+    QSharedPointer<AsymmetricKey> inner_key(_server_state->inner_key->GetPublicKey());
+    QSharedPointer<AsymmetricKey> outer_key(_server_state->outer_key->GetPublicKey());
 
     QByteArray msg;
     QDataStream stream(&msg, QIODevice::WriteOnly);
-    stream << PublicKeys << GetRoundId().GetByteArray() << inner_key << outer_key;
-
-    qDebug() << _shufflers.GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
-      << ": key shared waiting for other keys.";
+    stream << PUBLIC_KEYS << GetRoundId() << inner_key << outer_key;
 
     VerifiableBroadcast(msg);
+    _state_machine.StateComplete();
   }
 
-  void ShuffleRound::SubmitData()
+  void ShuffleRound::GenerateCiphertext()
   {
-    _state = DataSubmission;
-
     OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
-    oe->Encrypt(_public_inner_keys, PrepareData(), _inner_ciphertext, 0);
-    if(!ProcessEvents()) {
-      return;
-    }
-    oe->Encrypt(_public_outer_keys, _inner_ciphertext, _outer_ciphertext, 0);
+    // XXX Put in another thread
+    oe->Encrypt(_state->public_inner_keys, PrepareData(), _state->inner_ciphertext, 0);
+    oe->Encrypt(_state->public_outer_keys, _state->inner_ciphertext, _state->outer_ciphertext, 0);
 
+    _state_machine.StateComplete();
+  }
 
+  void ShuffleRound::SubmitCiphertext()
+  {
     QByteArray msg;
     QDataStream stream(&msg, QIODevice::WriteOnly);
-    stream << Data << GetRoundId().GetByteArray() << _outer_ciphertext;
-
-    if(_shuffler) {
-      _state = WaitingForShuffle;
-    } else {
-      _state = WaitingForEncryptedInnerData;
-    }
-
-    qDebug() << _shufflers.GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
-      << ": data submitted now in state:" << StateToString(_state);
+    stream << DATA << GetRoundId() << _state->outer_ciphertext;
 
     VerifiableSend(_shufflers.GetId(0), msg);
+    _state_machine.StateComplete();
+  }
+
+  void ShuffleRound::PrepareForInitialData()
+  {
+    _server_state->shuffle_input = QVector<QByteArray>(GetGroup().Count());
   }
 
   void ShuffleRound::Shuffle()
   {
-    _state = Shuffling;
-    qDebug() << _shufflers.GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
-      << ": shuffling";
-
-    for(int idx = 0; idx < _shuffle_ciphertext.count(); idx++) {
-      for(int jdx = 0; jdx < _shuffle_ciphertext.count(); jdx++) {
+    for(int idx = 0; idx < _server_state->shuffle_input.count(); idx++) {
+      for(int jdx = 0; jdx < _server_state->shuffle_input.count(); jdx++) {
         if(idx == jdx) {
           continue;
         }
-        if(_shuffle_ciphertext[idx] != _shuffle_ciphertext[jdx]) {
+        if(_server_state->shuffle_input[idx] != _server_state->shuffle_input[jdx]) {
           continue;
         }
-        qWarning() << "Found duplicate cipher texts... blaming";
-        StartBlame();
-        return;
+        qWarning() << "Found duplicate cipher texts... setting blame";
+        _state->blame = true;
+        break;
       }
     }
 
     QVector<int> bad;
     OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
-    if(!oe->Decrypt(_outer_key, _shuffle_ciphertext, _shuffle_cleartext, &bad)) {
-      qWarning() << _shufflers.GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
-        << GetLocalId().ToString() << ": failed to decrypt layer due to block at "
-        "indexes" << bad;
-      StartBlame();
-      return;
+    if(!oe->Decrypt(_server_state->outer_key, _server_state->shuffle_input,
+          _server_state->shuffle_output, &bad))
+    {
+      qWarning() << _shufflers.GetIndex(GetLocalId()) <<
+        GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
+        ": failed to decrypt layer due to block at indexes" << bad;
+      _state->blame = true;
     }
 
-    oe->RandomizeBlocks(_shuffle_cleartext);
+    oe->RandomizeBlocks(_server_state->shuffle_output);
 
     const Id &next = _shufflers.Next(GetLocalId());
-    MessageType mtype = (next == Id::Zero()) ? EncryptedData : ShuffleData;
+    MessageType mtype = (next == Id::Zero()) ? ENCRYPTED_DATA : SHUFFLE_DATA;
 
     QByteArray msg;
     QDataStream out_stream(&msg, QIODevice::WriteOnly);
-    out_stream << mtype << GetRoundId().GetByteArray() << _shuffle_cleartext;
+    out_stream << mtype << GetRoundId() << _server_state->shuffle_output;
 
-    _state = WaitingForEncryptedInnerData;
-
-    qDebug() << _shufflers.GetIndex(GetLocalId()) << GetGroup().GetIndex(GetLocalId())
-      << ": finished shuffling";
-
-    if(mtype == EncryptedData) {
+    if(mtype == ENCRYPTED_DATA) {
       VerifiableBroadcast(msg);
     } else {
       VerifiableSend(next, msg);
     }
+
+    _state_machine.StateComplete();
   }
 
   void ShuffleRound::VerifyInnerCiphertext()
   {
-    _state = Verification;
-    bool found = _encrypted_data.contains(_inner_ciphertext);
+    bool found = !_state->blame &&
+      _state->encrypted_data.contains(_state->inner_ciphertext);
 
-    MessageType mtype = found ?  GoMessage : NoGoMessage;
     QByteArray msg;
     QDataStream out_stream(&msg, QIODevice::WriteOnly);
-    out_stream << mtype << GetRoundId().GetByteArray();
+    out_stream << GO_MESSAGE << GetRoundId() << found;
 
     if(found) {
       Library *lib = CryptoFactory::GetInstance().GetLibrary();
       QScopedPointer<Hash> hash(lib->GetHashAlgorithm());
 
-      for(int idx = 0; idx < _public_inner_keys.count(); idx++) {
-        hash->Update(_public_inner_keys[idx]->GetByteArray());
-        hash->Update(_public_outer_keys[idx]->GetByteArray());
-        hash->Update(_encrypted_data[idx]);
+      for(int idx = 0; idx < _state->public_inner_keys.count(); idx++) {
+        hash->Update(_state->public_inner_keys[idx]->GetByteArray());
+        hash->Update(_state->public_outer_keys[idx]->GetByteArray());
+        hash->Update(_state->encrypted_data[idx]);
       }
-      _broadcast_hash = hash->ComputeHash();
-      out_stream << _broadcast_hash;
+      _state->state_hash = hash->ComputeHash();
+      out_stream << _state->state_hash;
 
       qDebug() << _shufflers.GetIndex(GetLocalId()) <<
         GetGroup().GetIndex(GetLocalId()) <<
@@ -619,35 +591,38 @@ using namespace ShuffleRoundPrivate;
     }
 
     VerifiableBroadcast(msg);
+    _state_machine.StateComplete();
   }
 
   void ShuffleRound::BroadcastPrivateKey()
   {
-    _state = PrivateKeySharing;
-
-    if(!_shuffler) {
-      qDebug() << _shufflers.GetIndex(GetLocalId()) <<
-        GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
-        ": received sufficient go messages, waiting for keys.";
-      return;
-    }
-
     qDebug() << _shufflers.GetIndex(GetLocalId()) <<
-      GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString()
+      GetGroup().GetIndex(GetLocalId()) << GetLocalId()
       << ": received sufficient go messages, broadcasting private key.";
 
     QByteArray msg;
     QDataStream stream(&msg, QIODevice::WriteOnly);
-    stream << PrivateKey << GetRoundId().GetByteArray() << _inner_key->GetByteArray();
+    stream << PRIVATE_KEY << GetRoundId() << _server_state->inner_key;
 
     VerifiableBroadcast(msg);
+    _state_machine.StateComplete();
+  }
+  
+  void ShuffleRound::PrepareForPrivateKeys()
+  {
+    _state->keys_received = 0;
+    _state->private_inner_keys.resize(_shufflers.Count());
+    _state->private_outer_keys.resize(_shufflers.Count());
+  }
+
+  void ShuffleRound::PrepareForVerification()
+  {
+    _state->state_hashes = QVector<QByteArray>(GetGroup().Count());
   }
 
   void ShuffleRound::Decrypt()
   {
-    _state = Decryption;
-
-    Decryptor *decryptor = new Decryptor(_private_inner_keys, _encrypted_data);
+    Decryptor *decryptor = new Decryptor(_state->private_inner_keys, _state->encrypted_data);
     qDebug() << QObject::connect(decryptor,
         SIGNAL(Finished(const QVector<QByteArray> &, const QVector<int> &)),
         this,
@@ -659,9 +634,8 @@ using namespace ShuffleRoundPrivate;
       const QVector<int> &bad)
   {
     if(!bad.isEmpty()) {
-      qWarning() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
+      qWarning() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
         ": failed to decrypt final layers due to block at index" << bad;
-      _state = Finished;
       Stop("Round unsuccessfully finished.");
     }
 
@@ -670,116 +644,98 @@ using namespace ShuffleRoundPrivate;
       if(msg.isEmpty()) {
         continue;
       }
-      qDebug() << "Received a valid message: " << msg.size() << msg.toBase64();
+      qDebug() << GetLocalId() << "received a valid message: " << msg.size()
+        << msg.toBase64();
       PushData(GetSharedPointer(), msg);
     }
     SetSuccessful(true);
-    _state = Finished;
-
-    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
-        ": round finished successfully";
-    Stop("Round successfully finished.");
+    Stop("Round finished successfully");
   }
 
   void ShuffleRound::StartBlame()
   {
-    if(_state == BlameInit) {
-      qWarning() << "Already in blame state.";
-      return;
-    }
-
-    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
-        ": entering blame state.";
-
-    _blame_verification_msgs = QVector<HashSig>(GetGroup().Count());
-
-    _blame_state = _state;
-    _state = BlameInit;
-    _blame_verifications = 0;
-
-    QByteArray log = _log.Serialize();
     QByteArray msg;
     QDataStream stream(&msg, QIODevice::WriteOnly);
-    stream << BlameData << GetRoundId().GetByteArray();
+    stream << BLAME_DATA << GetRoundId();
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());;
 
-    if(_shuffler) {
-      QByteArray key = _outer_key->GetByteArray();
-      stream << key;
-
-      hashalgo->Update(key);
+    if(_server_state) {
+      stream << _server_state->outer_key;
+      hashalgo->Update(_server_state->outer_key->GetByteArray());
     }
 
+    QByteArray log = _state_machine.GetLog().Serialize();
     stream << log;
-    QByteArray sigmsg;
-    QDataStream sigstream(&sigmsg, QIODevice::WriteOnly);
-
     hashalgo->Update(log);
 
-    sigstream << BlameData << GetRoundId().GetByteArray() << hashalgo->ComputeHash();
+    QByteArray sigmsg;
+    QDataStream sigstream(&sigmsg, QIODevice::WriteOnly);
+    sigstream << BLAME_DATA << GetRoundId() << hashalgo->ComputeHash();
+
     QByteArray signature = GetSigningKey()->Sign(sigmsg);
     stream << signature;
     
+    int ccount = GetGroup().Count();
+    int scount = GetGroup().GetSubgroup().Count();
+    _state->data_received = 0;
+    _state->blame_hash = QVector<QByteArray>(ccount);
+    _state->private_outer_keys = QVector<QSharedPointer<AsymmetricKey> >(scount);
+    _state->logs = QVector<Log>(ccount);
+    _state->blame_signatures = QVector<QByteArray>(ccount);
+
     VerifiableBroadcast(msg);
   }
 
   void ShuffleRound::BroadcastBlameVerification()
   {
-    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
-        ": broadcasting blame state.";
-    _state = BlameShare;
-
     QByteArray msg;
     QDataStream stream(&msg, QIODevice::WriteOnly);
-    stream << BlameVerification << GetRoundId().GetByteArray() <<
-      _blame_hash << _blame_signatures;
+    stream << BLAME_VERIFICATION << GetRoundId() << _state->blame_hash
+      << _state->blame_signatures;
+
+    _state->blame_verification_msgs = QVector<HashSig>(GetGroup().Count());
 
     VerifiableBroadcast(msg);
   }
 
   void ShuffleRound::BlameRound()
   {
-    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
-        ": entering blame round.";
-
     for(int idx = 0; idx < GetGroup().Count(); idx++ ) {
-      HashSig blame_ver = _blame_verification_msgs[idx];
+      HashSig blame_ver = _state->blame_verification_msgs[idx];
       QVector<QByteArray> blame_hash = blame_ver.first;
       QVector<QByteArray> blame_sig = blame_ver.second;
 
       for(int jdx = 0; jdx < GetGroup().Count(); jdx++) {
-        if(blame_hash[jdx] == _blame_hash[jdx]) {
+        if(blame_hash[jdx] == _state->blame_hash[jdx]) {
           continue;
         }
 
         QByteArray sigmsg;
         QDataStream sigstream(&sigmsg, QIODevice::WriteOnly);
-        sigstream << BlameData << GetRoundId().GetByteArray() << blame_hash[jdx];
+        sigstream << BLAME_DATA << GetRoundId() << blame_hash[jdx];
         if(!GetGroup().GetKey(jdx)->Verify(sigmsg, blame_sig[jdx])) {
-          qWarning() << "Hmm" << jdx << GetGroup().GetId(jdx).ToString() << idx << GetGroup().GetId(idx).ToString();
+          qWarning() << "Hmm" << jdx << GetGroup().GetId(jdx) << idx << GetGroup().GetId(idx);
         }
 
         qWarning() << "Bad nodes: " << idx;
-        _bad_members.append(idx);
+        _state->bad_members.append(idx);
       }
 //          throw QRunTimeError("Received invalid hash / signature from " + QString::number(jdx));
     }
 
-    if(_bad_members.count() > 0) {
-      return;
-    }
-
-    ShuffleBlamer sb(GetGroup(), GetRoundId(), _logs, _private_outer_keys);
-    sb.Start();
-    for(int idx = 0; idx < sb.GetBadNodes().count(); idx++) {
-      if(sb.GetBadNodes()[idx]) {
-        qWarning() << "Bad nodes: " << idx;
-        _bad_members.append(idx);
+    if(_state->bad_members.count() == 0) {
+      ShuffleBlamer sb(GetGroup(), GetRoundId(), _state->logs,
+          _state->private_outer_keys);
+      sb.Start();
+      for(int idx = 0; idx < sb.GetBadNodes().count(); idx++) {
+        if(sb.GetBadNodes()[idx]) {
+          qWarning() << "Bad nodes: " << idx;
+          _state->bad_members.append(idx);
+        }
       }
     }
-    _state = Finished;
     Stop("Round caused blame and finished unsuccessfully.");
   }
 

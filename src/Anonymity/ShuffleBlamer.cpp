@@ -110,7 +110,7 @@ namespace Anonymity {
     // First fine the first good peer and also mark all the bad peers
     int first_good = -1;
     for(int idx = 0; idx < _rounds.count(); idx++) {
-      if(_rounds[idx]->GetState() == ShuffleRound::KeySharing) {
+      if(_rounds[idx]->GetState() == ShuffleRound::KEY_SHARING) {
         Set(idx, "Missing key log entries");
       }
       if(first_good == -1) {
@@ -129,7 +129,7 @@ namespace Anonymity {
         continue;
       }
 
-      if(_rounds[idx]->GetState() == ShuffleRound::KeySharing) {
+      if(_rounds[idx]->GetState() == ShuffleRound::KEY_SHARING) {
         continue;
       }
 
@@ -172,49 +172,12 @@ namespace Anonymity {
 
   void ShuffleBlamer::CheckShuffle()
   {
-    int last_shuffle = -1;
-    bool verified = false;
-    for(int idx = 0; idx < _shufflers.Count() && !verified; idx++) {
-      int gidx = _group.GetIndex(_shufflers.GetId(idx));
-      ShuffleRound::State cstate = _rounds[gidx]->GetState();
-
-      switch(cstate) {
-        case ShuffleRound::Offline:
-        case ShuffleRound::KeySharing:
-        case ShuffleRound::DataSubmission:
-        case ShuffleRound::WaitingForShuffle:
-          break;
-        case ShuffleRound::WaitingForEncryptedInnerData:
-        case ShuffleRound::Shuffling:
-          last_shuffle = idx;
-          break;
-        case ShuffleRound::Verification:
-          last_shuffle = _shufflers.Count() - 1;
-          verified = true;
-          break;
-        default:
-          break;
+    for(int gidx = 0; gidx < _group.Count(); gidx++) {
+      if(_rounds[gidx]->GetState() == ShuffleRound::BLAME_SHARE) {
+        continue;
       }
-    }
 
-    // First node misbehaved ... 
-    if(last_shuffle == -1) {
-      Set(0, "Never got shuffle data...");
-    }
-
-    // Verify all nodes are in their proper state...
-    for(int idx = 0; idx <= last_shuffle; idx++) {
-      int gidx = _group.GetIndex(_shufflers.GetId(idx));
-      ShuffleRound::State cstate = _rounds[gidx]->GetState();
-
-      switch(cstate) {
-        case ShuffleRound::WaitingForEncryptedInnerData:
-        case ShuffleRound::Verification:
-          continue;
-        default:
-          break;
-      }
-      Set(idx, "Another wrong state...");
+      Set(gidx, "Wrong state");
     }
 
     // If any failures ... let's not try to deal with the logic at this point...
@@ -243,7 +206,7 @@ namespace Anonymity {
     }
 
     // Check intermediary steps
-    for(int idx = 0; idx < last_shuffle; idx++) {
+    for(int idx = 0; idx < _shufflers.Count() - 1; idx++) {
       int pidx = _group.GetIndex(_shufflers.GetId(idx));
       int nidx = _group.GetIndex(_shufflers.GetId(idx + 1));
 
@@ -258,29 +221,16 @@ namespace Anonymity {
       qDebug() << "Checking" << pidx << "output against" << nidx << "input: success";
     }
 
-    if(last_shuffle != _group.GetIndex(_shufflers.GetId(_shufflers.Count() - 1))) {
-      return;
-    }
-
-    // Check final step
-    const QVector<QByteArray> outdata = _rounds[last_shuffle]->GetShuffleClearText();
-    if(outdata.isEmpty()) {
-      Set(last_shuffle, "No final data");
-      return;
-    }
-
-    if(CountMatches(outdata, _inner_data) != _rounds.count()) {
-      Set(last_shuffle, "Changed final data");
-      return;
-    }
+    int last = _group.GetIndex(_shufflers.GetId(_shufflers.Count() - 1));
+    QVector<QByteArray> calc_ic = _rounds[last]->GetShuffleClearText();
 
     for(int idx = 0; idx < _rounds.count(); idx++) {
-      const QVector<QByteArray> indata = _rounds[idx]->GetEncryptedData();
-      if(indata.count() == 0) {
+      const QVector<QByteArray> recv_ic = _rounds[idx]->GetEncryptedData();
+      if(recv_ic.count() == 0) {
         continue;
       }
-      if(CountMatches(outdata, indata) != _rounds.count()) {
-        Set(last_shuffle, "Changed final data");
+      if(CountMatches(calc_ic, recv_ic) != _rounds.count()) {
+        Set(last, "Changed final data");
         return;
       }
     }

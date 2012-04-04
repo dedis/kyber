@@ -18,48 +18,39 @@ namespace Anonymity {
         Connections::EmptyNetwork::GetInstance(),
         Messaging::EmptyGetDataCallback::GetInstance())
   {
-    _outer_key = outer_key;
-    _log.ToggleEnabled();
-  }
-
-  void ShuffleRoundBlame::OnStart()
-  {
-    QSharedPointer<AsymmetricKey> key = _outer_key;
-    ShuffleRound::OnStart();
-    _outer_key = key;
+    if(_server_state) {
+      _server_state->outer_key = outer_key;
+    }
+    _state_machine.ToggleLog();
   }
 
   int ShuffleRoundBlame::GetGo(int idx)
   {
-    if(_go_received[idx]) {
-      return _go[idx] ? 1 : - 1;
-    }
-    return 0;
+    return _state->go.contains(idx) ? (_state->go[idx] ? 1 : -1) : 0;
   }
 
   void ShuffleRoundBlame::BroadcastPublicKeys()
   {
-    _state = KeySharing;
+    _state_machine.StateComplete();
   }
 
-  void ShuffleRoundBlame::SubmitData()
+  void ShuffleRoundBlame::GenerateCiphertext()
   {
-    if(_shuffler) {
-      _state = WaitingForShuffle;
-    } else {
-      _state = ShuffleRound::WaitingForEncryptedInnerData;
-    }
+    _state_machine.StateComplete();
+  }
+
+  void ShuffleRoundBlame::SubmitCiphertext()
+  {
+    _state_machine.StateComplete();
   }
 
   void ShuffleRoundBlame::Shuffle()
   {
-    _state = ShuffleRound::Shuffling;
-
     OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
-    oe->Decrypt(_outer_key, _shuffle_ciphertext, _shuffle_cleartext,
-        &_bad_members);
+    oe->Decrypt(_server_state->outer_key, _server_state->shuffle_input,
+        _server_state->shuffle_output, &_state->bad_members);
 
-    _state = ShuffleRound::WaitingForEncryptedInnerData;
+    _state_machine.StateComplete();
   }
 
   void ShuffleRoundBlame::VerifyInnerCiphertext()
@@ -67,28 +58,25 @@ namespace Anonymity {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Hash> hash(lib->GetHashAlgorithm());
 
-    for(int idx = 0; idx < _public_inner_keys.count(); idx++) {
-      hash->Update(_public_inner_keys[idx]->GetByteArray());
-      hash->Update(_public_outer_keys[idx]->GetByteArray());
-      hash->Update(_encrypted_data[idx]);
+    for(int idx = 0; idx < _state->public_inner_keys.count(); idx++) {
+      hash->Update(_state->public_inner_keys[idx]->GetByteArray());
+      hash->Update(_state->public_outer_keys[idx]->GetByteArray());
+      hash->Update(_state->encrypted_data[idx]);
     }
-    _broadcast_hash = hash->ComputeHash();
+    _state->state_hash = hash->ComputeHash();
+
+    _state_machine.StateComplete();
+  }
+
+  void ShuffleRoundBlame::BroadcastPrivateKey()
+  {
   }
 
   void ShuffleRoundBlame::StartBlame()
   {
   }
 
-  void ShuffleRoundBlame::BroadcastPrivateKey()
-  {
-    _state = PrivateKeySharing;
-  }
-
-  void ShuffleRoundBlame::Decrypt()
-  {
-  }
-
-  void ShuffleRoundBlame::BlameRound()
+  void ShuffleRoundBlame::HandleBlame(const Id &, QDataStream &)
   {
   }
 }

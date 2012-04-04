@@ -29,32 +29,50 @@ namespace Anonymity {
       /**
        * Returns the nodes list of inner public keys
        */
-      inline QVector<QSharedPointer<AsymmetricKey> > GetPublicInnerKeys() { return _public_inner_keys; }
+      inline QVector<QSharedPointer<AsymmetricKey> > GetPublicInnerKeys()
+      {
+        return _state->public_inner_keys;
+      }
 
       /**
        * Returns the nodes list of outer public keys
        */
-      inline QVector<QSharedPointer<AsymmetricKey> > &GetPublicOuterKeys() { return _public_outer_keys; }
+      inline QVector<QSharedPointer<AsymmetricKey> > &GetPublicOuterKeys()
+      {
+        return _state->public_outer_keys;
+      }
 
       /**
-       * Returns the nodes outer public key
+       * Returns the nodes outer private key
        */
-      inline QSharedPointer<AsymmetricKey> GetPrivateOuterKey() { return _outer_key; }
+      inline QSharedPointer<AsymmetricKey> GetPrivateOuterKey() const
+      {
+        return _server_state->outer_key;
+      }
 
       /**
        * Returns the nodes inputted shuffle cipher text
        */
-      inline QVector<QByteArray> GetShuffleCipherText() { return _shuffle_ciphertext; }
+      inline QVector<QByteArray> GetShuffleCipherText() const
+      {
+        return _server_state->shuffle_input;
+      }
 
       /**
        * Returns the ndoes outputted shuffle cipher text
        */
-      inline QVector<QByteArray> GetShuffleClearText() { return _shuffle_cleartext; }
+      inline QVector<QByteArray> GetShuffleClearText() const
+      {
+        return _server_state->shuffle_output;
+      }
 
       /**
        * Returns the inner encrypted only data
        */
-      inline QVector<QByteArray> GetEncryptedData() { return _encrypted_data; }
+      inline QVector<QByteArray> GetEncryptedData() const
+      {
+        return _state->encrypted_data;
+      }
 
       /**
        * Returns 1, 0, -1, if the given index is go, no message, or no for the
@@ -69,18 +87,17 @@ namespace Anonymity {
       }
 
     protected:
-      virtual void OnStart();
       virtual inline void VerifiableBroadcast(const QByteArray &) {}
       virtual inline void VerifiableSend(const QByteArray &, const Id &) {}
 
       virtual void BroadcastPublicKeys();
-      virtual void SubmitData();
+      virtual void GenerateCiphertext();
+      virtual void SubmitCiphertext();
       virtual void Shuffle();
       virtual void VerifyInnerCiphertext();
-      virtual void StartBlame();
       virtual void BroadcastPrivateKey();
-      virtual void Decrypt();
-      virtual void BlameRound();
+      virtual void StartBlame();
+      virtual void HandleBlame(const Id &id, QDataStream &stream);
   };
 }
 }

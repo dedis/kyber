@@ -1,4 +1,4 @@
-#ifndef  DISSENT_ANONYMITY_SHUFFLE_ROUND_H_GUARD
+#ifndef DISSENT_ANONYMITY_SHUFFLE_ROUND_H_GUARD
 #define DISSENT_ANONYMITY_SHUFFLE_ROUND_H_GUARD
 
 #include <QBitArray>
@@ -10,6 +10,7 @@
 
 #include "Log.hpp"
 #include "Round.hpp"
+#include "RoundStateMachine.hpp"
 
 namespace Dissent {
 namespace Anonymity {
@@ -48,36 +49,43 @@ namespace Anonymity {
   class ShuffleRound : public Round {
     Q_OBJECT
 
-    Q_ENUMS(State);
+    Q_ENUMS(States);
     Q_ENUMS(MessageType);
 
     public:
+      friend class RoundStateMachine<ShuffleRound>;
+
       /**
        * Various states that the system can be in during the shuffle
        */
-      enum State {
-        Offline,
-        KeySharing,
-        DataSubmission,
-        WaitingForShuffle,
-        Shuffling,
-        WaitingForEncryptedInnerData,
-        Verification,
-        PrivateKeySharing,
-        Decryption,
-        BlameInit,
-        BlameShare,
-        BlameReviewing,
-        Finished
+      enum States {
+        OFFLINE = 0,
+        KEY_SHARING,
+        WAITING_FOR_PUBLIC_KEYS,
+        CIPHERTEXT_GENERATION,
+        SUBMIT_CIPHERTEXT,
+        WAITING_FOR_INITIAL_DATA,
+        WAITING_FOR_SHUFFLE,
+        SHUFFLING,
+        WAITING_FOR_ENCRYPTED_INNER_DATA,
+        VERIFICATION,
+        WAITING_FOR_VERIFICATION_MESSAGES,
+        PRIVATE_KEY_SHARING,
+        WAITING_FOR_PRIVATE_KEYS,
+        DECRYPTION,
+        BLAME_SHARE,
+        BLAME_VERIFY,
+        BLAME_REVIEWING,
+        FINISHED
       };
 
       /**
        * Converts an State into a QString
        * @param state value to convert
        */
-      static QString StateToString(State state)
+      static QString StateToString(int state)
       {
-        int index = staticMetaObject.indexOfEnumerator("State");
+        int index = staticMetaObject.indexOfEnumerator("States");
         return staticMetaObject.enumerator(index).valueToKey(state);
       }
 
@@ -85,22 +93,22 @@ namespace Anonymity {
        * Various message types sent and received
        */
       enum MessageType {
-        PublicKeys,
-        Data,
-        ShuffleData,
-        EncryptedData,
-        GoMessage,
-        NoGoMessage,
-        PrivateKey,
-        BlameData,
-        BlameVerification
+        PUBLIC_KEYS = 0,
+        DATA,
+        SHUFFLE_DATA,
+        ENCRYPTED_DATA,
+        GO_MESSAGE,
+        NO_GO_MESSAGE,
+        PRIVATE_KEY,
+        BLAME_DATA,
+        BLAME_VERIFICATION
       };
 
       /**
        * Converts a MessageType into a QString
        * @param mt value to convert
        */
-      static QString MessageTypeToString(MessageType mt)
+      static QString MessageTypeToString(int mt)
       {
         int index = staticMetaObject.indexOfEnumerator("MessageType");
         return staticMetaObject.enumerator(index).valueToKey(mt);
@@ -136,12 +144,10 @@ namespace Anonymity {
       /**
        * Returns the systems current state
        */
-      inline State GetState() const { return _state; }
-
-      /**
-       * Returns the state at which the system began blame
-       */
-      inline State GetBlameState() const { return _blame_state; }
+      inline States GetState() const
+      {
+        return static_cast<States>(_state_machine.GetState());
+      }
 
       /**
        * Inner and outer public keys are kept in reversed order, this returns
@@ -153,7 +159,7 @@ namespace Anonymity {
       /**
        * Returns a list of members who have been blamed in the round
        */
-      inline virtual const QVector<int> &GetBadMembers() const { return _bad_members; }
+      inline virtual const QVector<int> &GetBadMembers() const { return _state->bad_members; }
 
       /**
        * Returns the shufflers group
@@ -163,134 +169,83 @@ namespace Anonymity {
       inline virtual QString ToString() const { return "ShuffleRound: " + GetRoundId().ToString(); }
 
     protected:
+      typedef QPair<QVector<QByteArray>, QVector<QByteArray> > HashSig;
+
       /**
        * Called when the ShuffleRound is started
        */
       virtual void OnStart();
 
-      virtual void ProcessData(const Id &from, const QByteArray &data);
-
       /**
-       * Allows direct access to the message parsing without a try / catch
-       * surrounding it
-       * @param from the node the data is from
-       * @param data input data
+       * Called when the ShuffleRound is finished
        */
-      void ProcessDataBase(const Id &from, const QByteArray &data);
+      virtual void OnStop();
+
+      inline virtual void ProcessData(const Id &from, const QByteArray &data)
+      {
+        _state_machine.ProcessData(from, data);
+      }
 
       /**
        * Parses incoming public key messages
-       * @param stream serialized message
        * @param id the remote peer sending the message
+       * @param stream serialized message
        */
-      void HandlePublicKeys(QDataStream &stream, const Id &id);
+      void HandlePublicKeys(const Id &id, QDataStream &stream);
 
       /**
        * First node receives data from all peers
-       * @param stream serialized message
        * @param id the remote peer sending the message
+       * @param stream serialized message
        */
-      void HandleData(QDataStream &stream, const Id &id);
+      void HandleData(const Id &id, QDataStream &stream);
 
       /**
        * Each node besides the first receives shuffled data
-       * @param stream serialized message
        * @param id the remote peer sending the message
+       * @param stream serialized message
        */
-      void HandleShuffle(QDataStream &stream, const Id &id);
+      void HandleShuffle(const Id &id, QDataStream &stream);
 
       /**
        * The inner encrypted only messages sent by the last peer
-       * @param stream serialized message
        * @param id the remote peer sending the message
+       * @param stream serialized message
        */
-      void HandleDataBroadcast(QDataStream &stream, const Id &id);
+      void HandleDataBroadcast(const Id &id, QDataStream &stream);
 
       /**
        * Each peer sends a go / no go message
-       * @param stream serialized message
        * @param id the remote peer sending the message
+       * @param stream serialized message
        */
-      void HandleVerification(QDataStream &stream, bool go, const Id &id);
+      void HandleVerification(const Id &id, QDataStream &stream);
 
       /**
        * Each peer shares with each other their inner private keys
-       * @param stream serialized message
        * @param id the remote peer sending the message
+       * @param stream serialized message
        */
-      void HandlePrivateKey(QDataStream &stream, const Id &id);
+      void HandlePrivateKey(const Id &id, QDataStream &stream);
 
       /**
        * Each peer shares their incoming messages logs with each other in order
        * to reconstruct where something bad may have occurred
-       * @param stream serialized message
        * @param id the remote peer sending the message
+       * @param stream serialized message
        */
-      void HandleBlame(QDataStream &stream, const Id &id);
+      void HandleBlame(const Id &id, QDataStream &stream);
 
       /**
        * Prior to reviewing the blame data, shares the signatures of the blames
        * that they received
-       * @param stream serialized message
        * @param id the remote peer sending the message
+       * @param stream serialized message
        */
-      void HandleBlameVerification(QDataStream &stream, const Id &id);
-
-      /**
-       * Broadcasts the nodes inner and outer public keys to all other nodes
-       */
-      virtual void BroadcastPublicKeys();
-
-      /**
-       * Encrypts and submits the data block to the first node
-       */
-      virtual void SubmitData();
-
-      /**
-       * Takes input shuffle data, verifies no duplicate messages, decrypts a
-       * layer and forwards onward or broadcasts to all nodes if it is the
-       * final node
-       */
-      virtual void Shuffle();
-
-      /**
-       * After receiving the inner encrypted data, each node will send a go
-       * or no go message.
-       */
-      virtual void VerifyInnerCiphertext();
-      
-      /**
-       * Shares the inner private key with all nodes
-       */
-      virtual void BroadcastPrivateKey();
-
-      /**
-       * After receiving all inner keys, the node will decrypt the data blocks
-       * and push "real" data into the listener to the round (session)
-       */
-      virtual void Decrypt();
-
-      /**
-       * Shares blame data (message log, outer private key, and a signature of
-       * the hash of this message) with all other nodes.
-       */
-      virtual void StartBlame();
-
-      /**
-       * Broadcasts the hash and signature of all blame data received to other
-       * nodes, so all nodes can be certain they are working from teh same
-       * blame data.
-       */
-      virtual void BroadcastBlameVerification();
-
-      /**
-       * After receiving all blame verifications, begin blame round.
-       */
-      virtual void BlameRound();
+      void HandleBlameVerification(const Id &id, QDataStream &stream);
 
       /**
        * Takes a data block and makes it proper encoding for the shuffle
-       * @param data data input
        */
       QByteArray PrepareData();
 
@@ -306,168 +261,101 @@ namespace Anonymity {
       Group _shufflers;
 
       /**
-       * Is the node a shuffler?
+       * Stores the internal state for the client aspects of the shuffle round
        */
-      bool _shuffler;
+      class State {
+        public:
+          State() :
+            blame(false),
+            keys_received(0),
+            data_received(0),
+            blame_verifications(0)
+          { }
+
+          // Allows inheritance
+          virtual ~State() {}
+
+          bool blame;
+          int keys_received;
+
+          // Note these are stored in reverse order
+          QVector<QSharedPointer<AsymmetricKey> > public_inner_keys;
+          // Note these are stored in reverse order
+          QVector<QSharedPointer<AsymmetricKey> > public_outer_keys;
+          QVector<QSharedPointer<AsymmetricKey> > private_inner_keys;
+
+          QByteArray inner_ciphertext;
+          QByteArray outer_ciphertext;
+          QVector<QByteArray> encrypted_data;
+          QByteArray state_hash;
+
+          QVector<int> bad_members;
+
+          // These should be server only ... but for now it isn't
+          int data_received;
+          QHash<int, bool> go;
+          QVector<QByteArray> state_hashes;
+          QVector<QSharedPointer<AsymmetricKey> > private_outer_keys;
+          int blame_verifications;
+          QVector<Log> logs;
+          QVector<QByteArray> blame_hash;
+          QVector<QByteArray> blame_signatures;
+          QVector<HashSig> blame_verification_msgs;
+      };
 
       /**
-       * Local nodes current state
+       * Stores the internal state for servers
        */
-      State _state;
+      class ServerState : public State {
+        public:
+          ServerState()
+          { }
 
-      /**
-       * Local nodes last state before blame
-       */
-      State _blame_state;
+          virtual ~ServerState() {}
 
-      /**
-       * All the remote peers inner keys, in reverse order
-       */
-      QVector<QSharedPointer<AsymmetricKey> > _public_inner_keys;
+          QSharedPointer<AsymmetricKey> inner_key;
+          QSharedPointer<AsymmetricKey> outer_key;
+          QVector<QByteArray> shuffle_input;
+          QVector<QByteArray> shuffle_output;
+      };
 
-      /**
-       * All the remote peers outer keys, in reverse order
-       */
-      QVector<QSharedPointer<AsymmetricKey> > _public_outer_keys;
+      QSharedPointer<ServerState> _server_state;
+      QSharedPointer<State> _state;
 
-      /**
-       * Counter for keeping track of keys received
-       */
-      int _keys_received;
+      RoundStateMachine<ShuffleRound> _state_machine;
 
-      /**
-       * The private inner encrypting key
-       */
-      QSharedPointer<AsymmetricKey> _inner_key;
-
-      /**
-       * The private outer encrypting key
-       */
-      QSharedPointer<AsymmetricKey> _outer_key;
-
-      /**
-       * All the remote peers inner private keys
-       */
-      QVector<QSharedPointer<AsymmetricKey> > _private_inner_keys;
-
-      /**
-       * All the remote peers outer private keys, used during a blame
-       */
-      QVector<QSharedPointer<AsymmetricKey> > _private_outer_keys;
-
-
-      /**
-       * Number of peers to have submitted data to first node or blame phase
-       */
-      int _data_received;
-
-      /**
-       * Number of peers to send a go message
-       */
-      int _go_count;
-
-      /**
-       * Blame verifications received
-       */
-      int _blame_verifications;
-
-      /**
-       * Stores the positively received goes by group index
-       */
-      QBitArray _go_received;
-
-      /**
-       * Stores the positively received goes by group index
-       */
-      QBitArray _go;
-
-      /**
-       * Data pushed into the shuffle
-       */
-      QVector<QByteArray> _shuffle_cleartext;
-
-      /**
-       * Data pulled from the shuffle
-       */
-      QVector<QByteArray> _shuffle_ciphertext;
-
-      /**
-       * Inner encrypted only data
-       */
-      QVector<QByteArray> _encrypted_data;
-      
-      /**
-       * Local nodes inner onion ciphertext
-       */
-      QByteArray _inner_ciphertext;
-
-      /**
-       * Local nodes outer onion ciphertext
-       */
-      QByteArray _outer_ciphertext;
-
-      /**
-       * Stores all validated messages that arrived before start was called
-       */
-      Log _offline_log;
-
-      /**
-       * Stores all validated incoming messages
-       */
-      Log _log;
-
-      /**
-       * Locally generated broadcast hash
-       */
-      QByteArray _broadcast_hash;
-
-      /**
-       * Stores peers incoming / outgoing broadcasted components
-       */
-      QVector<QByteArray> _broadcast_hashes;
-
-      /**
-       * Maintains who has and has not sent a blame message yet
-       */
-      QBitArray _blame_received;
-
-      /**
-       * Stores all the in blame logs
-       */
-      QVector<Log> _logs;
-
-      /**
-       * Stores all the shortened blame messages
-       */
-      QVector<QByteArray> _blame_hash;
-
-      /**
-       * Stores all the blame verifications
-       */
-      QVector<QByteArray> _blame_signatures;
-
-      typedef QPair<QVector<QByteArray>, QVector<QByteArray> > HashSig;
-
-      /**
-       * Store remote blame hash / signatures until we have received all blame data
-       */
-      QVector<HashSig> _blame_verification_msgs;
-
-      /**
-       * Received a blame verification from the remote peer
-       */
-      QBitArray _received_blame_verification;
-
-      /**
-       * List of the index of all bad peers
-       */
-      QVector<int> _bad_members;
+      /* Below are the state transitions */
+      virtual void BroadcastPublicKeys();
+      virtual void GenerateCiphertext();
+      virtual void SubmitCiphertext();
+      virtual void PrepareForInitialData();
+      virtual void Shuffle();
+      virtual void VerifyInnerCiphertext();
+      virtual void BroadcastPrivateKey();
+      virtual void PrepareForPrivateKeys();
+      virtual void PrepareForVerification();
+      virtual void Decrypt();
+      virtual void StartBlame();
+      virtual void BroadcastBlameVerification();
+      virtual void BlameRound();
 
     private slots:
       void DecryptDone(const QVector<QByteArray> &cleartexts,
           const QVector<int> &bad);
 
     private:
+      void InitClient();
+      void InitServer();
+      bool CycleComplete() { return false; }
+      void BeforeStateTransition() {}
+
+      void EmptyHandleMessage(const Id &, QDataStream &)
+      {
+        qFatal("Should not arrive here");
+      }
+
+      void EmptyTransitionCallback() {}
+
       static void RegisterMetaTypes()
       {
         static bool registered = false;
