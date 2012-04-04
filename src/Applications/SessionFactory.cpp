@@ -7,7 +7,6 @@
 #include "Anonymity/ShuffleRound.hpp"
 #include "Anonymity/Tolerant/TolerantBulkRound.hpp"
 #include "Anonymity/Tolerant/TolerantTreeRound.hpp"
-#include "Anonymity/TrustedBulkRound.hpp"
 #include "Connections/ConnectionManager.hpp"
 #include "Connections/DefaultNetwork.hpp"
 #include "Connections/Id.hpp"
@@ -24,7 +23,6 @@ using Dissent::Anonymity::Tolerant::TolerantTreeRound;
 using Dissent::Anonymity::Session;
 using Dissent::Anonymity::ShuffleRound;
 using Dissent::Anonymity::TCreateRound;
-using Dissent::Anonymity::TrustedBulkRound;
 using Dissent::Connections::ConnectionManager;
 using Dissent::Connections::DefaultNetwork;
 using Dissent::Connections::Network;
@@ -50,7 +48,6 @@ namespace Applications {
     AddCreateCallback("bulk", &CreateBulkRoundSession);
     AddCreateCallback("csbulk", &CreateCSBulkRoundSession);
     AddCreateCallback("repeatingbulk", &CreateRepeatingBulkRoundSession);
-    AddCreateCallback("trustedbulk", &CreateTrustedBulkRoundSession);
     AddCreateCallback("tolerantbulk", &CreateTolerantBulkRoundSession);
     AddCreateCallback("toleranttree", &CreateTolerantTreeRoundSession);
   }
@@ -96,12 +93,6 @@ namespace Applications {
       const Id &session_id)
   {
     Common(node, session_id, &TCreateRound<RepeatingBulkRound>);
-  }
-
-  void SessionFactory::CreateTrustedBulkRoundSession(Node *node,
-      const Id &session_id)
-  {
-    Common(node, session_id, &TCreateRound<TrustedBulkRound>);
   }
 
   void SessionFactory::CreateTolerantBulkRoundSession(Node *node,

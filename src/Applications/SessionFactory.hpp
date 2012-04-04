@@ -66,12 +66,6 @@ namespace Applications {
       static void CreateCSBulkRoundSession(Node *node, const Id &session_id);
 
       /**
-       * Create a Bulk "V3"
-       */
-      static void CreateTrustedBulkRoundSession(Node *node,
-          const Id &session_id);
-
-      /**
        * Create a Bulk "V3" with blame
        */
       static void CreateTolerantBulkRoundSession(Node *node,

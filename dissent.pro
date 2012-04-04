@@ -29,7 +29,6 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Anonymity/ShuffleBlamer.hpp \
            src/Anonymity/ShuffleRound.hpp \
            src/Anonymity/ShuffleRoundBlame.hpp \
-           src/Anonymity/TrustedBulkRound.hpp \
            src/Anonymity/Tolerant/Accusation.hpp \
            src/Anonymity/Tolerant/AlibiData.hpp \
            src/Anonymity/Tolerant/BlameMatrix.hpp \
@@ -189,7 +188,6 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Anonymity/ShuffleBlamer.cpp \
            src/Anonymity/ShuffleRound.cpp \
            src/Anonymity/ShuffleRoundBlame.cpp \
-           src/Anonymity/TrustedBulkRound.cpp \
            src/Anonymity/Tolerant/Accusation.cpp \
            src/Anonymity/Tolerant/AlibiData.cpp \
            src/Anonymity/Tolerant/BlameMatrix.cpp \

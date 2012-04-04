@@ -87,6 +87,5 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/TolerantBulkRoundTest.cpp \
            src/Tests/TolerantTreeRoundTest.cpp \
            src/Tests/TripleTest.cpp \
-           src/Tests/TrustedBulkRoundTest.cpp \
            src/Tests/WebServerTest.cpp \
            src/Tests/WebServicesTest.cpp

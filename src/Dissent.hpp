@@ -15,7 +15,6 @@
 #include "Anonymity/ShuffleBlamer.hpp"
 #include "Anonymity/ShuffleRound.hpp"
 #include "Anonymity/ShuffleRoundBlame.hpp"
-#include "Anonymity/TrustedBulkRound.hpp"
 #include "Anonymity/Tolerant/Accusation.hpp"
 #include "Anonymity/Tolerant/AlibiData.hpp"
 #include "Anonymity/Tolerant/BlameMatrix.hpp"
