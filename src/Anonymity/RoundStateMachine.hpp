@@ -107,7 +107,7 @@ namespace Anonymity {
        * Called when the current state has finished and is ready to transition
        * into the next state
        */
-      void StateComplete()
+      void StateComplete(int state = -1)
       {
         _round->BeforeStateTransition(); 
         Log tmp = _next_state_log;
@@ -118,13 +118,21 @@ namespace Anonymity {
           if(!_round->CycleComplete()) {
             return;
           }
+          _log = Log();
           IncrementPhase();
         }
 
-        qDebug() << "In" << _round->ToString() << "ending:" <<
-          StateToString(GetCurrentState()->GetState()) <<
-          "starting:" << StateToString(GetNextState()->GetState());
-        _current_sm_state = GetNextState();
+        if(state == -1) {
+          qDebug() << "In" << _round->ToString() << "ending:" <<
+            StateToString(GetCurrentState()->GetState()) <<
+            "starting:" << StateToString(GetNextState()->GetState());
+          _current_sm_state = GetNextState();
+        } else {
+          qDebug() << "In" << _round->ToString() << "ending:" <<
+            StateToString(GetCurrentState()->GetState()) <<
+            "starting:" << StateToString(_states[state]->GetState());
+          _current_sm_state = _states[state];
+        }
 
         (_round->*GetCurrentState()->GetTransitionCallback())();
 
@@ -166,6 +174,18 @@ namespace Anonymity {
        * Increments the phase
        */
       void IncrementPhase() { ++_phase; }
+
+      /**
+       * Returns the current phase
+       */
+      int GetState() const { return GetCurrentState()->GetState(); }
+
+      /**
+       * Returns the current log
+       */
+      Log GetLog() const { return _log; }
+
+      void ToggleLog() { _log.ToggleEnabled(); }
 
     private:
       /**
@@ -248,11 +268,6 @@ namespace Anonymity {
           throw QRunTimeError("Invalid signature or data");
         }
         
-        if(GetCurrentState()->GetState() == 0) {
-          throw QRunTimeError("Should never receive a message in the "
-              "RoundStateMachine while offline.");
-        }
-
         QDataStream stream(payload);
 
         int mtype;
@@ -340,7 +355,10 @@ namespace Anonymity {
       qFatal("Attempted to set a non-existent state");
     }
 
-    _current_sm_state = _states.value(state);
+    if(!_current_sm_state) {
+      _current_sm_state = _states[state];
+    }
+    StateComplete(state);
   }
 }
 }
