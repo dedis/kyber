@@ -30,11 +30,11 @@ namespace Tests {
     qDebug() << "Round started, shutting down";
 
     for(int idx = 0; idx < count; idx++) {
-      ASSERT_TRUE(nodes[idx]->sink.Count() == 0);
+      EXPECT_TRUE(nodes[idx]->sink.Count() == 0);
     }
 
-    ASSERT_EQ(TestNode::success, count);
-    ASSERT_EQ(TestNode::failure, 0);
+    EXPECT_EQ(TestNode::success, count);
+    EXPECT_EQ(TestNode::failure, 0);
 
     CleanUp(nodes);
     qDebug() << "Shut down";
@@ -68,12 +68,15 @@ namespace Tests {
       nodes[idx]->session->Start();
     }
 
-    TestNode::calledback = 0;
+    qDebug() << "Transmission beginning";
+
     qint64 next = Timer::GetInstance().VirtualRun();
-    while(next != -1 && sc.GetCount() < count && TestNode::calledback < count) {
+    while(next != -1 && sc.GetCount() < count) {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
     }
+
+    qDebug() << "Transmission complete";
 
     for(int idx = 0; idx < count; idx++) {
       EXPECT_EQ(nodes[idx]->sink.Count(), 1);
@@ -128,7 +131,7 @@ namespace Tests {
     }
 
     for(int idx = 0; idx < count; idx++) {
-      ASSERT_EQ(msg, nodes[idx]->sink.Last().second);
+      EXPECT_EQ(msg, nodes[idx]->sink.Last().second);
     }
 
     for(int idx = 0; idx < count; idx++) {
@@ -385,7 +388,7 @@ namespace Tests {
 
     nodes[disconnector]->session->Stop();
     nodes[disconnector]->cm->Stop();
-    ASSERT_TRUE(nodes[disconnector]->session->Stopped());
+    EXPECT_TRUE(nodes[disconnector]->session->Stopped());
 
     count -= 1;
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
@@ -405,11 +408,11 @@ namespace Tests {
 
     for(int idx = 0; idx < count; idx++) {
       if(idx == disconnector) {
-        ASSERT_EQ(nodes[idx]->sink.Count(), 0);
-        ASSERT_TRUE(nodes[idx]->session->Stopped());
+        EXPECT_EQ(nodes[idx]->sink.Count(), 0);
+        EXPECT_TRUE(nodes[idx]->session->Stopped());
       } else {
-        ASSERT_EQ(nodes[idx]->sink.Count(), 1);
-        ASSERT_FALSE(nodes[idx]->session->Stopped());
+        EXPECT_EQ(nodes[idx]->sink.Count(), 1);
+        EXPECT_FALSE(nodes[idx]->session->Stopped());
       }
     }
 
@@ -633,10 +636,10 @@ namespace Tests {
         }
 
         QSharedPointer<Round> pr = node->session->GetCurrentRound();
-        ASSERT_FALSE(node->session->GetGroup().Contains(badid));
-        ASSERT_TRUE(node->sink.Count() == 1);
+        EXPECT_FALSE(node->session->GetGroup().Contains(badid));
+        EXPECT_TRUE(node->sink.Count() == 1);
         if(node->sink.Count() == 1) {
-          ASSERT_EQ(node->sink.Last().second, msg);
+          EXPECT_EQ(node->sink.Last().second, msg);
         }
       }
     }
@@ -786,8 +789,8 @@ namespace Tests {
       for(int idx = 0; idx < nodes.size(); idx++) {
         TestNode *node = nodes[idx];
         QSharedPointer<Round> pr = node->session->GetCurrentRound();
-        ASSERT_EQ(pr->GetBadMembers().count(), 0);
-        ASSERT_FALSE(pr->Successful());
+        EXPECT_EQ(pr->GetBadMembers().count(), 0);
+        EXPECT_FALSE(pr->Successful());
       }
     }
 
