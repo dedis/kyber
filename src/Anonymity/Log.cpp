@@ -25,7 +25,9 @@ namespace Anonymity {
 
   void Log::Pop()
   {
-    _entries.pop_back();
+    if(_enabled) {
+      _entries.pop_back();
+    }
   }
 
   void Log::Append(const QByteArray &entry, const Id &remote)
