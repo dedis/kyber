@@ -253,16 +253,47 @@ namespace Tests {
       EXPECT_EQ(msg, nodes[idx]->sink.Last().second);
     }
 
-
     int ncount = count + 1;
-    nodes.append(new TestNode(Id(), ncount));
+    bool csgroup = group.GetSubgroupPolicy() == Group::ManagedSubgroup;
+    bool be_server = (rand->GetInt() % 2 == 0) || !csgroup;
+
+    nodes.append(new TestNode(Id(), ncount, be_server));
     qDebug() << "Adding node:" << nodes.last()->cm->GetId().ToString();
 
     QObject::connect(&nodes.last()->sink, SIGNAL(DataReceived()),
         &sc, SLOT(Counter()));
-    for(int idx = 0; idx < count; idx++) {
-      nodes[idx]->cm->ConnectTo(BufferAddress(ncount));
-      nodes.last()->cm->ConnectTo(BufferAddress(idx + 1));
+
+    int expected_cons = count;
+    if(csgroup) {
+      Group fgroup = nodes[0]->sm.GetDefaultSession()->GetGroup();
+      Group sgroup = nodes[0]->sm.GetDefaultSession()->GetGroup().GetSubgroup();
+      if(be_server) {
+        qDebug() << "Adding a new server";
+        expected_cons = sgroup.Count();
+        for(int idx = 0; idx < count; idx++) {
+          if(!sgroup.Contains(nodes[idx]->cm->GetId())) {
+            continue;
+          }
+          nodes[idx]->cm->ConnectTo(BufferAddress(ncount));
+        }
+      } else {
+        expected_cons = 1;
+        Id server = sgroup.GetId(rand->GetInt(0, group.GetSubgroup().Count()));
+
+        int idx = 0;
+        for(; idx < nodes.count(); idx++) {
+          if(nodes[idx]->cm->GetId() == server) {
+            break;
+          }
+        }
+
+        qDebug() << "Selected server" << idx << ":" << server;
+        nodes[idx]->cm->ConnectTo(BufferAddress(ncount));
+      }
+    } else {
+      for(int idx = 0; idx < count; idx++) {
+        nodes[idx]->cm->ConnectTo(BufferAddress(ncount));
+      }
     }
 
     SignalCounter con_counter;
@@ -270,14 +301,14 @@ namespace Tests {
         SIGNAL(NewConnection(const QSharedPointer<Connection> &)),
         &con_counter, SLOT(Counter()));
 
-    while(next != -1 && con_counter.GetCount() != count) {
+    while(next != -1 && con_counter.GetCount() != expected_cons) {
       Time::GetInstance().IncrementVirtualClock(next);
       next = Timer::GetInstance().VirtualRun();
     }
 
     qDebug() << "Node fully connected";
 
-    ASSERT_EQ(count, con_counter.GetCount());
+    EXPECT_EQ(expected_cons, con_counter.GetCount());
 
     CreateSession(nodes.last(), group, session_id, callback);
     SignalCounter ready;
