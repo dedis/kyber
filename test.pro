@@ -55,6 +55,7 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/BulkRoundTest.cpp \
            src/Tests/ConnectionTest.cpp \
            src/Tests/Crypto.cpp \
+           src/Tests/CSBulkRoundTest.cpp \
            src/Tests/CSOverlayTest.cpp \
            src/Tests/EdgeTest.cpp \
            src/Tests/GroupTest.cpp \

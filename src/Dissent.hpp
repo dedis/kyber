@@ -1,12 +1,15 @@
 #ifndef DISSENT_DISSENT_H_GUARD
 #define DISSENT_DISSENT_H_GUARD
 
+#include "Anonymity/BaseBulkRound.hpp"
 #include "Anonymity/BulkRound.hpp"
+#include "Anonymity/CSBulkRound.hpp"
 #include "Anonymity/Log.hpp"
 #include "Anonymity/MessageRandomizer.hpp"
 #include "Anonymity/NullRound.hpp"
 #include "Anonymity/RepeatingBulkRound.hpp"
 #include "Anonymity/Round.hpp"
+#include "Anonymity/RoundStateMachine.hpp"
 #include "Anonymity/Session.hpp"
 #include "Anonymity/SessionManager.hpp"
 #include "Anonymity/ShuffleBlamer.hpp"

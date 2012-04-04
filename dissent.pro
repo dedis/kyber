@@ -15,12 +15,15 @@ LIBS += -lcryptopp
 HEADERS += ext/joyent-http-parser/http_parser.h \
            ext/qt-json/json.h \
            src/Dissent.hpp \
+           src/Anonymity/BaseBulkRound.hpp \
            src/Anonymity/BulkRound.hpp \
+           src/Anonymity/CSBulkRound.hpp \
            src/Anonymity/Log.hpp \
            src/Anonymity/MessageRandomizer.hpp \
            src/Anonymity/NullRound.hpp \
            src/Anonymity/RepeatingBulkRound.hpp \
            src/Anonymity/Round.hpp \
+           src/Anonymity/RoundStateMachine.hpp \
            src/Anonymity/Session.hpp \
            src/Anonymity/SessionManager.hpp \
            src/Anonymity/ShuffleBlamer.hpp \
@@ -173,7 +176,9 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
 
 SOURCES += ext/joyent-http-parser/http_parser.c \
            ext/qt-json/json.cpp \
+           src/Anonymity/BaseBulkRound.cpp \
            src/Anonymity/BulkRound.cpp \
+           src/Anonymity/CSBulkRound.cpp \
            src/Anonymity/Log.cpp \
            src/Anonymity/MessageRandomizer.cpp \
            src/Anonymity/NullRound.cpp \
