@@ -64,10 +64,19 @@ int main(int argc, char **argv)
     create = &Node::CreateClientServer;
   }
 
-  nodes.append(create(PrivateIdentity(local_id, key, dh, settings.SuperPeer),
+  bool force_super_peer = local[0].GetType().compare("buffer") == 0;
+  bool super_peer = settings.SuperPeer || force_super_peer;
+
+  nodes.append(create(PrivateIdentity(local_id, key, dh, super_peer),
         group, local, remote, app_sink, settings.SessionType));
 
   for(int idx = 1; idx < settings.LocalNodeCount; idx++) {
+    if(idx < 3) {
+      super_peer = force_super_peer;
+    } else {
+      super_peer = settings.SuperPeer;
+    }
+
     Id local_id;
     local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
 
@@ -82,7 +91,7 @@ int main(int argc, char **argv)
       qFatal("Only DemoMode supported at this time;");
     }
 
-    nodes.append(create(PrivateIdentity(local_id, key, dh, settings.SuperPeer),
+    nodes.append(create(PrivateIdentity(local_id, key, dh, super_peer),
           group, local, remote, default_sink, settings.SessionType));
   }
 
