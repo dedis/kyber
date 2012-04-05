@@ -71,6 +71,11 @@ namespace Identity {
     return GetId(GetIndex(id) - 1);
   }
 
+  const Id &Group::Last() const
+  {
+    return _data->Roster.last().GetId();
+  }
+
   bool Group::Contains(const Id &id) const
   {
     return _data->IdtoInt.contains(id);

@@ -159,6 +159,11 @@ namespace Identity {
       int GetIndex(const Id &id) const;
 
       /**
+       * Returns the last Id
+       */
+      const Id &Last() const;
+
+      /**
        * Returns the key for the specified id
        * @param id the specified Id
        */
