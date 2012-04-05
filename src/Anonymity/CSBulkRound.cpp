@@ -171,6 +171,26 @@ namespace Anonymity {
     Round::OnStop();
   }
 
+  void CSBulkRound::HandleDisconnect(const Id &id)
+  {
+    if(!GetGroup().Contains(id)) {
+      return;
+    }
+
+    if(_state_machine.GetState() == OFFLINE) {
+      SetInterrupted();
+      Stop("Interrupted before starting...");
+    } else if(_state_machine.GetState() == SHUFFLING) {
+      GetShuffleRound()->HandleDisconnect(id);
+    } else if(GetGroup().GetSubgroup().Contains(id)) {
+      qDebug() << "A server (" << id << ") disconnected.";
+      SetInterrupted();
+      Stop("A server (" + id.ToString() +") disconnected.");
+    } else {
+      qDebug() << "A client (" << id << ") disconnected, ignoring.";
+    }
+  }
+
   void CSBulkRound::BeforeStateTransition()
   {
     if(_server_state) {
@@ -406,6 +426,9 @@ namespace Anonymity {
   {
     if(!GetShuffleRound()->Successful()) {
       SetBadMembers(GetShuffleRound()->GetBadMembers());
+      if(GetBadMembers().count() == 0) {
+        SetInterrupted();
+      }
       Stop("ShuffleRound failed");
       return;
     }
@@ -625,6 +648,8 @@ namespace Anonymity {
 
   void CSBulkRound::ConcludeClientCiphertextSubmission(const int &)
   {
+    qDebug() << "Client window has closed, unfortunately some client may not"
+      << "have transmitted in time.";
     _state_machine.StateComplete();
   }
 
@@ -641,6 +666,10 @@ namespace Anonymity {
   void CSBulkRound::SubmitCommit()
   {
     SetupRngs();
+
+    qDebug() << ToString() << "generating ciphertext for" <<
+      _state->anonymous_rngs.count() << "out of" << GetGroup().Count();
+
     GenerateServerCiphertext();
 
     QByteArray payload;

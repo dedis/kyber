@@ -141,6 +141,8 @@ namespace Anonymity {
        */
       virtual void PeerJoined() { _stop_next = true; }
 
+      virtual void HandleDisconnect(const Id &id);
+
       /**
        * Delay between the start of a round and when all clients are required
        * to have submitted a message in order to be valid
