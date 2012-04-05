@@ -12,7 +12,8 @@ namespace Applications {
     SubgroupPolicy(Group::CompleteGroup),
     _use_file(true),
     _settings(file, QSettings::IniFormat),
-    _reason()
+    _reason(),
+    SuperPeer(false)
   {
     Init();
     QVariant peers = _settings.value("remote_peers");
