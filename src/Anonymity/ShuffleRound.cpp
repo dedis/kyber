@@ -255,6 +255,11 @@ using namespace ShuffleRoundPrivate;
 
   void ShuffleRound::HandleData(const Id &id, QDataStream &stream)
   {
+    int gidx = GetGroup().GetIndex(id);
+    if(!_server_state->shuffle_input[gidx].isEmpty()) {
+      throw QRunTimeError("Received multiples data messages.");
+    }
+
     QByteArray data;
     stream >> data;
 
@@ -262,14 +267,7 @@ using namespace ShuffleRoundPrivate;
       throw QRunTimeError("Received a null data");
     }
 
-    int gidx = GetGroup().GetIndex(id);
-
-    if(!_server_state->shuffle_input[gidx].isEmpty()) {
-      throw QRunTimeError("Received multiples data messages.");
-    }
-
     _server_state->shuffle_input[gidx] = data;
-
     ++_server_state->data_received;
 
     qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
@@ -297,7 +295,7 @@ using namespace ShuffleRoundPrivate;
 
   void ShuffleRound::HandleDataBroadcast(const Id &id, QDataStream &stream)
   {
-    if(_shufflers.Count() - 1 != _shufflers.GetIndex(id)) {
+    if(_shufflers.Last() != id) {
       throw QRunTimeError("Received data broadcast from the wrong node");
     }
 
@@ -326,7 +324,7 @@ using namespace ShuffleRoundPrivate;
 
     qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
         ": received" << go << "from" << GetGroup().GetIndex(id) << id <<
-        "Have:" << _state->go.count() << "expect:" << _shufflers.Count();
+        "Have:" << _state->go.count() << "expect:" << GetGroup().Count();
 
     if(_state->go.count() < GetGroup().Count()) {
       return;
@@ -459,9 +457,16 @@ using namespace ShuffleRoundPrivate;
       throw QRunTimeError("Missing signatures / hashes");
     }
     
-    _state->blame_verification_msgs[gidx] = HashSig(blame_hash, blame_signatures);
-    QVector<QPair<QVector<QByteArray>, QVector<QByteArray> > >(GetGroup().Count());
+    for(int idx = 0; idx < GetGroup().Count(); idx++) {
+      QByteArray sigmsg;
+      QDataStream sigstream(&sigmsg, QIODevice::WriteOnly);
+      sigstream << BLAME_DATA << GetRoundId() << blame_hash[idx];
+      if(!GetGroup().GetKey(idx)->Verify(sigmsg, blame_signatures[idx])) {
+        throw QRunTimeError("Received an invalid blame hash, signature pair");
+      }
+    }
 
+    _state->blame_verification_msgs[gidx] = HashSig(blame_hash, blame_signatures);
     ++_state->blame_verifications;
 
     qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
@@ -705,24 +710,15 @@ using namespace ShuffleRoundPrivate;
     for(int idx = 0; idx < GetGroup().Count(); idx++ ) {
       HashSig blame_ver = _state->blame_verification_msgs[idx];
       QVector<QByteArray> blame_hash = blame_ver.first;
-      QVector<QByteArray> blame_sig = blame_ver.second;
 
       for(int jdx = 0; jdx < GetGroup().Count(); jdx++) {
         if(blame_hash[jdx] == _state->blame_hash[jdx]) {
           continue;
         }
 
-        QByteArray sigmsg;
-        QDataStream sigstream(&sigmsg, QIODevice::WriteOnly);
-        sigstream << BLAME_DATA << GetRoundId() << blame_hash[jdx];
-        if(!GetGroup().GetKey(jdx)->Verify(sigmsg, blame_sig[jdx])) {
-          qWarning() << "Hmm" << jdx << GetGroup().GetId(jdx) << idx << GetGroup().GetId(idx);
-        }
-
         qWarning() << "Bad nodes: " << idx;
         _state->bad_members.append(idx);
       }
-//          throw QRunTimeError("Received invalid hash / signature from " + QString::number(jdx));
     }
 
     if(_state->bad_members.count() == 0) {
