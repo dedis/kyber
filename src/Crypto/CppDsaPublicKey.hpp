@@ -162,7 +162,7 @@ namespace Crypto {
         }
         
         CryptoPP::AutoSeededX917RNG<CryptoPP::DES_EDE3> rng;
-        if(GetCryptoMaterial()->Validate(rng, 3)) {
+        if(GetCryptoMaterial()->Validate(rng, 1)) {
           _key_size = GetGroupParameters().GetModulus().BitCount();
           _valid = true;
           return true;
