@@ -1,3 +1,4 @@
+#include <QDebug>
 #include "CppRandom.hpp"
 
 namespace Dissent {
@@ -13,8 +14,15 @@ namespace Crypto {
       return;
     }
 
+    int seed_length = CryptoPP::AES::DEFAULT_KEYLENGTH;
     QByteArray seed_tmp(seed);
-    seed_tmp.resize(CryptoPP::AES::DEFAULT_KEYLENGTH);
+    if(seed_tmp.size() < seed_length) {
+      QByteArray tmp(seed_length - seed_tmp.size(), 0);
+      seed_tmp.append(tmp);
+    } else if(seed_length < seed_tmp.size()) {
+      seed_tmp.resize(seed_length);
+    }
+
     CryptoPP::BlockTransformation *bt = new CryptoPP::AES::Encryption(
         reinterpret_cast<byte *>(seed_tmp.data()), seed_tmp.size());
 
