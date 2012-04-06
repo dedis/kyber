@@ -9,17 +9,15 @@ namespace Crypto {
   CppDsaPrivateKey::CppDsaPrivateKey(const QString &filename) :
     CppDsaPublicKey(new KeyBase::PrivateKey())
   {
-    if(InitFromFile(filename)) {
-      Validate();
-    }
+    InitFromFile(filename);
+    Validate();
   }
 
   CppDsaPrivateKey::CppDsaPrivateKey(const QByteArray &data) :
     CppDsaPublicKey(new KeyBase::PrivateKey())
   {
-    if(InitFromByteArray(data)) {
-      Validate();
-    };
+    InitFromByteArray(data);
+    Validate();
   }
 
   CppDsaPrivateKey::CppDsaPrivateKey(const Integer &modulus,
