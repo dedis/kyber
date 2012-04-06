@@ -330,7 +330,7 @@ using namespace ShuffleRoundPrivate;
       return;
     }
 
-    for(int idx = 0; idx < _shufflers.Count(); idx++) {
+    for(int idx = 0; idx < GetGroup().Count(); idx++) {
       if(!_state->go[idx] ||
           (_state->state_hashes[idx] != _state->state_hash))
       {
