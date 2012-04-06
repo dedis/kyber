@@ -47,6 +47,19 @@ namespace Tests {
     return round;
   }
 
+  class RoundCollector : public QObject {
+    Q_OBJECT
+
+    public:
+      QVector<QSharedPointer<Round> > rounds;
+
+    public slots:
+      void RoundFinished(const QSharedPointer<Round> &round)
+      {
+        rounds.append(round);
+      }
+  };
+
   typedef void(*SessionTestCallback)(SessionManager &sm);
 
   void RoundTest_Null(CreateSessionCallback callback,

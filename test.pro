@@ -67,6 +67,7 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/LogTest.cpp \
            src/Tests/MainTest.cpp \
            src/Tests/MessageRandomizerTest.cpp \
+           src/Tests/NeffKeyShuffleTest.cpp \
            src/Tests/NullRoundTest.cpp \
            src/Tests/OnionTest.cpp \
            src/Tests/OverlayHelper.cpp \

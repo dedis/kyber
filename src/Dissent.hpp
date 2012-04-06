@@ -6,6 +6,7 @@
 #include "Anonymity/CSBulkRound.hpp"
 #include "Anonymity/Log.hpp"
 #include "Anonymity/MessageRandomizer.hpp"
+#include "Anonymity/NeffKeyShuffle.hpp"
 #include "Anonymity/NullRound.hpp"
 #include "Anonymity/RepeatingBulkRound.hpp"
 #include "Anonymity/Round.hpp"
