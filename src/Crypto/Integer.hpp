@@ -270,6 +270,29 @@ namespace Crypto {
   {
     return Integer(lhs.Divide(rhs));
   }
+
+  /**
+   * Serialize an Integer
+   * @param stream where to store the serialized integer
+   * @param value the integer to serialize
+   */
+  inline QDataStream &operator<<(QDataStream &stream, const Integer &value)
+  {
+    return stream << value.GetByteArray();
+  }
+
+  /**
+   * Deserialize an integer
+   * @param stream where to read data from
+   * @param value where to store the deserialized integer
+   */
+  inline QDataStream &operator>>(QDataStream &stream, Integer &value)
+  {
+    QByteArray tvalue;
+    stream >> tvalue;
+    value = Integer(tvalue);
+    return stream;
+  }
 }
 }
 
