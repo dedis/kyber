@@ -156,7 +156,6 @@ namespace Tests {
         _server_state->shuffle_input[x] = outer_ct;
 
         ShuffleRound::Shuffle();
-        _state_machine.StateComplete();
       }
   };
 
