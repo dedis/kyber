@@ -114,12 +114,18 @@ namespace Anonymity {
 
     Integer key;
     stream >> key;
+
+    if(key == 0) {
+      throw QRunTimeError("Received a 0 key");
+    } else if(GetModulus() <= key) {
+      throw QRunTimeError("Key is not valid in this modulus");
+    }
     
     _server_state->shuffle_input[gidx] = key;
     ++_server_state->keys_received;
     
     qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
-        ": received keys from" << GetGroup().GetIndex(from) << from <<
+        ": received key from" << GetGroup().GetIndex(from) << from <<
         "Have:" << _server_state->keys_received << "expect:" << GetGroup().Count();
 
     if(_server_state->keys_received == GetGroup().Count()) {
@@ -277,9 +283,9 @@ namespace Anonymity {
     if(_state->user_key_index == -1) {
       _state->blame = true;
       qDebug() << "Did not find my key";
+    } else {
+      SetSuccessful(true);
     }
-
-    SetSuccessful(true);
     Stop("Round finished");
   }
 

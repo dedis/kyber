@@ -52,7 +52,11 @@ namespace Tests {
         round.dynamicCast<NeffKeyShuffle>();
       ASSERT_TRUE(kfs);
 
-      ASSERT_EQ(keys, kfs->GetAnonymizedKeys());
+      ASSERT_EQ(keys.count(), kfs->GetAnonymizedKeys().count());
+      for(int idx = 0; idx < keys.count(); idx++) {
+        ASSERT_EQ(keys[idx], kfs->GetAnonymizedKeys()[idx]);
+      }
+
       ASSERT_TRUE(kfs->GetAnonymizedKey());
     }
 
@@ -157,9 +161,12 @@ namespace Tests {
       const QSharedPointer<NeffKeyShuffle> kfs =
         round.dynamicCast<NeffKeyShuffle>();
       ASSERT_TRUE(kfs);
-
-      ASSERT_EQ(keys, kfs->GetAnonymizedKeys());
       ASSERT_TRUE(kfs->GetAnonymizedKey());
+
+      ASSERT_EQ(keys.count(), kfs->GetAnonymizedKeys().count());
+      for(int idx = 0; idx < keys.count(); idx++) {
+        ASSERT_EQ(keys[idx], kfs->GetAnonymizedKeys()[idx]);
+      }
     }
 
     qDebug() << "Shut down";
