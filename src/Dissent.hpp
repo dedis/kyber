@@ -22,7 +22,6 @@
 #include "Anonymity/Tolerant/Conflict.hpp"
 #include "Anonymity/Tolerant/MessageHistory.hpp"
 #include "Anonymity/Tolerant/TolerantBulkRound.hpp"
-#include "Anonymity/Tolerant/TolerantTreeRound.hpp"
 
 #include "Applications/CommandLine.hpp"
 #include "Applications/ConsoleSink.hpp"

@@ -71,12 +71,6 @@ namespace Applications {
       static void CreateTolerantBulkRoundSession(Node *node,
           const Id &session_id);
 
-      /**
-       * Create a Bulk "V3" with XORing tree
-       */
-      static void CreateTolerantTreeRoundSession(Node *node,
-          const Id &session_id);
-
     private:
       static void Common(Node *node, const Id &session_id, CreateRound cr);
 

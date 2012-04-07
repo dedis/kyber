@@ -45,7 +45,6 @@ HEADERS += ext/googletest/include/gtest/gtest-death-test.h \
            src/Tests/TestNode.hpp \
            src/Tests/TestWebClient.hpp \
            src/Tests/TolerantBulkRoundHelpers.hpp \
-           src/Tests/TolerantTreeRoundHelpers.hpp \
            src/Tests/WebServicesTest.hpp
 
 SOURCES += ext/googletest/src/gtest-all.cc \
@@ -86,7 +85,6 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/TestWebClient.cpp \
            src/Tests/TimeTest.cpp \
            src/Tests/TolerantBulkRoundTest.cpp \
-           src/Tests/TolerantTreeRoundTest.cpp \
            src/Tests/TripleTest.cpp \
            src/Tests/WebServerTest.cpp \
            src/Tests/WebServicesTest.cpp
