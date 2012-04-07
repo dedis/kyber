@@ -6,43 +6,43 @@ namespace Dissent {
 namespace Tests {
   TEST(ShuffleRound, Null)
   {
-    RoundTest_Null(&TCreateSession<ShuffleRound>,
+    RoundTest_Null(SessionCreator(TCreateRound<ShuffleRound>),
         Group::CompleteGroup);
   }
 
   TEST(ShuffleRound, Basic)
   {
-    RoundTest_Basic(&TCreateSession<ShuffleRound>,
+    RoundTest_Basic(SessionCreator(TCreateRound<ShuffleRound>),
         Group::CompleteGroup);
   }
 
   TEST(ShuffleRound, MultiRound)
   {
-    RoundTest_MultiRound(&TCreateSession<ShuffleRound>,
+    RoundTest_MultiRound(SessionCreator(TCreateRound<ShuffleRound>),
         Group::CompleteGroup);
   }
 
   TEST(ShuffleRound, AddOne)
   {
-    RoundTest_AddOne(&TCreateSession<ShuffleRound>,
+    RoundTest_AddOne(SessionCreator(TCreateRound<ShuffleRound>),
         Group::CompleteGroup);
   }
 
   TEST(ShuffleRound, PeerDisconnectEnd)
   {
-    RoundTest_PeerDisconnectEnd(&TCreateSession<ShuffleRound>,
+    RoundTest_PeerDisconnectEnd(SessionCreator(TCreateRound<ShuffleRound>),
         Group::CompleteGroup);
   }
 
   TEST(ShuffleRound, PeerDisconnectMiddle)
   {
-    RoundTest_PeerDisconnectMiddle(&TCreateSession<ShuffleRound>,
+    RoundTest_PeerDisconnectMiddle(SessionCreator(TCreateRound<ShuffleRound>),
         Group::CompleteGroup);
   }
 
   TEST(ShuffleRound, PeerTransientIssueMiddle)
   {
-    RoundTest_PeerDisconnectMiddle(&TCreateSession<ShuffleRound>,
+    RoundTest_PeerDisconnectMiddle(SessionCreator(TCreateRound<ShuffleRound>),
         Group::CompleteGroup, true);
   }
 
@@ -50,8 +50,8 @@ namespace Tests {
   {
     typedef ShuffleRoundMessageDuplicator<1> bad_shuffle;
 
-    RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
-        &TCreateSession<bad_shuffle>,
+    RoundTest_BadGuy(SessionCreator(TCreateRound<ShuffleRound>),
+        SessionCreator(TCreateRound<bad_shuffle>),
         Group::CompleteGroup,
         TBadGuyCB<bad_shuffle>);
   }
@@ -60,8 +60,8 @@ namespace Tests {
   {
     typedef ShuffleRoundMessageSwitcher<1> bad_shuffle;
 
-    RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
-        &TCreateSession<bad_shuffle>,
+    RoundTest_BadGuy(SessionCreator(TCreateRound<ShuffleRound>),
+        SessionCreator(TCreateRound<bad_shuffle>),
         Group::CompleteGroup,
         TBadGuyCB<bad_shuffle>);
   }
@@ -70,8 +70,8 @@ namespace Tests {
   {
     typedef ShuffleRoundFalseNoGo<1> bad_shuffle;
 
-    RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
-        &TCreateSession<bad_shuffle>,
+    RoundTest_BadGuy(SessionCreator(TCreateRound<ShuffleRound>),
+        SessionCreator(TCreateRound<bad_shuffle>),
         Group::CompleteGroup,
         TBadGuyCB<bad_shuffle>);
   }
@@ -80,45 +80,45 @@ namespace Tests {
   {
     typedef ShuffleRoundInvalidOuterEncryption<1> bad_shuffle;
 
-    RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
-        &TCreateSession<bad_shuffle>,
+    RoundTest_BadGuy(SessionCreator(TCreateRound<ShuffleRound>),
+        SessionCreator(TCreateRound<bad_shuffle>),
         Group::CompleteGroup,
         TBadGuyCB<bad_shuffle>);
   }
 
   TEST(ShuffleRound, NullFixed)
   {
-    RoundTest_Null(&TCreateSession<ShuffleRound>,
+    RoundTest_Null(SessionCreator(TCreateRound<ShuffleRound>),
         Group::FixedSubgroup);
   }
 
   TEST(ShuffleRound, BasicFixed)
   {
-    RoundTest_Basic(&TCreateSession<ShuffleRound>,
+    RoundTest_Basic(SessionCreator(TCreateRound<ShuffleRound>),
         Group::FixedSubgroup);
   }
 
   TEST(ShuffleRound, MultiRoundFixed)
   {
-    RoundTest_MultiRound(&TCreateSession<ShuffleRound>,
+    RoundTest_MultiRound(SessionCreator(TCreateRound<ShuffleRound>),
         Group::FixedSubgroup);
   }
 
   TEST(ShuffleRound, AddOneFixed)
   {
-    RoundTest_AddOne(&TCreateSession<ShuffleRound>,
+    RoundTest_AddOne(SessionCreator(TCreateRound<ShuffleRound>),
         Group::FixedSubgroup);
   }
 
   TEST(ShuffleRound, PeerDisconnectEndFixed)
   {
-    RoundTest_PeerDisconnectEnd(&TCreateSession<ShuffleRound>,
+    RoundTest_PeerDisconnectEnd(SessionCreator(TCreateRound<ShuffleRound>),
         Group::FixedSubgroup);
   }
 
   TEST(ShuffleRound, PeerDisconnectMiddleFixed)
   {
-    RoundTest_PeerDisconnectMiddle(&TCreateSession<ShuffleRound>,
+    RoundTest_PeerDisconnectMiddle(SessionCreator(TCreateRound<ShuffleRound>),
         Group::FixedSubgroup);
   }
 
@@ -126,8 +126,8 @@ namespace Tests {
   {
     typedef ShuffleRoundMessageDuplicator<1> bad_shuffle;
 
-    RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
-        &TCreateSession<bad_shuffle>,
+    RoundTest_BadGuy(SessionCreator(TCreateRound<ShuffleRound>),
+        SessionCreator(TCreateRound<bad_shuffle>),
         Group::FixedSubgroup,
         TBadGuyCB<bad_shuffle>);
   }
@@ -136,8 +136,8 @@ namespace Tests {
   {
     typedef ShuffleRoundMessageSwitcher<1> bad_shuffle;
 
-    RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
-        &TCreateSession<bad_shuffle>,
+    RoundTest_BadGuy(SessionCreator(TCreateRound<ShuffleRound>),
+        SessionCreator(TCreateRound<bad_shuffle>),
         Group::FixedSubgroup,
         TBadGuyCB<bad_shuffle>);
   }
@@ -146,8 +146,8 @@ namespace Tests {
   {
     typedef ShuffleRoundFalseNoGo<1> bad_shuffle;
 
-    RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
-        &TCreateSession<bad_shuffle>,
+    RoundTest_BadGuy(SessionCreator(TCreateRound<ShuffleRound>),
+        SessionCreator(TCreateRound<bad_shuffle>),
         Group::FixedSubgroup,
         TBadGuyCB<bad_shuffle>);
   }
@@ -156,33 +156,33 @@ namespace Tests {
   {
     typedef ShuffleRoundInvalidOuterEncryption<1> bad_shuffle;
 
-    RoundTest_BadGuy(&TCreateSession<ShuffleRound>,
-        &TCreateSession<bad_shuffle>,
+    RoundTest_BadGuy(SessionCreator(TCreateRound<ShuffleRound>),
+        SessionCreator(TCreateRound<bad_shuffle>),
         Group::FixedSubgroup,
         TBadGuyCB<bad_shuffle>);
   }
 
   TEST(ShuffleRound, NullCS)
   {
-    RoundTest_Null(&TCreateSession<ShuffleRound>,
+    RoundTest_Null(SessionCreator(TCreateRound<ShuffleRound>),
         Group::ManagedSubgroup);
   }
 
   TEST(ShuffleRound, BasicCS)
   {
-    RoundTest_Basic(&TCreateSession<ShuffleRound>,
+    RoundTest_Basic(SessionCreator(TCreateRound<ShuffleRound>),
         Group::ManagedSubgroup);
   }
 
   TEST(ShuffleRound, PeerDisconnectMiddleCS)
   {
-    RoundTest_PeerDisconnectMiddle(&TCreateSession<ShuffleRound>,
+    RoundTest_PeerDisconnectMiddle(SessionCreator(TCreateRound<ShuffleRound>),
         Group::ManagedSubgroup);
   }
 
   TEST(ShuffleRound, PeerTransientIssueMiddleCS)
   {
-    RoundTest_PeerDisconnectMiddle(&TCreateSession<ShuffleRound>,
+    RoundTest_PeerDisconnectMiddle(SessionCreator(TCreateRound<ShuffleRound>),
         Group::ManagedSubgroup, true);
   }
 }

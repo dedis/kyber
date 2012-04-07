@@ -182,7 +182,7 @@ namespace Tests {
 
   TEST(WebServices, RoundIdServiceActive)
   {
-    RoundTest_Basic_SessionTest(&TCreateSession<ShuffleRound>,
+    RoundTest_Basic_SessionTest(SessionCreator(TCreateRound<ShuffleRound>),
         Group::CompleteGroup, &RoundIdServiceTest);
   }
 
@@ -202,7 +202,7 @@ namespace Tests {
 
   TEST(WebServices, SessionIdServiceActive)
   {
-    RoundTest_Basic_SessionTest(&TCreateSession<ShuffleRound>,
+    RoundTest_Basic_SessionTest(SessionCreator(TCreateRound<ShuffleRound>),
         Group::CompleteGroup, &SessionIdServiceTest);
   }
 
@@ -222,7 +222,7 @@ namespace Tests {
 
   TEST(WebServices, SendMessageServiceActive)
   {
-    RoundTest_Basic_SessionTest(&TCreateSession<ShuffleRound>,
+    RoundTest_Basic_SessionTest(SessionCreator(TCreateRound<ShuffleRound>),
         Group::CompleteGroup, &SendMessageServiceTest);
   }
 

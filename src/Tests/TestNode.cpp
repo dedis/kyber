@@ -120,7 +120,7 @@ namespace Tests {
   }
 
   void CreateSessions(const QVector<TestNode *> &nodes, const Group &group,
-      const Id &session_id, CreateSessionCallback callback)
+      const Id &session_id, SessionCreator callback)
   {
     for(int idx = 0; idx < nodes.count(); idx++) {
       CreateSession(nodes[idx], group, session_id, callback);
@@ -128,7 +128,7 @@ namespace Tests {
   }
 
   void CreateSession(TestNode * node, const Group &group, const Id &session_id,
-      CreateSessionCallback callback)
+      SessionCreator callback)
   {
     if(node->session != 0) {
       node->session->Stop();

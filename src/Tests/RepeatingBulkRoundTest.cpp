@@ -7,25 +7,25 @@ namespace Dissent {
 namespace Tests {
   TEST(RepeatingBulkRound, BasicFixed)
   {
-    RoundTest_Basic(&TCreateSession<RepeatingBulkRound>,
+    RoundTest_Basic(SessionCreator(TCreateRound<RepeatingBulkRound>),
         Group::FixedSubgroup);
   }
 
   TEST(RepeatingBulkRound, MultiRoundFixed)
   {
-    RoundTest_MultiRound(&TCreateSession<RepeatingBulkRound>,
+    RoundTest_MultiRound(SessionCreator(TCreateRound<RepeatingBulkRound>),
         Group::FixedSubgroup);
   }
 
   TEST(RepeatingBulkRound, AddOne)
   {
-    RoundTest_AddOne(&TCreateSession<RepeatingBulkRound>,
+    RoundTest_AddOne(SessionCreator(TCreateRound<RepeatingBulkRound>),
         Group::FixedSubgroup);
   }
 
   TEST(RepeatingBulkRound, PeerDisconnectMiddleFixed)
   {
-    RoundTest_PeerDisconnectMiddle(&TCreateSession<RepeatingBulkRound>,
+    RoundTest_PeerDisconnectMiddle(SessionCreator(TCreateRound<RepeatingBulkRound>),
         Group::FixedSubgroup);
   }
 
@@ -34,8 +34,8 @@ namespace Tests {
     typedef BulkRoundBadShuffler<RepeatingBulkRound,
             ShuffleRoundMessageSwitcher, 1> badbulk;
 
-    RoundTest_BadGuy(&TCreateSession<RepeatingBulkRound>,
-        &TCreateSession<badbulk>,
+    RoundTest_BadGuy(SessionCreator(TCreateRound<RepeatingBulkRound>),
+        SessionCreator(TCreateRound<badbulk>),
         Group::FixedSubgroup,
         TBadGuyCB<badbulk>);
   }
@@ -45,8 +45,8 @@ namespace Tests {
     typedef BulkRoundBadShuffler<RepeatingBulkRound,
             ShuffleRoundMessageSwitcher, 1> badbulk;
 
-    RoundTest_BadGuy(&TCreateSession<RepeatingBulkRound>,
-        &TCreateSession<badbulk>,
+    RoundTest_BadGuy(SessionCreator(TCreateRound<RepeatingBulkRound>),
+        SessionCreator(TCreateRound<badbulk>),
         Group::FixedSubgroup,
         TBadGuyCB<badbulk>);
   }
@@ -56,8 +56,8 @@ namespace Tests {
     typedef BulkRoundBadShuffler<RepeatingBulkRound,
             ShuffleRoundFalseNoGo, 1> badbulk;
 
-    RoundTest_BadGuy(&TCreateSession<RepeatingBulkRound>,
-        &TCreateSession<badbulk>,
+    RoundTest_BadGuy(SessionCreator(TCreateRound<RepeatingBulkRound>),
+        SessionCreator(TCreateRound<badbulk>),
         Group::FixedSubgroup,
         TBadGuyCB<badbulk>);
   }
@@ -67,8 +67,8 @@ namespace Tests {
     typedef BulkRoundBadShuffler<RepeatingBulkRound,
             ShuffleRoundInvalidOuterEncryption, 1> badbulk;
 
-    RoundTest_BadGuy(&TCreateSession<RepeatingBulkRound>,
-        &TCreateSession<badbulk>,
+    RoundTest_BadGuy(SessionCreator(TCreateRound<RepeatingBulkRound>),
+        SessionCreator(TCreateRound<badbulk>),
         Group::FixedSubgroup,
         TBadGuyCB<badbulk>);
   }

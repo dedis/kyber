@@ -62,30 +62,30 @@ namespace Tests {
 
   typedef void(*SessionTestCallback)(SessionManager &sm);
 
-  void RoundTest_Null(CreateSessionCallback callback,
+  void RoundTest_Null(SessionCreator callback,
       Group::SubgroupPolicy sg_policy);
-  void RoundTest_Basic(CreateSessionCallback callback,
+  void RoundTest_Basic(SessionCreator callback,
       Group::SubgroupPolicy sg_policy);
-  void RoundTest_Basic_SessionTest(CreateSessionCallback callback, 
+  void RoundTest_Basic_SessionTest(SessionCreator callback, 
       Group::SubgroupPolicy sg_policy, SessionTestCallback session_cb);
-  void RoundTest_MultiRound(CreateSessionCallback callback,
+  void RoundTest_MultiRound(SessionCreator callback,
       Group::SubgroupPolicy sg_policy);
-  void RoundTest_AddOne(CreateSessionCallback callback,
+  void RoundTest_AddOne(SessionCreator callback,
       Group::SubgroupPolicy sg_policy);
-  void RoundTest_PeerDisconnectEnd(CreateSessionCallback callback,
+  void RoundTest_PeerDisconnectEnd(SessionCreator callback,
       Group::SubgroupPolicy sg_policy);
-  void RoundTest_PeerDisconnectMiddle(CreateSessionCallback callback,
+  void RoundTest_PeerDisconnectMiddle(SessionCreator callback,
       Group::SubgroupPolicy sg_policy, bool transient = false);
-  void RoundTest_BadGuy(CreateSessionCallback good_callback,
-      CreateSessionCallback bad_callback,
+  void RoundTest_BadGuy(SessionCreator good_callback,
+      SessionCreator bad_callback,
       Group::SubgroupPolicy sg_policy,
       const BadGuyCB &cb);
-  void RoundTest_BadGuyBulk(CreateSessionCallback good_callback,
-      CreateSessionCallback bad_callback,
+  void RoundTest_BadGuyBulk(SessionCreator good_callback,
+      SessionCreator bad_callback,
       Group::SubgroupPolicy sg_policy,
       const BadGuyCB &cb);
-  void RoundTest_BadGuyNoAction(CreateSessionCallback good_callback,
-      CreateSessionCallback bad_callback, Group::SubgroupPolicy sg_policy,
+  void RoundTest_BadGuyNoAction(SessionCreator good_callback,
+      SessionCreator bad_callback, Group::SubgroupPolicy sg_policy,
       const BadGuyCB &cb);
 }
 }

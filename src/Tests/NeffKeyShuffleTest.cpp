@@ -6,7 +6,7 @@ namespace Dissent {
 namespace Tests {
   TEST(NeffKeyShuffle, Basic)
   {
-    CreateSessionCallback callback = &TCreateSession<NeffKeyShuffle>;
+    SessionCreator callback = SessionCreator(TCreateRound<NeffKeyShuffle>);
     Group::SubgroupPolicy sg_policy = Group::ManagedSubgroup;
 
     ConnectionManager::UseTimer = false;
@@ -66,7 +66,7 @@ namespace Tests {
 
   TEST(NeffKeyShuffle, Disconnect)
   {
-    CreateSessionCallback callback = &TCreateSession<NeffKeyShuffle>;
+    SessionCreator callback = SessionCreator(TCreateRound<NeffKeyShuffle>);
     Group::SubgroupPolicy sg_policy = Group::ManagedSubgroup;
 
     ConnectionManager::UseTimer = false;

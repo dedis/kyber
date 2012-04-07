@@ -10,33 +10,33 @@ namespace Tests {
 
   TEST(TolerantTreeRound, BasicFixed)
   {
-    RoundTest_Basic(&TCreateSession<TolerantTreeRound>,
+    RoundTest_Basic(SessionCreator(TCreateRound<TolerantTreeRound>),
         Group::FixedSubgroup);
   }
 
   TEST(TolerantTreeRound, BasicCS)
   {
-    RoundTest_Basic(&TCreateSession<TolerantTreeRound>,
+    RoundTest_Basic(SessionCreator(TCreateRound<TolerantTreeRound>),
         Group::ManagedSubgroup);
   }
 
   TEST(TolerantTreeRound, MultiRoundFixed)
   {
-    RoundTest_MultiRound(&TCreateSession<TolerantTreeRound>,
+    RoundTest_MultiRound(SessionCreator(TCreateRound<TolerantTreeRound>),
         Group::FixedSubgroup);
   }
 
   
   TEST(TolerantTreeRound, AddOne)
   {
-    RoundTest_AddOne(&TCreateSession<TolerantTreeRound>,
+    RoundTest_AddOne(SessionCreator(TCreateRound<TolerantTreeRound>),
         Group::FixedSubgroup);
   }
   
   
   TEST(TolerantTreeRound, PeerDisconnectMiddleFixed)
   {
-    RoundTest_PeerDisconnectMiddle(&TCreateSession<TolerantTreeRound>,
+    RoundTest_PeerDisconnectMiddle(SessionCreator(TCreateRound<TolerantTreeRound>),
         Group::FixedSubgroup);
   }
 
@@ -45,8 +45,8 @@ namespace Tests {
     typedef TolerantTreeRoundBadKeyShuffler<TolerantTreeRound,
             ShuffleRoundMessageSwitcher, 1> badbulk;
 
-    RoundTest_BadGuy(&TCreateSession<TolerantTreeRound>,
-        &TCreateSession<badbulk>, Group::FixedSubgroup, TBadGuyCB<badbulk>);
+    RoundTest_BadGuy(SessionCreator(TCreateRound<TolerantTreeRound>),
+        SessionCreator(TCreateRound<badbulk>), Group::FixedSubgroup, TBadGuyCB<badbulk>);
   }
   
   
@@ -55,8 +55,8 @@ namespace Tests {
     typedef TolerantTreeRoundBadKeyShuffler<TolerantTreeRound,
             ShuffleRoundMessageSwitcher, 1> badbulk;
 
-    RoundTest_BadGuy(&TCreateSession<TolerantTreeRound>,
-        &TCreateSession<badbulk>, Group::FixedSubgroup, TBadGuyCB<badbulk>);
+    RoundTest_BadGuy(SessionCreator(TCreateRound<TolerantTreeRound>),
+        SessionCreator(TCreateRound<badbulk>), Group::FixedSubgroup, TBadGuyCB<badbulk>);
   }
 
   TEST(TolerantTreeRound, FalseNoGoFixed)
@@ -64,8 +64,8 @@ namespace Tests {
     typedef TolerantTreeRoundBadKeyShuffler<TolerantTreeRound,
             ShuffleRoundFalseNoGo, 1> badbulk;
 
-    RoundTest_BadGuy(&TCreateSession<TolerantTreeRound>,
-        &TCreateSession<badbulk>, Group::FixedSubgroup, TBadGuyCB<badbulk>);
+    RoundTest_BadGuy(SessionCreator(TCreateRound<TolerantTreeRound>),
+        SessionCreator(TCreateRound<badbulk>), Group::FixedSubgroup, TBadGuyCB<badbulk>);
   }
 
   TEST(TolerantTreeRound, InvalidOuterEncryptionFixed)
@@ -73,8 +73,8 @@ namespace Tests {
     typedef TolerantTreeRoundBadKeyShuffler<TolerantTreeRound,
             ShuffleRoundInvalidOuterEncryption, 1> badbulk;
 
-    RoundTest_BadGuy(&TCreateSession<TolerantTreeRound>,
-        &TCreateSession<badbulk>, Group::FixedSubgroup, TBadGuyCB<badbulk>);
+    RoundTest_BadGuy(SessionCreator(TCreateRound<TolerantTreeRound>),
+        SessionCreator(TCreateRound<badbulk>), Group::FixedSubgroup, TBadGuyCB<badbulk>);
   }
 
 }

@@ -10,27 +10,27 @@ namespace Tests {
 
   TEST(TolerantBulkRound, BasicFixed)
   {
-    RoundTest_Basic(&TCreateSession<TolerantBulkRound>,
+    RoundTest_Basic(SessionCreator(TCreateRound<TolerantBulkRound>),
         Group::FixedSubgroup);
   }
 
   TEST(TolerantBulkRound, MultiRoundFixed)
   {
-    RoundTest_MultiRound(&TCreateSession<TolerantBulkRound>,
+    RoundTest_MultiRound(SessionCreator(TCreateRound<TolerantBulkRound>),
         Group::FixedSubgroup);
   }
 
   
   TEST(TolerantBulkRound, AddOne)
   {
-    RoundTest_AddOne(&TCreateSession<TolerantBulkRound>,
+    RoundTest_AddOne(SessionCreator(TCreateRound<TolerantBulkRound>),
         Group::FixedSubgroup);
   }
   
   
   TEST(TolerantBulkRound, PeerDisconnectMiddleFixed)
   {
-    RoundTest_PeerDisconnectMiddle(&TCreateSession<TolerantBulkRound>,
+    RoundTest_PeerDisconnectMiddle(SessionCreator(TCreateRound<TolerantBulkRound>),
         Group::FixedSubgroup);
   }
 
@@ -39,8 +39,8 @@ namespace Tests {
     typedef TolerantBulkRoundBadKeyShuffler<TolerantBulkRound,
             ShuffleRoundMessageSwitcher, 1> badbulk;
 
-    RoundTest_BadGuy(&TCreateSession<TolerantBulkRound>,
-        &TCreateSession<badbulk>, Group::FixedSubgroup, TBadGuyCB<badbulk>);
+    RoundTest_BadGuy(SessionCreator(TCreateRound<TolerantBulkRound>),
+        SessionCreator(TCreateRound<badbulk>), Group::FixedSubgroup, TBadGuyCB<badbulk>);
   }
   
   
@@ -49,8 +49,8 @@ namespace Tests {
     typedef TolerantBulkRoundBadKeyShuffler<TolerantBulkRound,
             ShuffleRoundMessageSwitcher, 1> badbulk;
 
-    RoundTest_BadGuy(&TCreateSession<TolerantBulkRound>,
-        &TCreateSession<badbulk>, Group::FixedSubgroup, TBadGuyCB<badbulk>);
+    RoundTest_BadGuy(SessionCreator(TCreateRound<TolerantBulkRound>),
+        SessionCreator(TCreateRound<badbulk>), Group::FixedSubgroup, TBadGuyCB<badbulk>);
   }
 
   TEST(TolerantBulkRound, FalseNoGoFixed)
@@ -58,8 +58,8 @@ namespace Tests {
     typedef TolerantBulkRoundBadKeyShuffler<TolerantBulkRound,
             ShuffleRoundFalseNoGo, 1> badbulk;
 
-    RoundTest_BadGuy(&TCreateSession<TolerantBulkRound>,
-        &TCreateSession<badbulk>, Group::FixedSubgroup, TBadGuyCB<badbulk>);
+    RoundTest_BadGuy(SessionCreator(TCreateRound<TolerantBulkRound>),
+        SessionCreator(TCreateRound<badbulk>), Group::FixedSubgroup, TBadGuyCB<badbulk>);
   }
 
   TEST(TolerantBulkRound, InvalidOuterEncryptionFixed)
@@ -67,14 +67,14 @@ namespace Tests {
     typedef TolerantBulkRoundBadKeyShuffler<TolerantBulkRound,
             ShuffleRoundInvalidOuterEncryption, 1> badbulk;
 
-    RoundTest_BadGuy(&TCreateSession<TolerantBulkRound>,
-        &TCreateSession<badbulk>, Group::FixedSubgroup, TBadGuyCB<badbulk>);
+    RoundTest_BadGuy(SessionCreator(TCreateRound<TolerantBulkRound>),
+        SessionCreator(TCreateRound<badbulk>), Group::FixedSubgroup, TBadGuyCB<badbulk>);
   }
 
   TEST(TolerantBulkRound, InvalidUserMessage)
   {
-    RoundTest_BadGuyBulk(&TCreateSession<TolerantBulkRound>,
-        &TCreateSession<TolerantBulkRoundBadUserMessageGenerator>, 
+    RoundTest_BadGuyBulk(SessionCreator(TCreateRound<TolerantBulkRound>),
+        SessionCreator(TCreateRound<TolerantBulkRoundBadUserMessageGenerator>), 
         Group::FixedSubgroup, 
         TBadGuyCB<TolerantBulkRoundBadUserMessageGenerator>);
   }
@@ -82,8 +82,8 @@ namespace Tests {
   /*
   TEST(TolerantBulkRound, InvalidCleartextSig)
   {
-    RoundTest_BadGuyBulk(&TCreateSession<TolerantBulkRound>,
-        &TCreateSession<TolerantBulkRoundBadCleartextSigner>, 
+    RoundTest_BadGuyBulk(SessionCreator(TCreateRound<TolerantBulkRound>),
+        SessionCreator(TCreateRound<TolerantBulkRoundBadCleartextSigner>), 
         Group::FixedSubgroup, 
         TBadGuyCB<TolerantBulkRoundBadCleartextSigner>, 
         false);
@@ -92,24 +92,24 @@ namespace Tests {
 
   TEST(TolerantBulkRound, InvalidUserServerPad)
   {
-    RoundTest_BadGuyBulk(&TCreateSession<TolerantBulkRound>,
-        &TCreateSession<TolerantBulkRoundBadServerPad>, 
+    RoundTest_BadGuyBulk(SessionCreator(TCreateRound<TolerantBulkRound>),
+        SessionCreator(TCreateRound<TolerantBulkRoundBadServerPad>), 
         Group::FixedSubgroup, 
         TBadGuyCB<TolerantBulkRoundBadServerPad>);
   }
 
   TEST(TolerantBulkRound, InvalidServerUserPad)
   {
-    RoundTest_BadGuyBulk(&TCreateSession<TolerantBulkRound>,
-        &TCreateSession<TolerantBulkRoundBadUserPad>, 
+    RoundTest_BadGuyBulk(SessionCreator(TCreateRound<TolerantBulkRound>),
+        SessionCreator(TCreateRound<TolerantBulkRoundBadUserPad>), 
         Group::FixedSubgroup, 
         TBadGuyCB<TolerantBulkRoundBadUserPad>);
   }
 
   TEST(TolerantBulkRound, InvalidUserCommit)
   {
-    RoundTest_BadGuyBulk(&TCreateSession<TolerantBulkRound>,
-        &TCreateSession<TolerantBulkRoundBadUserCommit>, 
+    RoundTest_BadGuyBulk(SessionCreator(TCreateRound<TolerantBulkRound>),
+        SessionCreator(TCreateRound<TolerantBulkRoundBadUserCommit>), 
         Group::FixedSubgroup, 
         TBadGuyCB<TolerantBulkRoundBadUserCommit>);
   }
@@ -117,16 +117,16 @@ namespace Tests {
   /*
   TEST(TolerantBulkRound, InvalidUserAlibi)
   {
-    RoundTest_BadGuyBulk(&TCreateSession<TolerantBulkRound>,
-        &TCreateSession<TolerantBulkRoundBadUserAlibi>, 
+    RoundTest_BadGuyBulk(SessionCreator(TCreateRound<TolerantBulkRound>),
+        SessionCreator(TCreateRound<TolerantBulkRoundBadUserAlibi>), 
         Group::FixedSubgroup, 
         TBadGuyCB<TolerantBulkRoundBadUserAlibi>);
   }
 
   TEST(TolerantBulkRound, InvalidServerAlibi)
   {
-    RoundTest_BadGuyBulk(&TCreateSession<TolerantBulkRound>,
-        &TCreateSession<TolerantBulkRoundBadServerAlibi>, 
+    RoundTest_BadGuyBulk(SessionCreator(TCreateRound<TolerantBulkRound>),
+        SessionCreator(TCreateRound<TolerantBulkRoundBadServerAlibi>), 
         Group::FixedSubgroup, 
         TBadGuyCB<TolerantBulkRoundBadServerAlibi>);
   }

@@ -4,7 +4,7 @@
 
 namespace Dissent {
 namespace Tests {
-  void RoundTest_Null(CreateSessionCallback callback,
+  void RoundTest_Null(SessionCreator callback,
       Group::SubgroupPolicy sg_policy)
   {
     ConnectionManager::UseTimer = false;
@@ -41,7 +41,7 @@ namespace Tests {
     ConnectionManager::UseTimer = true;
   }
 
-  void RoundTest_Basic(CreateSessionCallback callback,
+  void RoundTest_Basic(SessionCreator callback,
       Group::SubgroupPolicy sg_policy)
   {
     ConnectionManager::UseTimer = false;
@@ -95,7 +95,7 @@ namespace Tests {
    * as an argument. This is useful for booting up a node and then
    * using it to testi SessionWebService objects.
    */
-  void RoundTest_Basic_SessionTest(CreateSessionCallback callback, 
+  void RoundTest_Basic_SessionTest(SessionCreator callback, 
       Group::SubgroupPolicy sg_policy, SessionTestCallback session_cb)
   {
     ConnectionManager::UseTimer = false;
@@ -142,7 +142,7 @@ namespace Tests {
     ConnectionManager::UseTimer = true;
   }
 
-  void RoundTest_MultiRound(CreateSessionCallback callback,
+  void RoundTest_MultiRound(SessionCreator callback,
       Group::SubgroupPolicy sg_policy)
   {
     ConnectionManager::UseTimer = false;
@@ -208,7 +208,7 @@ namespace Tests {
     ConnectionManager::UseTimer = true;
   }
 
-  void RoundTest_AddOne(CreateSessionCallback callback,
+  void RoundTest_AddOne(SessionCreator callback,
       Group::SubgroupPolicy sg_policy)
   {
     ConnectionManager::UseTimer = false;
@@ -348,7 +348,7 @@ namespace Tests {
     ConnectionManager::UseTimer = true;
   }
 
-  void RoundTest_PeerDisconnectEnd(CreateSessionCallback callback,
+  void RoundTest_PeerDisconnectEnd(SessionCreator callback,
       Group::SubgroupPolicy sg_policy)
   {
     ConnectionManager::UseTimer = false;
@@ -422,7 +422,7 @@ namespace Tests {
     ConnectionManager::UseTimer = true;
   }
 
-  void RoundTest_PeerDisconnectMiddle(CreateSessionCallback callback,
+  void RoundTest_PeerDisconnectMiddle(SessionCreator callback,
       Group::SubgroupPolicy sg_policy, bool transient)
   {
     ConnectionManager::UseTimer = false;
@@ -560,8 +560,8 @@ namespace Tests {
     Session::EnableLogOffMonitor = true;
   }
 
-  void RoundTest_BadGuy(CreateSessionCallback good_callback,
-      CreateSessionCallback bad_callback, Group::SubgroupPolicy sg_policy,
+  void RoundTest_BadGuy(SessionCreator good_callback,
+      SessionCreator bad_callback, Group::SubgroupPolicy sg_policy,
       const BadGuyCB &cb)
   {
     ConnectionManager::UseTimer = false;
@@ -656,8 +656,8 @@ namespace Tests {
    * BadGuy assumes that blame finishes before messages
    * are received (as in the shuffle).
    */
-  void RoundTest_BadGuyBulk(CreateSessionCallback good_callback,
-      CreateSessionCallback bad_callback, Group::SubgroupPolicy sg_policy,
+  void RoundTest_BadGuyBulk(SessionCreator good_callback,
+      SessionCreator bad_callback, Group::SubgroupPolicy sg_policy,
       const BadGuyCB &)
   {
     ConnectionManager::UseTimer = false;
@@ -731,8 +731,8 @@ namespace Tests {
     ConnectionManager::UseTimer = true;
   }
 
-  void RoundTest_BadGuyNoAction(CreateSessionCallback good_callback,
-      CreateSessionCallback bad_callback, Group::SubgroupPolicy sg_policy,
+  void RoundTest_BadGuyNoAction(SessionCreator good_callback,
+      SessionCreator bad_callback, Group::SubgroupPolicy sg_policy,
       const BadGuyCB &cb)
   {
     ConnectionManager::UseTimer = false;
