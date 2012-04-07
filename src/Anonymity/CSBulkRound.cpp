@@ -80,14 +80,12 @@ namespace Anonymity {
         SERVER_CIPHERTEXT, &CSBulkRound::HandleServerCiphertext,
         &CSBulkRound::SubmitServerCiphertext);
 
-    _state_machine.AddState(SERVER_PUSH_CLEARTEXT, -1, 0,
-        &CSBulkRound::PushCleartext);
-
-#ifdef FULL_CSBULK
     _state_machine.AddState(SERVER_WAIT_FOR_SERVER_VALIDATION,
         SERVER_VALIDATION, &CSBulkRound::HandleServerValidation,
         &CSBulkRound::SubmitValidation);
-#endif
+
+    _state_machine.AddState(SERVER_PUSH_CLEARTEXT, -1, 0,
+        &CSBulkRound::PushCleartext);
 
     _state_machine.AddTransition(PREPARE_FOR_BULK,
         SERVER_WAIT_FOR_CLIENT_CIPHERTEXT);
@@ -97,19 +95,10 @@ namespace Anonymity {
         SERVER_WAIT_FOR_SERVER_COMMITS);
     _state_machine.AddTransition(SERVER_WAIT_FOR_SERVER_COMMITS,
         SERVER_WAIT_FOR_SERVER_CIPHERTEXT);
-
-#ifndef FULL_CSBULK
-    // No validation at the end
-    _state_machine.AddTransition(SERVER_WAIT_FOR_SERVER_CIPHERTEXT,
-        SERVER_PUSH_CLEARTEXT);
-#else
-    // Validation
     _state_machine.AddTransition(SERVER_WAIT_FOR_SERVER_CIPHERTEXT,
         SERVER_WAIT_FOR_SERVER_VALIDATION);
-
     _state_machine.AddTransition(SERVER_WAIT_FOR_SERVER_VALIDATION,
         SERVER_PUSH_CLEARTEXT);
-#endif
     _state_machine.AddTransition(SERVER_PUSH_CLEARTEXT,
         SERVER_WAIT_FOR_CLIENT_CIPHERTEXT);
 
@@ -238,13 +227,24 @@ namespace Anonymity {
       throw QRunTimeError("Not a server");
     }
 
+    QHash<int, QByteArray> signatures;
     QByteArray cleartext;
-    stream >> cleartext;
+    stream >> signatures >> cleartext;
 
     if(cleartext.size() != _state->msg_length) {
       throw QRunTimeError("Cleartext size mismatch: " +
           QString::number(_state->cleartext.size()) + " :: " +
           QString::number(_state->msg_length));
+    }
+
+    int server_length = GetGroup().GetSubgroup().Count();
+    for(int idx = 0; idx < server_length; idx++) {
+      if(!GetGroup().GetSubgroup().GetKey(idx)->Verify(cleartext,
+            signatures[idx]))
+      {
+        Stop("Failed to verify signatures");
+        return;
+      }
     }
 
     _state->cleartext = cleartext;
@@ -376,6 +376,16 @@ namespace Anonymity {
           QString::number(_server_state->msg_length));
     }
 
+    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
+    QByteArray commit = hashalgo->ComputeHash(ciphertext);
+
+    if(commit != _server_state->server_commits[
+        GetGroup().GetSubgroup().GetIndex(from)])
+    {
+      throw QRunTimeError("Does not match commit.");
+    }
+
     _server_state->handled_servers.insert(from);
     _server_state->server_ciphertexts[GetGroup().GetSubgroup().GetIndex(from)] = ciphertext;
 
@@ -389,7 +399,6 @@ namespace Anonymity {
     }
   }
 
-  // XXX not properly implemented
   void CSBulkRound::HandleServerValidation(const Id &from, QDataStream &stream)
   {
     if(!IsServer()) {
@@ -401,16 +410,23 @@ namespace Anonymity {
     Q_ASSERT(_server_state);
 
     if(_server_state->handled_servers.contains(from)) {
-      throw QRunTimeError("Already have confirmation");
+      throw QRunTimeError("Already have signature.");
     }
 
-    QByteArray confirmation;
-    stream >> confirmation;
+    QByteArray signature;
+    stream >> signature;
 
-    _server_state->confirmations[GetGroup().GetSubgroup().GetIndex(from)] = confirmation;
+    if(!GetGroup().GetSubgroup().GetKey(from)->
+        Verify(_state->cleartext, signature))
+    {
+      throw QRunTimeError("Siganture doesn't match.");
+    }
+
+    _server_state->handled_servers.insert(from);
+    _server_state->signatures[GetGroup().GetSubgroup().GetIndex(from)] = signature;
 
     qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
-      ": received confirmation from" << GetGroup().GetIndex(from) <<
+      ": received validation from" << GetGroup().GetIndex(from) <<
       from.ToString() << "Have" << _server_state->handled_servers.count()
       << "expecting" << GetGroup().GetSubgroup().Count();
 
@@ -723,16 +739,6 @@ namespace Anonymity {
     VerifiableBroadcastToServers(payload);
   }
 
-  void CSBulkRound::SubmitServerCiphertext()
-  {
-    QByteArray payload;
-    QDataStream stream(&payload, QIODevice::WriteOnly);
-    stream << SERVER_CIPHERTEXT << GetRoundId() <<
-      _state_machine.GetPhase() << _server_state->my_ciphertext;
-
-    VerifiableBroadcastToServers(payload);
-  }
-
   void CSBulkRound::GenerateServerCiphertext()
   {
     QByteArray ciphertext = GenerateCiphertext();
@@ -746,7 +752,17 @@ namespace Anonymity {
     _server_state->my_commit = hashalgo->ComputeHash(ciphertext);
   }
 
-  void CSBulkRound::PushCleartext()
+  void CSBulkRound::SubmitServerCiphertext()
+  {
+    QByteArray payload;
+    QDataStream stream(&payload, QIODevice::WriteOnly);
+    stream << SERVER_CIPHERTEXT << GetRoundId() <<
+      _state_machine.GetPhase() << _server_state->my_ciphertext;
+
+    VerifiableBroadcastToServers(payload);
+  }
+
+  void CSBulkRound::SubmitValidation()
   {
     QByteArray cleartext(_state->msg_length, 0);
 
@@ -755,11 +771,23 @@ namespace Anonymity {
     }
 
     _state->cleartext = cleartext;
+    QByteArray signature = GetPrivateIdentity().GetSigningKey()->
+      Sign(_state->cleartext);
 
     QByteArray payload;
     QDataStream stream(&payload, QIODevice::WriteOnly);
+    stream << SERVER_VALIDATION << GetRoundId() <<
+      _state_machine.GetPhase() << signature;
+
+    VerifiableBroadcastToServers(payload);
+  }
+
+  void CSBulkRound::PushCleartext()
+  {
+    QByteArray payload;
+    QDataStream stream(&payload, QIODevice::WriteOnly);
     stream << SERVER_CLEARTEXT << GetRoundId() << _state_machine.GetPhase()
-      << cleartext;
+      << _server_state->signatures << _server_state->cleartext;
 
     VerifiableBroadcastToClients(payload);
     ProcessCleartext();

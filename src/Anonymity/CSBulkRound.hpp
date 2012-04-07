@@ -199,6 +199,7 @@ namespace Anonymity {
           QList<QByteArray> base_seeds;
           QVector<QSharedPointer<Random> > anonymous_rngs;
           QMap<int, int> next_messages;
+          QHash<int, QByteArray> signatures;
           QByteArray cleartext;
 
           QSharedPointer<AsymmetricKey> anonymous_key;
@@ -235,7 +236,6 @@ namespace Anonymity {
           QSet<Id> handled_servers;
           QHash<int, QByteArray> server_commits;
           QHash<int, QByteArray> server_ciphertexts;
-          QList<QByteArray> confirmations;
       };
 
       /**
@@ -345,6 +345,7 @@ namespace Anonymity {
       void SubmitClientList();
       void SubmitCommit();
       void SubmitServerCiphertext();
+      void SubmitValidation();
       void PushCleartext();
 
       /* Below are the ciphertext generation helpers */
