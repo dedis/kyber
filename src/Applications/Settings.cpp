@@ -10,10 +10,10 @@ namespace Applications {
     LocalId(Id::Zero()),
     LeaderId(Id::Zero()),
     SubgroupPolicy(Group::CompleteGroup),
+    SuperPeer(false),
     _use_file(true),
     _settings(file, QSettings::IniFormat),
-    _reason(),
-    SuperPeer(false)
+    _reason()
   {
     Init();
     QVariant peers = _settings.value("remote_peers");
