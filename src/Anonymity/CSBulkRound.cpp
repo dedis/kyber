@@ -6,6 +6,7 @@
 #include "Utils/Timer.hpp"
 #include "Utils/TimerCallback.hpp"
 
+#include "NeffKeyShuffle.hpp"
 #include "CSBulkRound.hpp"
 
 const unsigned char bit_masks[8] = {1, 2, 4, 8, 16, 32, 64, 128};
@@ -26,9 +27,24 @@ namespace Anonymity {
     _state_machine(this),
     _stop_next(false)
   {
-    _state_machine.AddState(OFFLINE, -1, 0, 0);
+    _state_machine.AddState(OFFLINE);
     _state_machine.AddState(SHUFFLING, -1, 0, &CSBulkRound::StartShuffle);
-    _state_machine.AddState(FINISHED, -1, 0, 0);
+    _state_machine.AddState(FINISHED);
+
+    _state_machine.AddState(PREPARE_FOR_BULK, -1, 0,
+        &CSBulkRound::PrepareForBulk);
+    
+    if(GetShuffleRound().dynamicCast<NeffKeyShuffle>()) {
+      _state_machine.AddState(PROCESS_KEY_SHUFFLE, -1, 0,
+          &CSBulkRound::ProcessKeyShuffle);
+      _state_machine.AddTransition(SHUFFLING, PROCESS_KEY_SHUFFLE);
+      _state_machine.AddTransition(PROCESS_KEY_SHUFFLE, PREPARE_FOR_BULK);
+    } else {
+      _state_machine.AddState(PROCESS_DATA_SHUFFLE, -1, 0,
+          &CSBulkRound::ProcessDataShuffle);
+      _state_machine.AddTransition(SHUFFLING, PROCESS_DATA_SHUFFLE);
+      _state_machine.AddTransition(PROCESS_DATA_SHUFFLE, PREPARE_FOR_BULK);
+    }
 
     _state_machine.AddTransition(OFFLINE, SHUFFLING);
     _state_machine.SetState(OFFLINE);
@@ -73,7 +89,7 @@ namespace Anonymity {
         &CSBulkRound::SubmitValidation);
 #endif
 
-    _state_machine.AddTransition(SHUFFLING,
+    _state_machine.AddTransition(PREPARE_FOR_BULK,
         SERVER_WAIT_FOR_CLIENT_CIPHERTEXT);
     _state_machine.AddTransition(SERVER_WAIT_FOR_CLIENT_CIPHERTEXT,
         SERVER_WAIT_FOR_CLIENT_LISTS);
@@ -117,9 +133,8 @@ namespace Anonymity {
         SERVER_CLEARTEXT, &CSBulkRound::HandleServerCleartext,
         &CSBulkRound::SubmitClientCiphertext);
 
-    _state_machine.AddTransition(SHUFFLING,
+    _state_machine.AddTransition(PREPARE_FOR_BULK,
         CLIENT_WAIT_FOR_CLEARTEXT);
-
     _state_machine.AddTransition(CLIENT_WAIT_FOR_CLEARTEXT,
         CLIENT_WAIT_FOR_CLEARTEXT);
 
@@ -433,6 +448,11 @@ namespace Anonymity {
       return;
     }
 
+    _state_machine.StateComplete();
+  }
+
+  void CSBulkRound::ProcessDataShuffle()
+  {
     if(GetShuffleSink().Count() != GetGroup().Count()) {
       qFatal("Did not receive a descriptor from everyone.");
     }
@@ -456,6 +476,29 @@ namespace Anonymity {
       _state->anonymous_keys.append(key);
     }
 
+    _state_machine.StateComplete();
+  }
+
+  void CSBulkRound::ProcessKeyShuffle()
+  {
+    QSharedPointer<NeffKeyShuffle> nks =
+      GetShuffleRound().dynamicCast<NeffKeyShuffle>();
+    Q_ASSERT(nks);
+
+    _state->anonymous_key = nks->GetAnonymizedKey();
+    Q_ASSERT(_state->anonymous_key);
+
+    _state->my_idx = nks->GetAnonymizedKeyIndex();
+    Q_ASSERT(_state->my_idx > -1);
+
+    _state->anonymous_keys = nks->GetAnonymizedKeys();
+    Q_ASSERT(_state->my_idx < _state->anonymous_keys.count());
+
+    _state_machine.StateComplete();
+  }
+
+  void CSBulkRound::PrepareForBulk()
+  {
     _state->msg_length = (GetGroup().Count() / 8);
     if(GetGroup().Count() % 8) {
       ++_state->msg_length;

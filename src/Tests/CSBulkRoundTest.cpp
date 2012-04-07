@@ -34,5 +34,17 @@ namespace Tests {
     RoundTest_PeerDisconnectMiddle(SessionCreator(TCreateRound<CSBulkRound>),
         Group::ManagedSubgroup);
   }
+
+  TEST(CSBulkRound, BasicRoundManagedNeffKey)
+  {
+    RoundTest_Basic(SessionCreator(TCreateBulkRound<CSBulkRound, NeffKeyShuffle>),
+        Group::ManagedSubgroup);
+  }
+
+  TEST(CSBulkRound, MultiRoundManagedNeffKey)
+  {
+    RoundTest_MultiRound(SessionCreator(TCreateBulkRound<CSBulkRound, NeffKeyShuffle>),
+        Group::ManagedSubgroup);
+  }
 }
 }

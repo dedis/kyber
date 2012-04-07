@@ -56,6 +56,9 @@ namespace Anonymity {
       enum States {
         OFFLINE = 0,
         SHUFFLING,
+        PROCESS_DATA_SHUFFLE,
+        PROCESS_KEY_SHUFFLE,
+        PREPARE_FOR_BULK,
         CLIENT_WAIT_FOR_CLEARTEXT,
         SERVER_WAIT_FOR_CLIENT_CIPHERTEXT,
         SERVER_WAIT_FOR_CLIENT_LISTS,
@@ -192,9 +195,9 @@ namespace Anonymity {
         public:
           virtual ~State() {}
 
-          QList<QSharedPointer<AsymmetricKey> > anonymous_keys;
+          QVector<QSharedPointer<AsymmetricKey> > anonymous_keys;
           QList<QByteArray> base_seeds;
-          QList<QSharedPointer<Random> > anonymous_rngs;
+          QVector<QSharedPointer<Random> > anonymous_rngs;
           QMap<int, int> next_messages;
           QByteArray cleartext;
 
@@ -334,6 +337,9 @@ namespace Anonymity {
 
       /* Below are the state transitions */
       void StartShuffle();
+      void ProcessDataShuffle();
+      void ProcessKeyShuffle();
+      void PrepareForBulk();
       void SubmitClientCiphertext();
       void SetOnlineClients();
       void SubmitClientList();

@@ -132,6 +132,18 @@ namespace Anonymity {
        */
       void SlotShuffleFinished() { ShuffleFinished(); }
   };
+
+  template <typename B, typename S> QSharedPointer<Round> TCreateBulkRound(
+      const Round::Group &group, const Round::PrivateIdentity &ident,
+      const Connections::Id &round_id,
+      QSharedPointer<Connections::Network> network,
+      Messaging::GetDataCallback &get_data)
+  {
+    QSharedPointer<Round> round(new B(group, ident, round_id, network,
+          get_data, &TCreateRound<S>));
+    round->SetSharedPointer(round);
+    return round;
+  }
 }
 }
 
