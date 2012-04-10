@@ -113,7 +113,7 @@ namespace Anonymity {
         Log tmp = _next_state_log;
         _next_state_log = Log();
 
-        if(_cycle_state == GetCurrentState()->GetState()) {
+        if((_cycle_state == GetCurrentState()->GetState()) && (state == -1)) {
           qDebug() << "In" << _round->ToString() << "ending phase";
           if(!_round->CycleComplete()) {
             return;
