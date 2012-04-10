@@ -1,6 +1,8 @@
+#include "Anonymity/BaseBulkRound.hpp"
 #include "Anonymity/BulkRound.hpp"
 #include "Anonymity/CSBulkRound.hpp"
 #include "Anonymity/RepeatingBulkRound.hpp"
+#include "Anonymity/NeffKeyShuffle.hpp"
 #include "Anonymity/NullRound.hpp"
 #include "Anonymity/Round.hpp"
 #include "Anonymity/Session.hpp"
@@ -15,11 +17,13 @@
 
 using Dissent::Anonymity::BulkRound;
 using Dissent::Anonymity::CSBulkRound;
+using Dissent::Anonymity::NeffKeyShuffle;
 using Dissent::Anonymity::NullRound;
 using Dissent::Anonymity::RepeatingBulkRound;
 using Dissent::Anonymity::Tolerant::TolerantBulkRound;
 using Dissent::Anonymity::Session;
 using Dissent::Anonymity::ShuffleRound;
+using Dissent::Anonymity::TCreateBulkRound;
 using Dissent::Anonymity::TCreateRound;
 using Dissent::Connections::ConnectionManager;
 using Dissent::Connections::DefaultNetwork;
@@ -83,7 +87,7 @@ namespace Applications {
 
   void SessionFactory::CreateCSBulkRoundSession(Node *node, const Id &session_id)
   {
-    Common(node, session_id, &TCreateRound<CSBulkRound>);
+    Common(node, session_id, &TCreateBulkRound<CSBulkRound, NeffKeyShuffle>);
   }
 
   void SessionFactory::CreateRepeatingBulkRoundSession(Node *node,
