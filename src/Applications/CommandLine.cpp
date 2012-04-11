@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include <qcoreapplication.h>
 
 #include "Anonymity/Session.hpp"
