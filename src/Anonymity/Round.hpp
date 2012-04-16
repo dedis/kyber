@@ -260,6 +260,12 @@ namespace Anonymity {
       QWeakPointer<Round> _shared;
   };
 
+  inline QDebug operator<<(QDebug dbg, const QSharedPointer<Round> &round)
+  {
+    dbg.nospace() << round->ToString();
+    return dbg.space();
+  }
+
   typedef QSharedPointer<Round> (*CreateRound)(const Round::Group &,
       const Round::PrivateIdentity &, const Connections::Id &,
       QSharedPointer<Connections::Network>,
