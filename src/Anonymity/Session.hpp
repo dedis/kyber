@@ -155,7 +155,23 @@ namespace Anonymity {
 
       static const int MinimumRoundSize = 3;
 
-      static const int PeerJoinDelay = 10000;
+      /**
+       * Time between a null or stopped round when peers are actively joining
+       */
+#if DISSENT_TEST
+      static const int InitialPeerJoinDelay = 0;
+#else
+      static const int InitialPeerJoinDelay = 30000;
+#endif
+
+      /**
+       * Time between rounds if the round is active and peers have requested to join
+       */
+#if DISSENT_TEST
+      static const int RoundRunningPeerJoinDelay = 0;
+#else
+      static const int RoundRunningPeerJoinDelay = 600000;
+#endif
 
       /**
        * Period between checking log off times
@@ -227,10 +243,15 @@ namespace Anonymity {
       void Register(const int &);
 
       /**
+       * Sets up calls to CheckRegistrationCallback
+       */
+      void CheckRegistration();
+
+      /**
        * Called upon registration / round finished to start a new round
        * @param unused
        */
-      void CheckRegistration(const int &);
+      void CheckRegistrationCallback(const int &);
 
       /**
        * Log off times to see if we can allow recent disconnects to reconnect

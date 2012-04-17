@@ -222,18 +222,7 @@ namespace Anonymity {
     AddMember(ident);
     request.Respond(true);
 
-    if(!_prepare_event.Stopped()) {
-      return;
-    }
-
-    qDebug() << "Starting a new prepare event due to peer join.";
-
-    Dissent::Utils::TimerCallback *cb =
-      new Dissent::Utils::TimerMethod<Session, int>(this,
-          &Session::CheckRegistration, 0);
-
-    _prepare_event = Dissent::Utils::Timer::GetInstance().QueueCallback(cb,
-        static_cast<int>(PeerJoinDelay * 1.1), PeerJoinDelay);
+    CheckRegistration();
   }
 
   bool Session::AllowRegistration(const QSharedPointer<ISender> &,
@@ -252,25 +241,40 @@ namespace Anonymity {
     }
   }
 
-  void Session::CheckRegistration(const int &)
+  void Session::CheckRegistration()
   {
-    QDateTime ctime = Dissent::Utils::Time::GetInstance().CurrentTime();
-    QDateTime min_delay = _last_registration.addMSecs(PeerJoinDelay);
-    if(ctime <= min_delay) {
-      qDebug() << "Not enough time has passed between peer joins to" <<
-        "start a session:" << _last_registration << "-" << ctime <<
-        "=" << min_delay.secsTo(ctime);
+    QDateTime start_time;
+
+    if(!_current_round || _current_round->Stopped()) {
+      start_time = _last_registration.addMSecs(InitialPeerJoinDelay);
+    } else if(_prepare_event.Stopped()) {
+      start_time = _current_round->GetStartTime().addMSecs(RoundRunningPeerJoinDelay);
+    } else {
       return;
     }
 
-    qDebug() << "Enough time has passed between peer joins to start a round.";
     _prepare_event.Stop();
+    Dissent::Utils::TimerCallback *cb =
+      new Dissent::Utils::TimerMethod<Session, int>(this,
+          &Session::CheckRegistrationCallback, 0);
 
+    QDateTime ctime = Dissent::Utils::Time::GetInstance().CurrentTime();
+    qint64 next = ctime.msecsTo(start_time);
+    if(next < 0) {
+      next = 0;
+    }
+
+    _prepare_event = Dissent::Utils::Timer::GetInstance().QueueCallback(
+        cb, next);
+  }
+
+  void Session::CheckRegistrationCallback(const int &)
+  {
     if(_current_round.isNull() || !_current_round->Started() ||
           _current_round->Stopped())
     {
       SendPrepare();
-    } else if(IsLeader()) {
+    } else {
       qDebug() << "Letting the current round know that a peer joined event occurred.";
       _current_round->PeerJoined();
     }
@@ -397,8 +401,8 @@ namespace Anonymity {
           if(!_prepared_peers.contains(id)) {
             waiting.append(id);
           }
-          qDebug() << "Waiting on:" << waiting;
         }
+        qDebug() << "Waiting on:" << waiting;
       }
       return;
     }
@@ -482,11 +486,8 @@ namespace Anonymity {
       }
     }
 
-    if(IsLeader() && _prepare_event.Stopped()) {
-      Dissent::Utils::TimerCallback *cb =
-        new Dissent::Utils::TimerMethod<Session, int>(
-            this, &Session::CheckRegistration, 0);
-      _prepare_event = Dissent::Utils::Timer::GetInstance().QueueCallback(cb, 0, 5000);
+    if(IsLeader()) {
+      CheckRegistration();
     } else if(_prepare_waiting) {
       HandlePrepare(_prepare_request);
     }
