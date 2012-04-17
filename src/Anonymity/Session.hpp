@@ -83,23 +83,23 @@ namespace Anonymity {
       void LinkDisconnect(const Request &notification);
 
       /**
-       * From the SessionManager, pass in a ReceivedRegister
+       * From the SessionManager, pass in a HandleRegister
        * @param request The request from a group member
        */
-      void ReceivedRegister(const Request &request);
+      void HandleRegister(const Request &request);
 
       /**
        * From the SessionManager, pass in a ReceiveReady
        * @param request The request from the leader
        */
-      void ReceivedPrepare(const Request &request);
+      void HandlePrepare(const Request &request);
 
       /**
        * From the SessionManager, pass in a Begin message from the Session
        * leader to call start on the round
        * @param notification The notification from the leader
        */
-      void ReceivedBegin(const Request &notification);
+      void HandleBegin(const Request &notification);
 
       /**
        * From the SessionManager, pass in incoming data
@@ -266,6 +266,12 @@ namespace Anonymity {
       void RemoveMember(const Id &id);
       bool AllowRegistration(const QSharedPointer<ISender> &from,
           const PublicIdentity &ident);
+
+      /**
+       * Leader's function for handling a disconnected peer
+       * @param remote_id the Id of the disconnecting peer
+       */
+      void HandleDisconnect(const Id &remote_id);
 
       /**
        * Used by the leader to queue Ready requests.

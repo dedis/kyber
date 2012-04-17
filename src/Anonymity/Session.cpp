@@ -163,7 +163,30 @@ namespace Anonymity {
     _network->SendRequest(GetGroup().GetLeader(), "SM::Register", container, _registered);
   }
 
-  void Session::ReceivedRegister(const Request &request)
+  void Session::Registered(const Response &response)
+  {
+    if(Stopped()) {
+      return;
+    }
+
+    if(response.Successful() && response.GetData().toBool()) {
+      qDebug() << _ident.GetLocalId() << "registered and waiting to go.";
+      return;
+    }
+
+    int delay = 5000;
+    if(response.GetErrorType() == Response::Other) {
+      delay = 60000;
+    }
+    qDebug() << "Unable to register due to" << response.GetError() <<
+      "Trying again later.";
+
+    Dissent::Utils::TimerCallback *cb =
+      new Dissent::Utils::TimerMethod<Session, int>(this, &Session::Register, 0);
+    _register_event = Dissent::Utils::Timer::GetInstance().QueueCallback(cb, delay);
+  }
+
+  void Session::HandleRegister(const Request &request)
   {
     if(!IsLeader()) {
       qWarning() << "Received a registration message when not a leader.";
@@ -253,34 +276,10 @@ namespace Anonymity {
     }
   }
 
-  void Session::Registered(const Response &response)
-  {
-    if(Stopped()) {
-      return;
-    }
-
-    if(response.Successful() && response.GetData().toBool()) {
-      qDebug() << _ident.GetLocalId() << "registered and waiting to go.";
-      return;
-    }
-
-    int delay = 5000;
-    if(response.GetErrorType() == Response::Other) {
-      delay = 60000;
-    }
-    qDebug() << "Unable to register due to" << response.GetError() <<
-      "Trying again later.";
-
-    Dissent::Utils::TimerCallback *cb =
-      new Dissent::Utils::TimerMethod<Session, int>(this, &Session::Register, 0);
-    _register_event = Dissent::Utils::Timer::GetInstance().QueueCallback(cb, delay);
-  }
-
   bool Session::SendPrepare()
   {
     if(!CheckGroup()) {
       qDebug() << "All peers registered and ready but lack sufficient peers";
-      _prepare_waiting = true;
       return false;
     }
 
@@ -312,7 +311,7 @@ namespace Anonymity {
     return true;
   }
 
-  void Session::ReceivedPrepare(const Request &request)
+  void Session::HandlePrepare(const Request &request)
   {
     if(_prepare_waiting) {
       _prepare_waiting = false;
@@ -333,17 +332,18 @@ namespace Anonymity {
 
     QByteArray brid = msg.value("round_id").toByteArray();
     if(brid.isEmpty()) {
-      qDebug() << "ReceivedPrepare: Invalid round id";
+      qDebug() << "HandlePrepare: Invalid round id";
       return;
     }
 
     Id round_id(brid);
 
     if(msg.contains("group")) {
-      qDebug() << "Prepare contains new group";
       QDataStream stream(msg.value("group").toByteArray());
       Group group;
       stream >> group;
+      qDebug() << "Prepare contains new group. I am present:" <<
+        group.Contains(_ident.GetLocalId());
       _group_holder->UpdateGroup(group);
     }
 
@@ -374,8 +374,8 @@ namespace Anonymity {
       return;
     }
 
+    Q_ASSERT(_current_round);
     Id round_id(response.GetData().toByteArray());
-
     if(_current_round->GetRoundId() != round_id) {
       qDebug() << "Received a prepared message from the wrong round.  RoundId:" <<
         round_id << "from" << response.GetFrom()->ToString();
@@ -399,7 +399,7 @@ namespace Anonymity {
     _prepared_peers.clear();
   }
 
-  void Session::ReceivedBegin(const Request &notification)
+  void Session::HandleBegin(const Request &notification)
   {
     QSharedPointer<Connections::IOverlaySender> sender =
       notification.GetFrom().dynamicCast<Connections::IOverlaySender>();
@@ -442,9 +442,8 @@ namespace Anonymity {
       return;
     }
 
-    qDebug() << "Session" << ToString() << "round" <<
-      _current_round->ToString() << "finished due to" <<
-      _current_round->GetStoppedReason();
+    qDebug() << "Session" << ToString() << "round" << _current_round <<
+      "finished due to" << _current_round->GetStoppedReason();
 
     if(!_current_round->Successful()) {
       _trim_send_queue = 0;
@@ -475,7 +474,7 @@ namespace Anonymity {
             this, &Session::CheckRegistration, 0);
       _prepare_event = Dissent::Utils::Timer::GetInstance().QueueCallback(cb, 0, 5000);
     } else if(_prepare_waiting) {
-      ReceivedPrepare(_prepare_request);
+      HandlePrepare(_prepare_request);
     }
   }
 
@@ -485,7 +484,7 @@ namespace Anonymity {
         _network, _get_data_cb);
 
     qDebug() << "Session" << ToString() << "preparing new round" <<
-      _current_round->ToString();
+      _current_round;
 
     _current_round->SetSink(this);
     QObject::connect(_current_round.data(), SIGNAL(Finished()), this,
@@ -523,7 +522,7 @@ namespace Anonymity {
         this, SLOT(HandleDisconnect()));
 
     if(_prepare_waiting && CheckGroup()) {
-      ReceivedPrepare(_prepare_request);
+      HandlePrepare(_prepare_request);
     }
   }
 
@@ -537,69 +536,66 @@ namespace Anonymity {
     const Id &remote_id = con->GetRemoteId();
 
     if(IsLeader()) {
-      _log_off_time[remote_id] = Utils::Time::GetInstance().MSecsSinceEpoch();
-    }
-
-    if(!GetGroup().Contains(remote_id)) {
+      HandleDisconnect(remote_id);
       return;
     }
 
-    if((GetGroup().GetLeader() == remote_id) ||
-        (_network->GetConnectionManager()->GetConnectionTable().GetConnections().count() == 1))
+    if(GetGroup().GetLeader() == remote_id) {
+      qWarning() << "Leader disconnected!";
+      _registering = false;
+    } else if(_network->GetConnectionManager()->
+        GetConnectionTable().GetConnections().count() == 1)
     {
       _registering = false;
-    }
-
-    if(IsLeader()) {
-      RemoveMember(remote_id);
-    } else if((GetGroup().GetSubgroupPolicy() == Group::ManagedSubgroup) &&
-        (GetGroup().GetSubgroup().Contains(_ident.GetLocalId())))
-    {
-      // Ideally the above would only include disconnects between a client
-      // and a server unfortunately due to the behavior of the current rounds,
-      // if two servers disconnect they livelock...
-      QVariantHash container;
-      container["session_id"] = _session_id.GetByteArray();
-      container["remote_id"] = remote_id.GetByteArray();
-      _network->SendNotification(GetGroup().GetLeader(), "SM::Disconnect", container);
     } else {
-      // The same situation as above, if there exists a disconnect, notify the
-      // leader to restart the session...
       QVariantHash container;
       container["session_id"] = _session_id.GetByteArray();
       container["remote_id"] = remote_id.GetByteArray();
       _network->SendNotification(GetGroup().GetLeader(), "SM::Disconnect", container);
     }
 
-    if(!_current_round.isNull()) {
+    if(_current_round) {
       _current_round->HandleDisconnect(remote_id);
-    }
-
-    if(GetGroup().GetLeader() == con->GetRemoteId()) {
-      qWarning() << "Leader disconnected!";
     }
   }
 
   void Session::LinkDisconnect(const Request &notification)
   {
-    Id remote_id = Id(notification.GetData().toHash().value("remote_id").toByteArray());
-    if(!GetGroup().Contains(remote_id) || _current_round.isNull()) {
+    if(!IsLeader()) {
+      qDebug() << "Arrived into handle disconnect even though not the leader.";
       return;
     }
 
-    // Ideally we should just push a handle disconnect into the round and
-    // then let a timeout occur on the prepare message...
-    if(GetGroup().GetSubgroupPolicy() == Group::ManagedSubgroup) {
-      // In both cases, the system cannot distinguish (or more accurately handle)
-      // transient problems, so unfortunately a disconnected client does not
-      // differ from one on a poor network link
-      if(!GetGroup().GetSubgroup().Contains(remote_id)) {
-        RemoveMember(remote_id);
-      }
-      _current_round->HandleDisconnect(remote_id);
-    } else {
-      // We'll either get a disconnect or it was transient and the round needs
-      // to restart ... the process is the same either way
+    QSharedPointer<Connections::IOverlaySender> sender =
+      notification.GetFrom().dynamicCast<Connections::IOverlaySender>();
+
+    if(!sender) {
+      qWarning() << "Received a LinkDisconnect from a non-IOverlaySender." <<
+        sender->ToString();
+      return;
+    } else if(!GetGroup().Contains(sender->GetRemoteId())) {
+      qWarning() << "Received a LinkDisconnect from a non-member." <<
+        sender->GetRemoteId();
+      return;
+    }
+
+    Id remote_id = Id(notification.GetData().toHash().value("remote_id").toByteArray());
+    HandleDisconnect(remote_id);
+  }
+
+  void Session::HandleDisconnect(const Id &remote_id)
+  {
+    if(!GetGroup().Contains(remote_id)) {
+      return;
+    }
+
+    // This was a sponsored connection and we have no knowledge of it
+    if(_network->GetConnection(remote_id) == 0) {
+      _log_off_time[remote_id] = Utils::Time::GetInstance().MSecsSinceEpoch();
+      RemoveMember(remote_id);
+    }
+
+    if(_current_round) {
       _current_round->HandleDisconnect(remote_id);
     }
   }

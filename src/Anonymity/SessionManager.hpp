@@ -95,19 +95,19 @@ namespace Anonymity {
        * A remote peer is requesting to join a session hosted by the local peer
        * @param request a request to be included
        */
-      void Register(const Request &request);
+      void HandleRegister(const Request &request);
 
       /**
        * A remote peer is notifying this peer it is ready for the next round
        * @param request a request to be informed when to start
        */
-      void Prepare(const Request &request);
+      void HandlePrepare(const Request &request);
       
       /**
        * Leader is ready to start the session
        * @param notification the notification containing begin message
        */
-      void Begin(const Request &notification);
+      void HandleBegin(const Request &notification);
 
       /**
        * A remote peer is submitting data to this peer

@@ -17,9 +17,9 @@ namespace Anonymity {
     _default_set(false),
     _rpc(rpc)
   {
-    _rpc->Register("SM::Register", this, "Register");
-    _rpc->Register("SM::Prepare", this, "Prepare");
-    _rpc->Register("SM::Begin", this, "Begin");
+    _rpc->Register("SM::Register", this, "HandleRegister");
+    _rpc->Register("SM::Prepare", this, "HandlePrepare");
+    _rpc->Register("SM::Begin", this, "HandleBegin");
     _rpc->Register("SM::Data", this, "IncomingData");
     _rpc->Register("SM::Disconnect", this, "LinkDisconnect");
   }
@@ -69,31 +69,31 @@ namespace Anonymity {
     }
   }
 
-  void SessionManager::Register(const Request &request)
+  void SessionManager::HandleRegister(const Request &request)
   {
     QSharedPointer<Session> session = GetSession(request);
     if(!session.isNull()) {
-      session->ReceivedRegister(request);
+      session->HandleRegister(request);
     } else {
       request.Failed(Response::InvalidInput, "No such session");
     }
   }
 
-  void SessionManager::Prepare(const Request &request)
+  void SessionManager::HandlePrepare(const Request &request)
   {
     QSharedPointer<Session> session = GetSession(request);
     if(!session.isNull()) {
-      session->ReceivedPrepare(request);
+      session->HandlePrepare(request);
     } else {
       request.Failed(Response::InvalidInput, "No such session");
     }
   }
 
-  void SessionManager::Begin(const Request &notification)
+  void SessionManager::HandleBegin(const Request &notification)
   {
     QSharedPointer<Session> session = GetSession(notification);
     if(!session.isNull()) {
-      session->ReceivedBegin(notification);
+      session->HandleBegin(notification);
     }
   }
 
