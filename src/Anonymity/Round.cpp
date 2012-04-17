@@ -18,6 +18,11 @@ namespace Anonymity {
   {
   }
 
+  void Round::OnStart()
+  {
+    _start_time = Dissent::Utils::Time::GetInstance().CurrentTime();
+  }
+
   void Round::OnStop()
   {
     emit Finished();
