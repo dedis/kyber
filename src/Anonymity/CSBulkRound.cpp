@@ -181,10 +181,9 @@ namespace Anonymity {
       return;
     }
 
-    if(_state_machine.GetState() == OFFLINE) {
-      SetInterrupted();
-      Stop("Interrupted before starting...");
-    } else if(_state_machine.GetState() == SHUFFLING) {
+    if((_state_machine.GetState() == OFFLINE) ||
+        (_state_machine.GetState() == SHUFFLING))
+    {
       GetShuffleRound()->HandleDisconnect(id);
     } else if(GetGroup().GetSubgroup().Contains(id)) {
       qDebug() << "A server (" << id << ") disconnected.";
@@ -457,7 +456,7 @@ namespace Anonymity {
   {
     if(!GetShuffleRound()->Successful()) {
       SetBadMembers(GetShuffleRound()->GetBadMembers());
-      if(GetBadMembers().count() == 0) {
+      if(GetShuffleRound()->Interrupted()) {
         SetInterrupted();
       }
       Stop("ShuffleRound failed");
