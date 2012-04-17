@@ -383,15 +383,29 @@ namespace Anonymity {
     }
 
     _prepared_peers.insert(sender->GetRemoteId(), sender->GetRemoteId());
+    CheckPrepares();
+  }
+
+  void Session::CheckPrepares()
+  {
     if(_prepared_peers.size() != _registered_peers.size()) {
       qDebug() << "Waiting on" << (_registered_peers.size() - _prepared_peers.size()) <<
         "more prepared responses.";
+      if(_registered_peers.size() - _prepared_peers.size() < 5) {
+        QList<Id> waiting;
+        foreach(const Id &id, _registered_peers.keys()) {
+          if(!_prepared_peers.contains(id)) {
+            waiting.append(id);
+          }
+          qDebug() << "Waiting on:" << waiting;
+        }
+      }
       return;
     }
 
     QVariantHash msg;
     msg["session_id"] = _session_id.GetByteArray();
-    msg["round_id"] = round_id.GetByteArray();
+    msg["round_id"] = GetCurrentRound()->GetRoundId().GetByteArray();
     foreach(const Id &id, _prepared_peers) {
       _network->SendNotification(id, "SM::Begin", msg);
     }
@@ -597,6 +611,9 @@ namespace Anonymity {
 
     if(_current_round) {
       _current_round->HandleDisconnect(remote_id);
+      if(!_current_round->Stopped()) {
+        CheckPrepares();
+      }
     }
   }
 

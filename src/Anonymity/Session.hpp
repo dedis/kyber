@@ -262,6 +262,11 @@ namespace Anonymity {
        */
       QPair<QByteArray, bool> GetData(int max);
 
+      /**
+       * If enough prepares have been issued, start a round
+       */
+      void CheckPrepares();
+
       void AddMember(const PublicIdentity &gc);
       void RemoveMember(const Id &id);
       bool AllowRegistration(const QSharedPointer<ISender> &from,
