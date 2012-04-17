@@ -32,8 +32,9 @@ namespace Anonymity {
     _round_idx(0),
     _prepare_waiting(false),
     _trim_send_queue(0),
-    _registering(false)
+    _registering(IsLeader())
   {
+    qDebug() << _registering;
     QVariantHash headers = _network->GetHeaders();
     headers["session_id"] = _session_id.GetByteArray();
     _network->SetHeaders(headers);
@@ -68,11 +69,11 @@ namespace Anonymity {
   {
     qDebug() << _ident.GetLocalId() << "Session started:" << _session_id;
 
-    if(!IsLeader() && ((_network->GetConnection(GetGroup().GetLeader()) != 0) ||
+    if(!_registering && (_network->GetConnection(GetGroup().GetLeader()) ||
           ((GetGroup().GetSubgroupPolicy() == Group::ManagedSubgroup) &&
            (_network->GetConnectionManager()->GetConnectionTable().GetConnections().count() > 1))))
     {
-      Register(0);
+      Register();
     }
 
     if(IsLeader()) {
@@ -311,6 +312,7 @@ namespace Anonymity {
       "new group:" << msg.contains("group");
 
     _prepared_peers.clear();
+    _unprepared_peers = _registered_peers;
     foreach(const Id &id, _registered_peers) {
       _network->SendRequest(id, "SM::Prepare", msg, _prepared);
     }
@@ -390,23 +392,24 @@ namespace Anonymity {
       return;
     }
 
-    _prepared_peers.insert(sender->GetRemoteId(), sender->GetRemoteId());
-    CheckPrepares();
+    // Were we waiting on this one?
+    if(_unprepared_peers.remove(sender->GetRemoteId()) > 0) {
+      _prepared_peers.append(sender->GetRemoteId());
+      CheckPrepares();
+    }
   }
 
   void Session::CheckPrepares()
   {
-    if(_prepared_peers.size() != _registered_peers.size()) {
-      qDebug() << "Waiting on" << (_registered_peers.size() - _prepared_peers.size()) <<
+    if(_current_round->Stopped() || _current_round->Started()) {
+      return;
+    }
+
+    if(_unprepared_peers.size() > 0) {
+      qDebug() << "Waiting on" << _unprepared_peers.size() <<
         "more prepared responses.";
-      if(_registered_peers.size() - _prepared_peers.size() < 5) {
-        QList<Id> waiting;
-        foreach(const Id &id, _registered_peers.keys()) {
-          if(!_prepared_peers.contains(id)) {
-            waiting.append(id);
-          }
-        }
-        qDebug() << "Waiting on:" << waiting;
+      if(_unprepared_peers.size() < 5) {
+        qDebug() << "Waiting on:" << _unprepared_peers.keys();
       }
       return;
     }
@@ -417,8 +420,6 @@ namespace Anonymity {
     foreach(const Id &id, _prepared_peers) {
       _network->SendNotification(id, "SM::Begin", msg);
     }
-
-    _prepared_peers.clear();
   }
 
   void Session::HandleBegin(const Request &notification)
@@ -479,7 +480,7 @@ namespace Anonymity {
     }
 
     const QVector<int> bad = _current_round->GetBadMembers();
-    if(_current_round->GetBadMembers().size() != 0) {
+    if(_current_round->GetBadMembers().size()) {
       qWarning() << "Found some bad members...";
       if(IsLeader()) {
         Group group = GetGroup();
@@ -534,7 +535,7 @@ namespace Anonymity {
     if(!_registering && ((GetGroup().GetLeader() == con->GetRemoteId()) ||
         (GetGroup().GetSubgroupPolicy() == Group::ManagedSubgroup)))
     {
-      Register(0);
+      Register();
     }
 
     QObject::connect(con.data(), SIGNAL(Disconnected(const QString &)),
@@ -562,8 +563,8 @@ namespace Anonymity {
     if(GetGroup().GetLeader() == remote_id) {
       qWarning() << "Leader disconnected!";
       _registering = false;
-    } else if(_network->GetConnectionManager()->
-        GetConnectionTable().GetConnections().count() == 1)
+    } else if((_network->GetConnectionManager()->
+        GetConnectionTable().GetConnections().count() == 1) && !IsLeader())
     {
       _registering = false;
     } else {
@@ -616,9 +617,7 @@ namespace Anonymity {
 
     if(_current_round) {
       _current_round->HandleDisconnect(remote_id);
-      if(!_current_round->Stopped()) {
-        CheckPrepares();
-      }
+      CheckPrepares();
     }
   }
 
@@ -637,7 +636,7 @@ namespace Anonymity {
   {
     _group_holder->UpdateGroup(RemoveGroupMember(GetGroup(), id));
     _registered_peers.remove(id);
-    _prepared_peers.remove(id);
+    _unprepared_peers.remove(id);
   }
 
   QPair<QByteArray, bool> Session::GetData(int max)
