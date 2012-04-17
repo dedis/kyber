@@ -248,7 +248,11 @@ namespace Anonymity {
     if(!_current_round || _current_round->Stopped()) {
       start_time = _last_registration.addMSecs(InitialPeerJoinDelay);
     } else if(_prepare_event.Stopped()) {
-      start_time = _current_round->GetStartTime().addMSecs(RoundRunningPeerJoinDelay);
+      QDateTime to_use = _current_round->GetCreateTime();
+      if(_current_round->Started()) {
+        to_use = _current_round->GetStartTime();
+      }
+      start_time = to_use.addMSecs(RoundRunningPeerJoinDelay);
     } else {
       return;
     }
