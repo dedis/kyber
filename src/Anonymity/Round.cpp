@@ -8,6 +8,7 @@ namespace Anonymity {
   Round::Round(const Group &group, const PrivateIdentity &ident,
       const Id &round_id, QSharedPointer<Network> network,
       GetDataCallback &get_data) :
+    _create_time(Dissent::Utils::Time::GetInstance().CurrentTime()),
     _group(group),
     _ident(ident),
     _round_id(round_id),

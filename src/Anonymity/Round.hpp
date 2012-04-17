@@ -146,6 +146,14 @@ namespace Anonymity {
         _shared = shared.toWeakRef();
       }
 
+      /**
+       * Returns the time the Round was created
+       */
+      QDateTime GetCreateTime() const { return _create_time; }
+
+      /**
+       * Returns the time Start was called
+       */
       QDateTime GetStartTime() const { return _start_time; }
 
     signals:
@@ -255,6 +263,7 @@ namespace Anonymity {
       }
 
     private:
+      QDateTime _create_time;
       QDateTime _start_time;
       const Group _group;
       const PrivateIdentity _ident;
