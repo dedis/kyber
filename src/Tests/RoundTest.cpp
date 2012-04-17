@@ -437,20 +437,26 @@ namespace Tests {
     CreateSessions(nodes, group, Id(), callback);
 
     group = BuildGroup(nodes, group);
-    int leader = group.GetIndex(group.GetLeader());
     int disconnector = Random::GetInstance().GetInt(0, count);
     if(!transient && sg_policy == Group::ManagedSubgroup) {
       while(nodes[disconnector]->ident.GetSuperPeer()) {
         disconnector = Random::GetInstance().GetInt(0, count);
       }
     }
+
+    int leader = group.GetIndex(group.GetLeader());
     while(leader == disconnector) {
       disconnector = Random::GetInstance().GetInt(0, count);
     }
+
     int sender = Random::GetInstance().GetInt(0, count);
     while(sender == disconnector) {
       sender = Random::GetInstance().GetInt(0, count);
     }
+
+    qDebug() << "Leader:" << leader << nodes[leader]->ident.GetLocalId();
+    qDebug() << "Sender:" << sender << nodes[sender]->ident.GetLocalId();
+    qDebug() << "Disconnector:" << disconnector << nodes[disconnector]->ident.GetLocalId();
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
@@ -535,11 +541,14 @@ namespace Tests {
         count -= 1;
       }
     } else {
+      qDebug() << "Disconnecting";
+      nodes[disconnector]->session->Stop();
       nodes[disconnector]->cm->Stop();
       count -= 1;
     }
 
     RunUntil(sc_data, count);
+    qDebug() << "Finished";
 
     for(int idx = 0; idx < nodes.count(); idx++) {
       if((idx == disconnector) && count != nodes.count()) {
