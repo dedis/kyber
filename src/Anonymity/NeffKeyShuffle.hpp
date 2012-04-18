@@ -144,7 +144,7 @@ namespace Anonymity {
        * Delay between the start of a round and when all clients are required
        * to have submitted a message in order to be valid
        */
-      static const int KEY_SUBMISSION_WINDOW = 10000;
+      static const int KEY_SUBMISSION_WINDOW = 60000;
 
     protected:
       typedef Crypto::Integer Integer;
