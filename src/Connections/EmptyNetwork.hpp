@@ -81,7 +81,7 @@ namespace Connections {
        * Does nothing
        */
       virtual void SendRequest(const Id &, const QString &,
-          const QVariant &, QSharedPointer<ResponseHandler> &)
+          const QVariant &, QSharedPointer<ResponseHandler> &, bool)
       {
       }
 

@@ -106,9 +106,14 @@ namespace Connections {
        * @param method the remote method
        * @param data the input data for that method
        * @param callback called when the request is complete
+       * @param timeout specifies whether or not to let the request timeout.
+       * It is a temporary parameter that will be phased out in the future,
+       * all future Rpc Methods should be implemented with potential timeouts
+       * in mind.
        */
       virtual void SendRequest(const Id &to, const QString &method,
-          const QVariant &data, QSharedPointer<ResponseHandler> &callback)
+          const QVariant &data, QSharedPointer<ResponseHandler> &callback,
+          bool timeout)
       {
         QSharedPointer<Connection> con = _cm->GetConnectionTable().GetConnection(to);
         if(!con) {
@@ -116,7 +121,7 @@ namespace Connections {
             "peer exists," << to.ToString();
           return;
         }
-        _rpc->SendRequest(con, method, data, callback);
+        _rpc->SendRequest(con, method, data, callback, timeout);
       }
 
       /**
