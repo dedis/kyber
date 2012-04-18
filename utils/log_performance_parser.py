@@ -4,7 +4,7 @@ import getopt
 import math
 import sys
 
-optlist, args = getopt.getopt(sys.argv[1:], "", ["output_base="])
+optlist, args = getopt.getopt(sys.argv[1:], "", ["output="])
 
 optdict = {}
 
@@ -12,8 +12,8 @@ for k,v in optlist:
   optdict[k] = v
 
 output_base = None
-if "--output_base" in optdict:
-  output_base = optdict["--output_base"]
+if "--output" in optdict:
+  output_base = optdict["--output"]
 
 rounds_to_ignore = { }
 starting_time = None
@@ -56,6 +56,8 @@ class round:
     self.start_time = time_parse(start_time)
 
     self.clients = []
+    self.online_clients = 0
+    self.online_clients_std = 0
     self.total = 0
 
     self.client_ciphertexts = []
@@ -65,7 +67,8 @@ class round:
   def finished(self, end_time):
     self.total_time = time_parse(end_time) - self.start_time
     self.average_time, self.stddev = mean_stddev(self.phase_times)
-    self.clients_avg, self.client_std = mean_stddev(self.client_ciphertexts)
+    self.client_avg, self.client_std = mean_stddev(self.client_ciphertexts)
+    self.online_clients, self.online_clients_std = mean_stddev(self.clients)
 
   def shuffle_finished(self, end_time):
     self.shuffle_time = time_parse(end_time) - self.start_time
@@ -90,7 +93,6 @@ class round:
       self.client_ciphertexts.append(time_parse(ctime) - self.phase_start)
 
   def __str__(self):
-    clients_avg, clients_std = mean_stddev(self.clients)
     online = []
     for client in self.clients:
       assert(client <= self.total)
@@ -102,8 +104,9 @@ class round:
         "online clients: %.4f +/- %.4f, total clients: %i, " \
         "percent online: %.4f +/- %.4f, client submit time: %.4f +/- %.4f" \
         % (self.round_id, self.phase, self.total_time, self.shuffle_time, \
-        self.average_time, self.stddev, clients_avg, clients_std, self.total, \
-        online_avg, online_stddev, self.clients_avg, self.client_std)
+        self.average_time, self.stddev, self.online_clients, \
+        self.online_clients_std, self.total, online_avg, online_stddev, \
+        self.client_avg, self.client_std)
 
 rounds = []
 cround = None
@@ -174,4 +177,21 @@ if output_base:
   for rnd in rounds:
     for stime in rnd.client_ciphertexts:
       output.write("%f\n" % (stime,))
+  output.close()
+
+  output = open(output_base + ".online_clients", "w+")
+  for rnd in rounds:
+    for clients in rnd.clients:
+      output.write("%d\n" % (clients,))
+  output.close()
+
+  
+  output = open(output_base + ".csv", "w+")
+  output.write("Round, total phases, total time, shuffle time, average " \
+      "phase time,, online clients,, total clients, client submit time\n")
+  for rnd in rounds:
+    output.write("%s, %i, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %i, %.4f, " \
+        "%.4f\n" % (rnd.round_id, rnd.phase, rnd.total_time, \
+        rnd.shuffle_time, rnd.average_time, rnd.stddev, rnd.online_clients, \
+        rnd.online_clients_std, rnd.total, rnd.client_avg, rnd.client_std))
   output.close()
