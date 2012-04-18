@@ -40,8 +40,8 @@ namespace Utils {
     }
 
     _state->next += _state->period;
-    _state->callback->Invoke();
     _state->stopped = _state->stopped || _state->period == 0;
+    _state->callback->Invoke();
   }
 
   bool TimerEvent::ReverseComparer(const TimerEvent &lhs, const TimerEvent &rhs)
