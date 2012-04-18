@@ -45,7 +45,7 @@ namespace Utils {
 
   void Logging::Write(QTextStream &stream, QtMsgType type, const char *msg)
   {
-    stream << Time::GetInstance().CurrentTime().toString(Qt::ISODate) << " - ";
+    stream << Time::GetInstance().CurrentTime().toString("yyyy-MM-ddThh:mm:ss.zzz") << " - ";
 
     switch(type) {
       case QtDebugMsg:
