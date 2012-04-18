@@ -34,7 +34,6 @@ namespace Anonymity {
     _trim_send_queue(0),
     _registering(IsLeader())
   {
-    qDebug() << _registering;
     QVariantHash headers = _network->GetHeaders();
     headers["session_id"] = _session_id.GetByteArray();
     _network->SetHeaders(headers);
@@ -161,7 +160,8 @@ namespace Anonymity {
     stream << GetPublicIdentity(_ident);
     container["ident"] = ident;
 
-    _network->SendRequest(GetGroup().GetLeader(), "SM::Register", container, _registered);
+    _network->SendRequest(GetGroup().GetLeader(), "SM::Register", container,
+        _registered, true);
   }
 
   void Session::Registered(const Response &response)
@@ -172,6 +172,11 @@ namespace Anonymity {
 
     if(response.Successful() && response.GetData().toBool()) {
       qDebug() << _ident.GetLocalId() << "registered and waiting to go.";
+      return;
+    }
+
+    if(!_register_event.Stopped()) {
+      qDebug() << "Almost started two registration attempts simultaneously!";
       return;
     }
 
