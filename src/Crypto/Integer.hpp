@@ -112,6 +112,11 @@ namespace Crypto {
         return Integer(_data->Divide(divisor._data.constData()));
       }
 
+      inline Integer Modulus(const Integer &mod) const
+      {
+        return Integer(_data->Modulus(mod._data.constData()));
+      }
+
       /**
        * Exponentiating operator
        * @param pow raise this to other
@@ -258,7 +263,7 @@ namespace Crypto {
    */
   inline Integer operator*(const Integer &lhs, const Integer &rhs)
   {
-    return Integer(lhs.Multiply(rhs));
+    return lhs.Multiply(rhs);
   }
 
   /**
@@ -268,7 +273,12 @@ namespace Crypto {
    */
   inline Integer operator/(const Integer &lhs, const Integer &rhs)
   {
-    return Integer(lhs.Divide(rhs));
+    return lhs.Divide(rhs);
+  }
+
+  inline Integer operator%(const Integer &value, const Integer &mod)
+  {
+    return value.Modulus(mod);
   }
 
   /**

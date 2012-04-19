@@ -138,6 +138,11 @@ namespace Crypto {
               GetInteger(pow), GetInteger(mod)));
       }
 
+      virtual IntegerData *Modulus(const IntegerData *modulus) const 
+      {
+        return new CppIntegerData(_integer % GetInteger(modulus));
+      }
+
       /**
        * Assignment operator
        * @param other the IntegerData to use for setting
