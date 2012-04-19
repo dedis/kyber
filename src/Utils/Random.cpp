@@ -13,7 +13,8 @@ namespace Utils {
     return rand;
   }
 
-  Random::Random(const QByteArray &seed, uint index)
+  Random::Random(const QByteArray &seed, uint index) :
+    _byte_count(0)
   {
     if(seed.isEmpty()) {
       _seed = time(NULL);
