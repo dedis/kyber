@@ -232,7 +232,7 @@ namespace Anonymity {
 
     if(cleartext.size() != _state->msg_length) {
       throw QRunTimeError("Cleartext size mismatch: " +
-          QString::number(_state->cleartext.size()) + " :: " +
+          QString::number(cleartext.size()) + " :: " +
           QString::number(_state->msg_length));
     }
 
