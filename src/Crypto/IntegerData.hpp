@@ -157,6 +157,11 @@ namespace Crypto {
       virtual int GetByteCount() const = 0;
 
       /**
+       * Returns int32 rep
+       */
+      virtual int GetInt32() const = 0;
+
+      /**
        * Convert a base64 number into a clean byte array
        * @param string input base64 string
        */

@@ -244,6 +244,14 @@ namespace Crypto {
       }
 
       /**
+       * Returns int32 rep
+       */
+      virtual int GetInt32() const
+      {
+        return _integer.GetBits(0, 32);
+      }
+
+      /**
        * Returns the internal CryptoPP::Integer
        */
       inline static CryptoPP::Integer GetInteger(const Crypto::Integer &data)

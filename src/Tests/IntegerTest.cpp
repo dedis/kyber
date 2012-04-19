@@ -126,5 +126,13 @@ namespace Tests {
     IntegerRandom();
     cf.SetLibrary(cname);
   }
+
+  TEST(Integer, Int32)
+  {
+    Integer test(5);
+    EXPECT_EQ(5, test.GetInt32());
+    test = 0x7f8f8f8f;
+    EXPECT_EQ(0x7f8f8f8f, test.GetInt32());
+  }
 }
 }

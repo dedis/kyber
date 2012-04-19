@@ -228,6 +228,14 @@ namespace Crypto {
       }
 
       /**
+       * Returns int32 rep
+       */
+      virtual int GetInt32() const
+      {
+        return _data->GetInt32();
+      }
+
+      /**
        * returns the internal integer data, not particularly safe
        */
       const IntegerData *GetData() const { return _data.constData(); }
