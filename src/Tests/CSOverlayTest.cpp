@@ -57,7 +57,7 @@ namespace Tests {
 
     QList<QSharedPointer<Node> > nodes;
     int client_count = 0, server_count = 0;
-    Group group = Group(QVector<PublicIdentity>(), Id());
+    Group group = Group(QVector<PublicIdentity>(), Id(), Group::ManagedSubgroup);
 
     QList<Address> local;
     local.append(BufferAddress(1));
