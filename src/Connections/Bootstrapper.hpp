@@ -77,6 +77,7 @@ namespace Connections {
       QList<Address> _remote_endpoints;
 
       TimerEvent *_bootstrap_event;
+      int _count;
 
     private slots:
       /**

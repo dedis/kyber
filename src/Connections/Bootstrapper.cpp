@@ -11,7 +11,8 @@ namespace Connections {
       const QList<Address> &remote_endpoints) :
     ConnectionAcquirer(cm),
     _remote_endpoints(remote_endpoints),
-    _bootstrap_event(0)
+    _bootstrap_event(0),
+    _count(0)
   {
   }
 
@@ -70,9 +71,10 @@ namespace Connections {
       return;
     }
 
-    foreach(const Address &addr, _remote_endpoints) {
-      GetConnectionManager()->ConnectTo(addr);
-    }
+    int index = (GetConnectionManager()->GetId().GetInteger() %
+        _remote_endpoints.size()).GetInt32();
+    index = (index + _count++) % _remote_endpoints.size();
+    GetConnectionManager()->ConnectTo(_remote_endpoints[index]);
   }
 
   void Bootstrapper::HandleDisconnect(const QString &)
