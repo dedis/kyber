@@ -43,7 +43,15 @@ namespace Crypto {
   CppDsaPublicKey::~CppDsaPublicKey()
   {
     if(_key) {
-      delete _key;
+      const KeyBase::PrivateKey *pri_key =
+        dynamic_cast<const KeyBase::PrivateKey *>(_key);
+      if(pri_key) {
+        delete pri_key;
+      } else {
+        const KeyBase::PublicKey *pub_key =
+          dynamic_cast<const KeyBase::PublicKey *>(_key);
+        delete pub_key;
+      }
     }
   }
 
