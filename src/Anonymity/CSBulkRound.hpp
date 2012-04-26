@@ -150,7 +150,7 @@ namespace Anonymity {
        * Delay between the start of a round and when all clients are required
        * to have submitted a message in order to be valid
        */
-      static const int CLIENT_SUBMISSION_WINDOW = 10000;
+      static const int CLIENT_SUBMISSION_WINDOW = 120000;
 
     protected:
       typedef Utils::Random Random;
