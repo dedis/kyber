@@ -64,6 +64,21 @@ namespace Anonymity {
     _state = _server_state;
     Q_ASSERT(_state);
 
+#ifndef RECONNECTS
+    foreach(const QSharedPointer<Connection> &con,
+        GetNetwork()->GetConnectionManager()->
+        GetConnectionTable().GetConnections())
+    {
+      if(!GetGroup().Contains(con->GetRemoteId()) ||
+          GetGroup().GetSubgroup().Contains(con->GetRemoteId()))
+      {
+        continue;
+      }
+
+      _server_state->allowed_clients.insert(con->GetRemoteId());
+    }
+#endif
+
     _state_machine.AddState(SERVER_WAIT_FOR_CLIENT_CIPHERTEXT,
         CLIENT_CIPHERTEXT, &CSBulkRound::HandleClientCiphertext,
         &CSBulkRound::SetOnlineClients);
@@ -180,6 +195,12 @@ namespace Anonymity {
     if(!GetGroup().Contains(id)) {
       return;
     }
+
+#ifndef RECONNECTS
+    if(IsServer() && GetGroup().Contains(id)) {
+      _server_state->allowed_clients.remove(id);
+    }
+#endif
 
     if((_state_machine.GetState() == OFFLINE) ||
         (_state_machine.GetState() == SHUFFLING))
@@ -678,6 +699,7 @@ namespace Anonymity {
 
   void CSBulkRound::SetOnlineClients()
   {
+#ifdef RECONNECTS
     _server_state->allowed_clients.clear();
 
     foreach(const QSharedPointer<Connection> &con,
@@ -692,6 +714,7 @@ namespace Anonymity {
 
       _server_state->allowed_clients.insert(con->GetRemoteId());
     }
+#endif
 
     if(_server_state->allowed_clients.count() == 0) {
       _state_machine.StateComplete();
