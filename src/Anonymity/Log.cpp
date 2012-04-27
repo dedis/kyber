@@ -6,8 +6,6 @@ using Dissent::Connections::Id;
 
 namespace Dissent {
 namespace Anonymity {
-  const QPair<QByteArray, Id> Log::_empty = QPair<QByteArray, Id>();
-
   Log::Log() : _enabled(true)
   {
   }
@@ -40,7 +38,8 @@ namespace Anonymity {
   const QPair<QByteArray, Id> &Log::At(int idx) const
   {
     if(_entries.count() < idx || idx < 0) {
-      return _empty;
+      static const QPair<QByteArray, Id> empty;
+      return empty;
     }
     return _entries[idx];
   }

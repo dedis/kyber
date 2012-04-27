@@ -96,7 +96,7 @@ namespace Connections {
       const QStringList _base_been;
       const ConnectionTable &_ct;
       QSharedPointer<RpcHandler> _rpc;
-      static const Id _prefered;
+      static const Id &Preferred();
       QWeakPointer<RelayForwarder> _shared;
       QCache<Id, QSharedPointer<ForwardingSender> > _cache;
       
