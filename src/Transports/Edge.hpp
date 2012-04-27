@@ -64,7 +64,7 @@ namespace Transports {
        * connections
        * @param addr the remote peers persistent address
        */
-      inline void SetRemotePersistentAddress(const Address &addr)
+      virtual inline void SetRemotePersistentAddress(const Address &addr)
       {
         _remote_p_addr = addr;
       }

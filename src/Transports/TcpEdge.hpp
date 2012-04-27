@@ -4,6 +4,7 @@
 #include <QSharedPointer>
 #include <QTcpSocket>
 #include "Edge.hpp"
+#include "TcpAddress.hpp"
 
 namespace Dissent {
 namespace Transports {
@@ -32,6 +33,27 @@ namespace Transports {
       virtual ~TcpEdge();
 
       virtual void Send(const QByteArray &data);
+
+      virtual inline void SetRemotePersistentAddress(const Address &addr)
+      {
+        const TcpAddress &new_ta = static_cast<const TcpAddress &>(addr);
+        const TcpAddress &old_ta = static_cast<const TcpAddress &>(GetRemoteAddress());
+
+        QHostAddress ha = old_ta.GetIP();
+
+        if(old_ta.GetIP() != new_ta.GetIP()) {
+          if(ha == QHostAddress::Null ||
+              ha == QHostAddress::LocalHost ||
+              ha == QHostAddress::LocalHostIPv6 ||
+              ha == QHostAddress::Broadcast ||
+              ha == QHostAddress::Any ||
+              ha == QHostAddress::AnyIPv6)
+          {
+            ha = new_ta.GetIP();
+          }
+        }
+        Edge::SetRemotePersistentAddress(TcpAddress(ha.toString(), new_ta.GetPort()));
+      }
 
     protected:
       virtual bool RequiresCleanup() { return true; }
