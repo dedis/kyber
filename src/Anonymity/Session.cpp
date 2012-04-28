@@ -572,7 +572,10 @@ namespace Anonymity {
         GetConnectionTable().GetConnections().count() == 1) && !IsLeader())
     {
       _registering = false;
-    } else {
+    } else if((GetGroup().GetSubgroupPolicy() != Group::ManagedSubgroup)
+        || (GetGroup().GetSubgroup().Contains(_ident.GetLocalId())))
+    {
+      // Only let servers notify...
       QVariantHash container;
       container["session_id"] = _session_id.GetByteArray();
       container["remote_id"] = remote_id.GetByteArray();
@@ -605,6 +608,13 @@ namespace Anonymity {
     }
 
     Id remote_id = Id(notification.GetData().toHash().value("remote_id").toByteArray());
+    if((GetGroup().GetSubgroupPolicy() == Group::ManagedSubgroup)
+        && (!GetGroup().GetSubgroup().Contains(sender->GetRemoteId())))
+    {
+      // Sent from a client, let the server report this...
+      return;
+    }
+
     HandleDisconnect(remote_id);
   }
 
