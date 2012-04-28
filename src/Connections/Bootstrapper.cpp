@@ -73,7 +73,8 @@ namespace Connections {
 
     int index = (GetConnectionManager()->GetId().GetInteger() %
         _remote_endpoints.size()).GetInt32();
-    index = (index + _count++) % _remote_endpoints.size();
+//    index = (index + _count++) % _remote_endpoints.size();
+    index = (index + _count) % _remote_endpoints.size();
     GetConnectionManager()->ConnectTo(_remote_endpoints[index]);
   }
 
