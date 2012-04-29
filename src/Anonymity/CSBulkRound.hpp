@@ -152,6 +152,10 @@ namespace Anonymity {
        */
       static const int CLIENT_SUBMISSION_WINDOW = 120000;
 
+      static const float CLIENT_PERCENTAGE = .95;
+
+      static const float CLIENT_WINDOW_MULTIPLIER = 1.1;
+
     protected:
       typedef Utils::Random Random;
 
@@ -222,9 +226,10 @@ namespace Anonymity {
           virtual ~ServerState() {}
 
           Utils::TimerEvent client_ciphertext_period;
+          qint64 start_of_phase;
+          int expected_clients;
 
           int phase;
-          int expected_messages;
 
           QByteArray my_commit;
           QByteArray my_ciphertext;

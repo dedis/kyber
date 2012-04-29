@@ -3,6 +3,7 @@
 #include "Utils/Random.hpp"
 #include "Utils/QRunTimeError.hpp"
 #include "Utils/Serialization.hpp"
+#include "Utils/Time.hpp"
 #include "Utils/Timer.hpp"
 #include "Utils/TimerCallback.hpp"
 
@@ -64,7 +65,7 @@ namespace Anonymity {
     _state = _server_state;
     Q_ASSERT(_state);
 
-#ifndef RECONNECTS
+#ifndef CSBR_RECONNECTS
     foreach(const QSharedPointer<Connection> &con,
         GetNetwork()->GetConnectionManager()->
         GetConnectionTable().GetConnections())
@@ -196,7 +197,7 @@ namespace Anonymity {
       return;
     }
 
-#ifndef RECONNECTS
+#ifndef CSBR_RECONNECTS
     if(IsServer() && GetGroup().Contains(id)) {
       _server_state->allowed_clients.remove(id);
     }
@@ -308,6 +309,20 @@ namespace Anonymity {
         _server_state->client_ciphertexts.count())
     {
       _state_machine.StateComplete();
+    } else if(_server_state->client_ciphertexts.count() ==
+        _server_state->expected_clients)
+    {
+      // Start the flexible deadline
+      _server_state->client_ciphertext_period.Stop();
+      int window = Utils::Time::GetInstance().MSecsSinceEpoch() -
+        _server_state->start_of_phase;
+      Utils::TimerCallback *cb = new Utils::TimerMethod<CSBulkRound, int>(
+          this, &CSBulkRound::ConcludeClientCiphertextSubmission, 0);
+      _server_state->client_ciphertext_period =
+        Utils::Timer::GetInstance().QueueCallback(cb, window);
+
+      qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
+        "setting client submission flex-deadline:" << window;
     }
   }
 
@@ -699,7 +714,7 @@ namespace Anonymity {
 
   void CSBulkRound::SetOnlineClients()
   {
-#ifdef RECONNECTS
+#ifdef CSBR_RECONNECTS
     _server_state->allowed_clients.clear();
 
     foreach(const QSharedPointer<Connection> &con,
@@ -721,10 +736,17 @@ namespace Anonymity {
       return;
     }
 
+    // This is the hard deadline
     Utils::TimerCallback *cb = new Utils::TimerMethod<CSBulkRound, int>(
         this, &CSBulkRound::ConcludeClientCiphertextSubmission, 0);
     _server_state->client_ciphertext_period =
       Utils::Timer::GetInstance().QueueCallback(cb, CLIENT_SUBMISSION_WINDOW);
+
+    // Setup the flex-deadline
+    _server_state->start_of_phase =
+      Utils::Time::GetInstance().MSecsSinceEpoch();
+    _server_state->expected_clients =
+      int(_server_state->allowed_clients.count() * CLIENT_PERCENTAGE);
   }
 
   void CSBulkRound::ConcludeClientCiphertextSubmission(const int &)
