@@ -39,13 +39,20 @@ def mean_stddev(values):
     sum_x2 += (value * value)
 
   mean = sum_x / n
-  stddev = math.sqrt((sum_x2 / n) - (mean * mean))
+
+  var = (sum_x2 / n) - (mean * mean)
+  if var > 0:
+    stddev = math.sqrt(var)
+  else:
+    stddev = 0
+
   return (mean, stddev)
 
 class round:
   def __init__(self, round_id, start_time):
     self.round_id = round_id
     self.shuffle_time = 0
+    self.cphase = 0
     self.phase = 0
     self.phase_start = 0
     self.total_time = 0
@@ -66,6 +73,11 @@ class round:
 
   def finished(self, end_time):
     self.total_time = time_parse(end_time) - self.start_time
+
+  def adding_data_set(self):
+    self.cphase = 0
+
+  def calculate_data(self):
     self.average_time, self.stddev = mean_stddev(self.phase_times)
     self.client_avg, self.client_std = mean_stddev(self.client_ciphertexts)
     self.online_clients, self.online_clients_std = mean_stddev(self.clients)
@@ -73,12 +85,18 @@ class round:
   def shuffle_finished(self, end_time):
     self.shuffle_time = time_parse(end_time) - self.start_time
 
+  def set_phase_start(self, start_time):
+    ctime = time_parse(start_time)
+    self.phase_start = ctime
+    self.cphase += 1
+
   def next_phase(self, start_time):
     ctime = time_parse(start_time)
     if self.phase != 0:
       self.phase_times.append(ctime - self.phase_start)
     self.phase_start = ctime
     self.phase += 1
+    self.cphase = self.phase
 
   def set_members(self, count, total):
     self.clients.append(count)
@@ -89,7 +107,7 @@ class round:
       self.total = total
 
   def add_client_ciphertext(self, ctime):
-    if self.phase != 0:
+    if self.cphase != 0:
       self.client_ciphertexts.append(time_parse(ctime) - self.phase_start)
 
   def __str__(self):
@@ -108,51 +126,98 @@ class round:
         self.online_clients_std, self.total, online_avg, online_stddev, \
         self.client_avg, self.client_std)
 
-rounds = []
-cround = None
-line = sys.stdin.readline()
+cfile = file(args[0])
+line = cfile.readline()
 
 while line:
   if line.find("Debug") == -1:
-    line = sys.stdin.readline()
+    line = cfile.readline()
     continue
   starting_time = time_parse0(line.split(" ")[0])
   break
 
-while line:
-  if line.find("starting round") != -1:
-    ls = line.split(" ")
+cfile.close()
+
+update = False
+rounds_by_id = {}
+rounds = []
+cround = None
+line_num = 1
+update = False
+
+def start_round(ls):
+  global cround, update
+  if ls[7] in rounds_by_id:
+    if not update:
+      global lines
+      lines = update_lines
+      if cround:
+        cround.finished(ls[0])
+    update = True
+    cround = rounds_by_id[ls[7]]
+    cround.adding_data_set()
+  else:
     cround = round(ls[7], ls[0])
+    rounds_by_id[cround.round_id] = cround
     rounds.append(cround)
-    cphase = 0
-  elif line.find("finished due to") != -1:
-    ls = line.split(" ")
+
+def finished_round(ls):
+  global cround
+  if cround != None:
     cround.finished(ls[0])
-    cround = None
-  elif line.find("ending phase") != -1:
-    ls = line.split(" ")
-    assert (cround.round_id == ls[6]) , "Wrong round"
-    assert (cround.phase == int(ls[8][:-1])) , "Wrong phase: %s %s" % \
-        (cround.phase, ls[8][:-1])
-    cround.next_phase(ls[0])
-  elif line.find("PREPARE_FOR_BULK") != -1:
-    ls = line.split(" ")
-    cround.shuffle_finished(ls[0])
-  elif line.find("Phase: 0\" starting phase") != -1:
-    ls = line.split(" ")
-    cround.shuffle_finished(ls[0])
-  elif line.find("generating ciphertext") != -1:
-    ls = line.split(" ")
-    count = int(ls[11])
-    total = int(ls[14])
-    cround.set_members(count, total)
-  elif line.find("received client ciphertext") != -1:
-    ls = line.split(" ")
-    cround.add_client_ciphertext(ls[0])
+  cround = None
 
-  line = sys.stdin.readline()
+def set_phase_start(ls):
+  cround.set_phase_start(ls[0])
 
-if cround:
+def phase_finished(ls):
+  assert (cround.round_id == ls[6]) , "Wrong round"
+  assert (cround.phase == int(ls[8][:-1])) , "Wrong phase: %s %s" % \
+      (cround.phase, ls[8][:-1])
+  cround.next_phase(ls[0])
+
+def shuffle_finished(ls):
+  cround.shuffle_finished(ls[0])
+
+def client_count(ls):
+  count = int(ls[11])
+  total = int(ls[14])
+  cround.set_members(count, total)
+
+def client_data(ls):
+  cround.add_client_ciphertext(ls[0])
+
+default_lines = {
+    "starting round" : start_round, \
+    "finished due to" : finished_round, \
+    "ending phase" : phase_finished, \
+    "PREPARE_FOR_BULK" : shuffle_finished, \
+    "Phase: 0\" starting phase": shuffle_finished, \
+    "generating ciphertext" : client_count, \
+    "received client ciphertext" : client_data \
+    }
+
+update_lines = {
+    "starting round" : start_round, \
+    "received client ciphertext" : client_data, \
+    "ending phase" : set_phase_start \
+    }
+
+lines = default_lines
+
+for fname in args:
+  cfile = file(fname)
+  line = cfile.readline()
+
+  while line:
+    for key in lines.keys():
+      if line.find(key) != -1:
+        lines[key](line.split())
+
+    line_num += 1
+    line = cfile.readline()
+
+if not update and cround:
   cround.finished(ls[0])
 
 shuffles = []
@@ -160,6 +225,7 @@ phases = []
 clients = []
 
 for rnd in rounds:
+  rnd.calculate_data()
   print rnd
   if rnd.round_id in rounds_to_ignore:
     continue
