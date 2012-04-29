@@ -2,9 +2,10 @@
 from datetime import datetime
 import getopt
 import math
+import os
 import sys
 
-optlist, args = getopt.getopt(sys.argv[1:], "", ["output="])
+optlist, args = getopt.getopt(sys.argv[1:], "", ["output=", "lost_delay="])
 
 optdict = {}
 
@@ -14,6 +15,11 @@ for k,v in optlist:
 output_base = None
 if "--output" in optdict:
   output_base = optdict["--output"]
+
+plot_lost = False
+if "--lost_delay" in optdict:
+  lost_delay = int(optdict["--lost_delay"])
+  plot_lost = True
 
 rounds_to_ignore = { }
 starting_time = None
@@ -67,7 +73,11 @@ class round:
     self.online_clients_std = 0
     self.total = 0
 
+    self.ignored_clients = 0
+    self.expected_clients = 0
+    self.submitted_clients = 0
     self.client_ciphertexts = []
+    self.slowest_client_ciphertexts = {}
     self.client_avg = 0
     self.client_std = 0
 
@@ -86,17 +96,28 @@ class round:
     self.shuffle_time = time_parse(end_time) - self.start_time
 
   def set_phase_start(self, start_time):
+    self.expected_clients = 0
     ctime = time_parse(start_time)
     self.phase_start = ctime
     self.cphase += 1
+    assert(self.cphase in self.slowest_client_ciphertexts)
 
   def next_phase(self, start_time):
     ctime = time_parse(start_time)
+
     if self.phase != 0:
       self.phase_times.append(ctime - self.phase_start)
+      if self.expected_clients != self.submitted_clients:
+        if plot_lost:
+          self.add_client_ciphertext_parsed(lost_delay)
+        else:
+          self.ignored_clients += (self.expected_clients - self.submitted_clients)
+
+    self.submitted_clients = 0
     self.phase_start = ctime
     self.phase += 1
     self.cphase = self.phase
+    self.slowest_client_ciphertexts[self.cphase] = 0
 
   def set_members(self, count, total):
     self.clients.append(count)
@@ -108,8 +129,33 @@ class round:
 
   def add_client_ciphertext(self, ctime):
     if self.cphase != 0:
-      self.client_ciphertexts.append(time_parse(ctime) - self.phase_start)
+      dtime = time_parse(ctime) - self.phase_start
+      self.add_client_ciphertext_parsed(dtime)
 
+  def add_client_ciphertext_parsed(self,dtime):
+#      if self.add_client_ciphertext_95_plus_1_10(dtime):
+      if True:
+        self.submitted_clients += 1
+        self.client_ciphertexts.append(dtime)
+        self.slowest_client_ciphertexts[self.cphase] = max(self.slowest_client_ciphertexts[self.cphase], dtime)
+      else:
+        self.ignored_clients += 1
+
+  def set_expected_client(self, expected_clients):
+    self.expected_clients = expected_clients
+    self.expected_clients_95 = int(self.expected_clients * .95)
+    self.current_clients = 0
+    self.clients_95_time_1_10 = 0
+
+  def add_client_ciphertext_95_plus_1_10(self, dtime):
+    if self.expected_clients_95 <= self.current_clients:
+      if self.expected_clients_95 == self.current_clients:
+        self.clients_95_time_1_10 = dtime * 1.1
+      elif self.clients_95_time_1_10 < dtime:
+        return False
+    self.current_clients += 1
+    return True
+    
   def __str__(self):
     online = []
     for client in self.clients:
@@ -185,6 +231,8 @@ def client_count(ls):
   cround.set_members(count, total)
 
 def client_data(ls):
+  if cround.expected_clients == 0:
+    cround.set_expected_client(int(ls[16]))
   cround.add_client_ciphertext(ls[0])
 
 default_lines = {
@@ -212,7 +260,8 @@ for fname in args:
   while line:
     for key in lines.keys():
       if line.find(key) != -1:
-        lines[key](line.split())
+        ls = line.split()
+        lines[key](ls)
 
     line_num += 1
     line = cfile.readline()
@@ -223,6 +272,8 @@ if not update and cround:
 shuffles = []
 phases = []
 clients = []
+ignored = 0
+clients_total = 0
 
 for rnd in rounds:
   rnd.calculate_data()
@@ -230,6 +281,8 @@ for rnd in rounds:
   if rnd.round_id in rounds_to_ignore:
     continue
 
+  ignored += rnd.ignored_clients
+  clients_total += len(rnd.client_ciphertexts)
   phases.extend(rnd.phase_times)
   shuffles.append(rnd.shuffle_time)
   clients.extend(rnd.clients)
@@ -237,15 +290,23 @@ for rnd in rounds:
 print "Phase times: %.4f +/- %.4f" % (mean_stddev(phases))
 print "Shuffle times: %.4f +/- %.4f" % (mean_stddev(shuffles))
 print "Clients involved: %.4f +/- %.4f" % (mean_stddev(clients))
+if ignored != 0:
+  print "Ignored clients total: %d / %d, percentage: %f" % \
+      (ignored, clients_total + ignored, (100.0 * ignored) / (1.0 * (clients_total + ignored)))
+
+for path in ("client_times", "online_clients", "slowest"):
+  if os.path.exists(path):
+    continue
+  os.mkdir(path)
 
 if output_base:
-  output = open(output_base + ".client_times", "w+")
+  output = open("client_times/" + output_base, "w+")
   for rnd in rounds:
     for stime in rnd.client_ciphertexts:
       output.write("%f\n" % (stime,))
   output.close()
 
-  output = open(output_base + ".online_clients", "w+")
+  output = open("online_clients/" + output_base, "w+")
   for rnd in rounds:
     for clients in rnd.clients:
       output.write("%d\n" % (clients,))
@@ -260,4 +321,10 @@ if output_base:
         "%.4f\n" % (rnd.round_id, rnd.phase, rnd.total_time, \
         rnd.shuffle_time, rnd.average_time, rnd.stddev, rnd.online_clients, \
         rnd.online_clients_std, rnd.total, rnd.client_avg, rnd.client_std))
+  output.close()
+
+  output = open("slowest/" + output_base, "w+")
+  for rnd in rounds:
+    for slowest in rnd.slowest_client_ciphertexts.values():
+      output.write("%f\n" % (slowest,))
   output.close()
