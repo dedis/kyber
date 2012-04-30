@@ -6,6 +6,7 @@
 #include "Utils/Time.hpp"
 #include "Utils/Timer.hpp"
 #include "Utils/TimerCallback.hpp"
+#include "Utils/Utils.hpp"
 
 #include "NeffKeyShuffle.hpp"
 #include "CSBulkRound.hpp"
@@ -188,6 +189,7 @@ namespace Anonymity {
     }
 
     _state_machine.SetState(FINISHED);
+    Utils::PrintResourceUsage(ToString() + " " + "finished bulk");
     Round::OnStop();
   }
 
@@ -558,6 +560,7 @@ namespace Anonymity {
 
     SetupRngSeeds();
     _state_machine.StateComplete();
+    Utils::PrintResourceUsage(ToString() + " " + "beginning bulk");
   }
 
   void CSBulkRound::SetupRngSeeds()
