@@ -95,8 +95,10 @@ for filename in args:
   x0.append(x[-2])
   y0.append(y[-2])
 
-  plot(x, y, "-", label = filename, **{"color" : str(intensity)})
-  plot(x0, y0, markers.pop(), **{"color" : str(intensity)})
+  marker = markers.pop()
+  plot(x, y, "-", **{"color" : str(intensity)})
+  plot(x0, y0, marker, **{"color" : str(intensity)})
+  plot([], [], "-" + marker, label = filename, **{"color" : str(intensity)})
 
   intensity += intensity_addend
 
