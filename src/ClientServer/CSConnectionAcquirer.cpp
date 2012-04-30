@@ -75,6 +75,10 @@ namespace ClientServer {
   {
     _group = group;
 
+    if(!IsServer()) {
+      return;
+    }
+
     if(!IsServer() && !_bootstrapping) {
       return;
     }
@@ -219,6 +223,10 @@ namespace ClientServer {
 
   bool CSConnectionAcquirer::CheckAndConnect(const QByteArray &bid, const QUrl &url)
   {
+    if(!IsServer()) {
+      return false;
+    }
+
     const ConnectionTable &ct = GetConnectionManager()->GetConnectionTable();
     Id id(bid);
 
