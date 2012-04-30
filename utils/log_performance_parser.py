@@ -5,12 +5,16 @@ import math
 import os
 import sys
 
-optlist, args = getopt.getopt(sys.argv[1:], "", ["output=", "lost_delay="])
+optlist, args = getopt.getopt(sys.argv[1:], "", ["path=", "output=", "lost_delay=", "min_clients="])
 
 optdict = {}
 
 for k,v in optlist:
   optdict[k] = v
+
+path = "."
+if "--path" in optdict:
+  path = optdict["--path"]
 
 output_base = None
 if "--output" in optdict:
@@ -21,7 +25,10 @@ if "--lost_delay" in optdict:
   lost_delay = int(optdict["--lost_delay"])
   plot_lost = True
 
-rounds_to_ignore = { }
+min_clients = 0
+if "--min_clients" in optdict:
+  min_clients = int(optdict["--min_clients"])
+
 starting_time = None
 
 def time_parse0(str_time):
@@ -275,11 +282,18 @@ clients = []
 ignored = 0
 clients_total = 0
 
+all_rounds = rounds
+rounds = []
+for rnd in all_rounds:
+  if len(rnd.clients) == 0:
+    continue
+  elif rnd.clients[0] < min_clients:
+    continue
+  rounds.append(rnd)
+
 for rnd in rounds:
   rnd.calculate_data()
   print rnd
-  if rnd.round_id in rounds_to_ignore:
-    continue
 
   ignored += rnd.ignored_clients
   clients_total += len(rnd.client_ciphertexts)
@@ -294,26 +308,28 @@ if ignored != 0:
   print "Ignored clients total: %d / %d, percentage: %f" % \
       (ignored, clients_total + ignored, (100.0 * ignored) / (1.0 * (clients_total + ignored)))
 
-for path in ("client_times", "online_clients", "slowest"):
-  if os.path.exists(path):
-    continue
-  os.mkdir(path)
 
 if output_base:
-  output = open("client_times/" + output_base, "w+")
+  for top_path in ("client_times", "online_clients", "slowest", "phases"):
+    full_path = "%s/%s" % (path, top_path)
+    if os.path.exists(full_path):
+      continue
+    os.mkdir(full_path)
+
+  output = open("%s/%s/%s" % (path, "client_times", output_base), "w+")
   for rnd in rounds:
     for stime in rnd.client_ciphertexts:
       output.write("%f\n" % (stime,))
   output.close()
 
-  output = open("online_clients/" + output_base, "w+")
+  output = open("%s/%s/%s" % (path, "online_clients", output_base), "w+")
   for rnd in rounds:
     for clients in rnd.clients:
       output.write("%d\n" % (clients,))
   output.close()
 
   
-  output = open(output_base + ".csv", "w+")
+  output = open("%s/%s.csv" % (path, output_base), "w+")
   output.write("Round, total phases, total time, shuffle time, average " \
       "phase time,, online clients,, total clients, client submit time\n")
   for rnd in rounds:
@@ -323,8 +339,14 @@ if output_base:
         rnd.online_clients_std, rnd.total, rnd.client_avg, rnd.client_std))
   output.close()
 
-  output = open("slowest/" + output_base, "w+")
+  output = open("%s/%s/%s" % (path, "slowest", output_base), "w+")
   for rnd in rounds:
     for slowest in rnd.slowest_client_ciphertexts.values():
       output.write("%f\n" % (slowest,))
+  output.close()
+
+  output = open("%s/%s/%s" % (path, "phases", output_base), "w+")
+  for rnd in rounds:
+    for phase in phases:
+      output.write("%f\n" % (phase,))
   output.close()
