@@ -1,7 +1,4 @@
 #include <QDebug>
-#include <QIODevice>
-#include <QTextStream>
-
 #include "Utils.hpp"
 
 #ifdef __linux__
@@ -13,11 +10,11 @@ namespace Dissent {
 namespace Utils {
   void PrintResourceUsage(const QString &label)
   {
-    QTextStream qtout(stdout, QIODevice::WriteOnly);
+#ifdef QT_DEBUG
 #ifdef __linux__
     struct rusage usage;
     if(getrusage(RUSAGE_SELF, &usage)) {
-      qtout << "!BENCHMARK!" << label << "| Unable to get resource usage";
+      qDebug() << "!BENCHMARK!" << label << "| Unable to get resource usage";
       return;
     }
     QString user_sec = QString::number(usage.ru_utime.tv_sec);
@@ -28,9 +25,10 @@ namespace Utils {
     QString user = QString("%1.%2").arg(user_sec).arg(user_usec, 6, '0');
     QString sys = QString("%1.%2").arg(sys_sec).arg(sys_usec, 6, '0');
 
-    qtout << "!BENCHMARK!" << label << "| user:" << user << "| system:" << sys;
+    qDebug() << "!BENCHMARK!" << label << "| user:" << user << "| system:" << sys;
 #else
-    qtout << "!BENCHMARK!" << label << "| Unable to get resource usage";
+    qDebug() << "!BENCHMARK!" << label << "| Unable to get resource usage";
+#endif
 #endif
   }
 }
