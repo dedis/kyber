@@ -20,7 +20,8 @@ namespace Connections {
     _local_id(local_id),
     _base_been(local_id.ToString()),
     _ct(ct),
-    _rpc(rpc)
+    _rpc(rpc),
+    _cache(4096)
   {
     _rpc->Register("RF::Data", this, "IncomingData");
   }
