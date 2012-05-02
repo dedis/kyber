@@ -197,6 +197,7 @@ namespace Anonymity {
        */
       class State {
         public:
+          State() : accuse(false) {}
           virtual ~State() {}
 
           QVector<QSharedPointer<AsymmetricKey> > anonymous_keys;
