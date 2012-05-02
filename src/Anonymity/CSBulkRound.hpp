@@ -118,6 +118,12 @@ namespace Anonymity {
       }
 
       /**
+       * Returns the null seed, which can be found in slots that have no
+       * contents and should be skipped during this phase.
+       */
+      static QByteArray NullSeed();
+
+      /**
        * Randomize a message and prepend the seed
        * @param msg the message to randomize
        */
