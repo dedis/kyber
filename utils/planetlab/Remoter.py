@@ -29,6 +29,7 @@ import os
 import Queue
 import re 
 import signal
+import shutil
 import subprocess
 import sys 
 import thread
@@ -36,12 +37,12 @@ import time
 import traceback
 import xmlrpclib
 
-parallel = 64
+parallel = 128
 max_wait = 240
 
 def main():
   optlist, args = getopt.getopt(sys.argv[1:], "", ["data_file=", \
-    "username=", "path_to_nodes=", "ssh_key=", "install_path="])
+    "username=", "path_to_nodes=", "ssh_key=", "install_path=", "data_path="])
 
   o_d = {}
   for k,v in optlist:
@@ -86,10 +87,9 @@ def main():
   data_file = None
   if "--data_file" in o_d:
     data_file = o_d["--data_file"]
-
-  if not os.path.isfile(data_file):
-    print "\nCannont find file: " + data_file
-    print_usage()
+    if not os.path.isfile(data_file):
+      print "\nCannont find file: " + data_file
+      print_usage()
 
   install_path = None
   if "--install_path" in o_d:
@@ -141,6 +141,32 @@ class Remoter:
       install_path = None, data_file = None, data_path = ".",
       logger = logger_std_out):
 
+    self.action = action
+    self.username = username
+    self.nodes = nodes
+    self.install_path = install_path
+    self.data_file = data_file
+    self.data_path = data_path
+    self.logger = logger
+    self.update_callback = None
+
+    if self.data_file:
+      df = open(self.data_file)
+      md5 = hashlib.md5()
+      md5.update(df.read())
+      self.md5sum = md5.hexdigest()
+      df.close()
+
+    ssh_ops = "-o StrictHostKeyChecking=no -o HostbasedAuthentication=no " + \
+        "-o CheckHostIP=no -o ConnectTimeout=10 -o ServerAliveInterval=30 " + \
+        "-o BatchMode=yes -o UserKnownHostsFile=/dev/null "
+
+    if ssh_key != None:
+      ssh_ops += "-o IdentityFile=" + ssh_key + " "
+
+    self.base_ssh_cmd = "/usr/bin/ssh " + ssh_ops + username + "@"
+    self.base_scp_cmd = "/usr/bin/scp " + ssh_ops
+
     if action == "install":
       self.task = self.install_node
     elif action == "check":
@@ -149,8 +175,10 @@ class Remoter:
       self.task = self.uninstall_node
     elif action == "gather_logs":
       self.task = self.gather_logs
-      os.system("rm -rf logs")
-      os.system("mkdir logs")
+      self.log_path = "%s/logs" % (self.data_path,)
+      if os.path.exists(self.log_path):
+        shutil.rmtree(self.log_path)
+      os.makedirs(self.log_path)
     elif action == "uptime":
       self.task = self.cmd
       self.args = "uptime"
@@ -170,30 +198,6 @@ class Remoter:
       "Invalid action: " + action
       print_usage()
 
-    self.action = action
-    self.username = username
-    self.nodes = nodes
-    self.install_path = install_path
-    self.data_file = data_file
-    self.data_path = data_path
-    self.logger = logger
-    self.update_callback = None
-
-    df = open(self.data_file)
-    md5 = hashlib.md5()
-    md5.update(df.read())
-    self.md5sum = md5.hexdigest()
-    df.close()
-
-    ssh_ops = "-o StrictHostKeyChecking=no -o HostbasedAuthentication=no " + \
-        "-o CheckHostIP=no -o ConnectTimeout=10 -o ServerAliveInterval=30 " + \
-        "-o BatchMode=yes -o UserKnownHostsFile=/dev/null "
-
-    if ssh_key != None:
-      ssh_ops += "-o IdentityFile=" + ssh_key + " "
-
-    self.base_ssh_cmd = "/usr/bin/ssh " + ssh_ops + username + "@"
-    self.base_scp_cmd = "/usr/bin/scp " + ssh_ops
 
 # Runs #parallel threads at the same time, this works well because half of the
 # nodes contacted typically are unresponsive and take tcp time out to fail or
@@ -290,7 +294,7 @@ class Remoter:
         self.logger(node + " failed!")
 
   def gather_logs(self, node):
-    os.system("mkdir logs/" + node + " 2> /dev/null")
+    os.mkdir("%s/%s" % (self.log_path, node))
     cmd = "%s %s@%s:%s/log.* %s/logs/%s/. &> /dev/null" % \
         (self.base_scp_cmd, self.username, node, self.install_path, \
         self.data_path, node)
