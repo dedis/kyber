@@ -14,7 +14,11 @@ function running()
   fi
 
   pid=$(cat $install_path/pid 2> /dev/null)
-  on=$(ps uax | grep pid | grep -v grep)
+
+  if [[ $pid ]]; then
+    on=$(ps uax | grep $pid | grep -v grep)
+  fi
+
   if [[ $on ]]; then
     return 1
   else
@@ -95,7 +99,14 @@ function stop()
   fi
 
   pid=$(cat $install_path/pid 2> /dev/null)
-  kill -KILL $pid 2> /dev/null
+
+  # Test sudo
+  sudo -S true < /dev/null &> /dev/null
+  if [[ $? ]]; then
+    sudo kill -KILL $pid 2> /dev/null
+  else
+    kill -KILL $pid 2> /dev/null
+  fi
 }
 
 case "$1" in
