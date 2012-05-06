@@ -262,6 +262,15 @@ namespace Anonymity {
         return !stopped;
       }
 
+      static const float PERCENT_ACTIVE = -1;
+
+      static const int DEFAULT_GENERATE_DATA_SIZE = 256;
+
+      /**
+       * Generates a random data array
+       */
+      QByteArray GenerateData(int size = DEFAULT_GENERATE_DATA_SIZE);
+
     private:
       QDateTime _create_time;
       QDateTime _start_time;
