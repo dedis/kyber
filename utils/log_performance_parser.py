@@ -73,7 +73,11 @@ class round:
     self.stddev = 0
     self.phase_times = []
     self.completed_cleanly = False
+    self.start_user_time = 0
+    self.start_sys_time = 0
     self.start_time = time_parse(start_time)
+    self.cpu_times = []
+    self.client_window = {}
 
     self.clients = []
     self.online_clients = 0
@@ -107,7 +111,8 @@ class round:
     ctime = time_parse(start_time)
     self.phase_start = ctime
     self.cphase += 1
-    assert(self.cphase in self.slowest_client_ciphertexts)
+    if self.cphase not in self.slowest_client_ciphertexts:
+      self.slowest_client_ciphertexts[self.cphase] = 0
 
   def next_phase(self, start_time):
     ctime = time_parse(start_time)
@@ -162,6 +167,25 @@ class round:
         return False
     self.current_clients += 1
     return True
+
+  def client_state_finished(self, ctime):
+    if self.cphase == 0:
+      return
+    dtime = time_parse(ctime) - self.phase_start
+    current = 0
+    if self.cphase in self.client_window:
+      current = self.client_window[self.cphase]
+    self.client_window[self.cphase] = max(current, dtime)
+
+  def set_cpu_start_time(self, sys_time, user_time):
+    self.start_sys_time = sys_time
+    self.start_user_time = user_time
+
+  def set_cpu_end_time(self, sys_time, user_time):
+    if self.start_sys_time == 0:
+      return
+    self.cpu_times.append((sys_time - self.start_sys_time) +\
+        (user_time - self.start_user_time))
     
   def __str__(self):
     online = []
@@ -242,25 +266,42 @@ def client_data(ls):
     cround.set_expected_client(int(ls[16]))
   cround.add_client_ciphertext(ls[0])
 
+def client_state_finished(ls):
+  cround.client_state_finished(ls[0])
+
+def cpu_start(ls):
+  cround.set_cpu_start_time(float(ls[13][1:-2]), float(ls[16][1:-2]))
+
+def cpu_end(ls):
+  if cround:
+    cround.set_cpu_end_time(float(ls[13][1:-2]), float(ls[16][1:-2]))
+
 default_lines = {
     "starting round" : start_round, \
     "finished due to" : finished_round, \
     "ending phase" : phase_finished, \
     "PREPARE_FOR_BULK" : shuffle_finished, \
     "Phase: 0\" starting phase": shuffle_finished, \
+    "ending: \"SERVER_WAIT_FOR_CLIENT_CIPHERTEXT\"": client_state_finished, \
     "generating ciphertext" : client_count, \
-    "received client ciphertext" : client_data \
+    "received client ciphertext" : client_data, \
+    "beginning bulk" : cpu_start, \
+    "finished bulk" : cpu_end \
     }
 
 update_lines = {
     "starting round" : start_round, \
     "received client ciphertext" : client_data, \
-    "ending phase" : set_phase_start \
+    "ending: \"SERVER_WAIT_FOR_CLIENT_CIPHERTEXT\"": client_state_finished, \
+    "ending phase" : set_phase_start, \
+    "beginning bulk" : cpu_start, \
+    "finished bulk" : cpu_end \
     }
 
 lines = default_lines
 
 for fname in args:
+  print "Parsing " + fname
   cfile = file(fname)
   line = cfile.readline()
 
@@ -268,7 +309,11 @@ for fname in args:
     for key in lines.keys():
       if line.find(key) != -1:
         ls = line.split()
-        lines[key](ls)
+        try:
+          lines[key](ls)
+        except:
+          print "Exception on: " + line
+          raise
 
     line_num += 1
     line = cfile.readline()
@@ -282,14 +327,15 @@ clients = []
 ignored = 0
 clients_total = 0
 
-all_rounds = rounds
-rounds = []
-for rnd in all_rounds:
-  if len(rnd.clients) == 0:
-    continue
-  elif rnd.clients[0] < min_clients:
-    continue
-  rounds.append(rnd)
+if min_clients > 0:
+  all_rounds = rounds
+  rounds = []
+  for rnd in all_rounds:
+    if len(rnd.clients) == 0:
+      continue
+    elif rnd.clients[0] < min_clients:
+      continue
+    rounds.append(rnd)
 
 for rnd in rounds:
   rnd.calculate_data()
@@ -310,11 +356,12 @@ if ignored != 0:
 
 
 if output_base:
-  for top_path in ("client_times", "online_clients", "slowest", "phases"):
+  for top_path in ("client_times", "online_clients", "slowest", \
+      "client_window", "phases", "cpu_time", "ignored"):
     full_path = "%s/%s" % (path, top_path)
     if os.path.exists(full_path):
       continue
-    os.mkdir(full_path)
+    os.makedirs(full_path)
 
   output = open("%s/%s/%s" % (path, "client_times", output_base), "w+")
   for rnd in rounds:
@@ -328,7 +375,6 @@ if output_base:
       output.write("%d\n" % (clients,))
   output.close()
 
-  
   output = open("%s/%s.csv" % (path, output_base), "w+")
   output.write("Round, total phases, total time, shuffle time, average " \
       "phase time,, online clients,, total clients, client submit time\n")
@@ -346,7 +392,30 @@ if output_base:
   output.close()
 
   output = open("%s/%s/%s" % (path, "phases", output_base), "w+")
+  for phase in phases:
+    output.write("%f\n" % (phase,))
+  output.close()
+
+  output = open("%s/%s/%s" % (path, "cpu_time", output_base), "w+")
   for rnd in rounds:
-    for phase in phases:
-      output.write("%f\n" % (phase,))
+    phase_count = rnd.phase
+    if phase_count <= 0:
+      continue
+
+    for cpu_time in rnd.cpu_times:
+      if cpu_time < 0:
+        continue
+      output.write("%f\n" % (cpu_time / phase_count,))
+  output.close()
+
+  output = open("%s/%s/%s" % (path, "client_window", output_base), "w+")
+  for rnd in rounds:
+    for window in rnd.client_window.values():
+      output.write("%f\n" % (window,))
+  output.close()
+
+  output = open("%s/%s/%s" % (path, "ignored", output_base), "w+")
+  for rnd in rounds:
+    if rnd.ignored_clients > 0:
+      output.write("%f\n" % ((1.0 * rnd.ignored_clients) / (1.0 * len(rnd.client_ciphertexts) + rnd.ignored_clients),))
   output.close()
