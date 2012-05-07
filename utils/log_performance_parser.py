@@ -5,12 +5,16 @@ import math
 import os
 import sys
 
-optlist, args = getopt.getopt(sys.argv[1:], "", ["path=", "output=", "lost_delay=", "min_clients="])
+optlist, args = getopt.getopt(sys.argv[1:], "", ["path=", "output=", "lost_delay=", "min_clients=", "client"])
 
 optdict = {}
 
 for k,v in optlist:
   optdict[k] = v
+
+client = False
+if "--client" in optdict:
+  client = True
 
 path = "."
 if "--path" in optdict:
@@ -77,7 +81,8 @@ class round:
     self.start_sys_time = 0
     self.start_time = time_parse(start_time)
     self.cpu_times = []
-    self.client_window = {}
+    self.states = []
+    self.state = []
 
     self.clients = []
     self.online_clients = 0
@@ -107,6 +112,8 @@ class round:
     self.shuffle_time = time_parse(end_time) - self.start_time
 
   def set_phase_start(self, start_time):
+    self.state = []
+    self.states.append(self.state)
     self.expected_clients = 0
     ctime = time_parse(start_time)
     self.phase_start = ctime
@@ -125,6 +132,8 @@ class round:
         else:
           self.ignored_clients += (self.expected_clients - self.submitted_clients)
 
+    self.state = []
+    self.states.append(self.state)
     self.submitted_clients = 0
     self.phase_start = ctime
     self.phase += 1
@@ -168,14 +177,17 @@ class round:
     self.current_clients += 1
     return True
 
-  def client_state_finished(self, ctime):
+  def state_update(self, ctime):
     if self.cphase == 0:
       return
+    if len(self.state) == 0:
+      if self.submitted_clients > 0:
+        self.state.append(self.client_ciphertexts[-1])
+      elif not client:
+        self.state.append(0)
+
     dtime = time_parse(ctime) - self.phase_start
-    current = 0
-    if self.cphase in self.client_window:
-      current = self.client_window[self.cphase]
-    self.client_window[self.cphase] = max(current, dtime)
+    self.state.append(dtime)
 
   def set_cpu_start_time(self, sys_time, user_time):
     self.start_sys_time = sys_time
@@ -245,12 +257,16 @@ def finished_round(ls):
   cround = None
 
 def set_phase_start(ls):
+  if cround.cphase > 0:
+    cround.state_update(ls[0])
   cround.set_phase_start(ls[0])
 
 def phase_finished(ls):
   assert (cround.round_id == ls[6]) , "Wrong round"
   assert (cround.phase == int(ls[8][:-1])) , "Wrong phase: %s %s" % \
       (cround.phase, ls[8][:-1])
+  if cround.cphase > 0:
+    cround.state_update(ls[0])
   cround.next_phase(ls[0])
 
 def shuffle_finished(ls):
@@ -266,8 +282,8 @@ def client_data(ls):
     cround.set_expected_client(int(ls[16]))
   cround.add_client_ciphertext(ls[0])
 
-def client_state_finished(ls):
-  cround.client_state_finished(ls[0])
+def state_update(ls):
+  cround.state_update(ls[0])
 
 def cpu_start(ls):
   cround.set_cpu_start_time(float(ls[13][1:-2]), float(ls[16][1:-2]))
@@ -276,27 +292,58 @@ def cpu_end(ls):
   if cround:
     cround.set_cpu_end_time(float(ls[13][1:-2]), float(ls[16][1:-2]))
 
-default_lines = {
-    "starting round" : start_round, \
-    "finished due to" : finished_round, \
-    "ending phase" : phase_finished, \
-    "PREPARE_FOR_BULK" : shuffle_finished, \
-    "Phase: 0\" starting phase": shuffle_finished, \
-    "ending: \"SERVER_WAIT_FOR_CLIENT_CIPHERTEXT\"": client_state_finished, \
-    "generating ciphertext" : client_count, \
-    "received client ciphertext" : client_data, \
-    "beginning bulk" : cpu_start, \
-    "finished bulk" : cpu_end \
-    }
+if not client:
+  default_lines = {
+      "starting round" : start_round, \
+      "finished due to" : finished_round, \
+      "ending phase" : phase_finished, \
+      "PREPARE_FOR_BULK" : shuffle_finished, \
+      "Phase: 0\" starting phase": shuffle_finished, \
+      "ending: \"SERVER_WAIT_FOR_CLIENT_CIPHERTEXT\"": state_update, \
+      "ending: \"SERVER_WAIT_FOR_CLIENT_LISTS\"": state_update, \
+      "ending: \"SERVER_WAIT_FOR_SERVER_COMMITS\"": state_update, \
+      "ending: \"SERVER_WAIT_FOR_SERVER_CIPHERTEXT\"": state_update, \
+      "ending: \"SERVER_WAIT_FOR_SERVER_VALIDATION\"": state_update, \
+      "generating ciphertext" : client_count, \
+      "received client ciphertext" : client_data, \
+      "beginning bulk" : cpu_start, \
+      "finished bulk" : cpu_end \
+      }
 
-update_lines = {
-    "starting round" : start_round, \
-    "received client ciphertext" : client_data, \
-    "ending: \"SERVER_WAIT_FOR_CLIENT_CIPHERTEXT\"": client_state_finished, \
-    "ending phase" : set_phase_start, \
-    "beginning bulk" : cpu_start, \
-    "finished bulk" : cpu_end \
-    }
+  update_lines = {
+      "starting round" : start_round, \
+      "received client ciphertext" : client_data, \
+      "ending: \"SERVER_WAIT_FOR_CLIENT_CIPHERTEXT\"": state_update, \
+      "ending: \"SERVER_WAIT_FOR_CLIENT_LIST\"": state_update, \
+      "ending: \"SERVER_WAIT_FOR_SERVER_COMMITS\"": state_update, \
+      "ending: \"SERVER_WAIT_FOR_SERVER_CIPHERTEXT\"": state_update, \
+      "ending: \"SERVER_WAIT_FOR_SERVER_VALIDATION\"": state_update, \
+      "ending phase" : set_phase_start, \
+      "beginning bulk" : cpu_start, \
+      "finished bulk" : cpu_end \
+      }
+else:
+  default_lines = {
+      "starting round" : start_round, \
+      "finished due to" : finished_round, \
+      "ending phase" : phase_finished, \
+      "PREPARE_FOR_BULK" : shuffle_finished, \
+      "Phase: 0\" starting phase": shuffle_finished, \
+      "beginning bulk" : cpu_start, \
+      "finished bulk" : cpu_end, \
+      "ending: \"CLIENT_WAIT_FOR_CLEARTEXT\"": state_update, \
+      "SM::Data": state_update \
+      }
+
+  update_lines = {
+      "starting round" : start_round, \
+      "received client ciphertext" : client_data, \
+      "ending phase" : set_phase_start, \
+      "beginning bulk" : cpu_start, \
+      "finished bulk" : cpu_end, \
+      "ending: \"CLIENT_WAIT_FOR_CLEARTEXT\"": state_update, \
+      "SM::Data": state_update \
+      }
 
 lines = default_lines
 
@@ -354,10 +401,9 @@ if ignored != 0:
   print "Ignored clients total: %d / %d, percentage: %f" % \
       (ignored, clients_total + ignored, (100.0 * ignored) / (1.0 * (clients_total + ignored)))
 
-
 if output_base:
   for top_path in ("client_times", "online_clients", "slowest", \
-      "client_window", "phases", "cpu_time", "ignored"):
+      "states", "phases", "cpu_time", "ignored"):
     full_path = "%s/%s" % (path, top_path)
     if os.path.exists(full_path):
       continue
@@ -408,10 +454,15 @@ if output_base:
       output.write("%f\n" % (cpu_time / phase_count,))
   output.close()
 
-  output = open("%s/%s/%s" % (path, "client_window", output_base), "w+")
+  output = open("%s/%s/%s" % (path, "states", output_base), "w+")
+  expected = 7
+  if client:
+    expected = 4
   for rnd in rounds:
-    for window in rnd.client_window.values():
-      output.write("%f\n" % (window,))
+    for state in rnd.states:
+      if len(state) != expected:
+        continue
+      output.write("%s\n" % (",".join(["%f" % (value,) for value in state])))
   output.close()
 
   output = open("%s/%s/%s" % (path, "ignored", output_base), "w+")
