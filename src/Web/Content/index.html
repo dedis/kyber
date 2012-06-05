@@ -2,7 +2,8 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>Dissent_Web_Chat</title>
+<title>Dissent Chat Interface</title>
+
 <style type="text/css"> 
 body {
   font:12px arial;
@@ -20,7 +21,7 @@ a {
   color:#0000FF;
   text-decoration:none; }
  
-  a:hover { text-decoration:underline; }
+a:hover { text-decoration:underline; }
  
 #wrapper{
   margin:0 auto;
@@ -28,7 +29,6 @@ a {
   background:#EBF4FB;
   width:504px;
   border:1px solid #1D6C97; }
- 
  
 #chatbox {
   text-align:left;
@@ -56,8 +56,71 @@ a {
 .logout { float:right; }
  
 .msgln { margin:0 0 2px 0; }
- 
 </style> 
+
+<script type="text/javascript" src="http://code.jquery.com/jquery-latest.js"></script>
+
+<script type="text/javascript">
+var offset = 0;
+
+$(document).ready(function() {
+  getMessages(10);
+});
+  
+//Load the chat log from dissent server API /session/messages/all
+function getMessages(count) {
+  $.ajax({
+    url: "session/messages?offset=" + offset + "&count=" + count + "&wait=1",
+    cache: false,
+    async: true,
+    type: 'GET',
+    beforeSend: function(x) {
+      if(x && x.overrideMimeType) {
+        x.overrideMimeType("application/j-son;charset=UTF-8");
+      }
+    },
+    success: getMessagesCallback
+  });
+}
+
+function getMessagesCallback(data) {
+  var chat_div = document.getElementById('chatbox');
+  var jsonObj = jQuery.parseJSON(data);
+  for(i=0;i<jsonObj.output.messages.length;i++){
+    chat_div.innerHTML += 'message: ' + jsonObj.output.messages[i] + '<br />';
+  }
+  $("#chatbox").scrollTop($("#chatbox")[0].scrollHeight);
+
+  var length = jsonObj.output.messages.length;
+  offset += length;
+  var total = jsonObj.output.total;
+
+  if(offset == total) {
+    getMessages(1);
+  } else{
+    getMessages(10);
+  }
+}
+
+//Submits msg into dissent server API /session/send
+$("#submitmsg").click(function(){
+  var clientmsg = $("#usermsg").val();
+  $.post("session/send", clientmsg);
+  $("#usermsg").attr("value", "");
+  return false;
+});
+
+//If user wants to end dissent chat
+$("#exit").click(function(){
+  var exit = confirm("Are you sure you want to end Dissent chat?");
+  if(exit==true){
+    window.opener=null;      
+    window.open('','_self');      
+    window.close();      
+  }
+});
+
+</script>
 </head>
 
 <body>
@@ -67,71 +130,13 @@ a {
     <p class="logout"><a id="exit" href="#">Exit Chat</a></p>
     <div style="clear:both"></div>
 </div>
-<div id="chatbox"></div>
+
+<div id="chatbox" title="Dissent Chat">Welcome to Dissent Chat</div>
 
 <form name="message" action="">
     <input name="usermsg" type="String" id="usermsg" size="63" />
     <input name="submitmsg" type="submit"  id="submitmsg" value="Send" />
 </form>
 
-<script type="text/javascript" src="http://code.jquery.com/jquery-latest.js"></script>
-<script type="text/javascript">
-
-var chat_wel = document.getElementById('chatbox');
-chat_wel.innerHTML += 'Welcome to Dissent Chat Room<br />';
-// jQuery Document
-$(document).ready(function(){
-  var offset = 0;
-  //Submits msg into dissent server API /session/send
-  $("#submitmsg").click(function(){
-    var clientmsg = $("#usermsg").val();
-    $.post("session/send", clientmsg);
-    $("#usermsg").attr("value", "");
-    return false;
-  });
-  
-  //Load the chat log from dissent server API /session/messages/all
-  function getMessages(count){
-    var chat_div = document.getElementById('chatbox');
-    $.ajax({
-      url: "session/messages?offset=" + offset + "&count=" + count + "&wait=1",
-      cache: false,
-      async: true,
-      type: 'GET',
-      beforeSend: function(x) {
-      if(x && x.overrideMimeType) {
-      x.overrideMimeType("application/j-son;charset=UTF-8");
-      }
-      },
-      success: function(data){    
-      var jsonObj = jQuery.parseJSON(data);
-      for(i=0;i<jsonObj.output.messages.length;i++){
-        chat_div.innerHTML += 'message: ' + jsonObj.output.messages[i] + '<br />';
-      }
-      if(jsonObj.output.messages.length != 0){
-        offset += jsonObj.output.messages.length;
-        $("#chatbox").scrollTop($("#chatbox")[0].scrollHeight);
-        getMessages(-1);
-      }  
-      else{
-        getMessages(1);
-      }  
-  }
-  });
-}
-  // Start 
-  getMessages(-1);
-
-  //If user wants to end dissent chat
-  $("#exit").click(function(){
-    var exit = confirm("Are you sure you want to end Dissent chat?");
-    if(exit==true){
-      window.opener=null;      
-      window.open('','_self');      
-      window.close();      
-    }
-  });
-});
-</script>
 </body>
 </html>
