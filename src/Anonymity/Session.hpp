@@ -312,6 +312,7 @@ namespace Anonymity {
       Group _shared_group;
       QSet<Id> _bad_members;
       QSharedPointer<GroupHolder> _group_holder;
+      const Group _base_group;
       const PrivateIdentity _ident;
       const Id _session_id;
       QSharedPointer<Network> _network;

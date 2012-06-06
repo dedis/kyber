@@ -21,6 +21,7 @@ namespace Anonymity {
       const PrivateIdentity &ident, const Id &session_id,
       QSharedPointer<Network> network, CreateRound create_round) :
     _group_holder(group_holder),
+    _base_group(GetGroup()),
     _ident(ident),
     _session_id(session_id),
     _network(network),
@@ -567,10 +568,12 @@ namespace Anonymity {
 
     if(GetGroup().GetLeader() == remote_id) {
       qWarning() << "Leader disconnected!";
+      _group_holder->UpdateGroup(_base_group);
       _registering = false;
     } else if((_network->GetConnectionManager()->
         GetConnectionTable().GetConnections().count() == 1) && !IsLeader())
     {
+      _group_holder->UpdateGroup(_base_group);
       _registering = false;
     } else if((GetGroup().GetSubgroupPolicy() != Group::ManagedSubgroup)
         || (GetGroup().GetSubgroup().Contains(_ident.GetLocalId())))
