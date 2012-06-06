@@ -21,10 +21,14 @@ using namespace Dissent::Tunnel::Packets;
 namespace Dissent {
 namespace Tunnel {
 
-  ExitTunnel::ExitTunnel(SessionManager &sm, const QSharedPointer<Network> &net) :
+  ExitTunnel::ExitTunnel(SessionManager &sm, const QSharedPointer<Network> &net,
+      const QUrl &exit_proxy_url) :
     _running(false),
     _sm(sm),
-    _net(net->Clone())
+    _net(net->Clone()),
+    _exit_proxy(exit_proxy_url.isEmpty() ? QNetworkProxy::NoProxy : QNetworkProxy::Socks5Proxy, 
+          exit_proxy_url.host(),
+          exit_proxy_url.port())
   {
     _net->SetMethod("LT::TunnelData");
   }
@@ -205,10 +209,12 @@ namespace Tunnel {
     bool okay = (host_info.error() == QHostInfo::NoError) && host_info.addresses().count();
 
     qDebug() << "SOCKS hostname" << host_info.hostName() << "resolved:" << okay;
-    if(okay) {      
+    if(okay && _table.ContainsConnection(value.socket)) {
+      qDebug() << "SOCKS connecting to hostname" << host_info.hostName();
       value.socket->connectToHost(host_info.addresses()[0], value.port);
     } else {
-      CloseSocket(value.socket);
+      qDebug() << "SOCKS aborting failed or closed connection:" << host_info.hostName();
+      //CloseSocket(value.socket);
     }
   }
 
@@ -220,7 +226,7 @@ namespace Tunnel {
     bool okay = (host_info.error() == QHostInfo::NoError) && host_info.addresses().count();
 
     qDebug() << "SOCKS UDP hostname" << host_info.hostName() << "resolved:" << okay;
-    if(okay) {      
+    if(okay && _table.ContainsConnection(value.socket)) {
       qDebug() << "SOCKS Write data" << value.datagram.count();
       value.socket->writeDatagram(value.datagram, host_info.addresses()[0], value.port);
     } else {
@@ -272,7 +278,7 @@ namespace Tunnel {
       SendReply(FinishPacket(_table.IdForConnection(socket)).ToByteArray());
     }
 
-    if(socket->isOpen()) socket->close();
+    if(socket && socket->isOpen()) socket->close();
 
     _table.ConnectionClosed(socket); 
     _tcp_buffers.remove(socket);
@@ -280,7 +286,8 @@ namespace Tunnel {
       _timers_map.remove(_timers[socket].data());
     }
     _timers.remove(socket); 
-    socket->deleteLater();
+
+    if(socket) socket->deleteLater();
   }
 
   bool ExitTunnel::CheckSession() {
@@ -343,6 +350,7 @@ namespace Tunnel {
     if(!sp) return;
 
     QTcpSocket* socket = new QTcpSocket(this);
+    socket->setProxy(_exit_proxy);
 
     // Check the verification key
     if(!_table.SaveConnection(socket, sp->GetConnectionId(), sp->GetVerificationKey())) return;
@@ -363,7 +371,6 @@ namespace Tunnel {
           this, SLOT(TcpDnsLookupFinished(const QHostInfo &)));
       TcpPendingDnsData dns_data = {socket, sp->GetHostName().GetPort()};
       _tcp_pending_dns[lookup_id] = dns_data;
-
     } else {
       qDebug() << "SOCKS ConnectToHost" << sp->GetHostName().GetAddress() << ":" 
         << sp->GetHostName().GetPort() << (sp->GetHostName().IsHostName() ? "DNS" : "Address");
@@ -377,6 +384,7 @@ namespace Tunnel {
     if(!sp) return;
 
     QUdpSocket* socket = new QUdpSocket(this);
+    socket->setProxy(_exit_proxy);
     socket->bind();
 
     // Check the verification key

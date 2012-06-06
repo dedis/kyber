@@ -6,6 +6,7 @@
 #include <QHostInfo>
 #include <QHostAddress>
 #include <QSharedPointer>
+#include <QNetworkProxy>
 #include <QTcpSocket>
 #include <QTimer>
 #include <QUdpSocket>
@@ -55,8 +56,11 @@ namespace Tunnel {
        * Constructor
        * @param session manager from which to read Dissent packets
        * @param network for broadcasting responses non-anonymously
+       * @param SOCKS5 proxy URL through which to tunnel outgoing
+       *        streams
        */
-      explicit ExitTunnel(SessionManager &sm, const QSharedPointer<Network> &net);
+      explicit ExitTunnel(SessionManager &sm, const QSharedPointer<Network> &net,
+          const QUrl &exit_proxy = QUrl());
 
       virtual ~ExitTunnel();
 
@@ -163,6 +167,7 @@ namespace Tunnel {
 
       SessionManager &_sm;
       QSharedPointer<Network> _net;
+      QNetworkProxy _exit_proxy;
   };
 }
 }
