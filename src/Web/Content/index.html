@@ -100,7 +100,14 @@ function getOffset(data) {
 
 function getMessagesCallback(data) {
   var chat_div = document.getElementById('chatbox');
-  var jsonObj = jQuery.parseJSON(data);
+  try {
+    var jsonObj = jQuery.parseJSON(data);
+  } catch(err) {
+    offset += 1;
+    getMessages(1);
+    return;
+  }
+
   for(i=0;i<jsonObj.output.messages.length;i++){
     chat_div.innerHTML += 'message: ' + jsonObj.output.messages[i] + '<br/>';
   }
