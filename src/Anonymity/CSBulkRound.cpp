@@ -655,19 +655,21 @@ namespace Anonymity {
         offset += _state->next_messages[owner];
       }
 
-      qDebug() << "Writing ciphertext into my slot" << _state->my_idx <<
-        "starting at" << offset;
       QByteArray my_msg = GenerateSlotMessage();
       QByteArray my_xor_base = QByteArray::fromRawData(xor_msg.constData() +
           offset, my_msg.size());
       Xor(my_msg, my_msg, my_xor_base);
       xor_msg.replace(offset, my_msg.size(), my_msg);
+
+      qDebug() << "Writing ciphertext into my slot" << _state->my_idx <<
+        "starting at" << offset << "for" << my_msg.size() << "bytes.";
+
     } else if(CheckData()) {
       qDebug() << "Opening my slot" << _state->my_idx;
       xor_msg[_state->my_idx / 8] = xor_msg[_state->my_idx / 8] ^
         bit_masks[_state->my_idx % 8];
-      _state->slot_open = true;
       _state->read = false;
+      _state->slot_open = true;
     }
 
     return xor_msg;
@@ -681,6 +683,7 @@ namespace Anonymity {
 
     QPair<QByteArray, bool> pair = GetData(4096);
     _state->next_msg = pair.first;
+    _state->last_msg = QByteArray();
     return !_state->next_msg.isEmpty();
   }
 
@@ -689,19 +692,22 @@ namespace Anonymity {
     QByteArray msg = _state->next_msg;
     if(_state->read) {
       QPair<QByteArray, bool> pair = GetData(4096);
+      _state->last_msg = _state->next_msg;
       _state->next_msg = pair.first;
     } else {
-      msg = QByteArray();
+      msg = _state->last_msg;
+      _state->read = true;
     }
-    _state->read = true;
 
     QByteArray msg_p(8, 0);
     Serialization::WriteInt(_state_machine.GetPhase(), msg_p, 0);
     int length = _state->next_msg.size() + SlotHeaderLength(_state->my_idx);
+#ifdef CSBR_CLOSE_SLOT
     if(_state->next_msg.size() == 0) {
       _state->slot_open = false;
       length = 0;
     }
+#endif
     Serialization::WriteInt(length, msg_p, 4);
     msg_p.append(msg);
     QByteArray sig = _state->anonymous_key->Sign(msg_p);
@@ -871,6 +877,12 @@ namespace Anonymity {
         qDebug() << "No message at" << owner;
         next_msg_length += msg_length;
         next_msgs[owner] = msg_length;
+
+        if(_state->my_idx == owner) {
+          _state->read = false;
+          _state->slot_open = true;
+          qDebug() << "My message didn't make it in time.";
+        }
         continue;
       }
 
@@ -896,6 +908,11 @@ namespace Anonymity {
         qDebug() << "Unable to verify message for peer at" << owner;
         next_msg_length += msg_length;
         next_msgs[owner] = msg_length;
+        if(owner == _state->my_idx) {
+          _state->read = false;
+          _state->slot_open = true;
+          qDebug() << "My message got corrupted, restransmitting";
+        }
         continue;
       }
 
@@ -917,12 +934,6 @@ namespace Anonymity {
         PushData(GetSharedPointer(), msg);
       }
     }
-
-    // Otherwise we missed the deadline and need to resubmit...
-    _state->read = !_state->next_msg.isEmpty() &&
-      next_msgs.contains(_state->my_idx) &&
-      (next_msgs[_state->my_idx] == _state->next_msg.size() +
-       SlotHeaderLength(_state->my_idx));
 
     _state->next_messages = next_msgs;
     _state->msg_length = next_msg_length;

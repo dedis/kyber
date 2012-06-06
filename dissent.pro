@@ -8,7 +8,7 @@ DEPENDPATH +=
 INCLUDEPATH += ext/joyent-http-parser/ ext/qt-json/ src/
 CONFIG += qt debug
 QT = core network
-DEFINES += "VERSION=3"
+DEFINES += "VERSION=3" CSBR_CLOSE_SLOT
 
 # Input
 LIBS += -lcryptopp 

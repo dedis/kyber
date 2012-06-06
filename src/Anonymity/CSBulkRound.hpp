@@ -219,6 +219,7 @@ namespace Anonymity {
           bool slot_open;
           bool accuse;
           QByteArray next_msg;
+          QByteArray last_msg;
           int msg_length;
           int base_msg_length;
           int my_idx;
