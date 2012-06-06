@@ -62,13 +62,19 @@ a:hover { text-decoration:underline; }
 
 <script type="text/javascript">
 var offset = 0;
+var max_offset_delta = 100;
+var max_count = 10;
 
 $(document).ready(function() {
-  getMessages(10);
+  $("#submitmsg").click(submitMessage);
+  $("#exit").click(clickExit);
+  getMessages(0, getOffset);
 });
   
 //Load the chat log from dissent server API /session/messages/all
-function getMessages(count) {
+function getMessages(count, callback) {
+  callback = typeof callback !== 'undefined' ? callback : getMessagesCallback;
+
   $.ajax({
     url: "session/messages?offset=" + offset + "&count=" + count + "&wait=1",
     cache: false,
@@ -79,15 +85,24 @@ function getMessages(count) {
         x.overrideMimeType("application/j-son;charset=UTF-8");
       }
     },
-    success: getMessagesCallback
+    success: callback
   });
+}
+
+function getOffset(data) {
+  var jsonObj = jQuery.parseJSON(data);
+  var total = jsonObj.output.total;
+  if(total > max_offset_delta) {
+    offset = total - max_offset_delta;
+  }
+  getMessages(max_count);
 }
 
 function getMessagesCallback(data) {
   var chat_div = document.getElementById('chatbox');
   var jsonObj = jQuery.parseJSON(data);
   for(i=0;i<jsonObj.output.messages.length;i++){
-    chat_div.innerHTML += 'message: ' + jsonObj.output.messages[i] + '<br />';
+    chat_div.innerHTML += 'message: ' + jsonObj.output.messages[i] + '<br/>';
   }
   $("#chatbox").scrollTop($("#chatbox")[0].scrollHeight);
 
@@ -98,27 +113,27 @@ function getMessagesCallback(data) {
   if(offset == total) {
     getMessages(1);
   } else{
-    getMessages(10);
+    getMessages(max_count);
   }
 }
 
 //Submits msg into dissent server API /session/send
-$("#submitmsg").click(function(){
+function submitMessage() {
   var clientmsg = $("#usermsg").val();
   $.post("session/send", clientmsg);
   $("#usermsg").attr("value", "");
   return false;
-});
+}
 
 //If user wants to end dissent chat
-$("#exit").click(function(){
+function clickExit() {
   var exit = confirm("Are you sure you want to end Dissent chat?");
   if(exit==true){
     window.opener=null;      
     window.open('','_self');      
     window.close();      
   }
-});
+}
 
 </script>
 </head>
@@ -131,7 +146,7 @@ $("#exit").click(function(){
     <div style="clear:both"></div>
 </div>
 
-<div id="chatbox" title="Dissent Chat">Welcome to Dissent Chat</div>
+<div id="chatbox" title="Dissent Chat"></div>
 
 <form name="message" action="">
     <input name="usermsg" type="String" id="usermsg" size="63" />
