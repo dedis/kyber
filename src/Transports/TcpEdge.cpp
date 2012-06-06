@@ -85,7 +85,10 @@ namespace Transports {
   void TcpEdge::OnStop()
   {
     Edge::OnStop();
-    _socket->disconnectFromHost();
+    // The following is somewhat dangerous but we do not have a clear definition of
+    // the effect on what a Stop call has on an Edge.
+    _socket->abort();
+//    _socket->disconnectFromHost();
   }
 
   void TcpEdge::HandleError(QAbstractSocket::SocketError)
