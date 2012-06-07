@@ -681,7 +681,10 @@ namespace Anonymity {
       return true;
     }
 
-    QPair<QByteArray, bool> pair = GetData(4096);
+    QPair<QByteArray, bool> pair = GetData(MAX_GET);
+    if(pair.first.size() > 0) {
+      qDebug() << "Found a message of" << pair.first.size();
+    }
     _state->next_msg = pair.first;
     _state->last_msg = QByteArray();
     return !_state->next_msg.isEmpty();
@@ -691,7 +694,7 @@ namespace Anonymity {
   {
     QByteArray msg = _state->next_msg;
     if(_state->read) {
-      QPair<QByteArray, bool> pair = GetData(4096);
+      QPair<QByteArray, bool> pair = GetData(MAX_GET);
       _state->last_msg = _state->next_msg;
       _state->next_msg = pair.first;
     } else {
@@ -908,6 +911,7 @@ namespace Anonymity {
         qDebug() << "Unable to verify message for peer at" << owner;
         next_msg_length += msg_length;
         next_msgs[owner] = msg_length;
+
         if(owner == _state->my_idx) {
           _state->read = false;
           _state->slot_open = true;

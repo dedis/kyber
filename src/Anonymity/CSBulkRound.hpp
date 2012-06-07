@@ -162,6 +162,8 @@ namespace Anonymity {
 
       static const float CLIENT_WINDOW_MULTIPLIER = 1.1;
 
+      static const int MAX_GET = 4096;
+
     protected:
       typedef Utils::Random Random;
 

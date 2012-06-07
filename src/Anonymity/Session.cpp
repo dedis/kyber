@@ -667,7 +667,7 @@ namespace Anonymity {
     int idx = 0;
     while(idx < _send_queue.count()) {
       if(max < _send_queue[idx].count()) {
-        qDebug() << "Messaging in queue is bigger than max data:" <<
+        qDebug() << "Message in queue is larger than max data:" <<
           _send_queue[idx].count() << "/" << max;
         idx++;
         continue;
