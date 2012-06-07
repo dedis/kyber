@@ -3,24 +3,25 @@
 import sys
 import httplib
 
-def main():
+def send(ip, port, msg):
+  conn = httplib.HTTPConnection(ip, port)
+  conn.request("POST", "/session/send", msg, {"Accept": "text/plain"})
+  return conn.getresponse()
 
+def main():
   if len(sys.argv) != 3:
-    sys.stderr.write("Usage: %s server port\n" % sys.argv[0])
+    sys.stderr.write("Usage: %s ip port\n" % sys.argv[0])
     return
 
-  server = sys.argv[1]
+  ip = sys.argv[1]
   port = int(sys.argv[2])
 
-  print "=== Using server %s:%d ===" % (server, port)
-  conn = httplib.HTTPConnection(server, port)
-  
+  print "=== Using server %s:%d ===" % (ip, port)
   print("Reading input from stdin...")
-  data = sys.stdin.readlines()
+  msg = sys.stdin.readlines()
 
-  conn.request("POST", "/session/send", "".join(data), {"Accept": "text/plain"})
+  resp = send(ip, port, "".join(msg))
 
-  resp = conn.getresponse()
   if resp.status == 200:
     print "OK!"
   else:
