@@ -16,38 +16,38 @@ namespace Applications {
     _reason()
   {
     Init();
-    QVariant peers = _settings.value("remote_peers");
+    QVariant peers = _settings.value(Param<Params::RemotePeers>());
     ParseUrlList("RemotePeer", peers, RemotePeers);
 
-    QVariant endpoints = _settings.value("endpoints");
+    QVariant endpoints = _settings.value(Param<Params::LocalEndPoints>());
     ParseUrlList("EndPoint", endpoints, LocalEndPoints);
 
-    DemoMode = _settings.value("demo_mode").toBool();
+    DemoMode = _settings.value(Param<Params::DemoMode>()).toBool();
 
-    if(_settings.contains("local_nodes")) {
-      LocalNodeCount = _settings.value("local_nodes").toInt();
+    if(_settings.contains(Param<Params::LocalNodeCount>())) {
+      LocalNodeCount = _settings.value(Param<Params::LocalNodeCount>()).toInt();
     }
 
-    Console = _settings.value("console").toBool();
-    WebServer = _settings.value("web_server").toBool();
-    EntryTunnel = _settings.value("entry_tunnel").toBool();
-    ExitTunnel = _settings.value("exit_tunnel").toBool();
-    Multithreading = _settings.value("multithreading").toBool();
+    Console = _settings.value(Param<Params::Console>()).toBool();
+    WebServer = _settings.value(Param<Params::WebServer>()).toBool();
+    EntryTunnel = _settings.value(Param<Params::EntryTunnel>()).toBool();
+    ExitTunnel = _settings.value(Param<Params::ExitTunnel>()).toBool();
+    Multithreading = _settings.value(Param<Params::Multithreading>()).toBool();
 
-    WebServerUrl = TryParseUrl(_settings.value("web_server_url").toString(), "http");
-    EntryTunnelUrl = TryParseUrl(_settings.value("entry_tunnel_url").toString(), "tcp");
+    WebServerUrl = TryParseUrl(_settings.value(Param<Params::WebServerUrl>()).toString(), "http");
+    EntryTunnelUrl = TryParseUrl(_settings.value(Param<Params::EntryTunnelUrl>()).toString(), "tcp");
 
-    if(_settings.contains("session_type")) {
-      SessionType = _settings.value("session_type").toString();
+    if(_settings.contains(Param<Params::SessionType>())) {
+      SessionType = _settings.value(Param<Params::SessionType>()).toString();
     }
 
-    if(_settings.contains("subgroup_policy")) {
-      QString ptype = _settings.value("subgroup_policy").toString();
+    if(_settings.contains(Param<Params::SubgroupPolicy>())) {
+      QString ptype = _settings.value(Param<Params::SubgroupPolicy>()).toString();
       SubgroupPolicy = Group::StringToPolicyType(ptype);
     }
 
-    if(_settings.contains("log")) {
-      Log = _settings.value("log").toString();
+    if(_settings.contains(Param<Params::Log>())) {
+      Log = _settings.value(Param<Params::Log>()).toString();
       QString lower = Log.toLower();
 
       if(actions) {
@@ -63,16 +63,16 @@ namespace Applications {
       }
     }
 
-    if(_settings.contains("local_id")) {
-      LocalId = Id(_settings.value("local_id").toString());
+    if(_settings.contains(Param<Params::LocalId>())) {
+      LocalId = Id(_settings.value(Param<Params::LocalId>()).toString());
     }
 
-    if(_settings.contains("leader_id")) {
-      LeaderId = Id(_settings.value("leader_id").toString());
+    if(_settings.contains(Param<Params::LeaderId>())) {
+      LeaderId = Id(_settings.value(Param<Params::LeaderId>()).toString());
     }
 
-    if(_settings.contains("super_peer")) {
-      SuperPeer = _settings.value("super_peer").toBool();
+    if(_settings.contains(Param<Params::SuperPeer>())) {
+      SuperPeer = _settings.value(Param<Params::SuperPeer>()).toBool();
     }
   }
 
@@ -120,13 +120,11 @@ namespace Applications {
     }
 
     if(LeaderId == Id::Zero()) {
-      qWarning() << "HERE?" << LeaderId.ToString();
       _reason = "No leader Id";
       return false;
     }
 
     if(SubgroupPolicy == -1) {
-      qWarning() << "HERE?!" << SubgroupPolicy;
       _reason = "Invalid subgroup policy";
       return false;
     }
@@ -193,7 +191,7 @@ namespace Applications {
     }
 
     if(!peers.empty()) {
-      _settings.setValue("remote_peers", peers);
+      _settings.setValue(Param<Params::RemotePeers>(), peers);
     }
 
     QStringList endpoints;
@@ -202,19 +200,19 @@ namespace Applications {
     }
 
     if(!endpoints.empty()) {
-      _settings.setValue("endpoints", endpoints);
+      _settings.setValue(Param<Params::LocalEndPoints>(), endpoints);
     }
 
-    _settings.setValue("local_nodes", LocalNodeCount);
-    _settings.setValue("web_server", WebServer);
-    _settings.setValue("web_server_url", WebServerUrl);
-    _settings.setValue("console", Console);
-    _settings.setValue("demo_mode", DemoMode);
-    _settings.setValue("log", Log);
-    _settings.setValue("multithreading", Multithreading);
-    _settings.setValue("local_id", LocalId.ToString());
-    _settings.setValue("leader_id", LeaderId.ToString());
-    _settings.setValue("subgroup_policy",
+    _settings.setValue(Param<Params::LocalNodeCount>(), LocalNodeCount);
+    _settings.setValue(Param<Params::WebServer>(), WebServer);
+    _settings.setValue(Param<Params::WebServerUrl>(), WebServerUrl);
+    _settings.setValue(Param<Params::Console>(), Console);
+    _settings.setValue(Param<Params::DemoMode>(), DemoMode);
+    _settings.setValue(Param<Params::Log>(), Log);
+    _settings.setValue(Param<Params::Multithreading>(), Multithreading);
+    _settings.setValue(Param<Params::LocalId>(), LocalId.ToString());
+    _settings.setValue(Param<Params::LeaderId>(), LeaderId.ToString());
+    _settings.setValue(Param<Params::SubgroupPolicy>(),
         Group::PolicyTypeToString(SubgroupPolicy));
   }
 }

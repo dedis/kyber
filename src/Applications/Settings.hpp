@@ -59,11 +59,6 @@ namespace Applications {
       QList<QUrl> LocalEndPoints;
 
       /**
-       * The amount of nodes required before constructing an anonymity session
-       */
-      int GroupSize;
-
-      /**
        * Amount of nodes to create locally
        */
       int LocalNodeCount;
@@ -137,6 +132,59 @@ namespace Applications {
        * SuperPeer capable?
        */
       bool SuperPeer;
+
+      static const char* CParam(int id)
+      {
+        static const char* params[] = {
+          "remote_peers",
+          "endpoints",
+          "local_nodes",
+          "demo_mode",
+          "session_type",
+          "log",
+          "console",
+          "web_server",
+          "web_server_url",
+          "entry_tunnel",
+          "entry_tunnel_url",
+          "exit_tunnel",
+          "multithreading",
+          "local_id",
+          "leader_id",
+          "subgroup_policy",
+          "super_peer"
+        };
+        return params[id];
+      }
+
+      class Params {
+        public:
+          enum OptionId {
+            RemotePeers = 0,
+            LocalEndPoints,
+            LocalNodeCount,
+            DemoMode,
+            SessionType,
+            Log,
+            Console,
+            WebServer,
+            WebServerUrl,
+            EntryTunnel,
+            EntryTunnelUrl,
+            ExitTunnel,
+            Multithreading,
+            LocalId,
+            LeaderId,
+            SubgroupPolicy,
+            SuperPeer
+          };
+      };
+
+      template<int OptionId> QString Param()
+      {
+        static QString param(CParam(OptionId));
+        return param;
+      }
 
     private:
       void Init();
