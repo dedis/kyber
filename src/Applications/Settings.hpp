@@ -5,6 +5,8 @@
 #include <QDebug>
 #include <QHostAddress>
 #include <QSettings>
+#include <QSharedPointer>
+#include <QxtCommandOptions>
 
 #include "Connections/Id.hpp"
 #include "Identity/Group.hpp"
@@ -27,6 +29,15 @@ namespace Applications {
        * the default (true) is the latter.
        */
       explicit Settings(const QString &file, bool actions = true);
+      
+      static Settings CommandLineParse(const QStringList &params,
+          bool actions = true);
+
+      static QString GetUsage()
+      {
+        static QSharedPointer<QxtCommandOptions> options = GetOptions();
+        return options->getUsage();
+      }
 
       /**
        * Create configuration in memory
@@ -180,20 +191,22 @@ namespace Applications {
           };
       };
 
-      template<int OptionId> QString Param()
+      template<int OptionId> static QString Param()
       {
         static QString param(CParam(OptionId));
         return param;
       }
 
     private:
-      void Init();
+      static QSharedPointer<QxtCommandOptions> GetOptions();
+      Settings(const QSharedPointer<QSettings> &settings, bool file, bool actions);
+      void Init(bool actions = false);
       void ParseUrlList(const QString &name, const QVariant &values, QList<QUrl> &list);
       void ParseUrl(const QString &name, const QVariant &value, QList<QUrl> &list);
       QUrl TryParseUrl(const QString &string_rep, const QString &scheme);
 
       bool _use_file;
-      QSettings _settings;
+      QSharedPointer<QSettings> _settings;
       QString _reason;
   };
 }

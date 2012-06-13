@@ -8,13 +8,14 @@ int main(int argc, char **argv)
   QCoreApplication qca(argc, argv);
   QStringList args = QCoreApplication::arguments();
 
-  if(args.count() < 2) {
-    qFatal(QString("Usage: " + args[0] + " settings.conf").toUtf8().constData());
-  }
-
-  Settings settings(args[1]);
+  Settings settings = Settings::CommandLineParse(args);
   if(!settings.IsValid()) {
-    qFatal(settings.GetError().toUtf8().constData());
+    QTextStream qtout(stdout, QIODevice::WriteOnly);
+    qtout << "usage: " << args[0] << "[options] [settings.conf]\n\n";
+    qtout << "options:\n";
+    qtout << Settings::GetUsage();
+    qtout << "\nerror: " << settings.GetError() << "\n\n";
+    return -1;
   }
 
   QList<Address> local;
@@ -143,7 +144,8 @@ int main(int argc, char **argv)
 
     tun_entry->Start();
   } else if(settings.ExitTunnel) {
-    tun_exit.reset(new ExitTunnel(nodes[0]->GetSessionManager(), nodes[0]->GetNetwork()));
+    tun_exit.reset(new ExitTunnel(nodes[0]->GetSessionManager(),
+          nodes[0]->GetNetwork()));
 
     QSharedPointer<SignalSink> signal_sink = app_sink.dynamicCast<SignalSink>();
     QObject::connect(signal_sink.data(), SIGNAL(IncomingData(const QByteArray&)),

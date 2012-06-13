@@ -5,15 +5,17 @@
 TEMPLATE = lib
 TARGET = dissent
 DEPENDPATH += 
-INCLUDEPATH += ext/joyent-http-parser/ ext/qt-json/ src/
+INCLUDEPATH += ext/joyent-http-parser/ ext/qt-json/ src/ ext/qxt
 CONFIG += qt debug
 QT = core network
-DEFINES += "VERSION=3" CSBR_CLOSE_SLOT
+DEFINES += "VERSION=3"
 
 # Input
 LIBS += -lcryptopp 
 HEADERS += ext/joyent-http-parser/http_parser.h \
            ext/qt-json/json.h \
+           ext/qxt/qxtcommandoptions.h \
+           ext/qxt/qxtglobal.h \
            src/Dissent.hpp \
            src/Anonymity/BaseBulkRound.hpp \
            src/Anonymity/BulkRound.hpp \
@@ -175,6 +177,7 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
 
 SOURCES += ext/joyent-http-parser/http_parser.c \
            ext/qt-json/json.cpp \
+           ext/qxt/qxtcommandoptions.cpp \
            src/Anonymity/BaseBulkRound.cpp \
            src/Anonymity/BulkRound.cpp \
            src/Anonymity/CSBulkRound.cpp \
