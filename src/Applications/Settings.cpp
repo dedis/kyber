@@ -298,7 +298,7 @@ namespace Applications {
         QxtCommandOptions::ValueRequired);
 
     options->add(Param<Params::Log>(),
-        "logging mechanism",
+        "logging mechanism: stderr, stdout, or a file path",
         QxtCommandOptions::ValueRequired);
 
     options->add(Param<Params::Console>(),
