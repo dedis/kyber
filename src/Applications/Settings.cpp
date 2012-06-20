@@ -112,12 +112,12 @@ namespace Applications {
     }
 
     if(WebServer && (!WebServerUrl.isValid() || WebServerUrl.isEmpty())) {
-      _reason = "Invalid WebServerUrl";
+      _reason = "Invalid WebServerUrl: " + WebServerUrl.toString();
       return false;
     }
 
     if(EntryTunnel && (!EntryTunnelUrl.isValid() || EntryTunnelUrl.isEmpty())) {
-      _reason = "Invalid WebServerUrl";
+      _reason = "Invalid EntryTunnelUrl: " + EntryTunnelUrl.toString();
       return false;
     }
 
@@ -237,16 +237,19 @@ namespace Applications {
       if(options->value(key).type() == QVariant::String &&
           options->value(key).toString().isEmpty())
       {
-       settings->setValue(key, true);
+        settings->setValue(key, true);
       } else {
         settings->setValue(key, options->value(key));
       }
     }
 
-    settings->setValue(Param<Params::WebServer>(),
-        options->count(Param<Params::WebServerUrl>()) == 1);
-    settings->setValue(Param<Params::EntryTunnel>(),
-        options->count(Param<Params::EntryTunnelUrl>()) == 1);
+    if(options->count(Param<Params::WebServerUrl>()) == 1) {
+      settings->setValue(Param<Params::WebServer>(), true);
+    }
+
+    if(options->count(Param<Params::EntryTunnelUrl>()) == 1) {
+      settings->setValue(Param<Params::EntryTunnel>(), true);
+    }
 
     return Settings(settings, file, actions);
   }
