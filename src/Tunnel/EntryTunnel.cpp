@@ -92,7 +92,7 @@ namespace Tunnel {
     qDebug() << "New SOCKS connection from" << socket->peerAddress() << ":" << socket->peerPort();
 
     if(!SessionIsOpen()) {
-      qDebug() << "Refuing SOCKS connection b/c no active session";
+      qDebug() << "Refusing SOCKS connection b/c no active session";
       socket->close();
       socket->deleteLater();
       return;
