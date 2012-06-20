@@ -63,6 +63,15 @@ namespace Connections {
       void AddEdgeListener(const QSharedPointer<EdgeListener> &el);
 
       /**
+       * Retrieves a registered EL by transport type
+       * @param type the transport type
+       */
+      QSharedPointer<EdgeListener> GetEdgeListener(const QString &type)
+      {
+        return _edge_factory.GetEdgeListener(type);
+      }
+
+      /**
        * Connect to the specified transport address
        * @param addr the transport address to connect to
        */
