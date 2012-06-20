@@ -9,12 +9,14 @@ int main(int argc, char **argv)
   QStringList args = QCoreApplication::arguments();
 
   Settings settings = Settings::CommandLineParse(args);
-  if(!settings.IsValid()) {
+  if(settings.Help || !settings.IsValid()) {
     QTextStream qtout(stdout, QIODevice::WriteOnly);
     qtout << "usage: " << args[0] << "[options] [settings.conf]\n\n";
     qtout << "options:\n";
-    qtout << Settings::GetUsage();
-    qtout << "\nerror: " << settings.GetError() << "\n\n";
+    qtout << Settings::GetUsage() << "\n";
+    if(!settings.Help) {
+      qtout << "error: " << settings.GetError() << "\n\n";
+    }
     return -1;
   }
 

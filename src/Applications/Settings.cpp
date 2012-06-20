@@ -30,6 +30,12 @@ namespace Applications {
 
   void Settings::Init(bool actions)
   {
+    if(_settings->value("help", false).toBool()) {
+      Help = true;
+      return;
+    }
+    Help = false;
+
     Console = false;
     EntryTunnel = false;
     ExitTunnel = false;
@@ -224,14 +230,23 @@ namespace Applications {
     options->parse(params);
     QSharedPointer<QSettings> settings;
     bool file = (options->positional().count() > 0);
+
     if(file) {
       settings = QSharedPointer<QSettings>(
           new QSettings(options->positional()[0], QSettings::IniFormat));
     } else {
       settings = QSharedPointer<QSettings>(new QSettings());
+      if(params.size() == 1) {
+        settings->setValue("help", true);
+      }
     }
 
     QMultiHash<QString, QVariant> kv_params = options->parameters();
+
+    if(kv_params.value("help", false).toBool() && file) {
+      file = false;
+      settings = QSharedPointer<QSettings>(new QSettings());
+    }
 
     foreach(const QString &key, kv_params.uniqueKeys()) {
       if(options->value(key).type() == QVariant::String &&
@@ -257,6 +272,11 @@ namespace Applications {
   QSharedPointer<QxtCommandOptions> Settings::GetOptions()
   {
     QSharedPointer<QxtCommandOptions> options(new QxtCommandOptions());
+
+    options->add(Param<Params::Help>(),
+        "help (this screen)",
+        QxtCommandOptions::NoValue);
+
     options->add(Param<Params::RemotePeers>(),
         "list of remote peers",
         QxtCommandOptions::ValueRequired | QxtCommandOptions::AllowMultiple);
