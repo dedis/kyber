@@ -103,6 +103,7 @@ namespace Messaging {
        * Register a callback into the specified object
        * @param name The string to match it with
        * @param obj with the method name
+       * @param method name of method
        */
       bool Register(const QString &name, const QObject *obj,
           const char *method);
