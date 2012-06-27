@@ -107,6 +107,17 @@ namespace Connections {
         return new EmptyNetwork(*this);
       }
 
+      /**
+       * Register a callback into the specified object
+       * @param name The string to match it with
+       * @param obj with the method name
+       * @param method name of method
+       */
+      virtual bool Register(const QString &, const QObject *, const char *)
+      {
+        return true;
+      }
+
     private:
       explicit EmptyNetwork() {}
       EmptyNetwork(const EmptyNetwork &) : Network() {}

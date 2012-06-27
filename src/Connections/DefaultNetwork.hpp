@@ -154,6 +154,18 @@ namespace Connections {
       }
 
       /**
+       * Register a callback into the specified object
+       * @param name The string to match it with
+       * @param obj with the method name
+       * @param method name of method
+       */
+      inline virtual bool Register(const QString &name, const QObject *obj,
+          const char *method)
+      {
+        return _rpc->Register(name, obj, method);
+      }
+
+      /**
        * Returns a copy
        */
       virtual Network *Clone() const { return new DefaultNetwork(*this); }

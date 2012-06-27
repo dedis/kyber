@@ -105,6 +105,15 @@ namespace Connections {
        * Returns a copy of this object
        */
       virtual Network *Clone() const = 0;
+
+      /**
+       * Register a callback into the specified object
+       * @param name The string to match it with
+       * @param obj with the method name
+       * @param method name of method
+       */
+      virtual bool Register(const QString &name, const QObject *obj,
+          const char *method) = 0;
   };
 }
 }
