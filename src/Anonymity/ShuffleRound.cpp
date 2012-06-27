@@ -628,7 +628,7 @@ using namespace ShuffleRoundPrivate;
   void ShuffleRound::Decrypt()
   {
     Decryptor *decryptor = new Decryptor(_state->private_inner_keys, _state->encrypted_data);
-    qDebug() << QObject::connect(decryptor,
+    QObject::connect(decryptor,
         SIGNAL(Finished(const QVector<QByteArray> &, const QVector<int> &)),
         this,
         SLOT(DecryptDone(const QVector<QByteArray> &, const QVector<int> &)), Qt::QueuedConnection);
