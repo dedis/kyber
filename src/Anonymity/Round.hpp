@@ -291,6 +291,12 @@ namespace Anonymity {
     return dbg.space();
   }
 
+  inline QDebug operator<<(QDebug dbg, const Round *round)
+  {
+    dbg.nospace() << round->ToString();
+    return dbg.space();
+  }
+
   typedef QSharedPointer<Round> (*CreateRound)(const Round::Group &,
       const Round::PrivateIdentity &, const Connections::Id &,
       QSharedPointer<Connections::Network>,
