@@ -3,8 +3,8 @@
 
 #include <QSharedPointer>
 
-#include "Anonymity/Session.hpp"
-#include "Anonymity/SessionManager.hpp"
+#include "Anonymity/Sessions/Session.hpp"
+#include "Anonymity/Sessions/SessionManager.hpp"
 
 #include "WebService.hpp"
 
@@ -16,8 +16,8 @@ namespace Services {
    */
   class SessionWebService : public WebService {
     public:
-      typedef Anonymity::Session Session;
-      typedef Anonymity::SessionManager SessionManager;
+      typedef Anonymity::Sessions::Session Session;
+      typedef Anonymity::Sessions::SessionManager SessionManager;
 
       explicit SessionWebService(SessionManager &sm) : _sm(sm) {}
 

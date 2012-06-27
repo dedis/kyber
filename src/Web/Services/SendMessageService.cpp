@@ -18,7 +18,7 @@ namespace Services {
       hash["id"] = "";
     } else {
       hash["active"] = true;
-      hash["id"] = session->GetId().ToString();
+      hash["id"] = session->GetSessionId().ToString();
 
       QByteArray bytes = wrp->GetRequest().GetBody().toUtf8();
       session->Send(bytes);

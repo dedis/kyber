@@ -1,4 +1,3 @@
-#include "Anonymity/Session.hpp"
 #include "GetMessagesService.hpp"
 
 namespace Dissent {

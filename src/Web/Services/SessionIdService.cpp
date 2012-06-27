@@ -18,7 +18,7 @@ namespace Services {
       hash["id"] = "";
     } else {
       hash["active"] = true;
-      hash["id"] = session->GetId().ToString();
+      hash["id"] = session->GetSessionId().ToString();
     }
 
     wrp->GetOutputData().setValue(hash);

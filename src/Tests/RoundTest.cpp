@@ -303,7 +303,7 @@ namespace Tests {
 
     qDebug() << "Node fully connected";
 
-    CreateSession(nodes.last(), group, session_id, callback);
+    callback(nodes.last(), group, session_id);
     SignalCounter ready;
     QObject::connect(nodes.last()->session.data(),
         SIGNAL(RoundStarting(const QSharedPointer<Round> &)),
@@ -408,7 +408,7 @@ namespace Tests {
       Group::SubgroupPolicy sg_policy, bool transient)
   {
     ConnectionManager::UseTimer = false;
-    Session::EnableLogOffMonitor = false;
+    SessionLeader::EnableLogOffMonitor = false;
     Timer::GetInstance().UseVirtualTime();
 
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
@@ -519,6 +519,8 @@ namespace Tests {
           SIGNAL(RoundStarting(const QSharedPointer<Round> &)),
           &round_start, SLOT(Counter()));
       RunUntil(round_start, 1);
+      qDebug() << "Reconnected";
+
       if(sc_data.GetCount() > 1) {
         count -= 1;
       }
@@ -548,7 +550,7 @@ namespace Tests {
 
     CleanUp(nodes);
     ConnectionManager::UseTimer = true;
-    Session::EnableLogOffMonitor = true;
+    SessionLeader::EnableLogOffMonitor = true;
   }
 
   void RoundTest_BadGuy(SessionCreator good_callback,
@@ -588,7 +590,7 @@ namespace Tests {
 
     qDebug() << "Bad guy at" << badguy << badid.ToString();
 
-    CreateSession(nodes[badguy], egroup, session_id, bad_callback);
+    bad_callback(nodes[badguy], egroup, session_id);
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
@@ -684,7 +686,7 @@ namespace Tests {
 
     qDebug() << "Bad guy at" << badguy << badid.ToString();
 
-    CreateSession(nodes[badguy], egroup, session_id, bad_callback);
+    bad_callback(nodes[badguy], egroup, session_id);
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
@@ -754,7 +756,7 @@ namespace Tests {
 
     qDebug() << "Bad guy at" << badguy << badid.ToString();
 
-    CreateSession(nodes[badguy], egroup, session_id, bad_callback);
+    bad_callback(nodes[badguy], egroup, session_id);
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());

@@ -14,7 +14,9 @@ namespace Messaging {
 }
 
 namespace Anonymity {
+namespace Sessions {
   class Session;
+  class SessionLeader;
 
   /**
    * Used to filter incoming messages across many sessions.
@@ -45,10 +47,18 @@ namespace Anonymity {
       virtual ~SessionManager();
 
       /**
-       * Adds a Session for the SessionManager to handle. Does not start the session.
+       * Adds a Session for the SessionManager to handle.
+       * Does not start the session.
        * @param session The session to be handled
        */
       void AddSession(const QSharedPointer<Session> &session);
+
+      /**
+       * Adds a SessionLeader for the SessionManager to handle.
+       * Does not start the SessionLeader.
+       * @param sl The SessionLeader to be handled
+       */
+      void AddSessionLeader(const QSharedPointer<SessionLeader> &sl);
 
       /**
        * Returns the session matched to the specified id
@@ -67,6 +77,13 @@ namespace Anonymity {
        */
       QSharedPointer<Session> GetDefaultSession();
 
+      /**
+       * Stops all internal Sessions and SessionLeaders and removes them
+       * from the tables.
+       * Can be called multiple times if future Sessions are added.
+       */
+      void Stop();
+
     private:
       /**
        * Returns the session associated with the Request
@@ -74,7 +91,14 @@ namespace Anonymity {
        */
       QSharedPointer<Session> GetSession(const Request &msg);
 
+      /**
+       * Returns the session leader associated with the Request
+       * @param msg a session leader based rpc request
+       */
+      QSharedPointer<SessionLeader> GetSessionLeader(const Request &msg);
+
       QHash<Id, QSharedPointer<Session> > _id_to_session;
+      QHash<Id, QSharedPointer<SessionLeader> > _id_to_session_leader;
       Id _default_session;
       bool _default_set;
       QSharedPointer<RpcHandler> _rpc;
@@ -84,6 +108,11 @@ namespace Anonymity {
        * Called when a session is stopped
        */
       void HandleSessionStop();
+
+      /**
+       * Called when a SessionLeader is stopped
+       */
+      void HandleSessionLeaderStop();
 
       /**
        * A remote peer is notifying a leader that a link was disconnected
@@ -115,6 +144,7 @@ namespace Anonymity {
        */
       void IncomingData(const Request &notification);
   };
+}
 }
 }
 

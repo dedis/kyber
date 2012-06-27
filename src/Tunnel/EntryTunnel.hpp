@@ -6,8 +6,8 @@
 #include <QTcpServer>
 #include <QUrl>
 
-#include "Anonymity/Session.hpp"
-#include "Anonymity/SessionManager.hpp"
+#include "Anonymity/Sessions/Session.hpp"
+#include "Anonymity/Sessions/SessionManager.hpp"
 
 #include "Messaging/RpcHandler.hpp"
 #include "Messaging/RequestHandler.hpp"
@@ -37,8 +37,8 @@ namespace Tunnel {
     Q_OBJECT
 
     public:
-      typedef Dissent::Anonymity::Session Session;
-      typedef Dissent::Anonymity::SessionManager SessionManager;
+      typedef Dissent::Anonymity::Sessions::Session Session;
+      typedef Dissent::Anonymity::Sessions::SessionManager SessionManager;
       typedef Dissent::Messaging::RpcHandler RpcHandler;
       typedef Dissent::Messaging::Request Request;
       typedef Dissent::Messaging::RequestHandler RequestHandler;

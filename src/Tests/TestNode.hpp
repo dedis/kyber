@@ -66,6 +66,11 @@ namespace Tests {
       QSharedPointer<Session> operator()(TestNode *node, const Group &group,
           const Id &session_id)
       {
+        if(node->session != 0) {
+          node->session->Stop();
+          node->session.clear();
+        }
+
         QSharedPointer<GroupHolder> gh(new GroupHolder(group));
         if(group.GetSubgroupPolicy() == Group::ManagedSubgroup) {
           node->net = QSharedPointer<Network>(new CSNetwork(node->cm, node->rpc, gh));
@@ -74,6 +79,19 @@ namespace Tests {
         QSharedPointer<Session> session(new Session(gh, node->ident,
               session_id, node->net, _create_round));
         session->SetSharedPointer(session);
+
+        node->session = session;
+        session->SetSink(&node->sink);
+        node->sm.AddSession(node->session);
+        QObject::connect(session.data(), SIGNAL(RoundFinished(QSharedPointer<Round>)),
+            node, SLOT(HandleRoundFinished(QSharedPointer<Round>)));
+
+        if(node->ident.GetLocalId() == group.GetLeader()) {
+          QSharedPointer<SessionLeader> sl(new SessionLeader(
+                group, node->ident, node->net, session));
+          node->sm.AddSessionLeader(sl);
+          sl->Start();
+        }
         return session;
       }
 
@@ -83,9 +101,6 @@ namespace Tests {
 
   void CreateSessions(const QVector<TestNode *> &nodes, const Group &group,
       const Id &session_id, SessionCreator callback);
-
-  void CreateSession(TestNode *node, const Group &group, const Id &session_id,
-      SessionCreator callback);
 
   void CleanUp(const QVector<TestNode *> &nodes);
 }

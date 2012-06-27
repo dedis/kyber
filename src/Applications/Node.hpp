@@ -1,7 +1,7 @@
 #ifndef DISSENT_APPLICATIONS_BASE_NODE_H_GUARD
 #define DISSENT_APPLICATIONS_BASE_NODE_H_GUARD
 
-#include "Anonymity/SessionManager.hpp"
+#include "Anonymity/Sessions/SessionManager.hpp"
 #include "Identity/PrivateIdentity.hpp"
 #include "Identity/Group.hpp"
 #include "Identity/GroupHolder.hpp"
@@ -20,7 +20,7 @@ namespace Applications {
       typedef Identity::PrivateIdentity PrivateIdentity;
       typedef Identity::Group Group;
       typedef Identity::GroupHolder GroupHolder;
-      typedef Anonymity::SessionManager SessionManager;
+      typedef Anonymity::Sessions::SessionManager SessionManager;
       typedef Connections::Connection Connection;
       typedef Connections::Network Network;
       typedef Messaging::ISink ISink;

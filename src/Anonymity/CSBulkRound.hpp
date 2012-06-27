@@ -160,7 +160,7 @@ namespace Anonymity {
 
       static const float CLIENT_PERCENTAGE = .95;
 
-      static const float CLIENT_WINDOW_MULTIPLIER = 1.1;
+      static const float CLIENT_WINDOW_MULTIPLIER = 2.0;
 
       static const int MAX_GET = 4096;
 

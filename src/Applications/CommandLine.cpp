@@ -1,12 +1,12 @@
 #include <unistd.h>
 #include <qcoreapplication.h>
 
-#include "Anonymity/Session.hpp"
+#include "Anonymity/Sessions/Session.hpp"
 
 #include "CommandLine.hpp"
 #include "Node.hpp"
 
-using Dissent::Anonymity::Session;
+using Dissent::Anonymity::Sessions::Session;
 
 namespace Dissent {
 namespace Applications {

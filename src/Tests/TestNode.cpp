@@ -123,31 +123,14 @@ namespace Tests {
       const Id &session_id, SessionCreator callback)
   {
     for(int idx = 0; idx < nodes.count(); idx++) {
-      CreateSession(nodes[idx], group, session_id, callback);
+      callback(nodes[idx], group, session_id);
     }
-  }
-
-  void CreateSession(TestNode * node, const Group &group, const Id &session_id,
-      SessionCreator callback)
-  {
-    if(node->session != 0) {
-      node->session->Stop();
-      node->session.clear();
-    }
-    QSharedPointer<Session> session(callback(node, group, session_id));
-    node->session = session;
-    session->SetSink(&node->sink);
-    node->sm.AddSession(node->session);
-    QObject::connect(session.data(), SIGNAL(RoundFinished(QSharedPointer<Round>)),
-        node, SLOT(HandleRoundFinished(QSharedPointer<Round>)));
   }
 
   void CleanUp(const QVector<TestNode *> &nodes)
   {
     for(int idx = 0; idx < nodes.count(); idx++) {
-      if(!nodes[idx]->session.isNull()) {
-        nodes[idx]->session->Stop();
-      }
+      nodes[idx]->sm.Stop();
       nodes[idx]->cm->Stop();
     }
 

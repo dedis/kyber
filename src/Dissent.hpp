@@ -11,8 +11,9 @@
 #include "Anonymity/RepeatingBulkRound.hpp"
 #include "Anonymity/Round.hpp"
 #include "Anonymity/RoundStateMachine.hpp"
-#include "Anonymity/Session.hpp"
-#include "Anonymity/SessionManager.hpp"
+#include "Anonymity/Sessions/Session.hpp"
+#include "Anonymity/Sessions/SessionLeader.hpp"
+#include "Anonymity/Sessions/SessionManager.hpp"
 #include "Anonymity/ShuffleBlamer.hpp"
 #include "Anonymity/ShuffleRound.hpp"
 #include "Anonymity/ShuffleRoundBlame.hpp"
@@ -170,6 +171,7 @@
 #include "Web/Services/WebService.hpp"
 
 using namespace Dissent::Anonymity;
+using namespace Dissent::Anonymity::Sessions;
 using namespace Dissent::Anonymity::Tolerant;
 using namespace Dissent::Applications;
 using namespace Dissent::ClientServer;

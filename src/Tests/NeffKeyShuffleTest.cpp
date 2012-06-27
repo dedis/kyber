@@ -70,7 +70,7 @@ namespace Tests {
     Group::SubgroupPolicy sg_policy = Group::ManagedSubgroup;
 
     ConnectionManager::UseTimer = false;
-    Session::EnableLogOffMonitor = false;
+    SessionLeader::EnableLogOffMonitor = false;
     Timer::GetInstance().UseVirtualTime();
 
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
@@ -171,7 +171,7 @@ namespace Tests {
 
     qDebug() << "Shut down";
     ConnectionManager::UseTimer = true;
-    Session::EnableLogOffMonitor = true;
+    SessionLeader::EnableLogOffMonitor = true;
   }
 }
 }

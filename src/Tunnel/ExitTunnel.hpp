@@ -13,8 +13,8 @@
 #include <QUrl>
 #include <QVariant>
 
-#include "Anonymity/Session.hpp"
-#include "Anonymity/SessionManager.hpp"
+#include "Anonymity/Sessions/Session.hpp"
+#include "Anonymity/Sessions/SessionManager.hpp"
 #include "Tunnel/TunnelConnectionTable.hpp"
 #include "Tunnel/Packets/Packet.hpp"
 
@@ -47,8 +47,8 @@ namespace Tunnel {
        */
       static const int UdpSocketTimeout = 30000;
 
-      typedef Dissent::Anonymity::Session Session;
-      typedef Dissent::Anonymity::SessionManager SessionManager;
+      typedef Dissent::Anonymity::Sessions::Session Session;
+      typedef Dissent::Anonymity::Sessions::SessionManager SessionManager;
       typedef Dissent::Connections::Network Network;
       typedef Dissent::Tunnel::Packets::Packet Packet;
 

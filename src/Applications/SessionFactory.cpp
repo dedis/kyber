@@ -5,7 +5,8 @@
 #include "Anonymity/NeffKeyShuffle.hpp"
 #include "Anonymity/NullRound.hpp"
 #include "Anonymity/Round.hpp"
-#include "Anonymity/Session.hpp"
+#include "Anonymity/Sessions/Session.hpp"
+#include "Anonymity/Sessions/SessionLeader.hpp"
 #include "Anonymity/ShuffleRound.hpp"
 #include "Anonymity/Tolerant/TolerantBulkRound.hpp"
 #include "Connections/ConnectionManager.hpp"
@@ -21,7 +22,8 @@ using Dissent::Anonymity::NeffKeyShuffle;
 using Dissent::Anonymity::NullRound;
 using Dissent::Anonymity::RepeatingBulkRound;
 using Dissent::Anonymity::Tolerant::TolerantBulkRound;
-using Dissent::Anonymity::Session;
+using Dissent::Anonymity::Sessions::Session;
+using Dissent::Anonymity::Sessions::SessionLeader;
 using Dissent::Anonymity::ShuffleRound;
 using Dissent::Anonymity::TCreateBulkRound;
 using Dissent::Anonymity::TCreateRound;
@@ -115,7 +117,17 @@ namespace Applications {
     node->GetSessionManager().AddSession(psession);
 
     psession->SetSink(node->GetSink().data());
-    psession->Start();
+    if(node->GetPrivateIdentity().GetLocalId() ==
+        node->GetGroupHolder()->GetGroup().GetLeader())
+    {
+      QSharedPointer<SessionLeader> sl(new SessionLeader(
+            node->GetGroupHolder()->GetGroup(), node->GetPrivateIdentity(),
+            node->GetNetwork(), psession));
+      node->GetSessionManager().AddSessionLeader(sl);
+      sl->Start();
+    } else {
+      psession->Start();
+    }
   }
 }
 }

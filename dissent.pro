@@ -27,8 +27,9 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Anonymity/RepeatingBulkRound.hpp \
            src/Anonymity/Round.hpp \
            src/Anonymity/RoundStateMachine.hpp \
-           src/Anonymity/Session.hpp \
-           src/Anonymity/SessionManager.hpp \
+           src/Anonymity/Sessions/Session.hpp \
+           src/Anonymity/Sessions/SessionLeader.hpp \
+           src/Anonymity/Sessions/SessionManager.hpp \
            src/Anonymity/ShuffleBlamer.hpp \
            src/Anonymity/ShuffleRound.hpp \
            src/Anonymity/ShuffleRoundBlame.hpp \
@@ -187,8 +188,9 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Anonymity/NullRound.cpp \
            src/Anonymity/RepeatingBulkRound.cpp \
            src/Anonymity/Round.cpp \
-           src/Anonymity/Session.cpp \
-           src/Anonymity/SessionManager.cpp \
+           src/Anonymity/Sessions/Session.cpp \
+           src/Anonymity/Sessions/SessionLeader.cpp \
+           src/Anonymity/Sessions/SessionManager.cpp \
            src/Anonymity/ShuffleBlamer.cpp \
            src/Anonymity/ShuffleRound.cpp \
            src/Anonymity/ShuffleRoundBlame.cpp \
