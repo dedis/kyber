@@ -589,6 +589,7 @@ namespace Tests {
     }
 
     qDebug() << "Bad guy at" << badguy << badid.ToString();
+    qDebug() << "Leader at" << leader << group.GetLeader();
 
     bad_callback(nodes[badguy], egroup, session_id);
 
@@ -599,19 +600,18 @@ namespace Tests {
     rand->GenerateBlock(msg);
     nodes[sender]->session->Send(msg);
 
+    RoundCollector rc;
     SignalCounter sc;
     for(int idx = 0; idx < count; idx++) {
+      QObject::connect(nodes[idx]->session.data(), SIGNAL(RoundFinished(const QSharedPointer<Round> &)),
+          &rc, SLOT(RoundFinished(const QSharedPointer<Round> &)));
       QObject::connect(&nodes[idx]->sink, SIGNAL(DataReceived()),
           &sc, SLOT(Counter()));
       nodes[idx]->session->Start();
     }
 
     count -= 1;
-    qint64 next = Timer::GetInstance().VirtualRun();
-    while(next != -1 && sc.GetCount() < count) {
-      Time::GetInstance().IncrementVirtualClock(next);
-      next = Timer::GetInstance().VirtualRun();
-    }
+    RunUntil(sc, count);
 
     if(!cb(nodes[badguy]->session->GetCurrentRound().data())) {
       std::cout << "RoundTest_BadGuy was never triggered, "
@@ -619,16 +619,17 @@ namespace Tests {
     } else {
       for(int idx = 0; idx < nodes.size(); idx++) {
         TestNode *node = nodes[idx];
+
+        QSharedPointer<Round> round = rc.rounds[idx];
+        EXPECT_EQ(1, round->GetBadMembers().size());
+        if(round->GetBadMembers().size() == 1) {
+          EXPECT_EQ(badguy, round->GetBadMembers()[0]);
+        }
+
         if(idx == badguy) {
-          QSharedPointer<Round> round = node->session->GetCurrentRound();
-          EXPECT_EQ(1, round->GetBadMembers().size());
-          if(round->GetBadMembers().size() == 1) {
-            EXPECT_EQ(badguy, round->GetBadMembers()[0]);
-          }
           continue;
         }
 
-        QSharedPointer<Round> pr = node->session->GetCurrentRound();
         EXPECT_FALSE(node->session->GetGroup().Contains(badid));
         EXPECT_TRUE(node->sink.Count() == 1);
         if(node->sink.Count() == 1) {
