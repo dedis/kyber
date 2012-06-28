@@ -84,15 +84,22 @@ namespace Tests {
     int leader = group.GetIndex(group.GetLeader());
     int disconnector = Random::GetInstance().GetInt(0, count);
     if(sg_policy == Group::ManagedSubgroup) {
-      while(nodes[disconnector]->ident.GetSuperPeer()) {
+      while(leader == disconnector ||
+          nodes[disconnector]->ident.GetSuperPeer())
+      {
+        disconnector = Random::GetInstance().GetInt(0, count);
+      }
+    } else {
+      while(leader == disconnector) {
         disconnector = Random::GetInstance().GetInt(0, count);
       }
     }
-    while(leader == disconnector) {
-      disconnector = Random::GetInstance().GetInt(0, count);
-    }
 
-    SignalCounter sc;
+    qDebug() << "Node count" << nodes.size();
+    qDebug() << "Leader" << group.GetLeader();
+    qDebug() << "Disconnector" << nodes[disconnector]->ident.GetLocalId();
+
+    SignalCounter sc, src;
     RoundCollector rc;
     foreach(TestNode *node, nodes) {
       QObject::connect(node->session.data(),
@@ -100,7 +107,7 @@ namespace Tests {
           &sc, SLOT(Counter()));
       QObject::connect(node->session.data(),
           SIGNAL(RoundFinished(const QSharedPointer<Round> &)),
-          &sc, SLOT(Counter()));
+          &src, SLOT(Counter()));
       QObject::connect(node->session.data(),
           SIGNAL(RoundFinished(const QSharedPointer<Round> &)),
           &rc, SLOT(RoundFinished(const QSharedPointer<Round> &)));
@@ -109,6 +116,8 @@ namespace Tests {
 
     RunUntil(sc, nodes.count());
     sc.Reset();
+
+    qDebug() << "Init done";
 
     // XXX This needs to be improved, but what we are doing is issuing a
     // disconnect approximately 1 to count steps into the Round
@@ -128,7 +137,6 @@ namespace Tests {
 
     qDebug() << "Disconnecting";
 
-    rc.rounds.clear();
     nodes[disconnector]->cm->Stop();
     count -= 1;
 
@@ -140,7 +148,8 @@ namespace Tests {
       ASSERT_TRUE(false);
     }
 
-    RunUntil(sc, nodes.count());
+    RunUntil(src, nodes.count());
+    qDebug() << "Finished";
     CleanUp(nodes);
 
     ASSERT_EQ(rc.rounds.count(), nodes.count());
@@ -149,7 +158,7 @@ namespace Tests {
     ASSERT_TRUE(tkfs);
 
     QVector<QSharedPointer<AsymmetricKey> > keys = tkfs->GetAnonymizedKeys();
-    if((keys.count() != nodes.count()) || (keys.count() != nodes.count() - 1)) {
+    if((keys.count() != nodes.count()) && (keys.count() != nodes.count() - 1)) {
       ASSERT_EQ(keys.count(), nodes.count());
     }
 
