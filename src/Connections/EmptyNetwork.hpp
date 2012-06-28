@@ -95,6 +95,13 @@ namespace Connections {
       /**
        * Does nothing
        */
+      virtual void Broadcast(const QString &, const QVariant &)
+      {
+      }
+
+      /**
+       * Does nothing
+       */
       virtual void Send(const Id &, const QByteArray &)
       {
       }
@@ -108,14 +115,17 @@ namespace Connections {
       }
 
       /**
-       * Register a callback into the specified object
-       * @param name The string to match it with
-       * @param obj with the method name
-       * @param method name of method
+       * Does nothing
        */
       virtual bool Register(const QString &, const QObject *, const char *)
       {
         return true;
+      }
+
+      virtual ConnectionTable &GetConnectionTable() const
+      {
+        static ConnectionTable ct;
+        return ct;
       }
 
     private:

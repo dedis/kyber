@@ -82,6 +82,11 @@ namespace Connections {
         return _cm;
       }
 
+      virtual ConnectionTable &GetConnectionTable() const
+      {
+        return _cm->GetConnectionTable();
+      }
+
       /**
        * Send a notification
        * @param id the destination for the request
@@ -150,6 +155,20 @@ namespace Connections {
             _cm->GetConnectionTable().GetConnections())
         {
           Send(con, data);
+        }
+      }
+
+      /**
+       * Send a notification to all group members
+       * @param method The Rpc to call
+       * @param data Data to be sent to all members
+       */
+      inline virtual void Broadcast(const QString &method, const QVariant &data)
+      {
+        foreach(const QSharedPointer<Connection> &con,
+            _cm->GetConnectionTable().GetConnections())
+        {
+          _rpc->SendNotification(con, method, data);
         }
       }
 

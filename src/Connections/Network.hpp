@@ -65,6 +65,11 @@ namespace Connections {
       virtual QSharedPointer<ConnectionManager> GetConnectionManager() const = 0;
 
       /**
+       * Returns the ConnectionTable related to the internal connection manager
+       */
+      virtual ConnectionTable &GetConnectionTable() const = 0;
+
+      /**
        * Send a notification
        * @param id the destination for the request
        * @param method the remote method
@@ -93,6 +98,13 @@ namespace Connections {
        * @param data Data to be sent to all peers
        */
       virtual void Broadcast(const QByteArray &data) = 0;
+
+      /**
+       * Send a notification to all group members
+       * @param method The Rpc to call
+       * @param data Data to be sent to all members
+       */
+      virtual void Broadcast(const QString &method, const QVariant &data) = 0;
 
       /**
        * Send a message to a specific group member

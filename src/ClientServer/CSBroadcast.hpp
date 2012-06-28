@@ -41,6 +41,13 @@ namespace ClientServer {
        */
       virtual ~CSBroadcast();
 
+      /**
+       * Send a notification to all group members
+       * @param method The Rpc to call
+       * @param data Data to be sent to all members
+       */
+      void Broadcast(const QString &method, const QVariant &data);
+
     private:
       inline QSharedPointer<ISender> GetSender(const Id &to)
       {

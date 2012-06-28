@@ -92,6 +92,13 @@ namespace ClientServer {
       virtual void Broadcast(const QByteArray &data);
 
       /**
+       * Send a notification to all group members
+       * @param method The Rpc to call
+       * @param data Data to be sent to all members
+       */
+      virtual void Broadcast(const QString &method, const QVariant &data);
+
+      /**
        * Returns a copy
        */
       virtual Network *Clone() const

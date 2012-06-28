@@ -26,11 +26,29 @@ namespace ClientServer {
     _rpc->Unregister("CS::Broadcast");
   }
 
+  void CSBroadcast::Broadcast(const QString &method, const QVariant &data)
+  {
+    QVariantList msg;
+    msg.append(_cm->GetId().GetByteArray());
+    msg.append(method);
+    msg.append(data);
+
+    foreach(const QSharedPointer<Connection> &con,
+        _cm->GetConnectionTable().GetConnections())
+    {
+      if(!_group_holder->GetGroup().Contains(con->GetRemoteId())) {
+        continue;
+      }
+
+      _rpc->SendNotification(con, "CS::Broadcast", msg);
+    }
+  }
+
   void CSBroadcast::BroadcastHelper(const Request &notification)
   {
     QVariantList msg = notification.GetData().toList();
     if(msg.size() != 3) {
-      qDebug() << "Received a bad CS::Broadcast message";
+      qDebug() << "Received a bad CS::Broadcast message:" << msg;
       return;
     }
 
@@ -41,7 +59,7 @@ namespace ClientServer {
 
     QString method = msg[1].toString();
     if(method.isEmpty()) {
-      qDebug() << "REceived a broadcast message without a method.";
+      qDebug() << "Received a broadcast message without a method.";
       return;
     }
 
@@ -53,6 +71,7 @@ namespace ClientServer {
 
     QSharedPointer<IOverlaySender> from =
       notification.GetFrom().dynamicCast<IOverlaySender>();
+
     if(!from) {
       qDebug() << "Received a forwarded broadcast message from a" <<
        "non-ioverlay source" << notification.GetFrom()->ToString();
@@ -61,11 +80,15 @@ namespace ClientServer {
 
     QVariantList fwded_msg = Request::BuildNotification(
         notification.GetId(), method, data);
+    _rpc->HandleData(GetSender(source), fwded_msg);
 
     Id local_id = _cm->GetId();
-    if(!_group_holder->GetGroup().GetSubgroup().Contains(local_id)) {
-      // Not a server, push message and end
-      _rpc->HandleData(GetSender(source), fwded_msg);
+    
+    if(local_id == source) {
+      // Sent by us
+      return;
+    } else if(!_group_holder->GetGroup().GetSubgroup().Contains(local_id)) {
+      // Not a server end
       return;
     }
 
@@ -103,8 +126,6 @@ namespace ClientServer {
         _rpc->SendNotification(con, "CS::Broadcast", msg);
       }
     }
-
-    _rpc->HandleData(GetSender(source), fwded_msg);
   }
 }
 }

@@ -23,22 +23,14 @@ namespace ClientServer {
 
   void CSNetwork::Broadcast(const QByteArray &data)
   {
-    QVariantList msg;
-    msg.append(GetConnectionManager()->GetId().GetByteArray());
-    msg.append(GetMethod());
     QVariantHash packet(GetHeaders());
     packet["data"] = data;
-    msg.append(packet);
+    Broadcast(GetMethod(), packet);
+  }
 
-    foreach(const QSharedPointer<Connection> &con,
-        GetConnectionManager()->GetConnectionTable().GetConnections())
-    {
-      if(!_group_holder->GetGroup().Contains(con->GetRemoteId())) {
-        continue;
-      }
-
-      GetRpcHandler()->SendNotification(con, "CS::Broadcast", msg);
-    }
+  void CSNetwork::Broadcast(const QString &method, const QVariant &data)
+  {
+    _broadcaster->Broadcast(method, data);
   }
 }
 }
