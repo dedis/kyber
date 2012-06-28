@@ -103,7 +103,7 @@ namespace Sessions {
 
       static const int MinimumRoundSize = 3;
 
-      const GroupHolder &GetGroupHolder();
+      const QSharedPointer<GroupHolder> &GetGroupHolder() { return _group_holder; }
 
       /**
        * Returns true if the group is formed well enough to start the round
@@ -155,7 +155,7 @@ namespace Sessions {
        * From the SessionManager, pass in a ReceiveReady
        * @param request The request from the leader
        */
-      void HandlePrepare(const Request &request);
+      void HandlePrepare(const Request &notification);
 
       /**
        * From the SessionManager, pass in a Begin message from the Session
@@ -243,7 +243,7 @@ namespace Sessions {
       QSharedPointer<Round> _current_round;
       QSharedPointer<ResponseHandler> _registered;
       GetDataCallback _get_data_cb;
-      Request _prepare_request;
+      Request _prepare_notification;
       bool _prepare_waiting;
       int _trim_send_queue;
       bool _registering;

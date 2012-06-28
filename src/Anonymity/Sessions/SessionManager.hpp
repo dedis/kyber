@@ -128,9 +128,15 @@ namespace Sessions {
 
       /**
        * A remote peer is notifying this peer it is ready for the next round
-       * @param request a request to be informed when to start
+       * @param notification information about the next round
        */
-      void HandlePrepare(const Request &request);
+      void HandlePrepare(const Request &notification);
+
+      /**
+       * The peer is notifying the leader it is ready
+       * @param notification ready to start
+       */
+      void HandlePrepared(const Request &notification);
       
       /**
        * Leader is ready to start the session

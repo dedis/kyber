@@ -21,6 +21,7 @@ namespace Sessions {
   {
     _rpc->Register("SM::Register", this, "HandleRegister");
     _rpc->Register("SM::Prepare", this, "HandlePrepare");
+    _rpc->Register("SM::Prepared", this, "HandlePrepared");
     _rpc->Register("SM::Begin", this, "HandleBegin");
     _rpc->Register("SM::Data", this, "IncomingData");
     _rpc->Register("SM::Disconnect", this, "LinkDisconnect");
@@ -30,6 +31,7 @@ namespace Sessions {
   {
     _rpc->Unregister("SM::Register");
     _rpc->Unregister("SM::Prepare");
+    _rpc->Unregister("SM::Prepared");
     _rpc->Unregister("SM::Begin");
     _rpc->Unregister("SM::Data");
     _rpc->Unregister("SM::Disconnect");
@@ -92,8 +94,14 @@ namespace Sessions {
     QSharedPointer<Session> session = GetSession(request);
     if(session) {
       session->HandlePrepare(request);
-    } else {
-      request.Failed(Response::InvalidInput, "No such session");
+    }
+  }
+
+  void SessionManager::HandlePrepared(const Request &notification)
+  {
+    QSharedPointer<SessionLeader> sl = GetSessionLeader(notification);
+    if(sl) {
+      sl->HandlePrepared(notification);
     }
   }
 
@@ -117,7 +125,7 @@ namespace Sessions {
   {
     QByteArray bid = msg.GetData().toHash().value("session_id").toByteArray();
     if(bid.isEmpty()) {
-      qWarning() << "Received a wayward session message from " <<
+      qWarning() << "Received a wayward session (NULL) message from " <<
         msg.GetFrom()->ToString();
       return QSharedPointer<Session>();
     }
@@ -136,7 +144,7 @@ namespace Sessions {
   {
     QByteArray bid = msg.GetData().toHash().value("session_id").toByteArray();
     if(bid.isEmpty()) {
-      qWarning() << "Received a wayward session leader message from" <<
+      qWarning() << "Received a wayward session leader (NULL) message from" <<
         msg.GetFrom()->ToString();
       return QSharedPointer<SessionLeader>();
     }
@@ -145,8 +153,8 @@ namespace Sessions {
     if(_id_to_session_leader.contains(id)) {
       return _id_to_session_leader[id];
     } else {
-      qWarning() << "Received a wayward session message for session leader" <<
-        id.ToString() << " from " << msg.GetFrom()->ToString();
+      qWarning() << "Received a wayward session leader (" << id <<
+        ") from " << msg.GetFrom()->ToString();
       return QSharedPointer<SessionLeader>();
     }
   }

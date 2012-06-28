@@ -32,7 +32,6 @@ namespace Crypto {
 
 namespace Messaging {
   class Response;
-  class ResponseHandler;
 }
 
 namespace Anonymity {
@@ -62,7 +61,6 @@ namespace Sessions {
       typedef Messaging::ISender ISender;
       typedef Messaging::Request Request;
       typedef Messaging::Response Response;
-      typedef Messaging::ResponseHandler ResponseHandler;
       typedef Messaging::GetDataMethod<SessionLeader> GetDataCallback;
 
       /**
@@ -170,6 +168,10 @@ namespace Sessions {
        */
       void HandleRegister(const Request &request);
 
+      /**
+       * Response to a prepare
+       */
+      void HandlePrepared(const Request &notification);
     protected:
       /**
        * Called when the session is started
@@ -239,19 +241,12 @@ namespace Sessions {
       Utils::TimerEvent _prepare_event;
       Utils::TimerEvent _check_log_off_event;
       QHash<Id, Id> _registered_peers;
-      QSharedPointer<ResponseHandler> _prepared;
       QList<Id> _prepared_peers;
       QHash<Id, Id> _unprepared_peers;
-      QSharedPointer<ResponseHandler> _registered;
       int _round_idx;
       QHash <Id, qint64> _log_off_time;
 
     private slots:
-      /**
-       * Response to a prepare
-       */
-      void Prepared(const Response &response);
-
       /**
        * Called when a new connection is created
        * @param con the new connection

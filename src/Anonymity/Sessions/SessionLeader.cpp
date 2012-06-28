@@ -25,10 +25,10 @@ namespace Sessions {
     _ident(ident),
     _network(network),
     _session(session),
-    _prepared(new ResponseHandler(this, "Prepared")),
     _round_idx(0)
   {
 #ifdef NO_SESSION_MANAGER
+    _network->Register("SM::Prepared", this, "HandlePrepared");
     _network->Register("SM::Register", this, "HandleRegister");
     _network->Register("SM::Disconnect", this, "LinkDisconnect");
 #endif
@@ -196,33 +196,36 @@ namespace Sessions {
 
     _prepared_peers.clear();
     _unprepared_peers = _registered_peers;
-    foreach(const Id &id, _registered_peers) {
-      _network->SendRequest(id, "SM::Prepare", msg, _prepared);
-    }
+
+    ///@todo replace the group holder for this network
+    ///with a group holder related to the leaders group
+    _session->GetGroupHolder()->UpdateGroup(group);
+
+    _network->Broadcast("SM::Prepare", msg);
 
     return true;
   }
 
-  void SessionLeader::Prepared(const Response &response)
+  void SessionLeader::HandlePrepared(const Request &notification)
   {
     QSharedPointer<Connections::IOverlaySender> sender =
-      response.GetFrom().dynamicCast<Connections::IOverlaySender>();
+      notification.GetFrom().dynamicCast<Connections::IOverlaySender>();
 
     if(!sender) {
       qWarning() << "Received a prepared message from a non-IOverlaySender:" <<
-        response.GetFrom()->ToString();
+        notification.GetFrom()->ToString();
       return;
     } else if(!GetGroup().Contains(sender->GetRemoteId())) {
       qWarning() << "Received a prepared message from a non-group member:" <<
-        response.GetFrom()->ToString();
+        notification.GetFrom()->ToString();
       return;
     }
 
     Q_ASSERT(GetCurrentRound());
-    Id round_id(response.GetData().toByteArray());
+    Id round_id(notification.GetData().toHash().value("round_id").toByteArray());
     if(GetCurrentRound()->GetRoundId() != round_id) {
       qDebug() << "Received a prepared message from the wrong round.  RoundId:" <<
-        round_id << "from" << response.GetFrom()->ToString();
+        round_id << "from" << notification.GetFrom()->ToString();
       return;
     }
 
@@ -254,9 +257,7 @@ namespace Sessions {
     QVariantHash msg;
     msg["session_id"] = GetSessionId().GetByteArray();
     msg["round_id"] = GetCurrentRound()->GetRoundId().GetByteArray();
-    foreach(const Id &id, _prepared_peers) {
-      _network->SendNotification(id, "SM::Begin", msg);
-    }
+    _network->Broadcast("SM::Begin", msg);
   }
 
   void SessionLeader::HandleRoundFinished()

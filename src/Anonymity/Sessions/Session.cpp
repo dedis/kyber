@@ -156,21 +156,21 @@ namespace Sessions {
   void Session::HandleRoundFinished()
   {
     if(_prepare_waiting) {
-      HandlePrepare(_prepare_request);
+      HandlePrepare(_prepare_notification);
     }
   }
 
-  void Session::HandlePrepare(const Request &request)
+  void Session::HandlePrepare(const Request &notification)
   {
     if(_prepare_waiting) {
       _prepare_waiting = false;
     }
 
-    QVariantHash msg = request.GetData().toHash();
+    QVariantHash msg = notification.GetData().toHash();
 
     if(_current_round && !_current_round->Stopped() && _current_round->Started()) {
       _prepare_waiting = true;
-      _prepare_request = request;
+      _prepare_notification = notification;
       if(msg.value("interrupt").toBool()) {
         _current_round->Stop("Round interrupted.");
       }
@@ -197,13 +197,16 @@ namespace Sessions {
     if(!CheckGroup()) {
       qDebug() << "Received a prepare message but lack of sufficient peers";
       _prepare_waiting = true;
-      _prepare_request = request;
+      _prepare_notification = notification;
       return;
     }
 
     NextRound(round_id);
-    request.Respond(brid);
-    _prepare_request = Request();
+    QVariantHash response;
+    response["session_id"] = GetSessionId().GetByteArray();
+    response["round_id"] = brid;
+    GetNetwork()->SendNotification(GetGroup().GetLeader(), "SM::Prepared", response);
+    _prepare_notification = Request();
   }
 
   void Session::NextRound(const Id &round_id)
@@ -298,6 +301,11 @@ namespace Sessions {
       return;
     }
 
+    if(_current_round->Started()) {
+      qDebug() << "Received duplicate Begin message";
+      return;
+    }
+
     qDebug() << "Session" << ToString() << "starting round" <<
       _current_round->ToString() << "started" << _current_round->Started();
     emit RoundStarting(_current_round);
@@ -338,7 +346,7 @@ namespace Sessions {
         this, SLOT(HandleDisconnectSlot()));
 
     if(_prepare_waiting && CheckGroup()) {
-      HandlePrepare(_prepare_request);
+      HandlePrepare(_prepare_notification);
     }
   }
 
