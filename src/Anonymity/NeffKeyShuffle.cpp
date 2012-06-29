@@ -147,7 +147,7 @@ namespace Anonymity {
 
     if(generator_input == 0) {
       throw QRunTimeError("Invalid generator found");
-    } else if(shuffle_input.count() <= GetGroup().GetSubgroup().Count()) {
+    } else if(shuffle_input.count() < GetGroup().GetSubgroup().Count()) {
       throw QRunTimeError("Missing public keys");
     }
 
@@ -174,7 +174,7 @@ namespace Anonymity {
 
     if(new_generator == 0) {
       throw QRunTimeError("Invalid generator found");
-    } else if(new_public_elements.count() <= GetGroup().GetSubgroup().Count()) {
+    } else if(new_public_elements.count() < GetGroup().GetSubgroup().Count()) {
       throw QRunTimeError("Missing public keys");
     }
 
