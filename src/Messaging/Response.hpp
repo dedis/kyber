@@ -16,6 +16,7 @@ namespace Messaging {
     public:
       enum ErrorTypes {
         CorruptResponse,
+        InvalidSender,
         InvalidInput,
         InvalidMessage,
         InvalidMethod,
