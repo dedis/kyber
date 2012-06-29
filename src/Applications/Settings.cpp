@@ -100,9 +100,7 @@ namespace Applications {
       LeaderId = Id(_settings->value(Param<Params::LeaderId>()).toString());
     }
 
-    if(_settings->contains(Param<Params::SuperPeer>())) {
-      SuperPeer = _settings->value(Param<Params::SuperPeer>()).toBool();
-    }
+    SuperPeer = _settings->value(Param<Params::SuperPeer>(), false).toBool();
   }
 
   bool Settings::IsValid()
