@@ -67,11 +67,20 @@ namespace Identity {
 
   inline PublicIdentity GetPublicIdentity(const PrivateIdentity &ident)
   {
-    QSharedPointer<PrivateIdentity::AsymmetricKey> key(
-      ident.GetSigningKey()->GetPublicKey());
+    PrivateIdentity::AsymmetricKey *key = 0;
+    QByteArray dh_pub = QByteArray();
 
-    return PublicIdentity(ident.GetLocalId(), key,
-        ident.GetDhKey()->GetPublicComponent(),
+    if(ident.GetSigningKey()) {
+      key = ident.GetSigningKey()->GetPublicKey();
+    }
+
+    if(ident.GetDhKey()) {
+      dh_pub = ident.GetDhKey()->GetPublicComponent();
+    }
+
+    QSharedPointer<PrivateIdentity::AsymmetricKey> skey(key);
+
+    return PublicIdentity(ident.GetLocalId(), skey, dh_pub,
         ident.GetSuperPeer());
   }
 }

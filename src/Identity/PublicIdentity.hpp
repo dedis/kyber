@@ -142,7 +142,13 @@ namespace Identity {
   inline QDataStream &operator<<(QDataStream &stream, const PublicIdentity &ident)
   {
     stream << ident.GetId().GetByteArray();
-    stream << ident.GetVerificationKey();
+
+    if(ident.GetVerificationKey()) {
+      stream << ident.GetVerificationKey();
+    } else {
+      stream << QByteArray();
+    }
+
     stream << ident.GetDhKey();
     stream << ident.GetSuperPeer();
     return stream;
