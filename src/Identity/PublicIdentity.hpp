@@ -45,7 +45,6 @@ namespace Identity {
       {
       }
 
-
       /**
        * Returns the node's Id
        */
