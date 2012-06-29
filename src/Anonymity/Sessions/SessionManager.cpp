@@ -19,7 +19,8 @@ namespace Sessions {
     _default_set(false),
     _rpc(rpc)
   {
-    _rpc->Register("SM::Register", this, "HandleRegister");
+    _rpc->Register("SM::ChallengeRequest", this, "HandleChallengeRequest");
+    _rpc->Register("SM::ChallengeResponse", this, "HandleChallengeResponse");
     _rpc->Register("SM::Prepare", this, "HandlePrepare");
     _rpc->Register("SM::Prepared", this, "HandlePrepared");
     _rpc->Register("SM::Begin", this, "HandleBegin");
@@ -29,7 +30,8 @@ namespace Sessions {
 
   SessionManager::~SessionManager()
   {
-    _rpc->Unregister("SM::Register");
+    _rpc->Unregister("SM::ChallengeRequest");
+    _rpc->Unregister("SM::ChallengeResponse");
     _rpc->Unregister("SM::Prepare");
     _rpc->Unregister("SM::Prepared");
     _rpc->Unregister("SM::Begin");
@@ -79,11 +81,21 @@ namespace Sessions {
     }
   }
 
-  void SessionManager::HandleRegister(const Request &request)
+  void SessionManager::HandleChallengeRequest(const Request &request)
   {
     QSharedPointer<SessionLeader> sl = GetSessionLeader(request);
     if(sl) {
-      sl->HandleRegister(request);
+      sl->HandleChallengeRequest(request);
+    } else {
+      request.Failed(Response::InvalidInput, "No such session leader");
+    }
+  }
+
+  void SessionManager::HandleChallengeResponse(const Request &request)
+  {
+    QSharedPointer<SessionLeader> sl = GetSessionLeader(request);
+    if(sl) {
+      sl->HandleChallengeResponse(request);
     } else {
       request.Failed(Response::InvalidInput, "No such session leader");
     }

@@ -76,7 +76,8 @@ namespace Tests {
           node->net = QSharedPointer<Network>(new CSNetwork(node->cm, node->rpc, gh));
         }
 
-        QSharedPointer<Session> session(new Session(gh, node->ident,
+        QSharedPointer<IAuthenticate> authe(new NullAuthenticate(node->ident));
+        QSharedPointer<Session> session(new Session(gh, authe,
               session_id, node->net, _create_round));
         session->SetSharedPointer(session);
 
@@ -87,8 +88,9 @@ namespace Tests {
             node, SLOT(HandleRoundFinished(QSharedPointer<Round>)));
 
         if(node->ident.GetLocalId() == group.GetLeader()) {
+          QSharedPointer<IAuthenticator> autho(new NullAuthenticator());
           QSharedPointer<SessionLeader> sl(new SessionLeader(
-                group, node->ident, node->net, session));
+                group, node->ident, node->net, session, autho));
           node->sm.AddSessionLeader(sl);
           sl->Start();
         }

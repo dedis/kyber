@@ -12,6 +12,8 @@
 #include "Connections/ConnectionManager.hpp"
 #include "Connections/DefaultNetwork.hpp"
 #include "Connections/Id.hpp"
+#include "Identity/Authentication/NullAuthenticate.hpp"
+#include "Identity/Authentication/NullAuthenticator.hpp"
 #include "Messaging/RpcHandler.hpp"
 
 #include "SessionFactory.hpp"
@@ -35,6 +37,10 @@ using Dissent::Crypto::AsymmetricKey;
 using Dissent::Crypto::CryptoFactory;
 using Dissent::Crypto::Library;
 using Dissent::Identity::Group;
+using Dissent::Identity::Authentication::IAuthenticate;
+using Dissent::Identity::Authentication::IAuthenticator;
+using Dissent::Identity::Authentication::NullAuthenticate;
+using Dissent::Identity::Authentication::NullAuthenticator;
 using Dissent::Messaging::RpcHandler;
 
 namespace Dissent {
@@ -106,8 +112,11 @@ namespace Applications {
 
   void SessionFactory::Common(Node *node, const Id &session_id, CreateRound cr)
   {
-    Session *session = new Session(node->GetGroupHolder(), node->GetPrivateIdentity(),
-        session_id, node->GetNetwork(), cr);
+    QSharedPointer<IAuthenticate> authe(
+        new NullAuthenticate(node->GetPrivateIdentity()));
+
+    Session *session = new Session(node->GetGroupHolder(), authe, session_id,
+        node->GetNetwork(), cr);
 
     QObject::connect(node->GetOverlay().data(), SIGNAL(Disconnecting()),
         session, SLOT(CallStop()));
@@ -120,9 +129,10 @@ namespace Applications {
     if(node->GetPrivateIdentity().GetLocalId() ==
         node->GetGroupHolder()->GetGroup().GetLeader())
     {
+      QSharedPointer<IAuthenticator> autho(new NullAuthenticator());
       QSharedPointer<SessionLeader> sl(new SessionLeader(
             node->GetGroupHolder()->GetGroup(), node->GetPrivateIdentity(),
-            node->GetNetwork(), psession));
+            node->GetNetwork(), psession, autho));
       node->GetSessionManager().AddSessionLeader(sl);
       sl->Start();
     } else {

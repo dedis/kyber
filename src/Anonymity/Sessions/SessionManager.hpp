@@ -121,10 +121,16 @@ namespace Sessions {
       void LinkDisconnect(const Request &notification);
 
       /**
-       * A remote peer is requesting to join a session hosted by the local peer
+       * A member wants to join, begins the initiation for joining.
        * @param request a request to be included
        */
-      void HandleRegister(const Request &request);
+      void HandleChallengeRequest(const Request &request);
+
+      /**
+       * This combines with register to actually enable a member to join a round
+       * @param response a request to join
+       */
+      void HandleChallengeResponse(const Request &request);
 
       /**
        * A remote peer is notifying this peer it is ready for the next round

@@ -9,6 +9,7 @@
 
 #include "Anonymity/Round.hpp"
 #include "Connections/Id.hpp"
+#include "Identity/Authentication/IAuthenticator.hpp"
 #include "Identity/PublicIdentity.hpp"
 #include "Identity/PrivateIdentity.hpp"
 #include "Identity/Group.hpp"
@@ -73,7 +74,8 @@ namespace Sessions {
        */
       explicit SessionLeader(const Group &group,
           const PrivateIdentity &ident, QSharedPointer<Network> network,
-          const QSharedPointer<Session> &session);
+          const QSharedPointer<Session> &session,
+          const QSharedPointer<Identity::Authentication::IAuthenticator> &auth);
 
       /**
        * Deconstructor
@@ -163,10 +165,16 @@ namespace Sessions {
       void LinkDisconnect(const Request &notification);
 
       /**
-       * From the SessionLeaderManager, pass in a HandleRegister
-       * @param request The request from a group member
+       * A member wants to join, begins the initiation for joining.
+       * @param request a request to be included
        */
-      void HandleRegister(const Request &request);
+      void HandleChallengeRequest(const Request &request);
+
+      /**
+       * This combines with register to actually enable a member to join a round
+       * @param response a request to join
+       */
+      void HandleChallengeResponse(const Request &request);
 
       /**
        * Response to a prepare
@@ -245,6 +253,7 @@ namespace Sessions {
       QHash<Id, Id> _unprepared_peers;
       int _round_idx;
       QHash <Id, qint64> _log_off_time;
+      QSharedPointer<Identity::Authentication::IAuthenticator> _auth;
 
     private slots:
       /**
