@@ -90,6 +90,10 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Crypto/OnionEncryptor.hpp \
            src/Crypto/ThreadedOnionEncryptor.hpp \
            src/Crypto/Serialization.hpp \
+           src/Identity/Authentication/IAuthenticate.hpp \
+           src/Identity/Authentication/IAuthenticator.hpp \
+           src/Identity/Authentication/NullAuthenticate.hpp \
+           src/Identity/Authentication/NullAuthenticator.hpp \
            src/Identity/Group.hpp \
            src/Identity/GroupHolder.hpp \
            src/Identity/PrivateIdentity.hpp \

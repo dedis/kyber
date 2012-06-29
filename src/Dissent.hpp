@@ -79,6 +79,10 @@
 #include "Crypto/Serialization.hpp"
 #include "Crypto/ThreadedOnionEncryptor.hpp"
 
+#include "Identity/Authentication/IAuthenticate.hpp"
+#include "Identity/Authentication/IAuthenticator.hpp"
+#include "Identity/Authentication/NullAuthenticate.hpp"
+#include "Identity/Authentication/NullAuthenticator.hpp"
 #include "Identity/Group.hpp"
 #include "Identity/GroupHolder.hpp"
 #include "Identity/PrivateIdentity.hpp"
@@ -177,6 +181,7 @@ using namespace Dissent::Applications;
 using namespace Dissent::ClientServer;
 using namespace Dissent::Connections;
 using namespace Dissent::Crypto;
+using namespace Dissent::Identity::Authentication;
 using namespace Dissent::Identity;
 using namespace Dissent::Messaging;
 using namespace Dissent::Overlay;
