@@ -22,6 +22,21 @@ namespace Connections {
        * Returns the remote id
        */
       virtual Id GetRemoteId() const = 0;
+
+      inline static Id GetRemoteId(const QSharedPointer<ISender> &sender)
+      {
+        return GetRemoteId(sender.data());
+      }
+
+      inline static Id GetRemoteId(const ISender *sender)
+      {
+        const IOverlaySender *ov_sender = dynamic_cast<const IOverlaySender *>(sender);
+        if(ov_sender) {
+          return ov_sender->GetRemoteId();
+        } else {
+          return Id::Zero();
+        }
+      }
   };
 }
 }
