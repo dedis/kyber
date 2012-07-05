@@ -19,6 +19,8 @@ Directory Structure
 - src/Applications - User interfaces modules
 - src/Connections - Message plane abstraction
 - src/Crypto - Cryptography interface
+- src/Identity - Containers for user information
+- src/Identity/Authentication - Authentication protocols
 - src/Messaging - Interfaces for abstracting communication
 - src/Overlay - Manages connections
 - src/Tests - Test code for classes in other folders
