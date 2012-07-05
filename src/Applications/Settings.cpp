@@ -37,13 +37,11 @@ namespace Applications {
     Help = false;
 
     Console = false;
-    EntryTunnel = false;
     ExitTunnel = false;
     LeaderId = Id::Zero();
     LocalId = Id::Zero();
     LocalNodeCount = 1;
     SessionType = "null";
-    WebServer = false;
 
     QVariant peers = _settings->value(Param<Params::RemotePeers>());
     ParseUrlList("RemotePeer", peers, RemotePeers);
@@ -58,13 +56,14 @@ namespace Applications {
     }
 
     Console = _settings->value(Param<Params::Console>()).toBool();
-    WebServer = _settings->value(Param<Params::WebServer>()).toBool();
-    EntryTunnel = _settings->value(Param<Params::EntryTunnel>()).toBool();
     ExitTunnel = _settings->value(Param<Params::ExitTunnel>()).toBool();
     Multithreading = _settings->value(Param<Params::Multithreading>()).toBool();
 
     WebServerUrl = TryParseUrl(_settings->value(Param<Params::WebServerUrl>()).toString(), "http");
+    WebServer = WebServerUrl != QUrl();
+
     EntryTunnelUrl = TryParseUrl(_settings->value(Param<Params::EntryTunnelUrl>()).toString(), "tcp");
+    EntryTunnel = EntryTunnelUrl != QUrl();
 
     if(_settings->contains(Param<Params::SessionType>())) {
       SessionType = _settings->value(Param<Params::SessionType>()).toString();
@@ -210,7 +209,6 @@ namespace Applications {
     }
 
     _settings->setValue(Param<Params::LocalNodeCount>(), LocalNodeCount);
-    _settings->setValue(Param<Params::WebServer>(), WebServer);
     _settings->setValue(Param<Params::WebServerUrl>(), WebServerUrl);
     _settings->setValue(Param<Params::Console>(), Console);
     _settings->setValue(Param<Params::DemoMode>(), DemoMode);
@@ -256,14 +254,6 @@ namespace Applications {
       } else {
         settings->setValue(key, options->value(key));
       }
-    }
-
-    if(options->count(Param<Params::WebServerUrl>()) == 1) {
-      settings->setValue(Param<Params::WebServer>(), true);
-    }
-
-    if(options->count(Param<Params::EntryTunnelUrl>()) == 1) {
-      settings->setValue(Param<Params::EntryTunnel>(), true);
     }
 
     return Settings(settings, file, actions);
