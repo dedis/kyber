@@ -11,7 +11,7 @@ int main(int argc, char **argv)
   Settings settings = Settings::CommandLineParse(args);
   if(settings.Help || !settings.IsValid()) {
     QTextStream qtout(stdout, QIODevice::WriteOnly);
-    qtout << "usage: " << args[0] << "[options] [settings.conf]\n\n";
+    qtout << "usage: " << args[0] << " [options] [settings.conf]\n\n";
     qtout << "options:\n";
     qtout << Settings::GetUsage() << "\n";
     if(!settings.Help) {
