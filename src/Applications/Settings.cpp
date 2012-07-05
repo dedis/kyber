@@ -65,6 +65,9 @@ namespace Applications {
     EntryTunnelUrl = TryParseUrl(_settings->value(Param<Params::EntryTunnelUrl>()).toString(), "tcp");
     EntryTunnel = EntryTunnelUrl != QUrl();
 
+    ExitTunnelProxyUrl = TryParseUrl(_settings->value(Param<Params::ExitTunnelProxyUrl>()).toString(), "tcp");
+    ExitTunnel = (ExitTunnelProxyUrl != QUrl()) || ExitTunnel;
+
     if(_settings->contains(Param<Params::SessionType>())) {
       SessionType = _settings->value(Param<Params::SessionType>()).toString();
     }
@@ -306,6 +309,10 @@ namespace Applications {
     options->add(Param<Params::ExitTunnel>(),
         "enables exit tunnel",
         QxtCommandOptions::NoValue);
+
+    options->add(Param<Params::ExitTunnelProxyUrl>(),
+        "enables redirecting to a proxy at the end of an exit tunnel",
+        QxtCommandOptions::ValueRequired);
 
     options->add(Param<Params::Multithreading>(),
         "enables multithreading",

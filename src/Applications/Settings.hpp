@@ -120,6 +120,12 @@ namespace Applications {
       bool ExitTunnel;
 
       /**
+       * In addition to enabling ExitTunnel, this also redirects all traffic
+       * to a secondary Tunnel after leaving Dissent
+       */
+      QUrl ExitTunnelProxyUrl;
+
+      /**
        * Enable multhreaded operations
        */
       bool Multithreading;
@@ -160,6 +166,7 @@ namespace Applications {
           "web_server_url",
           "entry_tunnel_url",
           "exit_tunnel",
+          "exit_tunnel_proxy_url",
           "multithreading",
           "local_id",
           "leader_id",
@@ -183,6 +190,7 @@ namespace Applications {
             WebServerUrl,
             EntryTunnelUrl,
             ExitTunnel,
+            ExitTunnelProxyUrl,
             Multithreading,
             LocalId,
             LeaderId,

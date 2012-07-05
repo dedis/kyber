@@ -147,7 +147,7 @@ int main(int argc, char **argv)
     tun_entry->Start();
   } else if(settings.ExitTunnel) {
     tun_exit.reset(new ExitTunnel(nodes[0]->GetSessionManager(),
-          nodes[0]->GetNetwork()));
+          nodes[0]->GetNetwork(), settings.ExitTunnelProxyUrl));
 
     QSharedPointer<SignalSink> signal_sink = app_sink.dynamicCast<SignalSink>();
     QObject::connect(signal_sink.data(), SIGNAL(IncomingData(const QByteArray&)),
