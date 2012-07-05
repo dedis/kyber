@@ -36,8 +36,6 @@ namespace Applications {
     }
     Help = false;
 
-    Console = false;
-    ExitTunnel = false;
     LeaderId = Id::Zero();
     LocalId = Id::Zero();
     LocalNodeCount = 1;
@@ -49,15 +47,15 @@ namespace Applications {
     QVariant endpoints = _settings->value(Param<Params::LocalEndPoints>());
     ParseUrlList("EndPoint", endpoints, LocalEndPoints);
 
-    DemoMode = _settings->value(Param<Params::DemoMode>()).toBool();
+    DemoMode = _settings->value(Param<Params::DemoMode>(), false).toBool();
 
     if(_settings->contains(Param<Params::LocalNodeCount>())) {
       LocalNodeCount = _settings->value(Param<Params::LocalNodeCount>()).toInt();
     }
 
-    Console = _settings->value(Param<Params::Console>()).toBool();
-    ExitTunnel = _settings->value(Param<Params::ExitTunnel>()).toBool();
-    Multithreading = _settings->value(Param<Params::Multithreading>()).toBool();
+    Console = _settings->value(Param<Params::Console>(), false).toBool();
+    ExitTunnel = _settings->value(Param<Params::ExitTunnel>(), false).toBool();
+    Multithreading = _settings->value(Param<Params::Multithreading>(), false).toBool();
 
     WebServerUrl = TryParseUrl(_settings->value(Param<Params::WebServerUrl>()).toString(), "http");
     WebServer = WebServerUrl != QUrl();
@@ -75,22 +73,23 @@ namespace Applications {
     if(_settings->contains(Param<Params::SubgroupPolicy>())) {
       QString ptype = _settings->value(Param<Params::SubgroupPolicy>()).toString();
       SubgroupPolicy = Group::StringToPolicyType(ptype);
+    } else {
+      SubgroupPolicy = Group::CompleteGroup;
     }
 
     if(_settings->contains(Param<Params::Log>())) {
-      Log = _settings->value(Param<Params::Log>()).toString();
-      QString lower = Log.toLower();
+      Log = _settings->value(Param<Params::Log>()).toString().toLower();
+    }
 
-      if(actions) {
-        if(lower == "stderr") {
-          Logging::UseStderr();
-        } else if(lower == "stdout") {
-          Logging::UseStdout();
-        } else if(Log.isEmpty()) {
-          Logging::Disable();
-        } else {
-          Logging::UseFile(Log);
-        }
+    if(actions) {
+      if(Log == "stderr") {
+        Logging::UseStderr();
+      } else if(Log == "stdout") {
+        Logging::UseStdout();
+      } else if(Log.isEmpty()) {
+        Logging::Disable();
+      } else {
+        Logging::UseFile(Log);
       }
     }
 
