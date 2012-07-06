@@ -24,17 +24,29 @@ namespace Crypto {
         }
       }
 
+      /**
+       * Construct using an int
+       * @param value the int value
+       */
       Integer(int value = 0) :
         _data(CryptoFactory::GetInstance().GetLibrary()->GetIntegerData(value))
       {
       }
 
+      /**
+       * Construct using an byte array
+       * @param value the byte array
+       */
       explicit Integer(const QByteArray &value) :
         _data(CryptoFactory::GetInstance().GetLibrary()->GetIntegerData(
               value.isEmpty() ? QByteArray(1, 0) : value))
       {
       }
 
+      /**
+       * Construct using a base64 string
+       * @param value the string
+       */
       explicit Integer(const QString &value) :
         _data(CryptoFactory::GetInstance().GetLibrary()->GetIntegerData(value))
       {

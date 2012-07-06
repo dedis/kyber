@@ -49,12 +49,12 @@ namespace Crypto {
       }
 
       /**
-       * Construct using a string
+       * Construct using a base64 string
        * @param value the string
        */
       explicit CppIntegerData(const QString &string)
       {
-        QByteArray data = ToBase64(string);
+        QByteArray data = FromBase64(string);
         _integer = CryptoPP::Integer(
             reinterpret_cast<const byte *>(data.constData()), data.size());
       }

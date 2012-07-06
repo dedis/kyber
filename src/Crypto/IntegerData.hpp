@@ -5,6 +5,8 @@
 #include <QByteArray>
 #include <QString>
 
+#include "../Utils/Utils.hpp"
+
 namespace Dissent {
 namespace Crypto {
   /**
@@ -53,7 +55,7 @@ namespace Crypto {
       {
         if(_string.isEmpty()) {
           IntegerData *cfree_this = const_cast<IntegerData *>(this);
-          cfree_this->_string = GetByteArray().toBase64();
+          cfree_this->_string = Utils::ToUrlSafeBase64(GetByteArray());
         }
         return _string;
       }
@@ -165,7 +167,7 @@ namespace Crypto {
        * Convert a base64 number into a clean byte array
        * @param string input base64 string
        */
-      static QByteArray ToBase64(const QString &string)
+      static QByteArray FromBase64(const QString &string)
       {
         const QChar *chs = string.constData();
         QByteArray tmp;
@@ -174,7 +176,7 @@ namespace Crypto {
           tmp.append(chs[idx].cell());
         }
 
-        return QByteArray::fromBase64(tmp);
+        return Utils::FromUrlSafeBase64(tmp);
       }
 
     protected:
