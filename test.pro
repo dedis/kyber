@@ -49,6 +49,7 @@ HEADERS += ext/googletest/include/gtest/gtest-death-test.h \
 
 SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/AddressTest.cpp \
+           src/Tests/Base64.cpp \
            src/Tests/BasicGossipTest.cpp \
            src/Tests/BlameUtilsTest.cpp \
            src/Tests/BulkRoundTest.cpp \
