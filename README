@@ -107,13 +107,24 @@ To enable a SOCKS exit node, add this line to your .conf file:
 Tests
 ===============================================================================
 This suite contains many tests using googletest[1], use qmake on test.pro
-(qmake test.pro) to generate an appropriate makefile, which will create a
-binary to test the code.
+(qmake test.pro && make && ./test) to generate an appropriate makefile, which
+will create a binary to test the code.
 
 googletest was chosen because testing system code with QtTest would be quite
 inefficient.
 
 1 - http://code.google.com/p/googletest/
+
+Key generation
+===============================================================================
+Dissent supports BER decoding and writes in DER encoding[1], this apparently
+provides the best interoperability.  To create public and private keys, we have
+provided a tool called keygen (qmake keygen.pro && make && ./keygen), that can
+create public / private key pairs and save them as a hash of the public key.
+This hash can then be used as the Id of the node in Dissent.
+
+1 - http://www.cryptopp.com/wiki/Keys_and_Formats#BER_and_DER_Encoding
+
 
 Logging and Debugging Output
 ===============================================================================
