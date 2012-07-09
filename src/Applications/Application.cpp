@@ -106,54 +106,57 @@ int main(int argc, char **argv)
     QSharedPointer<CommandLine> cl = app_sink.dynamicCast<CommandLine>();
     QObject::connect(&qca, SIGNAL(aboutToQuit()), cl.data(), SLOT(Stop()));
     cl->Start();
-  } else if(settings.WebServer) {
-    ws.reset(new WebServer(settings.WebServerUrl));
-
-    /* Stop Web server when application is about to quit */
-    QObject::connect(&qca, SIGNAL(aboutToQuit()), ws.data(), SLOT(Stop()));
-
-    /* When the web server stops, quit the application */
-    QObject::connect(ws.data(), SIGNAL(Stopped()), &qca, SLOT(quit()));
-
+  } else {
     QSharedPointer<SignalSink> signal_sink = app_sink.dynamicCast<SignalSink>();
 
-    QSharedPointer<GetMessagesService> get_messages_sp(new GetMessagesService());
-    QObject::connect(signal_sink.data(), SIGNAL(IncomingData(const QByteArray&)),
-        get_messages_sp.data(), SLOT(HandleIncomingMessage(const QByteArray&)));
-    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/session/messages", get_messages_sp);
+    if(settings.WebServer) {
+      ws.reset(new WebServer(settings.WebServerUrl));
 
-    QSharedPointer<GetFileService> get_webpage_sp(new GetFileService("index.html"));
-    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/web", get_webpage_sp);
+      /* Stop Web server when application is about to quit */
+      QObject::connect(&qca, SIGNAL(aboutToQuit()), ws.data(), SLOT(Stop()));
 
-    QSharedPointer<RoundIdService> round_id_sp(new RoundIdService(nodes[0]->GetSessionManager()));
-    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/round/id", round_id_sp);
+      /* When the web server stops, quit the application */
+      QObject::connect(ws.data(), SIGNAL(Stopped()), &qca, SLOT(quit()));
 
-    QSharedPointer<SessionIdService> session_id_sp(new SessionIdService(nodes[0]->GetSessionManager()));
-    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/session/id", session_id_sp);
+      QSharedPointer<GetMessagesService> get_messages_sp(new GetMessagesService());
+      QObject::connect(signal_sink.data(), SIGNAL(IncomingData(const QByteArray&)),
+          get_messages_sp.data(), SLOT(HandleIncomingMessage(const QByteArray&)));
+      ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/session/messages", get_messages_sp);
 
-    QSharedPointer<SendMessageService> send_message_sp(new SendMessageService(nodes[0]->GetSessionManager()));
-    ws->AddRoute(HttpRequest::METHOD_HTTP_POST, "/session/send", send_message_sp);
+      QSharedPointer<GetFileService> get_webpage_sp(new GetFileService("index.html"));
+      ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/web", get_webpage_sp);
 
-    ws->Start();
+      QSharedPointer<RoundIdService> round_id_sp(new RoundIdService(nodes[0]->GetSessionManager()));
+      ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/round/id", round_id_sp);
 
-  } else if(settings.EntryTunnel) {
-    tun_entry.reset(new EntryTunnel(settings.EntryTunnelUrl, nodes[0]->GetSessionManager(), 
-          nodes[0]->GetOverlay()->GetRpcHandler()));
+      QSharedPointer<SessionIdService> session_id_sp(new SessionIdService(nodes[0]->GetSessionManager()));
+      ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/session/id", session_id_sp);
 
-    QSharedPointer<SignalSink> signal_sink = app_sink.dynamicCast<SignalSink>();
-    QObject::connect(signal_sink.data(), SIGNAL(IncomingData(const QByteArray&)),
-        tun_entry.data(), SLOT(DownstreamData(const QByteArray&)));
+      QSharedPointer<SendMessageService> send_message_sp(new SendMessageService(nodes[0]->GetSessionManager()));
+      ws->AddRoute(HttpRequest::METHOD_HTTP_POST, "/session/send", send_message_sp);
 
-    tun_entry->Start();
-  } else if(settings.ExitTunnel) {
-    tun_exit.reset(new ExitTunnel(nodes[0]->GetSessionManager(),
-          nodes[0]->GetNetwork(), settings.ExitTunnelProxyUrl));
+      ws->Start();
+    }
+    
+    if(settings.EntryTunnel) {
+      tun_entry.reset(new EntryTunnel(settings.EntryTunnelUrl, nodes[0]->GetSessionManager(), 
+            nodes[0]->GetOverlay()->GetRpcHandler()));
 
-    QSharedPointer<SignalSink> signal_sink = app_sink.dynamicCast<SignalSink>();
-    QObject::connect(signal_sink.data(), SIGNAL(IncomingData(const QByteArray&)),
-        tun_exit.data(), SLOT(SessionData(const QByteArray&)));
+      QObject::connect(signal_sink.data(), SIGNAL(IncomingData(const QByteArray&)),
+          tun_entry.data(), SLOT(DownstreamData(const QByteArray&)));
 
-    tun_exit->Start();
+      tun_entry->Start();
+    }
+    
+    if(settings.ExitTunnel) {
+      tun_exit.reset(new ExitTunnel(nodes[0]->GetSessionManager(),
+            nodes[0]->GetNetwork(), settings.ExitTunnelProxyUrl));
+
+      QObject::connect(signal_sink.data(), SIGNAL(IncomingData(const QByteArray&)),
+          tun_exit.data(), SLOT(SessionData(const QByteArray&)));
+
+      tun_exit->Start();
+    }
   }
 
   foreach(QSharedPointer<Node> node, nodes) {
