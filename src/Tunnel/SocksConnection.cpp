@@ -184,6 +184,12 @@ namespace Tunnel {
   {
     const int n_methods = static_cast<int>(_n_methods);
     const int bytes_left = n_methods - _methods_buf.count();
+
+    // Need more bytes
+    if(bytes_left < 0) {
+      return;
+    }
+
     _methods_buf.append(_socket->read(bytes_left));
 
     if(_methods_buf.count() == n_methods) {
