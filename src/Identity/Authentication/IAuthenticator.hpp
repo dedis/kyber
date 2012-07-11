@@ -25,8 +25,10 @@ namespace Authentication {
        * Generates a challenge for the member
        * @param member the authenticating member
        * @param data optional data for making the challenge
+       * @returns returns true and a valid challenge or false and nothing
        */
-      virtual QVariant RequestChallenge(const Id &member, const QVariant &data) = 0;
+      virtual QPair<bool, QVariant> RequestChallenge(const Id &member,
+          const QVariant &data) = 0;
 
       /**
        * Given a response to a challenge returns true if a valid response

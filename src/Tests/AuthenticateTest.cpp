@@ -6,9 +6,10 @@ namespace Tests {
   void AuthPass(const Id &authe_id, NullAuthenticate *authe, NullAuthenticator *autho)
   {
     QVariant m1 = authe->PrepareForChallenge();
-    QVariant m2 = autho->RequestChallenge(authe_id, m1);
-    QPair<bool,QVariant> r1 = authe->ProcessChallenge(m2);
+    QPair<bool, QVariant> m2 = autho->RequestChallenge(authe_id, m1);
+    EXPECT_TRUE(m2.first);
 
+    QPair<bool, QVariant> r1 = authe->ProcessChallenge(m2.second);
     EXPECT_TRUE(r1.first);
 
     QPair<bool, PublicIdentity> r2 = autho->VerifyResponse(authe_id, r1.second);

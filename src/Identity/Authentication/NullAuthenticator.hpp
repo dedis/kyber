@@ -25,9 +25,10 @@ namespace Authentication {
        * @param member the authenticating member
        * @param data optional data for making the challenge
        */
-      virtual QVariant RequestChallenge(const Id &, const QVariant &)
+      virtual QPair<bool, QVariant> RequestChallenge(const Id &,
+          const QVariant &)
       {
-        return QVariant();
+        return QPair<bool, QVariant>(true, QVariant());
       }
 
       /**

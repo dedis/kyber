@@ -96,7 +96,14 @@ namespace Sessions {
       return;
     }
 
-    request.Respond(_auth->RequestChallenge(sender_id, request.GetData()));
+    QPair<bool, QVariant> challenge = _auth->RequestChallenge(sender_id,
+        request.GetData());
+
+    if(challenge.first) {
+      request.Respond(challenge.second);
+    } else {
+      request.Failed(Response::InvalidInput, "Invalid request");
+    }
   }
 
   void SessionLeader::HandleChallengeResponse(const Request &request)
