@@ -74,11 +74,7 @@ int main(int argc, char **argv)
         group, local, remote, app_sink, settings.SessionType));
 
   for(int idx = 1; idx < settings.LocalNodeCount; idx++) {
-    if(idx < 3) {
-      super_peer = force_super_peer;
-    } else {
-      super_peer = settings.SuperPeer;
-    }
+    super_peer = settings.SuperPeer || (force_super_peer && idx < 3);
 
     Id local_id;
     local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
