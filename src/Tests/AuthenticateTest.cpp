@@ -3,7 +3,7 @@
 namespace Dissent {
 namespace Tests {
 
-  void AuthPass(const Id &authe_id, NullAuthenticate *authe, NullAuthenticator *autho)
+  void AuthPass(const Id &authe_id, IAuthenticate *authe, IAuthenticator *autho)
   {
     QVariant m1 = authe->PrepareForChallenge();
     QPair<bool, QVariant> m2 = autho->RequestChallenge(authe_id, m1);
@@ -17,6 +17,14 @@ namespace Tests {
     EXPECT_EQ(r2.second, GetPublicIdentity(authe->GetPrivateIdentity()));
   }
 
+  void AuthFailChallenge(const Id &authe_id, IAuthenticate *authe,
+      IAuthenticator *autho)
+  {
+    QVariant m1 = authe->PrepareForChallenge();
+    QPair<bool, QVariant> m2 = autho->RequestChallenge(authe_id, m1);
+    EXPECT_FALSE(m2.first);
+  }
+
   TEST(NullAuthenticate, Base)
   {
     Crypto::Library *lib = Crypto::CryptoFactory::GetInstance().GetLibrary();
@@ -27,6 +35,33 @@ namespace Tests {
     NullAuthenticate authe(client);
     NullAuthenticator autho;
     AuthPass(client.GetLocalId(), &authe, &autho);
+  }
+
+  TEST(PreExchangedKeyAuth, Base)
+  {
+    Crypto::Library *lib = Crypto::CryptoFactory::GetInstance().GetLibrary();
+
+    PrivateIdentity client(Id(),
+        QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
+        QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman()));
+
+    PrivateIdentity nclient(Id(),
+        QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
+        QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman()));
+
+    PrivateIdentity server(Id(),
+        QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
+        QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman()));
+
+    QList<PublicIdentity> roster;
+    roster.append(GetPublicIdentity(client));
+
+    PreExchangedKeyAuthenticate authe(client, GetPublicIdentity(server));
+    PreExchangedKeyAuthenticate nauthe(nclient, GetPublicIdentity(server));
+    PreExchangedKeyAuthenticator autho(server, roster);
+
+    AuthPass(client.GetLocalId(), &authe, &autho);
+    AuthFailChallenge(nclient.GetLocalId(), &nauthe, &autho);
   }
 }
 }

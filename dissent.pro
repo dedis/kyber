@@ -94,6 +94,8 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Identity/Authentication/IAuthenticator.hpp \
            src/Identity/Authentication/NullAuthenticate.hpp \
            src/Identity/Authentication/NullAuthenticator.hpp \
+           src/Identity/Authentication/PreExchangedKeyAuthenticate.hpp \
+           src/Identity/Authentication/PreExchangedKeyAuthenticator.hpp \
            src/Identity/Group.hpp \
            src/Identity/GroupHolder.hpp \
            src/Identity/PrivateIdentity.hpp \
@@ -241,6 +243,8 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Crypto/OnionEncryptor.cpp \
            src/Crypto/ThreadedOnionEncryptor.cpp \
            src/Identity/Group.cpp \
+           src/Identity/Authentication/PreExchangedKeyAuthenticate.cpp \
+           src/Identity/Authentication/PreExchangedKeyAuthenticator.cpp \
            src/Messaging/RpcHandler.cpp \
            src/Messaging/SignalSink.cpp \
            src/Overlay/BaseOverlay.cpp \
