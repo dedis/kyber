@@ -445,7 +445,47 @@ namespace Tests {
     key3.GenerateRandomWithKeySize(rng, 1024);
     for(int idx = 0; idx < 4; idx++)
       EXPECT_TRUE(key3.Validate(rng, idx));
+  }
 
+  TEST(Crypto, LRSTest)
+  {
+    QSharedPointer<CppDsaPrivateKey> base_key(new CppDsaPrivateKey());
+    Integer generator = base_key->GetGenerator();
+    Integer subgroup = base_key->GetSubgroup();
+    Integer modulus = base_key->GetModulus();
+
+    QVector<QSharedPointer<AsymmetricKey> > priv_keys;
+    QVector<QSharedPointer<AsymmetricKey> > pub_keys;
+
+    int count = 8;
+
+    for(int idx = 0; idx < count; idx++) {
+      QSharedPointer<CppDsaPrivateKey> key(
+          new CppDsaPrivateKey(modulus, subgroup, generator));
+      priv_keys.append(key);
+      pub_keys.append(QSharedPointer<AsymmetricKey>(key->GetPublicKey()));
+    }
+
+    CppRandom rng;
+    QByteArray context(1024, 0);
+    rng.GenerateBlock(context);
+
+    QVector<QSharedPointer<LRSPrivateKey> > lrss;
+    LRSPublicKey lrp(pub_keys, context);
+
+    for(int idx = 0; idx < count; idx++) {
+      lrss.append(QSharedPointer<LRSPrivateKey>(
+            new LRSPrivateKey(priv_keys[idx], pub_keys, context)));
+    }
+
+    QByteArray msg(1500, 0);
+    rng.GenerateBlock(msg);
+
+    foreach(const QSharedPointer<LRSPrivateKey> &lrs, lrss) {
+      QByteArray signature = lrs->Sign(msg);
+      lrp.Verify(msg, signature);
+      EXPECT_TRUE(lrp.VerifyKey(*(lrs.data())));
+    }
   }
 }
 }

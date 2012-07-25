@@ -82,6 +82,8 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Crypto/Hash.hpp \
            src/Crypto/Integer.hpp \
            src/Crypto/IntegerData.hpp \
+           src/Crypto/LRSPrivateKey.hpp \
+           src/Crypto/LRSPublicKey.hpp \
            src/Crypto/NullHash.hpp \
            src/Crypto/NullLibrary.hpp \
            src/Crypto/NullPublicKey.hpp \
@@ -236,6 +238,8 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Crypto/CppRandom.cpp \
            src/Crypto/CryptoFactory.cpp \
            src/Crypto/DiffieHellman.cpp \
+           src/Crypto/LRSPrivateKey.cpp \
+           src/Crypto/LRSPublicKey.cpp \
            src/Crypto/NullDiffieHellman.cpp \
            src/Crypto/NullHash.cpp \
            src/Crypto/NullPublicKey.cpp \

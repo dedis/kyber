@@ -70,6 +70,8 @@
 #include "Crypto/Integer.hpp"
 #include "Crypto/IntegerData.hpp"
 #include "Crypto/Library.hpp"
+#include "Crypto/LRSPrivateKey.hpp"
+#include "Crypto/LRSPublicKey.hpp"
 #include "Crypto/NullDiffieHellman.hpp"
 #include "Crypto/NullHash.hpp"
 #include "Crypto/NullLibrary.hpp"
