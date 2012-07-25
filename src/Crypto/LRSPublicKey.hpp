@@ -1,6 +1,12 @@
 #ifndef DISSENT_CRYPTO_LRS_PUBLIC_KEY_H_GUARD
 #define DISSENT_CRYPTO_LRS_PUBLIC_KEY_H_GUARD
 
+#include <QByteArray>
+
+#include "AsymmetricKey.hpp"
+#include "Integer.hpp"
+#include "LRSSignature.hpp"
+
 namespace Dissent {
 namespace Crypto {
   /**
@@ -66,6 +72,13 @@ namespace Crypto {
        * @param sig the signature used to verify the data
        */
       virtual bool Verify(const QByteArray &data, const QByteArray &sig) const;
+
+      /**
+       * Verify a signature, returns true if signature matches the data
+       * @param data the data to verify
+       * @param sig the signature used to verify the data
+       */
+      virtual bool Verify(const QByteArray &data, const LRSSignature &sig) const;
 
       /**
        * Returns an encrypted data block of the form: Pr[AES Key], IV, AES[data]

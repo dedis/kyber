@@ -72,6 +72,7 @@
 #include "Crypto/Library.hpp"
 #include "Crypto/LRSPrivateKey.hpp"
 #include "Crypto/LRSPublicKey.hpp"
+#include "Crypto/LRSSignature.hpp"
 #include "Crypto/NullDiffieHellman.hpp"
 #include "Crypto/NullHash.hpp"
 #include "Crypto/NullLibrary.hpp"
@@ -83,6 +84,8 @@
 
 #include "Identity/Authentication/IAuthenticate.hpp"
 #include "Identity/Authentication/IAuthenticator.hpp"
+#include "Identity/Authentication/LRSAuthenticate.hpp"
+#include "Identity/Authentication/LRSAuthenticator.hpp"
 #include "Identity/Authentication/NullAuthenticate.hpp"
 #include "Identity/Authentication/NullAuthenticator.hpp"
 #include "Identity/Authentication/PreExchangedKeyAuthenticate.hpp"

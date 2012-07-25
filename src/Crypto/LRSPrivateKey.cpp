@@ -73,17 +73,17 @@ namespace Crypto {
     
     QVector<Integer> keys = GetKeys();
     const int max = keys.count();
-    QVector<QByteArray> signatures(max);
-    QByteArray commit_1;
+    QVector<Integer> signatures(max);
+    Integer commit_1;
 
     if(_my_idx == max - 1) {
-      commit_1 = commit.GetByteArray();
+      commit_1 = commit;
     }
 
     for(int idx = 1; idx < max; idx++) {
       int fixed_idx = (idx + _my_idx) % max;
       Integer sign = RandomInQ();
-      signatures[fixed_idx] = sign.GetByteArray();
+      signatures[fixed_idx] = sign;
 
       hash.Update(precompute);
 
@@ -97,20 +97,14 @@ namespace Crypto {
 
       commit = Integer(hash.ComputeHash()) % GetSubgroup();
       if(fixed_idx == max - 1) {
-        commit_1 = commit.GetByteArray();
+        commit_1 = commit;
       }
     }
 
     Integer s_my_idx = (u - _private_key * commit) % GetSubgroup();
-    signatures[_my_idx] = s_my_idx.GetByteArray();
+    signatures[_my_idx] = s_my_idx;
 
-    QByteArray signature;
-    QDataStream stream(&signature, QIODevice::WriteOnly);
-    stream << commit_1;
-    stream << signatures;
-    stream << _tag.GetByteArray();
-
-    return signature;
+    return LRSSignature(commit_1, signatures, _tag).GetByteArray();
   }
 
   Integer LRSPrivateKey::RandomInQ() const

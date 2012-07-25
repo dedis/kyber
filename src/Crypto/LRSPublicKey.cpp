@@ -99,57 +99,35 @@ namespace Crypto {
    */
   bool LRSPublicKey::Verify(const QByteArray &data, const QByteArray &sig) const
   {
-    QVariantList list;
-    QDataStream stream(sig);
+    return Verify(data, LRSSignature(sig));
+  }
 
-    QByteArray bcommit_1;
-    stream >> bcommit_1;
-    if(bcommit_1.size() == 0) {
-      qDebug() << "Missing commit";
+  bool LRSPublicKey::Verify(const QByteArray &data, const LRSSignature &sig) const
+  {
+    if(!sig.IsValid()) {
+      qDebug() << "Invalid signature";
       return false;
     }
 
-    QList<QByteArray> bsignatures;
-    stream >> bsignatures;
-    QVector<Integer> keys = GetKeys();
-    if(bsignatures.size() != keys.size()) {
-      qDebug() << "Signatures:" << bsignatures.size() << "Keys:" << keys.size();
+    if(sig.SignatureCount() != GetKeys().count()) {
+      qDebug() << "Incorrect amount of keys used to generate signature.";
       return false;
     }
-
-    QByteArray btag;
-    stream >> btag;
-    if(btag.size() == 0) {
-      qDebug() << "Missing tag";
-      return false;
-    }
-
-    Integer commit_1(bcommit_1);
-
-    QVector<Integer> signatures;
-    foreach(const QByteArray &signature, bsignatures) {
-      if(signature.size() == 0) {
-        qDebug() << "Bad signature";
-        return false;
-      }
-      signatures.append(Integer(signature));
-    }
-
-    Integer tag = Integer(btag);
 
     CppHash hash;
     hash.Update(GetGroupGenerator().GetByteArray());
-    hash.Update(btag);
+    hash.Update(sig.GetTag().GetByteArray());
     hash.Update(data);
     QByteArray precompute = hash.ComputeHash();
 
-    Integer tcommit = commit_1;
+    Integer tcommit = sig.GetCommit1();
 
+    QVector<Integer> keys = GetKeys();
     for(int idx = 0; idx < keys.count(); idx++) {
-      Integer z_p = (GetGenerator().Pow(signatures[idx], GetModulus()) *
+      Integer z_p = (GetGenerator().Pow(sig.GetSignature(idx), GetModulus()) *
           _keys[idx].Pow(tcommit, GetModulus())) % GetModulus();
-      Integer z_pp = (GetGroupGenerator().Pow(signatures[idx], GetModulus()) *
-          tag.Pow(tcommit, GetModulus())) % GetModulus();
+      Integer z_pp = (GetGroupGenerator().Pow(sig.GetSignature(idx), GetModulus()) *
+          sig.GetTag().Pow(tcommit, GetModulus())) % GetModulus();
 
       hash.Update(precompute);
       hash.Update(z_p.GetByteArray());
@@ -157,7 +135,7 @@ namespace Crypto {
       tcommit = Integer(hash.ComputeHash()) % GetSubgroup();
     }
 
-    return tcommit == commit_1;
+    return tcommit == sig.GetCommit1();
   }
 
   bool LRSPublicKey::operator==(const AsymmetricKey &key) const
