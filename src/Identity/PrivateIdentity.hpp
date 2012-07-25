@@ -59,7 +59,7 @@ namespace Identity {
       bool GetSuperPeer() const { return _super_peer; }
 
     private:
-      const Id _local_id;
+      Id _local_id;
       QSharedPointer<AsymmetricKey> _signing_key;
       QSharedPointer<DiffieHellman> _dh_key;
       bool _super_peer;
