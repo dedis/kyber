@@ -13,9 +13,10 @@ const char *CL_KEYTYPE = "key";
 const char *CL_PUBDIR = "pubdir";
 const char *CL_PRIVDIR = "privdir";
 const char *CL_DEBUG = "debug";
+const char *CL_RAND = "seed";
 
-const char *DEFAULT_PUBDIR = "public";
-const char *DEFAULT_PRIVDIR = "private";
+const char *DEFAULT_PUBDIR = "keys/public";
+const char *DEFAULT_PRIVDIR = "keys/private";
 
 
 void ExitWithWarning(const QxtCommandOptions &options, const char* warning)
@@ -24,6 +25,33 @@ void ExitWithWarning(const QxtCommandOptions &options, const char* warning)
   options.showUsage();
   exit(-1);
 }
+
+class CreateKey {
+  public:
+    virtual ~CreateKey() {}
+
+    virtual AsymmetricKey *operator()()
+    {
+      return CryptoFactory::GetInstance().GetLibrary()->CreatePrivateKey();
+    }
+};
+
+class CreateSeededDsaKey : public CreateKey {
+  public:
+    explicit CreateSeededDsaKey(const QString &seed) :
+      _dsa_key(CppDsaPrivateKey::GenerateKey(seed.toUtf8()))
+    {
+    }
+
+    virtual AsymmetricKey *operator()()
+    {
+      return new CppDsaPrivateKey(_dsa_key->GetModulus(),
+          _dsa_key->GetSubgroup(), _dsa_key->GetGenerator());
+    }
+
+  private:
+    QSharedPointer<CppDsaPrivateKey> _dsa_key;
+};
 
 int main(int argc, char **argv)
 {
@@ -41,6 +69,10 @@ int main(int argc, char **argv)
       QxtCommandOptions::ValueRequired);
   options.add(CL_LIB, "specify the library (default=cryptopp, options=cryptopp)",
       QxtCommandOptions::ValueRequired);
+  options.add(CL_RAND, "specify the base properties for the key (default=NULL)",
+      QxtCommandOptions::ValueRequired);
+  options.add(CL_DEBUG, "enable debugging",
+      QxtCommandOptions::NoValue);
 
   options.parse(argc, argv);
 
@@ -76,13 +108,22 @@ int main(int argc, char **argv)
     ExitWithWarning(options, "Unable to create privdir");
   }
 
+  if(params.contains(CL_DEBUG)) {
+    Logging::UseStderr();
+  }
+
   QString lib_name = params.value(CL_LIB, "cryptopp").toString();
   QString key = params.value(CL_KEYTYPE, "dsa").toString();
 
   CryptoFactory &cf = CryptoFactory::GetInstance();
+  QSharedPointer<CreateKey> ck(new CreateKey());
   if(lib_name == "cryptopp") {
     if(key == "dsa") {
       cf.SetLibrary(CryptoFactory::CryptoPPDsa);
+      if(params.contains(CL_RAND)) {
+        ck = QSharedPointer<CreateKey>(
+            new CreateSeededDsaKey(params.value(CL_RAND).toString()));
+      }
     } else if (key == "rsa") {
       cf.SetLibrary(CryptoFactory::CryptoPP);
     } else {
@@ -97,7 +138,7 @@ int main(int argc, char **argv)
 
   int count = 0;
   while(count < key_count) {
-    QSharedPointer<AsymmetricKey> key(lib->CreatePrivateKey());
+    QSharedPointer<AsymmetricKey> key((*ck)());
     QSharedPointer<AsymmetricKey> pubkey(key->GetPublicKey());
     QByteArray hvalue = hash->ComputeHash(pubkey->GetByteArray());
     QString id = Integer(hvalue).ToString();
