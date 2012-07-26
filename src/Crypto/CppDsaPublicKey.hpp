@@ -158,6 +158,7 @@ namespace Crypto {
         _valid = false;
         _key_size = 0;
         if(!_key) {
+          qDebug() << "Validate failed: No key";
           return false;
         }
         
@@ -167,6 +168,7 @@ namespace Crypto {
           _valid = true;
           return true;
         }
+        qDebug() << "Validate failed: CryptoPP unable to validate";
         return false;
       }
 
