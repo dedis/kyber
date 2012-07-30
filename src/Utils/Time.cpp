@@ -42,23 +42,6 @@ namespace Utils {
     }
   }
 
-  qint64 Time::MSecsSinceEpoch()
-  {
-    if(_real_time) {
-#if QT_VERSION < 0x040700
-      QDateTime now = QDateTime::currentDateTime().toUTC();
-      int days = _epoch.date().daysTo(now.date());
-      int msecs = _epoch.time().msecsTo(now.time());
-      qint64 msecs_total = (days * MSecsPerDay) + msecs;
-      return msecs_total;
-#else
-      return QDateTime::currentMSecsSinceEpoch();
-#endif
-    } else {
-      return _current_virtual_time;
-    }
-  }
-
   void Time::UseRealTime()
   {
     if(_real_time) {

@@ -21,11 +21,6 @@ namespace Utils {
       QDateTime CurrentTime();
 
       /**
-       * Returns the number of milliseconds since the epoch
-       */
-      qint64 MSecsSinceEpoch();
-
-      /**
        * Time returns time based upon the system clock
        */
       void UseRealTime();
@@ -45,6 +40,51 @@ namespace Utils {
        * @param time the number of milliseconds to increment the virtual clock by
        */
       void IncrementVirtualClock(qint64 time);
+
+      /**
+       * Returns the specified time using the epoch as the offset
+       */
+      inline qint64 MSecsSinceEpoch(const QDateTime &time)
+      {
+#if QT_VERSION < 0x040700
+        int days = _epoch.date().daysTo(time.date());
+        int msecs = _epoch.time().msecsTo(time.time());
+        qint64 msecs_total = (days * MSecsPerDay) + msecs;
+        return msecs_total;
+#else
+        return time.toMSecsSinceEpoch();
+#endif
+      }
+
+      /**
+       * Returns the number of milliseconds from now until this event
+       */
+      inline qint64 MSecsTo(const QDateTime &time)
+      {
+#if QT_VERSION < 0x040700
+        return MSecsSinceEpoch(time) - MSecsSinceEpoch();
+#else
+        return CurrentTime().msecsTo(time);
+#endif
+      }
+
+      /**
+       * Returns the number of milliseconds since the epoch
+       */
+      inline qint64 MSecsSinceEpoch()
+      {
+        if(_real_time) {
+#if QT_VERSION < 0x040700
+          QDateTime now = QDateTime::currentDateTime().toUTC();
+          return MSecsSinceEpoch(now);
+#else
+          return QDateTime::currentMSecsSinceEpoch();
+#endif
+        } else {
+          return _current_virtual_time;
+        }
+      }
+
 
     protected:
 

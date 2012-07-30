@@ -9,6 +9,8 @@ INCLUDEPATH += ext/joyent-http-parser/ ext/qt-json/ src/ ext/qxt
 CONFIG += qt debug
 QT = core network
 DEFINES += "VERSION=3"
+QMAKE_CXXFLAGS += -Werror
+QMAKE_CFLAGS += -Werror
 
 # Input
 LIBS += -lcryptopp 

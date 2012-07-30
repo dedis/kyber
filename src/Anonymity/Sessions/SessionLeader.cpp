@@ -190,8 +190,7 @@ namespace Sessions {
       new Dissent::Utils::TimerMethod<SessionLeader, int>(this,
           &SessionLeader::CheckRegistrationCallback, 0);
 
-    QDateTime ctime = Dissent::Utils::Time::GetInstance().CurrentTime();
-    qint64 next = ctime.msecsTo(start_time);
+    qint64 next = Dissent::Utils::Time::GetInstance().MSecsTo(start_time);
     if(next < 0) {
       next = 0;
     }
