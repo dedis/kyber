@@ -31,7 +31,7 @@ namespace Tests {
   {
     QUrl url;
     url.setPort(50123);
-    url.setHost("0.0.0.0");
+    url.setHost("127.0.0.1");
 
     QSharedPointer<WebServer> ws = StartServer(url);
     ws->Start();
@@ -45,7 +45,7 @@ namespace Tests {
     QEventLoop loop;
     QObject::connect(&wc, SIGNAL(Done()), &loop, SLOT(quit()));
 
-    wc.Get(QUrl(QString("http://localhost:50123/session/messages?offset=0&count=-1")));
+    wc.Get(QUrl(QString("http://127.0.0.1:50123/session/messages?offset=0&count=-1")));
 
     /* Wait until HTTP request finishes */
     loop.exec();
@@ -55,7 +55,7 @@ namespace Tests {
   {
     QUrl url;
     url.setPort(50123);
-    url.setHost("0.0.0.0");
+    url.setHost("127.0.0.1");
 
     QSharedPointer<WebServer> ws = StartServer(url);
     ws->Start();
@@ -70,7 +70,7 @@ namespace Tests {
       QEventLoop loop;
       TestWebClient wc(false, output);
       QObject::connect(&wc, SIGNAL(Done()), &loop, SLOT(quit()));
-      wc.Get(QUrl(QString("http://localhost:50123/session/messages?offset=0&count=-1")));
+      wc.Get(QUrl(QString("http://127.0.0.1:50123/session/messages?offset=0&count=-1")));
       loop.exec();
     }
 
@@ -80,7 +80,7 @@ namespace Tests {
   {
     QUrl url;
     url.setPort(50123);
-    url.setHost("0.0.0.0");
+    url.setHost("127.0.0.1");
 
     QSharedPointer<WebServer> ws = StartServer(url);
     ws->Start();
@@ -92,7 +92,7 @@ namespace Tests {
     QEventLoop loop;
     QObject::connect(&wc, SIGNAL(Done()), &loop, SLOT(quit()));
 
-    wc.Get(QUrl(QString("http://localhost:50123/session/id")));
+    wc.Get(QUrl(QString("http://127.0.0.1:50123/session/id")));
 
     /* Wait until HTTP request finishes */
     loop.exec();
