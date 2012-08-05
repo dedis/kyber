@@ -65,6 +65,7 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/HttpResponseTest.cpp \
            src/Tests/IdTest.cpp \
            src/Tests/IntegerTest.cpp \
+           src/Tests/KeyShareTest.cpp \
            src/Tests/LogTest.cpp \
            src/Tests/MainTest.cpp \
            src/Tests/MessageRandomizerTest.cpp \

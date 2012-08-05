@@ -45,75 +45,37 @@ using Dissent::Messaging::RpcHandler;
 
 namespace Dissent {
 namespace Applications {
-  SessionFactory &SessionFactory::GetInstance()
-  {
-    static SessionFactory sf;
-    return sf;
-  }
 
-  SessionFactory::SessionFactory()
+  void SessionFactory::CreateSession(Node *node, const Id &session_id,
+      SessionType type, AuthFactory::AuthType auth_type,
+      const QSharedPointer<KeyShare> &public_keys)
   {
-    AddCreateCallback("null", &CreateNullRoundSession);
-    AddCreateCallback("shuffle", &CreateShuffleRoundSession);
-    AddCreateCallback("bulk", &CreateBulkRoundSession);
-    AddCreateCallback("csbulk", &CreateCSBulkRoundSession);
-    AddCreateCallback("repeatingbulk", &CreateRepeatingBulkRoundSession);
-    AddCreateCallback("tolerantbulk", &CreateTolerantBulkRoundSession);
-  }
-
-  void SessionFactory::AddCreateCallback(const QString &type, Callback cb)
-  {
-    _type_to_create[type] = cb;
-  }
-
-  void SessionFactory::Create(Node *node, const Id &session_id,
-      const QString &type) const
-  {
-    Callback cb = _type_to_create[type];
-    if(cb == 0) {
-      qCritical() << "No known type: " << type;
-      return;
+    CreateRound cr;
+    switch(type) {
+      case NULL_ROUND:
+        cr = &TCreateRound<NullRound>;
+        break;
+      case SHUFFLE:
+        cr = &TCreateRound<ShuffleRound>;
+        break;
+      case BULK:
+        cr = &TCreateRound<BulkRound>;
+        break;
+      case REPEATING_BULK:
+        cr = &TCreateRound<RepeatingBulkRound>;
+        break;
+      case CSBULK:
+        cr = &TCreateBulkRound<CSBulkRound, NeffKeyShuffle>;
+        break;
+      case TOLERANT_BULK:
+        cr = &TCreateRound<TolerantBulkRound>;
+        break;
+      default:
+        qFatal("Invalid session type");
     }
-    cb(node, session_id);
-  }
 
-  void SessionFactory::CreateNullRoundSession(Node *node, const Id &session_id)
-  {
-    Common(node, session_id, &TCreateRound<NullRound>);
-  }
-
-  void SessionFactory::CreateShuffleRoundSession(Node *node,
-      const Id &session_id)
-  {
-    Common(node, session_id, &TCreateRound<ShuffleRound>);
-  }
-
-  void SessionFactory::CreateBulkRoundSession(Node *node, const Id &session_id)
-  {
-    Common(node, session_id, &TCreateRound<BulkRound>);
-  }
-
-  void SessionFactory::CreateCSBulkRoundSession(Node *node, const Id &session_id)
-  {
-    Common(node, session_id, &TCreateBulkRound<CSBulkRound, NeffKeyShuffle>);
-  }
-
-  void SessionFactory::CreateRepeatingBulkRoundSession(Node *node,
-      const Id &session_id)
-  {
-    Common(node, session_id, &TCreateRound<RepeatingBulkRound>);
-  }
-
-  void SessionFactory::CreateTolerantBulkRoundSession(Node *node,
-      const Id &session_id)
-  {
-    Common(node, session_id, &TCreateRound<TolerantBulkRound>);
-  }
-
-  void SessionFactory::Common(Node *node, const Id &session_id, CreateRound cr)
-  {
-    QSharedPointer<IAuthenticate> authe(
-        new NullAuthenticate(node->GetPrivateIdentity()));
+    QSharedPointer<IAuthenticate> authe(AuthFactory::CreateAuthenticate(
+          node, auth_type, public_keys));
 
     Session *session = new Session(node->GetGroupHolder(), authe, session_id,
         node->GetNetwork(), cr);
@@ -129,7 +91,8 @@ namespace Applications {
     if(node->GetPrivateIdentity().GetLocalId() ==
         node->GetGroupHolder()->GetGroup().GetLeader())
     {
-      QSharedPointer<IAuthenticator> autho(new NullAuthenticator());
+      QSharedPointer<IAuthenticator> autho(AuthFactory::CreateAuthenticator(
+            node, auth_type, public_keys));
       QSharedPointer<SessionLeader> sl(new SessionLeader(
             node->GetGroupHolder()->GetGroup(), node->GetPrivateIdentity(),
             node->GetNetwork(), psession, autho));

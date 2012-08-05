@@ -12,7 +12,7 @@ namespace Authentication {
 
     /**
      * An abstract base class for an authenticator,
-     * one to whom others authenticate
+     * one to whom others authenticate.
      */
   class IAuthenticator {
 

@@ -13,7 +13,8 @@ namespace Tests {
     EXPECT_EQ(settings.RemotePeers.count(), 0);
     settings.LocalEndPoints.append(QUrl("buffer://5"));
     settings.RemotePeers.append(QUrl("buffer://6"));
-    settings.LocalId = id;
+    settings.LocalIds = QList<Id>();
+    settings.LocalIds.append(id);
     settings.Save();
 
     Settings settings0("dissent.ini", false);
@@ -34,13 +35,13 @@ namespace Tests {
     EXPECT_EQ(settings1.LocalEndPoints[1], QUrl("buffer://7"));
     EXPECT_EQ(settings1.RemotePeers[0], QUrl("buffer://6"));
     EXPECT_EQ(settings1.RemotePeers[1], QUrl("buffer://8"));
-    EXPECT_EQ(id, settings1.LocalId);
+    EXPECT_EQ(id, settings1.LocalIds[0]);
 
     QStringList settings_list;
     settings_list << "application" << "--remote_peers" << "buffer://5" <<
       "--remote_peers" << "buffer://6" <<
       "--endpoints" << "buffer://4" << "--local_nodes" << "3" <<
-      "--demo_mode" << "--session_type" << "csbulk" <<
+      "--auth_mode" << "null" << "--session_type" << "csbulk" <<
       "--log" << "stderr" << "--console" <<
       "--web_server_url" << "http://127.0.0.1:8000" <<
       "--entry_tunnel_url" << "tcp://127.0.0.1:8081" <<
@@ -57,7 +58,7 @@ namespace Tests {
     EXPECT_EQ(settings2.RemotePeers[0], QUrl("buffer://5"));
     EXPECT_EQ(settings2.RemotePeers[1], QUrl("buffer://6"));
     EXPECT_EQ(settings2.LocalNodeCount, 3);
-    EXPECT_TRUE(settings2.DemoMode);
+    EXPECT_EQ(settings2.AuthMode, AuthFactory::NULL_AUTH);
     EXPECT_EQ(settings2.SessionType, "csbulk");
     EXPECT_EQ(settings2.Log, "stderr");
     EXPECT_TRUE(settings2.Console);

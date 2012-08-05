@@ -23,11 +23,6 @@ namespace Authentication {
 
   QVariant LRSAuthenticate::PrepareForChallenge()
   {
-    return QVariant();
-  }
-
-  QPair<bool, QVariant> LRSAuthenticate::ProcessChallenge(const QVariant &)
-  {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QSharedPointer<AsymmetricKey> skey(lib->CreatePrivateKey());
     QSharedPointer<DiffieHellman> dh(lib->CreateDiffieHellman());
@@ -42,8 +37,12 @@ namespace Authentication {
     QVariantList list;
     list.append(bident);
     list.append(_lrs->Sign(bident));
+    return list;
+  }
 
-    return QPair<bool, QVariant>(true, list);
+  QPair<bool, QVariant> LRSAuthenticate::ProcessChallenge(const QVariant &)
+  {
+    return QPair<bool, QVariant>(true, PrepareForChallenge());
   }
 }
 }

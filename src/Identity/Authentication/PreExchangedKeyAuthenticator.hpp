@@ -5,6 +5,8 @@
 #include <QVariant>
 
 #include "Connections/Id.hpp"
+#include "Crypto/AsymmetricKey.hpp"
+#include "Crypto/KeyShare.hpp"
 #include "Identity/PrivateIdentity.hpp"
 #include "Identity/PublicIdentity.hpp"
 
@@ -44,8 +46,11 @@ namespace Authentication {
   class PreExchangedKeyAuthenticator : public IAuthenticator {
 
     public:
+      typedef Crypto::AsymmetricKey AsymmetricKey;
+      typedef Crypto::KeyShare KeyShare;
+
       PreExchangedKeyAuthenticator(const PrivateIdentity &ident,
-          const QList<PublicIdentity> &roster);
+          const QSharedPointer<KeyShare> &keys);
 
       virtual ~PreExchangedKeyAuthenticator() {}
 
@@ -73,17 +78,16 @@ namespace Authentication {
        * My private identity
        */
       const PrivateIdentity _alice_ident;
-      QByteArray _alice_ident_bytes;
       
       /**
        * A list of Bobs who can join the group
        */
-      QHash<Connections::Id, PublicIdentity> _roster;
+      QSharedPointer<KeyShare> _keys;
 
       /**
-       * Holds a mapping of Bob => (PK_Bob, Nonce_Bob)
+       * Holds a mapping of Nonce => Bob
        */
-      QHash<Id, QPair<PublicIdentity, QByteArray> > _nonces;
+      QHash<Id, QByteArray> _nonces;
   };
 }
 }

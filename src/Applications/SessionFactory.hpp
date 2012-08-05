@@ -5,6 +5,7 @@
 
 #include "Anonymity/Round.hpp"
 #include "Connections/Id.hpp"
+#include "Crypto/KeyShare.hpp"
 
 #include "Node.hpp"
 
@@ -17,74 +18,52 @@ namespace Applications {
     public:
       typedef Anonymity::CreateRound CreateRound;
       typedef Connections::Id Id;
-      typedef void (*Callback)(Node *, const Id &);
+      typedef Crypto::KeyShare KeyShare;
 
-      /**
-       * Singleton implemention
-       */
-      static SessionFactory &GetInstance();
+      static const char* SessionNames(int id)
+      {
+        static const char* sessions[] = {
+          "null",
+          "shuffle",
+          "bulk",
+          "repeatingbulk",
+          "csbulk",
+          "tolerantbulk",
+        };
+        return sessions[id];
+      }
 
-      /**
-       * Register a callback for the specific type
-       * @param type the type for the callback
-       * @param cb the "constructor" for the type
-       */
-      void AddCreateCallback(const QString &type, Callback cb);
+      enum SessionType {
+        INVALID = -1,
+        NULL_ROUND = 0,
+        SHUFFLE,
+        BULK,
+        REPEATING_BULK,
+        CSBULK,
+        TOLERANT_BULK,
+      };
 
-      /**
-       * Adds the session expressed by type to the node
-       * @param node the node to add the session to
-       * @param session_id the id for the new session
-       * @param type the type of session to create
-       */
-      void Create(Node *node, const Id &session_id, const QString &type) const;
+      static SessionType GetSessionType(const QString &stype)
+      {
+        static QHash<QString, SessionType> string_to_type = BuildStringToTypeHash();
+        return string_to_type.value(stype, INVALID);
+      }
 
-      /**
-       * Create a SecureSession / ShuffleRound
-       */
-      static void CreateShuffleRoundSession(Node *node, const Id &session_id);
-
-      /**
-       * Create a Session / NullRound
-       */
-      static void CreateNullRoundSession(Node *node, const Id &session_id);
-
-      /**
-       * Create a Bulk "V1"
-       */
-      static void CreateBulkRoundSession(Node *node, const Id &session_id);
-
-      /**
-       * Create a Bulk "V2"
-       */
-      static void CreateRepeatingBulkRoundSession(Node *node,
-          const Id &session_id);
-
-      /**
-       * Create a Bulk "V3"
-       */
-      static void CreateCSBulkRoundSession(Node *node, const Id &session_id);
-
-      /**
-       * Create a Bulk "V3" with blame
-       */
-      static void CreateTolerantBulkRoundSession(Node *node,
-          const Id &session_id);
+      static void CreateSession(Node *node, const Id &session_id,
+          SessionType type, AuthFactory::AuthType auth_type,
+          const QSharedPointer<KeyShare> &public_keys);
 
     private:
-      static void Common(Node *node, const Id &session_id, CreateRound cr);
+      static QHash<QString, SessionType> BuildStringToTypeHash()
+      {
+        QHash<QString, SessionType> hash;
+        for(int idx = NULL_ROUND; idx <= TOLERANT_BULK; idx++) {
+          hash[SessionNames(idx)] = static_cast<SessionType>(idx);
+        }
+        return hash;
+      }
 
-      /**
-       * No inheritance, this is a singleton object
-       */
-      explicit SessionFactory(); 
-
-      /**
-       * No copying of singleton objects
-       */
       Q_DISABLE_COPY(SessionFactory)
-
-      QHash<QString, Callback> _type_to_create;
   };
 }
 }

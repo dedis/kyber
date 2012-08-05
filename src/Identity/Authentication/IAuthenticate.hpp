@@ -13,6 +13,8 @@ namespace Authentication {
     /**
      * An abstract base class for one who wishes to authenticate to
      * an authenticator.
+     * If RequireRequestChallenge is false, then both PrepareForChallenge
+     * and ProcessChallenge should return the same QVariant.
      */
   class IAuthenticate {
 

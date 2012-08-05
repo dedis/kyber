@@ -41,6 +41,7 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Anonymity/Tolerant/Conflict.hpp \
            src/Anonymity/Tolerant/MessageHistory.hpp \
            src/Anonymity/Tolerant/TolerantBulkRound.hpp \
+           src/Applications/AuthFactory.hpp \
            src/Applications/CommandLine.hpp \
            src/Applications/ConsoleSink.hpp \
            src/Applications/FileSink.hpp \
@@ -84,6 +85,7 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Crypto/Hash.hpp \
            src/Crypto/Integer.hpp \
            src/Crypto/IntegerData.hpp \
+           src/Crypto/KeyShare.hpp \
            src/Crypto/LRSPrivateKey.hpp \
            src/Crypto/LRSPublicKey.hpp \
            src/Crypto/LRSSignature.hpp \
@@ -212,6 +214,7 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Anonymity/Tolerant/BlameMatrix.cpp \
            src/Anonymity/Tolerant/MessageHistory.cpp \
            src/Anonymity/Tolerant/TolerantBulkRound.cpp \
+           src/Applications/AuthFactory.cpp \
            src/Applications/CommandLine.cpp \
            src/Applications/ConsoleSink.cpp \
            src/Applications/FileSink.cpp \
@@ -243,6 +246,7 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Crypto/CppRandom.cpp \
            src/Crypto/CryptoFactory.cpp \
            src/Crypto/DiffieHellman.cpp \
+           src/Crypto/KeyShare.cpp \
            src/Crypto/LRSPrivateKey.cpp \
            src/Crypto/LRSPublicKey.cpp \
            src/Crypto/NullDiffieHellman.cpp \

@@ -4,6 +4,7 @@
 #include <QVariant>
 
 #include "Connections/Id.hpp"
+#include "Crypto/AsymmetricKey.hpp"
 #include "Identity/PublicIdentity.hpp"
 
 #include "IAuthenticate.hpp"
@@ -19,9 +20,11 @@ namespace Authentication {
    * Please see description of this protocol in PreExchangedKeyAuthenticator.hpp
    */
   class PreExchangedKeyAuthenticate : public IAuthenticate {
-
     public:
-      PreExchangedKeyAuthenticate(const PrivateIdentity &ident, const PublicIdentity &leader);
+      typedef Crypto::AsymmetricKey AsymmetricKey;
+
+      PreExchangedKeyAuthenticate(const PrivateIdentity &ident,
+          const QSharedPointer<AsymmetricKey> &leader);
 
       virtual ~PreExchangedKeyAuthenticate() {}
 
@@ -51,14 +54,10 @@ namespace Authentication {
 
       static const int NonceLength = 32;
 
-    protected:
-      PrivateIdentity _bob_ident;
-      QByteArray _bob_ident_bytes;
-      const PublicIdentity _alice_ident;
-      QByteArray _alice_ident_bytes;
-
     private:
-      
+      PrivateIdentity _bob_ident;
+      PublicIdentity _bob_pub_ident;
+      QSharedPointer<AsymmetricKey> _alice;
       QByteArray _bob_nonce;
 
   };

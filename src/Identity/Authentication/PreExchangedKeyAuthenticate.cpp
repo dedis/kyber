@@ -14,28 +14,20 @@ namespace Authentication {
 
   PreExchangedKeyAuthenticate::PreExchangedKeyAuthenticate(
       const PrivateIdentity &ident,
-      const PublicIdentity &leader) : 
+      const QSharedPointer<AsymmetricKey> &leader) :
     _bob_ident(ident),
-    _alice_ident(leader),
+    _bob_pub_ident(GetPublicIdentity(_bob_ident)),
+    _alice(leader),
     _bob_nonce(NonceLength, 0)
   {
-    QDataStream bob_stream(&_bob_ident_bytes, QIODevice::WriteOnly);
-    bob_stream << Identity::GetPublicIdentity(_bob_ident);
-
-    QDataStream alice_stream(&_alice_ident_bytes, QIODevice::WriteOnly);
-    alice_stream << _alice_ident;
   }
 
   QVariant PreExchangedKeyAuthenticate::PrepareForChallenge()
   {
-    QList<QVariant> list;
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     lib->GetRandomNumberGenerator()->GenerateBlock(_bob_nonce);
 
-    list.append(QVariant(_bob_nonce));
-    list.append(QVariant(_bob_ident_bytes));
-
-    return list;
+    return _bob_nonce;
   }
 
   QPair<bool, QVariant> PreExchangedKeyAuthenticate::ProcessChallenge(const QVariant &data)
@@ -46,56 +38,45 @@ namespace Authentication {
     }
 
     QList<QVariant> in = data.toList();
-    if(in.count() != 3 || 
+    if(in.count() != 2 || 
         !in[0].canConvert(QVariant::ByteArray) ||
-        !in[1].canConvert(QVariant::ByteArray) ||
-        !in[2].canConvert(QVariant::ByteArray))
+        !in[1].canConvert(QVariant::ByteArray))
     {
-      qWarning() << "Invalid challenge from leader: list.count() != 3";
+      qWarning() << "Invalid challenge from leader: list.count() != 2";
       return QPair<bool, QVariant>(false, QVariant());
     }
 
     /* Input data "in" should contain 2 QByteArrays:
-     *    to_verify = stream(PK_B, bob_nonce, alice_nonce)
-     *    alice_ident_bytes = alice's public identity
+     *    to_verify = stream(bob_nonce, alice_nonce)
      *    sig = sig_A{to_sign}
      */
-    QByteArray in_alice_to_verify = in[0].toByteArray();
-    QByteArray in_alice_ident_bytes = in[1].toByteArray();
-    QByteArray in_alice_sig = in[2].toByteArray();
+    QByteArray alice_msg = in[0].toByteArray();
+    QByteArray alice_sig = in[1].toByteArray();
 
-    if(in_alice_ident_bytes != _alice_ident_bytes) {
-      qWarning() << "Mismatched leader IDs";
-      return QPair<bool, QVariant>(false, QVariant());
-    }
-
-    bool okay = _alice_ident.GetVerificationKey()->Verify(in_alice_to_verify, in_alice_sig);
-    if(!okay) {
+    if(!_alice->Verify(alice_msg, alice_sig)) {
       qWarning() << "Invalid leader signature";
       return QPair<bool, QVariant>(false, QVariant());
     }
 
-    QByteArray in_bob_ident_bytes, in_bob_nonce, in_alice_nonce;
-    QDataStream in_stream(&in_alice_to_verify, QIODevice::ReadOnly);
-    in_stream >> in_bob_ident_bytes >> in_bob_nonce >> in_alice_nonce;
+    QByteArray bob_nonce, alice_nonce;
+    QDataStream in_stream(alice_msg);
+    in_stream >> bob_nonce >> alice_nonce;
 
-    if(in_bob_ident_bytes != _bob_ident_bytes) {
-      qWarning() << "Leader signed wrong public key";
-      return QPair<bool, QVariant>(false, QVariant());
-    }
-
-    if(in_bob_nonce != _bob_nonce) {
+    if(bob_nonce != _bob_nonce) {
       qWarning() << "Leader signed wrong nonce";
       return QPair<bool, QVariant>(false, QVariant());
     }
 
-    QByteArray to_sign;
-    QDataStream out_stream(&to_sign, QIODevice::WriteOnly);
-    out_stream << _alice_ident_bytes << in_alice_nonce;
+    QByteArray msg;
+    QDataStream out_stream(&msg, QIODevice::WriteOnly);
+    out_stream << _bob_pub_ident << bob_nonce << alice_nonce;
+    QList<QVariant> to_send;
+    QByteArray sig = _bob_ident.GetSigningKey()->Sign(msg);
 
-    QByteArray out = _bob_ident.GetSigningKey()->Sign(to_sign);
+    to_send.append(msg);
+    to_send.append(sig);
 
-    return QPair<bool, QVariant>(true, out);
+    return QPair<bool, QVariant>(true, to_send);
   }
 }
 }

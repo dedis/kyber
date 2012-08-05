@@ -34,6 +34,8 @@ int main(int argc, char **argv)
     CryptoFactory::GetInstance().SetThreading(CryptoFactory::MultiThreaded);
   }
 
+  CryptoFactory::GetInstance().SetLibrary(CryptoFactory::CryptoPPDsa);
+
   Library *lib = CryptoFactory::GetInstance().GetLibrary();
 
   Group group(QVector<PublicIdentity>(), Id(settings.LeaderId),
@@ -50,17 +52,8 @@ int main(int argc, char **argv)
     app_sink = QSharedPointer<SignalSink>(new SignalSink());
   }
 
-  Id local_id = (settings.LocalId == Id::Zero()) ? Id() : settings.LocalId;
   QSharedPointer<AsymmetricKey> key;
   QSharedPointer<DiffieHellman> dh;
-
-  if(settings.DemoMode) {
-    QByteArray id = local_id.GetByteArray();
-    key = QSharedPointer<AsymmetricKey>(lib->GeneratePrivateKey(id));
-    dh = QSharedPointer<DiffieHellman>(lib->GenerateDiffieHellman(id));
-  } else {
-    qFatal("Only DemoMode supported at this time;");
-  }
 
   Node::CreateNode create = &Node::CreateBasicGossip;
   if(settings.SubgroupPolicy == Group::ManagedSubgroup) {
@@ -70,28 +63,29 @@ int main(int argc, char **argv)
   bool force_super_peer = local[0].GetType().compare("buffer") == 0;
   bool super_peer = settings.SuperPeer || force_super_peer;
 
-  nodes.append(create(PrivateIdentity(local_id, key, dh, super_peer),
-        group, local, remote, app_sink, settings.SessionType));
+  QSharedPointer<KeyShare> keys(new KeyShare(settings.PublicKeys));
 
-  for(int idx = 1; idx < settings.LocalNodeCount; idx++) {
+  for(int idx = 0; idx < settings.LocalNodeCount; idx++) {
     super_peer = settings.SuperPeer || (force_super_peer && idx < 3);
-
-    Id local_id;
-    local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
+    Id local_id = settings.LocalIds.count() > idx ? settings.LocalIds[idx] : Id();
 
     QSharedPointer<AsymmetricKey> key;
     QSharedPointer<DiffieHellman> dh;
 
-    if(settings.DemoMode) {
+    if(AuthFactory::RequiresKeys(settings.AuthMode)) {
+      key = QSharedPointer<AsymmetricKey>(lib->LoadPrivateKeyFromFile(settings.PrivateKey[idx]));
+      qDebug() << local_id << settings.PrivateKey[idx];
+      dh = QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman());
+    } else {
       QByteArray id = local_id.GetByteArray();
       key = QSharedPointer<AsymmetricKey>(lib->GeneratePrivateKey(id));
       dh = QSharedPointer<DiffieHellman>(lib->GenerateDiffieHellman(id));
-    } else {
-      qFatal("Only DemoMode supported at this time;");
     }
 
     nodes.append(create(PrivateIdentity(local_id, key, dh, super_peer),
-          group, local, remote, default_sink, settings.SessionType));
+          group, local, remote, (idx == 0 ? app_sink : default_sink),
+          settings.SessionType, settings.AuthMode, keys));
+    local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
   }
 
   QScopedPointer<WebServer> ws;

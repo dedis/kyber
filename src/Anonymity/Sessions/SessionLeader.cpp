@@ -96,8 +96,10 @@ namespace Sessions {
       return;
     }
 
-    QPair<bool, QVariant> challenge = _auth->RequestChallenge(sender_id,
-        request.GetData());
+    QVariantHash container = request.GetData().toHash();
+    QVariant chal_req = container.value("challenge");
+
+    QPair<bool, QVariant> challenge = _auth->RequestChallenge(sender_id, chal_req);
 
     if(challenge.first) {
       request.Respond(challenge.second);

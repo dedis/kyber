@@ -67,12 +67,17 @@ namespace Tests {
         QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
         QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman()));
 
-    QList<PublicIdentity> roster;
-    roster.append(GetPublicIdentity(client));
+    QSharedPointer<KeyShare> keyshare(new KeyShare());
+    keyshare->AddKey(client.GetLocalId().ToString(),
+        QSharedPointer<AsymmetricKey>(
+          client.GetSigningKey()->GetPublicKey()));
 
-    PreExchangedKeyAuthenticate authe(client, GetPublicIdentity(server));
-    PreExchangedKeyAuthenticate nauthe(nclient, GetPublicIdentity(server));
-    PreExchangedKeyAuthenticator autho(server, roster);
+    QSharedPointer<AsymmetricKey> skey(
+        GetPublicIdentity(server).GetVerificationKey());
+
+    PreExchangedKeyAuthenticate authe(client, skey);
+    PreExchangedKeyAuthenticate nauthe(nclient, skey);
+    PreExchangedKeyAuthenticator autho(server, keyshare);
 
     AuthPass(client.GetLocalId(), &authe, &autho);
     AuthFailChallenge(nclient.GetLocalId(), &nauthe, &autho);
