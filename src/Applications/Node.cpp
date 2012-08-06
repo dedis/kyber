@@ -27,7 +27,7 @@ namespace Applications {
       const QSharedPointer<BaseOverlay> &overlay,
       const QSharedPointer<Network> &network,
       const QSharedPointer<ISink> &sink,
-      const QString &type,
+      const SessionFactory::SessionType stype,
       AuthFactory::AuthType auth,
       const QSharedPointer<KeyShare> &keys) :
     _ident(ident),
@@ -37,8 +37,7 @@ namespace Applications {
     _sm(_overlay->GetRpcHandler()),
     _sink(sink)
   {
-    SessionFactory::CreateSession(this, Id::Zero(),
-        SessionFactory::GetSessionType(type), auth, keys);
+    SessionFactory::CreateSession(this, Id::Zero(), stype, auth, keys);
   }
 
   Node::~Node()
@@ -48,7 +47,7 @@ namespace Applications {
   QSharedPointer<Node> Node::CreateBasicGossip(const PrivateIdentity &ident,
       const Group &group, const QList<Address> &local,
       const QList<Address> &remote, const QSharedPointer<ISink> &sink,
-      const QString &session, AuthFactory::AuthType auth,
+      SessionFactory::SessionType session, AuthFactory::AuthType auth,
       const QSharedPointer<KeyShare> &keys)
   {
     QSharedPointer<GroupHolder> gh(new GroupHolder(group));
@@ -64,7 +63,7 @@ namespace Applications {
   QSharedPointer<Node> Node::CreateClientServer(const PrivateIdentity &ident,
       const Group &group, const QList<Address> &local,
       const QList<Address> &remote, const QSharedPointer<ISink> &sink,
-      const QString &session, AuthFactory::AuthType auth,
+      SessionFactory::SessionType session, AuthFactory::AuthType auth,
       const QSharedPointer<KeyShare> &keys)
   {
     QSharedPointer<GroupHolder> gh(new GroupHolder(group));

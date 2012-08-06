@@ -5,7 +5,7 @@ namespace Dissent {
 namespace Tests {
 
   QList<QSharedPointer<Node> > GenerateOverlay(int count,
-      Group::SubgroupPolicy policy, const QString &session_type,
+      Group::SubgroupPolicy policy, SessionFactory::SessionType session_type,
       AuthFactory::AuthType auth_type = AuthFactory::NULL_AUTH)
   {
     Address base = BufferAddress(1);
@@ -75,7 +75,8 @@ namespace Tests {
     return nodes;
   }
 
-  void DisconnectLeader(QList<QSharedPointer<Node> > &nodes, const QString &session_type)
+  void DisconnectLeader(QList<QSharedPointer<Node> > &nodes,
+      SessionFactory::SessionType session_type)
   {
     Group group = nodes[0]->GetSessionManager().GetDefaultSession()->GetGroup();
     Group::SubgroupPolicy policy = group.GetSubgroupPolicy();
@@ -151,7 +152,7 @@ namespace Tests {
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     Timer::GetInstance().UseVirtualTime();
     QList<QSharedPointer<Node> > nodes = GenerateOverlay(count,
-        Group::CompleteGroup, "null");
+        Group::CompleteGroup, SessionFactory::NULL_ROUND);
     TerminateOverlay(nodes);
   }
 
@@ -160,7 +161,7 @@ namespace Tests {
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     Timer::GetInstance().UseVirtualTime();
     QList<QSharedPointer<Node> > nodes = GenerateOverlay(count,
-        Group::CompleteGroup, "null");
+        Group::CompleteGroup, SessionFactory::NULL_ROUND);
     SendTest(nodes);
     TerminateOverlay(nodes);
   }
@@ -170,7 +171,7 @@ namespace Tests {
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     Timer::GetInstance().UseVirtualTime();
     QList<QSharedPointer<Node> > nodes = GenerateOverlay(count,
-        Group::FixedSubgroup, "shuffle");
+        Group::FixedSubgroup, SessionFactory::SHUFFLE);
     SendTest(nodes);
 
     foreach(QSharedPointer<Node> node, nodes) {
@@ -185,9 +186,9 @@ namespace Tests {
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     Timer::GetInstance().UseVirtualTime();
     QList<QSharedPointer<Node> > nodes = GenerateOverlay(count,
-        Group::FixedSubgroup, "shuffle");
+        Group::FixedSubgroup, SessionFactory::SHUFFLE);
     SendTest(nodes);
-    DisconnectLeader(nodes, "shuffle");
+    DisconnectLeader(nodes, SessionFactory::SHUFFLE);
     SendTest(nodes);
 
     foreach(QSharedPointer<Node> node, nodes) {
@@ -209,7 +210,7 @@ namespace Tests {
     QSharedPointer<DiffieHellman> dh;
     QSharedPointer<Node> n = Node::CreateBasicGossip(PrivateIdentity(id, key, dh),
         Group(), empty, empty, QSharedPointer<ISink>(new DummySink()),
-        "shuffle");
+        SessionFactory::SHUFFLE);
     EXPECT_EQ(local_id, n->GetOverlay()->GetId());
   }
 
@@ -217,8 +218,11 @@ namespace Tests {
   {
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     Timer::GetInstance().UseVirtualTime();
+
     QList<QSharedPointer<Node> > nodes = GenerateOverlay(count,
-        Group::CompleteGroup, "null", AuthFactory::PRE_EXCHANGED_KEY_AUTH);
+        Group::CompleteGroup, SessionFactory::NULL_ROUND,
+        AuthFactory::PRE_EXCHANGED_KEY_AUTH);
+
     SendTest(nodes);
     TerminateOverlay(nodes);
   }
@@ -230,11 +234,12 @@ namespace Tests {
 
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     Timer::GetInstance().UseVirtualTime();
+
     QList<QSharedPointer<Node> > nodes = GenerateOverlay(count,
-        Group::CompleteGroup, "null", AuthFactory::LRS_AUTH);
+        Group::CompleteGroup, SessionFactory::NULL_ROUND, AuthFactory::LRS_AUTH);
+
     SendTest(nodes);
     TerminateOverlay(nodes);
-
     CryptoFactory::GetInstance().SetLibrary(clib);
   }
 }

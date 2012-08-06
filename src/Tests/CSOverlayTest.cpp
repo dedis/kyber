@@ -6,7 +6,7 @@ namespace Tests {
 
   QSharedPointer<Node> CreateNode(const Id &id, const Group &group,
       const QList<Address> &local, const QList<Address> &remote,
-      const QSharedPointer<ISink> &sink, const QString &session)
+      const QSharedPointer<ISink> &sink, SessionFactory::SessionType session)
   {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QByteArray bid(id.GetByteArray());
@@ -47,7 +47,7 @@ namespace Tests {
   }
 
   QList<QSharedPointer<Node> > GenerateOverlay(int server_total,
-      int client_total, const QString &session)
+      int client_total, SessionFactory::SessionType session)
   {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QSharedPointer<Random> rand(lib->GetRandomNumberGenerator());
@@ -123,7 +123,8 @@ namespace Tests {
     int clients = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     int servers = Random::GetInstance().GetInt(4, TEST_RANGE_MIN);
     Timer::GetInstance().UseVirtualTime();
-    QList<QSharedPointer<Node> > nodes = GenerateOverlay(servers, clients, "null");
+    QList<QSharedPointer<Node> > nodes = GenerateOverlay(servers, clients,
+        SessionFactory::NULL_ROUND);
     TerminateOverlay(nodes);
   }
 
@@ -132,7 +133,8 @@ namespace Tests {
     int clients = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     int servers = Random::GetInstance().GetInt(4, TEST_RANGE_MIN);
     Timer::GetInstance().UseVirtualTime();
-    QList<QSharedPointer<Node> > nodes = GenerateOverlay(servers, clients, "repeatingbulk");
+    QList<QSharedPointer<Node> > nodes = GenerateOverlay(servers, clients,
+        SessionFactory::REPEATING_BULK);
     SendTest(nodes);
     TerminateOverlay(nodes);
   }

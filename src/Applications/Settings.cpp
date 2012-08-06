@@ -39,7 +39,6 @@ namespace Applications {
 
     LeaderId = Id::Zero();
     LocalNodeCount = 1;
-    SessionType = "null";
 
     QVariant peers = _settings->value(Param<Params::RemotePeers>());
     ParseUrlList("RemotePeer", peers, RemotePeers);
@@ -68,7 +67,10 @@ namespace Applications {
     ExitTunnel = (ExitTunnelProxyUrl != QUrl()) || ExitTunnel;
 
     if(_settings->contains(Param<Params::SessionType>())) {
-      SessionType = _settings->value(Param<Params::SessionType>()).toString();
+      QString stype = _settings->value(Param<Params::SessionType>()).toString();
+      SessionType = SessionFactory::GetSessionType(stype);
+    } else {
+      SessionType = SessionFactory::NULL_ROUND;
     }
 
     if(_settings->contains(Param<Params::SubgroupPolicy>())) {
@@ -161,6 +163,11 @@ namespace Applications {
         _reason = "Missing path to private key or sufficient private keys";
         return false;
       }
+    }
+
+    if(SessionType == SessionFactory::INVALID) {
+      _reason = "Invalid session type";
+      return false;
     }
 
     return true;

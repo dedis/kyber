@@ -59,7 +59,7 @@ namespace Tests {
     EXPECT_EQ(settings2.RemotePeers[1], QUrl("buffer://6"));
     EXPECT_EQ(settings2.LocalNodeCount, 3);
     EXPECT_EQ(settings2.AuthMode, AuthFactory::NULL_AUTH);
-    EXPECT_EQ(settings2.SessionType, "csbulk");
+    EXPECT_EQ(settings2.SessionType, SessionFactory::CSBULK);
     EXPECT_EQ(settings2.Log, "stderr");
     EXPECT_TRUE(settings2.Console);
     EXPECT_EQ(settings2.WebServerUrl, QUrl("http://127.0.0.1:8000"));

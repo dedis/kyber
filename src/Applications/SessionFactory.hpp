@@ -7,10 +7,12 @@
 #include "Connections/Id.hpp"
 #include "Crypto/KeyShare.hpp"
 
-#include "Node.hpp"
+#include "AuthFactory.hpp"
 
 namespace Dissent {
 namespace Applications {
+  class Node;
+
   /**
    * Generates an appropriate session given the input
    */

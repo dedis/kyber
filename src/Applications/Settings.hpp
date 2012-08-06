@@ -11,6 +11,9 @@
 #include "Connections/Id.hpp"
 #include "Identity/Group.hpp"
 
+#include "AuthFactory.hpp"
+#include "SessionFactory.hpp"
+
 namespace Dissent {
 namespace Applications {
   /**
@@ -82,7 +85,7 @@ namespace Applications {
       /**
        * The type of anonymity session / round to construct
        */
-      QString SessionType;
+      SessionFactory::SessionType SessionType;
 
       /**
        * Logging type: stderr, stdout, file, or empty (disabled)

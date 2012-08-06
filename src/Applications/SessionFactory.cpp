@@ -17,6 +17,7 @@
 #include "Messaging/RpcHandler.hpp"
 
 #include "SessionFactory.hpp"
+#include "Node.hpp"
 
 using Dissent::Anonymity::BulkRound;
 using Dissent::Anonymity::CSBulkRound;

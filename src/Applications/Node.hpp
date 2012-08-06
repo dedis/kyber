@@ -11,6 +11,7 @@
 #include "Transports/Address.hpp"
 
 #include "AuthFactory.hpp"
+#include "SessionFactory.hpp"
 
 namespace Dissent {
 namespace Applications {
@@ -34,19 +35,21 @@ namespace Applications {
 
       typedef QSharedPointer<Node> (*CreateNode)(const PrivateIdentity &,
           const Group &, const QList<Address> &, const QList<Address> &,
-          const QSharedPointer<ISink> &, const QString &, AuthFactory::AuthType,
-          const QSharedPointer<KeyShare> &keys);
+          const QSharedPointer<ISink> &, SessionFactory::SessionType,
+          AuthFactory::AuthType, const QSharedPointer<KeyShare> &keys);
 
       static QSharedPointer<Node> CreateBasicGossip(const PrivateIdentity &ident,
           const Group &group, const QList<Address> &local,
           const QList<Address> &remote, const QSharedPointer<ISink> &sink,
-          const QString &session, AuthFactory::AuthType auth = AuthFactory::NULL_AUTH,
+          SessionFactory::SessionType session,
+          AuthFactory::AuthType auth = AuthFactory::NULL_AUTH,
           const QSharedPointer<KeyShare> &keys = QSharedPointer<KeyShare>());
 
       static QSharedPointer<Node> CreateClientServer(const PrivateIdentity &ident,
           const Group &group, const QList<Address> &local,
           const QList<Address> &remote, const QSharedPointer<ISink> &sink,
-          const QString &session, AuthFactory::AuthType auth = AuthFactory::NULL_AUTH,
+          SessionFactory::SessionType session,
+          AuthFactory::AuthType auth = AuthFactory::NULL_AUTH,
           const QSharedPointer<KeyShare> &keys = QSharedPointer<KeyShare>());
 
       /**
@@ -59,7 +62,7 @@ namespace Applications {
           const QSharedPointer<BaseOverlay> &overlay,
           const QSharedPointer<Network> &network,
           const QSharedPointer<ISink> &sink,
-          const QString &type,
+          SessionFactory::SessionType stype,
           AuthFactory::AuthType auth,
           const QSharedPointer<KeyShare> &keys);
 

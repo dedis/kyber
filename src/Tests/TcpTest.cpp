@@ -4,7 +4,8 @@
 namespace Dissent {
 namespace Tests {
   QList<QSharedPointer<Node> > GenerateLiveOverlay(const Address &base,
-      int count, Group::SubgroupPolicy policy, const QString &session_type)
+      int count, Group::SubgroupPolicy policy,
+      SessionFactory::SessionType session_type)
   {
     QList<Address> local;
     local.append(base);
@@ -57,7 +58,7 @@ namespace Tests {
     Timer::GetInstance().UseRealTime();
     Address addr = TcpAddress("127.0.0.1", 51234);
     QList<QSharedPointer<Node> > nodes = GenerateLiveOverlay(addr, count,
-        Group::CompleteGroup, "null");
+        Group::CompleteGroup, SessionFactory::NULL_ROUND);
     SendTest(nodes, true);
 
     foreach(QSharedPointer<Node> node, nodes) {
