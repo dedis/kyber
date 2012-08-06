@@ -372,11 +372,19 @@ namespace Anonymity {
       void ProcessCleartext();
       void ConcludeClientCiphertextSubmission(const int &);
 
+#ifdef CSBR_SIGN_SLOTS
       inline int SlotHeaderLength(int slot_idx) const
+#else
+      inline int SlotHeaderLength(int) const
+#endif
       {
         Crypto::Library *lib = Crypto::CryptoFactory::GetInstance().GetLibrary();
-        return 9 + lib->RngOptimalSeedSize() +
-          (_state->anonymous_keys[slot_idx]->GetKeySize() / 8);
+#ifdef CSBR_SIGN_SLOTS
+        int sig_length = _state->anonymous_keys[slot_idx]->GetKeySize() / 8;
+#else
+        static int sig_length = QSharedPointer<Crypto::Hash>(lib->GetHashAlgorithm())->GetDigestSize();
+#endif
+        return 9 + lib->RngOptimalSeedSize() + sig_length;
       }
 
       QSharedPointer<ServerState> _server_state;
