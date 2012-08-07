@@ -10,7 +10,8 @@ namespace Dissent {
 namespace Identity {
 
   Group::Group(const QVector<PublicIdentity> &roster, const Id &leader,
-      SubgroupPolicy subgroup_policy, const QVector<PublicIdentity> &subgroup)
+      SubgroupPolicy subgroup_policy, const QVector<PublicIdentity> &subgroup,
+      int size)
   {
     QVector<PublicIdentity> sorted(roster);
     qSort(sorted);
@@ -20,7 +21,8 @@ namespace Identity {
       id_to_int[sorted[idx].GetId()] = idx;
     }
 
-    _data = new GroupData(sorted, id_to_int, leader, subgroup_policy);
+    size = size == -1 ? roster.size() : size;
+    _data = new GroupData(sorted, id_to_int, leader, subgroup_policy, size);
 
     Group *group = 0;
     switch(GetSubgroupPolicy()) {
@@ -248,6 +250,7 @@ namespace Identity {
     if(group.GetSubgroupPolicy() == Group::ManagedSubgroup) {
       stream << group.GetSubgroup().GetRoster();
     }
+    stream << group.Count();
     return stream;
   }
 
@@ -267,8 +270,10 @@ namespace Identity {
     if(sgpolicy == Group::ManagedSubgroup) {
       stream >> sg_roster;
     }
+    int size;
+    stream >> size;
 
-    group = Group(roster, leader, sgpolicy, sg_roster);
+    group = Group(roster, leader, sgpolicy, sg_roster, size);
     return stream;
   }
 }

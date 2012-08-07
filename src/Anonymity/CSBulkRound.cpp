@@ -507,7 +507,8 @@ namespace Anonymity {
   void CSBulkRound::ProcessDataShuffle()
   {
     if(GetShuffleSink().Count() != GetGroup().Count()) {
-      qFatal("Did not receive a descriptor from everyone.");
+      qFatal("Did not receive a descriptor from everyone, expected: %d, found %d.",
+          GetGroup().Count(), GetShuffleSink().Count());
     }
 
     Library *lib = CryptoFactory::GetInstance().GetLibrary();

@@ -35,12 +35,12 @@ namespace Identity {
 
       explicit GroupData(const QVector<PublicIdentity> &roster,
           const QHash<const Id, int> &id_to_int, const Id &leader,
-          int subgroup_policy) :
+          int subgroup_policy, int size) :
         Roster(roster),
         IdtoInt(id_to_int),
         Leader(leader),
         SGPolicy(subgroup_policy),
-        Size(roster.count())
+        Size(size)
       {
       }
 
@@ -51,8 +51,6 @@ namespace Identity {
       const Id Leader;
       const int SGPolicy;
       const int Size;
-
-    private:
   };
 
   /**
@@ -101,7 +99,8 @@ namespace Identity {
       explicit Group(const QVector<PublicIdentity> &roster,
           const Id &leader = Id::Zero(),
           SubgroupPolicy subgroup_policy = CompleteGroup,
-          const QVector<PublicIdentity> &subgroup = QVector<PublicIdentity>());
+          const QVector<PublicIdentity> &subgroup = QVector<PublicIdentity>(),
+          int size = -1);
 
       /**
        * Creates an empty group

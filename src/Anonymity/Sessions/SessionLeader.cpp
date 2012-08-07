@@ -240,6 +240,14 @@ namespace Sessions {
     ///with a group holder related to the leaders group
     _session->GetGroupHolder()->UpdateGroup(group);
 
+    if(group.GetSubgroupPolicy() == Group::ManagedSubgroup) {
+      foreach(const PublicIdentity &pi, GetGroup().GetSubgroup()) {
+        _network->SendNotification(pi.GetId(), "SM::Prepare", msg);
+      }
+
+      return true;
+    }
+
     _network->Broadcast("SM::Prepare", msg);
 
     return true;

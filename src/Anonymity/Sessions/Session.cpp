@@ -240,13 +240,37 @@ namespace Sessions {
     }
 
     if(!CheckGroup()) {
-      qDebug() << "Received a prepare message but lack of sufficient peers";
+      qDebug() << "Received a prepare message but lack sufficient peers";
       _prepare_waiting = true;
       _prepare_notification = notification;
       return;
     }
 
     NextRound(round_id);
+
+    if(GetGroup().GetSubgroupPolicy() == Group::ManagedSubgroup &&
+        GetGroup().GetSubgroup().Contains(GetPrivateIdentity().GetLocalId()))
+    {
+      if(_current_round->CSGroupCapable()) {
+        Group subgroup = GetGroup().GetSubgroup();
+        Group server_group = Group(subgroup.GetRoster(), subgroup.GetLeader(),
+            GetGroup().GetSubgroupPolicy(), subgroup.GetRoster(), GetGroup().Count());
+        QByteArray ser_group;
+        QDataStream stream(&ser_group, QIODevice::WriteOnly);
+        stream << server_group;
+        msg["group"] = ser_group;
+      }
+
+      foreach(const QSharedPointer<Connection> &con,
+          GetNetwork()->GetConnectionTable().GetConnections())
+      {
+        if(GetGroup().GetSubgroup().Contains(con->GetRemoteId())) {
+          continue;
+        }
+        GetNetwork()->SendNotification(con->GetRemoteId(), "SM::Prepare", msg);
+      }
+    }
+
     QVariantHash response;
     response["session_id"] = GetSessionId().GetByteArray();
     response["round_id"] = brid;

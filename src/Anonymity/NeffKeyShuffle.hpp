@@ -146,6 +146,8 @@ namespace Anonymity {
        */
       static const int KEY_SUBMISSION_WINDOW = 60000;
 
+      virtual bool CSGroupCapable() const { return true; }
+
     protected:
       typedef Crypto::Integer Integer;
 

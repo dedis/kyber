@@ -156,6 +156,11 @@ namespace Anonymity {
        */
       QDateTime GetStartTime() const { return _start_time; }
 
+      /**
+       * Can this round type receive a minimal group definition?
+       */
+      virtual bool CSGroupCapable() const { return false; }
+
     signals:
       /**
        * Emitted when the Round is closed for good or bad.

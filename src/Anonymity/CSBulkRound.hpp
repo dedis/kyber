@@ -164,6 +164,12 @@ namespace Anonymity {
 
       static const int MAX_GET = 4096;
 
+      virtual bool CSGroupCapable() const
+      {
+        CSBulkRound *nthis = const_cast<CSBulkRound *>(this);
+        return nthis->GetShuffleRound()->CSGroupCapable();
+      }
+
     protected:
       typedef Utils::Random Random;
 
