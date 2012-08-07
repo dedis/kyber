@@ -97,9 +97,14 @@ namespace Applications {
     }
 
     if(_settings->contains(Param<Params::LocalId>())) {
-      QVariantList ids = _settings->value(Param<Params::LocalId>()).toList();
-      foreach(const QVariant &id, ids) {
-        LocalIds.append(Id(id.toString()));
+      QVariant qids = _settings->value(Param<Params::LocalId>());
+      QVariantList ids = qids.toList();
+      if(!ids.empty()) {
+        foreach(const QVariant &id, ids) {
+          LocalIds.append(Id(id.toString()));
+        }
+      } else {
+        LocalIds.append(Id(qids.toString()));
       }
     }
 
