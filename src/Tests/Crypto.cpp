@@ -174,6 +174,14 @@ namespace Tests {
 
     EXPECT_EQ(*key, *key0);
     EXPECT_EQ(*pkey, *pkey0);
+
+    QByteArray msg(1024, 0);
+    QScopedPointer<Random> rng(lib->GetRandomNumberGenerator());
+    rng->GenerateBlock(msg);
+
+    QByteArray sig = key->Sign(msg);
+    EXPECT_TRUE(pkey0->Verify(msg, sig));
+    EXPECT_EQ(sig.size(), pkey0->GetSignatureLength());
   }
 
   void KeyGenerationFromIdTest(Library *lib)

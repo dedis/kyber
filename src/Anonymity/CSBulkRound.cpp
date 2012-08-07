@@ -907,7 +907,7 @@ namespace Anonymity {
       
 #ifdef CSBR_SIGN_SLOTS
       QSharedPointer<AsymmetricKey> vkey(_state->anonymous_keys[owner]);
-      int sig_length = vkey->GetKeySize() / 8;
+      int sig_length = vkey->GetSignatureLength();
 #endif
 
       QByteArray msg_p = QByteArray::fromRawData(

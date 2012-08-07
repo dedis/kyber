@@ -91,6 +91,7 @@ namespace Crypto {
       virtual bool VerifyKey(AsymmetricKey &key) const;
       inline virtual bool IsValid() const { return _valid; }
       inline virtual int GetKeySize() const { return _key_size; }
+      inline virtual int GetSignatureLength() const { return _sig_size; }
 
       /**
        * DSA does not explicitly allow encryption
@@ -164,6 +165,8 @@ namespace Crypto {
         
         CryptoPP::AutoSeededX917RNG<CryptoPP::DES_EDE3> rng;
         if(GetCryptoMaterial()->Validate(rng, 1)) {
+          KeyBase::Verifier verifier(*GetDsaPublicKey());
+          _sig_size = verifier.SignatureLength();
           _key_size = GetGroupParameters().GetModulus().BitCount();
           _valid = true;
           return true;
@@ -191,6 +194,7 @@ namespace Crypto {
       const Key *_key;
       bool _valid;
       int _key_size;
+      int _sig_size;
       static QByteArray GetByteArray(const CryptoPP::CryptoMaterial &key);
   };
 }

@@ -107,6 +107,15 @@ namespace Crypto {
        */
       virtual int GetKeySize() const = 0;
 
+      /**
+       * Returns the signature size in bytes
+       */
+      virtual int GetSignatureLength() const
+      {
+        ///@todo this is a temporary hack as each implementation should be fixed
+        return GetKeySize() / 8;
+      }
+
       virtual bool SupportsEncryption() { return true; }
       virtual bool SupportsVerification() { return true; }
 

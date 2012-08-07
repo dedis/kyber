@@ -63,7 +63,7 @@ namespace Anonymity {
       return false;
     }
 
-    int sig_size = key->GetKeySize() / 8;
+    int sig_size = key->GetSignatureLength();
     if(data.size() < sig_size) {
       qDebug() << "Received malsigned data block, not enough data blocks." <<
        "Expected at least:" << sig_size << "got" << data.size();

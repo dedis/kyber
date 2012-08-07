@@ -301,7 +301,7 @@ namespace Anonymity {
     }
 
     QSharedPointer<AsymmetricKey> verification_key(_descriptors[member_idx].second);
-    uint vkey_size = verification_key->GetKeySize() / 8;
+    uint vkey_size = verification_key->GetSignatureLength();
 
     QByteArray base = QByteArray::fromRawData(cleartext.constData(), cleartext.size() - vkey_size);
     QByteArray sig = QByteArray::fromRawData(cleartext.constData() + cleartext.size() - vkey_size, vkey_size);

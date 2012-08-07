@@ -548,7 +548,7 @@ namespace Tolerant {
   QByteArray TolerantBulkRound::ProcessMessage(const QByteArray &slot_string, uint member_idx)
   {
     QSharedPointer<AsymmetricKey> verification_key(_slot_signing_keys[member_idx]);
-    uint vkey_size = verification_key->GetKeySize() / 8;
+    uint vkey_size = verification_key->GetSignatureLength();
 
     // Remove message randomization
     QByteArray cleartext = _message_randomizer.Derandomize(slot_string);
