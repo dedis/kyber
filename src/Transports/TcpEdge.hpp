@@ -70,6 +70,10 @@ namespace Transports {
 
     private:
       QSharedPointer<QTcpSocket> _socket;
+      bool _connected;
+
+    signals:
+      void DelayedRead();
   };
 }
 }

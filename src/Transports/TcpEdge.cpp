@@ -1,5 +1,6 @@
 #include "TcpEdge.hpp"
 #include "Utils/Serialization.hpp"
+#include "Utils/Time.hpp"
 
 using Dissent::Utils::Serialization;
 
@@ -10,13 +11,16 @@ namespace Transports {
   TcpEdge::TcpEdge(const Address &local, const Address &remote, bool outgoing,
       QTcpSocket *socket) :
     Edge(local, remote, outgoing),
-    _socket(socket, &QObject::deleteLater)
+    _socket(socket, &QObject::deleteLater),
+    _connected(true)
   {
     socket->setParent(0);
 
     socket->setSocketOption(QAbstractSocket::KeepAliveOption, 1);
 
     QObject::connect(socket, SIGNAL(readyRead()), this, SLOT(Read()));
+    QObject::connect(this, SIGNAL(DelayedRead()), this, SLOT(Read()),
+        Qt::QueuedConnection);
     QObject::connect(socket, SIGNAL(disconnected()), this, SLOT(HandleDisconnect()));
     QObject::connect(socket, SIGNAL(error(QAbstractSocket::SocketError)),
         this, SLOT(HandleError(QAbstractSocket::SocketError)));
@@ -47,8 +51,11 @@ namespace Transports {
   void TcpEdge::Read()
   {
     int total_length = _socket->bytesAvailable();
+    qint64 stime = Utils::Time::GetInstance().MSecsSinceEpoch();
+    qint64 ntime = stime;
+    bool delay = false;
 
-    while(total_length >= 8) {
+    while(total_length >= 8 && !delay) {
       QByteArray length_arr = _socket->peek(4);
       if(length_arr.isEmpty()) {
         qCritical() << "Error reading Tcp socket in" << ToString();
@@ -79,6 +86,17 @@ namespace Transports {
 
       PushData(GetSharedPointer(), msg.mid(4, length));
       total_length = _socket->bytesAvailable();
+      ntime = Utils::Time::GetInstance().MSecsSinceEpoch();
+      delay = (ntime - stime) > 1000;
+    }
+
+    if(delay) {
+      QObject::disconnect(_socket.data(), SIGNAL(readyRead()), this, SLOT(Read()));
+      emit DelayedRead();
+      _connected = false;
+    } else if(!_connected) {
+      QObject::connect(_socket.data(), SIGNAL(readyRead()), this, SLOT(Read()));
+      _connected = true;
     }
   }
 
