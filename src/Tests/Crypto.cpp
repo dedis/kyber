@@ -184,6 +184,90 @@ namespace Tests {
     EXPECT_EQ(sig.size(), pkey0->GetSignatureLength());
   }
 
+  void RngSpeedTest(Library *lib, int count)
+  {
+    QByteArray data(4096, 0);
+    for(int idx = 0; idx < count; idx++) {
+      QSharedPointer<Random> rng(lib->GetRandomNumberGenerator());
+      rng->GenerateBlock(data);
+    }
+  }
+
+  TEST(Crypto, RngSpeedTest1024)
+  {
+    QScopedPointer<Library> lib(new CppLibrary());
+    RngSpeedTest(lib.data(), 1024);
+  }
+
+  TEST(Crypto, RngSpeedTest2048)
+  {
+    QScopedPointer<Library> lib(new CppLibrary());
+    RngSpeedTest(lib.data(), 2048);
+  }
+
+  TEST(Crypto, RngSpeedTest4096)
+  {
+    QScopedPointer<Library> lib(new CppLibrary());
+    RngSpeedTest(lib.data(), 4096);
+  }
+
+  TEST(Crypto, RngSpeedTest8192)
+  {
+    QScopedPointer<Library> lib(new CppLibrary());
+    RngSpeedTest(lib.data(), 8192);
+  }
+
+  void KeySignSpeedTest(Library *lib)
+  {
+    QSharedPointer<AsymmetricKey> key(lib->CreatePrivateKey());
+    QScopedPointer<Random> rng(lib->GetRandomNumberGenerator());
+    QByteArray data(1024, 0);
+    rng->GenerateBlock(data);
+
+    for(int idx = 0; idx < 1024; idx++) {
+      rng->GenerateBlock(data);
+      key->Sign(data);
+    }
+  }
+
+  void KeyVerificationSpeedTest(Library *lib)
+  {
+    QSharedPointer<AsymmetricKey> key(lib->CreatePrivateKey());
+    QScopedPointer<Random> rng(lib->GetRandomNumberGenerator());
+    QByteArray data(1024, 0);
+    rng->GenerateBlock(data);
+
+    for(int idx = 0; idx < 1024; idx++) {
+      rng->GenerateBlock(data);
+      QByteArray sig = key->Sign(data);
+      EXPECT_TRUE(key->Verify(data, sig));
+    }
+  }
+
+  TEST(Crypto, DSASignSpeedTest)
+  {
+    QScopedPointer<Library> lib(new CppDsaLibrary());
+    KeySignSpeedTest(lib.data());
+  }
+
+  TEST(Crypto, DSAVerifySpeedTest)
+  {
+    QScopedPointer<Library> lib(new CppDsaLibrary());
+    KeyVerificationSpeedTest(lib.data());
+  }
+
+  TEST(Crypto, RSASignSpeedTest)
+  {
+    QScopedPointer<Library> lib(new CppLibrary());
+    KeySignSpeedTest(lib.data());
+  }
+
+  TEST(Crypto, RSAVerifySpeedTest)
+  {
+    QScopedPointer<Library> lib(new CppLibrary());
+    KeyVerificationSpeedTest(lib.data());
+  }
+
   void KeyGenerationFromIdTest(Library *lib)
   {
     Dissent::Connections::Id id0;
