@@ -154,14 +154,18 @@ namespace Anonymity {
   void CSBulkRound::VerifiableBroadcastToServers(const QByteArray &data)
   {
     Q_ASSERT(IsServer());
+
+    QByteArray msg = data + GetSigningKey()->Sign(data);
     foreach(const PublicIdentity &pi, GetGroup().GetSubgroup()) {
-      VerifiableSend(pi.GetId(), data);
+      GetNetwork()->Send(pi.GetId(), msg);
     }
   }
 
   void CSBulkRound::VerifiableBroadcastToClients(const QByteArray &data)
   {
     Q_ASSERT(IsServer());
+
+    QByteArray msg = data + GetSigningKey()->Sign(data);
     foreach(const QSharedPointer<Connection> &con,
         GetNetwork()->GetConnectionManager()->
         GetConnectionTable().GetConnections())
@@ -172,7 +176,7 @@ namespace Anonymity {
         continue;
       }
 
-      VerifiableSend(con->GetRemoteId(), data);
+      GetNetwork()->Send(con->GetRemoteId(), msg);
     }
   }
 
