@@ -8,11 +8,11 @@
 #include "CppDsaPrivateKey.hpp"
 #include "CppDsaPublicKey.hpp"
 
-#include "Library.hpp"
+#include "CppLibrary.hpp"
 
 namespace Dissent {
 namespace Crypto {
-  class CppDsaLibrary : public Library {
+  class CppDsaLibrary : public CppLibrary {
     public:
       /**
        * Load a public key from a file
@@ -74,89 +74,6 @@ namespace Crypto {
        * Returns the minimum asymmetric key size
        */
       inline virtual int MinimumKeySize() const { return CppDsaPublicKey::GetMinimumKeySize(); }
-
-      /**
-       * Returns a deterministic random number generator
-       */
-      inline virtual Dissent::Utils::Random *GetRandomNumberGenerator(const QByteArray &seed, uint index)
-      {
-        return new CppRandom(seed, index);
-      }
-
-      inline virtual uint RngOptimalSeedSize()
-      {
-        return CppRandom::OptimalSeedSize();
-      }
-
-      /**
-       * Returns a hash algorithm
-       */
-      inline virtual Hash *GetHashAlgorithm() 
-      {
-        return new CppHash();
-      }
-
-      /**
-       * Returns an integer data
-       */
-      inline virtual IntegerData *GetIntegerData(int value)
-      {
-        return new CppIntegerData(value);
-      }
-
-      /**
-       * Returns an integer data
-       */
-      inline virtual IntegerData *GetIntegerData(const QByteArray &value)
-      {
-        return new CppIntegerData(value);
-      }
-
-      /**
-       * Returns an integer data
-       */
-      inline virtual IntegerData *GetIntegerData(const QString &value)
-      {
-        return new CppIntegerData(value);
-      }
-
-      /**
-       * returns a random integer data
-       * @param bit_count the amount of bits in the integer
-       * @param mod the modulus of the integer
-       * @param prime if the integer should be prime 
-       */
-      virtual IntegerData *GetRandomInteger(int bit_count,
-          const IntegerData *mod, bool prime)
-      {
-        return CppIntegerData::GetRandomInteger(bit_count, mod, prime);
-      }
-
-      /**
-       * Returns a DiffieHellman operator
-       */
-      virtual DiffieHellman *CreateDiffieHellman()
-      {
-        return new CppDiffieHellman();
-      }
-
-      /**
-       * Generate a DiffieHellman operator using the given data as a seed to a RNG
-       * @param seed seed used to generate the DiffieHellman exchange
-       */
-      virtual DiffieHellman *GenerateDiffieHellman(const QByteArray &seed)
-      {
-        return new CppDiffieHellman(seed, true);
-      }
-
-      /**
-       * Loads a DiffieHellman key from a byte array
-       * @param private_component the private component in the DH exchange
-       */
-      virtual DiffieHellman *LoadDiffieHellman(const QByteArray &private_component)
-      {
-        return new CppDiffieHellman(private_component);
-      }
   };
 }
 }
