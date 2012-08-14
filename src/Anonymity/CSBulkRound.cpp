@@ -80,6 +80,7 @@ namespace Anonymity {
       _server_state->allowed_clients.insert(con->GetRemoteId());
     }
 #endif
+    _server_state->handled_clients.fill(false, GetGroup().Count());
 
     _state_machine.AddState(SERVER_WAIT_FOR_CLIENT_CIPHERTEXT,
         CLIENT_CIPHERTEXT, &CSBulkRound::HandleClientCiphertext,
@@ -233,7 +234,7 @@ namespace Anonymity {
   bool CSBulkRound::CycleComplete()
   {
     if(_server_state) {
-      _server_state->handled_clients.clear();
+      _server_state->handled_clients.fill(false, GetGroup().Count());
       _server_state->client_ciphertexts.clear();
       _server_state->server_ciphertexts.clear();
     }
@@ -287,10 +288,11 @@ namespace Anonymity {
     }
 
     Q_ASSERT(_server_state);
+    int idx = GetGroup().GetIndex(from);
 
     if(!_server_state->allowed_clients.contains(from)) {
       throw QRunTimeError("Not allowed to submit a ciphertext");
-    } else if(_server_state->handled_clients.contains(from)) {
+    } else if(_server_state->handled_clients.at(idx)) {
       throw QRunTimeError("Already have ciphertext");
     }
 
@@ -303,7 +305,7 @@ namespace Anonymity {
           QString::number(_server_state->msg_length));
     }
 
-    _server_state->handled_clients.insert(from);
+    _server_state->handled_clients[idx] = true;
     _server_state->client_ciphertexts.append(payload);
 
     qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
@@ -346,12 +348,12 @@ namespace Anonymity {
       throw QRunTimeError("Already have client list");
     }
 
-    QSet<Id> clients;
+    QBitArray clients;
     stream >> clients;
 
-    // XXX Make sure there are no overlaps in their list and our list
+    // XXX Handle overlaps in list
 
-    _server_state->handled_clients.unite(clients);
+    _server_state->handled_clients |= clients;
     _server_state->handled_servers.insert(from);
 
     qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
@@ -601,9 +603,10 @@ namespace Anonymity {
     QList<QByteArray> seeds = _state->base_seeds;
     if(IsServer()) {
       seeds = QList<QByteArray>();
-      foreach(const Id &id, _server_state->handled_clients) {
-        int idx = GetGroup().GetIndex(id);
-        seeds.append(_state->base_seeds[idx]);
+      for(int idx = 0; idx < _server_state->handled_clients.size(); idx++) {
+        if(_server_state->handled_clients.at(idx)) {
+          seeds.append(_state->base_seeds[idx]);
+        }
       }
 
       for(int idx = 0; idx < GetGroup().GetSubgroup().Count(); idx++) {

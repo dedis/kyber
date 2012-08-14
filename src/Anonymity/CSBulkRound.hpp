@@ -251,7 +251,7 @@ namespace Anonymity {
           QByteArray my_ciphertext;
 
           QSet<Id> allowed_clients;
-          QSet<Id> handled_clients;
+          QBitArray handled_clients;
           QList<QByteArray> client_ciphertexts;
 
           QSet<Id> handled_servers;
