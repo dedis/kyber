@@ -19,7 +19,7 @@ namespace Connections {
     QString sid = url.path().mid(1);
     Id id = Id(sid);
     if(id.ToString() != sid) {
-      qWarning() << "Supplied an invalid Id:" << sid;
+      qWarning() << "Supplied an invalid Id:" << sid << id.ToString();
       _data = new AddressData(url);
       return;
     }
