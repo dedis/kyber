@@ -95,6 +95,14 @@ namespace Crypto {
           const IntegerData *mod) const = 0;
 
       /**
+       * Returns the multiplicative inverse for the internal integer
+       * with respect for the specified modulus
+       * @param mod the specified modulus
+       */
+      virtual IntegerData *MultiplicativeInverse(const IntegerData *mod)
+        const = 0;
+
+      /**
        * Assignment operator
        * @param other the IntegerData to use for setting
        */

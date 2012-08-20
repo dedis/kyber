@@ -134,5 +134,17 @@ namespace Tests {
     test = 0x7f8f8f8f;
     EXPECT_EQ(0x7f8f8f8f, test.GetInt32());
   }
+
+  TEST(Integer, MultiplicativeInverse)
+  {
+    Integer mod = Integer::GetRandomInteger(1024);
+    // mod should be prime to ensure (higher likelihood of) multiplicative inverse
+    mod = Integer::GetRandomInteger(1024, mod, true);
+    Integer val = Integer::GetRandomInteger(1024, mod);
+    Integer mi = val.MultiplicativeInverse(mod);
+    Integer result = (val * mi) % mod;
+    qDebug() << result.ToString() << (val < mod) << (mi < mod);
+    EXPECT_EQ(result, 1);
+  }
 }
 }

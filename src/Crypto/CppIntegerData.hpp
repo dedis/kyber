@@ -138,6 +138,16 @@ namespace Crypto {
               GetInteger(pow), GetInteger(mod)));
       }
 
+      /**
+       * Returns the multiplicative inverse for the internal integer
+       * with respect for the specified modulus
+       * @param mod the specified modulus
+       */
+      virtual IntegerData *MultiplicativeInverse(const IntegerData *mod) const
+      {
+        return new CppIntegerData(_integer.InverseMod(GetInteger(mod)));
+      }
+
       virtual IntegerData *Modulus(const IntegerData *modulus) const 
       {
         return new CppIntegerData(_integer % GetInteger(modulus));

@@ -139,6 +139,11 @@ namespace Crypto {
         return Integer(_data->Pow(pow._data.constData(), mod._data.constData()));
       }
 
+      Integer MultiplicativeInverse(const Integer &mod) const
+      {
+        return Integer(_data->MultiplicativeInverse(mod._data.constData()));
+      }
+
       /**
        * Assignment operator
        * @param other the other Integer
