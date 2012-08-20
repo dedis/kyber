@@ -78,12 +78,23 @@ namespace Crypto {
       virtual bool Verify(const QByteArray &data, const QByteArray &sig) const;
 
       /**
-       * Returns nothing, not supported for DSA
+       * @param data to encrypt
+       * Returns an encrypted pair
        */
       virtual QByteArray Encrypt(const QByteArray &data) const;
 
       /**
-       * Returns nothing, not supported for DSA
+       * DSA allows multiple encryptions of the same data to require only two elements.
+       * This does no checks on the keys to ensure they are compatible
+       * @param keys the keys to encrypt serially with
+       * @param data to encrypt
+       */
+      static QByteArray SeriesEncrypt(const QVector<QSharedPointer<AsymmetricKey> > &keys,
+          const QByteArray &data);
+
+      /**
+       * @param data to decrypt
+       * Decrypts a encrypted pair, returning the decrypted element
        */
       virtual QByteArray Decrypt(const QByteArray &data) const;
 

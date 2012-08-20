@@ -60,7 +60,20 @@ namespace Crypto {
       /**
        * Returns the x of the DSA private key
        */
-      Integer GetPrivateExponent();
+      Integer GetPrivateExponent() const;
+
+      /**
+       * @param data to decrypt
+       * Decrypts a encrypted pair, returning the decrypted element
+       */
+      virtual QByteArray Decrypt(const QByteArray &data) const;
+
+      /**
+       * DSA allows multiple encryptions of the same data to require only two elements.
+       * This performs a single decryption leaving the shared and encrypted pair.
+       * @param data to decrypt
+       */
+      QByteArray SeriesDecrypt(const QByteArray &data) const;
 
     protected:
       inline virtual const Parameters &GetGroupParameters() const

@@ -125,15 +125,74 @@ namespace Crypto {
         data.size(), reinterpret_cast<const byte *>(sig.data()), sig.size());
   }
 
-  QByteArray CppDsaPublicKey::Encrypt(const QByteArray &) const
+  QByteArray CppDsaPublicKey::Encrypt(const QByteArray &data) const
   {
-    qWarning() << "In CppDsaPublicKey::Decrypt: Attempting to encrypt with a Dsa key";
-    return QByteArray();
+    if(GetKeySize() / 8 < data.size()) {
+      qCritical() << "In CppDsaPublicKey::Encrypt: Cannot encrypt large data size";
+      return QByteArray();
+    }
+
+    Integer int_val(data);
+    Integer secret = Integer::GetRandomInteger(0, GetSubgroup());
+    Integer shared = GetGenerator().Pow(secret, GetModulus());
+    Integer encrypted = (int_val * GetPublicElement().Pow(secret, GetModulus())) % GetModulus();
+
+    QByteArray out;
+    QDataStream stream(&out, QIODevice::WriteOnly);
+    stream << shared << encrypted;
+    return out;
+  }
+
+  QByteArray CppDsaPublicKey::SeriesEncrypt(const QVector<QSharedPointer<AsymmetricKey> > &keys,
+          const QByteArray &data)
+  {
+    if(keys.size() == 0) {
+      qCritical() << "Attempting to encrypt with 0 keys";
+      return QByteArray();
+    }
+
+    QSharedPointer<CppDsaPublicKey> first = keys[0].dynamicCast<CppDsaPublicKey>();
+    if(!first) {
+      qCritical() << "Attempted to serially encrypt with a non-DSA key";
+      return QByteArray();
+    }
+
+    if(first->GetKeySize() / 8 < data.size()) {
+      qCritical() << "In CppDsaPublicKey::SeriesEncrypt: Cannot encrypt large data size";
+      return QByteArray();
+    }
+
+    Integer modulus = first->GetModulus();
+    Integer generator = first->GetGenerator();
+    Integer subgroup = first->GetSubgroup();
+
+    Integer encrypted = 1;
+
+    foreach(const QSharedPointer<AsymmetricKey> &key, keys) {
+      QSharedPointer<CppDsaPublicKey> pkey = key.dynamicCast<CppDsaPublicKey>();
+      if(!pkey) {
+        qCritical() << "Attempted to serially encrypt with a non-DSA key";
+        return QByteArray();
+      }
+
+      encrypted = (encrypted * pkey->GetPublicElement()) % modulus;
+    }
+
+    Integer secret = Integer::GetRandomInteger(0, subgroup);
+    Integer shared = generator.Pow(secret, modulus);
+
+    encrypted = encrypted.Pow(secret, modulus);
+    encrypted = (Integer(data) * encrypted) % modulus;
+
+    QByteArray out;
+    QDataStream stream(&out, QIODevice::WriteOnly);
+    stream << shared << encrypted;
+    return out;
   }
 
   QByteArray CppDsaPublicKey::Decrypt(const QByteArray &) const
   {
-    qWarning() << "In CppDsaPublicKey::Decrypt: Attempting to decrypt with a Dsa key";
+    qWarning() << "In CppDsaPublicKey::Decrypt: Attempting to decrypt with a public key";
     return QByteArray();
   }
 

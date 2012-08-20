@@ -90,11 +90,61 @@ namespace Crypto {
     return sig;
   }
 
-  Integer CppDsaPrivateKey::GetPrivateExponent()
+  Integer CppDsaPrivateKey::GetPrivateExponent() const
   {
     CryptoPP::Integer private_exp = GetDsaPrivateKey()->GetPrivateExponent();
     IntegerData *data = new CppIntegerData(private_exp);
     return Integer(data);
+  }
+
+  QByteArray CppDsaPrivateKey::Decrypt(const QByteArray &data) const
+  {
+    Integer shared, encrypted;
+    QDataStream stream(data);
+    stream >> shared >> encrypted;
+
+    if(shared.GetByteCount() > GetKeySize()) {
+      qCritical() << "The shared element is greater than the key size, unable to decrypt";
+      return QByteArray();
+    }
+
+    if(encrypted.GetByteCount() > GetKeySize()) {
+      qCritical() << "The encrypted element is greater than the key size, unable to decrypt";
+      return QByteArray();
+    }
+
+    Integer result = (encrypted *
+        shared.Pow(GetPrivateExponent(), GetModulus()).
+          MultiplicativeInverse(GetModulus()))
+      % GetModulus();
+    return result.GetByteArray();
+  }
+
+  QByteArray CppDsaPrivateKey::SeriesDecrypt(const QByteArray &data) const
+  {
+    Integer shared, encrypted;
+    QDataStream stream(data);
+    stream >> shared >> encrypted;
+
+    if(shared.GetByteCount() > GetKeySize()) {
+      qCritical() << "The shared element is greater than the key size, unable to decrypt";
+      return QByteArray();
+    }
+
+    if(encrypted.GetByteCount() > GetKeySize()) {
+      qCritical() << "The encrypted element is greater than the key size, unable to decrypt";
+      return QByteArray();
+    }
+
+    Integer result = (encrypted *
+        shared.Pow(GetPrivateExponent(), GetModulus()).
+          MultiplicativeInverse(GetModulus()))
+      % GetModulus();
+
+    QByteArray out;
+    QDataStream ostream(&out, QIODevice::WriteOnly);
+    ostream << shared << result;
+    return out;
   }
 }
 }
