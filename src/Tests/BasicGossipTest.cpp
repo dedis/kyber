@@ -28,7 +28,7 @@ namespace Tests {
         QSharedPointer<AsymmetricKey> key(new CppDsaPrivateKey(dkey->GetModulus(),
               dkey->GetSubgroup(), dkey->GetGenerator()));
         QSharedPointer<DiffieHellman> dh(lib->CreateDiffieHellman());
-        pids.append(PrivateIdentity(id, key, dh));
+        pids.append(PrivateIdentity(id, key, key, dh));
         keyshare->AddKey(id.ToString(), QSharedPointer<AsymmetricKey>(key->GetPublicKey()));
       }
     } else {
@@ -36,7 +36,7 @@ namespace Tests {
         Id id = idx == 0 ? leader_id : Id();
         QSharedPointer<AsymmetricKey> key(lib->CreatePrivateKey());
         QSharedPointer<DiffieHellman> dh(lib->CreateDiffieHellman());
-        pids.append(PrivateIdentity(id, key, dh));
+        pids.append(PrivateIdentity(id, key, key, dh));
         keyshare->AddKey(id.ToString(), QSharedPointer<AsymmetricKey>(key->GetPublicKey()));
       }
     }
@@ -124,7 +124,7 @@ namespace Tests {
 
     group = Group(QVector<PublicIdentity>(), leader_id, policy);
     QSharedPointer<ISink> sink(new BufferSink());
-    nodes[idx] = Node::CreateBasicGossip(PrivateIdentity(leader_id, key, dh),
+    nodes[idx] = Node::CreateBasicGossip(PrivateIdentity(leader_id, key, key, dh),
           group, local, remote, sink, session_type);
 
     sc.Reset();
@@ -208,7 +208,7 @@ namespace Tests {
 
     QSharedPointer<AsymmetricKey> key;
     QSharedPointer<DiffieHellman> dh;
-    QSharedPointer<Node> n = Node::CreateBasicGossip(PrivateIdentity(id, key, dh),
+    QSharedPointer<Node> n = Node::CreateBasicGossip(PrivateIdentity(id, key, key, dh),
         Group(), empty, empty, QSharedPointer<ISink>(new DummySink()),
         SessionFactory::SHUFFLE);
     EXPECT_EQ(local_id, n->GetOverlay()->GetId());

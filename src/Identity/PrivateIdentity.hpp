@@ -24,15 +24,18 @@ namespace Identity {
        * Constructor
        * @param local_id local node's id
        * @param signing_key local node's signing key
+       * @param decryption_key local node's decryption key
        * @param dh_key local node's DiffieHellman key
        * @param super_peer is the peer capable of being a super peer
        */
       explicit PrivateIdentity(const Id &local_id = Id::Zero(),
           QSharedPointer<AsymmetricKey> signing_key = QSharedPointer<AsymmetricKey>(),
+          QSharedPointer<AsymmetricKey> decryption_key = QSharedPointer<AsymmetricKey>(),
           QSharedPointer<DiffieHellman> dh_key = QSharedPointer<DiffieHellman>(),
           bool super_peer = true) :
         _local_id(local_id),
         _signing_key(signing_key),
+        _decryption_key(decryption_key),
         _dh_key(dh_key),
         _super_peer(super_peer)
       {
@@ -49,6 +52,11 @@ namespace Identity {
       QSharedPointer<AsymmetricKey> GetSigningKey() const { return _signing_key; }
 
       /**
+       * Returns the decrypting key
+       */
+      QSharedPointer<AsymmetricKey> GetDecryptionKey() const { return _decryption_key; }
+
+      /**
        * Returns the local node's DiffieHellman key
        */
       QSharedPointer<DiffieHellman> GetDhKey() const { return _dh_key; }
@@ -61,27 +69,32 @@ namespace Identity {
     private:
       Id _local_id;
       QSharedPointer<AsymmetricKey> _signing_key;
+      QSharedPointer<AsymmetricKey> _decryption_key;
       QSharedPointer<DiffieHellman> _dh_key;
       bool _super_peer;
   };
 
   inline PublicIdentity GetPublicIdentity(const PrivateIdentity &ident)
   {
-    PrivateIdentity::AsymmetricKey *key = 0;
+    PrivateIdentity::AsymmetricKey *v_key = 0, *d_key = 0;
     QByteArray dh_pub = QByteArray();
 
     if(ident.GetSigningKey()) {
-      key = ident.GetSigningKey()->GetPublicKey();
+      v_key = ident.GetSigningKey()->GetPublicKey();
+    }
+
+    if(ident.GetDecryptionKey()) {
+      d_key = ident.GetDecryptionKey()->GetPublicKey();
     }
 
     if(ident.GetDhKey()) {
       dh_pub = ident.GetDhKey()->GetPublicComponent();
     }
 
-    QSharedPointer<PrivateIdentity::AsymmetricKey> skey(key);
-
-    return PublicIdentity(ident.GetLocalId(), skey, dh_pub,
-        ident.GetSuperPeer());
+    return PublicIdentity(ident.GetLocalId(), 
+        QSharedPointer<PrivateIdentity::AsymmetricKey>(v_key),
+        QSharedPointer<PrivateIdentity::AsymmetricKey>(d_key),
+        dh_pub, ident.GetSuperPeer());
   }
 }
 }

@@ -82,7 +82,7 @@ int main(int argc, char **argv)
       dh = QSharedPointer<DiffieHellman>(lib->GenerateDiffieHellman(id));
     }
 
-    nodes.append(create(PrivateIdentity(local_id, key, dh, super_peer),
+    nodes.append(create(PrivateIdentity(local_id, key, key, dh, super_peer),
           group, local, remote, (idx == 0 ? app_sink : default_sink),
           settings.SessionType, settings.AuthMode, keys));
     local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());

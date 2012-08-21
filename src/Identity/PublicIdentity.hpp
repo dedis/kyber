@@ -24,24 +24,20 @@ namespace Identity {
        * Constructor
        * @param local_id local node's id
        * @param signing_key local node's signing key
+       * @param encryption_key local node's encrypting key
        * @param dh_key local node's DiffieHellman key
        * @param super_peer is the peer capable of being a super peer
        */
-      explicit PublicIdentity(const Id &id,
-          QSharedPointer<AsymmetricKey> verification_key,
-          QByteArray dh_key,
+      explicit PublicIdentity(const Id &id = Id::Zero(),
+          QSharedPointer<AsymmetricKey> verification_key = QSharedPointer<AsymmetricKey>(),
+          QSharedPointer<AsymmetricKey> encryption_key = QSharedPointer<AsymmetricKey>(),
+          QByteArray dh_key = QByteArray(),
           bool super_peer = true) :
         _id(id),
         _verification_key(verification_key),
+        _encryption_key(encryption_key),
         _dh_key(dh_key),
         _super_peer(super_peer)
-      {
-      }
-
-      explicit PublicIdentity() :
-        _id(Id::Zero()),
-        _verification_key(QSharedPointer<AsymmetricKey>()),
-        _dh_key(QByteArray())
       {
       }
 
@@ -56,6 +52,14 @@ namespace Identity {
       QSharedPointer<AsymmetricKey> GetVerificationKey() const
       {
         return _verification_key;
+      }
+
+      /**
+       * Return the node's encryption key
+       */
+      QSharedPointer<AsymmetricKey> GetEncryptionKey() const
+      {
+        return _encryption_key;
       }
 
       /**
@@ -77,6 +81,7 @@ namespace Identity {
     private:
       Id _id;
       QSharedPointer<AsymmetricKey> _verification_key;
+      QSharedPointer<AsymmetricKey> _encryption_key;
       QByteArray _dh_key;
       bool _super_peer;
   };
@@ -90,7 +95,8 @@ namespace Identity {
   inline bool operator==(const PublicIdentity &lhs, const PublicIdentity &rhs) 
   {
     return (lhs.GetId() == rhs.GetId()) &&
-      ((lhs.GetVerificationKey()) == (rhs.GetVerificationKey())) &&
+      (lhs.GetVerificationKey() == rhs.GetVerificationKey()) &&
+      (lhs.GetEncryptionKey() == rhs.GetEncryptionKey()) &&
       (lhs.GetDhKey() == rhs.GetDhKey()) &&
       (lhs.GetSuperPeer() == rhs.GetSuperPeer());
   }
@@ -121,16 +127,25 @@ namespace Identity {
       return false;
     }
 
-    QByteArray lhs_v_key = lhs.GetVerificationKey()->GetByteArray();
-    QByteArray rhs_v_key = rhs.GetVerificationKey()->GetByteArray();
+    QByteArray lhs_v_key = (lhs.GetVerificationKey()) ?
+      lhs.GetVerificationKey()->GetByteArray() : QByteArray();
+    QByteArray rhs_v_key = (rhs.GetVerificationKey()) ?
+      rhs.GetVerificationKey()->GetByteArray() : QByteArray();
+
+    QByteArray lhs_e_key = (lhs.GetEncryptionKey()) ?
+      lhs.GetEncryptionKey()->GetByteArray() : QByteArray();
+    QByteArray rhs_e_key = (rhs.GetEncryptionKey()) ?
+      rhs.GetEncryptionKey()->GetByteArray() : QByteArray();
+
     QByteArray lhs_dh = lhs.GetDhKey();
     QByteArray rhs_dh = rhs.GetDhKey();
     bool lhs_sp = lhs.GetSuperPeer();
     bool rhs_sp = rhs.GetSuperPeer();
 
     return (lhs_v_key < rhs_v_key) ||
-      ((lhs_v_key == rhs_v_key) && ((lhs_dh < rhs_dh) ||
-       ((lhs_dh == rhs_dh) && (lhs_sp < rhs_sp))));
+      ((lhs_v_key == rhs_v_key) && ((lhs_e_key < rhs_e_key) ||
+        ((lhs_e_key == rhs_e_key) && ((lhs_dh < rhs_dh) ||
+       ((lhs_dh == rhs_dh) && (lhs_sp < rhs_sp))))));
   }
 
   inline QDebug operator<<(QDebug dbg, const PublicIdentity &ident)
@@ -149,6 +164,12 @@ namespace Identity {
       stream << QByteArray();
     }
 
+    if(ident.GetEncryptionKey()) {
+      stream << ident.GetEncryptionKey();
+    } else {
+      stream << QByteArray();
+    }
+
     stream << ident.GetDhKey();
     stream << ident.GetSuperPeer();
     return stream;
@@ -159,8 +180,11 @@ namespace Identity {
     QByteArray id;
     stream >> id;
 
-    QSharedPointer<PublicIdentity::AsymmetricKey> key;
-    stream >> key;
+    QSharedPointer<PublicIdentity::AsymmetricKey> v_key;
+    stream >> v_key;
+
+    QSharedPointer<PublicIdentity::AsymmetricKey> e_key;
+    stream >> e_key;
 
     QByteArray dh_key;
     stream >> dh_key;
@@ -168,7 +192,8 @@ namespace Identity {
     bool super_peer;
     stream >> super_peer;
 
-    ident = PublicIdentity(PublicIdentity::Id(id), key, dh_key, super_peer);
+    ident = PublicIdentity(PublicIdentity::Id(id), v_key, e_key,
+        dh_key, super_peer);
     return stream;
   }
 }

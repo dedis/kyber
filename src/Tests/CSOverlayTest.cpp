@@ -12,7 +12,7 @@ namespace Tests {
     QByteArray bid(id.GetByteArray());
     QSharedPointer<AsymmetricKey> key(lib->GeneratePrivateKey(bid));
     QSharedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
-    PrivateIdentity ident(id, key, dh);
+    PrivateIdentity ident(id, key, key, dh);
     return Node::CreateClientServer(ident, group, local, remote, sink, session);
   }
 

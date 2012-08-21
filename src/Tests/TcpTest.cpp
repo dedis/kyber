@@ -27,7 +27,7 @@ namespace Tests {
       QSharedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
 
       QSharedPointer<ISink> sink(new BufferSink());
-      nodes.append(Node::CreateBasicGossip(PrivateIdentity(id, key, dh), group,
+      nodes.append(Node::CreateBasicGossip(PrivateIdentity(id, key, key, dh), group,
             local, remote, sink, session_type));
 
       local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());

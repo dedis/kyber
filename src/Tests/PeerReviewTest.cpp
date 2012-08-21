@@ -171,9 +171,11 @@ namespace Tests {
 
     PrivateIdentity cred0(Id(),
           QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
+          QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
           QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman()));
 
     PrivateIdentity cred1(Id(),
+          QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
           QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
           QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman()));
 

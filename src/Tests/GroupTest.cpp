@@ -8,7 +8,8 @@ namespace Tests {
 
     QVector<PublicIdentity> gr;
     for(int idx = 0; idx < 10; idx++) {
-      gr.append(PublicIdentity(id[idx], Group::EmptyKey(), QByteArray()));
+      gr.append(PublicIdentity(id[idx], Group::EmptyKey(),
+            Group::EmptyKey(), QByteArray()));
     }
 
     qSort(id);
@@ -36,7 +37,8 @@ namespace Tests {
 
     QVector<PublicIdentity> gr0;
     for(int idx = 9; idx >= 0; idx--) {
-      gr0.append(PublicIdentity(Id(), Group::EmptyKey(), QByteArray()));
+      gr0.append(PublicIdentity(Id(), Group::EmptyKey(),
+            Group::EmptyKey(), QByteArray()));
     }
     Group group0(gr0);
     for(int idx = 0; idx < 10; idx++) {
@@ -53,7 +55,7 @@ namespace Tests {
     QByteArray bid = id.GetByteArray();
     QSharedPointer<AsymmetricKey> key(lib->GeneratePublicKey(bid));
     QScopedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
-    return PublicIdentity(id, key, dh->GetPublicComponent());
+    return PublicIdentity(id, key, key, dh->GetPublicComponent());
   }
 
   void AddMember(QVector<PublicIdentity> &group, const Id &id = Id())
@@ -121,7 +123,8 @@ namespace Tests {
     QVector<PublicIdentity> gr;
     for(int idx = 0; idx < 10; idx++) {
       Id id;
-      gr.append(PublicIdentity(id, Group::EmptyKey(), QByteArray()));
+      gr.append(PublicIdentity(id, Group::EmptyKey(),
+            Group::EmptyKey(), QByteArray()));
     }
 
     Group group(gr);

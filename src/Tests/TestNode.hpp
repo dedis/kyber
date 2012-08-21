@@ -19,6 +19,8 @@ namespace Tests {
         ident(cm->GetId(),
             QSharedPointer<AsymmetricKey>(CryptoFactory::GetInstance().
               GetLibrary()->CreatePrivateKey()),
+            QSharedPointer<AsymmetricKey>(CryptoFactory::GetInstance().
+              GetLibrary()->CreatePrivateKey()),
             QSharedPointer<DiffieHellman>(CryptoFactory::GetInstance().
               GetLibrary()->CreateDiffieHellman()), server)
       {

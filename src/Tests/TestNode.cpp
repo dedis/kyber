@@ -114,7 +114,7 @@ namespace Tests {
     Group ngroup = Group(group.GetRoster(), group.GetLeader(), group.GetSubgroupPolicy());
     foreach(TestNode *node, nodes) {
       ngroup = AddGroupMember(ngroup, PublicIdentity(node->cm->GetId(),
-            Group::EmptyKey(), QByteArray()));
+            Group::EmptyKey(), Group::EmptyKey(), QByteArray()));
     }
     return ngroup;
   }

@@ -44,6 +44,7 @@ namespace Tests {
     Crypto::Library *lib = Crypto::CryptoFactory::GetInstance().GetLibrary();
     PrivateIdentity client(Id(),
         QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
+        QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
         QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman()));
 
     NullAuthenticate authe(client);
@@ -57,13 +58,16 @@ namespace Tests {
 
     PrivateIdentity client(Id(),
         QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
+        QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
         QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman()));
 
     PrivateIdentity nclient(Id(),
         QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
+        QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
         QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman()));
 
     PrivateIdentity server(Id(),
+        QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
         QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
         QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman()));
 
@@ -117,7 +121,8 @@ namespace Tests {
 
       Id id;
       LRSAuthenticate lrsae(PrivateIdentity(id, priv_keys[idx],
-                QSharedPointer<DiffieHellman>(), idx % 2 == 0), lrss);
+            QSharedPointer<AsymmetricKey>(),
+            QSharedPointer<DiffieHellman>(), idx % 2 == 0), lrss);
 
       AuthPass(id, &lrsae, &lrsao);
       // Cannot double login
