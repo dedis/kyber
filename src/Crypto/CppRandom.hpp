@@ -5,6 +5,7 @@
 #include <cryptopp/osrng.h> 
 
 #include "Utils/Random.hpp"
+#include "Integer.hpp"
 
 namespace Dissent {
 namespace Crypto {
@@ -32,9 +33,15 @@ namespace Crypto {
 
       virtual int GetInt(int min = 0, int max = RAND_MAX);
       virtual void GenerateBlock(QByteArray &data);
+
+      /**
+       * Returns an integer between [min, max)
+       */
+      Integer GetInteger(const Integer &min, const Integer &max);
+
       CryptoPP::RandomNumberGenerator *GetHandle() { return _rng.data(); }
     private:
-      QScopedPointer<CryptoPP::RandomNumberGenerator> _rng;
+      QSharedPointer<CryptoPP::RandomNumberGenerator> _rng;
   };
 }
 }

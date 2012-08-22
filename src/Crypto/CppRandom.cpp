@@ -1,5 +1,6 @@
 #include <QDebug>
 #include "CppRandom.hpp"
+#include "CppIntegerData.hpp"
 
 namespace Dissent {
 namespace Crypto {
@@ -7,7 +8,8 @@ namespace Crypto {
   {
     if(seed.isEmpty()) {
       try {
-        _rng.reset(new CryptoPP::AutoSeededX917RNG<CryptoPP::AES>());
+        _rng = QSharedPointer<CryptoPP::RandomNumberGenerator>(
+            new CryptoPP::AutoSeededX917RNG<CryptoPP::AES>());
       } catch (CryptoPP::OS_RNG_Err &ex) {
         qFatal("Ran out of file descriptors, when creating a CppRandom.");
       }
@@ -28,7 +30,8 @@ namespace Crypto {
 
     QByteArray zero(CryptoPP::AES::DEFAULT_KEYLENGTH, 0);
     const byte *zerob = reinterpret_cast<const byte *>(zero.data());
-    _rng.reset(new CryptoPP::X917RNG(bt, zerob, zerob));
+    _rng = QSharedPointer<CryptoPP::RandomNumberGenerator>(
+        new CryptoPP::X917RNG(bt, zerob, zerob));
 
     if(index) {
       MoveRngPosition(index);
@@ -42,6 +45,16 @@ namespace Crypto {
     }
     IncrementByteCount(4);
     return _rng->GenerateWord32(min, max - 1);
+  }
+
+  Integer CppRandom::GetInteger(const Integer &min, const Integer &max)
+  {
+    CryptoPP::Integer cmin = CppIntegerData::GetInteger(min.GetData());
+    CryptoPP::Integer cmax = CppIntegerData::GetInteger(max.GetData());
+
+    CryptoPP::Integer value(*_rng.data(), cmin, cmax);
+
+    return Integer(new CppIntegerData(value));
   }
 
   void CppRandom::GenerateBlock(QByteArray &data)
