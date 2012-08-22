@@ -60,11 +60,14 @@ namespace Tests {
     for(int idx = 0; idx < keys - 1; idx++) {
       decrypted0 = private_keys[idx]->SeriesDecrypt(decrypted0);
     }
+    QByteArray decrypted0_0 = private_keys[keys - 1]->SeriesDecrypt(decrypted0);
+    decrypted0_0 = private_keys[keys - 1]->SeriesDecryptFinish(decrypted0_0);
     decrypted0 = private_keys.last()->Decrypt(decrypted0);
 
     EXPECT_EQ(initial, decrypted);
     EXPECT_NE(encrypted0, encrypted);
     EXPECT_EQ(decrypted0, decrypted);
+    EXPECT_EQ(decrypted0_0, decrypted);
   }
 
   TEST(Crypto, CppDsaNeff)
@@ -203,6 +206,86 @@ namespace Tests {
       QByteArray signature = lrs->Sign(msg);
       lrp.Verify(msg, signature);
       EXPECT_TRUE(lrp.VerifyKey(*(lrs.data())));
+    }
+  }
+
+  TEST(Crypto, Reencrypt)
+  {
+    QSharedPointer<CppDsaPrivateKey> private_key(new CppDsaPrivateKey());
+
+    Integer modulus = private_key->GetModulus();
+    Integer generator = private_key->GetGenerator();
+    Integer subgroup = private_key->GetSubgroup();
+    Integer h = private_key->GetPublicElement();
+    Integer x = private_key->GetPrivateExponent();
+
+    Integer value_exp = Integer::GetRandomInteger(2, subgroup);
+    Integer value = generator.Pow(value_exp, modulus);
+
+    Integer secret = Integer::GetRandomInteger(2, subgroup);
+    Integer shared = generator.Pow(secret, modulus);
+    Integer encrypted = (value * h.Pow(secret, modulus)) % modulus;
+
+    Integer decrypted = (encrypted * shared.Pow(x, modulus).MultiplicativeInverse(modulus)) % modulus;
+    EXPECT_EQ(decrypted, value);
+
+    Integer beta = Integer::GetRandomInteger(2, subgroup);
+
+    shared = (shared * generator.Pow(beta, modulus)) % modulus;
+    encrypted = (encrypted * h.Pow(beta, modulus)) % modulus;
+
+    decrypted = (encrypted * shared.Pow(x, modulus).MultiplicativeInverse(modulus)) % modulus;
+    EXPECT_EQ(decrypted, value);
+  }
+
+  TEST(Crypto, NeffShuffle)
+  {
+    int values = 50;
+    int keys = 10;
+
+    QSharedPointer<CppDsaPrivateKey> base_key(new CppDsaPrivateKey());
+    Integer modulus = base_key->GetModulus();
+    Integer generator = base_key->GetGenerator();
+    Integer subgroup = base_key->GetSubgroup();
+
+    QVector<QSharedPointer<CppDsaPrivateKey> > pr_keys;
+    QVector<QSharedPointer<AsymmetricKey> > pub_keys;
+    for(int idx = 0; idx < keys; idx++) {
+      pr_keys.append(QSharedPointer<CppDsaPrivateKey>(new CppDsaPrivateKey(
+              modulus, subgroup, generator)));
+      pub_keys.append(QSharedPointer<AsymmetricKey>(pr_keys.last()->GetPublicKey()));
+    }
+
+    QVector<QByteArray> input;
+    QVector<Integer> x;
+
+    for(int idx = 0; idx < values; idx++) {
+      Integer tmp_val = Integer::GetRandomInteger(0, subgroup);
+      x.append(generator.Pow(tmp_val, modulus));
+
+      input.append(CppDsaPublicKey::SeriesEncrypt(pub_keys,
+            x.last().GetByteArray()));
+    }
+
+    CppNeffShuffle shuffle;
+
+    QVector<QByteArray> output;
+    QByteArray proof;
+    QVector<QSharedPointer<AsymmetricKey> > npub_keys = pub_keys;
+    QVector<QSharedPointer<AsymmetricKey> > cpub_keys = pub_keys;
+
+    foreach(const QSharedPointer<CppDsaPrivateKey> &private_key, pr_keys) {
+      npub_keys.pop_front();
+      EXPECT_TRUE(shuffle.Shuffle(input, private_key, npub_keys, output, proof));
+      EXPECT_TRUE(shuffle.Verify(input, cpub_keys, proof, output));
+      input = output;
+      cpub_keys = npub_keys;
+    }
+
+    foreach(const QByteArray &encrypted, output) {
+      QByteArray decrypted = CppDsaPrivateKey::SeriesDecryptFinish(encrypted);
+      Integer val(decrypted);
+      EXPECT_TRUE(x.contains(val));
     }
   }
 }

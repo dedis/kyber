@@ -75,6 +75,13 @@ namespace Crypto {
        */
       QByteArray SeriesDecrypt(const QByteArray &data) const;
 
+      /**
+       * DSA allows multiple encryptions of the same data to require only two elements.
+       * This should be called after all the decryption layers have been removed
+       * @param data to decrypt
+       */
+      static QByteArray SeriesDecryptFinish(const QByteArray &data);
+
     protected:
       inline virtual const Parameters &GetGroupParameters() const
       {

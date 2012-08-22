@@ -146,5 +146,14 @@ namespace Crypto {
     ostream << shared << result;
     return out;
   }
+
+  QByteArray CppDsaPrivateKey::SeriesDecryptFinish(const QByteArray &data)
+  {
+    Integer shared, encrypted;
+    QDataStream stream(data);
+    stream >> shared >> encrypted;
+
+    return encrypted.GetByteArray();
+  }
 }
 }

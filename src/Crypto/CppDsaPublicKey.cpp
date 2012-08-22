@@ -133,7 +133,7 @@ namespace Crypto {
     }
 
     Integer int_val(data);
-    Integer secret = Integer::GetRandomInteger(0, GetSubgroup());
+    Integer secret = Integer::GetRandomInteger(2, GetSubgroup());
     Integer shared = GetGenerator().Pow(secret, GetModulus());
     Integer encrypted = (int_val * GetPublicElement().Pow(secret, GetModulus())) % GetModulus();
 

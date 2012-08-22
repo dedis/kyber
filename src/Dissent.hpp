@@ -61,6 +61,7 @@
 #include "Crypto/CppHash.hpp"
 #include "Crypto/CppIntegerData.hpp"
 #include "Crypto/CppLibrary.hpp"
+#include "Crypto/CppNeffShuffle.hpp"
 #include "Crypto/CppPrivateKey.hpp"
 #include "Crypto/CppPublicKey.hpp"
 #include "Crypto/CppRandom.hpp"

@@ -76,6 +76,7 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Crypto/CppHash.hpp \
            src/Crypto/CppIntegerData.hpp \
            src/Crypto/CppLibrary.hpp \
+           src/Crypto/CppNeffShuffle.hpp \
            src/Crypto/CppPrivateKey.hpp \
            src/Crypto/CppPublicKey.hpp \
            src/Crypto/CppRandom.hpp \
@@ -241,6 +242,7 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Crypto/CppDsaPrivateKey.cpp \
            src/Crypto/CppDsaPublicKey.cpp \
            src/Crypto/CppHash.cpp \
+           src/Crypto/CppNeffShuffle.cpp \
            src/Crypto/CppPrivateKey.cpp \
            src/Crypto/CppPublicKey.cpp \
            src/Crypto/CppRandom.cpp \
