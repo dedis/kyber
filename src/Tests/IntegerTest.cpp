@@ -64,8 +64,8 @@ namespace Tests {
   void IntegerRandom()
   {
     Integer val0 = Integer::GetRandomInteger(1024);
-    Integer val1 = Integer::GetRandomInteger(1024, val0);
-    Integer val2 = Integer::GetRandomInteger(1024, val0, true);
+    Integer val1 = Integer::GetRandomInteger(0, val0);
+    Integer val2 = Integer::GetRandomInteger(0, val0, true);
 
     EXPECT_NE(val0, val1);
     EXPECT_NE(val0, val2);
@@ -139,8 +139,8 @@ namespace Tests {
   {
     Integer mod = Integer::GetRandomInteger(1024);
     // mod should be prime to ensure (higher likelihood of) multiplicative inverse
-    mod = Integer::GetRandomInteger(1024, mod, true);
-    Integer val = Integer::GetRandomInteger(1024, mod);
+    mod = Integer::GetRandomInteger(0, mod, true);
+    Integer val = Integer::GetRandomInteger(0, mod);
     Integer mi = val.MultiplicativeInverse(mod);
     Integer result = (val * mi) % mod;
     qDebug() << result.ToString() << (val < mod) << (mi < mod);

@@ -123,13 +123,23 @@ namespace Crypto {
       /**
        * returns a random integer data
        * @param bit_count the amount of bits in the integer
-       * @param mod the modulus of the integer
        * @param prime if the integer should be prime 
        */
-      virtual IntegerData *GetRandomInteger(int bit_count,
-          const IntegerData *mod, bool prime)
+      virtual IntegerData *GetRandomInteger(int bit_count, bool prime)
       {
-        return CppIntegerData::GetRandomInteger(bit_count, mod, prime);
+        return CppIntegerData::GetRandomInteger(bit_count, prime);
+      }
+
+      /**
+       * returns a random integer data
+       * @param min the minimum number
+       * @param max the maximum number
+       * @param prime should the resulting number be prime
+       */
+      virtual IntegerData *GetRandomInteger(const IntegerData *min,
+          const IntegerData *max, bool prime)
+      {
+        return CppIntegerData::GetRandomInteger(min, max, prime);
       }
 
       /**

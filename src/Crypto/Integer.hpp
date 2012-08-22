@@ -61,14 +61,26 @@ namespace Crypto {
       /**
        * returns a random integer data
        * @param bit_count the amount of bits in the integer
-       * @param mod the modulus of the integer
        * @param prime if the integer should be prime 
        */
-      static Integer GetRandomInteger(int bit_count,
-          const Integer &mod = Integer(), bool prime = false)
+      static Integer GetRandomInteger(int bit_count, bool prime = false)
       {
         IntegerData *data = CryptoFactory::GetInstance().
-          GetLibrary()->GetRandomInteger(bit_count, mod.GetData(), prime);
+          GetLibrary()->GetRandomInteger(bit_count, prime);
+        return Integer(data);
+      }
+
+      /**
+       * returns a random integer data
+       * @param min smallest number
+       * @param max largest number
+       * @param prime if the integer should be prime 
+       */
+      static Integer GetRandomInteger(const Integer &min,
+          const Integer &max, bool prime = false)
+      {
+        IntegerData *data = CryptoFactory::GetInstance().
+          GetLibrary()->GetRandomInteger(min.GetData(), max.GetData(), prime);
         return Integer(data);
       }
 

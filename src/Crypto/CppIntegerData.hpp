@@ -62,21 +62,34 @@ namespace Crypto {
       /**
        * returns a random integer data
        * @param bit_count the amount of bits in the integer
-       * @param mod the modulus of the integer
        * @param prime if the integer should be prime 
        */
-      static CppIntegerData *GetRandomInteger(int bit_count,
-          const IntegerData *mod, bool prime)
+      static CppIntegerData *GetRandomInteger(int bit_count, bool prime)
       {
         CryptoPP::AutoSeededX917RNG<CryptoPP::DES_EDE3> rng;
 
-        CryptoPP::Integer max = CppIntegerData::GetInteger(mod);
-        if(max == 0) {
-          max = CryptoPP::Integer::Power2(bit_count);
-        }
-        max--;
+        CryptoPP::Integer max = CryptoPP::Integer::Power2(bit_count);
 
         CryptoPP::Integer value(rng, 0, max,
+            prime ? CryptoPP::Integer::PRIME : CryptoPP::Integer::ANY);
+        return new CppIntegerData(value);
+      }
+
+      /**
+       * returns a random integer data
+       * @param min smallest number
+       * @param max largest number
+       * @param prime if the integer should be prime 
+       */
+      static CppIntegerData *GetRandomInteger(const IntegerData *min,
+          const IntegerData *max, bool prime)
+      {
+        CryptoPP::AutoSeededX917RNG<CryptoPP::DES_EDE3> rng;
+
+        CryptoPP::Integer cmin = CppIntegerData::GetInteger(min);
+        CryptoPP::Integer cmax = CppIntegerData::GetInteger(max);
+
+        CryptoPP::Integer value(rng, cmin, cmax,
             prime ? CryptoPP::Integer::PRIME : CryptoPP::Integer::ANY);
         return new CppIntegerData(value);
       }
