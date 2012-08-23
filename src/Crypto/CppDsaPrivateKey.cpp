@@ -45,17 +45,22 @@ namespace Crypto {
     Validate();
   }
 
-  CppDsaPrivateKey::CppDsaPrivateKey() :
+  CppDsaPrivateKey::CppDsaPrivateKey(int modulus, int subgroup) :
     CppDsaPublicKey(new KeyBase::PrivateKey())
   {
     AutoSeededX917RNG<DES_EDE3> rng;
     KeyBase::PrivateKey *key = const_cast<KeyBase::PrivateKey *>(GetDsaPrivateKey());
 
-    int keysize = std::max(DefaultKeySize, GetMinimumKeySize());
+    modulus = std::max(modulus, GetMinimumKeySize());
+    subgroup = (subgroup == -1) ? GetSubgroupOrderSize(modulus) : subgroup;
+    if(modulus <= subgroup) {
+      qFatal("Subgroup should be < Modulus");
+    }
+
     key->GenerateRandom(rng,
         MakeParameters
-          (Name::ModulusSize(), keysize)
-          (Name::SubgroupOrderSize(), GetSubgroupOrderSize(keysize)));
+          (Name::ModulusSize(), modulus)
+          (Name::SubgroupOrderSize(), subgroup));
     _key_size = GetDsaPrivateKey()->GetGroupParameters().GetModulus().BitCount();
     Validate();
   }

@@ -20,7 +20,7 @@ namespace Crypto {
       /**
        * Creates a new random key
        */
-      explicit CppDsaPrivateKey();
+      explicit CppDsaPrivateKey(int modulus = DefaultKeySize, int subgroup = -1);
 
       /**
        * Creates a private Dsa key given the private parameters
