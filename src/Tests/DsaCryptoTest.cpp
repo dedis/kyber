@@ -70,67 +70,6 @@ namespace Tests {
     EXPECT_EQ(decrypted0_0, decrypted);
   }
 
-  TEST(Crypto, CppDsaNeff)
-  {
-    int keys = 50;
-    int servers = 10;
-    QSharedPointer<CppDsaPrivateKey> base_key(new CppDsaPrivateKey());
-    Integer generator = base_key->GetGenerator();
-    Integer subgroup = base_key->GetSubgroup();
-    Integer modulus = base_key->GetModulus();
-
-    QVector<QSharedPointer<CppDsaPrivateKey> > private_keys;
-    QVector<Integer> public_elements;
-
-    for(int idx = 0; idx < keys; idx++) {
-      QSharedPointer<CppDsaPrivateKey> private_key(
-          new CppDsaPrivateKey(modulus, subgroup, generator));
-      EXPECT_EQ(modulus, private_key->GetModulus());
-      EXPECT_EQ(subgroup, private_key->GetSubgroup());
-      EXPECT_EQ(generator, private_key->GetGenerator());
-      private_keys.append(private_key);
-
-      public_elements.append(private_key->GetPublicElement());
-      EXPECT_NE(generator, private_key->GetPublicElement());
-      EXPECT_NE(modulus, private_key->GetPublicElement());
-
-      EXPECT_TRUE(private_key->VerifyKey(*private_key->GetPublicKey()));
-      EXPECT_TRUE(private_key->GetPublicKey()->VerifyKey(*private_key)); 
-    }
-
-    for(int idx = 0; idx < servers; idx++) {
-      QSharedPointer<CppDsaPrivateKey> private_key(new CppDsaPrivateKey());
-      Integer local_generator = private_key->GetPrivateExponent();
-      generator = generator.Pow(local_generator, modulus);
-
-      for(int jdx = 0; jdx < keys; jdx++) {
-        public_elements[jdx] = public_elements[jdx].Pow(local_generator, modulus);
-      }
-    }
-
-    QVector<QSharedPointer<CppDsaPublicKey> > public_keys;
-
-    for(int idx = 0; idx < keys; idx++) {
-      QSharedPointer<CppDsaPrivateKey> private_key(
-          new CppDsaPrivateKey(modulus, subgroup, generator,
-            private_keys[idx]->GetPrivateExponent()));
-      private_keys[idx] = private_key;
-      
-      public_keys.append(QSharedPointer<CppDsaPublicKey>(
-            new CppDsaPublicKey(modulus, subgroup, generator, public_elements[idx])));
-    }
-
-    QScopedPointer<Random> rng(CryptoFactory::GetInstance().
-        GetLibrary()->GetRandomNumberGenerator());
-    QByteArray data(1500, 0);
-    rng->GenerateBlock(data);
-
-    for(int idx = 0; idx < keys; idx++) {
-      EXPECT_TRUE(private_keys[idx]->VerifyKey(*public_keys[idx].data()));
-      EXPECT_TRUE(public_keys[idx]->Verify(data, private_keys[idx]->Sign(data)));
-    }
-  }
-
   TEST(Crypto, CppDsaSanityCheck)
   {
     CryptoPP::GDSA<CryptoPP::SHA256>::PrivateKey key;
@@ -207,35 +146,6 @@ namespace Tests {
       lrp.Verify(msg, signature);
       EXPECT_TRUE(lrp.VerifyKey(*(lrs.data())));
     }
-  }
-
-  TEST(Crypto, Reencrypt)
-  {
-    QSharedPointer<CppDsaPrivateKey> private_key(new CppDsaPrivateKey());
-
-    Integer modulus = private_key->GetModulus();
-    Integer generator = private_key->GetGenerator();
-    Integer subgroup = private_key->GetSubgroup();
-    Integer h = private_key->GetPublicElement();
-    Integer x = private_key->GetPrivateExponent();
-
-    Integer value_exp = Integer::GetRandomInteger(2, subgroup);
-    Integer value = generator.Pow(value_exp, modulus);
-
-    Integer secret = Integer::GetRandomInteger(2, subgroup);
-    Integer shared = generator.Pow(secret, modulus);
-    Integer encrypted = (value * h.Pow(secret, modulus)) % modulus;
-
-    Integer decrypted = (encrypted * shared.Pow(x, modulus).MultiplicativeInverse(modulus)) % modulus;
-    EXPECT_EQ(decrypted, value);
-
-    Integer beta = Integer::GetRandomInteger(2, subgroup);
-
-    shared = (shared * generator.Pow(beta, modulus)) % modulus;
-    encrypted = (encrypted * h.Pow(beta, modulus)) % modulus;
-
-    decrypted = (encrypted * shared.Pow(x, modulus).MultiplicativeInverse(modulus)) % modulus;
-    EXPECT_EQ(decrypted, value);
   }
 
   TEST(Crypto, NeffShuffle)
