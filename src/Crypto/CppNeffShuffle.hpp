@@ -14,7 +14,7 @@ namespace Crypto {
     public:
       /**
        * Performs a non-interactive verifiable Neff Mix
-       * with a (not-yet) verifiable decryption.
+       * with a verifiable decryption.
        * @param input the messages to be shuffled
        * @param private_key the private key used for decrypting a layer of encryption
        * @param remaining_keys the keys for the remaining shufflers
@@ -30,7 +30,7 @@ namespace Crypto {
 
       /**
        * Performs a non-interactive verification of a Neff Mix
-       * and (not-yet) verifiable decryption.
+       * and verifiable decryption.
        * @param input the messages to be shuffled
        * @param remaining_keys the keys for the shufflers and the remaining
        * shufflers

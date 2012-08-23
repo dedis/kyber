@@ -251,16 +251,34 @@ namespace Crypto {
 
     stream << alpha;
 
+    // Part 8 Verifiable decryption
+    hash.Update(base_seed);
+    cseed = hash.ComputeHash(proof);
+    rand = CppRandom(cseed);
+
     QVector<QByteArray> decrypted;
+    QVector<QPair<Integer, Integer> > decryption_proof;
+
     foreach(const QByteArray &encrypted, output) {
       decrypted.append(pkey->SeriesDecrypt(encrypted));
       if(decrypted.last().isEmpty()) {
         qDebug() << "Invalid encryption";
         return false;
       }
+
+      QDataStream tstream(encrypted);
+      Integer shared;
+      tstream >> shared;
+
+      Integer t = Integer::GetRandomInteger(2, subgroup);
+      Integer T = shared.Pow(t, modulus);
+      Integer c = rand.GetInteger(2, subgroup);
+      Integer s = (t + c * pkey->GetPrivateExponent()) % subgroup;
+      decryption_proof.append(QPair<Integer, Integer>(T, s));
     }
 
     stream << decrypted;
+    stream << decryption_proof;
     return true;
   }
 
@@ -414,6 +432,7 @@ namespace Crypto {
     QVector<Integer> alpha;
 
     ostream >> alpha;
+    istream << alpha;
 
     // Part 6.5 - Verifier
 
@@ -489,7 +508,50 @@ namespace Crypto {
       return false;
     }
 
-    ostream >> output;
+
+    // Part 8 -- Verifying Decryption
+    QVector<QByteArray> decrypted;
+    QVector<QPair<Integer, Integer> > decryption_proof;
+    ostream >> decrypted >> decryption_proof;
+    if(decrypted.size() != k) {
+      qCritical() << "Decrypted size != k";
+      return false;
+    }
+
+    if(decryption_proof.size() != k) {
+      qCritical() << "Decryption proof size != k";
+      return false;
+    }
+
+    hash.Update(base_seed);
+    cseed = hash.ComputeHash(proof);
+    rand = CppRandom(cseed);
+
+    for(int idx = 0; idx < k; idx++) {
+      QDataStream tstream_in(shuffle_output[idx]);
+      Integer shared_in, secret_in;
+      tstream_in >> shared_in >> secret_in;
+
+      QDataStream tstream_out(decrypted[idx]);
+      Integer shared_out, secret_out;
+      tstream_out >> shared_out >> secret_out;
+
+      Integer pair = (secret_in * secret_out.MultiplicativeInverse(modulus)) % modulus;
+      Integer T = decryption_proof[idx].first;
+      Integer s = decryption_proof[idx].second;
+      Integer c = rand.GetInteger(2, subgroup);
+      if(shared_in != shared_out) {
+        qDebug() << "Decryption error";
+        return false;
+      }
+
+      if(shared_out.Pow(s, modulus) != ((T * pair.Pow(c, modulus)) % modulus)) {
+        qDebug() << "Invalid decryption proof";
+        return false;
+      }
+    }
+
+    output = decrypted;
     return true;
   }
 }
