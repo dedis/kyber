@@ -644,7 +644,7 @@ using namespace ShuffleRoundPrivate;
       Stop("Round unsuccessfully finished.");
     }
 
-    foreach(QByteArray cleartext, cleartexts) {
+    foreach(const QByteArray &cleartext, cleartexts) {
       QByteArray msg = ParseData(cleartext);
       if(msg.isEmpty()) {
         continue;
