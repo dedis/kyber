@@ -122,7 +122,12 @@ namespace Crypto {
         shared.Pow(GetPrivateExponent(), GetModulus()).
           MultiplicativeInverse(GetModulus()))
       % GetModulus();
-    return result.GetByteArray();
+
+    QByteArray output;
+    if(Decode(result, output)) {
+      return output;
+    }
+    return QByteArray();
   }
 
   QByteArray CppDsaPrivateKey::SeriesDecrypt(const QByteArray &data) const
@@ -152,13 +157,17 @@ namespace Crypto {
     return out;
   }
 
-  QByteArray CppDsaPrivateKey::SeriesDecryptFinish(const QByteArray &data)
+  QByteArray CppDsaPrivateKey::SeriesDecryptFinish(const QByteArray &data) const
   {
     Integer shared, encrypted;
     QDataStream stream(data);
     stream >> shared >> encrypted;
 
-    return encrypted.GetByteArray();
+    QByteArray output;
+    if(Decode(encrypted, output)) {
+      return output;
+    }
+    return QByteArray();
   }
 }
 }

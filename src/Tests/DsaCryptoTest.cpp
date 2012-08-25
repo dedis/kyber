@@ -193,7 +193,7 @@ namespace Tests {
     }
 
     foreach(const QByteArray &encrypted, output) {
-      QByteArray decrypted = CppDsaPrivateKey::SeriesDecryptFinish(encrypted);
+      QByteArray decrypted = base_key->SeriesDecryptFinish(encrypted);
       Integer val(decrypted);
       EXPECT_TRUE(x.contains(val));
     }

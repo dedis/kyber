@@ -125,17 +125,87 @@ namespace Crypto {
         data.size(), reinterpret_cast<const byte *>(sig.data()), sig.size());
   }
 
+  bool CppDsaPublicKey::Encode(const QByteArray &data,
+      Integer &encoded) const
+  {
+    Integer value(data);
+    if(InGroup(value)) {
+      encoded = value;
+      return true;
+    }
+
+    if(2 * GetSubgroup() + 1 != GetModulus()) {
+      qWarning() << "Cannot encode elements with this key";
+      return false;
+    }
+
+    int can_store = GetSubgroup().GetByteCount() - 4;
+    if(can_store < data.size()) {
+      qWarning() << "Too large to store";
+      return false;
+    }
+
+    // Add initial 0xff byte and trailing 0x00 byte
+    QByteArray padded;
+    padded.append(0xff);
+    padded.append(data);
+    padded.append(static_cast<char>(0x00));
+    padded.append(0xff);
+
+    // Change byte of padded string until the
+    // integer represented by the byte arry is a quadratic
+    // residue. We need to be sure that every plaintext
+    // message is a quadratic residue modulo p
+    const int last = padded.count() - 2;
+
+    for(unsigned char pad=0x00; pad < 0xff; pad++) {
+      padded[last] = pad;
+
+      Integer value = Integer(padded);
+      if(InGroup(value)) {
+        encoded = value;
+        return true;
+      }
+    }
+
+    qWarning() << "Unable to encode";
+    return false;
+  }
+
+  bool CppDsaPublicKey::Decode(const Integer &value,
+      QByteArray &decoded) const
+  {
+    if(!InGroup(value)) {
+      qCritical() << "Not in group!";
+      return false;
+    }
+
+    QByteArray data = value.GetByteArray();
+    qDebug() << "HERE" << QString::number(data.at(0)) <<
+      QString::number(data.at(data.size() -1)) << data.count();
+    if(static_cast<unsigned char>(data.at(0)) == 0xff &&
+        static_cast<unsigned char>(data.at(data.size() - 1)) == 0xff
+        && data.count() >= 3)
+    {
+      decoded = data.mid(1, data.count() - 3);
+    } else {
+      decoded = data;
+    }
+
+    return true;
+  }
+
   QByteArray CppDsaPublicKey::Encrypt(const QByteArray &data) const
   {
-    if(GetKeySize() / 8 < data.size()) {
-      qCritical() << "In CppDsaPublicKey::Encrypt: Cannot encrypt large data size";
+    Integer encoded;
+    if(!Encode(data, encoded)) {
+      qWarning() << "Unable to encrypt due to key limitations";
       return QByteArray();
     }
 
-    Integer int_val(data);
     Integer secret = Integer::GetRandomInteger(2, GetSubgroup());
     Integer shared = GetGenerator().Pow(secret, GetModulus());
-    Integer encrypted = (int_val * GetPublicElement().Pow(secret, GetModulus())) % GetModulus();
+    Integer encrypted = (encoded * GetPublicElement().Pow(secret, GetModulus())) % GetModulus();
 
     QByteArray out;
     QDataStream stream(&out, QIODevice::WriteOnly);
@@ -157,8 +227,9 @@ namespace Crypto {
       return QByteArray();
     }
 
-    if(first->GetKeySize() / 8 < data.size()) {
-      qCritical() << "In CppDsaPublicKey::SeriesEncrypt: Cannot encrypt large data size";
+    Integer encoded;
+    if(!first->Encode(data, encoded)) {
+      qWarning() << "Unable to encrypt due to key limitations";
       return QByteArray();
     }
 
@@ -175,14 +246,18 @@ namespace Crypto {
         return QByteArray();
       }
 
+      if(pkey->GetPublicElement().Pow(subgroup, modulus) != 1) {
+        qDebug() << "Invalid key";
+      }
+
       encrypted = (encrypted * pkey->GetPublicElement()) % modulus;
     }
 
-    Integer secret = Integer::GetRandomInteger(0, subgroup);
+    Integer secret = Integer::GetRandomInteger(2, subgroup);
     Integer shared = generator.Pow(secret, modulus);
 
     encrypted = encrypted.Pow(secret, modulus);
-    encrypted = (Integer(data) * encrypted) % modulus;
+    encrypted = (encoded * encrypted) % modulus;
 
     QByteArray out;
     QDataStream stream(&out, QIODevice::WriteOnly);

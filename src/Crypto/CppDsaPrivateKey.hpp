@@ -80,7 +80,7 @@ namespace Crypto {
        * This should be called after all the decryption layers have been removed
        * @param data to decrypt
        */
-      static QByteArray SeriesDecryptFinish(const QByteArray &data);
+      QByteArray SeriesDecryptFinish(const QByteArray &data) const;
 
     protected:
       inline virtual const Parameters &GetGroupParameters() const
