@@ -181,8 +181,6 @@ namespace Crypto {
     }
 
     QByteArray data = value.GetByteArray();
-    qDebug() << "HERE" << QString::number(data.at(0)) <<
-      QString::number(data.at(data.size() -1)) << data.count();
     if(static_cast<unsigned char>(data.at(0)) == 0xff &&
         static_cast<unsigned char>(data.at(data.size() - 1)) == 0xff
         && data.count() >= 3)

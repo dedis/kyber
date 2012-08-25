@@ -7,6 +7,27 @@
 
 namespace Dissent {
 namespace Tests {
+  static QSharedPointer<CppDsaPrivateKey> GetBaseKey()
+  {
+    static QSharedPointer<CppDsaPrivateKey> key(
+        new CppDsaPrivateKey());
+    return key;
+  }
+
+  static QSharedPointer<AsymmetricKey> GetKey()
+  {
+    if(CryptoFactory::GetInstance().GetLibraryName() == CryptoFactory::CryptoPPDsa) {
+      return QSharedPointer<AsymmetricKey>(
+          new CppDsaPrivateKey(
+            GetBaseKey()->GetModulus(),
+            GetBaseKey()->GetSubgroup(),
+            GetBaseKey()->GetGenerator()));
+    } else {
+      return QSharedPointer<AsymmetricKey>(CryptoFactory::GetInstance().
+        GetLibrary()->CreatePrivateKey());
+    }
+  }
+
   class TestNode : public QObject {
     Q_OBJECT
 
@@ -17,10 +38,8 @@ namespace Tests {
         sm(rpc),
         net(new DefaultNetwork(cm, rpc)),
         ident(cm->GetId(),
-            QSharedPointer<AsymmetricKey>(CryptoFactory::GetInstance().
-              GetLibrary()->CreatePrivateKey()),
-            QSharedPointer<AsymmetricKey>(CryptoFactory::GetInstance().
-              GetLibrary()->CreatePrivateKey()),
+            GetKey(),
+            GetKey(),
             QSharedPointer<DiffieHellman>(CryptoFactory::GetInstance().
               GetLibrary()->CreateDiffieHellman()), server)
       {

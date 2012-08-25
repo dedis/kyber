@@ -44,7 +44,7 @@ namespace Tests {
       rc.rounds.first().dynamicCast<NeffKeyShuffle>();
     ASSERT_TRUE(tkfs);
 
-    QVector<QSharedPointer<AsymmetricKey> > keys = tkfs->GetAnonymizedKeys();
+    QVector<QSharedPointer<AsymmetricKey> > keys = tkfs->GetKeys();
     ASSERT_EQ(keys.count(), nodes.count());
 
     foreach(const QSharedPointer<Round> &round, rc.rounds) {
@@ -52,12 +52,12 @@ namespace Tests {
         round.dynamicCast<NeffKeyShuffle>();
       ASSERT_TRUE(kfs);
 
-      ASSERT_EQ(keys.count(), kfs->GetAnonymizedKeys().count());
+      ASSERT_EQ(keys.count(), kfs->GetKeys().count());
       for(int idx = 0; idx < keys.count(); idx++) {
-        ASSERT_EQ(keys[idx], kfs->GetAnonymizedKeys()[idx]);
+        ASSERT_EQ(keys[idx], kfs->GetKeys()[idx]);
       }
 
-      ASSERT_TRUE(kfs->GetAnonymizedKey());
+      ASSERT_TRUE(kfs->GetKey());
     }
 
     qDebug() << "Shut down";
@@ -157,7 +157,7 @@ namespace Tests {
       rc.rounds.last().dynamicCast<NeffKeyShuffle>();
     ASSERT_TRUE(tkfs);
 
-    QVector<QSharedPointer<AsymmetricKey> > keys = tkfs->GetAnonymizedKeys();
+    QVector<QSharedPointer<AsymmetricKey> > keys = tkfs->GetKeys();
     if((keys.count() != nodes.count()) && (keys.count() != nodes.count() - 1)) {
       ASSERT_EQ(keys.count(), nodes.count());
     }
@@ -170,11 +170,11 @@ namespace Tests {
       const QSharedPointer<NeffKeyShuffle> kfs =
         round.dynamicCast<NeffKeyShuffle>();
       ASSERT_TRUE(kfs);
-      ASSERT_TRUE(kfs->GetAnonymizedKey());
+      ASSERT_TRUE(kfs->GetKey());
 
-      ASSERT_EQ(keys.count(), kfs->GetAnonymizedKeys().count());
+      ASSERT_EQ(keys.count(), kfs->GetKeys().count());
       for(int idx = 0; idx < keys.count(); idx++) {
-        ASSERT_EQ(keys[idx], kfs->GetAnonymizedKeys()[idx]);
+        ASSERT_EQ(keys[idx], kfs->GetKeys()[idx]);
       }
     }
 

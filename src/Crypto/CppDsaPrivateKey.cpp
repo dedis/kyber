@@ -71,12 +71,21 @@ namespace Crypto {
     Validate();
   }
 
-  CppDsaPrivateKey *CppDsaPrivateKey::GenerateKey(const QByteArray &data)
+  CppDsaPrivateKey *CppDsaPrivateKey::GenerateKey(const QByteArray &data,
+      int modulus, int subgroup)
   {
+    modulus = std::max(modulus, GetMinimumKeySize());
+    subgroup = (subgroup == -1) ? GetSubgroupOrderSize(modulus) : subgroup;
+    if(modulus <= subgroup) {
+      qFatal("Subgroup should be < Modulus");
+    }
+
     CppRandom rng(data);
     KeyBase::PrivateKey key;
-    key.GenerateRandomWithKeySize(*rng.GetHandle(),
-        std::max(GetMinimumKeySize(), DefaultKeySize));
+    key.GenerateRandom(*rng.GetHandle(),
+        MakeParameters
+          (Name::ModulusSize(), modulus)
+          (Name::SubgroupOrderSize(), subgroup));
     return new CppDsaPrivateKey(new KeyBase::PrivateKey(key));
   }
 

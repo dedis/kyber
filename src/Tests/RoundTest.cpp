@@ -428,7 +428,7 @@ namespace Tests {
     group = BuildGroup(nodes, group);
     int leader = group.GetIndex(group.GetLeader());
     int disconnector = Random::GetInstance().GetInt(0, count);
-    if(!transient && sg_policy == Group::ManagedSubgroup) {
+    if(sg_policy == Group::ManagedSubgroup) {
       while(nodes[disconnector]->ident.GetSuperPeer() || leader == disconnector) {
         disconnector = Random::GetInstance().GetInt(0, count);
       }

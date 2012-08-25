@@ -386,6 +386,7 @@ namespace ShuffleRoundPrivate {
         _keys(keys),
         _encrypted_data(encrypted_data)
       {
+        setAutoDelete(true);
       }
 
       virtual ~Decryptor()

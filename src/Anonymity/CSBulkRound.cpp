@@ -545,13 +545,13 @@ namespace Anonymity {
       GetShuffleRound().dynamicCast<NeffKeyShuffle>();
     Q_ASSERT(nks);
 
-    _state->anonymous_key = nks->GetAnonymizedKey();
+    _state->anonymous_key = nks->GetKey();
     Q_ASSERT(_state->anonymous_key);
 
-    _state->my_idx = nks->GetAnonymizedKeyIndex();
+    _state->my_idx = nks->GetKeyIndex();
     Q_ASSERT(_state->my_idx > -1);
 
-    _state->anonymous_keys = nks->GetAnonymizedKeys();
+    _state->anonymous_keys = nks->GetKeys();
     Q_ASSERT(_state->my_idx < _state->anonymous_keys.count());
 
     _state_machine.StateComplete();

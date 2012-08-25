@@ -47,7 +47,8 @@ namespace Crypto {
        * key.  This is mainly used for distributed tests, so other members can
        * generate an appropriate public key.
        */
-      static CppDsaPrivateKey *GenerateKey(const QByteArray &data);
+      static CppDsaPrivateKey *GenerateKey(const QByteArray &data,
+          int modulus = DefaultKeySize, int subgroup = -1);
 
       /**
        * Destructor
@@ -125,7 +126,7 @@ namespace Crypto {
        * These are recommended Subgroup sizes given a modulus size
        * @param modulus the modulus size in bits
        */
-      int GetSubgroupOrderSize(int modulus)
+      static int GetSubgroupOrderSize(int modulus)
       {
         switch(modulus) {
           case 1024:
