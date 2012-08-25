@@ -322,6 +322,16 @@ namespace Crypto {
       QDataStream tstream(input[idx]);
       Integer shared, enc;
       tstream >> shared >> enc;
+
+      if(!pkey->InGroup(shared)) {
+        qCritical() << "Shared" << idx << "not within group";
+        return false;
+      }
+      if(!pkey->InGroup(enc)) {
+        qCritical() << "Encrypted" << idx << "not within group";
+        return false;
+      }
+
       X.append(shared);
       Y.append(enc);
     }
@@ -346,6 +356,10 @@ namespace Crypto {
     Integer Delta_0, Delta_1;
 
     ostream >> shuffle_output >> Gamma >> A >> C >> U >> W >> Delta_0 >> Delta_1;
+    if(shuffle_output.size() != k) {
+      qDebug() << "Output is incorrect length:" << shuffle_output.size();
+      return false;
+    }
     istream << shuffle_output << Gamma << A << C << U << W << Delta_0 << Delta_1;
 
     QVector<Integer> X_bar, Y_bar;
