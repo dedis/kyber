@@ -58,7 +58,7 @@ namespace Tests {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
 
-    QByteArray msg(512, 0);
+    QByteArray msg(128, 0);
     rand->GenerateBlock(msg);
     nodes[sender]->session->Send(msg);
 
@@ -112,7 +112,7 @@ namespace Tests {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
 
-    QByteArray msg(512, 0);
+    QByteArray msg(128, 0);
     rand->GenerateBlock(msg);
     nodes[sender]->session->Send(msg);
 
@@ -163,7 +163,7 @@ namespace Tests {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
 
-    QByteArray msg(512, 0);
+    QByteArray msg(128, 0);
     rand->GenerateBlock(msg);
     nodes[sender0]->session->Send(msg);
 
@@ -231,7 +231,7 @@ namespace Tests {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
 
-    QByteArray msg(512, 0);
+    QByteArray msg(128, 0);
     rand->GenerateBlock(msg);
     nodes[sender0]->session->Send(msg);
     QByteArray first = msg;
@@ -346,9 +346,16 @@ namespace Tests {
     group = BuildGroup(nodes, group);
     int leader = group.GetIndex(group.GetLeader());
     int disconnector = Random::GetInstance().GetInt(0, count);
-    while(leader == disconnector) {
-      disconnector = Random::GetInstance().GetInt(0, count);
+    if(sg_policy == Group::ManagedSubgroup) {
+      while(nodes[disconnector]->ident.GetSuperPeer() || leader == disconnector) {
+        disconnector = Random::GetInstance().GetInt(0, count);
+      }
+    } else {
+      while(leader == disconnector) {
+        disconnector = Random::GetInstance().GetInt(0, count);
+      }
     }
+
     int sender = Random::GetInstance().GetInt(0, count);
     while(sender == disconnector) {
       sender = Random::GetInstance().GetInt(0, count);
@@ -376,7 +383,7 @@ namespace Tests {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
 
-    QByteArray msg(512, 0);
+    QByteArray msg(128, 0);
     rand->GenerateBlock(msg);
     nodes[sender]->session->Send(msg);
 
@@ -419,16 +426,16 @@ namespace Tests {
     CreateSessions(nodes, group, Id(), callback);
 
     group = BuildGroup(nodes, group);
+    int leader = group.GetIndex(group.GetLeader());
     int disconnector = Random::GetInstance().GetInt(0, count);
     if(!transient && sg_policy == Group::ManagedSubgroup) {
-      while(nodes[disconnector]->ident.GetSuperPeer()) {
+      while(nodes[disconnector]->ident.GetSuperPeer() || leader == disconnector) {
         disconnector = Random::GetInstance().GetInt(0, count);
       }
-    }
-
-    int leader = group.GetIndex(group.GetLeader());
-    while(leader == disconnector) {
-      disconnector = Random::GetInstance().GetInt(0, count);
+    } else {
+      while(leader == disconnector) {
+        disconnector = Random::GetInstance().GetInt(0, count);
+      }
     }
 
     int sender = Random::GetInstance().GetInt(0, count);
@@ -443,7 +450,7 @@ namespace Tests {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
 
-    QByteArray msg(512, 0);
+    QByteArray msg(128, 0);
     rand->GenerateBlock(msg);
     nodes[sender]->session->Send(msg);
 
@@ -596,7 +603,7 @@ namespace Tests {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
 
-    QByteArray msg(512, 0);
+    QByteArray msg(128, 0);
     rand->GenerateBlock(msg);
     nodes[sender]->session->Send(msg);
 
@@ -692,7 +699,7 @@ namespace Tests {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
     QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
 
-    QByteArray msg(512, 0);
+    QByteArray msg(128, 0);
     rand->GenerateBlock(msg);
     nodes[sender]->session->Send(msg);
 
