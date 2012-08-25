@@ -29,11 +29,14 @@ namespace Tests {
         Group::ManagedSubgroup);
   }
 
+  /*
+   * Test needs more work to be viable...
   TEST(CSBulkRound, PeerTransientIssueMiddle)
   {
     RoundTest_PeerDisconnectMiddle(SessionCreator(TCreateRound<CSBulkRound>),
-        Group::ManagedSubgroup);
+        Group::ManagedSubgroup, true);
   }
+  */
 
   TEST(CSBulkRound, BasicRoundManagedNeffKey)
   {
