@@ -36,7 +36,6 @@ namespace Anonymity {
     } else {
       InitClient();
     }
-    qDebug() << "KEY SHUFFLE" << key_shuffle;
     _state->key_shuffle = key_shuffle;
   }
 
@@ -502,9 +501,7 @@ namespace Anonymity {
       _state->input = input.first;
     }
 
-    qDebug() << "SIZE" << _state->input.size();
     _state->input = CppDsaPublicKey::SeriesEncrypt(_state->server_keys, _state->input);
-    qDebug() << "ASIZE" << _state->input.size();
     _state_machine.StateComplete();
   }
 
@@ -706,7 +703,6 @@ namespace NeffShufflePrivate {
     foreach(const QByteArray &pair, output) {
       _shuffle->_server_state->cleartext.append(
           _shuffle->_server_state->my_key->SeriesDecryptFinish(pair));
-      qDebug() << "BEFORE" << pair.size() << "AFTER" << _shuffle->_server_state->cleartext.last().size();
     }
 
     emit Finished();
