@@ -73,6 +73,8 @@ namespace Crypto {
       static QByteArray GetByteArray(const CryptoPP::CryptoMaterial &key);
       static inline int GetMinimumKeySize() { return 512; }
 
+      virtual KeyTypes GetKeyType() const { return RSA; }
+
     protected:
       /**
        * Does not make sense to create random public keys

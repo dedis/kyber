@@ -107,7 +107,7 @@ namespace Crypto {
       /**
        * DSA does not explicitly allow encryption
        */
-      virtual bool SupportsEncryption() { return false; }
+      virtual bool SupportsEncryption() const { return false; }
 
       /**
        * DSA does not work with keys below 1024
@@ -170,6 +170,8 @@ namespace Crypto {
        * @param decoded the resulting data
        */
       bool Decode(const Integer &value, QByteArray &decoded) const;
+
+      virtual KeyTypes GetKeyType() const { return DSA; }
 
     protected:
       inline virtual const Parameters &GetGroupParameters() const

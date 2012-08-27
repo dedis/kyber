@@ -15,6 +15,13 @@ namespace Crypto {
    */
   class AsymmetricKey {
     public:
+      enum KeyTypes {
+        RSA = 0,
+        DSA,
+        NULL_KEY,
+        OTHER
+      };
+
       /**
        * Default recommended key size
        */
@@ -116,8 +123,14 @@ namespace Crypto {
         return GetKeySize() / 8;
       }
 
-      virtual bool SupportsEncryption() { return true; }
-      virtual bool SupportsVerification() { return true; }
+      template <typename T> bool Equals(const QSharedPointer<T> &key)
+      {
+        return this->operator==(*key);
+      }
+
+      virtual KeyTypes GetKeyType() const = 0;
+      virtual bool SupportsEncryption() const { return true; }
+      virtual bool SupportsVerification() const { return true; }
 
     protected:
       /**
@@ -129,8 +142,9 @@ namespace Crypto {
       bool ReadFile(const QString &filename, QByteArray &data);
   };
 
-  inline bool operator==(const QSharedPointer<AsymmetricKey> &lhs,
-      const QSharedPointer<AsymmetricKey> &rhs)
+  template <typename T> inline bool operator==(
+      const QSharedPointer<AsymmetricKey> &lhs,
+      const QSharedPointer<T> &rhs)
   {
     return *lhs == *rhs;
   }

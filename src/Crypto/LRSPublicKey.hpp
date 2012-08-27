@@ -136,8 +136,8 @@ namespace Crypto {
        */
       virtual int GetKeySize() const { return 0; }
 
-      virtual bool SupportsEncryption() { return false; }
-      virtual bool SupportsVerification() { return true; }
+      virtual bool SupportsEncryption() const { return false; }
+      virtual bool SupportsVerification() const { return true; }
 
       /**
        * Add another key to the set of keys inside the LRS
@@ -180,6 +180,7 @@ namespace Crypto {
        */
       Integer GetGroupGenerator() const { return _group_gen; }
 
+      virtual KeyTypes GetKeyType() const { return OTHER; }
     protected:
       /**
        * Sets the key status to invalid

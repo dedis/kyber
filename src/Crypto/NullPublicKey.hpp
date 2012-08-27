@@ -47,6 +47,8 @@ namespace Crypto {
 
       static inline int GetMinimumKeySize() { return 64; }
 
+      virtual KeyTypes GetKeyType() const { return NULL_KEY; }
+
     protected:
       NullPublicKey() {}
       bool InitFromFile(const QString &filename);

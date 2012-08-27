@@ -8,6 +8,10 @@
 #include "AsymmetricKey.hpp"
 #include "CryptoFactory.hpp"
 
+#include "CppDsaLibrary.hpp"
+#include "CppLibrary.hpp"
+#include "NullLibrary.hpp"
+
 namespace Dissent {
 namespace Crypto {
   /**
@@ -17,7 +21,7 @@ namespace Crypto {
    */
   inline QDataStream &operator<<(QDataStream &stream, const QSharedPointer<AsymmetricKey> &key)
   {
-    return stream << key->IsPrivateKey() << key->GetByteArray();
+    return stream << key->GetKeyType() << key->IsPrivateKey() << key->GetByteArray();
   }
 
   /**
@@ -28,15 +32,46 @@ namespace Crypto {
    */
   inline QDataStream &operator>>(QDataStream &stream, QSharedPointer<AsymmetricKey> &key)
   {
-    bool private_key = false;
+    int key_type;
+    bool private_key;
     QByteArray bkey;
-    stream >> private_key >> bkey;
+    stream >> key_type >> private_key >> bkey;
+    qDebug() << "HERE" << key_type << private_key << bkey.size();
 
+    CryptoFactory::LibraryName clibrary = CryptoFactory::GetInstance().GetLibraryName();
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    bool to_delete = false;
+    switch(key_type) {
+      case AsymmetricKey::RSA:
+        if(clibrary != CryptoFactory::CryptoPP) {
+          lib = new CppLibrary();
+          to_delete = true;
+        }
+        break;
+      case AsymmetricKey::DSA:
+        if(clibrary != CryptoFactory::CryptoPPDsa) {
+          lib = new CppDsaLibrary();
+          to_delete = true;
+        }
+        break;
+      case AsymmetricKey::NULL_KEY:
+        if(clibrary != CryptoFactory::Null) {
+          lib = new NullLibrary();
+          to_delete = true;
+        }
+        break;
+      default:
+        qWarning() << "Invalid key type" << key_type;
+    }
+
     if(private_key) {
       key = QSharedPointer<AsymmetricKey>(lib->LoadPrivateKeyFromByteArray(bkey));
     } else {
       key = QSharedPointer<AsymmetricKey>(lib->LoadPublicKeyFromByteArray(bkey));
+    }
+
+    if(to_delete) {
+      delete lib;
     }
     return stream;
   }
