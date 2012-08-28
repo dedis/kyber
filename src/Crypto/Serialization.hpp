@@ -36,7 +36,6 @@ namespace Crypto {
     bool private_key;
     QByteArray bkey;
     stream >> key_type >> private_key >> bkey;
-    qDebug() << "HERE" << key_type << private_key << bkey.size();
 
     CryptoFactory::LibraryName clibrary = CryptoFactory::GetInstance().GetLibraryName();
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
