@@ -83,7 +83,6 @@ namespace Anonymity {
         Integer generator = my_key->GetGenerator();
 
         for(int idx = 0; idx < GetState()->cleartext.size(); idx++) {
-          qDebug() << idx;
           const QByteArray  &ct = GetState()->cleartext[idx];
           Integer public_element(ct);
           QSharedPointer<AsymmetricKey> key(new PublicKeyType(modulus,
