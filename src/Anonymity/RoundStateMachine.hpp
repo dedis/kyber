@@ -293,7 +293,7 @@ namespace Anonymity {
         }
 
         if(!_valid_message_types.contains(mtype)) {
-          throw QRunTimeError("Invalid message type: " + QString::number(mtype));
+          throw QRunTimeError("Invalid message type: " + MessageTypeToString(mtype));
         }
 
         // XXX need an API to register valid future message types
