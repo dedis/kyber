@@ -42,6 +42,12 @@ namespace ClientServer {
 
       _rpc->SendNotification(con, "CS::Broadcast", msg);
     }
+
+    if(!_group_holder->GetGroup().Contains(_cm->GetId())) {
+      _rpc->SendNotification(
+          _cm->GetConnectionTable().GetConnection(_cm->GetId()),
+          "CS::Broadcast", msg);
+    }
   }
 
   void CSBroadcast::BroadcastHelper(const Request &notification)
