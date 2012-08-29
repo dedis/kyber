@@ -45,7 +45,6 @@ HEADERS += ext/googletest/include/gtest/gtest-death-test.h \
            src/Tests/ShuffleRoundHelpers.hpp \
            src/Tests/TestNode.hpp \
            src/Tests/TestWebClient.hpp \
-           src/Tests/TolerantBulkRoundHelpers.hpp \
            src/Tests/WebServicesTest.hpp
 
 SOURCES += ext/googletest/src/gtest-all.cc \
@@ -53,7 +52,6 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/AuthenticateTest.cpp \
            src/Tests/Base64.cpp \
            src/Tests/BasicGossipTest.cpp \
-           src/Tests/BlameUtilsTest.cpp \
            src/Tests/BulkRoundTest.cpp \
            src/Tests/ConnectionTest.cpp \
            src/Tests/Crypto.cpp \
@@ -90,7 +88,6 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/TestNode.cpp \
            src/Tests/TestWebClient.cpp \
            src/Tests/TimeTest.cpp \
-           src/Tests/TolerantBulkRoundTest.cpp \
            src/Tests/TripleTest.cpp \
            src/Tests/WebServerTest.cpp \
            src/Tests/WebServicesTest.cpp

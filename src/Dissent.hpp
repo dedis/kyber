@@ -18,12 +18,6 @@
 #include "Anonymity/ShuffleBlamer.hpp"
 #include "Anonymity/ShuffleRound.hpp"
 #include "Anonymity/ShuffleRoundBlame.hpp"
-#include "Anonymity/Tolerant/Accusation.hpp"
-#include "Anonymity/Tolerant/AlibiData.hpp"
-#include "Anonymity/Tolerant/BlameMatrix.hpp"
-#include "Anonymity/Tolerant/Conflict.hpp"
-#include "Anonymity/Tolerant/MessageHistory.hpp"
-#include "Anonymity/Tolerant/TolerantBulkRound.hpp"
 
 #include "Applications/AuthFactory.hpp"
 #include "Applications/CommandLine.hpp"
@@ -187,7 +181,6 @@
 
 using namespace Dissent::Anonymity;
 using namespace Dissent::Anonymity::Sessions;
-using namespace Dissent::Anonymity::Tolerant;
 using namespace Dissent::Applications;
 using namespace Dissent::ClientServer;
 using namespace Dissent::Connections;
