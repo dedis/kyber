@@ -32,6 +32,7 @@ HEADERS += ext/googletest/include/gtest/gtest-death-test.h \
            ext/googletest/include/gtest/internal/gtest-string.h \
            ext/googletest/include/gtest/internal/gtest-tuple.h \
            ext/googletest/include/gtest/internal/gtest-type-util.h \
+           src/Tests/BadCSBulkRound.hpp \
            src/Tests/BulkRoundHelpers.hpp \
            src/Tests/DissentTest.hpp \
            src/Tests/Mock.hpp \

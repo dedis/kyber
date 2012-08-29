@@ -4,6 +4,7 @@
 #include <QMetaEnum>
 
 #include "Utils/TimerEvent.hpp"
+#include "Utils/Triple.hpp"
 #include "RoundStateMachine.hpp"
 #include "BaseBulkRound.hpp"
 
@@ -13,6 +14,8 @@ namespace Utils {
 }
 
 namespace Anonymity {
+  const unsigned char bit_masks[8] = {1, 2, 4, 8, 16, 32, 64, 128};
+
   /**
    * Represents a single instance of a cryptographically secure anonymous
    * exchange.
@@ -51,6 +54,10 @@ namespace Anonymity {
         SERVER_CIPHERTEXT,
         SERVER_VALIDATION,
         SERVER_CLEARTEXT,
+        SERVER_BLAME_BITS,
+        SERVER_REBUTTAL_OR_VERDICT,
+        CLIENT_REBUTTAL,
+        SERVER_VERDICT_SIGNATURE,
       };
 
       enum States {
@@ -66,6 +73,18 @@ namespace Anonymity {
         SERVER_WAIT_FOR_SERVER_CIPHERTEXT,
         SERVER_WAIT_FOR_SERVER_VALIDATION,
         SERVER_PUSH_CLEARTEXT,
+        STARTING_BLAME_SHUFFLE,
+        WAITING_FOR_BLAME_SHUFFLE,
+        WAITING_FOR_DATA_REQUEST_OR_VERDICT,
+        SERVER_TRANSMIT_BLAME_BITS,
+        SERVER_WAITING_FOR_BLAME_BITS,
+        SERVER_DETERMINE_MISMATCH,
+        SERVER_REQUEST_CLIENT_REBUTTAL,
+        SERVER_WAIT_FOR_CLIENT_REBUTTAL,
+        SERVER_MAKE_JUDGEMENT,
+        SERVER_EXCHANGE_VERDICT_SIGNATURE,
+        SERVER_WAIT_FOR_VERDICT_SIGNATURE,
+        SERVER_SHARE_VERDICT,
         FINISHED,
       };
 
@@ -166,8 +185,12 @@ namespace Anonymity {
 
       virtual bool CSGroupCapable() const
       {
+#if DISSENT_TEST
+        return false;
+#else
         CSBulkRound *nthis = const_cast<CSBulkRound *>(this);
         return nthis->GetShuffleRound()->CSGroupCapable();
+#endif
       }
 
     protected:
@@ -205,13 +228,15 @@ namespace Anonymity {
        */
       void VerifiableBroadcastToClients(const QByteArray &data);
 
-    private:
+      //Needed in protected for testing
+      virtual QByteArray GenerateCiphertext();
+
       /**
        * Holds the internal state for this round
        */
       class State {
         public:
-          State() : accuse(false) {}
+          State() : accuse(false), start_accuse(false), my_accuse(false) {}
           virtual ~State() {}
 
           QVector<QSharedPointer<AsymmetricKey> > anonymous_keys;
@@ -228,10 +253,58 @@ namespace Anonymity {
           bool accuse;
           QByteArray next_msg;
           QByteArray last_msg;
+          QByteArray last_ciphertext;
           int msg_length;
           int base_msg_length;
           int my_idx;
           Id my_server;
+          bool start_accuse;
+          bool my_accuse;
+          int accuse_idx;
+          int blame_phase;
+          QSharedPointer<Round> blame_shuffle;
+      };
+
+      QSharedPointer<State> GetState() { return _state; }
+
+    private:
+      /**
+       * Holds the internal state for phases for the purpose of accusation
+       */
+      class PhaseLog {
+        public:
+          PhaseLog(int phase, int max) : phase(phase), _max(max) { }
+
+          QPair<QBitArray, QBitArray> GetBitsAtIndex(int msg_idx)
+          {
+            QBitArray clients(_max, false);
+            foreach(int idx, messages.keys()) {
+              int byte_idx = msg_idx / 8;
+              int bit_idx = msg_idx % 8;
+              clients[idx] = (messages[idx][byte_idx] & bit_masks[bit_idx]) > 0;
+            }
+
+            QBitArray mine(_max, false);
+            foreach(int idx, my_sub_ciphertexts.keys()) {
+              int byte_idx = msg_idx / 8;
+              int bit_idx = msg_idx % 8;
+              mine[idx] = (my_sub_ciphertexts[idx][byte_idx] & bit_masks[bit_idx]) > 0;
+            }
+
+            return QPair<QBitArray, QBitArray>(clients, mine);
+          }
+
+          QBitArray clients;
+          QVector<int> message_offsets;
+          int message_length;
+          QHash<int, int> client_to_server;
+          QHash<int, QByteArray> messages;
+          QHash<int, QByteArray> my_sub_ciphertexts;
+          int phase;
+
+        private:
+          int _max;
+
       };
 
       /**
@@ -239,6 +312,7 @@ namespace Anonymity {
        */
       class ServerState : public State {
         public:
+          ServerState() : accuse_found(false) { }
           virtual ~ServerState() {}
 
           Utils::TimerEvent client_ciphertext_period;
@@ -255,8 +329,19 @@ namespace Anonymity {
           QList<QByteArray> client_ciphertexts;
 
           QSet<Id> handled_servers;
+          QHash<int, int> rng_to_gidx;
           QHash<int, QByteArray> server_commits;
           QHash<int, QByteArray> server_ciphertexts;
+          QHash<int, QSharedPointer<PhaseLog> > phase_logs;
+          QSharedPointer<PhaseLog> current_phase_log;
+          bool accuse_found;
+          Utils::Triple<int, int, int> current_blame;
+          QHash<Id, QPair<QBitArray, QBitArray> > blame_bits;
+          QBitArray server_bits;
+          Id expected_rebuttal;
+          Id bad_dude;
+          QByteArray verdict_hash;
+          QHash<Id, QByteArray> verdict_signatures;
       };
 
       /**
@@ -297,6 +382,11 @@ namespace Anonymity {
        * Submits the anonymous signing key into the shuffle
        */
       virtual QPair<QByteArray, bool> GetShuffleData(int max);
+      
+      /**
+       * Submits the potential blame data into the shuffle
+       */
+      virtual QPair<QByteArray, bool> GetBlameData(int max);
 
       /**
        * Called when the shuffle finishes
@@ -345,6 +435,14 @@ namespace Anonymity {
        */
       void HandleServerCleartext(const Id &from, QDataStream &stream);
 
+      void HandleBlameBits(const Id &from, QDataStream &stream);
+
+      void HandleRebuttal(const Id &from, QDataStream &stream);
+
+      void HandleVerdictSignature(const Id &from, QDataStream &stream);
+
+      void HandleRebuttalOrVerdict(const Id &from, QDataStream &stream);
+
       /**
        * Decoupled as to not waste resources if the shuffle doesn't succeed
        */
@@ -369,14 +467,26 @@ namespace Anonymity {
       void SubmitValidation();
       void PushCleartext();
 
+      void StartBlameShuffle();
+      void ProcessBlameShuffle();
+      void TransmitBlameBits();
+      void RequestRebuttal();
+      void SubmitVerdictSignature();
+      void PushVerdict();
+
       /* Below are the ciphertext generation helpers */
       void GenerateServerCiphertext();
-      QByteArray GenerateCiphertext();
       QByteArray GenerateSlotMessage();
       bool CheckData();
 
       void ProcessCleartext();
       void ConcludeClientCiphertextSubmission(const int &);
+      virtual void IncomingDataSpecial(const Request &notification)
+      {
+        if(_state && _state->blame_shuffle) {
+          _state->blame_shuffle->IncomingData(notification);
+        }
+      }
 
 #ifdef CSBR_SIGN_SLOTS
       inline int SlotHeaderLength(int slot_idx) const
@@ -393,10 +503,19 @@ namespace Anonymity {
         return 9 + lib->RngOptimalSeedSize() + sig_length;
       }
 
+      QPair<int, QBitArray> FindMismatch();
+      QPair<int, QByteArray> GetRebuttal(int phase, int accuse_idx,
+          const QBitArray &server_bits);
+
       QSharedPointer<ServerState> _server_state;
       QSharedPointer<State> _state;
       RoundStateMachine<CSBulkRound> _state_machine;
       bool _stop_next;
+      Messaging::GetDataMethod<CSBulkRound> _get_blame_data;
+      BufferSink _blame_sink;
+
+    private slots:
+      void OperationFinished() { _state_machine.StateComplete(); }
   };
 }
 }

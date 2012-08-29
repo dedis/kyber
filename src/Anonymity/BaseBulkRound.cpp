@@ -73,7 +73,11 @@ namespace Anonymity {
     if(bulk) {
       ProcessData(id, msg.value("data").toByteArray());
     } else {
-      _shuffle_round->IncomingData(notification);
+      if(msg.value("special", false).toBool()) {
+        IncomingDataSpecial(notification);
+      } else {
+        _shuffle_round->IncomingData(notification);
+      }
     }
   }
 

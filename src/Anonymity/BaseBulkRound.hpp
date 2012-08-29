@@ -75,6 +75,11 @@ namespace Anonymity {
        */
       static void Xor(QByteArray &dst, const QByteArray &t1, const QByteArray &t2);
 
+      inline virtual const QVector<int> &GetBadMembers() const
+      {
+        return _bad_members;
+      }
+
     protected:
       /**
        * Returns the ShuffleSink to access serialized descriptors
@@ -125,6 +130,12 @@ namespace Anonymity {
        * List of bad nodes by group index
        */
       QVector<int> _bad_members;
+
+      /**
+       * Handle a data message from a remote peer
+       * @param notification message from a remote peer
+       */
+      virtual void IncomingDataSpecial(const Request &) { }
 
     private slots:
       /**
