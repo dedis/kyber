@@ -26,7 +26,7 @@ namespace Utils {
       /**
        * Returns the state of the underlying trigger
        */
-      bool Triggered() { return _triggered; }
+      bool Triggered() const { return _triggered; }
 
     private:
       bool _triggered;
