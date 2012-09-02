@@ -193,6 +193,7 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Anonymity/BulkRound.cpp \
            src/Anonymity/CSBulkRound.cpp \
            src/Anonymity/Log.cpp \
+           src/Anonymity/NeffKeyShuffle.cpp \
            src/Anonymity/NeffShuffle.cpp \
            src/Anonymity/NullRound.cpp \
            src/Anonymity/RepeatingBulkRound.cpp \

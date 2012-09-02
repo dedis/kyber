@@ -1,17 +1,82 @@
 #ifndef DISSENT_ANONYMITY_NEFF_KEY_SHUFFLE_H_GUARD
 #define DISSENT_ANONYMITY_NEFF_KEY_SHUFFLE_H_GUARD
 
-#include "NeffShuffle.hpp"
+#include "Connections/Network.hpp"
+#include "Crypto/AsymmetricKey.hpp"
+#include "Crypto/CppDsaPrivateKey.hpp"
+#include "Crypto/Integer.hpp"
+#include "Utils/TimerEvent.hpp"
+
+#include "Round.hpp"
+#include "RoundStateMachine.hpp"
 
 namespace Dissent {
 namespace Anonymity {
 
   /**
-   * Wrapper around NeffShuffleRound to make keys easier to access.
-   * Also API compatible with the old NeffKeyShuffle
+   * In Neff's Key Shuffle, each member generates key pair (g, y_i), where all
+   * members have a common generator (g), modulo, and subgroup.  Where y_i in
+   * modulou and y_i = g ^ x_i with x_i in subgroup.  Members then transmit
+   * their y_i to the first server, who rebases the generator via: g_j = g_(j -
+   * 1) ^ r, where r in subgroup, where g_(-1) is the common shared g.  The
+   * member also changes bases on the public keys: y_i_j = y_i_(j - 1) ^ r.
+   * Both y_j (in ascending order) and g_j are transmitted to the next server
+   * who performs the same operations.  Finally, y_k and g_k are transmitted
+   * to the clients, who find their slot by calculating their public key via
+   * y_i_k = g_k ^ x_i.
+   *
+   * Because of the nature of this round, it is very different than other
+   * protocol rounds.  There is no input and there are no automated outputs.
+   * Outputs need to be explicitly taken via the objects public methods.
    */
-  class NeffKeyShuffle : public NeffShuffle {
+  class NeffKeyShuffle : public Round {
+    Q_OBJECT
+
+    Q_ENUMS(States);
+    Q_ENUMS(MessageType);
+
     public:
+      friend class RoundStateMachine<NeffKeyShuffle>;
+      typedef Crypto::AsymmetricKey AsymmetricKey;
+
+      enum MessageType {
+        KEY_SUBMIT = 0,
+        KEY_SHUFFLE,
+        ANONYMIZED_KEYS
+      };
+
+      enum States {
+        OFFLINE = 0,
+        KEY_GENERATION,
+        KEY_SUBMISSION,
+        WAITING_FOR_KEYS,
+        WAITING_FOR_SHUFFLE,
+        SHUFFLING,
+        WAITING_FOR_ANONYMIZED_KEYS,
+        PROCESSING_ANONYMIZED_KEYS,
+        FINISHED
+      };
+
+      /**
+       * Converts an State into a QString
+       * @param state value to convert
+       */
+      static QString StateToString(int state)
+      {
+        int index = staticMetaObject.indexOfEnumerator("States");
+        return staticMetaObject.enumerator(index).valueToKey(state);
+      }
+
+      /**
+       * Converts a MessageType into a QString
+       * @param mt value to convert
+       */
+      static QString MessageTypeToString(int mt)
+      {
+        int index = staticMetaObject.indexOfEnumerator("MessageType");
+        return staticMetaObject.enumerator(index).valueToKey(mt);
+      }
+
       /**
        * Constructor
        * @param group Group used during this round
@@ -22,37 +87,26 @@ namespace Anonymity {
        */
       explicit NeffKeyShuffle(const Group &group, const PrivateIdentity &ident,
           const Id &round_id, QSharedPointer<Network> network,
-          GetDataCallback &get_data) :
-        NeffShuffle(group, ident, round_id, network, get_data, true),
-        _parsed(false), _key_index(-1) { }
+          GetDataCallback &get_data);
 
       /**
        * Destructor
        */
-      virtual ~NeffKeyShuffle() {}
+      virtual ~NeffKeyShuffle();
 
       /**
        * Returns the anonymized private key
        */
       QSharedPointer<AsymmetricKey> GetKey() const
       {
-        if(const_cast<NeffKeyShuffle *>(this)->Parse()) {
-          return GetState()->private_key;
-        } else {
-          return QSharedPointer<AsymmetricKey>();
-        }
+        return _state ? _state->output_private_key :
+          QSharedPointer<AsymmetricKey>();
       }
 
-      /**
-       * Returns the list of shuffled keys
-       */
       QVector<QSharedPointer<AsymmetricKey> > GetKeys() const
       {
-        if(const_cast<NeffKeyShuffle *>(this)->Parse()) {
-          return _keys;
-        } else {
-          return QVector<QSharedPointer<AsymmetricKey> >();
-        }
+        return _state ? _state->output_keys :
+          QVector<QSharedPointer<AsymmetricKey> >();
       }
 
       /**
@@ -60,46 +114,160 @@ namespace Anonymity {
        */
       int GetKeyIndex() const
       {
-        if(const_cast<NeffKeyShuffle *>(this)->Parse()) {
-          return _key_index;
-        } else {
-          return -1;
-        }
+        return _state ? _state->user_key_index : -1;
       }
+
+      /**
+       * Checks that keys are sorted in an increasing fashion and that there
+       * are no duplicates.  Returns true if both conditions are true.
+       * @param keys the set of keys to verify 
+       */
+      static bool CheckShuffleOrder(const QVector<Crypto::Integer> &keys);
+
+      /**
+       * Notifies the round that a peer has disconnected.  Servers require
+       * restarting the round, clients are ignored
+       * @param id Id of the disconnector
+       */
+      virtual void HandleDisconnect(const Id &id);
+
+      /**
+       * Delay between the start of a round and when all clients are required
+       * to have submitted a message in order to be valid
+       */
+      static const int KEY_SUBMISSION_WINDOW = 60000;
+
+      virtual bool CSGroupCapable() const { return true; }
+
+    protected:
+      typedef Crypto::Integer Integer;
+
+      /**
+       * Called when the ShuffleRound is started
+       */
+      virtual void OnStart();
+
+      /**
+       * Called when the ShuffleRound is finished
+       */
+      virtual void OnStop();
+
+      /**
+       * Funnels data into the RoundStateMachine for evaluation
+       * @param data Incoming data
+       * @param from the remote peer sending the data
+       */
+      virtual void ProcessData(const Id &id, const QByteArray &data)
+      {
+        _state_machine.ProcessData(id, data);
+      }
+
+      void BeforeStateTransition() {}
+      bool CycleComplete() { return false; }
+      void EmptyHandleMessage(const Id &, QDataStream &) {}
+      void EmptyTransitionCallback() {}
 
     private:
-      bool Parse()
-      {
-        if(_parsed) {
-          return true;
-        } else if(!Successful()) {
-          return false;
-        }
+      typedef Crypto::CppDsaPrivateKey KeyType;
 
-        QSharedPointer<PublicKeyType> my_key(dynamic_cast<PublicKeyType *>(
-              GetState()->private_key->GetPublicKey()));
-        Integer modulus = my_key->GetModulus();
-        Integer subgroup = my_key->GetSubgroup();
-        Integer generator = my_key->GetGenerator();
+      void InitServer();
+      void InitClient();
 
-        for(int idx = 0; idx < GetState()->cleartext.size(); idx++) {
-          const QByteArray  &ct = GetState()->cleartext[idx];
-          Integer public_element(ct);
-          QSharedPointer<AsymmetricKey> key(new PublicKeyType(modulus,
-                subgroup, generator, public_element));
-          _keys.append(key);
-          if(key == my_key) {
-            _key_index = idx;
-          }
-        }
+      /* Message handlers */
+      void HandleKeySubmission(const Id &from, QDataStream &stream);
+      void HandleShuffle(const Id &from, QDataStream &stream);
+      void HandleAnonymizedKeys(const Id &from, QDataStream &stream);
 
-        _parsed = true;
-        return true;
+      /* State transitions */
+      void GenerateKey();
+      void SubmitKey();
+      void PrepareForKeySubmissions();
+      void ShuffleKeys();
+      void ProcessAnonymizedKeys();
+
+      void ConcludeKeySubmission(const int &);
+
+      Integer GetModulus() const
+      { 
+        QSharedPointer<KeyType> key(
+            _state->input_private_key.dynamicCast<KeyType>());
+        return key->GetModulus();
       }
 
-      bool _parsed;
-      QVector<QSharedPointer<AsymmetricKey> > _keys;
-      int _key_index;
+      Integer GetSubgroup() const
+      { 
+        QSharedPointer<KeyType> key(
+            _state->input_private_key.dynamicCast<KeyType>());
+        return key->GetSubgroup();
+      }
+
+      Integer GetGenerator() const
+      { 
+        QSharedPointer<KeyType> key(
+            _state->input_private_key.dynamicCast<KeyType>());
+        return key->GetGenerator();
+      }
+
+      Integer GetPublicElement() const
+      { 
+        QSharedPointer<KeyType> key(
+            _state->input_private_key.dynamicCast<KeyType>());
+        return key->GetPublicElement();
+      }
+
+      Integer GetPrivateExponent() const
+      { 
+        QSharedPointer<KeyType> key(
+            _state->input_private_key.dynamicCast<KeyType>());
+        return key->GetPrivateExponent();
+      }
+
+      /**
+       * Internal state
+       */
+      class State {
+        public:
+          State() :
+            blame(false),
+            user_key_index(-1)
+          {}
+
+          virtual ~State() {}
+
+          bool blame;
+          QSharedPointer<AsymmetricKey> input_private_key;
+          QSharedPointer<AsymmetricKey> output_private_key;
+          QVector<QSharedPointer<AsymmetricKey> > output_keys;
+          int user_key_index;
+
+          Integer new_generator;
+          QVector<Integer> new_public_elements;
+      };
+      
+      /**
+       * Internal state specific to servers
+       */
+      class ServerState : public State {
+        public:
+          ServerState() :
+            keys_received(0)
+          {}
+
+          virtual ~ServerState() {}
+
+          Utils::TimerEvent key_receive_period;
+
+          int keys_received;
+          QVector<Integer> shuffle_input;
+          Integer generator_input;
+          QVector<Integer> shuffle_output;
+          Integer generator_output;
+          Integer exponent;
+      };
+
+      QSharedPointer<ServerState> _server_state;
+      QSharedPointer<State> _state;
+      RoundStateMachine<NeffKeyShuffle> _state_machine;
   };
 }
 }
