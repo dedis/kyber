@@ -169,7 +169,7 @@ namespace Sessions {
 
   void SessionLeader::CheckRegistration()
   {
-    if(GetGroup().Count() < Session::MinimumRoundSize) {
+    if(_registered.size() + _group.Count() < Session::MinimumRoundSize) {
       return;
     }
 
