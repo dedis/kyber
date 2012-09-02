@@ -268,6 +268,30 @@ namespace Anonymity {
       QSharedPointer<ServerState> _server_state;
       QSharedPointer<State> _state;
       RoundStateMachine<NeffKeyShuffle> _state_machine;
+
+      class NeffShuffler : public QRunnable {
+        public:
+          NeffShuffler(const QSharedPointer<NeffKeyShuffle> &shuffle) :
+            _shuffle(shuffle)
+          {
+            setAutoDelete(true);
+          }
+
+          virtual ~NeffShuffler()
+          {
+          }
+
+          virtual void run();
+
+        private:
+          QSharedPointer<NeffKeyShuffle> _shuffle;
+      };
+
+    signals:
+      void FinishedShuffle();
+
+    private slots:
+      void TransmitKeys();
   };
 }
 }

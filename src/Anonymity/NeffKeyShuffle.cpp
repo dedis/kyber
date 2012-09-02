@@ -224,21 +224,14 @@ namespace Anonymity {
 
   void NeffKeyShuffle::ShuffleKeys()
   {
-    _state->blame = !CheckShuffleOrder(_server_state->shuffle_input);
+    NeffShuffler *shuffler = new NeffShuffler(GetSharedPointer().dynamicCast<NeffKeyShuffle>());
+    QObject::connect(this, SIGNAL(FinishedShuffle()),
+        this, SLOT(TransmitKeys()), Qt::QueuedConnection);
+    QThreadPool::globalInstance()->start(shuffler);
+  }
 
-    QSharedPointer<CppDsaPrivateKey> tmp_key(
-        new CppDsaPrivateKey(GetModulus(), GetSubgroup(), GetGenerator()));
-    _server_state->exponent = tmp_key->GetPrivateExponent();
-    _server_state->generator_output = _server_state->generator_input.Pow(
-        _server_state->exponent, GetModulus());
-
-    foreach(const Integer &key, _server_state->shuffle_input) {
-      _server_state->shuffle_output.append(
-          key.Pow(_server_state->exponent, GetModulus()));
-    }
-
-    qSort(_server_state->shuffle_output);
-
+  void NeffKeyShuffle::TransmitKeys()
+  {
     const Id &next = GetGroup().GetSubgroup().Next(GetLocalId());
     MessageType mtype = (next == Id::Zero()) ? ANONYMIZED_KEYS : KEY_SHUFFLE; 
 
@@ -317,6 +310,27 @@ namespace Anonymity {
 
     _state_machine.StateComplete();
   }
-}
-}
 
+  void NeffKeyShuffle::NeffShuffler::run()
+  {
+    _shuffle->_state->blame = !CheckShuffleOrder(_shuffle->_server_state->shuffle_input);
+
+    QSharedPointer<CppDsaPrivateKey> tmp_key(
+        new CppDsaPrivateKey(_shuffle->GetModulus(),
+          _shuffle->GetSubgroup(), _shuffle->GetGenerator()));
+    _shuffle->_server_state->exponent = tmp_key->GetPrivateExponent();
+    _shuffle->_server_state->generator_output =
+      _shuffle->_server_state->generator_input.Pow(_shuffle->_server_state->exponent,
+          _shuffle->GetModulus());
+
+    foreach(const Integer &key, _shuffle->_server_state->shuffle_input) {
+      _shuffle->_server_state->shuffle_output.append(
+          key.Pow(_shuffle->_server_state->exponent, _shuffle->GetModulus()));
+    }
+
+    qSort(_shuffle->_server_state->shuffle_output);
+
+    emit _shuffle->FinishedShuffle();
+  }
+}
+}
