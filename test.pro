@@ -68,7 +68,6 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/KeyShareTest.cpp \
            src/Tests/LogTest.cpp \
            src/Tests/MainTest.cpp \
-           src/Tests/MessageRandomizerTest.cpp \
            src/Tests/NeffKeyShuffleTest.cpp \
            src/Tests/NeffShuffleRoundTest.cpp \
            src/Tests/NullRoundTest.cpp \

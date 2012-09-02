@@ -5,7 +5,6 @@
 #include "Anonymity/BulkRound.hpp"
 #include "Anonymity/CSBulkRound.hpp"
 #include "Anonymity/Log.hpp"
-#include "Anonymity/MessageRandomizer.hpp"
 #include "Anonymity/NeffKeyShuffle.hpp"
 #include "Anonymity/NeffShuffle.hpp"
 #include "Anonymity/NullRound.hpp"

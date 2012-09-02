@@ -23,7 +23,6 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Anonymity/BulkRound.hpp \
            src/Anonymity/CSBulkRound.hpp \
            src/Anonymity/Log.hpp \
-           src/Anonymity/MessageRandomizer.hpp \
            src/Anonymity/NeffKeyShuffle.hpp \
            src/Anonymity/NeffShuffle.hpp \
            src/Anonymity/NullRound.hpp \
@@ -194,7 +193,6 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Anonymity/BulkRound.cpp \
            src/Anonymity/CSBulkRound.cpp \
            src/Anonymity/Log.cpp \
-           src/Anonymity/MessageRandomizer.cpp \
            src/Anonymity/NeffShuffle.cpp \
            src/Anonymity/NullRound.cpp \
            src/Anonymity/RepeatingBulkRound.cpp \
