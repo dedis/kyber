@@ -95,7 +95,18 @@ namespace Sessions {
       /**
        * Returns the group being used in this session
        */
-      inline const Group GetGroup() const { return _group; }
+      inline const Group GetGroup() const
+      {
+        if(_registered.size() > 0) {
+          QVector<PublicIdentity> roster = _group.GetRoster() +
+            _registered.values().toVector();
+          SessionLeader *cthis = const_cast<SessionLeader *>(this);
+          cthis->_group = Group(roster, _group.GetLeader(),
+              _group.GetSubgroupPolicy(), _group.GetSubgroup().GetRoster());
+          cthis->_registered.clear();
+        }
+        return _group;
+      }
 
       /**
        * Get the set of bad group members
@@ -254,6 +265,7 @@ namespace Sessions {
       int _round_idx;
       QHash <Id, qint64> _log_off_time;
       QSharedPointer<Identity::Authentication::IAuthenticator> _auth;
+      QHash <Id, PublicIdentity> _registered;
 
     private slots:
       /**
