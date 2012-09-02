@@ -34,7 +34,7 @@ int main(int argc, char **argv)
     CryptoFactory::GetInstance().SetThreading(CryptoFactory::MultiThreaded);
   }
 
-  CryptoFactory::GetInstance().SetLibrary(CryptoFactory::CryptoPPDsa);
+  CryptoFactory::GetInstance().SetLibrary(CryptoFactory::CryptoPP);
 
   Library *lib = CryptoFactory::GetInstance().GetLibrary();
 
