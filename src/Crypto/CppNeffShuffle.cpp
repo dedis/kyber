@@ -289,6 +289,7 @@ namespace Crypto {
   {
     if(keys.size() < 1) {
       qCritical() << "Needs at least 1 public key";
+      return false;
     }
 
     QSharedPointer<CppDsaPublicKey> pkey =
