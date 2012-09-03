@@ -62,7 +62,6 @@ namespace NeffShufflePrivate {
         SHUFFLING,
         TRANSMIT_SHUFFLE,
         WAITING_FOR_SHUFFLES_AFTER_TURN,
-        VERIFY_SHUFFLES,
         SUBMIT_SIGNATURE,
         WAITING_FOR_SIGNATURES,
         PUSH_OUTPUT,
@@ -192,8 +191,6 @@ namespace NeffShufflePrivate {
       void HandleKeySignature(const Id &from, QDataStream &stream);
       void HandleServerKeys(const Id &from, QDataStream &stream);
       void HandleMessageSubmission(const Id &from, QDataStream &stream);
-      void HandleShuffleBeforeTurn(const Id &from, QDataStream &stream);
-      void HandleShuffleAfterTurn(const Id &from, QDataStream &stream);
       void HandleShuffle(const Id &from, QDataStream &stream);
       void HandleSignature(const Id &from, QDataStream &stream);
       void HandleOutput(const Id &from, QDataStream &stream);
@@ -221,7 +218,11 @@ namespace NeffShufflePrivate {
       class ServerState : public State {
         public:
           ServerState() :
-            msgs_received(0)
+            msgs_received(0),
+            verifying(false),
+            next_verify_idx(0),
+            end_verify_idx(0),
+            new_end_verify_idx(0)
           {}
 
           virtual ~ServerState() {}
@@ -237,7 +238,10 @@ namespace NeffShufflePrivate {
           QVector<QByteArray> initial_input;
           QHash<Id, QByteArray > shuffle_proof;
           QVector<QByteArray> next_verify_input;
+          bool verifying;
           int next_verify_idx;
+          int end_verify_idx;
+          int new_end_verify_idx;
           QVector<QSharedPointer<AsymmetricKey> > next_verify_keys;
           QByteArray cleartext_hash;
           QHash<Id, QByteArray > signatures;
@@ -249,6 +253,7 @@ namespace NeffShufflePrivate {
 
     private slots:
       void OperationFinished();
+      void VerifyShufflesDone();
   };
 
 namespace NeffShufflePrivate {

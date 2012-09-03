@@ -92,15 +92,14 @@ namespace Anonymity {
           &NeffShuffle::PrepareForMessageSubmissions);
     } else {
       _state_machine.AddState(WAITING_FOR_SHUFFLES_BEFORE_TURN, MSG_SHUFFLE,
-          &NeffShuffle::HandleShuffleBeforeTurn);
+          &NeffShuffle::HandleShuffle);
     }
 
     _state_machine.AddState(SHUFFLING, -1, 0, &NeffShuffle::ShuffleMessages);
     _state_machine.AddState(TRANSMIT_SHUFFLE, -1, 0, &NeffShuffle::TransmitShuffle);
     _state_machine.AddState(WAITING_FOR_SHUFFLES_AFTER_TURN, MSG_SHUFFLE,
-        &NeffShuffle::HandleShuffleAfterTurn);
+        &NeffShuffle::HandleShuffle);
 
-    _state_machine.AddState(VERIFY_SHUFFLES, -1, 0, &NeffShuffle::VerifyShuffles);
     _state_machine.AddState(SUBMIT_SIGNATURE, -1, 0, &NeffShuffle::SubmitSignature);
     _state_machine.AddState(WAITING_FOR_SIGNATURES,
         MSG_SIGNATURE, &NeffShuffle::HandleSignature);
@@ -125,8 +124,7 @@ namespace Anonymity {
 
     _state_machine.AddTransition(SHUFFLING, TRANSMIT_SHUFFLE);
     _state_machine.AddTransition(TRANSMIT_SHUFFLE, WAITING_FOR_SHUFFLES_AFTER_TURN);
-    _state_machine.AddTransition(WAITING_FOR_SHUFFLES_AFTER_TURN, VERIFY_SHUFFLES);
-    _state_machine.AddTransition(VERIFY_SHUFFLES, SUBMIT_SIGNATURE);
+    _state_machine.AddTransition(WAITING_FOR_SHUFFLES_AFTER_TURN, SUBMIT_SIGNATURE);
     _state_machine.AddTransition(SUBMIT_SIGNATURE, WAITING_FOR_SIGNATURES);
     _state_machine.AddTransition(WAITING_FOR_SIGNATURES, PUSH_OUTPUT);
   }
@@ -304,36 +302,10 @@ namespace Anonymity {
 
     if(_server_state->msgs_received == GetGroup().Count()) {
       _server_state->msg_receive_period.Stop();
+      _server_state->next_verify_input = _server_state->initial_input;
       _state_machine.StateComplete();
     }
   }
-
-  // assumes in order, needs to be fixed to wait until all before
-  void NeffShuffle::HandleShuffleBeforeTurn(const Id &from, QDataStream &stream)
-  {
-    HandleShuffle(from, stream);
-
-    // Need to wait for all shuffles *before* our turn
-    foreach(const PublicIdentity &ident, GetGroup().GetSubgroup()) {
-      if(ident.GetId() == GetLocalId()) {
-        _state_machine.StateComplete();
-        break;
-      }
-      if(!_server_state->shuffle_proof.contains(ident.GetId())) {
-        break;
-      }
-    }
-  }
-
-  void NeffShuffle::HandleShuffleAfterTurn(const Id &from, QDataStream &stream)
-  {
-    HandleShuffle(from, stream);
-
-    if(_server_state->shuffle_proof.size() == GetGroup().GetSubgroup().Count()) {
-      _state_machine.StateComplete();
-    }
-  }
-
 
   void NeffShuffle::HandleShuffle(const Id &from, QDataStream &stream)
   {
@@ -345,6 +317,7 @@ namespace Anonymity {
 
     if(GetGroup().GetSubgroup().GetIndex(from) == 0) {
       stream >> _server_state->initial_input;
+      _server_state->next_verify_input = _server_state->initial_input;
     }
 
     QByteArray transcript;
@@ -354,6 +327,24 @@ namespace Anonymity {
 
     qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
         ": received shuffle data from" << GetGroup().GetIndex(from) << from;
+
+    int index = GetGroup().GetSubgroup().GetIndex(from);
+    if(index == _server_state->new_end_verify_idx) {
+      int increment = 0;
+      for(Id current = from; _server_state->shuffle_proof.contains(current);
+          current = GetGroup().GetSubgroup().Next(current))
+      {
+        increment++;
+      }
+
+      if(_server_state->verifying) {
+        _server_state->new_end_verify_idx += increment;
+      } else {
+        _server_state->new_end_verify_idx += increment;
+        _server_state->end_verify_idx += increment;
+        VerifyShuffles();
+      }
+    }
   }
 
   void NeffShuffle::HandleSignature(const Id &from, QDataStream &stream)
@@ -473,6 +464,7 @@ namespace Anonymity {
 
   void NeffShuffle::PushServerKeys()
   {
+    _server_state->next_verify_keys = _server_state->server_keys;
     QByteArray out;
     QDataStream stream(&out, QIODevice::WriteOnly);
     stream << MSG_KEY_DIST << GetRoundId() << _server_state->server_keys
@@ -559,8 +551,27 @@ namespace Anonymity {
     NeffShufflePrivate::VerifyShuffles *verifier =
       new NeffShufflePrivate::VerifyShuffles(this);
     QObject::connect(verifier, SIGNAL(Finished()),
-        this, SLOT(OperationFinished()));
+        this, SLOT(VerifyShufflesDone()));
     QThreadPool::globalInstance()->start(verifier);
+  }
+
+  void NeffShuffle::VerifyShufflesDone()
+  {
+    _server_state->verifying = false;
+    if(_server_state->new_end_verify_idx != _server_state->end_verify_idx) {
+      _server_state->end_verify_idx = _server_state->new_end_verify_idx;
+      VerifyShuffles();
+      return;
+    }
+
+    if(_server_state->end_verify_idx == GetGroup().GetSubgroup().GetIndex(GetLocalId())) {
+      _state_machine.StateComplete();
+      return;
+    }
+
+    if(_server_state->end_verify_idx == GetGroup().GetSubgroup().Count()) {
+      _state_machine.StateComplete();
+    }
   }
 
   void NeffShuffle::SubmitSignature()
@@ -648,34 +659,21 @@ namespace NeffShufflePrivate {
 
   void ShuffleMessages::run()
   {
-    CppNeffShuffle shuffle;
+    QVector<QByteArray> input = _shuffle->_server_state->next_verify_input;
     QVector<QSharedPointer<Crypto::AsymmetricKey> > remaining_keys =
-      _shuffle->_server_state->server_keys;
-    QVector<QByteArray> input = _shuffle->_server_state->initial_input;
+      _shuffle->_server_state->next_verify_keys;
+    remaining_keys.pop_front();
     QVector<QByteArray> output;
     QByteArray transcript;
 
-    int my_idx = _shuffle->GetGroup().GetSubgroup().GetIndex(_shuffle->GetLocalId());
-    for(int idx = 0; idx < my_idx; idx++) {
-      Connections::Id id = _shuffle->GetGroup().GetSubgroup().GetId(idx);
-      transcript = _shuffle->_server_state->shuffle_proof[id];
-      if(!shuffle.Verify(input, remaining_keys, transcript, output)) {
-        throw QRunTimeError(QString("Invalid transcript from " +
-              id.ToString() + " at idx " + QString::number(idx)));
-      }
-      input = output;
-      remaining_keys.pop_front();
-    }
-
-    QVector<QSharedPointer<Crypto::AsymmetricKey> > tkeys = remaining_keys;
-    remaining_keys.pop_front();
+    CppNeffShuffle shuffle;
     shuffle.Shuffle(input, _shuffle->_server_state->my_key,
         remaining_keys, output, transcript);
 
-    _shuffle->_server_state->next_verify_input = input;//output;
-    _shuffle->_server_state->next_verify_idx = my_idx;
-    _shuffle->_server_state->next_verify_keys = tkeys; //remaining_keys;
-    _shuffle->_server_state->shuffle_proof[_shuffle->GetLocalId()] = transcript;
+//    _shuffle->_server_state->next_verify_input = input;//output;
+//    _shuffle->_server_state->next_verify_idx = my_idx;// my_idx+1
+//    _shuffle->_server_state->next_verify_keys = tkeys; //remaining_keys;
+    _shuffle->_server_state->shuffle_proof[_shuffle->GetLocalId()] = transcript; // null
 
     emit Finished();
   }
@@ -688,8 +686,9 @@ namespace NeffShufflePrivate {
     QVector<QByteArray> output;
     CppNeffShuffle shuffle;
 
-    int end = _shuffle->GetGroup().GetSubgroup().Count();
-    for(int idx = _shuffle->_server_state->next_verify_idx; idx < end; idx++) {
+    for(int idx = _shuffle->_server_state->next_verify_idx; 
+        idx < _shuffle->_server_state->end_verify_idx; idx++)
+    {
       Connections::Id id = _shuffle->GetGroup().GetSubgroup().GetId(idx);
       QByteArray transcript = _shuffle->_server_state->shuffle_proof[id];
       if(!shuffle.Verify(input, remaining_keys, transcript, output)) {
@@ -699,10 +698,16 @@ namespace NeffShufflePrivate {
       remaining_keys.pop_front();
     }
 
-    _shuffle->_state->cleartext.clear();
-    foreach(const QByteArray &pair, output) {
-      _shuffle->_server_state->cleartext.append(
-          _shuffle->_server_state->my_key->SeriesDecryptFinish(pair));
+    _shuffle->_server_state->next_verify_keys = remaining_keys;
+    _shuffle->_server_state->next_verify_input = input;
+    _shuffle->_server_state->next_verify_idx = _shuffle->_server_state->end_verify_idx;
+
+    if(_shuffle->_server_state->end_verify_idx == _shuffle->GetGroup().GetSubgroup().Count()) {
+      _shuffle->_state->cleartext.clear();
+      foreach(const QByteArray &pair, output) {
+        _shuffle->_server_state->cleartext.append(
+            _shuffle->_server_state->my_key->SeriesDecryptFinish(pair));
+      }
     }
 
     emit Finished();
