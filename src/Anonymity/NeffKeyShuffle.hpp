@@ -287,11 +287,31 @@ namespace Anonymity {
           QSharedPointer<NeffKeyShuffle> _shuffle;
       };
 
+      class KeyProcessor : public QRunnable {
+        public:
+          KeyProcessor(const QSharedPointer<NeffKeyShuffle> &shuffle) :
+            _shuffle(shuffle)
+          {
+            setAutoDelete(true);
+          }
+
+          virtual ~KeyProcessor()
+          {
+          }
+
+          virtual void run();
+
+        private:
+          QSharedPointer<NeffKeyShuffle> _shuffle;
+      };
+
     signals:
       void FinishedShuffle();
+      void FinishedKeyProcessing();
 
     private slots:
       void TransmitKeys();
+      void ProcessKeysDone();
   };
 }
 }

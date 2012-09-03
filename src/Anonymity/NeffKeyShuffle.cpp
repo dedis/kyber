@@ -224,7 +224,8 @@ namespace Anonymity {
 
   void NeffKeyShuffle::ShuffleKeys()
   {
-    NeffShuffler *shuffler = new NeffShuffler(GetSharedPointer().dynamicCast<NeffKeyShuffle>());
+    NeffShuffler *shuffler =
+      new NeffShuffler(GetSharedPointer().dynamicCast<NeffKeyShuffle>());
     QObject::connect(this, SIGNAL(FinishedShuffle()),
         this, SLOT(TransmitKeys()), Qt::QueuedConnection);
     QThreadPool::globalInstance()->start(shuffler);
@@ -251,28 +252,15 @@ namespace Anonymity {
 
   void NeffKeyShuffle::ProcessAnonymizedKeys()
   {
-    _state->blame = !CheckShuffleOrder(_state->new_public_elements);
-    if(_state->blame) {
-      return;
-    }
+    KeyProcessor *processor =
+      new KeyProcessor(GetSharedPointer().dynamicCast<NeffKeyShuffle>());
+    QObject::connect(this, SIGNAL(FinishedKeyProcessing()),
+        this, SLOT(ProcessKeysDone()), Qt::QueuedConnection);
+    QThreadPool::globalInstance()->start(processor);
+  }
 
-    Integer my_element = _state->new_generator.Pow(GetPrivateExponent(),
-        GetModulus());
-
-    for(int idx = 0; idx < _state->new_public_elements.count(); idx++) {
-      if(_state->new_public_elements[idx] == my_element) {
-        _state->user_key_index = idx;
-        _state->output_private_key = QSharedPointer<AsymmetricKey>(
-            new CppDsaPrivateKey(GetModulus(), GetSubgroup(),
-              _state->new_generator, GetPrivateExponent()));
-        qDebug() << "Found my key at" << idx;
-      }
-
-      _state->output_keys.append(QSharedPointer<AsymmetricKey>(
-            new CppDsaPublicKey(GetModulus(), GetSubgroup(),
-              _state->new_generator, _state->new_public_elements[idx]))); 
-    }
-
+  void NeffKeyShuffle::ProcessKeysDone()
+  {
     if(_state->user_key_index == -1) {
       _state->blame = true;
       qDebug() << "Did not find my key";
@@ -331,6 +319,39 @@ namespace Anonymity {
     qSort(_shuffle->_server_state->shuffle_output);
 
     emit _shuffle->FinishedShuffle();
+  }
+
+  void NeffKeyShuffle::KeyProcessor::run()
+  {
+    _shuffle->_state->blame = !CheckShuffleOrder(_shuffle->_state->new_public_elements);
+    if(_shuffle->_state->blame) {
+      return;
+    }
+
+    Integer my_element = _shuffle->_state->new_generator.Pow(_shuffle->GetPrivateExponent(),
+        _shuffle->GetModulus());
+
+    QVector<Integer>::iterator entry = qLowerBound(
+        _shuffle->_state->new_public_elements.begin(),
+        _shuffle->_state->new_public_elements.end(),
+        my_element);
+
+    int idx = entry - _shuffle->_state->new_public_elements.begin();
+    if(0 <= idx || idx < _shuffle->_state->new_public_elements.size()) {
+      _shuffle->_state->user_key_index = idx;
+      _shuffle->_state->output_private_key = QSharedPointer<AsymmetricKey>(
+          new CppDsaPrivateKey(_shuffle->GetModulus(), _shuffle->GetSubgroup(),
+            _shuffle->_state->new_generator, _shuffle->GetPrivateExponent()));
+      qDebug() << "Found my key at" << idx;
+    }
+
+    foreach(const Integer &pkey, _shuffle->_state->new_public_elements) {
+      _shuffle->_state->output_keys.append(QSharedPointer<AsymmetricKey>(
+            new CppDsaPublicKey(_shuffle->GetModulus(), _shuffle->GetSubgroup(),
+              _shuffle->_state->new_generator, pkey)));
+    }
+
+    emit _shuffle->FinishedKeyProcessing();
   }
 }
 }
