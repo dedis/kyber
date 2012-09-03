@@ -5,7 +5,7 @@ import math
 import os
 import sys
 
-optlist, args = getopt.getopt(sys.argv[1:], "", ["path=", "output=", "lost_delay=", "min_clients=", "client"])
+optlist, args = getopt.getopt(sys.argv[1:], "", ["path=", "output=", "lost_delay=", "min_clients=", "client", "system"])
 
 optdict = {}
 
@@ -15,6 +15,10 @@ for k,v in optlist:
 client = False
 if "--client" in optdict:
   client = True
+
+system = False
+if "--system" in optdict:
+  system = True
 
 path = "."
 if "--path" in optdict:
@@ -98,6 +102,13 @@ class round:
     self.client_std = 0
 
   def finished(self, end_time):
+    if system:
+      if len(self.state):
+        self.state.remove(0)
+      state = [self.shuffle_time]
+      for ent in self.state:
+        state.append(state[0] + ent)
+      self.states.append(state)
     self.total_time = time_parse(end_time) - self.start_time
 
   def adding_data_set(self):
@@ -113,7 +124,8 @@ class round:
 
   def set_phase_start(self, start_time):
     self.state = []
-    self.states.append(self.state)
+    if not system:
+      self.states.append(self.state)
     self.expected_clients = 0
     ctime = time_parse(start_time)
     self.phase_start = ctime
@@ -133,7 +145,8 @@ class round:
           self.ignored_clients += (self.expected_clients - self.submitted_clients)
 
     self.state = []
-    self.states.append(self.state)
+    if not system:
+      self.states.append(self.state)
     self.submitted_clients = 0
     self.phase_start = ctime
     self.phase += 1
@@ -215,17 +228,19 @@ class round:
         self.online_clients_std, self.total, online_avg, online_stddev, \
         self.client_avg, self.client_std)
 
-cfile = file(args[0])
-line = cfile.readline()
+for fname in os.listdir(args[0]):
+  cfile = file(args[0] + os.sep + fname)
+  line = cfile.readline()
 
-while line:
-  if line.find("Debug") == -1:
-    line = cfile.readline()
-    continue
-  starting_time = time_parse0(line.split(" ")[0])
+  while line:
+    if line.find("Debug") == -1:
+      line = cfile.readline()
+      continue
+    starting_time = time_parse0(line.split(" ")[0])
+    break
+
+  cfile.close()
   break
-
-cfile.close()
 
 update = False
 rounds_by_id = {}
@@ -292,7 +307,51 @@ def cpu_end(ls):
   if cround:
     cround.set_cpu_end_time(float(ls[13][1:-2]), float(ls[16][1:-2]))
 
-if not client:
+if system:
+  default_lines = {
+      "starting round" : start_round, \
+      "finished due to" : finished_round, \
+      "ending phase" : phase_finished, \
+      "PREPARE_FOR_BULK" : shuffle_finished, \
+      "Phase: 0\" starting phase": shuffle_finished, \
+      "starting: \"STARTING_BLAME_SHUFFLE\"": state_update, \
+      "ending: \"STARTING_BLAME_SHUFFLE\"": state_update, \
+      "starting: \"SERVER_SHARE_VERDICT\"": state_update, \
+      }
+
+  update_lines = {
+      "starting round" : start_round, \
+      "finished due to" : finished_round, \
+      "PREPARE_FOR_BULK" : shuffle_finished, \
+      "Phase: 0\" starting phase": shuffle_finished, \
+      "starting: \"STARTING_BLAME_SHUFFLE\"": state_update, \
+      "ending: \"STARTING_BLAME_SHUFFLE\"": state_update, \
+      "starting: \"SERVER_SHARE_VERDICT\"": state_update, \
+      "ending phase" : set_phase_start, \
+      }
+elif client:
+  default_lines = {
+      "starting round" : start_round, \
+      "finished due to" : finished_round, \
+      "ending phase" : phase_finished, \
+      "PREPARE_FOR_BULK" : shuffle_finished, \
+      "Phase: 0\" starting phase": shuffle_finished, \
+      "beginning bulk" : cpu_start, \
+      "finished bulk" : cpu_end, \
+      "ending: \"CLIENT_WAIT_FOR_CLEARTEXT\"": state_update, \
+      "SM::Data": state_update \
+      }
+
+  update_lines = {
+      "starting round" : start_round, \
+      "received client ciphertext" : client_data, \
+      "ending phase" : set_phase_start, \
+      "beginning bulk" : cpu_start, \
+      "finished bulk" : cpu_end, \
+      "ending: \"CLIENT_WAIT_FOR_CLEARTEXT\"": state_update, \
+      "SM::Data": state_update \
+      }
+else:
   default_lines = {
       "starting round" : start_round, \
       "finished due to" : finished_round, \
@@ -322,34 +381,12 @@ if not client:
       "beginning bulk" : cpu_start, \
       "finished bulk" : cpu_end \
       }
-else:
-  default_lines = {
-      "starting round" : start_round, \
-      "finished due to" : finished_round, \
-      "ending phase" : phase_finished, \
-      "PREPARE_FOR_BULK" : shuffle_finished, \
-      "Phase: 0\" starting phase": shuffle_finished, \
-      "beginning bulk" : cpu_start, \
-      "finished bulk" : cpu_end, \
-      "ending: \"CLIENT_WAIT_FOR_CLEARTEXT\"": state_update, \
-      "SM::Data": state_update \
-      }
-
-  update_lines = {
-      "starting round" : start_round, \
-      "received client ciphertext" : client_data, \
-      "ending phase" : set_phase_start, \
-      "beginning bulk" : cpu_start, \
-      "finished bulk" : cpu_end, \
-      "ending: \"CLIENT_WAIT_FOR_CLEARTEXT\"": state_update, \
-      "SM::Data": state_update \
-      }
 
 lines = default_lines
 
-for fname in args:
+for fname in os.listdir(args[0]):
   print "Parsing " + fname
-  cfile = file(fname)
+  cfile = file(args[0] + os.sep + fname)
   line = cfile.readline()
 
   while line:
@@ -402,6 +439,21 @@ if ignored != 0:
       (ignored, clients_total + ignored, (100.0 * ignored) / (1.0 * (clients_total + ignored)))
 
 if output_base:
+  if system:
+    path = "%s%s%s" % (path, os.sep, "states")
+    if not os.path.exists(path):
+      os.makedirs(path)
+
+    output = open("%s%s%s" % (path, os.sep, output_base), "w+")
+    expected = 4
+    for rnd in rounds:
+      for state in rnd.states:
+        if len(state) != expected:
+          continue
+        output.write("%s\n" % (",".join(["%f" % (value,) for value in state])))
+    output.close()
+    sys.exit(0)
+
   for top_path in ("client_times", "online_clients", "slowest", \
       "states", "phases", "cpu_time", "ignored"):
     full_path = "%s/%s" % (path, top_path)
