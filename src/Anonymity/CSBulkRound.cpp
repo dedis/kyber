@@ -17,6 +17,7 @@
 #include "Utils/Utils.hpp"
 
 #include "NeffKeyShuffle.hpp"
+#include "NeffShuffle.hpp"
 #include "NullRound.hpp"
 #include "CSBulkRound.hpp"
 
