@@ -131,6 +131,8 @@ namespace Sessions {
       static const int RoundRunningPeerJoinDelay = 600000;
 #endif
 
+      static const int RoundBeginDelay = 30000;
+
       /**
        * Period between checking log off times
        */
@@ -241,6 +243,8 @@ namespace Sessions {
        */
       void CheckPrepares();
 
+      void ForceBegin(const int &);
+
       virtual void AddMember(const PublicIdentity &gc);
       void RemoveMember(const Id &id);
       bool AllowRegistration(const QSharedPointer<ISender> &from,
@@ -258,6 +262,7 @@ namespace Sessions {
 
       QDateTime _last_registration;
       Utils::TimerEvent _prepare_event;
+      Utils::TimerEvent _begin_event;
       Utils::TimerEvent _check_log_off_event;
       QHash<Id, Id> _registered_peers;
       QList<Id> _prepared_peers;

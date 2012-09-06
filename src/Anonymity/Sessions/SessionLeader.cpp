@@ -77,6 +77,7 @@ namespace Sessions {
   {
     _check_log_off_event.Stop();
     _prepare_event.Stop();
+    _begin_event.Stop();
     emit Stopping();
   }
 
@@ -244,13 +245,29 @@ namespace Sessions {
       foreach(const PublicIdentity &pi, GetGroup().GetSubgroup()) {
         _network->SendNotification(pi.GetId(), "SM::Prepare", msg);
       }
-
-      return true;
+    } else {
+      _network->Broadcast("SM::Prepare", msg);
     }
 
-    _network->Broadcast("SM::Prepare", msg);
+    _begin_event.Stop();
+    Dissent::Utils::TimerCallback *cb =
+      new Dissent::Utils::TimerMethod<SessionLeader, int>(this,
+          &SessionLeader::ForceBegin, 0);
+    _begin_event = Dissent::Utils::Timer::GetInstance().QueueCallback(
+        cb, RoundBeginDelay);
 
     return true;
+  }
+
+  void SessionLeader::ForceBegin(const int &)
+  {
+    if(_unprepared_peers.isEmpty()) {
+      return;
+    }
+
+    qDebug() << "Done waiting for prepares";
+    _unprepared_peers.clear();
+    CheckPrepares();
   }
 
   void SessionLeader::HandlePrepared(const Request &notification)
@@ -298,6 +315,7 @@ namespace Sessions {
       return;
     }
 
+    _begin_event.Stop();
     QVariantHash msg;
     msg["session_id"] = GetSessionId().GetByteArray();
     msg["round_id"] = GetCurrentRound()->GetRoundId().GetByteArray();
