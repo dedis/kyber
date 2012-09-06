@@ -1,4 +1,8 @@
 #!/usr/bin/python
+# Note server states are the following:
+# client submission deadline, last client submission, end of client list,
+#   end of commits, end of ciphertext exchange, end of signatures,
+#   end of protocol (with err after each one)
 from datetime import datetime
 import getopt
 import math
@@ -228,8 +232,8 @@ class round:
         self.online_clients_std, self.total, online_avg, online_stddev, \
         self.client_avg, self.client_std)
 
-for fname in os.listdir(args[0]):
-  cfile = file(args[0] + os.sep + fname)
+for fname in args:
+  cfile = file(fname)
   line = cfile.readline()
 
   while line:
@@ -384,9 +388,9 @@ else:
 
 lines = default_lines
 
-for fname in os.listdir(args[0]):
+for fname in args:
   print "Parsing " + fname
-  cfile = file(args[0] + os.sep + fname)
+  cfile = file(fname)
   line = cfile.readline()
 
   while line:
