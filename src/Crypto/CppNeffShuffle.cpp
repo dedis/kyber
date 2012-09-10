@@ -46,6 +46,11 @@ namespace Crypto {
       h = (h * tkey->GetPublicElement()) % modulus;
     }
 
+    if(input.size() == 0) {
+      qCritical() << "Cannot perform a shuffle on a 0 sized input";
+      return false;
+    }
+
     // Non-interactive setup
     proof.clear();
     QDataStream stream(&proof, QIODevice::WriteOnly);
