@@ -628,6 +628,7 @@ namespace Anonymity {
     }
 
     _server_state->initial_input = pruned;
+    _server_state->next_verify_input = _server_state->initial_input;
 
     _state_machine.StateComplete();
   }
