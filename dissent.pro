@@ -119,6 +119,7 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Messaging/ResponseHandler.hpp \
            src/Messaging/RpcHandler.hpp \
            src/Messaging/SignalSink.hpp \
+           src/Messaging/SinkMultiplexer.hpp \
            src/Messaging/Source.hpp \
            src/Messaging/SourceObject.hpp \
            src/Overlay/BaseOverlay.hpp \
