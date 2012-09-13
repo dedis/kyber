@@ -31,7 +31,7 @@ namespace Transports {
     const BufferAddress addr = static_cast<const BufferAddress &>(GetAddress());
     int id = addr.GetId();
     if(id == 0) {
-      while(_el_map.contains(id = Random::GetInstance().GetInt(1)));
+      while(_el_map.contains(id = Random::GetInstance().GetInt(1))) ;
       SetAddress(BufferAddress(id));
     }
 
