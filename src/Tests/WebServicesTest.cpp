@@ -34,9 +34,14 @@ namespace Tests {
     QObject::connect(&gsm, SIGNAL(FinishedWebRequest(QSharedPointer<WebRequest>, bool)),
        &sink, SLOT(HandleDoneRequest(QSharedPointer<WebRequest>)));
 
-    QByteArray data1, data2;
-    data1 = "Test 1";
-    data2 = "Test 2";
+    QByteArray data1 = "Test 1";
+    QByteArray data1_t = QByteArray(8, 0) + data1;
+    Utils::Serialization::WriteInt(data1.size(), data1_t, 4);
+    QByteArray data2 = "Test 2";
+    QByteArray data2_t = QByteArray(8, 0) + data1;
+    Utils::Serialization::WriteInt(data1.size(), data1_t, 4);
+    data2_t = QByteArray(8, 0) + data2;
+    Utils::Serialization::WriteInt(data2.size(), data2_t, 4);
 
     ASSERT_EQ(sink.handled.count(), 0);
     QString request = "/some/path?offset=0&count=-1";
@@ -45,7 +50,7 @@ namespace Tests {
     ASSERT_EQ(sink.handled.count(), 1);
     ASSERT_EQ(HttpResponse::STATUS_OK, sink.handled[0]->GetStatus());
 
-    gsm.HandleIncomingMessage(data1);
+    gsm.HandleIncomingMessage(data1_t);
     ASSERT_EQ(sink.handled.count(), 1);
     
     gsm.Call(FakeRequest(request));
@@ -58,7 +63,7 @@ namespace Tests {
     ASSERT_EQ(list.count(), 1);
     ASSERT_EQ(data1, list[0].toByteArray());
     
-    gsm.HandleIncomingMessage(data2);
+    gsm.HandleIncomingMessage(data2_t);
     ASSERT_EQ(sink.handled.count(), 2);
     
     gsm.Call(FakeRequest(request));
@@ -92,16 +97,19 @@ namespace Tests {
     QObject::connect(&gnm, SIGNAL(FinishedWebRequest(QSharedPointer<WebRequest>, bool)),
        &sink, SLOT(HandleDoneRequest(QSharedPointer<WebRequest>)));
 
-    QByteArray data1, data2;
-    data1 = "Msg 1";
-    data2 = "Msg 2";
+    QByteArray data1 = "Msg 1";
+    QByteArray data1_t = QByteArray(8, 0) + data1;
+    Utils::Serialization::WriteInt(data1.size(), data1_t, 4);
+    QByteArray data2 = "Msg 2";
+    QByteArray data2_t = QByteArray(8, 0) + data2;
+    Utils::Serialization::WriteInt(data2.size(), data2_t, 4);
 
     ASSERT_EQ(sink.handled.count(), 0);
 
     gnm.Call(FakeRequest("/some/path?offset=0&count=1&wait=true"));
     ASSERT_EQ(sink.handled.count(), 0);
 
-    gnm.HandleIncomingMessage(data1);
+    gnm.HandleIncomingMessage(data1_t);
     ASSERT_EQ(sink.handled.count(), 1);
     ASSERT_EQ(HttpResponse::STATUS_OK, sink.handled[0]->GetStatus());
 
@@ -114,7 +122,7 @@ namespace Tests {
     gnm.Call(FakeRequest("/some/path?offset=1&count=1&wait=true"));
     ASSERT_EQ(sink.handled.count(), 1);
 
-    gnm.HandleIncomingMessage(data2);
+    gnm.HandleIncomingMessage(data2_t);
     ASSERT_EQ(sink.handled.count(), 2);
     ASSERT_EQ(HttpResponse::STATUS_OK, sink.handled[1]->GetStatus());
 

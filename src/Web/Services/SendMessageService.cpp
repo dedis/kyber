@@ -1,3 +1,4 @@
+#include "Utils/Serialization.hpp"
 #include "SendMessageService.hpp"
 
 namespace Dissent {
@@ -21,7 +22,9 @@ namespace Services {
       hash["id"] = session->GetSessionId().ToString();
 
       QByteArray bytes = wrp->GetRequest().GetBody().toUtf8();
-      session->Send(bytes);
+      QByteArray header(8, 0);
+      Utils::Serialization::WriteInt(bytes.size(), header, 4);
+      session->Send(header + bytes);
     }
 
     wrp->GetOutputData().setValue(hash);
