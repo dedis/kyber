@@ -8,22 +8,18 @@ Anonymity
 
 Connections
 - ConnectionTable should be a value type
-- Connections should be stored via QSharedPointer
 - ConnectionManager and maybe EL should turn reject requests for connections when closed
 - Relay assumes that Rpc always completes successfully ... needs timeout
 
 Crypto
 - Add QCA or Botan CryptoLibraries, take a look at the src/Crypto/CryptoFactory and other related files to get a general feel
-- Integer should be a pimpl with a QSharedPointer or QScopedPointer
-- DH ZKP shouldn't have a serialized message type, should just return the various components independently and the lower level app should do the serialization
 - Remove Null implementations of non-slow things (DH is a good candidate)
-- Move XOR and MessageRandomizer into Utils
-- Remove Trusted and replace with Tolerant
+- Move XOR into Utils
+- Create a randomize / hash (OAEP) module
 - Use abstract types in API for more comprehensive type-checking (DhPublicKey instead of QByteArray)
 
 Messaging
-- Rpc messages are not deterministic, ignored outgoing Requests are never removed from the local _requests stack ... do we push more work on the user (calling code) or into the Rpc...
-- Outstanding Rpc requests with pointers to senders can have stale pointers
+- All Rpcs should time out, request for status update and fail when there's really no response for a long period of time
 
 Overall
 - !!!Replace all pointers with qscoped / qshared pointers
@@ -39,8 +35,6 @@ Transports
 
 Issues
 - The current protocol doesn't work properly if a non-shuffler receives an invalid go / no go message ... since no one is waiting for its private keys, thus the process will conclude potentially without his follow up.
-- Consider application aware and network layer broadcasting, evaluate performance as well as security / anonymity risks
-- Tests RoundTest Null and DisconnectEnd do not work for protocols that have "infinite" internal phases (i.e., subrounds)
 
 Web Server
 - Better error handling 
@@ -57,4 +51,6 @@ Tunnel
 - FinishPacket should have a "reason" field
 - Options for SOCKS 4[a] protocols
 
-
+Social Networks
+- Add Apul's LRS signing
+- Add Kritarth's social keys and message posting
