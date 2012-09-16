@@ -30,7 +30,7 @@ namespace Applications {
           "bulk",
           "repeatingbulk",
           "csbulk",
-          "tolerantbulk",
+          "neffshuffle",
         };
         return sessions[id];
       }
@@ -42,7 +42,7 @@ namespace Applications {
         BULK,
         REPEATING_BULK,
         CSBULK,
-        TOLERANT_BULK,
+        NEFF_SHUFFLE,
       };
 
       static SessionType GetSessionType(const QString &stype)
@@ -59,7 +59,7 @@ namespace Applications {
       static QHash<QString, SessionType> BuildStringToTypeHash()
       {
         QHash<QString, SessionType> hash;
-        for(int idx = NULL_ROUND; idx <= TOLERANT_BULK; idx++) {
+        for(int idx = NULL_ROUND; idx <= NEFF_SHUFFLE; idx++) {
           hash[SessionNames(idx)] = static_cast<SessionType>(idx);
         }
         return hash;
