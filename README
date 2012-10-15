@@ -113,7 +113,6 @@ This hash can then be used as the Id of the node in Dissent.
 
 1 - http://www.cryptopp.com/wiki/Keys_and_Formats#BER_and_DER_Encoding
 
-
 Logging and Debugging Output
 ===============================================================================
 Logging outputs are compiled in by default but can be disabled by uncommenting
