@@ -1,0 +1,70 @@
+Dissent - Dining-Cryptographers, Shuffled-Send Network
+
+Overview
+===============================================================================
+This document focuses user interaction with the Web Server provided within
+Dissent.
+
+Dissent can be started with the configuration specified in conf/local-web.conf
+This configuration will start Dissent with a web service publicly available
+on port 8080. Specifically, that means you can access it at
+
+ http://127.0.0.1:8080
+
+You can use this web service to interact with a Dissent session using HTTP
+requests from either a web browser or a web application.
+In general a web server can be enabled by adding the following lines to
+a Dissent .conf file:
+  web_server = true
+  web_server_url = "http://server_ip:port"
+If the server_ip is 0.0.0.0, then the web server will listen on any hostname.
+
+Services can be found in src/Web/Services and are enabled in
+src/Applications/Application.cpp.  Web requests are routed to the services
+based on the URL and HTTP Method (GET, POST, etc).
+
+The rest of this document overviews the key services.
+The services can be accessed by url by appending them to
+the address at which the web server is hosted.  For example,
+web service a/b can be accessed at http://127.0.0.1:8080/a/b
+using the configuration in local-web.conf.
+
+session/send
+===============================================================================
+Transmits a text message via Dissent.  The message is expected to be Utf8
+encoded text.  @todo this should probably be base64.
+Dissent actually transmits this in the following format:
+32-bit 0, 32-bit length, message.
+
+session/messages
+===============================================================================
+Retrieves a set of messages received by Dissent in the format used by
+session/send
+
+Input Parameters:
+- offset - int - specifies the index of the first message to return
+- count - int - the number of desired messages to return
+- wait - bool - if set and offset == total number of messages received,
+will wait to respond until at least 1 new message has arrived regardless
+of count
+
+Output:
+Data is stored in a hash table (structure):
+- total = total number of messages received
+- offset = matches the offset specified in the input parameter
+- messages = list of messages in Utf8
+    @todo this should probably be encoded as base64
+
+round/id
+===============================================================================
+Returns the round Id (or nonce) for the current active Dissent session's round.
+
+session/id
+===============================================================================
+Returns the session Id (or nonce) for the current active Dissent session.
+
+web
+===============================================================================
+Returns the file index.html stored in the directory from which Dissent was
+started.  This facilitates simple use of the session/send and session/messages
+apis.

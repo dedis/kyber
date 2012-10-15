@@ -68,19 +68,7 @@ Afterward interaction is the same as discussed in the "Using" section.
 
 Web Server Use
 ===============================================================================
-Inspect conf/local-web.conf
-
-Dissent has a built-in web server for interacting with the Dissent session
-using HTTP requests. To enable the web_server, add these lines to your .conf
-file:
-  web_server = true
-  web_server_url = "http://server_ip:port"
-If the server_ip is 0.0.0.0, then the web server will listen on any hostname.
-
-Look at the Web services defined in src/Web/Services to get a sense of what
-services are available. Web requests are routed to the services based on
-the URL and HTTP Method (GET, POST, etc). This routing is defined in 
-src/Application/Application.cpp.
+See WEB_USE in the top level directory (same as the README)
 
 Proxy Server Use
 ===============================================================================
