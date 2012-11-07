@@ -9,8 +9,11 @@ INCLUDEPATH += ext/joyent-http-parser/ ext/qt-json/ src/ ext/qxt
 CONFIG += qt debug
 QT = core network
 DEFINES += "VERSION=3"
-QMAKE_CXXFLAGS += -Werror
-QMAKE_CFLAGS += -Werror
+# COMMENT THE BELOW TO MAKE DISSENT RUN WITH A SECURE SHUFFLE, THEN
+# qmake *.pro, make clean, make...
+DEFINES += FAST_NEFF_SHUFFLE
+#QMAKE_CXXFLAGS += -Werror
+#QMAKE_CFLAGS += -Werror
 
 # Input
 LIBS += -lcryptopp 
@@ -24,6 +27,7 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Anonymity/CSBulkRound.hpp \
            src/Anonymity/Log.hpp \
            src/Anonymity/NeffKeyShuffle.hpp \
+           src/Anonymity/FastNeffKeyShuffle.hpp \
            src/Anonymity/NeffShuffle.hpp \
            src/Anonymity/NullRound.hpp \
            src/Anonymity/RepeatingBulkRound.hpp \
@@ -194,7 +198,7 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Anonymity/BulkRound.cpp \
            src/Anonymity/CSBulkRound.cpp \
            src/Anonymity/Log.cpp \
-           src/Anonymity/NeffKeyShuffle.cpp \
+           src/Anonymity/FastNeffKeyShuffle.cpp \
            src/Anonymity/NeffShuffle.cpp \
            src/Anonymity/NullRound.cpp \
            src/Anonymity/RepeatingBulkRound.cpp \

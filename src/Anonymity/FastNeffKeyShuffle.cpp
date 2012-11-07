@@ -1,3 +1,4 @@
+#if FAST_NEFF_SHUFFLE
 #include "Crypto/CppDsaPrivateKey.hpp"
 #include "Crypto/CppDsaPublicKey.hpp"
 #include "Utils/QRunTimeError.hpp"
@@ -355,3 +356,4 @@ namespace Anonymity {
   }
 }
 }
+#endif
