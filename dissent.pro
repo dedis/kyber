@@ -12,8 +12,8 @@ DEFINES += "VERSION=3"
 # COMMENT THE BELOW TO MAKE DISSENT RUN WITH A SECURE SHUFFLE, THEN
 # qmake *.pro, make clean, make...
 DEFINES += FAST_NEFF_SHUFFLE
-#QMAKE_CXXFLAGS += -Werror
-#QMAKE_CFLAGS += -Werror
+QMAKE_CXXFLAGS += -Werror
+QMAKE_CFLAGS += -Werror
 
 # Input
 LIBS += -lcryptopp 
