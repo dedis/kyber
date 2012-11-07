@@ -84,7 +84,7 @@ namespace Web {
        * 
        * @param the request to route
        */
-      QSharedPointer<WebService> GetRoute(HttpRequest &request);
+      QSharedPointer<WebService> GetRoute(const HttpRequest &request);
 
     signals:
       /**
@@ -115,19 +115,10 @@ namespace Web {
      */
     private slots:
       /**
-       * Called when socket is ready to be read
+       * Called when a web request is ready to be processed
        */
-      void ReadFromClient();
-
-      /**
-       * Called when socket is disconnected
-       */
-      void DiscardClient();
-
-      /**
-       * Handle a socket error
-       */
-      void HandleError(QAbstractSocket::SocketError);
+      void HandleWebRequest(bool success);
+      void HandleWebRequestFinished();
 
     private:
       QHostAddress _host;
@@ -141,6 +132,8 @@ namespace Web {
       QList<QSharedPointer<WebService> > _service_set;
 
       bool _running;
+      QHash<WebRequest *, QSharedPointer<WebRequest> > _web_requests;
+      QHash<WebRequest *, QSharedPointer<WebRequest> > _handled_web_requests;
   };
 }
 }

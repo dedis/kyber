@@ -69,7 +69,7 @@ namespace Web {
       
   HttpRequest::~HttpRequest() {}
 
-  void HttpRequest::PrintDebug()
+  void HttpRequest::PrintDebug() const
   {
     qDebug() << "=======HTTP Request======";
     if(_success) {
@@ -79,15 +79,15 @@ namespace Web {
       for(i = _header_map.constBegin(); i != _header_map.constEnd(); ++i) {
         qDebug() << "H |" << i.key() << ":" << i.value(); 
       }
-      qDebug() << "Body---------------------";
-      qDebug() << _body; 
+      qDebug() << "Body (size)---------------------";
+      qDebug() << _body.size(); 
     } else {
       qDebug() << "Not parsed yet";
     }
     qDebug() << "=========================";
   }
 
-  HttpRequest::RequestMethod HttpRequest::GetMethod()
+  HttpRequest::RequestMethod HttpRequest::GetMethod() const
   {
     if(!_success) {
       qFatal("Cannot return request method on unparsed request");
@@ -96,7 +96,7 @@ namespace Web {
     return _method;
   }
 
-  QUrl HttpRequest::GetUrl()
+  QUrl HttpRequest::GetUrl() const
   {
     if(!_success) {
       qFatal("Cannot return request URL on unparsed request");
@@ -106,7 +106,7 @@ namespace Web {
   }
 
 
-  QString HttpRequest::GetBody()
+  QString HttpRequest::GetBody() const
   {
     if(!_success) {
       qFatal("Cannot return body on unparsed request");
@@ -115,7 +115,7 @@ namespace Web {
     return _body;
   }
 
-  QString HttpRequest::GetPath()
+  QString HttpRequest::GetPath() const
   {
     if(!_success) {
       qFatal("Cannot return URL path on unparsed request");
@@ -205,7 +205,7 @@ namespace Web {
       const char* at, size_t length)
   {
     _body = QString::fromAscii(at, length);
-    qDebug() << "Body:" << _url;
+    qDebug() << "Body (length):" << _body.size();
     return 0;
   }
 
@@ -230,10 +230,11 @@ namespace Web {
         &_parser_settings, raw_data.constData(), len);
 
     if(bytes_proc != raw_data.length()) {
-      qWarning("Parsing error!");
+      qWarning() << "Parsing error! Process bytes:" << bytes_proc
+          << " Expected bytes:" << raw_data.length();
       // Common but weird error
       if(bytes_proc != (raw_data.length() - 1)) {
-        return false;
+//        return false;
       }
     }
 

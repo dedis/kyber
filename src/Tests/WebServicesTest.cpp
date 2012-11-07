@@ -23,7 +23,7 @@ namespace Tests {
     QSharedPointer<WebRequest> wrp(new WebRequest(0));
 
     QByteArray data = QString("POST " + url + " HTTP/1.1\r\n\r\nHello!").toUtf8();
-    wrp->GetRequest().ParseRequest(data);
+    const_cast<HttpRequest &>(wrp->GetRequest()).ParseRequest(data);
     return wrp;
   }
 

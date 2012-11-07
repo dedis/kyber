@@ -18,9 +18,7 @@ namespace Web {
    * and contains the parsing logic for HTTP requests
    */
 
-  class HttpRequest : public QObject {
-    Q_OBJECT
-
+  class HttpRequest { 
     public:
       /* We only support these methods */
       enum RequestMethod {
@@ -49,17 +47,17 @@ namespace Web {
        * Print a summary of the HTTP request 
        * to the debug output
        */
-      void PrintDebug();
+      void PrintDebug() const;
 
       /**
        * Get the HTTP request method
        */
-      RequestMethod GetMethod();
+      RequestMethod GetMethod() const;
 
       /**
        * Get the URL requested
        */
-      QUrl GetUrl();
+      QUrl GetUrl() const;
 
       /**
        * Get the URL path requested
@@ -68,12 +66,22 @@ namespace Web {
        * then the path is:
        *   /stuff/morestuff.html
        */
-      QString GetPath();
+      QString GetPath() const;
+
+      QHash<QString, QString> GetHeader() const
+      {
+        return _header_map;
+      }
+
+      QString GetHeaderValue(const QString &key) const
+      {
+        return _header_map.value(key);
+      }
 
       /**
        * Get the request body 
        */
-      QString GetBody();
+      QString GetBody() const;
 
       /* Callbacks */
       int OnMessageBegin(struct http_parser* _parser);
@@ -89,9 +97,9 @@ namespace Web {
       int OnMessageComplete(struct http_parser* _parser);
 
     private:
+      HttpRequest &operator=(const HttpRequest &);
       void ParseUrl();
 
-    private:
       bool _parsed, _success;
       QHash<QString, QString> _header_map;
       QString _last_header;
