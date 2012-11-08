@@ -644,10 +644,10 @@ namespace Anonymity {
     rng->GenerateBlock(tmp);
     if(((tmp[byte_idx] & bit_masks[bit_idx % 8]) != 0) == _server_state->server_bits[rebuttal.first]) {
       _server_state->bad_dude = from;
-      qDebug() << "Client misbehaves!";
+      qDebug() << "Client misbehaves:" << from;
     } else {
       _server_state->bad_dude = server;
-      qDebug() << "Server misbehaves!";
+      qDebug() << "Server misbehaves:" << server;
     }
     _state_machine.StateComplete();
   }
