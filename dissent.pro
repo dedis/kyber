@@ -182,6 +182,7 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Web/WebServer.hpp \
            src/Web/Packagers/Packager.hpp \
            src/Web/Packagers/JsonPackager.hpp \
+           src/Web/Services/GetDirectoryService.hpp \
            src/Web/Services/GetFileService.hpp \
            src/Web/Services/GetMessagesService.hpp \
            src/Web/Services/MessageWebService.hpp \
@@ -303,6 +304,7 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Web/WebRequest.cpp \
            src/Web/WebServer.cpp \
            src/Web/Packagers/JsonPackager.cpp \
+           src/Web/Services/GetDirectoryService.cpp \
            src/Web/Services/GetFileService.cpp \
            src/Web/Services/GetMessagesService.cpp \
            src/Web/Services/RoundIdService.cpp \

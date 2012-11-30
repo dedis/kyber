@@ -170,6 +170,7 @@
 #include "Web/WebServer.hpp"
 #include "Web/Packagers/Packager.hpp"
 #include "Web/Packagers/JsonPackager.hpp"
+#include "Web/Services/GetDirectoryService.hpp"
 #include "Web/Services/GetFileService.hpp"
 #include "Web/Services/GetMessagesService.hpp"
 #include "Web/Services/MessageWebService.hpp"

@@ -114,6 +114,9 @@ int main(int argc, char **argv)
     QSharedPointer<GetFileService> get_webpage_sp(new GetFileService("index.html"));
     ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/web", get_webpage_sp);
 
+    QSharedPointer<GetDirectoryService> get_dir_sp(new GetDirectoryService("webpath"));
+    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/dir", get_dir_sp);
+
     QSharedPointer<RoundIdService> round_id_sp(new RoundIdService(nodes[0]->GetSessionManager()));
     ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/round/id", round_id_sp);
 
