@@ -118,7 +118,7 @@ namespace Sessions {
        */
 #if DISSENT_TEST
       static const int InitialPeerJoinDelay = 1000;
-#elif FAST_SESSION
+#elif DEMO_SESSION
       static const int InitialPeerJoinDelay = 15000;
 #else
       static const int InitialPeerJoinDelay = 30000;
@@ -129,7 +129,7 @@ namespace Sessions {
        */
 #if DISSENT_TEST
       static const int RoundRunningPeerJoinDelay = 1000;
-#elif FAST_SESSION
+#elif DEMO_SESSION
       static const int RoundRunningPeerJoinDelay = 15000;
 #else
       static const int RoundRunningPeerJoinDelay = 600000;
