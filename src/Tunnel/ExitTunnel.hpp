@@ -81,7 +81,7 @@ namespace Tunnel {
       /**
        * Called when there is new data in the Dissent session
        */
-      void SessionData(const QByteArray &);
+      void SessionData(const QByteArray &data);
 
       /**
        * Called when a TCP connection closes

@@ -198,4 +198,17 @@ using namespace Dissent::Web;
 using namespace Dissent::Web::Services;
 using namespace Dissent::Web::Packagers;
 
+/**
+ * There are a few services that send messages via the anonymity layer,
+ * to provide for multiplexing of these services, we have hacked in a 
+ * header of the form: [32-bit length][32-bit packet type][message]
+ * The current packet types are:
+ *  0 - Cleartext message (SendMessageService)
+ *  1 - Web traffic (Tunnel)
+ *
+ * This is currently just a hack and we probably ought to develop a
+ * better module system to enforce (assist in) moving the packets
+ * around correctly.
+ */
+
 #endif

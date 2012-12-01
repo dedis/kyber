@@ -11,6 +11,8 @@
 #include "Tunnel/Packets/UdpStartPacket.hpp"
 #include "Tunnel/Packets/TcpStartPacket.hpp"
 
+#include "Utils/Serialization.hpp"
+
 #include "ExitTunnel.hpp"
 #include "SocksHostAddress.hpp"
 
@@ -82,23 +84,42 @@ namespace Tunnel {
     emit Stopped();
   }
 
-  void ExitTunnel::SessionData(const QByteArray &bytes)
+  void ExitTunnel::SessionData(const QByteArray &data)
   {
-    qDebug() << "SOCKS SESSION DATA";
     if(!_running) return;
 
-    QByteArray rest = bytes;
-    int bytes_read = 0;
-    while(rest.count()) {
-      QSharedPointer<Packet> pp(Packet::ReadPacket(rest, bytes_read));
+    int offset = 0;
+    while(offset + 8 < data.size()) {
+      int length = Utils::Serialization::ReadInt(data, offset);
+      if(length < 0 || data.size() < offset + 8 + length) {
+        return;
+      }
 
-      if(!bytes_read) break;
-      rest = rest.mid(bytes_read);
+      int one = Utils::Serialization::ReadInt(data, offset + 4);
+      if(one != 1) {
+        offset += 8 + length;
+        continue;
+      }
 
-      if(pp.isNull()) continue;
-      qDebug() << "SOCKS Got packet of type" << pp->GetType() << "Read bytes:" << bytes_read;
-      HandleSessionPacket(pp);
-    } 
+      QByteArray msg = data.mid(offset + 8, length);
+      offset += 8 + length;
+      while(msg.size()) {
+        int bytes_read;
+        QSharedPointer<Packet> pp(Packet::ReadPacket(msg, bytes_read));
+
+        if(!bytes_read) {
+          break;
+        }
+        msg = msg.mid(bytes_read);
+
+        if(pp.isNull()) {
+          continue;
+        }
+
+        qDebug() << "SOCKS Got packet of type" << pp->GetType() << "Read bytes:" << bytes_read;
+        HandleSessionPacket(pp);
+      }
+    }
     qDebug() << "SOCKS MEM active" << _table.Count();
   }
 

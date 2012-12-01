@@ -23,7 +23,7 @@ namespace Services {
 
       QByteArray bytes = wrp->GetRequest().GetBody().toUtf8();
       QByteArray header(8, 0);
-      Utils::Serialization::WriteInt(bytes.size(), header, 4);
+      Utils::Serialization::WriteInt(bytes.size(), header, 0);
       session->Send(header + bytes);
     }
 

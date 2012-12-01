@@ -2,6 +2,7 @@
 #include <QSharedPointer>
 #include <QTcpSocket>
 
+#include "Utils/Serialization.hpp"
 #include "Messaging/RpcHandler.hpp"
 #include "Messaging/Request.hpp"
 
@@ -158,7 +159,11 @@ namespace Tunnel {
     }
 
     qDebug() << "Sending session packet upstream";
-    GetSession()->Send(packet);
+
+    QByteArray header(8, 0);
+    Utils::Serialization::WriteInt(packet.size(), header, 0);
+    Utils::Serialization::WriteInt(1, header, 4);
+    GetSession()->Send(header + packet);
     qDebug() << "MEM Pending:" << _pending_conns.count() << "Active:" << _conn_map.count();
   }
 

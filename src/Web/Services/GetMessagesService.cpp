@@ -45,18 +45,18 @@ namespace Services {
   {
     int offset = 0;
     while(offset + 8 < data.size()) {
-      int zeroes = Utils::Serialization::ReadInt(data, offset);
-      if(zeroes != 0) {
+      int length = Utils::Serialization::ReadInt(data, offset);
+      if(length < 0 || data.size() < offset + 8 + length) {
         return;
       }
-      int length = Utils::Serialization::ReadInt(data, offset + 4);
-      if(data.size() < offset + 8 + length) {
-        return;
-      }
-      QByteArray message = data.mid(offset + 8, length);
-      offset += 8 + length;
 
-      _message_list.append(message);
+      int zeroes = Utils::Serialization::ReadInt(data, offset + 4);
+      if(zeroes == 0) {
+        QByteArray message = data.mid(offset + 8, length);
+        _message_list.append(message);
+      }
+
+      offset += 8 + length;
     }
 
     QList<QSharedPointer<WebRequest> > curr_pending_requests(_pending_requests);
