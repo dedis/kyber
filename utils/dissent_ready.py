@@ -35,7 +35,7 @@ def main():
   while not send(ip, port):
     time.sleep(1)
 
-  print "Dissent connected, please close this window to continue"
+  print "Dissent connected..."
 
 if __name__ == "__main__":
   main()
