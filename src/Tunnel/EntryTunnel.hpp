@@ -6,27 +6,10 @@
 #include <QTcpServer>
 #include <QUrl>
 
-#include "Anonymity/Sessions/Session.hpp"
-#include "Anonymity/Sessions/SessionManager.hpp"
-
-#include "Messaging/RpcHandler.hpp"
-#include "Messaging/RequestHandler.hpp"
-
 #include "SocksConnection.hpp"
-#include "TunnelConnectionTable.hpp"
 
 namespace Dissent {
-namespace Messaging {
-  class RpcHandler;
-  class RequestHandler;
-  class Request;
-}
-
 namespace Tunnel {
-  namespace Packets {
-    class Packet;
-  }
-
   /**
    * This is the "entry node" side of a TCP tunnel through 
    * dissent. It binds to a port on the local machine and
@@ -37,20 +20,11 @@ namespace Tunnel {
     Q_OBJECT
 
     public:
-      typedef Dissent::Anonymity::Sessions::Session Session;
-      typedef Dissent::Anonymity::Sessions::SessionManager SessionManager;
-      typedef Dissent::Messaging::RpcHandler RpcHandler;
-      typedef Dissent::Messaging::Request Request;
-      typedef Dissent::Messaging::RequestHandler RequestHandler;
-      typedef Dissent::Tunnel::Packets::Packet Packet;
-
       /**
        * Constructor
-       * @param TCP address to which to bind
-       * @param Session manager for connecting to Dissent sessions
-       * @param RPC handler for receiving non-anonymous replies from exit relay
+       * @param url TCP address to which to bind
        */
-      explicit EntryTunnel(QUrl url, SessionManager &sm, QSharedPointer<RpcHandler> rpc);
+      explicit EntryTunnel(const QUrl &url);
 
       virtual ~EntryTunnel();
 
@@ -59,33 +33,40 @@ namespace Tunnel {
        */
       void Start();
 
-    public slots:
-      /**
-       * Callback for RPC handler when a node sends data to this entry
-       * node non-anonymously
-       */
-      void TunnelData(const Request &request);
-
     signals:
       void Stopped();
+
+      /**
+       * Data to be sent to the exit tunnel
+       */
+      void OutgoingDataSignal(const QByteArray &data);
     
     public slots:
       /**
-       * Called when a SOCKS client connects to the TCP port 
+       * Data from the exit tunnel
        */
-      void NewConnection();
-   
+      void IncomingData(const QByteArray &data);
+
       /**
        * Stops listening on the TCP port
        */
       void Stop();
 
-      /**
-       * Callback for when tunnel data is received from the Dissent session
-       * @param data received from the Dissent session
-       */
-      void DownstreamData(const QByteArray &);
+    private:
+      QTcpServer _tcp_server;
+      const QHostAddress _host;
+      const quint16 _port;
+      bool _running;
 
+      QSet<SocksConnection*> _pending_conns;
+      QHash<QByteArray, QSharedPointer<SocksConnection> > _conn_map;
+
+    private slots:
+      /**
+       * Called when a SOCKS client connects to the TCP port 
+       */
+      void NewConnection();
+   
       /**
        * Called when the SOCKS proxy negotation has completed
        */
@@ -97,28 +78,10 @@ namespace Tunnel {
       void SocksClosed();
 
       /**
-       * Called when a SOCKS proxy connection has a new packet to 
-       * send through the Dissent session
-       * @param data packet to be sent
+       * Called when an application has pushed data into socks
        */
-      void SocksHasUpstreamPacket(const QByteArray &packet);
+      void OutgoingData(const QByteArray &data);
 
-    private:
-      QSharedPointer<Session> GetSession() { return _sm.GetDefaultSession(); }
-      void HandleDownstreamPacket(QSharedPointer<Packet> pp);
-      bool SessionIsOpen();
-
-      QTcpServer _tcp_server;
-      QHostAddress _host;
-      quint16 _port;
-      bool _running;
-
-      QSet<SocksConnection*> _pending_conns;
-      QHash<QByteArray, QSharedPointer<SocksConnection> > _conn_map;
-
-      SessionManager &_sm;
-      QSharedPointer<RpcHandler> _rpc;
-      QSharedPointer<RequestHandler> _tunnel_data_handler;
   };
 }
 }

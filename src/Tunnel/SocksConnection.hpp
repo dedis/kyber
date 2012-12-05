@@ -2,13 +2,13 @@
 #define DISSENT_TUNNEL_SOCKS_CONNECTION_H_GUARD
 
 #include <QHostAddress>
+#include <QObject>
 #include <QSharedPointer>
-#include <QTcpSocket>
 #include <QUdpSocket>
+#include <QTcpSocket>
 
 #include "Crypto/Library.hpp"
-
-#include "SocksHostAddress.hpp"
+#include "TunnelPacket.hpp"
 
 namespace Dissent {
 namespace Crypto {
@@ -18,10 +18,6 @@ namespace Crypto {
 }
 
 namespace Tunnel {
-  namespace Packets {
-    class Packet;
-  }
-
   /**
    * SocksConnection represents a single connection of the SOCKS
    * server to a SOCKS client (most likely a user's Web browser).
@@ -39,7 +35,6 @@ namespace Tunnel {
       typedef Dissent::Crypto::AsymmetricKey AsymmetricKey;
       typedef Dissent::Crypto::Hash Hash;
       typedef Dissent::Crypto::Library Library;
-      typedef Dissent::Tunnel::Packets::Packet Packet;
 
       typedef enum {
         ConnState_WaitingForMethodHeader,
@@ -96,7 +91,7 @@ namespace Tunnel {
        * Called when a packet arrives from the Dissent session
        * @param pointer to the packet
        */
-      void IncomingDownstreamPacket(QSharedPointer<Packet> pp);
+      void IncomingDownstreamPacket(const TunnelPacket &packet);
 
       /**
        * Get the ID of this connection
@@ -156,21 +151,18 @@ namespace Tunnel {
        */
       void HandleMethodHeader();
       void HandleMethods();
-      void SendMethodsReply();
       void HandleRequestHeader();
-      void ProcessRequestHeader();
       void HandleRequest();
-      void ProcessRequest();
 
       /**
        * Start a TCP CONNECT connection
        */
-      void StartConnect(const SocksHostAddress &dest_host);
+      void StartConnect(const QString &host, quint16 port);
 
       /**
        * Start a UDP ASSOCIATE connection
        */
-      void StartUdpAssociate(const SocksHostAddress &peer_host);
+      void StartUdpAssociate(const QString &host, quint16 port);
 
       /**
        * Handle incoming data to an exsting connection
@@ -180,18 +172,25 @@ namespace Tunnel {
       /**
        * Handle response packets from the exit relay
        */
-      void HandleTcpResponse(QSharedPointer<Packet> pp);
-      void HandleUdpResponse(QSharedPointer<Packet> pp);
+      void HandleTcpResponse(const TunnelPacket &packet);
+      void HandleUdpResponse(const TunnelPacket &packet);
 
       void SendUpstreamPacket(const QByteArray &packet);
       void UdpProcessDatagram(const QByteArray &datagram);
-      void TryWrite(const QByteArray &data);
+      void WriteToSocket(const QByteArray &data);
 
       void EstablishFail(SocksReplyCode reason);
-      SocksAddressType ParseSocksAddressBytes(char addr_type, const QByteArray &addr_bytes, 
-          SocksHostAddress &host_out, int &bytes_read) const;
-      void WriteSocksReply(SocksReplyCode reason, const QHostAddress &addr, quint16 port);
+      void WriteSocksReply(SocksReplyCode reason,
+          const QHostAddress &addr, quint16 port);
 
+      bool ParseSocksAddress(const QByteArray &addr, QString &host,
+          quint16 &port);
+
+      bool ParseSocksAddress(const QByteArray &addr,
+          QString &host, quint16 &port, int &read);
+
+      bool SerializeSocksAddress(const QString &host,
+          quint16 port, QByteArray &socks_addr);
 
       /*********************8
        * Members
@@ -202,14 +201,10 @@ namespace Tunnel {
       /* Fields for the method negotiation */
       char _version;
       char _n_methods;
-      QByteArray _methods_buf;
 
       /* Fields for the request negotiation */
-      QByteArray _request_buf;
       int _addr_len;
       char _command;
-      char _addr_type;
-      QByteArray _addr_buf;
 
       QTcpSocket *_socket;
       bool _socket_open;
@@ -220,8 +215,7 @@ namespace Tunnel {
       QHostAddress _udp_peer; 
       quint16 _udp_peer_port;
 
-      Library *_crypto_lib;
-      Hash *_hash_algo;
+      QSharedPointer<Hash> _hash_algo;
 
       QSharedPointer<AsymmetricKey> _signing_key;
       QSharedPointer<AsymmetricKey> _verif_key;

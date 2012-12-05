@@ -87,8 +87,8 @@ int main(int argc, char **argv)
   }
 
   QScopedPointer<WebServer> ws;
-  QScopedPointer<EntryTunnel> tun_entry;
-  QScopedPointer<ExitTunnel> tun_exit;
+  QScopedPointer<SessionEntryTunnel> tun_entry;
+  QScopedPointer<SessionExitTunnel> tun_exit;
 
   if(settings.Console) {
     commandline = QSharedPointer<CommandLine>(new CommandLine(nodes));
@@ -130,23 +130,17 @@ int main(int argc, char **argv)
   }
   
   if(settings.EntryTunnel) {
-    tun_entry.reset(new EntryTunnel(settings.EntryTunnelUrl, nodes[0]->GetSessionManager(), 
+    tun_entry.reset(new SessionEntryTunnel(settings.EntryTunnelUrl,
+          nodes[0]->GetSessionManager(),
           nodes[0]->GetOverlay()->GetRpcHandler()));
-
-    QObject::connect(signal_sink.data(), SIGNAL(IncomingData(const QByteArray&)),
-        tun_entry.data(), SLOT(DownstreamData(const QByteArray&)));
-
-    tun_entry->Start();
   }
   
   if(settings.ExitTunnel) {
-    tun_exit.reset(new ExitTunnel(nodes[0]->GetSessionManager(),
+    tun_exit.reset(new SessionExitTunnel(nodes[0]->GetSessionManager(),
           nodes[0]->GetNetwork(), settings.ExitTunnelProxyUrl));
 
     QObject::connect(signal_sink.data(), SIGNAL(IncomingData(const QByteArray&)),
-        tun_exit.data(), SLOT(SessionData(const QByteArray&)));
-
-    tun_exit->Start();
+        tun_exit.data(), SLOT(IncomingData(const QByteArray&)));
   }
 
   foreach(QSharedPointer<Node> node, nodes) {

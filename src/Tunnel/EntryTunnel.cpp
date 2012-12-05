@@ -3,38 +3,24 @@
 #include <QTcpSocket>
 
 #include "Utils/Serialization.hpp"
-#include "Messaging/RpcHandler.hpp"
-#include "Messaging/Request.hpp"
-
-#include "Tunnel/Packets/Packet.hpp"
 
 #include "EntryTunnel.hpp"
-
-using namespace Dissent::Anonymity;
-using namespace Dissent::Messaging;
-using namespace Dissent::Tunnel::Packets;
+#include "TunnelPacket.hpp"
 
 namespace Dissent {
 namespace Tunnel {
 
-  EntryTunnel::EntryTunnel(QUrl url, SessionManager &sm, QSharedPointer<RpcHandler> rpc) :
+  EntryTunnel::EntryTunnel(const QUrl &url) :
     _tcp_server(0),
     _host(url.host()),
     _port(url.port(8080)),
-    _running(false),
-    _sm(sm),
-    _rpc(rpc),
-    _tunnel_data_handler(new RequestHandler(this, "TunnelData"))
+    _running(false)
   {
     connect(&_tcp_server, SIGNAL(newConnection()), this, SLOT(NewConnection()));
-
-    _rpc->Register(QString("LT::TunnelData"), _tunnel_data_handler);
   }
 
   EntryTunnel::~EntryTunnel()
   {
-    _rpc->Unregister("LT::TunnelData");
-
     Stop();
   }
 
@@ -55,36 +41,35 @@ namespace Tunnel {
     if(!_running) {
       return;
     }
+    _running = false;
 
     _tcp_server.close();
     _conn_map.clear();
 
-    for(QSet<SocksConnection*>::iterator i=_pending_conns.begin(); i!=_pending_conns.end(); i++) {
-      (*i)->Close();
-      (*i)->deleteLater();
+    foreach(SocksConnection *sc, _pending_conns) {
+      sc->Close();
+      sc->deleteLater();
     }
 
     emit Stopped();
   }
 
-  void EntryTunnel::TunnelData(const Request &request)
+  void EntryTunnel::IncomingData(const QByteArray &data)
   {
-    const QVariant payload = request.GetData();
-    if(!payload.canConvert(QVariant::Hash)) {
-      qWarning() << QString("Cannot unserialize tunnel data of type %1").arg(payload.typeName());
+    TunnelPacket packet(data);
+    if(!packet.IsValid()) {
       return;
     }
 
-    const QVariantHash hash = payload.toHash();
-    if(!hash["data"].canConvert(QVariant::ByteArray)) {
-      qWarning() << QString("Cannot unserialize hash[data] of type %1").arg(hash["data"].typeName());
+    QByteArray cid = packet.GetConnectionId();
+    if(!_conn_map.contains(cid)) {
+      qDebug() << "SOCKS Ignoring packet for another client";
       return;
     }
 
-    const QByteArray data = hash["data"].toByteArray();
-    if(data.isEmpty()) return;
-  
-    DownstreamData(data);
+    qDebug() << "Received a packet of type" << packet.GetType() <<
+      "of" << packet.GetPacket().size() << "bytes";
+    _conn_map[cid]->IncomingDownstreamPacket(packet);
   }
 
   void EntryTunnel::NewConnection()
@@ -92,19 +77,12 @@ namespace Tunnel {
     QTcpSocket* socket = _tcp_server.nextPendingConnection();
     qDebug() << "New SOCKS connection from" << socket->peerAddress() << ":" << socket->peerPort();
 
-    if(!SessionIsOpen()) {
-      qDebug() << "Refusing SOCKS connection b/c no active session";
-      socket->close();
-      socket->deleteLater();
-      return;
-    }
-
     SocksConnection* sp = new SocksConnection(socket);
-
     _pending_conns.insert(sp);
 
     connect(sp, SIGNAL(ProxyConnected()), this, SLOT(SocksConnected()));
-    connect(sp, SIGNAL(UpstreamPacketReady(const QByteArray&)), this, SLOT(SocksHasUpstreamPacket(const QByteArray&)));
+    connect(sp, SIGNAL(UpstreamPacketReady(const QByteArray &)),
+        this, SLOT(OutgoingData(const QByteArray &)));
     connect(sp, SIGNAL(Closed()), this, SLOT(SocksClosed()));
     qDebug() << "MEM Pending:" << _pending_conns.count() << "Active:" << _conn_map.count();
   }
@@ -113,99 +91,42 @@ namespace Tunnel {
   {
     SocksConnection* sp = qobject_cast<SocksConnection*>(sender());
     if(!sp) {
-      qWarning("Illegal call to SocksConected()");
+      qFatal("Illegal call to SocksConected()");
       return;
     }
 
     // Remove SocksConnection pointer from pending list and
     // add it to the connection map as a QSP
-    QSharedPointer<SocksConnection> socks(sp);
+    QSharedPointer<SocksConnection> socks(sp, &QObject::deleteLater);
     _pending_conns.remove(sp);
 
-    QByteArray socks_id = socks->GetConnectionId();
-    _conn_map[socks_id] = socks;
+    _conn_map[socks->GetConnectionId()] = socks;
     qDebug() << "MEM Pending:" << _pending_conns.count() << "Active:" << _conn_map.count();
   }
 
   void EntryTunnel::SocksClosed()
   {
-    SocksConnection* sp = qobject_cast<SocksConnection*>(sender());
-    if(!sp) {
-      qWarning("Illegal call to SocksClosed()");
+    if(!_running) {
       return;
     }
 
-    if(_pending_conns.contains(sp)) {
-      sp->deleteLater();  
-    } else if(sp->GetConnectionId().count() && _conn_map.contains(sp->GetConnectionId())) {
-      _conn_map.remove(sp->GetConnectionId());
-    } else {
+    SocksConnection* sp = qobject_cast<SocksConnection*>(sender());
+    if(!sp) {
+      qFatal("Illegal call to SocksClosed()");
+      return;
+    }
+
+    if(_pending_conns.remove(sp)) {
+      sp->deleteLater();
+    } else if(!_conn_map.remove(sp->GetConnectionId())) {
       qFatal("SocksClosed() called with unknown SocksConnection");
     }
     qDebug() << "MEM Pending:" << _pending_conns.count() << "Active:" << _conn_map.count();
   }
 
-  void EntryTunnel::SocksHasUpstreamPacket(const QByteArray &packet)
+  void EntryTunnel::OutgoingData(const QByteArray &data)
   {
-    SocksConnection* sp = qobject_cast<SocksConnection*>(sender());
-    if(!sp) {
-      qWarning("Illegal call to SocksHasSessionPackets()");
-      return;
-    }
-
-    if(!SessionIsOpen()) {
-      // Closing socket connection b/c no session exists
-      _conn_map.remove(sp->GetConnectionId());
-    }
-
-    qDebug() << "Sending session packet upstream";
-
-    QByteArray header(8, 0);
-    Utils::Serialization::WriteInt(packet.size(), header, 0);
-    Utils::Serialization::WriteInt(1, header, 4);
-    GetSession()->Send(header + packet);
-    qDebug() << "MEM Pending:" << _pending_conns.count() << "Active:" << _conn_map.count();
+    emit OutgoingDataSignal(data);
   }
-
-  void EntryTunnel::DownstreamData(const QByteArray &bytes)
-  {
-    qDebug() << "Got" << bytes.count() << "bytes from the session";
-
-    QByteArray rest = bytes;
-    int bytes_read = 0;
-    while(rest.count()) {
-      QSharedPointer<Packet> pp(Packet::ReadPacket(rest, bytes_read));
-
-      if(!bytes_read) break;
-      rest = rest.mid(bytes_read);
-
-      if(pp.isNull()) continue;
-      HandleDownstreamPacket(pp);
-
-      qDebug() << "Got packet of type" << pp->GetType() << "Read bytes:" << bytes_read;
-    } 
-
-    qDebug() << "MEM Pending:" << _pending_conns.count() << "Active:" << _conn_map.count();
-  }
-
-  void EntryTunnel::HandleDownstreamPacket(QSharedPointer<Packet> pp)
-  {
-    if(pp.isNull()) return;
-
-    QByteArray cid = pp->GetConnectionId();
-    bool has_id = _conn_map.contains(cid);
-    if(!has_id) {
-      qDebug() << "SOCKS Ignoring packet for other node";
-      return;
-    }
-
-    _conn_map[cid]->IncomingDownstreamPacket(pp);
-  }
-
-  bool EntryTunnel::SessionIsOpen()
-  {
-    return (!GetSession().isNull() && !GetSession()->GetCurrentRound().isNull());
-  }
-
 }
 }

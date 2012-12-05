@@ -125,7 +125,6 @@ namespace Sessions {
         return _auth->GetPrivateIdentity();
       }
 
-    protected:
     signals:
       /**
        * Signals that a round is beginning.

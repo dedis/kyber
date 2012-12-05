@@ -74,7 +74,6 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/OnionTest.cpp \
            src/Tests/OverlayHelper.cpp \
            src/Tests/PackagersTest.cpp \
-           src/Tests/PacketsTest.cpp \
            src/Tests/PeerReviewTest.cpp \
            src/Tests/RandomTest.cpp \
            src/Tests/RepeatingBulkRoundTest.cpp \
@@ -88,5 +87,6 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/TestWebClient.cpp \
            src/Tests/TimeTest.cpp \
            src/Tests/TripleTest.cpp \
+           src/Tests/TunnelTest.cpp \
            src/Tests/WebServerTest.cpp \
            src/Tests/WebServicesTest.cpp

@@ -84,6 +84,9 @@ namespace Sessions {
        */
       void Stop();
 
+    signals:
+      void SessionAdded(const QSharedPointer<Session> &session);
+
     private:
       /**
        * Returns the session associated with the Request

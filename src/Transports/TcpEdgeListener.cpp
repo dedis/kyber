@@ -39,7 +39,7 @@ namespace Transports {
     QHostAddress ip = _server.serverAddress();
     if(ip == QHostAddress::Any) {
       ip = QHostAddress::LocalHost;
-      foreach(QHostAddress local_ip, QNetworkInterface::allAddresses()) {
+      foreach(const QHostAddress &local_ip, QNetworkInterface::allAddresses()) {
         if(local_ip == QHostAddress::Null ||
             local_ip == QHostAddress::LocalHost ||
             local_ip == QHostAddress::LocalHostIPv6 ||

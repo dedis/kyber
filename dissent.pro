@@ -152,17 +152,10 @@ HEADERS += ext/joyent-http-parser/http_parser.h \
            src/Transports/TcpEdgeListener.hpp \
            src/Tunnel/EntryTunnel.hpp \
            src/Tunnel/ExitTunnel.hpp \
+           src/Tunnel/SessionEntryTunnel.hpp \
+           src/Tunnel/SessionExitTunnel.hpp \
            src/Tunnel/SocksConnection.hpp \
-           src/Tunnel/SocksHostAddress.hpp \
-           src/Tunnel/TunnelConnectionTable.hpp \
-           src/Tunnel/Packets/Packet.hpp \
-           src/Tunnel/Packets/FinishPacket.hpp \
-           src/Tunnel/Packets/TcpRequestPacket.hpp \
-           src/Tunnel/Packets/UdpRequestPacket.hpp \
-           src/Tunnel/Packets/TcpResponsePacket.hpp \
-           src/Tunnel/Packets/UdpResponsePacket.hpp \
-           src/Tunnel/Packets/TcpStartPacket.hpp \
-           src/Tunnel/Packets/UdpStartPacket.hpp \
+           src/Tunnel/SocksTable.hpp \
            src/Utils/Logging.hpp \
            src/Utils/Random.hpp \
            src/Utils/QRunTimeError.hpp \
@@ -282,17 +275,10 @@ SOURCES += ext/joyent-http-parser/http_parser.c \
            src/Transports/TcpEdgeListener.cpp \
            src/Tunnel/EntryTunnel.cpp \
            src/Tunnel/ExitTunnel.cpp \
+           src/Tunnel/SessionEntryTunnel.cpp \
+           src/Tunnel/SessionExitTunnel.cpp \
            src/Tunnel/SocksConnection.cpp \
-           src/Tunnel/SocksHostAddress.cpp \
-           src/Tunnel/TunnelConnectionTable.cpp \
-           src/Tunnel/Packets/Packet.cpp \
-           src/Tunnel/Packets/FinishPacket.cpp \
-           src/Tunnel/Packets/TcpRequestPacket.cpp \
-           src/Tunnel/Packets/UdpRequestPacket.cpp \
-           src/Tunnel/Packets/TcpResponsePacket.cpp \
-           src/Tunnel/Packets/UdpResponsePacket.cpp \
-           src/Tunnel/Packets/TcpStartPacket.cpp \
-           src/Tunnel/Packets/UdpStartPacket.cpp \
+           src/Tunnel/SocksTable.cpp \
            src/Utils/Logging.cpp \
            src/Utils/Random.cpp \
            src/Utils/Sleeper.cpp \

@@ -13,15 +13,15 @@
 #include <QUrl>
 #include <QVariant>
 
-#include "Anonymity/Sessions/Session.hpp"
-#include "Anonymity/Sessions/SessionManager.hpp"
-#include "Tunnel/TunnelConnectionTable.hpp"
-#include "Tunnel/Packets/Packet.hpp"
+#include "SocksTable.hpp"
+#include "TunnelPacket.hpp"
 
 namespace Dissent {
-namespace Connections {
-  class Network;
+
+namespace Crypto {
+  class AsymmetricKey;
 }
+
 namespace Tunnel {
 
   /**
@@ -31,10 +31,6 @@ namespace Tunnel {
    *
    * It broadcasts replies from the network connection
    * *non-anonymously* to all members of the group.
-   *
-   * !!!IMPORTANT!!! By serving as an exit node, the user
-   * running the exit node/remote tunnel gives up their
-   * anonymity.
    */
   class ExitTunnel : public QObject {
     Q_OBJECT
@@ -47,20 +43,11 @@ namespace Tunnel {
        */
       static const int UdpSocketTimeout = 30000;
 
-      typedef Dissent::Anonymity::Sessions::Session Session;
-      typedef Dissent::Anonymity::Sessions::SessionManager SessionManager;
-      typedef Dissent::Connections::Network Network;
-      typedef Dissent::Tunnel::Packets::Packet Packet;
-
       /**
        * Constructor
-       * @param session manager from which to read Dissent packets
-       * @param network for broadcasting responses non-anonymously
-       * @param SOCKS5 proxy URL through which to tunnel outgoing
-       *        streams
+       * @param exit_proxy optional SOCKS5 proxy to relay messages through
        */
-      explicit ExitTunnel(SessionManager &sm, const QSharedPointer<Network> &net,
-          const QUrl &exit_proxy = QUrl());
+      explicit ExitTunnel(const QUrl &exit_proxy = QUrl());
 
       virtual ~ExitTunnel();
 
@@ -70,7 +57,15 @@ namespace Tunnel {
       void Start();
 
     signals:
+      /**
+       * Emitted when stopped
+       */
       void Stopped();
+
+      /**
+       * Called when there is data to send to the application
+       */
+      void OutgoingDataSignal(const TunnelPacket &packet);
     
     public slots:
       /**
@@ -79,19 +74,14 @@ namespace Tunnel {
       void Stop();
 
       /**
-       * Called when there is new data in the Dissent session
+       * Called when there is new data from an application source
        */
-      void SessionData(const QByteArray &data);
+      void IncomingData(const TunnelPacket &packet);
 
       /**
        * Called when a TCP connection closes
        */
       void DiscardProxy();
-
-      /**
-       * Called when a TCP connection connects
-       */
-      void TcpProxyStateChanged(QAbstractSocket::SocketState);
 
       /**
        * Called when there is new data from a connection
@@ -103,8 +93,7 @@ namespace Tunnel {
        * Slot called when a DNS lookup has finished
        * @param host name information with resolved domain name
        */
-      void TcpDnsLookupFinished(const QHostInfo& host_info);
-      void UdpDnsLookupFinished(const QHostInfo& host_info);
+      void DnsLookupFinished(const QHostInfo& host_info);
 
       /**
        * Connection error handler
@@ -114,61 +103,31 @@ namespace Tunnel {
       /**
        * Called when a UDP connection times out
        */
-      void UdpTimeout();
-
-    protected:
-      QSharedPointer<Session> GetSession() { return _sm.GetDefaultSession(); }
+      void UdpTimeout(const QByteArray &conn_id);
 
     private:
-      void SendReply(const QByteArray &reply);
-      void CloseSocket(QAbstractSocket* socket);
-      bool CheckSession();
+      void CloseSocket(QAbstractSocket *socket);
       void TcpWriteBuffer(QTcpSocket* socket);
-      void HandleSessionPacket(QSharedPointer<Packet> pp);
 
-      void TcpCreateProxy(QSharedPointer<Packet> start_packet);
-      void UdpCreateProxy(QSharedPointer<Packet> start_packet);
+      void TcpCreateProxy(const TunnelPacket &packet);
+      void UdpCreateProxy(const TunnelPacket &packet);
 
-      void TcpHandleRequest(QSharedPointer<Packet> req_packet);
-      void UdpHandleRequest(QSharedPointer<Packet> req_packet);
+      void TcpHandleRequest(const TunnelPacket &packet);
+      void UdpHandleRequest(const TunnelPacket &packet);
 
-      void HandleFinish(QSharedPointer<Packet> fin_packet);
+      void HandleFinish(const TunnelPacket &packet);
 
-      typedef struct {
-        QTcpSocket* socket;
-        quint16 port;
-      } TcpPendingDnsData;
+      void RestartTimer(const QSharedPointer<SocksEntry> &entry);
 
-      typedef struct {
-        QUdpSocket* socket;
-        quint16 port;
-        QByteArray datagram;
-      } UdpPendingDnsData;
-
-      /**
-       * Used to keep track of the sockets waiting on a DNS lookup to complete.
-       * Hash of lookup_id -> multiple sockets waiting for the hostname resolution.
-       */
-      QHash<int, TcpPendingDnsData> _tcp_pending_dns;
-      QHash<int, UdpPendingDnsData> _udp_pending_dns;
-
-      TunnelConnectionTable _table;
-
-      QHash<QAbstractSocket*, QByteArray> _tcp_buffers;
+      SocksTable _stable;
       bool _running;
 
-      /**
-       * These are timeout timers for UDP "connections." Since a UDP
-       * connection never really times out, we close a UDP socket after
-       * an interval of inactivity
-       */
-      QHash<QAbstractSocket*, QSharedPointer<QTimer> > _timers;
-      QHash<QTimer*, QAbstractSocket*> _timers_map;
-
-      SessionManager &_sm;
-      QSharedPointer<Network> _net;
       QNetworkProxy _exit_proxy;
+
+    private slots:
+      void TcpSocketConnected();
   };
+
 }
 }
 

@@ -47,6 +47,8 @@ namespace Sessions {
       _default_set = true;
       _default_session = session->GetSessionId();
     }
+
+    emit SessionAdded(session);
   }
 
   void SessionManager::AddSessionLeader(const QSharedPointer<SessionLeader> &sl)
