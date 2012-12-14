@@ -242,6 +242,7 @@ namespace Web {
  
     /* Only mark as ok when entire message has been
        parsed */
+    PrintDebug();
     return _success;
 
   }

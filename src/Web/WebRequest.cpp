@@ -11,11 +11,13 @@ namespace Web {
     _length(-1),
     _processing(false)
   {
-    connect(_socket, SIGNAL(readyRead()), this, SLOT(ReadSocket()));
-    connect(_socket, SIGNAL(disconnected()), this, SLOT(Disconnected()));
-    connect(_socket, SIGNAL(error(QAbstractSocket::SocketError)),
-        SLOT(HandleError(QAbstractSocket::SocketError)));
-    connect(_socket, SIGNAL(bytesWritten(qint64)), this, SLOT(WriteCheck()));
+    if(_socket) {
+      connect(_socket, SIGNAL(readyRead()), this, SLOT(ReadSocket()));
+      connect(_socket, SIGNAL(disconnected()), this, SLOT(Disconnected()));
+      connect(_socket, SIGNAL(error(QAbstractSocket::SocketError)),
+          SLOT(HandleError(QAbstractSocket::SocketError)));
+      connect(_socket, SIGNAL(bytesWritten(qint64)), this, SLOT(WriteCheck()));
+    }
   }
 
   WebRequest::~WebRequest() 

@@ -36,12 +36,12 @@ namespace Tests {
 
     QByteArray data1 = "Test 1";
     QByteArray data1_t = QByteArray(8, 0) + data1;
-    Utils::Serialization::WriteInt(data1.size(), data1_t, 4);
+    Utils::Serialization::WriteInt(data1.size(), data1_t, 0);
     QByteArray data2 = "Test 2";
     QByteArray data2_t = QByteArray(8, 0) + data1;
-    Utils::Serialization::WriteInt(data1.size(), data1_t, 4);
+    Utils::Serialization::WriteInt(data1.size(), data1_t, 0);
     data2_t = QByteArray(8, 0) + data2;
-    Utils::Serialization::WriteInt(data2.size(), data2_t, 4);
+    Utils::Serialization::WriteInt(data2.size(), data2_t, 0);
 
     ASSERT_EQ(sink.handled.count(), 0);
     QString request = "/some/path?offset=0&count=-1";
@@ -99,10 +99,10 @@ namespace Tests {
 
     QByteArray data1 = "Msg 1";
     QByteArray data1_t = QByteArray(8, 0) + data1;
-    Utils::Serialization::WriteInt(data1.size(), data1_t, 4);
+    Utils::Serialization::WriteInt(data1.size(), data1_t, 0);
     QByteArray data2 = "Msg 2";
     QByteArray data2_t = QByteArray(8, 0) + data2;
-    Utils::Serialization::WriteInt(data2.size(), data2_t, 4);
+    Utils::Serialization::WriteInt(data2.size(), data2_t, 0);
 
     ASSERT_EQ(sink.handled.count(), 0);
 

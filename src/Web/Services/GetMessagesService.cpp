@@ -51,6 +51,7 @@ namespace Services {
       }
 
       int zeroes = Utils::Serialization::ReadInt(data, offset + 4);
+      qDebug() << zeroes << length;
       if(zeroes == 0) {
         QByteArray message = data.mid(offset + 8, length);
         _message_list.append(message);
