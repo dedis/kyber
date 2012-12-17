@@ -24,6 +24,35 @@ namespace Tests {
     QCoreApplication::processEvents();
     QCoreApplication::sendPostedEvents();
   }
+
+  template<typename T> bool WaitCallback(T *obj, bool (T::*callback)()const)
+  {
+    int count = 0;
+    while(!(obj->*callback)() && ++count != 100) {
+      MockExec();
+      Sleeper::MSleep(10);
+    }
+
+    return count != 100;
+  }
+
+  template<typename T> bool WaitCallback(T *obj, bool (T::*callback)(int))
+  {
+    int count = 0;
+    while(!(obj->*callback)(10) && ++count != 100) {
+      MockExec();
+    }
+    return count != 100;
+  }
+
+  template<typename T> bool WaitCallback(T *obj, bool (T::*callback)(int, bool *))
+  {
+    int count = 0;
+    while(!(obj->*callback)(10, 0) && ++count != 100) {
+      MockExec();
+    }
+    return count != 100;
+  }
 }
 }
 #endif

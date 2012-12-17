@@ -15,6 +15,8 @@
 #include "MockSource.hpp"
 #include "RpcTest.hpp"
 
+static const int TEST_PORT = 55515;
+
 inline void RunUntil(const SignalCounter &sc, int count)
 {
   Time &time = Time::GetInstance();

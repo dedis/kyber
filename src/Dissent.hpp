@@ -157,21 +157,18 @@
 #include "Utils/Triple.hpp"
 #include "Utils/Utils.hpp"
 
-#include "Web/HttpRequest.hpp"
-#include "Web/HttpResponse.hpp"
-#include "Web/WebRequest.hpp"
+#include "Web/EchoService.hpp"
+#include "Web/GetDirectoryService.hpp"
+#include "Web/GetFileService.hpp"
+#include "Web/GetMessagesService.hpp"
+#include "Web/MessageWebService.hpp"
+#include "Web/SendMessageService.hpp"
+#include "Web/SessionService.hpp"
 #include "Web/WebServer.hpp"
-#include "Web/Packagers/Packager.hpp"
-#include "Web/Packagers/JsonPackager.hpp"
-#include "Web/Services/GetDirectoryService.hpp"
-#include "Web/Services/GetFileService.hpp"
-#include "Web/Services/GetMessagesService.hpp"
-#include "Web/Services/MessageWebService.hpp"
-#include "Web/Services/RoundIdService.hpp"
-#include "Web/Services/SendMessageService.hpp"
-#include "Web/Services/SessionIdService.hpp"
-#include "Web/Services/SessionWebService.hpp"
-#include "Web/Services/WebService.hpp"
+#include "Web/WebService.hpp"
+
+#include "qhttprequest.h"
+#include "qhttpresponse.h"
 
 using namespace Dissent::Anonymity;
 using namespace Dissent::Anonymity::Sessions;
@@ -187,8 +184,6 @@ using namespace Dissent::Transports;
 using namespace Dissent::Tunnel;
 using namespace Dissent::Utils;
 using namespace Dissent::Web;
-using namespace Dissent::Web::Services;
-using namespace Dissent::Web::Packagers;
 
 /**
  * There are a few services that send messages via the anonymity layer,

@@ -28,8 +28,7 @@ def main():
   port = int(sys.argv[2])
 
   services = [
-    ("GET", "/session/id"),
-    ("GET", "/round/id"),
+    ("GET", "/session"),
     ("GET", "/session/messages?offset=0&count=-1"),
   ] 
 

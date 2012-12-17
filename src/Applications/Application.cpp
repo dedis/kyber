@@ -106,25 +106,22 @@ int main(int argc, char **argv)
     /* When the web server stops, quit the application */
     QObject::connect(ws.data(), SIGNAL(Stopped()), &qca, SLOT(quit()));
 
-    QSharedPointer<GetMessagesService> get_messages_sp(new GetMessagesService());
+    QSharedPointer<GetMessagesService> get_messages(new GetMessagesService());
     QObject::connect(signal_sink.data(), SIGNAL(IncomingData(const QByteArray&)),
-        get_messages_sp.data(), SLOT(HandleIncomingMessage(const QByteArray&)));
-    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/session/messages", get_messages_sp);
+        get_messages.data(), SLOT(HandleIncomingMessage(const QByteArray&)));
+    ws->AddRoute(QHttpRequest::HTTP_GET, "/session/messages", get_messages);
 
-    QSharedPointer<GetFileService> get_webpage_sp(new GetFileService("index.html"));
-    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/web", get_webpage_sp);
+    QSharedPointer<GetFileService> get_webpage(new GetFileService("index.html"));
+    ws->AddRoute(QHttpRequest::HTTP_GET, "/web", get_webpage);
 
-    QSharedPointer<GetDirectoryService> get_dir_sp(new GetDirectoryService("webpath"));
-    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/dir", get_dir_sp);
+    QSharedPointer<GetDirectoryService> get_dir(new GetDirectoryService("webpath"));
+    ws->AddRoute(QHttpRequest::HTTP_GET, "/dir", get_dir);
 
-    QSharedPointer<RoundIdService> round_id_sp(new RoundIdService(nodes[0]->GetSessionManager()));
-    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/round/id", round_id_sp);
+    QSharedPointer<SessionService> session_serv(new SessionService(nodes[0]->GetSessionManager()));
+    ws->AddRoute(QHttpRequest::HTTP_GET, "/session", session_serv);
 
-    QSharedPointer<SessionIdService> session_id_sp(new SessionIdService(nodes[0]->GetSessionManager()));
-    ws->AddRoute(HttpRequest::METHOD_HTTP_GET, "/session/id", session_id_sp);
-
-    QSharedPointer<SendMessageService> send_message_sp(new SendMessageService(nodes[0]->GetSessionManager()));
-    ws->AddRoute(HttpRequest::METHOD_HTTP_POST, "/session/send", send_message_sp);
+    QSharedPointer<SendMessageService> send_message(new SendMessageService(nodes[0]->GetSessionManager()));
+    ws->AddRoute(QHttpRequest::HTTP_POST, "/session/send", send_message);
 
     ws->Start();
   }

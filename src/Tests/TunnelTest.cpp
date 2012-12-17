@@ -7,6 +7,7 @@
 #include <QUrl>
 
 #include "DissentTest.hpp"
+#include "Mock.hpp"
 
 namespace Dissent {
 namespace Tests {
@@ -210,24 +211,6 @@ namespace Tests {
       ExitTunnel m_exit;
   };
 
-  template<typename T> bool WaitCallback(T *obj, bool (T::*callback)(int))
-  {
-    int count = 0;
-    while(!(obj->*callback)(10) && ++count != 100) {
-      MockExec();
-    }
-    return count != 100;
-  }
-
-  template<typename T> bool WaitCallback(T *obj, bool (T::*callback)(int, bool *))
-  {
-    int count = 0;
-    while(!(obj->*callback)(10, 0) && ++count != 100) {
-      MockExec();
-    }
-    return count != 100;
-  }
-
   void TestTcp(bool use_hostname)
   {
     Library *lib = CryptoFactory::GetInstance().GetLibrary();
@@ -238,7 +221,7 @@ namespace Tests {
     rand->GenerateBlock(msg1);
 
     QString host = "127.0.0.1";
-    int port = 55515;
+    int port = TEST_PORT;
 
     QTcpServer server;
     server.listen();

@@ -1,5 +1,4 @@
 #include "DissentTest.hpp"
-#include "TestNode.hpp"
 #include "RoundTest.hpp"
 
 namespace Dissent {
@@ -83,59 +82,6 @@ namespace Tests {
       if(nodes[idx]->sink.Count()) {
         EXPECT_EQ(msg, nodes[idx]->sink.Last().second);
       }
-    }
-
-    CleanUp(nodes);
-    ConnectionManager::UseTimer = true;
-  }
-
-  /**
-   * This is a RoundTest that sets up a round and then has each
-   * node make a callback to a function that takes a Session pointer
-   * as an argument. This is useful for booting up a node and then
-   * using it to testi SessionWebService objects.
-   */
-  void RoundTest_Basic_SessionTest(SessionCreator callback, 
-      Group::SubgroupPolicy sg_policy, SessionTestCallback session_cb)
-  {
-    ConnectionManager::UseTimer = false;
-    Timer::GetInstance().UseVirtualTime();
-
-    int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
-    int sender = Random::GetInstance().GetInt(0, count);
-
-    QVector<TestNode *> nodes;
-    Group group;
-    ConstructOverlay(count, nodes, group, sg_policy);
-    CreateSessions(nodes, group, Id(), callback);
-
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
-
-    QByteArray msg(128, 0);
-    rand->GenerateBlock(msg);
-    nodes[sender]->session->Send(msg);
-
-    SignalCounter sc;
-    for(int idx = 0; idx < count; idx++) {
-      QObject::connect(&nodes[idx]->sink, SIGNAL(DataReceived()),
-          &sc, SLOT(Counter()));
-      nodes[idx]->session->Start();
-    }
-
-    TestNode::calledback = 0;
-    qint64 next = Timer::GetInstance().VirtualRun();
-    while(next != -1 && sc.GetCount() < count && TestNode::calledback < count) {
-      Time::GetInstance().IncrementVirtualClock(next);
-      next = Timer::GetInstance().VirtualRun();
-    }
-
-    for(int idx = 0; idx < count; idx++) {
-      EXPECT_EQ(msg, nodes[idx]->sink.Last().second);
-    }
-
-    for(int idx = 0; idx < count; idx++) {
-      session_cb(nodes[idx]->sm);
     }
 
     CleanUp(nodes);

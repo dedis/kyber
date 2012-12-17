@@ -8,7 +8,7 @@ import time
 def send(ip, port):
   conn = httplib.HTTPConnection(ip, port)
   try:
-    conn.request("GET", "/round/id")
+    conn.request("GET", "/session")
   except:
     return False
 
@@ -19,7 +19,7 @@ def send(ip, port):
   output = resp.read()
   try:
     msg = json.loads(output)
-    return msg["output"]["active"] == True
+    return msg["round"] == True
   except:
     return False
 

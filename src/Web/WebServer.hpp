@@ -1,141 +1,58 @@
 #ifndef DISSENT_WEB_WEB_SERVER_H_GUARD
 #define DISSENT_WEB_WEB_SERVER_H_GUARD
 
-#include <QDebug>
-#include <QHostAddress>
-#include <QList>
-#include <QPair>
-#include <QSet>
+#include <QScopedPointer>
 #include <QSharedPointer>
-#include <QSocketNotifier>
-#include <QString>
-#include <QTcpServer>
-#include <QTextStream>
 
-#include "Services/WebService.hpp"
+#include "qhttpserver.h"
+#include "qhttprequest.h"
+#include "qhttpresponse.h"
+
+#include "Utils/StartStopSlots.hpp"
+#include "WebService.hpp"
 
 namespace Dissent {
 namespace Web {
-  /**
-   * An HTTP server that enables interaction with a
-   * Dissent node over HTTP.
-   */
-
-  class WebServer : public QTcpServer {
+  class WebServer : public Utils::StartStopSlots {
     Q_OBJECT
 
     public:
-      typedef Dissent::Web::Services::WebService WebService;
-
-      /**
-       * API Version Numbers
-       */
-      static const unsigned int API_MajorVersionNumber = 0;
-      static const unsigned int API_MinorVersionNumber = 0;
-      static const unsigned int API_BuildVersionNumber = 0;
-
-      /**
-       * Constructor
-       * @param url where to listen
-       */
-      explicit WebServer(QUrl url);
+      WebServer(const QUrl &host);
 
       virtual ~WebServer();
 
-      /** 
-       * Start the server
+      /**
+       * Called to start
        */
-      void Start();
+      virtual bool Start();
 
       /**
-       * Called by QTcpServer when there is an incoming
-       * connection
-       * @param the socket number of the incoming connection
+       * Called to stop
        */
-      void incomingConnection(int socket);
-
-      /**
-       * Maximum number of messages to store in buffer
-       */
-      static const int MaxMessages = 20;
-
-      /** 
-       * Write HTML error message to socket and close
-       * @param the socket to write
-       * @param the HTTP status code to return
-       */
-      void ReturnError(QTcpSocket* socket, HttpResponse::StatusCode status);
+      virtual bool Stop();
 
       /**
        * Add a route to the routing table.
-       * WARNING: WebServer deletes all web services
-       * in the table when its destructor is called!
-       * 
-       * @param the method to route (GET, POST, etc)
-       * @param the base path to route (without query string)
-       * @param the routing destination service
+       * @param method the method to route (GET, POST, etc)
+       * @param path the base path to route (without query string)
+       * @param service the routing destination service
+       * @returns returns true if successfully added
        */
-      void AddRoute(HttpRequest::RequestMethod method, QString path,
-          QSharedPointer<WebService> service);
-
-      /**
-       * Get a route from the routing table
-       * WARNING: returns NULL if no route is found!
-       * 
-       * @param the request to route
-       */
-      QSharedPointer<WebService> GetRoute(const HttpRequest &request);
-
-    signals:
-      /**
-       * Indicates that the user has stopped the
-       * web server 
-       */
-      void Stopped();
-    
-    public slots:
-      /**
-       * Called when a WebService finishes processing
-       * a WebRequest. This slot serializes the request,
-       * writes it out to the socket, and cleans up
-       * the memory.
-       * @param wrp the web request finished being handled
-       * @param format whether to package using default packager (true) or
-       * leave as raw
-       */
-      void HandleFinishedWebRequest(QSharedPointer<WebRequest> wrp, bool format);
-
-      /**
-       * Stop the web server 
-       */
-      void Stop();
-
-    /* We keep these private because the sender() for
-     * each must be a QTcpSocket object 
-     */
-    private slots:
-      /**
-       * Called when a web request is ready to be processed
-       */
-      void HandleWebRequest(bool success);
-      void HandleWebRequestFinished();
+      bool AddRoute(QHttpRequest::HttpMethod method, const QString &path,
+          const QSharedPointer<WebService> &service);
 
     private:
-      QHostAddress _host;
-      quint16 _port;
+      typedef QPair<QHttpRequest::HttpMethod, QString> ServiceId;
+      QHash<ServiceId, QSharedPointer<WebService> > m_services;
+      QScopedPointer<QHttpServer> m_server;
+      QUrl m_host;
+      QHash<QHttpRequest *, QHttpResponse *> m_requests;
 
-      /** Map of (RequestMethod, URLPath) -> WebService* */
-      QHash<QPair<HttpRequest::RequestMethod, QString>, QSharedPointer<WebService> > _routing_table; 
+    private slots:
+      void HandleRequest(QHttpRequest *request, QHttpResponse *response);
+      void RequestReady();
 
-      /** Used to see if a service has already been added to the
-       * routing table */
-      QList<QSharedPointer<WebService> > _service_set;
-
-      bool _running;
-      QHash<WebRequest *, QSharedPointer<WebRequest> > _web_requests;
-      QHash<WebRequest *, QSharedPointer<WebRequest> > _handled_web_requests;
   };
 }
 }
-
 #endif

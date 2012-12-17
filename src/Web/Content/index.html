@@ -91,7 +91,7 @@ function getMessages(count, callback) {
 
 function getOffset(data) {
   var jsonObj = jQuery.parseJSON(data);
-  var total = jsonObj.output.total;
+  var total = jsonObj.total;
   if(total > max_offset_delta) {
     offset = total - max_offset_delta;
   }
@@ -108,14 +108,14 @@ function getMessagesCallback(data) {
     return;
   }
 
-  for(i=0;i<jsonObj.output.messages.length;i++){
-    chat_div.innerHTML += 'message: ' + jsonObj.output.messages[i] + '<br/>';
+  for(i=0;i<jsonObj.messages.length;i++){
+    chat_div.innerHTML += 'message: ' + jsonObj.messages[i] + '<br/>';
   }
   $("#chatbox").scrollTop($("#chatbox")[0].scrollHeight);
 
-  var length = jsonObj.output.messages.length;
+  var length = jsonObj.messages.length;
   offset += length;
-  var total = jsonObj.output.total;
+  var total = jsonObj.total;
 
   if(offset == total) {
     getMessages(1);

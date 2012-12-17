@@ -66,8 +66,6 @@ namespace Tests {
       Group::SubgroupPolicy sg_policy);
   void RoundTest_Basic(SessionCreator callback,
       Group::SubgroupPolicy sg_policy);
-  void RoundTest_Basic_SessionTest(SessionCreator callback, 
-      Group::SubgroupPolicy sg_policy, SessionTestCallback session_cb);
   void RoundTest_MultiRound(SessionCreator callback,
       Group::SubgroupPolicy sg_policy);
   void RoundTest_AddOne(SessionCreator callback,
