@@ -26,9 +26,7 @@ namespace Sessions {
     _current_round(0),
     _challenged(new ResponseHandler(this, "Challenged")),
     _registered(new ResponseHandler(this, "Registered")),
-    _get_data_cb(this, &Session::GetData),
     _prepare_waiting(false),
-    _trim_send_queue(0),
     _registering(false),
     _auth(auth)
   {
@@ -185,7 +183,7 @@ namespace Sessions {
       "finished due to" << _current_round->GetStoppedReason();
 
     if(!_current_round->Successful()) {
-      _trim_send_queue = 0;
+      m_send_queue.UnGet();
     }
 
     emit RoundFinished(_current_round);
@@ -281,7 +279,7 @@ namespace Sessions {
   void Session::NextRound(const Id &round_id)
   {
     _current_round = _create_round(GetGroup(), GetPrivateIdentity(), round_id,
-        _network, _get_data_cb);
+        _network, m_send_queue.GetCallback());
 
     qDebug() << "Session" << ToString() << "preparing new round" <<
       _current_round;
@@ -388,7 +386,7 @@ namespace Sessions {
       return;
     }
 
-    _send_queue.append(data);
+    m_send_queue.AddData(data);
   }
 
   void Session::IncomingData(const Request &notification)
@@ -492,30 +490,30 @@ namespace Sessions {
     }
   }
 
-  QPair<QByteArray, bool> Session::GetData(int max)
+  QPair<QByteArray, bool> Session::DataQueue::GetData(int max)
   {
-    if(_trim_send_queue > 0) {
-      _send_queue = _send_queue.mid(_trim_send_queue);
+    if(m_trim > 0) {
+      m_queue = m_queue.mid(m_trim);
     }
 
     QByteArray data;
     int idx = 0;
-    while(idx < _send_queue.count()) {
-      if(max < _send_queue[idx].count()) {
+    while(idx < m_queue.count()) {
+      if(max < m_queue[idx].count()) {
         qDebug() << "Message in queue is larger than max data:" <<
-          _send_queue[idx].count() << "/" << max;
+          m_queue[idx].count() << "/" << max;
         idx++;
         continue;
-      } else if(max < (data.count() + _send_queue[idx].count())) {
+      } else if(max < (data.count() + m_queue[idx].count())) {
         break;
       }
 
-      data.append(_send_queue[idx++]);
+      data.append(m_queue[idx++]);
     }
 
-    _trim_send_queue = idx;
+    m_trim = idx;
 
-    bool more = _send_queue.count() < _trim_send_queue;
+    bool more = m_queue.count() != m_trim;
     return QPair<QByteArray, bool>(data, more);
   }
 }

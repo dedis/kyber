@@ -50,7 +50,6 @@ namespace Sessions {
       typedef Messaging::Request Request;
       typedef Messaging::Response Response;
       typedef Messaging::ResponseHandler ResponseHandler;
-      typedef Messaging::GetDataMethod<Session> GetDataCallback;
 
       /**
        * Constructor
@@ -219,6 +218,54 @@ namespace Sessions {
 
     private:
       /**
+       * A light weight class for handling semi-reliable sends
+       * across the anonymous communication channel
+       */
+      class DataQueue {
+        public:
+          DataQueue() : m_trim(0), m_get_data(this, &DataQueue::GetData) {}
+
+          /**
+           * Adds new data to the send queue
+           * @param data the data to add
+           */
+          void AddData(const QByteArray &data)
+          {
+            m_queue.append(data);
+          }
+
+          /**
+           * Retrieves data from the data waiting queue, returns the byte array
+           * containing data and a bool which is true if there is more data
+           * available.
+           * @param max the maximum amount of data to retrieve
+           */
+          QPair<QByteArray, bool> GetData(int max);
+
+          /**
+           * Resets the current offset in the GetData queue
+           */
+          void UnGet()
+          {
+            m_trim = 0;
+          }
+
+          /**
+           * Returns a callback into this object,
+           * which is valid so long as this object is
+           */
+          Messaging::GetDataCallback &GetCallback()
+          {
+            return m_get_data;
+          }
+
+        private:
+          QList<QByteArray> m_queue;
+          int m_trim;
+          Messaging::GetDataMethod<DataQueue> m_get_data;
+      };
+
+      /**
        * Called upon starting to register this peer with the leader
        * @param unused unused
        */
@@ -235,17 +282,9 @@ namespace Sessions {
       virtual bool ShouldRegister();
 
       /**
-       * Retrieves data from the data waiting queue, returns the byte array
-       * containing data and a bool which is true if there is more data
-       * available.
-       * @param max the maximum amount of data to retrieve
-       */
-      QPair<QByteArray, bool> GetData(int max);
-
-      /**
        * Used by a client to store messages to be sent for future rounds
        */
-      QList<QByteArray> _send_queue;
+      DataQueue m_send_queue;
 
       Utils::TimerEvent _register_event;
       QSharedPointer<GroupHolder> _group_holder;
@@ -257,7 +296,6 @@ namespace Sessions {
       QSharedPointer<Round> _current_round;
       QSharedPointer<ResponseHandler> _challenged;
       QSharedPointer<ResponseHandler> _registered;
-      GetDataCallback _get_data_cb;
       Request _prepare_notification;
       bool _prepare_waiting;
       int _trim_send_queue;
