@@ -167,11 +167,18 @@ namespace Tunnel {
        * Remote constructor
        * @param packet serialized packet
        */
-      TunnelPacket(const QByteArray &packet) :
-        m_packet(packet)
+      TunnelPacket(const QByteArray &packet)
       {
         QDataStream stream0(packet);
-        stream0 >> m_unsigned_packet >> m_signature;
+        stream0 >> m_length >> m_unsigned_packet >> m_signature;
+
+        qint32 expected = m_unsigned_packet.size() + m_signature.size() + 12;
+        if(expected != m_length) {
+          qDebug() << "TunnelPacket: Packet length does not match" <<
+            "expected packet length --" << expected << "!=" << m_length;
+          m_valid = false;
+          return;
+        }
         
         QDataStream stream1(m_unsigned_packet);
         int type;
@@ -190,12 +197,18 @@ namespace Tunnel {
           }
         }
 
+        m_packet = packet.mid(0, m_length);
         m_valid = Validate();
       }
 
       TunnelPacket() : m_valid(false)
       {
       }
+
+      /**
+       * Returns the full packet length
+       */
+      qint32 GetLength() const { return m_length; }
 
       /**
        * Returns the full packet
@@ -262,8 +275,9 @@ namespace Tunnel {
       void SetSignature(const QByteArray &signature)
       {
         m_signature = signature;
+        m_length = m_unsigned_packet.size() + m_signature.size() + 12;
         QDataStream stream(&m_packet, QIODevice::WriteOnly);
-        stream << m_unsigned_packet << m_signature;
+        stream << m_length << m_unsigned_packet << m_signature;
       }
 
     private:
@@ -285,8 +299,9 @@ namespace Tunnel {
           stream << option << options[option];
         }
 
+        m_length = m_unsigned_packet.size() + m_signature.size() + 12;
         QDataStream istream(&m_packet, QIODevice::WriteOnly);
-        istream << m_unsigned_packet << m_signature;
+        istream << m_length << m_unsigned_packet << m_signature;
         m_valid = Validate();
       }
 
@@ -298,6 +313,7 @@ namespace Tunnel {
       QHash<int, QVariant> m_options;
       QByteArray m_message;
       QByteArray m_signature;
+      qint32 m_length;
 
       typedef QList<OptionalFields> RequiredFields;
 
