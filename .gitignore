@@ -11,3 +11,6 @@ docs/html
 test.log
 libdissent.so*
 keygen
+*.moc
+entry_tunnel
+exit_tunnel
