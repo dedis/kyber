@@ -57,10 +57,13 @@ namespace Tunnel {
   void EntryTunnel::IncomingData(const QByteArray &data)
   {
     TunnelPacket packet(data);
-    if(!packet.IsValid()) {
-      return;
+    if(packet.IsValid()) {
+      IncomingData(packet);
     }
+  }
 
+  void EntryTunnel::IncomingData(const TunnelPacket &packet)
+  {
     QByteArray cid = packet.GetConnectionId();
     if(!_conn_map.contains(cid)) {
       qDebug() << "SOCKS Ignoring packet for another client";

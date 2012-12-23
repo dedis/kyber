@@ -48,6 +48,11 @@ namespace Tunnel {
       void IncomingData(const QByteArray &data);
 
       /**
+       * Data from the exit tunnel
+       */
+      void IncomingData(const TunnelPacket &packet);
+
+      /**
        * Stops listening on the TCP port
        */
       void Stop();

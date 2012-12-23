@@ -202,7 +202,7 @@ namespace Tests {
       void FromExitTunnel(const TunnelPacket &packet)
       {
         m_used = true;
-        m_entry.IncomingData(packet.GetPacket());
+        m_entry.IncomingData(packet);
       }
 
     private:
