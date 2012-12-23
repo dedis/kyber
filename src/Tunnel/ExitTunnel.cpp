@@ -95,7 +95,14 @@ namespace Tunnel {
       qWarning("Illegal call to DiscardClient()");
       return;
     }
-    qDebug() << "Socket closed";
+
+    QSharedPointer<SocksEntry> entry = _stable.GetSocksEntry(socket);
+    QString cid;
+    if(entry) {
+      cid = entry->GetConnectionId().toBase64();
+    }
+    qDebug() << "Socket closed:" << cid;
+
     socket->close();
     _stable.RemoveSocksEntry(socket);
   }
@@ -182,7 +189,8 @@ namespace Tunnel {
     }
 
     if((host_info.error() != QHostInfo::NoError) || host_info.addresses().count() == 0) {
-      qDebug() << "Failed to resolve hostname:" << host_info.hostName();
+      qDebug() << "Failed to resolve hostname:" << host_info.hostName() <<
+        entry->GetConnectionId().toBase64();
       // If this is TCP, we're done...
       if(!udp) {
         entry->GetSocket()->close();
@@ -257,7 +265,7 @@ namespace Tunnel {
               packet.GetKey()))));
 
     if(!_stable.AddConnection(entry)) {
-      qDebug() << "Duplicate entries" << entry->GetConnectionId();
+      qDebug() << "Duplicate entries" << entry->GetConnectionId().toBase64();
       return;
     }
 
@@ -266,7 +274,8 @@ namespace Tunnel {
     connect(socket.data(), SIGNAL(error(QAbstractSocket::SocketError)), this,
         SLOT(HandleError(QAbstractSocket::SocketError)));
 
-    qDebug() << "SOCKS Creating connection" << entry->GetConnectionId();
+    qDebug() << "SOCKS Creating connection" <<
+      entry->GetConnectionId().toBase64();
 
     if(is_addr) {
       qDebug() << "SOCKS ConnectToHost" << entry->GetAddress() <<
@@ -297,7 +306,7 @@ namespace Tunnel {
               packet.GetKey()))));
 
     if(!_stable.AddConnection(entry)) {
-      qDebug() << "Duplicate entries" << entry->GetConnectionId();
+      qDebug() << "Duplicate entries" << entry->GetConnectionId().toBase64();
       return;
     }
 
@@ -310,7 +319,8 @@ namespace Tunnel {
 
     RestartTimer(entry);
 
-    qDebug() << "SOCKS Creating UDP connection" << entry->GetConnectionId();
+    qDebug() << "SOCKS Creating UDP connection" <<
+      entry->GetConnectionId().toBase64();
   }
 
   void ExitTunnel::TcpHandleRequest(const TunnelPacket &packet)
@@ -319,7 +329,8 @@ namespace Tunnel {
 
     QSharedPointer<SocksEntry> entry = _stable.GetSocksEntryId(packet.GetConnectionId());
     if(!entry) {
-      qDebug() << "SOCKS Ignoring request packet for other relay" << packet.GetConnectionId();
+      qDebug() << "SOCKS Ignoring request packet for other relay" <<
+        packet.GetConnectionId().toBase64();
       return;
     }
 
@@ -364,7 +375,8 @@ namespace Tunnel {
     qDebug() << "SOCKS Handling UDP request";
     QSharedPointer<SocksEntry> entry = _stable.GetSocksEntryId(packet.GetConnectionId());
     if(!entry) {
-      qDebug() << "SOCKS Ignoring request packet for other relay" << packet.GetConnectionId();
+      qDebug() << "SOCKS Ignoring request packet for other relay" <<
+        packet.GetConnectionId().toBase64();
       return;
     }
 
@@ -417,7 +429,8 @@ namespace Tunnel {
     qDebug() << "SOCKS Handling finish";
     QSharedPointer<SocksEntry> entry = _stable.GetSocksEntryId(packet.GetConnectionId());
     if(!entry) {
-      qDebug() << "SOCKS Ignoring finish packet for other relay" << packet.GetConnectionId();
+      qDebug() << "SOCKS Ignoring finish packet for other relay" <<
+        packet.GetConnectionId().toBase64();
       return;
     }
 
