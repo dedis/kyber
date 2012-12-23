@@ -28,17 +28,25 @@ if test $? -ne 0; then
   exit 1
 fi
 
-qmake application.pro
-if test $? -ne 0; then
-  cleanup "Error qmake application.pro"
-  exit 1
-fi
+builds="
+application.pro
+entry_tunnel.pro
+exit_tunnel.pro
+"
 
-make
-if test $? -ne 0; then
-  cleanup "Error make application.pro"
-  exit 1
-fi
+for build in $builds; do
+  qmake $build
+  if test $? -ne 0; then
+    cleanup "Error qmake $build"
+    exit 1
+  fi
+
+  make
+  if test $? -ne 0; then
+    cleanup "Error make $build"
+    exit 1
+  fi
+done
 
 cd $wd
 git push $github_repo master
