@@ -151,7 +151,6 @@ void SoloExitTunnel::Error()
 
 void SoloExitTunnel::FromSocket()
 {
-  qDebug() << "???";
   QByteArray data = m_socket->peek(m_socket->bytesAvailable());
   QByteArray current = data;
   int read = 0;
@@ -171,7 +170,6 @@ void SoloExitTunnel::FromSocket()
 
 void SoloExitTunnel::FromTunnel(const Dissent::Tunnel::TunnelPacket &packet)
 {
-  qDebug() << "HERE?";
   Q_ASSERT(m_socket->write(packet.GetPacket(), packet.GetPacket().size()));
 }
 
