@@ -32,6 +32,7 @@ builds="
 application.pro
 entry_tunnel.pro
 exit_tunnel.pro
+keygen.pro
 "
 
 for build in $builds; do
