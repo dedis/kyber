@@ -5,8 +5,8 @@ namespace Tests {
   TEST(KeyShare, Base)
   {
     KeyShare ks;
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Hash> hash(lib->GetHashAlgorithm());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<Hash> hash(lib.GetHashAlgorithm());
     QList<QString> names;
     QHash<QString, QSharedPointer<AsymmetricKey> > keys;
 
@@ -20,7 +20,7 @@ namespace Tests {
     QString base_path = QDir::tempPath() + QDir::separator() + rel_path + QDir::separator();
 
     for(int idx = 0; idx < 20; idx++) {
-      QSharedPointer<AsymmetricKey> key(lib->CreatePrivateKey());
+      QSharedPointer<AsymmetricKey> key(lib.CreatePrivateKey());
       QSharedPointer<AsymmetricKey> pkey(key->GetPublicKey());
       QString name(Utils::ToUrlSafeBase64(hash->ComputeHash(pkey->GetByteArray())));
       names.append(name);

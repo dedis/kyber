@@ -187,11 +187,11 @@ namespace Anonymity {
 
     _inner_data = _rounds[_group.GetIndex(_shufflers.GetId(0))]->GetShuffleCipherText();
 
-    OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
+    OnionEncryptor &oe = CryptoFactory::GetInstance().GetOnionEncryptor();
     for(int idx = 0; idx < _private_keys.count(); idx++) {
       QVector<QByteArray> outdata;
       QVector<int> bad;
-      oe->Decrypt(_private_keys[idx], _inner_data, outdata, &bad);
+      oe.Decrypt(_private_keys[idx], _inner_data, outdata, &bad);
       _inner_data = outdata;
       if(bad.count() == 0) {
         continue;

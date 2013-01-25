@@ -14,8 +14,8 @@ namespace Connections {
 
   Id::Id()
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rng(lib->GetRandomNumberGenerator());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rng(lib.GetRandomNumberGenerator());
     QByteArray bid(ByteSize, 0);
     rng->GenerateBlock(bid);
     _integer = Integer(bid);

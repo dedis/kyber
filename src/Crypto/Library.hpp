@@ -14,37 +14,37 @@ namespace Crypto {
       /**
        * Load a public key from a file
        */
-      virtual AsymmetricKey *LoadPublicKeyFromFile(const QString &filename) = 0;
+      virtual AsymmetricKey *LoadPublicKeyFromFile(const QString &filename) const = 0;
 
       /**
        * Loading a public key from a byte array
        */
-      virtual AsymmetricKey *LoadPublicKeyFromByteArray(const QByteArray &data) = 0;
+      virtual AsymmetricKey *LoadPublicKeyFromByteArray(const QByteArray &data) const = 0;
 
       /**
        * Generate a public key using the given data as a seed to a RNG
        */
-      virtual AsymmetricKey *GeneratePublicKey(const QByteArray &seed) = 0;
+      virtual AsymmetricKey *GeneratePublicKey(const QByteArray &seed) const = 0;
 
       /**
        * Load a private key from a file
        */
-      virtual AsymmetricKey *LoadPrivateKeyFromFile(const QString &filename) = 0;
+      virtual AsymmetricKey *LoadPrivateKeyFromFile(const QString &filename) const = 0;
 
       /**
        * Loading a private key from a byte array
        */
-      virtual AsymmetricKey *LoadPrivateKeyFromByteArray(const QByteArray &data) = 0;
+      virtual AsymmetricKey *LoadPrivateKeyFromByteArray(const QByteArray &data) const = 0;
 
       /**
        * Generate a private key using the given data as a seed to a RNG
        */
-      virtual AsymmetricKey *GeneratePrivateKey(const QByteArray &seed) = 0;
+      virtual AsymmetricKey *GeneratePrivateKey(const QByteArray &seed) const = 0;
 
       /**
        * Generates a unique (new) private key
        */
-      virtual AsymmetricKey *CreatePrivateKey() = 0;
+      virtual AsymmetricKey *CreatePrivateKey() const = 0;
 
       /**
        * Returns the minimum asymmetric key size
@@ -55,39 +55,39 @@ namespace Crypto {
        * Returns a random number generator
        */
       virtual Utils::Random *GetRandomNumberGenerator(
-          const QByteArray &seed = QByteArray(), uint index = 0) = 0;
+          const QByteArray &seed = QByteArray(), uint index = 0) const = 0;
 
       /**
        * Returns the optimal seed size for the RNG
        */
-      virtual uint RngOptimalSeedSize() = 0;
+      virtual uint RngOptimalSeedSize() const = 0;
 
       /**
        * Returns a hash algorithm
        */
-      virtual Hash *GetHashAlgorithm() = 0;
+      virtual Hash *GetHashAlgorithm() const = 0;
 
       /**
        * Returns an integer data
        */
-      virtual IntegerData *GetIntegerData(int value) = 0;
+      virtual IntegerData *GetIntegerData(int value) const = 0;
 
       /**
        * Returns an integer data
        */
-      virtual IntegerData *GetIntegerData(const QByteArray &value) = 0;
+      virtual IntegerData *GetIntegerData(const QByteArray &value) const = 0;
 
       /**
        * Returns an integer data
        */
-      virtual IntegerData *GetIntegerData(const QString &value) = 0;
+      virtual IntegerData *GetIntegerData(const QString &value) const = 0;
 
       /**
        * returns a random integer data
        * @param bit_count the amount of bits in the integer
        * @param prime if the integer should be prime 
        */
-      virtual IntegerData *GetRandomInteger(int bit_count, bool prime) = 0;
+      virtual IntegerData *GetRandomInteger(int bit_count, bool prime) const = 0;
 
       /**
        * returns a random integer data
@@ -96,24 +96,24 @@ namespace Crypto {
        * @param prime should the resulting number be prime
        */
       virtual IntegerData *GetRandomInteger(const IntegerData *min,
-          const IntegerData *max, bool prime) = 0;
+          const IntegerData *max, bool prime) const = 0;
 
       /**
        * Returns a DiffieHellman operator
        */
-      virtual DiffieHellman *CreateDiffieHellman() = 0;
+      virtual DiffieHellman *CreateDiffieHellman() const = 0;
 
       /**
        * Generate a DiffieHellman operator using the given data as a seed to a RNG
        * @param seed seed used to generate the DiffieHellman exchange
        */
-      virtual DiffieHellman *GenerateDiffieHellman(const QByteArray &seed) = 0;
+      virtual DiffieHellman *GenerateDiffieHellman(const QByteArray &seed) const = 0;
 
       /**
        * Loads a DiffieHellman key from a byte array
        * @param private_component the private component in the DH exchange
        */
-      virtual DiffieHellman *LoadDiffieHellman(const QByteArray &private_component) = 0;
+      virtual DiffieHellman *LoadDiffieHellman(const QByteArray &private_component) const = 0;
 
       /**
        * Destructor

@@ -55,8 +55,8 @@ namespace Tests {
         }
         
         SetTriggered();
-        Library *lib = CryptoFactory::GetInstance().GetLibrary();
-        QScopedPointer<Random> rng(lib->GetRandomNumberGenerator());
+        Library &lib = CryptoFactory::GetInstance().GetLibrary();
+        QScopedPointer<Random> rng(lib.GetRandomNumberGenerator());
         msg.resize(rng->GetInt(0, msg.size()));
         rng->GenerateBlock(msg);
         return msg;
@@ -88,8 +88,8 @@ namespace Tests {
         }
         
         SetTriggered();
-        Library *lib = CryptoFactory::GetInstance().GetLibrary();
-        QScopedPointer<Random> rng(lib->GetRandomNumberGenerator());
+        Library &lib = CryptoFactory::GetInstance().GetLibrary();
+        QScopedPointer<Random> rng(lib.GetRandomNumberGenerator());
         rng->GenerateBlock(msg);
         return msg;
       }
@@ -124,8 +124,8 @@ namespace Tests {
         const Descriptor &cdes = GetMyDescriptor();
         QVector<QByteArray> hashes = cdes.XorMessageHashes();
 
-        Library *lib = CryptoFactory::GetInstance().GetLibrary();
-        QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
+        Library &lib = CryptoFactory::GetInstance().GetLibrary();
+        QScopedPointer<Hash> hashalgo(lib.GetHashAlgorithm());
         hashes[bad] = hashalgo->ComputeHash(data);
 
         Descriptor descriptor(cdes.Length(), cdes.PublicDh(), hashes,

@@ -14,7 +14,7 @@ namespace Tests {
 
     QList<QSharedPointer<Node> > nodes;
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
 
     Id session_id;
     Id leader_id;
@@ -23,8 +23,8 @@ namespace Tests {
     for(int idx = 0; idx < count; idx++) {
       Id id = idx == 0 ? leader_id : Id();
       QByteArray bid(id.GetByteArray());
-      QSharedPointer<AsymmetricKey> key(lib->GeneratePrivateKey(bid));
-      QSharedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
+      QSharedPointer<AsymmetricKey> key(lib.GeneratePrivateKey(bid));
+      QSharedPointer<DiffieHellman> dh(lib.GenerateDiffieHellman(bid));
 
       QSharedPointer<ISink> sink(new BufferSink());
       nodes.append(Node::CreateBasicGossip(PrivateIdentity(id, key, key, dh), group,

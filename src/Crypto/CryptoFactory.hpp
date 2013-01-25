@@ -48,12 +48,12 @@ namespace Crypto {
       /**
        * Return the Onion Encryptor
        */
-      inline OnionEncryptor *GetOnionEncryptor() { return _onion.data(); }
+      inline OnionEncryptor &GetOnionEncryptor() { return *_onion; }
 
       /**
        * Return the library constructor
        */
-      inline Library *GetLibrary() { return _library.data(); }
+      inline Library &GetLibrary() { return *_library; }
 
     private:
       /**

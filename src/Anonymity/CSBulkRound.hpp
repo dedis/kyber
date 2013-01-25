@@ -502,13 +502,13 @@ namespace Anonymity {
       inline int SlotHeaderLength(int) const
 #endif
       {
-        Crypto::Library *lib = Crypto::CryptoFactory::GetInstance().GetLibrary();
+        Crypto::Library &lib = Crypto::CryptoFactory::GetInstance().GetLibrary();
 #ifdef CSBR_SIGN_SLOTS
         int sig_length = _state->anonymous_keys[slot_idx]->GetSignatureLength();
 #else
-        static int sig_length = QSharedPointer<Crypto::Hash>(lib->GetHashAlgorithm())->GetDigestSize();
+        static int sig_length = QSharedPointer<Crypto::Hash>(lib.GetHashAlgorithm())->GetDigestSize();
 #endif
-        return 9 + lib->RngOptimalSeedSize() + sig_length;
+        return 9 + lib.RngOptimalSeedSize() + sig_length;
       }
 
       QPair<int, QBitArray> FindMismatch();

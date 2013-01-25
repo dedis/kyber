@@ -17,7 +17,7 @@ namespace Crypto {
       /**
        * Load a public key from a file
        */
-      inline virtual AsymmetricKey *LoadPublicKeyFromFile(const QString &filename)
+      inline virtual AsymmetricKey *LoadPublicKeyFromFile(const QString &filename) const
       {
         return new NullPublicKey(filename);
       }
@@ -25,7 +25,7 @@ namespace Crypto {
       /**
        * Loading a public key from a byte array
        */
-      inline virtual AsymmetricKey *LoadPublicKeyFromByteArray(const QByteArray &data) 
+      inline virtual AsymmetricKey *LoadPublicKeyFromByteArray(const QByteArray &data) const
       {
         return new NullPublicKey(data);
       }
@@ -33,7 +33,7 @@ namespace Crypto {
       /**
        * Generate a public key using the given data as a seed to a RNG
        */
-      inline virtual AsymmetricKey *GeneratePublicKey(const QByteArray &seed)
+      inline virtual AsymmetricKey *GeneratePublicKey(const QByteArray &seed) const
       {
         return NullPublicKey::GenerateKey(seed);
       }
@@ -41,7 +41,7 @@ namespace Crypto {
       /**
        * Load a private key from a file
        */
-      inline virtual AsymmetricKey *LoadPrivateKeyFromFile(const QString &filename) 
+      inline virtual AsymmetricKey *LoadPrivateKeyFromFile(const QString &filename) const
       {
         return new NullPrivateKey(filename);
       }
@@ -49,7 +49,7 @@ namespace Crypto {
       /**
        * Loading a private key from a byte array
        */
-      inline virtual AsymmetricKey *LoadPrivateKeyFromByteArray(const QByteArray &data) 
+      inline virtual AsymmetricKey *LoadPrivateKeyFromByteArray(const QByteArray &data) const
       {
         return new NullPrivateKey(data);
       }
@@ -57,7 +57,7 @@ namespace Crypto {
       /**
        * Generate a private key using the given data as a seed to a RNG
        */
-      inline virtual AsymmetricKey *GeneratePrivateKey(const QByteArray &seed) 
+      inline virtual AsymmetricKey *GeneratePrivateKey(const QByteArray &seed) const
       {
         return NullPrivateKey::GenerateKey(seed);
       }
@@ -65,7 +65,7 @@ namespace Crypto {
       /**
        * Generates a unique (new) private key
        */
-      inline virtual AsymmetricKey *CreatePrivateKey() 
+      inline virtual AsymmetricKey *CreatePrivateKey() const
       {
         return new NullPrivateKey();
       }
@@ -78,12 +78,12 @@ namespace Crypto {
       /**
        * Returns a random number generator
        */
-      inline virtual Utils::Random *GetRandomNumberGenerator(const QByteArray &seed, uint index) 
+      inline virtual Utils::Random *GetRandomNumberGenerator(const QByteArray &seed, uint index) const
       {
         return new Utils::Random(seed, index);
       }
 
-      inline virtual uint RngOptimalSeedSize()
+      inline virtual uint RngOptimalSeedSize() const
       {
         return Utils::Random::OptimalSeedSize();
       }
@@ -91,7 +91,7 @@ namespace Crypto {
       /**
        * Returns a hash algorithm
        */
-      inline virtual Hash *GetHashAlgorithm() 
+      inline virtual Hash *GetHashAlgorithm() const
       {
         return new NullHash();
       }
@@ -99,7 +99,7 @@ namespace Crypto {
       /**
        * Returns an integer data
        */
-      inline virtual IntegerData *GetIntegerData(int value)
+      inline virtual IntegerData *GetIntegerData(int value) const
       {
         return new CppIntegerData(value);
       }
@@ -107,7 +107,7 @@ namespace Crypto {
       /**
        * Returns an integer data
        */
-      inline virtual IntegerData *GetIntegerData(const QByteArray &value)
+      inline virtual IntegerData *GetIntegerData(const QByteArray &value) const
       {
         return new CppIntegerData(value);
       }
@@ -115,7 +115,7 @@ namespace Crypto {
       /**
        * Returns an integer data
        */
-      inline virtual IntegerData *GetIntegerData(const QString &value)
+      inline virtual IntegerData *GetIntegerData(const QString &value) const
       {
         return new CppIntegerData(value);
       }
@@ -125,7 +125,7 @@ namespace Crypto {
        * @param bit_count the amount of bits in the integer
        * @param prime if the integer should be prime 
        */
-      virtual IntegerData *GetRandomInteger(int bit_count, bool prime)
+      virtual IntegerData *GetRandomInteger(int bit_count, bool prime) const
       {
         return CppIntegerData::GetRandomInteger(bit_count, prime);
       }
@@ -137,7 +137,7 @@ namespace Crypto {
        * @param prime should the resulting number be prime
        */
       virtual IntegerData *GetRandomInteger(const IntegerData *min,
-          const IntegerData *max, bool prime)
+          const IntegerData *max, bool prime) const
       {
         return CppIntegerData::GetRandomInteger(min, max, prime);
       }
@@ -145,7 +145,7 @@ namespace Crypto {
       /**
        * Returns a DiffieHellman operator
        */
-      virtual DiffieHellman *CreateDiffieHellman()
+      virtual DiffieHellman *CreateDiffieHellman() const
       {
         return new NullDiffieHellman();
       }
@@ -154,7 +154,7 @@ namespace Crypto {
        * Generate a DiffieHellman operator using the given data as a seed to a RNG
        * @param seed seed used to generate the DiffieHellman exchange
        */
-      virtual DiffieHellman *GenerateDiffieHellman(const QByteArray &seed)
+      virtual DiffieHellman *GenerateDiffieHellman(const QByteArray &seed) const
       {
         return NullDiffieHellman::GenerateFromSeed(seed);
       }
@@ -163,7 +163,7 @@ namespace Crypto {
        * Loads a DiffieHellman key from a byte array
        * @param private_component the private component in the DH exchange
        */
-      virtual DiffieHellman *LoadDiffieHellman(const QByteArray &private_component)
+      virtual DiffieHellman *LoadDiffieHellman(const QByteArray &private_component) const
       {
         return new NullDiffieHellman(private_component);
       }

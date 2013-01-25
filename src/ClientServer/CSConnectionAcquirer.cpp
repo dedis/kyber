@@ -207,7 +207,7 @@ namespace ClientServer {
     }
 
     QSharedPointer<Random> rand(CryptoFactory::GetInstance().
-      GetLibrary()->GetRandomNumberGenerator());
+      GetLibrary().GetRandomNumberGenerator());
 
     QByteArray bid = id_to_addr.keys()[rand->GetInt(0, id_to_addr.size())];
     CheckAndConnect(bid, id_to_addr[bid]);

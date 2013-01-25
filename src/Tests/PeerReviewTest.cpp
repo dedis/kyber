@@ -6,9 +6,9 @@ namespace Dissent {
 namespace Tests {
   QSharedPointer<Entry> CreateSendEntry(QSharedPointer<AsymmetricKey> key)
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib->GetRandomNumberGenerator());
-    QSharedPointer<Hash> hash(lib->GetHashAlgorithm());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
+    QSharedPointer<Hash> hash(lib.GetHashAlgorithm());
     uint seq_id = rand->GetInt();
     Id id;
 
@@ -26,9 +26,9 @@ namespace Tests {
   QSharedPointer<Entry> CreateReceiveEntry(QSharedPointer<AsymmetricKey> key,
       QSharedPointer<Entry> send_entry)
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib->GetRandomNumberGenerator());
-    QSharedPointer<Hash> hash(lib->GetHashAlgorithm());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
+    QSharedPointer<Hash> hash(lib.GetHashAlgorithm());
 
     uint seq_id = rand->GetInt();
     Id id;
@@ -43,8 +43,8 @@ namespace Tests {
 
   TEST(PeerReview, SendEntry)
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<AsymmetricKey> key(lib->CreatePrivateKey());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<AsymmetricKey> key(lib.CreatePrivateKey());
 
     QSharedPointer<Entry> entry = CreateSendEntry(key);
     QSharedPointer<Entry> entry0 = ParseEntry(entry->Serialize());
@@ -55,9 +55,9 @@ namespace Tests {
 
   TEST(PeerReview, ReceiveEntry)
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<AsymmetricKey> key0(lib->CreatePrivateKey());
-    QSharedPointer<AsymmetricKey> key1(lib->CreatePrivateKey());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<AsymmetricKey> key0(lib.CreatePrivateKey());
+    QSharedPointer<AsymmetricKey> key1(lib.CreatePrivateKey());
 
     QSharedPointer<Entry> se = CreateSendEntry(key0);
     QSharedPointer<Entry> re = CreateReceiveEntry(key1, se);
@@ -83,9 +83,9 @@ namespace Tests {
 
   TEST(PeerReview, Acknowledgement)
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<AsymmetricKey> key0(lib->CreatePrivateKey());
-    QSharedPointer<AsymmetricKey> key1(lib->CreatePrivateKey());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<AsymmetricKey> key0(lib.CreatePrivateKey());
+    QSharedPointer<AsymmetricKey> key1(lib.CreatePrivateKey());
 
     QSharedPointer<Entry> se = CreateSendEntry(key0);
     QSharedPointer<Entry> re = CreateReceiveEntry(key1, se);
@@ -103,11 +103,11 @@ namespace Tests {
 
   TEST(PeerReview, EntryLog)
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib->GetRandomNumberGenerator());
-    QSharedPointer<Hash> hash(lib->GetHashAlgorithm());
-    QSharedPointer<AsymmetricKey> key0(lib->CreatePrivateKey());
-    QSharedPointer<AsymmetricKey> key1(lib->CreatePrivateKey());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
+    QSharedPointer<Hash> hash(lib.GetHashAlgorithm());
+    QSharedPointer<AsymmetricKey> key0(lib.CreatePrivateKey());
+    QSharedPointer<AsymmetricKey> key1(lib.CreatePrivateKey());
     Id id0, id1;
 
     QByteArray previous_hash(hash->GetDigestSize(), 0);
@@ -166,18 +166,18 @@ namespace Tests {
 
   TEST(PeerReview, PeerReview)
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib->GetRandomNumberGenerator());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
 
     PrivateIdentity cred0(Id(),
-          QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
-          QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
-          QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman()));
+          QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
+          QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
+          QSharedPointer<DiffieHellman>(lib.CreateDiffieHellman()));
 
     PrivateIdentity cred1(Id(),
-          QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
-          QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
-          QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman()));
+          QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
+          QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
+          QSharedPointer<DiffieHellman>(lib.CreateDiffieHellman()));
 
     Group group;
     group = AddGroupMember(group, GetPublicIdentity(cred0));

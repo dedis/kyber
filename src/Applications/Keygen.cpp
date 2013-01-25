@@ -32,7 +32,7 @@ class CreateKey {
 
     virtual AsymmetricKey *operator()()
     {
-      return CryptoFactory::GetInstance().GetLibrary()->CreatePrivateKey();
+      return CryptoFactory::GetInstance().GetLibrary().CreatePrivateKey();
     }
 };
 
@@ -133,8 +133,8 @@ int main(int argc, char **argv)
     ExitWithWarning(options, "Invalid library");
   }
 
-  Library *lib = cf.GetLibrary();
-  QSharedPointer<Hash> hash(lib->GetHashAlgorithm());
+  Library &lib = cf.GetLibrary();
+  QSharedPointer<Hash> hash(lib.GetHashAlgorithm());
 
   int count = 0;
   while(count < key_count) {

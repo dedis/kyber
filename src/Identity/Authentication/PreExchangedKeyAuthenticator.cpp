@@ -33,8 +33,8 @@ namespace Authentication {
     }
 
     /* Generate and sign response for Bob */
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rng(lib->GetRandomNumberGenerator());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<Random> rng(lib.GetRandomNumberGenerator());
 
     QByteArray alice_nonce(PreExchangedKeyAuthenticate::NonceLength, 0);
     rng->GenerateBlock(alice_nonce);

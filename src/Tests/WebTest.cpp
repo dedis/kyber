@@ -52,8 +52,8 @@ namespace Tests {
     QString filepath = QDir::tempPath() + "/" + filename;
     QFile file(filepath);
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib->GetRandomNumberGenerator());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
     QByteArray data(1000, 0);
     rand->GenerateBlock(data);
     ASSERT_TRUE(file.open(QIODevice::WriteOnly));
@@ -92,8 +92,8 @@ namespace Tests {
     QDir::temp().mkdir(dirname);
     QString dirpath = QDir::tempPath() + "/" + dirname;
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib->GetRandomNumberGenerator());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
     QByteArray data(1000, 0);
 
     QList<QString> files;
@@ -245,8 +245,8 @@ namespace Tests {
       */
   TEST(Web, Session)
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rand(lib.GetRandomNumberGenerator());
     QByteArray raw(750, 0);
 
     rand->GenerateBlock(raw);

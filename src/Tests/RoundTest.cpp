@@ -54,8 +54,8 @@ namespace Tests {
     ConstructOverlay(count, nodes, group, sg_policy);
     CreateSessions(nodes, group, Id(), callback);
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rand(lib.GetRandomNumberGenerator());
 
     QByteArray msg(128, 0);
     rand->GenerateBlock(msg);
@@ -106,8 +106,8 @@ namespace Tests {
     ConstructOverlay(count, nodes, group, sg_policy);
     CreateSessions(nodes, group, Id(), callback);
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rand(lib.GetRandomNumberGenerator());
 
     QByteArray msg(128, 0);
     rand->GenerateBlock(msg);
@@ -174,8 +174,8 @@ namespace Tests {
     Id session_id;
     CreateSessions(nodes, group, session_id, callback);
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rand(lib.GetRandomNumberGenerator());
 
     QByteArray msg(128, 0);
     rand->GenerateBlock(msg);
@@ -326,8 +326,8 @@ namespace Tests {
     EXPECT_TRUE(nodes[disconnector]->session->Stopped());
 
     count -= 1;
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rand(lib.GetRandomNumberGenerator());
 
     QByteArray msg(128, 0);
     rand->GenerateBlock(msg);
@@ -393,8 +393,8 @@ namespace Tests {
     qDebug() << "Sender:" << sender << nodes[sender]->ident.GetLocalId();
     qDebug() << "Disconnector:" << disconnector << nodes[disconnector]->ident.GetLocalId();
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rand(lib.GetRandomNumberGenerator());
 
     QByteArray msg(128, 0);
     rand->GenerateBlock(msg);
@@ -549,8 +549,8 @@ namespace Tests {
 
     bad_callback(nodes[badguy], egroup, session_id);
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rand(lib.GetRandomNumberGenerator());
 
     QByteArray msg(128, 0);
     rand->GenerateBlock(msg);
@@ -644,8 +644,8 @@ namespace Tests {
 
     bad_callback(nodes[badguy], egroup, session_id);
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rand(lib.GetRandomNumberGenerator());
 
     QByteArray msg(128, 0);
     rand->GenerateBlock(msg);
@@ -714,8 +714,8 @@ namespace Tests {
 
     bad_callback(nodes[badguy], egroup, session_id);
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rand(lib.GetRandomNumberGenerator());
 
     SignalCounter sc;
     for(int idx = 0; idx < count; idx++) {

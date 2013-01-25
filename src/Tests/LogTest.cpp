@@ -12,8 +12,8 @@ namespace Tests {
 
     Id id;
     QByteArray data(100, 0);
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rand(lib->GetRandomNumberGenerator());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Utils::Random> rand(lib.GetRandomNumberGenerator());
 
     Log log;
 

@@ -36,7 +36,7 @@ int main(int argc, char **argv)
 
   CryptoFactory::GetInstance().SetLibrary(CryptoFactory::CryptoPP);
 
-  Library *lib = CryptoFactory::GetInstance().GetLibrary();
+  Library &lib = CryptoFactory::GetInstance().GetLibrary();
 
   Group group(QVector<PublicIdentity>(), Id(settings.LeaderId),
       settings.SubgroupPolicy);
@@ -71,13 +71,13 @@ int main(int argc, char **argv)
     QSharedPointer<DiffieHellman> dh;
 
     if(AuthFactory::RequiresKeys(settings.AuthMode)) {
-      key = QSharedPointer<AsymmetricKey>(lib->LoadPrivateKeyFromFile(settings.PrivateKey[idx]));
+      key = QSharedPointer<AsymmetricKey>(lib.LoadPrivateKeyFromFile(settings.PrivateKey[idx]));
       qDebug() << local_id << settings.PrivateKey[idx];
-      dh = QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman());
+      dh = QSharedPointer<DiffieHellman>(lib.CreateDiffieHellman());
     } else {
       QByteArray id = local_id.GetByteArray();
-      key = QSharedPointer<AsymmetricKey>(lib->GeneratePrivateKey(id));
-      dh = QSharedPointer<DiffieHellman>(lib->GenerateDiffieHellman(id));
+      key = QSharedPointer<AsymmetricKey>(lib.GeneratePrivateKey(id));
+      dh = QSharedPointer<DiffieHellman>(lib.GenerateDiffieHellman(id));
     }
 
     nodes.append(create(PrivateIdentity(local_id, key, key, dh, super_peer),

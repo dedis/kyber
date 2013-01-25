@@ -46,15 +46,15 @@ namespace Anonymity {
     headers["bulk"] = true;
     GetNetwork()->SetHeaders(headers);
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    _anon_dh = QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman());
-    _anon_key = QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    _anon_dh = QSharedPointer<DiffieHellman>(lib.CreateDiffieHellman());
+    _anon_key = QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey());
 
     QSharedPointer<Network> net(GetNetwork()->Clone());
     headers["bulk"] = false;
     net->SetHeaders(headers);
 
-    QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
+    QScopedPointer<Hash> hashalgo(lib.GetHashAlgorithm());
     Id sr_id(hashalgo->ComputeHash(GetRoundId().GetByteArray()));
 
     _shuffle_round = create_shuffle(GetGroup(), GetPrivateIdentity(), sr_id, net,
@@ -69,11 +69,11 @@ namespace Anonymity {
   {
     Round::OnStart();
     QVector<QSharedPointer<Random> > anon_rngs;
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
 
     foreach(PublicIdentity gc, GetGroup().GetRoster()) {
       QByteArray seed = _anon_dh->GetSharedSecret(gc.GetDhKey());
-      QSharedPointer<Random> rng(lib->GetRandomNumberGenerator(seed));
+      QSharedPointer<Random> rng(lib.GetRandomNumberGenerator(seed));
       anon_rngs.append(rng);
     }
 
@@ -472,9 +472,9 @@ namespace Anonymity {
       qWarning() << "Received an invalid signing key during the shuffle.";
     }
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
     QByteArray seed = GetDhKey()->GetSharedSecret(dh_pub);
-    QSharedPointer<Random> rng(lib->GetRandomNumberGenerator(seed));
+    QSharedPointer<Random> rng(lib.GetRandomNumberGenerator(seed));
     return Descriptor(dh_pub, key_pub, rng);
   }
 }

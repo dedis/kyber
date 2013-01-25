@@ -45,9 +45,9 @@ namespace PeerReview {
     private:
       virtual QByteArray GenerateMessageHash() const
       {
-        Dissent::Crypto::Library *lib =
+        Dissent::Crypto::Library &lib =
           Dissent::Crypto::CryptoFactory::GetInstance().GetLibrary();
-        QSharedPointer<Dissent::Crypto::Hash> hash(lib->GetHashAlgorithm());
+        QSharedPointer<Dissent::Crypto::Hash> hash(lib.GetHashAlgorithm());
         return hash->ComputeHash(_msg);
       }
 

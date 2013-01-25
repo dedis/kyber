@@ -24,8 +24,8 @@ namespace Authentication {
 
   QVariant PreExchangedKeyAuthenticate::PrepareForChallenge()
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    lib->GetRandomNumberGenerator()->GenerateBlock(_bob_nonce);
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    lib.GetRandomNumberGenerator()->GenerateBlock(_bob_nonce);
 
     return _bob_nonce;
   }

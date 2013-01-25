@@ -3,26 +3,26 @@
 namespace Dissent {
 namespace Tests {
 
-  void AsymmetricKeyTest(Library *lib)
+  void AsymmetricKeyTest(const Library &lib)
   {
-    QScopedPointer<AsymmetricKey> key0(lib->CreatePrivateKey());
+    QScopedPointer<AsymmetricKey> key0(lib.CreatePrivateKey());
     EXPECT_TRUE(key0->IsValid());
     QScopedPointer<AsymmetricKey> pu_key0(key0->GetPublicKey());
     EXPECT_TRUE(pu_key0->IsValid());
 
     EXPECT_TRUE(key0->Save("private_key"));
     QScopedPointer<AsymmetricKey> key0_0(
-        lib->LoadPrivateKeyFromFile(QString("private_key")));
+        lib.LoadPrivateKeyFromFile(QString("private_key")));
     EXPECT_TRUE(key0_0->IsValid());
     QFile("private_key").remove();
 
     EXPECT_TRUE(pu_key0->Save("public_key"));
     QScopedPointer<AsymmetricKey> pu_key0_0(
-        lib->LoadPublicKeyFromFile(QString("public_key")));
+        lib.LoadPublicKeyFromFile(QString("public_key")));
     EXPECT_TRUE(pu_key0_0->IsValid());
     QFile("public_key").remove();
 
-    QScopedPointer<AsymmetricKey> key1(lib->CreatePrivateKey());
+    QScopedPointer<AsymmetricKey> key1(lib.CreatePrivateKey());
     EXPECT_TRUE(key1->IsValid());
     QScopedPointer<AsymmetricKey> pu_key1(key1->GetPublicKey());
     EXPECT_TRUE(pu_key1->IsValid());
@@ -47,7 +47,7 @@ namespace Tests {
     EXPECT_FALSE(key1->VerifyKey(*key0));
     EXPECT_FALSE(key1->VerifyKey(*key1));
 
-    QScopedPointer<Random> rng(lib->GetRandomNumberGenerator());
+    QScopedPointer<Random> rng(lib.GetRandomNumberGenerator());
     QByteArray data(1500, 0);
     rng->GenerateBlock(data);
     QByteArray small_data(10, 0);
@@ -55,7 +55,7 @@ namespace Tests {
     QByteArray empty;
 
     QScopedPointer<AsymmetricKey> bad_key_mem(
-        lib->LoadPrivateKeyFromByteArray(data));
+        lib.LoadPrivateKeyFromByteArray(data));
     EXPECT_TRUE(!bad_key_mem->IsValid());
     QScopedPointer<AsymmetricKey> empty_key(bad_key_mem->GetPublicKey());
     EXPECT_TRUE(empty_key.isNull());
@@ -63,7 +63,7 @@ namespace Tests {
     QString filename = "test_private_key_load";
     EXPECT_FALSE(QFile(filename).exists());
     QScopedPointer<AsymmetricKey> bad_key_file(
-        lib->LoadPrivateKeyFromFile(filename));
+        lib.LoadPrivateKeyFromFile(filename));
 
     EXPECT_FALSE(bad_key_file->IsValid());
     empty_key.reset(bad_key_file->GetPublicKey());
@@ -155,8 +155,8 @@ namespace Tests {
 
   void AsymmetricKeySerialization()
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<AsymmetricKey> key(lib->CreatePrivateKey());
+    const Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<AsymmetricKey> key(lib.CreatePrivateKey());
     QSharedPointer<AsymmetricKey> pkey(key->GetPublicKey());
     QSharedPointer<AsymmetricKey> key0, pkey0;
     EXPECT_NE(*key, *pkey);
@@ -176,7 +176,7 @@ namespace Tests {
     EXPECT_EQ(*pkey, *pkey0);
 
     QByteArray msg(1024, 0);
-    QScopedPointer<Random> rng(lib->GetRandomNumberGenerator());
+    QScopedPointer<Random> rng(lib.GetRandomNumberGenerator());
     rng->GenerateBlock(msg);
 
     QByteArray sig = key->Sign(msg);
@@ -184,43 +184,39 @@ namespace Tests {
     EXPECT_EQ(sig.size(), pkey0->GetSignatureLength());
   }
 
-  void RngSpeedTest(Library *lib, int count)
+  void RngSpeedTest(const Library &lib, int count)
   {
     QByteArray data(4096, 0);
     for(int idx = 0; idx < count; idx++) {
-      QSharedPointer<Random> rng(lib->GetRandomNumberGenerator());
+      QSharedPointer<Random> rng(lib.GetRandomNumberGenerator());
       rng->GenerateBlock(data);
     }
   }
 
   TEST(Crypto, RngSpeedTest1024)
   {
-    QScopedPointer<Library> lib(new CppLibrary());
-    RngSpeedTest(lib.data(), 1024);
+    RngSpeedTest(CppLibrary(), 1024);
   }
 
   TEST(Crypto, RngSpeedTest2048)
   {
-    QScopedPointer<Library> lib(new CppLibrary());
-    RngSpeedTest(lib.data(), 2048);
+    RngSpeedTest(CppLibrary(), 2048);
   }
 
   TEST(Crypto, RngSpeedTest4096)
   {
-    QScopedPointer<Library> lib(new CppLibrary());
-    RngSpeedTest(lib.data(), 4096);
+    RngSpeedTest(CppLibrary(), 4096);
   }
 
   TEST(Crypto, RngSpeedTest8192)
   {
-    QScopedPointer<Library> lib(new CppLibrary());
-    RngSpeedTest(lib.data(), 8192);
+    RngSpeedTest(CppLibrary(), 8192);
   }
 
-  void KeySignSpeedTest(Library *lib)
+  void KeySignSpeedTest(const Library &lib)
   {
-    QSharedPointer<AsymmetricKey> key(lib->CreatePrivateKey());
-    QScopedPointer<Random> rng(lib->GetRandomNumberGenerator());
+    QSharedPointer<AsymmetricKey> key(lib.CreatePrivateKey());
+    QScopedPointer<Random> rng(lib.GetRandomNumberGenerator());
     QByteArray data(1024, 0);
     rng->GenerateBlock(data);
 
@@ -230,10 +226,10 @@ namespace Tests {
     }
   }
 
-  void KeyVerificationSpeedTest(Library *lib)
+  void KeyVerificationSpeedTest(const Library &lib)
   {
-    QSharedPointer<AsymmetricKey> key(lib->CreatePrivateKey());
-    QScopedPointer<Random> rng(lib->GetRandomNumberGenerator());
+    QSharedPointer<AsymmetricKey> key(lib.CreatePrivateKey());
+    QScopedPointer<Random> rng(lib.GetRandomNumberGenerator());
     QByteArray data(1024, 0);
     rng->GenerateBlock(data);
 
@@ -246,40 +242,36 @@ namespace Tests {
 
   TEST(Crypto, DSASignSpeedTest)
   {
-    QScopedPointer<Library> lib(new CppDsaLibrary());
-    KeySignSpeedTest(lib.data());
+    KeySignSpeedTest(CppDsaLibrary());
   }
 
   TEST(Crypto, DSAVerifySpeedTest)
   {
-    QScopedPointer<Library> lib(new CppDsaLibrary());
-    KeyVerificationSpeedTest(lib.data());
+    KeyVerificationSpeedTest(CppDsaLibrary());
   }
 
   TEST(Crypto, RSASignSpeedTest)
   {
-    QScopedPointer<Library> lib(new CppLibrary());
-    KeySignSpeedTest(lib.data());
+    KeySignSpeedTest(CppLibrary());
   }
 
   TEST(Crypto, RSAVerifySpeedTest)
   {
-    QScopedPointer<Library> lib(new CppLibrary());
-    KeyVerificationSpeedTest(lib.data());
+    KeyVerificationSpeedTest(CppLibrary());
   }
 
-  void KeyGenerationFromIdTest(Library *lib)
+  void KeyGenerationFromIdTest(const Library &lib)
   {
     Dissent::Connections::Id id0;
     Dissent::Connections::Id id1;
     EXPECT_NE(id0, id1);
 
-    QScopedPointer<AsymmetricKey> pr_key0(lib->GeneratePrivateKey(id0.GetByteArray()));
-    QScopedPointer<AsymmetricKey> pu_key0(lib->GeneratePublicKey(id0.GetByteArray()));
-    QScopedPointer<AsymmetricKey> pr_key1(lib->GeneratePrivateKey(id1.GetByteArray()));
-    QScopedPointer<AsymmetricKey> pu_key1(lib->GeneratePublicKey(id1.GetByteArray()));
-    QScopedPointer<AsymmetricKey> pr_key0_0(lib->GeneratePrivateKey(id0.GetByteArray()));
-    QScopedPointer<AsymmetricKey> pr_key1_0(lib->GeneratePrivateKey(id1.GetByteArray()));
+    QScopedPointer<AsymmetricKey> pr_key0(lib.GeneratePrivateKey(id0.GetByteArray()));
+    QScopedPointer<AsymmetricKey> pu_key0(lib.GeneratePublicKey(id0.GetByteArray()));
+    QScopedPointer<AsymmetricKey> pr_key1(lib.GeneratePrivateKey(id1.GetByteArray()));
+    QScopedPointer<AsymmetricKey> pu_key1(lib.GeneratePublicKey(id1.GetByteArray()));
+    QScopedPointer<AsymmetricKey> pr_key0_0(lib.GeneratePrivateKey(id0.GetByteArray()));
+    QScopedPointer<AsymmetricKey> pr_key1_0(lib.GeneratePrivateKey(id1.GetByteArray()));
 
     EXPECT_TRUE(pr_key0->VerifyKey(*pu_key0));
     EXPECT_FALSE(pr_key0->VerifyKey(*pu_key1));
@@ -289,7 +281,7 @@ namespace Tests {
     EXPECT_EQ(*pr_key1, *pr_key1_0);
     EXPECT_FALSE(*pr_key0 == *pr_key1);
 
-    QScopedPointer<Random> rng(lib->GetRandomNumberGenerator());
+    QScopedPointer<Random> rng(lib.GetRandomNumberGenerator());
     QByteArray data(1500, 0);
     rng->GenerateBlock(data);
 
@@ -313,11 +305,11 @@ namespace Tests {
     }
   }
 
-  void DiffieHellmanTest(Library *lib)
+  void DiffieHellmanTest(const Library &lib)
   {
-    QScopedPointer<DiffieHellman> dh0(lib->CreateDiffieHellman());
-    QScopedPointer<DiffieHellman> dh1(lib->CreateDiffieHellman());
-    QScopedPointer<DiffieHellman> dh2(lib->CreateDiffieHellman());
+    QScopedPointer<DiffieHellman> dh0(lib.CreateDiffieHellman());
+    QScopedPointer<DiffieHellman> dh1(lib.CreateDiffieHellman());
+    QScopedPointer<DiffieHellman> dh2(lib.CreateDiffieHellman());
 
     QByteArray shared_0_1 = dh0->GetSharedSecret(dh1->GetPublicComponent());
     QByteArray shared_1_0 = dh1->GetSharedSecret(dh0->GetPublicComponent());
@@ -331,22 +323,22 @@ namespace Tests {
     EXPECT_NE(shared_0_1, shared_0_2);
     EXPECT_NE(shared_0_1, shared_1_2);
 
-    QScopedPointer<DiffieHellman> dh0_0(lib->LoadDiffieHellman(dh0->GetPrivateComponent()));
+    QScopedPointer<DiffieHellman> dh0_0(lib.LoadDiffieHellman(dh0->GetPrivateComponent()));
     EXPECT_EQ(dh0->GetPublicComponent(), dh0_0->GetPublicComponent());
     EXPECT_EQ(dh0->GetPrivateComponent(), dh0_0->GetPrivateComponent());
 
     Id id;
-    QScopedPointer<DiffieHellman> dh3_0(lib->GenerateDiffieHellman(id.GetByteArray()));
-    QScopedPointer<DiffieHellman> dh3_1(lib->GenerateDiffieHellman(id.GetByteArray()));
+    QScopedPointer<DiffieHellman> dh3_0(lib.GenerateDiffieHellman(id.GetByteArray()));
+    QScopedPointer<DiffieHellman> dh3_1(lib.GenerateDiffieHellman(id.GetByteArray()));
     EXPECT_EQ(dh3_0->GetPublicComponent(), dh3_1->GetPublicComponent());
     EXPECT_EQ(dh3_0->GetPrivateComponent(), dh3_1->GetPrivateComponent());
   }
 
-  void ZeroKnowledgeTest(Library* lib, bool test_bit_flip) 
+  void ZeroKnowledgeTest(const Library &lib, bool test_bit_flip) 
   {
-    QScopedPointer<DiffieHellman> dhA(lib->CreateDiffieHellman());
-    QScopedPointer<DiffieHellman> dhB(lib->CreateDiffieHellman());
-    QScopedPointer<DiffieHellman> dhC(lib->CreateDiffieHellman());
+    QScopedPointer<DiffieHellman> dhA(lib.CreateDiffieHellman());
+    QScopedPointer<DiffieHellman> dhB(lib.CreateDiffieHellman());
+    QScopedPointer<DiffieHellman> dhC(lib.CreateDiffieHellman());
 
     QByteArray shared_A_B = dhA->GetSharedSecret(dhB->GetPublicComponent());
     QByteArray shared_B_A = dhB->GetSharedSecret(dhA->GetPublicComponent());
@@ -366,12 +358,12 @@ namespace Tests {
 
   TEST(Crypto, CppAsymmetricKey)
   {
-    QScopedPointer<Library> lib(new CppLibrary());
-    AsymmetricKeyTest(lib.data());
+    CppLibrary lib;
+    AsymmetricKeyTest(lib);
 
-    QScopedPointer<AsymmetricKey> key(lib->CreatePrivateKey());
+    QScopedPointer<AsymmetricKey> key(lib.CreatePrivateKey());
     EXPECT_EQ(key->GetKeySize(),
-        std::max(AsymmetricKey::DefaultKeySize, lib->MinimumKeySize()));
+        std::max(AsymmetricKey::DefaultKeySize, lib.MinimumKeySize()));
   }
 
   TEST(Crypto, CppKeySerialization)
@@ -385,12 +377,12 @@ namespace Tests {
 
   TEST(Crypto, CppDsaAsymmetricKey)
   {
-    QScopedPointer<Library> lib(new CppDsaLibrary());
-    AsymmetricKeyTest(lib.data());
+    CppLibrary lib;
+    AsymmetricKeyTest(lib);
 
-    QScopedPointer<AsymmetricKey> key(lib->CreatePrivateKey());
+    QScopedPointer<AsymmetricKey> key(lib.CreatePrivateKey());
     EXPECT_EQ(key->GetKeySize(),
-        std::max(AsymmetricKey::DefaultKeySize, lib->MinimumKeySize()));
+        std::max(AsymmetricKey::DefaultKeySize, lib.MinimumKeySize()));
   }
 
   TEST(Crypto, CppDsaKeySerialization)
@@ -404,8 +396,7 @@ namespace Tests {
 
   TEST(Crypto, NullAsymmetricKey)
   {
-    QScopedPointer<Library> lib(new NullLibrary());
-    AsymmetricKeyTest(lib.data());
+    AsymmetricKeyTest(NullLibrary());
   }
 
   TEST(Crypto, NullKeySerialization)
@@ -419,26 +410,22 @@ namespace Tests {
 
   TEST(Crypto, CppDiffieHellman)
   {
-    QScopedPointer<Library> lib(new CppLibrary());
-    DiffieHellmanTest(lib.data());
+    DiffieHellmanTest(CppLibrary());
   }
 
   TEST(Crypto, NullDiffieHellman)
   {
-    QScopedPointer<Library> lib(new NullLibrary());
-    DiffieHellmanTest(lib.data());
+    DiffieHellmanTest(NullLibrary());
   }
 
   TEST(Crypto, NullZeroKnowledgeDhTest)
   {
-    QScopedPointer<Library> lib(new NullLibrary());
-    ZeroKnowledgeTest(lib.data(), false);
+    ZeroKnowledgeTest(NullLibrary(), false);
   }
 
   TEST(Crypto, CppZeroKnowledgeDhTest)
   {
-    QScopedPointer<Library> lib(new CppLibrary());
-    ZeroKnowledgeTest(lib.data(), false);
+    ZeroKnowledgeTest(CppLibrary(), false);
   }
 }
 }

@@ -8,10 +8,10 @@ namespace Tests {
       const QList<Address> &local, const QList<Address> &remote,
       const QSharedPointer<ISink> &sink, SessionFactory::SessionType session)
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
     QByteArray bid(id.GetByteArray());
-    QSharedPointer<AsymmetricKey> key(lib->GeneratePrivateKey(bid));
-    QSharedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
+    QSharedPointer<AsymmetricKey> key(lib.GeneratePrivateKey(bid));
+    QSharedPointer<DiffieHellman> dh(lib.GenerateDiffieHellman(bid));
     PrivateIdentity ident(id, key, key, dh);
     return Node::CreateClientServer(ident, group, local, remote, sink, session);
   }
@@ -49,8 +49,8 @@ namespace Tests {
   QList<QSharedPointer<Node> > GenerateOverlay(int server_total,
       int client_total, SessionFactory::SessionType session)
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib->GetRandomNumberGenerator());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
     int leader_index = rand->GetInt(0, server_total); //client_total + server_total);
     int bootstrap_index = leader_index;
 //    int bootstrap_index = rand->GetInt(0, client_total + server_total);

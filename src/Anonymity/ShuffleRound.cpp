@@ -396,8 +396,8 @@ using namespace ShuffleRoundPrivate;
       throw QRunTimeError("Received multiple blame messages from the same identity");
     }
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());;
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Hash> hashalgo(lib.GetHashAlgorithm());;
 
     int sidx = _shufflers.GetIndex(id);
     QSharedPointer<AsymmetricKey> outer_key;
@@ -480,9 +480,9 @@ using namespace ShuffleRoundPrivate;
 
   void ShuffleRound::BroadcastPublicKeys()
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    _server_state->inner_key = QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey());
-    _server_state->outer_key = QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    _server_state->inner_key = QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey());
+    _server_state->outer_key = QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey());
 
     QSharedPointer<AsymmetricKey> inner_key(_server_state->inner_key->GetPublicKey());
     QSharedPointer<AsymmetricKey> outer_key(_server_state->outer_key->GetPublicKey());
@@ -497,10 +497,10 @@ using namespace ShuffleRoundPrivate;
 
   void ShuffleRound::GenerateCiphertext()
   {
-    OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
+    OnionEncryptor &oe = CryptoFactory::GetInstance().GetOnionEncryptor();
     // XXX Put in another thread
-    oe->Encrypt(_state->public_inner_keys, PrepareData(), _state->inner_ciphertext, 0);
-    oe->Encrypt(_state->public_outer_keys, _state->inner_ciphertext, _state->outer_ciphertext, 0);
+    oe.Encrypt(_state->public_inner_keys, PrepareData(), _state->inner_ciphertext, 0);
+    oe.Encrypt(_state->public_outer_keys, _state->inner_ciphertext, _state->outer_ciphertext, 0);
 
     _state_machine.StateComplete();
   }
@@ -537,8 +537,8 @@ using namespace ShuffleRoundPrivate;
     }
 
     QVector<int> bad;
-    OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
-    if(!oe->Decrypt(_server_state->outer_key, _server_state->shuffle_input,
+    OnionEncryptor &oe = CryptoFactory::GetInstance().GetOnionEncryptor();
+    if(!oe.Decrypt(_server_state->outer_key, _server_state->shuffle_input,
           _server_state->shuffle_output, &bad))
     {
       qWarning() << _shufflers.GetIndex(GetLocalId()) <<
@@ -547,7 +547,7 @@ using namespace ShuffleRoundPrivate;
       _state->blame = true;
     }
 
-    oe->RandomizeBlocks(_server_state->shuffle_output);
+    oe.RandomizeBlocks(_server_state->shuffle_output);
 
     const Id &next = _shufflers.Next(GetLocalId());
     MessageType mtype = (next == Id::Zero()) ? ENCRYPTED_DATA : SHUFFLE_DATA;
@@ -575,8 +575,8 @@ using namespace ShuffleRoundPrivate;
     out_stream << GO_MESSAGE << GetRoundId() << found;
 
     if(found) {
-      Library *lib = CryptoFactory::GetInstance().GetLibrary();
-      QScopedPointer<Hash> hash(lib->GetHashAlgorithm());
+      Library &lib = CryptoFactory::GetInstance().GetLibrary();
+      QScopedPointer<Hash> hash(lib.GetHashAlgorithm());
 
       for(int idx = 0; idx < _state->public_inner_keys.count(); idx++) {
         hash->Update(_state->public_inner_keys[idx]->GetByteArray());
@@ -663,8 +663,8 @@ using namespace ShuffleRoundPrivate;
     QDataStream stream(&msg, QIODevice::WriteOnly);
     stream << BLAME_DATA << GetRoundId();
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());;
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Hash> hashalgo(lib.GetHashAlgorithm());;
 
     if(_server_state) {
       stream << _server_state->outer_key;
@@ -744,9 +744,9 @@ namespace ShuffleRoundPrivate {
       QVector<QByteArray> tmp;
       QVector<int> bad;
 
-      OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
+      OnionEncryptor &oe = CryptoFactory::GetInstance().GetOnionEncryptor();
 
-      if(!oe->Decrypt(key, cleartexts, tmp, &bad)) {
+      if(!oe.Decrypt(key, cleartexts, tmp, &bad)) {
         emit Finished(QVector<QByteArray>(), bad);
         return;
       }

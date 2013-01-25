@@ -20,7 +20,7 @@ namespace Crypto {
       explicit Integer(IntegerData *data) : _data(data)
       {
         if(data == 0) {
-          _data = CryptoFactory::GetInstance().GetLibrary()->GetIntegerData(0);
+          _data = CryptoFactory::GetInstance().GetLibrary().GetIntegerData(0);
         }
       }
 
@@ -29,7 +29,7 @@ namespace Crypto {
        * @param value the int value
        */
       Integer(int value = 0) :
-        _data(CryptoFactory::GetInstance().GetLibrary()->GetIntegerData(value))
+        _data(CryptoFactory::GetInstance().GetLibrary().GetIntegerData(value))
       {
       }
 
@@ -38,7 +38,7 @@ namespace Crypto {
        * @param value the byte array
        */
       explicit Integer(const QByteArray &value) :
-        _data(CryptoFactory::GetInstance().GetLibrary()->GetIntegerData(
+        _data(CryptoFactory::GetInstance().GetLibrary().GetIntegerData(
               value.isEmpty() ? QByteArray(1, 0) : value))
       {
       }
@@ -48,12 +48,12 @@ namespace Crypto {
        * @param value the string
        */
       explicit Integer(const QString &value) :
-        _data(CryptoFactory::GetInstance().GetLibrary()->GetIntegerData(value))
+        _data(CryptoFactory::GetInstance().GetLibrary().GetIntegerData(value))
       {
       }
       
       Integer(const Integer &other) : 
-        _data(CryptoFactory::GetInstance().GetLibrary()->GetIntegerData(0))
+        _data(CryptoFactory::GetInstance().GetLibrary().GetIntegerData(0))
       {
         _data->Set(other._data.constData());
       }
@@ -66,7 +66,7 @@ namespace Crypto {
       static Integer GetRandomInteger(int bit_count, bool prime = false)
       {
         IntegerData *data = CryptoFactory::GetInstance().
-          GetLibrary()->GetRandomInteger(bit_count, prime);
+          GetLibrary().GetRandomInteger(bit_count, prime);
         return Integer(data);
       }
 
@@ -80,7 +80,7 @@ namespace Crypto {
           const Integer &max, bool prime = false)
       {
         IntegerData *data = CryptoFactory::GetInstance().
-          GetLibrary()->GetRandomInteger(min.GetData(), max.GetData(), prime);
+          GetLibrary().GetRandomInteger(min.GetData(), max.GetData(), prime);
         return Integer(data);
       }
 

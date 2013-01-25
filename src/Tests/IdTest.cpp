@@ -5,8 +5,8 @@
 namespace Dissent {
 namespace Tests {
   TEST(Id, Basic) {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Crypto::Hash> hashalgo(lib->GetHashAlgorithm());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Dissent::Crypto::Hash> hashalgo(lib.GetHashAlgorithm());
 
     QByteArray zero("hello");
     QByteArray hash0 = hashalgo->ComputeHash(zero);

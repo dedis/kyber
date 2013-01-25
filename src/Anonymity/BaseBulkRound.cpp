@@ -33,8 +33,8 @@ namespace Anonymity {
     headers["bulk"] = false;
     net->SetHeaders(headers);
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Hash> hashalgo(lib.GetHashAlgorithm());
     Id sr_id(hashalgo->ComputeHash(GetRoundId().GetByteArray()));
 
     _shuffle_round = create_shuffle(GetGroup(), GetPrivateIdentity(), sr_id, net,

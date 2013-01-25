@@ -255,7 +255,7 @@ namespace Anonymity {
     }
 
     QSharedPointer<Crypto::Hash> hash(Crypto::CryptoFactory::GetInstance().
-        GetLibrary()->GetHashAlgorithm());
+        GetLibrary().GetHashAlgorithm());
 
     foreach(const QSharedPointer<AsymmetricKey> &key, server_keys) {
       hash->Update(key->GetByteArray());
@@ -389,7 +389,7 @@ namespace Anonymity {
     }
 
     QSharedPointer<Crypto::Hash> hash(Crypto::CryptoFactory::GetInstance().
-        GetLibrary()->GetHashAlgorithm());
+        GetLibrary().GetHashAlgorithm());
 
     foreach(const QByteArray &msg, cleartext) {
       hash->Update(msg);
@@ -444,7 +444,7 @@ namespace Anonymity {
   void NeffShuffle::SubmitKeySignature()
   {
     QSharedPointer<Crypto::Hash> hash(Crypto::CryptoFactory::GetInstance().
-        GetLibrary()->GetHashAlgorithm());
+        GetLibrary().GetHashAlgorithm());
 
     foreach(const QSharedPointer<AsymmetricKey> &key, _server_state->server_keys) {
       hash->Update(key->GetByteArray());
@@ -577,7 +577,7 @@ namespace Anonymity {
   void NeffShuffle::SubmitSignature()
   {
     QSharedPointer<Crypto::Hash> hash(Crypto::CryptoFactory::GetInstance().
-        GetLibrary()->GetHashAlgorithm());
+        GetLibrary().GetHashAlgorithm());
 
     foreach(const QByteArray &message, _state->cleartext) {
       hash->Update(message);

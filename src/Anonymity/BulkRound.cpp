@@ -43,15 +43,15 @@ namespace Anonymity {
     headers["bulk"] = true;
     GetNetwork()->SetHeaders(headers);
 
-    DiffieHellman *dh = CryptoFactory::GetInstance().GetLibrary()->CreateDiffieHellman();
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    DiffieHellman *dh = lib.CreateDiffieHellman();
     _anon_dh = QSharedPointer<DiffieHellman>(dh);
 
     QSharedPointer<Network> net(GetNetwork()->Clone());
     headers["bulk"] = false;
     net->SetHeaders(headers);
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
+    QScopedPointer<Hash> hashalgo(lib.GetHashAlgorithm());
     Id sr_id(hashalgo->ComputeHash(GetRoundId().GetByteArray()));
 
     _shuffle_round = _create_shuffle(GetGroup(), GetPrivateIdentity(), sr_id, net,
@@ -247,8 +247,8 @@ namespace Anonymity {
           QString::number(des.count()));
     }
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Hash> hashalgo(lib.GetHashAlgorithm());
 
     for(int idx = 0; idx < cleartexts.count(); idx++) {
       QByteArray cleartext = cleartexts[idx];
@@ -322,8 +322,8 @@ namespace Anonymity {
 
   void BulkRound::ProcessMessages()
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Hash> hashalgo(lib.GetHashAlgorithm());
     int size = _descriptors.size();
     int index = 0;
 
@@ -344,8 +344,8 @@ namespace Anonymity {
     int length = des.Length();
     QByteArray msg(length, 0);
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Hash> hashalgo(lib.GetHashAlgorithm());
     bool good = true;
 
     for(int idx = 0; idx < count; idx++) {
@@ -391,8 +391,8 @@ namespace Anonymity {
   {
     int length = data.size();
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Hash> hashalgo(lib.GetHashAlgorithm());
 
     QByteArray xor_message(length, 0);
     QVector<QByteArray> hashes;
@@ -408,7 +408,7 @@ namespace Anonymity {
       }
 
       QByteArray msg(length, 0);
-      QScopedPointer<Random> rng(lib->GetRandomNumberGenerator(seed));
+      QScopedPointer<Random> rng(lib.GetRandomNumberGenerator(seed));
       rng->GenerateBlock(msg);
       hashes.append(hashalgo->ComputeHash(msg));
       Xor(xor_message, xor_message, msg);
@@ -501,9 +501,9 @@ namespace Anonymity {
     Descriptor descriptor = _descriptors[idx];
     QByteArray seed = GetDhKey()->GetSharedSecret(descriptor.PublicDh());
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
-    QScopedPointer<Random> rng(lib->GetRandomNumberGenerator(seed));
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Hash> hashalgo(lib.GetHashAlgorithm());
+    QScopedPointer<Random> rng(lib.GetRandomNumberGenerator(seed));
 
     QByteArray msg(descriptor.Length(), 0);
     rng->GenerateBlock(msg);
@@ -523,8 +523,8 @@ namespace Anonymity {
     headers["bulk"] = false;
     net->SetHeaders(headers);
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Hash> hashalgo(lib.GetHashAlgorithm());
     QByteArray roundid = GetRoundId().GetByteArray();
     roundid = hashalgo->ComputeHash(roundid);
     roundid = hashalgo->ComputeHash(roundid);
@@ -585,7 +585,7 @@ namespace Anonymity {
 
   void BulkRound::ProcessBlame(const QVector<BlameEntry> blame_vector)
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
 
     foreach(const BlameEntry &be, blame_vector) {
       if(!_bad_message_hash.contains(BadHash(be.first, be.second))) {
@@ -595,10 +595,10 @@ namespace Anonymity {
 
       const Descriptor &des = _descriptors[be.first];
       QByteArray msg(des.Length(), 0);
-      QScopedPointer<Random> rng(lib->GetRandomNumberGenerator(be.third));
+      QScopedPointer<Random> rng(lib.GetRandomNumberGenerator(be.third));
       rng->GenerateBlock(msg);
 
-      QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
+      QScopedPointer<Hash> hashalgo(lib.GetHashAlgorithm());
       QByteArray hash = hashalgo->ComputeHash(msg);
       if(hash == des.XorMessageHashes()[be.second] && !_bad_members.contains(be.second)) {
         qDebug() << "Blame verified for" << be.first << be.second;

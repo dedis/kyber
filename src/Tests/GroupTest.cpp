@@ -50,11 +50,11 @@ namespace Tests {
 
   PublicIdentity CreateMember(const Id &id = Id())
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
 
     QByteArray bid = id.GetByteArray();
-    QSharedPointer<AsymmetricKey> key(lib->GeneratePublicKey(bid));
-    QScopedPointer<DiffieHellman> dh(lib->GenerateDiffieHellman(bid));
+    QSharedPointer<AsymmetricKey> key(lib.GeneratePublicKey(bid));
+    QScopedPointer<DiffieHellman> dh(lib.GenerateDiffieHellman(bid));
     return PublicIdentity(id, key, key, dh->GetPublicComponent());
   }
 
@@ -196,7 +196,7 @@ namespace Tests {
   TEST(Group, ManagedGroup)
   {
     QSharedPointer<Random> rand(CryptoFactory::GetInstance().
-      GetLibrary()->GetRandomNumberGenerator());
+      GetLibrary().GetRandomNumberGenerator());
 
     QVector<PublicIdentity> gr;
     QVector<PublicIdentity> sgr;

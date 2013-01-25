@@ -33,8 +33,8 @@ namespace PeerReview {
       return _entry_hash;
     }
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Hash> hash(lib->GetHashAlgorithm());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<Hash> hash(lib.GetHashAlgorithm());
     QByteArray binary_seqid(4, 0);
     Serialization::WriteInt(_seq_id, binary_seqid, 0);
 

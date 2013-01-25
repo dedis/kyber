@@ -24,7 +24,7 @@ namespace Tests {
             GetBaseKey()->GetGenerator()));
     } else {
       return QSharedPointer<AsymmetricKey>(CryptoFactory::GetInstance().
-        GetLibrary()->CreatePrivateKey());
+        GetLibrary().CreatePrivateKey());
     }
   }
 
@@ -41,7 +41,7 @@ namespace Tests {
             GetKey(),
             GetKey(),
             QSharedPointer<DiffieHellman>(CryptoFactory::GetInstance().
-              GetLibrary()->CreateDiffieHellman()), server)
+              GetLibrary().CreateDiffieHellman()), server)
       {
         EdgeListener *be = EdgeListenerFactory::GetInstance().CreateEdgeListener(BufferAddress(idx));
         cm->AddEdgeListener(QSharedPointer<EdgeListener>(be));

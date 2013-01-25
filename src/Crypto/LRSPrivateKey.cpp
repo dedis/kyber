@@ -110,7 +110,7 @@ namespace Crypto {
   Integer LRSPrivateKey::RandomInQ() const
   {
     QSharedPointer<Utils::Random> rand(CryptoFactory::GetInstance().
-        GetLibrary()->GetRandomNumberGenerator());
+        GetLibrary().GetRandomNumberGenerator());
     QByteArray q = GetSubgroup().GetByteArray();
     rand->GenerateBlock(q);
     Integer rinq(q);

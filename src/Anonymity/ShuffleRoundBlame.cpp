@@ -46,8 +46,8 @@ namespace Anonymity {
 
   void ShuffleRoundBlame::Shuffle()
   {
-    OnionEncryptor *oe = CryptoFactory::GetInstance().GetOnionEncryptor();
-    oe->Decrypt(_server_state->outer_key, _server_state->shuffle_input,
+    OnionEncryptor &oe = CryptoFactory::GetInstance().GetOnionEncryptor();
+    oe.Decrypt(_server_state->outer_key, _server_state->shuffle_input,
         _server_state->shuffle_output, &_state->bad_members);
 
     _state_machine.StateComplete();
@@ -55,8 +55,8 @@ namespace Anonymity {
 
   void ShuffleRoundBlame::VerifyInnerCiphertext()
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Hash> hash(lib->GetHashAlgorithm());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Hash> hash(lib.GetHashAlgorithm());
 
     for(int idx = 0; idx < _state->public_inner_keys.count(); idx++) {
       hash->Update(_state->public_inner_keys[idx]->GetByteArray());

@@ -38,25 +38,25 @@ namespace Crypto {
     stream >> key_type >> private_key >> bkey;
 
     CryptoFactory::LibraryName clibrary = CryptoFactory::GetInstance().GetLibraryName();
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    bool to_delete = false;
+    QScopedPointer<Library> tlib;
+    Library *lib = &CryptoFactory::GetInstance().GetLibrary();
     switch(key_type) {
       case AsymmetricKey::RSA:
         if(clibrary != CryptoFactory::CryptoPP) {
-          lib = new CppLibrary();
-          to_delete = true;
+          tlib.reset(new CppLibrary());
+          lib = tlib.data();
         }
         break;
       case AsymmetricKey::DSA:
         if(clibrary != CryptoFactory::CryptoPPDsa) {
-          lib = new CppDsaLibrary();
-          to_delete = true;
+          tlib.reset(new CppDsaLibrary());
+          lib = tlib.data();
         }
         break;
       case AsymmetricKey::NULL_KEY:
         if(clibrary != CryptoFactory::Null) {
-          lib = new NullLibrary();
-          to_delete = true;
+          tlib.reset(new NullLibrary());
+          lib = tlib.data();
         }
         break;
       default:
@@ -69,9 +69,6 @@ namespace Crypto {
       key = QSharedPointer<AsymmetricKey>(lib->LoadPublicKeyFromByteArray(bkey));
     }
 
-    if(to_delete) {
-      delete lib;
-    }
     return stream;
   }
 }

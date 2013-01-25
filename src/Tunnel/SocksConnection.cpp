@@ -19,8 +19,8 @@ namespace Tunnel {
     _state(ConnState_WaitingForMethodHeader),
     _socket(socket),
     _socket_open(true),
-    _hash_algo(CryptoFactory::GetInstance().GetLibrary()->GetHashAlgorithm()),
-    _signing_key(CryptoFactory::GetInstance().GetLibrary()->CreatePrivateKey()),
+    _hash_algo(CryptoFactory::GetInstance().GetLibrary().GetHashAlgorithm()),
+    _signing_key(CryptoFactory::GetInstance().GetLibrary().CreatePrivateKey()),
     _verif_key(_signing_key->GetPublicKey())
   {
     connect(socket, SIGNAL(readyRead()), this, SLOT(ReadFromSocket()));

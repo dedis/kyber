@@ -41,11 +41,11 @@ namespace Tests {
 
   TEST(NullAuthenticate, Base)
   {
-    Crypto::Library *lib = Crypto::CryptoFactory::GetInstance().GetLibrary();
+    Crypto::Library &lib = Crypto::CryptoFactory::GetInstance().GetLibrary();
     PrivateIdentity client(Id(),
-        QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
-        QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
-        QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman()));
+        QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
+        QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
+        QSharedPointer<DiffieHellman>(lib.CreateDiffieHellman()));
 
     NullAuthenticate authe(client);
     NullAuthenticator autho;
@@ -54,22 +54,22 @@ namespace Tests {
 
   TEST(PreExchangedKeyAuth, Base)
   {
-    Crypto::Library *lib = Crypto::CryptoFactory::GetInstance().GetLibrary();
+    Crypto::Library &lib = Crypto::CryptoFactory::GetInstance().GetLibrary();
 
     PrivateIdentity client(Id(),
-        QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
-        QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
-        QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman()));
+        QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
+        QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
+        QSharedPointer<DiffieHellman>(lib.CreateDiffieHellman()));
 
     PrivateIdentity nclient(Id(),
-        QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
-        QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
-        QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman()));
+        QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
+        QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
+        QSharedPointer<DiffieHellman>(lib.CreateDiffieHellman()));
 
     PrivateIdentity server(Id(),
-        QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
-        QSharedPointer<AsymmetricKey>(lib->CreatePrivateKey()),
-        QSharedPointer<DiffieHellman>(lib->CreateDiffieHellman()));
+        QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
+        QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
+        QSharedPointer<DiffieHellman>(lib.CreateDiffieHellman()));
 
     QSharedPointer<KeyShare> keyshare(new KeyShare());
     keyshare->AddKey(client.GetLocalId().ToString(),

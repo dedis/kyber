@@ -4,8 +4,8 @@ namespace Dissent {
 namespace Tests {
   TEST(Base64, basic)
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib->GetRandomNumberGenerator());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
     QByteArray data(50, 0);
     for(int idx = 0; idx < 50; idx++) {
       rand->GenerateBlock(data);

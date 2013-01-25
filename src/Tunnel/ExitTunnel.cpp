@@ -260,7 +260,7 @@ namespace Tunnel {
           packet.GetPort(),
           packet.GetConnectionId(),
           QSharedPointer<Crypto::AsymmetricKey>(
-            Crypto::CryptoFactory::GetInstance().GetLibrary()->
+            Crypto::CryptoFactory::GetInstance().GetLibrary().
             LoadPublicKeyFromByteArray(
               packet.GetKey()))));
 
@@ -301,7 +301,7 @@ namespace Tunnel {
           0,
           packet.GetConnectionId(),
           QSharedPointer<Crypto::AsymmetricKey>(
-            Crypto::CryptoFactory::GetInstance().GetLibrary()->
+            Crypto::CryptoFactory::GetInstance().GetLibrary().
             LoadPublicKeyFromByteArray(
               packet.GetKey()))));
 

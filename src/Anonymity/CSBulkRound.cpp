@@ -73,8 +73,8 @@ namespace Anonymity {
 
     _state->slot_open = false;
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QScopedPointer<Hash> hashalgo(lib.GetHashAlgorithm());
     QByteArray hashval = GetRoundId().GetByteArray();
     hashval = hashalgo->ComputeHash(hashval);
     hashval = hashalgo->ComputeHash(hashval);
@@ -512,8 +512,8 @@ namespace Anonymity {
           QString::number(_server_state->msg_length));
     }
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<Hash> hashalgo(lib.GetHashAlgorithm());
     QByteArray commit = hashalgo->ComputeHash(ciphertext);
 
     if(commit != _server_state->server_commits[
@@ -627,8 +627,8 @@ namespace Anonymity {
       throw QRunTimeError("Invalid server claim");
     }
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<Hash> hashalgo(lib.GetHashAlgorithm());
     hashalgo->Update(shared_secret);
 
     QByteArray bphase(4, 0);
@@ -637,7 +637,7 @@ namespace Anonymity {
 
     hashalgo->Update(GetRoundId().GetByteArray());
     QByteArray seed = hashalgo->ComputeHash();
-    QSharedPointer<Random> rng(lib->GetRandomNumberGenerator(seed));
+    QSharedPointer<Random> rng(lib.GetRandomNumberGenerator(seed));
     int byte_idx = _server_state->current_blame.second / 8;
     int bit_idx = _server_state->current_blame.second % 8;
     QByteArray tmp(byte_idx + 1, 0);
@@ -717,8 +717,8 @@ namespace Anonymity {
     QDataStream vstream(&verdict_msg, QIODevice::WriteOnly);
     vstream << blame << bad_dude;
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Hash> hash(lib->GetHashAlgorithm());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<Hash> hash(lib.GetHashAlgorithm());
     QByteArray verdict_hash = hash->ComputeHash(verdict_msg);
 
     int idx = 0;
@@ -747,8 +747,8 @@ namespace Anonymity {
 
   QPair<QByteArray, bool> CSBulkRound::GetShuffleData(int)
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<AsymmetricKey> key(lib->CreatePrivateKey());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<AsymmetricKey> key(lib.CreatePrivateKey());
     _state->anonymous_key = key;
 
     QSharedPointer<AsymmetricKey> pkey =
@@ -795,13 +795,13 @@ namespace Anonymity {
           GetGroup().Count(), GetShuffleSink().Count());
     }
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
 
     int count = GetShuffleSink().Count();
     for(int idx = 0; idx < count; idx++) {
       QPair<QSharedPointer<ISender>, QByteArray> pair(GetShuffleSink().At(idx));
       QSharedPointer<AsymmetricKey> key(
-        lib->LoadPublicKeyFromByteArray(pair.second));
+        lib.LoadPublicKeyFromByteArray(pair.second));
 
       if(!key->IsValid()) {
         qDebug() << "Invalid key in shuffle.";
@@ -870,8 +870,8 @@ namespace Anonymity {
 
   void CSBulkRound::SetupRngs()
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<Hash> hashalgo(lib.GetHashAlgorithm());
 
     QByteArray phase(4, 0);
     Serialization::WriteInt(_state_machine.GetPhase(), phase, 0);
@@ -912,7 +912,7 @@ namespace Anonymity {
       hashalgo->Update(phase);
       hashalgo->Update(GetRoundId().GetByteArray());
       QByteArray seed = hashalgo->ComputeHash();
-      QSharedPointer<Random> rng(lib->GetRandomNumberGenerator(seed));
+      QSharedPointer<Random> rng(lib.GetRandomNumberGenerator(seed));
       _state->anonymous_rngs.append(rng);
     }
   }
@@ -1019,8 +1019,8 @@ namespace Anonymity {
 #ifdef CSBR_SIGN_SLOTS
     QByteArray sig = _state->anonymous_key->Sign(msg_p);
 #else
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Hash> hash(lib->GetHashAlgorithm());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<Hash> hash(lib.GetHashAlgorithm());
     QByteArray sig = hash->ComputeHash(msg_p);
 #endif
 
@@ -1113,8 +1113,8 @@ namespace Anonymity {
     }
     _server_state->my_ciphertext = ciphertext;
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<Hash> hashalgo(lib.GetHashAlgorithm());
     _server_state->my_commit = hashalgo->ComputeHash(ciphertext);
   }
 
@@ -1275,8 +1275,8 @@ namespace Anonymity {
     QDataStream vstream(&verdict, QIODevice::WriteOnly);
     vstream << _server_state->current_blame << _server_state->bad_dude;
 
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Hash> hash(lib->GetHashAlgorithm());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<Hash> hash(lib.GetHashAlgorithm());
     _server_state->verdict_hash = hash->ComputeHash(verdict);
 
     QByteArray signature = GetPrivateIdentity().
@@ -1331,8 +1331,8 @@ namespace Anonymity {
     }
 
 #ifndef CSBR_SIGN_SLOTS
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Hash> hash(lib->GetHashAlgorithm());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<Hash> hash(lib.GetHashAlgorithm());
     int sig_length = hash->GetDigestSize();
 #endif
 
@@ -1476,21 +1476,21 @@ namespace Anonymity {
   QByteArray CSBulkRound::NullSeed()
   {
     static QByteArray null_seed(
-        CryptoFactory::GetInstance().GetLibrary()->RngOptimalSeedSize(), 0);
+        CryptoFactory::GetInstance().GetLibrary().RngOptimalSeedSize(), 0);
     return null_seed;
   }
 
   QByteArray CSBulkRound::Randomize(const QByteArray &msg)
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
 
-    QSharedPointer<Random> rng0(lib->GetRandomNumberGenerator());
-    QByteArray seed(lib->RngOptimalSeedSize(), 0);
+    QSharedPointer<Random> rng0(lib.GetRandomNumberGenerator());
+    QByteArray seed(lib.RngOptimalSeedSize(), 0);
     do {
       rng0->GenerateBlock(seed);
     } while(seed == NullSeed());
 
-    QSharedPointer<Random> rng1(lib->GetRandomNumberGenerator(seed));
+    QSharedPointer<Random> rng1(lib.GetRandomNumberGenerator(seed));
     QByteArray random_text(msg.size(), 0);
     rng1->GenerateBlock(random_text);
 
@@ -1501,16 +1501,16 @@ namespace Anonymity {
 
   QByteArray CSBulkRound::Derandomize(const QByteArray &randomized_text)
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
 
     QByteArray seed = QByteArray::fromRawData(randomized_text.constData(),
-        lib->RngOptimalSeedSize());
+        lib.RngOptimalSeedSize());
 
     if(seed == NullSeed()) {
       return QByteArray();
     }
 
-    QSharedPointer<Random> rng(lib->GetRandomNumberGenerator(seed));
+    QSharedPointer<Random> rng(lib.GetRandomNumberGenerator(seed));
 
     QByteArray msg = QByteArray::fromRawData(
         randomized_text.constData() + seed.size(),
@@ -1566,8 +1566,8 @@ namespace Anonymity {
   QPair<int, QByteArray> CSBulkRound::GetRebuttal(int phase, int accuse_idx,
       const QBitArray &server_bits)
   {
-    Library *lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Hash> hashalgo(lib->GetHashAlgorithm());
+    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QSharedPointer<Hash> hashalgo(lib.GetHashAlgorithm());
 
     QByteArray bphase(4, 0);
     Serialization::WriteInt(phase, bphase, 0);
@@ -1582,7 +1582,7 @@ namespace Anonymity {
       hashalgo->Update(bphase);
       hashalgo->Update(GetRoundId().GetByteArray());
       QByteArray seed = hashalgo->ComputeHash();
-      QSharedPointer<Random> rng(lib->GetRandomNumberGenerator(seed));
+      QSharedPointer<Random> rng(lib.GetRandomNumberGenerator(seed));
       rng->GenerateBlock(tmp);
       if(((tmp[accuse_idx / 8] & bit_masks[accuse_idx % 8]) != 0) != server_bits[idx]) {
         bidx = idx;
