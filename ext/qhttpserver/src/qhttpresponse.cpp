@@ -132,7 +132,7 @@ void QHttpResponse::writeHeaders()
     }
 }
 
-void QHttpResponse::writeHead(StatusCode status)
+void QHttpResponse::writeHead(int status)
 {
     if(m_finished) {
       return;

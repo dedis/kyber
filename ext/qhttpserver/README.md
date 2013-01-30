@@ -59,3 +59,9 @@ To send data back to the browser and end the request:
 The server and request/response objects emit various signals
 and have guarantees about memory management. See the API documentation for
 these.
+
+Contributors
+------------
+
+* Nikhil Marathe (maintainer)
+* David Wolinsy

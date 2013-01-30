@@ -51,13 +51,10 @@ signals:
 
 private slots:
     void parseRequest();
-    void responseDone();
-    void responseWriteDone();
     void socketDisconnected();
 
 private:
     static int MessageBegin(http_parser *parser);
-    static int Path(http_parser *parser, const char *at, size_t length);
     static int Url(http_parser *parser, const char *at, size_t length);
     static int HeaderField(http_parser *parser, const char *at, size_t length);
     static int HeaderValue(http_parser *parser, const char *at, size_t length);

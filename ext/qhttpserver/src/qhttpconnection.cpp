@@ -33,6 +33,7 @@ QHttpConnection::QHttpConnection(QTcpSocket *socket, QObject *parent)
     : QObject(parent)
     , m_socket(socket)
     , m_parser(0)
+    , m_request(0)
 {
     qDebug() << "Got new connection" << socket->peerAddress() << socket->peerPort();
 
@@ -64,12 +65,13 @@ QHttpConnection::~QHttpConnection()
 
 void QHttpConnection::socketDisconnected()
 {
-    Q_ASSERT(m_request);
-    if(m_request->successful()) {
-      return;
+    if(m_request) {
+        if(m_request->successful()) {
+          return;
+        }
+        m_request->setSuccessful(false);
+        emit m_request->end();
     }
-    m_request->setSuccessful(false);
-    emit m_request->end();
 
     deleteLater();
 }
@@ -93,29 +95,6 @@ void QHttpConnection::write(const QByteArray &data)
 void QHttpConnection::flush()
 {
     m_socket->flush();
-}
-
-void QHttpConnection::responseDone()
-{
-    QHttpResponse *response = qobject_cast<QHttpResponse*>(QObject::sender());
-    if( !response->m_last )
-    {
-        return;
-    }
-
-    if(m_socket->bytesToWrite()) {
-      connect(m_socket, SIGNAL(bytesWritten(qint64)), this, SLOT(responseWriteDone()));
-    } else {
-      m_socket->disconnectFromHost();
-    }
-}
-
-void QHttpConnection::responseWriteDone()
-{
-    if(m_socket->bytesToWrite()) {
-      return;
-    }
-    m_socket->disconnectFromHost();
 }
 
 /********************
@@ -153,7 +132,6 @@ int QHttpConnection::HeadersComplete(http_parser *parser)
         response->m_keepAlive = false;
 
     connect(theConnection, SIGNAL(destroyed()), response, SLOT(connectionClosed()));
-    connect(response, SIGNAL(done()), theConnection, SLOT(responseDone()));
 
     // we are good to go!
     emit theConnection->newRequest(theConnection->m_request, response);
@@ -166,6 +144,7 @@ int QHttpConnection::MessageComplete(http_parser *parser)
     QHttpConnection *theConnection = (QHttpConnection *)parser->data;
     Q_ASSERT(theConnection->m_request);
 
+    theConnection->m_request->setSuccessful(true);
     emit theConnection->m_request->end();
     return 0;
 }
