@@ -44,8 +44,6 @@ HEADERS += ext/googletest/include/gtest/gtest-death-test.h \
            src/Tests/RpcTest.hpp \
            src/Tests/ShuffleRoundHelpers.hpp \
            src/Tests/TestNode.hpp
-#           src/Tests/TestWebClient.hpp \
-#           src/Tests/WebServicesTest.hpp
 
 SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/AddressTest.cpp \
@@ -61,8 +59,6 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/EdgeTest.cpp \
            src/Tests/GroupTest.cpp \
            src/Tests/HashTest.cpp \
-#           src/Tests/HttpRequestTest.cpp \
-#           src/Tests/HttpResponseTest.cpp \
            src/Tests/IdTest.cpp \
            src/Tests/IntegerTest.cpp \
            src/Tests/KeyShareTest.cpp \
@@ -73,7 +69,6 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/NullRoundTest.cpp \
            src/Tests/OnionTest.cpp \
            src/Tests/OverlayHelper.cpp \
-#           src/Tests/PackagersTest.cpp \
            src/Tests/PeerReviewTest.cpp \
            src/Tests/RandomTest.cpp \
            src/Tests/RepeatingBulkRoundTest.cpp \
@@ -84,10 +79,7 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/ShuffleRoundTest.cpp \
            src/Tests/TcpTest.cpp \
            src/Tests/TestNode.cpp \
-#           src/Tests/TestWebClient.cpp \
            src/Tests/TimeTest.cpp \
            src/Tests/TripleTest.cpp \
            src/Tests/TunnelTest.cpp \
            src/Tests/WebTest.cpp
-#           src/Tests/WebServerTest.cpp \
-#           src/Tests/WebServicesTest.cpp
