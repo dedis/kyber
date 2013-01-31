@@ -61,6 +61,11 @@ namespace Crypto {
       }
 
       /**
+       * Returns true if number is prime
+       */
+      virtual bool IsPrime() const = 0;
+
+      /**
        * Add operator, produces a new Integer
        * @param other the Integer to add
        */
@@ -84,7 +89,11 @@ namespace Crypto {
        */
       virtual IntegerData *Divide(const IntegerData *divisor) const = 0;
 
-      virtual IntegerData *Modulus(const IntegerData *modulus) const = 0;
+      /**
+       * Modulo operator, take a mod m
+       * @param modulus the modulus
+       */
+      virtual IntegerData *Modulo(const IntegerData *modulus) const = 0;
 
       /**
        * Exponentiating operator
@@ -95,12 +104,31 @@ namespace Crypto {
           const IntegerData *mod) const = 0;
 
       /**
-       * Returns the multiplicative inverse for the internal integer
-       * with respect for the specified modulus
-       * @param mod the specified modulus
+       * Cascade exponentiation modulo n
+       * For integer n, compute ((x1^e1 * x2^e2) mod n)
+       * This can be much faster than the naive way.
+       * @param x1 first base
+       * @param e1 first exponent
+       * @param x2 second base
+       * @param e2 second exponent
        */
-      virtual IntegerData *MultiplicativeInverse(const IntegerData *mod)
-        const = 0;
+      virtual IntegerData *PowCascade(const IntegerData *x1, const IntegerData *e1,
+          const IntegerData *x2, const IntegerData *e2) const = 0;
+
+      /**
+       * Multiplication modulo
+       * @param other multiplicand
+       * @param mod modulus 
+       */
+      virtual IntegerData *MultiplyMod(const IntegerData *other,
+          const IntegerData *mod) const = 0;
+
+      /**
+       * Modular multiplicative inverse
+       * find x such that ax == 1 mod p
+       * @param mod modulus for inverse
+       */
+      virtual IntegerData *ModInverse(const IntegerData *mod) const = 0;
 
       /**
        * Assignment operator

@@ -129,7 +129,7 @@ namespace Crypto {
 
     Integer result = (encrypted *
         shared.Pow(GetPrivateExponent(), GetModulus()).
-          MultiplicativeInverse(GetModulus()))
+          ModInverse(GetModulus()))
       % GetModulus();
 
     QByteArray output;
@@ -157,7 +157,7 @@ namespace Crypto {
 
     Integer result = (encrypted *
         shared.Pow(GetPrivateExponent(), GetModulus()).
-          MultiplicativeInverse(GetModulus()))
+          ModInverse(GetModulus()))
       % GetModulus();
 
     QByteArray out;

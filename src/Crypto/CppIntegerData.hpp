@@ -8,6 +8,8 @@
 #include <cryptopp/aes.h>
 #include <cryptopp/ccm.h>
 #include <cryptopp/des.h>
+#include <cryptopp/modarith.h>
+#include <cryptopp/nbtheory.h>
 #include <cryptopp/osrng.h> 
 
 #include "AsymmetricKey.hpp"
@@ -105,6 +107,14 @@ namespace Crypto {
       inline const CryptoPP::Integer GetCryptoInteger() const { return _integer; }
 
       /**
+       * Return true if number is greater than zero and is
+       * prime
+       */
+      inline bool IsPrime() const { 
+        return (_integer > 0) && CryptoPP::IsPrime(_integer); 
+      }
+
+      /**
        * Add operator, produces a new Integer
        * @param other the Integer to add
        */
@@ -152,16 +162,49 @@ namespace Crypto {
       }
 
       /**
-       * Returns the multiplicative inverse for the internal integer
-       * with respect for the specified modulus
-       * @param mod the specified modulus
+       * Cascade exponentiation modulo n
+       * For integer n, compute ((x1^e1 * x2^e2) mod n)
+       * This can be much faster than the naive way.
+       * @param x1 first base
+       * @param e1 first exponent
+       * @param x2 second base
+       * @param e2 second exponent
        */
-      virtual IntegerData *MultiplicativeInverse(const IntegerData *mod) const
+      virtual IntegerData *PowCascade(const IntegerData *x1, const IntegerData *e1,
+          const IntegerData *x2, const IntegerData *e2) const 
+      {
+        CryptoPP::ModularArithmetic ma(_integer);
+        return new CppIntegerData(ma.CascadeExponentiate(
+              GetInteger(x1), GetInteger(e1),
+              GetInteger(x2), GetInteger(e2)));
+      }
+
+      /**
+       * Multiplication mod operator
+       * @param other number to multiply
+       * @param mod modulus
+       */
+      virtual IntegerData *MultiplyMod(const IntegerData *other,
+          const IntegerData *mod) const
+      {
+        return new CppIntegerData(a_times_b_mod_c(_integer,
+              GetInteger(other), GetInteger(mod)));
+      }
+
+      /**
+       * Modular multiplicative inverse
+       * @param mod the modulus
+       */
+      virtual IntegerData *ModInverse(const IntegerData *mod) const
       {
         return new CppIntegerData(_integer.InverseMod(GetInteger(mod)));
       }
 
-      virtual IntegerData *Modulus(const IntegerData *modulus) const 
+      /**
+       * Return a mod m
+       * @param mod the modulus
+       */
+      virtual IntegerData *Modulo(const IntegerData *modulus) const 
       {
         return new CppIntegerData(_integer % GetInteger(modulus));
       }
@@ -310,6 +353,16 @@ namespace Crypto {
         int size = _integer.MinEncodedSize();
         QByteArray byte_array(size, 0);
         _integer.Encode(reinterpret_cast<byte *>(byte_array.data()), size);
+
+        /*
+        Q_ASSERT(byte_array.count());
+        while((byte_array.count() > 1) && byte_array[0] == '\0') {
+          byte_array = byte_array.mid(1);
+          qDebug() << byte_array.toHex();
+        }
+        Q_ASSERT(byte_array.count());
+        */
+
         SetByteArray(byte_array);
       }
 

@@ -32,6 +32,7 @@ HEADERS += ext/googletest/include/gtest/gtest-death-test.h \
            ext/googletest/include/gtest/internal/gtest-string.h \
            ext/googletest/include/gtest/internal/gtest-tuple.h \
            ext/googletest/include/gtest/internal/gtest-type-util.h \
+           src/Tests/AbstractGroupHelpers.hpp \
            src/Tests/BadCSBulkRound.hpp \
            src/Tests/BulkRoundHelpers.hpp \
            src/Tests/DissentTest.hpp \
@@ -50,6 +51,10 @@ SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/AuthenticateTest.cpp \
            src/Tests/Base64.cpp \
            src/Tests/BasicGossipTest.cpp \
+           src/Tests/BlogDropProof.cpp \
+           src/Tests/BlogDropTest.cpp \
+           src/Tests/BlogDropUtilsTest.cpp \
+           src/Tests/BlogDropRoundTest.cpp \
            src/Tests/BulkRoundTest.cpp \
            src/Tests/ConnectionTest.cpp \
            src/Tests/Crypto.cpp \

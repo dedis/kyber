@@ -151,7 +151,7 @@ namespace Crypto {
     for(int idx = 0; idx < k; idx++) {
       p.append(rand.GetInteger(2, subgroup));
       B.append((generator.Pow(p[idx], modulus) *
-            U[idx].MultiplicativeInverse(modulus)) % modulus);
+            U[idx].ModInverse(modulus)) % modulus);
     }
 
     // Part 3 -- Prover
@@ -245,11 +245,11 @@ namespace Crypto {
 
     Integer s_r_multi = c;
     for(int idx = 0 ; idx <  k; idx++) {
-      s_r_multi = (s_r_multi * r_t[idx] * s_t[idx].MultiplicativeInverse(subgroup)) % subgroup;
+      s_r_multi = (s_r_multi * r_t[idx] * s_t[idx].ModInverse(subgroup)) % subgroup;
       alpha.append((theta[idx] + s_r_multi) % subgroup);
     }
 
-    Integer inv_gamma = gamma.MultiplicativeInverse(subgroup);
+    Integer inv_gamma = gamma.ModInverse(subgroup);
     for(int idx = k; idx < (2 * k - 1); idx++) {
       alpha.append((theta[idx] + c * inv_gamma.Pow(2 * k - idx - 1, subgroup)) % subgroup);
     }
@@ -391,7 +391,7 @@ namespace Crypto {
     for(int idx = 0; idx < k; idx++) {
       p.append(rand.GetInteger(2, subgroup));
       B.append((generator.Pow(p[idx], modulus) *
-            U[idx].MultiplicativeInverse(modulus)) % modulus);
+            U[idx].ModInverse(modulus)) % modulus);
     }
 
     // Part 3 -- Prover
@@ -556,7 +556,7 @@ namespace Crypto {
       Integer shared_out, secret_out;
       tstream_out >> shared_out >> secret_out;
 
-      Integer pair = (secret_in * secret_out.MultiplicativeInverse(modulus)) % modulus;
+      Integer pair = (secret_in * secret_out.ModInverse(modulus)) % modulus;
       Integer T = decryption_proof[idx].first;
       Integer s = decryption_proof[idx].second;
       Integer c = rand.GetInteger(2, subgroup);

@@ -1,6 +1,7 @@
 #ifndef DISSENT_DISSENT_H_GUARD
 #define DISSENT_DISSENT_H_GUARD
 
+#include "Anonymity/BlogDropRound.hpp"
 #include "Anonymity/BaseBulkRound.hpp"
 #include "Anonymity/BulkRound.hpp"
 #include "Anonymity/CSBulkRound.hpp"
@@ -78,6 +79,39 @@
 #include "Crypto/OnionEncryptor.hpp"
 #include "Crypto/Serialization.hpp"
 #include "Crypto/ThreadedOnionEncryptor.hpp"
+
+#include "Crypto/AbstractGroup/CppECGroup.hpp"
+#include "Crypto/AbstractGroup/CppECElementData.hpp"
+#include "Crypto/AbstractGroup/ElementData.hpp"
+#include "Crypto/AbstractGroup/IntegerGroup.hpp"
+#include "Crypto/AbstractGroup/ByteGroup.hpp"
+#include "Crypto/AbstractGroup/ByteElementData.hpp"
+#include "Crypto/AbstractGroup/Element.hpp"
+#include "Crypto/AbstractGroup/AbstractGroup.hpp"
+#include "Crypto/AbstractGroup/ECParams.hpp"
+#include "Crypto/AbstractGroup/IntegerElementData.hpp"
+#include "Crypto/AbstractGroup/CompositeIntegerGroup.hpp"
+
+#include "Crypto/BlogDrop/PublicKey.hpp"
+#include "Crypto/BlogDrop/Parameters.hpp"
+#include "Crypto/BlogDrop/BlogDropUtils.hpp"
+#include "Crypto/BlogDrop/XorServerCiphertext.hpp"
+#include "Crypto/BlogDrop/BlogDropServer.hpp"
+#include "Crypto/BlogDrop/HashingGenServerCiphertext.hpp"
+#include "Crypto/BlogDrop/BlogDropClient.hpp"
+#include "Crypto/BlogDrop/HashingGenClientCiphertext.hpp"
+#include "Crypto/BlogDrop/PublicKeySet.hpp"
+#include "Crypto/BlogDrop/ChangingGenServerCiphertext.hpp"
+#include "Crypto/BlogDrop/ElGamalServerCiphertext.hpp"
+#include "Crypto/BlogDrop/ServerCiphertext.hpp"
+#include "Crypto/BlogDrop/BlogDropAuthor.hpp"
+#include "Crypto/BlogDrop/XorClientCiphertext.hpp"
+#include "Crypto/BlogDrop/ClientCiphertext.hpp"
+#include "Crypto/BlogDrop/Plaintext.hpp"
+#include "Crypto/BlogDrop/CiphertextFactory.hpp"
+#include "Crypto/BlogDrop/PrivateKey.hpp"
+#include "Crypto/BlogDrop/ElGamalClientCiphertext.hpp"
+#include "Crypto/BlogDrop/ChangingGenClientCiphertext.hpp"
 
 #include "Identity/Authentication/IAuthenticate.hpp"
 #include "Identity/Authentication/IAuthenticator.hpp"
@@ -176,6 +210,8 @@ using namespace Dissent::Applications;
 using namespace Dissent::ClientServer;
 using namespace Dissent::Connections;
 using namespace Dissent::Crypto;
+using namespace Dissent::Crypto::AbstractGroup;
+using namespace Dissent::Crypto::BlogDrop;
 using namespace Dissent::Identity::Authentication;
 using namespace Dissent::Identity;
 using namespace Dissent::Messaging;

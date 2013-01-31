@@ -70,6 +70,14 @@ namespace Sessions {
       virtual ~Session();
 
       /**
+       * From a client software, broadcast to all without anonymity,
+       * i.e., this complete an anonymous request for external data.
+       * This ensures that these messages are sent sychronously
+       * and using the same structure as the regular messages.
+       */
+      virtual void OutOfBandSend(const QByteArray &data);
+
+      /**
        * From a client software, send a message anonymously
        */
       virtual void Send(const QByteArray &data);
@@ -285,6 +293,11 @@ namespace Sessions {
        * Used by a client to store messages to be sent for future rounds
        */
       DataQueue m_send_queue;
+
+      /**
+       * Used by a client to store messages to be sent out of band in a future exchange
+       */
+      DataQueue m_oob_queue;
 
       Utils::TimerEvent _register_event;
       QSharedPointer<GroupHolder> _group_holder;

@@ -389,6 +389,16 @@ namespace Sessions {
     m_send_queue.AddData(data);
   }
 
+  void Session::OutOfBandSend(const QByteArray &data)
+  {
+    if(Stopped()) {
+      qWarning() << "Session is stopped";
+      return;
+    }
+
+    m_oob_queue.AddData(data);
+  }
+
   void Session::IncomingData(const Request &notification)
   {
     if(_current_round) {
