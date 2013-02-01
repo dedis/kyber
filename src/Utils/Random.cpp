@@ -13,8 +13,7 @@ namespace Utils {
     return rand;
   }
 
-  Random::Random(const QByteArray &seed, uint index) :
-    _byte_count(0)
+  Random::Random(const QByteArray &seed)
   {
     if(seed.isEmpty()) {
       _seed = time(NULL);
@@ -27,24 +26,6 @@ namespace Utils {
       _seed ^= Serialization::ReadInt(seed, offset);
       offset += 4;
     }
-
-    if(index) {
-      MoveRngPosition(index);
-    }
-  }
-
-  void Random::MoveRngPosition(uint index)
-  {
-    QByteArray tmp(8, 0);
-    for(uint idx = 0; idx < index; idx++) {
-      GenerateBlock(tmp);
-    }
-
-    int extra = index % 8;
-    if(extra) {
-      tmp.resize(extra);
-      GenerateBlock(tmp);
-    }
   }
 
   int Random::GetInt(int min, int max)
@@ -53,17 +34,13 @@ namespace Utils {
       return min;
     }
 
-    int count = 1;
-
     uint base = rand_r(&_seed);
     int value = base % max;
     while(value < min) {
-      count++;
       base = rand_r(&base);
       value = base % max;
     }
 
-    IncrementByteCount(count << 2);
     _seed = base;
     return value;
   }

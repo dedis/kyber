@@ -78,9 +78,9 @@ namespace Crypto {
       /**
        * Returns a random number generator
        */
-      inline virtual Utils::Random *GetRandomNumberGenerator(const QByteArray &seed, uint index) const
+      inline virtual Utils::Random *GetRandomNumberGenerator(const QByteArray &seed) const
       {
-        return new Utils::Random(seed, index);
+        return new Utils::Random(seed);
       }
 
       inline virtual uint RngOptimalSeedSize() const

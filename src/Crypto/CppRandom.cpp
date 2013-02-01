@@ -4,7 +4,7 @@
 
 namespace Dissent {
 namespace Crypto {
-  CppRandom::CppRandom(const QByteArray &seed, uint index)
+  CppRandom::CppRandom(const QByteArray &seed)
   {
     if(seed.isEmpty()) {
       try {
@@ -32,10 +32,6 @@ namespace Crypto {
     const byte *zerob = reinterpret_cast<const byte *>(zero.data());
     _rng = QSharedPointer<CryptoPP::RandomNumberGenerator>(
         new CryptoPP::X917RNG(bt, zerob, zerob));
-
-    if(index) {
-      MoveRngPosition(index);
-    }
   }
 
   int CppRandom::GetInt(int min, int max)
@@ -43,7 +39,6 @@ namespace Crypto {
     if(min == max) {
       return min;
     }
-    IncrementByteCount(4);
     return _rng->GenerateWord32(min, max - 1);
   }
 
@@ -60,7 +55,6 @@ namespace Crypto {
   void CppRandom::GenerateBlock(QByteArray &data)
   {
     _rng->GenerateBlock(reinterpret_cast<byte *>(data.data()), data.size());
-    IncrementByteCount(data.size());
   }
 }
 }

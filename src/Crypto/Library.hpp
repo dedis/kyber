@@ -55,7 +55,7 @@ namespace Crypto {
        * Returns a random number generator
        */
       virtual Utils::Random *GetRandomNumberGenerator(
-          const QByteArray &seed = QByteArray(), uint index = 0) const = 0;
+          const QByteArray &seed = QByteArray()) const = 0;
 
       /**
        * Returns the optimal seed size for the RNG
