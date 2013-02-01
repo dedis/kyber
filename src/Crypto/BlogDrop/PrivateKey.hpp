@@ -18,12 +18,12 @@ namespace BlogDrop {
       /**
        * Constructor: Initialize a random private key
        */
-      PrivateKey(const QSharedPointer<const Parameters> params);
+      PrivateKey(const QSharedPointer<const Parameters> &params);
 
       /**
        * Constructor: Initialize a private key from an integer
        */
-      PrivateKey(const QSharedPointer<const Parameters> params, const Integer key);
+      PrivateKey(const QSharedPointer<const Parameters> &params, const Integer key);
 
       /**
        * Destructor

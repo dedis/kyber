@@ -29,7 +29,7 @@ namespace BlogDrop {
        * @params params group parameters
        * @params keys keyset to use
        */
-      PublicKeySet(const QSharedPointer<const Parameters> params, 
+      PublicKeySet(const QSharedPointer<const Parameters> &params, 
           const QList<QSharedPointer<const PublicKey> > &keys);
 
       /**
@@ -37,7 +37,7 @@ namespace BlogDrop {
        * @params params group parameters
        * @params keys keyset to use
        */
-      PublicKeySet(const QSharedPointer<const Parameters> params, 
+      PublicKeySet(const QSharedPointer<const Parameters> &params, 
           const QByteArray &key);
 
       /**
@@ -48,7 +48,7 @@ namespace BlogDrop {
        *         many times.
        */
       static QList<QSharedPointer<const PublicKeySet> > CreateClientKeySets(
-          const QSharedPointer<const Parameters> params, 
+          const QSharedPointer<const Parameters> &params, 
           const QList<QList<QSharedPointer<const PublicKey> > > &keys);
 
 

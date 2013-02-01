@@ -1,4 +1,3 @@
-
 #include <QtCore>
 
 #include "Crypto/CryptoFactory.hpp"
@@ -11,9 +10,9 @@ namespace Dissent {
 namespace Crypto {
 namespace BlogDrop {
 
-  ClientCiphertext::ClientCiphertext(const QSharedPointer<const Parameters> params, 
-      const QSharedPointer<const PublicKeySet> server_pks,
-      const QSharedPointer<const PublicKey> author_pub,
+  ClientCiphertext::ClientCiphertext(const QSharedPointer<const Parameters> &params, 
+      const QSharedPointer<const PublicKeySet> &server_pks,
+      const QSharedPointer<const PublicKey> &author_pub,
       int n_elms) :
     _params(params),
     _server_pks(server_pks),
@@ -22,9 +21,9 @@ namespace BlogDrop {
   {
   }
 
-  void ClientCiphertext::VerifyProofs(const QSharedPointer<const Parameters> params,
-          const QSharedPointer<const PublicKeySet> server_pk_set,
-          const QSharedPointer<const PublicKey> author_pk,
+  void ClientCiphertext::VerifyProofs(const QSharedPointer<const Parameters> &params,
+          const QSharedPointer<const PublicKeySet> &server_pk_set,
+          const QSharedPointer<const PublicKey> &author_pk,
           int phase, 
           const QList<QSharedPointer<const PublicKey> > &pubs,
           const QList<QByteArray> &c,
@@ -84,7 +83,7 @@ namespace BlogDrop {
     }
   }
 
-  bool ClientCiphertext::VerifyOnce(QSharedPointer<MapData> m)
+  bool ClientCiphertext::VerifyOnce(const QSharedPointer<MapData> &m)
   {
     QSharedPointer<const Parameters> params(m->params);
     QSharedPointer<const PublicKeySet> server_pk_set(new PublicKeySet(params, m->server_pk_set));

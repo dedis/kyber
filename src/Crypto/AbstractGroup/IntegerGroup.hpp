@@ -39,7 +39,7 @@ namespace AbstractGroup {
        * @param g must generate the large prime-order subgroup 
        *        group of Z*_p
        */
-      IntegerGroup(Integer p, Integer g);
+      IntegerGroup(const Integer &p, const Integer &g);
 
       /**
        * Get a fixed group with modulus of length 1024 bits

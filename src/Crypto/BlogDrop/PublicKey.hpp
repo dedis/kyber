@@ -27,7 +27,7 @@ namespace BlogDrop {
        * Constructor: Initialize a public key matching a private key
        * @param key the key to use
        */
-      PublicKey(const QSharedPointer<const PrivateKey> key);
+      PublicKey(const QSharedPointer<const PrivateKey> &key);
       PublicKey(const PrivateKey &key);
 
       /**
@@ -35,14 +35,14 @@ namespace BlogDrop {
        * @params params group parameters
        * @params key serialized key
        */
-      PublicKey(const QSharedPointer<const Parameters> params, const QByteArray &key);
+      PublicKey(const QSharedPointer<const Parameters> &params, const QByteArray &key);
 
       /**
        * Initialize a public key with this value
        * @params params group parameters
        * @params key integer key value
        */
-      PublicKey(const QSharedPointer<const Parameters> params, const Element key);
+      PublicKey(const QSharedPointer<const Parameters> &params, const Element key);
 
       /**
        * Destructor

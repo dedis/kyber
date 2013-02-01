@@ -132,17 +132,13 @@ HEADERS += src/Dissent.hpp \
            src/Crypto/AbstractGroup/CppECElementData.hpp \
            src/Crypto/AbstractGroup/ElementData.hpp \
            src/Crypto/AbstractGroup/IntegerGroup.hpp \
-           src/Crypto/AbstractGroup/ByteGroup.hpp \
-           src/Crypto/AbstractGroup/ByteElementData.hpp \
            src/Crypto/AbstractGroup/Element.hpp \
            src/Crypto/AbstractGroup/AbstractGroup.hpp \
            src/Crypto/AbstractGroup/ECParams.hpp \
            src/Crypto/AbstractGroup/IntegerElementData.hpp \
-           src/Crypto/AbstractGroup/CompositeIntegerGroup.hpp \
            src/Crypto/BlogDrop/PublicKey.hpp \
            src/Crypto/BlogDrop/Parameters.hpp \
            src/Crypto/BlogDrop/BlogDropUtils.hpp \
-           src/Crypto/BlogDrop/XorServerCiphertext.hpp \
            src/Crypto/BlogDrop/BlogDropServer.hpp \
            src/Crypto/BlogDrop/HashingGenServerCiphertext.hpp \
            src/Crypto/BlogDrop/BlogDropClient.hpp \
@@ -152,7 +148,6 @@ HEADERS += src/Dissent.hpp \
            src/Crypto/BlogDrop/ElGamalServerCiphertext.hpp \
            src/Crypto/BlogDrop/ServerCiphertext.hpp \
            src/Crypto/BlogDrop/BlogDropAuthor.hpp \
-           src/Crypto/BlogDrop/XorClientCiphertext.hpp \
            src/Crypto/BlogDrop/ClientCiphertext.hpp \
            src/Crypto/BlogDrop/Plaintext.hpp \
            src/Crypto/BlogDrop/CiphertextFactory.hpp \
@@ -300,8 +295,6 @@ SOURCES += src/Anonymity/BaseBulkRound.cpp \
            src/Crypto/NullPrivateKey.cpp \
            src/Crypto/OnionEncryptor.cpp \
            src/Crypto/ThreadedOnionEncryptor.cpp \
-           src/Crypto/AbstractGroup/CompositeIntegerGroup.cpp \
-           src/Crypto/AbstractGroup/ByteGroup.cpp \
            src/Crypto/AbstractGroup/IntegerGroup.cpp \
            src/Crypto/AbstractGroup/AbstractGroup.cpp \
            src/Crypto/AbstractGroup/CppECGroup.cpp \

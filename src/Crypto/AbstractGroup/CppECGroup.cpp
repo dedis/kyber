@@ -8,7 +8,8 @@ namespace Dissent {
 namespace Crypto {
 namespace AbstractGroup {
 
-  CppECGroup::CppECGroup(Integer p, Integer q, Integer a, Integer b, Integer gx, Integer gy) :
+  CppECGroup::CppECGroup(const Integer &p, const Integer &q, const Integer &a,
+      const Integer &b, const Integer &gx, const Integer &gy) :
       _curve(ToCryptoInt(p), ToCryptoInt(a), ToCryptoInt(b)),
       _q(q),
       _g(ToCryptoInt(gx), ToCryptoInt(gy)),

@@ -26,10 +26,10 @@ namespace BlogDrop {
        * @param author_pub author public key
        * @param server_priv server private key
        */
-      explicit BlogDropServer(const QSharedPointer<Parameters> params,  
-          const QSharedPointer<const PrivateKey> server_priv,
-          const QSharedPointer<const PublicKeySet> server_pk_set,
-          const QSharedPointer<const PublicKey> author_pub);
+      explicit BlogDropServer(const QSharedPointer<Parameters> &params,
+          const QSharedPointer<const PrivateKey> &server_priv,
+          const QSharedPointer<const PublicKeySet> &server_pk_set,
+          const QSharedPointer<const PublicKey> &author_pub);
 
       /**
        * Destructor
@@ -48,7 +48,7 @@ namespace BlogDrop {
        * @param pub client public key
        * @param verify_proofs if true, verify proofs as they're added
        */
-      bool AddClientCiphertext(QByteArray in, QSharedPointer<const PublicKey> pub,
+      bool AddClientCiphertext(const QByteArray &in, const QSharedPointer<const PublicKey> &pub,
           bool verify_proofs);
 
       /**
@@ -77,7 +77,7 @@ namespace BlogDrop {
        * @param in the serializd server ciphertext to add
        */
       bool AddServerCiphertext(const QByteArray &in, 
-          const QSharedPointer<const PublicKey> from);
+          const QSharedPointer<const PublicKey> &from);
 
       /**
        * Add a list of server ciphertexts and return true if all of the added 
@@ -108,7 +108,6 @@ namespace BlogDrop {
 
       /**
        * Look through bin for invalid ciphertexts
-       * TODO use threading to speed this up
        */
       QSet<int> FindBadClients();
 
@@ -118,7 +117,6 @@ namespace BlogDrop {
       inline int GetPhase() const { return _phase; }
 
     private:
-
       int _phase;
 
       QSharedPointer<Parameters> _params;

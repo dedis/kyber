@@ -6,8 +6,8 @@ namespace Dissent {
 namespace Crypto {
 namespace BlogDrop {
 
-  ElGamalServerCiphertext::ElGamalServerCiphertext(const QSharedPointer<const Parameters> params, 
-      const QSharedPointer<const PublicKey> author_pub,
+  ElGamalServerCiphertext::ElGamalServerCiphertext(const QSharedPointer<const Parameters> &params, 
+      const QSharedPointer<const PublicKey> &author_pub,
       const QList<QSharedPointer<const PublicKeySet> > &client_pks) :
     ServerCiphertext(params, author_pub, params->GetNElements()),
     _client_pks(client_pks)
@@ -18,8 +18,8 @@ namespace BlogDrop {
     }
   }
 
-  ElGamalServerCiphertext::ElGamalServerCiphertext(const QSharedPointer<const Parameters> params, 
-      const QSharedPointer<const PublicKey> author_pub,
+  ElGamalServerCiphertext::ElGamalServerCiphertext(const QSharedPointer<const Parameters> &params, 
+      const QSharedPointer<const PublicKey> &author_pub,
       const QList<QSharedPointer<const PublicKeySet> > &client_pks,
       const QByteArray &serialized) :
     ServerCiphertext(params, author_pub, params->GetNElements()),
@@ -47,7 +47,7 @@ namespace BlogDrop {
     }
   }
 
-  void ElGamalServerCiphertext::SetProof(int /*phase*/, const QSharedPointer<const PrivateKey> priv)
+  void ElGamalServerCiphertext::SetProof(int /*phase*/, const QSharedPointer<const PrivateKey> &priv)
   {
     for(int i=0; i<_n_elms; i++) {
       // element[i] = (prod of client_pks[i])^-server_sk mod p
@@ -104,7 +104,7 @@ namespace BlogDrop {
     _response = (v - (_challenge.MultiplyMod(priv->GetInteger(), q))) % q;
   }
 
-  bool ElGamalServerCiphertext::VerifyProof(int /* phase */, const QSharedPointer<const PublicKey> pub) const
+  bool ElGamalServerCiphertext::VerifyProof(int /* phase */, const QSharedPointer<const PublicKey> &pub) const
   {
     // g0 = DH generator 
     // g(i) = product of all client pub keys i

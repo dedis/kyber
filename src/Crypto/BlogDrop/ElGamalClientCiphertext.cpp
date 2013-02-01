@@ -10,9 +10,9 @@ namespace Dissent {
 namespace Crypto {
 namespace BlogDrop {
 
-  ElGamalClientCiphertext::ElGamalClientCiphertext(const QSharedPointer<const Parameters> params, 
-      const QSharedPointer<const PublicKeySet> server_pks,
-      const QSharedPointer<const PublicKey> author_pub) :
+  ElGamalClientCiphertext::ElGamalClientCiphertext(const QSharedPointer<const Parameters> &params, 
+      const QSharedPointer<const PublicKeySet> &server_pks,
+      const QSharedPointer<const PublicKey> &author_pub) :
     ClientCiphertext(params, server_pks, author_pub, params->GetNElements())
   {
     for(int i=0; i<_n_elms; i++) { 
@@ -25,9 +25,9 @@ namespace BlogDrop {
     }
   }
 
-  ElGamalClientCiphertext::ElGamalClientCiphertext(const QSharedPointer<const Parameters> params, 
-      const QSharedPointer<const PublicKeySet> server_pks,
-      const QSharedPointer<const PublicKey> author_pub,
+  ElGamalClientCiphertext::ElGamalClientCiphertext(const QSharedPointer<const Parameters> &params, 
+      const QSharedPointer<const PublicKeySet> &server_pks,
+      const QSharedPointer<const PublicKey> &author_pub,
       const QByteArray &serialized) :
     ClientCiphertext(params, server_pks, author_pub, params->GetNElements())
   {
@@ -62,8 +62,8 @@ namespace BlogDrop {
   }
 
   void ElGamalClientCiphertext::SetAuthorProof(int /*phase*/, 
-      const QSharedPointer<const PrivateKey> /*client_priv*/, 
-      const QSharedPointer<const PrivateKey> author_priv, 
+      const QSharedPointer<const PrivateKey> &/*client_priv*/, 
+      const QSharedPointer<const PrivateKey> &author_priv, 
       const Plaintext &m)
   {
     if(_elements.count() != _n_elms) {
@@ -132,7 +132,7 @@ namespace BlogDrop {
     }
   }
 
-  void ElGamalClientCiphertext::SetProof(int /*phase*/, const QSharedPointer<const PrivateKey>)
+  void ElGamalClientCiphertext::SetProof(int /*phase*/, const QSharedPointer<const PrivateKey> &)
   {
     const Element g_key = _params->GetKeyGroup()->GetGenerator();
     const Integer q = _params->GetGroupOrder();
@@ -188,7 +188,7 @@ namespace BlogDrop {
     }
   }
 
-  bool ElGamalClientCiphertext::VerifyProof(int /*phase*/, const QSharedPointer<const PublicKey>) const
+  bool ElGamalClientCiphertext::VerifyProof(int /*phase*/, const QSharedPointer<const PublicKey> &) const
   {
     if(_elements.count() != _n_elms) {
       qDebug() << "Got proof with incorrect number of elements (" << _elements.count() << ")";

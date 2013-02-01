@@ -23,10 +23,10 @@ namespace BlogDrop {
        * @param server_pks Server public keys
        * @param author_pub author public key
        */
-      explicit BlogDropClient(const QSharedPointer<Parameters> params, 
-          const QSharedPointer<const PrivateKey> client_priv,
-          const QSharedPointer<const PublicKeySet> server_pks,
-          const QSharedPointer<const PublicKey> author_pub);
+      explicit BlogDropClient(const QSharedPointer<Parameters> &params, 
+          const QSharedPointer<const PrivateKey> &client_priv,
+          const QSharedPointer<const PublicKeySet> &server_pks,
+          const QSharedPointer<const PublicKey> &author_pub);
 
       /**
        * Destructor

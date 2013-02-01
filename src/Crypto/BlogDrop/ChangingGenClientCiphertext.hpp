@@ -39,9 +39,9 @@ namespace BlogDrop {
        * @param server_pks Server public keys
        * @param author_pub author public key
        */
-      explicit ChangingGenClientCiphertext(const QSharedPointer<const Parameters> params, 
-          const QSharedPointer<const PublicKeySet> server_pks,
-          const QSharedPointer<const PublicKey> author_pub);
+      explicit ChangingGenClientCiphertext(const QSharedPointer<const Parameters> &params, 
+          const QSharedPointer<const PublicKeySet> &server_pks,
+          const QSharedPointer<const PublicKey> &author_pub);
 
       /**
        * Constructor: Initialize a ciphertext from a serialized bytearray
@@ -50,9 +50,9 @@ namespace BlogDrop {
        * @param author_pub author public key
        * @param the byte array
        */
-      explicit ChangingGenClientCiphertext(const QSharedPointer<const Parameters> params, 
-          const QSharedPointer<const PublicKeySet> server_pks,
-          const QSharedPointer<const PublicKey> author_pub, 
+      explicit ChangingGenClientCiphertext(const QSharedPointer<const Parameters> &params, 
+          const QSharedPointer<const PublicKeySet> &server_pks,
+          const QSharedPointer<const PublicKey> &author_pub, 
           const QByteArray &serialized);
 
       /**
@@ -68,8 +68,8 @@ namespace BlogDrop {
        * @param m author's plaintext message
        */
       virtual void SetAuthorProof(int phase, 
-          const QSharedPointer<const PrivateKey> client_priv,
-          const QSharedPointer<const PrivateKey> author_priv, 
+          const QSharedPointer<const PrivateKey> &client_priv,
+          const QSharedPointer<const PrivateKey> &author_priv, 
           const Plaintext &m);
 
       /**
@@ -77,13 +77,13 @@ namespace BlogDrop {
        * @param phase the message transmission phase/round index
        * @param client_priv client private key used to generate proof
        */
-      virtual void SetProof(int phase, const QSharedPointer<const PrivateKey> client_priv);
+      virtual void SetProof(int phase, const QSharedPointer<const PrivateKey> &client_priv);
 
       /**
        * Check ciphertext proof
        * @returns true if proof is okay
        */
-      virtual bool VerifyProof(int phase, const QSharedPointer<const PublicKey> client_pub) const;
+      virtual bool VerifyProof(int phase, const QSharedPointer<const PublicKey> &client_pub) const;
 
       /**
        * Get a byte array for this ciphertext
@@ -98,16 +98,16 @@ namespace BlogDrop {
     protected:
 
       Element ComputeAndCacheGenerator(
-          QHash<int, Element> &cache,
-          const QSharedPointer<const PublicKeySet> server_pks, 
-          const QSharedPointer<const PublicKey> author_pk, 
+          const QHash<int, Element> &cache,
+          const QSharedPointer<const PublicKeySet> &server_pks, 
+          const QSharedPointer<const PublicKey> &author_pk, 
           int phase, int element_idx) const;
 
       /**
        * This is the only method that inheriting classes need to implement
        */
-      virtual Element ComputeGenerator(const QSharedPointer<const PublicKeySet> server_pks, 
-          const QSharedPointer<const PublicKey> author_pk, 
+      virtual Element ComputeGenerator(const QSharedPointer<const PublicKeySet> &server_pks, 
+          const QSharedPointer<const PublicKey> &author_pk, 
           int phase, int element_idx) const = 0;
 
     private:
@@ -116,10 +116,10 @@ namespace BlogDrop {
           const QList<Element> &ys, 
           const QList<Element> &ts) const;
 
-      void InitializeLists(QHash<int, Element> &cache,
-          int phase, QSharedPointer<const PublicKey> client_pub,
+      void InitializeLists(const QHash<int, Element> &cache,
+          int phase, const QSharedPointer<const PublicKey> &client_pub,
           QList<Element> &gs, QList<Element> &ys) const;
-      void InitCiphertext(int phase, const QSharedPointer<const PrivateKey> priv);
+      void InitCiphertext(int phase, const QSharedPointer<const PrivateKey> &priv);
 
       QHash<int, Element> _cache;
       Integer _challenge_1;

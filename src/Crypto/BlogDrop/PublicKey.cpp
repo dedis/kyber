@@ -11,7 +11,7 @@ namespace BlogDrop {
   PublicKey::PublicKey() :
     _params(Parameters::Empty()) {}
 
-  PublicKey::PublicKey(const QSharedPointer<const PrivateKey> key) :
+  PublicKey::PublicKey(const QSharedPointer<const PrivateKey> &key) :
     _params(key->GetParameters()),
     _public_key(_params->GetKeyGroup()->Exponentiate(
           _params->GetKeyGroup()->GetGenerator(), key->GetInteger()))
@@ -25,13 +25,13 @@ namespace BlogDrop {
   {
   }
 
-  PublicKey::PublicKey(const QSharedPointer<const Parameters> params, const QByteArray &key) :
+  PublicKey::PublicKey(const QSharedPointer<const Parameters> &params, const QByteArray &key) :
     _params(params),
     _public_key(_params->GetKeyGroup()->ElementFromByteArray(key))
   {
   }
 
-  PublicKey::PublicKey(const QSharedPointer<const Parameters> params, const Element key) :
+  PublicKey::PublicKey(const QSharedPointer<const Parameters> &params, const Element key) :
     _params(params),
     _public_key(key)
   {

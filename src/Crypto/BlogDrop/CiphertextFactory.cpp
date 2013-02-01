@@ -4,17 +4,15 @@
 #include "ElGamalServerCiphertext.hpp"
 #include "HashingGenClientCiphertext.hpp"
 #include "HashingGenServerCiphertext.hpp"
-#include "XorClientCiphertext.hpp"
-#include "XorServerCiphertext.hpp"
 
 namespace Dissent {
 namespace Crypto {
 namespace BlogDrop {
 
   QSharedPointer<ClientCiphertext> CiphertextFactory::CreateClientCiphertext(
-      const QSharedPointer<const Parameters> params, 
-      const QSharedPointer<const PublicKeySet> server_pks,
-      const QSharedPointer<const PublicKey> author_pub)
+      const QSharedPointer<const Parameters> &params, 
+      const QSharedPointer<const PublicKeySet> &server_pks,
+      const QSharedPointer<const PublicKey> &author_pub)
   {
     QSharedPointer<ClientCiphertext> c;
     switch(params->GetProofType()) {
@@ -25,11 +23,6 @@ namespace BlogDrop {
 
       case Parameters::ProofType_HashingGenerator:
         c = QSharedPointer<ClientCiphertext>(new HashingGenClientCiphertext(
-              params, server_pks, author_pub));
-        break;
-
-      case Parameters::ProofType_Xor:
-        c = QSharedPointer<ClientCiphertext>(new XorClientCiphertext(
               params, server_pks, author_pub));
         break;
 
@@ -41,10 +34,10 @@ namespace BlogDrop {
   }
  
   QSharedPointer<ClientCiphertext> CiphertextFactory::CreateClientCiphertext(
-      const QSharedPointer<const Parameters> params, 
-      const QSharedPointer<const PublicKeySet> server_pks,
-      const QSharedPointer<const PublicKey> author_pub,
-      const QByteArray serialized)
+      const QSharedPointer<const Parameters> &params, 
+      const QSharedPointer<const PublicKeySet> &server_pks,
+      const QSharedPointer<const PublicKey> &author_pub,
+      const QByteArray &serialized)
   {
     QSharedPointer<ClientCiphertext> c;
     switch(params->GetProofType()) {
@@ -58,11 +51,6 @@ namespace BlogDrop {
               params, server_pks, author_pub, serialized));
         break;
 
-      case Parameters::ProofType_Xor:
-        c = QSharedPointer<ClientCiphertext>(new XorClientCiphertext(
-              params, server_pks, author_pub, serialized));
-        break;
-
       default:
         qFatal("Invalid proof type");
     }
@@ -71,10 +59,10 @@ namespace BlogDrop {
   }
 
   QSharedPointer<ServerCiphertext> CiphertextFactory::CreateServerCiphertext(
-      const QSharedPointer<const Parameters> params, 
-      const QSharedPointer<const PublicKeySet> client_pks,
-      const QSharedPointer<const PublicKey> author_pub,
-      const QList<QSharedPointer<const ClientCiphertext> > client_ctexts)
+      const QSharedPointer<const Parameters> &params, 
+      const QSharedPointer<const PublicKeySet> &client_pks,
+      const QSharedPointer<const PublicKey> &author_pub,
+      const QList<QSharedPointer<const ClientCiphertext> > &client_ctexts)
   {
     QSharedPointer<ServerCiphertext> s;
     Parameters::ProofType t = params->GetProofType();
@@ -86,7 +74,7 @@ namespace BlogDrop {
       const ElGamalClientCiphertext *eg;
       for(int client_idx=0; client_idx<client_ctexts.count(); client_idx++) {
         eg = dynamic_cast<const ElGamalClientCiphertext*>(client_ctexts[client_idx].data());
-
+        Q_ASSERT(eg);
         keys.append(eg->GetOneTimeKeys());
       }
 
@@ -100,10 +88,6 @@ namespace BlogDrop {
       s = QSharedPointer<ServerCiphertext>(
           new HashingGenServerCiphertext(params, author_pub, client_pks));
 
-    } else if(t == Parameters::ProofType_Xor) {
-      s = QSharedPointer<ServerCiphertext>(
-          new XorServerCiphertext(params, author_pub, client_pks));
-
     } else {
       qFatal("Invalid proof type");
     }
@@ -112,10 +96,10 @@ namespace BlogDrop {
   }
 
   QSharedPointer<ServerCiphertext> CiphertextFactory::CreateServerCiphertext(
-      const QSharedPointer<const Parameters> params, 
-      const QSharedPointer<const PublicKeySet> client_pks,
-      const QSharedPointer<const PublicKey> author_pub,
-      const QList<QSharedPointer<const ClientCiphertext> > client_ctexts, 
+      const QSharedPointer<const Parameters> &params, 
+      const QSharedPointer<const PublicKeySet> &client_pks,
+      const QSharedPointer<const PublicKey> &author_pub,
+      const QList<QSharedPointer<const ClientCiphertext> > &client_ctexts, 
       const QByteArray serialized)
   {
     QSharedPointer<ServerCiphertext> s;
@@ -128,7 +112,7 @@ namespace BlogDrop {
       const ElGamalClientCiphertext *eg;
       for(int client_idx=0; client_idx<client_ctexts.count(); client_idx++) {
         eg = dynamic_cast<const ElGamalClientCiphertext*>(client_ctexts[client_idx].data());
-
+        Q_ASSERT(eg);
         keys.append(eg->GetOneTimeKeys());
       }
 
@@ -141,10 +125,6 @@ namespace BlogDrop {
     } else if(t == Parameters::ProofType_HashingGenerator) {
       s = QSharedPointer<ServerCiphertext>(
           new HashingGenServerCiphertext(params, author_pub, client_pks, serialized));
-
-    } else if(t == Parameters::ProofType_Xor) {
-      s = QSharedPointer<ServerCiphertext>(
-          new XorServerCiphertext(params, author_pub, client_pks, serialized));
 
     } else {
       qFatal("Invalid proof type");

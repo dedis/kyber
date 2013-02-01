@@ -34,9 +34,9 @@ namespace BlogDrop {
        * @param author_pub author public key
        */
       static QSharedPointer<ClientCiphertext> CreateClientCiphertext(
-          const QSharedPointer<const Parameters> params, 
-          const QSharedPointer<const PublicKeySet> server_pks,
-          const QSharedPointer<const PublicKey> author_pub);
+          const QSharedPointer<const Parameters> &params, 
+          const QSharedPointer<const PublicKeySet> &server_pks,
+          const QSharedPointer<const PublicKey> &author_pub);
 
       /**
        * Unserialize a client ciphertext
@@ -46,10 +46,10 @@ namespace BlogDrop {
        * @param serialized the serialized ciphertext
        */
       static QSharedPointer<ClientCiphertext> CreateClientCiphertext(
-          const QSharedPointer<const Parameters> params, 
-          const QSharedPointer<const PublicKeySet> server_pks,
-          const QSharedPointer<const PublicKey> author_pub,
-          const QByteArray serialized);
+          const QSharedPointer<const Parameters> &params, 
+          const QSharedPointer<const PublicKeySet> &server_pks,
+          const QSharedPointer<const PublicKey> &author_pub,
+          const QByteArray &serialized);
 
       /**
        * Create a new server ciphertext that matches a set of 
@@ -60,10 +60,10 @@ namespace BlogDrop {
        * @param client_ctexts the set of client ciphertexts
        */
       static QSharedPointer<ServerCiphertext> CreateServerCiphertext(
-          const QSharedPointer<const Parameters> params, 
-          const QSharedPointer<const PublicKeySet> client_pks,
-          const QSharedPointer<const PublicKey> author_pub,
-          const QList<QSharedPointer<const ClientCiphertext> > client_ctexts);
+          const QSharedPointer<const Parameters> &params, 
+          const QSharedPointer<const PublicKeySet> &client_pks,
+          const QSharedPointer<const PublicKey> &author_pub,
+          const QList<QSharedPointer<const ClientCiphertext> > &client_ctexts);
 
       /**
        * Unserialize a server ciphertext 
@@ -74,10 +74,10 @@ namespace BlogDrop {
        * @param serialized the serialized ciphertext
        */
       static QSharedPointer<ServerCiphertext> CreateServerCiphertext(
-          const QSharedPointer<const Parameters> params, 
-          const QSharedPointer<const PublicKeySet> client_pks,
-          const QSharedPointer<const PublicKey> author_pub,
-          const QList<QSharedPointer<const ClientCiphertext> > client_ctexts,
+          const QSharedPointer<const Parameters> &params, 
+          const QSharedPointer<const PublicKeySet> &client_pks,
+          const QSharedPointer<const PublicKey> &author_pub,
+          const QList<QSharedPointer<const ClientCiphertext> > &client_ctexts,
           const QByteArray serialized);
   };
 

@@ -5,7 +5,7 @@ namespace Dissent {
 namespace Crypto {
 namespace BlogDrop {
 
-  PublicKeySet::PublicKeySet(const QSharedPointer<const Parameters> params, 
+  PublicKeySet::PublicKeySet(const QSharedPointer<const Parameters> &params, 
       const QList<QSharedPointer<const PublicKey> > &keys) :
     _n_keys(keys.count()),
     _params(params)
@@ -17,7 +17,7 @@ namespace BlogDrop {
     }
   }
 
-  PublicKeySet::PublicKeySet(const QSharedPointer<const Parameters> params, 
+  PublicKeySet::PublicKeySet(const QSharedPointer<const Parameters> &params, 
       const QByteArray &key) :
     _params(params)
   {
@@ -30,7 +30,7 @@ namespace BlogDrop {
   }
 
   QList<QSharedPointer<const PublicKeySet> > PublicKeySet::CreateClientKeySets(
-          const QSharedPointer<const Parameters> params, 
+          const QSharedPointer<const Parameters> &params, 
           const QList<QList<QSharedPointer<const PublicKey> > > &keys)
   {
     QList<QSharedPointer<const PublicKeySet> > out;

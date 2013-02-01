@@ -538,17 +538,6 @@ namespace Tests {
     cf.SetThreading(tt);
   }
 
-  TEST_P(BlogDropProofTest, XorEndToEnd) 
-  {
-    CryptoFactory &cf = CryptoFactory::GetInstance();
-    CryptoFactory::ThreadingType tt = cf.GetThreadingType();
-    cf.SetThreading(GetParam());
-
-    HashingEndToEndOnce(Parameters::Parameters::XorTesting(), false);
-    
-    cf.SetThreading(tt);
-  }
-
   INSTANTIATE_TEST_CASE_P(BlogDropProof, BlogDropProofTest,
       ::testing::Values(
         CryptoFactory::SingleThreaded,

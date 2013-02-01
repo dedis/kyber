@@ -52,12 +52,12 @@ namespace BlogDrop {
     return Commit(params, gs, ys, ts);
   }
 
-  Integer BlogDropUtils::GetPhaseHash(QSharedPointer<const Parameters> params,
-      const QSharedPointer<const PublicKey> author_pk, 
+  Integer BlogDropUtils::GetPhaseHash(const QSharedPointer<const Parameters> &params,
+      const QSharedPointer<const PublicKey> &author_pk, 
       int phase, 
       int element_idx) 
   {
-    Hash *hash = CryptoFactory::GetInstance().GetLibrary().GetHashAlgorithm();
+    QScopedPointer<Hash> hash(CryptoFactory::GetInstance().GetLibrary().GetHashAlgorithm());
     hash->Restart();
     hash->Update(params->GetByteArray());
     hash->Update(params->GetKeyGroup()->ElementToByteArray(author_pk->GetElement()));
@@ -69,26 +69,20 @@ namespace BlogDrop {
   }
 
   AbstractGroup::Element BlogDropUtils::GetHashedGenerator(
-      QSharedPointer<const Parameters> params,
-      const QSharedPointer<const PublicKey> author_pk, 
+      const QSharedPointer<const Parameters> &params,
+      const QSharedPointer<const PublicKey> &author_pk, 
       int phase, 
       int element_idx) 
   {
     // g^hash
     const int bytes = params->GetMessageGroup()->BytesPerElement() - 1;
     Integer nonce = GetPhaseHash(params, author_pk, phase, element_idx);
-    //qDebug() << "orig" << nonce.GetByteArray().toHex();
-
-    //qDebug() << "nbytes" << (bytes);
-    //qDebug() << nonce.GetByteArray().toHex();
 
     const QByteArray nonce_str = nonce.GetByteArray().left(bytes);
 
     Element gen;
     int i;
     for(i=0; i<255; i++) {
-      //qDebug() << "hash" << i;
-      //qDebug() << (nonce_str + QByteArray(1, i)).toHex();
       gen = params->GetMessageGroup()->EncodeBytes(nonce_str + QByteArray(1, i)); 
       if(params->GetMessageGroup()->IsGenerator(gen)) break;
     }

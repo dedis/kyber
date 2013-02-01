@@ -1,6 +1,5 @@
 #include <QByteArray>
 
-#include "Crypto/AbstractGroup/ByteGroup.hpp"
 #include "Crypto/AbstractGroup/CppECGroup.hpp"
 #include "Crypto/AbstractGroup/ECParams.hpp"
 #include "Crypto/AbstractGroup/IntegerGroup.hpp"
@@ -19,7 +18,7 @@ namespace BlogDrop {
         new Parameters(ProofType_ElGamal, QByteArray(), fixed, fixed, 8));
   }
 
-  QSharedPointer<Parameters> Parameters::IntegerElGamalProduction(QByteArray round_nonce) 
+  QSharedPointer<Parameters> Parameters::IntegerElGamalProduction(const QByteArray &round_nonce) 
   {
     QSharedPointer<const AbstractGroup> fixed = IntegerGroup::GetGroup(IntegerGroup::PRODUCTION_2048);
     return QSharedPointer<Parameters>(
@@ -33,33 +32,25 @@ namespace BlogDrop {
         new Parameters(ProofType_HashingGenerator, QByteArray(), fixed, fixed, 8));
   }
 
-  QSharedPointer<Parameters> Parameters::IntegerHashingProduction(QByteArray round_nonce) 
+  QSharedPointer<Parameters> Parameters::IntegerHashingProduction(const QByteArray &round_nonce) 
   {
     QSharedPointer<const AbstractGroup> fixed = IntegerGroup::GetGroup(IntegerGroup::PRODUCTION_2048);
     return QSharedPointer<Parameters>(
         new Parameters(ProofType_HashingGenerator, round_nonce, fixed, fixed, 2));
   }
 
-  QSharedPointer<Parameters> Parameters::CppECElGamalProduction(QByteArray round_nonce) 
+  QSharedPointer<Parameters> Parameters::CppECElGamalProduction(const QByteArray &round_nonce) 
   {
     QSharedPointer<const AbstractGroup> fixed = CppECGroup::GetGroup(ECParams::NIST_P256);
     return QSharedPointer<Parameters>(
         new Parameters(ProofType_ElGamal, round_nonce, fixed, fixed, 16));
   }
 
-  QSharedPointer<Parameters> Parameters::CppECHashingProduction(QByteArray round_nonce) 
+  QSharedPointer<Parameters> Parameters::CppECHashingProduction(const QByteArray &round_nonce) 
   {
     QSharedPointer<const AbstractGroup> fixed = CppECGroup::GetGroup(ECParams::NIST_P256);
     return QSharedPointer<Parameters>(
         new Parameters(ProofType_HashingGenerator, round_nonce, fixed, fixed, 16));
-  }
-
-  QSharedPointer<Parameters> Parameters::XorTesting(QByteArray round_nonce) 
-  {
-    QSharedPointer<const AbstractGroup> g1 = ByteGroup::TestingFixed();
-    QSharedPointer<const AbstractGroup> gT = ByteGroup::TestingFixed();
-    return QSharedPointer<Parameters>(
-        new Parameters(ProofType_Xor, round_nonce, g1, gT, 4));
   }
 
   QSharedPointer<Parameters> Parameters::Empty() 
@@ -72,9 +63,9 @@ namespace BlogDrop {
     _n_elements(0) {}
 
   Parameters::Parameters(ProofType proof_type, 
-      QByteArray round_nonce,
-      QSharedPointer<const AbstractGroup> key_group, 
-      QSharedPointer<const AbstractGroup> msg_group, 
+      const QByteArray &round_nonce,
+      const QSharedPointer<const AbstractGroup> &key_group, 
+      const QSharedPointer<const AbstractGroup> &msg_group, 
       int n_elements) :
     _proof_type(proof_type),
     _round_nonce(round_nonce),
@@ -117,10 +108,6 @@ namespace BlogDrop {
 
       case ProofType_HashingGenerator:
         out = "HashingGenerator";
-        break;
-
-      case ProofType_Xor:
-        out = "Xor";
         break;
 
       case ProofType_Invalid:

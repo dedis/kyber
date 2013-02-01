@@ -27,9 +27,9 @@ namespace Dissent {
 
 namespace Anonymity {
 
-  BlogDropRound::BlogDropRound(QSharedPointer<Parameters> params,
+  BlogDropRound::BlogDropRound(const QSharedPointer<Parameters> &params,
       const Group &group, const PrivateIdentity &ident,
-      const Id &round_id, QSharedPointer<Network> network,
+      const Id &round_id, const QSharedPointer<Network> &network,
       GetDataCallback &get_data, CreateRound create_shuffle) :
     BaseBulkRound(group, ident, round_id, network, get_data, create_shuffle),
     _params(params),
@@ -938,7 +938,7 @@ namespace Anonymity {
     QThreadPool::globalInstance()->start(gen);
   }
 
-  void BlogDropRound::GenerateClientCiphertextDone(QByteArray mycipher)
+  void BlogDropRound::GenerateClientCiphertextDone(const QByteArray &mycipher)
   {
     QByteArray payload;
     QDataStream stream(&payload, QIODevice::WriteOnly);
@@ -1068,7 +1068,7 @@ namespace Anonymity {
     QThreadPool::globalInstance()->start(gen);
   }
 
-  void BlogDropRound::GenerateClientCiphertextDoneServer(QByteArray mycipher) {
+  void BlogDropRound::GenerateClientCiphertextDoneServer(const QByteArray &mycipher) {
     Q_ASSERT(_server_state->my_client_ciphertexts.count() == (_server_state->allowed_clients.count()));
 
     // Add my own ciphertext to the set
@@ -1110,7 +1110,7 @@ namespace Anonymity {
     QThreadPool::globalInstance()->start(gen);
   }
 
-  void BlogDropRound::GenerateServerValidationDone(QByteArray signature)
+  void BlogDropRound::GenerateServerValidationDone(const QByteArray &signature)
   {
     QByteArray payload;
     QDataStream stream(&payload, QIODevice::WriteOnly);
@@ -1181,7 +1181,7 @@ namespace Anonymity {
     return (_state->slots_open[slot_idx] || slot_idx == _state->always_open);
   }
 
-  void BlogDropRound::Abort(QString reason)
+  void BlogDropRound::Abort(const QString &reason)
   {
     SetInterrupted();
     Stop(reason);

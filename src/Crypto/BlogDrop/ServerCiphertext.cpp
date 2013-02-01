@@ -12,8 +12,8 @@ namespace Dissent {
 namespace Crypto {
 namespace BlogDrop {
 
-  ServerCiphertext::ServerCiphertext(const QSharedPointer<const Parameters> params,
-      const QSharedPointer<const PublicKey> author_pub, 
+  ServerCiphertext::ServerCiphertext(const QSharedPointer<const Parameters> &params,
+      const QSharedPointer<const PublicKey> &author_pub, 
       int n_elms) :
     _params(params),
     _author_pub(author_pub),
@@ -21,10 +21,10 @@ namespace BlogDrop {
   {}
 
   void ServerCiphertext::VerifyProofs(
-      const QSharedPointer<const Parameters> params,
-      const QSharedPointer<const PublicKeySet> server_pk_set,
-      const QSharedPointer<const PublicKey> author_pk,
-      const QList<QSharedPointer<const ClientCiphertext> > client_ctexts,
+      const QSharedPointer<const Parameters> &params,
+      const QSharedPointer<const PublicKeySet> &server_pk_set,
+      const QSharedPointer<const PublicKey> &author_pk,
+      const QList<QSharedPointer<const ClientCiphertext> > &client_ctexts,
       int phase, 
       const QList<QSharedPointer<const PublicKey> > &pubs,
       const QList<QByteArray> &c,
@@ -92,7 +92,7 @@ namespace BlogDrop {
     }
   }
 
-  bool ServerCiphertext::VerifyOnce(QSharedPointer<MapData> m)
+  bool ServerCiphertext::VerifyOnce(const QSharedPointer<MapData> &m)
   {
     QSharedPointer<const Parameters> params(m->params);
 

@@ -52,9 +52,9 @@ namespace BlogDrop {
        * @param server_pks Server public keys
        * @param author_pub author public key
        */
-      explicit HashingGenClientCiphertext(const QSharedPointer<const Parameters> params, 
-          const QSharedPointer<const PublicKeySet> server_pks,
-          const QSharedPointer<const PublicKey> author_pub);
+      explicit HashingGenClientCiphertext(const QSharedPointer<const Parameters> &params, 
+          const QSharedPointer<const PublicKeySet> &server_pks,
+          const QSharedPointer<const PublicKey> &author_pub);
 
       /**
        * Constructor: Initialize a ciphertext from a serialized bytearray
@@ -63,9 +63,9 @@ namespace BlogDrop {
        * @param author_pub author public key
        * @param the byte array
        */
-      explicit HashingGenClientCiphertext(const QSharedPointer<const Parameters> params, 
-          const QSharedPointer<const PublicKeySet> server_pks,
-          const QSharedPointer<const PublicKey> author_pub, 
+      explicit HashingGenClientCiphertext(const QSharedPointer<const Parameters> &params, 
+          const QSharedPointer<const PublicKeySet> &server_pks,
+          const QSharedPointer<const PublicKey> &author_pub, 
           const QByteArray &serialized);
 
       /**
@@ -74,8 +74,8 @@ namespace BlogDrop {
       virtual ~HashingGenClientCiphertext() {}
 
     protected:
-      virtual Element ComputeGenerator(const QSharedPointer<const PublicKeySet> server_pks, 
-          const QSharedPointer<const PublicKey> author_pk, 
+      virtual Element ComputeGenerator(const QSharedPointer<const PublicKeySet> &server_pks, 
+          const QSharedPointer<const PublicKey> &author_pk, 
           int phase, int element_idx) const;
 
   };

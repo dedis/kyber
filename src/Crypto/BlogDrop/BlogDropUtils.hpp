@@ -44,25 +44,25 @@ namespace BlogDrop {
       /**
        * Compute e(prod_pks, Hash(round_id, group))
        */
-      static Element GetPairedBase(QSharedPointer<const Parameters> params,
-          const QSharedPointer<const PublicKeySet> prod_pks, 
-          const QSharedPointer<const PublicKey> author_pk, 
-          int phase, 
+      static Element GetPairedBase(const QSharedPointer<const Parameters> &params,
+          const QSharedPointer<const PublicKeySet> &prod_pks, 
+          const QSharedPointer<const PublicKey> &author_pk, 
+          int phase,
           int element_idx);
 
       /**
        * Get a nonce for this phase and round
        */
-      static Integer GetPhaseHash(QSharedPointer<const Parameters> params,
-          const QSharedPointer<const PublicKey> author_pk, 
-          int phase, 
+      static Integer GetPhaseHash(const QSharedPointer<const Parameters> &params,
+          const QSharedPointer<const PublicKey> &author_pk,
+          int phase,
           int element_idx);
 
       /**
        * Compute a generator as a function of H(params, ...)
        */
-      static Element GetHashedGenerator(QSharedPointer<const Parameters> params,
-          const QSharedPointer<const PublicKey> author_pk, 
+      static Element GetHashedGenerator(const QSharedPointer<const Parameters> &params,
+          const QSharedPointer<const PublicKey> &author_pk, 
           int phase, 
           int element_idx);
 

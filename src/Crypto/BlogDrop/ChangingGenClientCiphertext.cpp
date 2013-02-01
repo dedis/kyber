@@ -10,16 +10,16 @@ namespace Dissent {
 namespace Crypto {
 namespace BlogDrop {
 
-  ChangingGenClientCiphertext::ChangingGenClientCiphertext(const QSharedPointer<const Parameters> params, 
-      const QSharedPointer<const PublicKeySet> server_pks,
-      const QSharedPointer<const PublicKey> author_pub) :
+  ChangingGenClientCiphertext::ChangingGenClientCiphertext(const QSharedPointer<const Parameters> &params, 
+      const QSharedPointer<const PublicKeySet> &server_pks,
+      const QSharedPointer<const PublicKey> &author_pub) :
     ClientCiphertext(params, server_pks, author_pub, params->GetNElements())
   {
   }
 
-  ChangingGenClientCiphertext::ChangingGenClientCiphertext(const QSharedPointer<const Parameters> params, 
-      const QSharedPointer<const PublicKeySet> server_pks,
-      const QSharedPointer<const PublicKey> author_pub,
+  ChangingGenClientCiphertext::ChangingGenClientCiphertext(const QSharedPointer<const Parameters> &params, 
+      const QSharedPointer<const PublicKeySet> &server_pks,
+      const QSharedPointer<const PublicKey> &author_pub,
       const QByteArray &serialized) :
     ClientCiphertext(params, server_pks, author_pub, params->GetNElements())
   {
@@ -45,7 +45,7 @@ namespace BlogDrop {
   }
 
   void ChangingGenClientCiphertext::InitCiphertext(int phase, 
-      const QSharedPointer<const PrivateKey> client_priv) 
+      const QSharedPointer<const PrivateKey> &client_priv) 
   {
     for(int i=0; i<GetNElements(); i++) { 
       Element base = ComputeAndCacheGenerator(_cache, _server_pks, GetAuthorKey(), phase, i); 
@@ -54,8 +54,8 @@ namespace BlogDrop {
   }
 
   void ChangingGenClientCiphertext::SetAuthorProof(int phase, 
-      const QSharedPointer<const PrivateKey> client_priv, 
-      const QSharedPointer<const PrivateKey> author_priv, 
+      const QSharedPointer<const PrivateKey> &client_priv, 
+      const QSharedPointer<const PrivateKey> &author_priv, 
       const Plaintext &m)
   {
     InitCiphertext(phase, client_priv);
@@ -113,7 +113,7 @@ namespace BlogDrop {
     _response_2 = v;
   }
 
-  void ChangingGenClientCiphertext::SetProof(int phase, QSharedPointer<const PrivateKey> client_priv)
+  void ChangingGenClientCiphertext::SetProof(int phase, const QSharedPointer<const PrivateKey> &client_priv)
   {
     InitCiphertext(phase, client_priv);
 
@@ -167,7 +167,7 @@ namespace BlogDrop {
   }
 
   bool ChangingGenClientCiphertext::VerifyProof(int phase,
-      const QSharedPointer<const PublicKey> client_pub) const
+      const QSharedPointer<const PublicKey> &client_pub) const
   {
     if(_elements.count() != GetNElements()) {
       qWarning() << "Got proof with incorrect number of elements (" << _elements.count() << ")";
@@ -241,8 +241,8 @@ namespace BlogDrop {
   }
   
   void ChangingGenClientCiphertext::InitializeLists(
-      QHash<int, Element> &cache, int phase, 
-      QSharedPointer<const PublicKey> client_pub,
+      const QHash<int, Element> &cache, int phase, 
+      const QSharedPointer<const PublicKey> &client_pub,
       QList<Element> &gs, 
       QList<Element> &ys) const
   { 
@@ -261,8 +261,6 @@ namespace BlogDrop {
     gs.append(g_key);
     for(int i=0; i<GetNElements(); i++) { 
       gs.append(ComputeAndCacheGenerator(cache, _server_pks, GetAuthorKey(), phase, i));
-      //qDebug() << "Client" << phase << i << _params->GetKeyGroup()->ElementToByteArray(client_pub->GetElement()).toHex();
-      //qDebug() << "Server PKS" << phase << i << _params->GetKeyGroup()->ElementToByteArray(_server_pks->GetElement()).toHex();
     }
 
 
@@ -275,13 +273,6 @@ namespace BlogDrop {
     for(int i=0; i<GetNElements(); i++) { 
       ys.append(_elements[i]);
     }
-
-    /*
-    for(int i=0; i<gs.count(); i++) {
-      qDebug() << "g" << i << group->ElementToByteArray(gs[i]).toHex();
-      qDebug() << "y" << i << group->ElementToByteArray(ys[i]).toHex();
-    }
-    */
   }
 
   Integer ChangingGenClientCiphertext::Commit(const QSharedPointer<const Parameters> &params,
@@ -306,21 +297,15 @@ namespace BlogDrop {
       hash->Update(group->ElementToByteArray(gs[i]));
       hash->Update(group->ElementToByteArray(ys[i]));
       hash->Update(group->ElementToByteArray(ts[i]));
-
-      /*
-      qDebug() << "g" << i << group->ElementToByteArray(gs[i]).toHex();
-      qDebug() << "y" << i << group->ElementToByteArray(ys[i]).toHex();
-      qDebug() << "t" << i << group->ElementToByteArray(ts[i]).toHex();
-      */
     }
 
     return Integer(hash->ComputeHash()) % params->GetGroupOrder();
   }
 
   AbstractGroup::Element 
-    ChangingGenClientCiphertext::ComputeAndCacheGenerator(QHash<int, Element> &cache,
-          const QSharedPointer<const PublicKeySet> server_pks, 
-          const QSharedPointer<const PublicKey> author_pk, 
+    ChangingGenClientCiphertext::ComputeAndCacheGenerator(const QHash<int, Element> &cache,
+          const QSharedPointer<const PublicKeySet> &server_pks, 
+          const QSharedPointer<const PublicKey> &author_pk, 
           int phase, int element_idx) const
   {
     if(cache.contains(element_idx)) return cache[element_idx];

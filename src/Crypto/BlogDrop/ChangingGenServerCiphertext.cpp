@@ -7,18 +7,18 @@ namespace Crypto {
 namespace BlogDrop {
 
   ChangingGenServerCiphertext::ChangingGenServerCiphertext(
-      const QSharedPointer<const Parameters> params, 
-      const QSharedPointer<const PublicKey> author_pub,
-      const QSharedPointer<const PublicKeySet> client_pks) :
+      const QSharedPointer<const Parameters> &params, 
+      const QSharedPointer<const PublicKey> &author_pub,
+      const QSharedPointer<const PublicKeySet> &client_pks) :
     ServerCiphertext(params, author_pub, params->GetNElements()),
     _client_pks(client_pks)
   {
   }
 
   ChangingGenServerCiphertext::ChangingGenServerCiphertext(
-      const QSharedPointer<const Parameters> params, 
-      const QSharedPointer<const PublicKey> author_pub,
-      const QSharedPointer<const PublicKeySet> client_pks,
+      const QSharedPointer<const Parameters> &params, 
+      const QSharedPointer<const PublicKey> &author_pub,
+      const QSharedPointer<const PublicKeySet> &client_pks,
       const QByteArray &serialized) :
     ServerCiphertext(params, author_pub, params->GetNElements()),
     _client_pks(client_pks)
@@ -40,7 +40,7 @@ namespace BlogDrop {
     }
   }
 
-  void ChangingGenServerCiphertext::SetProof(int phase, const QSharedPointer<const PrivateKey> priv)
+  void ChangingGenServerCiphertext::SetProof(int phase, const QSharedPointer<const PrivateKey> &priv)
   { 
     QList<Element> paired;
     for(int i=0; i<_n_elms; i++) {
@@ -79,7 +79,7 @@ namespace BlogDrop {
     _response = (v - (_challenge.MultiplyMod(priv->GetInteger(), q))) % q;
   }
 
-  bool ChangingGenServerCiphertext::VerifyProof(int phase, const QSharedPointer<const PublicKey> pub) const
+  bool ChangingGenServerCiphertext::VerifyProof(int phase, const QSharedPointer<const PublicKey> &pub) const
   {
     // g0 = DH generator 
     // g(i) = e(client pub keys prof, t)
@@ -143,7 +143,7 @@ namespace BlogDrop {
 
   void ChangingGenServerCiphertext::InitializeLists(
       int phase,
-      QSharedPointer<const PublicKey> server_pub,
+      const QSharedPointer<const PublicKey> &server_pub,
       QList<Element> &gs, 
       QList<Element> &ys) const
   { 
@@ -153,8 +153,6 @@ namespace BlogDrop {
     gs.append(_params->GetKeyGroup()->GetGenerator());
     for(int i=0; i<_params->GetNElements(); i++) { 
       gs.append(ComputeGenerator(_client_pks, GetAuthorKey(), phase, i));
-      //qDebug() << "Server" << phase << i << _params->GetKeyGroup()->ElementToByteArray(server_pub->GetElement()).toHex();
-      //qDebug() << "Client PKS" << phase << i << _params->GetKeyGroup()->ElementToByteArray(_client_pks->GetElement()).toHex();
     }
 
     // y(0) = server PK

@@ -98,9 +98,9 @@ namespace BlogDropPrivate {
        * @param create_shuffle optional parameter specifying a shuffle round
        * to create, currently used for testing
        */
-      explicit BlogDropRound(QSharedPointer<Parameters> blogdrop_params, 
+      explicit BlogDropRound(const QSharedPointer<Parameters> &blogdrop_params, 
           const Group &group, const PrivateIdentity &ident,
-          const Id &round_id, QSharedPointer<Network> network,
+          const Id &round_id, const QSharedPointer<Network> &network,
           GetDataCallback &get_data,
           CreateRound create_shuffle = &TCreateRound<NullRound>);
 
@@ -206,7 +206,7 @@ namespace BlogDropPrivate {
        */
       class State {
         public:
-          State(QSharedPointer<const Parameters> round_params) : 
+          State(const QSharedPointer<const Parameters> &round_params) : 
             params(round_params),
             client_sk(new PrivateKey(params)),
             client_pk(new PublicKey(client_sk)),
@@ -279,7 +279,7 @@ namespace BlogDropPrivate {
        */
       class ServerState : public State {
         public:
-          ServerState(QSharedPointer<const Parameters> round_params) :
+          ServerState(const QSharedPointer<const Parameters> &round_params) :
             State(round_params),
             server_sk(new PrivateKey(params)),
             server_pk(new PublicKey(server_sk)) {}
@@ -450,7 +450,7 @@ namespace BlogDropPrivate {
        * Useful because you cannot throw an exception inside
        * of a Qt thread
        */
-      void Abort(const QString reason);
+      void Abort(const QString &reason);
 
       inline bool SlotIsOpen(int slot_idx);
 
@@ -461,10 +461,10 @@ namespace BlogDropPrivate {
       bool _stop_next;
 
     private slots:
-      void GenerateClientCiphertextDone(QByteArray mycipher);
-      void GenerateClientCiphertextDoneServer(QByteArray mycipher);
+      void GenerateClientCiphertextDone(const QByteArray &mycipher);
+      void GenerateClientCiphertextDoneServer(const QByteArray &mycipher);
       void GenerateServerCiphertextDone();
-      void GenerateServerValidationDone(QByteArray signature);
+      void GenerateServerValidationDone(const QByteArray &signature);
 
   };
 

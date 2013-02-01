@@ -6,7 +6,7 @@ namespace Dissent {
 namespace Crypto {
 namespace AbstractGroup {
 
-  IntegerGroup::IntegerGroup(Integer p, Integer g) :
+  IntegerGroup::IntegerGroup(const Integer &p, const Integer &g) :
       _p(p), 
       _g(g),
       _q((p-1)/2)

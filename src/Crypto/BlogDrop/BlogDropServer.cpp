@@ -6,10 +6,10 @@ namespace Dissent {
 namespace Crypto {
 namespace BlogDrop {
 
-  BlogDropServer::BlogDropServer(const QSharedPointer<Parameters> params, 
-      const QSharedPointer<const PrivateKey> server_priv,
-      const QSharedPointer<const PublicKeySet> server_pk_set,
-      const QSharedPointer<const PublicKey> author_pub) :
+  BlogDropServer::BlogDropServer(const QSharedPointer<Parameters> &params, 
+      const QSharedPointer<const PrivateKey> &server_priv,
+      const QSharedPointer<const PublicKeySet> &server_pk_set,
+      const QSharedPointer<const PublicKey> &author_pub) :
     _phase(0),
     _params(params),
     _server_priv(server_priv),
@@ -26,8 +26,8 @@ namespace BlogDrop {
     _client_pks.clear();
   }
 
-  bool BlogDropServer::AddClientCiphertext(QByteArray in, 
-      QSharedPointer<const PublicKey> pub, bool verify_proofs)
+  bool BlogDropServer::AddClientCiphertext(const QByteArray &in, 
+      const QSharedPointer<const PublicKey> &pub, bool verify_proofs)
   {
     QSharedPointer<ClientCiphertext> c = CiphertextFactory::CreateClientCiphertext(_params, 
             _server_pk_set, _author_pub, in);
@@ -86,7 +86,7 @@ namespace BlogDrop {
   }
 
   bool BlogDropServer::AddServerCiphertext(const QByteArray &in,
-      QSharedPointer<const PublicKey> from)
+      const QSharedPointer<const PublicKey> &from)
   {
     QSharedPointer<const ServerCiphertext> s = CiphertextFactory::CreateServerCiphertext(
         _params, _client_pks, _author_pub, _client_ciphertexts, in);
@@ -118,13 +118,11 @@ namespace BlogDrop {
     Plaintext m(_params);
     for(int client_idx=0; client_idx<_client_ciphertexts.count(); client_idx++)
     {
-      //qDebug() << "client" << client_idx;
       m.Reveal(_client_ciphertexts[client_idx]->GetElements());
     }
 
     for(int server_idx=0; server_idx<_server_ciphertexts.count(); server_idx++)
     {
-      //qDebug() << "server" << server_idx;
       m.Reveal(_server_ciphertexts[server_idx]->GetElements());
     }
 
@@ -133,6 +131,7 @@ namespace BlogDrop {
 
   QSet<int> BlogDropServer::FindBadClients()
   {
+    /// @TODO use threading to speed this up
     QSet<int> bad;
     for(int client_idx=0; client_idx<_client_ciphertexts.count(); client_idx++) {
       if(!_client_ciphertexts[client_idx]->VerifyProof(_phase, _client_pubs[client_idx]))

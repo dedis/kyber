@@ -20,8 +20,8 @@ namespace BlogDrop {
        * @param author_pub Author public key
        * @param client_pks Client public keys for ciphertexts
        */
-      ElGamalServerCiphertext(const QSharedPointer<const Parameters> params, 
-          const QSharedPointer<const PublicKey> author_pub,
+      ElGamalServerCiphertext(const QSharedPointer<const Parameters> &params, 
+          const QSharedPointer<const PublicKey> &author_pub,
           const QList<QSharedPointer<const PublicKeySet> > &client_pks);
 
       /**
@@ -31,8 +31,8 @@ namespace BlogDrop {
        * @param client_pks Client public keys
        * @param serialized serialized byte array
        */
-      ElGamalServerCiphertext(const QSharedPointer<const Parameters> params, 
-          const QSharedPointer<const PublicKey> author_pub,
+      ElGamalServerCiphertext(const QSharedPointer<const Parameters> &params, 
+          const QSharedPointer<const PublicKey> &author_pub,
           const QList<QSharedPointer<const PublicKeySet> > &client_pks,
           const QByteArray &serialized);
 
@@ -46,7 +46,7 @@ namespace BlogDrop {
        * @param phase transmisssion round/phase index
        * @param Server private key used to generate proof
        */
-      virtual void SetProof(int phase, const QSharedPointer<const PrivateKey> priv);
+      virtual void SetProof(int phase, const QSharedPointer<const PrivateKey> &priv);
 
       /**
        * Check ciphertext proof
@@ -54,7 +54,7 @@ namespace BlogDrop {
        * @param phase transmisssion round/phase index
        * @returns true if proof is okay
        */
-      virtual bool VerifyProof(int phase, const QSharedPointer<const PublicKey> pub) const;
+      virtual bool VerifyProof(int phase, const QSharedPointer<const PublicKey> &pub) const;
 
       /**
        * Get serialized version

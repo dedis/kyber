@@ -7,7 +7,7 @@ namespace AbstractGroup {
 
     Element AbstractGroup::HashIntoElement(const QByteArray &to_hash) const
     {
-      Hash *hash = CryptoFactory::GetInstance().GetLibrary().GetHashAlgorithm();
+      QScopedPointer<Hash> hash(CryptoFactory::GetInstance().GetLibrary().GetHashAlgorithm());
 
       // XXX TODO This is probably not a secure way to hash into 
       // arbitrary elements.

@@ -21,7 +21,7 @@ namespace BlogDrop {
 
       /** * Constructor
        */
-      Plaintext(const QSharedPointer<const Parameters> params);
+      Plaintext(const QSharedPointer<const Parameters> &params);
 
       /**
        * Destructor

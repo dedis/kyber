@@ -23,7 +23,6 @@ namespace Dissent {
           typedef enum {
             ProofType_ElGamal = 0,
             ProofType_HashingGenerator, 
-            ProofType_Xor, 
             ProofType_Invalid
           } ProofType;
 
@@ -37,7 +36,7 @@ namespace Dissent {
            * Constructor that uses 1024-bit fixed integer group 
            */
           static QSharedPointer<Parameters> IntegerElGamalProduction(
-              QByteArray round_nonce = QByteArray());
+              const QByteArray &round_nonce = QByteArray());
 
           /**
            * Constructor that uses 512-bit integer group (for testing)
@@ -47,29 +46,21 @@ namespace Dissent {
           /**
            * Constructor that uses 1024-bit fixed integer group 
            */
-          static QSharedPointer<Parameters> IntegerHashingProduction(QByteArray round_nonce = QByteArray());
+          static QSharedPointer<Parameters> IntegerHashingProduction(const QByteArray &round_nonce = QByteArray());
 
           /**
            * Constructor that uses 256-bit fixed EC group 
            * (Supposedly 256-bit ECs are equivalent to 3072-bit 
            * RSA/DH groups) implemented with Crypto++
            */
-          static QSharedPointer<Parameters> CppECElGamalProduction(QByteArray round_nonce = QByteArray());
+          static QSharedPointer<Parameters> CppECElGamalProduction(const QByteArray &round_nonce = QByteArray());
 
           /**
            * Constructor that uses 256-bit fixed EC group 
            * (Supposedly 256-bit ECs are equivalent to 3072-bit 
            * RSA/DH groups) implemented with Crypto++
            */
-          static QSharedPointer<Parameters> CppECHashingProduction(QByteArray round_nonce = QByteArray());
-
-          /**
-           * Constructor that uses a *COMPLETELY INSECURE* XOR-based 
-           * scheme for evaluations. The XOR operation takes the same
-           * amount of time as the traditional DC-net but we don't use
-           * secure keys.
-           */
-          static QSharedPointer<Parameters> XorTesting(QByteArray round_nonce = QByteArray());
+          static QSharedPointer<Parameters> CppECHashingProduction(const QByteArray &round_nonce = QByteArray());
 
           /**
            * Constructor that has empty/invalid parameters
@@ -128,9 +119,9 @@ namespace Dissent {
            * @param n_elements number of group elements per ciphertext blob
            */
           Parameters(ProofType proof_type, 
-              QByteArray round_nonce, 
-              QSharedPointer<const AbstractGroup> key_group, 
-              QSharedPointer<const AbstractGroup> msg_group, 
+              const QByteArray &round_nonce, 
+              const QSharedPointer<const AbstractGroup> &key_group, 
+              const QSharedPointer<const AbstractGroup> &msg_group, 
               int n_elements);
 
           /**

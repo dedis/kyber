@@ -20,7 +20,7 @@ namespace AbstractGroup {
        * Constructor
        * @param integer integer to use for this element
        */
-      IntegerElementData(Integer integer) : _integer(integer) {}
+      IntegerElementData(const Integer &integer) : _integer(integer) {}
 
       /**
        * Destructor

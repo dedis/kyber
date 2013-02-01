@@ -30,8 +30,8 @@ namespace AbstractGroup {
        * @param gx x-coordinate of generating point
        * @param gy y-coordinate of generating point
        */
-      CppECGroup(Integer p, Integer q,
-          Integer a, Integer b, Integer gx, Integer gy);
+      CppECGroup(const Integer &p, const Integer &q, const Integer &a,
+          const Integer &b, const Integer &gx, const Integer &gy);
 
       /**
        * Get a fixed group 

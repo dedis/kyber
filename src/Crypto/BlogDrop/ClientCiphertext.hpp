@@ -42,9 +42,9 @@ namespace BlogDrop {
        * @param author_pub author public key
        * @param n_elms number of group elements in each ciphertext
        */
-      explicit ClientCiphertext(const QSharedPointer<const Parameters> params, 
-          const QSharedPointer<const PublicKeySet> server_pks,
-          const QSharedPointer<const PublicKey> author_pub,
+      explicit ClientCiphertext(const QSharedPointer<const Parameters> &params, 
+          const QSharedPointer<const PublicKeySet> &server_pks,
+          const QSharedPointer<const PublicKey> &author_pub,
           int n_elms);
 
       /**
@@ -60,8 +60,8 @@ namespace BlogDrop {
        * @param m author's plaintext message
        */
       virtual void SetAuthorProof(int phase, 
-          const QSharedPointer<const PrivateKey> client_priv, 
-          const QSharedPointer<const PrivateKey> author_priv, 
+          const QSharedPointer<const PrivateKey> &client_priv, 
+          const QSharedPointer<const PrivateKey> &author_priv, 
           const Plaintext &m) = 0;
 
       /**
@@ -69,7 +69,7 @@ namespace BlogDrop {
        * @param phase the message transmission phase/round index
        * @param client_priv client private key used to generate proof
        */
-      virtual void SetProof(int phase, const QSharedPointer<const PrivateKey> client_priv) = 0;
+      virtual void SetProof(int phase, const QSharedPointer<const PrivateKey> &client_priv) = 0;
 
       /**
        * Check ciphertext proof
@@ -77,7 +77,7 @@ namespace BlogDrop {
        * @param client (NOT author) private key
        * @returns true if proof is okay
        */
-      virtual bool VerifyProof(int phase, const QSharedPointer<const PublicKey> client_pub) const = 0;
+      virtual bool VerifyProof(int phase, const QSharedPointer<const PublicKey> &client_pub) const = 0;
 
       /**
        * Get a byte array for this ciphertext
@@ -89,9 +89,9 @@ namespace BlogDrop {
        * be much faster than verifying each proof in turn
        */
       static void VerifyProofs(
-          const QSharedPointer<const Parameters> params,
-          const QSharedPointer<const PublicKeySet> pk_set,
-          const QSharedPointer<const PublicKey> author_pk,
+          const QSharedPointer<const Parameters> &params,
+          const QSharedPointer<const PublicKeySet> &pk_set,
+          const QSharedPointer<const PublicKey> &author_pk,
           int phase, 
           const QList<QSharedPointer<const PublicKey> > &pubs,
           const QList<QByteArray> &c,
@@ -134,7 +134,7 @@ namespace BlogDrop {
 
     private:
 
-      static bool VerifyOnce(QSharedPointer<MapData> m);
+      static bool VerifyOnce(const QSharedPointer<MapData> &m);
 
   };
 

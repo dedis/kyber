@@ -29,9 +29,9 @@ namespace BlogDrop {
        * @param author_pub Author public key
        * @param client_pks Client public keys for ciphertexts
        */
-      ChangingGenServerCiphertext(const QSharedPointer<const Parameters> params, 
-          const QSharedPointer<const PublicKey> author_pub,
-          const QSharedPointer<const PublicKeySet> client_pks);
+      ChangingGenServerCiphertext(const QSharedPointer<const Parameters> &params, 
+          const QSharedPointer<const PublicKey> &author_pub,
+          const QSharedPointer<const PublicKeySet> &client_pks);
 
       /**
        * Constructor: Initialize a ciphertext from serialized version
@@ -40,9 +40,9 @@ namespace BlogDrop {
        * @param client_pks Client public keys
        * @param serialized serialized byte array
        */
-      ChangingGenServerCiphertext(const QSharedPointer<const Parameters> params, 
-          const QSharedPointer<const PublicKey> author_pub,
-          const QSharedPointer<const PublicKeySet> client_pks,
+      ChangingGenServerCiphertext(const QSharedPointer<const Parameters> &params, 
+          const QSharedPointer<const PublicKey> &author_pub,
+          const QSharedPointer<const PublicKeySet> &client_pks,
           const QByteArray &serialized);
 
       /**
@@ -55,7 +55,7 @@ namespace BlogDrop {
        * @param phase transmisssion round/phase index
        * @param Server private key used to generate proof
        */
-      virtual void SetProof(int phase, const QSharedPointer<const PrivateKey> priv);
+      virtual void SetProof(int phase, const QSharedPointer<const PrivateKey> &priv);
 
       /**
        * Check ciphertext proof
@@ -63,7 +63,7 @@ namespace BlogDrop {
        * @param phase transmisssion round/phase index
        * @returns true if proof is okay
        */
-      virtual bool VerifyProof(int phase, const QSharedPointer<const PublicKey> pub) const;
+      virtual bool VerifyProof(int phase, const QSharedPointer<const PublicKey> &pub) const;
 
       /**
        * Get serialized version
@@ -77,13 +77,13 @@ namespace BlogDrop {
       /**
        * This is the only method that inheriting classes need to implement
        */
-      virtual Element ComputeGenerator(const QSharedPointer<const PublicKeySet> server_pks, 
-          const QSharedPointer<const PublicKey> author_pk, 
+      virtual Element ComputeGenerator(const QSharedPointer<const PublicKeySet> &server_pks, 
+          const QSharedPointer<const PublicKey> &author_pk, 
           int phase, int element_idx) const = 0;
 
     private:
 
-      void InitializeLists(int phase, QSharedPointer<const PublicKey> client_pub,
+      void InitializeLists(int phase, const QSharedPointer<const PublicKey> &client_pub,
           QList<Element> &gs, QList<Element> &ys) const;
 
       QSharedPointer<const PublicKeySet> _client_pks;
