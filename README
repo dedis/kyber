@@ -40,7 +40,7 @@ make
 
 The default configuration will create a local overlay with 10 members, to use
 it execute:
-./dissent ./conf/local-console.conf 2> /dev/null
+./dissent ./conf/local.conf 2> /dev/null
 
 This will launch a command-line interface, where commands can be typed.
 (Note: by default logging is enabled, the above redirects it to /dev/null)

@@ -5,7 +5,7 @@ Overview
 This document focuses user interaction with the Web Server provided within
 Dissent.
 
-Dissent can be started with the configuration specified in conf/local-web.conf
+Dissent can be started with the configuration specified in conf/local.conf
 This configuration will start Dissent with a web service publicly available
 on port 8080. Specifically, that means you can access it at
 
@@ -27,7 +27,7 @@ The rest of this document overviews the key services.
 The services can be accessed by url by appending them to
 the address at which the web server is hosted.  For example,
 web service a/b can be accessed at http://127.0.0.1:8080/a/b
-using the configuration in local-web.conf.
+using the configuration in local.conf.
 
 session/send
 ===============================================================================
