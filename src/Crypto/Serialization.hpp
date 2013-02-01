@@ -10,7 +10,6 @@
 
 #include "CppDsaLibrary.hpp"
 #include "CppLibrary.hpp"
-#include "NullLibrary.hpp"
 
 namespace Dissent {
 namespace Crypto {
@@ -50,12 +49,6 @@ namespace Crypto {
       case AsymmetricKey::DSA:
         if(clibrary != CryptoFactory::CryptoPPDsa) {
           tlib.reset(new CppDsaLibrary());
-          lib = tlib.data();
-        }
-        break;
-      case AsymmetricKey::NULL_KEY:
-        if(clibrary != CryptoFactory::Null) {
-          tlib.reset(new NullLibrary());
           lib = tlib.data();
         }
         break;

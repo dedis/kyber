@@ -112,7 +112,6 @@ HEADERS += src/Dissent.hpp \
            src/Crypto/CppRandom.hpp \
            src/Crypto/CryptoFactory.hpp \
            src/Crypto/DiffieHellman.hpp \
-           src/Crypto/NullDiffieHellman.hpp \
            src/Crypto/Hash.hpp \
            src/Crypto/Integer.hpp \
            src/Crypto/IntegerData.hpp \
@@ -120,10 +119,6 @@ HEADERS += src/Dissent.hpp \
            src/Crypto/LRSPrivateKey.hpp \
            src/Crypto/LRSPublicKey.hpp \
            src/Crypto/LRSSignature.hpp \
-           src/Crypto/NullHash.hpp \
-           src/Crypto/NullLibrary.hpp \
-           src/Crypto/NullPublicKey.hpp \
-           src/Crypto/NullPrivateKey.hpp \
            src/Crypto/Library.hpp \
            src/Crypto/OnionEncryptor.hpp \
            src/Crypto/ThreadedOnionEncryptor.hpp \
@@ -289,10 +284,6 @@ SOURCES += src/Anonymity/BaseBulkRound.cpp \
            src/Crypto/KeyShare.cpp \
            src/Crypto/LRSPrivateKey.cpp \
            src/Crypto/LRSPublicKey.cpp \
-           src/Crypto/NullDiffieHellman.cpp \
-           src/Crypto/NullHash.cpp \
-           src/Crypto/NullPublicKey.cpp \
-           src/Crypto/NullPrivateKey.cpp \
            src/Crypto/OnionEncryptor.cpp \
            src/Crypto/ThreadedOnionEncryptor.cpp \
            src/Crypto/AbstractGroup/IntegerGroup.cpp \

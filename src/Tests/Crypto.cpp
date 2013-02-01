@@ -394,33 +394,9 @@ namespace Tests {
     cf.SetLibrary(cname);
   }
 
-  TEST(Crypto, NullAsymmetricKey)
-  {
-    AsymmetricKeyTest(NullLibrary());
-  }
-
-  TEST(Crypto, NullKeySerialization)
-  {
-    CryptoFactory &cf = CryptoFactory::GetInstance();
-    CryptoFactory::LibraryName cname = cf.GetLibraryName();
-    cf.SetLibrary(CryptoFactory::Null);
-    AsymmetricKeySerialization();
-    cf.SetLibrary(cname);
-  }
-
   TEST(Crypto, CppDiffieHellman)
   {
     DiffieHellmanTest(CppLibrary());
-  }
-
-  TEST(Crypto, NullDiffieHellman)
-  {
-    DiffieHellmanTest(NullLibrary());
-  }
-
-  TEST(Crypto, NullZeroKnowledgeDhTest)
-  {
-    ZeroKnowledgeTest(NullLibrary(), false);
   }
 
   TEST(Crypto, CppZeroKnowledgeDhTest)

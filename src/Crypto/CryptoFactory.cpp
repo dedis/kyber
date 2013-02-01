@@ -2,7 +2,6 @@
 
 #include "CppLibrary.hpp"
 #include "CppDsaLibrary.hpp"
-#include "NullLibrary.hpp"
 #include "CryptoFactory.hpp"
 #include "ThreadedOnionEncryptor.hpp"
 
@@ -54,9 +53,6 @@ namespace Crypto {
         break;
       case CryptoPPDsa:
         _library.reset(new CppDsaLibrary());
-        break;
-      case Null:
-        _library.reset(new NullLibrary());
         break;
       default:
         qCritical() << "Invalid Library type:" << type;

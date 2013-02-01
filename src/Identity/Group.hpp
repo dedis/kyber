@@ -11,7 +11,7 @@
 #include <QVector>
 
 #include "Connections/Id.hpp"
-#include "Crypto/NullPrivateKey.hpp"
+#include "Crypto/CryptoFactory.hpp"
 
 #include "PublicIdentity.hpp"
 
@@ -216,7 +216,8 @@ namespace Identity {
 
       inline static const QSharedPointer<AsymmetricKey> &EmptyKey()
       {
-        static QSharedPointer<AsymmetricKey> key(new Crypto::NullPrivateKey());
+        static QSharedPointer<AsymmetricKey> key(
+            Crypto::CryptoFactory::GetInstance().GetLibrary().GeneratePublicKey(QByteArray()));
         return key;
       }
     private:
