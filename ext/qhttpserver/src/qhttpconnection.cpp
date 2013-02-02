@@ -109,7 +109,7 @@ int QHttpConnection::MessageBegin(http_parser *parser)
 {
     QHttpConnection *theConnection = (QHttpConnection *)parser->data;
     theConnection->m_currentHeaders.clear();
-    QObject::disconnect(theConnection, SLOT(requestDestroyed));
+    QObject::disconnect(0, 0, theConnection, SLOT(requestDestroyed));
     theConnection->m_request = new QHttpRequest(theConnection);
     QObject::connect(theConnection->m_request, SIGNAL(destroyed()),
         theConnection, SLOT(requestDestroyed));
