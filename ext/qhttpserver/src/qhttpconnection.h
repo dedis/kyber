@@ -52,6 +52,7 @@ signals:
 private slots:
     void parseRequest();
     void socketDisconnected();
+    void requestDestroyed();
 
 private:
     static int MessageBegin(http_parser *parser);

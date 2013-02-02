@@ -73,37 +73,37 @@ public:
      * Taken from http_parser.h -- make sure to keep synced
      */
     enum HttpMethod {
-      HTTP_DELETE = 0,
-      HTTP_GET,
-      HTTP_HEAD,
-      HTTP_POST,
-      HTTP_PUT,
-      /* pathological */
-      HTTP_CONNECT,
-      HTTP_OPTIONS,
-      HTTP_TRACE,
-      /* webdav */
-      HTTP_COPY,
-      HTTP_LOCK,
-      HTTP_MKCOL,
-      HTTP_MOVE,
-      HTTP_PROPFIND,
-      HTTP_PROPPATCH,
-      HTTP_SEARCH,
-      HTTP_UNLOCK,
-      /* subversion */
-      HTTP_REPORT,
-      HTTP_MKACTIVITY,
-      HTTP_CHECKOUT,
-      HTTP_MERGE,
-      /* upnp */
-      HTTP_MSEARCH,
-      HTTP_NOTIFY,
-      HTTP_SUBSCRIBE,
-      HTTP_UNSUBSCRIBE,
-      /* RFC-5789 */
-      HTTP_PATCH,
-      HTTP_PURGE
+        HTTP_DELETE = 0,
+        HTTP_GET,
+        HTTP_HEAD,
+        HTTP_POST,
+        HTTP_PUT,
+        /* pathological */
+        HTTP_CONNECT,
+        HTTP_OPTIONS,
+        HTTP_TRACE,
+        /* webdav */
+        HTTP_COPY,
+        HTTP_LOCK,
+        HTTP_MKCOL,
+        HTTP_MOVE,
+        HTTP_PROPFIND,
+        HTTP_PROPPATCH,
+        HTTP_SEARCH,
+        HTTP_UNLOCK,
+        /* subversion */
+        HTTP_REPORT,
+        HTTP_MKACTIVITY,
+        HTTP_CHECKOUT,
+        HTTP_MERGE,
+        /* upnp */
+        HTTP_MSEARCH,
+        HTTP_NOTIFY,
+        HTTP_SUBSCRIBE,
+        HTTP_UNSUBSCRIBE,
+        /* RFC-5789 */
+        HTTP_PATCH,
+        HTTP_PURGE
     };
 
     /*!
@@ -213,8 +213,8 @@ private:
 
     static QString MethodToString(HttpMethod method)
     {
-      int index = staticMetaObject.indexOfEnumerator("HttpMethod");
-      return staticMetaObject.enumerator(index).valueToKey(method);
+        int index = staticMetaObject.indexOfEnumerator("HttpMethod");
+        return staticMetaObject.enumerator(index).valueToKey(method);
     }
 
     void setMethod(HttpMethod method) { m_method = method; }
@@ -236,10 +236,10 @@ private:
     friend class QHttpConnection;
 
     private slots:
-      void appendBody(const QByteArray &body)
-      {
-        m_body.append(body);
-      }
+        void appendBody(const QByteArray &body)
+        {
+            m_body.append(body);
+        }
 };
 
 #endif
