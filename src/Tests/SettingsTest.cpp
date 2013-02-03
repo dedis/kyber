@@ -28,7 +28,7 @@ namespace Tests {
 
     QStringList settings_list0;
     settings_list0 << "dissent" << "dissent.ini";
-    Settings settings1 = Settings::CommandLineParse(settings_list0);
+    Settings settings1 = Settings::CommandLineParse(settings_list0, false);
     EXPECT_EQ(settings1.LocalEndPoints.count(), 2);
     EXPECT_EQ(settings1.RemotePeers.count(), 2);
     EXPECT_EQ(settings1.LocalEndPoints[0], QUrl("buffer://5"));
