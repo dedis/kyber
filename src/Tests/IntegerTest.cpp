@@ -2,10 +2,10 @@
 
 namespace Dissent {
 namespace Tests {
-  void IntegerBasicTest()
+  TEST(Integer, Basic)
   {
-    Dissent::Crypto::Integer int0(5);
-    Dissent::Crypto::Integer int1(6);
+    Integer int0(5);
+    Integer int1(6);
 
     EXPECT_NE(int0, int1);
     EXPECT_EQ(int0, int1 - 1);
@@ -34,24 +34,24 @@ namespace Tests {
     EXPECT_EQ(Integer(30) / int1, int0);
   }
 
-  void IntegerTestNull()
+  TEST(Integer, Null)
   {
-    Dissent::Crypto::Integer int0 = Dissent::Crypto::Integer(QByteArray());
-    Dissent::Crypto::Integer int1 = Dissent::Crypto::Integer(0);
+    Integer int0 = Integer(QByteArray());
+    Integer int1 = Integer(0);
     EXPECT_EQ(int0, int1);
   }
 
-  void IntegerTestCopy()
+  TEST(Integer, Copy)
   {
-    Dissent::Crypto::Integer int0(5);
-    Dissent::Crypto::Integer int1 = int0;
+    Integer int0(5);
+    Integer int1 = int0;
 
     EXPECT_EQ(int0, int1);
     int0 += 5;
     EXPECT_NE(int0, int1);
   }
 
-  void IntegerInvalidString()
+  TEST(Integer, InvalidString)
   {
     Integer base;
     QString bad = "ABCD";
@@ -61,70 +61,12 @@ namespace Tests {
     EXPECT_EQ(base, Integer(good));
   }
 
-  void IntegerRandom()
-  {
-    Integer val0 = Integer::GetRandomInteger(1024);
-    Integer val1 = Integer::GetRandomInteger(0, val0);
-    Integer val2 = Integer::GetRandomInteger(0, val0, true);
-
-    EXPECT_NE(val0, val1);
-    EXPECT_NE(val0, val2);
-    EXPECT_NE(val1, val2);
-    EXPECT_TRUE(val1 < val0);
-    EXPECT_TRUE(val2 < val0);
-  }
-
-  TEST(Integer, CppBasic)
-  {
-    CryptoFactory &cf = CryptoFactory::GetInstance();
-    CryptoFactory::LibraryName cname = cf.GetLibraryName();
-    cf.SetLibrary(CryptoFactory::CryptoPP);
-    IntegerBasicTest();
-    cf.SetLibrary(cname);
-  }
-
-  TEST(Integer, CppNull)
-  {
-    CryptoFactory &cf = CryptoFactory::GetInstance();
-    CryptoFactory::LibraryName cname = cf.GetLibraryName();
-    cf.SetLibrary(CryptoFactory::CryptoPP);
-    IntegerTestNull();
-    cf.SetLibrary(cname);
-  }
-
-  TEST(Integer, CppTestCopy)
-  {
-    CryptoFactory &cf = CryptoFactory::GetInstance();
-    CryptoFactory::LibraryName cname = cf.GetLibraryName();
-    cf.SetLibrary(CryptoFactory::CryptoPP);
-    IntegerTestCopy();
-    cf.SetLibrary(cname);
-  }
-
-  TEST(Integer, CppInvalidString)
-  {
-    CryptoFactory &cf = CryptoFactory::GetInstance();
-    CryptoFactory::LibraryName cname = cf.GetLibraryName();
-    cf.SetLibrary(CryptoFactory::CryptoPP);
-    IntegerInvalidString();
-    cf.SetLibrary(cname);
-  }
-
-  TEST(Integer, CppPow)
+  TEST(Integer, Pow)
   {
     Integer base(10);
     Integer exp(100);
     EXPECT_EQ(exp, base.Pow(Integer(10), Integer(101)));
     EXPECT_EQ(Integer(0), base.Pow(Integer(10), Integer(100)));
-  }
-
-  TEST(Integer, CppRandom)
-  {
-    CryptoFactory &cf = CryptoFactory::GetInstance();
-    CryptoFactory::LibraryName cname = cf.GetLibraryName();
-    cf.SetLibrary(CryptoFactory::CryptoPP);
-    IntegerRandom();
-    cf.SetLibrary(cname);
   }
 
   TEST(Integer, Int32)
@@ -133,18 +75,6 @@ namespace Tests {
     EXPECT_EQ(5, test.GetInt32());
     test = 0x7f8f8f8f;
     EXPECT_EQ(0x7f8f8f8f, test.GetInt32());
-  }
-
-  TEST(Integer, ModInverse)
-  {
-    Integer mod = Integer::GetRandomInteger(1024);
-    // mod should be prime to ensure (higher likelihood of) multiplicative inverse
-    mod = Integer::GetRandomInteger(0, mod, true);
-    Integer val = Integer::GetRandomInteger(0, mod);
-    Integer mi = val.ModInverse(mod);
-    Integer result = (val * mi) % mod;
-    qDebug() << result.ToString() << (val < mod) << (mi < mod);
-    EXPECT_EQ(result, 1);
   }
 }
 }

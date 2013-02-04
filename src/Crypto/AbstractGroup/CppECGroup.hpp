@@ -3,7 +3,6 @@
 
 #include <QSharedPointer>
 
-#include "Crypto/CppIntegerData.hpp"
 #include "AbstractGroup.hpp"
 #include "CppECElementData.hpp"
 #include "ECParams.hpp"
@@ -176,7 +175,7 @@ namespace AbstractGroup {
       /**
        * Get size of the EC field (i.e., the modulus p)
        */
-      inline Integer GetFieldSize() const { return FromCryptoInt(_curve.FieldSize()); }
+      Integer GetFieldSize() const;
 
       /**
        * Return true if element is a generator
@@ -207,15 +206,6 @@ namespace AbstractGroup {
     private:
 
       CryptoPP::ECPPoint GetPoint(const Element &e) const;
-      inline static CryptoPP::Integer ToCryptoInt(const Integer &e) 
-      {
-        return CppIntegerData::GetInteger(e.GetData()); 
-      }
-
-      inline static Integer FromCryptoInt(const CryptoPP::Integer &i)
-      {
-        return Integer(new CppIntegerData(i));
-      }
 
       /** 
        * Try to solve EC equation for y given x

@@ -2,7 +2,6 @@
 
 #include "Connections/IOverlaySender.hpp"
 #include "Connections/Network.hpp"
-#include "Crypto/DiffieHellman.hpp"
 #include "Crypto/Hash.hpp"
 #include "Crypto/Library.hpp"
 #include "Crypto/Serialization.hpp"
@@ -21,7 +20,7 @@
 namespace Dissent {
 
 using Crypto::CryptoFactory;
-using Crypto::DiffieHellman;
+using Crypto::CryptoRandom;
 using Crypto::Hash;
 using Crypto::Library;
 using Identity::PublicIdentity;
@@ -47,15 +46,13 @@ namespace Anonymity {
     GetNetwork()->SetHeaders(headers);
 
     Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    _anon_dh = QSharedPointer<DiffieHellman>(lib.CreateDiffieHellman());
     _anon_key = QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey());
 
     QSharedPointer<Network> net(GetNetwork()->Clone());
     headers["bulk"] = false;
     net->SetHeaders(headers);
 
-    QScopedPointer<Hash> hashalgo(lib.GetHashAlgorithm());
-    Id sr_id(hashalgo->ComputeHash(GetRoundId().GetByteArray()));
+    Id sr_id(Hash().ComputeHash(GetRoundId().GetByteArray()));
 
     _shuffle_round = create_shuffle(GetGroup(), GetPrivateIdentity(), sr_id, net,
         _get_shuffle_data);
@@ -68,13 +65,12 @@ namespace Anonymity {
   void RepeatingBulkRound::OnStart()
   {
     Round::OnStart();
-    QVector<QSharedPointer<Random> > anon_rngs;
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
+    QVector<CryptoRandom> anon_rngs;
 
     foreach(PublicIdentity gc, GetGroup().GetRoster()) {
-      QByteArray seed = _anon_dh->GetSharedSecret(gc.GetDhKey());
-      QSharedPointer<Random> rng(lib.GetRandomNumberGenerator(seed));
-      anon_rngs.append(rng);
+      QByteArray seed = _anon_dh.GetSharedSecret(gc.GetDhKey());
+      CryptoRandom rand(seed);
+      anon_rngs.append(rand);
     }
 
     Utils::TimerCallback *cb = new Utils::TimerMethod<RepeatingBulkRound, int>(
@@ -361,7 +357,7 @@ namespace Anonymity {
       }
       uint length = _message_lengths[idx] + _header_lengths[idx];
       QByteArray tmsg(length, 0);
-      _descriptors[idx].third->GenerateBlock(tmsg);
+      _descriptors[idx].third.GenerateBlock(tmsg);
       msg.append(tmsg);
     }
 
@@ -385,7 +381,7 @@ namespace Anonymity {
       }
 
       QByteArray tmsg(length, 0);
-      _anon_rngs[idx]->GenerateBlock(tmsg);
+      _anon_rngs[idx].GenerateBlock(tmsg);
       _expected_msgs.append(tmsg);
       Xor(xor_msg, xor_msg, tmsg);
     }
@@ -415,7 +411,7 @@ namespace Anonymity {
     QByteArray msg;
     QDataStream stream(&msg, QIODevice::WriteOnly);
     QSharedPointer<AsymmetricKey> pub_key(_anon_key->GetPublicKey());
-    stream << pub_key << _anon_dh->GetPublicComponent();
+    stream << pub_key << _anon_dh.GetPublicComponent();
     _shuffle_data = msg;
     return QPair<QByteArray, bool>(msg, false);
   }
@@ -472,10 +468,9 @@ namespace Anonymity {
       qWarning() << "Received an invalid signing key during the shuffle.";
     }
 
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QByteArray seed = GetDhKey()->GetSharedSecret(dh_pub);
-    QSharedPointer<Random> rng(lib.GetRandomNumberGenerator(seed));
-    return Descriptor(dh_pub, key_pub, rng);
+    QByteArray seed = GetDhKey().GetSharedSecret(dh_pub);
+    CryptoRandom rand(seed);
+    return Descriptor(dh_pub, key_pub, rand);
   }
 }
 }

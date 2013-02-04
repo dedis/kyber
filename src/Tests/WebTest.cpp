@@ -52,10 +52,9 @@ namespace Tests {
     QString filepath = QDir::tempPath() + "/" + filename;
     QFile file(filepath);
 
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
+    CryptoRandom rand;
     QByteArray data(1000, 0);
-    rand->GenerateBlock(data);
+    rand.GenerateBlock(data);
     ASSERT_TRUE(file.open(QIODevice::WriteOnly));
     ASSERT_EQ(file.write(data), data.size());
     file.close();
@@ -92,8 +91,7 @@ namespace Tests {
     QDir::temp().mkdir(dirname);
     QString dirpath = QDir::tempPath() + "/" + dirname;
 
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
+    CryptoRandom rand;
     QByteArray data(1000, 0);
 
     QList<QString> files;
@@ -101,7 +99,7 @@ namespace Tests {
       files.append(QString::number(Random::GetInstance().GetInt()));
       QString filepath = dirpath + "/" + files.last();
       QFile file(filepath);
-      rand->GenerateBlock(data);
+      rand.GenerateBlock(data);
       ASSERT_TRUE(file.open(QIODevice::WriteOnly));
       ASSERT_EQ(file.write(data), data.size());
       file.close();
@@ -245,17 +243,16 @@ namespace Tests {
       */
   TEST(Web, Session)
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rand(lib.GetRandomNumberGenerator());
+    CryptoRandom rand;
     QByteArray raw(750, 0);
 
-    rand->GenerateBlock(raw);
+    rand.GenerateBlock(raw);
     QByteArray message0 = ToUrlSafeBase64(raw);
 
-    rand->GenerateBlock(raw);
+    rand.GenerateBlock(raw);
     QByteArray message1 = ToUrlSafeBase64(raw);
 
-    rand->GenerateBlock(raw);
+    rand.GenerateBlock(raw);
     QByteArray message2 = ToUrlSafeBase64(raw);
 
     ConnectionManager::UseTimer = false;

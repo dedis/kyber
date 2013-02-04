@@ -24,7 +24,7 @@ namespace Tests {
       Id id = idx == 0 ? leader_id : Id();
       QByteArray bid(id.GetByteArray());
       QSharedPointer<AsymmetricKey> key(lib.GeneratePrivateKey(bid));
-      QSharedPointer<DiffieHellman> dh(lib.GenerateDiffieHellman(bid));
+      DiffieHellman dh;
 
       QSharedPointer<ISink> sink(new BufferSink());
       nodes.append(Node::CreateBasicGossip(PrivateIdentity(id, key, key, dh), group,

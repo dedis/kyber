@@ -27,7 +27,7 @@ namespace Tests {
         Id id = idx == 0 ? leader_id : Id();
         QSharedPointer<AsymmetricKey> key(new CppDsaPrivateKey(dkey->GetModulus(),
               dkey->GetSubgroup(), dkey->GetGenerator()));
-        QSharedPointer<DiffieHellman> dh(lib.CreateDiffieHellman());
+        DiffieHellman dh;
         pids.append(PrivateIdentity(id, key, key, dh));
         keyshare->AddKey(id.ToString(), QSharedPointer<AsymmetricKey>(key->GetPublicKey()));
       }
@@ -35,7 +35,7 @@ namespace Tests {
       for(int idx = 0; idx < count; idx++) {
         Id id = idx == 0 ? leader_id : Id();
         QSharedPointer<AsymmetricKey> key(lib.CreatePrivateKey());
-        QSharedPointer<DiffieHellman> dh(lib.CreateDiffieHellman());
+        DiffieHellman dh;
         pids.append(PrivateIdentity(id, key, key, dh));
         keyshare->AddKey(id.ToString(), QSharedPointer<AsymmetricKey>(key->GetPublicKey()));
       }
@@ -115,7 +115,7 @@ namespace Tests {
     QByteArray bid(leader_id.GetByteArray());
     Library &lib = CryptoFactory::GetInstance().GetLibrary();
     QSharedPointer<AsymmetricKey> key(lib.GeneratePrivateKey(bid));
-    QSharedPointer<DiffieHellman> dh(lib.GenerateDiffieHellman(bid));
+    DiffieHellman dh;
 
     QList<Address> local;
     local.append(BufferAddress::CreateAny());
@@ -207,7 +207,7 @@ namespace Tests {
     EXPECT_EQ(local_id, bg.GetId());
 
     QSharedPointer<AsymmetricKey> key;
-    QSharedPointer<DiffieHellman> dh;
+    DiffieHellman dh;
     QSharedPointer<Node> n = Node::CreateBasicGossip(PrivateIdentity(id, key, key, dh),
         Group(), empty, empty, QSharedPointer<ISink>(new DummySink()),
         SessionFactory::SHUFFLE);

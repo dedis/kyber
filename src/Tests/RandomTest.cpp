@@ -38,14 +38,32 @@ namespace Tests {
     SeededRandomTest<Random>();
   }
 
-  TEST(Random, CppRandomTest)
+  TEST(Random, CryptoRandomTest)
   {
-    RandomTest<CppRandom>();
+    RandomTest<CryptoRandom>();
   }
 
-  TEST(Random, CppRandomSeedTest)
+  TEST(Random, CryptoRandomSeedTest)
   {
-    SeededRandomTest<CppRandom>();
+    SeededRandomTest<CryptoRandom>();
+  }
+
+  TEST(Random, Integer)
+  {
+    Integer zero(0);
+    CryptoRandom rand;
+    Integer val0 = rand.GetInteger(1024);
+    Integer val1 = rand.GetInteger(0, val0);
+    Integer val2 = rand.GetInteger(0, val0, true);
+
+    EXPECT_NE(val0, val1);
+    EXPECT_NE(val0, val2);
+    EXPECT_NE(val1, val2);
+    EXPECT_TRUE(zero < val0);
+    EXPECT_TRUE(zero < val1);
+    EXPECT_TRUE(zero < val2);
+    EXPECT_TRUE(val1 < val0);
+    EXPECT_TRUE(val2 < val0);
   }
 }
 }

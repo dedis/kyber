@@ -1,10 +1,8 @@
 #include "Connections/Connection.hpp"
 #include "Connections/ConnectionTable.hpp"
-#include "Crypto/CryptoFactory.hpp"
-#include "Crypto/Library.hpp"
+#include "Crypto/CryptoRandom.hpp"
 #include "Identity/PublicIdentity.hpp"
 #include "Transports/AddressFactory.hpp"
-#include "Utils/Random.hpp"
 #include "Utils/Timer.hpp"
 
 #include "CSConnectionAcquirer.hpp"
@@ -13,9 +11,7 @@ namespace Dissent {
 
 using Identity::PublicIdentity;
 using Connections::ConnectionTable;
-using Crypto::CryptoFactory;
-using Crypto::Library;
-using Utils::Random;
+using Crypto::CryptoRandom;
 using Utils::Timer;
 using Utils::TimerCallback;
 
@@ -206,10 +202,7 @@ namespace ClientServer {
       }
     }
 
-    QSharedPointer<Random> rand(CryptoFactory::GetInstance().
-      GetLibrary().GetRandomNumberGenerator());
-
-    QByteArray bid = id_to_addr.keys()[rand->GetInt(0, id_to_addr.size())];
+    QByteArray bid = id_to_addr.keys()[CryptoRandom().GetInt(0, id_to_addr.size())];
     CheckAndConnect(bid, id_to_addr[bid]);
   }
 

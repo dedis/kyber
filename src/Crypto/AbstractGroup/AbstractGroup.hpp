@@ -1,6 +1,7 @@
 #ifndef DISSENT_CRYPTO_ABSTRACT_GROUP_ABSTRACT_GROUP_H_GUARD
 #define DISSENT_CRYPTO_ABSTRACT_GROUP_ABSTRACT_GROUP_H_GUARD
 
+#include <QSharedPointer>
 #include <QString>
 
 #include "Crypto/Integer.hpp"

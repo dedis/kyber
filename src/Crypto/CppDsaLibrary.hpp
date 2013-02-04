@@ -1,10 +1,6 @@
 #ifndef DISSENT_CRYPTO_CPP_DSA_LIBRARY_H_GUARD
 #define DISSENT_CRYPTO_CPP_DSA_LIBRARY_H_GUARD
 
-#include "CppDiffieHellman.hpp"
-#include "CppHash.hpp"
-#include "CppIntegerData.hpp"
-#include "CppRandom.hpp"
 #include "CppDsaPrivateKey.hpp"
 #include "CppDsaPublicKey.hpp"
 

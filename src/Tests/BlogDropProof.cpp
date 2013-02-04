@@ -286,13 +286,10 @@ namespace Tests {
 
     qDebug() << "RANDOM_PLAINTEXT";
     // Get a random plaintext
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rand(lib.GetRandomNumberGenerator());
-
     BlogDropAuthor auth(p, client_sks[author_idx], server_pk_set, author_priv);
 
     QByteArray msg(auth.MaxPlaintextLength(), 0);
-    rand->GenerateBlock(msg);
+    CryptoRandom().GenerateBlock(msg);
 
     QList<QList<QByteArray> > for_servers;
     for(int server_idx=0; server_idx<nservers; server_idx++) {
@@ -452,15 +449,12 @@ namespace Tests {
 
     qDebug() << "RANDOM_PLAINTEXT";
     // Get a random plaintext
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rand(lib.GetRandomNumberGenerator());
-
     BlogDropAuthor auth(
         QSharedPointer<Parameters>(new Parameters(*params)), 
         master_client_priv[author_idx], master_server_set, author_priv);
 
     QByteArray msg(auth.MaxPlaintextLength(), 0);
-    rand->GenerateBlock(msg);
+    CryptoRandom().GenerateBlock(msg);
 
     QList<QList<QByteArray> > for_servers;
     for(int server_idx=0; server_idx<nservers; server_idx++) {

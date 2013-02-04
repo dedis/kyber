@@ -50,9 +50,6 @@ int main(int argc, char **argv)
   QSharedPointer<SignalSink> signal_sink(new SignalSink());
   app_sink->AddSink(signal_sink.data());
 
-  QSharedPointer<AsymmetricKey> key;
-  QSharedPointer<DiffieHellman> dh;
-
   Node::CreateNode create = &Node::CreateBasicGossip;
   if(settings.SubgroupPolicy == Group::ManagedSubgroup) {
     create = &Node::CreateClientServer;
@@ -68,16 +65,15 @@ int main(int argc, char **argv)
     Id local_id = settings.LocalIds.count() > idx ? settings.LocalIds[idx] : Id();
 
     QSharedPointer<AsymmetricKey> key;
-    QSharedPointer<DiffieHellman> dh;
+    DiffieHellman dh;
 
     if(AuthFactory::RequiresKeys(settings.AuthMode)) {
       key = QSharedPointer<AsymmetricKey>(lib.LoadPrivateKeyFromFile(settings.PrivateKey[idx]));
       qDebug() << local_id << settings.PrivateKey[idx];
-      dh = QSharedPointer<DiffieHellman>(lib.CreateDiffieHellman());
     } else {
       QByteArray id = local_id.GetByteArray();
       key = QSharedPointer<AsymmetricKey>(lib.GeneratePrivateKey(id));
-      dh = QSharedPointer<DiffieHellman>(lib.GenerateDiffieHellman(id));
+      dh = DiffieHellman(id);
     }
 
     nodes.append(create(PrivateIdentity(local_id, key, key, dh, super_peer),

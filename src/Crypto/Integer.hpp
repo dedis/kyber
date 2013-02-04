@@ -2,107 +2,72 @@
 #define DISSENT_CRYPTO_INTEGER_H_GUARD
 
 #include <QByteArray>
+#include <QSharedData>
 #include <QString>
-
-#include "CryptoFactory.hpp"
-#include "IntegerData.hpp"
+#include "Utils/Utils.hpp"
 
 namespace Dissent {
 namespace Crypto {
+  class IIntegerImpl : public QSharedData {
+    public:
+      virtual ~IIntegerImpl() {}
+      virtual QByteArray GetByteArray() const = 0;
+      virtual bool IsPrime() const = 0;
+      virtual IIntegerImpl *Add(const IIntegerImpl * const term) const = 0;
+      virtual IIntegerImpl *Subtract(const IIntegerImpl * const subtrahend) const = 0;
+      virtual IIntegerImpl *Multiply(const IIntegerImpl * const multiplicand) const = 0;
+      virtual IIntegerImpl *Multiply(const IIntegerImpl * const multiplicand, const IIntegerImpl * const modulus) const = 0;
+      virtual IIntegerImpl *Divide(const IIntegerImpl * const divisor) const = 0;
+      virtual IIntegerImpl *Modulo(const IIntegerImpl * const mod) const = 0;
+      virtual IIntegerImpl *Pow(const IIntegerImpl * const pow, const IIntegerImpl * const mod) const = 0;
+      virtual IIntegerImpl *PowCascade(const IIntegerImpl * const x0, const IIntegerImpl * const e0,
+          const IIntegerImpl * const x1, const IIntegerImpl * const e1) const = 0;
+      virtual IIntegerImpl *Inverse(const IIntegerImpl * const mod) const = 0;
+      virtual bool Equals(const IIntegerImpl * const other) const = 0;
+      virtual bool LessThan(const IIntegerImpl * const other) const = 0;
+      virtual bool LessThanOrEqual(const IIntegerImpl * const other) const = 0;
+      virtual int GetBitCount() const = 0;
+      virtual int GetByteCount() const = 0;
+      virtual int GetInt32() const = 0;
+  };
+
   /**
    * "Big" Integer wrapper
    */
   class Integer {
     public:
       /**
-       * Construct from IntegerData
-       */
-      explicit Integer(IntegerData *data) : _data(data)
-      {
-        if(data == 0) {
-          _data = CryptoFactory::GetInstance().GetLibrary().GetIntegerData(0);
-        }
-      }
-
-      /**
        * Construct using an int
        * @param value the int value
        */
-      Integer(int value = 0) :
-        _data(CryptoFactory::GetInstance().GetLibrary().GetIntegerData(value))
-      {
-      }
+      Integer(int value = 0);
 
       /**
        * Construct using an byte array
        * @param value the byte array
        */
-      explicit Integer(const QByteArray &value) :
-        _data(CryptoFactory::GetInstance().GetLibrary().GetIntegerData(
-              value.isEmpty() ? QByteArray(1, 0) : value))
-      {
-      }
+      explicit Integer(const QByteArray &value);
 
       /**
        * Construct using a base64 string
        * @param value the string
        */
-      explicit Integer(const QString &value) :
-        _data(CryptoFactory::GetInstance().GetLibrary().GetIntegerData(value))
-      {
-      }
+      explicit Integer(const QString &value);
       
-      Integer(const Integer &other) : 
-        _data(CryptoFactory::GetInstance().GetLibrary().GetIntegerData(0))
-      {
-        _data->Set(other._data.constData());
-      }
-
-      /**
-       * Destructor
-       */
-      ~Integer() {}
-
-      /**
-       * returns a random integer data
-       * @param bit_count the amount of bits in the integer
-       * @param prime if the integer should be prime 
-       */
-      static Integer GetRandomInteger(int bit_count, bool prime = false)
-      {
-        IntegerData *data = CryptoFactory::GetInstance().
-          GetLibrary().GetRandomInteger(bit_count, prime);
-        return Integer(data);
-      }
-
-      /**
-       * returns a random integer data
-       * @param min smallest number
-       * @param max largest number
-       * @param prime if the integer should be prime 
-       */
-      static Integer GetRandomInteger(const Integer &min,
-          const Integer &max, bool prime = false)
-      {
-        IntegerData *data = CryptoFactory::GetInstance().
-          GetLibrary().GetRandomInteger(min.GetData(), max.GetData(), prime);
-        return Integer(data);
-      }
-
       /**
        * Returns the byte array representation of the number
        */
-      inline const QByteArray &GetByteArray() const
+      inline QByteArray GetByteArray() const
       {
-        return _data->GetByteArray();
+        return m_data->GetByteArray();
       }
 
       /**
        * Returns the string representation
        */
-      inline const QString &ToString() const
+      inline QString ToString() const
       {
-        return _data->ToString();
+        return Utils::ToUrlSafeBase64(m_data->GetByteArray());
       }
 
       /**
@@ -110,7 +75,7 @@ namespace Crypto {
        */
       inline bool IsPrime() const 
       {
-        return _data->IsPrime();
+        return m_data->IsPrime();
       }
 
       /**
@@ -119,7 +84,7 @@ namespace Crypto {
        */
       inline Integer Add(const Integer &term) const
       {
-        return Integer(_data->Add(term._data.constData()));
+        return Integer(m_data->Add(term.m_data.constData()));
       }
 
       /**
@@ -128,16 +93,27 @@ namespace Crypto {
        */
       inline Integer Subtract(const Integer &subtrahend) const
       {
-        return Integer(_data->Subtract(subtrahend._data.constData()));
+        return Integer(m_data->Subtract(subtrahend.m_data.constData()));
       }
 
       /**
-       * Subtraction operator, produces a new Integer
+       * Multiply operator, produces a new Integer
        * @param multiplicand the Integer to multiply this
        */
       inline Integer Multiply(const Integer &multiplicand) const
       {
-        return Integer(_data->Multiply(multiplicand._data.constData()));
+        return Integer(m_data->Multiply(multiplicand.m_data.constData()));
+      }
+
+      /**
+       * Multiply operator with modulo, produces a new Integer
+       * @param multiplicand multiplicand
+       * @param mod modulus
+       */
+      Integer Multiply(const Integer &other, const Integer &mod) const
+      {
+        return Integer(m_data->Multiply(other.m_data.constData(),
+              mod.m_data.constData()));
       }
 
       /**
@@ -146,7 +122,7 @@ namespace Crypto {
        */
       inline Integer Divide(const Integer &divisor) const
       {
-        return Integer(_data->Divide(divisor._data.constData()));
+        return Integer(m_data->Divide(divisor.m_data.constData()));
       }
 
       /**
@@ -155,7 +131,7 @@ namespace Crypto {
        */
       inline Integer Modulo(const Integer &mod) const
       {
-        return Integer(_data->Modulo(mod._data.constData()));
+        return Integer(m_data->Modulo(mod.m_data.constData()));
       }
 
       /**
@@ -165,7 +141,7 @@ namespace Crypto {
        */
       Integer Pow(const Integer &pow, const Integer &mod) const
       {
-        return Integer(_data->Pow(pow._data.constData(), mod._data.constData()));
+        return Integer(m_data->Pow(pow.m_data.constData(), mod.m_data.constData()));
       }
 
       /**
@@ -180,28 +156,17 @@ namespace Crypto {
       Integer PowCascade(const Integer &x1, const Integer &e1,
           const Integer &x2, const Integer &e2) const
       {
-        return Integer(_data->PowCascade(x1._data.constData(), e1._data.constData(),
-            x2._data.constData(), e2._data.constData()));
-      }
-
-      /**
-       * Multiplication modulo
-       * @param other multiplicand
-       * @param mod modulus
-       */
-      Integer MultiplyMod(const Integer &other, const Integer &mod) const
-      {
-        return Integer(_data->MultiplyMod(other._data.constData(),
-              mod._data.constData()));
+        return Integer(m_data->PowCascade(x1.m_data.constData(), e1.m_data.constData(),
+            x2.m_data.constData(), e2.m_data.constData()));
       }
 
       /**
        * Compute x such that ax == 1 mod p
        * @param mod inverse modulo this group
        */
-      Integer ModInverse(const Integer &mod) const
+      Integer Inverse(const Integer &mod) const
       {
-        return Integer(_data->ModInverse(mod._data.constData()));
+        return Integer(m_data->Inverse(mod.m_data.constData()));
       }
 
       /**
@@ -210,7 +175,7 @@ namespace Crypto {
        */
       inline Integer &operator=(const Integer &other)
       {
-        _data->Set(other._data.constData());
+        m_data = other.m_data;
         return *this;
       }
 
@@ -220,7 +185,7 @@ namespace Crypto {
        */
       inline Integer &operator+=(const Integer &other)
       {
-        _data->operator+=(other._data.constData());
+        m_data = Add(other).m_data;
         return *this;
       }
 
@@ -230,7 +195,7 @@ namespace Crypto {
        */
       Integer &operator-=(const Integer &other)
       {
-        _data->operator-=(other._data.constData());
+        m_data = Subtract(other).m_data;
         return *this;
       }
 
@@ -240,7 +205,7 @@ namespace Crypto {
        */
       bool operator==(const Integer &other) const
       {
-        return _data->operator==(other._data.constData());
+        return m_data->Equals(other.m_data.constData());
       }
 
       /**
@@ -249,7 +214,7 @@ namespace Crypto {
        */
       bool operator!=(const Integer &other) const
       {
-        return _data->operator!=(other._data.constData());
+        return ! m_data->Equals(other.m_data.constData());
       }
 
       /**
@@ -258,7 +223,7 @@ namespace Crypto {
        */
       bool operator>(const Integer &other) const
       {
-        return _data->operator>(other._data.constData());
+        return other.m_data->LessThan(m_data.constData());
       }
 
       /**
@@ -267,7 +232,7 @@ namespace Crypto {
        */
       bool operator>=(const Integer &other) const
       {
-        return _data->operator>=(other._data.constData());
+        return other.m_data->LessThanOrEqual(m_data.constData());
       }
 
       /**
@@ -276,7 +241,7 @@ namespace Crypto {
        */
       bool operator<(const Integer &other) const
       {
-        return _data->operator<(other._data.constData());
+        return m_data->LessThan(other.m_data.constData());
       }
 
       /**
@@ -285,7 +250,7 @@ namespace Crypto {
        */
       bool operator<=(const Integer &other) const
       {
-        return _data->operator<=(other._data.constData());
+        return m_data->LessThanOrEqual(other.m_data.constData());
       }
 
       /**
@@ -293,7 +258,7 @@ namespace Crypto {
        */
       inline int GetBitCount() const
       {
-        return _data->GetBitCount();
+        return m_data->GetBitCount();
       }
 
       /**
@@ -301,7 +266,7 @@ namespace Crypto {
        */
       inline int GetByteCount() const
       {
-        return _data->GetByteCount();
+        return m_data->GetByteCount();
       }
 
       /**
@@ -309,16 +274,33 @@ namespace Crypto {
        */
       virtual int GetInt32() const
       {
-        return _data->GetInt32();
+        return m_data->GetInt32();
       }
 
-      /**
-       * returns the internal integer data, not particularly safe
-       */
-      const IntegerData *GetData() const { return _data.constData(); }
+      Integer(IIntegerImpl *value) : m_data(value)
+      {
+      }
+
+      const IIntegerImpl *GetHandle() const { return m_data.constData(); }
 
     private:
-      QExplicitlySharedDataPointer<IntegerData> _data;
+      QSharedDataPointer<IIntegerImpl> m_data;
+
+      /**
+       * Convert a base64 number into a clean byte array
+       * @param string input base64 string
+       */
+      static QByteArray FromBase64(const QString &string)
+      {
+        const QChar *chs = string.constData();
+        QByteArray tmp;
+        int idx = 0;
+        for(; chs[idx] != '\0'; idx++) {
+          tmp.append(chs[idx].cell());
+        }
+
+        return Utils::FromUrlSafeBase64(tmp);
+      }
   };
 
   /**

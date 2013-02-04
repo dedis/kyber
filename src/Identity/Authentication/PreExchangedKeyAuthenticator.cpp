@@ -1,10 +1,9 @@
-#include "Crypto/Library.hpp"
+#include "Crypto/CryptoRandom.hpp"
 #include "PreExchangedKeyAuthenticate.hpp"
 #include "PreExchangedKeyAuthenticator.hpp"
 
 namespace Dissent {
-using Crypto::CryptoFactory;
-using Crypto::Library;
+using Crypto::CryptoRandom;
 using Utils::Random;
 
 namespace Identity {
@@ -33,11 +32,8 @@ namespace Authentication {
     }
 
     /* Generate and sign response for Bob */
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rng(lib.GetRandomNumberGenerator());
-
     QByteArray alice_nonce(PreExchangedKeyAuthenticate::NonceLength, 0);
-    rng->GenerateBlock(alice_nonce);
+    CryptoRandom().GenerateBlock(alice_nonce);
 
     QByteArray to_sign;
     QDataStream to_sign_stream(&to_sign, QIODevice::WriteOnly);

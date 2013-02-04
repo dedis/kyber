@@ -54,8 +54,8 @@ namespace Tests {
 
     QByteArray bid = id.GetByteArray();
     QSharedPointer<AsymmetricKey> key(lib.GeneratePublicKey(bid));
-    QScopedPointer<DiffieHellman> dh(lib.GenerateDiffieHellman(bid));
-    return PublicIdentity(id, key, key, dh->GetPublicComponent());
+    DiffieHellman dh;
+    return PublicIdentity(id, key, key, dh.GetPublicComponent());
   }
 
   void AddMember(QVector<PublicIdentity> &group, const Id &id = Id())
@@ -108,13 +108,13 @@ namespace Tests {
 
     for(int idx = 0; idx < 10; idx++) {
       int offset = Random::GetInstance().GetInt(10 * idx, 10 + 10 * idx);
-      AddMember(gr0, set.GetId(offset));
+      gr0.append(set.GetIdentity(offset));
     }
 
     Group subset(gr0);
 
     EXPECT_TRUE(IsSubset(subset, subset));
-    EXPECT_TRUE(IsSubset(set, subset));
+    ASSERT_TRUE(IsSubset(set, subset));
     EXPECT_FALSE(IsSubset(subset, set));
   }
 
@@ -195,14 +195,12 @@ namespace Tests {
 
   TEST(Group, ManagedGroup)
   {
-    QSharedPointer<Random> rand(CryptoFactory::GetInstance().
-      GetLibrary().GetRandomNumberGenerator());
-
+    CryptoRandom rand;
     QVector<PublicIdentity> gr;
     QVector<PublicIdentity> sgr;
     for(int idx = 0; idx < 100; idx++) {
       AddMember(gr);
-      if(((double(rand->GetInt(0, 1000))) / 1000.0) < .5) {
+      if(((double(rand.GetInt(0, 1000))) / 1000.0) < .5) {
         sgr.append(gr.last());
       }
     }
@@ -221,9 +219,9 @@ namespace Tests {
     ASSERT_TRUE(group.Contains(gc1.GetId()));
     ASSERT_FALSE(group.GetSubgroup().Contains(gc1.GetId()));
 
-    int to_remove = rand->GetInt(0, group.GetSubgroup().Count());
+    int to_remove = rand.GetInt(0, group.GetSubgroup().Count());
     while(to_remove == group.GetSubgroup().GetIndex(gc0.GetId())) {
-      to_remove = rand->GetInt(0, group.GetSubgroup().Count());
+      to_remove = rand.GetInt(0, group.GetSubgroup().Count());
     }
     Id id0 = group.GetSubgroup().GetId(to_remove);
     group = RemoveGroupMember(group, id0);
@@ -235,10 +233,10 @@ namespace Tests {
     ASSERT_FALSE(group.Contains(id0));
     ASSERT_FALSE(group.GetSubgroup().Contains(id0));
 
-    to_remove = rand->GetInt(0, group.Count());
+    to_remove = rand.GetInt(0, group.Count());
     Id id1 = group.GetId(to_remove);
     while(id1 == gc1.GetId() || group.GetSubgroup().Contains(id1)) {
-      to_remove = rand->GetInt(0, group.Count());
+      to_remove = rand.GetInt(0, group.Count());
       id1 = group.GetId(to_remove);
     }
 

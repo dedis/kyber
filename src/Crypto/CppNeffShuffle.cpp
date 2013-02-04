@@ -2,9 +2,9 @@
 
 #include "CppDsaPrivateKey.hpp"
 #include "CppDsaPublicKey.hpp"
-#include "CppHash.hpp"
 #include "CppNeffShuffle.hpp"
-#include "CppRandom.hpp"
+#include "CryptoRandom.hpp"
+#include "Hash.hpp"
 
 namespace Dissent {
 namespace Crypto {
@@ -54,18 +54,18 @@ namespace Crypto {
     // Non-interactive setup
     proof.clear();
     QDataStream stream(&proof, QIODevice::WriteOnly);
-    CppHash hash;
+    Hash hash;
     foreach(const QByteArray &in, input) {
       hash.Update(in);
     }
     QByteArray base_seed = hash.ComputeHash();
     QByteArray cseed;
-    CppRandom rand;
+    CryptoRandom rand, erand;
 
     // Reencryption betas
     QVector<Integer> beta;
     for(int idx = 0; idx < k; idx++) {
-      beta.append(Integer::GetRandomInteger(2, subgroup));
+      beta.append(erand.GetInteger(2, subgroup));
     }
 
     // Rencryption
@@ -109,13 +109,13 @@ namespace Crypto {
 
     QVector<Integer> u, w, a;
     for(int idx = 0; idx < k; idx++) {
-      u.append(Integer::GetRandomInteger(2, subgroup));
-      w.append(Integer::GetRandomInteger(2, subgroup));
-      a.append(Integer::GetRandomInteger(2, subgroup));
+      u.append(erand.GetInteger(2, subgroup));
+      w.append(erand.GetInteger(2, subgroup));
+      a.append(erand.GetInteger(2, subgroup));
     }
 
-    Integer gamma = Integer::GetRandomInteger(2, subgroup);
-    Integer tau_0 = Integer::GetRandomInteger(2, subgroup);
+    Integer gamma = erand.GetInteger(2, subgroup);
+    Integer tau_0 = erand.GetInteger(2, subgroup);
 
     // Part 1 -- Generation of initial shares
 
@@ -145,13 +145,13 @@ namespace Crypto {
     // Part 2 -- Non-Interactive Verifier
     hash.Update(base_seed);
     cseed = hash.ComputeHash(proof);
-    rand = CppRandom(cseed);
+    rand = CryptoRandom(cseed);
 
     QVector<Integer> p, B;
     for(int idx = 0; idx < k; idx++) {
       p.append(rand.GetInteger(2, subgroup));
       B.append((generator.Pow(p[idx], modulus) *
-            U[idx].ModInverse(modulus)) % modulus);
+            U[idx].Inverse(modulus)) % modulus);
     }
 
     // Part 3 -- Prover
@@ -172,7 +172,7 @@ namespace Crypto {
 
     hash.Update(base_seed);
     cseed = hash.ComputeHash(proof);
-    rand = CppRandom(cseed);
+    rand = CryptoRandom(cseed);
 
     Integer lambda = rand.GetInteger(2, subgroup);
 
@@ -196,7 +196,7 @@ namespace Crypto {
 
     hash.Update(base_seed);
     cseed = hash.ComputeHash(proof);
-    rand = CppRandom(cseed);
+    rand = CryptoRandom(cseed);
 
     // Part 6.1 - Verifier Challenger
 
@@ -214,7 +214,7 @@ namespace Crypto {
     QVector<Integer> theta;
 
     for(int idx = 0; idx < (2 * k) - 1; idx++) {
-      theta.append(Integer::GetRandomInteger(0, subgroup));
+      theta.append(erand.GetInteger(0, subgroup));
     }
 
     QVector<Integer> Theta;
@@ -235,7 +235,7 @@ namespace Crypto {
 
     hash.Update(base_seed);
     cseed = hash.ComputeHash(proof);
-    rand = CppRandom(cseed);
+    rand = CryptoRandom(cseed);
 
     Integer c = rand.GetInteger(2, subgroup);
 
@@ -245,11 +245,11 @@ namespace Crypto {
 
     Integer s_r_multi = c;
     for(int idx = 0 ; idx <  k; idx++) {
-      s_r_multi = (s_r_multi * r_t[idx] * s_t[idx].ModInverse(subgroup)) % subgroup;
+      s_r_multi = (s_r_multi * r_t[idx] * s_t[idx].Inverse(subgroup)) % subgroup;
       alpha.append((theta[idx] + s_r_multi) % subgroup);
     }
 
-    Integer inv_gamma = gamma.ModInverse(subgroup);
+    Integer inv_gamma = gamma.Inverse(subgroup);
     for(int idx = k; idx < (2 * k - 1); idx++) {
       alpha.append((theta[idx] + c * inv_gamma.Pow(2 * k - idx - 1, subgroup)) % subgroup);
     }
@@ -259,7 +259,7 @@ namespace Crypto {
     // Part 8 Verifiable decryption
     hash.Update(base_seed);
     cseed = hash.ComputeHash(proof);
-    rand = CppRandom(cseed);
+    rand = CryptoRandom(cseed);
 
     QVector<QByteArray> decrypted;
     QVector<QPair<Integer, Integer> > decryption_proof;
@@ -275,7 +275,7 @@ namespace Crypto {
       Integer shared;
       tstream >> shared;
 
-      Integer t = Integer::GetRandomInteger(2, subgroup);
+      Integer t = erand.GetInteger(2, subgroup);
       Integer T = shared.Pow(t, modulus);
       Integer c = rand.GetInteger(2, subgroup);
       Integer s = (t + c * pkey->GetPrivateExponent()) % subgroup;
@@ -346,13 +346,13 @@ namespace Crypto {
     QDataStream ostream(input_proof);
     QByteArray proof;
     QDataStream istream(&proof, QIODevice::WriteOnly);
-    CppHash hash;
+    Hash hash;
     foreach(const QByteArray &in, input) {
       hash.Update(in);
     }
     QByteArray base_seed = hash.ComputeHash();
     QByteArray cseed;
-    CppRandom rand;
+    CryptoRandom rand;
 
     // Part 1 -- Generation of initial shares
 
@@ -385,13 +385,13 @@ namespace Crypto {
     // Part 2 -- Non-Interactive Verifier
     hash.Update(base_seed);
     cseed = hash.ComputeHash(proof);
-    rand = CppRandom(cseed);
+    rand = CryptoRandom(cseed);
 
     QVector<Integer> p, B;
     for(int idx = 0; idx < k; idx++) {
       p.append(rand.GetInteger(2, subgroup));
       B.append((generator.Pow(p[idx], modulus) *
-            U[idx].ModInverse(modulus)) % modulus);
+            U[idx].Inverse(modulus)) % modulus);
     }
 
     // Part 3 -- Prover
@@ -405,7 +405,7 @@ namespace Crypto {
 
     hash.Update(base_seed);
     cseed = hash.ComputeHash(proof);
-    rand = CppRandom(cseed);
+    rand = CryptoRandom(cseed);
 
     Integer lambda = rand.GetInteger(2, subgroup);
 
@@ -421,7 +421,7 @@ namespace Crypto {
 
     hash.Update(base_seed);
     cseed = hash.ComputeHash(proof);
-    rand = CppRandom(cseed);
+    rand = CryptoRandom(cseed);
 
     // Part 6.1 - Verifier Challenger
 
@@ -443,7 +443,7 @@ namespace Crypto {
 
     hash.Update(base_seed);
     cseed = hash.ComputeHash(proof);
-    rand = CppRandom(cseed);
+    rand = CryptoRandom(cseed);
 
     Integer c = rand.GetInteger(2, subgroup);
 
@@ -545,7 +545,7 @@ namespace Crypto {
 
     hash.Update(base_seed);
     cseed = hash.ComputeHash(proof);
-    rand = CppRandom(cseed);
+    rand = CryptoRandom(cseed);
 
     for(int idx = 0; idx < k; idx++) {
       QDataStream tstream_in(shuffle_output[idx]);
@@ -556,7 +556,7 @@ namespace Crypto {
       Integer shared_out, secret_out;
       tstream_out >> shared_out >> secret_out;
 
-      Integer pair = (secret_in * secret_out.ModInverse(modulus)) % modulus;
+      Integer pair = (secret_in * secret_out.Inverse(modulus)) % modulus;
       Integer T = decryption_proof[idx].first;
       Integer s = decryption_proof[idx].second;
       Integer c = rand.GetInteger(2, subgroup);

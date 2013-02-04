@@ -1,7 +1,7 @@
-
+#include <QDebug>
 #include <QSharedPointer>
 
-#include "Crypto/CryptoFactory.hpp"
+#include "Crypto/Hash.hpp"
 
 #include "BlogDropUtils.hpp"
 #include "ChangingGenClientCiphertext.hpp"
@@ -280,10 +280,10 @@ namespace BlogDrop {
       const QList<Element> &ys, 
       const QList<Element> &ts) const
   {
-    QScopedPointer<Hash> hash(CryptoFactory::GetInstance().GetLibrary().GetHashAlgorithm());
+    Hash hashalgo;
 
-    hash->Restart();
-    hash->Update(params->GetByteArray());
+    hashalgo.Restart();
+    hashalgo.Update(params->GetByteArray());
 
     Q_ASSERT(gs.count() == ys.count());
     Q_ASSERT(gs.count() == ts.count());
@@ -294,12 +294,12 @@ namespace BlogDrop {
       QSharedPointer<const Crypto::AbstractGroup::AbstractGroup> group = 
         ((i<2) ? params->GetKeyGroup() : params->GetMessageGroup());
 
-      hash->Update(group->ElementToByteArray(gs[i]));
-      hash->Update(group->ElementToByteArray(ys[i]));
-      hash->Update(group->ElementToByteArray(ts[i]));
+      hashalgo.Update(group->ElementToByteArray(gs[i]));
+      hashalgo.Update(group->ElementToByteArray(ys[i]));
+      hashalgo.Update(group->ElementToByteArray(ts[i]));
     }
 
-    return Integer(hash->ComputeHash()) % params->GetGroupOrder();
+    return Integer(hashalgo.ComputeHash()) % params->GetGroupOrder();
   }
 
   AbstractGroup::Element 

@@ -5,8 +5,10 @@
 #include "Identity/PrivateIdentity.hpp"
 
 using Dissent::Crypto::CryptoFactory;
+#include "Crypto/Hash.hpp"
+#include "ShuffleRoundBlame.hpp"
+
 using Dissent::Crypto::Hash;
-using Dissent::Crypto::Library;
 using Dissent::Crypto::OnionEncryptor;
 using Dissent::Identity::PrivateIdentity;
 
@@ -55,15 +57,13 @@ namespace Anonymity {
 
   void ShuffleRoundBlame::VerifyInnerCiphertext()
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Hash> hash(lib.GetHashAlgorithm());
-
+    Hash hashalgo;
     for(int idx = 0; idx < _state->public_inner_keys.count(); idx++) {
-      hash->Update(_state->public_inner_keys[idx]->GetByteArray());
-      hash->Update(_state->public_outer_keys[idx]->GetByteArray());
-      hash->Update(_state->encrypted_data[idx]);
+      hashalgo.Update(_state->public_inner_keys[idx]->GetByteArray());
+      hashalgo.Update(_state->public_outer_keys[idx]->GetByteArray());
+      hashalgo.Update(_state->encrypted_data[idx]);
     }
-    _state->state_hash = hash->ComputeHash();
+    _state->state_hash = hashalgo.ComputeHash();
 
     _state_machine.StateComplete();
   }

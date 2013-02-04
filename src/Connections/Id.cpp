@@ -1,8 +1,6 @@
 #include "Id.hpp"
-#include "Crypto/CryptoFactory.hpp"
+#include "Crypto/CryptoRandom.hpp"
 #include <QDebug>
-
-using namespace Dissent::Crypto;
 
 namespace Dissent {
 namespace Connections {
@@ -14,10 +12,8 @@ namespace Connections {
 
   Id::Id()
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rng(lib.GetRandomNumberGenerator());
-    QByteArray bid(ByteSize, 0);
-    rng->GenerateBlock(bid);
+    QByteArray bid(Id::ByteSize, 0);
+    Crypto::CryptoRandom().GenerateBlock(bid);
     _integer = Integer(bid);
   }
   

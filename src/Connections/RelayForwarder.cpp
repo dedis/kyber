@@ -1,6 +1,7 @@
 #include <QList>
 
 #include "Messaging/Request.hpp"
+#include "Utils/Random.hpp"
 
 #include "Connection.hpp"
 #include "ForwardingSender.hpp"

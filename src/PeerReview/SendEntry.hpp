@@ -1,6 +1,7 @@
 #ifndef DISSENT_PEER_REVIEW_SEND_ENTRY_H_GUARD
 #define DISSENT_PEER_REVIEW_SEND_ENTRY_H_GUARD
 
+#include "Crypto/Hash.hpp"
 #include "Entry.hpp"
 
 namespace Dissent {
@@ -45,10 +46,7 @@ namespace PeerReview {
     private:
       virtual QByteArray GenerateMessageHash() const
       {
-        Dissent::Crypto::Library &lib =
-          Dissent::Crypto::CryptoFactory::GetInstance().GetLibrary();
-        QSharedPointer<Dissent::Crypto::Hash> hash(lib.GetHashAlgorithm());
-        return hash->ComputeHash(_msg);
+        return Crypto::Hash().ComputeHash(_msg);
       }
 
       const QByteArray _msg;

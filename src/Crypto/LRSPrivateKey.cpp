@@ -1,7 +1,8 @@
 #include "Utils/Random.hpp"
 
 #include "CppDsaPrivateKey.hpp"
-#include "CppHash.hpp"
+#include "CryptoRandom.hpp"
+#include "Hash.hpp"
 #include "LRSPrivateKey.hpp"
 
 namespace Dissent {
@@ -57,19 +58,19 @@ namespace Crypto {
    */
   QByteArray LRSPrivateKey::Sign(const QByteArray &data) const
   {
-    CppHash hash;
+    Hash hashalgo;
 
-    hash.Update(GetGroupGenerator().GetByteArray());
-    hash.Update(_tag.GetByteArray());
-    hash.Update(data);
-    QByteArray precompute = hash.ComputeHash();
+    hashalgo.Update(GetGroupGenerator().GetByteArray());
+    hashalgo.Update(_tag.GetByteArray());
+    hashalgo.Update(data);
+    QByteArray precompute = hashalgo.ComputeHash();
 
     Integer u = RandomInQ();
 
-    hash.Update(precompute);
-    hash.Update(GetGenerator().Pow(u, GetModulus()).GetByteArray());
-    hash.Update(GetGroupGenerator().Pow(u, GetModulus()).GetByteArray());
-    Integer commit = Integer(hash.ComputeHash()) % GetSubgroup();
+    hashalgo.Update(precompute);
+    hashalgo.Update(GetGenerator().Pow(u, GetModulus()).GetByteArray());
+    hashalgo.Update(GetGroupGenerator().Pow(u, GetModulus()).GetByteArray());
+    Integer commit = Integer(hashalgo.ComputeHash()) % GetSubgroup();
     
     QVector<Integer> keys = GetKeys();
     const int max = keys.count();
@@ -85,17 +86,17 @@ namespace Crypto {
       Integer sign = RandomInQ();
       signatures[fixed_idx] = sign;
 
-      hash.Update(precompute);
+      hashalgo.Update(precompute);
 
       Integer tmp = (GetGenerator().Pow(sign, GetModulus()) *
           keys[fixed_idx].Pow(commit, GetModulus())) % GetModulus();
-      hash.Update(tmp.GetByteArray());
+      hashalgo.Update(tmp.GetByteArray());
 
       tmp = (GetGroupGenerator().Pow(sign, GetModulus()) *
           _tag.Pow(commit, GetModulus())) % GetModulus();
-      hash.Update(tmp.GetByteArray());
+      hashalgo.Update(tmp.GetByteArray());
 
-      commit = Integer(hash.ComputeHash()) % GetSubgroup();
+      commit = Integer(hashalgo.ComputeHash()) % GetSubgroup();
       if(fixed_idx == max - 1) {
         commit_1 = commit;
       }
@@ -109,10 +110,8 @@ namespace Crypto {
 
   Integer LRSPrivateKey::RandomInQ() const
   {
-    QSharedPointer<Utils::Random> rand(CryptoFactory::GetInstance().
-        GetLibrary().GetRandomNumberGenerator());
     QByteArray q = GetSubgroup().GetByteArray();
-    rand->GenerateBlock(q);
+    CryptoRandom().GenerateBlock(q);
     Integer rinq(q);
     return rinq % GetSubgroup();
   }

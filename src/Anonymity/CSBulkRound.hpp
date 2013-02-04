@@ -3,16 +3,14 @@
 
 #include <QMetaEnum>
 
+#include "Crypto/CryptoRandom.hpp"
+#include "Crypto/Hash.hpp"
 #include "Utils/TimerEvent.hpp"
 #include "Utils/Triple.hpp"
 #include "RoundStateMachine.hpp"
 #include "BaseBulkRound.hpp"
 
 namespace Dissent {
-namespace Utils {
-  class Random;
-}
-
 namespace Anonymity {
   const unsigned char bit_masks[8] = {1, 2, 4, 8, 16, 32, 64, 128};
 
@@ -249,7 +247,7 @@ namespace Anonymity {
 
           QVector<QSharedPointer<AsymmetricKey> > anonymous_keys;
           QList<QByteArray> base_seeds;
-          QVector<QSharedPointer<Random> > anonymous_rngs;
+          QVector<Crypto::CryptoRandom> anonymous_rngs;
           QMap<int, int> next_messages;
           QHash<int, QByteArray> signatures;
           QByteArray cleartext;
@@ -502,13 +500,12 @@ namespace Anonymity {
       inline int SlotHeaderLength(int) const
 #endif
       {
-        Crypto::Library &lib = Crypto::CryptoFactory::GetInstance().GetLibrary();
 #ifdef CSBR_SIGN_SLOTS
         int sig_length = _state->anonymous_keys[slot_idx]->GetSignatureLength();
 #else
-        static int sig_length = QSharedPointer<Crypto::Hash>(lib.GetHashAlgorithm())->GetDigestSize();
+        static int sig_length = Crypto::Hash().GetDigestSize();
 #endif
-        return 9 + lib.RngOptimalSeedSize() + sig_length;
+        return 9 + Crypto::CryptoRandom::OptimalSeedSize() + sig_length;
       }
 
       QPair<int, QBitArray> FindMismatch();

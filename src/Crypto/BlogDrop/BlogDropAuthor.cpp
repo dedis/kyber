@@ -1,4 +1,4 @@
-
+#include <QDebug>
 #include "BlogDropAuthor.hpp"
 #include "CiphertextFactory.hpp"
 #include "ClientCiphertext.hpp"

@@ -31,7 +31,7 @@ namespace Identity {
       explicit PrivateIdentity(const Id &local_id = Id::Zero(),
           QSharedPointer<AsymmetricKey> signing_key = QSharedPointer<AsymmetricKey>(),
           QSharedPointer<AsymmetricKey> decryption_key = QSharedPointer<AsymmetricKey>(),
-          QSharedPointer<DiffieHellman> dh_key = QSharedPointer<DiffieHellman>(),
+          DiffieHellman dh_key = DiffieHellman(),
           bool super_peer = true) :
         _local_id(local_id),
         _signing_key(signing_key),
@@ -59,7 +59,7 @@ namespace Identity {
       /**
        * Returns the local node's DiffieHellman key
        */
-      QSharedPointer<DiffieHellman> GetDhKey() const { return _dh_key; }
+      const DiffieHellman &GetDhKey() const { return _dh_key; }
 
       /**
        * Returns if the member can be a super peer
@@ -70,7 +70,7 @@ namespace Identity {
       Id _local_id;
       QSharedPointer<AsymmetricKey> _signing_key;
       QSharedPointer<AsymmetricKey> _decryption_key;
-      QSharedPointer<DiffieHellman> _dh_key;
+      DiffieHellman _dh_key;
       bool _super_peer;
   };
 
@@ -87,9 +87,7 @@ namespace Identity {
       d_key = ident.GetDecryptionKey()->GetPublicKey();
     }
 
-    if(ident.GetDhKey()) {
-      dh_pub = ident.GetDhKey()->GetPublicComponent();
-    }
+    dh_pub = ident.GetDhKey().GetPublicComponent();
 
     return PublicIdentity(ident.GetLocalId(), 
         QSharedPointer<PrivateIdentity::AsymmetricKey>(v_key),

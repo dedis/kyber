@@ -1,6 +1,5 @@
+#include "Crypto/CryptoPP/Helper.hpp"
 #include "CppDsaPrivateKey.hpp"
-#include "CppIntegerData.hpp"
-#include "CppRandom.hpp"
 
 using namespace CryptoPP;
 
@@ -26,9 +25,9 @@ namespace Crypto {
   {
     KeyBase::PrivateKey *key = const_cast<KeyBase::PrivateKey*>(GetDsaPrivateKey());
     AutoSeededX917RNG<DES_EDE3> rng;
-    key->Initialize(rng, CppIntegerData::GetInteger(modulus),
-        CppIntegerData::GetInteger(subgroup),
-        CppIntegerData::GetInteger(generator));
+    key->Initialize(rng, ToCppInteger(modulus),
+        ToCppInteger(subgroup),
+        ToCppInteger(generator));
     Validate();
   }
 
@@ -38,10 +37,10 @@ namespace Crypto {
     CppDsaPublicKey(new KeyBase::PrivateKey())
   {
     KeyBase::PrivateKey *key = const_cast<KeyBase::PrivateKey*>(GetDsaPrivateKey());
-    key->Initialize(CppIntegerData::GetInteger(modulus),
-        CppIntegerData::GetInteger(subgroup),
-        CppIntegerData::GetInteger(generator),
-        CppIntegerData::GetInteger(private_exp));
+    key->Initialize(ToCppInteger(modulus),
+        ToCppInteger(subgroup),
+        ToCppInteger(generator),
+        ToCppInteger(private_exp));
     Validate();
   }
 
@@ -80,9 +79,9 @@ namespace Crypto {
       qFatal("Subgroup should be < Modulus");
     }
 
-    CppRandom rng(data);
+    CryptoRandom rng(data);
     KeyBase::PrivateKey key;
-    key.GenerateRandom(*rng.GetHandle(),
+    key.GenerateRandom(GetCppRandom(rng),
         MakeParameters
           (Name::ModulusSize(), modulus)
           (Name::SubgroupOrderSize(), subgroup));
@@ -106,9 +105,7 @@ namespace Crypto {
 
   Integer CppDsaPrivateKey::GetPrivateExponent() const
   {
-    CryptoPP::Integer private_exp = GetDsaPrivateKey()->GetPrivateExponent();
-    IntegerData *data = new CppIntegerData(private_exp);
-    return Integer(data);
+    return FromCppInteger(GetDsaPrivateKey()->GetPrivateExponent());
   }
 
   QByteArray CppDsaPrivateKey::Decrypt(const QByteArray &data) const
@@ -129,7 +126,7 @@ namespace Crypto {
 
     Integer result = (encrypted *
         shared.Pow(GetPrivateExponent(), GetModulus()).
-          ModInverse(GetModulus()))
+          Inverse(GetModulus()))
       % GetModulus();
 
     QByteArray output;
@@ -156,8 +153,7 @@ namespace Crypto {
     }
 
     Integer result = (encrypted *
-        shared.Pow(GetPrivateExponent(), GetModulus()).
-          ModInverse(GetModulus()))
+        shared.Pow(GetPrivateExponent(), GetModulus()).Inverse(GetModulus()))
       % GetModulus();
 
     QByteArray out;

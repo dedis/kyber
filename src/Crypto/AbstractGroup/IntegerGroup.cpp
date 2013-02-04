@@ -1,4 +1,6 @@
-
+#include <QDataStream>
+#include <QDebug>
+#include "Crypto/CryptoRandom.hpp"
 #include "IntegerElementData.hpp"
 #include "IntegerGroup.hpp"
 
@@ -172,7 +174,7 @@ namespace AbstractGroup {
 
   Element IntegerGroup::Multiply(const Element &a, const Element &b) const
   {
-    return Element(new IntegerElementData((GetInteger(a).MultiplyMod(GetInteger(b), _p)))); 
+    return Element(new IntegerElementData((GetInteger(a).Multiply(GetInteger(b), _p)))); 
   }
 
   Element IntegerGroup::Exponentiate(const Element &a, const Integer &exp) const
@@ -189,7 +191,7 @@ namespace AbstractGroup {
 
   Element IntegerGroup::Inverse(const Element &a) const
   {
-    return Element(new IntegerElementData(GetInteger(a).ModInverse(_p)));
+    return Element(new IntegerElementData(GetInteger(a).Inverse(_p)));
   }
   
   QByteArray IntegerGroup::ElementToByteArray(const Element &a) const
@@ -214,7 +216,7 @@ namespace AbstractGroup {
 
   Integer IntegerGroup::RandomExponent() const
   {
-    return Integer::GetRandomInteger(1, _q, false); 
+    return CryptoRandom().GetInteger(1, _q, false); 
   }
 
   Element IntegerGroup::RandomElement() const

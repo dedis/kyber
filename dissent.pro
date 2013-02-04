@@ -20,6 +20,7 @@ QMAKE_CFLAGS += -Werror
 # External Libraries
 
 # CryptoPP
+DEFINES += CRYPTOPP
 LIBS += -lcryptopp
 
 # QHttpServer
@@ -100,21 +101,17 @@ HEADERS += src/Dissent.hpp \
            src/Connections/RelayEdgeListener.hpp \
            src/Connections/RelayForwarder.hpp \
            src/Crypto/AsymmetricKey.hpp \
-           src/Crypto/CppDiffieHellman.hpp \
            src/Crypto/CppDsaPrivateKey.hpp \
            src/Crypto/CppDsaPublicKey.hpp \
-           src/Crypto/CppHash.hpp \
-           src/Crypto/CppIntegerData.hpp \
            src/Crypto/CppLibrary.hpp \
            src/Crypto/CppNeffShuffle.hpp \
            src/Crypto/CppPrivateKey.hpp \
            src/Crypto/CppPublicKey.hpp \
-           src/Crypto/CppRandom.hpp \
            src/Crypto/CryptoFactory.hpp \
+           src/Crypto/CryptoRandom.hpp \
            src/Crypto/DiffieHellman.hpp \
            src/Crypto/Hash.hpp \
            src/Crypto/Integer.hpp \
-           src/Crypto/IntegerData.hpp \
            src/Crypto/KeyShare.hpp \
            src/Crypto/LRSPrivateKey.hpp \
            src/Crypto/LRSPublicKey.hpp \
@@ -271,14 +268,11 @@ SOURCES += src/Anonymity/BaseBulkRound.cpp \
            src/Connections/RelayEdgeListener.cpp \
            src/Connections/RelayForwarder.cpp \
            src/Crypto/AsymmetricKey.cpp \
-           src/Crypto/CppDiffieHellman.cpp \
            src/Crypto/CppDsaPrivateKey.cpp \
            src/Crypto/CppDsaPublicKey.cpp \
-           src/Crypto/CppHash.cpp \
            src/Crypto/CppNeffShuffle.cpp \
            src/Crypto/CppPrivateKey.cpp \
            src/Crypto/CppPublicKey.cpp \
-           src/Crypto/CppRandom.cpp \
            src/Crypto/CryptoFactory.cpp \
            src/Crypto/DiffieHellman.cpp \
            src/Crypto/KeyShare.cpp \
@@ -355,3 +349,10 @@ SOURCES += src/Anonymity/BaseBulkRound.cpp \
            src/Web/SendMessageService.cpp \
            src/Web/SessionService.cpp \
            src/Web/WebService.cpp
+
+HEADERS += src/Crypto/CryptoPP/Helper.hpp 
+
+SOURCES += src/Crypto/CryptoPP/CryptoRandomImpl.cpp \
+           src/Crypto/CryptoPP/DiffieHellmanImpl.cpp \
+           src/Crypto/CryptoPP/HashImpl.cpp \
+           src/Crypto/CryptoPP/IntegerImpl.cpp

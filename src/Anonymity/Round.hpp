@@ -239,7 +239,7 @@ namespace Anonymity {
       /**
        * Returns the DiffieHellman key
        */
-      inline QSharedPointer<DiffieHellman> GetDhKey() const
+      inline const Crypto::DiffieHellman &GetDhKey() const
       {
         return _ident.GetDhKey();
       }

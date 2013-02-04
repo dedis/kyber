@@ -1,7 +1,6 @@
 #include "Connections/IOverlaySender.hpp"
 #include "Connections/Network.hpp"
 #include "Crypto/Hash.hpp"
-#include "Crypto/Library.hpp"
 #include "Messaging/Request.hpp"
 #include "Utils/Timer.hpp"
 #include "Utils/TimerCallback.hpp"
@@ -14,7 +13,6 @@ namespace Dissent {
 
 using Crypto::CryptoFactory;
 using Crypto::Hash;
-using Crypto::Library;
 using Messaging::Request;
 
 namespace Anonymity {
@@ -33,9 +31,7 @@ namespace Anonymity {
     headers["bulk"] = false;
     net->SetHeaders(headers);
 
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Hash> hashalgo(lib.GetHashAlgorithm());
-    Id sr_id(hashalgo->ComputeHash(GetRoundId().GetByteArray()));
+    Id sr_id(Hash().ComputeHash(GetRoundId().GetByteArray()));
 
     _shuffle_round = create_shuffle(GetGroup(), GetPrivateIdentity(), sr_id, net,
         _get_shuffle_data);

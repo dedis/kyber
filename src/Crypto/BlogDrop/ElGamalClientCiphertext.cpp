@@ -1,7 +1,7 @@
 
 #include <QtCore>
 
-#include "Crypto/CryptoFactory.hpp"
+#include "Crypto/Hash.hpp"
 
 #include "BlogDropUtils.hpp"
 #include "ElGamalClientCiphertext.hpp"
@@ -305,23 +305,21 @@ namespace BlogDrop {
       const QList<Element> &ys, 
       const QList<Element> &ts) const
   {
-    QScopedPointer<Hash> hash(CryptoFactory::GetInstance().GetLibrary().GetHashAlgorithm());
-
-    hash->Restart();
-    hash->Update(params->GetByteArray());
+    Hash hashalgo;
+    hashalgo.Update(params->GetByteArray());
 
     for(int i=0; i<gs.count(); i++) {
       QSharedPointer<const Crypto::AbstractGroup::AbstractGroup> group = 
         ((!i) ? params->GetKeyGroup() : params->GetMessageGroup());
 
-      hash->Update(group->ElementToByteArray(gs[i]));
-      hash->Update(group->ElementToByteArray(ys[i]));
-      hash->Update(group->ElementToByteArray(ts[i]));
+      hashalgo.Update(group->ElementToByteArray(gs[i]));
+      hashalgo.Update(group->ElementToByteArray(ys[i]));
+      hashalgo.Update(group->ElementToByteArray(ts[i]));
     }
-    Integer a = Integer(hash->ComputeHash());
+    Integer a = Integer(hashalgo.ComputeHash());
     Integer b = a % params->GetGroupOrder();
 
-    return Integer(hash->ComputeHash()) % params->GetGroupOrder();
+    return Integer(hashalgo.ComputeHash()) % params->GetGroupOrder();
   }
 
 }

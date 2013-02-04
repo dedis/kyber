@@ -6,7 +6,7 @@ namespace Tests {
   {
     KeyShare ks;
     Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Hash> hash(lib.GetHashAlgorithm());
+    Hash hash;
     QList<QString> names;
     QHash<QString, QSharedPointer<AsymmetricKey> > keys;
 
@@ -22,7 +22,7 @@ namespace Tests {
     for(int idx = 0; idx < 20; idx++) {
       QSharedPointer<AsymmetricKey> key(lib.CreatePrivateKey());
       QSharedPointer<AsymmetricKey> pkey(key->GetPublicKey());
-      QString name(Utils::ToUrlSafeBase64(hash->ComputeHash(pkey->GetByteArray())));
+      QString name(Utils::ToUrlSafeBase64(hash.ComputeHash(pkey->GetByteArray())));
       names.append(name);
       ks.AddKey(name, pkey);
       keys[name] = pkey;

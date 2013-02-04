@@ -1,5 +1,6 @@
 #include "Crypto/AsymmetricKey.hpp"
 #include "Crypto/CryptoFactory.hpp"
+#include "Crypto/Hash.hpp"
 #include "Crypto/Library.hpp"
 #include "Utils/Utils.hpp"
 #include "Utils/Serialization.hpp"
@@ -19,7 +20,6 @@ namespace Tunnel {
     _state(ConnState_WaitingForMethodHeader),
     _socket(socket),
     _socket_open(true),
-    _hash_algo(CryptoFactory::GetInstance().GetLibrary().GetHashAlgorithm()),
     _signing_key(CryptoFactory::GetInstance().GetLibrary().CreatePrivateKey()),
     _verif_key(_signing_key->GetPublicKey())
   {
@@ -273,7 +273,7 @@ namespace Tunnel {
   void SocksConnection::StartConnect(const QString &host, quint16 port)
   {
     QByteArray verif_bytes = _verif_key->GetByteArray();
-    _conn_id = _hash_algo->ComputeHash(verif_bytes);
+    _conn_id = Hash().ComputeHash(verif_bytes);
 
     emit ProxyConnected();
     _state = ConnState_Connected;
@@ -364,7 +364,7 @@ namespace Tunnel {
              SLOT(UdpHandleError(QAbstractSocket::SocketError)));
 
     QByteArray verif_bytes = _verif_key->GetByteArray();
-    _conn_id = _hash_algo->ComputeHash(verif_bytes);
+    _conn_id = Hash().ComputeHash(verif_bytes);
 
     emit ProxyConnected();
     _state = ConnState_Connected;

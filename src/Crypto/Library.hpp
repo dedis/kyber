@@ -3,9 +3,6 @@
 
 #include "Utils/Random.hpp"
 #include "AsymmetricKey.hpp"
-#include "DiffieHellman.hpp"
-#include "Hash.hpp"
-#include "IntegerData.hpp"
 
 namespace Dissent {
 namespace Crypto {
@@ -50,70 +47,6 @@ namespace Crypto {
        * Returns the minimum asymmetric key size
        */
       virtual int MinimumKeySize() const = 0;
-
-      /**
-       * Returns a random number generator
-       */
-      virtual Utils::Random *GetRandomNumberGenerator(
-          const QByteArray &seed = QByteArray()) const = 0;
-
-      /**
-       * Returns the optimal seed size for the RNG
-       */
-      virtual uint RngOptimalSeedSize() const = 0;
-
-      /**
-       * Returns a hash algorithm
-       */
-      virtual Hash *GetHashAlgorithm() const = 0;
-
-      /**
-       * Returns an integer data
-       */
-      virtual IntegerData *GetIntegerData(int value) const = 0;
-
-      /**
-       * Returns an integer data
-       */
-      virtual IntegerData *GetIntegerData(const QByteArray &value) const = 0;
-
-      /**
-       * Returns an integer data
-       */
-      virtual IntegerData *GetIntegerData(const QString &value) const = 0;
-
-      /**
-       * returns a random integer data
-       * @param bit_count the amount of bits in the integer
-       * @param prime if the integer should be prime 
-       */
-      virtual IntegerData *GetRandomInteger(int bit_count, bool prime) const = 0;
-
-      /**
-       * returns a random integer data
-       * @param min the minimum number
-       * @param max the maximum number
-       * @param prime should the resulting number be prime
-       */
-      virtual IntegerData *GetRandomInteger(const IntegerData *min,
-          const IntegerData *max, bool prime) const = 0;
-
-      /**
-       * Returns a DiffieHellman operator
-       */
-      virtual DiffieHellman *CreateDiffieHellman() const = 0;
-
-      /**
-       * Generate a DiffieHellman operator using the given data as a seed to a RNG
-       * @param seed seed used to generate the DiffieHellman exchange
-       */
-      virtual DiffieHellman *GenerateDiffieHellman(const QByteArray &seed) const = 0;
-
-      /**
-       * Loads a DiffieHellman key from a byte array
-       * @param private_component the private component in the DH exchange
-       */
-      virtual DiffieHellman *LoadDiffieHellman(const QByteArray &private_component) const = 0;
 
       /**
        * Destructor

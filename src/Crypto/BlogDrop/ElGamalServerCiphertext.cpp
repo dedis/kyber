@@ -1,4 +1,4 @@
-
+#include <QDebug>
 #include "BlogDropUtils.hpp"
 #include "ElGamalServerCiphertext.hpp"
 
@@ -101,7 +101,7 @@ namespace BlogDrop {
     _challenge = BlogDropUtils::Commit(_params, gs, ys, ts);
 
     // r = v - cx == v - (chal)server_sk
-    _response = (v - (_challenge.MultiplyMod(priv->GetInteger(), q))) % q;
+    _response = (v - (_challenge.Multiply(priv->GetInteger(), q))) % q;
   }
 
   bool ElGamalServerCiphertext::VerifyProof(int /* phase */, const QSharedPointer<const PublicKey> &pub) const

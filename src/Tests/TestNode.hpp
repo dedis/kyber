@@ -40,8 +40,8 @@ namespace Tests {
         ident(cm->GetId(),
             GetKey(),
             GetKey(),
-            QSharedPointer<DiffieHellman>(CryptoFactory::GetInstance().
-              GetLibrary().CreateDiffieHellman()), server)
+            DiffieHellman(),
+            server)
       {
         EdgeListener *be = EdgeListenerFactory::GetInstance().CreateEdgeListener(BufferAddress(idx));
         cm->AddEdgeListener(QSharedPointer<EdgeListener>(be));

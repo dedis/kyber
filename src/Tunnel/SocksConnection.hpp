@@ -215,8 +215,6 @@ namespace Tunnel {
       QHostAddress _udp_peer; 
       quint16 _udp_peer_port;
 
-      QSharedPointer<Hash> _hash_algo;
-
       QSharedPointer<AsymmetricKey> _signing_key;
       QSharedPointer<AsymmetricKey> _verif_key;
       QByteArray _conn_id;

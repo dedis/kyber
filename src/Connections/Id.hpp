@@ -2,6 +2,7 @@
 #define DISSENT_CONNECTIONS_ADDRESS_H_GUARD
 
 #include <QByteArray>
+#include <QDebug>
 #include <QString>
 #include "Crypto/Integer.hpp"
 
@@ -53,7 +54,7 @@ namespace Connections {
       /**
        * Returns the byte array for the Id
        */
-      inline const QByteArray &GetByteArray() const { return _integer.GetByteArray(); }
+      inline QByteArray GetByteArray() const { return _integer.GetByteArray(); }
 
       /**
        * Returns the (big) Integer for the Id

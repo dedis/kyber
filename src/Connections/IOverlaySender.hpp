@@ -1,6 +1,7 @@
 #ifndef DISSENT_CONNECTIONS_IOVERLAY_SENDER_H_GUARD
 #define DISSENT_CONNECTIONS_IOVERLAY_SENDER_H_GUARD
 
+#include <QSharedPointer>
 #include "Messaging/ISender.hpp"
 
 #include "Id.hpp"

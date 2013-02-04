@@ -5,6 +5,7 @@
 #include "Messaging/Response.hpp"
 #include "Messaging/ResponseHandler.hpp"
 #include "Transports/AddressFactory.hpp"
+#include "Utils/Random.hpp"
 #include "Utils/TimerCallback.hpp"
 #include "Utils/Timer.hpp"
 

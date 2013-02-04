@@ -5,14 +5,13 @@
 namespace Dissent {
 namespace Tests {
   TEST(Id, Basic) {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Crypto::Hash> hashalgo(lib.GetHashAlgorithm());
+    Hash hash;
 
     QByteArray zero("hello");
-    QByteArray hash0 = hashalgo->ComputeHash(zero);
+    QByteArray hash0 = hash.ComputeHash(zero);
 
     QByteArray one("world");
-    QByteArray hash1 = hashalgo->ComputeHash(one);
+    QByteArray hash1 = hash.ComputeHash(one);
 
     EXPECT_NE(hash0, hash1);
     EXPECT_NE(zero, hash0);
@@ -75,6 +74,15 @@ namespace Tests {
 
     EXPECT_EQ(Id::Zero(), Id(bad));
     EXPECT_EQ(id, Id(good));
+  }
+
+  TEST(Id, Compare)
+  {
+    Id id0;
+    Id id1 = id0;
+    EXPECT_FALSE(id0 < id1);
+    EXPECT_FALSE(id1 < id0);
+    EXPECT_EQ(id1, id0);
   }
 }
 }

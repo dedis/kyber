@@ -35,8 +35,7 @@ namespace Tests {
     const QSharedPointer<const Parameters> params = GetParam();
     Plaintext p(params);
 
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rand(lib.GetRandomNumberGenerator());
+    CryptoRandom rand;
 
     EXPECT_EQ(params->GetGroupOrder(), params->GetKeyGroup()->GetOrder());
     EXPECT_EQ(params->GetGroupOrder(), params->GetMessageGroup()->GetOrder());
@@ -44,7 +43,7 @@ namespace Tests {
     for(int divby=1; divby<8; divby <<= 1) {
       for(int i=0; i<10; i++) {
         QByteArray msg(Plaintext::CanFit(params)/divby, 0);
-        rand->GenerateBlock(msg);
+        rand.GenerateBlock(msg);
 
         p.Encode(msg);
 

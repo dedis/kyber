@@ -47,11 +47,11 @@ namespace Tests {
     EXPECT_FALSE(key1->VerifyKey(*key0));
     EXPECT_FALSE(key1->VerifyKey(*key1));
 
-    QScopedPointer<Random> rng(lib.GetRandomNumberGenerator());
+    CryptoRandom rand;
     QByteArray data(1500, 0);
-    rng->GenerateBlock(data);
+    rand.GenerateBlock(data);
     QByteArray small_data(10, 0);
-    rng->GenerateBlock(small_data);
+    rand.GenerateBlock(small_data);
     QByteArray empty;
 
     QScopedPointer<AsymmetricKey> bad_key_mem(
@@ -111,7 +111,7 @@ namespace Tests {
       QByteArray out1_1 = key0_0->Decrypt(out1_0);
 
       QByteArray other(1500, 0);
-      rng->GenerateBlock(other);
+      rand.GenerateBlock(other);
 
       EXPECT_NE(out0_0, out1_0);
       EXPECT_EQ(data, out0_1);
@@ -176,52 +176,50 @@ namespace Tests {
     EXPECT_EQ(*pkey, *pkey0);
 
     QByteArray msg(1024, 0);
-    QScopedPointer<Random> rng(lib.GetRandomNumberGenerator());
-    rng->GenerateBlock(msg);
+    CryptoRandom().GenerateBlock(msg);
 
     QByteArray sig = key->Sign(msg);
     EXPECT_TRUE(pkey0->Verify(msg, sig));
     EXPECT_EQ(sig.size(), pkey0->GetSignatureLength());
   }
 
-  void RngSpeedTest(const Library &lib, int count)
+  void RngSpeedTest(int count)
   {
     QByteArray data(4096, 0);
     for(int idx = 0; idx < count; idx++) {
-      QSharedPointer<Random> rng(lib.GetRandomNumberGenerator());
-      rng->GenerateBlock(data);
+      CryptoRandom().GenerateBlock(data);
     }
   }
 
   TEST(Crypto, RngSpeedTest1024)
   {
-    RngSpeedTest(CppLibrary(), 1024);
+    RngSpeedTest(1024);
   }
 
   TEST(Crypto, RngSpeedTest2048)
   {
-    RngSpeedTest(CppLibrary(), 2048);
+    RngSpeedTest(2048);
   }
 
   TEST(Crypto, RngSpeedTest4096)
   {
-    RngSpeedTest(CppLibrary(), 4096);
+    RngSpeedTest(4096);
   }
 
   TEST(Crypto, RngSpeedTest8192)
   {
-    RngSpeedTest(CppLibrary(), 8192);
+    RngSpeedTest(8192);
   }
 
   void KeySignSpeedTest(const Library &lib)
   {
     QSharedPointer<AsymmetricKey> key(lib.CreatePrivateKey());
-    QScopedPointer<Random> rng(lib.GetRandomNumberGenerator());
+    CryptoRandom rand;
     QByteArray data(1024, 0);
-    rng->GenerateBlock(data);
+    rand.GenerateBlock(data);
 
     for(int idx = 0; idx < 1024; idx++) {
-      rng->GenerateBlock(data);
+      rand.GenerateBlock(data);
       key->Sign(data);
     }
   }
@@ -229,12 +227,12 @@ namespace Tests {
   void KeyVerificationSpeedTest(const Library &lib)
   {
     QSharedPointer<AsymmetricKey> key(lib.CreatePrivateKey());
-    QScopedPointer<Random> rng(lib.GetRandomNumberGenerator());
+    CryptoRandom rand;
     QByteArray data(1024, 0);
-    rng->GenerateBlock(data);
+    rand.GenerateBlock(data);
 
     for(int idx = 0; idx < 1024; idx++) {
-      rng->GenerateBlock(data);
+      rand.GenerateBlock(data);
       QByteArray sig = key->Sign(data);
       EXPECT_TRUE(key->Verify(data, sig));
     }
@@ -281,9 +279,8 @@ namespace Tests {
     EXPECT_EQ(*pr_key1, *pr_key1_0);
     EXPECT_FALSE(*pr_key0 == *pr_key1);
 
-    QScopedPointer<Random> rng(lib.GetRandomNumberGenerator());
     QByteArray data(1500, 0);
-    rng->GenerateBlock(data);
+    CryptoRandom().GenerateBlock(data);
 
     QScopedPointer<AsymmetricKey> pu_key0_0(pr_key0->GetPublicKey());
     EXPECT_EQ(pu_key0->GetByteArray(), pu_key0_0->GetByteArray());
@@ -302,57 +299,6 @@ namespace Tests {
       QByteArray sig0_0 = pr_key0_0->Sign(data);
       EXPECT_TRUE(pu_key0->Verify(data, sig0));
       EXPECT_TRUE(pu_key0->Verify(data, sig0_0));
-    }
-  }
-
-  void DiffieHellmanTest(const Library &lib)
-  {
-    QScopedPointer<DiffieHellman> dh0(lib.CreateDiffieHellman());
-    QScopedPointer<DiffieHellman> dh1(lib.CreateDiffieHellman());
-    QScopedPointer<DiffieHellman> dh2(lib.CreateDiffieHellman());
-
-    QByteArray shared_0_1 = dh0->GetSharedSecret(dh1->GetPublicComponent());
-    QByteArray shared_1_0 = dh1->GetSharedSecret(dh0->GetPublicComponent());
-    QByteArray shared_0_2 = dh0->GetSharedSecret(dh2->GetPublicComponent());
-    QByteArray shared_2_0 = dh2->GetSharedSecret(dh0->GetPublicComponent());
-    QByteArray shared_1_2 = dh1->GetSharedSecret(dh2->GetPublicComponent());
-    QByteArray shared_2_1 = dh2->GetSharedSecret(dh1->GetPublicComponent());
-    EXPECT_EQ(shared_0_1, shared_1_0);
-    EXPECT_EQ(shared_0_2, shared_2_0);
-    EXPECT_EQ(shared_1_2, shared_2_1);
-    EXPECT_NE(shared_0_1, shared_0_2);
-    EXPECT_NE(shared_0_1, shared_1_2);
-
-    QScopedPointer<DiffieHellman> dh0_0(lib.LoadDiffieHellman(dh0->GetPrivateComponent()));
-    EXPECT_EQ(dh0->GetPublicComponent(), dh0_0->GetPublicComponent());
-    EXPECT_EQ(dh0->GetPrivateComponent(), dh0_0->GetPrivateComponent());
-
-    Id id;
-    QScopedPointer<DiffieHellman> dh3_0(lib.GenerateDiffieHellman(id.GetByteArray()));
-    QScopedPointer<DiffieHellman> dh3_1(lib.GenerateDiffieHellman(id.GetByteArray()));
-    EXPECT_EQ(dh3_0->GetPublicComponent(), dh3_1->GetPublicComponent());
-    EXPECT_EQ(dh3_0->GetPrivateComponent(), dh3_1->GetPrivateComponent());
-  }
-
-  void ZeroKnowledgeTest(const Library &lib, bool test_bit_flip) 
-  {
-    QScopedPointer<DiffieHellman> dhA(lib.CreateDiffieHellman());
-    QScopedPointer<DiffieHellman> dhB(lib.CreateDiffieHellman());
-    QScopedPointer<DiffieHellman> dhC(lib.CreateDiffieHellman());
-
-    QByteArray shared_A_B = dhA->GetSharedSecret(dhB->GetPublicComponent());
-    QByteArray shared_B_A = dhB->GetSharedSecret(dhA->GetPublicComponent());
-    EXPECT_EQ(shared_A_B, shared_B_A);
-
-    QByteArray proof_A = dhA->ProveSharedSecret(dhB->GetPublicComponent());
-    QByteArray verif_A = dhC->VerifySharedSecret(dhA->GetPublicComponent(), dhB->GetPublicComponent(), proof_A);
-    EXPECT_EQ(shared_A_B, verif_A);
-
-    if(test_bit_flip) {
-      int idx = proof_A.size()-1;
-      proof_A[idx] = !proof_A[idx];
-      QByteArray verif_A2 = dhC->VerifySharedSecret(dhA->GetPublicComponent(), dhB->GetPublicComponent(), proof_A);
-      EXPECT_EQ(QByteArray(), verif_A2);
     }
   }
 
@@ -394,14 +340,36 @@ namespace Tests {
     cf.SetLibrary(cname);
   }
 
-  TEST(Crypto, CppDiffieHellman)
+  TEST(Crypto, DiffieHellman)
   {
-    DiffieHellmanTest(CppLibrary());
-  }
+    DiffieHellman dh0, dh1, dh2;
 
-  TEST(Crypto, CppZeroKnowledgeDhTest)
-  {
-    ZeroKnowledgeTest(CppLibrary(), false);
+    QByteArray shared_0_1 = dh0.GetSharedSecret(dh1.GetPublicComponent());
+    QByteArray shared_1_0 = dh1.GetSharedSecret(dh0.GetPublicComponent());
+    QByteArray shared_0_2 = dh0.GetSharedSecret(dh2.GetPublicComponent());
+    QByteArray shared_2_0 = dh2.GetSharedSecret(dh0.GetPublicComponent());
+    QByteArray shared_1_2 = dh1.GetSharedSecret(dh2.GetPublicComponent());
+    QByteArray shared_2_1 = dh2.GetSharedSecret(dh1.GetPublicComponent());
+    EXPECT_EQ(shared_0_1, shared_1_0);
+    EXPECT_EQ(shared_0_2, shared_2_0);
+    EXPECT_EQ(shared_1_2, shared_2_1);
+    EXPECT_NE(shared_0_1, shared_0_2);
+    EXPECT_NE(shared_0_1, shared_1_2);
+
+    DiffieHellman dh0_0(dh0.GetPrivateComponent(), false);
+    EXPECT_EQ(dh0.GetPublicComponent(), dh0_0.GetPublicComponent());
+    EXPECT_EQ(dh0.GetPrivateComponent(), dh0_0.GetPrivateComponent());
+
+    Id id;
+    DiffieHellman dh3_0(id.GetByteArray(), true);
+    DiffieHellman dh3_1(id.GetByteArray(), true);
+    EXPECT_EQ(dh3_0.GetPublicComponent(), dh3_1.GetPublicComponent());
+    EXPECT_EQ(dh3_0.GetPrivateComponent(), dh3_1.GetPrivateComponent());
+
+    QByteArray proof_0_1 = dh0.ProveSharedSecret(dh1.GetPublicComponent());
+    QByteArray verif_2 = DiffieHellman::VerifySharedSecret(
+        dh0.GetPublicComponent(), dh1.GetPublicComponent(), proof_0_1);
+    EXPECT_EQ(shared_0_1, verif_2);
   }
 }
 }

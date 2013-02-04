@@ -2,6 +2,7 @@
 #include "Crypto/CppDsaPrivateKey.hpp"
 #include "Crypto/CppDsaPublicKey.hpp"
 #include "Crypto/CppNeffShuffle.hpp"
+#include "Crypto/Hash.hpp"
 #include "Identity/PublicIdentity.hpp"
 #include "Utils/QRunTimeError.hpp"
 #include "Utils/Timer.hpp"
@@ -13,6 +14,7 @@ namespace Dissent {
   using Crypto::CppDsaPrivateKey;
   using Crypto::CppDsaPublicKey;
   using Crypto::CppNeffShuffle;
+  using Crypto::Hash;
   using Identity::PublicIdentity;
   using Utils::QRunTimeError;
 
@@ -254,13 +256,11 @@ namespace Anonymity {
       throw QRunTimeError("Missing some server signatures");
     }
 
-    QSharedPointer<Crypto::Hash> hash(Crypto::CryptoFactory::GetInstance().
-        GetLibrary().GetHashAlgorithm());
-
+    Hash hashalgo;
     foreach(const QSharedPointer<AsymmetricKey> &key, server_keys) {
-      hash->Update(key->GetByteArray());
+      hashalgo.Update(key->GetByteArray());
     }
-    QByteArray key_hash = hash->ComputeHash();
+    QByteArray key_hash = hashalgo.ComputeHash();
 
     for(int idx = 0; idx < GetGroup().GetSubgroup().Count(); idx++) {
       Id id = GetGroup().GetSubgroup().GetId(idx);
@@ -388,13 +388,11 @@ namespace Anonymity {
       throw QRunTimeError("Missing signatures");
     }
 
-    QSharedPointer<Crypto::Hash> hash(Crypto::CryptoFactory::GetInstance().
-        GetLibrary().GetHashAlgorithm());
-
+    Hash hashalgo;
     foreach(const QByteArray &msg, cleartext) {
-      hash->Update(msg);
+      hashalgo.Update(msg);
     }
-    QByteArray cleartext_hash = hash->ComputeHash();
+    QByteArray cleartext_hash = hashalgo.ComputeHash();
 
     for(int idx = 0; idx < signatures.size(); idx++) {
       Id id = GetGroup().GetSubgroup().GetId(idx);
@@ -443,13 +441,11 @@ namespace Anonymity {
 
   void NeffShuffle::SubmitKeySignature()
   {
-    QSharedPointer<Crypto::Hash> hash(Crypto::CryptoFactory::GetInstance().
-        GetLibrary().GetHashAlgorithm());
-
+    Hash hashalgo;
     foreach(const QSharedPointer<AsymmetricKey> &key, _server_state->server_keys) {
-      hash->Update(key->GetByteArray());
+      hashalgo.Update(key->GetByteArray());
     }
-    _server_state->key_hash = hash->ComputeHash();
+    _server_state->key_hash = hashalgo.ComputeHash();
 
     QByteArray signature = GetPrivateIdentity().GetSigningKey()->Sign(_server_state->key_hash);
 
@@ -576,14 +572,12 @@ namespace Anonymity {
 
   void NeffShuffle::SubmitSignature()
   {
-    QSharedPointer<Crypto::Hash> hash(Crypto::CryptoFactory::GetInstance().
-        GetLibrary().GetHashAlgorithm());
-
+    Hash hashalgo;
     foreach(const QByteArray &message, _state->cleartext) {
-      hash->Update(message);
+      hashalgo.Update(message);
     }
 
-    _server_state->cleartext_hash = hash->ComputeHash();
+    _server_state->cleartext_hash = hashalgo.ComputeHash();
     QByteArray signature = GetPrivateIdentity().
       GetSigningKey()->Sign(_server_state->cleartext_hash);
 

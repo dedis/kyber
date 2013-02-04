@@ -1,6 +1,9 @@
 #ifndef DISSENT_CRYPTO_BLOGDROP_PUBLICKEY_H_GUARD
 #define DISSENT_CRYPTO_BLOGDROP_PUBLICKEY_H_GUARD
 
+#include <QByteArray>
+#include <QHash>
+#include <QSharedPointer>
 #include "Crypto/AbstractGroup/Element.hpp"
 #include "Parameters.hpp"
 #include "PrivateKey.hpp"

@@ -1,5 +1,5 @@
 #include "CppDsaPublicKey.hpp"
-#include "CppHash.hpp"
+#include "Hash.hpp"
 #include "LRSPublicKey.hpp"
 
 namespace Dissent {
@@ -78,10 +78,10 @@ namespace Crypto {
   void LRSPublicKey::SetLinkageContext(const QByteArray &linkage_context)
   {
     _linkage_context = linkage_context;
-    CppHash hash;
-    hash.Update(linkage_context);
+    Hash hashalgo;
+    hashalgo.Update(linkage_context);
 
-    QByteArray hlc = hash.ComputeHash();
+    QByteArray hlc = hashalgo.ComputeHash();
     _group_gen = GetGenerator().Pow(Integer(hlc) % GetSubgroup(), GetModulus());
   }
 
@@ -114,11 +114,11 @@ namespace Crypto {
       return false;
     }
 
-    CppHash hash;
-    hash.Update(GetGroupGenerator().GetByteArray());
-    hash.Update(sig.GetTag().GetByteArray());
-    hash.Update(data);
-    QByteArray precompute = hash.ComputeHash();
+    Hash hashalgo;
+    hashalgo.Update(GetGroupGenerator().GetByteArray());
+    hashalgo.Update(sig.GetTag().GetByteArray());
+    hashalgo.Update(data);
+    QByteArray precompute = hashalgo.ComputeHash();
 
     Integer tcommit = sig.GetCommit1();
 
@@ -129,10 +129,10 @@ namespace Crypto {
       Integer z_pp = (GetGroupGenerator().Pow(sig.GetSignature(idx), GetModulus()) *
           sig.GetTag().Pow(tcommit, GetModulus())) % GetModulus();
 
-      hash.Update(precompute);
-      hash.Update(z_p.GetByteArray());
-      hash.Update(z_pp.GetByteArray());
-      tcommit = Integer(hash.ComputeHash()) % GetSubgroup();
+      hashalgo.Update(precompute);
+      hashalgo.Update(z_p.GetByteArray());
+      hashalgo.Update(z_pp.GetByteArray());
+      tcommit = Integer(hashalgo.ComputeHash()) % GetSubgroup();
     }
 
     return tcommit == sig.GetCommit1();

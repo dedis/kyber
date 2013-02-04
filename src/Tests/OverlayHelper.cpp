@@ -4,11 +4,8 @@ namespace Dissent {
 namespace Tests {
   void SendTest(const QList<QSharedPointer<Node> > &nodes, bool live)
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rand(lib.GetRandomNumberGenerator());
-
     QByteArray msg(512, 0);
-    rand->GenerateBlock(msg);
+    CryptoRandom().GenerateBlock(msg);
     nodes[0]->GetSessionManager().GetDefaultSession()->Send(msg);
 
     SignalCounter sc(live ? nodes.count() : -1);

@@ -4,11 +4,10 @@ namespace Dissent {
 namespace Tests {
   TEST(Base64, basic)
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
+    CryptoRandom rand;
     QByteArray data(50, 0);
     for(int idx = 0; idx < 50; idx++) {
-      rand->GenerateBlock(data);
+      rand.GenerateBlock(data);
       QByteArray base64 = ToUrlSafeBase64(data);
       QByteArray unbase64 = FromUrlSafeBase64(base64);
       ASSERT_EQ(data, unbase64);

@@ -26,7 +26,7 @@ namespace Authentication {
     Library &lib = CryptoFactory::GetInstance().GetLibrary();
     QSharedPointer<AsymmetricKey> skey(lib.CreatePrivateKey());
     QSharedPointer<AsymmetricKey> dkey(lib.CreatePrivateKey());
-    QSharedPointer<DiffieHellman> dh(lib.CreateDiffieHellman());
+    DiffieHellman dh;
     _ident = PrivateIdentity(_ori_ident.GetLocalId(), skey, dkey, dh,
         _ori_ident.GetSuperPeer());
     _pub_ident = GetPublicIdentity(_ident);

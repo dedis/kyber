@@ -18,11 +18,11 @@ namespace Tests {
     QVector<QByteArray> cleartexts;
     QVector<QByteArray> ciphertexts;
     QVector<QVector<QByteArray> > random_bits;
-    QScopedPointer<Random> rand(lib.GetRandomNumberGenerator());
+    CryptoRandom rand;
 
     for(int idx = 0; idx < count; idx++) {
       QByteArray cleartext(1500, 0);
-      rand->GenerateBlock(cleartext);
+      rand.GenerateBlock(cleartext);
       QByteArray ciphertext;
       QVector<QByteArray> random;
       EXPECT_EQ(oe.Encrypt(public_keys, cleartext, ciphertext, &random), -1);
@@ -77,11 +77,11 @@ namespace Tests {
 
     QVector<QByteArray> cleartexts;
     QVector<QByteArray> ciphertexts;
-    QScopedPointer<Random> rand(lib.GetRandomNumberGenerator());
+    CryptoRandom rand;
 
     for(int idx = 0; idx < count; idx++) {
       QByteArray cleartext(1500, 0);
-      rand->GenerateBlock(cleartext);
+      rand.GenerateBlock(cleartext);
       QByteArray ciphertext;
       EXPECT_EQ(oe.Encrypt(public_keys, cleartext, ciphertext, 0), -1);
       cleartexts.append(cleartext);
@@ -116,11 +116,11 @@ namespace Tests {
 
     QVector<QByteArray> cleartexts;
     QVector<QByteArray> ciphertexts;
-    QScopedPointer<Random> rand(lib.GetRandomNumberGenerator());
+    CryptoRandom rand;
 
     for(int idx = 0; idx < count; idx++) {
       QByteArray cleartext(1500, 0);
-      rand->GenerateBlock(cleartext);
+      rand.GenerateBlock(cleartext);
       QByteArray ciphertext;
       EXPECT_EQ(oe.Encrypt(public_keys, cleartext, ciphertext, 0), -1);
       cleartexts.append(cleartext);
@@ -136,7 +136,7 @@ namespace Tests {
     }
 
     QByteArray cleartext(1500, 0);
-    rand->GenerateBlock(cleartext);
+    rand.GenerateBlock(cleartext);
 
     QVector<QSharedPointer<AsymmetricKey> > swap_keys(public_keys);
     swap_keys.resize(changed);
@@ -185,11 +185,11 @@ namespace Tests {
 
     QVector<QByteArray> cleartexts;
     QVector<QByteArray> ciphertexts;
-    QScopedPointer<Random> rand(lib.GetRandomNumberGenerator());
+    CryptoRandom rand;
 
     for(int idx = 0; idx < count; idx++) {
       QByteArray cleartext(1500, 0);
-      rand->GenerateBlock(cleartext);
+      rand.GenerateBlock(cleartext);
       QByteArray ciphertext;
       EXPECT_EQ(oe.Encrypt(public_keys, cleartext, ciphertext, 0), -1);
       cleartexts.append(cleartext);
@@ -208,10 +208,10 @@ namespace Tests {
     swap_keys.resize(changed);
 
     QByteArray cleartext(1500, 0);
-    rand->GenerateBlock(cleartext);
+    rand.GenerateBlock(cleartext);
     EXPECT_EQ(oe.Encrypt(swap_keys, cleartext, onions[changed][mchanged0], 0), -1);
 
-    rand->GenerateBlock(cleartext);
+    rand.GenerateBlock(cleartext);
     EXPECT_EQ(oe.Encrypt(swap_keys, cleartext, onions[changed][mchanged1], 0), -1);
 
     for(int idx = changed - 1; idx >= 0; idx--) {
@@ -257,11 +257,11 @@ namespace Tests {
 
     QVector<QByteArray> cleartexts;
     QVector<QByteArray> ciphertexts;
-    QScopedPointer<Random> rand(lib.GetRandomNumberGenerator());
+    CryptoRandom rand;
 
     for(int idx = 0; idx < count; idx++) {
       QByteArray cleartext(1500, 0);
-      rand->GenerateBlock(cleartext);
+      rand.GenerateBlock(cleartext);
       QByteArray ciphertext;
       EXPECT_EQ(oe.Encrypt(public_keys, cleartext, ciphertext, 0), -1);
       cleartexts.append(cleartext);
@@ -282,7 +282,7 @@ namespace Tests {
     swap_keys.resize(changed1);
 
     QByteArray cleartext(1500, 0);
-    rand->GenerateBlock(cleartext);
+    rand.GenerateBlock(cleartext);
     EXPECT_EQ(oe.Encrypt(swap_keys, cleartext, onions[changed1][mchanged1], 0), -1);
 
     // Find second evil peer
@@ -294,7 +294,7 @@ namespace Tests {
 
     swap_keys.resize(changed0);
 
-    rand->GenerateBlock(cleartext);
+    rand.GenerateBlock(cleartext);
     EXPECT_EQ(oe.Encrypt(swap_keys, cleartext, onions[changed0][mchanged0], 0), -1);
 
     for(int idx = changed0 - 1; idx >= 0; idx--) {
@@ -336,11 +336,11 @@ namespace Tests {
 
     QVector<QByteArray> cleartexts;
     QVector<QByteArray> ciphertexts;
-    QScopedPointer<Random> rand(lib.GetRandomNumberGenerator());
+    CryptoRandom rand;
 
     for(int idx = 0; idx < count; idx++) {
       QByteArray cleartext(1500, 0);
-      rand->GenerateBlock(cleartext);
+      rand.GenerateBlock(cleartext);
       QByteArray ciphertext;
       EXPECT_EQ(oe.Encrypt(public_keys, cleartext, ciphertext), -1);
       cleartexts.append(cleartext);

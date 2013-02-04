@@ -1,8 +1,8 @@
+#include "Crypto/CryptoPP/Helper.hpp"
 #include "CppPublicKey.hpp"
 #include "CppDsaPublicKey.hpp"
 #include "CppDsaPrivateKey.hpp"
-#include "CppIntegerData.hpp"
-#include "CppRandom.hpp"
+#include "CryptoRandom.hpp"
 
 using namespace CryptoPP;
 
@@ -28,10 +28,10 @@ namespace Crypto {
     _key(new KeyBase::PublicKey())
   {
     KeyBase::PublicKey *key = const_cast<KeyBase::PublicKey *>(GetDsaPublicKey());
-    key->Initialize(CppIntegerData::GetInteger(modulus),
-        CppIntegerData::GetInteger(subgroup),
-        CppIntegerData::GetInteger(generator),
-        CppIntegerData::GetInteger(public_element));
+    key->Initialize(ToCppInteger(modulus),
+        ToCppInteger(subgroup),
+        ToCppInteger(generator),
+        ToCppInteger(public_element));
     Validate();
   }
 
@@ -201,7 +201,7 @@ namespace Crypto {
       return QByteArray();
     }
 
-    Integer secret = Integer::GetRandomInteger(2, GetSubgroup());
+    Integer secret = CryptoRandom().GetInteger(2, GetSubgroup());
     Integer shared = GetGenerator().Pow(secret, GetModulus());
     Integer encrypted = (encoded * GetPublicElement().Pow(secret, GetModulus())) % GetModulus();
 
@@ -251,7 +251,7 @@ namespace Crypto {
       encrypted = (encrypted * pkey->GetPublicElement()) % modulus;
     }
 
-    Integer secret = Integer::GetRandomInteger(2, subgroup);
+    Integer secret = CryptoRandom().GetInteger(2, first->GetSubgroup());
     Integer shared = generator.Pow(secret, modulus);
 
     encrypted = encrypted.Pow(secret, modulus);
@@ -285,30 +285,22 @@ namespace Crypto {
 
   Integer CppDsaPublicKey::GetGenerator() const
   {
-    CryptoPP::Integer generator = GetGroupParameters().GetGenerator();
-    IntegerData *data = new CppIntegerData(generator);
-    return Integer(data);
+    return FromCppInteger(GetGroupParameters().GetGenerator());
   }
 
   Integer CppDsaPublicKey::GetModulus() const
   {
-    CryptoPP::Integer modulus = GetGroupParameters().GetModulus();
-    IntegerData *data = new CppIntegerData(modulus);
-    return Integer(data);
+    return FromCppInteger(GetGroupParameters().GetModulus());
   }
 
   Integer CppDsaPublicKey::GetSubgroup() const
   {
-    CryptoPP::Integer subgroup = GetGroupParameters().GetSubgroupOrder();
-    IntegerData *data = new CppIntegerData(subgroup);
-    return Integer(data);
+    return FromCppInteger(GetGroupParameters().GetSubgroupOrder());
   }
 
   Integer CppDsaPublicKey::GetPublicElement() const 
   {
-    CryptoPP::Integer public_element = GetDsaPublicKey()->GetPublicElement();
-    IntegerData *data = new CppIntegerData(public_element);
-    return Integer(data);
+    return FromCppInteger(GetDsaPublicKey()->GetPublicElement());
   }
 }
 }

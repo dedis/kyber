@@ -1,6 +1,7 @@
 
 #include <QSharedPointer>
 
+#include "Crypto/Hash.hpp"
 #include "Crypto/AbstractGroup/AbstractGroup.hpp"
 #include "Crypto/AbstractGroup/Element.hpp"
 
@@ -15,10 +16,8 @@ namespace BlogDrop {
       const QList<Element> &ys, 
       const QList<Element> &ts) 
   {
-    Hash *hash = CryptoFactory::GetInstance().GetLibrary().GetHashAlgorithm();
-
-    hash->Restart();
-    hash->Update(params->GetByteArray());
+    Hash hashalgo;
+    hashalgo.Update(params->GetByteArray());
 
     Q_ASSERT(gs.count() == ys.count());
     Q_ASSERT(gs.count() == ts.count());
@@ -27,12 +26,12 @@ namespace BlogDrop {
       QSharedPointer<const Crypto::AbstractGroup::AbstractGroup> group = 
         ((!i) ? params->GetKeyGroup() : params->GetMessageGroup());
 
-      hash->Update(group->ElementToByteArray(gs[i]));
-      hash->Update(group->ElementToByteArray(ys[i]));
-      hash->Update(group->ElementToByteArray(ts[i]));
+      hashalgo.Update(group->ElementToByteArray(gs[i]));
+      hashalgo.Update(group->ElementToByteArray(ys[i]));
+      hashalgo.Update(group->ElementToByteArray(ts[i]));
     }
 
-    return Integer(hash->ComputeHash()) % params->GetGroupOrder();
+    return Integer(hashalgo.ComputeHash()) % params->GetGroupOrder();
   }
 
   Integer BlogDropUtils::Commit(const QSharedPointer<const Parameters> &params,
@@ -57,15 +56,14 @@ namespace BlogDrop {
       int phase, 
       int element_idx) 
   {
-    QScopedPointer<Hash> hash(CryptoFactory::GetInstance().GetLibrary().GetHashAlgorithm());
-    hash->Restart();
-    hash->Update(params->GetByteArray());
-    hash->Update(params->GetKeyGroup()->ElementToByteArray(author_pk->GetElement()));
-    hash->Update(
+    Hash hashalgo;
+    hashalgo.Update(params->GetByteArray());
+    hashalgo.Update(params->GetKeyGroup()->ElementToByteArray(author_pk->GetElement()));
+    hashalgo.Update(
         QString("%1 %2").arg(phase, 8, 16, QChar('0')).arg(
           element_idx, 8, 16, QChar('0')).toAscii());
 
-    return Integer(hash->ComputeHash()) % params->GetGroupOrder();
+    return Integer(hashalgo.ComputeHash()) % params->GetGroupOrder();
   }
 
   AbstractGroup::Element BlogDropUtils::GetHashedGenerator(
@@ -100,7 +98,7 @@ namespace BlogDrop {
       QSharedPointer<const PublicKey> &master_pub,
       QList<QSharedPointer<const PublicKey> > &commits) 
   { 
-    QScopedPointer<Hash> hash(CryptoFactory::GetInstance().GetLibrary().GetHashAlgorithm());
+    Hash hashalgo;
     const Integer q = params->GetKeyGroup()->GetOrder();
     const Element g = params->GetKeyGroup()->GetGenerator();
     Integer out = 0;
@@ -110,7 +108,7 @@ namespace BlogDrop {
           priv->GetInteger());
 
       // hash result
-      QByteArray digest = hash->ComputeHash(params->GetKeyGroup()->ElementToByteArray(shared));
+      QByteArray digest = hashalgo.ComputeHash(params->GetKeyGroup()->ElementToByteArray(shared));
 
       commits.append(QSharedPointer<const PublicKey>(
             new PublicKey(params, params->GetKeyGroup()->Exponentiate(g, Integer(digest)))));

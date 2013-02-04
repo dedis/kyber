@@ -1,4 +1,5 @@
 #include "Connections/Connection.hpp"
+#include "Crypto/CryptoRandom.hpp"
 #include "Messaging/Request.hpp"
 
 #include "Round.hpp"
@@ -90,15 +91,14 @@ namespace Anonymity {
 
   QByteArray Round::GenerateData(int size)
   {
-    Crypto::Library &lib = Crypto::CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Utils::Random> rng(lib.GetRandomNumberGenerator());
     int maximum = GetGroup().Count();
-    int value = rng->GetInt(0, maximum);
+    Crypto::CryptoRandom rand;
+    int value = rand.GetInt(0, maximum);
     if(float(value) / float(maximum) > PERCENT_ACTIVE) {
       return QByteArray();
     }
     QByteArray data(size, 0);
-    rng->GenerateBlock(data);
+    rand.GenerateBlock(data);
     return data;
   }
 

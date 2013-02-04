@@ -11,7 +11,7 @@ namespace Tests {
     Integer modulus = private_key->GetModulus();
     Integer subgroup = private_key->GetSubgroup();
 
-    Integer val = generator.Pow(Integer::GetRandomInteger(0, subgroup), modulus);
+    Integer val = generator.Pow(CryptoRandom().GetInteger(0, subgroup), modulus);
     QByteArray initial = val.GetByteArray();
     QByteArray encrypted = public_key->Encrypt(initial);
     QByteArray decrypted = private_key->Decrypt(encrypted);
@@ -42,7 +42,7 @@ namespace Tests {
       public_keys.append(QSharedPointer<AsymmetricKey>(private_key->GetPublicKey()));
     }
 
-    Integer val = generator.Pow(Integer::GetRandomInteger(0, subgroup), modulus);
+    Integer val = generator.Pow(CryptoRandom().GetInteger(0, subgroup), modulus);
     QByteArray initial = val.GetByteArray();
     QByteArray encrypted = CppDsaPublicKey::SeriesEncrypt(public_keys,
         val.GetByteArray());
@@ -126,7 +126,7 @@ namespace Tests {
       pub_keys.append(QSharedPointer<AsymmetricKey>(key->GetPublicKey()));
     }
 
-    CppRandom rng;
+    CryptoRandom rng;
     QByteArray context(1024, 0);
     rng.GenerateBlock(context);
 
@@ -166,11 +166,12 @@ namespace Tests {
       pub_keys.append(QSharedPointer<AsymmetricKey>(pr_keys.last()->GetPublicKey()));
     }
 
+    CryptoRandom rand;
     QVector<QByteArray> input;
     QVector<Integer> x;
 
     for(int idx = 0; idx < values; idx++) {
-      Integer tmp_val = Integer::GetRandomInteger(0, subgroup);
+      Integer tmp_val = rand.GetInteger(0, subgroup);
       x.append(generator.Pow(tmp_val, modulus));
 
       input.append(CppDsaPublicKey::SeriesEncrypt(pub_keys,

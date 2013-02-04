@@ -1,5 +1,5 @@
 #include "OnionEncryptor.hpp"
-#include "CryptoFactory.hpp"
+#include "CryptoRandom.hpp"
 
 namespace Dissent {
 namespace Crypto {
@@ -68,11 +68,10 @@ namespace Crypto {
 
   void OnionEncryptor::RandomizeBlocks(QVector<QByteArray> &text) const
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rand(lib.GetRandomNumberGenerator());
+    CryptoRandom rand;
 
     for(int idx = 0; idx < text.count(); idx++) {
-      int jdx = rand->GetInt(0, text.count());
+      int jdx = rand.GetInt(0, text.count());
       if(jdx == idx) {
         continue;
       }

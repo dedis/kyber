@@ -4,6 +4,8 @@
 #include <QMetaEnum>
 #include <QSharedPointer>
 
+#include "Crypto/CryptoRandom.hpp"
+#include "Crypto/DiffieHellman.hpp"
 #include "Messaging/BufferSink.hpp"
 #include "Messaging/GetDataCallback.hpp"
 #include "Utils/TimerEvent.hpp"
@@ -14,10 +16,6 @@
 #include "Round.hpp"
 
 namespace Dissent {
-namespace Crypto {
-  class DiffieHellman;
-}
-
 namespace Utils {
   class Random;
 }
@@ -48,7 +46,7 @@ namespace Anonymity {
       typedef Messaging::GetDataMethod<RepeatingBulkRound> BulkGetDataCallback;
       typedef Utils::Random Random;
       typedef Utils::Triple<QByteArray, QSharedPointer<AsymmetricKey>,
-              QSharedPointer<Random> > Descriptor;
+              Crypto::CryptoRandom> Descriptor;
 
       /**
        * Varius stages of the bulk
@@ -208,12 +206,12 @@ namespace Anonymity {
       /**
        * Sets the list of anonymous rngs
        */
-      void SetAnonymousRngs(const QVector<QSharedPointer<Random> > &anon_rngs)
+      void SetAnonymousRngs(const QVector<Crypto::CryptoRandom> &anon_rngs)
       {
         _anon_rngs = anon_rngs;
       }
 
-      const QVector<QSharedPointer<Random> > &GetAnonymousRngs() { return _anon_rngs; }
+      const QVector<Crypto::CryptoRandom> &GetAnonymousRngs() { return _anon_rngs; }
 
       /**
        * Sets the internal state of the bulk round
@@ -244,7 +242,7 @@ namespace Anonymity {
       /**
        * Returns the anonymous DiffieHellman key
        */
-      QSharedPointer<DiffieHellman> GetAnonymousDh() { return _anon_dh; }
+      DiffieHellman &GetAnonymousDh() { return _anon_dh; }
 
       /**
        * Does all the prep work for the next phase, clearing and zeroing out
@@ -323,7 +321,7 @@ namespace Anonymity {
       /**
        * Anonymous DH used to generate RNG seeds
        */
-      QSharedPointer<DiffieHellman> _anon_dh;
+      DiffieHellman _anon_dh;
 
       /**
        * Anonymous key used sign messages
@@ -333,7 +331,7 @@ namespace Anonymity {
       /**
        * Rngs used to generate our xor message
        */
-      QVector<QSharedPointer<Random> > _anon_rngs;
+      QVector<Crypto::CryptoRandom> _anon_rngs;
 
       /**
        * Holds the shuffle round

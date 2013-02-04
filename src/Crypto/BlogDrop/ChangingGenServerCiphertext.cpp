@@ -1,4 +1,4 @@
-
+#include <QDebug>
 #include "BlogDropUtils.hpp"
 #include "ChangingGenServerCiphertext.hpp"
 
@@ -76,7 +76,7 @@ namespace BlogDrop {
 
     // r = v - cx == v - (chal)server_sk
     const Integer q = _params->GetGroupOrder();
-    _response = (v - (_challenge.MultiplyMod(priv->GetInteger(), q))) % q;
+    _response = (v - (_challenge.Multiply(priv->GetInteger(), q))) % q;
   }
 
   bool ChangingGenServerCiphertext::VerifyProof(int phase, const QSharedPointer<const PublicKey> &pub) const

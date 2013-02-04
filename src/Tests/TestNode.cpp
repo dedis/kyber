@@ -26,11 +26,9 @@ namespace Tests {
       }
     }
 
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rand(lib.GetRandomNumberGenerator());
-
+    CryptoRandom rand;
     for(int idx = servers; idx < clients + servers; idx++) {
-      int server = rand->GetInt(0, servers);
+      int server = rand.GetInt(0, servers);
       nodes[idx]->cm->ConnectTo(BufferAddress(server + 1));
     }
 

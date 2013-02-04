@@ -1,5 +1,6 @@
+#include "CryptoPP/Helper.hpp"
 #include "CppPrivateKey.hpp"
-#include "CppRandom.hpp"
+#include "CryptoRandom.hpp"
 
 using namespace CryptoPP;
 
@@ -34,9 +35,9 @@ namespace Crypto {
 
   CppPrivateKey *CppPrivateKey::GenerateKey(const QByteArray &data)
   {
-    CppRandom rng(data);
+    CryptoRandom rng(data);
     RSA::PrivateKey key;
-    key.GenerateRandomWithKeySize(*rng.GetHandle(), DefaultKeySize);
+    key.GenerateRandomWithKeySize(GetCppRandom(rng), DefaultKeySize);
     return new CppPrivateKey(GetByteArray(key));
   }
 

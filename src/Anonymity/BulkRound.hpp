@@ -299,7 +299,7 @@ namespace Anonymity {
       /**
        * Return the rounds anonymous dh
        */
-      const DiffieHellman *GetAnonDh() { return _anon_dh.data(); }
+      const DiffieHellman &GetAnonDh() { return _anon_dh; }
 
       /**
        * Returns if this member is the leader
@@ -398,7 +398,7 @@ namespace Anonymity {
       /**
        * Anonymous DH used to generate RNG seeds
        */
-      QSharedPointer<DiffieHellman> _anon_dh;
+      DiffieHellman _anon_dh;
 
       /**
        * Stores the output of the shuffle

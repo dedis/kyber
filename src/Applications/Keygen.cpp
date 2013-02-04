@@ -133,14 +133,13 @@ int main(int argc, char **argv)
     ExitWithWarning(options, "Invalid library");
   }
 
-  Library &lib = cf.GetLibrary();
-  QSharedPointer<Hash> hash(lib.GetHashAlgorithm());
+  Hash hashalgo;
 
   int count = 0;
   while(count < key_count) {
     QSharedPointer<AsymmetricKey> key((*ck)());
     QSharedPointer<AsymmetricKey> pubkey(key->GetPublicKey());
-    QByteArray hvalue = hash->ComputeHash(pubkey->GetByteArray());
+    QByteArray hvalue = hashalgo.ComputeHash(pubkey->GetByteArray());
     QString id = Integer(hvalue).ToString();
 
     if(!key->Save(privdir_path + QDir::separator() + id)) {

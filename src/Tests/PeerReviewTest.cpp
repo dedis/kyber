@@ -6,17 +6,16 @@ namespace Dissent {
 namespace Tests {
   QSharedPointer<Entry> CreateSendEntry(QSharedPointer<AsymmetricKey> key)
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
-    QSharedPointer<Hash> hash(lib.GetHashAlgorithm());
-    uint seq_id = rand->GetInt();
+    CryptoRandom rand;
+    Hash hash;
+    uint seq_id = rand.GetInt();
     Id id;
 
-    QByteArray previous_hash(hash->GetDigestSize(), 0);
-    rand->GenerateBlock(previous_hash);
+    QByteArray previous_hash(hash.GetDigestSize(), 0);
+    rand.GenerateBlock(previous_hash);
 
     QByteArray msg(1024, 0);
-    rand->GenerateBlock(msg);
+    rand.GenerateBlock(msg);
 
     QSharedPointer<Entry> entry(new SendEntry(seq_id, id, previous_hash, msg));
     entry->Sign(key);
@@ -26,14 +25,13 @@ namespace Tests {
   QSharedPointer<Entry> CreateReceiveEntry(QSharedPointer<AsymmetricKey> key,
       QSharedPointer<Entry> send_entry)
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
-    QSharedPointer<Hash> hash(lib.GetHashAlgorithm());
+    CryptoRandom rand;
+    Hash hash;
 
-    uint seq_id = rand->GetInt();
+    uint seq_id = rand.GetInt();
     Id id;
-    QByteArray previous_hash(hash->GetDigestSize(), 0);
-    rand->GenerateBlock(previous_hash);
+    QByteArray previous_hash(hash.GetDigestSize(), 0);
+    rand.GenerateBlock(previous_hash);
 
     QSharedPointer<SendEntry> se = send_entry.dynamicCast<SendEntry>();
     QSharedPointer<Entry> re(new ReceiveEntry(seq_id, id, previous_hash, se));
@@ -104,21 +102,21 @@ namespace Tests {
   TEST(PeerReview, EntryLog)
   {
     Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
-    QSharedPointer<Hash> hash(lib.GetHashAlgorithm());
     QSharedPointer<AsymmetricKey> key0(lib.CreatePrivateKey());
     QSharedPointer<AsymmetricKey> key1(lib.CreatePrivateKey());
+    CryptoRandom rand;
+    Hash hash;
     Id id0, id1;
 
-    QByteArray previous_hash(hash->GetDigestSize(), 0);
-    rand->GenerateBlock(previous_hash);
+    QByteArray previous_hash(hash.GetDigestSize(), 0);
+    rand.GenerateBlock(previous_hash);
     EntryLog log(previous_hash);
 
     for(int idx = 0; idx < 100; idx++) {
       QByteArray msg(1024, 0);
-      rand->GenerateBlock(msg);
+      rand.GenerateBlock(msg);
 
-      double rand_val = ((double) rand->GetInt(0, 1000)) / 1000.0;
+      double rand_val = ((double) rand.GetInt(0, 1000)) / 1000.0;
       if(rand_val < .5) {
         QSharedPointer<SendEntry> entry(
             new SendEntry(log.PreviousSequenceId(),
@@ -128,7 +126,7 @@ namespace Tests {
         continue;
       }
 
-      rand->GenerateBlock(previous_hash);
+      rand.GenerateBlock(previous_hash);
       QSharedPointer<SendEntry> se(
           new SendEntry(idx, id0, previous_hash, msg));
       se->Sign(key1);
@@ -167,17 +165,17 @@ namespace Tests {
   TEST(PeerReview, PeerReview)
   {
     Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
+    CryptoRandom rand;
 
     PrivateIdentity cred0(Id(),
           QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
           QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
-          QSharedPointer<DiffieHellman>(lib.CreateDiffieHellman()));
+          DiffieHellman());
 
     PrivateIdentity cred1(Id(),
           QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
           QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
-          QSharedPointer<DiffieHellman>(lib.CreateDiffieHellman()));
+          DiffieHellman());
 
     Group group;
     group = AddGroupMember(group, GetPublicIdentity(cred0));
@@ -191,7 +189,7 @@ namespace Tests {
       PRManager *sender, *receiver;
       PrivateIdentity *c_sender, *c_receiver;
 
-      double rand_val = ((double) rand->GetInt(0, 1000)) / 1000.0;
+      double rand_val = ((double) rand.GetInt(0, 1000)) / 1000.0;
       if(rand_val < .5) {
         sender = &pr0;
         c_sender = &cred0;
@@ -204,7 +202,7 @@ namespace Tests {
         c_sender = &cred1;
       }
 
-      rand->GenerateBlock(msg);
+      rand.GenerateBlock(msg);
       QByteArray packet, r_msg;
       uint seq_id;
 

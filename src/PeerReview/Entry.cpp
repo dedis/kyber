@@ -1,14 +1,10 @@
 #include <QSharedPointer>
 
-#include "Crypto/CryptoFactory.hpp"
-#include "Crypto/Library.hpp"
 #include "Crypto/Hash.hpp"
 #include "Utils/Serialization.hpp"
 
 #include "Entry.hpp"
 
-using Dissent::Crypto::CryptoFactory;
-using Dissent::Crypto::Library;
 using Dissent::Crypto::Hash;
 using Dissent::Utils::Serialization;
 
@@ -33,18 +29,17 @@ namespace PeerReview {
       return _entry_hash;
     }
 
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Hash> hash(lib.GetHashAlgorithm());
+    Hash hash;
     QByteArray binary_seqid(4, 0);
     Serialization::WriteInt(_seq_id, binary_seqid, 0);
 
-    hash->Update(_previous_hash);
-    hash->Update(binary_seqid);
-    hash->Update(_dest.GetByteArray());
-    hash->Update(GetMessageHash());
+    hash.Update(_previous_hash);
+    hash.Update(binary_seqid);
+    hash.Update(_dest.GetByteArray());
+    hash.Update(GetMessageHash());
 
     Entry *tmp = const_cast<Entry *>(this);
-    tmp->_entry_hash = hash->ComputeHash();
+    tmp->_entry_hash = hash.ComputeHash();
 
     tmp->_entry_hash_set = true;
     return _entry_hash;

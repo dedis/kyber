@@ -1,13 +1,12 @@
 #include <QList>
 #include <QPair>
 
-#include "Crypto/Library.hpp"
+#include "Crypto/CryptoRandom.hpp"
 #include "PreExchangedKeyAuthenticate.hpp"
 
 
 namespace Dissent {
-using Crypto::CryptoFactory;
-using Crypto::Library;
+using Crypto::CryptoRandom;
 
 namespace Identity {
 namespace Authentication {
@@ -24,9 +23,7 @@ namespace Authentication {
 
   QVariant PreExchangedKeyAuthenticate::PrepareForChallenge()
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    lib.GetRandomNumberGenerator()->GenerateBlock(_bob_nonce);
-
+    CryptoRandom().GenerateBlock(_bob_nonce);
     return _bob_nonce;
   }
 

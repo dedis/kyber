@@ -1,6 +1,7 @@
 #include <QRunnable>
 
 #include "Crypto/CryptoFactory.hpp"
+#include "Crypto/Hash.hpp"
 #include "Utils/Serialization.hpp"
 #include "Utils/QRunTimeError.hpp"
 
@@ -396,21 +397,19 @@ using namespace ShuffleRoundPrivate;
       throw QRunTimeError("Received multiple blame messages from the same identity");
     }
 
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Hash> hashalgo(lib.GetHashAlgorithm());;
-
+    Hash hashalgo;
     int sidx = _shufflers.GetIndex(id);
     QSharedPointer<AsymmetricKey> outer_key;
     if(sidx >= 0) {
       stream >> outer_key;
-      hashalgo->Update(outer_key->GetByteArray());
+      hashalgo.Update(outer_key->GetByteArray());
     }
 
     QByteArray log, sig;
     stream >> log >> sig;
 
-    hashalgo->Update(log);
-    QByteArray blame_hash = hashalgo->ComputeHash();
+    hashalgo.Update(log);
+    QByteArray blame_hash = hashalgo.ComputeHash();
 
     QByteArray sigmsg;
     QDataStream sigstream(&sigmsg, QIODevice::WriteOnly);
@@ -575,15 +574,13 @@ using namespace ShuffleRoundPrivate;
     out_stream << GO_MESSAGE << GetRoundId() << found;
 
     if(found) {
-      Library &lib = CryptoFactory::GetInstance().GetLibrary();
-      QScopedPointer<Hash> hash(lib.GetHashAlgorithm());
-
+      Hash hashalgo;
       for(int idx = 0; idx < _state->public_inner_keys.count(); idx++) {
-        hash->Update(_state->public_inner_keys[idx]->GetByteArray());
-        hash->Update(_state->public_outer_keys[idx]->GetByteArray());
-        hash->Update(_state->encrypted_data[idx]);
+        hashalgo.Update(_state->public_inner_keys[idx]->GetByteArray());
+        hashalgo.Update(_state->public_outer_keys[idx]->GetByteArray());
+        hashalgo.Update(_state->encrypted_data[idx]);
       }
-      _state->state_hash = hash->ComputeHash();
+      _state->state_hash = hashalgo.ComputeHash();
       out_stream << _state->state_hash;
 
       qDebug() << _shufflers.GetIndex(GetLocalId()) <<
@@ -663,21 +660,19 @@ using namespace ShuffleRoundPrivate;
     QDataStream stream(&msg, QIODevice::WriteOnly);
     stream << BLAME_DATA << GetRoundId();
 
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Hash> hashalgo(lib.GetHashAlgorithm());;
-
+    Hash hashalgo;
     if(_server_state) {
       stream << _server_state->outer_key;
-      hashalgo->Update(_server_state->outer_key->GetByteArray());
+      hashalgo.Update(_server_state->outer_key->GetByteArray());
     }
 
     QByteArray log = _state_machine.GetLog().Serialize();
     stream << log;
-    hashalgo->Update(log);
+    hashalgo.Update(log);
 
     QByteArray sigmsg;
     QDataStream sigstream(&sigmsg, QIODevice::WriteOnly);
-    sigstream << BLAME_DATA << GetRoundId() << hashalgo->ComputeHash();
+    sigstream << BLAME_DATA << GetRoundId() << hashalgo.ComputeHash();
 
     QByteArray signature = GetSigningKey()->Sign(sigmsg);
     stream << signature;

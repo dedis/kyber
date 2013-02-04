@@ -100,16 +100,15 @@ namespace Tests {
 
   inline void AbstractGroup_Encode(QSharedPointer<AbstractGroup> group)
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rand(lib.GetRandomNumberGenerator());
+    CryptoRandom rand;
 
     qDebug() << "=====";
     QByteArray out;
-    QByteArray msg(rand->GetInt(1, group->BytesPerElement()), 0);
-    QByteArray long_msg(rand->GetInt(1, 1 << 20), 0);
+    QByteArray msg(rand.GetInt(1, group->BytesPerElement()), 0);
+    QByteArray long_msg(rand.GetInt(1, 1 << 20), 0);
     for(int i=0; i<100; i++) {
-      rand->GenerateBlock(msg);
-      rand->GenerateBlock(long_msg);
+      rand.GenerateBlock(msg);
+      rand.GenerateBlock(long_msg);
 
       Element a = group->EncodeBytes(msg);
       

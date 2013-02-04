@@ -12,13 +12,12 @@ namespace Tests {
 
     Id id;
     QByteArray data(100, 0);
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QScopedPointer<Dissent::Utils::Random> rand(lib.GetRandomNumberGenerator());
+    CryptoRandom rand;
 
     Log log;
 
     for(int idx = 0; idx < 100; idx++) {
-      rand->GenerateBlock(data);
+      rand.GenerateBlock(data);
       msgs.append(data);
       id = Id();
       ids.append(id);

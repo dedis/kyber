@@ -10,10 +10,8 @@ namespace Tests {
   typedef bool (*BadGuyCB)(Round *);
 
   inline void FlipByte(QByteArray &msg) {
-    QScopedPointer<Random> rand(CryptoFactory::GetInstance().GetLibrary().GetRandomNumberGenerator());
-
     // Invert one byte
-    const int idx = rand->GetInt(0, msg.count());
+    const int idx = CryptoRandom().GetInt(0, msg.count());
     msg[idx] = ~msg[idx];
   }
 

@@ -1,6 +1,8 @@
-
+#include <QDebug>
 #include <cryptopp/nbtheory.h>
 
+#include "Crypto/CryptoRandom.hpp"
+#include "Crypto/CryptoPP/Helper.hpp"
 #include "CppECElementData.hpp"
 #include "CppECGroup.hpp"
 
@@ -10,9 +12,9 @@ namespace AbstractGroup {
 
   CppECGroup::CppECGroup(const Integer &p, const Integer &q, const Integer &a,
       const Integer &b, const Integer &gx, const Integer &gy) :
-      _curve(ToCryptoInt(p), ToCryptoInt(a), ToCryptoInt(b)),
+      _curve(ToCppInteger(p), ToCppInteger(a), ToCppInteger(b)),
       _q(q),
-      _g(ToCryptoInt(gx), ToCryptoInt(gy)),
+      _g(ToCppInteger(gx), ToCppInteger(gy)),
       _field_bytes(p.GetByteArray().count())
     {
       /*
@@ -23,7 +25,7 @@ namespace AbstractGroup {
       qDebug() << "gy" << gy.GetByteArray().toHex(); 
       */
 
-      Q_ASSERT(ToCryptoInt(p) == _curve.FieldSize());
+      Q_ASSERT(ToCppInteger(p) == _curve.FieldSize());
     };
 
   QSharedPointer<AbstractGroup> CppECGroup::Copy() const
@@ -40,6 +42,11 @@ namespace AbstractGroup {
           ec.GetGx(), ec.GetGy()));
   }
 
+  Integer CppECGroup::GetFieldSize() const
+  {
+    return FromCppInteger(_curve.FieldSize());
+  }
+
   Element CppECGroup::Multiply(const Element &a, const Element &b) const
   {
     return Element(new CppECElementData(_curve.Add(GetPoint(a), GetPoint(b))));
@@ -47,7 +54,7 @@ namespace AbstractGroup {
 
   Element CppECGroup::Exponentiate(const Element &a, const Integer &exp) const
   {
-    return Element(new CppECElementData(_curve.Multiply(ToCryptoInt(exp), GetPoint(a))));
+    return Element(new CppECElementData(_curve.Multiply(ToCppInteger(exp), GetPoint(a))));
   }
   
   Element CppECGroup::CascadeExponentiate(const Element &a1, const Integer &e1,
@@ -56,13 +63,13 @@ namespace AbstractGroup {
     // For some reason, this is 50% faster than Crypto++'s native
     // CascadeMultiply
     return Element(new CppECElementData(_curve.Add(
-            _curve.Multiply(ToCryptoInt(e1), GetPoint(a1)),
-            _curve.Multiply(ToCryptoInt(e2), GetPoint(a2)))));
+            _curve.Multiply(ToCppInteger(e1), GetPoint(a1)),
+            _curve.Multiply(ToCppInteger(e2), GetPoint(a2)))));
    
     /*
     return Element(new CppECElementData(_curve.CascadeMultiply(
-          ToCryptoInt(e1), GetPoint(a1),
-          ToCryptoInt(e2), GetPoint(a2))));
+          ToCppInteger(e1), GetPoint(a1),
+          ToCppInteger(e2), GetPoint(a2))));
     */
     
   }
@@ -101,7 +108,7 @@ namespace AbstractGroup {
 
   Integer CppECGroup::RandomExponent() const
   {
-    return Integer::GetRandomInteger(1, GetOrder(), false); 
+    return CryptoRandom().GetInteger(1, GetOrder(), false); 
   }
 
   Element CppECGroup::RandomElement() const
@@ -148,7 +155,7 @@ namespace AbstractGroup {
     // r is an encoding of the string in a big integer
     CryptoPP::Integer r(reinterpret_cast<const byte*>(data.constData()), data.count());
 
-    //qDebug() << "r" << Integer(new CppIntegerData(r)).GetByteArray().toHex();
+    //qDebug() << "r" << FromCppInteger(r)).GetByteArray().toHex();
     
     Q_ASSERT(r < _curve.FieldSize());
 
@@ -178,10 +185,7 @@ namespace AbstractGroup {
     CryptoPP::Integer remainder, quotient;
     CryptoPP::Integer::Divide(remainder, quotient, x, CryptoPP::Integer(_k));
 
-    Integer intdata(new CppIntegerData(quotient));
-
-    QByteArray data = intdata.GetByteArray(); 
-
+    QByteArray data = FromCppInteger(quotient).GetByteArray(); 
     if(data.count() < 2) {
       qWarning() << "Data is too short";
       return false;
@@ -204,7 +208,7 @@ namespace AbstractGroup {
     return IsElement(GetGenerator()) && 
       IsIdentity(Exponentiate(GetGenerator(), GetOrder())) &&
       CryptoPP::IsPrime(_curve.FieldSize()) &&
-      CryptoPP::IsPrime(ToCryptoInt(GetOrder()));
+      GetOrder().IsPrime();
   }
 
   QByteArray CppECGroup::GetByteArray() const
@@ -212,9 +216,9 @@ namespace AbstractGroup {
     QByteArray out;
     QDataStream stream(&out, QIODevice::WriteOnly);
 
-    stream << FromCryptoInt(_curve.FieldSize()).GetByteArray() 
-      << FromCryptoInt(_curve.GetA()).GetByteArray()
-      << FromCryptoInt(_curve.GetB()).GetByteArray();
+    stream << FromCppInteger(_curve.FieldSize()).GetByteArray() 
+      << FromCppInteger(_curve.GetA()).GetByteArray()
+      << FromCppInteger(_curve.GetB()).GetByteArray();
 
     return out;
   }

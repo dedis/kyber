@@ -42,12 +42,12 @@ namespace Tests {
   TEST(Tunnel, UdpStartPacket)
   {
     Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
     QSharedPointer<AsymmetricKey> pr_key(lib.CreatePrivateKey());
     QSharedPointer<AsymmetricKey> pu_key(pr_key->GetPublicKey());
+    CryptoRandom rand;
 
     QByteArray conn_id(20, 0);
-    rand->GenerateBlock(conn_id);
+    rand.GenerateBlock(conn_id);
     TunnelPacket p0 = TunnelPacket::BuildUdpStart(conn_id, pu_key->GetByteArray());
     p0.SetSignature(pr_key->Sign(p0.GetUnsignedPacket()));
     BuildAndTest(p0, conn_id, TunnelPacket::UDP_START,
@@ -61,16 +61,16 @@ namespace Tests {
   TEST(Tunnel, UdpRequestPacket)
   {
     Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
     QSharedPointer<AsymmetricKey> pr_key(lib.CreatePrivateKey());
     QSharedPointer<AsymmetricKey> pu_key(pr_key->GetPublicKey());
+    CryptoRandom rand;
 
     QByteArray conn_id(20, 0);
-    rand->GenerateBlock(conn_id);
+    rand.GenerateBlock(conn_id);
     QString host = "5.5.5.5";
-    int port = rand->GetInt(0, 65536);
+    int port = rand.GetInt(0, 65536);
     QByteArray msg(2000, 0);
-    rand->GenerateBlock(msg);
+    rand.GenerateBlock(msg);
 
     TunnelPacket p0 = TunnelPacket::BuildUdpRequest(conn_id, host, port, msg);
     p0.SetSignature(pr_key->Sign(p0.GetUnsignedPacket()));
@@ -81,16 +81,16 @@ namespace Tests {
   TEST(Tunnel, UdpResponsePacket)
   {
     Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
     QSharedPointer<AsymmetricKey> pr_key(lib.CreatePrivateKey());
     QSharedPointer<AsymmetricKey> pu_key(pr_key->GetPublicKey());
+    CryptoRandom rand;
 
     QByteArray conn_id(20, 0);
-    rand->GenerateBlock(conn_id);
+    rand.GenerateBlock(conn_id);
     QString host = "5.5.5.5";
-    int port = rand->GetInt(0, 65536);
+    int port = rand.GetInt(0, 65536);
     QByteArray msg(2000, 0);
-    rand->GenerateBlock(msg);
+    rand.GenerateBlock(msg);
 
     TunnelPacket p0 = TunnelPacket::BuildUdpResponse(conn_id, host, port, msg);
     p0.SetSignature(pr_key->Sign(p0.GetUnsignedPacket()));
@@ -101,14 +101,14 @@ namespace Tests {
   TEST(Tunnel, TcpStartPacket)
   {
     Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
     QSharedPointer<AsymmetricKey> pr_key(lib.CreatePrivateKey());
     QSharedPointer<AsymmetricKey> pu_key(pr_key->GetPublicKey());
+    CryptoRandom rand;
 
     QByteArray conn_id(20, 0);
-    rand->GenerateBlock(conn_id);
+    rand.GenerateBlock(conn_id);
     QString host = "5.5.5.5";
-    int port = rand->GetInt(0, 65536);
+    int port = rand.GetInt(0, 65536);
 
     TunnelPacket p0 = TunnelPacket::BuildTcpStart(conn_id, host, port,
         pu_key->GetByteArray());
@@ -120,14 +120,14 @@ namespace Tests {
   TEST(Tunnel, TcpRequestPacket)
   {
     Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
     QSharedPointer<AsymmetricKey> pr_key(lib.CreatePrivateKey());
     QSharedPointer<AsymmetricKey> pu_key(pr_key->GetPublicKey());
+    CryptoRandom rand;
 
     QByteArray conn_id(20, 0);
-    rand->GenerateBlock(conn_id);
+    rand.GenerateBlock(conn_id);
     QByteArray msg(2000, 0);
-    rand->GenerateBlock(msg);
+    rand.GenerateBlock(msg);
 
     TunnelPacket p0 = TunnelPacket::BuildTcpRequest(conn_id, msg);
     p0.SetSignature(pr_key->Sign(p0.GetUnsignedPacket()));
@@ -138,14 +138,14 @@ namespace Tests {
   TEST(Tunnel, TcpResponsePacket)
   {
     Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
     QSharedPointer<AsymmetricKey> pr_key(lib.CreatePrivateKey());
     QSharedPointer<AsymmetricKey> pu_key(pr_key->GetPublicKey());
+    CryptoRandom rand;
 
     QByteArray conn_id(20, 0);
-    rand->GenerateBlock(conn_id);
+    rand.GenerateBlock(conn_id);
     QByteArray msg(2000, 0);
-    rand->GenerateBlock(msg);
+    rand.GenerateBlock(msg);
 
     TunnelPacket p0 = TunnelPacket::BuildTcpResponse(conn_id, msg);
     p0.SetSignature(pr_key->Sign(p0.GetUnsignedPacket()));
@@ -156,12 +156,12 @@ namespace Tests {
   TEST(Tunnel, Finished)
   {
     Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
     QSharedPointer<AsymmetricKey> pr_key(lib.CreatePrivateKey());
     QSharedPointer<AsymmetricKey> pu_key(pr_key->GetPublicKey());
+    CryptoRandom rand;
 
     QByteArray conn_id(20, 0);
-    rand->GenerateBlock(conn_id);
+    rand.GenerateBlock(conn_id);
 
     TunnelPacket p0 = TunnelPacket::BuildFinished(conn_id);
     p0.SetSignature(pr_key->Sign(p0.GetUnsignedPacket()));
@@ -213,12 +213,11 @@ namespace Tests {
 
   void TestTcp(bool use_hostname)
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
+    CryptoRandom rand;
     QByteArray msg0(1000, 0);
-    rand->GenerateBlock(msg0);
+    rand.GenerateBlock(msg0);
     QByteArray msg1(1000, 0);
-    rand->GenerateBlock(msg1);
+    rand.GenerateBlock(msg1);
 
     QString host = "127.0.0.1";
     int port = TEST_PORT;
@@ -313,11 +312,11 @@ It seems that Socks in Qt has problems...
   TEST(Tunnel, UdpAddress)
   {
     Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<Random> rand(lib.GetRandomNumberGenerator());
+    CryptoRandom rand;
     QByteArray msg0(100, 0);
-    rand->GenerateBlock(msg0);
+    rand.GenerateBlock(msg0);
     QByteArray msg1(100, 0);
-    rand->GenerateBlock(msg1);
+    rand.GenerateBlock(msg1);
 
     QString host = "127.0.0.1";
     int port = 55515;

@@ -45,7 +45,7 @@ namespace Tests {
     PrivateIdentity client(Id(),
         QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
         QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
-        QSharedPointer<DiffieHellman>(lib.CreateDiffieHellman()));
+        DiffieHellman());
 
     NullAuthenticate authe(client);
     NullAuthenticator autho;
@@ -59,17 +59,17 @@ namespace Tests {
     PrivateIdentity client(Id(),
         QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
         QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
-        QSharedPointer<DiffieHellman>(lib.CreateDiffieHellman()));
+        DiffieHellman());
 
     PrivateIdentity nclient(Id(),
         QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
         QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
-        QSharedPointer<DiffieHellman>(lib.CreateDiffieHellman()));
+        DiffieHellman());
 
     PrivateIdentity server(Id(),
         QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
         QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
-        QSharedPointer<DiffieHellman>(lib.CreateDiffieHellman()));
+        DiffieHellman());
 
     QSharedPointer<KeyShare> keyshare(new KeyShare());
     keyshare->AddKey(client.GetLocalId().ToString(),
@@ -106,7 +106,7 @@ namespace Tests {
       pub_keys.append(QSharedPointer<AsymmetricKey>(key->GetPublicKey()));
     }
 
-    CppRandom rng;
+    CryptoRandom rng;
     QByteArray context(1024, 0);
     rng.GenerateBlock(context);
 
@@ -122,7 +122,7 @@ namespace Tests {
       Id id;
       LRSAuthenticate lrsae(PrivateIdentity(id, priv_keys[idx],
             QSharedPointer<AsymmetricKey>(),
-            QSharedPointer<DiffieHellman>(), idx % 2 == 0), lrss);
+            DiffieHellman(), idx % 2 == 0), lrss);
 
       AuthPass(id, &lrsae, &lrsao);
       // Cannot double login
