@@ -128,13 +128,12 @@ namespace Crypto {
   bool CppDsaPublicKey::Encode(const QByteArray &data,
       Integer &encoded) const
   {
-    Integer value(data);
-    if(InGroup(value)) {
-      encoded = value;
-      return true;
-    }
-
     if(2 * GetSubgroup() + 1 != GetModulus()) {
+      Integer value(data);
+      if(InGroup(value)) {
+        encoded = value;
+        return true;
+      }
       qWarning() << "Cannot encode elements with this key";
       return false;
     }
