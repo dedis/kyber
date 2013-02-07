@@ -199,5 +199,61 @@ namespace Tests {
       EXPECT_TRUE(x.contains(val));
     }
   }
+
+  TEST(Crypto, NeffDataShuffle)
+  {
+    int values = 10;
+    int keys = 4;
+
+    CryptoRandom rand;
+    Integer number = rand.GetInteger(256);
+
+    QSharedPointer<CppDsaPrivateKey> base_key(
+        CppDsaPrivateKey::GenerateKey(number.GetByteArray(), 2048, 2047));
+    Integer modulus = base_key->GetModulus();
+    Integer generator = base_key->GetGenerator();
+    Integer subgroup = base_key->GetSubgroup();
+
+    QVector<QSharedPointer<CppDsaPrivateKey> > pr_keys;
+    QVector<QSharedPointer<AsymmetricKey> > pub_keys;
+    for(int idx = 0; idx < keys; idx++) {
+      pr_keys.append(QSharedPointer<CppDsaPrivateKey>(new CppDsaPrivateKey(
+              modulus, subgroup, generator)));
+      pub_keys.append(QSharedPointer<AsymmetricKey>(pr_keys.last()->GetPublicKey()));
+    }
+
+    QVector<QByteArray> input;
+    QVector<Integer> x;
+
+    for(int idx = 0; idx < values; idx++) {
+      Integer tmp_val = rand.GetInteger(133*8);
+      x.append(tmp_val);
+
+      input.append(CppDsaPublicKey::SeriesEncrypt(pub_keys,
+            x.last().GetByteArray()));
+    }
+
+    CppNeffShuffle shuffle;
+
+    QVector<QByteArray> output;
+    QByteArray proof;
+    QVector<QSharedPointer<AsymmetricKey> > npub_keys = pub_keys;
+    QVector<QSharedPointer<AsymmetricKey> > cpub_keys = pub_keys;
+
+    foreach(const QSharedPointer<CppDsaPrivateKey> &private_key, pr_keys) {
+      npub_keys.pop_front();
+      EXPECT_TRUE(shuffle.Shuffle(input, private_key, npub_keys, output, proof));
+      EXPECT_TRUE(shuffle.Verify(input, cpub_keys, proof, output));
+      input = output;
+      cpub_keys = npub_keys;
+    }
+
+    qDebug() << output.size();
+    foreach(const QByteArray &encrypted, output) {
+      QByteArray decrypted = base_key->SeriesDecryptFinish(encrypted);
+      Integer val(decrypted);
+      EXPECT_TRUE(x.contains(val));
+    }
+  }
 }
 }
