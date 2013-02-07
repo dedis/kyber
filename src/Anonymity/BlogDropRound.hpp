@@ -80,6 +80,7 @@ namespace BlogDropPrivate {
         WAIT_FOR_SERVER_MASTER_PUBLIC_KEYS,
         PREPARE_FOR_BULK,
         CLIENT_WAIT_FOR_CLEARTEXT,
+        SERVER_TEST_INTERACTIVE,
         SERVER_WAIT_FOR_CLIENT_CIPHERTEXT,
         SERVER_WAIT_FOR_CLIENT_LISTS,
         SERVER_WAIT_FOR_SERVER_CIPHERTEXT,
@@ -160,6 +161,46 @@ namespace BlogDropPrivate {
         return (_state->params->GetProofType() == Parameters::ProofType_HashingGenerator);
       }
 
+      void SetInteractiveMode()
+      {
+        _state->always_open = -1;
+        m_interactive = true;
+      }
+
+      void Resume(int idx)
+      {
+        m_resumed = true;
+        _state->slots_open = QBitArray(GetGroup().Count(), false);
+        _state->slots_open[idx] = true;
+        _state->blogdrop_clients[idx]->GetParameters()->SetNElements(5);
+
+        if(IsServer()) {
+          _server_state->blogdrop_servers[idx]->GetParameters()->SetNElements(5);
+        }
+
+        if(idx == _state->my_idx) {
+          _state->blogdrop_author->GetParameters()->SetNElements(5);
+        }
+
+        if(IsServer()) {
+          ServerTestInteractive();
+        } else {
+          SubmitClientCiphertext();
+        }
+      }
+
+      QSharedPointer<AsymmetricKey> GetKey() const
+      {
+        return _state->anonymous_sig_key;
+      }
+
+      QVector<QSharedPointer<AsymmetricKey> > GetKeys() const
+      {
+        return _state->slot_sig_keys.toVector();
+      }
+
+    signals:
+      void ReadyForInteraction();
 
     protected:
       typedef Utils::Random Random;
@@ -436,6 +477,7 @@ namespace BlogDropPrivate {
       void SubmitServerMasterPublicKey();
       void PrepareForBulk();
       void SubmitClientCiphertext();
+      void ServerTestInteractive();
       void SetOnlineClients();
       void SubmitClientList();
       void SubmitServerCiphertext();
@@ -459,6 +501,8 @@ namespace BlogDropPrivate {
       QSharedPointer<State> _state;
       RoundStateMachine<BlogDropRound> _state_machine;
       bool _stop_next;
+      bool m_interactive;
+      bool m_resumed;
 
     private slots:
       void GenerateClientCiphertextDone(const QByteArray &mycipher);

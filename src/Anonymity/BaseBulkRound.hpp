@@ -98,6 +98,11 @@ namespace Anonymity {
         _bad_members = bad_members;
       }
 
+      void SetShuffleRound(const QSharedPointer<Round> &round)
+      {
+        _shuffle_round = round;
+      }
+
     private:
       /**
        * Returns the data for sending in the shuffle round
@@ -135,7 +140,7 @@ namespace Anonymity {
        * Handle a data message from a remote peer
        * @param notification message from a remote peer
        */
-      virtual void IncomingDataSpecial(const Request &) { }
+      virtual void IncomingDataSpecial(const Request &);
 
     private slots:
       /**

@@ -21,6 +21,10 @@
 #include "NullRound.hpp"
 #include "CSBulkRound.hpp"
 
+#ifdef CS_BLOG_DROP
+#include "BlogDropRound.hpp"
+#endif
+
 namespace Dissent {
   using Crypto::CryptoFactory;
   using Crypto::CryptoRandom;
@@ -49,19 +53,22 @@ namespace Anonymity {
         &CSBulkRound::ProcessBlameShuffle);
     _state_machine.AddState(FINISHED);
 
+#ifdef CS_BLOG_DROP
+    _state_machine.AddState(PROCESS_BOOTSTRAP, -1, 0,
+        &CSBulkRound::ProcessBlogDrop);
+#else
     if(GetShuffleRound().dynamicCast<NeffKeyShuffle>()) {
-      _state_machine.AddState(PROCESS_KEY_SHUFFLE, -1, 0,
+      _state_machine.AddState(PROCESS_BOOTSTRAP, -1, 0,
           &CSBulkRound::ProcessKeyShuffle);
-      _state_machine.AddTransition(SHUFFLING, PROCESS_KEY_SHUFFLE);
-      _state_machine.AddTransition(PROCESS_KEY_SHUFFLE, PREPARE_FOR_BULK);
     } else {
-      _state_machine.AddState(PROCESS_DATA_SHUFFLE, -1, 0,
+      _state_machine.AddState(PROCESS_BOOTSTRAP, -1, 0,
           &CSBulkRound::ProcessDataShuffle);
-      _state_machine.AddTransition(SHUFFLING, PROCESS_DATA_SHUFFLE);
-      _state_machine.AddTransition(PROCESS_DATA_SHUFFLE, PREPARE_FOR_BULK);
     }
+#endif
 
     _state_machine.AddTransition(OFFLINE, SHUFFLING);
+    _state_machine.AddTransition(SHUFFLING, PROCESS_BOOTSTRAP);
+    _state_machine.AddTransition(PROCESS_BOOTSTRAP, PREPARE_FOR_BULK);
     _state_machine.AddTransition(STARTING_BLAME_SHUFFLE,
         WAITING_FOR_BLAME_SHUFFLE);
     _state_machine.SetState(OFFLINE);
@@ -85,7 +92,21 @@ namespace Anonymity {
     headers["bulk"] = false;
     headers["special"] = true;
     net->SetHeaders(headers);
-#if DISSENT_TEST
+#ifdef CS_BLOG_DROP
+    QSharedPointer<BlogDropRound> bdr(new BlogDropRound(
+          Crypto::BlogDrop::Parameters::CppECHashingProduction(),
+          group, ident, round_id, net, _get_blame_data,
+          TCreateRound<NeffShuffle>));
+    bdr->SetSharedPointer(bdr);
+    bdr->SetInteractiveMode();
+
+    SetShuffleRound(bdr);
+    _state->blame_shuffle = bdr;
+
+    QObject::connect(bdr.data(), SIGNAL(ReadyForInteraction()),
+        this, SLOT(OperationFinished()));
+#else
+#ifdef DISSENT_TEST
     _state->blame_shuffle = QSharedPointer<Round>(new NullRound(GetGroup(),
           GetPrivateIdentity(), bsr_id, net, _get_blame_data));
 #else
@@ -94,6 +115,7 @@ namespace Anonymity {
 #endif
     QObject::connect(_state->blame_shuffle.data(), SIGNAL(Finished()),
         this, SLOT(OperationFinished()));
+#endif
     _state->blame_shuffle->SetSink(&_blame_sink);
   }
 
@@ -736,7 +758,11 @@ namespace Anonymity {
 
   void CSBulkRound::StartShuffle()
   {
+#ifdef CS_BLOG_DROP
+    _state->blame_shuffle->Start();
+#else
     GetShuffleRound()->Start();
+#endif
   }
 
   QPair<QByteArray, bool> CSBulkRound::GetShuffleData(int)
@@ -828,6 +854,31 @@ namespace Anonymity {
 
     _state_machine.StateComplete();
   }
+
+#ifdef CS_BLOG_DROP
+  void CSBulkRound::ProcessBlogDrop()
+  {
+    QSharedPointer<BlogDropRound> bdr =
+      _state->blame_shuffle.dynamicCast<BlogDropRound>();
+    _state->anonymous_key = bdr->GetKey();
+    Q_ASSERT(_state->anonymous_key);
+
+    _state->anonymous_keys = bdr->GetKeys();
+
+    _state->my_idx = -1;
+    for(int idx = 0; idx < _state->anonymous_keys.count(); idx++) {
+      if(_state->anonymous_key->VerifyKey(*_state->anonymous_keys[idx])) {
+        _state->my_idx = idx;
+        break;
+      }
+    }
+
+    Q_ASSERT(_state->my_idx > -1);
+    Q_ASSERT(_state->my_idx < _state->anonymous_keys.count());
+
+    _state_machine.StateComplete();
+  }
+#endif
 
   void CSBulkRound::PrepareForBulk()
   {
@@ -1152,7 +1203,11 @@ namespace Anonymity {
 
   void CSBulkRound::StartBlameShuffle()
   {
+#ifdef CS_BLOG_DROP
+    _state->blame_shuffle.dynamicCast<BlogDropRound>()->Resume(_state->accuser);
+#else
     _state->blame_shuffle->Start();
+#endif
   }
 
   void CSBulkRound::ProcessBlameShuffle()
@@ -1353,6 +1408,7 @@ namespace Anonymity {
 
       if(msg_pp[0] != char(0)) {
         _state->start_accuse = true;
+        _state->accuser = owner;
         if(owner == _state->my_idx) {
           _state->my_accuse = true;
         }

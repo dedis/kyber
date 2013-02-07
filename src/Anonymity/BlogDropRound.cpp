@@ -34,7 +34,9 @@ namespace Anonymity {
     BaseBulkRound(group, ident, round_id, network, get_data, create_shuffle),
     _params(params),
     _state_machine(this),
-    _stop_next(false)
+    _stop_next(false),
+    m_interactive(false),
+    m_resumed(false)
   {
     _state_machine.AddState(OFFLINE);
     _state_machine.AddState(SHUFFLING, -1, 0, &BlogDropRound::StartShuffle);
@@ -93,6 +95,9 @@ namespace Anonymity {
         SERVER_PUBLIC_KEY, &BlogDropRound::HandleServerPublicKey, 
         &BlogDropRound::SubmitServerPublicKey);
 
+    _state_machine.AddState(SERVER_TEST_INTERACTIVE,
+        0, 0, &BlogDropRound::ServerTestInteractive);
+
     _state_machine.AddState(SERVER_WAIT_FOR_CLIENT_CIPHERTEXT,
         CLIENT_CIPHERTEXT, &BlogDropRound::HandleClientCiphertext,
         &BlogDropRound::SetOnlineClients);
@@ -138,6 +143,8 @@ namespace Anonymity {
     }
 
     _state_machine.AddTransition(PREPARE_FOR_BULK,
+        SERVER_TEST_INTERACTIVE);
+    _state_machine.AddTransition(SERVER_TEST_INTERACTIVE,
         SERVER_WAIT_FOR_CLIENT_CIPHERTEXT);
     _state_machine.AddTransition(SERVER_WAIT_FOR_CLIENT_CIPHERTEXT,
         SERVER_WAIT_FOR_CLIENT_LISTS);
@@ -148,7 +155,7 @@ namespace Anonymity {
     _state_machine.AddTransition(SERVER_WAIT_FOR_SERVER_VALIDATION,
         SERVER_PUSH_CLEARTEXT);
     _state_machine.AddTransition(SERVER_PUSH_CLEARTEXT,
-        SERVER_WAIT_FOR_CLIENT_CIPHERTEXT);
+        SERVER_TEST_INTERACTIVE);
 
     _state_machine.SetCycleState(SERVER_PUSH_CLEARTEXT);
   }
@@ -278,11 +285,13 @@ namespace Anonymity {
       }
     }
 
-    // Increment the always_open pointer until we find a closed
-    // slot or we wrap around
-    for(int user_idx=0; user_idx<_state->n_clients; user_idx++) {
-      _state->always_open = (_state->always_open+1) % _state->n_clients;
-      if(!_state->slots_open[_state->always_open]) break;
+    if(!m_interactive) {
+      // Increment the always_open pointer until we find a closed
+      // slot or we wrap around
+      for(int user_idx=0; user_idx<_state->n_clients; user_idx++) {
+        _state->always_open = (_state->always_open+1) % _state->n_clients;
+        if(!_state->slots_open[_state->always_open]) break;
+      }
     }
 
     for(int slot_idx=0; slot_idx<_state->n_clients; slot_idx++) {
@@ -671,11 +680,13 @@ namespace Anonymity {
     GetShuffleRound()->Start();
   }
 
-  QPair<QByteArray, bool> BlogDropRound::GetShuffleData(int)
+  QPair<QByteArray, bool> BlogDropRound::GetShuffleData(int max)
   {
     QDataStream stream(&_state->shuffle_data, QIODevice::WriteOnly);
     stream << _state->anonymous_pk->GetByteArray() << _state->anonymous_sig_key->GetPublicKey()->GetByteArray();
-    return QPair<QByteArray, bool>(_state->shuffle_data, false);
+    QPair<QByteArray, bool> output(_state->shuffle_data, false);
+    Q_ASSERT(_state->shuffle_data.size() <= max);
+    return output;
   }
 
   void BlogDropRound::ShuffleFinished()
@@ -931,6 +942,12 @@ namespace Anonymity {
 
   void BlogDropRound::SubmitClientCiphertext()
   {
+    if(m_interactive && !m_resumed) {
+      emit ReadyForInteraction();
+      return;
+    }
+    m_resumed = false;
+
     BlogDropPrivate::GenerateClientCiphertext *gen =
       new BlogDropPrivate::GenerateClientCiphertext(this);
     QObject::connect(gen, SIGNAL(Finished(QByteArray)),
@@ -994,6 +1011,11 @@ namespace Anonymity {
         break;
     }
 
+    if(m_interactive) {
+      this_plaintext = pair.first;
+      _state->next_plaintext = QByteArray();
+    }
+
     _state->blogdrop_author->GetParameters()->SetNElements(nelms_orig);
 
     // Slots stay open for 5 rounds
@@ -1025,6 +1047,16 @@ namespace Anonymity {
     qDebug() << "out" << out.count() << "max" << _state->blogdrop_author->MaxPlaintextLength();
     Q_ASSERT(out.count() <= _state->blogdrop_author->MaxPlaintextLength());
     return out;
+  }
+
+  void BlogDropRound::ServerTestInteractive()
+  {
+    if(m_interactive && !m_resumed) {
+      emit ReadyForInteraction();
+      return;
+    }
+    m_resumed = false;
+    _state_machine.StateComplete();
   }
 
   void BlogDropRound::SetOnlineClients()

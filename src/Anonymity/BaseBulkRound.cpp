@@ -65,15 +65,26 @@ namespace Anonymity {
 
     QVariantHash msg = notification.GetData().toHash();
 
-    bool bulk = msg.value("bulk").toBool();
-    if(bulk) {
+    if(msg.value("special", false).toBool()) {
+      IncomingDataSpecial(notification);
+    } else if(msg.value("bulk", false).toBool()) {
       ProcessData(id, msg.value("data").toByteArray());
     } else {
-      if(msg.value("special", false).toBool()) {
-        IncomingDataSpecial(notification);
-      } else {
-        _shuffle_round->IncomingData(notification);
-      }
+      _shuffle_round->IncomingData(notification);
+    }
+  }
+
+  void BaseBulkRound::IncomingDataSpecial(const Request &notification)
+  {
+    QVariantHash msg = notification.GetData().toHash();
+
+    if(msg.value("bulk", false).toBool()) {
+      QSharedPointer<Connections::IOverlaySender> sender =
+        notification.GetFrom().dynamicCast<Connections::IOverlaySender>();
+      const Id &id = sender->GetRemoteId();
+      ProcessData(id, msg.value("data").toByteArray());
+    } else {
+      _shuffle_round->IncomingData(notification);
     }
   }
 

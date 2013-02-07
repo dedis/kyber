@@ -61,8 +61,7 @@ namespace Anonymity {
       enum States {
         OFFLINE = 0,
         SHUFFLING,
-        PROCESS_DATA_SHUFFLE,
-        PROCESS_KEY_SHUFFLE,
+        PROCESS_BOOTSTRAP,
         PREPARE_FOR_BULK,
         CLIENT_WAIT_FOR_CLEARTEXT,
         SERVER_WAIT_FOR_CLIENT_CIPHERTEXT,
@@ -265,6 +264,7 @@ namespace Anonymity {
           int my_idx;
           Id my_server;
           bool start_accuse;
+          int accuser;
           bool my_accuse;
           int accuse_idx;
           int blame_phase;
@@ -465,6 +465,9 @@ namespace Anonymity {
       void ProcessDataShuffle();
       void ProcessKeyShuffle();
       void PrepareForBulk();
+#ifdef CS_BLOG_DROP
+      void ProcessBlogDrop();
+#endif
       void SubmitClientCiphertext();
       void SetOnlineClients();
       void SubmitClientList();
