@@ -164,6 +164,7 @@ namespace Crypto {
       Integer value = Integer(padded);
       if(InGroup(value)) {
         encoded = value;
+        qDebug() << padded.size() << value.GetByteArray().size() << "UMM" << value.ToString();
         return true;
       }
     }
@@ -203,7 +204,7 @@ namespace Crypto {
 
     Integer secret = CryptoRandom().GetInteger(2, GetSubgroup());
     Integer shared = GetGenerator().Pow(secret, GetModulus());
-    Integer encrypted = (encoded * GetPublicElement().Pow(secret, GetModulus())) % GetModulus();
+    Integer encrypted = encoded.Multiply(GetPublicElement().Pow(secret, GetModulus()), GetModulus());
 
     QByteArray out;
     QDataStream stream(&out, QIODevice::WriteOnly);
@@ -248,14 +249,14 @@ namespace Crypto {
         qDebug() << "Invalid key";
       }
 
-      encrypted = (encrypted * pkey->GetPublicElement()) % modulus;
+      encrypted = encrypted.Multiply(pkey->GetPublicElement(), modulus);
     }
 
     Integer secret = CryptoRandom().GetInteger(2, first->GetSubgroup());
     Integer shared = generator.Pow(secret, modulus);
 
     encrypted = encrypted.Pow(secret, modulus);
-    encrypted = (encoded * encrypted) % modulus;
+    encrypted = encoded.Multiply(encrypted, modulus);
 
     QByteArray out;
     QDataStream stream(&out, QIODevice::WriteOnly);

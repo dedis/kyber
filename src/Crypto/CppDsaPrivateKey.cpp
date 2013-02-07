@@ -124,10 +124,9 @@ namespace Crypto {
       return QByteArray();
     }
 
-    Integer result = (encrypted *
-        shared.Pow(GetPrivateExponent(), GetModulus()).
-          Inverse(GetModulus()))
-      % GetModulus();
+    Integer result = encrypted.Multiply(
+        shared.Pow(GetPrivateExponent(), GetModulus()).Inverse(GetModulus()),
+        GetModulus());
 
     QByteArray output;
     if(Decode(result, output)) {
@@ -152,9 +151,9 @@ namespace Crypto {
       return QByteArray();
     }
 
-    Integer result = (encrypted *
-        shared.Pow(GetPrivateExponent(), GetModulus()).Inverse(GetModulus()))
-      % GetModulus();
+    Integer result = encrypted.Multiply(
+        shared.Pow(GetPrivateExponent(), GetModulus()).Inverse(GetModulus()),
+        GetModulus());
 
     QByteArray out;
     QDataStream ostream(&out, QIODevice::WriteOnly);
