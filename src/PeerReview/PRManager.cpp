@@ -4,16 +4,11 @@
 #include "SendEntry.hpp"
 
 #include "Crypto/AsymmetricKey.hpp"
-#include "Crypto/CryptoFactory.hpp"
 #include "Crypto/Hash.hpp"
-#include "Crypto/Library.hpp"
-
 #include "Utils/Serialization.hpp"
 
 using Dissent::Crypto::AsymmetricKey;
-using Dissent::Crypto::CryptoFactory;
 using Dissent::Crypto::Hash;
-using Dissent::Crypto::Library;
 
 namespace Dissent {
 namespace PeerReview {

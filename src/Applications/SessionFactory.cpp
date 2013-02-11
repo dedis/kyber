@@ -2,8 +2,8 @@
 #include "Anonymity/BulkRound.hpp"
 #include "Anonymity/CSBulkRound.hpp"
 #include "Anonymity/RepeatingBulkRound.hpp"
-#include "Anonymity/NeffKeyShuffle.hpp"
-#include "Anonymity/NeffShuffle.hpp"
+#include "Anonymity/NeffKeyShuffleRound.hpp"
+#include "Anonymity/NeffShuffleRound.hpp"
 #include "Anonymity/NullRound.hpp"
 #include "Anonymity/Round.hpp"
 #include "Anonymity/Sessions/Session.hpp"
@@ -21,8 +21,8 @@
 
 using Dissent::Anonymity::BulkRound;
 using Dissent::Anonymity::CSBulkRound;
-using Dissent::Anonymity::NeffKeyShuffle;
-using Dissent::Anonymity::NeffShuffle;
+using Dissent::Anonymity::NeffKeyShuffleRound;
+using Dissent::Anonymity::NeffShuffleRound;
 using Dissent::Anonymity::NullRound;
 using Dissent::Anonymity::RepeatingBulkRound;
 using Dissent::Anonymity::Sessions::Session;
@@ -35,8 +35,6 @@ using Dissent::Connections::DefaultNetwork;
 using Dissent::Connections::Network;
 using Dissent::Connections::Id;
 using Dissent::Crypto::AsymmetricKey;
-using Dissent::Crypto::CryptoFactory;
-using Dissent::Crypto::Library;
 using Dissent::Identity::Group;
 using Dissent::Identity::Authentication::IAuthenticate;
 using Dissent::Identity::Authentication::IAuthenticator;
@@ -66,10 +64,10 @@ namespace Applications {
         cr = &TCreateRound<RepeatingBulkRound>;
         break;
       case CSBULK:
-        cr = &TCreateBulkRound<CSBulkRound, NeffKeyShuffle>;
+        cr = &TCreateBulkRound<CSBulkRound, NeffKeyShuffleRound>;
         break;
       case NEFF_SHUFFLE:
-        cr = &TCreateRound<NeffShuffle>;
+        cr = &TCreateRound<NeffShuffleRound>;
         break;
       default:
         qFatal("Invalid session type");

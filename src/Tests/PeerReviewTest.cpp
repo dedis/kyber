@@ -41,9 +41,7 @@ namespace Tests {
 
   TEST(PeerReview, SendEntry)
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<AsymmetricKey> key(lib.CreatePrivateKey());
-
+    QSharedPointer<AsymmetricKey> key(new DsaPrivateKey());
     QSharedPointer<Entry> entry = CreateSendEntry(key);
     QSharedPointer<Entry> entry0 = ParseEntry(entry->Serialize());
 
@@ -53,9 +51,8 @@ namespace Tests {
 
   TEST(PeerReview, ReceiveEntry)
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<AsymmetricKey> key0(lib.CreatePrivateKey());
-    QSharedPointer<AsymmetricKey> key1(lib.CreatePrivateKey());
+    QSharedPointer<AsymmetricKey> key0(new DsaPrivateKey());
+    QSharedPointer<AsymmetricKey> key1(new DsaPrivateKey());
 
     QSharedPointer<Entry> se = CreateSendEntry(key0);
     QSharedPointer<Entry> re = CreateReceiveEntry(key1, se);
@@ -81,9 +78,8 @@ namespace Tests {
 
   TEST(PeerReview, Acknowledgement)
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<AsymmetricKey> key0(lib.CreatePrivateKey());
-    QSharedPointer<AsymmetricKey> key1(lib.CreatePrivateKey());
+    QSharedPointer<AsymmetricKey> key0(new DsaPrivateKey());
+    QSharedPointer<AsymmetricKey> key1(new DsaPrivateKey());
 
     QSharedPointer<Entry> se = CreateSendEntry(key0);
     QSharedPointer<Entry> re = CreateReceiveEntry(key1, se);
@@ -101,9 +97,8 @@ namespace Tests {
 
   TEST(PeerReview, EntryLog)
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<AsymmetricKey> key0(lib.CreatePrivateKey());
-    QSharedPointer<AsymmetricKey> key1(lib.CreatePrivateKey());
+    QSharedPointer<AsymmetricKey> key0(new DsaPrivateKey());
+    QSharedPointer<AsymmetricKey> key1(new DsaPrivateKey());
     CryptoRandom rand;
     Hash hash;
     Id id0, id1;
@@ -164,17 +159,16 @@ namespace Tests {
 
   TEST(PeerReview, PeerReview)
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
     CryptoRandom rand;
 
     PrivateIdentity cred0(Id(),
-          QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
-          QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
+          QSharedPointer<AsymmetricKey>(new DsaPrivateKey()),
+          QSharedPointer<AsymmetricKey>(new RsaPrivateKey()),
           DiffieHellman());
 
     PrivateIdentity cred1(Id(),
-          QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
-          QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
+          QSharedPointer<AsymmetricKey>(new DsaPrivateKey()),
+          QSharedPointer<AsymmetricKey>(new RsaPrivateKey()),
           DiffieHellman());
 
     Group group;

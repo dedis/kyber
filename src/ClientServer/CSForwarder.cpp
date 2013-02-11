@@ -3,6 +3,7 @@
 #include "Connections/Connection.hpp"
 #include "Connections/RelayEdge.hpp"
 #include "Messaging/Request.hpp"
+#include "Utils/Random.hpp"
 
 #include "CSForwarder.hpp"
 

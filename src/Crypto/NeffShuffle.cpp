@@ -1,25 +1,20 @@
 #include <QDataStream>
+#include <QDebug>
 
-#include "CppDsaPrivateKey.hpp"
-#include "CppDsaPublicKey.hpp"
-#include "CppNeffShuffle.hpp"
+#include "DsaPrivateKey.hpp"
+#include "DsaPublicKey.hpp"
+#include "NeffShuffle.hpp"
 #include "CryptoRandom.hpp"
 #include "Hash.hpp"
 
 namespace Dissent {
 namespace Crypto {
-  bool CppNeffShuffle::Shuffle(const QVector<QByteArray> &input,
-      const QSharedPointer<AsymmetricKey> &private_key,
-      const QVector<QSharedPointer<AsymmetricKey> > &remaining_keys,
+  bool NeffShuffle::Shuffle(const QVector<QByteArray> &input,
+      const DsaPrivateKey &private_key,
+      const QVector<DsaPublicKey> &remaining_keys,
       QVector<QByteArray> &output,
       QByteArray &proof)
   {
-    QSharedPointer<CppDsaPrivateKey> pkey = private_key.dynamicCast<CppDsaPrivateKey>();
-    if(!pkey) {
-      qCritical() << "Unable to convert pkey to DSA key";
-      return false;
-    }
-
     // Setup
     int k = input.size();
     QVector<Integer> X, Y;
@@ -31,19 +26,13 @@ namespace Crypto {
       Y.append(enc);
     }
 
-    Integer modulus = pkey->GetModulus();
-    Integer subgroup = pkey->GetSubgroup();
-    Integer generator = pkey->GetGenerator();
-    Integer h = pkey->GetPublicElement();
+    Integer modulus = private_key.GetModulus();
+    Integer subgroup = private_key.GetSubgroupOrder();
+    Integer generator = private_key.GetGenerator();
+    Integer h = private_key.GetPublicElement();
 
-    foreach(const QSharedPointer<AsymmetricKey> &key, remaining_keys) {
-      QSharedPointer<CppDsaPublicKey> tkey = key.dynamicCast<CppDsaPublicKey>();
-      if(!tkey) {
-        qCritical() << "Unable to convert pkey to DSA key";
-        return false;
-      }
-
-      h = (h * tkey->GetPublicElement()) % modulus;
+    foreach(const DsaPublicKey &key, remaining_keys) {
+      h = (h * key.GetPublicElement()) % modulus;
     }
 
     if(input.size() == 0) {
@@ -265,7 +254,7 @@ namespace Crypto {
     QVector<QPair<Integer, Integer> > decryption_proof;
 
     foreach(const QByteArray &encrypted, output) {
-      decrypted.append(pkey->SeriesDecrypt(encrypted));
+      decrypted.append(private_key.SeriesDecrypt(encrypted));
       if(decrypted.last().isEmpty()) {
         qDebug() << "Invalid encryption";
         return false;
@@ -278,7 +267,7 @@ namespace Crypto {
       Integer t = erand.GetInteger(2, subgroup);
       Integer T = shared.Pow(t, modulus);
       Integer c = rand.GetInteger(2, subgroup);
-      Integer s = (t + c * pkey->GetPrivateExponent()) % subgroup;
+      Integer s = (t + c * private_key.GetPrivateExponent()) % subgroup;
       decryption_proof.append(QPair<Integer, Integer>(T, s));
     }
 
@@ -287,8 +276,8 @@ namespace Crypto {
     return true;
   }
 
-  bool CppNeffShuffle::Verify(const QVector<QByteArray> &input,
-      const QVector<QSharedPointer<AsymmetricKey> > &keys,
+  bool NeffShuffle::Verify(const QVector<QByteArray> &input,
+      const QVector<DsaPublicKey> &keys,
       const QByteArray &input_proof,
       QVector<QByteArray> &output)
   {
@@ -297,30 +286,15 @@ namespace Crypto {
       return false;
     }
 
-    QSharedPointer<CppDsaPublicKey> pkey =
-      keys[0].dynamicCast<CppDsaPublicKey>();
-
-    if(!pkey) {
-      qCritical() << "Unable to convert pkey to DSA key";
-      return false;
-    }
-
+    const DsaPublicKey &pkey = keys[0];
     int k = input.size();
-    Integer modulus = pkey->GetModulus();
-    Integer subgroup = pkey->GetSubgroup();
-    Integer generator = pkey->GetGenerator();
-    Integer h = pkey->GetPublicElement();
+    Integer modulus = pkey.GetModulus();
+    Integer subgroup = pkey.GetSubgroupOrder();
+    Integer generator = pkey.GetGenerator();
+    Integer h = pkey.GetPublicElement();
 
     for(int idx = 1; idx < keys.size(); idx++) {
-      QSharedPointer<CppDsaPublicKey> tkey =
-        keys[idx].dynamicCast<CppDsaPublicKey>();
-
-      if(!tkey) {
-        qCritical() << "Unable to convert pkey to DSA key";
-        return false;
-      }
-
-      h = (h * tkey->GetPublicElement()) % modulus;
+      h = (h * keys[idx].GetPublicElement()) % modulus;
     }
 
     QVector<Integer> X, Y;
@@ -329,11 +303,11 @@ namespace Crypto {
       Integer shared, enc;
       tstream >> shared >> enc;
 
-      if(!pkey->InGroup(shared)) {
+      if(!pkey.InGroup(shared)) {
         qCritical() << "Shared" << idx << "not within group";
         return false;
       }
-      if(!pkey->InGroup(enc)) {
+      if(!pkey.InGroup(enc)) {
         qCritical() << "Encrypted" << idx << "not within group";
         return false;
       }

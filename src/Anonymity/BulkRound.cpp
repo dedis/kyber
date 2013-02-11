@@ -13,7 +13,6 @@
 
 namespace Dissent {
 
-using Crypto::CryptoFactory;
 using Crypto::CryptoRandom;
 using Crypto::Hash;
 using Identity::PublicIdentity;

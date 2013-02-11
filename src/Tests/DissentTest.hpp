@@ -1,8 +1,8 @@
 #ifndef DISSENT_TEST_H_GUARD
 #define DISSENT_TEST_H_GUARD
 
-#define TEST_RANGE_MIN 15
-#define TEST_RANGE_MAX 25
+#define TEST_RANGE_MIN 6
+#define TEST_RANGE_MAX 12
 
 #include <qcoreapplication.h>
 

@@ -1,15 +1,13 @@
 #include "ShuffleRoundBlame.hpp"
 
-#include "Crypto/CryptoFactory.hpp"
 #include "Connections/EmptyNetwork.hpp"
+#include "Crypto/ThreadedOnionEncryptor.hpp"
 #include "Identity/PrivateIdentity.hpp"
 
-using Dissent::Crypto::CryptoFactory;
 #include "Crypto/Hash.hpp"
 #include "ShuffleRoundBlame.hpp"
 
 using Dissent::Crypto::Hash;
-using Dissent::Crypto::OnionEncryptor;
 using Dissent::Identity::PrivateIdentity;
 
 namespace Dissent {
@@ -48,9 +46,15 @@ namespace Anonymity {
 
   void ShuffleRoundBlame::Shuffle()
   {
-    OnionEncryptor &oe = CryptoFactory::GetInstance().GetOnionEncryptor();
-    oe.Decrypt(_server_state->outer_key, _server_state->shuffle_input,
+    if(Utils::MultiThreading) {
+      Crypto::ThreadedOnionEncryptor().Decrypt(
+          _server_state->outer_key, _server_state->shuffle_input,
         _server_state->shuffle_output, &_state->bad_members);
+    } else {
+      Crypto::OnionEncryptor().Decrypt(
+          _server_state->outer_key, _server_state->shuffle_input,
+        _server_state->shuffle_output, &_state->bad_members);
+    }
 
     _state_machine.StateComplete();
   }

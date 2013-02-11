@@ -26,31 +26,37 @@ void ExitWithWarning(const QxtCommandOptions &options, const char* warning)
   exit(-1);
 }
 
-class CreateKey {
+class ICreateKey {
   public:
-    virtual ~CreateKey() {}
+    virtual ~ICreateKey() {}
 
-    virtual AsymmetricKey *operator()()
+    virtual QSharedPointer<AsymmetricKey> operator()() const = 0;
+};
+
+template <typename T> class CreateKey : public ICreateKey {
+  public:
+    virtual QSharedPointer<AsymmetricKey> operator()() const
     {
-      return CryptoFactory::GetInstance().GetLibrary().CreatePrivateKey();
+      return QSharedPointer<AsymmetricKey>(new T());
     }
 };
 
-class CreateSeededDsaKey : public CreateKey {
+class CreateSeededDsaKey : public ICreateKey {
   public:
     explicit CreateSeededDsaKey(const QString &seed) :
-      _dsa_key(CppDsaPrivateKey::GenerateKey(seed.toUtf8()))
+      _dsa_key(new DsaPrivateKey(seed.toUtf8(), true))
     {
     }
 
-    virtual AsymmetricKey *operator()()
+    virtual QSharedPointer<AsymmetricKey> operator()() const
     {
-      return new CppDsaPrivateKey(_dsa_key->GetModulus(),
-          _dsa_key->GetSubgroup(), _dsa_key->GetGenerator());
+      return QSharedPointer<AsymmetricKey>(
+          new DsaPrivateKey(_dsa_key->GetModulus(),
+          _dsa_key->GetSubgroupOrder(), _dsa_key->GetGenerator()));
     }
 
   private:
-    QSharedPointer<CppDsaPrivateKey> _dsa_key;
+    QSharedPointer<DsaPrivateKey> _dsa_key;
 };
 
 int main(int argc, char **argv)
@@ -115,17 +121,17 @@ int main(int argc, char **argv)
   QString lib_name = params.value(CL_LIB, "cryptopp").toString();
   QString key = params.value(CL_KEYTYPE, "dsa").toString();
 
-  CryptoFactory &cf = CryptoFactory::GetInstance();
-  QSharedPointer<CreateKey> ck(new CreateKey());
+  QSharedPointer<ICreateKey> ck;
   if(lib_name == "cryptopp") {
     if(key == "dsa") {
-      cf.SetLibrary(CryptoFactory::CryptoPPDsa);
       if(params.contains(CL_RAND)) {
-        ck = QSharedPointer<CreateKey>(
+        ck = QSharedPointer<ICreateKey>(
             new CreateSeededDsaKey(params.value(CL_RAND).toString()));
+      } else {
+        ck = QSharedPointer<ICreateKey>(new CreateKey<DsaPrivateKey>());
       }
     } else if (key == "rsa") {
-      cf.SetLibrary(CryptoFactory::CryptoPP);
+      ck = QSharedPointer<ICreateKey>(new CreateKey<RsaPrivateKey>());
     } else {
       ExitWithWarning(options, "Invalid key type");
     }

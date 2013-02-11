@@ -40,21 +40,21 @@ namespace Tests {
 
   TEST(CSBulkRound, BasicRoundManagedNeffKey)
   {
-    RoundTest_Basic(SessionCreator(TCreateBulkRound<CSBulkRound, NeffKeyShuffle>),
+    RoundTest_Basic(SessionCreator(TCreateBulkRound<CSBulkRound, NeffKeyShuffleRound>),
         Group::ManagedSubgroup);
   }
 
   TEST(CSBulkRound, MultiRoundManagedNeffKey)
   {
-    RoundTest_MultiRound(SessionCreator(TCreateBulkRound<CSBulkRound, NeffKeyShuffle>),
+    RoundTest_MultiRound(SessionCreator(TCreateBulkRound<CSBulkRound, NeffKeyShuffleRound>),
         Group::ManagedSubgroup);
   }
 
   TEST(CSBulkRound, BadClient)
   {
     typedef CSBulkRoundBadClient badbulk;
-    RoundTest_BadGuy(SessionCreator(TCreateBulkRound<CSBulkRound, NeffKeyShuffle>),
-      SessionCreator(TCreateBulkRound<badbulk, NeffKeyShuffle>),
+    RoundTest_BadGuy(SessionCreator(TCreateBulkRound<CSBulkRound, NeffKeyShuffleRound>),
+      SessionCreator(TCreateBulkRound<badbulk, NeffKeyShuffleRound>),
       Group::ManagedSubgroup, TBadGuyCB<badbulk>);
   }
 }

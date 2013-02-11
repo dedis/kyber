@@ -41,10 +41,9 @@ namespace Tests {
 
   TEST(NullAuthenticate, Base)
   {
-    Crypto::Library &lib = Crypto::CryptoFactory::GetInstance().GetLibrary();
     PrivateIdentity client(Id(),
-        QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
-        QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
+        QSharedPointer<AsymmetricKey>(new DsaPrivateKey()),
+        QSharedPointer<AsymmetricKey>(new RsaPrivateKey()),
         DiffieHellman());
 
     NullAuthenticate authe(client);
@@ -54,21 +53,19 @@ namespace Tests {
 
   TEST(PreExchangedKeyAuth, Base)
   {
-    Crypto::Library &lib = Crypto::CryptoFactory::GetInstance().GetLibrary();
-
     PrivateIdentity client(Id(),
-        QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
-        QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
+        QSharedPointer<AsymmetricKey>(new DsaPrivateKey()),
+        QSharedPointer<AsymmetricKey>(new RsaPrivateKey()),
         DiffieHellman());
 
     PrivateIdentity nclient(Id(),
-        QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
-        QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
+        QSharedPointer<AsymmetricKey>(new DsaPrivateKey()),
+        QSharedPointer<AsymmetricKey>(new RsaPrivateKey()),
         DiffieHellman());
 
     PrivateIdentity server(Id(),
-        QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
-        QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()),
+        QSharedPointer<AsymmetricKey>(new DsaPrivateKey()),
+        QSharedPointer<AsymmetricKey>(new RsaPrivateKey()),
         DiffieHellman());
 
     QSharedPointer<KeyShare> keyshare(new KeyShare());
@@ -89,21 +86,20 @@ namespace Tests {
 
   TEST(LRSAuth, Base)
   {
-    QSharedPointer<CppDsaPrivateKey> base_key(new CppDsaPrivateKey());
+    QSharedPointer<DsaPrivateKey> base_key(new DsaPrivateKey());
     Integer generator = base_key->GetGenerator();
-    Integer subgroup = base_key->GetSubgroup();
+    Integer subgroup = base_key->GetSubgroupOrder();
     Integer modulus = base_key->GetModulus();
 
-    QVector<QSharedPointer<AsymmetricKey> > priv_keys;
-    QVector<QSharedPointer<AsymmetricKey> > pub_keys;
+    QVector<DsaPrivateKey> priv_keys;
+    QVector<DsaPublicKey> pub_keys;
 
     int count = 8;
 
     for(int idx = 0; idx < count; idx++) {
-      QSharedPointer<CppDsaPrivateKey> key(
-          new CppDsaPrivateKey(modulus, subgroup, generator));
-      priv_keys.append(key);
-      pub_keys.append(QSharedPointer<AsymmetricKey>(key->GetPublicKey()));
+      priv_keys.append(DsaPrivateKey(modulus, subgroup, generator));
+      pub_keys.append(DsaPublicKey(modulus, subgroup, generator,
+            priv_keys.last().GetPublicElement()));
     }
 
     CryptoRandom rng;
@@ -120,7 +116,8 @@ namespace Tests {
             new LRSPrivateKey(priv_keys[idx], pub_keys, context));
 
       Id id;
-      LRSAuthenticate lrsae(PrivateIdentity(id, priv_keys[idx],
+      LRSAuthenticate lrsae(PrivateIdentity(id,
+            QSharedPointer<AsymmetricKey>(new DsaPrivateKey(priv_keys[idx])),
             QSharedPointer<AsymmetricKey>(),
             DiffieHellman(), idx % 2 == 0), lrss);
 

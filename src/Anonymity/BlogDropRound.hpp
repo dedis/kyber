@@ -4,7 +4,7 @@
 #include <QBitArray>
 #include <QMetaEnum>
 
-#include "Crypto/CryptoFactory.hpp"
+#include "Crypto/RsaPrivateKey.hpp"
 #include "Crypto/BlogDrop/BlogDropAuthor.hpp"
 #include "Crypto/BlogDrop/BlogDropClient.hpp"
 #include "Crypto/BlogDrop/BlogDropServer.hpp"
@@ -49,7 +49,6 @@ namespace BlogDropPrivate {
 
       friend class RoundStateMachine<BlogDropRound>;
 
-      typedef Crypto::CryptoFactory CryptoFactory;
       typedef Crypto::BlogDrop::BlogDropAuthor BlogDropAuthor;
       typedef Crypto::BlogDrop::BlogDropClient BlogDropClient;
       typedef Crypto::BlogDrop::BlogDropServer BlogDropServer;
@@ -253,7 +252,7 @@ namespace BlogDropPrivate {
             client_pk(new PublicKey(client_sk)),
             anonymous_sk(new PrivateKey(params)),
             anonymous_pk(new PublicKey(anonymous_sk)),
-            anonymous_sig_key(CryptoFactory::GetInstance().GetLibrary().CreatePrivateKey()),
+            anonymous_sig_key(new Crypto::RsaPrivateKey()),
             phases_since_transmission(0),
             always_open(0) {}
 

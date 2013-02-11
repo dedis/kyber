@@ -6,12 +6,10 @@ namespace Tests {
   {
     int count = Random::GetInstance().GetInt(10, 20);
 
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-
     QVector<QSharedPointer<AsymmetricKey> > private_keys;
     QVector<QSharedPointer<AsymmetricKey> > public_keys;
     for(int idx = 0; idx < count; idx++) {
-      private_keys.append(QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()));
+      private_keys.append(QSharedPointer<AsymmetricKey>(new RsaPrivateKey()));
       public_keys.append(QSharedPointer<AsymmetricKey>(private_keys.last()->GetPublicKey()));
     }
 
@@ -65,15 +63,13 @@ namespace Tests {
     int count = Random::GetInstance().GetInt(10, 20);
     int changed = Random::GetInstance().GetInt(0, count);
 
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-
     QVector<QSharedPointer<AsymmetricKey> > private_keys;
     QVector<QSharedPointer<AsymmetricKey> > public_keys;
     for(int idx = 0; idx < count; idx++) {
-      private_keys.append(QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()));
+      private_keys.append(QSharedPointer<AsymmetricKey>(new RsaPrivateKey()));
       public_keys.append(QSharedPointer<AsymmetricKey>(private_keys.last()->GetPublicKey()));
     }
-    private_keys[changed] = QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey());
+    private_keys[changed] = QSharedPointer<AsymmetricKey>(new RsaPrivateKey());
 
     QVector<QByteArray> cleartexts;
     QVector<QByteArray> ciphertexts;
@@ -105,12 +101,10 @@ namespace Tests {
     int changed = Random::GetInstance().GetInt(0, count);
     int mchanged = Random::GetInstance().GetInt(0, count);
 
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-
     QVector<QSharedPointer<AsymmetricKey> > private_keys;
     QVector<QSharedPointer<AsymmetricKey> > public_keys;
     for(int idx = 0; idx < count; idx++) {
-      private_keys.append(QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()));
+      private_keys.append(QSharedPointer<AsymmetricKey>(new RsaPrivateKey()));
       public_keys.append(QSharedPointer<AsymmetricKey>(private_keys.last()->GetPublicKey()));
     }
 
@@ -174,12 +168,10 @@ namespace Tests {
       mchanged1 = Random::GetInstance().GetInt(0, count);
     }
 
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-
     QVector<QSharedPointer<AsymmetricKey> > private_keys;
     QVector<QSharedPointer<AsymmetricKey> > public_keys;
     for(int idx = 0; idx < count; idx++) {
-      private_keys.append(QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()));
+      private_keys.append(QSharedPointer<AsymmetricKey>(new RsaPrivateKey()));
       public_keys.append(QSharedPointer<AsymmetricKey>(private_keys.last()->GetPublicKey()));
     }
 
@@ -246,12 +238,10 @@ namespace Tests {
     int mchanged0 = Random::GetInstance().GetInt(0, count);
     int mchanged1 = Random::GetInstance().GetInt(0, count);
 
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-
     QVector<QSharedPointer<AsymmetricKey> > private_keys;
     QVector<QSharedPointer<AsymmetricKey> > public_keys;
     for(int idx = 0; idx < count; idx++) {
-      private_keys.append(QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()));
+      private_keys.append(QSharedPointer<AsymmetricKey>(new RsaPrivateKey()));
       public_keys.append(QSharedPointer<AsymmetricKey>(private_keys.last()->GetPublicKey()));
     }
 
@@ -325,12 +315,10 @@ namespace Tests {
   {
     int count = 100;
 
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-
     QVector<QSharedPointer<AsymmetricKey> > private_keys;
     QVector<QSharedPointer<AsymmetricKey> > public_keys;
     for(int idx = 0; idx < count; idx++) {
-      private_keys.append(QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey()));
+      private_keys.append(QSharedPointer<AsymmetricKey>(new RsaPrivateKey()));
       public_keys.append(QSharedPointer<AsymmetricKey>(private_keys.last()->GetPublicKey()));
     }
 

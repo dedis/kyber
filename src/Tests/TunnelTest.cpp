@@ -41,8 +41,7 @@ namespace Tests {
 
   TEST(Tunnel, UdpStartPacket)
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<AsymmetricKey> pr_key(lib.CreatePrivateKey());
+    QSharedPointer<AsymmetricKey> pr_key(new DsaPrivateKey());
     QSharedPointer<AsymmetricKey> pu_key(pr_key->GetPublicKey());
     CryptoRandom rand;
 
@@ -60,8 +59,7 @@ namespace Tests {
 
   TEST(Tunnel, UdpRequestPacket)
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<AsymmetricKey> pr_key(lib.CreatePrivateKey());
+    QSharedPointer<AsymmetricKey> pr_key(new DsaPrivateKey());
     QSharedPointer<AsymmetricKey> pu_key(pr_key->GetPublicKey());
     CryptoRandom rand;
 
@@ -80,8 +78,7 @@ namespace Tests {
 
   TEST(Tunnel, UdpResponsePacket)
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<AsymmetricKey> pr_key(lib.CreatePrivateKey());
+    QSharedPointer<AsymmetricKey> pr_key(new DsaPrivateKey());
     QSharedPointer<AsymmetricKey> pu_key(pr_key->GetPublicKey());
     CryptoRandom rand;
 
@@ -100,8 +97,7 @@ namespace Tests {
 
   TEST(Tunnel, TcpStartPacket)
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<AsymmetricKey> pr_key(lib.CreatePrivateKey());
+    QSharedPointer<AsymmetricKey> pr_key(new DsaPrivateKey());
     QSharedPointer<AsymmetricKey> pu_key(pr_key->GetPublicKey());
     CryptoRandom rand;
 
@@ -119,8 +115,7 @@ namespace Tests {
 
   TEST(Tunnel, TcpRequestPacket)
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<AsymmetricKey> pr_key(lib.CreatePrivateKey());
+    QSharedPointer<AsymmetricKey> pr_key(new DsaPrivateKey());
     QSharedPointer<AsymmetricKey> pu_key(pr_key->GetPublicKey());
     CryptoRandom rand;
 
@@ -137,8 +132,7 @@ namespace Tests {
 
   TEST(Tunnel, TcpResponsePacket)
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<AsymmetricKey> pr_key(lib.CreatePrivateKey());
+    QSharedPointer<AsymmetricKey> pr_key(new DsaPrivateKey());
     QSharedPointer<AsymmetricKey> pu_key(pr_key->GetPublicKey());
     CryptoRandom rand;
 
@@ -155,8 +149,7 @@ namespace Tests {
 
   TEST(Tunnel, Finished)
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<AsymmetricKey> pr_key(lib.CreatePrivateKey());
+    QSharedPointer<AsymmetricKey> pr_key(new DsaPrivateKey());
     QSharedPointer<AsymmetricKey> pu_key(pr_key->GetPublicKey());
     CryptoRandom rand;
 
@@ -311,7 +304,6 @@ It seems that Socks in Qt has problems...
 
   TEST(Tunnel, UdpAddress)
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
     CryptoRandom rand;
     QByteArray msg0(100, 0);
     rand.GenerateBlock(msg0);

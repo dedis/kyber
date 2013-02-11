@@ -1,19 +1,19 @@
 #if FAST_NEFF_SHUFFLE
-#include "Crypto/CppDsaPrivateKey.hpp"
-#include "Crypto/CppDsaPublicKey.hpp"
+#include "Crypto/DsaPrivateKey.hpp"
+#include "Crypto/DsaPublicKey.hpp"
 #include "Utils/QRunTimeError.hpp"
 #include "Utils/Timer.hpp"
 #include "Utils/TimerCallback.hpp"
 
-#include "NeffKeyShuffle.hpp"
+#include "NeffKeyShuffleRound.hpp"
 
 namespace Dissent {
-  using Crypto::CppDsaPrivateKey;
-  using Crypto::CppDsaPublicKey;
+  using Crypto::DsaPrivateKey;
+  using Crypto::DsaPublicKey;
   using Utils::QRunTimeError;
 
 namespace Anonymity {
-  NeffKeyShuffle::NeffKeyShuffle(const Group &group,
+  NeffKeyShuffleRound::NeffKeyShuffleRound(const Group &group,
       const PrivateIdentity &ident, const Id &round_id,
       QSharedPointer<Network> network,
       GetDataCallback &get_data) :
@@ -21,12 +21,12 @@ namespace Anonymity {
     _state_machine(this)
   {
     _state_machine.AddState(OFFLINE);
-    _state_machine.AddState(KEY_GENERATION, -1, 0, &NeffKeyShuffle::GenerateKey);
-    _state_machine.AddState(KEY_SUBMISSION, -1, 0, &NeffKeyShuffle::SubmitKey);
+    _state_machine.AddState(KEY_GENERATION, -1, 0, &NeffKeyShuffleRound::GenerateKey);
+    _state_machine.AddState(KEY_SUBMISSION, -1, 0, &NeffKeyShuffleRound::SubmitKey);
     _state_machine.AddState(WAITING_FOR_ANONYMIZED_KEYS, ANONYMIZED_KEYS,
-        &NeffKeyShuffle::HandleAnonymizedKeys);
+        &NeffKeyShuffleRound::HandleAnonymizedKeys);
     _state_machine.AddState(PROCESSING_ANONYMIZED_KEYS, -1, 0,
-        &NeffKeyShuffle::ProcessAnonymizedKeys);
+        &NeffKeyShuffleRound::ProcessAnonymizedKeys);
     _state_machine.AddState(FINISHED);
     _state_machine.SetState(OFFLINE);
 
@@ -42,27 +42,27 @@ namespace Anonymity {
     }
   }
 
-  NeffKeyShuffle::~NeffKeyShuffle()
+  NeffKeyShuffleRound::~NeffKeyShuffleRound()
   {
   }
 
-  void NeffKeyShuffle::InitServer()
+  void NeffKeyShuffleRound::InitServer()
   {
     _server_state = QSharedPointer<ServerState>(new ServerState());
     _state = _server_state;
 
-    _state_machine.AddState(SHUFFLING, -1, 0, &NeffKeyShuffle::ShuffleKeys);
+    _state_machine.AddState(SHUFFLING, -1, 0, &NeffKeyShuffleRound::ShuffleKeys);
 
     if(GetGroup().GetSubgroup().GetIndex(GetLocalId()) == 0) {
       _state_machine.AddState(WAITING_FOR_KEYS, KEY_SUBMIT,
-          &NeffKeyShuffle::HandleKeySubmission,
-          &NeffKeyShuffle::PrepareForKeySubmissions);
+          &NeffKeyShuffleRound::HandleKeySubmission,
+          &NeffKeyShuffleRound::PrepareForKeySubmissions);
 
       _state_machine.AddTransition(KEY_SUBMISSION, WAITING_FOR_KEYS);
       _state_machine.AddTransition(WAITING_FOR_KEYS, SHUFFLING);
     } else {
       _state_machine.AddState(WAITING_FOR_SHUFFLE, KEY_SHUFFLE,
-          &NeffKeyShuffle::HandleShuffle);
+          &NeffKeyShuffleRound::HandleShuffle);
 
       _state_machine.AddTransition(KEY_SUBMISSION, WAITING_FOR_SHUFFLE);
       _state_machine.AddTransition(WAITING_FOR_SHUFFLE, SHUFFLING);
@@ -71,7 +71,7 @@ namespace Anonymity {
     _state_machine.AddTransition(SHUFFLING, WAITING_FOR_ANONYMIZED_KEYS);
   }
 
-  void NeffKeyShuffle::InitClient()
+  void NeffKeyShuffleRound::InitClient()
   {
     _state = QSharedPointer<State>(new State());
 
@@ -79,19 +79,19 @@ namespace Anonymity {
         WAITING_FOR_ANONYMIZED_KEYS);
   }
 
-  void NeffKeyShuffle::OnStart()
+  void NeffKeyShuffleRound::OnStart()
   {
     Round::OnStart();
     _state_machine.StateComplete();
   }
 
-  void NeffKeyShuffle::OnStop()
+  void NeffKeyShuffleRound::OnStop()
   {
     _state_machine.SetState(FINISHED);
     Round::OnStop();
   }
 
-  void NeffKeyShuffle::HandleDisconnect(const Id &id)
+  void NeffKeyShuffleRound::HandleDisconnect(const Id &id)
   {
     if(!GetGroup().Contains(id)) {
       return;
@@ -106,7 +106,7 @@ namespace Anonymity {
     }
   }
 
-  void NeffKeyShuffle::HandleKeySubmission(const Id &from, QDataStream &stream)
+  void NeffKeyShuffleRound::HandleKeySubmission(const Id &from, QDataStream &stream)
   {
     int gidx = GetGroup().GetIndex(from);
     if(_server_state->shuffle_input[gidx] != 0) {
@@ -135,7 +135,7 @@ namespace Anonymity {
     }
   }
 
-  void NeffKeyShuffle::HandleShuffle(const Id &from, QDataStream &stream)
+  void NeffKeyShuffleRound::HandleShuffle(const Id &from, QDataStream &stream)
   {
     if(GetGroup().GetSubgroup().Previous(GetLocalId()) != from) {
       throw QRunTimeError("Received a shuffle out of order");
@@ -161,7 +161,7 @@ namespace Anonymity {
     _state_machine.StateComplete();
   }
 
-  void NeffKeyShuffle::HandleAnonymizedKeys(const Id &from,
+  void NeffKeyShuffleRound::HandleAnonymizedKeys(const Id &from,
       QDataStream &stream)
   {
     if(GetGroup().GetSubgroup().Last() != from) {
@@ -187,24 +187,24 @@ namespace Anonymity {
     _state_machine.StateComplete();
   }
 
-  void NeffKeyShuffle::GenerateKey()
+  void NeffKeyShuffleRound::GenerateKey()
   {
-    QSharedPointer<CppDsaPrivateKey> base_key(
-        CppDsaPrivateKey::GenerateKey(GetRoundId().GetByteArray()));
+    QSharedPointer<DsaPrivateKey> base_key(
+        new DsaPrivateKey(GetRoundId().GetByteArray(), true));
 
-    _state->input_private_key = QSharedPointer<CppDsaPrivateKey>(
-        new CppDsaPrivateKey(base_key->GetModulus(), base_key->GetSubgroup(),
+    _state->input_private_key = QSharedPointer<DsaPrivateKey>(
+        new DsaPrivateKey(base_key->GetModulus(), base_key->GetSubgroupOrder(),
           base_key->GetGenerator()));
     _state_machine.StateComplete();
   }
 
-  void NeffKeyShuffle::SubmitKey()
+  void NeffKeyShuffleRound::SubmitKey()
   {
     QByteArray msg;
     QDataStream stream(&msg, QIODevice::WriteOnly);
 
-    QSharedPointer<CppDsaPrivateKey> key(
-        _state->input_private_key.dynamicCast<CppDsaPrivateKey>());
+    QSharedPointer<DsaPrivateKey> key(
+        _state->input_private_key.dynamicCast<DsaPrivateKey>());
     Q_ASSERT(key);
     stream << KEY_SUBMIT << GetRoundId() << key->GetPublicElement();
 
@@ -212,27 +212,27 @@ namespace Anonymity {
     _state_machine.StateComplete();
   }
 
-  void NeffKeyShuffle::PrepareForKeySubmissions()
+  void NeffKeyShuffleRound::PrepareForKeySubmissions()
   {
     _server_state->shuffle_input = QVector<Integer>(GetGroup().Count(), 0);
     _server_state->generator_input = GetGenerator();
 
-    Utils::TimerCallback *cb = new Utils::TimerMethod<NeffKeyShuffle, int>(
-        this, &NeffKeyShuffle::ConcludeKeySubmission, 0);
+    Utils::TimerCallback *cb = new Utils::TimerMethod<NeffKeyShuffleRound, int>(
+        this, &NeffKeyShuffleRound::ConcludeKeySubmission, 0);
     _server_state->key_receive_period =
       Utils::Timer::GetInstance().QueueCallback(cb, KEY_SUBMISSION_WINDOW);
   }
 
-  void NeffKeyShuffle::ShuffleKeys()
+  void NeffKeyShuffleRound::ShuffleKeys()
   {
     NeffShuffler *shuffler =
-      new NeffShuffler(GetSharedPointer().dynamicCast<NeffKeyShuffle>());
+      new NeffShuffler(GetSharedPointer().dynamicCast<NeffKeyShuffleRound>());
     QObject::connect(this, SIGNAL(FinishedShuffle()),
         this, SLOT(TransmitKeys()), Qt::QueuedConnection);
     QThreadPool::globalInstance()->start(shuffler);
   }
 
-  void NeffKeyShuffle::TransmitKeys()
+  void NeffKeyShuffleRound::TransmitKeys()
   {
     const Id &next = GetGroup().GetSubgroup().Next(GetLocalId());
     MessageType mtype = (next == Id::Zero()) ? ANONYMIZED_KEYS : KEY_SHUFFLE; 
@@ -251,16 +251,16 @@ namespace Anonymity {
     _state_machine.StateComplete();
   }
 
-  void NeffKeyShuffle::ProcessAnonymizedKeys()
+  void NeffKeyShuffleRound::ProcessAnonymizedKeys()
   {
     KeyProcessor *processor =
-      new KeyProcessor(GetSharedPointer().dynamicCast<NeffKeyShuffle>());
+      new KeyProcessor(GetSharedPointer().dynamicCast<NeffKeyShuffleRound>());
     QObject::connect(this, SIGNAL(FinishedKeyProcessing()),
         this, SLOT(ProcessKeysDone()), Qt::QueuedConnection);
     QThreadPool::globalInstance()->start(processor);
   }
 
-  void NeffKeyShuffle::ProcessKeysDone()
+  void NeffKeyShuffleRound::ProcessKeysDone()
   {
     if(_state->user_key_index == -1) {
       _state->blame = true;
@@ -271,7 +271,7 @@ namespace Anonymity {
     Stop("Round finished");
   }
 
-  bool NeffKeyShuffle::CheckShuffleOrder(const QVector<Crypto::Integer> &keys)
+  bool NeffKeyShuffleRound::CheckShuffleOrder(const QVector<Crypto::Integer> &keys)
   {
     Integer pkey(0);
     foreach(const Integer &key, keys) {
@@ -283,7 +283,7 @@ namespace Anonymity {
     return true;
   }
 
-  void NeffKeyShuffle::ConcludeKeySubmission(const int &)
+  void NeffKeyShuffleRound::ConcludeKeySubmission(const int &)
   {
     qDebug() << "Key window has closed, unfortunately some keys may not"
       << "have transmitted in time.";
@@ -300,13 +300,13 @@ namespace Anonymity {
     _state_machine.StateComplete();
   }
 
-  void NeffKeyShuffle::NeffShuffler::run()
+  void NeffKeyShuffleRound::NeffShuffler::run()
   {
     _shuffle->_state->blame = !CheckShuffleOrder(_shuffle->_server_state->shuffle_input);
 
-    QSharedPointer<CppDsaPrivateKey> tmp_key(
-        new CppDsaPrivateKey(_shuffle->GetModulus(),
-          _shuffle->GetSubgroup(), _shuffle->GetGenerator()));
+    QSharedPointer<DsaPrivateKey> tmp_key(
+        new DsaPrivateKey(_shuffle->GetModulus(),
+          _shuffle->GetSubgroupOrder(), _shuffle->GetGenerator()));
     _shuffle->_server_state->exponent = tmp_key->GetPrivateExponent();
     _shuffle->_server_state->generator_output =
       _shuffle->_server_state->generator_input.Pow(_shuffle->_server_state->exponent,
@@ -322,7 +322,7 @@ namespace Anonymity {
     emit _shuffle->FinishedShuffle();
   }
 
-  void NeffKeyShuffle::KeyProcessor::run()
+  void NeffKeyShuffleRound::KeyProcessor::run()
   {
     _shuffle->_state->blame = !CheckShuffleOrder(_shuffle->_state->new_public_elements);
     if(_shuffle->_state->blame) {
@@ -341,14 +341,14 @@ namespace Anonymity {
     if(0 <= idx || idx < _shuffle->_state->new_public_elements.size()) {
       _shuffle->_state->user_key_index = idx;
       _shuffle->_state->output_private_key = QSharedPointer<AsymmetricKey>(
-          new CppDsaPrivateKey(_shuffle->GetModulus(), _shuffle->GetSubgroup(),
+          new DsaPrivateKey(_shuffle->GetModulus(), _shuffle->GetSubgroupOrder(),
             _shuffle->_state->new_generator, _shuffle->GetPrivateExponent()));
       qDebug() << "Found my key at" << idx;
     }
 
     foreach(const Integer &pkey, _shuffle->_state->new_public_elements) {
       _shuffle->_state->output_keys.append(QSharedPointer<AsymmetricKey>(
-            new CppDsaPublicKey(_shuffle->GetModulus(), _shuffle->GetSubgroup(),
+            new DsaPublicKey(_shuffle->GetModulus(), _shuffle->GetSubgroupOrder(),
               _shuffle->_state->new_generator, pkey)));
     }
 

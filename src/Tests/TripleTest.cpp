@@ -5,16 +5,15 @@ namespace Tests {
   TEST(Triple, Basic)
   {
     typedef Triple<Id, QSharedPointer<AsymmetricKey>, QByteArray > my_triple;
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
 
     Id id0;
-    QSharedPointer<AsymmetricKey> key0(lib.CreatePrivateKey());
+    QSharedPointer<AsymmetricKey> key0(new DsaPrivateKey());
     QSharedPointer<AsymmetricKey> pkey0(key0->GetPublicKey());
     DiffieHellman dh0;
     QByteArray pub0 = dh0.GetPublicComponent();
 
     Id id1;
-    QSharedPointer<AsymmetricKey> key1(lib.CreatePrivateKey());
+    QSharedPointer<AsymmetricKey> key1(new DsaPrivateKey());
     QSharedPointer<AsymmetricKey> pkey1(key1->GetPublicKey());
     DiffieHellman dh1;
     QByteArray pub1 = dh1.GetPublicComponent();

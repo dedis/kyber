@@ -309,7 +309,7 @@ namespace Tests {
     ASSERT_FALSE(result.toBool());
 
     // Verify sessions / no round
-    CreateSessions(nodes, group, Id(), SessionCreator(TCreateBulkRound<CSBulkRound, NeffKeyShuffle>));
+    CreateSessions(nodes, group, Id(), SessionCreator(TCreateBulkRound<CSBulkRound, NeffKeyShuffleRound>));
 
     request.setUrl("http://127.0.0.1:" + QString::number(TEST_PORT) + "/session");
     reply.reset(manager.get(request));

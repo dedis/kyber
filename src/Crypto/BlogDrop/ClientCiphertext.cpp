@@ -1,7 +1,6 @@
 #include <QtCore>
 
-#include "Crypto/CryptoFactory.hpp"
-
+#include "Utils/Utils.hpp"
 #include "BlogDropUtils.hpp"
 #include "CiphertextFactory.hpp"
 #include "ClientCiphertext.hpp"
@@ -32,9 +31,7 @@ namespace BlogDrop {
   {
     Q_ASSERT(pubs.count() == c.count());
 
-    CryptoFactory::ThreadingType tt = CryptoFactory::GetInstance().GetThreadingType();
-
-    if(tt == CryptoFactory::SingleThreaded) {
+    if(!Utils::MultiThreading) {
       QList<QSharedPointer<const ClientCiphertext> > list;
 
       // Unpack each ciphertext
@@ -51,7 +48,7 @@ namespace BlogDrop {
         }
       }
 
-    } else if(tt == CryptoFactory::MultiThreaded) {
+    } else {
       QList<QSharedPointer<MapData> > ms;
 
       // Unpack each ciphertext copying parameters to
@@ -78,9 +75,7 @@ namespace BlogDrop {
         }
       }
 
-    } else {
-      qFatal("Unknown threading type");
-    }
+    } 
   }
 
   bool ClientCiphertext::VerifyOnce(const QSharedPointer<MapData> &m)

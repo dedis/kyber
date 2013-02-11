@@ -11,15 +11,10 @@
 #include <QVector>
 
 #include "Connections/Id.hpp"
-#include "Crypto/CryptoFactory.hpp"
-
+#include "Crypto/DsaPublicKey.hpp"
 #include "PublicIdentity.hpp"
 
 namespace Dissent {
-namespace Crypto {
-  class AsymmetricKey;
-}
-
 namespace Identity {
   /**
    * Private data structure for Group storage.
@@ -216,8 +211,7 @@ namespace Identity {
 
       inline static const QSharedPointer<AsymmetricKey> &EmptyKey()
       {
-        static QSharedPointer<AsymmetricKey> key(
-            Crypto::CryptoFactory::GetInstance().GetLibrary().GeneratePublicKey(QByteArray()));
+        static QSharedPointer<AsymmetricKey> key(new Crypto::DsaPublicKey());
         return key;
       }
     private:

@@ -1,13 +1,13 @@
-#include "CppDsaPublicKey.hpp"
+#include "DsaPublicKey.hpp"
 #include "Hash.hpp"
 #include "LRSPublicKey.hpp"
 
 namespace Dissent {
 namespace Crypto {
   LRSPublicKey::LRSPublicKey(
-      const QVector<QSharedPointer<AsymmetricKey> > &public_keys,
+      const QVector<DsaPublicKey> &public_keys,
       const QByteArray &linkage_context) :
-    _valid(true)
+    m_valid(true)
   {
     if(public_keys.count() == 0) {
       qCritical() << "Attempted at creating a LRSPublicKey";
@@ -15,18 +15,12 @@ namespace Crypto {
       return;
     }
 
-    QSharedPointer<CppDsaPublicKey> key = public_keys[0].dynamicCast<CppDsaPublicKey>();
-    if(!key) {
-      qCritical() << "Attempted at using a non-dsa key in LRS";
-      SetInvalid();
-      return;
-    }
+    const DsaPublicKey key = public_keys[0];
+    m_generator = key.GetGenerator();
+    m_modulus = key.GetModulus();
+    m_subgroup = key.GetSubgroupOrder();
 
-    _generator = key->GetGenerator();
-    _modulus = key->GetModulus();
-    _subgroup = key->GetSubgroup();
-
-    foreach(const QSharedPointer<AsymmetricKey> &key, public_keys) {
+    foreach(const DsaPublicKey &key, public_keys) {
       if(!AddKey(key)) {
         SetInvalid();
         return;
@@ -34,19 +28,19 @@ namespace Crypto {
     }
 
     SetLinkageContext(linkage_context);
-    _valid = true;
+    m_valid = true;
   }
 
   LRSPublicKey::LRSPublicKey(const QVector<Integer> &public_keys,
       const Integer &generator, const Integer &modulus,
       const Integer &subgroup, const QByteArray &linkage_context) :
-    _keys(public_keys),
-    _generator(generator),
-    _modulus(modulus),
-    _subgroup(subgroup),
-    _valid(true)
+    m_keys(public_keys),
+    m_generator(generator),
+    m_modulus(modulus),
+    m_subgroup(subgroup),
+    m_valid(true)
   {
-    if(_keys.count() == 0) {
+    if(m_keys.count() == 0) {
       qCritical() << "Attempted at creating a LRSPublicKey";
       SetInvalid();
       return;
@@ -55,34 +49,28 @@ namespace Crypto {
     SetLinkageContext(linkage_context);
   }
 
-  bool LRSPublicKey::AddKey(const QSharedPointer<AsymmetricKey> &key)
+  bool LRSPublicKey::AddKey(const DsaPublicKey &key)
   {
-    QSharedPointer<CppDsaPublicKey> dsa = key.dynamicCast<CppDsaPublicKey>();
-    if(!dsa) {
-      qCritical() << "Attempted at using a non-dsa key in LRS";
-      return false;
-    }
-
-    if(dsa->GetGenerator() != GetGenerator() ||
-        dsa->GetModulus() != GetModulus() ||
-        dsa->GetSubgroup() != GetSubgroup())
+    if(key.GetGenerator() != GetGenerator() ||
+        key.GetModulus() != GetModulus() ||
+        key.GetSubgroupOrder() != GetSubgroupOrder())
     {
       qCritical() << "Invalid key parameters in LRSPublicKey";
       return false;
     }
 
-    _keys.append(dsa->GetPublicElement());
+    m_keys.append(key.GetPublicElement());
     return true;
   }
 
   void LRSPublicKey::SetLinkageContext(const QByteArray &linkage_context)
   {
-    _linkage_context = linkage_context;
+    m_linkage_context = linkage_context;
     Hash hashalgo;
     hashalgo.Update(linkage_context);
 
     QByteArray hlc = hashalgo.ComputeHash();
-    _group_gen = GetGenerator().Pow(Integer(hlc) % GetSubgroup(), GetModulus());
+    m_group_gen = GetGenerator().Pow(Integer(hlc) % GetSubgroupOrder(), GetModulus());
   }
 
   /**
@@ -125,20 +113,20 @@ namespace Crypto {
     QVector<Integer> keys = GetKeys();
     for(int idx = 0; idx < keys.count(); idx++) {
       Integer z_p = (GetGenerator().Pow(sig.GetSignature(idx), GetModulus()) *
-          _keys[idx].Pow(tcommit, GetModulus())) % GetModulus();
+          keys[idx].Pow(tcommit, GetModulus())) % GetModulus();
       Integer z_pp = (GetGroupGenerator().Pow(sig.GetSignature(idx), GetModulus()) *
           sig.GetTag().Pow(tcommit, GetModulus())) % GetModulus();
 
       hashalgo.Update(precompute);
       hashalgo.Update(z_p.GetByteArray());
       hashalgo.Update(z_pp.GetByteArray());
-      tcommit = Integer(hashalgo.ComputeHash()) % GetSubgroup();
+      tcommit = Integer(hashalgo.ComputeHash()) % GetSubgroupOrder();
     }
 
     return tcommit == sig.GetCommit1();
   }
 
-  bool LRSPublicKey::operator==(const AsymmetricKey &key) const
+  bool LRSPublicKey::Equals(const AsymmetricKey &key) const
   {
     const LRSPublicKey *other = dynamic_cast<const LRSPublicKey *>(&key);
     if(!other) {
@@ -152,20 +140,18 @@ namespace Crypto {
     return (other->GetGenerator() == GetGenerator()) &&
       (other->GetKeys() == GetKeys()) &&
       (other->GetModulus() == GetModulus()) &&
-      (other->GetSubgroup() == GetSubgroup()) &&
+      (other->GetSubgroupOrder() == GetSubgroupOrder()) &&
       (other->GetLinkageContext() == GetLinkageContext()) &&
       (other->IsValid() == IsValid());
   }
 
-  bool LRSPublicKey::VerifyKey(AsymmetricKey &key) const
+  bool LRSPublicKey::VerifyKey(const AsymmetricKey &key) const
   {
-    if(key.IsPrivateKey() ^ !IsPrivateKey()) {
+    if(key.IsPrivateKey() == IsPrivateKey()) {
       return false;
     }
 
-    QSharedPointer<AsymmetricKey> key0(GetPublicKey());
-    QSharedPointer<AsymmetricKey> key1(key.GetPublicKey());
-    return key0 == key1;
+    return GetPublicKey()->Equals(*key.GetPublicKey());
   }
 }
 }

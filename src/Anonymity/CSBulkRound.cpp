@@ -6,6 +6,8 @@
  * Consider how to have server exchange ciphertext bits ... already know both colluding parties one needs to submit the shared secret
  */
 
+#include "Crypto/DsaPrivateKey.hpp"
+#include "Crypto/DsaPublicKey.hpp"
 #include "Crypto/Hash.hpp"
 #include "Identity/PublicIdentity.hpp"
 #include "Utils/Random.hpp"
@@ -16,8 +18,8 @@
 #include "Utils/TimerCallback.hpp"
 #include "Utils/Utils.hpp"
 
-#include "NeffKeyShuffle.hpp"
-#include "NeffShuffle.hpp"
+#include "NeffKeyShuffleRound.hpp"
+#include "NeffShuffleRound.hpp"
 #include "NullRound.hpp"
 #include "CSBulkRound.hpp"
 
@@ -26,10 +28,8 @@
 #endif
 
 namespace Dissent {
-  using Crypto::CryptoFactory;
   using Crypto::CryptoRandom;
   using Crypto::Hash;
-  using Crypto::Library;
   using Identity::PublicIdentity;
   using Utils::QRunTimeError;
   using Utils::Serialization;
@@ -57,7 +57,7 @@ namespace Anonymity {
     _state_machine.AddState(PROCESS_BOOTSTRAP, -1, 0,
         &CSBulkRound::ProcessBlogDrop);
 #else
-    if(GetShuffleRound().dynamicCast<NeffKeyShuffle>()) {
+    if(GetShuffleRound().dynamicCast<NeffKeyShuffleRound>()) {
       _state_machine.AddState(PROCESS_BOOTSTRAP, -1, 0,
           &CSBulkRound::ProcessKeyShuffle);
     } else {
@@ -96,7 +96,7 @@ namespace Anonymity {
     QSharedPointer<BlogDropRound> bdr(new BlogDropRound(
           Crypto::BlogDrop::Parameters::CppECHashingProduction(),
           group, ident, round_id, net, _get_blame_data,
-          TCreateRound<NeffShuffle>));
+          TCreateRound<NeffShuffleRound>));
     bdr->SetSharedPointer(bdr);
     bdr->SetInteractiveMode();
 
@@ -110,7 +110,7 @@ namespace Anonymity {
     _state->blame_shuffle = QSharedPointer<Round>(new NullRound(GetGroup(),
           GetPrivateIdentity(), bsr_id, net, _get_blame_data));
 #else
-    _state->blame_shuffle = QSharedPointer<Round>(new NeffShuffle(GetGroup(),
+    _state->blame_shuffle = QSharedPointer<Round>(new NeffShuffleRound(GetGroup(),
           GetPrivateIdentity(), bsr_id, net, _get_blame_data));
 #endif
     QObject::connect(_state->blame_shuffle.data(), SIGNAL(Finished()),
@@ -767,8 +767,7 @@ namespace Anonymity {
 
   QPair<QByteArray, bool> CSBulkRound::GetShuffleData(int)
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<AsymmetricKey> key(lib.CreatePrivateKey());
+    QSharedPointer<AsymmetricKey> key(new Crypto::DsaPrivateKey());
     _state->anonymous_key = key;
 
     QSharedPointer<AsymmetricKey> pkey =
@@ -815,13 +814,10 @@ namespace Anonymity {
           GetGroup().Count(), GetShuffleSink().Count());
     }
 
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-
     int count = GetShuffleSink().Count();
     for(int idx = 0; idx < count; idx++) {
       QPair<QSharedPointer<ISender>, QByteArray> pair(GetShuffleSink().At(idx));
-      QSharedPointer<AsymmetricKey> key(
-        lib.LoadPublicKeyFromByteArray(pair.second));
+      QSharedPointer<AsymmetricKey> key(new Crypto::DsaPublicKey());
 
       if(!key->IsValid()) {
         qDebug() << "Invalid key in shuffle.";
@@ -839,8 +835,8 @@ namespace Anonymity {
 
   void CSBulkRound::ProcessKeyShuffle()
   {
-    QSharedPointer<NeffKeyShuffle> nks =
-      GetShuffleRound().dynamicCast<NeffKeyShuffle>();
+    QSharedPointer<NeffKeyShuffleRound> nks =
+      GetShuffleRound().dynamicCast<NeffKeyShuffleRound>();
     Q_ASSERT(nks);
 
     _state->anonymous_key = nks->GetKey();
@@ -1012,6 +1008,16 @@ namespace Anonymity {
       _state->slot_open = true;
     }
 
+#ifdef BAD_CS_BULK
+    if(xor_msg.size() == GetState()->base_msg_length) {
+      qDebug() << "No damage done";
+    }
+    else {
+      int offset = Random::GetInstance().GetInt(GetState()->base_msg_length + 1, xor_msg.size());
+      xor_msg[offset] = xor_msg[offset] ^ 0xff;
+      qDebug() << "up to no good";
+    }
+#endif
     return xor_msg;
   }
 
@@ -1243,14 +1249,15 @@ namespace Anonymity {
       QSharedPointer<PhaseLog> phase_log = _server_state->phase_logs[phase];
       int start = phase_log->message_offsets[owner_idx];
       int end = (owner_idx + 1 == phase_log->message_offsets.size()) ?
-        phase_log->message_offsets[owner_idx + 1] :
-        phase_log->message_length;
+        phase_log->message_length :
+        phase_log->message_offsets[owner_idx + 1];
 
       if((end - start + accuse_bidx) <= 0) {
         qDebug() << "Invalid offset claimed";
         continue;
       }
       
+      qDebug() << _state->anonymous_keys[owner_idx]->IsValid();
       if(!_state->anonymous_keys[owner_idx]->Verify(msg, signature)) {
         qDebug() << "Invalid accusation";
         continue;

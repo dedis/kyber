@@ -7,7 +7,7 @@ namespace Dissent {
 namespace Tests {
 
   class BlogDropProofTest : 
-    public ::testing::TestWithParam<CryptoFactory::ThreadingType> {
+    public ::testing::TestWithParam<bool> {
   };
 
   void TestElGamalServerCiphertext(QSharedPointer<const Parameters> params)
@@ -48,27 +48,18 @@ namespace Tests {
     }
   }
 
-  TEST_P(BlogDropProofTest, CppIntegerElGamalServer) {
-    CryptoFactory &cf = CryptoFactory::GetInstance();
-    CryptoFactory::LibraryName cname = cf.GetLibraryName();
-    CryptoFactory::ThreadingType tt = cf.GetThreadingType();
-    cf.SetLibrary(CryptoFactory::CryptoPP);
-    cf.SetThreading(GetParam());
-
+  TEST_P(BlogDropProofTest, IntegerElGamalServer) {
+    bool tmp = Utils::MultiThreading;
+    Utils::MultiThreading = GetParam();
     TestElGamalServerCiphertext(Parameters::Parameters::IntegerElGamalTesting());
-
-    cf.SetLibrary(cname);
-    cf.SetThreading(tt);
+    Utils::MultiThreading = tmp;
   }
 
   TEST_P(BlogDropProofTest, CppECElGamalServer) {
-    CryptoFactory &cf = CryptoFactory::GetInstance();
-    CryptoFactory::ThreadingType tt = cf.GetThreadingType();
-    cf.SetThreading(GetParam());
-
+    bool tmp = Utils::MultiThreading;
+    Utils::MultiThreading = GetParam();
     TestElGamalServerCiphertext(Parameters::Parameters::CppECElGamalProduction());
-
-    cf.SetThreading(tt);
+    Utils::MultiThreading = tmp;
   }
 
   void TestClientOnce(QSharedPointer<const Parameters> params)
@@ -124,30 +115,21 @@ namespace Tests {
   }
 
   TEST_P(BlogDropProofTest, CppIntegerClientProof) {
-    CryptoFactory &cf = CryptoFactory::GetInstance();
-    CryptoFactory::LibraryName cname = cf.GetLibraryName();
-    cf.SetLibrary(CryptoFactory::CryptoPP);
-    CryptoFactory::ThreadingType tt = cf.GetThreadingType();
-    cf.SetThreading(GetParam());
-
+    bool tmp = Utils::MultiThreading;
+    Utils::MultiThreading = GetParam();
     for(int i=0; i<10; i++) {
       TestClientOnce(Parameters::Parameters::IntegerElGamalTesting());
     }
-
-    cf.SetLibrary(cname);
-    cf.SetThreading(tt);
+    Utils::MultiThreading = tmp;
   }
 
   TEST_P(BlogDropProofTest, CppECClientProof) {
-    CryptoFactory &cf = CryptoFactory::GetInstance();
-    CryptoFactory::ThreadingType tt = cf.GetThreadingType();
-    cf.SetThreading(GetParam());
-
+    bool tmp = Utils::MultiThreading;
+    Utils::MultiThreading = GetParam();
     for(int i=0; i<10; i++) {
       TestClientOnce(Parameters::Parameters::CppECElGamalProduction());
     }
-
-    cf.SetThreading(tt);
+    Utils::MultiThreading = tmp;
   }
 
   void TestAuthorOnce(QSharedPointer<const Parameters> params) 
@@ -205,28 +187,21 @@ namespace Tests {
   }
 
   TEST_P(BlogDropProofTest, CppIntegerElGamalAuthorProof) {
-    CryptoFactory &cf = CryptoFactory::GetInstance();
-    CryptoFactory::LibraryName cname = cf.GetLibraryName();
-    cf.SetLibrary(CryptoFactory::CryptoPP);
-    CryptoFactory::ThreadingType tt = cf.GetThreadingType();
-    cf.SetThreading(GetParam());
-
+    bool tmp = Utils::MultiThreading;
+    Utils::MultiThreading = GetParam();
     for(int i=0; i<10; i++) {
       TestAuthorOnce(Parameters::Parameters::IntegerElGamalTesting());
     }
-    cf.SetLibrary(cname);
-    cf.SetThreading(tt);
+    Utils::MultiThreading = tmp;
   }
 
   TEST_P(BlogDropProofTest, CppECElGamalAuthorProof) {
-    CryptoFactory &cf = CryptoFactory::GetInstance();
-    CryptoFactory::ThreadingType tt = cf.GetThreadingType();
-    cf.SetThreading(GetParam());
-
+    bool tmp = Utils::MultiThreading;
+    Utils::MultiThreading = GetParam();
     for(int i=0; i<10; i++) {
       TestAuthorOnce(Parameters::Parameters::CppECElGamalProduction());
     }
-    cf.SetThreading(tt);
+    Utils::MultiThreading = tmp;
   }
 
   void ElGamalEndToEndOnce(QSharedPointer<const Parameters> params, bool random = true)
@@ -344,27 +319,18 @@ namespace Tests {
 
   TEST_P(BlogDropProofTest, CppIntegerElGamalEndToEnd) 
   {
-    CryptoFactory &cf = CryptoFactory::GetInstance();
-    CryptoFactory::ThreadingType tt = cf.GetThreadingType();
-    cf.SetThreading(GetParam());
-    CryptoFactory::LibraryName cname = cf.GetLibraryName();
-    cf.SetLibrary(CryptoFactory::CryptoPP);
-
-    ElGamalEndToEndOnce(Parameters::Parameters::IntegerElGamalProduction(), false);
-
-    cf.SetLibrary(cname);
-    cf.SetThreading(tt);
+    bool tmp = Utils::MultiThreading;
+    Utils::MultiThreading = GetParam();
+    ElGamalEndToEndOnce(Parameters::Parameters::IntegerElGamalProduction(), true);
+    Utils::MultiThreading = tmp;
   }
 
   TEST_P(BlogDropProofTest, CppECElGamalEndToEnd) 
   {
-    CryptoFactory &cf = CryptoFactory::GetInstance();
-    CryptoFactory::ThreadingType tt = cf.GetThreadingType();
-    cf.SetThreading(GetParam());
-
-    ElGamalEndToEndOnce(Parameters::Parameters::CppECElGamalProduction(), false);
-
-    cf.SetThreading(tt);
+    bool tmp = Utils::MultiThreading;
+    Utils::MultiThreading = GetParam();
+    ElGamalEndToEndOnce(Parameters::Parameters::CppECElGamalProduction(), true);
+    Utils::MultiThreading = tmp;
   }
 
   void HashingEndToEndOnce(QSharedPointer<const Parameters> params, bool random = true)
@@ -507,35 +473,24 @@ namespace Tests {
     }
   }
 
-  TEST_P(BlogDropProofTest, CppIntegerHashingEndToEnd) 
+  TEST_P(BlogDropProofTest, IntegerHashingEndToEnd) 
   {
-    CryptoFactory &cf = CryptoFactory::GetInstance();
-    CryptoFactory::ThreadingType tt = cf.GetThreadingType();
-    CryptoFactory::LibraryName cname = cf.GetLibraryName();
-    cf.SetThreading(GetParam());
-    cf.SetLibrary(CryptoFactory::CryptoPP);
-    
-    HashingEndToEndOnce(Parameters::Parameters::IntegerHashingProduction(), false);
-
-    cf.SetLibrary(cname);
-    cf.SetThreading(tt);
+    bool tmp = Utils::MultiThreading;
+    Utils::MultiThreading = GetParam();
+    HashingEndToEndOnce(Parameters::Parameters::IntegerHashingProduction(), true);
+    Utils::MultiThreading = tmp;
   }
 
   TEST_P(BlogDropProofTest, CppECHashingEndToEnd) 
   {
-    CryptoFactory &cf = CryptoFactory::GetInstance();
-    CryptoFactory::ThreadingType tt = cf.GetThreadingType();
-    cf.SetThreading(GetParam());
-
-    HashingEndToEndOnce(Parameters::Parameters::CppECHashingProduction(), false);
-
-    cf.SetThreading(tt);
+    bool tmp = Utils::MultiThreading;
+    Utils::MultiThreading = GetParam();
+    HashingEndToEndOnce(Parameters::Parameters::CppECHashingProduction(), true);
+    Utils::MultiThreading = tmp;
   }
 
   INSTANTIATE_TEST_CASE_P(BlogDropProof, BlogDropProofTest,
-      ::testing::Values(
-        CryptoFactory::SingleThreaded,
-        CryptoFactory::MultiThreaded));
+      ::testing::Values(true, false));
 }
 }
 

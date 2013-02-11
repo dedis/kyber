@@ -5,6 +5,9 @@
 
 namespace Dissent {
 namespace Utils {
+  extern bool MultiThreading;
+  extern bool Testing;
+
   /**
    * Prints current resource usage
    * @param label an additional bit of logging information

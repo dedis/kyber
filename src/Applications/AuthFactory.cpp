@@ -1,5 +1,3 @@
-#include "Crypto/CryptoFactory.hpp"
-#include "Crypto/Library.hpp"
 #include "Crypto/LRSPrivateKey.hpp"
 #include "Crypto/LRSPublicKey.hpp"
 #include "Identity/Authentication/IAuthenticate.hpp"
@@ -17,6 +15,8 @@
 
 using namespace Dissent::Identity::Authentication;
 using Dissent::Crypto::AsymmetricKey;
+using Dissent::Crypto::DsaPrivateKey;
+using Dissent::Crypto::DsaPublicKey;
 using Dissent::Crypto::LRSPrivateKey;
 using Dissent::Crypto::LRSPublicKey;
 
@@ -28,9 +28,13 @@ namespace Applications {
     switch(type) {
       case LRS_AUTH:
       {
-        QVector<QSharedPointer<AsymmetricKey> > public_keys;
+        QVector<DsaPublicKey> public_keys;
         foreach(const QSharedPointer<AsymmetricKey> &key, *keys) {
-          public_keys.append(key);
+          QSharedPointer<DsaPublicKey> dkey = key.dynamicCast<DsaPublicKey>();
+          if(!dkey) {
+            continue;
+          }
+          public_keys.append(DsaPublicKey(*dkey));
         }
 
         QSharedPointer<LRSPublicKey> lrs(
@@ -61,14 +65,18 @@ namespace Applications {
     switch(type) {
       case LRS_AUTH:
       {
-        QVector<QSharedPointer<AsymmetricKey> > public_keys;
+        QVector<DsaPublicKey> public_keys;
         foreach(const QSharedPointer<AsymmetricKey> &key, *keys) {
-          public_keys.append(key);
+          QSharedPointer<DsaPublicKey> dkey = key.dynamicCast<DsaPublicKey>();
+          if(!dkey) {
+            continue;
+          }
+          public_keys.append(DsaPublicKey(*dkey));
         }
 
         QSharedPointer<LRSPrivateKey> lrs(
             new LRSPrivateKey(
-              node->GetPrivateIdentity().GetSigningKey(),
+              DsaPrivateKey(*node->GetPrivateIdentity().GetSigningKey().dynamicCast<DsaPrivateKey>()),
               public_keys,
               QByteArray()));
 

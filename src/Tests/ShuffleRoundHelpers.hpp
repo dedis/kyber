@@ -31,12 +31,11 @@ namespace Tests {
           GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
           ": received sufficient go messages, broadcasting evil private key.";
 
-        Library &lib = CryptoFactory::GetInstance().GetLibrary();
-        AsymmetricKey *tmp = lib.CreatePrivateKey();
+        DsaPrivateKey key;
 
         QByteArray msg;
         QDataStream stream(&msg, QIODevice::WriteOnly);
-        stream << PRIVATE_KEY << GetRoundId() << tmp->GetByteArray();
+        stream << PRIVATE_KEY << GetRoundId() << key.GetByteArray();
 
         VerifiableBroadcast(msg);
         _state_machine.StateComplete();
@@ -87,8 +86,14 @@ namespace Tests {
         _server_state->shuffle_input[x] = _server_state->shuffle_input[y];
   
         QVector<int> bad;
-        OnionEncryptor &oe = CryptoFactory::GetInstance().GetOnionEncryptor();
-        if(!oe.Decrypt(_server_state->outer_key, _server_state->shuffle_input,
+        QSharedPointer<OnionEncryptor> oe;
+        if(Utils::MultiThreading) {
+          oe = QSharedPointer<OnionEncryptor>(new ThreadedOnionEncryptor());
+        } else {
+          oe = QSharedPointer<OnionEncryptor>(new OnionEncryptor());
+        }
+
+        if(!oe->Decrypt(_server_state->outer_key, _server_state->shuffle_input,
               _server_state->shuffle_output, &bad))
         {
           qWarning() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
@@ -96,7 +101,7 @@ namespace Tests {
           _state->blame = true;
         } 
         
-        oe.RandomizeBlocks(_server_state->shuffle_output);
+        oe->RandomizeBlocks(_server_state->shuffle_output);
         
         const Id &next = GetShufflers().Next(GetLocalId());
         MessageType mtype = (next == Id::Zero()) ? ENCRYPTED_DATA : SHUFFLE_DATA;
@@ -147,9 +152,14 @@ namespace Tests {
 
         QByteArray get_data = DefaultData;
         QByteArray inner_ct, outer_ct;
-        OnionEncryptor &oe = CryptoFactory::GetInstance().GetOnionEncryptor();
-        oe.Encrypt(_state->public_inner_keys, get_data, inner_ct, 0);
-        oe.Encrypt(outer_keys, inner_ct, outer_ct, 0);
+        QSharedPointer<OnionEncryptor> oe;
+        if(Utils::MultiThreading) {
+          oe = QSharedPointer<OnionEncryptor>(new ThreadedOnionEncryptor());
+        } else {
+          oe = QSharedPointer<OnionEncryptor>(new OnionEncryptor());
+        }
+        oe->Encrypt(_state->public_inner_keys, get_data, inner_ct, 0);
+        oe->Encrypt(outer_keys, inner_ct, outer_ct, 0);
 
         int x = Random::GetInstance().GetInt(0,
             _server_state->shuffle_input.count());
@@ -211,8 +221,13 @@ namespace Tests {
 
         SetTriggered();
 
-        OnionEncryptor &oe = CryptoFactory::GetInstance().GetOnionEncryptor();
-        oe.Encrypt(_state->public_inner_keys, PrepareData(),
+        QSharedPointer<OnionEncryptor> oe;
+        if(Utils::MultiThreading) {
+          oe = QSharedPointer<OnionEncryptor>(new ThreadedOnionEncryptor());
+        } else {
+          oe = QSharedPointer<OnionEncryptor>(new OnionEncryptor());
+        }
+        oe->Encrypt(_state->public_inner_keys, PrepareData(),
             _state->inner_ciphertext, 0);
 
         int count = Random::GetInstance().GetInt(0, GetShufflers().Count());
@@ -224,7 +239,7 @@ namespace Tests {
         QSharedPointer<AsymmetricKey> tmp(_state->public_outer_keys[opposite]);
         _state->public_outer_keys[opposite] = _state->public_outer_keys[count];
         QByteArray outer_ciphertext;
-        oe.Encrypt(_state->public_outer_keys, _state->inner_ciphertext,
+        oe->Encrypt(_state->public_outer_keys, _state->inner_ciphertext,
             outer_ciphertext, 0);
         _state->public_outer_keys[opposite] = tmp;
 

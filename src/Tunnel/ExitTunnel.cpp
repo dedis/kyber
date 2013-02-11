@@ -2,13 +2,10 @@
 #include <QDebug>
 
 #include "Connections/Network.hpp"
-
-#include "Crypto/CryptoFactory.hpp"
-
+#include "Crypto/DsaPublicKey.hpp"
 #include "Utils/Serialization.hpp"
 #include "Utils/Timer.hpp"
 #include "Utils/TimerCallback.hpp"
-
 #include "ExitTunnel.hpp"
 
 namespace Dissent {
@@ -260,9 +257,7 @@ namespace Tunnel {
           packet.GetPort(),
           packet.GetConnectionId(),
           QSharedPointer<Crypto::AsymmetricKey>(
-            Crypto::CryptoFactory::GetInstance().GetLibrary().
-            LoadPublicKeyFromByteArray(
-              packet.GetKey()))));
+            new Crypto::DsaPublicKey(packet.GetKey()))));
 
     if(!_stable.AddConnection(entry)) {
       qDebug() << "Duplicate entries" << entry->GetConnectionId().toBase64();
@@ -301,9 +296,7 @@ namespace Tunnel {
           0,
           packet.GetConnectionId(),
           QSharedPointer<Crypto::AsymmetricKey>(
-            Crypto::CryptoFactory::GetInstance().GetLibrary().
-            LoadPublicKeyFromByteArray(
-              packet.GetKey()))));
+            new Crypto::DsaPublicKey(packet.GetKey()))));
 
     if(!_stable.AddConnection(entry)) {
       qDebug() << "Duplicate entries" << entry->GetConnectionId().toBase64();

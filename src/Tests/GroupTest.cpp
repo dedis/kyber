@@ -50,10 +50,8 @@ namespace Tests {
 
   PublicIdentity CreateMember(const Id &id = Id())
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-
     QByteArray bid = id.GetByteArray();
-    QSharedPointer<AsymmetricKey> key(lib.GeneratePublicKey(bid));
+    QSharedPointer<AsymmetricKey> key(new RsaPrivateKey(bid, true));
     DiffieHellman dh;
     return PublicIdentity(id, key, key, dh.GetPublicComponent());
   }

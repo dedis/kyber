@@ -62,9 +62,9 @@ HEADERS += src/Dissent.hpp \
            src/Anonymity/BulkRound.hpp \
            src/Anonymity/CSBulkRound.hpp \
            src/Anonymity/Log.hpp \
-           src/Anonymity/NeffKeyShuffle.hpp \
-           src/Anonymity/FastNeffKeyShuffle.hpp \
-           src/Anonymity/NeffShuffle.hpp \
+           src/Anonymity/NeffKeyShuffleRound.hpp \
+           src/Anonymity/FastNeffKeyShuffleRound.hpp \
+           src/Anonymity/NeffShuffleRound.hpp \
            src/Anonymity/NullRound.hpp \
            src/Anonymity/RepeatingBulkRound.hpp \
            src/Anonymity/Round.hpp \
@@ -104,13 +104,11 @@ HEADERS += src/Dissent.hpp \
            src/Connections/RelayEdgeListener.hpp \
            src/Connections/RelayForwarder.hpp \
            src/Crypto/AsymmetricKey.hpp \
-           src/Crypto/CppDsaPrivateKey.hpp \
-           src/Crypto/CppDsaPublicKey.hpp \
-           src/Crypto/CppLibrary.hpp \
-           src/Crypto/CppNeffShuffle.hpp \
-           src/Crypto/CppPrivateKey.hpp \
-           src/Crypto/CppPublicKey.hpp \
-           src/Crypto/CryptoFactory.hpp \
+           src/Crypto/DsaPrivateKey.hpp \
+           src/Crypto/DsaPublicKey.hpp \
+           src/Crypto/NeffShuffle.hpp \
+           src/Crypto/RsaPrivateKey.hpp \
+           src/Crypto/RsaPublicKey.hpp \
            src/Crypto/CryptoRandom.hpp \
            src/Crypto/DiffieHellman.hpp \
            src/Crypto/Hash.hpp \
@@ -119,7 +117,6 @@ HEADERS += src/Dissent.hpp \
            src/Crypto/LRSPrivateKey.hpp \
            src/Crypto/LRSPublicKey.hpp \
            src/Crypto/LRSSignature.hpp \
-           src/Crypto/Library.hpp \
            src/Crypto/OnionEncryptor.hpp \
            src/Crypto/ThreadedOnionEncryptor.hpp \
            src/Crypto/Serialization.hpp \
@@ -237,8 +234,8 @@ SOURCES += src/Anonymity/BaseBulkRound.cpp \
            src/Anonymity/BulkRound.cpp \
            src/Anonymity/CSBulkRound.cpp \
            src/Anonymity/Log.cpp \
-           src/Anonymity/FastNeffKeyShuffle.cpp \
-           src/Anonymity/NeffShuffle.cpp \
+           src/Anonymity/FastNeffKeyShuffleRound.cpp \
+           src/Anonymity/NeffShuffleRound.cpp \
            src/Anonymity/NullRound.cpp \
            src/Anonymity/RepeatingBulkRound.cpp \
            src/Anonymity/Round.cpp \
@@ -271,17 +268,15 @@ SOURCES += src/Anonymity/BaseBulkRound.cpp \
            src/Connections/RelayEdgeListener.cpp \
            src/Connections/RelayForwarder.cpp \
            src/Crypto/AsymmetricKey.cpp \
-           src/Crypto/CppDsaPrivateKey.cpp \
-           src/Crypto/CppDsaPublicKey.cpp \
-           src/Crypto/CppNeffShuffle.cpp \
-           src/Crypto/CppPrivateKey.cpp \
-           src/Crypto/CppPublicKey.cpp \
-           src/Crypto/CryptoFactory.cpp \
+           src/Crypto/DsaPrivateKey.cpp \
+           src/Crypto/DsaPublicKey.cpp \
+           src/Crypto/NeffShuffle.cpp \
            src/Crypto/DiffieHellman.cpp \
            src/Crypto/KeyShare.cpp \
            src/Crypto/LRSPrivateKey.cpp \
            src/Crypto/LRSPublicKey.cpp \
            src/Crypto/OnionEncryptor.cpp \
+           src/Crypto/RsaPrivateKey.cpp \
            src/Crypto/ThreadedOnionEncryptor.cpp \
            src/Crypto/AbstractGroup/IntegerGroup.cpp \
            src/Crypto/AbstractGroup/AbstractGroup.cpp \
@@ -353,9 +348,15 @@ SOURCES += src/Anonymity/BaseBulkRound.cpp \
            src/Web/SessionService.cpp \
            src/Web/WebService.cpp
 
-HEADERS += src/Crypto/CryptoPP/Helper.hpp 
+HEADERS += src/Crypto/CryptoPP/DsaPublicKeyImpl.hpp \
+           src/Crypto/CryptoPP/Helper.hpp \
+           src/Crypto/CryptoPP/RsaPublicKeyImpl.hpp \
 
 SOURCES += src/Crypto/CryptoPP/CryptoRandomImpl.cpp \
            src/Crypto/CryptoPP/DiffieHellmanImpl.cpp \
+           src/Crypto/CryptoPP/DsaPrivateKeyImpl.cpp \
+           src/Crypto/CryptoPP/DsaPublicKeyImpl.cpp \
            src/Crypto/CryptoPP/HashImpl.cpp \
-           src/Crypto/CryptoPP/IntegerImpl.cpp
+           src/Crypto/CryptoPP/IntegerImpl.cpp \
+           src/Crypto/CryptoPP/RsaPrivateKeyImpl.cpp \
+           src/Crypto/CryptoPP/RsaPublicKeyImpl.cpp

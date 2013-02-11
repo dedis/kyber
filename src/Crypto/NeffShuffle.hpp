@@ -1,16 +1,17 @@
-#ifndef DISSENT_CRYPTO_CPP_NEFF_SHUFFLE_H_GUARD
-#define DISSENT_CRYPTO_CPP_NEFF_SHUFFLE_H_GUARD
+#ifndef DISSENT_CRYPTO_NEFF_SHUFFLE_H_GUARD
+#define DISSENT_CRYPTO_NEFF_SHUFFLE_H_GUARD
 
 #include <QByteArray>
 #include <QPair>
 #include <QVector>
 
-#include "AsymmetricKey.hpp"
+#include "DsaPrivateKey.hpp"
+#include "DsaPublicKey.hpp"
 #include "Integer.hpp"
 
 namespace Dissent {
 namespace Crypto {
-  class CppNeffShuffle {
+  class NeffShuffle {
     public:
       /**
        * Performs a non-interactive verifiable Neff Mix
@@ -23,8 +24,8 @@ namespace Crypto {
        * decrypted and shuffled version of the input
        */
       bool Shuffle(const QVector<QByteArray> &input,
-          const QSharedPointer<AsymmetricKey> &private_key,
-          const QVector<QSharedPointer<AsymmetricKey> > &remaining_keys,
+          const DsaPrivateKey &private_key,
+          const QVector<DsaPublicKey> &remaining_keys,
           QVector<QByteArray> &output,
           QByteArray &proof);
 
@@ -39,7 +40,7 @@ namespace Crypto {
        * @param output shuffled and decrypted messages
        */
       bool Verify(const QVector<QByteArray> &input,
-          const QVector<QSharedPointer<AsymmetricKey> > &keys,
+          const QVector<DsaPublicKey> &keys,
           const QByteArray &input_proof,
           QVector<QByteArray> &output);
   };

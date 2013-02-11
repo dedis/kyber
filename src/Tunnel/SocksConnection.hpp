@@ -7,14 +7,12 @@
 #include <QUdpSocket>
 #include <QTcpSocket>
 
-#include "Crypto/Library.hpp"
 #include "TunnelPacket.hpp"
 
 namespace Dissent {
 namespace Crypto {
   class AsymmetricKey;
   class Hash;
-  class Library;
 }
 
 namespace Tunnel {
@@ -34,7 +32,6 @@ namespace Tunnel {
     public:
       typedef Dissent::Crypto::AsymmetricKey AsymmetricKey;
       typedef Dissent::Crypto::Hash Hash;
-      typedef Dissent::Crypto::Library Library;
 
       typedef enum {
         ConnState_WaitingForMethodHeader,

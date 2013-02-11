@@ -1,6 +1,7 @@
 #ifndef DISSENT_CRYPTO_LRS_PRIVATE_KEY_H_GUARD
 #define DISSENT_CRYPTO_LRS_PRIVATE_KEY_H_GUARD
 
+#include "DsaPrivateKey.hpp"
 #include "LRSPublicKey.hpp"
 
 namespace Dissent {
@@ -12,8 +13,8 @@ namespace Crypto {
     public:
 
       explicit LRSPrivateKey(
-          const QSharedPointer<AsymmetricKey> &private_key,
-          const QVector<QSharedPointer<AsymmetricKey> > &public_keys,
+          const DsaPrivateKey &private_key,
+          const QVector<DsaPublicKey> &public_keys,
           const QByteArray &linkage_context);
 
       /**

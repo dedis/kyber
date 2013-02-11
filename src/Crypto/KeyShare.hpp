@@ -6,8 +6,6 @@
 #include <QSharedPointer>
 
 #include "AsymmetricKey.hpp"
-#include "CryptoFactory.hpp"
-#include "Library.hpp"
 
 namespace Dissent {
 namespace Crypto {

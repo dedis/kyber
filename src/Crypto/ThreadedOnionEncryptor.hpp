@@ -2,7 +2,6 @@
 #define DISSENT_CRYPTO_THREAD_ONION_ENCRYPTOR_H_GUARD
 
 #include <QByteArray>
-#include <QDebug>
 #include <QVector>
 
 #include "AsymmetricKey.hpp"

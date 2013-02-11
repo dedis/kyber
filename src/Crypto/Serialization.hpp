@@ -3,13 +3,14 @@
 
 #include <QByteArray>
 #include <QDataStream>
+#include <QDebug>
 #include <QSharedPointer>
 
 #include "AsymmetricKey.hpp"
-#include "CryptoFactory.hpp"
-
-#include "CppDsaLibrary.hpp"
-#include "CppLibrary.hpp"
+#include "DsaPrivateKey.hpp"
+#include "DsaPublicKey.hpp"
+#include "RsaPrivateKey.hpp"
+#include "RsaPublicKey.hpp"
 
 namespace Dissent {
 namespace Crypto {
@@ -36,31 +37,25 @@ namespace Crypto {
     QByteArray bkey;
     stream >> key_type >> private_key >> bkey;
 
-    CryptoFactory::LibraryName clibrary = CryptoFactory::GetInstance().GetLibraryName();
-    QScopedPointer<Library> tlib;
-    Library *lib = &CryptoFactory::GetInstance().GetLibrary();
     switch(key_type) {
       case AsymmetricKey::RSA:
-        if(clibrary != CryptoFactory::CryptoPP) {
-          tlib.reset(new CppLibrary());
-          lib = tlib.data();
+        if(private_key) {
+          key = QSharedPointer<RsaPrivateKey>(new RsaPrivateKey(bkey));
+        } else {
+          key = QSharedPointer<RsaPublicKey>(new RsaPublicKey(bkey));
         }
         break;
       case AsymmetricKey::DSA:
-        if(clibrary != CryptoFactory::CryptoPPDsa) {
-          tlib.reset(new CppDsaLibrary());
-          lib = tlib.data();
+        if(private_key) {
+          key = QSharedPointer<DsaPrivateKey>(new DsaPrivateKey(bkey));
+        } else {
+          key = QSharedPointer<DsaPublicKey>(new DsaPublicKey(bkey));
         }
         break;
       default:
         qWarning() << "Invalid key type" << key_type;
     }
 
-    if(private_key) {
-      key = QSharedPointer<AsymmetricKey>(lib->LoadPrivateKeyFromByteArray(bkey));
-    } else {
-      key = QSharedPointer<AsymmetricKey>(lib->LoadPublicKeyFromByteArray(bkey));
-    }
 
     return stream;
   }

@@ -3,49 +3,48 @@
 namespace Dissent {
 namespace Tests {
 
-  void AsymmetricKeyTest(const Library &lib)
+  template <typename PrivateKey, typename PublicKey>
+    void AsymmetricKeyTest()
   {
-    QScopedPointer<AsymmetricKey> key0(lib.CreatePrivateKey());
-    EXPECT_TRUE(key0->IsValid());
-    QScopedPointer<AsymmetricKey> pu_key0(key0->GetPublicKey());
-    EXPECT_TRUE(pu_key0->IsValid());
+    PrivateKey key0;
+    EXPECT_TRUE(key0.IsValid());
+    QSharedPointer<AsymmetricKey> pkey0(key0.GetPublicKey());
+    EXPECT_TRUE(pkey0->IsValid());
 
-    EXPECT_TRUE(key0->Save("private_key"));
-    QScopedPointer<AsymmetricKey> key0_0(
-        lib.LoadPrivateKeyFromFile(QString("private_key")));
-    EXPECT_TRUE(key0_0->IsValid());
+    EXPECT_TRUE(key0.Save("private_key"));
+    PrivateKey key0_0(QString("private_key"));
+    EXPECT_TRUE(key0_0.IsValid());
     QFile("private_key").remove();
 
-    EXPECT_TRUE(pu_key0->Save("public_key"));
-    QScopedPointer<AsymmetricKey> pu_key0_0(
-        lib.LoadPublicKeyFromFile(QString("public_key")));
-    EXPECT_TRUE(pu_key0_0->IsValid());
+    EXPECT_TRUE(pkey0->Save("public_key"));
+    PublicKey pkey0_0(QString("public_key"));
+    EXPECT_TRUE(pkey0_0.IsValid());
     QFile("public_key").remove();
 
-    QScopedPointer<AsymmetricKey> key1(lib.CreatePrivateKey());
-    EXPECT_TRUE(key1->IsValid());
-    QScopedPointer<AsymmetricKey> pu_key1(key1->GetPublicKey());
-    EXPECT_TRUE(pu_key1->IsValid());
+    PrivateKey key1;
+    EXPECT_TRUE(key1.IsValid());
+    QSharedPointer<AsymmetricKey> pkey1(key1.GetPublicKey());
+    EXPECT_TRUE(pkey1->IsValid());
 
-    EXPECT_FALSE(pu_key0->VerifyKey(*pu_key0));
-    EXPECT_FALSE(pu_key0->VerifyKey(*pu_key1));
-    EXPECT_TRUE(pu_key0->VerifyKey(*key0));
-    EXPECT_FALSE(pu_key0->VerifyKey(*key1));
+    EXPECT_FALSE(pkey0->VerifyKey(*pkey0));
+    EXPECT_FALSE(pkey0->VerifyKey(*pkey1));
+    EXPECT_TRUE(pkey0->VerifyKey(key0));
+    EXPECT_FALSE(pkey0->VerifyKey(key1));
 
-    EXPECT_FALSE(pu_key1->VerifyKey(*pu_key0));
-    EXPECT_FALSE(pu_key1->VerifyKey(*pu_key1));
-    EXPECT_FALSE(pu_key1->VerifyKey(*key0));
-    EXPECT_TRUE(pu_key1->VerifyKey(*key1));
+    EXPECT_FALSE(pkey1->VerifyKey(*pkey0));
+    EXPECT_FALSE(pkey1->VerifyKey(*pkey1));
+    EXPECT_FALSE(pkey1->VerifyKey(key0));
+    EXPECT_TRUE(pkey1->VerifyKey(key1));
 
-    EXPECT_TRUE(key0->VerifyKey(*pu_key0));
-    EXPECT_FALSE(key0->VerifyKey(*pu_key1));
-    EXPECT_FALSE(key0->VerifyKey(*key0));
-    EXPECT_FALSE(key0->VerifyKey(*key1));
+    EXPECT_TRUE(key0.VerifyKey(*pkey0));
+    EXPECT_FALSE(key0.VerifyKey(*pkey1));
+    EXPECT_FALSE(key0.VerifyKey(key0));
+    EXPECT_FALSE(key0.VerifyKey(key1));
 
-    EXPECT_FALSE(key1->VerifyKey(*pu_key0));
-    EXPECT_TRUE(key1->VerifyKey(*pu_key1));
-    EXPECT_FALSE(key1->VerifyKey(*key0));
-    EXPECT_FALSE(key1->VerifyKey(*key1));
+    EXPECT_FALSE(key1.VerifyKey(*pkey0));
+    EXPECT_TRUE(key1.VerifyKey(*pkey1));
+    EXPECT_FALSE(key1.VerifyKey(key0));
+    EXPECT_FALSE(key1.VerifyKey(key1));
 
     CryptoRandom rand;
     QByteArray data(1500, 0);
@@ -54,61 +53,58 @@ namespace Tests {
     rand.GenerateBlock(small_data);
     QByteArray empty;
 
-    QScopedPointer<AsymmetricKey> bad_key_mem(
-        lib.LoadPrivateKeyFromByteArray(data));
-    EXPECT_TRUE(!bad_key_mem->IsValid());
-    QScopedPointer<AsymmetricKey> empty_key(bad_key_mem->GetPublicKey());
-    EXPECT_TRUE(empty_key.isNull());
+    PrivateKey bad_key_mem(data);
+    EXPECT_FALSE(bad_key_mem.IsValid());
+    QSharedPointer<AsymmetricKey> empty_key(bad_key_mem.GetPublicKey());
+    EXPECT_FALSE(empty_key);
 
     QString filename = "test_private_key_load";
     EXPECT_FALSE(QFile(filename).exists());
-    QScopedPointer<AsymmetricKey> bad_key_file(
-        lib.LoadPrivateKeyFromFile(filename));
+    PrivateKey bad_key_file(filename);
+    EXPECT_FALSE(bad_key_file.IsValid());
+    empty_key = bad_key_file.GetPublicKey();
+    EXPECT_FALSE(empty_key);
 
-    EXPECT_FALSE(bad_key_file->IsValid());
-    empty_key.reset(bad_key_file->GetPublicKey());
-    EXPECT_TRUE(empty_key.isNull());
+    if(key0.SupportsVerification()) {
+      QByteArray sig0 = key0.Sign(data);
+      QByteArray sig1 = key0_0.Sign(data);
 
-    if(key0->SupportsVerification()) {
-      QByteArray sig0 = key0->Sign(data);
-      QByteArray sig1 = key0_0->Sign(data);
+      EXPECT_TRUE(pkey0->Verify(data, sig0));
+      EXPECT_TRUE(pkey0->Verify(data, sig1));
+      EXPECT_TRUE(pkey0_0.Verify(data, sig0));
+      EXPECT_TRUE(pkey0_0.Verify(data, sig1));
 
-      EXPECT_TRUE(pu_key0->Verify(data, sig0));
-      EXPECT_TRUE(pu_key0->Verify(data, sig1));
-      EXPECT_TRUE(pu_key0_0->Verify(data, sig0));
-      EXPECT_TRUE(pu_key0_0->Verify(data, sig1));
+      EXPECT_TRUE(pkey0->Sign(data).isEmpty());
+      EXPECT_TRUE(pkey1->Sign(data).isEmpty());
 
-      EXPECT_TRUE(pu_key0->Sign(data).isEmpty());
-      EXPECT_TRUE(pu_key1->Sign(data).isEmpty());
+      EXPECT_TRUE(key0.Verify(data, sig0));
+      EXPECT_TRUE(key0.Verify(data, sig1));
+      EXPECT_TRUE(key0_0.Verify(data, sig0));
+      EXPECT_TRUE(key0_0.Verify(data, sig1));
 
-      EXPECT_TRUE(key0->Verify(data, sig0));
-      EXPECT_TRUE(key0->Verify(data, sig1));
-      EXPECT_TRUE(key0_0->Verify(data, sig0));
-      EXPECT_TRUE(key0_0->Verify(data, sig1));
+      QByteArray sig = key1.Sign(data);
+      EXPECT_TRUE(key1.Verify(data, sig));
+      EXPECT_FALSE(key0.Verify(data, sig));
+      sig = key1.Sign(small_data);
+      EXPECT_TRUE(key1.Verify(small_data, sig));
+      EXPECT_FALSE(key0.Verify(small_data, sig));
+      sig = key1.Sign(empty);
+      EXPECT_TRUE(key1.Verify(empty, sig));
+      EXPECT_FALSE(key0.Verify(empty, sig));
 
-      QByteArray sig = key1->Sign(data);
-      EXPECT_TRUE(key1->Verify(data, sig));
-      EXPECT_FALSE(key0->Verify(data, sig));
-      sig = key1->Sign(small_data);
-      EXPECT_TRUE(key1->Verify(small_data, sig));
-      EXPECT_FALSE(key0->Verify(small_data, sig));
-      sig = key1->Sign(empty);
-      EXPECT_TRUE(key1->Verify(empty, sig));
-      EXPECT_FALSE(key0->Verify(empty, sig));
+      EXPECT_FALSE(key0.Verify(data, empty));
+      EXPECT_FALSE(key0.Verify(data, small_data));
+      EXPECT_FALSE(key0.Verify(data, data));
 
-      EXPECT_FALSE(key0->Verify(data, empty));
-      EXPECT_FALSE(key0->Verify(data, small_data));
-      EXPECT_FALSE(key0->Verify(data, data));
-
-      EXPECT_FALSE(bad_key_mem->Verify(data, bad_key_mem->Sign(data)));
-      EXPECT_FALSE(bad_key_file->Verify(data, bad_key_file->Sign(data)));
+      EXPECT_FALSE(bad_key_mem.Verify(data, bad_key_mem.Sign(data)));
+      EXPECT_FALSE(bad_key_file.Verify(data, bad_key_file.Sign(data)));
     }
 
-    if(key0->SupportsEncryption()) {
-      QByteArray out0_0 = key0->Encrypt(data);
-      QByteArray out1_0 = key0_0->Encrypt(data);
-      QByteArray out0_1 = key0->Decrypt(out0_0);
-      QByteArray out1_1 = key0_0->Decrypt(out1_0);
+    if(key0.SupportsEncryption()) {
+      QByteArray out0_0 = key0.Encrypt(data);
+      QByteArray out1_0 = key0_0.Encrypt(data);
+      QByteArray out0_1 = key0.Decrypt(out0_0);
+      QByteArray out1_1 = key0_0.Decrypt(out1_0);
 
       QByteArray other(1500, 0);
       rand.GenerateBlock(other);
@@ -120,10 +116,10 @@ namespace Tests {
       EXPECT_NE(other, out1_1);
       EXPECT_NE(data, other);
 
-      out0_0 = pu_key0->Encrypt(data);
-      out1_0 = pu_key0_0->Encrypt(data);
-      out0_1 = key0->Decrypt(out0_0);
-      out1_1 = key0_0->Decrypt(out1_0);
+      out0_0 = pkey0->Encrypt(data);
+      out1_0 = pkey0_0.Encrypt(data);
+      out0_1 = key0.Decrypt(out0_0);
+      out1_1 = key0_0.Decrypt(out1_0);
 
       EXPECT_NE(out0_0, out1_0);
       EXPECT_EQ(data, out0_1);
@@ -132,38 +128,38 @@ namespace Tests {
       EXPECT_NE(other, out1_1);
       EXPECT_NE(data, other);
 
-      EXPECT_TRUE(pu_key0->Decrypt(out0_0).isEmpty());
-      EXPECT_TRUE(pu_key0_0->Decrypt(out0_0).isEmpty());
+      EXPECT_TRUE(pkey0->Decrypt(out0_0).isEmpty());
+      EXPECT_TRUE(pkey0_0.Decrypt(out0_0).isEmpty());
 
-      EXPECT_TRUE(key0->Decrypt(data).isEmpty());
-      EXPECT_TRUE(key1->Decrypt(small_data).isEmpty());
-      EXPECT_TRUE(key1->Decrypt(empty).isEmpty());
+      EXPECT_TRUE(key0.Decrypt(data).isEmpty());
+      EXPECT_TRUE(key1.Decrypt(small_data).isEmpty());
+      EXPECT_TRUE(key1.Decrypt(empty).isEmpty());
 
-      QByteArray ciphertext = key0->Encrypt(data);
-      EXPECT_TRUE(key1->Decrypt(ciphertext).isEmpty());
+      QByteArray ciphertext = key0.Encrypt(data);
+      EXPECT_TRUE(key1.Decrypt(ciphertext).isEmpty());
 
-      ciphertext = key1->Encrypt(empty);
-      EXPECT_EQ(key1->Decrypt(ciphertext), empty);
+      ciphertext = key1.Encrypt(empty);
+      EXPECT_EQ(key1.Decrypt(ciphertext), empty);
 
-      EXPECT_TRUE(bad_key_mem->Encrypt(data).isEmpty());
-      EXPECT_TRUE(bad_key_mem->Decrypt(key1->Encrypt(data)).isEmpty());
+      EXPECT_TRUE(bad_key_mem.Encrypt(data).isEmpty());
+      EXPECT_TRUE(bad_key_mem.Decrypt(key1.Encrypt(data)).isEmpty());
 
-      EXPECT_TRUE(bad_key_file->Encrypt(data).isEmpty());
-      EXPECT_TRUE(bad_key_file->Decrypt(key1->Encrypt(data)).isEmpty());
+      EXPECT_TRUE(bad_key_file.Encrypt(data).isEmpty());
+      EXPECT_TRUE(bad_key_file.Decrypt(key1.Encrypt(data)).isEmpty());
     }
   }
 
-  void AsymmetricKeySerialization()
+  template <typename PrivateKey, typename PublicKey>
+    void AsymmetricKeySerialization()
   {
-    const Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<AsymmetricKey> key(lib.CreatePrivateKey());
+    QSharedPointer<AsymmetricKey> key(new PrivateKey());
     QSharedPointer<AsymmetricKey> pkey(key->GetPublicKey());
     QSharedPointer<AsymmetricKey> key0, pkey0;
     EXPECT_NE(*key, *pkey);
-    EXPECT_TRUE(key.data() != 0);
-    EXPECT_TRUE(pkey.data() != 0);
-    EXPECT_TRUE(key0.data() == 0);
-    EXPECT_TRUE(pkey0.data() == 0);
+    EXPECT_TRUE(key);
+    EXPECT_TRUE(pkey);
+    EXPECT_FALSE(key0);
+    EXPECT_FALSE(pkey0);
 
     QByteArray data;
     QDataStream istream(&data, QIODevice::WriteOnly);
@@ -211,9 +207,9 @@ namespace Tests {
     RngSpeedTest(8192);
   }
 
-  void KeySignSpeedTest(const Library &lib)
+  template <typename PrivateKey> void KeySignSpeedTest()
   {
-    QSharedPointer<AsymmetricKey> key(lib.CreatePrivateKey());
+    QSharedPointer<AsymmetricKey> key(new PrivateKey());
     CryptoRandom rand;
     QByteArray data(1024, 0);
     rand.GenerateBlock(data);
@@ -224,9 +220,9 @@ namespace Tests {
     }
   }
 
-  void KeyVerificationSpeedTest(const Library &lib)
+  template <typename PrivateKey> void KeyVerificationSpeedTest()
   {
-    QSharedPointer<AsymmetricKey> key(lib.CreatePrivateKey());
+    QSharedPointer<AsymmetricKey> key(new PrivateKey());
     CryptoRandom rand;
     QByteArray data(1024, 0);
     rand.GenerateBlock(data);
@@ -240,36 +236,37 @@ namespace Tests {
 
   TEST(Crypto, DSASignSpeedTest)
   {
-    KeySignSpeedTest(CppDsaLibrary());
+    KeySignSpeedTest<DsaPrivateKey>();
   }
 
   TEST(Crypto, DSAVerifySpeedTest)
   {
-    KeyVerificationSpeedTest(CppDsaLibrary());
+    KeyVerificationSpeedTest<DsaPrivateKey>();
   }
 
   TEST(Crypto, RSASignSpeedTest)
   {
-    KeySignSpeedTest(CppLibrary());
+    KeySignSpeedTest<RsaPrivateKey>();
   }
 
   TEST(Crypto, RSAVerifySpeedTest)
   {
-    KeyVerificationSpeedTest(CppLibrary());
+    KeyVerificationSpeedTest<RsaPrivateKey>();
   }
 
-  void KeyGenerationFromIdTest(const Library &lib)
+  template<typename PrivateKey, typename PublicKey>
+    void KeyGenerationFromIdTest()
   {
     Dissent::Connections::Id id0;
     Dissent::Connections::Id id1;
     EXPECT_NE(id0, id1);
 
-    QScopedPointer<AsymmetricKey> pr_key0(lib.GeneratePrivateKey(id0.GetByteArray()));
-    QScopedPointer<AsymmetricKey> pu_key0(lib.GeneratePublicKey(id0.GetByteArray()));
-    QScopedPointer<AsymmetricKey> pr_key1(lib.GeneratePrivateKey(id1.GetByteArray()));
-    QScopedPointer<AsymmetricKey> pu_key1(lib.GeneratePublicKey(id1.GetByteArray()));
-    QScopedPointer<AsymmetricKey> pr_key0_0(lib.GeneratePrivateKey(id0.GetByteArray()));
-    QScopedPointer<AsymmetricKey> pr_key1_0(lib.GeneratePrivateKey(id1.GetByteArray()));
+    QScopedPointer<AsymmetricKey> pr_key0(new PrivateKey(id0.GetByteArray(), true));
+    QScopedPointer<AsymmetricKey> pu_key0(new PublicKey(id0.GetByteArray(), true));
+    QScopedPointer<AsymmetricKey> pr_key1(new PrivateKey(id1.GetByteArray(), true));
+    QScopedPointer<AsymmetricKey> pu_key1(new PublicKey(id1.GetByteArray(), true));
+    QScopedPointer<AsymmetricKey> pr_key0_0(new PrivateKey(id0.GetByteArray(), true));
+    QScopedPointer<AsymmetricKey> pr_key1_0(new PrivateKey(id1.GetByteArray(), true));
 
     EXPECT_TRUE(pr_key0->VerifyKey(*pu_key0));
     EXPECT_FALSE(pr_key0->VerifyKey(*pu_key1));
@@ -302,42 +299,24 @@ namespace Tests {
     }
   }
 
-  TEST(Crypto, CppAsymmetricKey)
+  TEST(Crypto, RsaKey)
   {
-    CppLibrary lib;
-    AsymmetricKeyTest(lib);
-
-    QScopedPointer<AsymmetricKey> key(lib.CreatePrivateKey());
-    EXPECT_EQ(key->GetKeySize(),
-        std::max(AsymmetricKey::DefaultKeySize, lib.MinimumKeySize()));
+    AsymmetricKeyTest<RsaPrivateKey, RsaPublicKey>();
   }
 
-  TEST(Crypto, CppKeySerialization)
+  TEST(Crypto, RsaKeySerialization)
   {
-    CryptoFactory &cf = CryptoFactory::GetInstance();
-    CryptoFactory::LibraryName cname = cf.GetLibraryName();
-    cf.SetLibrary(CryptoFactory::CryptoPP);
-    AsymmetricKeySerialization();
-    cf.SetLibrary(cname);
+    AsymmetricKeySerialization<RsaPrivateKey, RsaPublicKey>();
   }
 
-  TEST(Crypto, CppDsaAsymmetricKey)
+  TEST(Crypto, DsaKey)
   {
-    CppLibrary lib;
-    AsymmetricKeyTest(lib);
-
-    QScopedPointer<AsymmetricKey> key(lib.CreatePrivateKey());
-    EXPECT_EQ(key->GetKeySize(),
-        std::max(AsymmetricKey::DefaultKeySize, lib.MinimumKeySize()));
+    AsymmetricKeyTest<DsaPrivateKey, DsaPublicKey>();
   }
 
-  TEST(Crypto, CppDsaKeySerialization)
+  TEST(Crypto, pDsaKeySerialization)
   {
-    CryptoFactory &cf = CryptoFactory::GetInstance();
-    CryptoFactory::LibraryName cname = cf.GetLibraryName();
-    cf.SetLibrary(CryptoFactory::CryptoPPDsa);
-    AsymmetricKeySerialization();
-    cf.SetLibrary(cname);
+    AsymmetricKeySerialization<DsaPrivateKey, DsaPublicKey>();
   }
 
   TEST(Crypto, DiffieHellman)

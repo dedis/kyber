@@ -8,9 +8,8 @@ namespace Tests {
       const QList<Address> &local, const QList<Address> &remote,
       const QSharedPointer<ISink> &sink, SessionFactory::SessionType session)
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
     QByteArray bid(id.GetByteArray());
-    QSharedPointer<AsymmetricKey> key(lib.GeneratePrivateKey(bid));
+    QSharedPointer<AsymmetricKey> key(new RsaPrivateKey(bid, true));
     DiffieHellman dh(bid, true);
     PrivateIdentity ident(id, key, key, dh);
     return Node::CreateClientServer(ident, group, local, remote, sink, session);

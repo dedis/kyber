@@ -76,7 +76,7 @@ namespace Identity {
 
   inline PublicIdentity GetPublicIdentity(const PrivateIdentity &ident)
   {
-    PrivateIdentity::AsymmetricKey *v_key = 0, *d_key = 0;
+    QSharedPointer<PrivateIdentity::AsymmetricKey> v_key, d_key;
     QByteArray dh_pub = QByteArray();
 
     if(ident.GetSigningKey()) {
@@ -89,10 +89,8 @@ namespace Identity {
 
     dh_pub = ident.GetDhKey().GetPublicComponent();
 
-    return PublicIdentity(ident.GetLocalId(), 
-        QSharedPointer<PrivateIdentity::AsymmetricKey>(v_key),
-        QSharedPointer<PrivateIdentity::AsymmetricKey>(d_key),
-        dh_pub, ident.GetSuperPeer());
+    return PublicIdentity(ident.GetLocalId(), v_key, d_key, dh_pub,
+        ident.GetSuperPeer());
   }
 }
 }

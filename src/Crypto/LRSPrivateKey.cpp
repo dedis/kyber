@@ -1,6 +1,6 @@
 #include "Utils/Random.hpp"
 
-#include "CppDsaPrivateKey.hpp"
+#include "DsaPrivateKey.hpp"
 #include "CryptoRandom.hpp"
 #include "Hash.hpp"
 #include "LRSPrivateKey.hpp"
@@ -8,8 +8,8 @@
 namespace Dissent {
 namespace Crypto {
   LRSPrivateKey::LRSPrivateKey(
-          const QSharedPointer<AsymmetricKey> &private_key,
-      const QVector<QSharedPointer<AsymmetricKey> > &public_keys,
+          const DsaPrivateKey &private_key,
+      const QVector<DsaPublicKey> &public_keys,
       const QByteArray &linkage_context) :
     LRSPublicKey(public_keys, linkage_context)
   {
@@ -17,24 +17,17 @@ namespace Crypto {
       return;
     }
 
-    QSharedPointer<CppDsaPrivateKey> key = private_key.dynamicCast<CppDsaPrivateKey>();
-    if(!key) {
-      qCritical() << "Attempted at using a non-dsa key in LRS";
-      SetInvalid();
-      return;
-    }
-
-    _private_key = key->GetPrivateExponent();
-    if(GetGenerator() != key->GetGenerator() ||
-        GetModulus() != key->GetModulus() ||
-        GetSubgroup() != key->GetSubgroup())
+    _private_key = private_key.GetPrivateExponent();
+    if(GetGenerator() != private_key.GetGenerator() ||
+        GetModulus() != private_key.GetModulus() ||
+        GetSubgroupOrder() != private_key.GetSubgroupOrder())
     {
       qCritical() << "Invalid key parameters in LRSPublicKey";
       SetInvalid();
       return;
     }
 
-    _my_idx = GetKeys().indexOf(key->GetPublicElement());
+    _my_idx = GetKeys().indexOf(private_key.GetPublicElement());
     _tag = GetGroupGenerator().Pow(_private_key, GetModulus());
   }
 
@@ -70,7 +63,7 @@ namespace Crypto {
     hashalgo.Update(precompute);
     hashalgo.Update(GetGenerator().Pow(u, GetModulus()).GetByteArray());
     hashalgo.Update(GetGroupGenerator().Pow(u, GetModulus()).GetByteArray());
-    Integer commit = Integer(hashalgo.ComputeHash()) % GetSubgroup();
+    Integer commit = Integer(hashalgo.ComputeHash()) % GetSubgroupOrder();
     
     QVector<Integer> keys = GetKeys();
     const int max = keys.count();
@@ -96,13 +89,13 @@ namespace Crypto {
           _tag.Pow(commit, GetModulus())) % GetModulus();
       hashalgo.Update(tmp.GetByteArray());
 
-      commit = Integer(hashalgo.ComputeHash()) % GetSubgroup();
+      commit = Integer(hashalgo.ComputeHash()) % GetSubgroupOrder();
       if(fixed_idx == max - 1) {
         commit_1 = commit;
       }
     }
 
-    Integer s_my_idx = (u - _private_key * commit) % GetSubgroup();
+    Integer s_my_idx = (u - _private_key * commit) % GetSubgroupOrder();
     signatures[_my_idx] = s_my_idx;
 
     return LRSSignature(commit_1, signatures, _tag).GetByteArray();
@@ -110,10 +103,10 @@ namespace Crypto {
 
   Integer LRSPrivateKey::RandomInQ() const
   {
-    QByteArray q = GetSubgroup().GetByteArray();
+    QByteArray q = GetSubgroupOrder().GetByteArray();
     CryptoRandom().GenerateBlock(q);
     Integer rinq(q);
-    return rinq % GetSubgroup();
+    return rinq % GetSubgroupOrder();
   }
 
   bool LRSPrivateKey::operator==(const AsymmetricKey &key) const
@@ -130,7 +123,7 @@ namespace Crypto {
     return (other->GetGenerator() == GetGenerator()) &&
       (other->GetKeys() == GetKeys()) &&
       (other->GetModulus() == GetModulus()) &&
-      (other->GetSubgroup() == GetSubgroup()) &&
+      (other->GetSubgroupOrder() == GetSubgroupOrder()) &&
       (other->GetLinkageContext() == GetLinkageContext()) &&
       (other->IsValid() == IsValid()) &&
       (other->_private_key == _private_key);

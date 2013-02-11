@@ -5,7 +5,7 @@
 
 #include "Connections/Network.hpp"
 #include "Crypto/AsymmetricKey.hpp"
-#include "Crypto/CppDsaPrivateKey.hpp"
+#include "Crypto/DsaPrivateKey.hpp"
 #include "Crypto/Integer.hpp"
 #include "Utils/TimerEvent.hpp"
 
@@ -31,14 +31,14 @@ namespace Anonymity {
    * protocol rounds.  There is no input and there are no automated outputs.
    * Outputs need to be explicitly taken via the objects public methods.
    */
-  class NeffKeyShuffle : public Round {
+  class NeffKeyShuffleRound : public Round {
     Q_OBJECT
 
     Q_ENUMS(States);
     Q_ENUMS(MessageType);
 
     public:
-      friend class RoundStateMachine<NeffKeyShuffle>;
+      friend class RoundStateMachine<NeffKeyShuffleRound>;
       typedef Crypto::AsymmetricKey AsymmetricKey;
 
       enum MessageType {
@@ -87,14 +87,14 @@ namespace Anonymity {
        * @param network handles message sending
        * @param get_data requests data to share during this session
        */
-      explicit NeffKeyShuffle(const Group &group, const PrivateIdentity &ident,
+      explicit NeffKeyShuffleRound(const Group &group, const PrivateIdentity &ident,
           const Id &round_id, QSharedPointer<Network> network,
           GetDataCallback &get_data);
 
       /**
        * Destructor
        */
-      virtual ~NeffKeyShuffle();
+      virtual ~NeffKeyShuffleRound();
 
       /**
        * Returns the anonymized private key
@@ -170,7 +170,7 @@ namespace Anonymity {
       void EmptyTransitionCallback() {}
 
     private:
-      typedef Crypto::CppDsaPrivateKey KeyType;
+      typedef Crypto::DsaPrivateKey KeyType;
 
       void InitServer();
       void InitClient();
@@ -196,11 +196,11 @@ namespace Anonymity {
         return key->GetModulus();
       }
 
-      Integer GetSubgroup() const
+      Integer GetSubgroupOrder() const
       { 
         QSharedPointer<KeyType> key(
             _state->input_private_key.dynamicCast<KeyType>());
-        return key->GetSubgroup();
+        return key->GetSubgroupOrder();
       }
 
       Integer GetGenerator() const
@@ -269,11 +269,11 @@ namespace Anonymity {
 
       QSharedPointer<ServerState> _server_state;
       QSharedPointer<State> _state;
-      RoundStateMachine<NeffKeyShuffle> _state_machine;
+      RoundStateMachine<NeffKeyShuffleRound> _state_machine;
 
       class NeffShuffler : public QRunnable {
         public:
-          NeffShuffler(const QSharedPointer<NeffKeyShuffle> &shuffle) :
+          NeffShuffler(const QSharedPointer<NeffKeyShuffleRound> &shuffle) :
             _shuffle(shuffle)
           {
             setAutoDelete(true);
@@ -286,12 +286,12 @@ namespace Anonymity {
           virtual void run();
 
         private:
-          QSharedPointer<NeffKeyShuffle> _shuffle;
+          QSharedPointer<NeffKeyShuffleRound> _shuffle;
       };
 
       class KeyProcessor : public QRunnable {
         public:
-          KeyProcessor(const QSharedPointer<NeffKeyShuffle> &shuffle) :
+          KeyProcessor(const QSharedPointer<NeffKeyShuffleRound> &shuffle) :
             _shuffle(shuffle)
           {
             setAutoDelete(true);
@@ -304,7 +304,7 @@ namespace Anonymity {
           virtual void run();
 
         private:
-          QSharedPointer<NeffKeyShuffle> _shuffle;
+          QSharedPointer<NeffKeyShuffleRound> _shuffle;
       };
 
     signals:

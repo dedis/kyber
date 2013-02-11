@@ -1,13 +1,12 @@
 #include <QDebug>
 
+#include "Crypto/ThreadedOnionEncryptor.hpp"
 #include "Utils/QRunTimeError.hpp"
-#include "Crypto/CryptoFactory.hpp"
+#include "Utils/Utils.hpp"
 
 #include "ShuffleBlamer.hpp"
 
 using Dissent::Utils::QRunTimeError;
-using Dissent::Crypto::CryptoFactory;
-using Dissent::Crypto::OnionEncryptor;
 
 namespace Dissent {
 namespace Anonymity {
@@ -187,11 +186,17 @@ namespace Anonymity {
 
     _inner_data = _rounds[_group.GetIndex(_shufflers.GetId(0))]->GetShuffleCipherText();
 
-    OnionEncryptor &oe = CryptoFactory::GetInstance().GetOnionEncryptor();
+    QSharedPointer<Crypto::OnionEncryptor> oe;
+    if(Utils::MultiThreading) {
+      oe = QSharedPointer<Crypto::OnionEncryptor>(new Crypto::ThreadedOnionEncryptor());
+    } else {
+      oe = QSharedPointer<Crypto::OnionEncryptor>(new Crypto::OnionEncryptor());
+    }
+
     for(int idx = 0; idx < _private_keys.count(); idx++) {
       QVector<QByteArray> outdata;
       QVector<int> bad;
-      oe.Decrypt(_private_keys[idx], _inner_data, outdata, &bad);
+      oe->Decrypt(_private_keys[idx], _inner_data, outdata, &bad);
       _inner_data = outdata;
       if(bad.count() == 0) {
         continue;

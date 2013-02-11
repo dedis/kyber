@@ -1,5 +1,6 @@
 #include <QtConcurrentRun>
 
+#include "Crypto/RsaPublicKey.hpp"
 #include "Crypto/Hash.hpp"
 #include "Crypto/BlogDrop/BlogDropUtils.hpp"
 #include "Crypto/BlogDrop/ClientCiphertext.hpp"
@@ -12,15 +13,14 @@
 #include "Utils/Utils.hpp"
 
 #include "BlogDropRound.hpp"
+#include "NeffShuffleRound.hpp"
 
 namespace Dissent {
   using Crypto::BlogDrop::ClientCiphertext;
   using Crypto::BlogDrop::BlogDropUtils;
   using Crypto::BlogDrop::Plaintext;
   using Crypto::BlogDrop::ServerCiphertext;
-  using Crypto::CryptoFactory;
   using Crypto::Hash;
-  using Crypto::Library;
   using Identity::PublicIdentity;
   using Utils::QRunTimeError;
   using Utils::Serialization;
@@ -677,6 +677,12 @@ namespace Anonymity {
 
   void BlogDropRound::StartShuffle()
   {
+    QSharedPointer<NeffShuffleRound> nsr(
+        GetShuffleRound().dynamicCast<NeffShuffleRound>());
+    if(nsr) {
+      nsr->SetDataSize(16 + _state->anonymous_pk->GetByteArray().size() +
+          _state->anonymous_sig_key->GetPublicKey()->GetByteArray().size());
+    }
     GetShuffleRound()->Start();
   }
 
@@ -717,8 +723,7 @@ namespace Anonymity {
       stream >> blogdrop_pk >> sig_pk;
 
       QSharedPointer<const PublicKey> key(new PublicKey(_state->params, blogdrop_pk));
-      QSharedPointer<AsymmetricKey> sig_key(
-          CryptoFactory::GetInstance().GetLibrary().LoadPublicKeyFromByteArray(sig_pk));
+      QSharedPointer<AsymmetricKey> sig_key(new Crypto::RsaPublicKey(sig_pk));
 
       if(!key->IsValid()) {
         throw QRunTimeError("Invalid BlogDrop key in shuffle.");

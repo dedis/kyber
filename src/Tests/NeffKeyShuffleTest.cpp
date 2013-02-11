@@ -6,7 +6,7 @@ namespace Dissent {
 namespace Tests {
   TEST(NeffKeyShuffle, Basic)
   {
-    SessionCreator callback = SessionCreator(TCreateRound<NeffKeyShuffle>);
+    SessionCreator callback = SessionCreator(TCreateRound<NeffKeyShuffleRound>);
     Group::SubgroupPolicy sg_policy = Group::ManagedSubgroup;
 
     ConnectionManager::UseTimer = false;
@@ -40,16 +40,16 @@ namespace Tests {
     CleanUp(nodes);
 
     ASSERT_TRUE(rc.rounds.count() == nodes.count());
-    const QSharedPointer<NeffKeyShuffle> tkfs =
-      rc.rounds.first().dynamicCast<NeffKeyShuffle>();
+    const QSharedPointer<NeffKeyShuffleRound> tkfs =
+      rc.rounds.first().dynamicCast<NeffKeyShuffleRound>();
     ASSERT_TRUE(tkfs);
 
     QVector<QSharedPointer<AsymmetricKey> > keys = tkfs->GetKeys();
     ASSERT_EQ(keys.count(), nodes.count());
 
     foreach(const QSharedPointer<Round> &round, rc.rounds) {
-      const QSharedPointer<NeffKeyShuffle> kfs =
-        round.dynamicCast<NeffKeyShuffle>();
+      const QSharedPointer<NeffKeyShuffleRound> kfs =
+        round.dynamicCast<NeffKeyShuffleRound>();
       ASSERT_TRUE(kfs);
 
       ASSERT_EQ(keys.count(), kfs->GetKeys().count());
@@ -66,7 +66,7 @@ namespace Tests {
 
   TEST(NeffKeyShuffle, Disconnect)
   {
-    SessionCreator callback = SessionCreator(TCreateRound<NeffKeyShuffle>);
+    SessionCreator callback = SessionCreator(TCreateRound<NeffKeyShuffleRound>);
     Group::SubgroupPolicy sg_policy = Group::ManagedSubgroup;
 
     ConnectionManager::UseTimer = false;
@@ -153,8 +153,8 @@ namespace Tests {
     CleanUp(nodes);
 
     ASSERT_EQ(rc.rounds.count(), nodes.count());
-    const QSharedPointer<NeffKeyShuffle> tkfs =
-      rc.rounds.last().dynamicCast<NeffKeyShuffle>();
+    const QSharedPointer<NeffKeyShuffleRound> tkfs =
+      rc.rounds.last().dynamicCast<NeffKeyShuffleRound>();
     ASSERT_TRUE(tkfs);
 
     QVector<QSharedPointer<AsymmetricKey> > keys = tkfs->GetKeys();
@@ -167,8 +167,8 @@ namespace Tests {
         continue;
       }
 
-      const QSharedPointer<NeffKeyShuffle> kfs =
-        round.dynamicCast<NeffKeyShuffle>();
+      const QSharedPointer<NeffKeyShuffleRound> kfs =
+        round.dynamicCast<NeffKeyShuffleRound>();
       ASSERT_TRUE(kfs);
       ASSERT_TRUE(kfs->GetKey());
 

@@ -1,7 +1,5 @@
-#include "Crypto/AsymmetricKey.hpp"
-#include "Crypto/CryptoFactory.hpp"
+#include "Crypto/DsaPrivateKey.hpp"
 #include "Crypto/Hash.hpp"
-#include "Crypto/Library.hpp"
 #include "Utils/Utils.hpp"
 #include "Utils/Serialization.hpp"
 
@@ -10,8 +8,6 @@
 namespace Dissent {
 
 using Crypto::AsymmetricKey;
-using Crypto::CryptoFactory;
-using Crypto::Library;
 using Utils::Serialization;
 
 namespace Tunnel {
@@ -20,7 +16,7 @@ namespace Tunnel {
     _state(ConnState_WaitingForMethodHeader),
     _socket(socket),
     _socket_open(true),
-    _signing_key(CryptoFactory::GetInstance().GetLibrary().CreatePrivateKey()),
+    _signing_key(new Crypto::DsaPrivateKey()),
     _verif_key(_signing_key->GetPublicKey())
   {
     connect(socket, SIGNAL(readyRead()), this, SLOT(ReadFromSocket()));

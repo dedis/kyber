@@ -31,12 +31,10 @@ int main(int argc, char **argv)
   }
 
   if(settings.Multithreading) {
-    CryptoFactory::GetInstance().SetThreading(CryptoFactory::MultiThreaded);
+    MultiThreading = true;
+  } else {
+    MultiThreading = false;
   }
-
-  CryptoFactory::GetInstance().SetLibrary(CryptoFactory::CryptoPP);
-
-  Library &lib = CryptoFactory::GetInstance().GetLibrary();
 
   Group group(QVector<PublicIdentity>(), Id(settings.LeaderId),
       settings.SubgroupPolicy);
@@ -68,11 +66,10 @@ int main(int argc, char **argv)
     DiffieHellman dh;
 
     if(AuthFactory::RequiresKeys(settings.AuthMode)) {
-      key = QSharedPointer<AsymmetricKey>(lib.LoadPrivateKeyFromFile(settings.PrivateKey[idx]));
-      qDebug() << local_id << settings.PrivateKey[idx];
+      key = QSharedPointer<AsymmetricKey>(new DsaPrivateKey(settings.PrivateKey[idx]));
     } else {
       QByteArray id = local_id.GetByteArray();
-      key = QSharedPointer<AsymmetricKey>(lib.GeneratePrivateKey(id));
+      key = QSharedPointer<AsymmetricKey>(new DsaPrivateKey(id, true));
       dh = DiffieHellman(id);
     }
 

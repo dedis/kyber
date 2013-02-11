@@ -2,7 +2,6 @@
 #include "ClientServer/CSOverlay.hpp"
 #include "Connections/Connection.hpp"
 #include "Connections/DefaultNetwork.hpp"
-#include "Crypto/CryptoFactory.hpp"
 #include "Identity/PublicIdentity.hpp"
 #include "Overlay/BasicGossip.hpp"
 
@@ -16,8 +15,6 @@ using Dissent::Connections::DefaultNetwork;
 using Dissent::Connections::Id;
 using Dissent::Crypto::AsymmetricKey;
 using Dissent::Crypto::DiffieHellman;
-using Dissent::Crypto::Library;
-using Dissent::Crypto::CryptoFactory;
 using Dissent::Overlay::BasicGossip;
 
 namespace Dissent {

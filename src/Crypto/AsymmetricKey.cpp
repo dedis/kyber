@@ -1,25 +1,27 @@
-#include "AsymmetricKey.hpp"
+#include <QDebug>
 #include <QFile>
+#include "AsymmetricKey.hpp"
 
 namespace Dissent {
 namespace Crypto {
+  AsymmetricKey::AsymmetricKey(BaseAsymmetricKeyImpl *key) :
+    m_data(key)
+  {
+  }
 
-#ifdef DISSENT_TEST
-  int AsymmetricKey::DefaultKeySize = 512;
-#else
-  int AsymmetricKey::DefaultKeySize = 2048;
-#endif
+  AsymmetricKey::AsymmetricKey()
+  {
+  }
 
-  bool AsymmetricKey::ReadFile(const QString &filename, QByteArray &data)
+  QByteArray AsymmetricKey::ReadFile(const QString &filename)
   {
     QFile file(filename);
     if(!file.open(QIODevice::ReadOnly)) {
       qWarning() << "Error (" << file.error() << ") reading file: " << filename;
-      return false;
+      return QByteArray();
     }
 
-    data = file.readAll();
-    return true;
+    return file.readAll();
   }
 
   bool AsymmetricKey::Save(const QString &filename) const
@@ -38,6 +40,22 @@ namespace Crypto {
     file.write(data);
     file.close();
     return true;
+  }
+
+  bool AsymmetricKey::VerifyKey(const AsymmetricKey &key) const
+  {
+    if(this->IsPrivateKey() == key.IsPrivateKey()) {
+      return false;
+    }
+
+    QSharedPointer<AsymmetricKey> pkey0(this->GetPublicKey());
+    QSharedPointer<AsymmetricKey> pkey1(key.GetPublicKey());
+    return pkey0->Equals(*pkey1);
+  }
+
+  bool AsymmetricKey::Equals(const AsymmetricKey &key) const
+  {
+    return this->GetByteArray() == key.GetByteArray();
   }
 }
 }

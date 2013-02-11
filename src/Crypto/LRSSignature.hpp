@@ -3,6 +3,8 @@
 
 #include <QByteArray>
 #include <QDataStream>
+#include <QDebug>
+#include <QList>
 #include <QVariant>
 
 #include "Integer.hpp"

@@ -14,19 +14,17 @@ namespace Tests {
     QList<Address> remote;
     remote.append(base);
 
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-
     Id leader_id;
     QList<PrivateIdentity> pids;
     QSharedPointer<KeyShare> keyshare(new KeyShare());
 
     if(auth_type == AuthFactory::LRS_AUTH) {
-      QSharedPointer<CppDsaPrivateKey> dkey(new CppDsaPrivateKey());
+      QSharedPointer<DsaPrivateKey> dkey(new DsaPrivateKey());
 
       for(int idx = 0; idx < count; idx++) {
         Id id = idx == 0 ? leader_id : Id();
-        QSharedPointer<AsymmetricKey> key(new CppDsaPrivateKey(dkey->GetModulus(),
-              dkey->GetSubgroup(), dkey->GetGenerator()));
+        QSharedPointer<AsymmetricKey> key(new DsaPrivateKey(dkey->GetModulus(),
+              dkey->GetSubgroupOrder(), dkey->GetGenerator()));
         DiffieHellman dh;
         pids.append(PrivateIdentity(id, key, key, dh));
         keyshare->AddKey(id.ToString(), QSharedPointer<AsymmetricKey>(key->GetPublicKey()));
@@ -34,7 +32,7 @@ namespace Tests {
     } else {
       for(int idx = 0; idx < count; idx++) {
         Id id = idx == 0 ? leader_id : Id();
-        QSharedPointer<AsymmetricKey> key(lib.CreatePrivateKey());
+        QSharedPointer<AsymmetricKey> key(new DsaPrivateKey());
         DiffieHellman dh;
         pids.append(PrivateIdentity(id, key, key, dh));
         keyshare->AddKey(id.ToString(), QSharedPointer<AsymmetricKey>(key->GetPublicKey()));
@@ -113,8 +111,7 @@ namespace Tests {
     qDebug() << "Leader disconnected";
 
     QByteArray bid(leader_id.GetByteArray());
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<AsymmetricKey> key(lib.GeneratePrivateKey(bid));
+    QSharedPointer<AsymmetricKey> key(new DsaPrivateKey());
     DiffieHellman dh;
 
     QList<Address> local;
@@ -229,9 +226,6 @@ namespace Tests {
 
   TEST(Authentication, BasicGossipLRSAuth)
   {
-    CryptoFactory::LibraryName clib = CryptoFactory::GetInstance().GetLibraryName();
-    CryptoFactory::GetInstance().SetLibrary(CryptoFactory::CryptoPPDsa);
-
     int count = Random::GetInstance().GetInt(TEST_RANGE_MIN, TEST_RANGE_MAX);
     Timer::GetInstance().UseVirtualTime();
 
@@ -240,7 +234,6 @@ namespace Tests {
 
     SendTest(nodes);
     TerminateOverlay(nodes);
-    CryptoFactory::GetInstance().SetLibrary(clib);
   }
 }
 }

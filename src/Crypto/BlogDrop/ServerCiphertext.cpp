@@ -2,7 +2,7 @@
 #include <QtConcurrentMap>
 
 #include "Crypto/AbstractGroup/Element.hpp"
-#include "Crypto/CryptoFactory.hpp"
+#include "Utils/Utils.hpp"
 
 #include "BlogDropUtils.hpp"
 #include "CiphertextFactory.hpp" 
@@ -32,8 +32,7 @@ namespace BlogDrop {
   {
     Q_ASSERT(pubs.count() == c.count());
 
-    CryptoFactory::ThreadingType tt = CryptoFactory::GetInstance().GetThreadingType();
-    if(tt == CryptoFactory::SingleThreaded) {
+    if(!Utils::MultiThreading) {
       QList<QSharedPointer<const ServerCiphertext> > list;
 
       // Unpack each ciphertext
@@ -49,8 +48,7 @@ namespace BlogDrop {
         }
       }
 
-    } else if(tt == CryptoFactory::MultiThreaded) {
-
+    } else {
       QList<QByteArray> ctext_bytes;
       for(int i=0; i<client_ctexts.count(); i++) {
         ctext_bytes.append(client_ctexts[i]->GetByteArray());
@@ -87,9 +85,7 @@ namespace BlogDrop {
         }
       }
 
-    } else {
-      qFatal("Unknown threading type");
-    }
+    } 
   }
 
   bool ServerCiphertext::VerifyOnce(const QSharedPointer<MapData> &m)

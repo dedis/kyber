@@ -1,13 +1,10 @@
 #include <QList>
-#include "Crypto/CryptoFactory.hpp"
-#include "Crypto/Library.hpp"
+#include "Crypto/DsaPrivateKey.hpp"
 #include "LRSAuthenticate.hpp"
 
 
 namespace Dissent {
 using Crypto::AsymmetricKey;
-using Crypto::CryptoFactory;
-using Crypto::Library;
 using Crypto::DiffieHellman;
 
 namespace Identity {
@@ -23,9 +20,8 @@ namespace Authentication {
 
   QVariant LRSAuthenticate::PrepareForChallenge()
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    QSharedPointer<AsymmetricKey> skey(lib.CreatePrivateKey());
-    QSharedPointer<AsymmetricKey> dkey(lib.CreatePrivateKey());
+    QSharedPointer<AsymmetricKey> skey(new Crypto::DsaPrivateKey());
+    QSharedPointer<AsymmetricKey> dkey(new Crypto::DsaPrivateKey());
     DiffieHellman dh;
     _ident = PrivateIdentity(_ori_ident.GetLocalId(), skey, dkey, dh,
         _ori_ident.GetSuperPeer());

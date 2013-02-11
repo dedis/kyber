@@ -8,6 +8,9 @@
 
 namespace Dissent {
 namespace Utils {
+  bool MultiThreading = true;
+  bool Testing = false;
+
   void PrintResourceUsage(const QString &label)
   {
 #ifdef QT_DEBUG

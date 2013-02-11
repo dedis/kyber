@@ -2,8 +2,8 @@
 
 #include "Connections/IOverlaySender.hpp"
 #include "Connections/Network.hpp"
+#include "Crypto/DsaPrivateKey.hpp"
 #include "Crypto/Hash.hpp"
-#include "Crypto/Library.hpp"
 #include "Crypto/Serialization.hpp"
 #include "Identity/PublicIdentity.hpp"
 #include "Messaging/Request.hpp"
@@ -19,10 +19,8 @@
 
 namespace Dissent {
 
-using Crypto::CryptoFactory;
 using Crypto::CryptoRandom;
 using Crypto::Hash;
-using Crypto::Library;
 using Identity::PublicIdentity;
 using Messaging::Request;
 using Utils::QRunTimeError;
@@ -45,9 +43,7 @@ namespace Anonymity {
     headers["bulk"] = true;
     GetNetwork()->SetHeaders(headers);
 
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    _anon_key = QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey());
-
+    _anon_key = QSharedPointer<AsymmetricKey>(new Crypto::DsaPrivateKey());
     QSharedPointer<Network> net(GetNetwork()->Clone());
     headers["bulk"] = false;
     net->SetHeaders(headers);
@@ -433,7 +429,7 @@ namespace Anonymity {
     for(uint idx = 0; idx < count; idx++) {
       QPair<QSharedPointer<ISender>, QByteArray> pair(_shuffle_sink.At(idx));
       _descriptors.append(ParseDescriptor(pair.second));
-      _header_lengths.append(8 + (_descriptors.last().second->GetKeySize() / 8));
+      _header_lengths.append(8 + (_descriptors.last().second->GetSignatureLength()));
       _message_lengths.append(0);
       if(_shuffle_data == pair.second) {
         _my_idx = idx;

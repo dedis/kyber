@@ -1,9 +1,9 @@
-#ifndef DISSENT_ANONYMITY_NEFF_MSG_SHUFFLE_H_GUARD
-#define DISSENT_ANONYMITY_NEFF_MSG_SHUFFLE_H_GUARD
+#ifndef DISSENT_ANONYMITY_NEFF_SHUFFLE_ROUND_H_GUARD
+#define DISSENT_ANONYMITY_NEFF_SHUFFLE_ROUND_H_GUARD
 
 #include "Connections/Network.hpp"
-#include "Crypto/AsymmetricKey.hpp"
-#include "Crypto/CppDsaPrivateKey.hpp"
+#include "Crypto/DsaPrivateKey.hpp"
+#include "Crypto/DsaPublicKey.hpp"
 #include "Crypto/Integer.hpp"
 #include "Utils/TimerEvent.hpp"
 
@@ -26,14 +26,14 @@ namespace NeffShufflePrivate {
    * The round can be used to either exchange keys (1024, 160)
    * or messages (2048, 2047).
    */
-  class NeffShuffle : public Round {
+  class NeffShuffleRound : public Round {
     Q_OBJECT
 
     Q_ENUMS(States);
     Q_ENUMS(MessageType);
 
     public:
-      friend class RoundStateMachine<NeffShuffle>;
+      friend class RoundStateMachine<NeffShuffleRound>;
       typedef Crypto::AsymmetricKey AsymmetricKey;
 
       enum MessageType {
@@ -97,15 +97,16 @@ namespace NeffShufflePrivate {
        * @param network handles message sending
        * @param get_data requests data to share during this session
        * @param key_shuffle determines the type of group to use in the shuffle
+       * @param data_size determines how large the keys should be for data shuffling
        */
-      explicit NeffShuffle(const Group &group, const PrivateIdentity &ident,
+      explicit NeffShuffleRound(const Group &group, const PrivateIdentity &ident,
           const Id &round_id, QSharedPointer<Network> network,
-          GetDataCallback &get_data, bool key_shuffle = false);
+          GetDataCallback &get_data, bool key_shuffle = false, int data_size = 252);
 
       /**
        * Destructor
        */
-      virtual ~NeffShuffle();
+      virtual ~NeffShuffleRound();
 
       /**
        * Returns true if the local node is a member of the subgroup
@@ -130,10 +131,10 @@ namespace NeffShufflePrivate {
 
       virtual bool CSGroupCapable() const { return true; }
 
+      void SetDataSize(int size) { _state->data_size = size; }
+
     protected:
       typedef Crypto::Integer Integer;
-      typedef Crypto::CppDsaPrivateKey KeyType;
-      typedef Crypto::CppDsaPublicKey PublicKeyType;
 
       /**
        * Called when the ShuffleRound is started
@@ -170,10 +171,11 @@ namespace NeffShufflePrivate {
         public:
           virtual ~State() {}
           bool key_shuffle;
+          int data_size;
           QSharedPointer<AsymmetricKey> private_key;
           QByteArray input;
           QVector<QByteArray> cleartext;
-          QVector<QSharedPointer<AsymmetricKey> > server_keys;
+          QVector<Crypto::DsaPublicKey> server_keys;
       };
       
       QSharedPointer<State> GetState() const { return _state; }
@@ -231,7 +233,7 @@ namespace NeffShufflePrivate {
 
           int msgs_received;
 
-          QSharedPointer<KeyType> my_key;
+          QSharedPointer<Crypto::DsaPrivateKey> my_key;
           QByteArray key_hash;
           QVector<QByteArray> key_signatures;
 
@@ -242,14 +244,14 @@ namespace NeffShufflePrivate {
           int next_verify_idx;
           int end_verify_idx;
           int new_end_verify_idx;
-          QVector<QSharedPointer<AsymmetricKey> > next_verify_keys;
+          QVector<Crypto::DsaPublicKey> next_verify_keys;
           QByteArray cleartext_hash;
           QHash<Id, QByteArray > signatures;
       };
       
       QSharedPointer<ServerState> _server_state;
       QSharedPointer<State> _state;
-      RoundStateMachine<NeffShuffle> _state_machine;
+      RoundStateMachine<NeffShuffleRound> _state_machine;
 
     private slots:
       void OperationFinished();
@@ -261,7 +263,7 @@ namespace NeffShufflePrivate {
     Q_OBJECT
 
     public:
-      KeyGeneration(NeffShuffle *shuffle) : _shuffle(shuffle) { }
+      KeyGeneration(NeffShuffleRound *shuffle) : _shuffle(shuffle) { }
 
       virtual ~KeyGeneration() { }
       virtual void run();
@@ -270,14 +272,14 @@ namespace NeffShufflePrivate {
       void Finished();
 
     private:
-      NeffShuffle *_shuffle;
+      NeffShuffleRound *_shuffle;
   };
 
   class ShuffleMessages : public QObject, public QRunnable {
     Q_OBJECT
 
     public:
-      ShuffleMessages(NeffShuffle *shuffle) : _shuffle(shuffle) { }
+      ShuffleMessages(NeffShuffleRound *shuffle) : _shuffle(shuffle) { }
 
       virtual ~ShuffleMessages() { }
       virtual void run();
@@ -286,14 +288,14 @@ namespace NeffShufflePrivate {
       void Finished();
 
     private:
-      NeffShuffle *_shuffle;
+      NeffShuffleRound *_shuffle;
   };
 
   class VerifyShuffles : public QObject, public QRunnable {
     Q_OBJECT
 
     public:
-      VerifyShuffles(NeffShuffle *shuffle) : _shuffle(shuffle) { }
+      VerifyShuffles(NeffShuffleRound *shuffle) : _shuffle(shuffle) { }
 
       virtual ~VerifyShuffles() { }
       virtual void run();
@@ -302,7 +304,7 @@ namespace NeffShufflePrivate {
       void Finished();
 
     private:
-      NeffShuffle *_shuffle;
+      NeffShuffleRound *_shuffle;
   };
 }
 }

@@ -3,7 +3,7 @@
 
 #include <QByteArray>
 
-#include "AsymmetricKey.hpp"
+#include "DsaPublicKey.hpp"
 #include "Integer.hpp"
 #include "LRSSignature.hpp"
 
@@ -16,7 +16,7 @@ namespace Crypto {
     public:
 
       explicit LRSPublicKey(
-          const QVector<QSharedPointer<AsymmetricKey> > &public_keys,
+          const QVector<DsaPublicKey> &public_keys,
           const QByteArray &linkage_context);
 
       explicit LRSPublicKey(const QVector<Integer> &public_keys,
@@ -33,10 +33,11 @@ namespace Crypto {
        * copy of this object, otherwise return a new copy of the public material
        * of the private key
        */
-      virtual AsymmetricKey *GetPublicKey() const
+      virtual QSharedPointer<AsymmetricKey> GetPublicKey() const
       {
-        return new LRSPublicKey(GetKeys(), GetGenerator(), GetModulus(),
-            GetSubgroup(), GetLinkageContext());
+        return QSharedPointer<AsymmetricKey>(
+            new LRSPublicKey(GetKeys(), GetGenerator(), GetModulus(),
+              GetSubgroupOrder(), GetLinkageContext()));
       }
       
       /**
@@ -109,27 +110,18 @@ namespace Crypto {
        * Verify the two keys are related private / public key pairs
        * @param key the key to test with
        */
-      virtual bool VerifyKey(AsymmetricKey &key) const;
+      virtual bool VerifyKey(const AsymmetricKey &key) const;
 
       /**
        * Returns the equivalence of the given key with the current key
        * @param key the given key
        */
-      virtual bool operator==(const AsymmetricKey &key) const;
-
-      /**
-       * Returns the not equivalence of the given key with the current key
-       * @param key the given key
-       */
-      virtual bool operator!=(const AsymmetricKey &key) const
-      {
-        return !this->operator==(key);
-      }
+      virtual bool Equals(const AsymmetricKey &key) const;
 
       /**
        * Returns true if the key loaded is a valid key
        */
-      virtual bool IsValid() const { return _valid; }
+      virtual bool IsValid() const { return m_valid; }
 
       /**
        * Returns the keys size in bits
@@ -143,7 +135,7 @@ namespace Crypto {
        * Add another key to the set of keys inside the LRS
        * @param key a new key to add
        */
-      virtual bool AddKey(const QSharedPointer<AsymmetricKey> &key);
+      virtual bool AddKey(const DsaPublicKey &key);
 
       /**
        * Sets the new linkage context for the LRS
@@ -153,48 +145,48 @@ namespace Crypto {
       /**
        * Returns the ordered set of keys (public component)
        */
-      QVector<Integer> GetKeys() const { return _keys; }
+      QVector<Integer> GetKeys() const { return m_keys; }
 
       /**
        * Returns the linkage context
        */
-      QByteArray GetLinkageContext() const { return _linkage_context; }
+      QByteArray GetLinkageContext() const { return m_linkage_context; }
 
       /**
        * Returns the common key modulus
        */
-      Integer GetModulus() const { return _modulus; }
+      Integer GetModulus() const { return m_modulus; }
 
       /**
        * Returns the common key subgroup modulus
        */
-      Integer GetSubgroup() const { return _subgroup; }
+      Integer GetSubgroupOrder() const { return m_subgroup; }
 
       /**
        * Returns the common key generator
        */
-      Integer GetGenerator() const { return _generator; }
+      Integer GetGenerator() const { return m_generator; }
 
       /**
        * Returns the group generator -- Hash(group, context)
        */
-      Integer GetGroupGenerator() const { return _group_gen; }
+      Integer GetGroupGenerator() const { return m_group_gen; }
 
-      virtual KeyTypes GetKeyType() const { return OTHER; }
+      virtual KeyTypes GetKeyType() const { return LRS; }
     protected:
       /**
        * Sets the key status to invalid
        */
-      void SetInvalid() { _valid = false; }
+      void SetInvalid() { m_valid = false; }
 
     private:
-      QVector<Integer> _keys;
-      Integer _generator;
-      Integer _modulus;
-      Integer _subgroup;
-      QByteArray _linkage_context;
-      Integer _group_gen;
-      bool _valid;
+      QVector<Integer> m_keys;
+      Integer m_generator;
+      Integer m_modulus;
+      Integer m_subgroup;
+      QByteArray m_linkage_context;
+      Integer m_group_gen;
+      bool m_valid;
   };
 }
 }

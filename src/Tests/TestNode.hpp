@@ -7,25 +7,20 @@
 
 namespace Dissent {
 namespace Tests {
-  static QSharedPointer<CppDsaPrivateKey> GetBaseKey()
+  static QSharedPointer<DsaPrivateKey> GetBaseKey()
   {
-    static QSharedPointer<CppDsaPrivateKey> key(
-        new CppDsaPrivateKey());
+    static QSharedPointer<DsaPrivateKey> key(
+        new DsaPrivateKey());
     return key;
   }
 
   static QSharedPointer<AsymmetricKey> GetKey()
   {
-    if(CryptoFactory::GetInstance().GetLibraryName() == CryptoFactory::CryptoPPDsa) {
-      return QSharedPointer<AsymmetricKey>(
-          new CppDsaPrivateKey(
-            GetBaseKey()->GetModulus(),
-            GetBaseKey()->GetSubgroup(),
-            GetBaseKey()->GetGenerator()));
-    } else {
-      return QSharedPointer<AsymmetricKey>(CryptoFactory::GetInstance().
-        GetLibrary().CreatePrivateKey());
-    }
+    return QSharedPointer<AsymmetricKey>(
+        new DsaPrivateKey(
+          GetBaseKey()->GetModulus(),
+          GetBaseKey()->GetSubgroupOrder(),
+          GetBaseKey()->GetGenerator()));
   }
 
   class TestNode : public QObject {

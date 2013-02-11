@@ -1,7 +1,8 @@
 #include <QRunnable>
 
-#include "Crypto/CryptoFactory.hpp"
 #include "Crypto/Hash.hpp"
+#include "Crypto/ThreadedOnionEncryptor.hpp"
+#include "Crypto/RsaPrivateKey.hpp"
 #include "Utils/Serialization.hpp"
 #include "Utils/QRunTimeError.hpp"
 
@@ -11,9 +12,7 @@
 
 namespace Dissent {
 
-using Crypto::CryptoFactory;
 using Crypto::Hash;
-using Crypto::Library;
 using Crypto::OnionEncryptor;
 using Utils::QRunTimeError;
 
@@ -479,9 +478,8 @@ using namespace ShuffleRoundPrivate;
 
   void ShuffleRound::BroadcastPublicKeys()
   {
-    Library &lib = CryptoFactory::GetInstance().GetLibrary();
-    _server_state->inner_key = QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey());
-    _server_state->outer_key = QSharedPointer<AsymmetricKey>(lib.CreatePrivateKey());
+    _server_state->inner_key = QSharedPointer<AsymmetricKey>(new Crypto::RsaPrivateKey());
+    _server_state->outer_key = QSharedPointer<AsymmetricKey>(new Crypto::RsaPrivateKey());
 
     QSharedPointer<AsymmetricKey> inner_key(_server_state->inner_key->GetPublicKey());
     QSharedPointer<AsymmetricKey> outer_key(_server_state->outer_key->GetPublicKey());
@@ -496,10 +494,16 @@ using namespace ShuffleRoundPrivate;
 
   void ShuffleRound::GenerateCiphertext()
   {
-    OnionEncryptor &oe = CryptoFactory::GetInstance().GetOnionEncryptor();
     // XXX Put in another thread
-    oe.Encrypt(_state->public_inner_keys, PrepareData(), _state->inner_ciphertext, 0);
-    oe.Encrypt(_state->public_outer_keys, _state->inner_ciphertext, _state->outer_ciphertext, 0);
+    if(Utils::MultiThreading) {
+      Crypto::ThreadedOnionEncryptor oe;
+      oe.Encrypt(_state->public_inner_keys, PrepareData(), _state->inner_ciphertext, 0);
+      oe.Encrypt(_state->public_outer_keys, _state->inner_ciphertext, _state->outer_ciphertext, 0);
+    } else {
+      Crypto::OnionEncryptor oe;
+      oe.Encrypt(_state->public_inner_keys, PrepareData(), _state->inner_ciphertext, 0);
+      oe.Encrypt(_state->public_outer_keys, _state->inner_ciphertext, _state->outer_ciphertext, 0);
+    }
 
     _state_machine.StateComplete();
   }
@@ -536,7 +540,8 @@ using namespace ShuffleRoundPrivate;
     }
 
     QVector<int> bad;
-    OnionEncryptor &oe = CryptoFactory::GetInstance().GetOnionEncryptor();
+    /// XXX
+    Crypto::OnionEncryptor oe;
     if(!oe.Decrypt(_server_state->outer_key, _server_state->shuffle_input,
           _server_state->shuffle_output, &bad))
     {
@@ -739,7 +744,8 @@ namespace ShuffleRoundPrivate {
       QVector<QByteArray> tmp;
       QVector<int> bad;
 
-      OnionEncryptor &oe = CryptoFactory::GetInstance().GetOnionEncryptor();
+      /// XXX
+      OnionEncryptor oe;
 
       if(!oe.Decrypt(key, cleartexts, tmp, &bad)) {
         emit Finished(QVector<QByteArray>(), bad);

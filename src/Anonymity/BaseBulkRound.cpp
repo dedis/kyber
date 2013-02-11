@@ -11,7 +11,6 @@
 
 namespace Dissent {
 
-using Crypto::CryptoFactory;
 using Crypto::Hash;
 using Messaging::Request;
 

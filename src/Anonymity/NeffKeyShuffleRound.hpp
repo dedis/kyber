@@ -1,10 +1,11 @@
 #ifdef FAST_NEFF_SHUFFLE
-#include "FastNeffKeyShuffle.hpp"
+#include "FastNeffKeyShuffleRound.hpp"
 #else
-#ifndef DISSENT_ANONYMITY_NEFF_KEY_SHUFFLE_H_GUARD
-#define DISSENT_ANONYMITY_NEFF_KEY_SHUFFLE_H_GUARD
+#ifndef DISSENT_ANONYMITY_NEFF_KEY_SHUFFLE_ROUND_H_GUARD
+#define DISSENT_ANONYMITY_NEFF_KEY_SHUFFLE_ROUND_H_GUARD
 
-#include "NeffShuffle.hpp"
+#include "Crypto/DsaPublicKey.hpp"
+#include "NeffShuffleRound.hpp"
 
 namespace Dissent {
 namespace Anonymity {
@@ -13,7 +14,7 @@ namespace Anonymity {
    * Wrapper around NeffShuffleRound to make keys easier to access.
    * Also API compatible with the old NeffKeyShuffle
    */
-  class NeffKeyShuffle : public NeffShuffle {
+  class NeffKeyShuffleRound : public NeffShuffleRound {
     public:
       /**
        * Constructor
@@ -23,23 +24,23 @@ namespace Anonymity {
        * @param network handles message sending
        * @param get_data requests data to share during this session
        */
-      explicit NeffKeyShuffle(const Group &group, const PrivateIdentity &ident,
+      explicit NeffKeyShuffleRound(const Group &group, const PrivateIdentity &ident,
           const Id &round_id, QSharedPointer<Network> network,
           GetDataCallback &get_data) :
-        NeffShuffle(group, ident, round_id, network, get_data, true),
+        NeffShuffleRound(group, ident, round_id, network, get_data, true),
         _parsed(false), _key_index(-1) { }
 
       /**
        * Destructor
        */
-      virtual ~NeffKeyShuffle() {}
+      virtual ~NeffKeyShuffleRound() {}
 
       /**
        * Returns the anonymized private key
        */
       QSharedPointer<AsymmetricKey> GetKey() const
       {
-        if(const_cast<NeffKeyShuffle *>(this)->Parse()) {
+        if(const_cast<NeffKeyShuffleRound *>(this)->Parse()) {
           return GetState()->private_key;
         } else {
           return QSharedPointer<AsymmetricKey>();
@@ -51,7 +52,7 @@ namespace Anonymity {
        */
       QVector<QSharedPointer<AsymmetricKey> > GetKeys() const
       {
-        if(const_cast<NeffKeyShuffle *>(this)->Parse()) {
+        if(const_cast<NeffKeyShuffleRound *>(this)->Parse()) {
           return _keys;
         } else {
           return QVector<QSharedPointer<AsymmetricKey> >();
@@ -63,7 +64,7 @@ namespace Anonymity {
        */
       int GetKeyIndex() const
       {
-        if(const_cast<NeffKeyShuffle *>(this)->Parse()) {
+        if(const_cast<NeffKeyShuffleRound *>(this)->Parse()) {
           return _key_index;
         } else {
           return -1;
@@ -79,16 +80,16 @@ namespace Anonymity {
           return false;
         }
 
-        QSharedPointer<PublicKeyType> my_key(dynamic_cast<PublicKeyType *>(
-              GetState()->private_key->GetPublicKey()));
+        QSharedPointer<Crypto::DsaPublicKey> my_key(GetState()->private_key->
+            GetPublicKey().dynamicCast<Crypto::DsaPublicKey>());
         Integer modulus = my_key->GetModulus();
-        Integer subgroup = my_key->GetSubgroup();
+        Integer subgroup = my_key->GetSubgroupOrder();
         Integer generator = my_key->GetGenerator();
 
         for(int idx = 0; idx < GetState()->cleartext.size(); idx++) {
           const QByteArray  &ct = GetState()->cleartext[idx];
           Integer public_element(ct);
-          QSharedPointer<AsymmetricKey> key(new PublicKeyType(modulus,
+          QSharedPointer<AsymmetricKey> key(new Crypto::DsaPublicKey(modulus,
                 subgroup, generator, public_element));
           _keys.append(key);
           if(key == my_key) {
