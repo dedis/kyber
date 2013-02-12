@@ -109,6 +109,7 @@ namespace Tests {
 
     QByteArray msg(128, 0);
     rand.GenerateBlock(msg);
+    qDebug() << "Sending message 1";
     nodes[sender0]->session->Send(msg);
 
     SignalCounter sc;
@@ -135,6 +136,7 @@ namespace Tests {
     }
 
     rand.GenerateBlock(msg);
+    qDebug() << "Sending message 2";
     nodes[sender1]->session->Send(msg);
 
     TestNode::calledback = 0;
