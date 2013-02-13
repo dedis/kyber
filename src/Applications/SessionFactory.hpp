@@ -46,7 +46,8 @@ namespace Applications {
         CSBULK,
         NEFF_SHUFFLE,
         BLOG_DROP_REACTIVE,
-        BLOG_DROP_PROACTIVE
+        BLOG_DROP_PROACTIVE,
+        NOT_A_SESSION
       };
 
       static SessionType GetSessionType(const QString &stype)
@@ -63,7 +64,7 @@ namespace Applications {
       static QHash<QString, SessionType> BuildStringToTypeHash()
       {
         QHash<QString, SessionType> hash;
-        for(int idx = NULL_ROUND; idx <= NEFF_SHUFFLE; idx++) {
+        for(int idx = NULL_ROUND; idx < NOT_A_SESSION; idx++) {
           hash[SessionNames(idx)] = static_cast<SessionType>(idx);
         }
         return hash;
