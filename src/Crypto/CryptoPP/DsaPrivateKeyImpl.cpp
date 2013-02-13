@@ -63,7 +63,7 @@ namespace Crypto {
         if(modulus <= subgroup) {
           qFatal("Subgroup should be < Modulus");
         }
-        if(modulus + 1 == subgroup) {
+        if(modulus - 1 == subgroup) {
           subgroup = actual_modulus - 1;
         }
           
