@@ -1,4 +1,4 @@
-#include <QtConcurrentRun>
+
 
 #include "Crypto/CryptoRandom.hpp"
 #include "Crypto/Hash.hpp"
@@ -699,6 +699,7 @@ namespace Anonymity {
   void BlogDropRound::ShuffleFinished()
   {
     if(!GetShuffleRound()->Successful()) {
+      Round::SetSuccessful(false);
       SetBadMembers(GetShuffleRound()->GetBadMembers());
       if(GetShuffleRound()->Interrupted()) {
         SetInterrupted();
@@ -958,6 +959,8 @@ namespace Anonymity {
       new BlogDropPrivate::GenerateClientCiphertext(this);
     QObject::connect(gen, SIGNAL(Finished(QByteArray)),
         this, SLOT(GenerateClientCiphertextDone(QByteArray)));
+    QObject::connect(gen, SIGNAL(Aborted(QString, int)),
+        this, SLOT(Abort(QString, int)));
     QThreadPool::globalInstance()->start(gen);
   }
 
@@ -1103,6 +1106,8 @@ namespace Anonymity {
       new BlogDropPrivate::GenerateClientCiphertext(this);
     QObject::connect(gen, SIGNAL(Finished(QByteArray)),
         this, SLOT(GenerateClientCiphertextDoneServer(QByteArray)));
+    QObject::connect(gen, SIGNAL(Aborted(QString, int)),
+        this, SLOT(Abort(QString, int)));
     QThreadPool::globalInstance()->start(gen);
   }
 
@@ -1126,6 +1131,8 @@ namespace Anonymity {
       new BlogDropPrivate::GenerateServerCiphertext(this);
     QObject::connect(gen, SIGNAL(Finished()),
         this, SLOT(GenerateServerCiphertextDone()));
+    QObject::connect(gen, SIGNAL(Aborted(QString, int)),
+        this, SLOT(Abort(QString, int)));
     QThreadPool::globalInstance()->start(gen);
   }
 
@@ -1145,6 +1152,8 @@ namespace Anonymity {
       new BlogDropPrivate::GenerateServerValidation(this);
     QObject::connect(gen, SIGNAL(Finished(QByteArray)),
         this, SLOT(GenerateServerValidationDone(QByteArray)));
+    QObject::connect(gen, SIGNAL(Aborted(QString, int)),
+        this, SLOT(Abort(QString, int)));
     QThreadPool::globalInstance()->start(gen);
   }
 
@@ -1165,7 +1174,7 @@ namespace Anonymity {
       if(!GetGroup().GetSubgroup().GetKey(from)->
           Verify(_state->cleartext, _server_state->signatures[server_idx]))
       {
-        throw QRunTimeError("Siganture doesn't match.");
+        throw QRunTimeError("Signature doesn't match.");
       }
     }
 
@@ -1219,8 +1228,15 @@ namespace Anonymity {
     return (_state->slots_open[slot_idx] || slot_idx == _state->always_open);
   }
 
-  void BlogDropRound::Abort(const QString &reason)
+  void BlogDropRound::Abort(QString reason, int bad_client_idx) 
   {
+    if(bad_client_idx >= 0) {
+      QVector<int> bad;
+      bad.append(bad_client_idx);
+      SetBadMembers(bad);
+      qDebug() << "Got bad members" << bad;
+    }
+    SetSuccessful(false);
     SetInterrupted();
     Stop(reason);
   }
@@ -1254,6 +1270,7 @@ namespace BlogDropPrivate {
     }
 
     if(_round->BadClient()) {
+      qDebug() << "Bad guy attacks!" << _round->_state->my_idx;
       for(int idx = 0; idx < ctexts.size(); idx++) {
         if(ctexts[idx].size() == 0) {
           continue;
@@ -1288,21 +1305,29 @@ namespace BlogDropPrivate {
       _round->_server_state->all_client_ciphertexts.count() << "out of" << _round->GetGroup().Count();
 
     // For each user
-    foreach(const Connections::Id& id, _round->_server_state->all_client_ciphertexts.keys()) {
+
+    // Sort by index
+    for(int client_idx=0; client_idx<_round->GetGroup().Count(); client_idx++) {
+      //const Connections::Id& id, _round->_server_state->all_client_ciphertexts.keys()) {
+    //foreach(const Connections::Id& id, _round->_server_state->all_client_ciphertexts.keys()) {
+
+      const Connections::Id id = _round->GetGroup().GetId(client_idx);
+      
+      if(!_round->_server_state->all_client_ciphertexts.keys().contains(id)) {
+        qFatal("Missing client");
+      }
 
       QList<QByteArray> ctexts;
       QDataStream stream(_round->_server_state->all_client_ciphertexts[id]);
       stream >> ctexts;
 
       if(ctexts.count() != _round->_state->n_clients) {
-        qWarning() << "Ciphertext vector has invalid length";
-        emit Finished();
+        emit Aborted("Ciphertext vector has invalid length", client_idx);
         return;
       }
 
       if(!_round->_state->client_pks.contains(id)) {
-        qWarning() << "Missing client pk";
-        emit Finished();
+        emit Aborted("Missing client pk", -1);
         return;
       }
 
@@ -1326,8 +1351,17 @@ namespace BlogDropPrivate {
         Q_ASSERT(by_slot[slot_idx].count() == _round->_state->n_clients);
 
         //qDebug() << "Creating server ciphertext for slot" << slot_idx;
-        _round->_server_state->blogdrop_servers[slot_idx]->AddClientCiphertexts(by_slot[slot_idx], 
-            client_pks, _round->_state->verify_proofs);
+        QSet<int> bad_clients;
+        if(!_round->_server_state->blogdrop_servers[slot_idx]->AddClientCiphertexts(by_slot[slot_idx], 
+            client_pks, _round->_state->verify_proofs, bad_clients)) {
+          if(bad_clients.count() > 0) {
+            qDebug() << "Invalid client ciphertext from" << bad_clients;
+            emit Aborted("Invalid client ciphertext", bad_clients.toList()[0]);
+          } else {
+            emit Aborted("Invalid client ciphertext but client not found", -1);
+          }
+          return;
+        }
         c = _round->_server_state->blogdrop_servers[slot_idx]->CloseBin();
       } 
 
@@ -1356,7 +1390,7 @@ namespace BlogDropPrivate {
       stream >> server_list;
 
       if(server_list.count() != _round->_state->n_clients) {
-        _round->Abort("Server submitted ciphertext list of wrong length");
+        emit Aborted("Server submitted ciphertext list of wrong length", server_idx);
         return;
       }
 
@@ -1370,7 +1404,8 @@ namespace BlogDropPrivate {
         if(!_round->_server_state->blogdrop_servers[slot_idx]->AddServerCiphertexts(
                 by_slot[slot_idx],
                 _round->_state->master_server_pks_list)) {
-              _round->Abort("Server submitted invalid ciphertext");
+              // TODO handle evil server 
+              emit Aborted("Server submitted invalid ciphertext", -1);
               return;
           }
       } else {
@@ -1383,33 +1418,36 @@ namespace BlogDropPrivate {
       QByteArray plain;
 
       if(_round->SlotIsOpen(slot_idx)) {
-        bool verify_proofs = _round->_state->verify_proofs;
 
         if(!_round->_server_state->blogdrop_servers[slot_idx]->RevealPlaintext(plain)) {
           qWarning() << "Could not decode plaintext message. Maybe bad anon author?";
-          verify_proofs = true;
         }
 
-        if(!_round->_state->verify_proofs && !verify_proofs) {
+        bool force_verify = false;
+        if(!_round->_server_state->verify_proofs) {
           const int siglen = _round->_state->slot_sig_keys[slot_idx]->GetSignatureLength();
           const QByteArray msg = plain.mid(siglen);
-          verify_proofs = !_round->_state->slot_sig_keys[slot_idx]->Verify(msg, plain.left(siglen));
+          force_verify = !_round->_state->slot_sig_keys[slot_idx]->Verify(msg, plain.left(siglen));
           plain = msg;
         }
 
-
-        if(verify_proofs) {
+        // If we are doing reactive verification and the plaintext
+        // as corrupted, then verify all of the proofs
+        if(!_round->_state->verify_proofs && force_verify) {
           QSet<int> bad_clients = _round->_server_state->blogdrop_servers[slot_idx]->FindBadClients();
 
           QVector<int> bad_cs;
           foreach(int bc, bad_clients) {
             bad_cs.append(bc);
           }
-          _round->SetBadMembers(bad_cs);
 
-          if(bad_cs.count()) qWarning() << "Found bad clients:" << bad_cs;
-          _round->Abort("Found bad clients!");
-          emit Finished(QByteArray());
+          if(bad_cs.count()) {
+            qWarning() << "Found bad clients:" << bad_cs << "blaming" << bad_cs[0];
+            // Just blame one client at a time
+            emit Aborted("Found bad clients!", bad_cs[0]);
+          } else {
+            emit Finished(QByteArray());
+          }
           return;
         }
 

@@ -44,11 +44,19 @@ namespace Tests {
     return round;
   }
 
-  TEST(BlogDropRoundTest, BasicManaged)
+  TEST(BlogDropRoundTest, BasicManagedReactive)
   {
     RoundTest_Basic(
         SessionCreator(TCreateBlogDropRound<
           Parameters::ParameterType_CppECHashingProduction, NullRound, false>),
+        Group::ManagedSubgroup);
+  }
+
+  TEST(BlogDropRoundTest, BasicManagedProactive)
+  {
+    RoundTest_Basic(
+        SessionCreator(TCreateBlogDropRound<
+          Parameters::ParameterType_CppECHashingProduction, NullRound, true>),
         Group::ManagedSubgroup);
   }
 

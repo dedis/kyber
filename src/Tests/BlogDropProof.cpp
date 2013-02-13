@@ -289,7 +289,8 @@ namespace Tests {
 
     qDebug() << "ADD_CLIENT_TO_SERVER";
     for(int server_idx=0; server_idx<nservers; server_idx++) {
-      servers[server_idx].AddClientCiphertexts(for_servers[server_idx], client_pks, true);
+      QSet<int> bad_clients;
+      servers[server_idx].AddClientCiphertexts(for_servers[server_idx], client_pks, true, bad_clients);
     }
 
     qDebug() << "CLOSE_BIN";
@@ -446,7 +447,9 @@ namespace Tests {
 
     qDebug() << "ADD_CLIENT_TO_SERVER";
     for(int server_idx=0; server_idx<nservers; server_idx++) {
-      servers[server_idx].AddClientCiphertexts(for_servers[server_idx], master_client_pub, true);
+      QSet<int> bad_clients;
+      servers[server_idx].AddClientCiphertexts(for_servers[server_idx], master_client_pub, 
+          true, bad_clients);
     }
 
     qDebug() << "CLOSE_BIN";

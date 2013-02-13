@@ -480,11 +480,6 @@ namespace BlogDropPrivate {
       void ProcessCleartext();
       void ConcludeClientCiphertextSubmission(const int &);
 
-      /**
-       * Useful because you cannot throw an exception inside
-       * of a Qt thread
-       */
-      void Abort(const QString &reason);
 
       inline bool SlotIsOpen(int slot_idx);
 
@@ -495,6 +490,13 @@ namespace BlogDropPrivate {
       bool _stop_next;
       bool m_interactive;
       bool m_resumed;
+
+    public slots:
+      /**
+       * @param reason reason for abort
+       * @param client to blame (-1 if none)
+       */
+      void Abort(QString reason, int bad_client_idx);
 
     private slots:
       void GenerateClientCiphertextDone(const QByteArray &mycipher);
@@ -519,6 +521,7 @@ namespace BlogDropPrivate {
   }
 
 namespace BlogDropPrivate {
+
   class GenerateClientCiphertext : public QObject, public QRunnable {
     Q_OBJECT
 
@@ -530,6 +533,7 @@ namespace BlogDropPrivate {
 
     signals:
       void Finished(QByteArray);
+      void Aborted(QString, int);
 
     private:
       BlogDropRound *_round;
@@ -546,6 +550,7 @@ namespace BlogDropPrivate {
 
     signals:
       void Finished();
+      void Aborted(QString, int);
 
     private:
       BlogDropRound *_round;
@@ -562,6 +567,7 @@ namespace BlogDropPrivate {
 
     signals:
       void Finished(QByteArray);
+      void Aborted(QString, int);
 
     private:
       BlogDropRound *_round;

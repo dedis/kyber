@@ -58,10 +58,12 @@ namespace BlogDrop {
        * @param in the list of ciphertexts to add
        * @param pubs in the list of client public keys
        * @param verify_proofs if true, verify proofs as they're added
+       * @param bad_clients_out return invalid clients (if verify_proofs is true)
        */
       bool AddClientCiphertexts(const QList<QByteArray> &in, 
           const QList<QSharedPointer<const PublicKey> > &pubs,
-          bool verify_proofs);
+          bool verify_proofs,
+          QSet<int> &bad_clients_out);
 
       /**
        * Reveal server ciphertext corresponding to added client

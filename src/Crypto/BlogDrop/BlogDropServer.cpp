@@ -50,14 +50,15 @@ namespace BlogDrop {
   }
 
   bool BlogDropServer::AddClientCiphertexts(const QList<QByteArray> &in, 
-      const QList<QSharedPointer<const PublicKey> > &pubs, bool verify_proofs) 
+      const QList<QSharedPointer<const PublicKey> > &pubs, bool verify_proofs,
+      QSet<int> &bad_clients_out) 
   {
     if(!in.count()) qWarning() << "Added empty client ciphertext list";
 
     QList<QSharedPointer<const PublicKey> > pubs_out;
     QList<QSharedPointer<const ClientCiphertext> > c_out;
 
-    bool valid;
+    bool valid = true;
     if(verify_proofs) {
       ClientCiphertext::VerifyProofs(_params, _server_pk_set, _author_pub, 
             _phase, pubs, in,
@@ -65,6 +66,14 @@ namespace BlogDrop {
       _client_ciphertexts += c_out;
       _client_pubs += pubs_out;
       valid = (c_out.count() == in.count());
+
+      // If some ciphertext is invalid, look for the culprit
+      if(!valid) {
+        for(int client_idx=0; client_idx<_client_pubs.count(); client_idx++) {
+          if(!pubs_out.contains(pubs[client_idx])) bad_clients_out.insert(client_idx);
+        }
+      }
+
     } else {
       for(int i=0; i<in.count(); i++) {
         AddClientCiphertext(in[i], pubs[i], false);
