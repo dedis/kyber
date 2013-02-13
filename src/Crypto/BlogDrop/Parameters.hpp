@@ -26,6 +26,33 @@ namespace Dissent {
             ProofType_Invalid
           } ProofType;
 
+          typedef enum {
+            ParameterType_IntegerElGamalTesting,
+            ParameterType_IntegerElGamalProduction,
+            ParameterType_IntegerHashingTesting,
+            ParameterType_CppECElGamalProduction,
+            ParameterType_CppECHashingProduction,
+          } ParameterType;
+
+          static QSharedPointer<Parameters> GetParameters(ParameterType type,
+              const QByteArray &round_nonce = QByteArray())
+          {
+            switch(type) {
+              case ParameterType_IntegerElGamalTesting:
+                return IntegerElGamalTesting();
+              case ParameterType_IntegerElGamalProduction:
+                return IntegerElGamalProduction(round_nonce);
+              case ParameterType_IntegerHashingTesting:
+                return IntegerHashingTesting();
+              case ParameterType_CppECElGamalProduction:
+                return CppECElGamalProduction(round_nonce);
+              case ParameterType_CppECHashingProduction:
+                return CppECHashingProduction(round_nonce);
+              default:
+                qFatal("Invalid ParameterType");
+                return QSharedPointer<Parameters>();
+            }
+          }
 
           /**
            * Constructor that uses 512-bit integer group (for testing)

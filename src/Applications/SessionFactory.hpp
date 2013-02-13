@@ -31,6 +31,8 @@ namespace Applications {
           "repeatingbulk",
           "csbulk",
           "neffshuffle",
+          "blogdrop_proactive",
+          "blogdrop_reactive"
         };
         return sessions[id];
       }
@@ -43,6 +45,8 @@ namespace Applications {
         REPEATING_BULK,
         CSBULK,
         NEFF_SHUFFLE,
+        BLOG_DROP_REACTIVE,
+        BLOG_DROP_PROACTIVE
       };
 
       static SessionType GetSessionType(const QString &stype)

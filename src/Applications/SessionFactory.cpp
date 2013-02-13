@@ -1,4 +1,5 @@
 #include "Anonymity/BaseBulkRound.hpp"
+#include "Anonymity/BlogDropRound.hpp"
 #include "Anonymity/BulkRound.hpp"
 #include "Anonymity/CSBulkRound.hpp"
 #include "Anonymity/RepeatingBulkRound.hpp"
@@ -12,6 +13,7 @@
 #include "Connections/ConnectionManager.hpp"
 #include "Connections/DefaultNetwork.hpp"
 #include "Connections/Id.hpp"
+#include "Crypto/BlogDrop/Parameters.hpp"
 #include "Identity/Authentication/NullAuthenticate.hpp"
 #include "Identity/Authentication/NullAuthenticator.hpp"
 #include "Messaging/RpcHandler.hpp"
@@ -19,22 +21,14 @@
 #include "SessionFactory.hpp"
 #include "Node.hpp"
 
-using Dissent::Anonymity::BulkRound;
-using Dissent::Anonymity::CSBulkRound;
-using Dissent::Anonymity::NeffKeyShuffleRound;
-using Dissent::Anonymity::NeffShuffleRound;
-using Dissent::Anonymity::NullRound;
-using Dissent::Anonymity::RepeatingBulkRound;
-using Dissent::Anonymity::Sessions::Session;
-using Dissent::Anonymity::Sessions::SessionLeader;
-using Dissent::Anonymity::ShuffleRound;
-using Dissent::Anonymity::TCreateBulkRound;
-using Dissent::Anonymity::TCreateRound;
+using namespace Dissent::Anonymity;
+using namespace Dissent::Anonymity::Sessions;
 using Dissent::Connections::ConnectionManager;
 using Dissent::Connections::DefaultNetwork;
 using Dissent::Connections::Network;
 using Dissent::Connections::Id;
 using Dissent::Crypto::AsymmetricKey;
+using Dissent::Crypto::BlogDrop::Parameters;
 using Dissent::Identity::Group;
 using Dissent::Identity::Authentication::IAuthenticate;
 using Dissent::Identity::Authentication::IAuthenticator;
@@ -68,6 +62,13 @@ namespace Applications {
         break;
       case NEFF_SHUFFLE:
         cr = &TCreateRound<NeffShuffleRound>;
+      case BLOG_DROP_REACTIVE:
+        cr = TCreateBlogDropRound<Parameters::ParameterType_CppECHashingProduction,
+           NeffShuffleRound>;
+        break;
+      case BLOG_DROP_PROACTIVE:
+        cr = TCreateBlogDropRound<Parameters::ParameterType_CppECHashingProduction,
+           NeffShuffleRound>;
         break;
       default:
         qFatal("Invalid session type");

@@ -10,37 +10,44 @@ namespace Tests {
     public ::testing::TestWithParam<bool> {
   };
 
-  TEST_P(BlogDropRoundTest, BasicManaged)
+  TEST(BlogDropRoundTest, BasicManaged)
   {
-    RoundTest_Basic(SessionCreator(TCreateBlogDropRound_Testing<BlogDropRound>),
+    RoundTest_Basic(
+        SessionCreator(TCreateBlogDropRound<
+          Parameters::ParameterType_CppECHashingProduction, NullRound>),
         Group::ManagedSubgroup);
   }
 
-  TEST_P(BlogDropRoundTest, MultiRoundManaged)
+  TEST(BlogDropRoundTest, MultiRoundManaged)
   {
-    RoundTest_MultiRound(SessionCreator(TCreateBlogDropRound_Testing<BlogDropRound>),
+    RoundTest_MultiRound(
+        SessionCreator(TCreateBlogDropRound<
+          Parameters::ParameterType_CppECHashingProduction, NullRound>),
         Group::ManagedSubgroup);
   }
 
-  TEST_P(BlogDropRoundTest, AddOne)
+  TEST(BlogDropRoundTest, AddOne)
   {
-    RoundTest_AddOne(SessionCreator(TCreateBlogDropRound_Testing<BlogDropRound>),
+    RoundTest_AddOne(
+        SessionCreator(TCreateBlogDropRound<
+          Parameters::ParameterType_CppECHashingProduction, NullRound>),
         Group::ManagedSubgroup);
   }
 
-  TEST_P(BlogDropRoundTest, PeerDisconnectMiddleManaged)
+  TEST(BlogDropRoundTest, PeerDisconnectMiddleManaged)
   {
-    RoundTest_PeerDisconnectMiddle(SessionCreator(TCreateBlogDropRound_Testing<BlogDropRound>),
+    RoundTest_PeerDisconnectMiddle(
+        SessionCreator(TCreateBlogDropRound<
+          Parameters::ParameterType_CppECHashingProduction, NullRound>),
         Group::ManagedSubgroup);
   }
 
-  TEST_P(BlogDropRoundTest, PeerTransientIssueMiddle)
+  TEST(BlogDropRoundTest, PeerTransientIssueMiddle)
   {
-    RoundTest_PeerDisconnectMiddle(SessionCreator(TCreateBlogDropRound_Testing<BlogDropRound>),
+    RoundTest_PeerDisconnectMiddle(
+        SessionCreator(TCreateBlogDropRound<
+          Parameters::ParameterType_CppECHashingProduction, NullRound>),
         Group::ManagedSubgroup);
   }
-
-  INSTANTIATE_TEST_CASE_P(BlogDropRound, BlogDropRoundTest,
-      ::testing::Values(true, false));
 }
 }

@@ -511,38 +511,16 @@ namespace BlogDropPrivate {
 
   };
 
-  template <typename B> QSharedPointer<Round> TCreateBlogDropRound_ElGamal(
+  template < Crypto::BlogDrop::Parameters::ParameterType TYPE, typename SHUFFLE>
+    QSharedPointer<Round> TCreateBlogDropRound(
       const Round::Group &group, const Round::PrivateIdentity &ident,
       const Connections::Id &round_id,
       QSharedPointer<Connections::Network> network,
       Messaging::GetDataCallback &get_data)
   {
-    QSharedPointer<B> round(new B(Crypto::BlogDrop::Parameters::CppECElGamalProduction(), 
-          group, ident, round_id, network, get_data));
-    round->SetSharedPointer(round);
-    return round;
-  }
-  
-  template <typename B> QSharedPointer<Round> TCreateBlogDropRound_Hashing(
-      const Round::Group &group, const Round::PrivateIdentity &ident,
-      const Connections::Id &round_id,
-      QSharedPointer<Connections::Network> network,
-      Messaging::GetDataCallback &get_data)
-  {
-    QSharedPointer<B> round(new B(Crypto::BlogDrop::Parameters::CppECHashingProduction(), 
-          group, ident, round_id, network, get_data));
-    round->SetSharedPointer(round);
-    return round;
-  }
-
-  template <typename B> QSharedPointer<Round> TCreateBlogDropRound_Testing(
-      const Round::Group &group, const Round::PrivateIdentity &ident,
-      const Connections::Id &round_id,
-      QSharedPointer<Connections::Network> network,
-      Messaging::GetDataCallback &get_data)
-  {
-    QSharedPointer<B> round(new B(Crypto::BlogDrop::Parameters::IntegerHashingTesting(), 
-          group, ident, round_id, network, get_data));
+    QSharedPointer<Round> round(new BlogDropRound(
+          Crypto::BlogDrop::Parameters::GetParameters(TYPE, round_id.GetByteArray()),
+          group, ident, round_id, network, get_data, &TCreateRound<SHUFFLE>));
     round->SetSharedPointer(round);
     return round;
   }
