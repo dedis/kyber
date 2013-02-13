@@ -1,7 +1,8 @@
 #include <QtConcurrentRun>
 
-#include "Crypto/RsaPublicKey.hpp"
+#include "Crypto/CryptoRandom.hpp"
 #include "Crypto/Hash.hpp"
+#include "Crypto/RsaPublicKey.hpp"
 #include "Crypto/BlogDrop/BlogDropUtils.hpp"
 #include "Crypto/BlogDrop/ClientCiphertext.hpp"
 #include "Crypto/BlogDrop/ServerCiphertext.hpp"
@@ -30,7 +31,8 @@ namespace Anonymity {
   BlogDropRound::BlogDropRound(const QSharedPointer<Parameters> &params,
       const Group &group, const PrivateIdentity &ident,
       const Id &round_id, const QSharedPointer<Network> &network,
-      GetDataCallback &get_data, CreateRound create_shuffle) :
+      GetDataCallback &get_data, CreateRound create_shuffle,
+      bool verify_proofs) :
     BaseBulkRound(group, ident, round_id, network, get_data, create_shuffle),
     _params(params),
     _state_machine(this),
@@ -57,14 +59,13 @@ namespace Anonymity {
       InitClient();
     }
 
+    _state->verify_proofs = verify_proofs ||
+      _params->GetProofType() == Parameters::ProofType_ElGamal;
     _state->n_servers = GetGroup().GetSubgroup().Count();
     _state->n_clients = GetGroup().Count();
 
     // All slots start out closed
     _state->slots_open = QBitArray(GetGroup().Count(), false);
-
-    if(!VerifyAllProofs && _params->GetProofType() == Parameters::ProofType_ElGamal)
-      qFatal("When using ElGamal variant, you *must* verify all client proofs");
   }
 
   void BlogDropRound::InitServer()
@@ -982,7 +983,7 @@ namespace Anonymity {
     
     int header_length = len_length;
     // If we're not verifying proofs, plaintext must be signed
-    if(!VerifyAllProofs) {
+    if(!_state->verify_proofs) {
       header_length += sig_len;
     }
 
@@ -1041,7 +1042,7 @@ namespace Anonymity {
 
     QByteArray out;
     const QByteArray to_sign = lenbytes + this_plaintext;
-    if(VerifyAllProofs) {
+    if(_state->verify_proofs) {
       out = to_sign;
     } else {
       // Sign the length and plaintext message fields
@@ -1252,6 +1253,18 @@ namespace BlogDropPrivate {
       ctexts.append(c);
     }
 
+    if(_round->BadClient()) {
+      for(int idx = 0; idx < ctexts.size(); idx++) {
+        if(ctexts[idx].size() == 0) {
+          continue;
+        }
+
+        ctexts[idx]  = _round->_state->blogdrop_clients[(idx + 1) % ctexts.size()]->GenerateCoverCiphertext();
+        qDebug() << "Attack success!";
+        break;
+      }
+    }
+
     QByteArray out;
     QDataStream stream(&out, QIODevice::WriteOnly);
     stream << ctexts;
@@ -1314,7 +1327,7 @@ namespace BlogDropPrivate {
 
         //qDebug() << "Creating server ciphertext for slot" << slot_idx;
         _round->_server_state->blogdrop_servers[slot_idx]->AddClientCiphertexts(by_slot[slot_idx], 
-            client_pks, _round->VerifyAllProofs);
+            client_pks, _round->_state->verify_proofs);
         c = _round->_server_state->blogdrop_servers[slot_idx]->CloseBin();
       } 
 
@@ -1370,22 +1383,34 @@ namespace BlogDropPrivate {
       QByteArray plain;
 
       if(_round->SlotIsOpen(slot_idx)) {
+        bool verify_proofs = _round->_state->verify_proofs;
+
         if(!_round->_server_state->blogdrop_servers[slot_idx]->RevealPlaintext(plain)) {
           qWarning() << "Could not decode plaintext message. Maybe bad anon author?";
-          continue;
+          verify_proofs = true;
         }
 
-        if(!_round->VerifyAllProofs) {
+        if(!_round->_state->verify_proofs && !verify_proofs) {
           const int siglen = _round->_state->slot_sig_keys[slot_idx]->GetSignatureLength();
           const QByteArray msg = plain.mid(siglen);
-          if(!_round->_state->slot_sig_keys[slot_idx]->Verify(msg, plain.left(siglen))) {
-            QSet<int> bad_clients = _round->_server_state->blogdrop_servers[slot_idx]->FindBadClients();
-            if(bad_clients.count()) qWarning() << "Found bad clients:" << bad_clients;
-            _round->Abort("Found bad clients!");
-            emit Finished(QByteArray());
-            return;
-          }
+          verify_proofs = !_round->_state->slot_sig_keys[slot_idx]->Verify(msg, plain.left(siglen));
           plain = msg;
+        }
+
+
+        if(verify_proofs) {
+          QSet<int> bad_clients = _round->_server_state->blogdrop_servers[slot_idx]->FindBadClients();
+
+          QVector<int> bad_cs;
+          foreach(int bc, bad_clients) {
+            bad_cs.append(bc);
+          }
+          _round->SetBadMembers(bad_cs);
+
+          if(bad_cs.count()) qWarning() << "Found bad clients:" << bad_cs;
+          _round->Abort("Found bad clients!");
+          emit Finished(QByteArray());
+          return;
         }
 
         // 4 bytes in an int

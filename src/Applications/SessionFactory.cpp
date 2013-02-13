@@ -64,11 +64,11 @@ namespace Applications {
         cr = &TCreateRound<NeffShuffleRound>;
       case BLOG_DROP_REACTIVE:
         cr = TCreateBlogDropRound<Parameters::ParameterType_CppECHashingProduction,
-           NeffShuffleRound>;
+           NeffShuffleRound, false>;
         break;
       case BLOG_DROP_PROACTIVE:
         cr = TCreateBlogDropRound<Parameters::ParameterType_CppECHashingProduction,
-           NeffShuffleRound>;
+           NeffShuffleRound, true>;
         break;
       default:
         qFatal("Invalid session type");

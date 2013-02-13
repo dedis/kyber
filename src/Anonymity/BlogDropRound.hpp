@@ -35,18 +35,6 @@ namespace BlogDropPrivate {
     Q_ENUMS(MessageType);
 
     public:
-
-      /**
-       * If true, every server verifies all proofs before 
-       * revealing the plaintext. Otherwise, servers
-       * reveal the plaintext, and look at the proofs
-       * only if something went wrong.
-       *
-       * NOTE: This option is only valid for Hashing
-       * and Pairing variants (NOT ElGamal)
-       */
-      static const bool VerifyAllProofs = false;
-
       friend class RoundStateMachine<BlogDropRound>;
 
       typedef Crypto::BlogDrop::BlogDropAuthor BlogDropAuthor;
@@ -97,12 +85,14 @@ namespace BlogDropPrivate {
        * @param get_data requests data to share during this session
        * @param create_shuffle optional parameter specifying a shuffle round
        * to create, currently used for testing
+       * @param verify_proofs optionally verify proofs proactively
        */
       explicit BlogDropRound(const QSharedPointer<Parameters> &blogdrop_params, 
           const Group &group, const PrivateIdentity &ident,
           const Id &round_id, const QSharedPointer<Network> &network,
           GetDataCallback &get_data,
-          CreateRound create_shuffle = &TCreateRound<NullRound>);
+          CreateRound create_shuffle = &TCreateRound<NullRound>,
+          bool verify_proofs = true);
 
       /**
        * Destructor
@@ -237,6 +227,8 @@ namespace BlogDropPrivate {
       void VerifiableBroadcastToClients(const QByteArray &data);
 
     private:
+      virtual bool BadClient() const { return false; }
+
       friend class BlogDropPrivate::GenerateClientCiphertext;
       friend class BlogDropPrivate::GenerateServerCiphertext;
       friend class BlogDropPrivate::GenerateServerValidation;
@@ -259,6 +251,7 @@ namespace BlogDropPrivate {
           virtual ~State() {}
 
           const QSharedPointer<const Parameters> params;
+          bool verify_proofs;
 
           /* My blogdrop preliminary keys */
           const QSharedPointer<const PrivateKey> client_sk;
@@ -475,7 +468,7 @@ namespace BlogDropPrivate {
       void SubmitClientMasterPublicKey();
       void SubmitServerMasterPublicKey();
       void PrepareForBulk();
-      void SubmitClientCiphertext();
+      virtual void SubmitClientCiphertext();
       void ServerTestInteractive();
       void SetOnlineClients();
       void SubmitClientList();
@@ -511,7 +504,7 @@ namespace BlogDropPrivate {
 
   };
 
-  template < Crypto::BlogDrop::Parameters::ParameterType TYPE, typename SHUFFLE>
+  template <Crypto::BlogDrop::Parameters::ParameterType TYPE, typename SHUFFLE, bool VERIFY>
     QSharedPointer<Round> TCreateBlogDropRound(
       const Round::Group &group, const Round::PrivateIdentity &ident,
       const Connections::Id &round_id,
@@ -520,7 +513,7 @@ namespace BlogDropPrivate {
   {
     QSharedPointer<Round> round(new BlogDropRound(
           Crypto::BlogDrop::Parameters::GetParameters(TYPE, round_id.GetByteArray()),
-          group, ident, round_id, network, get_data, &TCreateRound<SHUFFLE>));
+          group, ident, round_id, network, get_data, &TCreateRound<SHUFFLE>, VERIFY));
     round->SetSharedPointer(round);
     return round;
   }
