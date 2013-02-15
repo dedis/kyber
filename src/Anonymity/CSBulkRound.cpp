@@ -1011,8 +1011,7 @@ namespace Anonymity {
 #ifdef BAD_CS_BULK
     if(xor_msg.size() == GetState()->base_msg_length) {
       qDebug() << "No damage done";
-    }
-    else {
+    } else {
       int offset = Random::GetInstance().GetInt(GetState()->base_msg_length + 1, xor_msg.size());
       xor_msg[offset] = xor_msg[offset] ^ 0xff;
       qDebug() << "up to no good";

@@ -1269,14 +1269,18 @@ namespace BlogDropPrivate {
       ctexts.append(c);
     }
 
-    if(_round->BadClient()) {
+    if(_round->BadClient() && _round->_state_machine.GetPhase()) {
       qDebug() << "Bad guy attacks!" << _round->_state->my_idx;
       for(int idx = 0; idx < ctexts.size(); idx++) {
         if(ctexts[idx].size() == 0) {
           continue;
         }
 
+        int before = _round->_state->blogdrop_clients[(idx + 1) % ctexts.size()]->GetParameters()->GetNElements();
+        int setto = _round->_state->blogdrop_clients[idx]->GetParameters()->GetNElements();
+        _round->_state->blogdrop_clients[(idx + 1) % ctexts.size()]->GetParameters()->SetNElements(setto);
         ctexts[idx]  = _round->_state->blogdrop_clients[(idx + 1) % ctexts.size()]->GenerateCoverCiphertext();
+        _round->_state->blogdrop_clients[(idx + 1) % ctexts.size()]->GetParameters()->SetNElements(before);
         qDebug() << "Attack success!";
         break;
       }
