@@ -633,39 +633,41 @@ namespace Anonymity {
     stream >> rebuttal;
     Id server = GetGroup().GetSubgroup().GetId(rebuttal.first);
     if(server == Id::Zero()) {
-      throw QRunTimeError("Invalid server selected");
-    }
-
-    QByteArray shared_secret = DiffieHellman::VerifySharedSecret(
-        GetGroup().GetIdentity(from).GetDhKey(),
-        GetGroup().GetIdentity(server).GetDhKey(),
-        rebuttal.second);
-
-    if(shared_secret.isEmpty()) {
-      throw QRunTimeError("Invalid shared secret");
-    } else if(rebuttal.first >= _server_state->server_bits.size()) {
-      throw QRunTimeError("Invalid server claim");
-    }
-
-    Hash hashalgo;
-    hashalgo.Update(shared_secret);
-
-    QByteArray bphase(4, 0);
-    Serialization::WriteInt(_server_state->current_blame.third, bphase, 0);
-    hashalgo.Update(bphase);
-
-    hashalgo.Update(GetRoundId().GetByteArray());
-    QByteArray seed = hashalgo.ComputeHash();
-    int byte_idx = _server_state->current_blame.second / 8;
-    int bit_idx = _server_state->current_blame.second % 8;
-    QByteArray tmp(byte_idx + 1, 0);
-    CryptoRandom(seed).GenerateBlock(tmp);
-    if(((tmp[byte_idx] & bit_masks[bit_idx % 8]) != 0) == _server_state->server_bits[rebuttal.first]) {
       _server_state->bad_dude = from;
-      qDebug() << "Client misbehaves:" << from;
+      qDebug() << "Invalid server selected:" << from;
     } else {
-      _server_state->bad_dude = server;
-      qDebug() << "Server misbehaves:" << server;
+      QByteArray shared_secret = DiffieHellman::VerifySharedSecret(
+          GetGroup().GetIdentity(from).GetDhKey(),
+          GetGroup().GetIdentity(server).GetDhKey(),
+          rebuttal.second);
+      if(shared_secret.isEmpty()) {
+        _server_state->bad_dude = from;
+        qDebug() << "Invalid shared secret:" << from;
+      } else if(rebuttal.first >= _server_state->server_bits.size()) {
+        _server_state->bad_dude = from;
+        qDebug() << "Invalid server claim:" << from;
+      } else {
+        Hash hashalgo;
+        hashalgo.Update(shared_secret);
+
+        QByteArray bphase(4, 0);
+        Serialization::WriteInt(_server_state->current_blame.third, bphase, 0);
+        hashalgo.Update(bphase);
+
+        hashalgo.Update(GetRoundId().GetByteArray());
+        QByteArray seed = hashalgo.ComputeHash();
+        int byte_idx = _server_state->current_blame.second / 8;
+        int bit_idx = _server_state->current_blame.second % 8;
+        QByteArray tmp(byte_idx + 1, 0);
+        CryptoRandom(seed).GenerateBlock(tmp);
+        if(((tmp[byte_idx] & bit_masks[bit_idx % 8]) != 0) == _server_state->server_bits[rebuttal.first]) {
+          _server_state->bad_dude = from;
+          qDebug() << "Client misbehaves:" << from;
+        } else {
+          _server_state->bad_dude = server;
+          qDebug() << "Server misbehaves:" << server;
+        }
+      }
     }
     _state_machine.StateComplete();
   }
