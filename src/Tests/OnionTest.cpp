@@ -46,7 +46,7 @@ namespace Tests {
 
     for(int idx = count - 1; idx >= 0; idx--) {
       EXPECT_TRUE(oe.Decrypt(private_keys[idx], onions[idx + 1], onions[idx], 0));
-      oe.RandomizeBlocks(onions[idx]);
+      Crypto::RandomPermutation(onions[idx]);
     }
 
     QBitArray bad;
@@ -89,7 +89,7 @@ namespace Tests {
 
     for(int idx = count - 1; idx > changed; idx--) {
       EXPECT_TRUE(oe.Decrypt(private_keys[idx],onions[idx + 1], onions[idx], 0));
-      oe.RandomizeBlocks(onions[idx]);
+      Crypto::RandomPermutation(onions[idx]);
     }
 
     EXPECT_FALSE(oe.Decrypt(private_keys[changed], onions[changed + 1], onions[changed], 0));
@@ -126,7 +126,7 @@ namespace Tests {
 
     for(int idx = count - 1; idx >= changed; idx--) {
       EXPECT_TRUE(oe.Decrypt(private_keys[idx], onions[idx + 1], onions[idx], 0));
-      oe.RandomizeBlocks(onions[idx]);
+      Crypto::RandomPermutation(onions[idx]);
     }
 
     QByteArray cleartext(1500, 0);
@@ -138,7 +138,7 @@ namespace Tests {
 
     for(int idx = changed - 1; idx >= 0; idx--) {
       EXPECT_TRUE(oe.Decrypt(private_keys[idx], onions[idx + 1], onions[idx], 0));
-      oe.RandomizeBlocks(onions[idx]);
+      Crypto::RandomPermutation(onions[idx]);
     }
 
     QBitArray bad;
@@ -193,7 +193,7 @@ namespace Tests {
 
     for(int idx = count - 1; idx >= changed; idx--) {
       EXPECT_TRUE(oe.Decrypt(private_keys[idx], onions[idx + 1], onions[idx], 0));
-      oe.RandomizeBlocks(onions[idx]);
+      Crypto::RandomPermutation(onions[idx]);
     }
 
     QVector<QSharedPointer<AsymmetricKey> > swap_keys(public_keys);
@@ -208,7 +208,7 @@ namespace Tests {
 
     for(int idx = changed - 1; idx >= 0; idx--) {
       EXPECT_TRUE(oe.Decrypt(private_keys[idx], onions[idx + 1], onions[idx], 0));
-      oe.RandomizeBlocks(onions[idx]);
+      Crypto::RandomPermutation(onions[idx]);
     }
 
     QBitArray bad;
@@ -265,7 +265,7 @@ namespace Tests {
 
     for(int idx = count - 1; idx >= changed1; idx--) {
       EXPECT_TRUE(oe.Decrypt(private_keys[idx], onions[idx + 1], onions[idx], 0));
-      oe.RandomizeBlocks(onions[idx]);
+      Crypto::RandomPermutation(onions[idx]);
     }
 
     QVector<QSharedPointer<AsymmetricKey> > swap_keys(public_keys);
@@ -279,7 +279,7 @@ namespace Tests {
 
     for(int idx = changed1 - 1; idx >= changed0; idx--) {
       EXPECT_TRUE(oe.Decrypt(private_keys[idx], onions[idx + 1], onions[idx], 0));
-      oe.RandomizeBlocks(onions[idx]);
+      Crypto::RandomPermutation(onions[idx]);
     }
 
     swap_keys.resize(changed0);
@@ -289,7 +289,7 @@ namespace Tests {
 
     for(int idx = changed0 - 1; idx >= 0; idx--) {
       EXPECT_TRUE(oe.Decrypt(private_keys[idx], onions[idx + 1], onions[idx], 0));
-      oe.RandomizeBlocks(onions[idx]);
+      Crypto::RandomPermutation(onions[idx]);
     }
 
     QBitArray bad;

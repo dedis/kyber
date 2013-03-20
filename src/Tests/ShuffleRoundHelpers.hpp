@@ -101,7 +101,7 @@ namespace Tests {
           _state->blame = true;
         } 
         
-        oe->RandomizeBlocks(_server_state->shuffle_output);
+        Crypto::RandomPermutation(_server_state->shuffle_output);
         
         const Id &next = GetShufflers().Next(GetLocalId());
         MessageType mtype = (next == Id::Zero()) ? ENCRYPTED_DATA : SHUFFLE_DATA;

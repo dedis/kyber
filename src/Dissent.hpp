@@ -65,6 +65,7 @@
 #include "Crypto/OnionEncryptor.hpp"
 #include "Crypto/Serialization.hpp"
 #include "Crypto/ThreadedOnionEncryptor.hpp"
+#include "Crypto/Utils.hpp"
 
 #include "Crypto/AbstractGroup/CppECGroup.hpp"
 #include "Crypto/AbstractGroup/CppECElementData.hpp"

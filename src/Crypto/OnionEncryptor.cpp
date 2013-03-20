@@ -1,5 +1,5 @@
 #include "OnionEncryptor.hpp"
-#include "CryptoRandom.hpp"
+#include "Utils/Utils.hpp"
 
 namespace Dissent {
 namespace Crypto {
@@ -64,21 +64,6 @@ namespace Crypto {
       cleartext.append(data);
     }
     return res;
-  }
-
-  void OnionEncryptor::RandomizeBlocks(QVector<QByteArray> &text) const
-  {
-    CryptoRandom rand;
-
-    for(int idx = 0; idx < text.count(); idx++) {
-      int jdx = rand.GetInt(0, text.count());
-      if(jdx == idx) {
-        continue;
-      }
-      QByteArray tmp = text[idx];
-      text[idx] = text[jdx];
-      text[jdx] = tmp;
-    }
   }
 
   bool OnionEncryptor::VerifyOne(const QSharedPointer<AsymmetricKey> &key,

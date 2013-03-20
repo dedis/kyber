@@ -40,12 +40,6 @@ namespace Crypto {
           QVector<QByteArray> &cleartext, QVector<int> *bad = 0) const;
 
       /**
-       * Randomizes the inpuptted message blocks
-       * @param text the message blocks
-       */
-      void RandomizeBlocks(QVector<QByteArray> &text) const;
-
-      /**
        * Verifies that the ciphertext and cleartext match, returning true
        * if that is the case, false otherwise
        * @param key the key used for verification

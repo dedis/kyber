@@ -120,6 +120,7 @@ HEADERS += src/Dissent.hpp \
            src/Crypto/OnionEncryptor.hpp \
            src/Crypto/ThreadedOnionEncryptor.hpp \
            src/Crypto/Serialization.hpp \
+           src/Crypto/Utils.hpp \
            src/Crypto/AbstractGroup/CppECGroup.hpp \
            src/Crypto/AbstractGroup/CppECElementData.hpp \
            src/Crypto/AbstractGroup/ElementData.hpp \

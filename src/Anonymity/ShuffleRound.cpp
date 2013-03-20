@@ -1,8 +1,10 @@
 #include <QRunnable>
 
 #include "Crypto/Hash.hpp"
+#include "Crypto/CryptoRandom.hpp"
 #include "Crypto/ThreadedOnionEncryptor.hpp"
 #include "Crypto/RsaPrivateKey.hpp"
+#include "Crypto/Utils.hpp"
 #include "Utils/Serialization.hpp"
 #include "Utils/QRunTimeError.hpp"
 
@@ -551,7 +553,7 @@ using namespace ShuffleRoundPrivate;
       _state->blame = true;
     }
 
-    oe.RandomizeBlocks(_server_state->shuffle_output);
+    Crypto::RandomPermutation<QByteArray>(_server_state->shuffle_output);
 
     const Id &next = _shufflers.Next(GetLocalId());
     MessageType mtype = (next == Id::Zero()) ? ENCRYPTED_DATA : SHUFFLE_DATA;
