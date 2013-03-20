@@ -36,6 +36,8 @@ namespace PeerReview {
           const QByteArray &previous_hash,
           const QByteArray &signature = QByteArray());
 
+      virtual ~Entry() {}
+
       /**
        * Returns the calculated hash for the entry
        */

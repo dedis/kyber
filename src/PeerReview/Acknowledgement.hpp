@@ -45,6 +45,8 @@ namespace PeerReview {
       {
       }
 
+      virtual ~Acknowledgement() {}
+
       /**
        * Turns the Ack into a serialized byte array
        */

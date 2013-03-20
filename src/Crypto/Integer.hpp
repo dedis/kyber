@@ -272,7 +272,7 @@ namespace Crypto {
       /**
        * Returns int32 rep
        */
-      virtual int GetInt32() const
+      int GetInt32() const
       {
         return m_data->GetInt32();
       }
