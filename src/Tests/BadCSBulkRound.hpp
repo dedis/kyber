@@ -10,10 +10,13 @@ namespace Tests {
   class CSBulkRoundBadClient : public CSBulkRound, public Triggerable {
     public:
       explicit CSBulkRoundBadClient(const Group &group,
-          const PrivateIdentity &ident, const Id &round_id,
-          QSharedPointer<Network> network, GetDataCallback &get_data,
+          const PrivateIdentity &ident,
+          const Id &round_id,
+          const QSharedPointer<Network> &network,
+          GetDataCallback &get_data,
+          const QSharedPointer<BuddyMonitor> &bm,
           CreateRound create_shuffle) :
-        CSBulkRound(group, ident, round_id, network, get_data, create_shuffle)
+        CSBulkRound(group, ident, round_id, network, get_data, bm, create_shuffle)
       {
       }
 

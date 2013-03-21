@@ -25,9 +25,12 @@ using namespace ShuffleRoundPrivate;
   const QByteArray ShuffleRound::DefaultData = QByteArray(ShuffleRound::BlockSize + 4, 0);
 
   ShuffleRound::ShuffleRound(const Group &group,
-      const PrivateIdentity &ident, const Id &round_id,
-      QSharedPointer<Network> network, GetDataCallback &get_data) :
-    Round(group, ident, round_id, network, get_data),
+      const PrivateIdentity &ident,
+      const Id &round_id,
+      const QSharedPointer<Network> &network,
+      GetDataCallback &get_data,
+      const QSharedPointer<BuddyMonitor> &bm) :
+    Round(group, ident, round_id, network, get_data, bm),
     _shufflers(GetGroup().GetSubgroup()),
     _state_machine(RoundStateMachine<ShuffleRound>(this))
   {
@@ -542,7 +545,7 @@ using namespace ShuffleRoundPrivate;
     }
 
     QVector<int> bad;
-    /// XXX
+    /// XXX so why was this labeled xxx....
     Crypto::OnionEncryptor oe;
     if(!oe.Decrypt(_server_state->outer_key, _server_state->shuffle_input,
           _server_state->shuffle_output, &bad))

@@ -11,9 +11,13 @@ namespace Tests {
   {
     public:
       explicit BulkRoundBadShuffler(const Group &group,
-          const PrivateIdentity &ident, const Id &round_id,
-          QSharedPointer<Network> network, GetDataCallback &get_data) :
-        B(group, ident, round_id, network, get_data, TNCreateRound<S, N>)
+          const PrivateIdentity &ident,
+          const Id &round_id,
+          const QSharedPointer<Network> &network,
+          GetDataCallback &get_data,
+          const QSharedPointer<BuddyMonitor> &bm) :
+        B(group, ident, round_id, network, get_data, bm,
+            TNCreateRound<S, N>)
       {
       }
 
@@ -24,21 +28,26 @@ namespace Tests {
   };
 
   template <typename B, template <int> class S, int N> Round *TBNCreateRound(
-      const Group &group, const PrivateIdentity &ident,
+      const Group &group,
+      const PrivateIdentity &ident,
       const Dissent::Connections::Id &round_id,
-      QSharedPointer<Dissent::Connections::Network> network,
-      Dissent::Messaging::GetDataCallback &get_data)
+      const QSharedPointer<Dissent::Connections::Network> &network,
+      Dissent::Messaging::GetDataCallback &get_data,
+      const QSharedPointer<BuddyMonitor> &bm)
   {
     return new BulkRoundBadShuffler<B, S, N>(group, ident, round_id,
-        network, get_data);
+        network, get_data, bm);
   };
 
   class BulkRoundIncorrectMessageLength : public BulkRound, public Triggerable {
     public:
       explicit BulkRoundIncorrectMessageLength(const Group &group,
-          const PrivateIdentity &ident, const Id &round_id,
-          QSharedPointer<Network> network, GetDataCallback &get_data) :
-        BulkRound(group, ident, round_id, network, get_data),
+          const PrivateIdentity &ident,
+          const Id &round_id,
+          const QSharedPointer<Network> network,
+          GetDataCallback &get_data,
+          const QSharedPointer<BuddyMonitor> &bm) :
+        BulkRound(group, ident, round_id, network, get_data, bm),
         _bad(-1)
       {
       }
@@ -68,9 +77,12 @@ namespace Tests {
   class BulkRoundBadXorMessage : public BulkRound, public Triggerable {
     public:
       explicit BulkRoundBadXorMessage(const Group &group,
-          const PrivateIdentity &ident, const Id &round_id,
-          QSharedPointer<Network> network, GetDataCallback &get_data) :
-        BulkRound(group, ident, round_id, network, get_data),
+          const PrivateIdentity &ident,
+          const Id &round_id,
+          const QSharedPointer<Network> &network,
+          GetDataCallback &get_data,
+          const QSharedPointer<BuddyMonitor> &bm) :
+        BulkRound(group, ident, round_id, network, get_data, bm),
         _bad(-1)
       {
       }
@@ -98,9 +110,12 @@ namespace Tests {
   class BulkRoundBadDescriptor : public BulkRound, public Triggerable {
     public:
       explicit BulkRoundBadDescriptor(const Group &group,
-          const PrivateIdentity &ident, const Id &round_id,
-          QSharedPointer<Network> network, GetDataCallback &get_data) :
-        BulkRound(group, ident, round_id, network, get_data)
+          const PrivateIdentity &ident,
+          const Id &round_id,
+          const QSharedPointer<Network> &network,
+          GetDataCallback &get_data,
+          const QSharedPointer<BuddyMonitor> &bm) :
+        BulkRound(group, ident, round_id, network, get_data, bm)
       {
       }
 
@@ -138,9 +153,12 @@ namespace Tests {
   class BulkRoundFalseAccusation : public BulkRound, public Triggerable {
     public:
       explicit BulkRoundFalseAccusation(const Group &group,
-          const PrivateIdentity &ident, const Id &round_id,
-          QSharedPointer<Network> network, GetDataCallback &get_data) :
-        BulkRound(group, ident, round_id, network, get_data)
+          const PrivateIdentity &ident,
+          const Id &round_id,
+          const QSharedPointer<Network> &network,
+          GetDataCallback &get_data,
+          const QSharedPointer<BuddyMonitor> &bm) :
+        BulkRound(group, ident, round_id, network, get_data, bm)
       {
       }
   };

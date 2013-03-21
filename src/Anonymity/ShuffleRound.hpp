@@ -133,8 +133,11 @@ namespace Anonymity {
        * @param get_data requests data to share during this session
        */
       explicit ShuffleRound(const Group &group, 
-          const PrivateIdentity &ident, const Id &round_id,
-          QSharedPointer<Network> network, GetDataCallback &get_data);
+          const PrivateIdentity &ident,
+          const Id &round_id,
+          const QSharedPointer<Network> &network,
+          GetDataCallback &get_data,
+          const QSharedPointer<BuddyMonitor> &bm);
 
       /**
        * Deconstructor

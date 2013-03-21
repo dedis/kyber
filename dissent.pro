@@ -69,12 +69,17 @@ HEADERS += src/Dissent.hpp \
            src/Anonymity/RepeatingBulkRound.hpp \
            src/Anonymity/Round.hpp \
            src/Anonymity/RoundStateMachine.hpp \
-           src/Anonymity/Sessions/Session.hpp \
-           src/Anonymity/Sessions/SessionLeader.hpp \
-           src/Anonymity/Sessions/SessionManager.hpp \
            src/Anonymity/ShuffleBlamer.hpp \
            src/Anonymity/ShuffleRound.hpp \
            src/Anonymity/ShuffleRoundBlame.hpp \
+           src/Anonymity/Buddies/BuddyMonitor.hpp \
+           src/Anonymity/Buddies/BuddyPolicy.hpp \
+           src/Anonymity/Buddies/DynamicBuddyPolicy.hpp \
+           src/Anonymity/Buddies/NullBuddyPolicy.hpp \
+           src/Anonymity/Buddies/StaticBuddyPolicy.hpp \
+           src/Anonymity/Sessions/Session.hpp \
+           src/Anonymity/Sessions/SessionLeader.hpp \
+           src/Anonymity/Sessions/SessionManager.hpp \
            src/Applications/AuthFactory.hpp \
            src/Applications/CommandLine.hpp \
            src/Applications/ConsoleSink.hpp \
@@ -240,12 +245,17 @@ SOURCES += src/Anonymity/BaseBulkRound.cpp \
            src/Anonymity/NullRound.cpp \
            src/Anonymity/RepeatingBulkRound.cpp \
            src/Anonymity/Round.cpp \
-           src/Anonymity/Sessions/Session.cpp \
-           src/Anonymity/Sessions/SessionLeader.cpp \
-           src/Anonymity/Sessions/SessionManager.cpp \
            src/Anonymity/ShuffleBlamer.cpp \
            src/Anonymity/ShuffleRound.cpp \
            src/Anonymity/ShuffleRoundBlame.cpp \
+           src/Anonymity/Buddies/BuddyMonitor.cpp \
+           src/Anonymity/Buddies/BuddyPolicy.cpp \
+           src/Anonymity/Buddies/DynamicBuddyPolicy.cpp \
+           src/Anonymity/Buddies/NullBuddyPolicy.cpp \
+           src/Anonymity/Buddies/StaticBuddyPolicy.cpp \
+           src/Anonymity/Sessions/Session.cpp \
+           src/Anonymity/Sessions/SessionLeader.cpp \
+           src/Anonymity/Sessions/SessionManager.cpp \
            src/Applications/AuthFactory.cpp \
            src/Applications/CommandLine.cpp \
            src/Applications/ConsoleSink.cpp \

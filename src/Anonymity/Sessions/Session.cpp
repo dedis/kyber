@@ -1,3 +1,6 @@
+#include "Anonymity/Buddies/BuddyMonitor.hpp"
+#include "Anonymity/Buddies/BuddyPolicy.hpp"
+#include "Anonymity/Buddies/NullBuddyPolicy.hpp"
 #include "Connections/Connection.hpp"
 #include "Connections/ConnectionManager.hpp"
 #include "Connections/ConnectionTable.hpp"
@@ -278,8 +281,10 @@ namespace Sessions {
 
   void Session::NextRound(const Id &round_id)
   {
+    QSharedPointer<Buddies::BuddyPolicy> bp(new Buddies::NullBuddyPolicy(GetGroup().Count()));
+    QSharedPointer<Buddies::BuddyMonitor> bm(new Buddies::BuddyMonitor(bp));
     _current_round = _create_round(GetGroup(), GetPrivateIdentity(), round_id,
-        _network, m_send_queue.GetCallback());
+        _network, m_send_queue.GetCallback(), bm);
 
     qDebug() << "Session" << ToString() << "preparing new round" <<
       _current_round;

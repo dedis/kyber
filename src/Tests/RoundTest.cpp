@@ -356,7 +356,7 @@ namespace Tests {
   }
 
   void RoundTest_PeerDisconnectMiddle(SessionCreator callback,
-      Group::SubgroupPolicy sg_policy, bool transient)
+      Group::SubgroupPolicy sg_policy, bool transient, bool check_buddies)
   {
     ConnectionManager::UseTimer = false;
     SessionLeader::EnableLogOffMonitor = false;
@@ -495,6 +495,36 @@ namespace Tests {
       EXPECT_EQ(node->sink.Count(), 1);
       if(node->sink.Count() == 1) {
         EXPECT_EQ(node->sink.Last().second, msg);
+      }
+    }
+
+    if(check_buddies) {
+      bool super_peer = sg_policy == Group::ManagedSubgroup;
+      int a_idx = -1;
+
+      for(int idx = 0; idx < group.Count(); idx++) {
+        foreach(TestNode *node, nodes) {
+          /// @TODO Hopefully we can get rid of this condition later...
+          if(super_peer && !node->ident.GetSuperPeer()) {
+            continue;
+          }
+
+          int a_count = node->session->GetCurrentRound()->GetBuddyMonitor()->GetNymAnonymity(idx);
+          if(a_count != group.Count()) {
+            if(a_idx == -1) {
+              a_idx = idx;
+            }
+            EXPECT_EQ(idx, a_idx);
+          }
+
+          int u_count = node->session->GetCurrentRound()->GetBuddyMonitor()->GetMemberAnonymity(idx);
+          qDebug() << idx << group.Count() << disconnector << u_count;
+          if(idx == disconnector) { 
+            EXPECT_EQ(u_count, group.Count() - 1);
+          } else {
+            EXPECT_EQ(u_count, group.Count());
+          }
+        }
       }
     }
 

@@ -20,9 +20,12 @@ namespace Anonymity {
        * @param network handles message sending
        * @param get_data requests data to share during this session
        */
-      explicit NullRound(const Group &group, const PrivateIdentity &ident,
-          const Id &round_id, QSharedPointer<Network> network,
-          GetDataCallback &get_data);
+      explicit NullRound(const Group &group,
+          const PrivateIdentity &ident,
+          const Id &round_id,
+          const QSharedPointer<Network> &network,
+          GetDataCallback &get_data,
+          const QSharedPointer<BuddyMonitor> &bm);
 
       /**
        * Destructor

@@ -29,6 +29,12 @@ namespace Tests {
         Group::ManagedSubgroup);
   }
 
+  TEST(CSBulkRound, PeerDisconnectMiddleBuddies)
+  {
+    RoundTest_PeerDisconnectMiddle(SessionCreator(TCreateBulkRound<CSBulkRound, NeffKeyShuffleRound>),
+        Group::ManagedSubgroup, false, true);
+  }
+
   /*
    * Test needs more work to be viable...
   TEST(CSBulkRound, PeerTransientIssueMiddle)

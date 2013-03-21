@@ -5,6 +5,8 @@
 #include <QObject>
 #include <QSharedPointer>
 
+#include "Buddies/BuddyMonitor.hpp"
+#include "Buddies/NullBuddyPolicy.hpp"
 #include "Connections/Id.hpp"
 #include "Connections/Network.hpp"
 #include "Identity/Group.hpp"
@@ -39,6 +41,7 @@ namespace Anonymity {
     Q_OBJECT
 
     public:
+      typedef Buddies::BuddyMonitor BuddyMonitor;
       typedef Connections::Connection Connection;
       typedef Connections::Id Id;
       typedef Connections::Network Network;
@@ -57,9 +60,12 @@ namespace Anonymity {
        * @param network handles message sending
        * @param get_data requests data to share during this session
        */
-      explicit Round(const Group &group, const PrivateIdentity &ident,
-          const Id &round_id, QSharedPointer<Network> network,
-          GetDataCallback &get_data);
+      explicit Round(const Group &group,
+          const PrivateIdentity &ident,
+          const Id &round_id,
+          const QSharedPointer<Network> &network,
+          GetDataCallback &get_data,
+          const QSharedPointer<BuddyMonitor> &bm);
 
       /**
        * Destructor
@@ -160,6 +166,11 @@ namespace Anonymity {
        * Can this round type receive a minimal group definition?
        */
       virtual bool CSGroupCapable() const { return false; }
+
+      /**
+       * Returns the internal buddy monitor
+       */
+      inline QSharedPointer<BuddyMonitor> GetBuddyMonitor() { return _bm; }
 
     signals:
       /**
@@ -276,6 +287,22 @@ namespace Anonymity {
        */
       QByteArray GenerateData(int size = DEFAULT_GENERATE_DATA_SIZE);
 
+      /**
+       * Wrapper around Source::PushData to assist with buddies
+       * @param uid anonymous id
+       * @param data data to push
+       */
+      void PushData(int uid, const QByteArray &data);
+
+      /**
+       * Make Source::PushData available
+       */
+      inline void PushData(const QSharedPointer<ISender> &sender,
+          const QByteArray &data)
+      {
+        SourceObject::PushData(sender, data);
+      }
+
     private:
       QDateTime _create_time;
       QDateTime _start_time;
@@ -287,6 +314,7 @@ namespace Anonymity {
       bool _successful;
       QVector<int> _empty_list;
       bool _interrupted;
+      QSharedPointer<BuddyMonitor> _bm;
       QWeakPointer<Round> _shared;
   };
 
@@ -304,16 +332,18 @@ namespace Anonymity {
 
   typedef QSharedPointer<Round> (*CreateRound)(const Round::Group &,
       const Round::PrivateIdentity &, const Connections::Id &,
-      QSharedPointer<Connections::Network>,
-      Messaging::GetDataCallback &get_data_cb);
+      const QSharedPointer<Connections::Network> &,
+      Messaging::GetDataCallback &get_data_cb,
+      const QSharedPointer<Buddies::BuddyMonitor> &);
 
   template <typename T> QSharedPointer<Round> TCreateRound(
       const Round::Group &group, const Round::PrivateIdentity &ident,
       const Connections::Id &round_id,
-      QSharedPointer<Connections::Network> network,
-      Messaging::GetDataCallback &get_data)
+      const QSharedPointer<Connections::Network> &network,
+      Messaging::GetDataCallback &get_data,
+      const QSharedPointer<Buddies::BuddyMonitor> &bm)
   {
-    QSharedPointer<T> round(new T(group, ident, round_id, network, get_data));
+    QSharedPointer<T> round(new T(group, ident, round_id, network, get_data, bm));
     round->SetSharedPointer(round);
     return round;
   }

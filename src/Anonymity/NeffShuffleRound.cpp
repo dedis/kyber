@@ -18,11 +18,14 @@ namespace Dissent {
 
 namespace Anonymity {
   NeffShuffleRound::NeffShuffleRound(const Group &group,
-      const PrivateIdentity &ident, const Id &round_id,
-      QSharedPointer<Network> network,
+      const PrivateIdentity &ident,
+      const Id &round_id,
+      const QSharedPointer<Network> &network,
       GetDataCallback &get_data,
-      bool key_shuffle, int data_size) :
-    Round(group, ident, round_id, network, get_data),
+      const QSharedPointer<BuddyMonitor> &bm,
+      bool key_shuffle,
+      int data_size) :
+    Round(group, ident, round_id, network, get_data, bm),
     _state_machine(this)
   {
     _state_machine.AddState(OFFLINE);

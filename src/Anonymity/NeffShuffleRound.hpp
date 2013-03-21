@@ -96,12 +96,18 @@ namespace NeffShufflePrivate {
        * @param round_id Unique round id (nonce)
        * @param network handles message sending
        * @param get_data requests data to share during this session
+       * @param bm buddy monitor
        * @param key_shuffle determines the type of group to use in the shuffle
        * @param data_size determines how large the keys should be for data shuffling
        */
-      explicit NeffShuffleRound(const Group &group, const PrivateIdentity &ident,
-          const Id &round_id, QSharedPointer<Network> network,
-          GetDataCallback &get_data, bool key_shuffle = false, int data_size = 252);
+      explicit NeffShuffleRound(const Group &group,
+          const PrivateIdentity &ident,
+          const Id &round_id,
+          const QSharedPointer<Network> &network,
+          GetDataCallback &get_data,
+          const QSharedPointer<BuddyMonitor> &bm,
+          bool key_shuffle = false,
+          int data_size = 252);
 
       /**
        * Destructor

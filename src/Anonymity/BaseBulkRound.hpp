@@ -43,12 +43,16 @@ namespace Anonymity {
        * @param round_id Unique round id (nonce)
        * @param network handles message sending
        * @param get_data requests data to share during this session
+       * @param bm buddy monitor
        * @param create_shuffle optional parameter specifying a shuffle round
        * to create, currently used for testing
        */
-      explicit BaseBulkRound(const Group &group, const PrivateIdentity &ident,
-          const Id &round_id, QSharedPointer<Network> network,
+      explicit BaseBulkRound(const Group &group,
+          const PrivateIdentity &ident,
+          const Id &round_id,
+          const QSharedPointer<Network> &network,
           GetDataCallback &get_data,
+          const QSharedPointer<BuddyMonitor> &bm,
           CreateRound create_shuffle = &TCreateRound<ShuffleRound>);
 
       /**
@@ -150,13 +154,15 @@ namespace Anonymity {
   };
 
   template <typename B, typename S> QSharedPointer<Round> TCreateBulkRound(
-      const Round::Group &group, const Round::PrivateIdentity &ident,
+      const Round::Group &group,
+      const Round::PrivateIdentity &ident,
       const Connections::Id &round_id,
-      QSharedPointer<Connections::Network> network,
-      Messaging::GetDataCallback &get_data)
+      const QSharedPointer<Connections::Network> &network,
+      Messaging::GetDataCallback &get_data,
+      const QSharedPointer<Buddies::BuddyMonitor> &bm)
   {
     QSharedPointer<Round> round(new B(group, ident, round_id, network,
-          get_data, &TCreateRound<S>));
+          get_data, bm, &TCreateRound<S>));
     round->SetSharedPointer(round);
     return round;
   }

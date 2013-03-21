@@ -4,10 +4,13 @@
 
 namespace Dissent {
 namespace Anonymity {
-  NullRound::NullRound(const Group &group, const PrivateIdentity &ident,
-      const Id &round_id, QSharedPointer<Network> network,
-      GetDataCallback &get_data) :
-    Round(group, ident, round_id, network, get_data),
+  NullRound::NullRound(const Group &group,
+      const PrivateIdentity &ident,
+      const Id &round_id,
+      const QSharedPointer<Network> &network,
+      GetDataCallback &get_data,
+      const QSharedPointer<BuddyMonitor> &bm) :
+    Round(group, ident, round_id, network, get_data, bm),
     _received(GetGroup().Count()),
     _n_msgs(0)
   {

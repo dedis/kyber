@@ -36,11 +36,12 @@ namespace Tests {
   template <template <int> class T, int N> QSharedPointer<Round> TNCreateRound(
       const Group &group, const PrivateIdentity &ident,
       const Dissent::Connections::Id &round_id,
-      QSharedPointer<Dissent::Connections::Network> network,
-      Dissent::Messaging::GetDataCallback &get_data)
+      const QSharedPointer<Dissent::Connections::Network> &network,
+      Dissent::Messaging::GetDataCallback &get_data,
+      const QSharedPointer<BuddyMonitor> &bm)
   {
     QSharedPointer<Round> round(new T<N>(group, ident, round_id,
-          network, get_data));
+          network, get_data, bm));
     round->SetSharedPointer(round);
     return round;
   }
@@ -71,7 +72,8 @@ namespace Tests {
   void RoundTest_PeerDisconnectEnd(SessionCreator callback,
       Group::SubgroupPolicy sg_policy);
   void RoundTest_PeerDisconnectMiddle(SessionCreator callback,
-      Group::SubgroupPolicy sg_policy, bool transient = false);
+      Group::SubgroupPolicy sg_policy, bool transient = false,
+      bool check_buddies = false);
   void RoundTest_BadGuy(SessionCreator good_callback,
       SessionCreator bad_callback,
       Group::SubgroupPolicy sg_policy,

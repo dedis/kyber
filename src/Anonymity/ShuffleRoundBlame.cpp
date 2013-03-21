@@ -16,7 +16,11 @@ namespace Anonymity {
       const Id &round_id, const QSharedPointer<AsymmetricKey> &outer_key) :
     ShuffleRound(group, PrivateIdentity(local_id), round_id,
         Connections::EmptyNetwork::GetInstance(),
-        Messaging::EmptyGetDataCallback::GetInstance())
+        Messaging::EmptyGetDataCallback::GetInstance(),
+        QSharedPointer<BuddyMonitor>(
+          new BuddyMonitor(
+            QSharedPointer<Buddies::BuddyPolicy>(
+              new Buddies::NullBuddyPolicy(group.Count())))))
   {
     if(_server_state) {
       _server_state->outer_key = outer_key;

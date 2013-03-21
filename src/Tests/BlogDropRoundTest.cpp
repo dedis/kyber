@@ -9,11 +9,16 @@ namespace Tests {
   class BadBlogDropRound : public BlogDropRound, public Triggerable {
     public:
       explicit BadBlogDropRound(const QSharedPointer<Parameters> &params,
-          const Group &group, const PrivateIdentity &ident,
-          const Id &round_id, const QSharedPointer<Network> &network,
-          GetDataCallback &get_data, CreateRound create_shuffle,
+          const Group &group,
+          const PrivateIdentity &ident,
+          const Id &round_id,
+          const QSharedPointer<Network> &network,
+          GetDataCallback &get_data,
+          const QSharedPointer<BuddyMonitor> &bm,
+          CreateRound create_shuffle,
           bool verify_proofs) :
-        BlogDropRound(params, group, ident, round_id, network, get_data, create_shuffle, verify_proofs)
+        BlogDropRound(params, group, ident, round_id, network, get_data, bm,
+            create_shuffle, verify_proofs)
       {
       }
 
@@ -32,14 +37,17 @@ namespace Tests {
 
   template <Crypto::BlogDrop::Parameters::ParameterType TYPE, typename SHUFFLE, bool VERIFY>
     QSharedPointer<Round> TCreateBadBlogDropRound(
-      const Round::Group &group, const Round::PrivateIdentity &ident,
+      const Round::Group &group,
+      const Round::PrivateIdentity &ident,
       const Connections::Id &round_id,
-      QSharedPointer<Connections::Network> network,
-      Messaging::GetDataCallback &get_data)
+      const QSharedPointer<Connections::Network> &network,
+      Messaging::GetDataCallback &get_data,
+      const QSharedPointer<BuddyMonitor> &bm)
   {
     QSharedPointer<Round> round(new BadBlogDropRound(
           Crypto::BlogDrop::Parameters::GetParameters(TYPE, round_id.GetByteArray()),
-          group, ident, round_id, network, get_data, &TCreateRound<SHUFFLE>, VERIFY));
+          group, ident, round_id, network, get_data, bm,
+          &TCreateRound<SHUFFLE>, VERIFY));
     round->SetSharedPointer(round);
     return round;
   }

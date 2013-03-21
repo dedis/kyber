@@ -29,10 +29,13 @@ using Utils::Serialization;
 
 namespace Anonymity {
   RepeatingBulkRound::RepeatingBulkRound(const Group &group,
-      const PrivateIdentity &ident, const Id &round_id,
-      QSharedPointer<Network> network, GetDataCallback &get_data,
+      const PrivateIdentity &ident,
+      const Id &round_id,
+      const QSharedPointer<Network> &network,
+      GetDataCallback &get_data,
+      const QSharedPointer<BuddyMonitor> &bm,
       CreateRound create_shuffle) :
-    Round(group, ident, round_id, network, get_data),
+    Round(group, ident, round_id, network, get_data, bm),
     _get_shuffle_data(this, &RepeatingBulkRound::GetShuffleData),
     _state(Offline),
     _phase(0),
@@ -51,7 +54,7 @@ namespace Anonymity {
     Id sr_id(Hash().ComputeHash(GetRoundId().GetByteArray()));
 
     _shuffle_round = create_shuffle(GetGroup(), GetPrivateIdentity(), sr_id, net,
-        _get_shuffle_data);
+        _get_shuffle_data, GetBuddyMonitor());
     _shuffle_round->SetSink(&_shuffle_sink);
 
     QObject::connect(_shuffle_round.data(), SIGNAL(Finished()),

@@ -6,9 +6,12 @@
 
 namespace Dissent {
 namespace Anonymity {
-  Round::Round(const Group &group, const PrivateIdentity &ident,
-      const Id &round_id, QSharedPointer<Network> network,
-      GetDataCallback &get_data) :
+  Round::Round(const Group &group,
+      const PrivateIdentity &ident,
+      const Id &round_id,
+      const QSharedPointer<Network> &network,
+      GetDataCallback &get_data,
+      const QSharedPointer<BuddyMonitor> &bm) :
     _create_time(Dissent::Utils::Time::GetInstance().CurrentTime()),
     _group(group),
     _ident(ident),
@@ -16,7 +19,8 @@ namespace Anonymity {
     _network(network),
     _get_data_cb(get_data),
     _successful(false),
-    _interrupted(false)
+    _interrupted(false),
+    _bm(bm)
   {
   }
 
@@ -102,5 +106,10 @@ namespace Anonymity {
     return data;
   }
 
+  void Round::PushData(int uid, const QByteArray &data)
+  {
+    GetBuddyMonitor()->SetActiveNym(uid);
+    PushData(GetSharedPointer(), data);
+  }
 }
 }

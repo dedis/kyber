@@ -29,11 +29,15 @@ namespace Dissent {
 namespace Anonymity {
 
   BlogDropRound::BlogDropRound(const QSharedPointer<Parameters> &params,
-      const Group &group, const PrivateIdentity &ident,
-      const Id &round_id, const QSharedPointer<Network> &network,
-      GetDataCallback &get_data, CreateRound create_shuffle,
+      const Group &group,
+      const PrivateIdentity &ident,
+      const Id &round_id,
+      const QSharedPointer<Network> &network,
+      GetDataCallback &get_data,
+      const QSharedPointer<BuddyMonitor> &bm,
+      CreateRound create_shuffle,
       bool verify_proofs) :
-    BaseBulkRound(group, ident, round_id, network, get_data, create_shuffle),
+    BaseBulkRound(group, ident, round_id, network, get_data, bm, create_shuffle),
     _params(params),
     _state_machine(this),
     _stop_next(false),
@@ -1204,7 +1208,7 @@ namespace Anonymity {
       const int len_length = 4;
       if(!plaintexts[slot_idx].isEmpty() && plaintexts[slot_idx].count() > len_length) {
         qDebug() << "Pushing cleartext of length" << plaintexts[slot_idx].mid(len_length).count();
-        PushData(GetSharedPointer(), plaintexts[slot_idx].mid(len_length)); 
+        PushData(slot_idx, plaintexts[slot_idx].mid(len_length)); 
       }
 
       const int slot_length = Utils::Serialization::ReadInt(plaintexts[slot_idx], 0);
@@ -1296,6 +1300,8 @@ namespace BlogDropPrivate {
 
   void GenerateServerCiphertext::run() 
   {
+    /// @TODO this protocol assumes everyone was online
+    _round->GetBuddyMonitor()->SetOnlineMembers(QBitArray(_round->GetGroup().Count(), true));
     Q_ASSERT(_round->_server_state->all_client_ciphertexts.count() == _round->GetGroup().Count());
 
     QList<QList<QByteArray> > by_slot;

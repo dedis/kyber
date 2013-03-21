@@ -23,11 +23,15 @@ namespace Anonymity {
        * @param round_id Unique round id (nonce)
        * @param network handles message sending
        * @param get_data requests data to share during this session
+       * @param bm buddy monitor
        */
-      explicit NeffKeyShuffleRound(const Group &group, const PrivateIdentity &ident,
-          const Id &round_id, QSharedPointer<Network> network,
-          GetDataCallback &get_data) :
-        NeffShuffleRound(group, ident, round_id, network, get_data, true),
+      explicit NeffKeyShuffleRound(const Group &group,
+          const PrivateIdentity &ident,
+          const Id &round_id,
+          const QSharedPointer<Network> &network,
+          GetDataCallback &get_data,
+          const QSharedPointer<BuddyMonitor> &bm) :
+        NeffShuffleRound(group, ident, round_id, network, get_data, bm, true),
         _parsed(false), _key_index(-1) { }
 
       /**

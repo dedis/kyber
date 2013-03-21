@@ -22,10 +22,14 @@ using Utils::Random;
 using Utils::Serialization;
 
 namespace Anonymity {
-  BulkRound::BulkRound(const Group &group, const PrivateIdentity &ident,
-      const Id &round_id, QSharedPointer<Network> network,
-      GetDataCallback &get_data, CreateRound create_shuffle) :
-    Round(group, ident, round_id, network, get_data),
+  BulkRound::BulkRound(const Group &group,
+      const PrivateIdentity &ident,
+      const Id &round_id,
+      const QSharedPointer<Network> &network,
+      GetDataCallback &get_data,
+      const QSharedPointer<BuddyMonitor> &bm,
+      CreateRound create_shuffle) :
+    Round(group, ident, round_id, network, get_data, bm),
     _app_broadcast(true),
     _my_idx(-1),
     _create_shuffle(create_shuffle),
@@ -47,7 +51,7 @@ namespace Anonymity {
     Id sr_id(Hash().ComputeHash(GetRoundId().GetByteArray()));
 
     _shuffle_round = _create_shuffle(GetGroup(), GetPrivateIdentity(), sr_id, net,
-        _get_bulk_data);
+        _get_bulk_data, GetBuddyMonitor());
     _shuffle_round->SetSink(&_shuffle_sink);
 
     QObject::connect(_shuffle_round.data(), SIGNAL(Finished()),
@@ -512,7 +516,7 @@ namespace Anonymity {
     Id sr_id(roundid);
 
     _shuffle_round = _create_shuffle(GetGroup(), GetPrivateIdentity(), sr_id, net,
-        _get_blame_data);
+        _get_blame_data, GetBuddyMonitor());
 
     _shuffle_round->SetSink(&_shuffle_sink);
 

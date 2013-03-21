@@ -149,12 +149,16 @@ namespace Anonymity {
        * @param round_id Unique round id (nonce)
        * @param network handles message sending
        * @param get_data requests data to share during this session
+       * @param bm buddy monitor
        * @param create_shuffle optional parameter specifying a shuffle round
        * to create, currently used for testing
        */
-      explicit BulkRound(const Group &group, const PrivateIdentity &ident,
-          const Id &round_id, QSharedPointer<Network> network,
+      explicit BulkRound(const Group &group,
+          const PrivateIdentity &ident,
+          const Id &round_id,
+          const QSharedPointer<Network> &network,
           GetDataCallback &get_data,
+          const QSharedPointer<BuddyMonitor> &bm,
           CreateRound create_shuffle = &TCreateRound<ShuffleRound>);
 
       /**

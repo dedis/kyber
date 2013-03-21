@@ -83,14 +83,18 @@ namespace BlogDropPrivate {
        * @param round_id Unique round id (nonce)
        * @param network handles message sending
        * @param get_data requests data to share during this session
+       * @param bm buddy monitor
        * @param create_shuffle optional parameter specifying a shuffle round
        * to create, currently used for testing
        * @param verify_proofs optionally verify proofs proactively
        */
       explicit BlogDropRound(const QSharedPointer<Parameters> &blogdrop_params, 
-          const Group &group, const PrivateIdentity &ident,
-          const Id &round_id, const QSharedPointer<Network> &network,
+          const Group &group,
+          const PrivateIdentity &ident,
+          const Id &round_id,
+          const QSharedPointer<Network> &network,
           GetDataCallback &get_data,
+          const QSharedPointer<BuddyMonitor> &bm,
           CreateRound create_shuffle = &TCreateRound<NullRound>,
           bool verify_proofs = true);
 
@@ -508,14 +512,16 @@ namespace BlogDropPrivate {
 
   template <Crypto::BlogDrop::Parameters::ParameterType TYPE, typename SHUFFLE, bool VERIFY>
     QSharedPointer<Round> TCreateBlogDropRound(
-      const Round::Group &group, const Round::PrivateIdentity &ident,
+      const Round::Group &group,
+      const Round::PrivateIdentity &ident,
       const Connections::Id &round_id,
-      QSharedPointer<Connections::Network> network,
-      Messaging::GetDataCallback &get_data)
+      const QSharedPointer<Connections::Network> &network,
+      Messaging::GetDataCallback &get_data,
+      const QSharedPointer<Buddies::BuddyMonitor> &bm)
   {
     QSharedPointer<Round> round(new BlogDropRound(
           Crypto::BlogDrop::Parameters::GetParameters(TYPE, round_id.GetByteArray()),
-          group, ident, round_id, network, get_data, &TCreateRound<SHUFFLE>, VERIFY));
+          group, ident, round_id, network, get_data, bm, &TCreateRound<SHUFFLE>, VERIFY));
     round->SetSharedPointer(round);
     return round;
   }

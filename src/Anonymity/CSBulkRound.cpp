@@ -35,10 +35,14 @@ namespace Dissent {
   using Utils::Serialization;
 
 namespace Anonymity {
-  CSBulkRound::CSBulkRound(const Group &group, const PrivateIdentity &ident,
-      const Id &round_id, QSharedPointer<Network> network,
-      GetDataCallback &get_data, CreateRound create_shuffle) :
-    BaseBulkRound(group, ident, round_id, network, get_data, create_shuffle),
+  CSBulkRound::CSBulkRound(const Group &group,
+      const PrivateIdentity &ident,
+      const Id &round_id,
+      const QSharedPointer<Network> &network,
+      GetDataCallback &get_data,
+      const QSharedPointer<BuddyMonitor> &bm,
+      CreateRound create_shuffle) :
+    BaseBulkRound(group, ident, round_id, network, get_data, bm, create_shuffle),
     _state_machine(this),
     _stop_next(false),
     _get_blame_data(this, &CSBulkRound::GetBlameData)
@@ -95,7 +99,7 @@ namespace Anonymity {
 #ifdef CS_BLOG_DROP
     QSharedPointer<BlogDropRound> bdr(new BlogDropRound(
           Crypto::BlogDrop::Parameters::CppECHashingProduction(),
-          group, ident, round_id, net, _get_blame_data,
+          group, ident, round_id, net, _get_blame_data, GetBuddyMonitor(),
           TCreateRound<NeffShuffleRound>));
     bdr->SetSharedPointer(bdr);
     bdr->SetInteractiveMode();
@@ -108,10 +112,10 @@ namespace Anonymity {
 #else
 #ifdef DISSENT_TEST
     _state->blame_shuffle = QSharedPointer<Round>(new NullRound(GetGroup(),
-          GetPrivateIdentity(), bsr_id, net, _get_blame_data));
+          GetPrivateIdentity(), bsr_id, net, _get_blame_data, GetBuddyMonitor()));
 #else
     _state->blame_shuffle = QSharedPointer<Round>(new NeffShuffleRound(GetGroup(),
-          GetPrivateIdentity(), bsr_id, net, _get_blame_data));
+          GetPrivateIdentity(), bsr_id, net, _get_blame_data, GetBuddyMonitor()));
 #endif
     QObject::connect(_state->blame_shuffle.data(), SIGNAL(Finished()),
         this, SLOT(OperationFinished()));
@@ -124,6 +128,11 @@ namespace Anonymity {
     _server_state = QSharedPointer<ServerState>(new ServerState());
     _state = _server_state;
     Q_ASSERT(_state);
+    _server_state->handled_servers_bits = QBitArray(GetGroup().Count(), false);
+    foreach(const PublicIdentity &ident, GetGroup().GetSubgroup()) {
+      int idx = GetGroup().GetIndex(ident.GetId());
+      _server_state->handled_servers_bits[idx] = true;
+    }
 
     _server_state->current_phase_log =
       QSharedPointer<PhaseLog>(
@@ -1137,6 +1146,8 @@ namespace Anonymity {
 
   void CSBulkRound::SubmitCommit()
   {
+    GetBuddyMonitor()->SetOnlineMembers(_server_state->handled_clients |
+        _server_state->handled_servers_bits);
     SetupRngs();
 
     qDebug() << ToString() << "generating ciphertext for" <<
@@ -1438,7 +1449,6 @@ namespace Anonymity {
 #else
       if(hashalgo.ComputeHash(msg_p) != sig) {
 #endif
-        
         qDebug() << "Unable to verify message for peer at" << owner;
         next_msg_length += msg_length;
         next_msgs[owner] = msg_length;
@@ -1507,7 +1517,7 @@ namespace Anonymity {
       QByteArray msg(msg_p.constData() + 8, msg_p.size() - 8);
       if(!msg.isEmpty()) {
         qDebug() << ToString() << "received a valid message.";
-        PushData(GetSharedPointer(), msg);
+        PushData(owner, msg);
       }
     }
 

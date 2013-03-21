@@ -12,12 +12,17 @@
 #include "Anonymity/RepeatingBulkRound.hpp"
 #include "Anonymity/Round.hpp"
 #include "Anonymity/RoundStateMachine.hpp"
-#include "Anonymity/Sessions/Session.hpp"
-#include "Anonymity/Sessions/SessionLeader.hpp"
-#include "Anonymity/Sessions/SessionManager.hpp"
 #include "Anonymity/ShuffleBlamer.hpp"
 #include "Anonymity/ShuffleRound.hpp"
 #include "Anonymity/ShuffleRoundBlame.hpp"
+#include "Anonymity/Buddies/BuddyMonitor.hpp"
+#include "Anonymity/Buddies/BuddyPolicy.hpp"
+#include "Anonymity/Buddies/DynamicBuddyPolicy.hpp"
+#include "Anonymity/Buddies/NullBuddyPolicy.hpp"
+#include "Anonymity/Buddies/StaticBuddyPolicy.hpp"
+#include "Anonymity/Sessions/Session.hpp"
+#include "Anonymity/Sessions/SessionLeader.hpp"
+#include "Anonymity/Sessions/SessionManager.hpp"
 
 #include "Applications/AuthFactory.hpp"
 #include "Applications/CommandLine.hpp"
@@ -187,6 +192,7 @@
 #include "qhttpresponse.h"
 
 using namespace Dissent::Anonymity;
+using namespace Dissent::Anonymity::Buddies;
 using namespace Dissent::Anonymity::Sessions;
 using namespace Dissent::Applications;
 using namespace Dissent::ClientServer;
