@@ -100,6 +100,9 @@ namespace Tests {
         Group::ManagedSubgroup);
   }
 
+  /**
+   * @TODO these tests are disabled until we fix the session to notify us
+   * when we attempted to send data but were unsuccessful
   TEST(BlogDropRoundTest, BadClientReactive)
   {
     RoundTest_BadGuy(
@@ -119,5 +122,6 @@ namespace Tests {
           Parameters::ParameterType_CppECHashingProduction, NullRound, true>),
         Group::ManagedSubgroup, TBadGuyCB<BadBlogDropRound>);
   }
+  */
 }
 }
