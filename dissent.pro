@@ -225,6 +225,7 @@ HEADERS += src/Dissent.hpp \
            src/Utils/Triggerable.hpp \
            src/Utils/Triple.hpp \
            src/Utils/Utils.hpp \
+           src/Web/BuddiesService.hpp \
            src/Web/EchoService.hpp \
            src/Web/GetDirectoryService.hpp \
            src/Web/GetFileService.hpp \
@@ -352,6 +353,7 @@ SOURCES += src/Anonymity/BaseBulkRound.cpp \
            src/Utils/TimerEvent.cpp \
            src/Utils/Utils.cpp \
            src/Web/WebServer.cpp \
+           src/Web/BuddiesService.cpp \
            src/Web/GetDirectoryService.cpp \
            src/Web/GetFileService.cpp \
            src/Web/GetMessagesService.cpp \

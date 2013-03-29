@@ -178,6 +178,7 @@
 #include "Utils/Triple.hpp"
 #include "Utils/Utils.hpp"
 
+#include "Web/BuddiesService.hpp"
 #include "Web/EchoService.hpp"
 #include "Web/GetDirectoryService.hpp"
 #include "Web/GetFileService.hpp"

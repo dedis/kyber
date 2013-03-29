@@ -116,6 +116,9 @@ int main(int argc, char **argv)
     QSharedPointer<SendMessageService> send_message(new SendMessageService(nodes[0]->GetSessionManager()));
     ws->AddRoute(QHttpRequest::HTTP_POST, "/session/send", send_message);
 
+    QSharedPointer<BuddiesService> bs(new BuddiesService(nodes[0]->GetSessionManager()));
+    ws->AddRoute(QHttpRequest::HTTP_GET, "/session/buddies", bs);
+
     ws->Start();
   }
   

@@ -19,6 +19,7 @@ namespace Buddies {
       QBitArray GetUsefulMembers() const;
       QBitArray GetNymsToReveal() const;
 
+      int GetCount() const { return m_bp->GetCount(); }
       int GetConservativeAnonymity(int idx) const;
       int GetNymAnonymity(int idx) const;
       int GetMemberAnonymity(int idx) const;
