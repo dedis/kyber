@@ -97,6 +97,7 @@ namespace Anonymity {
     headers["special"] = true;
     net->SetHeaders(headers);
 #ifdef CS_BLOG_DROP
+    /// XXX this should be a one time use buddy monitor (for now)
     QSharedPointer<BlogDropRound> bdr(new BlogDropRound(
           Crypto::BlogDrop::Parameters::CppECHashingProduction(),
           group, ident, round_id, net, _get_blame_data, GetBuddyMonitor(),
@@ -111,9 +112,11 @@ namespace Anonymity {
         this, SLOT(OperationFinished()));
 #else
 #ifdef DISSENT_TEST
+    /// XXX this should be a one time use buddy monitor (for now)
     _state->blame_shuffle = QSharedPointer<Round>(new NullRound(GetGroup(),
           GetPrivateIdentity(), bsr_id, net, _get_blame_data, GetBuddyMonitor()));
 #else
+    /// XXX this should be a one time use buddy monitor (for now)
     _state->blame_shuffle = QSharedPointer<Round>(new NeffShuffleRound(GetGroup(),
           GetPrivateIdentity(), bsr_id, net, _get_blame_data, GetBuddyMonitor()));
 #endif
@@ -369,7 +372,8 @@ namespace Anonymity {
 
     QHash<int, QByteArray> signatures;
     QByteArray cleartext;
-    stream >> signatures >> cleartext;
+    QBitArray online;
+    stream >> signatures >> cleartext >> online;
 
     if(cleartext.size() != _state->msg_length) {
       throw QRunTimeError("Cleartext size mismatch: " +
@@ -377,9 +381,19 @@ namespace Anonymity {
           QString::number(_state->msg_length));
     }
 
+    Hash hash;
+    hash.Update(cleartext);
+
+    QByteArray data;
+    QDataStream tstream(&data, QIODevice::WriteOnly);
+    tstream << online;
+    hash.Update(data);
+
+    QByteArray signed_hash = hash.ComputeHash();
+
     int server_length = GetGroup().GetSubgroup().Count();
     for(int idx = 0; idx < server_length; idx++) {
-      if(!GetGroup().GetSubgroup().GetKey(idx)->Verify(cleartext,
+      if(!GetGroup().GetSubgroup().GetKey(idx)->Verify(signed_hash,
             signatures[idx]))
       {
         Stop("Failed to verify signatures");
@@ -387,6 +401,7 @@ namespace Anonymity {
       }
     }
 
+    GetBuddyMonitor()->SetOnlineMembers(online);
     _state->cleartext = cleartext;
     ProcessCleartext();
 
@@ -582,7 +597,7 @@ namespace Anonymity {
     stream >> signature;
 
     if(!GetGroup().GetSubgroup().GetKey(from)->
-        Verify(_state->cleartext, signature))
+        Verify(_server_state->signed_hash, signature))
     {
       throw QRunTimeError("Signature doesn't match.");
     }
@@ -933,11 +948,17 @@ namespace Anonymity {
     if(IsServer()) {
       seeds = QList<QByteArray>();
       _server_state->rng_to_gidx.clear();
-      for(int idx = 0; idx < _server_state->handled_clients.size(); idx++) {
-        if(_server_state->handled_clients.at(idx)) {
-          _server_state->rng_to_gidx[seeds.size()] = idx;
-          seeds.append(_state->base_seeds[idx]);
+      QBitArray clients_to_use = GetBuddyMonitor()->GetUsefulMembers();
+      for(int idx = 0; idx < clients_to_use.size(); idx++) {
+        if(!_server_state->handled_clients.at(idx)) {
+          continue;
         }
+        // clients to use may contain servers...
+        if(!clients_to_use.at(idx)) {
+          continue;
+        }
+        _server_state->rng_to_gidx[seeds.size()] = idx;
+        seeds.append(_state->base_seeds[idx]);
       }
 
       /*
@@ -1192,8 +1213,21 @@ namespace Anonymity {
     }
 
     _state->cleartext = cleartext;
-    QByteArray signature = GetPrivateIdentity().GetSigningKey()->
-      Sign(_state->cleartext);
+    Hash hash;
+    hash.Update(_state->cleartext);
+
+    QByteArray data;
+    QDataStream tstream(&data, QIODevice::WriteOnly);
+    /** XXX servers are currently assumed to be always online and 
+     * and are allocated a slot
+     */
+    tstream << (_server_state->handled_clients |
+        _server_state->handled_servers_bits);
+    hash.Update(data);
+
+    _server_state->signed_hash = hash.ComputeHash();
+    QByteArray signature = GetPrivateIdentity().
+      GetSigningKey()->Sign(_server_state->signed_hash);
 
     QByteArray payload;
     QDataStream stream(&payload, QIODevice::WriteOnly);
@@ -1208,7 +1242,8 @@ namespace Anonymity {
     QByteArray payload;
     QDataStream stream(&payload, QIODevice::WriteOnly);
     stream << SERVER_CLEARTEXT << GetRoundId() << _state_machine.GetPhase()
-      << _server_state->signatures << _server_state->cleartext;
+      << _server_state->signatures << _server_state->cleartext <<
+      (_server_state->handled_clients | _server_state->handled_servers_bits);
 
     VerifiableBroadcastToClients(payload);
     ProcessCleartext();

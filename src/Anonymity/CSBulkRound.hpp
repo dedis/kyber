@@ -336,6 +336,7 @@ namespace Anonymity {
 
           QSet<Id> allowed_clients;
           QBitArray handled_clients;
+          QByteArray signed_hash;
           QBitArray handled_servers_bits;
           QList<QByteArray> client_ciphertexts;
 
