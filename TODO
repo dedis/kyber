@@ -13,7 +13,6 @@ Connections
 
 Crypto
 - Add QCA or Botan CryptoLibraries, take a look at the src/Crypto/CryptoFactory and other related files to get a general feel
-- Remove Null implementations of non-slow things (DH is a good candidate)
 - Move XOR into Utils
 - Create a randomize / hash (OAEP) module
 - Use abstract types in API for more comprehensive type-checking (DhPublicKey instead of QByteArray)
@@ -37,10 +36,8 @@ Issues
 - The current protocol doesn't work properly if a non-shuffler receives an invalid go / no go message ... since no one is waiting for its private keys, thus the process will conclude potentially without his follow up.
 
 Web Server
-- Better error handling 
 - Index page with list of all URLs
 - HTTPS
-- Packaging formats
 
 Tunnel
 - Better fairness/queuing strategy. Tunnels should only read as much data from sockets as it can send to the next session. This will allow TCP to throttle the connection and not overwhelm the RemoteTunnel's buffers. Tunnels should send data packets to the next session in random order from every connection -- that way one connection doesn't dominate the channel.
@@ -52,5 +49,4 @@ Tunnel
 - Options for SOCKS 4[a] protocols
 
 Social Networks
-- Add Apul's LRS signing
 - Add Kritarth's social keys and message posting
