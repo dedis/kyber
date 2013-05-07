@@ -11,13 +11,41 @@ namespace Anonymity {
 namespace Buddies {
   class BuddyMonitor {
     public:
-      BuddyMonitor(const QSharedPointer<BuddyPolicy> &bp);
+      /**
+       * @param bp Implementation of the BuddyPolicy (Buddies)
+       * @param min_anon the minimum number cardinality for any anonymity set
+       */
+      BuddyMonitor(const QSharedPointer<BuddyPolicy> &bp,
+          int min_anon = 0);
+
+      /**
+       * Called first to set the members who submitted a ciphertext
+       */
       void SetOnlineMembers(const QBitArray &members);
+
+      /**
+       * Specify that a nym has been used
+       */
       void SetActiveNym(int idx);
+
+      /**
+       * Specify that a whole set of nyms have been used
+       */
       void SetActiveNyms(const QBitArray &nyms);
-      bool ShouldRevealNym(int idx);
+
+      /**
+       * For interactive protocols inquire which nyms to reveal
+       */
+      QBitArray ShouldRevealNyms(const QBitArray &nyms);
+
+      /**
+       * Returns the list of members to include in the anonymity system
+       */
       QBitArray GetUsefulMembers() const;
-      QBitArray GetNymsToReveal() const;
+
+      /**
+       * Returns the total number of members (and pseudonyms)
+       */
 
       int GetCount() const { return m_bp->GetCount(); }
       int GetConservativeAnonymity(int idx) const;
@@ -26,12 +54,16 @@ namespace Buddies {
       double GetMemberScore(int idx) const;
       double GetNymScore(int idx) const;
     private:
+      static void SetActiveNym(int idx, const QBitArray &useful_members,
+          QBitArray &member_set, QBitArray &nym_set);
+
       QSharedPointer<BuddyPolicy> m_bp;
 
       QList<QBitArray> m_member_set;
       QList<QBitArray> m_nym_set;
 
       QBitArray m_used_nyms;
+      int m_min_anon;
   };
 }
 }

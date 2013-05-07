@@ -1190,6 +1190,11 @@ namespace Anonymity {
     foreach(const QByteArray &text, _server_state->client_ciphertexts) {
       Xor(ciphertext, ciphertext, text);
     }
+
+    /// XXX this is where we need to evaluate on a per pseudonym basis
+    QBitArray to_test(GetGroup().Count(), true);
+    Q_ASSERT(to_test == GetBuddyMonitor()->ShouldRevealNyms(to_test));
+
     _server_state->my_ciphertext = ciphertext;
     _server_state->my_commit = Hash().ComputeHash(ciphertext);
   }
