@@ -61,7 +61,7 @@ namespace BlogDrop {
     hashalgo.Update(params->GetKeyGroup()->ElementToByteArray(author_pk->GetElement()));
     hashalgo.Update(
         QString("%1 %2").arg(phase, 8, 16, QChar('0')).arg(
-          element_idx, 8, 16, QChar('0')).toAscii());
+          element_idx, 8, 16, QChar('0')).toLatin1());
 
     return Integer(hashalgo.ComputeHash()) % params->GetGroupOrder();
   }

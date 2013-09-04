@@ -1,3 +1,4 @@
+#include <QDataStream>
 #include <QDebug>
 #include "Utils/Utils.hpp"
 #include "DsaPrivateKey.hpp"

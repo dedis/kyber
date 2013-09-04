@@ -1,3 +1,8 @@
+#include <QtCore>
+#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
+#include <QUrlQuery>
+#endif
+
 #include "GetDirectoryService.hpp"
 
 namespace Dissent {
@@ -16,7 +21,11 @@ namespace Web {
   void GetDirectoryService::HandleRequest(QHttpRequest *request,
       QHttpResponse *response)
   {
+#if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
     QString filename = request->url().queryItemValue(_file_name);
+#else
+    QString filename = QUrlQuery(request->url()).queryItemValue(_file_name);
+#endif
     if(filename.isEmpty()) {
       filename = "index.html";
     }

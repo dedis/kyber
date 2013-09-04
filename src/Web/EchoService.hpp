@@ -1,6 +1,11 @@
 #ifndef DISSENT_WEB_ECHO_SERVICE_GUARD
 #define DISSENT_WEB_ECHO_SERVICE_GUARD
 
+#include <QtCore>
+#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
+#include <QUrlQuery>
+#endif
+
 #include <QByteArray> 
 #include <QList>
 
@@ -29,7 +34,12 @@ namespace Web {
         if(request->method() == QHttpRequest::HTTP_POST) {
           SendResponse(response, request->body());
         } else {
-          SendResponse(response, request->url().encodedQuery());
+#if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
+          QByteArray rmsg = request->url().encodedQuery();
+#else
+          QByteArray rmsg = request->url().query(QUrl::FullyEncoded).toLatin1();
+#endif
+          SendResponse(response, rmsg);
         }
       }
   };

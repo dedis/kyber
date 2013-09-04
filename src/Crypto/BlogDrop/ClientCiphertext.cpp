@@ -1,4 +1,5 @@
 #include <QtCore>
+#include <QtConcurrentMap>
 
 #include "Utils/Utils.hpp"
 #include "BlogDropUtils.hpp"

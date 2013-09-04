@@ -40,11 +40,25 @@ namespace Utils {
 
     private:
       static QString _filename;
+
+#if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
+      static void Disabled(QtMsgType type, const char *msg);
       static void File(QtMsgType type, const char *msg);
       static void Stdout(QtMsgType type, const char *msg);
       static void Stderr(QtMsgType type, const char *msg);
       static void Write(QTextStream &stream, QtMsgType type, const char *msg);
-      static void Disabled(QtMsgType type, const char *msg);
+#else
+      static void Disabled(QtMsgType type, const QMessageLogContext &context,
+          const QString &msg);
+      static void File(QtMsgType type, const QMessageLogContext &context,
+          const QString &msg);
+      static void Stdout(QtMsgType type, const QMessageLogContext &context,
+          const QString &msg);
+      static void Stderr(QtMsgType type, const QMessageLogContext &context,
+          const QString &msg);
+      static void Write(QTextStream &stream, QtMsgType type, const QString &msg);
+#endif
+
   };
 }
 }

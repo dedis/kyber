@@ -1,7 +1,11 @@
+#include <QtCore>
+#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
+#include <QUrlQuery>
+#endif
+
 #include "Utils/Serialization.hpp"
 #include "GetMessagesService.hpp"
 
-#include <QDebug>
 
 namespace Dissent {
 namespace Web {
@@ -15,8 +19,13 @@ namespace Web {
     QUrl url = request->url();
 
     int total = m_message_list.count();
+#if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
     int urlItemOffset = url.queryItemValue(OFFSET_FIELD).toInt();
     bool wait_flag = QVariant(url.queryItemValue(WAIT_FIELD)).toBool();
+#else
+    int urlItemOffset = QUrlQuery(url).queryItemValue(OFFSET_FIELD).toInt();
+    bool wait_flag = QVariant(QUrlQuery(url).queryItemValue(WAIT_FIELD)).toBool();
+#endif
 
     if((urlItemOffset == total) && wait_flag) {
       m_pending.append(ReqRep(request, response));
@@ -24,7 +33,12 @@ namespace Web {
     }
 
     int offset = qMax(qMin(urlItemOffset, total), 0);
+#if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
     int count = url.queryItemValue(COUNT_FIELD).toInt();
+#else
+    int count = QUrlQuery(url).queryItemValue(COUNT_FIELD).toInt();
+#endif
+
     count = count < 0  || (total < offset + count) ? total : count + offset;
 
     QList<QVariant> messages;

@@ -1,3 +1,4 @@
+#include <QDataStream>
 #include <QDebug>
 #include <cryptopp/nbtheory.h>
 

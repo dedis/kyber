@@ -110,11 +110,11 @@ int QHttpConnection::MessageBegin(http_parser *parser)
     QHttpConnection *theConnection = (QHttpConnection *)parser->data;
     theConnection->m_currentHeaders.clear();
     if(theConnection->m_request) {
-      QObject::disconnect(theConnection->m_request, SIGNAL(destroyed()),
+      disconnect(theConnection->m_request, SIGNAL(destroyed()),
           theConnection, SLOT(requestDestroyed));
     }
     theConnection->m_request = new QHttpRequest(theConnection);
-    QObject::connect(theConnection->m_request, SIGNAL(destroyed()),
+    connect(theConnection->m_request, SIGNAL(destroyed()),
         theConnection, SLOT(requestDestroyed()));
     return 0;
 }
@@ -165,7 +165,7 @@ int QHttpConnection::Url(http_parser *parser, const char *at, size_t length)
     QHttpConnection *theConnection = (QHttpConnection *)parser->data;
     Q_ASSERT(theConnection->m_request);
 
-    QString url = QString::fromAscii(at, length);
+    QString url = QString::fromLatin1(at, length);
     theConnection->m_request->setUrl(QUrl(url));
     return 0;
 }
@@ -188,7 +188,7 @@ int QHttpConnection::HeaderField(http_parser *parser, const char *at, size_t len
         theConnection->m_currentHeaderValue = QString();
     }
 
-    QString fieldSuffix = QString::fromAscii(at, length);
+    QString fieldSuffix = QString::fromLatin1(at, length);
     theConnection->m_currentHeaderField += fieldSuffix;
     return 0;
 }
@@ -198,7 +198,7 @@ int QHttpConnection::HeaderValue(http_parser *parser, const char *at, size_t len
     QHttpConnection *theConnection = (QHttpConnection *)parser->data;
     Q_ASSERT(theConnection->m_request);
 
-    QString valueSuffix = QString::fromAscii(at, length);
+    QString valueSuffix = QString::fromLatin1(at, length);
     theConnection->m_currentHeaderValue += valueSuffix;
     return 0;
 }
