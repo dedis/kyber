@@ -45,7 +45,7 @@ namespace ClientServer {
       con = cons[idx];
       tested[idx] = true;
 
-      bool consider_group = _group_holder->GetGroup().Count() > 0;
+      bool consider_group = _group_holder->GetGroup().GetSubgroup().Count() > 0;
 
       while(been.contains(con->GetRemoteId().ToString()) ||
           con->GetEdge().dynamicCast<Connections::RelayEdge>() ||
