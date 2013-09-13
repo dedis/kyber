@@ -17,13 +17,15 @@
 
 static const int TEST_PORT = 55515;
 
-inline void RunUntil(const SignalCounter &sc, int count)
+inline bool RunUntil(const SignalCounter &sc, int count)
 {
-  Time &time = Time::GetInstance();
-  Timer &timer = Timer::GetInstance();
-  while(sc.GetCount() < count) {
-    time.IncrementVirtualClock(timer.VirtualRun());
+  qint64 next = Timer::GetInstance().VirtualRun();
+  while(next != -1 && sc.GetCount() < count) {
+    Time::GetInstance().IncrementVirtualClock(next);
+    next = Timer::GetInstance().VirtualRun();
   }
+
+  return sc.GetCount() == count;
 }
 
 #endif
