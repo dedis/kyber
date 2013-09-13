@@ -9,10 +9,9 @@ namespace Buddies {
   DynamicBuddyPolicy::DynamicBuddyPolicy(int count, int set_size, bool random) :
     BuddyPolicy(count),
     m_set_size(set_size),
+    m_random(random),
     m_configured(false)
   {
-    if(random) {
-    }
   }
 
   DynamicBuddyPolicy::DynamicBuddyPolicy(int count, int set_size,

@@ -6,9 +6,20 @@
 #include <QSharedPointer>
 #include "BuddyPolicy.hpp"
 
+#define MIN_SIZE 1
+#define BUDDY_SIZE 1
+
 namespace Dissent {
 namespace Anonymity {
 namespace Buddies {
+  /**
+   * @class BuddyMonitor currently assumes a 1-to-1 mapping between Nyms and
+   * members. This monitor implements a version of the "Hang with Your Buddies
+   * to Resist Intersection Attacks;" however, it lacks the features that allow
+   * for uniformly randomly assigned nyms and continuation of nyms across rounds.
+   * Calculations in this version take into consideration the 1-to-1 mapping
+   * and certain metrics have meaning only within this context.
+   */
   class BuddyMonitor {
     public:
       /**
@@ -46,11 +57,25 @@ namespace Buddies {
       /**
        * Returns the total number of members (and pseudonyms)
        */
-
       int GetCount() const { return m_bp->GetCount(); }
+
+      /**
+       * Returns a conservative anonymity metric, assumes any active member
+       * has deanonymized themself. Unique for 1-to-1.
+       */
       int GetConservativeAnonymity(int idx) const;
+
+      /**
+       * Returns the number of potential owners of a given Nym.
+       */
       int GetNymAnonymity(int idx) const;
+
+      /**
+       * Returns the number of Nyms that may be owned by the given Member.
+       * Unique for 1-to-1.
+       */
       int GetMemberAnonymity(int idx) const;
+
       double GetMemberScore(int idx) const;
       double GetNymScore(int idx) const;
     private:

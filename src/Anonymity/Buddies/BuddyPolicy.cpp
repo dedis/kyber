@@ -17,7 +17,7 @@ namespace Buddies {
 
     for(int idx = 0; idx < m_groups.size(); idx++) {
       m_online[idx] = true;
-      for(int jdx = 0; jdx < m_groups[jdx].size(); jdx++) {
+      for(int jdx = 0; jdx < m_groups[idx].size(); jdx++) {
         if(!m_online_members[m_groups[idx][jdx]]) {
           m_online[idx] = false;
           break;
