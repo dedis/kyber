@@ -254,6 +254,7 @@ namespace Anonymity {
           QMap<int, int> next_messages;
           QHash<int, QByteArray> signatures;
           QByteArray cleartext;
+          QBitArray online_clients;
 
           QSharedPointer<AsymmetricKey> anonymous_key;
           QByteArray shuffle_data;
@@ -338,7 +339,7 @@ namespace Anonymity {
           QBitArray handled_clients;
           QByteArray signed_hash;
           QBitArray handled_servers_bits;
-          QList<QByteArray> client_ciphertexts;
+          QList<QPair<int, QByteArray> > client_ciphertexts;
 
           QSet<Id> handled_servers;
           QHash<int, int> rng_to_gidx;

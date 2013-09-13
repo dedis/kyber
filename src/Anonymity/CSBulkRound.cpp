@@ -437,7 +437,7 @@ namespace Anonymity {
     }
 
     _server_state->handled_clients[idx] = true;
-    _server_state->client_ciphertexts.append(payload);
+    _server_state->client_ciphertexts.append(QPair<int, QByteArray>(idx, payload));
     _server_state->current_phase_log->messages[idx] = payload;
 
     qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId().ToString() <<
@@ -1187,13 +1187,44 @@ namespace Anonymity {
   void CSBulkRound::GenerateServerCiphertext()
   {
     QByteArray ciphertext = GenerateCiphertext();
-    foreach(const QByteArray &text, _server_state->client_ciphertexts) {
+    QBitArray clients_to_use = GetBuddyMonitor()->GetUsefulMembers();
+//    foreach(const QPair<int, QByteArray> &entry, _server_state->client_ciphertexts) {
+    for(int lidx = 0; lidx < _server_state->client_ciphertexts.size(); lidx++) {
+      const QPair<int, QByteArray> &entry = _server_state->client_ciphertexts[lidx];
+      int idx = entry.first;
+      const QByteArray &text = entry.second;
+
+      if(!_server_state->handled_clients.at(idx)) {
+        continue;
+      }
+      // clients to use may contain servers...
+      if(!clients_to_use.at(idx)) {
+        continue;
+      }
       Xor(ciphertext, ciphertext, text);
     }
 
-    /// XXX this is where we need to evaluate on a per pseudonym basis
-    QBitArray to_test(GetGroup().Count(), true);
-    Q_ASSERT(to_test == GetBuddyMonitor()->ShouldRevealNyms(to_test));
+    QBitArray open(GetGroup().Count(), false);
+    for(int idx = 0; idx < _state->next_messages.size(); idx++) {
+      open[idx] = _state->next_messages[idx] != 0;
+    }
+
+    QBitArray to_reveal = GetBuddyMonitor()->ShouldRevealNyms(open);
+    int offset = GetGroup().Count() / 8;
+    if(GetGroup().Count() % 8) {
+      ++offset;
+    }
+
+    for(int idx = 0; idx < to_reveal.size(); idx++) {
+      int msg_length = _state->next_messages[idx];
+      offset += msg_length;
+      if(!msg_length || to_reveal[idx]) {
+        continue;
+      }
+      qDebug() << "Zeroing idx";
+      QByteArray zero(msg_length, 0);
+      ciphertext.replace(offset - msg_length, msg_length, zero);
+    }
 
     _server_state->my_ciphertext = ciphertext;
     _server_state->my_commit = Hash().ComputeHash(ciphertext);
@@ -1411,6 +1442,7 @@ namespace Anonymity {
 
   void CSBulkRound::ProcessCleartext()
   {
+//    int my_public_idx = GetGroup().GetIndex(GetLocalId());
     int next_msg_length = _state->base_msg_length;
     QMap<int, int> next_msgs;
     for(int idx = 0; idx < GetGroup().Count(); idx++) {
@@ -1446,6 +1478,9 @@ namespace Anonymity {
 
     foreach(int owner, _state->next_messages.keys()) {
       int msg_length = _state->next_messages[owner];
+      if(msg_length == 0) {
+        continue;
+      }
 
       QByteArray msg_ppp = QByteArray::fromRawData(
           _state->cleartext.constData() + offset, msg_length);
@@ -1494,6 +1529,13 @@ namespace Anonymity {
         next_msgs[owner] = msg_length;
 
         if(owner == _state->my_idx && !_state->accuse) {
+          /*
+          if(!GetBuddyMonitor()->GetUsefulMembers()[my_public_idx]) {
+            qDebug() << "This is my slot, but I was not able to submit in this round.";
+            continue;
+          }
+          */
+
           _state->read = false;
           _state->slot_open = true;
           _state->accuse = false;
@@ -1558,6 +1600,7 @@ namespace Anonymity {
       if(!msg.isEmpty()) {
         qDebug() << ToString() << "received a valid message.";
         PushData(owner, msg);
+        GetBuddyMonitor()->SetActiveNym(owner);
       }
     }
 
@@ -1571,7 +1614,7 @@ namespace Anonymity {
 
   QByteArray CSBulkRound::NullSeed()
   {
-    static QByteArray null_seed(0, CryptoRandom::OptimalSeedSize());
+    static QByteArray null_seed(CryptoRandom::OptimalSeedSize(), 0);
     return null_seed;
   }
 
