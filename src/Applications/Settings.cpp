@@ -118,9 +118,14 @@ namespace Applications {
     PublicKeys = _settings->value(Param<Params::PublicKeys>()).toString();
 
     if(_settings->contains(Param<Params::PrivateKey>())) {
-      QVariantList keys = _settings->value(Param<Params::PrivateKey>()).toList();
-      foreach(const QVariant &key, keys) {
-        PrivateKey.append(key.toString());
+      QVariant vkeys = _settings->value(Param<Params::PrivateKey>());
+      if(QMetaType::QVariantList == static_cast<QMetaType::Type>(vkeys.type())) {
+        QVariantList keys = vkeys.toList();
+        foreach(const QVariant &key, keys) {
+          PrivateKey.append(key.toString());
+        }
+      } else {
+        PrivateKey.append(vkeys.toString());
       }
     }
   }
@@ -164,8 +169,11 @@ namespace Applications {
       if(PublicKeys.isEmpty()) {
         _reason = "Missing path to public keys";
         return false;
+      } else if(PrivateKey.isEmpty()) {
+        _reason = "Missing path to any private keys";
+        return false;
       } else if(PrivateKey.size() != LocalNodeCount) {
-        _reason = "Missing path to private key or sufficient private keys";
+        _reason = "Insufficient private keys";
         return false;
       }
     }
