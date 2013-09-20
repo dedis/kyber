@@ -1,4 +1,5 @@
 #!/bin/bash
+QMAKE=qmake-qt4
 github_repo=github
 wd=$PWD
 rand=$RANDOM
@@ -10,7 +11,7 @@ function cleanup {
   cd $wd
 }
 
-qmake test.pro
+$QMAKE test.pro
 if test $? -ne 0; then
   cleanup "Error qmake test.pro"
   exit 1
@@ -36,7 +37,7 @@ keygen.pro
 "
 
 for build in $builds; do
-  qmake $build
+  $QMAKE $build
   if test $? -ne 0; then
     cleanup "Error qmake $build"
     exit 1
@@ -62,7 +63,7 @@ doxygen dissent.doxy >& /dev/null
 rm -rf $wd/docs/html/*
 cp -axf docs/html/* $wd/docs/html
 cd $wd/docs/html
-git add .
+git add --all .
 git commit -m "documentation update"
 git push $github_repo gh-pages
 cleanup
