@@ -45,7 +45,7 @@ namespace Crypto {
           try {
             GetDsaPrivateKey()->Load(queue);
           } catch (std::exception &e) {
-            qWarning() << "In CppPublicKey::InitFromByteArray: " << e.what();
+            qWarning() << "In CppDsaPublicKey: " << e.what();
             m_valid = false;
             return;
           }

@@ -22,7 +22,7 @@ namespace Crypto {
         GetModulus() != private_key.GetModulus() ||
         GetSubgroupOrder() != private_key.GetSubgroupOrder())
     {
-      qCritical() << "Invalid key parameters in LRSPublicKey";
+      qCritical() << "Invalid key parameters in LRSPrivateKey";
       SetInvalid();
       return;
     }

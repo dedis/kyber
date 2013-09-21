@@ -28,7 +28,7 @@ namespace Crypto {
       try {
         m_public_key->Load(queue);
       } catch (std::exception &e) {
-        qWarning() << "In CppPublicKey::InitFromByteArray: " << e.what();
+        qWarning() << "In CppRsaPublicKey: " << e.what();
         m_valid = false;
         return;
       }
