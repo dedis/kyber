@@ -19,7 +19,7 @@ namespace Tests {
     QString base_path = QDir::tempPath() + QDir::separator() + rel_path + QDir::separator();
 
     for(int idx = 0; idx < 20; idx++) {
-      QSharedPointer<AsymmetricKey> key(new RsaPrivateKey());
+      QSharedPointer<AsymmetricKey> key(new DsaPrivateKey());
       QSharedPointer<AsymmetricKey> pkey(key->GetPublicKey());
       QString name(Utils::ToUrlSafeBase64(hash.ComputeHash(pkey->GetByteArray())));
       names.append(name);

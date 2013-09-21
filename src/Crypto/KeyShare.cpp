@@ -3,7 +3,7 @@
 #include <QFile>
 
 #include "KeyShare.hpp"
-#include "RsaPublicKey.hpp"
+#include "DsaPublicKey.hpp"
 
 namespace Dissent {
 namespace Crypto {
@@ -24,7 +24,7 @@ namespace Crypto {
       QString key_path = _path + "/" + name + ".pub";
       QFile key_file(key_path);
       if(key_file.exists()) {
-        QSharedPointer<AsymmetricKey> key(new RsaPublicKey(key_path));
+        QSharedPointer<AsymmetricKey> key(new DsaPublicKey(key_path));
         KeyShare *ks = const_cast<KeyShare *>(this);
         ks->_keys[name] = key;
         return key;
@@ -66,7 +66,7 @@ namespace Crypto {
     QDir key_path(_path, "*.pub");
     foreach(const QString &key_name, key_path.entryList()) {
       QString path = _path + "/" + key_name;
-      QSharedPointer<AsymmetricKey> key(new RsaPublicKey(path));
+      QSharedPointer<AsymmetricKey> key(new DsaPublicKey(path));
       if(!key->IsValid()) {
         qDebug() << "Invalid key:" << path;
         continue;
