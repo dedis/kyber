@@ -1,0 +1,111 @@
+Dissent consists of an several key, independent components:
+- Transports -- network communication layer such as Tcp, Ssl, Udp
+- Connections -- represents an established link using a transport and gives an
+  addressing scheme independent of the underlying transport
+- Overlay -- organizes and specifies which nodes should connect with other
+  nodes
+- Crypto -- provides wrappers around external crypto libraries as well as
+  extensions to many useful cryptographic techniques
+- Identity -- an extension from the addressing of Connections to provide a more
+  robust identity also supports various forms of authenication of this identity
+- Tunnel -- provides a Socks5 compliant client and server stubs
+- Anonymity -- anonymous group communication protocols
+- Session -- establishes the set of participants for communicating in ensuing rounds
+
+Before beginning a Dissent session, a session configuration must be
+established. A Dissent configuration consists of a list of servers or super
+peers, mechanisms to connect to the servers (transport type [TCP,SSL],
+transport address [IP:Port]), a set of public keys named by a
+"Connection"-level address (used for authetication), the type of authentication
+context used by clients, and the protocol used for anonymous communication.
+
+Servers, first, establish connections to every other server, creating an
+all-to-all server topology. Each connection between servers begins by first
+establishing a transport-level connection, followed by the establishment of an
+overlay-level connection.  The receiver of the connection transmits an Inquire
+message with the initiator responding with an Inquired.
+
+As servers establish connections with other servers, they exchange exchange
+Enlist messages and respond to each other with Enlisted message. Servers then
+begin a process to establish a group-wide nonce.  This also provides an
+opportunity for all servers to wait to synchronize server-group connectivity.
+Upon arriving on an agreed nonce, servers send to each other Nonce and Nonced
+messages.
+
+At the conclusion of this process, servers allow clients to register.  Prior to
+registering, clients must connect to a server using the same process as servers
+connect to each other. First establishing a transport-level connection,
+followed by an overlay-level connection.
+
+During registration, clients first transmit a Queue message to enter the
+registration queue. When the servers have completed the nonce generation, they
+respond to these messages with a Queued message containing the accumulated
+Nonce messages exchanged by the servers.  Clients then respond with a Register
+message containing a third-party verifiable authentication context against the
+nonce, an ephemeral public key, and any additional information necessary for
+the upcoming communication rounds.
+
+Upon beginning the registration process, a server accepts registration messages
+for 5 minutes. After this registration window, each server transmits a list of
+client registration messages to every other server, using the List message.
+Upon receiving the list from all servers, a server constructs consisting of all
+clients, eliminating duplicate identities, and then hashes the resulting list,
+via a Listed message.  Servers then sign the resulting list and share amongst
+each other their signatures. Since this process is deterministic, servers need
+not share the list. Upon receiving all signatures, servers transmit a Start
+message to clients and clients respond with a Started message initiating the
+beginning of the protocol round.
+
+A protocol round constitutes one or more anonymous exchanges.  The protocol
+round continues for at least 1 exchange or 60 minutes, whichever is longer. At
+which point, each server broadcasts a Stop message with the reason "Protocol
+run complete" and immediate set to false.  At any point, if a server
+disconnects from any other server, that server immediately broadcasts a Stop
+message with reason "Server disconnected x from y" and immediate set to true.
+
+Upon receiving a stop message, the round terminates immediately if immediate is
+set to true or upon conclusion of the current round if not. At which point, the
+entire process repeats from the servers' Enlist and clients' Queue.
+
+==============================================================================
+Nonce generation:
+
+Servers currently employ the following Nonce generation: Nonce = SHA1([Enlist])
+ordered by the Id of the servers.
+
+==============================================================================
+Technical notes:
+
+- Dissent does not directly provide peer-level authentication, that is left to
+  the transport. For anonymous authentication, that means that clients will not
+  be required to authenticate. If peers perform authentication, the identity
+  should be matched against what is provided at the overlay level.
+- Start and Started merely provide for synchronization on messages that may be
+  transmitted by the round.
+- Start may optionally contain group-wide information, if the Anonymity protocol
+  requires it. In particular, this might be the Accumulated List of Queued and
+  matching signatures from the Listed messages.
+- If server has received a Stop message before stopping, it does not need to
+  broadcast a Stop message.
+
+==============================================================================
+Message formats:
+
+Inquire - Connection::Id | Initiator's Transport Address | Dissent Version
+Inquired - Connection::Id
+Enlist - [Connection::Id | Ephemeral Public Key | Optional]_[server public key]
+Enlisted - NULL
+Nonce - [Connection::Id | Ephemeral Public Key | Optional |
+              Nonce]_[server public key]
+Nonced - NULL
+Queue - NULL
+Queued - [Servers' Connection::Id | Servers' Public Keys |
+              Servers' Optionals | Nonce]_[server signatures]
+Register - [Connection::Id | Ephemeral Public Key |
+              Optional | Nonce]_[client authentication]
+Registered - NULL
+List - [List of Queued]
+Listed - [Hash of Accumulated List of Queued]_[server public key]
+Start - NULL
+Started - NULL
+Stop - [Immediate, Reason, Nonce]_[server signature]
