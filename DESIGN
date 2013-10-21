@@ -12,6 +12,8 @@ Dissent consists of an several key, independent components:
 - Anonymity -- anonymous group communication protocols
 - Session -- establishes the set of participants for communicating in ensuing rounds
 
+Note: Message definitions are included at the bottom of this document.
+
 Before beginning a Dissent session, a session configuration must be
 established. A Dissent configuration consists of a list of servers or super
 peers, mechanisms to connect to the servers (transport type [TCP,SSL],
@@ -23,38 +25,41 @@ Servers, first, establish connections to every other server, creating an
 all-to-all server topology. Each connection between servers begins by first
 establishing a transport-level connection, followed by the establishment of an
 overlay-level connection.  The receiver of the connection transmits an Inquire
-message with the initiator responding with an Inquired.
+message with the initiator responding with an Inquired, these messages
+establish the overlay Id of each peer.
 
-As servers establish connections with other servers, they exchange exchange
-Enlist messages and respond to each other with Enlisted message. Servers then
-begin a process to establish a group-wide nonce.  This also provides an
-opportunity for all servers to wait to synchronize server-group connectivity.
-Upon arriving on an agreed nonce, servers send to each other Nonce and Nonced
-messages.
+As servers establish connections with other servers, they exchange Enlist
+messages. Enlist messages inform servers of a server's presence and the
+ephemeral key it will use in an upcoming protocol round. Once a server has
+received an Enlist from all other servers, they begin the nonce generation
+process.  Upon arriving on an agreed nonce, servers send to each other the
+Nonce message.
 
 At the conclusion of this process, servers allow clients to register.  Prior to
 registering, clients must connect to a server using the same process as servers
-connect to each other. First establishing a transport-level connection,
-followed by an overlay-level connection.
+connect to each other, Inquire and Inquired messages. First establishing a
+transport-level connection, followed by an overlay-level connection.
 
 During registration, clients first transmit a Queue message to enter the
-registration queue. When the servers have completed the nonce generation, they
-respond to these messages with a Queued message containing the accumulated
-Nonce messages exchanged by the servers.  Clients then respond with a Register
-message containing a third-party verifiable authentication context against the
-nonce, an ephemeral public key, and any additional information necessary for
-the upcoming communication rounds.
+registration queue. Queue messages contain no contents. When the servers have
+completed the nonce generation, they respond to these messages with a Queued
+message containing the accumulated Nonce messages exchanged by the servers.
+Clients then respond with a Register message containing a third-party
+verifiable authentication context against the nonce, an ephemeral key to be
+used during the protocolh, and any additional information necessary for the
+upcoming protocol.
 
 Upon beginning the registration process, a server accepts registration messages
 for 5 minutes. After this registration window, each server transmits a list of
 client registration messages to every other server, using the List message.
-Upon receiving the list from all servers, a server constructs consisting of all
+Upon receiving the List from all servers, a server constructs consisting of all
 clients, eliminating duplicate identities, and then hashes the resulting list,
 via a Listed message.  Servers then sign the resulting list and share amongst
 each other their signatures. Since this process is deterministic, servers need
 not share the list. Upon receiving all signatures, servers transmit a Start
 message to clients and clients respond with a Started message initiating the
-beginning of the protocol round.
+beginning of the protocol round.  A client registering with multiple servers
+remains connected to the server with the lowest Id in lexicongraphic order.
 
 A protocol round constitutes one or more anonymous exchanges.  The protocol
 round continues for at least 1 exchange or 60 minutes, whichever is longer. At
@@ -74,6 +79,22 @@ Servers currently employ the following Nonce generation: Nonce = SHA1([Enlist])
 ordered by the Id of the servers.
 
 ==============================================================================
+Protocol -- Neff Shuffle:
+
+TODO
+
+==============================================================================
+Protocol -- Client/Server Bulk:
+
+TODO
+
+==============================================================================
+Protocol -- Verifiable DC-nets:
+
+TODO
+
+
+==============================================================================
 Technical notes:
 
 - Dissent does not directly provide peer-level authentication, that is left to
@@ -91,21 +112,117 @@ Technical notes:
 ==============================================================================
 Message formats:
 
-Inquire - Connection::Id | Initiator's Transport Address | Dissent Version
-Inquired - Connection::Id
-Enlist - [Connection::Id | Ephemeral Public Key | Optional]_[server public key]
-Enlisted - NULL
-Nonce - [Connection::Id | Ephemeral Public Key | Optional |
-              Nonce]_[server public key]
-Nonced - NULL
+A message either is a request, response, or notification. A request and
+notification are RPC. A request expects a response in return.  Dissent stores
+these messages as QVariantLists into QByteArrays using QDataStream. All incoming
+messages also contain a path to the remote sender, so that a receiver can easily
+determine the source of a message.
+
+A request and notification use the following format: [Type, Id, Method, Data]
+The fields are defined as follows:
+- Type - QString - the type of message, 'n' - notification,  'r' - response,
+    'p' - response
+- Id - int - unique identifier for a request, that is included within the response
+    so that it can be routed to the correct requestor
+- Method - QString - the remote procedure
+- Data - QVariant - data for the RPC
+
+A response uses the following format: [Type, Id, Success, Data / Error]
+- Type - QString - the type of message, 'n' - notification,  'r' - response,
+    'p' - response
+- Id - int - unique identifier for a request, that is included within the response
+    so that it can be routed to the correct requestor
+- Method - bool - whether or not the request was successfully handled
+- Data - QVariant - response data for the procedure call
+- Error - int - error code, see ErrorTypes (need doxygen link)
+
+The following are messages defined within Dissent. Initiating messages place
+their name into the Request (or Notification) Method field. Responses are
+implied, therefore their name is not included within the Response. The
+following reprsent the Data portion of a message stored as a QVariant.
+Messages will be converted into QByteArrays via QDataStream, signed if
+necessary, for signed messages will be stored as a QVariantList with the first
+entry bing the data as a QByteArray and the signature as the second entry also
+as a QByteArray.  Because all messages implicitly contain the source of a
+message and have a field for the method, these components are not included
+within the data field as well.
+
+Inquire - Receiver's PeerId | Initiator's Transport Address | Dissent Version
+- PeerId - Connections::Id as QByteArray - Receiver's overlay Id
+- Transport Address - Transports::Address as a QString - Initiator's Transport
+  Address
+- Dissent Version - int - Running version of Dissent, the receiver can close
+  the connection if it does not match his own version
+
+Inquired - Initiator's PeerId
+- PeerId - Initiator's overlay Id (Connection::Id as a QByteArray)
+
+Enlist - [PeerId | Ephemeral Public Key | Optional]_[signature]
+- PeerId - Connections::Id as QByteArray - Local Peer's overlay Id
+- Ephemeral Public Key - QByteArray of DSA key - The ephemeral key to
+  be used in operations during protocol exchanges
+- Optional - QVariant - Additional data necessary for the protocol round
+- Signature - QByteArray - Signature on [PeerId | Ephemeral Public Key |
+  Optional], should use the servers well known public key that matches
+  the PeerId
+
+Nonce - [PeerId | Ephemeral Public Key | Optional |
+  Nonce]_[signature]
+- PeerId - Connections::Id as QByteArray - Local Peer's overlay Id
+- Ephemeral Public Key - QByteArray of DSA key - The ephemeral key to
+  be used in operations during protocol exchanges
+- Optional - QVariant - Additional data necessary for the protocol round
+- Nonce - QByteArray - A nonce to use in the upcoming protocol round
+- Signature - QByteArray - Signature on [PeerId | Ephemeral Public Key |
+  Optional], should use the servers well known public key that matches
+  the PeerId
+
 Queue - NULL
-Queued - [Servers' Connection::Id | Servers' Public Keys |
-              Servers' Optionals | Nonce]_[server signatures]
-Register - [Connection::Id | Ephemeral Public Key |
-              Optional | Nonce]_[client authentication]
+- No contents
+
+Queued - Servers' PeerIds | Servers' Public Keys |
+  Servers' Optionals | Nonce | Servers' signatures
+- Servers' PeerIds - QVariantList of each of the Server's Connections::Id
+- Servers' Public Keys - QVariantList of each of the Server's Ephemeral DSA
+  Public Keys
+- Servers' Optionals - QVariantList of each of the servers optional data
+- Nonce - The server agreed upon Nonce
+- Servers' signatures - Signatures from the earlier Nonce messages, clients
+  can recreate thse messages and verify that each server has signed off on the
+  Nonce
+
+Register - [PeerId | Ephemeral Public Key | Optional |
+  Nonce]_[Signature]
+- PeerId - Connections::Id as QByteArray - Local Peer's overlay Id
+- Ephemeral Public Key - QByteArray of DSA key - The ephemeral key to
+  be used in operations during protocol exchanges
+- Optional - QVariant - Additional data necessary for the protocol round
+- Nonce - QByteArray - A nonce to use in the upcoming protocol round
+- Signature - QByteArray - Depends on the authentication type, could be a
+  DSA signature from a pre-exchanged key, an LRS signature from an agreed
+  upon group of public keys, the format of the signature is depends on the
+  session configuration.
+
 Registered - NULL
-List - [List of Queued]
-Listed - [Hash of Accumulated List of Queued]_[server public key]
+- No contents
+
+List - [List of Register]_[Signature]
+- List of Register - QVariantList - List of all the Register messages received
+- Signature - QByteArray - Signature on QByteArray format of the List of
+  Register
+
+Listed - Signature
+- Signature - QByteArray - Signature on the hashed accumulated List of Register
+
 Start - NULL
+- No contents
+
 Started - NULL
-Stop - [Immediate, Reason, Nonce]_[server signature]
+- No contents
+
+Stop - [Immediate, Reason, Nonce]_[Signature]
+- Immediate - bool - Should stop now or after the current exchange has
+  completed
+- Reason - QString - The reason for stopping
+- Nonce - QByteArray - The round nonce 
+- Signature - The well known public key of the sender of this message
