@@ -1,5 +1,7 @@
-Dissent consists of an several key, independent components:
-- Transports -- network communication layer such as Tcp, Ssl, Udp
+Dissent consists of an several key, independent components,
+corresponding to subdirectories in the 'src' directory:
+
+- Transports -- network communication layers such as Tcp, Ssl, Udp
 - Connections -- represents an established link using a transport and gives an
   addressing scheme independent of the underlying transport
 - Overlay -- organizes and specifies which nodes should connect with other
