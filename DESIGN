@@ -38,12 +38,13 @@ R -> I Inquire (Receiver's PeerId | Initiator's Transport Address |
 I -> R Inquired (Initiator's PeerId)
 
 Upon establishing connections or completing a round, Dissent begins
-resynchronizing by having the first server listed in the configuration file
-transmit an Init message. This message contains a nonce that will be used to
-eliminate synchronization issues among servers in the ensuing message
-exchanges.
+resynchronizing by having the first server listed in the configuration file, or
+prooposer, transmit an Init message. This message contains a nonce that will be
+used to eliminate synchronization issues among servers in the ensuing message
+exchanges. The message includes a Timestamp to mitigate confusion and replay
+attacks.
 
-A -> B Init ([PeerId | I Nonce]_[Signature])
+A -> B Init ([PeerId | I Nonce | Timestamp]_[Signature])
 
 After receiving the Init messages, servers begin exchanging Enlist messages
 with each other.  Enlist messages authenticate servers and contain ephemeral
@@ -142,7 +143,17 @@ Technical notes:
 - If server has received a Stop message before stopping, it does not need to
   broadcast a Stop message.
 - Dissent assumes that messages between two parties are delivered in order.
-
+- The Timestamp in the Init message prevents an adversary from partitioning the
+  online server set when the proposer is actively attempting to Init a new
+  round
+- If a Timestamp has been replayed, the proposer is offline, and there exists
+  at least one honest online server, then the round will terminate at the Nonce
+  message exchange because there would be no proper proposer signature on the
+  Nonce
+- If the proposer is the only honest server and a Timestamp has been replayed,
+  servers would only be able to replay previous state up until the Start
+  message. Honest clients will detect at this point that their registration
+  information is either absent, incorrect, or improperly signed.
 ==============================================================================
 Terms:
 
@@ -204,10 +215,11 @@ Inquire - Receiver's PeerId | Initiator's Transport Address | Session ID |
 Inquired - Initiator's PeerId
 - PeerId - Initiator's overlay Id (Connection::Id as a QByteArray)
 
-Init - [PeerId | I Nonce]_[Signature]
+Init - [PeerId | I Nonce | Timestamp]_[Signature]
 - PeerId - Connections::Id as QByteArray - Local Peer's overlay Id
 - I Nonce - QByteArray - Used in the Enlist message to ensure causality
   of Enlist messages
+- Timestamp - 64-bit integer - Time since the "Epoch"
 
 Enlist - [PeerId | I Nonce | Ephemeral Public Key | Optional]_[Signature]
 - PeerId - Connections::Id as QByteArray - Local Peer's overlay Id
