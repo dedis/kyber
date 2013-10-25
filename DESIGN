@@ -14,7 +14,17 @@ corresponding to subdirectories in the 'src' directory:
 - Anonymity -- anonymous group communication protocols
 - Session -- establishes the set of participants for communicating in ensuing rounds
 
-Note: Message definitions are included at the bottom of this document.
+==============================================================================
+Roadmap
+
+I.   Overlay protocol and session bootstrapping
+II.  Nonce generation protocols
+III. Anonymity protocols
+IV.  Technical notes
+V.   Terms
+VI.  Message descriptions
+
+==============================================================================
 
 Before beginning a Dissent session, a session configuration must be
 established, by a set of server administrators, for example. A Dissent
@@ -198,11 +208,11 @@ their name into the Request (or Notification) Method field. Responses are
 implied, therefore their name is not included within the Response. The
 following reprsent the Data portion of a message stored as a QVariant.
 Messages will be converted into QByteArrays via QDataStream, signed if
-necessary, for signed messages will be stored as a QVariantList with the first
-entry bing the data as a QByteArray and the signature as the second entry also
-as a QByteArray.  Because all messages implicitly contain the source of a
-message and have a field for the method, these components are not included
-within the data field as well.
+necessary, signed messages will be stored as two QByteArrays stored in series
+via QDataStream. PeerIds are only included for messages that do not clearly
+indicate ownership, single source messages. In messages that contain a
+signature from all servers, the order of signatures is implicitly defined by
+the order in which the servers are listed within the configuration file.
 
 Inquire - Receiver's PeerId | Initiator's Transport Address | Session ID |
          Dissent Version
