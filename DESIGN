@@ -1,4 +1,4 @@
-Dissent consists of an several key, independent components,
+Dissent consists of several relatively independent components,
 corresponding to subdirectories in the 'src' directory:
 
 - Transports -- network communication layers such as Tcp, Ssl, Udp
@@ -40,7 +40,7 @@ Servers, first, establish connections to every other server, creating an
 all-to-all server topology. Each connection between servers begins by first
 establishing a transport-level connection followed by an overlay-level
 connection.  The receiver of the connection transmits an Inquire message with
-the initiator responding with an Inquired, these messages establish the overlay
+the initiator responding with an Inquired; these messages establish the overlay
 Id of each peer.
 
 R -> I Inquire (Receiver's PeerId | Initiator's Transport Address |
@@ -49,7 +49,7 @@ I -> R Inquired (Initiator's PeerId)
 
 Upon establishing connections or completing a round, Dissent begins
 resynchronizing by having the first server listed in the configuration file, or
-prooposer, transmit an Init message. This message contains a nonce that will be
+proposer, transmit an Init message. This message contains a nonce that will be
 used to eliminate synchronization issues among servers in the ensuing message
 exchanges. The message includes a Timestamp to mitigate confusion and replay
 attacks.
