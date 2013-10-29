@@ -17,55 +17,75 @@ corresponding to subdirectories in the 'src' directory:
 ==============================================================================
 Roadmap
 
-I.   Overlay protocol and session bootstrapping
-II.  Nonce generation protocols
-III. Anonymity protocols
-IV.  Technical notes
-V.   Terms
-VI.  Message descriptions
+I.    Overlay protocol
+II.   Round bootstrapping -- Server Setup
+III.  Round bootstrapping -- Client Setup
+IV.   RoundID generation protocols
+V.    Anonymity protocols
+VI.   Technical notes
+VII.  Terms
+VIII. Message descriptions
 
 ==============================================================================
+I.    Overlay protocol
+==============================================================================
 
-Before beginning a Dissent session, a session configuration must be
-established, by a set of server administrators, for example. A Dissent
-configuration consists of a list of servers or super peers, mechanisms to
-connect to the servers (transport type [TCP,SSL], transport address [IP:Port]),
-a set of public keys named by a "Connection"-level address (used for
-authetication), the type of authentication context used by clients, and the
-protocol used for anonymous communication. The hash of this configuration will
-serve as a session identifier, so that participants can ensure they have the
-proper configuration.
+Before beginning a Dissent round, a group configuration must be established, by
+a set of server administrators, for example. A Dissent configuration consists
+of a list of servers or super peers, mechanisms to connect to the servers
+(transport type [TCP,SSL], transport address [IP:Port]), a set of public keys
+named by a "Connection"-level address or PeerId (used for authetication), the
+type of authentication context used by clients, and the protocol used for
+anonymous communication. The hash of this configuration will serve as a group
+identifier, so that participants can ensure they have the proper configuration.
 
-Servers, first, establish connections to every other server, creating an
-all-to-all server topology. Each connection between servers begins by first
-establishing a transport-level connection followed by an overlay-level
-connection.  The receiver of the connection transmits an Inquire message with
-the initiator responding with an Inquired; these messages establish the overlay
-Id of each peer.
+To form an overlay, which may consist of one or more rounds, Servers, first,
+establish connections to every other server, creating an all-to-all server
+topology. Each connection between servers begins by first establishing a
+transport-level connection followed by an overlay-level connection.  The owner
+of the incoming connection transmits an Inquire message and the outgoing
+connection owner responds with an Inquired; these messages establish the
+overlay Id of each peer.
 
-R -> I Inquire (Receiver's PeerId | Initiator's Transport Address |
-                Session ID | Dissent Version)
-I -> R Inquired (Initiator's PeerId)
+I -> O Inquire (Receiver's PeerId | Initiator's Transport Address |
+                Group ID | Dissent Version)
+O -> I Inquired (Initiator's PeerId)
+
+==============================================================================
+II.   Round bootstrapping -- Server Setup
+==============================================================================
 
 Upon establishing connections or completing a round, Dissent begins
-resynchronizing by having the first server listed in the configuration file, or
-proposer, transmit an Init message. This message contains a nonce that will be
-used to eliminate synchronization issues among servers in the ensuing message
-exchanges. The message includes a Timestamp to mitigate confusion and replay
-attacks.
+resynchronization. The first server listed in the configuration file has the
+unique role of proposing the start of a round via an Init message to all
+servers.
 
-A -> B Init ([PeerId | I Nonce | Timestamp]_[Signature])
+A -> B Init ([PeerId_A | I Nonce | Timestamp]_[Signature_A])
+
+This message will then be embedded in the servers next exchange to
+address synchronization issues.  A server can determine if a message is past,
+current, or if they have yet to receive an Init.  Previous messages have an
+earlier timestamp, current messages match the Init they have received from the
+proposer, and yet to receive have future timestamps but have valid signatures.
 
 After receiving the Init messages, servers begin exchanging Enlist messages
 with each other.  Enlist messages authenticate servers and contain ephemeral
-keys and optional data for use in an upcoming protocol round. Once a server has
-received an Enlist from all other servers, they begin the nonce generation
-process.  Upon arriving on an agreed nonce, servers send to each other the
-Nonce message.
+keys used for signing messages in the rounds and optional data for use in an
+upcoming protocol round. 
 
-A -> B Enlist ([PeerId | I Nonce | Ephemeral Public Key |
-                Optional]_[Signature])
-A -> B Nonce ([PeerId | Ephemeral Public Key | Optional | Nonce]_[Signature])
+A -> B Enlist ([PeerId_A | Init | Ephemeral Public Key |
+                Optional]_[Signature_A])
+
+Once a server has received an Enlist from all other servers, they begin the
+nonce generation process, see RoundID generation in Section IV. Upon arriving on
+an agreed nonce, servers send to each other the RoundID message.
+
+A -> B Agree ([PeerId_A | Ephemeral Public Key | Optional |
+               RoundID]_[Signature_A])
+
+==============================================================================
+III.  Round bootstrapping -- Client Setup
+==============================================================================
 
 At the conclusion of this process, servers allow clients to register.  Prior to
 registering, clients must connect to a server using the same process as servers
@@ -75,34 +95,45 @@ transport-level connection, followed by an overlay-level connection.
 During registration, clients first transmit a Queue message to enter the
 registration queue. Queue messages contain a client temporary nonce as a means
 to authenticate that the the upstream servers to prevent man in the middle
-attacks. When the servers have completed the nonce generation, they respond to
-these messages with a Queued message containing the accumulated Nonce messages
-exchanged by the servers.  Clients then respond with a Register message
-containing a third-party verifiable authentication context against the nonce,
-an ephemeral key to be used during the protocolh, and any additional
-information necessary for the upcoming protocol.
+attacks. 
 
 C -> S Queue (Client Nonce)
-S -> C Queued ([Nonce Messages | Client Nonce]_[Signature])
-C -> S Register ([PeerId | Ephemeral Public Key | Optional | Nonce]_[Signature])
+
+When the servers have completed the nonce generation, they respond to these
+messages with a Queued message containing the accumulated Agree messages
+exchanged by the servers.  
+
+S -> C Queued ([Agree Messages | Client Nonce]_[Signature_S])
+
+Clients then respond with a Register message containing a third-party
+verifiable authentication context against the nonce, an ephemeral key to be
+used during the protocol, and any additional information necessary for the
+upcoming protocol.
+
+C -> S Register ([PeerId_C | Ephemeral Public Key | Optional |
+                  RoundID]_[Signature_C])
 
 Upon beginning the registration process, each server accepts registration
 messages for 5 minutes from their own prospective. After this registration
-window, each server transmits a list of client registration messages to every
-other server, using the List message.  Upon receiving the List from all
-servers, a server constructs consisting of all clients, eliminating duplicate
-identities, and then hashes the resulting list and signs it transmitting te
-result in a VerifyList message.  Servers then sign the resulting list and share
-amongst each other their signatures. Since this process is deterministic,
-servers need not share the list. Upon receiving all signatures, servers
-transmit a Start message to clients initiating the beginning of the protocol
-round.  A client registering with multiple servers remains connected to the
-server with the lowest Id in lexicongraphic order.
+window, each server transmits their list of client registration messages to
+every other server, using the List message.
 
-A -> B List ([List of Register]_[Signature])
-A -> B VerifyList (Signature)
-S -> C Start (Complete List of Register | Server Signatures)
-S -> C Stop ([Immediate, Reason, Nonce]_[Signature])
+A -> B List ([List of Register_A]_[Signature_A])
+
+Upon receiving the List from all servers, a server constructs consisting of all
+clients, eliminating duplicate identities, and then hashes the resulting list
+and signs it transmitting the result in a VerifyList message.  Servers then
+sign the resulting list and share amongst each other their signatures.  Since
+this process is deterministic, servers need not share the list.
+
+A -> B VerifyList (Signature_A)
+
+Upon receiving all signatures, servers transmit a Start message to clients
+initiating the beginning of the protocol round.  A client registering with
+multiple servers remains connected to the server with the lowest Id in
+lexicongraphic order.
+
+S -> C Start (List of Register | Server Signatures)
 
 A protocol round constitutes one or more anonymous exchanges.  The protocol
 round continues for at least 1 exchange or 60 minutes, whichever is longer. At
@@ -111,17 +142,24 @@ run complete" and immediate set to false.  At any point, if a server
 disconnects from any other server, that server immediately broadcasts a Stop
 message with reason "Server disconnected x from y" and immediate set to true.
 
+S -> C Stop ([Immediate, Reason, RoundID]_[Signature])
+
 Upon receiving a stop message, the round terminates immediately if immediate is
 set to true or upon conclusion of the current round if not. At which point, the
 entire process repeats from the first server transmitting an Init message and
 clients' Queue.
 
 ==============================================================================
-Nonce generation:
+IV.   RoundID generation
+==============================================================================
 
-Servers currently employ the following Nonce generation: Nonce = SHA1([Enlist])
-ordered by the Id of the servers.
+Servers currently employ the following process: RoundID = SHA1([Enlist])
+ordered by the Id of the servers. Thus the ephemeral key in the Enlist message
+serves as a guarantee that under the anytrust model the RoundID has some
+randomness.
 
+==============================================================================
+V.    Anonymity protocols
 ==============================================================================
 Protocol -- Neff Shuffle:
 
@@ -139,7 +177,8 @@ TODO
 
 
 ==============================================================================
-Technical notes:
+VI.   Technical notes
+==============================================================================
 
 - Dissent does not directly provide peer-level authentication, that is left to
   the transport. For anonymous authentication, that means that clients will not
@@ -157,27 +196,30 @@ Technical notes:
   online server set when the proposer is actively attempting to Init a new
   round
 - If a Timestamp has been replayed, the proposer is offline, and there exists
-  at least one honest online server, then the round will terminate at the Nonce
-  message exchange because there would be no proper proposer signature on the
-  Nonce
+  at least one honest online server, then the round will terminate at the
+  RoundID message exchange because there would be no proper proposer
+  signature on the RoundID
 - If the proposer is the only honest server and a Timestamp has been replayed,
   servers would only be able to replay previous state up until the Start
   message. Honest clients will detect at this point that their registration
   information is either absent, incorrect, or improperly signed.
-==============================================================================
-Terms:
 
-Session - a well-defined set of entities that may participate in one or more
+==============================================================================
+VII.  Terms
+==============================================================================
+
+Group - a well-defined set of entities that may participate in one or more
   anonymous communication rounds
 
-Round - an instance of a session, where some subset of the entities
+Round - an instance of a protocol execution, where some subset of the entities
   participate in anonymous communication
 
 Exchange - some rounds support multiple transmissions from participants,
   each transmission and resulting cleartext constitutes an exchange
 
 ==============================================================================
-Message formats:
+VIII. Message formats
+==============================================================================
 
 A message either is a request, response, or notification. A request and
 notification are RPC. A request expects a response in return.  Dissent stores
@@ -214,7 +256,7 @@ indicate ownership, single source messages. In messages that contain a
 signature from all servers, the order of signatures is implicitly defined by
 the order in which the servers are listed within the configuration file.
 
-Inquire - Receiver's PeerId | Initiator's Transport Address | Session ID |
+Inquire - Receiver's PeerId | Initiator's Transport Address | Group ID |
          Dissent Version
 - PeerId - Connections:Id as QByteArray - Receiver's overlay Id
 - Transport Address - Transports::Address as a QString - Initiator's Transport
@@ -241,12 +283,12 @@ Enlist - [PeerId | I Nonce | Ephemeral Public Key | Optional]_[Signature]
   Optional], should use the servers well known public key that matches
   the PeerId
 
-Nonce - [PeerId | Ephemeral Public Key | Optional | Nonce]_[Signature]
+Agree - [PeerId | Ephemeral Public Key | Optional | RoundID]_[Signature]
 - PeerId - Connections::Id as QByteArray - Local Peer's overlay Id
 - Ephemeral Public Key - QByteArray of DSA key - The ephemeral key to
   be used in operations during protocol exchanges
 - Optional - QVariant - Additional data necessary for the protocol round
-- Nonce - QByteArray - A nonce to use in the upcoming protocol round
+- RoundID - QByteArray - A nonce to use in the upcoming protocol round
 - Signature - QByteArray - Signature on [PeerId | Ephemeral Public Key |
   Optional], should use the servers well known public key that matches
   the PeerId
@@ -255,23 +297,23 @@ Queue - Client Nonce
 - Client Nonce - QByteArray - An short-lived Nonce to prevent man in the
   middle attacks between the client and the upstream server
 
-Queued - [Nonce Messages | Client Nonce]_[Signature]
-- Nonce Messages - All of the server Nonce messages
+Queued - [Agree Messages | Client Nonce]_[Signature]
+- Agree Messages - All of the server Agree messages
 - Client Nonce - The client nonce specified in the Queue message
-- Signature - QByteArray - Signature on [Nonce Message | Client Nonce],
+- Signature - QByteArray - Signature on [Agree Messages | Client Nonce],
   should use the servers well known public key that matches the PeerId
 
 Register - [PeerId | Ephemeral Public Key | Optional |
-  Nonce]_[Signature]
+  RoundID]_[Signature]
 - PeerId - Connections::Id as QByteArray - Local Peer's overlay Id
 - Ephemeral Public Key - QByteArray of DSA key - The ephemeral key to
   be used in operations during protocol exchanges
 - Optional - QVariant - Additional data necessary for the protocol round
-- Nonce - QByteArray - A nonce to use in the upcoming protocol round
+- RoundID - QByteArray - A identifier to use in the upcoming protocol round
 - Signature - QByteArray - Depends on the authentication type, could be a
   DSA signature from a pre-exchanged key, an LRS signature from an agreed
   upon group of public keys, the format of the signature is depends on the
-  session configuration.
+  group configuration.
 
 List - [List of Register]_[Signature]
 - List of Register - QVariantList - List of all the Register messages received
@@ -286,9 +328,9 @@ Start - Complete List of Register | Server Signatures
 - Server Signatures - QVariantList - Set of all signatures for the
   accumulated list
 
-Stop - [Immediate, Reason, Nonce]_[Signature]
+Stop - [Immediate, Reason, RoundID]_[Signature]
 - Immediate - bool - Should stop now or after the current exchange has
   completed
 - Reason - QString - The reason for stopping
-- Nonce - QByteArray - The round nonce
+- RoundID - QByteArray - The round identifier
 - Signature - The well known public key of the sender of this message
