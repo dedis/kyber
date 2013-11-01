@@ -200,6 +200,36 @@ namespace Crypto {
       }
 
       /**
+       * Multiplication operator, multiplies with current
+       * @param other the Integer to multiply by
+       */
+      Integer &operator*=(const Integer &other)
+      {
+        m_data = Multiply(other).m_data;
+        return *this;
+      }
+
+      /**
+       * Division operator, divides current
+       * @param other the Integer to divide by
+       */
+      Integer &operator/=(const Integer &other)
+      {
+        m_data = Divide(other).m_data;
+        return *this;
+      }
+
+      /**
+       * Remainder operator, computes the remainder of current
+       * @param other the Integer representing the modulus
+       */
+      Integer &operator%=(const Integer &modulus)
+      {
+        m_data = Modulo(modulus).m_data;
+        return *this;
+      }
+
+      /**
        * Equality operator
        * @param other the Integer to compare
        */
