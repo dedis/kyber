@@ -41,7 +41,7 @@ namespace Buddies {
 
   void BuddyMonitor::SetActiveNyms(const QBitArray &nyms)
   {
-    for(int idx; idx < m_bp->GetCount(); idx++) {
+    for(int idx = 0; idx < m_bp->GetCount(); idx++) {
       if(nyms[idx]) {
         SetActiveNym(idx);
       }
