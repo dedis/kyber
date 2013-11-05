@@ -2,7 +2,8 @@ TEMPLATE = lib
 TARGET = dissent
 DEPENDPATH += 
 CONFIG += qt debug
-QT = core network concurrent
+QT = core network
+greaterThan(QT_MAJOR_VERSION, 4):QT += concurrent
 
 # Dissent Wire protocol version
 DEFINES += "VERSION=3"
