@@ -55,9 +55,6 @@ PeerId must be the name of the key as it is distributed. Certificates should
 have the PeerId within the common name. We have no standard for linkable ring
 signatures and accept any randomly generated PeerId.
 
-Alternatively, we could
-prevent clients from
-
 ==============================================================================
 II.   Round bootstrapping -- Server Setup
 ==============================================================================
@@ -78,6 +75,14 @@ The proposer may chose any timestamp he choses, such that an evaluation can be
 made using integer comparisons, and that he maintains a consistent timestamp
 across the lifetime of the group.
 
+The Timestamp mitigates DoS attacks in which either a malicious server or
+external entity might replay an old proposer Init message to confuse other
+servers into enlisting in a round other than the latest.  However, the
+Timestamp is not essential to ensuring the critical security invariant that
+each round eventually acquires a fresh Round ID: even if a proposer maliciously
+reuses an old I Nonce and/or Timestamp, the randomness in the Enlist messages
+from other servers (below) guarantee RoundID freshness.
+
 After receiving the Init messages, servers begin exchanging Enlist messages
 with each other.  Enlist messages authenticate servers and contain ephemeral
 keys used for signing messages in the rounds and optional data for use in an
@@ -86,7 +91,7 @@ an Enlist message arrives before the Init is is based upon does. A server can
 use the embedded Init instead of waiting on the proposer's Init or having to
 maintain state for out of order messages.
 
-A -> B Enlist ([PeerId_A | Init | Ephemeral Public Key |
+A -> B Enlist ([PeerId_A | Init Message | Ephemeral Public Key |
                 Optional]_[Signature_A])
 
 Once a server has received an Enlist from all other servers, they begin the
@@ -142,7 +147,7 @@ other their signatures via the VerifyList.  Since this process is
 deterministic, servers need not share the list. Prior to sending the
 VerifyList, servers should prepare to receive protocol round messages.
 
-A -> B VerifyList (Signature_A)
+A -> B VerifyList (Signature on Complete List of Register_A)
 
 Upon receiving all signatures, servers can begin the round and simultaneously
 transmit a Start message to clients initiating the beginning of the protocol
@@ -327,7 +332,7 @@ List - [List of Register]_[Signature]
 - Signature - QByteArray - Signature on QByteArray format of the List of
   Register
 
-VerifyList - Signature
+VerifyList - Signature on Complete List of Register
 - Signature - QByteArray - Signature on the hashed accumulated List of Register
 
 Start - Complete List of Register | Server Signatures
