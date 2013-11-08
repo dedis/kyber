@@ -1,52 +1,37 @@
-Anonymity
-- Design a dynamic group -- handles new connections, disconnections, and blame
-- Need some structure to communicate group status / change
-- Make sessions optionally multithreaded, we really don't want crypto computation in the main thread
-- Need some means to initiate a group / session
-- (Memory) Provide mechanisms to clear out intermediate state from Rounds
-- (Memory) Move logic for individual states into separate classes
+Project schedule
+- Write initial design document - complete
+- Evaluate existing source code - complete
+- Implementation of current design document - Complete by 12/15
+- Complete blame code paths in CSBulk - Complete by 12/30
+- Integrate OAEP into CSBulk - Complete by 12/30
+- Peer level authentication / SSL Transport - Complete by 1/15
+- "Formal" code analysis, review, and integration of Hybrid Dissent - Complete by 1/30
+- Updated design document containing - Complete by 1/30
+- TlsEL and certificates - Complete by 2/15
 
-Connections
-- ConnectionTable should be a value type
-- ConnectionManager and maybe EL should turn reject requests for connections when closed
-- Relay assumes that Rpc always completes successfully ... needs timeout
-
-Crypto
-- Add QCA or Botan CryptoLibraries, take a look at the src/Crypto/CryptoFactory and other related files to get a general feel
+Code
 - Move XOR into Utils
-- Create a randomize / hash (OAEP) module
-- Use abstract types in API for more comprehensive type-checking (DhPublicKey instead of QByteArray)
+- Generalize crypto code to support EC DSA and Big Integer DSA
 
-Messaging
-- All Rpcs should time out, request for status update and fail when there's really no response for a long period of time
+Denial of Service
+- Reimplement TcpEL using another network library to get around Qt file
+  descriptor bug
 
-Overall
-- !!!Replace all pointers with qscoped / qshared pointers
-- Consider removing qsharedata and replacing it with qsharedpointers
+Performance
+- Tunnels need fairness / queuing strategy
 
-Overlay
-- Implement Chord and use for overlay broadcasting and overall group dynamics
-- Implement an actual gossip overlay with support for a gossip based broadcast medium
+Security
+- Make OAEP module and use it within CSBulk
+- Tunnels should perform security handshake to prevent session hijacking
+- Implement TlsEL
+- Move from public keys to certificates
 
-Transports
-- Implement a UdpEL and create a reliability layer so we can use it for UdpEL and if we do other tasks that require reliable transmission (such as overlay routing).
-- TcpEL (maybe Qt) cannot handle running out of file descriptors -- causing the application to infinite loop on poll.
-
-Issues
-- The current protocol doesn't work properly if a non-shuffler receives an invalid go / no go message ... since no one is waiting for its private keys, thus the process will conclude potentially without his follow up.
-
-Web Server
+Usability
+- Serialize rounds so that clients can leave, re-join, and re-start without
+  waiting for the start of a new round
+- Allow Rpcs to timeout
+- Implement UdpEL
 - Index page with list of all URLs
-- HTTPS
-
-Tunnel
-- Better fairness/queuing strategy. Tunnels should only read as much data from sockets as it can send to the next session. This will allow TCP to throttle the connection and not overwhelm the RemoteTunnel's buffers. Tunnels should send data packets to the next session in random order from every connection -- that way one connection doesn't dominate the channel.
-- Session ID in network messages
-- Have RemoteTunnel sign messages it sends back to LocalTunnel
-- Encryption on packets in both directions
-- Have every server function as a well-known remote tunnel
-- FinishPacket should have a "reason" field
-- Options for SOCKS 4[a] protocols
-
-Social Networks
-- Add Kritarth's social keys and message posting
+- Web server supports HTTPS
+- Tunnel support for SOCKS4a
+- Tunnel FinishPacket should have a "reason" field
