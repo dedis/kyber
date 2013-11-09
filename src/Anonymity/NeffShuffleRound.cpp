@@ -17,24 +17,22 @@ namespace Dissent {
   using Utils::QRunTimeError;
 
 namespace Anonymity {
-  NeffShuffleRound::NeffShuffleRound(const Group &group,
-      const PrivateIdentity &ident,
-      const Id &round_id,
-      const QSharedPointer<Network> &network,
-      GetDataCallback &get_data,
-      const QSharedPointer<BuddyMonitor> &bm,
-      bool key_shuffle,
-      int data_size) :
-    Round(group, ident, round_id, network, get_data, bm),
+  NeffShuffleRound::NeffShuffleRound(const Identity::Roster &clients,
+          const Identity::Roster &servers,
+          const Identity::PrivateIdentity &ident,
+          const QByteArray &nonce,
+          const QSharedPointer<ClientServer::Overlay> &overlay,
+          Messaging::GetDataCallback &get_data,
+          bool key_shuffle,
+          int data_size) :
+    Round(clients, servers, ident, nonce, overlay, get_data),
     _state_machine(this)
   {
     _state_machine.AddState(OFFLINE);
-    _state_machine.AddState(MSG_GENERATION, -1, 0, &NeffShuffleRound::GenerateMessage);
-    _state_machine.AddState(MSG_SUBMISSION, -1, 0, &NeffShuffleRound::SubmitMessage);
     _state_machine.AddState(FINISHED);
     _state_machine.SetState(OFFLINE);
 
-    if(group.GetSubgroup().Contains(ident.GetLocalId())) {
+    if(GetOverlay()->AmServer()) {
       InitServer();
     } else {
       InitClient();
@@ -46,35 +44,6 @@ namespace Anonymity {
   NeffShuffleRound::~NeffShuffleRound()
   {
   }
-
-  void NeffShuffleRound::VerifiableBroadcastToServers(const QByteArray &data)
-  { 
-    Q_ASSERT(IsServer());
-    
-    QByteArray msg = data + GetSigningKey()->Sign(data);
-    foreach(const PublicIdentity &pi, GetGroup().GetSubgroup()) {
-      GetNetwork()->Send(pi.GetId(), msg);
-    }
-  }
-    
-  void NeffShuffleRound::VerifiableBroadcastToClients(const QByteArray &data)
-  {
-    Q_ASSERT(IsServer());
-  
-    QByteArray msg = data + GetSigningKey()->Sign(data);
-    foreach(const QSharedPointer<Connection> &con,
-        GetNetwork()->GetConnectionManager()->
-        GetConnectionTable().GetConnections())
-    {
-      if(!GetGroup().Contains(con->GetRemoteId()) ||
-          GetGroup().GetSubgroup().Contains(con->GetRemoteId()))
-      { 
-        continue;
-      }
-          
-      GetNetwork()->Send(con->GetRemoteId(), msg);
-    }   
-  }   
 
   void NeffShuffleRound::InitServer()
   {
@@ -90,7 +59,7 @@ namespace Anonymity {
         &NeffShuffleRound::HandleKeySignature);
     _state_machine.AddState(PUSH_SERVER_KEYS, -1, 0, &NeffShuffleRound::PushServerKeys);
 
-    if(GetGroup().GetSubgroup().GetIndex(GetLocalId()) == 0) {
+    if(GetServers().GetIndex(GetLocalId()) == 0) {
       _state_machine.AddState(WAITING_FOR_MSGS, MSG_SUBMIT,
           &NeffShuffleRound::HandleMessageSubmission,
           &NeffShuffleRound::PrepareForMessageSubmissions);
@@ -115,14 +84,12 @@ namespace Anonymity {
     _state_machine.AddTransition(WAITING_FOR_KEYS, SUBMIT_KEY_SIGNATURE);
     _state_machine.AddTransition(SUBMIT_KEY_SIGNATURE, WAITING_FOR_KEY_SIGNATURES);
     _state_machine.AddTransition(WAITING_FOR_KEY_SIGNATURES, PUSH_SERVER_KEYS);
-    _state_machine.AddTransition(PUSH_SERVER_KEYS, MSG_GENERATION);
-    _state_machine.AddTransition(MSG_GENERATION, MSG_SUBMISSION);
 
-    if(GetGroup().GetSubgroup().GetIndex(GetLocalId()) == 0) {
-      _state_machine.AddTransition(MSG_SUBMISSION, WAITING_FOR_MSGS);
+    if(GetServers().GetIndex(GetLocalId()) == 0) {
+      _state_machine.AddTransition(PUSH_SERVER_KEYS, WAITING_FOR_MSGS);
       _state_machine.AddTransition(WAITING_FOR_MSGS, SHUFFLING);
     } else {
-      _state_machine.AddTransition(MSG_SUBMISSION, WAITING_FOR_SHUFFLES_BEFORE_TURN);
+      _state_machine.AddTransition(PUSH_SERVER_KEYS, WAITING_FOR_SHUFFLES_BEFORE_TURN);
       _state_machine.AddTransition(WAITING_FOR_SHUFFLES_BEFORE_TURN, SHUFFLING);
     }
 
@@ -137,6 +104,8 @@ namespace Anonymity {
   {
     _state = QSharedPointer<State>(new State());
 
+    _state_machine.AddState(MSG_GENERATION, -1, 0, &NeffShuffleRound::GenerateMessage);
+    _state_machine.AddState(MSG_SUBMISSION, -1, 0, &NeffShuffleRound::SubmitMessage);
     _state_machine.AddState(WAITING_FOR_SERVER_KEYS, MSG_KEY_DIST, &NeffShuffleRound::HandleServerKeys);
     _state_machine.AddState(WAITING_FOR_OUTPUT, MSG_OUTPUT,
         &NeffShuffleRound::HandleOutput);
@@ -158,25 +127,21 @@ namespace Anonymity {
     Round::OnStop();
   }
 
-  void NeffShuffleRound::HandleDisconnect(const Id &id)
+  void NeffShuffleRound::HandleDisconnect(const Connections::Id &id)
   {
-    if(!GetGroup().Contains(id)) {
-      return;
-    }
-
-    if(GetGroup().GetSubgroup().Contains(id)) {
+    if(GetOverlay()->IsServer(id)) {
       qDebug() << "A server (" << id << ") disconnected.";
       SetInterrupted();
       Stop("A server (" + id.ToString() +") disconnected.");
-    } else {
+    } else if(GetClients().Contains(id)) {
       qDebug() << "A client (" << id << ") disconnected, ignoring.";
     }
   }
 
-  void NeffShuffleRound::HandleKey(const Id &from,
+  void NeffShuffleRound::HandleKey(const Connections::Id &from,
       QDataStream &stream)
   {
-    int gidx = GetGroup().GetSubgroup().GetIndex(from);
+    int gidx = GetServers().GetIndex(from);
     if(!_server_state->server_keys[gidx].IsValid()) {
       throw QRunTimeError("Received multiples keys.");
     }
@@ -196,20 +161,20 @@ namespace Anonymity {
     _server_state->server_keys[gidx] = key;
     _server_state->msgs_received++;
 
-    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
-        ": received key from" << GetGroup().GetIndex(from) << from <<
+    qDebug() << GetServers().GetIndex(GetLocalId()) << GetLocalId() <<
+        ": received key from" << GetServers().GetIndex(from) << from <<
         "Have:" << _server_state->msgs_received << "expect:" <<
-        GetGroup().GetSubgroup().Count();
+        GetServers().Count();
 
-    if(_server_state->msgs_received == GetGroup().GetSubgroup().Count()) {
+    if(_server_state->msgs_received == GetServers().Count()) {
       _state_machine.StateComplete();
     }
   }
 
-  void NeffShuffleRound::HandleKeySignature(const Id &from,
+  void NeffShuffleRound::HandleKeySignature(const Connections::Id &from,
       QDataStream &stream)
   {
-    int gidx = GetGroup().GetSubgroup().GetIndex(from);
+    int gidx = GetServers().GetIndex(from);
     if(!_server_state->key_signatures[gidx].isEmpty()) {
       throw QRunTimeError("Received multiples key signatures.");
     }
@@ -217,29 +182,27 @@ namespace Anonymity {
     QByteArray signature;
     stream >> signature;
 
-    if(!GetGroup().GetIdentity(from).GetVerificationKey()->Verify(
-          _server_state->key_hash, signature))
-    {
+    if(!GetServers().GetKey(from)->Verify(_server_state->key_hash, signature)) {
       throw QRunTimeError("Invalid key signature");
     }
 
     _server_state->key_signatures[gidx] = signature;
     _server_state->msgs_received++;
 
-    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
-        ": received key signature from" << GetGroup().GetIndex(from) << from <<
+    qDebug() << GetServers().GetIndex(GetLocalId()) << GetLocalId() <<
+        ": received key signature from" << GetServers().GetIndex(from) << from <<
         "Have:" << _server_state->msgs_received << "expect:" <<
-        GetGroup().GetSubgroup().Count();
+        GetServers().Count();
 
-    if(_server_state->msgs_received == GetGroup().GetSubgroup().Count()) {
+    if(_server_state->msgs_received == GetServers().Count()) {
       _state_machine.StateComplete();
     }
   }
 
-  void NeffShuffleRound::HandleServerKeys(const Id &from,
+  void NeffShuffleRound::HandleServerKeys(const Connections::Id &from,
       QDataStream &stream)
   {
-    if(!GetGroup().GetSubgroup().Contains(from)) {
+    if(!GetServers().Contains(from)) {
       throw QRunTimeError("Received from a non-server");
     }
 
@@ -247,9 +210,9 @@ namespace Anonymity {
     QVector<QByteArray> server_signatures;
     stream >> server_keys >> server_signatures;
 
-    if(GetGroup().GetSubgroup().Count() != server_keys.size()) {
+    if(GetServers().Count() != server_keys.size()) {
       throw QRunTimeError("Missing some server keys");
-    } else if(GetGroup().GetSubgroup().Count() != server_signatures.size()) {
+    } else if(GetServers().Count() != server_signatures.size()) {
       throw QRunTimeError("Missing some server signatures");
     }
 
@@ -259,9 +222,9 @@ namespace Anonymity {
     }
     QByteArray key_hash = hashalgo.ComputeHash();
 
-    for(int idx = 0; idx < GetGroup().GetSubgroup().Count(); idx++) {
-      Id id = GetGroup().GetSubgroup().GetId(idx);
-      QSharedPointer<AsymmetricKey> key(GetGroup().GetKey(id));
+    for(int idx = 0; idx < GetServers().Count(); idx++) {
+      Connections::Id id = GetServers().GetId(idx);
+      QSharedPointer<AsymmetricKey> key(GetServers().GetKey(id));
       if(!key->Verify(key_hash, server_signatures[idx])) {
         throw QRunTimeError("Invalid signature");
       }
@@ -269,16 +232,16 @@ namespace Anonymity {
 
     _state->server_keys = server_keys;
 
-    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
-        ": received keys from" << GetGroup().GetIndex(from) << from;
+    qDebug() << GetServers().GetIndex(GetLocalId()) << GetLocalId() <<
+        ": received keys from" << GetServers().GetIndex(from) << from;
     _state_machine.StateComplete();
   }
 
   // not really done but good enough
-  void NeffShuffleRound::HandleMessageSubmission(const Id &from,
+  void NeffShuffleRound::HandleMessageSubmission(const Connections::Id &from,
       QDataStream &stream)
   {
-    int gidx = GetGroup().GetIndex(from);
+    int gidx = GetClients().GetIndex(from);
     if(!_server_state->initial_input[gidx].isEmpty()) {
       throw QRunTimeError("Received multiples data messages.");
     }
@@ -293,26 +256,26 @@ namespace Anonymity {
     _server_state->initial_input[gidx] = msg;
     ++_server_state->msgs_received;
     
-    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
-        ": received msg from" << GetGroup().GetIndex(from) << from <<
-        "Have:" << _server_state->msgs_received << "expect:" << GetGroup().Count();
+    qDebug() << GetClients().GetIndex(GetLocalId()) << GetLocalId() <<
+        ": received msg from" << GetClients().GetIndex(from) << from <<
+        "Have:" << _server_state->msgs_received << "expect:" << GetClients().Count();
 
-    if(_server_state->msgs_received == GetGroup().Count()) {
+    if(_server_state->msgs_received == GetClients().Count()) {
       _server_state->msg_receive_period.Stop();
       _server_state->next_verify_input = _server_state->initial_input;
       _state_machine.StateComplete();
     }
   }
 
-  void NeffShuffleRound::HandleShuffle(const Id &from, QDataStream &stream)
+  void NeffShuffleRound::HandleShuffle(const Connections::Id &from, QDataStream &stream)
   {
-    if(!GetGroup().GetSubgroup().Contains(from)) {
+    if(!GetServers().Contains(from)) {
       throw QRunTimeError("Received from a non-server");
     } else if(_server_state->shuffle_proof.contains(from)) {
       throw QRunTimeError("Already received a proof from this member");
     }
 
-    if(GetGroup().GetSubgroup().GetIndex(from) == 0) {
+    if(GetServers().GetIndex(from) == 0) {
       stream >> _server_state->initial_input;
       _server_state->next_verify_input = _server_state->initial_input;
     }
@@ -322,17 +285,18 @@ namespace Anonymity {
 
     _server_state->shuffle_proof[from] = transcript;
 
-    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
-        ": received shuffle data from" << GetGroup().GetIndex(from) << from;
+    qDebug() << GetServers().GetIndex(GetLocalId()) << GetLocalId() <<
+        ": received shuffle data from" << GetServers().GetIndex(from) << from;
 
-    int index = GetGroup().GetSubgroup().GetIndex(from);
+    int index = GetServers().GetIndex(from);
     if(index == _server_state->new_end_verify_idx) {
-      int increment = 0;
-      for(Id current = from; _server_state->shuffle_proof.contains(current);
-          current = GetGroup().GetSubgroup().Next(current))
+      int start = index;
+      while(index < GetServers().Count() && 
+        _server_state->shuffle_proof.contains(GetServers().GetId(index)))
       {
-        increment++;
+        index++;
       }
+      int increment = index - start;
 
       if(_server_state->verifying) {
         _server_state->new_end_verify_idx += increment;
@@ -344,9 +308,9 @@ namespace Anonymity {
     }
   }
 
-  void NeffShuffleRound::HandleSignature(const Id &from, QDataStream &stream)
+  void NeffShuffleRound::HandleSignature(const Connections::Id &from, QDataStream &stream)
   {
-    if(!GetGroup().GetSubgroup().Contains(from)) {
+    if(!GetServers().Contains(from)) {
       throw QRunTimeError("Received from a non-server");
     } else if(_server_state->signatures.contains(from)) {
       throw QRunTimeError("Already received a proof from this member");
@@ -355,33 +319,33 @@ namespace Anonymity {
     QByteArray signature;
     stream >> signature;
 
-    if(!GetGroup().GetKey(from)->Verify(_server_state->cleartext_hash, signature)) {
+    if(!GetServers().GetKey(from)->Verify(_server_state->cleartext_hash, signature)) {
       throw QRunTimeError("Invalid signature for cleartext");
     }
 
     _server_state->signatures[from] = signature;
 
-    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
-        ": received signature from" << GetGroup().GetIndex(from) << from <<
+    qDebug() << GetServers().GetIndex(GetLocalId()) << GetLocalId() <<
+        ": received signature from" << GetServers().GetIndex(from) << from <<
         "Have:" << _server_state->signatures.size() << "expect:" <<
-        GetGroup().GetSubgroup().Count();
+        GetServers().Count();
 
-    if(_server_state->signatures.size() == GetGroup().GetSubgroup().Count()) {
+    if(_server_state->signatures.size() == GetServers().Count()) {
       _state_machine.StateComplete();
     }
   }
 
-  void NeffShuffleRound::HandleOutput(const Id &from, QDataStream &stream)
+  void NeffShuffleRound::HandleOutput(const Connections::Id &from, QDataStream &stream)
   {
-    if(!GetGroup().GetSubgroup().Contains(from)) {
+    if(!GetServers().Contains(from)) {
       throw QRunTimeError("Received from a non-server");
     }
 
     QVector<QByteArray> cleartext;
-    QHash<Id, QByteArray> signatures;
+    QHash<Connections::Id, QByteArray> signatures;
     stream >> cleartext >> signatures;
 
-    if(signatures.size() != GetGroup().GetSubgroup().Count()) {
+    if(signatures.size() != GetServers().Count()) {
       throw QRunTimeError("Missing signatures");
     }
 
@@ -392,8 +356,8 @@ namespace Anonymity {
     QByteArray cleartext_hash = hashalgo.ComputeHash();
 
     for(int idx = 0; idx < signatures.size(); idx++) {
-      Id id = GetGroup().GetSubgroup().GetId(idx);
-      QSharedPointer<AsymmetricKey> key(GetGroup().GetKey(id));
+      Connections::Id id = GetServers().GetId(idx);
+      QSharedPointer<AsymmetricKey> key(GetServers().GetKey(id));
       if(!key->Verify(cleartext_hash, signatures[id])) {
         throw QRunTimeError("Invalid signature");
       }
@@ -408,8 +372,8 @@ namespace Anonymity {
       PushData(GetSharedPointer(), msg);
     }
 
-    qDebug() << GetGroup().GetIndex(GetLocalId()) << GetLocalId() <<
-        ": received cleartext from" << GetGroup().GetIndex(from) << from;
+    qDebug() << GetServers().GetIndex(GetLocalId()) << GetLocalId() <<
+        ": received cleartext from" << GetServers().GetIndex(from) << from;
     SetSuccessful(true);
     Stop("Round finished");
   }
@@ -431,8 +395,8 @@ namespace Anonymity {
 
     QByteArray out;
     QDataStream stream(&out, QIODevice::WriteOnly);
-    stream << MSG_KEY_EXCH << GetRoundId() << dkey;
-    _server_state->server_keys.resize(GetGroup().GetSubgroup().Count());
+    stream << MSG_KEY_EXCH << GetNonce() << dkey;
+    _server_state->server_keys.resize(GetServers().Count());
     VerifiableBroadcastToServers(out);
     _state_machine.StateComplete();
   }
@@ -445,13 +409,13 @@ namespace Anonymity {
     }
     _server_state->key_hash = hashalgo.ComputeHash();
 
-    QByteArray signature = GetPrivateIdentity().GetSigningKey()->Sign(_server_state->key_hash);
+    QByteArray signature = GetKey()->Sign(_server_state->key_hash);
 
     QByteArray out;
     QDataStream stream(&out, QIODevice::WriteOnly);
-    stream << MSG_KEY_SIGNATURE << GetRoundId() << signature;
+    stream << MSG_KEY_SIGNATURE << GetNonce() << signature;
     VerifiableBroadcastToServers(out);
-    _server_state->key_signatures.resize(GetGroup().GetSubgroup().Count());
+    _server_state->key_signatures.resize(GetServers().Count());
     _server_state->msgs_received = 0;
     _state_machine.StateComplete();
   }
@@ -461,7 +425,7 @@ namespace Anonymity {
     _server_state->next_verify_keys = _server_state->server_keys;
     QByteArray out;
     QDataStream stream(&out, QIODevice::WriteOnly);
-    stream << MSG_KEY_DIST << GetRoundId() << _server_state->server_keys
+    stream << MSG_KEY_DIST << GetNonce() << _server_state->server_keys
       << _server_state->key_signatures;
     VerifiableBroadcastToClients(out);
     _state_machine.StateComplete();
@@ -489,15 +453,15 @@ namespace Anonymity {
     QByteArray msg;
     QDataStream stream(&msg, QIODevice::WriteOnly);
 
-    stream << MSG_SUBMIT << GetRoundId() << _state->input;
+    stream << MSG_SUBMIT << GetNonce() << _state->input;
 
-    VerifiableSend(GetGroup().GetSubgroup().GetId(0), msg);
+    VerifiableSend(GetServers().GetId(0), msg);
     _state_machine.StateComplete();
   }
 
   void NeffShuffleRound::PrepareForMessageSubmissions()
   {
-    _server_state->initial_input = QVector<QByteArray>(GetGroup().Count(), 0);
+    _server_state->initial_input = QVector<QByteArray>(GetClients().Count(), 0);
     _server_state->msgs_received = 0;
 
     Utils::TimerCallback *cb = new Utils::TimerMethod<NeffShuffleRound, int>(
@@ -522,9 +486,9 @@ namespace Anonymity {
 
     QByteArray msg;
     QDataStream stream(&msg, QIODevice::WriteOnly);
-    stream << MSG_SHUFFLE << GetRoundId();
+    stream << MSG_SHUFFLE << GetNonce();
     // Hack for now to transmit the first batch of messages
-    if(GetGroup().GetSubgroup().GetIndex(GetLocalId()) == 0) {
+    if(GetServers().GetIndex(GetLocalId()) == 0) {
       stream << _server_state->initial_input;
     }
     stream << transcript;
@@ -551,12 +515,12 @@ namespace Anonymity {
       return;
     }
 
-    if(_server_state->end_verify_idx == GetGroup().GetSubgroup().GetIndex(GetLocalId())) {
+    if(_server_state->end_verify_idx == GetServers().GetIndex(GetLocalId())) {
       _state_machine.StateComplete();
       return;
     }
 
-    if(_server_state->end_verify_idx == GetGroup().GetSubgroup().Count()) {
+    if(_server_state->end_verify_idx == GetServers().Count()) {
       _state_machine.StateComplete();
     }
   }
@@ -569,12 +533,11 @@ namespace Anonymity {
     }
 
     _server_state->cleartext_hash = hashalgo.ComputeHash();
-    QByteArray signature = GetPrivateIdentity().
-      GetSigningKey()->Sign(_server_state->cleartext_hash);
+    QByteArray signature = GetKey()->Sign(_server_state->cleartext_hash);
 
     QByteArray msg;
     QDataStream stream(&msg, QIODevice::WriteOnly);
-    stream << MSG_SIGNATURE << GetRoundId() << signature;
+    stream << MSG_SIGNATURE << GetNonce() << signature;
     VerifiableBroadcastToServers(msg);
     _state_machine.StateComplete();
   }
@@ -583,7 +546,7 @@ namespace Anonymity {
   {
     QByteArray msg;
     QDataStream stream(&msg, QIODevice::WriteOnly);
-    stream << MSG_OUTPUT << GetRoundId() << _server_state->cleartext <<
+    stream << MSG_OUTPUT << GetNonce() << _server_state->cleartext <<
       _server_state->signatures;
     VerifiableBroadcastToClients(msg);
 
@@ -629,11 +592,11 @@ namespace NeffShufflePrivate {
     QSharedPointer<DsaPrivateKey> base_key;
     if(_shuffle->_server_state->key_shuffle) {
       base_key = QSharedPointer<DsaPrivateKey>(
-          new DsaPrivateKey(_shuffle->GetRoundId().GetByteArray(), 1024));
+          new DsaPrivateKey(_shuffle->GetNonce(), 1024));
     } else {
       int keysize = (_shuffle->_server_state->data_size + 4) * 8;
       base_key = QSharedPointer<DsaPrivateKey>(
-          new DsaPrivateKey( _shuffle->GetRoundId().GetByteArray(), keysize, keysize - 1));
+          new DsaPrivateKey( _shuffle->GetNonce(), keysize, keysize - 1));
     }
 
     _shuffle->_server_state->my_key = QSharedPointer<DsaPrivateKey>(
@@ -653,7 +616,7 @@ namespace NeffShufflePrivate {
     QByteArray transcript;
 
     NeffShuffle shuffle;
-    shuffle.Shuffle(input, *(_shuffle->_server_state->my_key.dynamicCast<DsaPrivateKey>()),
+    shuffle.Shuffle(input, *_shuffle->_server_state->my_key,
         remaining_keys, output, transcript);
 
 //    _shuffle->_server_state->next_verify_input = input;//output;
@@ -674,7 +637,7 @@ namespace NeffShufflePrivate {
     for(int idx = _shuffle->_server_state->next_verify_idx; 
         idx < _shuffle->_server_state->end_verify_idx; idx++)
     {
-      Connections::Id id = _shuffle->GetGroup().GetSubgroup().GetId(idx);
+      Connections::Id id = _shuffle->GetServers().GetId(idx);
       QByteArray transcript = _shuffle->_server_state->shuffle_proof[id];
       if(!shuffle.Verify(input, remaining_keys, transcript, output)) {
         qCritical() << "Invalid transcript from" << id << "at idx" << idx;
@@ -687,7 +650,7 @@ namespace NeffShufflePrivate {
     _shuffle->_server_state->next_verify_input = input;
     _shuffle->_server_state->next_verify_idx = _shuffle->_server_state->end_verify_idx;
 
-    if(_shuffle->_server_state->end_verify_idx == _shuffle->GetGroup().GetSubgroup().Count()) {
+    if(_shuffle->_server_state->end_verify_idx == _shuffle->GetServers().Count()) {
       _shuffle->_state->cleartext.clear();
       foreach(const QByteArray &pair, output) {
         _shuffle->_server_state->cleartext.append(

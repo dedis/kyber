@@ -1,17 +1,12 @@
-#ifndef DISSENT_APPLICATIONS_BASE_NODE_H_GUARD
-#define DISSENT_APPLICATIONS_BASE_NODE_H_GUARD
+#ifndef DISSENT_APPLICATIONS_NODE_H_GUARD
+#define DISSENT_APPLICATIONS_NODE_H_GUARD
 
-#include "Anonymity/Sessions/SessionManager.hpp"
-#include "Connections/Network.hpp"
-#include "Identity/PrivateIdentity.hpp"
-#include "Identity/Group.hpp"
-#include "Identity/GroupHolder.hpp"
+#include "ClientServer/Overlay.hpp"
+#include "Crypto/AsymmetricKey.hpp"
+#include "Crypto/KeyShare.hpp"
 #include "Messaging/ISink.hpp"
-#include "Overlay/BaseOverlay.hpp"
+#include "Session/Session.hpp"
 #include "Transports/Address.hpp"
-
-#include "AuthFactory.hpp"
-#include "SessionFactory.hpp"
 
 namespace Dissent {
 namespace Applications {
@@ -21,71 +16,44 @@ namespace Applications {
    */
   class Node {
     public:
-      typedef Anonymity::Sessions::SessionManager SessionManager;
-      typedef Connections::Connection Connection;
-      typedef Connections::Network Network;
-      typedef Crypto::AsymmetricKey AsymmetricKey;
-      typedef Crypto::KeyShare KeyShare;
-      typedef Identity::PrivateIdentity PrivateIdentity;
-      typedef Identity::Group Group;
-      typedef Identity::GroupHolder GroupHolder;
-      typedef Messaging::ISink ISink;
-      typedef Overlay::BaseOverlay BaseOverlay;
-      typedef Transports::Address Address;
+      Node(const QSharedPointer<Crypto::AsymmetricKey> &key,
+          const QSharedPointer<Crypto::KeyShare> &keys,
+          const QSharedPointer<ClientServer::Overlay> &overlay,
+          const QSharedPointer<Messaging::ISink> &sink,
+          const QSharedPointer<Session::Session> &session) :
+        m_key(key),
+        m_keys(keys),
+        m_overlay(overlay),
+        m_sink(sink),
+        m_session(session)
+      {
+      }
 
-      typedef QSharedPointer<Node> (*CreateNode)(const PrivateIdentity &,
-          const Group &, const QList<Address> &, const QList<Address> &,
-          const QSharedPointer<ISink> &, SessionFactory::SessionType,
-          AuthFactory::AuthType, const QSharedPointer<KeyShare> &keys);
+      ~Node()
+      {
+      }
 
-      static QSharedPointer<Node> CreateBasicGossip(const PrivateIdentity &ident,
-          const Group &group, const QList<Address> &local,
-          const QList<Address> &remote, const QSharedPointer<ISink> &sink,
-          SessionFactory::SessionType session,
-          AuthFactory::AuthType auth = AuthFactory::NULL_AUTH,
-          const QSharedPointer<KeyShare> &keys = QSharedPointer<KeyShare>());
+      QSharedPointer<Crypto::AsymmetricKey> GetKey() const { return m_key; }
+      QSharedPointer<Crypto::AsymmetricKey> GetKey() { return m_key; }
 
-      static QSharedPointer<Node> CreateClientServer(const PrivateIdentity &ident,
-          const Group &group, const QList<Address> &local,
-          const QList<Address> &remote, const QSharedPointer<ISink> &sink,
-          SessionFactory::SessionType session,
-          AuthFactory::AuthType auth = AuthFactory::NULL_AUTH,
-          const QSharedPointer<KeyShare> &keys = QSharedPointer<KeyShare>());
+      QSharedPointer<Crypto::KeyShare> GetKeyShare() const { return m_keys; }
+      QSharedPointer<Crypto::KeyShare> GetKeyShare() { return m_keys; }
 
-      /**
-       * Constructor
-       * @param local the EL addresses
-       * @param remote the bootstrap peer list
-       */
-      explicit Node(const PrivateIdentity &ident,
-          const QSharedPointer<GroupHolder> &group_holder,
-          const QSharedPointer<BaseOverlay> &overlay,
-          const QSharedPointer<Network> &network,
-          const QSharedPointer<ISink> &sink,
-          SessionFactory::SessionType stype,
-          AuthFactory::AuthType auth,
-          const QSharedPointer<KeyShare> &keys);
+      QSharedPointer<ClientServer::Overlay> GetOverlay() const { return m_overlay; }
+      QSharedPointer<ClientServer::Overlay> GetOverlay() { return m_overlay; }
 
-      /**
-       * Destructor
-       */
-      virtual ~Node();
+      QSharedPointer<Messaging::ISink> GetSink() const { return m_sink; }
+      QSharedPointer<Messaging::ISink> GetSink() { return m_sink; }
 
-      PrivateIdentity GetPrivateIdentity() const { return _ident; }
-      QSharedPointer<GroupHolder> GetGroupHolder() const { return _group_holder; }
-      Group GetGroup() const { return _group_holder->GetGroup(); }
-      QSharedPointer<Network> GetNetwork() { return _net; }
-      QSharedPointer<BaseOverlay> GetOverlay() { return _overlay; }
-      SessionManager &GetSessionManager() { return _sm; }
-      QSharedPointer<ISink> GetSink() const { return _sink; }
+      QSharedPointer<Session::Session> GetSession() const { return m_session; }
+      QSharedPointer<Session::Session> GetSession() { return m_session; }
 
     private:
-      PrivateIdentity _ident;
-      QSharedPointer<GroupHolder> _group_holder;
-      QSharedPointer<BaseOverlay> _overlay;
-      QSharedPointer<Network> _net;
-      SessionManager _sm;
-      QSharedPointer<ISink> _sink;
+      QSharedPointer<Crypto::AsymmetricKey> m_key;
+      QSharedPointer<Crypto::KeyShare> m_keys;
+      QSharedPointer<ClientServer::Overlay> m_overlay;
+      QSharedPointer<Messaging::ISink> m_sink;
+      QSharedPointer<Session::Session> m_session;
   };
 }
 }

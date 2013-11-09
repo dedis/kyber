@@ -21,6 +21,8 @@ namespace Tests {
     EXPECT_TRUE(meh1.edge.isNull());
 
     be1.CreateEdgeTo(addr0);
+    RunUntil();
+
     EXPECT_FALSE(meh0.edge.isNull());
     EXPECT_FALSE(meh1.edge.isNull());
 

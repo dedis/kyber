@@ -20,25 +20,6 @@ int main(int argc, char **argv)
     return -1;
   }
 
-  QList<Address> local;
-  foreach(QUrl url, settings.LocalEndPoints) {
-    local.append(AddressFactory::GetInstance().CreateAddress(url));
-  }
-
-  QList<Address> remote;
-  foreach(QUrl url, settings.RemotePeers) {
-    remote.append(AddressFactory::GetInstance().CreateAddress(url));
-  }
-
-  if(settings.Multithreading) {
-    MultiThreading = true;
-  } else {
-    MultiThreading = false;
-  }
-
-  Group group(QVector<PublicIdentity>(), Id(settings.LeaderId),
-      settings.SubgroupPolicy);
-
   QList<QSharedPointer<Node> > nodes;
 
   QSharedPointer<ISink> default_sink(new DummySink());
@@ -48,40 +29,53 @@ int main(int argc, char **argv)
   QSharedPointer<SignalSink> signal_sink(new SignalSink());
   app_sink->AddSink(signal_sink.data());
 
-  Node::CreateNode create = &Node::CreateBasicGossip;
-  if(settings.SubgroupPolicy == Group::ManagedSubgroup) {
-    create = &Node::CreateClientServer;
+  QSharedPointer<KeyShare> keys(new KeyShare(settings.PublicKeys));
+  foreach(const Id &server, settings.ServerIds) {
+    if(!keys->Contains(server.ToString())) {
+      qFatal("Missing key for %s", server.ToString().toLatin1().data());
+    }
   }
 
-  bool force_super_peer = local[0].GetType().compare("buffer") == 0;
-  bool super_peer = settings.SuperPeer || force_super_peer;
-
-  QSharedPointer<KeyShare> keys(new KeyShare(settings.PublicKeys));
+  QList<Address> local_end_points = settings.LocalEndPoints;
 
   for(int idx = 0; idx < settings.LocalNodeCount; idx++) {
-    super_peer = settings.SuperPeer || (force_super_peer && idx < 3);
-    Id local_id = settings.LocalIds.count() > idx ? settings.LocalIds[idx] : Id();
-
+    Id local_id = idx < settings.LocalId.count() ? settings.LocalId[idx] : Id();
     QSharedPointer<AsymmetricKey> key;
-    DiffieHellman dh;
 
-    if(AuthFactory::RequiresKeys(settings.AuthMode)) {
-      key = QSharedPointer<AsymmetricKey>(new DsaPrivateKey(settings.PrivateKey[idx]));
+    QString key_path = settings.PrivateKeys + "/" + local_id.ToString();
+    QFile key_file(key_path);
+    if(key_file.exists()) {
+      key = QSharedPointer<AsymmetricKey>(new DsaPrivateKey(key_path));
     } else {
       QByteArray id = local_id.GetByteArray();
       key = QSharedPointer<AsymmetricKey>(new DsaPrivateKey(id, true));
-      dh = DiffieHellman(id);
     }
 
-    nodes.append(create(PrivateIdentity(local_id, key, key, dh, super_peer),
-          group, local, remote, (idx == 0 ? app_sink.dynamicCast<ISink>() : default_sink),
-          settings.SessionType, settings.AuthMode, keys));
-    local[0] = AddressFactory::GetInstance().CreateAny(local[0].GetType());
+    QSharedPointer<ISink> nsink = (idx == 0) ? app_sink.dynamicCast<ISink>() : default_sink;
+    QSharedPointer<Overlay> overlay(new Overlay(local_id, local_end_points,
+          settings.RemoteEndPoints, settings.ServerIds));
+    overlay->SetSharedPointer(overlay);
+
+    CreateRound create_round = RoundFactory::GetCreateRound(settings.RoundType);
+    QSharedPointer<Session> session;
+    if(settings.ServerIds.contains(local_id)) {
+      session = MakeSession<ServerSession>(overlay, key, keys, create_round);
+    } else {
+      session = MakeSession<ClientSession>(overlay, key, keys, create_round);
+    }
+    session->SetSink(nsink.data());
+    QSharedPointer<Node> node(new Node(key, keys, overlay, nsink, session));
+    nodes.append(node);
+
+    for(int idx = 0; idx < local_end_points.count(); idx++) {
+      local_end_points[idx] = AddressFactory::GetInstance().
+        CreateAny(local_end_points[idx].GetType());
+    }
   }
 
   QScopedPointer<WebServer> ws;
-  QScopedPointer<SessionEntryTunnel> tun_entry;
-  QScopedPointer<SessionExitTunnel> tun_exit;
+//  QScopedPointer<SessionEntryTunnel> tun_entry;
+//  QScopedPointer<SessionExitTunnel> tun_exit;
 
   if(settings.Console) {
     commandline = QSharedPointer<CommandLine>(new CommandLine(nodes));
@@ -110,36 +104,37 @@ int main(int argc, char **argv)
     QSharedPointer<GetDirectoryService> get_dir(new GetDirectoryService("webpath"));
     ws->AddRoute(QHttpRequest::HTTP_GET, "/dir", get_dir);
 
-    QSharedPointer<SessionService> session_serv(new SessionService(nodes[0]->GetSessionManager()));
+    QSharedPointer<SessionService> session_serv(new SessionService(nodes[0]->GetSession()));
     ws->AddRoute(QHttpRequest::HTTP_GET, "/session", session_serv);
 
-    QSharedPointer<SendMessageService> send_message(new SendMessageService(nodes[0]->GetSessionManager()));
+    QSharedPointer<SendMessageService> send_message(new SendMessageService(nodes[0]->GetSession()));
     ws->AddRoute(QHttpRequest::HTTP_POST, "/session/send", send_message);
 
-    QSharedPointer<BuddiesService> bs(new BuddiesService(nodes[0]->GetSessionManager()));
-    ws->AddRoute(QHttpRequest::HTTP_GET, "/session/buddies", bs);
+//    QSharedPointer<BuddiesService> bs(new BuddiesService(nodes[0]->GetSessionManager()));
+//    ws->AddRoute(QHttpRequest::HTTP_GET, "/session/buddies", bs);
 
     ws->Start();
   }
   
   if(settings.EntryTunnel) {
-    tun_entry.reset(new SessionEntryTunnel(settings.EntryTunnelUrl,
-          nodes[0]->GetSessionManager(),
-          nodes[0]->GetOverlay()->GetRpcHandler()));
+//    tun_entry.reset(new SessionEntryTunnel(settings.EntryTunnelUrl,
+//          nodes[0]->GetSessionManager(),
+//          nodes[0]->GetOverlay()->GetRpcHandler()));
   }
   
   if(settings.ExitTunnel) {
-    tun_exit.reset(new SessionExitTunnel(nodes[0]->GetSessionManager(),
-          nodes[0]->GetNetwork(), settings.ExitTunnelProxyUrl));
+//    tun_exit.reset(new SessionExitTunnel(nodes[0]->GetSessionManager(),
+//          nodes[0]->GetNetwork(), settings.ExitTunnelProxyUrl));
 
-    QObject::connect(signal_sink.data(), SIGNAL(IncomingData(const QByteArray&)),
-        tun_exit.data(), SLOT(IncomingData(const QByteArray&)));
+//    QObject::connect(signal_sink.data(), SIGNAL(IncomingData(const QByteArray&)),
+//        tun_exit.data(), SLOT(IncomingData(const QByteArray&)));
   }
 
   foreach(QSharedPointer<Node> node, nodes) {
+    node->GetOverlay()->Start();
+    node->GetSession()->Start();
     QObject::connect(&qca, SIGNAL(aboutToQuit()),
         node.data()->GetOverlay().data(), SLOT(CallStop()));
-    node->GetOverlay()->Start();
   }
 
   return QCoreApplication::exec();

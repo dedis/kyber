@@ -32,6 +32,7 @@ namespace Messaging {
         while(_container.size() < 4) {
           _container.append(QVariant());
         }
+        Q_ASSERT(_container.size() == 4);
       }
 
       inline static QVariantList BuildNotification(int id,

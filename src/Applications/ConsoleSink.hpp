@@ -24,7 +24,7 @@ namespace Applications {
           const QByteArray &data);
 
     protected:
-      QTextStream _qtout;
+      QTextStream m_qtout;
   };
 }
 }

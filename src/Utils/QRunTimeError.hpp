@@ -30,7 +30,17 @@ namespace Utils {
       /**
        * Returns the reason for the exception
        */
+      virtual inline const QString What() const { return _qwhat; }
+
+      /**
+       * Returns the reason for the exception
+       */
       virtual const char *what() throw() { return _qwhat.toUtf8().data(); }
+
+      /**
+       * Returns the reason for the exception
+       */
+      virtual const char *what() const throw() { return _qwhat.toUtf8().data(); }
 
     protected:
       const QString _qwhat;

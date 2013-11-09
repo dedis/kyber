@@ -1,57 +1,32 @@
 #ifndef DISSENT_DISSENT_H_GUARD
 #define DISSENT_DISSENT_H_GUARD
 
-#include "Anonymity/BlogDropRound.hpp"
-#include "Anonymity/BaseBulkRound.hpp"
-#include "Anonymity/BulkRound.hpp"
-#include "Anonymity/CSBulkRound.hpp"
+#include "Anonymity/BaseDCNetRound.hpp"
+#include "Anonymity/CSDCNetRound.hpp"
 #include "Anonymity/Log.hpp"
-#include "Anonymity/NeffKeyShuffleRound.hpp"
 #include "Anonymity/NeffShuffleRound.hpp"
 #include "Anonymity/NullRound.hpp"
-#include "Anonymity/RepeatingBulkRound.hpp"
 #include "Anonymity/Round.hpp"
-#include "Anonymity/RoundStateMachine.hpp"
-#include "Anonymity/ShuffleBlamer.hpp"
-#include "Anonymity/ShuffleRound.hpp"
-#include "Anonymity/ShuffleRoundBlame.hpp"
-#include "Anonymity/Buddies/BuddyMonitor.hpp"
-#include "Anonymity/Buddies/BuddyPolicy.hpp"
-#include "Anonymity/Buddies/DynamicBuddyPolicy.hpp"
-#include "Anonymity/Buddies/NullBuddyPolicy.hpp"
-#include "Anonymity/Buddies/StaticBuddyPolicy.hpp"
-#include "Anonymity/Sessions/Session.hpp"
-#include "Anonymity/Sessions/SessionLeader.hpp"
-#include "Anonymity/Sessions/SessionManager.hpp"
+#include "Anonymity/RoundFactory.hpp"
 
-#include "Applications/AuthFactory.hpp"
 #include "Applications/CommandLine.hpp"
 #include "Applications/ConsoleSink.hpp"
 #include "Applications/FileSink.hpp"
 #include "Applications/Node.hpp"
-#include "Applications/SessionFactory.hpp"
 #include "Applications/Settings.hpp"
 
-#include "ClientServer/CSBroadcast.hpp"
-#include "ClientServer/CSConnectionAcquirer.hpp"
-#include "ClientServer/CSForwarder.hpp"
-#include "ClientServer/CSNetwork.hpp"
-#include "ClientServer/CSOverlay.hpp"
+#include "ClientServer/Broadcaster.hpp"
+#include "ClientServer/ClientConnectionAcquirer.hpp"
+#include "ClientServer/Forwarder.hpp"
+#include "ClientServer/Overlay.hpp"
+#include "ClientServer/ServerConnectionAcquirer.hpp"
 
-#include "Connections/Bootstrapper.hpp"
 #include "Connections/Connection.hpp"
 #include "Connections/ConnectionAcquirer.hpp"
 #include "Connections/ConnectionManager.hpp"
 #include "Connections/ConnectionTable.hpp"
-#include "Connections/DefaultNetwork.hpp"
-#include "Connections/EmptyNetwork.hpp"
-#include "Connections/FullyConnected.hpp"
 #include "Connections/Id.hpp"
 #include "Connections/IOverlaySender.hpp"
-#include "Connections/Network.hpp"
-#include "Connections/RelayAddress.hpp"
-#include "Connections/RelayEdge.hpp"
-#include "Connections/RelayEdgeListener.hpp"
 
 #include "Crypto/AsymmetricKey.hpp"
 #include "Crypto/DsaPrivateKey.hpp"
@@ -100,18 +75,9 @@
 #include "Crypto/BlogDrop/ElGamalClientCiphertext.hpp"
 #include "Crypto/BlogDrop/ChangingGenClientCiphertext.hpp"
 
-#include "Identity/Authentication/IAuthenticate.hpp"
-#include "Identity/Authentication/IAuthenticator.hpp"
-#include "Identity/Authentication/LRSAuthenticate.hpp"
-#include "Identity/Authentication/LRSAuthenticator.hpp"
-#include "Identity/Authentication/NullAuthenticate.hpp"
-#include "Identity/Authentication/NullAuthenticator.hpp"
-#include "Identity/Authentication/PreExchangedKeyAuthenticate.hpp"
-#include "Identity/Authentication/PreExchangedKeyAuthenticator.hpp"
-#include "Identity/Group.hpp"
-#include "Identity/GroupHolder.hpp"
-#include "Identity/PrivateIdentity.hpp"
 #include "Identity/PublicIdentity.hpp"
+#include "Identity/PrivateIdentity.hpp"
+#include "Identity/Roster.hpp"
 
 #include "Messaging/BufferSink.hpp"
 #include "Messaging/DummySink.hpp"
@@ -121,6 +87,7 @@
 #include "Messaging/ISender.hpp"
 #include "Messaging/ISink.hpp"
 #include "Messaging/ISinkObject.hpp"
+#include "Messaging/Message.hpp"
 #include "Messaging/Request.hpp"
 #include "Messaging/RequestHandler.hpp"
 #include "Messaging/Response.hpp"
@@ -128,19 +95,32 @@
 #include "Messaging/RpcHandler.hpp"
 #include "Messaging/SignalSink.hpp"
 #include "Messaging/SinkMultiplexer.hpp"
+#include "Messaging/State.hpp"
+#include "Messaging/StateData.hpp"
+#include "Messaging/StateMachine.hpp"
 #include "Messaging/Source.hpp"
 #include "Messaging/SourceObject.hpp"
 
-#include "Overlay/BaseOverlay.hpp"
-#include "Overlay/BasicGossip.hpp"
-
-#include "PeerReview/Acknowledgement.hpp"
-#include "PeerReview/Entry.hpp"
-#include "PeerReview/EntryParser.hpp"
-#include "PeerReview/EntryLog.hpp"
-#include "PeerReview/PRManager.hpp"
-#include "PeerReview/ReceiveEntry.hpp"
-#include "PeerReview/SendEntry.hpp"
+#include "Session/ClientRegister.hpp"
+#include "Session/ClientSession.hpp"
+#include "Session/ClientStates.hpp"
+#include "Session/SerializeList.hpp"
+#include "Session/ServerAgree.hpp"
+#include "Session/ServerEnlist.hpp"
+#include "Session/ServerEnlisted.hpp"
+#include "Session/ServerInit.hpp"
+#include "Session/ServerList.hpp"
+#include "Session/ServerQueued.hpp"
+#include "Session/ServerSession.hpp"
+#include "Session/ServerStart.hpp"
+#include "Session/ServerStates.hpp"
+#include "Session/ServerStop.hpp"
+#include "Session/ServerVerifyList.hpp"
+#include "Session/Session.hpp"
+#include "Session/SessionData.hpp"
+#include "Session/SessionMessage.hpp"
+#include "Session/SessionSharedState.hpp"
+#include "Session/SessionState.hpp"
 
 #include "Transports/Address.hpp"
 #include "Transports/AddressFactory.hpp"
@@ -154,13 +134,6 @@
 #include "Transports/TcpAddress.hpp"
 #include "Transports/TcpEdge.hpp"
 #include "Transports/TcpEdgeListener.hpp"
-
-#include "Tunnel/EntryTunnel.hpp"
-#include "Tunnel/ExitTunnel.hpp"
-#include "Tunnel/SessionEntryTunnel.hpp"
-#include "Tunnel/SessionExitTunnel.hpp"
-#include "Tunnel/SocksConnection.hpp"
-#include "Tunnel/SocksTable.hpp"
 
 #include "Utils/Logging.hpp"
 #include "Utils/QRunTimeError.hpp"
@@ -178,14 +151,12 @@
 #include "Utils/Triple.hpp"
 #include "Utils/Utils.hpp"
 
-#include "Web/BuddiesService.hpp"
 #include "Web/EchoService.hpp"
 #include "Web/GetDirectoryService.hpp"
 #include "Web/GetFileService.hpp"
 #include "Web/GetMessagesService.hpp"
-#include "Web/MessageWebService.hpp"
 #include "Web/SendMessageService.hpp"
-#include "Web/SessionService.hpp"
+#include "Web/MessageWebService.hpp"
 #include "Web/WebServer.hpp"
 #include "Web/WebService.hpp"
 
@@ -193,20 +164,16 @@
 #include "qhttpresponse.h"
 
 using namespace Dissent::Anonymity;
-using namespace Dissent::Anonymity::Buddies;
-using namespace Dissent::Anonymity::Sessions;
 using namespace Dissent::Applications;
 using namespace Dissent::ClientServer;
 using namespace Dissent::Connections;
 using namespace Dissent::Crypto;
 using namespace Dissent::Crypto::AbstractGroup;
 using namespace Dissent::Crypto::BlogDrop;
-using namespace Dissent::Identity::Authentication;
 using namespace Dissent::Identity;
 using namespace Dissent::Messaging;
-using namespace Dissent::Overlay;
+using namespace Dissent::Session;
 using namespace Dissent::Transports;
-using namespace Dissent::Tunnel;
 using namespace Dissent::Utils;
 using namespace Dissent::Web;
 

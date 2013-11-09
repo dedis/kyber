@@ -14,25 +14,33 @@ namespace Anonymity {
     public:
       /**
        * Constructor
-       * @param group Group used during this round
-       * @param ident the local nodes credentials
-       * @param round_id unused
-       * @param network handles message sending
+       * @param clients the list of clients in the round
+       * @param servers the list of servers in the round
+       * @param ident this participants private information
+       * @param nonce Unique round id (nonce)
+       * @param overlay handles message sending
        * @param get_data requests data to share during this session
        */
-      explicit NullRound(const Group &group,
-          const PrivateIdentity &ident,
-          const Id &round_id,
-          const QSharedPointer<Network> &network,
-          GetDataCallback &get_data,
-          const QSharedPointer<BuddyMonitor> &bm);
+      explicit NullRound(const Identity::Roster &clients,
+          const Identity::Roster &servers,
+          const Identity::PrivateIdentity &ident,
+          const QByteArray &nonce,
+          const QSharedPointer<ClientServer::Overlay> &overlay,
+          Messaging::GetDataCallback &get_data);
 
       /**
        * Destructor
        */
       virtual ~NullRound() {}
 
-      inline virtual QString ToString() const { return "NullRound " + GetRoundId().ToString(); }
+      inline virtual QString ToString() const { return "NullRound " + GetNonce().toBase64(); }
+
+      /**
+       * Handle a data message from a remote peer
+       * @param from The remote sender
+       * @param msg The message
+       */
+      virtual void ProcessPacket(const Connections::Id &from, const QByteArray &msg);
 
     protected:
       /**
@@ -40,19 +48,12 @@ namespace Anonymity {
        */
       virtual void OnStart();
 
-      /**
-       * Pushes the data into the subscribed Sink
-       * @param data the data to push
-       * @param id the source of the data
-       */
-      virtual void ProcessData(const Id &id, const QByteArray &data);
-
     private:
       /**
        * Don't receive from a remote peer more than once...
        */
-      QVector<QByteArray> _received;
-      int _n_msgs;
+      QVector<QByteArray> m_received;
+      int m_msgs;
   };
 }
 }

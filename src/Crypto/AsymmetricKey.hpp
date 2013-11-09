@@ -52,7 +52,11 @@ namespace Crypto {
        */
       virtual QSharedPointer<AsymmetricKey> GetPublicKey() const
       {
-        return m_data->GetPublicKey();
+        if(!m_public_key) {
+          AsymmetricKey *ncthis = const_cast<AsymmetricKey *>(this);
+          ncthis->m_public_key = m_data->GetPublicKey();
+        }
+        return m_public_key;
       }
       
       /**
@@ -178,6 +182,7 @@ namespace Crypto {
 
     private:
       QSharedDataPointer<BaseAsymmetricKeyImpl> m_data;
+      QSharedPointer<AsymmetricKey> m_public_key;
   };
 
   template <typename T> inline bool operator==(
@@ -186,9 +191,17 @@ namespace Crypto {
   {
     return *lhs == *rhs;
   }
+
+  template <typename T> inline bool operator!=(
+      const QSharedPointer<AsymmetricKey> &lhs,
+      const QSharedPointer<T> &rhs)
+  {
+    return *lhs != *rhs;
+  }
 }
 }
 
 using Dissent::Crypto::operator==;
+using Dissent::Crypto::operator!=;
 
 #endif

@@ -6,7 +6,7 @@
 
 #include "Id.hpp"
 #include "IOverlaySender.hpp"
-#include "RelayForwarder.hpp"
+#include "IForwarder.hpp"
 
 namespace Dissent {
 namespace Connections {
@@ -19,15 +19,14 @@ namespace Connections {
       /**
        * Constructor
        * @param forwarder The actual component doing the forwarding
+       * @param from The source
        * @param to The remote destination
        */
-      ForwardingSender(const QSharedPointer<RelayForwarder> &forwarder,
-          const Id &from, const Id &to,
-          const QStringList &been = QStringList()) :
-        _forwarder(forwarder),
-        _from(from),
-        _to(to),
-        _been(been)
+      ForwardingSender(const QSharedPointer<IForwarder> &forwarder,
+          const Id &from, const Id &to) :
+        m_forwarder(forwarder),
+        m_from(from),
+        m_to(to)
       {
       }
 
@@ -37,32 +36,29 @@ namespace Connections {
        */
       inline virtual void Send(const QByteArray &data)
       {
-        _forwarder->Send(_to, data, _been);
+        m_forwarder->Forward(m_to, data);
       }
 
       virtual QString ToString() const
       {
-        return QString("ForwardingSender: Source: " + _from.ToString() +
-            ", Destination: " + _to.ToString());
+        return QString("ForwardingSender: Source: " + m_from.ToString() +
+            ", Destination: " + m_to.ToString());
       }
 
       /**
        * Returns the local id
        */
-      virtual Id GetLocalId() const { return _from; }
+      virtual Id GetLocalId() const { return m_from; }
 
       /**
        * Returns the remote id
        */
-      virtual Id GetRemoteId() const { return _to; }
-
-      QStringList GetReverse() { return _been; }
+      virtual Id GetRemoteId() const { return m_to; }
 
     private:
-      QSharedPointer<RelayForwarder> _forwarder;
-      const Id _from;
-      const Id _to;
-      QStringList _been;
+      QSharedPointer<IForwarder> m_forwarder;
+      const Id m_from;
+      const Id m_to;
   };
 }
 }

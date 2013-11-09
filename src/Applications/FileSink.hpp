@@ -35,9 +35,9 @@ namespace Applications {
           const QByteArray &data);
 
     private:
-      QFile _file;
-      QTextStream _out;
-      bool _valid;
+      QFile m_file;
+      QTextStream m_out;
+      bool m_valid;
   };
 }
 }

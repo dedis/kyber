@@ -1,7 +1,6 @@
 #ifndef DISSENT_ANONYMITY_NEFF_SHUFFLE_ROUND_H_GUARD
 #define DISSENT_ANONYMITY_NEFF_SHUFFLE_ROUND_H_GUARD
 
-#include "Connections/Network.hpp"
 #include "Crypto/DsaPrivateKey.hpp"
 #include "Crypto/DsaPublicKey.hpp"
 #include "Crypto/Integer.hpp"
@@ -91,21 +90,21 @@ namespace NeffShufflePrivate {
 
       /**
        * Constructor
-       * @param group Group used during this round
-       * @param ident the local nodes credentials
-       * @param round_id Unique round id (nonce)
-       * @param network handles message sending
+       * @param clients the list of clients in the round
+       * @param servers the list of servers in the round
+       * @param ident this participants private information
+       * @param nonce Unique round id (nonce)
+       * @param overlay handles message sending
        * @param get_data requests data to share during this session
-       * @param bm buddy monitor
        * @param key_shuffle determines the type of group to use in the shuffle
        * @param data_size determines how large the keys should be for data shuffling
        */
-      explicit NeffShuffleRound(const Group &group,
-          const PrivateIdentity &ident,
-          const Id &round_id,
-          const QSharedPointer<Network> &network,
-          GetDataCallback &get_data,
-          const QSharedPointer<BuddyMonitor> &bm,
+      explicit NeffShuffleRound(const Identity::Roster &clients,
+          const Identity::Roster &servers,
+          const Identity::PrivateIdentity &ident,
+          const QByteArray &nonce,
+          const QSharedPointer<ClientServer::Overlay> &overlay,
+          Messaging::GetDataCallback &get_data,
           bool key_shuffle = false,
           int data_size = 252);
 
@@ -115,19 +114,11 @@ namespace NeffShufflePrivate {
       virtual ~NeffShuffleRound();
 
       /**
-       * Returns true if the local node is a member of the subgroup
-       */
-      inline bool IsServer() const
-      {
-        return GetGroup().GetSubgroup().Contains(GetLocalId());
-      }
-
-      /**
        * Notifies the round that a peer has disconnected.  Servers require
        * restarting the round, clients are ignored
-       * @param id Id of the disconnector
+       * @param id Connections::Id of the disconnector
        */
-      virtual void HandleDisconnect(const Id &id);
+      virtual void HandleDisconnect(const Connections::Id &id);
 
       /**
        * Delay between the start of a round and when all clients are required
@@ -138,6 +129,16 @@ namespace NeffShufflePrivate {
       virtual bool CSGroupCapable() const { return true; }
 
       void SetDataSize(int size) { _state->data_size = size; }
+
+      /**
+       * Funnels data into the RoundStateMachine for evaluation
+       * @param data Incoming data
+       * @param from the remote peer sending the data
+       */
+      virtual void ProcessPacket(const Connections::Id &id, const QByteArray &data)
+      {
+        _state_machine.ProcessData(id, data);
+      }
 
     protected:
       typedef Crypto::Integer Integer;
@@ -152,23 +153,10 @@ namespace NeffShufflePrivate {
        */
       virtual void OnStop();
 
-      /**
-       * Funnels data into the RoundStateMachine for evaluation
-       * @param data Incoming data
-       * @param from the remote peer sending the data
-       */
-      virtual void ProcessData(const Id &id, const QByteArray &data)
-      {
-        _state_machine.ProcessData(id, data);
-      }
-
       void BeforeStateTransition() {}
       bool CycleComplete() { return false; }
-      void EmptyHandleMessage(const Id &, QDataStream &) {}
+      void EmptyHandleMessage(const Connections::Id &, QDataStream &) {}
       void EmptyTransitionCallback() {}
-
-      void VerifiableBroadcastToServers(const QByteArray &data);
-      void VerifiableBroadcastToClients(const QByteArray &data);
 
       /**
        * Internal state
@@ -195,13 +183,13 @@ namespace NeffShufflePrivate {
       void InitClient();
 
       /* Message handlers */
-      void HandleKey(const Id &from, QDataStream &stream);
-      void HandleKeySignature(const Id &from, QDataStream &stream);
-      void HandleServerKeys(const Id &from, QDataStream &stream);
-      void HandleMessageSubmission(const Id &from, QDataStream &stream);
-      void HandleShuffle(const Id &from, QDataStream &stream);
-      void HandleSignature(const Id &from, QDataStream &stream);
-      void HandleOutput(const Id &from, QDataStream &stream);
+      void HandleKey(const Connections::Id &from, QDataStream &stream);
+      void HandleKeySignature(const Connections::Id &from, QDataStream &stream);
+      void HandleServerKeys(const Connections::Id &from, QDataStream &stream);
+      void HandleMessageSubmission(const Connections::Id &from, QDataStream &stream);
+      void HandleShuffle(const Connections::Id &from, QDataStream &stream);
+      void HandleSignature(const Connections::Id &from, QDataStream &stream);
+      void HandleOutput(const Connections::Id &from, QDataStream &stream);
 
       /* State transitions */
       void GenerateKey();
@@ -244,7 +232,7 @@ namespace NeffShufflePrivate {
           QVector<QByteArray> key_signatures;
 
           QVector<QByteArray> initial_input;
-          QHash<Id, QByteArray > shuffle_proof;
+          QHash<Connections::Id, QByteArray > shuffle_proof;
           QVector<QByteArray> next_verify_input;
           bool verifying;
           int next_verify_idx;
@@ -252,7 +240,7 @@ namespace NeffShufflePrivate {
           int new_end_verify_idx;
           QVector<Crypto::DsaPublicKey> next_verify_keys;
           QByteArray cleartext_hash;
-          QHash<Id, QByteArray > signatures;
+          QHash<Connections::Id, QByteArray > signatures;
       };
       
       QSharedPointer<ServerState> _server_state;

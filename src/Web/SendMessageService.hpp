@@ -13,7 +13,8 @@ namespace Web {
    */
   class SendMessageService : public SessionService {
     public:
-      explicit SendMessageService(SessionManager &sm);
+      explicit SendMessageService(
+          const QSharedPointer<Session::Session> &session);
       
       virtual ~SendMessageService();
 

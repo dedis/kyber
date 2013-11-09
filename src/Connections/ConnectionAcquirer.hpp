@@ -51,6 +51,15 @@ namespace Connections {
        */
       QSharedPointer<ConnectionManager> GetConnectionManager() { return _cm; }
 
+      /**
+       * Listen for disconnect
+       */
+      void ConnectToDisconnect(const QSharedPointer<Connection> &con)
+      {
+        connect(con.data(), SIGNAL(Disconnected(const QString &)),
+            this, SLOT(HandleDisconnectionSlot(const QString &)));
+      }
+
     private:
       /**
        * A new connection
@@ -62,6 +71,14 @@ namespace Connections {
        * A connection attempt failed
        */
       virtual void HandleConnectionAttemptFailure(const Address &addr,
+          const QString &reason) = 0;
+
+      /**
+       * A disconnection
+       * @param con the disconnected connection
+       * @param reason the reason for the disconnect
+       */
+      virtual void HandleDisconnection(const QSharedPointer<Connection> &con,
           const QString &reason) = 0;
 
       QSharedPointer<ConnectionManager> _cm;
@@ -83,6 +100,16 @@ namespace Connections {
           const QString &reason)
       {
         HandleConnectionAttemptFailure(addr, reason);
+      }
+
+      /**
+       * A disconection
+       */
+      void HandleDisconnectionSlot(const QString &reason)
+      {
+        Connections::Connection *con =
+          qobject_cast<Connections::Connection *>(sender());
+        HandleDisconnection(con->GetSharedPointer(), reason);
       }
   };
 }

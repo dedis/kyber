@@ -6,27 +6,28 @@
 
 namespace Dissent {
 namespace Anonymity {
-  Round::Round(const Group &group,
-      const PrivateIdentity &ident,
-      const Id &round_id,
-      const QSharedPointer<Network> &network,
-      GetDataCallback &get_data,
-      const QSharedPointer<BuddyMonitor> &bm) :
-    _create_time(Dissent::Utils::Time::GetInstance().CurrentTime()),
-    _group(group),
-    _ident(ident),
-    _round_id(round_id),
-    _network(network),
-    _get_data_cb(get_data),
-    _successful(false),
-    _interrupted(false),
-    _bm(bm)
+  Round::Round(const Identity::Roster &clients,
+      const Identity::Roster &servers,
+      const Identity::PrivateIdentity &ident,
+      const QByteArray &nonce,
+      const QSharedPointer<ClientServer::Overlay> &overlay,
+      Messaging::GetDataCallback &get_data) :
+    m_create_time(Dissent::Utils::Time::GetInstance().CurrentTime()),
+    m_clients(clients),
+    m_servers(servers),
+    m_ident(ident),
+    m_nonce(nonce),
+    m_overlay(overlay),
+    m_get_data_cb(get_data),
+    m_successful(false),
+    m_interrupted(false),
+    m_header(QByteArray(1, 127))
   {
   }
 
   void Round::OnStart()
   {
-    _start_time = Dissent::Utils::Time::GetInstance().CurrentTime();
+    m_start_time = Utils::Time::GetInstance().CurrentTime();
   }
 
   void Round::OnStop()
@@ -34,38 +35,53 @@ namespace Anonymity {
     emit Finished();
   }
 
-  void Round::IncomingData(const Request &notification)
+  void Round::VerifiableSend(const Connections::Id &to,
+      const QByteArray &data)
   {
-    if(Stopped()) {
-      qWarning() << "Received a message on a closed session:" << ToString();
-      return;
-    }
-      
-    QSharedPointer<Connections::IOverlaySender> sender =
-      notification.GetFrom().dynamicCast<Connections::IOverlaySender>();
-
-    if(!sender) {
-      qDebug() << ToString() << " received wayward message from: " <<
-        notification.GetFrom()->ToString();
-      return;
-    }
-
-    const Id &id = sender->GetRemoteId();
-    if(!_group.Contains(id)) {
-      qDebug() << ToString() << " received wayward message from: " <<
-        notification.GetFrom()->ToString();
-      return;
-    }
-
-    ProcessData(id, notification.GetData().toHash().value("data").toByteArray());
+    QByteArray msg = m_header + data + GetKey()->Sign(data);
+    GetOverlay()->SendNotification(to, "SessionData", msg);
   }
 
-  bool Round::Verify(const Id &from, const QByteArray &data, QByteArray &msg)
+  void Round::VerifiableBroadcast(const QByteArray &data)
   {
-    QSharedPointer<AsymmetricKey> key = GetGroup().GetKey(from);
+    QByteArray msg = m_header + data + GetKey()->Sign(data);
+    GetOverlay()->Broadcast("SessionData", msg);
+  }
+
+  void Round::VerifiableBroadcastToServers(const QByteArray &data)
+  {
+    Q_ASSERT(GetOverlay()->AmServer());
+
+    QByteArray msg = m_header + data + GetKey()->Sign(data);
+    foreach(const Connections::Id &id, GetOverlay()->GetServerIds()) {
+      GetOverlay()->SendNotification(id, "SessionData", msg);
+    }
+  }
+
+  void Round::VerifiableBroadcastToClients(const QByteArray &data)
+  {
+    Q_ASSERT(GetOverlay()->AmServer());
+
+    QByteArray msg = m_header + data + GetKey()->Sign(data);
+    foreach(const QSharedPointer<Connections::Connection> &con,
+        GetOverlay()->GetConnectionTable().GetConnections())
+    {
+      if(!GetOverlay()->IsServer(con->GetRemoteId())) {
+        GetOverlay()->SendNotification(con->GetRemoteId(), "SessionData", msg);
+      }
+    }
+  }
+
+  bool Round::Verify(const Connections::Id &from,
+      const QByteArray &data, QByteArray &msg)
+  {
+    QSharedPointer<Crypto::AsymmetricKey> key = GetServers().GetKey(from);
     if(key.isNull()) {
-      qDebug() << "Received malsigned data block, no such peer";
-      return false;
+      key = GetClients().GetKey(from);
+      if(key.isNull()) {
+        qDebug() << "Received malsigned data block, no such peer";
+        return false;
+      }
     }
 
     int sig_size = key->GetSignatureLength();
@@ -80,9 +96,9 @@ namespace Anonymity {
     return key->Verify(msg, sig);
   }
 
-  void Round::HandleDisconnect(const Id &id)
+  void Round::HandleDisconnect(const Connections::Id &id)
   {
-    if(_group.Contains(id)) {
+    if(GetServers().Contains(id) || GetClients().Contains(id)) {
       SetInterrupted();
       Stop(QString(id.ToString() + " disconnected"));
     }
@@ -95,7 +111,7 @@ namespace Anonymity {
 
   QByteArray Round::GenerateData(int size)
   {
-    int maximum = GetGroup().Count();
+    int maximum = GetClients().Count();
     Crypto::CryptoRandom rand;
     int value = rand.GetInt(0, maximum);
     if(float(value) / float(maximum) > PERCENT_ACTIVE) {
@@ -106,9 +122,8 @@ namespace Anonymity {
     return data;
   }
 
-  void Round::PushData(int uid, const QByteArray &data)
+  void Round::PushData(int, const QByteArray &data)
   {
-    GetBuddyMonitor()->SetActiveNym(uid);
     PushData(GetSharedPointer(), data);
   }
 }

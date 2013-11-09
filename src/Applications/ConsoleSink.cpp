@@ -9,7 +9,7 @@ using Dissent::Messaging::ISender;
 namespace Dissent {
 namespace Applications {
   ConsoleSink::ConsoleSink() :
-      _qtout(stdout, QIODevice::WriteOnly)
+      m_qtout(stdout, QIODevice::WriteOnly)
   {
   }
 
@@ -17,7 +17,7 @@ namespace Applications {
       const QByteArray &data)
   {
     QString msg = QString::fromUtf8(data.data());
-    _qtout << endl << "Incoming data: " << from->ToString() << " " << msg << endl;
+    m_qtout << endl << "Incoming data: " << from->ToString() << " " << msg << endl;
   }
 }
 }

@@ -33,59 +33,37 @@ HEADERS += ext/googletest/include/gtest/gtest-death-test.h \
            ext/googletest/include/gtest/internal/gtest-tuple.h \
            ext/googletest/include/gtest/internal/gtest-type-util.h \
            src/Tests/AbstractGroupHelpers.hpp \
-           src/Tests/BadCSBulkRound.hpp \
-           src/Tests/BulkRoundHelpers.hpp \
            src/Tests/DissentTest.hpp \
            src/Tests/Mock.hpp \
            src/Tests/MockEdgeHandler.hpp \
            src/Tests/MockSender.hpp \
            src/Tests/MockSource.hpp \
-           src/Tests/OverlayHelper.hpp \
-           src/Tests/RoundTest.hpp \
+           src/Tests/OverlayTest.hpp \
            src/Tests/RpcTest.hpp \
-           src/Tests/ShuffleRoundHelpers.hpp \
-           src/Tests/TestNode.hpp
+           src/Tests/SessionTest.hpp
 
 SOURCES += ext/googletest/src/gtest-all.cc \
            src/Tests/AddressTest.cpp \
-           src/Tests/AuthenticateTest.cpp \
            src/Tests/Base64.cpp \
-           src/Tests/BasicGossipTest.cpp \
            src/Tests/BlogDropProof.cpp \
            src/Tests/BlogDropTest.cpp \
            src/Tests/BlogDropUtilsTest.cpp \
-           src/Tests/BlogDropRoundTest.cpp \
-           src/Tests/BuddiesTest.cpp \
-           src/Tests/BulkRoundTest.cpp \
            src/Tests/ConnectionTest.cpp \
            src/Tests/Crypto.cpp \
-           src/Tests/CSBulkRoundTest.cpp \
-           src/Tests/CSOverlayTest.cpp \
            src/Tests/DsaCryptoTest.cpp \
            src/Tests/EdgeTest.cpp \
-           src/Tests/GroupTest.cpp \
            src/Tests/HashTest.cpp \
            src/Tests/IdTest.cpp \
            src/Tests/IntegerTest.cpp \
            src/Tests/KeyShareTest.cpp \
-           src/Tests/LogTest.cpp \
            src/Tests/MainTest.cpp \
-           src/Tests/NeffKeyShuffleTest.cpp \
-           src/Tests/NeffShuffleRoundTest.cpp \
-           src/Tests/NullRoundTest.cpp \
            src/Tests/OnionTest.cpp \
-           src/Tests/OverlayHelper.cpp \
-           src/Tests/PeerReviewTest.cpp \
+           src/Tests/OverlayTest.cpp \
            src/Tests/RandomTest.cpp \
-           src/Tests/RepeatingBulkRoundTest.cpp \
-           src/Tests/RpcTest.cpp \
            src/Tests/RoundTest.cpp \
+           src/Tests/RpcTest.cpp \
            src/Tests/SerializationTest.cpp \
+           src/Tests/SessionTest.cpp \
            src/Tests/SettingsTest.cpp \
-           src/Tests/ShuffleRoundTest.cpp \
-           src/Tests/TcpTest.cpp \
-           src/Tests/TestNode.cpp \
            src/Tests/TimeTest.cpp \
-           src/Tests/TripleTest.cpp \
-           src/Tests/TunnelTest.cpp \
-           src/Tests/WebTest.cpp
+           src/Tests/TripleTest.cpp

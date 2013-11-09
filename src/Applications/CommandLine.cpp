@@ -1,21 +1,17 @@
 #include <unistd.h>
 #include <qcoreapplication.h>
 
-#include "Anonymity/Sessions/Session.hpp"
-
 #include "CommandLine.hpp"
 #include "Node.hpp"
-
-using Dissent::Anonymity::Sessions::Session;
 
 namespace Dissent {
 namespace Applications {
   CommandLine::CommandLine(const QList<QSharedPointer<Node> > &nodes) :
-    _nodes(nodes),
-    _current_node(0),
-    _running(false),
-    _notify(STDIN_FILENO, QSocketNotifier::Read),
-    _qtin(stdin, QIODevice::ReadOnly)
+    m_nodes(nodes),
+    m_current_node(0),
+    m_running(false),
+    m_notify(STDIN_FILENO, QSocketNotifier::Read),
+    m_qtin(stdin, QIODevice::ReadOnly)
   {
   }
 
@@ -26,37 +22,37 @@ namespace Applications {
 
   void CommandLine::Start()
   {
-    if(_running) {
+    if(m_running) {
       return;
     }
 
-    _running = true;
+    m_running = true;
 
-    QObject::connect(&_notify, SIGNAL(activated(int)), this, SLOT(Read()));
-    _notify.setEnabled(true);
+    QObject::connect(&m_notify, SIGNAL(activated(int)), this, SLOT(Read()));
+    m_notify.setEnabled(true);
 
-    _qtout << "Dissent Console";
+    m_qtout << "Dissent Console";
     PrintCommandLine();
   }
 
   void CommandLine::Stop()
   {
-    if(!_running) {
+    if(!m_running) {
       return;
     }
 
-    _running = false;
+    m_running = false;
 
-    _notify.setEnabled(false);
-    QObject::disconnect(&_notify, SIGNAL(activated(int)), this, SLOT(Read()));
+    m_notify.setEnabled(false);
+    QObject::disconnect(&m_notify, SIGNAL(activated(int)), this, SLOT(Read()));
 
-    _qtout << endl << "Goodbye" << endl << endl;
+    m_qtout << endl << "Goodbye" << endl << endl;
   }
 
   void CommandLine::PrintCommandLine()
   {
-    _qtout << endl << "Command: ";
-    _qtout.flush();
+    m_qtout << endl << "Command: ";
+    m_qtout.flush();
   }
 
   void CommandLine::HandleData(const QSharedPointer<ISender> &from,
@@ -68,7 +64,7 @@ namespace Applications {
 
   void CommandLine::Read()
   {
-    QString msg = _qtin.readLine();
+    QString msg = m_qtin.readLine();
     QString cmd = msg;
     int idx = msg.indexOf(" ");
     if(idx > 0) {
@@ -81,34 +77,28 @@ namespace Applications {
       QCoreApplication::exit();
       return;
     } else if(cmd == "help") {
-      _qtout << "Commands: " << endl;
-      _qtout << "\tcurrent - print the index of the current node" << endl;
-      _qtout << "\tselect index - use the node at index to execute command" << endl;
-      _qtout << "\tsend \"msg\" - send \"msg\" to Dissent round" << endl;
-      _qtout << "\texit - kill the node and exit to command line" << endl;
+      m_qtout << "Commands: " << endl;
+      m_qtout << "\tcurrent - print the index of the current node" << endl;
+      m_qtout << "\tselect index - use the node at index to execute command" << endl;
+      m_qtout << "\tsend \"msg\" - send \"msg\" to Dissent round" << endl;
+      m_qtout << "\texit - kill the node and exit to command line" << endl;
     } else if(cmd == "current") {
-      _qtout << "Current node: " << QString::number(_current_node) << endl;
+      m_qtout << "Current node: " << QString::number(m_current_node) << endl;
     } else if(cmd == "select") {
       bool valid;
       int current = msg.toInt(&valid);
       
-      if(valid && current < _nodes.count()) {
-        _current_node = current;
-        _qtout << endl << "New current node: " << msg;
+      if(valid && current < m_nodes.count()) {
+        m_current_node = current;
+        m_qtout << endl << "New current node: " << msg;
       } else {
-        _qtout << endl << "Invalid entry: " << msg;
+        m_qtout << endl << "Invalid entry: " << msg;
       }
     } else if(cmd == "send") {
-      QSharedPointer<Session> session = _nodes[_current_node]->
-        GetSessionManager().GetDefaultSession();
-      if(session.isNull()) {
-        _qtout << endl << "No session set, try again later." << endl;
-        return;
-      }
-      session->Send(msg.toUtf8());
+      m_nodes[m_current_node]->GetSession()->Send(msg.toUtf8());
     } else if(cmd == "") {
     } else {
-      _qtout << "Unknown command, " << cmd << ", type help for more " <<
+      m_qtout << "Unknown command, " << cmd << ", type help for more " <<
         "information." << endl;
     }
 

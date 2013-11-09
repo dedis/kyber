@@ -4,31 +4,24 @@
 
 namespace Dissent {
 namespace Web {
-  SessionService::SessionService(SessionManager &sm) :
-    m_sm(sm)
+  SessionService::SessionService(
+      const QSharedPointer<Session::Session> &session) :
+    m_session(session)
   {
   }
 
   void SessionService::HandleRequest(QHttpRequest *,
       QHttpResponse *response)
   {
-    QSharedPointer<Session> session = GetSession();
+    QSharedPointer<Session::Session> session = GetSession();
     QVariantHash data;
 
-    bool session_active = !session.isNull();
-    data["session"] = session_active;
-    data["session_id"] = "";
-    data["round"] = false;
-    data["round_id"] = "";
-
-    if(session_active) {
-      data["session_id"] = session->GetSessionId().ToString();
-      QSharedPointer<Dissent::Anonymity::Round> round =
-        session->GetCurrentRound();
-      if(round) {
-        data["round"] = true;
-        data["round_id"] = round->GetRoundId().ToString();
-      } 
+    QSharedPointer<Dissent::Anonymity::Round> round = session->GetRound();
+    if(round) {
+      data["round"] = true;
+      data["round_id"] = round->GetNonce().toBase64();
+    } else {
+      data["round"] = false;
     }
 
     SendJsonResponse(response, data);

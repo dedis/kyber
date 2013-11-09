@@ -37,7 +37,7 @@ namespace Tests {
     EXPECT_EQ(t1, t1_0);
     EXPECT_EQ(t1.first, t1_0.first);
     EXPECT_EQ(*t1.second, *t1_0.second);
-    EXPECT_NE(t1.second, t1_0.second);
+    EXPECT_EQ(t1.second, t1_0.second);
     EXPECT_EQ(t1.third, t1_0.third);
   }
 }

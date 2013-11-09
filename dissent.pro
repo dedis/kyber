@@ -58,57 +58,32 @@ SOURCES += ext/qxt/qxtcommandoptions.cpp
 INCLUDEPATH += src
 
 HEADERS += src/Dissent.hpp \
-           src/Anonymity/BaseBulkRound.hpp \
-           src/Anonymity/BlogDropRound.hpp \
-           src/Anonymity/BulkRound.hpp \
-           src/Anonymity/CSBulkRound.hpp \
+           src/Anonymity/BaseDCNetRound.hpp \
+           src/Anonymity/CSDCNetRound.hpp \
            src/Anonymity/Log.hpp \
-           src/Anonymity/NeffKeyShuffleRound.hpp \
-           src/Anonymity/FastNeffKeyShuffleRound.hpp \
            src/Anonymity/NeffShuffleRound.hpp \
            src/Anonymity/NullRound.hpp \
-           src/Anonymity/RepeatingBulkRound.hpp \
            src/Anonymity/Round.hpp \
+           src/Anonymity/RoundFactory.hpp \
            src/Anonymity/RoundStateMachine.hpp \
-           src/Anonymity/ShuffleBlamer.hpp \
-           src/Anonymity/ShuffleRound.hpp \
-           src/Anonymity/ShuffleRoundBlame.hpp \
-           src/Anonymity/Buddies/BuddyMonitor.hpp \
-           src/Anonymity/Buddies/BuddyPolicy.hpp \
-           src/Anonymity/Buddies/DynamicBuddyPolicy.hpp \
-           src/Anonymity/Buddies/NullBuddyPolicy.hpp \
-           src/Anonymity/Buddies/StaticBuddyPolicy.hpp \
-           src/Anonymity/Sessions/Session.hpp \
-           src/Anonymity/Sessions/SessionLeader.hpp \
-           src/Anonymity/Sessions/SessionManager.hpp \
-           src/Applications/AuthFactory.hpp \
            src/Applications/CommandLine.hpp \
            src/Applications/ConsoleSink.hpp \
            src/Applications/FileSink.hpp \
            src/Applications/Node.hpp \
-           src/Applications/SessionFactory.hpp \
            src/Applications/Settings.hpp \
-           src/ClientServer/CSBroadcast.hpp \
-           src/ClientServer/CSConnectionAcquirer.hpp \
-           src/ClientServer/CSForwarder.hpp \
-           src/ClientServer/CSNetwork.hpp \
-           src/ClientServer/CSOverlay.hpp \
-           src/Connections/Bootstrapper.hpp \
+           src/ClientServer/Broadcaster.hpp \
+           src/ClientServer/ClientConnectionAcquirer.hpp \
+           src/ClientServer/Forwarder.hpp \
+           src/ClientServer/Overlay.hpp \
+           src/ClientServer/ServerConnectionAcquirer.hpp \
            src/Connections/Connection.hpp \
            src/Connections/ConnectionAcquirer.hpp \
            src/Connections/ConnectionManager.hpp \
            src/Connections/ConnectionTable.hpp \
-           src/Connections/DefaultNetwork.hpp \
-           src/Connections/EmptyNetwork.hpp \
            src/Connections/ForwardingSender.hpp \
-           src/Connections/FullyConnected.hpp \
            src/Connections/Id.hpp \
+           src/Connections/IForwarder.hpp \
            src/Connections/IOverlaySender.hpp \
-           src/Connections/Network.hpp \
-           src/Connections/RelayAddress.hpp \
-           src/Connections/RelayEdge.hpp \
-           src/Connections/RelayEdgeListener.hpp \
-           src/Connections/RelayForwarder.hpp \
            src/Crypto/AsymmetricKey.hpp \
            src/Crypto/DsaPrivateKey.hpp \
            src/Crypto/DsaPublicKey.hpp \
@@ -153,18 +128,9 @@ HEADERS += src/Dissent.hpp \
            src/Crypto/BlogDrop/PrivateKey.hpp \
            src/Crypto/BlogDrop/ElGamalClientCiphertext.hpp \
            src/Crypto/BlogDrop/ChangingGenClientCiphertext.hpp \
-           src/Identity/Authentication/IAuthenticate.hpp \
-           src/Identity/Authentication/IAuthenticator.hpp \
-           src/Identity/Authentication/LRSAuthenticate.hpp \
-           src/Identity/Authentication/LRSAuthenticator.hpp \
-           src/Identity/Authentication/NullAuthenticate.hpp \
-           src/Identity/Authentication/NullAuthenticator.hpp \
-           src/Identity/Authentication/PreExchangedKeyAuthenticate.hpp \
-           src/Identity/Authentication/PreExchangedKeyAuthenticator.hpp \
-           src/Identity/Group.hpp \
-           src/Identity/GroupHolder.hpp \
-           src/Identity/PrivateIdentity.hpp \
            src/Identity/PublicIdentity.hpp \
+           src/Identity/PrivateIdentity.hpp \
+           src/Identity/Roster.hpp \
            src/Messaging/BufferSink.hpp \
            src/Messaging/DummySink.hpp \
            src/Messaging/Filter.hpp \
@@ -173,6 +139,7 @@ HEADERS += src/Dissent.hpp \
            src/Messaging/ISender.hpp \
            src/Messaging/ISink.hpp \
            src/Messaging/ISinkObject.hpp \
+           src/Messaging/Message.hpp \
            src/Messaging/Request.hpp \
            src/Messaging/RequestResponder.hpp \
            src/Messaging/RequestHandler.hpp \
@@ -181,18 +148,31 @@ HEADERS += src/Dissent.hpp \
            src/Messaging/RpcHandler.hpp \
            src/Messaging/SignalSink.hpp \
            src/Messaging/SinkMultiplexer.hpp \
+           src/Messaging/State.hpp \
+           src/Messaging/StateData.hpp \
+           src/Messaging/StateMachine.hpp \
            src/Messaging/Source.hpp \
            src/Messaging/SourceObject.hpp \
-           src/Overlay/BaseOverlay.hpp \
-           src/Overlay/BasicGossip.hpp \
-           src/PeerReview/Acknowledgement.hpp \
-           src/PeerReview/AcknowledgementLog.hpp \
-           src/PeerReview/Entry.hpp \
-           src/PeerReview/EntryParser.hpp \
-           src/PeerReview/EntryLog.hpp \
-           src/PeerReview/SendEntry.hpp \
-           src/PeerReview/PRManager.hpp \
-           src/PeerReview/ReceiveEntry.hpp \
+           src/Session/ClientRegister.hpp \
+           src/Session/ClientSession.hpp \
+           src/Session/ClientStates.hpp \
+           src/Session/SerializeList.hpp \
+           src/Session/ServerAgree.hpp \
+           src/Session/ServerEnlist.hpp \
+           src/Session/ServerEnlisted.hpp \
+           src/Session/ServerInit.hpp \
+           src/Session/ServerList.hpp \
+           src/Session/ServerQueued.hpp \
+           src/Session/ServerSession.hpp \
+           src/Session/ServerStart.hpp \
+           src/Session/ServerStates.hpp \
+           src/Session/ServerStop.hpp \
+           src/Session/ServerVerifyList.hpp \
+           src/Session/Session.hpp \
+           src/Session/SessionData.hpp \
+           src/Session/SessionMessage.hpp \
+           src/Session/SessionSharedState.hpp \
+           src/Session/SessionState.hpp \
            src/Transports/Address.hpp \
            src/Transports/AddressFactory.hpp \
            src/Transports/BufferAddress.hpp \
@@ -205,12 +185,6 @@ HEADERS += src/Dissent.hpp \
            src/Transports/TcpAddress.hpp \
            src/Transports/TcpEdge.hpp \
            src/Transports/TcpEdgeListener.hpp \
-           src/Tunnel/EntryTunnel.hpp \
-           src/Tunnel/ExitTunnel.hpp \
-           src/Tunnel/SessionEntryTunnel.hpp \
-           src/Tunnel/SessionExitTunnel.hpp \
-           src/Tunnel/SocksConnection.hpp \
-           src/Tunnel/SocksTable.hpp \
            src/Utils/Logging.hpp \
            src/Utils/Random.hpp \
            src/Utils/QRunTimeError.hpp \
@@ -226,60 +200,36 @@ HEADERS += src/Dissent.hpp \
            src/Utils/Triggerable.hpp \
            src/Utils/Triple.hpp \
            src/Utils/Utils.hpp \
-           src/Web/BuddiesService.hpp \
            src/Web/EchoService.hpp \
            src/Web/GetDirectoryService.hpp \
            src/Web/GetFileService.hpp \
            src/Web/GetMessagesService.hpp \
-           src/Web/MessageWebService.hpp \
            src/Web/SendMessageService.hpp \
            src/Web/SessionService.hpp \
+           src/Web/MessageWebService.hpp \
            src/Web/WebServer.hpp \
            src/Web/WebService.hpp 
 
-SOURCES += src/Anonymity/BaseBulkRound.cpp \
-           src/Anonymity/BlogDropRound.cpp \
-           src/Anonymity/BulkRound.cpp \
-           src/Anonymity/CSBulkRound.cpp \
+SOURCES += src/Anonymity/BaseDCNetRound.cpp \
+           src/Anonymity/CSDCNetRound.cpp \
            src/Anonymity/Log.cpp \
-           src/Anonymity/FastNeffKeyShuffleRound.cpp \
-           src/Anonymity/NeffShuffleRound.cpp \
            src/Anonymity/NullRound.cpp \
-           src/Anonymity/RepeatingBulkRound.cpp \
+           src/Anonymity/NeffShuffleRound.cpp \
            src/Anonymity/Round.cpp \
-           src/Anonymity/ShuffleBlamer.cpp \
-           src/Anonymity/ShuffleRound.cpp \
-           src/Anonymity/ShuffleRoundBlame.cpp \
-           src/Anonymity/Buddies/BuddyMonitor.cpp \
-           src/Anonymity/Buddies/BuddyPolicy.cpp \
-           src/Anonymity/Buddies/DynamicBuddyPolicy.cpp \
-           src/Anonymity/Buddies/NullBuddyPolicy.cpp \
-           src/Anonymity/Buddies/StaticBuddyPolicy.cpp \
-           src/Anonymity/Sessions/Session.cpp \
-           src/Anonymity/Sessions/SessionLeader.cpp \
-           src/Anonymity/Sessions/SessionManager.cpp \
-           src/Applications/AuthFactory.cpp \
+           src/Anonymity/RoundFactory.cpp \
            src/Applications/CommandLine.cpp \
            src/Applications/ConsoleSink.cpp \
            src/Applications/FileSink.cpp \
-           src/Applications/Node.cpp \
-           src/Applications/SessionFactory.cpp \
            src/Applications/Settings.cpp \
-           src/ClientServer/CSBroadcast.cpp \
-           src/ClientServer/CSConnectionAcquirer.cpp \
-           src/ClientServer/CSForwarder.cpp \
-           src/ClientServer/CSNetwork.cpp \
-           src/ClientServer/CSOverlay.cpp \
-           src/Connections/Bootstrapper.cpp \
+           src/ClientServer/Broadcaster.cpp \
+           src/ClientServer/ClientConnectionAcquirer.cpp \
+           src/ClientServer/Forwarder.cpp \
+           src/ClientServer/Overlay.cpp \
+           src/ClientServer/ServerConnectionAcquirer.cpp \
            src/Connections/Connection.cpp \
            src/Connections/ConnectionManager.cpp \
            src/Connections/ConnectionTable.cpp \
-           src/Connections/FullyConnected.cpp \
            src/Connections/Id.cpp \
-           src/Connections/RelayAddress.cpp \
-           src/Connections/RelayEdge.cpp \
-           src/Connections/RelayEdgeListener.cpp \
-           src/Connections/RelayForwarder.cpp \
            src/Crypto/AsymmetricKey.cpp \
            src/Crypto/DsaPrivateKey.cpp \
            src/Crypto/DsaPublicKey.cpp \
@@ -313,20 +263,13 @@ SOURCES += src/Anonymity/BaseBulkRound.cpp \
            src/Crypto/BlogDrop/PublicKey.cpp \
            src/Crypto/BlogDrop/BlogDropAuthor.cpp \
            src/Crypto/BlogDrop/PrivateKey.cpp \
-           src/Identity/Group.cpp \
-           src/Identity/Authentication/LRSAuthenticate.cpp \
-           src/Identity/Authentication/LRSAuthenticator.cpp \
-           src/Identity/Authentication/PreExchangedKeyAuthenticate.cpp \
-           src/Identity/Authentication/PreExchangedKeyAuthenticator.cpp \
+           src/Identity/Roster.cpp \
            src/Messaging/RpcHandler.cpp \
            src/Messaging/SignalSink.cpp \
-           src/Overlay/BaseOverlay.cpp \
-           src/Overlay/BasicGossip.cpp \
-           src/PeerReview/AcknowledgementLog.cpp \
-           src/PeerReview/Entry.cpp \
-           src/PeerReview/EntryLog.cpp \
-           src/PeerReview/EntryParser.cpp \
-           src/PeerReview/PRManager.cpp \
+           src/Session/ClientSession.cpp \
+           src/Session/ServerSession.cpp \
+           src/Session/Session.cpp \
+           src/Session/SessionSharedState.cpp \
            src/Transports/Address.cpp \
            src/Transports/AddressFactory.cpp \
            src/Transports/BufferAddress.cpp \
@@ -339,12 +282,6 @@ SOURCES += src/Anonymity/BaseBulkRound.cpp \
            src/Transports/TcpAddress.cpp \
            src/Transports/TcpEdge.cpp \
            src/Transports/TcpEdgeListener.cpp \
-           src/Tunnel/EntryTunnel.cpp \
-           src/Tunnel/ExitTunnel.cpp \
-           src/Tunnel/SessionEntryTunnel.cpp \
-           src/Tunnel/SessionExitTunnel.cpp \
-           src/Tunnel/SocksConnection.cpp \
-           src/Tunnel/SocksTable.cpp \
            src/Utils/Logging.cpp \
            src/Utils/Random.cpp \
            src/Utils/Sleeper.cpp \
@@ -353,13 +290,12 @@ SOURCES += src/Anonymity/BaseBulkRound.cpp \
            src/Utils/Timer.cpp \
            src/Utils/TimerEvent.cpp \
            src/Utils/Utils.cpp \
-           src/Web/WebServer.cpp \
-           src/Web/BuddiesService.cpp \
            src/Web/GetDirectoryService.cpp \
            src/Web/GetFileService.cpp \
            src/Web/GetMessagesService.cpp \
            src/Web/SendMessageService.cpp \
            src/Web/SessionService.cpp \
+           src/Web/WebServer.cpp \
            src/Web/WebService.cpp
 
 HEADERS += src/Crypto/CryptoPP/DsaPublicKeyImpl.hpp \

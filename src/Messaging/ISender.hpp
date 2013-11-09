@@ -2,6 +2,8 @@
 #define DISSENT_ISENDER_H_GUARD
 
 #include <QByteArray>
+#include <QDebug>
+#include <QSharedPointer>
 #include <QString>
 
 namespace Dissent {
@@ -27,6 +29,24 @@ namespace Messaging {
        */
       virtual ~ISender() {}
   };
+
+  inline QDebug operator<<(QDebug dbg, ISender *sender)
+  {
+    dbg.nospace() << sender->ToString();
+    return dbg.space();
+  }
+
+  inline QDebug operator<<(QDebug dbg, const QSharedPointer<ISender> &sender)
+  {
+    dbg.nospace() << sender->ToString();
+    return dbg.space();
+  }
+
+  inline QDebug operator<<(QDebug dbg, const ISender &sender)
+  {
+    dbg.nospace() << sender.ToString();
+    return dbg.space();
+  }
 }
 }
 

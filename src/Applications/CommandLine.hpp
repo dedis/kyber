@@ -56,11 +56,11 @@ namespace Applications {
 
     protected:
       void PrintCommandLine();
-      const QList<QSharedPointer<Node> > &_nodes;
-      int _current_node;
-      bool _running;
-      QSocketNotifier _notify;
-      QTextStream _qtin;
+      const QList<QSharedPointer<Node> > &m_nodes;
+      int m_current_node;
+      bool m_running;
+      QSocketNotifier m_notify;
+      QTextStream m_qtin;
   };
 }
 }

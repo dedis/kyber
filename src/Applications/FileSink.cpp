@@ -5,25 +5,25 @@
 namespace Dissent {
 namespace Applications {
   FileSink::FileSink(const QString &filename) :
-      _file(filename),
-      _valid(true)
+      m_file(filename),
+      m_valid(true)
   {
-    if(!_file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-      _valid = false;
+    if(!m_file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+      m_valid = false;
       return;
     }
 
-    _out.setDevice(&_file);
+    m_out.setDevice(&m_file);
   }
 
   bool FileSink::IsValid()
   {
-    return _valid;
+    return m_valid;
   }
 
   void FileSink::HandleData(const QSharedPointer<ISender> &from, const QByteArray &data)
   {
-    _out << from->ToString() << data.data();
+    m_out << from->ToString() << data.data();
   }
 }
 }

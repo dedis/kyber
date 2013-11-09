@@ -154,10 +154,8 @@ namespace Anonymity {
         try {
           ProcessDataBase(from, data);
         } catch (QRunTimeError &err) {
-          qWarning() << _round->GetGroup().GetIndex(_round->GetLocalId()) <<
-            _round->GetLocalId() << "received a message from" <<
-            _round->GetGroup().GetIndex(from) << from << "in" <<
-            _round->GetRoundId() << "in state" <<
+          qWarning() << _round->GetLocalId() << "received a message from" <<
+            from << "in" << _round->GetNonce().toBase64() << "in state" <<
             StateToString(GetCurrentState()->GetState()) <<
             "causing the following exception:" << err.What();
           _log.Pop();
@@ -279,10 +277,9 @@ namespace Anonymity {
           stream >> phase;
         }
 
-        Id rid(round_id);
-        if(rid != _round->GetRoundId()) {
-          throw QRunTimeError("Not this round: " + rid.ToString() + " " +
-              _round->GetRoundId().ToString());
+        if(round_id != _round->GetNonce()) {
+          throw QRunTimeError("Not this round: " + round_id.toBase64() + " " +
+              _round->GetNonce().toBase64());
         }
 
         if(phase < _phase) {

@@ -1,6 +1,6 @@
+#include "Transports/AddressFactory.hpp"
 #include "Utils/Logging.hpp"
 
-#include "AuthFactory.hpp"
 #include "Settings.hpp"
 
 using Dissent::Utils::Logging;
@@ -37,22 +37,14 @@ namespace Applications {
     }
     Help = false;
 
-    LeaderId = Id::Zero();
-    LocalNodeCount = 1;
+    QVariant remote = _settings->value(Param<Params::RemoteEndPoints>());
+    RemoteEndPoints = ParseAddressList("RemoteEndPoints", remote);
 
-    QVariant peers = _settings->value(Param<Params::RemotePeers>());
-    ParseUrlList("RemotePeer", peers, RemotePeers);
+    QVariant local = _settings->value(Param<Params::LocalEndPoints>());
+    LocalEndPoints = ParseAddressList("EndPoint", local);
 
-    QVariant endpoints = _settings->value(Param<Params::LocalEndPoints>());
-    ParseUrlList("EndPoint", endpoints, LocalEndPoints);
-
-    QString auth_mode = _settings->value(Param<Params::AuthMode>(), "null").toString();
-    AuthMode = AuthFactory::GetAuthType(auth_mode);
-
-    if(_settings->contains(Param<Params::LocalNodeCount>())) {
-      LocalNodeCount = _settings->value(Param<Params::LocalNodeCount>()).toInt();
-    }
-
+    Auth = _settings->value(Param<Params::Auth>(), true).toBool();
+    LocalNodeCount = _settings->value(Param<Params::LocalNodeCount>(), 1).toInt();
     Console = _settings->value(Param<Params::Console>(), false).toBool();
     ExitTunnel = _settings->value(Param<Params::ExitTunnel>(), false).toBool();
     Multithreading = _settings->value(Param<Params::Multithreading>(), false).toBool();
@@ -66,30 +58,22 @@ namespace Applications {
     ExitTunnelProxyUrl = TryParseUrl(_settings->value(Param<Params::ExitTunnelProxyUrl>()).toString(), "tcp");
     ExitTunnel = (ExitTunnelProxyUrl != QUrl()) || ExitTunnel;
 
-    if(_settings->contains(Param<Params::SessionType>())) {
-      QString stype = _settings->value(Param<Params::SessionType>()).toString();
-      SessionType = SessionFactory::GetSessionType(stype);
+    if(_settings->contains(Param<Params::RoundType>())) {
+      QString stype = _settings->value(Param<Params::RoundType>()).toString();
+      RoundType = Anonymity::RoundFactory::GetRoundType(stype);
     } else {
-      SessionType = SessionFactory::NULL_ROUND;
+      RoundType = Anonymity::RoundFactory::NULL_ROUND;
     }
 
-    if(_settings->contains(Param<Params::SubgroupPolicy>())) {
-      QString ptype = _settings->value(Param<Params::SubgroupPolicy>()).toString();
-      SubgroupPolicy = Group::StringToPolicyType(ptype);
-    } else {
-      SubgroupPolicy = Group::CompleteGroup;
-    }
+    Log = _settings->value(Param<Params::Log>(), "null").toString();
 
-    if(_settings->contains(Param<Params::Log>())) {
-      Log = _settings->value(Param<Params::Log>()).toString().toLower();
-    }
-
+    QString log_lower = Log.toLower();
     if(actions) {
-      if(Log == "stderr") {
+      if(log_lower == "stderr") {
         Logging::UseStderr();
-      } else if(Log == "stdout") {
+      } else if(log_lower == "stdout") {
         Logging::UseStdout();
-      } else if(Log.isEmpty()) {
+      } else if(log_lower == "null" || log_lower.isEmpty()) {
         Logging::Disable();
       } else {
         Logging::UseFile(Log);
@@ -97,37 +81,15 @@ namespace Applications {
     }
 
     if(_settings->contains(Param<Params::LocalId>())) {
-      QVariant qids = _settings->value(Param<Params::LocalId>());
-      QVariantList ids = qids.toList();
-      if(!ids.empty()) {
-        foreach(const QVariant &id, ids) {
-          LocalIds.append(Id(id.toString()));
-        }
-      } else {
-        LocalIds.append(Id(qids.toString()));
-      }
+      LocalId = ParseIdList(_settings->value(Param<Params::LocalId>()));
     }
 
-    if(_settings->contains(Param<Params::LeaderId>())) {
-      LeaderId = Id(_settings->value(Param<Params::LeaderId>()).toString());
+    if(_settings->contains(Param<Params::ServerIds>())) {
+      ServerIds = ParseIdList(_settings->value(Param<Params::ServerIds>()));
     }
-
-    SuperPeer = _settings->value(Param<Params::SuperPeer>(), false).toBool();
-
 
     PublicKeys = _settings->value(Param<Params::PublicKeys>()).toString();
-
-    if(_settings->contains(Param<Params::PrivateKey>())) {
-      QVariant vkeys = _settings->value(Param<Params::PrivateKey>());
-      if(QMetaType::QVariantList == static_cast<QMetaType::Type>(vkeys.type())) {
-        QVariantList keys = vkeys.toList();
-        foreach(const QVariant &key, keys) {
-          PrivateKey.append(key.toString());
-        }
-      } else {
-        PrivateKey.append(vkeys.toString());
-      }
-    }
+    PrivateKeys = _settings->value(Param<Params::PrivateKeys>()).toString();
   }
 
   bool Settings::IsValid()
@@ -137,8 +99,8 @@ namespace Applications {
       return false;
     }
 
-    if(LocalEndPoints.count() == 0) {
-      _reason = "No locally defined end points";
+    if(!LocalEndPoints.count()) {
+      _reason = "No local end points";
       return false;
     }
 
@@ -152,34 +114,20 @@ namespace Applications {
       return false;
     }
 
-    if(LeaderId == Id::Zero()) {
-      _reason = "No leader Id";
+    if(!ServerIds.count()) {
+      _reason = "No server Ids";
       return false;
     }
 
-    if(SubgroupPolicy == -1) {
-      _reason = "Invalid subgroup policy";
+    if(Auth && (LocalId.count() != LocalNodeCount)) {
+      _reason = QString("Insufficient local ids, found %1, expected %2.").
+        arg(LocalId.count()).arg(LocalNodeCount);
       return false;
     }
 
-    if(AuthMode == AuthFactory::INVALID) {
-      _reason = "Invalid auth_mode";
-      return false;
-    } else if(AuthFactory::RequiresKeys(AuthMode)) {
-      if(PublicKeys.isEmpty()) {
-        _reason = "Missing path to public keys";
-        return false;
-      } else if(PrivateKey.isEmpty()) {
-        _reason = "Missing path to any private keys";
-        return false;
-      } else if(PrivateKey.size() != LocalNodeCount) {
-        _reason = "Insufficient private keys";
-        return false;
-      }
-    }
-
-    if(SessionType == SessionFactory::INVALID) {
-      _reason = "Invalid session type";
+    if(RoundType == Anonymity::RoundFactory::INVALID) {
+      _reason = "Invalid round type: " +
+        _settings->value(Param<Params::RoundType>()).toString();
       return false;
     }
 
@@ -192,32 +140,36 @@ namespace Applications {
     return _reason;
   }
 
-  void Settings::ParseUrlList(const QString &name, const QVariant &values,
-          QList<QUrl> &list)
+  QList<Transports::Address> Settings::ParseAddressList(const QString &name,
+      const QVariant &values)
   {
+    QList<Transports::Address> list;
     if(values.isNull()) {
-      return;
+      return list;
     }
 
     QVariantList varlist = values.toList();
     if(!varlist.empty()) {
       foreach(QVariant value, varlist) {
-        ParseUrl(name, value, list);
+        list.append(Transports::AddressFactory::GetInstance().
+            CreateAddress(ParseUrl(name, value)));
       }
     } else {
-      ParseUrl(name, values, list);
+      list.append(Transports::AddressFactory::GetInstance().
+          CreateAddress(ParseUrl(name, values)));
     }
+
+    return list;
   }
 
-  inline void Settings::ParseUrl(const QString &name, const QVariant &value,
-          QList<QUrl> &list)
+  QUrl Settings::ParseUrl(const QString &name, const QVariant &value)
   {
     QUrl url(value.toString());
-    if(url.isValid()) {
-      list << url;
-    } else {
-      qCritical() << "Invalid " << name << ": " << value.toString();
+    if(!url.isValid()) {
+      qFatal("Invalid %s: %s", name.toLatin1().data(),
+          value.toString().toLatin1().data());
     }
+    return url;
   }
 
   QUrl Settings::TryParseUrl(const QString &string_rep, const QString &scheme)
@@ -233,6 +185,22 @@ namespace Applications {
     return url;
   }
 
+  QList<Connections::Id> Settings::ParseIdList(const QVariant &qids)
+  {
+    QList<Connections::Id> id_list;
+
+    QVariantList ids = qids.toList();
+    if(!ids.empty()) {
+      foreach(const QVariant &id, ids) {
+        id_list.append(Connections::Id(id.toString()));
+      }
+    } else {
+      id_list.append(Connections::Id(qids.toString()));
+    }
+
+    return id_list;
+  }
+
   void Settings::Save()
   {
     if(!_use_file) {
@@ -240,17 +208,17 @@ namespace Applications {
     }
 
     QStringList peers;
-    foreach(QUrl peer, RemotePeers) {
-      peers << peer.toString();
+    foreach(const Transports::Address &addr, RemoteEndPoints) {
+      peers << addr.ToString();
     }
 
     if(!peers.empty()) {
-      _settings->setValue(Param<Params::RemotePeers>(), peers);
+      _settings->setValue(Param<Params::RemoteEndPoints>(), peers);
     }
 
     QStringList endpoints;
-    foreach(QUrl endpoint, LocalEndPoints) {
-      endpoints << endpoint.toString();
+    foreach(const Transports::Address &addr, LocalEndPoints) {
+      endpoints << addr.ToString();
     }
 
     if(!endpoints.empty()) {
@@ -260,17 +228,21 @@ namespace Applications {
     _settings->setValue(Param<Params::LocalNodeCount>(), LocalNodeCount);
     _settings->setValue(Param<Params::WebServerUrl>(), WebServerUrl);
     _settings->setValue(Param<Params::Console>(), Console);
-    _settings->setValue(Param<Params::AuthMode>(), AuthMode);
+    _settings->setValue(Param<Params::Auth>(), Auth);
     _settings->setValue(Param<Params::Log>(), Log);
     _settings->setValue(Param<Params::Multithreading>(), Multithreading);
+
     QVariantList local_ids;
-    foreach(const Id &id, LocalIds) {
+    foreach(const Connections::Id &id, LocalId) {
       local_ids.append(id.ToString());
     }
     _settings->setValue(Param<Params::LocalId>(), local_ids);
-    _settings->setValue(Param<Params::LeaderId>(), LeaderId.ToString());
-    _settings->setValue(Param<Params::SubgroupPolicy>(),
-        Group::PolicyTypeToString(SubgroupPolicy));
+
+    QVariantList server_ids;
+    foreach(const Connections::Id &id, ServerIds) {
+      server_ids.append(id.ToString());
+    }
+    _settings->setValue(Param<Params::ServerIds>(), server_ids);
   }
 
   Settings Settings::CommandLineParse(const QStringList &params, bool actions)
@@ -320,8 +292,8 @@ namespace Applications {
         "help (this screen)",
         QxtCommandOptions::NoValue);
 
-    options->add(Param<Params::RemotePeers>(),
-        "list of remote peers",
+    options->add(Param<Params::RemoteEndPoints>(),
+        "list of remote end points",
         QxtCommandOptions::ValueRequired | QxtCommandOptions::AllowMultiple);
 
     options->add(Param<Params::LocalEndPoints>(),
@@ -332,12 +304,12 @@ namespace Applications {
         "number of virtual nodes to start",
         QxtCommandOptions::ValueRequired);
 
-    options->add(Param<Params::AuthMode>(),
-        "the type of authentication",
+    options->add(Param<Params::Auth>(),
+        "bool, enable or disable authentication",
         QxtCommandOptions::ValueRequired);
 
-    options->add(Param<Params::SessionType>(),
-        "the type of session",
+    options->add(Param<Params::RoundType>(),
+        "the type of round",
         QxtCommandOptions::ValueRequired);
 
     options->add(Param<Params::Log>(),
@@ -369,23 +341,15 @@ namespace Applications {
         QxtCommandOptions::NoValue);
 
     options->add(Param<Params::LocalId>(),
-        "160-bit base64 local id",
+        "one or more 160-bit base64 local id",
         QxtCommandOptions::ValueRequired | QxtCommandOptions::AllowMultiple);
 
-    options->add(Param<Params::LeaderId>(),
-        "160-bit base64 leader id",
+    options->add(Param<Params::ServerIds>(),
+        "one or more 160-bit base64 server id",
         QxtCommandOptions::ValueRequired);
 
-    options->add(Param<Params::SubgroupPolicy>(),
-        "subgroup policy (defining servers)",
-        QxtCommandOptions::ValueRequired);
-
-    options->add(Param<Params::SuperPeer>(),
-        "sets this peer as a capable super peer",
-        QxtCommandOptions::NoValue);
-
-    options->add(Param<Params::PrivateKey>(),
-        "a path to a private key",
+    options->add(Param<Params::PrivateKeys>(),
+        "a path to a directory containing private keys",
         QxtCommandOptions::ValueRequired | QxtCommandOptions::AllowMultiple);
 
     options->add(Param<Params::PublicKeys>(),

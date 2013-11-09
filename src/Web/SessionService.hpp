@@ -2,10 +2,7 @@
 #define DISSENT_WEB_SESSION_SERVICE_GUARD
 
 #include <QSharedPointer>
-
-#include "Anonymity/Sessions/Session.hpp"
-#include "Anonymity/Sessions/SessionManager.hpp"
-
+#include "Session/Session.hpp"
 #include "WebService.hpp"
 
 namespace Dissent {
@@ -15,10 +12,8 @@ namespace Web {
    */
   class SessionService : public WebService {
     public:
-      typedef Anonymity::Sessions::Session Session;
-      typedef Anonymity::Sessions::SessionManager SessionManager;
 
-      explicit SessionService(SessionManager &sm);
+      explicit SessionService(const QSharedPointer<Session::Session> &session);
 
       /**
        * Called to handle the incoming request
@@ -29,12 +24,12 @@ namespace Web {
 
     protected:
       /**
-       * Return the monitored session
+       * Return the session
        */
-      QSharedPointer<Session> GetSession() { return m_sm.GetDefaultSession(); }
+      QSharedPointer<Session::Session> GetSession() { return m_session; }
  
     private:
-      SessionManager &m_sm;
+      QSharedPointer<Session::Session> m_session;
   };
 }
 }

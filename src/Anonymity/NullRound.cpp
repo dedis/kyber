@@ -1,56 +1,70 @@
-#include "Connections/Network.hpp"
-
 #include "NullRound.hpp"
 
 namespace Dissent {
 namespace Anonymity {
-  NullRound::NullRound(const Group &group,
-      const PrivateIdentity &ident,
-      const Id &round_id,
-      const QSharedPointer<Network> &network,
-      GetDataCallback &get_data,
-      const QSharedPointer<BuddyMonitor> &bm) :
-    Round(group, ident, round_id, network, get_data, bm),
-    _received(GetGroup().Count()),
-    _n_msgs(0)
+  NullRound::NullRound(const Identity::Roster &clients,
+      const Identity::Roster &servers,
+      const Identity::PrivateIdentity &ident,
+      const QByteArray &nonce,
+      const QSharedPointer<ClientServer::Overlay> &overlay,
+      Messaging::GetDataCallback &get_data) :
+    Round(clients, servers, ident, nonce, overlay, get_data),
+    m_received(clients.Count()),
+    m_msgs(0)
   {
   }
 
   void NullRound::OnStart()
   {
     Round::OnStart();
+    if(GetOverlay()->AmServer()) {
+      return;
+    }
+
     QPair<QByteArray, bool> data = GetData(1024);
-    GetNetwork()->Broadcast(data.first);
+    QByteArray msg = GetHeaderBytes() + data.first;
+    GetOverlay()->Broadcast("SessionData", msg);
   }
 
-  void NullRound::ProcessData(const Id &id, const QByteArray &data)
+  void NullRound::ProcessPacket(const Connections::Id &from, const QByteArray &data)
   {
-    const int idx = GetGroup().GetIndex(id);
+    if(Stopped()) {
+      qWarning() << "Received a message on a closed session:" << ToString();
+      return;
+    }
 
-    if(!_received[idx].isEmpty()) {
-      qWarning() << "Receiving a second message from: " << id.ToString();
+    if(!GetClients().Contains(from)) {
+      qDebug() << ToString() << " received wayward message from: " << from;
+      return;
+    }
+
+    int idx = GetClients().GetIndex(from);
+
+    if(!m_received[idx].isEmpty()) {
+      qWarning() << "Receiving a second message from: " << from;
       return;
     }
 
     if(!data.isEmpty()) {
-      qDebug() << GetLocalId().ToString() << "received a real message from" <<
-        id.ToString();
+      qDebug() << GetLocalId().ToString() << "received a real message from" << from;
     }
 
-    _received[idx] = data;
-    _n_msgs++;
+    m_received[idx] = data;
+    m_msgs++;
 
-    qDebug() << GetLocalId().ToString() << "received" << _n_msgs << "expecting" << GetGroup().Count();
+    qDebug() << GetLocalId().ToString() << "received" <<
+      m_msgs << "expecting" << m_received.size();
 
-    if(_n_msgs != GetGroup().Count()) {
+    if(m_msgs != m_received.size()) {
       return;
     }
 
-    foreach(const QByteArray &msg, _received) {
+    foreach(const QByteArray &msg, m_received) {
       if(!msg.isEmpty()) {
         PushData(GetSharedPointer(), msg);
       }
     }
+
     SetSuccessful(true);
     Stop("Round successfully finished.");
   }

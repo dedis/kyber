@@ -1,6 +1,7 @@
 #include <QDebug>
 #include "BufferEdgeListener.hpp"
 #include "Utils/Random.hpp"
+#include "Utils/Timer.hpp"
 
 using Dissent::Utils::Random;
 
@@ -69,17 +70,24 @@ namespace Transports {
     }
 
     const BufferAddress &rem_ba = static_cast<const BufferAddress &>(to);
-    BufferEdgeListener *remote_el = _el_map.value(rem_ba.GetId());
+    int delay = Dissent::Utils::Random::GetInstance().GetInt(10, 50);
+    EdgeCreationState ecs(rem_ba, delay);
+    Callback *cb = new Callback(this, &BufferEdgeListener::CreateEdgeCallback, ecs);
+    Utils::Timer::GetInstance().QueueCallback(cb, delay);
+  }
+ 
+  void BufferEdgeListener::CreateEdgeCallback(const EdgeCreationState &ecs)
+  {
+    BufferEdgeListener *remote_el = _el_map.value(ecs.GetTo().GetId());
     if(remote_el == 0) {
       qDebug() << "Attempting to create an Edge to an EL that doesn't exist from " <<
-        GetAddress().ToString() << " to " << to.ToString();
-      ProcessEdgeCreationFailure(to, "No such peer");
+        GetAddress().ToString() << " to " << ecs.GetTo().ToString();
+      ProcessEdgeCreationFailure(ecs.GetTo(), "No such peer");
       return;
     }
 
-    int delay = Dissent::Utils::Random::GetInstance().GetInt(10, 50);
-    BufferEdge *local_edge(new BufferEdge(GetAddress(), remote_el->GetAddress(), true, delay));
-    BufferEdge *remote_edge(new BufferEdge(remote_el->GetAddress(), GetAddress(), false, delay));
+    BufferEdge *local_edge(new BufferEdge(GetAddress(), remote_el->GetAddress(), true, ecs.GetDelay()));
+    BufferEdge *remote_edge(new BufferEdge(remote_el->GetAddress(), GetAddress(), false, ecs.GetDelay()));
 
     QSharedPointer<BufferEdge> ledge(local_edge);
     SetSharedPointer(ledge);

@@ -9,10 +9,8 @@
 #include <QxtCommandOptions>
 
 #include "Connections/Id.hpp"
-#include "Identity/Group.hpp"
-
-#include "AuthFactory.hpp"
-#include "SessionFactory.hpp"
+#include "Transports/Address.hpp"
+#include "Anonymity/RoundFactory.hpp"
 
 namespace Dissent {
 namespace Applications {
@@ -21,9 +19,6 @@ namespace Applications {
    */
   class Settings {
     public:
-      typedef Connections::Id Id;
-      typedef Identity::Group Group;
-
       /**
        * Load configuration from disk
        * @param file the file with the settings contained therein
@@ -65,12 +60,12 @@ namespace Applications {
       /**
        * List of bootstrap peers
        */
-      QList<QUrl> RemotePeers;
+      QList<Transports::Address> RemoteEndPoints;
       
       /**
        * List of local urls to construct EdgeListeners from
        */
-      QList<QUrl> LocalEndPoints;
+      QList<Transports::Address> LocalEndPoints;
 
       /**
        * Amount of nodes to create locally
@@ -80,12 +75,12 @@ namespace Applications {
       /**
        * Enable demo mode for evaluation / demo purposes
        */
-      AuthFactory::AuthType AuthMode;
+      bool Auth;
 
       /**
-       * The type of anonymity session / round to construct
+       * The type of anonymity round to construct
        */
-      SessionFactory::SessionType SessionType;
+      Anonymity::RoundFactory::RoundType RoundType;
 
       /**
        * Logging type: stderr, stdout, file, or empty (disabled)
@@ -134,29 +129,19 @@ namespace Applications {
       bool Multithreading;
 
       /**
-       * The id for the (first) local node, other nodes will be random
+       * The id for local nodes
        */
-      QList<Id> LocalIds;
+      QList<Connections::Id> LocalId;
 
       /**
-       * The id for the anonymity group's leader
+       * The Ids for the set of servers
        */
-      Id LeaderId;
+      QList<Connections::Id> ServerIds;
 
       /**
-       * The subgroup policy employed at this node
+       * Path to a directory containing private keys
        */
-      Group::SubgroupPolicy SubgroupPolicy;
-
-      /**
-       * SuperPeer capable?
-       */
-      bool SuperPeer;
-
-      /**
-       * List of private keys mapped the LocalIds
-       */
-      QList<QString> PrivateKey;
+      QString PrivateKeys;
 
       /**
        * Path to a directory containing public keys
@@ -169,11 +154,11 @@ namespace Applications {
       {
         static const char* params[] = {
           "help",
-          "remote_peers",
-          "endpoints",
+          "remote_endpoints",
+          "local_endpoints",
           "local_nodes",
-          "auth_mode",
-          "session_type",
+          "auth",
+          "round_type",
           "log",
           "console",
           "web_server_url",
@@ -182,10 +167,8 @@ namespace Applications {
           "exit_tunnel_proxy_url",
           "multithreading",
           "local_id",
-          "leader_id",
-          "subgroup_policy",
-          "super_peer",
-          "path_to_private_key",
+          "server_ids",
+          "path_to_private_keys",
           "path_to_public_keys"
         };
         return params[id];
@@ -195,11 +178,11 @@ namespace Applications {
         public:
           enum OptionId {
             Help = 0,
-            RemotePeers,
+            RemoteEndPoints,
             LocalEndPoints,
             LocalNodeCount,
-            AuthMode,
-            SessionType,
+            Auth,
+            RoundType,
             Log,
             Console,
             WebServerUrl,
@@ -208,10 +191,8 @@ namespace Applications {
             ExitTunnelProxyUrl,
             Multithreading,
             LocalId,
-            LeaderId,
-            SubgroupPolicy,
-            SuperPeer,
-            PrivateKey,
+            ServerIds,
+            PrivateKeys,
             PublicKeys
           };
       };
@@ -226,9 +207,10 @@ namespace Applications {
       static QSharedPointer<QxtCommandOptions> GetOptions();
       Settings(const QSharedPointer<QSettings> &settings, bool file, bool actions);
       void Init(bool actions = false);
-      void ParseUrlList(const QString &name, const QVariant &values, QList<QUrl> &list);
-      void ParseUrl(const QString &name, const QVariant &value, QList<QUrl> &list);
+      QList<Transports::Address> ParseAddressList(const QString &name, const QVariant &values);
+      QUrl ParseUrl(const QString &name, const QVariant &value);
       QUrl TryParseUrl(const QString &string_rep, const QString &scheme);
+      QList<Connections::Id> ParseIdList(const QVariant &qids);
 
       bool _use_file;
       QSharedPointer<QSettings> _settings;
