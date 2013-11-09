@@ -16,6 +16,7 @@ Code
 Denial of Service
 - Reimplement TcpEL using another network library to get around Qt file
   descriptor bug
+- Move PeerId agreement into a secure location to prevent DoS
 
 Performance
 - Tunnels need fairness / queuing strategy
