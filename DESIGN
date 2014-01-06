@@ -43,13 +43,13 @@ The overlay protocol defines the means by which clients and servers form
 overlay level connections intended to verify that the two parties are
 connecting with the right group.  There are no intended security properties.
 
-The server setup begins with a pre-specified server initiating a round
-bootstrapping event embedded with causal information to prevent DoS attacks.
-Servers then verify each others identity and agree upon a one time RoundId with
-each server contributing to its randomness.  Servers also exchange information
-necessary for executing a protocol run including an ephemeral signing key and
-other optional information. All this information will be unique for each round
-assuming anytrust.
+The server setup begins with a pre-specified server, or a proposer, initiating
+a round bootstrapping event embedded with causal information to prevent DoS
+attacks.  Servers then verify each others identity and agree upon a one time
+RoundId with each server contributing to its randomness.  Servers also exchange
+information necessary for executing a protocol run including an ephemeral
+signing key and other optional information. All this information will be unique
+for each round assuming anytrust.
 
 At any point, clients may queue for an upcoming round. Once servers have
 completed their bootstrapping protocol, they allow clients to register.  During
@@ -99,9 +99,9 @@ III.  Round bootstrapping -- Server Setup
 ==============================================================================
 
 Upon establishing connections or completing a round, Dissent begins
-resynchronization. The first server listed in the configuration file has the
-unique role of proposing the start of a round via an Init message to all
-servers.
+resynchronization. The first server listed in the configuration file, or the
+proposer, has the unique role of proposing the start of a round via an Init
+message to all servers.
 
 A -> B Init ([PeerId_A | I Nonce | Timestamp | GroupId]_[Signature_A])
 
@@ -130,13 +130,11 @@ each round eventually acquires a fresh RoundId: even if a proposer maliciously
 reuses an old I Nonce and/or Timestamp, the randomness in the Enlist messages
 from other servers (below) guarantee RoundId freshness.
 
-After receiving the Init messages, servers begin exchanging Enlist messages
-with each other.  Enlist messages authenticate servers and contain ephemeral
-keys used for signing messages in the rounds and optional data for use in an
-upcoming protocol round. The Init message received earlier is included in case
-an Enlist message arrives before the Init is is based upon does. A server can
-use the embedded Init instead of waiting on the proposer's Init or having to
-maintain state for out of order messages.
+After receiving the Init messages, servers transmit to the proposer an Enlist
+message.  Enlist messages authenticate servers and contain ephemeral keys used
+for signing messages in the rounds and optional data for use in an upcoming
+protocol round. The Init message received earlier is included as a nonce and
+for synchronization.  
 
 A -> B Enlist ([PeerId_A | Init Message | EphemeralPublicKey_A |
                 Optional_A]_[Signature_A])
@@ -150,15 +148,24 @@ A -> B Enlist ([PeerId_A | Init Message | EphemeralPublicKey_A |
 - Signature_A - QByteArray - Signature on [PeerId_A | Init Message |
   EphemeralPublicKey_A | Optional_A], should use A's well known public key
 
-Once a server has received an Enlist from all other servers, they begin the
-round identifier generation process. Currently, Servers currently employ the
-following process: RoundId = SHA1([Enlist]) ordered by the Id of the servers.
-Thus the ephemeral key in the Enlist message serves as a guarantee that under
-the anytrust model the RoundId has some randomness.
+Once the proposer has received an Enlist from all other servers, he transmits
+the complete list to all other servers:
 
-Upon conclusion of producing a RoundId, servers distribute an Agree message,
-which contains most of the fields of the Enlist message; however, the Init
-Message will be replaced by the RoundId.
+P -> S Enlisted ([List_of_Enlist] | [Signature_P])
+
+- List_of_Enlist - QList of Enlist - The entire set of Enlist messages
+- Signature_P - QByteArray - Signature on List_of_Enlist using P's well known
+  public key.
+
+Upon receiving Enlisted, all servers know they have properly sychronized and
+can execute the round identifier generation process. Currently, Servers
+currently employ the following process: RoundId = SHA1([Enlist]) ordered by the
+Id of the servers.  Thus the ephemeral key in the Enlist message serves as a
+guarantee that under the anytrust model the RoundId has some randomness.
+
+Upon conclusion of producing a RoundId, servers distribute an Agree message to
+each other directly, which contains most of the fields of the Enlist message;
+however, the Init Message will be replaced by the RoundId.
 
 A -> B Agree ([PeerId_A | RoundId | Timestamp | EphemeralPublicKey_A |
                Optional_A]_[Signature_A])
@@ -252,6 +259,8 @@ which point, each server broadcasts a Stop message with the reason "Protocol
 run complete" and immediate set to false.  At any point, if a server
 disconnects from any other server, that server immediately broadcasts a Stop
 message with reason "Server disconnected x from y" and immediate set to true.
+Because of potential disconnections, the proposer also redistributes a Stop
+message upon receiving.
 
 S -> C Stop ([RoundId, Immediate, Reason]_[Signature_A])
 
@@ -265,7 +274,9 @@ Stop - [RoundId | Immediate | Reason]_[Signature_A]
 Upon receiving a stop message, the round terminates immediately if immediate is
 set to true or upon conclusion of the current round if not. At which point, the
 entire process repeats from the first server transmitting an Init message and
-clients' Queue.
+clients' Queue. It is assumed that all messages are received in the order they
+are sent, and that a Stop message will arrive before either an ensuing Init or
+Queued message will arrive.
 
 ==============================================================================
 V.    Anonymity protocols
