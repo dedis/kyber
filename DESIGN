@@ -25,6 +25,27 @@ V.    Technical notes
 VI.   Terms
 VII.  Message descriptions
 
+
+==============================================================================
+0.    Scenarios
+==============================================================================
+
+
+XXX insert section here on deployment models - town hall, and NGO.
+List Caveats.  Stuff that's different for the different use cases.
+Key distribution - what might work, what might not.
+How many keys go to the secret police?
+How do Ratistanis protect their membership?  NGO case and town hall case
+Town hall: users can debate, vote on decisions
+
+Provisioning requirements
+
+Can the same key appear in the server list and the client list?
+We don't know of a reason not to, but perhaps safest just to disallow.
+
+
+
+
 ==============================================================================
 I.    Overlay protocol
 ==============================================================================
