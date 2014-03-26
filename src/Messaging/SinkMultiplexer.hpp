@@ -14,6 +14,11 @@ namespace Messaging {
       class SinkSource;
 
     public:
+      void AddSink(const QSharedPointer<ISink> &sink)
+      {
+        AddSink(sink.data());
+      }
+
       void AddSink(ISink *sink)
       {
         QSharedPointer<SinkSource> source(new SinkSource());
