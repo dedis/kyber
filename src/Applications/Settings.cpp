@@ -18,6 +18,7 @@ namespace Applications {
     _use_file(false),
     _settings(new QSettings())
   {
+    _settings->clear();
     Init();
   }
 
