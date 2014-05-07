@@ -38,9 +38,9 @@ Build the command-line (Application):
 qmake application.pro
 make
 
-The default configuration will create a local overlay with 10 members, to use
-it execute:
-./dissent ./conf/local.conf 2> /dev/null
+The default configuration will create a local overlay with 3 servers and 20
+clients, to use it execute:
+cd conf/local && ln -s ../../dissent . && ./run_all.sh
 
 This will launch a command-line interface, where commands can be typed.
 (Note: by default logging is enabled, the above redirects it to /dev/null)
