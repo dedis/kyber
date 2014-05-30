@@ -1,6 +1,6 @@
 #!/bin/bash
 QMAKE=qmake-qt4
-github_repo=github
+github_repo=github_dedis
 wd=$PWD
 rand=$RANDOM
 git clone . /tmp/dissent.$rand

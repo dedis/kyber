@@ -38,7 +38,7 @@ namespace Crypto {
   }
 
   /**
-   * group_gen = Hash(Identities, linkage_context)
+   * group_gen = g ^ Hash(Identities, linkage_context)
    * precompute = Hash(group_gen, tag, message)
    * tag = group_gen ^ private_key
    *
@@ -47,7 +47,7 @@ namespace Crypto {
    * for(pi + 1, n) and (1, pi - 1)
    *   c_{i+1}  = H(precompute, g^s_i * y_i^c_i, h^s_i * tag^c_i)
    * s_my_idx = u - x_my_idx * c_my_idx
-   * [c_1, [s_1, ..., s_n], tag] = signature
+   * [c_n, [s_1, ..., s_n], tag] = signature
    */
   QByteArray LRSPrivateKey::Sign(const QByteArray &data) const
   {

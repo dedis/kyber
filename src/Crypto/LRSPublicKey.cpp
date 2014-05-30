@@ -74,16 +74,16 @@ namespace Crypto {
   }
 
   /**
-   * group_gen = Hash(Identities, linkage_context)
+   * group_gen = g ^ Hash(Identities, linkage_context)
    * precompute = Hash(group_gen, tag, message)
    * tag = group_gen ^ private_key
-   * [c_1, [s_1, ..., s_n], tag] = signature
-   * tc_1 = c_1
+   * [c_n, [s_1, ..., s_n], tag] = signature
+   * tc = c_n
    * for(1, n - 1)
-   *   z_i' = g^s_i * y^c_i
+   *   z_i' = g^s_i * y_i^tc
    *   z_i'' = group_gen^s_i * tag^c_i
-   *   tc_{i+1} = Hash(precompute, z_i', z_i'')
-   * valid if c_1 == tc_n
+   *   tc = Hash(precompute, z_i', z_i'')
+   * valid if c_n == tc
    */
   bool LRSPublicKey::Verify(const QByteArray &data, const QByteArray &sig) const
   {
