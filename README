@@ -5,136 +5,6 @@ Overview
 This library will eventually provide a framework for constructing provably
 anonymous overlays with the following key features.
 
-The library requires Qt and CryptoPP and can be built using qmake on
-dissent.pro (qmake dissent.pro)
-
-While previous versions of the code focused on linkable libraries, because this
-has unnecessary complexities, we plan to only support unified binaries.
-
-Directory Structure
-===============================================================================
-- ext - external sources required to build the code
-- src - source code for the development branch
-- src/Anonymous - Anonymity protocols
-- src/Applications - User interfaces modules
-- src/Connections - Message plane abstraction
-- src/Crypto - Cryptography interface
-- src/Identity - Containers for user information
-- src/Identity/Authentication - Authentication protocols
-- src/Messaging - Interfaces for abstracting communication
-- src/Overlay - Manages connections
-- src/Tests - Test code for classes in other folders
-- src/Transports - Low level Networking interface
-- src/Tunnel - SOCKS proxy
-- src/Utils - Miscellaneous tools
-- src/Web - Web server 
-- src/Web/Services - Web services
-- legacy/libdissent - original, unmodified C++ version
-- legacy/py - original, unmodified Python version
-
-Using
-===============================================================================
-Build the command-line (Application):
-qmake application.pro
-make
-
-The default configuration will create a local overlay with 3 servers and 20
-clients, to use it execute:
-cd conf/local && ln -s ../../dissent . && ./run_all.sh
-
-This will launch a command-line interface, where commands can be typed.
-(Note: by default logging is enabled, the above redirects it to /dev/null)
-
-Type help to print out the commands.
-
-Dissent also supports command-line flags.  Type:
-./dissent
-With no parameters or with --help to get a list of optional parameters.
-
-Command Line Network Use
-===============================================================================
-Inspect conf/slave_tcp.conf and conf/master_tcp.conf
-
-Nodes using conf/master_tcp.conf are bootstrap peers
-Nodes using conf/slave_tcp.conf should have bootstrap peers end points in
-their remote_peers list
-
-Binding to 0.0.0.0 will result in the first non-loop backdevice IP address
-being used in exchanging IP address information.
-
-After changing the configuration files and distributing the application,
-begin by turning on the bootstrap peers first and then the client peers.
-Afterward interaction is the same as discussed in the "Using" section.
-
-Web Server Use
-===============================================================================
-See WEB_USE in the top level directory (same as the README)
-
-Proxy Server Use
-===============================================================================
-Inspect conf/tunnel-entry.conf and conf/tunnel-exit.conf
-
-Dissent has a built-in SOCKS 5 server for tunneling TCP traffic through a 
-Dissent session. SOCKS tunneling requires two special nodes: an entry node and 
-an exit node. The entry node runs the SOCKS server and inserts SOCKS traffic 
-into a Dissent session. The exit node receives SOCKS traffic from a Dissent 
-session and forwards it to its destination.
-
-To enable a SOCKS entry node, add these lines to your .conf file:
-  entry_tunnel = true
-  entry_tunnel_url = "tcp://socks_server_ip:port"
-If the socks_server_ip is 0.0.0.0, then the SOCKS server will listen on any 
-hostname.
-
-The SOCKS server handles only TCP traffic, but it can resolve hostname-type
-addresses.
-
-To enable a SOCKS exit node, add this line to your .conf file:
-  exit_tunnel = true
-
-Tests
-===============================================================================
-This suite contains many tests using googletest[1], use qmake on test.pro
-(qmake test.pro && make && ./test) to generate an appropriate makefile, which
-will create a binary to test the code.
-
-googletest was chosen because testing system code with QtTest would be quite
-inefficient.
-
-1 - http://code.google.com/p/googletest/
-
-Key generation
-===============================================================================
-Dissent supports BER decoding and writes in DER encoding[1], this apparently
-provides the best interoperability.  To create public and private keys, we have
-provided a tool called keygen (qmake keygen.pro && make && ./keygen), that can
-create public / private key pairs and save them as a hash of the public key.
-This hash can then be used as the Id of the node in Dissent.
-
-1 - http://www.cryptopp.com/wiki/Keys_and_Formats#BER_and_DER_Encoding
-
-Logging and Debugging Output
-===============================================================================
-Logging outputs are compiled in by default but can be disabled by uncommenting
-the following lines in test.pro and console.pro:
-#DEFINES += QT_NO_DEBUG_OUTPUT
-#DEFINES += QT_NO_WARNING_OUTPUT
-
-Logging can be manipulated by using the Dissent::Utils::Logging class.  For the
-ConsoleApp this is done by using the Settings file (conf).
-
-To send logging output to standard error use log = "stderr".
-To send logging output to standard output use log = "stdout".
-To send logging output to a file use log = "filename".
-To disable logging use log = "" or exclude log altogether.
-
-Links
-===============================================================================
-Dedis -- Research group at Yale producing this software
--- http://dedis.cs.yale.edu/
-Dissent -- Overview of the protocol
--- http://dedis.cs.yale.edu/2010/anon/
-
 Contact
 ===============================================================================
 TBA
@@ -172,7 +42,7 @@ License
 While the code linked relies on a variety of licenses, which must be respected,
 the code contained herein shall use the following license:
 
-Copyright (C) 2011 Yale Dedis
+Copyright (C) 2014 Yale Dedis
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
