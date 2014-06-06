@@ -1,15 +1,18 @@
-==============================================================================
+===============================================================================
 Roadmap
-==============================================================================
-I.   Abstract
-II.  Overview
-III. Trustee / Relay Interaction
-IV.  Client / Relay Interaction
-V.   Terms
+===============================================================================
+I.    Abstract
+II.   Overview
+III.  Trustee / Relay Interaction
+IV.   Client / Relay Interaction
+V.    Relay / Relay Interaction
+VI.   Client / Relay Interaction
+VII. Terms
+E.    Tasks
 
-==============================================================================
-I.   Abstract
-==============================================================================
+===============================================================================
+I.    Abstract
+===============================================================================
 
 Low latency Dissent has the appearance of a 1-hop proxy: clients transmit
 ciphertext to a server, who decrypts the ciphertext, and forwards the resulting
@@ -20,9 +23,9 @@ any cleartext packets transmitted to Internet services.  This document
 discusses a specific approach to performing these interactions that retains the
 strong security parameters of accountable DC-nets like Dissent.
 
-==============================================================================
-II.  Overview
-==============================================================================
+===============================================================================
+II.   Overview
+===============================================================================
 Background: This document only describes the events after a shuffle has
 completed.  In this model, only a single client transmits cleartext data, in
 other words, there is only one slot.  The shuffle outputs an anonymous DH / DSA
@@ -50,11 +53,12 @@ message, because all the random strings cancel out, as each string would be
 included twice, once by the trustee and once by the client.
 
 In LLD, slots have a fundamental unit of cells.  Trustees use the
-client/trustee shared secrets, the current cell index, and the slot DH key as
-seeds to random number generators -- hash(secret | cell index | slot DH key) --
-producing a ciphertext for each client.  Trustees generate these shared
-ciphertexts in batches, at a minimum of a cell size, Xor them together, and
-deliver the resulting byte array to the relay.
+client/trustee shared secrets, the current interval index, the current cell
+index, and the slot DH key as seeds to random number generators -- hash(secret
+| interval index | cell index | slot DH key) -- producing a ciphertext for each
+client.  Trustees generate these shared ciphertexts in batches, at a minimum of
+a cell size, Xor them together, and deliver the resulting byte array to the
+relay.
 
 Similarly, the clients use the client/trustee shared secrets as seeds to random
 number generators producing a ciphertext for each trustee.  The client then
@@ -156,19 +160,140 @@ Slot Format
 We could probably just reuse something similar to Dissent in Numbers without
 the randomize function as the trap bit component proposed herein replaces it.
 
-==============================================================================
-III. Trustee / Relay Interaction
-==============================================================================
+===============================================================================
+III.  Trustee / Relay Interaction
+===============================================================================
 
-==============================================================================
-IV.  Client / Relay Interaction
-==============================================================================
+0) Before each interval, the relay informs the trustees about the current
+online client set:
 
-==============================================================================
-V.   Terms
-==============================================================================
-Terms:
+R -> T ([RELAY_INFORM | SessionId | IntervalId | ClientSet] | [Signature_R])
+- RELAY_INFORM - int - The message type
+- SessionId - bytes - The session identifier
+- IntervalId - int - The current interval (starts at 0)
+- ClientSet - bytes - Bit array, clients bit is set if they will participate
+- Signature_R - bytes - The relay's signature using his well-known DH key
+
+1) Before an interval, trustees sign off on the current configuration and offer
+new per-interval DH keys:
+T -> R ([TRUSTEE_CONFIRM | SessionId | IntervalId | ClientSet | IntervalKey] |
+  [Signature_T])
+- TRUSTEE_CONFIRM - int - The message type
+- SessionId - bytes - The session identifier
+- IntervalId - int - The current interval (starts at 0)
+- ClientSet - bytes - Bit array, clients bit is set if they will participate
+- IntervalKey - bytes - A DH Key for use in the specified interval
+- Signature_T - bytes - The relay's signature using his well-known DH key
+
+2) Before and throughout an interval, trustees will deliver ciphertext for
+processing client ciphertext into cleartext messages:
+T -> R ([TRUSTEE_CIPHERTEXT | SessionId | IntervalId | CiphertextId |
+  Ciphertext] | [Signature_T])
+- TRUSTEE_CIPHERTEXT - int - The message type
+- SessionId - bytes - The session identifier
+- IntervalId - int - The current interval (starts at 0)
+- CiphertextId - int - The current ciphertext (starts at 0)
+- Ciphertext - bytes - Set of bytes for each slot
+- Signature_T - bytes - The relay's signature using his well-known DH key
+
+3) Throughout an interval, the relay transfers the output of exchanges to the
+trustees:
+R -> C ([RELAY_CLEARTEXT | SessionId | IntervalId | ExchangeId | Cleartext |
+  InternetTraffic] | [Signature_R])
+- RELAY_CLEARTEXT - int - The message type
+- SessionId - bytes - The session identifier
+- IntervalId - int - The current interval (starts at 0)
+- ExchangeId - int - The current exchange (starts at 0)
+- Cleartext - bytes - A set of bytes for each cleartext
+- InternetTraffic - bytes - A set of bytes for each incoming Internet packet
+- Signature_R - bytes - The relay's signature using his well-known DH key
+
+===============================================================================
+IV.   Client / Relay Interaction
+===============================================================================
+
+0) A client in the roster though not in active in the interval must register
+for two consecutive intervals by transmitting a CLIENT_REGISTER message:
+
+C -> R ([CLIENT_REGISTER | SessionId | Timestamp] | [Signature_C])
+- CLIENT_REGISTER - int - The message type
+- SessionId - bytes - The session identifier
+- Timestamp - int - Time since the Epoch
+- Signature_C - bytes - The client's signature using his well-known DH key
+
+1) At the conclusion of each interval and before the first, the relay transmits
+a conclusion message, either containing configuration information for the
+following interval or concluding the current session.
+
+R -> C ([INTERVAL_CONCLUSION | SessionId | IntervalId | NextInterval |
+  IntervalConfiguration] | [Signature_R])
+- INTERVAL_CONCLUSION - int - The message type
+- SessionId - bytes - The session identifier
+- IntervalId - int - The current interval (starts at 0)
+- NextInterval - bool - True if there is another interval and
+IntervalConfiguration has valid information
+- IntervalConfiguration - list of TRUSTEE_CONFIRM - The configuration for the
+next interval
+- Signature_R - bytes - The relay's signature using his well-known DH key
+
+2) Clients actively involved in an interval transmit ciphertexts as quickly as
+soon as they receive the INTERVAL_CONCLUSION message or a downstream ciphertext
+from the relay:
+
+C -> R ([CLIENT_CIPHERTEXT | SessionId | IntervalId | ExchangeId | Ciphertext] |
+  [Signature_C])
+- CLIENT_CIPHERTEXT - int - The message type
+- SessionId - bytes - The session identifier
+- IntervalId - int - The current interval (starts at 0)
+- ExchangeId - int - The current exchange (starts at 0)
+- Ciphertext - bytes - A set of bytes for each of the active slots
+- Signature_C - bytes - The client's signature using his well-known DH key
+
+3) The relay accumulates all the client ciphertext and xors it with the
+trustees' ciphertexts. This produces cleartext output, which the relay server
+transmits back to the clients along with any relayed Internet traffic. At the
+same time, it relays Internet destined packets from within the cleartext
+Internet to their appropriate destinations.
+
+R -> C ([RELAY_CLEARTEXT | SessionId | IntervalId | ExchangeId | Cleartext |
+  InternetTraffic] | [Signature_R])
+- RELAY_CLEARTEXT - int - The message type
+- SessionId - bytes - The session identifier
+- IntervalId - int - The current interval (starts at 0)
+- ExchangeId - int - The current exchange (starts at 0)
+- Cleartext - bytes - A set of bytes for each cleartext
+- InternetTraffic - bytes - A set of bytes for each incoming Internet packet
+- Signature_C - bytes - The relay's signature using his well-known DH key
+
+===============================================================================
+V.    Relay / Relay Interaction
+===============================================================================
+
+===============================================================================
+VI.   Client / Relay Interaction
+===============================================================================
+
+===============================================================================
+VII.  Terms
+===============================================================================
 Clients - users of the service
 Relays - data plane server 
 Trustees - control plane server
 Interval - the online and active set of clients
+
+===============================================================================
+E.   Tasks
+===============================================================================
+- DiffieHellman exchange, proof of knowledge, and verification
+- Inversion coding
+- Generating ciphertext
+- Slot format / generation / parsing
+- Trap bit generation / verification
+- Trustee framework
+- Client framework
+- Server framework
+- Communication model
+- Socks server / proxy
+- HTTP server / instant messanger
+- Session bootstrap (Core Dissent Design Doc)
+- Configuration format for session and interval 
