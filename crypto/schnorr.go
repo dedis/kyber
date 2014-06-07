@@ -4,7 +4,7 @@ import (
 	"errors"
 	"math/big"
 	"crypto/dsa"
-//	"code.google.com/p/go.crypto/curve25519"
+	"crypto/cipher"
 )
 
 
@@ -20,7 +20,7 @@ var two *big.Int = new(big.Int).SetInt64(2)
 
 func (g *SchnorrGroup) SecretLen() int { return (g.Q.BitLen()+7)/8 }
 
-func (g *SchnorrGroup) RandomSecret(rand Random) *Secret {
+func (g *SchnorrGroup) RandomSecret(rand cipher.Stream) *Secret {
 	s := new(Secret)
 	s.Int.Set(BigIntMod(g.Q,rand))
 	return s
@@ -54,7 +54,7 @@ func (g *SchnorrGroup) ValidPoint(p *Point) bool {
 }
 
 // This will only work efficiently for quadratic residue groups!
-func (g *SchnorrGroup) RandomPoint(rand Random) *Point {
+func (g *SchnorrGroup) RandomPoint(rand cipher.Stream) *Point {
 	p := new(Point)
 	for {
 		p.Int.Set(BigIntMod(g.Q, rand))
@@ -119,8 +119,8 @@ func (g *SchnorrGroup) GroupOrder() *big.Int {
 }
 
 
-func GenQuadraticResidueGroup(bitlen uint, rand Random) *SchnorrGroup {
-	g := new(SchnorrGroup)
+// Initialize Schnorr group parameters for a quadratic residue group
+func (g *SchnorrGroup) QuadraticResidueGroup(bitlen uint, rand cipher.Stream) {
 	g.R = two
 
 	// pick primes p,q such that p = 2q+1
@@ -150,8 +150,6 @@ func GenQuadraticResidueGroup(bitlen uint, rand Random) *SchnorrGroup {
 		h.Add(h, one)
 	}
 	println("g = ",g.G.String())
-
-	return g
 }
 
 /*	general residue group generator, not sure if we need it
@@ -168,8 +166,8 @@ func GenResidueGroup(bitlen int, r *big.Int, rand Random) *SchnorrGroup {
 */
 
 func TestSchnorrGroup() {
-	sg := GenQuadraticResidueGroup(128, SystemRandom)
+	sg := new(SchnorrGroup)
+	sg.QuadraticResidueGroup(128, RandomStream)
 	TestGroup(sg)
 }
-
 

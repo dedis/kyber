@@ -2,6 +2,7 @@ package main
 
 import (
 	"math/big"
+	"crypto/cipher"
 )
 
 type Secret struct {
@@ -28,7 +29,7 @@ func (p *Point) Decode(buf []byte) *Point {
 type Group interface {
 
 	SecretLen() int			// Max len of secrets in bytes
-	RandomSecret(rand Random) *Secret // Pick a [pseudo]random secret
+	RandomSecret(rand cipher.Stream) *Secret // Pick a [pseudo]random secret
 	AddSecret(x, y *Secret) *Secret // Combine two secrets commutatively
 	GroupOrder() *big.Int		// Number of points in the group
 	// (actually not sure we want GroupOrder() - may not be needed,
@@ -38,7 +39,7 @@ type Group interface {
 	PointLen() int			// Max len of point in bytes
 	IdentityPoint() *Point		// The identity group element
 	BasePoint() *Point		// Well-known base point
-	RandomPoint(rand Random) *Point	// [Pseudo]random base point
+	RandomPoint(rand cipher.Stream) *Point	// [Pseudo]random base point
 	ValidPoint(p *Point) bool	// Test if a point is valid (in-group)
 
 	EncryptPoint(p *Point, s *Secret) *Point
@@ -70,8 +71,8 @@ func TestGroup(g Group) {
 	}
 
 	// Do a simple Diffie-Hellman test
-	s1 := g.RandomSecret(SystemRandom)
-	s2 := g.RandomSecret(SystemRandom)
+	s1 := g.RandomSecret(RandomStream)
+	s2 := g.RandomSecret(RandomStream)
 	println("s1 = ",s1.String())
 	println("s2 = ",s2.String())
 	if s1.Cmp(&s2.Int) == 0 {
@@ -112,8 +113,8 @@ func TestGroup(g Group) {
 	}
 
 	// Test random points
-	r1 := g.RandomPoint(SystemRandom)
-	r2 := g.RandomPoint(SystemRandom)
+	r1 := g.RandomPoint(RandomStream)
+	r2 := g.RandomPoint(RandomStream)
 	if !g.ValidPoint(r1) || !g.ValidPoint(r2) {
 		panic("RandomPoint produced invalid point")
 	}
