@@ -8,6 +8,37 @@ import (
 )
 
 
+type SchnorrSecret struct {
+	big.Int 
+	g *SchnorrGroup
+}
+
+func (s *SchnorrSecret) Encode() []byte { return s.Bytes() }
+func (s *SchnorrSecret) Decode(buf []byte) Secret {
+	s.SetBytes(buf)
+	return s
+}
+func (s *SchnorrSecret) String() string { return s.Int.String() }
+func (s *SchnorrSecret) Equal(s2 Secret) bool {
+	return s.Int.Cmp(&s2.(*SchnorrSecret).Int) == 0
+}
+
+type SchnorrPoint struct {
+	big.Int 
+	g *SchnorrGroup
+}
+
+func (p *SchnorrPoint) Encode() []byte { return p.Bytes() }
+func (p *SchnorrPoint) Decode(buf []byte) Point {
+	p.SetBytes(buf)
+	return p
+}
+func (p *SchnorrPoint) String() string { return p.Int.String() }
+func (p *SchnorrPoint) Equal(p2 Point) bool {
+	return p.Int.Cmp(&p2.(*SchnorrPoint).Int) == 0
+}
+
+
 type SchnorrGroup struct {
 	dsa.Parameters
 	R *big.Int
@@ -20,15 +51,15 @@ var two *big.Int = new(big.Int).SetInt64(2)
 
 func (g *SchnorrGroup) SecretLen() int { return (g.Q.BitLen()+7)/8 }
 
-func (g *SchnorrGroup) RandomSecret(rand cipher.Stream) *Secret {
-	s := new(Secret)
+func (g *SchnorrGroup) RandomSecret(rand cipher.Stream) Secret {
+	s := new(SchnorrSecret)
 	s.Int.Set(BigIntMod(g.Q,rand))
 	return s
 }
 
-func (g *SchnorrGroup) AddSecret(x, y *Secret) *Secret {
-	s := new(Secret)
-	s.Int.Add(&x.Int,&y.Int)
+func (g *SchnorrGroup) AddSecret(x, y Secret) Secret {
+	s := new(SchnorrSecret)
+	s.Int.Add(&x.(*SchnorrSecret).Int,&y.(*SchnorrSecret).Int)
 	s.Int.Mod(&s.Int, g.Q)
 	return s
 }
@@ -36,26 +67,27 @@ func (g *SchnorrGroup) AddSecret(x, y *Secret) *Secret {
 
 func (g *SchnorrGroup) PointLen() int { return (g.P.BitLen()+7)/8 }
 
-func (g *SchnorrGroup) IdentityPoint() *Point {
-	p := new(Point)
+func (g *SchnorrGroup) IdentityPoint() Point {
+	p := new(SchnorrPoint)
 	p.Int.Set(one)
 	return p
 }
 
-func (g *SchnorrGroup) BasePoint() *Point {
-	p := new(Point)
+func (g *SchnorrGroup) BasePoint() Point {
+	p := new(SchnorrPoint)
 	p.Int.Set(g.G)
 	return p
 }
 
-func (g *SchnorrGroup) ValidPoint(p *Point) bool {
-	return p.Int.Sign() > 0 && p.Int.Cmp(g.P) < 0 &&
-		new(big.Int).Exp(&p.Int, g.Q, g.P).Cmp(one) == 0
+func (g *SchnorrGroup) ValidPoint(p Point) bool {
+	sp := p.(*SchnorrPoint)
+	return sp.Int.Sign() > 0 && sp.Int.Cmp(g.P) < 0 &&
+		new(big.Int).Exp(&sp.Int, g.Q, g.P).Cmp(one) == 0
 }
 
 // This will only work efficiently for quadratic residue groups!
-func (g *SchnorrGroup) RandomPoint(rand cipher.Stream) *Point {
-	p := new(Point)
+func (g *SchnorrGroup) RandomPoint(rand cipher.Stream) Point {
+	p := new(SchnorrPoint)
 	for {
 		p.Int.Set(BigIntMod(g.Q, rand))
 		if g.ValidPoint(p) {
@@ -94,18 +126,18 @@ func GenDSAGroup(sizes dsa.ParameterSizes, rand Random) (err error) {
 }
 */
 
-func (g *SchnorrGroup) EncryptPoint(p *Point, s *Secret) *Point {
-	e := new(Point)
-	e.Int.Exp(&p.Int, &s.Int, g.P)
+func (g *SchnorrGroup) EncryptPoint(p Point, s Secret) Point {
+	e := new(SchnorrPoint)
+	e.Int.Exp(&p.(*SchnorrPoint).Int, &s.(*SchnorrSecret).Int, g.P)
 	return e
 }
 
-func (g *SchnorrGroup) EncodePoint(p *Point) []byte {
-	return p.Int.Bytes()
+func (g *SchnorrGroup) EncodePoint(p Point) []byte {
+	return p.(*SchnorrPoint).Int.Bytes()
 }
 
-func (g *SchnorrGroup) DecodePoint(data []byte) (*Point,error)	{
-	p := new(Point)
+func (g *SchnorrGroup) DecodePoint(data []byte) (Point,error)	{
+	p := new(SchnorrPoint)
 	p.Int.SetBytes(data)
 	if !g.ValidPoint(p) {
 		return nil, errors.New("invalid Schnorr group element")
@@ -168,6 +200,20 @@ func GenResidueGroup(bitlen int, r *big.Int, rand Random) *SchnorrGroup {
 func TestSchnorrGroup() {
 	sg := new(SchnorrGroup)
 	sg.QuadraticResidueGroup(128, RandomStream)
-	TestGroup(sg)
+	TestGroup(sg)		// Generic group tests
+
+	// Some Schnorr group specific tests
+
+	// Check identity point and group order
+	s1 := sg.RandomSecret(RandomStream)
+	p1 := sg.EncryptPoint(sg.BasePoint(),s1)
+	if !sg.EncryptPoint(sg.IdentityPoint(),s1).Equal(sg.IdentityPoint()) {
+		panic("IdentityPoint doesn't act as an identity")
+	}
+	so := new(SchnorrSecret)
+	so.Int.Set(sg.GroupOrder())
+	if !sg.EncryptPoint(p1,so).Equal(sg.IdentityPoint()) {
+		panic("GroupOrder doesn't work")
+	}
 }
 

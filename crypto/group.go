@@ -3,49 +3,44 @@ package crypto
 import (
 	"math/big"
 	"crypto/cipher"
+	"fmt"
 )
 
-type Secret struct {
-	big.Int 
+type Secret interface {
+	Encode() []byte
+	Decode(buf []byte) Secret
+	String() string
+	Equal(s2 Secret) bool
 }
 
-func (s *Secret) Encode() []byte { return s.Bytes() }
-func (s *Secret) Decode(buf []byte) *Secret {
-	s.SetBytes(buf)
-	return s
-}
-
-type Point struct {
-	big.Int 
-}
-
-func (p *Point) Encode() []byte { return p.Bytes() }
-func (p *Point) Decode(buf []byte) *Point {
-	p.SetBytes(buf)
-	return p
+type Point interface {
+	Encode() []byte
+	Decode(buf []byte) Point
+	String() string
+	Equal(s2 Point) bool
 }
 
 
 type Group interface {
 
 	SecretLen() int			// Max len of secrets in bytes
-	RandomSecret(rand cipher.Stream) *Secret // Pick a [pseudo]random secret
-	AddSecret(x, y *Secret) *Secret // Combine two secrets commutatively
+	RandomSecret(rand cipher.Stream) Secret // Pick a [pseudo]random secret
+	AddSecret(x, y Secret) Secret // Combine two secrets commutatively
 	GroupOrder() *big.Int		// Number of points in the group
 	// (actually not sure we want GroupOrder() - may not be needed,
 	// and may interfere with most efficent use of curve25519,
 	// in which we might want to use both the curve and its twist...)
 
 	PointLen() int			// Max len of point in bytes
-	IdentityPoint() *Point		// The identity group element
-	BasePoint() *Point		// Well-known base point
-	RandomPoint(rand cipher.Stream) *Point	// [Pseudo]random base point
-	ValidPoint(p *Point) bool	// Test if a point is valid (in-group)
+	IdentityPoint() Point		// The identity group element
+	BasePoint() Point		// Well-known base point
+	RandomPoint(rand cipher.Stream) Point	// [Pseudo]random base point
+	ValidPoint(p Point) bool	// Test if a point is valid (in-group)
 
-	EncryptPoint(p *Point, s *Secret) *Point
+	EncryptPoint(p Point, s Secret) Point
 
-	EncodePoint(p *Point) []byte		// Encode point into bytes
-	DecodePoint(buf []byte) (*Point,error)	// Decode and validate a point
+	EncodePoint(p Point) []byte		// Encode point into bytes
+	DecodePoint(buf []byte) (Point,error)	// Decode and validate a point
 
 
 	// Minimum number of bytes that can always
@@ -65,6 +60,7 @@ type Group interface {
 
 
 func TestGroup(g Group) {
+	fmt.Printf("\nTesting %d-bit group\n",g.GroupOrder().BitLen())
 
 	if !g.ValidPoint(g.BasePoint()) {
 		panic("Generator isn't a valid point!?")
@@ -75,7 +71,7 @@ func TestGroup(g Group) {
 	s2 := g.RandomSecret(RandomStream)
 	println("s1 = ",s1.String())
 	println("s2 = ",s2.String())
-	if s1.Cmp(&s2.Int) == 0 {
+	if s1.Equal(s2) {
 		panic("uh-oh, not getting unique secrets!")
 	}
 
@@ -86,7 +82,7 @@ func TestGroup(g Group) {
 	if !g.ValidPoint(p1) || !g.ValidPoint(p2) {
 		panic("EncryptPoint is producing invalid points")
 	}
-	if p1.Cmp(&p2.Int) == 0 {
+	if p1.Equal(p2) {
 		panic("uh-oh, encryption isn't producing unique points!")
 	}
 
@@ -97,20 +93,10 @@ func TestGroup(g Group) {
 	if !g.ValidPoint(dh1) || !g.ValidPoint(dh2) {
 		panic("Diffie-Hellman yielded invalid point")
 	}
-	if dh1.Cmp(&dh2.Int) != 0 {
+	if !dh1.Equal(dh2) {
 		panic("Diffie-Hellman didn't work")
 	}
 	println("shared secret = ",dh1.String())
-
-	// Check identity point and group order
-	if g.EncryptPoint(g.IdentityPoint(),s1).Cmp(&g.IdentityPoint().Int) != 0 {
-		panic("IdentityPoint doesn't act as an identity")
-	}
-	so := new(Secret)
-	so.Int.Set(g.GroupOrder())
-	if g.EncryptPoint(p1,so).Cmp(&g.IdentityPoint().Int) != 0 {
-		panic("GroupOrder doesn't work")
-	}
 
 	// Test random points
 	r1 := g.RandomPoint(RandomStream)
@@ -118,8 +104,10 @@ func TestGroup(g Group) {
 	if !g.ValidPoint(r1) || !g.ValidPoint(r2) {
 		panic("RandomPoint produced invalid point")
 	}
-	if r1.Cmp(&r2.Int) == 0 {
+	if r1.Equal(r2) {
 		panic("RandomPoint not producing unique points")
 	}
+	println("random point = ",r1.String())
+	println("random point = ",r2.String())
 }
 
