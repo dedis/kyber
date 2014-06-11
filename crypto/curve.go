@@ -73,10 +73,14 @@ func (c *Curve) AddSecret(x, y Secret) Secret {
 	return s
 }
 
+// Number of bytes required to store one coordinate on this curve
+func (c *Curve) coordLen() int {
+	return (c.p.BitSize+7)/8
+}
 
+// Number of bytes required to store a marshalled (but uncompressed) point
 func (c *Curve) PointLen() int {
-	coordlen := (c.p.BitSize+7)/8
-	return 1+2*coordlen	// ANSI X9.62: 1 header byte plus 2 coords
+	return 1+2*c.coordLen()	// ANSI X9.62: 1 header byte plus 2 coords
 }
 
 func (c *Curve) IdentityPoint() Point {
@@ -99,40 +103,95 @@ func (c *Curve) ValidPoint(p Point) bool {
 	return c.IsOnCurve(cp.x,cp.y)
 }
 
-func (c *Curve) RandomPoint(rand cipher.Stream) Point {
+// Try to generate a point on this curve from a chosen x-coordinate,
+// with a random sign.
+func (c *Curve) genPoint(x *big.Int, rand cipher.Stream) (Point,bool) {
+
+	// Compute the corresponding Y coordinate, if any
+	y2 := new(big.Int).Mul(x, x)
+	y2.Mul(y2, x)
+	threeX := new(big.Int).Lsh(x, 1)
+	threeX.Add(threeX, x)
+	y2.Sub(y2, threeX)
+	y2.Add(y2, c.p.B)
+	y2.Mod(y2, c.p.P)
+	y := c.sqrt(y2)
+
+	// Pick a random sign for the y coordinate
+	b := make([]byte,1)
+	rand.XORKeyStream(b,b)
+	if (b[0] & 0x80) != 0 {
+		y.Neg(y)
+	}
+
+	// Check that it's a valid point
+	y2t := new(big.Int).Mul(y, y)
+	y2t.Mod(y2t, c.p.P)
+	if y2t.Cmp(y2) != 0 {
+		return nil,false	// Doesn't yield a valid point!
+	}
+
 	p := new(CurvePoint)
 	p.c = c
+	p.x = x
+	p.y = y
+	return p,true
+}
+
+func (c *Curve) RandomPoint(rand cipher.Stream) Point {
 	for {
-		// Pick a random y coordinate with the correct modulus
-		p.x = BigIntMod(c.p.P, rand)
-
-		// Compute the corresponding Y coordinate, if any
-		y2 := new(big.Int).Mul(p.x, p.x)
-		y2.Mul(y2, p.x)
-		threeX := new(big.Int).Lsh(p.x, 1)
-		threeX.Add(threeX, p.x)
-		y2.Sub(y2, threeX)
-		y2.Add(y2, c.p.B)
-		y2.Mod(y2, c.p.P)
-		p.y = c.sqrt(y2)
-
-		// Pick a random sign for the y coordinate
-		b := make([]byte,1)
-		rand.XORKeyStream(b,b)
-		if (b[0] & 0x80) != 0 {
-			p.y.Neg(p.y)
-		}
-
-		// Check that it's a valid point
-		y2t := new(big.Int).Set(p.y)
-		y2t.Mul(y2t, y2t)
-		y2t.Mod(y2t, c.p.P)
-		if y2t.Cmp(y2) == 0 {
+		// Pick a random x,y coordinate with the correct modulus
+		x := BigIntMod(c.p.P, rand)
+		p,suc := c.genPoint(x,rand)
+		if suc {
 			return p	// valid point
 		}
 		// otherwise try again...
 	}
 }
+
+func (c *Curve) EmbedLen() int {
+	// Reserve at least 8 most-significant bits for randomness,
+	// and the least-significant 8 bits for embedded data length.
+	// (Hopefully it's unlikely we'll need >=2048-bit curves soon.)
+	return (c.p.P.BitLen() - 8 - 8) / 8
+}
+
+// Pick a curve point containing a variable amount of embedded data.
+// Remaining bits comprising the point are chosen randomly.
+func (c *Curve) EmbedPoint(data []byte,
+				rand cipher.Stream) (Point,[]byte) {
+
+	l := c.coordLen()
+
+	dl := c.EmbedLen()
+	if dl > len(data) {
+		dl = len(data)
+	}
+
+	for {
+		xb := BigIntMod(c.p.P, rand).Bytes()
+		xb[l-1] = byte(dl)		// Encode length in low 8 bits
+		copy(xb[l-dl-1:l-1],data)	// Copy in data to embed
+		p,suc := c.genPoint(new(big.Int).SetBytes(xb), rand)
+		if suc {
+			return p, data[dl:]
+		}
+	}
+}
+
+// Extract embedded data from a Schnorr group element
+func (c *Curve) Extract(p Point) ([]byte,error) {
+	b := p.(*CurvePoint).x.Bytes()
+	l := c.coordLen()
+	dl := int(b[l-1])
+	if dl > c.EmbedLen() {
+		return nil,errors.New("invalid embedded data length")
+	}
+	return b[l-dl-1:l-1],nil
+}
+
+
 
 func (c *Curve) EncryptPoint(p Point, s Secret) Point {
 	cp := p.(*CurvePoint)

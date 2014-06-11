@@ -1,6 +1,7 @@
 package crypto
 
 import (
+	"bytes"
 	"math/big"
 	"crypto/cipher"
 	"fmt"
@@ -32,32 +33,59 @@ type Group interface {
 	// in which we might want to use both the curve and its twist...)
 
 	PointLen() int			// Max len of point in bytes
+	ValidPoint(p Point) bool	// Test if a point is valid (in-group)
 	IdentityPoint() Point		// The identity group element
 	BasePoint() Point		// Well-known base point
-	RandomPoint(rand cipher.Stream) Point	// [Pseudo]random base point
-	ValidPoint(p Point) bool	// Test if a point is valid (in-group)
+	RandomPoint(rand cipher.Stream) Point // [Pseudo]random base point
+
+	// Pick a point in this group at least partly [pseudo-]randomly,
+	// and optionally so as to encode a limited amount of specified data.
+	// If data is empty, the point is completely [pseudo]-random.
+	// Returns the chosen point and a slice containing the remaining data
+	// following the data that was successfully embedded in this point.
+	EmbedPoint(data []byte,rand cipher.Stream) (Point,[]byte)
+
+	// Maximum number of bytes that can be reliably embedded
+	// in a single group element via EmbedPoint().
+	EmbedLen() int
+
+	// Extract data embedded in a point chosen via Embed().
+	// Returns an error if doesn't represent valid embedded data.
+	Extract(p Point) ([]byte,error)
 
 	EncryptPoint(p Point, s Secret) Point
 
 	EncodePoint(p Point) []byte		// Encode point into bytes
 	DecodePoint(buf []byte) (Point,error)	// Decode and validate a point
 
-
-	// Minimum number of bytes that can always
-	// (or with overwhelming probability)
-	// be embedded into a single group element.
-//	EmbedMinLen() int
-
-	// Embed a potentially variable number of bytes in a group element.
-	// Returns element and number of prefix bytes successfully embedded.
-	// If len > EmbedMinLen(), may embed less than full data slice
-//	EmbedPoint(data []byte) (Point, int)
-
-	// Embed a variable number of bytes to form a series of elements.
-//	EmbedBytes(data []byte) []Point
-
 }
 
+func concat(a,b []byte) []byte {
+	d := make([]byte,len(a)+len(b))
+	copy(d,a)
+	copy(d[len(a):],b)
+	return d
+}
+
+func testEmbed(g Group,s string) {
+	println("embedding: ",s)
+	b := []byte(s)
+
+	p,rem := g.EmbedPoint(b, RandomStream)
+	if !g.ValidPoint(p) {
+		panic("EmbedPoint producing invalid point")
+	}
+	println("embedded, remainder",len(rem),"/",len(b),":",string(rem))
+	x,err := g.Extract(p)
+	if err != nil {
+		panic("Point extraction failed: "+err.Error())
+	}
+	println("extracted data: ",string(x))
+
+	if !bytes.Equal(concat(x,rem), b) {
+		panic("Point embedding corrupted the data")
+	}
+}
 
 func TestGroup(g Group) {
 	fmt.Printf("\nTesting %d-bit group\n",g.GroupOrder().BitLen())
@@ -109,5 +137,9 @@ func TestGroup(g Group) {
 	}
 	println("random point = ",r1.String())
 	println("random point = ",r2.String())
+
+	// Test embedding data
+	testEmbed(g,"Hi!")
+	testEmbed(g,"The quick brown fox jumps over the lazy dog")
 }
 

@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"crypto/dsa"
 	"crypto/cipher"
+	//"encoding/hex"
 )
 
 
@@ -85,15 +86,65 @@ func (g *SchnorrGroup) ValidPoint(p Point) bool {
 		new(big.Int).Exp(&sp.Int, g.Q, g.P).Cmp(one) == 0
 }
 
+// Pick a point randomly or pseudo-randomly from a cipherstream.
 // This will only work efficiently for quadratic residue groups!
 func (g *SchnorrGroup) RandomPoint(rand cipher.Stream) Point {
 	p := new(SchnorrPoint)
 	for {
-		p.Int.Set(BigIntMod(g.Q, rand))
+		p.Int.Set(BigIntMod(g.P, rand))
 		if g.ValidPoint(p) {
 			return p
 		}
 	}
+}
+
+func (g *SchnorrGroup) EmbedLen() int {
+	// Reserve at least 8 most-significant bits for randomness,
+	// and the least-significant 16 bits for embedded data length.
+	return (g.P.BitLen() - 8 - 16) / 8
+}
+
+// Pick a point containing a variable amount of embedded data.
+// Remaining bits comprising the point are chosen randomly.
+// This will only work efficiently for quadratic residue groups!
+func (g *SchnorrGroup) EmbedPoint(data []byte,
+				rand cipher.Stream) (Point,[]byte) {
+
+	p := new(SchnorrPoint)
+	l := g.PointLen()
+
+	dl := g.EmbedLen()
+	if dl > len(data) {
+		dl = len(data)
+	}
+	//println("embed dl =",dl)
+
+	for {
+		b := BigIntMod(g.P, rand).Bytes()
+		b[l-1] = byte(dl)		// Encode length in low 16 bits
+		b[l-2] = byte(dl >> 8)
+		copy(b[l-dl-2:l-2],data)	// Copy in embedded data
+		p.Int.SetBytes(b)
+		if g.ValidPoint(p) {
+			//println("encoded:")
+			//println(hex.Dump(b))
+			return p, data[dl:]
+		}
+	}
+}
+
+// Extract embedded data from a Schnorr group element
+func (g *SchnorrGroup) Extract(p Point) ([]byte,error) {
+	b := p.(*SchnorrPoint).Int.Bytes()
+	//println("decoding:")
+	//println(hex.Dump(b))
+	l := g.PointLen()
+	dl := int(b[l-2])<<8 + int(b[l-1])
+	//println("extract dl =",dl)
+	if dl > g.EmbedLen() {
+		return nil,errors.New("invalid embedded data length")
+	}
+	return b[l-dl-2:l-2],nil
 }
 
 /*
