@@ -66,6 +66,10 @@ func (s *secret) Add(x,y crypto.Secret) crypto.Secret {
 	}
 	return s
 }
+func (s *secret) Pick(rand cipher.Stream) crypto.Secret {
+	s.bignum.RandMod(s.c.n,rand)
+	return s
+}
 
 
 func newPoint(c *curve) *point {
@@ -137,23 +141,6 @@ func (c *curve) SecretLen() int {
 func (c *curve) Secret() crypto.Secret {
 	s := newSecret(c)
 	s.c = c
-	return s
-}
-
-func (c *curve) RandomSecret(rand cipher.Stream) crypto.Secret {
-	s := newSecret(c)
-	s.bignum.RandMod(c.n,rand)
-	return s
-}
-
-func (c *curve) AddSecret(x, y crypto.Secret) crypto.Secret {
-	xs := x.(*secret)
-	ys := y.(*secret)
-	s := newSecret(c)
-	if C.BN_mod_add(s.bignum.bn, xs.bignum.bn, ys.bignum.bn, c.n.bn,
-			c.ctx) == 0 {
-		panic("BN_mod_add: "+getErrString())
-	}
 	return s
 }
 

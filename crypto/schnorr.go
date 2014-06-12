@@ -28,6 +28,10 @@ func (s *SchnorrSecret) Add(a,b Secret) Secret {
 	s.i.Mod(&s.i, s.g.Q)
 	return s
 }
+func (s *SchnorrSecret) Pick(rand cipher.Stream) Secret {
+	s.i.Set(BigIntMod(s.g.Q,rand))
+	return s
+}
 
 type SchnorrPoint struct {
 	big.Int 
@@ -63,20 +67,6 @@ func (g *SchnorrGroup) Secret() Secret {
 	return s
 }
 
-func (g *SchnorrGroup) RandomSecret(rand cipher.Stream) Secret {
-	s := new(SchnorrSecret)
-	s.g = g
-	s.i.Set(BigIntMod(g.Q,rand))
-	return s
-}
-
-func (g *SchnorrGroup) AddSecret(x, y Secret) Secret {
-	s := new(SchnorrSecret)
-	s.g = g
-	s.i.Add(&x.(*SchnorrSecret).i,&y.(*SchnorrSecret).i)
-	s.i.Mod(&s.i, g.Q)
-	return s
-}
 
 
 func (g *SchnorrGroup) PointLen() int { return (g.P.BitLen()+7)/8 }
@@ -269,7 +259,7 @@ func TestSchnorrGroup() {
 	// Some Schnorr group specific tests
 
 	// Check identity point and group order
-	s1 := sg.RandomSecret(RandomStream)
+	s1 := sg.Secret().Pick(RandomStream)
 	p1 := sg.EncryptPoint(sg.BasePoint(),s1)
 	if !sg.EncryptPoint(sg.IdentityPoint(),s1).Equal(sg.IdentityPoint()) {
 		panic("IdentityPoint doesn't act as an identity")

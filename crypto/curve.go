@@ -27,6 +27,11 @@ func (s *CurveSecret) Add(a,b Secret) Secret {
 	s.Int.Mod(&s.Int, s.c.p.N)
 	return s
 }
+func (s *CurveSecret) Pick(rand cipher.Stream) Secret {
+	s.Int.Set(BigIntMod(s.c.p.N,rand))
+	return s
+}
+
 
 type CurvePoint struct {
 	x,y *big.Int 
@@ -72,20 +77,6 @@ func (c *Curve) Secret() Secret {
 	return s
 }
 
-func (c *Curve) RandomSecret(rand cipher.Stream) Secret {
-	s := new(CurveSecret)
-	s.c = c
-	s.Int.Set(BigIntMod(c.p.N,rand))
-	return s
-}
-
-func (c *Curve) AddSecret(x, y Secret) Secret {
-	s := new(CurveSecret)
-	s.c = c
-	s.Int.Add(&x.(*CurveSecret).Int,&y.(*CurveSecret).Int)
-	s.Int.Mod(&s.Int, c.p.N)
-	return s
-}
 
 // Number of bytes required to store one coordinate on this curve
 func (c *Curve) coordLen() int {

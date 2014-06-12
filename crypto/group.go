@@ -13,7 +13,12 @@ type Secret interface {
 	Equal(s2 Secret) bool
 	//Encode() []byte
 	//Decode(buf []byte) Secret
-	Add(a,b Secret) Secret		// Set to sum of secrets a and b
+
+	// Set to the sum of secrets a and b
+	Add(a,b Secret) Secret
+
+	// Set to a fresh random or pseudo-random secret
+	Pick(rand cipher.Stream) Secret
 }
 
 type Point interface {
@@ -30,8 +35,7 @@ type Group interface {
 
 	SecretLen() int			// Max len of secrets in bytes
 	Secret() Secret			// Create new secret
-	RandomSecret(rand cipher.Stream) Secret // Pick a [pseudo]random secret
-	AddSecret(x, y Secret) Secret // Combine two secrets commutatively
+
 	GroupOrder() *big.Int		// Number of points in the group
 	// (actually not sure we want GroupOrder() - may not be needed,
 	// and may interfere with most efficent use of curve25519,
@@ -94,8 +98,8 @@ func TestGroup(g Group) {
 	}
 
 	// Do a simple Diffie-Hellman test
-	s1 := g.RandomSecret(RandomStream)
-	s2 := g.RandomSecret(RandomStream)
+	s1 := g.Secret().Pick(RandomStream)
+	s2 := g.Secret().Pick(RandomStream)
 	println("s1 = ",s1.String())
 	println("s2 = ",s2.String())
 	if s1.Equal(s2) {
@@ -146,7 +150,7 @@ func TestGroup(g Group) {
 func BenchGroup(g Group) {
 
 	// Point encryption
-	s := g.RandomSecret(RandomStream)
+	s := g.Secret().Pick(RandomStream)
 	p := g.BasePoint()
 	beg := time.Now()
 	iters := 500
@@ -169,20 +173,8 @@ func BenchGroup(g Group) {
 			float64(iters) / 
 			(float64(end.Sub(beg)) / 1000000000.0))
 
-	// Secret addition
-	s2 := g.RandomSecret(RandomStream)
-	beg = time.Now()
-	iters = 500000
-	for i := 1; i < iters; i++ {
-		g.AddSecret(s,s2)
-	}
-	end = time.Now()
-	fmt.Printf("AddSecret: %f ops/sec\n",
-			float64(iters) / 
-			(float64(end.Sub(beg)) / 1000000000.0))
-
-	// Secret addition (in-place)
-	s2 = g.RandomSecret(RandomStream)
+	// Secret addition (in-place arithmetic)
+	s2 := g.Secret().Pick(RandomStream)
 	beg = time.Now()
 	iters = 1000000
 	for i := 1; i < iters; i++ {
