@@ -28,6 +28,7 @@ import (
 
 type secret struct {
 	bignum
+	c *curve
 }
 
 type point struct {
@@ -46,7 +47,7 @@ type curve struct {
 func newSecret(c *curve) *secret {
 	s := new(secret)
 	s.bignum.Init()
-//	s.c = c
+	s.c = c
 	return s
 }
 
@@ -55,6 +56,15 @@ func (s *secret) Encode() []byte { return s.Bytes() }
 func (s *secret) Decode(buf []byte) crypto.Secret { s.SetBytes(buf); return s }
 func (s *secret) Equal(s2 crypto.Secret) bool {
 	return s.Cmp(&s2.(*secret).bignum) == 0
+}
+func (s *secret) Add(x,y crypto.Secret) crypto.Secret {
+	xs := x.(*secret)
+	ys := y.(*secret)
+	if C.BN_mod_add(s.bignum.bn, xs.bignum.bn, ys.bignum.bn, s.c.n.bn,
+			s.c.ctx) == 0 {
+		panic("BN_mod_add: "+getErrString())
+	}
+	return s
 }
 
 
@@ -122,6 +132,12 @@ func (p *point) Decode(buf []byte) (crypto.Point,error) {
 
 func (c *curve) SecretLen() int {
 	return c.nlen
+}
+
+func (c *curve) Secret() crypto.Secret {
+	s := newSecret(c)
+	s.c = c
+	return s
 }
 
 func (c *curve) RandomSecret(rand cipher.Stream) crypto.Secret {

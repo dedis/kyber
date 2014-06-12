@@ -9,10 +9,11 @@ import (
 )
 
 type Secret interface {
-	//Encode() []byte
-	//Decode(buf []byte) Secret
 	String() string
 	Equal(s2 Secret) bool
+	//Encode() []byte
+	//Decode(buf []byte) Secret
+	Add(a,b Secret) Secret		// Set to sum of secrets a and b
 }
 
 type Point interface {
@@ -28,6 +29,7 @@ type Point interface {
 type Group interface {
 
 	SecretLen() int			// Max len of secrets in bytes
+	Secret() Secret			// Create new secret
 	RandomSecret(rand cipher.Stream) Secret // Pick a [pseudo]random secret
 	AddSecret(x, y Secret) Secret // Combine two secrets commutatively
 	GroupOrder() *big.Int		// Number of points in the group
@@ -170,12 +172,24 @@ func BenchGroup(g Group) {
 	// Secret addition
 	s2 := g.RandomSecret(RandomStream)
 	beg = time.Now()
-	iters = 200000
+	iters = 500000
 	for i := 1; i < iters; i++ {
 		g.AddSecret(s,s2)
 	}
 	end = time.Now()
 	fmt.Printf("AddSecret: %f ops/sec\n",
+			float64(iters) / 
+			(float64(end.Sub(beg)) / 1000000000.0))
+
+	// Secret addition (in-place)
+	s2 = g.RandomSecret(RandomStream)
+	beg = time.Now()
+	iters = 1000000
+	for i := 1; i < iters; i++ {
+		s.Add(s,s2)
+	}
+	end = time.Now()
+	fmt.Printf("Secret.Add: %f ops/sec\n",
 			float64(iters) / 
 			(float64(end.Sub(beg)) / 1000000000.0))
 

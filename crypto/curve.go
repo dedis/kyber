@@ -22,6 +22,11 @@ func (s *CurveSecret) Decode(buf []byte) Secret {
 	s.SetBytes(buf)
 	return s
 }
+func (s *CurveSecret) Add(a,b Secret) Secret {
+	s.Int.Add(&a.(*CurveSecret).Int,&b.(*CurveSecret).Int)
+	s.Int.Mod(&s.Int, s.c.p.N)
+	return s
+}
 
 type CurvePoint struct {
 	x,y *big.Int 
@@ -60,6 +65,12 @@ type Curve struct {
 
 
 func (c *Curve) SecretLen() int { return (c.p.N.BitLen()+7)/8 }
+
+func (c *Curve) Secret() Secret {
+	s := new(CurveSecret)
+	s.c = c
+	return s
+}
 
 func (c *Curve) RandomSecret(rand cipher.Stream) Secret {
 	s := new(CurveSecret)

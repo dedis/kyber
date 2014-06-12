@@ -10,18 +10,23 @@ import (
 
 
 type SchnorrSecret struct {
-	big.Int 
+	i big.Int 
 	g *SchnorrGroup
 }
 
-func (s *SchnorrSecret) Encode() []byte { return s.Bytes() }
+func (s *SchnorrSecret) Encode() []byte { return s.i.Bytes() }
 func (s *SchnorrSecret) Decode(buf []byte) Secret {
-	s.SetBytes(buf)
+	s.i.SetBytes(buf)
 	return s
 }
-func (s *SchnorrSecret) String() string { return s.Int.String() }
+func (s *SchnorrSecret) String() string { return s.i.String() }
 func (s *SchnorrSecret) Equal(s2 Secret) bool {
-	return s.Int.Cmp(&s2.(*SchnorrSecret).Int) == 0
+	return s.i.Cmp(&s2.(*SchnorrSecret).i) == 0
+}
+func (s *SchnorrSecret) Add(a,b Secret) Secret {
+	s.i.Add(&a.(*SchnorrSecret).i,&b.(*SchnorrSecret).i)
+	s.i.Mod(&s.i, s.g.Q)
+	return s
 }
 
 type SchnorrPoint struct {
@@ -52,16 +57,24 @@ var two *big.Int = new(big.Int).SetInt64(2)
 
 func (g *SchnorrGroup) SecretLen() int { return (g.Q.BitLen()+7)/8 }
 
+func (g *SchnorrGroup) Secret() Secret {
+	s := new(SchnorrSecret)
+	s.g = g
+	return s
+}
+
 func (g *SchnorrGroup) RandomSecret(rand cipher.Stream) Secret {
 	s := new(SchnorrSecret)
-	s.Int.Set(BigIntMod(g.Q,rand))
+	s.g = g
+	s.i.Set(BigIntMod(g.Q,rand))
 	return s
 }
 
 func (g *SchnorrGroup) AddSecret(x, y Secret) Secret {
 	s := new(SchnorrSecret)
-	s.Int.Add(&x.(*SchnorrSecret).Int,&y.(*SchnorrSecret).Int)
-	s.Int.Mod(&s.Int, g.Q)
+	s.g = g
+	s.i.Add(&x.(*SchnorrSecret).i,&y.(*SchnorrSecret).i)
+	s.i.Mod(&s.i, g.Q)
 	return s
 }
 
@@ -179,7 +192,7 @@ func GenDSAGroup(sizes dsa.ParameterSizes, rand Random) (err error) {
 
 func (g *SchnorrGroup) EncryptPoint(p Point, s Secret) Point {
 	e := new(SchnorrPoint)
-	e.Int.Exp(&p.(*SchnorrPoint).Int, &s.(*SchnorrSecret).Int, g.P)
+	e.Int.Exp(&p.(*SchnorrPoint).Int, &s.(*SchnorrSecret).i, g.P)
 	return e
 }
 
@@ -262,7 +275,7 @@ func TestSchnorrGroup() {
 		panic("IdentityPoint doesn't act as an identity")
 	}
 	so := new(SchnorrSecret)
-	so.Int.Set(sg.GroupOrder())
+	so.i.Set(sg.GroupOrder())
 	if !sg.EncryptPoint(p1,so).Equal(sg.IdentityPoint()) {
 		panic("GroupOrder doesn't work")
 	}
