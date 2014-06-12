@@ -4,6 +4,9 @@ package openssl
 // #include <openssl/bn.h>
 // #include <openssl/obj_mac.h>
 //
+// struct bignum_ctx {
+// };
+//
 // struct ec_group_st {		// CGo doesn't like undefined C structs
 // };
 //
@@ -34,7 +37,7 @@ type point struct {
 }
 
 type curve struct {
-//	m *_Ctype_EC_METHOD
+	ctx *_Ctype_BN_CTX
 	g *_Ctype_EC_GROUP
 	p,n *bignum
 	plen, nlen int
@@ -73,21 +76,23 @@ func (p *point) String() string {
 	return hex.EncodeToString(p.c.EncodePoint(p))
 }
 func (p *point) Valid() bool {
-	return C.EC_POINT_is_on_curve(p.g, p.p, nil) != 0
+	return C.EC_POINT_is_on_curve(p.g, p.p, p.c.ctx) != 0
 }
 func (p *point) Equal(p2 crypto.Point) bool {
-	return C.EC_POINT_cmp(p.g, p.p, p2.(*point).p, nil) == 0
+	return C.EC_POINT_cmp(p.g, p.p, p2.(*point).p, p.c.ctx) == 0
 }
 func (p *point) GetX() *bignum {
 	x := newBigNum()
-	if C.EC_POINT_get_affine_coordinates_GFp(p.c.g, p.p, x.bn, nil, nil) == 0 {
+	if C.EC_POINT_get_affine_coordinates_GFp(p.c.g, p.p, x.bn, nil,
+			p.c.ctx) == 0 {
 		panic("EC_POINT_get_affine_coordinates_GFp: "+getErrString())
 	}
 	return x
 }
 func (p *point) GetY() *bignum {
 	y := newBigNum()
-	if C.EC_POINT_get_affine_coordinates_GFp(p.c.g, p.p, nil, y.bn, nil) == 0 {
+	if C.EC_POINT_get_affine_coordinates_GFp(p.c.g, p.p, nil, y.bn,
+			p.c.ctx) == 0 {
 		panic("EC_POINT_get_affine_coordinates_GFp: "+getErrString())
 	}
 	return y
@@ -98,7 +103,7 @@ func (p *point) Encode() []byte {
 	b := make([]byte,l)
 	if C.EC_POINT_point2oct(p.g, p.p, C.POINT_CONVERSION_COMPRESSED,
 			(*_Ctype_unsignedchar)(unsafe.Pointer(&b[0])),
-			C.size_t(l), nil) != C.size_t(l) {
+			C.size_t(l), p.c.ctx) != C.size_t(l) {
 		panic("EC_POINT_point2oct: "+getErrString())
 	}
 	return b
@@ -106,7 +111,7 @@ func (p *point) Encode() []byte {
 func (p *point) Decode(buf []byte) (crypto.Point,error) {
 	if C.EC_POINT_oct2point(p.g, p.p,
 			(*_Ctype_unsignedchar)(unsafe.Pointer(&buf[0])),
-			C.size_t(len(buf)), nil) == 0 {
+			C.size_t(len(buf)), p.c.ctx) == 0 {
 		return nil,errors.New(getErrString())
 	}
 	return p
@@ -130,7 +135,7 @@ func (c *curve) AddSecret(x, y crypto.Secret) crypto.Secret {
 	ys := y.(*secret)
 	s := newSecret(c)
 	if C.BN_mod_add(s.bignum.bn, xs.bignum.bn, ys.bignum.bn, c.n.bn,
-			nil) == 0 {
+			c.ctx) == 0 {
 		panic("BN_mod_add: "+getErrString())
 	}
 	return s
@@ -225,7 +230,7 @@ func (c *curve) EncryptPoint(cp crypto.Point, cs crypto.Secret) crypto.Point {
 	p := cp.(*point)
 	s := cs.(*secret)
 	r := newPoint(c)
-	if C.EC_POINT_mul(c.g, r.p, nil, p.p, s.bignum.bn, nil) == 0 {
+	if C.EC_POINT_mul(c.g, r.p, nil, p.p, s.bignum.bn, c.ctx) == 0 {
 		panic("EC_POINT_mul: "+getErrString())
 	}
 	return r
@@ -237,7 +242,7 @@ func (c *curve) EncodePoint(cp crypto.Point) []byte {
 	b := make([]byte,l)
 	if C.EC_POINT_point2oct(c.g, p.p, C.POINT_CONVERSION_COMPRESSED,
 			(*_Ctype_unsignedchar)(unsafe.Pointer(&b[0])),
-			C.size_t(l), nil) != C.size_t(l) {
+			C.size_t(l), c.ctx) != C.size_t(l) {
 		panic("EC_POINT_point2oct: "+getErrString())
 	}
 	return b
@@ -247,14 +252,18 @@ func (c *curve) DecodePoint(buf []byte) (crypto.Point,error) {
 	p := newPoint(c)
 	if C.EC_POINT_oct2point(p.g, p.p,
 			(*_Ctype_unsignedchar)(unsafe.Pointer(&buf[0])),
-			C.size_t(len(buf)), nil) == 0 {
+			C.size_t(len(buf)), c.ctx) == 0 {
 		return nil,errors.New(getErrString())
 	}
 	return p,nil
 }
 
 func (c *curve) initNamedCurve(nid C.int) *curve {
-//	c.m = C.EC_GFp_nistp256_method()
+	c.ctx = C.BN_CTX_new()
+	if c.ctx == nil {
+		panic("C.BN_CTX_new: "+getErrString())
+	}
+
 	c.g = C.EC_GROUP_new_by_curve_name(nid)
 	if c.g == nil {
 		panic("can't find create P256 curve: "+getErrString())
@@ -262,14 +271,14 @@ func (c *curve) initNamedCurve(nid C.int) *curve {
 
 	// Get this curve's prime field
 	c.p = newBigNum()
-	if C.EC_GROUP_get_curve_GFp(c.g, c.p.bn, nil, nil, nil) == 0 {
+	if C.EC_GROUP_get_curve_GFp(c.g, c.p.bn, nil, nil, c.ctx) == 0 {
 		panic("EC_GROUP_get_curve_GFp: "+getErrString())
 	}
 	c.plen = (c.p.BitLen()+7)/8
 
 	// Get the curve's group order
 	c.n = newBigNum()
-	if C.EC_GROUP_get_order(c.g, c.n.bn, nil) == 0 {
+	if C.EC_GROUP_get_order(c.g, c.n.bn, c.ctx) == 0 {
 		panic("EC_GROUP_get_order: "+getErrString())
 	}
 	c.nlen = (c.n.BitLen()+7)/8

@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"crypto/cipher"
 	"fmt"
+	"time"
 )
 
 type Secret interface {
@@ -137,5 +138,47 @@ func TestGroup(g Group) {
 	// Test embedding data
 	testEmbed(g,"Hi!")
 	testEmbed(g,"The quick brown fox jumps over the lazy dog")
+}
+
+// A simple microbenchmark suite for abstract group functionality.
+func BenchGroup(g Group) {
+
+	// Point encryption
+	s := g.RandomSecret(RandomStream)
+	p := g.BasePoint()
+	beg := time.Now()
+	iters := 500
+	for i := 1; i < iters; i++ {
+		g.EncryptPoint(p,s)
+	}
+	end := time.Now()
+	fmt.Printf("EncryptPoint: %f ops/sec\n",
+			float64(iters) / 
+			(float64(end.Sub(beg)) / 1000000000.0))
+
+	// Data embedding
+	beg = time.Now()
+	iters = 2000
+	for i := 1; i < iters; i++ {
+		g.RandomPoint(RandomStream)
+	}
+	end = time.Now()
+	fmt.Printf("PickPoint: %f ops/sec\n",
+			float64(iters) / 
+			(float64(end.Sub(beg)) / 1000000000.0))
+
+	// Secret addition
+	s2 := g.RandomSecret(RandomStream)
+	beg = time.Now()
+	iters = 200000
+	for i := 1; i < iters; i++ {
+		g.AddSecret(s,s2)
+	}
+	end = time.Now()
+	fmt.Printf("AddSecret: %f ops/sec\n",
+			float64(iters) / 
+			(float64(end.Sub(beg)) / 1000000000.0))
+
+	println()
 }
 

@@ -107,6 +107,7 @@ func (n *bignum) RandMod(mod *bignum, rand cipher.Stream) *bignum {
 }
 
 func freeBigNum(n *bignum) {
+	//println("freeBigNum",n)
 	C.BN_free(n.bn)
 	n.bn = nil
 }

@@ -6,13 +6,13 @@ import (
 )
 
 
-type p256 struct {
+type P256 struct {
 	Curve
 }
 
 // Modular square root for P-256 curve, from
 // "Mathematical routines for the NIST prime elliptic curves" (April 2010)
-func (curve *p256) sqrt(c *big.Int) *big.Int {
+func (curve *P256) sqrt(c *big.Int) *big.Int {
 	m := curve.p.P
 
 	t1 := new(big.Int)
@@ -55,16 +55,16 @@ func (curve *p256) sqrt(c *big.Int) *big.Int {
 }
 
 // Initialize standard Curve instances
-func P256() *Curve {
-	c := new(p256)
+func (c *P256) Init() Curve {
 	c.Curve.Curve = elliptic.P256()
 	c.p = c.Params()
 	c.curveOps = c
-	return &c.Curve
+	return c.Curve
 }
 
 func TestCurve() {
-	c := P256()
+	c := new(P256)
+	c.Init()
 	TestGroup(c)
 }
 

@@ -2,6 +2,8 @@ package crypto
 
 import (
 	"hash"
+	"time"
+	"fmt"
 	"crypto/cipher"
 	"encoding/hex"
 )
@@ -65,6 +67,52 @@ func TestSuite(suite Suite) {
 
 	// Test the public-key group arithmetic
 	TestGroup(suite)
+
+
+	// XXX
+	BenchSuite(suite)
 }
 
+func benchStream(suite Suite, len int) {
+	buf := make([]byte,len)
+
+	totMB := 10
+	iters := totMB * 1024*1024 / len
+
+	// Stream benchmark
+	s := SubStream(suite, RandomStream)
+	beg := time.Now()
+	for i := 1; i < iters; i++ {
+		s.XORKeyStream(buf,buf)
+	}
+	end := time.Now()
+	fmt.Printf("Stream %d bytes: %f MB/sec\n", len,
+			float64(totMB) / 
+			(float64(end.Sub(beg)) / 1000000000.0))
+
+	// Hash benchmark
+	h := suite.Hash()
+	beg = time.Now()
+	for i := 1; i < iters; i++ {
+		h.Reset()
+		h.Write(buf)
+		h.Sum(nil)
+	}
+	end = time.Now()
+	fmt.Printf("Hash %d bytes: %f MB/sec\n", len,
+			float64(totMB) /
+			(float64(end.Sub(beg)) / 1000000000.0))
+
+}
+
+func BenchSuite(suite Suite) {
+
+	// Stream benchmark
+	benchStream(suite, 16)
+	benchStream(suite, 1024)
+	benchStream(suite, 1024*1024)
+
+	// Benchmark the abstract group functions
+	BenchGroup(suite)
+}
 
