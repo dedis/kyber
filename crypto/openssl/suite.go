@@ -3,7 +3,6 @@ package openssl
 import (
 	"hash"
 	"crypto/cipher"
-	"dissent/crypto"
 )
 
 
@@ -31,17 +30,9 @@ func (s *OpenSSL) Stream(key []byte) cipher.Stream {
 	return newAesCtr(key)
 }
 
-func NewOpenSSL() *OpenSSL {
+func NewAES128SHA256P256() *OpenSSL {
 	s := new(OpenSSL)
 	s.curve.InitP256()
 	return s
 }
-
-func TestOpenSSL() {
-	println("\nTestOpenSSL()\n")
-
-	suite := NewOpenSSL()
-	crypto.TestSuite(suite)
-}
-
 

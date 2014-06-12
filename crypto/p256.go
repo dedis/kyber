@@ -62,9 +62,3 @@ func (c *P256) Init() Curve {
 	return c.Curve
 }
 
-func TestCurve() {
-	c := new(P256)
-	c.Init()
-	TestGroup(c)
-}
-

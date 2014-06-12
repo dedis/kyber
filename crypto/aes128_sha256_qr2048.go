@@ -29,10 +29,9 @@ func (s AES128SHA256QR2048) Stream(key []byte) cipher.Stream {
 }
 
 
-func TestAES128SHA256QR2048() {
+func NewAES128SHA256QR2048() *AES128SHA256QR2048 {
 	suite := new(AES128SHA256QR2048)
 	suite.QuadraticResidueGroup(128, RandomStream) // XXX
-
-	TestSuite(suite)
+	return suite
 }
 
