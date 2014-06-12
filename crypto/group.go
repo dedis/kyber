@@ -11,75 +11,71 @@ import (
 type Secret interface {
 	String() string
 	Equal(s2 Secret) bool
-	//Encode() []byte
-	//Decode(buf []byte) Secret
 
 	// Set to the sum of secrets a and b
 	Add(a,b Secret) Secret
 
 	// Set to a fresh random or pseudo-random secret
 	Pick(rand cipher.Stream) Secret
+
+	Encode() []byte
+	Decode(buf []byte) Secret
 }
 
 type Point interface {
-	//Encode() []byte
-	//Decode(buf []byte) Point
 	String() string
 	Equal(s2 Point) bool
+
+	Base() Point			// Set to well-known generator
+
+	// Pick and set to a point that is at least partly [pseudo-]random,
+	// and optionally so as to encode a limited amount of specified data.
+	// If data is nil, the point is completely [pseudo]-random.
+	// Returns a slice containing the remaining data
+	// following the data that was successfully embedded in this point.
+	Pick(data []byte,rand cipher.Stream) []byte
+
+	// Maximum number of bytes that can be reliably embedded
+	// in a single group element via Pick().
+	PickLen() int
+
+	// Extract data embedded in a point chosen via Embed().
+	// Returns an error if doesn't represent valid embedded data.
+	Data() ([]byte,error)
+
+	// Set to the encryption of point p with secret s
+	Encrypt(p Point, s Secret) Point
+
+	// Encode point into bytes
+	Encode() []byte
+
+	// Decode and validate a point
+	Decode(buf []byte) error
 }
 
 
-// TODO:
-//	- move algebraic methods to Secret and Point interfaces
 type Group interface {
 
 	SecretLen() int			// Max len of secrets in bytes
 	Secret() Secret			// Create new secret
 
-	GroupOrder() *big.Int		// Number of points in the group
+	PointLen() int			// Max len of point in bytes
+	Point() Point			// Create new point
+
+	Order() *big.Int		// Number of points in the group
 	// (actually not sure we want GroupOrder() - may not be needed,
 	// and may interfere with most efficent use of curve25519,
 	// in which we might want to use both the curve and its twist...)
-
-	PointLen() int			// Max len of point in bytes
-	ValidPoint(p Point) bool	// Test if a point is valid (in-group)
-//	IdentityPoint() Point		// The identity group element
-	BasePoint() Point		// Well-known base point
-
-	// XXX combine into EmbedPoint
-	RandomPoint(rand cipher.Stream) Point // [Pseudo]random base point
-
-	// Pick a point in this group at least partly [pseudo-]randomly,
-	// and optionally so as to encode a limited amount of specified data.
-	// If data is empty, the point is completely [pseudo]-random.
-	// Returns the chosen point and a slice containing the remaining data
-	// following the data that was successfully embedded in this point.
-	EmbedPoint(data []byte,rand cipher.Stream) (Point,[]byte)
-
-	// Maximum number of bytes that can be reliably embedded
-	// in a single group element via EmbedPoint().
-	EmbedLen() int
-
-	// Extract data embedded in a point chosen via Embed().
-	// Returns an error if doesn't represent valid embedded data.
-	Extract(p Point) ([]byte,error)
-
-	EncryptPoint(p Point, s Secret) Point
-
-	EncodePoint(p Point) []byte		// Encode point into bytes
-	DecodePoint(buf []byte) (Point,error)	// Decode and validate a point
 }
 
 func testEmbed(g Group,s string) {
 	println("embedding: ",s)
 	b := []byte(s)
 
-	p,rem := g.EmbedPoint(b, RandomStream)
-	if !g.ValidPoint(p) {
-		panic("EmbedPoint producing invalid point")
-	}
+	p := g.Point()
+	rem := p.Pick(b, RandomStream)
 	println("embedded, remainder",len(rem),"/",len(b),":",string(rem))
-	x,err := g.Extract(p)
+	x,err := p.Data()
 	if err != nil {
 		panic("Point extraction failed: "+err.Error())
 	}
@@ -91,11 +87,7 @@ func testEmbed(g Group,s string) {
 }
 
 func TestGroup(g Group) {
-	fmt.Printf("\nTesting %d-bit group\n",g.GroupOrder().BitLen())
-
-	if !g.ValidPoint(g.BasePoint()) {
-		panic("Generator isn't a valid point!?")
-	}
+	fmt.Printf("\nTesting %d-bit group\n",g.Order().BitLen())
 
 	// Do a simple Diffie-Hellman test
 	s1 := g.Secret().Pick(RandomStream)
@@ -106,40 +98,30 @@ func TestGroup(g Group) {
 		panic("uh-oh, not getting unique secrets!")
 	}
 
-	p1 := g.EncryptPoint(g.BasePoint(),s1)
-	p2 := g.EncryptPoint(g.BasePoint(),s2)
+	gen := g.Point().Base()
+	p1 := g.Point().Encrypt(gen,s1)
+	p2 := g.Point().Encrypt(gen,s2)
 	println("p1 = ",p1.String())
 	println("p2 = ",p2.String())
-	if !g.ValidPoint(p1) || !g.ValidPoint(p2) {
-		panic("EncryptPoint is producing invalid points")
-	}
 	if p1.Equal(p2) {
 		panic("uh-oh, encryption isn't producing unique points!")
 	}
 
-	dh1 := g.EncryptPoint(p1,s2)
-	dh2 := g.EncryptPoint(p2,s1)
-	println("dh1 = ",dh1.String())
-	println("dh2 = ",dh2.String())
-	if !g.ValidPoint(dh1) || !g.ValidPoint(dh2) {
-		panic("Diffie-Hellman yielded invalid point")
-	}
+	dh1 := g.Point().Encrypt(p1,s2)
+	dh2 := g.Point().Encrypt(p2,s1)
 	if !dh1.Equal(dh2) {
 		panic("Diffie-Hellman didn't work")
 	}
 	println("shared secret = ",dh1.String())
 
-	// Test random points
-	r1 := g.RandomPoint(RandomStream)
-	r2 := g.RandomPoint(RandomStream)
-	if !g.ValidPoint(r1) || !g.ValidPoint(r2) {
-		panic("RandomPoint produced invalid point")
+	// Test randomly picked points
+	p1.Pick(nil, RandomStream)
+	p2.Pick(nil, RandomStream)
+	if p1.Equal(p2) {
+		panic("Pick() not producing unique points")
 	}
-	if r1.Equal(r2) {
-		panic("RandomPoint not producing unique points")
-	}
-	println("random point = ",r1.String())
-	println("random point = ",r2.String())
+	println("random point = ",p1.String())
+	println("random point = ",p2.String())
 
 	// Test embedding data
 	testEmbed(g,"Hi!")
@@ -151,11 +133,12 @@ func BenchGroup(g Group) {
 
 	// Point encryption
 	s := g.Secret().Pick(RandomStream)
-	p := g.BasePoint()
+	p := g.Point()
+	p.Pick(nil, RandomStream)
 	beg := time.Now()
 	iters := 500
 	for i := 1; i < iters; i++ {
-		g.EncryptPoint(p,s)
+		p.Encrypt(p,s)
 	}
 	end := time.Now()
 	fmt.Printf("EncryptPoint: %f ops/sec\n",
@@ -166,7 +149,7 @@ func BenchGroup(g Group) {
 	beg = time.Now()
 	iters = 2000
 	for i := 1; i < iters; i++ {
-		g.RandomPoint(RandomStream)
+		p.Pick([]byte("abc"), RandomStream)
 	}
 	end = time.Now()
 	fmt.Printf("PickPoint: %f ops/sec\n",

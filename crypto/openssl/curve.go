@@ -72,6 +72,7 @@ func (s *secret) Pick(rand cipher.Stream) crypto.Secret {
 }
 
 
+
 func newPoint(c *curve) *point {
 	p := new(point)
 	p.c = c
@@ -87,7 +88,7 @@ func freePoint (p *point) {
 }
 
 func (p *point) String() string {
-	return hex.EncodeToString(p.c.EncodePoint(p))
+	return hex.EncodeToString(p.Encode())
 }
 func (p *point) Valid() bool {
 	return C.EC_POINT_is_on_curve(p.g, p.p, p.c.ctx) != 0
@@ -111,26 +112,91 @@ func (p *point) GetY() *bignum {
 	}
 	return y
 }
-/*
+
+func (p *point) Base() crypto.Point {
+	genp := C.EC_GROUP_get0_generator(p.c.g)
+	if genp == nil {
+		panic("EC_GROUP_get0_generator: "+getErrString())
+	}
+	if C.EC_POINT_copy(p.p, genp) == 0 {
+		panic("EC_POINT_copy: "+getErrString())
+	}
+	return p
+}
+
+func (p *point) PickLen() int {
+	// Reserve at least 8 most-significant bits for randomness,
+	// and the least-significant 8 bits for embedded data length.
+	// (Hopefully it's unlikely we'll need >=2048-bit curves soon.)
+	return (p.c.p.BitLen() - 8 - 8) / 8
+}
+
+func (p *point) Pick(data []byte,rand cipher.Stream) []byte {
+
+	l := p.c.PointLen()
+	dl := p.PickLen()
+	if dl > len(data) {
+		dl = len(data)
+	}
+
+	b := make([]byte, l)
+	for {
+		// Pick a random compressed point, and overlay the data.
+		// Decoding will fail if the point is not on the curve.
+		rand.XORKeyStream(b,b)
+		b[0] = (b[0] & 1) | 2	// COMPRESSED, random y bit
+
+		if data != nil {
+			b[l-1] = byte(dl)	// Encode length in low 8 bits
+			copy(b[l-dl-1:l-1],data) // Copy in data to embed
+		}
+
+		if p.Decode(b) == nil {		// See if it decodes!
+			return data[dl:]
+		}
+
+		// otherwise try again...
+	}
+}
+
+func (p *point) Data() ([]byte,error) {
+	b := p.GetX().Bytes()		// we only need the X-coord
+	l := p.c.plen
+	dl := int(b[l-1])
+	if dl > p.PickLen() {
+		return nil,errors.New("invalid embedded data length")
+	}
+	return b[l-dl-1:l-1],nil
+}
+
+func (p *point) Encrypt(cb crypto.Point, cs crypto.Secret) crypto.Point {
+	b := cb.(*point)
+	s := cs.(*secret)
+	if C.EC_POINT_mul(p.c.g, p.p, nil, b.p, s.bignum.bn, p.c.ctx) == 0 {
+		panic("EC_POINT_mul: "+getErrString())
+	}
+	return p
+}
+
 func (p *point) Encode() []byte {
 	l := 1+p.c.plen
 	b := make([]byte,l)
-	if C.EC_POINT_point2oct(p.g, p.p, C.POINT_CONVERSION_COMPRESSED,
+	if C.EC_POINT_point2oct(p.c.g, p.p, C.POINT_CONVERSION_COMPRESSED,
 			(*_Ctype_unsignedchar)(unsafe.Pointer(&b[0])),
 			C.size_t(l), p.c.ctx) != C.size_t(l) {
 		panic("EC_POINT_point2oct: "+getErrString())
 	}
 	return b
 }
-func (p *point) Decode(buf []byte) (crypto.Point,error) {
+
+func (p *point) Decode(buf []byte) error {
 	if C.EC_POINT_oct2point(p.g, p.p,
 			(*_Ctype_unsignedchar)(unsafe.Pointer(&buf[0])),
 			C.size_t(len(buf)), p.c.ctx) == 0 {
-		return nil,errors.New(getErrString())
+		return errors.New(getErrString())
 	}
-	return p
+	return nil
 }
-*/
 
 
 
@@ -144,121 +210,16 @@ func (c *curve) Secret() crypto.Secret {
 	return s
 }
 
-func (c *curve) GroupOrder() *big.Int {
-	return c.n.BigInt()
-}
-
 func (c *curve) PointLen() int {
 	return 1+c.plen	// compressed encoding
 }
 
-func (c *curve) ValidPoint(p crypto.Point) bool {
-	return p.(*point).Valid()
+func (c *curve) Point() crypto.Point {
+	return newPoint(c)
 }
 
-func (c *curve) BasePoint() crypto.Point {
-	p := newPoint(c)
-	genp := C.EC_GROUP_get0_generator(c.g)
-	if genp == nil {
-		panic("EC_GROUP_get0_generator: "+getErrString())
-	}
-	if C.EC_POINT_copy(p.p, genp) == 0 {
-		panic("EC_POINT_copy: "+getErrString())
-	}
-	return p
-}
-
-func (c *curve) RandomPoint(rand cipher.Stream) crypto.Point {
-	b := make([]byte, c.PointLen())
-	for {
-		// Pick a random compressed point, and try to decode it.
-		// Decoding will fail if the point is not on the curve.
-		rand.XORKeyStream(b,b)
-		b[0] = (b[0] & 1) | 2	// COMPRESSED, random y bit
-
-		p,err := c.DecodePoint(b)
-		if err == nil {
-			return p
-		}
-
-		// otherwise try again...
-	}
-}
-
-func (c *curve) EmbedLen() int {
-	// Reserve at least 8 most-significant bits for randomness,
-	// and the least-significant 8 bits for embedded data length.
-	// (Hopefully it's unlikely we'll need >=2048-bit curves soon.)
-	return (c.p.BitLen() - 8 - 8) / 8
-}
-
-func (c *curve) EmbedPoint(data []byte,rand cipher.Stream) (crypto.Point,[]byte) {
-	l := c.PointLen()
-
-	dl := c.EmbedLen()
-	if dl > len(data) {
-		dl = len(data)
-	}
-
-	b := make([]byte, l)
-	for {
-		// Pick a random compressed point, and overlay the data.
-		// Decoding will fail if the point is not on the curve.
-		rand.XORKeyStream(b,b)
-		b[0] = (b[0] & 1) | 2	// COMPRESSED, random y bit
-
-		b[l-1] = byte(dl)		// Encode length in low 8 bits
-		copy(b[l-dl-1:l-1],data)	// Copy in data to embed
-
-		p,err := c.DecodePoint(b)	// See if it decodes!
-		if err == nil {
-			return p, data[dl:]
-		}
-
-		// otherwise try again...
-	}
-}
-
-func (c *curve) Extract(p crypto.Point) ([]byte,error) {
-	b := p.(*point).GetX().Bytes()		// we only need the X-coord
-	l := c.plen
-	dl := int(b[l-1])
-	if dl > c.EmbedLen() {
-		return nil,errors.New("invalid embedded data length")
-	}
-	return b[l-dl-1:l-1],nil
-}
-
-func (c *curve) EncryptPoint(cp crypto.Point, cs crypto.Secret) crypto.Point {
-	p := cp.(*point)
-	s := cs.(*secret)
-	r := newPoint(c)
-	if C.EC_POINT_mul(c.g, r.p, nil, p.p, s.bignum.bn, c.ctx) == 0 {
-		panic("EC_POINT_mul: "+getErrString())
-	}
-	return r
-}
-
-func (c *curve) EncodePoint(cp crypto.Point) []byte {
-	p := cp.(*point)
-	l := 1+c.plen
-	b := make([]byte,l)
-	if C.EC_POINT_point2oct(c.g, p.p, C.POINT_CONVERSION_COMPRESSED,
-			(*_Ctype_unsignedchar)(unsafe.Pointer(&b[0])),
-			C.size_t(l), c.ctx) != C.size_t(l) {
-		panic("EC_POINT_point2oct: "+getErrString())
-	}
-	return b
-}
-
-func (c *curve) DecodePoint(buf []byte) (crypto.Point,error) {
-	p := newPoint(c)
-	if C.EC_POINT_oct2point(p.g, p.p,
-			(*_Ctype_unsignedchar)(unsafe.Pointer(&buf[0])),
-			C.size_t(len(buf)), c.ctx) == 0 {
-		return nil,errors.New(getErrString())
-	}
-	return p,nil
+func (c *curve) Order() *big.Int {
+	return c.n.BigInt()
 }
 
 func (c *curve) initNamedCurve(nid C.int) *curve {

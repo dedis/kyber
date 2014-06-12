@@ -8,7 +8,7 @@ import (
 
 // Choose a uniform random BigInt with a given maximum BitLen.
 // If 'exact' is true, choose a BigInt with _exactly_ that BitLen, not less
-func BigIntLen(bitlen uint, exact bool, rand cipher.Stream) *big.Int {
+func RandomBits(bitlen uint, exact bool, rand cipher.Stream) []byte {
 	b := make([]byte, (bitlen+7)/8)
 	rand.XORKeyStream(b,b)
 	highbits := bitlen & 7
@@ -22,14 +22,15 @@ func BigIntLen(bitlen uint, exact bool, rand cipher.Stream) *big.Int {
 			b[0] |= 0x80
 		}
 	}
-	return new(big.Int).SetBytes(b)
+	return b
 }
 
 // Choose a uniform random BigInt less than a given modulus
-func BigIntMod(mod *big.Int, rand cipher.Stream) *big.Int {
+func RandomBigInt(mod *big.Int, rand cipher.Stream) *big.Int {
 	bitlen := uint(mod.BitLen())
+	i := new(big.Int)
 	for {
-		i := BigIntLen(bitlen, false, rand)
+		i.SetBytes(RandomBits(bitlen, false, rand))
 		if i.Sign() > 0 && i.Cmp(mod) < 0 {
 			return i
 		}
