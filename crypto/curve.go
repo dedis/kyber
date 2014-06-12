@@ -38,9 +38,12 @@ func (p *CurvePoint) Equal(p2 Point) bool {
 func (p *CurvePoint) Encode() []byte {
 	return elliptic.Marshal(p.c, p.x, p.y)
 }
-func (p *CurvePoint) Decode(buf []byte) Point {
+func (p *CurvePoint) Decode(buf []byte) (Point,error) {
 	p.x,p.y = elliptic.Unmarshal(p.c, buf)
-	return p
+	if p.x == nil {
+		return nil,errors.New("invalid elliptic curve point")
+	}
+	return p,nil
 }
 
 
@@ -171,6 +174,7 @@ func (c *Curve) EmbedPoint(data []byte,
 
 	for {
 		xb := BigIntMod(c.p.P, rand).Bytes()
+println("bigint len",len(xb)) 
 		xb[l-1] = byte(dl)		// Encode length in low 8 bits
 		copy(xb[l-dl-1:l-1],data)	// Copy in data to embed
 		p,suc := c.genPoint(new(big.Int).SetBytes(xb), rand)

@@ -8,20 +8,22 @@ import (
 )
 
 type Secret interface {
-	Encode() []byte
-	Decode(buf []byte) Secret
+	//Encode() []byte
+	//Decode(buf []byte) Secret
 	String() string
 	Equal(s2 Secret) bool
 }
 
 type Point interface {
-	Encode() []byte
-	Decode(buf []byte) Point
+	//Encode() []byte
+	//Decode(buf []byte) Point
 	String() string
 	Equal(s2 Point) bool
 }
 
 
+// TODO:
+//	- move algebraic methods to Secret and Point interfaces
 type Group interface {
 
 	SecretLen() int			// Max len of secrets in bytes
@@ -34,8 +36,10 @@ type Group interface {
 
 	PointLen() int			// Max len of point in bytes
 	ValidPoint(p Point) bool	// Test if a point is valid (in-group)
-	IdentityPoint() Point		// The identity group element
+//	IdentityPoint() Point		// The identity group element
 	BasePoint() Point		// Well-known base point
+
+	// XXX combine into EmbedPoint
 	RandomPoint(rand cipher.Stream) Point // [Pseudo]random base point
 
 	// Pick a point in this group at least partly [pseudo-]randomly,
@@ -57,14 +61,6 @@ type Group interface {
 
 	EncodePoint(p Point) []byte		// Encode point into bytes
 	DecodePoint(buf []byte) (Point,error)	// Decode and validate a point
-
-}
-
-func concat(a,b []byte) []byte {
-	d := make([]byte,len(a)+len(b))
-	copy(d,a)
-	copy(d[len(a):],b)
-	return d
 }
 
 func testEmbed(g Group,s string) {
@@ -82,7 +78,7 @@ func testEmbed(g Group,s string) {
 	}
 	println("extracted data: ",string(x))
 
-	if !bytes.Equal(concat(x,rem), b) {
+	if !bytes.Equal(append(x,rem...), b) {
 		panic("Point embedding corrupted the data")
 	}
 }
