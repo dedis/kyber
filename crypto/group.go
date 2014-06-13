@@ -33,6 +33,7 @@ type Point interface {
 	// If data is nil, the point is completely [pseudo]-random.
 	// Returns a slice containing the remaining data
 	// following the data that was successfully embedded in this point.
+	// XXX also return Point for consistency & convenience
 	Pick(data []byte,rand cipher.Stream) []byte
 
 	// Maximum number of bytes that can be reliably embedded

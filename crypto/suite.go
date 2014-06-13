@@ -28,9 +28,22 @@ type Hasher interface {
 }
 
 
+// Create a pseudorandom stream seeded by hashing an arbitrary byte string
+func HashStream(suite Suite, data []byte) cipher.Stream {
+	h := suite.Hash()
+	h.Write(data)
+	b := h.Sum(nil)
+	return suite.Stream(b[:suite.KeyLen()])
+}
+
+// Create a pseudorandom stream seeded by hashing a group element
+func PointStream(suite Suite, point Point) cipher.Stream {
+	return HashStream(suite, point.Encode())
+}
+
 // Pull enough bytes for a seed from an existing cipher
 // to produce a new, derived sub-cipher
-func SubStream(suite Suite,s cipher.Stream) cipher.Stream {
+func SubStream(suite Suite, s cipher.Stream) cipher.Stream {
 	key := make([]byte,suite.KeyLen())
 	s.XORKeyStream(key,key)
 	return suite.Stream(key)
