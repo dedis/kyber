@@ -66,6 +66,14 @@ func (s *secret) Add(x,y crypto.Secret) crypto.Secret {
 	}
 	return s
 }
+func (s *secret) Neg(x crypto.Secret) crypto.Secret {
+	xs := x.(*secret)
+	if C.BN_mod_sub(s.bignum.bn, s.c.n.bn, xs.bignum.bn, s.c.n.bn,
+			s.c.ctx) == 0 {
+		panic("BN_mod_sub: "+getErrString())
+	}
+	return s
+}
 func (s *secret) Pick(rand cipher.Stream) crypto.Secret {
 	s.bignum.RandMod(s.c.n,rand)
 	return s
@@ -131,7 +139,7 @@ func (p *point) PickLen() int {
 	return (p.c.p.BitLen() - 8 - 8) / 8
 }
 
-func (p *point) Pick(data []byte,rand cipher.Stream) []byte {
+func (p *point) Pick(data []byte,rand cipher.Stream) (crypto.Point, []byte) {
 
 	l := p.c.PointLen()
 	dl := p.PickLen()
@@ -151,8 +159,9 @@ func (p *point) Pick(data []byte,rand cipher.Stream) []byte {
 			copy(b[l-dl-1:l-1],data) // Copy in data to embed
 		}
 
-		if p.Decode(b) == nil {		// See if it decodes!
-			return data[dl:]
+		_,err := p.Decode(b)
+		if err == nil {		// See if it decodes!
+			return p, data[dl:]
 		}
 
 		// otherwise try again...
@@ -181,6 +190,15 @@ func (p *point) Encrypt(cb crypto.Point, cs crypto.Secret) crypto.Point {
 	return p
 }
 
+func (p *point) Add(ca,cb crypto.Point) crypto.Point {
+	a := ca.(*point)
+	b := cb.(*point)
+	if C.EC_POINT_add(p.c.g, p.p, a.p, b.p, p.c.ctx) == 0 {
+		panic("EC_POINT_mul: "+getErrString())
+	}
+	return p
+}
+
 func (p *point) Encode() []byte {
 	l := 1+p.c.plen
 	b := make([]byte,l)
@@ -192,13 +210,13 @@ func (p *point) Encode() []byte {
 	return b
 }
 
-func (p *point) Decode(buf []byte) error {
+func (p *point) Decode(buf []byte) (crypto.Point, error) {
 	if C.EC_POINT_oct2point(p.g, p.p,
 			(*_Ctype_unsignedchar)(unsafe.Pointer(&buf[0])),
 			C.size_t(len(buf)), p.c.ctx) == 0 {
-		return errors.New(getErrString())
+		return nil, errors.New(getErrString())
 	}
-	return nil
+	return p, nil
 }
 
 

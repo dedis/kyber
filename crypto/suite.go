@@ -49,7 +49,6 @@ func SubStream(suite Suite, s cipher.Stream) cipher.Stream {
 	return suite.Stream(key)
 }
 
-
 func TestSuite(suite Suite) {
 
 	// Try hashing something

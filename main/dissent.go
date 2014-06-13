@@ -26,6 +26,7 @@ func main() {
 	//testSuites()
 	//benchSuites()
 
-	dcnet.TestCellCoder(dcnet.SimpleCoderFactory)
+	//dcnet.TestCellCoder(dcnet.SimpleCoderFactory)
+	dcnet.TestCellCoder(dcnet.OwnedCoderFactory)
 }
 

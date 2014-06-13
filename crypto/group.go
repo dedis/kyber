@@ -10,10 +10,14 @@ import (
 
 type Secret interface {
 	String() string
+
 	Equal(s2 Secret) bool
 
 	// Set to the sum of secrets a and b
 	Add(a,b Secret) Secret
+
+	// Set to the modular negation of secret a
+	Neg(a Secret) Secret
 
 	// Set to a fresh random or pseudo-random secret
 	Pick(rand cipher.Stream) Secret
@@ -31,10 +35,10 @@ type Point interface {
 	// Pick and set to a point that is at least partly [pseudo-]random,
 	// and optionally so as to encode a limited amount of specified data.
 	// If data is nil, the point is completely [pseudo]-random.
-	// Returns a slice containing the remaining data
+	// Returns this Point and a slice containing the remaining data
 	// following the data that was successfully embedded in this point.
 	// XXX also return Point for consistency & convenience
-	Pick(data []byte,rand cipher.Stream) []byte
+	Pick(data []byte,rand cipher.Stream) (Point, []byte)
 
 	// Maximum number of bytes that can be reliably embedded
 	// in a single group element via Pick().
@@ -47,13 +51,15 @@ type Point interface {
 	// Set to the encryption of point p with secret s
 	Encrypt(p Point, s Secret) Point
 
+	// Combine points so that their secrets add homomorphically
+	Add(a,b Point) Point
+
 	// Encode point into bytes
 	Encode() []byte
 
 	// Decode and validate a point
-	Decode(buf []byte) error
+	Decode(buf []byte) (Point, error)
 }
-
 
 type Group interface {
 
@@ -73,8 +79,7 @@ func testEmbed(g Group,s string) {
 	println("embedding: ",s)
 	b := []byte(s)
 
-	p := g.Point()
-	rem := p.Pick(b, RandomStream)
+	p,rem := g.Point().Pick(b, RandomStream)
 	println("embedded, remainder",len(rem),"/",len(b),":",string(rem))
 	x,err := p.Data()
 	if err != nil {

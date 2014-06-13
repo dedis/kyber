@@ -9,26 +9,35 @@ import (
 
 
 type CurveSecret struct {
-	big.Int 
+	i big.Int 
 	c *Curve
 }
 
-func (s *CurveSecret) String() string { return s.Int.String() }
+func (s *CurveSecret) String() string { return s.i.String() }
 func (s *CurveSecret) Equal(s2 Secret) bool {
-	return s.Int.Cmp(&s2.(*CurveSecret).Int) == 0
+	return s.i.Cmp(&s2.(*CurveSecret).i) == 0
 }
-func (s *CurveSecret) Encode() []byte { return s.Bytes() }
+func (s *CurveSecret) Neg(a Secret) Secret {
+	i := &a.(*CurveSecret).i
+	if i.Sign() > 0 {
+		s.i.Sub(s.c.p.N, i)
+	} else {
+		s.i.SetUint64(0)
+	}
+	return s
+}
+func (s *CurveSecret) Encode() []byte { return s.i.Bytes() }
 func (s *CurveSecret) Decode(buf []byte) Secret {
-	s.SetBytes(buf)
+	s.i.SetBytes(buf)
 	return s
 }
 func (s *CurveSecret) Add(a,b Secret) Secret {
-	s.Int.Add(&a.(*CurveSecret).Int,&b.(*CurveSecret).Int)
-	s.Int.Mod(&s.Int, s.c.p.N)
+	s.i.Add(&a.(*CurveSecret).i,&b.(*CurveSecret).i)
+	s.i.Mod(&s.i, s.c.p.N)
 	return s
 }
 func (s *CurveSecret) Pick(rand cipher.Stream) Secret {
-	s.Int.Set(RandomBigInt(s.c.p.N,rand))
+	s.i.Set(RandomBigInt(s.c.p.N,rand))
 	return s
 }
 
@@ -99,7 +108,7 @@ func (p *CurvePoint) PickLen() int {
 
 // Pick a curve point containing a variable amount of embedded data.
 // Remaining bits comprising the point are chosen randomly.
-func (p *CurvePoint) Pick(data []byte, rand cipher.Stream) []byte {
+func (p *CurvePoint) Pick(data []byte, rand cipher.Stream) (Point, []byte) {
 
 	l := p.c.coordLen()
 	dl := p.PickLen()
@@ -114,7 +123,7 @@ func (p *CurvePoint) Pick(data []byte, rand cipher.Stream) []byte {
 			copy(b[l-dl-1:l-1],data) // Copy in data to embed
 		}
 		if p.genPoint(new(big.Int).SetBytes(b), rand) {
-			return data[dl:]
+			return p, data[dl:]
 		}
 	}
 }
@@ -136,7 +145,14 @@ func (p *CurvePoint) Data() ([]byte,error) {
 func (p *CurvePoint) Encrypt(b Point, s Secret) Point {
 	cb := b.(*CurvePoint)
 	cs := s.(*CurveSecret)
-	p.x,p.y = p.c.ScalarMult(cb.x,cb.y,cs.Int.Bytes())
+	p.x,p.y = p.c.ScalarMult(cb.x,cb.y,cs.i.Bytes())
+	return p
+}
+
+func (p *CurvePoint) Add(a,b Point) Point {
+	ca := a.(*CurvePoint)
+	cb := b.(*CurvePoint)
+	p.x,p.y = p.c.Add(ca.x, ca.y, cb.x, cb.y)
 	return p
 }
 
@@ -144,12 +160,12 @@ func (p *CurvePoint) Encode() []byte {
 	return elliptic.Marshal(p.c, p.x, p.y)
 }
 
-func (p *CurvePoint) Decode(buf []byte) error {
+func (p *CurvePoint) Decode(buf []byte) (Point, error) {
 	p.x,p.y = elliptic.Unmarshal(p.c, buf)
 	if p.x == nil || !p.Valid() {
-		return errors.New("invalid elliptic curve point")
+		return nil, errors.New("invalid elliptic curve point")
 	}
-	return nil
+	return p, nil
 }
 
 

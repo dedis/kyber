@@ -15,24 +15,46 @@ import (
 // others for multi-owner cells (for transmit-request bitmaps for example).
 type CellCoder interface {
 
-	///// Client and Trustee methods /////
+	///// Common methods /////
 
-	Setup(suite crypto.Suite, peerstreams []cipher.Stream)
+	// Compute the cell size required for a given cleartext payload length,
+	// accounting for whatever expansion the cell encoding imposes.
+	CellSize(payloadlen int) int
+
+
+	///// Client methods /////
+
+	ClientSetup(suite crypto.Suite, trusteestreams []cipher.Stream)
 
 	// Encode a ciphertext slice for the current cell,
 	// transmitting the optional payload if non-nil.
-	EncodeSlice(payload []byte, cellsize int) []byte
+	ClientEncode(payload []byte, payloadlen int,
+			histoream cipher.Stream) []byte
+
+
+	///// Client methods /////
+
+	TrusteeSetup(suite crypto.Suite, clientstreams []cipher.Stream) []byte
+
+	// Encode the trustee's ciphertext slice for the current cell.
+	// Can be pre-computed for an interval based on a client-set.
+	TrusteeEncode(payloadlen int) []byte
 
 
 	///// Relay methods /////
 
-	// Initialize per-cell decoding state for the next cell
-	DecodeStart(cellsize int)
+	RelaySetup(suite crypto.Suite, trusteeinfo [][]byte)
 
-	// Combine a client's or trustee's ciphertext slice into this cell.
+	// Initialize per-cell decoding state for the next cell
+	DecodeStart(payloadlen int, histoream cipher.Stream)
+
+	// Combine a client's ciphertext slice into this cell.
 	// This decoding could be done in the background for parallelism;
 	// it doesn't have to be finished until DecodeFinal() is called.
-	DecodeSlice(slice []byte)
+	DecodeClient(slice []byte)
+
+	// Same but to combine a trustee's slice into this cell.
+	DecodeTrustee(slice []byte)
 
 	// Combine all client and trustee slices provided via DecodeSlice(),
 	// to reveal the anonymized plaintext for this cell.
@@ -66,8 +88,7 @@ type testnode struct {
 	coder CellCoder
 }
 
-func (n *testnode) nodeSetup(name string, peerkeys []crypto.Point,
-				factory CellFactory) {
+func (n *testnode) nodeSetup(name string, peerkeys []crypto.Point) {
 	n.name = name
 	println("Setup",name)
 
@@ -81,10 +102,6 @@ func (n *testnode) nodeSetup(name string, peerkeys []crypto.Point,
 		println(" DH",dh.String())
 		n.peerstreams[j] = crypto.PointStream(n.suite, dh)
 	}
-
-	// Setup the cell coder
-	n.coder = factory()
-	n.coder.Setup(n.suite, n.peerstreams)
 }
 
 func TestCellCoder(factory CellFactory) {
@@ -137,15 +154,31 @@ func TestCellCoder(factory CellFactory) {
 	// XXX this should by something generic across multiple cell types,
 	// producing master shared streams that each cell type derives from.
 	for i := range(clients) {
-		clients[i].nodeSetup(fmt.Sprintf("Client%d",i), tkeys, factory)
+		n := clients[i]
+		n.nodeSetup(fmt.Sprintf("Client%d",i), tkeys)
+		n.coder = factory()
+		n.coder.ClientSetup(suite, n.peerstreams)
 	}
+	tinfo := make([][]byte, ntrustees)
 	for j := range(trustees) {
-		trustees[j].nodeSetup(fmt.Sprintf("Trustee%d",j), ckeys, factory)
+		n := trustees[j]
+		n.nodeSetup(fmt.Sprintf("Trustee%d",j), ckeys)
+		n.coder = factory()
+		tinfo[j] = n.coder.TrusteeSetup(suite, n.peerstreams)
+	}
+	relay.coder.RelaySetup(suite, tinfo)
+
+	// Create a set of fake history streams for the relay and clients
+	hist := []byte("xyz")
+	relayhist := crypto.HashStream(suite, hist)
+	clienthist := make([]cipher.Stream, nclients)
+	for i := range(clienthist) {
+		clienthist[i] = crypto.HashStream(suite, hist)
 	}
 
 	// Get some data to transmit
 	println("Simulating DC-nets")
-	payloadlen := 128
+	payloadlen := 1024
 	inb := make([]byte, payloadlen)
 	inf,_ := os.Open("cell.go")
 	for {
@@ -155,29 +188,29 @@ func TestCellCoder(factory CellFactory) {
 		}
 		payloadlen = n
 
-		// Process one cell worth of DC-nets activity
-		cellsize := payloadlen		 // XXX some encodings expand
-
+		// Process one cell worth of DC-nets activity.
 		// For simplicity the relay will consume slices
 		// as clients and trustees produce them.
-		relay.coder.DecodeStart(cellsize)
+		relay.coder.DecodeStart(payloadlen, relayhist)
 
 		// first client (owner) gets the payload data
 		p := make([]byte, payloadlen)
 		copy(p, inb)
 		for i := range(clients) {
-			slice := clients[i].coder.EncodeSlice(p, cellsize)
+			slice := clients[i].coder.ClientEncode(p, payloadlen,
+						clienthist[i])
 			p = nil		// for remaining clients
-			relay.coder.DecodeSlice(slice)
+			relay.coder.DecodeClient(slice)
 		}
 		for i := range(trustees) {
-			slice := trustees[i].coder.EncodeSlice(nil, cellsize)
-			relay.coder.DecodeSlice(slice)
+			slice := trustees[i].coder.TrusteeEncode(payloadlen)
+			relay.coder.DecodeTrustee(slice)
 		}
 
 		outb := relay.coder.DecodeCell()
 		os.Stdout.Write(outb)
-		if !bytes.Equal(inb[:payloadlen], outb[:payloadlen]) {
+		if outb == nil || !bytes.Equal(inb[:payloadlen],
+						outb[:payloadlen]) {
 			panic("oops, data corrupted")
 		}
 	}

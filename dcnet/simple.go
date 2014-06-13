@@ -23,9 +23,17 @@ func SimpleCoderFactory() CellCoder {
 }
 
 
-///// Client and Trustee methods /////
+///// Common methods /////
 
-func (c *simpleCoder) Setup(suite crypto.Suite, peerstreams []cipher.Stream) {
+func (c *simpleCoder) CellSize(payloadlen int) int {
+	return payloadlen	// no expansion
+}
+
+
+///// Client methods /////
+
+func (c *simpleCoder) ClientSetup(suite crypto.Suite,
+				peerstreams []cipher.Stream) {
 	c.suite = suite
 
 	// Use the provided master streams to seed
@@ -37,10 +45,11 @@ func (c *simpleCoder) Setup(suite crypto.Suite, peerstreams []cipher.Stream) {
 	}
 }
 
-func (c *simpleCoder) EncodeSlice(payload []byte, cellsize int) []byte {
+func (c *simpleCoder) ClientEncode(payload []byte, payloadlen int,
+				histoream cipher.Stream) []byte {
 
 	if payload == nil {
-		payload = make([]byte, cellsize)
+		payload = make([]byte, payloadlen)
 	}
 	for i := range(c.dcstreams) {
 		c.dcstreams[i].XORKeyStream(payload, payload)
@@ -49,18 +58,40 @@ func (c *simpleCoder) EncodeSlice(payload []byte, cellsize int) []byte {
 }
 
 
-///// Relay methods /////
+///// Trustee methods /////
 
-func (c *simpleCoder) DecodeStart(cellsize int) {
-
-	c.xorbuf = make([]byte, cellsize)
+func (c *simpleCoder) TrusteeSetup(suite crypto.Suite,
+				peerstreams []cipher.Stream) []byte {
+	c.ClientSetup(suite, peerstreams)	// no difference
+	return nil
 }
 
-func (c *simpleCoder) DecodeSlice(slice []byte) {
+func (c *simpleCoder) TrusteeEncode(payloadlen int) []byte {
+	return c.ClientEncode(nil, payloadlen, nil)	// no difference
+}
+
+
+///// Relay methods /////
+
+func (c *simpleCoder) RelaySetup(suite crypto.Suite, trusteeinfo [][]byte) {
+	// nothing to do
+}
+
+func (c *simpleCoder) DecodeStart(payloadlen int, histoream cipher.Stream) {
+
+	c.xorbuf = make([]byte, payloadlen)
+}
+
+func (c *simpleCoder) DecodeClient(slice []byte) {
 
 	for i := range slice {
 		c.xorbuf[i] ^= slice[i]
 	}
+}
+
+func (c *simpleCoder) DecodeTrustee(slice []byte) {
+
+	c.DecodeClient(slice)	// same
 }
 
 func (c *simpleCoder) DecodeCell() []byte {

@@ -28,6 +28,15 @@ func (s *SchnorrSecret) String() string { return s.i.String() }
 func (s *SchnorrSecret) Equal(s2 Secret) bool {
 	return s.i.Cmp(&s2.(*SchnorrSecret).i) == 0
 }
+func (s *SchnorrSecret) Neg(a Secret) Secret {
+	i := &a.(*SchnorrSecret).i
+	if i.Sign() > 0 {
+		s.i.Sub(s.g.Q, i)
+	} else {
+		s.i.SetUint64(0)
+	}
+	return s
+}
 func (s *SchnorrSecret) Add(a,b Secret) Secret {
 	s.i.Add(&a.(*SchnorrSecret).i,&b.(*SchnorrSecret).i)
 	s.i.Mod(&s.i, s.g.Q)
@@ -68,7 +77,7 @@ func (p *SchnorrPoint) PickLen() int {
 // Pick a point containing a variable amount of embedded data.
 // Remaining bits comprising the point are chosen randomly.
 // This will only work efficiently for quadratic residue groups!
-func (p *SchnorrPoint) Pick(data []byte, rand cipher.Stream) []byte {
+func (p *SchnorrPoint) Pick(data []byte, rand cipher.Stream) (Point, []byte) {
 
 	l := p.g.PointLen()
 	dl := p.PickLen()
@@ -85,7 +94,7 @@ func (p *SchnorrPoint) Pick(data []byte, rand cipher.Stream) []byte {
 		}
 		p.Int.SetBytes(b)
 		if p.Valid() {
-			return data[dl:]
+			return p, data[dl:]
 		}
 	}
 }
@@ -109,6 +118,12 @@ func (p *SchnorrPoint) Encrypt(b Point, s Secret) Point {
 	return p
 }
 
+func (p *SchnorrPoint) Add(a,b Point) Point {
+	p.Int.Mul(&a.(*SchnorrPoint).Int, &b.(*SchnorrPoint).Int)
+	p.Int.Mod(&p.Int, p.g.P)
+	return p
+}
+
 func (g *SchnorrGroup) EncodePoint(p Point) []byte {
 	return p.(*SchnorrPoint).Int.Bytes()
 }
@@ -117,12 +132,12 @@ func (p *SchnorrPoint) Encode() []byte {
 	return p.Bytes()
 }
 
-func (p *SchnorrPoint) Decode(data []byte) error {
+func (p *SchnorrPoint) Decode(data []byte) (Point, error) {
 	p.Int.SetBytes(data)
 	if !p.Valid() {
-		return errors.New("invalid Schnorr group element")
+		return nil, errors.New("invalid Schnorr group element")
 	}
-	return nil
+	return p, nil
 }
 
 
