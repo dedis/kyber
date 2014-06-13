@@ -123,6 +123,9 @@ func (p *CurvePoint) Pick(data []byte, rand cipher.Stream) []byte {
 func (p *CurvePoint) Data() ([]byte,error) {
 	b := p.x.Bytes()
 	l := p.c.coordLen()
+	if len(b) < l {		// pad leading zero bytes if necessary
+		b = append(make([]byte,l-len(b)), b...)
+	}
 	dl := int(b[l-1])
 	if dl > p.PickLen() {
 		return nil,errors.New("invalid embedded data length")

@@ -162,6 +162,9 @@ func (p *point) Pick(data []byte,rand cipher.Stream) []byte {
 func (p *point) Data() ([]byte,error) {
 	b := p.GetX().Bytes()		// we only need the X-coord
 	l := p.c.plen
+	if len(b) < l {		// pad leading zero bytes if necessary
+		b = append(make([]byte,l-len(b)), b...)
+	}
 	dl := int(b[l-1])
 	if dl > p.PickLen() {
 		return nil,errors.New("invalid embedded data length")

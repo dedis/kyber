@@ -67,10 +67,6 @@ func TestSuite(suite Suite) {
 
 	// Test the public-key group arithmetic
 	TestGroup(suite)
-
-
-	// XXX
-	BenchSuite(suite)
 }
 
 func benchStream(suite Suite, len int) {

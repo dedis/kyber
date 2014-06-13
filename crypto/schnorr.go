@@ -1,6 +1,7 @@
 package crypto
 
 import (
+	"fmt"
 	"errors"
 	"math/big"
 	"crypto/dsa"
@@ -93,6 +94,9 @@ func (p *SchnorrPoint) Pick(data []byte, rand cipher.Stream) []byte {
 func (p *SchnorrPoint) Data() ([]byte,error) {
 	b := p.Int.Bytes()
 	l := p.g.PointLen()
+	if len(b) < l {		// pad leading zero bytes if necessary
+		b = append(make([]byte,l-len(b)), b...)
+	}
 	dl := int(b[l-2])<<8 + int(b[l-1])
 	if dl > p.PickLen() {
 		return nil,errors.New("invalid embedded data length")
@@ -149,26 +153,74 @@ func (g *SchnorrGroup) Order() *big.Int {
 	return g.Q
 }
 
+// Validate the parameters for a Schnorr group
+func (g *SchnorrGroup) Valid() bool {
+
+	// Make sure both P and Q are prime
+	if !IsPrime(g.P) || !IsPrime(g.Q) {
+		return false
+	}
+
+	// Validate the equation P = QR+1
+	n := new(big.Int)
+	n.Mul(g.Q,g.R)
+	n.Add(n,one)
+	if n.Cmp(g.P) != 0 {
+		return false
+	}
+
+	// Validate the generator G
+	if g.G.Cmp(one) <= 0 || n.Exp(g.G, g.Q, g.P).Cmp(one) != 0 {
+		return false
+	}
+
+	return true
+}
+
+func (g *SchnorrGroup) SetParams(P,Q,R,G *big.Int) {
+	g.P = P
+	g.Q = Q
+	g.R = R
+	g.G = G
+	if !g.Valid() {
+		panic("SetParams: bad Schnorr group parameters")
+	}
+
+}
 
 // Initialize Schnorr group parameters for a quadratic residue group
 func (g *SchnorrGroup) QuadraticResidueGroup(bitlen uint, rand cipher.Stream) {
 	g.R = two
 
 	// pick primes p,q such that p = 2q+1
-	for {
-		g.Q = new(big.Int).SetBytes(RandomBits(bitlen-1, true, rand))
+	fmt.Printf("Generating %d-bit QR group", bitlen)
+	for i := 0; ; i++ {
+		if i > 1000 {
+			print(".")
+			i = 0
+		}
 
+		// First pick a prime Q
+		b := RandomBits(bitlen-1, true, rand)
+		b[len(b)-1] |= 1			// must be odd
+		g.Q = new(big.Int).SetBytes(b)
+		//println("q?",hex.EncodeToString(g.Q.Bytes()))
+		if !IsPrime(g.Q) {
+			continue
+		}
+
+		// Does the corresponding P come out prime too?
 		g.P = new(big.Int)
 		g.P.Mul(g.Q,two)
 		g.P.Add(g.P,one)
-
-		if uint(g.P.BitLen()) == bitlen &&
-			IsPrime(g.P) && IsPrime(g.Q) {
+		//println("p?",hex.EncodeToString(g.P.Bytes()))
+		if uint(g.P.BitLen()) == bitlen && IsPrime(g.P) {
 			break
 		}
 	}
-	println("p = ",g.P.String())
-	println("q = ",g.Q.String())
+	println()
+	println("p",g.P.String())
+	println("q",g.Q.String())
 
 	// pick standard generator G
 	h := new(big.Int).Set(two)
@@ -180,6 +232,6 @@ func (g *SchnorrGroup) QuadraticResidueGroup(bitlen uint, rand cipher.Stream) {
 		}
 		h.Add(h, one)
 	}
-	println("g = ",g.G.String())
+	println("g",g.G.String())
 }
 
