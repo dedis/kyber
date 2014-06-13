@@ -3,6 +3,7 @@ package dcnet
 import (
 	"os"
 	"fmt"
+	"time"
 	"bytes"
 	"crypto/cipher"
 	"dissent/crypto"
@@ -90,7 +91,7 @@ type testnode struct {
 
 func (n *testnode) nodeSetup(name string, peerkeys []crypto.Point) {
 	n.name = name
-	println("Setup",name)
+	//println("Setup",name)
 
 	// Form Diffie-Hellman master secret shared with each peer,
 	// and a pseudorandom master stream derived from each.
@@ -99,7 +100,7 @@ func (n *testnode) nodeSetup(name string, peerkeys []crypto.Point) {
 	n.peerstreams = make([]cipher.Stream, n.npeers)
 	for j := range(peerkeys) {
 		dh := n.suite.Point().Encrypt(peerkeys[j], n.spri)
-		println(" DH",dh.String())
+		//println(" DH",dh.String())
 		n.peerstreams[j] = crypto.PointStream(n.suite, dh)
 	}
 }
@@ -108,8 +109,8 @@ func TestCellCoder(factory CellFactory) {
 
 	suite := crypto.NewAES128SHA256P256()
 
-	nclients := 3
-	ntrustees := 2
+	nclients := 10
+	ntrustees := 3
 
 	nodes := make([]*testnode, nclients+ntrustees)
 	base := suite.Point().Base()
@@ -178,9 +179,13 @@ func TestCellCoder(factory CellFactory) {
 
 	// Get some data to transmit
 	println("Simulating DC-nets")
-	payloadlen := 1024
+	payloadlen := 1500
 	inb := make([]byte, payloadlen)
-	inf,_ := os.Open("cell.go")
+	inf,_ := os.Open("../LOW_LATENCY_DESIGN")
+	//inf,_ := os.Open("/usr/bin/afconvert")
+	beg := time.Now()
+	ncells := 0
+	nbytes := 0
 	for {
 		n,_ := inf.Read(inb)
 		if n <= 0 {
@@ -208,11 +213,18 @@ func TestCellCoder(factory CellFactory) {
 		}
 
 		outb := relay.coder.DecodeCell()
-		os.Stdout.Write(outb)
+		//os.Stdout.Write(outb)
 		if outb == nil || !bytes.Equal(inb[:payloadlen],
 						outb[:payloadlen]) {
 			panic("oops, data corrupted")
 		}
+
+		ncells++
+		nbytes += len(outb)
 	}
+	end := time.Now()
+	fmt.Printf("Time %f cells %d bytes %d nclients %d ntrustees %d\n",
+			float64(end.Sub(beg)) / 1000000000.0,
+			ncells, nbytes, nclients, ntrustees)
 }
 
