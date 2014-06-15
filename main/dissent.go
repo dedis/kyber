@@ -29,8 +29,7 @@ func testDCNet() {
 }
 
 func main() {
-	g := sodium.NewCurve25519()
-	crypto.TestGroup(g)
+	sodium.TestCurve25519()
 
 	//testSuites()
 	//benchSuites()
