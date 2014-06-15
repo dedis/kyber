@@ -2,6 +2,7 @@ package main
 
 import "dissent/crypto"
 import "dissent/crypto/openssl"
+import "dissent/crypto/sodium"
 import "dissent/dcnet"
 
 func testSuites() {
@@ -22,11 +23,18 @@ func benchSuites() {
 	crypto.BenchSuite(openssl.NewAES128SHA256P256())
 }
 
+func testDCNet() {
+	dcnet.TestCellCoder(dcnet.SimpleCoderFactory)
+	dcnet.TestCellCoder(dcnet.OwnedCoderFactory)
+}
+
 func main() {
+	g := sodium.NewCurve25519()
+	crypto.TestGroup(g)
+
 	//testSuites()
 	//benchSuites()
 
-	//dcnet.TestCellCoder(dcnet.SimpleCoderFactory)
-	dcnet.TestCellCoder(dcnet.OwnedCoderFactory)
+	//testDCNet()
 }
 
