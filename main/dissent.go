@@ -6,6 +6,7 @@ import (
 	"net"
 	"fmt"
 	"log"
+	"time"
 	"flag"
 	"net/http"
 	//"encoding/hex"
@@ -21,10 +22,10 @@ var suite = crypto.NewAES128SHA256P256()
 //var suite = openssl.NewAES128SHA256P256()
 var factory = dcnet.OwnedCoderFactory
 
-const nclients = 3
+const nclients = 5
 const ntrustees = 3
 
-const relayhost = "localhost:9876"	// XXX
+const relayhost = "relay.lld.safer:9876"	// XXX
 const bindport = ":9876"
 
 //const payloadlen = 1200			// upstream cell size
@@ -157,13 +158,35 @@ func startRelay() {
 		tslice[i] = make([]byte, trusize)
 	}
 
+	// Periodic stats reporting
+	begin := time.Now()
+	report := begin
+	period,_ := time.ParseDuration("3s")
+	totcells := int64(0)
+	totupbytes := int64(0)
+	totdownbytes := int64(0)
+
 	conns := make(map[int]net.Conn)
 	downstream := make(chan []byte)
 	nulldown := [6]byte{}	// default empty downstream cell
-	window := 3		// Maximum cells in-flight
+	window := 2		// Maximum cells in-flight
 	inflight := 0		// Current cells in-flight
 	for {
 		//print(".")
+
+		// Show periodic reports
+		now := time.Now()
+		if now.After(report) {
+			duration := now.Sub(begin).Seconds()
+			fmt.Printf("@ %f sec: %d cells, %f cells/sec, %d upbytes, %f upbytes/sec, %d downbytes, %f downbytes/sec\n",
+				duration,
+				totcells, float64(totcells) / duration,
+				totupbytes, float64(totupbytes) / duration,
+				totdownbytes, float64(totdownbytes) / duration)
+
+			// Next report time
+			report = now.Add(period)
+		}
 
 		// See if there's any downstream data to forward.
 		var dbuf []byte
@@ -186,6 +209,8 @@ func startRelay() {
 				panic("Write to client: "+err.Error())
 			}
 		}
+		totdownbytes += int64(len(dbuf)-6)
+
 		inflight++
 		if inflight < window {
 			continue	// Get more cells in flight
@@ -216,6 +241,8 @@ func startRelay() {
 		}
 
 		outb := me.Coder.DecodeCell()
+		totcells++
+		totupbytes += int64(payloadlen)
 		inflight--
 
 		// Process the decoded cell
