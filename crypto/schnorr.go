@@ -58,6 +58,11 @@ func (p *SchnorrPoint) Equal(p2 Point) bool {
 	return p.Int.Cmp(&p2.(*SchnorrPoint).Int) == 0
 }
 
+func (p *SchnorrPoint) Null() Point {
+	p.Int.SetInt64(0)
+	return p
+}
+
 func (p *SchnorrPoint) Base() Point {
 	p.Int.Set(p.g.G)
 	return p

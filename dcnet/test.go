@@ -9,7 +9,7 @@ import (
 	"dissent/crypto"
 )
 
-type testnode struct {
+type TestNode struct {
 
 	// General parameters
 	suite crypto.Suite
@@ -29,10 +29,19 @@ type testnode struct {
 	opub crypto.Point
 	opri crypto.Secret
 
-	coder CellCoder
+	Coder CellCoder
+
+	// Stream representing history as seen by this node.
+	Histoream cipher.Stream
 }
 
-func (n *testnode) nodeSetup(name string, peerkeys []crypto.Point) {
+type TestGroup struct {
+	Relay *TestNode
+	Clients []*TestNode
+	Trustees []*TestNode
+}
+
+func (n *TestNode) nodeSetup(name string, peerkeys []crypto.Point) {
 	n.name = name
 	//println("Setup",name)
 
@@ -48,32 +57,34 @@ func (n *testnode) nodeSetup(name string, peerkeys []crypto.Point) {
 	}
 }
 
-func TestCellCoder(factory CellFactory) {
+func TestSetup(suite crypto.Suite, factory CellFactory,
+		nclients, ntrustees int) *TestGroup {
 
-	suite := crypto.NewAES128SHA256P256()
+	// Use a pseudorandom stream from a well-known seed
+	// for all our setup randomness,
+	// so we can reproduce the same keys etc on each node.
+	rand := crypto.HashStream(suite, []byte("DCTest"))
 
-	nclients := 1
-	ntrustees := 3
-
-	nodes := make([]*testnode, nclients+ntrustees)
+	nodes := make([]*TestNode, nclients+ntrustees)
 	base := suite.Point().Base()
 	for i := range(nodes) {
-		nodes[i] = new(testnode)
+		nodes[i] = new(TestNode)
 		nodes[i].suite = suite
 
 		// Each client and trustee gets a session keypair
-		nodes[i].spri = suite.Secret().Pick(crypto.RandomStream)
+		nodes[i].spri = suite.Secret().Pick(rand)
 		nodes[i].spub = suite.Point().Encrypt(base, nodes[i].spri)
+		fmt.Printf("node %d key %s\n", i, nodes[i].spri.String())
 
-		nodes[i].coder = factory()
+		nodes[i].Coder = factory()
 	}
 
 	clients := nodes[:nclients]
 	trustees := nodes[nclients:]
 
-	relay := new(testnode)
+	relay := new(TestNode)
 	relay.name = "Relay"
-	relay.coder = factory()
+	relay.Coder = factory()
 
 	// Create tables of the clients' and the trustees' public session keys
 	ckeys := make([]crypto.Point, nclients)
@@ -87,7 +98,7 @@ func TestCellCoder(factory CellFactory) {
 
 	// Pick an "owner" for the (one) transmission series we'll have.
 	// For now the owner will be the first client.
-	opri := suite.Secret().Pick(crypto.RandomStream)
+	opri := suite.Secret().Pick(rand)
 	opub := suite.Point().Encrypt(base, opri)
 	clients[0].opri = opri
 	for i := range(nodes) {
@@ -100,29 +111,48 @@ func TestCellCoder(factory CellFactory) {
 	for i := range(clients) {
 		n := clients[i]
 		n.nodeSetup(fmt.Sprintf("Client%d",i), tkeys)
-		n.coder = factory()
-		n.coder.ClientSetup(suite, n.peerstreams)
+		n.Coder = factory()
+		n.Coder.ClientSetup(suite, n.peerstreams)
 	}
 	tinfo := make([][]byte, ntrustees)
 	for j := range(trustees) {
 		n := trustees[j]
 		n.nodeSetup(fmt.Sprintf("Trustee%d",j), ckeys)
-		n.coder = factory()
-		tinfo[j] = n.coder.TrusteeSetup(suite, n.peerstreams)
+		n.Coder = factory()
+		tinfo[j] = n.Coder.TrusteeSetup(suite, n.peerstreams)
 	}
-	relay.coder.RelaySetup(suite, tinfo)
+	relay.Coder.RelaySetup(suite, tinfo)
 
 	// Create a set of fake history streams for the relay and clients
 	hist := []byte("xyz")
-	relayhist := crypto.HashStream(suite, hist)
-	clienthist := make([]cipher.Stream, nclients)
-	for i := range(clienthist) {
-		clienthist[i] = crypto.HashStream(suite, hist)
+	relay.Histoream = crypto.HashStream(suite, hist)
+	//relay.Histoream = crypto.TraceStream(os.Stdout, relay.Histoream)
+	for i := range(clients) {
+		clients[i].Histoream = crypto.HashStream(suite, hist)
+		//clients[i].Histoream = crypto.TraceStream(os.Stdout,
+		//					clients[i].Histoream)
 	}
+
+	tg := new(TestGroup)
+	tg.Relay = relay
+	tg.Clients = clients
+	tg.Trustees = trustees
+	return tg
+}
+
+func TestCellCoder(suite crypto.Suite, factory CellFactory) {
+
+	nclients := 1
+	ntrustees := 3
+
+	tg := TestSetup(suite, factory, nclients, ntrustees)
+	relay := tg.Relay
+	clients := tg.Clients
+	trustees := tg.Trustees
 
 	// Get some data to transmit
 	println("Simulating DC-nets")
-	payloadlen := 1500
+	payloadlen := 1200
 	inb := make([]byte, payloadlen)
 	//inf,_ := os.Open("../LOW_LATENCY_DESIGN")
 	inf,_ := os.Open("/usr/bin/afconvert")
@@ -143,23 +173,26 @@ func TestCellCoder(factory CellFactory) {
 		p := make([]byte, payloadlen)
 		copy(p, inb)
 		for i := range(clients) {
-			cslice[i] = clients[i].coder.ClientEncode(p, payloadlen,
-						clienthist[i])
+p = nil
+			cslice[i] = clients[i].Coder.ClientEncode(p, payloadlen,
+						clients[i].Histoream)
 			p = nil		// for remaining clients
 		}
+
+		// Trustee processing
 		for j := range(trustees) {
-			tslice[j] = trustees[j].coder.TrusteeEncode(payloadlen)
+			tslice[j] = trustees[j].Coder.TrusteeEncode(payloadlen)
 		}
 
 		// Relay processing
-		relay.coder.DecodeStart(payloadlen, relayhist)
+		relay.Coder.DecodeStart(payloadlen, relay.Histoream)
 		for i := range(clients) {
-			relay.coder.DecodeClient(cslice[i])
+			relay.Coder.DecodeClient(cslice[i])
 		}
 		for j := range(trustees) {
-			relay.coder.DecodeTrustee(tslice[j])
+			relay.Coder.DecodeTrustee(tslice[j])
 		}
-		outb := relay.coder.DecodeCell()
+		outb := relay.Coder.DecodeCell()
 
 		//os.Stdout.Write(outb)
 		if outb == nil || len(outb) != payloadlen ||

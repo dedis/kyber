@@ -14,9 +14,13 @@ type CellCoder interface {
 
 	///// Common methods /////
 
-	// Compute the cell size required for a given cleartext payload length,
+	// Compute the client ciphertext size for a given cell payload length,
 	// accounting for whatever expansion the cell encoding imposes.
-	CellSize(payloadlen int) int
+	ClientCellSize(payloadlen int) int
+
+	// Compute the trustee ciphertext size for a given cell payload length,
+	// accounting for whatever expansion the cell encoding imposes.
+	TrusteeCellSize(payloadlen int) int
 
 
 	///// Client methods /////

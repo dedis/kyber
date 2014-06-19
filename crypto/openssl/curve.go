@@ -121,6 +121,13 @@ func (p *point) GetY() *bignum {
 	return y
 }
 
+func (p *point) Null() crypto.Point {
+	if C.EC_POINT_set_to_infinity(p.c.g, p.p) == 0 {
+		panic("EC_POINT_set_to_infinity: "+getErrString())
+	}
+	return p
+}
+
 func (p *point) Base() crypto.Point {
 	genp := C.EC_GROUP_get0_generator(p.c.g)
 	if genp == nil {

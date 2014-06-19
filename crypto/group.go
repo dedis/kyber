@@ -30,6 +30,7 @@ type Point interface {
 	String() string
 	Equal(s2 Point) bool
 
+	Null() Point			// Set to neutral identity element
 	Base() Point			// Set to well-known generator
 
 	// Pick and set to a point that is at least partly [pseudo-]random,

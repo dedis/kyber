@@ -4,6 +4,7 @@ import (
 	"hash"
 	"time"
 	"fmt"
+	"io"
 	"crypto/cipher"
 	"encoding/hex"
 )
@@ -48,6 +49,27 @@ func SubStream(suite Suite, s cipher.Stream) cipher.Stream {
 	s.XORKeyStream(key,key)
 	return suite.Stream(key)
 }
+
+
+type tracer struct {
+	w io.Writer
+	s cipher.Stream
+}
+
+func (t *tracer) XORKeyStream(dst,src []byte) {
+	buf := make([]byte, len(src))
+	t.s.XORKeyStream(buf,buf)
+	fmt.Printf("TraceStream %p -> %s\n", t, hex.EncodeToString(buf))
+	for i := range(buf) {
+		dst[i] = src[i] ^ buf[i]
+	}
+}
+
+// Wrap a stream with a tracer that simply traces its usage for debugging.
+func TraceStream(w io.Writer, s cipher.Stream) cipher.Stream {
+	return &tracer{w,s}
+}
+
 
 func TestSuite(suite Suite) {
 

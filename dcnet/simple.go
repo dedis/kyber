@@ -23,14 +23,11 @@ func SimpleCoderFactory() CellCoder {
 }
 
 
-///// Common methods /////
+///// Client methods /////
 
-func (c *simpleCoder) CellSize(payloadlen int) int {
+func (c *simpleCoder) ClientCellSize(payloadlen int) int {
 	return payloadlen	// no expansion
 }
-
-
-///// Client methods /////
 
 func (c *simpleCoder) ClientSetup(suite crypto.Suite,
 				peerstreams []cipher.Stream) {
@@ -59,6 +56,10 @@ func (c *simpleCoder) ClientEncode(payload []byte, payloadlen int,
 
 
 ///// Trustee methods /////
+
+func (c *simpleCoder) TrusteeCellSize(payloadlen int) int {
+	return payloadlen	// no expansion
+}
 
 func (c *simpleCoder) TrusteeSetup(suite crypto.Suite,
 				peerstreams []cipher.Stream) []byte {

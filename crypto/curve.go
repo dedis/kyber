@@ -3,6 +3,7 @@ package crypto
 import (
 	"errors"
 	"math/big"
+	//"encoding/hex"
 	"crypto/cipher"
 	"crypto/elliptic"
 )
@@ -54,6 +55,12 @@ func (p *CurvePoint) String() string {
 func (p *CurvePoint) Equal(p2 Point) bool {
 	return	p.x.Cmp(p2.(*CurvePoint).x) == 0 &&
 		p.y.Cmp(p2.(*CurvePoint).y) == 0
+}
+
+func (p *CurvePoint) Null() Point {
+	p.x = new(big.Int).SetInt64(0)
+	p.y = new(big.Int).SetInt64(0)
+	return p
 }
 
 func (p *CurvePoint) Base() Point {
