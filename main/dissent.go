@@ -22,10 +22,10 @@ var suite = crypto.NewAES128SHA256P256()
 //var suite = openssl.NewAES128SHA256P256()
 var factory = dcnet.OwnedCoderFactory
 
-const nclients = 5
+const nclients = 50
 const ntrustees = 3
 
-const relayhost = "relay.lld.safer:9876"	// XXX
+const relayhost = "localhost:9876"	// XXX
 const bindport = ":9876"
 
 //const payloadlen = 1200			// upstream cell size
@@ -79,11 +79,11 @@ func relayReadConn(cno int, conn net.Conn, downstream chan<- []byte) {
 		binary.BigEndian.PutUint16(buf[4:6], uint16(n))
 		downstream <- buf[:6+n]
 
+		// Connection error or EOF?
 		if n == 0 {
 			if err != io.EOF {
 				fmt.Println("relayReadConn error: "+err.Error())
 			}
-			fmt.Printf("relayReadConn: close conn %d\n", cno)
 			conn.Close()
 			return
 		}
@@ -192,7 +192,7 @@ func startRelay() {
 		var dbuf []byte
 		select {
 		case dbuf = <-downstream: // some data to forward downstream
-			fmt.Printf("v %d\n", len(dbuf)-6)
+			//fmt.Printf("v %d\n", len(dbuf)-6)
 		default:		// nothing at the moment to forward
 			dbuf = nulldown[:]
 		}
@@ -256,7 +256,7 @@ func startRelay() {
 		// Decode the upstream cell header (may be empty, all zeros)
 		cno := int(binary.BigEndian.Uint32(outb[0:4]))
 		dlen := int(binary.BigEndian.Uint16(outb[4:6]))
-		fmt.Printf("^ %d (conn %d)\n", dlen, cno)
+		//fmt.Printf("^ %d (conn %d)\n", dlen, cno)
 		if cno == 0 {
 			continue	// no upstream data
 		}
@@ -270,8 +270,8 @@ func startRelay() {
 			go relayReadConn(cno, conn, downstream)
 		}
 		if dlen == 0 {		// connection close indicator
-			fmt.Printf("write-closing stream %d\n", cno)
-			conn.(*net.TCPConn).CloseWrite()
+			fmt.Printf("closing stream %d\n", cno)
+			conn.Close()
 			continue
 		}
 		if 6+dlen > payloadlen {
@@ -281,7 +281,7 @@ func startRelay() {
 		n,err := conn.Write(outb[6:6+dlen])
 		if n < dlen {
 			fmt.Printf("upstream write error: "+err.Error())
-			conn.(*net.TCPConn).CloseWrite()
+			conn.Close()
 			continue
 		}
 	}
@@ -324,6 +324,16 @@ func clientConnRead(cno int, conn net.Conn, upload chan<- []byte,
 		// Read up to a cell worth of data to send upstream
 		buf := make([]byte, payloadlen)
 		n,err := conn.Read(buf[proxyhdrlen:])
+
+		// Encode the connection number and actual data length
+		binary.BigEndian.PutUint32(buf[0:4], uint32(cno))
+		binary.BigEndian.PutUint16(buf[4:6], uint16(n))
+
+		// Send it upstream!
+		upload <- buf
+		//fmt.Printf("read %d bytes from client %d\n", n, cno)
+
+		// Connection error or EOF?
 		if n == 0 {
 			if err == io.EOF {
 				println("clientUpload: EOF, closing")
@@ -334,14 +344,6 @@ func clientConnRead(cno int, conn net.Conn, upload chan<- []byte,
 			close <- cno	// signal that channel is closed
 			return
 		}
-		fmt.Printf("read %d bytes from client %d\n", n, cno)
-
-		// Encode the connection number and actual data length
-		binary.BigEndian.PutUint32(buf[0:4], uint32(cno))
-		binary.BigEndian.PutUint16(buf[4:6], uint16(n))
-
-		// Send it upstream!
-		upload <- buf
 	}
 }
 
@@ -355,10 +357,10 @@ func clientReadRelay(rconn net.Conn, fromrelay chan<- connbuf) {
 		}
 		cno := int(binary.BigEndian.Uint32(hdr[0:4]))
 		dlen := int(binary.BigEndian.Uint16(hdr[4:6]))
-		if cno != 0 || dlen != 0 {
-			fmt.Printf("clientReadRelay: cno %d dlen %d\n",
-					cno, dlen)
-		}
+		//if cno != 0 || dlen != 0 {
+		//	fmt.Printf("clientReadRelay: cno %d dlen %d\n",
+		//			cno, dlen)
+		//}
 
 		// Read the downstream data itself
 		buf := make([]byte, dlen)
@@ -413,10 +415,10 @@ func startClient(clino int) {
 			//print(".")
 
 			cno := cbuf.cno
-			if cno != 0 || len(cbuf.buf) != 0 {
-				fmt.Printf("v %d (conn %d)\n",
-						len(cbuf.buf), cno)
-			}
+			//if cno != 0 || len(cbuf.buf) != 0 {
+			//	fmt.Printf("v %d (conn %d)\n",
+			//			len(cbuf.buf), cno)
+			//}
 			if cno > 0 && cno < len(conns) && conns[cno] != nil {
 				buf := cbuf.buf
 				blen := len(buf)
@@ -443,7 +445,7 @@ func startClient(clino int) {
 			if len(upq) > 0 {
 				p = upq[0]
 				upq = upq[1:]
-				fmt.Printf("^ %d\n", len(p))
+				//fmt.Printf("^ %d\n", len(p))
 			}
 			slice := me.Coder.ClientEncode(p, payloadlen,
 							me.Histoream)
