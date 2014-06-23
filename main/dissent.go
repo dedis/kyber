@@ -10,7 +10,7 @@ import (
 	"flag"
 	"errors"
 	"net/http"
-	"encoding/hex"
+	//"encoding/hex"
 	"encoding/binary"
 	"dissent/crypto"
 	"dissent/crypto/openssl"
@@ -185,21 +185,20 @@ func readSocksAddr(cr io.Reader, addrtype int) (string, error) {
 }
 
 func socksRelayDown(cno int, conn net.Conn, downstream chan<- connbuf) {
-	log.Printf("socksRelayDown: cno %d\n", cno)
+	//log.Printf("socksRelayDown: cno %d\n", cno)
 	for {
 		buf := make([]byte, downcellmax)
 		n,err := conn.Read(buf)
-		fmt.Printf("socksRelayDown: %d bytes on cno %d\n", n, cno)
-		fmt.Print(hex.Dump(buf[:n]))
+		buf = buf[:n]
+		//fmt.Printf("socksRelayDown: %d bytes on cno %d\n", n, cno)
+		//fmt.Print(hex.Dump(buf[:n]))
 
 		// Forward the data (or close indication if n==0) downstream
 		downstream <- connbuf{cno, buf}
 
 		// Connection error or EOF?
 		if n == 0 {
-			if err != io.EOF {
-				fmt.Println("socksRelayDown: "+err.Error())
-			}
+			log.Println("socksRelayDown: "+err.Error())
 			conn.Close()
 			return
 		}
@@ -207,13 +206,13 @@ func socksRelayDown(cno int, conn net.Conn, downstream chan<- connbuf) {
 }
 
 func socksRelayUp(cno int, conn net.Conn, upstream <-chan []byte) {
-	log.Printf("socksRelayUp: cno %d\n", cno)
+	//log.Printf("socksRelayUp: cno %d\n", cno)
 	for {
 		// Get the next upstream data buffer
 		buf := <-upstream
 		dlen := len(buf)
-		fmt.Printf("socksRelayUp: %d bytes on cno %d\n", len(buf), cno)
-		fmt.Print(hex.Dump(buf))
+		//fmt.Printf("socksRelayUp: %d bytes on cno %d\n", len(buf), cno)
+		//fmt.Print(hex.Dump(buf))
 
 		if dlen == 0 {		// connection close indicator
 			log.Printf("socksRelayUp: closing stream %d\n", cno)
@@ -282,7 +281,7 @@ func socks5Reply(cno int, err error, addr net.Addr) connbuf {
 	}
 	buf[1] = byte(rep)
 
-	log.Printf("SOCKS5 reply:\n" + hex.Dump(buf))
+	//log.Printf("SOCKS5 reply:\n" + hex.Dump(buf))
 	return connbuf{cno, buf}
 }
 
@@ -305,8 +304,8 @@ func relaySocksProxy(cno int, upstream <-chan []byte,
 		log.Printf("SOCKS: no version/method header: "+err.Error())
 		return
 	}
-	log.Printf("SOCKS proxy: version %d nmethods %d \n",
-		vernmeth[0], vernmeth[1])
+	//log.Printf("SOCKS proxy: version %d nmethods %d \n",
+	//	vernmeth[0], vernmeth[1])
 	ver := int(vernmeth[0])
 	if ver != 5 {
 		log.Printf("SOCKS: unsupported version number %d", ver)
@@ -364,7 +363,7 @@ func relaySocksProxy(cno int, upstream <-chan []byte,
 
 	// Process the command
 	cmd := int(req[1])
-	log.Printf("SOCKS proxy: request %d for %s\n", cmd, hostport)
+	//log.Printf("SOCKS proxy: request %d for %s\n", cmd, hostport)
 	switch cmd {
 	case cmdConnect:
 		conn,err := net.Dial("tcp", hostport)
@@ -626,6 +625,7 @@ func clientListen(listenport string, newconn chan<- net.Conn) {
 
 func clientConnRead(cno int, conn net.Conn, upload chan<- []byte,
 		close chan<- int) {
+
 	for {
 		// Read up to a cell worth of data to send upstream
 		buf := make([]byte, payloadlen)
