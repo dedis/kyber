@@ -625,7 +625,7 @@ func clientListen(listenport string, newconn chan<- net.Conn) {
 		conn,err := lsock.Accept()
 		log.Printf("Accept on port %s\n", listenport)
 		if err != nil {
-			log.Printf("Accept error: %s", err.Error())
+			//log.Printf("Accept error: %s", err.Error())
 			lsock.Close()
 			return
 		}
@@ -728,7 +728,7 @@ func startClient(clino int) {
 		case conn := <-newconn:		// New TCP connection
 			cno := len(conns)
 			conns = append(conns, conn)
-			fmt.Printf("new conn %d %p %p\n", cno, conn, conns[cno])
+			//fmt.Printf("new conn %d %p %p\n", cno, conn, conns[cno])
 			go clientConnRead(cno, conn, upload, close)
 
 		case buf := <-upload:		// Upstream data from client
