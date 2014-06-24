@@ -2,7 +2,7 @@ package openssl
 
 // #include <openssl/aes.h>
 // #cgo CFLAGS: -Wno-deprecated
-// #cgo LDFLAGS: -lcrypto
+// #cgo LDFLAGS: -lcrypto -ldl
 import "C"
 
 import (

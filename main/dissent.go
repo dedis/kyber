@@ -428,7 +428,7 @@ func startRelay() {
 	csock := make([]net.Conn, nclients)
 	tsock := make([]net.Conn, ntrustees)
 	for ; ccli < nclients || ctru < ntrustees ; {
-		fmt.Printf("Wating for %d clients, %d trustees\n",
+		fmt.Printf("Waiting for %d clients, %d trustees\n",
 				nclients-ccli, ntrustees-ctru)
 
 		conn,err := lsock.Accept()
