@@ -24,10 +24,10 @@ var suite = crypto.NewAES128SHA256P256()
 //var suite = openssl.NewAES128SHA256P256()
 var factory = dcnet.OwnedCoderFactory
 
-const nclients = 1
-const ntrustees = 1
+const nclients = 10
+const ntrustees = 3
 
-const relayhost = "localhost:9876"	// XXX
+const relayhost = "planetlab2.cs.ucla.edu:9876"	// XXX
 const bindport = ":9876"
 
 //const payloadlen = 1200			// upstream cell size
@@ -176,6 +176,7 @@ func readSocksAddr(cr io.Reader, addrtype int) (string, error) {
 		if err != nil {
 			return "", err
 		}
+		log.Printf("SOCKS: domain '%s'\n", string(domain))
 
 		return string(domain), nil
 
