@@ -32,7 +32,7 @@ const bindport = ":9876"
 //const payloadlen = 1200			// upstream cell size
 const payloadlen = 256			// upstream cell size
 
-const downcellmax = 4096		// downstream cell max size
+const downcellmax = 64*1024		// downstream cell max size
 
 // Number of bytes of cell payload to reserve for connection header, length
 const proxyhdrlen = 6
@@ -615,7 +615,7 @@ func clientListen(listenport string, newconn chan<- net.Conn) {
 		conn,err := lsock.Accept()
 		log.Printf("Accept on port %s\n", listenport)
 		if err != nil {
-			log.Printf("Accept error: %s", err.Error())
+			//log.Printf("Accept error: %s", err.Error())
 			lsock.Close()
 			return
 		}
@@ -709,7 +709,7 @@ func startClient(clino int) {
 		case conn := <-newconn:		// New TCP connection
 			cno := len(conns)
 			conns = append(conns, conn)
-			fmt.Printf("new conn %d %p %p\n", cno, conn, conns[cno])
+			//fmt.Printf("new conn %d %p %p\n", cno, conn, conns[cno])
 			go clientConnRead(cno, conn, upload, close)
 
 		case buf := <-upload:		// Upstream data from client
