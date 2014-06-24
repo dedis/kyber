@@ -2,20 +2,21 @@ package main
 
 import (
 	"io"
-	//"os"
+	"os"
 	"net"
 	"fmt"
 	"log"
 	"time"
 	"flag"
 	"errors"
-	"net/http"
+	//"net/http"
+	"os/signal"
 	//"encoding/hex"
 	"encoding/binary"
 	"dissent/crypto"
 	"dissent/crypto/openssl"
 	"dissent/dcnet"
-	"github.com/elazarl/goproxy"
+	//"github.com/elazarl/goproxy"
 )
 
 
@@ -406,12 +407,14 @@ func startRelay() {
 	me := tg.Relay
 
 	// Start our own local HTTP proxy for simplicity.
+/*
 	go func() {
 		proxy := goproxy.NewProxyHttpServer()
 		proxy.Verbose = true
 		println("Starting HTTP proxy")
 		log.Fatal(http.ListenAndServe(":8888", proxy))
 	}()
+*/
 
 	lsock,err := net.Listen("tcp", bindport)
 	if err != nil {
@@ -473,8 +476,9 @@ func startRelay() {
 	begin := time.Now()
 	report := begin
 	period,_ := time.ParseDuration("3s")
-	totcells := int64(0)
+	totupcells := int64(0)
 	totupbytes := int64(0)
+	totdowncells := int64(0)
 	totdownbytes := int64(0)
 
 	conns := make(map[int] chan<- []byte)
@@ -491,7 +495,7 @@ func startRelay() {
 			duration := now.Sub(begin).Seconds()
 			fmt.Printf("@ %f sec: %d cells, %f cells/sec, %d upbytes, %f upbytes/sec, %d downbytes, %f downbytes/sec\n",
 				duration,
-				totcells, float64(totcells) / duration,
+				totupcells, float64(totupcells) / duration,
 				totupbytes, float64(totupbytes) / duration,
 				totdownbytes, float64(totdownbytes) / duration)
 
@@ -522,7 +526,10 @@ func startRelay() {
 				panic("Write to client: "+err.Error())
 			}
 		}
+		totdowncells++
 		totdownbytes += int64(dlen)
+		//fmt.Printf("sent %d downstream cells, %d bytes \n",
+		//		totdowncells, totdownbytes)
 
 		inflight++
 		if inflight < window {
@@ -554,9 +561,12 @@ func startRelay() {
 		}
 
 		outb := me.Coder.DecodeCell()
-		totcells++
-		totupbytes += int64(payloadlen)
 		inflight--
+
+		totupcells++
+		totupbytes += int64(payloadlen)
+		//fmt.Printf("received %d upstream cells, %d bytes\n",
+		//		totupcells, totupbytes)
 
 		// Process the decoded cell
 		if outb == nil {
@@ -655,6 +665,8 @@ func clientConnRead(cno int, conn net.Conn, upload chan<- []byte,
 
 func clientReadRelay(rconn net.Conn, fromrelay chan<- connbuf) {
 	hdr := [6]byte{}
+	totcells := uint64(0)
+	totbytes := uint64(0)
 	for {
 		// Read the next downstream/broadcast cell from the relay
 		n,err := io.ReadFull(rconn, hdr[:])
@@ -677,6 +689,11 @@ func clientReadRelay(rconn net.Conn, fromrelay chan<- connbuf) {
 
 		// Pass the downstream cell to the main loop
 		fromrelay <- connbuf{cno,buf}
+
+		totcells++
+		totbytes += uint64(dlen)
+		//fmt.Printf("read %d downstream cells, %d bytes\n",
+		//		totcells, totbytes)
 	}
 }
 
@@ -704,6 +721,8 @@ func startClient(clino int) {
 
 	// Client/proxy main loop
 	upq := make([][]byte,0)
+	totupcells := uint64(0)
+	totupbytes := uint64(0)
 	for {
 		select {
 		case conn := <-newconn:		// New TCP connection
@@ -765,6 +784,11 @@ func startClient(clino int) {
 			if n != len(slice) {
 				panic("Write to relay conn: "+err.Error())
 			}
+
+			totupcells++
+			totupbytes += uint64(payloadlen)
+			//fmt.Printf("sent %d upstream cells, %d bytes\n",
+			//		totupcells, totupbytes)
 		}
 	}
 }
@@ -791,7 +815,19 @@ func startTrustee(tno int) {
 	}
 }
 
+func interceptCtrlC() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func(){
+		for sig := range c {
+			panic("signal: "+sig.String())	// with stacktrace
+		}
+	}()
+}
+
 func main() {
+	interceptCtrlC()
+
 	//testSuites()
 	//benchSuites()
 	//testDCNet()
