@@ -29,7 +29,10 @@ type Hasher interface {
 }
 
 
-// Create a pseudorandom stream seeded by hashing an arbitrary byte string
+// Create a pseudorandom stream seeded by hashing an arbitrary byte string.
+// This can be considered a general key expansion function
+// taking an input seed of arbitrary size
+// such that the resulting stream depends on every bit of the input.
 func HashStream(suite Suite, data []byte) cipher.Stream {
 	h := suite.Hash()
 	h.Write(data)
@@ -38,12 +41,17 @@ func HashStream(suite Suite, data []byte) cipher.Stream {
 }
 
 // Create a pseudorandom stream seeded by hashing a group element
+// from the public-key group associated with this ciphersuite.
 func PointStream(suite Suite, point Point) cipher.Stream {
 	return HashStream(suite, point.Encode())
 }
 
-// Pull enough bytes for a seed from an existing cipher
-// to produce a new, derived sub-cipher
+// Pull enough bytes for a seed from an existing stream cipher
+// to produce a new, derived sub-stream cipher.
+// This may be effectively used as a "fork" operator for stream ciphers,
+// capable of producing arbitrary trees of stream ciphers that are
+// cryptographically independent but pseudo-randomly derived
+// from the same root cipher.
 func SubStream(suite Suite, s cipher.Stream) cipher.Stream {
 	key := make([]byte,suite.KeyLen())
 	s.XORKeyStream(key,key)
@@ -66,11 +74,14 @@ func (t *tracer) XORKeyStream(dst,src []byte) {
 }
 
 // Wrap a stream with a tracer that simply traces its usage for debugging.
+// This is useful to determine when and why two pseudorandom streams
+// unexpectedly diverge.
 func TraceStream(w io.Writer, s cipher.Stream) cipher.Stream {
 	return &tracer{w,s}
 }
 
 
+// Apply a standard set of validation tests to a ciphersuite.
 func TestSuite(suite Suite) {
 
 	// Try hashing something
@@ -135,6 +146,7 @@ func benchStream(suite Suite, len int) {
 
 }
 
+// Run a Suite through a set of basic microbenchmarks.
 func BenchSuite(suite Suite) {
 
 	// Stream benchmark

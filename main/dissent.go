@@ -24,16 +24,16 @@ var suite = crypto.NewAES128SHA256P256()
 //var suite = openssl.NewAES128SHA256P256()
 var factory = dcnet.OwnedCoderFactory
 
-const nclients = 10
+const nclients = 5
 const ntrustees = 3
 
-const relayhost = "planetlab2.cs.ucla.edu:9876"	// XXX
+const relayhost = "localhost:9876"	// XXX
 const bindport = ":9876"
 
 //const payloadlen = 1200			// upstream cell size
 const payloadlen = 256			// upstream cell size
 
-const downcellmax = 64*1024		// downstream cell max size
+const downcellmax = 16*1024		// downstream cell max size
 
 // Number of bytes of cell payload to reserve for connection header, length
 const proxyhdrlen = 6

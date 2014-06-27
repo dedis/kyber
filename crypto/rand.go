@@ -40,7 +40,8 @@ func RandomBigInt(mod *big.Int, rand cipher.Stream) *big.Int {
 // Steal value from DSA, which uses recommendation from FIPS 186-3
 const numMRTests = 64
 
-func IsPrime(i *big.Int) bool {
+// Probabilistically test whether a big integer is prime.
+func isPrime(i *big.Int) bool {
 	return i.ProbablyPrime(numMRTests)
 }
 
@@ -67,7 +68,7 @@ func (r *randstream) XORKeyStream(dst, src []byte) {
 	}
 }
 
-// virtual "stream cipher" that just generates
-// fresh cryptographically strong random bits
+// Standard virtual "stream cipher" that just generates
+// fresh cryptographically strong random bits.
 var RandomStream cipher.Stream = new(randstream)
 
