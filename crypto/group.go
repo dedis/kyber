@@ -17,21 +17,40 @@ and a scalar multiplier in elliptic curve groups.
 */
 type Secret interface {
 	String() string
+	Encoding
 
-	// Equality test for two secrets derived from the same Group
+	// Equality test for two Secrets derived from the same Group
 	Equal(s2 Secret) bool
 
-	// Set to the sum of secrets a and b
+	// Set equal to a
+	Set(a Secret) Secret
+
+	// Set to the additive identity (0)
+	Zero() Secret
+
+	// Set to the modular sum of secrets a and b
 	Add(a,b Secret) Secret
+
+	// Set to the modular difference a - b
+	Sub(a,b Secret) Secret
 
 	// Set to the modular negation of secret a
 	Neg(a Secret) Secret
 
+	// Set to the multiplicative identity (1)
+	One() Secret
+
+	// Set to the modular product of secrets a and b
+	Mul(a,b Secret) Secret
+
+	// Set to the modular division of secret a by secret b
+	Div(a,b Secret) Secret
+
+	// Set to the modular inverse of secret a
+	Inv(a Secret) Secret
+
 	// Set to a fresh random or pseudo-random secret
 	Pick(rand cipher.Stream) Secret
-
-	Encode() []byte
-	Decode(buf []byte) Secret
 }
 
 /*
@@ -44,6 +63,9 @@ an ElGamal ciphertext, etc.
 */
 type Point interface {
 	String() string
+	Encoding
+
+	// Equality test for two Points derived from the same Group
 	Equal(s2 Point) bool
 
 	Null() Point			// Set to neutral identity element
@@ -68,14 +90,11 @@ type Point interface {
 	// Set to the encryption of point p with secret s
 	Encrypt(p Point, s Secret) Point
 
-	// Combine points so that their secrets add homomorphically
+	// Add points so that their secrets add homomorphically
 	Add(a,b Point) Point
 
-	// Encode point into bytes
-	Encode() []byte
-
-	// Decode and validate a point
-	Decode(buf []byte) (Point, error)
+	// Subtract points so that their secrets subtract homomorphically
+	Sub(a,b Point) Point
 }
 
 /*
@@ -163,6 +182,55 @@ func TestGroup(g Group) {
 		panic("Diffie-Hellman didn't work")
 	}
 	println("shared secret = ",dh1.String())
+
+	// Test secret inverse to get from dh1 back to p1
+	ptmp := g.Point().Encrypt(dh1, g.Secret().Inv(s2))
+	if !ptmp.Equal(p1) {
+		panic("Secret inverse didn't work")
+	}
+
+	// Zero and One identity secrets
+	//println("dh1^0 = ",ptmp.Encrypt(dh1, g.Secret().Zero()).String())
+	if !ptmp.Encrypt(dh1, g.Secret().Zero()).Equal(g.Point().Null()) {
+		panic("Encryption with secret=0 didn't work")
+	}
+	if !ptmp.Encrypt(dh1, g.Secret().One()).Equal(dh1) {
+		panic("Encryption with secret=1 didn't work")
+	}
+
+	// Additive homomorphic identities
+	ptmp.Add(p1,p2)
+	stmp := g.Secret().Add(s1,s2)
+	pt2 := g.Point().Encrypt(gen,stmp)
+	if !pt2.Equal(ptmp) {
+		panic("Additive homomorphism doesn't work")
+	}
+	ptmp.Sub(p1,p2)
+	stmp.Sub(s1,s2)
+	pt2.Encrypt(gen,stmp)
+	if !pt2.Equal(ptmp) {
+		panic("Additive homomorphism doesn't work")
+	}
+	st2 := g.Secret().Neg(s2)
+	st2.Add(s1,st2)
+	if !stmp.Equal(st2) {
+		panic("Secret.Neg doesn't work")
+	}
+
+	// Multiplicative homomorphic identities
+	stmp.Mul(s1,s2)
+	if !ptmp.Encrypt(gen,stmp).Equal(dh1) {
+		panic("Multiplicative homomorphism doesn't work")
+	}
+	st2.Inv(s2)
+	st2.Mul(st2,stmp)
+	if !st2.Equal(s1) {
+		panic("Secret division doesn't work")
+	}
+	st2.Div(stmp,s2)
+	if !st2.Equal(s1) {
+		panic("Secret division doesn't work")
+	}
 
 	// Test randomly picked points
 	p1.Pick(nil, RandomStream)

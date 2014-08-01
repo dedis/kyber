@@ -43,7 +43,8 @@ func HashStream(suite Suite, data []byte) cipher.Stream {
 // Create a pseudorandom stream seeded by hashing a group element
 // from the public-key group associated with this ciphersuite.
 func PointStream(suite Suite, point Point) cipher.Stream {
-	return HashStream(suite, point.Encode())
+	buf := point.Encode()
+	return HashStream(suite, buf)
 }
 
 // Pull enough bytes for a seed from an existing stream cipher

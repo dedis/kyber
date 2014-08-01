@@ -14,39 +14,6 @@ var one *big.Int = new(big.Int).SetInt64(1)
 var two *big.Int = new(big.Int).SetInt64(2)
 
 
-type schnorrSecret struct {
-	i big.Int 
-	g *SchnorrGroup
-}
-
-func (s *schnorrSecret) Encode() []byte { return s.i.Bytes() }
-func (s *schnorrSecret) Decode(buf []byte) Secret {
-	s.i.SetBytes(buf)
-	return s
-}
-func (s *schnorrSecret) String() string { return s.i.String() }
-func (s *schnorrSecret) Equal(s2 Secret) bool {
-	return s.i.Cmp(&s2.(*schnorrSecret).i) == 0
-}
-func (s *schnorrSecret) Neg(a Secret) Secret {
-	i := &a.(*schnorrSecret).i
-	if i.Sign() > 0 {
-		s.i.Sub(s.g.Q, i)
-	} else {
-		s.i.SetUint64(0)
-	}
-	return s
-}
-func (s *schnorrSecret) Add(a,b Secret) Secret {
-	s.i.Add(&a.(*schnorrSecret).i,&b.(*schnorrSecret).i)
-	s.i.Mod(&s.i, s.g.Q)
-	return s
-}
-func (s *schnorrSecret) Pick(rand cipher.Stream) Secret {
-	s.i.Set(RandomBigInt(s.g.Q,rand))
-	return s
-}
-
 type schnorrPoint struct {
 	big.Int 
 	g *SchnorrGroup
@@ -59,7 +26,7 @@ func (p *schnorrPoint) Equal(p2 Point) bool {
 }
 
 func (p *schnorrPoint) Null() Point {
-	p.Int.SetInt64(0)
+	p.Int.SetInt64(1)
 	return p
 }
 
@@ -119,7 +86,7 @@ func (p *schnorrPoint) Data() ([]byte,error) {
 }
 
 func (p *schnorrPoint) Encrypt(b Point, s Secret) Point {
-	p.Int.Exp(&b.(*schnorrPoint).Int, &s.(*schnorrSecret).i, p.g.P)
+	p.Int.Exp(&b.(*schnorrPoint).Int, &s.(*bigSecret).i, p.g.P)
 	return p
 }
 
@@ -129,16 +96,31 @@ func (p *schnorrPoint) Add(a,b Point) Point {
 	return p
 }
 
-func (p *schnorrPoint) Encode() []byte {
-	return p.Bytes()
+func (p *schnorrPoint) Sub(a,b Point) Point {
+	binv := new(big.Int).ModInverse(&b.(*schnorrPoint).Int, p.g.P)
+	p.Int.Mul(&a.(*schnorrPoint).Int, binv)
+	p.Int.Mod(&p.Int, p.g.P)
+	return p
 }
 
-func (p *schnorrPoint) Decode(data []byte) (Point, error) {
+func (p *schnorrPoint) Len() int {
+	return (p.g.P.BitLen()+7)/8
+}
+
+func (p *schnorrPoint) Encode() []byte {
+	b := p.Int.Bytes()	// may be shorter than len(buf)
+	if pre := p.Len()-len(b); pre != 0 {
+		return append(make([]byte, pre), b...)
+	}
+	return b
+}
+
+func (p *schnorrPoint) Decode(data []byte) error {
 	p.Int.SetBytes(data)
 	if !p.Valid() {
-		return nil, errors.New("invalid Schnorr group element")
+		return errors.New("invalid Schnorr group element")
 	}
-	return p, nil
+	return nil
 }
 
 
@@ -181,9 +163,7 @@ func (g *SchnorrGroup) SecretLen() int { return (g.Q.BitLen()+7)/8 }
 // Create a Secret associated with this Schnorr group,
 // with an initial value of nil.
 func (g *SchnorrGroup) Secret() Secret {
-	s := new(schnorrSecret)
-	s.g = g
-	return s
+	return newBigSecret(g.Q)
 }
 
 // Return the number of bytes in the encoding of a Point

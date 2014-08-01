@@ -26,59 +26,18 @@ import (
 )
 
 
-type secret struct {
-	bignum
-	c *curve
-}
-
 type point struct {
-	p *_Ctype_EC_POINT
-	g *_Ctype_EC_GROUP
+	p *_Ctype_struct_ec_point_st
+	g *_Ctype_struct_ec_group_st
 	c *curve
 }
 
 type curve struct {
-	ctx *_Ctype_BN_CTX
-	g *_Ctype_EC_GROUP
+	ctx *_Ctype_struct_bignum_ctx
+	g *_Ctype_struct_ec_group_st
 	p,n *bignum
 	plen, nlen int
 }
-
-func newSecret(c *curve) *secret {
-	s := new(secret)
-	s.bignum.Init()
-	s.c = c
-	return s
-}
-
-func (s *secret) String() string { return s.BigInt().String() }
-func (s *secret) Encode() []byte { return s.Bytes() }
-func (s *secret) Decode(buf []byte) crypto.Secret { s.SetBytes(buf); return s }
-func (s *secret) Equal(s2 crypto.Secret) bool {
-	return s.Cmp(&s2.(*secret).bignum) == 0
-}
-func (s *secret) Add(x,y crypto.Secret) crypto.Secret {
-	xs := x.(*secret)
-	ys := y.(*secret)
-	if C.BN_mod_add(s.bignum.bn, xs.bignum.bn, ys.bignum.bn, s.c.n.bn,
-			s.c.ctx) == 0 {
-		panic("BN_mod_add: "+getErrString())
-	}
-	return s
-}
-func (s *secret) Neg(x crypto.Secret) crypto.Secret {
-	xs := x.(*secret)
-	if C.BN_mod_sub(s.bignum.bn, s.c.n.bn, xs.bignum.bn, s.c.n.bn,
-			s.c.ctx) == 0 {
-		panic("BN_mod_sub: "+getErrString())
-	}
-	return s
-}
-func (s *secret) Pick(rand cipher.Stream) crypto.Secret {
-	s.bignum.RandMod(s.c.n,rand)
-	return s
-}
-
 
 
 func newPoint(c *curve) *point {
@@ -166,8 +125,7 @@ func (p *point) Pick(data []byte,rand cipher.Stream) (crypto.Point, []byte) {
 			copy(b[l-dl-1:l-1],data) // Copy in data to embed
 		}
 
-		_,err := p.Decode(b)
-		if err == nil {		// See if it decodes!
+		if err := p.Decode(b); err == nil {	// See if it decodes!
 			return p, data[dl:]
 		}
 
@@ -201,9 +159,29 @@ func (p *point) Add(ca,cb crypto.Point) crypto.Point {
 	a := ca.(*point)
 	b := cb.(*point)
 	if C.EC_POINT_add(p.c.g, p.p, a.p, b.p, p.c.ctx) == 0 {
-		panic("EC_POINT_mul: "+getErrString())
+		panic("EC_POINT_add: "+getErrString())
 	}
 	return p
+}
+
+func (p *point) Sub(ca,cb crypto.Point) crypto.Point {
+	a := ca.(*point)
+	b := cb.(*point)
+	// Add the point inverse
+	if C.EC_POINT_copy(p.p, b.p) == 0 {
+		panic("EC_POINT_copy: "+getErrString())
+	}
+	if C.EC_POINT_invert(p.c.g, p.p, p.c.ctx) == 0 {
+		panic("EC_POINT_invert: "+getErrString())
+	}
+	if C.EC_POINT_add(p.c.g, p.p, a.p, p.p, p.c.ctx) == 0 {
+		panic("EC_POINT_add: "+getErrString())
+	}
+	return p
+}
+
+func (p *point) Len() int {
+	return 1+p.c.plen	// compressed encoding
 }
 
 func (p *point) Encode() []byte {
@@ -217,13 +195,13 @@ func (p *point) Encode() []byte {
 	return b
 }
 
-func (p *point) Decode(buf []byte) (crypto.Point, error) {
+func (p *point) Decode(buf []byte) error {
 	if C.EC_POINT_oct2point(p.g, p.p,
 			(*_Ctype_unsignedchar)(unsafe.Pointer(&buf[0])),
 			C.size_t(len(buf)), p.c.ctx) == 0 {
-		return nil, errors.New(getErrString())
+		return errors.New(getErrString())
 	}
-	return p, nil
+	return nil
 }
 
 

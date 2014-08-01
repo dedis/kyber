@@ -12,11 +12,11 @@ import (
 
 // SHA256 hash function
 type sha256 struct {
-	ctx *_Ctype_SHA256_CTX
+	ctx *_Ctype_struct_SHA256state_st
 }
 
 func (h *sha256) Reset() {
-	h.ctx = &_Ctype_SHA256_CTX{}
+	h.ctx = &_Ctype_struct_SHA256state_st{}
 	if C.SHA256_Init(h.ctx) != 1 {
 		panic("SHA256_Init failed")	// hash funcs shouldn't fail
 	}

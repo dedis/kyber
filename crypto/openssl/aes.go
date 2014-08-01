@@ -12,14 +12,14 @@ import (
 const blocksize = 16
 
 type aes struct {
-	key *_Ctype_AES_KEY		// expanded AES key
+	key *_Ctype_struct_aes_key_st	// expanded AES key
 	ctr, out [blocksize]byte	// input counter and output buffer
 	idx int				// bytes of current block already used
 }
 
 func newAesCtr(key []byte) *aes {
 	a := new(aes)
-	a.key = &_Ctype_AES_KEY{}
+	a.key = &_Ctype_struct_aes_key_st{}
 	if C.AES_set_encrypt_key((*_Ctype_unsignedchar)(unsafe.Pointer(&key[0])), C.int(len(key)*8), a.key) != 0 {
 		panic("C.AES_set_encrypt_key failed")
 	}

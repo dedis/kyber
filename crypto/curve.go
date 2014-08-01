@@ -9,40 +9,6 @@ import (
 )
 
 
-type curveSecret struct {
-	i big.Int 
-	c *Curve
-}
-
-func (s *curveSecret) String() string { return s.i.String() }
-func (s *curveSecret) Equal(s2 Secret) bool {
-	return s.i.Cmp(&s2.(*curveSecret).i) == 0
-}
-func (s *curveSecret) Neg(a Secret) Secret {
-	i := &a.(*curveSecret).i
-	if i.Sign() > 0 {
-		s.i.Sub(s.c.p.N, i)
-	} else {
-		s.i.SetUint64(0)
-	}
-	return s
-}
-func (s *curveSecret) Encode() []byte { return s.i.Bytes() }
-func (s *curveSecret) Decode(buf []byte) Secret {
-	s.i.SetBytes(buf)
-	return s
-}
-func (s *curveSecret) Add(a,b Secret) Secret {
-	s.i.Add(&a.(*curveSecret).i,&b.(*curveSecret).i)
-	s.i.Mod(&s.i, s.c.p.N)
-	return s
-}
-func (s *curveSecret) Pick(rand cipher.Stream) Secret {
-	s.i.Set(RandomBigInt(s.c.p.N,rand))
-	return s
-}
-
-
 type curvePoint struct {
 	x,y *big.Int 
 	c *Curve
@@ -151,7 +117,7 @@ func (p *curvePoint) Data() ([]byte,error) {
 
 func (p *curvePoint) Encrypt(b Point, s Secret) Point {
 	cb := b.(*curvePoint)
-	cs := s.(*curveSecret)
+	cs := s.(*bigSecret)
 	p.x,p.y = p.c.ScalarMult(cb.x,cb.y,cs.i.Bytes())
 	return p
 }
@@ -163,16 +129,34 @@ func (p *curvePoint) Add(a,b Point) Point {
 	return p
 }
 
+func (p *curvePoint) Sub(a,b Point) Point {
+	ca := a.(*curvePoint)
+	cb := b.(*curvePoint)
+
+	// XXX a pretty non-optimal implementation of point subtraction...
+	s := p.c.Secret().One()
+	s.Neg(s)
+	cbn := p.c.Point().Encrypt(cb,s).(*curvePoint)
+
+	p.x,p.y = p.c.Add(ca.x, ca.y, cbn.x, cbn.y)
+	return p
+}
+
+func (p *curvePoint) Len() int {
+	coordlen := (p.c.Params().BitSize+7) >> 3
+	return 1+2*coordlen	// uncompressed ANSI X9.62 representation (XXX)
+}
+
 func (p *curvePoint) Encode() []byte {
 	return elliptic.Marshal(p.c, p.x, p.y)
 }
 
-func (p *curvePoint) Decode(buf []byte) (Point, error) {
+func (p *curvePoint) Decode(buf []byte) error {
 	p.x,p.y = elliptic.Unmarshal(p.c, buf)
 	if p.x == nil || !p.Valid() {
-		return nil, errors.New("invalid elliptic curve point")
+		return errors.New("invalid elliptic curve point")
 	}
-	return p, nil
+	return nil
 }
 
 
@@ -195,9 +179,7 @@ func (c *Curve) SecretLen() int { return (c.p.N.BitLen()+7)/8 }
 
 // Create a Secret associated with this curve.
 func (c *Curve) Secret() Secret {
-	s := new(curveSecret)
-	s.c = c
-	return s
+	return newBigSecret(c.p.N)
 }
 
 // Number of bytes required to store one coordinate on this curve

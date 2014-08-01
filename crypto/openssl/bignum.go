@@ -20,7 +20,7 @@ import (
 
 // Simple wrapper around OpenSSL's bignum routines
 type bignum struct {
-	bn *_Ctype_BIGNUM
+	bn *_Ctype_struct_bignum_st
 }
 
 func newBigNum() *bignum {
