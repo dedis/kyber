@@ -256,7 +256,19 @@ func (c *curve) initNamedCurve(nid C.int) *curve {
 	return c
 }
 
+func (c *curve) InitP224() {
+	c.initNamedCurve(C.NID_secp224r1)
+}
+
 func (c *curve) InitP256() {
 	c.initNamedCurve(C.NID_X9_62_prime256v1)
+}
+
+func (c *curve) InitP384() {
+	c.initNamedCurve(C.NID_secp384r1)
+}
+
+func (c *curve) InitP521() {
+	c.initNamedCurve(C.NID_secp521r1)
 }
 
