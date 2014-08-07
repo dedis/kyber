@@ -69,8 +69,8 @@ func (s *bigSecret) Mul(a,b Secret) Secret {
 }
 
 func (s *bigSecret) Div(a,b Secret) Secret {
-	s.i.ModInverse(&b.(*bigSecret).i, s.q)
-	s.i.Mul(&s.i,&a.(*bigSecret).i)
+	var t big.Int
+	s.i.Mul(&a.(*bigSecret).i, t.ModInverse(&b.(*bigSecret).i, s.q))
 	s.i.Mod(&s.i, s.q)
 	return s
 }
