@@ -11,7 +11,7 @@ import (
 
 type curvePoint struct {
 	x,y *big.Int 
-	c *Curve
+	c *curve
 }
 
 func (p *curvePoint) String() string {
@@ -115,13 +115,6 @@ func (p *curvePoint) Data() ([]byte,error) {
 	return b[l-dl-1:l-1],nil
 }
 
-func (p *curvePoint) Encrypt(b Point, s Secret) Point {
-	cb := b.(*curvePoint)
-	cs := s.(*bigSecret)
-	p.x,p.y = p.c.ScalarMult(cb.x,cb.y,cs.i.Bytes())
-	return p
-}
-
 func (p *curvePoint) Add(a,b Point) Point {
 	ca := a.(*curvePoint)
 	cb := b.(*curvePoint)
@@ -136,9 +129,16 @@ func (p *curvePoint) Sub(a,b Point) Point {
 	// XXX a pretty non-optimal implementation of point subtraction...
 	s := p.c.Secret().One()
 	s.Neg(s)
-	cbn := p.c.Point().Encrypt(cb,s).(*curvePoint)
+	cbn := p.c.Point().Mul(cb,s).(*curvePoint)
 
 	p.x,p.y = p.c.Add(ca.x, ca.y, cbn.x, cbn.y)
+	return p
+}
+
+func (p *curvePoint) Mul(b Point, s Secret) Point {
+	cb := b.(*curvePoint)
+	cs := s.(*bigSecret)
+	p.x,p.y = p.c.ScalarMult(cb.x,cb.y,cs.i.Bytes())
 	return p
 }
 
@@ -168,41 +168,41 @@ type curveOps interface {
 
 // Curve is an implementation of the abstract Group interface
 // for NIST elliptic curves, built on Go's native elliptic curve library.
-type Curve struct {
+type curve struct {
 	elliptic.Curve
 	curveOps
 	p *elliptic.CurveParams
 }
 
 // Return the number of bytes in the encoding of a Secret for this curve.
-func (c *Curve) SecretLen() int { return (c.p.N.BitLen()+7)/8 }
+func (c *curve) SecretLen() int { return (c.p.N.BitLen()+7)/8 }
 
 // Create a Secret associated with this curve.
-func (c *Curve) Secret() Secret {
+func (c *curve) Secret() Secret {
 	return newBigSecret(c.p.N)
 }
 
 // Number of bytes required to store one coordinate on this curve
-func (c *Curve) coordLen() int {
+func (c *curve) coordLen() int {
 	return (c.p.BitSize+7)/8
 }
 
 // Return the number of bytes in the encoding of a Point for this curve.
 // Currently uses uncompressed ANSI X9.62 format with both X and Y coordinates;
 // this could change.
-func (c *Curve) PointLen() int {
+func (c *curve) PointLen() int {
 	return 1+2*c.coordLen()	// ANSI X9.62: 1 header byte plus 2 coords
 }
 
 // Create a Point associated with this curve.
-func (c *Curve) Point() Point {
+func (c *curve) Point() Point {
 	p := new(curvePoint)
 	p.c = c
 	return p
 }
 
 // Return the order of this curve: the prime N in the curve parameters.
-func (c *Curve) Order() *big.Int {
+func (c *curve) Order() *big.Int {
 	return c.p.N
 }
 

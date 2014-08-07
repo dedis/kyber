@@ -10,7 +10,11 @@ import (
 // for the NIST P-256 elliptic curve,
 // based on Go's native elliptic curve library.
 type p256 struct {
-	Curve
+	curve
+}
+
+func (curve *p256) String() string {
+	return "P256"
 }
 
 // Modular square root for P-256 curve, from
@@ -58,10 +62,10 @@ func (curve *p256) sqrt(c *big.Int) *big.Int {
 }
 
 // Initialize standard Curve instances
-func (c *p256) Init() Curve {
-	c.Curve.Curve = elliptic.P256()
+func (c *p256) Init() curve {
+	c.curve.Curve = elliptic.P256()
 	c.p = c.Params()
 	c.curveOps = c
-	return c.Curve
+	return c.curve
 }
 

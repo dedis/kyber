@@ -37,6 +37,7 @@ type curve struct {
 	g *_Ctype_struct_ec_group_st
 	p,n *bignum
 	plen, nlen int
+	name string
 }
 
 
@@ -146,15 +147,6 @@ func (p *point) Data() ([]byte,error) {
 	return b[l-dl-1:l-1],nil
 }
 
-func (p *point) Encrypt(cb crypto.Point, cs crypto.Secret) crypto.Point {
-	b := cb.(*point)
-	s := cs.(*secret)
-	if C.EC_POINT_mul(p.c.g, p.p, nil, b.p, s.bignum.bn, p.c.ctx) == 0 {
-		panic("EC_POINT_mul: "+getErrString())
-	}
-	return p
-}
-
 func (p *point) Add(ca,cb crypto.Point) crypto.Point {
 	a := ca.(*point)
 	b := cb.(*point)
@@ -176,6 +168,15 @@ func (p *point) Sub(ca,cb crypto.Point) crypto.Point {
 	}
 	if C.EC_POINT_add(p.c.g, p.p, a.p, p.p, p.c.ctx) == 0 {
 		panic("EC_POINT_add: "+getErrString())
+	}
+	return p
+}
+
+func (p *point) Mul(cb crypto.Point, cs crypto.Secret) crypto.Point {
+	b := cb.(*point)
+	s := cs.(*secret)
+	if C.EC_POINT_mul(p.c.g, p.p, nil, b.p, s.bignum.bn, p.c.ctx) == 0 {
+		panic("EC_POINT_mul: "+getErrString())
 	}
 	return p
 }
@@ -206,6 +207,10 @@ func (p *point) Decode(buf []byte) error {
 
 
 
+func (c *curve) String() string {
+	return c.name
+}
+
 func (c *curve) SecretLen() int {
 	return c.nlen
 }
@@ -228,7 +233,9 @@ func (c *curve) Order() *big.Int {
 	return c.n.BigInt()
 }
 
-func (c *curve) initNamedCurve(nid C.int) *curve {
+func (c *curve) initNamedCurve(name string, nid C.int) *curve {
+	c.name = name
+
 	c.ctx = C.BN_CTX_new()
 	if c.ctx == nil {
 		panic("C.BN_CTX_new: "+getErrString())
@@ -257,18 +264,18 @@ func (c *curve) initNamedCurve(nid C.int) *curve {
 }
 
 func (c *curve) InitP224() {
-	c.initNamedCurve(C.NID_secp224r1)
+	c.initNamedCurve("P224", C.NID_secp224r1)
 }
 
 func (c *curve) InitP256() {
-	c.initNamedCurve(C.NID_X9_62_prime256v1)
+	c.initNamedCurve("P256", C.NID_X9_62_prime256v1)
 }
 
 func (c *curve) InitP384() {
-	c.initNamedCurve(C.NID_secp384r1)
+	c.initNamedCurve("P384", C.NID_secp384r1)
 }
 
 func (c *curve) InitP521() {
-	c.initNamedCurve(C.NID_secp521r1)
+	c.initNamedCurve("P521", C.NID_secp521r1)
 }
 

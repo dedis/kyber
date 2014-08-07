@@ -85,11 +85,6 @@ func (p *schnorrPoint) Data() ([]byte,error) {
 	return b[l-dl-2:l-2],nil
 }
 
-func (p *schnorrPoint) Encrypt(b Point, s Secret) Point {
-	p.Int.Exp(&b.(*schnorrPoint).Int, &s.(*bigSecret).i, p.g.P)
-	return p
-}
-
 func (p *schnorrPoint) Add(a,b Point) Point {
 	p.Int.Mul(&a.(*schnorrPoint).Int, &b.(*schnorrPoint).Int)
 	p.Int.Mod(&p.Int, p.g.P)
@@ -100,6 +95,11 @@ func (p *schnorrPoint) Sub(a,b Point) Point {
 	binv := new(big.Int).ModInverse(&b.(*schnorrPoint).Int, p.g.P)
 	p.Int.Mul(&a.(*schnorrPoint).Int, binv)
 	p.Int.Mod(&p.Int, p.g.P)
+	return p
+}
+
+func (p *schnorrPoint) Mul(b Point, s Secret) Point {
+	p.Int.Exp(&b.(*schnorrPoint).Int, &s.(*bigSecret).i, p.g.P)
 	return p
 }
 
@@ -139,7 +139,7 @@ P must be on the order of thousands of bits long
 while for security Q is believed to require only hundreds of bits.
 Such computation-optimized groups are suitable
 for Diffie-Hellman agreement, DSA or ElGamal signatures, etc.,
-which depend on Point.Encrypt() and homomorphic properties.
+which depend on Point.Mul() and homomorphic properties.
 
 However, Schnorr groups with large R are less suitable for
 public-key cryptographic techniques that require choosing Points
@@ -154,6 +154,10 @@ ONLY on quadratic residue groups in which R=2.
 type SchnorrGroup struct {
 	dsa.Parameters
 	R *big.Int
+}
+
+func (g *SchnorrGroup) String() string {
+	return fmt.Sprintf("Schnorr%d", g.P.BitLen())
 }
 
 // Return the number of bytes in the encoding of a Secret

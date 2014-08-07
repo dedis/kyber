@@ -106,6 +106,11 @@ type encoder struct {
 	w io.Writer
 }
 
+// Write a data structure containing cryptographic objects,
+// using their built-in binary serialization, to an io.Writer.
+// Supports writing of Points, Secrets,
+// basic fixed-length data types supported by encoding/binary/Write(),
+// and structs, arrays, and slices containing all of these types.
 func Write(w io.Writer, obj interface{}, g Group) error {
 	en := encoder{g,w}
 	return en.value(obj)
