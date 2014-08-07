@@ -13,6 +13,8 @@ a Point (group element) may be encrypted to produce another Point.
 This is an exponent in DSA-style groups,
 in which security is based on the Discrete Logarithm assumption,
 and a scalar multiplier in elliptic curve groups.
+
+XXX rename Secret to Scalar?
 */
 type Secret interface {
 	String() string

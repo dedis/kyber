@@ -137,8 +137,8 @@ func (p *curvePoint) Sub(a,b Point) Point {
 
 func (p *curvePoint) Mul(b Point, s Secret) Point {
 	cb := b.(*curvePoint)
-	cs := s.(*bigSecret)
-	p.x,p.y = p.c.ScalarMult(cb.x,cb.y,cs.i.Bytes())
+	cs := s.(*ModInt)
+	p.x,p.y = p.c.ScalarMult(cb.x,cb.y,cs.V.Bytes())
 	return p
 }
 
@@ -179,7 +179,7 @@ func (c *curve) SecretLen() int { return (c.p.N.BitLen()+7)/8 }
 
 // Create a Secret associated with this curve.
 func (c *curve) Secret() Secret {
-	return newBigSecret(c.p.N)
+	return NewModInt(c.p.N)
 }
 
 // Number of bytes required to store one coordinate on this curve
