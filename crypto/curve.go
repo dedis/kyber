@@ -3,72 +3,45 @@ package crypto
 import (
 	"errors"
 	"math/big"
+	//"encoding/hex"
 	"crypto/cipher"
 	"crypto/elliptic"
 )
 
 
-type CurveSecret struct {
-	i big.Int 
-	c *Curve
-}
-
-func (s *CurveSecret) String() string { return s.i.String() }
-func (s *CurveSecret) Equal(s2 Secret) bool {
-	return s.i.Cmp(&s2.(*CurveSecret).i) == 0
-}
-func (s *CurveSecret) Neg(a Secret) Secret {
-	i := &a.(*CurveSecret).i
-	if i.Sign() > 0 {
-		s.i.Sub(s.c.p.N, i)
-	} else {
-		s.i.SetUint64(0)
-	}
-	return s
-}
-func (s *CurveSecret) Encode() []byte { return s.i.Bytes() }
-func (s *CurveSecret) Decode(buf []byte) Secret {
-	s.i.SetBytes(buf)
-	return s
-}
-func (s *CurveSecret) Add(a,b Secret) Secret {
-	s.i.Add(&a.(*CurveSecret).i,&b.(*CurveSecret).i)
-	s.i.Mod(&s.i, s.c.p.N)
-	return s
-}
-func (s *CurveSecret) Pick(rand cipher.Stream) Secret {
-	s.i.Set(RandomBigInt(s.c.p.N,rand))
-	return s
-}
-
-
-type CurvePoint struct {
+type curvePoint struct {
 	x,y *big.Int 
-	c *Curve
+	c *curve
 }
 
-func (p *CurvePoint) String() string {
+func (p *curvePoint) String() string {
 	return "("+p.x.String()+","+p.y.String()+")"
 }
 
-func (p *CurvePoint) Equal(p2 Point) bool {
-	return	p.x.Cmp(p2.(*CurvePoint).x) == 0 &&
-		p.y.Cmp(p2.(*CurvePoint).y) == 0
+func (p *curvePoint) Equal(p2 Point) bool {
+	return	p.x.Cmp(p2.(*curvePoint).x) == 0 &&
+		p.y.Cmp(p2.(*curvePoint).y) == 0
 }
 
-func (p *CurvePoint) Base() Point {
+func (p *curvePoint) Null() Point {
+	p.x = new(big.Int).SetInt64(0)
+	p.y = new(big.Int).SetInt64(0)
+	return p
+}
+
+func (p *curvePoint) Base() Point {
 	p.x = p.c.p.Gx
 	p.y = p.c.p.Gy
 	return p
 }
 
-func (p *CurvePoint) Valid() bool {
+func (p *curvePoint) Valid() bool {
 	return p.c.IsOnCurve(p.x,p.y)
 }
 
 // Try to generate a point on this curve from a chosen x-coordinate,
 // with a random sign.
-func (p *CurvePoint) genPoint(x *big.Int, rand cipher.Stream) bool {
+func (p *curvePoint) genPoint(x *big.Int, rand cipher.Stream) bool {
 
 	// Compute the corresponding Y coordinate, if any
 	y2 := new(big.Int).Mul(x, x)
@@ -99,7 +72,7 @@ func (p *CurvePoint) genPoint(x *big.Int, rand cipher.Stream) bool {
 	return true
 }
 
-func (p *CurvePoint) PickLen() int {
+func (p *curvePoint) PickLen() int {
 	// Reserve at least 8 most-significant bits for randomness,
 	// and the least-significant 8 bits for embedded data length.
 	// (Hopefully it's unlikely we'll need >=2048-bit curves soon.)
@@ -108,7 +81,7 @@ func (p *CurvePoint) PickLen() int {
 
 // Pick a curve point containing a variable amount of embedded data.
 // Remaining bits comprising the point are chosen randomly.
-func (p *CurvePoint) Pick(data []byte, rand cipher.Stream) (Point, []byte) {
+func (p *curvePoint) Pick(data []byte, rand cipher.Stream) (Point, []byte) {
 
 	l := p.c.coordLen()
 	dl := p.PickLen()
@@ -129,7 +102,7 @@ func (p *CurvePoint) Pick(data []byte, rand cipher.Stream) (Point, []byte) {
 }
 
 // Extract embedded data from a Schnorr group element
-func (p *CurvePoint) Data() ([]byte,error) {
+func (p *curvePoint) Data() ([]byte,error) {
 	b := p.x.Bytes()
 	l := p.c.coordLen()
 	if len(b) < l {		// pad leading zero bytes if necessary
@@ -142,30 +115,48 @@ func (p *CurvePoint) Data() ([]byte,error) {
 	return b[l-dl-1:l-1],nil
 }
 
-func (p *CurvePoint) Encrypt(b Point, s Secret) Point {
-	cb := b.(*CurvePoint)
-	cs := s.(*CurveSecret)
-	p.x,p.y = p.c.ScalarMult(cb.x,cb.y,cs.i.Bytes())
-	return p
-}
-
-func (p *CurvePoint) Add(a,b Point) Point {
-	ca := a.(*CurvePoint)
-	cb := b.(*CurvePoint)
+func (p *curvePoint) Add(a,b Point) Point {
+	ca := a.(*curvePoint)
+	cb := b.(*curvePoint)
 	p.x,p.y = p.c.Add(ca.x, ca.y, cb.x, cb.y)
 	return p
 }
 
-func (p *CurvePoint) Encode() []byte {
+func (p *curvePoint) Sub(a,b Point) Point {
+	ca := a.(*curvePoint)
+	cb := b.(*curvePoint)
+
+	// XXX a pretty non-optimal implementation of point subtraction...
+	s := p.c.Secret().One()
+	s.Neg(s)
+	cbn := p.c.Point().Mul(cb,s).(*curvePoint)
+
+	p.x,p.y = p.c.Add(ca.x, ca.y, cbn.x, cbn.y)
+	return p
+}
+
+func (p *curvePoint) Mul(b Point, s Secret) Point {
+	cb := b.(*curvePoint)
+	cs := s.(*bigSecret)
+	p.x,p.y = p.c.ScalarMult(cb.x,cb.y,cs.i.Bytes())
+	return p
+}
+
+func (p *curvePoint) Len() int {
+	coordlen := (p.c.Params().BitSize+7) >> 3
+	return 1+2*coordlen	// uncompressed ANSI X9.62 representation (XXX)
+}
+
+func (p *curvePoint) Encode() []byte {
 	return elliptic.Marshal(p.c, p.x, p.y)
 }
 
-func (p *CurvePoint) Decode(buf []byte) (Point, error) {
+func (p *curvePoint) Decode(buf []byte) error {
 	p.x,p.y = elliptic.Unmarshal(p.c, buf)
 	if p.x == nil || !p.Valid() {
-		return nil, errors.New("invalid elliptic curve point")
+		return errors.New("invalid elliptic curve point")
 	}
-	return p, nil
+	return nil
 }
 
 
@@ -175,37 +166,43 @@ type curveOps interface {
 	sqrt(y *big.Int) *big.Int
 }
 
-type Curve struct {
+// Curve is an implementation of the abstract Group interface
+// for NIST elliptic curves, built on Go's native elliptic curve library.
+type curve struct {
 	elliptic.Curve
 	curveOps
 	p *elliptic.CurveParams
 }
 
-func (c *Curve) SecretLen() int { return (c.p.N.BitLen()+7)/8 }
+// Return the number of bytes in the encoding of a Secret for this curve.
+func (c *curve) SecretLen() int { return (c.p.N.BitLen()+7)/8 }
 
-func (c *Curve) Secret() Secret {
-	s := new(CurveSecret)
-	s.c = c
-	return s
+// Create a Secret associated with this curve.
+func (c *curve) Secret() Secret {
+	return newBigSecret(c.p.N)
 }
 
 // Number of bytes required to store one coordinate on this curve
-func (c *Curve) coordLen() int {
+func (c *curve) coordLen() int {
 	return (c.p.BitSize+7)/8
 }
 
-// Number of bytes required to store a marshalled (but uncompressed) point
-func (c *Curve) PointLen() int {
+// Return the number of bytes in the encoding of a Point for this curve.
+// Currently uses uncompressed ANSI X9.62 format with both X and Y coordinates;
+// this could change.
+func (c *curve) PointLen() int {
 	return 1+2*c.coordLen()	// ANSI X9.62: 1 header byte plus 2 coords
 }
 
-func (c *Curve) Point() Point {
-	p := new(CurvePoint)
+// Create a Point associated with this curve.
+func (c *curve) Point() Point {
+	p := new(curvePoint)
 	p.c = c
 	return p
 }
 
-func (c *Curve) Order() *big.Int {
+// Return the order of this curve: the prime N in the curve parameters.
+func (c *curve) Order() *big.Int {
 	return c.p.N
 }
 

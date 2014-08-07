@@ -1,13 +1,3 @@
-// DC-net cell coder for "owned" cells:
-// cells having a single owner identified by a public pseudonym key.
-//
-// Supports variable-length payloads.
-// For small payloads that can be embedded into half a Point,
-// the encoding consists of a single verifiable DC-net point.
-// For larger payloads, we use one verifiable DC-net point
-// to transmit a key and a MAC for the associated variable-length,
-// symmetric-key crypto based part of the cell.
-//
 package dcnet
 
 import (
@@ -36,9 +26,19 @@ type ownedCoder struct {
 
 	// Decoding state, used only by the relay
 	point crypto.Point
+	pnull crypto.Point	// neutral/identity element
 	xorbuf []byte
 }
 
+// OwnedCoderFactory creates a DC-net cell coder for "owned" cells:
+// cells having a single owner identified by a public pseudonym key.
+//
+// This CellCoder upports variable-length payloads.
+// For small payloads that can be embedded into half a Point,
+// the encoding consists of a single verifiable DC-net point.
+// For larger payloads, we use one verifiable DC-net point
+// to transmit a key and a MAC for the associated variable-length,
+// symmetric-key crypto based part of the cell.
 func OwnedCoderFactory() CellCoder {
 	return new(ownedCoder)
 }
@@ -53,17 +53,22 @@ type word uint32
 
 ///// Common methods /////
 
-func (c *ownedCoder) CellSize(payloadlen int) int {
+// Compute the size of the symmetric AES-encoded part of an encoded ciphertext.
+func (c *ownedCoder) symmCellSize(payloadlen int) int {
 
 	// If data fits in the space reserved for the key
 	// in the verifiable DC-net point,
 	// we can just inline the data in the point instead of the key.
 	// (We'll still use the MAC part of the point for validation.)
 	if payloadlen <= c.keylen {
-		return c.suite.PointLen()
+		return 0
 	}
 
-	return c.suite.PointLen() + payloadlen
+	// Otherwise the point is used to hold an encryption key and a MAC,
+	// and the payload is symmetric-key encrypted.
+	// XXX trap encoding
+	return payloadlen
+
 /*
 	// Compute number of payload words we will need for trap-encoding.
 	words := (payloadlen*8 + wordbits-1) / wordbits
@@ -96,6 +101,12 @@ func (c *ownedCoder) commonSetup(suite crypto.Suite) {
 
 
 ///// Client methods /////
+
+func (c *ownedCoder) ClientCellSize(payloadlen int) int {
+
+	// Clients must produce a point plus the symmetric ciphertext
+	return c.suite.PointLen() + c.symmCellSize(payloadlen)
+}
 
 func (c *ownedCoder) ClientSetup(suite crypto.Suite,
 				peerstreams []cipher.Stream) {
@@ -133,7 +144,7 @@ func (c *ownedCoder) ClientEncode(payload []byte, payloadlen int,
 	p.Encrypt(p, c.vkey)
 
 	// Encode the payload data, if any.
-	payout := make([]byte, payloadlen)	// XXX trap expansion
+	payout := make([]byte, c.symmCellSize(payloadlen))
 	if payload != nil {
 		// We're the owner of this cell.
 		if len(payload) <= c.keylen {
@@ -205,6 +216,12 @@ func (c *ownedCoder) ownerEncode(payload, payout []byte, p crypto.Point) {
 
 ///// Trustee methods /////
 
+func (c *ownedCoder) TrusteeCellSize(payloadlen int) int {
+
+	// Trustees produce only the symmetric ciphertext, if any
+	return c.symmCellSize(payloadlen)
+}
+
 // Setup the trustee side.
 // May produce coder configuration info to be passed to the relay,
 // which will become available to the RelaySetup() method below.
@@ -246,6 +263,8 @@ func (c *ownedCoder) RelaySetup(suite crypto.Suite, trusteeinfo [][]byte) {
 		c.vkeys[i] = c.suite.Secret().Decode(trusteeinfo[i])
 		c.vkey.Add(c.vkey, c.vkeys[i])
 	}
+
+	c.pnull = c.suite.Point().Null()
 }
 
 func (c *ownedCoder) DecodeStart(payloadlen int, histoream cipher.Stream) {
@@ -256,6 +275,20 @@ func (c *ownedCoder) DecodeStart(payloadlen int, histoream cipher.Stream) {
 	p.Pick(nil, histoream)
 	p.Encrypt(p, c.vkey)
 	c.point = p
+
+/*
+	base := c.suite.Point()
+	base.Pick(nil, histoream)
+	println("base "+base.String())
+	println("vkey "+c.vkey.String())
+	println("-vkey "+c.suite.Secret().Neg(c.vkey).String())
+	p := c.suite.Point().Encrypt(base, c.vkey)
+	println("encr "+p.String())
+	c.point = p
+	p2 := c.suite.Point().Encrypt(base, c.suite.Secret().Neg(c.vkey))
+	println("-encr "+p2.String())
+	println("sum "+p2.Add(p2,p).String())
+*/
 
 	// Initialize the symmetric ciphertext XOR buffer
 	if payloadlen > c.keylen {
@@ -294,11 +327,16 @@ func (c *ownedCoder) DecodeTrustee(slice []byte) {
 
 func (c *ownedCoder) DecodeCell() []byte {
 
+	if c.point.Equal(c.pnull) {
+		//println("no transmission in cell")
+		return nil
+	}
+
 	// Decode the header from the decrypted point.
 	hdr,err := c.point.Data()
 	if err != nil || len(hdr) < c.maclen {
 		println("warning: undecipherable cell header")
-		return nil
+		return nil	// XXX differentiate from no transmission?
 	}
 	//println("decoded point:",c.point.String())
 	//println("decoded data:",hex.EncodeToString(hdr))

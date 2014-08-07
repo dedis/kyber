@@ -6,13 +6,20 @@ import (
 )
 
 
-type P256 struct {
-	Curve
+// P256 implements the abstract Group interface
+// for the NIST P-256 elliptic curve,
+// based on Go's native elliptic curve library.
+type p256 struct {
+	curve
+}
+
+func (curve *p256) String() string {
+	return "P256"
 }
 
 // Modular square root for P-256 curve, from
 // "Mathematical routines for the NIST prime elliptic curves" (April 2010)
-func (curve *P256) sqrt(c *big.Int) *big.Int {
+func (curve *p256) sqrt(c *big.Int) *big.Int {
 	m := curve.p.P
 
 	t1 := new(big.Int)
@@ -55,10 +62,10 @@ func (curve *P256) sqrt(c *big.Int) *big.Int {
 }
 
 // Initialize standard Curve instances
-func (c *P256) Init() Curve {
-	c.Curve.Curve = elliptic.P256()
+func (c *p256) Init() curve {
+	c.curve.Curve = elliptic.P256()
 	c.p = c.Params()
 	c.curveOps = c
-	return c.Curve
+	return c.curve
 }
 

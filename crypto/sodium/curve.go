@@ -65,15 +65,30 @@ func tohex(s []byte) string {
 	return hex.EncodeToString(b)
 }
 
+func (s *secret) Set(s2 crypto.Secret) crypto.Secret {
+	s.b = s2.(*secret).b
+	return s
+}
+
 func (s *secret) String() string {
 	return hex.EncodeToString(s.b[:])
 }
 
+func (s *secret) Len() int { return 32 }
+
 func (s *secret) Encode() []byte { return s.b[:] }
 
-func (s *secret) Decode(buf []byte) crypto.Secret {
+func (s *secret) Decode(buf []byte) error {
 	copy(s.b[:], buf)
-	return s
+	return nil
+}
+
+func (s *secret) Zero() crypto.Secret {
+	panic("XXX")
+}
+
+func (s *secret) One() crypto.Secret {
+	panic("XXX")
 }
 
 func (s *secret) Equal(s2 crypto.Secret) bool {
@@ -92,9 +107,27 @@ func (s *secret) Add(cx,cy crypto.Secret) crypto.Secret {
 
 	return s
 }
+
+func (s *secret) Sub(cx,cy crypto.Secret) crypto.Secret {
+	panic("XXX")
+}
+
 func (s *secret) Neg(x crypto.Secret) crypto.Secret {
 	panic("XXX")
 }
+
+func (s *secret) Mul(cx,cy crypto.Secret) crypto.Secret {
+	panic("XXX")
+}
+
+func (s *secret) Div(cx,cy crypto.Secret) crypto.Secret {
+	panic("XXX")
+}
+
+func (s *secret) Inv(x crypto.Secret) crypto.Secret {
+	panic("XXX")
+}
+
 func (s *secret) Pick(rand cipher.Stream) crypto.Secret {
 	rand.XORKeyStream(s.b[:], s.b[:])
 	s.b[0] &= 248;
@@ -111,6 +144,10 @@ func (p *point) String() string {
 
 func (p *point) Equal(p2 crypto.Point) bool {
 	return bytes.Equal(p.Encode(), p2.(*point).Encode())
+}
+
+func (p *point) Null() crypto.Point {
+	panic("XXX")
 }
 
 func (p *point) Base() crypto.Point {
@@ -142,19 +179,6 @@ func (p *point) Data() ([]byte,error) {
 	panic("XXX")
 }
 
-func (p *point) Encrypt(ca crypto.Point, cs crypto.Secret) crypto.Point {
-	a := ca.(*point)
-	s := cs.(*secret)
-
-	// We'd rather this NOT be vartime, but for now...
-	// and we only need a single multiplication, not double.
-	r := C.ge_p2{}
-	C.ge_double_scalarmult_vartime(&r, (*C.uchar)(unsafe.Pointer(&s.b[0])),
-				&a.p, (*C.uchar)(unsafe.Pointer(&s0.b[0])))
-	C.ge_p2_to_p3(&p.p, &r)
-	return p
-}
-
 func (p *point) Add(ca,cb crypto.Point) crypto.Point {
 	a := ca.(*point)
 	b := cb.(*point)
@@ -178,28 +202,52 @@ func (p *point) Add(ca,cb crypto.Point) crypto.Point {
 	return p
 }
 
+func (p *point) Sub(ca,cb crypto.Point) crypto.Point {
+	panic("XXX")
+}
+
+func (p *point) Neg(ca crypto.Point) crypto.Point {
+	panic("XXX")
+}
+
+func (p *point) Mul(ca crypto.Point, cs crypto.Secret) crypto.Point {
+	a := ca.(*point)
+	s := cs.(*secret)
+
+	// We'd rather this NOT be vartime, but for now...
+	// and we only need a single multiplication, not double.
+	r := C.ge_p2{}
+	C.ge_double_scalarmult_vartime(&r, (*C.uchar)(unsafe.Pointer(&s.b[0])),
+				&a.p, (*C.uchar)(unsafe.Pointer(&s0.b[0])))
+	C.ge_p2_to_p3(&p.p, &r)
+	return p
+}
+
+func (p *point) Len() int { return 32 }
+
 func (p *point) Encode() []byte {
 	buf := [32]byte{}
 	C.ge_p3_tobytes((*C.uchar)(unsafe.Pointer(&buf[0])), &p.p)
 	return buf[:]
 }
 
-func (p *point) Decode(buf []byte) (crypto.Point, error) {
+func (p *point) Decode(buf []byte) error {
 	if len(buf) != 32 {
-		return nil, errors.New("curve25519 point wrong size")
+		return errors.New("curve25519 point wrong size")
 	}
 	if C.ge_frombytes_negate_vartime(&p.p,
 				(*C.uchar)(unsafe.Pointer(&buf[0]))) != 0 {
-		return nil, errors.New("curve25519 point invalid")
+		return errors.New("curve25519 point invalid")
 	}
 	C.ge_neg(&p.p)
-	return p, nil
+	return nil
 }
 
 func (p *point) validate() {
 	//println("validating:")
 	//p.dump()
-	p2,err := new(point).Decode(p.Encode())
+	p2 := new(point)
+	err := p2.Decode(p.Encode())
 	if err != nil || !p2.Equal(p) {
 		panic("invalid point")
 	}
@@ -220,6 +268,10 @@ func (p *point) dump() {
 }
 
 
+
+func (c *curve) String() string {
+	return "Curve25519"
+}
 
 func (c *curve) SecretLen() int {
 	return 32
@@ -261,17 +313,17 @@ func TestCurve25519() {
 	b.validate()
 
 	x.Base()
-	x.Encrypt(&x,&s0)
+	x.Mul(&x,&s0)
 	println("base*0",x.String())
 	x.validate()
 
 	x.Base()
-	x.Encrypt(&x,&s1)
+	x.Mul(&x,&s1)
 	println("base*1",x.String())
 	x.validate()
 
 	bx2 := point{}
-	bx2.Encrypt(&b,&s2)
+	bx2.Mul(&b,&s2)
 	println("base*2",bx2.String())
 	bx2.validate()
 
@@ -282,12 +334,12 @@ func TestCurve25519() {
 	x.validate()
 
 	bx4 := point{}
-	bx4.Encrypt(&b,&s4)
+	bx4.Mul(&b,&s4)
 	println("base*4",bx4.String())
 	bx4.validate()
 
 	bx2x2 := point{}
-	bx2x2.Encrypt(&bx2,&s2)
+	bx2x2.Mul(&bx2,&s2)
 	println("base*2*2",bx2x2.String())
 	bx2x2.validate()
 

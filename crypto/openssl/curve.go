@@ -26,59 +26,19 @@ import (
 )
 
 
-type secret struct {
-	bignum
-	c *curve
-}
-
 type point struct {
-	p *_Ctype_EC_POINT
-	g *_Ctype_EC_GROUP
+	p *_Ctype_struct_ec_point_st
+	g *_Ctype_struct_ec_group_st
 	c *curve
 }
 
 type curve struct {
-	ctx *_Ctype_BN_CTX
-	g *_Ctype_EC_GROUP
+	ctx *_Ctype_struct_bignum_ctx
+	g *_Ctype_struct_ec_group_st
 	p,n *bignum
 	plen, nlen int
+	name string
 }
-
-func newSecret(c *curve) *secret {
-	s := new(secret)
-	s.bignum.Init()
-	s.c = c
-	return s
-}
-
-func (s *secret) String() string { return s.BigInt().String() }
-func (s *secret) Encode() []byte { return s.Bytes() }
-func (s *secret) Decode(buf []byte) crypto.Secret { s.SetBytes(buf); return s }
-func (s *secret) Equal(s2 crypto.Secret) bool {
-	return s.Cmp(&s2.(*secret).bignum) == 0
-}
-func (s *secret) Add(x,y crypto.Secret) crypto.Secret {
-	xs := x.(*secret)
-	ys := y.(*secret)
-	if C.BN_mod_add(s.bignum.bn, xs.bignum.bn, ys.bignum.bn, s.c.n.bn,
-			s.c.ctx) == 0 {
-		panic("BN_mod_add: "+getErrString())
-	}
-	return s
-}
-func (s *secret) Neg(x crypto.Secret) crypto.Secret {
-	xs := x.(*secret)
-	if C.BN_mod_sub(s.bignum.bn, s.c.n.bn, xs.bignum.bn, s.c.n.bn,
-			s.c.ctx) == 0 {
-		panic("BN_mod_sub: "+getErrString())
-	}
-	return s
-}
-func (s *secret) Pick(rand cipher.Stream) crypto.Secret {
-	s.bignum.RandMod(s.c.n,rand)
-	return s
-}
-
 
 
 func newPoint(c *curve) *point {
@@ -121,6 +81,13 @@ func (p *point) GetY() *bignum {
 	return y
 }
 
+func (p *point) Null() crypto.Point {
+	if C.EC_POINT_set_to_infinity(p.c.g, p.p) == 0 {
+		panic("EC_POINT_set_to_infinity: "+getErrString())
+	}
+	return p
+}
+
 func (p *point) Base() crypto.Point {
 	genp := C.EC_GROUP_get0_generator(p.c.g)
 	if genp == nil {
@@ -159,8 +126,7 @@ func (p *point) Pick(data []byte,rand cipher.Stream) (crypto.Point, []byte) {
 			copy(b[l-dl-1:l-1],data) // Copy in data to embed
 		}
 
-		_,err := p.Decode(b)
-		if err == nil {		// See if it decodes!
+		if err := p.Decode(b); err == nil {	// See if it decodes!
 			return p, data[dl:]
 		}
 
@@ -181,7 +147,32 @@ func (p *point) Data() ([]byte,error) {
 	return b[l-dl-1:l-1],nil
 }
 
-func (p *point) Encrypt(cb crypto.Point, cs crypto.Secret) crypto.Point {
+func (p *point) Add(ca,cb crypto.Point) crypto.Point {
+	a := ca.(*point)
+	b := cb.(*point)
+	if C.EC_POINT_add(p.c.g, p.p, a.p, b.p, p.c.ctx) == 0 {
+		panic("EC_POINT_add: "+getErrString())
+	}
+	return p
+}
+
+func (p *point) Sub(ca,cb crypto.Point) crypto.Point {
+	a := ca.(*point)
+	b := cb.(*point)
+	// Add the point inverse
+	if C.EC_POINT_copy(p.p, b.p) == 0 {
+		panic("EC_POINT_copy: "+getErrString())
+	}
+	if C.EC_POINT_invert(p.c.g, p.p, p.c.ctx) == 0 {
+		panic("EC_POINT_invert: "+getErrString())
+	}
+	if C.EC_POINT_add(p.c.g, p.p, a.p, p.p, p.c.ctx) == 0 {
+		panic("EC_POINT_add: "+getErrString())
+	}
+	return p
+}
+
+func (p *point) Mul(cb crypto.Point, cs crypto.Secret) crypto.Point {
 	b := cb.(*point)
 	s := cs.(*secret)
 	if C.EC_POINT_mul(p.c.g, p.p, nil, b.p, s.bignum.bn, p.c.ctx) == 0 {
@@ -190,13 +181,8 @@ func (p *point) Encrypt(cb crypto.Point, cs crypto.Secret) crypto.Point {
 	return p
 }
 
-func (p *point) Add(ca,cb crypto.Point) crypto.Point {
-	a := ca.(*point)
-	b := cb.(*point)
-	if C.EC_POINT_add(p.c.g, p.p, a.p, b.p, p.c.ctx) == 0 {
-		panic("EC_POINT_mul: "+getErrString())
-	}
-	return p
+func (p *point) Len() int {
+	return 1+p.c.plen	// compressed encoding
 }
 
 func (p *point) Encode() []byte {
@@ -210,16 +196,20 @@ func (p *point) Encode() []byte {
 	return b
 }
 
-func (p *point) Decode(buf []byte) (crypto.Point, error) {
+func (p *point) Decode(buf []byte) error {
 	if C.EC_POINT_oct2point(p.g, p.p,
 			(*_Ctype_unsignedchar)(unsafe.Pointer(&buf[0])),
 			C.size_t(len(buf)), p.c.ctx) == 0 {
-		return nil, errors.New(getErrString())
+		return errors.New(getErrString())
 	}
-	return p, nil
+	return nil
 }
 
 
+
+func (c *curve) String() string {
+	return c.name
+}
 
 func (c *curve) SecretLen() int {
 	return c.nlen
@@ -243,7 +233,9 @@ func (c *curve) Order() *big.Int {
 	return c.n.BigInt()
 }
 
-func (c *curve) initNamedCurve(nid C.int) *curve {
+func (c *curve) initNamedCurve(name string, nid C.int) *curve {
+	c.name = name
+
 	c.ctx = C.BN_CTX_new()
 	if c.ctx == nil {
 		panic("C.BN_CTX_new: "+getErrString())
@@ -271,7 +263,19 @@ func (c *curve) initNamedCurve(nid C.int) *curve {
 	return c
 }
 
+func (c *curve) InitP224() {
+	c.initNamedCurve("P224", C.NID_secp224r1)
+}
+
 func (c *curve) InitP256() {
-	c.initNamedCurve(C.NID_X9_62_prime256v1)
+	c.initNamedCurve("P256", C.NID_X9_62_prime256v1)
+}
+
+func (c *curve) InitP384() {
+	c.initNamedCurve("P384", C.NID_secp384r1)
+}
+
+func (c *curve) InitP521() {
+	c.initNamedCurve("P521", C.NID_secp521r1)
 }
 

@@ -4,10 +4,28 @@ import (
 	"hash"
 	"time"
 	"fmt"
+	"io"
 	"crypto/cipher"
 	"encoding/hex"
 )
 
+// Suite is an abstract interface to a full suite of
+// public-key and symmetric-key crypto primitives
+// chosen to be suited to each other and haver matching security parameters.
+// A ciphersuite in this framework basically consists of three components:
+// a hash function, a stream cipher, and an abstract group
+// for public-key crypto.
+//
+// This interface adopts hashes and stream ciphers as its
+// fundamental symmetric-key crypto abstractions because
+// they are conceptually simple and directly complementary in function:
+// a hash takes any desired number of input bytes
+// and produces a small fixed number of output bytes,
+// whereas a stream cipher takes a small fixed number of input bytes
+// and produces any desired number of output bytes.
+// While stream ciphers can be and often are constructed from block ciphers,
+// we treat block ciphers as an implementation detail
+// hidden below the abstraction level of this ciphersuite interface.
 type Suite interface {
 
 	// Symmetric-key hash function
@@ -23,12 +41,11 @@ type Suite interface {
 	Group
 }
 
-type Hasher interface {
-	Hash(data []byte)
-}
 
-
-// Create a pseudorandom stream seeded by hashing an arbitrary byte string
+// Create a pseudorandom stream seeded by hashing an arbitrary byte string.
+// This can be considered a general key expansion function
+// taking an input seed of arbitrary size
+// such that the resulting stream depends on every bit of the input.
 func HashStream(suite Suite, data []byte) cipher.Stream {
 	h := suite.Hash()
 	h.Write(data)
@@ -37,18 +54,48 @@ func HashStream(suite Suite, data []byte) cipher.Stream {
 }
 
 // Create a pseudorandom stream seeded by hashing a group element
+// from the public-key group associated with this ciphersuite.
 func PointStream(suite Suite, point Point) cipher.Stream {
-	return HashStream(suite, point.Encode())
+	buf := point.Encode()
+	return HashStream(suite, buf)
 }
 
-// Pull enough bytes for a seed from an existing cipher
-// to produce a new, derived sub-cipher
+// Pull enough bytes for a seed from an existing stream cipher
+// to produce a new, derived sub-stream cipher.
+// This may be effectively used as a "fork" operator for stream ciphers,
+// capable of producing arbitrary trees of stream ciphers that are
+// cryptographically independent but pseudo-randomly derived
+// from the same root cipher.
 func SubStream(suite Suite, s cipher.Stream) cipher.Stream {
 	key := make([]byte,suite.KeyLen())
 	s.XORKeyStream(key,key)
 	return suite.Stream(key)
 }
 
+
+type tracer struct {
+	w io.Writer
+	s cipher.Stream
+}
+
+func (t *tracer) XORKeyStream(dst,src []byte) {
+	buf := make([]byte, len(src))
+	t.s.XORKeyStream(buf,buf)
+	fmt.Printf("TraceStream %p -> %s\n", t, hex.EncodeToString(buf))
+	for i := range(buf) {
+		dst[i] = src[i] ^ buf[i]
+	}
+}
+
+// Wrap a stream with a tracer that simply traces its usage for debugging.
+// This is useful to determine when and why two pseudorandom streams
+// unexpectedly diverge.
+func TraceStream(w io.Writer, s cipher.Stream) cipher.Stream {
+	return &tracer{w,s}
+}
+
+
+// Apply a standard set of validation tests to a ciphersuite.
 func TestSuite(suite Suite) {
 
 	// Try hashing something
@@ -113,6 +160,7 @@ func benchStream(suite Suite, len int) {
 
 }
 
+// Run a Suite through a set of basic microbenchmarks.
 func BenchSuite(suite Suite) {
 
 	// Stream benchmark

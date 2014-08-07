@@ -2,34 +2,72 @@ package crypto
 
 import (
 	"bytes"
-	"math/big"
 	"crypto/cipher"
 	"fmt"
 	"time"
 )
 
+/*
+A Secret abstractly represents a secret value by which
+a Point (group element) may be encrypted to produce another Point.
+This is an exponent in DSA-style groups,
+in which security is based on the Discrete Logarithm assumption,
+and a scalar multiplier in elliptic curve groups.
+*/
 type Secret interface {
 	String() string
+	Encoding
 
+	// Equality test for two Secrets derived from the same Group
 	Equal(s2 Secret) bool
 
-	// Set to the sum of secrets a and b
+	// Set equal to a
+	Set(a Secret) Secret
+
+	// Set to the additive identity (0)
+	Zero() Secret
+
+	// Set to the modular sum of secrets a and b
 	Add(a,b Secret) Secret
+
+	// Set to the modular difference a - b
+	Sub(a,b Secret) Secret
 
 	// Set to the modular negation of secret a
 	Neg(a Secret) Secret
 
+	// Set to the multiplicative identity (1)
+	One() Secret
+
+	// Set to the modular product of secrets a and b
+	Mul(a,b Secret) Secret
+
+	// Set to the modular division of secret a by secret b
+	Div(a,b Secret) Secret
+
+	// Set to the modular inverse of secret a
+	Inv(a Secret) Secret
+
 	// Set to a fresh random or pseudo-random secret
 	Pick(rand cipher.Stream) Secret
-
-	Encode() []byte
-	Decode(buf []byte) Secret
 }
 
+/*
+A Point abstractly represents an element of a public-key cryptographic Group.
+For example,
+this is a number modulo the prime P in a DSA-style Schnorr group,
+or an x,y point on an elliptic curve.
+A Point can contain a Diffie-Hellman public key,
+an ElGamal ciphertext, etc.
+*/
 type Point interface {
 	String() string
+	Encoding
+
+	// Equality test for two Points derived from the same Group
 	Equal(s2 Point) bool
 
+	Null() Point			// Set to neutral identity element
 	Base() Point			// Set to well-known generator
 
 	// Pick and set to a point that is at least partly [pseudo-]random,
@@ -48,31 +86,50 @@ type Point interface {
 	// Returns an error if doesn't represent valid embedded data.
 	Data() ([]byte,error)
 
-	// Set to the encryption of point p with secret s
-	Encrypt(p Point, s Secret) Point
-
-	// Combine points so that their secrets add homomorphically
+	// Add points so that their secrets add homomorphically
 	Add(a,b Point) Point
 
-	// Encode point into bytes
-	Encode() []byte
+	// Subtract points so that their secrets subtract homomorphically
+	Sub(a,b Point) Point
 
-	// Decode and validate a point
-	Decode(buf []byte) (Point, error)
+	// Encrypt point p by multiplying with secret s
+	Mul(p Point, s Secret) Point
 }
 
+/*
+This interface represents an abstract cryptographic group
+usable for Diffie-Hellman key exchange, ElGamal encryption,
+and the related body of public-key cryptographic algorithms
+and zero-knowledge proof methods.
+The Group interface is designed in particular to be a generic front-end
+to both traditional DSA-style modular arithmetic groups
+and ECDSA-style elliptic curves:
+the caller of this interface's methods
+need not know or care which specific mathematical construction
+underlies the interface.
+
+The Group interface is essentially just a "constructor" interface
+enabling the caller to generate the two particular types of objects
+relevant to DSA-style public-key cryptography;
+we call these objects Points and Secrets.
+
+It is expected that any implementation of this interface
+should satisfy suitable hardness assumptions for the applicable group:
+e.g., that it is cryptographically hard for an adversary to
+take an encrypted Point and the known generator it was based on,
+and derive the Secret with which the Point was encrypted.
+Any implementation is also expected to satisfy
+the standard homomorphism properties that Diffie-Hellman
+and the associated body of public-key cryptography are based on.
+*/
 type Group interface {
+	String() string
 
 	SecretLen() int			// Max len of secrets in bytes
 	Secret() Secret			// Create new secret
 
 	PointLen() int			// Max len of point in bytes
 	Point() Point			// Create new point
-
-	Order() *big.Int		// Number of points in the group
-	// (actually not sure we want GroupOrder() - may not be needed,
-	// and may interfere with most efficent use of curve25519,
-	// in which we might want to use both the curve and its twist...)
 }
 
 func testEmbed(g Group,s string) {
@@ -92,8 +149,10 @@ func testEmbed(g Group,s string) {
 	}
 }
 
+// Apply a generic set of validation tests to a cryptographic Group.
 func TestGroup(g Group) {
-	fmt.Printf("\nTesting %d-bit group\n",g.Order().BitLen())
+	fmt.Printf("\nTesting group '%s': %d-byte Point, %d-byte Secret\n",
+			g.String(), g.PointLen(), g.SecretLen())
 
 	// Do a simple Diffie-Hellman test
 	s1 := g.Secret().Pick(RandomStream)
@@ -105,20 +164,69 @@ func TestGroup(g Group) {
 	}
 
 	gen := g.Point().Base()
-	p1 := g.Point().Encrypt(gen,s1)
-	p2 := g.Point().Encrypt(gen,s2)
+	p1 := g.Point().Mul(gen,s1)
+	p2 := g.Point().Mul(gen,s2)
 	println("p1 = ",p1.String())
 	println("p2 = ",p2.String())
 	if p1.Equal(p2) {
 		panic("uh-oh, encryption isn't producing unique points!")
 	}
 
-	dh1 := g.Point().Encrypt(p1,s2)
-	dh2 := g.Point().Encrypt(p2,s1)
+	dh1 := g.Point().Mul(p1,s2)
+	dh2 := g.Point().Mul(p2,s1)
 	if !dh1.Equal(dh2) {
 		panic("Diffie-Hellman didn't work")
 	}
 	println("shared secret = ",dh1.String())
+
+	// Test secret inverse to get from dh1 back to p1
+	ptmp := g.Point().Mul(dh1, g.Secret().Inv(s2))
+	if !ptmp.Equal(p1) {
+		panic("Secret inverse didn't work")
+	}
+
+	// Zero and One identity secrets
+	//println("dh1^0 = ",ptmp.Mul(dh1, g.Secret().Zero()).String())
+	if !ptmp.Mul(dh1, g.Secret().Zero()).Equal(g.Point().Null()) {
+		panic("Encryption with secret=0 didn't work")
+	}
+	if !ptmp.Mul(dh1, g.Secret().One()).Equal(dh1) {
+		panic("Encryption with secret=1 didn't work")
+	}
+
+	// Additive homomorphic identities
+	ptmp.Add(p1,p2)
+	stmp := g.Secret().Add(s1,s2)
+	pt2 := g.Point().Mul(gen,stmp)
+	if !pt2.Equal(ptmp) {
+		panic("Additive homomorphism doesn't work")
+	}
+	ptmp.Sub(p1,p2)
+	stmp.Sub(s1,s2)
+	pt2.Mul(gen,stmp)
+	if !pt2.Equal(ptmp) {
+		panic("Additive homomorphism doesn't work")
+	}
+	st2 := g.Secret().Neg(s2)
+	st2.Add(s1,st2)
+	if !stmp.Equal(st2) {
+		panic("Secret.Neg doesn't work")
+	}
+
+	// Multiplicative homomorphic identities
+	stmp.Mul(s1,s2)
+	if !ptmp.Mul(gen,stmp).Equal(dh1) {
+		panic("Multiplicative homomorphism doesn't work")
+	}
+	st2.Inv(s2)
+	st2.Mul(st2,stmp)
+	if !st2.Equal(s1) {
+		panic("Secret division doesn't work")
+	}
+	st2.Div(stmp,s2)
+	if !st2.Equal(s1) {
+		panic("Secret division doesn't work")
+	}
 
 	// Test randomly picked points
 	p1.Pick(nil, RandomStream)
@@ -144,10 +252,10 @@ func BenchGroup(g Group) {
 	beg := time.Now()
 	iters := 500
 	for i := 1; i < iters; i++ {
-		p.Encrypt(p,s)
+		p.Mul(p,s)
 	}
 	end := time.Now()
-	fmt.Printf("EncryptPoint: %f ops/sec\n",
+	fmt.Printf("MulPoint: %f ops/sec\n",
 			float64(iters) / 
 			(float64(end.Sub(beg)) / 1000000000.0))
 
