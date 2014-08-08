@@ -312,6 +312,41 @@ func (c *edwardsCurve) Point() Point {
 	return P
 }
 
+// Initialize a twisted Edwards curve with given parameters.
+//
+//	p: prime modulus of underlying field.
+//	r: prime order of standard base point.
+//	a,d: Edwards curve equation parameters.
+//	bx,by: standard base point.
+//
+func (c *edwardsCurve) init(name string, p,r,a,d,bx,by *big.Int) {
+	c.name = name
+
+	c.p.Set(p)		// prime modulus of underlying field
+	c.r.Set(r)		// prime order of base point
+
+	// Useful ModInt constants for this curve
+	c.zero = &c.I.y
+	c.one = &c.I.y
+
+	// Edwards curve parameters
+	c.a.Init(a,&c.p)
+	c.d.Init(d,&c.p)
+
+	// Identity element is (0,1)
+	c.I.c = c
+	c.I.x.Init64(0, &c.p)
+	c.I.y.Init64(1, &c.p)
+
+	// Base point B
+	c.B.c = c
+	c.B.x.Init(bx, &c.p)
+	c.B.y.Init(by, &c.p)
+	if !c.B.onCurve() {
+		panic("init25519: base point not on curve!?")
+	}
+}
+
 func (c *edwardsCurve) init25519() {
 	c.name = "Ed25519"
 
@@ -325,17 +360,17 @@ func (c *edwardsCurve) init25519() {
 	c.r.SetBit(&c.r, 252, 1)
 
 	// a = -1
-	c.a.Init(-1, &c.p)
+	c.a.Init64(-1, &c.p)
 	println("a: "+c.a.String())
 
 	// d = -121665/121666
-	c.d.Init(-121665, &c.p).Div(&c.d,NewModInt(121666, &c.p))
+	c.d.Init64(-121665, &c.p).Div(&c.d,NewModInt(121666, &c.p))
 	println("d: "+c.d.String())
 
 	// Identity element is (0,1)
 	c.I.c = c
-	c.I.x.Init(0, &c.p)
-	c.I.y.Init(1, &c.p)
+	c.I.x.Init64(0, &c.p)
+	c.I.y.Init64(1, &c.p)
 	c.zero = &c.I.y
 	c.one = &c.I.y
 	if !c.I.onCurve() {
@@ -349,7 +384,7 @@ func (c *edwardsCurve) init25519() {
 
 	// Base point B is the unique (x,4/5) such that x is positive
 	c.B.c = c
-	c.B.y.Init(4, &c.p).Div(&c.B.y,NewModInt(5, &c.p))
+	c.B.y.Init64(4, &c.p).Div(&c.B.y,NewModInt(5, &c.p))
 	ok := c.B.solveForX()
 	if !ok {
 		panic("init25519: invalid base point!?")
@@ -362,6 +397,42 @@ func (c *edwardsCurve) init25519() {
 	if !c.B.onCurve() {
 		panic("init25519: base point not on curve!?")
 	}
+}
+
+func (c *edwardsCurve) initE382() {
+	var p,r,rs,a,d,bx,by big.Int
+	p.SetBit(zero,382,1).Sub(&p,big.NewInt(105))	// p = 2^382-105
+	rs.SetString("1030303207694556153926491950732314247062623204330168346855",10)
+	r.SetBit(zero,380,1).Sub(&r,&rs)
+	a.SetInt64(1)
+	d.SetInt64(-67254)
+	bx.SetString("3914921414754292646847594472454013487047137431784830634731377862923477302047857640522480241298429278603678181725699",10)
+	by.SetString("17",10)
+	c.init("E382",&p,&r,&a,&d,&bx,&by)
+}
+
+func (c *edwardsCurve) init41417() {
+	var p,r,rs,a,d,bx,by big.Int
+	p.SetBit(zero,414,1).Sub(&p,big.NewInt(17))
+	rs.SetString("33364140863755142520810177694098385178984727200411208589594759",10)
+	r.SetBit(zero,411,1).Sub(&r,&rs)
+	a.SetInt64(1)
+	d.SetInt64(3617)
+	bx.SetString("17319886477121189177719202498822615443556957307604340815256226171904769976866975908866528699294134494857887698432266169206165",10)
+	by.SetString("34",10)
+	c.init("Ed41417",&p,&r,&a,&d,&bx,&by)
+}
+
+func (c *edwardsCurve) initE521() {
+	var p,r,rs,a,d,bx,by big.Int
+	p.SetBit(zero,521,1).Sub(&p,one)
+	rs.SetString("337554763258501705789107630418782636071904961214051226618635150085779108655765",10)
+	r.SetBit(zero,519,1).Sub(&r,&rs)
+	a.SetInt64(1)
+	d.SetInt64(-376014)
+	bx.SetString("1571054894184995387535939749894317568645297350402905821437625181152304994381188529632591196067604100772673927915114267193389905003276673749012051148356041324",10)
+	by.SetString("12",10)
+	c.init("E521",&p,&r,&a,&d,&bx,&by)
 }
 
 
@@ -417,6 +488,9 @@ func (s *suiteEd25519) Stream(key []byte) cipher.Stream {
 func NewAES128SHA256Ed25519() Suite {
 	suite := new(suiteEd25519)
 	suite.init25519()
+//	suite.initE382()
+//	suite.init41417()
+//	suite.initE521()
 	return suite
 }
 
