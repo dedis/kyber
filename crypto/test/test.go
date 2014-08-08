@@ -26,17 +26,15 @@ func benchSuites() {
 	println("\nNative P256 suite:")
 	crypto.BenchSuite(crypto.NewAES128SHA256P256())
 
+	println("\nNative Ed25519 suite:")
+	crypto.BenchSuite(crypto.NewAES128SHA256Ed25519())
+
 	println("\nOpenSSL P256 suite:")
 	crypto.BenchSuite(openssl.NewAES128SHA256P256())
 }
 
 func main() {
-
-	crypto.TestSuite(crypto.NewAES128SHA256Ed25519())
-	return
-
-	testSuites()
-
-	//benchSuites()
+	//testSuites()
+	benchSuites()
 }
 

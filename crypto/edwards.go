@@ -21,6 +21,7 @@ import (
 // 
 // This reference implementation is mainly intended for debugging and testing
 // other more optimized implementations, not for direct use.
+//
 type edwardsPoint struct {
 	x,y ModInt
 	c *edwardsCurve
