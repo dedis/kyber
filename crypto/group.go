@@ -247,17 +247,29 @@ func TestGroup(g Group) {
 // A simple microbenchmark suite for abstract group functionality.
 func BenchGroup(g Group) {
 
-	// Point encryption
-	s := g.Secret().Pick(RandomStream)
+	// Point addition
+	b := g.Point().Base()
 	p := g.Point()
 	p.Pick(nil, RandomStream)
 	beg := time.Now()
-	iters := 500
+	iters := 10000
+	for i := 1; i < iters; i++ {
+		p.Add(p,b)
+	}
+	end := time.Now()
+	fmt.Printf("Point.Add: %f ops/sec\n",
+			float64(iters) / 
+			(float64(end.Sub(beg)) / 1000000000.0))
+
+	// Point encryption
+	s := g.Secret().Pick(RandomStream)
+	beg = time.Now()
+	iters = 500
 	for i := 1; i < iters; i++ {
 		p.Mul(p,s)
 	}
-	end := time.Now()
-	fmt.Printf("MulPoint: %f ops/sec\n",
+	end = time.Now()
+	fmt.Printf("Point.Mul: %f ops/sec\n",
 			float64(iters) / 
 			(float64(end.Sub(beg)) / 1000000000.0))
 
@@ -268,19 +280,41 @@ func BenchGroup(g Group) {
 		p.Pick([]byte("abc"), RandomStream)
 	}
 	end = time.Now()
-	fmt.Printf("PickPoint: %f ops/sec\n",
+	fmt.Printf("Point.Pick: %f ops/sec\n",
 			float64(iters) / 
 			(float64(end.Sub(beg)) / 1000000000.0))
 
 	// Secret addition (in-place arithmetic)
 	s2 := g.Secret().Pick(RandomStream)
 	beg = time.Now()
-	iters = 1000000
+	iters = 10000000
 	for i := 1; i < iters; i++ {
 		s.Add(s,s2)
 	}
 	end = time.Now()
 	fmt.Printf("Secret.Add: %f ops/sec\n",
+			float64(iters) / 
+			(float64(end.Sub(beg)) / 1000000000.0))
+
+	// Secret multiplication
+	beg = time.Now()
+	iters = 1000000
+	for i := 1; i < iters; i++ {
+		s.Mul(s,s2)
+	}
+	end = time.Now()
+	fmt.Printf("Secret.Mul: %f ops/sec\n",
+			float64(iters) / 
+			(float64(end.Sub(beg)) / 1000000000.0))
+
+	// Secret inversion
+	beg = time.Now()
+	iters = 10000
+	for i := 1; i < iters; i++ {
+		s.Inv(s)
+	}
+	end = time.Now()
+	fmt.Printf("Secret.Inv: %f ops/sec\n",
 			float64(iters) / 
 			(float64(end.Sub(beg)) / 1000000000.0))
 

@@ -39,11 +39,19 @@ type ModInt struct {
 
 // Create a new ModInt with a given int64 value and big.Int modulus.
 func NewModInt(v int64, M *big.Int) *ModInt {
-	return new(ModInt).Init(v,M)
+	return new(ModInt).Init64(v,M)
+}
+
+// Initialize a ModInt with a given big.Int value and modulus pointer.
+// Note that the value is copied; the modulus is not.
+func (i *ModInt) Init(V *big.Int, M *big.Int) *ModInt {
+	i.M = M
+	i.V.Set(V).Mod(&i.V, M)
+	return i
 }
 
 // Initialize a ModInt with an int64 value and big.Int modulus.
-func (i *ModInt) Init(v int64, M *big.Int) *ModInt {
+func (i *ModInt) Init64(v int64, M *big.Int) *ModInt {
 	i.M = M
 	i.V.SetInt64(v).Mod(&i.V, M)
 	return i
@@ -208,7 +216,7 @@ func (i *ModInt) Sqrt(as Secret) bool {
 	p := ai.M			// prime modulus
 	a := &ai.V
 	if a.Sign() == 0 {
-		i.Init(0,p)		// sqrt(0) = 0
+		i.Init64(0,p)		// sqrt(0) = 0
 		return true
 	}
 	if ai.legendre() != 1 {
@@ -226,7 +234,7 @@ func (i *ModInt) Sqrt(as Secret) bool {
 
 	// Find some non-square n
 	var ni ModInt
-	ni.Init(2,p)
+	ni.Init64(2,p)
 	n := &ni.V
 	for ni.legendre() != -1 {
 		n.Add(n,one)

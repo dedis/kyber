@@ -26,6 +26,8 @@ package sodium
 import "C"
 
 import (
+	"fmt"
+	"time"
 	"bytes"
 	"errors"
 	"unsafe"
@@ -364,5 +366,35 @@ func TestCurve25519() {
 
 //	g := NewCurve25519()
 //	crypto.TestGroup(g)
+}
+
+func BenchCurve25519() {
+
+	g := NewCurve25519()
+
+	// Point addition
+	b := g.Point().Base()
+	p := g.Point().Base()
+	beg := time.Now()
+	iters := 50000
+	for i := 1; i < iters; i++ {
+		p.Add(p,b)
+	}
+	end := time.Now()
+	fmt.Printf("Point.Add: %f ops/sec\n",
+			float64(iters) / 
+			(float64(end.Sub(beg)) / 1000000000.0))
+
+	// Point encryption
+	s := g.Secret().Pick(crypto.RandomStream)
+	beg = time.Now()
+	iters = 5000
+	for i := 1; i < iters; i++ {
+		p.Mul(p,s)
+	}
+	end = time.Now()
+	fmt.Printf("Point.Mul: %f ops/sec\n",
+			float64(iters) / 
+			(float64(end.Sub(beg)) / 1000000000.0))
 }
 

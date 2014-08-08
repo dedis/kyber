@@ -27,17 +27,23 @@ func benchSuites() {
 	println("\nNative P256 suite:")
 	crypto.BenchSuite(crypto.NewAES128SHA256P256())
 
+	println("\nNative Ed25519 suite:")
+	crypto.BenchSuite(crypto.NewAES128SHA256Ed25519())
+
 	println("\nOpenSSL P256 suite:")
 	crypto.BenchSuite(openssl.NewAES128SHA256P256())
 }
 
 func main() {
+	//sodium.TestCurve25519()
+	crypto.BenchSuite(openssl.NewAES128SHA256P256())
+	sodium.BenchCurve25519()
+
 	g := sodium.NewCurve25519()
 	crypto.TestGroup(g)
 	return
 
-	testSuites()
-
-	//benchSuites()
+	//testSuites()
+	benchSuites()
 }
 
