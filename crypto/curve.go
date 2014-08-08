@@ -179,7 +179,7 @@ func (c *curve) SecretLen() int { return (c.p.N.BitLen()+7)/8 }
 
 // Create a Secret associated with this curve.
 func (c *curve) Secret() Secret {
-	return NewModInt(c.p.N)
+	return NewModInt(0, c.p.N)
 }
 
 // Number of bytes required to store one coordinate on this curve

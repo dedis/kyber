@@ -10,10 +10,6 @@ import (
 )
 
 
-var one *big.Int = new(big.Int).SetInt64(1)
-var two *big.Int = new(big.Int).SetInt64(2)
-
-
 type schnorrPoint struct {
 	big.Int 
 	g *SchnorrGroup
@@ -167,7 +163,7 @@ func (g *SchnorrGroup) SecretLen() int { return (g.Q.BitLen()+7)/8 }
 // Create a Secret associated with this Schnorr group,
 // with an initial value of nil.
 func (g *SchnorrGroup) Secret() Secret {
-	return NewModInt(g.Q)
+	return NewModInt(0, g.Q)
 }
 
 // Return the number of bytes in the encoding of a Point

@@ -30,6 +30,7 @@ func benchSuites() {
 }
 
 func main() {
+
 	testSuites()
 
 	//benchSuites()
