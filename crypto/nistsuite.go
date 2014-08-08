@@ -12,14 +12,14 @@ type suiteAES128SHA256P256 struct {
 } 
 
 // SHA256 hash function
-func (s suiteAES128SHA256P256) HashLen() int { return sha256.Size }
-func (s suiteAES128SHA256P256) Hash() hash.Hash {
+func (s *suiteAES128SHA256P256) HashLen() int { return sha256.Size }
+func (s *suiteAES128SHA256P256) Hash() hash.Hash {
 	return sha256.New()
 }
 
 // AES128-CTR stream cipher
-func (s suiteAES128SHA256P256) KeyLen() int { return 16 }
-func (s suiteAES128SHA256P256) Stream(key []byte) cipher.Stream {
+func (s *suiteAES128SHA256P256) KeyLen() int { return 16 }
+func (s *suiteAES128SHA256P256) Stream(key []byte) cipher.Stream {
 	aes, err := aes.NewCipher(key)
 	if err != nil {
 		panic("can't instantiate AES: " + err.Error())

@@ -8,6 +8,7 @@ import (
 )
 
 
+var zero = big.NewInt(0)
 var one = big.NewInt(1)
 var two = big.NewInt(2)
 
@@ -24,16 +25,12 @@ var two = big.NewInt(2)
 // but a ModInt "carries around" a pointer to the relevant modulus
 // and automatically normalizes the value to that modulus
 // after all arithmetic operations, simplifying modular arithmetic.
-// All operations assume that the source(s) and destination objects
+// Binary operations assume that the source(s)
 // have the same modulus, but do not check this assumption.
-// Arithmetic operations always use the modulus in the target object
-// to normalize the results of the operation.
-//
+// Unary and binary arithmetic operations may be performed on uninitialized
+// target objects, and receive the modulus of the first operand.
 // For efficiency the modulus field M is a pointer,
 // whose target is assumed never to change.
-// To ensure that the modulus pointer is properly initialized,
-// either allocate new instances with NewModInt()
-// or initialize them explicitly with Init() or Set().
 //
 type ModInt struct {
 	V big.Int 		// Integer value from 0 through M-1
@@ -47,15 +44,15 @@ func NewModInt(v int64, M *big.Int) *ModInt {
 
 // Initialize a ModInt with an int64 value and big.Int modulus.
 func (i *ModInt) Init(v int64, M *big.Int) *ModInt {
-	if v != 0 {
-		i.V.SetInt64(v)
-	}
 	i.M = M
+	i.V.SetInt64(v).Mod(&i.V, M)
 	return i
 }
 
 // Return the ModInt's integer value in decimal string representation.
-func (i *ModInt) String() string { return i.V.String() }
+func (i *ModInt) String() string {
+	return i.V.String()
+}
 
 // Compare two ModInts for equality or inequality
 func (i *ModInt) Cmp(s2 Secret) int {
@@ -76,23 +73,26 @@ func (i *ModInt) Nonzero(s2 Secret) bool {
 // Since this method copies the modulus as well,
 // it may be used as an alternative to Init().
 func (i *ModInt) Set(a Secret) Secret {
-	i.V.Set(&a.(*ModInt).V)
+	ai := a.(*ModInt)
+	i.V.Set(&ai.V)
+	i.M = ai.M
 	return i
 }
 
-// Set to the value 0.
+// Set to the value 0.  The modulus must already be initialized.
 func (i *ModInt) Zero() Secret {
 	i.V.SetInt64(0)
 	return i
 }
 
-// Set to the value 1.
+// Set to the value 1.  The modulus must already be initialized.
 func (i *ModInt) One() Secret {
 	i.V.SetInt64(1)
 	return i
 }
 
 // Set to an arbitrary 64-bit "small integer" value.
+// The modulus must already be initialized.
 func (i *ModInt) SetInt64(v int64) Secret {
 	i.V.SetInt64(v).Mod(&i.V, i.M)
 	return i
@@ -105,6 +105,7 @@ func (i *ModInt) Int64() int64 {
 }
 
 // Set to an arbitrary uint64 value.
+// The modulus must already be initialized.
 func (i *ModInt) SetUint64(v uint64) Secret {
 	i.V.SetUint64(v).Mod(&i.V, i.M)
 	return i
@@ -116,23 +117,31 @@ func (i *ModInt) Uint64() uint64 {
 	return i.V.Uint64()
 }
 
-// Set to a + b mod M.
+// Set target to a + b mod M, where M is a's modulus..
 func (i *ModInt) Add(a,b Secret) Secret {
-	i.V.Add(&a.(*ModInt).V,&b.(*ModInt).V).Mod(&i.V, i.M)
+	ai := a.(*ModInt)
+	bi := b.(*ModInt)
+	i.M = ai.M
+	i.V.Add(&ai.V,&bi.V).Mod(&i.V, i.M)
 	return i
 }
 
-// Set to a - b mod M.
+// Set target to a - b mod M.
+// Target receives a's modulus.
 func (i *ModInt) Sub(a,b Secret) Secret {
-	i.V.Sub(&a.(*ModInt).V,&b.(*ModInt).V).Mod(&i.V, i.M)
+	ai := a.(*ModInt)
+	bi := b.(*ModInt)
+	i.M = ai.M
+	i.V.Sub(&ai.V,&bi.V).Mod(&i.V, i.M)
 	return i
 }
 
 // Set to -a mod M.
 func (i *ModInt) Neg(a Secret) Secret {
-	v := &a.(*ModInt).V
-	if v.Sign() > 0 {
-		i.V.Sub(i.M, v)
+	ai := a.(*ModInt)
+	i.M = ai.M
+	if ai.V.Sign() > 0 {
+		i.V.Sub(i.M, &ai.V)
 	} else {
 		i.V.SetUint64(0)
 	}
@@ -140,21 +149,30 @@ func (i *ModInt) Neg(a Secret) Secret {
 }
 
 // Set to a * b mod M.
+// Target receives a's modulus.
 func (i *ModInt) Mul(a,b Secret) Secret {
-	i.V.Mul(&a.(*ModInt).V,&b.(*ModInt).V).Mod(&i.V, i.M)
+	ai := a.(*ModInt)
+	bi := b.(*ModInt)
+	i.M = ai.M
+	i.V.Mul(&ai.V,&bi.V).Mod(&i.V, i.M)
 	return i
 }
 
 // Set to a * b^-1 mod M, where b^-1 is the modular inverse of b.
 func (i *ModInt) Div(a,b Secret) Secret {
+	ai := a.(*ModInt)
+	bi := b.(*ModInt)
 	var t big.Int
-	i.V.Mul(&a.(*ModInt).V, t.ModInverse(&b.(*ModInt).V, i.M))
+	i.M = ai.M
+	i.V.Mul(&ai.V, t.ModInverse(&bi.V, i.M))
 	i.V.Mod(&i.V, i.M)
 	return i
 }
 
 // Set to the modular inverse of a with respect to modulus M.
 func (i *ModInt) Inv(a Secret) Secret {
+	ai := a.(*ModInt)
+	i.M = ai.M
 	i.V.ModInverse(&a.(*ModInt).V, i.M)
 	return i
 }
@@ -162,7 +180,9 @@ func (i *ModInt) Inv(a Secret) Secret {
 // Set to a^e mod M,
 // where e is an arbitrary big.Int exponent (not necessarily 0 <= e < M).
 func (i *ModInt) Exp(a Secret, e *big.Int) Secret {
-	i.V.Exp(&a.(*ModInt).V, e, i.M)
+	ai := a.(*ModInt)
+	i.M = ai.M
+	i.V.Exp(&ai.V, e, i.M)
 	return i
 }
 
@@ -178,21 +198,21 @@ func (i *ModInt) legendre() int {
 	return v.Sign()
 }
 
-// Compute sqrt(a) mod M of one exists.
+// Compute some square root of a mod M of one exists.
 // Assumes the modulus M is an odd prime.
 // Returns true on success, false if input a is not a square.
 // (This really should be part of Go's big.Int library.)
 func (i *ModInt) Sqrt(as Secret) bool {
-	p := i.M			// prime modulus
 
 	ai := as.(*ModInt)
+	p := ai.M			// prime modulus
 	a := &ai.V
 	if a.Sign() == 0 {
-		i.SetInt64(0)		// sqrt(0) = 0
+		i.Init(0,p)		// sqrt(0) = 0
 		return true
 	}
 	if ai.legendre() != 1 {
-		return false		// not a square mod M
+		return false		// a is not a square mod M
 	}
 
 	// Break p-1 into s*2^e such that s is odd.
@@ -231,6 +251,7 @@ func (i *ModInt) Sqrt(as Secret) bool {
 
 		if m == 0 {
 			i.V.Set(&x)
+			i.M = p
 			return true
 		}
 

@@ -11,6 +11,7 @@ func testSuites() {
 	crypto.TestSuite(crypto.NewAES128SHA256QR512())
 	//crypto.TestSuite(crypto.NewAES128SHA256QR1024())
 	crypto.TestSuite(crypto.NewAES128SHA256P256())
+	crypto.TestSuite(crypto.NewAES128SHA256Ed25519())
 
 	// OpenSSL-based suites
 	crypto.TestSuite(openssl.NewAES128SHA256P256())
@@ -30,6 +31,9 @@ func benchSuites() {
 }
 
 func main() {
+
+	crypto.TestSuite(crypto.NewAES128SHA256Ed25519())
+	return
 
 	testSuites()
 

@@ -101,7 +101,7 @@ func (p *curvePoint) Pick(data []byte, rand cipher.Stream) (Point, []byte) {
 	}
 }
 
-// Extract embedded data from a Schnorr group element
+// Extract embedded data from a curve point
 func (p *curvePoint) Data() ([]byte,error) {
 	b := p.x.Bytes()
 	l := p.c.coordLen()
