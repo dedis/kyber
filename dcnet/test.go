@@ -51,7 +51,7 @@ func (n *TestNode) nodeSetup(name string, peerkeys []crypto.Point) {
 	n.peerkeys = peerkeys
 	n.peerstreams = make([]cipher.Stream, n.npeers)
 	for j := range(peerkeys) {
-		dh := n.suite.Point().Encrypt(peerkeys[j], n.spri)
+		dh := n.suite.Point().Mul(peerkeys[j], n.spri)
 		//println(" DH",dh.String())
 		n.peerstreams[j] = crypto.PointStream(n.suite, dh)
 	}
@@ -73,7 +73,7 @@ func TestSetup(suite crypto.Suite, factory CellFactory,
 
 		// Each client and trustee gets a session keypair
 		nodes[i].spri = suite.Secret().Pick(rand)
-		nodes[i].spub = suite.Point().Encrypt(base, nodes[i].spri)
+		nodes[i].spub = suite.Point().Mul(base, nodes[i].spri)
 		fmt.Printf("node %d key %s\n", i, nodes[i].spri.String())
 
 		nodes[i].Coder = factory()
@@ -99,7 +99,7 @@ func TestSetup(suite crypto.Suite, factory CellFactory,
 	// Pick an "owner" for the (one) transmission series we'll have.
 	// For now the owner will be the first client.
 	opri := suite.Secret().Pick(rand)
-	opub := suite.Point().Encrypt(base, opri)
+	opub := suite.Point().Mul(base, opri)
 	clients[0].opri = opri
 	for i := range(nodes) {
 		nodes[i].opub = opub	// Everyone knows owner public key

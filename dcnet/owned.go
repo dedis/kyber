@@ -141,7 +141,7 @@ func (c *ownedCoder) ClientEncode(payload []byte, payloadlen int,
 	// having seen a divergent history gets suppressed.
 	p := c.suite.Point()
 	p.Pick(nil, histoream)
-	p.Encrypt(p, c.vkey)
+	p.Mul(p, c.vkey)
 
 	// Encode the payload data, if any.
 	payout := make([]byte, c.symmCellSize(payloadlen))
@@ -260,7 +260,8 @@ func (c *ownedCoder) RelaySetup(suite crypto.Suite, trusteeinfo [][]byte) {
 	c.vkeys = make([]crypto.Secret, ntrustees)
 	c.vkey = suite.Secret()
 	for i := range(c.vkeys) {
-		c.vkeys[i] = c.suite.Secret().Decode(trusteeinfo[i])
+		c.vkeys[i] = c.suite.Secret()
+		c.vkeys[i].Decode(trusteeinfo[i])
 		c.vkey.Add(c.vkey, c.vkeys[i])
 	}
 
@@ -273,7 +274,7 @@ func (c *ownedCoder) DecodeStart(payloadlen int, histoream cipher.Stream) {
 	// based on the appropriate message history.
 	p := c.suite.Point()
 	p.Pick(nil, histoream)
-	p.Encrypt(p, c.vkey)
+	p.Mul(p, c.vkey)
 	c.point = p
 
 /*
@@ -300,8 +301,8 @@ func (c *ownedCoder) DecodeClient(slice []byte) {
 
 	// Decode and add in the point in the slice header
 	plen := c.suite.PointLen()
-	p,err := c.suite.Point().Decode(slice[:plen])
-	if (err != nil) {
+	p := c.suite.Point()
+	if err := c.suite.Point().Decode(slice[:plen]); err != nil {
 		println("warning: error decoding point")
 	}
 	c.point.Add(c.point, p)
