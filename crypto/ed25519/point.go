@@ -222,6 +222,12 @@ func (P *ed25519Point) Mul(AP crypto.Point, s crypto.Secret) crypto.Point {
 	return P
 }
 
+// XXX optimized implementation.
+func (P *ed25519Point) BaseMul(s crypto.Secret) crypto.Point {
+	P.Base()
+	P.Mul(P,s)
+	return P
+}
 
 
 type ed25519Curve struct {

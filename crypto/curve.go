@@ -142,6 +142,12 @@ func (p *curvePoint) Mul(b Point, s Secret) Point {
 	return p
 }
 
+func (p *curvePoint) BaseMul(s Secret) Point {
+	cs := s.(*ModInt)
+	p.x,p.y = p.c.ScalarBaseMult(cs.V.Bytes())
+	return p
+}
+
 func (p *curvePoint) Len() int {
 	coordlen := (p.c.Params().BitSize+7) >> 3
 	return 1+2*coordlen	// uncompressed ANSI X9.62 representation (XXX)

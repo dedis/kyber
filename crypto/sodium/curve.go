@@ -93,6 +93,10 @@ func (s *secret) One() crypto.Secret {
 	panic("XXX")
 }
 
+func (s *secret) SetInt64(v int64) crypto.Secret {
+	panic("XXX")
+}
+
 func (s *secret) Equal(s2 crypto.Secret) bool {
 	return bytes.Equal(s.b[:], s2.(*secret).b[:])
 }
@@ -223,6 +227,10 @@ func (p *point) Mul(ca crypto.Point, cs crypto.Secret) crypto.Point {
 				&a.p, (*C.uchar)(unsafe.Pointer(&s0.b[0])))
 	C.ge_p2_to_p3(&p.p, &r)
 	return p
+}
+
+func (p *point) BaseMul(cs crypto.Secret) crypto.Point {
+	panic("XXX")
 }
 
 func (p *point) Len() int { return 32 }

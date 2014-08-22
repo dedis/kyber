@@ -55,6 +55,13 @@ func (s *secret) One() crypto.Secret {
 	return s
 }
 
+func (s *secret) SetInt64(v int64) crypto.Secret {
+	if C.BN_set_word(s.bignum.bn, C.ulonglong(v)) == 0 {
+		panic("BN_set_word: "+getErrString())
+	}
+	return s
+}
+
 func (s *secret) Add(x,y crypto.Secret) crypto.Secret {
 	xs := x.(*secret)
 	ys := y.(*secret)
@@ -97,12 +104,18 @@ func (s *secret) Mul(x,y crypto.Secret) crypto.Secret {
 func (s *secret) Div(x,y crypto.Secret) crypto.Secret {
 	xs := x.(*secret)
 	ys := y.(*secret)
-	// First compute inverse of y, then multiply by x
-	if C.BN_mod_inverse(s.bignum.bn, ys.bignum.bn, s.c.n.bn,
+
+	// First compute inverse of y, then multiply by x.
+	// Must use a temporary in the case x == s.
+	t := &s.bignum
+	if x == s {
+		t = newBigNum()
+	}
+	if C.BN_mod_inverse(t.bn, ys.bignum.bn, s.c.n.bn,
 			s.c.ctx) == nil {
 		panic("BN_mod_inverse: "+getErrString())
 	}
-	if C.BN_mod_mul(s.bignum.bn, xs.bignum.bn, s.bignum.bn, s.c.n.bn,
+	if C.BN_mod_mul(s.bignum.bn, xs.bignum.bn, t.bn, s.c.n.bn,
 			s.c.ctx) == 0 {
 		panic("BN_mod_mul: "+getErrString())
 	}

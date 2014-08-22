@@ -263,16 +263,24 @@ func (P *edwardsPoint) Neg(A Point) Point {
 // Multiply point p by scalar s using the repeated doubling method.
 func (P *edwardsPoint) Mul(G Point, s Secret) Point {
 	v := s.(*ModInt).V
-	P.Set(&P.c.I)	// Initialize to identity element (0,1)
+	var T edwardsPoint	// Must use temporary in case G == P
+	T.Set(&P.c.I)		// Initialize to identity element (0,1)
 	for i := v.BitLen()-1; i >= 0; i-- {
-		P.double(P)
+		T.double(&T)
 		if v.Bit(i) != 0 {
-			P.Add(P, G)
+			T.Add(&T, G)
 		}
 	}
+	P.Set(&T)
 	return P
 }
 
+// Multiply the standard base point by scalar s.
+func (P *edwardsPoint) BaseMul(s Secret) Point {
+	P.Base()
+	P.Mul(P,s)
+	return P
+}
 
 
 type edwardsCurve struct {

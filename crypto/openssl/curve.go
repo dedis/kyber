@@ -181,6 +181,14 @@ func (p *point) Mul(cb crypto.Point, cs crypto.Secret) crypto.Point {
 	return p
 }
 
+// XXX use precomputed generator optimization
+func (p *point) BaseMul(s crypto.Secret) crypto.Point {
+	p.Base()
+	p.Mul(p,s)
+	return p
+}
+
+
 func (p *point) Len() int {
 	return 1+p.c.plen	// compressed encoding
 }

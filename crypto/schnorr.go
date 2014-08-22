@@ -99,6 +99,12 @@ func (p *schnorrPoint) Mul(b Point, s Secret) Point {
 	return p
 }
 
+func (p *schnorrPoint) BaseMul(s Secret) Point {
+	p.Base()
+	p.Mul(p,s)
+	return p
+}
+
 func (p *schnorrPoint) Len() int {
 	return (p.g.P.BitLen()+7)/8
 }

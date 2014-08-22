@@ -23,8 +23,11 @@ type Secret interface {
 	// Equality test for two Secrets derived from the same Group
 	Equal(s2 Secret) bool
 
-	// Set equal to a
+	// Set equal to another Secret a
 	Set(a Secret) Secret
+
+	// Set to a small integer value
+	SetInt64(v int64) Secret
 
 	// Set to the additive identity (0)
 	Zero() Secret
@@ -96,6 +99,9 @@ type Point interface {
 
 	// Encrypt point p by multiplying with secret s
 	Mul(p Point, s Secret) Point
+
+	// Encrypt standard base point by multiplying with secret s
+	BaseMul(s Secret) Point
 }
 
 /*
@@ -242,6 +248,9 @@ func TestGroup(g Group) {
 	// Test embedding data
 	testEmbed(g,"Hi!")
 	testEmbed(g,"The quick brown fox jumps over the lazy dog")
+
+	// Test verifiable secret sharing
+	testSharing(g)
 }
 
 // A simple microbenchmark suite for abstract group functionality.
