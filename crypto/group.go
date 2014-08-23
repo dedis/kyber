@@ -97,11 +97,9 @@ type Point interface {
 	// Subtract points so that their secrets subtract homomorphically
 	Sub(a,b Point) Point
 
-	// Encrypt point p by multiplying with secret s
+	// Encrypt point p by multiplying with secret s.
+	// If p == nil, encrypt the standard base point Base().
 	Mul(p Point, s Secret) Point
-
-	// Encrypt standard base point by multiplying with secret s
-	BaseMul(s Secret) Point
 }
 
 /*

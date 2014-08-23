@@ -157,6 +157,10 @@ func (P *ed25519Point) Neg(A crypto.Point) crypto.Point {
 // XXX This is vartime; for our general-purpose Mul operator
 // it would be far preferable for security to do this constant-time.
 func (P *ed25519Point) Mul(AP crypto.Point, s crypto.Secret) crypto.Point {
+	if AP == nil {
+		return P.Base().Mul(P,s)	// XXX use optimized impl
+	}
+
 	A := AP.(*ed25519Point)
 	a := s.(*crypto.ModInt).V.Bytes()
 
@@ -219,13 +223,6 @@ func (P *ed25519Point) Mul(AP crypto.Point, s crypto.Secret) crypto.Point {
 	}
 
 	t.ToExtended(&P.ge)
-	return P
-}
-
-// XXX optimized implementation.
-func (P *ed25519Point) BaseMul(s crypto.Secret) crypto.Point {
-	P.Base()
-	P.Mul(P,s)
 	return P
 }
 

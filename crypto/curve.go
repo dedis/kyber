@@ -136,15 +136,13 @@ func (p *curvePoint) Sub(a,b Point) Point {
 }
 
 func (p *curvePoint) Mul(b Point, s Secret) Point {
-	cb := b.(*curvePoint)
 	cs := s.(*ModInt)
-	p.x,p.y = p.c.ScalarMult(cb.x,cb.y,cs.V.Bytes())
-	return p
-}
-
-func (p *curvePoint) BaseMul(s Secret) Point {
-	cs := s.(*ModInt)
-	p.x,p.y = p.c.ScalarBaseMult(cs.V.Bytes())
+	if b != nil {
+		cb := b.(*curvePoint)
+		p.x,p.y = p.c.ScalarMult(cb.x,cb.y,cs.V.Bytes())
+	} else {
+		p.x,p.y = p.c.ScalarBaseMult(cs.V.Bytes())
+	}
 	return p
 }
 

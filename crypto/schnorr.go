@@ -95,13 +95,10 @@ func (p *schnorrPoint) Sub(a,b Point) Point {
 }
 
 func (p *schnorrPoint) Mul(b Point, s Secret) Point {
+	if b == nil {
+		return p.Base().Mul(p,s)
+	}
 	p.Int.Exp(&b.(*schnorrPoint).Int, &s.(*ModInt).V, p.g.P)
-	return p
-}
-
-func (p *schnorrPoint) BaseMul(s Secret) Point {
-	p.Base()
-	p.Mul(p,s)
 	return p
 }
 

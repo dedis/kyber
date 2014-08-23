@@ -263,6 +263,9 @@ func (P *edwardsPoint) Neg(A Point) Point {
 // Multiply point p by scalar s using the repeated doubling method.
 func (P *edwardsPoint) Mul(G Point, s Secret) Point {
 	v := s.(*ModInt).V
+	if G == nil {
+		return P.Base().Mul(P,s)
+	}
 	var T edwardsPoint	// Must use temporary in case G == P
 	T.Set(&P.c.I)		// Initialize to identity element (0,1)
 	for i := v.BitLen()-1; i >= 0; i-- {
@@ -272,13 +275,6 @@ func (P *edwardsPoint) Mul(G Point, s Secret) Point {
 		}
 	}
 	P.Set(&T)
-	return P
-}
-
-// Multiply the standard base point by scalar s.
-func (P *edwardsPoint) BaseMul(s Secret) Point {
-	P.Base()
-	P.Mul(P,s)
 	return P
 }
 

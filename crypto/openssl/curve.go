@@ -173,18 +173,15 @@ func (p *point) Sub(ca,cb crypto.Point) crypto.Point {
 }
 
 func (p *point) Mul(cb crypto.Point, cs crypto.Secret) crypto.Point {
+	if cb == nil {
+		// XXX use precomputed generator optimization
+		return p.Base().Mul(p,cs)
+	}
 	b := cb.(*point)
 	s := cs.(*secret)
 	if C.EC_POINT_mul(p.c.g, p.p, nil, b.p, s.bignum.bn, p.c.ctx) == 0 {
 		panic("EC_POINT_mul: "+getErrString())
 	}
-	return p
-}
-
-// XXX use precomputed generator optimization
-func (p *point) BaseMul(s crypto.Secret) crypto.Point {
-	p.Base()
-	p.Mul(p,s)
 	return p
 }
 
