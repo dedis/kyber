@@ -46,8 +46,15 @@ type Suite interface {
 // This can be considered a general key expansion function
 // taking an input seed of arbitrary size
 // such that the resulting stream depends on every bit of the input.
-func HashStream(suite Suite, data []byte) cipher.Stream {
+// Optionally incorporate KeyLen() random bytes from a parent stream as well,
+// making the result a hash-indexed substream of the parent stream.
+func HashStream(suite Suite, data []byte, parent cipher.Stream) cipher.Stream {
 	h := suite.Hash()
+	if parent != nil {
+		key := make([]byte,suite.KeyLen())
+		parent.XORKeyStream(key,key)
+		h.Write(key)
+	}
 	h.Write(data)
 	b := h.Sum(nil)
 	return suite.Stream(b[:suite.KeyLen()])
@@ -57,7 +64,7 @@ func HashStream(suite Suite, data []byte) cipher.Stream {
 // from the public-key group associated with this ciphersuite.
 func PointStream(suite Suite, point Point) cipher.Stream {
 	buf := point.Encode()
-	return HashStream(suite, buf)
+	return HashStream(suite, buf, nil)
 }
 
 // Pull enough bytes for a seed from an existing stream cipher

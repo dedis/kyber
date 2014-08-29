@@ -5,6 +5,7 @@ import (
 	"dissent/crypto/openssl"
 	"dissent/crypto/ed25519"
 //	"dissent/crypto/sodium"
+	"dissent/crypto/shuffle"
 )
 
 
@@ -44,6 +45,9 @@ func benchSuites() {
 }
 
 func main() {
+	s := ed25519.NewAES128SHA256Ed25519()
+	shuffle.TestShuffle(s)
+
 //	println("\nNative P256 suite:")
 //	crypto.BenchSuite(openssl.NewAES128SHA256P256())
 //	println("\nOptimized Ed25519 suite:")

@@ -9,6 +9,10 @@ import (
 
 // XX these could all be inlined into PairShuffleProof; do we want to?
 
+// XX the Zs in front of some field names are a kludge to make them
+// accessible via the reflection API,
+// which refuses to touch unexported fields in a struct.
+
 // P (Prover) step 1: public commitments
 type ega1 struct {
 	Gamma crypto.Point
@@ -18,7 +22,7 @@ type ega1 struct {
 
 // V (Verifier) step 2: random challenge t
 type ega2 struct {
-	rho []crypto.Secret
+	Zrho []crypto.Secret
 }
 
 // P step 3: Theta vectors
@@ -28,13 +32,13 @@ type ega3 struct {
 
 // V step 4: random challenge c
 type ega4 struct {
-	lambda crypto.Secret
+	Zlambda crypto.Secret
 }
 
 // P step 5: alpha vector
 type ega5 struct {
-	sigma []crypto.Secret
-	tau crypto.Secret
+	Zsigma []crypto.Secret
+	Ztau crypto.Secret
 }
 
 // P and V, step 5: simple k-shuffle proof
@@ -70,9 +74,9 @@ func (ps *PairShuffle) Init(grp crypto.Group, k int) *PairShuffle {
 	ps.p1.C = make([]crypto.Point, k)
 	ps.p1.U = make([]crypto.Point, k)
 	ps.p1.W = make([]crypto.Point, k)
-	ps.v2.rho = make([]crypto.Secret, k)
+	ps.v2.Zrho = make([]crypto.Secret, k)
 	ps.p3.D = make([]crypto.Point, k)
-	ps.p5.sigma = make([]crypto.Secret, k)
+	ps.p5.Zsigma = make([]crypto.Secret, k)
 	ps.pv6.Init(grp,k)
 
 	return ps
@@ -80,7 +84,8 @@ func (ps *PairShuffle) Init(grp crypto.Group, k int) *PairShuffle {
 
 func (ps *PairShuffle) Prove(
 		pi []int, g,h crypto.Point, beta []crypto.Secret,
-		X,Y []crypto.Point, rand cipher.Stream, ctx Context) {
+		X,Y []crypto.Point, rand cipher.Stream,
+		ctx ProverContext) error {
 
 	grp := ps.grp
 	k := ps.k
@@ -126,14 +131,16 @@ func (ps *PairShuffle) Prove(
 	}
 	p1.Lambda1.Add(p1.Lambda1,XY.Mul(g,wbetasum))
 	p1.Lambda2.Add(p1.Lambda2,XY.Mul(h,wbetasum))
-	ctx.Put(p1)
+	if err := ctx.Put(p1); err != nil {
+		return err
+	}
 
 	// V step 2
 	v2 := &ps.v2
 	ctx.PubRand(v2)
 	B := make([]crypto.Point, k)
 	for i := 0; i < k; i++ {
-		P := grp.Point().Mul(g,v2.rho[i])
+		P := grp.Point().Mul(g,v2.Zrho[i])
 		B[i] = P.Sub(P,p1.U[i])
 	}
 
@@ -141,14 +148,16 @@ func (ps *PairShuffle) Prove(
 	p3 := &ps.p3
 	b := make([]crypto.Secret, k)
 	for i := 0; i < k; i++ {
-		b[i] = grp.Secret().Sub(v2.rho[i],u[i])
+		b[i] = grp.Secret().Sub(v2.Zrho[i],u[i])
 	}
 	d := make([]crypto.Secret, k)
 	for i := 0; i < k; i++ {
 		d[i] = grp.Secret().Mul(gamma,b[pi[i]])
 		p3.D[i] = grp.Point().Mul(g,d[i])
 	}
-	ctx.Put(p3)
+	if err := ctx.Put(p3); err != nil {
+		return err
+	}
 
 	// V step 4
 	v4 := &ps.v4
@@ -158,28 +167,78 @@ func (ps *PairShuffle) Prove(
 	p5 := &ps.p5
 	r := make([]crypto.Secret, k)
 	for i := 0; i < k; i++ {
-		r[i] = grp.Secret().Add(a[i],z.Mul(v4.lambda,b[i]))
+		r[i] = grp.Secret().Add(a[i],z.Mul(v4.Zlambda,b[i]))
 	}
 	s := make([]crypto.Secret, k)
 	for i := 0; i < k; i++ {
 		s[i] = grp.Secret().Mul(gamma,r[pi[i]])
 	}
-	p5.tau = grp.Secret().Neg(tau0)
+	p5.Ztau = grp.Secret().Neg(tau0)
 	for i := 0; i < k; i++ {
-		p5.sigma[i] = grp.Secret().Add(w[i],b[pi[i]])
-		p5.tau.Add(p5.tau,z.Mul(b[pi[i]],beta[pi[i]]))
+		p5.Zsigma[i] = grp.Secret().Add(w[i],b[pi[i]])
+		p5.Ztau.Add(p5.Ztau,z.Mul(b[pi[i]],beta[pi[i]]))
 	}
-	ctx.Put(p5)
+	if err := ctx.Put(p5); err != nil {
+		return err
+	}
 
 	// P,V step 6: embedded simple k-shuffle proof
-	ps.pv6.Prove(g, gamma, r, s, rand, ctx)
+	return ps.pv6.Prove(g, gamma, r, s, rand, ctx)
+}
+
+// Randomly shuffle and re-randomize a set of ElGamal pairs,
+// producing a correctness proof in the process.
+// Returns (Xbar,Ybar), the shuffled and randomized pairs.
+// If g or h is nil, the standard base point is used.
+func (ps *PairShuffle) Shuffle(
+		g,h crypto.Point, X,Y []crypto.Point, rand cipher.Stream,
+		ctx ProverContext) ([]crypto.Point, []crypto.Point){
+
+	k := len(X)
+	if k != len(Y) {
+		panic("X,Y vectors have inconsistent length")
+	}
+
+	// Pick a random permutation
+	pi := make([]int, k)
+	for i := 0; i < k; i++ {	// Initialize a trivial permutation
+		pi[i] = i
+	}
+	for i := k-1; i > 0; i-- {	// Shuffle by random swaps
+		j := int(crypto.RandomUint64(rand) % uint64(i+1))
+		if j != i {
+			t := pi[j]
+			pi[j] = pi[i]
+			pi[i] = t
+		}
+	}
+
+	// Pick a fresh ElGamal blinding factor for each pair
+	beta := make([]crypto.Secret, k)
+	for i := 0; i < k; i++ {
+		beta[i] = ps.grp.Secret().Pick(rand)
+	}
+
+	// Create the output pair vectors
+	Xbar := make([]crypto.Point, k)
+	Ybar := make([]crypto.Point, k)
+	for i := 0; i < k; i++ {
+		Xbar[i] = ps.grp.Point().Mul(g,beta[pi[i]])
+		Xbar[i].Add(Xbar[i],X[i])
+		Ybar[i] = ps.grp.Point().Mul(h,beta[pi[i]])
+		Ybar[i].Add(Ybar[i],Y[i])
+	}
+
+	ps.Prove(pi,g,h,beta,X,Y,rand,ctx)
+
+	return Xbar,Ybar
 }
 
 
 // Verifier for ElGamal Pair Shuffle proofs.
 func (ps *PairShuffle) Verify(
 		g,h crypto.Point, X,Y,Xbar,Ybar []crypto.Point,
-		ctx Context) error {
+		ctx VerifierContext) error {
 
 	// Validate all vector lengths
 	grp := ps.grp
@@ -190,20 +249,24 @@ func (ps *PairShuffle) Verify(
 
 	// P step 1
 	p1 := &ps.p1
-	ctx.Get(p1)
+	if err := ctx.Get(p1); err != nil {
+		return err
+	}
 
 	// V step 2
 	v2 := &ps.v2
 	ctx.PubRand(v2)
 	B := make([]crypto.Point, k)
 	for i := 0; i < k; i++ {
-		P := grp.Point().Mul(g,v2.rho[i])
+		P := grp.Point().Mul(g,v2.Zrho[i])
 		B[i] = P.Sub(P,p1.U[i])
 	}
 
 	// P step 3
 	p3 := &ps.p3
-	ctx.Get(p3)
+	if err := ctx.Get(p3); err != nil {
+		return err
+	}
 
 	// V step 4
 	v4 := &ps.v4
@@ -211,7 +274,9 @@ func (ps *PairShuffle) Verify(
 
 	// P step 5
 	p5 := &ps.p5
-	ctx.Get(p5)
+	if err := ctx.Get(p5); err != nil {
+		return err
+	}
 
 	// P,V step 6: simple k-shuffle
 	if err := ps.pv6.Verify(g,p1.Gamma,ctx); err != nil {
@@ -224,20 +289,64 @@ func (ps *PairShuffle) Verify(
 	P := grp.Point()		// scratch
 	Q := grp.Point()		// scratch
 	for i := 0; i < k; i++ {
-		Phi1 = Phi1.Add(Phi1,P.Mul(Xbar[i],p5.sigma[i]))	// (31)
-		Phi1 = Phi1.Sub(Phi1,P.Mul(X[i],v2.rho[i]))
-		Phi2 = Phi2.Add(Phi2,P.Mul(Ybar[i],p5.sigma[i]))	// (32)
-		Phi2 = Phi2.Sub(Phi2,P.Mul(Y[i],v2.rho[i]))
-		if !P.Mul(p1.Gamma,p5.sigma[i]).Equal(			// (33)
+		Phi1 = Phi1.Add(Phi1,P.Mul(Xbar[i],p5.Zsigma[i]))	// (31)
+		Phi1 = Phi1.Sub(Phi1,P.Mul(X[i],v2.Zrho[i]))
+		Phi2 = Phi2.Add(Phi2,P.Mul(Ybar[i],p5.Zsigma[i]))	// (32)
+		Phi2 = Phi2.Sub(Phi2,P.Mul(Y[i],v2.Zrho[i]))
+		if !P.Mul(p1.Gamma,p5.Zsigma[i]).Equal(			// (33)
 				Q.Add(p1.W[i],p3.D[i])) {
 			return errors.New("invalid PairShuffleProof")
 		}
 	}
-	if !P.Add(p1.Lambda1,Q.Mul(g,p5.tau)).Equal(Phi1) ||		// (34)
-	   !P.Add(p1.Lambda2,Q.Mul(h,p5.tau)).Equal(Phi2) {		// (35)
+	if !P.Add(p1.Lambda1,Q.Mul(g,p5.Ztau)).Equal(Phi1) ||		// (34)
+	   !P.Add(p1.Lambda2,Q.Mul(h,p5.Ztau)).Equal(Phi2) {		// (35)
 		return errors.New("invalid PairShuffleProof")
 	}
 
 	return nil
+}
+
+
+
+func TestShuffle(suite crypto.Suite) {
+
+	k := 2
+
+	// Create a "server" private/public keypair
+	h := suite.Secret().Pick(crypto.RandomStream)
+	H := suite.Point().Mul(nil, h)
+
+	// Create a set of ephemeral "client" keypairs to shuffle
+	c := make([]crypto.Secret, k)
+	C := make([]crypto.Point, k)
+	println("client keys:")
+	for i := 0; i < k; i++ {
+		c[i] = suite.Secret().Pick(crypto.RandomStream)
+		C[i] = suite.Point().Mul(nil,c[i])
+		println(" "+C[i].String())
+	}
+
+	// ElGamal-encrypt all these keypairs with the "server" key
+	X := make([]crypto.Point, k)
+	Y := make([]crypto.Point, k)
+	r := suite.Secret()		// temporary
+	for i := 0; i < k; i++ {
+		r.Pick(crypto.RandomStream)
+		X[i] = suite.Point().Mul(nil,r)
+		Y[i] = suite.Point().Mul(H,r)	// ElGamal blinding factor
+		Y[i].Add(Y[i],C[i])		// Encrypted client public key
+	}
+
+	// Do a key-shuffle
+	pctx := newSigmaProver(suite, "PairShuffle")
+	var ps PairShuffle
+	ps.Init(suite, k)
+	Xbar,Ybar := ps.Shuffle(nil,H,X,Y,crypto.RandomStream,pctx)
+
+	// Check it
+	vctx := newSigmaVerifier(suite, "PairShuffle", pctx.Proof())
+	if err := ps.Verify(nil,H,X,Y,Xbar,Ybar,vctx); err != nil {
+		panic("Shuffle verify failed: "+err.Error())
+	}
 }
 

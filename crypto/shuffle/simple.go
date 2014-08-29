@@ -7,6 +7,10 @@ import (
 )
 
 
+// XX the Zs in front of some field names are a kludge to make them
+// accessible via the reflection API,
+// which refuses to touch unexported fields in a struct.
+
 // P (Prover) step 0: public inputs to the simple k-shuffle.
 type ssa0 struct {
 	X []crypto.Point
@@ -15,7 +19,7 @@ type ssa0 struct {
 
 // V (Verifier) step 1: random challenge t
 type ssa1 struct {
-	t crypto.Secret
+	Zt crypto.Secret
 }
 
 // P step 2: Theta vectors
@@ -25,12 +29,12 @@ type ssa2 struct {
 
 // V step 3: random challenge c
 type ssa3 struct {
-	c crypto.Secret
+	Zc crypto.Secret
 }
 
 // P step 4: alpha vector
 type ssa4 struct {
-	alpha []crypto.Secret
+	Zalpha []crypto.Secret
 }
 
 type SimpleShuffle struct {
@@ -69,7 +73,7 @@ func (ss *SimpleShuffle) Init(grp crypto.Group, k int) *SimpleShuffle {
 	ss.p0.X = make([]crypto.Point, k)
 	ss.p0.Y = make([]crypto.Point, k)
 	ss.p2.Theta = make([]crypto.Point, 2*k)
-	ss.p4.alpha = make([]crypto.Secret, 2*k-1)
+	ss.p4.Zalpha = make([]crypto.Secret, 2*k-1)
 	return ss
 }
 
@@ -79,7 +83,7 @@ func (ss *SimpleShuffle) Init(grp crypto.Group, k int) *SimpleShuffle {
 // but with all elements multiplied by common Secret gamma.
 func (ss *SimpleShuffle) Prove(G crypto.Point, gamma crypto.Secret,
 			x,y []crypto.Secret, rand cipher.Stream,
-			ctx Context) {
+			ctx ProverContext) error {
 
 	grp := ss.grp
 
@@ -101,11 +105,13 @@ func (ss *SimpleShuffle) Prove(G crypto.Point, gamma crypto.Secret,
 		ss.p0.X[i] = grp.Point().Mul(G,x[i])
 		ss.p0.Y[i] = grp.Point().Mul(G,y[i])
 	}
-	ctx.Put(ss.p0)
+	if err := ctx.Put(ss.p0); err != nil {
+		return err
+	}
 
 	// V step 1
-	ctx.Get(ss.v1)
-	t := ss.v1.t
+	ctx.PubRand(&ss.v1)
+	t := ss.v1.Zt
 
 	// P step 2
 	gamma_t := grp.Secret().Mul(gamma,t)
@@ -132,11 +138,13 @@ func (ss *SimpleShuffle) Prove(G crypto.Point, gamma crypto.Secret,
 	}
 	Theta[thlen] = thenc(grp, G, theta[thlen-1], gamma, nil, nil)
 	ss.p2.Theta = Theta
-	ctx.Put(ss.p2)
+	if err := ctx.Put(ss.p2); err != nil {
+		return err
+	}
 
 	// V step 3
-	ctx.Get(ss.v3)
-	c := ss.v3.c
+	ctx.PubRand(&ss.v3)
+	c := ss.v3.Zc
 
 	// P step 4
 	alpha := make([]crypto.Secret, thlen)
@@ -152,8 +160,12 @@ func (ss *SimpleShuffle) Prove(G crypto.Point, gamma crypto.Secret,
 		rungamma.Mul(rungamma,gammainv)
 		alpha[thlen-i] = grp.Secret().Add(theta[thlen-i],rungamma)
 	}
-	ss.p4.alpha = alpha
-	ctx.Put(ss.p4)
+	ss.p4.Zalpha = alpha
+	if err := ctx.Put(ss.p4); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Simple helper to verify Theta elements,
@@ -168,17 +180,17 @@ func thver(A,B,T,P,Q crypto.Point, a,b,s crypto.Secret) bool {
 
 // Verifier for Neff simple k-shuffle proofs.
 func (ss *SimpleShuffle) Verify(G, Gamma crypto.Point,
-			ctx Context) error {
+			ctx VerifierContext) error {
 
 	grp := ss.grp
 
 	// extract proof transcript
 	X := ss.p0.X
 	Y := ss.p0.Y
-	t := ss.v1.t
+	t := ss.v1.Zt
 	Theta := ss.p2.Theta
-	c := ss.v3.c
-	alpha := ss.p4.alpha
+	c := ss.v3.Zc
+	alpha := ss.p4.Zalpha
 
 	// Validate all vector lengths
 	k := len(Y)
@@ -189,14 +201,20 @@ func (ss *SimpleShuffle) Verify(G, Gamma crypto.Point,
 	}
 
 	// check verifiable challenges (usually by reproducing a hash)
-	ctx.Put(ss.p0)
+	if err := ctx.Get(ss.p0); err != nil {
+		return err
+	}
 	var checkv1 ssa1
-	ctx.Get(checkv1)		// fills in v1
-	ctx.Put(ss.p2)
+	ctx.PubRand(&checkv1)		// fills in v1
+	if err := ctx.Get(ss.p2); err != nil {
+		return err
+	}
 	var checkv3 ssa3
-	ctx.Get(checkv3)		// fills in v3
-	ctx.Put(ss.p4)
-	if !ss.v1.t.Equal(checkv1.t) || !ss.v3.c.Equal(checkv3.c) {
+	ctx.PubRand(&checkv3)		// fills in v3
+	if err := ctx.Get(ss.p4); err != nil {
+		return err
+	}
+	if !ss.v1.Zt.Equal(checkv1.Zt) || !ss.v3.Zc.Equal(checkv3.Zc) {
 		return errors.New("incorrect challenges in SimpleShuffleProof")
 	}
 

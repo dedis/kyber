@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"crypto/rand"
 	"crypto/cipher"
+	"encoding/binary"
 )
 
 // Choose a uniform random BigInt with a given maximum BitLen.
@@ -25,6 +26,12 @@ func RandomBits(bitlen uint, exact bool, rand cipher.Stream) []byte {
 	return b
 }
 
+// Choose a uniform random uint64
+func RandomUint64(rand cipher.Stream) uint64 {
+	b := RandomBits(64, false, rand)
+	return binary.BigEndian.Uint64(b)
+}
+
 // Choose a uniform random BigInt less than a given modulus
 func RandomBigInt(mod *big.Int, rand cipher.Stream) *big.Int {
 	bitlen := uint(mod.BitLen())
@@ -36,6 +43,24 @@ func RandomBigInt(mod *big.Int, rand cipher.Stream) *big.Int {
 		}
 	}
 }
+
+// RandomReader wraps a Stream to produce an io.Reader
+// that simply produces [pseudo-]random bits from the Stream when read.
+// Calls to both Read() and XORKeyStream() may be made on the RandomReader,
+// and may be interspersed.
+type RandomReader struct {
+	cipher.Stream
+}
+
+// Read [pseudo-]random bytes from the underlying Stream.
+func (r RandomReader) Read(dst []byte) (n int, err error) {
+	for i := range(dst) {
+		dst[i] = 0
+	}
+	r.Stream.XORKeyStream(dst,dst)
+	return len(dst),nil
+}
+
 
 // Steal value from DSA, which uses recommendation from FIPS 186-3
 const numMRTests = 64
