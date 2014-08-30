@@ -2,6 +2,7 @@ package shuffle
 
 import (
 	"fmt"
+	"time"
 	"dissent/crypto"
 )
 
@@ -35,16 +36,23 @@ func TestShuffle(suite crypto.Suite) {
 	}
 
 	// Do a key-shuffle
+	fmt.Printf("%d-shuffle proof: ", k)
 	pctx := newSigmaProver(suite, "PairShuffle")
 	var ps PairShuffle
 	ps.Init(suite, k)
+	beg := time.Now()
 	Xbar,Ybar := ps.Shuffle(nil,H,X,Y,crypto.RandomStream,pctx)
+	end := time.Now()
+	fmt.Printf("%f sec\n", (float64(end.Sub(beg)) / 1000000000.0))
 
 	// Check it
+	fmt.Printf("%d-shuffle verify: ", k)
 	vctx := newSigmaVerifier(suite, "PairShuffle", pctx.Proof())
+	beg = time.Now()
 	if err := ps.Verify(nil,H,X,Y,Xbar,Ybar,vctx); err != nil {
 		panic("Shuffle verify failed: "+err.Error())
 	}
-	fmt.Printf("%d-shuffle verified\n",k)
+	end = time.Now()
+	fmt.Printf("%f sec\n", (float64(end.Sub(beg)) / 1000000000.0))
 }
 
