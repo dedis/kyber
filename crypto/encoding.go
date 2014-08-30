@@ -14,6 +14,7 @@ Encoding is a basic interface representing fixed-length (or known-length)
 cryptographic objects or structures having a built-in binary encoding.
 */
 type Encoding interface {
+	String() string
 
 	// Encoded length of this object in bytes
 	Len() int
@@ -95,7 +96,7 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 		if rand,ok := de.r.(cipher.Stream); ok {
 			// Decoding from a random stream: use Pick() methods.
 			// XXX normalize random-element-decoding API.
-			prindent(depth, "random\n")
+			//prindent(depth, "random\n")
 			switch o := obj.(type) {
 				case Secret:
 					o.Pick(rand)
@@ -108,17 +109,18 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 		}
 
 		// Decode from a stream that's supposed to contain valid objects
-		prindent(depth, "decode\n")
 		l := e.Len()
 		b := make([]byte, l)
 		if _,err := io.ReadFull(de.r, b); err != nil {
 			return err
 		}
-		return e.Decode(b)
+		err := e.Decode(b)
+		//prindent(depth, "decode: %s\n", e.String())
+		return err
 	}
 
 	// Otherwise, reflectively handle composite types.
-	prindent(depth, "%s: %s\n", v.Kind().String(), v.Type().String())
+	//prindent(depth, "%s: %s\n", v.Kind().String(), v.Type().String())
 	switch v.Kind() {
 
 	case reflect.Interface:
@@ -179,13 +181,14 @@ type encoder struct {
 // and structs, arrays, and slices containing all of these types.
 func Write(w io.Writer, obj interface{}, g Group) error {
 	en := encoder{g,w}
-	return en.value(obj)
+	return en.value(obj, 0)
 }
 
-func (en *encoder) value(obj interface{}) error {
+func (en *encoder) value(obj interface{}, depth int) error {
 
 	// Does the object support our self-decoding interface?
 	if e,ok := obj.(Encoding); ok {
+		//prindent(depth, "encode: %s\n", e.String())
 		b := e.Encode()
 		if _,err := en.w.Write(b); err != nil {
 			return err
@@ -194,16 +197,18 @@ func (en *encoder) value(obj interface{}) error {
 	}
 
 	// Otherwise, reflectively handle composite types.
-	switch v := reflect.ValueOf(obj); v.Kind() {
+	v := reflect.ValueOf(obj)
+	//prindent(depth, "%s: %s\n", v.Kind().String(), v.Type().String())
+	switch v.Kind() {
 
 	case reflect.Interface:
 	case reflect.Ptr:
-		return en.value(v.Elem().Interface())
+		return en.value(v.Elem().Interface(), depth+1)
 
 	case reflect.Struct:
 		l := v.NumField()
 		for i := 0; i < l; i++ {
-			if err := en.value(v.Field(i).Interface()); err != nil {
+			if err := en.value(v.Field(i).Interface(), depth+1); err != nil {
 				return err
 			}
 		}
@@ -212,7 +217,7 @@ func (en *encoder) value(obj interface{}) error {
 	case reflect.Slice:
 		l := v.Len()
 		for i := 0; i < l; i++ {
-			if err := en.value(v.Index(i).Interface()); err != nil {
+			if err := en.value(v.Index(i).Interface(), depth+1); err != nil {
 				return err
 			}
 		}

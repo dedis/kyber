@@ -17,7 +17,6 @@ and a scalar multiplier in elliptic curve groups.
 XXX rename Secret to Scalar?
 */
 type Secret interface {
-	String() string
 	Encoding
 
 	// Equality test for two Secrets derived from the same Group
@@ -66,7 +65,6 @@ A Point can contain a Diffie-Hellman public key,
 an ElGamal ciphertext, etc.
 */
 type Point interface {
-	String() string
 	Encoding
 
 	// Equality test for two Points derived from the same Group

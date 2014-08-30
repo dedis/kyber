@@ -46,7 +46,7 @@ type SimpleShuffle struct {
 	p4 ssa4
 }
 
-// Simple helper to compute G^{ab-cd} for Theta vector computation
+// Simple helper to compute G^{ab-cd} for Theta vector computation.
 func thenc(grp crypto.Group, G crypto.Point,
 		a,b,c,d crypto.Secret) crypto.Point {
 
@@ -95,9 +95,12 @@ func (ss *SimpleShuffle) Prove(G crypto.Point, gamma crypto.Secret,
 		panic("mismatched vector lengths")
 	}
 
-	// Use non-interactive verifier by default, but can be overridden
-//	if v == nil {
-//		v = niVerifier
+//	// Dump input vectors to show their correspondences
+//	for i := 0; i < k; i++ {
+//		println("x",grp.Secret().Mul(gamma,x[i]).String())
+//	}
+//	for i := 0; i < k; i++ {
+//		println("y",y[i].String())
 //	}
 
 	// Step 0: inputs
@@ -119,14 +122,12 @@ func (ss *SimpleShuffle) Prove(G crypto.Point, gamma crypto.Secret,
 	yhat := make([]crypto.Secret, k)
 	for i := 0; i < k; i++ {	// (5) and (6) xhat,yhat vectors
 		xhat[i] = grp.Secret().Sub(x[i], t)
-		yhat[i] = grp.Secret().Sub(x[i], gamma_t)
+		yhat[i] = grp.Secret().Sub(y[i], gamma_t)
 	}
 	thlen := 2*k-1			// (7) theta and Theta vectors
 	theta := make([]crypto.Secret, thlen)
+	ctx.PriRand(theta)
 	Theta := make([]crypto.Point, thlen+1)
-	for i := 0; i < thlen; i++ {
-		theta[i] = grp.Secret().Pick(rand)
-	}
 	Theta[0] = thenc(grp, G, nil, nil, theta[0], yhat[0])
 	for i := 1; i < k; i++ {
 		Theta[i] = thenc(grp, G, theta[i-1], xhat[i],

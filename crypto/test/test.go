@@ -45,7 +45,8 @@ func benchSuites() {
 }
 
 func main() {
-	s := ed25519.NewAES128SHA256Ed25519()
+	s := openssl.NewAES128SHA256P256()
+//	s := ed25519.NewAES128SHA256Ed25519()
 	shuffle.TestShuffle(s)
 
 //	println("\nNative P256 suite:")
