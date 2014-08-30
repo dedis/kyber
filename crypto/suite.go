@@ -108,11 +108,11 @@ func TestSuite(suite Suite) {
 	// Try hashing something
 	h := suite.Hash()
 	l := suite.HashLen()
-	println("HashLen: ",l)
+	//println("HashLen: ",l)
 	h.Write([]byte("abc"))
 	hb := h.Sum(nil)
-	println("Hash:")
-	println(hex.Dump(hb))
+	//println("Hash:")
+	//println(hex.Dump(hb))
 	if h.Size() != l || len(hb) != l {
 		panic("inconsistent hash output length")
 	}
@@ -121,15 +121,15 @@ func TestSuite(suite Suite) {
 	s := suite.Stream(hb[0:suite.KeyLen()])
 	sb := make([]byte,128)
 	s.XORKeyStream(sb,sb)
-	println("Stream:")
-	println(hex.Dump(sb))
+	//println("Stream:")
+	//println(hex.Dump(sb))
 
 	// Generate a sub-stream
 	ss := SubStream(suite,s)
 	sb = make([]byte,128)
 	ss.XORKeyStream(sb,sb)
-	println("SubStream:")
-	println(hex.Dump(sb))
+	//println("SubStream:")
+	//println(hex.Dump(sb))
 
 	// Test the public-key group arithmetic
 	TestGroup(suite)

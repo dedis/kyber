@@ -145,7 +145,7 @@ func (s *secret) Len() int {
 }
 
 func (s *secret) Encode() []byte {
-	return s.Bytes()
+	return s.Bytes(s.c.nlen)
 }
 
 func (s *secret) Decode(buf []byte) error {

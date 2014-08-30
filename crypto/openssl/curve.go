@@ -135,10 +135,10 @@ func (p *point) Pick(data []byte,rand cipher.Stream) (crypto.Point, []byte) {
 }
 
 func (p *point) Data() ([]byte,error) {
-	b := p.GetX().Bytes()		// we only need the X-coord
-	l := p.c.plen
-	if len(b) < l {		// pad leading zero bytes if necessary
-		b = append(make([]byte,l-len(b)), b...)
+	l := p.c.plen			// encoded byte length of coordinate
+	b := p.GetX().Bytes(l)		// we only need the X-coordindate
+	if len(b) != l {
+		panic("encoded coordinate wrong length")
 	}
 	dl := int(b[l-1])
 	if dl > p.PickLen() {
@@ -159,28 +159,36 @@ func (p *point) Add(ca,cb crypto.Point) crypto.Point {
 func (p *point) Sub(ca,cb crypto.Point) crypto.Point {
 	a := ca.(*point)
 	b := cb.(*point)
-	// Add the point inverse
-	if C.EC_POINT_copy(p.p, b.p) == 0 {
+	// Add the point inverse.  Must use temporary if p == a.
+	t := p
+	if p == a {
+		t = newPoint(p.c)
+	}
+	if C.EC_POINT_copy(t.p, b.p) == 0 {
 		panic("EC_POINT_copy: "+getErrString())
 	}
-	if C.EC_POINT_invert(p.c.g, p.p, p.c.ctx) == 0 {
+	if C.EC_POINT_invert(p.c.g, t.p, p.c.ctx) == 0 {
 		panic("EC_POINT_invert: "+getErrString())
 	}
-	if C.EC_POINT_add(p.c.g, p.p, a.p, p.p, p.c.ctx) == 0 {
+	if C.EC_POINT_add(p.c.g, p.p, a.p, t.p, p.c.ctx) == 0 {
 		panic("EC_POINT_add: "+getErrString())
 	}
 	return p
 }
 
 func (p *point) Mul(cb crypto.Point, cs crypto.Secret) crypto.Point {
-	if cb == nil {
-		// XXX use precomputed generator optimization
-		return p.Base().Mul(p,cs)
-	}
-	b := cb.(*point)
 	s := cs.(*secret)
-	if C.EC_POINT_mul(p.c.g, p.p, nil, b.p, s.bignum.bn, p.c.ctx) == 0 {
-		panic("EC_POINT_mul: "+getErrString())
+	if cb == nil {		// multiply standard generator
+		if C.EC_POINT_mul(p.c.g, p.p, s.bignum.bn, nil, nil,
+					p.c.ctx) == 0 {
+			panic("EC_POINT_mul: "+getErrString())
+		}
+	} else {		// multiply arbitrary point b
+		b := cb.(*point)
+		if C.EC_POINT_mul(p.c.g, p.p, nil, b.p, s.bignum.bn,
+					p.c.ctx) == 0 {
+			panic("EC_POINT_mul: "+getErrString())
+		}
 	}
 	return p
 }

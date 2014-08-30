@@ -294,17 +294,17 @@ func (ps *PairShuffle) Verify(
 		Phi1 = Phi1.Sub(Phi1,P.Mul(X[i],v2.Zrho[i]))
 		Phi2 = Phi2.Add(Phi2,P.Mul(Ybar[i],p5.Zsigma[i]))	// (32)
 		Phi2 = Phi2.Sub(Phi2,P.Mul(Y[i],v2.Zrho[i]))
-		println("i",i)
+//		println("i",i)
 		if !P.Mul(p1.Gamma,p5.Zsigma[i]).Equal(			// (33)
 				Q.Add(p1.W[i],p3.D[i])) {
 			return errors.New("invalid PairShuffleProof")
 		}
 	}
-	println("last")
-	println("Phi1",Phi1.String());
-	println("Phi2",Phi2.String());
-	println("1",P.Add(p1.Lambda1,Q.Mul(g,p5.Ztau)).String());
-	println("2",P.Add(p1.Lambda2,Q.Mul(h,p5.Ztau)).String());
+//	println("last")
+//	println("Phi1",Phi1.String());
+//	println("Phi2",Phi2.String());
+//	println("1",P.Add(p1.Lambda1,Q.Mul(g,p5.Ztau)).String());
+//	println("2",P.Add(p1.Lambda2,Q.Mul(h,p5.Ztau)).String());
 	if !P.Add(p1.Lambda1,Q.Mul(g,p5.Ztau)).Equal(Phi1) ||		// (34)
 	   !P.Add(p1.Lambda2,Q.Mul(h,p5.Ztau)).Equal(Phi2) {		// (35)
 		return errors.New("invalid PairShuffleProof")
@@ -317,7 +317,7 @@ func (ps *PairShuffle) Verify(
 
 func TestShuffle(suite crypto.Suite) {
 
-	k := 2
+	k := 10
 
 	// Create a "server" private/public keypair
 	h := suite.Secret().Pick(crypto.RandomStream)
@@ -326,11 +326,11 @@ func TestShuffle(suite crypto.Suite) {
 	// Create a set of ephemeral "client" keypairs to shuffle
 	c := make([]crypto.Secret, k)
 	C := make([]crypto.Point, k)
-	fmt.Println("\nclient keys:")
+//	fmt.Println("\nclient keys:")
 	for i := 0; i < k; i++ {
 		c[i] = suite.Secret().Pick(crypto.RandomStream)
 		C[i] = suite.Point().Mul(nil,c[i])
-		fmt.Println(" "+C[i].String())
+//		fmt.Println(" "+C[i].String())
 	}
 
 	// ElGamal-encrypt all these keypairs with the "server" key
@@ -345,17 +345,16 @@ func TestShuffle(suite crypto.Suite) {
 	}
 
 	// Do a key-shuffle
-	fmt.Println("\nShuffle:")
 	pctx := newSigmaProver(suite, "PairShuffle")
 	var ps PairShuffle
 	ps.Init(suite, k)
 	Xbar,Ybar := ps.Shuffle(nil,H,X,Y,crypto.RandomStream,pctx)
 
 	// Check it
-	fmt.Println("\nVerify:")
 	vctx := newSigmaVerifier(suite, "PairShuffle", pctx.Proof())
 	if err := ps.Verify(nil,H,X,Y,Xbar,Ybar,vctx); err != nil {
 		panic("Shuffle verify failed: "+err.Error())
 	}
+	fmt.Printf("%d-shuffle verified\n",k)
 }
 

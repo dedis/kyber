@@ -358,7 +358,7 @@ func (c *edwardsCurve) init25519() {
 	// p = 2^255 - 19
 	c.p.SetBit(zero, 255, 1)
 	c.p.Sub(&c.p, big.NewInt(19))
-	println("p: "+c.p.String())
+	//println("p: "+c.p.String())
 
 	// r = 2^252 + 27742317777372353535851937790883648493
 	c.r.SetString("27742317777372353535851937790883648493", 10)
@@ -366,11 +366,11 @@ func (c *edwardsCurve) init25519() {
 
 	// a = -1
 	c.a.Init64(-1, &c.p)
-	println("a: "+c.a.String())
+	//println("a: "+c.a.String())
 
 	// d = -121665/121666
 	c.d.Init64(-121665, &c.p).Div(&c.d,NewModInt(121666, &c.p))
-	println("d: "+c.d.String())
+	//println("d: "+c.d.String())
 
 	// Identity element is (0,1)
 	c.I.c = c
@@ -385,7 +385,7 @@ func (c *edwardsCurve) init25519() {
 	var t ModInt
 	t.Set(&c.d)
 	t.Mul(&t,NewModInt(-121666,&c.p)).Div(&t,NewModInt(121665, &c.p))
-	println("t: "+t.String())
+	//println("t: "+t.String())
 
 	// Base point B is the unique (x,4/5) such that x is positive
 	c.B.c = c
@@ -394,11 +394,11 @@ func (c *edwardsCurve) init25519() {
 	if !ok {
 		panic("init25519: invalid base point!?")
 	}
-	println("B: "+c.B.String())
+	//println("B: "+c.B.String())
 	if c.B.coordSign(&c.B.x) != 0 {
 		c.B.x.Neg(&c.B.x)	// take the positive square root
 	}
-	println("-B: "+c.B.String())
+	//println("-B: "+c.B.String())
 	if !c.B.onCurve() {
 		panic("init25519: base point not on curve!?")
 	}

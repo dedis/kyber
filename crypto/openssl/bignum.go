@@ -40,10 +40,17 @@ func (n *bignum) BitLen() int {
 	return int(C.BN_num_bits(n.bn))
 }
 
-func (n *bignum) Bytes() []byte {
-	l := (n.BitLen()+7)/8
-	buf := make([]byte, l)
-	if C.BN_bn2bin(n.bn, (*_Ctype_unsignedchar)(unsafe.Pointer(&buf[0]))) != C.int(l) {
+// Convert this bignum to its big-endian representation
+// in a byte slice at least buflen bytes long, padding as needed with zeros.
+// If buflen == 0, the resulting buffer is as short as possible.
+func (n *bignum) Bytes(buflen int) []byte {
+	l := (n.BitLen()+7)/8	// byte length of the actual bignum
+	if buflen < l {
+		buflen = l
+	}
+	buf := make([]byte, buflen)
+	z := buflen - l		// leading zero bytes we need to prepend
+	if C.BN_bn2bin(n.bn, (*_Ctype_unsignedchar)(unsafe.Pointer(&buf[z]))) != C.int(l) {
 		panic("BN_bn2bin returned wrong length")
 	}
 	return buf
@@ -58,7 +65,7 @@ func (n *bignum) SetBytes(buf []byte) *bignum {
 
 // Convert an OpenSSL bignum to a native Go BitInt
 func (n *bignum) BigInt() *big.Int {
-	return new(big.Int).SetBytes(n.Bytes())
+	return new(big.Int).SetBytes(n.Bytes(0))
 }
 
 // Set bignum's value from a native Go BigInt

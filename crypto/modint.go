@@ -3,7 +3,7 @@ package crypto
 import (
 	"errors"
 	"math/big"
-	//"encoding/hex"
+	"encoding/hex"
 	"crypto/cipher"
 )
 
@@ -59,7 +59,7 @@ func (i *ModInt) Init64(v int64, M *big.Int) *ModInt {
 
 // Return the ModInt's integer value in decimal string representation.
 func (i *ModInt) String() string {
-	return i.V.String()
+	return hex.EncodeToString(i.V.Bytes())
 }
 
 // Compare two ModInts for equality or inequality

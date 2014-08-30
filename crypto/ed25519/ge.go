@@ -147,7 +147,7 @@ func (p *ExtendedGroupElement) FromBytes(s []byte) bool {
 		}
 	}
 
-	if FeIsNegative(&p.X) == (s[31] >> 7) {
+	if FeIsNegative(&p.X) != (s[31] >> 7) {
 		FeNeg(&p.X, &p.X)
 	}
 

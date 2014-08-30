@@ -9,18 +9,23 @@ import (
 )
 
 
+func testSuite(s crypto.Suite) {
+	crypto.TestSuite(s)	// Basic ciphersuite tests
+	shuffle.TestShuffle(s)	// Neff's shuffle is a good torture test
+}
+
 func testSuites() {
 	// Native Go suites
-	crypto.TestSuite(crypto.NewAES128SHA256QR512())
-	//crypto.TestSuite(crypto.NewAES128SHA256QR1024())
-	crypto.TestSuite(crypto.NewAES128SHA256P256())
-	crypto.TestSuite(crypto.NewAES128SHA256Ed25519())
-	crypto.TestSuite(ed25519.NewAES128SHA256Ed25519())
+	testSuite(crypto.NewAES128SHA256QR512())
+	//testSuite(crypto.NewAES128SHA256QR1024())
+	testSuite(crypto.NewAES128SHA256P256())
+	testSuite(crypto.NewAES128SHA256Ed25519())
+	testSuite(ed25519.NewAES128SHA256Ed25519())
 
 	// OpenSSL-based suites
-	crypto.TestSuite(openssl.NewAES128SHA256P256())
-	crypto.TestSuite(openssl.NewAES192SHA384P384())
-	crypto.TestSuite(openssl.NewAES256SHA512P521())
+	testSuite(openssl.NewAES128SHA256P256())
+	testSuite(openssl.NewAES192SHA384P384())
+	testSuite(openssl.NewAES256SHA512P521())
 }
 
 func benchSuites() {
@@ -45,9 +50,12 @@ func benchSuites() {
 }
 
 func main() {
-	s := openssl.NewAES128SHA256P256()
+//	s := crypto.NewAES128SHA256P256()
+//	s := crypto.NewAES128SHA256Ed25519()
+//	s := openssl.NewAES128SHA256P256()
 //	s := ed25519.NewAES128SHA256Ed25519()
-	shuffle.TestShuffle(s)
+//	shuffle.TestShuffle(s)
+//	return
 
 //	println("\nNative P256 suite:")
 //	crypto.BenchSuite(openssl.NewAES128SHA256P256())

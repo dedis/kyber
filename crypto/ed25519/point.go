@@ -12,28 +12,28 @@ import (
 )
 
 
-type ed25519Point struct {
+type edPoint struct {
 	ge ExtendedGroupElement
-	//c *ed25519Curve
+	//c *edCurve
 }
 
-func (P *ed25519Point) String() string {
+func (P *edPoint) String() string {
 	var b [32]byte
 	P.ge.ToBytes(&b)
 	return hex.EncodeToString(b[:])
 }
 
-func (P *ed25519Point) Len() int {
+func (P *edPoint) Len() int {
 	return 32
 }
 
-func (P *ed25519Point) Encode() []byte {
+func (P *edPoint) Encode() []byte {
 	var b [32]byte
 	P.ge.ToBytes(&b)
 	return b[:]
 }
 
-func (P *ed25519Point) Decode(b []byte) error {
+func (P *edPoint) Decode(b []byte) error {
 	if !P.ge.FromBytes(b) {
 		return errors.New("invalid Ed25519 curve point")
 	}
@@ -41,13 +41,13 @@ func (P *ed25519Point) Decode(b []byte) error {
 }
 
 // Equality test for two Points on the same curve
-func (P *ed25519Point) Equal(P2 crypto.Point) bool {
+func (P *edPoint) Equal(P2 crypto.Point) bool {
 
 	// XXX better to test equality without normalizing extended coords
 
 	var b1,b2 [32]byte
 	P.ge.ToBytes(&b1)
-	P2.(*ed25519Point).ge.ToBytes(&b2)
+	P2.(*edPoint).ge.ToBytes(&b2)
 	for i := range(b1) {
 		if b1[i] != b2[i] {
 			return false
@@ -57,31 +57,31 @@ func (P *ed25519Point) Equal(P2 crypto.Point) bool {
 }
 
 // Set point to be equal to P2.
-func (P *ed25519Point) Set(P2 crypto.Point) crypto.Point {
-	P.ge = P2.(*ed25519Point).ge
+func (P *edPoint) Set(P2 crypto.Point) crypto.Point {
+	P.ge = P2.(*edPoint).ge
 	return P
 }
 
 // Set to the neutral element, which is (0,1) for twisted Edwards curves.
-func (P *ed25519Point) Null() crypto.Point {
+func (P *edPoint) Null() crypto.Point {
 	P.ge.Zero()
 	return P
 }
 
 // Set to the standard base point for this curve
-func (P *ed25519Point) Base() crypto.Point {
+func (P *edPoint) Base() crypto.Point {
 	P.ge = baseext
 	return P
 }
 
-func (P *ed25519Point) PickLen() int {
+func (P *edPoint) PickLen() int {
 	// Reserve at least 8 most-significant bits for randomness,
 	// and the least-significant 8 bits for embedded data length.
 	// (Hopefully it's unlikely we'll need >=2048-bit curves soon.)
 	return (255 - 8 - 8) / 8
 }
 
-func (P *ed25519Point) Pick(data []byte,rand cipher.Stream) (crypto.Point, []byte) {
+func (P *edPoint) Pick(data []byte, rand cipher.Stream) (crypto.Point, []byte) {
 	// How many bytes to embed?
 	dl := P.PickLen()
 	if dl > len(data) {
@@ -104,7 +104,7 @@ func (P *ed25519Point) Pick(data []byte,rand cipher.Stream) (crypto.Point, []byt
 }
 
 // Extract embedded data from a point group element
-func (P *ed25519Point) Data() ([]byte,error) {
+func (P *edPoint) Data() ([]byte,error) {
 	var b [32]byte
 	P.ge.ToBytes(&b)
 	dl := int(b[0])				// extract length byte
@@ -114,9 +114,9 @@ func (P *ed25519Point) Data() ([]byte,error) {
 	return b[1:1+dl],nil
 }
 
-func (P *ed25519Point) Add(P1,P2 crypto.Point) crypto.Point {
-	E1 := P1.(*ed25519Point)
-	E2 := P2.(*ed25519Point)
+func (P *edPoint) Add(P1,P2 crypto.Point) crypto.Point {
+	E1 := P1.(*edPoint)
+	E2 := P2.(*edPoint)
 
 	var t2 CachedGroupElement
 	var r CompletedGroupElement
@@ -130,9 +130,9 @@ func (P *ed25519Point) Add(P1,P2 crypto.Point) crypto.Point {
 	return P
 }
 
-func (P *ed25519Point) Sub(P1,P2 crypto.Point) crypto.Point {
-	E1 := P1.(*ed25519Point)
-	E2 := P2.(*ed25519Point)
+func (P *edPoint) Sub(P1,P2 crypto.Point) crypto.Point {
+	E1 := P1.(*edPoint)
+	E2 := P2.(*edPoint)
 
 	var t2 CachedGroupElement
 	var r CompletedGroupElement
@@ -148,7 +148,7 @@ func (P *ed25519Point) Sub(P1,P2 crypto.Point) crypto.Point {
 
 // Find the negative of point A.
 // For Edwards curves, the negative of (x,y) is (-x,y).
-func (P *ed25519Point) Neg(A crypto.Point) crypto.Point {
+func (P *edPoint) Neg(A crypto.Point) crypto.Point {
 	panic("XXX")
 }
 
@@ -156,12 +156,12 @@ func (P *ed25519Point) Neg(A crypto.Point) crypto.Point {
 // Multiply point p by scalar s using the repeated doubling method.
 // XXX This is vartime; for our general-purpose Mul operator
 // it would be far preferable for security to do this constant-time.
-func (P *ed25519Point) Mul(AP crypto.Point, s crypto.Secret) crypto.Point {
+func (P *edPoint) Mul(AP crypto.Point, s crypto.Secret) crypto.Point {
 	if AP == nil {
 		return P.Base().Mul(P,s)	// XXX use optimized impl
 	}
 
-	A := AP.(*ed25519Point)
+	A := AP.(*edPoint)
 	a := s.(*crypto.ModInt).V.Bytes()
 
 	var aSlide [256]int8
@@ -227,46 +227,46 @@ func (P *ed25519Point) Mul(AP crypto.Point, s crypto.Secret) crypto.Point {
 }
 
 
-type ed25519Curve struct {
+type edCurve struct {
 }
 
-func (c *ed25519Curve) String() string {
+func (c *edCurve) String() string {
 	return "Ed25519"
 }
 
-func (c *ed25519Curve) SecretLen() int {
+func (c *edCurve) SecretLen() int {
 	return 32
 }
 
-func (c *ed25519Curve) Secret() crypto.Secret {
+func (c *edCurve) Secret() crypto.Secret {
 	return crypto.NewModInt(0, order)
 }
 
-func (c *ed25519Curve) PointLen() int {
+func (c *edCurve) PointLen() int {
 	return 32
 }
 
-func (c *ed25519Curve) Point() crypto.Point {
-	P := new(ed25519Point)
+func (c *edCurve) Point() crypto.Point {
+	P := new(edPoint)
 	//P.c = c
 	return P
 }
 
 
-type suiteEd25519 struct {
-	ed25519Curve
+type edSuite struct {
+	edCurve
 } 
 // XXX non-NIST ciphers?
 
 // SHA256 hash function
-func (s *suiteEd25519) HashLen() int { return sha256.Size }
-func (s *suiteEd25519) Hash() hash.Hash {
+func (s *edSuite) HashLen() int { return sha256.Size }
+func (s *edSuite) Hash() hash.Hash {
 	return sha256.New()
 }
 
 // AES128-CTR stream cipher
-func (s *suiteEd25519) KeyLen() int { return 16 }
-func (s *suiteEd25519) Stream(key []byte) cipher.Stream {
+func (s *edSuite) KeyLen() int { return 16 }
+func (s *edSuite) Stream(key []byte) cipher.Stream {
 	aes, err := aes.NewCipher(key)
 	if err != nil {
 		panic("can't instantiate AES: " + err.Error())
@@ -277,7 +277,7 @@ func (s *suiteEd25519) Stream(key []byte) cipher.Stream {
 
 // Ciphersuite based on AES-128, SHA-256, and the Ed25519 curve.
 func NewAES128SHA256Ed25519() crypto.Suite {
-	suite := new(suiteEd25519)
+	suite := new(edSuite)
 	return suite
 }
 

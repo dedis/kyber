@@ -139,11 +139,11 @@ type Group interface {
 }
 
 func testEmbed(g Group,s string) {
-	println("embedding: ",s)
+	//println("embedding: ",s)
 	b := []byte(s)
 
 	p,rem := g.Point().Pick(b, RandomStream)
-	println("embedded, remainder",len(rem),"/",len(b),":",string(rem))
+	//println("embedded, remainder",len(rem),"/",len(b),":",string(rem))
 	x,err := p.Data()
 	if err != nil {
 		panic("Point extraction failed: "+err.Error())
@@ -163,8 +163,6 @@ func TestGroup(g Group) {
 	// Do a simple Diffie-Hellman test
 	s1 := g.Secret().Pick(RandomStream)
 	s2 := g.Secret().Pick(RandomStream)
-	println("s1 = ",s1.String())
-	println("s2 = ",s2.String())
 	if s1.Equal(s2) {
 		panic("uh-oh, not getting unique secrets!")
 	}
@@ -172,8 +170,6 @@ func TestGroup(g Group) {
 	gen := g.Point().Base()
 	p1 := g.Point().Mul(gen,s1)
 	p2 := g.Point().Mul(gen,s2)
-	println("p1 = ",p1.String())
-	println("p2 = ",p2.String())
 	if p1.Equal(p2) {
 		panic("uh-oh, encryption isn't producing unique points!")
 	}
@@ -240,8 +236,6 @@ func TestGroup(g Group) {
 	if p1.Equal(p2) {
 		panic("Pick() not producing unique points")
 	}
-	println("random point = ",p1.String())
-	println("random point = ",p2.String())
 
 	// Test embedding data
 	testEmbed(g,"Hi!")
