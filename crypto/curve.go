@@ -127,12 +127,17 @@ func (p *curvePoint) Sub(a,b Point) Point {
 	cb := b.(*curvePoint)
 
 	// XXX a pretty non-optimal implementation of point subtraction...
-	s := p.c.Secret().One()
-	s.Neg(s)
-	cbn := p.c.Point().Mul(cb,s).(*curvePoint)
-
+	cbn := p.c.Point().Neg(cb).(*curvePoint)
 	p.x,p.y = p.c.Add(ca.x, ca.y, cbn.x, cbn.y)
 	return p
+}
+
+func (p *curvePoint) Neg(a Point) Point {
+
+	// XXX a pretty non-optimal implementation of point negation...
+	s := p.c.Secret().One()
+	s.Neg(s)
+	return p.Mul(a,s).(*curvePoint)
 }
 
 func (p *curvePoint) Mul(b Point, s Secret) Point {

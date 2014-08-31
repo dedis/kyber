@@ -176,6 +176,19 @@ func (p *point) Sub(ca,cb crypto.Point) crypto.Point {
 	return p
 }
 
+func (p *point) Neg(ca crypto.Point) crypto.Point {
+	if ca != p {
+		a := ca.(*point)
+		if C.EC_POINT_copy(p.p, a.p) == 0 {
+			panic("EC_POINT_copy: "+getErrString())
+		}
+	}
+	if C.EC_POINT_invert(p.c.g, p.p, p.c.ctx) == 0 {
+		panic("EC_POINT_invert: "+getErrString())
+	}
+	return p
+}
+
 func (p *point) Mul(cb crypto.Point, cs crypto.Secret) crypto.Point {
 	s := cs.(*secret)
 	if cb == nil {		// multiply standard generator

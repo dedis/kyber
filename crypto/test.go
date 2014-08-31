@@ -83,6 +83,10 @@ func TestGroup(g Group) {
 	if !stmp.Equal(st2) {
 		panic("Secret.Neg doesn't work")
 	}
+	pt2.Neg(p2).Add(pt2,p1)
+	if !pt2.Equal(ptmp) {
+		panic("Point.Neg doesn't work")
+	}
 
 	// Multiplicative homomorphic identities
 	stmp.Mul(s1,s2)

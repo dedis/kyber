@@ -11,7 +11,7 @@ import (
 
 func testSuite(s crypto.Suite) {
 	crypto.TestSuite(s)	// Basic ciphersuite tests
-	shuffle.TestShuffle(s)	// Neff's shuffle is a good torture test
+	shuffle.TestShuffle(s,5) // Neff's shuffle is a good torture test
 }
 
 func benchSuite(s crypto.Suite) {
@@ -58,7 +58,7 @@ func main() {
 //	s := crypto.NewAES128SHA256Ed25519()
 //	s := openssl.NewAES128SHA256P256()
 //	s := ed25519.NewAES128SHA256Ed25519()
-//	shuffle.TestShuffle(s)
+//	testSuite(s)
 //	return
 
 //	println("\nNative P256 suite:")
@@ -72,7 +72,7 @@ func main() {
 //	crypto.TestGroup(g)
 //	return
 
-	//testSuites()
-	benchSuites()
+	testSuites()
+	//benchSuites()
 }
 

@@ -94,6 +94,11 @@ func (p *schnorrPoint) Sub(a,b Point) Point {
 	return p
 }
 
+func (p *schnorrPoint) Neg(a Point) Point {
+	p.Int.ModInverse(&a.(*schnorrPoint).Int, p.g.P)
+	return p
+}
+
 func (p *schnorrPoint) Mul(b Point, s Secret) Point {
 	if b == nil {
 		return p.Base().Mul(p,s)

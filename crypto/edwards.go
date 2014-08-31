@@ -20,7 +20,7 @@ import (
 // We assume K is a (finite) prime field for a large prime p.
 // 
 // This reference implementation is mainly intended for debugging and testing
-// other more optimized implementations, not for direct use.
+// and instructional uses, not for production use.
 //
 type edwardsPoint struct {
 	x,y ModInt

@@ -6,9 +6,7 @@ import (
 	"dissent/crypto"
 )
 
-func TestShuffle(suite crypto.Suite) {
-
-	k := 100
+func TestShuffle(suite crypto.Suite, k int) {
 
 	// Create a "server" private/public keypair
 	h := suite.Secret().Pick(crypto.RandomStream)
@@ -57,6 +55,6 @@ func TestShuffle(suite crypto.Suite) {
 }
 
 func BenchShuffle(suite crypto.Suite) {
-	TestShuffle(suite)
+	TestShuffle(suite, 100)
 }
 
