@@ -1,4 +1,4 @@
-package ed25519
+package sodium
 
 // #include "sc.h"
 // #include "ge.h"
