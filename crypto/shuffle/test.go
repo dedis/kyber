@@ -8,7 +8,7 @@ import (
 
 func TestShuffle(suite crypto.Suite) {
 
-	k := 10
+	k := 100
 
 	// Create a "server" private/public keypair
 	h := suite.Secret().Pick(crypto.RandomStream)
@@ -54,5 +54,9 @@ func TestShuffle(suite crypto.Suite) {
 	}
 	end = time.Now()
 	fmt.Printf("%f sec\n", (float64(end.Sub(beg)) / 1000000000.0))
+}
+
+func BenchShuffle(suite crypto.Suite) {
+	TestShuffle(suite)
 }
 

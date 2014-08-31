@@ -77,8 +77,13 @@ void ge_scalarmult_base(ge_p3 *h,const unsigned char *a)
   int i;
 
   for (i = 0;i < 32;++i) {
+#if SC_BIGENDIAN
+    e[2 * i + 0] = (a[31-i] >> 0) & 15;
+    e[2 * i + 1] = (a[31-i] >> 4) & 15;
+#else
     e[2 * i + 0] = (a[i] >> 0) & 15;
     e[2 * i + 1] = (a[i] >> 4) & 15;
+#endif
   }
   /* each e[i] is between 0 and 15 */
   /* e[63] is between 0 and 7 */
@@ -94,18 +99,19 @@ void ge_scalarmult_base(ge_p3 *h,const unsigned char *a)
   /* each e[i] is between -8 and 8 */
 
   ge_p3_0(h);
-  for (i = 1;i < 64;i += 2) {
-    ge_select(&t,i / 2,e[i]);
+  for (i = 1;i < 64;i += 2) {		// First handle odd exponent nybbles
+    ge_select(&t,i/2,e[i]);
     ge_madd(&r,h,&t); ge_p1p1_to_p3(h,&r);
   }
 
-  ge_p3_dbl(&r,h);  ge_p1p1_to_p2(&s,&r);
+  ge_p3_dbl(&r,h);  ge_p1p1_to_p2(&s,&r);	// r <<= 4
   ge_p2_dbl(&r,&s); ge_p1p1_to_p2(&s,&r);
   ge_p2_dbl(&r,&s); ge_p1p1_to_p2(&s,&r);
   ge_p2_dbl(&r,&s); ge_p1p1_to_p3(h,&r);
 
-  for (i = 0;i < 64;i += 2) {
+  for (i = 0;i < 64;i += 2) {		// Then even exponent nybbles
     ge_select(&t,i / 2,e[i]);
     ge_madd(&r,h,&t); ge_p1p1_to_p3(h,&r);
   }
 }
+

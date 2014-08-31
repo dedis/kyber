@@ -1,26 +1,9 @@
 package shuffle
 
 import (
-//	"io"
 	"bytes"
-//	"errors"
-//	"reflect"
-//	"crypto/cipher"
 	"dissent/crypto"
 )
-
-
-
-/*
-func Read (r io.Reader, data interface{}) error {
-
-	// XXX deal with basic fixed-length types as in encoding/binary?
-
-	if s,ok := data.(crypto.Secret); ok {
-		
-	}
-}
-*/
 
 
 // ProverContext represents the abstract environment

@@ -4,7 +4,7 @@ import (
 	"dissent/crypto"
 	"dissent/crypto/openssl"
 	"dissent/crypto/ed25519"
-//	"dissent/crypto/sodium"
+	"dissent/crypto/sodium"
 	"dissent/crypto/shuffle"
 )
 
@@ -12,6 +12,11 @@ import (
 func testSuite(s crypto.Suite) {
 	crypto.TestSuite(s)	// Basic ciphersuite tests
 	shuffle.TestShuffle(s)	// Neff's shuffle is a good torture test
+}
+
+func benchSuite(s crypto.Suite) {
+	crypto.BenchSuite(s)
+	shuffle.BenchShuffle(s)
 }
 
 func testSuites() {
@@ -30,23 +35,22 @@ func testSuites() {
 
 func benchSuites() {
 	println("\nNative QR512 suite:")
-	crypto.BenchSuite(crypto.NewAES128SHA256QR512())
+	benchSuite(crypto.NewAES128SHA256QR512())
 
 	println("\nNative P256 suite:")
-	crypto.BenchSuite(crypto.NewAES128SHA256P256())
+	benchSuite(crypto.NewAES128SHA256P256())
 
 	println("\nOpenSSL P256 suite:")
-	crypto.BenchSuite(openssl.NewAES128SHA256P256())
+	benchSuite(openssl.NewAES128SHA256P256())
 
-	println("\nNative Ed25519 suite:")
-	crypto.BenchSuite(crypto.NewAES128SHA256Ed25519())
+	//println("\nNaive Go Ed25519 suite:")
+	//benchSuite(crypto.NewAES128SHA256Ed25519())
 
-	println("\nOptimized Ed25519 suite:")
-	crypto.BenchSuite(ed25519.NewAES128SHA256Ed25519())
+	println("\nOptimized Go Ed25519 suite:")
+	benchSuite(ed25519.NewAES128SHA256Ed25519())
 
-	//println("\nSodium Ed25519 suite:")
-	//crypto.BenchSuite(sodium.NewAES128SHA256Ed25519())
-	//sodium.BenchCurve25519()
+	println("\nSodium C Ed25519 suite:")
+	benchSuite(sodium.NewAES128SHA256Ed25519())
 }
 
 func main() {
@@ -68,7 +72,7 @@ func main() {
 //	crypto.TestGroup(g)
 //	return
 
-	testSuites()
-	//benchSuites()
+	//testSuites()
+	benchSuites()
 }
 

@@ -17,6 +17,8 @@ Representations:
 
 #include "fe.h"
 
+#define SC_BIGENDIAN 1	/* XXX big.Int compatibility hack */
+
 typedef struct {
   fe X;
   fe Y;
@@ -75,11 +77,13 @@ typedef struct {
 
 extern void ge_tobytes(unsigned char *,const ge_p2 *);
 extern void ge_p3_tobytes(unsigned char *,const ge_p3 *);
-extern int ge_frombytes_negate_vartime(ge_p3 *,const unsigned char *);
+extern int ge_frombytes_vartime(ge_p3 *,const unsigned char *);
 
 extern void ge_p2_0(ge_p2 *);
 extern void ge_p3_0(ge_p3 *);
+extern void ge_p1p1_0(ge_p3 *);
 extern void ge_precomp_0(ge_precomp *);
+extern void ge_cached_0(ge_cached *);
 extern void ge_p3_to_p2(ge_p2 *,const ge_p3 *);
 extern void ge_p3_to_cached(ge_cached *,const ge_p3 *);
 extern void ge_p1p1_to_p2(ge_p2 *,const ge_p1p1 *);
@@ -91,6 +95,7 @@ extern void ge_madd(ge_p1p1 *,const ge_p3 *,const ge_precomp *);
 extern void ge_msub(ge_p1p1 *,const ge_p3 *,const ge_precomp *);
 extern void ge_add(ge_p1p1 *,const ge_p3 *,const ge_cached *);
 extern void ge_sub(ge_p1p1 *,const ge_p3 *,const ge_cached *);
+extern void ge_scalarmult(ge_p3 *, const unsigned char *, const ge_p3 *);
 extern void ge_scalarmult_base(ge_p3 *,const unsigned char *);
 extern void ge_double_scalarmult_vartime(ge_p2 *,const unsigned char *,const ge_p3 *,const unsigned char *);
 extern void ge_double_scalarmult_vartime_2(ge_p2 *,const unsigned char *,const ge_p3 *,const unsigned char *,const ge_p3 *);

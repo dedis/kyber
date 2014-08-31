@@ -4,15 +4,11 @@ package sodium
 // #include "ge.h"
 // #include "fe.h"
 //
-// void ge_p2_to_p3(ge_p3 *r,const ge_p2 *p) {
-//	fe_copy(r->X,p->X);
-//	fe_copy(r->Y,p->Y);
-//	fe_copy(r->Z,p->Z);
-//	fe_mul(r->T,p->X,p->Y);
-// }
-//
-// void ge_neg(ge_p3 *r) {
-//	fe_neg(r->X,r->X);
+// void ge_p3_neg(ge_p3 *r,ge_p3 *a) {
+//	fe_neg(r->X,a->X);
+//	fe_copy(r->Y,a->Y);
+//	fe_copy(r->Z,a->Z);
+//	fe_neg(r->T,a->T);
 // }
 //
 // void ge_p3_add(ge_p3 *r,ge_p3 *a,ge_p3 *b) {
@@ -23,32 +19,37 @@ package sodium
 //	ge_p1p1_to_p3(r,&t);
 // }
 //
+// void ge_p3_sub(ge_p3 *r,ge_p3 *a,ge_p3 *b) {
+//	ge_cached bc;
+//	ge_p1p1 t;
+//	ge_p3_to_cached(&bc,b);
+//	ge_sub(&t,a,&bc);
+//	ge_p1p1_to_p3(r,&t);
+// }
+//
 import "C"
 
 import (
 	"fmt"
 	"time"
+	"hash"
 	"bytes"
 	"errors"
 	"unsafe"
 	//"runtime"
 	"math/big"
+	"crypto/aes"
 	"encoding/hex"
 	"crypto/cipher"
+	"crypto/sha256"
 	"dissent/crypto"
 )
 
 
+// prime order of base point = 2^252 + 27742317777372353535851937790883648493
+var order,_ = new(big.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989",10)
 
-type secret struct {
-	b [32]byte
-}
 
-var s0 = secret{}
-var s1 = secret{[32]byte{1}}
-var s2 = secret{[32]byte{2}}
-var s3 = secret{[32]byte{3}}
-var s4 = secret{[32]byte{4}}
 
 type point struct {
 	p C.ge_p3
@@ -67,82 +68,6 @@ func tohex(s []byte) string {
 	return hex.EncodeToString(b)
 }
 
-func (s *secret) Set(s2 crypto.Secret) crypto.Secret {
-	s.b = s2.(*secret).b
-	return s
-}
-
-func (s *secret) String() string {
-	return hex.EncodeToString(s.b[:])
-}
-
-func (s *secret) Len() int { return 32 }
-
-func (s *secret) Encode() []byte { return s.b[:] }
-
-func (s *secret) Decode(buf []byte) error {
-	copy(s.b[:], buf)
-	return nil
-}
-
-func (s *secret) Zero() crypto.Secret {
-	panic("XXX")
-}
-
-func (s *secret) One() crypto.Secret {
-	panic("XXX")
-}
-
-func (s *secret) SetInt64(v int64) crypto.Secret {
-	panic("XXX")
-}
-
-func (s *secret) Equal(s2 crypto.Secret) bool {
-	return bytes.Equal(s.b[:], s2.(*secret).b[:])
-}
-
-func (s *secret) Add(cx,cy crypto.Secret) crypto.Secret {
-	x := cx.(*secret)
-	y := cy.(*secret)
-
-	// XXX using muladd is probably way overkill
-	C.sc_muladd((*C.uchar)(unsafe.Pointer(&s.b[0])),
-			(*C.uchar)(unsafe.Pointer(&x.b[0])),
-			(*C.uchar)(unsafe.Pointer(&s1.b[0])),
-			(*C.uchar)(unsafe.Pointer(&y.b[0])))
-
-	return s
-}
-
-func (s *secret) Sub(cx,cy crypto.Secret) crypto.Secret {
-	panic("XXX")
-}
-
-func (s *secret) Neg(x crypto.Secret) crypto.Secret {
-	panic("XXX")
-}
-
-func (s *secret) Mul(cx,cy crypto.Secret) crypto.Secret {
-	panic("XXX")
-}
-
-func (s *secret) Div(cx,cy crypto.Secret) crypto.Secret {
-	panic("XXX")
-}
-
-func (s *secret) Inv(x crypto.Secret) crypto.Secret {
-	panic("XXX")
-}
-
-func (s *secret) Pick(rand cipher.Stream) crypto.Secret {
-	rand.XORKeyStream(s.b[:], s.b[:])
-	s.b[0] &= 248;
-	s.b[31] &= 63;
-	s.b[31] |= 64;
-	return s
-}
-
-
 
 func (p *point) String() string {
 	return hex.EncodeToString(p.Encode())
@@ -153,20 +78,14 @@ func (p *point) Equal(p2 crypto.Point) bool {
 }
 
 func (p *point) Null() crypto.Point {
-	panic("XXX")
+	C.ge_p3_0(&p.p)
+	return p
 }
 
 func (p *point) Base() crypto.Point {
 
 	// Way to kill a fly with a sledgehammer...
-	r := C.ge_p2{}
-	a := C.ge_p3{}
-	C.ge_p3_0(&a)
-	C.ge_double_scalarmult_vartime(&r,
-				(*C.uchar)(unsafe.Pointer(&s0.b[0])),
-				&p.p,
-				(*C.uchar)(unsafe.Pointer(&s1.b[0])))
-	C.ge_p2_to_p3(&p.p, &r)
+	C.ge_scalarmult_base(&p.p, (*C.uchar)(unsafe.Pointer(&s1.b[0])))
 	return p
 }
 
@@ -174,63 +93,80 @@ func (p *point) PickLen() int {
 	// Reserve at least 8 most-significant bits for randomness,
 	// and the least-significant 8 bits for embedded data length.
 	// (Hopefully it's unlikely we'll need >=2048-bit curves soon.)
-	return (32 - 8 - 8) / 8
+	return (255 - 8 - 8) / 8
 }
 
 func (p *point) Pick(data []byte,rand cipher.Stream) (crypto.Point, []byte) {
-	panic("XXX")
+
+	// How many bytes to embed?
+	dl := p.PickLen()
+	if dl > len(data) {
+		dl = len(data)
+	}
+
+	for {
+		// Pick a random point, with optional embedded data
+		var b [32]byte
+		rand.XORKeyStream(b[:],b[:])
+		if data != nil {
+			b[0] = byte(dl)		// Encode length in low 8 bits
+			copy(b[1:1+dl],data)	// Copy in data to embed
+		}
+		if C.ge_frombytes_vartime(&p.p,	// Try to decode
+				(*C.uchar)(unsafe.Pointer(&b[0]))) == 0 {
+			return p,data[dl:]	// success
+		}
+		// invalid point, retry
+	}
 }
 
 func (p *point) Data() ([]byte,error) {
-	panic("XXX")
+	var b [32]byte
+	C.ge_p3_tobytes((*C.uchar)(unsafe.Pointer(&b[0])), &p.p)
+	dl := int(b[0])				// extract length byte
+	if dl > p.PickLen() {
+		return nil,errors.New("invalid embedded data length")
+	}
+	return b[1:1+dl],nil
 }
 
 func (p *point) Add(ca,cb crypto.Point) crypto.Point {
 	a := ca.(*point)
 	b := cb.(*point)
-
 	C.ge_p3_add(&p.p, &a.p, &b.p)
-/*
-	bcached := C.ge_cached{}
-	C.ge_p3_to_cached(&bcached, &b.p)
-	r := C.ge_p1p1{}
-	C.ge_add(&r, &a.p, &bcached)
-	C.ge_p1p1_to_p3(&p.p, &r)
-*/
-/*
-	r := C.ge_p2{}
-	C.ge_double_scalarmult_vartime_2(&r,
-				(*C.uchar)(unsafe.Pointer(&s1.b[0])), &a.p,
-				(*C.uchar)(unsafe.Pointer(&s1.b[0])), &b.p)
-	C.ge_p2_to_p3(&p.p, &r)
-*/
-
 	return p
 }
 
 func (p *point) Sub(ca,cb crypto.Point) crypto.Point {
-	panic("XXX")
-}
-
-func (p *point) Neg(ca crypto.Point) crypto.Point {
-	panic("XXX")
-}
-
-func (p *point) Mul(ca crypto.Point, cs crypto.Secret) crypto.Point {
 	a := ca.(*point)
-	s := cs.(*secret)
-
-	// We'd rather this NOT be vartime, but for now...
-	// and we only need a single multiplication, not double.
-	r := C.ge_p2{}
-	C.ge_double_scalarmult_vartime(&r, (*C.uchar)(unsafe.Pointer(&s.b[0])),
-				&a.p, (*C.uchar)(unsafe.Pointer(&s0.b[0])))
-	C.ge_p2_to_p3(&p.p, &r)
+	b := cb.(*point)
+	C.ge_p3_sub(&p.p, &a.p, &b.p)
 	return p
 }
 
-func (p *point) BaseMul(cs crypto.Secret) crypto.Point {
-	panic("XXX")
+func (p *point) Neg(ca crypto.Point) crypto.Point {
+	a := ca.(*point)
+	C.ge_p3_neg(&p.p, &a.p)
+	return p
+}
+
+func (p *point) Mul(ca crypto.Point, cs crypto.Secret) crypto.Point {
+	//s := &cs.(*secret).b[:]
+
+	s := cs.(*crypto.ModInt).V.Bytes()
+	if len(s) < 32 {
+		s = append(make([]byte, 32-len(s)), s...)
+	}
+
+	if ca == nil {
+		// Optimized multiplication by precomputed base point
+		C.ge_scalarmult_base(&p.p, (*C.uchar)(unsafe.Pointer(&s[0])));
+	} else {
+		// General scalar multiplication
+		a := ca.(*point)
+		C.ge_scalarmult(&p.p, (*C.uchar)(unsafe.Pointer(&s[0])), &a.p);
+	}
+	return p
 }
 
 func (p *point) Len() int { return 32 }
@@ -245,11 +181,10 @@ func (p *point) Decode(buf []byte) error {
 	if len(buf) != 32 {
 		return errors.New("curve25519 point wrong size")
 	}
-	if C.ge_frombytes_negate_vartime(&p.p,
+	if C.ge_frombytes_vartime(&p.p,
 				(*C.uchar)(unsafe.Pointer(&buf[0]))) != 0 {
 		return errors.New("curve25519 point invalid")
 	}
-	C.ge_neg(&p.p)
 	return nil
 }
 
@@ -288,7 +223,8 @@ func (c *curve) SecretLen() int {
 }
 
 func (c *curve) Secret() crypto.Secret {
-	return new(secret)
+	//return new(secret)
+	return crypto.NewModInt(0, order)
 }
 
 func (c *curve) PointLen() int {
@@ -306,6 +242,36 @@ func (c *curve) Order() *big.Int {
 func NewCurve25519() crypto.Group {
 	return new(curve)
 }
+
+
+type suite struct {
+	curve
+} 
+// XXX non-NIST ciphers?
+
+// SHA256 hash function
+func (s *suite) HashLen() int { return sha256.Size }
+func (s *suite) Hash() hash.Hash {
+	return sha256.New()
+}
+
+// AES128-CTR stream cipher
+func (s *suite) KeyLen() int { return 16 }
+func (s *suite) Stream(key []byte) cipher.Stream {
+	aes, err := aes.NewCipher(key)
+	if err != nil {
+		panic("can't instantiate AES: " + err.Error())
+	}
+	iv := make([]byte,16)
+	return cipher.NewCTR(aes,iv)
+}
+
+// Ciphersuite based on AES-128, SHA-256, and the Ed25519 curve.
+func NewAES128SHA256Ed25519() crypto.Suite {
+	suite := new(suite)
+	return suite
+}
+
 
 func TestCurve25519() {
 
