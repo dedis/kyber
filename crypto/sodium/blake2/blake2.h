@@ -17,18 +17,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "crypto_generichash_blake2b.h"
-
-#define blake2b_init_param             crypto_generichash_blake2b__init_param
-#define blake2b_init                   crypto_generichash_blake2b__init
-#define blake2b_init_salt_personal     crypto_generichash_blake2b__init_salt_personal
-#define blake2b_init_key               crypto_generichash_blake2b__init_key
-#define blake2b_init_key_salt_personal crypto_generichash_blake2b__init_key_salt_personal
-#define blake2b_update                 crypto_generichash_blake2b__update
-#define blake2b_final                  crypto_generichash_blake2b__final
-#define blake2b                        crypto_generichash_blake2b__blake2b
-#define blake2b_salt_personal          crypto_generichash_blake2b__blake2b_salt_personal
-
 #if defined(_MSC_VER)
 #define ALIGN(x) __declspec(align(x))
 #else
@@ -98,9 +86,6 @@ extern "C" {
     uint8_t  personal[BLAKE2B_PERSONALBYTES];  // 64
   } blake2b_param;
 
-#ifndef DEFINE_BLAKE2B_STATE
-typedef crypto_generichash_blake2b_state blake2b_state;
-#else
   ALIGN( 64 ) typedef struct __blake2b_state
   {
     uint64_t h[8];
@@ -110,7 +95,6 @@ typedef crypto_generichash_blake2b_state blake2b_state;
     size_t   buflen;
     uint8_t  last_node;
   } blake2b_state;
-#endif
 
   typedef struct __blake2sp_state
   {
