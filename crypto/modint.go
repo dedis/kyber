@@ -87,6 +87,12 @@ func (i *ModInt) Set(a Secret) Secret {
 	return i
 }
 
+// Set value to a number represented in a big-endian byte string.
+func (i *ModInt) SetBytes(a []byte) *ModInt {
+	i.V.SetBytes(a).Mod(&i.V, i.M)
+	return i
+}
+
 // Set to the value 0.  The modulus must already be initialized.
 func (i *ModInt) Zero() Secret {
 	i.V.SetInt64(0)

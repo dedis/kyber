@@ -10,14 +10,14 @@ func TestBasicCurve25519(t *testing.T) {
 }
 
 func TestBasicCurveE382(t *testing.T) {
-	crypto.TestGroup(new(basicCurve).initE382())
+	crypto.TestGroup(new(basicCurve).init(ParamE382()))
 }
 
 func TestBasicCurve41417(t *testing.T) {
-	crypto.TestGroup(new(basicCurve).init41417())
+	crypto.TestGroup(new(basicCurve).init(Param41417()))
 }
 
 func TestBasicCurveE521(t *testing.T) {
-	crypto.TestGroup(new(basicCurve).initE521())
+	crypto.TestGroup(new(basicCurve).init(ParamE521()))
 }
 
