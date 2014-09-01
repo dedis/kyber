@@ -80,6 +80,19 @@ func SubStream(suite Suite, s cipher.Stream) cipher.Stream {
 }
 
 
+// Create a stream cipher out of a block cipher,
+// by running the block cipher in counter mode.
+// The initialization vector may be nil to start with a zero IV.
+func BlockStream(bc cipher.Block, iv []byte) cipher.Stream {
+	if iv == nil {
+		iv = make([]byte, bc.BlockSize())
+	} else if len(iv) != bc.BlockSize() {
+		panic("wrong initialization vector length")
+	}
+	return cipher.NewCTR(bc,iv)
+}
+
+
 type tracer struct {
 	w io.Writer
 	s cipher.Stream

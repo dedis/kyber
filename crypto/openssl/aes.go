@@ -6,21 +6,51 @@ package openssl
 import "C"
 
 import (
-	"unsafe"
+	"crypto/cipher"
 )
 
 const blocksize = 16
 
+
 type aes struct {
-	key *_Ctype_struct_aes_key_st	// expanded AES key
+	key C.AES_KEY			// expanded AES key
+}
+
+// Create a new AES block cipher.
+// The key must be 16, 24, or 32 bytes long.
+func NewAES(key []byte) cipher.Block {
+	a := &aes{}
+	if C.AES_set_encrypt_key((*C.uchar)(&key[0]), C.int(len(key)*8), &a.key) != 0 {
+		panic("C.AES_set_encrypt_key failed")
+	}
+	return a
+}
+
+func (a *aes) BlockSize() int {
+	return blocksize
+}
+
+func (a *aes) Encrypt(dst, src []byte) {
+	C.AES_encrypt((*C.uchar)(&src[0]), (*C.uchar)(&dst[0]), &a.key)
+}
+
+func (a *aes) Decrypt(dst, src []byte) {
+	C.AES_decrypt((*C.uchar)(&src[0]), (*C.uchar)(&dst[0]), &a.key)
+}
+
+
+// XXX probably obsolete; looks like cipher.NewCTR() is actually faster.
+type aesctr struct {
+	key C.AES_KEY			// expanded AES key
 	ctr, out [blocksize]byte	// input counter and output buffer
 	idx int				// bytes of current block already used
 }
 
-func newAesCtr(key []byte) *aes {
-	a := new(aes)
-	a.key = &_Ctype_struct_aes_key_st{}
-	if C.AES_set_encrypt_key((*_Ctype_unsignedchar)(unsafe.Pointer(&key[0])), C.int(len(key)*8), a.key) != 0 {
+// Create a new stream cipher based on AES in counter mode.
+// The key must be 16, 24, or 32 bytes long.
+func newAESCTR(key []byte) cipher.Stream {
+	a := &aesctr{}
+	if C.AES_set_encrypt_key((*C.uchar)(&key[0]), C.int(len(key)*8), &a.key) != 0 {
 		panic("C.AES_set_encrypt_key failed")
 	}
 	// counter automatically starts at 0
@@ -28,11 +58,11 @@ func newAesCtr(key []byte) *aes {
 	return a
 }
 
-func (a *aes) XORKeyStream(dst, src []byte) {
+func (a *aesctr) XORKeyStream(dst, src []byte) {
 	for i := range(src) {
 		if a.idx == blocksize {
 			// generate a block by encrypting the current counter
-			C.AES_encrypt((*_Ctype_unsignedchar)(unsafe.Pointer(&a.ctr[0])), (*_Ctype_unsignedchar)(unsafe.Pointer(&a.out[0])), a.key)
+			C.AES_encrypt((*C.uchar)(&a.ctr[0]), (*C.uchar)(&a.out[0]), &a.key)
 
 			// increment the counter
 			for j := blocksize-1; ; j-- {
@@ -49,5 +79,4 @@ func (a *aes) XORKeyStream(dst, src []byte) {
 		a.idx++
 	}
 }
-
 

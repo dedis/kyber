@@ -18,7 +18,7 @@ func (s *suite128) HashLen() int {
 }
 
 func (s *suite128) Hash() hash.Hash {
-	return newSha256()
+	return NewSHA256()
 }
 
 func (s *suite128) KeyLen() int {
@@ -29,7 +29,7 @@ func (s *suite128) Stream(key []byte) cipher.Stream {
 	if len(key) != 16 {
 		panic("wrong AES key size")
 	}
-	return newAesCtr(key)
+	return crypto.BlockStream(NewAES(key), nil)
 }
 
 // Ciphersuite based on AES-128, SHA-256, and the NIST P-256 elliptic curve,
@@ -51,7 +51,7 @@ func (s *suite192) HashLen() int {
 }
 
 func (s *suite192) Hash() hash.Hash {
-	return newSha384()
+	return NewSHA384()
 }
 
 func (s *suite192) KeyLen() int {
@@ -62,7 +62,7 @@ func (s *suite192) Stream(key []byte) cipher.Stream {
 	if len(key) != 24 {
 		panic("wrong AES key size")
 	}
-	return newAesCtr(key)
+	return crypto.BlockStream(NewAES(key), nil)
 }
 
 
@@ -85,7 +85,7 @@ func (s *suite256) HashLen() int {
 }
 
 func (s *suite256) Hash() hash.Hash {
-	return newSha512()
+	return NewSHA512()
 }
 
 func (s *suite256) KeyLen() int {
@@ -96,7 +96,7 @@ func (s *suite256) Stream(key []byte) cipher.Stream {
 	if len(key) != 32 {
 		panic("wrong AES key size")
 	}
-	return newAesCtr(key)
+	return crypto.BlockStream(NewAES(key), nil)
 }
 
 
