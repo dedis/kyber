@@ -1,15 +1,15 @@
-package crypto
+package edwards
 
 import (
 	"fmt"
-	"hash"
 	"errors"
 	"math/big"
-	"crypto/aes"
 	"crypto/cipher"
-	"crypto/sha256"
+	"dissent/crypto"
 )
 
+var zero = big.NewInt(0)
+var one = big.NewInt(1)
 
 // Basic, unoptimized reference implementation of Twisted Edwards curves.
 // Twisted Edwards curves (TEC's) are elliptic curves of the form
@@ -22,27 +22,27 @@ import (
 // This reference implementation is mainly intended for debugging and testing
 // and instructional uses, not for production use.
 //
-type edwardsPoint struct {
-	x,y ModInt
-	c *edwardsCurve
+type basicPoint struct {
+	x,y crypto.ModInt
+	c *basicCurve
 }
 
-func (P *edwardsPoint) String() string {
+func (P *basicPoint) String() string {
 	return fmt.Sprintf("(%s,%s)", P.x.String(), P.y.String())
 }
 
 // Create a new ModInt representing a coordinate on this curve,
 // with a given int64 integer value for constant-initialization convenience.
-func (P *edwardsPoint) coord(v int64) *ModInt {
-	return NewModInt(v, &P.c.p)
+func (P *basicPoint) coord(v int64) *crypto.ModInt {
+	return crypto.NewModInt(v, &P.c.p)
 }
 
-func (P *edwardsPoint) Len() int {
+func (P *basicPoint) Len() int {
 	return (P.y.M.BitLen() + 7 + 1) / 8
 }
 
 // Encode an Edwards curve point.
-func (P *edwardsPoint) Encode() []byte {
+func (P *basicPoint) Encode() []byte {
 
 	// Encode the y-coordinate
 	b := P.y.Encode()
@@ -61,7 +61,7 @@ func (P *edwardsPoint) Encode() []byte {
 }
 
 // Decode an Edwards curve point.
-func (P *edwardsPoint) Decode(b []byte) error {
+func (P *basicPoint) Decode(b []byte) error {
 
 	// Extract the sign of the x-coordinate
 	xsign := uint(b[0] >> 7)
@@ -82,14 +82,14 @@ func (P *edwardsPoint) Decode(b []byte) error {
 }
 
 // Equality test for two Points on the same curve
-func (P *edwardsPoint) Equal(P2 Point) bool {
-	E2 := P2.(*edwardsPoint)
+func (P *basicPoint) Equal(P2 crypto.Point) bool {
+	E2 := P2.(*basicPoint)
 	return P.x.Equal(&E2.x) && P.y.Equal(&E2.y)
 }
 
 // Set point to be equal to P2.
-func (P *edwardsPoint) Set(P2 Point) Point {
-	E2 := P2.(*edwardsPoint)
+func (P *basicPoint) Set(P2 crypto.Point) crypto.Point {
+	E2 := P2.(*basicPoint)
 	P.c = E2.c
 	P.x.Set(&E2.x)
 	P.y.Set(&E2.y)
@@ -97,20 +97,20 @@ func (P *edwardsPoint) Set(P2 Point) Point {
 }
 
 // Set to the neutral element, which is (0,1) for twisted Edwards curves.
-func (P *edwardsPoint) Null() Point {
+func (P *basicPoint) Null() crypto.Point {
 	P.Set(&P.c.I)
 	return P
 }
 
 // Set to the standard base point for this curve
-func (P *edwardsPoint) Base() Point {
+func (P *basicPoint) Base() crypto.Point {
 	P.Set(&P.c.B)
 	return P
 }
 
 // Test the sign of an x or y coordinate.
 // We use bit 0 of the coordinate as the sign bit.
-func (P *edwardsPoint) coordSign(i *ModInt) uint {
+func (P *basicPoint) coordSign(i *crypto.ModInt) uint {
 	return i.V.Bit(0)
 }
 
@@ -119,8 +119,8 @@ func (P *edwardsPoint) coordSign(i *ModInt) uint {
 //
 //	a*x^2 + y^2 = 1 + d*x^2*y^2
 //
-func (P *edwardsPoint) onCurve() bool {
-	var xx,yy,l,r ModInt
+func (P *basicPoint) onCurve() bool {
+	var xx,yy,l,r crypto.ModInt
 
 	xx.Mul(&P.x,&P.x)			// xx = x^2
 	yy.Mul(&P.y,&P.y)			// yy = y^2
@@ -141,8 +141,8 @@ func (P *edwardsPoint) onCurve() bool {
 // Returns true on success,
 // false if there is no x-coordinate corresponding to the chosen y-coordinate.
 //
-func (P *edwardsPoint) solveForX() bool {
-	var yy,t1,t2 ModInt
+func (P *basicPoint) solveForX() bool {
+	var yy,t1,t2 crypto.ModInt
 
 	yy.Mul(&P.y,&P.y)			// yy = y^2
 	t1.Sub(P.c.one,&yy)			// t1 = 1 - y^-2
@@ -151,14 +151,14 @@ func (P *edwardsPoint) solveForX() bool {
 	return P.x.Sqrt(&t2)			// may fail if not a square
 }
 
-func (P *edwardsPoint) PickLen() int {
+func (P *basicPoint) PickLen() int {
 	// Reserve at least 8 most-significant bits for randomness,
 	// and the least-significant 8 bits for embedded data length.
 	// (Hopefully it's unlikely we'll need >=2048-bit curves soon.)
 	return (P.x.M.BitLen() - 8 - 8) / 8
 }
 
-func (P *edwardsPoint) Pick(data []byte,rand cipher.Stream) (Point, []byte) {
+func (P *basicPoint) Pick(data []byte,rand cipher.Stream) (crypto.Point, []byte) {
 
 	l := P.y.Len()
 	dl := P.PickLen()
@@ -168,7 +168,7 @@ func (P *edwardsPoint) Pick(data []byte,rand cipher.Stream) (Point, []byte) {
 
 	for {
 		// Pick a random y-coordinate, with optional embedded data
-		b := RandomBits(uint(P.y.M.BitLen()), false, rand)
+		b := crypto.RandomBits(uint(P.y.M.BitLen()), false, rand)
 		if data != nil {
 			b[l-1] = byte(dl)	// Encode length in low 8 bits
 			copy(b[l-dl-1:l-1],data) // Copy in data to embed
@@ -195,7 +195,7 @@ func (P *edwardsPoint) Pick(data []byte,rand cipher.Stream) (Point, []byte) {
 }
 
 // Extract embedded data from a point group element
-func (P *edwardsPoint) Data() ([]byte,error) {
+func (P *basicPoint) Data() ([]byte,error) {
 	b := P.y.V.Bytes()
 	l := P.y.Len()
 	if len(b) < l {		// pad leading zero bytes if necessary
@@ -213,13 +213,13 @@ func (P *edwardsPoint) Data() ([]byte,error) {
 //	x' = ((x1*y2 + x2*y1) / (1 + d*x1*x2*y1*y2))
 //	y' = ((y1*y2 - a*x1*x2) / (1 - d*x1*x2*y1*y2))
 //
-func (P *edwardsPoint) Add(P1,P2 Point) Point {
-	E1 := P1.(*edwardsPoint)
-	E2 := P2.(*edwardsPoint)
+func (P *basicPoint) Add(P1,P2 crypto.Point) crypto.Point {
+	E1 := P1.(*basicPoint)
+	E2 := P2.(*basicPoint)
 	x1,y1 := E1.x,E1.y
 	x2,y2 := E2.x,E2.y
 
-	var t1,t2,dm,nx,dx,ny,dy ModInt
+	var t1,t2,dm,nx,dx,ny,dy crypto.ModInt
 
 	// Reused part of denominator: dm = d*x1*x2*y1*y2
 	dm.Mul(&P.c.d,&x1).Mul(&dm,&x2).Mul(&dm,&y1).Mul(&dm,&y2)
@@ -240,20 +240,20 @@ func (P *edwardsPoint) Add(P1,P2 Point) Point {
 
 // Point doubling, which for Edwards curves can be accomplished
 // simply by adding a point to itself (no exceptions for equal input points).
-func (p *edwardsPoint) double(P Point) Point {
+func (p *basicPoint) double(P crypto.Point) crypto.Point {
 	return P.Add(P,P)
 }
 
 // Subtract points so that their secrets subtract homomorphically
-func (P *edwardsPoint) Sub(A,B Point) Point {
-	var nB edwardsPoint
+func (P *basicPoint) Sub(A,B crypto.Point) crypto.Point {
+	var nB basicPoint
 	return P.Add(A,nB.Neg(B))
 }
 
 // Find the negative of point A.
 // For Edwards curves, the negative of (x,y) is (-x,y).
-func (P *edwardsPoint) Neg(A Point) Point {
-	E := A.(*edwardsPoint)
+func (P *basicPoint) Neg(A crypto.Point) crypto.Point {
+	E := A.(*basicPoint)
 	P.c = E.c
 	P.x.Neg(&E.x)
 	P.y.Set(&E.y)
@@ -261,12 +261,12 @@ func (P *edwardsPoint) Neg(A Point) Point {
 }
 
 // Multiply point p by scalar s using the repeated doubling method.
-func (P *edwardsPoint) Mul(G Point, s Secret) Point {
-	v := s.(*ModInt).V
+func (P *basicPoint) Mul(G crypto.Point, s crypto.Secret) crypto.Point {
+	v := s.(*crypto.ModInt).V
 	if G == nil {
 		return P.Base().Mul(P,s)
 	}
-	var T edwardsPoint	// Must use temporary in case G == P
+	var T basicPoint	// Must use temporary in case G == P
 	T.Set(&P.c.I)		// Initialize to identity element (0,1)
 	for i := v.BitLen()-1; i >= 0; i-- {
 		T.double(&T)
@@ -279,39 +279,39 @@ func (P *edwardsPoint) Mul(G Point, s Secret) Point {
 }
 
 
-type edwardsCurve struct {
+type basicCurve struct {
 	name string		// Well-known name of curve
 
 	p big.Int		// Large prime defining the underlying field
 	r big.Int		// Group order of the standard generator
 
-	a ModInt		// Edwards curve equation parameter a
-	d ModInt		// Edwards curve equation parameter d
+	a crypto.ModInt		// Edwards curve equation parameter a
+	d crypto.ModInt		// Edwards curve equation parameter d
 
-	I edwardsPoint		// Constant identity/null point (0,1)
-	B edwardsPoint		// Standard base point
+	I basicPoint		// Constant identity/null point (0,1)
+	B basicPoint		// Standard base point
 
-	zero,one *ModInt	// Constant ModInts with correct modulus
+	zero,one *crypto.ModInt	// Constant ModInts with correct modulus
 }
 
-func (c *edwardsCurve) String() string {
+func (c *basicCurve) String() string {
 	return c.name
 }
 
-func (c *edwardsCurve) SecretLen() int {
+func (c *basicCurve) SecretLen() int {
 	return (c.r.BitLen() + 7) / 8
 }
 
-func (c *edwardsCurve) Secret() Secret {
-	return NewModInt(0, &c.r)
+func (c *basicCurve) Secret() crypto.Secret {
+	return crypto.NewModInt(0, &c.r)
 }
 
-func (c *edwardsCurve) PointLen() int {
+func (c *basicCurve) PointLen() int {
 	return (c.p.BitLen() + 7 + 1) / 8
 }
 
-func (c *edwardsCurve) Point() Point {
-	P := new(edwardsPoint)
+func (c *basicCurve) Point() crypto.Point {
+	P := new(basicPoint)
 	P.c = c
 	P.Set(&c.I)
 	return P
@@ -324,7 +324,7 @@ func (c *edwardsCurve) Point() Point {
 //	a,d: Edwards curve equation parameters.
 //	bx,by: standard base point.
 //
-func (c *edwardsCurve) init(name string, p,r,a,d,bx,by *big.Int) {
+func (c *basicCurve) init(name string, p,r,a,d,bx,by *big.Int) {
 	c.name = name
 
 	c.p.Set(p)		// prime modulus of underlying field
@@ -352,7 +352,7 @@ func (c *edwardsCurve) init(name string, p,r,a,d,bx,by *big.Int) {
 	}
 }
 
-func (c *edwardsCurve) init25519() {
+func (c *basicCurve) init25519() *basicCurve {
 	c.name = "Ed25519"
 
 	// p = 2^255 - 19
@@ -369,7 +369,7 @@ func (c *edwardsCurve) init25519() {
 	//println("a: "+c.a.String())
 
 	// d = -121665/121666
-	c.d.Init64(-121665, &c.p).Div(&c.d,NewModInt(121666, &c.p))
+	c.d.Init64(-121665, &c.p).Div(&c.d,crypto.NewModInt(121666, &c.p))
 	//println("d: "+c.d.String())
 
 	// Identity element is (0,1)
@@ -382,14 +382,14 @@ func (c *edwardsCurve) init25519() {
 		panic("init25519: identity point not on curve!?")
 	}
 
-	var t ModInt
+	var t crypto.ModInt
 	t.Set(&c.d)
-	t.Mul(&t,NewModInt(-121666,&c.p)).Div(&t,NewModInt(121665, &c.p))
+	t.Mul(&t,crypto.NewModInt(-121666,&c.p)).Div(&t,crypto.NewModInt(121665, &c.p))
 	//println("t: "+t.String())
 
 	// Base point B is the unique (x,4/5) such that x is positive
 	c.B.c = c
-	c.B.y.Init64(4, &c.p).Div(&c.B.y,NewModInt(5, &c.p))
+	c.B.y.Init64(4, &c.p).Div(&c.B.y,crypto.NewModInt(5, &c.p))
 	ok := c.B.solveForX()
 	if !ok {
 		panic("init25519: invalid base point!?")
@@ -402,9 +402,11 @@ func (c *edwardsCurve) init25519() {
 	if !c.B.onCurve() {
 		panic("init25519: base point not on curve!?")
 	}
+
+	return c
 }
 
-func (c *edwardsCurve) initE382() {
+func (c *basicCurve) initE382() *basicCurve {
 	var p,r,rs,a,d,bx,by big.Int
 	p.SetBit(zero,382,1).Sub(&p,big.NewInt(105))	// p = 2^382-105
 	rs.SetString("1030303207694556153926491950732314247062623204330168346855",10)
@@ -414,9 +416,10 @@ func (c *edwardsCurve) initE382() {
 	bx.SetString("3914921414754292646847594472454013487047137431784830634731377862923477302047857640522480241298429278603678181725699",10)
 	by.SetString("17",10)
 	c.init("E382",&p,&r,&a,&d,&bx,&by)
+	return c
 }
 
-func (c *edwardsCurve) init41417() {
+func (c *basicCurve) init41417() *basicCurve {
 	var p,r,rs,a,d,bx,by big.Int
 	p.SetBit(zero,414,1).Sub(&p,big.NewInt(17))
 	rs.SetString("33364140863755142520810177694098385178984727200411208589594759",10)
@@ -426,9 +429,10 @@ func (c *edwardsCurve) init41417() {
 	bx.SetString("17319886477121189177719202498822615443556957307604340815256226171904769976866975908866528699294134494857887698432266169206165",10)
 	by.SetString("34",10)
 	c.init("Ed41417",&p,&r,&a,&d,&bx,&by)
+	return c
 }
 
-func (c *edwardsCurve) initE521() {
+func (c *basicCurve) initE521() *basicCurve {
 	var p,r,rs,a,d,bx,by big.Int
 	p.SetBit(zero,521,1).Sub(&p,one)
 	rs.SetString("337554763258501705789107630418782636071904961214051226618635150085779108655765",10)
@@ -438,6 +442,7 @@ func (c *edwardsCurve) initE521() {
 	bx.SetString("1571054894184995387535939749894317568645297350402905821437625181152304994381188529632591196067604100772673927915114267193389905003276673749012051148356041324",10)
 	by.SetString("12",10)
 	c.init("E521",&p,&r,&a,&d,&bx,&by)
+	return c
 }
 
 
@@ -455,47 +460,14 @@ type extEdwardsPoint struct {
 
 
 type extEdwardsCurve struct {
-	edwardsCurve		// Note that parameter a must be = -1
+	basicCurve		// Note that parameter a must be = -1
 }
 
 /*
-func (c *extEdwardsCurve) Point() Point {
+func (c *extEdwardsCurve) crypto.Point() crypto.Point {
 	P := new(extEdwardsPoint)
 	P.c = c
 	return P
 }
 */
-
-
-type suiteEd25519 struct {
-	edwardsCurve
-} 
-// XXX non-NIST ciphers?
-
-// SHA256 hash function
-func (s *suiteEd25519) HashLen() int { return sha256.Size }
-func (s *suiteEd25519) Hash() hash.Hash {
-	return sha256.New()
-}
-
-// AES128-CTR stream cipher
-func (s *suiteEd25519) KeyLen() int { return 16 }
-func (s *suiteEd25519) Stream(key []byte) cipher.Stream {
-	aes, err := aes.NewCipher(key)
-	if err != nil {
-		panic("can't instantiate AES: " + err.Error())
-	}
-	iv := make([]byte,16)
-	return cipher.NewCTR(aes,iv)
-}
-
-// Ciphersuite based on AES-128, SHA-256, and the Ed25519 curve.
-func NewAES128SHA256Ed25519() Suite {
-	suite := new(suiteEd25519)
-	suite.init25519()
-//	suite.initE382()
-//	suite.init41417()
-//	suite.initE521()
-	return suite
-}
 
