@@ -1,11 +1,6 @@
-package edwards
-
-import (
-	"math/big"
-)
-
-
-// Parameters defining a Twisted Edwards curve (TEC).
+// This package contains several implementations of Twisted Edwards Curves,
+// from general and unoptimized to highly specialized and optimized.
+//
 // Twisted Edwards curves (TEC's) are elliptic curves satisfying the equation
 //
 //	ax^2 + y^2 = c^2(1 + dx^2y^2)
@@ -14,11 +9,17 @@ import (
 // We assume K is a (finite) prime field for a large prime p.
 // We also assume c == 1 because all curves in the generalized form
 // are isomorphic to curves having c == 1.
-// For details see:
-//
-//	Twisted Edwards Curves
-//	http://eprint.iacr.org/2008/013.pdf
+// For details see Bernstein et al, "Twisted Edwards Curves",
+// http://eprint.iacr.org/2008/013.pdf
 // 
+package edwards
+
+import (
+	"math/big"
+)
+
+
+// Parameters defining a Twisted Edwards curve (TEC).
 type Param struct {
 	Name string		// Name of curve
 	P big.Int		// Prime defining the underlying field
@@ -33,7 +34,10 @@ func (p *Param) String() string {
 }
 
 
-// Parameters for Curve25519.
+// Parameters defining the Edwards version of Curve25519, as specified in:
+// Bernstein et al, "High-speed high-security signatures",
+// http://ed25519.cr.yp.to/ed25519-20110926.pdf
+//
 func Param25519() *Param {
 	var p Param
 	var rs big.Int
@@ -48,7 +52,15 @@ func Param25519() *Param {
 	return &p
 }
 
-// Parameters for the E382 curve.
+// Parameters for the E-382 curve specified in:
+// Aranha et al, "A note on high-security general-purpose elliptic curves",
+// http://eprint.iacr.org/2013/647.pdf
+//
+// and more recently included in:
+// Josefsson/Pegourie-Gonnard,
+// "Additional Elliptic Curves for Transport Layer Security (TLS) Key Agreement",
+// http://tools.ietf.org/html/draft-josefsson-tls-additional-curves-00
+//
 func ParamE382() *Param {
 	var p Param
 	var rs big.Int
@@ -63,7 +75,9 @@ func ParamE382() *Param {
 	return &p
 }
 
-// Parameters for Curve41417.
+// Parameters for Curve41417, as specified in:
+// Bernstein et al, "Curve41417: Karatsuba revisited",
+// http://eprint.iacr.org/2014/526.pdf
 func Param41417() *Param {
 	var p Param
 	var rs big.Int
@@ -78,7 +92,15 @@ func Param41417() *Param {
 	return &p
 }
 
-// Parameters for the E521 curve.
+// Parameters for the E-521 curve specified in:
+// Aranha et al, "A note on high-security general-purpose elliptic curves",
+// http://eprint.iacr.org/2013/647.pdf
+//
+// and more recently included in:
+// Josefsson/Pegourie-Gonnard,
+// "Additional Elliptic Curves for Transport Layer Security (TLS) Key Agreement",
+// http://tools.ietf.org/html/draft-josefsson-tls-additional-curves-00
+//
 func ParamE521() *Param {
 	var p Param
 	var rs big.Int

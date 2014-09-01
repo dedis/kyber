@@ -7,15 +7,9 @@ import (
 	"dissent/crypto"
 )
 
-// Basic, unoptimized reference implementation of Twisted Edwards curves.
-// This reference implementation is mainly intended for debugging and testing
-// and instructional uses, not for any production use.
-// The projective coordinates implementation (projCurve)
-// is just as general and much faster.
-//
 type basicPoint struct {
 	x,y crypto.ModInt
-	c *basicCurve
+	c *BasicCurve
 }
 
 func (P *basicPoint) String() string {
@@ -59,13 +53,13 @@ func (P *basicPoint) Set(P2 crypto.Point) crypto.Point {
 
 // Set to the neutral element, which is (0,1) for twisted Edwards curves.
 func (P *basicPoint) Null() crypto.Point {
-	P.Set(&P.c.I)
+	P.Set(&P.c.null)
 	return P
 }
 
 // Set to the standard base point for this curve
 func (P *basicPoint) Base() crypto.Point {
-	P.Set(&P.c.B)
+	P.Set(&P.c.base)
 	return P
 }
 
@@ -141,7 +135,7 @@ func (P *basicPoint) Mul(G crypto.Point, s crypto.Secret) crypto.Point {
 		return P.Base().Mul(P,s)
 	}
 	var T basicPoint	// Must use temporary in case G == P
-	T.Set(&P.c.I)		// Initialize to identity element (0,1)
+	T.Set(&P.c.null)	// Initialize to identity element (0,1)
 	for i := v.BitLen()-1; i >= 0; i-- {
 		T.double()
 		if v.Bit(i) != 0 {
@@ -153,38 +147,45 @@ func (P *basicPoint) Mul(G crypto.Point, s crypto.Secret) crypto.Point {
 }
 
 
-type basicCurve struct {
+// Basic unoptimized reference implementation of Twisted Edwards curves.
+// This reference implementation is mainly intended for testing, debugging,
+// and instructional uses, and not for production use.
+// The projective coordinates implementation (ProjectiveCurve)
+// is just as general and much faster.
+//
+type BasicCurve struct {
 	curve			// generic Edwards curve functionality
-	I basicPoint		// Constant identity/null point (0,1)
-	B basicPoint		// Standard base point
+	null basicPoint		// Neutral/identity point (0,1)
+	base basicPoint		// Standard base point
 }
 
-func (c *basicCurve) Point() crypto.Point {
+// Create a new Point on this curve.
+func (c *BasicCurve) Point() crypto.Point {
 	P := new(basicPoint)
 	P.c = c
-	P.Set(&c.I)
+	P.Set(&c.null)
 	return P
 }
 
-// Initialize a twisted Edwards curve with given parameters.
-func (c *basicCurve) init(p *Param) *basicCurve {
+// Initialize the curve with given parameters.
+func (c *BasicCurve) Init(p *Param) *BasicCurve {
 	c.curve.init(p)
 
 	// Identity element is (0,1)
-	c.I.c = c
-	c.I.x.Init64(0, &c.P)
-	c.I.y.Init64(1, &c.P)
+	c.null.c = c
+	c.null.x.Init64(0, &c.P)
+	c.null.y.Init64(1, &c.P)
 
 	// Base point B
-	c.B.c = c
-	c.B.x.Init(&p.BX, &c.P)
-	c.B.y.Init(&p.BY, &c.P)
+	c.base.c = c
+	c.base.x.Init(&p.BX, &c.P)
+	c.base.y.Init(&p.BY, &c.P)
 
 	// Sanity checks
-	if !c.onCurve(&c.I.x,&c.I.y) {
+	if !c.onCurve(&c.null.x,&c.null.y) {
 		panic("init: null point not on curve!?")
 	}
-	if !c.onCurve(&c.B.x,&c.B.y) {
+	if !c.onCurve(&c.base.x,&c.base.y) {
 		panic("init: base point not on curve!?")
 	}
 
@@ -197,7 +198,7 @@ func (c *basicCurve) init(p *Param) *basicCurve {
 //
 // Here we actually compute the standard base point by the specification,
 // which requires that the curve already be (mostly) initialized.
-func (c *basicCurve) init25519() *basicCurve {
+func (c *BasicCurve) init25519() *BasicCurve {
 	c.Name = "25519"
 
 	// p = 2^255 - 19
@@ -223,25 +224,25 @@ func (c *basicCurve) init25519() *basicCurve {
 	c.one.Init64(1, &c.P)
 
 	// Identity element is (0,1)
-	c.I.c = c
-	c.I.x.Init64(0, &c.P)
-	c.I.y.Init64(1, &c.P)
-	if !c.onCurve(&c.I.x,&c.I.y) {
+	c.null.c = c
+	c.null.x.Init64(0, &c.P)
+	c.null.y.Init64(1, &c.P)
+	if !c.onCurve(&c.null.x,&c.null.y) {
 		panic("init25519: identity point not on curve!?")
 	}
 
 	// Base point B is the unique (x,4/5) such that x is positive
-	c.B.c = c
-	c.B.y.Init64(4, &c.P).Div(&c.B.y,crypto.NewModInt(5, &c.P))
-	ok := c.solveForX(&c.B.x,&c.B.y)
+	c.base.c = c
+	c.base.y.Init64(4, &c.P).Div(&c.base.y,crypto.NewModInt(5, &c.P))
+	ok := c.solveForX(&c.base.x,&c.base.y)
 	if !ok {
 		panic("init25519: invalid base point!?")
 	}
-	if c.coordSign(&c.B.x) != 0 {
-		c.B.x.Neg(&c.B.x)	// take the positive square root
+	if c.coordSign(&c.base.x) != 0 {
+		c.base.x.Neg(&c.base.x)	// take the positive square root
 	}
-	//println("B: "+c.B.String())
-	if !c.onCurve(&c.B.x,&c.B.y) {
+	//println("B: "+c.base.String())
+	if !c.onCurve(&c.base.x,&c.base.y) {
 		panic("init25519: base point not on curve!?")
 	}
 
@@ -256,21 +257,6 @@ func (c *basicCurve) init25519() *basicCurve {
 //
 type extEdwardsPoint struct {
 	X,Y,Z,T big.Int
-	c *extEdwardsCurve
+	//c *extEdwardsCurve
 }
-
-
-
-
-type extEdwardsCurve struct {
-	basicCurve		// Note that parameter a must be = -1
-}
-
-/*
-func (c *extEdwardsCurve) crypto.Point() crypto.Point {
-	P := new(extEdwardsPoint)
-	P.c = c
-	return P
-}
-*/
 

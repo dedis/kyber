@@ -18,14 +18,17 @@ type curve struct {
 	a,d crypto.ModInt	// Curve equation parameters as ModInts
 }
 
+// Returns the size in bytes of an encoded Secret for this curve.
 func (c *curve) SecretLen() int {
 	return (c.R.BitLen() + 7) / 8
 }
 
+// Create a new Secret for this curve.
 func (c *curve) Secret() crypto.Secret {
 	return crypto.NewModInt(0, &c.R)
 }
 
+// Returns the size in bytes of an encoded Point on this curve.
 func (c *curve) PointLen() int {
 	return (c.P.BitLen() + 7 + 1) / 8
 }

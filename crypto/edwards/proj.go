@@ -6,18 +6,9 @@ import (
 	"dissent/crypto"
 )
 
-// Implementation of Twisted Edwards curves using projective coordinates,
-// which satisfy the identities x = X/Z, y = Y/Z.
-// This representation still supports all Edwards curves
-// and avoids expensive modular inversions on the critical paths.
-//
-// We use the projective arithmetic formulas in:
-//
-//	http://cr.yp.to/newelliptic/newelliptic-20070906.pdf
-//
 type projPoint struct {
 	X,Y,Z crypto.ModInt
-	c *projCurve
+	c *ProjectiveCurve
 }
 
 func (P *projPoint) String() string {
@@ -64,12 +55,12 @@ func (P *projPoint) Set(CP2 crypto.Point) crypto.Point {
 }
 
 func (P *projPoint) Null() crypto.Point {
-	P.Set(&P.c.I)
+	P.Set(&P.c.null)
 	return P
 }
 
 func (P *projPoint) Base() crypto.Point {
-	P.Set(&P.c.B)
+	P.Set(&P.c.base)
 	return P
 }
 
@@ -184,7 +175,7 @@ func (P *projPoint) Mul(G crypto.Point, s crypto.Secret) crypto.Point {
 	if G == P {		// Must use temporary for in-place multiply
 		T = &projPoint{}
 	}
-	T.Set(&P.c.I)		// Initialize to identity element (0,1)
+	T.Set(&P.c.null)	// Initialize to identity element (0,1)
 	for i := v.BitLen()-1; i >= 0; i-- {
 		T.double()
 		if v.Bit(i) != 0 {
@@ -198,39 +189,49 @@ func (P *projPoint) Mul(G crypto.Point, s crypto.Secret) crypto.Point {
 }
 
 
-type projCurve struct {
+// ProjectiveCurve implements Twisted Edwards curves
+// using projective coordinate representation (X:Y:Z),
+// satisfying the identities x = X/Z, y = Y/Z.
+// This representation still supports all Twisted Edwards curves
+// and avoids expensive modular inversions on the critical paths.
+// Uses the projective arithmetic formulas in:
+// http://cr.yp.to/newelliptic/newelliptic-20070906.pdf
+//
+type ProjectiveCurve struct {
 	curve			// generic Edwards curve functionality
-	I projPoint		// Constant identity/null point (0,1)
-	B projPoint		// Standard base point
+	null projPoint		// Constant identity/null point (0,1)
+	base projPoint		// Standard base point
 }
 
-func (c *projCurve) Point() crypto.Point {
+// Create a new Point on this curve.
+func (c *ProjectiveCurve) Point() crypto.Point {
 	P := new(projPoint)
 	P.c = c
-	//P.Set(&c.I)
+	//P.Set(&c.null)
 	return P
 }
 
-func (c *projCurve) init(p *Param) *projCurve {
+// Initialize the curve with given parameters.
+func (c *ProjectiveCurve) Init(p *Param) *ProjectiveCurve {
 	c.curve.init(p)
 
 	// Identity element is (0,1)
-	c.I.c = c
-	c.I.X.Init64(0, &c.P)
-	c.I.Y.Init64(1, &c.P)
-	c.I.Z.Init64(1, &c.P)
+	c.null.c = c
+	c.null.X.Init64(0, &c.P)
+	c.null.Y.Init64(1, &c.P)
+	c.null.Z.Init64(1, &c.P)
 
 	// Base point B
-	c.B.c = c
-	c.B.X.Init(&p.BX, &c.P)
-	c.B.Y.Init(&p.BY, &c.P)
-	c.B.Z.Init64(1, &c.P)
+	c.base.c = c
+	c.base.X.Init(&p.BX, &c.P)
+	c.base.Y.Init(&p.BY, &c.P)
+	c.base.Z.Init64(1, &c.P)
 
 	// Sanity checks
-	if !c.onCurve(&c.I.X,&c.I.Y) {
+	if !c.onCurve(&c.null.X,&c.null.Y) {
 		panic("init: null point not on curve!?")
 	}
-	if !c.onCurve(&c.B.X,&c.B.Y) {
+	if !c.onCurve(&c.base.X,&c.base.Y) {
 		panic("init: base point not on curve!?")
 	}
 
