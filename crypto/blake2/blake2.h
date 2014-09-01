@@ -91,7 +91,7 @@ extern "C" {
     uint64_t h[8];
     uint64_t t[2];
     uint64_t f[2];
-    uint8_t  buf[2 * BLAKE2B_BLOCKBYTES];
+    uint8_t  buf[BLAKE2B_BLOCKBYTES];
     size_t   buflen;
     uint8_t  last_node;
   } blake2b_state;
@@ -126,6 +126,8 @@ extern "C" {
   int blake2b_init_param( blake2b_state *S, const blake2b_param *P );
   int blake2b_update( blake2b_state *S, const uint8_t *in, uint64_t inlen );
   int blake2b_final( blake2b_state *S, uint8_t *out, uint8_t outlen );
+
+  int blake2b_stream( blake2b_state *S, uint8_t *out, const uint8_t *in, size_t len );
 
   int blake2sp_init( blake2sp_state *S, const uint8_t outlen );
   int blake2sp_init_key( blake2sp_state *S, const uint8_t outlen, const void *key, const uint8_t keylen );

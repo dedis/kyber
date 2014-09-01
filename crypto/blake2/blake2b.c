@@ -344,7 +344,7 @@ int blake2b_update( blake2b_state *S, const uint8_t *in, uint64_t inlen )
   while( inlen > 0 )
   {
     size_t left = S->buflen;
-    size_t fill = 2 * BLAKE2B_BLOCKBYTES - left;
+    size_t fill = BLAKE2B_BLOCKBYTES - left;
 
     if( inlen > fill )
     {
@@ -352,7 +352,6 @@ int blake2b_update( blake2b_state *S, const uint8_t *in, uint64_t inlen )
       S->buflen += fill;
       blake2b_increment_counter( S, BLAKE2B_BLOCKBYTES );
       blake2b_compress( S, S->buf ); // Compress
-      memcpy( S->buf, S->buf + BLAKE2B_BLOCKBYTES, BLAKE2B_BLOCKBYTES ); // Shift buffer left
       S->buflen -= BLAKE2B_BLOCKBYTES;
       in += fill;
       inlen -= fill;
@@ -372,17 +371,9 @@ int blake2b_update( blake2b_state *S, const uint8_t *in, uint64_t inlen )
 
 int blake2b_final( blake2b_state *S, uint8_t *out, uint8_t outlen )
 {
-  if( S->buflen > BLAKE2B_BLOCKBYTES )
-  {
-    blake2b_increment_counter( S, BLAKE2B_BLOCKBYTES );
-    blake2b_compress( S, S->buf );
-    S->buflen -= BLAKE2B_BLOCKBYTES;
-    memcpy( S->buf, S->buf + BLAKE2B_BLOCKBYTES, S->buflen );
-  }
-
   blake2b_increment_counter( S, S->buflen );
   blake2b_set_lastblock( S );
-  memset( S->buf + S->buflen, 0, 2 * BLAKE2B_BLOCKBYTES - S->buflen ); /* Padding */
+  memset( S->buf + S->buflen, 0, BLAKE2B_BLOCKBYTES - S->buflen ); /* Padding */
   blake2b_compress( S, S->buf );
   memcpy( out, &S->h[0], outlen );
   return 0;
@@ -451,4 +442,119 @@ int main( int argc, char **argv )
   return 0;
 }
 #endif
+
+
+// Use the BLAKE2 core as an expansion rather than compression function,
+// using the same construction as in the Salsa20 and ChaCha stream ciphers.
+static inline int blake2b_expand( blake2b_state *S, const uint8_t block[BLAKE2B_BLOCKBYTES] )
+{
+  __m128i row1l, row1h;
+  __m128i row2l, row2h;
+  __m128i row3l, row3h;
+  __m128i row4l, row4h;
+  __m128i b0, b1;
+  __m128i t0, t1;
+#if defined(HAVE_SSSE3) && !defined(HAVE_XOP)
+  const __m128i r16 = _mm_setr_epi8( 2, 3, 4, 5, 6, 7, 0, 1, 10, 11, 12, 13, 14, 15, 8, 9 );
+  const __m128i r24 = _mm_setr_epi8( 3, 4, 5, 6, 7, 0, 1, 2, 11, 12, 13, 14, 15, 8, 9, 10 );
+#endif
+#if defined(HAVE_SSE41)
+  const __m128i m0 = 0;		// Null input message when expanding
+  const __m128i m1 = 0;
+  const __m128i m2 = 0;
+  const __m128i m3 = 0;
+  const __m128i m4 = 0;
+  const __m128i m5 = 0;
+  const __m128i m6 = 0;
+  const __m128i m7 = 0;
+#else
+  const uint64_t  m0 = 0;
+  const uint64_t  m1 = 0;
+  const uint64_t  m2 = 0;
+  const uint64_t  m3 = 0;
+  const uint64_t  m4 = 0;
+  const uint64_t  m5 = 0;
+  const uint64_t  m6 = 0;
+  const uint64_t  m7 = 0;
+  const uint64_t  m8 = 0;
+  const uint64_t  m9 = 0;
+  const uint64_t m10 = 0;
+  const uint64_t m11 = 0;
+  const uint64_t m12 = 0;
+  const uint64_t m13 = 0;
+  const uint64_t m14 = 0;
+  const uint64_t m15 = 0;
+#endif
+  row1l = LOAD( &S->h[0] );
+  row1h = LOAD( &S->h[2] );
+  row2l = LOAD( &S->h[4] );
+  row2h = LOAD( &S->h[6] );
+  row3l = LOAD( &blake2b_IV[0] );
+  row3h = LOAD( &blake2b_IV[2] );
+  row4l = _mm_xor_si128( LOAD( &blake2b_IV[4] ), LOADU( &S->t[0] ) );
+  row4h = _mm_xor_si128( LOAD( &blake2b_IV[6] ), LOADU( &S->f[0] ) );
+
+  ROUND( 0 );
+  ROUND( 1 );
+  ROUND( 2 );
+  ROUND( 3 );
+  ROUND( 4 );
+  ROUND( 5 );
+  ROUND( 6 );
+  ROUND( 7 );
+  ROUND( 8 );
+  ROUND( 9 );
+  ROUND( 10 );
+  ROUND( 11 );
+
+  row1l = _mm_xor_si128( row3l, row1l );
+  row1h = _mm_xor_si128( row3h, row1h );
+  STORE( block + 00,  row1l );
+  STORE( block + 16,  row1h );
+  STORE( block + 32,  row2l );
+  STORE( block + 48,  row2h );
+  STORE( block + 64,  row3l );
+  STORE( block + 80,  row3h );
+  STORE( block + 96,  row4l );
+  STORE( block + 112, row4h );
+
+  return 0;
+}
+
+// Produce len bytes of stream cipher output from the BLAKE2 state,
+// and XOR them with bytes from in to yield encrypted bytes at out.
+// The state must have been initiallized, usually with a key,
+// but the same state must not be used for both hashing and stream expansion.
+int blake2b_stream( blake2b_state *S, uint8_t *out, const uint8_t *in, size_t len )
+{
+  size_t avail, i;
+
+  while (len > S->buflen) {
+
+    // Use any bytes leftover from the last block
+    avail = S->buflen;
+    uint8_t *buf = &S->buf[BLAKE2B_BLOCKBYTES - avail];
+    for (i = 0; i < avail; i++) {
+      out[i] = in[i] ^ buf[i];
+      // XXX use SSE with LOADU/STOREU if available
+    }
+    out += avail;
+    in += avail;
+    len -= avail;
+
+    // Produce the next block of ciphertext
+    blake2b_increment_counter( S, BLAKE2B_BLOCKBYTES );
+    blake2b_expand( S, S->buf );
+    S->buflen = BLAKE2B_BLOCKBYTES;
+  }
+
+  // Satisfy any partial block required
+  uint8_t *buf = &S->buf[BLAKE2B_BLOCKBYTES - S->buflen];
+  for (i = 0; i < len; i++) {
+    out[i] = in[i] ^ buf[i];
+  }
+  S->buflen -= len;
+
+  return 0;
+}
 

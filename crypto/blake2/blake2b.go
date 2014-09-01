@@ -12,6 +12,7 @@ import (
 	"C"
 	"hash"
 	"unsafe"
+	"crypto/cipher"
 )
 
 type digest struct {
@@ -75,7 +76,7 @@ type Config struct {
 // New returns a new custom BLAKE2b hash.
 //
 // If config is nil, uses a 64-byte digest size.
-func New(config *Config) hash.Hash {
+func New(config *Config) *digest {
 	d := &digest{
 		param: C.blake2b_param{
 			digest_length: 64,
@@ -160,3 +161,24 @@ func (d *digest) Write(buf []byte) (int, error) {
 	}
 	return len(buf), nil
 }
+
+
+// NewBlake2BStream returns a new stream cipher with the given secret key.
+// The stream cipher uses the BLAKE2B core
+// with the Salsa/ChaCha stream cipher construction.
+func NewBlake2BStream(key []byte) cipher.Stream {
+	s := New(&Config{Size: 64, Key: key})
+	C.blake2b_final(s.state, nil, 0)	// mix key into hash state
+	s.state.buflen = 0			// prepare for stream expansion
+	return s
+}
+
+func (d *digest) XORKeyStream(dst, src []byte) {
+	dl := len(dst)
+	if len(src) != dl {
+		panic("XORKeyStream: mismatched buffer lengths")
+	}
+	C.blake2b_stream(d.state, (*C.uint8_t)(&dst[0]), (*C.uint8_t)(&src[0]),
+				C.size_t(dl))
+}
+
