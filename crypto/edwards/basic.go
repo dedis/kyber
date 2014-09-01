@@ -249,14 +249,3 @@ func (c *BasicCurve) init25519() *BasicCurve {
 	return c
 }
 
-
-// Edwards curves represented in extended coordinates as specified in:
-//
-//	Twisted Edwards Curves Revisited
-//	http://eprint.iacr.org/2008/522
-//
-type extEdwardsPoint struct {
-	X,Y,Z,T big.Int
-	//c *extEdwardsCurve
-}
-
