@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"time"
 	"bytes"
+	"crypto/cipher"
 )
 
 
-func testEmbed(g Group,s string) {
+func testEmbed(g Group, rand cipher.Stream, points *[]Point, s string) {
 	//println("embedding: ",s)
 	b := []byte(s)
 
-	p,rem := g.Point().Pick(b, RandomStream)
+	p,rem := g.Point().Pick(b, rand)
 	//println("embedded, remainder",len(rem),"/",len(b),":",string(rem))
 	x,err := p.Data()
 	if err != nil {
@@ -22,32 +23,46 @@ func testEmbed(g Group,s string) {
 	if !bytes.Equal(append(x,rem...), b) {
 		panic("Point embedding corrupted the data")
 	}
+
+	*points = append(*points,p)
 }
 
-// Apply a generic set of validation tests to a cryptographic Group.
-func TestGroup(g Group) {
+// Apply a generic set of validation tests to a cryptographic Group,
+// using a given source of [pseudo-]randomness.
+//
+// Returns a log of the pseudorandom Points produced in the test,
+// for comparison across alternative implementations
+// that are supposed to be equivalent.
+//
+func testGroup(g Group, rand cipher.Stream) []Point {
 	fmt.Printf("\nTesting group '%s': %d-byte Point, %d-byte Secret\n",
 			g.String(), g.PointLen(), g.SecretLen())
 
+	points := make([]Point,0)
+
 	// Do a simple Diffie-Hellman test
-	s1 := g.Secret().Pick(RandomStream)
-	s2 := g.Secret().Pick(RandomStream)
+	s1 := g.Secret().Pick(rand)
+	s2 := g.Secret().Pick(rand)
 	if s1.Equal(s2) {
 		panic("uh-oh, not getting unique secrets!")
 	}
 
 	gen := g.Point().Base()
+	points = append(points,gen)
+
 	p1 := g.Point().Mul(gen,s1)
 	p2 := g.Point().Mul(gen,s2)
 	if p1.Equal(p2) {
 		panic("uh-oh, encryption isn't producing unique points!")
 	}
+	points = append(points,p1)
 
 	dh1 := g.Point().Mul(p1,s2)
 	dh2 := g.Point().Mul(p2,s1)
 	if !dh1.Equal(dh2) {
 		panic("Diffie-Hellman didn't work")
 	}
+	points = append(points,dh1)
 	//println("shared secret = ",dh1.String())
 
 	// Test secret inverse to get from dh1 back to p1
@@ -104,18 +119,52 @@ func TestGroup(g Group) {
 	}
 
 	// Test randomly picked points
-	p1.Pick(nil, RandomStream)
-	p2.Pick(nil, RandomStream)
+	pick1,_ := g.Point().Pick(nil, rand)
+	pick2,_ := g.Point().Pick(nil, rand)
 	if p1.Equal(p2) {
 		panic("Pick() not producing unique points")
 	}
+	points = append(points,pick1)
+	points = append(points,pick2)
 
 	// Test embedding data
-	testEmbed(g,"Hi!")
-	testEmbed(g,"The quick brown fox jumps over the lazy dog")
+	testEmbed(g,rand,&points,"Hi!")
+	testEmbed(g,rand,&points,"The quick brown fox jumps over the lazy dog")
 
 	// Test verifiable secret sharing
 	testSharing(g)
+
+	return points
+}
+
+// Apply a generic set of validation tests to a cryptographic Group.
+func TestGroup(g Group) {
+	testGroup(g, RandomStream)
+}
+
+// Test two group implementations that are supposed to be equivalent,
+// and compare their results.
+func TestCompareGroups(g1,g2 Group) {
+
+	// Use any ciphersuite to produce psuedorandom bits
+	suite := NewAES128SHA256P256()
+	//seed := make([]byte, 0)
+
+	// Produce test results from the same pseudorandom seed
+	r1 := testGroup(g1, HashStream(suite, nil, nil))
+	r2 := testGroup(g2, HashStream(suite, nil, nil))
+
+	// Compare resulting Points
+	for i := range(r1) {
+		b1 := r1[i].Encode()
+		b2 := r2[i].Encode()
+		if !bytes.Equal(b1,b2) {
+			println("result-pair",i,
+				"\n1:",r1[i].String(),
+				"\n2:",r2[i].String())
+			panic("unequal results")
+		}
+	}
 }
 
 // A simple microbenchmark suite for abstract group functionality.

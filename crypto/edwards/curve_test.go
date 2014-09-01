@@ -5,19 +5,30 @@ import (
 	"dissent/crypto"
 )
 
-func TestBasicCurve25519(t *testing.T) {
-	crypto.TestGroup(new(basicCurve).init25519())
+
+// Test basicCurve and projCurve implementations
+
+func Test25519(t *testing.T) {
+	crypto.TestCompareGroups(
+		new(basicCurve).init25519(),
+		new(projCurve).init(Param25519()))
 }
 
-func TestBasicCurveE382(t *testing.T) {
-	crypto.TestGroup(new(basicCurve).init(ParamE382()))
+func TestE382(t *testing.T) {
+	crypto.TestCompareGroups(
+		new(basicCurve).init(ParamE382()),
+		new(projCurve).init(ParamE382()))
 }
 
-func TestBasicCurve41417(t *testing.T) {
-	crypto.TestGroup(new(basicCurve).init(Param41417()))
+func Test41417(t *testing.T) {
+	crypto.TestCompareGroups(
+		new(basicCurve).init(Param41417()),
+		new(projCurve).init(Param41417()))
 }
 
-func TestBasicCurveE521(t *testing.T) {
-	crypto.TestGroup(new(basicCurve).init(ParamE521()))
+func TestE521(t *testing.T) {
+	crypto.TestCompareGroups(
+		new(basicCurve).init(ParamE521()),
+		new(projCurve).init(ParamE521()))
 }
 

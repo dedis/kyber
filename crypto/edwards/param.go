@@ -6,14 +6,19 @@ import (
 
 
 // Parameters defining a Twisted Edwards curve (TEC).
-// Twisted Edwards curves are elliptic curves of the form
+// Twisted Edwards curves (TEC's) are elliptic curves satisfying the equation
 //
-//	ax^2 + y^2 = c*(1 + dx^2y^2)
+//	ax^2 + y^2 = c^2(1 + dx^2y^2)
 //
 // for some scalars c, d over some field K.
-// We assume K is a (finite) prime field for a large prime P.
-// We also assume here that c == 1.
+// We assume K is a (finite) prime field for a large prime p.
+// We also assume c == 1 because all curves in the generalized form
+// are isomorphic to curves having c == 1.
+// For details see:
 //
+//	Twisted Edwards Curves
+//	http://eprint.iacr.org/2008/013.pdf
+// 
 type Param struct {
 	Name string		// Name of curve
 	P big.Int		// Prime defining the underlying field
@@ -38,7 +43,7 @@ func Param25519() *Param {
 	p.R.SetBit(zero,252,1).Add(&p.R,&rs)
 	p.A.SetInt64(-1).Add(&p.P,&p.A)
 	p.D.SetString("37095705934669439343138083508754565189542113879843219016388785533085940283555",10)
-	p.BX.SetString("42783823269122696939284341094755422415180979639778424813682678720006717057747",10)
+	p.BX.SetString("15112221349535400772501151409588531511454012693041857206046113283949847762202",10)
 	p.BY.SetString("46316835694926478169428394003475163141307993866256225615783033603165251855960",10)
 	return &p
 }

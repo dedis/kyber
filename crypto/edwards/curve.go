@@ -2,20 +2,20 @@ package edwards
 
 import (
 	"errors"
+	"math/big"
 	"crypto/cipher"
 	"dissent/crypto"
 )
 
+var zero = big.NewInt(0)
+var one = big.NewInt(1)
 
 // Generic "abstract base class" for Edwards curves,
 // embodying functionality independent of internal Point representation.
 type curve struct {
-	Param			// Edwards curve parameters
-
-	a crypto.ModInt		// Edwards curve equation parameter a
-	d crypto.ModInt		// Edwards curve equation parameter d
-
+	Param			// Twisted Edwards curve parameters
 	zero,one crypto.ModInt	// Constant ModInts with correct modulus
+	a,d crypto.ModInt	// Curve equation parameters as ModInts
 }
 
 func (c *curve) SecretLen() int {
@@ -141,7 +141,7 @@ func (c *curve) pickPoint(data []byte, rand cipher.Stream,
 			x,y *crypto.ModInt) []byte {
 
 	// How much data to embed?
-	l := y.Len()
+	l := c.zero.Len()
 	dl := c.pickLen()
 	if dl > len(data) {
 		dl = len(data)
@@ -155,6 +155,7 @@ func (c *curve) pickPoint(data []byte, rand cipher.Stream,
 			b[l-1] = byte(dl)	// Encode length in low 8 bits
 			copy(b[l-dl-1:l-1],data) // Copy in data to embed
 		}
+		y.M = &c.P
 		y.SetBytes(b)
 
 		if !c.solveForX(x,y) {	// Find a corresponding x-coordinate

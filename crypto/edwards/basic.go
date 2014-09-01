@@ -7,19 +7,11 @@ import (
 	"dissent/crypto"
 )
 
-var zero = big.NewInt(0)
-var one = big.NewInt(1)
-
 // Basic, unoptimized reference implementation of Twisted Edwards curves.
-// Twisted Edwards curves (TEC's) are elliptic curves of the form
-//
-//	ax^2 + y^2 = c*(1 + dx^2y^2)
-//
-// for some scalars c, d over some field K.
-// We assume K is a (finite) prime field for a large prime p.
-// 
 // This reference implementation is mainly intended for debugging and testing
-// and instructional uses, not for production use.
+// and instructional uses, not for any production use.
+// The projective coordinates implementation (projCurve)
+// is just as general and much faster.
 //
 type basicPoint struct {
 	x,y crypto.ModInt
@@ -122,7 +114,7 @@ func (P *basicPoint) Add(P1,P2 crypto.Point) crypto.Point {
 
 // Point doubling, which for Edwards curves can be accomplished
 // simply by adding a point to itself (no exceptions for equal input points).
-func (p *basicPoint) double(P crypto.Point) crypto.Point {
+func (P *basicPoint) double() crypto.Point {
 	return P.Add(P,P)
 }
 
@@ -151,7 +143,7 @@ func (P *basicPoint) Mul(G crypto.Point, s crypto.Secret) crypto.Point {
 	var T basicPoint	// Must use temporary in case G == P
 	T.Set(&P.c.I)		// Initialize to identity element (0,1)
 	for i := v.BitLen()-1; i >= 0; i-- {
-		T.double(&T)
+		T.double()
 		if v.Bit(i) != 0 {
 			T.Add(&T, G)
 		}
@@ -206,7 +198,7 @@ func (c *basicCurve) init(p *Param) *basicCurve {
 // Here we actually compute the standard base point by the specification,
 // which requires that the curve already be (mostly) initialized.
 func (c *basicCurve) init25519() *basicCurve {
-	c.Name = "Ed25519"
+	c.Name = "25519"
 
 	// p = 2^255 - 19
 	c.P.SetBit(zero, 255, 1)
@@ -245,13 +237,10 @@ func (c *basicCurve) init25519() *basicCurve {
 	if !ok {
 		panic("init25519: invalid base point!?")
 	}
-	//println("B: "+c.B.String())
-	//println("BX: "+c.B.x.V.String())
-	//println("BY: "+c.B.y.V.String())
 	if c.coordSign(&c.B.x) != 0 {
 		c.B.x.Neg(&c.B.x)	// take the positive square root
 	}
-	//println("-B: "+c.B.String())
+	//println("B: "+c.B.String())
 	if !c.onCurve(&c.B.x,&c.B.y) {
 		panic("init25519: base point not on curve!?")
 	}
