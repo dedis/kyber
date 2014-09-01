@@ -1,7 +1,6 @@
 package edwards
 
 import (
-	"fmt"
 	"math/big"
 	"crypto/cipher"
 	"dissent/crypto"
@@ -13,7 +12,7 @@ type basicPoint struct {
 }
 
 func (P *basicPoint) String() string {
-	return fmt.Sprintf("(%s,%s)", P.x.String(), P.y.String())
+	return P.c.pointString(&P.x,&P.y)
 }
 
 // Create a new ModInt representing a coordinate on this curve,

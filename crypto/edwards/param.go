@@ -1,7 +1,7 @@
 // This package contains several implementations of Twisted Edwards Curves,
 // from general and unoptimized to highly specialized and optimized.
 //
-// Twisted Edwards curves (TEC's) are elliptic curves satisfying the equation
+// Twisted Edwards curves (TEC's) are elliptic curves satisfying the equation:
 //
 //	ax^2 + y^2 = c^2(1 + dx^2y^2)
 //

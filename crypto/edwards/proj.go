@@ -1,7 +1,6 @@
 package edwards
 
 import (
-	"fmt"
 	"crypto/cipher"
 	"dissent/crypto"
 )
@@ -13,7 +12,7 @@ type projPoint struct {
 
 func (P *projPoint) String() string {
 	P.normalize()
-	return fmt.Sprintf("(%s,%s)", P.X.String(), P.Y.String())
+	return P.c.pointString(&P.X,&P.Y)
 }
 
 func (P *projPoint) Len() int {

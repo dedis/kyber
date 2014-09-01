@@ -2,13 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package edwards25519 implements operations in GF(2**255-19) and on an
-// Edwards curve that is isomorphic to curve25519. See
-// http://ed25519.cr.yp.to/.
 package ed25519
-
-// This code is based on Adam Langley's Go port of the public domain,
-// "ref10" implementation of ed25519 from SUPERCOP.
 
 // Group elements are members of the elliptic curve -x^2 + y^2 = 1 + d * x^2 *
 // y^2 where d = -121665/121666.

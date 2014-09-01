@@ -3,7 +3,7 @@ package main
 import (
 	"dissent/crypto"
 	"dissent/crypto/openssl"
-	"dissent/crypto/ed25519"
+	"dissent/crypto/edwards/ed25519"
 	"dissent/crypto/sodium"
 	"dissent/crypto/shuffle"
 )
@@ -22,9 +22,7 @@ func benchSuite(s crypto.Suite) {
 func testSuites() {
 	// Native Go suites
 	testSuite(crypto.NewAES128SHA256QR512())
-	//testSuite(crypto.NewAES128SHA256QR1024())
 	testSuite(crypto.NewAES128SHA256P256())
-	testSuite(crypto.NewAES128SHA256Ed25519())
 	testSuite(ed25519.NewAES128SHA256Ed25519())
 
 	// OpenSSL-based suites

@@ -1,7 +1,7 @@
 package edwards
 
 import (
-	"fmt"
+	"encoding/hex"
 	"crypto/cipher"
 	"dissent/crypto"
 )
@@ -13,7 +13,8 @@ type extPoint struct {
 
 func (P *extPoint) String() string {
 	P.normalize()
-	return fmt.Sprintf("(%s,%s)", P.X.String(), P.Y.String())
+	//return P.c.pointString(&P.X,&P.Y)
+	return hex.EncodeToString(P.Encode())
 }
 
 func (P *extPoint) Len() int {

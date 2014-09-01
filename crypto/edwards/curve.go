@@ -1,6 +1,7 @@
 package edwards
 
 import (
+	"fmt"
 	"errors"
 	"math/big"
 	"crypto/cipher"
@@ -9,6 +10,31 @@ import (
 
 var zero = big.NewInt(0)
 var one = big.NewInt(1)
+
+
+// Byte-reverse src into dst,
+// so that src[0] goes into dst[len-1] and vice versa.
+// dst and src may be the same slice but otherwise must not overlap.
+// XXX this probably belongs in a utils package somewhere.
+func reverse(dst,src []byte) []byte {
+	l := len(dst)
+	if len(src) != l {
+		panic("different-length slices passed to reverse")
+	}
+	if &dst[0] == &src[0] {		// in-place
+		for i := 0; i < l/2; i++ {
+			t := dst[i]
+			dst[i] = dst[l-1-i]
+			dst[l-1-i] = t
+		}
+	} else {
+		for i := 0; i < l; i++ {
+			dst[i] = src[l-1-i]
+		}
+	}
+	return dst
+}
+
 
 // Generic "abstract base class" for Edwards curves,
 // embodying functionality independent of internal Point representation.
@@ -29,6 +55,8 @@ func (c *curve) Secret() crypto.Secret {
 }
 
 // Returns the size in bytes of an encoded Point on this curve.
+// Uses compressed representation consisting of the y-coordinate
+// and only the sign bit of the x-coordinate.
 func (c *curve) PointLen() int {
 	return (c.P.BitLen() + 7 + 1) / 8
 }
@@ -54,7 +82,13 @@ func (c *curve) coordSign(i *crypto.ModInt) uint {
 	return i.V.Bit(0)
 }
 
+// Convert a point to string representation.
+func (c *curve) pointString(x,y *crypto.ModInt) string {
+	return fmt.Sprintf("(%s,%s)", x.String(), y.String())
+}
+
 // Encode an Edwards curve point.
+// We use little-endian encoding for consistency with Ed25519.
 func (c *curve) encodePoint(x,y *crypto.ModInt) []byte {
 
 	// Encode the y-coordinate
@@ -70,11 +104,17 @@ func (c *curve) encodePoint(x,y *crypto.ModInt) []byte {
 		b[0] |= 0x80
 	}
 
+	// Convert to little-endian
+	reverse(b,b)
 	return b
 }
 
 // Decode an Edwards curve point into the given x,y coordinates.
-func (c *curve) decodePoint(b []byte, x,y *crypto.ModInt) error {
+func (c *curve) decodePoint(bb []byte, x,y *crypto.ModInt) error {
+
+	// Convert from little-endian
+	b := make([]byte, len(bb))
+	reverse(b,bb)
 
 	// Extract the sign of the x-coordinate
 	xsign := uint(b[0] >> 7)
@@ -144,7 +184,6 @@ func (c *curve) pickPoint(data []byte, rand cipher.Stream,
 			x,y *crypto.ModInt) []byte {
 
 	// How much data to embed?
-	l := c.zero.Len()
 	dl := c.pickLen()
 	if dl > len(data) {
 		dl = len(data)
@@ -152,13 +191,21 @@ func (c *curve) pickPoint(data []byte, rand cipher.Stream,
 
 	// Retry until we find a valid point
 	for {
-		// Pick a random y-coordinate, with optional embedded data
-		b := crypto.RandomBits(uint(c.P.BitLen()), false, rand)
+		// Get random bits the size of a compressed Point encoding,
+		// in which the topmost bit is reserved for the x-coord sign.
+		l := c.PointLen()
+		b := make([]byte, l)
+		rand.XORKeyStream(b,b)		// Interpret as little-endian
 		if data != nil {
-			b[l-1] = byte(dl)	// Encode length in low 8 bits
-			copy(b[l-dl-1:l-1],data) // Copy in data to embed
+			b[0] = byte(dl)		// Encode length in low 8 bits
+			copy(b[1:1+dl],data)	// Copy in data to embed
 		}
-		y.M = &c.P
+		reverse(b,b)			// Convert to big-endian form
+
+		xsign := b[0] >> 7		// save x-coordinate sign bit
+		b[0] &^= 0xff << uint(c.P.BitLen() & 7)	// clear high bits
+
+		y.M = &c.P			// set y-coordinate
 		y.SetBytes(b)
 
 		if !c.solveForX(x,y) {	// Find a corresponding x-coordinate
@@ -166,12 +213,9 @@ func (c *curve) pickPoint(data []byte, rand cipher.Stream,
 		}
 
 		// Pick a random sign for the x-coordinate
-		b = b[0:1]
-		rand.XORKeyStream(b,b)
-		if c.coordSign(x) != uint(b[0] >> 7) {
+		if c.coordSign(x) != uint(xsign) {
 			x.Neg(x)
 		}
-
 		if !c.onCurve(x,y) {
 			panic("Pick generated a bad point")
 		}
@@ -183,12 +227,11 @@ func (c *curve) pickPoint(data []byte, rand cipher.Stream,
 // Extract embedded data from a point group element,
 // or an error if embedded data is invalid or not present.
 func (c *curve) data(x,y *crypto.ModInt) ([]byte,error) {
-	l := y.Len()
-	b := y.Encode()
-	dl := int(b[l-1])
+	b := c.encodePoint(x,y)
+	dl := int(b[0])
 	if dl > c.pickLen() {
 		return nil,errors.New("invalid embedded data length")
 	}
-	return b[l-dl-1:l-1],nil
+	return b[1:1+dl],nil
 }
 

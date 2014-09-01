@@ -1,3 +1,17 @@
+// Package ed25519 provides an optimized Go implementation of a
+// Twisted Edwards curve that is isomorphic to Curve25519. For details see:
+// http://ed25519.cr.yp.to/.
+//
+// This code is based on Adam Langley's Go port of the public domain,
+// "ref10" implementation of the ed25519 signing scheme in C from SUPERCOP.
+// It was generalized and extended to support full abstract group arithmetic
+// by the Yale Decentralized/Distributed Systems (DeDiS) group.
+//
+// Due to the field element and group arithmetic optimizations
+// described in the Ed25519 paper, this implementation generally performs
+// extremely well, typically comparable to native C implementations.
+// The tradeoff is that this code is completely specialized to a single curve.
+// 
 package ed25519
 
 import (
@@ -14,7 +28,6 @@ import (
 
 type point struct {
 	ge extendedGroupElement
-	//c *curve
 }
 
 func (P *point) String() string {
@@ -82,6 +95,7 @@ func (P *point) PickLen() int {
 }
 
 func (P *point) Pick(data []byte, rand cipher.Stream) (crypto.Point, []byte) {
+
 	// How many bytes to embed?
 	dl := P.PickLen()
 	if dl > len(data) {
@@ -178,26 +192,34 @@ func (P *point) Mul(A crypto.Point, s crypto.Secret) crypto.Point {
 }
 
 
-type curve struct {
+// Curve represents an Ed25519.
+// There are no parameters and no initialization is required
+// because it supports only this one specific curve.
+type Curve struct {
 }
 
-func (c *curve) String() string {
+// Return the name of the curve, "Ed25519".
+func (c *Curve) String() string {
 	return "Ed25519"
 }
 
-func (c *curve) SecretLen() int {
+// Returns 32, the size in bytes of an encoded Secret for the Ed25519 curve.
+func (c *Curve) SecretLen() int {
 	return 32
 }
 
-func (c *curve) Secret() crypto.Secret {
+// Create a new Secret for the Ed25519 curve.
+func (c *Curve) Secret() crypto.Secret {
 	return crypto.NewModInt(0, order)
 }
 
-func (c *curve) PointLen() int {
+// Returns 32, the size in bytes of an encoded Point on the Ed25519 curve.
+func (c *Curve) PointLen() int {
 	return 32
 }
 
-func (c *curve) Point() crypto.Point {
+// Create a new Point on the Ed25519 curve.
+func (c *Curve) Point() crypto.Point {
 	P := new(point)
 	//P.c = c
 	return P
@@ -205,8 +227,9 @@ func (c *curve) Point() crypto.Point {
 
 
 type suite struct {
-	curve
+	Curve
 } 
+
 // XXX non-NIST ciphers?
 
 // SHA256 hash function
@@ -227,7 +250,7 @@ func (s *suite) Stream(key []byte) cipher.Stream {
 }
 
 // Ciphersuite based on AES-128, SHA-256, and the Ed25519 curve.
-func NewAES128SHA256Ed25519() crypto.Suite {
+func newAES128SHA256Ed25519() crypto.Suite {
 	suite := new(suite)
 	return suite
 }
