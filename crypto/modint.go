@@ -200,7 +200,8 @@ func (i *ModInt) Exp(a Secret, e *big.Int) Secret {
 	return i
 }
 
-// Compute the Legendre symbol of a, if modulus M is prime.
+// Compute the Legendre symbol of i, if modulus M is prime,
+// using the Euler criterion (which involves exponentiation).
 func (i *ModInt) legendre() int {
 	var Pm1,v big.Int
 	Pm1.Sub(i.M,one)
@@ -210,6 +211,46 @@ func (i *ModInt) legendre() int {
 		return -1
 	}
 	return v.Sign()
+}
+
+// Compute the Jacobi symbol of i using Euclid's algorithm,
+// much faster than Euler's criterion because no multiply required.
+// Uses the formulation described in chapter 2, section 2.4, of 
+// "The Yacas Book of Algorithms": http://yacas.sourceforge.net/Algo.book.pdf
+func (i *ModInt) jacobi() int {
+	var a,b,c big.Int
+	a.Set(&i.V)
+	b.Set(i.M)
+	j := 1
+	for {
+		if a.Cmp(zero) == 0 {
+			return 0
+		}
+		if b.Cmp(one) == 0 {
+			return j
+		}
+		a.Mod(&a,&b)
+
+		// Handle factors of 2 in a
+		s := 0
+		for a.Bit(s) == 0 {
+			s++
+		}
+		if s & 1 != 0 {
+			bmod8 := b.Bits()[0] & 7
+			if bmod8 == 3 || bmod8 == 5 {
+				j = -j
+			}
+		}
+		c.Rsh(&a,uint(s))			// a = 2^s*c
+
+		// Swap numerator and denominator
+		if b.Bits()[0] & 3 == 3 && c.Bits()[0] & 3 == 3 {
+			j = -j
+		}
+		a.Set(&b)
+		b.Set(&c)
+	}
 }
 
 // Compute some square root of a mod M of one exists.
@@ -225,7 +266,7 @@ func (i *ModInt) Sqrt(as Secret) bool {
 		i.Init64(0,p)		// sqrt(0) = 0
 		return true
 	}
-	if ai.legendre() != 1 {
+	if ai.jacobi() != 1 {
 		return false		// a is not a square mod M
 	}
 
@@ -242,7 +283,7 @@ func (i *ModInt) Sqrt(as Secret) bool {
 	var ni ModInt
 	ni.Init64(2,p)
 	n := &ni.V
-	for ni.legendre() != -1 {
+	for ni.jacobi() != -1 {
 		n.Add(n,one)
 	}
 
