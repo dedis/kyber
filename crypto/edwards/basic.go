@@ -137,15 +137,20 @@ func (P *basicPoint) Mul(G crypto.Point, s crypto.Secret) crypto.Point {
 	if G == nil {
 		return P.Base(nil).Mul(P,s)
 	}
-	var T basicPoint	// Must use temporary in case G == P
+	T := P
+	if G == P {		// Must use temporary in case G == P
+		T = &basicPoint{}
+	}
 	T.Set(&P.c.null)	// Initialize to identity element (0,1)
 	for i := v.BitLen()-1; i >= 0; i-- {
 		T.double()
 		if v.Bit(i) != 0 {
-			T.Add(&T, G)
+			T.Add(T, G)
 		}
 	}
-	P.Set(&T)
+	if T != P {
+		P.Set(T)
+	}
 	return P
 }
 
@@ -213,6 +218,10 @@ func (c *BasicCurve) init25519() *BasicCurve {
 	c.R.SetString("27742317777372353535851937790883648493", 10)
 	c.R.SetBit(&c.R, 252, 1)
 	//println("r: "+c.R.String())
+
+	// s = 8 (cofactor)
+	c.S.SetInt64(8)
+	c.cofact.Init64(8, &c.P)
 
 	// a = -1
 	c.a.Init64(-1, &c.P)
