@@ -26,8 +26,21 @@ func (p *schnorrPoint) Null() Point {
 	return p
 }
 
-func (p *schnorrPoint) Base() Point {
-	p.Int.Set(p.g.G)
+func (p *schnorrPoint) Base(rand cipher.Stream) Point {
+	if rand == nil {
+		// use the well-known generator
+		p.Int.Set(p.g.G)
+	} else {
+		// pick a new pseudo-random generator
+		for {
+			p.Pick(nil, rand)		// pick a random point
+			p.Exp(&p.Int, p.g.R, p.g.P)	// find a generator
+			if p.Cmp(one) != 0 {
+				break			// got one
+			}
+			// retry
+		}
+	}
 	return p
 }
 
@@ -101,7 +114,7 @@ func (p *schnorrPoint) Neg(a Point) Point {
 
 func (p *schnorrPoint) Mul(b Point, s Secret) Point {
 	if b == nil {
-		return p.Base().Mul(p,s)
+		return p.Base(nil).Mul(p,s)
 	}
 	p.Int.Exp(&b.(*schnorrPoint).Int, &s.(*ModInt).V, p.g.P)
 	return p

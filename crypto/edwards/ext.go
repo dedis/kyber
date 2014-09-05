@@ -61,8 +61,12 @@ func (P *extPoint) Null() crypto.Point {
 	return P
 }
 
-func (P *extPoint) Base() crypto.Point {
-	P.Set(&P.c.base)
+func (P *extPoint) Base(rand cipher.Stream) crypto.Point {
+	if rand == nil {
+		P.Set(&P.c.base)
+	} else {
+		P.c.pickBase(rand, P, &P.c.null)
+	}
 	return P
 }
 
@@ -190,7 +194,7 @@ func (P *extPoint) double() {
 func (P *extPoint) Mul(G crypto.Point, s crypto.Secret) crypto.Point {
 	v := s.(*crypto.ModInt).V
 	if G == nil {
-		return P.Base().Mul(P,s)
+		return P.Base(nil).Mul(P,s)
 	}
 	T := P
 	if G == P {		// Must use temporary for in-place multiply

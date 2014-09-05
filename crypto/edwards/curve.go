@@ -41,6 +41,7 @@ func reverse(dst,src []byte) []byte {
 type curve struct {
 	Param			// Twisted Edwards curve parameters
 	zero,one crypto.ModInt	// Constant ModInts with correct modulus
+	cofact crypto.ModInt	// Cofactor as a ModInt
 	a,d crypto.ModInt	// Curve equation parameters as ModInts
 }
 
@@ -68,7 +69,10 @@ func (c *curve) init(p *Param) *curve {
 	// Edwards curve parameters as ModInts for convenience
 	c.a.Init(&p.A,&p.P)
 	c.d.Init(&p.D,&p.P)
-         
+
+	// Cofactor, for random point generation
+	c.cofact.Init(&p.S,&p.P)
+
 	// Useful ModInt constants for this curve
 	c.zero.Init64(0, &c.P)
 	c.one.Init64(1, &c.P)
@@ -221,6 +225,19 @@ func (c *curve) pickPoint(data []byte, rand cipher.Stream,
 		}
 
 		return data[dl:]
+	}
+}
+
+// Pick a [pseudo-]random base point of prime order.
+func (c *curve) pickBase(rand cipher.Stream, p,null crypto.Point) {
+
+	for {
+		p.Pick(nil, rand)	// pick a random point
+		p.Mul(p, &c.cofact)	// multiply by cofactor
+		if !p.Equal(null) {
+			break			// got one
+		}
+		// retry
 	}
 }
 

@@ -56,6 +56,13 @@ func (s *secret) One() crypto.Secret {
 }
 
 func (s *secret) SetInt64(v int64) crypto.Secret {
+	neg := false
+	if v < 0 {
+		neg = true
+		v = -v
+	}
+
+	// Initialize the absolute value
 	vl := C.ulong(v)
 	if int64(v) != v {
 		panic("openssl.SetInt64: value doesn't fit into C.ulong")
@@ -63,6 +70,14 @@ func (s *secret) SetInt64(v int64) crypto.Secret {
 	if C.BN_set_word(s.bignum.bn, vl) == 0 {
 		panic("BN_set_word: "+getErrString())
 	}
+
+	// Negate if needed
+	if neg {
+		if C.BN_sub(s.bignum.bn, s.c.n.bn, s.bignum.bn) == 0 {
+			panic("BN_sub: "+getErrString())
+		}
+	}
+
 	return s
 }
 

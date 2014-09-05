@@ -30,6 +30,7 @@ type point struct {
 	ge extendedGroupElement
 }
 
+
 func (P *point) String() string {
 	var b [32]byte
 	P.ge.ToBytes(&b)
@@ -82,8 +83,19 @@ func (P *point) Null() crypto.Point {
 }
 
 // Set to the standard base point for this curve
-func (P *point) Base() crypto.Point {
-	P.ge = baseext
+func (P *point) Base(rand cipher.Stream) crypto.Point {
+	if rand == nil {
+		P.ge = baseext
+	} else {
+		for {
+			P.Pick(nil, rand)	// pick a random point
+			P.Mul(P, cofactor)	// multiply by Ed25519 cofactor
+			if !P.Equal(pzero) {
+				break		// got one
+			}
+			// retry
+		}
+	}
 	return P
 }
 

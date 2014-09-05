@@ -58,8 +58,12 @@ func (P *projPoint) Null() crypto.Point {
 	return P
 }
 
-func (P *projPoint) Base() crypto.Point {
-	P.Set(&P.c.base)
+func (P *projPoint) Base(rand cipher.Stream) crypto.Point {
+	if rand == nil {
+		P.Set(&P.c.base)
+	} else {
+		P.c.pickBase(rand, P, &P.c.null)
+	}
 	return P
 }
 
@@ -168,7 +172,7 @@ func (P *projPoint) double() {
 func (P *projPoint) Mul(G crypto.Point, s crypto.Secret) crypto.Point {
 	v := s.(*crypto.ModInt).V
 	if G == nil {
-		return P.Base().Mul(P,s)
+		return P.Base(nil).Mul(P,s)
 	}
 	T := P
 	if G == P {		// Must use temporary for in-place multiply

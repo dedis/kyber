@@ -68,7 +68,12 @@ type Point interface {
 	Equal(s2 Point) bool
 
 	Null() Point			// Set to neutral identity element
-	Base() Point			// Set to well-known generator
+
+	// Set to this group's standard base point if rand == nil.
+	// Otherwise, pick a [pseudo-]random generator using bits from rand.
+	// This is the standard method of producing independent generators
+	// with unknown discrete-log relationships.
+	Base(rand cipher.Stream) Point
 
 	// Pick and set to a point that is at least partly [pseudo-]random,
 	// and optionally so as to encode a limited amount of specified data.

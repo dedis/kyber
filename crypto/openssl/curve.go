@@ -35,9 +35,10 @@ type point struct {
 type curve struct {
 	ctx *_Ctype_struct_bignum_ctx
 	g *_Ctype_struct_ec_group_st
-	p,n *bignum
+	p,n,cofact *bignum
 	plen, nlen int
 	name string
+	null *point
 }
 
 
@@ -88,13 +89,31 @@ func (p *point) Null() crypto.Point {
 	return p
 }
 
-func (p *point) Base() crypto.Point {
-	genp := C.EC_GROUP_get0_generator(p.c.g)
-	if genp == nil {
-		panic("EC_GROUP_get0_generator: "+getErrString())
-	}
-	if C.EC_POINT_copy(p.p, genp) == 0 {
-		panic("EC_POINT_copy: "+getErrString())
+func (p *point) Base(rand cipher.Stream) crypto.Point {
+	if rand == nil {	// get standard generator
+		genp := C.EC_GROUP_get0_generator(p.c.g)
+		if genp == nil {
+			panic("EC_GROUP_get0_generator: "+getErrString())
+		}
+		if C.EC_POINT_copy(p.p, genp) == 0 {
+			panic("EC_POINT_copy: "+getErrString())
+		}
+	} else {
+		for {
+			// Pick a random point
+			p.Pick(nil, rand)
+
+			// Multiply by the cofactor for this curve
+			if C.EC_POINT_mul(p.c.g, p.p, nil, p.p, p.c.cofact.bn,
+						p.c.ctx) == 0 {
+				panic("EC_POINT_mul: "+getErrString())
+			}
+
+			if !p.Equal(p.c.null) { // make sure it's non-null
+				break		// got a good base point
+			}
+			// retry
+		}
 	}
 	return p
 }
@@ -286,22 +305,32 @@ func (c *curve) initNamedCurve(name string, nid C.int) *curve {
 	}
 	c.nlen = (c.n.BitLen()+7)/8
 
+	// Get the curve's cofactor
+	c.cofact = newBigNum()
+	if C.EC_GROUP_get_cofactor(c.g, c.cofact.bn, c.ctx) == 0 {
+		panic("EC_GROUP_get_cofactor: "+getErrString())
+	}
+
+	// Stash a copy of the point at infinity
+	c.null = newPoint(c)
+	c.null.Null()
+
 	return c
 }
 
-func (c *curve) InitP224() {
-	c.initNamedCurve("P224", C.NID_secp224r1)
+func (c *curve) InitP224() crypto.Group {
+	return c.initNamedCurve("P224", C.NID_secp224r1)
 }
 
-func (c *curve) InitP256() {
-	c.initNamedCurve("P256", C.NID_X9_62_prime256v1)
+func (c *curve) InitP256() crypto.Group {
+	return c.initNamedCurve("P256", C.NID_X9_62_prime256v1)
 }
 
-func (c *curve) InitP384() {
-	c.initNamedCurve("P384", C.NID_secp384r1)
+func (c *curve) InitP384() crypto.Group {
+	return c.initNamedCurve("P384", C.NID_secp384r1)
 }
 
-func (c *curve) InitP521() {
-	c.initNamedCurve("P521", C.NID_secp521r1)
+func (c *curve) InitP521() crypto.Group {
+	return c.initNamedCurve("P521", C.NID_secp521r1)
 }
 

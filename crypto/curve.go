@@ -19,8 +19,17 @@ func (p *curvePoint) String() string {
 }
 
 func (p *curvePoint) Equal(p2 Point) bool {
-	return	p.x.Cmp(p2.(*curvePoint).x) == 0 &&
-		p.y.Cmp(p2.(*curvePoint).y) == 0
+	cp2 := p2.(*curvePoint)
+
+	// Make sure both coordinates are normalized.
+	// Apparently Go's elliptic curve code doesn't always ensure this.
+	M := p.c.p.P
+	p.x.Mod(p.x, M)
+	p.y.Mod(p.y, M)
+	cp2.x.Mod(cp2.x, M)
+	cp2.y.Mod(cp2.y, M)
+
+	return p.x.Cmp(cp2.x) == 0 && p.y.Cmp(cp2.y) == 0
 }
 
 func (p *curvePoint) Null() Point {
@@ -29,9 +38,23 @@ func (p *curvePoint) Null() Point {
 	return p
 }
 
-func (p *curvePoint) Base() Point {
-	p.x = p.c.p.Gx
-	p.y = p.c.p.Gy
+func (p *curvePoint) Base(rand cipher.Stream) Point {
+	if rand == nil {
+		// Use the well-known base point.
+		p.x = p.c.p.Gx
+		p.y = p.c.p.Gy
+	} else {
+		// Pick a new pseudo-random base point.
+		// The Go elliptic curve library currently supports
+		// only the NIST prime-order curves,
+		// all of which have cofactor 1, and elliptic.CurveParams
+		// currently doesn't even have a cofactor field.
+		// So we currently just assume the cofactor is 1,
+		// which any curve point a generators.
+		// But this will need to change if the Go curve library
+		// is upgraded to handle curves with other cofactors.
+		p.Pick(nil, rand)
+	}
 	return p
 }
 
@@ -214,5 +237,4 @@ func (c *curve) Point() Point {
 func (c *curve) Order() *big.Int {
 	return c.p.N
 }
-
 

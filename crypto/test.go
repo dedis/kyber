@@ -39,6 +39,11 @@ func testGroup(g Group, rand cipher.Stream) []Point {
 			g.String(), g.PointLen(), g.SecretLen())
 
 	points := make([]Point,0)
+	ptmp := g.Point()
+	stmp := g.Secret()
+	pzero := g.Point().Null()
+	szero := g.Secret().Zero()
+	sone := g.Secret().One()
 
 	// Do a simple Diffie-Hellman test
 	s1 := g.Secret().Pick(rand)
@@ -47,8 +52,18 @@ func testGroup(g Group, rand cipher.Stream) []Point {
 		panic("uh-oh, not getting unique secrets!")
 	}
 
-	gen := g.Point().Base()
+	gen := g.Point().Base(nil)
 	points = append(points,gen)
+
+	// Verify additive and multiplicative identities of the generator.
+	ptmp.Mul(nil,stmp.SetInt64(-1)).Add(ptmp,gen)
+	if !ptmp.Equal(pzero) {
+		panic("oops, generator additive identity doesn't work")
+	}
+	ptmp.Mul(nil,stmp.SetInt64(2)).Mul(ptmp,stmp.Inv(stmp))
+	if !ptmp.Equal(gen) {
+		panic("oops, generator multiplicative identity doesn't work")
+	}
 
 	p1 := g.Point().Mul(gen,s1)
 	p2 := g.Point().Mul(gen,s2)
@@ -66,23 +81,23 @@ func testGroup(g Group, rand cipher.Stream) []Point {
 	//println("shared secret = ",dh1.String())
 
 	// Test secret inverse to get from dh1 back to p1
-	ptmp := g.Point().Mul(dh1, g.Secret().Inv(s2))
+	ptmp.Mul(dh1, g.Secret().Inv(s2))
 	if !ptmp.Equal(p1) {
 		panic("Secret inverse didn't work")
 	}
 
 	// Zero and One identity secrets
-	//println("dh1^0 = ",ptmp.Mul(dh1, g.Secret().Zero()).String())
-	if !ptmp.Mul(dh1, g.Secret().Zero()).Equal(g.Point().Null()) {
+	//println("dh1^0 = ",ptmp.Mul(dh1, szero).String())
+	if !ptmp.Mul(dh1, szero).Equal(pzero) {
 		panic("Encryption with secret=0 didn't work")
 	}
-	if !ptmp.Mul(dh1, g.Secret().One()).Equal(dh1) {
+	if !ptmp.Mul(dh1, sone).Equal(dh1) {
 		panic("Encryption with secret=1 didn't work")
 	}
 
 	// Additive homomorphic identities
 	ptmp.Add(p1,p2)
-	stmp := g.Secret().Add(s1,s2)
+	stmp.Add(s1,s2)
 	pt2 := g.Point().Mul(gen,stmp)
 	if !pt2.Equal(ptmp) {
 		panic("Additive homomorphism doesn't work")
@@ -126,6 +141,20 @@ func testGroup(g Group, rand cipher.Stream) []Point {
 	}
 	points = append(points,pick1)
 	points = append(points,pick2)
+
+	// Test pseudorandom generators
+	for i := 0; i < 5; i++ {
+		rgen := g.Point().Base(rand)
+		ptmp.Mul(rgen,stmp.SetInt64(-1)).Add(ptmp,rgen)
+		if !ptmp.Equal(pzero) {
+			panic("random generator fails additive identity")
+		}
+		ptmp.Mul(rgen,stmp.SetInt64(2)).Mul(ptmp,stmp.Inv(stmp))
+		if !ptmp.Equal(rgen) {
+			panic("random generator fails multiplicative identity")
+		}
+		points = append(points,rgen)
+	}
 
 	// Test embedding data
 	testEmbed(g,rand,&points,"Hi!")
@@ -171,7 +200,7 @@ func TestCompareGroups(g1,g2 Group) {
 func BenchGroup(g Group) {
 
 	// Point addition
-	b := g.Point().Base()
+	b := g.Point().Base(nil)
 	p := g.Point()
 	p.Pick(nil, RandomStream)
 	beg := time.Now()

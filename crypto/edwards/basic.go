@@ -57,8 +57,12 @@ func (P *basicPoint) Null() crypto.Point {
 }
 
 // Set to the standard base point for this curve
-func (P *basicPoint) Base() crypto.Point {
-	P.Set(&P.c.base)
+func (P *basicPoint) Base(rand cipher.Stream) crypto.Point {
+	if rand == nil {
+		P.Set(&P.c.base)
+	} else {
+		P.c.pickBase(rand, P, &P.c.null)
+	}
 	return P
 }
 
@@ -131,7 +135,7 @@ func (P *basicPoint) Neg(A crypto.Point) crypto.Point {
 func (P *basicPoint) Mul(G crypto.Point, s crypto.Secret) crypto.Point {
 	v := s.(*crypto.ModInt).V
 	if G == nil {
-		return P.Base().Mul(P,s)
+		return P.Base(nil).Mul(P,s)
 	}
 	var T basicPoint	// Must use temporary in case G == P
 	T.Set(&P.c.null)	// Initialize to identity element (0,1)

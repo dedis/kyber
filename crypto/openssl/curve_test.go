@@ -9,7 +9,24 @@ import (
 var testSuite = NewAES128SHA256P256()
 
 
-func TestGroup(t *testing.T) {
+func TestP224(t *testing.T) {
+	crypto.TestGroup(new(curve).InitP224())
+}
+
+func TestP256(t *testing.T) {
+	crypto.TestGroup(new(curve).InitP256())
+}
+
+func TestP384(t *testing.T) {
+	crypto.TestGroup(new(curve).InitP384())
+}
+
+func TestP521(t *testing.T) {
+	crypto.TestGroup(new(curve).InitP521())
+}
+
+
+func TestSuite(t *testing.T) {
 	crypto.TestSuite(testSuite)
 }
 

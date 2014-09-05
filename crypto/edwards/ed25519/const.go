@@ -4,7 +4,10 @@
 
 package ed25519
 
-import "math/big"
+import (
+	"math/big"
+	"dissent/crypto"
+)
 
 // prime modulus of underlying field = 2^255 - 19
 var prime,_ = new(big.Int).SetString("57896044618658097711785492504343953926634992332820282019728792003956564819949",10)
@@ -12,6 +15,11 @@ var prime,_ = new(big.Int).SetString("578960446186580977117854925043439539266349
 // prime order of base point = 2^252 + 27742317777372353535851937790883648493
 var order,_ = new(big.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989",10)
 
+// cofactor of the curve, as a ModInt
+var cofactor = crypto.NewModInt(8, order)
+
+// identity point
+var pzero = new(point).Null()
 
 var d = fieldElement{
 	-10913610, 13857413, -15372611, 6949391, 114729, -8787816, -6275908, -3247719, -18696448, -12055116,
