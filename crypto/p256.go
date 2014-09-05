@@ -17,7 +17,7 @@ func (curve *p256) String() string {
 	return "P256"
 }
 
-// Modular square root for P-256 curve, from
+// Optimized modular square root for P-256 curve, from
 // "Mathematical routines for the NIST prime elliptic curves" (April 2010)
 func (curve *p256) sqrt(c *big.Int) *big.Int {
 	m := curve.p.P

@@ -11,27 +11,43 @@ import (
 // Test ProjectiveCurve versus BasicCurve implementations
 
 func TestProjective25519(t *testing.T) {
-	crypto.TestCompareGroups(
-		new(BasicCurve).init25519(),
-		new(ProjectiveCurve).Init(Param25519()))
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	} else {
+		crypto.TestCompareGroups(
+			new(BasicCurve).init25519(),
+			new(ProjectiveCurve).Init(Param25519()))
+	}
 }
 
 func TestProjectiveE382(t *testing.T) {
-	crypto.TestCompareGroups(
-		new(BasicCurve).Init(ParamE382()),
-		new(ProjectiveCurve).Init(ParamE382()))
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	} else {
+		crypto.TestCompareGroups(
+			new(BasicCurve).Init(ParamE382()),
+			new(ProjectiveCurve).Init(ParamE382()))
+	}
 }
 
 func TestProjective41417(t *testing.T) {
-	crypto.TestCompareGroups(
-		new(BasicCurve).Init(Param41417()),
-		new(ProjectiveCurve).Init(Param41417()))
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	} else {
+		crypto.TestCompareGroups(
+			new(BasicCurve).Init(Param41417()),
+			new(ProjectiveCurve).Init(Param41417()))
+	}
 }
 
 func TestProjectiveE521(t *testing.T) {
-	crypto.TestCompareGroups(
-		new(BasicCurve).Init(ParamE521()),
-		new(ProjectiveCurve).Init(ParamE521()))
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	} else {
+		crypto.TestCompareGroups(
+			new(BasicCurve).Init(ParamE521()),
+			new(ProjectiveCurve).Init(ParamE521()))
+	}
 }
 
 

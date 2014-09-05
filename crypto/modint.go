@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"encoding/hex"
 	"crypto/cipher"
+	"dissent/crypto/math"
 )
 
 
@@ -213,46 +214,6 @@ func (i *ModInt) legendre() int {
 	return v.Sign()
 }
 
-// Compute the Jacobi symbol of i using Euclid's algorithm,
-// much faster than Euler's criterion because no multiply required.
-// Uses the formulation described in chapter 2, section 2.4, of 
-// "The Yacas Book of Algorithms": http://yacas.sourceforge.net/Algo.book.pdf
-func (i *ModInt) jacobi() int {
-	var a,b,c big.Int
-	a.Set(&i.V)
-	b.Set(i.M)
-	j := 1
-	for {
-		if a.Cmp(zero) == 0 {
-			return 0
-		}
-		if b.Cmp(one) == 0 {
-			return j
-		}
-		a.Mod(&a,&b)
-
-		// Handle factors of 2 in a
-		s := 0
-		for a.Bit(s) == 0 {
-			s++
-		}
-		if s & 1 != 0 {
-			bmod8 := b.Bits()[0] & 7
-			if bmod8 == 3 || bmod8 == 5 {
-				j = -j
-			}
-		}
-		c.Rsh(&a,uint(s))			// a = 2^s*c
-
-		// Swap numerator and denominator
-		if b.Bits()[0] & 3 == 3 && c.Bits()[0] & 3 == 3 {
-			j = -j
-		}
-		a.Set(&b)
-		b.Set(&c)
-	}
-}
-
 // Compute some square root of a mod M of one exists.
 // Assumes the modulus M is an odd prime.
 // Returns true on success, false if input a is not a square.
@@ -260,63 +221,8 @@ func (i *ModInt) jacobi() int {
 func (i *ModInt) Sqrt(as Secret) bool {
 
 	ai := as.(*ModInt)
-	p := ai.M			// prime modulus
-	a := &ai.V
-	if a.Sign() == 0 {
-		i.Init64(0,p)		// sqrt(0) = 0
-		return true
-	}
-	if ai.jacobi() != 1 {
-		return false		// a is not a square mod M
-	}
-
-	// Break p-1 into s*2^e such that s is odd.
-	var s big.Int
-	var e int
-	s.Sub(p,one)
-	for s.Bit(0) == 0 {
-		s.Div(&s,two)
-		e++
-	}
-
-	// Find some non-square n
-	var ni ModInt
-	ni.Init64(2,p)
-	n := &ni.V
-	for ni.jacobi() != -1 {
-		n.Add(n,one)
-	}
-
-	// Heart of the Tonelli-Shanks algorithm.
-	// Follows the description in
-	// "Square roots from 1; 24, 51, 10 to Dan Shanks" by Ezra Brown.
-	var x,b,g,t big.Int
-	x.Add(&s,one).Div(&x,two).Exp(a,&x,p)
-	b.Exp(a,&s,p)
-	g.Exp(n,&s,p)
-	r := e
-	for {
-		// Find the least m such that ord_p(b) = 2^m
-		var m int
-		t.Set(&b)
-		for t.Cmp(one) != 0 {
-			t.Exp(&t,two,p)
-			m++
-		}
-
-		if m == 0 {
-			i.V.Set(&x)
-			i.M = p
-			return true
-		}
-
-		t.SetInt64(0).SetBit(&t,r-m-1,1).Exp(&g,&t,p)
-					// t = g^(2^(r-m-1)) mod p
-		g.Mul(&t,&t).Mod(&g,p)	// g = g^(2^(r-m)) mod p
-		x.Mul(&x,&t).Mod(&x,p)
-		b.Mul(&b,&g).Mod(&b,p)
-		r = m
-	}
+	i.M = ai.M
+	return math.SqrtModPrime(&i.V, &ai.V, ai.M)
 }
 
 // Pick a [pseudo-]random integer modulo M
