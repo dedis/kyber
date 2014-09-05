@@ -1,3 +1,6 @@
+// Package sodium implements Go wrappers for
+// high-speed crypto algorithms in C
+// derived from the Sodium crypto library.
 package sodium
 
 // #include "sc.h"

@@ -1,3 +1,22 @@
+// Package shuffle implements C. Andrew Neff's verifiable shuffle proof scheme.
+// Neff's shuffle proof algorithm as implemented here is described in the paper
+// "Verifiable Mixing (Shuffling) of ElGamal Pairs", April 2004.
+// 
+// The PairShuffle type implements the general algorithm
+// to prove the correctness of a shuffle of arbitrary ElGamal pairs.
+// This will be the primary API of interest for most applications.
+// For basic usage, the caller should first instantiate a PairShuffle object,
+// then invoke PairShuffle.Init() to initialize the shuffle parameters,
+// and finally invoke PairShuffle.Shuffle() to shuffle
+// a list of ElGamal pairs, yielding a list of re-randomized pairs
+// and a noninteractive proof of its correctness.
+//
+// The SimpleShuffle type implements Neff's more restrictive "simple shuffle",
+// which requires the prover to know the discrete logarithms
+// of all the individual ElGamal ciphertexts involved in the shuffle.
+// The general PairShuffle builds on this SimpleShuffle scheme,
+// but SimpleShuffle may also be used by itself in situations
+// that satisfy its assumptions, and is more efficient.
 package shuffle
 
 import (
@@ -47,6 +66,20 @@ type ega6 struct {
 }
 
 
+// PairShuffle creates a proof of the correctness of a shuffle
+// of a series of ElGamal pairs.
+//
+// The caller must first invoke Init() 
+// to establish the cryptographic parameters for the shuffle:
+// in particular, the relevant cryptographic Group,
+// and the number of ElGamal pairs to be shuffled.
+//
+// The caller then may either perform its own shuffle,
+// according to a permutation of the caller's choosing,
+// and invoke Prove() to create a proof of its correctness;
+// or alternatively the caller may simply invoke Shuffle()
+// to pick a random permutation, compute the shuffle,
+// and compute the correctness proof.
 type PairShuffle struct {
 	grp crypto.Group
 	k int

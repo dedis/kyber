@@ -1,3 +1,5 @@
+// Package pbc provides a Go wrapper for
+// the Stanford Pairing Based Crypto library.
 package pbc
 
 // #include <stdlib.h>
