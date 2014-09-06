@@ -13,6 +13,10 @@ type suite128 struct {
 	curve
 } 
 
+func (s *suite128) String() string {
+	return "AES128SHA256P256"
+}
+
 func (s *suite128) HashLen() int {
 	return 32	// SHA256_DIGEST_LENGTH
 }
@@ -45,6 +49,10 @@ func NewAES128SHA256P256() crypto.Suite {
 type suite192 struct {
 	curve
 } 
+
+func (s *suite192) String() string {
+	return "AES192SHA384P384"
+}
 
 func (s *suite192) HashLen() int {
 	return 48	// SHA384_DIGEST_LENGTH
@@ -79,6 +87,10 @@ func NewAES192SHA384P384() crypto.Suite {
 type suite256 struct {
 	curve
 } 
+
+func (s *suite256) String() string {
+	return "AES256SHA512P521"
+}
 
 func (s *suite256) HashLen() int {
 	return 64	// SHA512_DIGEST_LENGTH
