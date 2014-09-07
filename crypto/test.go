@@ -161,7 +161,8 @@ func testGroup(g Group, rand cipher.Stream) []Point {
 	testEmbed(g,rand,&points,"The quick brown fox jumps over the lazy dog")
 
 	// Test verifiable secret sharing
-	testSharing(g)
+	// XXX re-enable when we move this into 'test' sub-package
+	//testSharing(g)
 
 	return points
 }
