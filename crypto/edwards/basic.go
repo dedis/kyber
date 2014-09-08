@@ -11,6 +11,16 @@ type basicPoint struct {
 	c *BasicCurve
 }
 
+func (P *basicPoint) initXY(x,y *big.Int, c crypto.Group) {
+	P.c = c.(*BasicCurve)
+	P.x.Init(x,&P.c.P)
+	P.y.Init(y,&P.c.P)
+}
+
+func (P *basicPoint) getXY() (x,y *crypto.ModInt) {
+	return &P.x, &P.y
+}
+
 func (P *basicPoint) String() string {
 	return P.c.pointString(&P.x,&P.y)
 }
@@ -57,12 +67,8 @@ func (P *basicPoint) Null() crypto.Point {
 }
 
 // Set to the standard base point for this curve
-func (P *basicPoint) Base(rand cipher.Stream) crypto.Point {
-	if rand == nil {
-		P.Set(&P.c.base)
-	} else {
-		P.c.pickBase(rand, P, &P.c.null)
-	}
+func (P *basicPoint) Base() crypto.Point {
+	P.Set(&P.c.base)
 	return P
 }
 
@@ -71,7 +77,7 @@ func (P *basicPoint) PickLen() int {
 }
 
 func (P *basicPoint) Pick(data []byte,rand cipher.Stream) (crypto.Point, []byte) {
-	return P,P.c.pickPoint(data, rand, &P.x, &P.y)
+	return P,P.c.pickPoint(P, data, rand)
 }
 
 // Extract embedded data from a point group element
@@ -135,7 +141,7 @@ func (P *basicPoint) Neg(A crypto.Point) crypto.Point {
 func (P *basicPoint) Mul(G crypto.Point, s crypto.Secret) crypto.Point {
 	v := s.(*crypto.ModInt).V
 	if G == nil {
-		return P.Base(nil).Mul(P,s)
+		return P.Base().Mul(P,s)
 	}
 	T := P
 	if G == P {		// Must use temporary in case G == P
@@ -163,8 +169,8 @@ func (P *basicPoint) Mul(G crypto.Point, s crypto.Secret) crypto.Point {
 //
 type BasicCurve struct {
 	curve			// generic Edwards curve functionality
-	null basicPoint		// Neutral/identity point (0,1)
-	base basicPoint		// Standard base point
+	null basicPoint	// Neutral/identity point (0,1)
+	base basicPoint	// Standard base point
 }
 
 // Create a new Point on this curve.
@@ -176,88 +182,8 @@ func (c *BasicCurve) Point() crypto.Point {
 }
 
 // Initialize the curve with given parameters.
-func (c *BasicCurve) Init(p *Param) *BasicCurve {
-	c.curve.init(p)
-
-	// Identity element is (0,1)
-	c.null.c = c
-	c.null.x.Init64(0, &c.P)
-	c.null.y.Init64(1, &c.P)
-
-	// Base point B
-	c.base.c = c
-	c.base.x.Init(&p.BX, &c.P)
-	c.base.y.Init(&p.BY, &c.P)
-
-	// Sanity checks
-	if !c.onCurve(&c.null.x,&c.null.y) {
-		panic("init: null point not on curve!?")
-	}
-	if !c.onCurve(&c.base.x,&c.base.y) {
-		panic("init: base point not on curve!?")
-	}
-
-	return c
-}
-
-// Compute the parameters for Curve25519 from the Ed25519 specification in:
-// High-speed high-security signatures
-// http://ed25519.cr.yp.to/ed25519-20110926.pdf
-//
-// Here we actually compute the standard base point by the specification,
-// which requires that the curve already be (mostly) initialized.
-func (c *BasicCurve) init25519() *BasicCurve {
-	c.Name = "25519"
-
-	// p = 2^255 - 19
-	c.P.SetBit(zero, 255, 1)
-	c.P.Sub(&c.P, big.NewInt(19))
-	//println("p: "+c.P.String())
-
-	// r = 2^252 + 27742317777372353535851937790883648493
-	c.R.SetString("27742317777372353535851937790883648493", 10)
-	c.R.SetBit(&c.R, 252, 1)
-	//println("r: "+c.R.String())
-
-	// s = 8 (cofactor)
-	c.S.SetInt64(8)
-	c.cofact.Init64(8, &c.P)
-
-	// a = -1
-	c.a.Init64(-1, &c.P)
-	//println("a: "+c.a.V.String())
-
-	// d = -121665/121666
-	c.d.Init64(-121665, &c.P).Div(&c.d,crypto.NewModInt(121666, &c.P))
-	//println("d: "+c.d.V.String())
-
-	// Useful ModInt constants for this curve
-	c.zero.Init64(0, &c.P)
-	c.one.Init64(1, &c.P)
-
-	// Identity element is (0,1)
-	c.null.c = c
-	c.null.x.Init64(0, &c.P)
-	c.null.y.Init64(1, &c.P)
-	if !c.onCurve(&c.null.x,&c.null.y) {
-		panic("init25519: identity point not on curve!?")
-	}
-
-	// Base point B is the unique (x,4/5) such that x is positive
-	c.base.c = c
-	c.base.y.Init64(4, &c.P).Div(&c.base.y,crypto.NewModInt(5, &c.P))
-	ok := c.solveForX(&c.base.x,&c.base.y)
-	if !ok {
-		panic("init25519: invalid base point!?")
-	}
-	if c.coordSign(&c.base.x) != 0 {
-		c.base.x.Neg(&c.base.x)	// take the positive square root
-	}
-	//println("B: "+c.base.String())
-	if !c.onCurve(&c.base.x,&c.base.y) {
-		panic("init25519: base point not on curve!?")
-	}
-
+func (c *BasicCurve) Init(p *Param, fullGroup bool) *BasicCurve {
+	c.curve.init(c, p, fullGroup, &c.null, &c.base)
 	return c
 }
 

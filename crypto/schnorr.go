@@ -26,21 +26,8 @@ func (p *schnorrPoint) Null() Point {
 	return p
 }
 
-func (p *schnorrPoint) Base(rand cipher.Stream) Point {
-	if rand == nil {
-		// use the well-known generator
-		p.Int.Set(p.g.G)
-	} else {
-		// pick a new pseudo-random generator
-		for {
-			p.Pick(nil, rand)		// pick a random point
-			p.Exp(&p.Int, p.g.R, p.g.P)	// find a generator
-			if p.Cmp(one) != 0 {
-				break			// got one
-			}
-			// retry
-		}
-	}
+func (p *schnorrPoint) Base() Point {
+	p.Int.Set(p.g.G)
 	return p
 }
 
@@ -114,7 +101,7 @@ func (p *schnorrPoint) Neg(a Point) Point {
 
 func (p *schnorrPoint) Mul(b Point, s Secret) Point {
 	if b == nil {
-		return p.Base(nil).Mul(p,s)
+		return p.Base().Mul(p,s)
 	}
 	p.Int.Exp(&b.(*schnorrPoint).Int, &s.(*ModInt).V, p.g.P)
 	return p
@@ -175,6 +162,10 @@ type SchnorrGroup struct {
 
 func (g *SchnorrGroup) String() string {
 	return fmt.Sprintf("Schnorr%d", g.P.BitLen())
+}
+
+func (g *SchnorrGroup) PrimeOrder() bool {
+	return true
 }
 
 // Return the number of bytes in the encoding of a Secret
@@ -239,7 +230,6 @@ func (g *SchnorrGroup) SetParams(P,Q,R,G *big.Int) {
 	if !g.Valid() {
 		panic("SetParams: bad Schnorr group parameters")
 	}
-
 }
 
 // Initialize Schnorr group parameters for a quadratic residue group,

@@ -58,9 +58,38 @@ func (i *ModInt) Init64(v int64, M *big.Int) *ModInt {
 	return i
 }
 
+// Initialize a ModInt to a rational fraction n/d
+// specified with a pair of strings in a given base.
+func (i *ModInt) InitString(n,d string, base int, M *big.Int) *ModInt {
+	i.M = M
+	if _,succ := i.SetString(n, d, base); !succ {
+		panic("InitString: invalid fraction representation")
+	}
+	return i
+}
+
 // Return the ModInt's integer value in decimal string representation.
 func (i *ModInt) String() string {
 	return hex.EncodeToString(i.V.Bytes())
+}
+
+// Set value to a rational fraction n/d represented by a pair of strings.
+// If d == "", then the denominator is taken to be 1.
+// Returns (i,true) on success, or
+// (nil,false) if either string fails to parse.
+func (i *ModInt) SetString(n,d string, base int) (*ModInt, bool) {
+	if _,succ := i.V.SetString(n, base); !succ {
+		return nil,false
+	}
+	if d != "" {
+		var di ModInt
+		di.M = i.M
+		if _,succ := di.SetString(d, "", base); !succ {
+			return nil,false
+		}
+		i.Div(i,&di)
+	}
+	return i,true
 }
 
 // Compare two ModInts for equality or inequality

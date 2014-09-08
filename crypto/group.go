@@ -69,18 +69,14 @@ type Point interface {
 
 	Null() Point			// Set to neutral identity element
 
-	// Set to this group's standard base point if rand == nil.
-	// Otherwise, pick a [pseudo-]random generator using bits from rand.
-	// This is the standard method of producing independent generators
-	// with unknown discrete-log relationships.
-	Base(rand cipher.Stream) Point
+	// Set to this group's standard base point.
+	Base() Point
 
 	// Pick and set to a point that is at least partly [pseudo-]random,
 	// and optionally so as to encode a limited amount of specified data.
 	// If data is nil, the point is completely [pseudo]-random.
 	// Returns this Point and a slice containing the remaining data
 	// following the data that was successfully embedded in this point.
-	// XXX also return Point for consistency & convenience
 	Pick(data []byte,rand cipher.Stream) (Point, []byte)
 
 	// Maximum number of bytes that can be reliably embedded
@@ -141,5 +137,7 @@ type Group interface {
 
 	PointLen() int			// Max len of point in bytes
 	Point() Point			// Create new point
+
+	PrimeOrder() bool		// Returns true if group is prime-order
 }
 

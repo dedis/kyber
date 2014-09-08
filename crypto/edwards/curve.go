@@ -12,47 +12,43 @@ var zero = big.NewInt(0)
 var one = big.NewInt(1)
 
 
-// Byte-reverse src into dst,
-// so that src[0] goes into dst[len-1] and vice versa.
-// dst and src may be the same slice but otherwise must not overlap.
-// XXX this probably belongs in a utils package somewhere.
-func reverse(dst,src []byte) []byte {
-	l := len(dst)
-	if len(src) != l {
-		panic("different-length slices passed to reverse")
-	}
-	if &dst[0] == &src[0] {		// in-place
-		for i := 0; i < l/2; i++ {
-			t := dst[i]
-			dst[i] = dst[l-1-i]
-			dst[l-1-i] = t
-		}
-	} else {
-		for i := 0; i < l; i++ {
-			dst[i] = src[l-1-i]
-		}
-	}
-	return dst
+// Extension of Point interface for elliptic curve X,Y coordinate access
+type point interface {
+	crypto.Point
+
+	initXY(x,y *big.Int, curve crypto.Group)
+
+	getXY() (x,y *crypto.ModInt)
 }
 
 
 // Generic "abstract base class" for Edwards curves,
 // embodying functionality independent of internal Point representation.
 type curve struct {
+	self crypto.Group	// "Self pointer" for derived class
 	Param			// Twisted Edwards curve parameters
 	zero,one crypto.ModInt	// Constant ModInts with correct modulus
-	cofact crypto.ModInt	// Cofactor as a ModInt
 	a,d crypto.ModInt	// Curve equation parameters as ModInts
+	full bool		// True if we're using the full group
+
+	order crypto.ModInt	// Order of appropriate subgroup as a ModInt
+	cofact crypto.ModInt	// Group's cofactor as a ModInt
+
+	null crypto.Point	// Identity point for this group
+}
+
+func (c *curve) PrimeOrder() bool {
+	return !c.full
 }
 
 // Returns the size in bytes of an encoded Secret for this curve.
 func (c *curve) SecretLen() int {
-	return (c.R.BitLen() + 7) / 8
+	return (c.order.V.BitLen() + 7) / 8
 }
 
 // Create a new Secret for this curve.
 func (c *curve) Secret() crypto.Secret {
-	return crypto.NewModInt(0, &c.R)
+	return crypto.NewModInt(0, &c.order.V)
 }
 
 // Returns the size in bytes of an encoded Point on this curve.
@@ -63,19 +59,51 @@ func (c *curve) PointLen() int {
 }
 
 // Initialize a twisted Edwards curve with given parameters.
-func (c *curve) init(p *Param) *curve {
+// Caller passes pointers to null and base point prototypes to be initialized.
+func (c *curve) init(self crypto.Group, p *Param, fullGroup bool,
+			null,base point) *curve {
+	c.self = self
 	c.Param = *p
+	c.full = fullGroup
+	c.null = null
 
 	// Edwards curve parameters as ModInts for convenience
 	c.a.Init(&p.A,&p.P)
 	c.d.Init(&p.D,&p.P)
 
-	// Cofactor, for random point generation
-	c.cofact.Init(&p.S,&p.P)
+	// Cofactor
+	c.cofact.Init64(int64(p.R), &c.P)
+
+	// Determine the modulus for secrets on this curve.
+	// Note that we do NOT initialize c.order with Init(),
+	// as that would normalize to the modulus, resulting in zero.
+	// Just to be sure it's never used, we leave c.order.M set to nil.
+	// We want it to be in a ModInt so we can pass it to P.Mul(),
+	// but the secret's modulus isn't needed for point multiplication.
+	if fullGroup {
+		// Secret modulus is prime-order times the ccofactor
+		c.order.V.SetInt64(int64(p.R)).Mul(&c.order.V, &p.Q)
+	} else {
+		c.order.V.Set(&p.Q)	// Prime-order subgroup
+	}
 
 	// Useful ModInt constants for this curve
 	c.zero.Init64(0, &c.P)
 	c.one.Init64(1, &c.P)
+
+	// Identity element is (0,1)
+	null.initXY(zero, one, self)
+
+	// Base point B
+	if !fullGroup {
+		base.initXY(&p.PBX, &p.PBY, self)
+	} else {
+		base.initXY(&p.FBX, &p.FBY, self)
+	}
+
+	// Sanity checks
+	c.checkPoint(null)
+	c.checkPoint(base)
 
 	return c
 }
@@ -114,6 +142,15 @@ func (c *curve) encodePoint(x,y *crypto.ModInt) []byte {
 }
 
 // Decode an Edwards curve point into the given x,y coordinates.
+// Returns an error if the input does not denote a valid curve point.
+// Note that this does NOT check if the point is in the prime-order subgroup:
+// an adversary could create an encoding denoting a point
+// on the twist of the curve, or in a larger subgroup.
+// However, the "safecurves" criteria (http://safecurves.cr.yp.to)
+// ensure that none of these other subgroups are small
+// other than the tiny ones represented by the cofactor;
+// hence Diffie-Hellman exchange can be done without subgroup checking
+// without exposing more than the least-significant bits of the secret.
 func (c *curve) decodePoint(bb []byte, x,y *crypto.ModInt) error {
 
 	// Convert from little-endian
@@ -136,6 +173,29 @@ func (c *curve) decodePoint(bb []byte, x,y *crypto.ModInt) error {
 	}
 
 	return nil
+}
+
+// Byte-reverse src into dst,
+// so that src[0] goes into dst[len-1] and vice versa.
+// dst and src may be the same slice but otherwise must not overlap.
+// XXX this probably belongs in a utils package somewhere.
+func reverse(dst,src []byte) []byte {
+	l := len(dst)
+	if len(src) != l {
+		panic("different-length slices passed to reverse")
+	}
+	if &dst[0] == &src[0] {		// in-place
+		for i := 0; i < l/2; i++ {
+			t := dst[i]
+			dst[i] = dst[l-1-i]
+			dst[l-1-i] = t
+		}
+	} else {
+		for i := 0; i < l; i++ {
+			dst[i] = src[l-1-i]
+		}
+	}
+	return dst
 }
 
 // Given a y-coordinate, solve for the x-coordinate on the curve,
@@ -173,6 +233,24 @@ func (c *curve) onCurve(x,y *crypto.ModInt) bool {
 	return l.Equal(&r)
 }
 
+// Sanity-check a point to ensure that it is on the curve
+// and within the appropriate subgroup.
+func (c *curve) checkPoint(P point) {
+
+	// Check on-curve
+	x,y := P.getXY()
+	if !c.onCurve(x,y) {
+		panic("checkPoint: not on curve:\n"+P.String())
+	}
+
+	// Check in-subgroup by multiplying by subgroup order
+	Q := c.self.Point()
+	Q.Mul(P, &c.order)
+	if !Q.Equal(c.null) {
+		panic("checkPoint: not in subgroup:\n"+P.String())
+	}
+}
+
 // Return number of bytes that can be embedded into points on this curve.
 func (c *curve) pickLen() int {
 	// Reserve at least 8 most-significant bits for randomness,
@@ -184,8 +262,7 @@ func (c *curve) pickLen() int {
 // Pick a [pseudo-]random curve point with optional embedded data,
 // filling in the point's x,y coordinates
 // and returning any remaining data not embedded.
-func (c *curve) pickPoint(data []byte, rand cipher.Stream,
-			x,y *crypto.ModInt) []byte {
+func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
 
 	// How much data to embed?
 	dl := c.pickLen()
@@ -194,6 +271,8 @@ func (c *curve) pickPoint(data []byte, rand cipher.Stream,
 	}
 
 	// Retry until we find a valid point
+	var x,y crypto.ModInt
+	var Q crypto.Point
 	for {
 		// Get random bits the size of a compressed Point encoding,
 		// in which the topmost bit is reserved for the x-coord sign.
@@ -212,32 +291,48 @@ func (c *curve) pickPoint(data []byte, rand cipher.Stream,
 		y.M = &c.P			// set y-coordinate
 		y.SetBytes(b)
 
-		if !c.solveForX(x,y) {	// Find a corresponding x-coordinate
-			continue	// none, retry
+		if !c.solveForX(&x,&y) {	// Corresponding x-coordinate?
+			continue		// none, retry
 		}
 
 		// Pick a random sign for the x-coordinate
-		if c.coordSign(x) != uint(xsign) {
-			x.Neg(x)
-		}
-		if !c.onCurve(x,y) {
-			panic("Pick generated a bad point")
+		if c.coordSign(&x) != uint(xsign) {
+			x.Neg(&x)
 		}
 
-		return data[dl:]
-	}
-}
-
-// Pick a [pseudo-]random base point of prime order.
-func (c *curve) pickBase(rand cipher.Stream, p,null crypto.Point) {
-
-	for {
-		p.Pick(nil, rand)	// pick a random point
-		p.Mul(p, &c.cofact)	// multiply by cofactor
-		if !p.Equal(null) {
-			break			// got one
+		// Initialize the point
+		P.initXY(&x.V, &y.V, c.self)
+		if c.full {
+			// If we're using the full group,
+			// we just need any point on the curve, so we're done.
+			return data[dl:]
 		}
-		// retry
+
+		// We're using the prime-order subgroup,
+		// so we need to make sure the point is in that subgroup.
+		// If we're not trying to embed data,
+		// we can convert our point into one in the subgroup
+		// simply by multiplying it by the cofactor.
+		if data == nil {
+			P.Mul(P, &c.cofact)	// multiply by cofactor
+			if P.Equal(c.null) {
+				continue	// unlucky; try again
+			}
+			return data[dl:]
+		}
+
+		// Since we need the point's y-coordinate to make sense,
+		// we must simply check if the point is in the subgroup
+		// and retry point generation until it is.
+		if Q == nil {
+			Q = c.self.Point()
+		}
+		Q.Mul(P, &c.order)
+		if Q.Equal(c.null) {
+			return data[dl:]
+		}
+
+		// Keep trying...
 	}
 }
 

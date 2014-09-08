@@ -33,7 +33,7 @@ func (s *suiteEd25519) Stream(key []byte) cipher.Stream {
 // Ciphersuite based on AES-128, SHA-256, and the Ed25519 curve.
 func newAES128SHA256Ed25519() crypto.Suite {
 	suite := new(suiteEd25519)
-	suite.Init(Param25519())
+	suite.Init(Param25519(), false)
 	return suite
 }
 

@@ -83,19 +83,8 @@ func (P *point) Null() crypto.Point {
 }
 
 // Set to the standard base point for this curve
-func (P *point) Base(rand cipher.Stream) crypto.Point {
-	if rand == nil {
-		P.ge = baseext
-	} else {
-		for {
-			P.Pick(nil, rand)	// pick a random point
-			P.Mul(P, cofactor)	// multiply by Ed25519 cofactor
-			if !P.Equal(pzero) {
-				break		// got one
-			}
-			// retry
-		}
-	}
+func (P *point) Base() crypto.Point {
+	P.ge = baseext
 	return P
 }
 
@@ -122,10 +111,39 @@ func (P *point) Pick(data []byte, rand cipher.Stream) (crypto.Point, []byte) {
 			b[0] = byte(dl)		// Encode length in low 8 bits
 			copy(b[1:1+dl],data)	// Copy in data to embed
 		}
-		if P.ge.FromBytes(b[:]) {	// Try to decode
+		if !P.ge.FromBytes(b[:]) {	// Try to decode
+			continue		// invalid point, retry
+		}
+
+		// If we're using the full group,
+		// we just need any point on the curve, so we're done.
+//		if c.full {
+//			return P,data[dl:]
+//		}
+
+		// We're using the prime-order subgroup,
+		// so we need to make sure the point is in that subgroup.
+		// If we're not trying to embed data,
+		// we can convert our point into one in the subgroup
+		// simply by multiplying it by the cofactor.
+		if data == nil {
+			P.Mul(P, cofactor)	// multiply by cofactor
+			if P.Equal(nullPoint) {
+				continue	// unlucky; try again
+			}
 			return P,data[dl:]	// success
 		}
-		// invalid point, retry
+
+		// Since we need the point's y-coordinate to hold our data,
+		// we must simply check if the point is in the subgroup
+		// and retry point generation until it is.
+		var Q point
+		Q.Mul(P, primeOrder)
+		if Q.Equal(nullPoint) {
+			return P,data[dl:]	// success
+		}
+
+		// Keep trying...
 	}
 }
 
@@ -208,6 +226,14 @@ func (P *point) Mul(A crypto.Point, s crypto.Secret) crypto.Point {
 // There are no parameters and no initialization is required
 // because it supports only this one specific curve.
 type Curve struct {
+
+	// Set to true to use the full group of order 8Q,
+	// or false to use the prime-order subgroup of order Q.
+//	FullGroup bool
+}
+
+func (c *Curve) PrimeOrder() bool {
+	return true
 }
 
 // Return the name of the curve, "Ed25519".
@@ -222,7 +248,11 @@ func (c *Curve) SecretLen() int {
 
 // Create a new Secret for the Ed25519 curve.
 func (c *Curve) Secret() crypto.Secret {
-	return crypto.NewModInt(0, order)
+//	if c.FullGroup {
+//		return crypto.NewModInt(0, fullOrder)
+//	} else {
+		return crypto.NewModInt(0, &primeOrder.V)
+//	}
 }
 
 // Returns 32, the size in bytes of an encoded Point on the Ed25519 curve.
@@ -236,6 +266,11 @@ func (c *Curve) Point() crypto.Point {
 	//P.c = c
 	return P
 }
+
+// Initialize the curve.
+//func (c *Curve) Init(fullGroup bool) {
+//	c.FullGroup = fullGroup
+//}
 
 
 type suite struct {

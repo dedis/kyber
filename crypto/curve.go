@@ -38,23 +38,9 @@ func (p *curvePoint) Null() Point {
 	return p
 }
 
-func (p *curvePoint) Base(rand cipher.Stream) Point {
-	if rand == nil {
-		// Use the well-known base point.
-		p.x = p.c.p.Gx
-		p.y = p.c.p.Gy
-	} else {
-		// Pick a new pseudo-random base point.
-		// The Go elliptic curve library currently supports
-		// only the NIST prime-order curves,
-		// all of which have cofactor 1, and elliptic.CurveParams
-		// currently doesn't even have a cofactor field.
-		// So we currently just assume the cofactor is 1,
-		// which any curve point a generators.
-		// But this will need to change if the Go curve library
-		// is upgraded to handle curves with other cofactors.
-		p.Pick(nil, rand)
-	}
+func (p *curvePoint) Base() Point {
+	p.x = p.c.p.Gx
+	p.y = p.c.p.Gy
 	return p
 }
 
@@ -204,6 +190,11 @@ type curve struct {
 	elliptic.Curve
 	curveOps
 	p *elliptic.CurveParams
+}
+
+// All the NIST curves we support are prime-order.
+func (g *curve) PrimeOrder() bool {
+	return true
 }
 
 // Return the number of bytes in the encoding of a Secret for this curve.

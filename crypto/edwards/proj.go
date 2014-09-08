@@ -1,6 +1,7 @@
 package edwards
 
 import (
+	"math/big"
 	"crypto/cipher"
 	"dissent/crypto"
 )
@@ -8,6 +9,18 @@ import (
 type projPoint struct {
 	X,Y,Z crypto.ModInt
 	c *ProjectiveCurve
+}
+
+func (P *projPoint) initXY(x,y *big.Int, c crypto.Group) {
+	P.c = c.(*ProjectiveCurve)
+	P.X.Init(x,&P.c.P)
+	P.Y.Init(y,&P.c.P)
+	P.Z.Init64(1,&P.c.P)
+}
+
+func (P *projPoint) getXY() (x,y *crypto.ModInt) {
+	P.normalize()
+	return &P.X, &P.Y
 }
 
 func (P *projPoint) String() string {
@@ -58,12 +71,8 @@ func (P *projPoint) Null() crypto.Point {
 	return P
 }
 
-func (P *projPoint) Base(rand cipher.Stream) crypto.Point {
-	if rand == nil {
-		P.Set(&P.c.base)
-	} else {
-		P.c.pickBase(rand, P, &P.c.null)
-	}
+func (P *projPoint) Base() crypto.Point {
+	P.Set(&P.c.base)
 	return P
 }
 
@@ -80,8 +89,7 @@ func (P *projPoint) normalize() {
 }
 
 func (P *projPoint) Pick(data []byte,rand cipher.Stream) (crypto.Point, []byte) {
-	P.Z.Init64(1,&P.c.P)
-	return P,P.c.pickPoint(data, rand, &P.X, &P.Y)
+	return P,P.c.pickPoint(P, data, rand)
 }
 
 // Extract embedded data from a point group element
@@ -172,7 +180,7 @@ func (P *projPoint) double() {
 func (P *projPoint) Mul(G crypto.Point, s crypto.Secret) crypto.Point {
 	v := s.(*crypto.ModInt).V
 	if G == nil {
-		return P.Base(nil).Mul(P,s)
+		return P.Base().Mul(P,s)
 	}
 	T := P
 	if G == P {		// Must use temporary for in-place multiply
@@ -215,29 +223,8 @@ func (c *ProjectiveCurve) Point() crypto.Point {
 }
 
 // Initialize the curve with given parameters.
-func (c *ProjectiveCurve) Init(p *Param) *ProjectiveCurve {
-	c.curve.init(p)
-
-	// Identity element is (0,1)
-	c.null.c = c
-	c.null.X.Init64(0, &c.P)
-	c.null.Y.Init64(1, &c.P)
-	c.null.Z.Init64(1, &c.P)
-
-	// Base point B
-	c.base.c = c
-	c.base.X.Init(&p.BX, &c.P)
-	c.base.Y.Init(&p.BY, &c.P)
-	c.base.Z.Init64(1, &c.P)
-
-	// Sanity checks
-	if !c.onCurve(&c.null.X,&c.null.Y) {
-		panic("init: null point not on curve!?")
-	}
-	if !c.onCurve(&c.base.X,&c.base.Y) {
-		panic("init: base point not on curve!?")
-	}
-
+func (c *ProjectiveCurve) Init(p *Param, fullGroup bool) *ProjectiveCurve {
+	c.curve.init(c, p, fullGroup, &c.null, &c.base)
 	return c
 }
 

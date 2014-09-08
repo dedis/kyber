@@ -1,6 +1,7 @@
 package edwards
 
 import (
+	"math/big"
 	"encoding/hex"
 	"crypto/cipher"
 	"dissent/crypto"
@@ -9,6 +10,19 @@ import (
 type extPoint struct {
 	X,Y,Z,T crypto.ModInt
 	c *ExtendedCurve
+}
+
+func (P *extPoint) initXY(x,y *big.Int, c crypto.Group) {
+	P.c = c.(*ExtendedCurve)
+	P.X.Init(x,&P.c.P)
+	P.Y.Init(y,&P.c.P)
+	P.Z.Init64(1,&P.c.P)
+	P.T.Mul(&P.X,&P.Y)
+}
+
+func (P *extPoint) getXY() (x,y *crypto.ModInt) {
+	P.normalize()
+	return &P.X, &P.Y
 }
 
 func (P *extPoint) String() string {
@@ -61,12 +75,8 @@ func (P *extPoint) Null() crypto.Point {
 	return P
 }
 
-func (P *extPoint) Base(rand cipher.Stream) crypto.Point {
-	if rand == nil {
-		P.Set(&P.c.base)
-	} else {
-		P.c.pickBase(rand, P, &P.c.null)
-	}
+func (P *extPoint) Base() crypto.Point {
+	P.Set(&P.c.base)
 	return P
 }
 
@@ -92,9 +102,7 @@ func (P *extPoint) checkT() {
 }
 
 func (P *extPoint) Pick(data []byte,rand cipher.Stream) (crypto.Point, []byte) {
-	leftover := P.c.pickPoint(data, rand, &P.X, &P.Y)
-	P.Z.Init64(1,&P.c.P)
-	P.T.Mul(&P.X,&P.Y)
+	leftover := P.c.pickPoint(P, data, rand)
 	return P,leftover
 }
 
@@ -194,7 +202,7 @@ func (P *extPoint) double() {
 func (P *extPoint) Mul(G crypto.Point, s crypto.Secret) crypto.Point {
 	v := s.(*crypto.ModInt).V
 	if G == nil {
-		return P.Base(nil).Mul(P,s)
+		return P.Base().Mul(P,s)
 	}
 	T := P
 	if G == P {		// Must use temporary for in-place multiply
@@ -249,31 +257,8 @@ func (c *ExtendedCurve) Point() crypto.Point {
 }
 
 // Initialize the curve with given parameters.
-func (c *ExtendedCurve) Init(p *Param) *ExtendedCurve {
-	c.curve.init(p)
-
-	// Identity element is (0,1)
-	c.null.c = c
-	c.null.X.Init64(0, &c.P)
-	c.null.Y.Init64(1, &c.P)
-	c.null.Z.Init64(1, &c.P)
-	c.null.T.Init64(0, &c.P)
-
-	// Base point B
-	c.base.c = c
-	c.base.X.Init(&p.BX, &c.P)
-	c.base.Y.Init(&p.BY, &c.P)
-	c.base.Z.Init64(1, &c.P)
-	c.base.T.Mul(&c.base.X, &c.base.Y)
-
-	// Sanity checks
-	if !c.onCurve(&c.null.X,&c.null.Y) {
-		panic("init: null point not on curve!?")
-	}
-	if !c.onCurve(&c.base.X,&c.base.Y) {
-		panic("init: base point not on curve!?")
-	}
-
+func (c *ExtendedCurve) Init(p *Param, fullGroup bool) *ExtendedCurve {
+	c.curve.init(c, p, fullGroup, &c.null, &c.base)
 	return c
 }
 
