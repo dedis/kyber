@@ -89,31 +89,13 @@ func (p *point) Null() crypto.Point {
 	return p
 }
 
-func (p *point) Base(rand cipher.Stream) crypto.Point {
-	if rand == nil {	// get standard generator
-		genp := C.EC_GROUP_get0_generator(p.c.g)
-		if genp == nil {
-			panic("EC_GROUP_get0_generator: "+getErrString())
-		}
-		if C.EC_POINT_copy(p.p, genp) == 0 {
-			panic("EC_POINT_copy: "+getErrString())
-		}
-	} else {
-		for {
-			// Pick a random point
-			p.Pick(nil, rand)
-
-			// Multiply by the cofactor for this curve
-			if C.EC_POINT_mul(p.c.g, p.p, nil, p.p, p.c.cofact.bn,
-						p.c.ctx) == 0 {
-				panic("EC_POINT_mul: "+getErrString())
-			}
-
-			if !p.Equal(p.c.null) { // make sure it's non-null
-				break		// got a good base point
-			}
-			// retry
-		}
+func (p *point) Base() crypto.Point {
+	genp := C.EC_GROUP_get0_generator(p.c.g)
+	if genp == nil {
+		panic("EC_GROUP_get0_generator: "+getErrString())
+	}
+	if C.EC_POINT_copy(p.p, genp) == 0 {
+		panic("EC_POINT_copy: "+getErrString())
 	}
 	return p
 }
@@ -254,6 +236,10 @@ func (p *point) Decode(buf []byte) error {
 
 func (c *curve) String() string {
 	return c.name
+}
+
+func (c *curve) PrimeOrder() bool {
+	return true	// we only support the NIST prime-order curves
 }
 
 func (c *curve) SecretLen() int {

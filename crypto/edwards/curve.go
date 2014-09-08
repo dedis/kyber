@@ -95,15 +95,47 @@ func (c *curve) init(self crypto.Group, p *Param, fullGroup bool,
 	null.initXY(zero, one, self)
 
 	// Base point B
+	var bx,by *big.Int
 	if !fullGroup {
-		base.initXY(&p.PBX, &p.PBY, self)
+		bx,by = &p.PBX, &p.PBY
 	} else {
+		bx,by = &p.FBX, &p.FBY
 		base.initXY(&p.FBX, &p.FBY, self)
 	}
+	if by.Sign() == 0 {
+		// No standard base point was defined, so pick one.
+		// Find the lowest-numbered y-coordinate that works.
+		//println("Picking base point:")
+		var x,y crypto.ModInt
+		for y.Init64(2,&c.P); ; y.Add(&y,&c.one) {
+			if !c.solveForX(&x,&y) {
+				continue	// try another y
+			}
+			if c.coordSign(&x) != 0 {
+				x.Neg(&x)	// try positive x first
+			}
+			base.initXY(&x.V, &y.V, self)
+			if c.validPoint(base) {
+				break		// got one
+			}
+			x.Neg(&x)		// try -bx
+			if c.validPoint(base) {
+				break		// got one
+			}
+		}
+		//println("BX: "+x.V.String())
+		//println("BY: "+y.V.String())
+		bx,by = &x.V,&y.V
+	}
+	base.initXY(bx, by, self)
 
 	// Sanity checks
-	c.checkPoint(null)
-	c.checkPoint(base)
+	if !c.validPoint(null) {
+		panic("invalid identity point "+null.String())
+	}
+	if !c.validPoint(base) {
+		panic("invalid base point "+base.String())
+	}
 
 	return c
 }
@@ -235,20 +267,22 @@ func (c *curve) onCurve(x,y *crypto.ModInt) bool {
 
 // Sanity-check a point to ensure that it is on the curve
 // and within the appropriate subgroup.
-func (c *curve) checkPoint(P point) {
+func (c *curve) validPoint(P point) bool {
 
 	// Check on-curve
 	x,y := P.getXY()
 	if !c.onCurve(x,y) {
-		panic("checkPoint: not on curve:\n"+P.String())
+		return false
 	}
 
 	// Check in-subgroup by multiplying by subgroup order
 	Q := c.self.Point()
 	Q.Mul(P, &c.order)
 	if !Q.Equal(c.null) {
-		panic("checkPoint: not in subgroup:\n"+P.String())
+		return false
 	}
+
+	return true
 }
 
 // Return number of bytes that can be embedded into points on this curve.

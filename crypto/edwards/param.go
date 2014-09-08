@@ -23,10 +23,13 @@ import (
 // Parameters defining a Twisted Edwards curve (TEC).
 type Param struct {
 	Name string		// Name of curve
+
 	P big.Int		// Prime defining the underlying field
 	Q big.Int		// Order of the prime-order base point
 	R int			// Cofactor: Q*R is the total size of the curve
+
 	A,D big.Int		// Edwards curve equation parameters
+
 	FBX,FBY big.Int		// Standard base point for full group
 	PBX,PBY big.Int		// Standard base point for prime-order subgroup
 }
@@ -48,7 +51,7 @@ func Param1174() *Param {
 	p.Name = "25519"
 	p.P.SetBit(zero,251,1).Sub(&p.P,big.NewInt(9))
 	p.Q.SetString("45330879683285730139092453152713398835",10)
-	p.Q.Sub(&p.P,&p.Q)
+	p.Q.Sub(&p.P,&p.Q).Div(&p.Q,big.NewInt(4))
 	p.R = 4
 	p.A.SetInt64(1)
 	p.D.SetInt64(-1174)
@@ -56,14 +59,8 @@ func Param1174() *Param {
 	// Full-group generator is (4/V,3/5)
 	mi.InitString("4","19225777642111670230408712442205514783403012708409058383774613284963344096",10,&p.P)
 	p.FBX.Set(&mi.V)
-	println("x=",mi.V.String())
-
 	mi.InitString("3","5",10,&p.P)
 	p.FBY.Set(&mi.V)
-	println("y=",mi.V.String())
-
-	//p.FBX.SetString("15112221349535400772501151409588531511454012693041857206046113283949847762202",10)
-	//p.FBY.SetString("46316835694926478169428394003475163141307993866256225615783033603165251855960",10)
 
 	return &p
 }

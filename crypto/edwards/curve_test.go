@@ -33,6 +33,14 @@ func TestEd25519(t *testing.T) {
 
 // Test the Extended coordinates implementation of each curve.
 
+func Test1174(t *testing.T) {
+	crypto.TestGroup(new(ExtendedCurve).Init(Param1174(), false))
+}
+
+func Test25519(t *testing.T) {
+	crypto.TestGroup(new(ExtendedCurve).Init(Param25519(), false))
+}
+
 func TestE382(t *testing.T) {
 	crypto.TestGroup(new(ExtendedCurve).Init(ParamE382(), false))
 }
@@ -53,7 +61,6 @@ func TestFullOrder1174(t *testing.T) {
 	crypto.TestGroup(new(ExtendedCurve).Init(Param1174(), true))
 }
 
-/*
 func TestFullOrder25519(t *testing.T) {
 	crypto.TestGroup(new(ExtendedCurve).Init(Param25519(), true))
 }
@@ -69,7 +76,6 @@ func TestFullOrder4147(t *testing.T) {
 func TestFullOrderE521(t *testing.T) {
 	crypto.TestGroup(new(ExtendedCurve).Init(ParamE521(), true))
 }
-*/
 
 
 // Test ProjectiveCurve versus BasicCurve implementations
