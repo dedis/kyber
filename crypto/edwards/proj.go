@@ -42,6 +42,18 @@ func (P *projPoint) Decode(b []byte) error {
 	return P.c.decodePoint(b, &P.X, &P.Y)
 }
 
+func (P *projPoint) HideLen() int {
+	return P.c.hide.HideLen()
+}
+
+func (P *projPoint) HideEncode(rand cipher.Stream) []byte {
+	return P.c.hide.HideEncode(P, rand)
+}
+
+func (P *projPoint) HideDecode(rep []byte) {
+	P.c.hide.HideDecode(P, rep)
+}
+
 // Equality test for two Points on the same curve.
 // We can avoid inversions here because:
 //

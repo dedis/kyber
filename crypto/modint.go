@@ -58,6 +58,13 @@ func (i *ModInt) Init64(v int64, M *big.Int) *ModInt {
 	return i
 }
 
+// Initializa to a number represented in a big-endian byte string.
+func (i *ModInt) InitBytes(a []byte, M *big.Int) *ModInt {
+	i.M = M
+	i.V.SetBytes(a).Mod(&i.V, i.M)
+	return i
+}
+
 // Initialize a ModInt to a rational fraction n/d
 // specified with a pair of strings in a given base.
 func (i *ModInt) InitString(n,d string, base int, M *big.Int) *ModInt {
@@ -103,7 +110,7 @@ func (i *ModInt) Equal(s2 Secret) bool {
 }
 
 // Returns true if the integer value is nonzero.
-func (i *ModInt) Nonzero(s2 Secret) bool {
+func (i *ModInt) Nonzero() bool {
 	return i.V.Sign() != 0
 }
 

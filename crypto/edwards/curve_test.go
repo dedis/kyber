@@ -156,6 +156,41 @@ func TestCompareEd25519(t *testing.T) {
 }
 
 
+// Test point hiding functionality
+
+func testHiding(g crypto.Group) {
+	rand := crypto.RandomStream
+	k := 10
+
+	// Test conversion from random strings to points and back
+	p := g.Point()
+	p2 := g.Point()
+	l := p.(crypto.Hiding).HideLen()
+	buf := make([]byte, l)
+	for i := 0; i < k; i++ {
+		rand.XORKeyStream(buf,buf)
+		//println("R "+hex.EncodeToString(buf))
+		p.(crypto.Hiding).HideDecode(buf)
+		//println("P "+p.String())
+		b2 := p.(crypto.Hiding).HideEncode(rand)
+		if b2 == nil {
+			panic("HideEncode failed")
+		}
+		//println("R'"+hex.EncodeToString(b2))
+		p2.(crypto.Hiding).HideDecode(b2)
+		//println("P'"+p2.String())
+		if !p.Equal(p2) {
+			panic("HideDecode produced wrong point")
+		}
+		//println("")
+	}
+}
+
+func TestElligator1(t *testing.T) {
+	testHiding(new(ExtendedCurve).Init(Param1174(), true))
+}
+
+
 // Benchmark contrasting implementations of the Ed25519 curve
 
 func BenchmarkPointAddBasic(b *testing.B) {

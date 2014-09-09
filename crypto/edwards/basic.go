@@ -45,6 +45,18 @@ func (P *basicPoint) Decode(b []byte) error {
 	return P.c.decodePoint(b, &P.x, &P.y)
 }
 
+func (P *basicPoint) HideLen() int {
+	return P.c.hide.HideLen()
+}
+
+func (P *basicPoint) HideEncode(rand cipher.Stream) []byte {
+	return P.c.hide.HideEncode(P, rand)
+}
+
+func (P *basicPoint) HideDecode(rep []byte) {
+	P.c.hide.HideDecode(P, rep)
+}
+
 // Equality test for two Points on the same curve
 func (P *basicPoint) Equal(P2 crypto.Point) bool {
 	E2 := P2.(*basicPoint)

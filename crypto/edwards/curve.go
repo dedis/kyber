@@ -21,6 +21,13 @@ type point interface {
 	getXY() (x,y *crypto.ModInt)
 }
 
+// Interface representing curve-specific methods of encoding points
+// into a uniform representation (e.g., Elligator 1, 2, or Squared).
+type hiding interface {
+	HideLen() int
+	HideEncode(p point, rand cipher.Stream) []byte
+	HideDecode(p point, representative []byte)
+}
 
 // Generic "abstract base class" for Edwards curves,
 // embodying functionality independent of internal Point representation.
@@ -35,6 +42,8 @@ type curve struct {
 	cofact crypto.ModInt	// Group's cofactor as a ModInt
 
 	null crypto.Point	// Identity point for this group
+
+	hide hiding		// Uniform point encoding method
 }
 
 func (c *curve) PrimeOrder() bool {
@@ -128,6 +137,16 @@ func (c *curve) init(self crypto.Group, p *Param, fullGroup bool,
 		bx,by = &x.V,&y.V
 	}
 	base.initXY(bx, by, self)
+
+	// Uniform representation encoding methods,
+	// only useful when using the full group.
+	// (Points taken from the subgroup would be trivially recognizable.)
+	if fullGroup {
+		if p.Elligator1s.Sign() != 0 {
+			c.hide = new(el1param).init(c, &p.Elligator1s)
+		}
+		// XXX Elligator2, Squared
+	}
 
 	// Sanity checks
 	if !c.validPoint(null) {
