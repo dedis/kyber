@@ -250,12 +250,20 @@ func (i *ModInt) legendre() int {
 	return v.Sign()
 }
 
+// Set to the Jacobi symbol of (a/M), which indicates whether a is
+// zero (0), a positive square in M (1), or a non-square in M (-1).
+func (i *ModInt) Jacobi(as Secret) Secret {
+	ai := as.(*ModInt)
+	i.M = ai.M
+	i.V.SetInt64(int64(math.Jacobi(&ai.V, i.M)))
+	return i
+}
+
 // Compute some square root of a mod M of one exists.
 // Assumes the modulus M is an odd prime.
 // Returns true on success, false if input a is not a square.
 // (This really should be part of Go's big.Int library.)
 func (i *ModInt) Sqrt(as Secret) bool {
-
 	ai := as.(*ModInt)
 	i.M = ai.M
 	return math.SqrtModPrime(&i.V, &ai.V, ai.M)

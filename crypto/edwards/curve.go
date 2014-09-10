@@ -144,8 +144,10 @@ func (c *curve) init(self crypto.Group, p *Param, fullGroup bool,
 	if fullGroup {
 		if p.Elligator1s.Sign() != 0 {
 			c.hide = new(el1param).init(c, &p.Elligator1s)
+		} else if p.Elligator2u.Sign() != 0 {
+			c.hide = new(el2param).init(c, &p.Elligator2u)
 		}
-		// XXX Elligator2, Squared
+		// XXX Elligator Squared
 	}
 
 	// Sanity checks

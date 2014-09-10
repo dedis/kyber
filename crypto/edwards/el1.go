@@ -12,12 +12,6 @@ func chi(r,v *crypto.ModInt) {
 	r.Init64(int64(math.Jacobi(&v.V, v.M)), v.M)
 }
 
-func padmask(c *curve) byte {
-	highbits := 1 + ((c.P.BitLen()-1) & 7)
-	return byte(0xff << uint(highbits))
-}
-
-
 // Elligator 1 parameters
 type el1param struct {
 	ec *curve				// back-pointer to curve
@@ -71,6 +65,14 @@ func (el *el1param) HideLen() int {
 	return el.ec.PointLen()
 }
 
+// Produce a mask representing the padding bits we'll need
+// in the most-significant byte of the point representations we produce.
+// For Elligator 1 the representation uses the full range from 0 to p-1.
+func (el *el1param) padmask() byte {
+	highbits := 1 + ((el.ec.P.BitLen()-1) & 7)
+	return byte(0xff << uint(highbits))
+}
+
 // Elligator 1 forward-map from representative to Edwards curve point.
 // Currently a straightforward, unoptimized implementation.
 // See section 3.2 of the Elligator paper.
@@ -86,7 +88,7 @@ func (el *el1param) HideDecode(P point, rep []byte) {
 	// Take the appropriate number of bits from the representative.
 	b := make([]byte, l)
 	copy(b, rep)
-	b[0] &^= padmask(ec)			// mask off the padding bits
+	b[0] &^= el.padmask()			// mask off the padding bits
 	t.InitBytes(b, &ec.P)
 
 	// u = (1-t)/(1+t)
@@ -173,7 +175,7 @@ func (el *el1param) HideEncode(P point, rand cipher.Stream) []byte {
 	// that the adversary will never notice the "missing" values;
 	// this is true for the class of curves Elligator1 was designed for.
 	rep := t.Encode()
-	padmask := padmask(ec)
+	padmask := el.padmask()
 	if padmask != 0 {
 		var pad [1]byte
 		rand.XORKeyStream(pad[:],pad[:])

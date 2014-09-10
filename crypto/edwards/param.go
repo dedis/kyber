@@ -33,7 +33,8 @@ type Param struct {
 	FBX,FBY big.Int		// Standard base point for full group
 	PBX,PBY big.Int		// Standard base point for prime-order subgroup
 
-	Elligator1s big.Int	// Optional s point for Elligator 1 curves
+	Elligator1s big.Int	// Optional s parameter for Elligator 1
+	Elligator2u big.Int	// Optional u parameter for Elligator 2
 }
 
 // Return the name of this curve.
@@ -84,8 +85,13 @@ func Param25519() *Param {
 	p.R = 8
 	p.A.SetInt64(-1).Add(&p.P,&p.A)
 	p.D.SetString("37095705934669439343138083508754565189542113879843219016388785533085940283555",10)
+
 	p.PBX.SetString("15112221349535400772501151409588531511454012693041857206046113283949847762202",10)
 	p.PBY.SetString("46316835694926478169428394003475163141307993866256225615783033603165251855960",10)
+
+	// Non-square u for Elligator2
+	p.Elligator2u.SetInt64(2)
+
 	return &p
 }
 

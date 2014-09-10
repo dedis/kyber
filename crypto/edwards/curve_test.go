@@ -2,6 +2,7 @@ package edwards
 
 import (
 	"testing"
+	//"encoding/hex"
 	"dissent/crypto"
 	"dissent/crypto/bench"
 	"dissent/crypto/edwards/ed25519"
@@ -158,9 +159,8 @@ func TestCompareEd25519(t *testing.T) {
 
 // Test point hiding functionality
 
-func testHiding(g crypto.Group) {
+func testHiding(g crypto.Group, k int) {
 	rand := crypto.RandomStream
-	k := 10
 
 	// Test conversion from random strings to points and back
 	p := g.Point()
@@ -187,7 +187,11 @@ func testHiding(g crypto.Group) {
 }
 
 func TestElligator1(t *testing.T) {
-	testHiding(new(ExtendedCurve).Init(Param1174(), true))
+	testHiding(new(ExtendedCurve).Init(Param1174(), true), 10)
+}
+
+func TestElligator2(t *testing.T) {
+	testHiding(new(ExtendedCurve).Init(Param25519(), true), 10)
 }
 
 
@@ -269,5 +273,13 @@ func BenchmarkPointPickExtended(b *testing.B) {
 }
 func BenchmarkPointPickOptimized(b *testing.B) {
 	bench.NewPointBench(b,new(ed25519.Curve)).PointPick()
+}
+
+func BenchmarkElligator1(b *testing.B) {
+	testHiding(new(ExtendedCurve).Init(Param1174(), true), b.N)
+}
+
+func BenchmarkElligator2(b *testing.B) {
+	testHiding(new(ExtendedCurve).Init(Param25519(), true), b.N)
 }
 
