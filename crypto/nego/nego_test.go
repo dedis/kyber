@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 	"dissent/crypto"
-	"dissent/crypto/openssl"
+	"dissent/crypto/edwards"
 )
 
 // Simple harness to create lots of fake ciphersuites out of a few real ones,
@@ -22,9 +22,7 @@ func (f *fakeSuite) String() string {
 func TestNego(t *testing.T) {
 
 	realSuites := []crypto.Suite{
-			openssl.NewAES128SHA256P256(),
-			openssl.NewAES192SHA384P384(),
-			openssl.NewAES256SHA512P521(),
+			edwards.NewAES128SHA256Ed25519(true),
 		}
 
 	fakery := 10

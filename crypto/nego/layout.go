@@ -15,7 +15,7 @@ type node struct {
 	level int		// Position level
 
 	lo,hi int		// Byte position range
-	weight int		// Number of 1-bits in lo position
+	weight uint32		// Pseudorandom weight for balancing
 	l,r *node		// Left,right children in tree
 }
 
@@ -36,12 +36,12 @@ func bitWeight(v int) int {
 	return weight
 }
 
-func (n *node) init(obj extent, level int, lo,hi int) {
+func (n *node) init(obj extent, level int, lo,hi int, weight uint32) {
 	n.obj = obj
 	n.level = level
 	n.lo = lo
 	n.hi = hi
-	n.weight = bitWeight(lo)
+	n.weight = weight
 }
 
 // Find and return any layout node overlapping this extent,
@@ -134,11 +134,14 @@ func join(l,r *node) *node {
 	if r == nil {
 		return l
 	}
+//	fmt.Printf("join [%d-%d] %s and [%d-%d] %s\n",
+//			l.lo, l.hi, l.obj.String(),
+//			r.lo, r.hi, r.obj.String())
 	if l.weight > r.weight {		// push l down into subtree r
-		r.l = join(l.l, r.l)
+		r.l = join(l, r.l)
 		return r
 	} else {				// push r down into subtree l
-		l.r = join(l.r, r.r)
+		l.r = join(l.r, r)
 		return l
 	}
 }
@@ -153,9 +156,9 @@ func (n *node) remove(tp **node) {
 	if t == nil {
 		panic("failed to find layout node to remove")
 	}
-	//fmt.Printf("remove [%d-%d] %s from [%d-%d] %s\n",
-	//		n.lo, n.hi, n.obj.String(),
-	//		t.lo, t.hi, t.obj.String())
+//	fmt.Printf("remove [%d-%d] %s from [%d-%d] %s\n",
+//			n.lo, n.hi, n.obj.String(),
+//			t.lo, t.hi, t.obj.String())
 	if n.hi <= t.lo {		// n is completely below t
 		n.remove(&t.l)
 	} else if n.lo >= t.hi {	// n is completely above t

@@ -4,6 +4,7 @@ package nego
 
 import (
 	"fmt"
+	"sort"
 	"errors"
 	"crypto/cipher"
 	"encoding/binary"
@@ -57,75 +58,83 @@ func (s *suiteKey) fresh(suite crypto.Suite) {
 }
 */
 
+type suiteInfo struct {
+	ste crypto.Suite		// ciphersuite
+	tag []uint32			// per-position pseudorandom tag
+	pos []int			// alternative point positions
+	plen int			// length of each point in bytes
+	max int				// limit of highest point field
+
+	// layout info
+	nodes []*node			// layout node for reserved positions
+	lev int				// layout-chosen level for this suite
+}
 
 // Determine all the alternative DH point positions for a ciphersuite.
-func suitePos(suite crypto.Suite, levels int) []int {
-	altpos := make([]int, levels)
-	ptlen := suite.PointLen()		// XXX UniformLen()
+func (si *suiteInfo) init(ste crypto.Suite, nlevels int) {
+	si.ste = ste
+	si.tag = make([]uint32, nlevels)
+	si.pos = make([]int, nlevels)
+	si.plen = ste.Point().(crypto.Hiding).HideLen()	// XXX
+
+	// Create a pseudo-random stream from which to pick positions
+	str := fmt.Sprintf("NegoCipherSuite:%s", ste.String())
+	rand := crypto.HashStream(ste, []byte(str), nil)
 
 	// Alternative 0 is always at position 0, so start with level 1.
-	levofs := ptlen		// starting offset for current level
-	//fmt.Printf("Suite %s positions:\n", suite.String())
-	for i := 1; i < levels; i++ {
-		str := fmt.Sprintf("NegoCipherSuite:%s:%d",
-					suite.String(), i)
+	levofs := 0			// starting offset for current level
+	fmt.Printf("Suite %s positions:\n", ste.String())
+	for i := 0; i < nlevels; i++ {
 
-		h := suite.Hash()
-		h.Write([]byte(str))
-		b := h.Sum(nil)
-
-		levlen := 1 << uint(i)	// # alternative positions at this level
+		// Pick a random position within this level
+		var buf [4]byte
+		rand.XORKeyStream(buf[:],buf[:])
+		levlen := 1 << uint(i)	// # alt positions at this level
 		levmask := levlen - 1	// alternative index mask
-		levidx := int(binary.BigEndian.Uint32(b)) & levmask
-		altpos[i] = levofs + levidx * ptlen
+		si.tag[i] = binary.BigEndian.Uint32(buf[:])
+		levidx := int(si.tag[i]) & levmask
+		si.pos[i] = levofs + levidx * si.plen
 
-		//fmt.Printf("%d: idx %d/%d pos %d\n",
-		//		i, levidx, levlen, altpos[i])
+		fmt.Printf("%d: idx %d/%d pos %d\n",
+				i, levidx, levlen, si.pos[i])
 
-		levofs += levlen * ptlen	// next level table offset
+		levofs += levlen * si.plen	// next level table offset
 	}
-	return altpos
+
+	// Limit of highest point field
+	si.max = si.pos[nlevels-1] + si.plen
+
+	si.nodes = make([]*node, nlevels)
 }
 
-
-// Try to place a ciphersuite starting at level i,
-// and scanning in direction inc in case of conflict.
-// Returns true if suite successfully placed, false if not.
-func (w *Writer) dhInsert(suite crypto.Suite, altpos []int, i,inc int) bool {
-	nlevels := len(altpos)
-	if i >= nlevels {			// clamp starting point
-		i = nlevels-1
-	}
-	ptlen := suite.PointLen()		// XXX UniformLen()
+// Try to reserve a space for level i of this ciphersuite in the layout.
+func (si *suiteInfo) layout(w *Writer, i int) bool {
 	var n node
-	for ; i >= 0 && i < nlevels; i += inc {
-		lo := altpos[i]			// compute byte extent
-		hi := lo + ptlen
-		n.init(suite, i, lo, hi)	// create suitable node
-		//fmt.Printf("try insert %s at %d-%d\n", suite.String(), lo, hi)
-		if w.layout.insert(&n) {
-			//fmt.Printf("  success\n")
-			return true		// success
-		}
+	lo := si.pos[i]			// compute byte extent
+	hi := lo + si.plen
+	n.init(si.ste, i, lo, hi, si.tag[i])	// create suitable node
+	fmt.Printf("try insert %s:%d at %d-%d\n", si.ste.String(), i, lo, hi)
+	if !w.layout.insert(&n) {
+		return false
 	}
-	return false	// no available position found in that direction
+	si.nodes[i] = &n
+	return true
 }
 
 
-// Scan a tentative Diffie-Hellman point layout for conflicts,
-// in which an XOR-encoded point would be scrambled by
-// the encoding of another point higher in the layout,
-// assuming points are encoded in order of increasing position.
-/*
-func (w *Writer) conflicts() []*node {
-	conf := make([]*node, 0)
-	layout.traverse(func(n *node){
-		suite := n.obj.(crypto.Suite)
-		...
-	})
-	return conf
+type suites struct {
+	s []suiteInfo
 }
-*/
+
+func (s *suites) Len() int {
+	return len(s.s)
+}
+func (s *suites) Less(i,j int) bool {
+	return s.s[i].max < s.s[j].max
+}
+func (s *suites) Swap(i,j int) {
+	s.s[i],s.s[j] = s.s[j],s.s[i]
+}
 
 
 // Initialize a Writer to produce one or more negotiation header
@@ -155,9 +164,6 @@ func (w *Writer) Init(suiteLevel map[crypto.Suite]int,
 
 	w.layout.init()
 
-	// We use a big.Int as a bit-vector to allocate header space.
-	//alloc := big.NewInt(0)
-
 	// Determine the set of ciphersuites in use.
 /*
 	suites := make(map[crypto.Suite]struct{})
@@ -170,64 +176,67 @@ func (w *Writer) Init(suiteLevel map[crypto.Suite]int,
 	}
 */
 
-	// Compute the alternative DH point positions for each ciphersuite.
-	sPos := make(map[crypto.Suite][]int)
-	for suite,levels := range suiteLevel {
-		sPos[suite] = suitePos(suite,levels)
+	// Compute the alternative DH point positions for each ciphersuite,
+	// and the maximum byte offset for each.
+	stes := suites{}
+	stes.s = make([]suiteInfo, 0, len(suiteLevel))
+	for suite,nlevels := range suiteLevel {
+		si := suiteInfo{}
+		si.init(suite,nlevels)
+		stes.s = append(stes.s, si)
 	}
+	nsuites := len(stes.s)
 
-	// Start all suites' points at some default level
-	// estimated based on the log2 of the total number of ciphersuites.
-	level := 0
-	for l := len(suiteLevel); l != 0; l >>= 1 {
-		level++
-	} 
-	fmt.Printf("%d suites, default level %d\n", len(suiteLevel), level)
+	// Sort the ciphersuites in order of max position,
+	// to give ciphersuites with most restrictive positioning
+	// "first dibs" on the lowest positions.
+	sort.Sort(&stes)
 
-	// Initially lay out the ciphersuites' Diffie-Hellman points,
-	// preferring this default initial level to start with,
-	// shifting to lower levels first on hash conflicts,
-	// or to higher levels only as a last resort.
-	for suite,_ := range suiteLevel {
-		altpos := sPos[suite]
-		if !w.dhInsert(suite, altpos, level, -1) {
-			if !w.dhInsert(suite, altpos, level, +1) {
-				return 0,errors.New(
-					"Unable to layout ciphersuite " +
-					suite.String())
+	// Layout each of the ciphersuites.
+	hdrlen := 0
+	for i := 0; i < nsuites; i++ {
+		s := &stes.s[i]
+		fmt.Printf("max %d: %s\n", s.max, s.ste.String())
+
+		// Find the lowest level that isn't shadowed by another suite,
+		// ensuring that our point won't be corrupted when the points
+		// for later (higher) suites get computed and filled in.
+		j := len(s.pos)-1
+		if !s.layout(w,j) {
+			return 0,errors.New("failed to find viable position for ciphersuite "+s.ste.String())
+		}
+		for ; j > 0; j-- {
+			if !s.layout(w,j-1) {	// is position j-1 free too?
+				break		// no, stop at level j
 			}
 		}
-	}
-
-	fmt.Println("initial ciphersuite layout:")
-	w.layout.dump();
-
-	// Greedily shift ciphersuites to lower alternatives when possible,
-	// starting with the ciphersuite currently at the highest position.
-	var headerSize int
-	for {
-		top := w.layout.top()
-		suite := top.obj.(crypto.Suite)
-		//fmt.Printf("try moving %s at %d-%d down from level %d\n",
-		//		suite.String(), top.lo, top.hi, top.level)
-		if !w.dhInsert(suite, sPos[suite], top.level-1, -1) {
-			headerSize = top.hi
-			break			// no more compaction possible
+		s.lev = j
+		lim := s.pos[j] + s.plen
+		if lim > hdrlen {
+			hdrlen = lim
 		}
-
-		//fmt.Printf("success, layout after insertion:\n")
-		//w.layout.dump()
-
-		w.layout.remove(top)
-
-		//fmt.Printf("success, new layout:\n")
-		//w.layout.dump()
+		fmt.Printf("levels %d-%d\n", j, len(s.pos)-1)
 	}
+	fmt.Printf("hdrlen %d\n", hdrlen)
 
-	fmt.Println("final ciphersuite layout:")
+	fmt.Println("intermediate point layout:")
 	w.layout.dump();
 
-	return headerSize,nil
+	// Now we can go back and unreserve all but the point position
+	// for the picked level for each ciphersuite.
+	for i := 0; i < nsuites; i++ {
+		s := &stes.s[i]
+		nlevels := len(s.pos)
+		for j := s.lev+1; j < nlevels; j++ {
+			w.remove(s.nodes[j])
+			s.nodes[j] = nil
+		}
+	}
+
+	fmt.Println("ciphersuite point layout:")
+	w.layout.dump();
+
+	return hdrlen,nil
 }
 
 
