@@ -42,7 +42,7 @@ func TestNego(t *testing.T) {
 	}
 
 	w := Writer{}
-	_,err := w.Init(suiteLevel, 0, nil, nil)
+	_,err := w.Layout(suiteLevel, 0, nil, nil)
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
