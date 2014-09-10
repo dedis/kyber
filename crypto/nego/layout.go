@@ -12,11 +12,10 @@ type extent interface {
 // A node in a layout tree.
 type node struct {
 	obj extent		// Ciphersuite (DH) or Entry in this extent
-	level int		// Position level
-
 	lo,hi int		// Byte position range
 	weight uint32		// Pseudorandom weight for balancing
 	l,r *node		// Left,right children in tree
+	conflict bool		// Set when ciphersuites conflict on position
 }
 
 // A layout tree represents a set of non-overlapping extents allocated so far
@@ -36,9 +35,8 @@ func bitWeight(v int) int {
 	return weight
 }
 
-func (n *node) init(obj extent, level int, lo,hi int, weight uint32) {
+func (n *node) init(obj extent, lo,hi int, weight uint32) {
 	n.obj = obj
-	n.level = level
 	n.lo = lo
 	n.hi = hi
 	n.weight = weight
@@ -96,23 +94,23 @@ func (n *node) pruneRight(tp **node) *node {
 
 // Insert new node to occupy the specified extent,
 // if that extent does not occupy an already-allocated extent.
-// Returns true on success, false if the position is occupied.
-func (n *node) insert(tp **node) bool {
+// Returns nil on success, or a conflicting node if position is occupied.
+func (n *node) insert(tp **node) *node {
 	t := *tp
 	if t == nil {			// trivial if root is nil
 		*tp = n
-		return true
+		return nil
 	}
 
 	// If we've descended to a node heavier than us, insert here.
 	if n.weight < t.weight {
-		if n.find(t) != nil {
-			return false	// overlapping node exists
+		if c := n.find(t); c != nil {
+			return c	// overlapping node exists
 		}
 		*tp = n			// insert ourselves here
 		n.l = t
 		n.r = n.pruneRight(&n.l)
-		return true
+		return nil
 	}
 
 	// Keep descending in the tree
@@ -121,7 +119,7 @@ func (n *node) insert(tp **node) bool {
 	} else if n.lo >= t.hi {	// n is completely above t
 		return n.insert(&t.r)
 	} else {
-		return false		// n overlaps t
+		return t		// n overlaps t
 	}
 }
 
@@ -188,8 +186,13 @@ func (n *node) dump(indent int) {
 			panic("layout tree invariant failed")
 		}
 	}
-	fmt.Printf("%sw%d [%d-%d] %s\n", strings.Repeat(" ",indent), n.weight,
-			n.lo, n.hi, n.obj.String())
+	conf := ""
+	if n.conflict {
+		conf = " (CONFLICT)"
+	}
+	fmt.Printf("%sw%d [%d-%d] %s%s\n",
+			strings.Repeat(" ",indent), n.weight,
+			n.lo, n.hi, n.obj.String(), conf)
 	if n.r != nil {
 		if n.hi > n.r.lo {
 			panic("layout tree invariant failed")
@@ -228,7 +231,7 @@ func (l *layout) remove(n *node) {
 // Insert new node to occupy the specified extent in this layout,
 // if that extent does not occupy an already-allocated extent.
 // Returns true on success, false if the position is occupied.
-func (l *layout) insert(n *node) bool {
+func (l *layout) insert(n *node) *node {
 	return n.insert(&l.root)
 }
 

@@ -2,6 +2,11 @@
 // and secret entrypoint finding.
 package nego
 
+/* TODO:
+-	add SetSizeLimit() method to allow clients to enforce a limit
+	on the produced header size (at the risk of layout failure).
+*/
+
 import (
 	"fmt"
 	"sort"
@@ -70,6 +75,10 @@ type suiteInfo struct {
 	lev int				// layout-chosen level for this suite
 }
 
+func (si *suiteInfo) String() string {
+	return "Suite "+si.ste.String()
+}
+
 // Determine all the alternative DH point positions for a ciphersuite.
 func (si *suiteInfo) init(ste crypto.Suite, nlevels int) {
 	si.ste = ste
@@ -108,13 +117,16 @@ func (si *suiteInfo) init(ste crypto.Suite, nlevels int) {
 }
 
 // Try to reserve a space for level i of this ciphersuite in the layout.
+// If we can't due to a conflict, mark the existing node as conflicted,
+// so its owner subsequently knows that it can't use that position either.
 func (si *suiteInfo) layout(w *Writer, i int) bool {
 	var n node
 	lo := si.pos[i]			// compute byte extent
 	hi := lo + si.plen
-	n.init(si.ste, i, lo, hi, si.tag[i])	// create suitable node
+	n.init(si, lo, hi, si.tag[i])	// create suitable node
 	fmt.Printf("try insert %s:%d at %d-%d\n", si.ste.String(), i, lo, hi)
-	if !w.layout.insert(&n) {
+	if cn := w.layout.insert(&n); cn != nil {
+		cn.conflict = true
 		return false
 	}
 	si.nodes[i] = &n
@@ -192,34 +204,73 @@ func (w *Writer) Init(suiteLevel map[crypto.Suite]int,
 	// "first dibs" on the lowest positions.
 	sort.Sort(&stes)
 
-	// Layout each of the ciphersuites.
+	// Pick a default initial level for all ciphersuites,
+	// estimated based on the log2 of the total number of ciphersuites.
+	deflev := 0
+	for l := nsuites; l != 0; l >>= 1 {
+		deflev++
+	} 
+	fmt.Printf("%d suites, default level %d\n", nsuites, deflev)
+deflev = 99
+
+	// Create a valid initial layout with each of the ciphersuites.
 	hdrlen := 0
 	for i := 0; i < nsuites; i++ {
 		s := &stes.s[i]
 		fmt.Printf("max %d: %s\n", s.max, s.ste.String())
 
+		// Attempt to reserve all our possible positions.
 		// Find the lowest level that isn't shadowed by another suite,
 		// ensuring that our point won't be corrupted when the points
 		// for later (higher) suites get computed and filled in.
-		j := len(s.pos)-1
-		if !s.layout(w,j) {
-			return 0,errors.New("failed to find viable position for ciphersuite "+s.ste.String())
+		lev := len(s.pos)-1
+		if !s.layout(w,lev) {
+			return 0,errors.New("no viable position for suite"+
+						s.ste.String())
 		}
-		for ; j > 0; j-- {
-			if !s.layout(w,j-1) {	// is position j-1 free too?
-				break		// no, stop at level j
+		for j := lev-1; j >= 0; j-- {
+			if s.layout(w,j) && j == lev-1 {
+				lev = j		// no conflict, shift down
 			}
 		}
-		s.lev = j
-		lim := s.pos[j] + s.plen
+		s.lev = lev	// lowest unconflicted, non-shadowed level
+
+		lim := s.pos[lev] + s.plen
 		if lim > hdrlen {
 			hdrlen = lim
 		}
-		fmt.Printf("levels %d-%d\n", j, len(s.pos)-1)
+		fmt.Printf("levels %d-%d\n", lev, len(s.pos)-1)
 	}
-	fmt.Printf("hdrlen %d\n", hdrlen)
+	fmt.Printf("initial hdrlen %d\n", hdrlen)
 
 	fmt.Println("intermediate point layout:")
+	w.layout.dump();
+
+	// Greedily shift ciphersuites to lower alternatives when possible,
+	// starting with the ciphersuite currently at the highest position.
+	for {
+		top := w.layout.top()
+		si := top.obj.(*suiteInfo)
+		fmt.Printf("top: [%d-%d] %s\n", top.lo, top.hi, si.String())
+
+		// If this is currently the position for this suite,
+		// try moving it down one level.
+		if top.lo == si.pos[si.lev] {
+			if si.lev == 0 || !si.layout(w,si.lev-1) {
+				break		// can't shift, we're done.
+			}
+			si.lev--		// shift it down
+		}
+		if top.lo < si.pos[si.lev] {
+			panic("oops, we missed the primary position!?")
+		}
+
+		// Not (or longer) the chosen position for this suite;
+		// we can now safely prune this position reservation.
+		w.layout.remove(top)
+	}
+
+	fmt.Println("length-reduced point layout:")
 	w.layout.dump();
 
 	// Now we can go back and unreserve all but the point position
@@ -233,7 +284,7 @@ func (w *Writer) Init(suiteLevel map[crypto.Suite]int,
 		}
 	}
 
-	fmt.Println("ciphersuite point layout:")
+	fmt.Println("ciphersuite point layout after pruning:")
 	w.layout.dump();
 
 	return hdrlen,nil
