@@ -24,6 +24,10 @@ type Entry struct {
 	Data []byte		// Entrypoint data decryptable by owner
 }
 
+func (e *Entry) String() string {
+	return fmt.Sprintf("(%s)%p", e.Suite, e)
+}
+
 
 // Writer produces a cryptographic negotiation header,
 // which conceals a variable number of "entrypoints"
@@ -41,7 +45,8 @@ type Entry struct {
 // which can be (but doesn't have to be) shared by many or all entrypoints.
 //
 type Writer struct {
-	layout skipLayout
+	layout skipLayout	// Reservation map representing layout
+	entofs map[int]int	// Map of entrypoints to header offsets
 	maxLen int		// Client-specified maximum header length
 }
 
@@ -135,7 +140,7 @@ func (si *suiteInfo) layout(w *Writer, i int) bool {
 
 // A sortable list of suiteInfo objects.
 type suites struct {
-	s []suiteInfo
+	s []*suiteInfo
 }
 
 func (s *suites) Len() int {
@@ -180,6 +185,9 @@ func (w *Writer) Layout(suiteLevel map[crypto.Suite]int,
 			entryLen int, entrypoints []Entry,
 			rand cipher.Stream) (int,error) {
 
+	w.layout.reset()
+	w.entofs = make(map[int]int)
+
 	// Determine the set of ciphersuites in use.
 /*
 	suites := make(map[crypto.Suite]struct{})
@@ -195,15 +203,17 @@ func (w *Writer) Layout(suiteLevel map[crypto.Suite]int,
 	// Compute the alternative DH point positions for each ciphersuite,
 	// and the maximum byte offset for each.
 	stes := suites{}
-	stes.s = make([]suiteInfo, 0, len(suiteLevel))
+	stes.s = make([]*suiteInfo, 0, len(suiteLevel))
 	max := 0
+	simap := make(map[crypto.Suite]*suiteInfo)
 	for suite,nlevels := range suiteLevel {
 		si := suiteInfo{}
 		si.init(suite,nlevels)
 		if si.max > max {
 			max = si.max
 		}
-		stes.s = append(stes.s, si)
+		stes.s = append(stes.s, &si)
+		simap[suite] = &si
 	}
 	nsuites := len(stes.s)
 	if nsuites > 255 {
@@ -227,12 +237,11 @@ func (w *Writer) Layout(suiteLevel map[crypto.Suite]int,
 	// each successive ciphersuite's primary position must not overlap
 	// any point position for any ciphersuite previously computed,
 	// but can overlap positions for ciphersuites to be computed later.
-	w.layout.reset()
 	var exclude skipLayout
 	exclude.reset()
 	hdrlen := 0
 	for i := 0; i < nsuites; i++ {
-		si := &stes.s[i]
+		si := stes.s[i]
 		//fmt.Printf("max %d: %s\n", si.max, si.ste.String())
 
 		// Reserve all our possible positions in exclude layout,
@@ -266,6 +275,26 @@ func (w *Writer) Layout(suiteLevel map[crypto.Suite]int,
 
 	fmt.Printf("Total hdrlen: %d\n", hdrlen)
 	fmt.Printf("Point layout:\n")
+	w.layout.dump()
+
+	// Now layout the entrypoints.
+	for i := range(entrypoints) {
+		e := &entrypoints[i]
+		si := simap[e.Suite]
+		if si == nil {
+			panic("suite "+e.Suite.String()+" wasn't on the list")
+		}
+		l := len(e.Data)
+		if l == 0 {
+			panic("entrypoint with no data")
+		}
+		ofs := w.layout.alloc(l, e)
+		w.entofs[i] = ofs
+		//fmt.Printf("Entrypoint %d (%s) at [%d-%d]\n",
+		//	i, si.String(), ofs, ofs+l)
+	}
+
+	fmt.Printf("Point+Entry layout:\n")
 	w.layout.dump()
 
 	return hdrlen,nil

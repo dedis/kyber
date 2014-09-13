@@ -26,6 +26,9 @@ func TestNego(t *testing.T) {
 		}
 
 	fakery := 10
+	nentries := 10
+	datalen := 16
+
 	suites := make([]crypto.Suite, 0)
 	for i := range(realSuites) {
 		real := realSuites[i]
@@ -36,13 +39,23 @@ func TestNego(t *testing.T) {
 
 	nlevels := 5
 	suiteLevel := make(map[crypto.Suite]int)
+	entries := make([]Entry, 0)
 	for i := range(suites) {
 		suiteLevel[suites[i]] = nlevels
 		nlevels++			// vary it a bit for testing
+
+		// Create some entrypoints with this suite
+		s := suites[i]
+		for j := 0; j < nentries; j++ {
+			pri := s.Secret().Pick(crypto.RandomStream)
+			pub := s.Point().Mul(nil, pri)
+			data := make([]byte, datalen)
+			entries = append(entries, Entry{s,pub,data})
+		}
 	}
 
 	w := Writer{}
-	_,err := w.Layout(suiteLevel, 0, nil, nil)
+	_,err := w.Layout(suiteLevel, 0, entries, nil)
 	if err != nil {
 		t.Log(err)
 		t.FailNow()

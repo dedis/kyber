@@ -26,7 +26,9 @@ type skipNode struct {
 	obj interface{}
 }
 
-// Skip-list reservation structure
+// Skip-list reservation structure.
+// XXX currently we never coalesce reserved regions,
+// and operation would probably be much more efficient if we did.
 type skipLayout struct {
 	head []*skipNode
 }
@@ -35,23 +37,66 @@ func (sl *skipLayout) reset() {
 	sl.head = make([]*skipNode, 1)		// minimum stack height
 }
 
-func (sl *skipLayout) reserve(lo,hi int, excl bool, obj interface{}) bool {
-
-	// An iterator is a stack of pointers to next pointers, one per level
+// Create a new skip-list iterator.
+// An iterator is a stack of pointers to next pointers, one per level.
+func (sl *skipLayout) iter() []**skipNode {
 	pos := make([]**skipNode, len(sl.head))
 	for i := range(pos) {
 		pos[i] = &sl.head[i]
 	}
+	return pos
+}
 
-	// Find the position past all nodes strictly before our interest area
+// Advance a position vector past a given node,
+// which must be pointed to by one of the current position pointers.
+func (sl *skipLayout) skip(pos []**skipNode, past *skipNode) {
+	for i := range(past.suc) {
+		pos[i] = &past.suc[i]
+	}
+}
+
+// Find the position past all nodes strictly before byte offset ofs.
+func (sl *skipLayout) find(ofs int) []**skipNode {
+	pos := sl.iter()
 	for i := len(pos)-1; i >= 0; i-- {
-		for n := *pos[i]; n != nil && n.hi <= lo; n = *pos[i] {
+		for n := *pos[i]; n != nil && n.hi <= ofs; n = *pos[i] {
 			// Advance past n at all levels up through i
-			for j := i; j >= 0; j-- {
-				pos[j] = &n.suc[j]
-			}
+			sl.skip(pos, n)
 		}
 	}
+	return pos
+}
+
+// Insert a new node at a given iterator position, and skip past it.
+// May extend the iterator slice, so returns a new position slice.
+func (sl *skipLayout) insert(pos []**skipNode, lo,hi int,
+		obj interface{}) []**skipNode {
+
+	nsuc := make([]*skipNode,skipHeight())
+	n := skipNode{lo,hi,nsuc,obj}
+
+	// Insert the new node at all appropriate levels
+	for i := range(nsuc) {
+		if i == len(pos) {
+			// base node's stack not high enough, extend it
+			sl.head = append(sl.head, nil)
+			pos = append(pos, &sl.head[i])
+		}
+		nsuc[i] = *pos[i]
+		*pos[i] = &n
+		pos[i] = &nsuc[i]
+	}
+	return pos
+}
+
+// Attempt to reserve a specific extent in the layout.
+// If excl is true, either reserve it exclusively or fail without modification.
+// If excl is false, reserve region even if some or all of it already reserved.
+// Returns true if requested region was reserved exclusively, false if not.
+func (sl *skipLayout) reserve(lo,hi int, excl bool, obj interface{}) bool {
+
+	// Find the position past all nodes strictly before our interest area
+	pos := sl.find(lo)
 
 	// Can we get an exclusive reservation?
 	suc := *pos[0]
@@ -69,9 +114,7 @@ func (sl *skipLayout) reserve(lo,hi int, excl bool, obj interface{}) bool {
 		if suc != nil && suc.lo <= lo {
 			// suc occupies first part of our region, so skip it
 			lo = suc.hi
-			for j := len(suc.suc)-1; j >= 0; j-- {
-				pos[j] = &suc.suc[j]
-			}
+			sl.skip(pos, suc)
 			continue
 		}
 
@@ -85,25 +128,35 @@ func (sl *skipLayout) reserve(lo,hi int, excl bool, obj interface{}) bool {
 		}
 		//fmt.Printf("inserting [%d-%d]\n", lo,hi)
 
-		// Create a new node with a suitably random stack height
-		nsuc := make([]*skipNode,skipHeight())
-		n := skipNode{lo,inshi,nsuc,obj}
-
-		// Insert the new node at all appropriate levels
-		for i := range(nsuc) {
-			if i == len(pos) {
-				// base node's stack not high enough, extend it
-				sl.head = append(sl.head, nil)
-				pos = append(pos, &sl.head[i])
-			}
-			nsuc[i] = *pos[i]
-			*pos[i] = &n
-			pos[i] = &nsuc[i]
-		}
+		// Insert a new reservation here, then skip past it.
+		pos = sl.insert(pos, lo, inshi, obj)
 		lo = inshi
 	}
 
 	return gotExcl
+}
+
+// Find and reserve the first available l-byte region in the layout.
+func (sl *skipLayout) alloc(l int, obj interface{}) int {
+
+	pos := sl.iter()
+	ofs := 0
+	for {	// Find a position to insert
+		suc := *pos[0]
+		if suc == nil {
+			break	// no more reservations; definitely room here!
+		}
+		avail := suc.lo - ofs
+		if avail >= l {
+			break	// there's enough room here
+		}
+		sl.skip(pos, suc)
+		ofs = suc.hi
+	}
+
+	// Insert new region here
+	sl.insert(pos, ofs, ofs+l, obj)
+	return ofs
 }
 
 func (sl *skipLayout) dump() {
