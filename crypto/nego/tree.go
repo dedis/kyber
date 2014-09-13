@@ -9,13 +9,14 @@ import (
 	"strings"
 )
 
-type extent interface {
+
+type dumpable interface {
 	String() string
 }
 
 // A node in a layout tree.
 type node struct {
-	obj extent		// Ciphersuite (DH) or Entry in this extent
+	obj interface{}		// Ciphersuite (DH) or Entry in this extent
 	lo,hi int		// Byte position range
 	weight uint32		// Pseudorandom weight for balancing
 	l,r *node		// Left,right children in tree
@@ -24,7 +25,7 @@ type node struct {
 
 // A layout tree represents a set of non-overlapping extents allocated so far
 // in a negotiation header, sorted by position.
-type layout struct {
+type treeLayout struct {
 	root *node		// Root of extent tree
 }
 
@@ -39,7 +40,7 @@ func bitWeight(v int) int {
 	return weight
 }
 
-func (n *node) init(obj extent, lo,hi int, weight uint32) {
+func (n *node) init(obj interface{}, lo,hi int, weight uint32) {
 	n.obj = obj
 	n.lo = lo
 	n.hi = hi
@@ -196,7 +197,7 @@ func (n *node) dump(indent int) {
 	}
 	fmt.Printf("%sw%d [%d-%d] %s%s\n",
 			strings.Repeat(" ",indent), n.weight,
-			n.lo, n.hi, n.obj.String(), conf)
+			n.lo, n.hi, n.obj.(dumpable).String(), conf)
 	if n.r != nil {
 		if n.hi > n.r.lo {
 			panic("layout tree invariant failed")
@@ -208,19 +209,19 @@ func (n *node) dump(indent int) {
 
 
 // Initialize or clear the layout to empty.
-func (l *layout) init() {
+func (l *treeLayout) init() {
 	l.root = nil
 }
 
 // Find and return any node overlapping this extent in this layout,
 // or nil if there is no overlapping extent in the layout.
-func (l *layout) find(n *node) *node {
+func (l *treeLayout) find(n *node) *node {
 	return n.find(l.root)
 }
 
 // Find the rightmost current node in the layout.
 // Assumes the layout is non-empty.
-func (l *layout) top() *node {
+func (l *treeLayout) top() *node {
 	var n *node
 	for n = l.root ; n.r != nil ; n = n.r {
 	}
@@ -228,25 +229,32 @@ func (l *layout) top() *node {
 }
 
 // Remove a node from the layout.
-func (l *layout) remove(n *node) {
+func (l *treeLayout) remove(n *node) {
 	n.remove(&l.root)
 }
 
 // Insert new node to occupy the specified extent in this layout,
 // if that extent does not occupy an already-allocated extent.
 // Returns true on success, false if the position is occupied.
-func (l *layout) insert(n *node) *node {
+func (l *treeLayout) insert(n *node) *node {
 	return n.insert(&l.root)
+}
+
+// Reserve an extent for a given (opaque) object.
+func (l *treeLayout) reserve(obj interface{}, lo,hi int) bool {
+	n := node{}
+	n.init(obj, lo, hi, randUint32())
+	return l.insert(&n) == nil
 }
 
 // Traverse the layout in order of increasing position.
 // The supplied function f must not modify the layout.
-func (l *layout) scan(f func(*node)) {
+func (l *treeLayout) scan(f func(*node)) {
 	l.root.scan(f)
 }
 
 // Count the total bytes in all extents.
-func (l *layout) used() int {
+func (l *treeLayout) used() int {
 	bytes := 0
 	l.scan(func(n *node){
 		bytes += n.hi-n.lo
@@ -254,7 +262,7 @@ func (l *layout) used() int {
 	return bytes
 }
 
-func (l *layout) dump() {
+func (l *treeLayout) dump() {
 	l.root.dump(0)
 
 	used := l.used()

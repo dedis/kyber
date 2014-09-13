@@ -26,6 +26,30 @@ func RandomBits(bitlen uint, exact bool, rand cipher.Stream) []byte {
 	return b
 }
 
+// Choose a uniform random byte
+func RandomByte(rand cipher.Stream) byte {
+	b := RandomBits(8, false, rand)
+	return b[0]
+}
+
+// Choose a uniform random uint8
+func RandomUint8(rand cipher.Stream) uint8 {
+	b := RandomBits(8, false, rand)
+	return uint8(b[0])
+}
+
+// Choose a uniform random uint16
+func RandomUint16(rand cipher.Stream) uint16 {
+	b := RandomBits(16, false, rand)
+	return binary.BigEndian.Uint16(b)
+}
+
+// Choose a uniform random uint32
+func RandomUint32(rand cipher.Stream) uint32 {
+	b := RandomBits(32, false, rand)
+	return binary.BigEndian.Uint32(b)
+}
+
 // Choose a uniform random uint64
 func RandomUint64(rand cipher.Stream) uint64 {
 	b := RandomBits(64, false, rand)

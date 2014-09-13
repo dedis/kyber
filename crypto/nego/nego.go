@@ -41,6 +41,7 @@ type Entry struct {
 // which can be (but doesn't have to be) shared by many or all entrypoints.
 //
 type Writer struct {
+	layout skipLayout
 	maxLen int		// Client-specified maximum header length
 }
 
@@ -72,7 +73,7 @@ type suiteInfo struct {
 	max int				// limit of highest point field
 
 	// layout info
-	nodes []*node			// layout node for reserved positions
+	//nodes []*node			// layout node for reserved positions
 	lev int				// layout-chosen level for this suite
 }
 
@@ -113,11 +114,26 @@ func (si *suiteInfo) init(ste crypto.Suite, nlevels int) {
 
 	// Limit of highest point field
 	si.max = si.pos[nlevels-1] + si.plen
-
-	si.nodes = make([]*node, nlevels)
 }
 
+// Try to reserve a space for level i of this ciphersuite in the layout.
+// If we can't due to a conflict, mark the existing node as conflicted,
+// so its owner subsequently knows that it can't use that position either.
+/*
+func (si *suiteInfo) layout(w *Writer, i int) bool {
+	var n node
+	lo := si.pos[i]			// compute byte extent
+	hi := lo + si.plen
+	n.init(si, lo, hi, si.tag[i])	// create suitable node
+	fmt.Printf("try insert %s:%d at %d-%d\n", si.ste.String(), i, lo, hi)
+	return w.layout.reserve(si, lo, hi, si.tag[i])
+}
+*/
 
+ 
+
+
+// A sortable list of suiteInfo objects.
 type suites struct {
 	s []suiteInfo
 }
@@ -131,6 +147,7 @@ func (s *suites) Less(i,j int) bool {
 func (s *suites) Swap(i,j int) {
 	s.s[i],s.s[j] = s.s[j],s.s[i]
 }
+
 
 // Set the optional maximum length for the negotiation header,
 // affecting subsequent calls to Layout()
@@ -203,54 +220,53 @@ func (w *Writer) Layout(suiteLevel map[crypto.Suite]int,
 	// "first dibs" on the lowest positions.
 	sort.Sort(&stes)
 
-	// Create a reservation byte-mask.
-	// Each byte will indicate the lowest ciphersuite number
-	// that wants to "reserve" the corresponding byte.
-	// A resmask value > 1 indicates a conflict.
-	mask := make([]byte, max)
+	// Create two reservation layouts:
+	// - In w.layout only each ciphersuite's primary position is reserved.
+	// - In exclude we reserve _all_ positions in each ciphersuite.
+	// Since the ciphersuites' points will be computed in this same order,
+	// each successive ciphersuite's primary position must not overlap
+	// any point position for any ciphersuite previously computed,
+	// but can overlap positions for ciphersuites to be computed later.
+	w.layout.reset()
+	var exclude skipLayout
+	exclude.reset()
 	hdrlen := 0
 	for i := 0; i < nsuites; i++ {
-		// Reserve all of this ciphersuite's point positions.
-		// The first position we "win" will be our primary position,
-		// but we still have to reserve higher positions as well
-		// so that later-assigned ciphersuites won't touch them.
 		si := &stes.s[i]
-		me := byte(1+i)
-		lev := -1
-		for j := len(si.pos)-1; j >= 0; j-- {
+		//fmt.Printf("max %d: %s\n", si.max, si.ste.String())
+
+		// Reserve all our possible positions in exclude layout,
+		// picking the first non-conflicting position as our primary.
+		lev := len(si.pos)
+		for j := lev-1; j >= 0; j-- {
 			lo := si.pos[j]
 			hi := lo + si.plen
-			if hi > max {
-				hi = max
-			}
-			won := true
-			for k := lo; k < hi; k++ {
-				if mask[k] == 0 {
-					mask[k] = me
-				} else {
-					won = false
-				}
-			}
-			if won {
-				lev = j
+			//fmt.Printf("reserving [%d-%d]\n", lo,hi)
+			if exclude.reserve(lo,hi,false,si) && j == lev-1 {
+				lev = j		// no conflict, shift down
 			}
 		}
-		if lev < 0 {
-			return 0,errors.New("no position for ciphersuite "+
-						si.String())
+		if lev == len(si.pos) {
+			return 0,errors.New("no viable position for suite"+
+						si.ste.String())
 		}
+		si.lev = lev	// lowest unconflicted, non-shadowed level
 
-		// Found a viable position
-		si.lev = lev
+		// Permanently reserve the primary point position in w.layout
 		lo := si.pos[lev]
 		hi := lo + si.plen
-		fmt.Printf("%s at [%d-%d]\n", si.String(), lo, hi)
 		if hi > hdrlen {
 			hdrlen = hi
 		}
+		//fmt.Printf("picked level %d at [%d-%d]\n", lev, lo,hi)
+		if !w.layout.reserve(lo,hi,true,si) {
+			panic("thought we had that position reserved??")
+		}
 	}
-	fmt.Printf("masklen %d\n", max)
+
 	fmt.Printf("Total hdrlen: %d\n", hdrlen)
+	fmt.Printf("Point layout:\n")
+	w.layout.dump()
 
 	return hdrlen,nil
 }
