@@ -23,7 +23,7 @@ func skipHeight() int {
 type skipNode struct {
 	lo,hi int
 	suc []*skipNode
-	obj interface{}
+	name string
 }
 
 // Skip-list reservation structure.
@@ -70,10 +70,10 @@ func (sl *skipLayout) find(ofs int) []**skipNode {
 // Insert a new node at a given iterator position, and skip past it.
 // May extend the iterator slice, so returns a new position slice.
 func (sl *skipLayout) insert(pos []**skipNode, lo,hi int,
-		obj interface{}) []**skipNode {
+				name string) []**skipNode {
 
 	nsuc := make([]*skipNode,skipHeight())
-	n := skipNode{lo,hi,nsuc,obj}
+	n := skipNode{lo,hi,nsuc,name}
 
 	// Insert the new node at all appropriate levels
 	for i := range(nsuc) {
@@ -93,7 +93,7 @@ func (sl *skipLayout) insert(pos []**skipNode, lo,hi int,
 // If excl is true, either reserve it exclusively or fail without modification.
 // If excl is false, reserve region even if some or all of it already reserved.
 // Returns true if requested region was reserved exclusively, false if not.
-func (sl *skipLayout) reserve(lo,hi int, excl bool, obj interface{}) bool {
+func (sl *skipLayout) reserve(lo,hi int, excl bool, name string) bool {
 
 	// Find the position past all nodes strictly before our interest area
 	pos := sl.find(lo)
@@ -129,7 +129,7 @@ func (sl *skipLayout) reserve(lo,hi int, excl bool, obj interface{}) bool {
 		//fmt.Printf("inserting [%d-%d]\n", lo,hi)
 
 		// Insert a new reservation here, then skip past it.
-		pos = sl.insert(pos, lo, inshi, obj)
+		pos = sl.insert(pos, lo, inshi, name)
 		lo = inshi
 	}
 
@@ -137,7 +137,7 @@ func (sl *skipLayout) reserve(lo,hi int, excl bool, obj interface{}) bool {
 }
 
 // Find and reserve the first available l-byte region in the layout.
-func (sl *skipLayout) alloc(l int, obj interface{}) int {
+func (sl *skipLayout) alloc(l int, name string) int {
 
 	pos := sl.iter()
 	ofs := 0
@@ -155,8 +155,30 @@ func (sl *skipLayout) alloc(l int, obj interface{}) int {
 	}
 
 	// Insert new region here
-	sl.insert(pos, ofs, ofs+l, obj)
+	sl.insert(pos, ofs, ofs+l, name)
 	return ofs
+}
+
+// Call the supplied function on every free region in the layout,
+// up to a given maximum byte offset.
+func (sl *skipLayout) scanFree(f func(int,int), max int) {
+
+	pos := sl.iter()
+	ofs := 0
+	for {
+		suc := *pos[0]
+		if suc == nil {
+			break	// no more reservations
+		}
+		if suc.lo > ofs {
+			f(ofs, suc.lo)
+		}
+		sl.skip(pos, suc)
+		ofs = suc.hi
+	}
+	if ofs < max {
+		f(ofs,max)
+	}
 }
 
 func (sl *skipLayout) dump() {
@@ -169,8 +191,7 @@ func (sl *skipLayout) dump() {
 	}
 	for n := *pos[0]; n != nil; n = *pos[0] {
 		fmt.Printf("%p [%d-%d] level %d: %s\n",
-				n, n.lo, n.hi, len(n.suc),
-				n.obj.(dumpable).String())
+				n, n.lo, n.hi, len(n.suc), n.name)
 		for j := range(n.suc) {		// skip-list invariant check
 			//fmt.Printf(" S%d: %p\n", j, n.suc[j])
 			if *pos[j] != n {
@@ -182,7 +203,7 @@ func (sl *skipLayout) dump() {
 	for i := range(pos) {
 		n := *pos[i]
 		if n != nil {
-			panic("orphaned skip-node: "+n.obj.(dumpable).String())
+			panic("orphaned skip-node: "+n.name)
 		}
 	}
 }
