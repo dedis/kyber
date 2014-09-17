@@ -1,4 +1,4 @@
-package shuffle
+package proof
 
 import (
 	"bytes"

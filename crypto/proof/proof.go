@@ -2,7 +2,6 @@ package proof
 
 import (
 	"errors"
-	"crypto/cipher"
 	"dissent/crypto"
 )
 
@@ -13,22 +12,8 @@ import (
 //type SecVar int
 
 
-
-// ProverContext represents the abstract environment
-// required by the prover in a Sigma protocol.
-// XXX make shuffle use these?
-type ProverContext interface {
-	Put(message interface{}) error 		// Send message to verifier
-	PubRand(message...interface{})		// Get public randomness
-	PriRand(message...interface{})		// Get private randomness
-}
-
-// ProverContext represents the abstract environment
-// required by the verifier in a Sigma protocol.
-type VerifierContext interface {
-	Get(message interface{}) error		// Receive message from prover
-	PubRand(message...interface{})		// Get public randomness
-}
+// XXX simplify using the reflection API?
+// just pass a 'struct' with the Point and Secret variables?
 
 
 /*
@@ -67,7 +52,8 @@ type Pred interface {
 
 // stringification precedence levels
 const (
-	precOr = iota
+	precNone = iota
+	precOr
 	precAnd
 	precAtom
 )
@@ -75,8 +61,8 @@ const (
 
 // A Term in a representation expression
 type Term struct {
-	Secret SecVar	// secret multiplier for this term
-	Base PubVar	// generator for this term
+	Secret string	// secret multiplier for this term
+	Base string	// generator for this term
 }
 
 
@@ -84,7 +70,7 @@ type Term struct {
 // Atomic representation predicate of the form y=g1x1+g2x2+...
 type RepPred struct {
 	prf *Proof
-	val PubVar	// public point of which a representation is known
+	val string	// public variable of which a representation is known
 	sum []Term	// terms comprising the known representation
 	// XXX a,b
 
@@ -98,19 +84,19 @@ type RepPred struct {
 }
 
 func (rp *RepPred) String() string {
-	return rp.precString(-1)
+	return rp.precString(precNone)
 }
 
 func (rp *RepPred) precString(prec int) string {
-	s := rp.prf.pvar[int(rp.val)] + "="
+	s := rp.val + "="
 	for i := range(rp.sum) {
 		if i > 0 {
 			s += "+"
 		}
 		t := &rp.sum[i]
-		s += rp.prf.svar[int(t.Secret)]
+		s += t.Secret
 		s += "*"
-		s += rp.prf.pvar[int(t.Base)]
+		s += t.Base
 	}
 	return s
 }
@@ -128,21 +114,22 @@ func (rp *RepPred) commit(w crypto.Secret, v []crypto.Secret) error {
 	// Compute commit T=wY+v1G1+...+vkGk
 	T := prf.s.Point()
 	if w != nil {	// We're on a non-obligated branch
-		T.Mul(prf.pval[int(rp.val)],w)
+		T.Mul(prf.pval[rp.val],w)
 	} else {	// We're on a proof-obligated branch, so w=0
 		T.Null()
 	}
 	P := prf.s.Point()
 	for i := 0; i < len(rp.sum); i++ {
 		t := rp.sum[i]	// current term
-		s := int(t.Secret)
+		s := prf.sidx[t.Secret]
 
 		// Choose a blinding secret the first time
 		// we encounter each variable
 		if v[s] == nil {
-			v[s] = prf.s.Secret().Pick(prf.prirand)
+			v[s] = prf.s.Secret()
+			prf.pc.PriRand(v[s])
 		}
-		P.Mul(prf.pval[int(t.Base)],v[s])
+		P.Mul(prf.pval[t.Base],v[s])
 		T.Add(T,P)
 	}
 
@@ -158,7 +145,7 @@ func (rp *RepPred) respond(c crypto.Secret, pr []crypto.Secret) error {
 
 	for i := range(rp.sum) {
 		t := rp.sum[i]	// current term
-		s := int(t.Secret)
+		s := prf.sidx[t.Secret]
 
 		// Produce a correct response for each variable
 		// the first time we encounter that variable.
@@ -174,7 +161,7 @@ func (rp *RepPred) respond(c crypto.Secret, pr []crypto.Secret) error {
 			// so we need to calculate the correct response
 			// as r = v-cx where x is the secret variable
 			ri := prf.s.Secret()
-			ri.Mul(c,prf.sval[s])
+			ri.Mul(c,prf.sval[t.Secret])
 			ri.Sub(rp.v[s],ri)
 			r[s] = ri
 		}
@@ -198,7 +185,7 @@ func (rp *RepPred) getCommits(pr []crypto.Secret) error {
 	rp.r = r
 	for i := range(rp.sum) {
 		t := rp.sum[i]	// current term
-		s := int(t.Secret)
+		s := prf.sidx[t.Secret]
 		if r[s] == nil {
 			r[s] = prf.s.Secret()
 		}
@@ -217,12 +204,12 @@ func (rp *RepPred) verify(c crypto.Secret, pr []crypto.Secret) error {
 
 	// Recompute commit T=cY+r1G1+...+rkGk
 	T := prf.s.Point()
-	T.Mul(prf.pval[int(rp.val)],c)
+	T.Mul(prf.pval[rp.val],c)
 	P := prf.s.Point()
 	for i := 0; i < len(rp.sum); i++ {
 		t := rp.sum[i]	// current term
-		s := int(t.Secret)
-		P.Mul(prf.pval[int(t.Base)],r[s])
+		s := prf.sidx[t.Secret]
+		P.Mul(prf.pval[t.Base],r[s])
 		T.Add(T,P)
 	}
 	if !T.Equal(rp.T) {
@@ -243,15 +230,15 @@ type AndPred struct {
 }
 
 func (ap *AndPred) String() string {
-	return ap.precString(-1)
+	return ap.precString(precNone)
 }
 
 func (ap *AndPred) precString(prec int) string {
 	s := ap.sub[0].precString(precAnd)
 	for i := 1; i < len(ap.sub); i++ {
-		s = s + " AND " + ap.sub[i].precString(precAnd)
+		s = s + " && " + ap.sub[i].precString(precAnd)
 	}
-	if prec > precAnd {
+	if prec != precNone && prec != precAnd {
 		s = "(" + s + ")"
 	}
 	return s
@@ -327,22 +314,23 @@ type OrPred struct {
 }
 
 func (op *OrPred) String() string {
-	return op.precString(-1)
+	return op.precString(precNone)
 }
 
 func (op *OrPred) precString(prec int) string {
 	s := op.sub[0].precString(precOr)
 	for i := 1; i < len(op.sub); i++ {
-		s = s + " OR " + op.sub[i].precString(precOr)
+		s = s + " || " + op.sub[i].precString(precOr)
 	}
-	if prec > precOr {
+	if prec != precNone && prec != precOr {
 		s = "(" + s + ")"
 	}
 	return s
 }
 
-func (op *OrPred) Choose(choice int) {
+func (op *OrPred) Choose(choice int) *OrPred {
 	op.choice = choice
+	return op
 }
 
 func (op *OrPred) Choice() int {
@@ -364,6 +352,7 @@ func (op *OrPred) commit(w crypto.Secret, v []crypto.Secret) error {
 		// choose random pre-challenges for only non-obligated subs.
 		for i := 0; i < len(op.sub); i++ {
 			if i != op.choice {
+				wi[i] = prf.s.Secret()
 				prf.pc.PriRand(wi[i])
 			} // else wi[i] == nil for proof-obligated sub
 		}
@@ -374,6 +363,7 @@ func (op *OrPred) commit(w crypto.Secret, v []crypto.Secret) error {
 		l := len(op.sub)-1	// last sub
 		wl := prf.s.Secret().Set(w)
 		for i := 0; i < l; i++ {	// choose all but last
+			wi[i] = prf.s.Secret()
 			prf.pc.PriRand(wi[i])
 			wl.Sub(wl,wi[i])
 		}
@@ -404,6 +394,10 @@ func (op *OrPred) respond(c crypto.Secret, pr []crypto.Secret) error {
 			if i != op.choice {
 				cs.Sub(cs,ci[i])
 			}
+		}
+		if op.choice < 0 {
+			panic("oops, didn't make a choice in OR predicate: "+
+				op.String())
 		}
 		ci[op.choice] = cs
 	}
@@ -507,17 +501,18 @@ type Proof struct {
 	nsvars int		// number of Secret variables
 	npvars int		// number of Point variables
 
-	// Point and Secret variable names, for stringification/debugging
-	pvar, svar []string
+	// Secret and Point variable names
+	svar, pvar []string
+
+	// Maps from strings to variable indexes
+	sidx, pidx map[string]int
 
 	// Proof state
-	pubrand cipher.Stream	// public randomness
-	prirand cipher.Stream	// private randomness
-	pval []crypto.Point	// values of public Point variables
-	sval []crypto.Secret	// values of private Secret variables
+	pval map[string]crypto.Point	// values of public Point variables
+	sval map[string]crypto.Secret	// values of private Secret variables
 }
 
-func NewProof(s crypto.Suite, svar,vvar []string) {
+func NewProof(s crypto.Suite, svar,pvar []string) *Proof {
 	var prf Proof
 	prf.Init(s,svar,pvar)
 	return &prf
@@ -529,22 +524,32 @@ func (prf *Proof) Init(s crypto.Suite, svar,pvar []string) {
 	prf.npvars = len(pvar)
 	prf.svar = svar
 	prf.pvar = pvar
+
+	prf.sidx = make(map[string]int)
+	for i := range(svar) {
+		prf.sidx[svar[i]] = i
+	}
+
+	prf.pidx = make(map[string]int)
+	for i := range(pvar) {
+		prf.pidx[pvar[i]] = i
+	}
 }
 
 // Create a predicate representing the knowledge of a Secret that,
 // multiplied by a given public base, yields a given public point.
-func (prf *Proof) Log(val PubVar, sec SecVar, base PubVar) {
-	return Rep(val, Term{sec,base})
+func (prf *Proof) Log(pointVar,secretVar,baseVar string) *RepPred {
+	return prf.Rep(pointVar, Term{secretVar,baseVar})
 }
 
 // Create a predicate represending the knowledge of
 // a representation of a public Point variable
 // as the sum of one or more Terms,
 // each involving a public Point base and a secret multiplier.
-func (prf *Proof) Rep(val PubVar, sum ...Term) *RepPred {
+func (prf *Proof) Rep(pointVar string, sum ...Term) *RepPred {
 	rp := RepPred{}
 	rp.prf = prf
-	rp.val = val
+	rp.val = pointVar
 	rp.sum = sum
 	return &rp
 }
@@ -608,8 +613,11 @@ func (prf *Proof) getResponses(pr []crypto.Secret, r []crypto.Secret) error {
 	return nil
 }
 
-func (prf *Proof) Prove(p Pred, pc ProverContext) error {
+func (prf *Proof) Prove(p Pred, sval map[string]crypto.Secret, 
+			pval map[string]crypto.Point, pc ProverContext) error {
 	prf.pc = pc
+	prf.sval = sval
+	prf.pval = pval
 
 	// Generate all commitments
 	if e := p.commit(nil,nil); e != nil {
@@ -624,8 +632,10 @@ func (prf *Proof) Prove(p Pred, pc ProverContext) error {
 	return p.respond(c,nil)
 }
 
-func (prf *Proof) Verify(p Pred, vc VerifierContext) error {
+func (prf *Proof) Verify(p Pred, pval map[string]crypto.Point,
+			vc VerifierContext) error {
 	prf.vc = vc
+	prf.pval = pval
 
 	// Get the commitments from the verifier,
 	// and calculate the sets of responses we'll need for each OR-domain.
