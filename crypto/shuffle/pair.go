@@ -23,6 +23,7 @@ import (
 	"errors"
 	"crypto/cipher"
 	"dissent/crypto"
+	"dissent/crypto/proof"
 )
 
 
@@ -118,7 +119,7 @@ func (ps *PairShuffle) Init(grp crypto.Group, k int) *PairShuffle {
 func (ps *PairShuffle) Prove(
 		pi []int, g,h crypto.Point, beta []crypto.Secret,
 		X,Y []crypto.Point, rand cipher.Stream,
-		ctx ProverContext) error {
+		ctx proof.ProverContext) error {
 
 	grp := ps.grp
 	k := ps.k
@@ -225,7 +226,7 @@ func (ps *PairShuffle) Prove(
 // If g or h is nil, the standard base point is used.
 func (ps *PairShuffle) Shuffle(
 		g,h crypto.Point, X,Y []crypto.Point, rand cipher.Stream,
-		ctx ProverContext) ([]crypto.Point, []crypto.Point){
+		ctx proof.ProverContext) ([]crypto.Point, []crypto.Point){
 
 	k := len(X)
 	if k != len(Y) {
@@ -271,7 +272,7 @@ func (ps *PairShuffle) Shuffle(
 // Verifier for ElGamal Pair Shuffle proofs.
 func (ps *PairShuffle) Verify(
 		g,h crypto.Point, X,Y,Xbar,Ybar []crypto.Point,
-		ctx VerifierContext) error {
+		ctx proof.VerifierContext) error {
 
 	// Validate all vector lengths
 	grp := ps.grp

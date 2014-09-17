@@ -1,9 +1,10 @@
 package shuffle
 
 import (
-	"fmt"
-	"time"
+	//"fmt"
+	//"time"
 	"dissent/crypto"
+	"dissent/crypto/proof"
 )
 
 func TestShuffle(suite crypto.Suite, k int) {
@@ -34,27 +35,23 @@ func TestShuffle(suite crypto.Suite, k int) {
 	}
 
 	// Do a key-shuffle
-	fmt.Printf("%d-shuffle proof: ", k)
-	pctx := newSigmaProver(suite, "PairShuffle")
+	//fmt.Printf("%d-shuffle proof: ", k)
+	pctx := proof.NewSigmaProver(suite, "PairShuffle")
 	var ps PairShuffle
 	ps.Init(suite, k)
-	beg := time.Now()
+	//beg := time.Now()
 	Xbar,Ybar := ps.Shuffle(nil,H,X,Y,crypto.RandomStream,pctx)
-	end := time.Now()
-	fmt.Printf("%f sec\n", (float64(end.Sub(beg)) / 1000000000.0))
+	//end := time.Now()
+	//fmt.Printf("%f sec\n", (float64(end.Sub(beg)) / 1000000000.0))
 
 	// Check it
-	fmt.Printf("%d-shuffle verify: ", k)
-	vctx := newSigmaVerifier(suite, "PairShuffle", pctx.Proof())
-	beg = time.Now()
+	//fmt.Printf("%d-shuffle verify: ", k)
+	vctx := proof.NewSigmaVerifier(suite, "PairShuffle", pctx.Proof())
+	//beg = time.Now()
 	if err := ps.Verify(nil,H,X,Y,Xbar,Ybar,vctx); err != nil {
 		panic("Shuffle verify failed: "+err.Error())
 	}
-	end = time.Now()
-	fmt.Printf("%f sec\n", (float64(end.Sub(beg)) / 1000000000.0))
-}
-
-func BenchShuffle(suite crypto.Suite) {
-	TestShuffle(suite, 100)
+	//end = time.Now()
+	//fmt.Printf("%f sec\n", (float64(end.Sub(beg)) / 1000000000.0))
 }
 

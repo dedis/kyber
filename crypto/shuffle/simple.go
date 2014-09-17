@@ -4,6 +4,7 @@ import (
 	"errors"
 	"crypto/cipher"
 	"dissent/crypto"
+	"dissent/crypto/proof"
 )
 
 
@@ -83,7 +84,7 @@ func (ss *SimpleShuffle) Init(grp crypto.Group, k int) *SimpleShuffle {
 // but with all elements multiplied by common Secret gamma.
 func (ss *SimpleShuffle) Prove(G crypto.Point, gamma crypto.Secret,
 			x,y []crypto.Secret, rand cipher.Stream,
-			ctx ProverContext) error {
+			ctx proof.ProverContext) error {
 
 	grp := ss.grp
 
@@ -181,7 +182,7 @@ func thver(A,B,T,P,Q crypto.Point, a,b,s crypto.Secret) bool {
 
 // Verifier for Neff simple k-shuffle proofs.
 func (ss *SimpleShuffle) Verify(G, Gamma crypto.Point,
-			ctx VerifierContext) error {
+			ctx proof.VerifierContext) error {
 
 	grp := ss.grp
 

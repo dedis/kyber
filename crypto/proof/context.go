@@ -31,7 +31,7 @@ type sigmaProver struct {
 	prirand crypto.RandomReader
 }
 
-func newSigmaProver(suite crypto.Suite, protoName string) *sigmaProver {
+func NewSigmaProver(suite crypto.Suite, protoName string) *sigmaProver {
 	var sc sigmaProver
 	sc.suite = suite
 	sc.pubrand.Stream = crypto.HashStream(suite, []byte(protoName), nil)
@@ -88,7 +88,7 @@ type sigmaVerifier struct {
 	prirand crypto.RandomReader
 }
 
-func newSigmaVerifier(suite crypto.Suite, protoName string,
+func NewSigmaVerifier(suite crypto.Suite, protoName string,
 			proof []byte) *sigmaVerifier {
 	var c sigmaVerifier
 	if _,err := c.proof.Write(proof); err != nil {
