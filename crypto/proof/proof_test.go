@@ -50,7 +50,7 @@ func TestRep(t *testing.T) {
 	println("proving "+pred.String())
 	sval := map[string]crypto.Secret{ "x":x, "y":y}
 	pval := map[string]crypto.Point{ "B":B, "X":X, "Y":Y, "R":R}
-	pc := NewSigmaProver(suite, "TEST")
+	pc := NewHashProver(suite, "TEST")
 	if e := prf.Prove(pred, sval, pval, pc); e != nil {
 		panic("prover: "+e.Error())
 	}
@@ -59,7 +59,7 @@ func TestRep(t *testing.T) {
 	println("Proof:")
 	println(hex.Dump(proof))
 
-	vc := NewSigmaVerifier(suite, "TEST", proof)
+	vc := NewHashVerifier(suite, "TEST", proof)
 	if e := prf.Verify(pred, pval, vc); e != nil {
 		panic("verify: "+e.Error())
 	}

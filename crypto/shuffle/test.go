@@ -36,7 +36,7 @@ func TestShuffle(suite crypto.Suite, k int) {
 
 	// Do a key-shuffle
 	//fmt.Printf("%d-shuffle proof: ", k)
-	pctx := proof.NewSigmaProver(suite, "PairShuffle")
+	pctx := proof.NewHashProver(suite, "PairShuffle")
 	var ps PairShuffle
 	ps.Init(suite, k)
 	//beg := time.Now()
@@ -46,7 +46,7 @@ func TestShuffle(suite crypto.Suite, k int) {
 
 	// Check it
 	//fmt.Printf("%d-shuffle verify: ", k)
-	vctx := proof.NewSigmaVerifier(suite, "PairShuffle", pctx.Proof())
+	vctx := proof.NewHashVerifier(suite, "PairShuffle", pctx.Proof())
 	//beg = time.Now()
 	if err := ps.Verify(nil,H,X,Y,Xbar,Ybar,vctx); err != nil {
 		panic("Shuffle verify failed: "+err.Error())

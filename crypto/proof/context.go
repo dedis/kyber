@@ -6,8 +6,26 @@ import (
 )
 
 
+// Prover represents the prover role in an arbitrary Sigma-protocol.
+// A prover is simply a higher-order function that takes a ProverContext,
+// runs the protocol while making calls to the ProverContext methods as needed,
+// and returns nil on success or an error once the protocol run concludes.
+// The resulting proof is embodied in the interactions with the ProverContext,
+// but HashProve() may be used to encode the proof into a non-interactive proof
+// using a hash function via the Fiat-Shamir heuristic.
+type Prover func(ctx ProverContext) error
+
+// Verifier represents the verifier role in an arbitrary Sigma-protocol.
+// A verifier is a higher-order function tthat takes a VerifierContext,
+// runs the protocol while making calls to VerifierContext methods as needed,
+// and returns nil on success or an error once the protocol run concludes.
+type Verifier func(ctx VerifierContext) error
+
+
+
 // ProverContext represents the abstract environment
 // required by the prover in a Sigma protocol.
+// XXX PubRand should return error, since it may require communication
 type ProverContext interface {
 	Put(message interface{}) error 		// Send message to verifier
 	PubRand(message...interface{})		// Get public randomness
@@ -16,14 +34,15 @@ type ProverContext interface {
 
 // ProverContext represents the abstract environment
 // required by the verifier in a Sigma protocol.
+// XXX PubRand should return error, since it may require communication
 type VerifierContext interface {
 	Get(message interface{}) error		// Receive message from prover
 	PubRand(message...interface{})		// Get public randomness
 }
 
 
-// Noninteractive Sigma-protocol prover context
-type sigmaProver struct {
+// Hash-based noninteractive Sigma-protocol prover context
+type hashProver struct {
 	suite crypto.Suite
 	proof bytes.Buffer
 	msg bytes.Buffer
@@ -31,19 +50,19 @@ type sigmaProver struct {
 	prirand crypto.RandomReader
 }
 
-func NewSigmaProver(suite crypto.Suite, protoName string) *sigmaProver {
-	var sc sigmaProver
+func NewHashProver(suite crypto.Suite, protoName string) *hashProver {
+	var sc hashProver
 	sc.suite = suite
 	sc.pubrand.Stream = crypto.HashStream(suite, []byte(protoName), nil)
 	sc.prirand.Stream = crypto.RandomStream
 	return &sc
 }
 
-func (c *sigmaProver) Put(message interface{}) error {
+func (c *hashProver) Put(message interface{}) error {
 	return crypto.Write(&c.msg, message, c.suite)
 }
 
-func (c *sigmaProver) consumeMsg() {
+func (c *hashProver) consumeMsg() {
 	if c.msg.Len() > 0 {
 
 		// Stir the message into the public randomness pool 
@@ -57,7 +76,7 @@ func (c *sigmaProver) consumeMsg() {
 }
 
 // Get public randomness that depends on every bit in the proof so far.
-func (c *sigmaProver) PubRand(data...interface{}) {
+func (c *hashProver) PubRand(data...interface{}) {
 	c.consumeMsg()
 	if err := crypto.Read(&c.pubrand, data, c.suite); err != nil {
 		panic("error reading random stream: "+err.Error())
@@ -65,14 +84,14 @@ func (c *sigmaProver) PubRand(data...interface{}) {
 }
 
 // Get private randomness
-func (c *sigmaProver) PriRand(data...interface{}) {
+func (c *hashProver) PriRand(data...interface{}) {
 	if err := crypto.Read(&c.prirand, data, c.suite); err != nil {
 		panic("error reading random stream: "+err.Error())
 	}
 }
 
 // Obtain the encoded proof once the Sigma protocol is complete.
-func (c *sigmaProver) Proof() []byte {
+func (c *hashProver) Proof() []byte {
 	c.consumeMsg()
 	return c.proof.Bytes()
 }
@@ -80,7 +99,7 @@ func (c *sigmaProver) Proof() []byte {
 
 
 // Noninteractive Sigma-protocol verifier context
-type sigmaVerifier struct {
+type hashVerifier struct {
 	suite crypto.Suite
 	proof bytes.Buffer	// Buffer with which to read the proof
 	prbuf []byte		// Byte-slice underlying proof buffer
@@ -88,9 +107,9 @@ type sigmaVerifier struct {
 	prirand crypto.RandomReader
 }
 
-func NewSigmaVerifier(suite crypto.Suite, protoName string,
-			proof []byte) *sigmaVerifier {
-	var c sigmaVerifier
+func NewHashVerifier(suite crypto.Suite, protoName string,
+			proof []byte) *hashVerifier {
+	var c hashVerifier
 	if _,err := c.proof.Write(proof); err != nil {
 		panic("Buffer.Write failed")
 	}
@@ -101,7 +120,7 @@ func NewSigmaVerifier(suite crypto.Suite, protoName string,
 	return &c
 }
 
-func (c *sigmaVerifier) consumeMsg() {
+func (c *hashVerifier) consumeMsg() {
 	l := len(c.prbuf) - c.proof.Len()	// How many bytes read?
 	if l > 0 {
 		// Stir consumed bytes into the public randomness pool 
@@ -113,12 +132,12 @@ func (c *sigmaVerifier) consumeMsg() {
 }
 
 // Read structured data from the proof
-func (c *sigmaVerifier) Get(message interface{}) error {
+func (c *hashVerifier) Get(message interface{}) error {
 	return crypto.Read(&c.proof, message, c.suite)
 }
 
 // Get public randomness that depends on every bit in the proof so far.
-func (c *sigmaVerifier) PubRand(data...interface{}) {
+func (c *hashVerifier) PubRand(data...interface{}) {
 	c.consumeMsg()				// Stir in newly-read data
 	if err := crypto.Read(&c.pubrand, data, c.suite); err != nil {
 		panic("error reading random stream: "+err.Error())
@@ -126,10 +145,29 @@ func (c *sigmaVerifier) PubRand(data...interface{}) {
 }
 
 // Get private randomness
-func (c *sigmaVerifier) PriRand(data...interface{}) {
+func (c *hashVerifier) PriRand(data...interface{}) {
 	if err := crypto.Read(&c.prirand, data, c.suite); err != nil {
 		panic("error reading random stream: "+err.Error())
 	}
 }
 
+
+
+
+// Create a hash-based noninteractive proof via a given Sigma-protocol prover.
+func HashProve(suite crypto.Suite, protoName string,
+		prover Prover) ([]byte,error) {
+	ctx := NewHashProver(suite, protoName)
+	if e := func(ProverContext)error(prover)(ctx); e != nil {
+		return nil,e
+	}
+	return ctx.Proof(),nil
+}
+
+// Verify a hash-based noninteractive proof.
+func HashVerify(suite crypto.Suite, protoName string,
+		verifier Verifier, proof []byte) error {
+	ctx := NewHashVerifier(suite, protoName, proof)
+	return func(VerifierContext)error(verifier)(ctx)
+}
 

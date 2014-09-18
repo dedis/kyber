@@ -42,6 +42,13 @@ type Suite interface {
 }
 
 
+// Use a given ciphersuite's hash function to hash a byte-slice.
+func HashBytes(suite Suite, data []byte) []byte {
+	h := suite.Hash()
+	h.Write(data)
+	return h.Sum(nil)
+}
+
 // Create a pseudorandom stream seeded by hashing an arbitrary byte string.
 // This can be considered a general key expansion function
 // taking an input seed of arbitrary size

@@ -1,15 +1,14 @@
+// Package proof implements generic support for Sigma-protocols
+// and discrete logarithm proofs in the Camenisch/Stadler framework.
+// For the technical foundations of this framework see
+// "Proof Systems for General Statements about Discrete Logarithms" at
+// ftp://ftp.inf.ethz.ch/pub/crypto/publications/CamSta97b.pdf.
 package proof
 
 import (
 	"errors"
 	"dissent/crypto"
 )
-
-// We use small integer constants, typically defined as enums,
-// to represent both public Point variables and private Secret variables
-// in proof specifications.
-//type PubVar int
-//type SecVar int
 
 
 // XXX simplify using the reflection API?
@@ -67,7 +66,7 @@ type Term struct {
 
 
 
-// Atomic representation predicate of the form y=g1x1+g2x2+...
+// Atomic proof-of-representation predicate of the form y=g1x1+g2x2+...
 type RepPred struct {
 	prf *Proof
 	val string	// public variable of which a representation is known
@@ -83,6 +82,8 @@ type RepPred struct {
 	r []crypto.Secret	// per-variable responses produced by verifier
 }
 
+// Return a string representation of this proof-of-representation predicate,
+// mainly for debugging.
 func (rp *RepPred) String() string {
 	return rp.precString(precNone)
 }
@@ -229,6 +230,7 @@ type AndPred struct {
 	r []crypto.Secret	// Verifier state: responses needed
 }
 
+// Return a string representation of this AND predicate, mainly for debugging.
 func (ap *AndPred) String() string {
 	return ap.precString(precNone)
 }
@@ -313,6 +315,7 @@ type OrPred struct {
 	wi []crypto.Secret	// pre-challenge for each sub
 }
 
+// Return a string representation of this OR predicate, mainly for debugging.
 func (op *OrPred) String() string {
 	return op.precString(precNone)
 }
@@ -649,5 +652,24 @@ func (prf *Proof) Verify(p Pred, pval map[string]crypto.Point,
 
 	// Check all the responses and sub-challenges against the commitments.
 	return p.verify(c,nil)
+}
+
+// Produce a higher-order Prover embodying a given proof predicate.
+// XXX may only be used once safely; we should probably fix this.
+func (prf *Proof) Prover(p Pred, sval map[string]crypto.Secret, 
+			pval map[string]crypto.Point) Prover {
+
+	return Prover(func(ctx ProverContext)error{
+		return prf.Prove(p, sval, pval, ctx)
+	})
+}
+
+// Produce a higher-order Verifier embodying a given proof predicate.
+// XXX may only be used once safely; we should probably fix this.
+func (prf *Proof) Verifier(p Pred, pval map[string]crypto.Point) Verifier {
+
+	return Verifier(func(ctx VerifierContext)error{
+		return prf.Verify(p, pval, ctx)
+	})
 }
 
