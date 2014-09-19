@@ -1,6 +1,6 @@
 // Package proof implements generic support for Sigma-protocols
 // and discrete logarithm proofs in the Camenisch/Stadler framework.
-// For the technical foundations of this framework see
+// For the cryptographic foundations of this framework see
 // "Proof Systems for General Statements about Discrete Logarithms" at
 // ftp://ftp.inf.ethz.ch/pub/crypto/publications/CamSta97b.pdf.
 package proof
@@ -16,7 +16,7 @@ import (
 
 
 /*
-A Pred is a composable predicate in a knowledge proof system,
+A Predicate is a composable logic expression in a knowledge proof system,
 representing a "knowledge specification set" in Camenisch/Stadler terminology.
 
 Currently we require that all OR operators be above all AND operators
@@ -28,24 +28,44 @@ but instead generating Pedersen commits for variables that need to "cross"
 from one OR-domain to another non-mutually-exclusive one.
 For now we simply require expressions to be in the appropriate form.
 */
-type Pred interface {
+type Predicate interface {
+	// Produce a human-readable string representation of the predicate.
 	String() string
+
+	// Create a Prover to prove the statement this Predicate represents.
+	// Requires maps defining the values of both the Secret variables
+	// and the public Point variables.
+	// If the statement contains, the caller must also pass
+	// a map containing branch choices for each Or predicate
+	// in the "proof-obligated path" down through the Or predicates.
+	Prover(suite crypto.Suite, secrets map[string]crypto.Secret, 
+		points map[string]crypto.Point, choice map[Predicate]int) Prover
+
+	// Create a Verifier for the statement this Predicate represents.
+	// The caller must pass a map defining the values
+	// of the public Point variables referred to in the proof.
+	// No secrets or branch choices needed:
+	// if they were needed they wouldn't be secret, would they?
+	Verifier(suite crypto.Suite, points map[string]crypto.Point) Verifier
 
 	// precedence-sensitive helper stringifier.
 	precString(prec int) string
 
+	// prover/verifier: enumerate the variables named in a predicate
+	enumVars(prf *proof)
+
 	// prover: recursively produce all commitments
-	commit(w crypto.Secret, v []crypto.Secret) error
+	commit(prf *proof, w crypto.Secret, v []crypto.Secret) error
 
 	// prover: given challenge, recursively produce all responses
-	respond(c crypto.Secret, r []crypto.Secret) error
+	respond(prf *proof, c crypto.Secret, r []crypto.Secret) error
 
 	// verifier: get all the commitments required in this predicate,
 	// and fill the r slice with empty secrets for responses needed.
-	getCommits(r []crypto.Secret) error
+	getCommits(prf *proof, r []crypto.Secret) error
 
 	// verifier: check all commitments against challenges and responses
-	verify(c crypto.Secret, r []crypto.Secret) error
+	verify(prf *proof, c crypto.Secret, r []crypto.Secret) error
 }
 
 
@@ -58,71 +78,127 @@ const (
 )
 
 
-// A Term in a representation expression
-type Term struct {
-	Secret string	// secret multiplier for this term
-	Base string	// generator for this term
+
+
+// Internal prover/verifier state
+type proof struct {
+	s crypto.Suite
+
+	nsvars int			// number of Secret variables
+	npvars int			// number of Point variables
+	svar, pvar []string		// Secret and Point variable names
+	sidx, pidx map[string]int	// Maps from strings to variable indexes
+
+	pval map[string]crypto.Point	// values of public Point variables
+
+	// prover-specific state
+	pc ProverContext
+	sval map[string]crypto.Secret	// values of private Secret variables
+	choice map[Predicate]int	// OR branch choices set by caller
+	pp map[Predicate]*proverPred	// per-predicate prover state
+
+	// verifier-specific state
+	vc VerifierContext
+	vp map[Predicate]*verifierPred	// per-predicate verifier state
+}
+type proverPred struct {
+	w crypto.Secret		// secret pre-challenge
+	v []crypto.Secret	// secret blinding factor for each variable
+	wi []crypto.Secret	// OR predicates: individual sub-challenges
+}
+type verifierPred struct {
+	V crypto.Point		// public commitment produced by verifier
+	r []crypto.Secret	// per-variable responses produced by verifier
 }
 
 
 
-// Atomic proof-of-representation predicate of the form y=g1x1+g2x2+...
-type RepPred struct {
-	prf *Proof
-	val string	// public variable of which a representation is known
-	sum []Term	// terms comprising the known representation
-	// XXX a,b
+////////// Rep predicate //////////
 
-	// Prover state
-	w crypto.Secret		// secret pre-challenge
-	v []crypto.Secret	// secret blinding factor for each variable
+// A term describes a point-multiplication term in a representation expression.
+type term struct {
+	S string	// Secret multiplier for this term
+	B string	// Generator for this term
+}
 
-	// Verifier state
-	T crypto.Point		// public commitment produced by verifier
-	r []crypto.Secret	// per-variable responses produced by verifier
+type repPred struct {
+	P string	// Public point of which a representation is known
+	T []term	// Terms comprising the known representation
+}
+
+// Rep creates a predicate stating that the prover knows
+// a representation of a point P with respect to
+// one or more secrets and base points.
+//
+// In its simplest usage, Rep indicates that the prover knows a secret x
+// that is the (elliptic curve) discrete logarithm of a public point P
+// with respect to a well-known base point B:
+//
+//	Rep(P,x,B)
+//
+// Rep can take any number of (Secret,Base) variable name pairs, however.
+// A Rep statement of the form Rep(P,x1,...,xn,Bn)
+// indicates that the prover knows secrets x1,...,xn
+// such that point P is the sum x1*B1+...+xn*Bn.
+//
+func Rep(P string, SB ...string) Predicate {
+	if len(SB) & 1 != 0 {
+		panic("mismatched Secret")
+	}
+	t := make([]term,len(SB)/2)
+	for i := range(t) {
+		t[i].S = SB[i*2]
+		t[i].B = SB[i*2+1]
+	}
+	return &repPred{P,t}
 }
 
 // Return a string representation of this proof-of-representation predicate,
 // mainly for debugging.
-func (rp *RepPred) String() string {
+func (rp *repPred) String() string {
 	return rp.precString(precNone)
 }
 
-func (rp *RepPred) precString(prec int) string {
-	s := rp.val + "="
-	for i := range(rp.sum) {
+func (rp *repPred) precString(prec int) string {
+	s := rp.P + "="
+	for i := range(rp.T) {
 		if i > 0 {
 			s += "+"
 		}
-		t := &rp.sum[i]
-		s += t.Secret
+		t := &rp.T[i]
+		s += t.S
 		s += "*"
-		s += t.Base
+		s += t.B
 	}
 	return s
 }
 
-func (rp *RepPred) commit(w crypto.Secret, v []crypto.Secret) error {
-	prf := rp.prf
-	rp.w = w
-
-	// Create a variable-binding array if none was created higher up
-	if v == nil {
-		v = make([]crypto.Secret, prf.nsvars)
+func (rp *repPred) enumVars(prf *proof) {
+	prf.enumPointVar(rp.P)
+	for i := range(rp.T) {
+		prf.enumSecretVar(rp.T[i].S)
+		prf.enumPointVar(rp.T[i].B)
 	}
-	rp.v = v
+}
 
-	// Compute commit T=wY+v1G1+...+vkGk
-	T := prf.s.Point()
+func (rp *repPred) commit(prf *proof, w crypto.Secret, pv []crypto.Secret) error {
+
+	// Create per-predicate prover state
+	v := prf.makeSecrets(pv)
+	pp := &proverPred{w,v,nil}
+	prf.pp[rp] = pp
+
+	// Compute commit V=wY+v1G1+...+vkGk
+	V := prf.s.Point()
 	if w != nil {	// We're on a non-obligated branch
-		T.Mul(prf.pval[rp.val],w)
+		V.Mul(prf.pval[rp.P],w)
 	} else {	// We're on a proof-obligated branch, so w=0
-		T.Null()
+		V.Null()
 	}
 	P := prf.s.Point()
-	for i := 0; i < len(rp.sum); i++ {
-		t := rp.sum[i]	// current term
-		s := prf.sidx[t.Secret]
+	for i := 0; i < len(rp.T); i++ {
+		t := rp.T[i]	// current term
+		s := prf.sidx[t.S]
 
 		// Choose a blinding secret the first time
 		// we encounter each variable
@@ -130,31 +206,32 @@ func (rp *RepPred) commit(w crypto.Secret, v []crypto.Secret) error {
 			v[s] = prf.s.Secret()
 			prf.pc.PriRand(v[s])
 		}
-		P.Mul(prf.pval[t.Base],v[s])
-		T.Add(T,P)
+		P.Mul(prf.pval[t.B],v[s])
+		V.Add(V,P)
 	}
 
 	// Encode and send the commitment to the verifier
-	return prf.pc.Put(T)
+	return prf.pc.Put(V)
 }
 
-func (rp *RepPred) respond(c crypto.Secret, pr []crypto.Secret) error {
-	prf := rp.prf
+func (rp *repPred) respond(prf *proof, c crypto.Secret,
+			pr []crypto.Secret) error {
+	pp := prf.pp[rp]
 
 	// Create a response array for this OR-domain if not done already
-	r := prf.makeResponses(pr)
+	r := prf.makeSecrets(pr)
 
-	for i := range(rp.sum) {
-		t := rp.sum[i]	// current term
-		s := prf.sidx[t.Secret]
+	for i := range(rp.T) {
+		t := rp.T[i]	// current term
+		s := prf.sidx[t.S]
 
 		// Produce a correct response for each variable
 		// the first time we encounter that variable.
 		if r[s] == nil {
-			if rp.w != nil {
+			if pp.w != nil {
 				// We're on a non-proof-obligated branch:
 				// w was our challenge, v[s] is our response.
-				r[s] = rp.v[s]
+				r[s] = pp.v[s]
 				continue
 			}
 
@@ -162,8 +239,8 @@ func (rp *RepPred) respond(c crypto.Secret, pr []crypto.Secret) error {
 			// so we need to calculate the correct response
 			// as r = v-cx where x is the secret variable
 			ri := prf.s.Secret()
-			ri.Mul(c,prf.sval[t.Secret])
-			ri.Sub(rp.v[s],ri)
+			ri.Mul(c,prf.sval[t.S])
+			ri.Sub(pp.v[s],ri)
 			r[s] = ri
 		}
 	}
@@ -172,21 +249,23 @@ func (rp *RepPred) respond(c crypto.Secret, pr []crypto.Secret) error {
 	return prf.sendResponses(pr, r)
 }
 
-func (rp *RepPred) getCommits(pr []crypto.Secret) error {
-	prf := rp.prf
+func (rp *repPred) getCommits(prf *proof, pr []crypto.Secret) error {
+
+	// Create per-predicate verifier state
+	V := prf.s.Point()
+	r := prf.makeSecrets(pr)
+	vp := &verifierPred{V,r}
+	prf.vp[rp] = vp
 
 	// Get the commitment for this representation
-	rp.T = rp.prf.s.Point()
-	if e := prf.vc.Get(rp.T); e != nil {
+	if e := prf.vc.Get(vp.V); e != nil {
 		return e
 	}
 
 	// Fill in the r vector with the responses we'll need.
-	r := prf.makeResponses(pr)
-	rp.r = r
-	for i := range(rp.sum) {
-		t := rp.sum[i]	// current term
-		s := prf.sidx[t.Secret]
+	for i := range(rp.T) {
+		t := rp.T[i]	// current term
+		s := prf.sidx[t.S]
 		if r[s] == nil {
 			r[s] = prf.s.Secret()
 		}
@@ -194,51 +273,66 @@ func (rp *RepPred) getCommits(pr []crypto.Secret) error {
 	return nil
 }
 
-func (rp *RepPred) verify(c crypto.Secret, pr []crypto.Secret) error {
-	prf := rp.prf
-	r := rp.r
+func (rp *repPred) verify(prf *proof, c crypto.Secret, pr []crypto.Secret) error {
+	vp := prf.vp[rp]
+	r := vp.r
 
 	// Get the needed responses if a parent didn't already
 	if e := prf.getResponses(pr,r); e != nil {
 		return e
 	}
 
-	// Recompute commit T=cY+r1G1+...+rkGk
-	T := prf.s.Point()
-	T.Mul(prf.pval[rp.val],c)
+	// Recompute commit V=cY+r1G1+...+rkGk
+	V := prf.s.Point()
+	V.Mul(prf.pval[rp.P],c)
 	P := prf.s.Point()
-	for i := 0; i < len(rp.sum); i++ {
-		t := rp.sum[i]	// current term
-		s := prf.sidx[t.Secret]
-		P.Mul(prf.pval[t.Base],r[s])
-		T.Add(T,P)
+	for i := 0; i < len(rp.T); i++ {
+		t := rp.T[i]	// current term
+		s := prf.sidx[t.S]
+		P.Mul(prf.pval[t.B],r[s])
+		V.Add(V,P)
 	}
-	if !T.Equal(rp.T) {
+	if !V.Equal(vp.V) {
 		return errors.New("invalid proof: commit mismatch")
 	}
 
 	return nil
 }
 
+func (rp *repPred) Prover(suite crypto.Suite, secrets map[string]crypto.Secret, 
+			points map[string]crypto.Point,
+			choice map[Predicate]int) Prover {
+	return proof{}.init(suite,rp).prover(rp,secrets,points,choice)
+}
+
+func (rp *repPred) Verifier(suite crypto.Suite,
+			points map[string]crypto.Point) Verifier {
+	return proof{}.init(suite,rp).verifier(rp,points)
+}
 
 
-// Logical AND predicate combinator
-type AndPred struct {
-	prf *Proof
-	sub []Pred
 
-	r []crypto.Secret	// Verifier state: responses needed
+////////// And predicate //////////
+
+type andPred []Predicate
+
+// An And predicate states that all of the constituent sub-predicates are true.
+// And predicates may contain Rep predicates and/or other And predicates.
+func And(sub...Predicate) Predicate {
+	and := andPred(sub)
+	return &and
 }
 
 // Return a string representation of this AND predicate, mainly for debugging.
-func (ap *AndPred) String() string {
+func (ap *andPred) String() string {
 	return ap.precString(precNone)
 }
 
-func (ap *AndPred) precString(prec int) string {
-	s := ap.sub[0].precString(precAnd)
-	for i := 1; i < len(ap.sub); i++ {
-		s = s + " && " + ap.sub[i].precString(precAnd)
+func (ap *andPred) precString(prec int) string {
+	sub := []Predicate(*ap)
+	s := sub[0].precString(precAnd)
+	for i := 1; i < len(sub); i++ {
+		s = s + " && " + sub[i].precString(precAnd)
 	}
 	if prec != precNone && prec != precAnd {
 		s = "(" + s + ")"
@@ -246,17 +340,24 @@ func (ap *AndPred) precString(prec int) string {
 	return s
 }
 
-func (ap *AndPred) commit(w crypto.Secret, v []crypto.Secret) error {
-	prf := ap.prf
-
-	// Create a variable-binding array if we're a top-level AND predicate
-	if v == nil {
-		v = make([]crypto.Secret, prf.nsvars)
+func (ap *andPred) enumVars(prf *proof) {
+	sub := []Predicate(*ap)
+	for i := range(sub) {
+		sub[i].enumVars(prf)
 	}
+}
+
+func (ap *andPred) commit(prf *proof, w crypto.Secret, pv []crypto.Secret) error {
+	sub := []Predicate(*ap)
+
+	// Create per-predicate prover state
+	v := prf.makeSecrets(pv)
+	//pp := proverPred{w,v,nil}
+	//prf.pp[ap] = pp
 
 	// Recursively generate commitments
-	for i := 0; i < len(ap.sub); i++ {
-		if e := ap.sub[i].commit(w,v); e != nil {
+	for i := 0; i < len(sub); i++ {
+		if e := sub[i].commit(prf,w,v); e != nil {
 			return e
 		}
 	}
@@ -264,66 +365,88 @@ func (ap *AndPred) commit(w crypto.Secret, v []crypto.Secret) error {
 	return nil
 }
 
-func (ap *AndPred) respond(c crypto.Secret, pr []crypto.Secret) error {
-	prf := ap.prf
+func (ap *andPred) respond(prf *proof, c crypto.Secret, pr []crypto.Secret) error {
+	sub := []Predicate(*ap)
+	//pp := prf.pp[ap]
 
 	// Recursively compute responses in all sub-predicates
-	r := prf.makeResponses(pr)
-	for i := range(ap.sub) {
-		if e := ap.sub[i].respond(c,r); e != nil {
+	r := prf.makeSecrets(pr)
+	for i := range(sub) {
+		if e := sub[i].respond(prf,c,r); e != nil {
 			return e
 		}
 	}
 	return prf.sendResponses(pr, r)
 }
 
-func (ap *AndPred) getCommits(pr []crypto.Secret) error {
-	prf := ap.prf
-	r := prf.makeResponses(pr)
-	ap.r = r
-	for i := range(ap.sub) {
-		if e := ap.sub[i].getCommits(r); e != nil {
+func (ap *andPred) getCommits(prf *proof, pr []crypto.Secret) error {
+	sub := []Predicate(*ap)
+
+	// Create per-predicate verifier state
+	r := prf.makeSecrets(pr)
+	vp := &verifierPred{nil,r}
+	prf.vp[ap] = vp
+
+	for i := range(sub) {
+		if e := sub[i].getCommits(prf,r); e != nil {
 			return e
 		}
 	}
 	return nil
 }
 
-func (ap *AndPred) verify(c crypto.Secret, pr []crypto.Secret) error {
-	prf := ap.prf
-	r := ap.r
+func (ap *andPred) verify(prf *proof, c crypto.Secret, pr []crypto.Secret) error {
+	sub := []Predicate(*ap)
+	vp := prf.vp[ap]
+	r := vp.r
+
 	if e := prf.getResponses(pr,r); e != nil {
 		return e
 	}
-	for i := range(ap.sub) {
-		if e := ap.sub[i].verify(c,r); e != nil {
+	for i := range(sub) {
+		if e := sub[i].verify(prf,c,r); e != nil {
 			return e
 		}
 	}
 	return nil
 }
 
+func (ap *andPred) Prover(suite crypto.Suite, secrets map[string]crypto.Secret, 
+			points map[string]crypto.Point,
+			choice map[Predicate]int) Prover {
+	return proof{}.init(suite,ap).prover(ap,secrets,points,choice)
+}
+
+func (ap *andPred) Verifier(suite crypto.Suite,
+			points map[string]crypto.Point) Verifier {
+	return proof{}.init(suite,ap).verifier(ap,points)
+}
 
 
 
-// Logical OR predicate combinator
-type OrPred struct {
-	prf *Proof
-	sub []Pred
-	choice int		// sub chosen for proof obligation
-	w crypto.Secret		// challenge if we're non-proof-obligated
-	wi []crypto.Secret	// pre-challenge for each sub
+////////// Or predicate //////////
+
+type orPred []Predicate
+
+// An Or predicate states that the prover knows
+// at least one of the sub-predicates to be true,
+// but the proof does not reveal any information about which.
+
+func Or(sub...Predicate) Predicate {
+	or := orPred(sub)
+	return &or
 }
 
 // Return a string representation of this OR predicate, mainly for debugging.
-func (op *OrPred) String() string {
+func (op *orPred) String() string {
 	return op.precString(precNone)
 }
 
-func (op *OrPred) precString(prec int) string {
-	s := op.sub[0].precString(precOr)
-	for i := 1; i < len(op.sub); i++ {
-		s = s + " || " + op.sub[i].precString(precOr)
+func (op *orPred) precString(prec int) string {
+	sub := []Predicate(*op)
+	s := sub[0].precString(precOr)
+	for i := 1; i < len(sub); i++ {
+		s = s + " || " + sub[i].precString(precOr)
 	}
 	if prec != precNone && prec != precOr {
 		s = "(" + s + ")"
@@ -331,30 +454,35 @@ func (op *OrPred) precString(prec int) string {
 	return s
 }
 
-func (op *OrPred) Choose(choice int) *OrPred {
-	op.choice = choice
-	return op
+func (op *orPred) enumVars(prf *proof) {
+	sub := []Predicate(*op)
+	for i := range(sub) {
+		sub[i].enumVars(prf)
+	}
 }
 
-func (op *OrPred) Choice() int {
-	return op.choice
-}
-
-func (op *OrPred) commit(w crypto.Secret, v []crypto.Secret) error {
-	prf := op.prf
-	op.w = w
-	if v != nil {		// only happens within an AND expression
+func (op *orPred) commit(prf *proof, w crypto.Secret, pv []crypto.Secret) error {
+	sub := []Predicate(*op)
+	if pv != nil {		// only happens within an AND expression
 		panic("can't have OR predicates within AND predicates")
 	}
 
+	// Create per-predicate prover state
+	wi := make([]crypto.Secret, len(sub))
+	pp := &proverPred{w,nil,wi}
+	prf.pp[op] = pp
+
 	// Choose pre-challenges for our subs.
-	wi := make([]crypto.Secret, len(op.sub))
-	op.wi = wi
 	if w == nil {
 		// We're on a proof-obligated branch;
 		// choose random pre-challenges for only non-obligated subs.
-		for i := 0; i < len(op.sub); i++ {
-			if i != op.choice {
+		choice,ok := prf.choice[op]
+		if !ok || choice < 0 || choice >= len(sub) {
+			panic("no choice of proof branch for OR-predicate "+
+				op.String())
+		}
+		for i := 0; i < len(sub); i++ {
+			if i != choice {
 				wi[i] = prf.s.Secret()
 				prf.pc.PriRand(wi[i])
 			} // else wi[i] == nil for proof-obligated sub
@@ -363,20 +491,20 @@ func (op *OrPred) commit(w crypto.Secret, v []crypto.Secret) error {
 		// Since w != nil, we're in a non-obligated branch,
 		// so choose random pre-challenges for all subs
 		// such that they add up to the master pre-challenge w.
-		l := len(op.sub)-1	// last sub
+		last := len(sub)-1		// index of last sub
 		wl := prf.s.Secret().Set(w)
-		for i := 0; i < l; i++ {	// choose all but last
+		for i := 0; i < last; i++ {	// choose all but last
 			wi[i] = prf.s.Secret()
 			prf.pc.PriRand(wi[i])
 			wl.Sub(wl,wi[i])
 		}
-		wi[l] = wl
+		wi[last] = wl
 	}
 
 	// Now recursively choose commitments within each sub
-	for i := 0; i < len(op.sub); i++ {
+	for i := 0; i < len(sub); i++ {
 		// Fresh variable-blinding secrets for each pre-commitment
-		if e := op.sub[i].commit(wi[i],nil); e != nil {
+		if e := sub[i].commit(prf,wi[i],nil); e != nil {
 			return e
 		}
 	}
@@ -384,37 +512,36 @@ func (op *OrPred) commit(w crypto.Secret, v []crypto.Secret) error {
 	return nil
 }
 
-func (op *OrPred) respond(c crypto.Secret, pr []crypto.Secret) error {
+func (op *orPred) respond(prf *proof, c crypto.Secret, pr []crypto.Secret) error {
+	sub := []Predicate(*op)
+	pp := prf.pp[op]
 	if pr != nil {
 		panic("OR predicates can't be nested in anything else")
 	}
 
-	ci := op.wi
-	if op.w == nil {
+	ci := pp.wi
+	if pp.w == nil {
 		// Calculate the challenge for the proof-obligated subtree
-		cs := op.prf.s.Secret().Set(c)
-		for i := 0; i < len(op.sub); i++ {
-			if i != op.choice {
+		cs := prf.s.Secret().Set(c)
+		choice := prf.choice[op]
+		for i := 0; i < len(sub); i++ {
+			if i != choice {
 				cs.Sub(cs,ci[i])
 			}
 		}
-		if op.choice < 0 {
-			panic("oops, didn't make a choice in OR predicate: "+
-				op.String())
-		}
-		ci[op.choice] = cs
+		ci[choice] = cs
 	}
 
 	// If there's more than one choice, send all our sub-challenges.
-	if len(op.sub) > 1 {
-		if e := op.prf.pc.Put(ci); e != nil {
+	if len(sub) > 1 {
+		if e := prf.pc.Put(ci); e != nil {
 			return e
 		}
 	}
 
 	// Recursively compute responses in all subtrees
-	for i := range(op.sub) {
-		if e := op.sub[i].respond(ci[i],nil); e != nil {
+	for i := range(sub) {
+		if e := sub[i].respond(prf,ci[i],nil); e != nil {
 			return e
 		}
 	}
@@ -423,26 +550,27 @@ func (op *OrPred) respond(c crypto.Secret, pr []crypto.Secret) error {
 }
 
 // Get from the verifier all the commitments needed for this predicate
-func (op *OrPred) getCommits(r []crypto.Secret) error {
-	for i := range(op.sub) {
-		if e := op.sub[i].getCommits(nil); e != nil {
+func (op *orPred) getCommits(prf *proof, pr []crypto.Secret) error {
+	sub := []Predicate(*op)
+	for i := range(sub) {
+		if e := sub[i].getCommits(prf,nil); e != nil {
 			return e
 		}
 	}
 	return nil
 }
 
-func (op *OrPred) verify(c crypto.Secret, pr []crypto.Secret) error {
-	prf := op.prf
+func (op *orPred) verify(prf *proof, c crypto.Secret, pr []crypto.Secret) error {
+	sub := []Predicate(*op)
 	if pr != nil {
 		panic("OR predicates can't be in anything else")
 	}
 
 	// Get the prover's sub-challenges
-	nsub := len(op.sub)
+	nsub := len(sub)
 	ci := make([]crypto.Secret, nsub)
 	if nsub > 1 {
-		if e := op.prf.vc.Get(ci); e != nil {
+		if e := prf.vc.Get(ci); e != nil {
 			return e
 		}
 
@@ -460,13 +588,24 @@ func (op *OrPred) verify(c crypto.Secret, pr []crypto.Secret) error {
 	}
 
 	// Recursively verify all subs
-	for i := range(op.sub) {
-		if e := op.sub[i].verify(ci[i], nil); e != nil {
+	for i := range(sub) {
+		if e := sub[i].verify(prf,ci[i], nil); e != nil {
 			return e
 		}
 	}
 
 	return nil
+}
+
+func (op *orPred) Prover(suite crypto.Suite, secrets map[string]crypto.Secret, 
+			points map[string]crypto.Point,
+			choice map[Predicate]int) Prover {
+	return proof{}.init(suite,op).prover(op,secrets,points,choice)
+}
+
+func (op *orPred) Verifier(suite crypto.Suite,
+			points map[string]crypto.Point) Verifier {
+	return proof{}.init(suite,op).verifier(op,points)
 }
 
 
@@ -488,105 +627,46 @@ func (p *Prover) Linear(a1,a2,b crypto.Secret, x1,x2 PriVar) {
 
 
 
-/*
-Generic implementation of basic zero-knowledge proofs 
-of the form described by Camenisch/Stadler in
-Proof Systems for General Statements about Discrete Logarithms".
+func (prf proof) init(suite crypto.Suite, pred Predicate) *proof {
+	prf.s = suite
 
-XXX supports multiple groups? but each variable in only one group.
-*/
-type Proof struct {
-	s crypto.Suite
-	//g []Group
-	pc ProverContext
-	vc VerifierContext
+	// Enumerate all the variables in a consistent order.
+	// Reserve variable index 0 for convenience.
+	prf.svar = []string{""}
+	prf.pvar = []string{""}
+	prf.sidx = make(map[string]int)
+	prf.pidx = make(map[string]int)
+	pred.enumVars(&prf)
+	prf.nsvars = len(prf.svar)
+	prf.npvars = len(prf.pvar)
 
-	nsvars int		// number of Secret variables
-	npvars int		// number of Point variables
-
-	// Secret and Point variable names
-	svar, pvar []string
-
-	// Maps from strings to variable indexes
-	sidx, pidx map[string]int
-
-	// Proof state
-	pval map[string]crypto.Point	// values of public Point variables
-	sval map[string]crypto.Secret	// values of private Secret variables
-}
-
-func NewProof(s crypto.Suite, svar,pvar []string) *Proof {
-	var prf Proof
-	prf.Init(s,svar,pvar)
 	return &prf
 }
 
-func (prf *Proof) Init(s crypto.Suite, svar,pvar []string) {
-	prf.s = s
-	prf.nsvars = len(svar)
-	prf.npvars = len(pvar)
-	prf.svar = svar
-	prf.pvar = pvar
-
-	prf.sidx = make(map[string]int)
-	for i := range(svar) {
-		prf.sidx[svar[i]] = i
-	}
-
-	prf.pidx = make(map[string]int)
-	for i := range(pvar) {
-		prf.pidx[pvar[i]] = i
+func (prf *proof) enumSecretVar(name string) {
+	if prf.sidx[name] == 0 {
+		prf.sidx[name] = len(prf.svar)
+		prf.svar = append(prf.svar, name)
 	}
 }
 
-// Create a predicate representing the knowledge of a Secret that,
-// multiplied by a given public base, yields a given public point.
-func (prf *Proof) Log(pointVar,secretVar,baseVar string) *RepPred {
-	return prf.Rep(pointVar, Term{secretVar,baseVar})
-}
-
-// Create a predicate represending the knowledge of
-// a representation of a public Point variable
-// as the sum of one or more Terms,
-// each involving a public Point base and a secret multiplier.
-func (prf *Proof) Rep(pointVar string, sum ...Term) *RepPred {
-	rp := RepPred{}
-	rp.prf = prf
-	rp.val = pointVar
-	rp.sum = sum
-	return &rp
-}
-
-// Construct a Logical AND predicate combining multiple sub-predicates.
-// The prover must demonstrate all sub-predicates to be true.
-func (prf *Proof) And(sub ...Pred) *AndPred {
-	ap := AndPred{}
-	ap.prf = prf
-	ap.sub = sub
-	return &ap
-}
-
-// Construct a Logical OR predicate combining multiple sub-predicates.
-// The prover need only demonstrate at least one sub-predicate to be true,
-// and the generated proof reveals nothing about which one is true.
-func (prf *Proof) Or(sub ...Pred) *OrPred {
-	op := OrPred{}
-	op.prf = prf
-	op.sub = sub
-	op.choice = -1
-	return &op
+func (prf *proof) enumPointVar(name string) {
+	if prf.pidx[name] == 0 {
+		prf.pidx[name] = len(prf.pvar)
+		prf.pvar = append(prf.pvar, name)
+	}
 }
 
 // Make a response-array if that wasn't already done in a parent predicate.
-func (prf *Proof) makeResponses(pr []crypto.Secret) []crypto.Secret {
+func (prf *proof) makeSecrets(pr []crypto.Secret) []crypto.Secret {
 	if pr == nil {
 		return make([]crypto.Secret, prf.nsvars)
 	}
 	return pr
 }
 
-// Transmit our response-array if a corresponding makeResponses() created it.
-func (prf *Proof) sendResponses(pr []crypto.Secret, r []crypto.Secret) error {
+// Transmit our response-array if a corresponding makeSecrets() created it.
+func (prf *proof) sendResponses(pr []crypto.Secret, r []crypto.Secret) error {
 	if pr == nil {
 		for i := range(r) {
 			// Send responses only for variables
@@ -602,8 +682,8 @@ func (prf *Proof) sendResponses(pr []crypto.Secret, r []crypto.Secret) error {
 }
 
 // In the verifier, get the responses at the top of an OR-domain,
-// if a corresponding makeResponses() call created it.
-func (prf *Proof) getResponses(pr []crypto.Secret, r []crypto.Secret) error {
+// if a corresponding makeSecrets() call created it.
+func (prf *proof) getResponses(pr []crypto.Secret, r []crypto.Secret) error {
 	if pr == nil {
 		for i := range(r) {
 			if r[i] != nil {
@@ -616,14 +696,17 @@ func (prf *Proof) getResponses(pr []crypto.Secret, r []crypto.Secret) error {
 	return nil
 }
 
-func (prf *Proof) Prove(p Pred, sval map[string]crypto.Secret, 
-			pval map[string]crypto.Point, pc ProverContext) error {
+func (prf *proof) prove(p Predicate, sval map[string]crypto.Secret, 
+			pval map[string]crypto.Point,
+			choice map[Predicate]int, pc ProverContext) error {
 	prf.pc = pc
 	prf.sval = sval
 	prf.pval = pval
+	prf.choice = choice
+	prf.pp = make(map[Predicate]*proverPred)
 
 	// Generate all commitments
-	if e := p.commit(nil,nil); e != nil {
+	if e := p.commit(prf,nil,nil); e != nil {
 		return e
 	}
 
@@ -634,17 +717,18 @@ func (prf *Proof) Prove(p Pred, sval map[string]crypto.Secret,
 	}
 
 	// Generate all responses based on master challenge
-	return p.respond(c,nil)
+	return p.respond(prf,c,nil)
 }
 
-func (prf *Proof) Verify(p Pred, pval map[string]crypto.Point,
+func (prf *proof) verify(p Predicate, pval map[string]crypto.Point,
 			vc VerifierContext) error {
 	prf.vc = vc
 	prf.pval = pval
+	prf.vp = make(map[Predicate]*verifierPred)
 
 	// Get the commitments from the verifier,
 	// and calculate the sets of responses we'll need for each OR-domain.
-	if e := p.getCommits(nil); e != nil {
+	if e := p.getCommits(prf,nil); e != nil {
 		return e
 	}
 
@@ -655,25 +739,24 @@ func (prf *Proof) Verify(p Pred, pval map[string]crypto.Point,
 	}
 
 	// Check all the responses and sub-challenges against the commitments.
-	return p.verify(c,nil)
+	return p.verify(prf,c,nil)
 }
 
 // Produce a higher-order Prover embodying a given proof predicate.
-// XXX may only be used once safely; we should probably fix this.
-func (prf *Proof) Prover(p Pred, sval map[string]crypto.Secret, 
-			pval map[string]crypto.Point) Prover {
+func (prf *proof) prover(p Predicate, sval map[string]crypto.Secret, 
+			pval map[string]crypto.Point,
+			choice map[Predicate]int) Prover {
 
 	return Prover(func(ctx ProverContext)error{
-		return prf.Prove(p, sval, pval, ctx)
+		return prf.prove(p, sval, pval, choice, ctx)
 	})
 }
 
 // Produce a higher-order Verifier embodying a given proof predicate.
-// XXX may only be used once safely; we should probably fix this.
-func (prf *Proof) Verifier(p Pred, pval map[string]crypto.Point) Verifier {
+func (prf *proof) verifier(p Predicate, pval map[string]crypto.Point) Verifier {
 
 	return Verifier(func(ctx VerifierContext)error{
-		return prf.Verify(p, pval, ctx)
+		return prf.verify(p, pval, ctx)
 	})
 }
 

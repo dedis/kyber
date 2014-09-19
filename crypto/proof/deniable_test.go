@@ -80,9 +80,6 @@ func TestDeniable(t *testing.T) {
 
 	suite := crypto.NewAES128SHA256P256()
 	rand := crypto.RandomStream
-
-	svar := []string{"x","y"}
-	pvar := []string{"B","X","Y","R"}
 	B := suite.Point().Base()
 
 	// Make some keypairs
@@ -98,18 +95,16 @@ func TestDeniable(t *testing.T) {
 	// Make some provers and verifiers
 	for i := 0; i < nnodes; i++ {
 		n := nodes[i]
-		prf := NewProof(suite,svar,pvar)
-		pred := prf.Log("X","x","B")
+		pred := Rep("X","x","B")
 		sval := map[string]crypto.Secret{ "x":n.x }
 		pval := map[string]crypto.Point{"B":B, "X":n.X}
-		prover := prf.Prover(pred, sval, pval)
+		prover := pred.Prover(suite, sval, pval, nil)
 
 		vi := (i+2)%nnodes	// which node's proof to verify
-		vprf := NewProof(suite,svar,pvar)
 		vrfs := make([]Verifier, nnodes)
-		vpred := vprf.Log("X","x","B")
+		vpred := Rep("X","x","B")
 		vpval := map[string]crypto.Point{"B":B, "X":nodes[vi].X}
-		vrfs[vi] = vprf.Verifier(vpred, vpval)
+		vrfs[vi] = vpred.Verifier(suite, vpval)
 
 		n.proto = DeniableProver(suite, i, prover, vrfs)
 		n.outbox = make(chan []byte)

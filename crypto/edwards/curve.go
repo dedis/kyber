@@ -216,6 +216,7 @@ func (c *curve) decodePoint(bb []byte, x,y *crypto.ModInt) error {
 
 	// Extract the y-coordinate
 	y.V.SetBytes(b)
+	y.M = &c.order.V
 
 	// Compute the corresponding x-coordinate
 	if !c.solveForX(x,y) {
