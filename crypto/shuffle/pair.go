@@ -171,7 +171,9 @@ func (ps *PairShuffle) Prove(
 
 	// V step 2
 	v2 := &ps.v2
-	ctx.PubRand(v2)
+	if err := ctx.PubRand(v2); err != nil {
+		return err
+	}
 	B := make([]crypto.Point, k)
 	for i := 0; i < k; i++ {
 		P := grp.Point().Mul(g,v2.Zrho[i])
@@ -195,7 +197,9 @@ func (ps *PairShuffle) Prove(
 
 	// V step 4
 	v4 := &ps.v4
-	ctx.PubRand(v4)
+	if err := ctx.PubRand(v4); err != nil {
+		return err
+	}
 
 	// P step 5
 	p5 := &ps.p5
@@ -289,7 +293,9 @@ func (ps *PairShuffle) Verify(
 
 	// V step 2
 	v2 := &ps.v2
-	ctx.PubRand(v2)
+	if err := ctx.PubRand(v2); err != nil {
+		return err
+	}
 	B := make([]crypto.Point, k)
 	for i := 0; i < k; i++ {
 		P := grp.Point().Mul(g,v2.Zrho[i])
@@ -304,7 +310,9 @@ func (ps *PairShuffle) Verify(
 
 	// V step 4
 	v4 := &ps.v4
-	ctx.PubRand(v4)
+	if err := ctx.PubRand(v4); err != nil {
+		return err
+	}
 
 	// P step 5
 	p5 := &ps.p5

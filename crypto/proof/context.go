@@ -25,10 +25,9 @@ type Verifier func(ctx VerifierContext) error
 
 // ProverContext represents the abstract environment
 // required by the prover in a Sigma protocol.
-// XXX PubRand should return error, since it may require communication
 type ProverContext interface {
 	Put(message interface{}) error 		// Send message to verifier
-	PubRand(message...interface{})		// Get public randomness
+	PubRand(message...interface{}) error	// Get public randomness
 	PriRand(message...interface{})		// Get private randomness
 }
 
@@ -37,7 +36,7 @@ type ProverContext interface {
 // XXX PubRand should return error, since it may require communication
 type VerifierContext interface {
 	Get(message interface{}) error		// Receive message from prover
-	PubRand(message...interface{})		// Get public randomness
+	PubRand(message...interface{}) error	// Get public randomness
 }
 
 
@@ -76,11 +75,9 @@ func (c *hashProver) consumeMsg() {
 }
 
 // Get public randomness that depends on every bit in the proof so far.
-func (c *hashProver) PubRand(data...interface{}) {
+func (c *hashProver) PubRand(data...interface{}) error {
 	c.consumeMsg()
-	if err := crypto.Read(&c.pubrand, data, c.suite); err != nil {
-		panic("error reading random stream: "+err.Error())
-	}
+	return crypto.Read(&c.pubrand, data, c.suite)
 }
 
 // Get private randomness
@@ -137,11 +134,9 @@ func (c *hashVerifier) Get(message interface{}) error {
 }
 
 // Get public randomness that depends on every bit in the proof so far.
-func (c *hashVerifier) PubRand(data...interface{}) {
+func (c *hashVerifier) PubRand(data...interface{}) error {
 	c.consumeMsg()				// Stir in newly-read data
-	if err := crypto.Read(&c.pubrand, data, c.suite); err != nil {
-		panic("error reading random stream: "+err.Error())
-	}
+	return crypto.Read(&c.pubrand, data, c.suite)
 }
 
 // Get private randomness

@@ -3,6 +3,7 @@ package proof
 import (
 	"bytes"
 	"errors"
+	"crypto/cipher"
 	"dissent/crypto"
 )
 
@@ -35,8 +36,8 @@ type StarContext interface {
 	// representing the calling participant's own slot.
 	Step(msg []byte) ([][]byte,error)
 
-	// Get private cryptographic randomness.
-	PriRand(message...interface{})
+	// Get a source of private cryptographic randomness.
+	Random() cipher.Stream
 }
 
 
@@ -49,7 +50,7 @@ type StarContext interface {
 // but all participants' proofs must have the same number of steps.
 // (XXX could we easily relax this constraint?)
 func DeniableProver(suite crypto.Suite, self int, prover Prover,
-		verifiers []Verifier, verifyResults []error) StarProtocol {
+		verifiers []Verifier) StarProtocol {
 
 	return StarProtocol(func(ctx StarContext)[]error{
 		dp := deniableProver{}
@@ -69,7 +70,7 @@ type deniableProver struct {
 
 	// per-step state
 	key []byte			// Secret pre-challenge we committed to
-	msg bytes.Buffer		// Buffer in which to build prover msg
+	msg *bytes.Buffer		// Buffer in which to build prover msg
 	msgs [][]byte			// All messages from last proof step
 
 	pubrand crypto.RandomReader
@@ -84,11 +85,17 @@ func (dp *deniableProver) run(suite crypto.Suite, self int, prv Prover,
 	dp.suite = suite
 	dp.self = self
 	dp.sc = sc
+	dp.prirand.Stream = sc.Random()
+
+	nnodes := len(vrf)
+	if self < 0 || self >= nnodes {
+		panic("out-of-range self node")
+	}
 
 	// Initialize error slice entries to a default error indicator,
 	// so that forgetting to run a verifier won't look like "success"
 	verr := errors.New("prover or verifier not run")
-	dp.err = make([]error, len(vrf))
+	dp.err = make([]error, nnodes)
 	for i := range(dp.err) {
 		if i != self {
 			dp.err[i] = verr
@@ -96,7 +103,7 @@ func (dp *deniableProver) run(suite crypto.Suite, self int, prv Prover,
 	}
 
 	// Launch goroutines to run whichever verifiers the caller requested
-	dp.dv = make([]*deniableVerifier, len(vrf))
+	dp.dv = make([]*deniableVerifier, nnodes)
 	for i := range(vrf) {
 		if vrf[i] != nil {
 			dv := deniableVerifier{}
@@ -107,14 +114,25 @@ func (dp *deniableProver) run(suite crypto.Suite, self int, prv Prover,
 
 	// Run the prover, which will also drive the verifiers.
 	dp.initStep()
-	if e := func(ProverContext)error(prv)(dp); e != nil {
-		dp.err[self] = e
+	if err := func(ProverContext)error(prv)(dp); err != nil {
+		dp.err[self] = err
 	}
 
 	// Send the last prover message.
 	// Make sure the verifiers get to run to completion as well
-	for dp.proofStep() {
-		dp.challengeStep()
+	for {
+		stragglers,err := dp.proofStep()
+		if err != nil {
+			dp.err[self] = err
+			break
+		}
+		if !stragglers {
+			break
+		}
+		if err = dp.challengeStep(); err != nil {
+			dp.err[self] = err
+			break
+		}
 	}
 
 	return dp.err
@@ -130,34 +148,32 @@ func (dp *deniableProver) initStep() {
 
 	msg := make([]byte, keylen)		// send commitment to it
 	dp.suite.Stream(key).XORKeyStream(msg, msg)
-	dp.msg.Reset()
-	if e := crypto.Write(&dp.msg, msg, dp.suite); e != nil {
-		panic("error writing to Buffer")
-	}
+	dp.msg = bytes.NewBuffer(msg)
 
 	// The Sigma-Prover will now append its proof content to dp.msg...
 }
 
-func (dp *deniableProver) proofStep() bool {
+func (dp *deniableProver) proofStep() (bool,error) {
 
 	// Send the randomness commit and accumulated message to the leader,
 	// and get all participants' commits, via our star-protocol context.
 	msgs,err := dp.sc.Step(dp.msg.Bytes())
 	if err != nil {
-		dp.err[dp.self] = err
+		return false,err
 	}
 	if !bytes.Equal(msgs[dp.self],dp.msg.Bytes()) {
-		dp.err[dp.self] = errors.New("own messages were corrupted")
+		return false,errors.New("own messages were corrupted")
 	}
 	dp.msgs = msgs
 
 	// Distribute this step's prover messages
 	// to the relevant verifiers as well,
 	// waking them up in the process so they can proceed.
+	keylen := dp.suite.KeyLen()
 	for i := range(dp.dv) {
 		dv := dp.dv[i]
 		if dv != nil && i < len(msgs) {
-			dv.inbox <- msgs[i]	// send message to verifier
+			dv.inbox <- msgs[i][keylen:]	// send to verifier
 		}
 	}
 
@@ -176,28 +192,25 @@ func (dp *deniableProver) proofStep() bool {
 			}
 		}
 	}
-	return stragglers
+	return stragglers,nil
 }
 
-func (dp *deniableProver) challengeStep() {
+func (dp *deniableProver) challengeStep() error {
 
 	// Send our challenge randomness to the leader, and collect all.
 	keys,err := dp.sc.Step(dp.key)
 	if err != nil {
-		dp.err[dp.self] = err
+		return err
 	}
 
 	// XOR together all the participants' randomness contributions,
 	// check them against the respective commits,
 	// and ensure ours is included to ensure deniability
 	// (even if all others turn out to be maliciously generated).
-	// If anything goes wrong, just use our own randomness alone;
-	// the result won't be a valid proof, but that's not our fault,
-	// and we will ensure deniability is preserved.
 	keylen := dp.suite.KeyLen()
 	mix := make([]byte, keylen)
 	for i := range(keys) {
-		com := dp.msgs[i]	// node i's randomness commitment
+		com := dp.msgs[i][:keylen] // node i's randomness commitment
 		key := keys[i]		// node i's committed random key
 		if len(com) < keylen || len(key) < keylen {
 			continue	// ignore participants who dropped out
@@ -205,17 +218,14 @@ func (dp *deniableProver) challengeStep() {
 		chk := make([]byte, keylen)
 		dp.suite.Stream(key).XORKeyStream(chk,chk)
 		if !bytes.Equal(com,chk) {
-			mix = dp.key		// bad key, bail
-			dp.err[dp.self] = errors.New("wrong key for commit")
-			break
+			return errors.New("wrong key for commit")
 		}
 		for j := 0; j < keylen; j++ {	// mix in this key
 			mix[j] ^= key[j]
 		}
 	}
 	if len(keys) <= dp.self || !bytes.Equal(keys[dp.self],dp.key) {
-		mix = dp.key	// our key was missing, so use only our key
-		dp.err[dp.self] = errors.New("own messages were corrupted")
+		return errors.New("our own message was corrupted")
 	}
 
 	// Use the mix to produce the public randomness needed by the prover
@@ -231,21 +241,25 @@ func (dp *deniableProver) challengeStep() {
 
 	// Setup for the next proof step
 	dp.initStep()
+	return nil
 }
 
 func (dp *deniableProver) Put(message interface{}) error {
 	// Add onto accumulated prover message
-	return crypto.Write(&dp.msg, message, dp.suite)
+	return crypto.Write(dp.msg, message, dp.suite)
 }
 
 // Prover will call this after Put()ing all commits for a given step,
 // to get the master challenge to be used in its challenge/responses.
-func (dp *deniableProver) PubRand(data...interface{}) {
-	dp.proofStep()		// complete last proof step
-	dp.challengeStep()	// run a challenge step
-	if err := crypto.Read(&dp.pubrand, data, dp.suite); err != nil {
-		panic("error reading random stream: "+err.Error())
+func (dp *deniableProver) PubRand(data...interface{}) error {
+
+	if _,err := dp.proofStep(); err != nil {	// finish proof step
+		return err
 	}
+	if err := dp.challengeStep(); err != nil{	// run challenge step
+		return err
+	}
+	return crypto.Read(&dp.pubrand, data, dp.suite)
 }
 
 // Get private randomness
@@ -305,7 +319,7 @@ func (dv *deniableVerifier) Get(message interface{}) error {
 }
 
 // Get the next public random challenge.
-func (dv *deniableVerifier) PubRand(data...interface{}) {
+func (dv *deniableVerifier) PubRand(data...interface{}) error {
 
 	// Signal that we need the next challenge
 	dv.done <- false
@@ -319,7 +333,11 @@ func (dv *deniableVerifier) PubRand(data...interface{}) {
 	// Produce the appropriate publicly random stream
 	dv.pubrand.Stream = dv.suite.Stream(chal)
 	if err := crypto.Read(&dv.pubrand, data, dv.suite); err != nil {
-		panic("error reading random stream: "+err.Error())
+		return err
 	}
+
+	// Get the next proof message
+	dv.getProof()
+	return nil
 }
 

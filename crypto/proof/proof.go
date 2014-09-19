@@ -629,7 +629,9 @@ func (prf *Proof) Prove(p Pred, sval map[string]crypto.Secret,
 
 	// Generate top-level challenge from public randomness
 	c := prf.s.Secret()
-	pc.PubRand(c)
+	if e := pc.PubRand(c); e != nil {
+		return e
+	}
 
 	// Generate all responses based on master challenge
 	return p.respond(c,nil)
@@ -648,7 +650,9 @@ func (prf *Proof) Verify(p Pred, pval map[string]crypto.Point,
 
 	// Produce the top-level challenge
 	c := prf.s.Secret()
-	vc.PubRand(c)
+	if e := vc.PubRand(c); e != nil {
+		return e
+	}
 
 	// Check all the responses and sub-challenges against the commitments.
 	return p.verify(c,nil)

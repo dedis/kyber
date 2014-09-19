@@ -114,7 +114,9 @@ func (ss *SimpleShuffle) Prove(G crypto.Point, gamma crypto.Secret,
 	}
 
 	// V step 1
-	ctx.PubRand(&ss.v1)
+	if err := ctx.PubRand(&ss.v1); err != nil{
+		return err
+	}
 	t := ss.v1.Zt
 
 	// P step 2
@@ -145,7 +147,9 @@ func (ss *SimpleShuffle) Prove(G crypto.Point, gamma crypto.Secret,
 	}
 
 	// V step 3
-	ctx.PubRand(&ss.v3)
+	if err := ctx.PubRand(&ss.v3); err != nil {
+		return err
+	}
 	c := ss.v3.Zc
 
 	// P step 4
@@ -207,12 +211,16 @@ func (ss *SimpleShuffle) Verify(G, Gamma crypto.Point,
 		return err
 	}
 	var checkv1 ssa1
-	ctx.PubRand(&checkv1)		// fills in v1
+	if err := ctx.PubRand(&checkv1); err != nil {		// fills in v1
+		return err
+	}
 	if err := ctx.Get(ss.p2); err != nil {
 		return err
 	}
 	var checkv3 ssa3
-	ctx.PubRand(&checkv3)		// fills in v3
+	if err := ctx.PubRand(&checkv3); err != nil {		// fills in v3
+		return err
+	}
 	if err := ctx.Get(ss.p4); err != nil {
 		return err
 	}
