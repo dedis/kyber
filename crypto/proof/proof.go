@@ -18,35 +18,51 @@ import (
 /*
 A Predicate is a composable logic expression in a knowledge proof system,
 representing a "knowledge specification set" in Camenisch/Stadler terminology.
+Atomic predicates in this system are statements of the form P=x1*B1+...+xn+Bn,
+indicating the prover knows secrets x1,...,xn that make the statement true,
+where P and B1,...,Bn are public points known to the verifier.
+These atomic Rep (representation) predicates may be combined
+with logical And and Or combinators to form composite statements.
+Predicate objects, once created, are immutable and safe to share
+or reuse for any number of proofs and verifications.
 
-Currently we require that all OR operators be above all AND operators
-in the expression - i.e., no AND-of-OR predicates.
+After constructing a Predicate using the Rep, And, and Or functions below,
+the caller invokes Prover() to create a Sigma-protocol prover.
+Prover() requires maps defining the values of both the Secret variables
+and the public Point variables that the Predicate refers to.
+If the statement contains logical Or operators, the caller must also pass
+a map containing branch choices for each Or predicate
+in the "proof-obligated path" down through the Or predicates.
+See the examples provded for the Or function for more details.
+
+Similarly, the caller may invoke Verifier() to create
+a Sigma-protocol verifier for the predicate.
+The caller must pass a map defining the values
+of the public Point variables that the proof refers to.
+The verifier need not be provided any secrets or branch choices, of course.
+(If the verifier needed those then they wouldn't be secret, would they?)
+
+Currently we require that all Or operators be above all And operators
+in the expression - i.e., Or-of-And combinations are allowed,
+but no And-of-Or predicates.
 We could rewrite expressions into this form as Camenisch/Stadler suggest,
-but that could run a risk of unexpected exponential blowup.
+but that could run a risk of unexpected exponential blowup in the worst case.
 We could avoid this risk by not rewriting the expression tree,
 but instead generating Pedersen commits for variables that need to "cross"
 from one OR-domain to another non-mutually-exclusive one.
 For now we simply require expressions to be in the appropriate form.
 */
 type Predicate interface {
-	// Produce a human-readable string representation of the predicate.
-	String() string
 
-	// Create a Prover to prove the statement this Predicate represents.
-	// Requires maps defining the values of both the Secret variables
-	// and the public Point variables.
-	// If the statement contains, the caller must also pass
-	// a map containing branch choices for each Or predicate
-	// in the "proof-obligated path" down through the Or predicates.
+	// Create a Prover proving the statement this Predicate represents.
 	Prover(suite crypto.Suite, secrets map[string]crypto.Secret, 
 		points map[string]crypto.Point, choice map[Predicate]int) Prover
 
 	// Create a Verifier for the statement this Predicate represents.
-	// The caller must pass a map defining the values
-	// of the public Point variables referred to in the proof.
-	// No secrets or branch choices needed:
-	// if they were needed they wouldn't be secret, would they?
 	Verifier(suite crypto.Suite, points map[string]crypto.Point) Verifier
+
+	// Produce a human-readable string representation of the predicate.
+	String() string
 
 	// precedence-sensitive helper stringifier.
 	precString(prec int) string
@@ -128,7 +144,7 @@ type repPred struct {
 
 // Rep creates a predicate stating that the prover knows
 // a representation of a point P with respect to
-// one or more secrets and base points.
+// one or more secrets and base point pairs.
 //
 // In its simplest usage, Rep indicates that the prover knows a secret x
 // that is the (elliptic curve) discrete logarithm of a public point P
@@ -137,7 +153,7 @@ type repPred struct {
 //	Rep(P,x,B)
 //
 // Rep can take any number of (Secret,Base) variable name pairs, however.
-// A Rep statement of the form Rep(P,x1,...,xn,Bn)
+// A Rep statement of the form Rep(P,x1,B1,...,xn,Bn)
 // indicates that the prover knows secrets x1,...,xn
 // such that point P is the sum x1*B1+...+xn*Bn.
 //

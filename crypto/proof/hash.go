@@ -107,20 +107,35 @@ func (c *hashVerifier) PubRand(data...interface{}) error {
 
 
 
-// Create a hash-based noninteractive proof via a given Sigma-protocol prover.
-func HashProve(suite crypto.Suite, protoName string, rand cipher.Stream,
+// HashProve runs a given Sigma-protocol prover with a ProverContext
+// that produces a non-interactive proof via the Fiat-Shamir heuristic.
+// Returns a byte-slice containing the noninteractive proof on success,
+// or an error in the case of failure.
+//
+// The optional protocolName is fed into the hash function used in the proof,
+// so that a proof generated for a particular protocolName
+// will verify successfully only if the verifier uses the same protocolName.
+//
+// The caller must provide a source of random entropy for the proof;
+// this can be crypto.RandomStream to use fresh random bits,
+// or a pseudorandom stream based on a secret seed
+// to create deterministically reproducible proofs.
+//
+func HashProve(suite crypto.Suite, protocolName string, random cipher.Stream,
 		prover Prover) ([]byte,error) {
-	ctx := newHashProver(suite, protoName, rand)
+	ctx := newHashProver(suite, protocolName, random)
 	if e := func(ProverContext)error(prover)(ctx); e != nil {
 		return nil,e
 	}
 	return ctx.Proof(),nil
 }
 
-// Verify a hash-based noninteractive proof.
-func HashVerify(suite crypto.Suite, protoName string,
+// Verifies a hash-based noninteractive proof generated with HashProve.
+// The suite and protocolName must be the same as those given to HashProve.
+// Returns nil if the proof checks out, or an error on any failure.
+func HashVerify(suite crypto.Suite, protocolName string,
 		verifier Verifier, proof []byte) error {
-	ctx := newHashVerifier(suite, protoName, proof)
+	ctx := newHashVerifier(suite, protocolName, proof)
 	return func(VerifierContext)error(verifier)(ctx)
 }
 

@@ -13,6 +13,8 @@ import (
 // which invokes the StarContext's methods to send and receive messages,
 // and finally returns once the protocol has concluded for all participants.
 // Returns a slice of success/error indicators, one for each participant.
+//
+// XXX this interface should probably move to a "protocol" module of some kind.
 type StarProtocol func(ctx StarContext) []error
 
 
@@ -47,8 +49,7 @@ type StarContext interface {
 // Optionally the StarProtocol participant can also verify
 // the Sigma-protocol proofs of any or all of the other participants.
 // Different participants may produce different proofs of varying sizes,
-// but all participants' proofs must have the same number of steps.
-// (XXX could we easily relax this constraint?)
+// and may even consist of different numbers of steps.
 func DeniableProver(suite crypto.Suite, self int, prover Prover,
 		verifiers []Verifier) StarProtocol {
 

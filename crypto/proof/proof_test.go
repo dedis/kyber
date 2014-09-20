@@ -174,7 +174,8 @@ func ExampleAnd_2() {
 // the prover either knows a secret x such that X=x*B,
 // or the prover knows a secret y such that Y=y*B.
 // This predicate in essence proves knowledge of the private key
-// for one of two public keys X or Y, without revealing which.
+// for one of two public keys X or Y,
+// without revealing which key the prover owns.
 func ExampleOr_1() {
 	pred := Or(Rep("X","x","B"),Rep("Y","y","B"))
 	fmt.Println(pred.String())
@@ -187,6 +188,8 @@ func ExampleOr_1() {
 // but we don't know a secret y such that Y=y*B,
 // because we simply pick Y as a random point
 // instead of generating it by scalar multiplication.
+// (And if the group is cryptographically secure
+// we won't find be able to find such a y.)
 func ExampleOr_2() {
 	// Create an Or predicate.
 	pred := Or(Rep("X","x","B"),Rep("Y","y","B"))
