@@ -97,13 +97,17 @@
 //	Protobuf		Go
 //	--------		--
 //	bool			bool
-//	enum			uint32
+//	enum			Enum
 //	int32			uint32
 //	int64			uint64
 //	uint32			uint32
 //	uint64			uint64
 //	sint32			int32
 //	sint64			int64
+//	fixed32			Ufixed32
+//	fixed64			Ufixed64
+//	sfixed32		Sfixed32
+//	sfixed64		Sfixed64
 //	float			float32
 //	double			float64
 //	string			string
@@ -137,7 +141,6 @@
 // This package does not try to support all possible protobuf formats.
 // It currently does not support nonzero default value declarations for enums,
 // the legacy unpacked formats for repeated numeric fields,
-// the fixed-length-encoded 32- and 64-bit integer types,
 // messages with extremely sparse field numbering,
 // or other more exotic features like extensions or oneof.
 // If you need to interoperate with existing protobuf code using these features,

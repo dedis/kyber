@@ -158,24 +158,34 @@ func (de *decoder) putvalue(wiretype int, val reflect.Value,
 		}
 		val.SetBool(v != 0)
 
-	// Varint-encoded 32-bit and 64-bit signed integers.
+	// Signed integers may be encoded either zigzag-varint or fixed
 	// Note that protobufs don't support 8- or 16-bit ints.
-	case reflect.Int32,reflect.Int64:
-		if wiretype != 0 {
+	case reflect.Int,reflect.Int32,reflect.Int64:
+		if wiretype == 0 {		// encoded as varint
+			sv := int64(v) >> 1
+			if v & 1 != 0 {
+				sv = ^sv
+			}
+			val.SetInt(sv)
+		} else if wiretype == 5 { // sfixed32
+			val.SetInt(int64(int32(v)))
+		} else if wiretype == 1 { // sfixed64
+			val.SetInt(int64(v))
+		} else {
 			return errors.New("bad wiretype for sint")
 		}
-		sv := int64(v) >> 1
-		if v & 1 != 0 {
-			sv = ^sv
-		}
-		val.SetInt(sv)
 
 	// Varint-encoded 32-bit and 64-bit unsigned integers.
 	case reflect.Uint32,reflect.Uint64:
-		if wiretype != 0 {
+		if wiretype == 0 {
+			val.SetUint(v)
+		} else if wiretype == 5 { // ufixed32
+			val.SetUint(uint64(uint32(v)))
+		} else if wiretype == 1 { // ufixed64
+			val.SetUint(uint64(v))
+		} else {
 			return errors.New("bad wiretype for uint")
 		}
-		val.SetUint(uint64(v))
 
 	// Fixed-length 32-bit floats.
 	case reflect.Float32:
@@ -264,6 +274,11 @@ func (de *decoder) instantiate(t reflect.Type) reflect.Value {
 	return reflect.New(t)
 }
 
+var sfixed32type = reflect.TypeOf(Sfixed32(0))
+var sfixed64type = reflect.TypeOf(Sfixed64(0))
+var ufixed32type = reflect.TypeOf(Ufixed32(0))
+var ufixed64type = reflect.TypeOf(Ufixed64(0))
+
 // Handle decoding of slices
 func (de *decoder) slice(slval reflect.Value, vb []byte) error {
 
@@ -276,7 +291,18 @@ func (de *decoder) slice(slval reflect.Value, vb []byte) error {
 	switch eltype.Kind() {
 	case reflect.Bool,reflect.Int32,reflect.Int64,
 			reflect.Uint32,reflect.Uint64:
-		wiretype = 0		// Packed varint representation
+		switch eltype {
+		case sfixed32type:
+			wiretype = 5	// Packed 32-bit representation
+		case sfixed64type:
+			wiretype = 1	// Packed 64-bit representation
+		case ufixed32type:
+			wiretype = 5	// Packed 32-bit representation
+		case ufixed64type:
+			wiretype = 1	// Packed 64-bit representation
+		default:
+			wiretype = 0	// Packed varint representation
+		}
 
 	case reflect.Float32:
 		wiretype = 5		// Packed 32-bit representation
