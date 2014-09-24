@@ -6,10 +6,12 @@ import (
 	"crypto/cipher"
 	"crypto/sha256"
 	"dissent/crypto"
+	"dissent/crypto/edwards/ed25519"
 )
 
 type suiteEd25519 struct {
-	ProjectiveCurve
+	ed25519.Curve
+	//ProjectiveCurve
 } 
 // XXX non-NIST ciphers?
 
@@ -33,7 +35,7 @@ func (s *suiteEd25519) Stream(key []byte) cipher.Stream {
 // Ciphersuite based on AES-128, SHA-256, and the Ed25519 curve.
 func NewAES128SHA256Ed25519(fullGroup bool) crypto.Suite {
 	suite := new(suiteEd25519)
-	suite.Init(Param25519(), fullGroup)
+	//suite.Init(Param25519(), fullGroup)
 	return suite
 }
 

@@ -51,10 +51,11 @@ func signH1(suite crypto.Suite, H1pb []byte, PG,PH crypto.Point) crypto.Secret {
 // The caller supplies one or more public keys representing an anonymity set,
 // and the private key corresponding to one of those public keys.
 // The resulting signature proves to a verifier that the owner of
-// one of these public keys signed the message, without revealing which owner,
-// providing anonymity among the members of this explicit anonymity set.
+// one of these public keys signed the message,
+// without revealing which key-holder signed the message,
+// offering anonymity among the members of this explicit anonymity set.
 // The other users whose keys are listed in the anonymity set need not consent
-// or even be aware that they have been included in an set:
+// or even be aware that they have been included in an anonymity set:
 // anyone having a suitable public key may be "conscripted" into a set.
 //
 // If the provided anonymity set contains only one public key (the signer's),

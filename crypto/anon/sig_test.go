@@ -3,9 +3,11 @@ package anon
 import (
 	"fmt"
 	"bytes"
+	"testing"
 	"encoding/hex"
 	"dissent/crypto"
 	"dissent/crypto/openssl"
+	"dissent/crypto/edwards"
 )
 
 // This example demonstrates signing and signature verification
@@ -232,6 +234,128 @@ func ExampleSign_linkable() {
 	// Sig1 tag: 025b95c5b8604c906d8a64878759e0a769fdcae64ca5bdaf7d80dc7dd7c8e4f8d9
 	// Sig2 tag: 03ab1df5174b14ef012efbff5c01a8f7156836faba2f57631c62d4c87d5128c6f1
 	// Sig3 tag: 03ab1df5174b14ef012efbff5c01a8f7156836faba2f57631c62d4c87d5128c6f1
+}
 
+
+var benchMessage = []byte("Hello World!")
+
+var benchPubOpenSSL,benchPriOpenSSL = benchGenKeysOpenSSL(100)
+var benchSig1OpenSSL = benchGenSigOpenSSL(1)
+var benchSig10OpenSSL = benchGenSigOpenSSL(10)
+var benchSig100OpenSSL = benchGenSigOpenSSL(100)
+
+var benchPubEd25519,benchPriEd25519 = benchGenKeysEd25519(100)
+var benchSig1Ed25519 = benchGenSigEd25519(1)
+var benchSig10Ed25519 = benchGenSigEd25519(10)
+var benchSig100Ed25519 = benchGenSigEd25519(100)
+
+func benchGenKeys(suite crypto.Suite,
+		nkeys int) ([]crypto.Point,crypto.Secret) {
+
+	rand := crypto.RandomStream
+
+	// Create an anonymity set of random "public keys"
+	X := make([]crypto.Point,nkeys)
+	for i := range(X) {			// pick random points
+		X[i],_ = suite.Point().Pick(nil,rand)
+	}
+
+	// Make just one of them an actual public/private keypair (X[mine],x)
+	x := suite.Secret().Pick(rand)
+	X[0] = suite.Point().Mul(nil,x)
+
+	return X,x
+}
+
+func benchGenKeysOpenSSL(nkeys int) ([]crypto.Point,crypto.Secret) {
+	return benchGenKeys(openssl.NewAES128SHA256P256(), nkeys)
+}
+func benchGenSigOpenSSL(nkeys int) []byte {
+	suite := openssl.NewAES128SHA256P256()
+	rand := crypto.HashStream(suite, []byte("example"), nil)
+	return Sign(suite, rand, benchMessage,
+			Set(benchPubOpenSSL[:nkeys]), nil,
+			0, benchPriOpenSSL)
+}
+
+func benchGenKeysEd25519(nkeys int) ([]crypto.Point,crypto.Secret) {
+	return benchGenKeys(edwards.NewAES128SHA256Ed25519(false), nkeys)
+}
+func benchGenSigEd25519(nkeys int) []byte {
+	suite := edwards.NewAES128SHA256Ed25519(false)
+	rand := crypto.HashStream(suite, []byte("example"), nil)
+	return Sign(suite, rand, benchMessage,
+			Set(benchPubEd25519[:nkeys]), nil,
+			0, benchPriEd25519)
+}
+
+func benchSign(suite crypto.Suite, pub []crypto.Point, pri crypto.Secret,
+		niter int) {
+	rand := crypto.HashStream(suite, []byte("example"), nil)
+	for i := 0; i < niter; i++ {
+		Sign(suite, rand, benchMessage, Set(pub), nil, 0, pri)
+	}
+}
+
+func benchVerify(suite crypto.Suite, pub []crypto.Point,
+		sig []byte, niter int) {
+	for i := 0; i < niter; i++ {
+		tag,err := Verify(suite, benchMessage, Set(pub), nil, sig)
+		if tag == nil || err != nil {
+			panic("benchVerify failed")
+		}
+	}
+}
+
+func BenchmarkSign1OpenSSL(b *testing.B) {
+	benchSign(openssl.NewAES128SHA256P256(),
+		benchPubOpenSSL[:1],benchPriOpenSSL,b.N)
+}
+func BenchmarkSign10OpenSSL(b *testing.B) {
+	benchSign(openssl.NewAES128SHA256P256(),
+		benchPubOpenSSL[:10],benchPriOpenSSL,b.N)
+}
+func BenchmarkSign100OpenSSL(b *testing.B) {
+	benchSign(openssl.NewAES128SHA256P256(),
+		benchPubOpenSSL[:100],benchPriOpenSSL,b.N)
+}
+
+func BenchmarkVerify1OpenSSL(b *testing.B) {
+	benchVerify(openssl.NewAES128SHA256P256(),
+		benchPubOpenSSL[:1],benchSig1OpenSSL,b.N)
+}
+func BenchmarkVerify10OpenSSL(b *testing.B) {
+	benchVerify(openssl.NewAES128SHA256P256(),
+		benchPubOpenSSL[:10],benchSig10OpenSSL,b.N)
+}
+func BenchmarkVerify100OpenSSL(b *testing.B) {
+	benchVerify(openssl.NewAES128SHA256P256(),
+		benchPubOpenSSL[:100],benchSig100OpenSSL,b.N)
+}
+
+func BenchmarkSign1Ed25519(b *testing.B) {
+	benchSign(edwards.NewAES128SHA256Ed25519(false),
+		benchPubEd25519[:1],benchPriEd25519,b.N)
+}
+func BenchmarkSign10Ed25519(b *testing.B) {
+	benchSign(edwards.NewAES128SHA256Ed25519(false),
+		benchPubEd25519[:10],benchPriEd25519,b.N)
+}
+func BenchmarkSign100Ed25519(b *testing.B) {
+	benchSign(edwards.NewAES128SHA256Ed25519(false),
+		benchPubEd25519[:100],benchPriEd25519,b.N)
+}
+
+func BenchmarkVerify1Ed25519(b *testing.B) {
+	benchVerify(edwards.NewAES128SHA256Ed25519(false),
+		benchPubEd25519[:1],benchSig1Ed25519,b.N)
+}
+func BenchmarkVerify10Ed25519(b *testing.B) {
+	benchVerify(edwards.NewAES128SHA256Ed25519(false),
+		benchPubEd25519[:10],benchSig10Ed25519,b.N)
+}
+func BenchmarkVerify100Ed25519(b *testing.B) {
+	benchVerify(edwards.NewAES128SHA256Ed25519(false),
+		benchPubEd25519[:100],benchSig100Ed25519,b.N)
 }
 
