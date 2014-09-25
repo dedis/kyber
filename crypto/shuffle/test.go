@@ -5,12 +5,13 @@ import (
 	//"time"
 	"dissent/crypto"
 	"dissent/crypto/proof"
+	"dissent/crypto/random"
 )
 
 func TestShuffle(suite crypto.Suite, k int) {
 
 	// Create a "server" private/public keypair
-	h := suite.Secret().Pick(crypto.RandomStream)
+	h := suite.Secret().Pick(random.Stream)
 	H := suite.Point().Mul(nil, h)
 
 	// Create a set of ephemeral "client" keypairs to shuffle
@@ -18,7 +19,7 @@ func TestShuffle(suite crypto.Suite, k int) {
 	C := make([]crypto.Point, k)
 //	fmt.Println("\nclient keys:")
 	for i := 0; i < k; i++ {
-		c[i] = suite.Secret().Pick(crypto.RandomStream)
+		c[i] = suite.Secret().Pick(random.Stream)
 		C[i] = suite.Point().Mul(nil,c[i])
 //		fmt.Println(" "+C[i].String())
 	}
@@ -28,30 +29,24 @@ func TestShuffle(suite crypto.Suite, k int) {
 	Y := make([]crypto.Point, k)
 	r := suite.Secret()		// temporary
 	for i := 0; i < k; i++ {
-		r.Pick(crypto.RandomStream)
+		r.Pick(random.Stream)
 		X[i] = suite.Point().Mul(nil,r)
 		Y[i] = suite.Point().Mul(H,r)	// ElGamal blinding factor
 		Y[i].Add(Y[i],C[i])		// Encrypted client public key
 	}
 
 	// Do a key-shuffle
-	//fmt.Printf("%d-shuffle proof: ", k)
-	pctx := proof.NewHashProver(suite, "PairShuffle")
-	var ps PairShuffle
-	ps.Init(suite, k)
-	//beg := time.Now()
-	Xbar,Ybar := ps.Shuffle(nil,H,X,Y,crypto.RandomStream,pctx)
-	//end := time.Now()
-	//fmt.Printf("%f sec\n", (float64(end.Sub(beg)) / 1000000000.0))
+	Xbar,Ybar,prover := Shuffle(suite,nil,H,X,Y,random.Stream)
+	prf,err := proof.HashProve(suite,"PairShuffle",random.Stream,prover)
+	if err != nil {
+		panic("Shuffle proof failed: "+err.Error())
+	}
 
 	// Check it
-	//fmt.Printf("%d-shuffle verify: ", k)
-	vctx := proof.NewHashVerifier(suite, "PairShuffle", pctx.Proof())
-	//beg = time.Now()
-	if err := ps.Verify(nil,H,X,Y,Xbar,Ybar,vctx); err != nil {
+	verifier := Verifier(suite,nil,H,X,Y,Xbar,Ybar)
+	err = proof.HashVerify(suite,"PairShuffle",verifier,prf)
+	if err != nil {
 		panic("Shuffle verify failed: "+err.Error())
 	}
-	//end = time.Now()
-	//fmt.Printf("%f sec\n", (float64(end.Sub(beg)) / 1000000000.0))
 }
 

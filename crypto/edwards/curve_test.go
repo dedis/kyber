@@ -5,6 +5,7 @@ import (
 	//"encoding/hex"
 	"dissent/crypto"
 	"dissent/crypto/test"
+	"dissent/crypto/random"
 	"dissent/crypto/edwards/ed25519"
 )
 
@@ -163,7 +164,7 @@ func TestCompareEd25519(t *testing.T) {
 // Test point hiding functionality
 
 func testHiding(g crypto.Group, k int) {
-	rand := crypto.RandomStream
+	rand := random.Stream
 
 	// Test conversion from random strings to points and back
 	p := g.Point()

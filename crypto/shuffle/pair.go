@@ -24,6 +24,7 @@ import (
 	"crypto/cipher"
 	"dissent/crypto"
 	"dissent/crypto/proof"
+	"dissent/crypto/random"
 )
 
 
@@ -224,55 +225,6 @@ func (ps *PairShuffle) Prove(
 	return ps.pv6.Prove(g, gamma, r, s, rand, ctx)
 }
 
-// Randomly shuffle and re-randomize a set of ElGamal pairs,
-// producing a correctness proof in the process.
-// Returns (Xbar,Ybar), the shuffled and randomized pairs.
-// If g or h is nil, the standard base point is used.
-func (ps *PairShuffle) Shuffle(
-		g,h crypto.Point, X,Y []crypto.Point, rand cipher.Stream,
-		ctx proof.ProverContext) ([]crypto.Point, []crypto.Point){
-
-	k := len(X)
-	if k != len(Y) {
-		panic("X,Y vectors have inconsistent length")
-	}
-
-	// Pick a random permutation
-	pi := make([]int, k)
-	for i := 0; i < k; i++ {	// Initialize a trivial permutation
-		pi[i] = i
-	}
-	for i := k-1; i > 0; i-- {	// Shuffle by random swaps
-		j := int(crypto.RandomUint64(rand) % uint64(i+1))
-		if j != i {
-			t := pi[j]
-			pi[j] = pi[i]
-			pi[i] = t
-		}
-	}
-
-	// Pick a fresh ElGamal blinding factor for each pair
-	beta := make([]crypto.Secret, k)
-	for i := 0; i < k; i++ {
-		beta[i] = ps.grp.Secret().Pick(rand)
-	}
-
-	// Create the output pair vectors
-	Xbar := make([]crypto.Point, k)
-	Ybar := make([]crypto.Point, k)
-	for i := 0; i < k; i++ {
-		Xbar[i] = ps.grp.Point().Mul(g,beta[pi[i]])
-		Xbar[i].Add(Xbar[i],X[pi[i]])
-		Ybar[i] = ps.grp.Point().Mul(h,beta[pi[i]])
-		Ybar[i].Add(Ybar[i],Y[pi[i]])
-	}
-
-	ps.Prove(pi,g,h,beta,X,Y,rand,ctx)
-
-	return Xbar,Ybar
-}
-
-
 // Verifier for ElGamal Pair Shuffle proofs.
 func (ps *PairShuffle) Verify(
 		g,h crypto.Point, X,Y,Xbar,Ybar []crypto.Point,
@@ -352,5 +304,68 @@ func (ps *PairShuffle) Verify(
 	}
 
 	return nil
+}
+
+// Randomly shuffle and re-randomize a set of ElGamal pairs,
+// producing a correctness proof in the process.
+// Returns (Xbar,Ybar), the shuffled and randomized pairs.
+// If g or h is nil, the standard base point is used.
+func Shuffle(group crypto.Group, g,h crypto.Point, X,Y []crypto.Point,
+		rand cipher.Stream) (XX,YY []crypto.Point, P proof.Prover) {
+
+	k := len(X)
+	if k != len(Y) {
+		panic("X,Y vectors have inconsistent length")
+	}
+
+	ps := PairShuffle{}
+	ps.Init(group, k)
+
+	// Pick a random permutation
+	pi := make([]int, k)
+	for i := 0; i < k; i++ {	// Initialize a trivial permutation
+		pi[i] = i
+	}
+	for i := k-1; i > 0; i-- {	// Shuffle by random swaps
+		j := int(random.Uint64(rand) % uint64(i+1))
+		if j != i {
+			t := pi[j]
+			pi[j] = pi[i]
+			pi[i] = t
+		}
+	}
+
+	// Pick a fresh ElGamal blinding factor for each pair
+	beta := make([]crypto.Secret, k)
+	for i := 0; i < k; i++ {
+		beta[i] = ps.grp.Secret().Pick(rand)
+	}
+
+	// Create the output pair vectors
+	Xbar := make([]crypto.Point, k)
+	Ybar := make([]crypto.Point, k)
+	for i := 0; i < k; i++ {
+		Xbar[i] = ps.grp.Point().Mul(g,beta[pi[i]])
+		Xbar[i].Add(Xbar[i],X[pi[i]])
+		Ybar[i] = ps.grp.Point().Mul(h,beta[pi[i]])
+		Ybar[i].Add(Ybar[i],Y[pi[i]])
+	}
+
+	prover := func(ctx proof.ProverContext) error {
+		return ps.Prove(pi,g,h,beta,X,Y,rand,ctx)
+	}
+	return Xbar,Ybar,prover
+}
+
+// Produce a Sigma-protocol verifier to check the correctness of a shuffle.
+func Verifier(group crypto.Group, g,h crypto.Point,
+		X,Y,Xbar,Ybar []crypto.Point) proof.Verifier {
+
+	ps := PairShuffle{}
+	ps.Init(group, len(X))
+	verifier := func(ctx proof.VerifierContext) error {
+		return ps.Verify(g,h,X,Y,Xbar,Ybar,ctx)
+	}
+	return verifier
 }
 

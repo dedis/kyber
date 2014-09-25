@@ -193,9 +193,7 @@ func (ss *SimpleShuffle) Verify(G, Gamma crypto.Point,
 	// extract proof transcript
 	X := ss.p0.X
 	Y := ss.p0.Y
-	t := ss.v1.Zt
 	Theta := ss.p2.Theta
-	c := ss.v3.Zc
 	alpha := ss.p4.Zalpha
 
 	// Validate all vector lengths
@@ -210,22 +208,19 @@ func (ss *SimpleShuffle) Verify(G, Gamma crypto.Point,
 	if err := ctx.Get(ss.p0); err != nil {
 		return err
 	}
-	var checkv1 ssa1
-	if err := ctx.PubRand(&checkv1); err != nil {		// fills in v1
+	if err := ctx.PubRand(&ss.v1); err != nil {		// fills in v1
 		return err
 	}
+	t := ss.v1.Zt
 	if err := ctx.Get(ss.p2); err != nil {
 		return err
 	}
-	var checkv3 ssa3
-	if err := ctx.PubRand(&checkv3); err != nil {		// fills in v3
+	if err := ctx.PubRand(&ss.v3); err != nil {		// fills in v3
 		return err
 	}
+	c := ss.v3.Zc
 	if err := ctx.Get(ss.p4); err != nil {
 		return err
-	}
-	if !ss.v1.Zt.Equal(checkv1.Zt) || !ss.v3.Zc.Equal(checkv3.Zc) {
-		return errors.New("incorrect challenges in SimpleShuffleProof")
 	}
 
 	// Verifier step 5

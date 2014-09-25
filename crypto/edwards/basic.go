@@ -4,10 +4,11 @@ import (
 	"math/big"
 	"crypto/cipher"
 	"dissent/crypto"
+	"dissent/crypto/nist"
 )
 
 type basicPoint struct {
-	x,y crypto.ModInt
+	x,y nist.Int
 	c *BasicCurve
 }
 
@@ -17,7 +18,7 @@ func (P *basicPoint) initXY(x,y *big.Int, c crypto.Group) {
 	P.y.Init(y,&P.c.P)
 }
 
-func (P *basicPoint) getXY() (x,y *crypto.ModInt) {
+func (P *basicPoint) getXY() (x,y *nist.Int) {
 	return &P.x, &P.y
 }
 
@@ -27,8 +28,8 @@ func (P *basicPoint) String() string {
 
 // Create a new ModInt representing a coordinate on this curve,
 // with a given int64 integer value for constant-initialization convenience.
-func (P *basicPoint) coord(v int64) *crypto.ModInt {
-	return crypto.NewModInt(v, &P.c.P)
+func (P *basicPoint) coord(v int64) *nist.Int {
+	return nist.NewInt(v, &P.c.P)
 }
 
 func (P *basicPoint) Len() int {
@@ -108,7 +109,7 @@ func (P *basicPoint) Add(P1,P2 crypto.Point) crypto.Point {
 	x1,y1 := E1.x,E1.y
 	x2,y2 := E2.x,E2.y
 
-	var t1,t2,dm,nx,dx,ny,dy crypto.ModInt
+	var t1,t2,dm,nx,dx,ny,dy nist.Int
 
 	// Reused part of denominator: dm = d*x1*x2*y1*y2
 	dm.Mul(&P.c.d,&x1).Mul(&dm,&x2).Mul(&dm,&y1).Mul(&dm,&y2)
@@ -151,7 +152,7 @@ func (P *basicPoint) Neg(A crypto.Point) crypto.Point {
 
 // Multiply point p by scalar s using the repeated doubling method.
 func (P *basicPoint) Mul(G crypto.Point, s crypto.Secret) crypto.Point {
-	v := s.(*crypto.ModInt).V
+	v := s.(*nist.Int).V
 	if G == nil {
 		return P.Base().Mul(P,s)
 	}

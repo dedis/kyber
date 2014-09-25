@@ -1,4 +1,6 @@
-package crypto
+// Package rand provides facilities for generating
+// random or pseudorandom cryptographic objects.
+package random
 
 import (
 	"math/big"
@@ -9,7 +11,7 @@ import (
 
 // Choose a uniform random BigInt with a given maximum BitLen.
 // If 'exact' is true, choose a BigInt with _exactly_ that BitLen, not less
-func RandomBits(bitlen uint, exact bool, rand cipher.Stream) []byte {
+func Bits(bitlen uint, exact bool, rand cipher.Stream) []byte {
 	b := make([]byte, (bitlen+7)/8)
 	rand.XORKeyStream(b,b)
 	highbits := bitlen & 7
@@ -27,41 +29,41 @@ func RandomBits(bitlen uint, exact bool, rand cipher.Stream) []byte {
 }
 
 // Choose a uniform random byte
-func RandomByte(rand cipher.Stream) byte {
-	b := RandomBits(8, false, rand)
+func Byte(rand cipher.Stream) byte {
+	b := Bits(8, false, rand)
 	return b[0]
 }
 
 // Choose a uniform random uint8
-func RandomUint8(rand cipher.Stream) uint8 {
-	b := RandomBits(8, false, rand)
+func Uint8(rand cipher.Stream) uint8 {
+	b := Bits(8, false, rand)
 	return uint8(b[0])
 }
 
 // Choose a uniform random uint16
-func RandomUint16(rand cipher.Stream) uint16 {
-	b := RandomBits(16, false, rand)
+func Uint16(rand cipher.Stream) uint16 {
+	b := Bits(16, false, rand)
 	return binary.BigEndian.Uint16(b)
 }
 
 // Choose a uniform random uint32
-func RandomUint32(rand cipher.Stream) uint32 {
-	b := RandomBits(32, false, rand)
+func Uint32(rand cipher.Stream) uint32 {
+	b := Bits(32, false, rand)
 	return binary.BigEndian.Uint32(b)
 }
 
 // Choose a uniform random uint64
-func RandomUint64(rand cipher.Stream) uint64 {
-	b := RandomBits(64, false, rand)
+func Uint64(rand cipher.Stream) uint64 {
+	b := Bits(64, false, rand)
 	return binary.BigEndian.Uint64(b)
 }
 
-// Choose a uniform random BigInt less than a given modulus
-func RandomBigInt(mod *big.Int, rand cipher.Stream) *big.Int {
+// Choose a uniform random big.Int less than a given modulus
+func Int(mod *big.Int, rand cipher.Stream) *big.Int {
 	bitlen := uint(mod.BitLen())
 	i := new(big.Int)
 	for {
-		i.SetBytes(RandomBits(bitlen, false, rand))
+		i.SetBytes(Bits(bitlen, false, rand))
 		if i.Sign() > 0 && i.Cmp(mod) < 0 {
 			return i
 		}
@@ -69,22 +71,22 @@ func RandomBigInt(mod *big.Int, rand cipher.Stream) *big.Int {
 }
 
 // Choose a random n-byte slice
-func RandomBytes(n int, rand cipher.Stream) []byte {
+func Bytes(n int, rand cipher.Stream) []byte {
 	b := make([]byte, n)
 	rand.XORKeyStream(b,b)
 	return b
 }
 
-// RandomReader wraps a Stream to produce an io.Reader
+// Reader wraps a Stream to produce an io.Reader
 // that simply produces [pseudo-]random bits from the Stream when read.
-// Calls to both Read() and XORKeyStream() may be made on the RandomReader,
+// Calls to both Read() and XORKeyStream() may be made on the Reader,
 // and may be interspersed.
-type RandomReader struct {
+type Reader struct {
 	cipher.Stream
 }
 
 // Read [pseudo-]random bytes from the underlying Stream.
-func (r RandomReader) Read(dst []byte) (n int, err error) {
+func (r Reader) Read(dst []byte) (n int, err error) {
 	for i := range(dst) {
 		dst[i] = 0
 	}
@@ -118,5 +120,5 @@ func (r *randstream) XORKeyStream(dst, src []byte) {
 
 // Standard virtual "stream cipher" that just generates
 // fresh cryptographically strong random bits.
-var RandomStream cipher.Stream = new(randstream)
+var Stream cipher.Stream = new(randstream)
 

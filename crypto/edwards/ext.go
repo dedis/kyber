@@ -5,10 +5,11 @@ import (
 	"encoding/hex"
 	"crypto/cipher"
 	"dissent/crypto"
+	"dissent/crypto/nist"
 )
 
 type extPoint struct {
-	X,Y,Z,T crypto.ModInt
+	X,Y,Z,T nist.Int
 	c *ExtendedCurve
 }
 
@@ -20,7 +21,7 @@ func (P *extPoint) initXY(x,y *big.Int, c crypto.Group) {
 	P.T.Mul(&P.X,&P.Y)
 }
 
-func (P *extPoint) getXY() (x,y *crypto.ModInt) {
+func (P *extPoint) getXY() (x,y *nist.Int) {
 	P.normalize()
 	return &P.X, &P.Y
 }
@@ -66,7 +67,7 @@ func (P *extPoint) HideDecode(rep []byte) {
 //
 func (P1 *extPoint) Equal(CP2 crypto.Point) bool {
 	P2 := CP2.(*extPoint)
-	var t1,t2 crypto.ModInt
+	var t1,t2 nist.Int
 	xeq := t1.Mul(&P1.X,&P2.Z).Equal(t2.Mul(&P2.X,&P1.Z))
 	yeq := t1.Mul(&P1.Y,&P2.Z).Equal(t2.Mul(&P2.Y,&P1.Z))
 	return xeq && yeq
@@ -107,7 +108,7 @@ func (P *extPoint) normalize() {
 
 // Check the validity of the T coordinate
 func (P *extPoint) checkT() {
-	var t1,t2 crypto.ModInt
+	var t1,t2 nist.Int
 	if !t1.Mul(&P.X,&P.Y).Equal(t2.Mul(&P.Z,&P.T)) {
 		panic("oops")
 	}
@@ -131,7 +132,7 @@ func (P *extPoint) Add(CP1,CP2 crypto.Point) crypto.Point {
 	X1,Y1,Z1,T1 := &P1.X,&P1.Y,&P1.Z,&P1.T
 	X2,Y2,Z2,T2 := &P2.X,&P2.Y,&P2.Z,&P2.T
 	X3,Y3,Z3,T3 := &P.X,&P.Y,&P.Z,&P.T
-	var A,B,C,D,E,F,G,H crypto.ModInt
+	var A,B,C,D,E,F,G,H nist.Int
 
 	A.Mul(X1,X2)
 	B.Mul(Y1,Y2)
@@ -155,7 +156,7 @@ func (P *extPoint) Sub(CP1,CP2 crypto.Point) crypto.Point {
 	X1,Y1,Z1,T1 := &P1.X,&P1.Y,&P1.Z,&P1.T
 	X2,Y2,Z2,T2 := &P2.X,&P2.Y,&P2.Z,&P2.T
 	X3,Y3,Z3,T3 := &P.X,&P.Y,&P.Z,&P.T
-	var A,B,C,D,E,F,G,H crypto.ModInt
+	var A,B,C,D,E,F,G,H nist.Int
 
 	A.Mul(X1,X2)
 	B.Mul(Y1,Y2)
@@ -189,7 +190,7 @@ func (P *extPoint) Neg(CA crypto.Point) crypto.Point {
 // https://www.iacr.org/archive/asiacrypt2008/53500329/53500329.pdf
 func (P *extPoint) double() {
 	X1,Y1,Z1,T1 := &P.X,&P.Y,&P.Z,&P.T
-	var A,B,C,D,E,F,G,H crypto.ModInt
+	var A,B,C,D,E,F,G,H nist.Int
 
 	A.Mul(X1,X1)
 	B.Mul(Y1,Y1)
@@ -212,7 +213,7 @@ func (P *extPoint) double() {
 // scalar multiplication.
 //
 func (P *extPoint) Mul(G crypto.Point, s crypto.Secret) crypto.Point {
-	v := s.(*crypto.ModInt).V
+	v := s.(*nist.Int).V
 	if G == nil {
 		return P.Base().Mul(P,s)
 	}

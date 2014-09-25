@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"crypto/cipher"
 	"dissent/crypto"
+	"dissent/crypto/nist"
 )
 
 var zero = big.NewInt(0)
@@ -18,7 +19,7 @@ type point interface {
 
 	initXY(x,y *big.Int, curve crypto.Group)
 
-	getXY() (x,y *crypto.ModInt)
+	getXY() (x,y *nist.Int)
 }
 
 // Interface representing curve-specific methods of encoding points
@@ -34,12 +35,12 @@ type hiding interface {
 type curve struct {
 	self crypto.Group	// "Self pointer" for derived class
 	Param			// Twisted Edwards curve parameters
-	zero,one crypto.ModInt	// Constant ModInts with correct modulus
-	a,d crypto.ModInt	// Curve equation parameters as ModInts
+	zero,one nist.Int	// Constant ModInts with correct modulus
+	a,d nist.Int		// Curve equation parameters as ModInts
 	full bool		// True if we're using the full group
 
-	order crypto.ModInt	// Order of appropriate subgroup as a ModInt
-	cofact crypto.ModInt	// Group's cofactor as a ModInt
+	order nist.Int		// Order of appropriate subgroup as a ModInt
+	cofact nist.Int		// Group's cofactor as a ModInt
 
 	null crypto.Point	// Identity point for this group
 
@@ -57,7 +58,7 @@ func (c *curve) SecretLen() int {
 
 // Create a new Secret for this curve.
 func (c *curve) Secret() crypto.Secret {
-	return crypto.NewModInt(0, &c.order.V)
+	return nist.NewInt(0, &c.order.V)
 }
 
 // Returns the size in bytes of an encoded Point on this curve.
@@ -115,7 +116,7 @@ func (c *curve) init(self crypto.Group, p *Param, fullGroup bool,
 		// No standard base point was defined, so pick one.
 		// Find the lowest-numbered y-coordinate that works.
 		//println("Picking base point:")
-		var x,y crypto.ModInt
+		var x,y nist.Int
 		for y.Init64(2,&c.P); ; y.Add(&y,&c.one) {
 			if !c.solveForX(&x,&y) {
 				continue	// try another y
@@ -163,18 +164,18 @@ func (c *curve) init(self crypto.Group, p *Param, fullGroup bool,
 
 // Test the sign of an x or y coordinate.
 // We use the least-significant bit of the coordinate as the sign bit.
-func (c *curve) coordSign(i *crypto.ModInt) uint {
+func (c *curve) coordSign(i *nist.Int) uint {
 	return i.V.Bit(0)
 }
 
 // Convert a point to string representation.
-func (c *curve) pointString(x,y *crypto.ModInt) string {
+func (c *curve) pointString(x,y *nist.Int) string {
 	return fmt.Sprintf("(%s,%s)", x.String(), y.String())
 }
 
 // Encode an Edwards curve point.
 // We use little-endian encoding for consistency with Ed25519.
-func (c *curve) encodePoint(x,y *crypto.ModInt) []byte {
+func (c *curve) encodePoint(x,y *nist.Int) []byte {
 
 	// Encode the y-coordinate
 	b := y.Encode()
@@ -204,7 +205,7 @@ func (c *curve) encodePoint(x,y *crypto.ModInt) []byte {
 // other than the tiny ones represented by the cofactor;
 // hence Diffie-Hellman exchange can be done without subgroup checking
 // without exposing more than the least-significant bits of the secret.
-func (c *curve) decodePoint(bb []byte, x,y *crypto.ModInt) error {
+func (c *curve) decodePoint(bb []byte, x,y *nist.Int) error {
 
 	// Convert from little-endian
 	b := make([]byte, len(bb))
@@ -260,8 +261,8 @@ func reverse(dst,src []byte) []byte {
 // Returns true on success,
 // false if there is no x-coordinate corresponding to the chosen y-coordinate.
 //
-func (c *curve) solveForX(x,y *crypto.ModInt) bool {
-	var yy,t1,t2 crypto.ModInt
+func (c *curve) solveForX(x,y *nist.Int) bool {
+	var yy,t1,t2 nist.Int
 
 	yy.Mul(y,y)				// yy = y^2
 	t1.Sub(&c.one,&yy)			// t1 = 1 - y^-2
@@ -275,8 +276,8 @@ func (c *curve) solveForX(x,y *crypto.ModInt) bool {
 //
 //	a*x^2 + y^2 = 1 + d*x^2*y^2
 //
-func (c *curve) onCurve(x,y *crypto.ModInt) bool {
-	var xx,yy,l,r crypto.ModInt
+func (c *curve) onCurve(x,y *nist.Int) bool {
+	var xx,yy,l,r nist.Int
 
 	xx.Mul(x,x)				// xx = x^2
 	yy.Mul(y,y)				// yy = y^2
@@ -327,7 +328,7 @@ func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
 	}
 
 	// Retry until we find a valid point
-	var x,y crypto.ModInt
+	var x,y nist.Int
 	var Q crypto.Point
 	for {
 		// Get random bits the size of a compressed Point encoding,
@@ -394,7 +395,7 @@ func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
 
 // Extract embedded data from a point group element,
 // or an error if embedded data is invalid or not present.
-func (c *curve) data(x,y *crypto.ModInt) ([]byte,error) {
+func (c *curve) data(x,y *nist.Int) ([]byte,error) {
 	b := c.encodePoint(x,y)
 	dl := int(b[0])
 	if dl > c.pickLen() {

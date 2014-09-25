@@ -7,6 +7,7 @@ import (
 	"crypto/cipher"
 	"crypto/elliptic"
 	"dissent/crypto"
+	"dissent/crypto/random"
 )
 
 
@@ -100,7 +101,7 @@ func (p *curvePoint) Pick(data []byte, rand cipher.Stream) (crypto.Point, []byte
 	}
 
 	for {
-		b := crypto.RandomBits(uint(p.c.p.P.BitLen()), false, rand)
+		b := random.Bits(uint(p.c.p.P.BitLen()), false, rand)
 		if data != nil {
 			b[l-1] = byte(dl)	// Encode length in low 8 bits
 			copy(b[l-dl-1:l-1],data) // Copy in data to embed
@@ -151,7 +152,7 @@ func (p *curvePoint) Neg(a crypto.Point) crypto.Point {
 }
 
 func (p *curvePoint) Mul(b crypto.Point, s crypto.Secret) crypto.Point {
-	cs := s.(*crypto.ModInt)
+	cs := s.(*Int)
 	if b != nil {
 		cb := b.(*curvePoint)
 		p.x,p.y = p.c.ScalarMult(cb.x,cb.y,cs.V.Bytes())
@@ -203,7 +204,7 @@ func (c *curve) SecretLen() int { return (c.p.N.BitLen()+7)/8 }
 
 // Create a Secret associated with this curve.
 func (c *curve) Secret() crypto.Secret {
-	return crypto.NewModInt(0, c.p.N)
+	return NewInt(0, c.p.N)
 }
 
 // Number of bytes required to store one coordinate on this curve

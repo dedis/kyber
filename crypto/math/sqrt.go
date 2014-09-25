@@ -13,7 +13,7 @@ var two = big.NewInt(2)
 // Set z to one of the square roots of a modulo p if a square root exists.
 // The modulus p must be an odd prime.
 // Returns true on success, false if input a is not a square modulo p.
-func SqrtModPrime(z *big.Int, a *big.Int, p *big.Int) bool {
+func Sqrt(z *big.Int, a *big.Int, p *big.Int) bool {
 
 	if a.Sign() == 0 {
 		z.SetInt64(0)		// sqrt(0) = 0
@@ -69,3 +69,4 @@ func SqrtModPrime(z *big.Int, a *big.Int, p *big.Int) bool {
 		r = m
 	}
 }
+

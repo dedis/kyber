@@ -2,83 +2,83 @@ package sodium
 
 import (
 	"testing"
-	"dissent/crypto"
+	"dissent/crypto/test"
 )
 
 var testSuite = NewAES128SHA256Ed25519()
 
 
 func TestGroup(t *testing.T) {
-	crypto.TestSuite(testSuite)
+	test.TestSuite(testSuite)
 }
 
 
 func BenchmarkSecretAdd(b *testing.B) {
-	crypto.NewSecretBench(b,testSuite).SecretAdd()
+	test.NewGroupBench(testSuite).SecretAdd(b.N)
 }
 
 func BenchmarkSecretSub(b *testing.B) {
-	crypto.NewSecretBench(b,testSuite).SecretSub()
+	test.NewGroupBench(testSuite).SecretSub(b.N)
 }
 
 func BenchmarkSecretNeg(b *testing.B) {
-	crypto.NewSecretBench(b,testSuite).SecretNeg()
+	test.NewGroupBench(testSuite).SecretNeg(b.N)
 }
 
 func BenchmarkSecretMul(b *testing.B) {
-	crypto.NewSecretBench(b,testSuite).SecretMul()
+	test.NewGroupBench(testSuite).SecretMul(b.N)
 }
 
 func BenchmarkSecretDiv(b *testing.B) {
-	crypto.NewSecretBench(b,testSuite).SecretDiv()
+	test.NewGroupBench(testSuite).SecretDiv(b.N)
 }
 
 func BenchmarkSecretInv(b *testing.B) {
-	crypto.NewSecretBench(b,testSuite).SecretInv()
+	test.NewGroupBench(testSuite).SecretInv(b.N)
 }
 
 func BenchmarkSecretPick(b *testing.B) {
-	crypto.NewSecretBench(b,testSuite).SecretPick()
+	test.NewGroupBench(testSuite).SecretPick(b.N)
 }
 
 func BenchmarkSecretEncode(b *testing.B) {
-	crypto.NewSecretBench(b,testSuite).SecretEncode()
+	test.NewGroupBench(testSuite).SecretEncode(b.N)
 }
 
 func BenchmarkSecretDecode(b *testing.B) {
-	crypto.NewSecretBench(b,testSuite).SecretDecode()
+	test.NewGroupBench(testSuite).SecretDecode(b.N)
 }
 
 
 func BenchmarkPointAdd(b *testing.B) {
-	crypto.NewPointBench(b,testSuite).PointAdd()
+	test.NewGroupBench(testSuite).PointAdd(b.N)
 }
 
 func BenchmarkPointSub(b *testing.B) {
-	crypto.NewPointBench(b,testSuite).PointSub()
+	test.NewGroupBench(testSuite).PointSub(b.N)
 }
 
 func BenchmarkPointNeg(b *testing.B) {
-	crypto.NewPointBench(b,testSuite).PointNeg()
+	test.NewGroupBench(testSuite).PointNeg(b.N)
 }
 
 func BenchmarkPointMul(b *testing.B) {
-	crypto.NewPointBench(b,testSuite).PointMul()
+	test.NewGroupBench(testSuite).PointMul(b.N)
 }
 
 func BenchmarkPointBaseMul(b *testing.B) {
-	crypto.NewPointBench(b,testSuite).PointBaseMul()
+	test.NewGroupBench(testSuite).PointBaseMul(b.N)
 }
 
 func BenchmarkPointPick(b *testing.B) {
-	crypto.NewPointBench(b,testSuite).PointPick()
+	test.NewGroupBench(testSuite).PointPick(b.N)
 }
 
 func BenchmarkPointEncode(b *testing.B) {
-	crypto.NewPointBench(b,testSuite).PointEncode()
+	test.NewGroupBench(testSuite).PointEncode(b.N)
 }
 
 func BenchmarkPointDecode(b *testing.B) {
-	crypto.NewPointBench(b,testSuite).PointDecode()
+	test.NewGroupBench(testSuite).PointDecode(b.N)
 }
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"crypto/cipher"
 	"dissent/crypto"
+	"dissent/crypto/random"
 )
 
 
@@ -74,8 +75,8 @@ type deniableProver struct {
 	msg *bytes.Buffer		// Buffer in which to build prover msg
 	msgs [][]byte			// All messages from last proof step
 
-	pubrand crypto.RandomReader
-	prirand crypto.RandomReader
+	pubrand random.Reader
+	prirand random.Reader
 
 	// Error/success indicators for all participants
 	err []error
@@ -284,7 +285,7 @@ type deniableVerifier struct {
 	done chan bool		// Channel for sending done status indicators
 	err error		// When done indicates verify error if non-nil
 
-	pubrand crypto.RandomReader
+	pubrand random.Reader
 }
 
 func (dv *deniableVerifier) start(suite crypto.Suite, vrf Verifier) {

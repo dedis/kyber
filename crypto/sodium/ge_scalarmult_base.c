@@ -77,13 +77,8 @@ void ge_scalarmult_base(ge_p3 *h,const unsigned char *a)
   int i;
 
   for (i = 0;i < 32;++i) {
-#if SC_BIGENDIAN
-    e[2 * i + 0] = (a[31-i] >> 0) & 15;
-    e[2 * i + 1] = (a[31-i] >> 4) & 15;
-#else
     e[2 * i + 0] = (a[i] >> 0) & 15;
     e[2 * i + 1] = (a[i] >> 4) & 15;
-#endif
   }
   /* each e[i] is between 0 and 15 */
   /* e[63] is between 0 and 7 */

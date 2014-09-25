@@ -23,6 +23,7 @@ import (
 	"crypto/cipher"
 	"crypto/sha256"
 	"dissent/crypto"
+	"dissent/crypto/nist"
 )
 
 
@@ -204,7 +205,7 @@ func (P *point) Neg(A crypto.Point) crypto.Point {
 func (P *point) Mul(A crypto.Point, s crypto.Secret) crypto.Point {
 
 	// Convert the scalar to fixed-length little-endian form.
-	sb := s.(*crypto.ModInt).V.Bytes()
+	sb := s.(*nist.Int).V.Bytes()
 	shi := len(sb)-1
 	var a [32]byte
 	for i := range sb {
@@ -249,9 +250,9 @@ func (c *Curve) SecretLen() int {
 // Create a new Secret for the Ed25519 curve.
 func (c *Curve) Secret() crypto.Secret {
 //	if c.FullGroup {
-//		return crypto.NewModInt(0, fullOrder)
+//		return nist.NewInt(0, fullOrder)
 //	} else {
-		return crypto.NewModInt(0, &primeOrder.V)
+		return nist.NewInt(0, &primeOrder.V)
 //	}
 }
 

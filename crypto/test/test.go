@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/cipher"
 	"dissent/crypto"
+	"dissent/crypto/random"
 )
 
 
@@ -174,7 +175,7 @@ func testGroup(g crypto.Group, rand cipher.Stream) []crypto.Point {
 
 // Apply a generic set of validation tests to a cryptographic Group.
 func TestGroup(g crypto.Group) {
-	testGroup(g, crypto.RandomStream)
+	testGroup(g, random.Stream)
 }
 
 // Test two group implementations that are supposed to be equivalent,

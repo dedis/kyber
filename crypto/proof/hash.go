@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/cipher"
 	"dissent/crypto"
+	"dissent/crypto/random"
 )
 
 
@@ -12,8 +13,8 @@ type hashProver struct {
 	suite crypto.Suite
 	proof bytes.Buffer
 	msg bytes.Buffer
-	pubrand crypto.RandomReader
-	prirand crypto.RandomReader
+	pubrand random.Reader
+	prirand random.Reader
 }
 
 func newHashProver(suite crypto.Suite, protoName string,
@@ -68,7 +69,7 @@ type hashVerifier struct {
 	suite crypto.Suite
 	proof bytes.Buffer	// Buffer with which to read the proof
 	prbuf []byte		// Byte-slice underlying proof buffer
-	pubrand crypto.RandomReader
+	pubrand random.Reader
 }
 
 func newHashVerifier(suite crypto.Suite, protoName string,
@@ -117,7 +118,7 @@ func (c *hashVerifier) PubRand(data...interface{}) error {
 // will verify successfully only if the verifier uses the same protocolName.
 //
 // The caller must provide a source of random entropy for the proof;
-// this can be crypto.RandomStream to use fresh random bits,
+// this can be random.Stream to use fresh random bits,
 // or a pseudorandom stream based on a secret seed
 // to create deterministically reproducible proofs.
 //

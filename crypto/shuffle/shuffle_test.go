@@ -2,7 +2,7 @@ package shuffle
 
 import (
 	"testing"
-	"dissent/crypto"
+	"dissent/crypto/nist"
 	"dissent/crypto/openssl"
 	"dissent/crypto/edwards"
 )
@@ -13,7 +13,7 @@ func TestPairShuffle(t *testing.T) {
 
 func Benchmark10PairShuffleP256(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		TestShuffle(crypto.NewAES128SHA256P256(), 10)
+		TestShuffle(nist.NewAES128SHA256P256(), 10)
 	}
 }
 

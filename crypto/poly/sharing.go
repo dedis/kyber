@@ -7,6 +7,7 @@ import (
 	"errors"
 	"crypto/cipher"
 	"dissent/crypto"
+	"dissent/crypto/random"
 )
 
 // Clique protocol outline:
@@ -466,8 +467,8 @@ func testSharing(g crypto.Group) {
 
 	k := 4
 	n := 10
-	p1 := new(PriPoly).Pick(g,k,nil,crypto.RandomStream)
-	p2 := new(PriPoly).Pick(g,k,nil,crypto.RandomStream)
+	p1 := new(PriPoly).Pick(g,k,nil,random.Stream)
+	p2 := new(PriPoly).Pick(g,k,nil,random.Stream)
 	p3 := new(PriPoly).Add(p1,p2)
 	if p1.Equal(p2) || p1.Equal(p3) || !p1.Equal(p1) || !p2.Equal(p2) {
 		panic("PriPoly equality doesn't work")

@@ -7,6 +7,7 @@ import (
 	"crypto/cipher"
 	"crypto/sha256"
 	"dissent/crypto"
+	"dissent/crypto/random"
 )
 
 type qrsuite struct {
@@ -51,7 +52,7 @@ func NewAES128SHA256QR512() crypto.Suite {
 // 1024-bit DSA-style groups may no longer be secure.
 func newAES128SHA256QR1024() crypto.Suite {
 	suite := new(qrsuite)
-	suite.QuadraticResidueGroup(1024, crypto.RandomStream) // XXX
+	suite.QuadraticResidueGroup(1024, random.Stream) // XXX
 	return suite
 }
 
@@ -59,7 +60,7 @@ func newAES128SHA256QR1024() crypto.Suite {
 // and a residue group of quadratic residues modulo a 1024-bit prime.
 func newAES128SHA256QR2048() crypto.Suite {
 	suite := new(qrsuite)
-	suite.QuadraticResidueGroup(2048, crypto.RandomStream) // XXX
+	suite.QuadraticResidueGroup(2048, random.Stream) // XXX
 	return suite
 }
 

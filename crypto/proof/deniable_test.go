@@ -6,6 +6,8 @@ import (
 	//"encoding/hex"
 	"crypto/cipher"
 	"dissent/crypto"
+	"dissent/crypto/nist"
+	"dissent/crypto/random"
 )
 
 type node struct {
@@ -28,7 +30,7 @@ func (n *node) Step(msg []byte) ([][]byte,error) {
 }
 
 func (n *node) Random() cipher.Stream {
-	return crypto.RandomStream
+	return random.Stream
 }
 
 func runNode(n *node) {
@@ -78,8 +80,8 @@ func TestDeniable(t *testing.T) {
 	localProto.run()
 */
 
-	suite := crypto.NewAES128SHA256P256()
-	rand := crypto.RandomStream
+	suite := nist.NewAES128SHA256P256()
+	rand := random.Stream
 	B := suite.Point().Base()
 
 	// Make some keypairs

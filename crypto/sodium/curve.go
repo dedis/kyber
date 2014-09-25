@@ -46,12 +46,19 @@ import (
 	"crypto/cipher"
 	"crypto/sha256"
 	"dissent/crypto"
+	"dissent/crypto/nist"
+	"dissent/crypto/random"
 )
 
 
 // prime order of base point = 2^252 + 27742317777372353535851937790883648493
-var order,_ = new(big.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989",10)
+var primeOrder,_ = new(nist.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989","",10)
 
+// curve's cofactor
+var cofactor = nist.NewInt(8, &primeOrder.V)
+
+
+var nullPoint = new(point).Null()
 
 
 type point struct {
@@ -99,10 +106,10 @@ func (p *point) PickLen() int {
 	return (255 - 8 - 8) / 8
 }
 
-func (p *point) Pick(data []byte,rand cipher.Stream) (crypto.Point, []byte) {
+func (P *point) Pick(data []byte,rand cipher.Stream) (crypto.Point, []byte) {
 
 	// How many bytes to embed?
-	dl := p.PickLen()
+	dl := P.PickLen()
 	if dl > len(data) {
 		dl = len(data)
 	}
@@ -115,11 +122,34 @@ func (p *point) Pick(data []byte,rand cipher.Stream) (crypto.Point, []byte) {
 			b[0] = byte(dl)		// Encode length in low 8 bits
 			copy(b[1:1+dl],data)	// Copy in data to embed
 		}
-		if C.ge_frombytes_vartime(&p.p,	// Try to decode
-				(*C.uchar)(unsafe.Pointer(&b[0]))) == 0 {
-			return p,data[dl:]	// success
+		if C.ge_frombytes_vartime(&P.p,	// Try to decode
+				(*C.uchar)(unsafe.Pointer(&b[0]))) != 0 {
+			continue		// invalid point, retry
 		}
-		// invalid point, retry
+
+		// We're using the prime-order subgroup,
+		// so we need to make sure the point is in that subgroup.
+		// If we're not trying to embed data,
+		// we can convert our point into one in the subgroup
+		// simply by multiplying it by the cofactor.
+		if data == nil {
+			P.Mul(P, cofactor)      // multiply by cofactor
+			if P.Equal(nullPoint) {
+				continue        // unlucky; try again
+			}
+			return P,data[dl:]      // success
+		}
+
+		// Since we need the point's y-coordinate to hold our data,
+		// we must simply check if the point is in the subgroup
+		// and retry point generation until it is.
+		var Q point
+		Q.Mul(P, primeOrder)
+		if Q.Equal(nullPoint) {
+			return P,data[dl:]      // success
+		}
+
+		// Keep trying...
 	}
 }
 
@@ -154,20 +184,22 @@ func (p *point) Neg(ca crypto.Point) crypto.Point {
 }
 
 func (p *point) Mul(ca crypto.Point, cs crypto.Secret) crypto.Point {
-	//s := &cs.(*secret).b[:]
 
-	s := cs.(*crypto.ModInt).V.Bytes()
-	if len(s) < 32 {
-		s = append(make([]byte, 32-len(s)), s...)
+	// Convert the scalar to fixed-length little-endian form.
+	sb := cs.(*nist.Int).V.Bytes()
+	shi := len(sb)-1
+	var b [32]byte
+	for i := range sb {
+		b[shi-i] = sb[i]
 	}
 
 	if ca == nil {
 		// Optimized multiplication by precomputed base point
-		C.ge_scalarmult_base(&p.p, (*C.uchar)(unsafe.Pointer(&s[0])));
+		C.ge_scalarmult_base(&p.p, (*C.uchar)(unsafe.Pointer(&b[0])));
 	} else {
 		// General scalar multiplication
 		a := ca.(*point)
-		C.ge_scalarmult(&p.p, (*C.uchar)(unsafe.Pointer(&s[0])), &a.p);
+		C.ge_scalarmult(&p.p, (*C.uchar)(unsafe.Pointer(&b[0])), &a.p);
 	}
 	return p
 }
@@ -226,8 +258,7 @@ func (c *curve) SecretLen() int {
 }
 
 func (c *curve) Secret() crypto.Secret {
-	//return new(secret)
-	return crypto.NewModInt(0, order)
+	return nist.NewInt(0, &primeOrder.V)
 }
 
 func (c *curve) PointLen() int {
@@ -240,6 +271,10 @@ func (c *curve) Point() crypto.Point {
 
 func (c *curve) Order() *big.Int {
 	return new(big.Int)	// XXX
+}
+
+func (c *curve) PrimeOrder() bool {
+	return true
 }
 
 func NewCurve25519() crypto.Group {
@@ -363,7 +398,7 @@ func BenchCurve25519() {
 			(float64(end.Sub(beg)) / 1000000000.0))
 
 	// Point encryption
-	s := g.Secret().Pick(crypto.RandomStream)
+	s := g.Secret().Pick(random.Stream)
 	beg = time.Now()
 	iters = 5000
 	for i := 1; i < iters; i++ {

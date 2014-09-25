@@ -2,6 +2,7 @@ package test
 
 import (
 	"dissent/crypto"
+	"dissent/crypto/random"
 )
 
 
@@ -19,11 +20,11 @@ type GroupBench struct {
 func NewGroupBench(g crypto.Group) *GroupBench {
 	var gb GroupBench
 	gb.g = g
-	gb.x = g.Secret().Pick(crypto.RandomStream)
-	gb.y = g.Secret().Pick(crypto.RandomStream)
+	gb.x = g.Secret().Pick(random.Stream)
+	gb.y = g.Secret().Pick(random.Stream)
 	gb.xe = gb.x.Encode()
-	gb.X,_ = g.Point().Pick(nil, crypto.RandomStream)
-	gb.Y,_ = g.Point().Pick(nil, crypto.RandomStream)
+	gb.X,_ = g.Point().Pick(nil, random.Stream)
+	gb.Y,_ = g.Point().Pick(nil, random.Stream)
 	gb.Xe = gb.X.Encode()
 	return &gb
 }
@@ -67,7 +68,7 @@ func (gb GroupBench) SecretInv(iters int) {
 
 func (gb GroupBench) SecretPick(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.x.Pick(crypto.RandomStream)
+		gb.x.Pick(random.Stream)
 	}
 }
 
@@ -116,7 +117,7 @@ func (gb GroupBench) PointBaseMul(iters int) {
 
 func (gb GroupBench) PointPick(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.X.Pick(nil, crypto.RandomStream)
+		gb.X.Pick(nil, random.Stream)
 	}
 }
 

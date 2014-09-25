@@ -5,12 +5,13 @@ import (
 	"testing"
 	"encoding/hex"
 	"dissent/crypto"
+	"dissent/crypto/random"
 	"dissent/crypto/openssl"
 )
 
 func TestRep(t *testing.T) {
 	suite := openssl.NewAES128SHA256P256()
-	rand := crypto.RandomStream
+	rand := random.Stream
 
 	x := suite.Secret().Pick(rand)
 	y := suite.Secret().Pick(rand)
@@ -53,7 +54,7 @@ func TestRep(t *testing.T) {
 	sval := map[string]crypto.Secret{ "x":x, "y":y}
 	pval := map[string]crypto.Point{ "B":B, "X":X, "Y":Y, "R":R}
 	prover := pred.Prover(suite, sval, pval, choice)
-	proof,err := HashProve(suite, "TEST", crypto.RandomStream, prover)
+	proof,err := HashProve(suite, "TEST", random.Stream, prover)
 	if err != nil {
 		panic("prover: "+err.Error())
 	}

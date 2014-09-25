@@ -8,6 +8,7 @@ import (
 	"crypto/cipher"
 	//"encoding/hex"
 	"dissent/crypto"
+	"dissent/crypto/random"
 )
 
 
@@ -15,9 +16,6 @@ type residuePoint struct {
 	big.Int 
 	g *ResidueGroup
 }
-
-var one = big.NewInt(1)
-var two = big.NewInt(2)
 
 
 // Steal value from DSA, which uses recommendation from FIPS 186-3
@@ -68,7 +66,7 @@ func (p *residuePoint) Pick(data []byte, rand cipher.Stream) (crypto.Point, []by
 	}
 
 	for {
-		b := crypto.RandomBits(uint(p.g.P.BitLen()), false, rand)
+		b := random.Bits(uint(p.g.P.BitLen()), false, rand)
 		if data != nil {
 			b[l-1] = byte(dl)	// Encode length in low 16 bits
 			b[l-2] = byte(dl >> 8)
@@ -117,7 +115,7 @@ func (p *residuePoint) Mul(b crypto.Point, s crypto.Secret) crypto.Point {
 	if b == nil {
 		return p.Base().Mul(p,s)
 	}
-	p.Int.Exp(&b.(*residuePoint).Int, &s.(*crypto.ModInt).V, p.g.P)
+	p.Int.Exp(&b.(*residuePoint).Int, &s.(*Int).V, p.g.P)
 	return p
 }
 
@@ -189,7 +187,7 @@ func (g *ResidueGroup) SecretLen() int { return (g.Q.BitLen()+7)/8 }
 // Create a Secret associated with this Residue group,
 // with an initial value of nil.
 func (g *ResidueGroup) Secret() crypto.Secret {
-	return crypto.NewModInt(0, g.Q)
+	return NewInt(0, g.Q)
 }
 
 // Return the number of bytes in the encoding of a Point
@@ -261,7 +259,7 @@ func (g *ResidueGroup) QuadraticResidueGroup(bitlen uint, rand cipher.Stream) {
 		}
 
 		// First pick a prime Q
-		b := crypto.RandomBits(bitlen-1, true, rand)
+		b := random.Bits(bitlen-1, true, rand)
 		b[len(b)-1] |= 1			// must be odd
 		g.Q = new(big.Int).SetBytes(b)
 		//println("q?",hex.EncodeToString(g.Q.Bytes()))

@@ -10,7 +10,7 @@ or switching to alternative algorithms for exprimentation purposes.
 
 The public-key crypto API includes an abstract group interface
 generically supporting a broad class of group-based public-key primitives
-including DSA-style integer Schnorr groups and elliptic curve groups.
+including DSA-style integer residue groups and elliptic curve groups.
 Users of this API can thus write higher-level crypto algorithms
 such as zero-knowledge proofs without knowing or caring
 exactly what kind of group,

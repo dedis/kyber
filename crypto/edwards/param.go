@@ -16,7 +16,7 @@ package edwards
 
 import (
 	"math/big"
-	"dissent/crypto"
+	"dissent/crypto/nist"
 )
 
 
@@ -49,7 +49,7 @@ func (p *Param) String() string {
 //
 func Param1174() *Param {
 	var p Param
-	var mi crypto.ModInt
+	var mi nist.Int
 
 	p.Name = "25519"
 	p.P.SetBit(zero,251,1).Sub(&p.P,big.NewInt(9))

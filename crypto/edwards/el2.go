@@ -4,20 +4,20 @@ import (
 	"math/big"
 	//"encoding/hex"
 	"crypto/cipher"
-	"dissent/crypto"
 	"dissent/crypto/math"
+	"dissent/crypto/nist"
 )
 
 // Elligator 2 parameters
 type el2param struct {
 	ec *curve				// back-pointer to curve
-	u crypto.ModInt				// u: any non-square element
-	A,B crypto.ModInt			// Montgomery curve parameters
-	sqrtB crypto.ModInt			// sqrt(B)
-	negA crypto.ModInt			// -A
+	u nist.Int				// u: any non-square element
+	A,B nist.Int				// Montgomery curve parameters
+	sqrtB nist.Int				// sqrt(B)
+	negA nist.Int				// -A
 	pp3d8 big.Int				// (p+3)/8
 	pm1d2 big.Int				// (p-1)/2
-	sqrtm1 crypto.ModInt			// sqrt(-1)
+	sqrtm1 nist.Int				// sqrt(-1)
 }
 
 // Initialize Elligator 1 parameters given magic point s
@@ -30,7 +30,7 @@ func (el *el2param) init(ec *curve, u *big.Int) *el2param {
 	// B = 4/(a-d)
 	// See Bernstein et al, "Twisted Edwards Curves", theorem 3.2
 	// http://eprint.iacr.org/2008/013.pdf
-	var amd crypto.ModInt
+	var amd nist.Int
 	amd.Sub(&ec.a,&ec.d)			// t = a-d
 	el.A.Add(&ec.a,&ec.d).Add(&el.A,&el.A).Div(&el.A,&amd)
 	el.B.Init64(4,&ec.P).Div(&el.B,&amd)
@@ -70,9 +70,9 @@ func (el *el2param) padmask() byte {
 // Beware: the Twisted Edwards Curves paper uses B as a factor for v^2,
 // whereas the Elligator 2 paper uses B as a factor for the last u term.
 //
-func (el *el2param) ed2mont(u,v, x,y *crypto.ModInt) {
+func (el *el2param) ed2mont(u,v, x,y *nist.Int) {
 	ec := el.ec
-	var t1,t2 crypto.ModInt
+	var t1,t2 nist.Int
 	u.Div(t1.Add(&ec.one,y),t2.Sub(&ec.one,y))
 	v.Mul(u,&el.sqrtB).Div(v,x)
 }
@@ -82,9 +82,9 @@ func (el *el2param) ed2mont(u,v, x,y *crypto.ModInt) {
 //	x = sqrt(B)u/v
 //	y = (u-1)/(u+1)
 //
-func (el *el2param) mont2ed(x,y, u,v *crypto.ModInt) {
+func (el *el2param) mont2ed(x,y, u,v *nist.Int) {
 	ec := el.ec
-	var t1,t2 crypto.ModInt
+	var t1,t2 nist.Int
 	x.Mul(u,&el.sqrtB).Div(x,v)
 	y.Div(t1.Sub(u,&ec.one),t2.Add(u,&ec.one))
 }
@@ -92,8 +92,8 @@ func (el *el2param) mont2ed(x,y, u,v *crypto.ModInt) {
 
 // Compute the square root function,
 // specified in section 5.5 of the Elligator paper.
-func (el *el2param) sqrt(r,a *crypto.ModInt)  {
-	var b,b2 crypto.ModInt
+func (el *el2param) sqrt(r,a *nist.Int)  {
+	var b,b2 nist.Int
 	b.Exp(a,&el.pp3d8)		// b = a^((p+3)/8); b in {a,-a}
 
 	b2.Mul(&b,&b)			// b^2 = a?
@@ -113,7 +113,7 @@ func (el *el2param) sqrt(r,a *crypto.ModInt)  {
 // See section 5.2 of the Elligator paper.
 func (el *el2param) HideDecode(P point, rep []byte) {
 	ec := el.ec
-	var r,v,x,y,t1,edx,edy crypto.ModInt
+	var r,v,x,y,t1,edx,edy nist.Int
 
 	l := ec.PointLen()
 	if len(rep) != l {
@@ -163,7 +163,7 @@ func (el *el2param) HideDecode(P point, rep []byte) {
 // See section 5.3 of the Elligator paper.
 func (el *el2param) HideEncode(P point, rand cipher.Stream) []byte {
 	edx,edy := P.getXY()
-	var x,y,r,xpA,t1 crypto.ModInt
+	var x,y,r,xpA,t1 nist.Int
 
 	// convert Edwards to Montgomery coordinates
 	el.ed2mont(&x,&y, edx,edy)
