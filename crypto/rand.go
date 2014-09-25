@@ -68,6 +68,13 @@ func RandomBigInt(mod *big.Int, rand cipher.Stream) *big.Int {
 	}
 }
 
+// Choose a random n-byte slice
+func RandomBytes(n int, rand cipher.Stream) []byte {
+	b := make([]byte, n)
+	rand.XORKeyStream(b,b)
+	return b
+}
+
 // RandomReader wraps a Stream to produce an io.Reader
 // that simply produces [pseudo-]random bits from the Stream when read.
 // Calls to both Read() and XORKeyStream() may be made on the RandomReader,
