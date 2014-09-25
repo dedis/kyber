@@ -6,6 +6,7 @@ import (
 	"testing"
 	"encoding/hex"
 	"dissent/crypto"
+	"dissent/crypto/random"
 	"dissent/crypto/openssl"
 	"dissent/crypto/edwards"
 )
@@ -252,7 +253,7 @@ var benchSig100Ed25519 = benchGenSigEd25519(100)
 func benchGenKeys(suite crypto.Suite,
 		nkeys int) ([]crypto.Point,crypto.Secret) {
 
-	rand := crypto.RandomStream
+	rand := random.Stream
 
 	// Create an anonymity set of random "public keys"
 	X := make([]crypto.Point,nkeys)

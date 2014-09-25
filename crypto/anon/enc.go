@@ -7,6 +7,7 @@ import (
 	"crypto/cipher"
 	//"encoding/hex"
 	"dissent/crypto"
+	"dissent/crypto/random"
 )
 
 
@@ -62,11 +63,11 @@ func header(suite crypto.Suite, X crypto.Point, x crypto.Secret,
 // The provided crypto.Suite must support
 // uniform-representation encoding of public keys for this to work.
 //
-func Encrypt(suite crypto.Suite, random cipher.Stream, message []byte,
+func Encrypt(suite crypto.Suite, rand cipher.Stream, message []byte,
 		anonymitySet Set, hide bool) []byte {
 
 	// Choose a keypair and encode its representation
-	X,x,Xb := keyPair(suite, random, hide)
+	X,x,Xb := keyPair(suite, rand, hide)
 	xb := x.Encode()
 
 	// Generate the ciphertext header
@@ -80,7 +81,7 @@ func Encrypt(suite crypto.Suite, random cipher.Stream, message []byte,
 
 	// Now encrypt and MAC the message based on the master secret
 	stream := crypto.HashStream(suite, xb, nil)
-	mackey := crypto.RandomBytes(maclen, stream)
+	mackey := random.Bytes(maclen, stream)
 	mac := hmac.New(suite.Hash, mackey)
 	stream.XORKeyStream(ciphertext[hdrlen:hdrlen+msglen], message)
 	mac.Write(ciphertext[:hdrlen+msglen])
@@ -170,7 +171,7 @@ func Decrypt(suite crypto.Suite, ciphertext []byte, anonymitySet Set,
 
 	// Check the MAC over the whole ciphertext
 	stream = crypto.HashStream(suite, xb, nil)
-	mac := hmac.New(suite.Hash, crypto.RandomBytes(maclen, stream))
+	mac := hmac.New(suite.Hash, random.Bytes(maclen, stream))
 	mac.Write(ciphertext[:msghi])
 	macbuf := mac.Sum(nil)
 	if !hmac.Equal(ciphertext[msghi:],macbuf[:maclen]) {
