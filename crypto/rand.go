@@ -86,14 +86,6 @@ func (r RandomReader) Read(dst []byte) (n int, err error) {
 }
 
 
-// Steal value from DSA, which uses recommendation from FIPS 186-3
-const numMRTests = 64
-
-// Probabilistically test whether a big integer is prime.
-func isPrime(i *big.Int) bool {
-	return i.ProbablyPrime(numMRTests)
-}
-
 type randstream struct {
 }
 

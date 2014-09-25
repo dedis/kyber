@@ -1,4 +1,4 @@
-package crypto
+package nist
 
 import (
 	"math/big"

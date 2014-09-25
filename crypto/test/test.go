@@ -1,76 +1,233 @@
-package main
+package test
 
 import (
+	"bytes"
+	"crypto/cipher"
 	"dissent/crypto"
-	"dissent/crypto/openssl"
-	"dissent/crypto/edwards/ed25519"
-	"dissent/crypto/sodium"
-	"dissent/crypto/shuffle"
 )
 
 
-func testSuite(s crypto.Suite) {
-	crypto.TestSuite(s)	// Basic ciphersuite tests
-	shuffle.TestShuffle(s,5) // Neff's shuffle is a good torture test
+func testEmbed(g crypto.Group, rand cipher.Stream, points *[]crypto.Point,
+		s string) {
+	//println("embedding: ",s)
+	b := []byte(s)
+
+	p,rem := g.Point().Pick(b, rand)
+	//println("embedded, remainder",len(rem),"/",len(b),":",string(rem))
+	x,err := p.Data()
+	if err != nil {
+		panic("Point extraction failed: "+err.Error())
+	}
+	//println("extracted data: ",string(x))
+
+	if !bytes.Equal(append(x,rem...), b) {
+		panic("Point embedding corrupted the data")
+	}
+
+	*points = append(*points,p)
 }
 
-func benchSuite(s crypto.Suite) {
-	crypto.BenchSuite(s)
-	shuffle.BenchShuffle(s)
+// Apply a generic set of validation tests to a cryptographic Group,
+// using a given source of [pseudo-]randomness.
+//
+// Returns a log of the pseudorandom Points produced in the test,
+// for comparison across alternative implementations
+// that are supposed to be equivalent.
+//
+func testGroup(g crypto.Group, rand cipher.Stream) []crypto.Point {
+//	fmt.Printf("\nTesting group '%s': %d-byte Point, %d-byte Secret\n",
+//			g.String(), g.PointLen(), g.SecretLen())
+
+	points := make([]crypto.Point,0)
+	ptmp := g.Point()
+	stmp := g.Secret()
+	pzero := g.Point().Null()
+	szero := g.Secret().Zero()
+	sone := g.Secret().One()
+
+	// Do a simple Diffie-Hellman test
+	s1 := g.Secret().Pick(rand)
+	s2 := g.Secret().Pick(rand)
+	if s1.Equal(s2) {
+		panic("uh-oh, not getting unique secrets!")
+	}
+
+	gen := g.Point().Base()
+	points = append(points,gen)
+
+	// Verify additive and multiplicative identities of the generator.
+	ptmp.Mul(nil,stmp.SetInt64(-1)).Add(ptmp,gen)
+	if !ptmp.Equal(pzero) {
+		panic("oops, generator additive identity doesn't work")
+	}
+	if g.PrimeOrder() {	// secret.Inv works only in prime-order groups
+		ptmp.Mul(nil,stmp.SetInt64(2)).Mul(ptmp,stmp.Inv(stmp))
+		if !ptmp.Equal(gen) {
+			panic("oops, generator multiplicative identity doesn't work")
+		}
+	}
+
+	p1 := g.Point().Mul(gen,s1)
+	p2 := g.Point().Mul(gen,s2)
+	if p1.Equal(p2) {
+		panic("uh-oh, encryption isn't producing unique points!")
+	}
+	points = append(points,p1)
+
+	dh1 := g.Point().Mul(p1,s2)
+	dh2 := g.Point().Mul(p2,s1)
+	if !dh1.Equal(dh2) {
+		panic("Diffie-Hellman didn't work")
+	}
+	points = append(points,dh1)
+	//println("shared secret = ",dh1.String())
+
+	// Test secret inverse to get from dh1 back to p1
+	if g.PrimeOrder() {
+		ptmp.Mul(dh1, g.Secret().Inv(s2))
+		if !ptmp.Equal(p1) {
+			panic("Secret inverse didn't work")
+		}
+	}
+
+	// Zero and One identity secrets
+	//println("dh1^0 = ",ptmp.Mul(dh1, szero).String())
+	if !ptmp.Mul(dh1, szero).Equal(pzero) {
+		panic("Encryption with secret=0 didn't work")
+	}
+	if !ptmp.Mul(dh1, sone).Equal(dh1) {
+		panic("Encryption with secret=1 didn't work")
+	}
+
+	// Additive homomorphic identities
+	ptmp.Add(p1,p2)
+	stmp.Add(s1,s2)
+	pt2 := g.Point().Mul(gen,stmp)
+	if !pt2.Equal(ptmp) {
+		panic("Additive homomorphism doesn't work")
+	}
+	ptmp.Sub(p1,p2)
+	stmp.Sub(s1,s2)
+	pt2.Mul(gen,stmp)
+	if !pt2.Equal(ptmp) {
+		panic("Additive homomorphism doesn't work")
+	}
+	st2 := g.Secret().Neg(s2)
+	st2.Add(s1,st2)
+	if !stmp.Equal(st2) {
+		panic("Secret.Neg doesn't work")
+	}
+	pt2.Neg(p2).Add(pt2,p1)
+	if !pt2.Equal(ptmp) {
+		panic("Point.Neg doesn't work")
+	}
+
+	// Multiplicative homomorphic identities
+	stmp.Mul(s1,s2)
+	if !ptmp.Mul(gen,stmp).Equal(dh1) {
+		panic("Multiplicative homomorphism doesn't work")
+	}
+	if g.PrimeOrder() {
+		st2.Inv(s2)
+		st2.Mul(st2,stmp)
+		if !st2.Equal(s1) {
+			panic("Secret division doesn't work")
+		}
+		st2.Div(stmp,s2)
+		if !st2.Equal(s1) {
+			panic("Secret division doesn't work")
+		}
+	}
+
+	// Test randomly picked points
+	last := gen
+	for i := 0; i < 5; i++ {
+		rgen,_ := g.Point().Pick(nil, rand)
+		if rgen.Equal(last) {
+			panic("Pick() not producing unique points")
+		}
+		last = rgen
+
+		ptmp.Mul(rgen,stmp.SetInt64(-1)).Add(ptmp,rgen)
+		if !ptmp.Equal(pzero) {
+			panic("random generator fails additive identity")
+		}
+		if g.PrimeOrder() {
+			ptmp.Mul(rgen,stmp.SetInt64(2)).Mul(ptmp,stmp.Inv(stmp))
+			if !ptmp.Equal(rgen) {
+				panic("random generator fails multiplicative identity")
+			}
+		}
+		points = append(points,rgen)
+	}
+
+	// Test embedding data
+	testEmbed(g,rand,&points,"Hi!")
+	testEmbed(g,rand,&points,"The quick brown fox jumps over the lazy dog")
+
+	// Test verifiable secret sharing
+	// XXX re-enable when we move this into 'test' sub-package
+	//testSharing(g)
+
+	return points
 }
 
-func testSuites() {
-	// Native Go suites
-	testSuite(crypto.NewAES128SHA256QR512())
-	testSuite(crypto.NewAES128SHA256P256())
-	testSuite(ed25519.NewAES128SHA256Ed25519())
-
-	// OpenSSL-based suites
-	testSuite(openssl.NewAES128SHA256P256())
-	testSuite(openssl.NewAES192SHA384P384())
-	testSuite(openssl.NewAES256SHA512P521())
+// Apply a generic set of validation tests to a cryptographic Group.
+func TestGroup(g crypto.Group) {
+	testGroup(g, crypto.RandomStream)
 }
 
-func benchSuites() {
-	println("\nNative QR512 suite:")
-	benchSuite(crypto.NewAES128SHA256QR512())
+// Test two group implementations that are supposed to be equivalent,
+// and compare their results.
+func TestCompareGroups(suite crypto.Suite, g1,g2 crypto.Group) {
 
-	println("\nNative P256 suite:")
-	benchSuite(crypto.NewAES128SHA256P256())
+	// Produce test results from the same pseudorandom seed
+	r1 := testGroup(g1, crypto.HashStream(suite, nil, nil))
+	r2 := testGroup(g2, crypto.HashStream(suite, nil, nil))
 
-	println("\nOpenSSL P256 suite:")
-	benchSuite(openssl.NewAES128SHA256P256())
-
-	//println("\nNaive Go Ed25519 suite:")
-	//benchSuite(crypto.NewAES128SHA256Ed25519())
-
-	println("\nOptimized Go Ed25519 suite:")
-	benchSuite(ed25519.NewAES128SHA256Ed25519())
-
-	println("\nSodium C Ed25519 suite:")
-	benchSuite(sodium.NewAES128SHA256Ed25519())
+	// Compare resulting Points
+	for i := range(r1) {
+		b1 := r1[i].Encode()
+		b2 := r2[i].Encode()
+		if !bytes.Equal(b1,b2) {
+			println("result-pair",i,
+				"\n1:",r1[i].String(),
+				"\n2:",r2[i].String())
+			panic("unequal results")
+		}
+	}
 }
 
-func main() {
-//	s := crypto.NewAES128SHA256P256()
-//	s := crypto.NewAES128SHA256Ed25519()
-//	s := openssl.NewAES128SHA256P256()
-//	s := ed25519.NewAES128SHA256Ed25519()
-//	testSuite(s)
-//	return
+// Apply a standard set of validation tests to a ciphersuite.
+func TestSuite(suite crypto.Suite) {
 
-//	println("\nNative P256 suite:")
-//	crypto.BenchSuite(openssl.NewAES128SHA256P256())
-//	println("\nOptimized Ed25519 suite:")
-//	crypto.BenchSuite(ed25519.NewAES128SHA256Ed25519())
-//	println("\nSodium Ed25519 suite:")
-//	sodium.BenchCurve25519()
+	// Try hashing something
+	h := suite.Hash()
+	l := suite.HashLen()
+	//println("HashLen: ",l)
+	h.Write([]byte("abc"))
+	hb := h.Sum(nil)
+	//println("Hash:")
+	//println(hex.Dump(hb))
+	if h.Size() != l || len(hb) != l {
+		panic("inconsistent hash output length")
+	}
 
-//	g := sodium.NewCurve25519()
-//	crypto.TestGroup(g)
-//	return
+	// Generate some pseudorandom bits
+	s := suite.Stream(hb[0:suite.KeyLen()])
+	sb := make([]byte,128)
+	s.XORKeyStream(sb,sb)
+	//println("Stream:")
+	//println(hex.Dump(sb))
 
-	testSuites()
-	//benchSuites()
+	// Generate a sub-stream
+	ss := crypto.SubStream(suite,s)
+	sb = make([]byte,128)
+	ss.XORKeyStream(sb,sb)
+	//println("SubStream:")
+	//println(hex.Dump(sb))
+
+	// Test the public-key group arithmetic
+	TestGroup(suite)
 }
 

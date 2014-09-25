@@ -1,4 +1,4 @@
-package crypto
+package nist
 
 import (
 	"fmt"
@@ -7,36 +7,50 @@ import (
 	"crypto/dsa"
 	"crypto/cipher"
 	//"encoding/hex"
+	"dissent/crypto"
 )
 
 
-type schnorrPoint struct {
+type residuePoint struct {
 	big.Int 
-	g *SchnorrGroup
+	g *ResidueGroup
 }
 
-func (p *schnorrPoint) String() string { return p.Int.String() }
+var one = big.NewInt(1)
+var two = big.NewInt(2)
 
-func (p *schnorrPoint) Equal(p2 Point) bool {
-	return p.Int.Cmp(&p2.(*schnorrPoint).Int) == 0
+
+// Steal value from DSA, which uses recommendation from FIPS 186-3
+const numMRTests = 64
+
+// Probabilistically test whether a big integer is prime.
+func isPrime(i *big.Int) bool {
+	return i.ProbablyPrime(numMRTests)
 }
 
-func (p *schnorrPoint) Null() Point {
+
+func (p *residuePoint) String() string { return p.Int.String() }
+
+func (p *residuePoint) Equal(p2 crypto.Point) bool {
+	return p.Int.Cmp(&p2.(*residuePoint).Int) == 0
+}
+
+func (p *residuePoint) Null() crypto.Point {
 	p.Int.SetInt64(1)
 	return p
 }
 
-func (p *schnorrPoint) Base() Point {
+func (p *residuePoint) Base() crypto.Point {
 	p.Int.Set(p.g.G)
 	return p
 }
 
-func (p *schnorrPoint) Valid() bool {
+func (p *residuePoint) Valid() bool {
 	return p.Int.Sign() > 0 && p.Int.Cmp(p.g.P) < 0 &&
 		new(big.Int).Exp(&p.Int, p.g.Q, p.g.P).Cmp(one) == 0
 }
 
-func (p *schnorrPoint) PickLen() int {
+func (p *residuePoint) PickLen() int {
 	// Reserve at least 8 most-significant bits for randomness,
 	// and the least-significant 16 bits for embedded data length.
 	return (p.g.P.BitLen() - 8 - 16) / 8
@@ -45,7 +59,7 @@ func (p *schnorrPoint) PickLen() int {
 // Pick a point containing a variable amount of embedded data.
 // Remaining bits comprising the point are chosen randomly.
 // This will only work efficiently for quadratic residue groups!
-func (p *schnorrPoint) Pick(data []byte, rand cipher.Stream) (Point, []byte) {
+func (p *residuePoint) Pick(data []byte, rand cipher.Stream) (crypto.Point, []byte) {
 
 	l := p.g.PointLen()
 	dl := p.PickLen()
@@ -54,7 +68,7 @@ func (p *schnorrPoint) Pick(data []byte, rand cipher.Stream) (Point, []byte) {
 	}
 
 	for {
-		b := RandomBits(uint(p.g.P.BitLen()), false, rand)
+		b := crypto.RandomBits(uint(p.g.P.BitLen()), false, rand)
 		if data != nil {
 			b[l-1] = byte(dl)	// Encode length in low 16 bits
 			b[l-2] = byte(dl >> 8)
@@ -67,8 +81,8 @@ func (p *schnorrPoint) Pick(data []byte, rand cipher.Stream) (Point, []byte) {
 	}
 }
 
-// Extract embedded data from a Schnorr group element
-func (p *schnorrPoint) Data() ([]byte,error) {
+// Extract embedded data from a Residue group element
+func (p *residuePoint) Data() ([]byte,error) {
 	b := p.Int.Bytes()
 	l := p.g.PointLen()
 	if len(b) < l {		// pad leading zero bytes if necessary
@@ -81,37 +95,37 @@ func (p *schnorrPoint) Data() ([]byte,error) {
 	return b[l-dl-2:l-2],nil
 }
 
-func (p *schnorrPoint) Add(a,b Point) Point {
-	p.Int.Mul(&a.(*schnorrPoint).Int, &b.(*schnorrPoint).Int)
+func (p *residuePoint) Add(a,b crypto.Point) crypto.Point {
+	p.Int.Mul(&a.(*residuePoint).Int, &b.(*residuePoint).Int)
 	p.Int.Mod(&p.Int, p.g.P)
 	return p
 }
 
-func (p *schnorrPoint) Sub(a,b Point) Point {
-	binv := new(big.Int).ModInverse(&b.(*schnorrPoint).Int, p.g.P)
-	p.Int.Mul(&a.(*schnorrPoint).Int, binv)
+func (p *residuePoint) Sub(a,b crypto.Point) crypto.Point {
+	binv := new(big.Int).ModInverse(&b.(*residuePoint).Int, p.g.P)
+	p.Int.Mul(&a.(*residuePoint).Int, binv)
 	p.Int.Mod(&p.Int, p.g.P)
 	return p
 }
 
-func (p *schnorrPoint) Neg(a Point) Point {
-	p.Int.ModInverse(&a.(*schnorrPoint).Int, p.g.P)
+func (p *residuePoint) Neg(a crypto.Point) crypto.Point {
+	p.Int.ModInverse(&a.(*residuePoint).Int, p.g.P)
 	return p
 }
 
-func (p *schnorrPoint) Mul(b Point, s Secret) Point {
+func (p *residuePoint) Mul(b crypto.Point, s crypto.Secret) crypto.Point {
 	if b == nil {
 		return p.Base().Mul(p,s)
 	}
-	p.Int.Exp(&b.(*schnorrPoint).Int, &s.(*ModInt).V, p.g.P)
+	p.Int.Exp(&b.(*residuePoint).Int, &s.(*crypto.ModInt).V, p.g.P)
 	return p
 }
 
-func (p *schnorrPoint) Len() int {
+func (p *residuePoint) Len() int {
 	return (p.g.P.BitLen()+7)/8
 }
 
-func (p *schnorrPoint) Encode() []byte {
+func (p *residuePoint) Encode() []byte {
 	b := p.Int.Bytes()	// may be shorter than len(buf)
 	if pre := p.Len()-len(b); pre != 0 {
 		return append(make([]byte, pre), b...)
@@ -119,10 +133,10 @@ func (p *schnorrPoint) Encode() []byte {
 	return b
 }
 
-func (p *schnorrPoint) Decode(data []byte) error {
+func (p *residuePoint) Decode(data []byte) error {
 	p.Int.SetBytes(data)
 	if !p.Valid() {
-		return errors.New("invalid Schnorr group element")
+		return errors.New("invalid Residue group element")
 	}
 	return nil
 }
@@ -130,9 +144,9 @@ func (p *schnorrPoint) Decode(data []byte) error {
 
 
 /*
-A SchnorrGroup represents a DSA-style modular integer arithmetic group,
+A ResidueGroup represents a DSA-style modular integer arithmetic group,
 defined by two primes P and Q and an integer R, such that P = Q*R+1.
-Points in a SchnorrGroup are R-residues modulo P,
+Points in a ResidueGroup are R-residues modulo P,
 and Secrets are integer exponents modulo the group order Q.
 
 In traditional DSA groups P is typically much larger than Q,
@@ -145,7 +159,7 @@ Such computation-optimized groups are suitable
 for Diffie-Hellman agreement, DSA or ElGamal signatures, etc.,
 which depend on Point.Mul() and homomorphic properties.
 
-However, Schnorr groups with large R are less suitable for
+However, residue groups with large R are less suitable for
 public-key cryptographic techniques that require choosing Points
 pseudo-randomly or to contain embedded data,
 as required by ElGamal encryption for example, or by Dissent's
@@ -155,50 +169,50 @@ representing the special case where R=2 and hence P=2Q+1.
 As a result, the Point.Pick() method should be expected to work efficiently
 ONLY on quadratic residue groups in which R=2.
 */
-type SchnorrGroup struct {
+type ResidueGroup struct {
 	dsa.Parameters
 	R *big.Int
 }
 
-func (g *SchnorrGroup) String() string {
-	return fmt.Sprintf("Schnorr%d", g.P.BitLen())
+func (g *ResidueGroup) String() string {
+	return fmt.Sprintf("Residue%d", g.P.BitLen())
 }
 
-func (g *SchnorrGroup) PrimeOrder() bool {
+func (g *ResidueGroup) PrimeOrder() bool {
 	return true
 }
 
 // Return the number of bytes in the encoding of a Secret
-// for this Schnorr group.
-func (g *SchnorrGroup) SecretLen() int { return (g.Q.BitLen()+7)/8 }
+// for this Residue group.
+func (g *ResidueGroup) SecretLen() int { return (g.Q.BitLen()+7)/8 }
 
-// Create a Secret associated with this Schnorr group,
+// Create a Secret associated with this Residue group,
 // with an initial value of nil.
-func (g *SchnorrGroup) Secret() Secret {
-	return NewModInt(0, g.Q)
+func (g *ResidueGroup) Secret() crypto.Secret {
+	return crypto.NewModInt(0, g.Q)
 }
 
 // Return the number of bytes in the encoding of a Point
-// for this Schnorr group.
-func (g *SchnorrGroup) PointLen() int { return (g.P.BitLen()+7)/8 }
+// for this Residue group.
+func (g *ResidueGroup) PointLen() int { return (g.P.BitLen()+7)/8 }
 
-// Create a Point associated with this Schnorr group,
+// Create a Point associated with this Residue group,
 // with an initial value of nil.
-func (g *SchnorrGroup) Point() Point {
-	p := new(schnorrPoint)
+func (g *ResidueGroup) Point() crypto.Point {
+	p := new(residuePoint)
 	p.g = g
 	return p
 }
 
-// Returns the order of this Schnorr group, namely the prime Q.
-func (g *SchnorrGroup) Order() *big.Int {
+// Returns the order of this Residue group, namely the prime Q.
+func (g *ResidueGroup) Order() *big.Int {
 	return g.Q
 }
 
-// Validate the parameters for a Schnorr group,
+// Validate the parameters for a Residue group,
 // checking that P and Q are prime, P=Q*R+1,
 // and that G is a valid generator for this group.
-func (g *SchnorrGroup) Valid() bool {
+func (g *ResidueGroup) Valid() bool {
 
 	// Make sure both P and Q are prime
 	if !isPrime(g.P) || !isPrime(g.Q) {
@@ -221,21 +235,21 @@ func (g *SchnorrGroup) Valid() bool {
 	return true
 }
 
-// Explicitly initialize a SchnorrGroup with given parameters.
-func (g *SchnorrGroup) SetParams(P,Q,R,G *big.Int) {
+// Explicitly initialize a ResidueGroup with given parameters.
+func (g *ResidueGroup) SetParams(P,Q,R,G *big.Int) {
 	g.P = P
 	g.Q = Q
 	g.R = R
 	g.G = G
 	if !g.Valid() {
-		panic("SetParams: bad Schnorr group parameters")
+		panic("SetParams: bad Residue group parameters")
 	}
 }
 
-// Initialize Schnorr group parameters for a quadratic residue group,
+// Initialize Residue group parameters for a quadratic residue group,
 // by picking primes P and Q such that P=2Q+1
 // and the smallest valid generator G for this group.
-func (g *SchnorrGroup) QuadraticResidueGroup(bitlen uint, rand cipher.Stream) {
+func (g *ResidueGroup) QuadraticResidueGroup(bitlen uint, rand cipher.Stream) {
 	g.R = two
 
 	// pick primes p,q such that p = 2q+1
@@ -247,7 +261,7 @@ func (g *SchnorrGroup) QuadraticResidueGroup(bitlen uint, rand cipher.Stream) {
 		}
 
 		// First pick a prime Q
-		b := RandomBits(bitlen-1, true, rand)
+		b := crypto.RandomBits(bitlen-1, true, rand)
 		b[len(b)-1] |= 1			// must be odd
 		g.Q = new(big.Int).SetBytes(b)
 		//println("q?",hex.EncodeToString(g.Q.Bytes()))

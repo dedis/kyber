@@ -1,4 +1,4 @@
-package crypto
+package nist
 
 import (
 	"errors"
@@ -6,6 +6,7 @@ import (
 	//"encoding/hex"
 	"crypto/cipher"
 	"crypto/elliptic"
+	"dissent/crypto"
 )
 
 
@@ -18,7 +19,7 @@ func (p *curvePoint) String() string {
 	return "("+p.x.String()+","+p.y.String()+")"
 }
 
-func (p *curvePoint) Equal(p2 Point) bool {
+func (p *curvePoint) Equal(p2 crypto.Point) bool {
 	cp2 := p2.(*curvePoint)
 
 	// Make sure both coordinates are normalized.
@@ -32,13 +33,13 @@ func (p *curvePoint) Equal(p2 Point) bool {
 	return p.x.Cmp(cp2.x) == 0 && p.y.Cmp(cp2.y) == 0
 }
 
-func (p *curvePoint) Null() Point {
+func (p *curvePoint) Null() crypto.Point {
 	p.x = new(big.Int).SetInt64(0)
 	p.y = new(big.Int).SetInt64(0)
 	return p
 }
 
-func (p *curvePoint) Base() Point {
+func (p *curvePoint) Base() crypto.Point {
 	p.x = p.c.p.Gx
 	p.y = p.c.p.Gy
 	return p
@@ -90,7 +91,7 @@ func (p *curvePoint) PickLen() int {
 
 // Pick a curve point containing a variable amount of embedded data.
 // Remaining bits comprising the point are chosen randomly.
-func (p *curvePoint) Pick(data []byte, rand cipher.Stream) (Point, []byte) {
+func (p *curvePoint) Pick(data []byte, rand cipher.Stream) (crypto.Point, []byte) {
 
 	l := p.c.coordLen()
 	dl := p.PickLen()
@@ -99,7 +100,7 @@ func (p *curvePoint) Pick(data []byte, rand cipher.Stream) (Point, []byte) {
 	}
 
 	for {
-		b := RandomBits(uint(p.c.p.P.BitLen()), false, rand)
+		b := crypto.RandomBits(uint(p.c.p.P.BitLen()), false, rand)
 		if data != nil {
 			b[l-1] = byte(dl)	// Encode length in low 8 bits
 			copy(b[l-dl-1:l-1],data) // Copy in data to embed
@@ -124,14 +125,14 @@ func (p *curvePoint) Data() ([]byte,error) {
 	return b[l-dl-1:l-1],nil
 }
 
-func (p *curvePoint) Add(a,b Point) Point {
+func (p *curvePoint) Add(a,b crypto.Point) crypto.Point {
 	ca := a.(*curvePoint)
 	cb := b.(*curvePoint)
 	p.x,p.y = p.c.Add(ca.x, ca.y, cb.x, cb.y)
 	return p
 }
 
-func (p *curvePoint) Sub(a,b Point) Point {
+func (p *curvePoint) Sub(a,b crypto.Point) crypto.Point {
 	ca := a.(*curvePoint)
 	cb := b.(*curvePoint)
 
@@ -141,7 +142,7 @@ func (p *curvePoint) Sub(a,b Point) Point {
 	return p
 }
 
-func (p *curvePoint) Neg(a Point) Point {
+func (p *curvePoint) Neg(a crypto.Point) crypto.Point {
 
 	// XXX a pretty non-optimal implementation of point negation...
 	s := p.c.Secret().One()
@@ -149,8 +150,8 @@ func (p *curvePoint) Neg(a Point) Point {
 	return p.Mul(a,s).(*curvePoint)
 }
 
-func (p *curvePoint) Mul(b Point, s Secret) Point {
-	cs := s.(*ModInt)
+func (p *curvePoint) Mul(b crypto.Point, s crypto.Secret) crypto.Point {
+	cs := s.(*crypto.ModInt)
 	if b != nil {
 		cb := b.(*curvePoint)
 		p.x,p.y = p.c.ScalarMult(cb.x,cb.y,cs.V.Bytes())
@@ -201,8 +202,8 @@ func (g *curve) PrimeOrder() bool {
 func (c *curve) SecretLen() int { return (c.p.N.BitLen()+7)/8 }
 
 // Create a Secret associated with this curve.
-func (c *curve) Secret() Secret {
-	return NewModInt(0, c.p.N)
+func (c *curve) Secret() crypto.Secret {
+	return crypto.NewModInt(0, c.p.N)
 }
 
 // Number of bytes required to store one coordinate on this curve
@@ -218,7 +219,7 @@ func (c *curve) PointLen() int {
 }
 
 // Create a Point associated with this curve.
-func (c *curve) Point() Point {
+func (c *curve) Point() crypto.Point {
 	p := new(curvePoint)
 	p.c = c
 	return p

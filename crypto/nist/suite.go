@@ -1,10 +1,11 @@
-package crypto
+package nist
 
 import (
 	"hash"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/sha256"
+	"dissent/crypto"
 )
 
 type suiteAES128SHA256P256 struct {
@@ -29,7 +30,7 @@ func (s *suiteAES128SHA256P256) Stream(key []byte) cipher.Stream {
 }
 
 // Ciphersuite based on AES-128, SHA-256, and the NIST P-256 elliptic curve.
-func NewAES128SHA256P256() Suite {
+func NewAES128SHA256P256() crypto.Suite {
 	suite := new(suiteAES128SHA256P256)
 	suite.p256.Init()
 	return suite

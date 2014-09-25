@@ -39,4 +39,6 @@ Wishlist for Go standard library changes:
 - Why does the test framework produce documentation for
 	ExampleEncode_test1() but not ExampleEncode_Test1()?
 	Is this just a bug or is there a reason for this finickyness?
-
+- bytes.Buffer: needs Alloc() or WriteAlloc() function, which grows the buffer
+	and returns a byte-slice representing the newly-allocated region,
+	which the caller must fill in before making any other API call.

@@ -4,9 +4,12 @@ import (
 	"testing"
 	//"encoding/hex"
 	"dissent/crypto"
-	"dissent/crypto/bench"
+	"dissent/crypto/test"
 	"dissent/crypto/edwards/ed25519"
 )
+
+
+var testSuite = NewAES128SHA256Ed25519(false)
 
 
 // Test each curve implementation of the Ed25519 curve.
@@ -15,43 +18,43 @@ func TestBasic25519(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode.")
 	} else {
-		crypto.TestGroup(new(BasicCurve).Init(Param25519(), false))
+		test.TestGroup(new(BasicCurve).Init(Param25519(), false))
 	}
 }
 
 func TestProjective25519(t *testing.T) {
-	crypto.TestGroup(new(ProjectiveCurve).Init(Param25519(), false))
+	test.TestGroup(new(ProjectiveCurve).Init(Param25519(), false))
 }
 
 func TestExtended25519(t *testing.T) {
-	crypto.TestGroup(new(ExtendedCurve).Init(Param25519(), false))
+	test.TestGroup(new(ExtendedCurve).Init(Param25519(), false))
 }
 
 func TestEd25519(t *testing.T) {
-	crypto.TestGroup(new(ed25519.Curve))
+	test.TestGroup(new(ed25519.Curve))
 }
 
 
 // Test the Extended coordinates implementation of each curve.
 
 func Test1174(t *testing.T) {
-	crypto.TestGroup(new(ExtendedCurve).Init(Param1174(), false))
+	test.TestGroup(new(ExtendedCurve).Init(Param1174(), false))
 }
 
 func Test25519(t *testing.T) {
-	crypto.TestGroup(new(ExtendedCurve).Init(Param25519(), false))
+	test.TestGroup(new(ExtendedCurve).Init(Param25519(), false))
 }
 
 func TestE382(t *testing.T) {
-	crypto.TestGroup(new(ExtendedCurve).Init(ParamE382(), false))
+	test.TestGroup(new(ExtendedCurve).Init(ParamE382(), false))
 }
 
 func Test4147(t *testing.T) {
-	crypto.TestGroup(new(ExtendedCurve).Init(Param41417(), false))
+	test.TestGroup(new(ExtendedCurve).Init(Param41417(), false))
 }
 
 func TestE521(t *testing.T) {
-	crypto.TestGroup(new(ExtendedCurve).Init(ParamE521(), false))
+	test.TestGroup(new(ExtendedCurve).Init(ParamE521(), false))
 }
 
 
@@ -59,23 +62,23 @@ func TestE521(t *testing.T) {
 // for which a full-group-order base point is defined.
 
 func TestFullOrder1174(t *testing.T) {
-	crypto.TestGroup(new(ExtendedCurve).Init(Param1174(), true))
+	test.TestGroup(new(ExtendedCurve).Init(Param1174(), true))
 }
 
 func TestFullOrder25519(t *testing.T) {
-	crypto.TestGroup(new(ExtendedCurve).Init(Param25519(), true))
+	test.TestGroup(new(ExtendedCurve).Init(Param25519(), true))
 }
 
 func TestFullOrderE382(t *testing.T) {
-	crypto.TestGroup(new(ExtendedCurve).Init(ParamE382(), true))
+	test.TestGroup(new(ExtendedCurve).Init(ParamE382(), true))
 }
 
 func TestFullOrder4147(t *testing.T) {
-	crypto.TestGroup(new(ExtendedCurve).Init(Param41417(), true))
+	test.TestGroup(new(ExtendedCurve).Init(Param41417(), true))
 }
 
 func TestFullOrderE521(t *testing.T) {
-	crypto.TestGroup(new(ExtendedCurve).Init(ParamE521(), true))
+	test.TestGroup(new(ExtendedCurve).Init(ParamE521(), true))
 }
 
 
@@ -85,7 +88,7 @@ func TestCompareBasicProjective25519(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode.")
 	} else {
-		crypto.TestCompareGroups(
+		test.TestCompareGroups(testSuite,
 			new(BasicCurve).Init(Param25519(), false),
 			new(ProjectiveCurve).Init(Param25519(), false))
 	}
@@ -95,7 +98,7 @@ func TestCompareBasicProjectiveE382(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode.")
 	} else {
-		crypto.TestCompareGroups(
+		test.TestCompareGroups(testSuite,
 			new(BasicCurve).Init(ParamE382(), false),
 			new(ProjectiveCurve).Init(ParamE382(), false))
 	}
@@ -105,7 +108,7 @@ func TestCompareBasicProjective41417(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode.")
 	} else {
-		crypto.TestCompareGroups(
+		test.TestCompareGroups(testSuite,
 			new(BasicCurve).Init(Param41417(), false),
 			new(ProjectiveCurve).Init(Param41417(), false))
 	}
@@ -115,7 +118,7 @@ func TestCompareBasicProjectiveE521(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode.")
 	} else {
-		crypto.TestCompareGroups(
+		test.TestCompareGroups(testSuite,
 			new(BasicCurve).Init(ParamE521(), false),
 			new(ProjectiveCurve).Init(ParamE521(), false))
 	}
@@ -125,25 +128,25 @@ func TestCompareBasicProjectiveE521(t *testing.T) {
 // Test ExtendedCurve versus ProjectiveCurve implementations
 
 func TestCompareProjectiveExtended25519(t *testing.T) {
-	crypto.TestCompareGroups(
+	test.TestCompareGroups(testSuite,
 		new(ProjectiveCurve).Init(Param25519(), false),
 		new(ExtendedCurve).Init(Param25519(), false))
 }
 
 func TestCompareProjectiveExtendedE382(t *testing.T) {
-	crypto.TestCompareGroups(
+	test.TestCompareGroups(testSuite,
 		new(ProjectiveCurve).Init(ParamE382(), false),
 		new(ExtendedCurve).Init(ParamE382(), false))
 }
 
 func TestCompareProjectiveExtended41417(t *testing.T) {
-	crypto.TestCompareGroups(
+	test.TestCompareGroups(testSuite,
 		new(ProjectiveCurve).Init(Param41417(), false),
 		new(ExtendedCurve).Init(Param41417(), false))
 }
 
 func TestCompareProjectiveExtendedE521(t *testing.T) {
-	crypto.TestCompareGroups(
+	test.TestCompareGroups(testSuite,
 		new(ProjectiveCurve).Init(ParamE521(), false),
 		new(ExtendedCurve).Init(ParamE521(), false))
 }
@@ -151,7 +154,7 @@ func TestCompareProjectiveExtendedE521(t *testing.T) {
 
 // Test Ed25519 versus ExtendedCurve implementations of Curve25519.
 func TestCompareEd25519(t *testing.T) {
-	crypto.TestCompareGroups(
+	test.TestCompareGroups(testSuite,
 		new(ExtendedCurve).Init(Param25519(), false),
 		new(ed25519.Curve))
 }
@@ -197,83 +200,40 @@ func TestElligator2(t *testing.T) {
 
 // Benchmark contrasting implementations of the Ed25519 curve
 
-func BenchmarkPointAddBasic(b *testing.B) {
-	bench.NewPointBench(b,new(BasicCurve).Init(Param25519(),false)).PointAdd()
-}
-func BenchmarkPointAddProjective(b *testing.B) {
-	bench.NewPointBench(b,new(ProjectiveCurve).Init(Param25519(),false)).PointAdd()
-}
-func BenchmarkPointAddExtended(b *testing.B) {
-	bench.NewPointBench(b,new(ExtendedCurve).Init(Param25519(),false)).PointAdd()
-}
-func BenchmarkPointAddOptimized(b *testing.B) {
-	bench.NewPointBench(b,new(ed25519.Curve)).PointAdd()
-}
+var basicBench = test.NewGroupBench(new(BasicCurve).Init(Param25519(),false))
+var projBench = test.NewGroupBench(new(ProjectiveCurve).Init(Param25519(),false))
+var extBench = test.NewGroupBench(new(ExtendedCurve).Init(Param25519(),false))
+var optBench = test.NewGroupBench(new(ed25519.Curve))
 
-func BenchmarkPointMulBasic(b *testing.B) {
-	bench.NewPointBench(b,new(BasicCurve).Init(Param25519(),false)).PointMul()
-}
-func BenchmarkPointMulProjective(b *testing.B) {
-	bench.NewPointBench(b,new(ProjectiveCurve).Init(Param25519(),false)).PointMul()
-}
-func BenchmarkPointMulExtended(b *testing.B) {
-	bench.NewPointBench(b,new(ExtendedCurve).Init(Param25519(),false)).PointMul()
-}
-func BenchmarkPointMulOptimized(b *testing.B) {
-	bench.NewPointBench(b,new(ed25519.Curve)).PointMul()
-}
+func BenchmarkPointAddBasic(b *testing.B) { basicBench.PointAdd(b.N) }
+func BenchmarkPointAddProjective(b *testing.B) { projBench.PointAdd(b.N) }
+func BenchmarkPointAddExtended(b *testing.B) { extBench.PointAdd(b.N) }
+func BenchmarkPointAddOptimized(b *testing.B) { optBench.PointAdd(b.N) }
 
-func BenchmarkPointBaseMulBasic(b *testing.B) {
-	bench.NewPointBench(b,new(BasicCurve).Init(Param25519(),false)).PointBaseMul()
-}
-func BenchmarkPointBaseMulProjective(b *testing.B) {
-	bench.NewPointBench(b,new(ProjectiveCurve).Init(Param25519(),false)).PointBaseMul()
-}
-func BenchmarkPointBaseMulExtended(b *testing.B) {
-	bench.NewPointBench(b,new(ExtendedCurve).Init(Param25519(),false)).PointBaseMul()
-}
-func BenchmarkPointBaseMulOptimized(b *testing.B) {
-	bench.NewPointBench(b,new(ed25519.Curve)).PointBaseMul()
-}
+func BenchmarkPointMulBasic(b *testing.B) { basicBench.PointMul(b.N) }
+func BenchmarkPointMulProjective(b *testing.B) { projBench.PointMul(b.N) }
+func BenchmarkPointMulExtended(b *testing.B) { extBench.PointMul(b.N) }
+func BenchmarkPointMulOptimized(b *testing.B) { optBench.PointMul(b.N) }
 
-func BenchmarkPointEncodeBasic(b *testing.B) {
-	bench.NewPointBench(b,new(BasicCurve).Init(Param25519(),false)).PointEncode()
-}
-func BenchmarkPointEncodeProjective(b *testing.B) {
-	bench.NewPointBench(b,new(ProjectiveCurve).Init(Param25519(),false)).PointEncode()
-}
-func BenchmarkPointEncodeExtended(b *testing.B) {
-	bench.NewPointBench(b,new(ExtendedCurve).Init(Param25519(),false)).PointEncode()
-}
-func BenchmarkPointEncodeOptimized(b *testing.B) {
-	bench.NewPointBench(b,new(ed25519.Curve)).PointEncode()
-}
+func BenchmarkPointBaseMulBasic(b *testing.B) { basicBench.PointBaseMul(b.N) }
+func BenchmarkPointBaseMulProjective(b *testing.B) { projBench.PointBaseMul(b.N) }
+func BenchmarkPointBaseMulExtended(b *testing.B) { extBench.PointBaseMul(b.N) }
+func BenchmarkPointBaseMulOptimized(b *testing.B) { optBench.PointBaseMul(b.N) }
 
-func BenchmarkPointDecodeBasic(b *testing.B) {
-	bench.NewPointBench(b,new(BasicCurve).Init(Param25519(),false)).PointDecode()
-}
-func BenchmarkPointDecodeProjective(b *testing.B) {
-	bench.NewPointBench(b,new(ProjectiveCurve).Init(Param25519(),false)).PointDecode()
-}
-func BenchmarkPointDecodeExtended(b *testing.B) {
-	bench.NewPointBench(b,new(ExtendedCurve).Init(Param25519(),false)).PointDecode()
-}
-func BenchmarkPointDecodeOptimized(b *testing.B) {
-	bench.NewPointBench(b,new(ed25519.Curve)).PointDecode()
-}
+func BenchmarkPointEncodeBasic(b *testing.B) { basicBench.PointEncode(b.N) }
+func BenchmarkPointEncodeProjective(b *testing.B) { projBench.PointEncode(b.N) }
+func BenchmarkPointEncodeExtended(b *testing.B) { extBench.PointEncode(b.N) }
+func BenchmarkPointEncodeOptimized(b *testing.B) { optBench.PointEncode(b.N) }
 
-func BenchmarkPointPickBasic(b *testing.B) {
-	bench.NewPointBench(b,new(BasicCurve).Init(Param25519(),false)).PointPick()
-}
-func BenchmarkPointPickProjective(b *testing.B) {
-	bench.NewPointBench(b,new(ProjectiveCurve).Init(Param25519(),false)).PointPick()
-}
-func BenchmarkPointPickExtended(b *testing.B) {
-	bench.NewPointBench(b,new(ExtendedCurve).Init(Param25519(),false)).PointPick()
-}
-func BenchmarkPointPickOptimized(b *testing.B) {
-	bench.NewPointBench(b,new(ed25519.Curve)).PointPick()
-}
+func BenchmarkPointDecodeBasic(b *testing.B) { basicBench.PointDecode(b.N) }
+func BenchmarkPointDecodeProjective(b *testing.B) { projBench.PointDecode(b.N) }
+func BenchmarkPointDecodeExtended(b *testing.B) { extBench.PointDecode(b.N) }
+func BenchmarkPointDecodeOptimized(b *testing.B) { optBench.PointDecode(b.N) }
+
+func BenchmarkPointPickBasic(b *testing.B) { basicBench.PointPick(b.N) }
+func BenchmarkPointPickProjective(b *testing.B) { projBench.PointPick(b.N) }
+func BenchmarkPointPickExtended(b *testing.B) { extBench.PointPick(b.N) }
+func BenchmarkPointPickOptimized(b *testing.B) { optBench.PointPick(b.N) }
 
 func BenchmarkElligator1(b *testing.B) {
 	testHiding(new(ExtendedCurve).Init(Param1174(), true), b.N)
