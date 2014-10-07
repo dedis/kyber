@@ -55,12 +55,11 @@ type suiteInfo struct {
 	plen int			// length of each point in bytes
 	max int				// limit of highest point field
 
-	pri crypto.Secret		// ephemeral Diffie-Hellman private key
-	pub []byte			// corresponding encoded public key
-
 	// layout info
 	//nodes []*node			// layout node for reserved positions
 	lev int				// layout-chosen level for this suite
+	pri crypto.Secret		// ephemeral Diffie-Hellman private key
+	pub []byte			// corresponding encoded public key
 }
 
 func (si *suiteInfo) String() string {
@@ -100,24 +99,7 @@ func (si *suiteInfo) init(ste crypto.Suite, nlevels int) {
 
 	// Limit of highest point field
 	si.max = si.pos[nlevels-1] + si.plen
-
-	// Pick an ephemeral secret for each ciphersuite
-	// and a hiding-encoded Diffie-Hellman public key.
-	pri := ste.Secret()
-	pub := ste.Point()
-	var buf []byte
-	for buf == nil {
-		pri.Pick(rand)		// pick fresh secret
-		pub.Mul(nil, pri)	// compute DH public key
-		buf = pub.(crypto.Hiding).HideEncode(rand)
-	}
-	if len(buf) != si.plen {
-		panic("ciphersuite "+si.String()+" wrong pubkey length")
-	}
-	si.pri = pri
-	si.pub = buf
 }
-
 
 // Return the byte-range for a point at a given level.
 func (si *suiteInfo) region(level int) (int,int) {
@@ -322,20 +304,10 @@ func (w *Writer) Layout(suiteLevel map[crypto.Suite]int,
 		if si == nil {
 			panic("suite "+e.Suite.String()+" wasn't on the list")
 		}
-		dlen := len(e.Data)
-		if dlen == 0 {
+		l := len(e.Data)
+		if l == 0 {
 			panic("entrypoint with no data")
 		}
-
-		// Form the Diffie-Hellman shared secret with this keyholder.
-		dhkey := si.ste.Point().Mul(e.PubKey, si.pri)
-		master := crypto.PointStream(si.ste, dhkey)
-
-		// Encrypt the entrypoint data with it.
-		stream := ...
-		msgbuf := w.growBuf(lo,hi)
-		stream.XORKeyStream(msgbuf, e.Data)
-
 		ofs := w.layout.alloc(l, e.String())
 		w.entofs[i] = ofs
 		//fmt.Printf("Entrypoint %d (%s) at [%d-%d]\n",
@@ -391,6 +363,35 @@ func (w *Writer) Payload(data []byte, encrypt cipher.Stream) int {
 // The data slices in all the entrypoints must be filled in
 // before calling this function.
 func (w *Writer) Write(rand cipher.Stream) []byte {
+
+	// Pick an ephemeral secret for each ciphersuite
+	// that produces a hide-encodable Diffie-Hellman public key.
+	for i := range(w.suites.s) {
+		si := w.suites.s[i]
+
+		// Create a hiding-encoded DH public key.
+		pri := si.ste.Secret()
+		pub := si.ste.Point()
+		var buf []byte
+		for {
+			pri.Pick(rand)		// pick fresh secret
+			pub.Mul(nil, pri)	// get DH public key
+			buf = pub.(crypto.Hiding).HideEncode(rand)
+			if buf != nil {
+				break
+			}
+		}
+		if len(buf) != si.plen {
+			panic("ciphersuite "+si.String()+" wrong pubkey length")
+		}
+		si.pri = pri
+		si.pub = buf
+
+		// Insert the hidden point into the message buffer.
+		lo,hi := si.region(si.lev)
+		msgbuf := w.growBuf(lo,hi)
+		copy(msgbuf, buf)
+	}
 
 	// Encrypt and finalize all the entrypoints.
 	for i := range(w.entries) {

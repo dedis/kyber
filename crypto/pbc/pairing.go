@@ -180,6 +180,10 @@ func (g *g1group) Point() crypto.Point {
 	return p
 }
 
+func (g *g1group) PrimeOrder() bool {
+	return true
+}
+
 
 // G2 group
 
@@ -205,6 +209,10 @@ func (g *g2group) Point() crypto.Point {
 	p := newCurvePoint()
 	C.element_init_G2(&p.e[0], &g.p.p[0])
 	return p
+}
+
+func (g *g2group) PrimeOrder() bool {
+	return true
 }
 
 
@@ -236,6 +244,10 @@ func (g *gtgroup) PairingPoint() PairingPoint {
 	p := newIntPoint()
 	C.element_init_GT(&p.e[0], &g.p.p[0])
 	return p
+}
+
+func (g *gtgroup) PrimeOrder() bool {
+	return true
 }
 
 

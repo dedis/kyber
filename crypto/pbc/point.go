@@ -74,6 +74,11 @@ func (p *point) Sub(a,b crypto.Point) crypto.Point {
 	return p
 }
 
+func (p *point) Neg(a crypto.Point) crypto.Point {
+	C.element_invert(&p.e[0], &a.(*point).e[0])
+	return p
+}
+
 func (p *point) Mul(b crypto.Point, s crypto.Secret) crypto.Point {
 	if b == nil {
 		return p.Base().Mul(p,s)

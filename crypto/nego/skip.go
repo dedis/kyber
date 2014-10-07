@@ -2,13 +2,13 @@ package nego
 
 import (
 	"fmt"
-	"dissent/crypto"
+	"dissent/crypto/random"
 )
 
 
 // Pick a uint32 uniformly at random
 func randUint32() uint32 {
-	return crypto.RandomUint32(crypto.RandomStream)
+	return random.Uint32(random.Stream)
 }
 
 // Pick a random height for a new skip-list node from a suitable distribution.

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 	"dissent/crypto"
+	"dissent/crypto/random"
 	"dissent/crypto/edwards"
 )
 
@@ -47,7 +48,7 @@ func TestNego(t *testing.T) {
 		// Create some entrypoints with this suite
 		s := suites[i]
 		for j := 0; j < nentries; j++ {
-			pri := s.Secret().Pick(crypto.RandomStream)
+			pri := s.Secret().Pick(random.Stream)
 			pub := s.Point().Mul(nil, pri)
 			data := make([]byte, datalen)
 			entries = append(entries, Entry{s,pub,data})
@@ -55,7 +56,7 @@ func TestNego(t *testing.T) {
 	}
 
 	w := Writer{}
-	_,err := w.Layout(suiteLevel, 0, entries, nil)
+	_,err := w.Layout(suiteLevel, entries, nil)
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
