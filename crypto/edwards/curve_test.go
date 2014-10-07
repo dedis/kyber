@@ -95,6 +95,7 @@ func TestCompareBasicProjective25519(t *testing.T) {
 	}
 }
 
+/*	These take a long time and probably work if 25519 does.
 func TestCompareBasicProjectiveE382(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode.")
@@ -124,6 +125,7 @@ func TestCompareBasicProjectiveE521(t *testing.T) {
 			new(ProjectiveCurve).Init(ParamE521(), false))
 	}
 }
+*/
 
 
 // Test ExtendedCurve versus ProjectiveCurve implementations
