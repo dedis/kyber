@@ -19,6 +19,12 @@ Wishlist for Go standard library changes:
 - strings package should contain a String interface containing only:
 	func String() string
 - bytes.Buffer needs a SetBytes() method.
+- bytes needs a Grow() or Alloc() function that extends a buffer
+	without re-allocating it or initializing the growth space if possible,
+	and otherwise copies to a new larger buffer.
+	Behaves like append but leaves the newly-"appended" area
+	for the caller to initialize.
+- bytes needs a Copy() function that allocates and copies a byte-slice.
 - It appears to be impossible to use an unkeyed element-list to initialize
 	a struct that contains any blank fields (e.g., padding).
 	If you don't list an element corresponding to the blank field,
@@ -42,3 +48,10 @@ Wishlist for Go standard library changes:
 - bytes.Buffer: needs Alloc() or WriteAlloc() function, which grows the buffer
 	and returns a byte-slice representing the newly-allocated region,
 	which the caller must fill in before making any other API call.
+- Really need to support relative import paths within global packages;
+	otherwise it seems that anyone who creates a copy or fork of a repo
+	hosted in some other location, even just temporarily
+	(for development purposes) must go through and change all the
+	import paths throughout the repository that refer to
+	other packages in the same repo by their global import paths.
+
