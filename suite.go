@@ -6,10 +6,7 @@ import (
 	"io"
 	"crypto/cipher"
 	"encoding/hex"
-	"github.com/dedis/crypto/math"
 )
-
-var foo = math.Sqrt
 
 // Suite is an abstract interface to a full suite of
 // public-key and symmetric-key crypto primitives

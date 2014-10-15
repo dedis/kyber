@@ -1,5 +1,12 @@
 DeDiS Advanced Crypto Library for Go
+====================================
+
+Please see the
+[GoDoc documentation for this package](http://godoc.org/github.com/DeDiS/crypto)
+for details.
+
 Copyright (C) 2014 Yale DeDiS Group
+-----------------------------------
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
