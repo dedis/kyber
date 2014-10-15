@@ -63,7 +63,7 @@ func (s *secret) SetInt64(v int64) crypto.Secret {
 	}
 
 	// Initialize the absolute value
-	vl := C.ulonglong(v)
+	vl := C.BN_ULONG(v)
 	if int64(v) != v {
 		panic("openssl.SetInt64: value doesn't fit into C.ulong")
 	}
