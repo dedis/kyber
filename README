@@ -1,48 +1,5 @@
-Dissent - Dining-Cryptographers, Shuffled-Send Network
-
-Overview
-===============================================================================
-This library will eventually provide a framework for constructing provably
-anonymous overlays with the following key features.
-
-Contact
-===============================================================================
-TBA
-
-Workflow
-===============================================================================
-More specifically, these are requirements that should be followed prior to
-asking for a code review / pull.  A code review / pull in this sense refers to
-the submission of a pull request not an academic discussion on design choices.
-
-API expectations:
-- Doxygen with comments
-- Follows existing patterns in the code or accompanies patches that improve
-  those interfaces
-
-Internals:
-- Minimizes dependencies, if A can work without knowing about B, A should not
-  know about B, make a C that knows about both to handle interoperation
-- Emphasize Qt features while minimizing additional dependencies on external
-  libraries
-- Avoid blocking calls
-
-Commits:
-- The comments should be clear and only code chunks relevant to the commit
-  message should be included
-- Merges should be rebased onto the current master and tested working before
-  merging (git checkout -b merge master && git merge --squash dev)
-- Incomplete work should not be committed nor merged
-
-Also note, when you submit code for inclusion in this library, you implicitly
-release your personal license to the software to Yale Dedis, see below.
-
-License
-===============================================================================
-While the code linked relies on a variety of licenses, which must be respected,
-the code contained herein shall use the following license:
-
-Copyright (C) 2014 Yale Dedis
+DeDiS Advanced Crypto Library for Go
+Copyright (C) 2014 Yale DeDiS Group
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
