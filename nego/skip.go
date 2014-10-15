@@ -2,7 +2,7 @@ package nego
 
 import (
 	"fmt"
-	"dissent/crypto/random"
+	"github.com/dedis/crypto/random"
 )
 
 

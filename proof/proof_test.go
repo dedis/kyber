@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 	"encoding/hex"
-	"dissent/crypto"
-	"dissent/crypto/random"
-	"dissent/crypto/openssl"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto/openssl"
 )
 
 func TestRep(t *testing.T) {

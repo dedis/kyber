@@ -5,8 +5,8 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/sha256"
-	"dissent/crypto"
-	"dissent/crypto/edwards/ed25519"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/edwards/ed25519"
 )
 
 type suiteEd25519 struct {

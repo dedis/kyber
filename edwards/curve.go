@@ -5,8 +5,8 @@ import (
 	"errors"
 	"math/big"
 	"crypto/cipher"
-	"dissent/crypto"
-	"dissent/crypto/nist"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/nist"
 )
 
 var zero = big.NewInt(0)

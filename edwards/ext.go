@@ -4,8 +4,8 @@ import (
 	"math/big"
 	"encoding/hex"
 	"crypto/cipher"
-	"dissent/crypto"
-	"dissent/crypto/nist"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/nist"
 )
 
 type extPoint struct {

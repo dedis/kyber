@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"crypto/cipher"
-	"dissent/crypto"
+	"github.com/dedis/crypto"
 )
 
 // unlinkable ring signature

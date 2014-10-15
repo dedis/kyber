@@ -10,7 +10,7 @@ import "C"
 import (
 	"unsafe"
 	"runtime"
-	"dissent/crypto"
+	"github.com/dedis/crypto"
 )
 
 

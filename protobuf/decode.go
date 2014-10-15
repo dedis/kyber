@@ -5,7 +5,7 @@ import (
 	"errors"
 	"reflect"
 	"encoding/binary"
-	"dissent/crypto"
+	"github.com/dedis/crypto"
 )
 
 

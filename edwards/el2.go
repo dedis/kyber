@@ -4,8 +4,8 @@ import (
 	"math/big"
 	//"encoding/hex"
 	"crypto/cipher"
-	"dissent/crypto/math"
-	"dissent/crypto/nist"
+	"github.com/dedis/crypto/math"
+	"github.com/dedis/crypto/nist"
 )
 
 // Elligator 2 parameters

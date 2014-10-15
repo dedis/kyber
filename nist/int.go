@@ -5,9 +5,9 @@ import (
 	"math/big"
 	"encoding/hex"
 	"crypto/cipher"
-	"dissent/crypto"
-	"dissent/crypto/math"
-	"dissent/crypto/random"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/math"
+	"github.com/dedis/crypto/random"
 )
 
 

@@ -16,7 +16,7 @@ package edwards
 
 import (
 	"math/big"
-	"dissent/crypto/nist"
+	"github.com/dedis/crypto/nist"
 )
 
 

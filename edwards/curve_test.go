@@ -3,10 +3,10 @@ package edwards
 import (
 	"testing"
 	//"encoding/hex"
-	"dissent/crypto"
-	"dissent/crypto/test"
-	"dissent/crypto/random"
-	"dissent/crypto/edwards/ed25519"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/test"
+	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto/edwards/ed25519"
 )
 
 

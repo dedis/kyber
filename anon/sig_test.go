@@ -5,10 +5,10 @@ import (
 	"bytes"
 	"testing"
 	"encoding/hex"
-	"dissent/crypto"
-	"dissent/crypto/random"
-	"dissent/crypto/openssl"
-	"dissent/crypto/edwards"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto/openssl"
+	"github.com/dedis/crypto/edwards"
 )
 
 // This example demonstrates signing and signature verification

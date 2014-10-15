@@ -22,8 +22,8 @@ import (
 	"encoding/hex"
 	"crypto/cipher"
 	"crypto/sha256"
-	"dissent/crypto"
-	"dissent/crypto/nist"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/nist"
 )
 
 

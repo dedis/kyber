@@ -5,8 +5,8 @@ import (
 	"crypto/hmac"
 	"crypto/cipher"
 	"crypto/subtle"
-	"dissent/crypto"
-	"dissent/crypto/random"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/random"
 )
 
 

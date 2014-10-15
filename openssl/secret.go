@@ -10,7 +10,7 @@ import "C"
 
 import (
 	"crypto/cipher"
-	"dissent/crypto"
+	"github.com/dedis/crypto"
 )
 
 

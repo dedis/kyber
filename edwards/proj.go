@@ -3,8 +3,8 @@ package edwards
 import (
 	"math/big"
 	"crypto/cipher"
-	"dissent/crypto"
-	"dissent/crypto/nist"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/nist"
 )
 
 type projPoint struct {

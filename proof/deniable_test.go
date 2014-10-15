@@ -5,9 +5,9 @@ import (
 	"testing"
 	//"encoding/hex"
 	"crypto/cipher"
-	"dissent/crypto"
-	"dissent/crypto/nist"
-	"dissent/crypto/random"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/nist"
+	"github.com/dedis/crypto/random"
 )
 
 type node struct {

@@ -14,7 +14,7 @@ import (
 	"errors"
 	"crypto/cipher"
 	"encoding/binary"
-	"dissent/crypto"
+	"github.com/dedis/crypto"
 )
 
 

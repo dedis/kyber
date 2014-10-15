@@ -7,8 +7,8 @@ import (
 	"crypto/dsa"
 	"crypto/cipher"
 	//"encoding/hex"
-	"dissent/crypto"
-	"dissent/crypto/random"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/random"
 )
 
 

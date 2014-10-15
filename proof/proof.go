@@ -7,7 +7,7 @@ package proof
 
 import (
 	"errors"
-	"dissent/crypto"
+	"github.com/dedis/crypto"
 )
 
 

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"errors"
 	"crypto/cipher"
-	"dissent/crypto"
-	"dissent/crypto/random"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/random"
 )
 
 // Clique protocol outline:

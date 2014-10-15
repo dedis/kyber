@@ -3,9 +3,9 @@ package shuffle
 import (
 	//"fmt"
 	//"time"
-	"dissent/crypto"
-	"dissent/crypto/proof"
-	"dissent/crypto/random"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/proof"
+	"github.com/dedis/crypto/random"
 )
 
 func TestShuffle(suite crypto.Suite, k int) {

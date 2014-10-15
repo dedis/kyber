@@ -3,8 +3,8 @@ package shuffle
 import (
 	"errors"
 	"crypto/cipher"
-	"dissent/crypto"
-	"dissent/crypto/proof"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/proof"
 )
 
 

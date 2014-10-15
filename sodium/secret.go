@@ -10,7 +10,7 @@ import (
 	//"runtime"
 	"encoding/hex"
 	"crypto/cipher"
-	"dissent/crypto"
+	"github.com/dedis/crypto"
 )
 
 

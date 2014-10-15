@@ -3,8 +3,8 @@ package proof
 import (
 	"bytes"
 	"crypto/cipher"
-	"dissent/crypto"
-	"dissent/crypto/random"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/random"
 )
 
 

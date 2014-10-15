@@ -9,7 +9,7 @@ import (
 	"errors"
 	"runtime"
 	"crypto/cipher"
-	"dissent/crypto"
+	"github.com/dedis/crypto"
 )
 
 

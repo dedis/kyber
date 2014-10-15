@@ -2,7 +2,7 @@ package nist
 
 import (
 	"testing"
-	"dissent/crypto/test"
+	"github.com/dedis/crypto/test"
 )
 
 var testQR512 = NewAES128SHA256QR512()

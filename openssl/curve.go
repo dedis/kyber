@@ -22,7 +22,7 @@ import (
 	"math/big"
 	"encoding/hex"
 	"crypto/cipher"
-	"dissent/crypto"
+	"github.com/dedis/crypto"
 )
 
 

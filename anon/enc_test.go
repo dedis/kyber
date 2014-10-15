@@ -5,8 +5,8 @@ import (
 	"bytes"
 	//"testing"
 	"encoding/hex"
-	"dissent/crypto"
-	"dissent/crypto/openssl"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/openssl"
 )
 
 

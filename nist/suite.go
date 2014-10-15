@@ -5,7 +5,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/sha256"
-	"dissent/crypto"
+	"github.com/dedis/crypto"
 )
 
 type suiteAES128SHA256P256 struct {

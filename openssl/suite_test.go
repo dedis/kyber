@@ -2,7 +2,7 @@ package openssl
 
 import (
 	"testing"
-	"dissent/crypto/test"
+	"github.com/dedis/crypto/test"
 )
 
 func BenchmarkAES128(b *testing.B) {

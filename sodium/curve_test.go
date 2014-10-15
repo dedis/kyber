@@ -2,7 +2,7 @@ package sodium
 
 import (
 	"testing"
-	"dissent/crypto/test"
+	"github.com/dedis/crypto/test"
 )
 
 var testSuite = NewAES128SHA256Ed25519()

@@ -2,9 +2,9 @@ package shuffle
 
 import (
 	"testing"
-	"dissent/crypto/nist"
-	"dissent/crypto/openssl"
-	"dissent/crypto/edwards"
+	"github.com/dedis/crypto/nist"
+	"github.com/dedis/crypto/openssl"
+	"github.com/dedis/crypto/edwards"
 )
 
 func TestPairShuffle(t *testing.T) {
