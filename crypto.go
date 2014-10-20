@@ -1,14 +1,13 @@
 /*
-Package crypto provides a powerful and flexible API containing
-public-key and symmetric-key cryptographic primitives needed by
-applications such as Dissent that need more sophisticated
-public-key primitives than just straightforward signing and encryption.
-All cryptographic primitives in this API are represented by abstract interfaces
+Package crypto provides a toolbox of advanced cryptographic primitives,
+for applications that need more than straightforward signing and encryption.
+The cornerstone of this toolbox is the 'abstract' sub-package,
+which defines abstract interfaces to cryptographic primitives
 designed to be independent of specific cryptographic algorithms,
-to facilitate upgrading to new cryptographic algorithms
+to facilitate upgrading applications to new cryptographic algorithms
 or switching to alternative algorithms for exprimentation purposes.
 
-The public-key crypto API includes an abstract group interface
+This toolkit's public-key crypto API includes an abstract.Group interface
 generically supporting a broad class of group-based public-key primitives
 including DSA-style integer residue groups and elliptic curve groups.
 Users of this API can thus write higher-level crypto algorithms
@@ -24,11 +23,21 @@ such that point addition is homomorphically equivalent to
 adding their (potentially secret) scalar multipliers.
 But the API and its operations apply equally well to DSA-style integer groups.
 
-This package and its sub-packages also provide several specific
+The abstract.Suite interface builds further on the abstract.Group API
+to represent an abstraction of entire pluggable ciphersuites,
+which include a group (e.g., curve) suitable for advanced public-key crypto
+together with a suitably matched set of symmetric-key crypto algorithms.
+
+Various sub-packages provide several specific
 implementations of these abstract cryptographic interfaces.
-The ciphersuites within this package build on the "native" Go
-cryptographic libraries;
-sub-packages build on other crypto libraries such as OpenSSL.
+In particular, the 'nist' sub-package provides implementations
+of modular integer groups underlying conventional DSA-style algorithms,
+and of NIST-standardized elliptic curves built on the Go crypto library.
+The 'edwards' sub-package provides the abstract group interface
+using more recent Edwards curves, including the popular Ed25519 curve.
+The 'openssl' sub-package offers an alternative implementation
+of NIST-standardized elliptic curves and symmetric-key algorithms,
+built as wrappers around OpenSSL's crypto library.
 */
 package crypto
 
