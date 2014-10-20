@@ -1,5 +1,8 @@
 // Package rand provides facilities for generating
 // random or pseudorandom cryptographic objects.
+//
+// XXX this package might go away and get subsumed by the
+// currently equivalent abstract.Stream type.
 package random
 
 import (

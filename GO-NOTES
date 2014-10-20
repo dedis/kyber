@@ -54,4 +54,5 @@ Wishlist for Go standard library changes:
 	(for development purposes) must go through and change all the
 	import paths throughout the repository that refer to
 	other packages in the same repo by their global import paths.
-
+- Why doesn't godoc process formatting in the comment for an Example,
+	like it does in the comments for functions and everything else?
