@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"testing"
 	"encoding/hex"
-	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/openssl"
 	"github.com/dedis/crypto/edwards"
@@ -21,10 +21,10 @@ func ExampleSign_1() {
 
 	// Crypto setup
 	suite := openssl.NewAES128SHA256P256()
-	rand := crypto.HashStream(suite, []byte("example"), nil)
+	rand := abstract.HashStream(suite, []byte("example"), nil)
 
 	// Create a public/private keypair (X[mine],x)
-	X := make([]crypto.Point,1)
+	X := make([]abstract.Point,1)
 	mine := 0				// which public key is mine
 	x := suite.Secret().Pick(rand)		// create a private key x
 	X[mine] = suite.Point().Mul(nil,x)	// corresponding public key X
@@ -69,10 +69,10 @@ func ExampleSign_anonSet() {
 
 	// Crypto setup
 	suite := openssl.NewAES128SHA256P256()
-	rand := crypto.HashStream(suite, []byte("example"), nil)
+	rand := abstract.HashStream(suite, []byte("example"), nil)
 
 	// Create an anonymity set of random "public keys"
-	X := make([]crypto.Point,3)
+	X := make([]abstract.Point,3)
 	for i := range(X) {			// pick random points
 		X[i],_ = suite.Point().Pick(nil,rand)
 	}
@@ -128,10 +128,10 @@ func ExampleSign_linkable() {
 
 	// Crypto setup
 	suite := openssl.NewAES128SHA256P256()
-	rand := crypto.HashStream(suite, []byte("example"), nil)
+	rand := abstract.HashStream(suite, []byte("example"), nil)
 
 	// Create an anonymity set of random "public keys"
-	X := make([]crypto.Point,3)
+	X := make([]abstract.Point,3)
 	for i := range(X) {			// pick random points
 		X[i],_ = suite.Point().Pick(nil,rand)
 	}
@@ -250,13 +250,13 @@ var benchSig1Ed25519 = benchGenSigEd25519(1)
 var benchSig10Ed25519 = benchGenSigEd25519(10)
 var benchSig100Ed25519 = benchGenSigEd25519(100)
 
-func benchGenKeys(suite crypto.Suite,
-		nkeys int) ([]crypto.Point,crypto.Secret) {
+func benchGenKeys(suite abstract.Suite,
+		nkeys int) ([]abstract.Point,abstract.Secret) {
 
 	rand := random.Stream
 
 	// Create an anonymity set of random "public keys"
-	X := make([]crypto.Point,nkeys)
+	X := make([]abstract.Point,nkeys)
 	for i := range(X) {			// pick random points
 		X[i],_ = suite.Point().Pick(nil,rand)
 	}
@@ -268,37 +268,37 @@ func benchGenKeys(suite crypto.Suite,
 	return X,x
 }
 
-func benchGenKeysOpenSSL(nkeys int) ([]crypto.Point,crypto.Secret) {
+func benchGenKeysOpenSSL(nkeys int) ([]abstract.Point,abstract.Secret) {
 	return benchGenKeys(openssl.NewAES128SHA256P256(), nkeys)
 }
 func benchGenSigOpenSSL(nkeys int) []byte {
 	suite := openssl.NewAES128SHA256P256()
-	rand := crypto.HashStream(suite, []byte("example"), nil)
+	rand := abstract.HashStream(suite, []byte("example"), nil)
 	return Sign(suite, rand, benchMessage,
 			Set(benchPubOpenSSL[:nkeys]), nil,
 			0, benchPriOpenSSL)
 }
 
-func benchGenKeysEd25519(nkeys int) ([]crypto.Point,crypto.Secret) {
+func benchGenKeysEd25519(nkeys int) ([]abstract.Point,abstract.Secret) {
 	return benchGenKeys(edwards.NewAES128SHA256Ed25519(false), nkeys)
 }
 func benchGenSigEd25519(nkeys int) []byte {
 	suite := edwards.NewAES128SHA256Ed25519(false)
-	rand := crypto.HashStream(suite, []byte("example"), nil)
+	rand := abstract.HashStream(suite, []byte("example"), nil)
 	return Sign(suite, rand, benchMessage,
 			Set(benchPubEd25519[:nkeys]), nil,
 			0, benchPriEd25519)
 }
 
-func benchSign(suite crypto.Suite, pub []crypto.Point, pri crypto.Secret,
+func benchSign(suite abstract.Suite, pub []abstract.Point, pri abstract.Secret,
 		niter int) {
-	rand := crypto.HashStream(suite, []byte("example"), nil)
+	rand := abstract.HashStream(suite, []byte("example"), nil)
 	for i := 0; i < niter; i++ {
 		Sign(suite, rand, benchMessage, Set(pub), nil, 0, pri)
 	}
 }
 
-func benchVerify(suite crypto.Suite, pub []crypto.Point,
+func benchVerify(suite abstract.Suite, pub []abstract.Point,
 		sig []byte, niter int) {
 	for i := 0; i < niter; i++ {
 		tag,err := Verify(suite, benchMessage, Set(pub), nil, sig)

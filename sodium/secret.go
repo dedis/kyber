@@ -10,7 +10,7 @@ import (
 	//"runtime"
 	"encoding/hex"
 	"crypto/cipher"
-	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/abstract"
 )
 
 
@@ -24,7 +24,7 @@ var s2 = secret{[32]byte{2}}
 var s3 = secret{[32]byte{3}}
 var s4 = secret{[32]byte{4}}
 
-func (s *secret) Set(s2 crypto.Secret) crypto.Secret {
+func (s *secret) Set(s2 abstract.Secret) abstract.Secret {
 	s.b = s2.(*secret).b
 	return s
 }
@@ -42,23 +42,23 @@ func (s *secret) Decode(buf []byte) error {
 	return nil
 }
 
-func (s *secret) Zero() crypto.Secret {
+func (s *secret) Zero() abstract.Secret {
 	panic("XXX")
 }
 
-func (s *secret) One() crypto.Secret {
+func (s *secret) One() abstract.Secret {
 	panic("XXX")
 }
 
-func (s *secret) SetInt64(v int64) crypto.Secret {
+func (s *secret) SetInt64(v int64) abstract.Secret {
 	panic("XXX")
 }
 
-func (s *secret) Equal(s2 crypto.Secret) bool {
+func (s *secret) Equal(s2 abstract.Secret) bool {
 	return bytes.Equal(s.b[:], s2.(*secret).b[:])
 }
 
-func (s *secret) Add(cx,cy crypto.Secret) crypto.Secret {
+func (s *secret) Add(cx,cy abstract.Secret) abstract.Secret {
 	x := cx.(*secret)
 	y := cy.(*secret)
 
@@ -71,27 +71,27 @@ func (s *secret) Add(cx,cy crypto.Secret) crypto.Secret {
 	return s
 }
 
-func (s *secret) Sub(cx,cy crypto.Secret) crypto.Secret {
+func (s *secret) Sub(cx,cy abstract.Secret) abstract.Secret {
 	panic("XXX")
 }
 
-func (s *secret) Neg(x crypto.Secret) crypto.Secret {
+func (s *secret) Neg(x abstract.Secret) abstract.Secret {
 	panic("XXX")
 }
 
-func (s *secret) Mul(cx,cy crypto.Secret) crypto.Secret {
+func (s *secret) Mul(cx,cy abstract.Secret) abstract.Secret {
 	panic("XXX")
 }
 
-func (s *secret) Div(cx,cy crypto.Secret) crypto.Secret {
+func (s *secret) Div(cx,cy abstract.Secret) abstract.Secret {
 	panic("XXX")
 }
 
-func (s *secret) Inv(x crypto.Secret) crypto.Secret {
+func (s *secret) Inv(x abstract.Secret) abstract.Secret {
 	panic("XXX")
 }
 
-func (s *secret) Pick(rand cipher.Stream) crypto.Secret {
+func (s *secret) Pick(rand cipher.Stream) abstract.Secret {
 	rand.XORKeyStream(s.b[:], s.b[:])
 	s.b[0] &= 248;
 	s.b[31] &= 63;

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"reflect"
 	"encoding/binary"
-	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/abstract"
 )
 
 
@@ -18,7 +18,7 @@ import (
 //
 // The Dissent crypto library uses this capability, for example,
 // to support dynamic instantiation of Point and Secret objects
-// of the concrete type appropriate for a given crypto.Suite.
+// of the concrete type appropriate for a given abstract.Suite.
 //
 type Constructors map[reflect.Type]func()interface{}
 
@@ -237,7 +237,7 @@ func (de *decoder) putvalue(wiretype int, val reflect.Value,
 		}
 
 		// If the object support self-decoding, use that.
-		enc,ok := val.Interface().(crypto.Encoding)
+		enc,ok := val.Interface().(abstract.Encoding)
 		if ok {
 			if wiretype != 2 {
 				return errors.New(

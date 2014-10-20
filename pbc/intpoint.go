@@ -9,7 +9,7 @@ import (
 	"errors"
 	"runtime"
 	"crypto/cipher"
-	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/abstract"
 )
 
 
@@ -44,16 +44,16 @@ func (p *intPoint) String() string {
 	return string(b[:l])
 }
 
-func (p *intPoint) Equal(p2 crypto.Point) bool {
+func (p *intPoint) Equal(p2 abstract.Point) bool {
 	return C.element_cmp(&p.e[0], &p2.(*intPoint).e[0]) == 0
 }
 
-func (p *intPoint) Null() crypto.Point {
+func (p *intPoint) Null() abstract.Point {
 	C.element_set1(&p.e[0])
 	return p
 }
 
-func (p *intPoint) Base() crypto.Point {
+func (p *intPoint) Base() abstract.Point {
 	panic("XXX")
 }
 
@@ -61,7 +61,7 @@ func (p *intPoint) PickLen() int {
 	panic("XXX")
 }
 
-func (p *intPoint) Pick(data []byte,rand cipher.Stream) (crypto.Point, []byte) {
+func (p *intPoint) Pick(data []byte,rand cipher.Stream) (abstract.Point, []byte) {
 	panic("XXX")
 }
 
@@ -69,22 +69,22 @@ func (p *intPoint) Data() ([]byte,error) {
 	panic("XXX")
 }
 
-func (p *intPoint) Add(a,b crypto.Point) crypto.Point {
+func (p *intPoint) Add(a,b abstract.Point) abstract.Point {
 	C.element_mul(&p.e[0], &a.(*intPoint).e[0], &b.(*intPoint).e[0])
 	return p
 }
 
-func (p *intPoint) Sub(a,b crypto.Point) crypto.Point {
+func (p *intPoint) Sub(a,b abstract.Point) abstract.Point {
 	C.element_div(&p.e[0], &a.(*intPoint).e[0], &b.(*intPoint).e[0])
 	return p
 }
 
-func (p *intPoint) Neg(a crypto.Point) crypto.Point {
+func (p *intPoint) Neg(a abstract.Point) abstract.Point {
 	C.element_invert(&p.e[0], &a.(*intPoint).e[0])
 	return p
 }
 
-func (p *intPoint) Mul(b crypto.Point, s crypto.Secret) crypto.Point {
+func (p *intPoint) Mul(b abstract.Point, s abstract.Secret) abstract.Point {
 	if b == nil {
 		return p.Base().Mul(p,s)
 	}
@@ -93,7 +93,7 @@ func (p *intPoint) Mul(b crypto.Point, s crypto.Secret) crypto.Point {
 }
 
 // Pairing operation, satisfying PairingPoint interface for GT group.
-func (p *intPoint) Pairing(p1,p2 crypto.Point) crypto.Point {
+func (p *intPoint) Pairing(p1,p2 abstract.Point) abstract.Point {
 	C.element_pairing(&p.e[0], &p1.(*point).e[0], &p2.(*point).e[0])
 	return p
 }

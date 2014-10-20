@@ -1,4 +1,4 @@
-package crypto
+package abstract
 
 import (
 	"io"

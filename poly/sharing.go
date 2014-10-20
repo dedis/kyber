@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"errors"
 	"crypto/cipher"
-	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
 )
 
@@ -26,16 +26,16 @@ import (
 
 // Private polynomial for Shamir secret sharing.
 type PriPoly struct {
-	g crypto.Group			// Cryptographic group in use
-	s []crypto.Secret		// Coefficients of secret polynomial
+	g abstract.Group			// Cryptographic group in use
+	s []abstract.Secret		// Coefficients of secret polynomial
 }
 
 // Create a fresh sharing polynomial in the Secret space of a given group.
 // Shares the provided Secret s, or picks a random one if s == nil.
-func (p *PriPoly) Pick(g crypto.Group, k int, s0 crypto.Secret,
+func (p *PriPoly) Pick(g abstract.Group, k int, s0 abstract.Secret,
 			rand cipher.Stream) *PriPoly {
 	p.g = g
-	s := make([]crypto.Secret, k)
+	s := make([]abstract.Secret, k)
 	if s0 == nil {		// Choose secret to share if none provided
 		s0 = g.Secret().Pick(rand)
 	}
@@ -48,7 +48,7 @@ func (p *PriPoly) Pick(g crypto.Group, k int, s0 crypto.Secret,
 }
 
 // Return the shared secret from a private sharing polynomial.
-func (p *PriPoly) Secret() crypto.Secret {
+func (p *PriPoly) Secret() abstract.Secret {
 	return p.s[0]
 }
 
@@ -68,7 +68,7 @@ func (p1 *PriPoly) Equal(p2 *PriPoly) bool {
 }
 
 // Evaluate the polynomial to produce the secret for party i.
-func (p *PriPoly) Eval(i int) crypto.Secret {
+func (p *PriPoly) Eval(i int) abstract.Secret {
 	g := p.g
 	k := len(p.s)
 	xi := g.Secret().SetInt64(1+int64(i))	// x-coordinate of this share
@@ -88,7 +88,7 @@ func (p *PriPoly) Add(p1,p2 *PriPoly) *PriPoly {
 	if g != p2.g || k != len(p2.s) {
 		panic("Mismatched polynomials")
 	}
-	s := make([]crypto.Secret, k)
+	s := make([]abstract.Secret, k)
 	for i := 0; i < k; i++ {
 		s[i] = g.Secret().Add(p1.s[i],p2.s[i])
 	}
@@ -114,9 +114,9 @@ func (p *PriPoly) String() string {
 
 // Secret shares generated from a private polynomial.
 type PriShares struct {
-	g crypto.Group		// Cryptographic group in use
+	g abstract.Group		// Cryptographic group in use
 	k int			// Reconstruction threshold
-	s []crypto.Secret	// Secret shares, one per sharing party.
+	s []abstract.Secret	// Secret shares, one per sharing party.
 }
 
 // Create a desired number of secret-shares from a private polynomial,
@@ -126,7 +126,7 @@ type PriShares struct {
 func (ps *PriShares) Split(p *PriPoly, n int) *PriShares {
 	g := p.g
 	k := len(p.s)
-	s := make([]crypto.Secret, n)
+	s := make([]abstract.Secret, n)
 	for i := 0; i < n; i++ {
 		s[i] = p.Eval(i)
 	}
@@ -137,27 +137,27 @@ func (ps *PriShares) Split(p *PriPoly, n int) *PriShares {
 }
 
 // Return a given node i's share.
-func (ps *PriShares) Share(i int) crypto.Secret {
+func (ps *PriShares) Share(i int) abstract.Secret {
 	return ps.s[i]
 }
 
 // Initialize a set of secret-shares to an initially empty list,
 // before populating using SetShare() and reconstruction.
-func (ps *PriShares) Empty(g crypto.Group, k,n int) {
+func (ps *PriShares) Empty(g abstract.Group, k,n int) {
 	ps.g = g
 	ps.k = k
-	ps.s = make([]crypto.Secret, n)
+	ps.s = make([]abstract.Secret, n)
 }
 
 // Set node i's share.
-func (ps *PriShares) SetShare(i int, s crypto.Secret) {
+func (ps *PriShares) SetShare(i int, s abstract.Secret) {
 	ps.s[i] = s
 }
 
 // Create an array of x-coordinates we need for Lagrange interpolation.
 // In the returned array, exactly k x-coordinates are non-nil.
-func (ps *PriShares) xCoords() []crypto.Secret {
-	x := make([]crypto.Secret, len(ps.s))
+func (ps *PriShares) xCoords() []abstract.Secret {
+	x := make([]abstract.Secret, len(ps.s))
 	c := 0
 	for i := range(ps.s) {
 		if ps.s[i] != nil {
@@ -177,7 +177,7 @@ func (ps *PriShares) xCoords() []crypto.Secret {
 // Use Lagrange interpolation to reconstruct a secret,
 // from a private share array of which
 // at least a threshold k of shares are populated (non-nil).
-func (ps *PriShares) Secret() crypto.Secret {
+func (ps *PriShares) Secret() abstract.Secret {
 
 	// compute Lagrange interpolation for point x=0 (the shared secret)
 	x := ps.xCoords()
@@ -223,26 +223,26 @@ func (ps *PriShares) String() string {
 
 // A public commitment to a secret-sharing polynomial.
 type PubPoly struct {
-	g crypto.Group		// Cryptographic group in use
-	b crypto.Point		// Base point, nil for standard base
-	p []crypto.Point	// Commitments to polynomial coefficients
+	g abstract.Group		// Cryptographic group in use
+	b abstract.Point		// Base point, nil for standard base
+	p []abstract.Point	// Commitments to polynomial coefficients
 }
 
 // Initialize to an empty polynomial for a given group and threshold (degree),
 // typically before using Decode() to fill in from a received message.
-func(pub *PubPoly) Init(g crypto.Group, k int, b crypto.Point) {
+func(pub *PubPoly) Init(g abstract.Group, k int, b abstract.Point) {
 	pub.g = g
 	pub.b = b
-	pub.p = make([]crypto.Point, k)
+	pub.p = make([]abstract.Point, k)
 }
 
 // Initialize to a public commitment to a given private polynomial.
 // Create commitments as encryptions of a given base point b,
 // or the standard base if b == nil.
-func (pub *PubPoly) Commit(pri *PriPoly, b crypto.Point) *PubPoly {
+func (pub *PubPoly) Commit(pri *PriPoly, b abstract.Point) *PubPoly {
 	g := pri.g
 	k := len(pri.s)
-	p := make([]crypto.Point, k)
+	p := make([]abstract.Point, k)
 	for i := 0; i < k; i++ {
 		p[i] = g.Point().Mul(b,pri.s[i])
 	}
@@ -253,7 +253,7 @@ func (pub *PubPoly) Commit(pri *PriPoly, b crypto.Point) *PubPoly {
 }
 
 // Return the secret commit (constant term) from this polynomial.
-func (pub *PubPoly) SecretCommit() crypto.Point {
+func (pub *PubPoly) SecretCommit() abstract.Point {
 	return pub.p[0]
 }
 
@@ -307,7 +307,7 @@ func (p1 *PubPoly) Equal(p2 *PubPoly) bool {
 }
 
 // Homomorphically evaluate a commitment to the share for party i.
-func (pub *PubPoly) Eval(i int) crypto.Point {
+func (pub *PubPoly) Eval(i int) abstract.Point {
 	g := pub.g
 	k := len(pub.p)
 	xi := g.Secret().SetInt64(1+int64(i))	// x-coordinate of this share
@@ -327,7 +327,7 @@ func (pub *PubPoly) Add(p1,p2 *PubPoly) *PubPoly {
 	if p1.g != p2.g || k != len(p2.p) {
 		panic("Mismatched polynomial commitments")
 	}
-	p := make([]crypto.Point, k)
+	p := make([]abstract.Point, k)
 	for i := 0; i < k; i++ {
 		p[i] = g.Point().Add(p1.p[i],p2.p[i])
 	}
@@ -338,7 +338,7 @@ func (pub *PubPoly) Add(p1,p2 *PubPoly) *PubPoly {
 
 // Check a secret share against a public polynomial commitment.
 // This amounts to evaluating the polynomial under homomorphic encryption.
-func (pub *PubPoly) Check(i int, share crypto.Secret) bool {
+func (pub *PubPoly) Check(i int, share abstract.Secret) bool {
 	pv := pub.Eval(i)
 	ps := pub.g.Point().Mul(pub.b,share)
 	return pv.Equal(ps)
@@ -358,10 +358,10 @@ func (p *PubPoly) String() string {
 
 // Public commitments to shares generated from a private polynomial.
 type PubShares struct {
-	g crypto.Group		// Cryptographic group in use
+	g abstract.Group		// Cryptographic group in use
 	k int			// Reconstruction threshold
-	b crypto.Point		// Base point, nil for standard base
-	p []crypto.Point	// Commitment shares, one per sharing party.
+	b abstract.Point		// Base point, nil for standard base
+	p []abstract.Point	// Commitment shares, one per sharing party.
 }
 
 // Create individual share commitments from a polynomial commitment,
@@ -370,7 +370,7 @@ type PubShares struct {
 func (ps *PubShares) Split(pub *PubPoly, n int) *PubShares {
 	g := pub.g
 	k := len(pub.p)
-	p := make([]crypto.Point, n)
+	p := make([]abstract.Point, n)
 	for i := 0; i < n; i++ {
 		p[i] = pub.Eval(i)
 	}
@@ -382,19 +382,19 @@ func (ps *PubShares) Split(pub *PubPoly, n int) *PubShares {
 }
 
 // Return the share commitment for a given party i.
-func (ps *PubShares) Share(i int) crypto.Point {
+func (ps *PubShares) Share(i int) abstract.Point {
 	return ps.p[i]
 }
 
 // Set node i's share commitment.
-func (ps *PubShares) SetShare(i int, p crypto.Point) {
+func (ps *PubShares) SetShare(i int, p abstract.Point) {
 	ps.p[i] = p
 }
 
 // Create an array of x-coordinates we need for Lagrange interpolation.
 // In the returned array, exactly k x-coordinates are non-nil.
-func (ps *PubShares) xCoords() []crypto.Secret {
-	x := make([]crypto.Secret, len(ps.p))
+func (ps *PubShares) xCoords() []abstract.Secret {
+	x := make([]abstract.Secret, len(ps.p))
 	c := 0
 	for i := range(ps.p) {
 		if ps.p[i] != nil {
@@ -415,7 +415,7 @@ func (ps *PubShares) xCoords() []crypto.Secret {
 // to reconstruct a secret commitment,
 // from an array of share commitments of which
 // at least a threshold k of shares are populated (non-nil).
-func (ps *PubShares) SecretCommit() crypto.Point {
+func (ps *PubShares) SecretCommit() abstract.Point {
 
 	// compute Lagrange interpolation for point x=0 (the shared secret)
 	// XXX could probably share more code with non-homomorphic version.
@@ -463,7 +463,7 @@ func (ps *PubShares) String() string {
 
 
 
-func testSharing(g crypto.Group) {
+func testSharing(g abstract.Group) {
 
 	k := 4
 	n := 10

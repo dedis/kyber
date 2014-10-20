@@ -5,7 +5,7 @@ import (
 	"crypto/hmac"
 	"crypto/cipher"
 	"crypto/subtle"
-	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
 )
 
@@ -21,12 +21,12 @@ import (
 // which are not directly usable in multiparty contexts.
 //
 type SKEME struct {
-	suite crypto.Suite
+	suite abstract.Suite
 	hide bool
 	lpri PriKey			// local private key
 	rpub Set			// remote public key
-	lx crypto.Secret		// local Diffie-Hellman private key
-	lX,rX crypto.Point		// local,remote Diffie-Hellman pubkeys
+	lx abstract.Secret		// local Diffie-Hellman private key
+	lX,rX abstract.Point		// local,remote Diffie-Hellman pubkeys
 	lXb,rXb []byte			// local,remote DH pubkeys byte-encoded
 
 	ms cipher.Stream		// master symmetric shared stream
@@ -38,7 +38,7 @@ type SKEME struct {
 }
 
 // Initialize...
-func (sk *SKEME) Init(suite crypto.Suite, rand cipher.Stream,
+func (sk *SKEME) Init(suite abstract.Suite, rand cipher.Stream,
 			lpri PriKey, rpub Set, hide bool) {
 	sk.suite = suite
 	sk.hide = hide
@@ -84,7 +84,7 @@ func (sk *SKEME) Recv(rm []byte) (bool,error) {
 
 		// Compute the shared secret and the key-confirmation MACs
 		DH := sk.suite.Point().Mul(rX,sk.lx)
-		sk.ms = crypto.PointStream(sk.suite, DH)
+		sk.ms = abstract.PointStream(sk.suite, DH)
 		mkey := random.Bytes(sk.suite.KeyLen(),sk.ms)
 		sk.ls,sk.lmac = sk.mkmac(mkey,sk.lXb,sk.rXb)
 		sk.rs,sk.rmac = sk.mkmac(mkey,sk.rXb,sk.lXb)

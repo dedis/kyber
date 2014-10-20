@@ -10,7 +10,7 @@ import "C"
 import (
 	"unsafe"
 	"runtime"
-	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/abstract"
 )
 
 
@@ -36,7 +36,7 @@ type Pairing struct {
 
 // Group interface extension to create pairing-capable points.
 type PairingGroup interface {
-	crypto.Group			// Standard Group operations
+	abstract.Group			// Standard Group operations
 
 	PairingPoint() PairingPoint	// Create new pairing-capable Point
 }
@@ -44,11 +44,11 @@ type PairingGroup interface {
 // Point interface extension for a point in a pairing target group (GT),
 // which supports the Pairing operation.
 type PairingPoint interface {
-	crypto.Point			// Standard Point operations
+	abstract.Point			// Standard Point operations
 
 	// Compute the pairing of two points p1 and p2,
 	// which must be in the associated groups G1 and G2 respectively.
-	Pairing(p1,p2 crypto.Point) crypto.Point
+	Pairing(p1,p2 abstract.Point) abstract.Point
 }
 
 
@@ -132,12 +132,12 @@ nqr 142721363302176037340346936780070353538541593770301992936740616924
 `) }
 
 // Return the G1 source group for this pairing.
-func (p *Pairing) G1() crypto.Group {
+func (p *Pairing) G1() abstract.Group {
 	return &p.g1
 }
 
 // Return the G2 source group for this pairing.
-func (p *Pairing) G2() crypto.Group {
+func (p *Pairing) G2() abstract.Group {
 	return &p.g2
 }
 
@@ -164,7 +164,7 @@ func (g *g1group) SecretLen() int {
 	return int(C.pairing_length_in_bytes_Zr(&g.p.p[0]))
 }
 
-func (g *g1group) Secret() crypto.Secret {
+func (g *g1group) Secret() abstract.Secret {
 	s := newSecret()
 	C.element_init_Zr(&s.e[0], &g.p.p[0])
 	return s
@@ -174,7 +174,7 @@ func (g *g1group) PointLen() int {
 	return int(C.pairing_length_in_bytes_compressed_G1(&g.p.p[0]))
 }
 
-func (g *g1group) Point() crypto.Point {
+func (g *g1group) Point() abstract.Point {
 	p := newCurvePoint()
 	C.element_init_G1(&p.e[0], &g.p.p[0])
 	return p
@@ -195,7 +195,7 @@ func (g *g2group) SecretLen() int {
 	return int(C.pairing_length_in_bytes_Zr(&g.p.p[0]))
 }
 
-func (g *g2group) Secret() crypto.Secret {
+func (g *g2group) Secret() abstract.Secret {
 	s := newSecret()
 	C.element_init_Zr(&s.e[0], &g.p.p[0])
 	return s
@@ -205,7 +205,7 @@ func (g *g2group) PointLen() int {
 	return int(C.pairing_length_in_bytes_compressed_G2(&g.p.p[0]))
 }
 
-func (g *g2group) Point() crypto.Point {
+func (g *g2group) Point() abstract.Point {
 	p := newCurvePoint()
 	C.element_init_G2(&p.e[0], &g.p.p[0])
 	return p
@@ -226,7 +226,7 @@ func (g *gtgroup) SecretLen() int {
 	return int(C.pairing_length_in_bytes_Zr(&g.p.p[0]))
 }
 
-func (g *gtgroup) Secret() crypto.Secret {
+func (g *gtgroup) Secret() abstract.Secret {
 	s := newSecret()
 	C.element_init_Zr(&s.e[0], &g.p.p[0])
 	return s
@@ -236,7 +236,7 @@ func (g *gtgroup) PointLen() int {
 	return int(C.pairing_length_in_bytes_GT(&g.p.p[0]))
 }
 
-func (g *gtgroup) Point() crypto.Point {
+func (g *gtgroup) Point() abstract.Point {
 	return g.PairingPoint()
 }
 

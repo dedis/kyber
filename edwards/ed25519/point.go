@@ -22,7 +22,7 @@ import (
 	"encoding/hex"
 	"crypto/cipher"
 	"crypto/sha256"
-	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/nist"
 )
 
@@ -56,7 +56,7 @@ func (P *point) Decode(b []byte) error {
 }
 
 // Equality test for two Points on the same curve
-func (P *point) Equal(P2 crypto.Point) bool {
+func (P *point) Equal(P2 abstract.Point) bool {
 
 	// XXX better to test equality without normalizing extended coords
 
@@ -72,19 +72,19 @@ func (P *point) Equal(P2 crypto.Point) bool {
 }
 
 // Set point to be equal to P2.
-func (P *point) Set(P2 crypto.Point) crypto.Point {
+func (P *point) Set(P2 abstract.Point) abstract.Point {
 	P.ge = P2.(*point).ge
 	return P
 }
 
 // Set to the neutral element, which is (0,1) for twisted Edwards curves.
-func (P *point) Null() crypto.Point {
+func (P *point) Null() abstract.Point {
 	P.ge.Zero()
 	return P
 }
 
 // Set to the standard base point for this curve
-func (P *point) Base() crypto.Point {
+func (P *point) Base() abstract.Point {
 	P.ge = baseext
 	return P
 }
@@ -96,7 +96,7 @@ func (P *point) PickLen() int {
 	return (255 - 8 - 8) / 8
 }
 
-func (P *point) Pick(data []byte, rand cipher.Stream) (crypto.Point, []byte) {
+func (P *point) Pick(data []byte, rand cipher.Stream) (abstract.Point, []byte) {
 
 	// How many bytes to embed?
 	dl := P.PickLen()
@@ -159,7 +159,7 @@ func (P *point) Data() ([]byte,error) {
 	return b[1:1+dl],nil
 }
 
-func (P *point) Add(P1,P2 crypto.Point) crypto.Point {
+func (P *point) Add(P1,P2 abstract.Point) abstract.Point {
 	E1 := P1.(*point)
 	E2 := P2.(*point)
 
@@ -175,7 +175,7 @@ func (P *point) Add(P1,P2 crypto.Point) crypto.Point {
 	return P
 }
 
-func (P *point) Sub(P1,P2 crypto.Point) crypto.Point {
+func (P *point) Sub(P1,P2 abstract.Point) abstract.Point {
 	E1 := P1.(*point)
 	E2 := P2.(*point)
 
@@ -193,7 +193,7 @@ func (P *point) Sub(P1,P2 crypto.Point) crypto.Point {
 
 // Find the negative of point A.
 // For Edwards curves, the negative of (x,y) is (-x,y).
-func (P *point) Neg(A crypto.Point) crypto.Point {
+func (P *point) Neg(A abstract.Point) abstract.Point {
 	P.ge.Neg(&A.(*point).ge)
 	return P
 }
@@ -202,7 +202,7 @@ func (P *point) Neg(A crypto.Point) crypto.Point {
 // Multiply point p by scalar s using the repeated doubling method.
 // XXX This is vartime; for our general-purpose Mul operator
 // it would be far preferable for security to do this constant-time.
-func (P *point) Mul(A crypto.Point, s crypto.Secret) crypto.Point {
+func (P *point) Mul(A abstract.Point, s abstract.Secret) abstract.Point {
 
 	// Convert the scalar to fixed-length little-endian form.
 	sb := s.(*nist.Int).V.Bytes()
@@ -248,7 +248,7 @@ func (c *Curve) SecretLen() int {
 }
 
 // Create a new Secret for the Ed25519 curve.
-func (c *Curve) Secret() crypto.Secret {
+func (c *Curve) Secret() abstract.Secret {
 //	if c.FullGroup {
 //		return nist.NewInt(0, fullOrder)
 //	} else {
@@ -262,7 +262,7 @@ func (c *Curve) PointLen() int {
 }
 
 // Create a new Point on the Ed25519 curve.
-func (c *Curve) Point() crypto.Point {
+func (c *Curve) Point() abstract.Point {
 	P := new(point)
 	//P.c = c
 	return P
@@ -298,7 +298,7 @@ func (s *suite) Stream(key []byte) cipher.Stream {
 }
 
 // Ciphersuite based on AES-128, SHA-256, and the Ed25519 curve.
-func newAES128SHA256Ed25519() crypto.Suite {
+func newAES128SHA256Ed25519() abstract.Suite {
 	suite := new(suite)
 	return suite
 }

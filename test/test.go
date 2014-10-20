@@ -3,12 +3,12 @@ package test
 import (
 	"bytes"
 	"crypto/cipher"
-	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
 )
 
 
-func testEmbed(g crypto.Group, rand cipher.Stream, points *[]crypto.Point,
+func testEmbed(g abstract.Group, rand cipher.Stream, points *[]abstract.Point,
 		s string) {
 	//println("embedding: ",s)
 	b := []byte(s)
@@ -35,11 +35,11 @@ func testEmbed(g crypto.Group, rand cipher.Stream, points *[]crypto.Point,
 // for comparison across alternative implementations
 // that are supposed to be equivalent.
 //
-func testGroup(g crypto.Group, rand cipher.Stream) []crypto.Point {
+func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 //	fmt.Printf("\nTesting group '%s': %d-byte Point, %d-byte Secret\n",
 //			g.String(), g.PointLen(), g.SecretLen())
 
-	points := make([]crypto.Point,0)
+	points := make([]abstract.Point,0)
 	ptmp := g.Point()
 	stmp := g.Secret()
 	pzero := g.Point().Null()
@@ -174,17 +174,17 @@ func testGroup(g crypto.Group, rand cipher.Stream) []crypto.Point {
 }
 
 // Apply a generic set of validation tests to a cryptographic Group.
-func TestGroup(g crypto.Group) {
+func TestGroup(g abstract.Group) {
 	testGroup(g, random.Stream)
 }
 
 // Test two group implementations that are supposed to be equivalent,
 // and compare their results.
-func TestCompareGroups(suite crypto.Suite, g1,g2 crypto.Group) {
+func TestCompareGroups(suite abstract.Suite, g1,g2 abstract.Group) {
 
 	// Produce test results from the same pseudorandom seed
-	r1 := testGroup(g1, crypto.HashStream(suite, nil, nil))
-	r2 := testGroup(g2, crypto.HashStream(suite, nil, nil))
+	r1 := testGroup(g1, abstract.HashStream(suite, nil, nil))
+	r2 := testGroup(g2, abstract.HashStream(suite, nil, nil))
 
 	// Compare resulting Points
 	for i := range(r1) {
@@ -200,7 +200,7 @@ func TestCompareGroups(suite crypto.Suite, g1,g2 crypto.Group) {
 }
 
 // Apply a standard set of validation tests to a ciphersuite.
-func TestSuite(suite crypto.Suite) {
+func TestSuite(suite abstract.Suite) {
 
 	// Try hashing something
 	h := suite.Hash()
@@ -222,7 +222,7 @@ func TestSuite(suite crypto.Suite) {
 	//println(hex.Dump(sb))
 
 	// Generate a sub-stream
-	ss := crypto.SubStream(suite,s)
+	ss := abstract.SubStream(suite,s)
 	sb = make([]byte,128)
 	ss.XORKeyStream(sb,sb)
 	//println("SubStream:")

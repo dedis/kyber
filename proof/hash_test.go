@@ -3,7 +3,7 @@ package proof
 import (
 	"fmt"
 	"encoding/hex"
-	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/openssl"
 )
 
@@ -14,7 +14,7 @@ func ExampleHashProve_1() {
 
 	// Crypto setup
 	suite := openssl.NewAES128SHA256P256()
-	rand := crypto.HashStream(suite, []byte("example"), nil)
+	rand := abstract.HashStream(suite, []byte("example"), nil)
 	B := suite.Point().Base()		// standard base point
 
 	// Create a public/private keypair (X,x)
@@ -24,8 +24,8 @@ func ExampleHashProve_1() {
 	// Generate a proof that we know the discrete logarithm of X.
 	M := "Hello World!"			// message we want to sign
 	rep := Rep("X","x","B")
-	sec := map[string]crypto.Secret{"x":x}
-	pub := map[string]crypto.Point{"B":B, "X":X}
+	sec := map[string]abstract.Secret{"x":x}
+	pub := map[string]abstract.Point{"B":B, "X":X}
 	prover := rep.Prover(suite, sec, pub, nil)
 	proof,_ := HashProve(suite, M, rand, prover)
 	fmt.Print("Signature:\n"+hex.Dump(proof))
@@ -79,11 +79,11 @@ func ExampleHashProve_2() {
 
 	// Crypto setup
 	suite := openssl.NewAES128SHA256P256()
-	rand := crypto.HashStream(suite, []byte("example"), nil)
+	rand := abstract.HashStream(suite, []byte("example"), nil)
 	B := suite.Point().Base()		// standard base point
 
 	// Create an anonymity ring of random "public keys"
-	X := make([]crypto.Point,3)
+	X := make([]abstract.Point,3)
 	for i := range(X) {			// pick random points
 		X[i],_ = suite.Point().Pick(nil,rand)
 	}
@@ -96,13 +96,13 @@ func ExampleHashProve_2() {
 	// Produce the correct linkage tag for the signature,
 	// as a pseudorandom base point multiplied by our private key.
 	linkScope := []byte("The Linkage Scope")
-	linkHash := crypto.HashStream(suite, linkScope, nil)
+	linkHash := abstract.HashStream(suite, linkScope, nil)
 	linkBase,_ := suite.Point().Pick(nil, linkHash)
 	linkTag := suite.Point().Mul(linkBase, x)
 
 	// Generate the proof predicate: an OR branch for each public key.
-	sec := map[string]crypto.Secret{"x":x}
-	pub := map[string]crypto.Point{"B":B, "BT":linkBase, "T":linkTag}
+	sec := map[string]abstract.Secret{"x":x}
+	pub := map[string]abstract.Point{"B":B, "BT":linkBase, "T":linkTag}
 	preds := make([]Predicate, len(X))
 	for i := range(X) {
 		name := fmt.Sprintf("X[%d]",i)	// "X[0]","X[1]",...

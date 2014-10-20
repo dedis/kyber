@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"reflect"
 	"encoding/binary"
-	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/abstract"
 )
 
 
@@ -213,7 +213,7 @@ func (en *encoder) value(key uint64, val reflect.Value) {
 		}
 
 		// If the object support self-encoding, use that.
-		if enc,ok := val.Interface().(crypto.Encoding); ok {
+		if enc,ok := val.Interface().(abstract.Encoding); ok {
 			en.uvarint(key | 2)
 			en.Write(enc.Encode())
 			return

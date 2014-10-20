@@ -3,20 +3,20 @@ package shuffle
 import (
 	//"fmt"
 	//"time"
-	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/proof"
 	"github.com/dedis/crypto/random"
 )
 
-func TestShuffle(suite crypto.Suite, k int) {
+func TestShuffle(suite abstract.Suite, k int) {
 
 	// Create a "server" private/public keypair
 	h := suite.Secret().Pick(random.Stream)
 	H := suite.Point().Mul(nil, h)
 
 	// Create a set of ephemeral "client" keypairs to shuffle
-	c := make([]crypto.Secret, k)
-	C := make([]crypto.Point, k)
+	c := make([]abstract.Secret, k)
+	C := make([]abstract.Point, k)
 //	fmt.Println("\nclient keys:")
 	for i := 0; i < k; i++ {
 		c[i] = suite.Secret().Pick(random.Stream)
@@ -25,8 +25,8 @@ func TestShuffle(suite crypto.Suite, k int) {
 	}
 
 	// ElGamal-encrypt all these keypairs with the "server" key
-	X := make([]crypto.Point, k)
-	Y := make([]crypto.Point, k)
+	X := make([]abstract.Point, k)
+	Y := make([]abstract.Point, k)
 	r := suite.Secret()		// temporary
 	for i := 0; i < k; i++ {
 		r.Pick(random.Stream)

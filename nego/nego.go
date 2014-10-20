@@ -14,13 +14,13 @@ import (
 	"errors"
 	"crypto/cipher"
 	"encoding/binary"
-	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/abstract"
 )
 
 
 type Entry struct {
-	Suite crypto.Suite	// Ciphersuite this public key is drawn from
-	PubKey crypto.Point	// Public key of this entrypoint's owner
+	Suite abstract.Suite	// Ciphersuite this public key is drawn from
+	PubKey abstract.Point	// Public key of this entrypoint's owner
 	Data []byte		// Entrypoint data decryptable by owner
 }
 
@@ -34,13 +34,13 @@ type suiteKey struct {
 
 	// Ephemeral Diffie-Hellman key for all key-holders using this suite.
 	// Should have a uniform representation, e.g., an Elligator point.
-	dhpri crypto.Secret
-	dhpub crypto.Point
+	dhpri abstract.Secret
+	dhpub abstract.Point
 	dhrep []byte
 }
 
 /*
-func (s *suiteKey) fresh(suite crypto.Suite) {
+func (s *suiteKey) fresh(suite abstract.Suite) {
 	dhpri := entry.suite.Secret().Pick(rand)
 	dhpub := entry.Suite.Point().Mul(nil, dhpri)
 	dhrep := dhpub.UniformEncode()
@@ -49,7 +49,7 @@ func (s *suiteKey) fresh(suite crypto.Suite) {
 */
 
 type suiteInfo struct {
-	ste crypto.Suite		// ciphersuite
+	ste abstract.Suite		// ciphersuite
 	tag []uint32			// per-position pseudorandom tag
 	pos []int			// alternative point positions
 	plen int			// length of each point in bytes
@@ -58,7 +58,7 @@ type suiteInfo struct {
 	// layout info
 	//nodes []*node			// layout node for reserved positions
 	lev int				// layout-chosen level for this suite
-	pri crypto.Secret		// ephemeral Diffie-Hellman private key
+	pri abstract.Secret		// ephemeral Diffie-Hellman private key
 	pub []byte			// corresponding encoded public key
 }
 
@@ -67,15 +67,15 @@ func (si *suiteInfo) String() string {
 }
 
 // Determine all the alternative DH point positions for a ciphersuite.
-func (si *suiteInfo) init(ste crypto.Suite, nlevels int) {
+func (si *suiteInfo) init(ste abstract.Suite, nlevels int) {
 	si.ste = ste
 	si.tag = make([]uint32, nlevels)
 	si.pos = make([]int, nlevels)
-	si.plen = ste.Point().(crypto.Hiding).HideLen()	// XXX
+	si.plen = ste.Point().(abstract.Hiding).HideLen()	// XXX
 
 	// Create a pseudo-random stream from which to pick positions
 	str := fmt.Sprintf("NegoCipherSuite:%s", ste.String())
-	rand := crypto.HashStream(ste, []byte(str), nil)
+	rand := abstract.HashStream(ste, []byte(str), nil)
 
 	// Alternative 0 is always at position 0, so start with level 1.
 	levofs := 0			// starting offset for current level
@@ -158,7 +158,7 @@ func (s *suiteList) Swap(i,j int) {
 //
 type Writer struct {
 	suites suiteList	// Sorted list of ciphersuites used
-	simap map[crypto.Suite]*suiteInfo	// suiteInfo for each Suite
+	simap map[abstract.Suite]*suiteInfo	// suiteInfo for each Suite
 	layout skipLayout	// Reservation map representing layout
 	entries []Entry		// Entrypoints defined by caller
 	entofs map[int]int	// Map of entrypoints to header offsets
@@ -198,7 +198,7 @@ func (w *Writer) SetMaxLen(max int) {
 // XXX if multiple entrypoints are improperly passed for the same keyholder,
 // bad things happen to security - we should harden the API against that.
 //
-func (w *Writer) Layout(suiteLevel map[crypto.Suite]int,
+func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 			entrypoints []Entry,
 			rand cipher.Stream) (int,error) {
 
@@ -209,7 +209,7 @@ func (w *Writer) Layout(suiteLevel map[crypto.Suite]int,
 
 	// Determine the set of ciphersuites in use.
 /*
-	suites := make(map[crypto.Suite]struct{})
+	suites := make(map[abstract.Suite]struct{})
 	for i := range(entrypoints) {
 		entry := entrypoints[i]
 		if _,ok := suites[suite]; !ok {
@@ -223,7 +223,7 @@ func (w *Writer) Layout(suiteLevel map[crypto.Suite]int,
 	// and the maximum byte offset for each.
 	w.suites.s = make([]*suiteInfo, 0, len(suiteLevel))
 	max := 0
-	simap := make(map[crypto.Suite]*suiteInfo)
+	simap := make(map[abstract.Suite]*suiteInfo)
 	w.simap = simap
 	for suite,nlevels := range suiteLevel {
 		si := suiteInfo{}
@@ -376,7 +376,7 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 		for {
 			pri.Pick(rand)		// pick fresh secret
 			pub.Mul(nil, pri)	// get DH public key
-			buf = pub.(crypto.Hiding).HideEncode(rand)
+			buf = pub.(abstract.Hiding).HideEncode(rand)
 			if buf != nil {
 				break
 			}
@@ -404,7 +404,7 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 		dhkey := si.ste.Point().Mul(e.PubKey, si.pri)
 
 		// Encrypt the entrypoint data with it.
-		stream := crypto.PointStream(si.ste, dhkey)
+		stream := abstract.PointStream(si.ste, dhkey)
 		msgbuf := w.growBuf(lo,hi)
 		stream.XORKeyStream(msgbuf, e.Data)
 	}

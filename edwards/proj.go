@@ -3,7 +3,7 @@ package edwards
 import (
 	"math/big"
 	"crypto/cipher"
-	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/nist"
 )
 
@@ -12,7 +12,7 @@ type projPoint struct {
 	c *ProjectiveCurve
 }
 
-func (P *projPoint) initXY(x,y *big.Int, c crypto.Group) {
+func (P *projPoint) initXY(x,y *big.Int, c abstract.Group) {
 	P.c = c.(*ProjectiveCurve)
 	P.X.Init(x,&P.c.P)
 	P.Y.Init(y,&P.c.P)
@@ -62,7 +62,7 @@ func (P *projPoint) HideDecode(rep []byte) {
 //		iff
 //	(X1*Z2,Y1*Z2) == (X2*Z1,Y2*Z1)
 //
-func (P1 *projPoint) Equal(CP2 crypto.Point) bool {
+func (P1 *projPoint) Equal(CP2 abstract.Point) bool {
 	P2 := CP2.(*projPoint)
 	var t1,t2 nist.Int
 	xeq := t1.Mul(&P1.X,&P2.Z).Equal(t2.Mul(&P2.X,&P1.Z))
@@ -70,7 +70,7 @@ func (P1 *projPoint) Equal(CP2 crypto.Point) bool {
 	return xeq && yeq
 }
 
-func (P *projPoint) Set(CP2 crypto.Point) crypto.Point {
+func (P *projPoint) Set(CP2 abstract.Point) abstract.Point {
 	P2 := CP2.(*projPoint)
 	P.c = P2.c
 	P.X.Set(&P2.X)
@@ -79,12 +79,12 @@ func (P *projPoint) Set(CP2 crypto.Point) crypto.Point {
 	return P
 }
 
-func (P *projPoint) Null() crypto.Point {
+func (P *projPoint) Null() abstract.Point {
 	P.Set(&P.c.null)
 	return P
 }
 
-func (P *projPoint) Base() crypto.Point {
+func (P *projPoint) Base() abstract.Point {
 	P.Set(&P.c.base)
 	return P
 }
@@ -101,7 +101,7 @@ func (P *projPoint) normalize() {
 	P.Z.V.SetInt64(1)
 }
 
-func (P *projPoint) Pick(data []byte,rand cipher.Stream) (crypto.Point, []byte) {
+func (P *projPoint) Pick(data []byte,rand cipher.Stream) (abstract.Point, []byte) {
 	return P,P.c.pickPoint(P, data, rand)
 }
 
@@ -117,7 +117,7 @@ func (P *projPoint) Data() ([]byte,error) {
 //	http://eprint.iacr.org/2008/013.pdf
 //	https://hyperelliptic.org/EFD/g1p/auto-twisted-projective.html
 //
-func (P *projPoint) Add(CP1,CP2 crypto.Point) crypto.Point {
+func (P *projPoint) Add(CP1,CP2 abstract.Point) abstract.Point {
 	P1 := CP1.(*projPoint)
 	P2 := CP2.(*projPoint)
 	X1,Y1,Z1 := &P1.X,&P1.Y,&P1.Z
@@ -140,7 +140,7 @@ func (P *projPoint) Add(CP1,CP2 crypto.Point) crypto.Point {
 }
 
 // Subtract points so that their secrets subtract homomorphically
-func (P *projPoint) Sub(CP1,CP2 crypto.Point) crypto.Point {
+func (P *projPoint) Sub(CP1,CP2 abstract.Point) abstract.Point {
 	P1 := CP1.(*projPoint)
 	P2 := CP2.(*projPoint)
 	X1,Y1,Z1 := &P1.X,&P1.Y,&P1.Z
@@ -164,7 +164,7 @@ func (P *projPoint) Sub(CP1,CP2 crypto.Point) crypto.Point {
 
 // Find the negative of point A.
 // For Edwards curves, the negative of (x,y) is (-x,y).
-func (P *projPoint) Neg(CA crypto.Point) crypto.Point {
+func (P *projPoint) Neg(CA abstract.Point) abstract.Point {
 	A := CA.(*projPoint)
 	P.c = A.c
 	P.X.Neg(&A.X)
@@ -190,7 +190,7 @@ func (P *projPoint) double() {
 }
 
 // Multiply point p by scalar s using the repeated doubling method.
-func (P *projPoint) Mul(G crypto.Point, s crypto.Secret) crypto.Point {
+func (P *projPoint) Mul(G abstract.Point, s abstract.Secret) abstract.Point {
 	v := s.(*nist.Int).V
 	if G == nil {
 		return P.Base().Mul(P,s)
@@ -228,7 +228,7 @@ type ProjectiveCurve struct {
 }
 
 // Create a new Point on this curve.
-func (c *ProjectiveCurve) Point() crypto.Point {
+func (c *ProjectiveCurve) Point() abstract.Point {
 	P := new(projPoint)
 	P.c = c
 	//P.Set(&c.null)

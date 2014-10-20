@@ -5,7 +5,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/sha256"
-	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/abstract"
 )
 
 type suiteAES128SHA256P256 struct {
@@ -30,7 +30,7 @@ func (s *suiteAES128SHA256P256) Stream(key []byte) cipher.Stream {
 }
 
 // Ciphersuite based on AES-128, SHA-256, and the NIST P-256 elliptic curve.
-func NewAES128SHA256P256() crypto.Suite {
+func NewAES128SHA256P256() abstract.Suite {
 	suite := new(suiteAES128SHA256P256)
 	suite.p256.Init()
 	return suite

@@ -4,22 +4,22 @@ import (
 	"bytes"
 	"errors"
 	"crypto/cipher"
-	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/abstract"
 )
 
 // unlinkable ring signature
 type uSig struct {
-	C0 crypto.Secret
-	S []crypto.Secret
+	C0 abstract.Secret
+	S []abstract.Secret
 }
 
 // linkable ring signature
 type lSig struct {
 	uSig
-	Tag crypto.Point
+	Tag abstract.Point
 }
 
-func signH1pre(suite crypto.Suite, linkScope []byte, linkTag crypto.Point,
+func signH1pre(suite abstract.Suite, linkScope []byte, linkTag abstract.Point,
 		message []byte) []byte {
 	//fmt.Printf("scope '%s' tag %v M %s\n",
 	//		hex.EncodeToString(linkScope), linkTag,
@@ -33,7 +33,7 @@ func signH1pre(suite crypto.Suite, linkScope []byte, linkTag crypto.Point,
 	return H1pre.Sum(nil)
 }
 
-func signH1(suite crypto.Suite, H1pb []byte, PG,PH crypto.Point) crypto.Secret {
+func signH1(suite abstract.Suite, H1pb []byte, PG,PH abstract.Point) abstract.Secret {
 	H1 := suite.Hash()
 	H1.Write(H1pb)
 	H1.Write(PG.Encode())
@@ -108,8 +108,8 @@ func signH1(suite crypto.Suite, H1pb []byte, PG,PH crypto.Point) crypto.Secret {
 // or that members may be persuaded or coerced into revealing whether or not
 // they produced a signature of interest.
 //
-func Sign(suite crypto.Suite, random cipher.Stream, message []byte,
-	anonymitySet Set, linkScope []byte, mine int, privateKey crypto.Secret) []byte {
+func Sign(suite abstract.Suite, random cipher.Stream, message []byte,
+	anonymitySet Set, linkScope []byte, mine int, privateKey abstract.Secret) []byte {
 
 	// Note that Rivest's original ring construction directly supports
 	// heterogeneous rings containing public keys of different types -
@@ -122,7 +122,7 @@ func Sign(suite crypto.Suite, random cipher.Stream, message []byte,
 	// which are not readily feasible with the original ring construction.
 
 	n := len(anonymitySet)			// anonymity set size
-	L := []crypto.Point(anonymitySet)	// public keys in anonymity set
+	L := []abstract.Point(anonymitySet)	// public keys in anonymity set
 	pi := mine
 
 	// If we want a linkable ring signature, produce correct linkage tag,
@@ -130,9 +130,9 @@ func Sign(suite crypto.Suite, random cipher.Stream, message []byte,
 	// Liu's scheme specifies the linkScope as a hash of the ring;
 	// this is one reasonable choice of linkage scope,
 	// but there are others, so we parameterize this choice.
-	var linkBase,linkTag crypto.Point
+	var linkBase,linkTag abstract.Point
 	if linkScope != nil {
-		linkStream := crypto.HashStream(suite, linkScope, nil)
+		linkStream := abstract.HashStream(suite, linkScope, nil)
 		linkBase,_ = suite.Point().Pick(nil, linkStream)
 		linkTag = suite.Point().Mul(linkBase, privateKey)
 	}
@@ -145,7 +145,7 @@ func Sign(suite crypto.Suite, random cipher.Stream, message []byte,
 
 	// Pick a random commit for my ring position
 	u := suite.Secret().Pick(random)
-	var UB,UL crypto.Point
+	var UB,UL abstract.Point
 	UB = suite.Point().Mul(nil,u)
 	if linkScope != nil {
 		UL = suite.Point().Mul(linkBase,u)
@@ -153,11 +153,11 @@ func Sign(suite crypto.Suite, random cipher.Stream, message []byte,
 	//fmt.Printf("UB %s\n",UB.String())
 
 	// Build the challenge ring
-	s := make([]crypto.Secret, n)
-	c := make([]crypto.Secret, n)
+	s := make([]abstract.Secret, n)
+	c := make([]abstract.Secret, n)
 	c[(pi+1)%n] = signH1(suite, H1pb, UB, UL)
 	//fmt.Printf("c%d %s\n",(pi+1)%n,c[(pi+1)%n].String())
-	var P,PG,PH crypto.Point
+	var P,PG,PH abstract.Point
 	P = suite.Point()
 	PG = suite.Point()
 	if linkScope != nil {
@@ -181,10 +181,10 @@ func Sign(suite crypto.Suite, random cipher.Stream, message []byte,
 	buf := bytes.Buffer{}
 	if linkScope != nil {			// linkable ring signature
 		sig := lSig{uSig{c[0],s},linkTag}
-		crypto.Write(&buf, &sig, suite)
+		abstract.Write(&buf, &sig, suite)
 	} else {				// unlinkable ring signature
 		sig := uSig{c[0],s}
-		crypto.Write(&buf, &sig, suite)
+		abstract.Write(&buf, &sig, suite)
 	}
 	return buf.Bytes()
 }
@@ -199,26 +199,26 @@ func Sign(suite crypto.Suite, random cipher.Stream, message []byte,
 // If the signature is a valid unlinkable signature (linkScope == nil),
 // returns an empty but non-nil byte-slice instead of a linkage tag on success.
 // Returns a nil linkage tag and an error if the signature is invalid.
-func Verify(suite crypto.Suite, message []byte, anonymitySet Set, 
+func Verify(suite abstract.Suite, message []byte, anonymitySet Set, 
 		linkScope []byte, signatureBuffer []byte) ([]byte,error) {
 
 	n := len(anonymitySet)			// anonymity set size
-	L := []crypto.Point(anonymitySet)	// public keys in ring
+	L := []abstract.Point(anonymitySet)	// public keys in ring
 
 	// Decode the signature
 	buf := bytes.NewBuffer(signatureBuffer)
-	var linkBase,linkTag crypto.Point
+	var linkBase,linkTag abstract.Point
 	sig := lSig{}
-	sig.S = make([]crypto.Secret, n)
+	sig.S = make([]abstract.Secret, n)
 	if linkScope != nil {			// linkable ring signature
-		if err := crypto.Read(buf, &sig, suite); err != nil {
+		if err := abstract.Read(buf, &sig, suite); err != nil {
 			return nil,err
 		}
-		linkStream := crypto.HashStream(suite, linkScope, nil)
+		linkStream := abstract.HashStream(suite, linkScope, nil)
 		linkBase,_ = suite.Point().Pick(nil, linkStream)
 		linkTag = sig.Tag
 	} else {				// unlinkable ring signature
-		if err := crypto.Read(buf, &sig.uSig, suite); err != nil {
+		if err := abstract.Read(buf, &sig.uSig, suite); err != nil {
 			return nil,err
 		}
 	}
@@ -228,7 +228,7 @@ func Verify(suite crypto.Suite, message []byte, anonymitySet Set,
 	//fmt.Printf("H1pb %s\n", hex.EncodeToString(H1pb))
 
 	// Verify the signature
-	var P,PG,PH crypto.Point
+	var P,PG,PH abstract.Point
 	P = suite.Point()
 	PG = suite.Point()
 	if linkScope != nil {

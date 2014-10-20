@@ -5,7 +5,7 @@ import (
 	"testing"
 	//"encoding/hex"
 	"crypto/cipher"
-	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/random"
 )
@@ -14,8 +14,8 @@ type node struct {
 	i int
 	done bool
 
-	x crypto.Secret
-	X crypto.Point
+	x abstract.Secret
+	X abstract.Point
 
 	proto StarProtocol
 	outbox chan []byte
@@ -98,14 +98,14 @@ func TestDeniable(t *testing.T) {
 	for i := 0; i < nnodes; i++ {
 		n := nodes[i]
 		pred := Rep("X","x","B")
-		sval := map[string]crypto.Secret{ "x":n.x }
-		pval := map[string]crypto.Point{"B":B, "X":n.X}
+		sval := map[string]abstract.Secret{ "x":n.x }
+		pval := map[string]abstract.Point{"B":B, "X":n.X}
 		prover := pred.Prover(suite, sval, pval, nil)
 
 		vi := (i+2)%nnodes	// which node's proof to verify
 		vrfs := make([]Verifier, nnodes)
 		vpred := Rep("X","x","B")
-		vpval := map[string]crypto.Point{"B":B, "X":nodes[vi].X}
+		vpval := map[string]abstract.Point{"B":B, "X":nodes[vi].X}
 		vrfs[vi] = vpred.Verifier(suite, vpval)
 
 		n.proto = DeniableProver(suite, i, prover, vrfs)

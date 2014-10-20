@@ -6,21 +6,21 @@ import (
 	"crypto/cipher"
 	"crypto/subtle"
 	//"encoding/hex"
-	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
 )
 
 
 // XXX belongs in crypto package?
-func keyPair(suite crypto.Suite, rand cipher.Stream,
-		hide bool) (crypto.Point,crypto.Secret,[]byte) {
+func keyPair(suite abstract.Suite, rand cipher.Stream,
+		hide bool) (abstract.Point,abstract.Secret,[]byte) {
 
 	x := suite.Secret().Pick(rand)
 	X := suite.Point().Mul(nil,x)
 	if !hide {
 		return X,x,X.Encode()
 	}
-	Xh := X.(crypto.Hiding)
+	Xh := X.(abstract.Hiding)
 	for {
 		Xb := Xh.HideEncode(rand)	// try to encode as uniform blob
 		if Xb != nil {
@@ -31,7 +31,7 @@ func keyPair(suite crypto.Suite, rand cipher.Stream,
 	}
 }
 
-func header(suite crypto.Suite, X crypto.Point, x crypto.Secret,
+func header(suite abstract.Suite, X abstract.Point, x abstract.Secret,
 		Xb,xb []byte, anonymitySet Set) []byte {
 
 	//fmt.Printf("Xb %s\nxb %s\n",
@@ -43,7 +43,7 @@ func header(suite crypto.Suite, X crypto.Point, x crypto.Secret,
 	for i := range(anonymitySet) {
 		Y := anonymitySet[i]
 		S.Mul(Y, x)			// compute DH shared secret
-		stream := crypto.PointStream(suite, S)
+		stream := abstract.PointStream(suite, S)
 		xc := make([]byte, len(xb))
 		stream.XORKeyStream(xc, xb)
 		hdr = append(hdr, xc...)
@@ -53,7 +53,7 @@ func header(suite crypto.Suite, X crypto.Point, x crypto.Secret,
 
 // Create and encrypt a fresh key decryptable only by the given receivers.
 // Returns the secret key and the ciphertext.
-func encryptKey(suite crypto.Suite, rand cipher.Stream,
+func encryptKey(suite abstract.Suite, rand cipher.Stream,
 		anonymitySet Set, hide bool) (k,c []byte) {
 
 	// Choose a keypair and encode its representation
@@ -66,20 +66,20 @@ func encryptKey(suite crypto.Suite, rand cipher.Stream,
 
 // Decrypt and verify a key encrypted via encryptKey.
 // On success, returns the key and the length of the decrypted header.
-func decryptKey(suite crypto.Suite, ciphertext []byte, anonymitySet Set,
-		mine int, privateKey crypto.Secret,
+func decryptKey(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
+		mine int, privateKey abstract.Secret,
 		hide bool) ([]byte,int,error) {
 
 	// Decode the (supposed) ephemeral public key from the front
 	X := suite.Point()
 	var Xb []byte
 	if hide {
-		Xh := X.(crypto.Hiding)
+		Xh := X.(abstract.Hiding)
 		hidelen := Xh.HideLen()
 		if len(ciphertext) < hidelen {
 			return nil,0,errors.New("ciphertext too short")
 		}
-		X.(crypto.Hiding).HideDecode(ciphertext[:hidelen])
+		X.(abstract.Hiding).HideDecode(ciphertext[:hidelen])
 		Xb = ciphertext[:hidelen]
 	} else {
 		enclen := X.Len()
@@ -103,7 +103,7 @@ func decryptKey(suite crypto.Suite, ciphertext []byte, anonymitySet Set,
 		return nil,0,errors.New("ciphertext too short")
 	}
 	S := suite.Point().Mul(X,privateKey)
-	stream := crypto.PointStream(suite, S)
+	stream := abstract.PointStream(suite, S)
 	xb := make([]byte, seclen)
 	secofs := Xblen + seclen*mine
 	stream.XORKeyStream(xb, ciphertext[secofs:secofs+seclen])
@@ -141,10 +141,10 @@ func decryptKey(suite crypto.Suite, ciphertext []byte, anonymitySet Set,
 // Encrypt will produce a uniformly random-looking byte-stream,
 // which reveals no metadata other than message length
 // to anyone unable to decrypt the message.
-// The provided crypto.Suite must support
+// The provided abstract.Suite must support
 // uniform-representation encoding of public keys for this to work.
 //
-func Encrypt(suite crypto.Suite, rand cipher.Stream, message []byte,
+func Encrypt(suite abstract.Suite, rand cipher.Stream, message []byte,
 		anonymitySet Set, hide bool) []byte {
 
 	xb,hdr := encryptKey(suite, rand, anonymitySet, hide)
@@ -157,7 +157,7 @@ func Encrypt(suite crypto.Suite, rand cipher.Stream, message []byte,
 	copy(ciphertext,hdr)
 
 	// Now encrypt and MAC the message based on the master secret
-	stream := crypto.HashStream(suite, xb, nil)
+	stream := abstract.HashStream(suite, xb, nil)
 	mackey := random.Bytes(maclen, stream)
 	mac := hmac.New(suite.Hash, mackey)
 	stream.XORKeyStream(ciphertext[hdrlen:hdrlen+msglen], message)
@@ -181,8 +181,8 @@ func Encrypt(suite crypto.Suite, rand cipher.Stream, message []byte,
 // that is, it is infeasible for a sender to construct any ciphertext
 // that will be accepted by the receiver without knowing the plaintext.
 // 
-func Decrypt(suite crypto.Suite, ciphertext []byte, anonymitySet Set,
-		mine int, privateKey crypto.Secret, hide bool) ([]byte,error) {
+func Decrypt(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
+		mine int, privateKey abstract.Secret, hide bool) ([]byte,error) {
 
 	// Decrypt and check the encrypted key-header.
 	xb,hdrlen,err := decryptKey(suite, ciphertext, anonymitySet,
@@ -200,7 +200,7 @@ func Decrypt(suite crypto.Suite, ciphertext []byte, anonymitySet Set,
 	msghi := len(ciphertext)-maclen
 
 	// Check the MAC over the whole ciphertext
-	stream := crypto.HashStream(suite, xb, nil)
+	stream := abstract.HashStream(suite, xb, nil)
 	mac := hmac.New(suite.Hash, random.Bytes(maclen, stream))
 	mac.Write(ciphertext[:msghi])
 	macbuf := mac.Sum(nil)

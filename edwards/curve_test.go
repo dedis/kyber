@@ -3,7 +3,7 @@ package edwards
 import (
 	"testing"
 	//"encoding/hex"
-	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/test"
 	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/edwards/ed25519"
@@ -165,25 +165,25 @@ func TestCompareEd25519(t *testing.T) {
 
 // Test point hiding functionality
 
-func testHiding(g crypto.Group, k int) {
+func testHiding(g abstract.Group, k int) {
 	rand := random.Stream
 
 	// Test conversion from random strings to points and back
 	p := g.Point()
 	p2 := g.Point()
-	l := p.(crypto.Hiding).HideLen()
+	l := p.(abstract.Hiding).HideLen()
 	buf := make([]byte, l)
 	for i := 0; i < k; i++ {
 		rand.XORKeyStream(buf,buf)
 		//println("R "+hex.EncodeToString(buf))
-		p.(crypto.Hiding).HideDecode(buf)
+		p.(abstract.Hiding).HideDecode(buf)
 		//println("P "+p.String())
-		b2 := p.(crypto.Hiding).HideEncode(rand)
+		b2 := p.(abstract.Hiding).HideEncode(rand)
 		if b2 == nil {
 			panic("HideEncode failed")
 		}
 		//println("R'"+hex.EncodeToString(b2))
-		p2.(crypto.Hiding).HideDecode(b2)
+		p2.(abstract.Hiding).HideDecode(b2)
 		//println("P'"+p2.String())
 		if !p.Equal(p2) {
 			panic("HideDecode produced wrong point")

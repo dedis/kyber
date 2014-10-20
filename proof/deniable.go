@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"crypto/cipher"
-	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
 )
 
@@ -51,7 +51,7 @@ type StarContext interface {
 // the Sigma-protocol proofs of any or all of the other participants.
 // Different participants may produce different proofs of varying sizes,
 // and may even consist of different numbers of steps.
-func DeniableProver(suite crypto.Suite, self int, prover Prover,
+func DeniableProver(suite abstract.Suite, self int, prover Prover,
 		verifiers []Verifier) StarProtocol {
 
 	return StarProtocol(func(ctx StarContext)[]error{
@@ -63,7 +63,7 @@ func DeniableProver(suite crypto.Suite, self int, prover Prover,
 
 
 type deniableProver struct {
-	suite crypto.Suite		// Agreed-on ciphersuite for protocol
+	suite abstract.Suite		// Agreed-on ciphersuite for protocol
 	self int			// Our own node number
 	sc StarContext			// Star-protocol context
 
@@ -82,7 +82,7 @@ type deniableProver struct {
 	err []error
 }
 
-func (dp *deniableProver) run(suite crypto.Suite, self int, prv Prover,
+func (dp *deniableProver) run(suite abstract.Suite, self int, prv Prover,
 				vrf []Verifier, sc StarContext) []error {
 	dp.suite = suite
 	dp.self = self
@@ -248,7 +248,7 @@ func (dp *deniableProver) challengeStep() error {
 
 func (dp *deniableProver) Put(message interface{}) error {
 	// Add onto accumulated prover message
-	return crypto.Write(dp.msg, message, dp.suite)
+	return abstract.Write(dp.msg, message, dp.suite)
 }
 
 // Prover will call this after Put()ing all commits for a given step,
@@ -261,12 +261,12 @@ func (dp *deniableProver) PubRand(data...interface{}) error {
 	if err := dp.challengeStep(); err != nil{	// run challenge step
 		return err
 	}
-	return crypto.Read(&dp.pubrand, data, dp.suite)
+	return abstract.Read(&dp.pubrand, data, dp.suite)
 }
 
 // Get private randomness
 func (dp *deniableProver) PriRand(data...interface{}) {
-	if err := crypto.Read(&dp.prirand, data, dp.suite); err != nil {
+	if err := abstract.Read(&dp.prirand, data, dp.suite); err != nil {
 		panic("error reading random stream: "+err.Error())
 	}
 }
@@ -277,7 +277,7 @@ func (dp *deniableProver) PriRand(data...interface{}) {
 // Interactive Sigma-protocol verifier context.
 // Acts as a slave to a deniableProver instance.
 type deniableVerifier struct {
-	suite crypto.Suite
+	suite abstract.Suite
 
 	inbox chan []byte	// Channel for receiving proofs and challenges
 	prbuf *bytes.Buffer	// Buffer with which to read proof messages
@@ -288,7 +288,7 @@ type deniableVerifier struct {
 	pubrand random.Reader
 }
 
-func (dv *deniableVerifier) start(suite crypto.Suite, vrf Verifier) {
+func (dv *deniableVerifier) start(suite abstract.Suite, vrf Verifier) {
 	dv.suite = suite
 	dv.inbox = make(chan []byte)
 	dv.done = make(chan bool)
@@ -317,7 +317,7 @@ func (dv *deniableVerifier) getProof() {
 
 // Read structured data from the proof
 func (dv *deniableVerifier) Get(message interface{}) error {
-	return crypto.Read(dv.prbuf, message, dv.suite)
+	return abstract.Read(dv.prbuf, message, dv.suite)
 }
 
 // Get the next public random challenge.
@@ -334,7 +334,7 @@ func (dv *deniableVerifier) PubRand(data...interface{}) error {
 
 	// Produce the appropriate publicly random stream
 	dv.pubrand.Stream = dv.suite.Stream(chal)
-	if err := crypto.Read(&dv.pubrand, data, dv.suite); err != nil {
+	if err := abstract.Read(&dv.pubrand, data, dv.suite); err != nil {
 		return err
 	}
 

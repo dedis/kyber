@@ -3,7 +3,7 @@ package shuffle
 import (
 	"errors"
 	"crypto/cipher"
-	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/proof"
 )
 
@@ -14,32 +14,32 @@ import (
 
 // P (Prover) step 0: public inputs to the simple k-shuffle.
 type ssa0 struct {
-	X []crypto.Point
-	Y []crypto.Point
+	X []abstract.Point
+	Y []abstract.Point
 }
 
 // V (Verifier) step 1: random challenge t
 type ssa1 struct {
-	Zt crypto.Secret
+	Zt abstract.Secret
 }
 
 // P step 2: Theta vectors
 type ssa2 struct {
-	Theta []crypto.Point
+	Theta []abstract.Point
 }
 
 // V step 3: random challenge c
 type ssa3 struct {
-	Zc crypto.Secret
+	Zc abstract.Secret
 }
 
 // P step 4: alpha vector
 type ssa4 struct {
-	Zalpha []crypto.Secret
+	Zalpha []abstract.Secret
 }
 
 type SimpleShuffle struct {
-	grp crypto.Group
+	grp abstract.Group
 	p0 ssa0
 	v1 ssa1
 	p2 ssa2
@@ -48,10 +48,10 @@ type SimpleShuffle struct {
 }
 
 // Simple helper to compute G^{ab-cd} for Theta vector computation.
-func thenc(grp crypto.Group, G crypto.Point,
-		a,b,c,d crypto.Secret) crypto.Point {
+func thenc(grp abstract.Group, G abstract.Point,
+		a,b,c,d abstract.Secret) abstract.Point {
 
-	var ab,cd crypto.Secret
+	var ab,cd abstract.Secret
 	if a != nil {
 		ab = grp.Secret().Mul(a,b)
 	} else {
@@ -69,12 +69,12 @@ func thenc(grp crypto.Group, G crypto.Point,
 	return grp.Point().Mul(G,ab.Sub(ab,cd))
 }
 
-func (ss *SimpleShuffle) Init(grp crypto.Group, k int) *SimpleShuffle {
+func (ss *SimpleShuffle) Init(grp abstract.Group, k int) *SimpleShuffle {
 	ss.grp = grp
-	ss.p0.X = make([]crypto.Point, k)
-	ss.p0.Y = make([]crypto.Point, k)
-	ss.p2.Theta = make([]crypto.Point, 2*k)
-	ss.p4.Zalpha = make([]crypto.Secret, 2*k-1)
+	ss.p0.X = make([]abstract.Point, k)
+	ss.p0.Y = make([]abstract.Point, k)
+	ss.p2.Theta = make([]abstract.Point, 2*k)
+	ss.p4.Zalpha = make([]abstract.Secret, 2*k-1)
 	return ss
 }
 
@@ -82,8 +82,8 @@ func (ss *SimpleShuffle) Init(grp crypto.Group, k int) *SimpleShuffle {
 // Neff, "Verifiable Mixing (Shuffling) of ElGamal Pairs", 2004.
 // The Secret vector y must be a permutation of Secret vector x
 // but with all elements multiplied by common Secret gamma.
-func (ss *SimpleShuffle) Prove(G crypto.Point, gamma crypto.Secret,
-			x,y []crypto.Secret, rand cipher.Stream,
+func (ss *SimpleShuffle) Prove(G abstract.Point, gamma abstract.Secret,
+			x,y []abstract.Secret, rand cipher.Stream,
 			ctx proof.ProverContext) error {
 
 	grp := ss.grp
@@ -121,16 +121,16 @@ func (ss *SimpleShuffle) Prove(G crypto.Point, gamma crypto.Secret,
 
 	// P step 2
 	gamma_t := grp.Secret().Mul(gamma,t)
-	xhat := make([]crypto.Secret, k)
-	yhat := make([]crypto.Secret, k)
+	xhat := make([]abstract.Secret, k)
+	yhat := make([]abstract.Secret, k)
 	for i := 0; i < k; i++ {	// (5) and (6) xhat,yhat vectors
 		xhat[i] = grp.Secret().Sub(x[i], t)
 		yhat[i] = grp.Secret().Sub(y[i], gamma_t)
 	}
 	thlen := 2*k-1			// (7) theta and Theta vectors
-	theta := make([]crypto.Secret, thlen)
+	theta := make([]abstract.Secret, thlen)
 	ctx.PriRand(theta)
-	Theta := make([]crypto.Point, thlen+1)
+	Theta := make([]abstract.Point, thlen+1)
 	Theta[0] = thenc(grp, G, nil, nil, theta[0], yhat[0])
 	for i := 1; i < k; i++ {
 		Theta[i] = thenc(grp, G, theta[i-1], xhat[i],
@@ -153,7 +153,7 @@ func (ss *SimpleShuffle) Prove(G crypto.Point, gamma crypto.Secret,
 	c := ss.v3.Zc
 
 	// P step 4
-	alpha := make([]crypto.Secret, thlen)
+	alpha := make([]abstract.Secret, thlen)
 	runprod := grp.Secret().Set(c)
 	for i := 0; i < k; i++ {		// (8)
 		runprod.Mul(runprod,xhat[i])
@@ -176,8 +176,8 @@ func (ss *SimpleShuffle) Prove(G crypto.Point, gamma crypto.Secret,
 
 // Simple helper to verify Theta elements,
 // by checking whether A^a*B^-b = T.
-// P,Q,s are simply "scratch" crypto.Point/Secrets reused for efficiency.
-func thver(A,B,T,P,Q crypto.Point, a,b,s crypto.Secret) bool {
+// P,Q,s are simply "scratch" abstract.Point/Secrets reused for efficiency.
+func thver(A,B,T,P,Q abstract.Point, a,b,s abstract.Secret) bool {
 	P.Mul(A,a)
 	Q.Mul(B,s.Neg(b))
 	P.Add(P,Q)
@@ -185,7 +185,7 @@ func thver(A,B,T,P,Q crypto.Point, a,b,s crypto.Secret) bool {
 }
 
 // Verifier for Neff simple k-shuffle proofs.
-func (ss *SimpleShuffle) Verify(G, Gamma crypto.Point,
+func (ss *SimpleShuffle) Verify(G, Gamma abstract.Point,
 			ctx proof.VerifierContext) error {
 
 	grp := ss.grp
@@ -227,8 +227,8 @@ func (ss *SimpleShuffle) Verify(G, Gamma crypto.Point,
 	negt := grp.Secret().Neg(t)
 	U := grp.Point().Mul(G,negt)
 	W := grp.Point().Mul(Gamma,negt)
-	Xhat := make([]crypto.Point,k)
-	Yhat := make([]crypto.Point,k)
+	Xhat := make([]abstract.Point,k)
+	Yhat := make([]abstract.Point,k)
 	for i := 0; i < k; i++ {
 		Xhat[i] = grp.Point().Add(X[i],U)
 		Yhat[i] = grp.Point().Add(Y[i],W)

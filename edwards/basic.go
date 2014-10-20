@@ -3,7 +3,7 @@ package edwards
 import (
 	"math/big"
 	"crypto/cipher"
-	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/nist"
 )
 
@@ -12,7 +12,7 @@ type basicPoint struct {
 	c *BasicCurve
 }
 
-func (P *basicPoint) initXY(x,y *big.Int, c crypto.Group) {
+func (P *basicPoint) initXY(x,y *big.Int, c abstract.Group) {
 	P.c = c.(*BasicCurve)
 	P.x.Init(x,&P.c.P)
 	P.y.Init(y,&P.c.P)
@@ -59,13 +59,13 @@ func (P *basicPoint) HideDecode(rep []byte) {
 }
 
 // Equality test for two Points on the same curve
-func (P *basicPoint) Equal(P2 crypto.Point) bool {
+func (P *basicPoint) Equal(P2 abstract.Point) bool {
 	E2 := P2.(*basicPoint)
 	return P.x.Equal(&E2.x) && P.y.Equal(&E2.y)
 }
 
 // Set point to be equal to P2.
-func (P *basicPoint) Set(P2 crypto.Point) crypto.Point {
+func (P *basicPoint) Set(P2 abstract.Point) abstract.Point {
 	E2 := P2.(*basicPoint)
 	P.c = E2.c
 	P.x.Set(&E2.x)
@@ -74,13 +74,13 @@ func (P *basicPoint) Set(P2 crypto.Point) crypto.Point {
 }
 
 // Set to the neutral element, which is (0,1) for twisted Edwards curves.
-func (P *basicPoint) Null() crypto.Point {
+func (P *basicPoint) Null() abstract.Point {
 	P.Set(&P.c.null)
 	return P
 }
 
 // Set to the standard base point for this curve
-func (P *basicPoint) Base() crypto.Point {
+func (P *basicPoint) Base() abstract.Point {
 	P.Set(&P.c.base)
 	return P
 }
@@ -89,7 +89,7 @@ func (P *basicPoint) PickLen() int {
 	return P.c.pickLen()
 }
 
-func (P *basicPoint) Pick(data []byte,rand cipher.Stream) (crypto.Point, []byte) {
+func (P *basicPoint) Pick(data []byte,rand cipher.Stream) (abstract.Point, []byte) {
 	return P,P.c.pickPoint(P, data, rand)
 }
 
@@ -103,7 +103,7 @@ func (P *basicPoint) Data() ([]byte,error) {
 //	x' = ((x1*y2 + x2*y1) / (1 + d*x1*x2*y1*y2))
 //	y' = ((y1*y2 - a*x1*x2) / (1 - d*x1*x2*y1*y2))
 //
-func (P *basicPoint) Add(P1,P2 crypto.Point) crypto.Point {
+func (P *basicPoint) Add(P1,P2 abstract.Point) abstract.Point {
 	E1 := P1.(*basicPoint)
 	E2 := P2.(*basicPoint)
 	x1,y1 := E1.x,E1.y
@@ -130,19 +130,19 @@ func (P *basicPoint) Add(P1,P2 crypto.Point) crypto.Point {
 
 // Point doubling, which for Edwards curves can be accomplished
 // simply by adding a point to itself (no exceptions for equal input points).
-func (P *basicPoint) double() crypto.Point {
+func (P *basicPoint) double() abstract.Point {
 	return P.Add(P,P)
 }
 
 // Subtract points so that their secrets subtract homomorphically
-func (P *basicPoint) Sub(A,B crypto.Point) crypto.Point {
+func (P *basicPoint) Sub(A,B abstract.Point) abstract.Point {
 	var nB basicPoint
 	return P.Add(A,nB.Neg(B))
 }
 
 // Find the negative of point A.
 // For Edwards curves, the negative of (x,y) is (-x,y).
-func (P *basicPoint) Neg(A crypto.Point) crypto.Point {
+func (P *basicPoint) Neg(A abstract.Point) abstract.Point {
 	E := A.(*basicPoint)
 	P.c = E.c
 	P.x.Neg(&E.x)
@@ -151,7 +151,7 @@ func (P *basicPoint) Neg(A crypto.Point) crypto.Point {
 }
 
 // Multiply point p by scalar s using the repeated doubling method.
-func (P *basicPoint) Mul(G crypto.Point, s crypto.Secret) crypto.Point {
+func (P *basicPoint) Mul(G abstract.Point, s abstract.Secret) abstract.Point {
 	v := s.(*nist.Int).V
 	if G == nil {
 		return P.Base().Mul(P,s)
@@ -187,7 +187,7 @@ type BasicCurve struct {
 }
 
 // Create a new Point on this curve.
-func (c *BasicCurve) Point() crypto.Point {
+func (c *BasicCurve) Point() abstract.Point {
 	P := new(basicPoint)
 	P.c = c
 	P.Set(&c.null)

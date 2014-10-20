@@ -45,7 +45,7 @@ import (
 	"encoding/hex"
 	"crypto/cipher"
 	"crypto/sha256"
-	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/random"
 )
@@ -83,16 +83,16 @@ func (p *point) String() string {
 	return hex.EncodeToString(p.Encode())
 }
 
-func (p *point) Equal(p2 crypto.Point) bool {
+func (p *point) Equal(p2 abstract.Point) bool {
 	return bytes.Equal(p.Encode(), p2.(*point).Encode())
 }
 
-func (p *point) Null() crypto.Point {
+func (p *point) Null() abstract.Point {
 	C.ge_p3_0(&p.p)
 	return p
 }
 
-func (p *point) Base() crypto.Point {
+func (p *point) Base() abstract.Point {
 
 	// Way to kill a fly with a sledgehammer...
 	C.ge_scalarmult_base(&p.p, (*C.uchar)(unsafe.Pointer(&s1.b[0])))
@@ -106,7 +106,7 @@ func (p *point) PickLen() int {
 	return (255 - 8 - 8) / 8
 }
 
-func (P *point) Pick(data []byte,rand cipher.Stream) (crypto.Point, []byte) {
+func (P *point) Pick(data []byte,rand cipher.Stream) (abstract.Point, []byte) {
 
 	// How many bytes to embed?
 	dl := P.PickLen()
@@ -163,27 +163,27 @@ func (p *point) Data() ([]byte,error) {
 	return b[1:1+dl],nil
 }
 
-func (p *point) Add(ca,cb crypto.Point) crypto.Point {
+func (p *point) Add(ca,cb abstract.Point) abstract.Point {
 	a := ca.(*point)
 	b := cb.(*point)
 	C.ge_p3_add(&p.p, &a.p, &b.p)
 	return p
 }
 
-func (p *point) Sub(ca,cb crypto.Point) crypto.Point {
+func (p *point) Sub(ca,cb abstract.Point) abstract.Point {
 	a := ca.(*point)
 	b := cb.(*point)
 	C.ge_p3_sub(&p.p, &a.p, &b.p)
 	return p
 }
 
-func (p *point) Neg(ca crypto.Point) crypto.Point {
+func (p *point) Neg(ca abstract.Point) abstract.Point {
 	a := ca.(*point)
 	C.ge_p3_neg(&p.p, &a.p)
 	return p
 }
 
-func (p *point) Mul(ca crypto.Point, cs crypto.Secret) crypto.Point {
+func (p *point) Mul(ca abstract.Point, cs abstract.Secret) abstract.Point {
 
 	// Convert the scalar to fixed-length little-endian form.
 	sb := cs.(*nist.Int).V.Bytes()
@@ -257,7 +257,7 @@ func (c *curve) SecretLen() int {
 	return 32
 }
 
-func (c *curve) Secret() crypto.Secret {
+func (c *curve) Secret() abstract.Secret {
 	return nist.NewInt(0, &primeOrder.V)
 }
 
@@ -265,7 +265,7 @@ func (c *curve) PointLen() int {
 	return 32
 }
 
-func (c *curve) Point() crypto.Point {
+func (c *curve) Point() abstract.Point {
 	return new(point)
 }
 
@@ -277,7 +277,7 @@ func (c *curve) PrimeOrder() bool {
 	return true
 }
 
-func NewCurve25519() crypto.Group {
+func NewCurve25519() abstract.Group {
 	return new(curve)
 }
 
@@ -305,7 +305,7 @@ func (s *suite) Stream(key []byte) cipher.Stream {
 }
 
 // Ciphersuite based on AES-128, SHA-256, and the Ed25519 curve.
-func NewAES128SHA256Ed25519() crypto.Suite {
+func NewAES128SHA256Ed25519() abstract.Suite {
 	suite := new(suite)
 	return suite
 }
