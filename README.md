@@ -1,9 +1,43 @@
 DeDiS Advanced Crypto Library for Go
 ====================================
 
+This package provides a toolbox of advanced cryptographic primitives for Go,
+targeting applications like [Dissent](http://dedis.cs.yale.edu/dissent/)
+that need more than straightforward signing and encryption.
 Please see the
 [GoDoc documentation for this package](http://godoc.org/github.com/DeDiS/crypto)
-for details.
+for details on the library's purpose and functionality.
+
+Installing
+----------
+
+To install, first make sure you have
+a recent version of (Go)[https://golang.org] installed,
+then run:
+
+	go get github.com/dedis/crypto
+
+You should then be able to test its basic function as follows:
+
+	cd $GOPATH/src/github.com/dedis/crypto
+	go test -v
+
+Dependencies
+------------
+
+The library's basic functionality depends only on the Go standard library.
+However, parts of the library will only build if certain other,
+optional system packages are installed with their header files and libraries
+(e.g., the "-dev" package may be needed in some distributions).
+In particular:
+
+- crypto.openssl: This sub-package is a wrapper that
+uses on OpenSSL's crypto library to provide a fast, mature implementation
+of NIST-standardized elliptic curves and symmetric cryptosystems.
+
+- crypto.pbc: This is a wrapper for the
+Stanford Pairing-Based Crypto (PBC) library,
+which will of course only work if the PBC library is installed.
 
 Copyright (C) 2014 Yale DeDiS Group
 -----------------------------------
