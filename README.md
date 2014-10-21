@@ -12,7 +12,7 @@ Installing
 ----------
 
 To install, first make sure you have
-a recent version of (Go)[https://golang.org] installed,
+a recent version of [Go](https://golang.org) installed,
 then run:
 
 	go get github.com/dedis/crypto
@@ -28,7 +28,7 @@ Dependencies
 The library's basic functionality depends only on the Go standard library.
 However, parts of the library will only build if certain other,
 optional system packages are installed with their header files and libraries
-(e.g., the "-dev" package may be needed in some distributions).
+(e.g., the "-dev" version of the package).
 In particular:
 
 - crypto.openssl: This sub-package is a wrapper that
