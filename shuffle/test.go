@@ -2,7 +2,7 @@ package shuffle
 
 import (
 	//"fmt"
-	//"time"
+	//"encoding/hex"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/proof"
 	"github.com/dedis/crypto/random"
@@ -41,6 +41,7 @@ func TestShuffle(suite abstract.Suite, k int) {
 	if err != nil {
 		panic("Shuffle proof failed: "+err.Error())
 	}
+	//fmt.Printf("proof:\n%s\n",hex.Dump(prf))
 
 	// Check it
 	verifier := Verifier(suite,nil,H,X,Y,Xbar,Ybar)

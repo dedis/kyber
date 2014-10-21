@@ -79,7 +79,7 @@ func (si *suiteInfo) init(ste abstract.Suite, nlevels int) {
 
 	// Alternative 0 is always at position 0, so start with level 1.
 	levofs := 0			// starting offset for current level
-	fmt.Printf("Suite %s positions:\n", ste.String())
+	//fmt.Printf("Suite %s positions:\n", ste.String())
 	for i := 0; i < nlevels; i++ {
 
 		// Pick a random position within this level
@@ -91,8 +91,8 @@ func (si *suiteInfo) init(ste abstract.Suite, nlevels int) {
 		levidx := int(si.tag[i]) & levmask
 		si.pos[i] = levofs + levidx * si.plen
 
-		fmt.Printf("%d: idx %d/%d pos %d\n",
-				i, levidx, levlen, si.pos[i])
+		//fmt.Printf("%d: idx %d/%d pos %d\n",
+		//		i, levidx, levlen, si.pos[i])
 
 		levofs += levlen * si.plen	// next level table offset
 	}
@@ -294,8 +294,8 @@ func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 	}
 
 	fmt.Printf("Total hdrlen: %d\n", hdrlen)
-	fmt.Printf("Point layout:\n")
-	w.layout.dump()
+	//fmt.Printf("Point layout:\n")
+	//w.layout.dump()
 
 	// Now layout the entrypoints.
 	for i := range(entrypoints) {
@@ -314,8 +314,8 @@ func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 		//	i, si.String(), ofs, ofs+l)
 	}
 
-	fmt.Printf("Point+Entry layout:\n")
-	w.layout.dump()
+	//fmt.Printf("Point+Entry layout:\n")
+	//w.layout.dump()
 
 	return hdrlen,nil
 }

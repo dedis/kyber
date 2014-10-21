@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"errors"
 	"math/big"
+	//"encoding/hex"
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/nist"
@@ -192,6 +193,8 @@ func (c *curve) encodePoint(x,y *nist.Int) []byte {
 
 	// Convert to little-endian
 	reverse(b,b)
+	//fmt.Printf("encoding %s,%s:\n%s\n", x.String(), y.String(),
+	//		hex.Dump(b))
 	return b
 }
 
@@ -208,6 +211,7 @@ func (c *curve) encodePoint(x,y *nist.Int) []byte {
 func (c *curve) decodePoint(bb []byte, x,y *nist.Int) error {
 
 	// Convert from little-endian
+	//fmt.Printf("decoding:\n%s\n", hex.Dump(bb))
 	b := make([]byte, len(bb))
 	reverse(b,bb)
 
@@ -217,7 +221,7 @@ func (c *curve) decodePoint(bb []byte, x,y *nist.Int) error {
 
 	// Extract the y-coordinate
 	y.V.SetBytes(b)
-	y.M = &c.order.V
+	y.M = &c.P
 
 	// Compute the corresponding x-coordinate
 	if !c.solveForX(x,y) {
