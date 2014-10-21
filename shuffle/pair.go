@@ -1,4 +1,4 @@
-// Package shuffle implements C. Andrew Neff's verifiable shuffle proof scheme.
+// Package shuffle implements Andrew Neff's verifiable shuffle proof scheme.
 // Neff's shuffle proof algorithm as implemented here is described in the paper
 // "Verifiable Mixing (Shuffling) of ElGamal Pairs", April 2004.
 // 
