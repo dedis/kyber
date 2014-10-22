@@ -1,4 +1,4 @@
-package sodium
+package ed25519
 
 import (
 	"testing"
