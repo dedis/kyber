@@ -333,7 +333,7 @@ func (sh *spongeHash) Init(s Sponge) *spongeHash {
 func (sh *spongeHash) Write(buf []byte) (int,error) {
 	bs := sh.bs
 	act := len(buf)
-	for len(buf) > bs {
+	for len(buf) > 0 {
 		lold := len(sh.buf)
 		lnew := lold+len(buf)
 		if lold == 0 && lnew >= bs {		// fast path
@@ -348,6 +348,7 @@ func (sh *spongeHash) Write(buf []byte) (int,error) {
 			buf = buf[n:]
 		} else {				// incomplete block
 			sh.buf = append(sh.buf,buf...)
+			break
 		}
 	}
 	return act,nil

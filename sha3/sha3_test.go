@@ -27,12 +27,14 @@ const (
 )
 
 // Internal-use instances of SHAKE used to test against KATs.
+/*
 func newHashShake128() hash.Hash {
 	return &state{rate: 168, dsbyte: 0x1f, outputLen: 512}
 }
 func newHashShake256() hash.Hash {
 	return &state{rate: 136, dsbyte: 0x1f, outputLen: 512}
 }
+*/
 
 // testDigests contains functions returning hash.Hash instances
 // with output-length equal to the KAT length for both SHA-3 and
@@ -42,16 +44,18 @@ var testDigests = map[string]func() hash.Hash{
 	"SHA3-256": New256,
 	"SHA3-384": New384,
 	"SHA3-512": New512,
-	"SHAKE128": newHashShake128,
-	"SHAKE256": newHashShake256,
+	//"SHAKE128": newHashShake128,
+	//"SHAKE256": newHashShake256,
 }
 
 // testShakes contains functions returning ShakeHash instances for
 // testing the ShakeHash-specific interface.
+/*
 var testShakes = map[string]func() ShakeHash{
 	"SHAKE128": NewShake128,
 	"SHAKE256": NewShake256,
 }
+*/
 
 // decodeHex converts an hex-encoded string into a raw byte string.
 func decodeHex(s string) []byte {
@@ -90,7 +94,11 @@ func TestKeccakKats(t *testing.T) {
 
 	// Do the KATs.
 	for functionName, kats := range katSet.Kats {
-		d := testDigests[functionName]()
+		f := testDigests[functionName]
+		if f == nil {
+			continue
+		}
+		d := f()
 		t.Logf("%s", functionName)
 		for _, kat := range kats {
 			d.Reset()
@@ -172,6 +180,7 @@ func TestAppendNoRealloc(t *testing.T) {
 
 // TestSqueezing checks that squeezing the full output a single time produces
 // the same output as repeatedly squeezing the instance.
+/*
 func TestSqueezing(t *testing.T) {
 	for functionName, newShakeHash := range testShakes {
 		t.Logf("%s", functionName)
@@ -201,6 +210,7 @@ func TestReadSimulation(t *testing.T) {
 	d.Read(dwr)
 
 }
+*/
 
 // sequentialBytes produces a buffer of size consecutive bytes 0x00, 0x01, ..., used for testing.
 func sequentialBytes(size int) []byte {
@@ -242,8 +252,11 @@ func BenchmarkSha3_512_MTU(b *testing.B) { benchmarkBulkHash(b, New512(), 1350) 
 func BenchmarkSha3_384_MTU(b *testing.B) { benchmarkBulkHash(b, New384(), 1350) }
 func BenchmarkSha3_256_MTU(b *testing.B) { benchmarkBulkHash(b, New256(), 1350) }
 func BenchmarkSha3_224_MTU(b *testing.B) { benchmarkBulkHash(b, New224(), 1350) }
+
+/*
 func BenchmarkShake256_MTU(b *testing.B) { benchmarkBulkHash(b, newHashShake256(), 1350) }
 func BenchmarkShake128_MTU(b *testing.B) { benchmarkBulkHash(b, newHashShake128(), 1350) }
 
 func BenchmarkSha3_512_1MiB(b *testing.B) { benchmarkBulkHash(b, New512(), 1<<20) }
 func BenchmarkShake256_1MiB(b *testing.B) { benchmarkBulkHash(b, newHashShake256(), 1<<20) }
+*/

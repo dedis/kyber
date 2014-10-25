@@ -10,27 +10,34 @@ package sha3
 
 import (
 	"hash"
+	"github.com/dedis/crypto/abstract"
 )
+
+
+func newHash(rate, hashBits int, dsbyte byte) hash.Hash {
+	s := sponge{rate: rate, keyLen: hashBits/16, dsbyte: dsbyte}
+	return abstract.Sponge{&s}.Hash()
+}
 
 // New224 creates a new SHA3-224 hash.
 // Its generic security strength is 224 bits against preimage attacks,
 // and 112 bits against collision attacks.
-func New224() hash.Hash { return &state{rate: 144, outputLen: 28, dsbyte: 0x06} }
+func New224() hash.Hash { return newHash(144, 224, 0x06) }
 
 // New256 creates a new SHA3-256 hash.
 // Its generic security strength is 256 bits against preimage attacks,
 // and 128 bits against collision attacks.
-func New256() hash.Hash { return &state{rate: 136, outputLen: 32, dsbyte: 0x06} }
+func New256() hash.Hash { return newHash(136, 256, 0x06) }
 
 // New384 creates a new SHA3-384 hash.
 // Its generic security strength is 384 bits against preimage attacks,
 // and 192 bits against collision attacks.
-func New384() hash.Hash { return &state{rate: 104, outputLen: 48, dsbyte: 0x06} }
+func New384() hash.Hash { return newHash(104, 384, 0x06) }
 
 // New512 creates a new SHA3-512 hash.
 // Its generic security strength is 512 bits against preimage attacks,
 // and 256 bits against collision attacks.
-func New512() hash.Hash { return &state{rate: 72, outputLen: 64, dsbyte: 0x06} }
+func New512() hash.Hash { return newHash(72, 512, 0x06) }
 
 // Sum224 returns the SHA3-224 digest of the data.
 func Sum224(data []byte) (digest [28]byte) {
