@@ -56,3 +56,9 @@ Wishlist for Go standard library changes:
 	other packages in the same repo by their global import paths.
 - Why doesn't godoc process formatting in the comment for an Example,
 	like it does in the comments for functions and everything else?
+- os or ioutil should have a "ReplaceFile" that safely opens and
+	writes a temporary file and atomically moves it over the top
+	of an existing file only on successful Close().
+- encoding/base64: need an easy way to get un-unpadded strings
+	(drop the '=' signs).  RFC 4648 refers to this variant
+	(e.g., as discussed in sec 3.2) so it's not disallowed.
