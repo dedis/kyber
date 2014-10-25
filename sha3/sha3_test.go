@@ -19,6 +19,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"github.com/dedis/crypto/abstract"
 )
 
 const (
@@ -27,14 +28,15 @@ const (
 )
 
 // Internal-use instances of SHAKE used to test against KATs.
-/*
+
 func newHashShake128() hash.Hash {
-	return &state{rate: 168, dsbyte: 0x1f, outputLen: 512}
+	return abstract.Sponge{&sponge{rate: 168, keyLen: 512/2,
+					dsbyte: 0x1f}}.Hash()
 }
 func newHashShake256() hash.Hash {
-	return &state{rate: 136, dsbyte: 0x1f, outputLen: 512}
+	return abstract.Sponge{&sponge{rate: 136, keyLen: 512/2,
+					dsbyte: 0x1f}}.Hash()
 }
-*/
 
 // testDigests contains functions returning hash.Hash instances
 // with output-length equal to the KAT length for both SHA-3 and
@@ -44,8 +46,8 @@ var testDigests = map[string]func() hash.Hash{
 	"SHA3-256": New256,
 	"SHA3-384": New384,
 	"SHA3-512": New512,
-	//"SHAKE128": newHashShake128,
-	//"SHAKE256": newHashShake256,
+	"SHAKE128": newHashShake128,
+	"SHAKE256": newHashShake256,
 }
 
 // testShakes contains functions returning ShakeHash instances for
@@ -94,11 +96,7 @@ func TestKeccakKats(t *testing.T) {
 
 	// Do the KATs.
 	for functionName, kats := range katSet.Kats {
-		f := testDigests[functionName]
-		if f == nil {
-			continue
-		}
-		d := f()
+		d := testDigests[functionName]()
 		t.Logf("%s", functionName)
 		for _, kat := range kats {
 			d.Reset()
