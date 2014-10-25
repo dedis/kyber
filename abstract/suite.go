@@ -40,6 +40,11 @@ type Suite interface {
 	//MacLen() int
 	//Mac(stream cipher.Stream) hash.Hash
 
+	// Create a cryptographic sponge,
+	// optionally keyed with a given key.
+	// XXX should this replace Hash() and Stream()?
+	Sponge(key []byte) Sponge
+
 	// abstract group for public-key crypto
 	Group
 }

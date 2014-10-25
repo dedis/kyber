@@ -1,0 +1,268 @@
+package crypto
+
+import (
+	"io"
+	"hash"
+	"crypto/cipher"
+)
+
+// SpongeCipher is an abstract interface for a sponge cipher primitive
+// capable of duplex operation (concurrent absorbinb and squeezing).
+type SpongeCipher interface {
+
+	// Encrypt bytes from src to dst, updating the sponge state.
+	// If dst == nil, absorbs input without producing output.
+	// If src == nil, squeezes output based on an input of zero bytes.
+	// If more is false, completes and pads the current message.
+	// If more is true, src and dst must be a multiple of BlockSize,
+	// and leaves the current message un-padded so that
+	// the next Encrypt call will continue the same message.
+	// Returns the number of bytes encrypted.
+	Encrypt(dst,src []byte, more bool)
+
+	// Decrypt bytes from src to dst, updating the sponge state.
+	// Returns the number of bytes decrypted, or an error on failure.
+	Decrypt(dst,src []byte, more bool)
+
+	// Create a copy of this SpongeCipher with identical state
+	Clone() SpongeCipher
+
+	// Return the sponge cipher's block size: the minimum granularity
+	// at which partial, unpadded messages may be processed.
+	BlockSize() int
+
+	// Return the recommended size of symmetric cryptographic keys
+	// to obtain the full security from this sponge.
+	KeyLen() int
+
+/*
+	// Encrypt bytes from src to dst, updating the sponge state.
+	// If dst == nil, absorbs input without producing output.
+	// Returns the number of bytes encrypted, or an error on failure
+	// (which happens only if the io.Writer or io.Reader returns an error).
+	Encrypt(dst io.Writer, src io.Reader) (int,error)
+
+	// Decrypt bytes from src to dst, updating the sponge state.
+	// Returns the number of bytes decrypted, or an error on failure.
+	Decrypt(dst io.Writer, src io.Reader) (int,error)
+*/
+
+/*
+	// Write absorbs message data.
+	// Consecutive calls to Write constitute a single message,
+	// terminated by the next call to Read, Encrypt, or Decrypt.
+	io.Writer
+
+	// Read reads output from the sponge,
+	// after consuming the remainder any message absorbed via Write.
+	// Reading affects the sponge's state, in contrast with Hash.Sum.
+	// Never returns an error.
+	io.Reader
+
+	// XORKeyStream uses output from the sponge to encrypt a plaintext.
+	cipher.Stream
+
+	// Concurrently absorb a message and produce a cipher-stream.
+	// The generated cipher-stream bits may depend on 
+	// some, all, or none of the concurrently absorbed message bits.
+	// If src != nil, XORs cipher-stream bytes with src into dst.
+	// If src == nil, just copies cipher-stream bytes into dst.
+	Encrypt(dst,src []byte)
+	Decrypt(dst,src []byte)
+*/
+}
+
+// Sponge wraps a primitive SpongeCipher with useful functionality
+// and compatibility facilities.
+type Sponge SpongeCipher
+
+// Absorb a message, updating the sponge's state.
+func (s Sponge) Absorb(buf []byte) {
+	s.Encrypt(nil,buf,false)
+}
+
+// Squeeze bytes from the sponge based on an input message of all zeros,
+// updating the sponge's state.
+func (s Sponge) Squeeze(buf []byte) {
+	s.Encrypt(buf,nil,false)
+}
+
+// Create a Stream cipher that squeezes bytes from this sponge.
+// Calls on the resulting Stream update the sponge's state.
+func (s Sponge) Stream() cipher.Stream {
+	return spongeStream{}.Init(s)
+}
+
+// Create a Hash keyed from the sponge's current state.
+// Operations on the resulting Hash do NOT affect the original sponge.
+func (s Sponge) Hash() hash.Hash {
+	return spongeHash{}.Init(s)
+}
+
+// Returns the recommended number of bytes to squeeze
+// for use as a collision-resistant hash, which is
+// twice the sponge's KeyLen to account for birthday attacks.
+func (s Sponge) HashLen() int {
+	return s.KeyLen() * 2
+}
+
+
+
+/*	XXX this is probably junk
+
+
+// Flush any currently ongoing read or write message.
+func (c *Cipher) flush() {
+	if c.rreq != nil {
+		c.rreq <- nil
+		c.rreq = nil
+		c.rsig = nil
+	}
+	XXX
+}
+
+type squeezer struct {
+	c *Cipher
+	req chan []byte
+	sig chan struct{}
+	out []byte
+	done bool
+}
+
+func (sr *squeezer) init(c *Cipher) {
+	sr.c = c
+	sr.req = make(chan []byte)
+	sr.sig = make(chan struct{})
+	go func() {
+		c.s.Encrypt(sr,sr)
+	}
+}
+
+// Called by sponge.Encrypt() to read input message bits, in this case zeros,
+// until we get an end-of-read signal.
+func (sr *squeezer) Read(buf []byte) (int,error) {
+	if sr.done {
+		return 0,nil
+	}
+	for i := 0; i < len(buf); i++ {
+		buf[i] = 0
+	}
+	return len(buf),nil
+}
+
+// Called by sponge.Encrypt() to write output ciphertext,
+// which we deposit in whatever byte-slices we are requested to.
+func (sr *squeezer) Write(buf []byte) (int,error) {
+	act := 0
+	for len(buf) > 0 {
+		if sr.out == nil {
+			sr.out <- sr.req	// get a new output byte-slice
+			if sr.out == nil {	// message terminator signal
+				sr.done = true
+				break
+			}
+		}
+		n := copy(out,buf)
+		act += n
+		buf = buf[n:]
+		sr.out = sr.out[n:]
+		if len(sr.out) == 0 {
+			sr.sig <- struct{}{}
+			sr.out = nil
+		}
+	}
+	return act,nil
+}
+
+// Squeeze bytes from the sponge to fill a requested buffer
+func (sr *squeezer) Squeeze(buf []byte) int {
+	sr.req <- 
+}
+
+
+
+// Read squeezes output bytes from the sponge.
+// Reading affects the sponge's state, in contrast with Hash.Sum.
+// Never returns an error.
+func (c *Cipher) Read(buf []byte) (int,error) {
+	if c.rreq == nil {
+		c.flush()
+		rq = make(chan []byte)
+		sg = make(chan struct{})
+		go func() {
+			
+		}
+		c.rreq = rq
+		c.rsig = sg
+	}
+
+	c.rreq <- buf
+	_ <- c.rsig
+
+	return len(buf),nil
+
+	if c.r == nil {
+		if c.w != nil {
+			XXX
+		}
+		r,w := io.Pipe()
+		l := len(buf)
+		go func() {
+			c.s.Encrypt(w, zeroReader(-1))
+		}
+		c.r = r
+	}
+	return c.r.Read(buf)
+}
+
+// Encrypt a message from one byte-slice to another,
+// concurrently updating the cipher to depend on all bits of the message,
+// such that the final Sponge cipher state may be used for authentication.
+// If src == nil, just squeezes pseudo-random bytes into dst.
+// If dst == nil, just absorbes the src bytes into the cipher's state.
+func (c Cipher) EncryptBytes(dst,src []byte) int {
+	var r io.Reader
+	var w io.Writer
+	if src != nil {
+		r = bytes.NewBuffer(src)
+	} else {
+		r = zeroReader(len(dst))
+	}
+	if dst != nil {
+		w = bytes.NewBuffer(dst[:0])
+	}
+	n,e := c.Encrypt(w,r)
+	if e != nil {		// shouldn't happen
+		panic(e.Error())
+	}
+	return n
+}
+
+// Decrypt a message from one byte-slice to another,
+// updating the cipher state in the same way that Encrypt does.
+func (c Cipher) DecryptBytes(dst,src []byte) {
+}
+
+// 
+func (c Cipher) XORKeyStream(
+
+
+*/
+
+
+// A zeroReader produces a given number of zeros.
+// if -1, produces an unlimited number of zeros.
+type zeroReader int
+
+func (zr *zeroReader) Read(p []byte) (n int, err error) {
+	n = len(p)
+	if n > *zr && *zr >= 0 {
+		n = *zr
+	}
+	for i := 0; i < n; i++ {
+		p[i] = 0
+	}
+	*zr -= n
+}
+
+
