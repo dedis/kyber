@@ -1,9 +1,9 @@
-package crypto
+package abstract
 
 import (
-	"io"
 	"hash"
 	"crypto/cipher"
+	"github.com/dedis/crypto/util"
 )
 
 // SpongeCipher is an abstract interface for a sponge cipher primitive
@@ -72,16 +72,18 @@ type SpongeCipher interface {
 */
 }
 
-// Sponge wraps a primitive SpongeCipher with useful functionality
-// and compatibility facilities.
-type Sponge SpongeCipher
+// Sponge wraps a primitive SpongeCipher interface
+// with useful functionality and compatibility facilities.
+type Sponge struct {
+	SpongeCipher
+}
 
 // Absorb a message, updating the sponge's state.
 func (s Sponge) Absorb(buf []byte) {
 	s.Encrypt(nil,buf,false)
 }
 
-// Squeeze bytes from the sponge based on an input message of all zeros,
+// Squeeze bytes from the sponge without consuming any input,
 // updating the sponge's state.
 func (s Sponge) Squeeze(buf []byte) {
 	s.Encrypt(buf,nil,false)
@@ -90,13 +92,22 @@ func (s Sponge) Squeeze(buf []byte) {
 // Create a Stream cipher that squeezes bytes from this sponge.
 // Calls on the resulting Stream update the sponge's state.
 func (s Sponge) Stream() cipher.Stream {
-	return spongeStream{}.Init(s)
+	ss := spongeStream{}
+	ss.Init(s)
+	return &ss
+}
+
+// Create a copy of this Sponge with identical state
+func (s Sponge) Clone() Sponge {
+	return Sponge{s.SpongeCipher.Clone()}
 }
 
 // Create a Hash keyed from the sponge's current state.
 // Operations on the resulting Hash do NOT affect the original sponge.
 func (s Sponge) Hash() hash.Hash {
-	return spongeHash{}.Init(s)
+	sh := spongeHash{}
+	sh.Init(s)
+	return &sh
 }
 
 // Returns the recommended number of bytes to squeeze
@@ -247,8 +258,6 @@ func (c Cipher) DecryptBytes(dst,src []byte) {
 func (c Cipher) XORKeyStream(
 
 
-*/
-
 
 // A zeroReader produces a given number of zeros.
 // if -1, produces an unlimited number of zeros.
@@ -265,4 +274,104 @@ func (zr *zeroReader) Read(p []byte) (n int, err error) {
 	*zr -= n
 }
 
+*/
+
+
+
+// Wrapper for using a Sponge as a Stream cipher
+type spongeStream struct {
+	s Sponge
+	buf,avl []byte
+}
+
+func (ss *spongeStream) Init(s Sponge) {
+	ss.s = s
+	ss.buf = make([]byte,s.BlockSize())
+}
+
+func (ss *spongeStream) XORKeyStream(dst,src []byte) {
+	for len(dst) > 0 {
+		if len(ss.avl) == 0 {
+			ss.s.Encrypt(ss.buf,nil,true)	// squeeze out a block
+			ss.avl = ss.buf
+		}
+		var n int
+		if src == nil {
+			n = copy(dst, ss.avl)
+		} else {
+			n = len(dst)
+			if n > len(ss.avl) {
+				n = len(ss.avl)
+			}
+			for i := 0; i < n; i++ {
+				dst[i] = src[i] ^ ss.avl[i]
+			}
+			src = src[:n]
+		}
+		dst = dst[:n]
+		ss.avl = ss.avl[:n]
+	}
+}
+
+
+
+// Wrapper to use a Sponge cipher as a Hash
+type spongeHash struct {
+	orig,cur Sponge
+	bs int
+	buf []byte
+}
+
+func (sh *spongeHash) Init(s Sponge) *spongeHash {
+	sh.orig = s.Clone()
+	sh.cur = s.Clone()
+	sh.bs = s.BlockSize()
+	sh.buf = make([]byte,0,sh.bs)
+	return sh
+}
+
+func (sh *spongeHash) Write(buf []byte) (int,error) {
+	bs := sh.bs
+	act := len(buf)
+	for len(buf) > bs {
+		lold := len(sh.buf)
+		lnew := lold+len(buf)
+		if lold == 0 && lnew >= bs {		// fast path
+			n := (len(buf)/bs)*bs
+			sh.cur.Encrypt(nil,buf[:n],true)
+			buf = buf[n:]
+		} else if lnew >= bs {			// filled a block
+			n := bs-lold
+			sh.buf = append(sh.buf,buf[:n]...)
+			sh.cur.Encrypt(nil,sh.buf,true)
+			sh.buf = sh.buf[:0]
+			buf = buf[n:]
+		} else {				// incomplete block
+			sh.buf = append(sh.buf,buf...)
+		}
+	}
+	return act,nil
+}
+
+func (sh *spongeHash) Sum(b []byte) []byte {
+	// Clone the sponge state to leave the original one unaffected
+	s := sh.cur.Clone()
+	s.Encrypt(nil,sh.buf,false)	// pad and complete the current message
+	b,hash := util.Grow(b,s.HashLen())
+	s.Encrypt(hash,nil,false)	// squeeze bytes to produce the hash
+	return b
+}
+
+func (sh *spongeHash) Reset() {
+	sh.cur = sh.orig.Clone()
+	sh.buf = sh.buf[:0]
+}
+
+func (sh *spongeHash) Size() int {
+	return sh.cur.HashLen()
+}
+
+func (sh *spongeHash) BlockSize() int {
+	return sh.bs
+}
 

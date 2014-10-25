@@ -12,9 +12,10 @@ import (
 type spongeDirection int
 
 const (
-	spongeIdle spongeDirection = iota	// between messages
-	spongeAbsorbing				// absorbing input message text
-	spongeSqueezing				// squeezing out a cipherstream
+	// spongeAbsorbing indicates that the sponge is absorbing input.
+	spongeAbsorbing spongeDirection = iota
+	// spongeSqueezing indicates that the sponge is being squeezed.
+	spongeSqueezing
 )
 
 const (
@@ -67,15 +68,15 @@ func (d *state) Reset() {
 	d.buf = d.storage[:0]
 }
 
-func (d *state) Set(src Sponge) Sponge {
-	*d = *src.(*state)
-	switch d.state {
-	case spongeAbsorbing:
-		d.buf = d.storage[:len(d.buf)]
-	case spongeSqueezing:
-		d.buf = d.storage[d.rate-cap(d.buf) : d.rate]
+func (d *state) clone() *state {
+	ret := *d
+	if ret.state == spongeAbsorbing {
+		ret.buf = ret.storage[:len(ret.buf)]
+	} else {
+		ret.buf = ret.storage[d.rate-cap(d.buf) : d.rate]
 	}
-	return d
+
+	return &ret
 }
 
 // xorIn xors a buffer into the state, byte-swapping to
@@ -109,19 +110,20 @@ func (d *state) copyOut(b []byte) {
 
 // permute applies the KeccakF-1600 permutation. It handles
 // any input-output buffering.
-func (d *state) permute(in,out []byte) {
-	if in != nil {
+func (d *state) permute() {
+	switch d.state {
+	case spongeAbsorbing:
 		// If we're absorbing, we need to xor the input into the state
 		// before applying the permutation.
-		d.xorIn(in)
-	}
-
-	keccakF1600(&d.a)
-
-	if out != nil {
+		d.xorIn(d.buf)
+		d.buf = d.storage[:0]
+		keccakF1600(&d.a)
+	case spongeSqueezing:
 		// If we're squeezing, we need to apply the permutatin before
 		// copying more output.
-		d.copyOut(out)
+		keccakF1600(&d.a)
+		d.buf = d.storage[:d.rate]
+		d.copyOut(d.buf)
 	}
 }
 
@@ -146,28 +148,31 @@ func (d *state) padAndPermute(dsbyte byte) {
 	// the last byte.
 	d.buf[d.rate-1] ^= 0x80
 	// Apply the permutation
-	d.permute(d.buf,d.buf)
+	d.permute()
 	d.state = spongeSqueezing
+	d.buf = d.storage[:d.rate]
+	d.copyOut(d.buf)
 }
 
-// Write absorbs more data into the hash's state.
+// Write absorbs more data into the hash's state. It produces an error
+// if more data is written to the ShakeHash after writing
 func (d *state) Write(p []byte) (written int, err error) {
 	if d.state != spongeAbsorbing {
-		d.state = spongeAbsorbing
+		panic("sha3: write to sponge after read")
+	}
+	if d.buf == nil {
 		d.buf = d.storage[:0]
 	}
 	written = len(p)
 
 	for len(p) > 0 {
 		if len(d.buf) == 0 && len(p) >= d.rate {
-			// The fast path; absorb a full "rate" bytes of input
-			// and apply the permutation.
+			// The fast path; absorb a full "rate" bytes of input and apply the permutation.
 			d.xorIn(p[:d.rate])
 			p = p[d.rate:]
 			keccakF1600(&d.a)
 		} else {
-			// The slow path; buffer the input until we can fill
-			// the sponge, and then xor it in.
+			// The slow path; buffer the input until we can fill the sponge, and then xor it in.
 			todo := d.rate - len(d.buf)
 			if todo > len(p) {
 				todo = len(p)
@@ -177,8 +182,7 @@ func (d *state) Write(p []byte) (written int, err error) {
 
 			// If the sponge is full, apply the permutation.
 			if len(d.buf) == d.rate {
-				d.permute(d.buf,nil)
-				d.buf = d.storage[:0]
+				d.permute()
 			}
 		}
 	}
@@ -187,115 +191,27 @@ func (d *state) Write(p []byte) (written int, err error) {
 }
 
 // Read squeezes an arbitrary number of bytes from the sponge.
-func (d *state) Read(dst []byte) (n int, err error) {
-	n = len(dst)
-	d.XORKeyStream(dst, nil)
-	return
-}
-
-func (d *state) XORKeyStream(dst, src []byte) {
-
+func (d *state) Read(out []byte) (n int, err error) {
 	// If we're still absorbing, pad and apply the permutation.
-	if d.state != spongeSqueezing {
+	if d.state == spongeAbsorbing {
 		d.padAndPermute(d.dsbyte)
 	}
+
+	n = len(out)
 
 	// Now, do the squeezing.
-	for len(dst) > 0 {
+	for len(out) > 0 {
+		n := copy(out, d.buf)
+		d.buf = d.buf[n:]
+		out = out[n:]
+
 		// Apply the permutation if we've squeezed the sponge dry.
 		if len(d.buf) == 0 {
-			d.buf := d.storage[:d.rate]
-			d.permute(nil,d.buf)
-		}
-
-		// Copy or XOR the output cipherstream data.
-		var n int
-		if src == nil {
-			n := copy(dst, d.buf)
-		} else {
-			n = len(d.buf)
-			if n > len(dst) {
-				n = len(dst)
-			}
-			for i := 0; i < n; i++ {
-				dst[i] = src[i] ^ d.buf[i]
-			}
-			src = src[n:]
-		}
-		d.buf = d.buf[n:]
-		dst = dst[n:]
-	}
-}
-
-// Duplex-mode sponge construction, more-or-less as described in:
-// http://sponge.noekeon.org/SpongeDuplex.pdf
-func (d *state) duplex(dst,src []byte, encrypt bool) {
-
-	// Finish absorbing any prior message.
-	if d.state != spongeSqueezing {
-		d.padAndPermute(d.dsbyte)
-	}
-	if len(d.buf) < d.rate {
-		// Discard any prior partially-consumed output
-		// and get a complete, propoperly-aligned block.
-		d.buf = d.storage[:d.rate]
-		d.permute(nil,d.buf)
-	}
-
-	// Copy the source if it aliases the destination.
-	if src == dst {
-		tmp := make([]byte, len(src))
-		copy(tmp, src)
-		src = tmp
-	}
-
-	// Concurrently absorb and squeeze a block at a time.
-	for len(dst) > 0 || absorb != nil {
-
-		// Consume whatever we need of the already-squeezed output
-		var n int
-		if src == nil {
-			n = copy(dst, d.buf)
-		} else {
-			n = len(d.buf)
-			if n > len(dst) {
-				n = len(dst)
-			}
-			for i := 0; i < n; i++ {
-				dst[i] = src[i] ^ d.buf[i]
-			}
-			src = src[n:]
-		}
-		dst = dst[n:]
-
-		// Absorb input, if there is input to absorb,
-		// and produce the next block of cipherstream output.
-		if len(absorb) >= d.rate {	// absorb complete block
-			inbuf := absorb[:d.rate]
-			d.buf = d.storage[:d.rate]
-			d.permute(inbuf,d.buf)
-		} else if absorb != nil {	// absorb final padded block
-			n := copy(d.storage[:],absorb)
-			d.buf = d.storage[:n]
-			d.padAndPermute(d.dsbyte)
-			absorb = nil
-		} else if len(dst) > 0 {	// nothing to absorb
-			d.buf = d.storage[:d.rate]
-			d.permute(nil,d.buf)
+			d.permute()
 		}
 	}
-}
 
-// Encrypt a message at src into an equal-size ciphertext at dst,
-// while absorbing all of the message's bits into the sponge's state.
-func (d *state) Encrypt(dst,src []byte) {
-	d.duplex(dst, src, true)
-}
-
-// Decrypt a ciphertext at src into an equal-size plaintext message at dst,
-// while absorbing all of the message's bits into the sponge's state.
-func (d *state) Decrypt(dst,src []byte) {
-	d.duplex(dst, src, false)
+	return
 }
 
 // Sum applies padding to the hash state and then squeezes out the desired
@@ -303,12 +219,8 @@ func (d *state) Decrypt(dst,src []byte) {
 func (d *state) Sum(in []byte) []byte {
 	// Make a copy of the original hash so that caller can keep writing
 	// and summing.
-	dup := state{}
-	dup.Set(d)
+	dup := d.clone()
 	hash := make([]byte, dup.outputLen)
 	dup.Read(hash)
 	return append(in, hash...)
 }
-
-
-
