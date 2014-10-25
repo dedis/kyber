@@ -79,12 +79,20 @@ type Sponge struct {
 }
 
 // Absorb a message, updating the sponge's state.
+// Absorbing two messages m1 followed by m2 yields a different state
+// than absorbing the concatenation of m1 and m2.
+// (To absorb a single long message in multiple parts,
+// use the underlying Encrypt() method.)
 func (s Sponge) Absorb(buf []byte) {
 	s.Encrypt(nil,buf,false)
 }
 
 // Squeeze bytes from the sponge without consuming any input,
 // updating the sponge's state.
+// Squeezing a b1-byte message then a b2-byte message yields different results
+// than squeezing a single (b1+b2)-byte message.
+// (To squeeze a single long message in multiple parts,
+// use the underlying Encrypt() method.)
 func (s Sponge) Squeeze(buf []byte) {
 	s.Encrypt(buf,nil,false)
 }
@@ -112,7 +120,7 @@ func (s Sponge) Hash() hash.Hash {
 
 // Returns the recommended number of bytes to squeeze
 // for use as a collision-resistant hash, which is
-// twice the sponge's KeyLen to account for birthday attacks.
+// twice the sponge's KeyLen due to the birthday attack.
 func (s Sponge) HashLen() int {
 	return s.KeyLen() * 2
 }

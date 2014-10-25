@@ -36,18 +36,17 @@ type Suite interface {
 	KeyLen() int
 	Stream(key []byte) cipher.Stream
 
-	// Message authentication check (MAC) function
-	//MacLen() int
-	//Mac(stream cipher.Stream) hash.Hash
-
 	// Create a cryptographic sponge,
 	// optionally keyed with a given key.
-	// XXX should this replace Hash() and Stream()?
-	Sponge(key []byte) Sponge
+	Sponge() Sponge
 
 	// abstract group for public-key crypto
 	Group
 }
+
+// XXX should Sponge completely replace Hash() and Stream()?
+// not sure - for now, retain the flexibility
+// of defining ciphersuites with non-sponge hashes and stream ciphers.
 
 
 // Use a given ciphersuite's hash function to hash a byte-slice.

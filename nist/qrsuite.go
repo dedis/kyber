@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto/sha3"
 )
 
 type qrsuite struct {
@@ -29,6 +30,11 @@ func (s qrsuite) Stream(key []byte) cipher.Stream {
 	}
 	iv := make([]byte,16)
 	return cipher.NewCTR(aes,iv)
+}
+
+// SHA3/SHAKE128 sponge
+func (s qrsuite) Sponge() abstract.Sponge {
+	return sha3.NewSponge128()
 }
 
 
