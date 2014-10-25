@@ -7,6 +7,8 @@ designed to be independent of specific cryptographic algorithms,
 to facilitate upgrading applications to new cryptographic algorithms
 or switching to alternative algorithms for exprimentation purposes.
 
+Abstract Groups and Crypto Suites
+
 This toolkit's public-key crypto API includes an abstract.Group interface
 generically supporting a broad class of group-based public-key primitives
 including DSA-style integer residue groups and elliptic curve groups.
@@ -50,6 +52,8 @@ but the two are semantically equivalent and
 the interface itself works for both elliptic curve and integer groups.
 See below for more complete examples.
 
+Higher-level Building Blocks
+
 Various sub-packages provide several specific
 implementations of these abstract cryptographic interfaces.
 In particular, the 'nist' sub-package provides implementations
@@ -91,6 +95,8 @@ might prove to be a member of the board without revealing which member she is.
 which can be used to implement (for example) voting or auction schemes
 that keep the sources of individual votes or bids private
 without anyone having to trust the shuffler(s) to shuffle votes/bids honestly.
+
+Disclaimer
 
 For now this library should currently be considered experimental:
 it will definitely be changing in non-backward-compatible ways,
