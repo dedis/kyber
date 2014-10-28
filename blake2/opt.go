@@ -12,7 +12,7 @@ func NewSponge() abstract.Sponge {
 	return abstract.Sponge{opt.NewState()}
 }
 
-func NewHash() hash.Hash {
+func NewBlake2b() hash.Hash {
 	h := spongeHash{}
 	h.Init(opt.NewState())
 	return &h
