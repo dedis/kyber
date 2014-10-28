@@ -1,4 +1,4 @@
-package blake2
+package opt
 
 import (
 	"crypto/md5"
@@ -22,7 +22,7 @@ func benchmarkHash(b *testing.B, hash func() hash.Hash) {
 }
 
 func BenchmarkBlake2B(b *testing.B) {
-	benchmarkHash(b, NewBlake2B)
+	benchmarkHash(b, NewHash)
 }
 
 func BenchmarkMD5(b *testing.B) {

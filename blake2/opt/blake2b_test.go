@@ -1,4 +1,4 @@
-package blake2
+package opt
 
 import (
 	"fmt"
@@ -530,18 +530,19 @@ func TestBlake2B(t *testing.T) {
 			input[i] = byte(i)
 		}
 
-		h := NewBlake2B()
+		h := NewHash()
 		h.Write(input)
 		d := h.Sum(nil)
 
 		actual := fmt.Sprintf("%0128X", d)
 
 		if actual != expected {
-			t.Errorf("bad hash (%d): input=%X, expected=%X, actual=%s", len, input, expected, actual)
+			t.Errorf("bad hash (%d): input=%X, expected=%s, actual=%s", len, input, expected, actual)
 		}
 	}
 }
 
+/*
 func ExampleNew() {
 	h := New(nil)
 	h.Write([]byte("one two three"))
@@ -634,3 +635,4 @@ func ExampleNewKeyedBlake2B() {
 	// Output:
 	// FC182724DC024B95F62E606859AC806E4EDCA09A927F6BC8BCCD07DADE3E4F26FC9D041661407527AADEF517A173E19BAB5C389217C29A08BE9731AEC83C02C3
 }
+*/

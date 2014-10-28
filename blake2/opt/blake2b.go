@@ -4,159 +4,127 @@
 // finalist BLAKE. Like BLAKE or SHA-3, BLAKE2 offers the highest security, yet
 // is fast as MD5 on 64-bit platforms and requires at least 33% less RAM than
 // SHA-2 or SHA-3 on low-end systems.
-package blake2
+package opt
 
 import (
 	// #cgo CFLAGS: -O3
 	// #include "blake2.h"
 	"C"
-	"hash"
 	"unsafe"
+	"encoding/binary"
+	"github.com/dedis/crypto/abstract"
 )
-
-type digest struct {
-	state      *C.blake2b_state
-	key        []byte
-	param      C.blake2b_param
-	isLastNode bool
-}
 
 const (
-	SaltSize     = C.BLAKE2B_SALTBYTES
-	PersonalSize = C.BLAKE2B_PERSONALBYTES
+	blockLen = 128
+	stateLen = 64
+	hashLen = 64
 )
 
-// Tree contains parameters for tree hashing. Each node in the tree
-// can be hashed concurrently, and incremental changes can be done in
-// a Merkle tree fashion.
-type Tree struct {
-	// Fanout: how many children each tree node has. 0 for unlimited.
-	// 1 means sequential mode.
-	Fanout uint8
-	// Maximal depth of the tree. Beyond this height, nodes are just
-	// added to the root of the tree. 255 for unlimited. 1 means
-	// sequential mode.
-	MaxDepth uint8
-	// Leaf maximal byte length, how much data each leaf summarizes. 0
-	// for unlimited or sequential mode.
-	LeafSize uint32
-	// Depth of this node. 0 for leaves or sequential mode.
-	NodeDepth uint8
-	// Offset of this node within this level of the tree. 0 for the
-	// first, leftmost, leaf, or sequential mode.
-	NodeOffset uint64
-	// Inner hash byte length, in the range [0, 64]. 0 for sequential
-	// mode.
-	InnerHashSize uint8
-
-	// IsLastNode indicates this node is the last, rightmost, node of
-	// a level of the tree.
-	IsLastNode bool
+// Minimal BLAKE2b compression function state.
+type State struct {
+	bs C.blake2b_state
+	full bool
 }
 
-// Config contains parameters for the hash function that affect its
-// output.
-type Config struct {
-	// Digest byte length, in the range [1, 64]. If 0, default size of 64 bytes is used.
-	Size uint8
-	// Key is up to 64 arbitrary bytes, for keyed hashing mode. Can be nil.
-	Key []byte
-	// Salt is up to 16 arbitrary bytes, used to randomize the hash. Can be nil.
-	Salt []byte
-	// Personal is up to 16 arbitrary bytes, used to make the hash
-	// function unique for each application. Can be nil.
-	Personal []byte
-
-	// Parameters for tree hashing. Set to nil to use default
-	// sequential mode.
-	Tree *Tree
+// Create a new sponge cipher based on BLAKE2b.
+func NewState() *State {
+	s := State{}
+	C.blake2b_init(&s.bs, stateLen)
+	return &s
 }
 
-// New returns a new custom BLAKE2b hash.
-//
-// If config is nil, uses a 64-byte digest size.
-func New(config *Config) hash.Hash {
-	d := &digest{
-		param: C.blake2b_param{
-			digest_length: 64,
-			fanout:        1,
-			depth:         1,
-		},
+func xorIn(dst []uint64, src []byte) {
+	for len(src) >= 8 {
+		dst[0] ^= binary.LittleEndian.Uint64(src)
+		src = src[8:]
+		dst = dst[1:]
 	}
-	if config != nil {
-		if config.Size != 0 {
-			d.param.digest_length = C.uint8_t(config.Size)
-		}
-		if len(config.Key) > 0 {
-			// let the C library worry about the exact limit; we just
-			// worry about fitting into the variable
-			if len(config.Key) > 255 {
-				panic("blake2b key too long")
-			}
-			d.param.key_length = C.uint8_t(len(config.Key))
-			d.key = config.Key
-		}
-		salt := (*[C.BLAKE2B_SALTBYTES]byte)(unsafe.Pointer(&d.param.salt[0]))
-		copy(salt[:], config.Salt)
-		personal := (*[C.BLAKE2B_SALTBYTES]byte)(unsafe.Pointer(&d.param.personal[0]))
-		copy(personal[:], config.Personal)
-
-		if config.Tree != nil {
-			d.param.fanout = C.uint8_t(config.Tree.Fanout)
-			d.param.depth = C.uint8_t(config.Tree.MaxDepth)
-			d.param.leaf_length = C.uint32_t(config.Tree.LeafSize)
-			d.param.node_offset = C.uint64_t(config.Tree.NodeOffset)
-			d.param.node_depth = C.uint8_t(config.Tree.NodeDepth)
-			d.param.inner_length = C.uint8_t(config.Tree.InnerHashSize)
-
-			d.isLastNode = config.Tree.IsLastNode
-		}
-	}
-	d.Reset()
-	return d
-}
-
-// NewBlake2B returns a new 512-bit BLAKE2B hash.
-func NewBlake2B() hash.Hash {
-	return New(&Config{Size: 64})
-}
-
-// NewKeyedBlake2B returns a new 512-bit BLAKE2B hash with the given secret key.
-func NewKeyedBlake2B(key []byte) hash.Hash {
-	return New(&Config{Size: 64, Key: key})
-}
-
-func (*digest) BlockSize() int {
-	return 128
-}
-
-func (d *digest) Size() int {
-	return int(d.param.digest_length)
-}
-
-func (d *digest) Reset() {
-	d.state = new(C.blake2b_state)
-	var key unsafe.Pointer
-	if d.param.key_length > 0 {
-		key = unsafe.Pointer(&d.key[0])
-	}
-	if C.blake2b_init_parametrized(d.state, &d.param, key) < 0 {
-		panic("blake2: unable to reset")
-	}
-	if d.isLastNode {
-		d.state.last_node = C.uint8_t(1)
+	if len(src) > 0 {
+		var buf [8]byte
+		copy(buf[:],src)
+		dst[0] ^= binary.LittleEndian.Uint64(buf[:])
 	}
 }
 
-func (d *digest) Sum(buf []byte) []byte {
-	digest := make([]byte, d.Size())
-	C.blake2b_final(d.state, (*C.uint8_t)(&digest[0]), C.uint8_t(d.Size()))
-	return append(buf, digest...)
+// Absorb up to BlockLen data bytes from src,
+// and up to StateLen bytes of state-indexing material from idx.
+// The last flag indicates the last block of a padded message.
+func (s *State) AbsorbBlock(src,idx []byte, last bool) {
+
+	// Make sure the src is a complete block
+	// (unless it's nil indicating no input at all, which is OK).
+	if src != nil && len(src) < blockLen {
+		buf := make([]byte, blockLen)
+		copy(buf, src)
+		src = buf
+	}
+
+	// Indexing material gets XORed into IV
+	if idx != nil {
+		h := (*[8]uint64)(unsafe.Pointer(&s.bs.h[0]))
+		xorIn(h[:], idx)
+	}
+
+	C.blake2b_increment_counter(&s.bs, C.uint64_t(len(src)))
+	if last {
+		s.bs.f[0] = ^C.uint64_t(0)
+	} else {
+		s.bs.f[0] = 0
+	}
+
+	C.blake2b_compress(&s.bs, (*C.uint8_t)(unsafe.Pointer(&src[0])))
+
+	s.full = true
 }
 
-func (d *digest) Write(buf []byte) (int, error) {
-	if len(buf) > 0 {
-		C.blake2b_update(d.state, (*C.uint8_t)(&buf[0]), C.uint64_t(len(buf)))
+// Squeeze up to BlockLen data bytes into dst,
+// updating the state if no unconsumed output block is available.
+func (s *State) SqueezeBlock(dst []byte) {
+	if !s.full {
+		s.AbsorbBlock(nil, nil, false)
 	}
-	return len(buf), nil
+
+	buf := (*[blockLen]uint8)(unsafe.Pointer(&s.bs.buf[0]))
+	copy(dst, buf[:])
+
+	s.full = false
 }
+
+// Pad the variable-length input src, of size up to one block.
+// BLAKE2 doesn't require any padding overhead bytes,
+// since message length is indicated via side-band inputs.
+func (s *State) Pad(buf,src []byte) []byte {
+	return src
+}
+
+// Return the number of data bytes the sponge can aborb in one block.
+func (s *State) BlockLen() int {
+	return blockLen
+}
+
+// Return the sponge's secret state capacity in bytes.
+func (s *State) StateLen() int {
+	return stateLen
+}
+
+// Return the recommended size of hash outputs for full security.
+func (s *State) HashLen() int {
+	return stateLen
+}
+
+// Create a copy of this SpongeCipher with identical state
+func (s *State) Clone() abstract.SpongeCipher {
+	c := *s
+	return &c
+}
+
+// Read the internal state to produce a standard BLAKE2b hash.
+// This produces a different result than Sponge.Hash(),
+// which is more secure against length-extension/reuse issues
+// but incompatible with the BLAKE2b spec.
+func (s *State) Hash(hash []byte) {
+	h := (*[hashLen]byte)(unsafe.Pointer(&s.bs.h[0]))
+	copy(hash, h[:])
+}
+

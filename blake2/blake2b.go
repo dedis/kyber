@@ -1,31 +1,50 @@
-// Package blake2 provides a Go wrapper around an optimized, public domain
-// implementation of BLAKE2.
-// The cryptographic hash function BLAKE2 is an improved version of the SHA-3
-// finalist BLAKE. Like BLAKE or SHA-3, BLAKE2 offers the highest security, yet
-// is fast as MD5 on 64-bit platforms and requires at least 33% less RAM than
-// SHA-2 or SHA-3 on low-end systems.
+// Package blake2 provides a flexible implementation of BLAKE2
+// that can be used as a hash, sponge, or stream cipher.
 package blake2
 
 import (
-	// #cgo CFLAGS: -O3
-	// #include "blake2.h"
-	"C"
-	"hash"
-	"unsafe"
-	"crypto/cipher"
+	"github.com/dedis/crypto/abstract"
 )
 
-type digest struct {
-	state      *C.blake2b_state
-	key        []byte
-	param      C.blake2b_param
-	isLastNode bool
+
+// BLAKE2b standard Initialization Vector (IV).
+var iv = [8]uint64{
+	0x6a09e667f3bcc908, 0xbb67ae8584caa73b,
+	0x3c6ef372fe94f82b, 0xa54ff53a5f1d36f1,
+	0x510e527fade682d1, 0x9b05688c2b3e6c1f,
+	0x1f83d9abfb41bd6b, 0x5be0cd19137e2179,
 }
 
-const (
-	SaltSize     = C.BLAKE2B_SALTBYTES
-	PersonalSize = C.BLAKE2B_PERSONALBYTES
-)
+
+// Create a copy of this SpongeCipher with identical state
+func (s *state) Clone() abstract.SpongeCipher {
+	c := *s
+	return &c
+}
+
+// Return the sponge cipher's block size: the minimum granularity
+// at which partial, unpadded messages may be processed.
+func (s *state) BlockSize() int {
+	return 128			// BLAKE2b uses 1024-bit blocks
+}
+
+// Return the recommended size of symmetric cryptographic keys
+// to obtain the full security from this sponge.
+func (s *state) KeyLen() int {
+	return 32			// 256-bit keys, 512-bit hash strength
+}
+
+func (s *state) crypt(dst,src []byte, more,encrypt bool) {
+}
+
+func (s *state) Encrypt(dst,src []byte, more bool) {
+	s.crypt(dst,src,bool,true)
+}
+
+func (s *state) Decrypt(dst,src []byte, more bool) {
+	s.crypt(dst,src,bool,false)
+}
+
 
 // Tree contains parameters for tree hashing. Each node in the tree
 // can be hashed concurrently, and incremental changes can be done in

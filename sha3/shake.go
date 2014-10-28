@@ -8,14 +8,14 @@ import (
 // Its generic security strength is 128 bits against all attacks if
 // input keys are at least 16 bytes and output hashes are at least 32 bytes.
 func NewSponge128() abstract.Sponge {
-	return abstract.Sponge{&sponge{rate: 168, keyLen: 16, dsbyte: 0x1f}}
+	return abstract.Sponge{&sponge{rate: 168, hashLen: 128/8, dsbyte: 0x1f}}
 }
 
 // NewSponge256 creates a new SHAKE256 sponge cipher.
 // Its generic security strength is 256 bits against all attacks if
 // input keys are at least 32 bytes and output hashes are at least 64 bytes.
 func NewSponge256() abstract.Sponge {
-	return abstract.Sponge{&sponge{rate: 136, keyLen: 32, dsbyte: 0x1f}}
+	return abstract.Sponge{&sponge{rate: 136, hashLen: 256/8, dsbyte: 0x1f}}
 }
 
 

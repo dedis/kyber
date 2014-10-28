@@ -14,8 +14,8 @@ import (
 )
 
 
-func newHash(rate, hashBits int, dsbyte byte) hash.Hash {
-	s := sponge{rate: rate, keyLen: hashBits/16, dsbyte: dsbyte}
+func newHash(rate,hashBits int, dsbyte byte) hash.Hash {
+	s := sponge{rate: rate, hashLen: hashBits/8, dsbyte: dsbyte}
 	return abstract.Sponge{&s}.Hash()
 }
 

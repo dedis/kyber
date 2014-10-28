@@ -91,9 +91,11 @@ extern "C" {
     uint64_t h[8];
     uint64_t t[2];
     uint64_t f[2];
-    uint8_t  buf[2 * BLAKE2B_BLOCKBYTES];
+    uint8_t  buf[BLAKE2B_BLOCKBYTES];
+#ifdef FULLIMPL
     size_t   buflen;
     uint8_t  last_node;
+#endif
   } blake2b_state;
 
   ALIGN( 64 ) typedef struct __blake2sp_state
@@ -113,6 +115,13 @@ extern "C" {
   } blake2bp_state;
 #pragma pack(pop)
 
+  // Minimal block-based API
+  int blake2b_init( blake2b_state *S, const uint8_t outlen );
+  void blake2b_increment_counter( blake2b_state *S, const uint64_t inc );
+  void blake2b_compress( blake2b_state *S, const uint8_t in[BLAKE2B_BLOCKBYTES] );
+  void blake2b_output( blake2b_state *S, const uint8_t out[BLAKE2B_BLOCKBYTES]);
+
+#ifdef FULLIMPL
   // Streaming API
   int blake2s_init( blake2s_state *S, const uint8_t outlen );
   int blake2s_init_key( blake2s_state *S, const uint8_t outlen, const void *key, const uint8_t keylen );
@@ -148,6 +157,7 @@ extern "C" {
   {
     return blake2b( out, in, key, outlen, inlen, keylen );
   }
+#endif // FULLIMPL
 
 #if defined(__cplusplus)
 }

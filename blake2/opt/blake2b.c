@@ -37,6 +37,8 @@
 
 #include "blake2b-round.h"
 
+ALIGN( 64 ) static const uint64_t zeroblock[16];
+
 ALIGN( 64 ) static const uint64_t blake2b_IV[8] =
 {
   0x6a09e667f3bcc908ULL, 0xbb67ae8584caa73bULL,
@@ -75,6 +77,7 @@ static inline int blake2b_clear_lastnode( blake2b_state *S )
   return 0;
 }
 
+#ifdef FULLIMPL
 static inline int blake2b_set_lastblock( blake2b_state *S )
 {
   if( S->last_node ) blake2b_set_lastnode( S );
@@ -90,9 +93,10 @@ static inline int blake2b_clear_lastblock( blake2b_state *S )
   S->f[0] = 0ULL;
   return 0;
 }
+#endif // FULLIMPL
 
 
-static inline int blake2b_increment_counter( blake2b_state *S, const uint64_t inc )
+void blake2b_increment_counter( blake2b_state *S, const uint64_t inc )
 {
 #if __x86_64__
   // ADD/ADC chain
@@ -104,10 +108,10 @@ static inline int blake2b_increment_counter( blake2b_state *S, const uint64_t in
   S->t[0] += inc;
   S->t[1] += ( S->t[0] < inc );
 #endif
-  return 0;
 }
 
 
+#ifdef FULLIMPL
 // Parameter-related functions
 static inline int blake2b_param_set_digest_length( blake2b_param *P, const uint8_t digest_length )
 {
@@ -162,15 +166,14 @@ static inline int blake2b_param_set_personal( blake2b_param *P, const uint8_t pe
   memcpy( P->personal, personal, BLAKE2B_PERSONALBYTES );
   return 0;
 }
+#endif // FULLIMPL
 
-static inline int blake2b_init0( blake2b_state *S )
+static inline void blake2b_init0( blake2b_state *S )
 {
   memset( S, 0, sizeof( blake2b_state ) );
 
   int i;
   for( i = 0; i < 8; ++i ) S->h[i] = blake2b_IV[i];
-
-  return 0;
 }
 
 /* init xors IV with input parameter block */
@@ -213,6 +216,7 @@ int blake2b_init( blake2b_state *S, const uint8_t outlen )
   return blake2b_init_param( S, &P );
 }
 
+#ifdef FULLIMPL
 int blake2b_init_key( blake2b_state *S, const uint8_t outlen, const void *key, const uint8_t keylen )
 {
   if ( ( !outlen ) || ( outlen > BLAKE2B_OUTBYTES ) ) return -1;
@@ -266,10 +270,14 @@ int blake2b_init_parametrized( blake2b_state *S, const blake2b_param *P, const v
   }
   return 0;
 }
+#endif // FULLIMPL
 
 
-static inline int blake2b_compress( blake2b_state *S, const uint8_t block[BLAKE2B_BLOCKBYTES] )
+void blake2b_compress( blake2b_state *S, const uint8_t in[BLAKE2B_BLOCKBYTES] )
 {
+  if (in == 0)
+    in = (uint8_t*)zeroblock;
+
   __m128i row1l, row1h;
   __m128i row2l, row2h;
   __m128i row3l, row3h;
@@ -281,31 +289,31 @@ static inline int blake2b_compress( blake2b_state *S, const uint8_t block[BLAKE2
   const __m128i r24 = _mm_setr_epi8( 3, 4, 5, 6, 7, 0, 1, 2, 11, 12, 13, 14, 15, 8, 9, 10 );
 #endif
 #if defined(HAVE_SSE41)
-  const __m128i m0 = LOADU( block + 00 );
-  const __m128i m1 = LOADU( block + 16 );
-  const __m128i m2 = LOADU( block + 32 );
-  const __m128i m3 = LOADU( block + 48 );
-  const __m128i m4 = LOADU( block + 64 );
-  const __m128i m5 = LOADU( block + 80 );
-  const __m128i m6 = LOADU( block + 96 );
-  const __m128i m7 = LOADU( block + 112 );
+  const __m128i m0 = LOADU( in + 00 );
+  const __m128i m1 = LOADU( in + 16 );
+  const __m128i m2 = LOADU( in + 32 );
+  const __m128i m3 = LOADU( in + 48 );
+  const __m128i m4 = LOADU( in + 64 );
+  const __m128i m5 = LOADU( in + 80 );
+  const __m128i m6 = LOADU( in + 96 );
+  const __m128i m7 = LOADU( in + 112 );
 #else
-  const uint64_t  m0 = ( ( uint64_t * )block )[ 0];
-  const uint64_t  m1 = ( ( uint64_t * )block )[ 1];
-  const uint64_t  m2 = ( ( uint64_t * )block )[ 2];
-  const uint64_t  m3 = ( ( uint64_t * )block )[ 3];
-  const uint64_t  m4 = ( ( uint64_t * )block )[ 4];
-  const uint64_t  m5 = ( ( uint64_t * )block )[ 5];
-  const uint64_t  m6 = ( ( uint64_t * )block )[ 6];
-  const uint64_t  m7 = ( ( uint64_t * )block )[ 7];
-  const uint64_t  m8 = ( ( uint64_t * )block )[ 8];
-  const uint64_t  m9 = ( ( uint64_t * )block )[ 9];
-  const uint64_t m10 = ( ( uint64_t * )block )[10];
-  const uint64_t m11 = ( ( uint64_t * )block )[11];
-  const uint64_t m12 = ( ( uint64_t * )block )[12];
-  const uint64_t m13 = ( ( uint64_t * )block )[13];
-  const uint64_t m14 = ( ( uint64_t * )block )[14];
-  const uint64_t m15 = ( ( uint64_t * )block )[15];
+  const uint64_t  m0 = ( ( uint64_t * )in )[ 0];
+  const uint64_t  m1 = ( ( uint64_t * )in )[ 1];
+  const uint64_t  m2 = ( ( uint64_t * )in )[ 2];
+  const uint64_t  m3 = ( ( uint64_t * )in )[ 3];
+  const uint64_t  m4 = ( ( uint64_t * )in )[ 4];
+  const uint64_t  m5 = ( ( uint64_t * )in )[ 5];
+  const uint64_t  m6 = ( ( uint64_t * )in )[ 6];
+  const uint64_t  m7 = ( ( uint64_t * )in )[ 7];
+  const uint64_t  m8 = ( ( uint64_t * )in )[ 8];
+  const uint64_t  m9 = ( ( uint64_t * )in )[ 9];
+  const uint64_t m10 = ( ( uint64_t * )in )[10];
+  const uint64_t m11 = ( ( uint64_t * )in )[11];
+  const uint64_t m12 = ( ( uint64_t * )in )[12];
+  const uint64_t m13 = ( ( uint64_t * )in )[13];
+  const uint64_t m14 = ( ( uint64_t * )in )[14];
+  const uint64_t m15 = ( ( uint64_t * )in )[15];
 #endif
   row1l = LOAD( &S->h[0] );
   row1h = LOAD( &S->h[2] );
@@ -315,6 +323,7 @@ static inline int blake2b_compress( blake2b_state *S, const uint8_t block[BLAKE2
   row3h = LOAD( &blake2b_IV[2] );
   row4l = _mm_xor_si128( LOAD( &blake2b_IV[4] ), LOAD( &S->t[0] ) );
   row4h = _mm_xor_si128( LOAD( &blake2b_IV[6] ), LOAD( &S->f[0] ) );
+
   ROUND( 0 );
   ROUND( 1 );
   ROUND( 2 );
@@ -327,6 +336,18 @@ static inline int blake2b_compress( blake2b_state *S, const uint8_t block[BLAKE2
   ROUND( 9 );
   ROUND( 10 );
   ROUND( 11 );
+
+  // save the output for squeezing
+  STORE( S->buf + 00,  row1l );
+  STORE( S->buf + 16,  row1h );
+  STORE( S->buf + 32,  row2l );
+  STORE( S->buf + 48,  row2h );
+  STORE( S->buf + 64,  row3l );
+  STORE( S->buf + 80,  row3h );
+  STORE( S->buf + 96,  row4l );
+  STORE( S->buf + 112, row4h );
+
+  // update the internal state
   row1l = _mm_xor_si128( row3l, row1l );
   row1h = _mm_xor_si128( row3h, row1h );
   STORE( &S->h[0], _mm_xor_si128( LOAD( &S->h[0] ), row1l ) );
@@ -335,24 +356,23 @@ static inline int blake2b_compress( blake2b_state *S, const uint8_t block[BLAKE2
   row2h = _mm_xor_si128( row4h, row2h );
   STORE( &S->h[4], _mm_xor_si128( LOAD( &S->h[4] ), row2l ) );
   STORE( &S->h[6], _mm_xor_si128( LOAD( &S->h[6] ), row2h ) );
-  return 0;
 }
 
 
+#ifdef FULLIMPL
 int blake2b_update( blake2b_state *S, const uint8_t *in, uint64_t inlen )
 {
   while( inlen > 0 )
   {
     size_t left = S->buflen;
-    size_t fill = 2 * BLAKE2B_BLOCKBYTES - left;
+    size_t fill = BLAKE2B_BLOCKBYTES - left;
 
     if( inlen > fill )
     {
       memcpy( S->buf + left, in, fill ); // Fill buffer
       S->buflen += fill;
       blake2b_increment_counter( S, BLAKE2B_BLOCKBYTES );
-      blake2b_compress( S, S->buf ); // Compress
-      memcpy( S->buf, S->buf + BLAKE2B_BLOCKBYTES, BLAKE2B_BLOCKBYTES ); // Shift buffer left
+      blake2b_compress( S, S->buf, 0 ); // Compress
       S->buflen -= BLAKE2B_BLOCKBYTES;
       in += fill;
       inlen -= fill;
@@ -372,18 +392,10 @@ int blake2b_update( blake2b_state *S, const uint8_t *in, uint64_t inlen )
 
 int blake2b_final( blake2b_state *S, uint8_t *out, uint8_t outlen )
 {
-  if( S->buflen > BLAKE2B_BLOCKBYTES )
-  {
-    blake2b_increment_counter( S, BLAKE2B_BLOCKBYTES );
-    blake2b_compress( S, S->buf );
-    S->buflen -= BLAKE2B_BLOCKBYTES;
-    memcpy( S->buf, S->buf + BLAKE2B_BLOCKBYTES, S->buflen );
-  }
-
   blake2b_increment_counter( S, S->buflen );
   blake2b_set_lastblock( S );
-  memset( S->buf + S->buflen, 0, 2 * BLAKE2B_BLOCKBYTES - S->buflen ); /* Padding */
-  blake2b_compress( S, S->buf );
+  memset( S->buf + S->buflen, 0, BLAKE2B_BLOCKBYTES - S->buflen ); /* Padding */
+  blake2b_compress( S, S->buf, 0 );
   memcpy( out, &S->h[0], outlen );
   return 0;
 }
@@ -451,4 +463,5 @@ int main( int argc, char **argv )
   return 0;
 }
 #endif
+#endif // FULLIMPL
 
