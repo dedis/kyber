@@ -9,22 +9,6 @@ import (
 // SpongeCipher is an abstract interface for a primitive sponge cipher.
 type SpongeCipher interface {
 
-/*
-	// Encrypt bytes from src to dst, updating the sponge state.
-	// If dst == nil, absorbs input without producing output.
-	// If src == nil, squeezes output based on an input of zero bytes.
-	// If more is false, completes and pads the current message.
-	// If more is true, src and dst must be a multiple of BlockLen,
-	// and leaves the current message un-padded so that
-	// the next Encrypt call will continue the same message.
-	// Returns the number of bytes encrypted.
-	Encrypt(dst,src []byte, more bool)
-
-	// Decrypt bytes from src to dst, updating the sponge state.
-	// Returns the number of bytes decrypted, or an error on failure.
-	Decrypt(dst,src []byte, more bool)
-*/
-
 	// Absorb up to BlockLen data bytes from src,
 	// and up to StateLen bytes of state-indexing material from idx.
 	// The last flag indicates the last block of a padded message.
@@ -33,6 +17,9 @@ type SpongeCipher interface {
 	// Squeeze up to BlockLen data bytes into dst,
 	// updating the state if no unconsumed output block is available.
 	SqueezeBlock(dst []byte)
+
+	// XXX combine SqueezeBlock with AbsorbBlock?
+	// XXX remove Block suffix from names?
 
 	// Pad the variable-length input src, of size up to one block,
 	// into a returned slice containing exactly one or two blocks.
@@ -50,42 +37,6 @@ type SpongeCipher interface {
 
 	// Create a copy of this SpongeCipher with identical state
 	Clone() SpongeCipher
-
-/*
-	// Encrypt bytes from src to dst, updating the sponge state.
-	// If dst == nil, absorbs input without producing output.
-	// Returns the number of bytes encrypted, or an error on failure
-	// (which happens only if the io.Writer or io.Reader returns an error).
-	Encrypt(dst io.Writer, src io.Reader) (int,error)
-
-	// Decrypt bytes from src to dst, updating the sponge state.
-	// Returns the number of bytes decrypted, or an error on failure.
-	Decrypt(dst io.Writer, src io.Reader) (int,error)
-*/
-
-/*
-	// Write absorbs message data.
-	// Consecutive calls to Write constitute a single message,
-	// terminated by the next call to Read, Encrypt, or Decrypt.
-	io.Writer
-
-	// Read reads output from the sponge,
-	// after consuming the remainder any message absorbed via Write.
-	// Reading affects the sponge's state, in contrast with Hash.Sum.
-	// Never returns an error.
-	io.Reader
-
-	// XORKeyStream uses output from the sponge to encrypt a plaintext.
-	cipher.Stream
-
-	// Concurrently absorb a message and produce a cipher-stream.
-	// The generated cipher-stream bits may depend on 
-	// some, all, or none of the concurrently absorbed message bits.
-	// If src != nil, XORs cipher-stream bytes with src into dst.
-	// If src == nil, just copies cipher-stream bytes into dst.
-	Encrypt(dst,src []byte)
-	Decrypt(dst,src []byte)
-*/
 }
 
 // Sponge wraps a primitive SpongeCipher interface
