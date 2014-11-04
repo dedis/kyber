@@ -10,6 +10,8 @@ import (
 // Cipher represents an abstract stateful symmetric cipher,
 // which implements authenticated encryption of variable-length messages,
 // and can also function as a hash and a stream cipher.
+// This interface is very experimental and will certainly change,
+// and may go away entirely.
 type Cipher interface {
 
 	// Encrypt bytes from src to dst, updating the sponge state.
