@@ -1,24 +1,20 @@
-package cipher
-
-import (
-	"crypto/cipher"
-)
+package sponge
 
 // Wrapper for using a Sponge as a Stream cipher
 type spongeStream struct {
-	s Sponge
+	s Cipher
 	buf,avl []byte
 }
 
-func (ss *spongeStream) Init(s Sponge) {
+func (ss *spongeStream) Init(s Cipher) {
 	ss.s = s
-	ss.buf = make([]byte,s.BlockSize())
+	ss.buf = make([]byte,s.BlockLen())
 }
 
 func (ss *spongeStream) XORKeyStream(dst,src []byte) {
 	for len(dst) > 0 {
 		if len(ss.avl) == 0 {
-			ss.s.Encrypt(ss.buf,nil,true)	// squeeze out a block
+			ss.s.Squeeze(ss.buf)	// squeeze out a block
 			ss.avl = ss.buf
 		}
 		var n int
@@ -38,6 +34,5 @@ func (ss *spongeStream) XORKeyStream(dst,src []byte) {
 		ss.avl = ss.avl[:n]
 	}
 }
-
 
 

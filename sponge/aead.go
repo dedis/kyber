@@ -1,12 +1,18 @@
-package crypto
+package sponge
 
 import (
-	"crypto/cipher"
-	"misc"
+	//"crypto/cipher"
+	//"github.com/dedis/crypto/util"
 )
 
 // Wrapper for a Sponge cipher to provide the 
 // Authenticated Encryption with Additional Data (AEAD) interface.
+
+/*
+
+type aead struct {
+	Cipher
+}
 
 func (a aead) NonceSize() int {
 	return a.KeyLen()
@@ -21,10 +27,10 @@ func (a aead) Seal(dst, nonce, msg, hdr []byte) []byte {
 	s.Write(nonce)
 	s.Write(hdr)
 
-	dst,ctx := misc.Grow(dst, len(msg))
+	dst,ctx := util.Grow(dst, len(msg))
 	s.Encrypt(ctx, msg)
 
-	dst,mac := misc.Grow(dst, s.KeyLen())
+	dst,mac := util.Grow(dst, s.KeyLen())
 	s.Read(mac)
 	return dst
 }
@@ -39,7 +45,7 @@ func (a aead) Open(dst, nonce, ctx, hdr []byte) ([]byte, error) {
 	s.Write(nonce)
 	s.Write(hdr)
 
-	dst,msg := misc.Grow(dst, ml)
+	dst,msg := util.Grow(dst, ml)
 	s.Decrypt(msg, ctx[:ml])
 
 	mac := make([]byte, kl)
@@ -50,4 +56,6 @@ func (a aead) Open(dst, nonce, ctx, hdr []byte) ([]byte, error) {
 
 	return dst,nil
 }
+
+*/
 

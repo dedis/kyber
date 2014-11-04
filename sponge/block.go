@@ -1,7 +1,7 @@
-package crypto
+package sponge
 
 import (
-	"crypto/cipher"
+	//"crypto/cipher"
 )
 
 /*
