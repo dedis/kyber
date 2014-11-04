@@ -24,6 +24,7 @@ import (
 	"crypto/sha256"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/nist"
+	"github.com/dedis/crypto/sha3"
 )
 
 
@@ -295,6 +296,11 @@ func (s *suite) Stream(key []byte) cipher.Stream {
 	}
 	iv := make([]byte,16)
 	return cipher.NewCTR(aes,iv)
+}
+
+// SHA3/SHAKE128 sponge
+func (s *suite) Sponge() abstract.Sponge {
+	return sha3.NewSponge128()
 }
 
 // Ciphersuite based on AES-128, SHA-256, and the Ed25519 curve.
