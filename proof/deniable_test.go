@@ -8,6 +8,7 @@ import (
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto/clique"
 )
 
 type node struct {
@@ -17,7 +18,7 @@ type node struct {
 	x abstract.Secret
 	X abstract.Point
 
-	proto StarProtocol
+	proto clique.Protocol
 	outbox chan []byte
 	inbox chan [][]byte
 }
@@ -34,7 +35,7 @@ func (n *node) Random() cipher.Stream {
 }
 
 func runNode(n *node) {
-	errs := func(StarContext)[]error(n.proto)(n)
+	errs := func(clique.Context)[]error(n.proto)(n)
 
 	fmt.Printf("node %d finished\n", n.i)
 	for i := range(errs) {

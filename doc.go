@@ -5,7 +5,7 @@ The cornerstone of this toolbox is the 'abstract' sub-package,
 which defines abstract interfaces to cryptographic primitives
 designed to be independent of specific cryptographic algorithms,
 to facilitate upgrading applications to new cryptographic algorithms
-or switching to alternative algorithms for exprimentation purposes.
+or switching to alternative algorithms for experimentation purposes.
 
 Abstract Groups and Crypto Suites
 

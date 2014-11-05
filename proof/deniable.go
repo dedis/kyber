@@ -3,58 +3,22 @@ package proof
 import (
 	"bytes"
 	"errors"
-	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto/clique"
 )
 
 
-// A StarProtocol represents the role of a participant in a star-protocol.
-// A participant is represented as a higher-order function taking a StarContext,
-// which invokes the StarContext's methods to send and receive messages,
-// and finally returns once the protocol has concluded for all participants.
-// Returns a slice of success/error indicators, one for each participant.
-//
-// XXX this interface should probably move to a "protocol" module of some kind.
-type StarProtocol func(ctx StarContext) []error
-
-
-// StarContext represents an abstract context for running a star-protocol.
-// A star-protocol is initiated by a leader
-// but incorporates a variable number of followers,
-// all of whom operate in lock-step under the leader's direction.
-// At each step, each follower produces one message;
-// the leader aggregates all the followers' messages for that step
-// and returns the vector of collected messages to each follower.
-// Followers can drop out or be absent at any step, in which case
-// they are seen as contributing an empty message in that step.
-type StarContext interface {
-
-	// A follower calls Step to provide its message for the next step,
-	// and wait for the leader to collect and distribute all messages.
-	// Returns the list of collected messages, one per participant.
-	// The returned message slice is positionally consistent across steps:
-	// each index consistently represents the same participant every step.
-	// One returned message will be the same slice as the one passed in,
-	// representing the calling participant's own slot.
-	Step(msg []byte) ([][]byte,error)
-
-	// Get a source of private cryptographic randomness.
-	Random() cipher.Stream
-}
-
-
-
-// Create a StarProtocol implementing an interactive Sigma-protocol
+// Create a clique.Protocol implementing an interactive Sigma-protocol
 // to prove a particular statement to the other participants.
-// Optionally the StarProtocol participant can also verify
+// Optionally the clique.Protocol participant can also verify
 // the Sigma-protocol proofs of any or all of the other participants.
 // Different participants may produce different proofs of varying sizes,
 // and may even consist of different numbers of steps.
 func DeniableProver(suite abstract.Suite, self int, prover Prover,
-		verifiers []Verifier) StarProtocol {
+		verifiers []Verifier) clique.Protocol {
 
-	return StarProtocol(func(ctx StarContext)[]error{
+	return clique.Protocol(func(ctx clique.Context)[]error{
 		dp := deniableProver{}
 		return dp.run(suite, self, prover, verifiers, ctx)
 	})
@@ -65,7 +29,7 @@ func DeniableProver(suite abstract.Suite, self int, prover Prover,
 type deniableProver struct {
 	suite abstract.Suite		// Agreed-on ciphersuite for protocol
 	self int			// Our own node number
-	sc StarContext			// Star-protocol context
+	sc clique.Context		// Clique protocol context
 
 	// verifiers for other nodes' proofs
 	dv []*deniableVerifier
@@ -83,7 +47,7 @@ type deniableProver struct {
 }
 
 func (dp *deniableProver) run(suite abstract.Suite, self int, prv Prover,
-				vrf []Verifier, sc StarContext) []error {
+				vrf []Verifier, sc clique.Context) []error {
 	dp.suite = suite
 	dp.self = self
 	dp.sc = sc
