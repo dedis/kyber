@@ -15,7 +15,7 @@ type suite128 struct {
 } 
 
 func (s *suite128) String() string {
-	return "AES128SHA256P256"
+	return "P256"
 }
 
 func (s *suite128) HashLen() int {

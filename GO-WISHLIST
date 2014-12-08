@@ -62,3 +62,5 @@ Wishlist for Go standard library changes:
 - encoding/base64: need an easy way to get un-unpadded strings
 	(drop the '=' signs).  RFC 4648 refers to this variant
 	(e.g., as discussed in sec 3.2) so it's not disallowed.
+- time/Time.[Un]MarshalBinary should document exactly what binary
+	encoding it uses (preferably some kind of standard)
