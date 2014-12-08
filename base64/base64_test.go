@@ -45,6 +45,42 @@ var pairs = []testpair{
 	{"sure.", "c3VyZS4="},
 }
 
+
+// Do nothing to a reference base64 string (leave in standard format)
+func stdRef(ref string) string {
+	return ref
+}
+
+// Convert a reference string to URL-encoding
+func urlRef(ref string) string {
+	ref = strings.Replace(ref, "+", "-", -1)
+	ref = strings.Replace(ref, "/", "_", -1)
+	return ref
+}
+
+// Convert a reference string to raw, unpadded format
+func rawRef(ref string) string {
+	return strings.TrimRight(ref, "=")
+}
+
+// Both URL and unpadding conversions
+func rawUrlRef(ref string) string {
+	return rawRef(urlRef(ref))
+}
+
+type encodingTest struct {
+	enc *Encoding			// Encoding to test
+	conv func(string)string		// Reference string converter
+}
+
+var encodingTests = []encodingTest{
+	encodingTest{StdEncoding, stdRef},
+	encodingTest{URLEncoding, urlRef},
+	encodingTest{RawStdEncoding, rawRef},
+	encodingTest{RawURLEncoding, rawUrlRef},
+}
+
+
 var bigtest = testpair{
 	"Twas brillig, and the slithy toves",
 	"VHdhcyBicmlsbGlnLCBhbmQgdGhlIHNsaXRoeSB0b3Zlcw==",
@@ -60,8 +96,12 @@ func testEqual(t *testing.T, msg string, args ...interface{}) bool {
 
 func TestEncode(t *testing.T) {
 	for _, p := range pairs {
-		got := StdEncoding.EncodeToString([]byte(p.decoded))
-		testEqual(t, "Encode(%q) = %q, want %q", p.decoded, got, p.encoded)
+		for i := range encodingTests {
+			et := &encodingTests[i]
+			got := et.enc.EncodeToString([]byte(p.decoded))
+			testEqual(t, "Encode(%q) = %q, want %q", p.decoded,
+					got, et.conv(p.encoded))
+		}
 	}
 }
 
@@ -97,18 +137,22 @@ func TestEncoderBuffering(t *testing.T) {
 
 func TestDecode(t *testing.T) {
 	for _, p := range pairs {
-		dbuf := make([]byte, StdEncoding.DecodedLen(len(p.encoded)))
-		count, end, err := StdEncoding.decode(dbuf, []byte(p.encoded))
-		testEqual(t, "Decode(%q) = error %v, want %v", p.encoded, err, error(nil))
-		testEqual(t, "Decode(%q) = length %v, want %v", p.encoded, count, len(p.decoded))
-		if len(p.encoded) > 0 {
-			testEqual(t, "Decode(%q) = end %v, want %v", p.encoded, end, (p.encoded[len(p.encoded)-1] == '='))
-		}
-		testEqual(t, "Decode(%q) = %q, want %q", p.encoded, string(dbuf[0:count]), p.decoded)
+		for i := range encodingTests {
+			et := &encodingTests[i]
+			encoded := et.conv(p.encoded)
+			dbuf := make([]byte, et.enc.DecodedLen(len(encoded)))
+			count, end, err := et.enc.decode(dbuf, []byte(encoded))
+			testEqual(t, "Decode(%q) = error %v, want %v", encoded, err, error(nil))
+			testEqual(t, "Decode(%q) = length %v, want %v", encoded, count, len(p.decoded))
+			if len(encoded) > 0 {
+				testEqual(t, "Decode(%q) = end %v, want %v", encoded, end, len(p.decoded) % 3 != 0)
+			}
+			testEqual(t, "Decode(%q) = %q, want %q", encoded, string(dbuf[0:count]), p.decoded)
 
-		dbuf, err = StdEncoding.DecodeString(p.encoded)
-		testEqual(t, "DecodeString(%q) = error %v, want %v", p.encoded, err, error(nil))
-		testEqual(t, "DecodeString(%q) = %q, want %q", string(dbuf), p.decoded)
+			dbuf, err = et.enc.DecodeString(encoded)
+			testEqual(t, "DecodeString(%q) = error %v, want %v", encoded, err, error(nil))
+			testEqual(t, "DecodeString(%q) = %q, want %q", string(dbuf), p.decoded)
+		}
 	}
 }
 
