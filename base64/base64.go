@@ -3,6 +3,9 @@
 // license that can be found in the LICENSE file.
 
 // Package base64 implements base64 encoding as specified by RFC 4648.
+//
+// This is a hopefully temporary fork of the Go standard base64 package,
+// modified slightly to support the unpadded flavors of base64 encoding.
 package base64
 
 import (
@@ -49,7 +52,7 @@ func NewEncoding(encoder string) *Encoding {
 	return newEncoding(encoder, true)
 }
 
-// NewEncoding returns a new raw, unpadded Encoding
+// RawEncoding returns a new unpadded Encoding
 // defined by the given alphabet, which must be a 64-byte string.
 func RawEncoding(encoder string) *Encoding {
 	return newEncoding(encoder, false)
@@ -97,28 +100,31 @@ func (enc *Encoding) Encode(dst, src []byte) {
 	}
 
 	for len(src) > 0 {
-		var b0,b1,b2,b3 byte
+		var b0, b1, b2, b3 byte
 
 		// Unpack 4x 6-bit source blocks into a 4 byte
 		// destination quantum
 		switch len(src) {
 		default:
-			b3 |= src[2] & 0x3F
-			b2 |= src[2] >> 6
+			b3 = src[2] & 0x3F
+			b2 = src[2] >> 6
 			fallthrough
 		case 2:
 			b2 |= (src[1] << 2) & 0x3F
-			b1 |= src[1] >> 4
+			b1 = src[1] >> 4
 			fallthrough
 		case 1:
 			b1 |= (src[0] << 4) & 0x3F
-			b0 |= src[0] >> 2
+			b0 = src[0] >> 2
 		}
 
 		// Encode 6-bit blocks using the base64 alphabet
 		dst[0] = enc.encode[b0]
 		dst[1] = enc.encode[b1]
-		if len(src) < 3 {	// Pad the final quantum
+		if len(src) >= 3 {
+			dst[2] = enc.encode[b2]
+			dst[3] = enc.encode[b3]
+		} else {		// Final incomplete quantum
 			if len(src) >= 2 {
 				dst[2] = enc.encode[b2]
 			}
@@ -129,9 +135,6 @@ func (enc *Encoding) Encode(dst, src []byte) {
 				dst[3] = '='
 			}
 			break
-		} else {
-			dst[2] = enc.encode[b2]
-			dst[3] = enc.encode[b3]
 		}
 
 		src = src[3:]
@@ -330,7 +333,7 @@ func (enc *Encoding) Decode(dst, src []byte) (n int, err error) {
 func (enc *Encoding) DecodeString(s string) ([]byte, error) {
 	s = strings.Map(removeNewlinesMapper, s)
 	dbuf := make([]byte, enc.DecodedLen(len(s)))
-	n, err := enc.Decode(dbuf, []byte(s))
+	n, _, err := enc.decode(dbuf, []byte(s))
 	return dbuf[:n], err
 }
 
@@ -434,4 +437,3 @@ func (enc *Encoding) DecodedLen(n int) int {
 		return n / 4 * 3 + (n & 2)
 	}
 }
-
