@@ -8,6 +8,7 @@ import (
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/nist"
+	"github.com/dedis/crypto/util"
 )
 
 var zero = big.NewInt(0)
@@ -192,7 +193,7 @@ func (c *curve) encodePoint(x,y *nist.Int) []byte {
 	}
 
 	// Convert to little-endian
-	reverse(b,b)
+	util.Reverse(b,b)
 	//fmt.Printf("encoding %s,%s:\n%s\n", x.String(), y.String(),
 	//		hex.Dump(b))
 	return b
@@ -213,7 +214,7 @@ func (c *curve) decodePoint(bb []byte, x,y *nist.Int) error {
 	// Convert from little-endian
 	//fmt.Printf("decoding:\n%s\n", hex.Dump(bb))
 	b := make([]byte, len(bb))
-	reverse(b,bb)
+	util.Reverse(b,bb)
 
 	// Extract the sign of the x-coordinate
 	xsign := uint(b[0] >> 7)
@@ -232,29 +233,6 @@ func (c *curve) decodePoint(bb []byte, x,y *nist.Int) error {
 	}
 
 	return nil
-}
-
-// Byte-reverse src into dst,
-// so that src[0] goes into dst[len-1] and vice versa.
-// dst and src may be the same slice but otherwise must not overlap.
-// XXX this probably belongs in a utils package somewhere.
-func reverse(dst,src []byte) []byte {
-	l := len(dst)
-	if len(src) != l {
-		panic("different-length slices passed to reverse")
-	}
-	if &dst[0] == &src[0] {		// in-place
-		for i := 0; i < l/2; i++ {
-			t := dst[i]
-			dst[i] = dst[l-1-i]
-			dst[l-1-i] = t
-		}
-	} else {
-		for i := 0; i < l; i++ {
-			dst[i] = src[l-1-i]
-		}
-	}
-	return dst
 }
 
 // Given a y-coordinate, solve for the x-coordinate on the curve,
@@ -344,7 +322,7 @@ func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
 			b[0] = byte(dl)		// Encode length in low 8 bits
 			copy(b[1:1+dl],data)	// Copy in data to embed
 		}
-		reverse(b,b)			// Convert to big-endian form
+		util.Reverse(b,b)		// Convert to big-endian form
 
 		xsign := b[0] >> 7		// save x-coordinate sign bit
 		b[0] &^= 0xff << uint(c.P.BitLen() & 7)	// clear high bits

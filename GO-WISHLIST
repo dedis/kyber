@@ -1,6 +1,10 @@
 Doc issues:
 - reflect.Value.Set: says "assigns x to the value v"; swap x and v.
 
+Language:
+- Is there a crucial reason := works in functions but not in outer scope
+	to declare global variables?
+
 Wishlist for Go standard library changes:
 - cipher.Stream: define XORKeyStream semantics such that if src is null
 	or shorter than dst, dst is padded out with random bytes (rand XOR 0).
@@ -64,3 +68,10 @@ Wishlist for Go standard library changes:
 	(e.g., as discussed in sec 3.2) so it's not disallowed.
 - time/Time.[Un]MarshalBinary should document exactly what binary
 	encoding it uses (preferably some kind of standard)
+- bufio: Reader and Writer should have a Size() function,
+	a Grow() function that grows the buffer without losing data.
+- bufio.Reader should have a WriteBytesTo() function that can be used
+	to skip or send a given number of bytes to a destination Writer.
+	(WriteTo() is close but just sends the whole remaining stream.)
+	Perhaps DivertTo, for a temporary rather than permanent diversion?
+
