@@ -8,6 +8,7 @@ import (
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/math"
 	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto/util"
 )
 
 
@@ -129,6 +130,14 @@ func (i *Int) Set(a abstract.Secret) abstract.Secret {
 // Set value to a number represented in a big-endian byte string.
 func (i *Int) SetBytes(a []byte) *Int {
 	i.V.SetBytes(a).Mod(&i.V, i.M)
+	return i
+}
+
+// Set value to a number represented in a little-endian byte string.
+func (i *Int) SetLittleEndian(a []byte) *Int {
+	be := make([]byte, len(a))
+	util.Reverse(be, a)
+	i.V.SetBytes(be).Mod(&i.V, i.M)
 	return i
 }
 
@@ -310,6 +319,40 @@ func (i *Int) Decode(buf []byte) error {
 		return errors.New("Int.Decode: value out of range")
 	}
 	return nil
+}
+
+// Encode the value of this Int into a big-endian byte-slice
+// at least min bytes but no more than max bytes long.
+// Panics if max != 0 and the Int cannot be represented in max bytes.
+func (i *Int) BigEndian(min, max int) []byte {
+	act := i.Len()
+	pad, ofs := act, 0
+	if pad < min {
+		pad, ofs = min, min-act
+	}
+	if max != 0 && pad > max {
+		panic("Int not representable in max bytes")
+	}
+	buf := make([]byte, pad)
+	copy(buf[ofs:], i.V.Bytes())
+	return buf
+}
+
+// Encode the value of this Int into a little-endian byte-slice
+// at least min bytes but no more than max bytes long.
+// Panics if max != 0 and the Int cannot be represented in max bytes.
+func (i *Int) LittleEndian(min, max int) []byte {
+	act := i.Len()
+	pad := act
+	if pad < min {
+		pad = min
+	}
+	if max != 0 && pad > max {
+		panic("Int not representable in max bytes")
+	}
+	buf := make([]byte, pad)
+	util.Reverse(buf[:act], i.V.Bytes())
+	return buf
 }
 
 // Return the length in bytes of a uniform byte-string encoding of this Int,
