@@ -51,7 +51,7 @@ func Param1174() *Param {
 	var p Param
 	var mi nist.Int
 
-	p.Name = "25519"
+	p.Name = "1174"
 	p.P.SetBit(zero,251,1).Sub(&p.P,big.NewInt(9))
 	p.Q.SetString("45330879683285730139092453152713398835",10)
 	p.Q.Sub(&p.P,&p.Q).Div(&p.Q,big.NewInt(4))
