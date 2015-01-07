@@ -18,7 +18,7 @@ Install C library dependencies.
 
 OpenSSL: [OpenSSL](https://www.openssl.org/) 
 
-Pairing-Based Cryptographay: [PBC](http://crypto.stanford.edu/pbc/)
+Pairing-Based Cryptography: [PBC](http://crypto.stanford.edu/pbc/)
     
     Mac (with homebrew):   $ brew install pbc
     Otherwise: Install from source.
