@@ -3,11 +3,12 @@ package config
 import (
 	"crypto/cipher"
 	"errors"
+	"log"
+	"os"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/base64"
 	"github.com/dedis/crypto/util"
-	"log"
-	"os"
 )
 
 // KeyPair represents a public/private keypair

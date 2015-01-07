@@ -1,11 +1,12 @@
 package crypto
 
 import (
-	"crypto/cipher"
+	"crypto/subtle"
+	"errors"
 	"misc"
 )
 
-// Wrapper for a Sponge cipher to provide the 
+// Wrapper for a Sponge cipher to provide the
 // Authenticated Encryption with Additional Data (AEAD) interface.
 
 func (a aead) NonceSize() int {
@@ -21,10 +22,10 @@ func (a aead) Seal(dst, nonce, msg, hdr []byte) []byte {
 	s.Write(nonce)
 	s.Write(hdr)
 
-	dst,ctx := misc.Grow(dst, len(msg))
+	dst, ctx := misc.Grow(dst, len(msg))
 	s.Encrypt(ctx, msg)
 
-	dst,mac := misc.Grow(dst, s.KeyLen())
+	dst, mac := misc.Grow(dst, s.KeyLen())
 	s.Read(mac)
 	return dst
 }
@@ -34,20 +35,19 @@ func (a aead) Open(dst, nonce, ctx, hdr []byte) ([]byte, error) {
 	kl := s.KeyLen()
 	ml := len(ctx) - kl
 	if ml < 0 {
-		return nil,errors.New("AEAD ciphertext too short")
+		return nil, errors.New("AEAD ciphertext too short")
 	}
 	s.Write(nonce)
 	s.Write(hdr)
 
-	dst,msg := misc.Grow(dst, ml)
+	dst, msg := misc.Grow(dst, ml)
 	s.Decrypt(msg, ctx[:ml])
 
 	mac := make([]byte, kl)
 	s.Read(mac)
 	if subtle.ConstantTimeCompare(mac, ctx[ml:]) == 0 {
-		return nil,errors.New("AEAD authentication check failed")
+		return nil, errors.New("AEAD authentication check failed")
 	}
 
-	return dst,nil
+	return dst, nil
 }
-

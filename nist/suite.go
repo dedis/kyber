@@ -4,9 +4,10 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/sha256"
+	"hash"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/sha3"
-	"hash"
 )
 
 type suite128 struct {

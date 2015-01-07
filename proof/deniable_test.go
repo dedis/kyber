@@ -5,6 +5,7 @@ import (
 	"testing"
 	//"encoding/hex"
 	"crypto/cipher"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/clique"
 	"github.com/dedis/crypto/nist"

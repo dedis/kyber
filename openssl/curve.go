@@ -19,10 +19,11 @@ import (
 	"crypto/cipher"
 	"encoding/hex"
 	"errors"
-	"github.com/dedis/crypto/abstract"
 	"math/big"
 	"runtime"
 	"unsafe"
+
+	"github.com/dedis/crypto/abstract"
 )
 
 type point struct {

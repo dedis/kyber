@@ -3,6 +3,7 @@ package proof
 import (
 	"encoding/hex"
 	"fmt"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/openssl"
 )

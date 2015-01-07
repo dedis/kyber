@@ -3,6 +3,7 @@ package proof
 import (
 	"bytes"
 	"errors"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/clique"
 	"github.com/dedis/crypto/random"

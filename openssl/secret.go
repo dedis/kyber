@@ -10,6 +10,7 @@ import "C"
 
 import (
 	"crypto/cipher"
+
 	"github.com/dedis/crypto/abstract"
 )
 

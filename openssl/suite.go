@@ -4,9 +4,10 @@ package openssl
 
 import (
 	"crypto/cipher"
+	"hash"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/sha3"
-	"hash"
 )
 
 type suite128 struct {

@@ -15,11 +15,12 @@ import (
 	"compress/flate"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/dedis/crypto/abstract"
 	"hash"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/dedis/crypto/abstract"
 )
 
 const (

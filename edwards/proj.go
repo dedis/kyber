@@ -2,9 +2,10 @@ package edwards
 
 import (
 	"crypto/cipher"
+	"math/big"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/nist"
-	"math/big"
 )
 
 type projPoint struct {

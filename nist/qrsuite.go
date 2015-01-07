@@ -4,11 +4,12 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/sha256"
+	"hash"
+	"math/big"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/sha3"
-	"hash"
-	"math/big"
 )
 
 type qrsuite struct {

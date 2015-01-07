@@ -6,6 +6,7 @@ package sha3
 
 import (
 	"encoding/binary"
+
 	"github.com/dedis/crypto/abstract"
 )
 

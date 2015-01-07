@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"testing"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/edwards"
 	"github.com/dedis/crypto/openssl"
 	"github.com/dedis/crypto/random"
-	"testing"
 )
 
 // This example demonstrates signing and signature verification

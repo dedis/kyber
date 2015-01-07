@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"errors"
 	"fmt"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
 )

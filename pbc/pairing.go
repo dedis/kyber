@@ -8,9 +8,10 @@ package pbc
 import "C"
 
 import (
-	"github.com/dedis/crypto/abstract"
 	"runtime"
 	"unsafe"
+
+	"github.com/dedis/crypto/abstract"
 )
 
 type g1group struct{ p *Pairing }

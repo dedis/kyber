@@ -3,10 +3,11 @@ package proof
 import (
 	"encoding/hex"
 	"fmt"
+	"testing"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/openssl"
 	"github.com/dedis/crypto/random"
-	"testing"
 )
 
 func TestRep(t *testing.T) {

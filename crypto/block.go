@@ -1,9 +1,5 @@
 package crypto
 
-import (
-	"crypto/cipher"
-)
-
 /*
 type genSponge struct {
 	newstrm func([]byte)cipher.Stream

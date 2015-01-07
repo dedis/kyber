@@ -4,6 +4,7 @@ import (
 	"crypto/cipher"
 	"crypto/subtle"
 	"errors"
+
 	"github.com/dedis/crypto/util"
 )
 

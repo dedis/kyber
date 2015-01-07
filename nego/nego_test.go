@@ -2,10 +2,11 @@ package nego
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/edwards"
 	"github.com/dedis/crypto/random"
-	"testing"
 )
 
 // Simple harness to create lots of fake ciphersuites out of a few real ones,

@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/dedis/crypto/abstract"
 	"math"
 	"reflect"
+
+	"github.com/dedis/crypto/abstract"
 )
 
 // Message fields declared to have exactly this type

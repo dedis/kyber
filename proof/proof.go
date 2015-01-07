@@ -7,6 +7,7 @@ package proof
 
 import (
 	"errors"
+
 	"github.com/dedis/crypto/abstract"
 )
 

@@ -5,7 +5,7 @@ import (
 	"crypto/hmac"
 	"crypto/subtle"
 	"errors"
-	//"encoding/hex"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
 )

@@ -1,10 +1,11 @@
 package shuffle
 
 import (
+	"testing"
+
 	"github.com/dedis/crypto/edwards"
 	"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/openssl"
-	"testing"
 )
 
 func TestPairShuffle(t *testing.T) {

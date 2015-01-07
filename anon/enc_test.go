@@ -5,6 +5,7 @@ import (
 	"fmt"
 	//"testing"
 	"encoding/hex"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/openssl"
 )

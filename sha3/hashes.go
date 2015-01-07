@@ -9,8 +9,9 @@ package sha3
 // bytes.
 
 import (
-	"github.com/dedis/crypto/abstract"
 	"hash"
+
+	"github.com/dedis/crypto/abstract"
 )
 
 func newHash(rate, hashBits int, dsbyte byte) hash.Hash {

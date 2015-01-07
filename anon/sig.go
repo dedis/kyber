@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/cipher"
 	"errors"
+
 	"github.com/dedis/crypto/abstract"
 )
 

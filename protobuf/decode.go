@@ -3,9 +3,10 @@ package protobuf
 import (
 	"encoding/binary"
 	"errors"
-	"github.com/dedis/crypto/abstract"
 	"math"
 	"reflect"
+
+	"github.com/dedis/crypto/abstract"
 )
 
 // Constructors represents a map defining how to instantiate any interface types

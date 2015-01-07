@@ -6,6 +6,7 @@ import (
 	//"encoding/hex"
 	"crypto/cipher"
 	"crypto/elliptic"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
 )

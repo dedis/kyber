@@ -4,11 +4,12 @@ import (
 	"crypto/cipher"
 	"encoding/hex"
 	"errors"
+	"math/big"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/math"
 	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/util"
-	"math/big"
 )
 
 var zero = big.NewInt(0)

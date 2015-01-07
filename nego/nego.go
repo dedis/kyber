@@ -13,8 +13,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/dedis/crypto/abstract"
 	"sort"
+
+	"github.com/dedis/crypto/abstract"
 )
 
 type Entry struct {
