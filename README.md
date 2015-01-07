@@ -11,36 +11,10 @@ for details on the library's purpose and functionality.
 Installing
 ----------
 
-First make sure you have [Go](https://golang.org)
-version 1.3 or newer installed.
-
-Install C library dependencies.
-
-OpenSSL: [OpenSSL](https://www.openssl.org/) 
-
-Pairing-Based Cryptography: [PBC](http://crypto.stanford.edu/pbc/)
-    
-    Mac (with homebrew):   $ brew install pbc
-    Otherwise: Install from source.
-        
-    # Download from source http://crypto.stanford.edu/pbc/download.html
-    # Unzip the source directory
-    # cd into the source directory
-    $ ./configure
-    $ make
-    $ make install
-
-Now you can install the crypto library:
+To install, first make sure you have [Go](https://golang.org)
+version 1.3 or newer installed, then run:
 
 	go get github.com/dedis/crypto
-    cd $GOPATH/src/github.com/dedis/crypto
-    go get ./... # install 3rd-party dependencies
-
-It is ok if you get the error:
-
-    # github.com/dedis/crypto/sodium/ed25519
-    sodium/ed25519/curve.go:310: cannot use suite (type \*suite) as type abstract.Suite in return argument:
-        *suite does not implement abstract.Suite (missing Sponge method)
 
 You should then be able to test its basic function as follows:
 
