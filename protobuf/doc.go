@@ -15,18 +15,18 @@
 //	  required string name = 1;
 //	  required int32  id = 2;
 //	  optional string email = 3;
-//	
+//
 //	  enum PhoneType {
 //	    MOBILE = 0;
 //	    HOME = 1;
 //	    WORK = 2;
 //	  }
-//	
+//
 //	  message PhoneNumber {
 //	    required string    number = 1;
 //	    optional PhoneType type = 2;
 //	  }
-//	
+//
 //	  repeated PhoneNumber phone = 4;
 //	}
 //
@@ -39,14 +39,14 @@
 //		Email *string
 //		Phone []PhoneNumber
 //	}
-//	
+//
 //	type PhoneType uint32
 //	const (
 //		MOBILE PhoneType = iota
 //		HOME
 //		WORK
 //	)
-//	
+//
 //	type PhoneNumber struct {
 //		Number string
 //		Type *PhoneType
@@ -84,7 +84,7 @@
 // then you can skip that field number using a blank Go field, like this:
 //
 //	type Padded struct {
-//		Field1 string		// = 1 
+//		Field1 string		// = 1
 //		_ struct{}		// = 2 (unused field number)
 //		Field2 int32		// = 3
 //	}
@@ -113,7 +113,7 @@
 //	string			string
 //	bytes			[]byte
 //	message			struct
-//	
+//
 // An 'optional' protobuf field is expressed as a pointer field in Go.
 // Encode() will transmit the field only if the pointer is non-nil.
 // Decode() will instantiate the pointed-to type and fill in the pointer

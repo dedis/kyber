@@ -1,17 +1,18 @@
 package ed25519
 
 import (
-	"hash"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/sha256"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/sha3"
+	"hash"
 )
 
 type suiteEd25519 struct {
 	Curve
-} 
+}
+
 // XXX non-NIST ciphers?
 
 // SHA256 hash function
@@ -27,8 +28,8 @@ func (s *suiteEd25519) Stream(key []byte) cipher.Stream {
 	if err != nil {
 		panic("can't instantiate AES: " + err.Error())
 	}
-	iv := make([]byte,16)
-	return cipher.NewCTR(aes,iv)
+	iv := make([]byte, 16)
+	return cipher.NewCTR(aes, iv)
 }
 
 // SHA3/SHAKE128 sponge
@@ -41,4 +42,3 @@ func NewAES128SHA256Ed25519(fullGroup bool) abstract.Suite {
 	suite := new(suiteEd25519)
 	return suite
 }
-

@@ -1,10 +1,10 @@
 package shuffle
 
 import (
-	"testing"
+	"github.com/dedis/crypto/edwards"
 	"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/openssl"
-	"github.com/dedis/crypto/edwards"
+	"testing"
 )
 
 func TestPairShuffle(t *testing.T) {
@@ -40,4 +40,3 @@ func Benchmark100PairShuffleEd25519(b *testing.B) {
 		TestShuffle(edwards.NewAES128SHA256Ed25519(false), 100)
 	}
 }
-

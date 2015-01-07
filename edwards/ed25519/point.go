@@ -11,27 +11,25 @@
 // described in the Ed25519 paper, this implementation generally performs
 // extremely well, typically comparable to native C implementations.
 // The tradeoff is that this code is completely specialized to a single curve.
-// 
+//
 package ed25519
 
 import (
 	//"fmt"
-	"hash"
-	"errors"
 	"crypto/aes"
-	"encoding/hex"
 	"crypto/cipher"
 	"crypto/sha256"
+	"encoding/hex"
+	"errors"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/sha3"
+	"hash"
 )
-
 
 type point struct {
 	ge extendedGroupElement
 }
-
 
 func (P *point) String() string {
 	var b [32]byte
@@ -61,10 +59,10 @@ func (P *point) Equal(P2 abstract.Point) bool {
 
 	// XXX better to test equality without normalizing extended coords
 
-	var b1,b2 [32]byte
+	var b1, b2 [32]byte
 	P.ge.ToBytes(&b1)
 	P2.(*point).ge.ToBytes(&b2)
-	for i := range(b1) {
+	for i := range b1 {
 		if b1[i] != b2[i] {
 			return false
 		}
@@ -108,20 +106,20 @@ func (P *point) Pick(data []byte, rand cipher.Stream) (abstract.Point, []byte) {
 	for {
 		// Pick a random point, with optional embedded data
 		var b [32]byte
-		rand.XORKeyStream(b[:],b[:])
+		rand.XORKeyStream(b[:], b[:])
 		if data != nil {
-			b[0] = byte(dl)		// Encode length in low 8 bits
-			copy(b[1:1+dl],data)	// Copy in data to embed
+			b[0] = byte(dl)       // Encode length in low 8 bits
+			copy(b[1:1+dl], data) // Copy in data to embed
 		}
-		if !P.ge.FromBytes(b[:]) {	// Try to decode
-			continue		// invalid point, retry
+		if !P.ge.FromBytes(b[:]) { // Try to decode
+			continue // invalid point, retry
 		}
 
 		// If we're using the full group,
 		// we just need any point on the curve, so we're done.
-//		if c.full {
-//			return P,data[dl:]
-//		}
+		//		if c.full {
+		//			return P,data[dl:]
+		//		}
 
 		// We're using the prime-order subgroup,
 		// so we need to make sure the point is in that subgroup.
@@ -129,11 +127,11 @@ func (P *point) Pick(data []byte, rand cipher.Stream) (abstract.Point, []byte) {
 		// we can convert our point into one in the subgroup
 		// simply by multiplying it by the cofactor.
 		if data == nil {
-			P.Mul(P, cofactor)	// multiply by cofactor
+			P.Mul(P, cofactor) // multiply by cofactor
 			if P.Equal(nullPoint) {
-				continue	// unlucky; try again
+				continue // unlucky; try again
 			}
-			return P,data[dl:]	// success
+			return P, data[dl:] // success
 		}
 
 		// Since we need the point's y-coordinate to hold our data,
@@ -142,7 +140,7 @@ func (P *point) Pick(data []byte, rand cipher.Stream) (abstract.Point, []byte) {
 		var Q point
 		Q.Mul(P, primeOrder)
 		if Q.Equal(nullPoint) {
-			return P,data[dl:]	// success
+			return P, data[dl:] // success
 		}
 
 		// Keep trying...
@@ -150,17 +148,17 @@ func (P *point) Pick(data []byte, rand cipher.Stream) (abstract.Point, []byte) {
 }
 
 // Extract embedded data from a point group element
-func (P *point) Data() ([]byte,error) {
+func (P *point) Data() ([]byte, error) {
 	var b [32]byte
 	P.ge.ToBytes(&b)
-	dl := int(b[0])				// extract length byte
+	dl := int(b[0]) // extract length byte
 	if dl > P.PickLen() {
-		return nil,errors.New("invalid embedded data length")
+		return nil, errors.New("invalid embedded data length")
 	}
-	return b[1:1+dl],nil
+	return b[1 : 1+dl], nil
 }
 
-func (P *point) Add(P1,P2 abstract.Point) abstract.Point {
+func (P *point) Add(P1, P2 abstract.Point) abstract.Point {
 	E1 := P1.(*point)
 	E2 := P2.(*point)
 
@@ -176,7 +174,7 @@ func (P *point) Add(P1,P2 abstract.Point) abstract.Point {
 	return P
 }
 
-func (P *point) Sub(P1,P2 abstract.Point) abstract.Point {
+func (P *point) Sub(P1, P2 abstract.Point) abstract.Point {
 	E1 := P1.(*point)
 	E2 := P2.(*point)
 
@@ -199,7 +197,6 @@ func (P *point) Neg(A abstract.Point) abstract.Point {
 	return P
 }
 
-
 // Multiply point p by scalar s using the repeated doubling method.
 // XXX This is vartime; for our general-purpose Mul operator
 // it would be far preferable for security to do this constant-time.
@@ -207,7 +204,7 @@ func (P *point) Mul(A abstract.Point, s abstract.Secret) abstract.Point {
 
 	// Convert the scalar to fixed-length little-endian form.
 	sb := s.(*nist.Int).V.Bytes()
-	shi := len(sb)-1
+	shi := len(sb) - 1
 	var a [32]byte
 	for i := range sb {
 		a[shi-i] = sb[i]
@@ -223,7 +220,6 @@ func (P *point) Mul(A abstract.Point, s abstract.Secret) abstract.Point {
 	return P
 }
 
-
 // Curve represents an Ed25519.
 // There are no parameters and no initialization is required
 // because it supports only this one specific curve.
@@ -231,7 +227,7 @@ type Curve struct {
 
 	// Set to true to use the full group of order 8Q,
 	// or false to use the prime-order subgroup of order Q.
-//	FullGroup bool
+	//	FullGroup bool
 }
 
 func (c *Curve) PrimeOrder() bool {
@@ -250,11 +246,11 @@ func (c *Curve) SecretLen() int {
 
 // Create a new Secret for the Ed25519 curve.
 func (c *Curve) Secret() abstract.Secret {
-//	if c.FullGroup {
-//		return nist.NewInt(0, fullOrder)
-//	} else {
-		return nist.NewInt(0, &primeOrder.V)
-//	}
+	//	if c.FullGroup {
+	//		return nist.NewInt(0, fullOrder)
+	//	} else {
+	return nist.NewInt(0, &primeOrder.V)
+	//	}
 }
 
 // Returns 32, the size in bytes of an encoded Point on the Ed25519 curve.
@@ -274,10 +270,9 @@ func (c *Curve) Point() abstract.Point {
 //	c.FullGroup = fullGroup
 //}
 
-
 type suite struct {
 	Curve
-} 
+}
 
 // XXX non-NIST ciphers?
 
@@ -294,8 +289,8 @@ func (s *suite) Stream(key []byte) cipher.Stream {
 	if err != nil {
 		panic("can't instantiate AES: " + err.Error())
 	}
-	iv := make([]byte,16)
-	return cipher.NewCTR(aes,iv)
+	iv := make([]byte, 16)
+	return cipher.NewCTR(aes, iv)
 }
 
 // SHA3/SHAKE128 sponge
@@ -308,4 +303,3 @@ func newAES128SHA256Ed25519() abstract.Suite {
 	suite := new(suite)
 	return suite
 }
-

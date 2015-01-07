@@ -9,13 +9,12 @@ package sha3
 // bytes.
 
 import (
-	"hash"
 	"github.com/dedis/crypto/abstract"
+	"hash"
 )
 
-
-func newHash(rate,hashBits int, dsbyte byte) hash.Hash {
-	s := sponge{rate: rate, hashLen: hashBits/8, dsbyte: dsbyte}
+func newHash(rate, hashBits int, dsbyte byte) hash.Hash {
+	s := sponge{rate: rate, hashLen: hashBits / 8, dsbyte: dsbyte}
 	return abstract.Sponge{&s}.Hash()
 }
 

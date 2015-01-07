@@ -7,14 +7,13 @@ package util
 // the newly-allocated n-byte region, which the caller must initialize.
 //
 // Would be nice to have this in Go's bytes package.
-func Grow(buf []byte, n int) ([]byte,[]byte) {
+func Grow(buf []byte, n int) ([]byte, []byte) {
 	l := len(buf)
-	nl := l+n
+	nl := l + n
 	if nl > cap(buf) {
 		newbuf := make([]byte, nl, (nl+1)*2)
 		copy(newbuf, buf)
 		buf = newbuf
 	}
-	return buf[:nl],buf[l:nl]
+	return buf[:nl], buf[l:nl]
 }
-

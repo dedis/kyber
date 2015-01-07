@@ -16,15 +16,14 @@ package openssl
 import "C"
 
 import (
-	"errors"
-	"unsafe"
-	"runtime"
-	"math/big"
-	"encoding/hex"
 	"crypto/cipher"
+	"encoding/hex"
+	"errors"
 	"github.com/dedis/crypto/abstract"
+	"math/big"
+	"runtime"
+	"unsafe"
 )
-
 
 type point struct {
 	p *_Ctype_struct_ec_point_st
@@ -33,14 +32,13 @@ type point struct {
 }
 
 type curve struct {
-	ctx *_Ctype_struct_bignum_ctx
-	g *_Ctype_struct_ec_group_st
-	p,n,cofact *bignum
-	plen, nlen int
-	name string
-	null *point
+	ctx          *_Ctype_struct_bignum_ctx
+	g            *_Ctype_struct_ec_group_st
+	p, n, cofact *bignum
+	plen, nlen   int
+	name         string
+	null         *point
 }
-
 
 func newPoint(c *curve) *point {
 	p := new(point)
@@ -51,7 +49,7 @@ func newPoint(c *curve) *point {
 	return p
 }
 
-func freePoint (p *point) {
+func freePoint(p *point) {
 	C.EC_POINT_free(p.p)
 	p.p = nil
 }
@@ -68,23 +66,23 @@ func (p *point) Equal(p2 abstract.Point) bool {
 func (p *point) GetX() *bignum {
 	x := newBigNum()
 	if C.EC_POINT_get_affine_coordinates_GFp(p.c.g, p.p, x.bn, nil,
-			p.c.ctx) == 0 {
-		panic("EC_POINT_get_affine_coordinates_GFp: "+getErrString())
+		p.c.ctx) == 0 {
+		panic("EC_POINT_get_affine_coordinates_GFp: " + getErrString())
 	}
 	return x
 }
 func (p *point) GetY() *bignum {
 	y := newBigNum()
 	if C.EC_POINT_get_affine_coordinates_GFp(p.c.g, p.p, nil, y.bn,
-			p.c.ctx) == 0 {
-		panic("EC_POINT_get_affine_coordinates_GFp: "+getErrString())
+		p.c.ctx) == 0 {
+		panic("EC_POINT_get_affine_coordinates_GFp: " + getErrString())
 	}
 	return y
 }
 
 func (p *point) Null() abstract.Point {
 	if C.EC_POINT_set_to_infinity(p.c.g, p.p) == 0 {
-		panic("EC_POINT_set_to_infinity: "+getErrString())
+		panic("EC_POINT_set_to_infinity: " + getErrString())
 	}
 	return p
 }
@@ -92,10 +90,10 @@ func (p *point) Null() abstract.Point {
 func (p *point) Base() abstract.Point {
 	genp := C.EC_GROUP_get0_generator(p.c.g)
 	if genp == nil {
-		panic("EC_GROUP_get0_generator: "+getErrString())
+		panic("EC_GROUP_get0_generator: " + getErrString())
 	}
 	if C.EC_POINT_copy(p.p, genp) == 0 {
-		panic("EC_POINT_copy: "+getErrString())
+		panic("EC_POINT_copy: " + getErrString())
 	}
 	return p
 }
@@ -107,7 +105,7 @@ func (p *point) PickLen() int {
 	return (p.c.p.BitLen() - 8 - 8) / 8
 }
 
-func (p *point) Pick(data []byte,rand cipher.Stream) (abstract.Point, []byte) {
+func (p *point) Pick(data []byte, rand cipher.Stream) (abstract.Point, []byte) {
 
 	l := p.c.PointLen()
 	dl := p.PickLen()
@@ -119,15 +117,15 @@ func (p *point) Pick(data []byte,rand cipher.Stream) (abstract.Point, []byte) {
 	for {
 		// Pick a random compressed point, and overlay the data.
 		// Decoding will fail if the point is not on the curve.
-		rand.XORKeyStream(b,b)
-		b[0] = (b[0] & 1) | 2	// COMPRESSED, random y bit
+		rand.XORKeyStream(b, b)
+		b[0] = (b[0] & 1) | 2 // COMPRESSED, random y bit
 
 		if data != nil {
-			b[l-1] = byte(dl)	// Encode length in low 8 bits
-			copy(b[l-dl-1:l-1],data) // Copy in data to embed
+			b[l-1] = byte(dl)         // Encode length in low 8 bits
+			copy(b[l-dl-1:l-1], data) // Copy in data to embed
 		}
 
-		if err := p.Decode(b); err == nil {	// See if it decodes!
+		if err := p.Decode(b); err == nil { // See if it decodes!
 			return p, data[dl:]
 		}
 
@@ -135,29 +133,29 @@ func (p *point) Pick(data []byte,rand cipher.Stream) (abstract.Point, []byte) {
 	}
 }
 
-func (p *point) Data() ([]byte,error) {
-	l := p.c.plen			// encoded byte length of coordinate
-	b := p.GetX().Bytes(l)		// we only need the X-coordindate
+func (p *point) Data() ([]byte, error) {
+	l := p.c.plen          // encoded byte length of coordinate
+	b := p.GetX().Bytes(l) // we only need the X-coordindate
 	if len(b) != l {
 		panic("encoded coordinate wrong length")
 	}
 	dl := int(b[l-1])
 	if dl > p.PickLen() {
-		return nil,errors.New("invalid embedded data length")
+		return nil, errors.New("invalid embedded data length")
 	}
-	return b[l-dl-1:l-1],nil
+	return b[l-dl-1 : l-1], nil
 }
 
-func (p *point) Add(ca,cb abstract.Point) abstract.Point {
+func (p *point) Add(ca, cb abstract.Point) abstract.Point {
 	a := ca.(*point)
 	b := cb.(*point)
 	if C.EC_POINT_add(p.c.g, p.p, a.p, b.p, p.c.ctx) == 0 {
-		panic("EC_POINT_add: "+getErrString())
+		panic("EC_POINT_add: " + getErrString())
 	}
 	return p
 }
 
-func (p *point) Sub(ca,cb abstract.Point) abstract.Point {
+func (p *point) Sub(ca, cb abstract.Point) abstract.Point {
 	a := ca.(*point)
 	b := cb.(*point)
 	// Add the point inverse.  Must use temporary if p == a.
@@ -166,13 +164,13 @@ func (p *point) Sub(ca,cb abstract.Point) abstract.Point {
 		t = newPoint(p.c)
 	}
 	if C.EC_POINT_copy(t.p, b.p) == 0 {
-		panic("EC_POINT_copy: "+getErrString())
+		panic("EC_POINT_copy: " + getErrString())
 	}
 	if C.EC_POINT_invert(p.c.g, t.p, p.c.ctx) == 0 {
-		panic("EC_POINT_invert: "+getErrString())
+		panic("EC_POINT_invert: " + getErrString())
 	}
 	if C.EC_POINT_add(p.c.g, p.p, a.p, t.p, p.c.ctx) == 0 {
-		panic("EC_POINT_add: "+getErrString())
+		panic("EC_POINT_add: " + getErrString())
 	}
 	return p
 }
@@ -181,65 +179,62 @@ func (p *point) Neg(ca abstract.Point) abstract.Point {
 	if ca != p {
 		a := ca.(*point)
 		if C.EC_POINT_copy(p.p, a.p) == 0 {
-			panic("EC_POINT_copy: "+getErrString())
+			panic("EC_POINT_copy: " + getErrString())
 		}
 	}
 	if C.EC_POINT_invert(p.c.g, p.p, p.c.ctx) == 0 {
-		panic("EC_POINT_invert: "+getErrString())
+		panic("EC_POINT_invert: " + getErrString())
 	}
 	return p
 }
 
 func (p *point) Mul(cb abstract.Point, cs abstract.Secret) abstract.Point {
 	s := cs.(*secret)
-	if cb == nil {		// multiply standard generator
+	if cb == nil { // multiply standard generator
 		if C.EC_POINT_mul(p.c.g, p.p, s.bignum.bn, nil, nil,
-					p.c.ctx) == 0 {
-			panic("EC_POINT_mul: "+getErrString())
+			p.c.ctx) == 0 {
+			panic("EC_POINT_mul: " + getErrString())
 		}
-	} else {		// multiply arbitrary point b
+	} else { // multiply arbitrary point b
 		b := cb.(*point)
 		if C.EC_POINT_mul(p.c.g, p.p, nil, b.p, s.bignum.bn,
-					p.c.ctx) == 0 {
-			panic("EC_POINT_mul: "+getErrString())
+			p.c.ctx) == 0 {
+			panic("EC_POINT_mul: " + getErrString())
 		}
 	}
 	return p
 }
 
-
 func (p *point) Len() int {
-	return 1+p.c.plen	// compressed encoding
+	return 1 + p.c.plen // compressed encoding
 }
 
 func (p *point) Encode() []byte {
-	l := 1+p.c.plen
-	b := make([]byte,l)
+	l := 1 + p.c.plen
+	b := make([]byte, l)
 	if C.EC_POINT_point2oct(p.c.g, p.p, C.POINT_CONVERSION_COMPRESSED,
-			(*_Ctype_unsignedchar)(unsafe.Pointer(&b[0])),
-			C.size_t(l), p.c.ctx) != C.size_t(l) {
-		panic("EC_POINT_point2oct: "+getErrString())
+		(*_Ctype_unsignedchar)(unsafe.Pointer(&b[0])),
+		C.size_t(l), p.c.ctx) != C.size_t(l) {
+		panic("EC_POINT_point2oct: " + getErrString())
 	}
 	return b
 }
 
 func (p *point) Decode(buf []byte) error {
 	if C.EC_POINT_oct2point(p.g, p.p,
-			(*_Ctype_unsignedchar)(unsafe.Pointer(&buf[0])),
-			C.size_t(len(buf)), p.c.ctx) == 0 {
+		(*_Ctype_unsignedchar)(unsafe.Pointer(&buf[0])),
+		C.size_t(len(buf)), p.c.ctx) == 0 {
 		return errors.New(getErrString())
 	}
 	return nil
 }
-
-
 
 func (c *curve) String() string {
 	return c.name
 }
 
 func (c *curve) PrimeOrder() bool {
-	return true	// we only support the NIST prime-order curves
+	return true // we only support the NIST prime-order curves
 }
 
 func (c *curve) SecretLen() int {
@@ -253,7 +248,7 @@ func (c *curve) Secret() abstract.Secret {
 }
 
 func (c *curve) PointLen() int {
-	return 1+c.plen	// compressed encoding
+	return 1 + c.plen // compressed encoding
 }
 
 func (c *curve) Point() abstract.Point {
@@ -269,32 +264,32 @@ func (c *curve) initNamedCurve(name string, nid C.int) *curve {
 
 	c.ctx = C.BN_CTX_new()
 	if c.ctx == nil {
-		panic("C.BN_CTX_new: "+getErrString())
+		panic("C.BN_CTX_new: " + getErrString())
 	}
 
 	c.g = C.EC_GROUP_new_by_curve_name(nid)
 	if c.g == nil {
-		panic("can't find create P256 curve: "+getErrString())
+		panic("can't find create P256 curve: " + getErrString())
 	}
 
 	// Get this curve's prime field
 	c.p = newBigNum()
 	if C.EC_GROUP_get_curve_GFp(c.g, c.p.bn, nil, nil, c.ctx) == 0 {
-		panic("EC_GROUP_get_curve_GFp: "+getErrString())
+		panic("EC_GROUP_get_curve_GFp: " + getErrString())
 	}
-	c.plen = (c.p.BitLen()+7)/8
+	c.plen = (c.p.BitLen() + 7) / 8
 
 	// Get the curve's group order
 	c.n = newBigNum()
 	if C.EC_GROUP_get_order(c.g, c.n.bn, c.ctx) == 0 {
-		panic("EC_GROUP_get_order: "+getErrString())
+		panic("EC_GROUP_get_order: " + getErrString())
 	}
-	c.nlen = (c.n.BitLen()+7)/8
+	c.nlen = (c.n.BitLen() + 7) / 8
 
 	// Get the curve's cofactor
 	c.cofact = newBigNum()
 	if C.EC_GROUP_get_cofactor(c.g, c.cofact.bn, c.ctx) == 0 {
-		panic("EC_GROUP_get_cofactor: "+getErrString())
+		panic("EC_GROUP_get_cofactor: " + getErrString())
 	}
 
 	// Stash a copy of the point at infinity
@@ -319,4 +314,3 @@ func (c *curve) InitP384() abstract.Group {
 func (c *curve) InitP521() abstract.Group {
 	return c.initNamedCurve("P521", C.NID_secp521r1)
 }
-

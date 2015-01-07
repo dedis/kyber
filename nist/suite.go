@@ -1,17 +1,17 @@
 package nist
 
 import (
-	"hash"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/sha256"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/sha3"
+	"hash"
 )
 
 type suite128 struct {
 	p256
-} 
+}
 
 // SHA256 hash function
 func (s *suite128) HashLen() int { return sha256.Size }
@@ -26,8 +26,8 @@ func (s *suite128) Stream(key []byte) cipher.Stream {
 	if err != nil {
 		panic("can't instantiate AES: " + err.Error())
 	}
-	iv := make([]byte,16)
-	return cipher.NewCTR(aes,iv)
+	iv := make([]byte, 16)
+	return cipher.NewCTR(aes, iv)
 }
 
 // SHA3/SHAKE128 sponge
@@ -41,4 +41,3 @@ func NewAES128SHA256P256() abstract.Suite {
 	suite.p256.Init()
 	return suite
 }
-

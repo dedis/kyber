@@ -1,13 +1,12 @@
 package protobuf
 
 import (
-	"math"
-	"errors"
-	"reflect"
 	"encoding/binary"
+	"errors"
 	"github.com/dedis/crypto/abstract"
+	"math"
+	"reflect"
 )
-
 
 // Constructors represents a map defining how to instantiate any interface types
 // that Decode() might encounter while reading and decoding structured data.
@@ -20,11 +19,10 @@ import (
 // to support dynamic instantiation of Point and Secret objects
 // of the concrete type appropriate for a given abstract.Suite.
 //
-type Constructors map[reflect.Type]func()interface{}
-
+type Constructors map[reflect.Type]func() interface{}
 
 type decoder struct {
-	nm map[reflect.Type]func()interface{}
+	nm map[reflect.Type]func() interface{}
 }
 
 // Decode a protocol buffer into a Go struct.
@@ -37,7 +35,7 @@ type decoder struct {
 // will be left unmodified, meaning they will take on
 // their default Go zero values if Decode() is passed a fresh struct.
 func Decode(buf []byte, structPtr interface{}, cons Constructors) error {
-	de := decoder{map[reflect.Type]func()interface{}(cons)}
+	de := decoder{map[reflect.Type]func() interface{}(cons)}
 	return de.message(buf, reflect.ValueOf(structPtr).Elem())
 }
 
@@ -45,11 +43,11 @@ func Decode(buf []byte, structPtr interface{}, cons Constructors) error {
 // The Kind of the passed value v must be Struct.
 func (de *decoder) message(buf []byte, sval reflect.Value) error {
 
-	// Decode all the fields 
+	// Decode all the fields
 	nfields := sval.NumField()
 	for len(buf) > 0 {
 		// Parse the key
-		key,n := binary.Uvarint(buf)
+		key, n := binary.Uvarint(buf)
 		if n <= 0 {
 			return errors.New("bad protobuf field key")
 		}
@@ -63,11 +61,11 @@ func (de *decoder) message(buf []byte, sval reflect.Value) error {
 		// value() will just skip over and discard the field content.
 		var field reflect.Value
 		if fieldnum > 0 && fieldnum <= uint64(nfields) {
-			field = sval.FieldByIndex([]int{int(fieldnum-1)})
+			field = sval.FieldByIndex([]int{int(fieldnum - 1)})
 		}
 
 		// Decode the field's value
-		rem,err := de.value(wiretype, buf, field)
+		rem, err := de.value(wiretype, buf, field)
 		if err != nil {
 			return err
 		}
@@ -78,35 +76,35 @@ func (de *decoder) message(buf []byte, sval reflect.Value) error {
 
 // Pull a value from the buffer and put it into a reflective Value.
 func (de *decoder) value(wiretype int, buf []byte,
-			val reflect.Value) ([]byte,error) {
+	val reflect.Value) ([]byte, error) {
 
 	// Break out the value from the buffer based on the wire type
 	var v uint64
 	var n int
 	var vb []byte
 	switch wiretype {
-	case 0:		// varint
-		v,n = binary.Uvarint(buf)
+	case 0: // varint
+		v, n = binary.Uvarint(buf)
 		if n <= 0 {
-			return nil,errors.New("bad protobuf varint value")
+			return nil, errors.New("bad protobuf varint value")
 		}
 		buf = buf[n:]
 
-	case 5:		// 32-bit
+	case 5: // 32-bit
 		if len(buf) < 4 {
-			return nil,errors.New("bad protobuf 64-bit value")
+			return nil, errors.New("bad protobuf 64-bit value")
 		}
-		v =	uint64(buf[0]) |
+		v = uint64(buf[0]) |
 			uint64(buf[1])<<8 |
 			uint64(buf[2])<<16 |
 			uint64(buf[3])<<24
 		buf = buf[4:]
 
-	case 1:		// 64-bit
+	case 1: // 64-bit
 		if len(buf) < 8 {
-			return nil,errors.New("bad protobuf 64-bit value")
+			return nil, errors.New("bad protobuf 64-bit value")
 		}
-		v =	uint64(buf[0]) |
+		v = uint64(buf[0]) |
 			uint64(buf[1])<<8 |
 			uint64(buf[2])<<16 |
 			uint64(buf[3])<<24 |
@@ -116,30 +114,30 @@ func (de *decoder) value(wiretype int, buf []byte,
 			uint64(buf[7])<<56
 		buf = buf[8:]
 
-	case 2:		// length-delimited
-		v,n = binary.Uvarint(buf)
+	case 2: // length-delimited
+		v, n = binary.Uvarint(buf)
 		if n <= 0 || v > uint64(len(buf)-n) {
-			return nil,errors.New(
+			return nil, errors.New(
 				"bad protobuf length-delimited value")
 		}
-		vb = buf[n:n+int(v)]
+		vb = buf[n : n+int(v)]
 		buf = buf[n+int(v):]
 
 	default:
-		return nil,errors.New("unknown protobuf wire-type")
+		return nil, errors.New("unknown protobuf wire-type")
 	}
 
 	// We've gotten the value out of the buffer,
 	// now put it into the appropriate reflective Value.
 	if err := de.putvalue(wiretype, val, v, vb); err != nil {
-		return nil,err
+		return nil, err
 	}
 
-	return buf,nil
+	return buf, nil
 }
 
 func (de *decoder) putvalue(wiretype int, val reflect.Value,
-				v uint64, vb []byte) error {
+	v uint64, vb []byte) error {
 
 	// If val is not settable, it either represents an out-of-range field
 	// or an in-range but blank (padding) field in the struct.
@@ -160,10 +158,10 @@ func (de *decoder) putvalue(wiretype int, val reflect.Value,
 
 	// Signed integers may be encoded either zigzag-varint or fixed
 	// Note that protobufs don't support 8- or 16-bit ints.
-	case reflect.Int,reflect.Int32,reflect.Int64:
-		if wiretype == 0 {		// encoded as varint
+	case reflect.Int, reflect.Int32, reflect.Int64:
+		if wiretype == 0 { // encoded as varint
 			sv := int64(v) >> 1
-			if v & 1 != 0 {
+			if v&1 != 0 {
 				sv = ^sv
 			}
 			val.SetInt(sv)
@@ -176,7 +174,7 @@ func (de *decoder) putvalue(wiretype int, val reflect.Value,
 		}
 
 	// Varint-encoded 32-bit and 64-bit unsigned integers.
-	case reflect.Uint32,reflect.Uint64:
+	case reflect.Uint32, reflect.Uint64:
 		if wiretype == 0 {
 			val.SetUint(v)
 		} else if wiretype == 5 { // ufixed32
@@ -230,14 +228,14 @@ func (de *decoder) putvalue(wiretype int, val reflect.Value,
 		}
 		return de.slice(val, vb)
 
-	case reflect.Interface:	
+	case reflect.Interface:
 		// Abstract field: instantiate via dynamic constructor.
 		if val.IsNil() {
 			val.Set(de.instantiate(val.Type()))
 		}
 
 		// If the object support self-decoding, use that.
-		enc,ok := val.Interface().(abstract.Encoding)
+		enc, ok := val.Interface().(abstract.Encoding)
 		if ok {
 			if wiretype != 2 {
 				return errors.New(
@@ -252,7 +250,7 @@ func (de *decoder) putvalue(wiretype int, val reflect.Value,
 		return de.putvalue(wiretype, val.Elem(), v, vb)
 
 	default:
-		panic("unsupported value kind "+val.Kind().String())
+		panic("unsupported value kind " + val.Kind().String())
 	}
 	return nil
 }
@@ -263,9 +261,9 @@ func (de *decoder) instantiate(t reflect.Type) reflect.Value {
 
 	// If it's an interface type, lookup a dynamic constructor for it.
 	if t.Kind() == reflect.Interface {
-		newfunc,ok := de.nm[t]
+		newfunc, ok := de.nm[t]
 		if !ok {
-			panic("no constructor for interface "+t.String())
+			panic("no constructor for interface " + t.String())
 		}
 		return reflect.ValueOf(newfunc())
 	}
@@ -289,32 +287,32 @@ func (de *decoder) slice(slval reflect.Value, vb []byte) error {
 	// Decide on the wiretype to use for decoding.
 	var wiretype int
 	switch eltype.Kind() {
-	case reflect.Bool,reflect.Int32,reflect.Int64,
-			reflect.Uint32,reflect.Uint64:
+	case reflect.Bool, reflect.Int32, reflect.Int64,
+		reflect.Uint32, reflect.Uint64:
 		switch eltype {
 		case sfixed32type:
-			wiretype = 5	// Packed 32-bit representation
+			wiretype = 5 // Packed 32-bit representation
 		case sfixed64type:
-			wiretype = 1	// Packed 64-bit representation
+			wiretype = 1 // Packed 64-bit representation
 		case ufixed32type:
-			wiretype = 5	// Packed 32-bit representation
+			wiretype = 5 // Packed 32-bit representation
 		case ufixed64type:
-			wiretype = 1	// Packed 64-bit representation
+			wiretype = 1 // Packed 64-bit representation
 		default:
-			wiretype = 0	// Packed varint representation
+			wiretype = 0 // Packed varint representation
 		}
 
 	case reflect.Float32:
-		wiretype = 5		// Packed 32-bit representation
+		wiretype = 5 // Packed 32-bit representation
 
 	case reflect.Float64:
-		wiretype = 1		// Packed 64-bit representation
+		wiretype = 1 // Packed 64-bit representation
 
-	case reflect.Uint8:		// Unpacked byte-slice
+	case reflect.Uint8: // Unpacked byte-slice
 		slval.SetBytes(vb)
 		return nil
 
-	default:			// Other unpacked repeated types
+	default: // Other unpacked repeated types
 		// Just unpack and append one value from vb.
 		if err := de.putvalue(2, val, 0, vb); err != nil {
 			return err
@@ -325,7 +323,7 @@ func (de *decoder) slice(slval reflect.Value, vb []byte) error {
 
 	// Decode packed values from the buffer and append them to the slice.
 	for len(vb) > 0 {
-		rem,err := de.value(wiretype, vb, val)
+		rem, err := de.value(wiretype, vb, val)
 		if err != nil {
 			return err
 		}
@@ -334,4 +332,3 @@ func (de *decoder) slice(slval reflect.Value, vb []byte) error {
 	}
 	return nil
 }
-

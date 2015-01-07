@@ -4,8 +4,8 @@ package suites
 
 import (
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/edwards/ed25519"
+	"github.com/dedis/crypto/nist"
 )
 
 // Suites represents a map from ciphersuite name to ciphersuite.
@@ -23,4 +23,3 @@ func All() Suites {
 }
 
 // XXX add Stable() and Experimental() sub-lists?
-

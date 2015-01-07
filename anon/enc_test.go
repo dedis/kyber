@@ -1,14 +1,13 @@
 package anon
 
 import (
-	"fmt"
 	"bytes"
+	"fmt"
 	//"testing"
 	"encoding/hex"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/openssl"
 )
-
 
 func ExampleEncrypt_1() {
 
@@ -17,22 +16,22 @@ func ExampleEncrypt_1() {
 	rand := abstract.HashStream(suite, []byte("example"), nil)
 
 	// Create a public/private keypair (X[mine],x)
-	X := make([]abstract.Point,1)
-	mine := 0				// which public key is mine
-	x := suite.Secret().Pick(rand)		// create a private key x
-	X[mine] = suite.Point().Mul(nil,x)	// corresponding public key X
+	X := make([]abstract.Point, 1)
+	mine := 0                           // which public key is mine
+	x := suite.Secret().Pick(rand)      // create a private key x
+	X[mine] = suite.Point().Mul(nil, x) // corresponding public key X
 
 	// Encrypt a message with the public key
-	M := []byte("Hello World!")		// message to encrypt
+	M := []byte("Hello World!") // message to encrypt
 	C := Encrypt(suite, rand, M, Set(X), false)
-	fmt.Printf("Encryption of '%s':\n%s",string(M),hex.Dump(C))
+	fmt.Printf("Encryption of '%s':\n%s", string(M), hex.Dump(C))
 
 	// Decrypt the ciphertext with the private key
-	MM,err := Decrypt(suite, C, Set(X), mine, x, false)
+	MM, err := Decrypt(suite, C, Set(X), mine, x, false)
 	if err != nil {
 		panic(err.Error())
 	}
-	if !bytes.Equal(M,MM) {
+	if !bytes.Equal(M, MM) {
 		panic("Decryption failed to reproduce message")
 	}
 	fmt.Printf("Decrypted: '%s'\n", string(MM))
@@ -55,27 +54,27 @@ func ExampleEncrypt_anonSet() {
 	rand := abstract.HashStream(suite, []byte("example"), nil)
 
 	// Create an anonymity set of random "public keys"
-	X := make([]abstract.Point,3)
-	for i := range(X) {			// pick random points
-		X[i],_ = suite.Point().Pick(nil,rand)
+	X := make([]abstract.Point, 3)
+	for i := range X { // pick random points
+		X[i], _ = suite.Point().Pick(nil, rand)
 	}
 
 	// Make just one of them an actual public/private keypair (X[mine],x)
-	mine := 1				// only the signer knows this
-	x := suite.Secret().Pick(rand)		// create a private key x
-	X[mine] = suite.Point().Mul(nil,x)	// corresponding public key X
+	mine := 1                           // only the signer knows this
+	x := suite.Secret().Pick(rand)      // create a private key x
+	X[mine] = suite.Point().Mul(nil, x) // corresponding public key X
 
 	// Encrypt a message with all the public keys
-	M := []byte("Hello World!")		// message to encrypt
+	M := []byte("Hello World!") // message to encrypt
 	C := Encrypt(suite, rand, M, Set(X), false)
-	fmt.Printf("Encryption of '%s':\n%s",string(M),hex.Dump(C))
+	fmt.Printf("Encryption of '%s':\n%s", string(M), hex.Dump(C))
 
 	// Decrypt the ciphertext with the known private key
-	MM,err := Decrypt(suite, C, Set(X), mine, x, false)
+	MM, err := Decrypt(suite, C, Set(X), mine, x, false)
 	if err != nil {
 		panic(err.Error())
 	}
-	if !bytes.Equal(M,MM) {
+	if !bytes.Equal(M, MM) {
 		panic("Decryption failed to reproduce message")
 	}
 	fmt.Printf("Decrypted: '%s'\n", string(MM))
@@ -94,4 +93,3 @@ func ExampleEncrypt_anonSet() {
 	// 00000090  1b 04 0b 2f 5e 2a 65 51  2e 23 a5 ba 08           |.../^*eQ.#...|
 	// Decrypted: 'Hello World!'
 }
-

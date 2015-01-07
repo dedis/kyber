@@ -8,11 +8,10 @@ import (
 	"bytes"
 	"unsafe"
 	//"runtime"
-	"encoding/hex"
 	"crypto/cipher"
+	"encoding/hex"
 	"github.com/dedis/crypto/abstract"
 )
-
 
 type secret struct {
 	b [32]byte
@@ -58,20 +57,20 @@ func (s *secret) Equal(s2 abstract.Secret) bool {
 	return bytes.Equal(s.b[:], s2.(*secret).b[:])
 }
 
-func (s *secret) Add(cx,cy abstract.Secret) abstract.Secret {
+func (s *secret) Add(cx, cy abstract.Secret) abstract.Secret {
 	x := cx.(*secret)
 	y := cy.(*secret)
 
 	// XXX using muladd is probably way overkill
 	C.sc_muladd((*C.uchar)(unsafe.Pointer(&s.b[0])),
-			(*C.uchar)(unsafe.Pointer(&x.b[0])),
-			(*C.uchar)(unsafe.Pointer(&s1.b[0])),
-			(*C.uchar)(unsafe.Pointer(&y.b[0])))
+		(*C.uchar)(unsafe.Pointer(&x.b[0])),
+		(*C.uchar)(unsafe.Pointer(&s1.b[0])),
+		(*C.uchar)(unsafe.Pointer(&y.b[0])))
 
 	return s
 }
 
-func (s *secret) Sub(cx,cy abstract.Secret) abstract.Secret {
+func (s *secret) Sub(cx, cy abstract.Secret) abstract.Secret {
 	panic("XXX")
 }
 
@@ -79,11 +78,11 @@ func (s *secret) Neg(x abstract.Secret) abstract.Secret {
 	panic("XXX")
 }
 
-func (s *secret) Mul(cx,cy abstract.Secret) abstract.Secret {
+func (s *secret) Mul(cx, cy abstract.Secret) abstract.Secret {
 	panic("XXX")
 }
 
-func (s *secret) Div(cx,cy abstract.Secret) abstract.Secret {
+func (s *secret) Div(cx, cy abstract.Secret) abstract.Secret {
 	panic("XXX")
 }
 
@@ -93,10 +92,8 @@ func (s *secret) Inv(x abstract.Secret) abstract.Secret {
 
 func (s *secret) Pick(rand cipher.Stream) abstract.Secret {
 	rand.XORKeyStream(s.b[:], s.b[:])
-	s.b[0] &= 248;
-	s.b[31] &= 63;
-	s.b[31] |= 64;
+	s.b[0] &= 248
+	s.b[31] &= 63
+	s.b[31] |= 64
 	return s
 }
-
-

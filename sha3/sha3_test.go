@@ -15,11 +15,11 @@ import (
 	"compress/flate"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/dedis/crypto/abstract"
 	"hash"
 	"os"
 	"strings"
 	"testing"
-	"github.com/dedis/crypto/abstract"
 )
 
 const (
@@ -31,11 +31,11 @@ const (
 
 func newHashShake128() hash.Hash {
 	return abstract.Sponge{&sponge{rate: 168, hashLen: 512,
-					dsbyte: 0x1f}}.Hash()
+		dsbyte: 0x1f}}.Hash()
 }
 func newHashShake256() hash.Hash {
 	return abstract.Sponge{&sponge{rate: 136, hashLen: 512,
-					dsbyte: 0x1f}}.Hash()
+		dsbyte: 0x1f}}.Hash()
 }
 
 // testDigests contains functions returning hash.Hash instances

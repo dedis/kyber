@@ -1,24 +1,22 @@
 package config
 
 import (
-	"os"
 	"errors"
 	"github.com/BurntSushi/toml"
 	"github.com/dedis/crypto/util"
+	"os"
 )
-
 
 // XXX it wouldn't be hard to parameterize the file format parser
 // rather than binding it to TOML.
 // Perhaps define an Encode/Decode interface
 // and create sub-packages for different compatible formats...
 
-
 // Cryptographic configuration file
 type File struct {
-	dirName string			// Configuration directory
-	data interface{}		// In-memory configuration state
-	keys map[string]KeyPair		// Key-pairs indexed by ciphersuite
+	dirName string             // Configuration directory
+	data    interface{}        // In-memory configuration state
+	keys    map[string]KeyPair // Key-pairs indexed by ciphersuite
 }
 
 func (f *File) init(appName string) error {
@@ -33,9 +31,9 @@ func (f *File) init(appName string) error {
 	}
 
 	// Sanity-check the config directory permission bits for security
-	if fi,err := os.Stat(confdir); err != nil || (fi.Mode() & 0077) != 0 {
-		return errors.New("Directory "+confdir+
-				" has insecure permissions")
+	if fi, err := os.Stat(confdir); err != nil || (fi.Mode()&0077) != 0 {
+		return errors.New("Directory " + confdir +
+			" has insecure permissions")
 	}
 
 	f.dirName = confdir
@@ -54,8 +52,8 @@ func (f *File) Load(appName string, configData interface{}) error {
 	}
 
 	// Read the config file if it exists
-	filename := f.dirName+"/config"
-	_,err := toml.DecodeFile(filename, configData)
+	filename := f.dirName + "/config"
+	_, err := toml.DecodeFile(filename, configData)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
@@ -70,7 +68,7 @@ func (f *File) Load(appName string, configData interface{}) error {
 func (f *File) Save() error {
 
 	// Write the new config file
-	filename := f.dirName+"/config"
+	filename := f.dirName + "/config"
 	r := util.Replacer{}
 	if err := r.Open(filename); err != nil {
 		return err
@@ -86,8 +84,7 @@ func (f *File) Save() error {
 	// Commit the new config
 	if err := r.Commit(); err != nil {
 		return err
-	} 
+	}
 
 	return nil
 }
-

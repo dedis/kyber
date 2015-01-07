@@ -5,7 +5,7 @@ package util
 // dst and src may be the same slice but otherwise must not overlap.
 //
 // XXX would be nice to have this function in the 'bytes' standard package
-func Reverse(dst,src []byte) []byte {
+func Reverse(dst, src []byte) []byte {
 	l := len(dst)
 	if len(src) != l {
 		panic("Reverse requires equal-length slices")
@@ -17,4 +17,3 @@ func Reverse(dst,src []byte) []byte {
 	}
 	return dst
 }
-

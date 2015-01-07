@@ -1,8 +1,8 @@
 package protobuf
 
 import (
-	"fmt"
 	"encoding/hex"
+	"fmt"
 )
 
 type Test1 struct {
@@ -21,4 +21,3 @@ func ExampleEncode_test1() {
 	// Output:
 	// 00000000  08 96 01                                          |...|
 }
-

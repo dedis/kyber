@@ -3,23 +3,22 @@
 package openssl
 
 import (
-	"hash"
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/sha3"
+	"hash"
 )
-
 
 type suite128 struct {
 	curve
-} 
+}
 
 func (s *suite128) String() string {
 	return "P256"
 }
 
 func (s *suite128) HashLen() int {
-	return 32	// SHA256_DIGEST_LENGTH
+	return 32 // SHA256_DIGEST_LENGTH
 }
 
 func (s *suite128) Hash() hash.Hash {
@@ -27,7 +26,7 @@ func (s *suite128) Hash() hash.Hash {
 }
 
 func (s *suite128) KeyLen() int {
-	return 16	// AES128
+	return 16 // AES128
 }
 
 func (s *suite128) Stream(key []byte) cipher.Stream {
@@ -49,18 +48,16 @@ func NewAES128SHA256P256() abstract.Suite {
 	return s
 }
 
-
-
 type suite192 struct {
 	curve
-} 
+}
 
 func (s *suite192) String() string {
 	return "AES192SHA384P384"
 }
 
 func (s *suite192) HashLen() int {
-	return 48	// SHA384_DIGEST_LENGTH
+	return 48 // SHA384_DIGEST_LENGTH
 }
 
 func (s *suite192) Hash() hash.Hash {
@@ -68,7 +65,7 @@ func (s *suite192) Hash() hash.Hash {
 }
 
 func (s *suite192) KeyLen() int {
-	return 24	// AES192
+	return 24 // AES192
 }
 
 func (s *suite192) Stream(key []byte) cipher.Stream {
@@ -90,18 +87,16 @@ func NewAES192SHA384P384() abstract.Suite {
 	return s
 }
 
-
-
 type suite256 struct {
 	curve
-} 
+}
 
 func (s *suite256) String() string {
 	return "AES256SHA512P521"
 }
 
 func (s *suite256) HashLen() int {
-	return 64	// SHA512_DIGEST_LENGTH
+	return 64 // SHA512_DIGEST_LENGTH
 }
 
 func (s *suite256) Hash() hash.Hash {
@@ -109,7 +104,7 @@ func (s *suite256) Hash() hash.Hash {
 }
 
 func (s *suite256) KeyLen() int {
-	return 32	// AES256
+	return 32 // AES256
 }
 
 func (s *suite256) Sponge() abstract.Sponge {
@@ -123,7 +118,6 @@ func (s *suite256) Stream(key []byte) cipher.Stream {
 	return abstract.BlockStream(NewAES(key), nil)
 }
 
-
 // Ciphersuite based on AES-256, SHA-512, and the NIST P-521 elliptic curve,
 // using the implementations in OpenSSL's crypto library.
 func NewAES256SHA512P521() abstract.Suite {
@@ -131,4 +125,3 @@ func NewAES256SHA512P521() abstract.Suite {
 	s.curve.InitP521()
 	return s
 }
-

@@ -1,29 +1,29 @@
 package edwards
 
 import (
-	"math/big"
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/nist"
+	"math/big"
 )
 
 type basicPoint struct {
-	x,y nist.Int
-	c *BasicCurve
+	x, y nist.Int
+	c    *BasicCurve
 }
 
-func (P *basicPoint) initXY(x,y *big.Int, c abstract.Group) {
+func (P *basicPoint) initXY(x, y *big.Int, c abstract.Group) {
 	P.c = c.(*BasicCurve)
-	P.x.Init(x,&P.c.P)
-	P.y.Init(y,&P.c.P)
+	P.x.Init(x, &P.c.P)
+	P.y.Init(y, &P.c.P)
 }
 
-func (P *basicPoint) getXY() (x,y *nist.Int) {
+func (P *basicPoint) getXY() (x, y *nist.Int) {
 	return &P.x, &P.y
 }
 
 func (P *basicPoint) String() string {
-	return P.c.pointString(&P.x,&P.y)
+	return P.c.pointString(&P.x, &P.y)
 }
 
 // Create a new ModInt representing a coordinate on this curve,
@@ -89,13 +89,13 @@ func (P *basicPoint) PickLen() int {
 	return P.c.pickLen()
 }
 
-func (P *basicPoint) Pick(data []byte,rand cipher.Stream) (abstract.Point, []byte) {
-	return P,P.c.pickPoint(P, data, rand)
+func (P *basicPoint) Pick(data []byte, rand cipher.Stream) (abstract.Point, []byte) {
+	return P, P.c.pickPoint(P, data, rand)
 }
 
 // Extract embedded data from a point group element
-func (P *basicPoint) Data() ([]byte,error) {
-	return P.c.data(&P.x,&P.y)
+func (P *basicPoint) Data() ([]byte, error) {
+	return P.c.data(&P.x, &P.y)
 }
 
 // Add two points using the basic unified addition laws for Edwards curves:
@@ -103,41 +103,41 @@ func (P *basicPoint) Data() ([]byte,error) {
 //	x' = ((x1*y2 + x2*y1) / (1 + d*x1*x2*y1*y2))
 //	y' = ((y1*y2 - a*x1*x2) / (1 - d*x1*x2*y1*y2))
 //
-func (P *basicPoint) Add(P1,P2 abstract.Point) abstract.Point {
+func (P *basicPoint) Add(P1, P2 abstract.Point) abstract.Point {
 	E1 := P1.(*basicPoint)
 	E2 := P2.(*basicPoint)
-	x1,y1 := E1.x,E1.y
-	x2,y2 := E2.x,E2.y
+	x1, y1 := E1.x, E1.y
+	x2, y2 := E2.x, E2.y
 
-	var t1,t2,dm,nx,dx,ny,dy nist.Int
+	var t1, t2, dm, nx, dx, ny, dy nist.Int
 
 	// Reused part of denominator: dm = d*x1*x2*y1*y2
-	dm.Mul(&P.c.d,&x1).Mul(&dm,&x2).Mul(&dm,&y1).Mul(&dm,&y2)
+	dm.Mul(&P.c.d, &x1).Mul(&dm, &x2).Mul(&dm, &y1).Mul(&dm, &y2)
 
 	// x' numerator/denominator
-	nx.Add(t1.Mul(&x1,&y2),t2.Mul(&x2,&y1))
-	dx.Add(&P.c.one,&dm)
+	nx.Add(t1.Mul(&x1, &y2), t2.Mul(&x2, &y1))
+	dx.Add(&P.c.one, &dm)
 
 	// y' numerator/denominator
-	ny.Sub(t1.Mul(&y1,&y2),t2.Mul(&x1,&x2).Mul(&P.c.a,&t2))
-	dy.Sub(&P.c.one,&dm)
+	ny.Sub(t1.Mul(&y1, &y2), t2.Mul(&x1, &x2).Mul(&P.c.a, &t2))
+	dy.Sub(&P.c.one, &dm)
 
 	// result point
-	P.x.Div(&nx,&dx)
-	P.y.Div(&ny,&dy)
+	P.x.Div(&nx, &dx)
+	P.y.Div(&ny, &dy)
 	return P
 }
 
 // Point doubling, which for Edwards curves can be accomplished
 // simply by adding a point to itself (no exceptions for equal input points).
 func (P *basicPoint) double() abstract.Point {
-	return P.Add(P,P)
+	return P.Add(P, P)
 }
 
 // Subtract points so that their secrets subtract homomorphically
-func (P *basicPoint) Sub(A,B abstract.Point) abstract.Point {
+func (P *basicPoint) Sub(A, B abstract.Point) abstract.Point {
 	var nB basicPoint
-	return P.Add(A,nB.Neg(B))
+	return P.Add(A, nB.Neg(B))
 }
 
 // Find the negative of point A.
@@ -154,14 +154,14 @@ func (P *basicPoint) Neg(A abstract.Point) abstract.Point {
 func (P *basicPoint) Mul(G abstract.Point, s abstract.Secret) abstract.Point {
 	v := s.(*nist.Int).V
 	if G == nil {
-		return P.Base().Mul(P,s)
+		return P.Base().Mul(P, s)
 	}
 	T := P
-	if G == P {		// Must use temporary in case G == P
+	if G == P { // Must use temporary in case G == P
 		T = &basicPoint{}
 	}
-	T.Set(&P.c.null)	// Initialize to identity element (0,1)
-	for i := v.BitLen()-1; i >= 0; i-- {
+	T.Set(&P.c.null) // Initialize to identity element (0,1)
+	for i := v.BitLen() - 1; i >= 0; i-- {
 		T.double()
 		if v.Bit(i) != 0 {
 			T.Add(T, G)
@@ -173,7 +173,6 @@ func (P *basicPoint) Mul(G abstract.Point, s abstract.Secret) abstract.Point {
 	return P
 }
 
-
 // Basic unoptimized reference implementation of Twisted Edwards curves.
 // This reference implementation is mainly intended for testing, debugging,
 // and instructional uses, and not for production use.
@@ -181,9 +180,9 @@ func (P *basicPoint) Mul(G abstract.Point, s abstract.Secret) abstract.Point {
 // is just as general and much faster.
 //
 type BasicCurve struct {
-	curve			// generic Edwards curve functionality
-	null basicPoint	// Neutral/identity point (0,1)
-	base basicPoint	// Standard base point
+	curve            // generic Edwards curve functionality
+	null  basicPoint // Neutral/identity point (0,1)
+	base  basicPoint // Standard base point
 }
 
 // Create a new Point on this curve.
@@ -199,4 +198,3 @@ func (c *BasicCurve) Init(p *Param, fullGroup bool) *BasicCurve {
 	c.curve.init(c, p, fullGroup, &c.null, &c.base)
 	return c
 }
-

@@ -11,12 +11,11 @@ package openssl
 import "C"
 
 import (
+	"crypto/cipher"
 	"math/big"
 	"runtime"
 	"unsafe"
-	"crypto/cipher"
 )
-
 
 // Simple wrapper around OpenSSL's bignum routines
 type bignum struct {
@@ -44,12 +43,12 @@ func (n *bignum) BitLen() int {
 // in a byte slice at least buflen bytes long, padding as needed with zeros.
 // If buflen == 0, the resulting buffer is as short as possible.
 func (n *bignum) Bytes(buflen int) []byte {
-	l := (n.BitLen()+7)/8	// byte length of the actual bignum
+	l := (n.BitLen() + 7) / 8 // byte length of the actual bignum
 	if buflen < l {
 		buflen = l
 	}
 	buf := make([]byte, buflen)
-	z := buflen - l		// leading zero bytes we need to prepend
+	z := buflen - l // leading zero bytes we need to prepend
 	if C.BN_bn2bin(n.bn, (*_Ctype_unsignedchar)(unsafe.Pointer(&buf[z]))) != C.int(l) {
 		panic("BN_bn2bin returned wrong length")
 	}
@@ -58,7 +57,7 @@ func (n *bignum) Bytes(buflen int) []byte {
 
 func (n *bignum) SetBytes(buf []byte) *bignum {
 	if C.BN_bin2bn((*_Ctype_unsignedchar)(unsafe.Pointer(&buf[0])), C.int(len(buf)), n.bn) != n.bn {
-		panic("BN_bin2bn failed: "+getErrString())
+		panic("BN_bin2bn failed: " + getErrString())
 	}
 	return n
 }
@@ -86,14 +85,14 @@ func (n *bignum) Sign(m *bignum) int {
 // If 'exact' is true, choose a BigInt with _exactly_ that BitLen, not less
 func (n *bignum) RandBits(bitlen uint, exact bool, rand cipher.Stream) *bignum {
 	b := make([]byte, (bitlen+7)/8)
-	rand.XORKeyStream(b,b)
+	rand.XORKeyStream(b, b)
 	highbits := bitlen & 7
 	if highbits != 0 {
 		b[0] &= ^(0xff << highbits)
 	}
 	if exact {
 		if highbits != 0 {
-			b[0] |= 1 << (highbits-1)
+			b[0] |= 1 << (highbits - 1)
 		} else {
 			b[0] |= 0x80
 		}
@@ -118,4 +117,3 @@ func freeBigNum(n *bignum) {
 	C.BN_free(n.bn)
 	n.bn = nil
 }
-

@@ -5,16 +5,15 @@ import (
 	"github.com/dedis/crypto/random"
 )
 
-
 // A generic benchmark suite for abstract groups.
 type GroupBench struct {
 	g abstract.Group
 
 	// Random secrets and points for testing
-	x,y abstract.Secret
-	X,Y abstract.Point
-	xe []byte	// encoded Secret
-	Xe []byte	// encoded Point
+	x, y abstract.Secret
+	X, Y abstract.Point
+	xe   []byte // encoded Secret
+	Xe   []byte // encoded Point
 }
 
 func NewGroupBench(g abstract.Group) *GroupBench {
@@ -23,22 +22,21 @@ func NewGroupBench(g abstract.Group) *GroupBench {
 	gb.x = g.Secret().Pick(random.Stream)
 	gb.y = g.Secret().Pick(random.Stream)
 	gb.xe = gb.x.Encode()
-	gb.X,_ = g.Point().Pick(nil, random.Stream)
-	gb.Y,_ = g.Point().Pick(nil, random.Stream)
+	gb.X, _ = g.Point().Pick(nil, random.Stream)
+	gb.Y, _ = g.Point().Pick(nil, random.Stream)
 	gb.Xe = gb.X.Encode()
 	return &gb
 }
 
-
 func (gb GroupBench) SecretAdd(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.x.Add(gb.x,gb.y)
+		gb.x.Add(gb.x, gb.y)
 	}
 }
 
 func (gb GroupBench) SecretSub(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.x.Sub(gb.x,gb.y)
+		gb.x.Sub(gb.x, gb.y)
 	}
 }
 
@@ -50,13 +48,13 @@ func (gb GroupBench) SecretNeg(iters int) {
 
 func (gb GroupBench) SecretMul(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.x.Mul(gb.x,gb.y)
+		gb.x.Mul(gb.x, gb.y)
 	}
 }
 
 func (gb GroupBench) SecretDiv(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.x.Div(gb.x,gb.y)
+		gb.x.Div(gb.x, gb.y)
 	}
 }
 
@@ -84,16 +82,15 @@ func (gb GroupBench) SecretDecode(iters int) {
 	}
 }
 
-
 func (gb GroupBench) PointAdd(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.X.Add(gb.X,gb.Y)
+		gb.X.Add(gb.X, gb.Y)
 	}
 }
 
 func (gb GroupBench) PointSub(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.X.Sub(gb.X,gb.Y)
+		gb.X.Sub(gb.X, gb.Y)
 	}
 }
 
@@ -105,13 +102,13 @@ func (gb GroupBench) PointNeg(iters int) {
 
 func (gb GroupBench) PointMul(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.X.Mul(gb.X,gb.y)
+		gb.X.Mul(gb.X, gb.y)
 	}
 }
 
 func (gb GroupBench) PointBaseMul(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.X.Mul(nil,gb.y)
+		gb.X.Mul(nil, gb.y)
 	}
 }
 
@@ -132,4 +129,3 @@ func (gb GroupBench) PointDecode(iters int) {
 		gb.X.Decode(gb.Xe)
 	}
 }
-

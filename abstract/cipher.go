@@ -1,9 +1,9 @@
 package abstract
 
 import (
-	"errors"
 	"crypto/cipher"
 	"crypto/subtle"
+	"errors"
 	"github.com/dedis/crypto/util"
 )
 
@@ -18,11 +18,11 @@ type Cipher interface {
 	// If dst == nil, absorbs input without producing output.
 	// If src == nil, squeezes output based on an input of zero bytes.
 	// Returns the number of bytes encrypted.
-	Encrypt(dst,src []byte) int
+	Encrypt(dst, src []byte) int
 
 	// Decrypt bytes from src to dst, updating the sponge state.
 	// Returns the number of bytes decrypted, or an error on failure.
-	Decrypt(dst,src []byte) int
+	Decrypt(dst, src []byte) int
 
 	// Create a copy of this SpongeCipher with identical state,
 	// except indexed via the variable-length bytes in idx.
@@ -32,7 +32,6 @@ type Cipher interface {
 	// Hashes should be length 2*KeyLen() due to birthday attacks.
 	KeyLen() int
 }
-
 
 type cipherAEAD struct {
 	Cipher
@@ -58,11 +57,11 @@ func (ca *cipherAEAD) Seal(dst, nonce, plaintext, data []byte) []byte {
 	ct := ca.Clone(nonce)
 
 	// Encrypt the plaintext and update the temporary Cipher state
-	dst,ciphertext := util.Grow(dst, len(plaintext))
+	dst, ciphertext := util.Grow(dst, len(plaintext))
 	ct.Encrypt(ciphertext, plaintext)
 
 	// Compute and append the authenticator based on post-encryption state
-	dst,auth := util.Grow(dst, ct.KeyLen())
+	dst, auth := util.Grow(dst, ct.KeyLen())
 	ct.Encrypt(auth, nil)
 
 	return dst
@@ -77,20 +76,19 @@ func (ca *cipherAEAD) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) 
 	authl := ct.KeyLen()
 	plainl := len(ciphertext) - authl
 	if plainl < 0 {
-		return nil,errors.New("AEAD ciphertext too short")
+		return nil, errors.New("AEAD ciphertext too short")
 	}
 
 	// Decrypt the plaintext and update the temporary Cipher state
-	dst,plaintext := util.Grow(dst, plainl)
+	dst, plaintext := util.Grow(dst, plainl)
 	ct.Decrypt(plaintext, ciphertext[:plainl])
 
 	// Compute and check the authenticator based on post-encryption state
 	auth := make([]byte, authl)
 	ct.Encrypt(auth, nil)
 	if subtle.ConstantTimeCompare(auth, ciphertext[plainl:]) == 0 {
-		return nil,errors.New("AEAD authenticator check failed")
+		return nil, errors.New("AEAD authenticator check failed")
 	}
 
-	return dst,nil
+	return dst, nil
 }
-

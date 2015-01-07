@@ -20,10 +20,10 @@ const (
 
 type sponge struct {
 	// Generic sponge components.
-	a	[25]uint64	// main state of the sponge
-	full	bool		// true if state contains unconsumed output
-	rate	int		// number of state bytes to use for data
-	hashLen	int		// recommended hash output length
+	a       [25]uint64 // main state of the sponge
+	full    bool       // true if state contains unconsumed output
+	rate    int        // number of state bytes to use for data
+	hashLen int        // recommended hash output length
 
 	// dsbyte contains the "domain separation" value and the first bit of
 	// the padding. In sections 6.1 and 6.2 of [1], the SHA-3 and SHAKE
@@ -37,7 +37,7 @@ type sponge struct {
 	// value giving 00000110b (0x06) and 00011111b (0x1f), respectively.
 	//
 	// [1] http://csrc.nist.gov/publications/drafts/fips-202/fips_202_draft.pdf,
-	dsbyte  byte
+	dsbyte byte
 }
 
 // BlockLen returns the sponge's data block size (rate).
@@ -63,24 +63,24 @@ func xorIn(dst []uint64, src []byte) {
 	}
 	if len(src) > 0 {
 		var buf [8]byte
-		copy(buf[:],src)
+		copy(buf[:], src)
 		dst[0] ^= binary.LittleEndian.Uint64(buf[:])
 	}
 }
 
-func (d *sponge) AbsorbBlock(src,key []byte, last bool) {
+func (d *sponge) AbsorbBlock(src, key []byte, last bool) {
 	n := d.rate >> 3
-	xorIn(d.a[:n], src)			// data block
-	xorIn(d.a[n:], key)			// key material
-	keccakF1600(&d.a)			// permute state
-	d.full = true				// have consumable output
+	xorIn(d.a[:n], src) // data block
+	xorIn(d.a[n:], key) // key material
+	keccakF1600(&d.a)   // permute state
+	d.full = true       // have consumable output
 }
 
 func (d *sponge) SqueezeBlock(dst []byte) {
 	if !d.full {
-		keccakF1600(&d.a)		// permute state
+		keccakF1600(&d.a) // permute state
 	}
-	src := d.a[:d.rate >> 3]
+	src := d.a[:d.rate>>3]
 	for len(dst) >= 8 {
 		binary.LittleEndian.PutUint64(dst, src[0])
 		src = src[1:]
@@ -89,7 +89,7 @@ func (d *sponge) SqueezeBlock(dst []byte) {
 	if len(dst) > 0 {
 		var buf [8]byte
 		binary.LittleEndian.PutUint64(buf[:], src[0])
-		copy(dst,buf[:])
+		copy(dst, buf[:])
 	}
 	d.full = false
 }
@@ -98,7 +98,7 @@ func (d *sponge) SqueezeBlock(dst []byte) {
 // the multi-bitrate 10..1 padding rule, and permutes the state.
 // The dst buf must be exactly one block long,
 // and the src buf must be strictly less than one block.
-func (d *sponge) Pad(buf,src []byte) []byte {
+func (d *sponge) Pad(buf, src []byte) []byte {
 
 	// Ensure that we have a sufficiently-long buffer,
 	// allowing for us to append a 1-byte domain separator.
@@ -114,7 +114,7 @@ func (d *sponge) Pad(buf,src []byte) []byte {
 	}
 
 	// Copy the partial input
-	n := copy(buf,src)
+	n := copy(buf, src)
 
 	// Pad with this instance's domain-separator bits.
 	buf[n] = d.dsbyte
@@ -132,4 +132,3 @@ func (d *sponge) Pad(buf,src []byte) []byte {
 
 	return buf
 }
-

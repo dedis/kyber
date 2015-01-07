@@ -1,28 +1,28 @@
 package protobuf
 
 import (
-	"fmt"
 	"encoding/hex"
+	"fmt"
 )
 
 // Go-based protobuf definition for the example Person message format
 type Person struct {
-	Name string		// = 1, required
-	Id int32		// = 2, required
-	Email *string		// = 3, optional
-	Phone []PhoneNumber	// = 4, repeated
+	Name  string        // = 1, required
+	Id    int32         // = 2, required
+	Email *string       // = 3, optional
+	Phone []PhoneNumber // = 4, repeated
 }
 
-type PhoneType uint32		// protobuf enums are uint32
+type PhoneType uint32 // protobuf enums are uint32
 const (
-	MOBILE PhoneType = iota	// = 0
-	HOME			// = 1
-	WORK			// = 2
+	MOBILE PhoneType = iota // = 0
+	HOME                    // = 1
+	WORK                    // = 2
 )
 
 type PhoneNumber struct {
-	Number string		// = 1, required
-	Type *PhoneType		// = 2, optional
+	Number string     // = 1, required
+	Type   *PhoneType // = 2, optional
 }
 
 // This example defines, encodes, and decodes a Person message format
@@ -33,8 +33,8 @@ func Example_protobuf() {
 	email := "alice@somewhere"
 	ptype := WORK
 	person := Person{"Alice", 123, &email,
-			[]PhoneNumber{	PhoneNumber{"111-222-3333",nil},
-					PhoneNumber{"444-555-6666",&ptype}}}
+		[]PhoneNumber{PhoneNumber{"111-222-3333", nil},
+			PhoneNumber{"444-555-6666", &ptype}}}
 
 	// Encode it
 	buf := Encode(&person)
@@ -42,7 +42,7 @@ func Example_protobuf() {
 
 	// Decode it
 	person2 := Person{}
-	if err := Decode(buf,&person2,nil); err != nil {
+	if err := Decode(buf, &person2, nil); err != nil {
 		panic("Decode failed")
 	}
 
@@ -52,4 +52,3 @@ func Example_protobuf() {
 	// 00000020  31 31 2d 32 32 32 2d 33  33 33 33 22 10 0a 0c 34  |11-222-3333"...4|
 	// 00000030  34 34 2d 35 35 35 2d 36  36 36 36 10 02           |44-555-6666..|
 }
-

@@ -1,11 +1,11 @@
 package abstract
 
 import (
-	"hash"
-	"fmt"
-	"io"
 	"crypto/cipher"
 	"encoding/hex"
+	"fmt"
+	"hash"
+	"io"
 )
 
 // Suite is an abstract interface to a full suite of
@@ -48,7 +48,6 @@ type Suite interface {
 // not sure - for now, retain the flexibility
 // of defining ciphersuites with non-sponge hashes and stream ciphers.
 
-
 // Use a given ciphersuite's hash function to hash a byte-slice.
 func HashBytes(suite Suite, data []byte) []byte {
 	h := suite.Hash()
@@ -65,8 +64,8 @@ func HashBytes(suite Suite, data []byte) []byte {
 func HashStream(suite Suite, data []byte, parent cipher.Stream) cipher.Stream {
 	h := suite.Hash()
 	if parent != nil {
-		key := make([]byte,suite.KeyLen())
-		parent.XORKeyStream(key,key)
+		key := make([]byte, suite.KeyLen())
+		parent.XORKeyStream(key, key)
 		h.Write(key)
 	}
 	h.Write(data)
@@ -88,11 +87,10 @@ func PointStream(suite Suite, point Point) cipher.Stream {
 // cryptographically independent but pseudo-randomly derived
 // from the same root cipher.
 func SubStream(suite Suite, s cipher.Stream) cipher.Stream {
-	key := make([]byte,suite.KeyLen())
-	s.XORKeyStream(key,key)
+	key := make([]byte, suite.KeyLen())
+	s.XORKeyStream(key, key)
 	return suite.Stream(key)
 }
-
 
 // Create a stream cipher out of a block cipher,
 // by running the block cipher in counter mode.
@@ -103,20 +101,19 @@ func BlockStream(bc cipher.Block, iv []byte) cipher.Stream {
 	} else if len(iv) != bc.BlockSize() {
 		panic("wrong initialization vector length")
 	}
-	return cipher.NewCTR(bc,iv)
+	return cipher.NewCTR(bc, iv)
 }
-
 
 type tracer struct {
 	w io.Writer
 	s cipher.Stream
 }
 
-func (t *tracer) XORKeyStream(dst,src []byte) {
+func (t *tracer) XORKeyStream(dst, src []byte) {
 	buf := make([]byte, len(src))
-	t.s.XORKeyStream(buf,buf)
+	t.s.XORKeyStream(buf, buf)
 	fmt.Printf("TraceStream %p -> %s\n", t, hex.EncodeToString(buf))
-	for i := range(buf) {
+	for i := range buf {
 		dst[i] = src[i] ^ buf[i]
 	}
 }
@@ -125,7 +122,5 @@ func (t *tracer) XORKeyStream(dst,src []byte) {
 // This is useful to determine when and why two pseudorandom streams
 // unexpectedly diverge.
 func TraceStream(w io.Writer, s cipher.Stream) cipher.Stream {
-	return &tracer{w,s}
+	return &tracer{w, s}
 }
-
-
