@@ -1,3 +1,5 @@
+// +build sodium
+
 /*
 Package sodium contains functionality ported from the Sodium crypto library.
 See http://doc.libsodium.org for background and details on Sodium.
