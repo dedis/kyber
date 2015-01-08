@@ -1,3 +1,5 @@
+// +build pbc
+
 package pbc
 
 // #include <stdlib.h>
