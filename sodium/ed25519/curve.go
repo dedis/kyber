@@ -1,3 +1,6 @@
+
+// +build sodium
+
 // Package ed25519 implements Go wrappers for
 // a high-speed implementation of the Ed25519 curve written in C,
 // derived from the implementation in the Sodium crypto library.
