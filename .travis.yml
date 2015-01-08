@@ -1,0 +1,12 @@
+# build script for dedis/crypto libraries
+language: go
+notifications:
+    email:
+        recipients: dvisher1@gmail.com
+        on_success: change
+        on_failure: always
+before_script:
+    - git remote add production https://github.com/DeDiS/crypto.git
+    - git fetch -a production
+    - go get github.com/dyv/dedis-ci-script
+script: dedis-ci-script
