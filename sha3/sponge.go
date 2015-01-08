@@ -14,7 +14,7 @@ const (
 	// currently needs the largest buffer.
 	maxRate = 168
 
-	// stateLen is the total state length of BLAKE2b rate+capacity.
+	// stateLen is the total state length of SHA3 rate+capacity.
 	stateLen = 200
 )
 
