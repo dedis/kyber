@@ -37,6 +37,7 @@ func Example_diffieHellman() {
 	if !SA.Equal(SB) {
 		panic("Diffie-Hellman key exchange didn't work")
 	}
+	
 	println("Shared secret: "+SA.String())
 
 	// Output:
