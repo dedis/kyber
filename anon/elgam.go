@@ -7,52 +7,54 @@ import (
 	"github.com/dedis/crypto/abstract"
 )
 
-// Signature generation as described below:
-// http://en.wikipedia.org/wiki/ElGamal_signature_scheme
-
 type basicSig struct {
 	C0 abstract.Secret
 	S  abstract.Secret
 }
 
-// returns H(m)
-func hash(suite abstract.Suite, message []byte) []byte {
+func signH1preElGam(suite abstract.Suite, message []byte) []byte {
 	H := suite.Hash()
 	H.Write(message)			
 	return H.Sum(nil)
 }
 
+func signH1ElGam(suite abstract.Suite, H1pb []byte, PG abstract.Point) abstract.Secret {
+	H1 := suite.Hash()
+	H1.Write(H1pb)
+	H1.Write(PG.Encode())
+
+	b := H1.Sum(nil)
+	s := suite.Stream(b[:suite.KeyLen()])
+	return suite.Secret().Pick(s)
+}
+
+
 func SignElGam(suite abstract.Suite, random cipher.Stream, message []byte,
 	publicKey abstract.Point , privateKey abstract.Secret) []byte {
 
 	// generate signature
-	var r abstract.Point
-	var s abstract.Secret
-	for {
-		H := hash(suite, message)
-		k := suite.Secret().Pick(random)	
-		r = suite.Point().Mul(nil,k)
+	H := signH1preElGam(suite, message)
 
-		var modInv abstract.Secret
-		modInv.Inv(k)
-		s.Mul(privateKey, r).Sub(H, s).Mul(s, modInv)  // s = (H(m) - xr)k**(-1)
-		
-		if ! s.Equal(0) {
-			break
-		}
-	}
+	u := suite.Secret().Pick(random)
+	UB := suite.Point().Mul(nil,u)
+	
+	var c0 abstract.Secret
+	c0 = signH1ElGam(suite, H, UB)
+
+	var s abstract.Secret
+	s = suite.Secret()
+	s.Mul(privateKey, c0).Sub(u, s)
 
 	// sign
 	buf := bytes.Buffer{}
-	sig := basicSig{r,s}
+	sig := basicSig{c0,s}
 	abstract.Write(&buf, &sig, suite)
 
 	return buf.Bytes()
 }
 
-func Verify(suite abstract.Suite, message []byte, publicKey abstract.Point, 
+func VerifyElGam(suite abstract.Suite, message []byte, publicKey abstract.Point, 
 		    signatureBuffer []byte) error {
-
 
 	// Decode the signature
 	buf := bytes.NewBuffer(signatureBuffer)
@@ -61,16 +63,19 @@ func Verify(suite abstract.Suite, message []byte, publicKey abstract.Point,
 		return err
 	}
 
-	var P1,P2,left abstract.Point
-	P1.Mul(publicKey, sig.C0)  // y**r
-	P2.Mul(sig.C0, sig.S)      // r**s
-	left.Mul(nil, H)           // g**H
+	H := signH1preElGam(suite, message)
+	s := sig.S
+	c0 := sig.C0
 
-	var right abstract.Secret
-	right.Mul(P1,P2)           // y**r * r**s
+	// Verify the signature
+	var P,PG abstract.Point
+	P = suite.Point()
+	PG = suite.Point()
+	PG.Add(PG.Mul(nil,s),P.Mul(publicKey,c0))
+	c0 = signH1ElGam(suite, H, PG)
 
-	if ! right.Equal(left) {
-		return nil,errors.New("invalid signature")
+	if !c0.Equal(sig.C0) {
+		return errors.New("invalid signature")
 	}
 
 	return nil
