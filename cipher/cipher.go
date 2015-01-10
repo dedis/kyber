@@ -53,6 +53,10 @@ type Cipher interface {
 	// and return the Cipher.
 	Decrypt(dst, src []byte, options ...Option) Cipher
 
+	// Create a clone of this cryptographic state object,
+	// optionally absorbing src into the clone's state.
+	Clone(src []byte) Cipher
+
 	// Return recommended size in bytes of secret keys for full security.
 	KeySize() int
 
@@ -60,9 +64,9 @@ type Cipher interface {
 	// This is usually 2*KeyLen() to account for birthday attacks.
 	HashSize() int
 
-	// Create a clone of this cryptographic state object,
-	// optionally absorbing src into the clone's state.
-	Clone(src []byte) Cipher
+	// Return the size of block in which this cipher processes data:
+	// processing may be slightly more efficient in chunks this size.
+	BlockSize() int
 }
 
 

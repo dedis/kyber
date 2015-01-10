@@ -19,7 +19,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"github.com/dedis/crypto/abstract"
 )
 
 const (
@@ -30,12 +29,10 @@ const (
 // Internal-use instances of SHAKE used to test against KATs.
 
 func newHashShake128() hash.Hash {
-	return abstract.Sponge{&sponge{rate: 168, hashLen: 512,
-					dsbyte: 0x1f}}.Hash()
+	return NewHash(NewSponge128, 512, 0x1f)
 }
 func newHashShake256() hash.Hash {
-	return abstract.Sponge{&sponge{rate: 136, hashLen: 512,
-					dsbyte: 0x1f}}.Hash()
+	return NewHash(NewSponge256, 512, 0x1f)
 }
 
 // testDigests contains functions returning hash.Hash instances
