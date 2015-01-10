@@ -1,19 +1,19 @@
 package crypto
 
 import (
-	"fmt"
 	"bytes"
-	"errors"
 	"crypto/cipher"
 	"encoding/hex"
+	"errors"
+	"fmt"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/openssl"
 )
 
-// A basic, verifiable signature 
+// A basic, verifiable signature
 type basicSig struct {
-	C abstract.Secret      // challenge
-	R  abstract.Secret     // response
+	C abstract.Secret // challenge
+	R abstract.Secret // response
 }
 
 // Returns a secret that depends on on a message and a point
@@ -27,35 +27,35 @@ func hashElGamal(suite abstract.Suite, message []byte, p abstract.Point) abstrac
 	return suite.Secret().Pick(s)
 }
 
-// This simplified implementation of ElGamal Signatures is based on 
+// This simplified implementation of ElGamal Signatures is based on
 // crypto/anon/sig.go
-// The ring structure is removed and 
+// The ring structure is removed and
 // The anonimity set is reduced to one public key = no anonimity
 func ElGamalSign(suite abstract.Suite, random cipher.Stream, message []byte,
 	privateKey abstract.Secret) []byte {
 
 	// Create random secret v and public point commitment T
-	v := suite.Secret().Pick(random)   
-	T := suite.Point().Mul(nil,v)	   
+	v := suite.Secret().Pick(random)
+	T := suite.Point().Mul(nil, v)
 
 	// Create challenge c based on message and T
-	c := hashElGamal(suite, message, T)	
+	c := hashElGamal(suite, message, T)
 
 	// Compute response r = v - x*c
 	r := suite.Secret()
-	r.Mul(privateKey, c).Sub(v, r) 
+	r.Mul(privateKey, c).Sub(v, r)
 
 	// Return verifiable signature {c, r}
-	// Verifier will be able to compute v = r + x*c 
+	// Verifier will be able to compute v = r + x*c
 	// And check that hashElgamal for T and the message == c
 	buf := bytes.Buffer{}
-	sig := basicSig{c,r}
+	sig := basicSig{c, r}
 	abstract.Write(&buf, &sig, suite)
 	return buf.Bytes()
 }
 
-func ElGamalVerify(suite abstract.Suite, message []byte, publicKey abstract.Point, 
-		    signatureBuffer []byte) error {
+func ElGamalVerify(suite abstract.Suite, message []byte, publicKey abstract.Point,
+	signatureBuffer []byte) error {
 
 	// Decode the signature
 	buf := bytes.NewBuffer(signatureBuffer)
@@ -67,12 +67,12 @@ func ElGamalVerify(suite abstract.Suite, message []byte, publicKey abstract.Poin
 	c := sig.C
 
 	// Compute base**(r + x*c) == T
-	var P,T abstract.Point
+	var P, T abstract.Point
 	P = suite.Point()
 	T = suite.Point()
-	T.Add(T.Mul(nil,r),P.Mul(publicKey,c))
+	T.Add(T.Mul(nil, r), P.Mul(publicKey, c))
 
-	// Verify that the hash based on the message and T 
+	// Verify that the hash based on the message and T
 	// matches the challange c from the signature
 	c = hashElGamal(suite, message, T)
 	if !c.Equal(sig.C) {
@@ -82,20 +82,20 @@ func ElGamalVerify(suite abstract.Suite, message []byte, publicKey abstract.Poin
 	return nil
 }
 
-// Example of using ElGamal 
+// Example of using ElGamal
 func ExampleElGamal() {
 	// Crypto setup
 	suite := openssl.NewAES128SHA256P256()
 	rand := abstract.HashStream(suite, []byte("example"), nil)
 
 	// Create a public/private keypair (X,x)
-	x := suite.Secret().Pick(rand)		// create a private key x
-	X := suite.Point().Mul(nil,x)		// corresponding public key X
+	x := suite.Secret().Pick(rand) // create a private key x
+	X := suite.Point().Mul(nil, x) // corresponding public key X
 
 	// Generate the signature
-	M := []byte("Hello World!")		// message we want to sign
+	M := []byte("Hello World!") // message we want to sign
 	sig := ElGamalSign(suite, rand, M, x)
-	fmt.Print("Signature:\n"+hex.Dump(sig))
+	fmt.Print("Signature:\n" + hex.Dump(sig))
 
 	// Verify the signature against the correct message
 	err := ElGamalVerify(suite, M, X, sig)

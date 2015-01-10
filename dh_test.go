@@ -1,8 +1,8 @@
 package crypto
 
 import (
-	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/nist"
+	"github.com/dedis/crypto/random"
 )
 
 /*
@@ -18,27 +18,26 @@ func Example_diffieHellman() {
 	suite := nist.NewAES128SHA256P256()
 
 	// Alice's public/private keypair
-	a := suite.Secret().Pick(random.Stream)		// Alice's private key
-	A := suite.Point().Mul(nil,a)			// Alice's public key
+	a := suite.Secret().Pick(random.Stream) // Alice's private key
+	A := suite.Point().Mul(nil, a)          // Alice's public key
 
 	// Bob's public/private keypair
-	b := suite.Secret().Pick(random.Stream)		// Alice's private key
-	B := suite.Point().Mul(nil,b)			// Alice's public key
+	b := suite.Secret().Pick(random.Stream) // Alice's private key
+	B := suite.Point().Mul(nil, b)          // Alice's public key
 
 	// Assume Alice and Bob have securely obtained each other's public keys.
 
 	// Alice computes their shared secret using Bob's public key.
-	SA := suite.Point().Mul(B,a)
+	SA := suite.Point().Mul(B, a)
 
 	// Bob computes their shared secret using Alice's public key.
-	SB := suite.Point().Mul(A,b)
+	SB := suite.Point().Mul(A, b)
 
 	// They had better be the same!
 	if !SA.Equal(SB) {
 		panic("Diffie-Hellman key exchange didn't work")
 	}
-	println("Shared secret: "+SA.String())
+	println("Shared secret: " + SA.String())
 
 	// Output:
 }
-

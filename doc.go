@@ -45,7 +45,7 @@ Alice's private key 'a' and Bob's public key 'B' can be done via:
 
 	S := suite.Point().Mul(B, a)		// Shared Diffie-Hellman secret
 
-Note that we use 'Mul' rather than 'Exp' here because the library 
+Note that we use 'Mul' rather than 'Exp' here because the library
 uses the additive-group terminology common for elliptic curve crypto,
 rather than the multiplicative-group terminology of traditional integer groups -
 but the two are semantically equivalent and
@@ -79,7 +79,7 @@ must work together to decrypt it, for example.
 for discrete logarithm knowledge proofs.
 This system supports both interactive and non-interactive proofs
 of a wide variety of statements such as,
-"I know the secret x associated with public key X 
+"I know the secret x associated with public key X
 or I know the secret y associated with public key Y",
 without revealing anything about either secret
 or even which branch of the "or" clause is true.
@@ -126,4 +126,3 @@ from a variety of sources,
 as documented in the relevant sub-packages.
 */
 package crypto
-
