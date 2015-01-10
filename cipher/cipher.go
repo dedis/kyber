@@ -3,13 +3,13 @@ package cipher
 import (
 )
 
-// State represents an abstract interface to a symmetric message cipher.
-// The state embodies a secret that may be used to encrypt/decrypt data
+// Cipher defines an interface to an abstract symmetric message cipher.
+// The cipher embodies a secret that may be used to encrypt/decrypt data
 // as well as to generate cryptographically random bits.
-// The cipher state cryptographically absorbs all data that it processes,
+// The Cipher's state cryptographically absorbs all data that it processes,
 // producing updated state usable to generate hashes and authenticators.
 //
-// The Encrypt and Decrypt methods process bytes through the cipher.
+// The Encrypt and Decrypt methods process bytes through the Cipher.
 // These methods each encrypt from a src byte-slice to a dst byte-slice.
 // always processing exactly max(len(src),len(dst) bytes through the cipher.
 // If src is shorter than dst, the missing src bytes are assumed to be zero.
@@ -43,44 +43,50 @@ import (
 // and the ciphertext padding bytes are dropped on decryption;
 // these padding bytes are still absorbed into the cipher state for security.
 //
-type State interface {
+type Cipher interface {
 
-	// Encrypt from src to dst and absorb the data into the cipher state.
-	Encrypt(dst, src []byte)
+	// Encrypt from src to dst and absorb the data into the cipher state,
+	// and return the Cipher.
+	Encrypt(dst, src []byte, options ...Option) Cipher
 
-	// Decrypt from src to dst and absorb for authentication/MAC checking.
-	Decrypt(dst, src []byte)
+	// Decrypt from src to dst and absorb for authentication/MAC checking,
+	// and return the Cipher.
+	Decrypt(dst, src []byte, options ...Option) Cipher
 
-	// Return the recommended byte-length of keys for full security.
-	KeyLen() int
+	// Return recommended size in bytes of secret keys for full security.
+	KeySize() int
 
-	// Return the recommended byte-length of hashes for full security.
+	// Return recommended size in bytes of hashes for full security.
 	// This is usually 2*KeyLen() to account for birthday attacks.
-	HashLen() int
+	HashSize() int
 
 	// Create a clone of this cryptographic state object,
-	Clone() State
+	// optionally absorbing src into the clone's state.
+	Clone(src []byte) Cipher
 }
 
-// BlockState provides optional block-based encryption and decryption,
-// enabling the client to process large messages incrementally in blocks.
-// BlockEncrypt and BlockDecrypt operate like Encrypt and Decrypt,
-// but the provided arguments may represent partial-message buffers.
-// If the more argument is true, src and dst must be a multiple of BlockSize,
+
+// Option is a generic interface representing an option
+// that may be passed to functions/methods that take a varying,
+// extensible list of optional arguments, such as Cipher.Encrypt/Decrypt.
+//
+type Option interface {
+
+	// Convert the option to a String for debugging, pretty-printing
+	String() string
+}
+
+
+// If the More option is provided to Encrypt or Decrypt,
+// the encryption src and dst must be a multiple of BlockSize,
 // and the cipher does *not* pad or demark the end of the current message.
-// If the more argument is false, src and dst may be any length,
+// Without the More argument, src and dst may be any length,
 // and the cipher pads or demarks the end of the message in the usual way,
 // accounting for partial messages processed in preceding calls with more set.
 //
-type BlockState interface {
+var More Option = moreOption{}
 
-	// Encrypt blocks from src to dst and absorb into the cipher state.
-	BlockEncrypt(dst, src []byte, more bool)
+type moreOption struct {}
 
-	// Decrypt blocks from src to dst and absorb into the cipher state.
-	BlockDecrypt(dst, src []byte, more bool)
-
-	// Return the block length required by this cipher.
-	BlockSize() int
-}
+func (_ moreOption) String() string { return "More" }
 

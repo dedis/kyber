@@ -4,7 +4,7 @@ import (
 	"reflect"
 )
 
-var stateVar State
+var stateVar Cipher
 var hashVar Hash
 
 var StateType = reflect.TypeOf(&stateVar).Elem()

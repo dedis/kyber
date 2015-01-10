@@ -29,7 +29,7 @@ var zeroBytes = make([]byte, bufLen)
 // built from a block cipher and a cryptographic hash function.
 func BlockCipherState(newCipher func(key []byte) (cipher.Block, error),
 			newHash func() hash.Hash,
-			blockLen, keyLen, hashLen int) BlockState {
+			blockLen, keyLen, hashLen int) Cipher {
 	bcs := blockCipherState{}
 	bcs.newCipher = newCipher
 	bcs.newHash = newHash
@@ -41,7 +41,15 @@ func BlockCipherState(newCipher func(key []byte) (cipher.Block, error),
 	return &bcs
 }
 
-func (bcs *blockCipherState) crypt(dst, src []byte, more, enc bool) {
+func (bcs *blockCipherState) crypt(dst, src []byte, enc bool, options ...Option) Cipher {
+	more := false
+	for _, opt := range(options) {
+		if opt == More {
+			more = true
+		} else {
+			panic("Unsupported option "+opt.String())
+		}
+	}
 
 	for len(dst) > 0 {
 		if len(src) == 0 {
@@ -80,29 +88,23 @@ func (bcs *blockCipherState) crypt(dst, src []byte, more, enc bool) {
 		bcs.h = hmac.New(bcs.newHash, bcs.k)	// ready for next msg
 		bcs.s = nil
 	}
+
+	return bcs
 }
 
-func (bcs *blockCipherState) BlockEncrypt(dst, src []byte, more bool) {
-	bcs.crypt(dst, src, more, true)
+func (bcs *blockCipherState) Encrypt(dst, src []byte, options ...Option) Cipher {
+	return bcs.crypt(dst, src, true, options...)
 }
 
-func (bcs *blockCipherState) BlockDecrypt(dst, src []byte, more bool) {
-	bcs.crypt(dst, src, more, false)
+func (bcs *blockCipherState) Decrypt(dst, src []byte, options ...Option) Cipher {
+	return bcs.crypt(dst, src, false, options...)
 }
 
-func (bcs *blockCipherState) Encrypt(dst, src []byte) {
-	bcs.crypt(dst, src, false, true)
-}
-
-func (bcs *blockCipherState) Decrypt(dst, src []byte) {
-	bcs.crypt(dst, src, false, false)
-}
-
-func (bcs *blockCipherState) KeyLen() int {
+func (bcs *blockCipherState) KeySize() int {
 	return bcs.keyLen
 }
 
-func (bcs *blockCipherState) HashLen() int {
+func (bcs *blockCipherState) HashSize() int {
 	return bcs.hashLen
 }
 
@@ -110,7 +112,7 @@ func (bcs *blockCipherState) BlockSize() int {
 	return 1	// incremental encrypt/decrypt work at any granularity
 }
 
-func (bcs *blockCipherState) Clone() State {
+func (bcs *blockCipherState) Clone(src []byte) Cipher {
 	if bcs.s != nil {
 		panic("cannot clone cipher state mid-message")
 	}
@@ -123,6 +125,11 @@ func (bcs *blockCipherState) Clone() State {
 	} else {		// unkeyed state
 		nbcs.h = nbcs.newHash()
 	}
+
+	if src != nil {
+		nbcs.Encrypt(nil, src)
+	}
+
 	return &nbcs
 }
 

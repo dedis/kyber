@@ -40,7 +40,11 @@ type Suite interface {
 	// Create a fresh cryptographic state object seeded with
 	// a standard initial state depending on nothing but the ciphersuite
 	// and, if non-nil, the provided seed object(s).
-	State(key ...interface{}) State
+	Cipher(key ...interface{}) Cipher
+
+	// Create a fresh cryptographic cipher seeded with
+	// strong private randomness.
+	Random() Cipher
 
 	// Read cryptographic object state from an input byte-stream.
 	// The destination object structure must already be constructed,
