@@ -2,14 +2,14 @@ package sha3
 
 import (
 	"hash"
-	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/cipher"
 	"github.com/dedis/crypto/util"
 	"github.com/dedis/crypto/ints"
 )
 
 type spongeHash struct {
-	sponge func() abstract.Sponge
-	cur abstract.Sponge
+	sponge func() cipher.Sponge
+	cur cipher.Sponge
 	buf []byte
 
 	hashLen	int		// recommended hash output length
@@ -32,7 +32,7 @@ type spongeHash struct {
 // Create a cryptographic Hash from an arbitrary sponge function,
 // configured to produce hashes of a specified length in bytes,
 // using SHA3-standard padding with the given domain-separator byte.
-func NewHash(sponge func() abstract.Sponge, hashLen int, dsbyte byte) hash.Hash {
+func NewHash(sponge func() cipher.Sponge, hashLen int, dsbyte byte) hash.Hash {
 	sh := spongeHash{}
 	sh.sponge = sponge
 	sh.cur = sponge()
@@ -42,7 +42,7 @@ func NewHash(sponge func() abstract.Sponge, hashLen int, dsbyte byte) hash.Hash 
 	return &sh
 }
 
-func (sh *spongeHash) Init(sponge func() abstract.Sponge) *spongeHash {
+func (sh *spongeHash) Init(sponge func() cipher.Sponge) *spongeHash {
 	return sh
 }
 

@@ -8,7 +8,7 @@ import (
 	"github.com/dedis/crypto/ints"
 )
 
-type blockCipherState struct {
+type blockCipher struct {
 
 	// Configuration state
 	newCipher func(key []byte) (cipher.Block, error)
@@ -18,20 +18,20 @@ type blockCipherState struct {
 
 	// Per-message cipher state
 	k []byte	// master secret state from last message, 0 if unkeyed
-	h Hash		// hash or hmac for absorbing input
-	s Stream	// stream cipher for encrypting, nil if none
+	h hash.Hash	// hash or hmac for absorbing input
+	s cipher.Stream	// stream cipher for encrypting, nil if none
 }
 
 const bufLen = 1024
 
 var zeroBytes = make([]byte, bufLen)
 
-// BlockCipherState creates a general symmetric cipher State
-// built from a block cipher and a cryptographic hash function.
-func BlockCipherState(newCipher func(key []byte) (cipher.Block, error),
+// Construct a general message Cipher
+// from a block cipher and a cryptographic hash function.
+func NewBlockCipher(newCipher func(key []byte) (cipher.Block, error),
 			newHash func() hash.Hash,
 			blockLen, keyLen, hashLen int) abstract.Cipher {
-	bcs := blockCipherState{}
+	bcs := blockCipher{}
 	bcs.newCipher = newCipher
 	bcs.newHash = newHash
 	bcs.blockLen = blockLen
@@ -42,7 +42,7 @@ func BlockCipherState(newCipher func(key []byte) (cipher.Block, error),
 	return &bcs
 }
 
-func (bcs *blockCipherState) crypt(dst, src []byte, enc bool, options ...abstract.Option) abstract.Cipher {
+func (bcs *blockCipher) crypt(dst, src []byte, enc bool, options ...abstract.Option) abstract.Cipher {
 	more := false
 	for _, opt := range(options) {
 		if opt == abstract.More {
@@ -93,27 +93,27 @@ func (bcs *blockCipherState) crypt(dst, src []byte, enc bool, options ...abstrac
 	return bcs
 }
 
-func (bcs *blockCipherState) Encrypt(dst, src []byte, options ...abstract.Option) abstract.Cipher {
+func (bcs *blockCipher) Encrypt(dst, src []byte, options ...abstract.Option) abstract.Cipher {
 	return bcs.crypt(dst, src, true, options...)
 }
 
-func (bcs *blockCipherState) Decrypt(dst, src []byte, options ...abstract.Option) abstract.Cipher {
+func (bcs *blockCipher) Decrypt(dst, src []byte, options ...abstract.Option) abstract.Cipher {
 	return bcs.crypt(dst, src, false, options...)
 }
 
-func (bcs *blockCipherState) KeySize() int {
+func (bcs *blockCipher) KeySize() int {
 	return bcs.keyLen
 }
 
-func (bcs *blockCipherState) HashSize() int {
+func (bcs *blockCipher) HashSize() int {
 	return bcs.hashLen
 }
 
-func (bcs *blockCipherState) BlockSize() int {
+func (bcs *blockCipher) BlockSize() int {
 	return 1	// incremental encrypt/decrypt work at any granularity
 }
 
-func (bcs *blockCipherState) Clone(src []byte) abstract.Cipher {
+func (bcs *blockCipher) Clone(src []byte) abstract.Cipher {
 	if bcs.s != nil {
 		panic("cannot clone cipher state mid-message")
 	}

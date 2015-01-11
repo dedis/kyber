@@ -38,7 +38,7 @@ type Suite interface {
 
 	// Create a cryptographic sponge,
 	// optionally keyed with a given key.
-	Sponge() Sponge
+	Cipher() Cipher
 
 	// abstract group for public-key crypto
 	Group

@@ -5,10 +5,29 @@ import (
 	"github.com/dedis/crypto/ints"
 )
 
+// Sponge is an interface representing a primitive sponge function.
+type Sponge interface {
+
+	// XOR src data into sponge's R bits and idx into its C bits,
+	// transform its state, and copy resulting R bits into dst.
+	// Buffers may overlap and may be short or nil.
+	Transform(dst,src,idx []byte)
+
+	// Return the number of data bytes the sponge can aborb in one block.
+	Rate() int
+
+	// Return the sponge's secret state capacity in bytes.
+	Capacity() int
+
+	// Create a copy of this Sponge with identical state
+	Clone() Sponge
+}
+
+
 type spongeCipher struct {
 
 	// Configuration state
-	sponge abstract.Sponge
+	sponge Sponge
 	rate int	// number of bytes absorbed and squeezed per block
 	padbyte byte	// padding byte to append to last block in message
 
@@ -19,8 +38,8 @@ type spongeCipher struct {
 	pos int
 }
 
-// SpongeCipher builds a general message Cipher from a sponge function.
-func SpongeCipher(sponge abstract.Sponge, padbyte byte) abstract.Cipher {
+// SpongeCipher builds a general message Cipher from a Sponge function.
+func NewSpongeCipher(sponge Sponge, padbyte byte) abstract.Cipher {
 
 	sc := spongeCipher{}
 	sc.sponge = sponge
@@ -183,10 +202,6 @@ func (sc *spongeCipher) Decrypt(dst, src []byte,
 }
 
 func (sc *spongeCipher) Clone(src []byte) abstract.Cipher {
-	if sc.pos != sc.rate {
-		panic("cannot clone a Cipher mid-message")
-	}
-
 	nsc := *sc
 	nsc.sponge = sc.sponge.Clone()
 	nsc.buf = make([]byte, sc.rate)

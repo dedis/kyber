@@ -1,3 +1,5 @@
+// +build experimental
+
 package cipher
 
 import (
@@ -10,5 +12,4 @@ var hashVar Hash
 
 var StateType = reflect.TypeOf(&stateVar).Elem()
 var HashType = reflect.TypeOf(&hashVar).Elem()
-
 

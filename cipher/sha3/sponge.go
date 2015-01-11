@@ -6,7 +6,7 @@ package sha3
 
 import (
 	"encoding/binary"
-	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/cipher"
 )
 
 const (
@@ -31,7 +31,7 @@ func (d *sponge) Rate() int { return d.rate }
 func (d *sponge) Capacity() int { return stateLen - d.rate }
 
 // Clone the sponge state
-func (d *sponge) Clone() abstract.Sponge {
+func (d *sponge) Clone() cipher.Sponge {
 	c := *d
 	return &c
 }
@@ -69,9 +69,12 @@ func (d *sponge) Transform(dst,src,key []byte) {
 	}
 }
 
-func NewSponge128() abstract.Sponge { return &sponge{rate: 168} }
-func NewSponge224() abstract.Sponge { return &sponge{rate: 144} }
-func NewSponge256() abstract.Sponge { return &sponge{rate: 136} }
-func NewSponge384() abstract.Sponge { return &sponge{rate: 104} }
-func NewSponge512() abstract.Sponge { return &sponge{rate: 72} }
+
+// XXX rename NewKeccak256 etc. for consistency with SHA3 spec
+
+func NewSponge128() cipher.Sponge { return &sponge{rate: 168} }
+func NewSponge224() cipher.Sponge { return &sponge{rate: 144} }
+func NewSponge256() cipher.Sponge { return &sponge{rate: 136} }
+func NewSponge384() cipher.Sponge { return &sponge{rate: 104} }
+func NewSponge512() cipher.Sponge { return &sponge{rate: 72} }
 

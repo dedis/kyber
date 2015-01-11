@@ -37,12 +37,12 @@ type ShakeHash interface {
 // Simple implementation of the ShakeHash interface
 // as a special-case use of the Message Cipher interface.
 type shake struct {
-	sponge func() abstract.Sponge
+	sponge func() cipher.Sponge
 	cipher abstract.Cipher
 	squeezing bool
 }
 
-func newShake(sponge func() abstract.Sponge) ShakeHash {
+func newShake(sponge func() cipher.Sponge) ShakeHash {
 	sh := &shake{sponge: sponge}
 	sh.Reset()
 	return sh
@@ -76,7 +76,7 @@ func (s *shake) Clone() ShakeHash {
 }
 
 func (s *shake) Reset() {
-	s.cipher = cipher.SpongeCipher(s.sponge(), 0x1f)
+	s.cipher = cipher.NewSpongeCipher(s.sponge(), 0x1f)
 	s.squeezing = false
 }
 

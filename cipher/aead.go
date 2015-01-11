@@ -12,7 +12,7 @@ type cipherAEAD struct {
 	abstract.Cipher
 }
 
-// Wrap an abstract stateful cipher to implement
+// Wrap an abstract message Cipher to implement
 // the Authenticated Encryption with Associated Data (AEAD) interface.
 func NewAEAD(c abstract.Cipher) cipher.AEAD {
 	return &cipherAEAD{c}

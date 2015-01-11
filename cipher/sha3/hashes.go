@@ -10,11 +10,33 @@ package sha3
 
 import (
 	"hash"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/cipher"
 )
+
+
+func newCipher224() abstract.Cipher {
+	return cipher.NewSpongeCipher(NewSponge224(), 0x06)
+}
+
+func newCipher256() abstract.Cipher {
+	return cipher.NewSpongeCipher(NewSponge256(), 0x06)
+}
+
+func newCipher384() abstract.Cipher {
+	return cipher.NewSpongeCipher(NewSponge384(), 0x06)
+}
+
+func newCipher512() abstract.Cipher {
+	return cipher.NewSpongeCipher(NewSponge512(), 0x06)
+}
 
 // New224 creates a new SHA3-224 hash.
 // Its generic security strength is 224 bits against preimage attacks,
 // and 112 bits against collision attacks.
+/*func New224() hash.Hash {
+	return cipher.NewHash(newCipher224, 224/8)
+}*/
 func New224() hash.Hash { return NewHash(NewSponge224, 224/8, 0x06) }
 
 // New256 creates a new SHA3-256 hash.
