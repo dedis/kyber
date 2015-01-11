@@ -52,7 +52,7 @@ func (s *shake) Write(src []byte) (int,error) {
 	if s.squeezing {
 		panic("sha3: write to SHAKE after read")
 	}
-	s.cipher.Encrypt(nil, src, abstract.More)
+	s.cipher.Crypt(nil, src, abstract.More{})
 	return len(src), nil
 }
 
@@ -60,12 +60,12 @@ func (s *shake) Read(dst []byte) (int,error) {
 
 	// If we're still absorbing, complete the absorbed message
 	if !s.squeezing {
-		s.cipher.Encrypt(nil, nil)
+		s.cipher.Crypt(nil, nil)
 		s.squeezing = true
 	}
 
 	// Now, squeeze bytes into the dst buffer.
-	s.cipher.Encrypt(dst, nil, abstract.More)
+	s.cipher.Crypt(dst, nil, abstract.More{})
 	return len(dst), nil
 }
 
@@ -76,17 +76,20 @@ func (s *shake) Clone() ShakeHash {
 }
 
 func (s *shake) Reset() {
-	s.cipher = cipher.NewSpongeCipher(s.sponge(), cipher.Padding(0x1f))
+	s.cipher = cipher.NewSpongeCipher(s.sponge(), abstract.Decrypt,
+						cipher.Padding(0x1f))
 	s.squeezing = false
 }
 
 
 func newShakeCipher128() abstract.Cipher {
-	return cipher.NewSpongeCipher(newKeccak256(), cipher.Padding(0x1f))
+	return cipher.NewSpongeCipher(newKeccak256(), abstract.Decrypt,
+						cipher.Padding(0x1f))
 }
 
 func newShakeCipher256() abstract.Cipher {
-	return cipher.NewSpongeCipher(newKeccak512(), cipher.Padding(0x1f))
+	return cipher.NewSpongeCipher(newKeccak512(), abstract.Decrypt,
+						cipher.Padding(0x1f))
 }
 
 

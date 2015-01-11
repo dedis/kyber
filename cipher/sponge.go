@@ -2,6 +2,7 @@ package cipher
 
 import (
 	"fmt"
+	"log"
 	//"encoding/hex"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/ints"
@@ -25,14 +26,11 @@ type Sponge interface {
 	Clone() Sponge
 }
 
-// Padding returns an Option to configure the padding and domain-separation byte
+// Padding is an Option to configure the padding and domain-separation byte
 // to be used with a Sponge cipher.
-func Padding(b byte) abstract.Option {
-	return padding(b)
-}
+type Padding byte
 
-type padding byte
-func (p padding) String() string {
+func (p Padding) String() string {
 	return fmt.Sprintf("Padding: %x", byte(p))
 }
 
@@ -42,7 +40,8 @@ type spongeCipher struct {
 	// Configuration state
 	sponge Sponge
 	rate int	// number of bytes absorbed and squeezed per block
-	padbyte byte	// padding byte to append to last block in message
+	dir abstract.Direction 	// encrypt or decrypt
+	pad byte	// padding byte to append to last block in message
 
 	// Combined input/output buffer:
 	// buf[:pos] contains data bytes to be absorbed;
@@ -51,41 +50,32 @@ type spongeCipher struct {
 	pos int
 }
 
-// SpongeCipher builds a general message Cipher from a Sponge function.
-func NewSpongeCipher(sponge Sponge, options ...abstract.Option) abstract.Cipher {
-
-	padbyte := byte(0x7f)		// unused by any standard I know of
-	for _, opt := range(options) {
-		switch v := opt.(type) {
-		case padding: padbyte = byte(v)
-		default: panic("Unsupported option "+opt.String())
-		}
-	}
-
-	sc := spongeCipher{}
-	sc.sponge = sponge
-	sc.rate = sponge.Rate()
-	sc.padbyte = padbyte
-	sc.buf = make([]byte, sc.rate)
-	sc.pos = 0
-	return &sc
-}
-
-func (sc *spongeCipher) parseOptions(options []abstract.Option) bool {
+func (sc *spongeCipher) parseOptions(options []interface{}) bool {
 	more := false
 	for _, opt := range(options) {
-		switch opt {
+		switch v := opt.(type) {
 		case abstract.More: more = true
-		default: panic("Unsupported option "+opt.String())
+		case abstract.Direction: sc.dir = v
+		case Padding: sc.pad = byte(v)
+		default: log.Panicf("Unsupported option %v", opt)
 		}
 	}
 	return more
 }
 
-func (sc *spongeCipher) Encrypt(dst, src []byte,
-			options ...abstract.Option) abstract.Cipher {
+// SpongeCipher builds a general message Cipher from a Sponge function.
+func NewSpongeCipher(sponge Sponge, options ...interface{}) abstract.Cipher {
+	sc := spongeCipher{}
+	sc.sponge = sponge
+	sc.rate = sponge.Rate()
+	sc.pad = byte(0x7f)		// default, unused by standards
+	sc.buf = make([]byte, sc.rate)
+	sc.pos = 0
+	sc.parseOptions(options)
+	return &sc
+}
 
-	more := sc.parseOptions(options)
+func (sc *spongeCipher) encrypt(dst, src []byte, more bool) abstract.Cipher {
 	sp := sc.sponge
 	rate := sc.rate
 	buf := sc.buf
@@ -139,7 +129,7 @@ func (sc *spongeCipher) Encrypt(dst, src []byte,
 		}
 
 		// XOR in appropriate multi-rate padding
-		buf[pos] ^= sc.padbyte
+		buf[pos] ^= sc.pad
 		buf[rate-1] ^= 0x80
 
 		// process last block
@@ -151,11 +141,7 @@ func (sc *spongeCipher) Encrypt(dst, src []byte,
 	return sc
 }
 
-func (sc *spongeCipher) Decrypt(dst, src []byte,
-			options ...abstract.Option) abstract.Cipher {
-
-	more := sc.parseOptions(options)
-
+func (sc *spongeCipher) decrypt(dst, src []byte, more bool) abstract.Cipher {
 	//osrc,odst := src,dst
 	//println("Decrypt",more,"\n")
 
@@ -215,7 +201,7 @@ func (sc *spongeCipher) Decrypt(dst, src []byte,
 		}
 
 		// append appropriate multi-rate padding
-		buf[pos]  = sc.padbyte
+		buf[pos]  = sc.pad
 		pos++
 		for ; pos < rate; pos++ {
 			buf[pos] = 0
@@ -232,6 +218,16 @@ func (sc *spongeCipher) Decrypt(dst, src []byte,
 	return sc
 }
 
+func (sc *spongeCipher) Crypt(dst, src []byte,
+			options ...interface{}) abstract.Cipher {
+	more := sc.parseOptions(options)
+	if sc.dir >= 0 {
+		return sc.encrypt(dst, src, more)
+	} else {
+		return sc.decrypt(dst, src, more)
+	}
+}
+
 func (sc *spongeCipher) Clone(src []byte) abstract.Cipher {
 	nsc := *sc
 	nsc.sponge = sc.sponge.Clone()
@@ -239,7 +235,7 @@ func (sc *spongeCipher) Clone(src []byte) abstract.Cipher {
 	copy(nsc.buf, sc.buf)
 
 	if src != nil {
-		nsc.Encrypt(nil, src)
+		nsc.Crypt(nil, src)
 	}
 
 	return &nsc

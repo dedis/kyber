@@ -33,11 +33,11 @@ func (ca *cipherAEAD) Seal(dst, nonce, plaintext, data []byte) []byte {
 
 	// Encrypt the plaintext and update the temporary Cipher state
 	dst,ciphertext := util.Grow(dst, len(plaintext))
-	ct.Encrypt(ciphertext, plaintext)
+	ct.Crypt(ciphertext, plaintext, abstract.Encrypt)
 
 	// Compute and append the authenticator based on post-encryption state
 	dst,auth := util.Grow(dst, ct.KeySize())
-	ct.Encrypt(auth, nil)
+	ct.Crypt(auth, nil, abstract.Encrypt)
 
 	return dst
 }
@@ -56,11 +56,11 @@ func (ca *cipherAEAD) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) 
 
 	// Decrypt the plaintext and update the temporary Cipher state
 	dst,plaintext := util.Grow(dst, plainl)
-	ct.Decrypt(plaintext, ciphertext[:plainl])
+	ct.Crypt(plaintext, ciphertext[:plainl], abstract.Decrypt)
 
 	// Compute and check the authenticator based on post-encryption state
 	auth := make([]byte, authl)
-	ct.Encrypt(auth, nil)
+	ct.Crypt(auth, nil, abstract.Decrypt)
 	if subtle.ConstantTimeCompare(auth, ciphertext[plainl:]) == 0 {
 		return nil,errors.New("AEAD authenticator check failed")
 	}

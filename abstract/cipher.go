@@ -9,35 +9,40 @@ import (
 // The Cipher's state cryptographically absorbs all data that it processes,
 // producing updated state usable to generate hashes and authenticators.
 //
-// The Encrypt and Decrypt methods process bytes through the Cipher.
-// These methods each encrypt from a src byte-slice to a dst byte-slice.
-// always processing exactly max(len(src),len(dst) bytes through the cipher.
+// The Crypt method encrypts or decrypts bytes through the Cipher,
+// from a src byte-slice to a dst byte-slice.
+// Crypt always processes exactly max(len(src),len(dst) bytes.
 // If src is shorter than dst, the missing src bytes are assumed to be zero.
 // If dst is shorter than src, the extra output bytes are discarded.
-// This means that Encrypt(dst, nil) may be used to produce pseudorandom bytes,
-// and Encrypt(nil, src) may be used to absorb input without producing output.
+// This means that Crypt(dst, nil) may be used to produce pseudorandom bytes,
+// and Crypt(nil, src) may be used to absorb input without producing output.
 // The cipher cryptographically pads or demarks calls in a cipher-specific way,
-// so that a single call to Encrypt(dst, src) yields a different result
-// from Encrypt(dst[:x], src[:x]) followed by Encrypt(dst[x:], src[x:])
+// so that a single call to Crypt(dst, src) yields a different result
+// from Crypt(dst[:x], src[:x]) followed by Crypt(dst[x:], src[x:])
+//
+// Any Cipher logically may be operated in any of three "directions":
+// OneWay, Encrypt, or Decrypt.  Some of these may be equivalent.
+// OneWay is the default, suitable for hashing or generating random bytes.
+// Encrypt and Decrypt provide a reversible transformation when needed.
 //
 // To form a keyed State from a generic unkeyed State,
-// simply absorb the secret key via Encrypt(nil, key).
+// simply absorb the secret key via Crypt(nil, key).
 // The key may be any length, but the KeyLen method returns the optimal
 // length for secret keys to achieve maximum security with this cipher.
 //
 // To compute a cryptographic hash, create an unkeyed State,
-// then absorb the message via Encrypt(nil, message),
-// and finally produce the digest via Encrypt(digest, nil).
+// then absorb the message via Crypt(nil, message),
+// and finally produce the digest via Crypt(digest, nil).
 // The digest may be any length, but the HashLen method returns the optimal
 // length for hashes to achieve maximum security with this cipher.
 // To compute a keyed cryptographic hash or message-authenticator,
 // follow the same procedure but using a keyed State.
 //
-// For authenticated encryption, use Encrypt(ciphertext, plaintext)
+// For authenticated encryption, use Crypt(ciphertext, plaintext, Encrypt)
 // to encrypt the message while absorbing its content into the State,
-// then use Encrypt(digest, nil) to produce the message authenticator.
-// To decrypt and authenticate, call Decrypt(plaintext, ciphertext)
-// followed by Encrypt(digest, nil) and check the resulting authenticator.
+// then use Crypt(digest, nil, Encrypt) to produce the message authenticator.
+// To decrypt and authenticate, call Crypt(plaintext, ciphertext, Decrypt)
+// then Crypt(digest, nil, Decrypt) and check the resulting authenticator.
 // The plaintext byte-slice may be shorter than the ciphertext slice,
 // in which case the plaintext is securely padded with zeros on encryption
 // and the ciphertext padding bytes are dropped on decryption;
@@ -45,13 +50,10 @@ import (
 //
 type Cipher interface {
 
-	// Encrypt from src to dst and absorb the data into the cipher state,
+	// Transform bytes from src to dst,
+	// absorbing processed data into the cipher state,
 	// and return the Cipher.
-	Encrypt(dst, src []byte, options ...Option) Cipher
-
-	// Decrypt from src to dst and absorb for authentication/MAC checking,
-	// and return the Cipher.
-	Decrypt(dst, src []byte, options ...Option) Cipher
+	Crypt(dst, src []byte, options ...interface{}) Cipher
 
 	// Create a clone of this cryptographic state object,
 	// optionally absorbing src into the clone's state.
@@ -70,32 +72,21 @@ type Cipher interface {
 }
 
 
-// Option is a generic interface representing an option
-// that may be passed to functions/methods that take a varying,
-// extensible list of optional arguments, such as Cipher.Encrypt/Decrypt.
+// Direction selects between the Encrypt and Decrypt modes of a Cipher.
+// When no Direction is specified to a Cipher, the default is OneWay,
+// which produces cryptographic randomness that need not be reversible.
+type Direction int
+const (
+	OneWay Direction = 0		// one-way, no reversal needed
+	Encrypt Direction = 1		// encryption direction
+	Decrypt	Direction = -1		// decryption direction
+)
+
+// More is an option that may be provided to Cipher.Crypt
+// to process a message incrementally.  With this option,
+// the cipher does *not* pad or demark the end of the current message.
 //
-type Option interface {
-
-	// Convert the option to a String for debugging, pretty-printing
-	String() string
-}
-
-
-// Encrypt is an Option to configure a message cipher for encryption.
-var Encrypt Option = &option{"Encrypt"}
-
-// Decrypt is an Option to configure a message cipher for decryption.
-var Decrypt Option = &option{"Decrypt"}
-
-
-// If the More option is provided to Encrypt or Decrypt,
-// the encryption src and dst must be a multiple of BlockSize,
-// and the cipher does *not* pad or demark the end of the current message.
-// Without the More argument, src and dst may be any length,
-// and the cipher pads or demarks the end of the message in the usual way,
-// accounting for partial messages processed in preceding calls with more set.
-//
-var More Option = &option{"More"}
+type More struct{}
 
 
 // internal type for the simple options above

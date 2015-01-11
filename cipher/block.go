@@ -1,6 +1,7 @@
 package cipher
 
 import (
+	"log"
 	"hash"
 	"crypto/cipher"
 	"crypto/hmac"
@@ -15,6 +16,7 @@ type blockCipher struct {
 	newHash func() hash.Hash
 	blockLen, keyLen, hashLen int
 	iv []byte	// initialization vector for counter mode
+	dir abstract.Direction	// cipher direction
 
 	// Per-message cipher state
 	k []byte	// master secret state from last message, 0 if unkeyed
@@ -31,24 +33,25 @@ var zeroBytes = make([]byte, bufLen)
 func NewBlockCipher(newCipher func(key []byte) (cipher.Block, error),
 			newHash func() hash.Hash,
 			blockLen, keyLen, hashLen int) abstract.Cipher {
-	bcs := blockCipher{}
-	bcs.newCipher = newCipher
-	bcs.newHash = newHash
-	bcs.blockLen = blockLen
-	bcs.keyLen = keyLen
-	bcs.hashLen = hashLen
+	bc := blockCipher{}
+	bc.newCipher = newCipher
+	bc.newHash = newHash
+	bc.blockLen = blockLen
+	bc.keyLen = keyLen
+	bc.hashLen = hashLen
 
-	bcs.h = bcs.newHash()
-	return &bcs
+	bc.h = bc.newHash()
+	return &bc
 }
 
-func (bcs *blockCipher) crypt(dst, src []byte, enc bool, options ...abstract.Option) abstract.Cipher {
-	more := false
+func (bc *blockCipher) Crypt(dst, src []byte,
+				options ...interface{}) abstract.Cipher {
+	var more bool
 	for _, opt := range(options) {
-		if opt == abstract.More {
-			more = true
-		} else {
-			panic("Unsupported option "+opt.String())
+		switch v := opt.(type) {
+		case abstract.More: more = true
+		case abstract.Direction: bc.dir = v
+		default: log.Panicf("Unsupported option %v", opt)
 		}
 	}
 
@@ -58,79 +61,71 @@ func (bcs *blockCipher) crypt(dst, src []byte, enc bool, options ...abstract.Opt
 		}
 		l := ints.Min(len(dst), len(src))
 
-		if bcs.s == nil {
-			if bcs.k == nil {
-				bcs.k = make([]byte, bcs.hashLen)
-				bcs.iv = make([]byte, bcs.blockLen)
+		if bc.s == nil {
+			if bc.k == nil {
+				bc.k = make([]byte, bc.hashLen)
+				bc.iv = make([]byte, bc.blockLen)
 			}
-			b, err := bcs.newCipher(bcs.k[:bcs.keyLen])
+			b, err := bc.newCipher(bc.k[:bc.keyLen])
 			if err != nil {
 				panic(err.Error())
 			}
-			bcs.s = cipher.NewCTR(b, bcs.iv)
+			bc.s = cipher.NewCTR(b, bc.iv)
 		}
 
-		if enc {
-			bcs.s.XORKeyStream(dst[:l], src[:l])
-			bcs.h.Write(dst[:l])	// encrypt-then-MAC
+		if bc.dir >= 0 {
+			bc.s.XORKeyStream(dst[:l], src[:l])
+			bc.h.Write(dst[:l])	// encrypt-then-MAC
 		} else {
-			bcs.h.Write(src[:l])	// MAC-then-decrypt
-			bcs.s.XORKeyStream(dst[:l], src[:l])
+			bc.h.Write(src[:l])	// MAC-then-decrypt
+			bc.s.XORKeyStream(dst[:l], src[:l])
 		}
 
 		src = src[l:]
 		dst = dst[l:]
 	}
 	if len(src) > 0 {
-		bcs.h.Write(src)	// absorb extra src bytes
+		bc.h.Write(src)	// absorb extra src bytes
 	}
 	if !more {
-		bcs.k = bcs.h.Sum(bcs.k[:0]) // update state with absorbed data
-		bcs.h = hmac.New(bcs.newHash, bcs.k)	// ready for next msg
-		bcs.s = nil
+		bc.k = bc.h.Sum(bc.k[:0]) // update state with absorbed data
+		bc.h = hmac.New(bc.newHash, bc.k)	// ready for next msg
+		bc.s = nil
 	}
 
-	return bcs
+	return bc
 }
 
-func (bcs *blockCipher) Encrypt(dst, src []byte, options ...abstract.Option) abstract.Cipher {
-	return bcs.crypt(dst, src, true, options...)
+func (bc *blockCipher) KeySize() int {
+	return bc.keyLen
 }
 
-func (bcs *blockCipher) Decrypt(dst, src []byte, options ...abstract.Option) abstract.Cipher {
-	return bcs.crypt(dst, src, false, options...)
+func (bc *blockCipher) HashSize() int {
+	return bc.hashLen
 }
 
-func (bcs *blockCipher) KeySize() int {
-	return bcs.keyLen
-}
-
-func (bcs *blockCipher) HashSize() int {
-	return bcs.hashLen
-}
-
-func (bcs *blockCipher) BlockSize() int {
+func (bc *blockCipher) BlockSize() int {
 	return 1	// incremental encrypt/decrypt work at any granularity
 }
 
-func (bcs *blockCipher) Clone(src []byte) abstract.Cipher {
-	if bcs.s != nil {
+func (bc *blockCipher) Clone(src []byte) abstract.Cipher {
+	if bc.s != nil {
 		panic("cannot clone cipher state mid-message")
 	}
 
-	nbcs := *bcs
-	if bcs.k != nil {	// keyed state
-		nbcs.k = make([]byte, bcs.hashLen)
-		copy(nbcs.k, bcs.k)
-		nbcs.h = hmac.New(nbcs.newHash, nbcs.k)
+	nbc := *bc
+	if bc.k != nil {	// keyed state
+		nbc.k = make([]byte, bc.hashLen)
+		copy(nbc.k, bc.k)
+		nbc.h = hmac.New(nbc.newHash, nbc.k)
 	} else {		// unkeyed state
-		nbcs.h = nbcs.newHash()
+		nbc.h = nbc.newHash()
 	}
 
 	if src != nil {
-		nbcs.Encrypt(nil, src)
+		nbc.Crypt(nil, src)
 	}
 
-	return &nbcs
+	return &nbc
 }
 
