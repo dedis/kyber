@@ -100,13 +100,15 @@ func (bc *blockCipher) Crypt(dst, src []byte,
 }
 
 func (bc *blockCipher) Read(dst []byte) (n int, err error) {
-	bc.Crypt(dst, nil, abstract.More{})
-	return len(dst), nil
+	return CipherRead(bc, dst)
 }
 
 func (bc *blockCipher) Write(src []byte) (n int, err error) {
-	bc.Crypt(nil, src, abstract.More{})
-	return len(src), nil
+	return CipherWrite(bc, src)
+}
+
+func (bc *blockCipher) XORKeyStream(dst, src []byte) {
+	CipherXORKeyStream(bc, dst, src)
 }
 
 func (bc *blockCipher) KeySize() int {

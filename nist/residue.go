@@ -1,6 +1,7 @@
 package nist
 
 import (
+	"io"
 	"fmt"
 	"errors"
 	"math/big"
@@ -137,6 +138,14 @@ func (p *residuePoint) Decode(data []byte) error {
 		return errors.New("invalid Residue group element")
 	}
 	return nil
+}
+
+func (p *residuePoint) EncodeTo(w io.Writer) (int, error) {
+	return abstract.PointEncodeTo(p, w)
+}
+
+func (p *residuePoint) DecodeFrom(r io.Reader) (int, error) {
+	return abstract.PointDecodeFrom(p, r)
 }
 
 

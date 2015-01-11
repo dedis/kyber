@@ -16,6 +16,7 @@ package openssl
 import "C"
 
 import (
+	"io"
 	"errors"
 	"unsafe"
 	"runtime"
@@ -230,6 +231,14 @@ func (p *point) Decode(buf []byte) error {
 		return errors.New(getErrString())
 	}
 	return nil
+}
+
+func (p *point) EncodeTo(w io.Writer) (int, error) {
+	return abstract.PointEncodeTo(p, w)
+}
+
+func (p *point) DecodeFrom(r io.Reader) (int, error) {
+	return abstract.PointDecodeFrom(p, r)
 }
 
 

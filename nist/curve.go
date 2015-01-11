@@ -1,6 +1,7 @@
 package nist
 
 import (
+	"io"
 	"errors"
 	"math/big"
 	//"encoding/hex"
@@ -179,6 +180,13 @@ func (p *curvePoint) Decode(buf []byte) error {
 	return nil
 }
 
+func (p *curvePoint) EncodeTo(w io.Writer) (int, error) {
+	return abstract.PointEncodeTo(p, w)
+}
+
+func (p *curvePoint) DecodeFrom(r io.Reader) (int, error) {
+	return abstract.PointDecodeFrom(p, r)
+}
 
 
 // interface for curve-specifc mathematical functions

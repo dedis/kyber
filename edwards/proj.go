@@ -1,6 +1,7 @@
 package edwards
 
 import (
+	"io"
 	"math/big"
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
@@ -41,6 +42,14 @@ func (P *projPoint) Encode() []byte {
 func (P *projPoint) Decode(b []byte) error {
 	P.Z.Init64(1,&P.c.P)
 	return P.c.decodePoint(b, &P.X, &P.Y)
+}
+
+func (P *projPoint) EncodeTo(w io.Writer) (int, error) {
+	return abstract.PointEncodeTo(P, w)
+}
+
+func (P *projPoint) DecodeFrom(r io.Reader) (int, error) {
+	return abstract.PointDecodeFrom(P, r)
 }
 
 func (P *projPoint) HideLen() int {

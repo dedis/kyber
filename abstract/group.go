@@ -142,3 +142,4 @@ type Group interface {
 	PrimeOrder() bool		// Returns true if group is prime-order
 }
 
+

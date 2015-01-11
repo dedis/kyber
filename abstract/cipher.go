@@ -2,6 +2,7 @@ package abstract
 
 import (
 	"io"
+	"crypto/cipher"
 )
 
 // Cipher defines an interface to an abstract symmetric message cipher.
@@ -77,6 +78,10 @@ type Cipher interface {
 	// Read(dst) is equivalent to Crypt(dst, nil, More{}).
 	// Write(src) is equivalent to Crypt(nil, src, More{}).
 	io.ReadWriter
+
+	// Backwards-compatibility with the Stream cipher interface.
+	// XXX this interface inclusion is provisional and may be dropped.
+	cipher.Stream
 }
 
 // Direction selects between the Encrypt and Decrypt modes of a Cipher.
@@ -100,3 +105,4 @@ type More struct{}
 type option struct{ name string }
 
 func (o *option) String() string { return o.name }
+

@@ -1,6 +1,7 @@
 package nist
 
 import (
+	"io"
 	"errors"
 	"math/big"
 	"encoding/hex"
@@ -319,6 +320,14 @@ func (i *Int) Decode(buf []byte) error {
 		return errors.New("Int.Decode: value out of range")
 	}
 	return nil
+}
+
+func (i *Int) EncodeTo(w io.Writer) (int, error) {
+	return abstract.SecretEncodeTo(i, w)
+}
+
+func (i *Int) DecodeFrom(r io.Reader) (int, error) {
+	return abstract.SecretDecodeFrom(i, r)
 }
 
 // Encode the value of this Int into a big-endian byte-slice

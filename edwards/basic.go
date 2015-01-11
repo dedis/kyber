@@ -1,6 +1,9 @@
+// +build experimental
+
 package edwards
 
 import (
+	"io"
 	"math/big"
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
@@ -44,6 +47,14 @@ func (P *basicPoint) Encode() []byte {
 // Decode an Edwards curve point.
 func (P *basicPoint) Decode(b []byte) error {
 	return P.c.decodePoint(b, &P.x, &P.y)
+}
+
+func (P *basicPoint) EncodeTo(w io.Writer) (int, error) {
+	return abstract.PointEncodeTo(P, w)
+}
+
+func (P *basicPoint) DecodeFrom(r io.Reader) (int, error) {
+	return abstract.PointDecodeFrom(P, r)
 }
 
 func (P *basicPoint) HideLen() int {

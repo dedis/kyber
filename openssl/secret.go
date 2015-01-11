@@ -9,6 +9,7 @@ package openssl
 import "C"
 
 import (
+	"io"
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
 )
@@ -166,6 +167,14 @@ func (s *secret) Encode() []byte {
 func (s *secret) Decode(buf []byte) error {
 	s.SetBytes(buf)
 	return nil
+}
+
+func (s *secret) EncodeTo(w io.Writer) (int, error) {
+	return abstract.SecretEncodeTo(s, w)
+}
+
+func (s *secret) DecodeFrom(r io.Reader) (int, error) {
+	return abstract.SecretDecodeFrom(s, r)
 }
 
 

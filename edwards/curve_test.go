@@ -15,14 +15,6 @@ var testSuite = NewAES128SHA256Ed25519(false)
 
 // Test each curve implementation of the Ed25519 curve.
 
-func TestBasic25519(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping test in short mode.")
-	} else {
-		test.TestGroup(new(BasicCurve).Init(Param25519(), false))
-	}
-}
-
 func TestProjective25519(t *testing.T) {
 	test.TestGroup(new(ProjectiveCurve).Init(Param25519(), false))
 }
@@ -81,51 +73,6 @@ func TestFullOrder4147(t *testing.T) {
 func TestFullOrderE521(t *testing.T) {
 	test.TestGroup(new(ExtendedCurve).Init(ParamE521(), true))
 }
-
-
-// Test ProjectiveCurve versus BasicCurve implementations
-
-func TestCompareBasicProjective25519(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping test in short mode.")
-	} else {
-		test.TestCompareGroups(testSuite,
-			new(BasicCurve).Init(Param25519(), false),
-			new(ProjectiveCurve).Init(Param25519(), false))
-	}
-}
-
-/*	These take a long time and probably work if 25519 does.
-func TestCompareBasicProjectiveE382(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping test in short mode.")
-	} else {
-		test.TestCompareGroups(testSuite,
-			new(BasicCurve).Init(ParamE382(), false),
-			new(ProjectiveCurve).Init(ParamE382(), false))
-	}
-}
-
-func TestCompareBasicProjective41417(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping test in short mode.")
-	} else {
-		test.TestCompareGroups(testSuite,
-			new(BasicCurve).Init(Param41417(), false),
-			new(ProjectiveCurve).Init(Param41417(), false))
-	}
-}
-
-func TestCompareBasicProjectiveE521(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping test in short mode.")
-	} else {
-		test.TestCompareGroups(testSuite,
-			new(BasicCurve).Init(ParamE521(), false),
-			new(ProjectiveCurve).Init(ParamE521(), false))
-	}
-}
-*/
 
 
 // Test ExtendedCurve versus ProjectiveCurve implementations
@@ -203,37 +150,30 @@ func TestElligator2(t *testing.T) {
 
 // Benchmark contrasting implementations of the Ed25519 curve
 
-var basicBench = test.NewGroupBench(new(BasicCurve).Init(Param25519(),false))
 var projBench = test.NewGroupBench(new(ProjectiveCurve).Init(Param25519(),false))
 var extBench = test.NewGroupBench(new(ExtendedCurve).Init(Param25519(),false))
 var optBench = test.NewGroupBench(new(ed25519.Curve))
 
-func BenchmarkPointAddBasic(b *testing.B) { basicBench.PointAdd(b.N) }
 func BenchmarkPointAddProjective(b *testing.B) { projBench.PointAdd(b.N) }
 func BenchmarkPointAddExtended(b *testing.B) { extBench.PointAdd(b.N) }
 func BenchmarkPointAddOptimized(b *testing.B) { optBench.PointAdd(b.N) }
 
-func BenchmarkPointMulBasic(b *testing.B) { basicBench.PointMul(b.N) }
 func BenchmarkPointMulProjective(b *testing.B) { projBench.PointMul(b.N) }
 func BenchmarkPointMulExtended(b *testing.B) { extBench.PointMul(b.N) }
 func BenchmarkPointMulOptimized(b *testing.B) { optBench.PointMul(b.N) }
 
-func BenchmarkPointBaseMulBasic(b *testing.B) { basicBench.PointBaseMul(b.N) }
 func BenchmarkPointBaseMulProjective(b *testing.B) { projBench.PointBaseMul(b.N) }
 func BenchmarkPointBaseMulExtended(b *testing.B) { extBench.PointBaseMul(b.N) }
 func BenchmarkPointBaseMulOptimized(b *testing.B) { optBench.PointBaseMul(b.N) }
 
-func BenchmarkPointEncodeBasic(b *testing.B) { basicBench.PointEncode(b.N) }
 func BenchmarkPointEncodeProjective(b *testing.B) { projBench.PointEncode(b.N) }
 func BenchmarkPointEncodeExtended(b *testing.B) { extBench.PointEncode(b.N) }
 func BenchmarkPointEncodeOptimized(b *testing.B) { optBench.PointEncode(b.N) }
 
-func BenchmarkPointDecodeBasic(b *testing.B) { basicBench.PointDecode(b.N) }
 func BenchmarkPointDecodeProjective(b *testing.B) { projBench.PointDecode(b.N) }
 func BenchmarkPointDecodeExtended(b *testing.B) { extBench.PointDecode(b.N) }
 func BenchmarkPointDecodeOptimized(b *testing.B) { optBench.PointDecode(b.N) }
 
-func BenchmarkPointPickBasic(b *testing.B) { basicBench.PointPick(b.N) }
 func BenchmarkPointPickProjective(b *testing.B) { projBench.PointPick(b.N) }
 func BenchmarkPointPickExtended(b *testing.B) { extBench.PointPick(b.N) }
 func BenchmarkPointPickOptimized(b *testing.B) { optBench.PointPick(b.N) }

@@ -15,6 +15,7 @@
 package ed25519
 
 import (
+	"io"
 	"errors"
 	"encoding/hex"
 	"crypto/cipher"
@@ -49,6 +50,14 @@ func (P *point) Decode(b []byte) error {
 		return errors.New("invalid Ed25519 curve point")
 	}
 	return nil
+}
+
+func (P *point) EncodeTo(w io.Writer) (int, error) {
+	return abstract.PointEncodeTo(P, w)
+}
+
+func (P *point) DecodeFrom(r io.Reader) (int, error) {
+	return abstract.PointDecodeFrom(P, r)
 }
 
 // Equality test for two Points on the same curve
