@@ -8,6 +8,7 @@ import (
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/util"
 	"github.com/dedis/crypto/base64"
+	"github.com/dedis/crypto/random"
 )
 
 
@@ -137,7 +138,7 @@ func (f *File) GenKey(keys *Keys, suite abstract.Suite) (KeyPair,error) {
 
 	// Create a fresh public/private keypair
 	p := KeyPair{}
-	p.Gen(suite, abstract.RandomStream)
+	p.Gen(suite, random.Stream)
 	pubId := p.PubId()
 
 	// Write the private key file
