@@ -1,3 +1,5 @@
+// Package aes implements the general Cipher interface
+// using AES, SHA2, and HMAC.
 package aes
 
 import (
