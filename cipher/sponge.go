@@ -1,6 +1,7 @@
 package cipher
 
 import (
+	"fmt"
 	//"encoding/hex"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/ints"
@@ -24,6 +25,17 @@ type Sponge interface {
 	Clone() Sponge
 }
 
+// Padding returns an Option to configure the padding and domain-separation byte
+// to be used with a Sponge cipher.
+func Padding(b byte) abstract.Option {
+	return padding(b)
+}
+
+type padding byte
+func (p padding) String() string {
+	return fmt.Sprintf("Padding: %x", byte(p))
+}
+
 
 type spongeCipher struct {
 
@@ -40,7 +52,15 @@ type spongeCipher struct {
 }
 
 // SpongeCipher builds a general message Cipher from a Sponge function.
-func NewSpongeCipher(sponge Sponge, padbyte byte) abstract.Cipher {
+func NewSpongeCipher(sponge Sponge, options ...abstract.Option) abstract.Cipher {
+
+	padbyte := byte(0x7f)		// unused by any standard I know of
+	for _, opt := range(options) {
+		switch v := opt.(type) {
+		case padding: padbyte = byte(v)
+		default: panic("Unsupported option "+opt.String())
+		}
+	}
 
 	sc := spongeCipher{}
 	sc.sponge = sponge

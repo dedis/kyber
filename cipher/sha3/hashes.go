@@ -16,19 +16,19 @@ import (
 
 
 func newCipher224() abstract.Cipher {
-	return cipher.NewSpongeCipher(NewKeccak448(), 0x06)
+	return cipher.NewSpongeCipher(newKeccak448(), cipher.Padding(0x06))
 }
 
 func newCipher256() abstract.Cipher {
-	return cipher.NewSpongeCipher(NewKeccak512(), 0x06)
+	return cipher.NewSpongeCipher(newKeccak512(), cipher.Padding(0x06))
 }
 
 func newCipher384() abstract.Cipher {
-	return cipher.NewSpongeCipher(NewKeccak768(), 0x06)
+	return cipher.NewSpongeCipher(newKeccak768(), cipher.Padding(0x06))
 }
 
 func newCipher512() abstract.Cipher {
-	return cipher.NewSpongeCipher(NewKeccak1024(), 0x06)
+	return cipher.NewSpongeCipher(newKeccak1024(), cipher.Padding(0x06))
 }
 
 // New224 creates a new SHA3-224 hash.

@@ -75,20 +75,18 @@ func (d *sponge) Transform(dst,src,key []byte) {
 }
 
 
-// XXX rename NewKeccak256 etc. for consistency with SHA3 spec
-
 // Create a Keccak sponge primitive with 256-bit capacity.
-func NewKeccak256() cipher.Sponge { return &sponge{rate: 168} }
+func newKeccak256() cipher.Sponge { return &sponge{rate: 168} }
 
 // Create a Keccak sponge primitive with 448-bit capacity.
-func NewKeccak448() cipher.Sponge { return &sponge{rate: 144} }
+func newKeccak448() cipher.Sponge { return &sponge{rate: 144} }
 
 // Create a Keccak sponge primitive with 512-bit capacity.
-func NewKeccak512() cipher.Sponge { return &sponge{rate: 136} }
+func newKeccak512() cipher.Sponge { return &sponge{rate: 136} }
 
 // Create a Keccak sponge primitive with 768-bit capacity.
-func NewKeccak768() cipher.Sponge { return &sponge{rate: 104} }
+func newKeccak768() cipher.Sponge { return &sponge{rate: 104} }
 
 // Create a Keccak sponge primitive with 1024-bit capacity.
-func NewKeccak1024() cipher.Sponge { return &sponge{rate: 72} }
+func newKeccak1024() cipher.Sponge { return &sponge{rate: 72} }
 

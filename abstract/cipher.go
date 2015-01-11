@@ -81,6 +81,13 @@ type Option interface {
 }
 
 
+// Encrypt is an Option to configure a message cipher for encryption.
+var Encrypt Option = &option{"Encrypt"}
+
+// Decrypt is an Option to configure a message cipher for decryption.
+var Decrypt Option = &option{"Decrypt"}
+
+
 // If the More option is provided to Encrypt or Decrypt,
 // the encryption src and dst must be a multiple of BlockSize,
 // and the cipher does *not* pad or demark the end of the current message.
@@ -88,9 +95,10 @@ type Option interface {
 // and the cipher pads or demarks the end of the message in the usual way,
 // accounting for partial messages processed in preceding calls with more set.
 //
-var More Option = moreOption{}
+var More Option = &option{"More"}
 
-type moreOption struct {}
 
-func (_ moreOption) String() string { return "More" }
+// internal type for the simple options above
+type option struct { name string }
+func (o *option) String() string { return o.name }
 
