@@ -4,6 +4,7 @@ import (
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher/aes"
 	"github.com/dedis/crypto/cipher/sha3"
+	"github.com/dedis/crypto/cipher/norx"
 	"testing"
 )
 
@@ -43,6 +44,10 @@ func BenchmarkSha3_512_1B(b *testing.B) {
 	benchmarkCipher(b, sha3.NewCipher512(), 1)
 }
 
+func BenchmarkNORX_1B(b *testing.B) {
+	benchmarkCipher(b, norx.NewCipher(), 1)
+}
+
 
 // 1K messages
 
@@ -67,6 +72,10 @@ func BenchmarkSha3_384_1K(b *testing.B) {
 }
 func BenchmarkSha3_512_1K(b *testing.B) {
 	benchmarkCipher(b, sha3.NewCipher512(), 1024)
+}
+
+func BenchmarkNORX_1K(b *testing.B) {
+	benchmarkCipher(b, norx.NewCipher(), 1024)
 }
 
 
@@ -94,3 +103,8 @@ func BenchmarkSha3_384_1M(b *testing.B) {
 func BenchmarkSha3_512_1M(b *testing.B) {
 	benchmarkCipher(b, sha3.NewCipher512(), 1024*1024)
 }
+
+func BenchmarkNORX_1M(b *testing.B) {
+	benchmarkCipher(b, norx.NewCipher(), 1024*1024)
+}
+
