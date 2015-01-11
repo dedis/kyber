@@ -22,7 +22,7 @@ func NewHash(cipher func() abstract.Cipher, size int) hash.Hash {
 }
 
 func (ch *cipherHash) Write(src []byte) (int,error) {
-	ch.cur.Encrypt(nil, src, abstract.More)
+	ch.cur.Decrypt(nil, src, abstract.More)
 	return len(src), nil
 }
 
@@ -30,11 +30,11 @@ func (ch *cipherHash) Sum(buf []byte) []byte {
 
 	// Clone the Cipher to leave the original's state unaffected
 	c := ch.cur.Clone(nil)
-	c.Encrypt(nil, nil)	// finalize the message
+	c.Decrypt(nil, nil)	// finalize the message
 
 	// Squeeze out a hash of any requested size.
 	buf,hash := util.Grow(buf, ch.size)
-	c.Encrypt(hash, nil)
+	c.Decrypt(hash, nil, abstract.More)
 	return buf
 }
 

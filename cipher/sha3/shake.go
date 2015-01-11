@@ -81,15 +81,24 @@ func (s *shake) Reset() {
 }
 
 
+func newShakeCipher128() abstract.Cipher {
+	return cipher.NewSpongeCipher(NewKeccak256(), 0x1f)
+}
+
+func newShakeCipher256() abstract.Cipher {
+	return cipher.NewSpongeCipher(NewKeccak512(), 0x1f)
+}
+
+
 // NewShake128 creates a new SHAKE128 variable-output-length ShakeHash.
 // Its generic security strength is 128 bits against all attacks if at
 // least 32 bytes of its output are used.
-func NewShake128() ShakeHash { return newShake(NewSponge128) }
+func NewShake128() ShakeHash { return newShake(NewKeccak256) }
 
 // NewShake256 creates a new SHAKE128 variable-output-length ShakeHash.
 // Its generic security strength is 256 bits against all attacks if
 // at least 64 bytes of its output are used.
-func NewShake256() ShakeHash { return newShake(NewSponge256) }
+func NewShake256() ShakeHash { return newShake(NewKeccak512) }
 
 // ShakeSum128 writes an arbitrary-length digest of data into hash.
 func ShakeSum128(hash, data []byte) {

@@ -1,6 +1,7 @@
 package cipher
 
 import (
+	//"encoding/hex"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/ints"
 )
@@ -44,8 +45,9 @@ func NewSpongeCipher(sponge Sponge, padbyte byte) abstract.Cipher {
 	sc := spongeCipher{}
 	sc.sponge = sponge
 	sc.rate = sponge.Rate()
+	sc.padbyte = padbyte
 	sc.buf = make([]byte, sc.rate)
-	sc.pos = sc.rate
+	sc.pos = 0
 	return &sc
 }
 
@@ -116,12 +118,8 @@ func (sc *spongeCipher) Encrypt(dst, src []byte,
 			pos = 0
 		}
 
-		// add appropriate multi-rate padding
-		buf[pos]  ^= sc.padbyte
-		pos++
-		for ; pos < rate; pos++ {
-			buf[pos] = 0
-		}
+		// XOR in appropriate multi-rate padding
+		buf[pos] ^= sc.padbyte
 		buf[rate-1] ^= 0x80
 
 		// process last block
@@ -137,6 +135,10 @@ func (sc *spongeCipher) Decrypt(dst, src []byte,
 			options ...abstract.Option) abstract.Cipher {
 
 	more := sc.parseOptions(options)
+
+	//osrc,odst := src,dst
+	//println("Decrypt",more,"\n")
+
 	sp := sc.sponge
 	rate := sc.rate
 	buf := sc.buf
@@ -186,17 +188,26 @@ func (sc *spongeCipher) Decrypt(dst, src []byte,
 		pos += n
 	}
 
-	if more {
+	if !more {
 		if pos == rate {
 			sp.Transform(buf, buf, nil)
 			pos = 0
 		}
+
+		// append appropriate multi-rate padding
+		buf[pos]  = sc.padbyte
+		pos++
+		for ; pos < rate; pos++ {
+			buf[pos] = 0
+		}
+		buf[rate-1] ^= 0x80
 
 		// process final padded block
 		sp.Transform(buf, buf, nil)
 		pos = 0
 	}
 
+	//println("Decrypted",more,"\n" + hex.Dump(osrc) + "->\n" + hex.Dump(odst))
 	sc.pos = pos
 	return sc
 }

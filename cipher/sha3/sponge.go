@@ -5,6 +5,7 @@
 package sha3
 
 import (
+	//"encoding/hex"
 	"encoding/binary"
 	"github.com/dedis/crypto/cipher"
 )
@@ -50,6 +51,8 @@ func xorIn(dst []uint64, src []byte) {
 }
 
 func (d *sponge) Transform(dst,src,key []byte) {
+	//odst := dst
+
 	n := d.rate >> 3
 	xorIn(d.a[:n], src)			// data block
 	xorIn(d.a[n:], key)			// key material
@@ -67,14 +70,25 @@ func (d *sponge) Transform(dst,src,key []byte) {
 		binary.LittleEndian.PutUint64(buf[:], a[0])
 		copy(dst,buf[:])
 	}
+
+	//println("Transform\n" + hex.Dump(src) + "->\n" + hex.Dump(odst))
 }
 
 
 // XXX rename NewKeccak256 etc. for consistency with SHA3 spec
 
-func NewSponge128() cipher.Sponge { return &sponge{rate: 168} }
-func NewSponge224() cipher.Sponge { return &sponge{rate: 144} }
-func NewSponge256() cipher.Sponge { return &sponge{rate: 136} }
-func NewSponge384() cipher.Sponge { return &sponge{rate: 104} }
-func NewSponge512() cipher.Sponge { return &sponge{rate: 72} }
+// Create a Keccak sponge primitive with 256-bit capacity.
+func NewKeccak256() cipher.Sponge { return &sponge{rate: 168} }
+
+// Create a Keccak sponge primitive with 448-bit capacity.
+func NewKeccak448() cipher.Sponge { return &sponge{rate: 144} }
+
+// Create a Keccak sponge primitive with 512-bit capacity.
+func NewKeccak512() cipher.Sponge { return &sponge{rate: 136} }
+
+// Create a Keccak sponge primitive with 768-bit capacity.
+func NewKeccak768() cipher.Sponge { return &sponge{rate: 104} }
+
+// Create a Keccak sponge primitive with 1024-bit capacity.
+func NewKeccak1024() cipher.Sponge { return &sponge{rate: 72} }
 

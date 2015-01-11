@@ -19,6 +19,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"github.com/dedis/crypto/cipher"
 )
 
 const (
@@ -27,12 +28,11 @@ const (
 )
 
 // Internal-use instances of SHAKE used to test against KATs.
-
 func newHashShake128() hash.Hash {
-	return NewHash(NewSponge128, 512, 0x1f)
+	return cipher.NewHash(newShakeCipher128, 512)
 }
 func newHashShake256() hash.Hash {
-	return NewHash(NewSponge256, 512, 0x1f)
+	return cipher.NewHash(newShakeCipher256, 512)
 }
 
 // testDigests contains functions returning hash.Hash instances
@@ -136,7 +136,7 @@ func TestUnalignedWrite(t *testing.T) {
 		}
 		got := d.Sum(nil)
 		if !bytes.Equal(got, want) {
-			t.Errorf("Unaligned writes, alg=%s\ngot %q, want %q", alg, got, want)
+			t.Errorf("Unaligned writes, alg=%s\ngot %q, want %q", alg, hex.EncodeToString(got), hex.EncodeToString(want))
 		}
 	}
 }
