@@ -1,6 +1,8 @@
 package abstract
 
-import ()
+import (
+	"io"
+)
 
 // Cipher defines an interface to an abstract symmetric message cipher.
 // The cipher embodies a secret that may be used to encrypt/decrypt data
@@ -70,6 +72,11 @@ type Cipher interface {
 	// Return the size of block in which this cipher processes data:
 	// processing may be slightly more efficient in chunks this size.
 	BlockSize() int
+
+	// A Cipher also implements the standard Read and Write I/O methods.
+	// Read(dst) is equivalent to Crypt(dst, nil, More{}).
+	// Write(src) is equivalent to Crypt(nil, src, More{}).
+	io.ReadWriter
 }
 
 // Direction selects between the Encrypt and Decrypt modes of a Cipher.

@@ -51,8 +51,7 @@ func (s *shake) Write(src []byte) (int, error) {
 	if s.squeezing {
 		panic("sha3: write to SHAKE after read")
 	}
-	s.cipher.Crypt(nil, src, abstract.More{})
-	return len(src), nil
+	return s.cipher.Write(src)
 }
 
 func (s *shake) Read(dst []byte) (int, error) {
@@ -64,8 +63,7 @@ func (s *shake) Read(dst []byte) (int, error) {
 	}
 
 	// Now, squeeze bytes into the dst buffer.
-	s.cipher.Crypt(dst, nil, abstract.More{})
-	return len(dst), nil
+	return s.cipher.Read(dst)
 }
 
 func (s *shake) Clone() ShakeHash {

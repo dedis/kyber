@@ -99,6 +99,16 @@ func (bc *blockCipher) Crypt(dst, src []byte,
 	return bc
 }
 
+func (bc *blockCipher) Read(dst []byte) (n int, err error) {
+	bc.Crypt(dst, nil, abstract.More{})
+	return len(dst), nil
+}
+
+func (bc *blockCipher) Write(src []byte) (n int, err error) {
+	bc.Crypt(nil, src, abstract.More{})
+	return len(src), nil
+}
+
 func (bc *blockCipher) KeySize() int {
 	return bc.keyLen
 }

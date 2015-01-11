@@ -231,6 +231,16 @@ func (sc *spongeCipher) Crypt(dst, src []byte,
 	}
 }
 
+func (sc *spongeCipher) Read(dst []byte) (n int, err error) {
+	sc.Crypt(dst, nil, abstract.More{})
+	return len(dst), nil
+}
+
+func (sc *spongeCipher) Write(src []byte) (n int, err error) {
+	sc.Crypt(nil, src, abstract.More{})
+	return len(src), nil
+}
+
 func (sc *spongeCipher) Clone(src []byte) abstract.Cipher {
 	nsc := *sc
 	nsc.sponge = sc.sponge.Clone()
