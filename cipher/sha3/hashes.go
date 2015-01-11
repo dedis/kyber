@@ -14,37 +14,41 @@ import (
 	"hash"
 )
 
+var sha3Opts = []interface{}{abstract.Decrypt, cipher.Padding(0x06)}
+
+
 // NewCipher224 creates a Cipher implementing the SHA3-224 algorithm,
 // which provides 224-bit security against preimage attacks
 // and 112-bit security against collisions.
-func NewCipher224() abstract.Cipher {
-	return cipher.NewSpongeCipher(newKeccak448(), abstract.Decrypt,
-		cipher.Padding(0x06))
+func NewCipher224(options ...interface{}) abstract.Cipher {
+	return cipher.NewSpongeCipher(newKeccak448(),
+					append(sha3Opts, options...)...)
 }
 
 // NewCipher256 creates a Cipher implementing the SHA3-256 algorithm,
 // which provides 256-bit security against preimage attacks
 // and 128-bit security against collisions.
-func NewCipher256() abstract.Cipher {
-	return cipher.NewSpongeCipher(newKeccak512(), abstract.Decrypt,
-		cipher.Padding(0x06))
+func NewCipher256(options ...interface{}) abstract.Cipher {
+	return cipher.NewSpongeCipher(newKeccak512(),
+					append(sha3Opts, options...)...)
 }
 
 // NewCipher384 creates a Cipher implementing the SHA3-384 algorithm,
 // which provides 384-bit security against preimage attacks
 // and 192-bit security against collisions.
-func NewCipher384() abstract.Cipher {
-	return cipher.NewSpongeCipher(newKeccak768(), abstract.Decrypt,
-		cipher.Padding(0x06))
+func NewCipher384(options ...interface{}) abstract.Cipher {
+	return cipher.NewSpongeCipher(newKeccak768(),
+					append(sha3Opts, options...)...)
 }
 
 // NewCipher512 creates a Cipher implementing the SHA3-512 algorithm,
 // which provides 512-bit security against preimage attacks
 // and 256-bit security against collisions.
-func NewCipher512() abstract.Cipher {
-	return cipher.NewSpongeCipher(newKeccak1024(), abstract.Decrypt,
-		cipher.Padding(0x06))
+func NewCipher512(options ...interface{}) abstract.Cipher {
+	return cipher.NewSpongeCipher(newKeccak1024(),
+					append(sha3Opts, options...)...)
 }
+
 
 // New224 creates a new SHA3-224 hash.
 // Its generic security strength is 224 bits against preimage attacks,

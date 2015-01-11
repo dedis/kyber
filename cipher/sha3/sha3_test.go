@@ -29,10 +29,10 @@ const (
 
 // Internal-use instances of SHAKE used to test against KATs.
 func newHashShake128() hash.Hash {
-	return cipher.NewHash(newShakeCipher128, 512)
+	return cipher.NewHash(NewShakeCipher128, 512)
 }
 func newHashShake256() hash.Hash {
-	return cipher.NewHash(newShakeCipher256, 512)
+	return cipher.NewHash(NewShakeCipher256, 512)
 }
 
 // testDigests contains functions returning hash.Hash instances

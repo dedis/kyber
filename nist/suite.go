@@ -6,7 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/sha256"
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/sha3"
+	"github.com/dedis/crypto/cipher/sha3"
 )
 
 type suite128 struct {
@@ -30,9 +30,9 @@ func (s *suite128) Stream(key []byte) cipher.Stream {
 	return cipher.NewCTR(aes,iv)
 }
 
-// SHA3/SHAKE128 sponge
-func (s *suite128) Sponge() abstract.Sponge {
-	return sha3.NewSponge128()
+// SHA3/SHAKE128 Sponge Cipher
+func (s *suite128) Cipher(options ...interface{}) abstract.Cipher {
+	return sha3.NewShakeCipher128(options)
 }
 
 // Ciphersuite based on AES-128, SHA-256, and the NIST P-256 elliptic curve.

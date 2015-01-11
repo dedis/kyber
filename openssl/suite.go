@@ -6,7 +6,7 @@ import (
 	"hash"
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/sha3"
+	"github.com/dedis/crypto/cipher/sha3"
 )
 
 
@@ -37,8 +37,8 @@ func (s *suite128) Stream(key []byte) cipher.Stream {
 	return abstract.BlockStream(NewAES(key), nil)
 }
 
-func (s *suite128) Sponge() abstract.Sponge {
-	return sha3.NewSponge128()
+func (s *suite128) Cipher(options ...interface{}) abstract.Cipher {
+	return sha3.NewShakeCipher128(options)
 }
 
 // Ciphersuite based on AES-128, SHA-256, and the NIST P-256 elliptic curve,
@@ -78,8 +78,8 @@ func (s *suite192) Stream(key []byte) cipher.Stream {
 	return abstract.BlockStream(NewAES(key), nil)
 }
 
-func (s *suite192) Sponge() abstract.Sponge {
-	return sha3.NewSponge256()
+func (s *suite192) Cipher(options ...interface{}) abstract.Cipher {
+	return sha3.NewShakeCipher256(options)
 }
 
 // Ciphersuite based on AES-192, SHA-384, and the NIST P-384 elliptic curve,
@@ -112,8 +112,8 @@ func (s *suite256) KeyLen() int {
 	return 32	// AES256
 }
 
-func (s *suite256) Sponge() abstract.Sponge {
-	return sha3.NewSponge256()
+func (s *suite256) Cipher(options ...interface{}) abstract.Cipher {
+	return sha3.NewShakeCipher256(options)
 }
 
 func (s *suite256) Stream(key []byte) cipher.Stream {

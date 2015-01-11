@@ -36,9 +36,8 @@ type Suite interface {
 	KeyLen() int
 	Stream(key []byte) cipher.Stream
 
-	// Create a cryptographic sponge,
-	// optionally keyed with a given key.
-	Cipher() Cipher
+	// Create a cryptographic Cipher with given configuration options.
+	Cipher(options ...interface{}) Cipher
 
 	// abstract group for public-key crypto
 	Group

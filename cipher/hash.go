@@ -8,12 +8,12 @@ import (
 
 // Wrapper to use a generic mesage Cipher as a Hash
 type cipherHash struct {
-	cipher func() abstract.Cipher
+	cipher func(...interface{}) abstract.Cipher
 	cur    abstract.Cipher
 	size   int
 }
 
-func NewHash(cipher func() abstract.Cipher, size int) hash.Hash {
+func NewHash(cipher func(...interface{}) abstract.Cipher, size int) hash.Hash {
 	ch := &cipherHash{}
 	ch.cipher = cipher
 	ch.cur = cipher()
