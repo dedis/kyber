@@ -21,8 +21,8 @@ const (
 
 type sponge struct {
 	// Generic sponge components.
-	a	[25]uint64	// main state of the sponge
-	rate	int		// number of state bytes to use for data
+	a    [25]uint64 // main state of the sponge
+	rate int        // number of state bytes to use for data
 }
 
 // Rate returns the sponge's data block size (rate).
@@ -45,21 +45,21 @@ func xorIn(dst []uint64, src []byte) {
 	}
 	if len(src) > 0 {
 		var buf [8]byte
-		copy(buf[:],src)
+		copy(buf[:], src)
 		dst[0] ^= binary.LittleEndian.Uint64(buf[:])
 	}
 }
 
-func (d *sponge) Transform(dst,src,key []byte) {
+func (d *sponge) Transform(dst, src, key []byte) {
 	//odst := dst
 
 	n := d.rate >> 3
-	xorIn(d.a[:n], src)			// data block
-	xorIn(d.a[n:], key)			// key material
+	xorIn(d.a[:n], src) // data block
+	xorIn(d.a[n:], key) // key material
 
-	keccakF1600(&d.a)			// permute state
+	keccakF1600(&d.a) // permute state
 
-	a := d.a[:d.rate >> 3]
+	a := d.a[:d.rate>>3]
 	for len(dst) >= 8 {
 		binary.LittleEndian.PutUint64(dst, a[0])
 		a = a[1:]
@@ -68,12 +68,11 @@ func (d *sponge) Transform(dst,src,key []byte) {
 	if len(dst) > 0 {
 		var buf [8]byte
 		binary.LittleEndian.PutUint64(buf[:], a[0])
-		copy(dst,buf[:])
+		copy(dst, buf[:])
 	}
 
 	//println("Transform\n" + hex.Dump(src) + "->\n" + hex.Dump(odst))
 }
-
 
 // Create a Keccak sponge primitive with 256-bit capacity.
 func newKeccak256() cipher.Sponge { return &sponge{rate: 168} }
@@ -89,4 +88,3 @@ func newKeccak768() cipher.Sponge { return &sponge{rate: 104} }
 
 // Create a Keccak sponge primitive with 1024-bit capacity.
 func newKeccak1024() cipher.Sponge { return &sponge{rate: 72} }
-

@@ -3,14 +3,14 @@
 package cipher
 
 import (
-	"io"
-	"reflect"
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
+	"io"
+	"reflect"
 )
 
 // Generic reflection-driven "universal constructor" interface,
-// which determines how to create concrete objects 
+// which determines how to create concrete objects
 // instantiating a given set of abstract interface types.
 type Constructor interface {
 
@@ -21,8 +21,8 @@ type Constructor interface {
 // Random represents a generic source of cryptographic random bytes,
 // which may be either read "verbatim" or used as a stream cipher.
 type Random interface {
-	io.Reader		// Read [pseudo-]random bytes
-	cipher.Stream		// XOR-encrypt using [pseudo-]random bytes
+	io.Reader     // Read [pseudo-]random bytes
+	cipher.Stream // XOR-encrypt using [pseudo-]random bytes
 }
 
 // Suite represents an abstract cryptographic suite.
@@ -62,4 +62,3 @@ type Suite interface {
 	// Securely erase the in-memory state of cryptographic objects.
 	Erase(obj ...interface{})
 }
-

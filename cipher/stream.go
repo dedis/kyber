@@ -14,7 +14,6 @@ type cipherStream struct {
 	c abstract.Cipher
 }
 
-func (cs *cipherStream) XORKeyStream(dst,src []byte) {
+func (cs *cipherStream) XORKeyStream(dst, src []byte) {
 	cs.c.Crypt(dst, src[:len(dst)], abstract.More{})
 }
-

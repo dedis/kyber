@@ -9,30 +9,29 @@ package sha3
 // bytes.
 
 import (
-	"hash"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher"
+	"hash"
 )
-
 
 func newCipher224() abstract.Cipher {
 	return cipher.NewSpongeCipher(newKeccak448(), abstract.Decrypt,
-					cipher.Padding(0x06))
+		cipher.Padding(0x06))
 }
 
 func newCipher256() abstract.Cipher {
 	return cipher.NewSpongeCipher(newKeccak512(), abstract.Decrypt,
-					cipher.Padding(0x06))
+		cipher.Padding(0x06))
 }
 
 func newCipher384() abstract.Cipher {
 	return cipher.NewSpongeCipher(newKeccak768(), abstract.Decrypt,
-					cipher.Padding(0x06))
+		cipher.Padding(0x06))
 }
 
 func newCipher512() abstract.Cipher {
 	return cipher.NewSpongeCipher(newKeccak1024(), abstract.Decrypt,
-					cipher.Padding(0x06))
+		cipher.Padding(0x06))
 }
 
 // New224 creates a new SHA3-224 hash.
@@ -62,7 +61,6 @@ func New384() hash.Hash {
 func New512() hash.Hash {
 	return cipher.NewHash(newCipher512, 512/8)
 }
-
 
 // Sum224 returns the SHA3-224 digest of the data.
 func Sum224(data []byte) (digest [28]byte) {

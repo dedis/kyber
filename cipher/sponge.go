@@ -14,7 +14,7 @@ type Sponge interface {
 	// XOR src data into sponge's R bits and idx into its C bits,
 	// transform its state, and copy resulting R bits into dst.
 	// Buffers may overlap and may be short or nil.
-	Transform(dst,src,idx []byte)
+	Transform(dst, src, idx []byte)
 
 	// Return the number of data bytes the sponge can aborb in one block.
 	Rate() int
@@ -34,14 +34,13 @@ func (p Padding) String() string {
 	return fmt.Sprintf("Padding: %x", byte(p))
 }
 
-
 type spongeCipher struct {
 
 	// Configuration state
 	sponge Sponge
-	rate int	// number of bytes absorbed and squeezed per block
-	dir abstract.Direction 	// encrypt or decrypt
-	pad byte	// padding byte to append to last block in message
+	rate   int                // number of bytes absorbed and squeezed per block
+	dir    abstract.Direction // encrypt or decrypt
+	pad    byte               // padding byte to append to last block in message
 
 	// Combined input/output buffer:
 	// buf[:pos] contains data bytes to be absorbed;
@@ -52,12 +51,16 @@ type spongeCipher struct {
 
 func (sc *spongeCipher) parseOptions(options []interface{}) bool {
 	more := false
-	for _, opt := range(options) {
+	for _, opt := range options {
 		switch v := opt.(type) {
-		case abstract.More: more = true
-		case abstract.Direction: sc.dir = v
-		case Padding: sc.pad = byte(v)
-		default: log.Panicf("Unsupported option %v", opt)
+		case abstract.More:
+			more = true
+		case abstract.Direction:
+			sc.dir = v
+		case Padding:
+			sc.pad = byte(v)
+		default:
+			log.Panicf("Unsupported option %v", opt)
 		}
 	}
 	return more
@@ -68,7 +71,7 @@ func NewSpongeCipher(sponge Sponge, options ...interface{}) abstract.Cipher {
 	sc := spongeCipher{}
 	sc.sponge = sponge
 	sc.rate = sponge.Rate()
-	sc.pad = byte(0x7f)		// default, unused by standards
+	sc.pad = byte(0x7f) // default, unused by standards
 	sc.buf = make([]byte, sc.rate)
 	sc.pos = 0
 	sc.parseOptions(options)
@@ -87,10 +90,10 @@ func (sc *spongeCipher) encrypt(dst, src []byte, more bool) abstract.Cipher {
 			pos = 0
 		}
 
-		n := rate - pos	// remaining bytes in this block
+		n := rate - pos // remaining bytes in this block
 		if len(src) == 0 {
 			if len(dst) == 0 {
-				break	// done
+				break // done
 			}
 
 			// squeeze output only, src is zero bytes
@@ -103,7 +106,7 @@ func (sc *spongeCipher) encrypt(dst, src []byte, more bool) abstract.Cipher {
 			// absorb input only
 			n = ints.Min(n, len(src))
 			for i := 0; i < n; i++ {
-				buf[pos + i] ^= src[i]
+				buf[pos+i] ^= src[i]
 			}
 			src = src[n:]
 
@@ -112,8 +115,8 @@ func (sc *spongeCipher) encrypt(dst, src []byte, more bool) abstract.Cipher {
 			// squeeze output while absorbing input
 			n = ints.Min(n, ints.Min(len(src), len(dst)))
 			for i := 0; i < n; i++ {
-				buf[pos + i] ^= src[i] // absorb ciphertext
-				dst[i] = buf[pos + i] // and output
+				buf[pos+i] ^= src[i] // absorb ciphertext
+				dst[i] = buf[pos+i]  // and output
 			}
 			src = src[n:]
 			dst = dst[n:]
@@ -156,17 +159,17 @@ func (sc *spongeCipher) decrypt(dst, src []byte, more bool) abstract.Cipher {
 			pos = 0
 		}
 
-		n := rate - pos	// remaining bytes in this block
+		n := rate - pos // remaining bytes in this block
 		if len(src) == 0 {
 			if len(dst) == 0 {
-				break	// done
+				break // done
 			}
 
 			// squeeze output only
 			n = ints.Min(n, len(dst))
 			for i := 0; i < n; i++ {
-				dst[i] = buf[pos + i]
-				buf[pos + i] = 0
+				dst[i] = buf[pos+i]
+				buf[pos+i] = 0
 			}
 			dst = dst[n:]
 
@@ -175,7 +178,7 @@ func (sc *spongeCipher) decrypt(dst, src []byte, more bool) abstract.Cipher {
 			// absorb input only
 			n = ints.Min(n, len(src))
 			for i := 0; i < n; i++ {
-				buf[pos + i] = src[i]
+				buf[pos+i] = src[i]
 			}
 			src = src[n:]
 
@@ -184,8 +187,8 @@ func (sc *spongeCipher) decrypt(dst, src []byte, more bool) abstract.Cipher {
 			// squeeze output while absorbing input
 			n = ints.Min(n, ints.Min(len(src), len(dst)))
 			for i := 0; i < n; i++ {
-				b := buf[pos + i] // encryption stream
-				buf[pos + i] = src[i] // absorb ciphertext
+				b := buf[pos+i]     // encryption stream
+				buf[pos+i] = src[i] // absorb ciphertext
 				dst[i] = src[i] ^ b // decrypt
 			}
 			src = src[n:]
@@ -201,7 +204,7 @@ func (sc *spongeCipher) decrypt(dst, src []byte, more bool) abstract.Cipher {
 		}
 
 		// append appropriate multi-rate padding
-		buf[pos]  = sc.pad
+		buf[pos] = sc.pad
 		pos++
 		for ; pos < rate; pos++ {
 			buf[pos] = 0
@@ -219,7 +222,7 @@ func (sc *spongeCipher) decrypt(dst, src []byte, more bool) abstract.Cipher {
 }
 
 func (sc *spongeCipher) Crypt(dst, src []byte,
-			options ...interface{}) abstract.Cipher {
+	options ...interface{}) abstract.Cipher {
 	more := sc.parseOptions(options)
 	if sc.dir >= 0 {
 		return sc.encrypt(dst, src, more)
@@ -252,4 +255,3 @@ func (sc *spongeCipher) HashSize() int {
 func (sc *spongeCipher) BlockSize() int {
 	return sc.sponge.Rate()
 }
-

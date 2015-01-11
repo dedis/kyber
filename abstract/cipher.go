@@ -1,7 +1,6 @@
 package abstract
 
-import (
-)
+import ()
 
 // Cipher defines an interface to an abstract symmetric message cipher.
 // The cipher embodies a secret that may be used to encrypt/decrypt data
@@ -11,7 +10,7 @@ import (
 //
 // The Crypt method encrypts or decrypts bytes through the Cipher,
 // from a src byte-slice to a dst byte-slice.
-// Crypt always processes exactly max(len(src),len(dst) bytes.
+// A call to Crypt always processes exactly max(len(src),len(dst) bytes.
 // If src is shorter than dst, the missing src bytes are assumed to be zero.
 // If dst is shorter than src, the extra output bytes are discarded.
 // This means that Crypt(dst, nil) may be used to produce pseudorandom bytes,
@@ -20,26 +19,28 @@ import (
 // so that a single call to Crypt(dst, src) yields a different result
 // from Crypt(dst[:x], src[:x]) followed by Crypt(dst[x:], src[x:])
 //
-// Any Cipher logically may be operated in any of three "directions":
-// OneWay, Encrypt, or Decrypt.  Some of these may be equivalent.
+// Any Cipher has a configurable Direction, which may be
+// OneWay, Encrypt, or Decrypt.
 // OneWay is the default, suitable for hashing or generating random bytes.
 // Encrypt and Decrypt provide a reversible transformation when needed.
+// OneWay may be behaviorally equivalent to either Encrypt or Decrypt,
+// depending on the specific Cipher.
 //
-// To form a keyed State from a generic unkeyed State,
+// To form a keyed Cipher from a generic unkeyed Cipher,
 // simply absorb the secret key via Crypt(nil, key).
 // The key may be any length, but the KeyLen method returns the optimal
 // length for secret keys to achieve maximum security with this cipher.
 //
-// To compute a cryptographic hash, create an unkeyed State,
+// To compute a cryptographic hash, create an unkeyed Cipher,
 // then absorb the message via Crypt(nil, message),
 // and finally produce the digest via Crypt(digest, nil).
 // The digest may be any length, but the HashLen method returns the optimal
 // length for hashes to achieve maximum security with this cipher.
 // To compute a keyed cryptographic hash or message-authenticator,
-// follow the same procedure but using a keyed State.
+// follow the same procedure but using a keyed Cipher.
 //
 // For authenticated encryption, use Crypt(ciphertext, plaintext, Encrypt)
-// to encrypt the message while absorbing its content into the State,
+// to encrypt the message while absorbing its content into the Cipher,
 // then use Crypt(digest, nil, Encrypt) to produce the message authenticator.
 // To decrypt and authenticate, call Crypt(plaintext, ciphertext, Decrypt)
 // then Crypt(digest, nil, Decrypt) and check the resulting authenticator.
@@ -71,15 +72,15 @@ type Cipher interface {
 	BlockSize() int
 }
 
-
 // Direction selects between the Encrypt and Decrypt modes of a Cipher.
 // When no Direction is specified to a Cipher, the default is OneWay,
 // which produces cryptographic randomness that need not be reversible.
 type Direction int
+
 const (
-	OneWay Direction = 0		// one-way, no reversal needed
-	Encrypt Direction = 1		// encryption direction
-	Decrypt	Direction = -1		// decryption direction
+	OneWay  Direction = 0  // one-way, no reversibility needed
+	Encrypt Direction = 1  // encryption direction
+	Decrypt Direction = -1 // decryption direction
 )
 
 // More is an option that may be provided to Cipher.Crypt
@@ -88,8 +89,7 @@ const (
 //
 type More struct{}
 
-
 // internal type for the simple options above
-type option struct { name string }
-func (o *option) String() string { return o.name }
+type option struct{ name string }
 
+func (o *option) String() string { return o.name }

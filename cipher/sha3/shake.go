@@ -9,9 +9,9 @@ package sha3
 // functions for hashing bytes to arbitrary-length output.
 
 import (
-	"io"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher"
+	"io"
 )
 
 // ShakeHash defines the interface to hash functions that
@@ -33,12 +33,11 @@ type ShakeHash interface {
 	Reset()
 }
 
-
 // Simple implementation of the ShakeHash interface
 // as a special-case use of the Message Cipher interface.
 type shake struct {
-	sponge func() cipher.Sponge
-	cipher abstract.Cipher
+	sponge    func() cipher.Sponge
+	cipher    abstract.Cipher
 	squeezing bool
 }
 
@@ -48,7 +47,7 @@ func newShake(sponge func() cipher.Sponge) ShakeHash {
 	return sh
 }
 
-func (s *shake) Write(src []byte) (int,error) {
+func (s *shake) Write(src []byte) (int, error) {
 	if s.squeezing {
 		panic("sha3: write to SHAKE after read")
 	}
@@ -56,7 +55,7 @@ func (s *shake) Write(src []byte) (int,error) {
 	return len(src), nil
 }
 
-func (s *shake) Read(dst []byte) (int,error) {
+func (s *shake) Read(dst []byte) (int, error) {
 
 	// If we're still absorbing, complete the absorbed message
 	if !s.squeezing {
@@ -77,21 +76,19 @@ func (s *shake) Clone() ShakeHash {
 
 func (s *shake) Reset() {
 	s.cipher = cipher.NewSpongeCipher(s.sponge(), abstract.Decrypt,
-						cipher.Padding(0x1f))
+		cipher.Padding(0x1f))
 	s.squeezing = false
 }
 
-
 func newShakeCipher128() abstract.Cipher {
 	return cipher.NewSpongeCipher(newKeccak256(), abstract.Decrypt,
-						cipher.Padding(0x1f))
+		cipher.Padding(0x1f))
 }
 
 func newShakeCipher256() abstract.Cipher {
 	return cipher.NewSpongeCipher(newKeccak512(), abstract.Decrypt,
-						cipher.Padding(0x1f))
+		cipher.Padding(0x1f))
 }
-
 
 // NewShake128 creates a new SHAKE128 variable-output-length ShakeHash.
 // Its generic security strength is 128 bits against all attacks if at

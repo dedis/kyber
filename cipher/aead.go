@@ -1,9 +1,9 @@
 package cipher
 
 import (
-	"errors"
 	"crypto/cipher"
 	"crypto/subtle"
+	"errors"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/util"
 )
@@ -32,11 +32,11 @@ func (ca *cipherAEAD) Seal(dst, nonce, plaintext, data []byte) []byte {
 	ct := ca.Clone(nonce)
 
 	// Encrypt the plaintext and update the temporary Cipher state
-	dst,ciphertext := util.Grow(dst, len(plaintext))
+	dst, ciphertext := util.Grow(dst, len(plaintext))
 	ct.Crypt(ciphertext, plaintext, abstract.Encrypt)
 
 	// Compute and append the authenticator based on post-encryption state
-	dst,auth := util.Grow(dst, ct.KeySize())
+	dst, auth := util.Grow(dst, ct.KeySize())
 	ct.Crypt(auth, nil, abstract.Encrypt)
 
 	return dst
@@ -51,20 +51,19 @@ func (ca *cipherAEAD) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) 
 	authl := ct.KeySize()
 	plainl := len(ciphertext) - authl
 	if plainl < 0 {
-		return nil,errors.New("AEAD ciphertext too short")
+		return nil, errors.New("AEAD ciphertext too short")
 	}
 
 	// Decrypt the plaintext and update the temporary Cipher state
-	dst,plaintext := util.Grow(dst, plainl)
+	dst, plaintext := util.Grow(dst, plainl)
 	ct.Crypt(plaintext, ciphertext[:plainl], abstract.Decrypt)
 
 	// Compute and check the authenticator based on post-encryption state
 	auth := make([]byte, authl)
 	ct.Crypt(auth, nil, abstract.Decrypt)
 	if subtle.ConstantTimeCompare(auth, ciphertext[plainl:]) == 0 {
-		return nil,errors.New("AEAD authenticator check failed")
+		return nil, errors.New("AEAD authenticator check failed")
 	}
 
-	return dst,nil
+	return dst, nil
 }
-
