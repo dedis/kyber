@@ -14,22 +14,34 @@ import (
 	"hash"
 )
 
-func newCipher224() abstract.Cipher {
+// NewCipher224 creates a Cipher implementing the SHA3-224 algorithm,
+// which provides 224-bit security against preimage attacks
+// and 112-bit security against collisions.
+func NewCipher224() abstract.Cipher {
 	return cipher.NewSpongeCipher(newKeccak448(), abstract.Decrypt,
 		cipher.Padding(0x06))
 }
 
-func newCipher256() abstract.Cipher {
+// NewCipher256 creates a Cipher implementing the SHA3-256 algorithm,
+// which provides 256-bit security against preimage attacks
+// and 128-bit security against collisions.
+func NewCipher256() abstract.Cipher {
 	return cipher.NewSpongeCipher(newKeccak512(), abstract.Decrypt,
 		cipher.Padding(0x06))
 }
 
-func newCipher384() abstract.Cipher {
+// NewCipher384 creates a Cipher implementing the SHA3-384 algorithm,
+// which provides 384-bit security against preimage attacks
+// and 192-bit security against collisions.
+func NewCipher384() abstract.Cipher {
 	return cipher.NewSpongeCipher(newKeccak768(), abstract.Decrypt,
 		cipher.Padding(0x06))
 }
 
-func newCipher512() abstract.Cipher {
+// NewCipher512 creates a Cipher implementing the SHA3-512 algorithm,
+// which provides 512-bit security against preimage attacks
+// and 256-bit security against collisions.
+func NewCipher512() abstract.Cipher {
 	return cipher.NewSpongeCipher(newKeccak1024(), abstract.Decrypt,
 		cipher.Padding(0x06))
 }
@@ -38,28 +50,28 @@ func newCipher512() abstract.Cipher {
 // Its generic security strength is 224 bits against preimage attacks,
 // and 112 bits against collision attacks.
 func New224() hash.Hash {
-	return cipher.NewHash(newCipher224, 224/8)
+	return cipher.NewHash(NewCipher224, 224/8)
 }
 
 // New256 creates a new SHA3-256 hash.
 // Its generic security strength is 256 bits against preimage attacks,
 // and 128 bits against collision attacks.
 func New256() hash.Hash {
-	return cipher.NewHash(newCipher256, 256/8)
+	return cipher.NewHash(NewCipher256, 256/8)
 }
 
 // New384 creates a new SHA3-384 hash.
 // Its generic security strength is 384 bits against preimage attacks,
 // and 192 bits against collision attacks.
 func New384() hash.Hash {
-	return cipher.NewHash(newCipher384, 384/8)
+	return cipher.NewHash(NewCipher384, 384/8)
 }
 
 // New512 creates a new SHA3-512 hash.
 // Its generic security strength is 512 bits against preimage attacks,
 // and 256 bits against collision attacks.
 func New512() hash.Hash {
-	return cipher.NewHash(newCipher512, 512/8)
+	return cipher.NewHash(NewCipher512, 512/8)
 }
 
 // Sum224 returns the SHA3-224 digest of the data.

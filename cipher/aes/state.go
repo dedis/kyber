@@ -1,5 +1,9 @@
 package aes
 
+/*	Do we want an experimental AES-CTR/GCM-based alternative
+	to the generic HMAC composition?
+	That's what this code wanted to be.
+
 import (
 	"hash"
 	"bytes"
@@ -94,3 +98,4 @@ func (s *state128) Random() cipher.Random {
 func (s *state128) Hash(dst []byte, mix ...interface{}) []byte {
 }
 
+*/
