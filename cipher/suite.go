@@ -4,6 +4,7 @@ import (
 	"io"
 	"reflect"
 	"crypto/cipher"
+	"github.com/dedis/crypto/abstract"
 )
 
 // Generic reflection-driven "universal constructor" interface,
@@ -40,11 +41,11 @@ type Suite interface {
 	// Create a fresh cryptographic state object seeded with
 	// a standard initial state depending on nothing but the ciphersuite
 	// and, if non-nil, the provided seed object(s).
-	Cipher(key ...interface{}) Cipher
+	Cipher(key ...interface{}) abstract.Cipher
 
 	// Create a fresh cryptographic cipher seeded with
 	// strong private randomness.
-	Random() Cipher
+	Random() abstract.Cipher
 
 	// Read cryptographic object state from an input byte-stream.
 	// The destination object structure must already be constructed,

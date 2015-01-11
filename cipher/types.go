@@ -2,9 +2,10 @@ package cipher
 
 import (
 	"reflect"
+	"github.com/dedis/crypto/abstract"
 )
 
-var stateVar Cipher
+var stateVar abstract.Cipher
 var hashVar Hash
 
 var StateType = reflect.TypeOf(&stateVar).Elem()

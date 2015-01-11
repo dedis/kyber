@@ -2,12 +2,13 @@ package cipher
 
 import (
 	//"hash"
+	"github.com/dedis/crypto/abstract"
 	//"github.com/dedis/crypto/util"
 )
 
 // Wrapper to use a generic mesage Cipher as a Hash
 type cipherHash struct {
-	orig,cur Cipher
+	orig,cur abstract.Cipher
 	buf []byte
 }
 

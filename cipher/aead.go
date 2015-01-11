@@ -4,16 +4,17 @@ import (
 	"errors"
 	"crypto/cipher"
 	"crypto/subtle"
+	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/util"
 )
 
 type cipherAEAD struct {
-	Cipher
+	abstract.Cipher
 }
 
 // Wrap an abstract stateful cipher to implement
 // the Authenticated Encryption with Associated Data (AEAD) interface.
-func NewAEAD(c Cipher) cipher.AEAD {
+func NewAEAD(c abstract.Cipher) cipher.AEAD {
 	return &cipherAEAD{c}
 }
 

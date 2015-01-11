@@ -4,6 +4,7 @@ import (
 	"hash"
 	"crypto/cipher"
 	"crypto/hmac"
+	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/ints"
 )
 
@@ -29,7 +30,7 @@ var zeroBytes = make([]byte, bufLen)
 // built from a block cipher and a cryptographic hash function.
 func BlockCipherState(newCipher func(key []byte) (cipher.Block, error),
 			newHash func() hash.Hash,
-			blockLen, keyLen, hashLen int) Cipher {
+			blockLen, keyLen, hashLen int) abstract.Cipher {
 	bcs := blockCipherState{}
 	bcs.newCipher = newCipher
 	bcs.newHash = newHash
@@ -41,10 +42,10 @@ func BlockCipherState(newCipher func(key []byte) (cipher.Block, error),
 	return &bcs
 }
 
-func (bcs *blockCipherState) crypt(dst, src []byte, enc bool, options ...Option) Cipher {
+func (bcs *blockCipherState) crypt(dst, src []byte, enc bool, options ...abstract.Option) abstract.Cipher {
 	more := false
 	for _, opt := range(options) {
-		if opt == More {
+		if opt == abstract.More {
 			more = true
 		} else {
 			panic("Unsupported option "+opt.String())
@@ -92,11 +93,11 @@ func (bcs *blockCipherState) crypt(dst, src []byte, enc bool, options ...Option)
 	return bcs
 }
 
-func (bcs *blockCipherState) Encrypt(dst, src []byte, options ...Option) Cipher {
+func (bcs *blockCipherState) Encrypt(dst, src []byte, options ...abstract.Option) abstract.Cipher {
 	return bcs.crypt(dst, src, true, options...)
 }
 
-func (bcs *blockCipherState) Decrypt(dst, src []byte, options ...Option) Cipher {
+func (bcs *blockCipherState) Decrypt(dst, src []byte, options ...abstract.Option) abstract.Cipher {
 	return bcs.crypt(dst, src, false, options...)
 }
 
@@ -112,7 +113,7 @@ func (bcs *blockCipherState) BlockSize() int {
 	return 1	// incremental encrypt/decrypt work at any granularity
 }
 
-func (bcs *blockCipherState) Clone(src []byte) Cipher {
+func (bcs *blockCipherState) Clone(src []byte) abstract.Cipher {
 	if bcs.s != nil {
 		panic("cannot clone cipher state mid-message")
 	}

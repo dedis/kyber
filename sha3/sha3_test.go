@@ -49,12 +49,10 @@ var testDigests = map[string]func() hash.Hash{
 
 // testShakes contains functions returning ShakeHash instances for
 // testing the ShakeHash-specific interface.
-/*
 var testShakes = map[string]func() ShakeHash{
 	"SHAKE128": NewShake128,
 	"SHAKE256": NewShake256,
 }
-*/
 
 // decodeHex converts an hex-encoded string into a raw byte string.
 func decodeHex(s string) []byte {
@@ -175,7 +173,6 @@ func TestAppendNoRealloc(t *testing.T) {
 
 // TestSqueezing checks that squeezing the full output a single time produces
 // the same output as repeatedly squeezing the instance.
-/*
 func TestSqueezing(t *testing.T) {
 	for functionName, newShakeHash := range testShakes {
 		t.Logf("%s", functionName)
@@ -205,7 +202,6 @@ func TestReadSimulation(t *testing.T) {
 	d.Read(dwr)
 
 }
-*/
 
 // sequentialBytes produces a buffer of size consecutive bytes 0x00, 0x01, ..., used for testing.
 func sequentialBytes(size int) []byte {
