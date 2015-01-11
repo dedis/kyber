@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/DeDiS/crypto.svg)](https://travis-ci.org/DeDiS/crypto)
+
 DeDiS Advanced Crypto Library for Go
 ====================================
 
@@ -35,12 +37,6 @@ Now you can install the crypto library:
 	go get github.com/dedis/crypto
     cd $GOPATH/src/github.com/dedis/crypto
     go get ./... # install 3rd-party dependencies
-
-It is ok if you get the error:
-
-    # github.com/dedis/crypto/sodium/ed25519
-    sodium/ed25519/curve.go:310: cannot use suite (type \*suite) as type abstract.Suite in return argument:
-        *suite does not implement abstract.Suite (missing Sponge method)
 
 You should then be able to test its basic function as follows:
 
