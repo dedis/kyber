@@ -2,7 +2,7 @@
 env:
     global:
         - REPO="dedis/crypto"
-        - HOME=`cd ../..; pwd`
+        - HOME=`/home/travis`
         - GOPATH="$HOME/src"
 before_install:
     - mkdir -p $HOME/src/github.com/dedis
