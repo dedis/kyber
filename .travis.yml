@@ -2,14 +2,14 @@
 env:
     global:
         - REPO="dedis/crypto"
-        - HOME=`/home/travis`
+        - HOME="/home/travis"
         - GOPATH="$HOME/src"
 before_install:
     - mkdir -p $HOME/src/github.com/dedis
     - ls $TRAVIS_BUILD_DIR
     - mv $TRAVIS_BUILD_DIR $HOME/src/github.com/dedis
     - cd $HOME/src/github.com/dedis/crypto
-    - go get ./...
+    - go get -t -v ./...
 before_script:
     - git remote add production https://github.com/DeDiS/crypto.git
     - git fetch -a production
