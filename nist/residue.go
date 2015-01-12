@@ -1,6 +1,7 @@
 package nist
 
 import (
+	"io"
 	"fmt"
 	"errors"
 	"math/big"
@@ -8,6 +9,7 @@ import (
 	"crypto/cipher"
 	//"encoding/hex"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/random"
 )
 
@@ -137,6 +139,14 @@ func (p *residuePoint) Decode(data []byte) error {
 		return errors.New("invalid Residue group element")
 	}
 	return nil
+}
+
+func (p *residuePoint) EncodeTo(w io.Writer) (int, error) {
+	return group.PointEncodeTo(p, w)
+}
+
+func (p *residuePoint) DecodeFrom(r io.Reader) (int, error) {
+	return group.PointDecodeFrom(p, r)
 }
 
 

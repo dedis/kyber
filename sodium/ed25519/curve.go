@@ -292,13 +292,11 @@ type suite struct {
 // XXX non-NIST ciphers?
 
 // SHA256 hash function
-func (s *suite) HashLen() int { return sha256.Size }
 func (s *suite) Hash() hash.Hash {
 	return sha256.New()
 }
 
 // AES128-CTR stream cipher
-func (s *suite) KeyLen() int { return 16 }
 func (s *suite) Stream(key []byte) cipher.Stream {
 	aes, err := aes.NewCipher(key)
 	if err != nil {

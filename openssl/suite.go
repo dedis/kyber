@@ -4,9 +4,8 @@ package openssl
 
 import (
 	"hash"
-	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/sha3"
+	"github.com/dedis/crypto/cipher/sha3"
 )
 
 
@@ -18,27 +17,12 @@ func (s *suite128) String() string {
 	return "P256"
 }
 
-func (s *suite128) HashLen() int {
-	return 32	// SHA256_DIGEST_LENGTH
-}
-
 func (s *suite128) Hash() hash.Hash {
 	return NewSHA256()
 }
 
-func (s *suite128) KeyLen() int {
-	return 16	// AES128
-}
-
-func (s *suite128) Stream(key []byte) cipher.Stream {
-	if len(key) != 16 {
-		panic("wrong AES key size")
-	}
-	return abstract.BlockStream(NewAES(key), nil)
-}
-
-func (s *suite128) Sponge() abstract.Sponge {
-	return sha3.NewSponge128()
+func (s *suite128) Cipher(key []byte, options ...interface{}) abstract.Cipher {
+	return sha3.NewShakeCipher128(key, options...)
 }
 
 // Ciphersuite based on AES-128, SHA-256, and the NIST P-256 elliptic curve,
@@ -59,27 +43,12 @@ func (s *suite192) String() string {
 	return "AES192SHA384P384"
 }
 
-func (s *suite192) HashLen() int {
-	return 48	// SHA384_DIGEST_LENGTH
-}
-
 func (s *suite192) Hash() hash.Hash {
 	return NewSHA384()
 }
 
-func (s *suite192) KeyLen() int {
-	return 24	// AES192
-}
-
-func (s *suite192) Stream(key []byte) cipher.Stream {
-	if len(key) != 24 {
-		panic("wrong AES key size")
-	}
-	return abstract.BlockStream(NewAES(key), nil)
-}
-
-func (s *suite192) Sponge() abstract.Sponge {
-	return sha3.NewSponge256()
+func (s *suite192) Cipher(key []byte, options ...interface{}) abstract.Cipher {
+	return sha3.NewShakeCipher256(key, options...)
 }
 
 // Ciphersuite based on AES-192, SHA-384, and the NIST P-384 elliptic curve,
@@ -100,27 +69,12 @@ func (s *suite256) String() string {
 	return "AES256SHA512P521"
 }
 
-func (s *suite256) HashLen() int {
-	return 64	// SHA512_DIGEST_LENGTH
-}
-
 func (s *suite256) Hash() hash.Hash {
 	return NewSHA512()
 }
 
-func (s *suite256) KeyLen() int {
-	return 32	// AES256
-}
-
-func (s *suite256) Sponge() abstract.Sponge {
-	return sha3.NewSponge256()
-}
-
-func (s *suite256) Stream(key []byte) cipher.Stream {
-	if len(key) != 32 {
-		panic("wrong AES key size")
-	}
-	return abstract.BlockStream(NewAES(key), nil)
+func (s *suite256) Cipher(key []byte, options ...interface{}) abstract.Cipher {
+	return sha3.NewShakeCipher256(key, options...)
 }
 
 

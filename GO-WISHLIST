@@ -63,9 +63,6 @@ Wishlist for Go standard library changes:
 - os or ioutil should have a "ReplaceFile" that safely opens and
 	writes a temporary file and atomically moves it over the top
 	of an existing file only on successful Close().
-- encoding/base64: need an easy way to get un-unpadded strings
-	(drop the '=' signs).  RFC 4648 refers to this variant
-	(e.g., as discussed in sec 3.2) so it's not disallowed.
 - time/Time.[Un]MarshalBinary should document exactly what binary
 	encoding it uses (preferably some kind of standard)
 - bufio: Reader and Writer should have a Size() function,
@@ -74,4 +71,5 @@ Wishlist for Go standard library changes:
 	to skip or send a given number of bytes to a destination Writer.
 	(WriteTo() is close but just sends the whole remaining stream.)
 	Perhaps DivertTo, for a temporary rather than permanent diversion?
+- crypto/subtle should have a ConstantTimeNonzero
 

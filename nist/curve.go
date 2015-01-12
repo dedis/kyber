@@ -1,12 +1,14 @@
 package nist
 
 import (
+	"io"
 	"errors"
 	"math/big"
 	//"encoding/hex"
 	"crypto/cipher"
 	"crypto/elliptic"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/random"
 )
 
@@ -179,6 +181,13 @@ func (p *curvePoint) Decode(buf []byte) error {
 	return nil
 }
 
+func (p *curvePoint) EncodeTo(w io.Writer) (int, error) {
+	return group.PointEncodeTo(p, w)
+}
+
+func (p *curvePoint) DecodeFrom(r io.Reader) (int, error) {
+	return group.PointDecodeFrom(p, r)
+}
 
 
 // interface for curve-specifc mathematical functions

@@ -9,8 +9,10 @@ package openssl
 import "C"
 
 import (
+	"io"
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 )
 
 
@@ -166,6 +168,14 @@ func (s *secret) Encode() []byte {
 func (s *secret) Decode(buf []byte) error {
 	s.SetBytes(buf)
 	return nil
+}
+
+func (s *secret) EncodeTo(w io.Writer) (int, error) {
+	return group.SecretEncodeTo(s, w)
+}
+
+func (s *secret) DecodeFrom(r io.Reader) (int, error) {
+	return group.SecretDecodeFrom(s, r)
 }
 
 

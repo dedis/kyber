@@ -16,6 +16,7 @@ package openssl
 import "C"
 
 import (
+	"io"
 	"errors"
 	"unsafe"
 	"runtime"
@@ -23,6 +24,7 @@ import (
 	"encoding/hex"
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 )
 
 
@@ -230,6 +232,14 @@ func (p *point) Decode(buf []byte) error {
 		return errors.New(getErrString())
 	}
 	return nil
+}
+
+func (p *point) EncodeTo(w io.Writer) (int, error) {
+	return group.PointEncodeTo(p, w)
+}
+
+func (p *point) DecodeFrom(r io.Reader) (int, error) {
+	return group.PointDecodeFrom(p, r)
 }
 
 

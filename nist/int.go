@@ -1,11 +1,13 @@
 package nist
 
 import (
+	"io"
 	"errors"
 	"math/big"
 	"encoding/hex"
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/math"
 	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/util"
@@ -319,6 +321,14 @@ func (i *Int) Decode(buf []byte) error {
 		return errors.New("Int.Decode: value out of range")
 	}
 	return nil
+}
+
+func (i *Int) EncodeTo(w io.Writer) (int, error) {
+	return group.SecretEncodeTo(i, w)
+}
+
+func (i *Int) DecodeFrom(r io.Reader) (int, error) {
+	return group.SecretDecodeFrom(i, r)
 }
 
 // Encode the value of this Int into a big-endian byte-slice

@@ -15,16 +15,13 @@
 package ed25519
 
 import (
-	//"fmt"
-	"hash"
+	"io"
 	"errors"
-	"crypto/aes"
 	"encoding/hex"
 	"crypto/cipher"
-	"crypto/sha256"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/nist"
-	"github.com/dedis/crypto/sha3"
 )
 
 
@@ -54,6 +51,14 @@ func (P *point) Decode(b []byte) error {
 		return errors.New("invalid Ed25519 curve point")
 	}
 	return nil
+}
+
+func (P *point) EncodeTo(w io.Writer) (int, error) {
+	return group.PointEncodeTo(P, w)
+}
+
+func (P *point) DecodeFrom(r io.Reader) (int, error) {
+	return group.PointDecodeFrom(P, r)
 }
 
 // Equality test for two Points on the same curve
@@ -274,38 +279,4 @@ func (c *Curve) Point() abstract.Point {
 //	c.FullGroup = fullGroup
 //}
 
-
-type suite struct {
-	Curve
-} 
-
-// XXX non-NIST ciphers?
-
-// SHA256 hash function
-func (s *suite) HashLen() int { return sha256.Size }
-func (s *suite) Hash() hash.Hash {
-	return sha256.New()
-}
-
-// AES128-CTR stream cipher
-func (s *suite) KeyLen() int { return 16 }
-func (s *suite) Stream(key []byte) cipher.Stream {
-	aes, err := aes.NewCipher(key)
-	if err != nil {
-		panic("can't instantiate AES: " + err.Error())
-	}
-	iv := make([]byte,16)
-	return cipher.NewCTR(aes,iv)
-}
-
-// SHA3/SHAKE128 sponge
-func (s *suite) Sponge() abstract.Sponge {
-	return sha3.NewSponge128()
-}
-
-// Ciphersuite based on AES-128, SHA-256, and the Ed25519 curve.
-func newAES128SHA256Ed25519() abstract.Suite {
-	suite := new(suite)
-	return suite
-}
 

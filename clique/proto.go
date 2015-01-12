@@ -10,7 +10,7 @@
 package clique
 
 import (
-	"crypto/cipher"
+	"github.com/dedis/crypto/abstract"
 )
 
 
@@ -45,6 +45,6 @@ type Context interface {
 	Step(msg []byte) ([][]byte,error)
 
 	// Get a source of private cryptographic randomness.
-	Random() cipher.Stream
+	Random() abstract.Cipher
 }
 

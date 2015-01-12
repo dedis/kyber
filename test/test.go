@@ -183,8 +183,8 @@ func TestGroup(g abstract.Group) {
 func TestCompareGroups(suite abstract.Suite, g1,g2 abstract.Group) {
 
 	// Produce test results from the same pseudorandom seed
-	r1 := testGroup(g1, abstract.HashStream(suite, nil, nil))
-	r2 := testGroup(g2, abstract.HashStream(suite, nil, nil))
+	r1 := testGroup(g1, suite.Cipher(abstract.NoKey))
+	r2 := testGroup(g2, suite.Cipher(abstract.NoKey))
 
 	// Compare resulting Points
 	for i := range(r1) {
@@ -204,7 +204,7 @@ func TestSuite(suite abstract.Suite) {
 
 	// Try hashing something
 	h := suite.Hash()
-	l := suite.HashLen()
+	l := h.Size()
 	//println("HashLen: ",l)
 	h.Write([]byte("abc"))
 	hb := h.Sum(nil)
@@ -215,17 +215,10 @@ func TestSuite(suite abstract.Suite) {
 	}
 
 	// Generate some pseudorandom bits
-	s := suite.Stream(hb[0:suite.KeyLen()])
+	s := suite.Cipher(hb)
 	sb := make([]byte,128)
 	s.XORKeyStream(sb,sb)
 	//println("Stream:")
-	//println(hex.Dump(sb))
-
-	// Generate a sub-stream
-	ss := abstract.SubStream(suite,s)
-	sb = make([]byte,128)
-	ss.XORKeyStream(sb,sb)
-	//println("SubStream:")
 	//println(hex.Dump(sb))
 
 	// Test the public-key group arithmetic

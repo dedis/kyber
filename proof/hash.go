@@ -2,9 +2,7 @@ package proof
 
 import (
 	"bytes"
-	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/random"
 )
 
 
@@ -13,16 +11,16 @@ type hashProver struct {
 	suite abstract.Suite
 	proof bytes.Buffer
 	msg bytes.Buffer
-	pubrand random.Reader
-	prirand random.Reader
+	pubrand abstract.Cipher
+	prirand abstract.Cipher
 }
 
 func newHashProver(suite abstract.Suite, protoName string,
-			rand cipher.Stream) *hashProver {
+			rand abstract.Cipher) *hashProver {
 	var sc hashProver
 	sc.suite = suite
-	sc.pubrand.Stream = abstract.HashStream(suite, []byte(protoName), nil)
-	sc.prirand.Stream = rand
+	sc.pubrand = suite.Cipher([]byte(protoName))
+	sc.prirand = rand
 	return &sc
 }
 
@@ -35,7 +33,7 @@ func (c *hashProver) consumeMsg() {
 
 		// Stir the message into the public randomness pool 
 		buf := c.msg.Bytes()
-		c.pubrand.Stream = abstract.HashStream(c.suite, buf, c.pubrand)
+		c.pubrand.Crypt(nil, buf)
 
 		// Append the current message data to the proof
 		c.proof.Write(buf)
@@ -46,12 +44,12 @@ func (c *hashProver) consumeMsg() {
 // Get public randomness that depends on every bit in the proof so far.
 func (c *hashProver) PubRand(data...interface{}) error {
 	c.consumeMsg()
-	return abstract.Read(&c.pubrand, data, c.suite)
+	return abstract.Read(c.pubrand, data, c.suite)
 }
 
 // Get private randomness
 func (c *hashProver) PriRand(data...interface{}) {
-	if err := abstract.Read(&c.prirand, data, c.suite); err != nil {
+	if err := abstract.Read(c.prirand, data, c.suite); err != nil {
 		panic("error reading random stream: "+err.Error())
 	}
 }
@@ -69,7 +67,7 @@ type hashVerifier struct {
 	suite abstract.Suite
 	proof bytes.Buffer	// Buffer with which to read the proof
 	prbuf []byte		// Byte-slice underlying proof buffer
-	pubrand random.Reader
+	pubrand abstract.Cipher
 }
 
 func newHashVerifier(suite abstract.Suite, protoName string,
@@ -80,7 +78,7 @@ func newHashVerifier(suite abstract.Suite, protoName string,
 	}
 	c.suite = suite
 	c.prbuf = c.proof.Bytes()
-	c.pubrand.Stream = abstract.HashStream(suite, []byte(protoName), nil)
+	c.pubrand = suite.Cipher([]byte(protoName))
 	return &c
 }
 
@@ -89,7 +87,7 @@ func (c *hashVerifier) consumeMsg() {
 	if l > 0 {
 		// Stir consumed bytes into the public randomness pool 
 		buf := c.prbuf[:l]
-		c.pubrand.Stream = abstract.HashStream(c.suite, buf, c.pubrand)
+		c.pubrand.Crypt(nil, buf)
 
 		c.prbuf = c.proof.Bytes()	// Reset to remaining bytes
 	}
@@ -103,7 +101,7 @@ func (c *hashVerifier) Get(message interface{}) error {
 // Get public randomness that depends on every bit in the proof so far.
 func (c *hashVerifier) PubRand(data...interface{}) error {
 	c.consumeMsg()				// Stir in newly-read data
-	return abstract.Read(&c.pubrand, data, c.suite)
+	return abstract.Read(c.pubrand, data, c.suite)
 }
 
 
@@ -122,8 +120,8 @@ func (c *hashVerifier) PubRand(data...interface{}) error {
 // or a pseudorandom stream based on a secret seed
 // to create deterministically reproducible proofs.
 //
-func HashProve(suite abstract.Suite, protocolName string, random cipher.Stream,
-		prover Prover) ([]byte,error) {
+func HashProve(suite abstract.Suite, protocolName string,
+		random abstract.Cipher, prover Prover) ([]byte,error) {
 	ctx := newHashProver(suite, protocolName, random)
 	if e := func(ProverContext)error(prover)(ctx); e != nil {
 		return nil,e

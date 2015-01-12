@@ -112,7 +112,7 @@ func (h *sha256) Reset() {
 
 func (h *sha256) Write(p []byte) (n int, err error) {
 	l := len(p)
-	if C.SHA256_Update(&h.ctx, unsafe.Pointer(&p[0]), C.size_t(l)) == 0 {
+	if l > 0 && C.SHA256_Update(&h.ctx, unsafe.Pointer(&p[0]), C.size_t(l)) == 0 {
 		panic("SHA256_Update failed")
 	}
 	return l,nil

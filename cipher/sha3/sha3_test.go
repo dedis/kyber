@@ -15,11 +15,11 @@ import (
 	"compress/flate"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/dedis/crypto/cipher"
 	"hash"
 	"os"
 	"strings"
 	"testing"
-	"github.com/dedis/crypto/abstract"
 )
 
 const (
@@ -28,14 +28,11 @@ const (
 )
 
 // Internal-use instances of SHAKE used to test against KATs.
-
 func newHashShake128() hash.Hash {
-	return abstract.Sponge{&sponge{rate: 168, hashLen: 512,
-					dsbyte: 0x1f}}.Hash()
+	return cipher.NewHash(NewShakeCipher128, 512)
 }
 func newHashShake256() hash.Hash {
-	return abstract.Sponge{&sponge{rate: 136, hashLen: 512,
-					dsbyte: 0x1f}}.Hash()
+	return cipher.NewHash(NewShakeCipher256, 512)
 }
 
 // testDigests contains functions returning hash.Hash instances
@@ -52,12 +49,10 @@ var testDigests = map[string]func() hash.Hash{
 
 // testShakes contains functions returning ShakeHash instances for
 // testing the ShakeHash-specific interface.
-/*
 var testShakes = map[string]func() ShakeHash{
 	"SHAKE128": NewShake128,
 	"SHAKE256": NewShake256,
 }
-*/
 
 // decodeHex converts an hex-encoded string into a raw byte string.
 func decodeHex(s string) []byte {
@@ -141,7 +136,7 @@ func TestUnalignedWrite(t *testing.T) {
 		}
 		got := d.Sum(nil)
 		if !bytes.Equal(got, want) {
-			t.Errorf("Unaligned writes, alg=%s\ngot %q, want %q", alg, got, want)
+			t.Errorf("Unaligned writes, alg=%s\ngot %q, want %q", alg, hex.EncodeToString(got), hex.EncodeToString(want))
 		}
 	}
 }
@@ -178,7 +173,6 @@ func TestAppendNoRealloc(t *testing.T) {
 
 // TestSqueezing checks that squeezing the full output a single time produces
 // the same output as repeatedly squeezing the instance.
-/*
 func TestSqueezing(t *testing.T) {
 	for functionName, newShakeHash := range testShakes {
 		t.Logf("%s", functionName)
@@ -208,7 +202,6 @@ func TestReadSimulation(t *testing.T) {
 	d.Read(dwr)
 
 }
-*/
 
 // sequentialBytes produces a buffer of size consecutive bytes 0x00, 0x01, ..., used for testing.
 func sequentialBytes(size int) []byte {

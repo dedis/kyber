@@ -21,7 +21,7 @@ func ExampleSign_1() {
 
 	// Crypto setup
 	suite := openssl.NewAES128SHA256P256()
-	rand := abstract.HashStream(suite, []byte("example"), nil)
+	rand := suite.Cipher([]byte("example"))
 
 	// Create a public/private keypair (X[mine],x)
 	X := make([]abstract.Point,1)
@@ -54,10 +54,10 @@ func ExampleSign_1() {
 
 	// Output:
 	// Signature:
-	// 00000000  aa ed 0d ac 14 0d 60 d9  88 8b 3c c2 86 0b f5 79  |......`...<....y|
-	// 00000010  bd 1e ec 0c e8 03 83 44  9b 3b 64 c5 14 4e 87 c4  |.......D.;d..N..|
-	// 00000020  58 8c a0 be c8 4c 15 c9  83 56 70 60 23 7a bd 2a  |X....L...Vp`#z.*|
-	// 00000030  1b 64 f1 71 09 ea 0f b3  0d 3d 05 a7 c0 95 c0 94  |.d.q.....=......|
+	// 00000000  ca e3 63 fd 0f a9 25 bd  f0 c6 f4 e4 93 3a 3d c0  |..c...%......:=.|
+	// 00000010  be 2d ee d1 7f 78 b5 d4  30 00 05 fa 2d ab f3 08  |.-...x..0...-...|
+	// 00000020  ac 50 83 66 b9 9f 55 f4  79 48 28 66 cc 25 fb 16  |.P.f..U.yH(f.%..|
+	// 00000030  60 d5 0f 88 d6 8d af 97  24 5d 00 ec de 2c 9b ed  |`.......$]...,..|
 	// Signature verified against correct message.
 	// Verifying against wrong message: invalid signature
 }
@@ -69,7 +69,7 @@ func ExampleSign_anonSet() {
 
 	// Crypto setup
 	suite := openssl.NewAES128SHA256P256()
-	rand := abstract.HashStream(suite, []byte("example"), nil)
+	rand := suite.Cipher([]byte("example"))
 
 	// Create an anonymity set of random "public keys"
 	X := make([]abstract.Point,3)
@@ -107,14 +107,14 @@ func ExampleSign_anonSet() {
 
 	// Output:
 	// Signature:
-	// 00000000  ee e9 af 72 c7 51 de 92  b8 fd 32 c9 0f 01 fe d9  |...r.Q....2.....|
-	// 00000010  01 80 2c 21 90 48 56 6f  0a 9f e0 dc 70 0c 97 6c  |..,!.HVo....p..l|
-	// 00000020  a2 5f 24 d6 46 ca e8 88  43 e7 ed 9d d9 dd 68 2e  |._$.F...C.....h.|
-	// 00000030  f6 4e b6 fa b2 e6 4f c0  65 50 09 5c 6a c4 dd 98  |.N....O.eP.\j...|
-	// 00000040  2b 95 e9 d3 e5 80 49 3e  33 75 6c 33 ba 9e 53 f2  |+.....I>3ul3..S.|
-	// 00000050  19 62 f3 2b e2 0c 4b f4  c1 bd b9 bd b3 aa b8 2f  |.b.+..K......../|
-	// 00000060  6f 3f 71 59 90 e6 14 23  63 fb d2 dd dc 39 e0 2c  |o?qY...#c....9.,|
-	// 00000070  32 c1 e3 fd 5e 28 1c c5  19 ec e1 d9 d9 f7 38 40  |2...^(........8@|
+	// 00000000  05 e5 e3 f4 80 22 d8 38  03 63 e6 9d b5 2c 51 28  |.....".8.c...,Q(|
+	// 00000010  7c f1 78 cd 7d f2 0e dd  a0 63 58 04 d7 79 ce 03  ||.x.}....cX..y..|
+	// 00000020  56 b2 b5 3a e1 c8 8c f7  29 8a 13 75 59 98 ea ce  |V..:....)..uY...|
+	// 00000030  f4 6d d5 d0 62 85 51 8e  fe d9 4a 02 1f 35 03 33  |.m..b.Q...J..5.3|
+	// 00000040  bf 19 a6 0e b2 47 8d 8e  91 b1 a7 70 5c 62 6d d9  |.....G.....p\bm.|
+	// 00000050  70 2a 39 f0 a0 60 59 c2  4e 76 2b d1 0e 06 29 2d  |p*9..`Y.Nv+...)-|
+	// 00000060  71 eb 40 46 de 61 2f 08  8d 9a 04 09 d7 a1 62 83  |q.@F.a/.......b.|
+	// 00000070  48 e3 cc 09 af 64 26 df  df da d6 51 62 5d e6 2b  |H....d&....Qb].+|
 	// Signature verified against correct message.
 	// Verifying against wrong message: invalid signature
 }
@@ -128,7 +128,7 @@ func ExampleSign_linkable() {
 
 	// Crypto setup
 	suite := openssl.NewAES128SHA256P256()
-	rand := abstract.HashStream(suite, []byte("example"), nil)
+	rand := suite.Cipher([]byte("example"))
 
 	// Create an anonymity set of random "public keys"
 	X := make([]abstract.Point,3)
@@ -184,57 +184,57 @@ func ExampleSign_linkable() {
 
 	// Output:
 	// Signature 0:
-	// 00000000  d3 b1 6a 56 36 16 f5 42  7c e6 f0 05 69 8f f8 3e  |..jV6..B|...i..>|
-	// 00000010  d3 2b 33 87 55 7f 12 fd  04 d1 2f a2 5e 4d c8 b1  |.+3.U...../.^M..|
-	// 00000020  66 6f e6 c1 6f 9a bb 4e  d6 4d a3 7d 82 8d 83 e6  |fo..o..N.M.}....|
-	// 00000030  f6 aa 5f 25 c9 24 95 76  af c1 7e ec eb 1e 98 15  |.._%.$.v..~.....|
-	// 00000040  54 8f 02 75 f8 f6 c5 3e  35 9d 8f 27 9c 71 3d 7b  |T..u...>5..'.q={|
-	// 00000050  4c 69 bc a5 b2 4c d7 c1  48 e7 03 8d 57 2d f8 c7  |Li...L..H...W-..|
-	// 00000060  a2 5f 24 d6 46 ca e8 88  43 e7 ed 9d d9 dd 68 2e  |._$.F...C.....h.|
-	// 00000070  f6 4e b6 fa b2 e6 4f c0  65 50 09 5c 6a c4 dd 98  |.N....O.eP.\j...|
-	// 00000080  02 5b 95 c5 b8 60 4c 90  6d 8a 64 87 87 59 e0 a7  |.[...`L.m.d..Y..|
-	// 00000090  69 fd ca e6 4c a5 bd af  7d 80 dc 7d d7 c8 e4 f8  |i...L...}..}....|
-	// 000000a0  d9                                                |.|
+	// 00000000  7f 0d 4b b1 47 ca 5e f5  4c 2f b3 71 44 1a 08 04  |..K.G.^.L/.qD...|
+	// 00000010  02 d2 67 43 3b 58 19 69  56 44 73 b3 49 bd 19 ce  |..gC;X.iVDs.I...|
+	// 00000020  d3 63 d3 5a 0e 97 78 e6  74 ce a0 24 34 c1 66 7d  |.c.Z..x.t..$4.f}|
+	// 00000030  af 32 9e 59 22 f2 9a 67  3c ea e5 4f 54 6d 3e 07  |.2.Y"..g<..OTm>.|
+	// 00000040  dc db 8a df 92 93 55 e0  19 8d 7c f5 58 a1 5a aa  |......U...|.X.Z.|
+	// 00000050  80 97 d9 48 84 2b f0 0d  ab 39 2e d4 40 67 08 f4  |...H.+...9..@g..|
+	// 00000060  56 b2 b5 3a e1 c8 8c f7  29 8a 13 75 59 98 ea ce  |V..:....)..uY...|
+	// 00000070  f4 6d d5 d0 62 85 51 8e  fe d9 4a 02 1f 35 03 33  |.m..b.Q...J..5.3|
+	// 00000080  03 37 8f df 75 d4 0b 9d  6c ba f1 c9 07 77 37 59  |.7..u...l....w7Y|
+	// 00000090  1e cd 2a 18 75 93 18 c0  6d ee d8 d0 fc ad d5 00  |..*.u...m.......|
+	// 000000a0  ab                                                |.|
 	// Signature 1:
-	// 00000000  1d d3 c9 7b 78 5a 4d 57  85 b4 0a bd 8e e8 a5 db  |...{xZMW........|
-	// 00000010  ec 50 01 78 c2 87 51 d2  2a d0 9c 1c 90 9e 6b e7  |.P.x..Q.*.....k.|
-	// 00000020  35 ad ee 4a d3 3b a2 e5  d5 ae f7 18 34 64 d1 96  |5..J.;......4d..|
-	// 00000030  54 2c 49 60 17 0e eb a7  e3 0c 72 80 55 b2 34 86  |T,I`......r.U.4.|
-	// 00000040  60 d1 4c 85 71 66 f5 ab  1d fc c9 04 74 3a 91 65  |`.L.qf......t:.e|
-	// 00000050  83 6e 89 1b f2 dd b4 ab  a2 43 aa d7 f7 4b 16 c8  |.n.......C...K..|
-	// 00000060  42 91 87 52 e5 93 dc 2c  8d 43 f8 71 02 d8 27 c6  |B..R...,.C.q..'.|
-	// 00000070  97 46 9a 93 c1 54 b8 9a  22 01 09 b4 41 ce 23 4f  |.F...T.."...A.#O|
-	// 00000080  02 5b 95 c5 b8 60 4c 90  6d 8a 64 87 87 59 e0 a7  |.[...`L.m.d..Y..|
-	// 00000090  69 fd ca e6 4c a5 bd af  7d 80 dc 7d d7 c8 e4 f8  |i...L...}..}....|
-	// 000000a0  d9                                                |.|
+	// 00000000  c0 c4 72 60 8e 83 8c 15  bf 56 d2 6f 1e 1a 9b 63  |..r`.....V.o...c|
+	// 00000010  07 5f f4 6d fb 5b d4 fc  35 e2 46 52 53 41 3a 67  |._.m.[..5.FRSA:g|
+	// 00000020  27 56 c5 3f 08 bb 99 6d  7d 0a f8 ac c5 29 e8 94  |'V.?...m}....)..|
+	// 00000030  54 3e 4d fb ca b5 1d 9a  29 56 a0 09 f9 ec 6d b5  |T>M.....)V....m.|
+	// 00000040  ac c5 1e 6a 65 72 46 a7  9c 11 d0 8c d0 d8 89 ad  |...jerF.........|
+	// 00000050  61 0c 2a 89 1a 4d af 86  49 8f 14 87 dd 64 0e 2f  |a.*..M..I....d./|
+	// 00000060  78 fd f8 95 ec ee a5 50  a8 65 b0 63 35 f2 83 05  |x......P.e.c5...|
+	// 00000070  21 9d cf f1 0d a1 85 6a  3f ca 8d 68 31 1f e0 e2  |!......j?..h1...|
+	// 00000080  03 37 8f df 75 d4 0b 9d  6c ba f1 c9 07 77 37 59  |.7..u...l....w7Y|
+	// 00000090  1e cd 2a 18 75 93 18 c0  6d ee d8 d0 fc ad d5 00  |..*.u...m.......|
+	// 000000a0  ab                                                |.|
 	// Signature 2:
-	// 00000000  9f 9d 0f bf 00 b7 79 fb  ad 2b 36 fa 62 1e 66 76  |......y..+6.b.fv|
-	// 00000010  fe 6a 1a 9f 7b ed e2 1f  1c 47 02 41 04 1e 67 a2  |.j..{....G.A..g.|
-	// 00000020  e6 1e a9 a0 c6 89 15 b9  c3 be e5 92 69 c8 48 dc  |............i.H.|
-	// 00000030  a5 82 12 48 0a ec 57 ef  fe e5 f2 ae ed c1 45 c7  |...H..W.......E.|
-	// 00000040  70 52 c2 ae 47 6d 4e b3  5b 19 1c da 11 6c ec 15  |pR..GmN.[....l..|
-	// 00000050  8f 8d 18 ca ab a9 56 df  23 cd c7 29 d9 ad 9f 9d  |......V.#..)....|
-	// 00000060  40 2b 48 f9 50 91 68 80  91 d0 ca c8 89 a4 3a 29  |@+H.P.h.......:)|
-	// 00000070  97 c5 6e 47 df 55 23 51  94 45 51 0c cf 33 de 7d  |..nG.U#Q.EQ..3.}|
-	// 00000080  03 ab 1d f5 17 4b 14 ef  01 2e fb ff 5c 01 a8 f7  |.....K......\...|
-	// 00000090  15 68 36 fa ba 2f 57 63  1c 62 d4 c8 7d 51 28 c6  |.h6../Wc.b..}Q(.|
-	// 000000a0  f1                                                |.|
+	// 00000000  a4 8e 61 72 a4 72 18 81  55 df 8c e0 3a 01 92 05  |..ar.r..U...:...|
+	// 00000010  f2 73 29 5a 6f 27 fd 55  d9 b4 a3 62 f2 e0 7f d3  |.s)Zo'.U...b....|
+	// 00000020  1b 1e 8f 0b b0 e6 16 78  31 46 7f b6 32 90 f7 5e  |.......x1F..2..^|
+	// 00000030  ad fb ea 42 2b a6 46 ba  fd c0 26 f3 21 af 31 9c  |...B+.F...&.!.1.|
+	// 00000040  a4 8b 48 7e 5a 4f eb 1d  1f c8 6c 96 e6 38 86 a9  |..H~ZO....l..8..|
+	// 00000050  50 dc 69 e8 2d c9 ed 41  51 38 9d 5c 5f 9b e6 93  |P.i.-..AQ8.\_...|
+	// 00000060  ef 3e 03 10 5e b1 0b 03  19 2c bb db 46 ef ad 1b  |.>..^....,..F...|
+	// 00000070  d6 25 92 98 92 aa 96 b5  d8 38 f8 5c b9 68 7a c2  |.%.......8.\.hz.|
+	// 00000080  02 55 a2 af 44 5e 5b fb  65 b1 d5 6f ea 18 21 4a  |.U..D^[.e..o..!J|
+	// 00000090  4b 0a 75 3b 6e 50 b7 ed  9f e7 49 aa 03 83 d1 76  |K.u;nP....I....v|
+	// 000000a0  7f                                                |.|
 	// Signature 3:
-	// 00000000  50 db 36 5d 11 be 0e 05  3f 50 3d 98 69 33 c3 73  |P.6]....?P=.i3.s|
-	// 00000010  bc 1f e0 59 47 b8 c9 34  8b 34 9a 43 83 1e cc 2a  |...YG..4.4.C...*|
-	// 00000020  4d a6 e9 c0 49 0b fd bd  c2 9c 08 05 c5 b9 fe 73  |M...I..........s|
-	// 00000030  b5 53 24 f0 74 5a 45 aa  06 fe b5 84 2f 2a 2f 61  |.S$.tZE...../*/a|
-	// 00000040  76 85 c3 65 1c 2e d8 bc  fa da cf 27 ee 37 03 af  |v..e.......'.7..|
-	// 00000050  08 1f 8f 5c 10 57 f2 40  43 27 88 58 07 1e 8d 7a  |...\.W.@C'.X...z|
-	// 00000060  88 82 55 f3 c5 13 d1 01  1c 9c e7 75 99 2c bb 8c  |..U........u.,..|
-	// 00000070  39 8e a2 3b f3 09 5a fc  de 7b ae cd f8 f6 e8 20  |9..;..Z..{..... |
-	// 00000080  03 ab 1d f5 17 4b 14 ef  01 2e fb ff 5c 01 a8 f7  |.....K......\...|
-	// 00000090  15 68 36 fa ba 2f 57 63  1c 62 d4 c8 7d 51 28 c6  |.h6../Wc.b..}Q(.|
-	// 000000a0  f1                                                |.|
-	// Sig0 tag: 025b95c5b8604c906d8a64878759e0a769fdcae64ca5bdaf7d80dc7dd7c8e4f8d9
-	// Sig1 tag: 025b95c5b8604c906d8a64878759e0a769fdcae64ca5bdaf7d80dc7dd7c8e4f8d9
-	// Sig2 tag: 03ab1df5174b14ef012efbff5c01a8f7156836faba2f57631c62d4c87d5128c6f1
-	// Sig3 tag: 03ab1df5174b14ef012efbff5c01a8f7156836faba2f57631c62d4c87d5128c6f1
+	// 00000000  43 cb 80 12 94 b9 f7 da  e1 93 84 66 75 22 8b 8e  |C..........fu"..|
+	// 00000010  61 ff ed 65 f1 4e e4 3e  ed 4d 98 3e 5c 6c 7a 2c  |a..e.N.>.M.>\lz,|
+	// 00000020  69 56 c6 9e 1b eb dd cd  02 42 d4 50 cf 66 7f 4f  |iV.......B.P.f.O|
+	// 00000030  c4 33 92 36 a0 b7 94 a5  3e fb 9b 19 bd 7c ea ce  |.3.6....>....|..|
+	// 00000040  69 84 bd 96 a9 6b 6e c2  47 03 9f 18 33 73 a5 2b  |i....kn.G...3s.+|
+	// 00000050  ee 11 e1 99 36 bf 44 42  26 5e f8 cc 25 1e 8a 97  |....6.DB&^..%...|
+	// 00000060  30 06 bf af 76 ed 06 2d  f6 ed 72 33 53 e4 8a e0  |0...v..-..r3S...|
+	// 00000070  a8 88 84 48 69 dd 4b d9  ff e3 d7 4a cf 04 88 c9  |...Hi.K....J....|
+	// 00000080  02 55 a2 af 44 5e 5b fb  65 b1 d5 6f ea 18 21 4a  |.U..D^[.e..o..!J|
+	// 00000090  4b 0a 75 3b 6e 50 b7 ed  9f e7 49 aa 03 83 d1 76  |K.u;nP....I....v|
+	// 000000a0  7f                                                |.|
+	// Sig0 tag: 03378fdf75d40b9d6cbaf1c9077737591ecd2a18759318c06deed8d0fcadd500ab
+	// Sig1 tag: 03378fdf75d40b9d6cbaf1c9077737591ecd2a18759318c06deed8d0fcadd500ab
+	// Sig2 tag: 0255a2af445e5bfb65b1d56fea18214a4b0a753b6e50b7ed9fe749aa0383d1767f
+	// Sig3 tag: 0255a2af445e5bfb65b1d56fea18214a4b0a753b6e50b7ed9fe749aa0383d1767f
 }
 
 
@@ -273,7 +273,7 @@ func benchGenKeysOpenSSL(nkeys int) ([]abstract.Point,abstract.Secret) {
 }
 func benchGenSigOpenSSL(nkeys int) []byte {
 	suite := openssl.NewAES128SHA256P256()
-	rand := abstract.HashStream(suite, []byte("example"), nil)
+	rand := suite.Cipher([]byte("example"))
 	return Sign(suite, rand, benchMessage,
 			Set(benchPubOpenSSL[:nkeys]), nil,
 			0, benchPriOpenSSL)
@@ -284,7 +284,7 @@ func benchGenKeysEd25519(nkeys int) ([]abstract.Point,abstract.Secret) {
 }
 func benchGenSigEd25519(nkeys int) []byte {
 	suite := edwards.NewAES128SHA256Ed25519(false)
-	rand := abstract.HashStream(suite, []byte("example"), nil)
+	rand := suite.Cipher([]byte("example"))
 	return Sign(suite, rand, benchMessage,
 			Set(benchPubEd25519[:nkeys]), nil,
 			0, benchPriEd25519)
@@ -292,7 +292,7 @@ func benchGenSigEd25519(nkeys int) []byte {
 
 func benchSign(suite abstract.Suite, pub []abstract.Point, pri abstract.Secret,
 		niter int) {
-	rand := abstract.HashStream(suite, []byte("example"), nil)
+	rand := suite.Cipher([]byte("example"))
 	for i := 0; i < niter; i++ {
 		Sign(suite, rand, benchMessage, Set(pub), nil, 0, pri)
 	}

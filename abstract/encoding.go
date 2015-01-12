@@ -23,19 +23,17 @@ type Encoding interface {
 	// whose length must be exactly Len().
 	Encode() []byte
 
-	// XXX EncodeTo(w io.Writer) error
-	// XXX WriteTo(w io.Writer) (n,error)
+	// Encode the contents of this object and write it to an io.Writer.
+	EncodeTo(w io.Writer) (int, error)
 
 	// Decode the content of this object from a slice,
 	// whose length must be exactly Len().
 	Decode(buf []byte) error
 
 	// Decode the content of this object by reading from an io.Reader.
-	// If r is also a cipher.Stream (e.g., a RandomReader),
-	// then picks a valid object [pseudo-]randomly from that stream,
+	// If r is a Cipher, uses it to pick a valid object pseudo-randomly,
 	// which may entail reading more than Len bytes due to retries.
-	// XXX DecodeFrom(r io.Reader) error
-	// XXX ReadFrom(w io.Writer) (n,error)
+	DecodeFrom(r io.Reader) (int, error)
 }
 
 
@@ -86,6 +84,7 @@ type Hiding interface {
 	// an attacker could use decoding as a hidden object detection test.
 	HideDecode(buf []byte)
 }
+
 
 
 // Not used other than for reflect.TypeOf()
@@ -140,30 +139,7 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 
 	// Does the object support our self-decoding interface?
 	if e,ok := obj.(Encoding); ok {
-
-		// Special handling for decoding from [pseudo-]random streams
-		if rand,ok := de.r.(cipher.Stream); ok {
-			// Decoding from a random stream: use Pick() methods.
-			// XXX normalize random-element-decoding API.
-			//prindent(depth, "random\n")
-			switch o := obj.(type) {
-				case Secret:
-					o.Pick(rand)
-				case Point:
-					o.Pick(nil, rand)
-				default:
-					panic("unsupported crypto object")
-			}
-			return nil
-		}
-
-		// Decode from a stream that's supposed to contain valid objects
-		l := e.Len()
-		b := make([]byte, l)
-		if _,err := io.ReadFull(de.r, b); err != nil {
-			return err
-		}
-		err := e.Decode(b)
+		_, err := e.DecodeFrom(de.r)
 		//prindent(depth, "decode: %s\n", e.String())
 		return err
 	}
@@ -238,11 +214,8 @@ func (en *encoder) value(obj interface{}, depth int) error {
 	// Does the object support our self-decoding interface?
 	if e,ok := obj.(Encoding); ok {
 		//prindent(depth, "encode: %s\n", e.String())
-		b := e.Encode()
-		if _,err := en.w.Write(b); err != nil {
-			return err
-		}
-		return nil
+		_, err := e.EncodeTo(en.w)
+		return err
 	}
 
 	// Otherwise, reflectively handle composite types.

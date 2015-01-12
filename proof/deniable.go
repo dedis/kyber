@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/clique"
 )
 
@@ -39,8 +38,8 @@ type deniableProver struct {
 	msg *bytes.Buffer		// Buffer in which to build prover msg
 	msgs [][]byte			// All messages from last proof step
 
-	pubrand random.Reader
-	prirand random.Reader
+	pubrand abstract.Cipher
+	prirand abstract.Cipher
 
 	// Error/success indicators for all participants
 	err []error
@@ -51,7 +50,7 @@ func (dp *deniableProver) run(suite abstract.Suite, self int, prv Prover,
 	dp.suite = suite
 	dp.self = self
 	dp.sc = sc
-	dp.prirand.Stream = sc.Random()
+	dp.prirand = sc.Random()
 
 	nnodes := len(vrf)
 	if self < 0 || self >= nnodes {
@@ -107,13 +106,13 @@ func (dp *deniableProver) run(suite abstract.Suite, self int, prv Prover,
 // Start the message buffer off in each step with a randomness commitment
 func (dp *deniableProver) initStep() {
 
-	keylen := dp.suite.KeyLen()
+	keylen := dp.prirand.KeySize()
 	key := make([]byte, keylen)		// secret random key
-	dp.prirand.XORKeyStream(key, key)
+	dp.prirand.Read(key)
 	dp.key = key
 
 	msg := make([]byte, keylen)		// send commitment to it
-	dp.suite.Stream(key).XORKeyStream(msg, msg)
+	dp.suite.Cipher(key).XORKeyStream(msg, msg)
 	dp.msg = bytes.NewBuffer(msg)
 
 	// The Sigma-Prover will now append its proof content to dp.msg...
@@ -135,7 +134,7 @@ func (dp *deniableProver) proofStep() (bool,error) {
 	// Distribute this step's prover messages
 	// to the relevant verifiers as well,
 	// waking them up in the process so they can proceed.
-	keylen := dp.suite.KeyLen()
+	keylen := dp.prirand.KeySize()
 	for i := range(dp.dv) {
 		dv := dp.dv[i]
 		if dv != nil && i < len(msgs) {
@@ -173,7 +172,7 @@ func (dp *deniableProver) challengeStep() error {
 	// check them against the respective commits,
 	// and ensure ours is included to ensure deniability
 	// (even if all others turn out to be maliciously generated).
-	keylen := dp.suite.KeyLen()
+	keylen := dp.prirand.KeySize()
 	mix := make([]byte, keylen)
 	for i := range(keys) {
 		com := dp.msgs[i][:keylen] // node i's randomness commitment
@@ -182,7 +181,7 @@ func (dp *deniableProver) challengeStep() error {
 			continue	// ignore participants who dropped out
 		}
 		chk := make([]byte, keylen)
-		dp.suite.Stream(key).XORKeyStream(chk,chk)
+		dp.suite.Cipher(key).XORKeyStream(chk,chk)
 		if !bytes.Equal(com,chk) {
 			return errors.New("wrong key for commit")
 		}
@@ -195,7 +194,7 @@ func (dp *deniableProver) challengeStep() error {
 	}
 
 	// Use the mix to produce the public randomness needed by the prover
-	dp.pubrand.Stream = dp.suite.Stream(mix)
+	dp.pubrand = dp.suite.Cipher(mix)
 
 	// Distribute the master challenge to any verifiers waiting for it
 	for i := range(dp.dv) {
@@ -225,12 +224,12 @@ func (dp *deniableProver) PubRand(data...interface{}) error {
 	if err := dp.challengeStep(); err != nil{	// run challenge step
 		return err
 	}
-	return abstract.Read(&dp.pubrand, data, dp.suite)
+	return abstract.Read(dp.pubrand, data, dp.suite)
 }
 
 // Get private randomness
 func (dp *deniableProver) PriRand(data...interface{}) {
-	if err := abstract.Read(&dp.prirand, data, dp.suite); err != nil {
+	if err := abstract.Read(dp.prirand, data, dp.suite); err != nil {
 		panic("error reading random stream: "+err.Error())
 	}
 }
@@ -249,7 +248,7 @@ type deniableVerifier struct {
 	done chan bool		// Channel for sending done status indicators
 	err error		// When done indicates verify error if non-nil
 
-	pubrand random.Reader
+	pubrand abstract.Cipher
 }
 
 func (dv *deniableVerifier) start(suite abstract.Suite, vrf Verifier) {
@@ -292,13 +291,10 @@ func (dv *deniableVerifier) PubRand(data...interface{}) error {
 
 	// Wait for it
 	chal := <- dv.inbox
-	if len(chal) != dv.suite.KeyLen() {
-		panic("deniableVerifier: bad challenge")
-	}
 
 	// Produce the appropriate publicly random stream
-	dv.pubrand.Stream = dv.suite.Stream(chal)
-	if err := abstract.Read(&dv.pubrand, data, dv.suite); err != nil {
+	dv.pubrand = dv.suite.Cipher(chal)
+	if err := abstract.Read(dv.pubrand, data, dv.suite); err != nil {
 		return err
 	}
 

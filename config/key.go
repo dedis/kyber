@@ -8,6 +8,7 @@ import (
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/util"
 	"github.com/dedis/crypto/base64"
+	"github.com/dedis/crypto/random"
 )
 
 
@@ -29,7 +30,7 @@ func (p *KeyPair) Gen(suite abstract.Suite, random cipher.Stream) {
 
 // Return the base64-encoded HashId for this KeyPair's public key.
 func (p *KeyPair) PubId() string {
-	hash := abstract.HashBytes(p.Suite, p.Public.Encode())
+	hash := abstract.Sum(p.Suite, p.Public.Encode())
 	return base64.RawURLEncoding.EncodeToString(hash)
 }
 
@@ -137,7 +138,7 @@ func (f *File) GenKey(keys *Keys, suite abstract.Suite) (KeyPair,error) {
 
 	// Create a fresh public/private keypair
 	p := KeyPair{}
-	p.Gen(suite, abstract.RandomStream)
+	p.Gen(suite, random.Stream)
 	pubId := p.PubId()
 
 	// Write the private key file

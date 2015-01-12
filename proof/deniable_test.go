@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"testing"
 	//"encoding/hex"
-	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/clique"
 )
+
+var testSuite = nist.NewAES128SHA256P256()
 
 type node struct {
 	i int
@@ -30,8 +31,8 @@ func (n *node) Step(msg []byte) ([][]byte,error) {
 	return msgs,nil
 }
 
-func (n *node) Random() cipher.Stream {
-	return random.Stream
+func (n *node) Random() abstract.Cipher {
+	return testSuite.Cipher(abstract.RandomKey)
 }
 
 func runNode(n *node) {
@@ -81,7 +82,7 @@ func TestDeniable(t *testing.T) {
 	localProto.run()
 */
 
-	suite := nist.NewAES128SHA256P256()
+	suite := testSuite
 	rand := random.Stream
 	B := suite.Point().Base()
 
