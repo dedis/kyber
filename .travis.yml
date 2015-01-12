@@ -15,4 +15,5 @@ before_script:
     - git remote add production https://github.com/DeDiS/crypto.git
     - git fetch -a production
     - go get github.com/dyv/dedis-ci-script
+    - cd $HOME/src/github.com/dedis/crypto
 script: dedis-ci-script
