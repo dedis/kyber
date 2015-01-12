@@ -8,8 +8,6 @@ before_install:
     - mkdir -p $HOME/src/github.com/dedis
     - ls $TRAVIS_BUILD_DIR
     - mv $TRAVIS_BUILD_DIR $HOME/src/github.com/dedis
-    - bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
-    - gvm install go1
     - cd $HOME/src/github.com/dedis/crypto
     - go get ./...
 before_script:
