@@ -1,5 +1,17 @@
 # build script for dedis/crypto libraries
-language: go
+env:
+    global:
+        - REPO="dedis/crypto"
+        - HOME=`pwd`
+        - GOPATH="$HOME/src"
+before_install:
+    - mkdir -p $HOME/src/github.com/dedis
+    - ls $TRAVIS_BUILD_DIR
+    - mv $TRAVIS_BUILD_DIR src/github.com/dedis
+    - bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
+    - gvm install go1
+    - cd $HOME/src/github.com/dedis/crypto
+    - go get ./...
 before_script:
     - git remote add production https://github.com/DeDiS/crypto.git
     - git fetch -a production
