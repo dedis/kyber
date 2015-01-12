@@ -36,6 +36,12 @@ func BenchmarkAes256_1B(b *testing.B) {
 	benchmarkCipher(b, aes.NewCipher256(), 1)
 }
 
+func BenchmarkShake128_1B(b *testing.B) {
+	benchmarkCipher(b, sha3.NewShakeCipher128(abstract.NoKey), 1)
+}
+func BenchmarkShake256_1B(b *testing.B) {
+	benchmarkCipher(b, sha3.NewShakeCipher256(abstract.NoKey), 1)
+}
 func BenchmarkSha3_224_1B(b *testing.B) {
 	benchmarkCipher(b, sha3.NewCipher224(abstract.NoKey), 1)
 }
@@ -66,6 +72,12 @@ func BenchmarkAes256_1K(b *testing.B) {
 	benchmarkCipher(b, aes.NewCipher256(), 1024)
 }
 
+func BenchmarkShake128_1K(b *testing.B) {
+	benchmarkCipher(b, sha3.NewShakeCipher128(abstract.NoKey), 1024)
+}
+func BenchmarkShake256_1K(b *testing.B) {
+	benchmarkCipher(b, sha3.NewShakeCipher256(abstract.NoKey), 1024)
+}
 func BenchmarkSha3_224_1K(b *testing.B) {
 	benchmarkCipher(b, sha3.NewCipher224(abstract.NoKey), 1024)
 }
@@ -96,6 +108,12 @@ func BenchmarkAes256_1M(b *testing.B) {
 	benchmarkCipher(b, aes.NewCipher256(), 1024*1024)
 }
 
+func BenchmarkShake128_1M(b *testing.B) {
+	benchmarkCipher(b, sha3.NewShakeCipher128(abstract.NoKey), 1024*1024)
+}
+func BenchmarkShake256_1M(b *testing.B) {
+	benchmarkCipher(b, sha3.NewShakeCipher256(abstract.NoKey), 1024*1024)
+}
 func BenchmarkSha3_224_1M(b *testing.B) {
 	benchmarkCipher(b, sha3.NewCipher224(abstract.NoKey), 1024*1024)
 }
