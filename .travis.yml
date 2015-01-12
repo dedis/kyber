@@ -3,9 +3,10 @@ env:
     global:
         - REPO="dedis/crypto"
         - HOME="/home/travis"
-        - GOPATH="$HOME/src"
+        - GOPATH="$HOME"
 before_install:
     - mkdir -p $HOME/src/github.com/dedis
+    - mkdir -p $HOME/bin
     - ls $TRAVIS_BUILD_DIR
     - mv $TRAVIS_BUILD_DIR $HOME/src/github.com/dedis
     - cd $HOME/src/github.com/dedis/crypto
