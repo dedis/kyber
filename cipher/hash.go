@@ -8,15 +8,15 @@ import (
 
 // Wrapper to use a generic mesage Cipher as a Hash
 type cipherHash struct {
-	cipher func(...interface{}) abstract.Cipher
+	cipher func(key []byte, options ...interface{}) abstract.Cipher
 	cur    abstract.Cipher
 	size   int
 }
 
-func NewHash(cipher func(...interface{}) abstract.Cipher, size int) hash.Hash {
+func NewHash(cipher func(key []byte, options ...interface{}) abstract.Cipher, size int) hash.Hash {
 	ch := &cipherHash{}
 	ch.cipher = cipher
-	ch.cur = cipher()
+	ch.cur = cipher(abstract.NoKey)
 	ch.size = size
 	return ch
 }
@@ -39,7 +39,7 @@ func (ch *cipherHash) Sum(buf []byte) []byte {
 }
 
 func (ch *cipherHash) Reset() {
-	ch.cur = ch.cipher()
+	ch.cur = ch.cipher(abstract.NoKey)
 }
 
 func (ch *cipherHash) Size() int {

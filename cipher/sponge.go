@@ -6,6 +6,7 @@ import (
 	//"encoding/hex"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/ints"
+	"github.com/dedis/crypto/random"
 )
 
 // Sponge is an interface representing a primitive sponge function.
@@ -67,7 +68,7 @@ func (sc *spongeCipher) parseOptions(options []interface{}) bool {
 }
 
 // SpongeCipher builds a general message Cipher from a Sponge function.
-func NewSpongeCipher(sponge Sponge, options ...interface{}) abstract.Cipher {
+func NewSpongeCipher(sponge Sponge, key []byte, options ...interface{}) abstract.Cipher {
 	sc := spongeCipher{}
 	sc.sponge = sponge
 	sc.rate = sponge.Rate()
@@ -75,6 +76,14 @@ func NewSpongeCipher(sponge Sponge, options ...interface{}) abstract.Cipher {
 	sc.buf = make([]byte, sc.rate)
 	sc.pos = 0
 	sc.parseOptions(options)
+
+	if key == nil {
+		key = random.Bytes(sponge.Capacity(), random.Stream)
+	}
+	if len(key) > 0 {
+		sc.Crypt(nil, key)
+	}
+
 	return &sc
 }
 

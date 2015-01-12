@@ -32,8 +32,8 @@ func (s *suiteEd25519) Stream(key []byte) cipher.Stream {
 }
 
 // SHA3/SHAKE128 Sponge Cipher
-func (s *suiteEd25519) Cipher(options ...interface{}) abstract.Cipher {
-	return sha3.NewShakeCipher128(options)
+func (s *suiteEd25519) Cipher(key []byte, options ...interface{}) abstract.Cipher {
+	return sha3.NewShakeCipher128(key, options)
 }
 
 // Ciphersuite based on AES-128, SHA-256, and the Ed25519 curve.

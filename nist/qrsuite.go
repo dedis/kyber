@@ -33,8 +33,8 @@ func (s qrsuite) Stream(key []byte) cipher.Stream {
 }
 
 // SHA3/SHAKE128 Sponge Cipher
-func (s qrsuite) Cipher(options ...interface{}) abstract.Cipher {
-	return sha3.NewShakeCipher128(options)
+func (s qrsuite) Cipher(key []byte, options ...interface{}) abstract.Cipher {
+	return sha3.NewShakeCipher128(key, options)
 }
 
 

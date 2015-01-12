@@ -1,8 +1,13 @@
 package cipher
 
 import (
+	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
 )
+
+type Stream cipher.Stream
+type Block cipher.Block
+
 
 // CipherRead provides a generic implementation of Cipher.Read.
 func CipherRead(cipher abstract.Cipher, dst []byte) (n int, err error) {

@@ -106,3 +106,10 @@ type option struct{ name string }
 
 func (o *option) String() string { return o.name }
 
+
+// Pass NoKey to a Cipher constructor to create an unkeyed Cipher.
+var NoKey = []byte{}
+
+// Pass RandomKey to a Cipher constructor to create a randomly seeded Cipher.
+var RandomKey []byte = nil
+

@@ -36,8 +36,9 @@ type Suite interface {
 	KeyLen() int
 	Stream(key []byte) cipher.Stream
 
-	// Create a cryptographic Cipher with given configuration options.
-	Cipher(options ...interface{}) Cipher
+	// Create a cryptographic Cipher with a given key and configuration.
+	// If key is nil, creates a Cipher seeded with a fresh random key.
+	Cipher(key []byte, options ...interface{}) Cipher
 
 	// abstract group for public-key crypto
 	Group
@@ -78,18 +79,6 @@ func HashStream(suite Suite, data []byte, parent cipher.Stream) cipher.Stream {
 func PointStream(suite Suite, point Point) cipher.Stream {
 	buf := point.Encode()
 	return HashStream(suite, buf, nil)
-}
-
-// Pull enough bytes for a seed from an existing stream cipher
-// to produce a new, derived sub-stream cipher.
-// This may be effectively used as a "fork" operator for stream ciphers,
-// capable of producing arbitrary trees of stream ciphers that are
-// cryptographically independent but pseudo-randomly derived
-// from the same root cipher.
-func SubStream(suite Suite, s cipher.Stream) cipher.Stream {
-	key := make([]byte,suite.KeyLen())
-	s.XORKeyStream(key,key)
-	return suite.Stream(key)
 }
 
 

@@ -222,7 +222,7 @@ func TestSuite(suite abstract.Suite) {
 	//println(hex.Dump(sb))
 
 	// Generate a sub-stream
-	ss := abstract.SubStream(suite,s)
+	ss := abstract.HashStream(suite,nil,s)
 	sb = make([]byte,128)
 	ss.XORKeyStream(sb,sb)
 	//println("SubStream:")
