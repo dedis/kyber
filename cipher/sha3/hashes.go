@@ -14,7 +14,7 @@ import (
 	"hash"
 )
 
-var sha3Opts = []interface{}{abstract.Decrypt, cipher.Padding(0x06)}
+var sha3Opts = []interface{}{abstract.Encrypt, cipher.Padding(0x06)}
 
 
 // NewCipher224 creates a Cipher implementing the SHA3-224 algorithm,

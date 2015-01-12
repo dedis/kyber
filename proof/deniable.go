@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/clique"
 )
 
@@ -39,8 +38,8 @@ type deniableProver struct {
 	msg *bytes.Buffer		// Buffer in which to build prover msg
 	msgs [][]byte			// All messages from last proof step
 
-	pubrand random.Reader
-	prirand random.Reader
+	pubrand abstract.Cipher
+	prirand abstract.Cipher
 
 	// Error/success indicators for all participants
 	err []error
@@ -51,7 +50,7 @@ func (dp *deniableProver) run(suite abstract.Suite, self int, prv Prover,
 	dp.suite = suite
 	dp.self = self
 	dp.sc = sc
-	dp.prirand.Stream = sc.Random()
+	dp.prirand = sc.Random()
 
 	nnodes := len(vrf)
 	if self < 0 || self >= nnodes {
@@ -195,7 +194,7 @@ func (dp *deniableProver) challengeStep() error {
 	}
 
 	// Use the mix to produce the public randomness needed by the prover
-	dp.pubrand.Stream = dp.suite.Cipher(mix)
+	dp.pubrand = dp.suite.Cipher(mix)
 
 	// Distribute the master challenge to any verifiers waiting for it
 	for i := range(dp.dv) {
@@ -225,12 +224,12 @@ func (dp *deniableProver) PubRand(data...interface{}) error {
 	if err := dp.challengeStep(); err != nil{	// run challenge step
 		return err
 	}
-	return abstract.Read(&dp.pubrand, data, dp.suite)
+	return abstract.Read(dp.pubrand, data, dp.suite)
 }
 
 // Get private randomness
 func (dp *deniableProver) PriRand(data...interface{}) {
-	if err := abstract.Read(&dp.prirand, data, dp.suite); err != nil {
+	if err := abstract.Read(dp.prirand, data, dp.suite); err != nil {
 		panic("error reading random stream: "+err.Error())
 	}
 }
@@ -249,7 +248,7 @@ type deniableVerifier struct {
 	done chan bool		// Channel for sending done status indicators
 	err error		// When done indicates verify error if non-nil
 
-	pubrand random.Reader
+	pubrand abstract.Cipher
 }
 
 func (dv *deniableVerifier) start(suite abstract.Suite, vrf Verifier) {
@@ -297,8 +296,8 @@ func (dv *deniableVerifier) PubRand(data...interface{}) error {
 	}
 
 	// Produce the appropriate publicly random stream
-	dv.pubrand.Stream = dv.suite.Cipher(chal)
-	if err := abstract.Read(&dv.pubrand, data, dv.suite); err != nil {
+	dv.pubrand = dv.suite.Cipher(chal)
+	if err := abstract.Read(dv.pubrand, data, dv.suite); err != nil {
 		return err
 	}
 

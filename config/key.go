@@ -30,7 +30,7 @@ func (p *KeyPair) Gen(suite abstract.Suite, random cipher.Stream) {
 
 // Return the base64-encoded HashId for this KeyPair's public key.
 func (p *KeyPair) PubId() string {
-	hash := abstract.HashBytes(p.Suite, p.Public.Encode())
+	hash := abstract.Sum(p.Suite, p.Public.Encode())
 	return base64.RawURLEncoding.EncodeToString(hash)
 }
 

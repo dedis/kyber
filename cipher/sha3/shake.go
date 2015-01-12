@@ -74,11 +74,11 @@ func (s *shake) Clone() ShakeHash {
 
 func (s *shake) Reset() {
 	s.cipher = cipher.NewSpongeCipher(s.sponge(), abstract.NoKey,
-				abstract.Decrypt, cipher.Padding(0x1f))
+				abstract.Encrypt, cipher.Padding(0x1f))
 	s.squeezing = false
 }
 
-var shakeOpts = []interface{}{abstract.Decrypt, cipher.Padding(0x1f)}
+var shakeOpts = []interface{}{abstract.Encrypt, cipher.Padding(0x1f)}
 
 // NewShakeCipher128 creates a Cipher implementing the SHAKE128 algorithm,
 // which provides 128-bit security against all known attacks.

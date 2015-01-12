@@ -80,23 +80,6 @@ func Bytes(n int, rand cipher.Stream) []byte {
 	return b
 }
 
-// Reader wraps a Stream to produce an io.Reader
-// that simply produces [pseudo-]random bits from the Stream when read.
-// Calls to both Read() and XORKeyStream() may be made on the Reader,
-// and may be interspersed.
-type Reader struct {
-	cipher.Stream
-}
-
-// Read [pseudo-]random bytes from the underlying Stream.
-func (r Reader) Read(dst []byte) (n int, err error) {
-	for i := range(dst) {
-		dst[i] = 0
-	}
-	r.Stream.XORKeyStream(dst,dst)
-	return len(dst),nil
-}
-
 
 type randstream struct {
 }

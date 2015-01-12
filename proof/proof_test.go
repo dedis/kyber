@@ -5,13 +5,12 @@ import (
 	"testing"
 	"encoding/hex"
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/openssl"
 )
 
 func TestRep(t *testing.T) {
 	suite := openssl.NewAES128SHA256P256()
-	rand := random.Stream
+	rand := suite.Cipher(abstract.RandomKey)
 
 	x := suite.Secret().Pick(rand)
 	y := suite.Secret().Pick(rand)
@@ -54,7 +53,7 @@ func TestRep(t *testing.T) {
 	sval := map[string]abstract.Secret{ "x":x, "y":y}
 	pval := map[string]abstract.Point{ "B":B, "X":X, "Y":Y, "R":R}
 	prover := pred.Prover(suite, sval, pval, choice)
-	proof,err := HashProve(suite, "TEST", random.Stream, prover)
+	proof,err := HashProve(suite, "TEST", rand, prover)
 	if err != nil {
 		panic("prover: "+err.Error())
 	}
@@ -86,7 +85,7 @@ func ExampleRep_2() {
 
 	// Crypto setup
 	suite := openssl.NewAES128SHA256P256()
-	rand := abstract.HashStream(suite, []byte("example"), nil)
+	rand := suite.Cipher([]byte("example"))
 	B := suite.Point().Base()		// standard base point
 
 	// Create a public/private keypair (X,x)
@@ -111,11 +110,11 @@ func ExampleRep_2() {
 	// Output:
 	// X=x*B
 	// Proof:
-	// 00000000  02 fd dc 29 56 ef d2 87  05 a6 af c2 c9 7d 6a 58  |...)V........}jX|
-	// 00000010  74 96 a5 b2 10 82 2c 17  71 a4 43 db 37 14 42 48  |t.....,.q.C.7.BH|
-	// 00000020  4a 94 d4 2f 53 b9 54 aa  c1 1c 8d d2 f0 af 89 72  |J../S.T........r|
-	// 00000030  01 11 18 9a 44 15 13 63  e0 05 f8 84 71 ce e5 c7  |....D..c....q...|
-	// 00000040  ed                                                |.|
+	// 00000000  02 23 62 b1 f9 cb f4 a2  6d 7f 3e 69 cb b6 77 ab  |.#b.....m.>i..w.|
+	// 00000010  90 fc 7c db a0 c6 e8 12  f2 0a d4 40 a4 b6 c4 de  |..|........@....|
+	// 00000020  9e 53 67 12 c7 31 0a 92  ed 76 c4 4d 2c 4b fc 2c  |.Sg..1...v.M,K.,|
+	// 00000030  56 db 2d 8a 84 ec 5d e5  31 17 80 76 a8 ea 46 04  |V.-...].1..v..F.|
+	// 00000040  c8                                                |.|
 	// Proof verified.
 }
 
@@ -198,7 +197,7 @@ func ExampleOr_2() {
 
 	// Crypto setup
 	suite := openssl.NewAES128SHA256P256()
-	rand := abstract.HashStream(suite, []byte("example"), nil)
+	rand := suite.Cipher([]byte("example"))
 	B := suite.Point().Base()		// standard base point
 
 	// Create a public/private keypair (X,x) and a random point Y
@@ -231,19 +230,19 @@ func ExampleOr_2() {
 	// Output:
 	// Predicate: X=x*B || Y=y*B
 	// Proof:
-	// 00000000  02 f2 e1 15 37 a0 39 b3  f4 4c fb c2 ce 66 aa 51  |....7.9..L...f.Q|
-	// 00000010  94 b5 f9 eb 78 2e fd fb  e3 10 9f bd 69 d4 8a c8  |....x.......i...|
-	// 00000020  80 03 ba cf 9a 1c 3d e8  1e 53 3a 65 b3 e2 7a 24  |......=..S:e..z$|
-	// 00000030  f8 06 6c d9 d9 30 30 8d  c8 53 e5 22 6a 0f a5 a8  |..l..00..S."j...|
-	// 00000040  14 8d 9f 80 71 df 70 4b  35 50 21 28 71 6c ec c2  |....q.pK5P!(ql..|
-	// 00000050  f4 ac b4 d6 0a d5 71 8a  de 47 51 fd e7 83 90 be  |......q..GQ.....|
-	// 00000060  de d3 ac e3 87 21 a7 99  b2 d8 35 51 85 d1 2b 68  |.....!....5Q..+h|
-	// 00000070  2a ae 85 ab 27 19 43 56  f0 49 7f ef 30 43 43 a7  |*...'.CV.I..0CC.|
-	// 00000080  a7 ac 6a c9 df 17 5d 4b  08 71 0f c4 ec 1a 2a 43  |..j...]K.q....*C|
-	// 00000090  f7 ef 5a c4 27 d1 24 36  81 77 00 80 76 f7 34 60  |..Z.'.$6.w..v.4`|
-	// 000000a0  d7 c8 ca d1 3b 09 b8 54  67 1f 9a 7a 9c 7d e5 d9  |....;..Tg..z.}..|
-	// 000000b0  81 5d 4e ee 55 57 dc a8  9c e6 39 d9 0e ad 37 5b  |.]N.UW....9...7[|
-	// 000000c0  bc bd                                             |..|
+	// 00000000  02 af 84 ed e5 86 04 cf  81 e4 18 17 84 0c 39 ab  |..............9.|
+	// 00000010  fe 5c bc cc 00 85 e0 a2  ee aa d5 22 18 dd c4 a1  |.\........."....|
+	// 00000020  5b 03 df 9c 59 21 0e 1c  44 99 23 a1 54 92 21 c9  |[...Y!..D.#.T.!.|
+	// 00000030  d6 b3 84 85 ad 87 dd a3  64 c0 b9 eb 4d 92 5b cb  |........d...M.[.|
+	// 00000040  c6 4f e7 67 95 36 6a e4  e7 ca b5 14 b7 99 16 60  |.O.g.6j........`|
+	// 00000050  71 91 ad b0 f1 86 43 df  6a 45 1f cb a2 93 7e b3  |q.....C.jE....~.|
+	// 00000060  b5 7b 32 17 7d 53 c5 e4  48 79 49 b2 3e 1e e2 62  |.{2.}S..HyI.>..b|
+	// 00000070  39 08 13 d5 2e f8 c5 e9  c1 28 09 91 7a 95 c9 12  |9........(..z...|
+	// 00000080  17 85 f5 eb 2d 8e 6b 37  3a b5 ff 45 25 e7 0c aa  |....-.k7:..E%...|
+	// 00000090  94 43 cf 67 52 2e 1d 2c  1b a4 c0 ca 96 d6 03 08  |.C.gR..,........|
+	// 000000a0  c0 0d 93 8b c6 f6 34 12  83 a0 32 2e 82 2c 4b fb  |......4...2..,K.|
+	// 000000b0  b3 0c a1 4b a5 e3 27 43  b6 2f ed fa ca 4f 93 83  |...K..'C./...O..|
+	// 000000c0  fd 56                                             |.V|
 	// Proof verified.
 }
 

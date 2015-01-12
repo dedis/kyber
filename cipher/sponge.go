@@ -105,75 +105,6 @@ func (sc *spongeCipher) encrypt(dst, src []byte, more bool) abstract.Cipher {
 				break // done
 			}
 
-			// squeeze output only, src is zero bytes
-			n = ints.Min(n, len(dst))
-			copy(dst[:n], buf[pos:])
-			dst = dst[n:]
-
-		} else if len(dst) == 0 {
-
-			// absorb input only
-			n = ints.Min(n, len(src))
-			for i := 0; i < n; i++ {
-				buf[pos+i] ^= src[i]
-			}
-			src = src[n:]
-
-		} else {
-
-			// squeeze output while absorbing input
-			n = ints.Min(n, ints.Min(len(src), len(dst)))
-			for i := 0; i < n; i++ {
-				buf[pos+i] ^= src[i] // absorb ciphertext
-				dst[i] = buf[pos+i]  // and output
-			}
-			src = src[n:]
-			dst = dst[n:]
-		}
-		pos += n
-	}
-
-	// pad the final block of a message
-	if !more {
-		if pos == rate {
-			sp.Transform(buf, buf, nil)
-			pos = 0
-		}
-
-		// XOR in appropriate multi-rate padding
-		buf[pos] ^= sc.pad
-		buf[rate-1] ^= 0x80
-
-		// process last block
-		sp.Transform(buf, buf, nil)
-		pos = 0
-	}
-
-	sc.pos = pos
-	return sc
-}
-
-func (sc *spongeCipher) decrypt(dst, src []byte, more bool) abstract.Cipher {
-	//osrc,odst := src,dst
-	//println("Decrypt",more,"\n")
-
-	sp := sc.sponge
-	rate := sc.rate
-	buf := sc.buf
-	pos := sc.pos
-	for {
-		if pos == rate {
-			// process next block
-			sp.Transform(buf, buf, nil)
-			pos = 0
-		}
-
-		n := rate - pos // remaining bytes in this block
-		if len(src) == 0 {
-			if len(dst) == 0 {
-				break // done
-			}
-
 			// squeeze output only
 			n = ints.Min(n, len(dst))
 			for i := 0; i < n; i++ {
@@ -226,6 +157,76 @@ func (sc *spongeCipher) decrypt(dst, src []byte, more bool) abstract.Cipher {
 	}
 
 	//println("Decrypted",more,"\n" + hex.Dump(osrc) + "->\n" + hex.Dump(odst))
+	sc.pos = pos
+	return sc
+}
+
+func (sc *spongeCipher) decrypt(dst, src []byte, more bool) abstract.Cipher {
+	sp := sc.sponge
+	rate := sc.rate
+	buf := sc.buf
+	pos := sc.pos
+	for {
+		if pos == rate {
+			// process next block
+			sp.Transform(buf, buf, nil)
+			pos = 0
+		}
+
+		n := rate - pos // remaining bytes in this block
+		if len(src) == 0 {
+			if len(dst) == 0 {
+				break // done
+			}
+
+			// squeeze output only, src is zero bytes
+			n = ints.Min(n, len(dst))
+			copy(dst[:n], buf[pos:])
+			dst = dst[n:]
+
+		} else if len(dst) == 0 {
+
+			// absorb input only
+			n = ints.Min(n, len(src))
+			for i := 0; i < n; i++ {
+				buf[pos+i] ^= src[i]
+			}
+			src = src[n:]
+
+		} else {
+
+			// squeeze output while absorbing input
+			n = ints.Min(n, ints.Min(len(src), len(dst)))
+			for i := 0; i < n; i++ {
+				buf[pos+i] ^= src[i] // absorb ciphertext
+				dst[i] = buf[pos+i]  // and output
+			}
+			src = src[n:]
+			dst = dst[n:]
+		}
+		pos += n
+	}
+
+	// pad the final block of a message
+	if !more {
+		if pos == rate {
+			sp.Transform(buf, buf, nil)
+			pos = 0
+		}
+
+		// append appropriate multi-rate padding
+		buf[pos] = sc.pad
+		pos++
+		for ; pos < rate; pos++ {
+			buf[pos] = 0
+		}
+		buf[rate-1] ^= 0x80
+
+		// process last block
+		sp.Transform(buf, buf, nil)
+		pos = 0
+	}
+
 	sc.pos = pos
 	return sc
 }

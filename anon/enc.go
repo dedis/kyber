@@ -2,12 +2,9 @@ package anon
 
 import (
 	"errors"
-	"crypto/hmac"
 	"crypto/cipher"
-	"crypto/subtle"
-	//"encoding/hex"
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto/subtle"
 )
 
 
@@ -43,9 +40,9 @@ func header(suite abstract.Suite, X abstract.Point, x abstract.Secret,
 	for i := range(anonymitySet) {
 		Y := anonymitySet[i]
 		S.Mul(Y, x)			// compute DH shared secret
-		stream := abstract.PointStream(suite, S)
+		cipher := suite.Cipher(S.Encode())
 		xc := make([]byte, len(xb))
-		stream.XORKeyStream(xc, xb)
+		cipher.Crypt(xc, xb)
 		hdr = append(hdr, xc...)
 	}
 	return hdr
@@ -103,10 +100,10 @@ func decryptKey(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
 		return nil,0,errors.New("ciphertext too short")
 	}
 	S := suite.Point().Mul(X,privateKey)
-	stream := abstract.PointStream(suite, S)
+	cipher := suite.Cipher(S.Encode())
 	xb := make([]byte, seclen)
 	secofs := Xblen + seclen*mine
-	stream.XORKeyStream(xb, ciphertext[secofs:secofs+seclen])
+	cipher.Crypt(xb, ciphertext[secofs:secofs+seclen])
 	x := suite.Secret()
 	if err := x.Decode(xb); err != nil {
 		return nil,0,err
@@ -150,19 +147,17 @@ func Encrypt(suite abstract.Suite, rand cipher.Stream, message []byte,
 	xb,hdr := encryptKey(suite, rand, anonymitySet, hide)
 
 	// We now know the ciphertext layout
-	hdrlen := len(hdr)
-	msglen := len(message)
-	maclen := suite.KeyLen()
-	ciphertext := make([]byte, hdrlen+msglen+maclen)
+	hdrhi := 0 + len(hdr)
+	msghi := hdrhi + len(message)
+	machi := msghi + suite.KeyLen()
+	ciphertext := make([]byte, machi)
 	copy(ciphertext,hdr)
 
 	// Now encrypt and MAC the message based on the master secret
-	stream := abstract.HashStream(suite, xb, nil)
-	mackey := random.Bytes(maclen, stream)
-	mac := hmac.New(suite.Hash, mackey)
-	stream.XORKeyStream(ciphertext[hdrlen:hdrlen+msglen], message)
-	mac.Write(ciphertext[:hdrlen+msglen])
-	ciphertext = mac.Sum(ciphertext[:hdrlen+msglen])[:hdrlen+msglen+maclen]
+	cipher := suite.Cipher(xb, abstract.Encrypt)
+	cipher.Crypt(nil, nil)
+	cipher.Crypt(ciphertext[hdrhi:msghi], message)
+	cipher.Crypt(ciphertext[msghi:machi], nil) // MAC
 	return ciphertext
 }
 
@@ -196,21 +191,19 @@ func Decrypt(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
 	if len(ciphertext) < hdrlen+maclen {
 		return nil,errors.New("ciphertext too short")
 	}
-	msglo := hdrlen
+	hdrhi := hdrlen
 	msghi := len(ciphertext)-maclen
 
-	// Check the MAC over the whole ciphertext
-	stream := abstract.HashStream(suite, xb, nil)
-	mac := hmac.New(suite.Hash, random.Bytes(maclen, stream))
-	mac.Write(ciphertext[:msghi])
-	macbuf := mac.Sum(nil)
-	if !hmac.Equal(ciphertext[msghi:],macbuf[:maclen]) {
+	// Decrypt the message and check the MAC
+	msg := ciphertext[hdrhi:msghi]
+	mac := ciphertext[msghi:]
+	cipher := suite.Cipher(xb, abstract.Decrypt)
+	cipher.Crypt(nil, nil)
+	cipher.Crypt(msg, msg)
+	cipher.Crypt(mac, mac)
+	if subtle.ConstantTimeNonzero(mac) != 0 {
 		return nil,errors.New("invalid ciphertext: failed MAC check")
 	}
-
-	// Decrypt and return the message
-	message := ciphertext[msglo:msghi]
-	stream.XORKeyStream(message, message)
-	return message,nil
+	return msg,nil
 }
 

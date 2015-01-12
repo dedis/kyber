@@ -51,6 +51,8 @@ func xorIn(dst []uint64, src []byte) {
 }
 
 func (d *sponge) Transform(dst, src, key []byte) {
+
+	//println("Transform\n" + hex.Dump(src))
 	//odst := dst
 
 	n := d.rate >> 3
@@ -71,7 +73,7 @@ func (d *sponge) Transform(dst, src, key []byte) {
 		copy(dst, buf[:])
 	}
 
-	//println("Transform\n" + hex.Dump(src) + "->\n" + hex.Dump(odst))
+	//println("->\n" + hex.Dump(odst))
 }
 
 // Create a Keccak sponge primitive with 256-bit capacity.

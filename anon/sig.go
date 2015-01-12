@@ -20,29 +20,23 @@ type lSig struct {
 }
 
 func signH1pre(suite abstract.Suite, linkScope []byte, linkTag abstract.Point,
-		message []byte) []byte {
-	//fmt.Printf("scope '%s' tag %v M %s\n",
-	//		hex.EncodeToString(linkScope), linkTag,
-	//		hex.EncodeToString(message))
-	H1pre := suite.Hash()
+		message []byte) abstract.Cipher {
+	H1pre := suite.Cipher(message)		// m
 	if linkScope != nil {
 		H1pre.Write(linkScope)		// L
 		H1pre.Write(linkTag.Encode())	// ~y
 	}
-	H1pre.Write(message)			// m
-	return H1pre.Sum(nil)
+	return H1pre
 }
 
-func signH1(suite abstract.Suite, H1pb []byte, PG,PH abstract.Point) abstract.Secret {
-	H1 := suite.Hash()
-	H1.Write(H1pb)
+func signH1(suite abstract.Suite, H1pre abstract.Cipher, PG,PH abstract.Point) abstract.Secret {
+	H1 := H1pre.Clone(nil)
 	H1.Write(PG.Encode())
 	if PH != nil {
 		H1.Write(PH.Encode())
 	}
-	b := H1.Sum(nil)
-	s := suite.Cipher(b[:suite.KeyLen()])
-	return suite.Secret().Pick(s)
+	H1.Crypt(nil, nil) // finish message absorption
+	return suite.Secret().Pick(H1)
 }
 
 // Sign creates an optionally anonymous, optionally linkable
@@ -132,7 +126,7 @@ func Sign(suite abstract.Suite, random cipher.Stream, message []byte,
 	// but there are others, so we parameterize this choice.
 	var linkBase,linkTag abstract.Point
 	if linkScope != nil {
-		linkStream := abstract.HashStream(suite, linkScope, nil)
+		linkStream := suite.Cipher(linkScope)
 		linkBase,_ = suite.Point().Pick(nil, linkStream)
 		linkTag = suite.Point().Mul(linkBase, privateKey)
 	}
@@ -140,8 +134,7 @@ func Sign(suite abstract.Suite, random cipher.Stream, message []byte,
 	// First pre-hash the parameters to H1
 	// that are invariant for different ring positions,
 	// so that we don't have to hash them many times.
-	H1pb := signH1pre(suite,linkScope,linkTag,message)
-	//fmt.Printf("H1pb %s\n", hex.EncodeToString(H1pb))
+	H1pre := signH1pre(suite,linkScope,linkTag,message)
 
 	// Pick a random commit for my ring position
 	u := suite.Secret().Pick(random)
@@ -150,13 +143,11 @@ func Sign(suite abstract.Suite, random cipher.Stream, message []byte,
 	if linkScope != nil {
 		UL = suite.Point().Mul(linkBase,u)
 	}
-	//fmt.Printf("UB %s\n",UB.String())
 
 	// Build the challenge ring
 	s := make([]abstract.Secret, n)
 	c := make([]abstract.Secret, n)
-	c[(pi+1)%n] = signH1(suite, H1pb, UB, UL)
-	//fmt.Printf("c%d %s\n",(pi+1)%n,c[(pi+1)%n].String())
+	c[(pi+1)%n] = signH1(suite, H1pre, UB, UL)
 	var P,PG,PH abstract.Point
 	P = suite.Point()
 	PG = suite.Point()
@@ -169,13 +160,12 @@ func Sign(suite abstract.Suite, random cipher.Stream, message []byte,
 		if linkScope != nil {
 			PH.Add(PH.Mul(linkBase,s[i]),P.Mul(linkTag,c[i]))
 		}
-		c[(i+1)%n] = signH1(suite, H1pb, PG, PH)
+		c[(i+1)%n] = signH1(suite, H1pre, PG, PH)
 		//fmt.Printf("s%d %s\n",i,s[i].String())
 		//fmt.Printf("c%d %s\n",(i+1)%n,c[(i+1)%n].String())
 	}
 	s[pi] = suite.Secret()
 	s[pi].Mul(privateKey,c[pi]).Sub(u,s[pi])	// s_pi = u - x_pi c_pi
-	//fmt.Printf("s%d %s\n",pi,s[pi].String())
 
 	// Encode and return the signature
 	buf := bytes.Buffer{}
@@ -214,7 +204,7 @@ func Verify(suite abstract.Suite, message []byte, anonymitySet Set,
 		if err := abstract.Read(buf, &sig, suite); err != nil {
 			return nil,err
 		}
-		linkStream := abstract.HashStream(suite, linkScope, nil)
+		linkStream := suite.Cipher(linkScope)
 		linkBase,_ = suite.Point().Pick(nil, linkStream)
 		linkTag = sig.Tag
 	} else {				// unlinkable ring signature
@@ -224,8 +214,7 @@ func Verify(suite abstract.Suite, message []byte, anonymitySet Set,
 	}
 
 	// Pre-hash the ring-position-invariant parameters to H1.
-	H1pb := signH1pre(suite,linkScope,linkTag,message)
-	//fmt.Printf("H1pb %s\n", hex.EncodeToString(H1pb))
+	H1pre := signH1pre(suite,linkScope,linkTag,message)
 
 	// Verify the signature
 	var P,PG,PH abstract.Point
@@ -237,16 +226,12 @@ func Verify(suite abstract.Suite, message []byte, anonymitySet Set,
 	s := sig.S
 	ci := sig.C0
 	for i := 0; i < n; i++ {
-		//fmt.Printf("s%d %s\n",i,s[i].String())
-		//fmt.Printf("c%d %s\n",i,ci.String())
 		PG.Add(PG.Mul(nil,s[i]),P.Mul(L[i],ci))
-		//fmt.Printf("PG%d %s\n",i,PG.String())
 		if linkScope != nil {
 			PH.Add(PH.Mul(linkBase,s[i]),P.Mul(linkTag,ci))
 		}
-		ci = signH1(suite, H1pb, PG, PH)
+		ci = signH1(suite, H1pre, PG, PH)
 	}
-	//fmt.Printf("ci %s\n",ci.String())
 	if !ci.Equal(sig.C0) {
 		return nil,errors.New("invalid signature")
 	}

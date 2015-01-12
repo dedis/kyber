@@ -71,4 +71,5 @@ Wishlist for Go standard library changes:
 	to skip or send a given number of bytes to a destination Writer.
 	(WriteTo() is close but just sends the whole remaining stream.)
 	Perhaps DivertTo, for a temporary rather than permanent diversion?
+- crypto/subtle should have a ConstantTimeNonzero
 

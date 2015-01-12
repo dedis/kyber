@@ -84,7 +84,7 @@ func (sk *SKEME) Recv(rm []byte) (bool,error) {
 
 		// Compute the shared secret and the key-confirmation MACs
 		DH := sk.suite.Point().Mul(rX,sk.lx)
-		sk.ms = abstract.PointStream(sk.suite, DH)
+		sk.ms = sk.suite.Cipher(DH.Encode())
 		mkey := random.Bytes(sk.suite.KeyLen(),sk.ms)
 		sk.ls,sk.lmac = sk.mkmac(mkey,sk.lXb,sk.rXb)
 		sk.rs,sk.rmac = sk.mkmac(mkey,sk.rXb,sk.lXb)

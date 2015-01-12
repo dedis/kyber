@@ -75,7 +75,7 @@ func (si *suiteInfo) init(ste abstract.Suite, nlevels int) {
 
 	// Create a pseudo-random stream from which to pick positions
 	str := fmt.Sprintf("NegoCipherSuite:%s", ste.String())
-	rand := abstract.HashStream(ste, []byte(str), nil)
+	rand := ste.Cipher([]byte(str))
 
 	// Alternative 0 is always at position 0, so start with level 1.
 	levofs := 0			// starting offset for current level
@@ -404,7 +404,7 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 		dhkey := si.ste.Point().Mul(e.PubKey, si.pri)
 
 		// Encrypt the entrypoint data with it.
-		stream := abstract.PointStream(si.ste, dhkey)
+		stream := si.ste.Cipher(dhkey.Encode())
 		msgbuf := w.growBuf(lo,hi)
 		stream.XORKeyStream(msgbuf, e.Data)
 	}
