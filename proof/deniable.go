@@ -113,7 +113,7 @@ func (dp *deniableProver) initStep() {
 	dp.key = key
 
 	msg := make([]byte, keylen)		// send commitment to it
-	dp.suite.Stream(key).XORKeyStream(msg, msg)
+	dp.suite.Cipher(key).XORKeyStream(msg, msg)
 	dp.msg = bytes.NewBuffer(msg)
 
 	// The Sigma-Prover will now append its proof content to dp.msg...
@@ -182,7 +182,7 @@ func (dp *deniableProver) challengeStep() error {
 			continue	// ignore participants who dropped out
 		}
 		chk := make([]byte, keylen)
-		dp.suite.Stream(key).XORKeyStream(chk,chk)
+		dp.suite.Cipher(key).XORKeyStream(chk,chk)
 		if !bytes.Equal(com,chk) {
 			return errors.New("wrong key for commit")
 		}
@@ -195,7 +195,7 @@ func (dp *deniableProver) challengeStep() error {
 	}
 
 	// Use the mix to produce the public randomness needed by the prover
-	dp.pubrand.Stream = dp.suite.Stream(mix)
+	dp.pubrand.Stream = dp.suite.Cipher(mix)
 
 	// Distribute the master challenge to any verifiers waiting for it
 	for i := range(dp.dv) {
@@ -297,7 +297,7 @@ func (dv *deniableVerifier) PubRand(data...interface{}) error {
 	}
 
 	// Produce the appropriate publicly random stream
-	dv.pubrand.Stream = dv.suite.Stream(chal)
+	dv.pubrand.Stream = dv.suite.Cipher(chal)
 	if err := abstract.Read(&dv.pubrand, data, dv.suite); err != nil {
 		return err
 	}

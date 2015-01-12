@@ -3,8 +3,6 @@ package nist
 import (
 	"hash"
 	"math/big"
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/sha256"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
@@ -23,18 +21,10 @@ func (s qrsuite) Hash() hash.Hash {
 
 // AES128-CTR stream cipher
 func (s qrsuite) KeyLen() int { return 16 }
-func (s qrsuite) Stream(key []byte) cipher.Stream {
-	aes, err := aes.NewCipher(key)
-	if err != nil {
-		panic("can't instantiate AES: " + err.Error())
-	}
-	iv := make([]byte,16)
-	return cipher.NewCTR(aes,iv)
-}
 
 // SHA3/SHAKE128 Sponge Cipher
 func (s qrsuite) Cipher(key []byte, options ...interface{}) abstract.Cipher {
-	return sha3.NewShakeCipher128(key, options)
+	return sha3.NewShakeCipher128(key, options...)
 }
 
 

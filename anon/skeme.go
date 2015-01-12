@@ -115,7 +115,7 @@ func (sk *SKEME) mkmac(masterkey,Xb1,Xb2 []byte) (cipher.Stream,[]byte) {
 	hmac.Write(Xb2)
 	key := hmac.Sum(nil)[:keylen]
 
-	stream := sk.suite.Stream(key)
+	stream := sk.suite.Cipher(key)
 	mac := random.Bytes(keylen,stream)
 	return stream,mac
 }

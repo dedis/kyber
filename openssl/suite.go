@@ -4,7 +4,6 @@ package openssl
 
 import (
 	"hash"
-	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher/sha3"
 )
@@ -30,15 +29,8 @@ func (s *suite128) KeyLen() int {
 	return 16	// AES128
 }
 
-func (s *suite128) Stream(key []byte) cipher.Stream {
-	if len(key) != 16 {
-		panic("wrong AES key size")
-	}
-	return abstract.BlockStream(NewAES(key), nil)
-}
-
 func (s *suite128) Cipher(key []byte, options ...interface{}) abstract.Cipher {
-	return sha3.NewShakeCipher128(key, options)
+	return sha3.NewShakeCipher128(key, options...)
 }
 
 // Ciphersuite based on AES-128, SHA-256, and the NIST P-256 elliptic curve,
@@ -71,15 +63,8 @@ func (s *suite192) KeyLen() int {
 	return 24	// AES192
 }
 
-func (s *suite192) Stream(key []byte) cipher.Stream {
-	if len(key) != 24 {
-		panic("wrong AES key size")
-	}
-	return abstract.BlockStream(NewAES(key), nil)
-}
-
 func (s *suite192) Cipher(key []byte, options ...interface{}) abstract.Cipher {
-	return sha3.NewShakeCipher256(key, options)
+	return sha3.NewShakeCipher256(key, options...)
 }
 
 // Ciphersuite based on AES-192, SHA-384, and the NIST P-384 elliptic curve,
@@ -113,14 +98,7 @@ func (s *suite256) KeyLen() int {
 }
 
 func (s *suite256) Cipher(key []byte, options ...interface{}) abstract.Cipher {
-	return sha3.NewShakeCipher256(key, options)
-}
-
-func (s *suite256) Stream(key []byte) cipher.Stream {
-	if len(key) != 32 {
-		panic("wrong AES key size")
-	}
-	return abstract.BlockStream(NewAES(key), nil)
+	return sha3.NewShakeCipher256(key, options...)
 }
 
 

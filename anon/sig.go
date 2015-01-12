@@ -41,7 +41,7 @@ func signH1(suite abstract.Suite, H1pb []byte, PG,PH abstract.Point) abstract.Se
 		H1.Write(PH.Encode())
 	}
 	b := H1.Sum(nil)
-	s := suite.Stream(b[:suite.KeyLen()])
+	s := suite.Cipher(b[:suite.KeyLen()])
 	return suite.Secret().Pick(s)
 }
 

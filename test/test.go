@@ -215,7 +215,7 @@ func TestSuite(suite abstract.Suite) {
 	}
 
 	// Generate some pseudorandom bits
-	s := suite.Stream(hb[0:suite.KeyLen()])
+	s := suite.Cipher(hb[0:suite.KeyLen()])
 	sb := make([]byte,128)
 	s.XORKeyStream(sb,sb)
 	//println("Stream:")

@@ -34,7 +34,6 @@ type Suite interface {
 	// Stream cipher and [pseudo-]random bit generator.
 	// KeyLen() <= HashLen(), and is typically around half the size
 	KeyLen() int
-	Stream(key []byte) cipher.Stream
 
 	// Create a cryptographic Cipher with a given key and configuration.
 	// If key is nil, creates a Cipher seeded with a fresh random key.
@@ -71,7 +70,7 @@ func HashStream(suite Suite, data []byte, parent cipher.Stream) cipher.Stream {
 	}
 	h.Write(data)
 	b := h.Sum(nil)
-	return suite.Stream(b[:suite.KeyLen()])
+	return suite.Cipher(b[:suite.KeyLen()])
 }
 
 // Create a pseudorandom stream seeded by hashing a group element
@@ -79,19 +78,6 @@ func HashStream(suite Suite, data []byte, parent cipher.Stream) cipher.Stream {
 func PointStream(suite Suite, point Point) cipher.Stream {
 	buf := point.Encode()
 	return HashStream(suite, buf, nil)
-}
-
-
-// Create a stream cipher out of a block cipher,
-// by running the block cipher in counter mode.
-// The initialization vector may be nil to start with a zero IV.
-func BlockStream(bc cipher.Block, iv []byte) cipher.Stream {
-	if iv == nil {
-		iv = make([]byte, bc.BlockSize())
-	} else if len(iv) != bc.BlockSize() {
-		panic("wrong initialization vector length")
-	}
-	return cipher.NewCTR(bc,iv)
 }
 
 
