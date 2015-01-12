@@ -12,10 +12,11 @@ import (
 // Sponge is an interface representing a primitive sponge function.
 type Sponge interface {
 
-	// XOR src data into sponge's R bits and idx into its C bits,
-	// transform its state, and copy resulting R bits into dst.
-	// Buffers may overlap and may be short or nil.
-	Transform(dst, src, idx []byte)
+	// XOR src data into sponge's internal state,
+	// transform its state, and copy resulting state into dst.
+	// Buffers must be a multiple of sponge's word size in length,
+	// and no more than Rate+Capacity bytes long.
+	Transform(dst, src []byte)
 
 	// Return the number of data bytes the sponge can aborb in one block.
 	Rate() int
@@ -95,7 +96,7 @@ func (sc *spongeCipher) encrypt(dst, src []byte, more bool) abstract.Cipher {
 	for {
 		if pos == rate {
 			// process next block
-			sp.Transform(buf, buf, nil)
+			sp.Transform(buf, buf)
 			pos = 0
 		}
 
@@ -139,7 +140,7 @@ func (sc *spongeCipher) encrypt(dst, src []byte, more bool) abstract.Cipher {
 
 	if !more {
 		if pos == rate {
-			sp.Transform(buf, buf, nil)
+			sp.Transform(buf, buf)
 			pos = 0
 		}
 
@@ -152,7 +153,7 @@ func (sc *spongeCipher) encrypt(dst, src []byte, more bool) abstract.Cipher {
 		buf[rate-1] ^= 0x80
 
 		// process final padded block
-		sp.Transform(buf, buf, nil)
+		sp.Transform(buf, buf)
 		pos = 0
 	}
 
@@ -169,7 +170,7 @@ func (sc *spongeCipher) decrypt(dst, src []byte, more bool) abstract.Cipher {
 	for {
 		if pos == rate {
 			// process next block
-			sp.Transform(buf, buf, nil)
+			sp.Transform(buf, buf)
 			pos = 0
 		}
 
@@ -210,7 +211,7 @@ func (sc *spongeCipher) decrypt(dst, src []byte, more bool) abstract.Cipher {
 	// pad the final block of a message
 	if !more {
 		if pos == rate {
-			sp.Transform(buf, buf, nil)
+			sp.Transform(buf, buf)
 			pos = 0
 		}
 
@@ -223,7 +224,7 @@ func (sc *spongeCipher) decrypt(dst, src []byte, more bool) abstract.Cipher {
 		buf[rate-1] ^= 0x80
 
 		// process last block
-		sp.Transform(buf, buf, nil)
+		sp.Transform(buf, buf)
 		pos = 0
 	}
 

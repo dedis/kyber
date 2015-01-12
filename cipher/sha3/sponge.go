@@ -37,40 +37,25 @@ func (d *sponge) Clone() cipher.Sponge {
 	return &c
 }
 
-func xorIn(dst []uint64, src []byte) {
-	for len(src) >= 8 {
-		dst[0] ^= binary.LittleEndian.Uint64(src)
-		src = src[8:]
-		dst = dst[1:]
-	}
-	if len(src) > 0 {
-		var buf [8]byte
-		copy(buf[:], src)
-		dst[0] ^= binary.LittleEndian.Uint64(buf[:])
-	}
-}
-
-func (d *sponge) Transform(dst, src, key []byte) {
+func (d *sponge) Transform(dst, src []byte) {
 
 	//println("Transform\n" + hex.Dump(src))
 	//odst := dst
 
-	n := d.rate >> 3
-	xorIn(d.a[:n], src) // data block
-	xorIn(d.a[n:], key) // key material
+	a := d.a[:]
+	for len(src) > 0 {
+		a[0] ^= binary.LittleEndian.Uint64(src)
+		src = src[8:]
+		a = a[1:]
+	}
 
 	keccakF1600(&d.a) // permute state
 
-	a := d.a[:d.rate>>3]
-	for len(dst) >= 8 {
+	a = d.a[:]
+	for len(dst) > 0 {
 		binary.LittleEndian.PutUint64(dst, a[0])
 		a = a[1:]
 		dst = dst[8:]
-	}
-	if len(dst) > 0 {
-		var buf [8]byte
-		binary.LittleEndian.PutUint64(buf[:], a[0])
-		copy(dst, buf[:])
 	}
 
 	//println("->\n" + hex.Dump(odst))
