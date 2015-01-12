@@ -8,6 +8,7 @@ import (
 	"crypto/cipher"
 	"crypto/elliptic"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/random"
 )
 
@@ -181,11 +182,11 @@ func (p *curvePoint) Decode(buf []byte) error {
 }
 
 func (p *curvePoint) EncodeTo(w io.Writer) (int, error) {
-	return abstract.PointEncodeTo(p, w)
+	return group.PointEncodeTo(p, w)
 }
 
 func (p *curvePoint) DecodeFrom(r io.Reader) (int, error) {
-	return abstract.PointDecodeFrom(p, r)
+	return group.PointDecodeFrom(p, r)
 }
 
 

@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/nist"
 )
 
@@ -45,11 +46,11 @@ func (P *projPoint) Decode(b []byte) error {
 }
 
 func (P *projPoint) EncodeTo(w io.Writer) (int, error) {
-	return abstract.PointEncodeTo(P, w)
+	return group.PointEncodeTo(P, w)
 }
 
 func (P *projPoint) DecodeFrom(r io.Reader) (int, error) {
-	return abstract.PointDecodeFrom(P, r)
+	return group.PointDecodeFrom(P, r)
 }
 
 func (P *projPoint) HideLen() int {

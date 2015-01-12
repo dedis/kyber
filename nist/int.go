@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/math"
 	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/util"
@@ -323,11 +324,11 @@ func (i *Int) Decode(buf []byte) error {
 }
 
 func (i *Int) EncodeTo(w io.Writer) (int, error) {
-	return abstract.SecretEncodeTo(i, w)
+	return group.SecretEncodeTo(i, w)
 }
 
 func (i *Int) DecodeFrom(r io.Reader) (int, error) {
-	return abstract.SecretDecodeFrom(i, r)
+	return group.SecretDecodeFrom(i, r)
 }
 
 // Encode the value of this Int into a big-endian byte-slice

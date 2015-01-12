@@ -24,6 +24,7 @@ import (
 	"encoding/hex"
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 )
 
 
@@ -234,11 +235,11 @@ func (p *point) Decode(buf []byte) error {
 }
 
 func (p *point) EncodeTo(w io.Writer) (int, error) {
-	return abstract.PointEncodeTo(p, w)
+	return group.PointEncodeTo(p, w)
 }
 
 func (p *point) DecodeFrom(r io.Reader) (int, error) {
-	return abstract.PointDecodeFrom(p, r)
+	return group.PointDecodeFrom(p, r)
 }
 
 

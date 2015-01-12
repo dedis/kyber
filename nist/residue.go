@@ -9,6 +9,7 @@ import (
 	"crypto/cipher"
 	//"encoding/hex"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/random"
 )
 
@@ -141,11 +142,11 @@ func (p *residuePoint) Decode(data []byte) error {
 }
 
 func (p *residuePoint) EncodeTo(w io.Writer) (int, error) {
-	return abstract.PointEncodeTo(p, w)
+	return group.PointEncodeTo(p, w)
 }
 
 func (p *residuePoint) DecodeFrom(r io.Reader) (int, error) {
-	return abstract.PointDecodeFrom(p, r)
+	return group.PointDecodeFrom(p, r)
 }
 
 

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/nist"
 )
 
@@ -48,11 +49,11 @@ func (P *extPoint) Decode(b []byte) error {
 }
 
 func (P *extPoint) EncodeTo(w io.Writer) (int, error) {
-	return abstract.PointEncodeTo(P, w)
+	return group.PointEncodeTo(P, w)
 }
 
 func (P *extPoint) DecodeFrom(r io.Reader) (int, error) {
-	return abstract.PointDecodeFrom(P, r)
+	return group.PointDecodeFrom(P, r)
 }
 
 func (P *extPoint) HideLen() int {

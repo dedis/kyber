@@ -12,6 +12,7 @@ import (
 	"io"
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 )
 
 
@@ -170,11 +171,11 @@ func (s *secret) Decode(buf []byte) error {
 }
 
 func (s *secret) EncodeTo(w io.Writer) (int, error) {
-	return abstract.SecretEncodeTo(s, w)
+	return group.SecretEncodeTo(s, w)
 }
 
 func (s *secret) DecodeFrom(r io.Reader) (int, error) {
-	return abstract.SecretDecodeFrom(s, r)
+	return group.SecretDecodeFrom(s, r)
 }
 
 

@@ -20,6 +20,7 @@ import (
 	"encoding/hex"
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/nist"
 )
 
@@ -53,11 +54,11 @@ func (P *point) Decode(b []byte) error {
 }
 
 func (P *point) EncodeTo(w io.Writer) (int, error) {
-	return abstract.PointEncodeTo(P, w)
+	return group.PointEncodeTo(P, w)
 }
 
 func (P *point) DecodeFrom(r io.Reader) (int, error) {
-	return abstract.PointDecodeFrom(P, r)
+	return group.PointDecodeFrom(P, r)
 }
 
 // Equality test for two Points on the same curve

@@ -3,9 +3,6 @@
 package cipher
 
 import (
-	"crypto/cipher"
-	"github.com/dedis/crypto/abstract"
-	"io"
 	"reflect"
 )
 
