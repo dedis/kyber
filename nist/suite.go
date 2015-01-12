@@ -12,12 +12,9 @@ type suite128 struct {
 } 
 
 // SHA256 hash function
-func (s *suite128) HashLen() int { return sha256.Size }
 func (s *suite128) Hash() hash.Hash {
 	return sha256.New()
 }
-
-func (s *suite128) KeyLen() int { return 16 }
 
 // SHA3/SHAKE128 Sponge Cipher
 func (s *suite128) Cipher(key []byte, options ...interface{}) abstract.Cipher {

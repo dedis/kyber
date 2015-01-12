@@ -17,16 +17,8 @@ func (s *suite128) String() string {
 	return "P256"
 }
 
-func (s *suite128) HashLen() int {
-	return 32	// SHA256_DIGEST_LENGTH
-}
-
 func (s *suite128) Hash() hash.Hash {
 	return NewSHA256()
-}
-
-func (s *suite128) KeyLen() int {
-	return 16	// AES128
 }
 
 func (s *suite128) Cipher(key []byte, options ...interface{}) abstract.Cipher {
@@ -51,16 +43,8 @@ func (s *suite192) String() string {
 	return "AES192SHA384P384"
 }
 
-func (s *suite192) HashLen() int {
-	return 48	// SHA384_DIGEST_LENGTH
-}
-
 func (s *suite192) Hash() hash.Hash {
 	return NewSHA384()
-}
-
-func (s *suite192) KeyLen() int {
-	return 24	// AES192
 }
 
 func (s *suite192) Cipher(key []byte, options ...interface{}) abstract.Cipher {
@@ -85,16 +69,8 @@ func (s *suite256) String() string {
 	return "AES256SHA512P521"
 }
 
-func (s *suite256) HashLen() int {
-	return 64	// SHA512_DIGEST_LENGTH
-}
-
 func (s *suite256) Hash() hash.Hash {
 	return NewSHA512()
-}
-
-func (s *suite256) KeyLen() int {
-	return 32	// AES256
 }
 
 func (s *suite256) Cipher(key []byte, options ...interface{}) abstract.Cipher {

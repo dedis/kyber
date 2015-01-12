@@ -106,9 +106,9 @@ func (dp *deniableProver) run(suite abstract.Suite, self int, prv Prover,
 // Start the message buffer off in each step with a randomness commitment
 func (dp *deniableProver) initStep() {
 
-	keylen := dp.suite.KeyLen()
+	keylen := dp.prirand.KeySize()
 	key := make([]byte, keylen)		// secret random key
-	dp.prirand.XORKeyStream(key, key)
+	dp.prirand.Read(key)
 	dp.key = key
 
 	msg := make([]byte, keylen)		// send commitment to it
@@ -134,7 +134,7 @@ func (dp *deniableProver) proofStep() (bool,error) {
 	// Distribute this step's prover messages
 	// to the relevant verifiers as well,
 	// waking them up in the process so they can proceed.
-	keylen := dp.suite.KeyLen()
+	keylen := dp.prirand.KeySize()
 	for i := range(dp.dv) {
 		dv := dp.dv[i]
 		if dv != nil && i < len(msgs) {
@@ -172,7 +172,7 @@ func (dp *deniableProver) challengeStep() error {
 	// check them against the respective commits,
 	// and ensure ours is included to ensure deniability
 	// (even if all others turn out to be maliciously generated).
-	keylen := dp.suite.KeyLen()
+	keylen := dp.prirand.KeySize()
 	mix := make([]byte, keylen)
 	for i := range(keys) {
 		com := dp.msgs[i][:keylen] // node i's randomness commitment
@@ -291,9 +291,6 @@ func (dv *deniableVerifier) PubRand(data...interface{}) error {
 
 	// Wait for it
 	chal := <- dv.inbox
-	if len(chal) != dv.suite.KeyLen() {
-		panic("deniableVerifier: bad challenge")
-	}
 
 	// Produce the appropriate publicly random stream
 	dv.pubrand = dv.suite.Cipher(chal)

@@ -27,17 +27,8 @@ type Suite interface {
 	// If key is nil, creates a Cipher seeded with a fresh random key.
 	Cipher(key []byte, options ...interface{}) Cipher
 
-	// Returns recommended size of cryptographic keys for full security.
-	// XXX will probably eliminate this.
-	KeyLen() int
-
 	// Symmetric-key hash function
 	Hash() hash.Hash
-
-	// Returns recommended size of hashes for full security.
-	// HashLen is typically about twice the size of KeyLen.
-	// XXX will probably eliminate this.
-	HashLen() int
 
 	// abstract group for public-key crypto
 	Group

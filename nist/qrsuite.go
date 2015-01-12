@@ -14,13 +14,9 @@ type qrsuite struct {
 } 
 
 // SHA256 hash function
-func (s qrsuite) HashLen() int { return sha256.Size }
 func (s qrsuite) Hash() hash.Hash {
 	return sha256.New()
 }
-
-// AES128-CTR stream cipher
-func (s qrsuite) KeyLen() int { return 16 }
 
 // SHA3/SHAKE128 Sponge Cipher
 func (s qrsuite) Cipher(key []byte, options ...interface{}) abstract.Cipher {

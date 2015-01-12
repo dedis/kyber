@@ -31,13 +31,13 @@ import (
 //
 // To form a keyed Cipher from a generic unkeyed Cipher,
 // simply absorb the secret key via Crypt(nil, key).
-// The key may be any length, but the KeyLen method returns the optimal
+// The key may be any length, but the KeySize method returns the optimal
 // length for secret keys to achieve maximum security with this cipher.
 //
 // To compute a cryptographic hash, create an unkeyed Cipher,
 // then absorb the message via Crypt(nil, message),
 // and finally produce the digest via Crypt(digest, nil).
-// The digest may be any length, but the HashLen method returns the optimal
+// The digest may be any length, but the HashSize method returns the optimal
 // length for hashes to achieve maximum security with this cipher.
 // To compute a keyed cryptographic hash or message-authenticator,
 // follow the same procedure but using a keyed Cipher.
@@ -67,7 +67,7 @@ type Cipher interface {
 	KeySize() int
 
 	// Return recommended size in bytes of hashes for full security.
-	// This is usually 2*KeyLen() to account for birthday attacks.
+	// This is usually 2*KeySize() to account for birthday attacks.
 	HashSize() int
 
 	// Return the size of block in which this cipher processes data:

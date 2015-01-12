@@ -29,7 +29,7 @@ type SKEME struct {
 	lX,rX abstract.Point		// local,remote Diffie-Hellman pubkeys
 	lXb,rXb []byte			// local,remote DH pubkeys byte-encoded
 
-	ms cipher.Stream		// master symmetric shared stream
+	ms abstract.Cipher		// master symmetric shared stream
 	ls,rs cipher.Stream		// local->remote,remote->local streams
 	lmac,rmac []byte		// local,remote key-confirmation MACs
 
@@ -85,7 +85,7 @@ func (sk *SKEME) Recv(rm []byte) (bool,error) {
 		// Compute the shared secret and the key-confirmation MACs
 		DH := sk.suite.Point().Mul(rX,sk.lx)
 		sk.ms = sk.suite.Cipher(DH.Encode())
-		mkey := random.Bytes(sk.suite.KeyLen(),sk.ms)
+		mkey := random.Bytes(sk.ms.KeySize(),sk.ms)
 		sk.ls,sk.lmac = sk.mkmac(mkey,sk.lXb,sk.rXb)
 		sk.rs,sk.rmac = sk.mkmac(mkey,sk.rXb,sk.lXb)
 
@@ -95,7 +95,7 @@ func (sk *SKEME) Recv(rm []byte) (bool,error) {
 
 	// Decode and check the remote key-confirmation MAC if present
 	maclo := ptlen
-	machi := maclo + sk.suite.KeyLen()
+	machi := maclo + sk.ms.KeySize()
 	if len(M) < machi {
 		return false,nil	// not an error, just not done yet
 	}
@@ -109,7 +109,7 @@ func (sk *SKEME) Recv(rm []byte) (bool,error) {
 }
 
 func (sk *SKEME) mkmac(masterkey,Xb1,Xb2 []byte) (cipher.Stream,[]byte) {
-	keylen := sk.suite.KeyLen()
+	keylen := sk.ms.KeySize()
 	hmac := hmac.New(sk.suite.Hash, masterkey)
 	hmac.Write(Xb1)
 	hmac.Write(Xb2)

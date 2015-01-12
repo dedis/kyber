@@ -13,12 +13,9 @@ type suiteEd25519 struct {
 // XXX non-NIST ciphers?
 
 // SHA256 hash function
-func (s *suiteEd25519) HashLen() int { return sha256.Size }
 func (s *suiteEd25519) Hash() hash.Hash {
 	return sha256.New()
 }
-
-func (s *suiteEd25519) KeyLen() int { return 16 }
 
 // SHA3/SHAKE128 Sponge Cipher
 func (s *suiteEd25519) Cipher(key []byte, options ...interface{}) abstract.Cipher {

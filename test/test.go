@@ -204,7 +204,7 @@ func TestSuite(suite abstract.Suite) {
 
 	// Try hashing something
 	h := suite.Hash()
-	l := suite.HashLen()
+	l := h.Size()
 	//println("HashLen: ",l)
 	h.Write([]byte("abc"))
 	hb := h.Sum(nil)
@@ -215,7 +215,7 @@ func TestSuite(suite abstract.Suite) {
 	}
 
 	// Generate some pseudorandom bits
-	s := suite.Cipher(hb[0:suite.KeyLen()])
+	s := suite.Cipher(hb)
 	sb := make([]byte,128)
 	s.XORKeyStream(sb,sb)
 	//println("Stream:")

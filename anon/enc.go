@@ -145,17 +145,16 @@ func Encrypt(suite abstract.Suite, rand cipher.Stream, message []byte,
 		anonymitySet Set, hide bool) []byte {
 
 	xb,hdr := encryptKey(suite, rand, anonymitySet, hide)
+	cipher := suite.Cipher(xb, abstract.Encrypt)
 
 	// We now know the ciphertext layout
 	hdrhi := 0 + len(hdr)
 	msghi := hdrhi + len(message)
-	machi := msghi + suite.KeyLen()
+	machi := msghi + cipher.KeySize()
 	ciphertext := make([]byte, machi)
 	copy(ciphertext,hdr)
 
 	// Now encrypt and MAC the message based on the master secret
-	cipher := suite.Cipher(xb, abstract.Encrypt)
-	cipher.Crypt(nil, nil)
 	cipher.Crypt(ciphertext[hdrhi:msghi], message)
 	cipher.Crypt(ciphertext[msghi:machi], nil) // MAC
 	return ciphertext
@@ -187,7 +186,8 @@ func Decrypt(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
 	}
 
 	// Determine the message layout
-	maclen := suite.KeyLen()
+	cipher := suite.Cipher(xb, abstract.Decrypt)
+	maclen := cipher.KeySize()
 	if len(ciphertext) < hdrlen+maclen {
 		return nil,errors.New("ciphertext too short")
 	}
@@ -197,8 +197,6 @@ func Decrypt(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
 	// Decrypt the message and check the MAC
 	msg := ciphertext[hdrhi:msghi]
 	mac := ciphertext[msghi:]
-	cipher := suite.Cipher(xb, abstract.Decrypt)
-	cipher.Crypt(nil, nil)
 	cipher.Crypt(msg, msg)
 	cipher.Crypt(mac, mac)
 	if subtle.ConstantTimeNonzero(mac) != 0 {
