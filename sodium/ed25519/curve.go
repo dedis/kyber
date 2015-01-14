@@ -1,4 +1,3 @@
-
 // +build sodium
 
 // Package ed25519 implements Go wrappers for
@@ -36,34 +35,31 @@ package ed25519
 import "C"
 
 import (
-	"fmt"
-	"time"
-	"hash"
 	"bytes"
 	"errors"
+	"fmt"
+	"hash"
+	"time"
 	"unsafe"
 	//"runtime"
-	"math/big"
 	"crypto/aes"
-	"encoding/hex"
 	"crypto/cipher"
 	"crypto/sha256"
+	"encoding/hex"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/sha3"
+	"math/big"
 )
 
-
 // prime order of base point = 2^252 + 27742317777372353535851937790883648493
-var primeOrder,_ = new(nist.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989","",10)
+var primeOrder, _ = new(nist.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989", "", 10)
 
 // curve's cofactor
 var cofactor = nist.NewInt(8, &primeOrder.V)
 
-
 var nullPoint = new(point).Null()
-
 
 type point struct {
 	p C.ge_p3
@@ -72,16 +68,14 @@ type point struct {
 type curve struct {
 }
 
-
 // Convert little-endian byte slice to hex string
 func tohex(s []byte) string {
 	b := make([]byte, len(s))
-	for i := range(b) {		// byte-swap to big-endian for display
+	for i := range b { // byte-swap to big-endian for display
 		b[i] = s[31-i]
 	}
 	return hex.EncodeToString(b)
 }
-
 
 func (p *point) String() string {
 	return hex.EncodeToString(p.Encode())
@@ -110,7 +104,7 @@ func (p *point) PickLen() int {
 	return (255 - 8 - 8) / 8
 }
 
-func (P *point) Pick(data []byte,rand cipher.Stream) (abstract.Point, []byte) {
+func (P *point) Pick(data []byte, rand cipher.Stream) (abstract.Point, []byte) {
 
 	// How many bytes to embed?
 	dl := P.PickLen()
@@ -121,14 +115,14 @@ func (P *point) Pick(data []byte,rand cipher.Stream) (abstract.Point, []byte) {
 	for {
 		// Pick a random point, with optional embedded data
 		var b [32]byte
-		rand.XORKeyStream(b[:],b[:])
+		rand.XORKeyStream(b[:], b[:])
 		if data != nil {
-			b[0] = byte(dl)		// Encode length in low 8 bits
-			copy(b[1:1+dl],data)	// Copy in data to embed
+			b[0] = byte(dl)       // Encode length in low 8 bits
+			copy(b[1:1+dl], data) // Copy in data to embed
 		}
-		if C.ge_frombytes_vartime(&P.p,	// Try to decode
-				(*C.uchar)(unsafe.Pointer(&b[0]))) != 0 {
-			continue		// invalid point, retry
+		if C.ge_frombytes_vartime(&P.p, // Try to decode
+			(*C.uchar)(unsafe.Pointer(&b[0]))) != 0 {
+			continue // invalid point, retry
 		}
 
 		// We're using the prime-order subgroup,
@@ -137,11 +131,11 @@ func (P *point) Pick(data []byte,rand cipher.Stream) (abstract.Point, []byte) {
 		// we can convert our point into one in the subgroup
 		// simply by multiplying it by the cofactor.
 		if data == nil {
-			P.Mul(P, cofactor)      // multiply by cofactor
+			P.Mul(P, cofactor) // multiply by cofactor
 			if P.Equal(nullPoint) {
-				continue        // unlucky; try again
+				continue // unlucky; try again
 			}
-			return P,data[dl:]      // success
+			return P, data[dl:] // success
 		}
 
 		// Since we need the point's y-coordinate to hold our data,
@@ -150,31 +144,31 @@ func (P *point) Pick(data []byte,rand cipher.Stream) (abstract.Point, []byte) {
 		var Q point
 		Q.Mul(P, primeOrder)
 		if Q.Equal(nullPoint) {
-			return P,data[dl:]      // success
+			return P, data[dl:] // success
 		}
 
 		// Keep trying...
 	}
 }
 
-func (p *point) Data() ([]byte,error) {
+func (p *point) Data() ([]byte, error) {
 	var b [32]byte
 	C.ge_p3_tobytes((*C.uchar)(unsafe.Pointer(&b[0])), &p.p)
-	dl := int(b[0])				// extract length byte
+	dl := int(b[0]) // extract length byte
 	if dl > p.PickLen() {
-		return nil,errors.New("invalid embedded data length")
+		return nil, errors.New("invalid embedded data length")
 	}
-	return b[1:1+dl],nil
+	return b[1 : 1+dl], nil
 }
 
-func (p *point) Add(ca,cb abstract.Point) abstract.Point {
+func (p *point) Add(ca, cb abstract.Point) abstract.Point {
 	a := ca.(*point)
 	b := cb.(*point)
 	C.ge_p3_add(&p.p, &a.p, &b.p)
 	return p
 }
 
-func (p *point) Sub(ca,cb abstract.Point) abstract.Point {
+func (p *point) Sub(ca, cb abstract.Point) abstract.Point {
 	a := ca.(*point)
 	b := cb.(*point)
 	C.ge_p3_sub(&p.p, &a.p, &b.p)
@@ -191,7 +185,7 @@ func (p *point) Mul(ca abstract.Point, cs abstract.Secret) abstract.Point {
 
 	// Convert the scalar to fixed-length little-endian form.
 	sb := cs.(*nist.Int).V.Bytes()
-	shi := len(sb)-1
+	shi := len(sb) - 1
 	var b [32]byte
 	for i := range sb {
 		b[shi-i] = sb[i]
@@ -199,11 +193,11 @@ func (p *point) Mul(ca abstract.Point, cs abstract.Secret) abstract.Point {
 
 	if ca == nil {
 		// Optimized multiplication by precomputed base point
-		C.ge_scalarmult_base(&p.p, (*C.uchar)(unsafe.Pointer(&b[0])));
+		C.ge_scalarmult_base(&p.p, (*C.uchar)(unsafe.Pointer(&b[0])))
 	} else {
 		// General scalar multiplication
 		a := ca.(*point)
-		C.ge_scalarmult(&p.p, (*C.uchar)(unsafe.Pointer(&b[0])), &a.p);
+		C.ge_scalarmult(&p.p, (*C.uchar)(unsafe.Pointer(&b[0])), &a.p)
 	}
 	return p
 }
@@ -221,7 +215,7 @@ func (p *point) Decode(buf []byte) error {
 		return errors.New("curve25519 point wrong size")
 	}
 	if C.ge_frombytes_vartime(&p.p,
-				(*C.uchar)(unsafe.Pointer(&buf[0]))) != 0 {
+		(*C.uchar)(unsafe.Pointer(&buf[0]))) != 0 {
 		return errors.New("curve25519 point invalid")
 	}
 	return nil
@@ -245,13 +239,11 @@ func fetohex(fe *C.fe) string {
 }
 
 func (p *point) dump() {
-	println("X",fetohex(&p.p.X))
-	println("Y",fetohex(&p.p.Y))
-	println("Z",fetohex(&p.p.Z))
-	println("T",fetohex(&p.p.T))
+	println("X", fetohex(&p.p.X))
+	println("Y", fetohex(&p.p.Y))
+	println("Z", fetohex(&p.p.Z))
+	println("T", fetohex(&p.p.T))
 }
-
-
 
 func (c *curve) String() string {
 	return "Curve25519"
@@ -274,7 +266,7 @@ func (c *curve) Point() abstract.Point {
 }
 
 func (c *curve) Order() *big.Int {
-	return new(big.Int)	// XXX
+	return new(big.Int) // XXX
 }
 
 func (c *curve) PrimeOrder() bool {
@@ -285,10 +277,10 @@ func NewCurve25519() abstract.Group {
 	return new(curve)
 }
 
-
 type suite struct {
 	curve
-} 
+}
+
 // XXX non-NIST ciphers?
 
 // SHA256 hash function
@@ -302,8 +294,8 @@ func (s *suite) Stream(key []byte) cipher.Stream {
 	if err != nil {
 		panic("can't instantiate AES: " + err.Error())
 	}
-	iv := make([]byte,16)
-	return cipher.NewCTR(aes,iv)
+	iv := make([]byte, 16)
+	return cipher.NewCTR(aes, iv)
 }
 
 // SHA3/SHAKE128 sponge
@@ -317,74 +309,73 @@ func NewAES128SHA256Ed25519() abstract.Suite {
 	return suite
 }
 
-
 func TestCurve25519() {
 
 	var x point
 
 	p0 := point{}
 	C.ge_p3_0(&p0.p)
-	println("zero",p0.String())
+	println("zero", p0.String())
 	p0.validate()
 
 	b := point{}
 	b.Base()
-	println("base",b.String())
+	println("base", b.String())
 	b.dump()
 	b.validate()
 
 	x.Base()
-	x.Mul(&x,&s0)
-	println("base*0",x.String())
+	x.Mul(&x, &s0)
+	println("base*0", x.String())
 	x.validate()
 
 	x.Base()
-	x.Mul(&x,&s1)
-	println("base*1",x.String())
+	x.Mul(&x, &s1)
+	println("base*1", x.String())
 	x.validate()
 
 	bx2 := point{}
-	bx2.Mul(&b,&s2)
-	println("base*2",bx2.String())
+	bx2.Mul(&b, &s2)
+	println("base*2", bx2.String())
 	bx2.validate()
 
-	r := C.ge_p1p1{}	// check against doubling function
+	r := C.ge_p1p1{} // check against doubling function
 	C.ge_p3_dbl(&r, &b.p)
-	C.ge_p1p1_to_p3(&x.p,&r);
-	println("base*2",x.String())
+	C.ge_p1p1_to_p3(&x.p, &r)
+	println("base*2", x.String())
 	x.validate()
 
 	bx4 := point{}
-	bx4.Mul(&b,&s4)
-	println("base*4",bx4.String())
+	bx4.Mul(&b, &s4)
+	println("base*4", bx4.String())
 	bx4.validate()
 
 	bx2x2 := point{}
-	bx2x2.Mul(&bx2,&s2)
-	println("base*2*2",bx2x2.String())
+	bx2x2.Mul(&bx2, &s2)
+	println("base*2*2", bx2x2.String())
 	bx2x2.validate()
 
-	x.Add(&b,&p0)
-	println("base+0",x.String())
-	x.Add(&p0,&b)
-	println("0+base",x.String())
+	x.Add(&b, &p0)
+	println("base+0", x.String())
+	x.Add(&p0, &b)
+	println("0+base", x.String())
 	x.validate()
 	x.validate()
 
-	x.Add(&b,&b)
-	println("base+base",x.String())
+	x.Add(&b, &b)
+	println("base+base", x.String())
 	//x.validate()
 
-	x.Add(&b,&bx2)
-	println("base+base*2",x.String())
+	x.Add(&b, &bx2)
+	println("base+base*2", x.String())
 	//x.validate()
 
-	x.Add(&x,&b)
-	println("base+base*3",x.String())
+	x.Add(&x, &b)
+	println("base+base*3", x.String())
 	//x.validate()
 
-//	g := NewCurve25519()
-//	crypto.TestGroup(g)
+	//	g := NewCurve25519()
+	//	crypto.TestGroup(g)
 }
 
 func BenchCurve25519() {
@@ -397,23 +388,22 @@ func BenchCurve25519() {
 	beg := time.Now()
 	iters := 50000
 	for i := 1; i < iters; i++ {
-		p.Add(p,b)
+		p.Add(p, b)
 	}
 	end := time.Now()
 	fmt.Printf("Point.Add: %f ops/sec\n",
-			float64(iters) / 
-			(float64(end.Sub(beg)) / 1000000000.0))
+		float64(iters)/
+			(float64(end.Sub(beg))/1000000000.0))
 
 	// Point encryption
 	s := g.Secret().Pick(random.Stream)
 	beg = time.Now()
 	iters = 5000
 	for i := 1; i < iters; i++ {
-		p.Mul(p,s)
+		p.Mul(p, s)
 	}
 	end = time.Now()
 	fmt.Printf("Point.Mul: %f ops/sec\n",
-			float64(iters) / 
-			(float64(end.Sub(beg)) / 1000000000.0))
+		float64(iters)/
+			(float64(end.Sub(beg))/1000000000.0))
 }
-

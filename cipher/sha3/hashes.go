@@ -16,13 +16,12 @@ import (
 
 var sha3Opts = []interface{}{abstract.Encrypt, cipher.Padding(0x06)}
 
-
 // NewCipher224 creates a Cipher implementing the SHA3-224 algorithm,
 // which provides 224-bit security against preimage attacks
 // and 112-bit security against collisions.
 func NewCipher224(key []byte, options ...interface{}) abstract.Cipher {
 	return cipher.NewSpongeCipher(newKeccak448(), key,
-					append(sha3Opts, options...)...)
+		append(sha3Opts, options...)...)
 }
 
 // NewCipher256 creates a Cipher implementing the SHA3-256 algorithm,
@@ -30,7 +29,7 @@ func NewCipher224(key []byte, options ...interface{}) abstract.Cipher {
 // and 128-bit security against collisions.
 func NewCipher256(key []byte, options ...interface{}) abstract.Cipher {
 	return cipher.NewSpongeCipher(newKeccak512(), key,
-					append(sha3Opts, options...)...)
+		append(sha3Opts, options...)...)
 }
 
 // NewCipher384 creates a Cipher implementing the SHA3-384 algorithm,
@@ -38,7 +37,7 @@ func NewCipher256(key []byte, options ...interface{}) abstract.Cipher {
 // and 192-bit security against collisions.
 func NewCipher384(key []byte, options ...interface{}) abstract.Cipher {
 	return cipher.NewSpongeCipher(newKeccak768(), key,
-					append(sha3Opts, options...)...)
+		append(sha3Opts, options...)...)
 }
 
 // NewCipher512 creates a Cipher implementing the SHA3-512 algorithm,
@@ -46,9 +45,8 @@ func NewCipher384(key []byte, options ...interface{}) abstract.Cipher {
 // and 256-bit security against collisions.
 func NewCipher512(key []byte, options ...interface{}) abstract.Cipher {
 	return cipher.NewSpongeCipher(newKeccak1024(), key,
-					append(sha3Opts, options...)...)
+		append(sha3Opts, options...)...)
 }
-
 
 // New224 creates a new SHA3-224 hash.
 // Its generic security strength is 224 bits against preimage attacks,

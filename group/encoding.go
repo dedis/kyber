@@ -3,9 +3,9 @@
 package group
 
 import (
-	"io"
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
+	"io"
 )
 
 // PointEncodeTo provides a generic implementation of Point.EncodeTo
@@ -53,5 +53,3 @@ func SecretDecodeFrom(s abstract.Secret, r io.Reader) (int, error) {
 	}
 	return n, s.Decode(buf)
 }
-
-

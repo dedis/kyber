@@ -74,7 +74,7 @@ func (s *shake) Clone() ShakeHash {
 
 func (s *shake) Reset() {
 	s.cipher = cipher.NewSpongeCipher(s.sponge(), abstract.NoKey,
-				abstract.Encrypt, cipher.Padding(0x1f))
+		abstract.Encrypt, cipher.Padding(0x1f))
 	s.squeezing = false
 }
 
@@ -84,14 +84,14 @@ var shakeOpts = []interface{}{abstract.Encrypt, cipher.Padding(0x1f)}
 // which provides 128-bit security against all known attacks.
 func NewShakeCipher128(key []byte, options ...interface{}) abstract.Cipher {
 	return cipher.NewSpongeCipher(newKeccak256(), key,
-					append(shakeOpts, options...)...)
+		append(shakeOpts, options...)...)
 }
 
 // NewShakeCipher256 creates a Cipher implementing the SHAKE256 algorithm,
 // which provides 256-bit security against all known attacks.
 func NewShakeCipher256(key []byte, options ...interface{}) abstract.Cipher {
 	return cipher.NewSpongeCipher(newKeccak512(), key,
-					append(shakeOpts, options...)...)
+		append(shakeOpts, options...)...)
 }
 
 // NewShake128 creates a new SHAKE128 variable-output-length ShakeHash.

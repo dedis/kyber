@@ -34,11 +34,9 @@ type Suite interface {
 	Group
 }
 
-
 // Sum uses a given ciphersuite's hash function to checksum a byte-slice.
 func Sum(suite Suite, data []byte) []byte {
 	h := suite.Hash()
 	h.Write(data)
 	return h.Sum(nil)
 }
-

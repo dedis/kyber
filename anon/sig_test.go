@@ -1,14 +1,14 @@
 package anon
 
 import (
-	"fmt"
 	"bytes"
-	"testing"
 	"encoding/hex"
+	"fmt"
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/random"
-	"github.com/dedis/crypto/openssl"
 	"github.com/dedis/crypto/edwards"
+	"github.com/dedis/crypto/openssl"
+	"github.com/dedis/crypto/random"
+	"testing"
 )
 
 // This example demonstrates signing and signature verification
@@ -24,18 +24,18 @@ func ExampleSign_1() {
 	rand := suite.Cipher([]byte("example"))
 
 	// Create a public/private keypair (X[mine],x)
-	X := make([]abstract.Point,1)
-	mine := 0				// which public key is mine
-	x := suite.Secret().Pick(rand)		// create a private key x
-	X[mine] = suite.Point().Mul(nil,x)	// corresponding public key X
+	X := make([]abstract.Point, 1)
+	mine := 0                           // which public key is mine
+	x := suite.Secret().Pick(rand)      // create a private key x
+	X[mine] = suite.Point().Mul(nil, x) // corresponding public key X
 
 	// Generate the signature
-	M := []byte("Hello World!")		// message we want to sign
+	M := []byte("Hello World!") // message we want to sign
 	sig := Sign(suite, rand, M, Set(X), nil, mine, x)
-	fmt.Print("Signature:\n"+hex.Dump(sig))
+	fmt.Print("Signature:\n" + hex.Dump(sig))
 
 	// Verify the signature against the correct message
-	tag,err := Verify(suite, M, Set(X), nil, sig)
+	tag, err := Verify(suite, M, Set(X), nil, sig)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -46,11 +46,11 @@ func ExampleSign_1() {
 
 	// Verify the signature against the wrong message
 	BAD := []byte("Goodbye world!")
-	tag,err = Verify(suite, BAD, Set(X), nil, sig)
+	tag, err = Verify(suite, BAD, Set(X), nil, sig)
 	if err == nil || tag != nil {
 		panic("Signature verified against wrong message!?")
 	}
-	fmt.Println("Verifying against wrong message: "+err.Error())
+	fmt.Println("Verifying against wrong message: " + err.Error())
 
 	// Output:
 	// Signature:
@@ -72,23 +72,23 @@ func ExampleSign_anonSet() {
 	rand := suite.Cipher([]byte("example"))
 
 	// Create an anonymity set of random "public keys"
-	X := make([]abstract.Point,3)
-	for i := range(X) {			// pick random points
-		X[i],_ = suite.Point().Pick(nil,rand)
+	X := make([]abstract.Point, 3)
+	for i := range X { // pick random points
+		X[i], _ = suite.Point().Pick(nil, rand)
 	}
 
 	// Make just one of them an actual public/private keypair (X[mine],x)
-	mine := 1				// only the signer knows this
-	x := suite.Secret().Pick(rand)		// create a private key x
-	X[mine] = suite.Point().Mul(nil,x)	// corresponding public key X
+	mine := 1                           // only the signer knows this
+	x := suite.Secret().Pick(rand)      // create a private key x
+	X[mine] = suite.Point().Mul(nil, x) // corresponding public key X
 
 	// Generate the signature
-	M := []byte("Hello World!")		// message we want to sign
+	M := []byte("Hello World!") // message we want to sign
 	sig := Sign(suite, rand, M, Set(X), nil, mine, x)
-	fmt.Print("Signature:\n"+hex.Dump(sig))
+	fmt.Print("Signature:\n" + hex.Dump(sig))
 
 	// Verify the signature against the correct message
-	tag,err := Verify(suite, M, Set(X), nil, sig)
+	tag, err := Verify(suite, M, Set(X), nil, sig)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -99,11 +99,11 @@ func ExampleSign_anonSet() {
 
 	// Verify the signature against the wrong message
 	BAD := []byte("Goodbye world!")
-	tag,err = Verify(suite, BAD, Set(X), nil, sig)
+	tag, err = Verify(suite, BAD, Set(X), nil, sig)
 	if err == nil || tag != nil {
 		panic("Signature verified against wrong message!?")
 	}
-	fmt.Println("Verifying against wrong message: "+err.Error())
+	fmt.Println("Verifying against wrong message: " + err.Error())
 
 	// Output:
 	// Signature:
@@ -131,35 +131,35 @@ func ExampleSign_linkable() {
 	rand := suite.Cipher([]byte("example"))
 
 	// Create an anonymity set of random "public keys"
-	X := make([]abstract.Point,3)
-	for i := range(X) {			// pick random points
-		X[i],_ = suite.Point().Pick(nil,rand)
+	X := make([]abstract.Point, 3)
+	for i := range X { // pick random points
+		X[i], _ = suite.Point().Pick(nil, rand)
 	}
 
 	// Make two actual public/private keypairs (X[mine],x)
-	mine1 := 1				// only the signer knows this
+	mine1 := 1 // only the signer knows this
 	mine2 := 2
-	x1 := suite.Secret().Pick(rand)		// create a private key x
+	x1 := suite.Secret().Pick(rand) // create a private key x
 	x2 := suite.Secret().Pick(rand)
-	X[mine1] = suite.Point().Mul(nil,x1)	// corresponding public key X
-	X[mine2] = suite.Point().Mul(nil,x2)
+	X[mine1] = suite.Point().Mul(nil, x1) // corresponding public key X
+	X[mine2] = suite.Point().Mul(nil, x2)
 
 	// Generate two signatures using x1 and two using x2
-	M := []byte("Hello World!")		// message we want to sign
-	S := []byte("My Linkage Scope")		// scope for linkage tags
+	M := []byte("Hello World!")     // message we want to sign
+	S := []byte("My Linkage Scope") // scope for linkage tags
 	var sig [4][]byte
 	sig[0] = Sign(suite, rand, M, Set(X), S, mine1, x1)
 	sig[1] = Sign(suite, rand, M, Set(X), S, mine1, x1)
 	sig[2] = Sign(suite, rand, M, Set(X), S, mine2, x2)
 	sig[3] = Sign(suite, rand, M, Set(X), S, mine2, x2)
-	for i := range(sig) {
-		fmt.Printf("Signature %d:\n%s",i,hex.Dump(sig[i]))
+	for i := range sig {
+		fmt.Printf("Signature %d:\n%s", i, hex.Dump(sig[i]))
 	}
 
 	// Verify the signatures against the correct message
 	var tag [4][]byte
-	for i := range(sig) {
-		goodtag,err := Verify(suite, M, Set(X), S, sig[i])
+	for i := range sig {
+		goodtag, err := Verify(suite, M, Set(X), S, sig[i])
 		if err != nil {
 			panic(err.Error())
 		}
@@ -167,18 +167,18 @@ func ExampleSign_linkable() {
 		if tag[i] == nil || len(tag[i]) != suite.PointLen() {
 			panic("Verify returned invalid tag")
 		}
-		fmt.Printf("Sig%d tag: %s\n",i,
-				hex.EncodeToString(tag[i]))
+		fmt.Printf("Sig%d tag: %s\n", i,
+			hex.EncodeToString(tag[i]))
 
 		// Verify the signature against the wrong message
 		BAD := []byte("Goodbye world!")
-		badtag,err := Verify(suite, BAD, Set(X), S, sig[i])
+		badtag, err := Verify(suite, BAD, Set(X), S, sig[i])
 		if err == nil || badtag != nil {
 			panic("Signature verified against wrong message!?")
 		}
 	}
-	if !bytes.Equal(tag[0],tag[1]) || !bytes.Equal(tag[2],tag[3]) ||
-			bytes.Equal(tag[0],tag[2]) {
+	if !bytes.Equal(tag[0], tag[1]) || !bytes.Equal(tag[2], tag[3]) ||
+		bytes.Equal(tag[0], tag[2]) {
 		panic("tags aren't coming out right!")
 	}
 
@@ -237,61 +237,60 @@ func ExampleSign_linkable() {
 	// Sig3 tag: 0255a2af445e5bfb65b1d56fea18214a4b0a753b6e50b7ed9fe749aa0383d1767f
 }
 
-
 var benchMessage = []byte("Hello World!")
 
-var benchPubOpenSSL,benchPriOpenSSL = benchGenKeysOpenSSL(100)
+var benchPubOpenSSL, benchPriOpenSSL = benchGenKeysOpenSSL(100)
 var benchSig1OpenSSL = benchGenSigOpenSSL(1)
 var benchSig10OpenSSL = benchGenSigOpenSSL(10)
 var benchSig100OpenSSL = benchGenSigOpenSSL(100)
 
-var benchPubEd25519,benchPriEd25519 = benchGenKeysEd25519(100)
+var benchPubEd25519, benchPriEd25519 = benchGenKeysEd25519(100)
 var benchSig1Ed25519 = benchGenSigEd25519(1)
 var benchSig10Ed25519 = benchGenSigEd25519(10)
 var benchSig100Ed25519 = benchGenSigEd25519(100)
 
 func benchGenKeys(suite abstract.Suite,
-		nkeys int) ([]abstract.Point,abstract.Secret) {
+	nkeys int) ([]abstract.Point, abstract.Secret) {
 
 	rand := random.Stream
 
 	// Create an anonymity set of random "public keys"
-	X := make([]abstract.Point,nkeys)
-	for i := range(X) {			// pick random points
-		X[i],_ = suite.Point().Pick(nil,rand)
+	X := make([]abstract.Point, nkeys)
+	for i := range X { // pick random points
+		X[i], _ = suite.Point().Pick(nil, rand)
 	}
 
 	// Make just one of them an actual public/private keypair (X[mine],x)
 	x := suite.Secret().Pick(rand)
-	X[0] = suite.Point().Mul(nil,x)
+	X[0] = suite.Point().Mul(nil, x)
 
-	return X,x
+	return X, x
 }
 
-func benchGenKeysOpenSSL(nkeys int) ([]abstract.Point,abstract.Secret) {
+func benchGenKeysOpenSSL(nkeys int) ([]abstract.Point, abstract.Secret) {
 	return benchGenKeys(openssl.NewAES128SHA256P256(), nkeys)
 }
 func benchGenSigOpenSSL(nkeys int) []byte {
 	suite := openssl.NewAES128SHA256P256()
 	rand := suite.Cipher([]byte("example"))
 	return Sign(suite, rand, benchMessage,
-			Set(benchPubOpenSSL[:nkeys]), nil,
-			0, benchPriOpenSSL)
+		Set(benchPubOpenSSL[:nkeys]), nil,
+		0, benchPriOpenSSL)
 }
 
-func benchGenKeysEd25519(nkeys int) ([]abstract.Point,abstract.Secret) {
+func benchGenKeysEd25519(nkeys int) ([]abstract.Point, abstract.Secret) {
 	return benchGenKeys(edwards.NewAES128SHA256Ed25519(false), nkeys)
 }
 func benchGenSigEd25519(nkeys int) []byte {
 	suite := edwards.NewAES128SHA256Ed25519(false)
 	rand := suite.Cipher([]byte("example"))
 	return Sign(suite, rand, benchMessage,
-			Set(benchPubEd25519[:nkeys]), nil,
-			0, benchPriEd25519)
+		Set(benchPubEd25519[:nkeys]), nil,
+		0, benchPriEd25519)
 }
 
 func benchSign(suite abstract.Suite, pub []abstract.Point, pri abstract.Secret,
-		niter int) {
+	niter int) {
 	rand := suite.Cipher([]byte("example"))
 	for i := 0; i < niter; i++ {
 		Sign(suite, rand, benchMessage, Set(pub), nil, 0, pri)
@@ -299,9 +298,9 @@ func benchSign(suite abstract.Suite, pub []abstract.Point, pri abstract.Secret,
 }
 
 func benchVerify(suite abstract.Suite, pub []abstract.Point,
-		sig []byte, niter int) {
+	sig []byte, niter int) {
 	for i := 0; i < niter; i++ {
-		tag,err := Verify(suite, benchMessage, Set(pub), nil, sig)
+		tag, err := Verify(suite, benchMessage, Set(pub), nil, sig)
 		if tag == nil || err != nil {
 			panic("benchVerify failed")
 		}
@@ -310,53 +309,52 @@ func benchVerify(suite abstract.Suite, pub []abstract.Point,
 
 func BenchmarkSign1OpenSSL(b *testing.B) {
 	benchSign(openssl.NewAES128SHA256P256(),
-		benchPubOpenSSL[:1],benchPriOpenSSL,b.N)
+		benchPubOpenSSL[:1], benchPriOpenSSL, b.N)
 }
 func BenchmarkSign10OpenSSL(b *testing.B) {
 	benchSign(openssl.NewAES128SHA256P256(),
-		benchPubOpenSSL[:10],benchPriOpenSSL,b.N)
+		benchPubOpenSSL[:10], benchPriOpenSSL, b.N)
 }
 func BenchmarkSign100OpenSSL(b *testing.B) {
 	benchSign(openssl.NewAES128SHA256P256(),
-		benchPubOpenSSL[:100],benchPriOpenSSL,b.N)
+		benchPubOpenSSL[:100], benchPriOpenSSL, b.N)
 }
 
 func BenchmarkVerify1OpenSSL(b *testing.B) {
 	benchVerify(openssl.NewAES128SHA256P256(),
-		benchPubOpenSSL[:1],benchSig1OpenSSL,b.N)
+		benchPubOpenSSL[:1], benchSig1OpenSSL, b.N)
 }
 func BenchmarkVerify10OpenSSL(b *testing.B) {
 	benchVerify(openssl.NewAES128SHA256P256(),
-		benchPubOpenSSL[:10],benchSig10OpenSSL,b.N)
+		benchPubOpenSSL[:10], benchSig10OpenSSL, b.N)
 }
 func BenchmarkVerify100OpenSSL(b *testing.B) {
 	benchVerify(openssl.NewAES128SHA256P256(),
-		benchPubOpenSSL[:100],benchSig100OpenSSL,b.N)
+		benchPubOpenSSL[:100], benchSig100OpenSSL, b.N)
 }
 
 func BenchmarkSign1Ed25519(b *testing.B) {
 	benchSign(edwards.NewAES128SHA256Ed25519(false),
-		benchPubEd25519[:1],benchPriEd25519,b.N)
+		benchPubEd25519[:1], benchPriEd25519, b.N)
 }
 func BenchmarkSign10Ed25519(b *testing.B) {
 	benchSign(edwards.NewAES128SHA256Ed25519(false),
-		benchPubEd25519[:10],benchPriEd25519,b.N)
+		benchPubEd25519[:10], benchPriEd25519, b.N)
 }
 func BenchmarkSign100Ed25519(b *testing.B) {
 	benchSign(edwards.NewAES128SHA256Ed25519(false),
-		benchPubEd25519[:100],benchPriEd25519,b.N)
+		benchPubEd25519[:100], benchPriEd25519, b.N)
 }
 
 func BenchmarkVerify1Ed25519(b *testing.B) {
 	benchVerify(edwards.NewAES128SHA256Ed25519(false),
-		benchPubEd25519[:1],benchSig1Ed25519,b.N)
+		benchPubEd25519[:1], benchSig1Ed25519, b.N)
 }
 func BenchmarkVerify10Ed25519(b *testing.B) {
 	benchVerify(edwards.NewAES128SHA256Ed25519(false),
-		benchPubEd25519[:10],benchSig10Ed25519,b.N)
+		benchPubEd25519[:10], benchSig10Ed25519, b.N)
 }
 func BenchmarkVerify100Ed25519(b *testing.B) {
 	benchVerify(edwards.NewAES128SHA256Ed25519(false),
-		benchPubEd25519[:100],benchSig100Ed25519,b.N)
+		benchPubEd25519[:100], benchSig100Ed25519, b.N)
 }
-

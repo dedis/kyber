@@ -1,15 +1,15 @@
 package bench
 
 import (
-	"crypto/rc4"
 	"crypto/cipher"
-	"golang.org/x/crypto/salsa20"
-	"golang.org/x/crypto/blowfish"
-	"golang.org/x/crypto/twofish"
+	"crypto/rc4"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher/aes"
-	"github.com/dedis/crypto/cipher/sha3"
 	"github.com/dedis/crypto/cipher/norx"
+	"github.com/dedis/crypto/cipher/sha3"
+	"golang.org/x/crypto/blowfish"
+	"golang.org/x/crypto/salsa20"
+	"golang.org/x/crypto/twofish"
 	"testing"
 )
 
@@ -22,7 +22,6 @@ func benchmarkCipher(b *testing.B, cipher abstract.Cipher, size int) {
 		cipher.Crypt(buf[:size], buf[:size])
 	}
 }
-
 
 // 1B messages
 
@@ -59,7 +58,6 @@ func BenchmarkNORX_1B(b *testing.B) {
 	benchmarkCipher(b, norx.NewCipher(abstract.NoKey), 1)
 }
 
-
 // 1K messages
 
 func BenchmarkAes128_1K(b *testing.B) {
@@ -95,7 +93,6 @@ func BenchmarkNORX_1K(b *testing.B) {
 	benchmarkCipher(b, norx.NewCipher(abstract.NoKey), 1024)
 }
 
-
 // 1M messages
 
 func BenchmarkAes128_1M(b *testing.B) {
@@ -130,7 +127,6 @@ func BenchmarkSha3_512_1M(b *testing.B) {
 func BenchmarkNORX_1M(b *testing.B) {
 	benchmarkCipher(b, norx.NewCipher(abstract.NoKey), 1024*1024)
 }
-
 
 // Some conventional Stream ciphers for comparison
 
@@ -181,4 +177,3 @@ func BenchmarkTwofish_1K(b *testing.B) {
 	block, _ := twofish.NewCipher(buf[:16])
 	benchmarkBlock(b, block, 1024)
 }
-

@@ -1,8 +1,8 @@
 package nist
 
 import (
-	"io"
 	"errors"
+	"io"
 	"math/big"
 	//"encoding/hex"
 	"crypto/cipher"
@@ -12,14 +12,13 @@ import (
 	"github.com/dedis/crypto/random"
 )
 
-
 type curvePoint struct {
-	x,y *big.Int 
-	c *curve
+	x, y *big.Int
+	c    *curve
 }
 
 func (p *curvePoint) String() string {
-	return "("+p.x.String()+","+p.y.String()+")"
+	return "(" + p.x.String() + "," + p.y.String() + ")"
 }
 
 func (p *curvePoint) Equal(p2 abstract.Point) bool {
@@ -49,7 +48,7 @@ func (p *curvePoint) Base() abstract.Point {
 }
 
 func (p *curvePoint) Valid() bool {
-	return p.c.IsOnCurve(p.x,p.y)
+	return p.c.IsOnCurve(p.x, p.y)
 }
 
 // Try to generate a point on this curve from a chosen x-coordinate,
@@ -67,8 +66,8 @@ func (p *curvePoint) genPoint(x *big.Int, rand cipher.Stream) bool {
 	y := p.c.sqrt(y2)
 
 	// Pick a random sign for the y coordinate
-	b := make([]byte,1)
-	rand.XORKeyStream(b,b)
+	b := make([]byte, 1)
+	rand.XORKeyStream(b, b)
 	if (b[0] & 0x80) != 0 {
 		y.Neg(y)
 	}
@@ -77,7 +76,7 @@ func (p *curvePoint) genPoint(x *big.Int, rand cipher.Stream) bool {
 	y2t := new(big.Int).Mul(y, y)
 	y2t.Mod(y2t, p.c.p.P)
 	if y2t.Cmp(y2) != 0 {
-		return false	// Doesn't yield a valid point!
+		return false // Doesn't yield a valid point!
 	}
 
 	p.x = x
@@ -105,8 +104,8 @@ func (p *curvePoint) Pick(data []byte, rand cipher.Stream) (abstract.Point, []by
 	for {
 		b := random.Bits(uint(p.c.p.P.BitLen()), false, rand)
 		if data != nil {
-			b[l-1] = byte(dl)	// Encode length in low 8 bits
-			copy(b[l-dl-1:l-1],data) // Copy in data to embed
+			b[l-1] = byte(dl)         // Encode length in low 8 bits
+			copy(b[l-dl-1:l-1], data) // Copy in data to embed
 		}
 		if p.genPoint(new(big.Int).SetBytes(b), rand) {
 			return p, data[dl:]
@@ -115,33 +114,33 @@ func (p *curvePoint) Pick(data []byte, rand cipher.Stream) (abstract.Point, []by
 }
 
 // Extract embedded data from a curve point
-func (p *curvePoint) Data() ([]byte,error) {
+func (p *curvePoint) Data() ([]byte, error) {
 	b := p.x.Bytes()
 	l := p.c.coordLen()
-	if len(b) < l {		// pad leading zero bytes if necessary
-		b = append(make([]byte,l-len(b)), b...)
+	if len(b) < l { // pad leading zero bytes if necessary
+		b = append(make([]byte, l-len(b)), b...)
 	}
 	dl := int(b[l-1])
 	if dl > p.PickLen() {
-		return nil,errors.New("invalid embedded data length")
+		return nil, errors.New("invalid embedded data length")
 	}
-	return b[l-dl-1:l-1],nil
+	return b[l-dl-1 : l-1], nil
 }
 
-func (p *curvePoint) Add(a,b abstract.Point) abstract.Point {
+func (p *curvePoint) Add(a, b abstract.Point) abstract.Point {
 	ca := a.(*curvePoint)
 	cb := b.(*curvePoint)
-	p.x,p.y = p.c.Add(ca.x, ca.y, cb.x, cb.y)
+	p.x, p.y = p.c.Add(ca.x, ca.y, cb.x, cb.y)
 	return p
 }
 
-func (p *curvePoint) Sub(a,b abstract.Point) abstract.Point {
+func (p *curvePoint) Sub(a, b abstract.Point) abstract.Point {
 	ca := a.(*curvePoint)
 	cb := b.(*curvePoint)
 
 	// XXX a pretty non-optimal implementation of point subtraction...
 	cbn := p.c.Point().Neg(cb).(*curvePoint)
-	p.x,p.y = p.c.Add(ca.x, ca.y, cbn.x, cbn.y)
+	p.x, p.y = p.c.Add(ca.x, ca.y, cbn.x, cbn.y)
 	return p
 }
 
@@ -150,23 +149,23 @@ func (p *curvePoint) Neg(a abstract.Point) abstract.Point {
 	// XXX a pretty non-optimal implementation of point negation...
 	s := p.c.Secret().One()
 	s.Neg(s)
-	return p.Mul(a,s).(*curvePoint)
+	return p.Mul(a, s).(*curvePoint)
 }
 
 func (p *curvePoint) Mul(b abstract.Point, s abstract.Secret) abstract.Point {
 	cs := s.(*Int)
 	if b != nil {
 		cb := b.(*curvePoint)
-		p.x,p.y = p.c.ScalarMult(cb.x,cb.y,cs.V.Bytes())
+		p.x, p.y = p.c.ScalarMult(cb.x, cb.y, cs.V.Bytes())
 	} else {
-		p.x,p.y = p.c.ScalarBaseMult(cs.V.Bytes())
+		p.x, p.y = p.c.ScalarBaseMult(cs.V.Bytes())
 	}
 	return p
 }
 
 func (p *curvePoint) Len() int {
-	coordlen := (p.c.Params().BitSize+7) >> 3
-	return 1+2*coordlen	// uncompressed ANSI X9.62 representation (XXX)
+	coordlen := (p.c.Params().BitSize + 7) >> 3
+	return 1 + 2*coordlen // uncompressed ANSI X9.62 representation (XXX)
 }
 
 func (p *curvePoint) Encode() []byte {
@@ -174,7 +173,7 @@ func (p *curvePoint) Encode() []byte {
 }
 
 func (p *curvePoint) Decode(buf []byte) error {
-	p.x,p.y = elliptic.Unmarshal(p.c, buf)
+	p.x, p.y = elliptic.Unmarshal(p.c, buf)
 	if p.x == nil || !p.Valid() {
 		return errors.New("invalid elliptic curve point")
 	}
@@ -188,7 +187,6 @@ func (p *curvePoint) EncodeTo(w io.Writer) (int, error) {
 func (p *curvePoint) DecodeFrom(r io.Reader) (int, error) {
 	return group.PointDecodeFrom(p, r)
 }
-
 
 // interface for curve-specifc mathematical functions
 type curveOps interface {
@@ -209,7 +207,7 @@ func (g *curve) PrimeOrder() bool {
 }
 
 // Return the number of bytes in the encoding of a Secret for this curve.
-func (c *curve) SecretLen() int { return (c.p.N.BitLen()+7)/8 }
+func (c *curve) SecretLen() int { return (c.p.N.BitLen() + 7) / 8 }
 
 // Create a Secret associated with this curve.
 func (c *curve) Secret() abstract.Secret {
@@ -218,14 +216,14 @@ func (c *curve) Secret() abstract.Secret {
 
 // Number of bytes required to store one coordinate on this curve
 func (c *curve) coordLen() int {
-	return (c.p.BitSize+7)/8
+	return (c.p.BitSize + 7) / 8
 }
 
 // Return the number of bytes in the encoding of a Point for this curve.
 // Currently uses uncompressed ANSI X9.62 format with both X and Y coordinates;
 // this could change.
 func (c *curve) PointLen() int {
-	return 1+2*c.coordLen()	// ANSI X9.62: 1 header byte plus 2 coords
+	return 1 + 2*c.coordLen() // ANSI X9.62: 1 header byte plus 2 coords
 }
 
 // Create a Point associated with this curve.
@@ -239,4 +237,3 @@ func (c *curve) Point() abstract.Point {
 func (c *curve) Order() *big.Int {
 	return c.p.N
 }
-

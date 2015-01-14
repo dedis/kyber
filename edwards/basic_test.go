@@ -3,10 +3,9 @@
 package edwards
 
 import (
-	"testing"
 	"github.com/dedis/crypto/test"
+	"testing"
 )
-
 
 // Test the basic implementation of the Ed25519 curve.
 
@@ -17,7 +16,6 @@ func TestBasic25519(t *testing.T) {
 		test.TestGroup(new(BasicCurve).Init(Param25519(), false))
 	}
 }
-
 
 // Test ProjectiveCurve versus BasicCurve implementations
 
@@ -61,15 +59,13 @@ func TestCompareBasicProjectiveE521(t *testing.T) {
 	}
 }
 
-
 // Benchmark contrasting implementations of the Ed25519 curve
 
-var basicBench = test.NewGroupBench(new(BasicCurve).Init(Param25519(),false))
+var basicBench = test.NewGroupBench(new(BasicCurve).Init(Param25519(), false))
 
-func BenchmarkPointAddBasic(b *testing.B) { basicBench.PointAdd(b.N) }
-func BenchmarkPointMulBasic(b *testing.B) { basicBench.PointMul(b.N) }
+func BenchmarkPointAddBasic(b *testing.B)     { basicBench.PointAdd(b.N) }
+func BenchmarkPointMulBasic(b *testing.B)     { basicBench.PointMul(b.N) }
 func BenchmarkPointBaseMulBasic(b *testing.B) { basicBench.PointBaseMul(b.N) }
-func BenchmarkPointEncodeBasic(b *testing.B) { basicBench.PointEncode(b.N) }
-func BenchmarkPointDecodeBasic(b *testing.B) { basicBench.PointDecode(b.N) }
-func BenchmarkPointPickBasic(b *testing.B) { basicBench.PointPick(b.N) }
-
+func BenchmarkPointEncodeBasic(b *testing.B)  { basicBench.PointEncode(b.N) }
+func BenchmarkPointDecodeBasic(b *testing.B)  { basicBench.PointDecode(b.N) }
+func BenchmarkPointPickBasic(b *testing.B)    { basicBench.PointPick(b.N) }

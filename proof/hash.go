@@ -5,18 +5,17 @@ import (
 	"github.com/dedis/crypto/abstract"
 )
 
-
 // Hash-based noninteractive Sigma-protocol prover context
 type hashProver struct {
-	suite abstract.Suite
-	proof bytes.Buffer
-	msg bytes.Buffer
+	suite   abstract.Suite
+	proof   bytes.Buffer
+	msg     bytes.Buffer
 	pubrand abstract.Cipher
 	prirand abstract.Cipher
 }
 
 func newHashProver(suite abstract.Suite, protoName string,
-			rand abstract.Cipher) *hashProver {
+	rand abstract.Cipher) *hashProver {
 	var sc hashProver
 	sc.suite = suite
 	sc.pubrand = suite.Cipher([]byte(protoName))
@@ -31,7 +30,7 @@ func (c *hashProver) Put(message interface{}) error {
 func (c *hashProver) consumeMsg() {
 	if c.msg.Len() > 0 {
 
-		// Stir the message into the public randomness pool 
+		// Stir the message into the public randomness pool
 		buf := c.msg.Bytes()
 		c.pubrand.Crypt(nil, buf)
 
@@ -42,15 +41,15 @@ func (c *hashProver) consumeMsg() {
 }
 
 // Get public randomness that depends on every bit in the proof so far.
-func (c *hashProver) PubRand(data...interface{}) error {
+func (c *hashProver) PubRand(data ...interface{}) error {
 	c.consumeMsg()
 	return abstract.Read(c.pubrand, data, c.suite)
 }
 
 // Get private randomness
-func (c *hashProver) PriRand(data...interface{}) {
+func (c *hashProver) PriRand(data ...interface{}) {
 	if err := abstract.Read(c.prirand, data, c.suite); err != nil {
-		panic("error reading random stream: "+err.Error())
+		panic("error reading random stream: " + err.Error())
 	}
 }
 
@@ -60,20 +59,18 @@ func (c *hashProver) Proof() []byte {
 	return c.proof.Bytes()
 }
 
-
-
 // Noninteractive Sigma-protocol verifier context
 type hashVerifier struct {
-	suite abstract.Suite
-	proof bytes.Buffer	// Buffer with which to read the proof
-	prbuf []byte		// Byte-slice underlying proof buffer
+	suite   abstract.Suite
+	proof   bytes.Buffer // Buffer with which to read the proof
+	prbuf   []byte       // Byte-slice underlying proof buffer
 	pubrand abstract.Cipher
 }
 
 func newHashVerifier(suite abstract.Suite, protoName string,
-			proof []byte) *hashVerifier {
+	proof []byte) *hashVerifier {
 	var c hashVerifier
-	if _,err := c.proof.Write(proof); err != nil {
+	if _, err := c.proof.Write(proof); err != nil {
 		panic("Buffer.Write failed")
 	}
 	c.suite = suite
@@ -83,13 +80,13 @@ func newHashVerifier(suite abstract.Suite, protoName string,
 }
 
 func (c *hashVerifier) consumeMsg() {
-	l := len(c.prbuf) - c.proof.Len()	// How many bytes read?
+	l := len(c.prbuf) - c.proof.Len() // How many bytes read?
 	if l > 0 {
-		// Stir consumed bytes into the public randomness pool 
+		// Stir consumed bytes into the public randomness pool
 		buf := c.prbuf[:l]
 		c.pubrand.Crypt(nil, buf)
 
-		c.prbuf = c.proof.Bytes()	// Reset to remaining bytes
+		c.prbuf = c.proof.Bytes() // Reset to remaining bytes
 	}
 }
 
@@ -99,12 +96,10 @@ func (c *hashVerifier) Get(message interface{}) error {
 }
 
 // Get public randomness that depends on every bit in the proof so far.
-func (c *hashVerifier) PubRand(data...interface{}) error {
-	c.consumeMsg()				// Stir in newly-read data
+func (c *hashVerifier) PubRand(data ...interface{}) error {
+	c.consumeMsg() // Stir in newly-read data
 	return abstract.Read(c.pubrand, data, c.suite)
 }
-
-
 
 // HashProve runs a given Sigma-protocol prover with a ProverContext
 // that produces a non-interactive proof via the Fiat-Shamir heuristic.
@@ -121,20 +116,19 @@ func (c *hashVerifier) PubRand(data...interface{}) error {
 // to create deterministically reproducible proofs.
 //
 func HashProve(suite abstract.Suite, protocolName string,
-		random abstract.Cipher, prover Prover) ([]byte,error) {
+	random abstract.Cipher, prover Prover) ([]byte, error) {
 	ctx := newHashProver(suite, protocolName, random)
-	if e := func(ProverContext)error(prover)(ctx); e != nil {
-		return nil,e
+	if e := (func(ProverContext) error)(prover)(ctx); e != nil {
+		return nil, e
 	}
-	return ctx.Proof(),nil
+	return ctx.Proof(), nil
 }
 
 // Verifies a hash-based noninteractive proof generated with HashProve.
 // The suite and protocolName must be the same as those given to HashProve.
 // Returns nil if the proof checks out, or an error on any failure.
 func HashVerify(suite abstract.Suite, protocolName string,
-		verifier Verifier, proof []byte) error {
+	verifier Verifier, proof []byte) error {
 	ctx := newHashVerifier(suite, protocolName, proof)
-	return func(VerifierContext)error(verifier)(ctx)
+	return (func(VerifierContext) error)(verifier)(ctx)
 }
-

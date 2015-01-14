@@ -6,24 +6,24 @@
 package random
 
 import (
-	"math/big"
-	"crypto/rand"
 	"crypto/cipher"
+	"crypto/rand"
 	"encoding/binary"
+	"math/big"
 )
 
 // Choose a uniform random BigInt with a given maximum BitLen.
 // If 'exact' is true, choose a BigInt with _exactly_ that BitLen, not less
 func Bits(bitlen uint, exact bool, rand cipher.Stream) []byte {
 	b := make([]byte, (bitlen+7)/8)
-	rand.XORKeyStream(b,b)
+	rand.XORKeyStream(b, b)
 	highbits := bitlen & 7
 	if highbits != 0 {
 		b[0] &= ^(0xff << highbits)
 	}
 	if exact {
 		if highbits != 0 {
-			b[0] |= 1 << (highbits-1)
+			b[0] |= 1 << (highbits - 1)
 		} else {
 			b[0] |= 0x80
 		}
@@ -76,10 +76,9 @@ func Int(mod *big.Int, rand cipher.Stream) *big.Int {
 // Choose a random n-byte slice
 func Bytes(n int, rand cipher.Stream) []byte {
 	b := make([]byte, n)
-	rand.XORKeyStream(b,b)
+	rand.XORKeyStream(b, b)
 	return b
 }
-
 
 type randstream struct {
 }
@@ -90,7 +89,7 @@ func (r *randstream) XORKeyStream(dst, src []byte) {
 		panic("XORKeyStream: mismatched buffer lengths")
 	}
 
-	buf := make([]byte,l)
+	buf := make([]byte, l)
 	n, err := rand.Read(buf)
 	if err != nil {
 		panic(err)
@@ -107,4 +106,3 @@ func (r *randstream) XORKeyStream(dst, src []byte) {
 // Standard virtual "stream cipher" that just generates
 // fresh cryptographically strong random bits.
 var Stream cipher.Stream = new(randstream)
-

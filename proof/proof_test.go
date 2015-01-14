@@ -1,11 +1,11 @@
 package proof
 
 import (
-	"fmt"
-	"testing"
 	"encoding/hex"
+	"fmt"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/openssl"
+	"testing"
 )
 
 func TestRep(t *testing.T) {
@@ -15,52 +15,52 @@ func TestRep(t *testing.T) {
 	x := suite.Secret().Pick(rand)
 	y := suite.Secret().Pick(rand)
 	B := suite.Point().Base()
-	X := suite.Point().Mul(nil,x)
-	Y := suite.Point().Mul(X,y)
-	R := suite.Point().Add(X,Y)
+	X := suite.Point().Mul(nil, x)
+	Y := suite.Point().Mul(X, y)
+	R := suite.Point().Add(X, Y)
 
 	choice := make(map[Predicate]int)
 
 	// Simple single-secret predicate: prove X=x*B
-	log := Rep("X","x","B")
+	log := Rep("X", "x", "B")
 
 	// Two-secret representation: prove R=x*B+y*X
-	rep := Rep("R","x","B","y","X")
+	rep := Rep("R", "x", "B", "y", "X")
 
 	// Make an and-predicate
-	and := And(log,rep)
+	and := And(log, rep)
 	andx := And(and)
 
 	// Make up a couple incorrect facts
-	falseLog := Rep("Y","x","B")
-	falseRep := Rep("R","x","B","y","B")
+	falseLog := Rep("Y", "x", "B")
+	falseRep := Rep("R", "x", "B", "y", "B")
 
 	falseAnd := And(falseLog, falseRep)
 
-	or1 := Or(falseAnd,andx)
+	or1 := Or(falseAnd, andx)
 	choice[or1] = 1
-	or1x := Or(or1)				// test trivial case
+	or1x := Or(or1) // test trivial case
 	choice[or1x] = 0
 
-	or2a := Rep("B","y","X")
-	or2b := Rep("R","x","R")
-	or2 := Or(or2a,or2b)
-	or2x := Or(or2)				// test trivial case
+	or2a := Rep("B", "y", "X")
+	or2b := Rep("R", "x", "R")
+	or2 := Or(or2a, or2b)
+	or2x := Or(or2) // test trivial case
 
-	pred := Or(or1x,or2x)
+	pred := Or(or1x, or2x)
 	choice[pred] = 0
 
-	sval := map[string]abstract.Secret{ "x":x, "y":y}
-	pval := map[string]abstract.Point{ "B":B, "X":X, "Y":Y, "R":R}
+	sval := map[string]abstract.Secret{"x": x, "y": y}
+	pval := map[string]abstract.Point{"B": B, "X": X, "Y": Y, "R": R}
 	prover := pred.Prover(suite, sval, pval, choice)
-	proof,err := HashProve(suite, "TEST", rand, prover)
+	proof, err := HashProve(suite, "TEST", rand, prover)
 	if err != nil {
-		panic("prover: "+err.Error())
+		panic("prover: " + err.Error())
 	}
 
 	verifier := pred.Verifier(suite, pval)
 	if err := HashVerify(suite, "TEST", verifier, proof); err != nil {
-		panic("verify: "+err.Error())
+		panic("verify: " + err.Error())
 	}
 }
 
@@ -71,7 +71,7 @@ func TestRep(t *testing.T) {
 // If we take X as a public key and x as its corresponding private key,
 // then this constitutes a "proof of ownership" of the public key X.
 func ExampleRep_1() {
-	pred := Rep("X","x","B")
+	pred := Rep("X", "x", "B")
 	fmt.Println(pred.String())
 	// Output: X=x*B
 }
@@ -80,24 +80,24 @@ func ExampleRep_1() {
 // of the statement in the example above, i.e.,
 // a proof of ownership of public key X.
 func ExampleRep_2() {
-	pred := Rep("X","x","B")
+	pred := Rep("X", "x", "B")
 	fmt.Println(pred.String())
 
 	// Crypto setup
 	suite := openssl.NewAES128SHA256P256()
 	rand := suite.Cipher([]byte("example"))
-	B := suite.Point().Base()		// standard base point
+	B := suite.Point().Base() // standard base point
 
 	// Create a public/private keypair (X,x)
-	x := suite.Secret().Pick(rand)		// create a private key x
-	X := suite.Point().Mul(nil,x)		// corresponding public key X
+	x := suite.Secret().Pick(rand) // create a private key x
+	X := suite.Point().Mul(nil, x) // corresponding public key X
 
 	// Generate a proof that we know the discrete logarithm of X.
-	sval := map[string]abstract.Secret{"x":x}
-	pval := map[string]abstract.Point{"B":B, "X":X}
+	sval := map[string]abstract.Secret{"x": x}
+	pval := map[string]abstract.Point{"B": B, "X": X}
 	prover := pred.Prover(suite, sval, pval, nil)
-	proof,_ := HashProve(suite, "TEST", rand, prover)
-	fmt.Print("Proof:\n"+hex.Dump(proof))
+	proof, _ := HashProve(suite, "TEST", rand, prover)
+	fmt.Print("Proof:\n" + hex.Dump(proof))
 
 	// Verify this knowledge proof.
 	verifier := pred.Verifier(suite, pval)
@@ -140,7 +140,7 @@ func ExampleRep_2() {
 // the prover can trivially compute the x1 corresponding to an arbitrary x2.
 //
 func ExampleRep_3() {
-	pred := Rep("X","x1","B1","x2","B2")
+	pred := Rep("X", "x1", "B1", "x2", "B2")
 	fmt.Println(pred.String())
 	// Output: X=x1*B1+x2*B2
 }
@@ -152,7 +152,7 @@ func ExampleRep_3() {
 // This predicate might be used to prove knowledge of
 // the private keys corresponding to two public keys X and Y, for example.
 func ExampleAnd_1() {
-	pred := And(Rep("X","x","B"),Rep("Y","y","B"))
+	pred := And(Rep("X", "x", "B"), Rep("Y", "y", "B"))
 	fmt.Println(pred.String())
 	// Output: X=x*B && Y=y*B
 }
@@ -165,7 +165,7 @@ func ExampleAnd_1() {
 // of X1 with respect to B1 and of X2 with respect to B2,
 // but also proves that those two discrete logarithms are equal.
 func ExampleAnd_2() {
-	pred := And(Rep("X1","x","B1"),Rep("X2","x","B2"))
+	pred := And(Rep("X1", "x", "B1"), Rep("X2", "x", "B2"))
 	fmt.Println(pred.String())
 	// Output: X1=x*B1 && X2=x*B2
 }
@@ -177,7 +177,7 @@ func ExampleAnd_2() {
 // for one of two public keys X or Y,
 // without revealing which key the prover owns.
 func ExampleOr_1() {
-	pred := Or(Rep("X","x","B"),Rep("Y","y","B"))
+	pred := Or(Rep("X", "x", "B"), Rep("Y", "y", "B"))
 	fmt.Println(pred.String())
 	// Output: X=x*B || Y=y*B
 }
@@ -192,18 +192,18 @@ func ExampleOr_1() {
 // we won't find be able to find such a y.)
 func ExampleOr_2() {
 	// Create an Or predicate.
-	pred := Or(Rep("X","x","B"),Rep("Y","y","B"))
-	fmt.Println("Predicate: "+pred.String())
+	pred := Or(Rep("X", "x", "B"), Rep("Y", "y", "B"))
+	fmt.Println("Predicate: " + pred.String())
 
 	// Crypto setup
 	suite := openssl.NewAES128SHA256P256()
 	rand := suite.Cipher([]byte("example"))
-	B := suite.Point().Base()		// standard base point
+	B := suite.Point().Base() // standard base point
 
 	// Create a public/private keypair (X,x) and a random point Y
-	x := suite.Secret().Pick(rand)		// create a private key x
-	X := suite.Point().Mul(nil,x)		// corresponding public key X
-	Y,_ := suite.Point().Pick(nil,rand)	// pick a random point Y
+	x := suite.Secret().Pick(rand)        // create a private key x
+	X := suite.Point().Mul(nil, x)        // corresponding public key X
+	Y, _ := suite.Point().Pick(nil, rand) // pick a random point Y
 
 	// We'll need to tell the prover which Or clause is actually true.
 	// In this case clause 0, the first sub-predicate, is true:
@@ -212,11 +212,11 @@ func ExampleOr_2() {
 	choice[pred] = 0
 
 	// Generate a proof that we know the discrete logarithm of X or Y.
-	sval := map[string]abstract.Secret{"x":x}
-	pval := map[string]abstract.Point{"B":B, "X":X, "Y":Y}
+	sval := map[string]abstract.Secret{"x": x}
+	pval := map[string]abstract.Point{"B": B, "X": X, "Y": Y}
 	prover := pred.Prover(suite, sval, pval, choice)
-	proof,_ := HashProve(suite, "TEST", rand, prover)
-	fmt.Print("Proof:\n"+hex.Dump(proof))
+	proof, _ := HashProve(suite, "TEST", rand, prover)
+	fmt.Print("Proof:\n" + hex.Dump(proof))
 
 	// Verify this knowledge proof.
 	// The verifier doesn't need the secret values or choice map, of course.
@@ -245,4 +245,3 @@ func ExampleOr_2() {
 	// 000000c0  fd 56                                             |.V|
 	// Proof verified.
 }
-

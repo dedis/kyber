@@ -1,12 +1,11 @@
 package proof
 
 import (
-	"fmt"
 	"encoding/hex"
+	"fmt"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/openssl"
 )
-
 
 // This example shows how to build classic ElGamal-style digital signatures
 // using the Camenisch/Stadler proof framework and HashProver.
@@ -15,20 +14,20 @@ func ExampleHashProve_1() {
 	// Crypto setup
 	suite := openssl.NewAES128SHA256P256()
 	rand := suite.Cipher([]byte("example"))
-	B := suite.Point().Base()		// standard base point
+	B := suite.Point().Base() // standard base point
 
 	// Create a public/private keypair (X,x)
-	x := suite.Secret().Pick(rand)		// create a private key x
-	X := suite.Point().Mul(nil,x)		// corresponding public key X
+	x := suite.Secret().Pick(rand) // create a private key x
+	X := suite.Point().Mul(nil, x) // corresponding public key X
 
 	// Generate a proof that we know the discrete logarithm of X.
-	M := "Hello World!"			// message we want to sign
-	rep := Rep("X","x","B")
-	sec := map[string]abstract.Secret{"x":x}
-	pub := map[string]abstract.Point{"B":B, "X":X}
+	M := "Hello World!" // message we want to sign
+	rep := Rep("X", "x", "B")
+	sec := map[string]abstract.Secret{"x": x}
+	pub := map[string]abstract.Point{"B": B, "X": X}
 	prover := rep.Prover(suite, sec, pub, nil)
-	proof,_ := HashProve(suite, M, rand, prover)
-	fmt.Print("Signature:\n"+hex.Dump(proof))
+	proof, _ := HashProve(suite, M, rand, prover)
+	fmt.Print("Signature:\n" + hex.Dump(proof))
 
 	// Verify the signature against the correct message M.
 	verifier := rep.Verifier(suite, pub)
@@ -42,7 +41,7 @@ func ExampleHashProve_1() {
 	BAD := "Goodbye World!"
 	verifier = rep.Verifier(suite, pub)
 	err = HashVerify(suite, BAD, verifier, proof)
-	fmt.Println("Signature verify against wrong message: "+err.Error())
+	fmt.Println("Signature verify against wrong message: " + err.Error())
 
 	// Output:
 	// Signature:
@@ -80,50 +79,50 @@ func ExampleHashProve_2() {
 	// Crypto setup
 	suite := openssl.NewAES128SHA256P256()
 	rand := suite.Cipher([]byte("example"))
-	B := suite.Point().Base()		// standard base point
+	B := suite.Point().Base() // standard base point
 
 	// Create an anonymity ring of random "public keys"
-	X := make([]abstract.Point,3)
-	for i := range(X) {			// pick random points
-		X[i],_ = suite.Point().Pick(nil,rand)
+	X := make([]abstract.Point, 3)
+	for i := range X { // pick random points
+		X[i], _ = suite.Point().Pick(nil, rand)
 	}
 
 	// Make just one of them an actual public/private keypair (X[mine],x)
-	mine := 2				// only the signer knows this
-	x := suite.Secret().Pick(rand)		// create a private key x
-	X[mine] = suite.Point().Mul(nil,x)	// corresponding public key X
+	mine := 2                           // only the signer knows this
+	x := suite.Secret().Pick(rand)      // create a private key x
+	X[mine] = suite.Point().Mul(nil, x) // corresponding public key X
 
 	// Produce the correct linkage tag for the signature,
 	// as a pseudorandom base point multiplied by our private key.
 	linkScope := []byte("The Linkage Scope")
 	linkHash := suite.Cipher(linkScope)
-	linkBase,_ := suite.Point().Pick(nil, linkHash)
+	linkBase, _ := suite.Point().Pick(nil, linkHash)
 	linkTag := suite.Point().Mul(linkBase, x)
 
 	// Generate the proof predicate: an OR branch for each public key.
-	sec := map[string]abstract.Secret{"x":x}
-	pub := map[string]abstract.Point{"B":B, "BT":linkBase, "T":linkTag}
+	sec := map[string]abstract.Secret{"x": x}
+	pub := map[string]abstract.Point{"B": B, "BT": linkBase, "T": linkTag}
 	preds := make([]Predicate, len(X))
-	for i := range(X) {
-		name := fmt.Sprintf("X[%d]",i)	// "X[0]","X[1]",...
-		pub[name] = X[i]		// public point value
+	for i := range X {
+		name := fmt.Sprintf("X[%d]", i) // "X[0]","X[1]",...
+		pub[name] = X[i]                // public point value
 
 		// Predicate indicates knowledge of the private key for X[i]
 		// and correspondence of the key with the linkage tag
-		preds[i] = And(Rep(name,"x","B"),Rep("T","x","BT"))
+		preds[i] = And(Rep(name, "x", "B"), Rep("T", "x", "BT"))
 	}
-	pred := Or(preds...)			// make a big Or predicate
-	fmt.Printf("Linkable Ring Signature Predicate:\n\t%s\n",pred.String())
+	pred := Or(preds...) // make a big Or predicate
+	fmt.Printf("Linkable Ring Signature Predicate:\n\t%s\n", pred.String())
 
 	// The prover needs to know which Or branch (mine) is actually true.
 	choice := make(map[Predicate]int)
 	choice[pred] = mine
 
 	// Generate the signature
-	M := "Hello World!"			// message we want to sign
+	M := "Hello World!" // message we want to sign
 	prover := pred.Prover(suite, sec, pub, choice)
-	proof,_ := HashProve(suite, M, rand, prover)
-	fmt.Print("Linkable Ring Signature:\n"+hex.Dump(proof))
+	proof, _ := HashProve(suite, M, rand, prover)
+	fmt.Print("Linkable Ring Signature:\n" + hex.Dump(proof))
 
 	// Verify the signature
 	verifier := pred.Verifier(suite, pub)
@@ -164,4 +163,3 @@ func ExampleHashProve_2() {
 	// 00000180  75 29 8d f7 3e 18                                 |u)..>.|
 	// Linkable Ring Signature verified.
 }
-

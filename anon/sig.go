@@ -2,15 +2,15 @@ package anon
 
 import (
 	"bytes"
-	"errors"
 	"crypto/cipher"
+	"errors"
 	"github.com/dedis/crypto/abstract"
 )
 
 // unlinkable ring signature
 type uSig struct {
 	C0 abstract.Secret
-	S []abstract.Secret
+	S  []abstract.Secret
 }
 
 // linkable ring signature
@@ -20,16 +20,16 @@ type lSig struct {
 }
 
 func signH1pre(suite abstract.Suite, linkScope []byte, linkTag abstract.Point,
-		message []byte) abstract.Cipher {
-	H1pre := suite.Cipher(message)		// m
+	message []byte) abstract.Cipher {
+	H1pre := suite.Cipher(message) // m
 	if linkScope != nil {
-		H1pre.Write(linkScope)		// L
-		H1pre.Write(linkTag.Encode())	// ~y
+		H1pre.Write(linkScope)        // L
+		H1pre.Write(linkTag.Encode()) // ~y
 	}
 	return H1pre
 }
 
-func signH1(suite abstract.Suite, H1pre abstract.Cipher, PG,PH abstract.Point) abstract.Secret {
+func signH1(suite abstract.Suite, H1pre abstract.Cipher, PG, PH abstract.Point) abstract.Secret {
 	H1 := H1pre.Clone(nil)
 	H1.Write(PG.Encode())
 	if PH != nil {
@@ -115,8 +115,8 @@ func Sign(suite abstract.Suite, random cipher.Stream, message []byte,
 	// e.g., we also easily obtain linkable ring signatures,
 	// which are not readily feasible with the original ring construction.
 
-	n := len(anonymitySet)			// anonymity set size
-	L := []abstract.Point(anonymitySet)	// public keys in anonymity set
+	n := len(anonymitySet)              // anonymity set size
+	L := []abstract.Point(anonymitySet) // public keys in anonymity set
 	pi := mine
 
 	// If we want a linkable ring signature, produce correct linkage tag,
@@ -124,56 +124,56 @@ func Sign(suite abstract.Suite, random cipher.Stream, message []byte,
 	// Liu's scheme specifies the linkScope as a hash of the ring;
 	// this is one reasonable choice of linkage scope,
 	// but there are others, so we parameterize this choice.
-	var linkBase,linkTag abstract.Point
+	var linkBase, linkTag abstract.Point
 	if linkScope != nil {
 		linkStream := suite.Cipher(linkScope)
-		linkBase,_ = suite.Point().Pick(nil, linkStream)
+		linkBase, _ = suite.Point().Pick(nil, linkStream)
 		linkTag = suite.Point().Mul(linkBase, privateKey)
 	}
 
 	// First pre-hash the parameters to H1
 	// that are invariant for different ring positions,
 	// so that we don't have to hash them many times.
-	H1pre := signH1pre(suite,linkScope,linkTag,message)
+	H1pre := signH1pre(suite, linkScope, linkTag, message)
 
 	// Pick a random commit for my ring position
 	u := suite.Secret().Pick(random)
-	var UB,UL abstract.Point
-	UB = suite.Point().Mul(nil,u)
+	var UB, UL abstract.Point
+	UB = suite.Point().Mul(nil, u)
 	if linkScope != nil {
-		UL = suite.Point().Mul(linkBase,u)
+		UL = suite.Point().Mul(linkBase, u)
 	}
 
 	// Build the challenge ring
 	s := make([]abstract.Secret, n)
 	c := make([]abstract.Secret, n)
 	c[(pi+1)%n] = signH1(suite, H1pre, UB, UL)
-	var P,PG,PH abstract.Point
+	var P, PG, PH abstract.Point
 	P = suite.Point()
 	PG = suite.Point()
 	if linkScope != nil {
 		PH = suite.Point()
 	}
-	for i := (pi+1)%n; i != pi; i = (i+1)%n {
+	for i := (pi + 1) % n; i != pi; i = (i + 1) % n {
 		s[i] = suite.Secret().Pick(random)
-		PG.Add(PG.Mul(nil,s[i]),P.Mul(L[i],c[i]))
+		PG.Add(PG.Mul(nil, s[i]), P.Mul(L[i], c[i]))
 		if linkScope != nil {
-			PH.Add(PH.Mul(linkBase,s[i]),P.Mul(linkTag,c[i]))
+			PH.Add(PH.Mul(linkBase, s[i]), P.Mul(linkTag, c[i]))
 		}
 		c[(i+1)%n] = signH1(suite, H1pre, PG, PH)
 		//fmt.Printf("s%d %s\n",i,s[i].String())
 		//fmt.Printf("c%d %s\n",(i+1)%n,c[(i+1)%n].String())
 	}
 	s[pi] = suite.Secret()
-	s[pi].Mul(privateKey,c[pi]).Sub(u,s[pi])	// s_pi = u - x_pi c_pi
+	s[pi].Mul(privateKey, c[pi]).Sub(u, s[pi]) // s_pi = u - x_pi c_pi
 
 	// Encode and return the signature
 	buf := bytes.Buffer{}
-	if linkScope != nil {			// linkable ring signature
-		sig := lSig{uSig{c[0],s},linkTag}
+	if linkScope != nil { // linkable ring signature
+		sig := lSig{uSig{c[0], s}, linkTag}
 		abstract.Write(&buf, &sig, suite)
-	} else {				// unlinkable ring signature
-		sig := uSig{c[0],s}
+	} else { // unlinkable ring signature
+		sig := uSig{c[0], s}
 		abstract.Write(&buf, &sig, suite)
 	}
 	return buf.Bytes()
@@ -189,35 +189,35 @@ func Sign(suite abstract.Suite, random cipher.Stream, message []byte,
 // If the signature is a valid unlinkable signature (linkScope == nil),
 // returns an empty but non-nil byte-slice instead of a linkage tag on success.
 // Returns a nil linkage tag and an error if the signature is invalid.
-func Verify(suite abstract.Suite, message []byte, anonymitySet Set, 
-		linkScope []byte, signatureBuffer []byte) ([]byte,error) {
+func Verify(suite abstract.Suite, message []byte, anonymitySet Set,
+	linkScope []byte, signatureBuffer []byte) ([]byte, error) {
 
-	n := len(anonymitySet)			// anonymity set size
-	L := []abstract.Point(anonymitySet)	// public keys in ring
+	n := len(anonymitySet)              // anonymity set size
+	L := []abstract.Point(anonymitySet) // public keys in ring
 
 	// Decode the signature
 	buf := bytes.NewBuffer(signatureBuffer)
-	var linkBase,linkTag abstract.Point
+	var linkBase, linkTag abstract.Point
 	sig := lSig{}
 	sig.S = make([]abstract.Secret, n)
-	if linkScope != nil {			// linkable ring signature
+	if linkScope != nil { // linkable ring signature
 		if err := abstract.Read(buf, &sig, suite); err != nil {
-			return nil,err
+			return nil, err
 		}
 		linkStream := suite.Cipher(linkScope)
-		linkBase,_ = suite.Point().Pick(nil, linkStream)
+		linkBase, _ = suite.Point().Pick(nil, linkStream)
 		linkTag = sig.Tag
-	} else {				// unlinkable ring signature
+	} else { // unlinkable ring signature
 		if err := abstract.Read(buf, &sig.uSig, suite); err != nil {
-			return nil,err
+			return nil, err
 		}
 	}
 
 	// Pre-hash the ring-position-invariant parameters to H1.
-	H1pre := signH1pre(suite,linkScope,linkTag,message)
+	H1pre := signH1pre(suite, linkScope, linkTag, message)
 
 	// Verify the signature
-	var P,PG,PH abstract.Point
+	var P, PG, PH abstract.Point
 	P = suite.Point()
 	PG = suite.Point()
 	if linkScope != nil {
@@ -226,21 +226,20 @@ func Verify(suite abstract.Suite, message []byte, anonymitySet Set,
 	s := sig.S
 	ci := sig.C0
 	for i := 0; i < n; i++ {
-		PG.Add(PG.Mul(nil,s[i]),P.Mul(L[i],ci))
+		PG.Add(PG.Mul(nil, s[i]), P.Mul(L[i], ci))
 		if linkScope != nil {
-			PH.Add(PH.Mul(linkBase,s[i]),P.Mul(linkTag,ci))
+			PH.Add(PH.Mul(linkBase, s[i]), P.Mul(linkTag, ci))
 		}
 		ci = signH1(suite, H1pre, PG, PH)
 	}
 	if !ci.Equal(sig.C0) {
-		return nil,errors.New("invalid signature")
+		return nil, errors.New("invalid signature")
 	}
 
 	// Return the re-encoded linkage tag, for uniqueness checking
 	if linkScope != nil {
-		return linkTag.Encode(),nil
+		return linkTag.Encode(), nil
 	} else {
-		return []byte{},nil
+		return []byte{}, nil
 	}
 }
-

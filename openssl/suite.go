@@ -3,15 +3,14 @@
 package openssl
 
 import (
-	"hash"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher/sha3"
+	"hash"
 )
-
 
 type suite128 struct {
 	curve
-} 
+}
 
 func (s *suite128) String() string {
 	return "P256"
@@ -33,11 +32,9 @@ func NewAES128SHA256P256() abstract.Suite {
 	return s
 }
 
-
-
 type suite192 struct {
 	curve
-} 
+}
 
 func (s *suite192) String() string {
 	return "AES192SHA384P384"
@@ -59,11 +56,9 @@ func NewAES192SHA384P384() abstract.Suite {
 	return s
 }
 
-
-
 type suite256 struct {
 	curve
-} 
+}
 
 func (s *suite256) String() string {
 	return "AES256SHA512P521"
@@ -77,7 +72,6 @@ func (s *suite256) Cipher(key []byte, options ...interface{}) abstract.Cipher {
 	return sha3.NewShakeCipher256(key, options...)
 }
 
-
 // Ciphersuite based on AES-256, SHA-512, and the NIST P-521 elliptic curve,
 // using the implementations in OpenSSL's crypto library.
 func NewAES256SHA512P521() abstract.Suite {
@@ -85,4 +79,3 @@ func NewAES256SHA512P521() abstract.Suite {
 	s.curve.InitP521()
 	return s
 }
-

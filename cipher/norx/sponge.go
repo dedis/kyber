@@ -52,4 +52,3 @@ func newSponge() cipher.Sponge {
 func NewCipher(key []byte, options ...interface{}) abstract.Cipher {
 	return cipher.NewSpongeCipher(newSponge(), key, options...)
 }
-

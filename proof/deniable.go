@@ -7,7 +7,6 @@ import (
 	"github.com/dedis/crypto/clique"
 )
 
-
 // Create a clique.Protocol implementing an interactive Sigma-protocol
 // to prove a particular statement to the other participants.
 // Optionally the clique.Protocol participant can also verify
@@ -15,28 +14,26 @@ import (
 // Different participants may produce different proofs of varying sizes,
 // and may even consist of different numbers of steps.
 func DeniableProver(suite abstract.Suite, self int, prover Prover,
-		verifiers []Verifier) clique.Protocol {
+	verifiers []Verifier) clique.Protocol {
 
-	return clique.Protocol(func(ctx clique.Context)[]error{
+	return clique.Protocol(func(ctx clique.Context) []error {
 		dp := deniableProver{}
 		return dp.run(suite, self, prover, verifiers, ctx)
 	})
 }
 
-
-
 type deniableProver struct {
-	suite abstract.Suite		// Agreed-on ciphersuite for protocol
-	self int			// Our own node number
-	sc clique.Context		// Clique protocol context
+	suite abstract.Suite // Agreed-on ciphersuite for protocol
+	self  int            // Our own node number
+	sc    clique.Context // Clique protocol context
 
 	// verifiers for other nodes' proofs
 	dv []*deniableVerifier
 
 	// per-step state
-	key []byte			// Secret pre-challenge we committed to
-	msg *bytes.Buffer		// Buffer in which to build prover msg
-	msgs [][]byte			// All messages from last proof step
+	key  []byte        // Secret pre-challenge we committed to
+	msg  *bytes.Buffer // Buffer in which to build prover msg
+	msgs [][]byte      // All messages from last proof step
 
 	pubrand abstract.Cipher
 	prirand abstract.Cipher
@@ -46,7 +43,7 @@ type deniableProver struct {
 }
 
 func (dp *deniableProver) run(suite abstract.Suite, self int, prv Prover,
-				vrf []Verifier, sc clique.Context) []error {
+	vrf []Verifier, sc clique.Context) []error {
 	dp.suite = suite
 	dp.self = self
 	dp.sc = sc
@@ -61,7 +58,7 @@ func (dp *deniableProver) run(suite abstract.Suite, self int, prv Prover,
 	// so that forgetting to run a verifier won't look like "success"
 	verr := errors.New("prover or verifier not run")
 	dp.err = make([]error, nnodes)
-	for i := range(dp.err) {
+	for i := range dp.err {
 		if i != self {
 			dp.err[i] = verr
 		}
@@ -69,7 +66,7 @@ func (dp *deniableProver) run(suite abstract.Suite, self int, prv Prover,
 
 	// Launch goroutines to run whichever verifiers the caller requested
 	dp.dv = make([]*deniableVerifier, nnodes)
-	for i := range(vrf) {
+	for i := range vrf {
 		if vrf[i] != nil {
 			dv := deniableVerifier{}
 			dv.start(suite, vrf[i])
@@ -79,14 +76,14 @@ func (dp *deniableProver) run(suite abstract.Suite, self int, prv Prover,
 
 	// Run the prover, which will also drive the verifiers.
 	dp.initStep()
-	if err := func(ProverContext)error(prv)(dp); err != nil {
+	if err := (func(ProverContext) error)(prv)(dp); err != nil {
 		dp.err[self] = err
 	}
 
 	// Send the last prover message.
 	// Make sure the verifiers get to run to completion as well
 	for {
-		stragglers,err := dp.proofStep()
+		stragglers, err := dp.proofStep()
 		if err != nil {
 			dp.err[self] = err
 			break
@@ -107,27 +104,27 @@ func (dp *deniableProver) run(suite abstract.Suite, self int, prv Prover,
 func (dp *deniableProver) initStep() {
 
 	keylen := dp.prirand.KeySize()
-	key := make([]byte, keylen)		// secret random key
+	key := make([]byte, keylen) // secret random key
 	dp.prirand.Read(key)
 	dp.key = key
 
-	msg := make([]byte, keylen)		// send commitment to it
+	msg := make([]byte, keylen) // send commitment to it
 	dp.suite.Cipher(key).XORKeyStream(msg, msg)
 	dp.msg = bytes.NewBuffer(msg)
 
 	// The Sigma-Prover will now append its proof content to dp.msg...
 }
 
-func (dp *deniableProver) proofStep() (bool,error) {
+func (dp *deniableProver) proofStep() (bool, error) {
 
 	// Send the randomness commit and accumulated message to the leader,
 	// and get all participants' commits, via our star-protocol context.
-	msgs,err := dp.sc.Step(dp.msg.Bytes())
+	msgs, err := dp.sc.Step(dp.msg.Bytes())
 	if err != nil {
-		return false,err
+		return false, err
 	}
-	if !bytes.Equal(msgs[dp.self],dp.msg.Bytes()) {
-		return false,errors.New("own messages were corrupted")
+	if !bytes.Equal(msgs[dp.self], dp.msg.Bytes()) {
+		return false, errors.New("own messages were corrupted")
 	}
 	dp.msgs = msgs
 
@@ -135,35 +132,35 @@ func (dp *deniableProver) proofStep() (bool,error) {
 	// to the relevant verifiers as well,
 	// waking them up in the process so they can proceed.
 	keylen := dp.prirand.KeySize()
-	for i := range(dp.dv) {
+	for i := range dp.dv {
 		dv := dp.dv[i]
 		if dv != nil && i < len(msgs) {
-			dv.inbox <- msgs[i][keylen:]	// send to verifier
+			dv.inbox <- msgs[i][keylen:] // send to verifier
 		}
 	}
 
 	// Collect the verifiers' responses,
 	// collecting error indicators from verifiers that are done.
 	stragglers := false
-	for i := range(dp.dv) {			// collect verifier responses
+	for i := range dp.dv { // collect verifier responses
 		dv := dp.dv[i]
 		if dv != nil {
-			done := <- dv.done	// get verifier response
-			if done {		// verifier is done
+			done := <-dv.done // get verifier response
+			if done {         // verifier is done
 				dp.err[i] = dv.err
 				dp.dv[i] = nil
-			} else {		// verifier needs next challenge
+			} else { // verifier needs next challenge
 				stragglers = true
 			}
 		}
 	}
-	return stragglers,nil
+	return stragglers, nil
 }
 
 func (dp *deniableProver) challengeStep() error {
 
 	// Send our challenge randomness to the leader, and collect all.
-	keys,err := dp.sc.Step(dp.key)
+	keys, err := dp.sc.Step(dp.key)
 	if err != nil {
 		return err
 	}
@@ -174,22 +171,22 @@ func (dp *deniableProver) challengeStep() error {
 	// (even if all others turn out to be maliciously generated).
 	keylen := dp.prirand.KeySize()
 	mix := make([]byte, keylen)
-	for i := range(keys) {
+	for i := range keys {
 		com := dp.msgs[i][:keylen] // node i's randomness commitment
-		key := keys[i]		// node i's committed random key
+		key := keys[i]             // node i's committed random key
 		if len(com) < keylen || len(key) < keylen {
-			continue	// ignore participants who dropped out
+			continue // ignore participants who dropped out
 		}
 		chk := make([]byte, keylen)
-		dp.suite.Cipher(key).XORKeyStream(chk,chk)
-		if !bytes.Equal(com,chk) {
+		dp.suite.Cipher(key).XORKeyStream(chk, chk)
+		if !bytes.Equal(com, chk) {
 			return errors.New("wrong key for commit")
 		}
-		for j := 0; j < keylen; j++ {	// mix in this key
+		for j := 0; j < keylen; j++ { // mix in this key
 			mix[j] ^= key[j]
 		}
 	}
-	if len(keys) <= dp.self || !bytes.Equal(keys[dp.self],dp.key) {
+	if len(keys) <= dp.self || !bytes.Equal(keys[dp.self], dp.key) {
 		return errors.New("our own message was corrupted")
 	}
 
@@ -197,10 +194,10 @@ func (dp *deniableProver) challengeStep() error {
 	dp.pubrand = dp.suite.Cipher(mix)
 
 	// Distribute the master challenge to any verifiers waiting for it
-	for i := range(dp.dv) {
+	for i := range dp.dv {
 		dv := dp.dv[i]
 		if dv != nil {
-			dv.inbox <- mix	// so send it
+			dv.inbox <- mix // so send it
 		}
 	}
 
@@ -216,37 +213,34 @@ func (dp *deniableProver) Put(message interface{}) error {
 
 // Prover will call this after Put()ing all commits for a given step,
 // to get the master challenge to be used in its challenge/responses.
-func (dp *deniableProver) PubRand(data...interface{}) error {
+func (dp *deniableProver) PubRand(data ...interface{}) error {
 
-	if _,err := dp.proofStep(); err != nil {	// finish proof step
+	if _, err := dp.proofStep(); err != nil { // finish proof step
 		return err
 	}
-	if err := dp.challengeStep(); err != nil{	// run challenge step
+	if err := dp.challengeStep(); err != nil { // run challenge step
 		return err
 	}
 	return abstract.Read(dp.pubrand, data, dp.suite)
 }
 
 // Get private randomness
-func (dp *deniableProver) PriRand(data...interface{}) {
+func (dp *deniableProver) PriRand(data ...interface{}) {
 	if err := abstract.Read(dp.prirand, data, dp.suite); err != nil {
-		panic("error reading random stream: "+err.Error())
+		panic("error reading random stream: " + err.Error())
 	}
 }
-
-
-
 
 // Interactive Sigma-protocol verifier context.
 // Acts as a slave to a deniableProver instance.
 type deniableVerifier struct {
 	suite abstract.Suite
 
-	inbox chan []byte	// Channel for receiving proofs and challenges
-	prbuf *bytes.Buffer	// Buffer with which to read proof messages
+	inbox chan []byte   // Channel for receiving proofs and challenges
+	prbuf *bytes.Buffer // Buffer with which to read proof messages
 
-	done chan bool		// Channel for sending done status indicators
-	err error		// When done indicates verify error if non-nil
+	done chan bool // Channel for sending done status indicators
+	err  error     // When done indicates verify error if non-nil
 
 	pubrand abstract.Cipher
 }
@@ -257,14 +251,14 @@ func (dv *deniableVerifier) start(suite abstract.Suite, vrf Verifier) {
 	dv.done = make(chan bool)
 
 	// Launch a concurrent goroutine to run this verifier
-	go func(){
+	go func() {
 		//req := deniableVerifierRequest{}
 
 		// Await the prover's first message
 		dv.getProof()
 
 		// Run the verifier, providing dv as its context
-		dv.err = func(VerifierContext)error(vrf)(dv)
+		dv.err = (func(VerifierContext) error)(vrf)(dv)
 
 		// Signal verifier termination
 		dv.done <- true
@@ -274,7 +268,7 @@ func (dv *deniableVerifier) start(suite abstract.Suite, vrf Verifier) {
 func (dv *deniableVerifier) getProof() {
 
 	// Get the next message from the prover
-	prbuf := <- dv.inbox
+	prbuf := <-dv.inbox
 	dv.prbuf = bytes.NewBuffer(prbuf)
 }
 
@@ -284,13 +278,13 @@ func (dv *deniableVerifier) Get(message interface{}) error {
 }
 
 // Get the next public random challenge.
-func (dv *deniableVerifier) PubRand(data...interface{}) error {
+func (dv *deniableVerifier) PubRand(data ...interface{}) error {
 
 	// Signal that we need the next challenge
 	dv.done <- false
 
 	// Wait for it
-	chal := <- dv.inbox
+	chal := <-dv.inbox
 
 	// Produce the appropriate publicly random stream
 	dv.pubrand = dv.suite.Cipher(chal)
@@ -302,4 +296,3 @@ func (dv *deniableVerifier) PubRand(data...interface{}) error {
 	dv.getProof()
 	return nil
 }
-

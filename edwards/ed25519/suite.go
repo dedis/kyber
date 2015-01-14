@@ -1,15 +1,16 @@
 package ed25519
 
 import (
-	"hash"
 	"crypto/sha256"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher/sha3"
+	"hash"
 )
 
 type suiteEd25519 struct {
 	Curve
-} 
+}
+
 // XXX non-NIST ciphers?
 
 // SHA256 hash function
@@ -27,4 +28,3 @@ func NewAES128SHA256Ed25519(fullGroup bool) abstract.Suite {
 	suite := new(suiteEd25519)
 	return suite
 }
-

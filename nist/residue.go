@@ -1,24 +1,22 @@
 package nist
 
 import (
-	"io"
-	"fmt"
-	"errors"
-	"math/big"
-	"crypto/dsa"
 	"crypto/cipher"
+	"crypto/dsa"
+	"errors"
+	"fmt"
+	"io"
+	"math/big"
 	//"encoding/hex"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/random"
 )
 
-
 type residuePoint struct {
-	big.Int 
+	big.Int
 	g *ResidueGroup
 }
-
 
 // Steal value from DSA, which uses recommendation from FIPS 186-3
 const numMRTests = 64
@@ -27,7 +25,6 @@ const numMRTests = 64
 func isPrime(i *big.Int) bool {
 	return i.ProbablyPrime(numMRTests)
 }
-
 
 func (p *residuePoint) String() string { return p.Int.String() }
 
@@ -70,9 +67,9 @@ func (p *residuePoint) Pick(data []byte, rand cipher.Stream) (abstract.Point, []
 	for {
 		b := random.Bits(uint(p.g.P.BitLen()), false, rand)
 		if data != nil {
-			b[l-1] = byte(dl)	// Encode length in low 16 bits
+			b[l-1] = byte(dl) // Encode length in low 16 bits
 			b[l-2] = byte(dl >> 8)
-			copy(b[l-dl-2:l-2],data) // Copy in embedded data
+			copy(b[l-dl-2:l-2], data) // Copy in embedded data
 		}
 		p.Int.SetBytes(b)
 		if p.Valid() {
@@ -82,26 +79,26 @@ func (p *residuePoint) Pick(data []byte, rand cipher.Stream) (abstract.Point, []
 }
 
 // Extract embedded data from a Residue group element
-func (p *residuePoint) Data() ([]byte,error) {
+func (p *residuePoint) Data() ([]byte, error) {
 	b := p.Int.Bytes()
 	l := p.g.PointLen()
-	if len(b) < l {		// pad leading zero bytes if necessary
-		b = append(make([]byte,l-len(b)), b...)
+	if len(b) < l { // pad leading zero bytes if necessary
+		b = append(make([]byte, l-len(b)), b...)
 	}
 	dl := int(b[l-2])<<8 + int(b[l-1])
 	if dl > p.PickLen() {
-		return nil,errors.New("invalid embedded data length")
+		return nil, errors.New("invalid embedded data length")
 	}
-	return b[l-dl-2:l-2],nil
+	return b[l-dl-2 : l-2], nil
 }
 
-func (p *residuePoint) Add(a,b abstract.Point) abstract.Point {
+func (p *residuePoint) Add(a, b abstract.Point) abstract.Point {
 	p.Int.Mul(&a.(*residuePoint).Int, &b.(*residuePoint).Int)
 	p.Int.Mod(&p.Int, p.g.P)
 	return p
 }
 
-func (p *residuePoint) Sub(a,b abstract.Point) abstract.Point {
+func (p *residuePoint) Sub(a, b abstract.Point) abstract.Point {
 	binv := new(big.Int).ModInverse(&b.(*residuePoint).Int, p.g.P)
 	p.Int.Mul(&a.(*residuePoint).Int, binv)
 	p.Int.Mod(&p.Int, p.g.P)
@@ -115,19 +112,19 @@ func (p *residuePoint) Neg(a abstract.Point) abstract.Point {
 
 func (p *residuePoint) Mul(b abstract.Point, s abstract.Secret) abstract.Point {
 	if b == nil {
-		return p.Base().Mul(p,s)
+		return p.Base().Mul(p, s)
 	}
 	p.Int.Exp(&b.(*residuePoint).Int, &s.(*Int).V, p.g.P)
 	return p
 }
 
 func (p *residuePoint) Len() int {
-	return (p.g.P.BitLen()+7)/8
+	return (p.g.P.BitLen() + 7) / 8
 }
 
 func (p *residuePoint) Encode() []byte {
-	b := p.Int.Bytes()	// may be shorter than len(buf)
-	if pre := p.Len()-len(b); pre != 0 {
+	b := p.Int.Bytes() // may be shorter than len(buf)
+	if pre := p.Len() - len(b); pre != 0 {
 		return append(make([]byte, pre), b...)
 	}
 	return b
@@ -148,8 +145,6 @@ func (p *residuePoint) EncodeTo(w io.Writer) (int, error) {
 func (p *residuePoint) DecodeFrom(r io.Reader) (int, error) {
 	return group.PointDecodeFrom(p, r)
 }
-
-
 
 /*
 A ResidueGroup represents a DSA-style modular integer arithmetic group,
@@ -192,7 +187,7 @@ func (g *ResidueGroup) PrimeOrder() bool {
 
 // Return the number of bytes in the encoding of a Secret
 // for this Residue group.
-func (g *ResidueGroup) SecretLen() int { return (g.Q.BitLen()+7)/8 }
+func (g *ResidueGroup) SecretLen() int { return (g.Q.BitLen() + 7) / 8 }
 
 // Create a Secret associated with this Residue group,
 // with an initial value of nil.
@@ -202,7 +197,7 @@ func (g *ResidueGroup) Secret() abstract.Secret {
 
 // Return the number of bytes in the encoding of a Point
 // for this Residue group.
-func (g *ResidueGroup) PointLen() int { return (g.P.BitLen()+7)/8 }
+func (g *ResidueGroup) PointLen() int { return (g.P.BitLen() + 7) / 8 }
 
 // Create a Point associated with this Residue group,
 // with an initial value of nil.
@@ -229,8 +224,8 @@ func (g *ResidueGroup) Valid() bool {
 
 	// Validate the equation P = QR+1
 	n := new(big.Int)
-	n.Mul(g.Q,g.R)
-	n.Add(n,one)
+	n.Mul(g.Q, g.R)
+	n.Add(n, one)
 	if n.Cmp(g.P) != 0 {
 		return false
 	}
@@ -244,7 +239,7 @@ func (g *ResidueGroup) Valid() bool {
 }
 
 // Explicitly initialize a ResidueGroup with given parameters.
-func (g *ResidueGroup) SetParams(P,Q,R,G *big.Int) {
+func (g *ResidueGroup) SetParams(P, Q, R, G *big.Int) {
 	g.P = P
 	g.Q = Q
 	g.R = R
@@ -270,7 +265,7 @@ func (g *ResidueGroup) QuadraticResidueGroup(bitlen uint, rand cipher.Stream) {
 
 		// First pick a prime Q
 		b := random.Bits(bitlen-1, true, rand)
-		b[len(b)-1] |= 1			// must be odd
+		b[len(b)-1] |= 1 // must be odd
 		g.Q = new(big.Int).SetBytes(b)
 		//println("q?",hex.EncodeToString(g.Q.Bytes()))
 		if !isPrime(g.Q) {
@@ -279,27 +274,26 @@ func (g *ResidueGroup) QuadraticResidueGroup(bitlen uint, rand cipher.Stream) {
 
 		// Does the corresponding P come out prime too?
 		g.P = new(big.Int)
-		g.P.Mul(g.Q,two)
-		g.P.Add(g.P,one)
+		g.P.Mul(g.Q, two)
+		g.P.Add(g.P, one)
 		//println("p?",hex.EncodeToString(g.P.Bytes()))
 		if uint(g.P.BitLen()) == bitlen && isPrime(g.P) {
 			break
 		}
 	}
 	println()
-	println("p",g.P.String())
-	println("q",g.Q.String())
+	println("p", g.P.String())
+	println("q", g.Q.String())
 
 	// pick standard generator G
 	h := new(big.Int).Set(two)
 	g.G = new(big.Int)
 	for {
-		g.G.Exp(h,two,g.P)
+		g.G.Exp(h, two, g.P)
 		if g.G.Cmp(one) != 0 {
 			break
 		}
 		h.Add(h, one)
 	}
-	println("g",g.G.String())
+	println("g", g.G.String())
 }
-

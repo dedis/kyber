@@ -14,4 +14,3 @@ type Constructor interface {
 	// Create a fresh object of a given (usually interface) type.
 	New(t reflect.Type) interface{}
 }
-

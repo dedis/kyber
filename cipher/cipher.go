@@ -8,7 +8,6 @@ import (
 type Stream cipher.Stream
 type Block cipher.Block
 
-
 // CipherRead provides a generic implementation of Cipher.Read.
 func CipherRead(cipher abstract.Cipher, dst []byte) (n int, err error) {
 	cipher.Crypt(dst, nil, abstract.More{})
@@ -25,4 +24,3 @@ func CipherWrite(cipher abstract.Cipher, src []byte) (n int, err error) {
 func CipherXORKeyStream(cipher abstract.Cipher, dst, src []byte) {
 	cipher.Crypt(dst[:len(src)], src, abstract.More{})
 }
-

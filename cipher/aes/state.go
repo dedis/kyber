@@ -20,7 +20,7 @@ import (
 type state128 struct {
 	suite128		// inherit methods from AES128 suite
 	h [32]byte		// SHA256 hash-based cipher state
-} 
+}
 
 // AES128-CTR stream cipher keyed with the current abstract cipher state
 func (s *state128) stream() cipher.Stream {
@@ -86,7 +86,7 @@ func (s *state128) Decrypt(r io.Reader, obj ...interface{}) error {
 	// Read encrypted stream.
 
 	// Decrypt the buffer.
-	
+
 }
 
 func (s *state128) Random() cipher.Random {
