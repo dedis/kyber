@@ -59,10 +59,6 @@ type Cipher interface {
 	// and return the Cipher.
 	Crypt(dst, src []byte, options ...interface{}) Cipher
 
-	// Create a clone of this cryptographic state object,
-	// optionally absorbing src into the clone's state.
-	Clone(src []byte) Cipher
-
 	// Return recommended size in bytes of secret keys for full security.
 	KeySize() int
 
@@ -82,6 +78,17 @@ type Cipher interface {
 	// Backwards-compatibility with the Stream cipher interface.
 	// XXX this interface inclusion is provisional and may be dropped.
 	cipher.Stream
+
+	// Fork off nsubs >= 0 parallel sub-Ciphers and update the state.
+	Fork(nsubs int) []Cipher
+
+	// Combine this Cipher's state with that of previously-forked Ciphers.
+	// The rejoined sub-Ciphers must no longer be used.
+	Join(subs ...Cipher)
+
+	// Create an identical clone of this cryptographic state object.
+	// Caution: misuse can lead to key-reuse vulnerabilities.
+	Clone() Cipher
 }
 
 // Direction selects between the Encrypt and Decrypt modes of a Cipher.

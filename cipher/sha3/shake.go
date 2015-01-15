@@ -68,7 +68,7 @@ func (s *shake) Read(dst []byte) (int, error) {
 
 func (s *shake) Clone() ShakeHash {
 	ns := *s
-	ns.cipher = s.cipher.Clone(nil)
+	ns.cipher = s.cipher.Clone()
 	return &ns
 }
 

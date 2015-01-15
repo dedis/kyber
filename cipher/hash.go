@@ -29,7 +29,7 @@ func (ch *cipherHash) Write(src []byte) (int, error) {
 func (ch *cipherHash) Sum(buf []byte) []byte {
 
 	// Clone the Cipher to leave the original's state unaffected
-	c := ch.cur.Clone(nil)
+	c := ch.cur.Clone()
 	c.Crypt(nil, nil) // finalize the message
 
 	// Squeeze out a hash of any requested size.

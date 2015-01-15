@@ -29,7 +29,8 @@ func (ca *cipherAEAD) Overhead() int {
 func (ca *cipherAEAD) Seal(dst, nonce, plaintext, data []byte) []byte {
 
 	// Fork off a temporary Cipher state indexed via the nonce
-	ct := ca.Clone(nonce)
+	ct := ca.Clone()
+	ct.Crypt(nil, nonce)
 
 	// Encrypt the plaintext and update the temporary Cipher state
 	dst, ciphertext := util.Grow(dst, len(plaintext))
@@ -45,7 +46,8 @@ func (ca *cipherAEAD) Seal(dst, nonce, plaintext, data []byte) []byte {
 func (ca *cipherAEAD) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) {
 
 	// Fork off a temporary Cipher state indexed via the nonce
-	ct := ca.Clone(nonce)
+	ct := ca.Clone()
+	ct.Crypt(nil, nonce)
 
 	// Compute the plaintext's length
 	authl := ct.KeySize()

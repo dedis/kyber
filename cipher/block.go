@@ -123,7 +123,15 @@ func (bc *blockCipher) BlockSize() int {
 	return 1 // incremental encrypt/decrypt work at any granularity
 }
 
-func (bc *blockCipher) Clone(src []byte) abstract.Cipher {
+func (bc *blockCipher) Fork(nsubs int) []abstract.Cipher {
+	panic("XXX not yet implemented")
+}
+
+func (bc *blockCipher) Join(subs ...abstract.Cipher) {
+	panic("XXX not yet implemented")
+}
+
+func (bc *blockCipher) Clone() abstract.Cipher {
 	if bc.s != nil {
 		panic("cannot clone cipher state mid-message")
 	}
@@ -135,10 +143,6 @@ func (bc *blockCipher) Clone(src []byte) abstract.Cipher {
 		nbc.h = hmac.New(nbc.newHash, nbc.k)
 	} else { // unkeyed state
 		nbc.h = nbc.newHash()
-	}
-
-	if src != nil {
-		nbc.Crypt(nil, src)
 	}
 
 	return &nbc

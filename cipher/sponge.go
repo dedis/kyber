@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	//"encoding/hex"
+	"encoding/binary"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/ints"
 	"github.com/dedis/crypto/random"
@@ -14,8 +15,7 @@ type Sponge interface {
 
 	// XOR src data into sponge's internal state,
 	// transform its state, and copy resulting state into dst.
-	// Buffers must be a multiple of sponge's word size in length,
-	// and no more than Rate+Capacity bytes long.
+	// Buffers must be either Rate or Rate+Capacity bytes long.
 	Transform(dst, src []byte)
 
 	// Return the number of data bytes the sponge can aborb in one block.
@@ -28,7 +28,7 @@ type Sponge interface {
 	Clone() Sponge
 }
 
-// Padding is an Option to configure the padding and domain-separation byte
+// Padding is an Option to configure the multi-rate padding byte
 // to be used with a Sponge cipher.
 type Padding byte
 
@@ -36,19 +36,57 @@ func (p Padding) String() string {
 	return fmt.Sprintf("Padding: %x", byte(p))
 }
 
+// Capacity-byte values used for domain-separation, as used in NORX
+const (
+	domainInvalid byte = iota
+	domainHeader byte = 0x01
+	domainPayload byte = 0x02
+	domainTrailer byte = 0x04
+	domainFinal byte = 0x08
+	domainFork byte = 0x10
+	domainJoin byte = 0x20
+)
+
 type spongeCipher struct {
 
 	// Configuration state
 	sponge Sponge
-	rate   int                // number of bytes absorbed and squeezed per block
+	rate   int           // Bytes absorbed and squeezed per block
+	cap int		// Bytes of secret internal state
 	dir    abstract.Direction // encrypt or decrypt
 	pad    byte               // padding byte to append to last block in message
 
 	// Combined input/output buffer:
 	// buf[:pos] contains data bytes to be absorbed;
 	// buf[pos:rate] contains as-yet-unused cipherstream bytes.
+	// buf[rate:rate+cap] contains current domain-separation bytes.
 	buf []byte
 	pos int
+}
+
+// SpongeCipher builds a general message Cipher from a Sponge function.
+func NewSpongeCipher(sponge Sponge, key []byte, options ...interface{}) abstract.Cipher {
+	sc := spongeCipher{}
+	sc.sponge = sponge
+	sc.rate = sponge.Rate()
+	sc.cap = sponge.Capacity()
+	sc.pad = byte(0x7f) // default, unused by standards
+	sc.buf = make([]byte, sc.rate + sc.cap)
+	sc.pos = 0
+	sc.parseOptions(options)
+
+	// Key the cipher in some appropriate fashion
+	if key == nil {
+		key = random.Bytes(sponge.Capacity(), random.Stream)
+	}
+	if len(key) > 0 {
+		sc.Crypt(nil, key)
+	}
+
+	// Setup normal-case domain-separation byte used for message payloads
+	sc.setDomain(domainPayload, 0)
+
+	return &sc
 }
 
 func (sc *spongeCipher) parseOptions(options []interface{}) bool {
@@ -68,27 +106,39 @@ func (sc *spongeCipher) parseOptions(options []interface{}) bool {
 	return more
 }
 
-// SpongeCipher builds a general message Cipher from a Sponge function.
-func NewSpongeCipher(sponge Sponge, key []byte, options ...interface{}) abstract.Cipher {
-	sc := spongeCipher{}
-	sc.sponge = sponge
-	sc.rate = sponge.Rate()
-	sc.pad = byte(0x7f) // default, unused by standards
-	sc.buf = make([]byte, sc.rate)
-	sc.pos = 0
-	sc.parseOptions(options)
+func (sc *spongeCipher) setDomain(domain byte, index int) {
 
-	if key == nil {
-		key = random.Bytes(sponge.Capacity(), random.Stream)
-	}
-	if len(key) > 0 {
-		sc.Crypt(nil, key)
-	}
-
-	return &sc
+	sc.buf[sc.rate + sc.cap - 1] = domainPayload
+	binary.LittleEndian.PutUint64(sc.buf[sc.rate:], uint64(index))
 }
 
-func (sc *spongeCipher) encrypt(dst, src []byte, more bool) abstract.Cipher {
+// Pad and complete the current message.
+func (sc *spongeCipher) padMessage() {
+
+	rate := sc.rate
+	pos := sc.pos
+	buf := sc.buf
+
+	// Ensure there is at least one byte free in the buffer.
+	if pos == rate {
+		sc.sponge.Transform(buf, buf[:rate])
+		pos = 0
+	}
+
+	// append appropriate multi-rate padding
+	buf[pos] = sc.pad
+	pos++
+	for ; pos < rate; pos++ {
+		buf[pos] = 0
+	}
+	buf[rate-1] ^= 0x80
+
+	// process: XOR in rate+cap bytes, but output only rate bytes
+	sc.sponge.Transform(buf, buf[:rate])
+	sc.pos = 0
+}
+
+func (sc *spongeCipher) encrypt(dst, src []byte) {
 	sp := sc.sponge
 	rate := sc.rate
 	buf := sc.buf
@@ -96,7 +146,7 @@ func (sc *spongeCipher) encrypt(dst, src []byte, more bool) abstract.Cipher {
 	for {
 		if pos == rate {
 			// process next block
-			sp.Transform(buf, buf)
+			sp.Transform(buf, buf[:rate])
 			pos = 0
 		}
 
@@ -137,32 +187,11 @@ func (sc *spongeCipher) encrypt(dst, src []byte, more bool) abstract.Cipher {
 		}
 		pos += n
 	}
-
-	if !more {
-		if pos == rate {
-			sp.Transform(buf, buf)
-			pos = 0
-		}
-
-		// append appropriate multi-rate padding
-		buf[pos] = sc.pad
-		pos++
-		for ; pos < rate; pos++ {
-			buf[pos] = 0
-		}
-		buf[rate-1] ^= 0x80
-
-		// process final padded block
-		sp.Transform(buf, buf)
-		pos = 0
-	}
-
-	//println("Decrypted",more,"\n" + hex.Dump(osrc) + "->\n" + hex.Dump(odst))
 	sc.pos = pos
-	return sc
+	//println("Decrypted",more,"\n" + hex.Dump(osrc) + "->\n" + hex.Dump(odst))
 }
 
-func (sc *spongeCipher) decrypt(dst, src []byte, more bool) abstract.Cipher {
+func (sc *spongeCipher) decrypt(dst, src []byte) {
 	sp := sc.sponge
 	rate := sc.rate
 	buf := sc.buf
@@ -170,7 +199,7 @@ func (sc *spongeCipher) decrypt(dst, src []byte, more bool) abstract.Cipher {
 	for {
 		if pos == rate {
 			// process next block
-			sp.Transform(buf, buf)
+			sp.Transform(buf, buf[:rate])
 			pos = 0
 		}
 
@@ -207,39 +236,24 @@ func (sc *spongeCipher) decrypt(dst, src []byte, more bool) abstract.Cipher {
 		}
 		pos += n
 	}
-
-	// pad the final block of a message
-	if !more {
-		if pos == rate {
-			sp.Transform(buf, buf)
-			pos = 0
-		}
-
-		// append appropriate multi-rate padding
-		buf[pos] = sc.pad
-		pos++
-		for ; pos < rate; pos++ {
-			buf[pos] = 0
-		}
-		buf[rate-1] ^= 0x80
-
-		// process last block
-		sp.Transform(buf, buf)
-		pos = 0
-	}
-
 	sc.pos = pos
-	return sc
 }
 
 func (sc *spongeCipher) Crypt(dst, src []byte,
 	options ...interface{}) abstract.Cipher {
 	more := sc.parseOptions(options)
+
 	if sc.dir >= 0 {
-		return sc.encrypt(dst, src, more)
+		sc.encrypt(dst, src)
 	} else {
-		return sc.decrypt(dst, src, more)
+		sc.decrypt(dst, src)
 	}
+
+	if !more {
+		sc.padMessage()
+	}
+
+	return sc
 }
 
 func (sc *spongeCipher) Read(dst []byte) (n int, err error) {
@@ -254,17 +268,71 @@ func (sc *spongeCipher) XORKeyStream(dst, src []byte) {
 	CipherXORKeyStream(sc, dst, src)
 }
 
-func (sc *spongeCipher) Clone(src []byte) abstract.Cipher {
+func (sc *spongeCipher) special(domain byte, index int) {
+
+	// ensure buffer is non-full before changing domain-separator
+	rate := sc.rate
+	if sc.pos == rate {
+		sc.sponge.Transform(sc.buf, sc.buf[:rate])
+		sc.pos = 0
+	}
+
+	// set the temporary capacity-bytes domain-separation configuration
+	sc.setDomain(domain, index)
+
+	// process one special block
+	sc.padMessage()
+
+	// revert to the normal domain-separation configuration
+	sc.setDomain(domainPayload, 0)
+}
+
+func (sc *spongeCipher) Fork(nsubs int) []abstract.Cipher {
+
+	subs := make([]abstract.Cipher, nsubs)
+	for i := range subs {
+		sub := sc.clone()
+		sub.special(domainFork, 1 + i)	// reserve 0 for parent
+		subs[i] = sub
+	}
+
+	// ensure the parent is separated from all its children
+	sc.special(domainFork, 0)
+
+	return subs
+}
+
+func xorBytes(dst, src []byte) {
+	for i := range dst {
+		dst[i] ^= src[i]
+	}
+}
+
+func (sc *spongeCipher) Join(subs ...abstract.Cipher) {
+
+	// mark the join transformation in the parent first
+	sc.special(domainJoin, 0)
+
+	// now transform and mix in all the children
+	buf := sc.buf
+	for i := range subs {
+		sub := subs[i].(*spongeCipher)
+		sub.special(domainJoin, 1 + i) // reserve 0 for parent
+		xorBytes(buf, sub.buf) // XOR sub's state into parent's
+		sub.buf = nil	// make joined sub unusable
+	}
+}
+
+func (sc *spongeCipher) clone() *spongeCipher {
 	nsc := *sc
 	nsc.sponge = sc.sponge.Clone()
 	nsc.buf = make([]byte, sc.rate)
 	copy(nsc.buf, sc.buf)
-
-	if src != nil {
-		nsc.Crypt(nil, src)
-	}
-
 	return &nsc
+}
+
+func (sc *spongeCipher) Clone() abstract.Cipher {
+	return sc.clone()
 }
 
 func (sc *spongeCipher) KeySize() int {
