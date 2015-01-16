@@ -39,20 +39,20 @@ func (p Padding) String() string {
 // Capacity-byte values used for domain-separation, as used in NORX
 const (
 	domainInvalid byte = iota
-	domainHeader byte = 0x01
+	domainHeader  byte = 0x01
 	domainPayload byte = 0x02
 	domainTrailer byte = 0x04
-	domainFinal byte = 0x08
-	domainFork byte = 0x10
-	domainJoin byte = 0x20
+	domainFinal   byte = 0x08
+	domainFork    byte = 0x10
+	domainJoin    byte = 0x20
 )
 
 type spongeCipher struct {
 
 	// Configuration state
 	sponge Sponge
-	rate   int           // Bytes absorbed and squeezed per block
-	cap int		// Bytes of secret internal state
+	rate   int                // Bytes absorbed and squeezed per block
+	cap    int                // Bytes of secret internal state
 	dir    abstract.Direction // encrypt or decrypt
 	pad    byte               // padding byte to append to last block in message
 
@@ -71,7 +71,7 @@ func NewSpongeCipher(sponge Sponge, key []byte, options ...interface{}) abstract
 	sc.rate = sponge.Rate()
 	sc.cap = sponge.Capacity()
 	sc.pad = byte(0x7f) // default, unused by standards
-	sc.buf = make([]byte, sc.rate + sc.cap)
+	sc.buf = make([]byte, sc.rate+sc.cap)
 	sc.pos = 0
 	sc.parseOptions(options)
 
@@ -108,7 +108,7 @@ func (sc *spongeCipher) parseOptions(options []interface{}) bool {
 
 func (sc *spongeCipher) setDomain(domain byte, index int) {
 
-	sc.buf[sc.rate + sc.cap - 1] = domainPayload
+	sc.buf[sc.rate+sc.cap-1] = domainPayload
 	binary.LittleEndian.PutUint64(sc.buf[sc.rate:], uint64(index))
 }
 
@@ -292,7 +292,7 @@ func (sc *spongeCipher) Fork(nsubs int) []abstract.Cipher {
 	subs := make([]abstract.Cipher, nsubs)
 	for i := range subs {
 		sub := sc.clone()
-		sub.special(domainFork, 1 + i)	// reserve 0 for parent
+		sub.special(domainFork, 1+i) // reserve 0 for parent
 		subs[i] = sub
 	}
 
@@ -317,9 +317,9 @@ func (sc *spongeCipher) Join(subs ...abstract.Cipher) {
 	buf := sc.buf
 	for i := range subs {
 		sub := subs[i].(*spongeCipher)
-		sub.special(domainJoin, 1 + i) // reserve 0 for parent
-		xorBytes(buf, sub.buf) // XOR sub's state into parent's
-		sub.buf = nil	// make joined sub unusable
+		sub.special(domainJoin, 1+i) // reserve 0 for parent
+		xorBytes(buf, sub.buf)       // XOR sub's state into parent's
+		sub.buf = nil                // make joined sub unusable
 	}
 }
 
