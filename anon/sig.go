@@ -30,7 +30,7 @@ func signH1pre(suite abstract.Suite, linkScope []byte, linkTag abstract.Point,
 }
 
 func signH1(suite abstract.Suite, H1pre abstract.Cipher, PG, PH abstract.Point) abstract.Secret {
-	H1 := H1pre.Clone(nil)
+	H1 := H1pre.Clone()
 	H1.Write(PG.Encode())
 	if PH != nil {
 		H1.Write(PH.Encode())
