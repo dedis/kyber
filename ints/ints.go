@@ -1,7 +1,7 @@
 package ints
 
 // Max returns the maximum of x and y.
-func Max(x,y int) int {
+func Max(x, y int) int {
 	if x > y {
 		return x
 	}
@@ -9,7 +9,7 @@ func Max(x,y int) int {
 }
 
 // Min returns the minimum of x and y.
-func Min(x,y int) int {
+func Min(x, y int) int {
 	if x < y {
 		return x
 	}
@@ -25,7 +25,7 @@ func Abs(x int) int {
 }
 
 // Sign returns:
-// 
+//
 //	-1 if x <  0
 //	 0 if x == 0
 //	+1 if x >  0
@@ -38,4 +38,3 @@ func Sign(x int) int {
 	}
 	return 0
 }
-
