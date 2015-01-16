@@ -11,7 +11,7 @@ before_install:
     - ls $TRAVIS_BUILD_DIR
     - mv $TRAVIS_BUILD_DIR $HOME/src/github.com/dedis
     - cd $HOME/src/github.com/dedis/crypto
-    - go list -f '{{join .Deps "\n"}}' ./... | grep -v "^github.com/dedis/crypto" | xargs go get -t -v
+    - go list -f '{{join .Deps "\n"}} {{join .TestImports "\n"}}' ./... | grep -v "^github.com/dedis/crypto" | xargs go get -t -v
 before_script:
     - git remote add production https://github.com/DeDiS/crypto.git
     - git fetch -a production
