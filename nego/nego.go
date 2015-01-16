@@ -9,25 +9,23 @@ package nego
 */
 
 import (
-	"fmt"
-	"sort"
-	"errors"
 	"crypto/cipher"
 	"encoding/binary"
+	"errors"
+	"fmt"
 	"github.com/dedis/crypto/abstract"
+	"sort"
 )
 
-
 type Entry struct {
-	Suite abstract.Suite	// Ciphersuite this public key is drawn from
-	PubKey abstract.Point	// Public key of this entrypoint's owner
-	Data []byte		// Entrypoint data decryptable by owner
+	Suite  abstract.Suite // Ciphersuite this public key is drawn from
+	PubKey abstract.Point // Public key of this entrypoint's owner
+	Data   []byte         // Entrypoint data decryptable by owner
 }
 
 func (e *Entry) String() string {
 	return fmt.Sprintf("(%s)%p", e.Suite, e)
 }
-
 
 // A ciphersuite used in a negotiation header.
 type suiteKey struct {
@@ -49,21 +47,21 @@ func (s *suiteKey) fresh(suite abstract.Suite) {
 */
 
 type suiteInfo struct {
-	ste abstract.Suite		// ciphersuite
-	tag []uint32			// per-position pseudorandom tag
-	pos []int			// alternative point positions
-	plen int			// length of each point in bytes
-	max int				// limit of highest point field
+	ste  abstract.Suite // ciphersuite
+	tag  []uint32       // per-position pseudorandom tag
+	pos  []int          // alternative point positions
+	plen int            // length of each point in bytes
+	max  int            // limit of highest point field
 
 	// layout info
 	//nodes []*node			// layout node for reserved positions
-	lev int				// layout-chosen level for this suite
-	pri abstract.Secret		// ephemeral Diffie-Hellman private key
-	pub []byte			// corresponding encoded public key
+	lev int             // layout-chosen level for this suite
+	pri abstract.Secret // ephemeral Diffie-Hellman private key
+	pub []byte          // corresponding encoded public key
 }
 
 func (si *suiteInfo) String() string {
-	return "Suite "+si.ste.String()
+	return "Suite " + si.ste.String()
 }
 
 // Determine all the alternative DH point positions for a ciphersuite.
@@ -71,30 +69,30 @@ func (si *suiteInfo) init(ste abstract.Suite, nlevels int) {
 	si.ste = ste
 	si.tag = make([]uint32, nlevels)
 	si.pos = make([]int, nlevels)
-	si.plen = ste.Point().(abstract.Hiding).HideLen()	// XXX
+	si.plen = ste.Point().(abstract.Hiding).HideLen() // XXX
 
 	// Create a pseudo-random stream from which to pick positions
 	str := fmt.Sprintf("NegoCipherSuite:%s", ste.String())
-	rand := abstract.HashStream(ste, []byte(str), nil)
+	rand := ste.Cipher([]byte(str))
 
 	// Alternative 0 is always at position 0, so start with level 1.
-	levofs := 0			// starting offset for current level
+	levofs := 0 // starting offset for current level
 	//fmt.Printf("Suite %s positions:\n", ste.String())
 	for i := 0; i < nlevels; i++ {
 
 		// Pick a random position within this level
 		var buf [4]byte
-		rand.XORKeyStream(buf[:],buf[:])
-		levlen := 1 << uint(i)	// # alt positions at this level
-		levmask := levlen - 1	// alternative index mask
+		rand.XORKeyStream(buf[:], buf[:])
+		levlen := 1 << uint(i) // # alt positions at this level
+		levmask := levlen - 1  // alternative index mask
 		si.tag[i] = binary.BigEndian.Uint32(buf[:])
 		levidx := int(si.tag[i]) & levmask
-		si.pos[i] = levofs + levidx * si.plen
+		si.pos[i] = levofs + levidx*si.plen
 
 		//fmt.Printf("%d: idx %d/%d pos %d\n",
 		//		i, levidx, levlen, si.pos[i])
 
-		levofs += levlen * si.plen	// next level table offset
+		levofs += levlen * si.plen // next level table offset
 	}
 
 	// Limit of highest point field
@@ -102,10 +100,10 @@ func (si *suiteInfo) init(ste abstract.Suite, nlevels int) {
 }
 
 // Return the byte-range for a point at a given level.
-func (si *suiteInfo) region(level int) (int,int) {
+func (si *suiteInfo) region(level int) (int, int) {
 	lo := si.pos[level]
 	hi := lo + si.plen
-	return lo,hi
+	return lo, hi
 }
 
 // Try to reserve a space for level i of this ciphersuite in the layout.
@@ -122,8 +120,6 @@ func (si *suiteInfo) layout(w *Writer, i int) bool {
 }
 */
 
-
-
 // A sortable list of suiteInfo objects.
 type suiteList struct {
 	s []*suiteInfo
@@ -132,14 +128,12 @@ type suiteList struct {
 func (s *suiteList) Len() int {
 	return len(s.s)
 }
-func (s *suiteList) Less(i,j int) bool {
+func (s *suiteList) Less(i, j int) bool {
 	return s.s[i].max < s.s[j].max
 }
-func (s *suiteList) Swap(i,j int) {
-	s.s[i],s.s[j] = s.s[j],s.s[i]
+func (s *suiteList) Swap(i, j int) {
+	s.s[i], s.s[j] = s.s[j], s.s[i]
 }
-
-
 
 // Writer produces a cryptographic negotiation header,
 // which conceals a variable number of "entrypoints"
@@ -157,13 +151,13 @@ func (s *suiteList) Swap(i,j int) {
 // which can be (but doesn't have to be) shared by many or all entrypoints.
 //
 type Writer struct {
-	suites suiteList	// Sorted list of ciphersuites used
-	simap map[abstract.Suite]*suiteInfo	// suiteInfo for each Suite
-	layout skipLayout	// Reservation map representing layout
-	entries []Entry		// Entrypoints defined by caller
-	entofs map[int]int	// Map of entrypoints to header offsets
-	maxLen int		// Client-specified maximum header length
-	buf []byte		// Buffer in which to build message
+	suites  suiteList                     // Sorted list of ciphersuites used
+	simap   map[abstract.Suite]*suiteInfo // suiteInfo for each Suite
+	layout  skipLayout                    // Reservation map representing layout
+	entries []Entry                       // Entrypoints defined by caller
+	entofs  map[int]int                   // Map of entrypoints to header offsets
+	maxLen  int                           // Client-specified maximum header length
+	buf     []byte                        // Buffer in which to build message
 }
 
 // Set the optional maximum length for the negotiation header,
@@ -177,7 +171,7 @@ func (w *Writer) SetMaxLen(max int) {
 // whose owners' public keys are drawn from a given set of ciphersuites.
 //
 // The caller must provide a map 'suiteLevel' with one key per ciphersuite,
-// whose value is the maximum "level" in the header 
+// whose value is the maximum "level" in the header
 // at which the ciphersuite's ephemeral Diffie-Hellman Point may be encoded.
 // This maximum level must be standardized for each ciphersuite,
 // and should be log2(maxsuites), where maxsuites is the maximum number
@@ -199,8 +193,8 @@ func (w *Writer) SetMaxLen(max int) {
 // bad things happen to security - we should harden the API against that.
 //
 func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
-			entrypoints []Entry,
-			rand cipher.Stream) (int,error) {
+	entrypoints []Entry,
+	rand cipher.Stream) (int, error) {
 
 	w.layout.reset()
 	w.entries = entrypoints
@@ -208,16 +202,16 @@ func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 	w.buf = nil
 
 	// Determine the set of ciphersuites in use.
-/*
-	suites := make(map[abstract.Suite]struct{})
-	for i := range(entrypoints) {
-		entry := entrypoints[i]
-		if _,ok := suites[suite]; !ok {
-			// First time we've seen this ciphersuite.
-			suites[suite] = struct{}{}
+	/*
+		suites := make(map[abstract.Suite]struct{})
+		for i := range(entrypoints) {
+			entry := entrypoints[i]
+			if _,ok := suites[suite]; !ok {
+				// First time we've seen this ciphersuite.
+				suites[suite] = struct{}{}
+			}
 		}
-	}
-*/
+	*/
 
 	// Compute the alternative DH point positions for each ciphersuite,
 	// and the maximum byte offset for each.
@@ -225,9 +219,9 @@ func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 	max := 0
 	simap := make(map[abstract.Suite]*suiteInfo)
 	w.simap = simap
-	for suite,nlevels := range suiteLevel {
+	for suite, nlevels := range suiteLevel {
 		si := suiteInfo{}
-		si.init(suite,nlevels)
+		si.init(suite, nlevels)
 		if si.max > max {
 			max = si.max
 		}
@@ -238,7 +232,7 @@ func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 	if nsuites > 255 {
 		// Our reservation calculation scheme currently can't handle
 		// more than 255 ciphersuites.
-		return 0,errors.New("too many ciphersuites")
+		return 0, errors.New("too many ciphersuites")
 	}
 	if w.maxLen != 0 && max > w.maxLen {
 		max = w.maxLen
@@ -266,29 +260,29 @@ func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 		// Reserve all our possible positions in exclude layout,
 		// picking the first non-conflicting position as our primary.
 		lev := len(si.pos)
-		for j := lev-1; j >= 0; j-- {
+		for j := lev - 1; j >= 0; j-- {
 			lo := si.pos[j]
 			hi := lo + si.plen
 			//fmt.Printf("reserving [%d-%d]\n", lo,hi)
 			name := si.String()
-			if exclude.reserve(lo,hi,false,name) && j == lev-1 {
-				lev = j		// no conflict, shift down
+			if exclude.reserve(lo, hi, false, name) && j == lev-1 {
+				lev = j // no conflict, shift down
 			}
 		}
 		if lev == len(si.pos) {
-			return 0,errors.New("no viable position for suite"+
-						si.ste.String())
+			return 0, errors.New("no viable position for suite" +
+				si.ste.String())
 		}
-		si.lev = lev	// lowest unconflicted, non-shadowed level
+		si.lev = lev // lowest unconflicted, non-shadowed level
 
 		// Permanently reserve the primary point position in w.layout
-		lo,hi := si.region(lev)
+		lo, hi := si.region(lev)
 		if hi > hdrlen {
 			hdrlen = hi
 		}
 		name := si.String()
 		//fmt.Printf("picked level %d at [%d-%d]\n", lev, lo,hi)
-		if !w.layout.reserve(lo,hi,true,name) {
+		if !w.layout.reserve(lo, hi, true, name) {
 			panic("thought we had that position reserved??")
 		}
 	}
@@ -298,11 +292,11 @@ func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 	//w.layout.dump()
 
 	// Now layout the entrypoints.
-	for i := range(entrypoints) {
+	for i := range entrypoints {
 		e := &entrypoints[i]
 		si := simap[e.Suite]
 		if si == nil {
-			panic("suite "+e.Suite.String()+" wasn't on the list")
+			panic("suite " + e.Suite.String() + " wasn't on the list")
 		}
 		l := len(e.Data)
 		if l == 0 {
@@ -317,12 +311,12 @@ func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 	//fmt.Printf("Point+Entry layout:\n")
 	//w.layout.dump()
 
-	return hdrlen,nil
+	return hdrlen, nil
 }
 
 // Grow the message buffer to include the region from lo to hi,
 // and return a slice representing that region.
-func (w *Writer) growBuf(lo,hi int) []byte {
+func (w *Writer) growBuf(lo, hi int) []byte {
 	if len(w.buf) < hi {
 		b := make([]byte, hi)
 		copy(b, w.buf)
@@ -351,7 +345,7 @@ func (w *Writer) Payload(data []byte, encrypt cipher.Stream) int {
 	hi := lo + l
 
 	// Expand the message buffer capacity as needed
-	buf := w.growBuf(lo,hi)
+	buf := w.growBuf(lo, hi)
 
 	// Encrypt and copy in the payload.
 	encrypt.XORKeyStream(buf, data)
@@ -366,7 +360,7 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 
 	// Pick an ephemeral secret for each ciphersuite
 	// that produces a hide-encodable Diffie-Hellman public key.
-	for i := range(w.suites.s) {
+	for i := range w.suites.s {
 		si := w.suites.s[i]
 
 		// Create a hiding-encoded DH public key.
@@ -374,27 +368,27 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 		pub := si.ste.Point()
 		var buf []byte
 		for {
-			pri.Pick(rand)		// pick fresh secret
-			pub.Mul(nil, pri)	// get DH public key
+			pri.Pick(rand)    // pick fresh secret
+			pub.Mul(nil, pri) // get DH public key
 			buf = pub.(abstract.Hiding).HideEncode(rand)
 			if buf != nil {
 				break
 			}
 		}
 		if len(buf) != si.plen {
-			panic("ciphersuite "+si.String()+" wrong pubkey length")
+			panic("ciphersuite " + si.String() + " wrong pubkey length")
 		}
 		si.pri = pri
 		si.pub = buf
 
 		// Insert the hidden point into the message buffer.
-		lo,hi := si.region(si.lev)
-		msgbuf := w.growBuf(lo,hi)
+		lo, hi := si.region(si.lev)
+		msgbuf := w.growBuf(lo, hi)
 		copy(msgbuf, buf)
 	}
 
 	// Encrypt and finalize all the entrypoints.
-	for i := range(w.entries) {
+	for i := range w.entries {
 		e := &w.entries[i]
 		si := w.simap[e.Suite]
 		lo := w.entofs[i]
@@ -404,33 +398,33 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 		dhkey := si.ste.Point().Mul(e.PubKey, si.pri)
 
 		// Encrypt the entrypoint data with it.
-		stream := abstract.PointStream(si.ste, dhkey)
-		msgbuf := w.growBuf(lo,hi)
+		stream := si.ste.Cipher(dhkey.Encode())
+		msgbuf := w.growBuf(lo, hi)
 		stream.XORKeyStream(msgbuf, e.Data)
 	}
 
 	// Fill all unused parts of the message with random bits.
-	msglen := len(w.buf)		// XXX
-	w.layout.scanFree(func(lo,hi int) {
-		msgbuf := w.growBuf(lo,hi)
-		rand.XORKeyStream(msgbuf,msgbuf)
+	msglen := len(w.buf) // XXX
+	w.layout.scanFree(func(lo, hi int) {
+		msgbuf := w.growBuf(lo, hi)
+		rand.XORKeyStream(msgbuf, msgbuf)
 	}, msglen)
 
 	// Finally, XOR-encode all the hidden Diffie-Hellman public keys.
-	for i := range(w.suites.s) {
+	for i := range w.suites.s {
 		si := w.suites.s[i]
 		plen := si.plen
 
 		// Copy the hide-encoded public key into the primary position.
-		plo,phi := si.region(si.lev)
-		pbuf := w.growBuf(plo,phi)
+		plo, phi := si.region(si.lev)
+		pbuf := w.growBuf(plo, phi)
 		copy(pbuf, si.pub)
 
 		// XOR all the non-primary point positions into it.
-		for j := range(si.pos) {
+		for j := range si.pos {
 			if j != si.lev {
-				lo,hi := si.region(j)
-				buf := w.buf[lo:hi]	// had better exist
+				lo, hi := si.region(j)
+				buf := w.buf[lo:hi] // had better exist
 				for k := 0; k < plen; k++ {
 					pbuf[k] ^= buf[k]
 				}
@@ -440,4 +434,3 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 
 	return w.buf
 }
-

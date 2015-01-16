@@ -18,13 +18,9 @@ type basicSig struct {
 
 // Returns a secret that depends on on a message and a point
 func hashElGamal(suite abstract.Suite, message []byte, p abstract.Point) abstract.Secret {
-	H := suite.Hash()
-	H.Write(message)
-	H.Write(p.Encode())
-
-	b := H.Sum(nil)
-	s := suite.Stream(b[:suite.KeyLen()])
-	return suite.Secret().Pick(s)
+	c := suite.Cipher(p.Encode(), abstract.More{})
+	c.Crypt(nil, message)
+	return suite.Secret().Pick(c)
 }
 
 // This simplified implementation of ElGamal Signatures is based on
@@ -86,7 +82,7 @@ func ElGamalVerify(suite abstract.Suite, message []byte, publicKey abstract.Poin
 func ExampleElGamal() {
 	// Crypto setup
 	suite := openssl.NewAES128SHA256P256()
-	rand := abstract.HashStream(suite, []byte("example"), nil)
+	rand := suite.Cipher([]byte("example"))
 
 	// Create a public/private keypair (X,x)
 	x := suite.Secret().Pick(rand) // create a private key x
@@ -106,9 +102,9 @@ func ExampleElGamal() {
 
 	// Output:
 	// Signature:
-	// 00000000  ea 1b 94 c6 31 8a 90 22  2c 05 a3 e7 6f fe 31 8e  |....1..",...o.1.|
-	// 00000010  e4 19 f7 3f 9e 28 b2 73  40 89 a0 1a f6 73 b1 20  |...?.(.s@....s. |
-	// 00000020  c7 34 3f 18 9c ad 46 5b  f7 1e 62 b2 21 e9 91 43  |.4?...F[..b.!..C|
-	// 00000030  40 33 94 ef 0b 8e e5 fa  90 02 de 9a e3 a5 ee 9e  |@3..............|
+	// 00000000  4f 52 f0 66 5f ed a4 2e  e1 e5 35 ed f3 d4 d9 3e  |OR.f_.....5....>|
+	// 00000010  62 69 1e 96 65 34 a1 f2  d8 d9 cc 31 4f c9 39 c6  |bi..e4.....1O.9.|
+	// 00000020  c8 09 93 0f 25 8d 2a e3  3a 36 ae bf 27 35 5b 2c  |....%.*.:6..'5[,|
+	// 00000030  7a 92 9b a8 93 83 ee 05  f4 35 6a c7 bd fa e4 60  |z........5j....`|
 	// Signature verified against correct message.
 }

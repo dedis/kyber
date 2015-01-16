@@ -7,25 +7,24 @@ import (
 	"github.com/dedis/crypto/random"
 )
 
-
 func testEmbed(g abstract.Group, rand cipher.Stream, points *[]abstract.Point,
-		s string) {
+	s string) {
 	//println("embedding: ",s)
 	b := []byte(s)
 
-	p,rem := g.Point().Pick(b, rand)
+	p, rem := g.Point().Pick(b, rand)
 	//println("embedded, remainder",len(rem),"/",len(b),":",string(rem))
-	x,err := p.Data()
+	x, err := p.Data()
 	if err != nil {
-		panic("Point extraction failed: "+err.Error())
+		panic("Point extraction failed: " + err.Error())
 	}
 	//println("extracted data: ",string(x))
 
-	if !bytes.Equal(append(x,rem...), b) {
+	if !bytes.Equal(append(x, rem...), b) {
 		panic("Point embedding corrupted the data")
 	}
 
-	*points = append(*points,p)
+	*points = append(*points, p)
 }
 
 // Apply a generic set of validation tests to a cryptographic Group,
@@ -36,10 +35,10 @@ func testEmbed(g abstract.Group, rand cipher.Stream, points *[]abstract.Point,
 // that are supposed to be equivalent.
 //
 func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
-//	fmt.Printf("\nTesting group '%s': %d-byte Point, %d-byte Secret\n",
-//			g.String(), g.PointLen(), g.SecretLen())
+	//	fmt.Printf("\nTesting group '%s': %d-byte Point, %d-byte Secret\n",
+	//			g.String(), g.PointLen(), g.SecretLen())
 
-	points := make([]abstract.Point,0)
+	points := make([]abstract.Point, 0)
 	ptmp := g.Point()
 	stmp := g.Secret()
 	pzero := g.Point().Null()
@@ -54,33 +53,33 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 	}
 
 	gen := g.Point().Base()
-	points = append(points,gen)
+	points = append(points, gen)
 
 	// Verify additive and multiplicative identities of the generator.
-	ptmp.Mul(nil,stmp.SetInt64(-1)).Add(ptmp,gen)
+	ptmp.Mul(nil, stmp.SetInt64(-1)).Add(ptmp, gen)
 	if !ptmp.Equal(pzero) {
 		panic("oops, generator additive identity doesn't work")
 	}
-	if g.PrimeOrder() {	// secret.Inv works only in prime-order groups
-		ptmp.Mul(nil,stmp.SetInt64(2)).Mul(ptmp,stmp.Inv(stmp))
+	if g.PrimeOrder() { // secret.Inv works only in prime-order groups
+		ptmp.Mul(nil, stmp.SetInt64(2)).Mul(ptmp, stmp.Inv(stmp))
 		if !ptmp.Equal(gen) {
 			panic("oops, generator multiplicative identity doesn't work")
 		}
 	}
 
-	p1 := g.Point().Mul(gen,s1)
-	p2 := g.Point().Mul(gen,s2)
+	p1 := g.Point().Mul(gen, s1)
+	p2 := g.Point().Mul(gen, s2)
 	if p1.Equal(p2) {
 		panic("uh-oh, encryption isn't producing unique points!")
 	}
-	points = append(points,p1)
+	points = append(points, p1)
 
-	dh1 := g.Point().Mul(p1,s2)
-	dh2 := g.Point().Mul(p2,s1)
+	dh1 := g.Point().Mul(p1, s2)
+	dh2 := g.Point().Mul(p2, s1)
 	if !dh1.Equal(dh2) {
 		panic("Diffie-Hellman didn't work")
 	}
-	points = append(points,dh1)
+	points = append(points, dh1)
 	//println("shared secret = ",dh1.String())
 
 	// Test secret inverse to get from dh1 back to p1
@@ -101,40 +100,40 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 	}
 
 	// Additive homomorphic identities
-	ptmp.Add(p1,p2)
-	stmp.Add(s1,s2)
-	pt2 := g.Point().Mul(gen,stmp)
+	ptmp.Add(p1, p2)
+	stmp.Add(s1, s2)
+	pt2 := g.Point().Mul(gen, stmp)
 	if !pt2.Equal(ptmp) {
 		panic("Additive homomorphism doesn't work")
 	}
-	ptmp.Sub(p1,p2)
-	stmp.Sub(s1,s2)
-	pt2.Mul(gen,stmp)
+	ptmp.Sub(p1, p2)
+	stmp.Sub(s1, s2)
+	pt2.Mul(gen, stmp)
 	if !pt2.Equal(ptmp) {
 		panic("Additive homomorphism doesn't work")
 	}
 	st2 := g.Secret().Neg(s2)
-	st2.Add(s1,st2)
+	st2.Add(s1, st2)
 	if !stmp.Equal(st2) {
 		panic("Secret.Neg doesn't work")
 	}
-	pt2.Neg(p2).Add(pt2,p1)
+	pt2.Neg(p2).Add(pt2, p1)
 	if !pt2.Equal(ptmp) {
 		panic("Point.Neg doesn't work")
 	}
 
 	// Multiplicative homomorphic identities
-	stmp.Mul(s1,s2)
-	if !ptmp.Mul(gen,stmp).Equal(dh1) {
+	stmp.Mul(s1, s2)
+	if !ptmp.Mul(gen, stmp).Equal(dh1) {
 		panic("Multiplicative homomorphism doesn't work")
 	}
 	if g.PrimeOrder() {
 		st2.Inv(s2)
-		st2.Mul(st2,stmp)
+		st2.Mul(st2, stmp)
 		if !st2.Equal(s1) {
 			panic("Secret division doesn't work")
 		}
-		st2.Div(stmp,s2)
+		st2.Div(stmp, s2)
 		if !st2.Equal(s1) {
 			panic("Secret division doesn't work")
 		}
@@ -143,28 +142,28 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 	// Test randomly picked points
 	last := gen
 	for i := 0; i < 5; i++ {
-		rgen,_ := g.Point().Pick(nil, rand)
+		rgen, _ := g.Point().Pick(nil, rand)
 		if rgen.Equal(last) {
 			panic("Pick() not producing unique points")
 		}
 		last = rgen
 
-		ptmp.Mul(rgen,stmp.SetInt64(-1)).Add(ptmp,rgen)
+		ptmp.Mul(rgen, stmp.SetInt64(-1)).Add(ptmp, rgen)
 		if !ptmp.Equal(pzero) {
 			panic("random generator fails additive identity")
 		}
 		if g.PrimeOrder() {
-			ptmp.Mul(rgen,stmp.SetInt64(2)).Mul(ptmp,stmp.Inv(stmp))
+			ptmp.Mul(rgen, stmp.SetInt64(2)).Mul(ptmp, stmp.Inv(stmp))
 			if !ptmp.Equal(rgen) {
 				panic("random generator fails multiplicative identity")
 			}
 		}
-		points = append(points,rgen)
+		points = append(points, rgen)
 	}
 
 	// Test embedding data
-	testEmbed(g,rand,&points,"Hi!")
-	testEmbed(g,rand,&points,"The quick brown fox jumps over the lazy dog")
+	testEmbed(g, rand, &points, "Hi!")
+	testEmbed(g, rand, &points, "The quick brown fox jumps over the lazy dog")
 
 	// Test verifiable secret sharing
 	// XXX re-enable when we move this into 'test' sub-package
@@ -180,20 +179,20 @@ func TestGroup(g abstract.Group) {
 
 // Test two group implementations that are supposed to be equivalent,
 // and compare their results.
-func TestCompareGroups(suite abstract.Suite, g1,g2 abstract.Group) {
+func TestCompareGroups(suite abstract.Suite, g1, g2 abstract.Group) {
 
 	// Produce test results from the same pseudorandom seed
-	r1 := testGroup(g1, abstract.HashStream(suite, nil, nil))
-	r2 := testGroup(g2, abstract.HashStream(suite, nil, nil))
+	r1 := testGroup(g1, suite.Cipher(abstract.NoKey))
+	r2 := testGroup(g2, suite.Cipher(abstract.NoKey))
 
 	// Compare resulting Points
-	for i := range(r1) {
+	for i := range r1 {
 		b1 := r1[i].Encode()
 		b2 := r2[i].Encode()
-		if !bytes.Equal(b1,b2) {
-			println("result-pair",i,
-				"\n1:",r1[i].String(),
-				"\n2:",r2[i].String())
+		if !bytes.Equal(b1, b2) {
+			println("result-pair", i,
+				"\n1:", r1[i].String(),
+				"\n2:", r2[i].String())
 			panic("unequal results")
 		}
 	}
@@ -204,7 +203,7 @@ func TestSuite(suite abstract.Suite) {
 
 	// Try hashing something
 	h := suite.Hash()
-	l := suite.HashLen()
+	l := h.Size()
 	//println("HashLen: ",l)
 	h.Write([]byte("abc"))
 	hb := h.Sum(nil)
@@ -215,20 +214,12 @@ func TestSuite(suite abstract.Suite) {
 	}
 
 	// Generate some pseudorandom bits
-	s := suite.Stream(hb[0:suite.KeyLen()])
-	sb := make([]byte,128)
-	s.XORKeyStream(sb,sb)
+	s := suite.Cipher(hb)
+	sb := make([]byte, 128)
+	s.XORKeyStream(sb, sb)
 	//println("Stream:")
-	//println(hex.Dump(sb))
-
-	// Generate a sub-stream
-	ss := abstract.SubStream(suite,s)
-	sb = make([]byte,128)
-	ss.XORKeyStream(sb,sb)
-	//println("SubStream:")
 	//println(hex.Dump(sb))
 
 	// Test the public-key group arithmetic
 	TestGroup(suite)
 }
-

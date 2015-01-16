@@ -10,9 +10,8 @@
 package clique
 
 import (
-	"crypto/cipher"
+	"github.com/dedis/crypto/abstract"
 )
-
 
 // Protocol represents the role of a participant in a clique protocol.
 // A participant is represented as a higher-order function taking a StarContext,
@@ -22,7 +21,6 @@ import (
 //
 // XXX this interface should probably move to a "protocol" module of some kind.
 type Protocol func(ctx Context) []error
-
 
 // Context represents an abstract context for running a clique protocol.
 // A clique protocol is initiated by a leader
@@ -42,9 +40,8 @@ type Context interface {
 	// each index consistently represents the same participant every step.
 	// One returned message will be the same slice as the one passed in,
 	// representing the calling participant's own slot.
-	Step(msg []byte) ([][]byte,error)
+	Step(msg []byte) ([][]byte, error)
 
 	// Get a source of private cryptographic randomness.
-	Random() cipher.Stream
+	Random() abstract.Cipher
 }
-

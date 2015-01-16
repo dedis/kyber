@@ -1,21 +1,21 @@
 package nist
 
 import (
-	"errors"
-	"math/big"
-	"encoding/hex"
 	"crypto/cipher"
+	"encoding/hex"
+	"errors"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/math"
 	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/util"
+	"io"
+	"math/big"
 )
-
 
 var zero = big.NewInt(0)
 var one = big.NewInt(1)
 var two = big.NewInt(2)
-
 
 // Int is a generic implementation of finite field arithmetic
 // on integer finite fields with a given constant modulus,
@@ -37,13 +37,13 @@ var two = big.NewInt(2)
 // whose target is assumed never to change.
 //
 type Int struct {
-	V big.Int 		// Integer value from 0 through M-1
-	M *big.Int		// Modulus for finite field arithmetic
+	V big.Int  // Integer value from 0 through M-1
+	M *big.Int // Modulus for finite field arithmetic
 }
 
 // Create a new Int with a given int64 value and big.Int modulus.
 func NewInt(v int64, M *big.Int) *Int {
-	return new(Int).Init64(v,M)
+	return new(Int).Init64(v, M)
 }
 
 // Initialize a Int with a given big.Int value and modulus pointer.
@@ -70,9 +70,9 @@ func (i *Int) InitBytes(a []byte, M *big.Int) *Int {
 
 // Initialize a Int to a rational fraction n/d
 // specified with a pair of strings in a given base.
-func (i *Int) InitString(n,d string, base int, M *big.Int) *Int {
+func (i *Int) InitString(n, d string, base int, M *big.Int) *Int {
 	i.M = M
-	if _,succ := i.SetString(n, d, base); !succ {
+	if _, succ := i.SetString(n, d, base); !succ {
 		panic("InitString: invalid fraction representation")
 	}
 	return i
@@ -87,19 +87,19 @@ func (i *Int) String() string {
 // If d == "", then the denominator is taken to be 1.
 // Returns (i,true) on success, or
 // (nil,false) if either string fails to parse.
-func (i *Int) SetString(n,d string, base int) (*Int, bool) {
-	if _,succ := i.V.SetString(n, base); !succ {
-		return nil,false
+func (i *Int) SetString(n, d string, base int) (*Int, bool) {
+	if _, succ := i.V.SetString(n, base); !succ {
+		return nil, false
 	}
 	if d != "" {
 		var di Int
 		di.M = i.M
-		if _,succ := di.SetString(d, "", base); !succ {
-			return nil,false
+		if _, succ := di.SetString(d, "", base); !succ {
+			return nil, false
 		}
-		i.Div(i,&di)
+		i.Div(i, &di)
 	}
-	return i,true
+	return i, true
 }
 
 // Compare two Ints for equality or inequality
@@ -180,21 +180,21 @@ func (i *Int) Uint64() uint64 {
 }
 
 // Set target to a + b mod M, where M is a's modulus..
-func (i *Int) Add(a,b abstract.Secret) abstract.Secret {
+func (i *Int) Add(a, b abstract.Secret) abstract.Secret {
 	ai := a.(*Int)
 	bi := b.(*Int)
 	i.M = ai.M
-	i.V.Add(&ai.V,&bi.V).Mod(&i.V, i.M)
+	i.V.Add(&ai.V, &bi.V).Mod(&i.V, i.M)
 	return i
 }
 
 // Set target to a - b mod M.
 // Target receives a's modulus.
-func (i *Int) Sub(a,b abstract.Secret) abstract.Secret {
+func (i *Int) Sub(a, b abstract.Secret) abstract.Secret {
 	ai := a.(*Int)
 	bi := b.(*Int)
 	i.M = ai.M
-	i.V.Sub(&ai.V,&bi.V).Mod(&i.V, i.M)
+	i.V.Sub(&ai.V, &bi.V).Mod(&i.V, i.M)
 	return i
 }
 
@@ -212,16 +212,16 @@ func (i *Int) Neg(a abstract.Secret) abstract.Secret {
 
 // Set to a * b mod M.
 // Target receives a's modulus.
-func (i *Int) Mul(a,b abstract.Secret) abstract.Secret {
+func (i *Int) Mul(a, b abstract.Secret) abstract.Secret {
 	ai := a.(*Int)
 	bi := b.(*Int)
 	i.M = ai.M
-	i.V.Mul(&ai.V,&bi.V).Mod(&i.V, i.M)
+	i.V.Mul(&ai.V, &bi.V).Mod(&i.V, i.M)
 	return i
 }
 
 // Set to a * b^-1 mod M, where b^-1 is the modular inverse of b.
-func (i *Int) Div(a,b abstract.Secret) abstract.Secret {
+func (i *Int) Div(a, b abstract.Secret) abstract.Secret {
 	ai := a.(*Int)
 	bi := b.(*Int)
 	var t big.Int
@@ -251,10 +251,10 @@ func (i *Int) Exp(a abstract.Secret, e *big.Int) abstract.Secret {
 // Compute the Legendre symbol of i, if modulus M is prime,
 // using the Euler criterion (which involves exponentiation).
 func (i *Int) legendre() int {
-	var Pm1,v big.Int
-	Pm1.Sub(i.M,one)
-	v.Div(&Pm1,two)
-	v.Exp(&i.V,&v,i.M)
+	var Pm1, v big.Int
+	Pm1.Sub(i.M, one)
+	v.Div(&Pm1, two)
+	v.Exp(&i.V, &v, i.M)
 	if v.Cmp(&Pm1) == 0 {
 		return -1
 	}
@@ -283,7 +283,7 @@ func (i *Int) Sqrt(as abstract.Secret) bool {
 // Pick a [pseudo-]random integer modulo M
 // using bits from the given stream cipher.
 func (i *Int) Pick(rand cipher.Stream) abstract.Secret {
-	i.V.Set(random.Int(i.M,rand))
+	i.V.Set(random.Int(i.M, rand))
 	return i
 }
 
@@ -292,16 +292,16 @@ func (i *Int) Pick(rand cipher.Stream) abstract.Secret {
 // and not on the the value of the encoded integer,
 // making the encoding is fixed-length for simplicity and security.
 func (i *Int) Len() int {
-	return (i.M.BitLen()+7)/8
+	return (i.M.BitLen() + 7) / 8
 }
 
 // Encode the value of this Int into a byte-slice exactly Len() bytes long.
 func (i *Int) Encode() []byte {
 	l := i.Len()
-	b := i.V.Bytes()	// may be shorter than l
-	if ofs := l-len(b); ofs != 0 {
-		nb := make([]byte,l)
-		copy(nb[ofs:],b)
+	b := i.V.Bytes() // may be shorter than l
+	if ofs := l - len(b); ofs != 0 {
+		nb := make([]byte, l)
+		copy(nb[ofs:], b)
 		return nb
 	}
 	return b
@@ -319,6 +319,14 @@ func (i *Int) Decode(buf []byte) error {
 		return errors.New("Int.Decode: value out of range")
 	}
 	return nil
+}
+
+func (i *Int) EncodeTo(w io.Writer) (int, error) {
+	return group.SecretEncodeTo(i, w)
+}
+
+func (i *Int) DecodeFrom(r io.Reader) (int, error) {
+	return group.SecretDecodeFrom(i, r)
 }
 
 // Encode the value of this Int into a big-endian byte-slice
@@ -373,28 +381,28 @@ func (i *Int) HideEncode(rand cipher.Stream) []byte {
 
 	// Bit-position of the most-significant bit of the modular integer
 	// in the most-significant byte of its encoding.
-	highbit := uint((i.M.BitLen()-1) & 7)
+	highbit := uint((i.M.BitLen() - 1) & 7)
 
 	var enc big.Int
 	for {
 		// Pick a random multiplier of a suitable bit-length.
 		var b [1]byte
-		rand.XORKeyStream(b[:],b[:])
+		rand.XORKeyStream(b[:], b[:])
 		mult := int64(b[0] >> highbit)
 
 		// Multiply, and see if we end up with
 		// a Int of the proper byte-length.
 		// Reroll if we get a result larger than HideLen(),
 		// to ensure uniformity of the resulting encoding.
-		enc.SetInt64(mult).Mul(&i.V,&enc)
+		enc.SetInt64(mult).Mul(&i.V, &enc)
 		if enc.BitLen() <= hidelen*8 {
 			break
 		}
 	}
 
-	b := enc.Bytes()	// may be shorter than l
-	if ofs := hidelen-len(b); ofs != 0 {
-		b = append(make([]byte,ofs), b...)
+	b := enc.Bytes() // may be shorter than l
+	if ofs := hidelen - len(b); ofs != 0 {
+		b = append(make([]byte, ofs), b...)
 	}
 	return b
 }
@@ -408,4 +416,3 @@ func (i *Int) HideDecode(buf []byte) {
 	i.V.SetBytes(buf)
 	i.V.Mod(&i.V, i.M)
 }
-

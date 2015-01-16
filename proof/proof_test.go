@@ -1,67 +1,66 @@
 package proof
 
 import (
-	"fmt"
-	"testing"
 	"encoding/hex"
+	"fmt"
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/openssl"
+	"testing"
 )
 
 func TestRep(t *testing.T) {
 	suite := openssl.NewAES128SHA256P256()
-	rand := random.Stream
+	rand := suite.Cipher(abstract.RandomKey)
 
 	x := suite.Secret().Pick(rand)
 	y := suite.Secret().Pick(rand)
 	B := suite.Point().Base()
-	X := suite.Point().Mul(nil,x)
-	Y := suite.Point().Mul(X,y)
-	R := suite.Point().Add(X,Y)
+	X := suite.Point().Mul(nil, x)
+	Y := suite.Point().Mul(X, y)
+	R := suite.Point().Add(X, Y)
 
 	choice := make(map[Predicate]int)
 
 	// Simple single-secret predicate: prove X=x*B
-	log := Rep("X","x","B")
+	log := Rep("X", "x", "B")
 
 	// Two-secret representation: prove R=x*B+y*X
-	rep := Rep("R","x","B","y","X")
+	rep := Rep("R", "x", "B", "y", "X")
 
 	// Make an and-predicate
-	and := And(log,rep)
+	and := And(log, rep)
 	andx := And(and)
 
 	// Make up a couple incorrect facts
-	falseLog := Rep("Y","x","B")
-	falseRep := Rep("R","x","B","y","B")
+	falseLog := Rep("Y", "x", "B")
+	falseRep := Rep("R", "x", "B", "y", "B")
 
 	falseAnd := And(falseLog, falseRep)
 
-	or1 := Or(falseAnd,andx)
+	or1 := Or(falseAnd, andx)
 	choice[or1] = 1
-	or1x := Or(or1)				// test trivial case
+	or1x := Or(or1) // test trivial case
 	choice[or1x] = 0
 
-	or2a := Rep("B","y","X")
-	or2b := Rep("R","x","R")
-	or2 := Or(or2a,or2b)
-	or2x := Or(or2)				// test trivial case
+	or2a := Rep("B", "y", "X")
+	or2b := Rep("R", "x", "R")
+	or2 := Or(or2a, or2b)
+	or2x := Or(or2) // test trivial case
 
-	pred := Or(or1x,or2x)
+	pred := Or(or1x, or2x)
 	choice[pred] = 0
 
-	sval := map[string]abstract.Secret{ "x":x, "y":y}
-	pval := map[string]abstract.Point{ "B":B, "X":X, "Y":Y, "R":R}
+	sval := map[string]abstract.Secret{"x": x, "y": y}
+	pval := map[string]abstract.Point{"B": B, "X": X, "Y": Y, "R": R}
 	prover := pred.Prover(suite, sval, pval, choice)
-	proof,err := HashProve(suite, "TEST", random.Stream, prover)
+	proof, err := HashProve(suite, "TEST", rand, prover)
 	if err != nil {
-		panic("prover: "+err.Error())
+		panic("prover: " + err.Error())
 	}
 
 	verifier := pred.Verifier(suite, pval)
 	if err := HashVerify(suite, "TEST", verifier, proof); err != nil {
-		panic("verify: "+err.Error())
+		panic("verify: " + err.Error())
 	}
 }
 
@@ -72,7 +71,7 @@ func TestRep(t *testing.T) {
 // If we take X as a public key and x as its corresponding private key,
 // then this constitutes a "proof of ownership" of the public key X.
 func ExampleRep_1() {
-	pred := Rep("X","x","B")
+	pred := Rep("X", "x", "B")
 	fmt.Println(pred.String())
 	// Output: X=x*B
 }
@@ -81,24 +80,24 @@ func ExampleRep_1() {
 // of the statement in the example above, i.e.,
 // a proof of ownership of public key X.
 func ExampleRep_2() {
-	pred := Rep("X","x","B")
+	pred := Rep("X", "x", "B")
 	fmt.Println(pred.String())
 
 	// Crypto setup
 	suite := openssl.NewAES128SHA256P256()
-	rand := abstract.HashStream(suite, []byte("example"), nil)
-	B := suite.Point().Base()		// standard base point
+	rand := suite.Cipher([]byte("example"))
+	B := suite.Point().Base() // standard base point
 
 	// Create a public/private keypair (X,x)
-	x := suite.Secret().Pick(rand)		// create a private key x
-	X := suite.Point().Mul(nil,x)		// corresponding public key X
+	x := suite.Secret().Pick(rand) // create a private key x
+	X := suite.Point().Mul(nil, x) // corresponding public key X
 
 	// Generate a proof that we know the discrete logarithm of X.
-	sval := map[string]abstract.Secret{"x":x}
-	pval := map[string]abstract.Point{"B":B, "X":X}
+	sval := map[string]abstract.Secret{"x": x}
+	pval := map[string]abstract.Point{"B": B, "X": X}
 	prover := pred.Prover(suite, sval, pval, nil)
-	proof,_ := HashProve(suite, "TEST", rand, prover)
-	fmt.Print("Proof:\n"+hex.Dump(proof))
+	proof, _ := HashProve(suite, "TEST", rand, prover)
+	fmt.Print("Proof:\n" + hex.Dump(proof))
 
 	// Verify this knowledge proof.
 	verifier := pred.Verifier(suite, pval)
@@ -111,11 +110,11 @@ func ExampleRep_2() {
 	// Output:
 	// X=x*B
 	// Proof:
-	// 00000000  02 a7 88 0a 50 7e 71 48  03 0d a8 6c 31 f7 01 ed  |....P~qH...l1...|
-	// 00000010  c5 ea 92 5a b3 35 85 42  43 ec b2 72 1c 50 10 88  |...Z.5.BC..r.P..|
-	// 00000020  fe a7 af 11 48 58 58 90  76 2e c9 67 c6 6a 85 94  |....HXX.v..g.j..|
-	// 00000030  02 ad 5e b5 e6 26 b9 63  8b 85 b8 24 c6 60 19 80  |..^..&.c...$.`..|
-	// 00000040  00                                                |.|
+	// 00000000  02 23 62 b1 f9 cb f4 a2  6d 7f 3e 69 cb b6 77 ab  |.#b.....m.>i..w.|
+	// 00000010  90 fc 7c db a0 c6 e8 12  f2 0a d4 40 a4 b6 c4 de  |..|........@....|
+	// 00000020  9e 53 67 12 c7 31 0a 92  ed 76 c4 4d 2c 4b fc 2c  |.Sg..1...v.M,K.,|
+	// 00000030  56 db 2d 8a 84 ec 5d e5  31 17 80 76 a8 ea 46 04  |V.-...].1..v..F.|
+	// 00000040  c8                                                |.|
 	// Proof verified.
 }
 
@@ -141,7 +140,7 @@ func ExampleRep_2() {
 // the prover can trivially compute the x1 corresponding to an arbitrary x2.
 //
 func ExampleRep_3() {
-	pred := Rep("X","x1","B1","x2","B2")
+	pred := Rep("X", "x1", "B1", "x2", "B2")
 	fmt.Println(pred.String())
 	// Output: X=x1*B1+x2*B2
 }
@@ -153,7 +152,7 @@ func ExampleRep_3() {
 // This predicate might be used to prove knowledge of
 // the private keys corresponding to two public keys X and Y, for example.
 func ExampleAnd_1() {
-	pred := And(Rep("X","x","B"),Rep("Y","y","B"))
+	pred := And(Rep("X", "x", "B"), Rep("Y", "y", "B"))
 	fmt.Println(pred.String())
 	// Output: X=x*B && Y=y*B
 }
@@ -166,7 +165,7 @@ func ExampleAnd_1() {
 // of X1 with respect to B1 and of X2 with respect to B2,
 // but also proves that those two discrete logarithms are equal.
 func ExampleAnd_2() {
-	pred := And(Rep("X1","x","B1"),Rep("X2","x","B2"))
+	pred := And(Rep("X1", "x", "B1"), Rep("X2", "x", "B2"))
 	fmt.Println(pred.String())
 	// Output: X1=x*B1 && X2=x*B2
 }
@@ -178,7 +177,7 @@ func ExampleAnd_2() {
 // for one of two public keys X or Y,
 // without revealing which key the prover owns.
 func ExampleOr_1() {
-	pred := Or(Rep("X","x","B"),Rep("Y","y","B"))
+	pred := Or(Rep("X", "x", "B"), Rep("Y", "y", "B"))
 	fmt.Println(pred.String())
 	// Output: X=x*B || Y=y*B
 }
@@ -193,18 +192,18 @@ func ExampleOr_1() {
 // we won't find be able to find such a y.)
 func ExampleOr_2() {
 	// Create an Or predicate.
-	pred := Or(Rep("X","x","B"),Rep("Y","y","B"))
-	fmt.Println("Predicate: "+pred.String())
+	pred := Or(Rep("X", "x", "B"), Rep("Y", "y", "B"))
+	fmt.Println("Predicate: " + pred.String())
 
 	// Crypto setup
 	suite := openssl.NewAES128SHA256P256()
-	rand := abstract.HashStream(suite, []byte("example"), nil)
-	B := suite.Point().Base()		// standard base point
+	rand := suite.Cipher([]byte("example"))
+	B := suite.Point().Base() // standard base point
 
 	// Create a public/private keypair (X,x) and a random point Y
-	x := suite.Secret().Pick(rand)		// create a private key x
-	X := suite.Point().Mul(nil,x)		// corresponding public key X
-	Y,_ := suite.Point().Pick(nil,rand)	// pick a random point Y
+	x := suite.Secret().Pick(rand)        // create a private key x
+	X := suite.Point().Mul(nil, x)        // corresponding public key X
+	Y, _ := suite.Point().Pick(nil, rand) // pick a random point Y
 
 	// We'll need to tell the prover which Or clause is actually true.
 	// In this case clause 0, the first sub-predicate, is true:
@@ -213,11 +212,11 @@ func ExampleOr_2() {
 	choice[pred] = 0
 
 	// Generate a proof that we know the discrete logarithm of X or Y.
-	sval := map[string]abstract.Secret{"x":x}
-	pval := map[string]abstract.Point{"B":B, "X":X, "Y":Y}
+	sval := map[string]abstract.Secret{"x": x}
+	pval := map[string]abstract.Point{"B": B, "X": X, "Y": Y}
 	prover := pred.Prover(suite, sval, pval, choice)
-	proof,_ := HashProve(suite, "TEST", rand, prover)
-	fmt.Print("Proof:\n"+hex.Dump(proof))
+	proof, _ := HashProve(suite, "TEST", rand, prover)
+	fmt.Print("Proof:\n" + hex.Dump(proof))
 
 	// Verify this knowledge proof.
 	// The verifier doesn't need the secret values or choice map, of course.
@@ -231,19 +230,18 @@ func ExampleOr_2() {
 	// Output:
 	// Predicate: X=x*B || Y=y*B
 	// Proof:
-	// 00000000  03 07 21 da 6b 4c ea f2  87 4a bf 97 e2 66 bc cf  |..!.kL...J...f..|
-	// 00000010  bd d3 f1 f9 5b bc 5b 76  0d 7f 73 d9 9a 6d cb 32  |....[.[v..s..m.2|
-	// 00000020  c7 03 70 67 8a e2 39 52  e7 a9 ce 14 d7 a4 19 01  |..pg..9R........|
-	// 00000030  f7 35 fd 1e a1 5c 06 12  71 39 ad c9 f0 50 b7 cd  |.5...\..q9...P..|
-	// 00000040  5e 86 5c f3 70 d6 e9 48  53 84 2a b7 31 1a 60 b1  |^.\.p..HS.*.1.`.|
-	// 00000050  07 73 c8 93 d6 07 64 c2  b8 12 3e b6 05 ef f0 3c  |.s....d...>....<|
-	// 00000060  04 44 0e d5 2c 26 21 a1  16 75 02 30 b5 fb 04 5e  |.D..,&!..u.0...^|
-	// 00000070  0e cd 89 2a 95 f8 cd 5e  ec 1c 36 b5 a6 82 e5 70  |...*...^..6....p|
-	// 00000080  97 0a af c2 54 4e 1c a8  51 ef 48 52 bf 8e a4 b7  |....TN..Q.HR....|
-	// 00000090  6b 34 aa 05 7c 8f 3e ac  4b b7 8c f6 55 44 31 9d  |k4..|.>.K...UD1.|
-	// 000000a0  56 5b 02 51 73 a0 bc 3e  2d a9 66 78 17 50 c4 c9  |V[.Qs..>-.fx.P..|
-	// 000000b0  2b 6a d2 77 cd 9b 2b e0  df a1 48 ab b4 df c6 ed  |+j.w..+...H.....|
-	// 000000c0  2e 3e                                             |.>|
+	// 00000000  02 af 84 ed e5 86 04 cf  81 e4 18 17 84 0c 39 ab  |..............9.|
+	// 00000010  fe 5c bc cc 00 85 e0 a2  ee aa d5 22 18 dd c4 a1  |.\........."....|
+	// 00000020  5b 03 df 9c 59 21 0e 1c  44 99 23 a1 54 92 21 c9  |[...Y!..D.#.T.!.|
+	// 00000030  d6 b3 84 85 ad 87 dd a3  64 c0 b9 eb 4d 92 5b cb  |........d...M.[.|
+	// 00000040  c6 4f e7 67 95 36 6a e4  e7 ca b5 14 b7 99 16 60  |.O.g.6j........`|
+	// 00000050  71 91 ad b0 f1 86 43 df  6a 45 1f cb a2 93 7e b3  |q.....C.jE....~.|
+	// 00000060  b5 7b 32 17 7d 53 c5 e4  48 79 49 b2 3e 1e e2 62  |.{2.}S..HyI.>..b|
+	// 00000070  39 08 13 d5 2e f8 c5 e9  c1 28 09 91 7a 95 c9 12  |9........(..z...|
+	// 00000080  17 85 f5 eb 2d 8e 6b 37  3a b5 ff 45 25 e7 0c aa  |....-.k7:..E%...|
+	// 00000090  94 43 cf 67 52 2e 1d 2c  1b a4 c0 ca 96 d6 03 08  |.C.gR..,........|
+	// 000000a0  c0 0d 93 8b c6 f6 34 12  83 a0 32 2e 82 2c 4b fb  |......4...2..,K.|
+	// 000000b0  b3 0c a1 4b a5 e3 27 43  b6 2f ed fa ca 4f 93 83  |...K..'C./...O..|
+	// 000000c0  fd 56                                             |.V|
 	// Proof verified.
 }
-
