@@ -1,16 +1,16 @@
 package util
 
 import (
-	"os"
 	"errors"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 )
 
 type Replacer struct {
-	Name string		// Name of the file being replaced
-	Info os.FileInfo	// Timestamp of target file before replacement
-	File *os.File		// Temporary file used for writing
+	Name string      // Name of the file being replaced
+	Info os.FileInfo // Timestamp of target file before replacement
+	File *os.File    // Temporary file used for writing
 }
 
 var raceErr = errors.New("File was concurrently modified")
@@ -37,7 +37,7 @@ func (r *Replacer) Open(filename string) error {
 	// Save a time-stamp of the file we're replacing
 	// so we can detect concurrent modifications.
 	if r.Info == nil {
-		info,err := os.Stat(filename)
+		info, err := os.Stat(filename)
 		if err != nil {
 			if !os.IsNotExist(err) {
 				return err
@@ -49,7 +49,7 @@ func (r *Replacer) Open(filename string) error {
 	// Create a temporary file in the same directory for the replacement
 	dir := filepath.Dir(filename)
 	pfx := filepath.Base(filename)
-	file,err := ioutil.TempFile(dir,pfx)
+	file, err := ioutil.TempFile(dir, pfx)
 	if err != nil {
 		return err
 	}
@@ -75,11 +75,11 @@ func (r *Replacer) Commit() error {
 	// a race can still happen; this is only a heuristic.
 	// OS-specific facilities would be needed to make it truly atomic.
 	if r.Info != nil {
-		info,err := os.Stat(r.Name)
+		info, err := os.Stat(r.Name)
 		if err != nil {
 			return err
 		}
-		if	info.Name() != r.Info.Name() ||
+		if info.Name() != r.Info.Name() ||
 			info.Size() != r.Info.Size() ||
 			info.ModTime() != r.Info.ModTime() {
 			return raceErr
@@ -127,4 +127,3 @@ func (r *Replacer) Abort() {
 func IsRace(err error) bool {
 	return err == raceErr
 }
-

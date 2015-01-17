@@ -6,17 +6,10 @@ Language:
 	to declare global variables?
 
 Wishlist for Go standard library changes:
-- cipher.Stream: define XORKeyStream semantics such that if src is null
-	or shorter than dst, dst is padded out with random bytes (rand XOR 0).
-	This would be more convenient and efficient when Stream is used
-	as a pseudo-random byte generator, and would also be more secure
-	in the event of program bugs than allowing the unmatched dst bytes
-	to be "left unencrypted".
 - Reverse() function in 'bytes' package to reverse byte-order of a byte-slice.
 	Or alternatively, endian-selectable Bytes/GetBytes in math.big.
 	Or a byte-slice-reversal function in encoding package.
 - big.Int needs:
-	- modular Sqrt and Jacobi functions
 	- bit-field instructions: fill, scan, insert, extract
 - Shouldn't elliptic.CurveParams have a field for cofactor,
 	to support anything other than NIST prime-order curves?
@@ -71,5 +64,4 @@ Wishlist for Go standard library changes:
 	to skip or send a given number of bytes to a destination Writer.
 	(WriteTo() is close but just sends the whole remaining stream.)
 	Perhaps DivertTo, for a temporary rather than permanent diversion?
-- crypto/subtle should have a ConstantTimeNonzero
 
