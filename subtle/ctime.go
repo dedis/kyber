@@ -11,12 +11,13 @@ func ConstantTimeCompare(x, y []byte) int {
 	return subtle.ConstantTimeCompare(x, y)
 }
 
-// ConstantTimeNonzero returns a nonzero value
-// iff any byte in buf has a nonzero value.
-func ConstantTimeNonzero(buf []byte) byte {
-	var or byte
-	for _, b := range buf {
-		or |= b
+// ConstantTimeAllEq returns 1 iff all bytes in slice x have the value y.
+// The time taken is a function of the length of the slices
+// and is independent of the contents.
+func ConstantTimeAllEq(x []byte, y byte) int {
+	var z byte
+	for _, b := range x {
+		z |= b ^ y
 	}
-	return or
+	return subtle.ConstantTimeByteEq(z, 0)
 }

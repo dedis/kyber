@@ -198,7 +198,7 @@ func Decrypt(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
 	mac := ciphertext[msghi:]
 	cipher.Crypt(msg, msg)
 	cipher.Crypt(mac, mac)
-	if subtle.ConstantTimeNonzero(mac) != 0 {
+	if subtle.ConstantTimeAllEq(mac, 0) == 0 {
 		return nil, errors.New("invalid ciphertext: failed MAC check")
 	}
 	return msg, nil

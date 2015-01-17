@@ -326,7 +326,7 @@ func (sc *spongeCipher) Join(subs ...abstract.Cipher) {
 func (sc *spongeCipher) clone() *spongeCipher {
 	nsc := *sc
 	nsc.sponge = sc.sponge.Clone()
-	nsc.buf = make([]byte, sc.rate)
+	nsc.buf = make([]byte, sc.rate+sc.cap)
 	copy(nsc.buf, sc.buf)
 	return &nsc
 }
