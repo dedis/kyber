@@ -239,6 +239,50 @@ func (sc *spongeCipher) decrypt(dst, src []byte) {
 	sc.pos = pos
 }
 
+func (sc *spongeCipher) stream(dst, src []byte) {
+	sp := sc.sponge
+	rate := sc.rate
+	buf := sc.buf
+	pos := sc.pos
+	for {
+		if pos == rate {
+			// process next block
+			sp.Transform(buf, buf[:rate])
+			pos = 0
+		}
+
+		n := rate - pos // remaining bytes in this block
+		if len(src) == 0 {
+			if len(dst) == 0 {
+				break // done
+			}
+
+			// squeeze output only, src is zero bytes
+			n = ints.Min(n, len(dst))
+			copy(dst[:n], buf[pos:])
+			dst = dst[n:]
+
+		} else if len(dst) == 0 {
+
+			// absorb zeros only: i.e., simply skip stream bytes
+			n = ints.Min(n, len(src))
+			src = src[n:]
+
+		} else {
+
+			// squeeze output via XOR while absorbing zeros
+			n = ints.Min(n, ints.Min(len(src), len(dst)))
+			for i := 0; i < n; i++ {
+				dst[i] = src[i] ^ buf[pos+i]
+			}
+			src = src[n:]
+			dst = dst[n:]
+		}
+		pos += n
+	}
+	sc.pos = pos
+}
+
 func (sc *spongeCipher) Crypt(dst, src []byte,
 	options ...interface{}) abstract.Cipher {
 	more := sc.parseOptions(options)
@@ -247,7 +291,7 @@ func (sc *spongeCipher) Crypt(dst, src []byte,
 		sc.encrypt(dst, src)
 	} else {
 		sc.decrypt(dst, src)
-	}
+	} // XXX allow new-API access to sc.stream
 
 	if !more {
 		sc.padMessage()
@@ -265,7 +309,7 @@ func (sc *spongeCipher) Write(src []byte) (n int, err error) {
 }
 
 func (sc *spongeCipher) XORKeyStream(dst, src []byte) {
-	CipherXORKeyStream(sc, dst, src)
+	sc.stream(dst[:len(src)], src)
 }
 
 func (sc *spongeCipher) special(domain byte, index int) {
