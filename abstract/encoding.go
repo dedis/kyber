@@ -1,12 +1,12 @@
 package abstract
 
 import (
-	"io"
-	"fmt"
-	"strings"
-	"reflect"
 	"crypto/cipher"
 	"encoding/binary"
+	"fmt"
+	"io"
+	"reflect"
+	"strings"
 )
 
 /*
@@ -23,21 +23,18 @@ type Encoding interface {
 	// whose length must be exactly Len().
 	Encode() []byte
 
-	// XXX EncodeTo(w io.Writer) error
-	// XXX WriteTo(w io.Writer) (n,error)
+	// Encode the contents of this object and write it to an io.Writer.
+	EncodeTo(w io.Writer) (int, error)
 
 	// Decode the content of this object from a slice,
 	// whose length must be exactly Len().
 	Decode(buf []byte) error
 
 	// Decode the content of this object by reading from an io.Reader.
-	// If r is also a cipher.Stream (e.g., a RandomReader),
-	// then picks a valid object [pseudo-]randomly from that stream,
+	// If r is a Cipher, uses it to pick a valid object pseudo-randomly,
 	// which may entail reading more than Len bytes due to retries.
-	// XXX DecodeFrom(r io.Reader) error
-	// XXX ReadFrom(w io.Writer) (n,error)
+	DecodeFrom(r io.Reader) (int, error)
 }
-
 
 /*
 Hiding is an alternative encoding interface to encode cryptographic objects
@@ -87,7 +84,6 @@ type Hiding interface {
 	HideDecode(buf []byte)
 }
 
-
 // Not used other than for reflect.TypeOf()
 var aSecret Secret
 var aPoint Point
@@ -95,12 +91,10 @@ var aPoint Point
 var tSecret = reflect.TypeOf(&aSecret).Elem()
 var tPoint = reflect.TypeOf(&aPoint).Elem()
 
-
 func prindent(depth int, format string, a ...interface{}) {
-	fmt.Print(strings.Repeat("  ",depth))
+	fmt.Print(strings.Repeat("  ", depth))
 	fmt.Printf(format, a...)
 }
-
 
 type decoder struct {
 	g Group
@@ -108,8 +102,8 @@ type decoder struct {
 }
 
 func Read(r io.Reader, obj interface{}, g Group) error {
-	de := decoder{g,r}
-	return de.value(reflect.ValueOf(obj),0)
+	de := decoder{g, r}
+	return de.value(reflect.ValueOf(obj), 0)
 }
 
 func (de *decoder) value(v reflect.Value, depth int) error {
@@ -117,53 +111,30 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 	// Does the value need to be instantiated?
 	obj := v.Interface()
 	if false { //obj == nil {
-		println("v: "+v.String())
-		println("t: "+v.Type().String())
-		println("s: ",v.CanSet())
-		println("sec:",v.Type() == tSecret)
-		println("pt:",v.Type() == tPoint)
+		println("v: " + v.String())
+		println("t: " + v.Type().String())
+		println("s: ", v.CanSet())
+		println("sec:", v.Type() == tSecret)
+		println("pt:", v.Type() == tPoint)
 
 		switch v.Type() {
 		case tSecret:
 			//v.Set(reflect.ValueOf(de.g.Secret()))
-			;
+
 		case tPoint:
 			v.Set(reflect.ValueOf(de.g.Point()))
 		default:
-			panic("unsupported null pointer type: "+
+			panic("unsupported null pointer type: " +
 				v.Type().String())
 		}
-		println("r: ",v.String())
-		println("o: ",v.Interface())
+		println("r: ", v.String())
+		println("o: ", v.Interface())
 		obj = v.Interface()
 	}
 
 	// Does the object support our self-decoding interface?
-	if e,ok := obj.(Encoding); ok {
-
-		// Special handling for decoding from [pseudo-]random streams
-		if rand,ok := de.r.(cipher.Stream); ok {
-			// Decoding from a random stream: use Pick() methods.
-			// XXX normalize random-element-decoding API.
-			//prindent(depth, "random\n")
-			switch o := obj.(type) {
-				case Secret:
-					o.Pick(rand)
-				case Point:
-					o.Pick(nil, rand)
-				default:
-					panic("unsupported crypto object")
-			}
-			return nil
-		}
-
-		// Decode from a stream that's supposed to contain valid objects
-		l := e.Len()
-		b := make([]byte, l)
-		if _,err := io.ReadFull(de.r, b); err != nil {
-			return err
-		}
-		err := e.Decode(b)
+	if e, ok := obj.(Encoding); ok {
+		_, err := e.DecodeFrom(de.r)
 		//prindent(depth, "decode: %s\n", e.String())
 		return err
 	}
@@ -182,7 +153,7 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 			case tPoint:
 				v.Set(reflect.ValueOf(de.g.Point()))
 			default:
-				panic("unsupported null pointer type: "+
+				panic("unsupported null pointer type: " +
 					t.String())
 			}
 		}
@@ -191,12 +162,12 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 		if v.IsNil() {
 			panic("null pointer")
 		}
-		return de.value(v.Elem(),depth+1)
+		return de.value(v.Elem(), depth+1)
 
 	case reflect.Struct:
 		l := v.NumField()
 		for i := 0; i < l; i++ {
-			if err := de.value(v.Field(i),depth+1); err != nil {
+			if err := de.value(v.Field(i), depth+1); err != nil {
 				return err
 			}
 		}
@@ -205,7 +176,7 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 	case reflect.Slice:
 		l := v.Len()
 		for i := 0; i < l; i++ {
-			if err := de.value(v.Index(i),depth+1); err != nil {
+			if err := de.value(v.Index(i), depth+1); err != nil {
 				return err
 			}
 		}
@@ -216,7 +187,6 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 	}
 	return nil
 }
-
 
 type encoder struct {
 	g Group
@@ -229,20 +199,17 @@ type encoder struct {
 // basic fixed-length data types supported by encoding/binary/Write(),
 // and structs, arrays, and slices containing all of these types.
 func Write(w io.Writer, obj interface{}, g Group) error {
-	en := encoder{g,w}
+	en := encoder{g, w}
 	return en.value(obj, 0)
 }
 
 func (en *encoder) value(obj interface{}, depth int) error {
 
 	// Does the object support our self-decoding interface?
-	if e,ok := obj.(Encoding); ok {
+	if e, ok := obj.(Encoding); ok {
 		//prindent(depth, "encode: %s\n", e.String())
-		b := e.Encode()
-		if _,err := en.w.Write(b); err != nil {
-			return err
-		}
-		return nil
+		_, err := e.EncodeTo(en.w)
+		return err
 	}
 
 	// Otherwise, reflectively handle composite types.
@@ -277,4 +244,3 @@ func (en *encoder) value(obj interface{}, depth int) error {
 	}
 	return nil
 }
-

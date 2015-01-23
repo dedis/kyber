@@ -4,7 +4,6 @@ import (
 	"crypto/cipher"
 )
 
-
 // XXX consider renaming Secret to Scalar?
 
 /*
@@ -30,10 +29,10 @@ type Secret interface {
 	Zero() Secret
 
 	// Set to the modular sum of secrets a and b
-	Add(a,b Secret) Secret
+	Add(a, b Secret) Secret
 
 	// Set to the modular difference a - b
-	Sub(a,b Secret) Secret
+	Sub(a, b Secret) Secret
 
 	// Set to the modular negation of secret a
 	Neg(a Secret) Secret
@@ -42,10 +41,10 @@ type Secret interface {
 	One() Secret
 
 	// Set to the modular product of secrets a and b
-	Mul(a,b Secret) Secret
+	Mul(a, b Secret) Secret
 
 	// Set to the modular division of secret a by secret b
-	Div(a,b Secret) Secret
+	Div(a, b Secret) Secret
 
 	// Set to the modular inverse of secret a
 	Inv(a Secret) Secret
@@ -68,7 +67,7 @@ type Point interface {
 	// Equality test for two Points derived from the same Group
 	Equal(s2 Point) bool
 
-	Null() Point			// Set to neutral identity element
+	Null() Point // Set to neutral identity element
 
 	// Set to this group's standard base point.
 	Base() Point
@@ -78,7 +77,7 @@ type Point interface {
 	// If data is nil, the point is completely [pseudo]-random.
 	// Returns this Point and a slice containing the remaining data
 	// following the data that was successfully embedded in this point.
-	Pick(data []byte,rand cipher.Stream) (Point, []byte)
+	Pick(data []byte, rand cipher.Stream) (Point, []byte)
 
 	// Maximum number of bytes that can be reliably embedded
 	// in a single group element via Pick().
@@ -86,13 +85,13 @@ type Point interface {
 
 	// Extract data embedded in a point chosen via Embed().
 	// Returns an error if doesn't represent valid embedded data.
-	Data() ([]byte,error)
+	Data() ([]byte, error)
 
 	// Add points so that their secrets add homomorphically
-	Add(a,b Point) Point
+	Add(a, b Point) Point
 
 	// Subtract points so that their secrets subtract homomorphically
-	Sub(a,b Point) Point
+	Sub(a, b Point) Point
 
 	// Set to the negation of point a
 	Neg(a Point) Point
@@ -133,12 +132,11 @@ XXX should probably delete the somewhat redundant ...Len() methods.
 type Group interface {
 	String() string
 
-	SecretLen() int			// Max len of secrets in bytes
-	Secret() Secret			// Create new secret
+	SecretLen() int // Max len of secrets in bytes
+	Secret() Secret // Create new secret
 
-	PointLen() int			// Max len of point in bytes
-	Point() Point			// Create new point
+	PointLen() int // Max len of point in bytes
+	Point() Point  // Create new point
 
-	PrimeOrder() bool		// Returns true if group is prime-order
+	PrimeOrder() bool // Returns true if group is prime-order
 }
-

@@ -1,32 +1,34 @@
 package edwards
 
 import (
-	"math/big"
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/nist"
+	"io"
+	"math/big"
 )
 
 type projPoint struct {
-	X,Y,Z nist.Int
-	c *ProjectiveCurve
+	X, Y, Z nist.Int
+	c       *ProjectiveCurve
 }
 
-func (P *projPoint) initXY(x,y *big.Int, c abstract.Group) {
+func (P *projPoint) initXY(x, y *big.Int, c abstract.Group) {
 	P.c = c.(*ProjectiveCurve)
-	P.X.Init(x,&P.c.P)
-	P.Y.Init(y,&P.c.P)
-	P.Z.Init64(1,&P.c.P)
+	P.X.Init(x, &P.c.P)
+	P.Y.Init(y, &P.c.P)
+	P.Z.Init64(1, &P.c.P)
 }
 
-func (P *projPoint) getXY() (x,y *nist.Int) {
+func (P *projPoint) getXY() (x, y *nist.Int) {
 	P.normalize()
 	return &P.X, &P.Y
 }
 
 func (P *projPoint) String() string {
 	P.normalize()
-	return P.c.pointString(&P.X,&P.Y)
+	return P.c.pointString(&P.X, &P.Y)
 }
 
 func (P *projPoint) Len() int {
@@ -39,8 +41,16 @@ func (P *projPoint) Encode() []byte {
 }
 
 func (P *projPoint) Decode(b []byte) error {
-	P.Z.Init64(1,&P.c.P)
+	P.Z.Init64(1, &P.c.P)
 	return P.c.decodePoint(b, &P.X, &P.Y)
+}
+
+func (P *projPoint) EncodeTo(w io.Writer) (int, error) {
+	return group.PointEncodeTo(P, w)
+}
+
+func (P *projPoint) DecodeFrom(r io.Reader) (int, error) {
+	return group.PointDecodeFrom(P, r)
 }
 
 func (P *projPoint) HideLen() int {
@@ -64,9 +74,9 @@ func (P *projPoint) HideDecode(rep []byte) {
 //
 func (P1 *projPoint) Equal(CP2 abstract.Point) bool {
 	P2 := CP2.(*projPoint)
-	var t1,t2 nist.Int
-	xeq := t1.Mul(&P1.X,&P2.Z).Equal(t2.Mul(&P2.X,&P1.Z))
-	yeq := t1.Mul(&P1.Y,&P2.Z).Equal(t2.Mul(&P2.Y,&P1.Z))
+	var t1, t2 nist.Int
+	xeq := t1.Mul(&P1.X, &P2.Z).Equal(t2.Mul(&P2.X, &P1.Z))
+	yeq := t1.Mul(&P1.Y, &P2.Z).Equal(t2.Mul(&P2.Y, &P1.Z))
 	return xeq && yeq
 }
 
@@ -96,19 +106,19 @@ func (P *projPoint) PickLen() int {
 // Normalize the point's representation to Z=1.
 func (P *projPoint) normalize() {
 	P.Z.Inv(&P.Z)
-	P.X.Mul(&P.X,&P.Z)
-	P.Y.Mul(&P.Y,&P.Z)
+	P.X.Mul(&P.X, &P.Z)
+	P.Y.Mul(&P.Y, &P.Z)
 	P.Z.V.SetInt64(1)
 }
 
-func (P *projPoint) Pick(data []byte,rand cipher.Stream) (abstract.Point, []byte) {
-	return P,P.c.pickPoint(P, data, rand)
+func (P *projPoint) Pick(data []byte, rand cipher.Stream) (abstract.Point, []byte) {
+	return P, P.c.pickPoint(P, data, rand)
 }
 
 // Extract embedded data from a point group element
-func (P *projPoint) Data() ([]byte,error) {
+func (P *projPoint) Data() ([]byte, error) {
 	P.normalize()
-	return P.c.data(&P.X,&P.Y)
+	return P.c.data(&P.X, &P.Y)
 }
 
 // Add two points using optimized projective coordinate addition formulas.
@@ -117,48 +127,48 @@ func (P *projPoint) Data() ([]byte,error) {
 //	http://eprint.iacr.org/2008/013.pdf
 //	https://hyperelliptic.org/EFD/g1p/auto-twisted-projective.html
 //
-func (P *projPoint) Add(CP1,CP2 abstract.Point) abstract.Point {
+func (P *projPoint) Add(CP1, CP2 abstract.Point) abstract.Point {
 	P1 := CP1.(*projPoint)
 	P2 := CP2.(*projPoint)
-	X1,Y1,Z1 := &P1.X,&P1.Y,&P1.Z
-	X2,Y2,Z2 := &P2.X,&P2.Y,&P2.Z
-	X3,Y3,Z3 := &P.X,&P.Y,&P.Z
-	var A,B,C,D,E,F,G nist.Int
+	X1, Y1, Z1 := &P1.X, &P1.Y, &P1.Z
+	X2, Y2, Z2 := &P2.X, &P2.Y, &P2.Z
+	X3, Y3, Z3 := &P.X, &P.Y, &P.Z
+	var A, B, C, D, E, F, G nist.Int
 
-	A.Mul(Z1,Z2)
-	B.Mul(&A,&A)
-	C.Mul(X1,X2)
-	D.Mul(Y1,Y2)
-	E.Mul(&C,&D).Mul(&P.c.d,&E)
-	F.Sub(&B,&E)
-	G.Add(&B,&E)
-	X3.Add(X1,Y1).Mul(X3,Z3.Add(X2,Y2)).Sub(X3,&C).Sub(X3,&D).
-		Mul(&F,X3).Mul(&A,X3)
-	Y3.Mul(&P.c.a,&C).Sub(&D,Y3).Mul(&G,Y3).Mul(&A,Y3)
-	Z3.Mul(&F,&G)
+	A.Mul(Z1, Z2)
+	B.Mul(&A, &A)
+	C.Mul(X1, X2)
+	D.Mul(Y1, Y2)
+	E.Mul(&C, &D).Mul(&P.c.d, &E)
+	F.Sub(&B, &E)
+	G.Add(&B, &E)
+	X3.Add(X1, Y1).Mul(X3, Z3.Add(X2, Y2)).Sub(X3, &C).Sub(X3, &D).
+		Mul(&F, X3).Mul(&A, X3)
+	Y3.Mul(&P.c.a, &C).Sub(&D, Y3).Mul(&G, Y3).Mul(&A, Y3)
+	Z3.Mul(&F, &G)
 	return P
 }
 
 // Subtract points so that their secrets subtract homomorphically
-func (P *projPoint) Sub(CP1,CP2 abstract.Point) abstract.Point {
+func (P *projPoint) Sub(CP1, CP2 abstract.Point) abstract.Point {
 	P1 := CP1.(*projPoint)
 	P2 := CP2.(*projPoint)
-	X1,Y1,Z1 := &P1.X,&P1.Y,&P1.Z
-	X2,Y2,Z2 := &P2.X,&P2.Y,&P2.Z
-	X3,Y3,Z3 := &P.X,&P.Y,&P.Z
-	var A,B,C,D,E,F,G nist.Int
+	X1, Y1, Z1 := &P1.X, &P1.Y, &P1.Z
+	X2, Y2, Z2 := &P2.X, &P2.Y, &P2.Z
+	X3, Y3, Z3 := &P.X, &P.Y, &P.Z
+	var A, B, C, D, E, F, G nist.Int
 
-	A.Mul(Z1,Z2)
-	B.Mul(&A,&A)
-	C.Mul(X1,X2)
-	D.Mul(Y1,Y2)
-	E.Mul(&C,&D).Mul(&P.c.d,&E)
-	F.Add(&B,&E)
-	G.Sub(&B,&E)
-	X3.Add(X1,Y1).Mul(X3,Z3.Sub(Y2,X2)).Add(X3,&C).Sub(X3,&D).
-		Mul(&F,X3).Mul(&A,X3)
-	Y3.Mul(&P.c.a,&C).Add(&D,Y3).Mul(&G,Y3).Mul(&A,Y3)
-	Z3.Mul(&F,&G)
+	A.Mul(Z1, Z2)
+	B.Mul(&A, &A)
+	C.Mul(X1, X2)
+	D.Mul(Y1, Y2)
+	E.Mul(&C, &D).Mul(&P.c.d, &E)
+	F.Add(&B, &E)
+	G.Sub(&B, &E)
+	X3.Add(X1, Y1).Mul(X3, Z3.Sub(Y2, X2)).Add(X3, &C).Sub(X3, &D).
+		Mul(&F, X3).Mul(&A, X3)
+	Y3.Mul(&P.c.a, &C).Add(&D, Y3).Mul(&G, Y3).Mul(&A, Y3)
+	Z3.Mul(&F, &G)
 	return P
 }
 
@@ -175,32 +185,32 @@ func (P *projPoint) Neg(CA abstract.Point) abstract.Point {
 
 // Optimized point doubling for use in scalar multiplication.
 func (P *projPoint) double() {
-	var B,C,D,E,F,H,J nist.Int
+	var B, C, D, E, F, H, J nist.Int
 
-	B.Add(&P.X,&P.Y).Mul(&B,&B)
-	C.Mul(&P.X,&P.X)
-	D.Mul(&P.Y,&P.Y)
-	E.Mul(&P.c.a,&C)
-	F.Add(&E,&D)
-	H.Mul(&P.Z,&P.Z)
-	J.Add(&H,&H).Sub(&F,&J)
-	P.X.Sub(&B,&C).Sub(&P.X,&D).Mul(&P.X,&J)
-	P.Y.Sub(&E,&D).Mul(&F,&P.Y)
-	P.Z.Mul(&F,&J)
+	B.Add(&P.X, &P.Y).Mul(&B, &B)
+	C.Mul(&P.X, &P.X)
+	D.Mul(&P.Y, &P.Y)
+	E.Mul(&P.c.a, &C)
+	F.Add(&E, &D)
+	H.Mul(&P.Z, &P.Z)
+	J.Add(&H, &H).Sub(&F, &J)
+	P.X.Sub(&B, &C).Sub(&P.X, &D).Mul(&P.X, &J)
+	P.Y.Sub(&E, &D).Mul(&F, &P.Y)
+	P.Z.Mul(&F, &J)
 }
 
 // Multiply point p by scalar s using the repeated doubling method.
 func (P *projPoint) Mul(G abstract.Point, s abstract.Secret) abstract.Point {
 	v := s.(*nist.Int).V
 	if G == nil {
-		return P.Base().Mul(P,s)
+		return P.Base().Mul(P, s)
 	}
 	T := P
-	if G == P {		// Must use temporary for in-place multiply
+	if G == P { // Must use temporary for in-place multiply
 		T = &projPoint{}
 	}
-	T.Set(&P.c.null)	// Initialize to identity element (0,1)
-	for i := v.BitLen()-1; i >= 0; i-- {
+	T.Set(&P.c.null) // Initialize to identity element (0,1)
+	for i := v.BitLen() - 1; i >= 0; i-- {
 		T.double()
 		if v.Bit(i) != 0 {
 			T.Add(T, G)
@@ -212,7 +222,6 @@ func (P *projPoint) Mul(G abstract.Point, s abstract.Secret) abstract.Point {
 	return P
 }
 
-
 // ProjectiveCurve implements Twisted Edwards curves
 // using projective coordinate representation (X:Y:Z),
 // satisfying the identities x = X/Z, y = Y/Z.
@@ -222,9 +231,9 @@ func (P *projPoint) Mul(G abstract.Point, s abstract.Secret) abstract.Point {
 // http://cr.yp.to/newelliptic/newelliptic-20070906.pdf
 //
 type ProjectiveCurve struct {
-	curve			// generic Edwards curve functionality
-	null projPoint		// Constant identity/null point (0,1)
-	base projPoint		// Standard base point
+	curve           // generic Edwards curve functionality
+	null  projPoint // Constant identity/null point (0,1)
+	base  projPoint // Standard base point
 }
 
 // Create a new Point on this curve.
@@ -240,4 +249,3 @@ func (c *ProjectiveCurve) Init(p *Param, fullGroup bool) *ProjectiveCurve {
 	c.curve.init(c, p, fullGroup, &c.null, &c.base)
 	return c
 }
-

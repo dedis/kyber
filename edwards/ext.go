@@ -1,27 +1,29 @@
 package edwards
 
 import (
-	"math/big"
-	"encoding/hex"
 	"crypto/cipher"
+	"encoding/hex"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/nist"
+	"io"
+	"math/big"
 )
 
 type extPoint struct {
-	X,Y,Z,T nist.Int
-	c *ExtendedCurve
+	X, Y, Z, T nist.Int
+	c          *ExtendedCurve
 }
 
-func (P *extPoint) initXY(x,y *big.Int, c abstract.Group) {
+func (P *extPoint) initXY(x, y *big.Int, c abstract.Group) {
 	P.c = c.(*ExtendedCurve)
-	P.X.Init(x,&P.c.P)
-	P.Y.Init(y,&P.c.P)
-	P.Z.Init64(1,&P.c.P)
-	P.T.Mul(&P.X,&P.Y)
+	P.X.Init(x, &P.c.P)
+	P.Y.Init(y, &P.c.P)
+	P.Z.Init64(1, &P.c.P)
+	P.T.Mul(&P.X, &P.Y)
 }
 
-func (P *extPoint) getXY() (x,y *nist.Int) {
+func (P *extPoint) getXY() (x, y *nist.Int) {
 	P.normalize()
 	return &P.X, &P.Y
 }
@@ -42,8 +44,16 @@ func (P *extPoint) Encode() []byte {
 }
 
 func (P *extPoint) Decode(b []byte) error {
-	P.Z.Init64(1,&P.c.P)
+	P.Z.Init64(1, &P.c.P)
 	return P.c.decodePoint(b, &P.X, &P.Y)
+}
+
+func (P *extPoint) EncodeTo(w io.Writer) (int, error) {
+	return group.PointEncodeTo(P, w)
+}
+
+func (P *extPoint) DecodeFrom(r io.Reader) (int, error) {
+	return group.PointDecodeFrom(P, r)
 }
 
 func (P *extPoint) HideLen() int {
@@ -67,9 +77,9 @@ func (P *extPoint) HideDecode(rep []byte) {
 //
 func (P1 *extPoint) Equal(CP2 abstract.Point) bool {
 	P2 := CP2.(*extPoint)
-	var t1,t2 nist.Int
-	xeq := t1.Mul(&P1.X,&P2.Z).Equal(t2.Mul(&P2.X,&P1.Z))
-	yeq := t1.Mul(&P1.Y,&P2.Z).Equal(t2.Mul(&P2.Y,&P1.Z))
+	var t1, t2 nist.Int
+	xeq := t1.Mul(&P1.X, &P2.Z).Equal(t2.Mul(&P2.X, &P1.Z))
+	yeq := t1.Mul(&P1.Y, &P2.Z).Equal(t2.Mul(&P2.Y, &P1.Z))
 	return xeq && yeq
 }
 
@@ -100,76 +110,76 @@ func (P *extPoint) PickLen() int {
 // Normalize the point's representation to Z=1.
 func (P *extPoint) normalize() {
 	P.Z.Inv(&P.Z)
-	P.X.Mul(&P.X,&P.Z)
-	P.Y.Mul(&P.Y,&P.Z)
+	P.X.Mul(&P.X, &P.Z)
+	P.Y.Mul(&P.Y, &P.Z)
 	P.Z.V.SetInt64(1)
-	P.T.Mul(&P.X,&P.Y)
+	P.T.Mul(&P.X, &P.Y)
 }
 
 // Check the validity of the T coordinate
 func (P *extPoint) checkT() {
-	var t1,t2 nist.Int
-	if !t1.Mul(&P.X,&P.Y).Equal(t2.Mul(&P.Z,&P.T)) {
+	var t1, t2 nist.Int
+	if !t1.Mul(&P.X, &P.Y).Equal(t2.Mul(&P.Z, &P.T)) {
 		panic("oops")
 	}
 }
 
-func (P *extPoint) Pick(data []byte,rand cipher.Stream) (abstract.Point, []byte) {
+func (P *extPoint) Pick(data []byte, rand cipher.Stream) (abstract.Point, []byte) {
 	leftover := P.c.pickPoint(P, data, rand)
-	return P,leftover
+	return P, leftover
 }
 
 // Extract embedded data from a point group element
-func (P *extPoint) Data() ([]byte,error) {
+func (P *extPoint) Data() ([]byte, error) {
 	P.normalize()
-	return P.c.data(&P.X,&P.Y)
+	return P.c.data(&P.X, &P.Y)
 }
 
 // Add two points using optimized extended coordinate addition formulas.
-func (P *extPoint) Add(CP1,CP2 abstract.Point) abstract.Point {
+func (P *extPoint) Add(CP1, CP2 abstract.Point) abstract.Point {
 	P1 := CP1.(*extPoint)
 	P2 := CP2.(*extPoint)
-	X1,Y1,Z1,T1 := &P1.X,&P1.Y,&P1.Z,&P1.T
-	X2,Y2,Z2,T2 := &P2.X,&P2.Y,&P2.Z,&P2.T
-	X3,Y3,Z3,T3 := &P.X,&P.Y,&P.Z,&P.T
-	var A,B,C,D,E,F,G,H nist.Int
+	X1, Y1, Z1, T1 := &P1.X, &P1.Y, &P1.Z, &P1.T
+	X2, Y2, Z2, T2 := &P2.X, &P2.Y, &P2.Z, &P2.T
+	X3, Y3, Z3, T3 := &P.X, &P.Y, &P.Z, &P.T
+	var A, B, C, D, E, F, G, H nist.Int
 
-	A.Mul(X1,X2)
-	B.Mul(Y1,Y2)
-	C.Mul(T1,T2).Mul(&C,&P.c.d)
-	D.Mul(Z1,Z2)
-	E.Add(X1,Y1).Mul(&E,F.Add(X2,Y2)).Sub(&E,&A).Sub(&E,&B)
-	F.Sub(&D,&C)
-	G.Add(&D,&C)
-	H.Mul(&P.c.a,&A).Sub(&B,&H)
-	X3.Mul(&E,&F)
-	Y3.Mul(&G,&H)
-	T3.Mul(&E,&H)
-	Z3.Mul(&F,&G)
+	A.Mul(X1, X2)
+	B.Mul(Y1, Y2)
+	C.Mul(T1, T2).Mul(&C, &P.c.d)
+	D.Mul(Z1, Z2)
+	E.Add(X1, Y1).Mul(&E, F.Add(X2, Y2)).Sub(&E, &A).Sub(&E, &B)
+	F.Sub(&D, &C)
+	G.Add(&D, &C)
+	H.Mul(&P.c.a, &A).Sub(&B, &H)
+	X3.Mul(&E, &F)
+	Y3.Mul(&G, &H)
+	T3.Mul(&E, &H)
+	Z3.Mul(&F, &G)
 	return P
 }
 
 // Subtract points.
-func (P *extPoint) Sub(CP1,CP2 abstract.Point) abstract.Point {
+func (P *extPoint) Sub(CP1, CP2 abstract.Point) abstract.Point {
 	P1 := CP1.(*extPoint)
 	P2 := CP2.(*extPoint)
-	X1,Y1,Z1,T1 := &P1.X,&P1.Y,&P1.Z,&P1.T
-	X2,Y2,Z2,T2 := &P2.X,&P2.Y,&P2.Z,&P2.T
-	X3,Y3,Z3,T3 := &P.X,&P.Y,&P.Z,&P.T
-	var A,B,C,D,E,F,G,H nist.Int
+	X1, Y1, Z1, T1 := &P1.X, &P1.Y, &P1.Z, &P1.T
+	X2, Y2, Z2, T2 := &P2.X, &P2.Y, &P2.Z, &P2.T
+	X3, Y3, Z3, T3 := &P.X, &P.Y, &P.Z, &P.T
+	var A, B, C, D, E, F, G, H nist.Int
 
-	A.Mul(X1,X2)
-	B.Mul(Y1,Y2)
-	C.Mul(T1,T2).Mul(&C,&P.c.d)
-	D.Mul(Z1,Z2)
-	E.Add(X1,Y1).Mul(&E,F.Sub(Y2,X2)).Add(&E,&A).Sub(&E,&B)
-	F.Add(&D,&C)
-	G.Sub(&D,&C)
-	H.Mul(&P.c.a,&A).Add(&B,&H)
-	X3.Mul(&E,&F)
-	Y3.Mul(&G,&H)
-	T3.Mul(&E,&H)
-	Z3.Mul(&F,&G)
+	A.Mul(X1, X2)
+	B.Mul(Y1, Y2)
+	C.Mul(T1, T2).Mul(&C, &P.c.d)
+	D.Mul(Z1, Z2)
+	E.Add(X1, Y1).Mul(&E, F.Sub(Y2, X2)).Add(&E, &A).Sub(&E, &B)
+	F.Add(&D, &C)
+	G.Sub(&D, &C)
+	H.Mul(&P.c.a, &A).Add(&B, &H)
+	X3.Mul(&E, &F)
+	Y3.Mul(&G, &H)
+	T3.Mul(&E, &H)
+	Z3.Mul(&F, &G)
 	return P
 }
 
@@ -189,25 +199,25 @@ func (P *extPoint) Neg(CA abstract.Point) abstract.Point {
 // Uses the formulae in section 3.3 of:
 // https://www.iacr.org/archive/asiacrypt2008/53500329/53500329.pdf
 func (P *extPoint) double() {
-	X1,Y1,Z1,T1 := &P.X,&P.Y,&P.Z,&P.T
-	var A,B,C,D,E,F,G,H nist.Int
+	X1, Y1, Z1, T1 := &P.X, &P.Y, &P.Z, &P.T
+	var A, B, C, D, E, F, G, H nist.Int
 
-	A.Mul(X1,X1)
-	B.Mul(Y1,Y1)
-	C.Mul(Z1,Z1).Add(&C,&C)
-	D.Mul(&P.c.a,&A)
-	E.Add(X1,Y1).Mul(&E,&E).Sub(&E,&A).Sub(&E,&B)
-	G.Add(&D,&B)
-	F.Sub(&G,&C)
-	H.Sub(&D,&B)
-	X1.Mul(&E,&F)
-	Y1.Mul(&G,&H)
-	T1.Mul(&E,&H)
-	Z1.Mul(&F,&G)
+	A.Mul(X1, X1)
+	B.Mul(Y1, Y1)
+	C.Mul(Z1, Z1).Add(&C, &C)
+	D.Mul(&P.c.a, &A)
+	E.Add(X1, Y1).Mul(&E, &E).Sub(&E, &A).Sub(&E, &B)
+	G.Add(&D, &B)
+	F.Sub(&G, &C)
+	H.Sub(&D, &B)
+	X1.Mul(&E, &F)
+	Y1.Mul(&G, &H)
+	T1.Mul(&E, &H)
+	Z1.Mul(&F, &G)
 }
 
 // Multiply point p by scalar s using the repeated doubling method.
-// 
+//
 // Currently doesn't implement the optimization of
 // switching between projective and extended coordinates during
 // scalar multiplication.
@@ -215,14 +225,14 @@ func (P *extPoint) double() {
 func (P *extPoint) Mul(G abstract.Point, s abstract.Secret) abstract.Point {
 	v := s.(*nist.Int).V
 	if G == nil {
-		return P.Base().Mul(P,s)
+		return P.Base().Mul(P, s)
 	}
 	T := P
-	if G == P {		// Must use temporary for in-place multiply
+	if G == P { // Must use temporary for in-place multiply
 		T = &extPoint{}
 	}
-	T.Set(&P.c.null)	// Initialize to identity element (0,1)
-	for i := v.BitLen()-1; i >= 0; i-- {
+	T.Set(&P.c.null) // Initialize to identity element (0,1)
+	for i := v.BitLen() - 1; i >= 0; i-- {
 		T.double()
 		if v.Bit(i) != 0 {
 			T.Add(T, G)
@@ -233,7 +243,6 @@ func (P *extPoint) Mul(G abstract.Point, s abstract.Secret) abstract.Point {
 	}
 	return P
 }
-
 
 // ExtendedCurve implements Twisted Edwards curves
 // using projective coordinate representation (X:Y:Z),
@@ -256,9 +265,9 @@ func (P *extPoint) Mul(G abstract.Point, s abstract.Secret) abstract.Point {
 // such as the ed25519 package.
 //
 type ExtendedCurve struct {
-	curve			// generic Edwards curve functionality
-	null extPoint		// Constant identity/null point (0,1)
-	base extPoint		// Standard base point
+	curve          // generic Edwards curve functionality
+	null  extPoint // Constant identity/null point (0,1)
+	base  extPoint // Standard base point
 }
 
 // Create a new Point on this curve.
@@ -274,4 +283,3 @@ func (c *ExtendedCurve) Init(p *Param, fullGroup bool) *ExtendedCurve {
 	c.curve.init(c, p, fullGroup, &c.null, &c.base)
 	return c
 }
-

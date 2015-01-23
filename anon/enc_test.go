@@ -1,50 +1,49 @@
 package anon
 
 import (
-	"fmt"
 	"bytes"
+	"fmt"
 	//"testing"
 	"encoding/hex"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/openssl"
 )
 
-
 func ExampleEncrypt_1() {
 
 	// Crypto setup
 	suite := openssl.NewAES128SHA256P256()
-	rand := abstract.HashStream(suite, []byte("example"), nil)
+	rand := suite.Cipher([]byte("example"))
 
 	// Create a public/private keypair (X[mine],x)
-	X := make([]abstract.Point,1)
-	mine := 0				// which public key is mine
-	x := suite.Secret().Pick(rand)		// create a private key x
-	X[mine] = suite.Point().Mul(nil,x)	// corresponding public key X
+	X := make([]abstract.Point, 1)
+	mine := 0                           // which public key is mine
+	x := suite.Secret().Pick(rand)      // create a private key x
+	X[mine] = suite.Point().Mul(nil, x) // corresponding public key X
 
 	// Encrypt a message with the public key
-	M := []byte("Hello World!")		// message to encrypt
+	M := []byte("Hello World!") // message to encrypt
 	C := Encrypt(suite, rand, M, Set(X), false)
-	fmt.Printf("Encryption of '%s':\n%s",string(M),hex.Dump(C))
+	fmt.Printf("Encryption of '%s':\n%s", string(M), hex.Dump(C))
 
 	// Decrypt the ciphertext with the private key
-	MM,err := Decrypt(suite, C, Set(X), mine, x, false)
+	MM, err := Decrypt(suite, C, Set(X), mine, x, false)
 	if err != nil {
 		panic(err.Error())
 	}
-	if !bytes.Equal(M,MM) {
+	if !bytes.Equal(M, MM) {
 		panic("Decryption failed to reproduce message")
 	}
 	fmt.Printf("Decrypted: '%s'\n", string(MM))
 
 	// Output:
 	// Encryption of 'Hello World!':
-	// 00000000  02 a7 88 0a 50 7e 71 48  03 0d a8 6c 31 f7 01 ed  |....P~qH...l1...|
-	// 00000010  c5 ea 92 5a b3 35 85 42  43 ec b2 72 1c 50 10 88  |...Z.5.BC..r.P..|
-	// 00000020  fe 51 08 ff 5d c1 18 90  63 8d 55 91 04 2c 01 00  |.Q..]...c.U..,..|
-	// 00000030  22 53 46 92 70 af 4b 0e  31 19 77 4a b1 0c 47 eb  |"SF.p.K.1.wJ..G.|
-	// 00000040  d7 36 42 a8 18 7a 64 91  c9 ee 6f e5 de 4f 45 f4  |.6B..zd...o..OE.|
-	// 00000050  f5 0f 7c 88 1c 73 2e 0f  cb 03 9f 99 ac           |..|..s.......|
+	// 00000000  02 23 62 b1 f9 cb f4 a2  6d 7f 3e 69 cb b6 77 ab  |.#b.....m.>i..w.|
+	// 00000010  90 fc 7c db a0 c6 e8 12  f2 0a d4 40 a4 b6 c4 de  |..|........@....|
+	// 00000020  9e 5a 8a 1d 5b e4 96 f7  a9 cb 78 4e 8e ee 23 6b  |.Z..[.....xN..#k|
+	// 00000030  f3 5c fc 85 95 59 b0 81  72 bc e2 7b bf d5 1f c1  |.\...Y..r..{....|
+	// 00000040  5f d2 08 9a e5 f0 d9 3c  6b 0d 83 35 6d 23 a6 f5  |_......<k..5m#..|
+	// 00000050  72 8b 09 38 ca 9a a2 9b  7c ff 7d b4 ad           |r..8....|.}..|
 	// Decrypted: 'Hello World!'
 }
 
@@ -52,46 +51,45 @@ func ExampleEncrypt_anonSet() {
 
 	// Crypto setup
 	suite := openssl.NewAES128SHA256P256()
-	rand := abstract.HashStream(suite, []byte("example"), nil)
+	rand := suite.Cipher([]byte("example"))
 
 	// Create an anonymity set of random "public keys"
-	X := make([]abstract.Point,3)
-	for i := range(X) {			// pick random points
-		X[i],_ = suite.Point().Pick(nil,rand)
+	X := make([]abstract.Point, 3)
+	for i := range X { // pick random points
+		X[i], _ = suite.Point().Pick(nil, rand)
 	}
 
 	// Make just one of them an actual public/private keypair (X[mine],x)
-	mine := 1				// only the signer knows this
-	x := suite.Secret().Pick(rand)		// create a private key x
-	X[mine] = suite.Point().Mul(nil,x)	// corresponding public key X
+	mine := 1                           // only the signer knows this
+	x := suite.Secret().Pick(rand)      // create a private key x
+	X[mine] = suite.Point().Mul(nil, x) // corresponding public key X
 
 	// Encrypt a message with all the public keys
-	M := []byte("Hello World!")		// message to encrypt
+	M := []byte("Hello World!") // message to encrypt
 	C := Encrypt(suite, rand, M, Set(X), false)
-	fmt.Printf("Encryption of '%s':\n%s",string(M),hex.Dump(C))
+	fmt.Printf("Encryption of '%s':\n%s", string(M), hex.Dump(C))
 
 	// Decrypt the ciphertext with the known private key
-	MM,err := Decrypt(suite, C, Set(X), mine, x, false)
+	MM, err := Decrypt(suite, C, Set(X), mine, x, false)
 	if err != nil {
 		panic(err.Error())
 	}
-	if !bytes.Equal(M,MM) {
+	if !bytes.Equal(M, MM) {
 		panic("Decryption failed to reproduce message")
 	}
 	fmt.Printf("Decrypted: '%s'\n", string(MM))
 
 	// Output:
 	// Encryption of 'Hello World!':
-	// 00000000  02 6c 80 85 22 19 be eb  0a d1 58 d3 20 95 56 4d  |.l..".....X. .VM|
-	// 00000010  15 77 e1 52 ea c4 d9 86  dd 45 b0 63 ba ef 1b b8  |.w.R.....E.c....|
-	// 00000020  4b c0 fe 5f f3 69 99 16  76 2e 2b 74 13 b1 d5 15  |K.._.i..v.+t....|
-	// 00000030  91 8f ad ba b1 b4 ca 2a  07 2d a7 f0 8b 26 f8 f6  |.......*.-...&..|
-	// 00000040  9d 9a 01 e5 8f a5 2f 2d  e4 ca 0b 84 46 05 8c 25  |....../-....F..%|
-	// 00000050  19 c3 14 af 68 75 fa e1  45 62 cf 2f b6 49 2c 68  |....hu..Eb./.I,h|
-	// 00000060  6d 0e a6 56 7c 84 5b 4e  71 15 46 c3 e5 de 8a 4c  |m..V|.[Nq.F....L|
-	// 00000070  e5 cb 2a f4 6d e0 0d 42  3a da c2 8b 89 86 17 bd  |..*.m..B:.......|
-	// 00000080  4a 2a 3d 8a 41 05 14 12  01 af f9 0c 7e 3d 71 72  |J*=.A.......~=qr|
-	// 00000090  1b 04 0b 2f 5e 2a 65 51  2e 23 a5 ba 08           |.../^*eQ.#...|
+	// 00000000  02 c2 6c b8 1b 87 94 1d  71 c8 50 63 75 e1 80 5e  |..l.....q.Pcu..^|
+	// 00000010  b2 b8 1a d6 10 be 1a c6  35 bf b9 c0 cb af 67 d0  |........5.....g.|
+	// 00000020  c1 38 04 f2 7e 70 c0 0e  ce 2a 3e 8d a4 1a 8f d8  |.8..~p...*>.....|
+	// 00000030  c6 ca 2d 81 2a 50 d0 4e  96 74 2a 8b 44 22 12 5f  |..-.*P.N.t*.D"._|
+	// 00000040  57 73 d1 1f a3 a9 21 96  2e e3 bd 77 bf 3b 3f a7  |Ws....!....w.;?.|
+	// 00000050  b7 aa 91 37 7d d6 12 c6  73 db 9f 01 fd b3 f6 b6  |...7}...s.......|
+	// 00000060  82 cf 0d e1 5c 57 ac 8e  82 72 20 06 af 70 90 15  |....\W...r ..p..|
+	// 00000070  cb 5c f5 87 8d 39 3a 29  66 8e df 62 3d b0 ba fa  |.\...9:)f..b=...|
+	// 00000080  3f 38 83 eb 92 62 fd 33  cb b0 76 ae e1 40 4b 4c  |?8...b.3..v..@KL|
+	// 00000090  6a 0d 98 e0 a9 a4 ce d6  73 53 22 ca 47           |j.......sS".G|
 	// Decrypted: 'Hello World!'
 }
-
