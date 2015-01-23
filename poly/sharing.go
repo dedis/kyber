@@ -284,6 +284,7 @@ func (pub *PubPoly) Decode(b []byte) error {
 		return errors.New("Encoded polynomial commitment wrong length")
 	}
 	for i := 0; i < k; i++ {
+		pub.p[i] = pub.g.Point()
 		if err := pub.p[i].Decode(b[i*pl:i*pl+pl]); err != nil {
 			return err
 		}
