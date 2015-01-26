@@ -302,7 +302,7 @@ func TestPubPolyCommit(t *testing.T) {
 }
 
 // Tests the commit to ensure it works with the standard base.
-func TestPubPolyCommit_NIL(t *testing.T) {
+func TestPubPolyCommit_Nil(t *testing.T) {
 	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
 	testPubPoly := new(PubPoly)
 	testPubPoly.Init(group, k, nil)
@@ -345,4 +345,179 @@ func TestPubPolyLen(t *testing.T) {
 }
 
 
+// Encode a public polynomial and then decode it.
+func TestPubPolyEncodeDecode(t *testing.T) {
+//	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
+//	testPubPoly := new(PubPoly)
+//	testPubPoly.Init(group, k, point)
+//	testPubPoly = testPubPoly.Commit(testPriPoly, point)
+	
+//	decodePubPoly := new(PubPoly)
+//	decodePubPoly.Init(group, k, point)
+	
+//	if err := decodePubPoly.Decode(testPubPoly.Encode()); err != nil ||
+//		!decodePubPoly.Equal(testPubPoly) {
+//		t.Error("Failed to encode/ decode properly.")
+//	}
+}
+
+// Verify that encode fails if the group and point are not the same
+// length (aka not from the same group in this case).
+func TestPubPolyEncodeDecode_Failure1(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.FailNow()
+		}
+	}()
+
+//	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
+//	testPubPoly := new(PubPoly)
+//      badPoint := new(edwards.ProjectiveCurve).Init(
+//		edwards.ParamE382(), false).Point()
+//	testPubPoly.Init(group, k, badPoint)
+//	testPubPoly = testPubPoly.Commit(testPriPoly, badPoint)
+	
+//	testPubPoly.Encode());
+}
+
+
+// Verify the decoding/ encoding fails if the new polynomial is the wrong len.
+func TestPubPolyEncodeDecode_Failure2(t *testing.T) {
+//	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
+//	testPubPoly := new(PubPoly)
+//	testPubPoly.Init(group, k, point)
+//	testPubPoly = testPubPoly.Commit(testPriPoly, point)
+	
+//	decodePubPoly := new(PubPoly)
+//	decodePubPoly.Init(group, k+20, point)
+	
+//	if err := decodePubPoly.Decode(testPubPoly.Encode()); err == nil {
+//		t.Error("Decode should fail.")
+//	}
+}
+
+// Verify that the equal function returns true for two polynomials that are
+// the same
+func TestPubPolyEqual_Same(t *testing.T) {
+
+//	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
+//	testPubPoly := new(PubPoly)
+//	testPubPoly.Init(group, k, point)
+//	testPubPoly = testPubPoly.Commit(testPriPoly, point)
+//
+//	testPubPolyCopy := testPubPoly
+
+//	if !testPubPoly.Equal(testPubPolyCopy) {
+//		t.Error("Polynomials are expected to be equal.")
+//	}
+}
+
+// Verify that the equal function returns false for two polynomials that are
+// diffferent
+func TestPubPolyEqual_Different(t *testing.T) {
+
+//	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
+//	testPubPoly := new(PubPoly)
+//	testPubPoly.Init(group, k, point)
+//	testPubPoly = testPubPoly.Commit(testPriPoly, point)
+
+//	testPriPoly2 := new(PriPoly).Pick(group, k, secret, random.Stream)
+//	testPubPoly2 := new(PubPoly)
+//	testPubPoly2.Init(group, k, point)
+//	testPubPoly2 = testPubPoly.Commit(testPriPoly, point)
+
+//	if testPubPoly1.Equal(testPubPoly2) {
+//		t.Error("Polynomials are expected to be different.")
+//	}
+}
+
+// Verify that the equal function panics if the polynomials
+// are of different degrees.
+func TestPubPolyEqual_Error1(t *testing.T) {
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.FailNow()
+		}
+	}()
+
+//	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
+//	testPubPoly := new(PubPoly)
+//	testPubPoly.Init(group, k, point)
+//	testPubPoly = testPubPoly.Commit(testPriPoly, point)
+
+//	testPriPoly2 := new(PriPoly).Pick(group, k+10, secret, random.Stream)
+//	testPubPoly2 := new(PubPoly)
+//	testPubPoly2.Init(group, k+10, point)
+//	testPubPoly2 = testPubPoly.Commit(testPriPoly, point)
+
+//	testPoly1.Equal(testPoly2)
+}
+
+// Verify that the equal function panics if the polynomials
+// are of different groups.
+func TestPubPolyEqual_Error2(t *testing.T) {
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.FailNow()
+		}
+	}()
+
+//	group2 := new(edwards.ProjectiveCurve).Init(edwards.ParamE382(), false)
+//	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
+//	testPubPoly := new(PubPoly)
+//	testPubPoly.Init(group, k, point)
+//	testPubPoly = testPubPoly.Commit(testPriPoly, point)
+
+//	testPriPoly2 := new(PriPoly).Pick(group2, k, secret, random.Stream)
+//	testPubPoly2 := new(PubPoly)
+//	testPubPoly2.Init(group2, k, point)
+//	testPubPoly2 = testPubPoly.Commit(testPriPoly, point)
+
+//	testPoly1.Equal(testPoly2)
+}
+
+// Verify that the string function returns a string representation of the
+// polynomial. The test simply assures that the function exits successfully.
+func TestPubPolyString(t *testing.T) {
+//	testPubPoly := new(PubPoly)
+//	testPubPoly.Init(group, k, point)
+//	testPubPoly = testPubPoly.Commit(testPriPoly, point)
+//	result := testPoly.String()
+//	t.Log(result)
+}
+
+
+// Verifies that the function correctly identifies a valid share.
+func TestPubPolyCheck_True(t *testing.T) {
+//	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
+//	testPubPoly := new(PubPoly)
+//	testPubPoly.Init(group, k, point)
+	
+//	testPubPoly = testPubPoly.Commit(testPriPoly, point)
+	
+//	testShares := new(PriShares).Split(testPoly, n)
+	
+//	if testPubPoly.Check(testShares.Share(1)) == false {
+//		t.Error("The share should be accepted.")
+//	}
+}
+
+
+// Verifies that the function correctly rejects an invalid share.
+func TestPubPolyCheck_False(t *testing.T) {
+//	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
+//	testPubPoly := new(PubPoly)
+//	testPubPoly.Init(group, k, point)
+	
+//	testPubPoly = testPubPoly.Commit(testPriPoly, point)
+	
+//	testPriPolyBad := new(PriPoly).Pick(group, k, secret, random.Stream)
+//	testSharesBad := new(PriShares).Split(testPriPolyBad, n)
+	
+//	if testPubPoly.Check(testSharesBad.Share(1)) == true {
+//		t.Error("The share should be rejected.")
+//	}
+}
 
