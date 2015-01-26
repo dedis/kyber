@@ -78,7 +78,7 @@ func producePubPoly(g abstract.Group, k, n int, s abstract.Secret,
 func producePubShares(g abstract.Group, k, n, t int, s abstract.Secret,
 	p abstract.Point) *PubShares {
 
-	producePubShares(g, k, n, s, p)
+	testPubPoly := producePubPoly(g, k, n, s, p)
 	return new(PubShares).Split(testPubPoly, t)
 }
 
