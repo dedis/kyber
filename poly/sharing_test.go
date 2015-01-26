@@ -521,3 +521,148 @@ func TestPubPolyCheck_False(t *testing.T) {
 //	}
 }
 
+
+// Tests the split and share function simultaneously.
+// Splits a public polynomial and ensures that share
+// i is the public polynomial evaluated at point i.
+func TestPubSharesSplitShare(t *testing.T) {
+
+//	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
+//	testPubPoly := new(PubPoly)
+//	testPubPoly.Init(group, k, point)
+	
+//	testPubPoly = testPubPoly.Commit(testPriPoly, point)
+
+	testShares := new(PubShares).Split(testPubPoly, n)
+
+	errorString := "Share %v should equal the polynomial evaluated at %v"
+
+	for i := 0; i < n; i++ {
+		if !testShares.Share(i).Equal(testPubPoly.Eval(i)) {
+			t.Error(errorString, i, i)
+		}
+	}
+}
+
+// This verifies the SetShare function. It sets the share and then
+// ensures that the share returned is as expected.
+func TestPubSharesSetShare(t *testing.T) {
+
+//	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
+//	testPubPoly := new(PubPoly)
+//	testPubPoly.Init(group, k, point)
+	
+//	testPubPoly = testPubPoly.Commit(testPriPoly, point)
+	
+	newPoint := group.Point()
+
+	testShares := new(PubShares).Split(testPubPoly, n)
+	testShares.SetShare(0, newPoint)
+	if !newPoint.Equal(testShares.Share(0)) {
+		t.Error("The share was not set properly.")
+	}
+}
+
+// This verifies that the xCoord function can successfully
+// create an array with k secrets from a PubShare with sufficient
+// secrets.
+func TestPubSharesxCoord_Success(t *testing.T) {
+
+//	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
+//	testPubPoly := new(PubPoly)
+//	testPubPoly.Init(group, k, point)
+	
+//	testPubPoly = testPubPoly.Commit(testPriPoly, point)
+
+	testShares := new(PubShares).Split(testPubPoly, k)
+
+	x := testShares.xCoords()
+	c := 0
+
+	for i := 0; i < len(x); i++ {
+		if x[i] != nil {
+			c += 1
+		}
+	}
+
+	if c < testShares.k {
+		t.Error("Expected %v points to be made.", k)
+	}
+}
+
+// Ensures that if we have k-1 shares, xCoord panics.
+func TestPubSharesxCoord_Failure(t *testing.T) {
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.FailNow()
+		}
+	}()
+
+//	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
+//	testPubPoly := new(PubPoly)
+//	testPubPoly.Init(group, k, point)
+	
+//	testPubPoly = testPubPoly.Commit(testPriPoly, point)
+
+	testShares := new(PubShares).Split(testPubPoly, k)
+	testShares.p[0] = nil
+
+	testShares.xCoords()
+}
+
+// Ensures that we can successfully reconstruct the secret if given k shares.
+func TestPubSharesSecret_Success(t *testing.T) {
+
+//	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
+//	testPubPoly := new(PubPoly)
+//	testPubPoly.Init(group, k, point)
+	
+//	testPubPoly = testPubPoly.Commit(testPriPoly, point)
+
+//	testShares := new(PubShares).Split(testPubPoly, k)
+
+//	result := testShares.SecretCommit()
+
+	// TODO figure out exactly what this point should be.
+	
+	//if !point.Equal(result) {
+	//	t.Error("The point failed to be reconstructed.")
+	//}
+}
+
+// Ensures that we fail to reconstruct the secret with too little shares.
+func TestPubSharesSecret_Failure(t *testing.T) {
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.FailNow()
+		}
+	}()
+
+//	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
+//	testPubPoly := new(PubPoly)
+//	testPubPoly.Init(group, k, point)
+	
+//	testPubPoly = testPubPoly.Commit(testPriPoly, point)
+
+//	testShares := new(PubShares).Split(testPubPoly, k)
+//	testShares.p[0] = nil
+
+//	result := testShares.SecretCommit()
+}
+
+// Tests the string function by simply verifying that it runs to completion.
+func TestPubSharesString(t *testing.T) {
+//	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
+//	testPubPoly := new(PubPoly)
+//	testPubPoly.Init(group, k, point)
+	
+//	testPubPoly = testPubPoly.Commit(testPriPoly, point)
+
+//	testShares := new(PubShares).Split(testPubPoly, k)
+//	result := testShares.String()
+
+//	t.Log(result)
+}
+
