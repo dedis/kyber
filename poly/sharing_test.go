@@ -21,6 +21,7 @@ var group abstract.Group = new(edwards.ExtendedCurve).Init(
 var k int = 10
 var n int = 20
 var secret = group.Secret()
+var point  = group.Point()
 
 // Test that the Pick function creates unique polynomials and provides unique
 // secrets.
@@ -272,3 +273,76 @@ func TestPriSharesString(t *testing.T) {
 
 	t.Log(result)
 }
+
+
+// Tests the initialation function insuring it can create a public polynomial
+// correctly.
+func TestPubPolyInit(t *testing.T) {
+	testPoly := new(PubPoly)
+	testPoly.Init(group, k, point)
+	if group.String() != testPoly.g.String() || //!point.Equal(testPoly.b) ||
+	   k != len(testPoly.p) {
+		t.Error("The public polynomial was not initialized properly.")   
+	 }
+}
+
+// Tests the commit function to ensure it properly commits a private polynomial.
+func TestPubPolyCommit(t *testing.T) {
+	//testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
+	//testPubPoly := new(PubPoly)
+	//testPubPoly.Init(group, k, point)
+	
+	//testPubPoly = testPubPoly.Commit(testPriPoly, point)
+
+	//for i := 0; i < len(testPubPoly.p); i++ {
+	//	if !point.Mul(point, testPriPoly.s[i]).Equal(testPubPoly.p[i]) {
+	//		t.Error("PriPoly should be multiplied by the point")
+	//	}
+	//}
+}
+
+// Tests the commit to ensure it works with the standard base.
+func TestPubPolyCommit_NIL(t *testing.T) {
+	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
+	testPubPoly := new(PubPoly)
+	testPubPoly.Init(group, k, nil)
+	
+	testPubPoly = testPubPoly.Commit(testPriPoly, nil)
+
+	for i := 0; i < len(testPubPoly.p); i++ {
+		if !point.Mul(nil, testPriPoly.s[i]).Equal(testPubPoly.p[i]) {
+			t.Error("PriPoly should be multiplied by the point")
+		}
+	}
+}
+
+// Verifies the secret commit function returns the altered secret from the
+// private polynomial.
+func TestPubPolySecretCommit(t *testing.T) {
+	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
+	testPubPoly := new(PubPoly)
+	testPubPoly.Init(group, k, point)
+	
+	testPubPoly = testPubPoly.Commit(testPriPoly, point)
+	
+	//secretCommit := testPubPoly.SecretCommit()
+	
+	//if !point.Mul(point, testPriPoly.s[0]).Equal(secretCommit) {
+	//	t.Error("The secret commit is not from the private secret")
+	//}
+}
+
+// Encode a public polynomial and verify its length is as expected.
+func TestPubPolyLen(t *testing.T) {
+	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
+	testPubPoly := new(PubPoly)
+	testPubPoly.Init(group, k, point)
+	testPubPoly = testPubPoly.Commit(testPriPoly, point)
+	
+	if testPubPoly.Len() != len(testPubPoly.Encode()) {
+		t.Error("The length should equal the length of the encoding")
+	}
+}
+
+
+
