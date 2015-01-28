@@ -257,8 +257,8 @@ func TestPriSharesSetShare(t *testing.T) {
 
 	testShares := producePriShares(group, k, n, secret)
 	testShares.Empty(group, k, n)
-	testShares.SetShare(0, secret)
-	if !secret.Equal(testShares.Share(0)) {
+	testShares.SetShare(0, altSecret)
+	if !altSecret.Equal(testShares.Share(0)) {
 		t.Error("The share was not set properly.")
 	}
 }
@@ -323,7 +323,7 @@ func TestPriSharesString(t *testing.T) {
 func TestPubPolyInit(t *testing.T) {
 	testPoly := new(PubPoly)
 	testPoly.Init(group, k, point)
-	if group.String() != testPoly.g.String() || //!point.Equal(testPoly.b) ||
+	if group.String() != testPoly.g.String() || !point.Equal(testPoly.b) ||
 		k != len(testPoly.p) {
 		t.Error("The public polynomial was not initialized properly.")
 	}
@@ -455,14 +455,6 @@ func TestPubPolyEqual_Error2(t *testing.T) {
 	testPubPoly1.Equal(testPubPoly2)
 }
 
-// Verify that the string function returns a string representation of the
-// polynomial. The test simply assures that the function exits successfully.
-func TestPubPolyString(t *testing.T) {
-	testPubPoly := producePubPoly(group, k, k, secret, point)
-	result      := testPubPoly.String()
-	t.Log(result)
-}
-
 // Verify that Add can successfully add two polynomials
 func TestPubPolyAdd_Success(t *testing.T) {
 
@@ -514,17 +506,21 @@ func TestPubPolyCheck_True(t *testing.T) {
 
 // Verifies that the function correctly rejects an invalid share.
 func TestPubPolyCheck_False(t *testing.T) {
-	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
-	testPubPoly := new(PubPoly)
-	testPubPoly.Init(group, k, point)
-	testPubPoly = testPubPoly.Commit(testPriPoly, point)
 
-	testPriPolyBad := new(PriPoly).Pick(altGroup, k+20, altSecret, random.Stream)
-	testSharesBad := new(PriShares).Split(testPriPolyBad, n)
+	testPubPoly := producePubPoly(group, k, k, secret, point)
+	testSharesBad := producePriShares(altGroup, n, n, altSecret)
 
 	if testPubPoly.Check(0, testSharesBad.Share(0)) == true {
 		t.Error("The share should be rejected.")
 	}
+}
+
+// Verify that the string function returns a string representation of the
+// polynomial. The test simply assures that the function exits successfully.
+func TestPubPolyString(t *testing.T) {
+	testPubPoly := producePubPoly(group, k, k, secret, point)
+	result      := testPubPoly.String()
+	t.Log(result)
 }
 
 // This function tests the eval function for both PriPoly and PubPoly
@@ -533,7 +529,7 @@ func TestPolyEval(t *testing.T) {
 	testPubPoly := new(PubPoly)
 	testPubPoly.Init(group, k, point)
 	testPubPoly = testPubPoly.Commit(testPriPoly, point)
-	errorString := "PriPoly.Eval(i) * point should == PubPoly.Eval(i)"
+	errorString := "PriPoly.Eval(i) * point should equal PubPoly.Eval(i)"
 
 	for i := 0; i < k; i++ {
 		priResult := group.Point().Mul(point, testPriPoly.Eval(i))
@@ -564,7 +560,7 @@ func TestPubSharesSplitShare(t *testing.T) {
 func TestPubSharesSetShare(t *testing.T) {
 
 	testShares := producePubShares(group, k, k, n, secret, point)
-	testShares.SetShare(0, point)
+	testShares.SetShare(0, point.Add(point, point))
 	if !point.Equal(testShares.Share(0)) {
 		t.Error("The share was not set properly.")
 	}
