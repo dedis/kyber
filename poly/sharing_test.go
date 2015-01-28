@@ -24,10 +24,10 @@ var altGroup abstract.Group = new(edwards.ProjectiveCurve).Init(
 	edwards.ParamE382(), false)
 var k int = 10
 var n int = 20
-var secret = group.Secret()
-var point = group.Point()
-var altSecret = altGroup.Secret()
-var altPoint = altGroup.Point()
+var secret = group.Secret().Pick(random.Stream)
+var point = group.Point().Mul(group.Point().Base(), secret)
+var altSecret = altGroup.Secret().Pick(random.Stream)
+var altPoint = altGroup.Point().Mul(altGroup.Point().Base(), altSecret)
 
 /* Setup Functions
  *
@@ -332,16 +332,16 @@ func TestPubPolyInit(t *testing.T) {
 // Tests the commit function to ensure it properly commits a private polynomial.
 func TestPubPolyCommit(t *testing.T) {
 
-	//testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
-	//testPubPoly := new(PubPoly)
-	//testPubPoly.Init(group, k, nil)
-	//testPubPoly = testPubPoly.Commit(testPriPoly, nil)
+	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
+	testPubPoly := new(PubPoly)
+	testPubPoly.Init(group, k, point)
+	testPubPoly = testPubPoly.Commit(testPriPoly, point)
 
-	//for i := 0; i < len(testPubPoly.p); i++ {
-	//	if !point.Mul(point, testPriPoly.s[i]).Equal(testPubPoly.p[i]) {
-	//		t.Error("PriPoly should be multiplied by the point")
-	//	}
-	//}
+	for i := 0; i < len(testPubPoly.p); i++ {
+		if !group.Point().Mul(point, testPriPoly.s[i]).Equal(testPubPoly.p[i]) {
+			t.Error("PriPoly should be multiplied by the point")
+		}
+	}
 }
 
 // Tests commit to ensure it works with the standard base.
@@ -364,11 +364,11 @@ func TestPubPolySecretCommit(t *testing.T) {
 
 	testPriPoly := producePriPoly(group, k, secret)
 	testPubPoly := new(PubPoly)
-	testPubPoly.Init(group, k, nil)
-	testPubPoly = testPubPoly.Commit(testPriPoly, nil)
+	testPubPoly.Init(group, k, point)
+	testPubPoly = testPubPoly.Commit(testPriPoly, point)
 	secretCommit := testPubPoly.SecretCommit()
 
-	if !point.Mul(nil, testPriPoly.s[0]).Equal(secretCommit) {
+	if !point.Mul(point, testPriPoly.s[0]).Equal(secretCommit) {
 		t.Error("The secret commit is not from the private secret")
 	}
 }
@@ -384,9 +384,9 @@ func TestPubPolyLen(t *testing.T) {
 // Encode a public polynomial and then decode it.
 func TestPubPolyEncodeDecode(t *testing.T) {
 
-	testPubPoly := producePubPoly(group, k, k, secret, nil)
+	testPubPoly := producePubPoly(group, k, k, secret, point)
 	decodePubPoly := new(PubPoly)
-	decodePubPoly.Init(group, k, nil)
+	decodePubPoly.Init(group, k, point)
 
 	if err := decodePubPoly.Decode(testPubPoly.Encode()); err != nil ||
 		!decodePubPoly.Equal(testPubPoly) {
@@ -527,6 +527,23 @@ func TestPubPolyCheck_False(t *testing.T) {
 	}
 }
 
+// This function tests the eval function for both PriPoly and PubPoly
+func TestPolyEval(t *testing.T) {
+	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
+	testPubPoly := new(PubPoly)
+	testPubPoly.Init(group, k, point)
+	testPubPoly = testPubPoly.Commit(testPriPoly, point)
+	errorString := "PriPoly.Eval(i) * point should == PubPoly.Eval(i)"
+
+	for i := 0; i < k; i++ {
+		priResult := group.Point().Mul(point, testPriPoly.Eval(i))
+	
+		if !priResult.Equal(testPubPoly.Eval(i)) {
+			t.Error(errorString)	
+		}
+	}
+}
+
 // Tests the split and share functions. Splits a public polynomial and
 // ensures that share i is the public polynomial evaluated at point i.
 func TestPubSharesSplitShare(t *testing.T) {
@@ -586,18 +603,11 @@ func TestPubSharesSecret_Success(t *testing.T) {
 
 	testShares := producePubShares(group, k, k, k, secret, point)
 	result := testShares.SecretCommit()
-
-	// TODO figure out exactly why this always seems to return true.
-	if !point.Equal(result) {
+	if !point.Mul(point, secret).Equal(result) {
 		t.Error("The point failed to be reconstructed.")
-		t.Error(point.Mul(point, secret))
-		t.Error(point)
-		t.Error(result)
 	}
 }
 
-// TODO
-//func TestPubSharesSecret_False(t *testing.T)
 
 // Ensures that the code fails to reconstruct the secret with too little shares.
 func TestPubSharesSecret_Failure(t *testing.T) {
