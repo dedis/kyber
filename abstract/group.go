@@ -117,6 +117,12 @@ The Group interface is essentially just a "constructor" interface
 enabling the caller to generate the two particular types of objects
 relevant to DSA-style public-key cryptography;
 we call these objects Points and Secrets.
+The caller must explicitly initialize or set a new Point or Secret object
+to some value before using it as an input to some other operation
+involving Point and/or Secret objects.
+For example, to compare a point P against the neutral (identity) element,
+you might use P.Equal(suite.Point().Null()),
+but not just P.Equal(suite.Point()).
 
 It is expected that any implementation of this interface
 should satisfy suitable hardness assumptions for the applicable group:
