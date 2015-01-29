@@ -69,7 +69,7 @@ func (p *curvePoint) genPoint(x *big.Int, rand cipher.Stream) bool {
 	b := make([]byte, 1)
 	rand.XORKeyStream(b, b)
 	if (b[0] & 0x80) != 0 {
-		y.Neg(y)
+		y.Sub(p.c.p.P, y)
 	}
 
 	// Check that it's a valid point
