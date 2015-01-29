@@ -169,6 +169,34 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 	// XXX re-enable when we move this into 'test' sub-package
 	//testSharing(g)
 
+	// Test encoding and decoding
+	buf := new(bytes.Buffer)
+	for i := 0; i < 5; i++ {
+		buf.Reset()
+		s := g.Secret().Pick(rand)
+		if _, err := s.EncodeTo(buf); err != nil {
+			panic("encoding of secret fails: " + err.Error())
+		}
+		if _, err := stmp.DecodeFrom(buf); err != nil {
+			panic("decoding of secret fails: " + err.Error())
+		}
+		if !stmp.Equal(s) {
+			panic("decoding produces different secret than encoded")
+		}
+
+		buf.Reset()
+		p, _ := g.Point().Pick(nil, rand)
+		if _, err := p.EncodeTo(buf); err != nil {
+			panic("encoding of point fails: " + err.Error())
+		}
+		if _, err := ptmp.DecodeFrom(buf); err != nil {
+			panic("decoding of point fails: " + err.Error())
+		}
+		if !ptmp.Equal(p) {
+			panic("decoding produces different point than encoded")
+		}
+	}
+
 	return points
 }
 
