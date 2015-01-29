@@ -155,23 +155,23 @@ func (s *secret) Pick(rand cipher.Stream) abstract.Secret {
 	return s
 }
 
-func (s *secret) Len() int {
+func (s *secret) MarshalSize() int {
 	return s.c.nlen
 }
 
-func (s *secret) Encode() []byte {
-	return s.Bytes(s.c.nlen)
+func (s *secret) MarshalBinary() ([]byte, error) {
+	return s.Bytes(s.c.nlen), nil
 }
 
-func (s *secret) Decode(buf []byte) error {
+func (s *secret) UnmarshalBinary(buf []byte) error {
 	s.SetBytes(buf)
 	return nil
 }
 
-func (s *secret) EncodeTo(w io.Writer) (int, error) {
-	return group.SecretEncodeTo(s, w)
+func (s *secret) MarshalTo(w io.Writer) (int, error) {
+	return group.SecretMarshalTo(s, w)
 }
 
-func (s *secret) DecodeFrom(r io.Reader) (int, error) {
-	return group.SecretDecodeFrom(s, r)
+func (s *secret) UnmarshalFrom(r io.Reader) (int, error) {
+	return group.SecretUnmarshalFrom(s, r)
 }

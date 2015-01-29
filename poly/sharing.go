@@ -254,30 +254,26 @@ func (pub *PubPoly) SecretCommit() abstract.Point {
 }
 
 // Return the encoded length of this polynomial commitment.
-func (pub *PubPoly) Len() int {
+func (pub *PubPoly) MarshalSize() int {
 	return pub.g.PointLen() * len(pub.p)
 }
 
 // Encode this polynomial into a byte slice exactly Len() bytes long.
-func (pub *PubPoly) Encode() []byte {
+func (pub *PubPoly) MarshalBinary() ([]byte, error) {
 	pl := pub.g.PointLen()
-	b := make([]byte, pub.Len())
+	b := make([]byte, pub.MarshalSize())
 	for i := range pub.p {
-		pb := pub.p[i].Encode()
+		pb, _ := pub.p[i].MarshalBinary()
 		if len(pb) != pl {
 			panic("Encoded point wrong length")
 		}
 		copy(b[i*pl:], pb)
 	}
-	return b
-}
-
-func (pub *PubPoly) EncodeTo(w io.Writer) (int, error) {
-	return w.Write(pub.Encode())
+	return b, nil
 }
 
 // Decode this polynomial from a slice exactly Len() bytes long.
-func (pub *PubPoly) Decode(b []byte) error {
+func (pub *PubPoly) UnmarshalBinary(b []byte) error {
 	k := len(pub.p)
 	pl := pub.g.PointLen()
 	if len(b) != k*pl {
@@ -285,20 +281,25 @@ func (pub *PubPoly) Decode(b []byte) error {
 	}
 	for i := 0; i < k; i++ {
 		pub.p[i] = pub.g.Point()
-		if err := pub.p[i].Decode(b[i*pl : i*pl+pl]); err != nil {
+		if err := pub.p[i].UnmarshalBinary(b[i*pl : i*pl+pl]); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (pub *PubPoly) DecodeFrom(r io.Reader) (int, error) {
-	buf := make([]byte, pub.Len())
+func (pub *PubPoly) MarshalTo(w io.Writer) (int, error) {
+	pubb, _ := pub.MarshalBinary()
+	return w.Write(pubb)
+}
+
+func (pub *PubPoly) UnmarshalFrom(r io.Reader) (int, error) {
+	buf := make([]byte, pub.MarshalSize())
 	n, err := io.ReadFull(r, buf)
 	if err != nil {
 		return n, err
 	}
-	return n, pub.Decode(buf)
+	return n, pub.UnmarshalBinary(buf)
 }
 
 // Test polynomial commitments for equality.

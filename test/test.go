@@ -174,10 +174,10 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 	for i := 0; i < 5; i++ {
 		buf.Reset()
 		s := g.Secret().Pick(rand)
-		if _, err := s.EncodeTo(buf); err != nil {
+		if _, err := s.MarshalTo(buf); err != nil {
 			panic("encoding of secret fails: " + err.Error())
 		}
-		if _, err := stmp.DecodeFrom(buf); err != nil {
+		if _, err := stmp.UnmarshalFrom(buf); err != nil {
 			panic("decoding of secret fails: " + err.Error())
 		}
 		if !stmp.Equal(s) {
@@ -186,10 +186,10 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 
 		buf.Reset()
 		p, _ := g.Point().Pick(nil, rand)
-		if _, err := p.EncodeTo(buf); err != nil {
+		if _, err := p.MarshalTo(buf); err != nil {
 			panic("encoding of point fails: " + err.Error())
 		}
-		if _, err := ptmp.DecodeFrom(buf); err != nil {
+		if _, err := ptmp.UnmarshalFrom(buf); err != nil {
 			panic("decoding of point fails: " + err.Error())
 		}
 		if !ptmp.Equal(p) {
@@ -215,8 +215,8 @@ func TestCompareGroups(suite abstract.Suite, g1, g2 abstract.Group) {
 
 	// Compare resulting Points
 	for i := range r1 {
-		b1 := r1[i].Encode()
-		b2 := r2[i].Encode()
+		b1, _ := r1[i].MarshalBinary()
+		b2, _ := r2[i].MarshalBinary()
 		if !bytes.Equal(b1, b2) {
 			println("result-pair", i,
 				"\n1:", r1[i].String(),

@@ -291,27 +291,27 @@ func (i *Int) Pick(rand cipher.Stream) abstract.Secret {
 // The length of encoded Ints depends only on the size of the modulus,
 // and not on the the value of the encoded integer,
 // making the encoding is fixed-length for simplicity and security.
-func (i *Int) Len() int {
+func (i *Int) MarshalSize() int {
 	return (i.M.BitLen() + 7) / 8
 }
 
 // Encode the value of this Int into a byte-slice exactly Len() bytes long.
-func (i *Int) Encode() []byte {
-	l := i.Len()
+func (i *Int) MarshalBinary() ([]byte, error) {
+	l := i.MarshalSize()
 	b := i.V.Bytes() // may be shorter than l
 	if ofs := l - len(b); ofs != 0 {
 		nb := make([]byte, l)
 		copy(nb[ofs:], b)
-		return nb
+		return nb, nil
 	}
-	return b
+	return b, nil
 }
 
 // Attempt to decode a Int from a byte-slice buffer.
 // Returns an error if the buffer is not exactly Len() bytes long
 // or if the contents of the buffer represents an out-of-range integer.
-func (i *Int) Decode(buf []byte) error {
-	if len(buf) != i.Len() {
+func (i *Int) UnmarshalBinary(buf []byte) error {
+	if len(buf) != i.MarshalSize() {
 		return errors.New("Int.Decode: wrong size buffer")
 	}
 	i.V.SetBytes(buf)
@@ -321,19 +321,19 @@ func (i *Int) Decode(buf []byte) error {
 	return nil
 }
 
-func (i *Int) EncodeTo(w io.Writer) (int, error) {
-	return group.SecretEncodeTo(i, w)
+func (i *Int) MarshalTo(w io.Writer) (int, error) {
+	return group.SecretMarshalTo(i, w)
 }
 
-func (i *Int) DecodeFrom(r io.Reader) (int, error) {
-	return group.SecretDecodeFrom(i, r)
+func (i *Int) UnmarshalFrom(r io.Reader) (int, error) {
+	return group.SecretUnmarshalFrom(i, r)
 }
 
 // Encode the value of this Int into a big-endian byte-slice
 // at least min bytes but no more than max bytes long.
 // Panics if max != 0 and the Int cannot be represented in max bytes.
 func (i *Int) BigEndian(min, max int) []byte {
-	act := i.Len()
+	act := i.MarshalSize()
 	pad, ofs := act, 0
 	if pad < min {
 		pad, ofs = min, min-act
@@ -350,7 +350,7 @@ func (i *Int) BigEndian(min, max int) []byte {
 // at least min bytes but no more than max bytes long.
 // Panics if max != 0 and the Int cannot be represented in max bytes.
 func (i *Int) LittleEndian(min, max int) []byte {
-	act := i.Len()
+	act := i.MarshalSize()
 	pad := act
 	if pad < min {
 		pad = min
@@ -367,7 +367,7 @@ func (i *Int) LittleEndian(min, max int) []byte {
 // satisfying the requirements of the Hiding interface.
 // For a Int this is always the same length as the normal encoding.
 func (i *Int) HideLen() int {
-	return i.Len()
+	return i.MarshalSize()
 }
 
 // HideEncode a Int such that it appears indistinguishable
@@ -410,7 +410,7 @@ func (i *Int) HideEncode(rand cipher.Stream) []byte {
 // HideDecode a uniform representation of this object from a slice,
 // whose length must be exactly HideLen().
 func (i *Int) HideDecode(buf []byte) {
-	if len(buf) != i.Len() {
+	if len(buf) != i.HideLen() {
 		panic("Int.HideDecode: wrong size buffer")
 	}
 	i.V.SetBytes(buf)

@@ -8,11 +8,13 @@ import "C"
 
 import (
 	"bytes"
+	"io"
 	"unsafe"
 	//"runtime"
 	"encoding/hex"
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 )
 
 
@@ -35,13 +37,25 @@ func (s *secret) String() string {
 	return hex.EncodeToString(s.b[:])
 }
 
-func (s *secret) Len() int { return 32 }
+func (s *secret) MarshalSize() int {
+	return 32
+}
 
-func (s *secret) Encode() []byte { return s.b[:] }
+func (s *secret) MarshalBinary() ([]byte, error) {
+	return s.b[:], nil
+}
 
-func (s *secret) Decode(buf []byte) error {
+func (s *secret) UnmarshalBinary(buf []byte) error {
 	copy(s.b[:], buf)
 	return nil
+}
+
+func (s *secret) MarshalTo(w io.Writer) (int, error) {
+	return group.SecretMarshalTo(s, w)
+}
+
+func (s *secret) UnmarshalFrom(r io.Reader) (int, error) {
+	return group.SecretUnmarshalFrom(s, r)
 }
 
 func (s *secret) Zero() abstract.Secret {

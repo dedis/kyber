@@ -36,26 +36,26 @@ func (P *basicPoint) coord(v int64) *nist.Int {
 	return nist.NewInt(v, &P.c.P)
 }
 
-func (P *basicPoint) Len() int {
+func (P *basicPoint) MarshalSize() int {
 	return (P.y.M.BitLen() + 7 + 1) / 8
 }
 
 // Encode an Edwards curve point.
-func (P *basicPoint) Encode() []byte {
-	return P.c.encodePoint(&P.x, &P.y)
+func (P *basicPoint) MarshalBinary() ([]byte, error) {
+	return P.c.encodePoint(&P.x, &P.y), nil
 }
 
 // Decode an Edwards curve point.
-func (P *basicPoint) Decode(b []byte) error {
+func (P *basicPoint) UnmarshalBinary(b []byte) error {
 	return P.c.decodePoint(b, &P.x, &P.y)
 }
 
-func (P *basicPoint) EncodeTo(w io.Writer) (int, error) {
-	return group.PointEncodeTo(P, w)
+func (P *basicPoint) MarshalTo(w io.Writer) (int, error) {
+	return group.PointMarshalTo(P, w)
 }
 
-func (P *basicPoint) DecodeFrom(r io.Reader) (int, error) {
-	return group.PointDecodeFrom(P, r)
+func (P *basicPoint) UnmarshalFrom(r io.Reader) (int, error) {
+	return group.PointUnmarshalFrom(P, r)
 }
 
 func (P *basicPoint) HideLen() int {

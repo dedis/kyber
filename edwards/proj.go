@@ -31,26 +31,26 @@ func (P *projPoint) String() string {
 	return P.c.pointString(&P.X, &P.Y)
 }
 
-func (P *projPoint) Len() int {
+func (P *projPoint) MarshalSize() int {
 	return P.c.PointLen()
 }
 
-func (P *projPoint) Encode() []byte {
+func (P *projPoint) MarshalBinary() ([]byte, error) {
 	P.normalize()
-	return P.c.encodePoint(&P.X, &P.Y)
+	return P.c.encodePoint(&P.X, &P.Y), nil
 }
 
-func (P *projPoint) Decode(b []byte) error {
+func (P *projPoint) UnmarshalBinary(b []byte) error {
 	P.Z.Init64(1, &P.c.P)
 	return P.c.decodePoint(b, &P.X, &P.Y)
 }
 
-func (P *projPoint) EncodeTo(w io.Writer) (int, error) {
-	return group.PointEncodeTo(P, w)
+func (P *projPoint) MarshalTo(w io.Writer) (int, error) {
+	return group.PointMarshalTo(P, w)
 }
 
-func (P *projPoint) DecodeFrom(r io.Reader) (int, error) {
-	return group.PointDecodeFrom(P, r)
+func (P *projPoint) UnmarshalFrom(r io.Reader) (int, error) {
+	return group.PointUnmarshalFrom(P, r)
 }
 
 func (P *projPoint) HideLen() int {

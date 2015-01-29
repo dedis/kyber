@@ -14,7 +14,8 @@ func keyPair(suite abstract.Suite, rand cipher.Stream,
 	x := suite.Secret().Pick(rand)
 	X := suite.Point().Mul(nil, x)
 	if !hide {
-		return X, x, X.Encode()
+		Xb, _ := X.MarshalBinary()
+		return X, x, Xb
 	}
 	Xh := X.(abstract.Hiding)
 	for {
@@ -39,7 +40,8 @@ func header(suite abstract.Suite, X abstract.Point, x abstract.Secret,
 	for i := range anonymitySet {
 		Y := anonymitySet[i]
 		S.Mul(Y, x) // compute DH shared secret
-		cipher := suite.Cipher(S.Encode())
+		seed, _ := S.MarshalBinary()
+		cipher := suite.Cipher(seed)
 		xc := make([]byte, len(xb))
 		cipher.Crypt(xc, xb)
 		hdr = append(hdr, xc...)
@@ -54,7 +56,7 @@ func encryptKey(suite abstract.Suite, rand cipher.Stream,
 
 	// Choose a keypair and encode its representation
 	X, x, Xb := keyPair(suite, rand, hide)
-	xb := x.Encode()
+	xb, _ := x.MarshalBinary()
 
 	// Generate the ciphertext header
 	return xb, header(suite, X, x, Xb, xb, anonymitySet)
@@ -78,11 +80,11 @@ func decryptKey(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
 		X.(abstract.Hiding).HideDecode(ciphertext[:hidelen])
 		Xb = ciphertext[:hidelen]
 	} else {
-		enclen := X.Len()
+		enclen := X.MarshalSize()
 		if len(ciphertext) < enclen {
 			return nil, 0, errors.New("ciphertext too short")
 		}
-		if err := X.Decode(ciphertext[:enclen]); err != nil {
+		if err := X.UnmarshalBinary(ciphertext[:enclen]); err != nil {
 			return nil, 0, err
 		}
 		Xb = ciphertext[:enclen]
@@ -99,12 +101,13 @@ func decryptKey(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
 		return nil, 0, errors.New("ciphertext too short")
 	}
 	S := suite.Point().Mul(X, privateKey)
-	cipher := suite.Cipher(S.Encode())
+	seed, _ := S.MarshalBinary()
+	cipher := suite.Cipher(seed)
 	xb := make([]byte, seclen)
 	secofs := Xblen + seclen*mine
 	cipher.Crypt(xb, ciphertext[secofs:secofs+seclen])
 	x := suite.Secret()
-	if err := x.Decode(xb); err != nil {
+	if err := x.UnmarshalBinary(xb); err != nil {
 		return nil, 0, err
 	}
 

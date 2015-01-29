@@ -7,11 +7,13 @@ package pbc
 import "C"
 
 import (
+	"io"
 	"unsafe"
 	"errors"
 	"runtime"
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 )
 
 
@@ -107,11 +109,11 @@ func (s *secret) Inv(a abstract.Secret) abstract.Secret {
 	return s
 }
 
-func (s *secret) Len() int {
+func (s *secret) MarshalSize() int {
 	return int(C.element_length_in_bytes(&s.e[0]))
 }
 
-func (s *secret) Encode() []byte {
+func (s *secret) MarshalBinary() ([]byte, error) {
 	l := s.Len()
 	b := make([]byte, l)
 	a := C.element_to_bytes((*C.uchar)(unsafe.Pointer(&b[0])),
@@ -119,10 +121,10 @@ func (s *secret) Encode() []byte {
 	if int(a) != l {
 		panic("Element encoding yielded wrong length")
 	}
-	return b
+	return b, nil
 }
 
-func (s *secret) Decode(buf []byte) error {
+func (s *secret) UnmarshalBinary(buf []byte) error {
 	l := s.Len()
 	if len(buf) != l {
 		return errors.New("Encoded element wrong length")
@@ -132,5 +134,13 @@ func (s *secret) Decode(buf []byte) error {
 		panic("element_from_bytes consumed wrong number of bytes")
 	}
 	return nil
+}
+
+func (s *secret) MarshalTo(w io.Writer) (int, error) {
+	return group.SecretMarshalTo(s, w)
+}
+
+func (s *secret) UnmarshalFrom(r io.Reader) (int, error) {
+	return group.SecretUnmarshalFrom(s, r)
 }
 

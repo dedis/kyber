@@ -39,6 +39,7 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"io"
 	"time"
 	"unsafe"
 	//"runtime"
@@ -47,6 +48,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/sha3"
@@ -202,15 +204,15 @@ func (p *point) Mul(ca abstract.Point, cs abstract.Secret) abstract.Point {
 	return p
 }
 
-func (p *point) Len() int { return 32 }
+func (p *point) MarshalSize() int { return 32 }
 
-func (p *point) Encode() []byte {
+func (p *point) MarshalBinary() ([]byte, error) {
 	buf := [32]byte{}
 	C.ge_p3_tobytes((*C.uchar)(unsafe.Pointer(&buf[0])), &p.p)
-	return buf[:]
+	return buf[:], nil
 }
 
-func (p *point) Decode(buf []byte) error {
+func (p *point) UnmarshalBinary(buf []byte) error {
 	if len(buf) != 32 {
 		return errors.New("curve25519 point wrong size")
 	}
@@ -219,6 +221,14 @@ func (p *point) Decode(buf []byte) error {
 		return errors.New("curve25519 point invalid")
 	}
 	return nil
+}
+
+func (p *point) MarshalTo(w io.Writer) (int, error) {
+	return group.PointMarshalTo(p, w)
+}
+
+func (p *Point) UnmarshalFrom(r io.Reader) (int, error) {
+	return group.PointUnmarshalFrom(p, r)
 }
 
 func (p *point) validate() {

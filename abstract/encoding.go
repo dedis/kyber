@@ -3,6 +3,7 @@ package abstract
 import (
 	"crypto/cipher"
 	"encoding/binary"
+	"encoding"
 	"fmt"
 	"io"
 	"reflect"
@@ -10,30 +11,26 @@ import (
 )
 
 /*
-Encoding is a basic interface representing fixed-length (or known-length)
+Marshaling is a basic interface representing fixed-length (or known-length)
 cryptographic objects or structures having a built-in binary encoding.
 */
-type Encoding interface {
+type Marshaling interface {
+	encoding.BinaryMarshaler
+	encoding.BinaryUnmarshaler
+
+	// XXX This may go away from the interface.
 	String() string
 
 	// Encoded length of this object in bytes.
-	Len() int
-
-	// Encode the content of this object into a slice,
-	// whose length must be exactly Len().
-	Encode() []byte
+	MarshalSize() int
 
 	// Encode the contents of this object and write it to an io.Writer.
-	EncodeTo(w io.Writer) (int, error)
-
-	// Decode the content of this object from a slice,
-	// whose length must be exactly Len().
-	Decode(buf []byte) error
+	MarshalTo(w io.Writer) (int, error)
 
 	// Decode the content of this object by reading from an io.Reader.
 	// If r is a Cipher, uses it to pick a valid object pseudo-randomly,
 	// which may entail reading more than Len bytes due to retries.
-	DecodeFrom(r io.Reader) (int, error)
+	UnmarshalFrom(r io.Reader) (int, error)
 }
 
 /*
@@ -133,8 +130,8 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 	}
 
 	// Does the object support our self-decoding interface?
-	if e, ok := obj.(Encoding); ok {
-		_, err := e.DecodeFrom(de.r)
+	if e, ok := obj.(Marshaling); ok {
+		_, err := e.UnmarshalFrom(de.r)
 		//prindent(depth, "decode: %s\n", e.String())
 		return err
 	}
@@ -206,9 +203,9 @@ func Write(w io.Writer, obj interface{}, g Group) error {
 func (en *encoder) value(obj interface{}, depth int) error {
 
 	// Does the object support our self-decoding interface?
-	if e, ok := obj.(Encoding); ok {
+	if e, ok := obj.(Marshaling); ok {
 		//prindent(depth, "encode: %s\n", e.String())
-		_, err := e.EncodeTo(en.w)
+		_, err := e.MarshalTo(en.w)
 		return err
 	}
 

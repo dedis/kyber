@@ -22,10 +22,10 @@ func NewGroupBench(g abstract.Group) *GroupBench {
 	gb.g = g
 	gb.x = g.Secret().Pick(random.Stream)
 	gb.y = g.Secret().Pick(random.Stream)
-	gb.xe = gb.x.Encode()
+	gb.xe, _ = gb.x.MarshalBinary()
 	gb.X,_ = g.Point().Pick(nil, random.Stream)
 	gb.Y,_ = g.Point().Pick(nil, random.Stream)
-	gb.Xe = gb.X.Encode()
+	gb.Xe, _ = gb.X.MarshalBinary()
 	return &gb
 }
 
@@ -74,13 +74,13 @@ func (gb GroupBench) SecretPick(iters int) {
 
 func (gb GroupBench) SecretEncode(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.x.Encode()
+		gb.x.MarshalBinary()
 	}
 }
 
 func (gb GroupBench) SecretDecode(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.x.Decode(gb.xe)
+		gb.x.UnmarshalBinary(gb.xe)
 	}
 }
 
@@ -123,13 +123,13 @@ func (gb GroupBench) PointPick(iters int) {
 
 func (gb GroupBench) PointEncode(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.X.Encode()
+		gb.X.MarshalBinary()
 	}
 }
 
 func (gb GroupBench) PointDecode(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.X.Decode(gb.Xe)
+		gb.X.UnmarshalBinary(gb.Xe)
 	}
 }
 

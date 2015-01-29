@@ -118,19 +118,19 @@ func (p *residuePoint) Mul(b abstract.Point, s abstract.Secret) abstract.Point {
 	return p
 }
 
-func (p *residuePoint) Len() int {
+func (p *residuePoint) MarshalSize() int {
 	return (p.g.P.BitLen() + 7) / 8
 }
 
-func (p *residuePoint) Encode() []byte {
+func (p *residuePoint) MarshalBinary() ([]byte, error) {
 	b := p.Int.Bytes() // may be shorter than len(buf)
-	if pre := p.Len() - len(b); pre != 0 {
-		return append(make([]byte, pre), b...)
+	if pre := p.MarshalSize() - len(b); pre != 0 {
+		return append(make([]byte, pre), b...), nil
 	}
-	return b
+	return b, nil
 }
 
-func (p *residuePoint) Decode(data []byte) error {
+func (p *residuePoint) UnmarshalBinary(data []byte) error {
 	p.Int.SetBytes(data)
 	if !p.Valid() {
 		return errors.New("invalid Residue group element")
@@ -138,12 +138,12 @@ func (p *residuePoint) Decode(data []byte) error {
 	return nil
 }
 
-func (p *residuePoint) EncodeTo(w io.Writer) (int, error) {
-	return group.PointEncodeTo(p, w)
+func (p *residuePoint) MarshalTo(w io.Writer) (int, error) {
+	return group.PointMarshalTo(p, w)
 }
 
-func (p *residuePoint) DecodeFrom(r io.Reader) (int, error) {
-	return group.PointDecodeFrom(p, r)
+func (p *residuePoint) UnmarshalFrom(r io.Reader) (int, error) {
+	return group.PointUnmarshalFrom(p, r)
 }
 
 /*

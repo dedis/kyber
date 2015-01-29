@@ -24,16 +24,19 @@ func signH1pre(suite abstract.Suite, linkScope []byte, linkTag abstract.Point,
 	H1pre := suite.Cipher(message) // m
 	if linkScope != nil {
 		H1pre.Write(linkScope)        // L
-		H1pre.Write(linkTag.Encode()) // ~y
+		tag, _ := linkTag.MarshalBinary()
+		H1pre.Write(tag) // ~y
 	}
 	return H1pre
 }
 
 func signH1(suite abstract.Suite, H1pre abstract.Cipher, PG, PH abstract.Point) abstract.Secret {
 	H1 := H1pre.Clone()
-	H1.Write(PG.Encode())
+	PGb, _ := PG.MarshalBinary()
+	H1.Write(PGb)
 	if PH != nil {
-		H1.Write(PH.Encode())
+		PHb, _ := PH.MarshalBinary()
+		H1.Write(PHb)
 	}
 	H1.Crypt(nil, nil) // finish message absorption
 	return suite.Secret().Pick(H1)
@@ -238,7 +241,8 @@ func Verify(suite abstract.Suite, message []byte, anonymitySet Set,
 
 	// Return the re-encoded linkage tag, for uniqueness checking
 	if linkScope != nil {
-		return linkTag.Encode(), nil
+		tag, _ := linkTag.MarshalBinary()
+		return tag, nil
 	} else {
 		return []byte{}, nil
 	}

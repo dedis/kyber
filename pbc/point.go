@@ -89,11 +89,11 @@ func (p *point) Mul(b abstract.Point, s abstract.Secret) abstract.Point {
 	return p
 }
 
-func (p *point) Len() int {
+func (p *point) MarshalSize() int {
 	return int(C.element_length_in_bytes_compressed(&p.e[0]))
 }
 
-func (p *point) Encode() []byte {
+func (p *point) MarshalBinary() ([]byte, error) {
 	l := p.Len()
 	b := make([]byte, l)
 	a := C.element_to_bytes_compressed((*C.uchar)(unsafe.Pointer(&b[0])),
@@ -101,10 +101,10 @@ func (p *point) Encode() []byte {
 	if int(a) != l {
 		panic("Element encoding yielded wrong length")
 	}
-	return b
+	return b, nil
 }
 
-func (p *point) Decode(buf []byte) error {
+func (p *point) UnmarshalBinary(buf []byte) error {
 	l := p.Len()
 	if len(buf) != l {
 		return errors.New("Encoded element wrong length")
@@ -117,3 +117,10 @@ func (p *point) Decode(buf []byte) error {
 	return nil
 }
 
+func (p *point) MarshalTo(w io.Writer) (int, error) {
+	return group.PointMarshalTo(p, w)
+}
+
+func (p *point) UnmarshalFrom(r io.Reader) (int, error) {
+	return group.PointUnmarshalFrom(p, r)
+}

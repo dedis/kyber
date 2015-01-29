@@ -180,7 +180,7 @@ func (c *curve) pointString(x,y *nist.Int) string {
 func (c *curve) encodePoint(x,y *nist.Int) []byte {
 
 	// Encode the y-coordinate
-	b := y.Encode()
+	b, _ := y.MarshalBinary()
 
 	// Encode the sign of the x-coordinate.
 	if y.M.BitLen() & 7 == 0 {

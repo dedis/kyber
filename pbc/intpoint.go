@@ -7,11 +7,13 @@ package pbc
 import "C"
 
 import (
+	"io"
 	"unsafe"
 	"errors"
 	"runtime"
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 )
 
 
@@ -100,21 +102,21 @@ func (p *intPoint) Pairing(p1,p2 abstract.Point) abstract.Point {
 	return p
 }
 
-func (p *intPoint) Len() int {
+func (p *intPoint) MarshalSize() int {
 	return int(C.element_length_in_bytes(&p.e[0]))
 }
 
-func (p *intPoint) Encode() []byte {
+func (p *intPoint) MarshalBinary() ([]byte, error) {
 	l := p.Len()
 	b := make([]byte, l)
 	a := C.element_to_bytes((*C.uchar)(unsafe.Pointer(&b[0])), &p.e[0])
 	if int(a) != l {
 		panic("Element encoding yielded wrong length")
 	}
-	return b
+	return b, nil
 }
 
-func (p *intPoint) Decode(buf []byte) error {
+func (p *intPoint) UnmarshalBinary(buf []byte) error {
 	l := p.Len()
 	if len(buf) != l {
 		return errors.New("Encoded element wrong length")
@@ -126,3 +128,10 @@ func (p *intPoint) Decode(buf []byte) error {
 	return nil
 }
 
+func (p *intPoint) MarshalTo(w io.Writer) (int, error) {
+	return group.PointMarshalTo(p, w)
+}
+
+func (p *intPoint) UnmarshalFrom(r io.Reader) (int, error) {
+	return group.PointUnmarshalFrom(p, r)
+}

@@ -174,7 +174,7 @@ func (el *el1param) HideEncode(P point, rand cipher.Stream) []byte {
 	// This assumes that the prime c.P is close enough to a power of 2
 	// that the adversary will never notice the "missing" values;
 	// this is true for the class of curves Elligator1 was designed for.
-	rep := t.Encode()
+	rep, _ := t.MarshalBinary()
 	padmask := el.padmask()
 	if padmask != 0 {
 		var pad [1]byte
