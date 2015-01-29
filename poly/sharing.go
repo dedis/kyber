@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
+	"io"
 )
 
 // Clique protocol outline:
@@ -271,6 +272,10 @@ func (pub *PubPoly) Encode() []byte {
 	return b
 }
 
+func (pub *PubPoly) EncodeTo(w io.Writer) (int, error) {
+	return w.Write(pub.Encode())
+}
+
 // Decode this polynomial from a slice exactly Len() bytes long.
 func (pub *PubPoly) Decode(b []byte) error {
 	k := len(pub.p)
@@ -285,6 +290,15 @@ func (pub *PubPoly) Decode(b []byte) error {
 		}
 	}
 	return nil
+}
+
+func (pub *PubPoly) DecodeFrom(r io.Reader) (int, error) {
+	buf := make([]byte, pub.Len())
+	n, err := io.ReadFull(r, buf)
+	if err != nil {
+		return n, err
+	}
+	return n, pub.Decode(buf)
 }
 
 // Test polynomial commitments for equality.
