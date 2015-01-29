@@ -2,9 +2,9 @@ package cipher
 
 import (
 	"crypto/cipher"
-	"crypto/subtle"
 	"errors"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/subtle"
 	"github.com/dedis/crypto/util"
 )
 
@@ -28,17 +28,17 @@ func (ca *cipherAEAD) Overhead() int {
 
 func (ca *cipherAEAD) Seal(dst, nonce, plaintext, data []byte) []byte {
 
-	// Fork off a temporary Cipher state indexed via the nonce
+	// Fork off a temporary Cipher state indexed by the nonce
 	ct := ca.Clone()
-	ct.Crypt(nil, nonce)
+	ct.Message(nil, nil, nonce)
 
 	// Encrypt the plaintext and update the temporary Cipher state
 	dst, ciphertext := util.Grow(dst, len(plaintext))
-	ct.Crypt(ciphertext, plaintext, abstract.Encrypt)
+	ct.Message(ciphertext, plaintext, ciphertext)
 
 	// Compute and append the authenticator based on post-encryption state
 	dst, auth := util.Grow(dst, ct.KeySize())
-	ct.Crypt(auth, nil, abstract.Encrypt)
+	ct.Message(auth, nil, nil)
 
 	return dst
 }
@@ -47,7 +47,7 @@ func (ca *cipherAEAD) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) 
 
 	// Fork off a temporary Cipher state indexed via the nonce
 	ct := ca.Clone()
-	ct.Crypt(nil, nonce)
+	ct.Message(nil, nil, nonce)
 
 	// Compute the plaintext's length
 	authl := ct.KeySize()
@@ -55,15 +55,16 @@ func (ca *cipherAEAD) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) 
 	if plainl < 0 {
 		return nil, errors.New("AEAD ciphertext too short")
 	}
+	auth := ciphertext[plainl:]
+	ciphertext = ciphertext[:plainl]
 
 	// Decrypt the plaintext and update the temporary Cipher state
 	dst, plaintext := util.Grow(dst, plainl)
-	ct.Crypt(plaintext, ciphertext[:plainl], abstract.Decrypt)
+	ct.Message(plaintext, ciphertext, ciphertext)
 
 	// Compute and check the authenticator based on post-encryption state
-	auth := make([]byte, authl)
-	ct.Crypt(auth, nil, abstract.Decrypt)
-	if subtle.ConstantTimeCompare(auth, ciphertext[plainl:]) == 0 {
+	ct.Message(auth, auth, nil)
+	if subtle.ConstantTimeAllEq(auth, 0) == 0 {
 		return nil, errors.New("AEAD authenticator check failed")
 	}
 

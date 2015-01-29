@@ -51,10 +51,9 @@ type spongeCipher struct {
 
 	// Configuration state
 	sponge Sponge
-	rate   int                // Bytes absorbed and squeezed per block
-	cap    int                // Bytes of secret internal state
-	dir    abstract.Direction // encrypt or decrypt
-	pad    byte               // padding byte to append to last block in message
+	rate   int  // Bytes absorbed and squeezed per block
+	cap    int  // Bytes of secret internal state
+	pad    byte // padding byte to append to last block in message
 
 	// Combined input/output buffer:
 	// buf[:pos] contains data bytes to be absorbed;
@@ -65,7 +64,7 @@ type spongeCipher struct {
 }
 
 // SpongeCipher builds a general message Cipher from a Sponge function.
-func NewSpongeCipher(sponge Sponge, key []byte, options ...interface{}) abstract.Cipher {
+func FromSponge(sponge Sponge, key []byte, options ...interface{}) abstract.Cipher {
 	sc := spongeCipher{}
 	sc.sponge = sponge
 	sc.rate = sponge.Rate()
@@ -80,7 +79,7 @@ func NewSpongeCipher(sponge Sponge, key []byte, options ...interface{}) abstract
 		key = random.Bytes(sponge.Capacity(), random.Stream)
 	}
 	if len(key) > 0 {
-		sc.Crypt(nil, key)
+		sc.Message(nil, nil, key)
 	}
 
 	// Setup normal-case domain-separation byte used for message payloads
@@ -93,10 +92,6 @@ func (sc *spongeCipher) parseOptions(options []interface{}) bool {
 	more := false
 	for _, opt := range options {
 		switch v := opt.(type) {
-		case abstract.More:
-			more = true
-		case abstract.Direction:
-			sc.dir = v
 		case Padding:
 			sc.pad = byte(v)
 		default:
@@ -138,178 +133,64 @@ func (sc *spongeCipher) padMessage() {
 	sc.pos = 0
 }
 
-func (sc *spongeCipher) encrypt(dst, src []byte) {
+func (sc *spongeCipher) Partial(dst, src, key []byte) abstract.Cipher {
 	sp := sc.sponge
 	rate := sc.rate
 	buf := sc.buf
 	pos := sc.pos
-	for {
-		if pos == rate {
-			// process next block
+	rem := ints.Max(len(dst), len(src), len(key)) // bytes to process
+	for rem > 0 {
+		if pos == rate { // process next block if needed
 			sp.Transform(buf, buf[:rate])
 			pos = 0
 		}
+		n := ints.Min(rem, rate-pos) // bytes to process in this block
 
-		n := rate - pos // remaining bytes in this block
-		if len(src) == 0 {
-			if len(dst) == 0 {
-				break // done
-			}
-
-			// squeeze output only
-			n = ints.Min(n, len(dst))
-			for i := 0; i < n; i++ {
-				dst[i] = buf[pos+i]
-				buf[pos+i] = 0
-			}
-			dst = dst[n:]
-
-		} else if len(dst) == 0 {
-
-			// absorb input only
-			n = ints.Min(n, len(src))
-			for i := 0; i < n; i++ {
-				buf[pos+i] = src[i]
-			}
-			src = src[n:]
-
-		} else {
-
-			// squeeze output while absorbing input
-			n = ints.Min(n, ints.Min(len(src), len(dst)))
-			for i := 0; i < n; i++ {
-				b := buf[pos+i]     // encryption stream
-				buf[pos+i] = src[i] // absorb ciphertext
-				dst[i] = src[i] ^ b // decrypt
-			}
-			src = src[n:]
-			dst = dst[n:]
+		// squeeze cryptographic output
+		ndst := ints.Min(n, len(dst))    // # bytes to write to dst
+		nsrc := ints.Min(ndst, len(src)) // # src bytes available
+		for i := 0; i < nsrc; i++ {      // XOR-encrypt from src to dst
+			dst[i] = src[i] ^ buf[pos+i]
 		}
+		copy(dst[nsrc:ndst], buf[pos+nsrc:]) // "XOR" with 0 bytes
+		dst = dst[ndst:]
+		src = src[nsrc:]
+
+		// absorb cryptographic input (which may overlap with dst)
+		nkey := ints.Min(n, len(key)) // # key bytes available
+		copy(buf[pos:], key[:nkey])
+		for i := nkey; i < n; i++ { // missing key bytes implicitly 0
+			buf[pos+i] = 0
+		}
+		key = key[nkey:]
+
 		pos += n
+		rem -= n
 	}
+
 	sc.pos = pos
 	//println("Decrypted",more,"\n" + hex.Dump(osrc) + "->\n" + hex.Dump(odst))
+	return sc
 }
 
-func (sc *spongeCipher) decrypt(dst, src []byte) {
-	sp := sc.sponge
-	rate := sc.rate
-	buf := sc.buf
-	pos := sc.pos
-	for {
-		if pos == rate {
-			// process next block
-			sp.Transform(buf, buf[:rate])
-			pos = 0
-		}
-
-		n := rate - pos // remaining bytes in this block
-		if len(src) == 0 {
-			if len(dst) == 0 {
-				break // done
-			}
-
-			// squeeze output only, src is zero bytes
-			n = ints.Min(n, len(dst))
-			copy(dst[:n], buf[pos:])
-			dst = dst[n:]
-
-		} else if len(dst) == 0 {
-
-			// absorb input only
-			n = ints.Min(n, len(src))
-			for i := 0; i < n; i++ {
-				buf[pos+i] ^= src[i]
-			}
-			src = src[n:]
-
-		} else {
-
-			// squeeze output while absorbing input
-			n = ints.Min(n, ints.Min(len(src), len(dst)))
-			for i := 0; i < n; i++ {
-				buf[pos+i] ^= src[i] // absorb ciphertext
-				dst[i] = buf[pos+i]  // and output
-			}
-			src = src[n:]
-			dst = dst[n:]
-		}
-		pos += n
-	}
-	sc.pos = pos
-}
-
-func (sc *spongeCipher) stream(dst, src []byte) {
-	sp := sc.sponge
-	rate := sc.rate
-	buf := sc.buf
-	pos := sc.pos
-	for {
-		if pos == rate {
-			// process next block
-			sp.Transform(buf, buf[:rate])
-			pos = 0
-		}
-
-		n := rate - pos // remaining bytes in this block
-		if len(src) == 0 {
-			if len(dst) == 0 {
-				break // done
-			}
-
-			// squeeze output only, src is zero bytes
-			n = ints.Min(n, len(dst))
-			copy(dst[:n], buf[pos:])
-			dst = dst[n:]
-
-		} else if len(dst) == 0 {
-
-			// absorb zeros only: i.e., simply skip stream bytes
-			n = ints.Min(n, len(src))
-			src = src[n:]
-
-		} else {
-
-			// squeeze output via XOR while absorbing zeros
-			n = ints.Min(n, ints.Min(len(src), len(dst)))
-			for i := 0; i < n; i++ {
-				dst[i] = src[i] ^ buf[pos+i]
-			}
-			src = src[n:]
-			dst = dst[n:]
-		}
-		pos += n
-	}
-	sc.pos = pos
-}
-
-func (sc *spongeCipher) Crypt(dst, src []byte,
-	options ...interface{}) abstract.Cipher {
-	more := sc.parseOptions(options)
-
-	if sc.dir >= 0 {
-		sc.encrypt(dst, src)
-	} else {
-		sc.decrypt(dst, src)
-	} // XXX allow new-API access to sc.stream
-
-	if !more {
-		sc.padMessage()
-	}
-
+func (sc *spongeCipher) Message(dst, src, key []byte) abstract.Cipher {
+	sc.Partial(dst, src, key)
+	sc.padMessage()
 	return sc
 }
 
 func (sc *spongeCipher) Read(dst []byte) (n int, err error) {
-	return CipherRead(sc, dst)
+	sc.Partial(dst, nil, nil)
+	return len(dst), nil
 }
 
-func (sc *spongeCipher) Write(src []byte) (n int, err error) {
-	return CipherWrite(sc, src)
+func (sc *spongeCipher) Write(key []byte) (n int, err error) {
+	sc.Partial(nil, nil, key)
+	return len(key), nil
 }
 
 func (sc *spongeCipher) XORKeyStream(dst, src []byte) {
-	sc.stream(dst[:len(src)], src)
+	sc.Partial(dst[:len(src)], src, nil)
 }
 
 func (sc *spongeCipher) special(domain byte, index int) {

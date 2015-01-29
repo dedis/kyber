@@ -35,7 +35,7 @@ func signH1(suite abstract.Suite, H1pre abstract.Cipher, PG, PH abstract.Point) 
 	if PH != nil {
 		H1.Write(PH.Encode())
 	}
-	H1.Crypt(nil, nil) // finish message absorption
+	H1.Message(nil, nil, nil) // finish message absorption
 	return suite.Secret().Pick(H1)
 }
 

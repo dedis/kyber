@@ -8,58 +8,160 @@ import (
 // Cipher defines an interface to an abstract symmetric message cipher.
 // The cipher embodies a secret that may be used to encrypt/decrypt data
 // as well as to generate cryptographically random bits.
-// The Cipher's state cryptographically absorbs all data that it processes,
-// producing updated state usable to generate hashes and authenticators.
+// The Cipher can also cryptographically absorb data or key material,
+// updating its state to produce cryptographic hashes and authenticators.
 //
-// The Crypt method encrypts or decrypts bytes through the Cipher,
-// from a src byte-slice to a dst byte-slice.
-// A call to Crypt always processes exactly max(len(src),len(dst) bytes.
-// If src is shorter than dst, the missing src bytes are assumed to be zero.
-// If dst is shorter than src, the extra output bytes are discarded.
-// This means that Crypt(dst, nil) may be used to produce pseudorandom bytes,
-// and Crypt(nil, src) may be used to absorb input without producing output.
-// The cipher cryptographically pads or demarks calls in a cipher-specific way,
-// so that a single call to Crypt(dst, src) yields a different result
-// from Crypt(dst[:x], src[:x]) followed by Crypt(dst[x:], src[x:])
+// Creating Keyed and Unkeyed Ciphers
 //
-// Any Cipher has a configurable Direction, which may be
-// OneWay, Encrypt, or Decrypt.
-// OneWay is the default, suitable for hashing or generating random bytes.
-// Encrypt and Decrypt provide a reversible transformation when needed.
-// OneWay may be behaviorally equivalent to either Encrypt or Decrypt,
-// depending on the specific Cipher.
+// The standard function signature for Cipher constructors is:
 //
-// To form a keyed Cipher from a generic unkeyed Cipher,
-// simply absorb the secret key via Crypt(nil, key).
-// The key may be any length, but the KeySize method returns the optimal
-// length for secret keys to achieve maximum security with this cipher.
+//	NewCipher(key []byte, options ...interface{})
 //
-// To compute a cryptographic hash, create an unkeyed Cipher,
-// then absorb the message via Crypt(nil, message),
-// and finally produce the digest via Crypt(digest, nil).
-// The digest may be any length, but the HashSize method returns the optimal
-// length for hashes to achieve maximum security with this cipher.
-// To compute a keyed cryptographic hash or message-authenticator,
-// follow the same procedure but using a keyed Cipher.
+// If key is nil, the Cipher constructor picks a fresh, random key.
+// The key may be an empty but non-nil slice to create an unkeyed cipher.
+// Key material may be of any length, but to ensure full security,
+// secret keys should be at least the size returned by the KeySize method.
+// The variable-length options argument may contain options
+// whose interpretation is specific to the particular cipher.
 //
-// For authenticated encryption, use Crypt(ciphertext, plaintext, Encrypt)
-// to encrypt the message while absorbing its content into the Cipher,
-// then use Crypt(digest, nil, Encrypt) to produce the message authenticator.
-// To decrypt and authenticate, call Crypt(plaintext, ciphertext, Decrypt)
-// then Crypt(digest, nil, Decrypt) and check the resulting authenticator.
-// The plaintext byte-slice may be shorter than the ciphertext slice,
-// in which case the plaintext is securely padded with zeros on encryption
-// and the ciphertext padding bytes are dropped on decryption;
-// these padding bytes are still absorbed into the cipher state for security.
+// Message Processing
+//
+// The main Message method processes a complete message through the Cipher,
+// XORing a src byte-slice with cryptographic random bits to yield dst bytes,
+// and concurrently absorbing bytes from a key byte-slice into its state:
+//
+//	cipher.Message(dst, src, key) Cipher
+//
+// A call always processes exactly max(len(dst),len(dst),len(key)) bytes.
+// All slice arguments may be nil or of varying lengths.
+// If the src or key slices are short, the missing bytes are taken to be zero.
+// If the dst slice is short, the extra output bytes are discarded.
+// The src and/or key slices may overlap with dst exactly or not at all.
+//
+// The Cipher preserves and cryptographically accounts for message boundaries,
+// so that the following sequence of two calls yields a result
+// that is always cryptographically distinct from the above single call.
+//
+//	cipher.Message(dst[:div], src[:div], key[:div])
+//	cipher.Message(dst[div:], src[div:], key[div:])
+//
+// The Cipher guarantees that any key material absorbed during a given call
+// will cryptographically affect every bit of all future messages processed,
+// but makes no guarantees about whether key material absorbed in this call
+// will affect some, all, or none of the cryptographic pseudorandom bits
+// produced concurrently in the same call.
+//
+// Authenticated Encryption and Decryption
+//
+// To encrypt a plaintext msg to produce a ciphertext ctx of the same length,
+// and an associated message-authenticator mac, use this sequence of calls:
+//
+//	cipher.Message(ctx, msg, ctx)	// Encrypt and absorb ciphertext
+//	cipher.Message(mac, nil, nil)	// Produce MAC
+//
+// This encrypts msg into ctx by XORing it with bits generated by the cipher,
+// while absorbing the output ciphertext into the cipher's state.
+// The second Message call then uses the resulting state to produce a MAC.
+//
+// This sequence decrypts and verifies a received ciphertext and MAC
+// encrypted in the above fashion:
+//
+//	cipher.Message(msg, ctx, ctx)	// Decrypt and absorb ciphertext
+//	cipher.Message(mac, mac, nil)	// Compute MAC and XOR with received
+//	valid := subtle.ConstantTimeAllEq(mac, 0)
+//
+// This decrypts ctx into msg by XORing the same bits used during encryption,
+// while similarly absorbing the ciphertext (which is the input this time).
+// The second Message call recomputes the MAC based on the absorbed ciphertext,
+// XORs the recomputed MAC onto the received MAC in-place,
+// and verifies in constant time that the result is zero
+// (i.e., that the received and recomputed MACs are equal).
+//
+// Cryptographic Hashing
+//
+// This sequence uses a Cipher as a cryptographic hash function taking
+// messsage msg and producing cryptographic checksum in slice sum:
+//
+//	cipher.Message(nil, nil, msg)	// Absorb msg into Cipher state
+//	cipher.Message(sum, nil, nil)	// Produce cryptographic hash in sum
+//
+// Both the input msg and output sum may be of any length,
+// and the Cipher guarantees that every bit of the output sum has a
+// strong cryptographic dependency on every bit of the input msg.
+// However, to achieve full security, the caller should ensure that
+// the output sum is at least cipher.HashSize() bytes long.
+//
+// Streaming Operation
+//
+// The Partial method processes a partial (initial or continuing) portion
+// of a message, allowing the Cipher to be used for byte-granularity streaming:
+//
+//	cipher.Partial(dst, src, key)
+//
+// The above single call is thus equivalent to the following pair of calls:
+//
+//	cipher.Partial(dst[:div], src[:div], key[:div])
+//	cipher.Partial(dst[div:], src[div:], key[div:])
+//
+// One or more calls to Partial must be terminated with a call to Message,
+// to complete the message and ensure that key-material bytes absorbed
+// in the current message affect the pseudorandom bits the Cipher produces
+// in the context of the next message.
+// Key material absorbed in a given Partial call may, or may not,
+// affect the pseudorandom bits generated in subsequent Partial calls
+// if there are no intervening calls to Message.
+//
+// Stream Cipher or Pseudorandom Bit Generator Operation
+//
+// A Cipher may be used to generate pseudorandom bits that depend
+// only on the Cipher's initial state in the following fashion:
+//
+//	cipher.Partial(dst, nil, nil)
+//
+// The standard io.Reader interface may also be used to read pseudorandom bits,
+// making the following call equivalent to the one above:
+//
+//	cipher.Read(dst)
+//
+// An XOR-based stream cipher equivalent to Go's cipher.Stream interface,
+// which XORs pseudorandom bits with src and writes the result into dst,
+// may similarly be obtained as follows:
+//
+//	cipher.Partial(dst, src, nil)
+//
+// Stream-Oriented Hashing
+//
+// A Cipher may be used in stream-oriented mode to hash large messages:
+//
+//	cipher.Partial(nil, nil, buf1)		// absorb message incrementally
+//	cipher.Partial(nil, nil, buf2)
+//	...
+//	cipher.Message(nil, nil, lastBuf)	// finish absorbing message
+//	cipher.Partial(sum, nil, nil)		// compute cryptographic sum
+//
+// The standard io.Writer interface may also be used to absorb input,
+// making the following sequence equivalent to the one above:
+//
+//	cipher.Write(buf1)		// absorb message incrementally
+//	cipher.Write(buf2)
+//	...
+//	cipher.Write(lastBuf)		// absorb last message buffer
+//	cipher.Message(nil, nil, nil)	// finish absorbing message
+//	cipher.Partial(sum, nil, nil)	// compute cryptographic sum
+//
 //
 type Cipher interface {
 
-	// Transform bytes from src to dst,
-	// absorbing processed data into the cipher state,
-	// and return the Cipher.
-	Crypt(dst, src []byte, options ...interface{}) Cipher
+	// Transform a message (or the final portion of one) from src to dst,
+	// absorb key into the cipher state, and return the Cipher.
+	Message(dst, src, key []byte) Cipher
 
-	// Return recommended size in bytes of secret keys for full security.
+	// Transform a partial, incomplete message from src to dst,
+	// absorb key into the cipher state, and return the Cipher.
+	Partial(dst, src, key []byte) Cipher
+
+	// Return the minimum size in bytes of secret keys for full security
+	// (although key material may be of any size).
 	KeySize() int
 
 	// Return recommended size in bytes of hashes for full security.
@@ -71,8 +173,8 @@ type Cipher interface {
 	BlockSize() int
 
 	// A Cipher also implements the standard Read and Write I/O methods.
-	// Read(dst) is equivalent to Crypt(dst, nil, More{}).
-	// Write(src) is equivalent to Crypt(nil, src, More{}).
+	// Read(dst) is equivalent to Partial(dst, nil).
+	// Write(src) is equivalent to Partial(nil, src).
 	io.ReadWriter
 
 	// Backwards-compatibility with the Stream cipher interface.
@@ -91,22 +193,14 @@ type Cipher interface {
 	Clone() Cipher
 }
 
-// Direction selects between the Encrypt and Decrypt modes of a Cipher.
-// When no Direction is specified to a Cipher, the default is OneWay,
-// which produces cryptographic randomness that need not be reversible.
-type Direction int
-
-const (
-	OneWay  Direction = 0  // one-way, no reversibility needed
-	Encrypt Direction = 1  // encryption direction
-	Decrypt Direction = -1 // decryption direction
-)
-
-// More is an option that may be provided to Cipher.Crypt
-// to process a message incrementally.  With this option,
-// the cipher does *not* pad or demark the end of the current message.
-//
-type More struct{}
+// CipherMode selects the mode in which a Cipher operates:
+// to Encrypt, to Decrypt, or produce a cryptographic random Stream.
+//type CipherMode int
+//const (
+//	Stream  CipherMode = 0  // produce bits without absorbing anything
+//	Encrypt CipherMode = 1  // encrypt and absorb output ciphertext
+//	Decrypt CipherMode = -1 // decrypt and absorb input ciphertext
+//)
 
 // internal type for the simple options above
 type option struct{ name string }

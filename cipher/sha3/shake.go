@@ -58,7 +58,7 @@ func (s *shake) Read(dst []byte) (int, error) {
 
 	// If we're still absorbing, complete the absorbed message
 	if !s.squeezing {
-		s.cipher.Crypt(nil, nil)
+		s.cipher.Message(nil, nil, nil)
 		s.squeezing = true
 	}
 
@@ -73,24 +73,24 @@ func (s *shake) Clone() ShakeHash {
 }
 
 func (s *shake) Reset() {
-	s.cipher = cipher.NewSpongeCipher(s.sponge(), abstract.NoKey,
-		abstract.Encrypt, cipher.Padding(0x1f))
+	s.cipher = cipher.FromSponge(s.sponge(), abstract.NoKey,
+		cipher.Padding(0x1f))
 	s.squeezing = false
 }
 
-var shakeOpts = []interface{}{abstract.Encrypt, cipher.Padding(0x1f)}
+var shakeOpts = []interface{}{cipher.Padding(0x1f)}
 
 // NewShakeCipher128 creates a Cipher implementing the SHAKE128 algorithm,
 // which provides 128-bit security against all known attacks.
 func NewShakeCipher128(key []byte, options ...interface{}) abstract.Cipher {
-	return cipher.NewSpongeCipher(newKeccak256(), key,
+	return cipher.FromSponge(newKeccak256(), key,
 		append(shakeOpts, options...)...)
 }
 
 // NewShakeCipher256 creates a Cipher implementing the SHAKE256 algorithm,
 // which provides 256-bit security against all known attacks.
 func NewShakeCipher256(key []byte, options ...interface{}) abstract.Cipher {
-	return cipher.NewSpongeCipher(newKeccak512(), key,
+	return cipher.FromSponge(newKeccak512(), key,
 		append(shakeOpts, options...)...)
 }
 
