@@ -48,17 +48,6 @@ func producePriPoly(g abstract.Group, k int, s abstract.Secret) *PriPoly {
 	return new(PriPoly).Pick(g, k, s, random.Stream)
 }
 
-func produceTwoPriPoly(g abstract.Group, k int, s abstract.Secret) (*PriPoly,
-	*PriPoly) {
-	return producePriPoly(g, k, s), producePriPoly(g, k, s)
-}
-
-func produceThreePriPoly(g abstract.Group, k int, s abstract.Secret) (*PriPoly,
-	*PriPoly, *PriPoly) {
-	return producePriPoly(g, k, s), producePriPoly(g, k, s),
-		producePriPoly(g, k, s)
-}
-
 func producePriShares(g abstract.Group, k, n int, s abstract.Secret) *PriShares {
 
 	testPoly := producePriPoly(g, k, s)
@@ -83,9 +72,12 @@ func producePubShares(g abstract.Group, k, n, t int, s abstract.Secret,
 
 /* Test Functions */
 
-// Test that the Pick function creates unique polynomials and unique secrets.
-func TestPriPolyPick_UniqueShares(t *testing.T) {
-	testPoly1, testPoly2, testPoly3 := produceThreePriPoly(group, k, nil)
+func TestPriPolyPick(t *testing.T) {
+	// Test that the Pick function creates unique polynomials and
+	// unique secrets.
+	testPoly1 := producePriPoly(group, k, nil)
+	testPoly2 := producePriPoly(group, k, nil)
+	testPoly3 := producePriPoly(group, k, nil)
 	if testPoly1.Equal(testPoly2) || testPoly1.Equal(testPoly3) ||
 		testPoly2.Equal(testPoly3) {
 		t.Error("Failed to create unique polynomials.")
@@ -95,12 +87,12 @@ func TestPriPolyPick_UniqueShares(t *testing.T) {
 		testPoly2.Secret().Equal(testPoly3.Secret()) {
 		t.Error("Failed to create unique secrets.")
 	}
-}
 
-// Test polynomials that are based on common secrets. Verify that
-// unique polynomials are created but that the base secrets are all the same.
-func TestPriPolyPick_CommonShares(t *testing.T) {
-	testPoly1, testPoly2, testPoly3 := produceThreePriPoly(group, k, secret)
+	// Test polynomials that are based on common secrets. Verify that
+	// unique polynomials are created but that the base secrets are the same.
+	testPoly1 = producePriPoly(group, k, secret)
+	testPoly2 = producePriPoly(group, k, secret)
+	testPoly3 = producePriPoly(group, k, secret)
 	if testPoly1.Equal(testPoly2) || testPoly1.Equal(testPoly3) ||
 		testPoly2.Equal(testPoly3) {
 		t.Error("Failed to create unique polynomials.")
@@ -121,42 +113,42 @@ func TestPriPolySecret(t *testing.T) {
 	}
 }
 
-// Verify that Equal returns true for two polynomials that are the same
-func TestPriPolyEqual_Same(t *testing.T) {
+func TestPriPolyEqual(t *testing.T) {
+	// Verify that Equal returns true for two polynomials that are the same
 	testPoly := producePriPoly(group, k, secret)
-	testPolyCopy := testPoly
-	if !testPoly.Equal(testPolyCopy) {
+	if !testPoly.Equal(testPoly) {
 		t.Error("Polynomials are expected to be equal.")
 	}
-}
 
-// Verify that Equal returns false for two polynomials that are diffferent
-func TestPriPolyEqual_Different(t *testing.T) {
-	testPoly1, testPoly2 := produceTwoPriPoly(group, k, secret)
+	// Verify that Equal returns false for two polynomials that are diffferent
+	testPoly1 := producePriPoly(group, k, secret)
+	testPoly2 := producePriPoly(group, k, secret)
 	if testPoly1.Equal(testPoly2) {
 		t.Error("Polynomials are expected to be different.")
 	}
 }
 
-// Verify that Equal panics if the polynomials are of different degrees.
-func TestPriPolyEqual_Error1(t *testing.T) {
-	defer deferTest(t, "The Equal method should have panicked.")
+func TestPriPolyEqual_Error(t *testing.T) {
+	test := func(p1, p2 *PriPoly) {
+		defer deferTest(t, "The Equal method should have panicked.")
+		p1.Equal(p2)
+	}
+
+	// Verify that Equal panics if the polynomials are of different degrees.
 	testPoly1 := producePriPoly(group, k, secret)
 	testPoly2 := producePriPoly(group, k+10, secret)
-	testPoly1.Equal(testPoly2)
-}
+	test(testPoly1, testPoly2)
 
-// Verify that Equal panics if the polynomials are of different groups.
-func TestPriPolyEqual_Error2(t *testing.T) {
-	defer deferTest(t, "The Equal method should have panicked.")
-	testPoly1 := producePriPoly(group, k, secret)
-	testPoly2 := producePriPoly(altGroup, k, altSecret)
-	testPoly1.Equal(testPoly2)
+	// Verify that Equal panics if the polynomials are of different groups.
+	testPoly1 = producePriPoly(group, k, secret)
+	testPoly2 = producePriPoly(altGroup, k, altSecret)
+	test(testPoly1, testPoly2)
 }
 
 // Verify that the add function properly adds two polynomials together.
-func TestPriPolyAdd_Success(t *testing.T) {
-	testPoly1, testPoly2 := produceTwoPriPoly(group, k, secret)
+func TestPriPolyAdd(t *testing.T) {
+	testPoly1 := producePriPoly(group, k, secret)
+	testPoly2 := producePriPoly(group, k, secret)
 	testAddedPoly := new(PriPoly).Add(testPoly1, testPoly2)
 	for i := 0; i < k; i++ {
 		addedResult := testAddedPoly.g.Secret().Add(testPoly1.s[i],
@@ -167,20 +159,21 @@ func TestPriPolyAdd_Success(t *testing.T) {
 	}
 }
 
-// Verify that the add function panics if the polynomials are different degrees.
-func TestPriPolyAdd_Error1(t *testing.T) {
-	defer deferTest(t, "The Add method should have panicked.")
+func TestPriPolyAdd_Error(t *testing.T) {
+	test := func(p1, p2 *PriPoly) {
+		defer deferTest(t, "The Add method should have panicked.")
+		new(PriPoly).Add(p1, p2)
+	}
+
+	// Verify that the add function panics if the polynomials are different degrees.
 	testPoly1 := producePriPoly(group, k, secret)
 	testPoly2 := producePriPoly(group, k+10, secret)
-	new(PriPoly).Add(testPoly1, testPoly2)
-}
+	test(testPoly1, testPoly2)
 
-// Verify the add function panics if the polynomials are of different groups.
-func TestPriPolyAdd_Error2(t *testing.T) {
-	defer deferTest(t, "The Add method should have panicked.")
-	testPoly1 := producePriPoly(group, k, secret)
-	testPoly2 := producePriPoly(altGroup, k, altSecret)
-	new(PriPoly).Add(testPoly1, testPoly2)
+	// Verify the add function panics if the polynomials are of different groups.
+	testPoly1 = producePriPoly(group, k, secret)
+	testPoly2 = producePriPoly(altGroup, k, altSecret)
+	test(testPoly1, testPoly2)
 }
 
 // Verify that the string function returns a string representation of the
@@ -232,7 +225,7 @@ func TestPriSharesSetShare(t *testing.T) {
 
 // This verifies that the xCoord function can successfully create an array with
 // k secrets from a PriShare with sufficient secrets.
-func TestPriSharesxCoord_Success(t *testing.T) {
+func TestPriSharesxCoord(t *testing.T) {
 	testShares := producePriShares(group, k, k, secret)
 	x := testShares.xCoords()
 	c := 0
@@ -247,7 +240,7 @@ func TestPriSharesxCoord_Success(t *testing.T) {
 }
 
 // Ensures that if we have k-1 shares, xCoord panics.
-func TestPriSharesxCoord_Failure(t *testing.T) {
+func TestPriSharesxCoord_Error(t *testing.T) {
 	defer deferTest(t, "The XCoord method should have panicked.")
 	testShares := producePriShares(group, k, k, secret)
 	testShares.s[0] = nil
@@ -255,7 +248,7 @@ func TestPriSharesxCoord_Failure(t *testing.T) {
 }
 
 // Ensures that we can successfully reconstruct the secret if given k shares.
-func TestPriSharesSecret_Success(t *testing.T) {
+func TestPriSharesSecret(t *testing.T) {
 	testShares := producePriShares(group, k, k, secret)
 	result := testShares.Secret()
 	if !secret.Equal(result) {
@@ -264,7 +257,7 @@ func TestPriSharesSecret_Success(t *testing.T) {
 }
 
 // Ensures that we fail to reconstruct the secret with too little shares.
-func TestPriSharesSecret_Failure(t *testing.T) {
+func TestPriSharesSecret_Error(t *testing.T) {
 	defer deferTest(t, "The Secret method should have panicked.")
 	testShares := producePriShares(group, k, k, secret)
 	testShares.s[0] = nil
@@ -288,8 +281,8 @@ func TestPubPolyInit(t *testing.T) {
 	}
 }
 
-// Tests the commit function to ensure it properly commits a private polynomial.
 func TestPubPolyCommit(t *testing.T) {
+	// Tests Commit to ensure it properly commits a privatepolynomial.
 	testPriPoly := new(PriPoly).Pick(group, k, secret, random.Stream)
 	testPubPoly := new(PubPoly)
 	testPubPoly.Init(group, k, point)
@@ -299,12 +292,10 @@ func TestPubPolyCommit(t *testing.T) {
 			t.Error("PriPoly should be multiplied by the point")
 		}
 	}
-}
 
-// Tests commit to ensure it works with the standard base.
-func TestPubPolyCommit_Nil(t *testing.T) {
-	testPriPoly := producePriPoly(group, k, secret)
-	testPubPoly := new(PubPoly)
+	// Tests commit to ensure it works with the standard base.
+	testPriPoly = producePriPoly(group, k, secret)
+	testPubPoly = new(PubPoly)
 	testPubPoly.Init(group, k, nil)
 	testPubPoly = testPubPoly.Commit(testPriPoly, nil)
 	for i := 0; i < len(testPubPoly.p); i++ {
@@ -345,17 +336,20 @@ func TestPubPolyEncodeDecode(t *testing.T) {
 	}
 }
 
-// Verify that encode fails if the group and point are not the same length
-// (aka not from the same group in this case).
-func TestPubPolyEncodeDecode_Failure1(t *testing.T) {
-	defer deferTest(t, "The Encode method should have panicked.")
-	testPubPoly := producePubPoly(group, k, k, secret, altPoint)
-	testPubPoly.Encode()
-}
-
-// Verify decoding/ encoding fails if the new polynomial is the wrong length.
-func TestPubPolyEncodeDecode_Failure2(t *testing.T) {
+func TestPubPolyEncodeDecode_Error(t *testing.T) {
+	test := func(p1 *PubPoly) {
+		defer deferTest(t, "The Encode method should have panicked.")
+		p1.Encode()
+	}
+	
+	// Verify that encode fails if the group and point are not the same length
+	// (aka not from the same group in this case).
 	testPubPoly := producePubPoly(group, k, k, secret, point)
+	testPubPoly.p[0] = altPoint
+	test(testPubPoly)
+
+	// Verify decoding/ encoding fails if the new polynomial is the wrong length.
+	testPubPoly    = producePubPoly(group, k, k, secret, point)
 	decodePubPoly := new(PubPoly)
 	decodePubPoly.Init(group, k+20, point)
 	if err := decodePubPoly.Decode(testPubPoly.Encode()); err == nil {
@@ -363,17 +357,14 @@ func TestPubPolyEncodeDecode_Failure2(t *testing.T) {
 	}
 }
 
-// Verify that Equal returns true for two polynomials that are the same
-func TestPubPolyEqual_Same(t *testing.T) {
+func TestPubPolyEqual(t *testing.T) {
+	// Verify that Equal returns true for two polynomials that are the same
 	testPubPoly := producePubPoly(group, k, k, secret, point)
-	testPubPolyCopy := testPubPoly
-	if !testPubPoly.Equal(testPubPolyCopy) {
+	if !testPubPoly.Equal(testPubPoly) {
 		t.Error("Polynomials are expected to be equal.")
 	}
-}
 
-// Verify that Equal returns false for two polynomials that are diffferent
-func TestPubPolyEqual_Different(t *testing.T) {
+	// Verify that Equal returns false for two polynomials that are diffferent
 	testPubPoly1 := producePubPoly(group, k, k, secret, point)
 	testPubPoly2 := producePubPoly(group, k, k, secret, nil)
 	if testPubPoly1.Equal(testPubPoly2) {
@@ -381,24 +372,25 @@ func TestPubPolyEqual_Different(t *testing.T) {
 	}
 }
 
-// Verify that Equal panics if the polynomials are different degrees.
-func TestPubPolyEqual_Error1(t *testing.T) {
-	defer deferTest(t, "The Equal method should have panicked.")
+func TestPubPolyEqual_Error(t *testing.T) {
+	test := func(p1, p2 *PubPoly) {
+		defer deferTest(t, "The Equal method should have panicked.")
+		p1.Equal(p2)
+	}
+
+	// Verify that Equal panics if the polynomials are different degrees.
 	testPubPoly1 := producePubPoly(group, k, k, secret, point)
 	testPubPoly2 := producePubPoly(group, k+10, k+10, secret, point)
-	testPubPoly1.Equal(testPubPoly2)
-}
+	test(testPubPoly1, testPubPoly2)
 
-// Verify that Equal panics if the polynomials are of different groups.
-func TestPubPolyEqual_Error2(t *testing.T) {
-	defer deferTest(t, "The Equal method should have panicked.")
-	testPubPoly1 := producePubPoly(group, k, k, secret, point)
-	testPubPoly2 := producePubPoly(altGroup, k, k, altSecret, altPoint)
-	testPubPoly1.Equal(testPubPoly2)
+	// Verify that Equal panics if the polynomials are of different groups.
+	testPubPoly1 = producePubPoly(group, k, k, secret, point)
+	testPubPoly2 = producePubPoly(altGroup, k, k, altSecret, altPoint)
+	test(testPubPoly1, testPubPoly2)
 }
 
 // Verify that Add can successfully add two polynomials
-func TestPubPolyAdd_Success(t *testing.T) {
+func TestPubPolyAdd(t *testing.T) {
 	testPubPoly1 := producePubPoly(group, k, k, secret, point)
 	testPubPoly2 := producePubPoly(group, k, k, secret, point)
 	testAddedPoly := new(PubPoly).Add(testPubPoly1, testPubPoly2)
@@ -411,25 +403,25 @@ func TestPubPolyAdd_Success(t *testing.T) {
 	}
 }
 
-// Verify that Add panics if the polynomials are of different degrees.
-func TestPubPolyAdd_Error1(t *testing.T) {
-	defer deferTest(t, "The Add method should have panicked.")
+func TestPubPolyAdd_Error(t *testing.T) {
+	test := func(p1, p2 *PubPoly) {
+		defer deferTest(t, "The Add method should have panicked.")
+		new(PubPoly).Add(p1, p2)
+	}
+
+	// Verify that Add panics if the polynomials are of different degrees.
 	testPubPoly1 := producePubPoly(group, k, k, secret, point)
 	testPubPoly2 := producePubPoly(group, k+10, k+10, secret, point)
-	new(PubPoly).Add(testPubPoly1, testPubPoly2)
+	test(testPubPoly1, testPubPoly2)
 
-}
-
-// Verify that Add panics if the polynomials are of different groups.
-func TestPubPolyAdd_Error2(t *testing.T) {
-	defer deferTest(t, "The Add method should have panicked.")
-	testPubPoly := producePubPoly(group, k, k, secret, point)
-	testPubPoly2 := producePubPoly(altGroup, k, k, altSecret, altPoint)
-	new(PubPoly).Add(testPubPoly, testPubPoly2)
+	// Verify that Add panics if the polynomials are of different groups.
+	testPubPoly1 = producePubPoly(group, k, k, secret, point)
+	testPubPoly2 = producePubPoly(altGroup, k, k, altSecret, altPoint)
+	test(testPubPoly1, testPubPoly2)
 }
 
 // Verifies that Check correctly identifies a valid share.
-func TestPubPolyCheck_True(t *testing.T) {
+func TestPubPolyCheck(t *testing.T) {
 	testPriPoly := producePriPoly(group, k, secret)
 	testPubPoly := new(PubPoly)
 	testPubPoly.Init(group, k, point)
@@ -441,7 +433,7 @@ func TestPubPolyCheck_True(t *testing.T) {
 }
 
 // Verifies that Check correctly rejects an invalid share.
-func TestPubPolyCheck_False(t *testing.T) {
+func TestPubPolyCheck_Errpr(t *testing.T) {
 	testPubPoly := producePubPoly(group, k, k, secret, point)
 	testSharesBad := producePriShares(altGroup, n, n, altSecret)
 	if testPubPoly.Check(0, testSharesBad.Share(0)) == true {
@@ -497,7 +489,7 @@ func TestPubSharesSetShare(t *testing.T) {
 
 // This verifies that the xCoord function can successfully create an array with
 // k secrets from a PubShare with sufficient secrets.
-func TestPubSharesxCoord_Success(t *testing.T) {
+func TestPubSharesxCoord(t *testing.T) {
 	testShares := producePubShares(group, k, k, k, secret, point)
 	x := testShares.xCoords()
 	c := 0
@@ -512,7 +504,7 @@ func TestPubSharesxCoord_Success(t *testing.T) {
 }
 
 // Ensures that if given k-1 shares, xCoord panics.
-func TestPubSharesxCoord_Failure(t *testing.T) {
+func TestPubSharesxCoord_Error(t *testing.T) {
 	defer deferTest(t, "The XCoord method should have panicked.")
 	testShares := producePubShares(group, k, k, k, secret, point)
 	testShares.p[0] = nil
@@ -520,7 +512,7 @@ func TestPubSharesxCoord_Failure(t *testing.T) {
 }
 
 // Ensures that the code successfully reconstructs the secret if given k shares.
-func TestPubSharesSecret_Success(t *testing.T) {
+func TestPubSharesSecret(t *testing.T) {
 	testShares := producePubShares(group, k, k, k, secret, point)
 	result := testShares.SecretCommit()
 	if !point.Mul(point, secret).Equal(result) {
@@ -529,7 +521,7 @@ func TestPubSharesSecret_Success(t *testing.T) {
 }
 
 // Ensures that the code fails to reconstruct the secret with too little shares.
-func TestPubSharesSecret_Failure(t *testing.T) {
+func TestPubSharesSecret_Error(t *testing.T) {
 	defer deferTest(t, "The SecretCommit method should have panicked.")
 	testShares := producePubShares(group, k, k, k, secret, point)
 	testShares.p[0] = nil
