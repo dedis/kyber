@@ -77,12 +77,12 @@ func producePubShares(g abstract.Group, k, n, t int, s abstract.Secret,
  * DO NOT MODIFY THESE VARIABLES. Other tests depend on these and may fail in
  * unusual ways if modified. Use the production functions above if the object
  * needs to be modified to meet the particular needs of a test.
- */ 
+ */
 
-var testPriPolyGl  *PriPoly    = producePriPoly(group, k, secret)
-var testPriPolyGl2  *PriPoly   = producePriPoly(group, k, secret)
+var testPriPolyGl *PriPoly = producePriPoly(group, k, secret)
+var testPriPolyGl2 *PriPoly = producePriPoly(group, k, secret)
 var testPriSharesGl *PriShares = producePriShares(group, k, k, secret)
-var testPubPolyGl   *PubPoly   = producePubPoly(group, k, k, secret, point)
+var testPubPolyGl *PubPoly = producePubPoly(group, k, k, secret, point)
 var testPubSharesGl *PubShares = producePubShares(group, k, k, k, secret, point)
 
 /* Test Functions */
@@ -107,8 +107,8 @@ func TestPriPolyPick(t *testing.T) {
 	// unique polynomials are made but that the base secrets are the same.
 	testPoly3 = producePriPoly(group, k, secret)
 	if testPriPolyGl.Equal(testPriPolyGl2) ||
-	   testPriPolyGl.Equal(testPoly3) ||
-           testPriPolyGl2.Equal(testPoly3) {
+		testPriPolyGl.Equal(testPoly3) ||
+		testPriPolyGl2.Equal(testPoly3) {
 		t.Error("Failed to create unique polynomials.")
 	}
 	if !testPriPolyGl.Secret().Equal(testPriPolyGl2.Secret()) ||
@@ -340,7 +340,7 @@ func TestPubPolyEncodeDecode(t *testing.T) {
 		defer deferTest(t, "The Encode method should have panicked.")
 		p1.Encode()
 	}
-	
+
 	// Verify that encode fails if the group and point are not the same
 	// length (aka not from the same group in this case).
 	testPubPoly := producePubPoly(group, k, k, secret, point)
@@ -348,7 +348,7 @@ func TestPubPolyEncodeDecode(t *testing.T) {
 	test(testPubPoly)
 
 	// Verify decoding/ encoding fails if the new poly is the wrong length.
-	decodePubPoly  = new(PubPoly)
+	decodePubPoly = new(PubPoly)
 	decodePubPoly.Init(group, k+20, point)
 	if err := decodePubPoly.Decode(testPubPolyGl.Encode()); err == nil {
 		t.Error("Decode should fail.")
@@ -480,7 +480,7 @@ func TestPubSharesxCoord(t *testing.T) {
 	if c < testPubSharesGl.k {
 		t.Error("Expected %v points to be made.", k)
 	}
-	
+
 	// Error handling
 	test := func(p1 *PubShares) {
 		defer deferTest(t, "The XCoord method should have panicked.")
@@ -506,7 +506,7 @@ func TestPubSharesSecret(t *testing.T) {
 		defer deferTest(t, "SecretCommit should have panicked.")
 		p1.SecretCommit()
 	}
-	
+
 	// Ensure that reconstructing the secret fails with too little shares.
 	testShares = producePubShares(group, k, k, k, secret, point)
 	testShares.p[0] = nil
