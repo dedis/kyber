@@ -75,17 +75,14 @@ func producePubShares(g abstract.Group, k, n, t int, s abstract.Secret,
  * These are standard objects to be used in the tests.
  *
  * DO NOT MODIFY THESE VARIABLES. Other tests depend on these and may fail in
- * unusual ways. Use the production functions above if the object needs to be
- * modified.
+ * unusual ways if modified. Use the production functions above if the object
+ * needs to be modified to meet the particular needs of a test.
  */ 
 
-var testPriPolyGl *PriPoly  = producePriPoly(group, k, secret)
-var testPriPolyGl2 *PriPoly = producePriPoly(group, k, secret)
-
+var testPriPolyGl  *PriPoly    = producePriPoly(group, k, secret)
+var testPriPolyGl2  *PriPoly   = producePriPoly(group, k, secret)
 var testPriSharesGl *PriShares = producePriShares(group, k, k, secret)
-
-var testPubPolyGl *PubPoly = producePubPoly(group, k, k, secret, point)
-
+var testPubPolyGl   *PubPoly   = producePubPoly(group, k, k, secret, point)
 var testPubSharesGl *PubShares = producePubShares(group, k, k, k, secret, point)
 
 /* Test Functions */
@@ -107,7 +104,7 @@ func TestPriPolyPick(t *testing.T) {
 	}
 
 	// Test polynomials that are based on common secrets. Verify that
-	// unique polynomials are created but that the base secrets are the same.
+	// unique polynomials are made but that the base secrets are the same.
 	testPoly3 = producePriPoly(group, k, secret)
 	if testPriPolyGl.Equal(testPriPolyGl2) ||
 	   testPriPolyGl.Equal(testPoly3) ||
@@ -135,7 +132,7 @@ func TestPriPolyEqual(t *testing.T) {
 		t.Error("Polynomials are expected to be equal.")
 	}
 
-	// Verify that Equal returns false for two polynomials that are diffferent
+	// Verify Equal returns false for two polynomials that are diffferent
 	if testPriPolyGl.Equal(testPriPolyGl2) {
 		t.Error("Polynomials are expected to be different.")
 	}
@@ -506,11 +503,11 @@ func TestPubSharesSecret(t *testing.T) {
 
 	// Error handling
 	test := func(p1 *PubShares) {
-		defer deferTest(t, "The SecretCommit method should have panicked.")
+		defer deferTest(t, "SecretCommit should have panicked.")
 		p1.SecretCommit()
 	}
 	
-	// Ensures that the code fails to reconstruct the secret with too little shares.
+	// Ensure that reconstructing the secret fails with too little shares.
 	testShares = producePubShares(group, k, k, k, secret, point)
 	testShares.p[0] = nil
 	test(testShares)
