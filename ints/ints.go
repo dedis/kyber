@@ -1,19 +1,23 @@
 package ints
 
-// Max returns the maximum of x and y.
-func Max(x, y int) int {
-	if x > y {
-		return x
+// Max returns the maximum of its arguments.
+func Max(x int, y ...int) int {
+	for _, z := range y {
+		if z > x {
+			x = z
+		}
 	}
-	return y
+	return x
 }
 
-// Min returns the minimum of x and y.
-func Min(x, y int) int {
-	if x < y {
-		return x
+// Min returns the minimum of its arguments.
+func Min(x int, y ...int) int {
+	for _, z := range y {
+		if z < x {
+			x = z
+		}
 	}
-	return y
+	return x
 }
 
 // Abs returns |x|, the absolute value of x.

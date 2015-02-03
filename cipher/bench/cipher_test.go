@@ -19,20 +19,20 @@ var buf = make([]byte, 1024*1024)
 func benchmarkCipher(b *testing.B, cipher abstract.Cipher, size int) {
 	b.SetBytes(int64(size))
 	for i := 0; i < b.N; i++ {
-		cipher.Crypt(buf[:size], buf[:size])
+		cipher.Message(buf[:size], buf[:size], buf[:size])
 	}
 }
 
 // 1B messages
 
 func BenchmarkAes128_1B(b *testing.B) {
-	benchmarkCipher(b, aes.NewCipher128(), 1)
+	benchmarkCipher(b, aes.NewCipher128(abstract.NoKey), 1)
 }
 func BenchmarkAes192_1B(b *testing.B) {
-	benchmarkCipher(b, aes.NewCipher192(), 1)
+	benchmarkCipher(b, aes.NewCipher192(abstract.NoKey), 1)
 }
 func BenchmarkAes256_1B(b *testing.B) {
-	benchmarkCipher(b, aes.NewCipher256(), 1)
+	benchmarkCipher(b, aes.NewCipher256(abstract.NoKey), 1)
 }
 
 func BenchmarkShake128_1B(b *testing.B) {
@@ -61,13 +61,13 @@ func BenchmarkNORX_1B(b *testing.B) {
 // 1K messages
 
 func BenchmarkAes128_1K(b *testing.B) {
-	benchmarkCipher(b, aes.NewCipher128(), 1024)
+	benchmarkCipher(b, aes.NewCipher128(abstract.NoKey), 1024)
 }
 func BenchmarkAes192_1K(b *testing.B) {
-	benchmarkCipher(b, aes.NewCipher192(), 1024)
+	benchmarkCipher(b, aes.NewCipher192(abstract.NoKey), 1024)
 }
 func BenchmarkAes256_1K(b *testing.B) {
-	benchmarkCipher(b, aes.NewCipher256(), 1024)
+	benchmarkCipher(b, aes.NewCipher256(abstract.NoKey), 1024)
 }
 
 func BenchmarkShake128_1K(b *testing.B) {
@@ -95,15 +95,17 @@ func BenchmarkNORX_1K(b *testing.B) {
 
 // 1M messages
 
+/* XXX 1MB buffers cause some kind of super-slowdown here??
 func BenchmarkAes128_1M(b *testing.B) {
-	benchmarkCipher(b, aes.NewCipher128(), 1024*1024)
+	benchmarkCipher(b, aes.NewCipher128(abstract.NoKey), 1024*1024)
 }
 func BenchmarkAes192_1M(b *testing.B) {
-	benchmarkCipher(b, aes.NewCipher192(), 1024*1024)
+	benchmarkCipher(b, aes.NewCipher192(abstract.NoKey), 1024*1024)
 }
 func BenchmarkAes256_1M(b *testing.B) {
-	benchmarkCipher(b, aes.NewCipher256(), 1024*1024)
+	benchmarkCipher(b, aes.NewCipher256(abstract.NoKey), 1024*1024)
 }
+*/
 
 func BenchmarkShake128_1M(b *testing.B) {
 	benchmarkCipher(b, sha3.NewShakeCipher128(abstract.NoKey), 1024*1024)

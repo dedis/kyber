@@ -32,7 +32,7 @@ func (c *hashProver) consumeMsg() {
 
 		// Stir the message into the public randomness pool
 		buf := c.msg.Bytes()
-		c.pubrand.Crypt(nil, buf)
+		c.pubrand.Message(nil, nil, buf)
 
 		// Append the current message data to the proof
 		c.proof.Write(buf)
@@ -84,7 +84,7 @@ func (c *hashVerifier) consumeMsg() {
 	if l > 0 {
 		// Stir consumed bytes into the public randomness pool
 		buf := c.prbuf[:l]
-		c.pubrand.Crypt(nil, buf)
+		c.pubrand.Message(nil, nil, buf)
 
 		c.prbuf = c.proof.Bytes() // Reset to remaining bytes
 	}
