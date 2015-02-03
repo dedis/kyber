@@ -21,5 +21,5 @@ func FromBlock(newCipher func(key []byte) (cipher.Block, error),
 		return cipher.NewCTR(b, iv)
 	}
 	return FromStream(newStream, newHash, blockLen, keyLen, hashLen,
-			key, options...)
+		key, options...)
 }

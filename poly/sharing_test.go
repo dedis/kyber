@@ -181,8 +181,7 @@ func TestPriPolyAdd(t *testing.T) {
 // Verify that the string function returns a string representation of the
 // polynomial. The test simply assures that the function exits successfully.
 func TestPriPolyString(t *testing.T) {
-	result := testPriPolyGl.String()
-	t.Log(result)
+	_ = testPriPolyGl.String()
 }
 
 // Tests the split and share function. Splits a private polynomial and ensures
@@ -270,8 +269,7 @@ func TestPriSharesSecret(t *testing.T) {
 
 // Tests the string function by simply verifying that it runs to completion.
 func TestPriSharesString(t *testing.T) {
-	result := testPriPolyGl.String()
-	t.Log(result)
+	_ = testPriPolyGl.String()
 }
 
 // Tests Init to insuring it can create a public polynomial correctly.
@@ -427,8 +425,7 @@ func TestPubPolyCheck(t *testing.T) {
 // Verify that the string function returns a string representation of the
 // polynomial. The test simply assures that the function exits successfully.
 func TestPubPolyString(t *testing.T) {
-	result := testPubPolyGl.String()
-	t.Log(result)
+	_ = testPubPolyGl.String()
 }
 
 // This function tests the eval functions for both PriPoly and PubPoly
@@ -515,6 +512,5 @@ func TestPubSharesSecret(t *testing.T) {
 
 // Tests the string function by simply verifying that it runs to completion.
 func TestPubSharesString(t *testing.T) {
-	result := testPubSharesGl.String()
-	t.Log(result)
+	_ = testPubSharesGl.String()
 }
