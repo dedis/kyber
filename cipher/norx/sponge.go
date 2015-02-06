@@ -50,5 +50,5 @@ func newSponge() cipher.Sponge {
 
 // NewCipher creates a Cipher implementing the 64-4-1 mode of NORX.
 func NewCipher(key []byte, options ...interface{}) abstract.Cipher {
-	return cipher.NewSpongeCipher(newSponge(), key, options...)
+	return cipher.FromSponge(newSponge(), key, options...)
 }

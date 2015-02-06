@@ -181,8 +181,7 @@ func TestPriPolyAdd(t *testing.T) {
 // Verify that the string function returns a string representation of the
 // polynomial. The test simply assures that the function exits successfully.
 func TestPriPolyString(t *testing.T) {
-	result := testPriPolyGl.String()
-	t.Log(result)
+	_ = testPriPolyGl.String()
 }
 
 // Tests the split and share function. Splits a private polynomial and ensures
@@ -270,8 +269,7 @@ func TestPriSharesSecret(t *testing.T) {
 
 // Tests the string function by simply verifying that it runs to completion.
 func TestPriSharesString(t *testing.T) {
-	result := testPriPolyGl.String()
-	t.Log(result)
+	_ = testPriPolyGl.String()
 }
 
 // Tests Init to insuring it can create a public polynomial correctly.
@@ -321,7 +319,8 @@ func TestPubPolySecretCommit(t *testing.T) {
 
 // Encode a public polynomial and verify its length is as expected.
 func TestPubPolyLen(t *testing.T) {
-	if testPubPolyGl.Len() != len(testPubPolyGl.Encode()) {
+	buf, _ := testPubPolyGl.MarshalBinary()
+	if testPubPolyGl.MarshalSize() != len(buf) {
 		t.Error("The length should equal the length of the encoding")
 	}
 }
@@ -330,15 +329,16 @@ func TestPubPolyLen(t *testing.T) {
 func TestPubPolyEncodeDecode(t *testing.T) {
 	decodePubPoly := new(PubPoly)
 	decodePubPoly.Init(group, k, point)
-	if err := decodePubPoly.Decode(testPubPolyGl.Encode()); err != nil ||
+	buf, _ := testPubPolyGl.MarshalBinary()
+	if err := decodePubPoly.UnmarshalBinary(buf); err != nil ||
 		!decodePubPoly.Equal(testPubPolyGl) {
 		t.Error("Failed to encode/ decode properly.")
 	}
 
 	// Error handling
 	test := func(p1 *PubPoly) {
-		defer deferTest(t, "The Encode method should have panicked.")
-		p1.Encode()
+		defer deferTest(t, "The MarshalBinary method should have panicked.")
+		p1.MarshalBinary()
 	}
 
 	// Verify that encode fails if the group and point are not the same
@@ -350,7 +350,8 @@ func TestPubPolyEncodeDecode(t *testing.T) {
 	// Verify decoding/ encoding fails if the new poly is the wrong length.
 	decodePubPoly = new(PubPoly)
 	decodePubPoly.Init(group, k+20, point)
-	if err := decodePubPoly.Decode(testPubPolyGl.Encode()); err == nil {
+	buf, _ = testPubPolyGl.MarshalBinary()
+	if err := decodePubPoly.UnmarshalBinary(buf); err == nil {
 		t.Error("Decode should fail.")
 	}
 }
@@ -427,8 +428,7 @@ func TestPubPolyCheck(t *testing.T) {
 // Verify that the string function returns a string representation of the
 // polynomial. The test simply assures that the function exits successfully.
 func TestPubPolyString(t *testing.T) {
-	result := testPubPolyGl.String()
-	t.Log(result)
+	_ = testPubPolyGl.String()
 }
 
 // This function tests the eval functions for both PriPoly and PubPoly
@@ -515,6 +515,5 @@ func TestPubSharesSecret(t *testing.T) {
 
 // Tests the string function by simply verifying that it runs to completion.
 func TestPubSharesString(t *testing.T) {
-	result := testPubSharesGl.String()
-	t.Log(result)
+	_ = testPubSharesGl.String()
 }

@@ -43,7 +43,7 @@ func header(suite abstract.Suite, X abstract.Point, x abstract.Secret,
 		seed, _ := S.MarshalBinary()
 		cipher := suite.Cipher(seed)
 		xc := make([]byte, len(xb))
-		cipher.Crypt(xc, xb)
+		cipher.Partial(xc, xb, nil)
 		hdr = append(hdr, xc...)
 	}
 	return hdr
@@ -105,7 +105,7 @@ func decryptKey(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
 	cipher := suite.Cipher(seed)
 	xb := make([]byte, seclen)
 	secofs := Xblen + seclen*mine
-	cipher.Crypt(xb, ciphertext[secofs:secofs+seclen])
+	cipher.Partial(xb, ciphertext[secofs:secofs+seclen], nil)
 	x := suite.Secret()
 	if err := x.UnmarshalBinary(xb); err != nil {
 		return nil, 0, err
@@ -147,7 +147,7 @@ func Encrypt(suite abstract.Suite, rand cipher.Stream, message []byte,
 	anonymitySet Set, hide bool) []byte {
 
 	xb, hdr := encryptKey(suite, rand, anonymitySet, hide)
-	cipher := suite.Cipher(xb, abstract.Encrypt)
+	cipher := suite.Cipher(xb)
 
 	// We now know the ciphertext layout
 	hdrhi := 0 + len(hdr)
@@ -157,8 +157,10 @@ func Encrypt(suite abstract.Suite, rand cipher.Stream, message []byte,
 	copy(ciphertext, hdr)
 
 	// Now encrypt and MAC the message based on the master secret
-	cipher.Crypt(ciphertext[hdrhi:msghi], message)
-	cipher.Crypt(ciphertext[msghi:machi], nil) // MAC
+	ctx := ciphertext[hdrhi:msghi]
+	mac := ciphertext[msghi:machi]
+	cipher.Message(ctx, message, ctx)
+	cipher.Partial(mac, nil, nil)
 	return ciphertext
 }
 
@@ -188,7 +190,7 @@ func Decrypt(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
 	}
 
 	// Determine the message layout
-	cipher := suite.Cipher(xb, abstract.Decrypt)
+	cipher := suite.Cipher(xb)
 	maclen := cipher.KeySize()
 	if len(ciphertext) < hdrlen+maclen {
 		return nil, errors.New("ciphertext too short")
@@ -197,10 +199,11 @@ func Decrypt(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
 	msghi := len(ciphertext) - maclen
 
 	// Decrypt the message and check the MAC
-	msg := ciphertext[hdrhi:msghi]
+	ctx := ciphertext[hdrhi:msghi]
 	mac := ciphertext[msghi:]
-	cipher.Crypt(msg, msg)
-	cipher.Crypt(mac, mac)
+	msg := make([]byte, len(ctx))
+	cipher.Message(msg, ctx, ctx)
+	cipher.Partial(mac, mac, nil)
 	if subtle.ConstantTimeAllEq(mac, 0) == 0 {
 		return nil, errors.New("invalid ciphertext: failed MAC check")
 	}

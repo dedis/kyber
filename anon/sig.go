@@ -38,7 +38,7 @@ func signH1(suite abstract.Suite, H1pre abstract.Cipher, PG, PH abstract.Point) 
 		PHb, _ := PH.MarshalBinary()
 		H1.Write(PHb)
 	}
-	H1.Crypt(nil, nil) // finish message absorption
+	H1.Message(nil, nil, nil) // finish message absorption
 	return suite.Secret().Pick(H1)
 }
 
