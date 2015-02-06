@@ -23,7 +23,7 @@ func signH1pre(suite abstract.Suite, linkScope []byte, linkTag abstract.Point,
 	message []byte) abstract.Cipher {
 	H1pre := suite.Cipher(message) // m
 	if linkScope != nil {
-		H1pre.Write(linkScope)        // L
+		H1pre.Write(linkScope) // L
 		tag, _ := linkTag.MarshalBinary()
 		H1pre.Write(tag) // ~y
 	}

@@ -2,8 +2,8 @@ package abstract
 
 import (
 	"crypto/cipher"
-	"encoding/binary"
 	"encoding"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"reflect"

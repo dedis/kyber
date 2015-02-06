@@ -7,23 +7,21 @@ package pbc
 import "C"
 
 import (
-	"io"
-	"unsafe"
-	"errors"
-	"runtime"
 	"crypto/cipher"
+	"errors"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
+	"io"
+	"runtime"
+	"unsafe"
 )
-
 
 type secret struct {
 	e C.element_t
 }
 
-
 func clearSecret(s *secret) {
-	println("clearSecret",s)
+	println("clearSecret", s)
 	C.element_clear(&s.e[0])
 }
 
@@ -36,7 +34,7 @@ func newSecret() *secret {
 func (s *secret) String() string {
 	var b [256]byte
 	l := C.element_snprint((*C.char)(unsafe.Pointer(&b[0])),
-				C.size_t(len(b)), &s.e[0])
+		C.size_t(len(b)), &s.e[0])
 	if l <= 0 {
 		panic("Can't convert pairing element to string")
 	}
@@ -79,12 +77,12 @@ func (s *secret) Pick(rand cipher.Stream) abstract.Secret {
 	panic("XXX")
 }
 
-func (s *secret) Add(a,b abstract.Secret) abstract.Secret {
+func (s *secret) Add(a, b abstract.Secret) abstract.Secret {
 	C.element_add(&s.e[0], &a.(*secret).e[0], &b.(*secret).e[0])
 	return s
 }
 
-func (s *secret) Sub(a,b abstract.Secret) abstract.Secret {
+func (s *secret) Sub(a, b abstract.Secret) abstract.Secret {
 	C.element_sub(&s.e[0], &a.(*secret).e[0], &b.(*secret).e[0])
 	return s
 }
@@ -94,12 +92,12 @@ func (s *secret) Neg(a abstract.Secret) abstract.Secret {
 	return s
 }
 
-func (s *secret) Mul(a,b abstract.Secret) abstract.Secret {
+func (s *secret) Mul(a, b abstract.Secret) abstract.Secret {
 	C.element_mul(&s.e[0], &a.(*secret).e[0], &b.(*secret).e[0])
 	return s
 }
 
-func (s *secret) Div(a,b abstract.Secret) abstract.Secret {
+func (s *secret) Div(a, b abstract.Secret) abstract.Secret {
 	C.element_div(&s.e[0], &a.(*secret).e[0], &b.(*secret).e[0])
 	return s
 }
@@ -117,7 +115,7 @@ func (s *secret) MarshalBinary() ([]byte, error) {
 	l := s.Len()
 	b := make([]byte, l)
 	a := C.element_to_bytes((*C.uchar)(unsafe.Pointer(&b[0])),
-				&s.e[0])
+		&s.e[0])
 	if int(a) != l {
 		panic("Element encoding yielded wrong length")
 	}
@@ -130,7 +128,7 @@ func (s *secret) UnmarshalBinary(buf []byte) error {
 		return errors.New("Encoded element wrong length")
 	}
 	a := C.element_from_bytes(&s.e[0], (*C.uchar)(unsafe.Pointer(&buf[0])))
-	if int(a) != l {	// apparently doesn't return decoding errors
+	if int(a) != l { // apparently doesn't return decoding errors
 		panic("element_from_bytes consumed wrong number of bytes")
 	}
 	return nil
@@ -143,4 +141,3 @@ func (s *secret) MarshalTo(w io.Writer) (int, error) {
 func (s *secret) UnmarshalFrom(r io.Reader) (int, error) {
 	return group.SecretUnmarshalFrom(s, r)
 }
-
