@@ -69,9 +69,7 @@ func (sc *streamCipher) Partial(dst, src, key []byte) abstract.Cipher {
 	// squeeze cryptographic output
 	ndst := ints.Min(n, len(dst))    // # bytes to write to dst
 	nsrc := ints.Min(ndst, len(src)) // # src bytes available
-	for i := 0; i < nsrc; i++ {      // XOR-encrypt from src to dst
-		sc.s.XORKeyStream(dst[:nsrc], src[:nsrc])
-	}
+	sc.s.XORKeyStream(dst[:nsrc], src[:nsrc])
 	if n > nsrc {
 		buf := make([]byte, n-nsrc)
 		sc.s.XORKeyStream(buf, buf)
