@@ -1,8 +1,8 @@
 package edwards
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 	"math/big"
 	//"encoding/hex"
 	"crypto/cipher"
@@ -14,14 +14,13 @@ import (
 var zero = big.NewInt(0)
 var one = big.NewInt(1)
 
-
 // Extension of Point interface for elliptic curve X,Y coordinate access
 type point interface {
 	abstract.Point
 
-	initXY(x,y *big.Int, curve abstract.Group)
+	initXY(x, y *big.Int, curve abstract.Group)
 
-	getXY() (x,y *nist.Int)
+	getXY() (x, y *nist.Int)
 }
 
 // Interface representing curve-specific methods of encoding points
@@ -35,18 +34,18 @@ type hiding interface {
 // Generic "abstract base class" for Edwards curves,
 // embodying functionality independent of internal Point representation.
 type curve struct {
-	self abstract.Group	// "Self pointer" for derived class
-	Param			// Twisted Edwards curve parameters
-	zero,one nist.Int	// Constant ModInts with correct modulus
-	a,d nist.Int		// Curve equation parameters as ModInts
-	full bool		// True if we're using the full group
+	self      abstract.Group // "Self pointer" for derived class
+	Param                    // Twisted Edwards curve parameters
+	zero, one nist.Int       // Constant ModInts with correct modulus
+	a, d      nist.Int       // Curve equation parameters as ModInts
+	full      bool           // True if we're using the full group
 
-	order nist.Int		// Order of appropriate subgroup as a ModInt
-	cofact nist.Int		// Group's cofactor as a ModInt
+	order  nist.Int // Order of appropriate subgroup as a ModInt
+	cofact nist.Int // Group's cofactor as a ModInt
 
-	null abstract.Point	// Identity point for this group
+	null abstract.Point // Identity point for this group
 
-	hide hiding		// Uniform point encoding method
+	hide hiding // Uniform point encoding method
 }
 
 func (c *curve) PrimeOrder() bool {
@@ -73,15 +72,15 @@ func (c *curve) PointLen() int {
 // Initialize a twisted Edwards curve with given parameters.
 // Caller passes pointers to null and base point prototypes to be initialized.
 func (c *curve) init(self abstract.Group, p *Param, fullGroup bool,
-			null,base point) *curve {
+	null, base point) *curve {
 	c.self = self
 	c.Param = *p
 	c.full = fullGroup
 	c.null = null
 
 	// Edwards curve parameters as ModInts for convenience
-	c.a.Init(&p.A,&p.P)
-	c.d.Init(&p.D,&p.P)
+	c.a.Init(&p.A, &p.P)
+	c.d.Init(&p.D, &p.P)
 
 	// Cofactor
 	c.cofact.Init64(int64(p.R), &c.P)
@@ -96,7 +95,7 @@ func (c *curve) init(self abstract.Group, p *Param, fullGroup bool,
 		// Secret modulus is prime-order times the ccofactor
 		c.order.V.SetInt64(int64(p.R)).Mul(&c.order.V, &p.Q)
 	} else {
-		c.order.V.Set(&p.Q)	// Prime-order subgroup
+		c.order.V.Set(&p.Q) // Prime-order subgroup
 	}
 
 	// Useful ModInt constants for this curve
@@ -107,37 +106,37 @@ func (c *curve) init(self abstract.Group, p *Param, fullGroup bool,
 	null.initXY(zero, one, self)
 
 	// Base point B
-	var bx,by *big.Int
+	var bx, by *big.Int
 	if !fullGroup {
-		bx,by = &p.PBX, &p.PBY
+		bx, by = &p.PBX, &p.PBY
 	} else {
-		bx,by = &p.FBX, &p.FBY
+		bx, by = &p.FBX, &p.FBY
 		base.initXY(&p.FBX, &p.FBY, self)
 	}
 	if by.Sign() == 0 {
 		// No standard base point was defined, so pick one.
 		// Find the lowest-numbered y-coordinate that works.
 		//println("Picking base point:")
-		var x,y nist.Int
-		for y.Init64(2,&c.P); ; y.Add(&y,&c.one) {
-			if !c.solveForX(&x,&y) {
-				continue	// try another y
+		var x, y nist.Int
+		for y.Init64(2, &c.P); ; y.Add(&y, &c.one) {
+			if !c.solveForX(&x, &y) {
+				continue // try another y
 			}
 			if c.coordSign(&x) != 0 {
-				x.Neg(&x)	// try positive x first
+				x.Neg(&x) // try positive x first
 			}
 			base.initXY(&x.V, &y.V, self)
 			if c.validPoint(base) {
-				break		// got one
+				break // got one
 			}
-			x.Neg(&x)		// try -bx
+			x.Neg(&x) // try -bx
 			if c.validPoint(base) {
-				break		// got one
+				break // got one
 			}
 		}
 		//println("BX: "+x.V.String())
 		//println("BY: "+y.V.String())
-		bx,by = &x.V,&y.V
+		bx, by = &x.V, &y.V
 	}
 	base.initXY(bx, by, self)
 
@@ -155,10 +154,10 @@ func (c *curve) init(self abstract.Group, p *Param, fullGroup bool,
 
 	// Sanity checks
 	if !c.validPoint(null) {
-		panic("invalid identity point "+null.String())
+		panic("invalid identity point " + null.String())
 	}
 	if !c.validPoint(base) {
-		panic("invalid base point "+base.String())
+		panic("invalid base point " + base.String())
 	}
 
 	return c
@@ -171,29 +170,29 @@ func (c *curve) coordSign(i *nist.Int) uint {
 }
 
 // Convert a point to string representation.
-func (c *curve) pointString(x,y *nist.Int) string {
+func (c *curve) pointString(x, y *nist.Int) string {
 	return fmt.Sprintf("(%s,%s)", x.String(), y.String())
 }
 
 // Encode an Edwards curve point.
 // We use little-endian encoding for consistency with Ed25519.
-func (c *curve) encodePoint(x,y *nist.Int) []byte {
+func (c *curve) encodePoint(x, y *nist.Int) []byte {
 
 	// Encode the y-coordinate
-	b := y.Encode()
+	b, _ := y.MarshalBinary()
 
 	// Encode the sign of the x-coordinate.
-	if y.M.BitLen() & 7 == 0 {
+	if y.M.BitLen()&7 == 0 {
 		// No unused bits at the top of y-coordinate encoding,
 		// so we must prepend a whole byte.
-		b = append(make([]byte,1), b...)
+		b = append(make([]byte, 1), b...)
 	}
 	if c.coordSign(x) != 0 {
 		b[0] |= 0x80
 	}
 
 	// Convert to little-endian
-	util.Reverse(b,b)
+	util.Reverse(b, b)
 	//fmt.Printf("encoding %s,%s:\n%s\n", x.String(), y.String(),
 	//		hex.Dump(b))
 	return b
@@ -209,12 +208,12 @@ func (c *curve) encodePoint(x,y *nist.Int) []byte {
 // other than the tiny ones represented by the cofactor;
 // hence Diffie-Hellman exchange can be done without subgroup checking
 // without exposing more than the least-significant bits of the secret.
-func (c *curve) decodePoint(bb []byte, x,y *nist.Int) error {
+func (c *curve) decodePoint(bb []byte, x, y *nist.Int) error {
 
 	// Convert from little-endian
 	//fmt.Printf("decoding:\n%s\n", hex.Dump(bb))
 	b := make([]byte, len(bb))
-	util.Reverse(b,bb)
+	util.Reverse(b, bb)
 
 	// Extract the sign of the x-coordinate
 	xsign := uint(b[0] >> 7)
@@ -225,7 +224,7 @@ func (c *curve) decodePoint(bb []byte, x,y *nist.Int) error {
 	y.M = &c.P
 
 	// Compute the corresponding x-coordinate
-	if !c.solveForX(x,y) {
+	if !c.solveForX(x, y) {
 		return errors.New("invalid elliptic curve point")
 	}
 	if c.coordSign(x) != xsign {
@@ -243,14 +242,14 @@ func (c *curve) decodePoint(bb []byte, x,y *nist.Int) error {
 // Returns true on success,
 // false if there is no x-coordinate corresponding to the chosen y-coordinate.
 //
-func (c *curve) solveForX(x,y *nist.Int) bool {
-	var yy,t1,t2 nist.Int
+func (c *curve) solveForX(x, y *nist.Int) bool {
+	var yy, t1, t2 nist.Int
 
-	yy.Mul(y,y)				// yy = y^2
-	t1.Sub(&c.one,&yy)			// t1 = 1 - y^-2
-	t2.Mul(&c.d,&yy).Sub(&c.a,&t2)		// t2 = a - d*y^2
-	t2.Div(&t1,&t2)				// t2 = x^2
-	return x.Sqrt(&t2)			// may fail if not a square
+	yy.Mul(y, y)                     // yy = y^2
+	t1.Sub(&c.one, &yy)              // t1 = 1 - y^-2
+	t2.Mul(&c.d, &yy).Sub(&c.a, &t2) // t2 = a - d*y^2
+	t2.Div(&t1, &t2)                 // t2 = x^2
+	return x.Sqrt(&t2)               // may fail if not a square
 }
 
 // Test if a supposed point is on the curve,
@@ -258,15 +257,15 @@ func (c *curve) solveForX(x,y *nist.Int) bool {
 //
 //	a*x^2 + y^2 = 1 + d*x^2*y^2
 //
-func (c *curve) onCurve(x,y *nist.Int) bool {
-	var xx,yy,l,r nist.Int
+func (c *curve) onCurve(x, y *nist.Int) bool {
+	var xx, yy, l, r nist.Int
 
-	xx.Mul(x,x)				// xx = x^2
-	yy.Mul(y,y)				// yy = y^2
+	xx.Mul(x, x) // xx = x^2
+	yy.Mul(y, y) // yy = y^2
 
-	l.Mul(&c.a,&xx).Add(&l,&yy)		// l = a*x^2 + y^2
-	r.Mul(&c.d,&xx).Mul(&r,&yy).Add(&c.one,&r)
-						// r = 1 + d*x^2*y^2
+	l.Mul(&c.a, &xx).Add(&l, &yy) // l = a*x^2 + y^2
+	r.Mul(&c.d, &xx).Mul(&r, &yy).Add(&c.one, &r)
+	// r = 1 + d*x^2*y^2
 	return l.Equal(&r)
 }
 
@@ -275,8 +274,8 @@ func (c *curve) onCurve(x,y *nist.Int) bool {
 func (c *curve) validPoint(P point) bool {
 
 	// Check on-curve
-	x,y := P.getXY()
-	if !c.onCurve(x,y) {
+	x, y := P.getXY()
+	if !c.onCurve(x, y) {
 		return false
 	}
 
@@ -310,28 +309,28 @@ func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
 	}
 
 	// Retry until we find a valid point
-	var x,y nist.Int
+	var x, y nist.Int
 	var Q abstract.Point
 	for {
 		// Get random bits the size of a compressed Point encoding,
 		// in which the topmost bit is reserved for the x-coord sign.
 		l := c.PointLen()
 		b := make([]byte, l)
-		rand.XORKeyStream(b,b)		// Interpret as little-endian
+		rand.XORKeyStream(b, b) // Interpret as little-endian
 		if data != nil {
-			b[0] = byte(dl)		// Encode length in low 8 bits
-			copy(b[1:1+dl],data)	// Copy in data to embed
+			b[0] = byte(dl)       // Encode length in low 8 bits
+			copy(b[1:1+dl], data) // Copy in data to embed
 		}
-		util.Reverse(b,b)		// Convert to big-endian form
+		util.Reverse(b, b) // Convert to big-endian form
 
-		xsign := b[0] >> 7		// save x-coordinate sign bit
-		b[0] &^= 0xff << uint(c.P.BitLen() & 7)	// clear high bits
+		xsign := b[0] >> 7                    // save x-coordinate sign bit
+		b[0] &^= 0xff << uint(c.P.BitLen()&7) // clear high bits
 
-		y.M = &c.P			// set y-coordinate
+		y.M = &c.P // set y-coordinate
 		y.SetBytes(b)
 
-		if !c.solveForX(&x,&y) {	// Corresponding x-coordinate?
-			continue		// none, retry
+		if !c.solveForX(&x, &y) { // Corresponding x-coordinate?
+			continue // none, retry
 		}
 
 		// Pick a random sign for the x-coordinate
@@ -353,9 +352,9 @@ func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
 		// we can convert our point into one in the subgroup
 		// simply by multiplying it by the cofactor.
 		if data == nil {
-			P.Mul(P, &c.cofact)	// multiply by cofactor
+			P.Mul(P, &c.cofact) // multiply by cofactor
 			if P.Equal(c.null) {
-				continue	// unlucky; try again
+				continue // unlucky; try again
 			}
 			return data[dl:]
 		}
@@ -377,12 +376,11 @@ func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
 
 // Extract embedded data from a point group element,
 // or an error if embedded data is invalid or not present.
-func (c *curve) data(x,y *nist.Int) ([]byte,error) {
-	b := c.encodePoint(x,y)
+func (c *curve) data(x, y *nist.Int) ([]byte, error) {
+	b := c.encodePoint(x, y)
 	dl := int(b[0])
 	if dl > c.pickLen() {
-		return nil,errors.New("invalid embedded data length")
+		return nil, errors.New("invalid embedded data length")
 	}
-	return b[1:1+dl],nil
+	return b[1 : 1+dl], nil
 }
-

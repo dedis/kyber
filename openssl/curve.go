@@ -57,7 +57,8 @@ func freePoint(p *point) {
 }
 
 func (p *point) String() string {
-	return hex.EncodeToString(p.Encode())
+	buf, _ := p.MarshalBinary()
+	return hex.EncodeToString(buf)
 }
 func (p *point) Valid() bool {
 	return C.EC_POINT_is_on_curve(p.g, p.p, p.c.ctx) != 0
@@ -127,7 +128,7 @@ func (p *point) Pick(data []byte, rand cipher.Stream) (abstract.Point, []byte) {
 			copy(b[l-dl-1:l-1], data) // Copy in data to embed
 		}
 
-		if err := p.Decode(b); err == nil { // See if it decodes!
+		if err := p.UnmarshalBinary(b); err == nil { // See if it decodes!
 			return p, data[dl:]
 		}
 
@@ -207,11 +208,11 @@ func (p *point) Mul(cb abstract.Point, cs abstract.Secret) abstract.Point {
 	return p
 }
 
-func (p *point) Len() int {
+func (p *point) MarshalSize() int {
 	return 1 + p.c.plen // compressed encoding
 }
 
-func (p *point) Encode() []byte {
+func (p *point) MarshalBinary() ([]byte, error) {
 	l := 1 + p.c.plen
 	b := make([]byte, l)
 	if C.EC_POINT_point2oct(p.c.g, p.p, C.POINT_CONVERSION_COMPRESSED,
@@ -219,10 +220,10 @@ func (p *point) Encode() []byte {
 		C.size_t(l), p.c.ctx) != C.size_t(l) {
 		panic("EC_POINT_point2oct: " + getErrString())
 	}
-	return b
+	return b, nil
 }
 
-func (p *point) Decode(buf []byte) error {
+func (p *point) UnmarshalBinary(buf []byte) error {
 	if C.EC_POINT_oct2point(p.g, p.p,
 		(*_Ctype_unsignedchar)(unsafe.Pointer(&buf[0])),
 		C.size_t(len(buf)), p.c.ctx) == 0 {
@@ -231,12 +232,12 @@ func (p *point) Decode(buf []byte) error {
 	return nil
 }
 
-func (p *point) EncodeTo(w io.Writer) (int, error) {
-	return group.PointEncodeTo(p, w)
+func (p *point) MarshalTo(w io.Writer) (int, error) {
+	return group.PointMarshalTo(p, w)
 }
 
-func (p *point) DecodeFrom(r io.Reader) (int, error) {
-	return group.PointDecodeFrom(p, r)
+func (p *point) UnmarshalFrom(r io.Reader) (int, error) {
+	return group.PointUnmarshalFrom(p, r)
 }
 
 func (c *curve) String() string {

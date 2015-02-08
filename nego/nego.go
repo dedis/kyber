@@ -398,7 +398,8 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 		dhkey := si.ste.Point().Mul(e.PubKey, si.pri)
 
 		// Encrypt the entrypoint data with it.
-		stream := si.ste.Cipher(dhkey.Encode())
+		buf, _ := dhkey.MarshalBinary()
+		stream := si.ste.Cipher(buf)
 		msgbuf := w.growBuf(lo, hi)
 		stream.XORKeyStream(msgbuf, e.Data)
 	}

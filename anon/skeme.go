@@ -46,7 +46,7 @@ func (sk *SKEME) Init(suite abstract.Suite, rand cipher.Stream,
 	// Create our Diffie-Hellman keypair
 	sk.lx = suite.Secret().Pick(rand)
 	sk.lX = suite.Point().Mul(nil, sk.lx)
-	sk.lXb = sk.lX.Encode()
+	sk.lXb, _ = sk.lX.MarshalBinary()
 
 	// Encrypt and send the DH key to the receiver.
 	// This is a deviation from SKEME, to protect message metadata
@@ -75,7 +75,7 @@ func (sk *SKEME) Recv(rm []byte) (bool, error) {
 	if sk.rX == nil {
 		rXb := M[:ptlen]
 		rX := sk.suite.Point()
-		if err := rX.Decode(M[:ptlen]); err != nil {
+		if err := rX.UnmarshalBinary(M[:ptlen]); err != nil {
 			return false, err
 		}
 		sk.rX = rX // remote DH public key
@@ -83,7 +83,8 @@ func (sk *SKEME) Recv(rm []byte) (bool, error) {
 
 		// Compute the shared secret and the key-confirmation MACs
 		DH := sk.suite.Point().Mul(rX, sk.lx)
-		sk.ms = sk.suite.Cipher(DH.Encode())
+		seed, _ := DH.MarshalBinary()
+		sk.ms = sk.suite.Cipher(seed)
 		mkey := random.Bytes(sk.ms.KeySize(), sk.ms)
 		sk.ls, sk.lmac = sk.mkmac(mkey, sk.lXb, sk.rXb)
 		sk.rs, sk.rmac = sk.mkmac(mkey, sk.rXb, sk.lXb)

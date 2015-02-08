@@ -14,7 +14,7 @@ in which security is based on the Discrete Logarithm assumption,
 and a scalar multiplier in elliptic curve groups.
 */
 type Secret interface {
-	Encoding
+	Marshaling
 
 	// Equality test for two Secrets derived from the same Group
 	Equal(s2 Secret) bool
@@ -62,7 +62,7 @@ A Point can contain a Diffie-Hellman public key,
 an ElGamal ciphertext, etc.
 */
 type Point interface {
-	Encoding
+	Marshaling
 
 	// Equality test for two Points derived from the same Group
 	Equal(s2 Point) bool

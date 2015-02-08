@@ -163,16 +163,16 @@ func (p *curvePoint) Mul(b abstract.Point, s abstract.Secret) abstract.Point {
 	return p
 }
 
-func (p *curvePoint) Len() int {
+func (p *curvePoint) MarshalSize() int {
 	coordlen := (p.c.Params().BitSize + 7) >> 3
 	return 1 + 2*coordlen // uncompressed ANSI X9.62 representation (XXX)
 }
 
-func (p *curvePoint) Encode() []byte {
-	return elliptic.Marshal(p.c, p.x, p.y)
+func (p *curvePoint) MarshalBinary() ([]byte, error) {
+	return elliptic.Marshal(p.c, p.x, p.y), nil
 }
 
-func (p *curvePoint) Decode(buf []byte) error {
+func (p *curvePoint) UnmarshalBinary(buf []byte) error {
 	p.x, p.y = elliptic.Unmarshal(p.c, buf)
 	if p.x == nil || !p.Valid() {
 		return errors.New("invalid elliptic curve point")
@@ -180,12 +180,12 @@ func (p *curvePoint) Decode(buf []byte) error {
 	return nil
 }
 
-func (p *curvePoint) EncodeTo(w io.Writer) (int, error) {
-	return group.PointEncodeTo(p, w)
+func (p *curvePoint) MarshalTo(w io.Writer) (int, error) {
+	return group.PointMarshalTo(p, w)
 }
 
-func (p *curvePoint) DecodeFrom(r io.Reader) (int, error) {
-	return group.PointDecodeFrom(p, r)
+func (p *curvePoint) UnmarshalFrom(r io.Reader) (int, error) {
+	return group.PointUnmarshalFrom(p, r)
 }
 
 // interface for curve-specifc mathematical functions

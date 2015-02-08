@@ -34,29 +34,29 @@ func (P *point) String() string {
 	return hex.EncodeToString(b[:])
 }
 
-func (P *point) Len() int {
+func (P *point) MarshalSize() int {
 	return 32
 }
 
-func (P *point) Encode() []byte {
+func (P *point) MarshalBinary() ([]byte, error) {
 	var b [32]byte
 	P.ge.ToBytes(&b)
-	return b[:]
+	return b[:], nil
 }
 
-func (P *point) Decode(b []byte) error {
+func (P *point) UnmarshalBinary(b []byte) error {
 	if !P.ge.FromBytes(b) {
 		return errors.New("invalid Ed25519 curve point")
 	}
 	return nil
 }
 
-func (P *point) EncodeTo(w io.Writer) (int, error) {
-	return group.PointEncodeTo(P, w)
+func (P *point) MarshalTo(w io.Writer) (int, error) {
+	return group.PointMarshalTo(P, w)
 }
 
-func (P *point) DecodeFrom(r io.Reader) (int, error) {
-	return group.PointDecodeFrom(P, r)
+func (P *point) UnmarshalFrom(r io.Reader) (int, error) {
+	return group.PointUnmarshalFrom(P, r)
 }
 
 // Equality test for two Points on the same curve

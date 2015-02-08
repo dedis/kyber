@@ -8,13 +8,14 @@ import "C"
 
 import (
 	"bytes"
+	"io"
 	"unsafe"
 	//"runtime"
-	"encoding/hex"
 	"crypto/cipher"
+	"encoding/hex"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 )
-
 
 type secret struct {
 	b [32]byte
@@ -35,13 +36,25 @@ func (s *secret) String() string {
 	return hex.EncodeToString(s.b[:])
 }
 
-func (s *secret) Len() int { return 32 }
+func (s *secret) MarshalSize() int {
+	return 32
+}
 
-func (s *secret) Encode() []byte { return s.b[:] }
+func (s *secret) MarshalBinary() ([]byte, error) {
+	return s.b[:], nil
+}
 
-func (s *secret) Decode(buf []byte) error {
+func (s *secret) UnmarshalBinary(buf []byte) error {
 	copy(s.b[:], buf)
 	return nil
+}
+
+func (s *secret) MarshalTo(w io.Writer) (int, error) {
+	return group.SecretMarshalTo(s, w)
+}
+
+func (s *secret) UnmarshalFrom(r io.Reader) (int, error) {
+	return group.SecretUnmarshalFrom(s, r)
 }
 
 func (s *secret) Zero() abstract.Secret {
@@ -60,20 +73,20 @@ func (s *secret) Equal(s2 abstract.Secret) bool {
 	return bytes.Equal(s.b[:], s2.(*secret).b[:])
 }
 
-func (s *secret) Add(cx,cy abstract.Secret) abstract.Secret {
+func (s *secret) Add(cx, cy abstract.Secret) abstract.Secret {
 	x := cx.(*secret)
 	y := cy.(*secret)
 
 	// XXX using muladd is probably way overkill
 	C.sc_muladd((*C.uchar)(unsafe.Pointer(&s.b[0])),
-			(*C.uchar)(unsafe.Pointer(&x.b[0])),
-			(*C.uchar)(unsafe.Pointer(&s1.b[0])),
-			(*C.uchar)(unsafe.Pointer(&y.b[0])))
+		(*C.uchar)(unsafe.Pointer(&x.b[0])),
+		(*C.uchar)(unsafe.Pointer(&s1.b[0])),
+		(*C.uchar)(unsafe.Pointer(&y.b[0])))
 
 	return s
 }
 
-func (s *secret) Sub(cx,cy abstract.Secret) abstract.Secret {
+func (s *secret) Sub(cx, cy abstract.Secret) abstract.Secret {
 	panic("XXX")
 }
 
@@ -81,11 +94,11 @@ func (s *secret) Neg(x abstract.Secret) abstract.Secret {
 	panic("XXX")
 }
 
-func (s *secret) Mul(cx,cy abstract.Secret) abstract.Secret {
+func (s *secret) Mul(cx, cy abstract.Secret) abstract.Secret {
 	panic("XXX")
 }
 
-func (s *secret) Div(cx,cy abstract.Secret) abstract.Secret {
+func (s *secret) Div(cx, cy abstract.Secret) abstract.Secret {
 	panic("XXX")
 }
 
@@ -95,10 +108,8 @@ func (s *secret) Inv(x abstract.Secret) abstract.Secret {
 
 func (s *secret) Pick(rand cipher.Stream) abstract.Secret {
 	rand.XORKeyStream(s.b[:], s.b[:])
-	s.b[0] &= 248;
-	s.b[31] &= 63;
-	s.b[31] |= 64;
+	s.b[0] &= 248
+	s.b[31] &= 63
+	s.b[31] |= 64
 	return s
 }
-
-

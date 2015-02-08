@@ -31,29 +31,30 @@ func (P *extPoint) getXY() (x, y *nist.Int) {
 func (P *extPoint) String() string {
 	P.normalize()
 	//return P.c.pointString(&P.X,&P.Y)
-	return hex.EncodeToString(P.Encode())
+	buf, _ := P.MarshalBinary()
+	return hex.EncodeToString(buf)
 }
 
-func (P *extPoint) Len() int {
+func (P *extPoint) MarshalSize() int {
 	return P.c.PointLen()
 }
 
-func (P *extPoint) Encode() []byte {
+func (P *extPoint) MarshalBinary() ([]byte, error) {
 	P.normalize()
-	return P.c.encodePoint(&P.X, &P.Y)
+	return P.c.encodePoint(&P.X, &P.Y), nil
 }
 
-func (P *extPoint) Decode(b []byte) error {
+func (P *extPoint) UnmarshalBinary(b []byte) error {
 	P.Z.Init64(1, &P.c.P)
 	return P.c.decodePoint(b, &P.X, &P.Y)
 }
 
-func (P *extPoint) EncodeTo(w io.Writer) (int, error) {
-	return group.PointEncodeTo(P, w)
+func (P *extPoint) MarshalTo(w io.Writer) (int, error) {
+	return group.PointMarshalTo(P, w)
 }
 
-func (P *extPoint) DecodeFrom(r io.Reader) (int, error) {
-	return group.PointDecodeFrom(P, r)
+func (P *extPoint) UnmarshalFrom(r io.Reader) (int, error) {
+	return group.PointUnmarshalFrom(P, r)
 }
 
 func (P *extPoint) HideLen() int {
