@@ -1,8 +1,9 @@
 package abstract
 
 import (
-	"crypto/cipher"
-	"io"
+	"errors"
+	"github.com/dedis/crypto/util"
+	"github.com/dedis/crypto/subtle"
 )
 
 // Cipher defines an interface to an abstract symmetric message cipher.
@@ -150,15 +151,15 @@ import (
 //	cipher.Partial(sum, nil, nil)	// compute cryptographic sum
 //
 //
-type Cipher interface {
+type CipherState interface {
 
 	// Transform a message (or the final portion of one) from src to dst,
 	// absorb key into the cipher state, and return the Cipher.
-	Message(dst, src, key []byte) Cipher
+	Message(dst, src, key []byte)
 
 	// Transform a partial, incomplete message from src to dst,
 	// absorb key into the cipher state, and return the Cipher.
-	Partial(dst, src, key []byte) Cipher
+	Partial(dst, src, key []byte)
 
 	// Return the minimum size in bytes of secret keys for full security
 	// (although key material may be of any size).
@@ -175,32 +176,23 @@ type Cipher interface {
 	// A Cipher also implements the standard Read and Write I/O methods.
 	// Read(dst) is equivalent to Partial(dst, nil).
 	// Write(src) is equivalent to Partial(nil, src).
-	io.ReadWriter
+//	io.ReadWriter
 
 	// Backwards-compatibility with the Stream cipher interface.
 	// XXX this interface inclusion is provisional and may be dropped.
-	cipher.Stream
+//	cipher.Stream
 
 	// Fork off nsubs >= 0 parallel sub-Ciphers and update the state.
-	Fork(nsubs int) []Cipher
+//	Fork(nsubs int) []Cipher
 
 	// Combine this Cipher's state with that of previously-forked Ciphers.
 	// The rejoined sub-Ciphers must no longer be used.
-	Join(subs ...Cipher)
+//	Join(subs ...Cipher)
 
 	// Create an identical clone of this cryptographic state object.
 	// Caution: misuse can lead to key-reuse vulnerabilities.
-	Clone() Cipher
+	Clone() CipherState
 }
-
-// CipherMode selects the mode in which a Cipher operates:
-// to Encrypt, to Decrypt, or produce a cryptographic random Stream.
-//type CipherMode int
-//const (
-//	Stream  CipherMode = 0  // produce bits without absorbing anything
-//	Encrypt CipherMode = 1  // encrypt and absorb output ciphertext
-//	Decrypt CipherMode = -1 // decrypt and absorb input ciphertext
-//)
 
 // internal type for the simple options above
 type option struct{ name string }
@@ -212,3 +204,88 @@ var NoKey = []byte{}
 
 // Pass RandomKey to a Cipher constructor to create a randomly seeded Cipher.
 var RandomKey []byte = nil
+
+
+
+type Cipher struct {
+	CipherState
+}
+
+func (c Cipher) Message(dst, src, key []byte) Cipher {
+	c.CipherState.Message(dst, src, key)
+	return c
+}
+
+func (c Cipher) Partial(dst, src, key []byte) Cipher {
+	c.CipherState.Partial(dst, src, key)
+	return c
+}
+
+func (c Cipher) Read(dst []byte) (n int, err error) {
+	c.CipherState.Partial(dst, nil, nil)
+	return len(dst), nil
+}
+
+func (c Cipher) Write(key []byte) (n int, err error) {
+	c.CipherState.Partial(nil, nil, key)
+	return len(key), nil
+}
+
+func (c Cipher) XORKeyStream(dst, src []byte) {
+	c.CipherState.Partial(dst[:len(src)], src, nil)
+}
+
+func (c Cipher) Sum(dst []byte) []byte {
+	c.Message(nil, nil, nil)	// finalize any message in progress
+
+	h := c.HashSize()		// hash length
+	dst, hash := util.Grow(dst, h)
+	c.Message(hash, nil, nil)	// squeeze out hash
+
+	return dst
+}
+
+func (c Cipher) Seal(dst, src []byte) []byte {
+	l := len(src)			// message length
+	m := c.KeySize()		// MAC length
+
+	dst, buf  := util.Grow(dst, l+m)
+	ctx := buf[:l]
+	mac := buf[l:]
+
+	c.Message(ctx, src, ctx)	// Encrypt and absorb ciphertext
+	c.Message(mac, nil, nil)	// Append MAC
+
+	return dst
+}
+
+func (c Cipher) Open(dst, src []byte) ([]byte, error) {
+	m := c.KeySize()
+	l := len(src) - m
+	if l < 0 {
+		return nil, errors.New("sealed ciphertext too short")
+	}
+	ctx := src[:l]
+	mac := src[l:]
+	dst, msg := util.Grow(dst, l)
+
+	if &msg[0] != &ctx[0] {		// Decrypt and absorb ciphertext
+		c.Message(msg, ctx, ctx)
+	} else {
+		tmp := make([]byte, l)
+		c.Message(tmp, ctx, ctx)
+		copy(msg, tmp)
+	}
+
+	c.Message(mac, mac, nil)	// Compute MAC and XOR with received
+	if subtle.ConstantTimeAllEq(mac, 0) == 0 {
+		return nil, errors.New("ciphertext authentication failed")
+	}
+
+	return dst, nil
+}
+
+func (c Cipher) Clone() Cipher {
+	return Cipher{c.CipherState.Clone()}
+}
+

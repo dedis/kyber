@@ -85,7 +85,7 @@ func FromSponge(sponge Sponge, key []byte, options ...interface{}) abstract.Ciph
 	// Setup normal-case domain-separation byte used for message payloads
 	sc.setDomain(domainPayload, 0)
 
-	return &sc
+	return abstract.Cipher{&sc}
 }
 
 func (sc *spongeCipher) parseOptions(options []interface{}) bool {
@@ -133,7 +133,7 @@ func (sc *spongeCipher) padMessage() {
 	sc.pos = 0
 }
 
-func (sc *spongeCipher) Partial(dst, src, key []byte) abstract.Cipher {
+func (sc *spongeCipher) Partial(dst, src, key []byte) {
 	sp := sc.sponge
 	rate := sc.rate
 	buf := sc.buf
@@ -170,27 +170,11 @@ func (sc *spongeCipher) Partial(dst, src, key []byte) abstract.Cipher {
 
 	sc.pos = pos
 	//println("Decrypted",more,"\n" + hex.Dump(osrc) + "->\n" + hex.Dump(odst))
-	return sc
 }
 
-func (sc *spongeCipher) Message(dst, src, key []byte) abstract.Cipher {
+func (sc *spongeCipher) Message(dst, src, key []byte) {
 	sc.Partial(dst, src, key)
 	sc.padMessage()
-	return sc
-}
-
-func (sc *spongeCipher) Read(dst []byte) (n int, err error) {
-	sc.Partial(dst, nil, nil)
-	return len(dst), nil
-}
-
-func (sc *spongeCipher) Write(key []byte) (n int, err error) {
-	sc.Partial(nil, nil, key)
-	return len(key), nil
-}
-
-func (sc *spongeCipher) XORKeyStream(dst, src []byte) {
-	sc.Partial(dst[:len(src)], src, nil)
 }
 
 func (sc *spongeCipher) special(domain byte, index int) {
@@ -212,7 +196,9 @@ func (sc *spongeCipher) special(domain byte, index int) {
 	sc.setDomain(domainPayload, 0)
 }
 
-func (sc *spongeCipher) Fork(nsubs int) []abstract.Cipher {
+/*
+// XXX move to abstract.Cipher?
+func (sc *spongeCipher) Fork(nsubs int) []abstract.CipherState {
 
 	subs := make([]abstract.Cipher, nsubs)
 	for i := range subs {
@@ -233,7 +219,8 @@ func xorBytes(dst, src []byte) {
 	}
 }
 
-func (sc *spongeCipher) Join(subs ...abstract.Cipher) {
+// XXX move to abstract.Cipher?
+func (sc *spongeCipher) Join(subs ...abstract.CipherState) {
 
 	// mark the join transformation in the parent first
 	sc.special(domainJoin, 0)
@@ -247,6 +234,7 @@ func (sc *spongeCipher) Join(subs ...abstract.Cipher) {
 		sub.buf = nil                // make joined sub unusable
 	}
 }
+*/
 
 func (sc *spongeCipher) clone() *spongeCipher {
 	nsc := *sc
@@ -256,7 +244,7 @@ func (sc *spongeCipher) clone() *spongeCipher {
 	return &nsc
 }
 
-func (sc *spongeCipher) Clone() abstract.Cipher {
+func (sc *spongeCipher) Clone() abstract.CipherState {
 	return sc.clone()
 }
 
