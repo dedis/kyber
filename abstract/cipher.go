@@ -171,6 +171,7 @@ type CipherState interface {
 
 	// Return the size of block in which this cipher processes data:
 	// processing may be slightly more efficient in chunks this size.
+	// XXX unnecessary; consider removing?
 	BlockSize() int
 
 	// A Cipher also implements the standard Read and Write I/O methods.
@@ -284,6 +285,8 @@ func (c Cipher) Open(dst, src []byte) ([]byte, error) {
 
 	return dst, nil
 }
+
+// XXX insert Fork, Join here
 
 func (c Cipher) Clone() Cipher {
 	return Cipher{c.CipherState.Clone()}
