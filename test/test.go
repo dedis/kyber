@@ -3,6 +3,7 @@ package test
 import (
 	"bytes"
 	"crypto/cipher"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
 )
@@ -195,6 +196,15 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 		if !ptmp.Equal(p) {
 			panic("decoding produces different point than encoded")
 		}
+	}
+
+	// Test that we can marshal/ unmarshal null point
+	pzero = g.Point().Null()
+	b, _ := pzero.MarshalBinary()
+	repzero := g.Point()
+	err := repzero.UnmarshalBinary(b)
+	if err != nil {
+		panic(err)
 	}
 
 	return points
