@@ -19,12 +19,13 @@ import (
 	"crypto/cipher"
 	"encoding/hex"
 	"errors"
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/group"
 	"io"
 	"math/big"
 	"runtime"
 	"unsafe"
+
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 )
 
 type point struct {
@@ -215,18 +216,27 @@ func (p *point) MarshalSize() int {
 func (p *point) MarshalBinary() ([]byte, error) {
 	l := 1 + p.c.plen
 	b := make([]byte, l)
+
+	// Note: EC_POINT_point2oct encodes the "point at infinity"
+	// as a single 0 byte, hence returning a length of 1.
 	if C.EC_POINT_point2oct(p.c.g, p.p, C.POINT_CONVERSION_COMPRESSED,
 		(*_Ctype_unsignedchar)(unsafe.Pointer(&b[0])),
-		C.size_t(l), p.c.ctx) != C.size_t(l) {
+		C.size_t(l), p.c.ctx) == 0 {
 		panic("EC_POINT_point2oct: " + getErrString())
 	}
+
 	return b, nil
 }
 
 func (p *point) UnmarshalBinary(buf []byte) error {
+	l := len(buf)
+	if buf[0] == 0 { // Special case: point at infinity
+		l = 1 // single 0 byte
+	}
+
 	if C.EC_POINT_oct2point(p.g, p.p,
 		(*_Ctype_unsignedchar)(unsafe.Pointer(&buf[0])),
-		C.size_t(len(buf)), p.c.ctx) == 0 {
+		C.size_t(l), p.c.ctx) == 0 {
 		return errors.New(getErrString())
 	}
 	return nil
