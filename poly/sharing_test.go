@@ -2,7 +2,6 @@ package poly
 
 import (
 	"testing"
-	"encoding/hex"
 
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/edwards"
@@ -328,12 +327,28 @@ func TestPubPolyLen(t *testing.T) {
 
 // Encode a public polynomial and then decode it.
 func TestPubPolyEncodeDecode(t *testing.T) {
+	pripolyDOD := new(PriPoly).Pick(group, k, secret, random.Stream)
+	testPubPoly := new(PubPoly)
+	testPubPoly.Commit(pripolyDOD, nil)
 	decodePubPoly := new(PubPoly)
-	decodePubPoly.Init(group, k, point)
-	buf, _ := testPubPolyGl.MarshalBinary()
+	decodePubPoly.Init(group, k, nil)
+	testShares := new(PriShares).Split(pripolyDOD, n)
+
+	buf, _ := testPubPoly.MarshalBinary()
 	if err := decodePubPoly.UnmarshalBinary(buf); err != nil ||
-		!decodePubPoly.Equal(testPubPolyGl) {
+		!decodePubPoly.Equal(testPubPoly) {
 		t.Error("Failed to encode/ decode properly.")
+	}
+
+	// Verify that both the original polynomial and the decoded one can decode
+	// the shares.
+	for i := 0 ; i < n ; i++ {
+		if !testPubPoly.Check(i, testShares.Share(i)) {
+			t.Error("Original poly failed to recognize its share")
+		}	
+		if !decodePubPoly.Check(i, testShares.Share(i)) {
+			t.Error("Decoded poly failed to validate a share")
+		}
 	}
 
 	// Error handling
@@ -344,7 +359,7 @@ func TestPubPolyEncodeDecode(t *testing.T) {
 
 	// Verify that encode fails if the group and point are not the same
 	// length (aka not from the same group in this case).
-	testPubPoly := producePubPoly(group, k, k, secret, point)
+	testPubPoly = producePubPoly(group, k, k, secret, point)
 	testPubPoly.p[0] = altPoint
 	test(testPubPoly)
 
@@ -354,201 +369,6 @@ func TestPubPolyEncodeDecode(t *testing.T) {
 	buf, _ = testPubPolyGl.MarshalBinary()
 	if err := decodePubPoly.UnmarshalBinary(buf); err == nil {
 		t.Error("Decode should fail.")
-	}
-}
-
-// Encode a public polynomial and then decode it.
-func TestPubPolyEncodeDecodeExploreCheckErrors(t *testing.T) {
-
-	pripolyDOD := new(PriPoly).Pick(group, k, secret, random.Stream)
-	testPubPoly := new(PubPoly)
-	testPubPoly.Commit(pripolyDOD, nil)
-	decodePubPoly := new(PubPoly)
-	decodePubPoly.Init(group, k, nil)
-	testShares := new(PriShares).Split(pripolyDOD, n)
-	
-	buf, _ := testPubPoly.MarshalBinary()
-	if err := decodePubPoly.UnmarshalBinary(buf); err != nil ||
-		!decodePubPoly.Equal(testPubPoly) {
-		t.Error("Failed to encode/ decode properly.")
-	}
-	
-	if !testPubPoly.Equal(decodePubPoly) || !decodePubPoly.Equal(testPubPoly) {
-		t.Error("The public polynomials should be equal")
-	}
-	
-
-/*	if testPubPoly.b == nil && decodePubPoly.b != nil {
-		t.Fatal("Decode point base should be nil as well.")
-	} else
-		
-		if !testPubPoly.b.Equal(decodePubPoly.b) {
-			t.Error("The point base should be equal for the two polynomials..")
-		}
-	}*/
-	
-	// Uncomment this and everything will pass.
-
-	// Verifies that each point of the polynomial is the same.
-	for z := 0 ; z < k; z++ {
-		if !testPubPoly.p[z].Equal(decodePubPoly.p[z])  { //||
-		 //   testPubPoly.p[z].String() != decodePubPoly.p[z].String() {      <--- include this to produce success
-		
-			t.Error("A point failed to be properly decoded at position: ", z)
-			t.Error("Original",  testPubPoly.p[z].String())
-			t.Error("Decoded",  decodePubPoly.p[z].String())
-		}
-	}
-
-	for i := 0 ; i < n ; i++ {
-	
-		// Test to make sure that share i checks out okay.
-	
-		if !testPubPoly.Check(i, testShares.Share(i)) {
-			t.Error("Original poly failed to recognize its share")
-		}
-	
-		if !decodePubPoly.Check(i, testShares.Share(i)) {
-			t.Error("Decoded poly failed to validate a share")
-		}
-		
-		// Test to make sure the evaluation function properly computed
-		// The share raised to the appropriate point.
-		
-		psTest   := testPubPoly.g.Point().Mul(testPubPoly.b, testShares.Share(i))
-		psDecode := decodePubPoly.g.Point().Mul(decodePubPoly.b, testShares.Share(i))
-		
-		pvTest   := testPubPoly.Eval(i)
-		pvDecode := decodePubPoly.Eval(i)
-		
-		if !psTest.Equal(psDecode) {
-			t.Error("The polynomials produced different calculations.")
-			t.Error("Original",  psTest.String())
-			t.Error("Decoded",  psDecode.String())
-		}
-		
-		if !pvTest.Equal(pvDecode) {
-			t.Error("Mismatch in the evaluation of the polynomials.")
-			t.Error("Original",  pvTest.String())
-			t.Error("Decoded",  pvDecode.String())
-		}
-		
-		// Verifies that each point of the polynomial is the same.
-		if i < k {
-			if !testPubPoly.p[i].Equal(decodePubPoly.p[i]) ||
-			    testPubPoly.p[i].String() != decodePubPoly.p[i].String() {
-		
-				t.Error("Mismatch of point")
-				t.Error("Original",  testPubPoly.p[i].String())
-				t.Fatal("Decoded",  decodePubPoly.p[i].String())
-			}
-		}
-		
-		
-		// Walks through the evaluation computations and sees where things
-		// go wrong.
-
-		xiTest := testPubPoly.g.Secret().SetInt64(1 + int64(i)) // x-coordinate of this share
-		pvTestCom := testPubPoly.g.Point().Null()
-		
-		xiDecode    := decodePubPoly.g.Secret().SetInt64(1 + int64(i)) // x-coordinate of this share
-		pvDecodeCom := decodePubPoly.g.Point().Null()
-		
-		if !xiTest.Equal(xiDecode) {
-			t.Error("Xi not equal to begin with: ")
-			t.Error("Original",  xiTest.String())
-			t.Error("Decoded",  xiDecode.String())		
-		}
-		
-		if !pvTestCom.Equal(pvDecodeCom) {
-			t.Error("Xi not equal to begin with: ")
-			t.Error("Original",  pvTestCom.String())
-			t.Error("Decoded",  pvDecodeCom.String())		
-		}
-		
-		for j := k - 1; j >= 0; j-- {
-			pvTestCom.Mul(pvTestCom, xiTest)
-			pvTestCom.Add(pvTestCom, testPubPoly.p[j])
-
-			pvDecodeCom.Mul(pvDecodeCom, xiDecode)
-			pvDecodeCom.Add(pvDecodeCom, decodePubPoly.p[j])
-			
-			if !testPubPoly.p[j].Equal(decodePubPoly.p[j]) {
-				t.Error("WARNING: The Decode Public Poly has changed")
-			}
-			
-			if !pvTestCom.Equal(pvDecodeCom) {
-				t.Error("Evaluation of point divereged after step: ", j)
-				t.Error("Original",  pvTestCom.String())
-				t.Error("Decoded",  pvDecodeCom.String())
-				break		
-			}
-			
-			if !xiTest.Equal(xiDecode) {
-				t.Error("Xi base has changed: ", j)
-				t.Error("Original",  xiTest.String())
-				t.Error("Decoded",  xiDecode.String())
-				break		
-			}
-		}
-	}
-	
-	
-		
-	originalBuf, _ := testPubPoly.MarshalBinary()
-	decodedBuf, _ := decodePubPoly.MarshalBinary()
-	
-	if hex.Dump(originalBuf) != hex.Dump(decodedBuf) {
-		t.Error("The decodings are not the same.")
-		t.Error("Original: ", hex.Dump(originalBuf))
-		t.Error("Decoded: ", hex.Dump(decodedBuf))
-	}
-	    	
-
-}
-
-
-// Encode a public polynomial and then decode it.
-func TestPubPolyEncodeDecodeConfirmStringSolution(t *testing.T) {
-
-	pripolyDOD := new(PriPoly).Pick(group, k, secret, random.Stream)
-	testPubPoly := new(PubPoly)
-	testPubPoly.Commit(pripolyDOD, nil)
-	decodePubPoly := new(PubPoly)
-	decodePubPoly.Init(group, k, nil)
-	testShares := new(PriShares).Split(pripolyDOD, n)
-	
-	buf, _ := testPubPoly.MarshalBinary()
-	if err := decodePubPoly.UnmarshalBinary(buf); err != nil ||
-		!decodePubPoly.Equal(testPubPoly) {
-		t.Error("Failed to encode/ decode properly.")
-	}
-
-	// This seems to be the magic that will cause this issue to go away
-	// The string comparison below makes this test pass if you uncomment it.
-
-	// Verifies that each point of the polynomial is the same.
-	for z := 0 ; z < k; z++ {
-		if !testPubPoly.p[z].Equal(decodePubPoly.p[z])  { //||
-		 //   testPubPoly.p[z].String() != decodePubPoly.p[z].String() {      <--- include this to produce success
-		
-			t.Error("A point failed to be properly decoded at position: ", z)
-			t.Error("Original",  testPubPoly.p[z].String())
-			t.Error("Decoded",  decodePubPoly.p[z].String())
-		}
-	}
-
-	for i := 0 ; i < n ; i++ {
-	
-		// Test to make sure that share i checks out okay.
-	
-		if !testPubPoly.Check(i, testShares.Share(i)) {
-			t.Error("Original poly failed to recognize its share")
-		}
-	
-		if !decodePubPoly.Check(i, testShares.Share(i)) {
-			t.Error("Decoded poly failed to validate a share")
-		}
 	}
 }
 
