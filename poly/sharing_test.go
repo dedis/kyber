@@ -342,10 +342,10 @@ func TestPubPolyEncodeDecode(t *testing.T) {
 
 	// Verify that both the original polynomial and the decoded one can decode
 	// the shares.
-	for i := 0 ; i < n ; i++ {
+	for i := 0; i < n; i++ {
 		if !testPubPoly.Check(i, testShares.Share(i)) {
 			t.Error("Original poly failed to recognize its share")
-		}	
+		}
 		if !decodePubPoly.Check(i, testShares.Share(i)) {
 			t.Error("Decoded poly failed to validate a share")
 		}
