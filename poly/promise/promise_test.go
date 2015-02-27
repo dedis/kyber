@@ -63,7 +63,7 @@ func TestPromiseInit(t *testing.T) {
 
 	promise := new(Promise).Init(promiserKey, pt, r, guardianList)
 		
-	if promiserKey.Suite.String() != promise.shareGroup.String() ||
+	if promiserKey.Suite.String() != promise.shareSuite.String() ||
 	   promise.t != pt || promise.r != r || promise.n != numGuardians ||
 	   promise.pubKey != promiserKey.Public ||
 	   len(promise.signatures) != numGuardians   ||
@@ -77,8 +77,11 @@ func TestPromiseInit(t *testing.T) {
 	   		t.Error("Public key for guardian not added:", i)
 	   	}
 
-		// TODO: Figure out how to decrypt each secret and verify that
-		// it checks out okay.
+		diffieBase := promise.shareSuite.Point().Mul(guardianList[i], promiserKey.Secret)
+		share := promise.diffieHellmanDecrypt(promise.secrets[i], diffieBase)
+		if !promise.pubPoly.Check(i, share) {
+			t.Error("Polynomial Check failed for share ", i)
+		}
 	}
 	
 	// Error handling

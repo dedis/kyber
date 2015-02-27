@@ -15,6 +15,7 @@ import (
 // TODO Decide if I want to pass PromiseSignatures around as points or structs
 // TODO Add Equal, Marshal, and UnMarshal methods for all
 // TODO Add tests for things I haven't yet.
+// TODO In tests, only use basicPromise if you ain't going to change it.
 
 /* The PromiseSignature object is used for guardians to express their approval
  * of a given promise. After receiving a promise and verifying that their share
@@ -106,7 +107,7 @@ type Promise struct {
 	id string
 
 	// The cryptographic group to use for the private shares.
-	shareGroup abstract.Group
+	shareSuite abstract.Suite
 	
 	// The minimum number of shares needed to reconstruct the secret.
 	t int
@@ -133,7 +134,7 @@ type Promise struct {
 	// The list of secret shares to be sent to the guardians. They are
 	// encrypted with diffie-hellmen shared secrets between the guardian
 	// and the original server.
-	secrets    []abstract.Point
+	secrets    []abstract.Secret
 	
 	// A list of signatures validating that a guardian has approved of the
 	// secret share it is guarding.
@@ -167,10 +168,10 @@ func (p *Promise) Init(keyPair *config.KeyPair, t, r int,
 	p.t          = t
 	p.r          = r
 	p.n          = len(guardians)
-	p.shareGroup = keyPair.Suite
+	p.shareSuite = keyPair.Suite
 	p.pubKey     = keyPair.Public
 	p.guardians  = guardians
-	p.secrets    = make([]abstract.Point, p.n , p.n )
+	p.secrets    = make([]abstract.Secret, p.n , p.n )
 	p.signatures = make([]PromiseSignature, p.n , p.n )
 
 	// Verify that t <= r <= n
@@ -187,7 +188,7 @@ func (p *Promise) Init(keyPair *config.KeyPair, t, r int,
 	// Create the public polynomial and private shares. The total shares made
 	// should be equal to teh number of guardians while the minimum shares
 	// needed to reconstruct should be t.
-	pripoly   := new(poly.PriPoly).Pick(p.shareGroup, p.t, keyPair.Secret, random.Stream)
+	pripoly   := new(poly.PriPoly).Pick(p.shareSuite, p.t, keyPair.Secret, random.Stream)
 	prishares := new(poly.PriShares).Split(pripoly, p.n)
 	p.pubPoly = new(poly.PubPoly).Commit(pripoly, nil)
 	
@@ -195,8 +196,8 @@ func (p *Promise) Init(keyPair *config.KeyPair, t, r int,
 	// hellman exchange between the originator of the promist and the
 	// specific guardian.
 	for i := 0 ; i < p.n; i++ {
-		diffie := p.shareGroup.Point().Mul(guardians[i], keyPair.Secret)
-		p.secrets[i] = p.shareGroup.Point().Mul(diffie, prishares.Share(i))
+		diffieBase := p.shareSuite.Point().Mul(guardians[i], keyPair.Secret)
+		p.secrets[i] = p.diffieHellmanEncrypt(prishares.Share(i), diffieBase)
 	}
 	
 	return p
@@ -205,6 +206,36 @@ func (p *Promise) Init(keyPair *config.KeyPair, t, r int,
 // Returns the id of the policy
 func (p *Promise) GetId() string {
 	return p.id
+}
+
+/* Given a Diffie-Hellman shared key, encrypts a secret.
+ *
+ * Arguments
+ *    secret      = the secret to encrypt
+ *    diffieBase  = the DH shared key
+ *
+ * Return
+ *   the encrypted secret
+ */
+func (p *Promise) diffieHellmanEncrypt(secret abstract.Secret, diffieBase abstract.Point) abstract.Secret {	
+	cipher := p.shareSuite.Cipher(diffieBase.MarshalBinary())
+	diffieSecret := p.shareSuite.Secret().Pick(cipher)
+	return p.shareSuite.Secret().Add(secret, diffieSecret)
+}
+
+/* Given a Diffie-Hellman shared key, decrypts a secret.
+ *
+ * Arguments
+ *    secret      = the secret to decrypt
+ *    diffieBase  = the DH shared key
+ *
+ * Return
+ *   the decrypted secret
+ */
+func (p *Promise) diffieHellmanDecrypt(secret abstract.Secret, diffieBase abstract.Point) abstract.Secret {	
+	cipher := p.shareSuite.Cipher(diffieBase.MarshalBinary())
+	diffieSecret := p.shareSuite.Secret().Pick(cipher)
+	return p.shareSuite.Secret().Sub(secret, diffieSecret)
 }
 
 /* Verify that a share has been properly constructed.
@@ -217,10 +248,8 @@ func (p *Promise) GetId() string {
  *   whether the decrypted secret properly passes the public polynomial.
  */
 func (p *Promise) VerifyShare(i int, gPrikey abstract.Secret) bool {
-	//diffie := p.shareGroup.Point().Mul(p.pubKey, gPrikey)	
-	// TODO: actually figure out how to do decryption with diffie hellman.
-	// just a placeholder for now.
-	share := p.shareGroup.Secret()
+	diffieBase := p.shareSuite.Point().Mul(p.pubKey, gPrikey)
+	share := p.diffieHellmanDecrypt(p.secrets[i], diffieBase)
 	return p.pubPoly.Check(i, share)
 }
 
@@ -316,12 +345,9 @@ func (p *Promise) AddSignature(sig PromiseSignature) bool {
  *   A proof object that has the index and the decoded share.
  */
 func (p *Promise) Blame(i int, gPrikey abstract.Secret) BlameProof {
-	diffie := p.shareGroup.Point().Mul(p.pubKey, gPrikey)	
-	// TODO: actually figure out how to do decryption with diffie hellman.
-	// just a placeholder for now.
-	share := p.shareGroup.Secret()
-
-	return BlameProof{bi: i, bshare: share, diffieKey: diffie}
+	diffieBase := p.shareSuite.Point().Mul(p.pubKey, gPrikey)
+	share := p.diffieHellmanDecrypt(p.secrets[i], diffieBase)
+	return BlameProof{bi: i, bshare: share, diffieKey: diffieBase}
 }
 
 
@@ -335,9 +361,14 @@ func (p *Promise) Blame(i int, gPrikey abstract.Secret) BlameProof {
  */
 func (p *Promise) BlameVerify(proof BlameProof) bool {
 
-	// First, verify that the share given is actually the share the promiser
+	// If the index is invalid, the sender produced a malform blame proof.
+	if proof.bi > p.n || proof.bi < 0 {
+		return false
+	}
+
+	// Verify that the share given is actually the share the promiser
 	// provided in the promise.
-	badSecret := p.shareGroup.Point().Mul(proof.diffieKey, proof.bshare)
+	badSecret    := p.diffieHellmanEncrypt(proof.bshare, proof.diffieKey)
 	if !badSecret.Equal(p.secrets[proof.bi]) {
 		return false
 	}
