@@ -36,6 +36,9 @@ type Promise struct {
 	// active. t <= r
 	r int
 	
+	// The total number of shares to send.
+	n int
+	
 	// The public polynomial that is used to verify that a secret share
 	// given did indeed come from the appropriate private key.
 	pubPoly *poly.PubPoly
@@ -64,42 +67,44 @@ type Promise struct {
  *    r        = the minimum signatures from guardians needed for the promise to
  *               be valid.
  *    guardians = a list of the public keys of servers to act as guardians.
+ *
+ * Returns
+ *   The initialized promise
  */
 func (p *Promise) Init(priKey abstract.Secret, sgroup abstract.Group, t, r int,
 	guardians []abstract.Point) *Promise {
 
-	n := len(p.guardians)
-
 	// Basic initialization
 	p.t          = t
 	p.r          = r
+	p.n          = len(p.guardians)
 	p.shareGroup = sgroup
 	p.guardians  = guardians
-	p.secrets    = make([]abstract.Point, n, n)
-	p.signatures = make([][]byte, n, n)
+	p.secrets    = make([]abstract.Point, p.n , p.n )
+	p.signatures = make([][]byte, p.n , p.n )
 
 	// Verify that t <= r <= n
-	if n < t {
+	if p.n  < p.t {
 		panic("Not enough guardians for the secret")
 	} 
-	if r < t {
-		p.r = t
+	if p.r < p.t {
+		p.r = p.t
 	}
-	if r > n {
-		p.r = n
+	if p.r > p.n {
+		p.r = p.n
 	}
 
 	// Create the public polynomial and private shares. The total shares made
 	// should be equal to teh number of guardians while the minimum shares
 	// needed to reconstruct should be t.
 	pripoly   := new(poly.PriPoly).Pick(p.shareGroup, p.t, priKey, random.Stream)
-	prishares := new(poly.PriShares).Split(pripoly, n)
+	prishares := new(poly.PriShares).Split(pripoly, p.n)
 	p.pubPoly = new(poly.PubPoly).Commit(pripoly, nil)
 	
 	// Populate the secrets array. It encrypts each share with a diffie
 	// hellman exchange between the originator of the promist and the
 	// specific guardian.
-	for i := 0 ; i < n; i++ {
+	for i := 0 ; i < p.n; i++ {
 		diffie := p.shareGroup.Point().Mul(guardians[i], priKey)
 		p.secrets[i] = p.shareGroup.Point().Mul(diffie, prishares.Share(i))
 	}
@@ -107,4 +112,25 @@ func (p *Promise) Init(priKey abstract.Secret, sgroup abstract.Group, t, r int,
 	return p
 }
 
-
+/* Verify that a share has been properly constructed.
+ *
+ * Arguments
+ *    i        = the index of the share to verify
+ *    gPrikey  = the private key of the guardian of share i
+ *    osPubKey = the public key of server who owns the promise for decoding the
+ *               diffie-hellman secret 
+ *
+ * Return
+ *   whether the decrypted secret properly passes the public polynomial.
+ *
+ * Note
+ *   Be sure to properly pass in the right private/ public keys. Otherwise,
+ *   the function won't decrypt diffie hellman properly and
+ */
+func (p *Promise) VerifyShare(i int, gPrikey abstract.Secret, osPubKey abstract.Point) bool {
+	//diffie := p.shareGroup.Point().Mul(osPubKey, gPrikey)	
+	// TODO: actually figure out how to do decryption with diffie hellman.
+	// just a placeholder for now.
+	share := p.shareGroup.Secret()
+	return p.pubPoly.Check(i, share)
+}
