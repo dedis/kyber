@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/anon"
 	"github.com/dedis/crypto/config"
 	"github.com/dedis/crypto/poly"
 	"github.com/dedis/crypto/random"
@@ -182,7 +183,7 @@ func (p *Promise) Init(keyPair config.KeyPair, sgroup abstract.Group, t, r int,
 }
 
 // Returns the id of the policy
-func (p *Promise) GetId() String {
+func (p *Promise) GetId() string {
 	return p.id
 }
 
@@ -203,6 +204,27 @@ func (p *Promise) VerifyShare(i int, gPrikey abstract.Secret) bool {
 	return p.pubPoly.Check(i, share)
 }
 
+/* Verifies whether a Promise objects has enough signatures to be valid.
+ *
+ * Return
+ *   whether the Promise is now valid and considered trustworthy.
+ *
+ * Technical Notes: The function goes through the list of signatures and checks
+ *                  whether the signature is properly signed. If at least r of
+ *                  these are signed and r is greater than t (the minimum number
+ *                  of shares needed to reconstruct the secret), the promise is
+ *                  considered valid.
+ */
+func (p *Promise) VerifyPromise() bool {
+	validSigs := 0
+	for i := 0; i < p.n; i++ {
+		if p.VerifySignature(p.signatures[i]) {
+			validSigs += 1
+		}
+	}
+	return p.r > p.t && validSigs >= p.r
+}
+
 /* Produce a signature for a given guardian
  *
  * Arguments
@@ -216,13 +238,13 @@ func (p *Promise) VerifyShare(i int, gPrikey abstract.Secret) bool {
  *   The signature message will always be of the form:
  *      Guardian approves PromiseId
  */
-func (p *Promise) Sign(i int, gKeyPair config.KeyPair) []byte {
+func (p *Promise) Sign(i int, gKeyPair config.KeyPair) PromiseSignature {
 	set        := anon.Set{gKeyPair.Public}
-	approveMsg := kp.Public.String() + " approves " + p.id
-	sig        := anon.Sign(kp.Suite, random.Stream, approveMsg, set, nil,
-		0, kp.Secret)
+	approveMsg := gKeyPair.Public.String() + " approves " + p.id
+	sig        := anon.Sign(gKeyPair.Suite, random.Stream, []byte(approveMsg),
+		set, nil, 0, gKeyPair.Secret)
 		
-	return PromiseSignature{pi: i, suite: kp.Suite, signature: sig}
+	return PromiseSignature{pi: i, suite: gKeyPair.Suite, signature: sig}
 }
 
 /* Verifies a signature from a given guardian
@@ -254,7 +276,7 @@ func (p *Promise) VerifySignature(sig PromiseSignature) bool {
  *      Guardian approves PromiseId
  */
 func (p *Promise) AddSignature(sig PromiseSignature) bool {
-	if !p.VerifySignature(sig PromiseSignature) {
+	if !p.VerifySignature(sig) {
 		return false
 	}
 
