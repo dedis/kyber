@@ -1,8 +1,9 @@
 package promise
 
 import (
-	"time"
+	"reflect"
 	"strconv"
+	"time"
 
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/anon"
@@ -10,6 +11,10 @@ import (
 	"github.com/dedis/crypto/poly"
 	"github.com/dedis/crypto/random"
 )
+
+// TODO Decide if I want to pass PromiseSignatures around as points or structs
+// TODO Add Equal, Marshal, and UnMarshal methods for all
+// TODO Add tests for things I haven't yet.
 
 /* The PromiseSignature object is used for guardians to express their approval
  * of a given promise. After receiving a promise and verifying that their share
@@ -30,6 +35,18 @@ type PromiseSignature struct {
 	// The signature denoting that the guardian approves of guardining the
 	// promise.
 	signature []byte
+}
+
+
+// Tests whether a promise signature is uninitialized.
+func (p PromiseSignature) isUninitialized() bool {
+	return p.pi == 0 && p.suite == nil && p.signature == nil
+}
+
+// Tests whether two promise signatures are equal.
+func (p PromiseSignature) Equal(p2 PromiseSignature) bool {
+	return p.pi == p2.pi && p.suite.String() == p2.suite.String() &&
+	       reflect.DeepEqual(p, p2)
 }
 
 /* The BlameProof object provides an accountability measure. If a promiser
@@ -127,7 +144,6 @@ type Promise struct {
  *
  * Arguments
  *    priKey   = the secret to be promised.
- *    sgroup   = the abstract group under which the shares will be constructed.
  *    t        = the minimum number of shares needed to reconstruct the secret.
  *    r        = the minimum signatures from guardians needed for the promise to
  *               be valid.
@@ -135,8 +151,12 @@ type Promise struct {
  *
  * Returns
  *   The initialized promise
+ *
+ * Note
+ *   Since shares will be multiplied by Diffie-Hellman keys, they need to be the
+ *   same group as the keys.
  */
-func (p *Promise) Init(keyPair config.KeyPair, sgroup abstract.Group, t, r int,
+func (p *Promise) Init(keyPair *config.KeyPair, t, r int,
 	guardians []abstract.Point) *Promise {
 
 	// Basic initialization
@@ -146,8 +166,8 @@ func (p *Promise) Init(keyPair config.KeyPair, sgroup abstract.Group, t, r int,
 
 	p.t          = t
 	p.r          = r
-	p.n          = len(p.guardians)
-	p.shareGroup = sgroup
+	p.n          = len(guardians)
+	p.shareGroup = keyPair.Suite
 	p.pubKey     = keyPair.Public
 	p.guardians  = guardians
 	p.secrets    = make([]abstract.Point, p.n , p.n )
@@ -218,7 +238,9 @@ func (p *Promise) VerifyShare(i int, gPrikey abstract.Secret) bool {
 func (p *Promise) VerifyPromise() bool {
 	validSigs := 0
 	for i := 0; i < p.n; i++ {
-		if p.VerifySignature(p.signatures[i]) {
+		// Check whether the signature is initialized. Otherwise, bad
+		// things will happen.
+		if !p.signatures[i].isUninitialized() && p.VerifySignature(p.signatures[i]) {
 			validSigs += 1
 		}
 	}
@@ -238,7 +260,7 @@ func (p *Promise) VerifyPromise() bool {
  *   The signature message will always be of the form:
  *      Guardian approves PromiseId
  */
-func (p *Promise) Sign(i int, gKeyPair config.KeyPair) PromiseSignature {
+func (p *Promise) Sign(i int, gKeyPair *config.KeyPair) PromiseSignature {
 	set        := anon.Set{gKeyPair.Public}
 	approveMsg := gKeyPair.Public.String() + " approves " + p.id
 	sig        := anon.Sign(gKeyPair.Suite, random.Stream, []byte(approveMsg),
