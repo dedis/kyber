@@ -47,7 +47,7 @@ func produceGuardianList() []abstract.Point {
 	return newArray
 }
 
-// Tests that checks whether a method panics can use this funcition
+// Tests that check whether a method panics can use this funcition
 func deferTest(t *testing.T, message string) {
 	if r := recover(); r == nil {
 		t.Error(message)
@@ -112,15 +112,51 @@ func TestPromiseInit(t *testing.T) {
 
 // Tests that GetId returns the Promise Id and the Id is unique.
 func TestPromiseGetId(t *testing.T) {
-	promise := new(Promise).Init(promiserKey, pt, r, guardianList)
-	promise2 := new(Promise).Init(promiserKey, pt, r, guardianList)
-
 	if basicPromise.id != basicPromise.GetId() {
 		t.Error("Id not returned properly.")
 	}
 	
+	// Make sure two promises made at similar times are different.
+	promise  := new(Promise).Init(promiserKey, pt, r, guardianList)
+	promise2 := new(Promise).Init(promiserKey, pt, r, guardianList)
+
 	if promise.GetId() == promise2.GetId() {
 		t.Error("Id's should be different for different policies")
+	}
+}
+
+
+// Tests that encrypting a secret with a diffie-hellman shared key and then
+// decrypting it succeeds.
+func TestPromiseDiffieHellmanEncryptDecrypt(t *testing.T) {
+	// key2 and promiserKey will be the two parties. The secret they are
+	// share is the private key of secretKey
+	key2      := produceKeyPair()
+	secretKey := produceKeyPair()
+	
+	diffieBaseBasic := basicPromise.shareSuite.Point().Mul(key2.Public, promiserKey.Secret)
+	encryptedSecret := basicPromise.diffieHellmanEncrypt(secretKey.Secret, diffieBaseBasic)
+
+
+	diffieBaseKey2 := basicPromise.shareSuite.Point().Mul(promiserKey.Public, key2.Secret)
+	secret := basicPromise.diffieHellmanDecrypt(encryptedSecret, diffieBaseKey2)
+
+	if !secret.Equal(secretKey.Secret) {
+		t.Error("Diffie-Hellman encryption/decryption failed.")
+	}
+}
+
+// Tests that guardians can properly verify their share. Make sure that
+// verification fails if the proper credentials are not supplied (aka Diffie-
+// Hellman decryption failed).
+func TestPromiseShareVerify(t *testing.T) {
+	if !basicPromise.VerifyShare(0, guardianKeys[0].Secret) {
+		t.Error("The share should have been verified")
+	}
+
+	// Make sure the wrong index and key pair fail.
+	if basicPromise.VerifyShare(numGuardians-1, guardianKeys[0].Secret) {
+		t.Error("The share should not have been valid.")
 	}
 }
 
@@ -168,26 +204,45 @@ func TestPromiseSignVerify(t *testing.T) {
 // Verify that the promise can produce a valid signature and then verify it.
 func TestPromiseAddSignature(t *testing.T) {
 
+	promise := new(Promise).Init(promiserKey, pt, r, guardianList)
+
 	// Error Checking. Make sure bad signatures are not added.
 	badSig := produceSigWithBadMessage()
-	if basicPromise.AddSignature(badSig) ||
-	   !basicPromise.signatures[0].isUninitialized() {
+	if promise.AddSignature(badSig) ||
+	   !promise.signatures[0].isUninitialized() {
 		t.Error("Signature should not have been added")
 	}
 
 	badSig = produceSigWithBadIndex()
-	if basicPromise.AddSignature(badSig) ||
-	   !basicPromise.signatures[numGuardians-1].isUninitialized() {
+	if promise.AddSignature(badSig) ||
+	   !promise.signatures[numGuardians-1].isUninitialized() {
 		t.Error("Signature should not have been added")
 	}
 
 	// Verify that all validly produced signatures can be added.
 	for i := 0 ; i < numGuardians; i++ {
-		sig := basicPromise.Sign(i, guardianKeys[i])
+		sig := promise.Sign(i, guardianKeys[i])
 		
-		if !basicPromise.AddSignature(sig) ||
-		   !sig.Equal(basicPromise.signatures[i]) {
+		if !promise.AddSignature(sig) ||
+		   !sig.Equal(promise.signatures[i]) {
 			t.Error("Signature failed to be added")
 		}
+	}
+}
+
+
+// Verify that once r signatures have been added, the promise becomes valid.
+func TestPromiseVerify(t *testing.T) {
+
+	promise := new(Promise).Init(promiserKey, pt, r, guardianList)
+
+	for i := 0 ; i < numGuardians; i++ {
+		if i < r && promise.VerifyPromise() {
+			t.Error("Not enough signtures have been added yet", i, r)
+		} else if i >= r && !promise.VerifyPromise() {
+			t.Error("Promise should be valid now.")
+		}
+
+		promise.AddSignature(promise.Sign(i, guardianKeys[i]))
 	}
 }

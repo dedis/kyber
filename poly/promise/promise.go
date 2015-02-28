@@ -16,6 +16,9 @@ import (
 // TODO Add Equal, Marshal, and UnMarshal methods for all
 // TODO Add tests for things I haven't yet.
 // TODO In tests, only use basicPromise if you ain't going to change it.
+// TODO Check the valdidity of PromiseSignature and BlameProof more extensively.
+//      make sure same suite, index proper, etc.
+// TODO Create valid promise to do basic sanity checking.
 
 /* The PromiseSignature object is used for guardians to express their approval
  * of a given promise. After receiving a promise and verifying that their share
@@ -46,7 +49,7 @@ func (p PromiseSignature) isUninitialized() bool {
 
 // Tests whether two promise signatures are equal.
 func (p PromiseSignature) Equal(p2 PromiseSignature) bool {
-	return p.pi == p2.pi && p.suite.String() == p2.suite.String() &&
+	return p.pi == p2.pi && p.suite == p2.suite &&
 	       reflect.DeepEqual(p, p2)
 }
 
@@ -246,6 +249,11 @@ func (p *Promise) diffieHellmanDecrypt(secret abstract.Secret, diffieBase abstra
  *
  * Return
  *   whether the decrypted secret properly passes the public polynomial.
+ *
+ * Note
+ *   Make sure that the proper index and key is specified. Otherwise, the
+ *   function will return false because diffieHellmanDecrypt gave the wrong
+ *   result. In short, make sure to verify only shares that are allotted to you.
  */
 func (p *Promise) VerifyShare(i int, gPrikey abstract.Secret) bool {
 	diffieBase := p.shareSuite.Point().Mul(p.pubKey, gPrikey)
