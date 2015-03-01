@@ -2,6 +2,7 @@ package promise
 
 import (
 	"testing"
+	"reflect"
 
 	"github.com/dedis/crypto/anon"
 	"github.com/dedis/crypto/abstract"
@@ -54,13 +55,47 @@ func deferTest(t *testing.T, message string) {
 	}
 }
 
+// Verifies that Init properly initalizes a new PromiseSignature object
+func TestPromiseSignatureInit(t *testing.T) {
+	i := 20 
+	sig := []byte("This is a test")
+	p := new(PromiseSignature).Init(i, keySuite, sig)
+	
+	if p.pi != i || p.suite != keySuite || !reflect.DeepEqual(sig, p.signature) {
+		t.Error("PromiseSignature not properly initialized.")
+	}
+}
+
+// Verifies that Equal properly works for PromiseSignature objects
+func TestPromiseSignatureEqual(t *testing.T) {
+	sig := []byte("This is a test")
+	p := new(PromiseSignature).Init(29, keySuite, sig)
+	
+	if !p.Equal(p) {
+		t.Error("PromiseSignature should equal itself.")
+	}
+	
+	// Error cases
+	p2 := new(PromiseSignature).Init(20, keySuite, sig)	
+	if p.Equal(p2) {
+		t.Error("PromiseSignature differ in pi.")
+	}
+
+	p2 = new(PromiseSignature).Init(29, nil, sig)	
+	if p.Equal(p2) {
+		t.Error("PromiseSignature differ in suite.")
+	}
+
+	p2 = new(PromiseSignature).Init(29, keySuite, nil)	
+	if p.Equal(p2) {
+		t.Error("PromiseSignature differ in signature.")
+	}
+}
+
 // Verifies that Init properly initalizes a new Promise object
 func TestPromiseInit(t *testing.T) {
 
 	// Verify that a promise can be initialized properly.
-	pt := 10
-	r := 15
-
 	promise := new(Promise).Init(promiserKey, pt, r, guardianList)
 		
 	if promiserKey.Suite.String() != promise.shareSuite.String() ||
@@ -172,17 +207,17 @@ func TestPromiseSignAndVerify(t *testing.T) {
 }
 
 // Produces a bad signature that has a malformed approve message
-func produceSigWithBadMessage() PromiseSignature {
+func produceSigWithBadMessage() *PromiseSignature {
 	set        := anon.Set{guardianKeys[0].Public}
 	approveMsg := "Bad message"
 	digSig     := anon.Sign(guardianKeys[0].Suite, random.Stream, []byte(approveMsg),
 		     set, nil, 0, guardianKeys[0].Secret)
 		     
-	return PromiseSignature{pi: 0, suite: guardianKeys[0].Suite, signature: digSig}
+	return new(PromiseSignature).Init(0, guardianKeys[0].Suite, digSig)
 }
 
 // Produces a bad signature that says it is for the wrong index.
-func produceSigWithBadIndex() PromiseSignature {
+func produceSigWithBadIndex() *PromiseSignature {
 	sig    := basicPromise.Sign(0, guardianKeys[0])
 	sig.pi = numGuardians-1   
 	return sig
@@ -209,13 +244,13 @@ func TestPromiseAddSignature(t *testing.T) {
 	// Error Checking. Make sure bad signatures are not added.
 	badSig := produceSigWithBadMessage()
 	if promise.AddSignature(badSig) ||
-	   !promise.signatures[0].isUninitialized() {
+	   promise.signatures[0] != nil {
 		t.Error("Signature should not have been added")
 	}
 
 	badSig = produceSigWithBadIndex()
 	if promise.AddSignature(badSig) ||
-	   !promise.signatures[numGuardians-1].isUninitialized() {
+	   promise.signatures[numGuardians-1] != nil {
 		t.Error("Signature should not have been added")
 	}
 

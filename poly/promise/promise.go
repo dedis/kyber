@@ -12,7 +12,7 @@ import (
 	"github.com/dedis/crypto/random"
 )
 
-// TODO Decide if I want to pass PromiseSignatures around as points or structs
+// TODO Pass BlameProof as pointer. Consider generalizing it.
 // TODO Add Equal, Marshal, and UnMarshal methods for all
 // TODO Add tests for things I haven't yet.
 // TODO In tests, only use basicPromise if you ain't going to change it.
@@ -42,13 +42,25 @@ type PromiseSignature struct {
 }
 
 
-// Tests whether a promise signature is uninitialized.
-func (p PromiseSignature) isUninitialized() bool {
-	return p.pi == 0 && p.suite == nil && p.signature == nil
+/* Initializes a new PromiseSignature
+ *
+ * Arguments
+ *    i   = the index of the Promise share the guardian is approving.
+ *    s   = the signing suite
+ *    sig = the signature of approval
+ *
+ * Returns
+ *   An initialized PromiseSignature
+ */
+func (p *PromiseSignature) Init(i int, s abstract.Suite, sig []byte) *PromiseSignature {
+	p.pi        = i
+	p.suite     = s
+	p.signature = sig
+	return p
 }
 
 // Tests whether two promise signatures are equal.
-func (p PromiseSignature) Equal(p2 PromiseSignature) bool {
+func (p *PromiseSignature) Equal(p2 *PromiseSignature) bool {
 	return p.pi == p2.pi && p.suite == p2.suite &&
 	       reflect.DeepEqual(p, p2)
 }
@@ -141,7 +153,7 @@ type Promise struct {
 	
 	// A list of signatures validating that a guardian has approved of the
 	// secret share it is guarding.
-	signatures []PromiseSignature
+	signatures []*PromiseSignature
 }
 
 /* Initializes a new promise to guard a secret.
@@ -175,7 +187,7 @@ func (p *Promise) Init(keyPair *config.KeyPair, t, r int,
 	p.pubKey     = keyPair.Public
 	p.guardians  = guardians
 	p.secrets    = make([]abstract.Secret, p.n , p.n )
-	p.signatures = make([]PromiseSignature, p.n , p.n )
+	p.signatures = make([]*PromiseSignature, p.n , p.n )
 
 	// Verify that t <= r <= n
 	if p.n  < p.t {
@@ -221,7 +233,11 @@ func (p *Promise) GetId() string {
  *   the encrypted secret
  */
 func (p *Promise) diffieHellmanEncrypt(secret abstract.Secret, diffieBase abstract.Point) abstract.Secret {	
-	cipher := p.shareSuite.Cipher(diffieBase.MarshalBinary())
+	buff, err := diffieBase.MarshalBinary()
+	if err != nil {
+		panic("Bad shared secret for Diffie-Hellman give.")
+	}
+	cipher := p.shareSuite.Cipher(buff)
 	diffieSecret := p.shareSuite.Secret().Pick(cipher)
 	return p.shareSuite.Secret().Add(secret, diffieSecret)
 }
@@ -236,7 +252,11 @@ func (p *Promise) diffieHellmanEncrypt(secret abstract.Secret, diffieBase abstra
  *   the decrypted secret
  */
 func (p *Promise) diffieHellmanDecrypt(secret abstract.Secret, diffieBase abstract.Point) abstract.Secret {	
-	cipher := p.shareSuite.Cipher(diffieBase.MarshalBinary())
+	buff, err := diffieBase.MarshalBinary()
+	if err != nil {
+		panic("Bad shared secret for Diffie-Hellman give.")
+	}
+	cipher := p.shareSuite.Cipher(buff)
 	diffieSecret := p.shareSuite.Secret().Pick(cipher)
 	return p.shareSuite.Secret().Sub(secret, diffieSecret)
 }
@@ -277,7 +297,7 @@ func (p *Promise) VerifyPromise() bool {
 	for i := 0; i < p.n; i++ {
 		// Check whether the signature is initialized. Otherwise, bad
 		// things will happen.
-		if !p.signatures[i].isUninitialized() && p.VerifySignature(p.signatures[i]) {
+		if p.signatures[i] != nil && p.VerifySignature(p.signatures[i]) {
 			validSigs += 1
 		}
 	}
@@ -297,13 +317,13 @@ func (p *Promise) VerifyPromise() bool {
  *   The signature message will always be of the form:
  *      Guardian approves PromiseId
  */
-func (p *Promise) Sign(i int, gKeyPair *config.KeyPair) PromiseSignature {
+func (p *Promise) Sign(i int, gKeyPair *config.KeyPair) *PromiseSignature {
 	set        := anon.Set{gKeyPair.Public}
 	approveMsg := gKeyPair.Public.String() + " approves " + p.id
 	sig        := anon.Sign(gKeyPair.Suite, random.Stream, []byte(approveMsg),
 		set, nil, 0, gKeyPair.Secret)
 		
-	return PromiseSignature{pi: i, suite: gKeyPair.Suite, signature: sig}
+	return new(PromiseSignature).Init(i, gKeyPair.Suite, sig)
 }
 
 /* Verifies a signature from a given guardian
@@ -314,7 +334,7 @@ func (p *Promise) Sign(i int, gKeyPair *config.KeyPair) PromiseSignature {
  * Return
  *   whether or not the signature is valid
  */
-func (p *Promise) VerifySignature(sig PromiseSignature) bool {
+func (p *Promise) VerifySignature(sig *PromiseSignature) bool {
 	set := anon.Set{p.guardians[sig.pi]}
 	approveMsg := p.guardians[sig.pi].String() + " approves " + p.id
 	_, err := anon.Verify(sig.suite, []byte(approveMsg), set, nil, sig.signature)
@@ -334,7 +354,7 @@ func (p *Promise) VerifySignature(sig PromiseSignature) bool {
  *   The signature message will always be of the form:
  *      Guardian approves PromiseId
  */
-func (p *Promise) AddSignature(sig PromiseSignature) bool {
+func (p *Promise) AddSignature(sig *PromiseSignature) bool {
 	if !p.VerifySignature(sig) {
 		return false
 	}
