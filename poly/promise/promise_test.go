@@ -92,12 +92,6 @@ func TestPromiseSignatureBinaryMarshalling(t *testing.T) {
 	}
 	if !sig.Equal(decodedSig) {
 		t.Error("Decoded signature not equal to original")
-		t.Error(sig.pi)
-		t.Error(sig.suite)
-		t.Error(sig.signature)
-		t.Error(decodedSig.pi)
-		t.Error(decodedSig.suite)
-		t.Error(decodedSig.signature)
 	}
 	
 	// Tests MarshlTo and UnmarshalFrom
@@ -244,12 +238,12 @@ func TestPromiseDiffieHellmanEncryptDecrypt(t *testing.T) {
 // verification fails if the proper credentials are not supplied (aka Diffie-
 // Hellman decryption failed).
 func TestPromiseShareVerify(t *testing.T) {
-	if !basicPromise.VerifyShare(0, guardianKeys[0].Secret) {
+	if !basicPromise.VerifyShare(0, guardianKeys[0]) {
 		t.Error("The share should have been verified")
 	}
 
 	// Make sure the wrong index and key pair fail.
-	if basicPromise.VerifyShare(numGuardians-1, guardianKeys[0].Secret) {
+	if basicPromise.VerifyShare(numGuardians-1, guardianKeys[0]) {
 		t.Error("The share should not have been valid.")
 	}
 }
@@ -338,5 +332,67 @@ func TestPromiseVerify(t *testing.T) {
 		}
 
 		promise.AddSignature(promise.Sign(i, guardianKeys[i]))
+	}
+}
+
+// Verify that guardian secret shares can be revealed properly and verified.
+func TestPromiseRevealShareAndShareVerify(t *testing.T) {
+
+	promiseShare := basicPromise.RevealShare(0, guardianKeys[0])
+	if !basicPromise.PromiseShareVerify(promiseShare) {
+		t.Error("The share should have been marked as valid")
+	}
+	
+	// Error Handling
+	badShare := basicPromise.RevealShare(0, guardianKeys[0])
+	badShare.i = -10
+	if basicPromise.PromiseShareVerify(badShare) {
+		t.Error("The share is invalid and has too low an index.")
+	}
+
+
+	badShare = basicPromise.RevealShare(0, guardianKeys[0])
+	badShare.i = numGuardians + 20
+	if basicPromise.PromiseShareVerify(badShare) {
+		t.Error("The share is invalid and has too high an index.")
+	}
+	
+	badShare = basicPromise.RevealShare(0, guardianKeys[0])
+	badShare.share = guardianKeys[0].Secret
+	if basicPromise.PromiseShareVerify(badShare) {
+		t.Error("The PromiseShare is invalid with a bad share.")
+	}
+}
+
+// Verify revealed shares can be added properly and then reconstructed
+func TestPromiseShareAdditionAndReconstruction(t *testing.T) {
+
+	promise := new(Promise).Init(promiserKey, pt, r, guardianList)
+
+	for i := 0 ; i < numGuardians; i++ {
+	
+		share := promise.RevealShare(i, guardianKeys[i])
+		
+		if !promise.PromiseShareVerify(share) {
+			t.Fatal("The share should be valid.")
+		}
+		
+		promise.AddRevealedSecret(share)
+		
+		if i < pt-1 && promise.CanReconstructSecret() {
+			t.Fatal("Not enough shares to reconstruct yet.")
+		}
+
+		if i >= pt-1 && !promise.CanReconstructSecret() {
+			t.Fatal("The secret should be reconstructable now.")
+		} 
+		
+		if i >= pt-1 && promise.CanReconstructSecret(){
+			secret := promise.ReconstructSecret()
+			
+			if !secret.Equal(promiserKey.Secret) {
+				t.Fatal("Reconstructed secret not equal to original.")
+			}
+		}
 	}
 }
