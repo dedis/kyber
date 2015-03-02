@@ -1,6 +1,7 @@
 package promise
 
 import (
+	"bytes"
 	"testing"
 	"reflect"
 
@@ -65,6 +66,64 @@ func TestPromiseSignatureInit(t *testing.T) {
 		t.Error("PromiseSignature not properly initialized.")
 	}
 }
+
+// Verifies that UnMarshalInit properly initalizes for unmarshalling
+func TestPromiseSignatureUnMarshalInit(t *testing.T) {
+	p := new(PromiseSignature).UnMarshalInit(keySuite)
+	if p.suite != keySuite {
+		t.Error("PromiseSignature not properly initialized.")
+	}
+}
+
+// Verifies that UnMarshalInit properly initalizes for unmarshalling
+func TestPromiseSignatureBinaryMarshalling(t *testing.T) {
+	
+	// Tests BinaryMarshal, BinaryUnmarshal, and MarshalSize
+	sig := basicPromise.Sign(numGuardians-1, guardianKeys[numGuardians-1])
+	encodedSig, err := sig.MarshalBinary()
+	if err != nil || len(encodedSig) != sig.MarshalSize() {
+		t.Fatal("Marshalling failed: ", err)
+	}
+	
+	decodedSig := new(PromiseSignature).UnMarshalInit(keySuite)
+	err = decodedSig.UnmarshalBinary(encodedSig)
+	if err != nil {
+		t.Fatal("UnMarshalling failed: ", err)
+	}
+	if !sig.Equal(decodedSig) {
+		t.Error("Decoded signature not equal to original")
+		t.Error(sig.pi)
+		t.Error(sig.suite)
+		t.Error(sig.signature)
+		t.Error(decodedSig.pi)
+		t.Error(decodedSig.suite)
+		t.Error(decodedSig.signature)
+	}
+	
+	// Tests MarshlTo and UnmarshalFrom
+	sig2 := basicPromise.Sign(1, guardianKeys[1])
+	bufWriter := new(bytes.Buffer)
+	
+	bytesWritter, errs := sig2.MarshalTo(bufWriter)
+	
+	if bytesWritter != sig2.MarshalSize() || errs != nil {
+		t.Fatal("MarshalTo failed: ", bytesWritter, err)
+	}
+	
+	decodedSig2 := new(PromiseSignature).UnMarshalInit(keySuite)
+	bufReader := bytes.NewReader(bufWriter.Bytes())
+	bytesRead, errs2 := decodedSig2.UnmarshalFrom(bufReader)
+	if bytesRead != sig2.MarshalSize() ||
+	   sig2.MarshalSize() != decodedSig2.MarshalSize() ||
+	   errs2 != nil {
+		t.Fatal("UnmarshalFrom failed: ", bytesRead, errs2)
+	}
+	if !sig2.Equal(decodedSig2) {
+		t.Error("Signature read does not equal original")
+	}
+}
+
+
 
 // Verifies that Equal properly works for PromiseSignature objects
 func TestPromiseSignatureEqual(t *testing.T) {
