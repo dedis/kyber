@@ -22,6 +22,9 @@ import (
 // TODO Check the valdidity of PromiseSignature and BlameProof more extensively.
 //      make sure same suite, index proper, etc.
 // TODO Create valid promise to do basic sanity checking.
+// TODO Combine the valid* and Verify*
+// TODO Decouple keysuite from sharesuite
+// TODO It should be i >= p.n
 
 /* The PromiseSignature object is used for guardians to express their approval
  * of a given promise. After receiving a promise and verifying that their share
@@ -195,6 +198,40 @@ func (p *PromiseSignature) UnmarshalFrom(r io.Reader) (int, error) {
 	return n+m, p.UnmarshalBinary(finalBuf)
 }
 
+/* PromiseShare is used to represent a secret share of a Promise. When a
+ * guardian wants to reveal the secret share it is guarding either to a promised
+ * client or to other guardians to prove that the promiser is crooked, it
+ * constructs this object.
+ *
+ * The key features of a PromiseShare are:
+ *	1. The index of the share
+ *      2. The share itself
+ *      3. The Diffie-Hellman secret between the guardian and promiser
+ *
+ * #3 is used for verification purposes. Other servers can use it to prove that
+ * encrypting #2 with #3 will produce the secret stored in the promise.
+ *
+ * As mentioned above, PromiseShare's can also be used as "BlameProof" objects.
+ *
+ * The BlameProof object provides an accountability measure. If a promiser
+ * decides to construct a faulty share, guardians can construct a BlameProof
+ * to show that the server is malicious. 
+ * 
+ * The guardian provides the index of the bad secret, the bad secret itself,
+ * and its diffie-hellman shared key with the promiser. Other servers can then
+ * verify if the promiser is malicious or the guardian is falsely accusing the
+ * server.
+ *
+ * To quickly summarize the blame procedure, two things must hold for the blame
+ * to succeed:
+ *
+ *   1. The provided share when encrypted with the diffie key must equal the
+ *   point provided at index bi of the promise. This verifies that the share
+ *   was actually intended for the guardian.
+ *
+ *   2. The provided share must fail to pass pubPoly.Check. This ensures that
+ *   the share is actually corrupted and the guardian is not just lying.
+ */
 
 type PromiseShare struct {
 
@@ -230,37 +267,6 @@ func (p *PromiseShare) Init(i int, s abstract.Secret, d abstract.Point) *Promise
 func (p *PromiseShare) Equal(p2 *PromiseShare) bool {
 	return p.i == p2.i && p.share.Equal(p2.share) &&
 	       p.diffieKey.Equal(p2.diffieKey)
-}
-
-/* The BlameProof object provides an accountability measure. If a promiser
- * decides to construct a faulty share, guardians can construct a BlameProof
- * to show that the server is malicious. 
- * 
- * The guardian provides the index of the bad secret, the bad secret itself,
- * and its diffie-hellman shared key with the promiser. Other servers can then
- * verify if the promiser is malicious or the guardian is falsely accusing the
- * server.
- *
- * To quickly summarize the blame procedure, two things must hold for the blame
- * to succeed:
- *
- *   1. The provided share when encrypted with the diffie key must equal the
- *   point provided at index bi of the promise. This verifies that the share
- *   was actually intended for the guardian.
- *
- *   2. The provided share must fail to pass pubPoly.Check. This ensures that
- *   the share is actually corrupted and the guardian is not just lying.
- */
-type BlameProof struct {
-
-	// The index of the share that is thought to be a bad secret
-	bi int
-	
-	// The actual share that is thought to be bad.
-	bshare abstract.Secret
-	
-	// The Diffie-Hellman key between guardian i and the promiser.
-	diffieKey abstract.Point
 }
 
 /* Promise objects are mechanism by which servers can promise that a certain
@@ -690,16 +696,14 @@ func (p *Promise) ReconstructSecret() abstract.Secret {
 /* Create a proof that the promiser maliciously constructed a given secret.
  *
  * Arguments
- *    i        = the index of the malicious secret
- *    gPrikey  = the private key of the guardian of share i
+ *    i         = the index of the malicious secret
+ *    gKeyPair  = the key pair of the guardian of share i
  *
  * Return
- *   A proof object that has the index and the decoded share.
+ *   A proof object that the promiser is malicious
  */
-func (p *Promise) Blame(i int, gPrikey abstract.Secret) BlameProof {
-	diffieBase := p.shareSuite.Point().Mul(p.pubKey, gPrikey)
-	share := p.diffieHellmanDecrypt(p.secrets[i], diffieBase)
-	return BlameProof{bi: i, bshare: share, diffieKey: diffieBase}
+func (p *Promise) Blame(i int, gKeyPair *config.KeyPair) *PromiseShare {
+	return p.RevealShare(i, gKeyPair)
 }
 
 
@@ -711,23 +715,30 @@ func (p *Promise) Blame(i int, gPrikey abstract.Secret) BlameProof {
  * Return
  *   Whether the alleged share is actually corrupted or not.
  */
-func (p *Promise) BlameVerify(proof BlameProof) bool {
+func (p *Promise) BlameVerify(proof *PromiseShare) bool {
 
 	// If the index is invalid, the sender produced a malform blame proof.
-	if proof.bi > p.n || proof.bi < 0 {
+	if proof.i > p.n || proof.i < 0 {
 		return false
 	}
 
 	// Verify that the share given is actually the share the promiser
 	// provided in the promise.
-	badSecret    := p.diffieHellmanEncrypt(proof.bshare, proof.diffieKey)
-	if !badSecret.Equal(p.secrets[proof.bi]) {
+	badSecret    := p.diffieHellmanEncrypt(proof.share, proof.diffieKey)
+	if !badSecret.Equal(p.secrets[proof.i]) {
 		return false
 	}
+	
+	// The diffie key should have been properly made. If not, the blamer is
+	// crooked.
+//	correctDiffie := p.shareSuite.Point().Add(p.guardians[proof.i], p.pubKey)
+//	if !correctDiffie.Equal(proof.diffieKey) {
+//		return false
+//	}
 
 	// If so, see whether the bad share fails to pass pubPoly.Check. If it
 	// fails, the blame is valid. If the check succeeds, the blame was
 	// unjustified.
-	return !p.pubPoly.Check(proof.bi, proof.bshare)
+	return !p.pubPoly.Check(proof.i, proof.share)
 }
 

@@ -396,3 +396,48 @@ func TestPromiseShareAdditionAndReconstruction(t *testing.T) {
 		}
 	}
 }
+
+// Verify that guardians can properly create and verify blame proofs
+func TestPromiseBlameAndVerify(t *testing.T) {
+
+	// Create a bad promise object. Create a new secret that will fail the
+	// the public polynomial check. 
+	promise := new(Promise).Init(promiserKey, pt, r, guardianList)
+	badKey := guardianKeys[numGuardians-1]
+	
+	diffieBase := promise.shareSuite.Point().Mul(promiserKey.Public, badKey.Secret)
+	badShare := promise.diffieHellmanEncrypt(badKey.Secret, diffieBase)
+	
+	promise.secrets[0] = badShare
+
+
+	validProof := promise.Blame(0, guardianKeys[0])
+	if !promise.BlameVerify(validProof) {
+		t.Error("The proof is valid and should be accepted.")
+	}
+
+	// Error handling
+	goodPromiseShare := basicPromise.Blame(0, guardianKeys[0])
+	if basicPromise.BlameVerify(goodPromiseShare) {
+		t.Error("Invalid blame: the share is actually good.")
+	}
+
+	badProof := basicPromise.Blame(0, guardianKeys[0])
+	badProof.i = -10
+	if basicPromise.BlameVerify(badProof) {
+		t.Error("The i index is below 0")
+	}
+
+	badProof = basicPromise.Blame(0, guardianKeys[0])
+	badProof.i = numGuardians +20
+	if basicPromise.BlameVerify(badProof) {
+		t.Error("The i index is below above n")
+	}
+
+	badProof = basicPromise.Blame(0, guardianKeys[0])
+	badProof.share = guardianKeys[0].Secret
+	if basicPromise.BlameVerify(badProof) {
+		t.Error("The PromiseShare is invalid with a bad share.")
+	}
+}
+
