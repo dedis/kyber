@@ -33,9 +33,6 @@ type PromiseSignature struct {
 	// The index of the guardian producing the signature
 	pi int
 	
-	// The suite used for the signing
-	suite abstract.Suite
-	
 	// The signature denoting that the guardian approves of guardining the
 	// promise.
 	signature []byte
@@ -52,18 +49,73 @@ type PromiseSignature struct {
  * Returns
  *   An initialized PromiseSignature
  */
-func (p *PromiseSignature) Init(i int, s abstract.Suite, sig []byte) *PromiseSignature {
+func (p *PromiseSignature) Init(i int, sig []byte) *PromiseSignature {
 	p.pi        = i
-	p.suite     = s
 	p.signature = sig
 	return p
 }
 
 // Tests whether two promise signatures are equal.
 func (p *PromiseSignature) Equal(p2 *PromiseSignature) bool {
-	return p.pi == p2.pi && p.suite == p2.suite &&
-	       reflect.DeepEqual(p, p2)
+	return p.pi == p2.pi && reflect.DeepEqual(p, p2)
 }
+
+// Return the encoded length of this polynomial commitment.
+func (p *PromiseSignature) MarshalSize() int {
+	return reflect.TypeOf(int).Size() + len(p.signature)
+}
+
+// Encode this polynomial into a byte slice exactly Len() bytes long.
+func (p *PromiseSignature) MarshalBinary() ([]byte, error) {
+	buf := make([]byte, p.MarshalSize())
+
+	// Commit the index to the buffer.	
+	copy(buf, []byte(p.pi))
+	index := reflect.TypeOf(int).Size()
+
+	// Commit the signature to the buffer
+	index += p.suite.MarshalSize()
+	copy(buf[index:], signature)
+	return buf, nil
+}
+
+// Decode this polynomial from a slice exactly Len() bytes long.
+func (p *PromiseSignature) UnmarshalBinary(buf []byte) error {
+	intSize    := reflect.TypeOf(int).Size()
+	suiteSize :=  p.suite.MarshalSize()
+	
+	// The signature should at least be the size of the suite, an integer
+	// to contain the index, and at least one space for the signature
+	// (though the signature should be much larger realistically)
+	if len(buf) < intSize + suiteSize + 1 {
+		return err("Buffer size too small")
+	}
+	
+	p.pi = int(buf[:intSize])
+	if err := p.suite.UnmarshalBinary(buf[intSize : suiteSize); err != nil {
+		return err
+	}
+	p.signature = buf[intSize + suiteSize:]
+	return nil
+}
+
+func (p *PromiseSignature) MarshalTo(w io.Writer) (int, error) {
+	buf, err := pub.MarshalBinary()
+	if err != nil {
+		return 0, err
+	}
+	return w.Write(pubb)
+}
+
+func (p *PromiseSignature) UnmarshalFrom(r io.Reader) (int, error) {
+	buf := make([]byte, p.MarshalSize())
+	n, err := io.ReadFull(r, buf)
+	if err != nil {
+		return n, err
+	}
+	return n, p.UnmarshalBinary(buf)
+}
+
 
 /* The BlameProof object provides an accountability measure. If a promiser
  * decides to construct a faulty share, guardians can construct a BlameProof
@@ -326,6 +378,28 @@ func (p *Promise) Sign(i int, gKeyPair *config.KeyPair) *PromiseSignature {
 	return new(PromiseSignature).Init(i, gKeyPair.Suite, sig)
 }
 
+/* An internal helper function, makes sure that a promise signature is formatted
+ * properly and that no data was sent maliciously (index out of bounds, etc.)
+ *
+ * Arguments
+ *    sig = the PromiseSignature to check
+ *
+ * Return
+ *   whether the PromiseSignature was formatted properly
+ *
+ * Note:
+ *   Please see VerifySignature for more on validating signatures.
+ */
+func (p *Promise) validSignature(sig *PromiseSignature) bool {
+	if sig.pi < 0 || sig.pi > p.n
+		return false
+	
+	if sig.signature == nil
+		return false
+	
+	return true
+}
+
 /* Verifies a signature from a given guardian
  *
  * Arguments
@@ -335,24 +409,22 @@ func (p *Promise) Sign(i int, gKeyPair *config.KeyPair) *PromiseSignature {
  *   whether or not the signature is valid
  */
 func (p *Promise) VerifySignature(sig *PromiseSignature) bool {
+	if !p.validSignature(sig) {
+		return false
+	}
 	set := anon.Set{p.guardians[sig.pi]}
 	approveMsg := p.guardians[sig.pi].String() + " approves " + p.id
 	_, err := anon.Verify(sig.suite, []byte(approveMsg), set, nil, sig.signature)
 	return err == nil
 }
 
-/* Produce a signature for a given guardian
+/* Adds a signature from a guardian to the promise
  *
  * Arguments
- *    i         = the index of the guardian's share
- *    gKeyPair  = the public/private keypair of the guardian.
+ *    sig = the PromiseSignature to add
  *
  * Return
- *   A PromiseSignature object with the signature.
- *
- * Note:
- *   The signature message will always be of the form:
- *      Guardian approves PromiseId
+ *   true if inserted properly (aka the signature is valid), false otherwise.
  */
 func (p *Promise) AddSignature(sig *PromiseSignature) bool {
 	if !p.VerifySignature(sig) {
