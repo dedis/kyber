@@ -197,6 +197,42 @@ func (p *PromiseSignature) UnmarshalFrom(r io.Reader) (int, error) {
 }
 
 
+type PromiseSecret struct {
+
+	// The index of the share
+	i int
+	
+	// The actual share from the guardian
+	share abstract.Secret
+	
+	// The Diffie-Hellman key between guardian i and the promiser.
+	diffieKey abstract.Point
+}
+
+
+/* Initializes a new PromiseSecret
+ *
+ * Arguments
+ *    i   = the index of the Promise share the guardian is revealing
+ *    s   = the share being revealed
+ *    d   = the Diffie-Hellman key between the guardian and promiser
+ *
+ * Returns
+ *   An initialized PromiseSecret
+ */
+func (p *PromiseSecret) Init(i int, s abstract.Secret, d abstract.Point) *PromiseSecret {
+	p.i         = i
+	p.share     = s
+	p.diffieKey = d
+	return p
+}
+
+// Tests whether two promise secrets are equal.
+func (p *PromiseSecret) Equal(p2 *PromiseSecret) bool {
+	return p.i == p2.i && p.share.Equal(p2.share) &&
+	       p.diffieKey.Equal(p2.diffieKey)
+}
+
 /* The BlameProof object provides an accountability measure. If a promiser
  * decides to construct a faulty share, guardians can construct a BlameProof
  * to show that the server is malicious. 
@@ -239,6 +275,7 @@ type BlameProof struct {
  *
  * Terms:
  *   promiser = the server making the promise. The own who owns this object.
+ *   promised = recipients of the promise (aka the clients of the promiser)
  *   guardian = another server who receives a share of the promise and can help
  *              reconstruct it.
  *
@@ -272,6 +309,15 @@ type Promise struct {
 	// The public polynomial that is used to verify that a secret share
 	// given did indeed come from the appropriate private key.
 	pubPoly *poly.PubPoly
+	
+	// Primarily for the promised, the number of shares that have been 
+	// revealed so far.
+	numShares int
+	
+	// Primarily for the promised, this contains the shares the promised
+	// have currently obtained from guardians. This is what will be used to
+	// reconstruct the secret.
+	priShares * polyPriShares
 	
 	// The list of servers who act as guardians of the secret. They will
 	// each hold a secret that can be used to decode the promise. The list
@@ -339,6 +385,10 @@ func (p *Promise) Init(keyPair *config.KeyPair, t, r int,
 	prishares := new(poly.PriShares).Split(pripoly, p.n)
 	p.pubPoly = new(poly.PubPoly).Commit(pripoly, nil)
 	
+	// Create an empty PriShares for the promised.
+	p.numShares = 0
+	p.priShares = new(poly.PriShares).Empty(p.shareSuite, p.t, p.n)
+	
 	// Populate the secrets array. It encrypts each share with a diffie
 	// hellman exchange between the originator of the promist and the
 	// specific guardian.
@@ -393,6 +443,28 @@ func (p *Promise) diffieHellmanDecrypt(secret abstract.Secret, diffieBase abstra
 	return p.shareSuite.Secret().Sub(secret, diffieSecret)
 }
 
+/* This helper function makes sure that a share is "syntactically" valid. In
+ * other words, the index is properly in range and the guardian it was sent to
+ * the correct guardian. VerifyShare handles "semantic" verification.
+ *
+ * Arguments
+ *   i        = the index of the share
+ *   gKeyPair = the key pair of the guardian of the share
+ *
+ * Returns
+ *    Whether the share is valid or invalid.
+ */
+func (p *Promise) validShare(i int, gKeyPair *config.KeyPair) bool {
+	if p.i < 0 || i > p.n {
+		return false
+	}
+	if !p.guardians[i].Equal(gKeyPair.Public) {
+		return false
+	}
+	return true
+}
+
+
 /* Verify that a share has been properly constructed.
  *
  * Arguments
@@ -407,8 +479,11 @@ func (p *Promise) diffieHellmanDecrypt(secret abstract.Secret, diffieBase abstra
  *   function will return false because diffieHellmanDecrypt gave the wrong
  *   result. In short, make sure to verify only shares that are allotted to you.
  */
-func (p *Promise) VerifyShare(i int, gPrikey abstract.Secret) bool {
-	diffieBase := p.shareSuite.Point().Mul(p.pubKey, gPrikey)
+func (p *Promise) VerifyShare(i int, gKeyPair *config.KeyPair) bool {
+	if !validShare(i, gKeyPair) {
+		return false
+	}
+	diffieBase := p.shareSuite.Point().Mul(p.pubKey, gKeyPair.Secret)
 	share := p.diffieHellmanDecrypt(p.secrets[i], diffieBase)
 	return p.pubPoly.Check(i, share)
 }
@@ -448,6 +523,9 @@ func (p *Promise) VerifyPromise() bool {
  * Note:
  *   The signature message will always be of the form:
  *      Guardian approves PromiseId
+ *
+ *   It is assumed that the guardian has called VerifyShare first and hence
+ *   it is assumed that the input to the function is trusted.
  */
 func (p *Promise) Sign(i int, gKeyPair *config.KeyPair) *PromiseSignature {
 	set        := anon.Set{gKeyPair.Public}
@@ -516,6 +594,98 @@ func (p *Promise) AddSignature(sig *PromiseSignature) bool {
 	p.signatures[sig.pi] = sig
 	return true
 }
+
+/* Reveals the secret share that the guardian has been protecting. The guardian
+ * decodes the secret and provides the Diffie-Hellman secret between it and
+ * the promiser so that anyone receiving the secret share can confirm that it
+ * is valid.
+ *
+ * Arguments
+ *    i        = the index of the guardian
+ *    gkeyPair = the keypair of the guardian
+ *
+ * Return
+ *   a PromiseSecret object representing the share.
+ */
+func (p *Promise) RevealShare(i int, gKeyPair *config.KeyPair) *PromiseSecret {
+	diffieBase := p.shareSuite.Point().Mul(p.pubKey, gKeyPair.Secret)
+	share      := p.diffieHellmanDecrypt(p.secrets[i], diffieBase)
+	return new(PromiseSecret).Init(i, share, diffieBase)
+}
+
+/* Verify that PromiseSecret is both syntactically and semantically wellformed.
+ *
+ * In particular:
+ *    1. The index should be within range
+ *    2. The secret provided and the Diffie-Hellman key should match the share
+ *       found at the corresponding index in the Promise.
+ *    3. The secret provided passes the public polynomial
+ *
+ * Arguments
+ *    psecret = the PromiseSecret to verify
+ *
+ * Return
+ *   Whether the secret is valid
+ */
+func (p *Promise) PromiseSecretVerify(psecret *PromiseSecret) bool {
+
+	// If the index is invalid, the sender produced a malform blame proof.
+	if psecret.i > p.n || psecret.i < 0 {
+		return false
+	}
+
+	// Verify that the share given is actually the share the promiser
+	// provided in the promise.
+	share  := p.diffieHellmanEncrypt(psecret.share, psecret.diffieKey)
+	if !share.Equal(p.secrets[psecret.bi]) {
+		return false
+	}
+
+	// Check that the share provided passes the public polynomial
+	return p.pubPoly.Check(psecret.i, psecret.share)
+}
+
+/* Adds a revealed share to the Promise's PriShare object
+ *
+ * This should be used primarily by the promised who are wishing to reconstruct
+ * the promised secret.
+ *
+ * Call PromiseSecretVerify before calling this function.
+ *
+ * Arguments
+ *    psecret = the PromiseSecret to add
+ *
+ * Postcondition
+ *   The share has been added.
+ */
+func (p *Promise) AddRevealedSecret(psecret *PromiseSecret) {
+	p.priShares.SetShare(psecret.i, psecret.share)
+	p.numShares += 1
+}
+
+/* Checks whether enough shares have been revealed to reconstruct the secret.
+ *
+ * Returns
+ *   whehter the secret can be reconstructed
+ */
+func (p *Promise) CanReconstructSecret() bool {
+	return p.numShares >= p.t
+}
+
+/* Reconstructs the promised secret (primarily for the promised)
+ * 
+ * Returns
+ *   the actual secret that was promised
+ *
+ * Note:
+ *   Do not call this unless CanReconstructSecret returns true. The Secret
+ *   function of PriShares will panic if there are not enough shares to
+ *   reconstruct the secret.
+ */
+func (p *Promise) ReconstructSecret() abstract.Secret {
+	return p.priShares.Secret()
+}
+
 
 /* Create a proof that the promiser maliciously constructed a given secret.
  *
