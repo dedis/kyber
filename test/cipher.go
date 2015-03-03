@@ -246,7 +246,7 @@ func CipherAuthenticatedEncryptionHelper(t *testing.T,
 func CipherTest(t *testing.T,
 	newCipher func([]byte, ...interface{}) abstract.Cipher) {
 	n := 5
-	bitdiff := .35
+	bitdiff := .30
 	CipherHelloWorldHelper(t, newCipher, n, bitdiff)
 	CipherAuthenticatedEncryptionHelper(t, newCipher, n, bitdiff)
 }
