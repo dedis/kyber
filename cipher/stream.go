@@ -77,11 +77,13 @@ func (sc *streamCipher) Partial(dst, src, key []byte) {
 	}
 
 	// absorb cryptographic input (which may overlap with dst)
-	nkey := ints.Min(n, len(key)) // # key bytes available
-	sc.h.Write(key[:nkey])
-	if n > nkey {
-		buf := make([]byte, n-nkey)
-		sc.h.Write(buf)
+	if key != nil {
+		nkey := ints.Min(n, len(key)) // # key bytes available
+		sc.h.Write(key[:nkey])
+		if n > nkey {
+			buf := make([]byte, n-nkey)
+			sc.h.Write(buf)
+		}
 	}
 }
 

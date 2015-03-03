@@ -67,6 +67,19 @@ of NIST-standardized elliptic curves and symmetric cryptosystems.
 [Stanford Pairing-Based Crypto (PBC) library](http://crypto.stanford.edu/pbc/),
 which will of course only work if the PBC library is installed.
 
+Issues
+------
+
+- Traditionally, ECDH (Elliptic curve Diffie-Hellman) derives the shared secret
+from the x point only. In this framework, you can either manually retrieve the
+value or use the MarshalBinary method to take the combined (x, y) value as the
+shared secret. We recommend the latter process for new softare/protocols using
+this framework as it is cleaner and generalizes across differen types of
+groups (e.g., both integer and elliptic curves), although it will likely be
+incompatible with other implementations of ECDH.
+http://en.wikipedia.org/wiki/Elliptic_curve_Diffie%E2%80%93Hellman
+
+
 Copyright (C) 2014 Yale DeDiS Group
 -----------------------------------
 

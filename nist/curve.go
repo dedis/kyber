@@ -7,6 +7,7 @@ import (
 	//"encoding/hex"
 	"crypto/cipher"
 	"crypto/elliptic"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/random"
@@ -48,7 +49,12 @@ func (p *curvePoint) Base() abstract.Point {
 }
 
 func (p *curvePoint) Valid() bool {
-	return p.c.IsOnCurve(p.x, p.y)
+	// return p.c.IsOnCurve(p.x, p.y)
+
+	// The IsOnCurve function in Go's elliptic curve package
+	// doesn't consider the point-at-infinity to be "on the curve"
+	return p.c.IsOnCurve(p.x, p.y) ||
+		(p.x.Sign() == 0 && p.y.Sign() == 0)
 }
 
 // Try to generate a point on this curve from a chosen x-coordinate,
