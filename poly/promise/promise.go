@@ -26,23 +26,23 @@ import (
 // TODO Decouple keysuite from sharesuite
 // TODO It should be i >= p.n
 
-/* The PromiseSignature object is used for guardians to express their approval
+/* The PromiseSignature object is used for insurers to express their approval
  * of a given promise. After receiving a promise and verifying that their share
- * is good, guardians can then produce a signature to send back to the promiser.
+ * is good, insurers can then produce a signature to send back to the promiser.
  *
  * Upon receiving this, the promiser can then add the signature to its lists of
  * signatures to server as proof that the promiser has gained a sufficient
- * number of guardians.
+ * number of insurers.
  */
 type PromiseSignature struct {
 
-	// The index of the guardian producing the signature
+	// The index of the insurer producing the signature
 	pi int
 	
 	// The suite used to sign the signature
 	suite abstract.Suite
 	
-	// The signature denoting that the guardian approves of guardining the
+	// The signature denoting that the insurer approves of guardining the
 	// promise.
 	signature []byte
 }
@@ -51,7 +51,7 @@ type PromiseSignature struct {
 /* Initializes a new PromiseSignature
  *
  * Arguments
- *    i   = the index of the Promise share the guardian is approving.
+ *    i   = the index of the Promise share the insurer is approving.
  *    s   = the signing suite
  *    sig = the signature of approval
  *
@@ -199,14 +199,14 @@ func (p *PromiseSignature) UnmarshalFrom(r io.Reader) (int, error) {
 }
 
 /* PromiseShare is used to represent a secret share of a Promise. When a
- * guardian wants to reveal the secret share it is guarding either to a promised
- * client or to other guardians to prove that the promiser is crooked, it
+ * insurer wants to reveal the secret share it is guarding either to a
+ * client or to other insurers to prove that the promiser is crooked, it
  * constructs this object.
  *
  * The key features of a PromiseShare are:
  *	1. The index of the share
  *      2. The share itself
- *      3. The Diffie-Hellman secret between the guardian and promiser
+ *      3. The Diffie-Hellman secret between the insurer and promiser
  *
  * #3 is used for verification purposes. Other servers can use it to prove that
  * encrypting #2 with #3 will produce the secret stored in the promise.
@@ -214,12 +214,12 @@ func (p *PromiseSignature) UnmarshalFrom(r io.Reader) (int, error) {
  * As mentioned above, PromiseShare's can also be used as "BlameProof" objects.
  *
  * The BlameProof object provides an accountability measure. If a promiser
- * decides to construct a faulty share, guardians can construct a BlameProof
+ * decides to construct a faulty share, insurers can construct a BlameProof
  * to show that the server is malicious. 
  * 
- * The guardian provides the index of the bad secret, the bad secret itself,
+ * The insurer provides the index of the bad secret, the bad secret itself,
  * and its diffie-hellman shared key with the promiser. Other servers can then
- * verify if the promiser is malicious or the guardian is falsely accusing the
+ * verify if the promiser is malicious or the insurer is falsely accusing the
  * server.
  *
  * To quickly summarize the blame procedure, two things must hold for the blame
@@ -227,10 +227,10 @@ func (p *PromiseSignature) UnmarshalFrom(r io.Reader) (int, error) {
  *
  *   1. The provided share when encrypted with the diffie key must equal the
  *   point provided at index bi of the promise. This verifies that the share
- *   was actually intended for the guardian.
+ *   was actually intended for the insurer.
  *
  *   2. The provided share must fail to pass pubPoly.Check. This ensures that
- *   the share is actually corrupted and the guardian is not just lying.
+ *   the share is actually corrupted and the insurer is not just lying.
  */
 
 type PromiseShare struct {
@@ -238,10 +238,10 @@ type PromiseShare struct {
 	// The index of the share
 	i int
 	
-	// The actual share from the guardian
+	// The actual share from the insurer
 	share abstract.Secret
 	
-	// The Diffie-Hellman key between guardian i and the promiser.
+	// The Diffie-Hellman key between insurer i and the promiser.
 	diffieKey abstract.Point
 }
 
@@ -249,9 +249,9 @@ type PromiseShare struct {
 /* Initializes a new PromiseShare
  *
  * Arguments
- *    i   = the index of the Promise share the guardian is revealing
+ *    i   = the index of the Promise share the insurer is revealing
  *    s   = the share being revealed
- *    d   = the Diffie-Hellman key between the guardian and promiser
+ *    d   = the Diffie-Hellman key between the insurer and promiser
  *
  * Returns
  *   An initialized PromiseShare
@@ -274,18 +274,18 @@ func (p *PromiseShare) Equal(p2 *PromiseShare) bool {
  * the original server goes offline.
  *
  * The Promise struct handles the logic of creating private shares, splitting
- * these shares up for a given number of servers to act as guardians, verifying
- * promises, and providing proof that guardians have indeed taken out approved
+ * these shares up for a given number of servers to act as insurers, verifying
+ * promises, and providing proof that insurers have indeed taken out approved
  * of backing up the promse.
  *
  * Terms:
  *   promiser = the server making the promise. The own who owns this object.
- *   promised = recipients of the promise (aka the clients of the promiser)
- *   guardian = another server who receives a share of the promise and can help
+ *   client = recipients of the promise (aka the clients of the promiser)
+ *   insurer = another server who receives a share of the promise and can help
  *              reconstruct it.
  *
- * Development note: The guardians, secrets, and signatures arrays should
- *                   remain synchronized. In other words, the guardians[i],
+ * Development note: The insurers, secrets, and signatures arrays should
+ *                   remain synchronized. In other words, the insurers[i],
  *                   secrets[i], and signatures[i] should all refer to the same
  *                   server.
  */
@@ -315,26 +315,26 @@ type Promise struct {
 	// given did indeed come from the appropriate private key.
 	pubPoly *poly.PubPoly
 	
-	// Primarily for the promised, the number of shares that have been 
+	// Primarily for the client, the number of shares that have been 
 	// revealed so far.
 	numShares int
 	
-	// Primarily for the promised, this contains the shares the promised
-	// have currently obtained from guardians. This is what will be used to
+	// Primarily for the client, this contains the shares the client
+	// has currently obtained from insurers. This is what will be used to
 	// reconstruct the secret.
 	priShares * poly.PriShares
 	
-	// The list of servers who act as guardians of the secret. They will
+	// The list of servers who act as insurers of the secret. They will
 	// each hold a secret that can be used to decode the promise. The list
 	// is identified by the public key of the serers.
-	guardians   []abstract.Point
+	insurers   []abstract.Point
 	
-	// The list of secret shares to be sent to the guardians. They are
-	// encrypted with diffie-hellmen shared secrets between the guardian
+	// The list of secret shares to be sent to the insurers. They are
+	// encrypted with diffie-hellmen shared secrets between the insurer
 	// and the original server.
 	secrets    []abstract.Secret
 	
-	// A list of signatures validating that a guardian has approved of the
+	// A list of signatures validating that a insurer has approved of the
 	// secret share it is guarding.
 	signatures []*PromiseSignature
 }
@@ -344,9 +344,9 @@ type Promise struct {
  * Arguments
  *    priKey   = the secret to be promised.
  *    t        = the minimum number of shares needed to reconstruct the secret.
- *    r        = the minimum signatures from guardians needed for the promise to
+ *    r        = the minimum signatures from insurers needed for the promise to
  *               be valid.
- *    guardians = a list of the public keys of servers to act as guardians.
+ *    insurers = a list of the public keys of servers to act as insurers.
  *
  * Returns
  *   The initialized promise
@@ -356,7 +356,7 @@ type Promise struct {
  *   same group as the keys.
  */
 func (p *Promise) Init(keyPair *config.KeyPair, t, r int,
-	guardians []abstract.Point) *Promise {
+	insurers []abstract.Point) *Promise {
 
 	// Basic initialization
 	p.id = keyPair.Public.String() +
@@ -365,16 +365,16 @@ func (p *Promise) Init(keyPair *config.KeyPair, t, r int,
 
 	p.t          = t
 	p.r          = r
-	p.n          = len(guardians)
+	p.n          = len(insurers)
 	p.shareSuite = keyPair.Suite
 	p.pubKey     = keyPair.Public
-	p.guardians  = guardians
+	p.insurers  = insurers
 	p.secrets    = make([]abstract.Secret, p.n , p.n )
 	p.signatures = make([]*PromiseSignature, p.n , p.n )
 
 	// Verify that t <= r <= n
 	if p.n  < p.t {
-		panic("Not enough guardians for the secret")
+		panic("Not enough insurers for the secret")
 	} 
 	if p.r < p.t {
 		p.r = p.t
@@ -384,22 +384,22 @@ func (p *Promise) Init(keyPair *config.KeyPair, t, r int,
 	}
 
 	// Create the public polynomial and private shares. The total shares made
-	// should be equal to teh number of guardians while the minimum shares
+	// should be equal to teh number of insurers while the minimum shares
 	// needed to reconstruct should be t.
 	pripoly   := new(poly.PriPoly).Pick(p.shareSuite, p.t, keyPair.Secret, random.Stream)
 	prishares := new(poly.PriShares).Split(pripoly, p.n)
 	p.pubPoly = new(poly.PubPoly).Commit(pripoly, nil)
 	
-	// Create an empty PriShares for the promised.
+	// Create an empty PriShares for the client.
 	p.numShares = 0
 	p.priShares = new(poly.PriShares)
 	p.priShares.Empty(p.shareSuite, p.t, p.n)
 	
 	// Populate the secrets array. It encrypts each share with a diffie
 	// hellman exchange between the originator of the promist and the
-	// specific guardian.
+	// specific insurer.
 	for i := 0 ; i < p.n; i++ {
-		diffieBase := p.shareSuite.Point().Mul(guardians[i], keyPair.Secret)
+		diffieBase := p.shareSuite.Point().Mul(insurers[i], keyPair.Secret)
 		p.secrets[i] = p.diffieHellmanEncrypt(prishares.Share(i), diffieBase)
 	}
 	
@@ -450,12 +450,12 @@ func (p *Promise) diffieHellmanDecrypt(secret abstract.Secret, diffieBase abstra
 }
 
 /* This helper function makes sure that a share is "syntactically" valid. In
- * other words, the index is properly in range and the guardian it was sent to
- * the correct guardian. VerifyShare handles "semantic" verification.
+ * other words, the index is properly in range and the insurer it was sent to
+ * the correct insurer. VerifyShare handles "semantic" verification.
  *
  * Arguments
  *   i        = the index of the share
- *   gKeyPair = the key pair of the guardian of the share
+ *   gKeyPair = the key pair of the insurer of the share
  *
  * Returns
  *    Whether the share is valid or invalid.
@@ -464,7 +464,7 @@ func (p *Promise) validShare(i int, gKeyPair *config.KeyPair) bool {
 	if i < 0 || i > p.n {
 		return false
 	}
-	if !p.guardians[i].Equal(gKeyPair.Public) {
+	if !p.insurers[i].Equal(gKeyPair.Public) {
 		return false
 	}
 	return true
@@ -475,7 +475,7 @@ func (p *Promise) validShare(i int, gKeyPair *config.KeyPair) bool {
  *
  * Arguments
  *    i        = the index of the share to verify
- *    gPrikey  = the private key of the guardian of share i
+ *    gPrikey  = the private key of the insurer of share i
  *
  * Return
  *   whether the decrypted secret properly passes the public polynomial.
@@ -517,20 +517,20 @@ func (p *Promise) VerifyPromise() bool {
 	return p.r > p.t && validSigs >= p.r
 }
 
-/* Produce a signature for a given guardian
+/* Produce a signature for a given insurer
  *
  * Arguments
- *    i         = the index of the guardian's share
- *    gKeyPair  = the public/private keypair of the guardian.
+ *    i         = the index of the insurer's share
+ *    gKeyPair  = the public/private keypair of the insurer.
  *
  * Return
  *   A PromiseSignature object with the signature.
  *
  * Note:
  *   The signature message will always be of the form:
- *      Guardian approves PromiseId
+ *      insurer approves PromiseId
  *
- *   It is assumed that the guardian has called VerifyShare first and hence
+ *   It is assumed that the insurer has called VerifyShare first and hence
  *   it is assumed that the input to the function is trusted.
  */
 func (p *Promise) Sign(i int, gKeyPair *config.KeyPair) *PromiseSignature {
@@ -566,7 +566,7 @@ func (p *Promise) validSignature(sig *PromiseSignature) bool {
 	return true
 }
 
-/* Verifies a signature from a given guardian
+/* Verifies a signature from a given insurer
  *
  * Arguments
  *    sig = the PromiseSignature object containing the signature
@@ -578,13 +578,13 @@ func (p *Promise) VerifySignature(sig *PromiseSignature) bool {
 	if !p.validSignature(sig) {
 		return false
 	}
-	set := anon.Set{p.guardians[sig.pi]}
-	approveMsg := p.guardians[sig.pi].String() + " approves " + p.id
+	set := anon.Set{p.insurers[sig.pi]}
+	approveMsg := p.insurers[sig.pi].String() + " approves " + p.id
 	_, err := anon.Verify(sig.suite, []byte(approveMsg), set, nil, sig.signature)
 	return err == nil
 }
 
-/* Adds a signature from a guardian to the promise
+/* Adds a signature from a insurer to the promise
  *
  * Arguments
  *    sig = the PromiseSignature to add
@@ -601,14 +601,14 @@ func (p *Promise) AddSignature(sig *PromiseSignature) bool {
 	return true
 }
 
-/* Reveals the secret share that the guardian has been protecting. The guardian
+/* Reveals the secret share that the insurer has been protecting. The insurer
  * decodes the secret and provides the Diffie-Hellman secret between it and
  * the promiser so that anyone receiving the secret share can confirm that it
  * is valid.
  *
  * Arguments
- *    i        = the index of the guardian
- *    gkeyPair = the keypair of the guardian
+ *    i        = the index of the insurer
+ *    gkeyPair = the keypair of the insurer
  *
  * Return
  *   a PromiseShare object representing the share.
@@ -653,7 +653,7 @@ func (p *Promise) PromiseShareVerify(psecret *PromiseShare) bool {
 
 /* Adds a revealed share to the Promise's PriShare object
  *
- * This should be used primarily by the promised who are wishing to reconstruct
+ * This should be used primarily by the clients who are wishing to reconstruct
  * the promised secret.
  *
  * Call PromiseShareVerify before calling this function.
@@ -678,7 +678,7 @@ func (p *Promise) CanReconstructSecret() bool {
 	return p.numShares >= p.t
 }
 
-/* Reconstructs the promised secret (primarily for the promised)
+/* Reconstructs the promised secret (primarily for the client)
  * 
  * Returns
  *   the actual secret that was promised
@@ -697,7 +697,7 @@ func (p *Promise) ReconstructSecret() abstract.Secret {
  *
  * Arguments
  *    i         = the index of the malicious secret
- *    gKeyPair  = the key pair of the guardian of share i
+ *    gKeyPair  = the key pair of the insurer of share i
  *
  * Return
  *   A proof object that the promiser is malicious
@@ -731,7 +731,7 @@ func (p *Promise) BlameVerify(proof *PromiseShare) bool {
 	
 	// The diffie key should have been properly made. If not, the blamer is
 	// crooked.
-//	correctDiffie := p.shareSuite.Point().Add(p.guardians[proof.i], p.pubKey)
+//	correctDiffie := p.shareSuite.Point().Add(p.insurers[proof.i], p.pubKey)
 //	if !correctDiffie.Equal(proof.diffieKey) {
 //		return false
 //	}
