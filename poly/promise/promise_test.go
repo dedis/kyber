@@ -26,6 +26,7 @@ var insurerList = produceinsurerList()
 var pt = 10
 var r  = 15
 var basicPromise = new(Promise).Init(promiserKey, pt, r, insurerList)
+var basicPromiseState = new(PromiseState).Init(basicPromise)
 
 func produceKeyPair() *config.KeyPair {
 	keyPair := new(config.KeyPair)
@@ -154,7 +155,6 @@ func TestPromiseInit(t *testing.T) {
 	if promiserKey.Suite.String() != promise.shareSuite.String() ||
 	   promise.t != pt || promise.r != r || promise.n != numInsurers ||
 	   promise.pubKey != promiserKey.Public ||
-	   len(promise.signatures) != numInsurers   ||
 	   len(promise.secrets)    != numInsurers {
 		t.Error("Invalid initialization")	   
 	}
@@ -289,52 +289,6 @@ func TestPromiseSignVerify(t *testing.T) {
 	}
 }
 
-// Verify that the promise can produce a valid signature and then verify it.
-func TestPromiseAddSignature(t *testing.T) {
-
-	promise := new(Promise).Init(promiserKey, pt, r, insurerList)
-
-	// Error Checking. Make sure bad signatures are not added.
-	badSig := produceSigWithBadMessage()
-	if promise.AddSignature(badSig) ||
-	   promise.signatures[0] != nil {
-		t.Error("Signature should not have been added")
-	}
-
-	badSig = produceSigWithBadIndex()
-	if promise.AddSignature(badSig) ||
-	   promise.signatures[numInsurers-1] != nil {
-		t.Error("Signature should not have been added")
-	}
-
-	// Verify that all validly produced signatures can be added.
-	for i := 0 ; i < numInsurers; i++ {
-		sig := promise.Sign(i, insurerKeys[i])
-		
-		if !promise.AddSignature(sig) ||
-		   !sig.Equal(promise.signatures[i]) {
-			t.Error("Signature failed to be added")
-		}
-	}
-}
-
-
-// Verify that once r signatures have been added, the promise becomes valid.
-func TestPromiseVerify(t *testing.T) {
-
-	promise := new(Promise).Init(promiserKey, pt, r, insurerList)
-
-	for i := 0 ; i < numInsurers; i++ {
-		if i < r && promise.VerifyPromise() {
-			t.Error("Not enough signtures have been added yet", i, r)
-		} else if i >= r && !promise.VerifyPromise() {
-			t.Error("Promise should be valid now.")
-		}
-
-		promise.AddSignature(promise.Sign(i, insurerKeys[i]))
-	}
-}
-
 // Verify that insurer secret shares can be revealed properly and verified.
 func TestPromiseRevealShareAndShareVerify(t *testing.T) {
 
@@ -361,39 +315,6 @@ func TestPromiseRevealShareAndShareVerify(t *testing.T) {
 	badShare.share = insurerKeys[0].Secret
 	if basicPromise.PromiseShareVerify(badShare) {
 		t.Error("The PromiseShare is invalid with a bad share.")
-	}
-}
-
-// Verify revealed shares can be added properly and then reconstructed
-func TestPromiseShareAdditionAndReconstruction(t *testing.T) {
-
-	promise := new(Promise).Init(promiserKey, pt, r, insurerList)
-
-	for i := 0 ; i < numInsurers; i++ {
-	
-		share := promise.RevealShare(i, insurerKeys[i])
-		
-		if !promise.PromiseShareVerify(share) {
-			t.Fatal("The share should be valid.")
-		}
-		
-		promise.AddRevealedSecret(share)
-		
-		if i < pt-1 && promise.CanReconstructSecret() {
-			t.Fatal("Not enough shares to reconstruct yet.")
-		}
-
-		if i >= pt-1 && !promise.CanReconstructSecret() {
-			t.Fatal("The secret should be reconstructable now.")
-		} 
-		
-		if i >= pt-1 && promise.CanReconstructSecret(){
-			secret := promise.ReconstructSecret()
-			
-			if !secret.Equal(promiserKey.Secret) {
-				t.Fatal("Reconstructed secret not equal to original.")
-			}
-		}
 	}
 }
 
@@ -438,6 +359,66 @@ func TestPromiseBlameAndVerify(t *testing.T) {
 	badProof.share = insurerKeys[0].Secret
 	if basicPromise.BlameVerify(badProof) {
 		t.Error("The PromiseShare is invalid with a bad share.")
+	}
+}
+
+
+// Verifies that Init properly initalizes a new PromiseState object
+func TestPromiseStateInit(t *testing.T) {
+
+	promiseState := new(PromiseState).Init(basicPromise)
+	
+	if //!basicPromise.Equal(promiseState.Promise) || <-- Once I write Equal
+	   len(promiseState.signatures) != numInsurers {
+		t.Error("Invalid initialization")	   
+	}
+}
+
+// Verify that Promise and PromiseState can produce a valid signature and then verify it.
+func TestPromiseStateAddSignature(t *testing.T) {
+
+	promise := new(Promise).Init(promiserKey, pt, r, insurerList)
+	promiseState := new(PromiseState).Init(promise)
+
+	// Error Checking. Make sure bad signatures are not added.
+	badSig := produceSigWithBadMessage()
+	if promiseState.AddSignature(badSig) ||
+	   promiseState.signatures[0] != nil {
+		t.Error("Signature should not have been added")
+	}
+
+	badSig = produceSigWithBadIndex()
+	if promiseState.AddSignature(badSig) ||
+	   promiseState.signatures[numInsurers-1] != nil {
+		t.Error("Signature should not have been added")
+	}
+
+	// Verify that all validly produced signatures can be added.
+	for i := 0 ; i < numInsurers; i++ {
+		sig := promise.Sign(i, insurerKeys[i])
+		
+		if !promiseState.AddSignature(sig) ||
+		   !sig.Equal(promiseState.signatures[i]) {
+			t.Error("Signature failed to be added")
+		}
+	}
+}
+
+
+// Verify that once r signatures have been added, the promise becomes valid.
+func TestPromiseStatePromiseVerify(t *testing.T) {
+
+	promise := new(Promise).Init(promiserKey, pt, r, insurerList)
+	promiseState := new(PromiseState).Init(promise)
+
+	for i := 0 ; i < numInsurers; i++ {
+		if i < r && promiseState.VerifyPromise() {
+			t.Error("Not enough signtures have been added yet", i, r)
+		} else if i >= r && !promiseState.VerifyPromise() {
+			t.Error("Promise should be valid now.")
+		}
+
+		promiseState.AddSignature(promise.Sign(i, insurerKeys[i]))
 	}
 }
 

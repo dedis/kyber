@@ -315,15 +315,6 @@ type Promise struct {
 	// given did indeed come from the appropriate private key.
 	pubPoly *poly.PubPoly
 	
-	// Primarily for the client, the number of shares that have been 
-	// revealed so far.
-	numShares int
-	
-	// Primarily for the client, this contains the shares the client
-	// has currently obtained from insurers. This is what will be used to
-	// reconstruct the secret.
-	priShares * poly.PriShares
-	
 	// The list of servers who act as insurers of the secret. They will
 	// each hold a secret that can be used to decode the promise. The list
 	// is identified by the public key of the serers.
@@ -333,10 +324,6 @@ type Promise struct {
 	// encrypted with diffie-hellmen shared secrets between the insurer
 	// and the original server.
 	secrets    []abstract.Secret
-	
-	// A list of signatures validating that a insurer has approved of the
-	// secret share it is guarding.
-	signatures []*PromiseSignature
 }
 
 /* Initializes a new promise to guard a secret.
@@ -370,7 +357,6 @@ func (p *Promise) Init(keyPair *config.KeyPair, t, r int,
 	p.pubKey     = keyPair.Public
 	p.insurers  = insurers
 	p.secrets    = make([]abstract.Secret, p.n , p.n )
-	p.signatures = make([]*PromiseSignature, p.n , p.n )
 
 	// Verify that t <= r <= n
 	if p.n  < p.t {
@@ -389,11 +375,6 @@ func (p *Promise) Init(keyPair *config.KeyPair, t, r int,
 	pripoly   := new(poly.PriPoly).Pick(p.shareSuite, p.t, keyPair.Secret, random.Stream)
 	prishares := new(poly.PriShares).Split(pripoly, p.n)
 	p.pubPoly = new(poly.PubPoly).Commit(pripoly, nil)
-	
-	// Create an empty PriShares for the client.
-	p.numShares = 0
-	p.priShares = new(poly.PriShares)
-	p.priShares.Empty(p.shareSuite, p.t, p.n)
 	
 	// Populate the secrets array. It encrypts each share with a diffie
 	// hellman exchange between the originator of the promist and the
@@ -494,28 +475,6 @@ func (p *Promise) VerifyShare(i int, gKeyPair *config.KeyPair) bool {
 	return p.pubPoly.Check(i, share)
 }
 
-/* Verifies whether a Promise objects has enough signatures to be valid.
- *
- * Return
- *   whether the Promise is now valid and considered trustworthy.
- *
- * Technical Notes: The function goes through the list of signatures and checks
- *                  whether the signature is properly signed. If at least r of
- *                  these are signed and r is greater than t (the minimum number
- *                  of shares needed to reconstruct the secret), the promise is
- *                  considered valid.
- */
-func (p *Promise) VerifyPromise() bool {
-	validSigs := 0
-	for i := 0; i < p.n; i++ {
-		// Check whether the signature is initialized. Otherwise, bad
-		// things will happen.
-		if p.signatures[i] != nil && p.VerifySignature(p.signatures[i]) {
-			validSigs += 1
-		}
-	}
-	return p.r > p.t && validSigs >= p.r
-}
 
 /* Produce a signature for a given insurer
  *
@@ -584,23 +543,6 @@ func (p *Promise) VerifySignature(sig *PromiseSignature) bool {
 	return err == nil
 }
 
-/* Adds a signature from a insurer to the promise
- *
- * Arguments
- *    sig = the PromiseSignature to add
- *
- * Return
- *   true if inserted properly (aka the signature is valid), false otherwise.
- */
-func (p *Promise) AddSignature(sig *PromiseSignature) bool {
-	if !p.VerifySignature(sig) {
-		return false
-	}
-
-	p.signatures[sig.pi] = sig
-	return true
-}
-
 /* Reveals the secret share that the insurer has been protecting. The insurer
  * decodes the secret and provides the Diffie-Hellman secret between it and
  * the promiser so that anyone receiving the secret share can confirm that it
@@ -651,48 +593,6 @@ func (p *Promise) PromiseShareVerify(psecret *PromiseShare) bool {
 	return p.pubPoly.Check(psecret.i, psecret.share)
 }
 
-/* Adds a revealed share to the Promise's PriShare object
- *
- * This should be used primarily by the clients who are wishing to reconstruct
- * the promised secret.
- *
- * Call PromiseShareVerify before calling this function.
- *
- * Arguments
- *    psecret = the PromiseShare to add
- *
- * Postcondition
- *   The share has been added.
- */
-func (p *Promise) AddRevealedSecret(psecret *PromiseShare) {
-	p.priShares.SetShare(psecret.i, psecret.share)
-	p.numShares += 1
-}
-
-/* Checks whether enough shares have been revealed to reconstruct the secret.
- *
- * Returns
- *   whehter the secret can be reconstructed
- */
-func (p *Promise) CanReconstructSecret() bool {
-	return p.numShares >= p.t
-}
-
-/* Reconstructs the promised secret (primarily for the client)
- * 
- * Returns
- *   the actual secret that was promised
- *
- * Note:
- *   Do not call this unless CanReconstructSecret returns true. The Secret
- *   function of PriShares will panic if there are not enough shares to
- *   reconstruct the secret.
- */
-func (p *Promise) ReconstructSecret() abstract.Secret {
-	return p.priShares.Secret()
-}
-
-
 /* Create a proof that the promiser maliciously constructed a given secret.
  *
  * Arguments
@@ -742,3 +642,97 @@ func (p *Promise) BlameVerify(proof *PromiseShare) bool {
 	return !p.pubPoly.Check(proof.i, proof.share)
 }
 
+
+/* The PromiseState object is responsible for maintaining state for a given
+ * Promise object. It will contain three main pieces:
+ *
+ *    1. The promise itself, which will be an immutable object 
+ *    2. Shares of the private secret the server has received so far
+ *    3. A list of signatures from insurers cerifying the promise
+ *
+ * Each server will contain a PromiseState for each promise to be tracked.
+ */
+type PromiseState struct {
+
+	// The actual promise
+	Promise *Promise
+	
+	// Primarily for use by clients, this contains shares the client
+	// has currently obtained from insurers. This is what will be used to
+	// reconstruct the secret.
+	PriShares * poly.PriShares
+	
+	// A list of signatures validating that an insurer has cerified the
+	// secret share it is guarding.
+	signatures []*PromiseSignature
+}
+
+
+
+func (ps *PromiseState) Init(promise *Promise) *PromiseState {
+
+	ps.Promise = promise
+	
+	// Initialize a new PriShares based on information from the promise
+	// object.
+	ps.PriShares = new(poly.PriShares)
+	ps.PriShares.Empty(promise.shareSuite, promise.t, promise.n)
+
+	// There will be at most n signatures, one per insurer
+	ps.signatures = make([]*PromiseSignature, promise.n , promise.n )
+	return ps
+}
+
+
+/* To add a share to PriShares, do:
+ *
+ *     p.PriShares.SetShare(index, share)
+ *
+ * To reconstruct the secred, do:
+ *
+ *     p.PriShares.Secret()
+ *
+ * Be warned that Secret will panic unless there are enough
+ * shares to reconstruct the secret.
+ */
+
+
+/* Adds a signature from an insurer to the PromiseState
+ *
+ * Arguments
+ *    sig = the PromiseSignature to add
+ *
+ * Return
+ *   true if inserted properly (aka the signature is valid), false otherwise.
+ */
+func (ps *PromiseState) AddSignature(sig *PromiseSignature) bool {
+	if !ps.Promise.VerifySignature(sig) {
+		return false
+	}
+
+	ps.signatures[sig.pi] = sig
+	return true
+}
+
+/* Verifies whether a Promise objects has enough signatures to be cerified.
+ *
+ * Return
+ *   whether the Promise is now cerified and considered trustworthy.
+ *
+ * Technical Notes: The function goes through the list of signatures and checks
+ *                  whether the signature is properly signed. If at least r of
+ *                  these are signed and r is greater than t (the minimum number
+ *                  of shares needed to reconstruct the secret), the promise is
+ *                  considered valid.
+ */
+func (ps *PromiseState) VerifyPromise() bool {
+	validSigs := 0
+	for i := 0; i < ps.Promise.n; i++ {
+		// Check whether the signature is initialized. Otherwise, bad
+		// things will happen.
+		if ps.signatures[i] != nil && ps.Promise.VerifySignature(ps.signatures[i]) {
+			validSigs += 1
+		}
+	}
+	return ps.Promise.r > ps.Promise.t && validSigs >= ps.Promise.r
+}
