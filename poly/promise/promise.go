@@ -302,7 +302,7 @@ type Promise struct {
 	t int
 	
 	// The minimum number of shares needed before the policy can become
-	// active. t <= r
+	// active. t <= r <= n
 	r int
 	
 	// The total number of shares to send.
@@ -392,6 +392,29 @@ func (p *Promise) GetId() string {
 	return p.id
 }
 
+/* Verifies at a basic level that the Promise was constructed correctly.
+ *
+ * Arguments
+ *    promiserKey = the key the caller believes the Promise to be from
+ *
+ * Return
+ *   whether the promise is valid or not
+ */
+func (p *Promise) VerifyPromise(promiserKey abstract.Point) bool {
+	// Verify t <= r <= n
+	if p.t > p.n || p.t > p.r || p.r > p.n {
+		return false
+	}
+	if !promiserKey.Equal(p.pubKey) {
+		return false
+	}
+	// There should be a secret and public key for each of the n insurers. 
+	if len(p.insurers) != p.n || len(p.secrets) != p.n {
+		return false
+	}
+	return true
+}
+
 /* Given a Diffie-Hellman shared key, encrypts a secret.
  *
  * Arguments
@@ -430,33 +453,12 @@ func (p *Promise) diffieHellmanDecrypt(secret abstract.Secret, diffieBase abstra
 	return p.shareSuite.Secret().Sub(secret, diffieSecret)
 }
 
-/* This helper function makes sure that a share is "syntactically" valid. In
- * other words, the index is properly in range and the insurer it was sent to
- * the correct insurer. VerifyShare handles "semantic" verification.
- *
- * Arguments
- *   i        = the index of the share
- *   gKeyPair = the key pair of the insurer of the share
- *
- * Returns
- *    Whether the share is valid or invalid.
- */
-func (p *Promise) validShare(i int, gKeyPair *config.KeyPair) bool {
-	if i < 0 || i > p.n {
-		return false
-	}
-	if !p.insurers[i].Equal(gKeyPair.Public) {
-		return false
-	}
-	return true
-}
-
 
 /* Verify that a share has been properly constructed.
  *
  * Arguments
- *    i        = the index of the share to verify
- *    gPrikey  = the private key of the insurer of share i
+ *    i         = the index of the share to verify
+ *    gKeyPair  = the key pair of the insurer of share i
  *
  * Return
  *   whether the decrypted secret properly passes the public polynomial.
@@ -467,7 +469,10 @@ func (p *Promise) validShare(i int, gKeyPair *config.KeyPair) bool {
  *   result. In short, make sure to verify only shares that are allotted to you.
  */
 func (p *Promise) VerifyShare(i int, gKeyPair *config.KeyPair) bool {
-	if !p.validShare(i, gKeyPair) {
+	if i < 0 || i >= p.n {
+		return false
+	}
+	if !p.insurers[i].Equal(gKeyPair.Public) {
 		return false
 	}
 	diffieBase := p.shareSuite.Point().Mul(p.pubKey, gKeyPair.Secret)
@@ -501,30 +506,6 @@ func (p *Promise) Sign(i int, gKeyPair *config.KeyPair) *PromiseSignature {
 	return new(PromiseSignature).Init(i, gKeyPair.Suite, sig)
 }
 
-/* An internal helper function, makes sure that a promise signature is formatted
- * properly and that no data was sent maliciously (index out of bounds, etc.)
- *
- * Arguments
- *    sig = the PromiseSignature to check
- *
- * Return
- *   whether the PromiseSignature was formatted properly
- *
- * Note:
- *   Please see VerifySignature for more on validating signatures.
- */
-func (p *Promise) validSignature(sig *PromiseSignature) bool {
-	if sig.pi < 0 || sig.pi > p.n {
-		return false
-	}
-	
-	if sig.signature == nil {
-		return false
-	}
-	
-	return true
-}
-
 /* Verifies a signature from a given insurer
  *
  * Arguments
@@ -534,7 +515,10 @@ func (p *Promise) validSignature(sig *PromiseSignature) bool {
  *   whether or not the signature is valid
  */
 func (p *Promise) VerifySignature(sig *PromiseSignature) bool {
-	if !p.validSignature(sig) {
+	if sig.signature == nil {
+		return false
+	}
+	if sig.pi < 0 || sig.pi >= p.n {
 		return false
 	}
 	set := anon.Set{p.insurers[sig.pi]}
@@ -702,19 +686,22 @@ func (ps *PromiseState) Init(promise *Promise) *PromiseState {
  * Arguments
  *    sig = the PromiseSignature to add
  *
- * Return
- *   true if inserted properly (aka the signature is valid), false otherwise.
+ * Postcondition
+ *   The signature has been added
+ *
+ * Note
+ *   Be sure to call ps.Promise.VerifySignature before calling this function
  */
-func (ps *PromiseState) AddSignature(sig *PromiseSignature) bool {
-	if !ps.Promise.VerifySignature(sig) {
-		return false
-	}
-
+func (ps *PromiseState) AddSignature(sig *PromiseSignature) {
 	ps.signatures[sig.pi] = sig
-	return true
 }
 
-/* Verifies whether a Promise objects has enough signatures to be cerified.
+/* Checks whether the Promise object has received enough signatures to be
+ * considered certified.
+ *
+ * Arguments
+ *   promiserKey = the public key the server believes the promise to have come
+ *                 from
  *
  * Return
  *   whether the Promise is now cerified and considered trustworthy.
@@ -725,7 +712,11 @@ func (ps *PromiseState) AddSignature(sig *PromiseSignature) bool {
  *                  of shares needed to reconstruct the secret), the promise is
  *                  considered valid.
  */
-func (ps *PromiseState) VerifyPromise() bool {
+func (ps *PromiseState) PromiseCertified(promiserKey abstract.Point) bool {
+	if !ps.Promise.VerifyPromise(promiserKey) {
+		return false
+	}
+
 	validSigs := 0
 	for i := 0; i < ps.Promise.n; i++ {
 		// Check whether the signature is initialized. Otherwise, bad
@@ -734,5 +725,5 @@ func (ps *PromiseState) VerifyPromise() bool {
 			validSigs += 1
 		}
 	}
-	return ps.Promise.r > ps.Promise.t && validSigs >= ps.Promise.r
+	return validSigs >= ps.Promise.r
 }
