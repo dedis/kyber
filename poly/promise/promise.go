@@ -214,11 +214,18 @@ type BlameProof struct {
  * Returns
  *   An initialized BlameProof
  */
-func (blsig *BlameProof) Init(key abstract.Point, dkp []byte, sig *PromiseSignature) *BlameProof {
-	blsig.diffieKey      = key
-	blsig.diffieKeyProof = dkp
-	blsig.signature      = sig
-	return blsig
+func (bp *BlameProof) Init(key abstract.Point, dkp []byte, sig *PromiseSignature) *BlameProof {
+	bp.diffieKey      = key
+	bp.diffieKeyProof = dkp
+	bp.signature      = sig
+	return bp
+}
+
+// Tests whether two promise signatures are equal.
+func (bp *BlameProof) Equal(bp2 *BlameProof) bool {
+	return bp.diffieKey.Equal(bp2.diffieKey) &&
+	       reflect.DeepEqual(bp.diffieKeyProof, bp2.diffieKeyProof) &&
+	       bp.signature.Equal(bp2.signature)
 }
 
 /* Promise objects are mechanism by which servers can promise that a certain
@@ -635,6 +642,10 @@ type PromiseState struct {
 	// A list of signatures validating that an insurer has cerified the
 	// secret share it is guarding.
 	signatures []*PromiseSignature
+	
+	// A list of blame proofs in which an insurer blames the promise to be
+	// malformed
+	blames []*BlameProof
 }
 
 
@@ -648,8 +659,9 @@ func (ps *PromiseState) Init(promise *Promise) *PromiseState {
 	ps.PriShares = new(poly.PriShares)
 	ps.PriShares.Empty(promise.shareSuite, promise.t, promise.n)
 
-	// There will be at most n signatures, one per insurer
-	ps.signatures = make([]*PromiseSignature, promise.n , promise.n )
+	// There will be at most n signatures and blame proofs, one per insurer
+	ps.signatures = make([]*PromiseSignature, promise.n, promise.n)
+	ps.blames    = make([]*BlameProof, promise.n, promise.n)
 	return ps
 }
 
@@ -683,6 +695,22 @@ func (ps *PromiseState) AddSignature(i int, sig *PromiseSignature) {
 	ps.signatures[i] = sig
 }
 
+/* Adds a blame proof from an insurer to the PromiseState
+ *
+ * Arguments
+ *    i      = the index in the signature array this BlameProof belongs
+ *    bproof = the BlameProof to add
+ *
+ * Postcondition
+ *   The BlameProof has been added
+ *
+ * Note
+ *   Be sure to call ps.Promise.VerifyBlame before calling this function
+ */
+func (ps *PromiseState) AddBlameProof(i int, bproof *BlameProof) {
+	ps.blames[i] = bproof
+}
+
 /* Checks whether the Promise object has received enough signatures to be
  * considered certified.
  *
@@ -711,6 +739,10 @@ func (ps *PromiseState) PromiseCertified(promiserKey abstract.Point) error {
 		if ps.signatures[i] != nil &&
 		   ps.Promise.VerifySignature(i, ps.signatures[i]) == nil {
 			validSigs += 1
+		}
+		
+		if ps.blames[i] != nil && ps.Promise.VerifyBlame(i, ps.blames[i]) == nil {
+			return errors.New("A valid blame proofs proves this Promise to be uncertified.")
 		}
 	}
 	if validSigs < ps.Promise.r {

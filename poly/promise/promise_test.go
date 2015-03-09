@@ -140,6 +140,56 @@ func TestPromiseSignatureEqual(t *testing.T) {
 	}
 }
 
+// Verifies that Init properly initalizes a new BlameProof object
+// Note: This is for testing purposes only. Do not actually construct a
+// proof this way
+func TestBlameProofInit(t *testing.T) {
+	proof := []byte("This too is a test")
+	sig := []byte("This is a test")
+	p := new(PromiseSignature).Init(keySuite, sig)
+	bp := new(BlameProof).Init(promiserKey.Public, proof, p)
+	
+	if !bp.diffieKey.Equal(promiserKey.Public) ||
+	   !reflect.DeepEqual(bp.diffieKeyProof, proof) ||
+	   !p.Equal(bp.signature) {
+		t.Error("BlameProof not properly initialized.")
+	}
+}
+
+// Verifies that Equal properly works for PromiseSignature objects
+func TestBlameProofEqual(t *testing.T) {
+	p := new(PromiseSignature).Init(keySuite, []byte("Test"))
+	bp := new(BlameProof).Init(promiserKey.Public, []byte("Test"), p)
+	
+	if !bp.Equal(bp) {
+		t.Error("BlameProof should equal itself.")
+	}
+	
+	// Error cases
+	bp2 := new(BlameProof).Init(keySuite.Point().Base(), []byte("Test"), p)
+	if bp.Equal(bp2) {
+		t.Error("BlameProof differ in diffie-keys.")
+	}
+
+	bp2 = new(BlameProof).Init(promiserKey.Public, []byte("Differ"), p)
+	if bp.Equal(bp2) {
+		t.Error("BlameProof differ in hash proof.")
+	}
+
+	p2 := new(PromiseSignature).Init(keySuite, []byte("Differ"))
+	bp2 = new(BlameProof).Init(promiserKey.Public, []byte("Test"), p2)
+	if bp.Equal(bp2) {
+		t.Error("BlameProof differ signatures.")
+	}
+}
+
+// Tests whether two promise signatures are equal.
+//func (bp *BlameProof) Equal(bp2 *BlameProof) bool {
+//	return bp.diffieKey.Equal(bp2.diffieKey) &&
+//	       reflect.DeepEqual(bp.diffieKeyProof, bp2.diffieKeyProof) &&
+//	       bp.signature.Equal(bp2.signature)
+//}
+
 // Verifies that Init properly initalizes a new Promise object
 func TestPromiseInit(t *testing.T) {
 
@@ -453,6 +503,23 @@ func TestPromiseStateAddSignature(t *testing.T) {
 	}
 }
 
+// Verify that PromiseState can add blames.
+func TestPromiseStateAddBlame(t *testing.T) {
+
+	promise := new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promiseState := new(PromiseState).Init(promise)
+
+	// Ensure that blames can be added.
+	for i := 0 ; i < numInsurers; i++ {
+		bproof, _ := promise.Blame(i, insurerKeys[i])
+		promiseState.AddBlameProof(i, bproof)
+		
+		if !bproof.Equal(promiseState.blames[i]) {
+			t.Error("Blame failed to be added")
+		}
+	}
+}
+
 
 // Verify that once r signatures have been added, the promise becomes valid.
 func TestPromiseStatePromiseCertified(t *testing.T) {
@@ -461,14 +528,36 @@ func TestPromiseStatePromiseCertified(t *testing.T) {
 	promiseState := new(PromiseState).Init(promise)
 
 	for i := 0 ; i < numInsurers; i++ {
-		if i < r && promiseState.PromiseCertified(promiserKey.Public) == nil {
+		promiseState.AddSignature(i, promise.Sign(i, insurerKeys[i]))
+	
+		// Insure that invalidly added proofs do not distort the proof.
+		bproof, _ := promise.Blame(i, insurerKeys[i])
+		promiseState.AddBlameProof(i, bproof)
+		
+		err := promiseState.PromiseCertified(promiserKey.Public)
+		if i < r-1 && err == nil {
 			t.Error("Not enough signtures have been added yet", i, r)
-		} else if i >= r && promiseState.PromiseCertified(promiserKey.Public) != nil {
+		} else if i >= r-1 && err != nil {
 			t.Error("Promise should be valid now.")
 			t.Error(promiseState.PromiseCertified(promiserKey.Public))
 		}
+	}
 
+	promise      = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promiseState = new(PromiseState).Init(promise)
+	
+	promise.secrets[0] = promise.shareSuite.Secret()
+
+	for i := 0 ; i < numInsurers; i++ {
 		promiseState.AddSignature(i, promise.Sign(i, insurerKeys[i]))
+	
+		// Insure that invalidly added proofs do not distort the proof.
+		bproof, _ := promise.Blame(i, insurerKeys[i])
+		promiseState.AddBlameProof(i, bproof)
+
+		if promiseState.PromiseCertified(promiserKey.Public) == nil {
+			t.Error("Not enough signtures have been added yet", i, r)
+		}
 	}
 }
 
