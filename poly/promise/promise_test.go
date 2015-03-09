@@ -375,7 +375,7 @@ func TestPromiseRevealShareAndShareVerify(t *testing.T) {
 }
 
 // Verify that insurers can properly create and verify blame proofs
-/*func TestPromiseBlameAndVerify(t *testing.T) {
+func TestPromiseBlameAndVerify(t *testing.T) {
 
 	// Create a bad promise object. Create a new secret that will fail the
 	// the public polynomial check. 
@@ -388,35 +388,41 @@ func TestPromiseRevealShareAndShareVerify(t *testing.T) {
 	promise.secrets[0] = badShare
 
 
-	validProof := promise.Blame(0, insurerKeys[0])
-	if !promise.BlameVerify(validProof) {
+	validProof, err := promise.Blame(0, insurerKeys[0])
+	if err != nil {
+		t.Fatal("Blame failed to be properly constructed")
+	}
+
+	if promise.VerifyBlame(0, validProof) != nil {
 		t.Error("The proof is valid and should be accepted.")
 	}
 
 	// Error handling
-	goodPromiseShare := basicPromise.Blame(0, insurerKeys[0])
-	if basicPromise.BlameVerify(goodPromiseShare) {
+	goodPromiseShare, _ := basicPromise.Blame(0, insurerKeys[0])
+	if basicPromise.VerifyBlame(0, goodPromiseShare) == nil {
 		t.Error("Invalid blame: the share is actually good.")
 	}
 
-	badProof := basicPromise.Blame(0, insurerKeys[0])
-	badProof.i = -10
-	if basicPromise.BlameVerify(badProof) {
+	if basicPromise.VerifyBlame(-10, goodPromiseShare) == nil {
 		t.Error("The i index is below 0")
 	}
 
-	badProof = basicPromise.Blame(0, insurerKeys[0])
-	badProof.i = numInsurers +20
-	if basicPromise.BlameVerify(badProof) {
+	if basicPromise.VerifyBlame(numInsurers+20, goodPromiseShare) == nil {
 		t.Error("The i index is below above n")
 	}
 
-	badProof = basicPromise.Blame(0, insurerKeys[0])
-	badProof.share = insurerKeys[0].Secret
-	if basicPromise.BlameVerify(badProof) {
-		t.Error("The PromiseShare is invalid with a bad share.")
+	badProof, _ := basicPromise.Blame(0, insurerKeys[0])
+	badProof.diffieKeyProof = []byte("This is an invalid zero-knowledge proof")
+	if basicPromise.VerifyBlame(0, badProof) == nil {
+		t.Error("Invalid blame. The verification of the diffie-key proof is bad.")
 	}
-}*/
+
+	badSignature, _ := basicPromise.Blame(0, insurerKeys[0])
+	badSignature.signature = promise.Sign(1, insurerKeys[1])
+	if basicPromise.VerifyBlame(0, badSignature)  == nil {
+		t.Error("Invalid blame. The signature is bad.")
+	}
+}
 
 
 // Verifies that Init properly initalizes a new PromiseState object

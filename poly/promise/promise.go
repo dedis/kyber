@@ -11,11 +11,15 @@ import (
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/anon"
 	"github.com/dedis/crypto/config"
+	"github.com/dedis/crypto/proof"
 	"github.com/dedis/crypto/poly"
 	"github.com/dedis/crypto/random"
 )
 
-var sigMsg []byte = []byte("Prifi Insurance Signatures")
+var sigMsg []byte = []byte("Promise Signature")
+var sigBlameMsg []byte = []byte("Promise Blame Signature")
+
+var protocolName string = "Promise Blame Protocol"
 
 // TODO Pass BlameProof as pointer. Consider generalizing it.
 // TODO Add Equal, Marshal, and UnMarshal methods for all
@@ -150,6 +154,71 @@ func (p *PromiseSignature) UnmarshalFrom(r io.Reader) (int, error) {
 		return m, err2
 	}
 	return n+m, p.UnmarshalBinary(finalBuf)
+}
+
+/* PromiseShare is used to represent a secret share of a Promise. When a
+ * insurer wants to reveal the secret share it is guarding either to a
+ * client or to other insurers to prove that the promiser is crooked, it
+ * constructs this object.
+ *
+ * The key features of a PromiseShare are:
+ *	1. The index of the share
+ *      2. The share itself
+ *      3. The Diffie-Hellman secret between the insurer and promiser
+ *
+ * #3 is used for verification purposes. Other servers can use it to prove that
+ * encrypting #2 with #3 will produce the secret stored in the promise.
+ *
+ * As mentioned above, PromiseShare's can also be used as "BlameProof" objects.
+ *
+ * The BlameProof object provides an accountability measure. If a promiser
+ * decides to construct a faulty share, insurers can construct a BlameProof
+ * to show that the server is malicious. 
+ * 
+ * The insurer provides the index of the bad secret, the bad secret itself,
+ * and its diffie-hellman shared key with the promiser. Other servers can then
+ * verify if the promiser is malicious or the insurer is falsely accusing the
+ * server.
+ *
+ * To quickly summarize the blame procedure, two things must hold for the blame
+ * to succeed:
+ *
+ *   1. The provided share when encrypted with the diffie key must equal the
+ *   point provided at index bi of the promise. This verifies that the share
+ *   was actually intended for the insurer.
+ *
+ *   2. The provided share must fail to pass pubPoly.Check. This ensures that
+ *   the share is actually corrupted and the insurer is not just lying.
+ */
+
+type BlameProof struct {
+	
+	// The Diffie-Hellman key between the insurer and the promiser.
+	diffieKey abstract.Point
+
+	// A HashProve that the insurer properly constructed the Diffie-
+	// Hellman key
+	diffieKeyProof []byte
+
+	// The signature denoting that the insurer approves of the blame
+	signature *PromiseSignature
+}
+
+/* Initializes a new BlameProof
+ *
+ * Arguments
+ *    key  = the shared Diffie-Hellman key
+ *    dkp  = the proof validating the Diffie-Hellman key
+ *    sig  = the insurer's signature
+ *
+ * Returns
+ *   An initialized BlameProof
+ */
+func (blsig *BlameProof) Init(key abstract.Point, dkp []byte, sig *PromiseSignature) *BlameProof {
+	blsig.diffieKey      = key
+	blsig.diffieKeyProof = dkp
+	blsig.signature      = sig
+	return blsig
 }
 
 /* Promise objects are mechanism by which servers can promise that a certain
@@ -370,7 +439,24 @@ func (p *Promise) VerifyShare(i int, gKeyPair *config.KeyPair) error {
 }
 
 
-/* Produce a signature for a given insurer
+/* An internal helper function responsible for producing signatures
+ *
+ * Arguments
+ *    i         = the index of the insurer's share
+ *    gKeyPair  = the public/private keypair of the insurer.
+ *    msg       = the message to sign
+ *
+ * Return
+ *   A PromiseSignature object with the signature.
+ */
+func (p *Promise) sign(i int, gKeyPair *config.KeyPair, msg []byte) *PromiseSignature {
+	set        := anon.Set{gKeyPair.Public}
+	sig        := anon.Sign(gKeyPair.Suite, random.Stream, msg,
+		set, nil, 0, gKeyPair.Secret)	
+	return new(PromiseSignature).Init(gKeyPair.Suite, sig)
+}
+
+/* A public wrapper function for sign, Produces a signature for a given insurer
  *
  * Arguments
  *    i         = the index of the insurer's share
@@ -379,30 +465,27 @@ func (p *Promise) VerifyShare(i int, gKeyPair *config.KeyPair) error {
  * Return
  *   A PromiseSignature object with the signature.
  *
- * Note:
- *   The signature message will always be of the form:
- *      insurer approves PromiseId
  *
  *   It is assumed that the insurer has called VerifyShare first and hence
  *   it is assumed that the input to the function is trusted.
  */
-func (p *Promise) Sign(i int, gKeyPair *config.KeyPair) *PromiseSignature {
-	set        := anon.Set{gKeyPair.Public}
-	sig        := anon.Sign(gKeyPair.Suite, random.Stream, sigMsg,
-		set, nil, 0, gKeyPair.Secret)	
-	return new(PromiseSignature).Init(gKeyPair.Suite, sig)
+func (p *Promise) Sign(i int, gKeyPair *config.KeyPair) *PromiseSignature {	
+	return p.sign(i, gKeyPair, sigMsg)
 }
 
-/* Verifies a signature from a given insurer
+/* Verifies a signature from a given insurer. This is an internal function that
+ * enables signatures with different messages to be signed (useful for producing
+ * PromiseSignature's and BlameProofs with different signatures). 
  *
  * Arguments
- *    i   =
+ *    i   = the index of the insurer in the insurers list
  *    sig = the PromiseSignature object containing the signature
+ *    msg = the message that was signed
  *
  * Return
  *   an error if the promise is malformed, nil otherwise.
  */
-func (p *Promise) VerifySignature(i int, sig *PromiseSignature) error {
+func (p *Promise) verifySignature(i int, sig *PromiseSignature, msg []byte) error {
 	if sig.signature == nil {
 		return errors.New("Nil signature")
 	}
@@ -410,8 +493,21 @@ func (p *Promise) VerifySignature(i int, sig *PromiseSignature) error {
 		return errors.New("Invalid index. Expected 0 <= i < n")
 	}
 	set := anon.Set{p.insurers[i]}
-	_, err := anon.Verify(sig.suite, sigMsg, set, nil, sig.signature)
+	_, err := anon.Verify(sig.suite, msg, set, nil, sig.signature)
 	return err
+}
+
+/* Verifies a signature from a given insurer
+ *
+ * Arguments
+ *    i   = the index of the insurer in the insurers list
+ *    sig = the PromiseSignature object containing the signature
+ *
+ * Return
+ *   an error if the promise is malformed, nil otherwise.
+ */
+func (p *Promise) VerifySignature(i int, sig *PromiseSignature) error {
+	return p.verifySignature(i, sig, sigMsg)
 }
 
 /* Reveals the secret share that the insurer has been protecting. The insurer
@@ -459,47 +555,62 @@ func (p *Promise) VerifyRevealedShare(i int, share abstract.Secret) error {
  *    gKeyPair  = the key pair of the insurer of share i
  *
  * Return
- *   A proof object that the promiser is malicious
+ *   A proof object that the promiser is malicious or nil if an error occurs
+ *   An error object denoting the status of the proof construction
  */
-//func (p *Promise) Blame(i int, gKeyPair *config.KeyPair) *PromiseShare {
-//	return p.RevealShare(i, gKeyPair)
-//}
+func (p *Promise) Blame(i int, gKeyPair *config.KeyPair) (*BlameProof, error) {
+
+	diffieKey  := p.shareSuite.Point().Mul(p.pubKey, gKeyPair.Secret)
+	insurerSig := p.sign(i, gKeyPair, sigBlameMsg)
+
+	choice := make(map[proof.Predicate]int)
+	pred := proof.Rep("D", "x", "P")
+	choice[pred] = 1
+
+	rand := p.shareSuite.Cipher(abstract.RandomKey)
+
+	sval := map[string]abstract.Secret{"x": gKeyPair.Secret}
+	pval := map[string]abstract.Point{"D": diffieKey, "P": p.pubKey}
+	prover := pred.Prover(p.shareSuite, sval, pval, choice)
+	proof, err := proof.HashProve(p.shareSuite, protocolName, rand, prover)
+	if err != nil {
+		return nil, err
+	}	
+	return new(BlameProof).Init(diffieKey, proof, insurerSig), nil
+}
 
 
 /* Verify that a blame proof is jusfitied.
  *
  * Arguments
+ *    i     = the index of the share subject to blame
  *    proof = proof that alleges that a promiser constructed a bad share.
  *
  * Return
- *   Whether the alleged share is actually corrupted or not.
+ *   an error if the blame is unjustified or nil if the blame is justified.
  */
-//func (p *Promise) BlameVerify(proof *PromiseShare) bool {
+func (p *Promise) VerifyBlame(i int, blSig *BlameProof) error {
 
-	// If the index is invalid, the sender produced a malform blame proof.
-//	if proof.i > p.n || proof.i < 0 {
-//		return false
-//	}
+	if i < 0 || i >= p.n {
+		return errors.New("Invalid index. Expected 0 <= i < n")
+	}
+	if err := p.verifySignature(i, blSig.signature, sigBlameMsg); err != nil {
+		return err
+	}
 
-	// Verify that the share given is actually the share the promiser
-	// provided in the promise.
-//	badSecret    := p.diffieHellmanEncrypt(proof.share, proof.diffieKey)
-//	if !badSecret.Equal(p.secrets[proof.i]) {
-//		return false
-//	}
-	
-	// The diffie key should have been properly made. If not, the blamer is
-	// crooked.
-//	correctDiffie := p.shareSuite.Point().Add(p.insurers[proof.i], p.pubKey)
-//	if !correctDiffie.Equal(proof.diffieKey) {
-//		return false
-//	}
+	pval     := map[string]abstract.Point{"D": blSig.diffieKey, "P": p.pubKey}
+	pred     := proof.Rep("D", "x", "P")
+	verifier := pred.Verifier(p.shareSuite, pval)
+	if err := proof.HashVerify(p.shareSuite, protocolName, verifier, blSig.diffieKeyProof); err != nil {
+		return err
+	}
 
-	// If so, see whether the bad share fails to pass pubPoly.Check. If it
-	// fails, the blame is valid. If the check succeeds, the blame was
-	// unjustified.
-//	return !p.pubPoly.Check(proof.i, proof.share)
-//}
+	share := p.diffieHellmanDecrypt(p.secrets[i], blSig.diffieKey)
+	if p.pubPoly.Check(i, share) {
+		return errors.New("Unjustified blame. The share checks out okay.")
+	}
+	return nil
+}
 
 
 /* The PromiseState object is responsible for maintaining state for a given
