@@ -147,37 +147,94 @@ func TestBlameProofInit(t *testing.T) {
 	proof := []byte("This too is a test")
 	sig := []byte("This is a test")
 	p := new(PromiseSignature).Init(keySuite, sig)
-	bp := new(BlameProof).Init(promiserKey.Public, proof, p)
+	bp := new(BlameProof).Init(keySuite, promiserKey.Public, proof, p)
 	
-	if !bp.diffieKey.Equal(promiserKey.Public) ||
+	if keySuite != bp.suite ||
+	   !bp.diffieKey.Equal(promiserKey.Public) ||
 	   !reflect.DeepEqual(bp.diffieKeyProof, proof) ||
 	   !p.Equal(bp.signature) {
 		t.Error("BlameProof not properly initialized.")
 	}
 }
 
+// Verifies that UnMarshalInit properly initalizes for unmarshalling
+func TestBlameProofUnMarshalInit(t *testing.T) {
+	bp := new(PromiseSignature).UnmarshalInit(keySuite)
+	if bp.suite != keySuite {
+		t.Error("BlameProof not properly initialized.")
+	}
+}
+
+// Verifies that UnMarshalInit properly initalizes for unmarshalling
+func TestBlameProofBinaryMarshalling(t *testing.T) {
+	
+	// Tests BinaryMarshal, BinaryUnmarshal, and MarshalSize
+	bp,_ := basicPromise.Blame(numInsurers-1, insurerKeys[numInsurers-1])
+	encodedBp, err := bp.MarshalBinary()
+	if err != nil || len(encodedBp) != bp.MarshalSize() {
+		t.Fatal("Marshalling failed: ", err)
+	}
+	
+	decodedBp := new(BlameProof).UnmarshalInit(keySuite)
+	err = decodedBp.UnmarshalBinary(encodedBp)
+	if err != nil {
+		t.Fatal("UnMarshalling failed: ", err)
+	}
+	if !bp.Equal(decodedBp) {
+		t.Error("Decoded signature not equal to original")
+	}
+	
+	// Tests MarshlTo and UnmarshalFrom
+	bp2, _ := basicPromise.Blame(1, insurerKeys[1])
+	bufWriter := new(bytes.Buffer)
+	
+	bytesWritter, errs := bp2.MarshalTo(bufWriter)
+	
+	if bytesWritter != bp2.MarshalSize() || errs != nil {
+		t.Fatal("MarshalTo failed: ", bytesWritter, err)
+	}
+	
+	decodedBp2 := new(BlameProof).UnmarshalInit(keySuite)
+	bufReader := bytes.NewReader(bufWriter.Bytes())
+	bytesRead, errs2 := decodedBp2.UnmarshalFrom(bufReader)
+	if bytesRead != bp2.MarshalSize() ||
+	   bp2.MarshalSize() != decodedBp2.MarshalSize() ||
+	   errs2 != nil {
+		t.Fatal("UnmarshalFrom failed: ", bytesRead, errs2)
+	}
+	if !bp2.Equal(decodedBp2) {
+		t.Error("Signature read does not equal original")
+	}
+}
+
+
 // Verifies that Equal properly works for PromiseSignature objects
 func TestBlameProofEqual(t *testing.T) {
 	p := new(PromiseSignature).Init(keySuite, []byte("Test"))
-	bp := new(BlameProof).Init(promiserKey.Public, []byte("Test"), p)
+	bp := new(BlameProof).Init(keySuite, promiserKey.Public, []byte("Test"), p)
 	
 	if !bp.Equal(bp) {
 		t.Error("BlameProof should equal itself.")
 	}
 	
 	// Error cases
-	bp2 := new(BlameProof).Init(keySuite.Point().Base(), []byte("Test"), p)
+	bp2 := new(BlameProof).Init(nil, keySuite.Point().Base(), []byte("Test"), p)
+	if bp.Equal(bp2) {
+		t.Error("BlameProof differ in key suites.")
+	}
+
+	bp2 = new(BlameProof).Init(keySuite, keySuite.Point().Base(), []byte("Test"), p)
 	if bp.Equal(bp2) {
 		t.Error("BlameProof differ in diffie-keys.")
 	}
 
-	bp2 = new(BlameProof).Init(promiserKey.Public, []byte("Differ"), p)
+	bp2 = new(BlameProof).Init(keySuite, promiserKey.Public, []byte("Differ"), p)
 	if bp.Equal(bp2) {
 		t.Error("BlameProof differ in hash proof.")
 	}
 
 	p2 := new(PromiseSignature).Init(keySuite, []byte("Differ"))
-	bp2 = new(BlameProof).Init(promiserKey.Public, []byte("Test"), p2)
+	bp2 = new(BlameProof).Init(keySuite, promiserKey.Public, []byte("Test"), p2)
 	if bp.Equal(bp2) {
 		t.Error("BlameProof differ signatures.")
 	}

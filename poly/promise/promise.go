@@ -105,9 +105,6 @@ func (p *PromiseSignature) MarshalBinary() ([]byte, error) {
 
 // Decode this polynomial from a slice exactly MarshalSize() bytes long.
 func (p *PromiseSignature) UnmarshalBinary(buf []byte) error {
-
-	uint32Size := binary.Size(uint32(0))
-
 	// The buffer should be at least be able to hold a uint32 and a
 	// byte message at least 1 byte long (preferably more)
 	if len(buf) < uint32Size + 1 {
@@ -192,6 +189,9 @@ func (p *PromiseSignature) UnmarshalFrom(r io.Reader) (int, error) {
  */
 
 type BlameProof struct {
+
+	// The suite all points are from.
+	suite abstract.Suite
 	
 	// The Diffie-Hellman key between the insurer and the promiser.
 	diffieKey abstract.Point
@@ -214,18 +214,155 @@ type BlameProof struct {
  * Returns
  *   An initialized BlameProof
  */
-func (bp *BlameProof) Init(key abstract.Point, dkp []byte, sig *PromiseSignature) *BlameProof {
+func (bp *BlameProof) Init(suite abstract.Suite, key abstract.Point, dkp []byte, sig *PromiseSignature) *BlameProof {
+	bp.suite          = suite
 	bp.diffieKey      = key
 	bp.diffieKeyProof = dkp
 	bp.signature      = sig
 	return bp
 }
 
+/* An initialization function for preparing a BlameProof for unmarshalling
+ *
+ * Arguments
+ *    s   = the suite of points in the BlameProof
+ *
+ * Returns
+ *   An initialized BlameProof ready to be unmarshalled
+ */
+func (bp *BlameProof) UnmarshalInit(suite abstract.Suite) *BlameProof {
+	bp.suite     = suite
+	return bp
+}
+
 // Tests whether two promise signatures are equal.
 func (bp *BlameProof) Equal(bp2 *BlameProof) bool {
-	return bp.diffieKey.Equal(bp2.diffieKey) &&
+	return bp.suite == bp.suite &&
+	       bp.diffieKey.Equal(bp2.diffieKey) &&
 	       reflect.DeepEqual(bp.diffieKeyProof, bp2.diffieKeyProof) &&
 	       bp.signature.Equal(bp2.signature)
+}
+
+// Return the encoded length of this polynomial commitment.
+func (bp *BlameProof) MarshalSize() int {
+	return bp.suite.PointLen() + uint32Size + len(bp.diffieKeyProof) +
+	       bp.signature.MarshalSize()
+}
+
+// Encode this polynomial into a byte slice exactly MarshalSize() bytes long.
+func (bp *BlameProof) MarshalBinary() ([]byte, error) {
+	buf := make([]byte, bp.MarshalSize())
+
+	pointLen := bp.suite.PointLen()
+	proofLen := len(bp.diffieKeyProof)
+
+	// The buffer is formatted as follows:
+	//
+	// ||Diffie-Key-Proof-Length||Diffie-Key||Diffie-Key-Proof||Signature||
+
+	binary.LittleEndian.PutUint32(buf, uint32(proofLen))
+	
+	pointBuf, err := bp.diffieKey.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	
+	copy(buf[uint32Size:], pointBuf)
+	copy(buf[uint32Size+pointLen:], bp.diffieKeyProof)
+	
+	sigBuf, err1 := bp.signature.MarshalBinary()
+	if err != nil {
+		return nil, err1
+	}
+	copy(buf[uint32Size+pointLen+proofLen:], sigBuf)
+
+	return buf, nil
+}
+
+// Decode this polynomial from a slice exactly MarshalSize() bytes long.
+func (bp *BlameProof) UnmarshalBinary(buf []byte) error {
+
+	pointLen   := bp.suite.PointLen()
+
+	// The buffer should be at least be able to hold a uint32, a point,
+	// and a byte message at least one byte long. This does not take
+	// into account the requirements for a PromiseSignature.
+	if len(buf) < uint32Size + pointLen + 1 {
+		return errors.New("Buffer size too small")
+	}
+	
+	diffieProofLen := binary.LittleEndian.Uint32(buf)
+	bp.diffieKey = bp.suite.Point()
+	if err := bp.diffieKey.UnmarshalBinary(buf[uint32Size:]); err != nil {
+		return err
+	}
+	
+	diffieProofStart := uint32Size+pointLen
+	diffieProofEnd   := diffieProofStart + int(diffieProofLen)
+	bp.diffieKeyProof = make([]byte, diffieProofLen, diffieProofLen)
+	copy(bp.diffieKeyProof, buf[diffieProofStart:diffieProofEnd])
+	
+	bp.signature.UnmarshalInit(bp.suite)
+	
+	if err := bp.signature.UnmarshalBinary(buf[diffieProofEnd:]); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (bp *BlameProof) MarshalTo(w io.Writer) (int, error) {
+	buf, err := bp.MarshalBinary()
+	if err != nil {
+		return 0, err
+	}
+	return w.Write(buf)
+}
+
+func (bp *BlameProof) UnmarshalFrom(r io.Reader) (int, error) {
+	// Because signatures and proofs can be of variable length,
+	// MarshalSize will not work until the object has been unmarshalled.
+	// However, the size of the variable length portions are givin in the
+	// buffer making it still possible to decrypt.
+	
+	// Retrieve the signature length
+	buf := make([]byte, uint32Size)
+	n, err := io.ReadFull(r, buf)
+	if err != nil {
+		return n, err
+	}
+	
+	diffieProofLen := binary.LittleEndian.Uint32(buf)
+	pointLen   := bp.suite.PointLen()
+
+	// Calculate the length of the entire message and create the new buffer.
+	intermediateBuf := make([]byte, 2*uint32Size + pointLen + int(diffieProofLen))
+	
+	// Copy what has already been read into the buffer.
+	copy(intermediateBuf, buf)
+	
+	// Read more to determine the length of the signature.
+	m, err2 := io.ReadFull(r, intermediateBuf[n:])
+	if err2 != nil {
+		return m, err2
+	}
+	
+	sigLen := binary.LittleEndian.Uint32(intermediateBuf[uint32Size + pointLen + int(diffieProofLen):])
+	
+	// Calculate the length of the final buffer
+	finalBuf := make([]byte, 2*uint32Size + pointLen + int(diffieProofLen) + int(sigLen))
+
+	// Copy what has already been read into the buffer.
+	copy(finalBuf, intermediateBuf)
+
+
+	// Read more to determine the length of the signature.
+	o, err3 := io.ReadFull(r, finalBuf[n+m:])
+	if err3 != nil {
+		return o, err3
+	}
+	
+	return n+m+o, bp.UnmarshalBinary(finalBuf)
 }
 
 /* Promise objects are mechanism by which servers can promise that a certain
@@ -583,7 +720,7 @@ func (p *Promise) Blame(i int, gKeyPair *config.KeyPair) (*BlameProof, error) {
 	if err != nil {
 		return nil, err
 	}	
-	return new(BlameProof).Init(diffieKey, proof, insurerSig), nil
+	return new(BlameProof).Init(p.shareSuite, diffieKey, proof, insurerSig), nil
 }
 
 
