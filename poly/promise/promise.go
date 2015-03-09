@@ -28,6 +28,9 @@ var sigMsg []byte = []byte("Prifi Insurance Signatures")
 // TODO Decouple keysuite from sharesuite
 // TODO It should be i >= p.n
 
+
+var uint32Size = binary.Size(uint32(0))
+
 /* The PromiseSignature object is used for insurers to express their approval
  * of a given promise. After receiving a promise and verifying that their share
  * is good, insurers can then produce a signature to send back to the promiser.
@@ -37,9 +40,6 @@ var sigMsg []byte = []byte("Prifi Insurance Signatures")
  * number of insurers.
  */
 type PromiseSignature struct {
-
-	// The index of the insurer producing the signature
-	pi int
 	
 	// The suite used to sign the signature
 	suite abstract.Suite
@@ -60,8 +60,7 @@ type PromiseSignature struct {
  * Returns
  *   An initialized PromiseSignature
  */
-func (p *PromiseSignature) Init(i int, suite abstract.Suite, sig []byte) *PromiseSignature {
-	p.pi        = i
+func (p *PromiseSignature) Init(suite abstract.Suite, sig []byte) *PromiseSignature {
 	p.suite     = suite
 	p.signature = sig
 	return p
@@ -76,69 +75,44 @@ func (p *PromiseSignature) Init(i int, suite abstract.Suite, sig []byte) *Promis
  * Returns
  *   An initialized PromiseSignature ready to be unmarshalled
  */
-func (p *PromiseSignature) UnMarshalInit(suite abstract.Suite) *PromiseSignature {
+func (p *PromiseSignature) UnmarshalInit(suite abstract.Suite) *PromiseSignature {
 	p.suite     = suite
 	return p
 }
 
 // Tests whether two promise signatures are equal.
 func (p *PromiseSignature) Equal(p2 *PromiseSignature) bool {
-	return p.pi == p2.pi && p.suite == p2.suite &&
+	return p.suite == p2.suite &&
 	       reflect.DeepEqual(p, p2)
 }
 
 // Return the encoded length of this polynomial commitment.
 func (p *PromiseSignature) MarshalSize() int {
-	// PutVarint will put a different amount of bytes depending upon
-	// the size of the integer. Hence, the integer needs to be put into
-	// a buffer and the number of bytes returned to calculate marshal size
-	// Furthermore, the length of the signature is included so that
-	// unmarshal can determine how great a buffer it needs.
-	intSize := binary.Size(int64(p.pi))
-	buf := make([]byte, intSize)
-	piLen  := binary.PutVarint(buf, int64(p.pi))
-	sigLen := binary.PutVarint(buf, int64(len(p.signature)))
-	return piLen + sigLen + len(p.signature)
+	return uint32Size + len(p.signature)
 }
 
 // Encode this polynomial into a byte slice exactly MarshalSize() bytes long.
 func (p *PromiseSignature) MarshalBinary() ([]byte, error) {
 	buf := make([]byte, p.MarshalSize())
-
-	// Commit the index to the buffer.
-	piLen := binary.PutVarint(buf, int64(p.pi))
-
-	// Commit the length of the signature to the buffer.
-	sigLen := binary.PutVarint(buf[piLen:], int64(len(p.signature)))
-
-	// Commit the signature to the buffer
-	copy(buf[piLen+sigLen:], p.signature)
+	binary.LittleEndian.PutUint32(buf, uint32(len(p.signature)))
+	copy(buf[uint32Size:], p.signature)
 	return buf, nil
 }
 
 // Decode this polynomial from a slice exactly MarshalSize() bytes long.
 func (p *PromiseSignature) UnmarshalBinary(buf []byte) error {
 
-	// The buffer should be at least bytes long. At minimum, a byte is
-	// needed to encode the signature index, one is needed for the signature
-	// length, and the final for the actual signature (though more should
-	// ideally be given)
-	if len(buf) < 3 {
+	uint32Size := binary.Size(uint32(0))
+
+	// The buffer should be at least be able to hold a uint32 and a
+	// byte message at least 1 byte long (preferably more)
+	if len(buf) < uint32Size + 1 {
 		return errors.New("Buffer size too small")
 	}
 
-	result, bytesRead := binary.Varint(buf)
-	if bytesRead <= 0 {
-		return errors.New("Error decoding index")
-	}
-	p.pi = int(result)
-	
-	// The length of the signature is not needed for simple unmarshalling
-	// since the buf given above should only contain data about this object.
-	// Hence, anything left is a part of the signature.
-	_, bytesRead2 := binary.Varint(buf[bytesRead:])
-	
-	p.signature = buf[bytesRead+bytesRead2:]
+	// Signature length is not needed for unmarshalling proper since all of
+	// the remaining buffer will be used for the signature.
+	p.signature = buf[uint32Size:]
 	return nil
 }
 
@@ -152,47 +126,25 @@ func (p *PromiseSignature) MarshalTo(w io.Writer) (int, error) {
 
 func (p *PromiseSignature) UnmarshalFrom(r io.Reader) (int, error) {
 	// Because signatures can be of variable length, MarshalSize will not
-	// work until the object has been unmarshalled. However, the size can
-	// still be reconstructed.
-	// The marshalled array consists of three parts:
-	//   1. The index of the signature
-	//   2. The length of the signature
-	//   3. The signature itself
-	// 1 and 2 are variable length but no more than an int64. Hence, enough
-	// can be read to unmarshal 1 and 2. After that is done, the length of
-	// the entire object can be recomputed. Hence, the proper buffer can
-	// be made and the rest of the unmarshalling can be handled by
-	// BinaryUnmarshal.
+	// work until the object has been unmarshalled. However, the size of the
+	// signature is provided as a unit32 at the beginning of the message.
 	
-	// Retrieve the signature index as stated above.
-	intSize    :=  binary.Size(int64(p.pi))
-	buf := make([]byte, intSize*2)
+	// Retrieve the signature length
+	buf := make([]byte, uint32Size)
 	n, err := io.ReadFull(r, buf)
-
 	if err != nil {
 		return n, err
 	}
 	
-	// Find the length of the signature index as stated above.
-	_, piLen := binary.Varint(buf)
-	if piLen <= 0 {
-		return 0, errors.New("Binary number not provided for index")
-	}
-	
-	// Retrieve the signature length
-	sigLen, sigLenBytesRead := binary.Varint(buf[piLen:])
-	if sigLenBytesRead <= 0 {
-		return 0, errors.New("Signature length not provided")
-	}
+	sigLen := binary.LittleEndian.Uint32(buf)
 
-	// The entire length of the buffer can now be calculated and the
-	// object = unmarshalled.
-	finalBuf := make([]byte, int(sigLen) + piLen + sigLenBytesRead)
+	// Calculate the length of the entire message and create the new buffer.
+	finalBuf := make([]byte, uint32Size + int(sigLen))
 	
 	// Copy what has already been read into the buffer.
 	copy(finalBuf, buf)
 	
-	// Read the rest.
+	// Read the rest and unmarshal.
 	m, err2 := io.ReadFull(r, finalBuf[n:])
 	if err2 != nil {
 		return m, err2
@@ -433,7 +385,7 @@ func (p *Promise) Sign(i int, gKeyPair *config.KeyPair) *PromiseSignature {
 	set        := anon.Set{gKeyPair.Public}
 	sig        := anon.Sign(gKeyPair.Suite, random.Stream, sigMsg,
 		set, nil, 0, gKeyPair.Secret)	
-	return new(PromiseSignature).Init(i, gKeyPair.Suite, sig)
+	return new(PromiseSignature).Init(gKeyPair.Suite, sig)
 }
 
 /* Verifies a signature from a given insurer

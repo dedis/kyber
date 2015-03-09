@@ -59,18 +59,17 @@ func deferTest(t *testing.T, message string) {
 
 // Verifies that Init properly initalizes a new PromiseSignature object
 func TestPromiseSignatureInit(t *testing.T) {
-	i := 20 
 	sig := []byte("This is a test")
-	p := new(PromiseSignature).Init(i, keySuite, sig)
+	p := new(PromiseSignature).Init(keySuite, sig)
 	
-	if p.pi != i || p.suite != keySuite || !reflect.DeepEqual(sig, p.signature) {
+	if p.suite != keySuite || !reflect.DeepEqual(sig, p.signature) {
 		t.Error("PromiseSignature not properly initialized.")
 	}
 }
 
 // Verifies that UnMarshalInit properly initalizes for unmarshalling
 func TestPromiseSignatureUnMarshalInit(t *testing.T) {
-	p := new(PromiseSignature).UnMarshalInit(keySuite)
+	p := new(PromiseSignature).UnmarshalInit(keySuite)
 	if p.suite != keySuite {
 		t.Error("PromiseSignature not properly initialized.")
 	}
@@ -86,7 +85,7 @@ func TestPromiseSignatureBinaryMarshalling(t *testing.T) {
 		t.Fatal("Marshalling failed: ", err)
 	}
 	
-	decodedSig := new(PromiseSignature).UnMarshalInit(keySuite)
+	decodedSig := new(PromiseSignature).UnmarshalInit(keySuite)
 	err = decodedSig.UnmarshalBinary(encodedSig)
 	if err != nil {
 		t.Fatal("UnMarshalling failed: ", err)
@@ -105,7 +104,7 @@ func TestPromiseSignatureBinaryMarshalling(t *testing.T) {
 		t.Fatal("MarshalTo failed: ", bytesWritter, err)
 	}
 	
-	decodedSig2 := new(PromiseSignature).UnMarshalInit(keySuite)
+	decodedSig2 := new(PromiseSignature).UnmarshalInit(keySuite)
 	bufReader := bytes.NewReader(bufWriter.Bytes())
 	bytesRead, errs2 := decodedSig2.UnmarshalFrom(bufReader)
 	if bytesRead != sig2.MarshalSize() ||
@@ -123,24 +122,19 @@ func TestPromiseSignatureBinaryMarshalling(t *testing.T) {
 // Verifies that Equal properly works for PromiseSignature objects
 func TestPromiseSignatureEqual(t *testing.T) {
 	sig := []byte("This is a test")
-	p := new(PromiseSignature).Init(29, keySuite, sig)
+	p := new(PromiseSignature).Init(keySuite, sig)
 	
 	if !p.Equal(p) {
 		t.Error("PromiseSignature should equal itself.")
 	}
 	
 	// Error cases
-	p2 := new(PromiseSignature).Init(20, keySuite, sig)	
-	if p.Equal(p2) {
-		t.Error("PromiseSignature differ in pi.")
-	}
-
-	p2 = new(PromiseSignature).Init(29, nil, sig)	
+	p2 := new(PromiseSignature).Init(nil, sig)	
 	if p.Equal(p2) {
 		t.Error("PromiseSignature differ in suite.")
 	}
 
-	p2 = new(PromiseSignature).Init(29, keySuite, nil)	
+	p2 = new(PromiseSignature).Init(keySuite, nil)	
 	if p.Equal(p2) {
 		t.Error("PromiseSignature differ in signature.")
 	}
@@ -320,7 +314,7 @@ func produceSigWithBadMessage() *PromiseSignature {
 	digSig     := anon.Sign(insurerKeys[0].Suite, random.Stream, []byte(approveMsg),
 		     set, nil, 0, insurerKeys[0].Secret)
 		     
-	return new(PromiseSignature).Init(0, insurerKeys[0].Suite, digSig)
+	return new(PromiseSignature).Init(insurerKeys[0].Suite, digSig)
 }
 
 
