@@ -15,6 +15,8 @@ import (
 	"github.com/dedis/crypto/random"
 )
 
+var sigMsg []byte = []byte("Prifi Insurance Signatures")
+
 // TODO Pass BlameProof as pointer. Consider generalizing it.
 // TODO Add Equal, Marshal, and UnMarshal methods for all
 // TODO Add tests for things I haven't yet.
@@ -198,77 +200,6 @@ func (p *PromiseSignature) UnmarshalFrom(r io.Reader) (int, error) {
 	return n+m, p.UnmarshalBinary(finalBuf)
 }
 
-/* PromiseShare is used to represent a secret share of a Promise. When a
- * insurer wants to reveal the secret share it is guarding either to a
- * client or to other insurers to prove that the promiser is crooked, it
- * constructs this object.
- *
- * The key features of a PromiseShare are:
- *	1. The index of the share
- *      2. The share itself
- *      3. The Diffie-Hellman secret between the insurer and promiser
- *
- * #3 is used for verification purposes. Other servers can use it to prove that
- * encrypting #2 with #3 will produce the secret stored in the promise.
- *
- * As mentioned above, PromiseShare's can also be used as "BlameProof" objects.
- *
- * The BlameProof object provides an accountability measure. If a promiser
- * decides to construct a faulty share, insurers can construct a BlameProof
- * to show that the server is malicious. 
- * 
- * The insurer provides the index of the bad secret, the bad secret itself,
- * and its diffie-hellman shared key with the promiser. Other servers can then
- * verify if the promiser is malicious or the insurer is falsely accusing the
- * server.
- *
- * To quickly summarize the blame procedure, two things must hold for the blame
- * to succeed:
- *
- *   1. The provided share when encrypted with the diffie key must equal the
- *   point provided at index bi of the promise. This verifies that the share
- *   was actually intended for the insurer.
- *
- *   2. The provided share must fail to pass pubPoly.Check. This ensures that
- *   the share is actually corrupted and the insurer is not just lying.
- */
-
-type PromiseShare struct {
-
-	// The index of the share
-	i int
-	
-	// The actual share from the insurer
-	share abstract.Secret
-	
-	// The Diffie-Hellman key between insurer i and the promiser.
-	diffieKey abstract.Point
-}
-
-
-/* Initializes a new PromiseShare
- *
- * Arguments
- *    i   = the index of the Promise share the insurer is revealing
- *    s   = the share being revealed
- *    d   = the Diffie-Hellman key between the insurer and promiser
- *
- * Returns
- *   An initialized PromiseShare
- */
-func (p *PromiseShare) Init(i int, s abstract.Secret, d abstract.Point) *PromiseShare {
-	p.i         = i
-	p.share     = s
-	p.diffieKey = d
-	return p
-}
-
-// Tests whether two promise secrets are equal.
-func (p *PromiseShare) Equal(p2 *PromiseShare) bool {
-	return p.i == p2.i && p.share.Equal(p2.share) &&
-	       p.diffieKey.Equal(p2.diffieKey)
-}
-
 /* Promise objects are mechanism by which servers can promise that a certain
  * private key or abstract.Secret can be recomputed by other servers in case
  * the original server goes offline.
@@ -326,7 +257,7 @@ type Promise struct {
 	secrets    []abstract.Secret
 }
 
-/* Initializes a new promise to guard a secret.
+/* To be called by the promiser, initializes a new promise to guard a secret.
  *
  * Arguments
  *    priKey   = the secret to be promised.
@@ -342,7 +273,7 @@ type Promise struct {
  *   Since shares will be multiplied by Diffie-Hellman keys, they need to be the
  *   same group as the keys.
  */
-func (p *Promise) Init(keyPair *config.KeyPair, t, r int,
+func (p *Promise) PromiserInit(keyPair *config.KeyPair, t, r int,
 	insurers []abstract.Point) *Promise {
 
 	// Basic initialization
@@ -454,7 +385,8 @@ func (p *Promise) diffieHellmanDecrypt(secret abstract.Secret, diffieBase abstra
 }
 
 
-/* Verify that a share has been properly constructed.
+/* Verify that a share has been properly constructed. This should be called by
+ * insurers to verify that the share they insure is properly constructed.
  *
  * Arguments
  *    i         = the index of the share to verify
@@ -499,31 +431,29 @@ func (p *Promise) VerifyShare(i int, gKeyPair *config.KeyPair) bool {
  */
 func (p *Promise) Sign(i int, gKeyPair *config.KeyPair) *PromiseSignature {
 	set        := anon.Set{gKeyPair.Public}
-	approveMsg := gKeyPair.Public.String() + " approves " + p.id
-	sig        := anon.Sign(gKeyPair.Suite, random.Stream, []byte(approveMsg),
-		set, nil, 0, gKeyPair.Secret)
-		
+	sig        := anon.Sign(gKeyPair.Suite, random.Stream, sigMsg,
+		set, nil, 0, gKeyPair.Secret)	
 	return new(PromiseSignature).Init(i, gKeyPair.Suite, sig)
 }
 
 /* Verifies a signature from a given insurer
  *
  * Arguments
+ *    i   =
  *    sig = the PromiseSignature object containing the signature
  *
  * Return
  *   whether or not the signature is valid
  */
-func (p *Promise) VerifySignature(sig *PromiseSignature) bool {
+func (p *Promise) VerifySignature(i int, sig *PromiseSignature) bool {
 	if sig.signature == nil {
 		return false
 	}
-	if sig.pi < 0 || sig.pi >= p.n {
+	if i < 0 || i >= p.n {
 		return false
 	}
-	set := anon.Set{p.insurers[sig.pi]}
-	approveMsg := p.insurers[sig.pi].String() + " approves " + p.id
-	_, err := anon.Verify(sig.suite, []byte(approveMsg), set, nil, sig.signature)
+	set := anon.Set{p.insurers[i]}
+	_, err := anon.Verify(sig.suite, sigMsg, set, nil, sig.signature)
 	return err == nil
 }
 
@@ -537,44 +467,33 @@ func (p *Promise) VerifySignature(sig *PromiseSignature) bool {
  *    gkeyPair = the keypair of the insurer
  *
  * Return
- *   a PromiseShare object representing the share.
+ *   the revealed private share
  */
-func (p *Promise) RevealShare(i int, gKeyPair *config.KeyPair) *PromiseShare {
+func (p *Promise) RevealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
 	diffieBase := p.shareSuite.Point().Mul(p.pubKey, gKeyPair.Secret)
 	share      := p.diffieHellmanDecrypt(p.secrets[i], diffieBase)
-	return new(PromiseShare).Init(i, share, diffieBase)
+	return share
 }
 
-/* Verify that PromiseShare is both syntactically and semantically wellformed.
- *
- * In particular:
- *    1. The index should be within range
- *    2. The secret provided and the Diffie-Hellman key should match the share
- *       found at the corresponding index in the Promise.
- *    3. The secret provided passes the public polynomial
+/* Verify that a revealed share is properly formed. This should be calle by
+ * clients or others who request an insurer to reveal its secret.
  *
  * Arguments
- *    psecret = the PromiseShare to verify
+ *    i     = the index of the share
+ *    share = the share to validate.
  *
  * Return
  *   Whether the secret is valid
  */
-func (p *Promise) PromiseShareVerify(psecret *PromiseShare) bool {
+func (p *Promise) VerifyRevealedShare(i int, share abstract.Secret) bool {
 
 	// If the index is invalid, the sender produced a malform blame proof.
-	if psecret.i > p.n || psecret.i < 0 {
-		return false
-	}
-
-	// Verify that the share given is actually the share the promiser
-	// provided in the promise.
-	share  := p.diffieHellmanEncrypt(psecret.share, psecret.diffieKey)
-	if !share.Equal(p.secrets[psecret.i]) {
+	if i > p.n || i < 0 {
 		return false
 	}
 
 	// Check that the share provided passes the public polynomial
-	return p.pubPoly.Check(psecret.i, psecret.share)
+	return p.pubPoly.Check(i, share)
 }
 
 /* Create a proof that the promiser maliciously constructed a given secret.
@@ -586,9 +505,9 @@ func (p *Promise) PromiseShareVerify(psecret *PromiseShare) bool {
  * Return
  *   A proof object that the promiser is malicious
  */
-func (p *Promise) Blame(i int, gKeyPair *config.KeyPair) *PromiseShare {
-	return p.RevealShare(i, gKeyPair)
-}
+//func (p *Promise) Blame(i int, gKeyPair *config.KeyPair) *PromiseShare {
+//	return p.RevealShare(i, gKeyPair)
+//}
 
 
 /* Verify that a blame proof is jusfitied.
@@ -599,19 +518,19 @@ func (p *Promise) Blame(i int, gKeyPair *config.KeyPair) *PromiseShare {
  * Return
  *   Whether the alleged share is actually corrupted or not.
  */
-func (p *Promise) BlameVerify(proof *PromiseShare) bool {
+//func (p *Promise) BlameVerify(proof *PromiseShare) bool {
 
 	// If the index is invalid, the sender produced a malform blame proof.
-	if proof.i > p.n || proof.i < 0 {
-		return false
-	}
+//	if proof.i > p.n || proof.i < 0 {
+//		return false
+//	}
 
 	// Verify that the share given is actually the share the promiser
 	// provided in the promise.
-	badSecret    := p.diffieHellmanEncrypt(proof.share, proof.diffieKey)
-	if !badSecret.Equal(p.secrets[proof.i]) {
-		return false
-	}
+//	badSecret    := p.diffieHellmanEncrypt(proof.share, proof.diffieKey)
+//	if !badSecret.Equal(p.secrets[proof.i]) {
+//		return false
+//	}
 	
 	// The diffie key should have been properly made. If not, the blamer is
 	// crooked.
@@ -623,8 +542,8 @@ func (p *Promise) BlameVerify(proof *PromiseShare) bool {
 	// If so, see whether the bad share fails to pass pubPoly.Check. If it
 	// fails, the blame is valid. If the check succeeds, the blame was
 	// unjustified.
-	return !p.pubPoly.Check(proof.i, proof.share)
-}
+//	return !p.pubPoly.Check(proof.i, proof.share)
+//}
 
 
 /* The PromiseState object is responsible for maintaining state for a given
@@ -684,6 +603,7 @@ func (ps *PromiseState) Init(promise *Promise) *PromiseState {
 /* Adds a signature from an insurer to the PromiseState
  *
  * Arguments
+ *    i   = the index in the signature array this signature belogns
  *    sig = the PromiseSignature to add
  *
  * Postcondition
@@ -692,8 +612,8 @@ func (ps *PromiseState) Init(promise *Promise) *PromiseState {
  * Note
  *   Be sure to call ps.Promise.VerifySignature before calling this function
  */
-func (ps *PromiseState) AddSignature(sig *PromiseSignature) {
-	ps.signatures[sig.pi] = sig
+func (ps *PromiseState) AddSignature(i int, sig *PromiseSignature) {
+	ps.signatures[i] = sig
 }
 
 /* Checks whether the Promise object has received enough signatures to be
@@ -721,9 +641,10 @@ func (ps *PromiseState) PromiseCertified(promiserKey abstract.Point) bool {
 	for i := 0; i < ps.Promise.n; i++ {
 		// Check whether the signature is initialized. Otherwise, bad
 		// things will happen.
-		if ps.signatures[i] != nil && ps.Promise.VerifySignature(ps.signatures[i]) {
+		if ps.signatures[i] != nil && ps.Promise.VerifySignature(i, ps.signatures[i]) {
 			validSigs += 1
 		}
 	}
 	return validSigs >= ps.Promise.r
 }
+

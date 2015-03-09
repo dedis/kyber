@@ -25,7 +25,7 @@ var insurerList = produceinsurerList()
 
 var pt = 10
 var r  = 15
-var basicPromise = new(Promise).Init(promiserKey, pt, r, insurerList)
+var basicPromise = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
 var basicPromiseState = new(PromiseState).Init(basicPromise)
 
 func produceKeyPair() *config.KeyPair {
@@ -150,7 +150,7 @@ func TestPromiseSignatureEqual(t *testing.T) {
 func TestPromiseInit(t *testing.T) {
 
 	// Verify that a promise can be initialized properly.
-	promise := new(Promise).Init(promiserKey, pt, r, insurerList)
+	promise := new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
 		
 	if promiserKey.Suite.String() != promise.shareSuite.String() ||
 	   promise.t != pt || promise.r != r || promise.n != numInsurers ||
@@ -177,7 +177,7 @@ func TestPromiseInit(t *testing.T) {
 	// Check that Init panics if n < t
 	test := func() {
 		defer deferTest(t, "Init should have panicked.")
-		new(Promise).Init(promiserKey, pt, r,
+		new(Promise).PromiserInit(promiserKey, pt, r,
 			[]abstract.Point{promiserKey.Public})
 	}
 
@@ -185,14 +185,14 @@ func TestPromiseInit(t *testing.T) {
 	
 	
 	// Check that r is reset properly when r < t.
-	promise = new(Promise).Init(promiserKey, pt, pt-20, insurerList)
+	promise = new(Promise).PromiserInit(promiserKey, pt, pt-20, insurerList)
 	if promise.r < pt || promise.r > numInsurers {
 		t.Error("Invalid r allowed for r < t.")
 	}
 
 
 	// Check that r is reset properly when r > n.
-	promise = new(Promise).Init(promiserKey, pt, numInsurers+20, insurerList)
+	promise = new(Promise).PromiserInit(promiserKey, pt, numInsurers+20, insurerList)
 	if  promise.r < pt || promise.r > numInsurers {
 		t.Error("Invalid r allowed for r > n.")
 	}
@@ -205,8 +205,8 @@ func TestPromiseGetId(t *testing.T) {
 	}
 	
 	// Make sure two promises made at similar times are different.
-	promise  := new(Promise).Init(promiserKey, pt, r, insurerList)
-	promise2 := new(Promise).Init(promiserKey, pt, r, insurerList)
+	promise  := new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise2 := new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
 
 	if promise.GetId() == promise2.GetId() {
 		t.Error("Id's should be different for different policies")
@@ -215,42 +215,42 @@ func TestPromiseGetId(t *testing.T) {
 
 // Tests that PromiseVerify properly rules out invalidly constructed Promise's
 func TestPromiseVerifyPromise(t *testing.T) {
-	promise  := new(Promise).Init(promiserKey, pt, r, insurerList)
+	promise  := new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
 	if !promise.VerifyPromise(promiserKey.Public) {
 		t.Error("Promise is valid")
 	}
 
-	promise   = new(Promise).Init(promiserKey, pt, r, insurerList)
+	promise   = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
 	promise.t = promise.n +1
 	if promise.VerifyPromise(promiserKey.Public) {
 		t.Error("Promise is invalid: t > n")
 	}
 
-	promise   = new(Promise).Init(promiserKey, pt, r, insurerList)
+	promise   = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
 	promise.t = promise.r +1
 	if promise.VerifyPromise(promiserKey.Public) {
 		t.Error("Promise is invalid: t > r")
 	}
 	
-	promise   = new(Promise).Init(promiserKey, pt, r, insurerList)
+	promise   = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
 	promise.r = promise.n +1
 	if promise.VerifyPromise(promiserKey.Public) {
 		t.Error("Promise is invalid: n > r")
 	}
 	
-	promise   = new(Promise).Init(promiserKey, pt, r, insurerList)
+	promise   = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
 	promise.pubKey = insurerList[0]
 	if promise.VerifyPromise(promiserKey.Public) {
 		t.Error("Promise is invalid: the public key is wrong")
 	}
 	
-	promise   = new(Promise).Init(promiserKey, pt, r, insurerList)
+	promise   = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
 	promise.insurers = []abstract.Point{}
 	if promise.VerifyPromise(promiserKey.Public) {
 		t.Error("Promise is invalid: insurers list is the wrong length")
 	}
 	
-	promise   = new(Promise).Init(promiserKey, pt, r, insurerList)
+	promise   = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
 	promise.secrets = []abstract.Secret{}
 	if promise.VerifyPromise(promiserKey.Public) {
 		t.Error("Promise is invalid: secrets list is the wrong length")
@@ -307,7 +307,7 @@ func TestPromiseVerifyShare(t *testing.T) {
 func TestPromiseSignAndVerify(t *testing.T) {
 	for i := 0 ; i < numInsurers; i++ {
 		sig := basicPromise.Sign(i, insurerKeys[i])
-		if !basicPromise.VerifySignature(sig) {
+		if !basicPromise.VerifySignature(i, sig) {
 			t.Error("Signature failed to be validated")
 		}
 	}
@@ -323,45 +323,33 @@ func produceSigWithBadMessage() *PromiseSignature {
 	return new(PromiseSignature).Init(0, insurerKeys[0].Suite, digSig)
 }
 
-// Produces a bad signature that says it is for the wrong index.
-func produceSigWithBadIndex(badIndex int) *PromiseSignature {
-	sig    := basicPromise.Sign(0, insurerKeys[0])
-	sig.pi = badIndex  
-	return sig
-}
-
-// Produces a bad signature that says it is for the wrong index.
-func produceSigWithSignature() *PromiseSignature {
-	sig    := basicPromise.Sign(0, insurerKeys[0])
-	sig.signature = nil 
-	return sig
-}
-
 
 // Verify that mallformed signatures are not accepted.
 func TestPromiseVerifySignature(t *testing.T) {
 	// Fail if the signature is not the specially formatted approve message.
-	if basicPromise.VerifySignature(produceSigWithBadMessage()) {
+	if basicPromise.VerifySignature(0, produceSigWithBadMessage()) {
 		t.Error("Signature has a bad message and should be rejected.")
 	}
 	
 	// Fail if a valid signature is applied to the wrong share.
-	if basicPromise.VerifySignature(produceSigWithBadIndex(numInsurers-1)) {
+	sig := basicPromise.Sign(0, insurerKeys[0])
+	if basicPromise.VerifySignature(numInsurers-1, sig) {
 		t.Error("Signature is for the wrong share.")
 	}
 
 	// Fail if index is negative
-	if basicPromise.VerifySignature(produceSigWithBadIndex(-1)) {
+	if basicPromise.VerifySignature(-1, sig) {
 		t.Error("Error: Index < 0")
 	}
 
 	// Fail if index >= n
-	if basicPromise.VerifySignature(produceSigWithBadIndex(basicPromise.n)) {
+	if basicPromise.VerifySignature(basicPromise.n, sig) {
 		t.Error("Error: Index >= n")
 	}
 	
 	// Should return false if passed nil
-	if basicPromise.VerifySignature(produceSigWithSignature()) {
+	sig.signature = nil
+	if basicPromise.VerifySignature(0, sig) {
 		t.Error("Error: Signature is nil")
 	}
 }
@@ -370,37 +358,34 @@ func TestPromiseVerifySignature(t *testing.T) {
 func TestPromiseRevealShareAndShareVerify(t *testing.T) {
 
 	promiseShare := basicPromise.RevealShare(0, insurerKeys[0])
-	if !basicPromise.PromiseShareVerify(promiseShare) {
+	if !basicPromise.VerifyRevealedShare(0, promiseShare) {
 		t.Error("The share should have been marked as valid")
 	}
 	
 	// Error Handling
 	badShare := basicPromise.RevealShare(0, insurerKeys[0])
-	badShare.i = -10
-	if basicPromise.PromiseShareVerify(badShare) {
-		t.Error("The share is invalid and has too low an index.")
+	if basicPromise.VerifyRevealedShare(-10, badShare) {
+		t.Error("The index provided is too low.")
 	}
 
 
 	badShare = basicPromise.RevealShare(0, insurerKeys[0])
-	badShare.i = numInsurers + 20
-	if basicPromise.PromiseShareVerify(badShare) {
-		t.Error("The share is invalid and has too high an index.")
+	if basicPromise.VerifyRevealedShare(numInsurers + 20, badShare) {
+		t.Error("The index provided is too high.")
 	}
 	
 	badShare = basicPromise.RevealShare(0, insurerKeys[0])
-	badShare.share = insurerKeys[0].Secret
-	if basicPromise.PromiseShareVerify(badShare) {
-		t.Error("The PromiseShare is invalid with a bad share.")
+	if basicPromise.VerifyRevealedShare(0, insurerKeys[0].Secret) {
+		t.Error("The share provided is bad.")
 	}
 }
 
 // Verify that insurers can properly create and verify blame proofs
-func TestPromiseBlameAndVerify(t *testing.T) {
+/*func TestPromiseBlameAndVerify(t *testing.T) {
 
 	// Create a bad promise object. Create a new secret that will fail the
 	// the public polynomial check. 
-	promise := new(Promise).Init(promiserKey, pt, r, insurerList)
+	promise := new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
 	badKey := insurerKeys[numInsurers-1]
 	
 	diffieBase := promise.shareSuite.Point().Mul(promiserKey.Public, badKey.Secret)
@@ -437,7 +422,7 @@ func TestPromiseBlameAndVerify(t *testing.T) {
 	if basicPromise.BlameVerify(badProof) {
 		t.Error("The PromiseShare is invalid with a bad share.")
 	}
-}
+}*/
 
 
 // Verifies that Init properly initalizes a new PromiseState object
@@ -454,13 +439,13 @@ func TestPromiseStateInit(t *testing.T) {
 // Verify that Promise and PromiseState can produce a valid signature and then verify it.
 func TestPromiseStateAddSignature(t *testing.T) {
 
-	promise := new(Promise).Init(promiserKey, pt, r, insurerList)
+	promise := new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
 	promiseState := new(PromiseState).Init(promise)
 
 	// Verify that all validly produced signatures can be added.
 	for i := 0 ; i < numInsurers; i++ {
 		sig := promise.Sign(i, insurerKeys[i])
-		promiseState.AddSignature(sig)
+		promiseState.AddSignature(i, sig)
 		
 		if !sig.Equal(promiseState.signatures[i]) {
 			t.Error("Signature failed to be added")
@@ -472,7 +457,7 @@ func TestPromiseStateAddSignature(t *testing.T) {
 // Verify that once r signatures have been added, the promise becomes valid.
 func TestPromiseStatePromiseCertified(t *testing.T) {
 
-	promise := new(Promise).Init(promiserKey, pt, r, insurerList)
+	promise := new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
 	promiseState := new(PromiseState).Init(promise)
 
 	for i := 0 ; i < numInsurers; i++ {
@@ -482,7 +467,7 @@ func TestPromiseStatePromiseCertified(t *testing.T) {
 			t.Error("Promise should be valid now.")
 		}
 
-		promiseState.AddSignature(promise.Sign(i, insurerKeys[i]))
+		promiseState.AddSignature(i, promise.Sign(i, insurerKeys[i]))
 	}
 }
 
