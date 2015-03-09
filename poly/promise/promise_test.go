@@ -210,43 +210,43 @@ func TestPromiseGetId(t *testing.T) {
 // Tests that PromiseVerify properly rules out invalidly constructed Promise's
 func TestPromiseVerifyPromise(t *testing.T) {
 	promise  := new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
-	if !promise.VerifyPromise(promiserKey.Public) {
+	if promise.VerifyPromise(promiserKey.Public) != nil {
 		t.Error("Promise is valid")
 	}
 
 	promise   = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
 	promise.t = promise.n +1
-	if promise.VerifyPromise(promiserKey.Public) {
+	if promise.VerifyPromise(promiserKey.Public) == nil {
 		t.Error("Promise is invalid: t > n")
 	}
 
 	promise   = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
 	promise.t = promise.r +1
-	if promise.VerifyPromise(promiserKey.Public) {
+	if promise.VerifyPromise(promiserKey.Public) == nil {
 		t.Error("Promise is invalid: t > r")
 	}
 	
 	promise   = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
 	promise.r = promise.n +1
-	if promise.VerifyPromise(promiserKey.Public) {
+	if promise.VerifyPromise(promiserKey.Public) == nil {
 		t.Error("Promise is invalid: n > r")
 	}
 	
 	promise   = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
 	promise.pubKey = insurerList[0]
-	if promise.VerifyPromise(promiserKey.Public) {
+	if promise.VerifyPromise(promiserKey.Public) == nil {
 		t.Error("Promise is invalid: the public key is wrong")
 	}
 	
 	promise   = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
 	promise.insurers = []abstract.Point{}
-	if promise.VerifyPromise(promiserKey.Public) {
+	if promise.VerifyPromise(promiserKey.Public) == nil {
 		t.Error("Promise is invalid: insurers list is the wrong length")
 	}
 	
 	promise   = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
 	promise.secrets = []abstract.Secret{}
-	if promise.VerifyPromise(promiserKey.Public) {
+	if promise.VerifyPromise(promiserKey.Public) == nil {
 		t.Error("Promise is invalid: secrets list is the wrong length")
 	}
 }
@@ -276,22 +276,22 @@ func TestPromiseDiffieHellmanEncryptDecrypt(t *testing.T) {
 // verification fails if the proper credentials are not supplied (aka Diffie-
 // Hellman decryption failed).
 func TestPromiseVerifyShare(t *testing.T) {
-	if !basicPromise.VerifyShare(0, insurerKeys[0]) {
+	if basicPromise.VerifyShare(0, insurerKeys[0]) != nil{
 		t.Error("The share should have been verified")
 	}
 	
 	// Make sure the wrong index and key pair fail.
-	if basicPromise.VerifyShare(-1, insurerKeys[0]) {
+	if basicPromise.VerifyShare(-1, insurerKeys[0]) == nil{
 		t.Error("The share should not have been valid. Index is negative")
 	}
 
 	// Make sure the wrong index and key pair fail.
-	if basicPromise.VerifyShare(basicPromise.n, insurerKeys[0]) {
+	if basicPromise.VerifyShare(basicPromise.n, insurerKeys[0]) == nil {
 		t.Error("The share should not have been valid. Index >= n")
 	}
 	
 	// Make sure the wrong index and key pair fail.
-	if basicPromise.VerifyShare(numInsurers-1, insurerKeys[0]) {
+	if basicPromise.VerifyShare(numInsurers-1, insurerKeys[0]) == nil {
 		t.Error("The share should not have been valid.")
 	}
 }
@@ -301,7 +301,7 @@ func TestPromiseVerifyShare(t *testing.T) {
 func TestPromiseSignAndVerify(t *testing.T) {
 	for i := 0 ; i < numInsurers; i++ {
 		sig := basicPromise.Sign(i, insurerKeys[i])
-		if !basicPromise.VerifySignature(i, sig) {
+		if basicPromise.VerifySignature(i, sig) != nil {
 			t.Error("Signature failed to be validated")
 		}
 	}
@@ -321,29 +321,29 @@ func produceSigWithBadMessage() *PromiseSignature {
 // Verify that mallformed signatures are not accepted.
 func TestPromiseVerifySignature(t *testing.T) {
 	// Fail if the signature is not the specially formatted approve message.
-	if basicPromise.VerifySignature(0, produceSigWithBadMessage()) {
+	if basicPromise.VerifySignature(0, produceSigWithBadMessage()) == nil {
 		t.Error("Signature has a bad message and should be rejected.")
 	}
 	
 	// Fail if a valid signature is applied to the wrong share.
 	sig := basicPromise.Sign(0, insurerKeys[0])
-	if basicPromise.VerifySignature(numInsurers-1, sig) {
+	if basicPromise.VerifySignature(numInsurers-1, sig) == nil {
 		t.Error("Signature is for the wrong share.")
 	}
 
 	// Fail if index is negative
-	if basicPromise.VerifySignature(-1, sig) {
+	if basicPromise.VerifySignature(-1, sig)  == nil{
 		t.Error("Error: Index < 0")
 	}
 
 	// Fail if index >= n
-	if basicPromise.VerifySignature(basicPromise.n, sig) {
+	if basicPromise.VerifySignature(basicPromise.n, sig)  == nil{
 		t.Error("Error: Index >= n")
 	}
 	
 	// Should return false if passed nil
 	sig.signature = nil
-	if basicPromise.VerifySignature(0, sig) {
+	if basicPromise.VerifySignature(0, sig) == nil {
 		t.Error("Error: Signature is nil")
 	}
 }
@@ -352,24 +352,24 @@ func TestPromiseVerifySignature(t *testing.T) {
 func TestPromiseRevealShareAndShareVerify(t *testing.T) {
 
 	promiseShare := basicPromise.RevealShare(0, insurerKeys[0])
-	if !basicPromise.VerifyRevealedShare(0, promiseShare) {
+	if basicPromise.VerifyRevealedShare(0, promiseShare) != nil {
 		t.Error("The share should have been marked as valid")
 	}
 	
 	// Error Handling
 	badShare := basicPromise.RevealShare(0, insurerKeys[0])
-	if basicPromise.VerifyRevealedShare(-10, badShare) {
+	if basicPromise.VerifyRevealedShare(-10, badShare) == nil {
 		t.Error("The index provided is too low.")
 	}
 
 
 	badShare = basicPromise.RevealShare(0, insurerKeys[0])
-	if basicPromise.VerifyRevealedShare(numInsurers + 20, badShare) {
+	if basicPromise.VerifyRevealedShare(numInsurers + 20, badShare) == nil {
 		t.Error("The index provided is too high.")
 	}
 	
 	badShare = basicPromise.RevealShare(0, insurerKeys[0])
-	if basicPromise.VerifyRevealedShare(0, insurerKeys[0].Secret) {
+	if basicPromise.VerifyRevealedShare(0, insurerKeys[0].Secret) == nil {
 		t.Error("The share provided is bad.")
 	}
 }
@@ -455,10 +455,11 @@ func TestPromiseStatePromiseCertified(t *testing.T) {
 	promiseState := new(PromiseState).Init(promise)
 
 	for i := 0 ; i < numInsurers; i++ {
-		if i < r && promiseState.PromiseCertified(promiserKey.Public) {
+		if i < r && promiseState.PromiseCertified(promiserKey.Public) == nil {
 			t.Error("Not enough signtures have been added yet", i, r)
-		} else if i >= r && !promiseState.PromiseCertified(promiserKey.Public) {
+		} else if i >= r && promiseState.PromiseCertified(promiserKey.Public) != nil {
 			t.Error("Promise should be valid now.")
+			t.Error(promiseState.PromiseCertified(promiserKey.Public))
 		}
 
 		promiseState.AddSignature(i, promise.Sign(i, insurerKeys[i]))

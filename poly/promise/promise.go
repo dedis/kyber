@@ -281,21 +281,21 @@ func (p *Promise) GetId() string {
  *    promiserKey = the key the caller believes the Promise to be from
  *
  * Return
- *   whether the promise is valid or not
+ *   an error if the promise is malformed, nil otherwise.
  */
-func (p *Promise) VerifyPromise(promiserKey abstract.Point) bool {
+func (p *Promise) VerifyPromise(promiserKey abstract.Point) error {
 	// Verify t <= r <= n
 	if p.t > p.n || p.t > p.r || p.r > p.n {
-		return false
+		return errors.New("Invalid t-of-n shares promise: expected t <= r <= n")
 	}
 	if !promiserKey.Equal(p.pubKey) {
-		return false
+		return errors.New("Public key of promise differs from what is expected")
 	}
 	// There should be a secret and public key for each of the n insurers. 
 	if len(p.insurers) != p.n || len(p.secrets) != p.n {
-		return false
+		return errors.New("Insurers and secrets array should be of length promise.n")
 	}
-	return true
+	return nil
 }
 
 /* Given a Diffie-Hellman shared key, encrypts a secret.
@@ -345,23 +345,28 @@ func (p *Promise) diffieHellmanDecrypt(secret abstract.Secret, diffieBase abstra
  *    gKeyPair  = the key pair of the insurer of share i
  *
  * Return
- *   whether the decrypted secret properly passes the public polynomial.
+ *  an error if the promise is malformed, nil otherwise.
  *
  * Note
  *   Make sure that the proper index and key is specified. Otherwise, the
  *   function will return false because diffieHellmanDecrypt gave the wrong
  *   result. In short, make sure to verify only shares that are allotted to you.
  */
-func (p *Promise) VerifyShare(i int, gKeyPair *config.KeyPair) bool {
+func (p *Promise) VerifyShare(i int, gKeyPair *config.KeyPair) error {
 	if i < 0 || i >= p.n {
-		return false
+		return errors.New("Invalid index. Expected 0 <= i < n")
 	}
+	msg := "The public key the promise recorded for this" +
+	       "shares differs from what is expected"
 	if !p.insurers[i].Equal(gKeyPair.Public) {
-		return false
+		return errors.New(msg)
 	}
 	diffieBase := p.shareSuite.Point().Mul(p.pubKey, gKeyPair.Secret)
 	share := p.diffieHellmanDecrypt(p.secrets[i], diffieBase)
-	return p.pubPoly.Check(i, share)
+	if !p.pubPoly.Check(i, share) {
+		return errors.New("The share failed the public polynomial check.")
+	}
+	return nil
 }
 
 
@@ -395,18 +400,18 @@ func (p *Promise) Sign(i int, gKeyPair *config.KeyPair) *PromiseSignature {
  *    sig = the PromiseSignature object containing the signature
  *
  * Return
- *   whether or not the signature is valid
+ *   an error if the promise is malformed, nil otherwise.
  */
-func (p *Promise) VerifySignature(i int, sig *PromiseSignature) bool {
+func (p *Promise) VerifySignature(i int, sig *PromiseSignature) error {
 	if sig.signature == nil {
-		return false
+		return errors.New("Nil signature")
 	}
 	if i < 0 || i >= p.n {
-		return false
+		return errors.New("Invalid index. Expected 0 <= i < n")
 	}
 	set := anon.Set{p.insurers[i]}
 	_, err := anon.Verify(sig.suite, sigMsg, set, nil, sig.signature)
-	return err == nil
+	return err
 }
 
 /* Reveals the secret share that the insurer has been protecting. The insurer
@@ -437,15 +442,14 @@ func (p *Promise) RevealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
  * Return
  *   Whether the secret is valid
  */
-func (p *Promise) VerifyRevealedShare(i int, share abstract.Secret) bool {
-
-	// If the index is invalid, the sender produced a malform blame proof.
+func (p *Promise) VerifyRevealedShare(i int, share abstract.Secret) error {
 	if i > p.n || i < 0 {
-		return false
+		return errors.New("Invalid index. Expected 0 <= i < n")
 	}
-
-	// Check that the share provided passes the public polynomial
-	return p.pubPoly.Check(i, share)
+	if !p.pubPoly.Check(i, share) {
+		return errors.New("The share failed the public polynomial check.")
+	}
+	return nil
 }
 
 /* Create a proof that the promiser maliciously constructed a given secret.
@@ -584,19 +588,23 @@ func (ps *PromiseState) AddSignature(i int, sig *PromiseSignature) {
  *                  of shares needed to reconstruct the secret), the promise is
  *                  considered valid.
  */
-func (ps *PromiseState) PromiseCertified(promiserKey abstract.Point) bool {
-	if !ps.Promise.VerifyPromise(promiserKey) {
-		return false
+func (ps *PromiseState) PromiseCertified(promiserKey abstract.Point) error {
+	if err := ps.Promise.VerifyPromise(promiserKey); err != nil {
+		return err
 	}
 
 	validSigs := 0
 	for i := 0; i < ps.Promise.n; i++ {
 		// Check whether the signature is initialized. Otherwise, bad
 		// things will happen.
-		if ps.signatures[i] != nil && ps.Promise.VerifySignature(i, ps.signatures[i]) {
+		if ps.signatures[i] != nil &&
+		   ps.Promise.VerifySignature(i, ps.signatures[i]) == nil {
 			validSigs += 1
 		}
 	}
-	return validSigs >= ps.Promise.r
+	if validSigs < ps.Promise.r {
+		return errors.New("Not enough signatures yet to be certified")
+	}
+	return nil
 }
 
