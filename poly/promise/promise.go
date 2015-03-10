@@ -237,7 +237,7 @@ func (bp *BlameProof) UnmarshalInit(suite abstract.Suite) *BlameProof {
 
 // Tests whether two promise signatures are equal.
 func (bp *BlameProof) Equal(bp2 *BlameProof) bool {
-	return bp.suite == bp.suite &&
+	return bp.suite == bp2.suite &&
 	       bp.diffieKey.Equal(bp2.diffieKey) &&
 	       reflect.DeepEqual(bp.diffieKeyProof, bp2.diffieKeyProof) &&
 	       bp.signature.Equal(bp2.signature)
@@ -266,6 +266,9 @@ func (bp *BlameProof) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(pointBuf) != pointLen {
+		panic("Boom")
+	}
 	
 	copy(buf[uint32Size:], pointBuf)
 	copy(buf[uint32Size+pointLen:], bp.diffieKeyProof)
@@ -293,7 +296,9 @@ func (bp *BlameProof) UnmarshalBinary(buf []byte) error {
 	
 	diffieProofLen := binary.LittleEndian.Uint32(buf)
 	bp.diffieKey = bp.suite.Point()
-	if err := bp.diffieKey.UnmarshalBinary(buf[uint32Size:]); err != nil {
+	pointEnd := uint32Size+bp.suite.PointLen()
+	if err := bp.diffieKey.UnmarshalBinary(buf[uint32Size:pointEnd]); err != nil {
+		panic(err)
 		return err
 	}
 	
@@ -302,7 +307,7 @@ func (bp *BlameProof) UnmarshalBinary(buf []byte) error {
 	bp.diffieKeyProof = make([]byte, diffieProofLen, diffieProofLen)
 	copy(bp.diffieKeyProof, buf[diffieProofStart:diffieProofEnd])
 	
-	bp.signature.UnmarshalInit(bp.suite)
+	bp.signature = new(PromiseSignature).UnmarshalInit(bp.suite)
 	
 	if err := bp.signature.UnmarshalBinary(buf[diffieProofEnd:]); err != nil {
 		return err

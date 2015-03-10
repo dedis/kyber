@@ -167,6 +167,12 @@ func TestBlameProofUnMarshalInit(t *testing.T) {
 
 // Verifies that UnMarshalInit properly initalizes for unmarshalling
 func TestBlameProofBinaryMarshalling(t *testing.T) {
+
+	buf, _ := promiserKey.Public.MarshalBinary()
+	if err := keySuite.Point().UnmarshalBinary(buf); err != nil {
+		t.Fatal("What is wrong?", err)
+	}
+
 	
 	// Tests BinaryMarshal, BinaryUnmarshal, and MarshalSize
 	bp,_ := basicPromise.Blame(numInsurers-1, insurerKeys[numInsurers-1])
@@ -181,7 +187,7 @@ func TestBlameProofBinaryMarshalling(t *testing.T) {
 		t.Fatal("UnMarshalling failed: ", err)
 	}
 	if !bp.Equal(decodedBp) {
-		t.Error("Decoded signature not equal to original")
+		t.Error("Decoded BlameProof not equal to original")
 	}
 	
 	// Tests MarshlTo and UnmarshalFrom
@@ -203,7 +209,7 @@ func TestBlameProofBinaryMarshalling(t *testing.T) {
 		t.Fatal("UnmarshalFrom failed: ", bytesRead, errs2)
 	}
 	if !bp2.Equal(decodedBp2) {
-		t.Error("Signature read does not equal original")
+		t.Error("BlameProof read does not equal original")
 	}
 }
 
