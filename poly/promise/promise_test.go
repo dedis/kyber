@@ -246,13 +246,6 @@ func TestBlameProofEqual(t *testing.T) {
 	}
 }
 
-// Tests whether two promise signatures are equal.
-//func (bp *BlameProof) Equal(bp2 *BlameProof) bool {
-//	return bp.diffieKey.Equal(bp2.diffieKey) &&
-//	       reflect.DeepEqual(bp.diffieKeyProof, bp2.diffieKeyProof) &&
-//	       bp.signature.Equal(bp2.signature)
-//}
-
 // Verifies that Init properly initalizes a new Promise object
 func TestPromiseInit(t *testing.T) {
 
@@ -305,18 +298,11 @@ func TestPromiseInit(t *testing.T) {
 	}
 }
 
-// Tests that GetId returns the Promise Id and the Id is unique.
-func TestPromiseGetId(t *testing.T) {
-	if basicPromise.id != basicPromise.GetId() {
-		t.Error("Id not returned properly.")
-	}
-	
-	// Make sure two promises made at similar times are different.
-	promise  := new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
-	promise2 := new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
-
-	if promise.GetId() == promise2.GetId() {
-		t.Error("Id's should be different for different policies")
+// Verifies that UnMarshalInit properly initalizes for unmarshalling
+func TestPromiseUnMarshalInit(t *testing.T) {
+	p := new(Promise).UnmarshalInit(keySuite)
+	if p.shareSuite != keySuite {
+		t.Error("Promise not properly initialized.")
 	}
 }
 
@@ -534,6 +520,119 @@ func TestPromiseBlameAndVerify(t *testing.T) {
 	badSignature.signature = promise.Sign(1, insurerKeys[1])
 	if basicPromise.VerifyBlame(0, badSignature)  == nil {
 		t.Error("Invalid blame. The signature is bad.")
+	}
+}
+
+// Verifies that Equal properly works for PromiseSignature objects
+func TestPromiseEqual(t *testing.T) {
+	// Make sure promise equals basicPromise to make testing error cases
+	// below valid (if promise never == basicPromise, the error cases are
+	// trivially true). Secrets and the public polynomial must be set
+	// equal in each case to make sure that promise and basicPromise are
+	// equal.
+	promise := new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise.secrets = basicPromise.secrets
+	promise.pubPoly = basicPromise.pubPoly
+	if !basicPromise.Equal(promise) {
+		t.Error("Promises should be equal.")
+	}
+
+	
+	// Error cases
+	promise = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise.secrets = basicPromise.secrets
+	promise.pubPoly = basicPromise.pubPoly
+	promise.shareSuite = nil
+	if basicPromise.Equal(promise) {
+		t.Error("The shareSuite's are not equal")
+	}
+
+	promise = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise.secrets = basicPromise.secrets
+	promise.pubPoly = basicPromise.pubPoly
+	promise.n = 0
+	if basicPromise.Equal(promise) {
+		t.Error("The n's are not equal")
+	}
+
+	promise = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise.secrets = basicPromise.secrets
+	promise.pubPoly = basicPromise.pubPoly
+	promise.t = 0
+	if basicPromise.Equal(promise) {
+		t.Error("The t's are not equal")
+	}
+
+	promise = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise.secrets = basicPromise.secrets
+	promise.pubPoly = basicPromise.pubPoly
+	promise.pubKey = keySuite.Point().Base()
+	if basicPromise.Equal(promise) {
+		t.Error("The public keys are not equal")
+	}
+
+	promise = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise.secrets = basicPromise.secrets
+	if basicPromise.Equal(promise) {
+		t.Error("The public keys are not equal")
+	}
+
+
+	promise = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise.secrets = basicPromise.secrets
+	promise.pubPoly = basicPromise.pubPoly
+	promise.insurers = make([]abstract.Point, promise.n, promise.n)
+	copy(promise.insurers, insurerList)
+	promise.insurers[numInsurers-1] = keySuite.Point().Base()
+	if basicPromise.Equal(promise) {
+		t.Error("The insurers array are not equal")
+	}
+
+	promise = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise.pubPoly = basicPromise.pubPoly
+	if basicPromise.Equal(promise) {
+		t.Error("The secrets array are not equal")
+	}
+}
+
+
+
+// Verifies that UnMarshalInit properly initalizes for unmarshalling
+func TestPromiseBinaryMarshalling(t *testing.T) {
+
+	// Tests BinaryMarshal, BinaryUnmarshal, and MarshalSize
+	encodedP, err := basicPromise.MarshalBinary()
+	if err != nil || len(encodedP) != basicPromise.MarshalSize() {
+		t.Fatal("Marshalling failed: ", err)
+	}
+	
+	decodedP := new(Promise).UnmarshalInit(keySuite)
+	err = decodedP.UnmarshalBinary(encodedP)
+	if err != nil {
+		t.Fatal("UnMarshalling failed: ", err)
+	}
+	if !basicPromise.Equal(decodedP) {
+		t.Error("Decoded BlameProof not equal to original")
+	}
+	
+	// Tests MarshlTo and UnmarshalFrom
+	bufWriter := new(bytes.Buffer)
+	bytesWritter, errs := basicPromise.MarshalTo(bufWriter)
+	
+	if bytesWritter != basicPromise.MarshalSize() || errs != nil {
+		t.Fatal("MarshalTo failed: ", bytesWritter, err)
+	}
+	
+	decodedP2 := new(Promise).UnmarshalInit(keySuite)
+	bufReader := bytes.NewReader(bufWriter.Bytes())
+	bytesRead, errs2 := decodedP2.UnmarshalFrom(bufReader)
+	if bytesRead != decodedP2.MarshalSize() ||
+	   basicPromise.MarshalSize() != decodedP2.MarshalSize() ||
+	   errs2 != nil {
+		t.Fatal("UnmarshalFrom failed: ", bytesRead, errs2)
+	}
+	if !basicPromise.Equal(decodedP2) {
+		t.Error("BlameProof read does not equal original")
 	}
 }
 

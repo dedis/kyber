@@ -5,8 +5,6 @@ import (
 	"errors"
 	"io"
 	"reflect"
-	"strconv"
-	"time"
 
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/anon"
@@ -19,7 +17,7 @@ import (
 var sigMsg []byte = []byte("Promise Signature")
 var sigBlameMsg []byte = []byte("Promise Blame Signature")
 
-var protocolName string = "Promise Blame Protocol"
+var protocolName string = "Promise Protocol"
 
 // TODO Pass BlameProof as pointer. Consider generalizing it.
 // TODO Add Equal, Marshal, and UnMarshal methods for all
@@ -29,8 +27,9 @@ var protocolName string = "Promise Blame Protocol"
 //      make sure same suite, index proper, etc.
 // TODO Create valid promise to do basic sanity checking.
 // TODO Combine the valid* and Verify*
-// TODO Decouple keysuite from sharesuite
+// TODO Decouple keysuite from sharesuite. Make sure to change marshal when doing so
 // TODO It should be i >= p.n
+// TODO Add string functions to everything
 
 
 var uint32Size = binary.Size(uint32(0))
@@ -148,7 +147,7 @@ func (p *PromiseSignature) UnmarshalFrom(r io.Reader) (int, error) {
 	// Read the rest and unmarshal.
 	m, err2 := io.ReadFull(r, finalBuf[n:])
 	if err2 != nil {
-		return m, err2
+		return n+m, err2
 	}
 	return n+m, p.UnmarshalBinary(finalBuf)
 }
@@ -266,9 +265,6 @@ func (bp *BlameProof) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(pointBuf) != pointLen {
-		panic("Boom")
-	}
 	
 	copy(buf[uint32Size:], pointBuf)
 	copy(buf[uint32Size+pointLen:], bp.diffieKeyProof)
@@ -349,7 +345,7 @@ func (bp *BlameProof) UnmarshalFrom(r io.Reader) (int, error) {
 	// Read more to determine the length of the signature.
 	m, err2 := io.ReadFull(r, intermediateBuf[n:])
 	if err2 != nil {
-		return m, err2
+		return n+m, err2
 	}
 	
 	sigLen := binary.LittleEndian.Uint32(intermediateBuf[uint32Size + pointLen + int(diffieProofLen):])
@@ -364,7 +360,7 @@ func (bp *BlameProof) UnmarshalFrom(r io.Reader) (int, error) {
 	// Read more to determine the length of the signature.
 	o, err3 := io.ReadFull(r, finalBuf[n+m:])
 	if err3 != nil {
-		return o, err3
+		return n+m+o, err3
 	}
 	
 	return n+m+o, bp.UnmarshalBinary(finalBuf)
@@ -391,10 +387,6 @@ func (bp *BlameProof) UnmarshalFrom(r io.Reader) (int, error) {
  *                   server.
  */
 type Promise struct {
-
-	// The id of the promise. In the format:
-	//   PromiserPublicKey.String() + TimeOfCreation + RandomNumber
-	id string
 
 	// The cryptographic group to use for the private shares.
 	shareSuite abstract.Suite
@@ -446,17 +438,12 @@ type Promise struct {
 func (p *Promise) PromiserInit(keyPair *config.KeyPair, t, r int,
 	insurers []abstract.Point) *Promise {
 
-	// Basic initialization
-	p.id = keyPair.Public.String() +
-	       time.Now().Format("2006-01-02T15:04:05.999999-07:00") + 
-	       strconv.FormatUint(random.Uint64(random.Stream), 10)
-
 	p.t          = t
 	p.r          = r
 	p.n          = len(insurers)
 	p.shareSuite = keyPair.Suite
 	p.pubKey     = keyPair.Public
-	p.insurers  = insurers
+	p.insurers   = insurers
 	p.secrets    = make([]abstract.Secret, p.n , p.n )
 
 	// Verify that t <= r <= n
@@ -488,9 +475,17 @@ func (p *Promise) PromiserInit(keyPair *config.KeyPair, t, r int,
 	return p
 }
 
-// Returns the id of the policy
-func (p *Promise) GetId() string {
-	return p.id
+/* An initialization function for preparing a Promise for unmarshalling
+ *
+ * Arguments
+ *    s   = the suite of points in the Promise
+ *
+ * Returns
+ *   An initialized Promise ready to be unmarshalled
+ */
+func (p *Promise) UnmarshalInit(suite abstract.Suite) *Promise {
+	p.shareSuite     = suite
+	return p
 }
 
 /* Verifies at a basic level that the Promise was constructed correctly.
@@ -760,6 +755,183 @@ func (p *Promise) VerifyBlame(i int, blSig *BlameProof) error {
 	}
 	return nil
 }
+
+// Tests whether two promises are equal.
+func (p *Promise) Equal(p2 *Promise) bool {
+	if p.n != p2.n {
+		return false
+	}
+	for i := 0 ; i < p.n; i++ {
+		if !p.secrets[i].Equal(p2.secrets[i]) ||
+		   !p.insurers[i].Equal(p2.insurers[i]) {
+		 	return false  
+		}
+	}
+	return p.shareSuite == p2.shareSuite && p.t == p2.t && p.r == p2.r &&
+	       p.n == p2.n && p.pubKey.Equal(p2.pubKey) &&
+	       p.pubPoly.Equal(p2.pubPoly)
+}
+
+// Return the encoded length of this polynomial commitment.
+func (p *Promise) MarshalSize() int {
+	return 3*uint32Size + p.shareSuite.PointLen() + p.pubPoly.MarshalSize()+
+	       p.n*p.shareSuite.PointLen() + p.n*p.shareSuite.SecretLen()
+}
+
+// Encode this polynomial into a byte slice exactly MarshalSize() bytes long.
+func (p *Promise) MarshalBinary() ([]byte, error) {
+	buf := make([]byte, p.MarshalSize())
+
+	pointLen  := p.shareSuite.PointLen()
+	polyLen   := p.pubPoly.MarshalSize()
+	secretLen := p.shareSuite.SecretLen()
+
+	// The buffer is formatted as follows:
+	//
+	// ||n||t||r||pubKey||pubPoly||==insurers_array==||==secrets==||
+	//
+	// Remember: n = len(insurers) == len(secrets)
+
+	// Encode n, r, t
+	binary.LittleEndian.PutUint32(buf, uint32(p.n))
+	binary.LittleEndian.PutUint32(buf[uint32Size:], uint32(p.t))
+	binary.LittleEndian.PutUint32(buf[2*uint32Size:], uint32(p.r))
+
+
+	// Encode pubKey and pubPoly
+	pointBuf, err := p.pubKey.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}	
+	copy(buf[3*uint32Size:], pointBuf)
+
+	polyBuf, err := p.pubPoly.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}	
+	copy(buf[3*uint32Size+pointLen:], polyBuf)	
+	
+	
+	// Encode the insurers and secrets array
+	bufPos := 3*uint32Size+pointLen+polyLen
+	
+	// Based on sharing.go code
+	for i := range p.insurers {
+		pb, err := p.insurers[i].MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		copy(buf[bufPos + i*pointLen:], pb)
+	}
+	bufPos += p.n*pointLen
+
+	for i := range p.secrets {
+		pb, err := p.secrets[i].MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		copy(buf[bufPos + i*secretLen:], pb)
+	}
+	return buf, nil
+}
+
+// Decode this polynomial from a slice exactly MarshalSize() bytes long.
+func (p *Promise) UnmarshalBinary(buf []byte) error {
+
+	pointLen  := p.shareSuite.PointLen()
+	secretLen := p.shareSuite.SecretLen()
+
+	// Decode n, r, t
+	p.n = int(binary.LittleEndian.Uint32(buf))
+	p.t = int(binary.LittleEndian.Uint32(buf[uint32Size:]))
+	p.r = int(binary.LittleEndian.Uint32(buf[2*uint32Size:]))
+
+	bufPos := 3*uint32Size
+	
+	// Decode pubKey and pubPoly
+	p.pubKey = p.shareSuite.Point()
+	if err := p.pubKey.UnmarshalBinary(buf[bufPos:bufPos+pointLen]); err != nil {
+		return err
+	}
+	bufPos += pointLen
+	
+	
+	p.pubPoly =  new(poly.PubPoly)
+	p.pubPoly.Init(p.shareSuite, p.t, nil)
+	polyLen   := p.pubPoly.MarshalSize()
+	if err := p.pubPoly.UnmarshalBinary(buf[bufPos:bufPos+polyLen]); err != nil {
+		return err
+	}
+	bufPos += polyLen
+	
+	
+	p.insurers = make([]abstract.Point, p.n, p.n)
+	// Encode the insurers and secrets array
+	// Based on sharing.go code
+	for i := 0; i < p.n; i++ {
+		p.insurers[i] = p.shareSuite.Point()
+		start := bufPos + i*pointLen
+		end   := start + pointLen
+		if err := p.insurers[i].UnmarshalBinary(buf[start:end]); err != nil {
+			return err
+		}
+	}
+	bufPos += p.n*pointLen
+	p.secrets = make([]abstract.Secret, p.n, p.n)
+	for i := 0; i < p.n; i++ {
+		p.secrets[i] = p.shareSuite.Secret()
+		start := bufPos + i*secretLen
+		end   := start + secretLen
+		if err := p.secrets[i].UnmarshalBinary(buf[start:end]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *Promise) MarshalTo(w io.Writer) (int, error) {
+	buf, err := p.MarshalBinary()
+	if err != nil {
+		return 0, err
+	}
+	return w.Write(buf)
+}
+
+func (p *Promise) UnmarshalFrom(r io.Reader) (int, error) {
+	// Promise objects are easier to marshal than others in this file since
+	// them are fixed-length. Since p.n (the size of all arrays) is stored
+	// at the beginning along with p.t (needed to reconstruct the pubPoly),
+	// the code can rely on MarshalSize.
+	
+	// Retrieve p.n and p.t
+	buf := make([]byte, 2*uint32Size)
+	n, err := io.ReadFull(r, buf)
+	if err != nil {
+		return n, err
+	}
+
+	p.n = int(binary.LittleEndian.Uint32(buf))
+	p.t = int(binary.LittleEndian.Uint32(buf[uint32Size:]))
+	p.pubPoly = new(poly.PubPoly)
+	p.pubPoly.Init(p.shareSuite, p.t, nil)
+	
+	
+	// Calculate the length of the final buffer
+	finalBuf := make([]byte, p.MarshalSize())
+
+	// Copy what has already been read into the buffer.
+	copy(finalBuf, buf)
+
+
+	// Read more to determine the length of the signature.
+	m, err2 := io.ReadFull(r, finalBuf[n:])
+	if err2 != nil {
+		return n+m, err2
+	}
+	
+	return n+m, p.UnmarshalBinary(finalBuf)
+}
+
 
 
 /* The PromiseState object is responsible for maintaining state for a given
