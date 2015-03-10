@@ -16,87 +16,111 @@ import (
 	"github.com/dedis/crypto/random"
 )
 
-var sigMsg []byte = []byte("Promise Signature")
-var sigBlameMsg []byte = []byte("Promise Blame Signature")
+// Used mostly in marshalling code, this is the size of a uint32
+var uint32Size int = binary.Size(uint32(0))
 
+// This is the protocol name used by crypto/proof verifiers and provers.
 var protocolName string = "Promise Protocol"
 
-// TODO Pass BlameProof as pointer. Consider generalizing it.
-// TODO Add Equal, Marshal, and UnMarshal methods for all
-// TODO Add tests for things I haven't yet.
-// TODO In tests, only use basicPromise if you ain't going to change it.
-// TODO Check the valdidity of PromiseSignature and BlameProof more extensively.
-//      make sure same suite, index proper, etc.
-// TODO Create valid promise to do basic sanity checking.
-// TODO Combine the valid* and Verify*
-// TODO Decouple keysuite from sharesuite. Make sure to change marshal when doing so
-// TODO It should be i >= p.n
-// TODO Add string functions to everything
+// These are messages used for signatures
+var sigMsg      []byte  = []byte("Promise Signature")
+var sigBlameMsg []byte  = []byte("Promise Blame Signature")
 
-
-var uint32Size = binary.Size(uint32(0))
-
-/* The PromiseSignature object is used for insurers to express their approval
- * of a given promise. After receiving a promise and verifying that their share
- * is good, insurers can then produce a signature to send back to the promiser.
+/* Terms:
  *
- * Upon receiving this, the promiser can then add the signature to its lists of
- * signatures to server as proof that the promiser has gained a sufficient
- * number of insurers.
+ *  Users of this code = programmers wishing to use this code in their programs.
+ */
+
+
+/* The PromiseSignature struct is used by insurers to express their approval
+ * or disapproval of a given promise. After receiving a promise and verifying
+ * that their shares are good, insurers can produce a signature to send back
+ * to the promiser. Alternatively, the insurers can produce a BlameProof (see
+ * below) and use the signature to certify that they authored the blame.
+ *
+ * In order for a Promise to be considered certified, a promiser will need to
+ * collect a certain amount of signatures from its insurers (please see the
+ * Promise struct below for more details).
+ *
+ * Besides unmarshalling, users of this code do not need to worry about creating
+ * a signature directly. Promise structs know how to generate signatures via
+ * Promise.Sign
  */
 type PromiseSignature struct {
 	
-	// The suite used to sign the signature
+	// The suite used for signing
 	suite abstract.Suite
 	
-	// The signature denoting that the insurer approves of guardining the
-	// promise.
+	// The signature proving that the insurer either approves or disapproves
+	// of a Promise struct
 	signature []byte
 }
 
-
-/* Initializes a new PromiseSignature
+/* An internal function, initializes a new PromiseSignature
  *
  * Arguments
- *    i   = the index of the Promise share the insurer is approving.
- *    s   = the signing suite
- *    sig = the signature of approval
+ *    suite = the signing suite
+ *    sig   = the signature of approval
  *
  * Returns
  *   An initialized PromiseSignature
  */
-func (p *PromiseSignature) Init(suite abstract.Suite, sig []byte) *PromiseSignature {
+func (p *PromiseSignature) init(suite abstract.Suite, sig []byte) *PromiseSignature {
 	p.suite     = suite
 	p.signature = sig
 	return p
 }
 
-
-/* An initialization function for preparing a PromiseSignature for unmarshalling
+/* For users of this code, initializes a PromiseSignature for unmarshalling
  *
  * Arguments
- *    s   = the signing suite
+ *    suite = the signing suite
  *
  * Returns
- *   An initialized PromiseSignature ready to be unmarshalled
+ *   An initialized PromiseSignature ready to unmarshal a buffer
  */
 func (p *PromiseSignature) UnmarshalInit(suite abstract.Suite) *PromiseSignature {
 	p.suite     = suite
 	return p
 }
 
-// Tests whether two promise signatures are equal.
+/* Tests whether two PromiseSignature structs are equal
+ *
+ * Arguments
+ *    p2 = a pointer to the struct to test for equality
+ *
+ * Returns
+ *   true if equal, false otherwise
+ */
 func (p *PromiseSignature) Equal(p2 *PromiseSignature) bool {
-	return p.suite == p2.suite &&
-	       reflect.DeepEqual(p, p2)
+	return p.suite == p2.suite && reflect.DeepEqual(p, p2)
 }
 
-// Return the encoded length of this polynomial commitment.
+/* Returns the number of bytes used by this struct when marshalled 
+ *
+ * Returns
+ *   The marshal size
+ *
+ * Note
+ *   The function is only useful for a PromiseSignature struct that has already
+ *   been unmarshalled. Since signatures can be of variable length, the marshal
+ *   size is not known before unmarshalling.
+ */
 func (p *PromiseSignature) MarshalSize() int {
 	return uint32Size + len(p.signature)
 }
 
-// Encode this polynomial into a byte slice exactly MarshalSize() bytes long.
+/* Marshals a PromiseSignature struct into a byte array
+ *
+ * Returns
+ *   A buffer of the marshalled struct
+ *   The error status of the marshalling (nil if no error)
+ *
+ * Note
+ *   The buffer is formatted as follows:
+ *
+ *      ||Signature_Length||==Signature_Array===||
+ */
 func (p *PromiseSignature) MarshalBinary() ([]byte, error) {
 	buf := make([]byte, p.MarshalSize())
 	binary.LittleEndian.PutUint32(buf, uint32(len(p.signature)))
@@ -104,20 +128,37 @@ func (p *PromiseSignature) MarshalBinary() ([]byte, error) {
 	return buf, nil
 }
 
-// Decode this polynomial from a slice exactly MarshalSize() bytes long.
+/* Unmarshals a PromiseSignature from a byte buffer
+ *
+ * Arguments
+ *    buf = the buffer containing the PromiseSignature
+ *
+ * Returns
+ *   The error status of the unmarshalling (nil if no error)
+ */
 func (p *PromiseSignature) UnmarshalBinary(buf []byte) error {
-	// The buffer should be at least be able to hold a uint32 and a
-	// byte message at least 1 byte long (preferably more)
-	if len(buf) < uint32Size + 1 {
+	if len(buf) < uint32Size {
+		return errors.New("Buffer size too small")
+	}
+	
+	sigLen := int(binary.LittleEndian.Uint32(buf))
+	if len(buf) < uint32Size + sigLen {
 		return errors.New("Buffer size too small")
 	}
 
-	// Signature length is not needed for unmarshalling proper since all of
-	// the remaining buffer will be used for the signature.
-	p.signature = buf[uint32Size:]
+	p.signature = buf[uint32Size:uint32Size+sigLen]
 	return nil
 }
 
+/* Marshals a PromiseSignature object using an io.Writer
+ *
+ * Arguments
+ *    w = the writer to use for marshalling
+ *
+ * Returns
+ *   The number of bytes written
+ *   The error status of the write (nil if no errors)
+ */
 func (p *PromiseSignature) MarshalTo(w io.Writer) (int, error) {
 	buf, err := p.MarshalBinary()
 	if err != nil {
@@ -126,24 +167,29 @@ func (p *PromiseSignature) MarshalTo(w io.Writer) (int, error) {
 	return w.Write(buf)
 }
 
+/* Unmarshal a PromiseSignature object using an io.Reader
+ *
+ * Arguments
+ *    r = the reader to use for unmarshalling
+ *
+ * Returns
+ *   The number of bytes read
+ *   The error status of the read (nil if no errors)
+ */
 func (p *PromiseSignature) UnmarshalFrom(r io.Reader) (int, error) {
-	// Because signatures can be of variable length, MarshalSize will not
-	// work until the object has been unmarshalled. However, the size of the
-	// signature is provided as a unit32 at the beginning of the message.
-	
-	// Retrieve the signature length
-	buf := make([]byte, uint32Size)
+	// Retrieve the signature length from the reader
+	buf    := make([]byte, uint32Size)
 	n, err := io.ReadFull(r, buf)
 	if err != nil {
 		return n, err
 	}
 	
-	sigLen := binary.LittleEndian.Uint32(buf)
+	sigLen := int(binary.LittleEndian.Uint32(buf))
 
 	// Calculate the length of the entire message and create the new buffer.
-	finalBuf := make([]byte, uint32Size + int(sigLen))
+	finalBuf := make([]byte, uint32Size + sigLen)
 	
-	// Copy what has already been read into the buffer.
+	// Copy the old buffer into the new
 	copy(finalBuf, buf)
 	
 	// Read the rest and unmarshal.
@@ -154,11 +200,16 @@ func (p *PromiseSignature) UnmarshalFrom(r io.Reader) (int, error) {
 	return n+m, p.UnmarshalBinary(finalBuf)
 }
 
-// Dump a string representation
+/* Returns a string representation of the PromiseSignature for easy debugging
+ *
+ * Returns
+ *   The PromiseSignature's string representation
+ */
 func (p *PromiseSignature) String() string {
 	s := "{PromiseSignature:\n"
-	s += "Suite => " + p.suite.String() + ",\n"
-	s += "Signature => " + hex.EncodeToString(p.signature) + "}"
+	s += "Suite => "     + p.suite.String()                + ",\n"
+	s += "Signature => " + hex.EncodeToString(p.signature) + "\n"
+	s += "}\n"
 	return s
 }
 
@@ -640,7 +691,7 @@ func (p *Promise) sign(i int, gKeyPair *config.KeyPair, msg []byte) *PromiseSign
 	set        := anon.Set{gKeyPair.Public}
 	sig        := anon.Sign(gKeyPair.Suite, random.Stream, msg,
 		set, nil, 0, gKeyPair.Secret)	
-	return new(PromiseSignature).Init(gKeyPair.Suite, sig)
+	return new(PromiseSignature).init(gKeyPair.Suite, sig)
 }
 
 /* A public wrapper function for sign, Produces a signature for a given insurer
@@ -1107,4 +1158,17 @@ func (ps *PromiseState) PromiseCertified(promiserKey abstract.Point) error {
 	}
 	return nil
 }
+
+
+// TODO Pass BlameProof as pointer. Consider generalizing it.
+// TODO Add Equal, Marshal, and UnMarshal methods for all
+// TODO Add tests for things I haven't yet.
+// TODO In tests, only use basicPromise if you ain't going to change it.
+// TODO Check the valdidity of PromiseSignature and BlameProof more extensively.
+//      make sure same suite, index proper, etc.
+// TODO Create valid promise to do basic sanity checking.
+// TODO Combine the valid* and Verify*
+// TODO Decouple keysuite from sharesuite. Make sure to change marshal when doing so
+// TODO It should be i >= p.n
+// TODO Add string functions to everything
 
