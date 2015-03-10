@@ -16,6 +16,7 @@ import (
 var keySuite   = nist.NewAES128SHA256P256()
 var shareGroup = new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
 
+var secretKey   = produceKeyPair()
 var promiserKey = produceKeyPair()
 
 var numInsurers = 20
@@ -25,8 +26,8 @@ var insurerList = produceinsurerList()
 
 var pt = 10
 var r  = 15
-var basicPromise = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
-var basicPromiseState = new(PromiseState).Init(basicPromise)
+var basicPromise = new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
+var basicPromiseState = new(PromiseState).Init(*basicPromise)
 
 func produceKeyPair() *config.KeyPair {
 	keyPair := new(config.KeyPair)
@@ -49,6 +50,12 @@ func produceinsurerList() []abstract.Point {
 	}
 	return newArray
 }
+
+/*func produceBasicPromiseState() []abstract.Point {
+	temp := PromiseState{}
+	temp.Init(*basicPromise)
+	return temp
+}*/
 
 // Tests that check whether a method panics can use this funcition
 func deferTest(t *testing.T, message string) {
@@ -152,7 +159,7 @@ func TestBlameProofInit(t *testing.T) {
 	if keySuite != bp.suite ||
 	   !bp.diffieKey.Equal(promiserKey.Public) ||
 	   !reflect.DeepEqual(bp.diffieKeyProof, proof) ||
-	   !p.Equal(bp.signature) {
+	   !p.Equal(&bp.signature) {
 		t.Error("BlameProof not properly initialized.")
 	}
 }
@@ -250,7 +257,7 @@ func TestBlameProofEqual(t *testing.T) {
 func TestPromiseInit(t *testing.T) {
 
 	// Verify that a promise can be initialized properly.
-	promise := new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise := new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
 		
 	if promiserKey.Suite.String() != promise.shareSuite.String() ||
 	   promise.t != pt || promise.r != r || promise.n != numInsurers ||
@@ -277,7 +284,7 @@ func TestPromiseInit(t *testing.T) {
 	// Check that Init panics if n < t
 	test := func() {
 		defer deferTest(t, "Init should have panicked.")
-		new(Promise).PromiserInit(promiserKey, pt, r,
+		new(Promise).ConstructPromise(secretKey, promiserKey, pt, r,
 			[]abstract.Point{promiserKey.Public})
 	}
 
@@ -285,14 +292,14 @@ func TestPromiseInit(t *testing.T) {
 	
 	
 	// Check that r is reset properly when r < t.
-	promise = new(Promise).PromiserInit(promiserKey, pt, pt-20, insurerList)
+	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt, pt-20, insurerList)
 	if promise.r < pt || promise.r > numInsurers {
 		t.Error("Invalid r allowed for r < t.")
 	}
 
 
 	// Check that r is reset properly when r > n.
-	promise = new(Promise).PromiserInit(promiserKey, pt, numInsurers+20, insurerList)
+	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt, numInsurers+20, insurerList)
 	if  promise.r < pt || promise.r > numInsurers {
 		t.Error("Invalid r allowed for r > n.")
 	}
@@ -308,42 +315,42 @@ func TestPromiseUnMarshalInit(t *testing.T) {
 
 // Tests that PromiseVerify properly rules out invalidly constructed Promise's
 func TestPromiseVerifyPromise(t *testing.T) {
-	promise  := new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise  := new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
 	if promise.VerifyPromise(promiserKey.Public) != nil {
 		t.Error("Promise is valid")
 	}
 
-	promise   = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise   = new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
 	promise.t = promise.n +1
 	if promise.VerifyPromise(promiserKey.Public) == nil {
 		t.Error("Promise is invalid: t > n")
 	}
 
-	promise   = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise   = new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
 	promise.t = promise.r +1
 	if promise.VerifyPromise(promiserKey.Public) == nil {
 		t.Error("Promise is invalid: t > r")
 	}
 	
-	promise   = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise   = new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
 	promise.r = promise.n +1
 	if promise.VerifyPromise(promiserKey.Public) == nil {
 		t.Error("Promise is invalid: n > r")
 	}
 	
-	promise   = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise   = new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
 	promise.pubKey = insurerList[0]
 	if promise.VerifyPromise(promiserKey.Public) == nil {
 		t.Error("Promise is invalid: the public key is wrong")
 	}
 	
-	promise   = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise   = new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
 	promise.insurers = []abstract.Point{}
 	if promise.VerifyPromise(promiserKey.Public) == nil {
 		t.Error("Promise is invalid: insurers list is the wrong length")
 	}
 	
-	promise   = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise   = new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
 	promise.secrets = []abstract.Secret{}
 	if promise.VerifyPromise(promiserKey.Public) == nil {
 		t.Error("Promise is invalid: secrets list is the wrong length")
@@ -478,7 +485,7 @@ func TestPromiseBlameAndVerify(t *testing.T) {
 
 	// Create a bad promise object. Create a new secret that will fail the
 	// the public polynomial check. 
-	promise := new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise := new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
 	badKey := insurerKeys[numInsurers-1]
 	
 	diffieBase := promise.shareSuite.Point().Mul(promiserKey.Public, badKey.Secret)
@@ -517,7 +524,7 @@ func TestPromiseBlameAndVerify(t *testing.T) {
 	}
 
 	badSignature, _ := basicPromise.Blame(0, insurerKeys[0])
-	badSignature.signature = promise.Sign(1, insurerKeys[1])
+	badSignature.signature = *promise.Sign(1, insurerKeys[1])
 	if basicPromise.VerifyBlame(0, badSignature)  == nil {
 		t.Error("Invalid blame. The signature is bad.")
 	}
@@ -530,7 +537,7 @@ func TestPromiseEqual(t *testing.T) {
 	// trivially true). Secrets and the public polynomial must be set
 	// equal in each case to make sure that promise and basicPromise are
 	// equal.
-	promise := new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise := new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
 	promise.secrets = basicPromise.secrets
 	promise.pubPoly = basicPromise.pubPoly
 	if !basicPromise.Equal(promise) {
@@ -539,7 +546,7 @@ func TestPromiseEqual(t *testing.T) {
 
 	
 	// Error cases
-	promise = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
 	promise.secrets = basicPromise.secrets
 	promise.pubPoly = basicPromise.pubPoly
 	promise.shareSuite = nil
@@ -547,7 +554,7 @@ func TestPromiseEqual(t *testing.T) {
 		t.Error("The shareSuite's are not equal")
 	}
 
-	promise = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
 	promise.secrets = basicPromise.secrets
 	promise.pubPoly = basicPromise.pubPoly
 	promise.n = 0
@@ -555,7 +562,7 @@ func TestPromiseEqual(t *testing.T) {
 		t.Error("The n's are not equal")
 	}
 
-	promise = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
 	promise.secrets = basicPromise.secrets
 	promise.pubPoly = basicPromise.pubPoly
 	promise.t = 0
@@ -563,7 +570,7 @@ func TestPromiseEqual(t *testing.T) {
 		t.Error("The t's are not equal")
 	}
 
-	promise = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
 	promise.secrets = basicPromise.secrets
 	promise.pubPoly = basicPromise.pubPoly
 	promise.pubKey = keySuite.Point().Base()
@@ -571,14 +578,14 @@ func TestPromiseEqual(t *testing.T) {
 		t.Error("The public keys are not equal")
 	}
 
-	promise = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
 	promise.secrets = basicPromise.secrets
 	if basicPromise.Equal(promise) {
-		t.Error("The public keys are not equal")
+		t.Error("The public polynomials are not equal")
 	}
 
 
-	promise = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
 	promise.secrets = basicPromise.secrets
 	promise.pubPoly = basicPromise.pubPoly
 	promise.insurers = make([]abstract.Point, promise.n, promise.n)
@@ -588,7 +595,7 @@ func TestPromiseEqual(t *testing.T) {
 		t.Error("The insurers array are not equal")
 	}
 
-	promise = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
+	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
 	promise.pubPoly = basicPromise.pubPoly
 	if basicPromise.Equal(promise) {
 		t.Error("The secrets array are not equal")
@@ -640,7 +647,7 @@ func TestPromiseBinaryMarshalling(t *testing.T) {
 // Verifies that Init properly initalizes a new PromiseState object
 func TestPromiseStateInit(t *testing.T) {
 
-	promiseState := new(PromiseState).Init(basicPromise)
+	promiseState := new(PromiseState).Init(*basicPromise)
 	
 	if //!basicPromise.Equal(promiseState.Promise) || <-- Once I write Equal
 	   len(promiseState.signatures) != numInsurers {
@@ -651,8 +658,8 @@ func TestPromiseStateInit(t *testing.T) {
 // Verify that Promise and PromiseState can produce a valid signature and then verify it.
 func TestPromiseStateAddSignature(t *testing.T) {
 
-	promise := new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
-	promiseState := new(PromiseState).Init(promise)
+	promise := new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
+	promiseState := new(PromiseState).Init(*promise)
 
 	// Verify that all validly produced signatures can be added.
 	for i := 0 ; i < numInsurers; i++ {
@@ -668,8 +675,8 @@ func TestPromiseStateAddSignature(t *testing.T) {
 // Verify that PromiseState can add blames.
 func TestPromiseStateAddBlame(t *testing.T) {
 
-	promise := new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
-	promiseState := new(PromiseState).Init(promise)
+	promise := new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
+	promiseState := new(PromiseState).Init(*promise)
 
 	// Ensure that blames can be added.
 	for i := 0 ; i < numInsurers; i++ {
@@ -686,8 +693,8 @@ func TestPromiseStateAddBlame(t *testing.T) {
 // Verify that once r signatures have been added, the promise becomes valid.
 func TestPromiseStatePromiseCertified(t *testing.T) {
 
-	promise := new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
-	promiseState := new(PromiseState).Init(promise)
+	promise := new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
+	promiseState := new(PromiseState).Init(*promise)
 
 	for i := 0 ; i < numInsurers; i++ {
 		promiseState.AddSignature(i, promise.Sign(i, insurerKeys[i]))
@@ -705,8 +712,8 @@ func TestPromiseStatePromiseCertified(t *testing.T) {
 		}
 	}
 
-	promise      = new(Promise).PromiserInit(promiserKey, pt, r, insurerList)
-	promiseState = new(PromiseState).Init(promise)
+	promise      = new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
+	promiseState = new(PromiseState).Init(*promise)
 	
 	promise.secrets[0] = promise.shareSuite.Secret()
 
