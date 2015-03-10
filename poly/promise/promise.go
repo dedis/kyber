@@ -2,9 +2,11 @@ package promise
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"io"
 	"reflect"
+	"strconv"
 
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/anon"
@@ -150,6 +152,14 @@ func (p *PromiseSignature) UnmarshalFrom(r io.Reader) (int, error) {
 		return n+m, err2
 	}
 	return n+m, p.UnmarshalBinary(finalBuf)
+}
+
+// Dump a string representation
+func (p *PromiseSignature) String() string {
+	s := "{PromiseSignature:\n"
+	s += "Suite => " + p.suite.String() + ",\n"
+	s += "Signature => " + hex.EncodeToString(p.signature) + "}"
+	return s
 }
 
 /* PromiseShare is used to represent a secret share of a Promise. When a
@@ -366,6 +376,15 @@ func (bp *BlameProof) UnmarshalFrom(r io.Reader) (int, error) {
 	return n+m+o, bp.UnmarshalBinary(finalBuf)
 }
 
+func (bp *BlameProof) String() string {
+	s := "{BlameProof:\n"
+	s += "Suite => " + bp.suite.String() + ",\n"
+	s += "Diffie-Hellman Shared Secret => " + bp.diffieKey.String() + ",\n"
+	s += "Diffie-Hellman Proof => " + hex.EncodeToString(bp.diffieKeyProof) + ",\n"
+	s += "PromiseSignature => " + bp.signature.String() + "}"
+	return s
+}
+
 /* Promise objects are mechanism by which servers can promise that a certain
  * private key or abstract.Secret can be recomputed by other servers in case
  * the original server goes offline.
@@ -417,6 +436,27 @@ type Promise struct {
 	// encrypted with diffie-hellmen shared secrets between the insurer
 	// and the original server.
 	secrets    []abstract.Secret
+}
+
+func (p *Promise) String() string {
+	s := "{Promise:\n"
+	s += "Suite => " + p.shareSuite.String() + ",\n"
+	s += "t => " + strconv.Itoa(p.t) + ",\n"
+	s += "r => " + strconv.Itoa(p.r) + ",\n"
+	s += "n => " + strconv.Itoa(p.n) + ",\n"
+	s += "Public Key => " + p.pubKey.String() + ",\n"
+	s += "Public Polynomial => " + p.pubPoly.String() + ",\n"
+	
+	insurers := ""
+	secrets  := ""
+	
+	for i := 0; i < p.n; i++ {
+		insurers += p.insurers[i].String() + ",\n"
+		secrets += p.secrets[i].String() + ",\n"
+	}
+	s += "Insurers => [" + insurers + "],\n"
+	s += "Secrets => [" + secrets + "]}"	
+	return s
 }
 
 /* To be called by the promiser, initializes a new promise to guard a secret.
@@ -790,7 +830,7 @@ func (p *Promise) MarshalBinary() ([]byte, error) {
 	//
 	// ||n||t||r||pubKey||pubPoly||==insurers_array==||==secrets==||
 	//
-	// Remember: n = len(insurers) == len(secrets)
+	// Remember: n == len(insurers) == len(secrets)
 
 	// Encode n, r, t
 	binary.LittleEndian.PutUint32(buf, uint32(p.n))

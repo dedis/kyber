@@ -723,3 +723,13 @@ func TestPromiseStatePromiseCertified(t *testing.T) {
 	}
 }
 
+// Tests all the string functions. Simply calls them to make sure they return.
+func TestString(t *testing.T) {
+	sig := basicPromise.Sign(0, insurerKeys[0])
+	sig.String()
+	
+	bp, _ := basicPromise.Blame(0, insurerKeys[0])
+	bp.String()
+
+	basicPromise.String()
+}
