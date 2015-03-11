@@ -16,6 +16,112 @@ import (
 	"github.com/dedis/crypto/random"
 )
 
+/* This package implements the Promise cryptographic primitive, which is based
+ * on poly/sharing.go
+ *
+ * Failures are frequent in large-scale systems. When reliability is paramount,
+ * the system requires some guarentee that it will still be able to make
+ * progress in the midst of failures. To do so, recovering critical information
+ * from failed nodes is often needed. Herein is the importance of this package.
+ * The promise package provides such reliability in the area of private keys.
+ *
+ * If a server wishes to have extra reliability for a private key it is using,
+ * it can construct a Promise struct. A Promise will take the private key and
+ * shard it into secret shares via poly/sharing.go logic. The server can
+ * then give the shares to a group of other servers who can act as insurers
+ * of the Promise. The insurers will keep the secret shares. If the original
+ * server ever goes offline, another server could ask the insurers for their
+ * secret shares and then combine them into the original secret key. Hence, this
+ * server could continue in the place of the original and the sytem can continue
+ * to make progress.
+ *
+ * This file provides structs for handling the cryptographic logic of this
+ * process. Other files can use these primitives to build a more robust
+ * system. In particular, there are 4 structs:
+ *
+ *   1) Promise = respondible for sharding the secret, creating shares, and
+ *                tracking which shares belong to which insurers
+*
+ *   2) PromiseState = responsible for keeping state about a given Promise such
+ *                     as shares recovered and messages either certifying the
+ *                     promise or proving that it is malicious
+ * 
+ *   3) PromiseSignature = proves that an insurer has signed off on a Promise.
+ *                         The signature could either be used to express
+ *                         approval or disapproval
+ *
+ *   4) BlameProof = provides proof that a given Promise share was malicously
+ *                   constructed. A valid BlameProof proves that the Promise
+ *                   is untrustworthy and that the creator of the Promise is
+ *                   malicious
+ *
+ * Further documentation for each of the different structs can be found below.
+ * It is suggested to start with the Promise struct referring to the others
+ * as necessary. Once a general knowledge of Promise is gained, the others
+ * will make more sense.
+ *
+ * Code using this package will typically have the following flow (please see
+ * "Key Terms" below for a definition of terms used):
+ *
+ * 1) The promiser constructs a new Promise and stores it withing a PromiseState
+ *
+ * 2) The promiser sends the Promise to the insurers
+ *
+ * 3) The insurers verify the Promise is well-formed and make sure that their
+ *    secret shares are valid.
+ *
+ * 4) If the secret share is invalid, an insurer creates a BlameProof and sends
+ *    it back.
+ *
+ * 5) If the share is valid, an insurer creates a PromiseSignature to send back
+ *    to the promiser.
+ *
+ * 6) The promiser receives the message from the insurer.
+ * 
+ * 7) If it is a valid BlameProof, the promiser must start all over and
+ *    construct a non-malicious Promise (or, the system can ban this malicious
+ *    promiser).
+ *
+ * 8) If the message is a PromiseSignature, the promiser can add the signature
+ *    to its PromiseState
+ *
+ * 9) Steps 2-8 are repeated until the promiser has collected enough
+ *    PromiseSignatures for the Promise to be considered certified.
+ *
+ * 10) Once the Promise is certified, the promiser can then send the promise to
+ *     clients.
+ *
+ * 11) Clients can then request the signatures from the insurers to make sure
+ *     the Promise is indeed certified
+ *
+ *      i) This prevents a malicious promiser from simply leaving out valid
+ *         BlameProofs and only sending good signatures to the clients.
+ *
+ * 12) The promiser can perform some work for clients.
+ *
+ * 13) If the promiser is unresponsive for too long, a client can inform the
+ *     insurers of the Promise.
+ *
+ * 14) The insurers can then check if the promiser is indeed unresponsive.
+ *
+ * 15) If so, an insurer reveal its share and send it to the client.
+ *
+ * 16) The client repeats steps 13-15 until enough shares are recovered to
+ *     reconstruct the secret.
+ *
+ * 17) The client can then reconstruct the secret and take over for the promiser
+ *
+ *
+ *
+ * Key Terms:
+ *   promiser = the server making a Promise
+ *   client   = recipients of a Promise who are trusting the promiser
+ *   insurer  = servers who store secret shares of a promise. Such servers help
+ *              during secret reconstruction.
+ *
+ *   Users of this code = programmers wishing to use this code in programs
+ */
+
 // Used mostly in marshalling code, this is the size of a uint32
 var uint32Size int = binary.Size(uint32(0))
 
@@ -25,449 +131,6 @@ var protocolName string = "Promise Protocol"
 // These are messages used for signatures
 var sigMsg      []byte  = []byte("Promise Signature")
 var sigBlameMsg []byte  = []byte("Promise Blame Signature")
-
-/* Terms:
- *   promiser = the server making a Promise
- *   client   = recipients of a Promise who are trusting the promiser
- *   insurer  = servers who receive a share of the promised secret and help
- *              during reconstruction
- *
- *   Users of this code = programmers wishing to use this code in their programs
- */
-
-
-/* The PromiseSignature struct is used by insurers to express their approval
- * or disapproval of a given promise. After receiving a promise and verifying
- * that their shares are good, insurers can produce a signature to send back
- * to the promiser. Alternatively, the insurers can produce a BlameProof (see
- * below) and use the signature to certify that they authored the blame.
- *
- * In order for a Promise to be considered certified, a promiser will need to
- * collect a certain amount of signatures from its insurers (please see the
- * Promise struct below for more details).
- *
- * Besides unmarshalling, users of this code do not need to worry about creating
- * a signature directly. Promise structs know how to generate signatures via
- * Promise.Sign
- */
-type PromiseSignature struct {
-	
-	// The suite used for signing
-	suite abstract.Suite
-	
-	// The signature proving that the insurer either approves or disapproves
-	// of a Promise struct
-	signature []byte
-}
-
-/* An internal function, initializes a new PromiseSignature
- *
- * Arguments
- *    suite = the signing suite
- *    sig   = the signature of approval
- *
- * Returns
- *   An initialized PromiseSignature
- */
-func (p *PromiseSignature) init(suite abstract.Suite, sig []byte) *PromiseSignature {
-	p.suite     = suite
-	p.signature = sig
-	return p
-}
-
-/* For users of this code, initializes a PromiseSignature for unmarshalling
- *
- * Arguments
- *    suite = the signing suite
- *
- * Returns
- *   An initialized PromiseSignature ready to unmarshal a buffer
- */
-func (p *PromiseSignature) UnmarshalInit(suite abstract.Suite) *PromiseSignature {
-	p.suite     = suite
-	return p
-}
-
-/* Tests whether two PromiseSignature structs are equal
- *
- * Arguments
- *    p2 = a pointer to the struct to test for equality
- *
- * Returns
- *   true if equal, false otherwise
- */
-func (p *PromiseSignature) Equal(p2 *PromiseSignature) bool {
-	return p.suite == p2.suite && reflect.DeepEqual(p, p2)
-}
-
-/* Returns the number of bytes used by this struct when marshalled 
- *
- * Returns
- *   The marshal size
- *
- * Note
- *   The function is only useful for a PromiseSignature struct that has already
- *   been unmarshalled. Since signatures can be of variable length, the marshal
- *   size is not known before unmarshalling. Do not call before unmarshalling.
- */
-func (p *PromiseSignature) MarshalSize() int {
-	return uint32Size + len(p.signature)
-}
-
-/* Marshals a PromiseSignature struct into a byte array
- *
- * Returns
- *   A buffer of the marshalled struct
- *   The error status of the marshalling (nil if no error)
- *
- * Note
- *   The buffer is formatted as follows:
- *
- *      ||Signature_Length||==Signature_Array===||
- */
-func (p *PromiseSignature) MarshalBinary() ([]byte, error) {
-	buf := make([]byte, p.MarshalSize())
-	binary.LittleEndian.PutUint32(buf, uint32(len(p.signature)))
-	copy(buf[uint32Size:], p.signature)
-	return buf, nil
-}
-
-/* Unmarshals a PromiseSignature from a byte buffer
- *
- * Arguments
- *    buf = the buffer containing the PromiseSignature
- *
- * Returns
- *   The error status of the unmarshalling (nil if no error)
- */
-func (p *PromiseSignature) UnmarshalBinary(buf []byte) error {
-	if len(buf) < uint32Size {
-		return errors.New("Buffer size too small")
-	}
-	
-	sigLen := int(binary.LittleEndian.Uint32(buf))
-	if len(buf) < uint32Size + sigLen {
-		return errors.New("Buffer size too small")
-	}
-
-	p.signature = buf[uint32Size:uint32Size+sigLen]
-	return nil
-}
-
-/* Marshals a PromiseSignature struct using an io.Writer
- *
- * Arguments
- *    w = the writer to use for marshalling
- *
- * Returns
- *   The number of bytes written
- *   The error status of the write (nil if no errors)
- */
-func (p *PromiseSignature) MarshalTo(w io.Writer) (int, error) {
-	buf, err := p.MarshalBinary()
-	if err != nil {
-		return 0, err
-	}
-	return w.Write(buf)
-}
-
-/* Unmarshal a PromiseSignature struct using an io.Reader
- *
- * Arguments
- *    r = the reader to use for unmarshalling
- *
- * Returns
- *   The number of bytes read
- *   The error status of the read (nil if no errors)
- */
-func (p *PromiseSignature) UnmarshalFrom(r io.Reader) (int, error) {
-	// Retrieve the signature length from the reader
-	buf    := make([]byte, uint32Size)
-	n, err := io.ReadFull(r, buf)
-	if err != nil {
-		return n, err
-	}
-	
-	sigLen := int(binary.LittleEndian.Uint32(buf))
-
-	// Calculate the length of the entire message and create the new buffer.
-	finalBuf := make([]byte, uint32Size + sigLen)
-	
-	// Copy the old buffer into the new
-	copy(finalBuf, buf)
-	
-	// Read the rest and unmarshal.
-	m, err := io.ReadFull(r, finalBuf[n:])
-	if err != nil {
-		return n+m, err
-	}
-	return n+m, p.UnmarshalBinary(finalBuf)
-}
-
-/* Returns a string representation of the PromiseSignature for easy debugging
- *
- * Returns
- *   The PromiseSignature's string representation
- */
-func (p *PromiseSignature) String() string {
-	s := "{PromiseSignature:\n"
-	s += "Suite => "     + p.suite.String()                + ",\n"
-	s += "Signature => " + hex.EncodeToString(p.signature) + "\n"
-	s += "}\n"
-	return s
-}
-
-/* The BlameProof struct provides an accountability measure. If a promiser
- * decides to construct a faulty share, insurers can construct a BlameProof
- * to show that the promiser is malicious. 
- * 
- * The insurer provides the Diffie-Hellman shared secret with the promiser so
- * that others can decode the share in question. A zero knowledge proof is
- * provided to prove that the shared secret was constructed properly. Lastly, a
- * PromiseSignature is attached to prove that the insurer endorses the blame.
- * When other servers receive the BlameProof, they can then verify whether the
- * promiser is malicious or the insurer is falsely accusing the promiser.
- *
- * To quickly summarize the blame procedure, the following must hold for the
- * blame to succeed:
- *
- *   1. The PromiseSignature must be valid
- *
- *   2. The Diffie-Hellman key must be verified to be correct
- *
- *   3. The insurer's share when decrypted must fail the PubPoly.Check of
- *   the Promise struct
- *
- * If all hold, the promiser is proven malicious. Otherwise, the insurer is
- * slanderous.
- *
- * Beyond unmarshalling, users of this code need not worry about constructing a
- * BlameProof struct themselves. The Promise struct knows how to create a
- * BlameProof via the Promise.Blame method.
- */
-
-type BlameProof struct {
-
-	// The suite used throughout the BlameProof
-	suite abstract.Suite
-	
-	// The Diffie-Hellman shared secret between the insurer and promiser
-	diffieKey abstract.Point
-
-	// A HashProve proof that the insurer properly constructed the Diffie-
-	// Hellman shared secret
-	diffieKeyProof []byte
-
-	// The signature denoting that the insurer approves of the blame
-	signature PromiseSignature
-}
-
-/* An internal function, initializes a new BlameProof struct
- *
- * Arguments
- *    suite = the suite used for the Diffie-Hellman key, proof, and signature
- *    key   = the shared Diffie-Hellman key
- *    dkp   = the proof validating the Diffie-Hellman key
- *    sig   = the insurer's signature
- *
- * Returns
- *   An initialized BlameProof
- */
-func (bp *BlameProof) init(suite abstract.Suite, key abstract.Point,
-	dkp []byte, sig *PromiseSignature) *BlameProof {
-	bp.suite          = suite
-	bp.diffieKey      = key
-	bp.diffieKeyProof = dkp
-	bp.signature      = *sig
-	return bp
-}
-
-/* Initializes a BlameProof struct for unmarshalling
- *
- * Arguments
- *    s = the suite used for the Diffie-Hellman key, proof, and signature
- *
- * Returns
- *   An initialized BlameProof ready to be unmarshalled
- */
-func (bp *BlameProof) UnmarshalInit(suite abstract.Suite) *BlameProof {
-	bp.suite = suite
-	return bp
-}
-
-/* Tests whether two BlameProof structs are equal
- *
- * Arguments
- *    bp2 = a pointer to the struct to test for equality
- *
- * Returns
- *   true if equal, false otherwise
- */
-func (bp *BlameProof) Equal(bp2 *BlameProof) bool {
-	return bp.suite == bp2.suite &&
-	       bp.diffieKey.Equal(bp2.diffieKey) &&
-	       reflect.DeepEqual(bp.diffieKeyProof, bp2.diffieKeyProof) &&
-	       bp.signature.Equal(&bp2.signature)
-}
-
-/* Returns the number of bytes used by this struct when marshalled 
- *
- * Returns
- *   The marshal size
- *
- * Note
- *   Since PromiseSignature structs and the Diffie-Hellman proof can be of
- *   variable length, this function is only useful for a BlameProof that is
- *   already unmarshalled. Do not call before unmarshalling.
- */
-func (bp *BlameProof) MarshalSize() int {
-	return 2*uint32Size + bp.suite.PointLen() + len(bp.diffieKeyProof) +
-	       bp.signature.MarshalSize()
-}
-
-/* Marshals a BlameProof struct into a byte array
- *
- * Returns
- *   A buffer of the marshalled struct
- *   The error status of the marshalling (nil if no error)
- *
- * Note
- *   The buffer is formatted as follows:
- *
- *   ||Diffie_Key_Proof_Length||PromiseSignature_Length||Diffie_Key||
- *      Diffie_Key_Proof||PromiseSignature||
- */
-func (bp *BlameProof) MarshalBinary() ([]byte, error) {
-	pointLen := bp.suite.PointLen()
-	proofLen := len(bp.diffieKeyProof)
-	buf      := make([]byte, bp.MarshalSize())
-
-	binary.LittleEndian.PutUint32(buf, uint32(proofLen))
-	binary.LittleEndian.PutUint32(buf[uint32Size:],
-		uint32(bp.signature.MarshalSize()))
-
-	pointBuf, err := bp.diffieKey.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	copy(buf[2*uint32Size:], pointBuf)
-	copy(buf[2*uint32Size+pointLen:], bp.diffieKeyProof)
-	
-	sigBuf, err := bp.signature.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	copy(buf[2*uint32Size+pointLen+proofLen:], sigBuf)
-	return buf, nil
-}
-
-/* Unmarshals a BlameProof from a byte buffer
- *
- * Arguments
- *    buf = the buffer containing the BlameProof
- *
- * Returns
- *   The error status of the unmarshalling (nil if no error)
- */
-func (bp *BlameProof) UnmarshalBinary(buf []byte) error {
-	// Verify the buffer is large enough for the diffie proof length
-	// (uint32), the PromiseSignature length (uint32), and the
-	// Diffie-Hellman shared secret (abstract.Point)
-	pointLen := bp.suite.PointLen()
-	if len(buf) < 2*uint32Size + pointLen {
-		return errors.New("Buffer size too small")
-	}
-	proofLen    := int(binary.LittleEndian.Uint32(buf))
-	sigLen      := int(binary.LittleEndian.Uint32(buf[uint32Size:]))
-
-	bufPos      := 2*uint32Size
-	bp.diffieKey = bp.suite.Point()
-	if err := bp.diffieKey.UnmarshalBinary(buf[bufPos:bufPos+pointLen]);
-		err != nil {
-		return err
-	}
-	bufPos += pointLen
-
-	if len(buf) < 2*uint32Size + pointLen + proofLen + sigLen {
-		return errors.New("Buffer size too small")
-	}
-	bp.diffieKeyProof = make([]byte, proofLen, proofLen)
-	copy(bp.diffieKeyProof, buf[bufPos:bufPos+proofLen])
-	bufPos += proofLen
-	
-	bp.signature = PromiseSignature{}
-	bp.signature.UnmarshalInit(bp.suite)
-	if err := bp.signature.UnmarshalBinary(buf[bufPos:bufPos+sigLen]);
-		err != nil {
-		return err
-	}
-	return nil
-}
-
-/* Marshals a BlameProof struct using an io.Writer
- *
- * Arguments
- *    w = the writer to use for marshalling
- *
- * Returns
- *   The number of bytes written
- *   The error status of the write (nil if no errors)
- */
-func (bp *BlameProof) MarshalTo(w io.Writer) (int, error) {
-	buf, err := bp.MarshalBinary()
-	if err != nil {
-		return 0, err
-	}
-	return w.Write(buf)
-}
-
-/* Unmarshals a BlameProof struct using an io.Reader
- *
- * Arguments
- *    r = the reader to use for unmarshalling
- *
- * Returns
- *   The number of bytes read
- *   The error status of the read (nil if no errors)
- */
-func (bp *BlameProof) UnmarshalFrom(r io.Reader) (int, error) {
-	// Retrieve the proof length and signature length from the reader
-	buf    := make([]byte, 2*uint32Size)
-	n, err := io.ReadFull(r, buf)
-	if err != nil {
-		return n, err
-	}
-	pointLen := bp.suite.PointLen()
-	proofLen := int(binary.LittleEndian.Uint32(buf))
-	sigLen   := int(binary.LittleEndian.Uint32(buf[uint32Size:]))
-
-	// Calculate the final buffer, copy the old data to it, and fill it
-	// for unmarshalling
-	finalLen := 2*uint32Size + pointLen + proofLen + sigLen
-	finalBuf := make([]byte, finalLen)
-	copy(finalBuf, buf)
-	m, err := io.ReadFull(r, finalBuf[n:])
-	if err != nil {
-		return n+m, err
-	}
-	return n+m, bp.UnmarshalBinary(finalBuf)
-}
-
-/* Returns a string representation of the BlameProof for easy debugging
- *
- * Returns
- *   The BlameProof's string representation
- */
-func (bp *BlameProof) String() string {
-	proofHex := hex.EncodeToString(bp.diffieKeyProof)
-	s := "{BlameProof:\n"
-	s += "Suite => "                        + bp.suite.String()     + ",\n"
-	s += "Diffie-Hellman Shared Secret => " + bp.diffieKey.String() + ",\n"
-	s += "Diffie-Hellman Proof => "         + proofHex              + ",\n"
-	s += "PromiseSignature => "             + bp.signature.String() + "\n"
-	s += "}\n"
-	return s
-}
 
 /* Promise structs are mechanisms by which a server can promise other servers
  * that an abstract.Secret will be availble even if the secret's owner goes
@@ -1132,6 +795,8 @@ func (p *Promise) String() string {
  *
  *    Be warned that Secret will panic unless there are enough shares to
  *    reconstruct the secret. (See poly/sharing.go for more info)
+ *
+ * TODO Consider if it is worth adding a String function
  */
 type PromiseState struct {
 
@@ -1253,16 +918,436 @@ func (ps *PromiseState) PromiseCertified(promiserKey abstract.Point) error {
 	return nil
 }
 
+/* The PromiseSignature struct is used by insurers to express their approval
+ * or disapproval of a given promise. After receiving a promise and verifying
+ * that their shares are good, insurers can produce a signature to send back
+ * to the promiser. Alternatively, the insurers can produce a BlameProof (see
+ * below) and use the signature to certify that they authored the blame.
+ *
+ * In order for a Promise to be considered certified, a promiser will need to
+ * collect a certain amount of signatures from its insurers (please see the
+ * Promise struct below for more details).
+ *
+ * Besides unmarshalling, users of this code do not need to worry about creating
+ * a signature directly. Promise structs know how to generate signatures via
+ * Promise.Sign
+ */
+type PromiseSignature struct {
+	
+	// The suite used for signing
+	suite abstract.Suite
+	
+	// The signature proving that the insurer either approves or disapproves
+	// of a Promise struct
+	signature []byte
+}
 
-// TODO Pass BlameProof as pointer. Consider generalizing it.
-// TODO Add Equal, Marshal, and UnMarshal methods for all
-// TODO Add tests for things I haven't yet.
-// TODO In tests, only use basicPromise if you ain't going to change it.
-// TODO Check the valdidity of PromiseSignature and BlameProof more extensively.
-//      make sure same suite, index proper, etc.
-// TODO Create valid promise to do basic sanity checking.
-// TODO Combine the valid* and Verify*
-// TODO Decouple keysuite from sharesuite. Make sure to change marshal when doing so
-// TODO It should be i >= p.n
-// TODO Add string functions to everything
+/* An internal function, initializes a new PromiseSignature
+ *
+ * Arguments
+ *    suite = the signing suite
+ *    sig   = the signature of approval
+ *
+ * Returns
+ *   An initialized PromiseSignature
+ */
+func (p *PromiseSignature) init(suite abstract.Suite, sig []byte) *PromiseSignature {
+	p.suite     = suite
+	p.signature = sig
+	return p
+}
+
+/* For users of this code, initializes a PromiseSignature for unmarshalling
+ *
+ * Arguments
+ *    suite = the signing suite
+ *
+ * Returns
+ *   An initialized PromiseSignature ready to unmarshal a buffer
+ */
+func (p *PromiseSignature) UnmarshalInit(suite abstract.Suite) *PromiseSignature {
+	p.suite     = suite
+	return p
+}
+
+/* Tests whether two PromiseSignature structs are equal
+ *
+ * Arguments
+ *    p2 = a pointer to the struct to test for equality
+ *
+ * Returns
+ *   true if equal, false otherwise
+ */
+func (p *PromiseSignature) Equal(p2 *PromiseSignature) bool {
+	return p.suite == p2.suite && reflect.DeepEqual(p, p2)
+}
+
+/* Returns the number of bytes used by this struct when marshalled 
+ *
+ * Returns
+ *   The marshal size
+ *
+ * Note
+ *   The function is only useful for a PromiseSignature struct that has already
+ *   been unmarshalled. Since signatures can be of variable length, the marshal
+ *   size is not known before unmarshalling. Do not call before unmarshalling.
+ */
+func (p *PromiseSignature) MarshalSize() int {
+	return uint32Size + len(p.signature)
+}
+
+/* Marshals a PromiseSignature struct into a byte array
+ *
+ * Returns
+ *   A buffer of the marshalled struct
+ *   The error status of the marshalling (nil if no error)
+ *
+ * Note
+ *   The buffer is formatted as follows:
+ *
+ *      ||Signature_Length||==Signature_Array===||
+ */
+func (p *PromiseSignature) MarshalBinary() ([]byte, error) {
+	buf := make([]byte, p.MarshalSize())
+	binary.LittleEndian.PutUint32(buf, uint32(len(p.signature)))
+	copy(buf[uint32Size:], p.signature)
+	return buf, nil
+}
+
+/* Unmarshals a PromiseSignature from a byte buffer
+ *
+ * Arguments
+ *    buf = the buffer containing the PromiseSignature
+ *
+ * Returns
+ *   The error status of the unmarshalling (nil if no error)
+ */
+func (p *PromiseSignature) UnmarshalBinary(buf []byte) error {
+	if len(buf) < uint32Size {
+		return errors.New("Buffer size too small")
+	}
+	
+	sigLen := int(binary.LittleEndian.Uint32(buf))
+	if len(buf) < uint32Size + sigLen {
+		return errors.New("Buffer size too small")
+	}
+
+	p.signature = buf[uint32Size:uint32Size+sigLen]
+	return nil
+}
+
+/* Marshals a PromiseSignature struct using an io.Writer
+ *
+ * Arguments
+ *    w = the writer to use for marshalling
+ *
+ * Returns
+ *   The number of bytes written
+ *   The error status of the write (nil if no errors)
+ */
+func (p *PromiseSignature) MarshalTo(w io.Writer) (int, error) {
+	buf, err := p.MarshalBinary()
+	if err != nil {
+		return 0, err
+	}
+	return w.Write(buf)
+}
+
+/* Unmarshal a PromiseSignature struct using an io.Reader
+ *
+ * Arguments
+ *    r = the reader to use for unmarshalling
+ *
+ * Returns
+ *   The number of bytes read
+ *   The error status of the read (nil if no errors)
+ */
+func (p *PromiseSignature) UnmarshalFrom(r io.Reader) (int, error) {
+	// Retrieve the signature length from the reader
+	buf    := make([]byte, uint32Size)
+	n, err := io.ReadFull(r, buf)
+	if err != nil {
+		return n, err
+	}
+	
+	sigLen := int(binary.LittleEndian.Uint32(buf))
+
+	// Calculate the length of the entire message and create the new buffer.
+	finalBuf := make([]byte, uint32Size + sigLen)
+	
+	// Copy the old buffer into the new
+	copy(finalBuf, buf)
+	
+	// Read the rest and unmarshal.
+	m, err := io.ReadFull(r, finalBuf[n:])
+	if err != nil {
+		return n+m, err
+	}
+	return n+m, p.UnmarshalBinary(finalBuf)
+}
+
+/* Returns a string representation of the PromiseSignature for easy debugging
+ *
+ * Returns
+ *   The PromiseSignature's string representation
+ */
+func (p *PromiseSignature) String() string {
+	s := "{PromiseSignature:\n"
+	s += "Suite => "     + p.suite.String()                + ",\n"
+	s += "Signature => " + hex.EncodeToString(p.signature) + "\n"
+	s += "}\n"
+	return s
+}
+
+/* The BlameProof struct provides an accountability measure. If a promiser
+ * decides to construct a faulty share, insurers can construct a BlameProof
+ * to show that the promiser is malicious. 
+ * 
+ * The insurer provides the Diffie-Hellman shared secret with the promiser so
+ * that others can decode the share in question. A zero knowledge proof is
+ * provided to prove that the shared secret was constructed properly. Lastly, a
+ * PromiseSignature is attached to prove that the insurer endorses the blame.
+ * When other servers receive the BlameProof, they can then verify whether the
+ * promiser is malicious or the insurer is falsely accusing the promiser.
+ *
+ * To quickly summarize the blame procedure, the following must hold for the
+ * blame to succeed:
+ *
+ *   1. The PromiseSignature must be valid
+ *
+ *   2. The Diffie-Hellman key must be verified to be correct
+ *
+ *   3. The insurer's share when decrypted must fail the PubPoly.Check of
+ *   the Promise struct
+ *
+ * If all hold, the promiser is proven malicious. Otherwise, the insurer is
+ * slanderous.
+ *
+ * Beyond unmarshalling, users of this code need not worry about constructing a
+ * BlameProof struct themselves. The Promise struct knows how to create a
+ * BlameProof via the Promise.Blame method.
+ */
+
+type BlameProof struct {
+
+	// The suite used throughout the BlameProof
+	suite abstract.Suite
+	
+	// The Diffie-Hellman shared secret between the insurer and promiser
+	diffieKey abstract.Point
+
+	// A HashProve proof that the insurer properly constructed the Diffie-
+	// Hellman shared secret
+	diffieKeyProof []byte
+
+	// The signature denoting that the insurer approves of the blame
+	signature PromiseSignature
+}
+
+/* An internal function, initializes a new BlameProof struct
+ *
+ * Arguments
+ *    suite = the suite used for the Diffie-Hellman key, proof, and signature
+ *    key   = the shared Diffie-Hellman key
+ *    dkp   = the proof validating the Diffie-Hellman key
+ *    sig   = the insurer's signature
+ *
+ * Returns
+ *   An initialized BlameProof
+ */
+func (bp *BlameProof) init(suite abstract.Suite, key abstract.Point,
+	dkp []byte, sig *PromiseSignature) *BlameProof {
+	bp.suite          = suite
+	bp.diffieKey      = key
+	bp.diffieKeyProof = dkp
+	bp.signature      = *sig
+	return bp
+}
+
+/* Initializes a BlameProof struct for unmarshalling
+ *
+ * Arguments
+ *    s = the suite used for the Diffie-Hellman key, proof, and signature
+ *
+ * Returns
+ *   An initialized BlameProof ready to be unmarshalled
+ */
+func (bp *BlameProof) UnmarshalInit(suite abstract.Suite) *BlameProof {
+	bp.suite = suite
+	return bp
+}
+
+/* Tests whether two BlameProof structs are equal
+ *
+ * Arguments
+ *    bp2 = a pointer to the struct to test for equality
+ *
+ * Returns
+ *   true if equal, false otherwise
+ */
+func (bp *BlameProof) Equal(bp2 *BlameProof) bool {
+	return bp.suite == bp2.suite &&
+	       bp.diffieKey.Equal(bp2.diffieKey) &&
+	       reflect.DeepEqual(bp.diffieKeyProof, bp2.diffieKeyProof) &&
+	       bp.signature.Equal(&bp2.signature)
+}
+
+/* Returns the number of bytes used by this struct when marshalled 
+ *
+ * Returns
+ *   The marshal size
+ *
+ * Note
+ *   Since PromiseSignature structs and the Diffie-Hellman proof can be of
+ *   variable length, this function is only useful for a BlameProof that is
+ *   already unmarshalled. Do not call before unmarshalling.
+ */
+func (bp *BlameProof) MarshalSize() int {
+	return 2*uint32Size + bp.suite.PointLen() + len(bp.diffieKeyProof) +
+	       bp.signature.MarshalSize()
+}
+
+/* Marshals a BlameProof struct into a byte array
+ *
+ * Returns
+ *   A buffer of the marshalled struct
+ *   The error status of the marshalling (nil if no error)
+ *
+ * Note
+ *   The buffer is formatted as follows:
+ *
+ *   ||Diffie_Key_Proof_Length||PromiseSignature_Length||Diffie_Key||
+ *      Diffie_Key_Proof||PromiseSignature||
+ */
+func (bp *BlameProof) MarshalBinary() ([]byte, error) {
+	pointLen := bp.suite.PointLen()
+	proofLen := len(bp.diffieKeyProof)
+	buf      := make([]byte, bp.MarshalSize())
+
+	binary.LittleEndian.PutUint32(buf, uint32(proofLen))
+	binary.LittleEndian.PutUint32(buf[uint32Size:],
+		uint32(bp.signature.MarshalSize()))
+
+	pointBuf, err := bp.diffieKey.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	copy(buf[2*uint32Size:], pointBuf)
+	copy(buf[2*uint32Size+pointLen:], bp.diffieKeyProof)
+	
+	sigBuf, err := bp.signature.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	copy(buf[2*uint32Size+pointLen+proofLen:], sigBuf)
+	return buf, nil
+}
+
+/* Unmarshals a BlameProof from a byte buffer
+ *
+ * Arguments
+ *    buf = the buffer containing the BlameProof
+ *
+ * Returns
+ *   The error status of the unmarshalling (nil if no error)
+ */
+func (bp *BlameProof) UnmarshalBinary(buf []byte) error {
+	// Verify the buffer is large enough for the diffie proof length
+	// (uint32), the PromiseSignature length (uint32), and the
+	// Diffie-Hellman shared secret (abstract.Point)
+	pointLen := bp.suite.PointLen()
+	if len(buf) < 2*uint32Size + pointLen {
+		return errors.New("Buffer size too small")
+	}
+	proofLen    := int(binary.LittleEndian.Uint32(buf))
+	sigLen      := int(binary.LittleEndian.Uint32(buf[uint32Size:]))
+
+	bufPos      := 2*uint32Size
+	bp.diffieKey = bp.suite.Point()
+	if err := bp.diffieKey.UnmarshalBinary(buf[bufPos:bufPos+pointLen]);
+		err != nil {
+		return err
+	}
+	bufPos += pointLen
+
+	if len(buf) < 2*uint32Size + pointLen + proofLen + sigLen {
+		return errors.New("Buffer size too small")
+	}
+	bp.diffieKeyProof = make([]byte, proofLen, proofLen)
+	copy(bp.diffieKeyProof, buf[bufPos:bufPos+proofLen])
+	bufPos += proofLen
+	
+	bp.signature = PromiseSignature{}
+	bp.signature.UnmarshalInit(bp.suite)
+	if err := bp.signature.UnmarshalBinary(buf[bufPos:bufPos+sigLen]);
+		err != nil {
+		return err
+	}
+	return nil
+}
+
+/* Marshals a BlameProof struct using an io.Writer
+ *
+ * Arguments
+ *    w = the writer to use for marshalling
+ *
+ * Returns
+ *   The number of bytes written
+ *   The error status of the write (nil if no errors)
+ */
+func (bp *BlameProof) MarshalTo(w io.Writer) (int, error) {
+	buf, err := bp.MarshalBinary()
+	if err != nil {
+		return 0, err
+	}
+	return w.Write(buf)
+}
+
+/* Unmarshals a BlameProof struct using an io.Reader
+ *
+ * Arguments
+ *    r = the reader to use for unmarshalling
+ *
+ * Returns
+ *   The number of bytes read
+ *   The error status of the read (nil if no errors)
+ */
+func (bp *BlameProof) UnmarshalFrom(r io.Reader) (int, error) {
+	// Retrieve the proof length and signature length from the reader
+	buf    := make([]byte, 2*uint32Size)
+	n, err := io.ReadFull(r, buf)
+	if err != nil {
+		return n, err
+	}
+	pointLen := bp.suite.PointLen()
+	proofLen := int(binary.LittleEndian.Uint32(buf))
+	sigLen   := int(binary.LittleEndian.Uint32(buf[uint32Size:]))
+
+	// Calculate the final buffer, copy the old data to it, and fill it
+	// for unmarshalling
+	finalLen := 2*uint32Size + pointLen + proofLen + sigLen
+	finalBuf := make([]byte, finalLen)
+	copy(finalBuf, buf)
+	m, err := io.ReadFull(r, finalBuf[n:])
+	if err != nil {
+		return n+m, err
+	}
+	return n+m, bp.UnmarshalBinary(finalBuf)
+}
+
+/* Returns a string representation of the BlameProof for easy debugging
+ *
+ * Returns
+ *   The BlameProof's string representation
+ */
+func (bp *BlameProof) String() string {
+	proofHex := hex.EncodeToString(bp.diffieKeyProof)
+	s := "{BlameProof:\n"
+	s += "Suite => "                        + bp.suite.String()     + ",\n"
+	s += "Diffie-Hellman Shared Secret => " + bp.diffieKey.String() + ",\n"
+	s += "Diffie-Hellman Proof => "         + proofHex              + ",\n"
+	s += "PromiseSignature => "             + bp.signature.String() + "\n"
+	s += "}\n"
+	return s
+}
 
