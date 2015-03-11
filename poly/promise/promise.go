@@ -11,8 +11,8 @@ import (
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/anon"
 	"github.com/dedis/crypto/config"
-	"github.com/dedis/crypto/proof"
 	"github.com/dedis/crypto/poly"
+	"github.com/dedis/crypto/proof"
 	"github.com/dedis/crypto/random"
 )
 
@@ -45,7 +45,7 @@ import (
  *   2) PromiseState = responsible for keeping state about a given Promise such
  *                     as shares recovered and messages either certifying the
  *                     promise or proving that it is malicious
- * 
+ *
  *   3) PromiseSignature = proves that an insurer has signed off on a Promise.
  *                         The signature could either be used to express
  *                         approval or disapproval
@@ -77,7 +77,7 @@ import (
  *    to the promiser.
  *
  * 6) The promiser receives the message from the insurer.
- * 
+ *
  * 7) If it is a valid BlameProof, the promiser must start all over and
  *    construct a non-malicious Promise (or, the system can ban this malicious
  *    promiser).
@@ -120,7 +120,7 @@ import (
  *              during secret reconstruction.
  *
  *   Users of this code = programmers wishing to use this code in programs
- */
+*/
 
 // Used mostly in marshalling code, this is the size of a uint32
 var uint32Size int = binary.Size(uint32(0))
@@ -129,8 +129,8 @@ var uint32Size int = binary.Size(uint32(0))
 var protocolName string = "Promise Protocol"
 
 // These are messages used for signatures
-var sigMsg      []byte  = []byte("Promise Signature")
-var sigBlameMsg []byte  = []byte("Promise Blame Signature")
+var sigMsg []byte = []byte("Promise Signature")
+var sigBlameMsg []byte = []byte("Promise Blame Signature")
 
 /* Promise structs are mechanisms by which a server can promise other servers
  * that an abstract.Secret will be availble even if the secret's owner goes
@@ -177,28 +177,28 @@ type Promise struct {
 
 	// The minimum number of shares needed to reconstruct the secret
 	t int
-	
+
 	// The minimum number of PromiseSignatures approving the Promise that
 	// are needed before the Promise is certified. t <= r <= n
 	r int
-	
+
 	// The total number of shares
 	n int
-	
+
 	// The long-term public key of the promiser
 	pubKey abstract.Point
-	
+
 	// The public polynomial that is used to verify the shared secrets
 	pubPoly poly.PubPoly
-	
+
 	// A list of servers who will act as insurers of the Promise. The list
 	// contains the long-term public keys of the insurers
-	insurers   []abstract.Point
-	
+	insurers []abstract.Point
+
 	// The list of shared secrets to be sent to the insurers. They are
 	// encrypted with Diffie-Hellman shared secrets between the insurer
 	// and the promiser.
-	secrets    []abstract.Secret
+	secrets []abstract.Secret
 }
 
 /* Constructs a new Promise to guarentee a secret.
@@ -214,20 +214,20 @@ type Promise struct {
  *   A newly constructed Promise
  */
 func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
-	longPair *config.KeyPair, t,r int, insurers []abstract.Point) *Promise {
-	p.t          = t
-	p.r          = r
-	p.n          = len(insurers)
+	longPair *config.KeyPair, t, r int, insurers []abstract.Point) *Promise {
+	p.t = t
+	p.r = r
+	p.n = len(insurers)
 	p.shareSuite = secretPair.Suite
-	p.keySuite   = longPair.Suite
-	p.pubKey     = longPair.Public
-	p.insurers   = insurers
-	p.secrets    = make([]abstract.Secret, p.n , p.n )
+	p.keySuite = longPair.Suite
+	p.pubKey = longPair.Public
+	p.insurers = insurers
+	p.secrets = make([]abstract.Secret, p.n, p.n)
 
 	// Verify that t <= r <= n
-	if p.n  < p.t {
+	if p.n < p.t {
 		panic("Not enough insurers for the secret")
-	} 
+	}
 	if p.r < p.t {
 		p.r = p.t
 	}
@@ -237,16 +237,16 @@ func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
 
 	// Create the public polynomial and private shares. The number of shares
 	// should be equal to the number of insurers.
-	pripoly   := new(poly.PriPoly).Pick(p.shareSuite, p.t,
-			secretPair.Secret, random.Stream)
+	pripoly := new(poly.PriPoly).Pick(p.shareSuite, p.t,
+		secretPair.Secret, random.Stream)
 	prishares := new(poly.PriShares).Split(pripoly, p.n)
-	p.pubPoly  = poly.PubPoly{}
+	p.pubPoly = poly.PubPoly{}
 	p.pubPoly.Commit(pripoly, nil)
-	
+
 	// Populate the secrets array with the shares encrypted by a Diffie-
 	// Hellman shared secret between the promiser and appropriate insurer
-	for i := 0 ; i < p.n; i++ {
-		diffieBase  := p.keySuite.Point().Mul(insurers[i], longPair.Secret)
+	for i := 0; i < p.n; i++ {
+		diffieBase := p.keySuite.Point().Mul(insurers[i], longPair.Secret)
 		p.secrets[i] = p.diffieHellmanEncrypt(prishares.Share(i), diffieBase)
 	}
 	return p
@@ -263,7 +263,7 @@ func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
  */
 func (p *Promise) UnmarshalInit(shareSuite, keySuite abstract.Suite) *Promise {
 	p.shareSuite = shareSuite
-	p.keySuite   = keySuite
+	p.keySuite = keySuite
 	return p
 }
 
@@ -287,7 +287,7 @@ func (p *Promise) VerifyPromise(promiserKey abstract.Point) error {
 	if !promiserKey.Equal(p.pubKey) {
 		return errors.New("Long term public key of Promise differs from what is expected.")
 	}
-	// There should be a secret and public key for each of the n insurers. 
+	// There should be a secret and public key for each of the n insurers.
 	if len(p.insurers) != p.n || len(p.secrets) != p.n {
 		return errors.New("Insurers and secrets array should be of length promise.n")
 	}
@@ -304,12 +304,12 @@ func (p *Promise) VerifyPromise(promiserKey abstract.Point) error {
  *   the encrypted secret
  */
 func (p *Promise) diffieHellmanEncrypt(secret abstract.Secret,
-	diffieBase abstract.Point) abstract.Secret {	
+	diffieBase abstract.Point) abstract.Secret {
 	buff, err := diffieBase.MarshalBinary()
 	if err != nil {
 		panic("Bad shared secret for Diffie-Hellman given.")
 	}
-	cipher       := p.shareSuite.Cipher(buff)
+	cipher := p.shareSuite.Cipher(buff)
 	diffieSecret := p.shareSuite.Secret().Pick(cipher)
 	return p.shareSuite.Secret().Add(secret, diffieSecret)
 }
@@ -324,12 +324,12 @@ func (p *Promise) diffieHellmanEncrypt(secret abstract.Secret,
  *   the decrypted secret
  */
 func (p *Promise) diffieHellmanDecrypt(secret abstract.Secret,
-	diffieBase abstract.Point) abstract.Secret {	
+	diffieBase abstract.Point) abstract.Secret {
 	buff, err := diffieBase.MarshalBinary()
 	if err != nil {
 		panic("Bad shared secret for Diffie-Hellman given.")
 	}
-	cipher       := p.shareSuite.Cipher(buff)
+	cipher := p.shareSuite.Cipher(buff)
 	diffieSecret := p.shareSuite.Secret().Pick(cipher)
 	return p.shareSuite.Secret().Sub(secret, diffieSecret)
 }
@@ -352,7 +352,7 @@ func (p *Promise) VerifyShare(i int, gKeyPair *config.KeyPair) error {
 		return errors.New("Invalid index. Expected 0 <= i < n")
 	}
 	msg := "The long-term public key the Promise recorded as the insurer" +
-	       "of this shares differs from what is expected"
+		"of this shares differs from what is expected"
 	if !p.insurers[i].Equal(gKeyPair.Public) {
 		return errors.New(msg)
 	}
@@ -377,7 +377,7 @@ func (p *Promise) VerifyShare(i int, gKeyPair *config.KeyPair) error {
 func (p *Promise) sign(i int, gKeyPair *config.KeyPair, msg []byte) *PromiseSignature {
 	set := anon.Set{gKeyPair.Public}
 	sig := anon.Sign(gKeyPair.Suite, random.Stream, msg, set, nil, 0,
-		gKeyPair.Secret)	
+		gKeyPair.Secret)
 	return new(PromiseSignature).init(gKeyPair.Suite, sig)
 }
 
@@ -398,7 +398,7 @@ func (p *Promise) verifySignature(i int, sig *PromiseSignature, msg []byte) erro
 	if sig.signature == nil {
 		return errors.New("Nil PromiseSignature")
 	}
-	set    := anon.Set{p.insurers[i]}
+	set := anon.Set{p.insurers[i]}
 	_, err := anon.Verify(sig.suite, msg, set, nil, sig.signature)
 	return err
 }
@@ -418,7 +418,7 @@ func (p *Promise) verifySignature(i int, sig *PromiseSignature, msg []byte) erro
  *   It is wise to first call VerifyShare to verify the insurer's share before
  *   signing on the promise.
  */
-func (p *Promise) Sign(i int, gKeyPair *config.KeyPair) *PromiseSignature {	
+func (p *Promise) Sign(i int, gKeyPair *config.KeyPair) *PromiseSignature {
 	return p.sign(i, gKeyPair, sigMsg)
 }
 
@@ -448,7 +448,7 @@ func (p *Promise) VerifySignature(i int, sig *PromiseSignature) error {
  */
 func (p *Promise) RevealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
 	diffieBase := p.keySuite.Point().Mul(p.pubKey, gKeyPair.Secret)
-	share      := p.diffieHellmanDecrypt(p.secrets[i], diffieBase)
+	share := p.diffieHellmanDecrypt(p.secrets[i], diffieBase)
 	return share
 }
 
@@ -486,17 +486,17 @@ func (p *Promise) VerifyRevealedShare(i int, share abstract.Secret) error {
  *   An error object denoting the status of the proof construction
  */
 func (p *Promise) Blame(i int, gKeyPair *config.KeyPair) (*BlameProof, error) {
-	diffieKey  := p.keySuite.Point().Mul(p.pubKey, gKeyPair.Secret)
+	diffieKey := p.keySuite.Point().Mul(p.pubKey, gKeyPair.Secret)
 	insurerSig := p.sign(i, gKeyPair, sigBlameMsg)
 
-	choice      := make(map[proof.Predicate]int)
-	pred        := proof.Rep("D", "x", "P")
+	choice := make(map[proof.Predicate]int)
+	pred := proof.Rep("D", "x", "P")
 	choice[pred] = 1
-	rand        := p.shareSuite.Cipher(abstract.RandomKey)
-	sval        := map[string]abstract.Secret{"x": gKeyPair.Secret}
-	pval        := map[string]abstract.Point{"D": diffieKey, "P": p.pubKey}
-	prover      := pred.Prover(p.keySuite, sval, pval, choice)
-	proof, err  := proof.HashProve(p.keySuite, protocolName, rand, prover)
+	rand := p.shareSuite.Cipher(abstract.RandomKey)
+	sval := map[string]abstract.Secret{"x": gKeyPair.Secret}
+	pval := map[string]abstract.Point{"D": diffieKey, "P": p.pubKey}
+	prover := pred.Prover(p.keySuite, sval, pval, choice)
+	proof, err := proof.HashProve(p.keySuite, protocolName, rand, prover)
 	if err != nil {
 		return nil, err
 	}
@@ -517,17 +517,16 @@ func (p *Promise) VerifyBlame(i int, blameProof *BlameProof) error {
 	if i < 0 || i >= p.n {
 		return errors.New("Invalid index. Expected 0 <= i < n")
 	}
-	if err := p.verifySignature(i, &blameProof.signature, sigBlameMsg);
-		err != nil {
+	if err := p.verifySignature(i, &blameProof.signature, sigBlameMsg); err != nil {
 		return err
 	}
 
 	// Verify the Diffie-Hellman shared secret was constructed properly
-	pval     := map[string]abstract.Point{"D": blameProof.diffieKey, "P": p.pubKey}
-	pred     := proof.Rep("D", "x", "P")
+	pval := map[string]abstract.Point{"D": blameProof.diffieKey, "P": p.pubKey}
+	pred := proof.Rep("D", "x", "P")
 	verifier := pred.Verifier(p.keySuite, pval)
-	err      := proof.HashVerify(p.keySuite, protocolName, verifier,
-			blameProof.diffieKeyProof)
+	err := proof.HashVerify(p.keySuite, protocolName, verifier,
+		blameProof.diffieKeyProof)
 	if err != nil {
 		return err
 	}
@@ -555,17 +554,17 @@ func (p *Promise) Equal(p2 *Promise) bool {
 	if p.shareSuite != p2.shareSuite || p.keySuite != p2.keySuite {
 		return false
 	}
-	for i := 0 ; i < p.n; i++ {
+	for i := 0; i < p.n; i++ {
 		if !p.secrets[i].Equal(p2.secrets[i]) ||
-		   !p.insurers[i].Equal(p2.insurers[i]) {
-		 	return false  
+			!p.insurers[i].Equal(p2.insurers[i]) {
+			return false
 		}
 	}
 	return p.t == p2.t && p.r == p2.r &&
-	       p.pubKey.Equal(p2.pubKey) && p.pubPoly.Equal(&p2.pubPoly)
+		p.pubKey.Equal(p2.pubKey) && p.pubPoly.Equal(&p2.pubPoly)
 }
 
-/* Returns the number of bytes used by this struct when marshalled 
+/* Returns the number of bytes used by this struct when marshalled
  *
  * Returns
  *   The marshal size
@@ -575,8 +574,8 @@ func (p *Promise) Equal(p2 *Promise) bool {
  *   unmarshalling, do not call before unmarshalling.
  */
 func (p *Promise) MarshalSize() int {
-	return 3*uint32Size + p.keySuite.PointLen() + p.pubPoly.MarshalSize()+
-	       p.n*p.keySuite.PointLen() + p.n*p.shareSuite.SecretLen()
+	return 3*uint32Size + p.keySuite.PointLen() + p.pubPoly.MarshalSize() +
+		p.n*p.keySuite.PointLen() + p.n*p.shareSuite.SecretLen()
 }
 
 /* Marshals a Promise struct into a byte array
@@ -595,8 +594,8 @@ func (p *Promise) MarshalSize() int {
 func (p *Promise) MarshalBinary() ([]byte, error) {
 	buf := make([]byte, p.MarshalSize())
 
-	pointLen  := p.keySuite.PointLen()
-	polyLen   := p.pubPoly.MarshalSize()
+	pointLen := p.keySuite.PointLen()
+	polyLen := p.pubPoly.MarshalSize()
 	secretLen := p.shareSuite.SecretLen()
 
 	// Encode n, r, t
@@ -608,32 +607,32 @@ func (p *Promise) MarshalBinary() ([]byte, error) {
 	pointBuf, err := p.pubKey.MarshalBinary()
 	if err != nil {
 		return nil, err
-	}	
+	}
 	copy(buf[3*uint32Size:], pointBuf)
 
 	polyBuf, err := p.pubPoly.MarshalBinary()
 	if err != nil {
 		return nil, err
-	}	
+	}
 	copy(buf[3*uint32Size+pointLen:], polyBuf)
-	
+
 	// Encode the insurers and secrets array (Based on poly/sharing.go code)
-	bufPos := 3*uint32Size+pointLen+polyLen
+	bufPos := 3*uint32Size + pointLen + polyLen
 	for i := range p.insurers {
 		pb, err := p.insurers[i].MarshalBinary()
 		if err != nil {
 			return nil, err
 		}
-		copy(buf[bufPos + i*pointLen:], pb)
+		copy(buf[bufPos+i*pointLen:], pb)
 	}
-	bufPos += p.n*pointLen
+	bufPos += p.n * pointLen
 
 	for i := range p.secrets {
 		pb, err := p.secrets[i].MarshalBinary()
 		if err != nil {
 			return nil, err
 		}
-		copy(buf[bufPos + i*secretLen:], pb)
+		copy(buf[bufPos+i*secretLen:], pb)
 	}
 	return buf, nil
 }
@@ -647,7 +646,7 @@ func (p *Promise) MarshalBinary() ([]byte, error) {
  *   The error status of the unmarshalling (nil if no error)
  */
 func (p *Promise) UnmarshalBinary(buf []byte) error {
-	pointLen  := p.keySuite.PointLen()
+	pointLen := p.keySuite.PointLen()
 	secretLen := p.shareSuite.SecretLen()
 
 	// Decode n, r, t
@@ -655,44 +654,40 @@ func (p *Promise) UnmarshalBinary(buf []byte) error {
 	p.t = int(binary.LittleEndian.Uint32(buf[uint32Size:]))
 	p.r = int(binary.LittleEndian.Uint32(buf[2*uint32Size:]))
 
-	bufPos := 3*uint32Size
-	
+	bufPos := 3 * uint32Size
+
 	// Decode pubKey and pubPoly
 	p.pubKey = p.keySuite.Point()
-	if err := p.pubKey.UnmarshalBinary(buf[bufPos:bufPos+pointLen]);
-		err != nil {
+	if err := p.pubKey.UnmarshalBinary(buf[bufPos : bufPos+pointLen]); err != nil {
 		return err
 	}
 	bufPos += pointLen
-	
+
 	p.pubPoly = poly.PubPoly{}
 	p.pubPoly.Init(p.shareSuite, p.t, nil)
-	polyLen  := p.pubPoly.MarshalSize()
-	if err := p.pubPoly.UnmarshalBinary(buf[bufPos:bufPos+polyLen]);
-		err != nil {
+	polyLen := p.pubPoly.MarshalSize()
+	if err := p.pubPoly.UnmarshalBinary(buf[bufPos : bufPos+polyLen]); err != nil {
 		return err
 	}
 	bufPos += polyLen
-	
+
 	// Decode the insurers and secrets array (Based on poly/sharing.go code)
 	p.insurers = make([]abstract.Point, p.n, p.n)
 	for i := 0; i < p.n; i++ {
-		start        := bufPos + i*pointLen
-		end          := start + pointLen
+		start := bufPos + i*pointLen
+		end := start + pointLen
 		p.insurers[i] = p.keySuite.Point()
-		if err := p.insurers[i].UnmarshalBinary(buf[start:end]);
-			err != nil {
+		if err := p.insurers[i].UnmarshalBinary(buf[start:end]); err != nil {
 			return err
 		}
 	}
-	bufPos += p.n*pointLen
+	bufPos += p.n * pointLen
 	p.secrets = make([]abstract.Secret, p.n, p.n)
 	for i := 0; i < p.n; i++ {
-		start       := bufPos + i*secretLen
-		end         := start + secretLen
+		start := bufPos + i*secretLen
+		end := start + secretLen
 		p.secrets[i] = p.shareSuite.Secret()
-		if err := p.secrets[i].UnmarshalBinary(buf[start:end]);
-			err != nil {
+		if err := p.secrets[i].UnmarshalBinary(buf[start:end]); err != nil {
 			return err
 		}
 	}
@@ -727,25 +722,25 @@ func (p *Promise) MarshalTo(w io.Writer) (int, error) {
  */
 func (p *Promise) UnmarshalFrom(r io.Reader) (int, error) {
 	// Retrieve p.n and p.t and then initialize p.PubPoly
-	buf    := make([]byte, 2*uint32Size)
+	buf := make([]byte, 2*uint32Size)
 	n, err := io.ReadFull(r, buf)
 	if err != nil {
 		return n, err
 	}
-	p.n       = int(binary.LittleEndian.Uint32(buf))
-	p.t       = int(binary.LittleEndian.Uint32(buf[uint32Size:]))
+	p.n = int(binary.LittleEndian.Uint32(buf))
+	p.t = int(binary.LittleEndian.Uint32(buf[uint32Size:]))
 	p.pubPoly = poly.PubPoly{}
 	p.pubPoly.Init(p.shareSuite, p.t, nil)
-	
+
 	// MarshalSize can now be used to construct the final buffer. Copy
 	// the contents into the buffer and unmarshal.
 	finalBuf := make([]byte, p.MarshalSize())
 	copy(finalBuf, buf)
 	m, err := io.ReadFull(r, finalBuf[n:])
 	if err != nil {
-		return n+m, err
-	}	
-	return n+m, p.UnmarshalBinary(finalBuf)
+		return n + m, err
+	}
+	return n + m, p.UnmarshalBinary(finalBuf)
 }
 
 /* Returns a string representation of the Promise for easy debugging
@@ -755,22 +750,22 @@ func (p *Promise) UnmarshalFrom(r io.Reader) (int, error) {
  */
 func (p *Promise) String() string {
 	s := "{Promise:\n"
-	s += "ShareSuite => "        + p.shareSuite.String() + ",\n"
-	s += "KeySuite => "          + p.keySuite.String()   + ",\n"
-	s += "t => "                 + strconv.Itoa(p.t)     + ",\n"
-	s += "r => "                 + strconv.Itoa(p.r)     + ",\n"
-	s += "n => "                 + strconv.Itoa(p.n)     + ",\n"
-	s += "Public Key => "        + p.pubKey.String()     + ",\n"
-	s += "Public Polynomial => " + p.pubPoly.String()    + ",\n"
+	s += "ShareSuite => " + p.shareSuite.String() + ",\n"
+	s += "KeySuite => " + p.keySuite.String() + ",\n"
+	s += "t => " + strconv.Itoa(p.t) + ",\n"
+	s += "r => " + strconv.Itoa(p.r) + ",\n"
+	s += "n => " + strconv.Itoa(p.n) + ",\n"
+	s += "Public Key => " + p.pubKey.String() + ",\n"
+	s += "Public Polynomial => " + p.pubPoly.String() + ",\n"
 	insurers := ""
-	secrets  := ""	
+	secrets := ""
 	for i := 0; i < p.n; i++ {
 		insurers += p.insurers[i].String() + ",\n"
-		secrets  += p.secrets[i].String()  + ",\n"
+		secrets += p.secrets[i].String() + ",\n"
 	}
 	s += "Insurers =>\n[" + insurers + "],\n"
-	s += "Secrets =>\n["  + secrets + "]\n"
-	s += "}\n"	
+	s += "Secrets =>\n[" + secrets + "]\n"
+	s += "}\n"
 	return s
 }
 
@@ -802,16 +797,16 @@ type PromiseState struct {
 
 	// The actual promise
 	Promise Promise
-	
+
 	// Primarily used by clients, contains shares the client has currently
 	// obtained from insurers. This is what will be used to reconstruct the
 	// promised secret.
 	PriShares poly.PriShares
-	
+
 	// A list of signatures verifying that an insurer has cerified the
 	// secret share it is guarding.
 	signatures []*PromiseSignature
-	
+
 	// A list of blame proofs in which an insurer proves its secret share
 	// to be malformed and hence proves the promiser of being malicious
 	blames []*BlameProof
@@ -827,14 +822,14 @@ type PromiseState struct {
  */
 func (ps *PromiseState) Init(promise Promise) *PromiseState {
 	ps.Promise = promise
-	
+
 	// Initialize a new PriShares based on information from the promise.
 	ps.PriShares = poly.PriShares{}
 	ps.PriShares.Empty(promise.shareSuite, promise.t, promise.n)
 
 	// There will be at most n signatures and blame proofs, one per insurer
 	ps.signatures = make([]*PromiseSignature, promise.n, promise.n)
-	ps.blames     = make([]*BlameProof, promise.n, promise.n)
+	ps.blames = make([]*BlameProof, promise.n, promise.n)
 	return ps
 }
 
@@ -903,12 +898,12 @@ func (ps *PromiseState) PromiseCertified(promiserKey abstract.Point) error {
 		// Check whether the PromiseSignatures and BlameProofs are
 		// non-nil. Otherwise, bad things will happen.
 		if ps.signatures[i] != nil &&
-		   ps.Promise.VerifySignature(i, ps.signatures[i]) == nil {
+			ps.Promise.VerifySignature(i, ps.signatures[i]) == nil {
 			validSigs += 1
 		}
-		
+
 		if ps.blames[i] != nil &&
-		   ps.Promise.VerifyBlame(i, ps.blames[i]) == nil {
+			ps.Promise.VerifyBlame(i, ps.blames[i]) == nil {
 			return errors.New("A valid blame proofs proves this Promise to be uncertified.")
 		}
 	}
@@ -933,10 +928,10 @@ func (ps *PromiseState) PromiseCertified(promiserKey abstract.Point) error {
  * Promise.Sign
  */
 type PromiseSignature struct {
-	
+
 	// The suite used for signing
 	suite abstract.Suite
-	
+
 	// The signature proving that the insurer either approves or disapproves
 	// of a Promise struct
 	signature []byte
@@ -952,7 +947,7 @@ type PromiseSignature struct {
  *   An initialized PromiseSignature
  */
 func (p *PromiseSignature) init(suite abstract.Suite, sig []byte) *PromiseSignature {
-	p.suite     = suite
+	p.suite = suite
 	p.signature = sig
 	return p
 }
@@ -966,7 +961,7 @@ func (p *PromiseSignature) init(suite abstract.Suite, sig []byte) *PromiseSignat
  *   An initialized PromiseSignature ready to unmarshal a buffer
  */
 func (p *PromiseSignature) UnmarshalInit(suite abstract.Suite) *PromiseSignature {
-	p.suite     = suite
+	p.suite = suite
 	return p
 }
 
@@ -982,7 +977,7 @@ func (p *PromiseSignature) Equal(p2 *PromiseSignature) bool {
 	return p.suite == p2.suite && reflect.DeepEqual(p, p2)
 }
 
-/* Returns the number of bytes used by this struct when marshalled 
+/* Returns the number of bytes used by this struct when marshalled
  *
  * Returns
  *   The marshal size
@@ -1026,13 +1021,13 @@ func (p *PromiseSignature) UnmarshalBinary(buf []byte) error {
 	if len(buf) < uint32Size {
 		return errors.New("Buffer size too small")
 	}
-	
+
 	sigLen := int(binary.LittleEndian.Uint32(buf))
-	if len(buf) < uint32Size + sigLen {
+	if len(buf) < uint32Size+sigLen {
 		return errors.New("Buffer size too small")
 	}
 
-	p.signature = buf[uint32Size:uint32Size+sigLen]
+	p.signature = buf[uint32Size : uint32Size+sigLen]
 	return nil
 }
 
@@ -1064,26 +1059,26 @@ func (p *PromiseSignature) MarshalTo(w io.Writer) (int, error) {
  */
 func (p *PromiseSignature) UnmarshalFrom(r io.Reader) (int, error) {
 	// Retrieve the signature length from the reader
-	buf    := make([]byte, uint32Size)
+	buf := make([]byte, uint32Size)
 	n, err := io.ReadFull(r, buf)
 	if err != nil {
 		return n, err
 	}
-	
+
 	sigLen := int(binary.LittleEndian.Uint32(buf))
 
 	// Calculate the length of the entire message and create the new buffer.
-	finalBuf := make([]byte, uint32Size + sigLen)
-	
+	finalBuf := make([]byte, uint32Size+sigLen)
+
 	// Copy the old buffer into the new
 	copy(finalBuf, buf)
-	
+
 	// Read the rest and unmarshal.
 	m, err := io.ReadFull(r, finalBuf[n:])
 	if err != nil {
-		return n+m, err
+		return n + m, err
 	}
-	return n+m, p.UnmarshalBinary(finalBuf)
+	return n + m, p.UnmarshalBinary(finalBuf)
 }
 
 /* Returns a string representation of the PromiseSignature for easy debugging
@@ -1093,7 +1088,7 @@ func (p *PromiseSignature) UnmarshalFrom(r io.Reader) (int, error) {
  */
 func (p *PromiseSignature) String() string {
 	s := "{PromiseSignature:\n"
-	s += "Suite => "     + p.suite.String()                + ",\n"
+	s += "Suite => " + p.suite.String() + ",\n"
 	s += "Signature => " + hex.EncodeToString(p.signature) + "\n"
 	s += "}\n"
 	return s
@@ -1101,8 +1096,8 @@ func (p *PromiseSignature) String() string {
 
 /* The BlameProof struct provides an accountability measure. If a promiser
  * decides to construct a faulty share, insurers can construct a BlameProof
- * to show that the promiser is malicious. 
- * 
+ * to show that the promiser is malicious.
+ *
  * The insurer provides the Diffie-Hellman shared secret with the promiser so
  * that others can decode the share in question. A zero knowledge proof is
  * provided to prove that the shared secret was constructed properly. Lastly, a
@@ -1132,7 +1127,7 @@ type BlameProof struct {
 
 	// The suite used throughout the BlameProof
 	suite abstract.Suite
-	
+
 	// The Diffie-Hellman shared secret between the insurer and promiser
 	diffieKey abstract.Point
 
@@ -1157,10 +1152,10 @@ type BlameProof struct {
  */
 func (bp *BlameProof) init(suite abstract.Suite, key abstract.Point,
 	dkp []byte, sig *PromiseSignature) *BlameProof {
-	bp.suite          = suite
-	bp.diffieKey      = key
+	bp.suite = suite
+	bp.diffieKey = key
 	bp.diffieKeyProof = dkp
-	bp.signature      = *sig
+	bp.signature = *sig
 	return bp
 }
 
@@ -1187,12 +1182,12 @@ func (bp *BlameProof) UnmarshalInit(suite abstract.Suite) *BlameProof {
  */
 func (bp *BlameProof) Equal(bp2 *BlameProof) bool {
 	return bp.suite == bp2.suite &&
-	       bp.diffieKey.Equal(bp2.diffieKey) &&
-	       reflect.DeepEqual(bp.diffieKeyProof, bp2.diffieKeyProof) &&
-	       bp.signature.Equal(&bp2.signature)
+		bp.diffieKey.Equal(bp2.diffieKey) &&
+		reflect.DeepEqual(bp.diffieKeyProof, bp2.diffieKeyProof) &&
+		bp.signature.Equal(&bp2.signature)
 }
 
-/* Returns the number of bytes used by this struct when marshalled 
+/* Returns the number of bytes used by this struct when marshalled
  *
  * Returns
  *   The marshal size
@@ -1204,7 +1199,7 @@ func (bp *BlameProof) Equal(bp2 *BlameProof) bool {
  */
 func (bp *BlameProof) MarshalSize() int {
 	return 2*uint32Size + bp.suite.PointLen() + len(bp.diffieKeyProof) +
-	       bp.signature.MarshalSize()
+		bp.signature.MarshalSize()
 }
 
 /* Marshals a BlameProof struct into a byte array
@@ -1222,7 +1217,7 @@ func (bp *BlameProof) MarshalSize() int {
 func (bp *BlameProof) MarshalBinary() ([]byte, error) {
 	pointLen := bp.suite.PointLen()
 	proofLen := len(bp.diffieKeyProof)
-	buf      := make([]byte, bp.MarshalSize())
+	buf := make([]byte, bp.MarshalSize())
 
 	binary.LittleEndian.PutUint32(buf, uint32(proofLen))
 	binary.LittleEndian.PutUint32(buf[uint32Size:],
@@ -1234,7 +1229,7 @@ func (bp *BlameProof) MarshalBinary() ([]byte, error) {
 	}
 	copy(buf[2*uint32Size:], pointBuf)
 	copy(buf[2*uint32Size+pointLen:], bp.diffieKeyProof)
-	
+
 	sigBuf, err := bp.signature.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -1256,31 +1251,29 @@ func (bp *BlameProof) UnmarshalBinary(buf []byte) error {
 	// (uint32), the PromiseSignature length (uint32), and the
 	// Diffie-Hellman shared secret (abstract.Point)
 	pointLen := bp.suite.PointLen()
-	if len(buf) < 2*uint32Size + pointLen {
+	if len(buf) < 2*uint32Size+pointLen {
 		return errors.New("Buffer size too small")
 	}
-	proofLen    := int(binary.LittleEndian.Uint32(buf))
-	sigLen      := int(binary.LittleEndian.Uint32(buf[uint32Size:]))
+	proofLen := int(binary.LittleEndian.Uint32(buf))
+	sigLen := int(binary.LittleEndian.Uint32(buf[uint32Size:]))
 
-	bufPos      := 2*uint32Size
+	bufPos := 2 * uint32Size
 	bp.diffieKey = bp.suite.Point()
-	if err := bp.diffieKey.UnmarshalBinary(buf[bufPos:bufPos+pointLen]);
-		err != nil {
+	if err := bp.diffieKey.UnmarshalBinary(buf[bufPos : bufPos+pointLen]); err != nil {
 		return err
 	}
 	bufPos += pointLen
 
-	if len(buf) < 2*uint32Size + pointLen + proofLen + sigLen {
+	if len(buf) < 2*uint32Size+pointLen+proofLen+sigLen {
 		return errors.New("Buffer size too small")
 	}
 	bp.diffieKeyProof = make([]byte, proofLen, proofLen)
 	copy(bp.diffieKeyProof, buf[bufPos:bufPos+proofLen])
 	bufPos += proofLen
-	
+
 	bp.signature = PromiseSignature{}
 	bp.signature.UnmarshalInit(bp.suite)
-	if err := bp.signature.UnmarshalBinary(buf[bufPos:bufPos+sigLen]);
-		err != nil {
+	if err := bp.signature.UnmarshalBinary(buf[bufPos : bufPos+sigLen]); err != nil {
 		return err
 	}
 	return nil
@@ -1314,14 +1307,14 @@ func (bp *BlameProof) MarshalTo(w io.Writer) (int, error) {
  */
 func (bp *BlameProof) UnmarshalFrom(r io.Reader) (int, error) {
 	// Retrieve the proof length and signature length from the reader
-	buf    := make([]byte, 2*uint32Size)
+	buf := make([]byte, 2*uint32Size)
 	n, err := io.ReadFull(r, buf)
 	if err != nil {
 		return n, err
 	}
 	pointLen := bp.suite.PointLen()
 	proofLen := int(binary.LittleEndian.Uint32(buf))
-	sigLen   := int(binary.LittleEndian.Uint32(buf[uint32Size:]))
+	sigLen := int(binary.LittleEndian.Uint32(buf[uint32Size:]))
 
 	// Calculate the final buffer, copy the old data to it, and fill it
 	// for unmarshalling
@@ -1330,9 +1323,9 @@ func (bp *BlameProof) UnmarshalFrom(r io.Reader) (int, error) {
 	copy(finalBuf, buf)
 	m, err := io.ReadFull(r, finalBuf[n:])
 	if err != nil {
-		return n+m, err
+		return n + m, err
 	}
-	return n+m, bp.UnmarshalBinary(finalBuf)
+	return n + m, bp.UnmarshalBinary(finalBuf)
 }
 
 /* Returns a string representation of the BlameProof for easy debugging
@@ -1343,11 +1336,10 @@ func (bp *BlameProof) UnmarshalFrom(r io.Reader) (int, error) {
 func (bp *BlameProof) String() string {
 	proofHex := hex.EncodeToString(bp.diffieKeyProof)
 	s := "{BlameProof:\n"
-	s += "Suite => "                        + bp.suite.String()     + ",\n"
+	s += "Suite => " + bp.suite.String() + ",\n"
 	s += "Diffie-Hellman Shared Secret => " + bp.diffieKey.String() + ",\n"
-	s += "Diffie-Hellman Proof => "         + proofHex              + ",\n"
-	s += "PromiseSignature => "             + bp.signature.String() + "\n"
+	s += "Diffie-Hellman Proof => " + proofHex + ",\n"
+	s += "PromiseSignature => " + bp.signature.String() + "\n"
 	s += "}\n"
 	return s
 }
-
