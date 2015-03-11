@@ -27,8 +27,12 @@ var sigMsg      []byte  = []byte("Promise Signature")
 var sigBlameMsg []byte  = []byte("Promise Blame Signature")
 
 /* Terms:
+ *   promiser = the server making a Promise
+ *   client   = recipients of a Promise who are trusting the promiser
+ *   insurer  = servers who receive a share of the promised secret and help
+ *              during reconstruction
  *
- *  Users of this code = programmers wishing to use this code in their programs.
+ *   Users of this code = programmers wishing to use this code in their programs
  */
 
 
@@ -193,9 +197,9 @@ func (p *PromiseSignature) UnmarshalFrom(r io.Reader) (int, error) {
 	copy(finalBuf, buf)
 	
 	// Read the rest and unmarshal.
-	m, err2 := io.ReadFull(r, finalBuf[n:])
-	if err2 != nil {
-		return n+m, err2
+	m, err := io.ReadFull(r, finalBuf[n:])
+	if err != nil {
+		return n+m, err
 	}
 	return n+m, p.UnmarshalBinary(finalBuf)
 }
@@ -349,9 +353,9 @@ func (bp *BlameProof) MarshalBinary() ([]byte, error) {
 	copy(buf[2*uint32Size:], pointBuf)
 	copy(buf[2*uint32Size+pointLen:], bp.diffieKeyProof)
 	
-	sigBuf, err1 := bp.signature.MarshalBinary()
-	if err1 != nil {
-		return nil, err1
+	sigBuf, err := bp.signature.MarshalBinary()
+	if err != nil {
+		return nil, err
 	}
 	copy(buf[2*uint32Size+pointLen+proofLen:], sigBuf)
 	return buf, nil
@@ -442,9 +446,9 @@ func (bp *BlameProof) UnmarshalFrom(r io.Reader) (int, error) {
 	finalLen := 2*uint32Size + pointLen + proofLen + sigLen
 	finalBuf := make([]byte, finalLen)
 	copy(finalBuf, buf)
-	m, err2 := io.ReadFull(r, finalBuf[n:])
-	if err2 != nil {
-		return n+m, err2
+	m, err := io.ReadFull(r, finalBuf[n:])
+	if err != nil {
+		return n+m, err
 	}
 	return n+m, bp.UnmarshalBinary(finalBuf)
 }
@@ -465,105 +469,95 @@ func (bp *BlameProof) String() string {
 	return s
 }
 
-/* Promise objects are mechanism by which servers can promise that a certain
- * private key or abstract.Secret can be recomputed by other servers in case
- * the original server goes offline.
+/* Promise structs are mechanisms by which a server can promise other servers
+ * that an abstract.Secret will be availble even if the secret's owner goes
+ * down. The secret to be promised will be sharded into shared secrets that can
+ * be combined using Lagrange Interpolation to produce the original secret.
+ * Other servers will act as insurers maintaining a share. If a client ever
+ * needs the secret to be reconstructed, it can contact the insurers to regain
+ * the shares and reconstruct the secret.
  *
- * The Promise struct handles the logic of creating private shares, splitting
- * these shares up for a given number of servers to act as insurers, verifying
- * promises, and providing proof that insurers have indeed taken out approved
- * of backing up the promse.
+ * Note to Developers:
+ *       The insurers and secrets arrays should remain synchronized. In other
+ *       words, insurers[i] and secrets[i] should both refer to the same server.
  *
- * Terms:
- *   promiser = the server making the promise. The own who owns this object.
- *   client = recipients of the promise (aka the clients of the promiser)
- *   insurer = another server who receives a share of the promise and can help
- *              reconstruct it.
+ * Note to users of this code:
  *
- * Development note: The insurers, secrets, and signatures arrays should
- *                   remain synchronized. In other words, the insurers[i],
- *                   secrets[i], and signatures[i] should all refer to the same
- *                   server.
+ *   Here is a list of methods that should be called by each type of server:
+ *
+ * - Promisers
+ *   * ConstructPromise
+ *
+ * - Insurers
+ *   * VerifyPromise
+ *   * VerifyShare
+ *   * Sign
+ *   * RevealShare
+ *   * Blame
+ *
+ * - Clients
+ *   * VerifyPromise
+ *   * VerifyRevealedShare
+ *
+ * - All
+ *   * UnmarshalInit
+ *   * VerifySignature
+ *   * VerifyBlame
  */
 type Promise struct {
 
-	// The cryptographic group to use for the private shares.
+	// The cryptographic suite to use for the shared secrets
 	shareSuite abstract.Suite
-	
-	// The minimum number of shares needed to reconstruct the secret.
+
+	// The suite used for the long term keys stored in the Promise
+	keySuite abstract.Suite
+
+	// The minimum number of shares needed to reconstruct the secret
 	t int
 	
-	// The minimum number of shares needed before the policy can become
-	// active. t <= r <= n
+	// The minimum number of PromiseSignatures approving the Promise that
+	// are needed before the Promise is certified. t <= r <= n
 	r int
 	
-	// The total number of shares to send.
+	// The total number of shares
 	n int
 	
-	// The long-term public key of the promiser.
+	// The long-term public key of the promiser
 	pubKey abstract.Point
 	
-	// The public polynomial that is used to verify that a secret share
-	// given did indeed come from the appropriate private key.
+	// The public polynomial that is used to verify the shared secrets
 	pubPoly poly.PubPoly
 	
-	// The list of servers who act as insurers of the secret. They will
-	// each hold a secret that can be used to decode the promise. The list
-	// is identified by the public key of the serers.
+	// A list of servers who will act as insurers of the Promise. The list
+	// contains the long-term public keys of the insurers
 	insurers   []abstract.Point
 	
-	// The list of secret shares to be sent to the insurers. They are
-	// encrypted with diffie-hellmen shared secrets between the insurer
-	// and the original server.
+	// The list of shared secrets to be sent to the insurers. They are
+	// encrypted with Diffie-Hellman shared secrets between the insurer
+	// and the promiser.
 	secrets    []abstract.Secret
 }
 
-func (p *Promise) String() string {
-	s := "{Promise:\n"
-	s += "Suite => " + p.shareSuite.String() + ",\n"
-	s += "t => " + strconv.Itoa(p.t) + ",\n"
-	s += "r => " + strconv.Itoa(p.r) + ",\n"
-	s += "n => " + strconv.Itoa(p.n) + ",\n"
-	s += "Public Key => " + p.pubKey.String() + ",\n"
-	s += "Public Polynomial => " + p.pubPoly.String() + ",\n"
-	
-	insurers := ""
-	secrets  := ""
-	
-	for i := 0; i < p.n; i++ {
-		insurers += p.insurers[i].String() + ",\n"
-		secrets += p.secrets[i].String() + ",\n"
-	}
-	s += "Insurers => [" + insurers + "],\n"
-	s += "Secrets => [" + secrets + "]}"	
-	return s
-}
-
-/* To be called by the promiser, initializes a new promise to guard a secret.
+/* Constructs a new Promise to guarentee a secret.
  *
  * Arguments
- *    secret   = the keypair of the secret to be promise
- *    keyPair  = the long term keypair of the promiser
- *    t        = the minimum number of shares needed to reconstruct the secret.
- *    r        = the minimum signatures from insurers needed for the promise to
- *               be valid.
- *    insurers = a list of the public keys of servers to act as insurers.
+ *    secretPair   = the keypair of the secret to be promised
+ *    longPair     = the long term keypair of the promiser
+ *    t            = minimum number of shares needed to reconstruct the secret.
+ *    r            = minimum PromiseSignatures needed to certify the Promise
+ *    insurers     = a list of the long-term public keys of the insurers.
  *
  * Returns
- *   The initialized promise
- *
- * Note
- *   Since shares will be multiplied by Diffie-Hellman keys, they need to be the
- *   same group as the keys.
+ *   A newly constructed Promise
  */
-func (p *Promise) ConstructPromise(secret *config.KeyPair, keyPair *config.KeyPair, t, r int,
-	insurers []abstract.Point) *Promise {
-
+func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
+	longPair *config.KeyPair, t,r int, insurers []abstract.Point) *Promise {
 	p.t          = t
 	p.r          = r
 	p.n          = len(insurers)
-	p.shareSuite = secret.Suite
-	p.pubKey     = keyPair.Public
+	p.shareSuite = secretPair.Suite
+	p.keySuite   = longPair.Suite
+	p.pubKey     = longPair.Public
 	p.insurers   = insurers
 	p.secrets    = make([]abstract.Secret, p.n , p.n )
 
@@ -578,53 +572,57 @@ func (p *Promise) ConstructPromise(secret *config.KeyPair, keyPair *config.KeyPa
 		p.r = p.n
 	}
 
-	// Create the public polynomial and private shares. The total shares made
-	// should be equal to teh number of insurers while the minimum shares
-	// needed to reconstruct should be t.
-	pripoly   := new(poly.PriPoly).Pick(p.shareSuite, p.t, secret.Secret, random.Stream)
+	// Create the public polynomial and private shares. The number of shares
+	// should be equal to the number of insurers.
+	pripoly   := new(poly.PriPoly).Pick(p.shareSuite, p.t,
+			secretPair.Secret, random.Stream)
 	prishares := new(poly.PriShares).Split(pripoly, p.n)
-	p.pubPoly = poly.PubPoly{}
+	p.pubPoly  = poly.PubPoly{}
 	p.pubPoly.Commit(pripoly, nil)
 	
-	// Populate the secrets array. It encrypts each share with a diffie
-	// hellman exchange between the originator of the promist and the
-	// specific insurer.
+	// Populate the secrets array with the shares encrypted by a Diffie-
+	// Hellman shared secret between the promiser and appropriate insurer
 	for i := 0 ; i < p.n; i++ {
-		diffieBase := p.shareSuite.Point().Mul(insurers[i], keyPair.Secret)
+		diffieBase  := p.keySuite.Point().Mul(insurers[i], longPair.Secret)
 		p.secrets[i] = p.diffieHellmanEncrypt(prishares.Share(i), diffieBase)
 	}
-	
 	return p
 }
 
-/* An initialization function for preparing a Promise for unmarshalling
+/* Initializes a Promise for unmarshalling
  *
  * Arguments
- *    s   = the suite of points in the Promise
+ *    shareSuite = the suite used for shared secrets within the Promise
+ *    keySuite   = the suite used for long term keys within the Promise
  *
  * Returns
  *   An initialized Promise ready to be unmarshalled
  */
-func (p *Promise) UnmarshalInit(suite abstract.Suite) *Promise {
-	p.shareSuite     = suite
+func (p *Promise) UnmarshalInit(shareSuite, keySuite abstract.Suite) *Promise {
+	p.shareSuite = shareSuite
+	p.keySuite   = keySuite
 	return p
 }
 
-/* Verifies at a basic level that the Promise was constructed correctly.
+/* Verifies that the Promise was constructed correctly.
  *
  * Arguments
- *    promiserKey = the key the caller believes the Promise to be from
+ *    promiserKey = the long term key the caller believes the Promise to be from
  *
  * Return
  *   an error if the promise is malformed, nil otherwise.
+ *
+ * TODO Consider more ways to verify (such as making sure there are no duplicate
+ *      keys in p.insurers or that the promiser's long term public key is not in
+ *      p.insurers).
  */
 func (p *Promise) VerifyPromise(promiserKey abstract.Point) error {
 	// Verify t <= r <= n
 	if p.t > p.n || p.t > p.r || p.r > p.n {
-		return errors.New("Invalid t-of-n shares promise: expected t <= r <= n")
+		return errors.New("Invalid t-of-n shares Promise. Expected: t <= r <= n")
 	}
 	if !promiserKey.Equal(p.pubKey) {
-		return errors.New("Public key of promise differs from what is expected")
+		return errors.New("Long term public key of Promise differs from what is expected.")
 	}
 	// There should be a secret and public key for each of the n insurers. 
 	if len(p.insurers) != p.n || len(p.secrets) != p.n {
@@ -633,70 +631,69 @@ func (p *Promise) VerifyPromise(promiserKey abstract.Point) error {
 	return nil
 }
 
-/* Given a Diffie-Hellman shared key, encrypts a secret.
+/* Given a Diffie-Hellman shared secret, encrypts a secret.
  *
  * Arguments
  *    secret      = the secret to encrypt
- *    diffieBase  = the DH shared key
+ *    diffieBase  = the DH shared secret
  *
  * Return
  *   the encrypted secret
  */
-func (p *Promise) diffieHellmanEncrypt(secret abstract.Secret, diffieBase abstract.Point) abstract.Secret {	
+func (p *Promise) diffieHellmanEncrypt(secret abstract.Secret,
+	diffieBase abstract.Point) abstract.Secret {	
 	buff, err := diffieBase.MarshalBinary()
 	if err != nil {
-		panic("Bad shared secret for Diffie-Hellman give.")
+		panic("Bad shared secret for Diffie-Hellman given.")
 	}
-	cipher := p.shareSuite.Cipher(buff)
+	cipher       := p.shareSuite.Cipher(buff)
 	diffieSecret := p.shareSuite.Secret().Pick(cipher)
 	return p.shareSuite.Secret().Add(secret, diffieSecret)
 }
 
-/* Given a Diffie-Hellman shared key, decrypts a secret.
+/* Given a Diffie-Hellman shared secret, decrypts a secret.
  *
  * Arguments
  *    secret      = the secret to decrypt
- *    diffieBase  = the DH shared key
+ *    diffieBase  = the DH shared secret
  *
  * Return
  *   the decrypted secret
  */
-func (p *Promise) diffieHellmanDecrypt(secret abstract.Secret, diffieBase abstract.Point) abstract.Secret {	
+func (p *Promise) diffieHellmanDecrypt(secret abstract.Secret,
+	diffieBase abstract.Point) abstract.Secret {	
 	buff, err := diffieBase.MarshalBinary()
 	if err != nil {
-		panic("Bad shared secret for Diffie-Hellman give.")
+		panic("Bad shared secret for Diffie-Hellman given.")
 	}
-	cipher := p.shareSuite.Cipher(buff)
+	cipher       := p.shareSuite.Cipher(buff)
 	diffieSecret := p.shareSuite.Secret().Pick(cipher)
 	return p.shareSuite.Secret().Sub(secret, diffieSecret)
 }
 
-
-/* Verify that a share has been properly constructed. This should be called by
- * insurers to verify that the share they insure is properly constructed.
+/* Verifies that a share has been properly constructed. This should be called by
+ * insurers to verify that the share they received is valid constructed.
  *
  * Arguments
  *    i         = the index of the share to verify
- *    gKeyPair  = the key pair of the insurer of share i
+ *    gKeyPair  = the long term key pair of the insurer of share i
  *
  * Return
- *  an error if the promise is malformed, nil otherwise.
+ *  an error if the share is malformed, nil otherwise.
  *
  * Note
- *   Make sure that the proper index and key is specified. Otherwise, the
- *   function will return false because diffieHellmanDecrypt gave the wrong
- *   result. In short, make sure to verify only shares that are allotted to you.
+ *   Make sure that the proper index and key is specified.
  */
 func (p *Promise) VerifyShare(i int, gKeyPair *config.KeyPair) error {
 	if i < 0 || i >= p.n {
 		return errors.New("Invalid index. Expected 0 <= i < n")
 	}
-	msg := "The public key the promise recorded for this" +
-	       "shares differs from what is expected"
+	msg := "The long-term public key the Promise recorded as the insurer" +
+	       "of this shares differs from what is expected"
 	if !p.insurers[i].Equal(gKeyPair.Public) {
 		return errors.New(msg)
 	}
-	diffieBase := p.shareSuite.Point().Mul(p.pubKey, gKeyPair.Secret)
+	diffieBase := p.keySuite.Point().Mul(p.pubKey, gKeyPair.Secret)
 	share := p.diffieHellmanDecrypt(p.secrets[i], diffieBase)
 	if !p.pubPoly.Check(i, share) {
 		return errors.New("The share failed the public polynomial check.")
@@ -704,44 +701,24 @@ func (p *Promise) VerifyShare(i int, gKeyPair *config.KeyPair) error {
 	return nil
 }
 
-
 /* An internal helper function responsible for producing signatures
  *
  * Arguments
  *    i         = the index of the insurer's share
- *    gKeyPair  = the public/private keypair of the insurer.
+ *    gKeyPair  = the long term public/private keypair of the insurer.
  *    msg       = the message to sign
  *
  * Return
  *   A PromiseSignature object with the signature.
  */
 func (p *Promise) sign(i int, gKeyPair *config.KeyPair, msg []byte) *PromiseSignature {
-	set        := anon.Set{gKeyPair.Public}
-	sig        := anon.Sign(gKeyPair.Suite, random.Stream, msg,
-		set, nil, 0, gKeyPair.Secret)	
+	set := anon.Set{gKeyPair.Public}
+	sig := anon.Sign(gKeyPair.Suite, random.Stream, msg, set, nil, 0,
+		gKeyPair.Secret)	
 	return new(PromiseSignature).init(gKeyPair.Suite, sig)
 }
 
-/* A public wrapper function for sign, Produces a signature for a given insurer
- *
- * Arguments
- *    i         = the index of the insurer's share
- *    gKeyPair  = the public/private keypair of the insurer.
- *
- * Return
- *   A PromiseSignature object with the signature.
- *
- *
- *   It is assumed that the insurer has called VerifyShare first and hence
- *   it is assumed that the input to the function is trusted.
- */
-func (p *Promise) Sign(i int, gKeyPair *config.KeyPair) *PromiseSignature {	
-	return p.sign(i, gKeyPair, sigMsg)
-}
-
-/* Verifies a signature from a given insurer. This is an internal function that
- * enables signatures with different messages to be signed (useful for producing
- * PromiseSignature's and BlameProofs with different signatures). 
+/* An internal helper function, verifies a signature is from a given insurer.
  *
  * Arguments
  *    i   = the index of the insurer in the insurers list
@@ -749,18 +726,37 @@ func (p *Promise) Sign(i int, gKeyPair *config.KeyPair) *PromiseSignature {
  *    msg = the message that was signed
  *
  * Return
- *   an error if the promise is malformed, nil otherwise.
+ *   an error if the signature is malformed, nil otherwise.
  */
 func (p *Promise) verifySignature(i int, sig *PromiseSignature, msg []byte) error {
-	if sig.signature == nil {
-		return errors.New("Nil signature")
-	}
 	if i < 0 || i >= p.n {
 		return errors.New("Invalid index. Expected 0 <= i < n")
 	}
-	set := anon.Set{p.insurers[i]}
+	if sig.signature == nil {
+		return errors.New("Nil PromiseSignature")
+	}
+	set    := anon.Set{p.insurers[i]}
 	_, err := anon.Verify(sig.suite, msg, set, nil, sig.signature)
 	return err
+}
+
+/* A public wrapper function for sign, produces a signature for a given insurer.
+ * Insurers should use this function to produce a PromiseSignature to express
+ * approval of a Promise.
+ *
+ * Arguments
+ *    i         = the index of the insurer's share
+ *    gKeyPair  = the long term public/private keypair of the insurer.
+ *
+ * Return
+ *   A PromiseSignature object with the signature.
+ *
+ * Note
+ *   It is wise to first call VerifyShare to verify the insurer's share before
+ *   signing on the promise.
+ */
+func (p *Promise) Sign(i int, gKeyPair *config.KeyPair) *PromiseSignature {	
+	return p.sign(i, gKeyPair, sigMsg)
 }
 
 /* Verifies a signature from a given insurer
@@ -777,25 +773,24 @@ func (p *Promise) VerifySignature(i int, sig *PromiseSignature) error {
 }
 
 /* Reveals the secret share that the insurer has been protecting. The insurer
- * decodes the secret and provides the Diffie-Hellman secret between it and
- * the promiser so that anyone receiving the secret share can confirm that it
- * is valid.
+ * should call this function on behalf of a client after verifying that the
+ * Promiser is non-responsive.
  *
  * Arguments
  *    i        = the index of the insurer
- *    gkeyPair = the keypair of the insurer
+ *    gkeyPair = the long-term keypair of the insurer
  *
  * Return
  *   the revealed private share
  */
 func (p *Promise) RevealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
-	diffieBase := p.shareSuite.Point().Mul(p.pubKey, gKeyPair.Secret)
+	diffieBase := p.keySuite.Point().Mul(p.pubKey, gKeyPair.Secret)
 	share      := p.diffieHellmanDecrypt(p.secrets[i], diffieBase)
 	return share
 }
 
-/* Verify that a revealed share is properly formed. This should be calle by
- * clients or others who request an insurer to reveal its secret.
+/* Verify that a revealed share is properly formed. This should be called by
+ * clients or others who request an insurer to reveal its shared secret.
  *
  * Arguments
  *    i     = the index of the share
@@ -805,7 +800,7 @@ func (p *Promise) RevealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
  *   Whether the secret is valid
  */
 func (p *Promise) VerifyRevealedShare(i int, share abstract.Secret) error {
-	if i > p.n || i < 0 {
+	if i < 0 || i >= p.n {
 		return errors.New("Invalid index. Expected 0 <= i < n")
 	}
 	if !p.pubPoly.Check(i, share) {
@@ -814,73 +809,87 @@ func (p *Promise) VerifyRevealedShare(i int, share abstract.Secret) error {
 	return nil
 }
 
-/* Create a proof that the promiser maliciously constructed a given secret.
+/* Create a proof that the promiser maliciously constructed a shared secret. An
+ * insurer should call this if VerifyShare fails due to the public polynomial
+ * check failing. If it failed for other reasons (such as a bad index) it is not
+ * advised to call this function.
  *
  * Arguments
- *    i         = the index of the malicious secret
- *    gKeyPair  = the key pair of the insurer of share i
+ *    i         = the index of the malicious shared secret
+ *    gKeyPair  = the long term key pair of the insurer of share i
  *
  * Return
- *   A proof object that the promiser is malicious or nil if an error occurs
+ *   A BlameProof that the promiser is malicious or nil if an error occurs
  *   An error object denoting the status of the proof construction
  */
 func (p *Promise) Blame(i int, gKeyPair *config.KeyPair) (*BlameProof, error) {
-
-	diffieKey  := p.shareSuite.Point().Mul(p.pubKey, gKeyPair.Secret)
+	diffieKey  := p.keySuite.Point().Mul(p.pubKey, gKeyPair.Secret)
 	insurerSig := p.sign(i, gKeyPair, sigBlameMsg)
 
-	choice := make(map[proof.Predicate]int)
-	pred := proof.Rep("D", "x", "P")
+	choice      := make(map[proof.Predicate]int)
+	pred        := proof.Rep("D", "x", "P")
 	choice[pred] = 1
-
-	rand := p.shareSuite.Cipher(abstract.RandomKey)
-
-	sval := map[string]abstract.Secret{"x": gKeyPair.Secret}
-	pval := map[string]abstract.Point{"D": diffieKey, "P": p.pubKey}
-	prover := pred.Prover(p.shareSuite, sval, pval, choice)
-	proof, err := proof.HashProve(p.shareSuite, protocolName, rand, prover)
+	rand        := p.shareSuite.Cipher(abstract.RandomKey)
+	sval        := map[string]abstract.Secret{"x": gKeyPair.Secret}
+	pval        := map[string]abstract.Point{"D": diffieKey, "P": p.pubKey}
+	prover      := pred.Prover(p.keySuite, sval, pval, choice)
+	proof, err  := proof.HashProve(p.keySuite, protocolName, rand, prover)
 	if err != nil {
 		return nil, err
-	}	
-	return new(BlameProof).init(p.shareSuite, diffieKey, proof, insurerSig), nil
+	}
+	return new(BlameProof).init(p.keySuite, diffieKey, proof, insurerSig), nil
 }
 
-
-/* Verify that a blame proof is jusfitied.
+/* Verifies that a BlameProof proves a share to be maliciously constructed.
  *
  * Arguments
  *    i     = the index of the share subject to blame
- *    proof = proof that alleges that a promiser constructed a bad share.
+ *    proof = proof that alleges the promiser to have constructed a bad share.
  *
  * Return
  *   an error if the blame is unjustified or nil if the blame is justified.
  */
-func (p *Promise) VerifyBlame(i int, blSig *BlameProof) error {
-
+func (p *Promise) VerifyBlame(i int, blameProof *BlameProof) error {
+	// Basic sanity checks
 	if i < 0 || i >= p.n {
 		return errors.New("Invalid index. Expected 0 <= i < n")
 	}
-	if err := p.verifySignature(i, &blSig.signature, sigBlameMsg); err != nil {
+	if err := p.verifySignature(i, &blameProof.signature, sigBlameMsg);
+		err != nil {
 		return err
 	}
 
-	pval     := map[string]abstract.Point{"D": blSig.diffieKey, "P": p.pubKey}
+	// Verify the Diffie-Hellman shared secret was constructed properly
+	pval     := map[string]abstract.Point{"D": blameProof.diffieKey, "P": p.pubKey}
 	pred     := proof.Rep("D", "x", "P")
-	verifier := pred.Verifier(p.shareSuite, pval)
-	if err := proof.HashVerify(p.shareSuite, protocolName, verifier, blSig.diffieKeyProof); err != nil {
+	verifier := pred.Verifier(p.keySuite, pval)
+	err      := proof.HashVerify(p.keySuite, protocolName, verifier,
+			blameProof.diffieKeyProof)
+	if err != nil {
 		return err
 	}
 
-	share := p.diffieHellmanDecrypt(p.secrets[i], blSig.diffieKey)
+	// Verify the share is bad.
+	share := p.diffieHellmanDecrypt(p.secrets[i], blameProof.diffieKey)
 	if p.pubPoly.Check(i, share) {
 		return errors.New("Unjustified blame. The share checks out okay.")
 	}
 	return nil
 }
 
-// Tests whether two promises are equal.
+/* Tests whether two Promise structs are equal
+ *
+ * Arguments
+ *    p2 = a pointer to the struct to test for equality
+ *
+ * Returns
+ *   true if equal, false otherwise
+ */
 func (p *Promise) Equal(p2 *Promise) bool {
 	if p.n != p2.n {
+		return false
+	}
+	if p.shareSuite != p2.shareSuite || p.keySuite != p2.keySuite {
 		return false
 	}
 	for i := 0 ; i < p.n; i++ {
@@ -889,36 +898,48 @@ func (p *Promise) Equal(p2 *Promise) bool {
 		 	return false  
 		}
 	}
-	return p.shareSuite == p2.shareSuite && p.t == p2.t && p.r == p2.r &&
-	       p.n == p2.n && p.pubKey.Equal(p2.pubKey) &&
-	       p.pubPoly.Equal(&p2.pubPoly)
+	return p.t == p2.t && p.r == p2.r &&
+	       p.pubKey.Equal(p2.pubKey) && p.pubPoly.Equal(&p2.pubPoly)
 }
 
-// Return the encoded length of this polynomial commitment.
+/* Returns the number of bytes used by this struct when marshalled 
+ *
+ * Returns
+ *   The marshal size
+ *
+ * Note
+ *   Since the length of insurers and secrets is not known until after
+ *   unmarshalling, do not call before unmarshalling.
+ */
 func (p *Promise) MarshalSize() int {
-	return 3*uint32Size + p.shareSuite.PointLen() + p.pubPoly.MarshalSize()+
-	       p.n*p.shareSuite.PointLen() + p.n*p.shareSuite.SecretLen()
+	return 3*uint32Size + p.keySuite.PointLen() + p.pubPoly.MarshalSize()+
+	       p.n*p.keySuite.PointLen() + p.n*p.shareSuite.SecretLen()
 }
 
-// Encode this polynomial into a byte slice exactly MarshalSize() bytes long.
+/* Marshals a Promise struct into a byte array
+ *
+ * Returns
+ *   A buffer of the marshalled struct
+ *   The error status of the marshalling (nil if no error)
+ *
+ * Note
+ *   The buffer is formatted as follows:
+ *
+ *      ||n||t||r||pubKey||pubPoly||==insurers_array==||==secrets==||
+ *
+ *   Remember: n == len(insurers) == len(secrets)
+ */
 func (p *Promise) MarshalBinary() ([]byte, error) {
 	buf := make([]byte, p.MarshalSize())
 
-	pointLen  := p.shareSuite.PointLen()
+	pointLen  := p.keySuite.PointLen()
 	polyLen   := p.pubPoly.MarshalSize()
 	secretLen := p.shareSuite.SecretLen()
-
-	// The buffer is formatted as follows:
-	//
-	// ||n||t||r||pubKey||pubPoly||==insurers_array==||==secrets==||
-	//
-	// Remember: n == len(insurers) == len(secrets)
 
 	// Encode n, r, t
 	binary.LittleEndian.PutUint32(buf, uint32(p.n))
 	binary.LittleEndian.PutUint32(buf[uint32Size:], uint32(p.t))
 	binary.LittleEndian.PutUint32(buf[2*uint32Size:], uint32(p.r))
-
 
 	// Encode pubKey and pubPoly
 	pointBuf, err := p.pubKey.MarshalBinary()
@@ -931,13 +952,10 @@ func (p *Promise) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}	
-	copy(buf[3*uint32Size+pointLen:], polyBuf)	
+	copy(buf[3*uint32Size+pointLen:], polyBuf)
 	
-	
-	// Encode the insurers and secrets array
+	// Encode the insurers and secrets array (Based on poly/sharing.go code)
 	bufPos := 3*uint32Size+pointLen+polyLen
-	
-	// Based on sharing.go code
 	for i := range p.insurers {
 		pb, err := p.insurers[i].MarshalBinary()
 		if err != nil {
@@ -957,10 +975,16 @@ func (p *Promise) MarshalBinary() ([]byte, error) {
 	return buf, nil
 }
 
-// Decode this polynomial from a slice exactly MarshalSize() bytes long.
+/* Unmarshals a Promise from a byte buffer
+ *
+ * Arguments
+ *    buf = the buffer containing the Promise
+ *
+ * Returns
+ *   The error status of the unmarshalling (nil if no error)
+ */
 func (p *Promise) UnmarshalBinary(buf []byte) error {
-
-	pointLen  := p.shareSuite.PointLen()
+	pointLen  := p.keySuite.PointLen()
 	secretLen := p.shareSuite.SecretLen()
 
 	// Decode n, r, t
@@ -971,46 +995,56 @@ func (p *Promise) UnmarshalBinary(buf []byte) error {
 	bufPos := 3*uint32Size
 	
 	// Decode pubKey and pubPoly
-	p.pubKey = p.shareSuite.Point()
-	if err := p.pubKey.UnmarshalBinary(buf[bufPos:bufPos+pointLen]); err != nil {
+	p.pubKey = p.keySuite.Point()
+	if err := p.pubKey.UnmarshalBinary(buf[bufPos:bufPos+pointLen]);
+		err != nil {
 		return err
 	}
 	bufPos += pointLen
 	
-	
 	p.pubPoly = poly.PubPoly{}
 	p.pubPoly.Init(p.shareSuite, p.t, nil)
-	polyLen   := p.pubPoly.MarshalSize()
-	if err := p.pubPoly.UnmarshalBinary(buf[bufPos:bufPos+polyLen]); err != nil {
+	polyLen  := p.pubPoly.MarshalSize()
+	if err := p.pubPoly.UnmarshalBinary(buf[bufPos:bufPos+polyLen]);
+		err != nil {
 		return err
 	}
 	bufPos += polyLen
 	
-	
+	// Decode the insurers and secrets array (Based on poly/sharing.go code)
 	p.insurers = make([]abstract.Point, p.n, p.n)
-	// Encode the insurers and secrets array
-	// Based on sharing.go code
 	for i := 0; i < p.n; i++ {
-		p.insurers[i] = p.shareSuite.Point()
-		start := bufPos + i*pointLen
-		end   := start + pointLen
-		if err := p.insurers[i].UnmarshalBinary(buf[start:end]); err != nil {
+		start        := bufPos + i*pointLen
+		end          := start + pointLen
+		p.insurers[i] = p.keySuite.Point()
+		if err := p.insurers[i].UnmarshalBinary(buf[start:end]);
+			err != nil {
 			return err
 		}
 	}
 	bufPos += p.n*pointLen
 	p.secrets = make([]abstract.Secret, p.n, p.n)
 	for i := 0; i < p.n; i++ {
+		start       := bufPos + i*secretLen
+		end         := start + secretLen
 		p.secrets[i] = p.shareSuite.Secret()
-		start := bufPos + i*secretLen
-		end   := start + secretLen
-		if err := p.secrets[i].UnmarshalBinary(buf[start:end]); err != nil {
+		if err := p.secrets[i].UnmarshalBinary(buf[start:end]);
+			err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
+/* Marshals a Promise struct using an io.Writer
+ *
+ * Arguments
+ *    w = the writer to use for marshalling
+ *
+ * Returns
+ *   The number of bytes written
+ *   The error status of the write (nil if no errors)
+ */
 func (p *Promise) MarshalTo(w io.Writer) (int, error) {
 	buf, err := p.MarshalBinary()
 	if err != nil {
@@ -1019,39 +1053,62 @@ func (p *Promise) MarshalTo(w io.Writer) (int, error) {
 	return w.Write(buf)
 }
 
+/* Unmarshals a Promise struct using an io.Reader
+ *
+ * Arguments
+ *    r = the reader to use for unmarshalling
+ *
+ * Returns
+ *   The number of bytes read
+ *   The error status of the read (nil if no errors)
+ */
 func (p *Promise) UnmarshalFrom(r io.Reader) (int, error) {
-	// Promise objects are easier to marshal than others in this file since
-	// them are fixed-length. Since p.n (the size of all arrays) is stored
-	// at the beginning along with p.t (needed to reconstruct the pubPoly),
-	// the code can rely on MarshalSize.
-	
-	// Retrieve p.n and p.t
-	buf := make([]byte, 2*uint32Size)
+	// Retrieve p.n and p.t and then initialize p.PubPoly
+	buf    := make([]byte, 2*uint32Size)
 	n, err := io.ReadFull(r, buf)
 	if err != nil {
 		return n, err
 	}
-
-	p.n = int(binary.LittleEndian.Uint32(buf))
-	p.t = int(binary.LittleEndian.Uint32(buf[uint32Size:]))
+	p.n       = int(binary.LittleEndian.Uint32(buf))
+	p.t       = int(binary.LittleEndian.Uint32(buf[uint32Size:]))
 	p.pubPoly = poly.PubPoly{}
 	p.pubPoly.Init(p.shareSuite, p.t, nil)
 	
-	
-	// Calculate the length of the final buffer
+	// MarshalSize can now be used to construct the final buffer. Copy
+	// the contents into the buffer and unmarshal.
 	finalBuf := make([]byte, p.MarshalSize())
-
-	// Copy what has already been read into the buffer.
 	copy(finalBuf, buf)
-
-
-	// Read more to determine the length of the signature.
-	m, err2 := io.ReadFull(r, finalBuf[n:])
-	if err2 != nil {
-		return n+m, err2
-	}
-	
+	m, err := io.ReadFull(r, finalBuf[n:])
+	if err != nil {
+		return n+m, err
+	}	
 	return n+m, p.UnmarshalBinary(finalBuf)
+}
+
+/* Returns a string representation of the Promise for easy debugging
+ *
+ * Returns
+ *   The Promise's string representation
+ */
+func (p *Promise) String() string {
+	s := "{Promise:\n"
+	s += "ShareSuite => "        + p.shareSuite.String() + ",\n"
+	s += "KeySuite => "          + p.keySuite.String()   + ",\n"
+	s += "t => "                 + strconv.Itoa(p.t)     + ",\n"
+	s += "r => "                 + strconv.Itoa(p.r)     + ",\n"
+	s += "n => "                 + strconv.Itoa(p.n)     + ",\n"
+	s += "Public Key => "        + p.pubKey.String()     + ",\n"
+	s += "Public Polynomial => " + p.pubPoly.String()    + ",\n"
+	insurers := ""
+	secrets  := ""	
+	for i := 0; i < p.n; i++ {
+		insurers += p.insurers[i].String() + ",\n"
+		secrets  += p.secrets[i].String()  + ",\n"
+	}
+	s += "Insurers => [" + insurers + "],\n"
+	s += "Secrets => ["  + secrets + "]\n"
+	s += "}\n"	
+	return s
 }
 
 
@@ -1199,4 +1256,9 @@ func (ps *PromiseState) PromiseCertified(promiserKey abstract.Point) error {
 // TODO Decouple keysuite from sharesuite. Make sure to change marshal when doing so
 // TODO It should be i >= p.n
 // TODO Add string functions to everything
+
+
+// Change blame proof to take bothe shareSuite and SignatureSuite
+//Update tests for Promise to take into accout shareSuite and keySuite now
+// Make longterm and shortterm key of different groups in tests.
 
