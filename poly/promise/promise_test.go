@@ -147,109 +147,119 @@ func TestPromiseSignatureEqual(t *testing.T) {
 }
 
 // Verifies that Init properly initalizes a new BlameProof object
-// Note: This is for testing purposes only. Do not actually construct a
-// proof this way
 func TestBlameProofInit(t *testing.T) {
-	proof := []byte("This too is a test")
-	sig := []byte("This is a test")
-	p := new(PromiseSignature).init(keySuite, sig)
-	bp := new(BlameProof).Init(keySuite, promiserKey.Public, proof, p)
-	
-	if keySuite != bp.suite ||
-	   !bp.diffieKey.Equal(promiserKey.Public) ||
-	   !reflect.DeepEqual(bp.diffieKeyProof, proof) ||
-	   !p.Equal(&bp.signature) {
-		t.Error("BlameProof not properly initialized.")
+	proof := []byte("This is a test")
+	sig   := []byte("This too is a test")
+	p     := new(PromiseSignature).init(keySuite, sig)
+	bp    := new(BlameProof).init(keySuite, promiserKey.Public, proof, p)
+	if keySuite != bp.suite  {
+		t.Error("Suite not properly initialized.")
+	}
+	if !bp.diffieKey.Equal(promiserKey.Public) {
+		t.Error("Diffie-Hellman key not properly initialized.")
+	}
+	if !reflect.DeepEqual(bp.diffieKeyProof, proof) {
+		t.Error("Diffie-Hellman proof not properly initialized.")
+	}
+	if !p.Equal(&bp.signature) {
+		t.Error("PromisSignature not properly initialized.")
 	}
 }
 
 // Verifies that UnMarshalInit properly initalizes for unmarshalling
 func TestBlameProofUnMarshalInit(t *testing.T) {
-	bp := new(PromiseSignature).UnmarshalInit(keySuite)
+	bp := new(BlameProof).UnmarshalInit(keySuite)
 	if bp.suite != keySuite {
 		t.Error("BlameProof not properly initialized.")
 	}
 }
 
-// Verifies that UnMarshalInit properly initalizes for unmarshalling
-func TestBlameProofBinaryMarshalling(t *testing.T) {
-
-	buf, _ := promiserKey.Public.MarshalBinary()
-	if err := keySuite.Point().UnmarshalBinary(buf); err != nil {
-		t.Fatal("What is wrong?", err)
+// Verifies that Equal properly works for PromiseSignature objects
+func TestBlameProofEqual(t *testing.T) {
+	p  := new(PromiseSignature).init(keySuite, []byte("Test"))
+	bp := new(BlameProof).init(keySuite, promiserKey.Public, []byte("Test"), p)
+	if !bp.Equal(bp) {
+		t.Error("BlameProof should equal itself.")
 	}
-
 	
+	// Error cases
+	bp2 := new(BlameProof).init(nil, promiserKey.Public, []byte("Test"), p)
+	if bp.Equal(bp2) {
+		t.Error("BlameProof differ in key suites.")
+	}
+	bp2 = new(BlameProof).init(keySuite, keySuite.Point().Base(), []byte("Test"), p)
+	if bp.Equal(bp2) {
+		t.Error("BlameProof differ in diffie-keys.")
+	}
+	bp2 = new(BlameProof).init(keySuite, promiserKey.Public, []byte("Differ"), p)
+	if bp.Equal(bp2) {
+		t.Error("BlameProof differ in hash proof.")
+	}
+	p2 := new(PromiseSignature).init(keySuite, []byte("Differ"))
+	bp2 = new(BlameProof).init(keySuite, promiserKey.Public, []byte("Test"), p2)
+	if bp.Equal(bp2) {
+		t.Error("BlameProof differ in signatures.")
+	}
+}
+
+// Verifies that BlameProof's marshalling methods work properly.
+func TestBlameProofBinaryMarshalling(t *testing.T) {
+	// Create a bad promise object. That a blame proof would succeed.
+	promise := new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
+	badKey  := insurerKeys[numInsurers-1]
+	diffieBase := promise.shareSuite.Point().Mul(promiserKey.Public, badKey.Secret)
+	badShare := promise.diffieHellmanEncrypt(badKey.Secret, diffieBase)
+	promise.secrets[0] = badShare
+
+
 	// Tests BinaryMarshal, BinaryUnmarshal, and MarshalSize
-	bp,_ := basicPromise.Blame(numInsurers-1, insurerKeys[numInsurers-1])
+	bp,_ := promise.Blame(0, insurerKeys[0])
 	encodedBp, err := bp.MarshalBinary()
 	if err != nil || len(encodedBp) != bp.MarshalSize() {
 		t.Fatal("Marshalling failed: ", err)
 	}
 	
 	decodedBp := new(BlameProof).UnmarshalInit(keySuite)
-	err = decodedBp.UnmarshalBinary(encodedBp)
+	err        = decodedBp.UnmarshalBinary(encodedBp)
 	if err != nil {
 		t.Fatal("UnMarshalling failed: ", err)
 	}
 	if !bp.Equal(decodedBp) {
 		t.Error("Decoded BlameProof not equal to original")
 	}
+	if bp.MarshalSize() != decodedBp.MarshalSize() {
+		t.Error("MarshalSize of decoded and original differ: ",
+			bp.MarshalSize(), decodedBp.MarshalSize())
+	}
+	if promise.VerifyBlame(0, decodedBp) != nil {
+		t.Error("Decoded BlameProof failed to be verified.")
+	}
 	
 	// Tests MarshlTo and UnmarshalFrom
-	bp2, _ := basicPromise.Blame(1, insurerKeys[1])
+	bp2, _ := basicPromise.Blame(0, insurerKeys[0])
 	bufWriter := new(bytes.Buffer)
-	
 	bytesWritter, errs := bp2.MarshalTo(bufWriter)
-	
 	if bytesWritter != bp2.MarshalSize() || errs != nil {
 		t.Fatal("MarshalTo failed: ", bytesWritter, err)
 	}
 	
-	decodedBp2 := new(BlameProof).UnmarshalInit(keySuite)
-	bufReader := bytes.NewReader(bufWriter.Bytes())
+	decodedBp2       := new(BlameProof).UnmarshalInit(keySuite)
+	bufReader        := bytes.NewReader(bufWriter.Bytes())
 	bytesRead, errs2 := decodedBp2.UnmarshalFrom(bufReader)
-	if bytesRead != bp2.MarshalSize() ||
-	   bp2.MarshalSize() != decodedBp2.MarshalSize() ||
-	   errs2 != nil {
+	if bytesRead != bp2.MarshalSize() || errs2 != nil {
 		t.Fatal("UnmarshalFrom failed: ", bytesRead, errs2)
+	}
+	if bp2.MarshalSize() != decodedBp2.MarshalSize() {
+		t.Error("MarshalSize of decoded and original differ: ",
+			bp2.MarshalSize(), decodedBp2.MarshalSize())
 	}
 	if !bp2.Equal(decodedBp2) {
 		t.Error("BlameProof read does not equal original")
 	}
-}
-
-
-// Verifies that Equal properly works for PromiseSignature objects
-func TestBlameProofEqual(t *testing.T) {
-	p := new(PromiseSignature).init(keySuite, []byte("Test"))
-	bp := new(BlameProof).Init(keySuite, promiserKey.Public, []byte("Test"), p)
-	
-	if !bp.Equal(bp) {
-		t.Error("BlameProof should equal itself.")
+	if promise.VerifyBlame(0, decodedBp2) != nil {
+		t.Error("Decoded BlameProof failed to be verified.")
 	}
 	
-	// Error cases
-	bp2 := new(BlameProof).Init(nil, keySuite.Point().Base(), []byte("Test"), p)
-	if bp.Equal(bp2) {
-		t.Error("BlameProof differ in key suites.")
-	}
-
-	bp2 = new(BlameProof).Init(keySuite, keySuite.Point().Base(), []byte("Test"), p)
-	if bp.Equal(bp2) {
-		t.Error("BlameProof differ in diffie-keys.")
-	}
-
-	bp2 = new(BlameProof).Init(keySuite, promiserKey.Public, []byte("Differ"), p)
-	if bp.Equal(bp2) {
-		t.Error("BlameProof differ in hash proof.")
-	}
-
-	p2 := new(PromiseSignature).init(keySuite, []byte("Differ"))
-	bp2 = new(BlameProof).Init(keySuite, promiserKey.Public, []byte("Test"), p2)
-	if bp.Equal(bp2) {
-		t.Error("BlameProof differ signatures.")
-	}
 }
 
 // Verifies that Init properly initalizes a new Promise object
