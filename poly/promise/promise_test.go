@@ -688,26 +688,21 @@ func TestPromiseBinaryMarshalling(t *testing.T) {
 
 // Verifies that Init properly initalizes a new PromiseState object
 func TestPromiseStateInit(t *testing.T) {
-
 	promiseState := new(PromiseState).Init(*basicPromise)
-	
-	if //!basicPromise.Equal(promiseState.Promise) || <-- Once I write Equal
-	   len(promiseState.signatures) != numInsurers {
-		t.Error("Invalid initialization")	   
+	if !basicPromise.Equal(&promiseState.Promise) {
+		t.Error("Promise not properly initialized")   
+	}
+	if len(promiseState.signatures) != numInsurers {
+		t.Error("Signatures array not properly initialized")   
 	}
 }
 
-// Verify that Promise and PromiseState can produce a valid signature and then verify it.
+// Verify that PromiseState can properly add signatures
 func TestPromiseStateAddSignature(t *testing.T) {
-
-	promise := new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
-	promiseState := new(PromiseState).Init(*promise)
-
-	// Verify that all validly produced signatures can be added.
+	promiseState := new(PromiseState).Init(*basicPromise)
 	for i := 0 ; i < numInsurers; i++ {
-		sig := promise.Sign(i, insurerKeys[i])
+		sig := promiseState.Promise.Sign(i, insurerKeys[i])
 		promiseState.AddSignature(i, sig)
-		
 		if !sig.Equal(promiseState.signatures[i]) {
 			t.Error("Signature failed to be added")
 		}
@@ -716,33 +711,31 @@ func TestPromiseStateAddSignature(t *testing.T) {
 
 // Verify that PromiseState can add blames.
 func TestPromiseStateAddBlame(t *testing.T) {
-
-	promise := new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
-	promiseState := new(PromiseState).Init(*promise)
-
-	// Ensure that blames can be added.
+	promiseState := new(PromiseState).Init(*basicPromise)
 	for i := 0 ; i < numInsurers; i++ {
-		bproof, _ := promise.Blame(i, insurerKeys[i])
+		bproof, _ := promiseState.Promise.Blame(i, insurerKeys[i])
 		promiseState.AddBlameProof(i, bproof)
-		
 		if !bproof.Equal(promiseState.blames[i]) {
 			t.Error("Blame failed to be added")
 		}
 	}
 }
 
-
-// Verify that once r signatures have been added, the promise becomes valid.
+// Verify PromiseState's PromiseCertify function
 func TestPromiseStatePromiseCertified(t *testing.T) {
-
-	promise := new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
+	promise       := new(Promise).ConstructPromise(secretKey, promiserKey,
+			pt, r, insurerList)
 	promiseState := new(PromiseState).Init(*promise)
 
+	// Once enough signatures have been added, the Promise should remain
+	// certified.
 	for i := 0 ; i < numInsurers; i++ {
-		promiseState.AddSignature(i, promise.Sign(i, insurerKeys[i]))
+		promiseState.AddSignature(i,
+			promiseState.Promise.Sign(i, insurerKeys[i]))
 	
-		// Insure that invalidly added proofs do not distort the proof.
-		bproof, _ := promise.Blame(i, insurerKeys[i])
+		// Insure that bad BlameProof structs do not cause the Promise
+		// to be considered uncertified.
+		bproof, _ := promiseState.Promise.Blame(i, insurerKeys[i])
 		promiseState.AddBlameProof(i, bproof)
 		
 		err := promiseState.PromiseCertified(promiserKey.Public)
@@ -754,20 +747,27 @@ func TestPromiseStatePromiseCertified(t *testing.T) {
 		}
 	}
 
+	// Error handling
+
+	// If the Promise fails VerifyPromise, it should be uncertified even if
+	// everything else is okay.
+	promiseState.Promise.n = 0
+	if err := promiseState.PromiseCertified(promiserKey.Public); err == nil{
+		t.Error("The Promise is malformed and should be uncertified")
+	}
+	
+	// Make sure that one valid BlameProof makes the Promise forever
+	// uncertified
 	promise      = new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
 	promiseState = new(PromiseState).Init(*promise)
-	
 	promise.secrets[0] = promise.shareSuite.Secret()
-
 	for i := 0 ; i < numInsurers; i++ {
-		promiseState.AddSignature(i, promise.Sign(i, insurerKeys[i]))
-	
-		// Insure that invalidly added proofs do not distort the proof.
-		bproof, _ := promise.Blame(i, insurerKeys[i])
+		promiseState.AddSignature(i,
+			promiseState.Promise.Sign(i, insurerKeys[i]))
+		bproof, _ := promiseState.Promise.Blame(i, insurerKeys[i])
 		promiseState.AddBlameProof(i, bproof)
-
 		if promiseState.PromiseCertified(promiserKey.Public) == nil {
-			t.Error("Not enough signtures have been added yet", i, r)
+			t.Error("A valid BlameProof makes this uncertified")
 		}
 	}
 }

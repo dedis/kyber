@@ -1105,83 +1105,84 @@ func (p *Promise) String() string {
 		insurers += p.insurers[i].String() + ",\n"
 		secrets  += p.secrets[i].String()  + ",\n"
 	}
-	s += "Insurers => [" + insurers + "],\n"
-	s += "Secrets => ["  + secrets + "]\n"
+	s += "Insurers =>\n[" + insurers + "],\n"
+	s += "Secrets =>\n["  + secrets + "]\n"
 	s += "}\n"	
 	return s
 }
 
-
-
-/* The PromiseState object is responsible for maintaining state for a given
- * Promise object. It will contain three main pieces:
+/* The PromiseState struct is responsible for maintaining state about Promise
+ * structs. It consists of three main pieces:
  *
- *    1. The promise itself, which will be an immutable object 
- *    2. Shares of the private secret the server has received so far
+ *    1. The promise itself, which should be treated like an immutable object
+ *    2. The shared secrets the server has recovered so far
  *    3. A list of signatures from insurers cerifying the promise
  *
- * Each server will contain a PromiseState for each promise to be tracked.
+ * Each server should have one PromiseState per Promise
+ *
+ * Note to users of this code:
+ *
+ *    To add a share to PriShares, do:
+ *
+ *       p.PriShares.SetShare(index, share)
+ *
+ *    To reconstruct the secret, do:
+ *
+ *       p.PriShares.Secret()
+ *
+ *    Be warned that Secret will panic unless there are enough shares to
+ *    reconstruct the secret. (See poly/sharing.go for more info)
  */
 type PromiseState struct {
 
 	// The actual promise
 	Promise Promise
 	
-	// Primarily for use by clients, this contains shares the client
-	// has currently obtained from insurers. This is what will be used to
-	// reconstruct the secret.
+	// Primarily used by clients, contains shares the client has currently
+	// obtained from insurers. This is what will be used to reconstruct the
+	// promised secret.
 	PriShares poly.PriShares
 	
-	// A list of signatures validating that an insurer has cerified the
+	// A list of signatures verifying that an insurer has cerified the
 	// secret share it is guarding.
 	signatures []*PromiseSignature
 	
-	// A list of blame proofs in which an insurer blames the promise to be
-	// malformed
+	// A list of blame proofs in which an insurer proves its secret share
+	// to be malformed and hence proves the promiser of being malicious
 	blames []*BlameProof
 }
 
-
-
+/* Initializes a new PromiseState
+ *
+ * Arguments
+ *    promise = the promise to keep track of
+ *
+ * Returns
+ *   An initialized PromiseState
+ */
 func (ps *PromiseState) Init(promise Promise) *PromiseState {
-
 	ps.Promise = promise
 	
-	// Initialize a new PriShares based on information from the promise
-	// object.
+	// Initialize a new PriShares based on information from the promise.
 	ps.PriShares = poly.PriShares{}
 	ps.PriShares.Empty(promise.shareSuite, promise.t, promise.n)
 
 	// There will be at most n signatures and blame proofs, one per insurer
 	ps.signatures = make([]*PromiseSignature, promise.n, promise.n)
-	ps.blames    = make([]*BlameProof, promise.n, promise.n)
+	ps.blames     = make([]*BlameProof, promise.n, promise.n)
 	return ps
 }
-
-
-/* To add a share to PriShares, do:
- *
- *     p.PriShares.SetShare(index, share)
- *
- * To reconstruct the secred, do:
- *
- *     p.PriShares.Secret()
- *
- * Be warned that Secret will panic unless there are enough
- * shares to reconstruct the secret.
- */
-
 
 /* Adds a signature from an insurer to the PromiseState
  *
  * Arguments
- *    i   = the index in the signature array this signature belogns
+ *    i   = the index in the signature array this signature belongs
  *    sig = the PromiseSignature to add
  *
  * Postcondition
  *   The signature has been added
  *
- * Note
+ * Note to users of this code
  *   Be sure to call ps.Promise.VerifySignature before calling this function
  */
 func (ps *PromiseState) AddSignature(i int, sig *PromiseSignature) {
@@ -1197,7 +1198,7 @@ func (ps *PromiseState) AddSignature(i int, sig *PromiseSignature) {
  * Postcondition
  *   The BlameProof has been added
  *
- * Note
+ * Note to users of this code
  *   Be sure to call ps.Promise.VerifyBlame before calling this function
  */
 func (ps *PromiseState) AddBlameProof(i int, bproof *BlameProof) {
@@ -1208,33 +1209,41 @@ func (ps *PromiseState) AddBlameProof(i int, bproof *BlameProof) {
  * considered certified.
  *
  * Arguments
- *   promiserKey = the public key the server believes the promise to have come
- *                 from
+ *   promiserKey = the public key the server believes the promise to be from
  *
  * Return
- *   whether the Promise is now cerified and considered trustworthy.
+ *   an error denoting whether or not the Promise is certified.
+ *     nil       == certified
+ *     error     == not_yet_certified
+ *
+ * Note to users of this code
+ *   An error here is not necessarily a cause for alarm, particularly if the
+ *   Promise just needs more signatures. However, it could be a red flag if
+ *   the error was caused by a valid BlameProof. A single valid BlameProof will
+ *   permanently make a Promise uncertified.
  *
  * Technical Notes: The function goes through the list of signatures and checks
  *                  whether the signature is properly signed. If at least r of
  *                  these are signed and r is greater than t (the minimum number
  *                  of shares needed to reconstruct the secret), the promise is
- *                  considered valid.
+ *                  considered valid. If any valid BlameProofs are found, the
+ *                  Promise is automatically labelled uncertified.
  */
 func (ps *PromiseState) PromiseCertified(promiserKey abstract.Point) error {
 	if err := ps.Promise.VerifyPromise(promiserKey); err != nil {
 		return err
 	}
-
 	validSigs := 0
 	for i := 0; i < ps.Promise.n; i++ {
-		// Check whether the signature is initialized. Otherwise, bad
-		// things will happen.
+		// Check whether the PromiseSignatures and BlameProofs are
+		// non-nil. Otherwise, bad things will happen.
 		if ps.signatures[i] != nil &&
 		   ps.Promise.VerifySignature(i, ps.signatures[i]) == nil {
 			validSigs += 1
 		}
 		
-		if ps.blames[i] != nil && ps.Promise.VerifyBlame(i, ps.blames[i]) == nil {
+		if ps.blames[i] != nil &&
+		   ps.Promise.VerifyBlame(i, ps.blames[i]) == nil {
 			return errors.New("A valid blame proofs proves this Promise to be uncertified.")
 		}
 	}
@@ -1256,9 +1265,4 @@ func (ps *PromiseState) PromiseCertified(promiserKey abstract.Point) error {
 // TODO Decouple keysuite from sharesuite. Make sure to change marshal when doing so
 // TODO It should be i >= p.n
 // TODO Add string functions to everything
-
-
-// Change blame proof to take bothe shareSuite and SignatureSuite
-//Update tests for Promise to take into accout shareSuite and keySuite now
-// Make longterm and shortterm key of different groups in tests.
 
