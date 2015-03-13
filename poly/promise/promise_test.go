@@ -402,7 +402,6 @@ func TestPromiseGetId(t *testing.T) {
 	}
 }
 
-
 // Tests that encrypting a secret with a diffie-hellman shared secret and then
 // decrypting it succeeds.
 func TestPromiseDiffieHellmanEncryptDecrypt(t *testing.T) {

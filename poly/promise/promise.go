@@ -301,7 +301,7 @@ func (p *Promise) VerifyPromise(promiserKey abstract.Point) error {
 
 // Returns the id of the Promise
 func (p *Promise) GetId() string {
- 	return p.id
+	return p.id
 }
 
 /* Given a Diffie-Hellman shared secret, encrypts a secret.
