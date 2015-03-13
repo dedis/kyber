@@ -273,6 +273,9 @@ func TestPromiseInit(t *testing.T) {
 	promise := new(Promise).ConstructPromise(secretKey, promiserKey, pt,
 		r, insurerList)
 
+	if promise.id != secretKey.Public.String() {
+		t.Error("id not initialized properly")
+	}
 	if promiserKey.Suite != promise.keySuite {
 		t.Error("KeySuite not initialized properly")
 	}
@@ -391,6 +394,14 @@ func TestPromiseVerifyPromise(t *testing.T) {
 		t.Error("Promise is invalid: secrets list is the wrong length")
 	}
 }
+
+// Verifies that UnMarshalInit properly initalizes for unmarshalling
+func TestPromiseGetId(t *testing.T) {
+	if basicPromise.GetId() != secretKey.Public.String() {
+		t.Error("Wrong id returned.")
+	}
+}
+
 
 // Tests that encrypting a secret with a diffie-hellman shared secret and then
 // decrypting it succeeds.

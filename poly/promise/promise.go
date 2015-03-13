@@ -169,6 +169,10 @@ var sigBlameMsg []byte = []byte("Promise Blame Signature")
  */
 type Promise struct {
 
+	// The id of the promise used to differentiate it from others
+	// The id is the short term public key of the private key being promised
+	id string
+
 	// The cryptographic suite to use for the shared secrets
 	shareSuite abstract.Suite
 
@@ -215,6 +219,7 @@ type Promise struct {
  */
 func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
 	longPair *config.KeyPair, t, r int, insurers []abstract.Point) *Promise {
+	p.id = secretPair.Public.String()
 	p.t = t
 	p.r = r
 	p.n = len(insurers)
@@ -292,6 +297,11 @@ func (p *Promise) VerifyPromise(promiserKey abstract.Point) error {
 		return errors.New("Insurers and secrets array should be of length promise.n")
 	}
 	return nil
+}
+
+// Returns the id of the Promise
+func (p *Promise) GetId() string {
+ 	return p.id
 }
 
 /* Given a Diffie-Hellman shared secret, encrypts a secret.
