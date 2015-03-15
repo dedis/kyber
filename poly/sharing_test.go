@@ -327,12 +327,28 @@ func TestPubPolyLen(t *testing.T) {
 
 // Encode a public polynomial and then decode it.
 func TestPubPolyEncodeDecode(t *testing.T) {
+	pripolyDOD := new(PriPoly).Pick(group, k, secret, random.Stream)
+	testPubPoly := new(PubPoly)
+	testPubPoly.Commit(pripolyDOD, nil)
 	decodePubPoly := new(PubPoly)
-	decodePubPoly.Init(group, k, point)
-	buf, _ := testPubPolyGl.MarshalBinary()
+	decodePubPoly.Init(group, k, nil)
+	testShares := new(PriShares).Split(pripolyDOD, n)
+
+	buf, _ := testPubPoly.MarshalBinary()
 	if err := decodePubPoly.UnmarshalBinary(buf); err != nil ||
-		!decodePubPoly.Equal(testPubPolyGl) {
+		!decodePubPoly.Equal(testPubPoly) {
 		t.Error("Failed to encode/ decode properly.")
+	}
+
+	// Verify that both the original polynomial and the decoded one can decode
+	// the shares.
+	for i := 0; i < n; i++ {
+		if !testPubPoly.Check(i, testShares.Share(i)) {
+			t.Error("Original poly failed to recognize its share")
+		}
+		if !decodePubPoly.Check(i, testShares.Share(i)) {
+			t.Error("Decoded poly failed to validate a share")
+		}
 	}
 
 	// Error handling
@@ -343,7 +359,7 @@ func TestPubPolyEncodeDecode(t *testing.T) {
 
 	// Verify that encode fails if the group and point are not the same
 	// length (aka not from the same group in this case).
-	testPubPoly := producePubPoly(group, k, k, secret, point)
+	testPubPoly = producePubPoly(group, k, k, secret, point)
 	testPubPoly.p[0] = altPoint
 	test(testPubPoly)
 
