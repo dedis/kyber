@@ -161,14 +161,12 @@ var sigBlameMsg []byte = []byte("Promise Blame Signature")
  *   * ConstructPromise
  *
  * - Insurers
- *   * VerifyPromise
  *   * VerifyShare
  *   * Sign
  *   * RevealShare
  *   * Blame
  *
  * - Clients
- *   * VerifyPromise
  *   * VerifyRevealedShare
  *
  * - All
@@ -282,10 +280,8 @@ func (p *Promise) UnmarshalInit(suite abstract.Suite) *Promise {
 	return p
 }
 
-/* Verifies that the Promise was constructed correctly.
- *
- * Arguments
- *    promiserKey = the long term key the caller believes the Promise to be from
+/* An internal helper used during unmarshalling, verifies that the Promise was
+ * constructed correctly.
  *
  * Return
  *   an error if the promise is malformed, nil otherwise.
@@ -294,13 +290,10 @@ func (p *Promise) UnmarshalInit(suite abstract.Suite) *Promise {
  *      keys in p.insurers or that the promiser's long term public key is not in
  *      p.insurers).
  */
-func (p *Promise) VerifyPromise(promiserKey abstract.Point) error {
+func (p *Promise) verifyPromise() error {
 	// Verify t <= r <= n
 	if p.t > p.n || p.t > p.r || p.r > p.n {
 		return errors.New("Invalid t-of-n shares Promise. Expected: t <= r <= n")
-	}
-	if !promiserKey.Equal(p.pubKey) {
-		return errors.New("Long term public key of Promise differs from what is expected.")
 	}
 	// There should be a secret and public key for each of the n insurers.
 	if len(p.insurers) != p.n || len(p.secrets) != p.n {
@@ -693,7 +686,8 @@ func (p *Promise) UnmarshalBinary(buf []byte) error {
 			return err
 		}
 	}
-	return nil
+	// Make sure the Promise is valid.
+	return p.verifyPromise()
 }
 
 /* Marshals a Promise struct using an io.Writer
@@ -869,9 +863,6 @@ func (ps *PromiseState) AddBlameProof(i int, bproof *BlameProof) {
 /* Checks whether the Promise object has received enough signatures to be
  * considered certified.
  *
- * Arguments
- *   promiserKey = the public key the server believes the promise to be from
- *
  * Return
  *   an error denoting whether or not the Promise is certified.
  *     nil       == certified
@@ -890,8 +881,8 @@ func (ps *PromiseState) AddBlameProof(i int, bproof *BlameProof) {
  *                  considered valid. If any valid BlameProofs are found, the
  *                  Promise is automatically labelled uncertified.
  */
-func (ps *PromiseState) PromiseCertified(promiserKey abstract.Point) error {
-	if err := ps.Promise.VerifyPromise(promiserKey); err != nil {
+func (ps *PromiseState) PromiseCertified() error {
+	if err := ps.Promise.verifyPromise(); err != nil {
 		return err
 	}
 	validSigs := 0

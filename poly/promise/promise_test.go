@@ -354,8 +354,8 @@ func TestPromiseUnMarshalInit(t *testing.T) {
 }
 
 // Tests that PromiseVerify properly rules out invalidly constructed Promise's
-func TestPromiseVerifyPromise(t *testing.T) {
-	if basicPromise.VerifyPromise(promiserKey.Public) != nil {
+func TestPromiseverifyPromise(t *testing.T) {
+	if basicPromise.verifyPromise() != nil {
 		t.Error("Promise is valid")
 	}
 
@@ -363,42 +363,35 @@ func TestPromiseVerifyPromise(t *testing.T) {
 	promise := new(Promise).ConstructPromise(secretKey, promiserKey, pt,
 		r, insurerList)
 	promise.t = promise.n + 1
-	if promise.VerifyPromise(promiserKey.Public) == nil {
+	if promise.verifyPromise() == nil {
 		t.Error("Promise is invalid: t > n")
 	}
 
 	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt,
 		r, insurerList)
 	promise.t = promise.r + 1
-	if promise.VerifyPromise(promiserKey.Public) == nil {
+	if promise.verifyPromise() == nil {
 		t.Error("Promise is invalid: t > r")
 	}
 
 	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt,
 		r, insurerList)
 	promise.r = promise.n + 1
-	if promise.VerifyPromise(promiserKey.Public) == nil {
+	if promise.verifyPromise() == nil {
 		t.Error("Promise is invalid: n > r")
 	}
 
 	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt,
 		r, insurerList)
-	promise.pubKey = insurerList[0]
-	if promise.VerifyPromise(promiserKey.Public) == nil {
-		t.Error("Promise is invalid: the public key is wrong")
-	}
-
-	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt,
-		r, insurerList)
 	promise.insurers = []abstract.Point{}
-	if promise.VerifyPromise(promiserKey.Public) == nil {
+	if promise.verifyPromise() == nil {
 		t.Error("Promise is invalid: insurers list is the wrong length")
 	}
 
 	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt,
 		r, insurerList)
 	promise.secrets = []abstract.Secret{}
-	if promise.VerifyPromise(promiserKey.Public) == nil {
+	if promise.verifyPromise() == nil {
 		t.Error("Promise is invalid: secrets list is the wrong length")
 	}
 }
@@ -693,6 +686,21 @@ func TestPromiseBinaryMarshalling(t *testing.T) {
 	if !basicPromise.Equal(decodedP2) {
 		t.Error("Promise read does not equal original")
 	}
+	
+	// Verify that unmarshalling fails if the promise created is invalid.
+	promise := new(Promise).ConstructPromise(secretKey, promiserKey, pt,
+		r, insurerList)
+	promise.r = -20
+	encodedP, err = promise.MarshalBinary()
+	if err != nil || len(encodedP) != basicPromise.MarshalSize() {
+		t.Fatal("Marshalling failed: ", err)
+	}
+
+	decodedP = new(Promise).UnmarshalInit(suite)
+	err = decodedP.UnmarshalBinary(encodedP)
+	if err == nil {
+		t.Fatal("UnMarshalling should have failed: ", err)
+	}
 }
 
 // Verifies that Init properly initalizes a new PromiseState object
@@ -747,21 +755,21 @@ func TestPromiseStatePromiseCertified(t *testing.T) {
 		bproof, _ := promiseState.Promise.Blame(i, insurerKeys[i])
 		promiseState.AddBlameProof(i, bproof)
 
-		err := promiseState.PromiseCertified(promiserKey.Public)
+		err := promiseState.PromiseCertified()
 		if i < r-1 && err == nil {
 			t.Error("Not enough signtures have been added yet", i, r)
 		} else if i >= r-1 && err != nil {
 			t.Error("Promise should be valid now.")
-			t.Error(promiseState.PromiseCertified(promiserKey.Public))
+			t.Error(promiseState.PromiseCertified())
 		}
 	}
 
 	// Error handling
 
-	// If the Promise fails VerifyPromise, it should be uncertified even if
+	// If the Promise fails verifyPromise, it should be uncertified even if
 	// everything else is okay.
 	promiseState.Promise.n = 0
-	if err := promiseState.PromiseCertified(promiserKey.Public); err == nil {
+	if err := promiseState.PromiseCertified(); err == nil {
 		t.Error("The Promise is malformed and should be uncertified")
 	}
 
@@ -775,7 +783,7 @@ func TestPromiseStatePromiseCertified(t *testing.T) {
 			promiseState.Promise.Sign(i, insurerKeys[i]))
 		bproof, _ := promiseState.Promise.Blame(i, insurerKeys[i])
 		promiseState.AddBlameProof(i, bproof)
-		if promiseState.PromiseCertified(promiserKey.Public) == nil {
+		if promiseState.PromiseCertified() == nil {
 			t.Error("A valid BlameProof makes this uncertified")
 		}
 	}
