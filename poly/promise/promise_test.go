@@ -314,24 +314,26 @@ func TestPromiseInit(t *testing.T) {
 	// Check that Init panics if n < t
 	test := func() {
 		defer deferTest(t, "Init should have panicked.")
-		new(Promise).ConstructPromise(secretKey, promiserKey, pt, r,
+		new(Promise).ConstructPromise(secretKey, promiserKey, 2, r,
 			[]abstract.Point{promiserKey.Public})
 	}
 	test()
 
 	// Check that r is reset properly when r < t.
-	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt,
-		pt-20, insurerList)
-	if promise.r < pt || promise.r > numInsurers {
-		t.Error("Invalid r allowed for r < t.")
+	test = func() {
+		defer deferTest(t, "Init should have panicked.")
+		new(Promise).ConstructPromise(secretKey, promiserKey, pt, pt-1,
+			[]abstract.Point{promiserKey.Public})
 	}
+	test()
 
 	// Check that r is reset properly when r > n.
-	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt,
-		numInsurers+20, insurerList)
-	if promise.r < pt || promise.r > numInsurers {
-		t.Error("Invalid r allowed for r > n.")
+	test = func() {
+		defer deferTest(t, "Init should have panicked.")
+		new(Promise).ConstructPromise(secretKey, promiserKey, pt, numInsurers+1,
+			[]abstract.Point{promiserKey.Public})
 	}
+	test()
 }
 
 // Verifies that UnMarshalInit properly initalizes for unmarshalling

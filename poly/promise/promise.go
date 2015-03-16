@@ -223,6 +223,11 @@ type Promise struct {
  *    r            = minimum PromiseSignatures needed to certify the Promise
  *    insurers     = a list of the long-term public keys of the insurers.
  *
+ *
+ * It is expected that:
+ *
+ *    t <= r <= len(insurers)
+ *
  * Returns
  *   A newly constructed Promise
  */
@@ -239,14 +244,8 @@ func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
 	p.secrets = make([]abstract.Secret, p.n, p.n)
 
 	// Verify that t <= r <= n
-	if p.n < p.t {
-		panic("Not enough insurers for the secret")
-	}
-	if p.r < p.t {
-		p.r = p.t
-	}
-	if p.r > p.n {
-		p.r = p.n
+	if !(p.t <= r && p.r <= p.n){
+		panic("Invalid t, r, and n. Expected t <= r <= n")
 	}
 
 	// Create the public polynomial and private shares. The number of shares
