@@ -214,7 +214,8 @@ func TestBlameProofBinaryMarshalling(t *testing.T) {
 	promise := new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
 	badKey := insurerKeys[numInsurers-1]
 	diffieBase := promise.keySuite.Point().Mul(promiserKey.Public, badKey.Secret)
-	badShare := promise.diffieHellmanEncrypt(badKey.Secret, diffieBase)
+	diffieSecret := promise.diffieHellmanSecret(diffieBase)
+	badShare := promise.shareSuite.Secret().Add(badKey.Secret, diffieSecret)
 	promise.secrets[0] = badShare
 
 	// Tests BinaryMarshal, BinaryUnmarshal, and MarshalSize
@@ -303,8 +304,8 @@ func TestPromiseInit(t *testing.T) {
 		}
 		diffieBase := promise.keySuite.Point().Mul(insurerList[i],
 			promiserKey.Secret)
-		share := promise.diffieHellmanDecrypt(promise.secrets[i],
-			diffieBase)
+		diffieSecret := promise.diffieHellmanSecret(diffieBase)
+		share := promise.shareSuite.Secret().Sub(promise.secrets[i], diffieSecret)
 		if !promise.pubPoly.Check(i, share) {
 			t.Error("Polynomial Check failed for share ", i)
 		}
@@ -413,13 +414,13 @@ func TestPromiseDiffieHellmanEncryptDecrypt(t *testing.T) {
 
 	diffieBaseBasic := basicPromise.keySuite.Point().Mul(key2.Public,
 		promiserKey.Secret)
-	encryptedSecret := basicPromise.diffieHellmanEncrypt(secretKey.Secret,
-		diffieBaseBasic)
+	diffieSecret    := basicPromise.diffieHellmanSecret(diffieBaseBasic)
+	encryptedSecret := basicPromise.shareSuite.Secret().Add(secretKey.Secret, diffieSecret)
 
 	diffieBaseKey2 := basicPromise.keySuite.Point().Mul(promiserKey.Public,
 		key2.Secret)
-	secret := basicPromise.diffieHellmanDecrypt(encryptedSecret,
-		diffieBaseKey2)
+	diffieSecret    = basicPromise.diffieHellmanSecret(diffieBaseKey2)
+	secret := basicPromise.shareSuite.Secret().Sub(encryptedSecret, diffieSecret)
 
 	if !secret.Equal(secretKey.Secret) {
 		t.Error("Diffie-Hellman encryption/decryption failed.")
@@ -523,7 +524,8 @@ func TestPromiseBlameAndVerify(t *testing.T) {
 	badKey := insurerKeys[numInsurers-1]
 	diffieBase := promise.keySuite.Point().Mul(promiserKey.Public,
 		badKey.Secret)
-	badShare := promise.diffieHellmanEncrypt(badKey.Secret, diffieBase)
+	diffieSecret := promise.diffieHellmanSecret(diffieBase)
+	badShare := promise.shareSuite.Secret().Add(badKey.Secret, diffieSecret)
 	promise.secrets[0] = badShare
 
 	validProof, err := promise.Blame(0, insurerKeys[0])

@@ -260,7 +260,9 @@ func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
 	// Hellman shared secret between the promiser and appropriate insurer
 	for i := 0; i < p.n; i++ {
 		diffieBase := p.keySuite.Point().Mul(insurers[i], longPair.Secret)
-		p.secrets[i] = p.diffieHellmanEncrypt(prishares.Share(i), diffieBase)
+		diffieSecret := p.diffieHellmanSecret(diffieBase)
+		p.secrets[i] = p.shareSuite.Secret().Add(prishares.Share(i),
+				diffieSecret)
 	}
 	return p
 }
@@ -312,45 +314,24 @@ func (p *Promise) GetId() string {
 	return p.id
 }
 
-/* Given a Diffie-Hellman shared secret, encrypts a secret.
+/* Given a Diffie-Hellman shared public key, produces a secret to encrypt
+ * another secret
  *
  * Arguments
- *    secret      = the secret to encrypt
- *    diffieBase  = the DH shared secret
+ *    diffieBase  = the DH shared public key
  *
  * Return
- *   the encrypted secret
+ *   the DH secret
  */
-func (p *Promise) diffieHellmanEncrypt(secret abstract.Secret,
-	diffieBase abstract.Point) abstract.Secret {
+func (p *Promise) diffieHellmanSecret(diffieBase abstract.Point) abstract.Secret {
 	buff, err := diffieBase.MarshalBinary()
 	if err != nil {
 		panic("Bad shared secret for Diffie-Hellman given.")
 	}
 	cipher := p.shareSuite.Cipher(buff)
-	diffieSecret := p.shareSuite.Secret().Pick(cipher)
-	return p.shareSuite.Secret().Add(secret, diffieSecret)
+	return p.shareSuite.Secret().Pick(cipher)
 }
 
-/* Given a Diffie-Hellman shared secret, decrypts a secret.
- *
- * Arguments
- *    secret      = the secret to decrypt
- *    diffieBase  = the DH shared secret
- *
- * Return
- *   the decrypted secret
- */
-func (p *Promise) diffieHellmanDecrypt(secret abstract.Secret,
-	diffieBase abstract.Point) abstract.Secret {
-	buff, err := diffieBase.MarshalBinary()
-	if err != nil {
-		panic("Bad shared secret for Diffie-Hellman given.")
-	}
-	cipher := p.shareSuite.Cipher(buff)
-	diffieSecret := p.shareSuite.Secret().Pick(cipher)
-	return p.shareSuite.Secret().Sub(secret, diffieSecret)
-}
 
 /* Verifies that a share has been properly constructed. This should be called by
  * insurers to verify that the share they received is valid constructed.
@@ -375,7 +356,8 @@ func (p *Promise) VerifyShare(i int, gKeyPair *config.KeyPair) error {
 		return errors.New(msg)
 	}
 	diffieBase := p.keySuite.Point().Mul(p.pubKey, gKeyPair.Secret)
-	share := p.diffieHellmanDecrypt(p.secrets[i], diffieBase)
+	diffieSecret := p.diffieHellmanSecret(diffieBase)
+	share := p.shareSuite.Secret().Sub(p.secrets[i], diffieSecret)
 	if !p.pubPoly.Check(i, share) {
 		return errors.New("The share failed the public polynomial check.")
 	}
@@ -465,8 +447,9 @@ func (p *Promise) VerifySignature(i int, sig *PromiseSignature) error {
  *   the revealed private share
  */
 func (p *Promise) RevealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
-	diffieBase := p.keySuite.Point().Mul(p.pubKey, gKeyPair.Secret)
-	share := p.diffieHellmanDecrypt(p.secrets[i], diffieBase)
+	diffieBase   := p.keySuite.Point().Mul(p.pubKey, gKeyPair.Secret)
+	diffieSecret := p.diffieHellmanSecret(diffieBase)
+	share        := p.shareSuite.Secret().Sub(p.secrets[i], diffieSecret)
 	return share
 }
 
@@ -550,7 +533,8 @@ func (p *Promise) VerifyBlame(i int, blameProof *BlameProof) error {
 	}
 
 	// Verify the share is bad.
-	share := p.diffieHellmanDecrypt(p.secrets[i], blameProof.diffieKey)
+	diffieSecret := p.diffieHellmanSecret(blameProof.diffieKey)
+	share        := p.shareSuite.Secret().Sub(p.secrets[i], diffieSecret)
 	if p.pubPoly.Check(i, share) {
 		return errors.New("Unjustified blame. The share checks out okay.")
 	}
