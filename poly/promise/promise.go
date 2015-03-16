@@ -150,9 +150,8 @@ var sigBlameMsg []byte = []byte("Promise Blame Signature")
  * needs the secret to be reconstructed, it can contact the insurers to regain
  * the shares and reconstruct the secret.
  *
- * Note to Developers:
- *       The insurers and secrets arrays should remain synchronized. In other
- *       words, insurers[i] and secrets[i] should both refer to the same server.
+ * The insurers and secrets arrays should remain synchronized. In other words,
+ * insurers[i] and secrets[i] should both refer to the same server.
  *
  * Note to users of this code:
  *
