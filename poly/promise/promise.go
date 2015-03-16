@@ -1,21 +1,3 @@
-package promise
-
-import (
-	"encoding/binary"
-	"encoding/hex"
-	"errors"
-	"io"
-	"reflect"
-	"strconv"
-
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/anon"
-	"github.com/dedis/crypto/config"
-	"github.com/dedis/crypto/poly"
-	"github.com/dedis/crypto/proof"
-	"github.com/dedis/crypto/random"
-)
-
 /* This package implements the Promise cryptographic primitive, which is based
  * on poly/sharing.go
  *
@@ -43,8 +25,8 @@ import (
  *                tracking which shares belong to which insurers
 *
  *   2) PromiseState = responsible for keeping state about a given Promise such
- *                     as shares recovered and messages either certifying the
- *                     promise or proving that it is malicious
+ *                     as shares recovered and messages that either certify the
+ *                     promise or prove that it is malicious
  *
  *   3) PromiseSignature = proves that an insurer has signed off on a Promise.
  *                         The signature could either be used to express
@@ -63,53 +45,64 @@ import (
  * Code using this package will typically have the following flow (please see
  * "Key Terms" below for a definition of terms used):
  *
- * 1) The promiser constructs a new Promise and stores it withing a PromiseState
+ * Step I: Take out the Promise
  *
- * 2) The promiser sends the Promise to the insurers
+ *   1) The promiser constructs a new Promise and stores it within a PromiseState.
  *
- * 3) The insurers verify the Promise is well-formed and make sure that their
- *    secret shares are valid.
+ * Step II: Certify the Promise
  *
- * 4) If the secret share is invalid, an insurer creates a BlameProof and sends
- *    it back.
+ *   1) The promiser sends the Promise to the insurers.
  *
- * 5) If the share is valid, an insurer creates a PromiseSignature to send back
- *    to the promiser.
+ *   2) The insurers verify the Promise is well-formed and make sure that their
+ *      secret shares are valid.
  *
- * 6) The promiser receives the message from the insurer.
+ *     a) If a secret share is invalid, an insurer creates a BlameProof and sends
+ *        it back.
  *
- * 7) If it is a valid BlameProof, the promiser must start all over and
- *    construct a non-malicious Promise (or, the system can ban this malicious
- *    promiser).
+ *     b) If the share is valid, an insurer creates a PromiseSignature to send
+ *        to the promiser.
  *
- * 8) If the message is a PromiseSignature, the promiser can add the signature
- *    to its PromiseState
+ *   3) The promiser receives the message from the insurer.
  *
- * 9) Steps 2-8 are repeated until the promiser has collected enough
- *    PromiseSignatures for the Promise to be considered certified.
+ *     a) If it is a valid BlameProof, the promiser must start all over and
+ *        construct a non-malicious Promise (or, the system can ban this malicious
+ *        promiser).
  *
- * 10) Once the Promise is certified, the promiser can then send the promise to
- *     clients.
+ *     b) If the message is a PromiseSignature, the promiser can add the signature
+ *        to its PromiseState.
  *
- * 11) Clients can then request the signatures from the insurers to make sure
- *     the Promise is indeed certified
+ *   5) Repeat steps 1-3 until the promiser has collected enough
+ *      PromiseSignatures for the Promise to be certified.
  *
- *      i) This prevents a malicious promiser from simply leaving out valid
- *         BlameProofs and only sending good signatures to the clients.
+ * Step III: Distribute the Promise
  *
- * 12) The promiser can perform some work for clients.
+ *   1) Once the Promise is certified, the promiser can then send the promise to
+ *      clients.
  *
- * 13) If the promiser is unresponsive for too long, a client can inform the
- *     insurers of the Promise.
+ *   2) Clients can then request the signatures from the insurers to make sure
+ *      the Promise is indeed certified.
  *
- * 14) The insurers can then check if the promiser is indeed unresponsive.
+ *     a) This prevents a malicious promiser from simply leaving out valid
+ *        BlameProofs and only sending good signatures to the clients.
  *
- * 15) If so, an insurer reveal its share and send it to the client.
+ *   3) Once the client receives enough signatures, the client will then trust
+ *      the promiser to do work with the promised private key.
  *
- * 16) The client repeats steps 13-15 until enough shares are recovered to
- *     reconstruct the secret.
+ * Step IV: Perform work for Clients
  *
- * 17) The client can then reconstruct the secret and take over for the promiser
+ * Step V: Reconstruct the Promised Secret (if the promiser goes down)
+ *
+ *   1) If the promiser is unresponsive for too long, a client can inform the
+ *      insurers of the Promise.
+ *
+ *   2) The insurers can then check if the promiser is indeed unresponsive.
+ *
+ *     a) If so, the insurer reveal its share and sends it to the client.
+ *
+ *   3) The client repeats steps 1-2 until enough shares are recovered to
+ *      reconstruct the secret.
+ *
+ *   4) The client reconstructs the secret and takes over for the promiser.
  *
  *
  *
@@ -121,6 +114,23 @@ import (
  *
  *   Users of this code = programmers wishing to use this code in programs
 */
+package promise
+
+import (
+	"encoding/binary"
+	"encoding/hex"
+	"errors"
+	"io"
+	"reflect"
+	"strconv"
+
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/anon"
+	"github.com/dedis/crypto/config"
+	"github.com/dedis/crypto/poly"
+	"github.com/dedis/crypto/proof"
+	"github.com/dedis/crypto/random"
+)
 
 // Used mostly in marshalling code, this is the size of a uint32
 var uint32Size int = binary.Size(uint32(0))
@@ -1132,7 +1142,6 @@ func (p *PromiseSignature) String() string {
  * BlameProof struct themselves. The Promise struct knows how to create a
  * BlameProof via the Promise.Blame method.
  */
-
 type BlameProof struct {
 
 	// The suite used throughout the BlameProof
