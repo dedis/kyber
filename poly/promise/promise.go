@@ -303,7 +303,7 @@ func (p *Promise) verifyPromise() error {
 }
 
 // Returns the id of the Promise
-func (p *Promise) GetId() string {
+func (p *Promise) Id() string {
 	return p.id
 }
 

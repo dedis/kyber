@@ -397,8 +397,8 @@ func TestPromiseverifyPromise(t *testing.T) {
 }
 
 // Verifies that UnMarshalInit properly initalizes for unmarshalling
-func TestPromiseGetId(t *testing.T) {
-	if basicPromise.GetId() != secretKey.Public.String() {
+func TestPromiseId(t *testing.T) {
+	if basicPromise.Id() != secretKey.Public.String() {
 		t.Error("Wrong id returned.")
 	}
 }
