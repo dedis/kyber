@@ -182,11 +182,8 @@ type Promise struct {
 	// The id is the short term public key of the private key being promised
 	id string
 
-	// The cryptographic suite to use for the shared secrets
-	shareSuite abstract.Suite
-
-	// The suite used for the long term keys stored in the Promise
-	keySuite abstract.Suite
+	// The cryptographic key suite used throughout the Promise.
+	suite abstract.Suite
 
 	// The minimum number of shares needed to reconstruct the secret
 	t int
@@ -228,29 +225,34 @@ type Promise struct {
  *
  *    t <= r <= len(insurers)
  *
+ *    secretPair.Suite == longPair.Suite
+ *
  * Returns
  *   A newly constructed Promise
  */
 func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
 	longPair *config.KeyPair, t, r int, insurers []abstract.Point) *Promise {
-	p.id = secretPair.Public.String()
-	p.t = t
-	p.r = r
-	p.n = len(insurers)
-	p.shareSuite = secretPair.Suite
-	p.keySuite = longPair.Suite
-	p.pubKey = longPair.Public
+	p.id       = secretPair.Public.String()
+	p.t        = t
+	p.r        = r
+	p.n        = len(insurers)
+	p.suite    = secretPair.Suite
+	p.pubKey   = longPair.Public
 	p.insurers = insurers
-	p.secrets = make([]abstract.Secret, p.n, p.n)
-
+	p.secrets  = make([]abstract.Secret, p.n, p.n)
+  
 	// Verify that t <= r <= n
 	if !(p.t <= r && p.r <= p.n){
 		panic("Invalid t, r, and n. Expected t <= r <= n")
 	}
+	
+	if longPair.Suite != secretPair.Suite {
+		panic("Two different suites used.")
+	}
 
 	// Create the public polynomial and private shares. The number of shares
 	// should be equal to the number of insurers.
-	pripoly := new(poly.PriPoly).Pick(p.shareSuite, p.t,
+	pripoly := new(poly.PriPoly).Pick(p.suite, p.t,
 		secretPair.Secret, random.Stream)
 	prishares := new(poly.PriShares).Split(pripoly, p.n)
 	p.pubPoly = poly.PubPoly{}
@@ -259,9 +261,9 @@ func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
 	// Populate the secrets array with the shares encrypted by a Diffie-
 	// Hellman shared secret between the promiser and appropriate insurer
 	for i := 0; i < p.n; i++ {
-		diffieBase := p.keySuite.Point().Mul(insurers[i], longPair.Secret)
+		diffieBase := p.suite.Point().Mul(insurers[i], longPair.Secret)
 		diffieSecret := p.diffieHellmanSecret(diffieBase)
-		p.secrets[i] = p.shareSuite.Secret().Add(prishares.Share(i),
+		p.secrets[i] = p.suite.Secret().Add(prishares.Share(i),
 				diffieSecret)
 	}
 	return p
@@ -270,15 +272,13 @@ func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
 /* Initializes a Promise for unmarshalling
  *
  * Arguments
- *    shareSuite = the suite used for shared secrets within the Promise
- *    keySuite   = the suite used for long term keys within the Promise
+ *    suite = the suite used within the Promise
  *
  * Returns
  *   An initialized Promise ready to be unmarshalled
  */
-func (p *Promise) UnmarshalInit(shareSuite, keySuite abstract.Suite) *Promise {
-	p.shareSuite = shareSuite
-	p.keySuite = keySuite
+func (p *Promise) UnmarshalInit(suite abstract.Suite) *Promise {
+	p.suite = suite
 	return p
 }
 
@@ -328,8 +328,8 @@ func (p *Promise) diffieHellmanSecret(diffieBase abstract.Point) abstract.Secret
 	if err != nil {
 		panic("Bad shared secret for Diffie-Hellman given.")
 	}
-	cipher := p.shareSuite.Cipher(buff)
-	return p.shareSuite.Secret().Pick(cipher)
+	cipher := p.suite.Cipher(buff)
+	return p.suite.Secret().Pick(cipher)
 }
 
 
@@ -355,9 +355,9 @@ func (p *Promise) VerifyShare(i int, gKeyPair *config.KeyPair) error {
 	if !p.insurers[i].Equal(gKeyPair.Public) {
 		return errors.New(msg)
 	}
-	diffieBase := p.keySuite.Point().Mul(p.pubKey, gKeyPair.Secret)
+	diffieBase := p.suite.Point().Mul(p.pubKey, gKeyPair.Secret)
 	diffieSecret := p.diffieHellmanSecret(diffieBase)
-	share := p.shareSuite.Secret().Sub(p.secrets[i], diffieSecret)
+	share := p.suite.Secret().Sub(p.secrets[i], diffieSecret)
 	if !p.pubPoly.Check(i, share) {
 		return errors.New("The share failed the public polynomial check.")
 	}
@@ -447,9 +447,9 @@ func (p *Promise) VerifySignature(i int, sig *PromiseSignature) error {
  *   the revealed private share
  */
 func (p *Promise) RevealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
-	diffieBase   := p.keySuite.Point().Mul(p.pubKey, gKeyPair.Secret)
+	diffieBase   := p.suite.Point().Mul(p.pubKey, gKeyPair.Secret)
 	diffieSecret := p.diffieHellmanSecret(diffieBase)
-	share        := p.shareSuite.Secret().Sub(p.secrets[i], diffieSecret)
+	share        := p.suite.Secret().Sub(p.secrets[i], diffieSecret)
 	return share
 }
 
@@ -487,21 +487,21 @@ func (p *Promise) VerifyRevealedShare(i int, share abstract.Secret) error {
  *   An error object denoting the status of the proof construction
  */
 func (p *Promise) Blame(i int, gKeyPair *config.KeyPair) (*BlameProof, error) {
-	diffieKey := p.keySuite.Point().Mul(p.pubKey, gKeyPair.Secret)
+	diffieKey := p.suite.Point().Mul(p.pubKey, gKeyPair.Secret)
 	insurerSig := p.sign(i, gKeyPair, sigBlameMsg)
 
 	choice := make(map[proof.Predicate]int)
 	pred := proof.Rep("D", "x", "P")
 	choice[pred] = 1
-	rand := p.shareSuite.Cipher(abstract.RandomKey)
+	rand := p.suite.Cipher(abstract.RandomKey)
 	sval := map[string]abstract.Secret{"x": gKeyPair.Secret}
 	pval := map[string]abstract.Point{"D": diffieKey, "P": p.pubKey}
-	prover := pred.Prover(p.keySuite, sval, pval, choice)
-	proof, err := proof.HashProve(p.keySuite, protocolName, rand, prover)
+	prover := pred.Prover(p.suite, sval, pval, choice)
+	proof, err := proof.HashProve(p.suite, protocolName, rand, prover)
 	if err != nil {
 		return nil, err
 	}
-	return new(BlameProof).init(p.keySuite, diffieKey, proof, insurerSig), nil
+	return new(BlameProof).init(p.suite, diffieKey, proof, insurerSig), nil
 }
 
 /* Verifies that a BlameProof proves a share to be maliciously constructed.
@@ -525,8 +525,8 @@ func (p *Promise) VerifyBlame(i int, blameProof *BlameProof) error {
 	// Verify the Diffie-Hellman shared secret was constructed properly
 	pval := map[string]abstract.Point{"D": blameProof.diffieKey, "P": p.pubKey}
 	pred := proof.Rep("D", "x", "P")
-	verifier := pred.Verifier(p.keySuite, pval)
-	err := proof.HashVerify(p.keySuite, protocolName, verifier,
+	verifier := pred.Verifier(p.suite, pval)
+	err := proof.HashVerify(p.suite, protocolName, verifier,
 		blameProof.diffieKeyProof)
 	if err != nil {
 		return err
@@ -534,7 +534,7 @@ func (p *Promise) VerifyBlame(i int, blameProof *BlameProof) error {
 
 	// Verify the share is bad.
 	diffieSecret := p.diffieHellmanSecret(blameProof.diffieKey)
-	share        := p.shareSuite.Secret().Sub(p.secrets[i], diffieSecret)
+	share        := p.suite.Secret().Sub(p.secrets[i], diffieSecret)
 	if p.pubPoly.Check(i, share) {
 		return errors.New("Unjustified blame. The share checks out okay.")
 	}
@@ -553,7 +553,7 @@ func (p *Promise) Equal(p2 *Promise) bool {
 	if p.n != p2.n {
 		return false
 	}
-	if p.shareSuite != p2.shareSuite || p.keySuite != p2.keySuite {
+	if p.suite != p2.suite {
 		return false
 	}
 	for i := 0; i < p.n; i++ {
@@ -576,8 +576,8 @@ func (p *Promise) Equal(p2 *Promise) bool {
  *   unmarshalling, do not call before unmarshalling.
  */
 func (p *Promise) MarshalSize() int {
-	return 3*uint32Size + p.keySuite.PointLen() + p.pubPoly.MarshalSize() +
-		p.n*p.keySuite.PointLen() + p.n*p.shareSuite.SecretLen()
+	return 3*uint32Size + p.suite.PointLen() + p.pubPoly.MarshalSize() +
+		p.n*p.suite.PointLen() + p.n*p.suite.SecretLen()
 }
 
 /* Marshals a Promise struct into a byte array
@@ -596,9 +596,9 @@ func (p *Promise) MarshalSize() int {
 func (p *Promise) MarshalBinary() ([]byte, error) {
 	buf := make([]byte, p.MarshalSize())
 
-	pointLen := p.keySuite.PointLen()
-	polyLen := p.pubPoly.MarshalSize()
-	secretLen := p.shareSuite.SecretLen()
+	pointLen  := p.suite.PointLen()
+	polyLen   := p.pubPoly.MarshalSize()
+	secretLen := p.suite.SecretLen()
 
 	// Encode n, r, t
 	binary.LittleEndian.PutUint32(buf, uint32(p.n))
@@ -648,8 +648,8 @@ func (p *Promise) MarshalBinary() ([]byte, error) {
  *   The error status of the unmarshalling (nil if no error)
  */
 func (p *Promise) UnmarshalBinary(buf []byte) error {
-	pointLen := p.keySuite.PointLen()
-	secretLen := p.shareSuite.SecretLen()
+	pointLen  := p.suite.PointLen()
+	secretLen := p.suite.SecretLen()
 
 	// Decode n, r, t
 	p.n = int(binary.LittleEndian.Uint32(buf))
@@ -659,14 +659,14 @@ func (p *Promise) UnmarshalBinary(buf []byte) error {
 	bufPos := 3 * uint32Size
 
 	// Decode pubKey and pubPoly
-	p.pubKey = p.keySuite.Point()
+	p.pubKey = p.suite.Point()
 	if err := p.pubKey.UnmarshalBinary(buf[bufPos : bufPos+pointLen]); err != nil {
 		return err
 	}
 	bufPos += pointLen
 
 	p.pubPoly = poly.PubPoly{}
-	p.pubPoly.Init(p.shareSuite, p.t, nil)
+	p.pubPoly.Init(p.suite, p.t, nil)
 	polyLen := p.pubPoly.MarshalSize()
 	if err := p.pubPoly.UnmarshalBinary(buf[bufPos : bufPos+polyLen]); err != nil {
 		return err
@@ -678,7 +678,7 @@ func (p *Promise) UnmarshalBinary(buf []byte) error {
 	for i := 0; i < p.n; i++ {
 		start := bufPos + i*pointLen
 		end := start + pointLen
-		p.insurers[i] = p.keySuite.Point()
+		p.insurers[i] = p.suite.Point()
 		if err := p.insurers[i].UnmarshalBinary(buf[start:end]); err != nil {
 			return err
 		}
@@ -688,7 +688,7 @@ func (p *Promise) UnmarshalBinary(buf []byte) error {
 	for i := 0; i < p.n; i++ {
 		start := bufPos + i*secretLen
 		end := start + secretLen
-		p.secrets[i] = p.shareSuite.Secret()
+		p.secrets[i] = p.suite.Secret()
 		if err := p.secrets[i].UnmarshalBinary(buf[start:end]); err != nil {
 			return err
 		}
@@ -732,7 +732,7 @@ func (p *Promise) UnmarshalFrom(r io.Reader) (int, error) {
 	p.n = int(binary.LittleEndian.Uint32(buf))
 	p.t = int(binary.LittleEndian.Uint32(buf[uint32Size:]))
 	p.pubPoly = poly.PubPoly{}
-	p.pubPoly.Init(p.shareSuite, p.t, nil)
+	p.pubPoly.Init(p.suite, p.t, nil)
 
 	// MarshalSize can now be used to construct the final buffer. Copy
 	// the contents into the buffer and unmarshal.
@@ -752,8 +752,7 @@ func (p *Promise) UnmarshalFrom(r io.Reader) (int, error) {
  */
 func (p *Promise) String() string {
 	s := "{Promise:\n"
-	s += "ShareSuite => " + p.shareSuite.String() + ",\n"
-	s += "KeySuite => " + p.keySuite.String() + ",\n"
+	s += "Suite => " + p.suite.String() + ",\n"
 	s += "t => " + strconv.Itoa(p.t) + ",\n"
 	s += "r => " + strconv.Itoa(p.r) + ",\n"
 	s += "n => " + strconv.Itoa(p.n) + ",\n"
@@ -827,7 +826,7 @@ func (ps *PromiseState) Init(promise Promise) *PromiseState {
 
 	// Initialize a new PriShares based on information from the promise.
 	ps.PriShares = poly.PriShares{}
-	ps.PriShares.Empty(promise.shareSuite, promise.t, promise.n)
+	ps.PriShares.Empty(promise.suite, promise.t, promise.n)
 
 	// There will be at most n signatures and blame proofs, one per insurer
 	ps.signatures = make([]*PromiseSignature, promise.n, promise.n)
