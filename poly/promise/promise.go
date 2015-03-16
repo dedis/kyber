@@ -71,7 +71,7 @@
  *     b) If the message is a PromiseSignature, the promiser can add the signature
  *        to its PromiseState.
  *
- *   5) Repeat steps 1-3 until the promiser has collected enough
+ *   4) Repeat steps 1-3 until the promiser has collected enough
  *      PromiseSignatures for the Promise to be certified.
  *
  * Step III: Distribute the Promise
