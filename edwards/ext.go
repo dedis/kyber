@@ -45,8 +45,12 @@ func (P *extPoint) MarshalBinary() ([]byte, error) {
 }
 
 func (P *extPoint) UnmarshalBinary(b []byte) error {
+	if err := P.c.decodePoint(b, &P.X, &P.Y); err != nil {
+		return err
+	}
 	P.Z.Init64(1, &P.c.P)
-	return P.c.decodePoint(b, &P.X, &P.Y)
+	P.T.Mul(&P.X, &P.Y)
+	return nil
 }
 
 func (P *extPoint) MarshalTo(w io.Writer) (int, error) {

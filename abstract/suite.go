@@ -32,6 +32,10 @@ type Suite interface {
 
 	// abstract group for public-key crypto
 	Group
+
+	// Generic constructor to instantiate any abstract interface type
+	// supported by this suite: at least Cipher, Hash, Point, Secret.
+	//New(interfaceType reflect.Type) interface{}
 }
 
 // Sum uses a given ciphersuite's hash function to checksum a byte-slice.

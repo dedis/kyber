@@ -51,10 +51,10 @@ func FromStream(newStream func(key []byte) cipher.Stream,
 		panic("no FromStream options supported yet")
 	}
 
-	return &sc
+	return abstract.Cipher{&sc}
 }
 
-func (sc *streamCipher) Partial(dst, src, key []byte) abstract.Cipher {
+func (sc *streamCipher) Partial(dst, src, key []byte) {
 
 	n := ints.Max(len(dst), len(src), len(key)) // bytes to process
 
@@ -85,32 +85,14 @@ func (sc *streamCipher) Partial(dst, src, key []byte) abstract.Cipher {
 			sc.h.Write(buf)
 		}
 	}
-
-	return sc
 }
 
-func (sc *streamCipher) Message(dst, src, key []byte) abstract.Cipher {
+func (sc *streamCipher) Message(dst, src, key []byte) {
 	sc.Partial(dst, src, key)
 
 	sc.k = sc.h.Sum(sc.k[:0])         // update state with absorbed data
 	sc.h = hmac.New(sc.newHash, sc.k) // ready for next msg
 	sc.s = nil                        // create a fresh stream cipher
-
-	return sc
-}
-
-func (sc *streamCipher) Read(dst []byte) (n int, err error) {
-	sc.Partial(dst, nil, nil)
-	return len(dst), nil
-}
-
-func (sc *streamCipher) Write(key []byte) (n int, err error) {
-	sc.Partial(nil, nil, key)
-	return len(key), nil
-}
-
-func (sc *streamCipher) XORKeyStream(dst, src []byte) {
-	sc.Partial(dst[:len(src)], src, nil)
 }
 
 func (sc *streamCipher) KeySize() int {
@@ -125,15 +107,7 @@ func (sc *streamCipher) BlockSize() int {
 	return sc.blockLen
 }
 
-func (sc *streamCipher) Fork(nsubs int) []abstract.Cipher {
-	panic("XXX not yet implemented")
-}
-
-func (sc *streamCipher) Join(subs ...abstract.Cipher) {
-	panic("XXX not yet implemented")
-}
-
-func (sc *streamCipher) Clone() abstract.Cipher {
+func (sc *streamCipher) Clone() abstract.CipherState {
 	if sc.s != nil {
 		panic("cannot clone cipher state mid-message")
 	}

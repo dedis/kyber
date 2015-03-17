@@ -98,6 +98,7 @@ type decoder struct {
 	r io.Reader
 }
 
+// XXX should this perhaps become a Suite method?
 func Read(r io.Reader, obj interface{}, g Group) error {
 	de := decoder{g, r}
 	return de.value(reflect.ValueOf(obj), 0)
@@ -195,6 +196,8 @@ type encoder struct {
 // Supports writing of Points, Secrets,
 // basic fixed-length data types supported by encoding/binary/Write(),
 // and structs, arrays, and slices containing all of these types.
+//
+// XXX should this perhaps become a Suite method?
 func Write(w io.Writer, obj interface{}, g Group) error {
 	en := encoder{g, w}
 	return en.value(obj, 0)
