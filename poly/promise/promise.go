@@ -19,23 +19,26 @@
  *
  * This file provides structs for handling the cryptographic logic of this
  * process. Other files can use these primitives to build a more robust
- * system. In particular, there are 4 structs:
+ * system. In particular, there are 5 structs (3 public, 2 private):
  *
  *   1) Promise = respondible for sharding the secret, creating shares, and
  *                tracking which shares belong to which insurers
 *
  *   2) State = responsible for keeping state about a given Promise such
- *                     as shares recovered and messages that either certify the
- *                     promise or prove that it is malicious
+ *              as shares recovered and messages that either certify the
+ *              promise or prove that it is malicious
  *
  *   3) signature = proves that an insurer has signed off on a Promise.
- *                         The signature could either be used to express
- *                         approval or disapproval
+ *                  The signature could either be used to express
+ *                  approval or disapproval
  *
- *   4) blameProof = provides blameProof that a given Promise share was malicously
+ *   4) blameProof = provides proof that a given Promise share was malicously
  *                   constructed. A valid blameProof proves that the Promise
  *                   is untrustworthy and that the creator of the Promise is
  *                   malicious
+ *
+ *   5) Response = a union of signature and blameProof. This serves as a public
+ *                 wrapper for the two structs.
  *
  * Further documentation for each of the different structs can be found below.
  * It is suggested to start with the Promise struct referring to the others
@@ -142,6 +145,10 @@ var protocolName string = "Promise Protocol"
 var sigMsg []byte = []byte("Promise Signature")
 var sigBlameMsg []byte = []byte("Promise Blame Signature")
 
+// This error denotes that a share was maliciously constructed (fails
+// the public polynomial check). Hence, the promiser is malicious.
+var maliciousShare = errors.New("Share is malicious. PubPoly.Check failed.")
+
 /* Promise structs are mechanisms by which a server can promise other servers
  * that an abstract.Secret will be availble even if the secret's owner goes
  * down. The secret to be promised will be sharded into shared secrets that can
@@ -161,18 +168,15 @@ var sigBlameMsg []byte = []byte("Promise Blame Signature")
  *   * ConstructPromise
  *
  * - Insurers
- *   * VerifyShare
- *   * Sign
- *   * RevealShare
- *   * Blame
+ *   * ProduceResponse
+ *   * State.RevealShare (public wrapper to Promise.RevealShare in State struct)
  *
  * - Clients
  *   * VerifyRevealedShare
  *
  * - All
  *   * UnmarshalInit
- *   * VerifySignature
- *   * VerifyBlame
+ *   * Id
  */
 type Promise struct {
 
@@ -272,9 +276,8 @@ func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
  * Arguments
  *    t           = the minimum number of shares needed to reconstruct the secret
  *    r           = the minimum number of positive Response's needed to cerifty the
- *                   promise
- *    n           = the total number of insurers.
- *    promiserKey = the long term Public Key of the promiser 
+ *                  promise
+ *    n           = the total number of insurers. 
  *    suite       = the suite used within the Promise
  *
  * Returns
@@ -359,7 +362,7 @@ func (p *Promise) verifyShare(i int, gKeyPair *config.KeyPair) error {
 	diffieSecret := p.diffieHellmanSecret(diffieBase)
 	share := p.suite.Secret().Sub(p.secrets[i], diffieSecret)
 	if !p.pubPoly.Check(i, share) {
-		return errors.New("The share failed the public polynomial check.")
+		return maliciousShare
 	}
 	return nil
 }
@@ -403,10 +406,10 @@ func (p *Promise) verifySignature(i int, sig *signature, msg []byte) error {
 	return err
 }
 
-/* Create a blameProof that the promiser maliciously constructed a shared secret. An
- * insurer should call this if VerifyShare fails due to the public polynomial
+/* Create a blameProof that the promiser maliciously constructed a shared secret. 
+ * This should be called if verifyShare fails due to the public polynomial
  * check failing. If it failed for other reasons (such as a bad index) it is not
- * advised to call this function.
+ * advised to call this function since the share might actually be valid.
  *
  * Arguments
  *    i         = the index of the malicious shared secret
@@ -415,6 +418,9 @@ func (p *Promise) verifySignature(i int, sig *signature, msg []byte) error {
  * Return
  *   A blameProof that the promiser is malicious or nil if an error occurs
  *   An error object denoting the status of the blameProof construction
+ *
+ * TODO: Consider whether it is worthwile to produce some form of blame if
+ *       the promiser gives an invalid index.
  */
 func (p *Promise) blame(i int, gKeyPair *config.KeyPair) (*blameProof, error) {
 	diffieKey := p.suite.Point().Mul(p.pubKey, gKeyPair.Secret)
@@ -481,10 +487,18 @@ func (p *Promise) verifyBlame(i int, bproof *blameProof) error {
  *
  * Return
  *   the Response, or nil if there is an error.
- *   an error (mainly if constructing the blameProof fails), nil otherwise.
+ *   an error, nil otherwise.
  */
 func (p *Promise) ProduceResponse(i int, gKeyPair *config.KeyPair) (*Response, error) {
 	if err := p.verifyShare(i, gKeyPair); err != nil {
+		// verifyShare may also fail because the index is invalid or
+		// the insurer key is not the one expected. Do not produce a 
+		// blameProof in these cases, simply ignore the Promise till
+		// the promiser sends the valid index for this insurer.
+		if err != maliciousShare {
+			return nil, err
+		}
+	
 		blameProof, err := p.blame(i, gKeyPair)
 		if err != nil {
 			return nil, err
@@ -753,7 +767,7 @@ func (p *Promise) String() string {
  *
  *    1. The promise itself, which should be treated like an immutable object
  *    2. The shared secrets the server has recovered so far
- *    3. A list of signatures from insurers cerifying the promise
+ *    3. A list of responses from insurers cerifying or blaming the promise
  *
  * Each server should have one State per Promise
  *
@@ -820,7 +834,7 @@ func (ps *State) AddResponse(i int, response *Response) {
 	ps.responses[i] = response
 }
 
-/* A public wrapper around Promise.revealShare, ensures that a share is only
+/* A public wrapper for Promise.revealShare, ensures that a share is only
  * revealed for a certified Promise. An insurer should call this function on
  * behalf of a client after verifying that the promiser is non-responsive.
  *
@@ -829,7 +843,7 @@ func (ps *State) AddResponse(i int, response *Response) {
  *    gkeyPair = the long-term keypair of the insurer
  *
  * Return
- *   the revealed private share or panics if the Promise is not certified
+ *   the revealed private share (or panics if the Promise is not certified)
  */
 func (ps *State) RevealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
 	if ps.PromiseCertified() != nil {
@@ -852,11 +866,11 @@ func (ps *State) RevealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
  *   the error was caused by a valid proof. A single valid blameProof will
  *   permanently make a Promise uncertified.
  *
- * Technical Notes: The function goes through the list of signatures and checks
- *                  whether the signature is properly signed. If at least r of
+ * Technical Notes: The function goes through the list of responses and checks
+ *                  for signature that are properly signed. If at least r of
  *                  these are signed and r is greater than t (the minimum number
  *                  of shares needed to reconstruct the secret), the promise is
- *                  considered valid. If any valid blameProofs are found, the
+ *                  considered certified. If any valid blameProofs are found, the
  *                  Promise is automatically labelled uncertified.
  */
 func (ps *State) PromiseCertified() error {
@@ -865,7 +879,6 @@ func (ps *State) PromiseCertified() error {
 	}
 	validSigs := 0
 	for i := 0; i < ps.Promise.n; i++ {
-		// If no response for this insurer has been received yet, continue
 		if ps.responses[i] == nil {
 			continue
 		}
@@ -898,7 +911,7 @@ func (ps *State) PromiseCertified() error {
  *
  * Besides unmarshalling, users of this code do not need to worry about creating
  * a signature directly. Promise structs know how to generate signatures via
- * Promise.Sign
+ * Promise.ProduceResponse
  */
 type signature struct {
 
@@ -1093,7 +1106,7 @@ func (p *signature) String() string {
  *
  * Beyond unmarshalling, users of this code need not worry about constructing a
  * blameProof struct themselves. The Promise struct knows how to create a
- * blameProof via the Promise.Blame method.
+ * blameProof via the Promise.ProduceResponse method.
  */
 type blameProof struct {
 
@@ -1332,7 +1345,7 @@ const (
 )
 
 /* The Response struct is a union of the signature and blameProof types.
- * It is the external-facing message that insurers send in response to a Promise.
+ * It is the public-facing message that insurers send in response to a Promise.
  * It hides the details of signature's and blameProofs so that users of
  * this code will not have to worry about them.
  *
