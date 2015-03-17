@@ -270,16 +270,17 @@ func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
 /* Initializes a Promise for unmarshalling
  *
  * Arguments
- *    t     = the minimum number of shares needed to reconstruct the secret
- *    r     = the minimum number of positive Response's needed to cerifty the
- *            promise
- *    n     = the total number of insurers.
- *    suite = the suite used within the Promise
+ *    t           = the minimum number of shares needed to reconstruct the secret
+ *    r           = the minimum number of positive Response's needed to cerifty the
+ *                   promise
+ *    n           = the total number of insurers.
+ *    promiserKey = the long term Public Key of the promiser 
+ *    suite       = the suite used within the Promise
  *
  * Returns
  *   An initialized Promise ready to be unmarshalled
  */
-func (p *Promise) UnmarshalInit(t,r,n int, suite abstract.Suite,) *Promise {
+func (p *Promise) UnmarshalInit(t,r,n int, suite abstract.Suite) *Promise {
 	p.t     = t
 	p.r     = r
 	p.n     = n
@@ -831,7 +832,7 @@ func (ps *State) AddResponse(i int, response *Response) {
  *   the revealed private share or panics if the Promise is not certified
  */
 func (ps *State) RevealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
-	if !ps.PromiseCertified() {
+	if ps.PromiseCertified() != nil {
 		panic("RevealShare should only be called on a certified promise.")
 	}
 	return ps.Promise.revealShare(i, gKeyPair)

@@ -629,7 +629,7 @@ func TestPromiseVerifySignature(t *testing.T) {
 
 // Verify that insurer secret shares can be revealed properly and verified.
 func TestPromiseRevealShareAndShareVerify(t *testing.T) {
-	promiseShare := basicPromise.RevealShare(0, insurerKeys[0])
+	promiseShare := basicPromise.revealShare(0, insurerKeys[0])
 	if basicPromise.VerifyRevealedShare(0, promiseShare) != nil {
 		t.Error("The share should have been marked as valid")
 	}
@@ -693,6 +693,44 @@ func TestPromiseBlameAndVerify(t *testing.T) {
 		t.Error("Invalid blame. The signature is bad.")
 	}
 }
+
+// Verify that insurers can properly produce responses
+func TestPromiseProduceResponse(t *testing.T) {
+
+	// Verify a valid signatureResponse can be created
+	response, err := basicPromise.ProduceResponse(0, insurerKeys[0])
+	if err != nil {
+		t.Fatal("ProduceResponse should have succeeded")
+	}
+	if response.rtype != signatureResponse {
+		t.Fatal("Response should be a blameProof")
+	}
+	if basicPromise.verifySignature(0, response.signature, sigMsg) != nil {
+		t.Error("The proof is valid and should be accepted.")
+	}
+
+	// Verify a proper blameProofResponse can be created
+	promise := new(Promise).ConstructPromise(secretKey, promiserKey, pt,
+		r, insurerList)
+	badKey := insurerKeys[numInsurers-1]
+	diffieBase := promise.suite.Point().Mul(promiserKey.Public,
+		badKey.Secret)
+	diffieSecret := promise.diffieHellmanSecret(diffieBase)
+	badShare := promise.suite.Secret().Add(badKey.Secret, diffieSecret)
+	promise.secrets[0] = badShare
+
+	response, err = promise.ProduceResponse(0, insurerKeys[0])
+	if err != nil {
+		t.Fatal("ProduceResponse should have succeeded")
+	}
+	if response.rtype != blameProofResponse {
+		t.Fatal("Response should be a blameProof")
+	}
+	if promise.verifyBlame(0, response.blameProof) != nil {
+		t.Error("The proof is valid and should be accepted.")
+	}
+}
+
 
 // Verifies that Equal properly works for Promise structs
 func TestPromiseEqual(t *testing.T) {
@@ -934,6 +972,33 @@ func TestStatePromiseCertified(t *testing.T) {
 		}
 	}
 }
+
+// Verify State's RevealShare function
+func TestStateRevealShare(t *testing.T) {
+
+	promiseState := new(State).Init(*basicPromise)
+
+	test := func() {
+		defer deferTest(t, "RevealShare should have panicked.")
+		promiseState.RevealShare(0, insurerKeys[0])
+	}
+	test()
+
+	// Once enough signatures have been added, the Promise should remain
+	// certified.
+	for i := 0; i < r; i++ {
+		sig := promiseState.Promise.sign(i, insurerKeys[i], sigMsg)
+		response := new(Response).constructSignatureResponse(sig)
+		promiseState.AddResponse(i, response)
+	}
+	
+	share := promiseState.RevealShare(0, insurerKeys[0])
+	
+	if err := promiseState.Promise.VerifyRevealedShare(0, share); err != nil {
+		t.Error("Share is valid")
+	}
+}
+		
 
 // Tests all the string functions. Simply calls them to make sure they return.
 func TestString(t *testing.T) {
