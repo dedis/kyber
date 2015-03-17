@@ -234,20 +234,20 @@ type Promise struct {
  */
 func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
 	longPair *config.KeyPair, t, r int, insurers []abstract.Point) *Promise {
-	p.id       = secretPair.Public
-	p.t        = t
-	p.r        = r
-	p.n        = len(insurers)
-	p.suite    = secretPair.Suite
-	p.pubKey   = longPair.Public
+	p.id = secretPair.Public
+	p.t = t
+	p.r = r
+	p.n = len(insurers)
+	p.suite = secretPair.Suite
+	p.pubKey = longPair.Public
 	p.insurers = insurers
-	p.secrets  = make([]abstract.Secret, p.n, p.n)
-  
+	p.secrets = make([]abstract.Secret, p.n, p.n)
+
 	// Verify that t <= r <= n
-	if !(p.t <= r && p.r <= p.n){
+	if !(p.t <= r && p.r <= p.n) {
 		panic("Invalid t, r, and n. Expected t <= r <= n")
 	}
-	
+
 	if longPair.Suite != secretPair.Suite {
 		panic("Two different suites used.")
 	}
@@ -266,7 +266,7 @@ func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
 		diffieBase := p.suite.Point().Mul(insurers[i], longPair.Secret)
 		diffieSecret := p.diffieHellmanSecret(diffieBase)
 		p.secrets[i] = p.suite.Secret().Add(prishares.Share(i),
-				diffieSecret)
+			diffieSecret)
 	}
 	return p
 }
@@ -277,16 +277,16 @@ func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
  *    t           = the minimum number of shares needed to reconstruct the secret
  *    r           = the minimum number of positive Response's needed to cerifty the
  *                  promise
- *    n           = the total number of insurers. 
+ *    n           = the total number of insurers.
  *    suite       = the suite used within the Promise
  *
  * Returns
  *   An initialized Promise ready to be unmarshalled
  */
-func (p *Promise) UnmarshalInit(t,r,n int, suite abstract.Suite) *Promise {
-	p.t     = t
-	p.r     = r
-	p.n     = n
+func (p *Promise) UnmarshalInit(t, r, n int, suite abstract.Suite) *Promise {
+	p.t = t
+	p.r = r
+	p.n = n
 	p.suite = suite
 	p.pubPoly = poly.PubPoly{}
 	p.pubPoly.Init(p.suite, p.t, nil)
@@ -337,7 +337,6 @@ func (p *Promise) diffieHellmanSecret(diffieBase abstract.Point) abstract.Secret
 	cipher := p.suite.Cipher(buff)
 	return p.suite.Secret().Pick(cipher)
 }
-
 
 /* An internal helper function used by ProduceResponse, verifies that a share
  * has been properly constructed.
@@ -406,7 +405,7 @@ func (p *Promise) verifySignature(i int, sig *signature, msg []byte) error {
 	return err
 }
 
-/* Create a blameProof that the promiser maliciously constructed a shared secret. 
+/* Create a blameProof that the promiser maliciously constructed a shared secret.
  * This should be called if verifyShare fails due to the public polynomial
  * check failing. If it failed for other reasons (such as a bad index) it is not
  * advised to call this function since the share might actually be valid.
@@ -470,7 +469,7 @@ func (p *Promise) verifyBlame(i int, bproof *blameProof) error {
 
 	// Verify the share is bad.
 	diffieSecret := p.diffieHellmanSecret(bproof.diffieKey)
-	share        := p.suite.Secret().Sub(p.secrets[i], diffieSecret)
+	share := p.suite.Secret().Sub(p.secrets[i], diffieSecret)
 	if p.pubPoly.Check(i, share) {
 		return errors.New("Unjustified blame. The share checks out okay.")
 	}
@@ -492,20 +491,20 @@ func (p *Promise) verifyBlame(i int, bproof *blameProof) error {
 func (p *Promise) ProduceResponse(i int, gKeyPair *config.KeyPair) (*Response, error) {
 	if err := p.verifyShare(i, gKeyPair); err != nil {
 		// verifyShare may also fail because the index is invalid or
-		// the insurer key is not the one expected. Do not produce a 
+		// the insurer key is not the one expected. Do not produce a
 		// blameProof in these cases, simply ignore the Promise till
 		// the promiser sends the valid index for this insurer.
 		if err != maliciousShare {
 			return nil, err
 		}
-	
+
 		blameProof, err := p.blame(i, gKeyPair)
 		if err != nil {
 			return nil, err
 		}
 		return new(Response).constructBlameProofResponse(blameProof), nil
 	}
-	
+
 	sig := p.sign(i, gKeyPair, sigMsg)
 	return new(Response).constructSignatureResponse(sig), nil
 }
@@ -521,9 +520,9 @@ func (p *Promise) ProduceResponse(i int, gKeyPair *config.KeyPair) (*Response, e
  *   the revealed private share
  */
 func (p *Promise) revealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
-	diffieBase   := p.suite.Point().Mul(p.pubKey, gKeyPair.Secret)
+	diffieBase := p.suite.Point().Mul(p.pubKey, gKeyPair.Secret)
 	diffieSecret := p.diffieHellmanSecret(diffieBase)
-	share        := p.suite.Secret().Sub(p.secrets[i], diffieSecret)
+	share := p.suite.Secret().Sub(p.secrets[i], diffieSecret)
 	return share
 }
 
@@ -581,7 +580,7 @@ func (p *Promise) Equal(p2 *Promise) bool {
  *   This function can be used after UnmarshalInit
  */
 func (p *Promise) MarshalSize() int {
-	return  2*p.suite.PointLen() + p.pubPoly.MarshalSize() +
+	return 2*p.suite.PointLen() + p.pubPoly.MarshalSize() +
 		p.n*p.suite.PointLen() + p.n*p.suite.SecretLen()
 }
 
@@ -601,8 +600,8 @@ func (p *Promise) MarshalSize() int {
 func (p *Promise) MarshalBinary() ([]byte, error) {
 	buf := make([]byte, p.MarshalSize())
 
-	pointLen  := p.suite.PointLen()
-	polyLen   := p.pubPoly.MarshalSize()
+	pointLen := p.suite.PointLen()
+	polyLen := p.pubPoly.MarshalSize()
 	secretLen := p.suite.SecretLen()
 
 	// Encode id, pubKey, and pubPoly
@@ -654,7 +653,7 @@ func (p *Promise) MarshalBinary() ([]byte, error) {
  *   The error status of the unmarshalling (nil if no error)
  */
 func (p *Promise) UnmarshalBinary(buf []byte) error {
-	pointLen  := p.suite.PointLen()
+	pointLen := p.suite.PointLen()
 	secretLen := p.suite.SecretLen()
 
 	bufPos := 0
@@ -729,7 +728,7 @@ func (p *Promise) MarshalTo(w io.Writer) (int, error) {
  *   The error status of the read (nil if no errors)
  */
 func (p *Promise) UnmarshalFrom(r io.Reader) (int, error) {
-	buf    := make([]byte, p.MarshalSize())
+	buf := make([]byte, p.MarshalSize())
 	n, err := io.ReadFull(r, buf)
 	if err != nil {
 		return n, err
@@ -884,13 +883,13 @@ func (ps *State) PromiseCertified() error {
 		}
 
 		if ps.responses[i].rtype == signatureResponse &&
-		   ps.Promise.verifySignature(i, ps.responses[i].signature, sigMsg) == nil {
-			validSigs += 1		
+			ps.Promise.verifySignature(i, ps.responses[i].signature, sigMsg) == nil {
+			validSigs += 1
 		}
 
 		if ps.responses[i].rtype == blameProofResponse &&
-		   ps.Promise.verifyBlame(i, ps.responses[i].blameProof) == nil {
-			return errors.New("A valid blameProof proves proves this Promise to be uncertified.")	
+			ps.Promise.verifyBlame(i, ps.responses[i].blameProof) == nil {
+			return errors.New("A valid blameProof proves proves this Promise to be uncertified.")
 		}
 	}
 	if validSigs < ps.Promise.r {
@@ -1336,11 +1335,11 @@ const (
 	// errorResponse means an invalid responseType. Named this to
 	// distinguish it form the type error.
 	errorResponse responseType = iota
-	
+
 	// Denotes that the Response contains a signature
 	signatureResponse
-	
-	// Denotes that the Response contains a blameProof	
+
+	// Denotes that the Response contains a blameProof
 	blameProofResponse
 )
 
@@ -1355,14 +1354,14 @@ type Response struct {
 
 	// The type of response
 	rtype responseType
-	
+
 	// For unmarshalling purposes, the suite of the signature or blameProof
 	suite abstract.Suite
 
 	// A signature proving that the insurer approves of a Promise
 	signature *signature
 
-	// blameProof showing that the Promise has been badly constructed.	
+	// blameProof showing that the Promise has been badly constructed.
 	blameProof *blameProof
 }
 
@@ -1375,7 +1374,7 @@ type Response struct {
  *   An initialized Response
  */
 func (r *Response) constructSignatureResponse(sig *signature) *Response {
-	r.rtype     = signatureResponse
+	r.rtype = signatureResponse
 	r.signature = sig
 	return r
 }
@@ -1389,7 +1388,7 @@ func (r *Response) constructSignatureResponse(sig *signature) *Response {
  *   An initialized Response
  */
 func (r *Response) constructBlameProofResponse(blameProof *blameProof) *Response {
-	r.rtype      = blameProofResponse
+	r.rtype = blameProofResponse
 	r.blameProof = blameProof
 	return r
 }
@@ -1419,7 +1418,7 @@ func (r *Response) Equal(r2 *Response) bool {
 	if r.rtype == errorResponse {
 		panic("Response not initialized")
 	}
-	
+
 	if r.rtype != r2.rtype {
 		return false
 	}
@@ -1467,16 +1466,16 @@ func (r *Response) MarshalBinary() ([]byte, error) {
 	if r.rtype == errorResponse {
 		panic("Response not initialized")
 	}
-	
+
 	var msgLen int
 	buf := make([]byte, r.MarshalSize())
-	
+
 	if r.rtype == signatureResponse {
 		msgLen = r.signature.MarshalSize()
 	} else { //r.rtype == blameProofResponse
 		msgLen = r.blameProof.MarshalSize()
 	}
-	
+
 	binary.LittleEndian.PutUint32(buf, uint32(msgLen))
 	binary.LittleEndian.PutUint32(buf[uint32Size:], uint32(r.rtype))
 
@@ -1488,7 +1487,7 @@ func (r *Response) MarshalBinary() ([]byte, error) {
 	} else { //r.rtype == blameProofResponse
 		msgBuf, err = r.blameProof.MarshalBinary()
 	}
-	
+
 	if err != nil {
 		return nil, err
 	}
@@ -1510,10 +1509,10 @@ func (r *Response) UnmarshalBinary(buf []byte) error {
 	if len(buf) < 2*uint32Size {
 		return errors.New("Buffer size too small")
 	}
-	msgLen  := int(binary.LittleEndian.Uint32(buf))
+	msgLen := int(binary.LittleEndian.Uint32(buf))
 	r.rtype = responseType(binary.LittleEndian.Uint32(buf[uint32Size:]))
 
-	if len(buf) < 2*uint32Size + msgLen {
+	if len(buf) < 2*uint32Size+msgLen {
 		return errors.New("Buffer size too small")
 	}
 
@@ -1523,7 +1522,7 @@ func (r *Response) UnmarshalBinary(buf []byte) error {
 	if r.rtype == errorResponse {
 		return errors.New("Uninitialized reponse sent")
 	}
-	
+
 	if r.rtype == signatureResponse {
 		r.signature = new(signature).UnmarshalInit(r.suite)
 		err = r.signature.UnmarshalBinary(buf[bufPos : bufPos+msgLen])
@@ -1571,7 +1570,7 @@ func (rp *Response) UnmarshalFrom(r io.Reader) (int, error) {
 	if err != nil {
 		return n, err
 	}
-	msgLen  := int(binary.LittleEndian.Uint32(buf))
+	msgLen := int(binary.LittleEndian.Uint32(buf))
 
 	// Calculate the final buffer, copy the old data to it, and fill it
 	// for unmarshalling
@@ -1592,8 +1591,8 @@ func (rp *Response) UnmarshalFrom(r io.Reader) (int, error) {
  */
 func (r Response) String() string {
 	s := "{Response:\n"
-	s += "ResponseType => " +  strconv.Itoa(int(r.rtype)) + ",\n"
-	
+	s += "ResponseType => " + strconv.Itoa(int(r.rtype)) + ",\n"
+
 	if r.rtype == signatureResponse {
 		s += "signature => " + r.signature.String() + ",\n"
 	}
@@ -1603,4 +1602,3 @@ func (r Response) String() string {
 	s += "}\n"
 	return s
 }
-

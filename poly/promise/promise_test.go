@@ -16,7 +16,7 @@ import (
 var suite = nist.NewAES128SHA256P256()
 var altSuite = new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
 
-var secretKey   = produceKeyPair()
+var secretKey = produceKeyPair()
 var promiserKey = produceKeyPair()
 
 var pt = 10
@@ -394,7 +394,6 @@ func TestResponseBinaryMarshalling(t *testing.T) {
 	responseMarshallingHelper(t, response)
 }
 
-
 // Verifies that ConstructPromise properly initalizes a new Promise struct
 func TestPromiseConstructPromise(t *testing.T) {
 	// Verify that a promise can be initialized properly.
@@ -548,12 +547,12 @@ func TestPromiseDiffieHellmanEncryptDecrypt(t *testing.T) {
 
 	diffieBaseBasic := basicPromise.suite.Point().Mul(key2.Public,
 		promiserKey.Secret)
-	diffieSecret    := basicPromise.diffieHellmanSecret(diffieBaseBasic)
+	diffieSecret := basicPromise.diffieHellmanSecret(diffieBaseBasic)
 	encryptedSecret := basicPromise.suite.Secret().Add(secretKey.Secret, diffieSecret)
 
 	diffieBaseKey2 := basicPromise.suite.Point().Mul(promiserKey.Public,
 		key2.Secret)
-	diffieSecret    = basicPromise.diffieHellmanSecret(diffieBaseKey2)
+	diffieSecret = basicPromise.diffieHellmanSecret(diffieBaseKey2)
 	secret := basicPromise.suite.Secret().Sub(encryptedSecret, diffieSecret)
 
 	if !secret.Equal(secretKey.Secret) {
@@ -731,7 +730,6 @@ func TestPromiseProduceResponse(t *testing.T) {
 	}
 }
 
-
 // Verifies that Equal properly works for Promise structs
 func TestPromiseEqual(t *testing.T) {
 	// Make sure promise equals basicPromise to make the error cases
@@ -869,7 +867,7 @@ func TestPromiseBinaryMarshalling(t *testing.T) {
 	if !basicPromise.Equal(decodedP2) {
 		t.Error("Promise read does not equal original")
 	}
-	
+
 	// Verify that unmarshalling fails if the promise created is invalid.
 	// In this case, the unmarshalling defaults are invalid.
 	promise := new(Promise).ConstructPromise(secretKey, promiserKey, pt,
@@ -960,7 +958,7 @@ func TestStatePromiseCertified(t *testing.T) {
 	promiseState = new(State).Init(*promise)
 	promise.secrets[0] = promise.suite.Secret()
 	bproof, _ = promiseState.Promise.blame(0, insurerKeys[0])
-	response  = new(Response).constructBlameProofResponse(bproof)
+	response = new(Response).constructBlameProofResponse(bproof)
 	promiseState.AddResponse(0, response)
 
 	for i := 1; i < numInsurers; i++ {
@@ -991,14 +989,13 @@ func TestStateRevealShare(t *testing.T) {
 		response := new(Response).constructSignatureResponse(sig)
 		promiseState.AddResponse(i, response)
 	}
-	
+
 	share := promiseState.RevealShare(0, insurerKeys[0])
-	
+
 	if err := promiseState.Promise.VerifyRevealedShare(0, share); err != nil {
 		t.Error("Share is valid")
 	}
 }
-		
 
 // Tests all the string functions. Simply calls them to make sure they return.
 func TestString(t *testing.T) {
