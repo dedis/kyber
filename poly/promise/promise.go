@@ -1335,58 +1335,50 @@ func (bp *BlameProof) String() string {
 	return s
 }
 
-
+// Used within a Response struct, it denotes the type of message to be sent.
 type responseType int
 
 const (
 	// errorResponse means an invalid responseType. Named this to
 	// distinguish it form the type error.
 	errorResponse responseType = iota
+	
+	// Denotes that the Response contains a PromiseSignature
 	signatureResponse
+	
+	// Denotes that the Response contains a BlameProof	
 	proofResponse
 )
 
-/* The PromiseSignature struct is used by insurers to express their approval
- * or disapproval of a given promise. After receiving a promise and verifying
- * that their shares are good, insurers can produce a signature to send back
- * to the promiser. Alternatively, the insurers can produce a BlameProof (see
- * below) and use the signature to certify that they authored the blame.
+/* The Response struct is a union of the PromiseSignature and BlameProof types.
+ * It is the external-facing message that insurers send in response to a Promise.
+ * It hides the details of PromiseSignature's and BlameProofs so that users of
+ * this code will not have to worry about them.
  *
- * In order for a Promise to be considered certified, a promiser will need to
- * collect a certain amount of signatures from its insurers (please see the
- * Promise struct below for more details).
- *
- * Besides unmarshalling, users of this code do not need to worry about creating
- * a signature directly. Promise structs know how to generate signatures via
- * Promise.Sign
+ * Please see the PromiseSignature and BlameProof structs for more details.
  */
 type Response struct {
 
-	// The suite used for signing
+	// The type of response
 	rtype responseType
 	
-	// For unmarshalling purposes, the abstract suite of the signature or
-	// proof
+	// For unmarshalling purposes, the suite of the signature or proof
 	suite abstract.Suite
 
-	// The signature proving that the insurer either approves or disapproves
-	// of a Promise struct
+	// A signature proving that the insurer approves of a Promise
 	signature *PromiseSignature
 
 	// Proof showing that the Promise has been badly constructed.	
 	proof *BlameProof
 }
 
-/* An internal function, initializes a new BlameProof struct
+/* An internal function, constructs a new Response with a PromiseSignature
  *
  * Arguments
- *    suite = the suite used for the Diffie-Hellman key, proof, and signature
- *    key   = the shared Diffie-Hellman key
- *    dkp   = the proof validating the Diffie-Hellman key
- *    sig   = the insurer's signature
+ *    sig = the PromiseSignature to send.
  *
  * Returns
- *   An initialized BlameProof
+ *   An initialized Response
  */
 func (r *Response) constructSignatureResponse(sig *PromiseSignature) *Response {
 	r.rtype     = signatureResponse
@@ -1394,16 +1386,13 @@ func (r *Response) constructSignatureResponse(sig *PromiseSignature) *Response {
 	return r
 }
 
-/* An internal function, initializes a new BlameProof struct
+/* An internal function, constructs a new Response with a BlameProof
  *
  * Arguments
- *    suite = the suite used for the Diffie-Hellman key, proof, and signature
- *    key   = the shared Diffie-Hellman key
- *    dkp   = the proof validating the Diffie-Hellman key
- *    sig   = the insurer's signature
+ *    sig = the BlameProof to send.
  *
  * Returns
- *   An initialized BlameProof
+ *   An initialized Response
  */
 func (r *Response) constructProofResponse(proof *BlameProof) *Response {
 	r.rtype     = proofResponse
@@ -1411,23 +1400,23 @@ func (r *Response) constructProofResponse(proof *BlameProof) *Response {
 	return r
 }
 
-/* Initializes a BlameProof struct for unmarshalling
+/* Initializes a Response struct for unmarshalling
  *
  * Arguments
- *    s = the suite used for the Diffie-Hellman key, proof, and signature
+ *    suite = the suite used for the PromiseSignature or BlameProof
  *
  * Returns
- *   An initialized BlameProof ready to be unmarshalled
+ *   An initialized Response ready to be unmarshalled
  */
 func (r *Response) UnmarshalInit(suite abstract.Suite) *Response {
 	r.suite = suite
 	return r
 }
 
-/* Tests whether two BlameProof structs are equal
+/* Tests whether two Response structs are equal
  *
  * Arguments
- *    bp2 = a pointer to the struct to test for equality
+ *    r2 = a pointer to the struct to test for equality
  *
  * Returns
  *   true if equal, false otherwise
@@ -1440,7 +1429,6 @@ func (r *Response) Equal(r2 *Response) bool {
 	if r.rtype != r2.rtype {
 		return false
 	}
-	
 	if r.rtype == signatureResponse {
 		return r.signature.Equal(r2.signature)
 	}
@@ -1454,8 +1442,8 @@ func (r *Response) Equal(r2 *Response) bool {
  *   The marshal size
  *
  * Note
- *   Since PromiseSignature structs and the Diffie-Hellman proof can be of
- *   variable length, this function is only useful for a BlameProof that is
+ *   Since PromiseSignature structs and BlameProof structs can be of
+ *   variable length, this function is only useful for a Response that is
  *   already unmarshalled. Do not call before unmarshalling.
  */
 func (r *Response) MarshalSize() int {
@@ -1466,12 +1454,11 @@ func (r *Response) MarshalSize() int {
 	if r.rtype == signatureResponse {
 		return 2*uint32Size + r.signature.MarshalSize()
 	}
-	
 	//r.rtype == proofSignature
 	return 2*uint32Size + r.proof.MarshalSize()
 }
 
-/* Marshals a BlameProof struct into a byte array
+/* Marshals a Response struct into a byte array
  *
  * Returns
  *   A buffer of the marshalled struct
@@ -1480,7 +1467,7 @@ func (r *Response) MarshalSize() int {
  * Note
  *   The buffer is formatted as follows:
  *
- *   ||Signature_Or_Proof_Length||Type||Signature_or_Proof||
+ *   ||PromiseSignature_Or_BlameProof_Length||Type||PromiseSignature_or_BlameProof||
  */
 func (r *Response) MarshalBinary() ([]byte, error) {
 	if r.rtype == errorResponse {
@@ -1515,7 +1502,7 @@ func (r *Response) MarshalBinary() ([]byte, error) {
 	return buf, nil
 }
 
-/* Unmarshals a BlameProof from a byte buffer
+/* Unmarshals a Response from a byte buffer
  *
  * Arguments
  *    buf = the buffer containing the BlameProof
@@ -1524,9 +1511,8 @@ func (r *Response) MarshalBinary() ([]byte, error) {
  *   The error status of the unmarshalling (nil if no error)
  */
 func (r *Response) UnmarshalBinary(buf []byte) error {
-	// Verify the buffer is large enough for the diffie proof length
-	// (uint32), the PromiseSignature length (uint32), and the
-	// Diffie-Hellman shared secret (abstract.Point)
+	// Verify the buffer is large enough for the length of the
+	// signature/proof as well as the type of message.
 	if len(buf) < 2*uint32Size {
 		return errors.New("Buffer size too small")
 	}
@@ -1558,7 +1544,7 @@ func (r *Response) UnmarshalBinary(buf []byte) error {
 	return nil
 }
 
-/* Marshals a BlameProof struct using an io.Writer
+/* Marshals a Response struct using an io.Writer
  *
  * Arguments
  *    w = the writer to use for marshalling
@@ -1575,7 +1561,7 @@ func (r *Response) MarshalTo(w io.Writer) (int, error) {
 	return w.Write(buf)
 }
 
-/* Unmarshals a BlameProof struct using an io.Reader
+/* Unmarshals a Response struct using an io.Reader
  *
  * Arguments
  *    r = the reader to use for unmarshalling
@@ -1585,7 +1571,7 @@ func (r *Response) MarshalTo(w io.Writer) (int, error) {
  *   The error status of the read (nil if no errors)
  */
 func (rp *Response) UnmarshalFrom(r io.Reader) (int, error) {
-	// Retrieve the proof length and signature length from the reader
+	// Retrieve the length of the signature/proof
 	buf := make([]byte, uint32Size)
 	n, err := io.ReadFull(r, buf)
 	if err != nil {
@@ -1603,5 +1589,24 @@ func (rp *Response) UnmarshalFrom(r io.Reader) (int, error) {
 		return n + m, err
 	}
 	return n + m, rp.UnmarshalBinary(finalBuf)
+}
+
+/* Returns a string representation of the Response for easy debugging
+ *
+ * Returns
+ *   The Response's string representation
+ */
+func (r Response) String() string {
+	s := "{Response:\n"
+	s += "ResponseType => " +  strconv.Itoa(int(r.rtype)) + ",\n"
+	
+	if r.rtype == signatureResponse {
+		s += "PromiseSignature => " + r.signature.String() + ",\n"
+	}
+	if r.rtype == proofResponse {
+		s += "BlameProof => " + r.proof.String() + ",\n"
+	}
+	s += "}\n"
+	return s
 }
 

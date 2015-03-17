@@ -281,7 +281,7 @@ func TestResponseConstructSignatureResponse(t *testing.T) {
 	}
 }
 
-// Verifies that constructSignatureResponse properly initalizes a new Response
+// Verifies that constructProofResponse properly initalizes a new Response
 func TestResponseConstructProofResponse(t *testing.T) {
 	proof, _ := basicPromise.Blame(0, insurerKeys[0])
 
@@ -383,16 +383,16 @@ func responseMarshallingHelper(t *testing.T, response *Response) {
 // Verifies that Response's marshalling methods work properly.
 func TestResponseBinaryMarshalling(t *testing.T) {
 
-	// Verify a signature message can be encoded properly
+	// Verify a signature response can be encoded properly
 	sig := basicPromise.Sign(0, insurerKeys[0])
 	response := new(Response).constructSignatureResponse(sig)
 	responseMarshallingHelper(t, response)
 
-	// Verify a proof message can be encoded properly
+	// Verify a proof response can be encoded properly
 	proof, _ := basicPromise.Blame(0, insurerKeys[0])
 	response = new(Response).constructProofResponse(proof)
 	responseMarshallingHelper(t, response)
-	}
+}
 
 
 // Verifies that ConstructPromise properly initalizes a new Promise struct
@@ -925,4 +925,10 @@ func TestString(t *testing.T) {
 	bp.String()
 
 	basicPromise.String()
+
+	response := new(Response).constructSignatureResponse(sig)
+	response.String()
+
+	response = new(Response).constructProofResponse(bp)
+	response.String()
 }
