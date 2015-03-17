@@ -13,6 +13,12 @@ type cipherHash struct {
 	size   int
 }
 
+// interface representing an optional BlockSize method a Cipher may support
+// if it is based on a block-based (or sponge function) cipher.
+type cipherBlockSize interface {
+	BlockSize() int
+}
+
 func NewHash(cipher func(key []byte, options ...interface{}) abstract.Cipher, size int) hash.Hash {
 	ch := &cipherHash{}
 	ch.cipher = cipher
@@ -47,5 +53,9 @@ func (ch *cipherHash) Size() int {
 }
 
 func (ch *cipherHash) BlockSize() int {
-	return ch.cur.BlockSize()
+	bs, ok := ch.cur.CipherState.(cipherBlockSize)
+	if !ok {
+		return 1 // default for non-block-based ciphers
+	}
+	return bs.BlockSize()
 }
