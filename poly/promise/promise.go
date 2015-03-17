@@ -1334,3 +1334,274 @@ func (bp *BlameProof) String() string {
 	s += "}\n"
 	return s
 }
+
+
+type responseType int
+
+const (
+	// errorResponse means an invalid responseType. Named this to
+	// distinguish it form the type error.
+	errorResponse responseType = iota
+	signatureResponse
+	proofResponse
+)
+
+/* The PromiseSignature struct is used by insurers to express their approval
+ * or disapproval of a given promise. After receiving a promise and verifying
+ * that their shares are good, insurers can produce a signature to send back
+ * to the promiser. Alternatively, the insurers can produce a BlameProof (see
+ * below) and use the signature to certify that they authored the blame.
+ *
+ * In order for a Promise to be considered certified, a promiser will need to
+ * collect a certain amount of signatures from its insurers (please see the
+ * Promise struct below for more details).
+ *
+ * Besides unmarshalling, users of this code do not need to worry about creating
+ * a signature directly. Promise structs know how to generate signatures via
+ * Promise.Sign
+ */
+type Response struct {
+
+	// The suite used for signing
+	rtype responseType
+	
+	// For unmarshalling purposes, the abstract suite of the signature or
+	// proof
+	suite abstract.Suite
+
+	// The signature proving that the insurer either approves or disapproves
+	// of a Promise struct
+	signature *PromiseSignature
+
+	// Proof showing that the Promise has been badly constructed.	
+	proof *BlameProof
+}
+
+/* An internal function, initializes a new BlameProof struct
+ *
+ * Arguments
+ *    suite = the suite used for the Diffie-Hellman key, proof, and signature
+ *    key   = the shared Diffie-Hellman key
+ *    dkp   = the proof validating the Diffie-Hellman key
+ *    sig   = the insurer's signature
+ *
+ * Returns
+ *   An initialized BlameProof
+ */
+func (r *Response) constructSignatureResponse(sig *PromiseSignature) *Response {
+	r.rtype     = signatureResponse
+	r.signature = sig
+	return r
+}
+
+/* An internal function, initializes a new BlameProof struct
+ *
+ * Arguments
+ *    suite = the suite used for the Diffie-Hellman key, proof, and signature
+ *    key   = the shared Diffie-Hellman key
+ *    dkp   = the proof validating the Diffie-Hellman key
+ *    sig   = the insurer's signature
+ *
+ * Returns
+ *   An initialized BlameProof
+ */
+func (r *Response) constructProofResponse(proof *BlameProof) *Response {
+	r.rtype     = proofResponse
+	r.proof     = proof
+	return r
+}
+
+/* Initializes a BlameProof struct for unmarshalling
+ *
+ * Arguments
+ *    s = the suite used for the Diffie-Hellman key, proof, and signature
+ *
+ * Returns
+ *   An initialized BlameProof ready to be unmarshalled
+ */
+func (r *Response) UnmarshalInit(suite abstract.Suite) *Response {
+	r.suite = suite
+	return r
+}
+
+/* Tests whether two BlameProof structs are equal
+ *
+ * Arguments
+ *    bp2 = a pointer to the struct to test for equality
+ *
+ * Returns
+ *   true if equal, false otherwise
+ */
+func (r *Response) Equal(r2 *Response) bool {
+	if r.rtype == errorResponse {
+		panic("Response not initialized")
+	}
+	
+	if r.rtype != r2.rtype {
+		return false
+	}
+	
+	if r.rtype == signatureResponse {
+		return r.signature.Equal(r2.signature)
+	}
+	// r.rtype == proofSignature
+	return r.proof.Equal(r2.proof)
+}
+
+/* Returns the number of bytes used by this struct when marshalled
+ *
+ * Returns
+ *   The marshal size
+ *
+ * Note
+ *   Since PromiseSignature structs and the Diffie-Hellman proof can be of
+ *   variable length, this function is only useful for a BlameProof that is
+ *   already unmarshalled. Do not call before unmarshalling.
+ */
+func (r *Response) MarshalSize() int {
+	if r.rtype == errorResponse {
+		panic("Response not initialized")
+	}
+
+	if r.rtype == signatureResponse {
+		return 2*uint32Size + r.signature.MarshalSize()
+	}
+	
+	//r.rtype == proofSignature
+	return 2*uint32Size + r.proof.MarshalSize()
+}
+
+/* Marshals a BlameProof struct into a byte array
+ *
+ * Returns
+ *   A buffer of the marshalled struct
+ *   The error status of the marshalling (nil if no error)
+ *
+ * Note
+ *   The buffer is formatted as follows:
+ *
+ *   ||Signature_Or_Proof_Length||Type||Signature_or_Proof||
+ */
+func (r *Response) MarshalBinary() ([]byte, error) {
+	if r.rtype == errorResponse {
+		panic("Response not initialized")
+	}
+	
+	var msgLen int
+	buf := make([]byte, r.MarshalSize())
+	
+	if r.rtype == signatureResponse {
+		msgLen = r.signature.MarshalSize()
+	} else { //r.rtype == proofResponse
+		msgLen = r.proof.MarshalSize()
+	}
+	
+	binary.LittleEndian.PutUint32(buf, uint32(msgLen))
+	binary.LittleEndian.PutUint32(buf[uint32Size:], uint32(r.rtype))
+
+	var msgBuf []byte
+	var err error
+
+	if r.rtype == signatureResponse {
+		msgBuf, err = r.signature.MarshalBinary()
+	} else { //r.rtype == proofResponse
+		msgBuf, err = r.proof.MarshalBinary()
+	}
+	
+	if err != nil {
+		return nil, err
+	}
+	copy(buf[2*uint32Size:], msgBuf)
+	return buf, nil
+}
+
+/* Unmarshals a BlameProof from a byte buffer
+ *
+ * Arguments
+ *    buf = the buffer containing the BlameProof
+ *
+ * Returns
+ *   The error status of the unmarshalling (nil if no error)
+ */
+func (r *Response) UnmarshalBinary(buf []byte) error {
+	// Verify the buffer is large enough for the diffie proof length
+	// (uint32), the PromiseSignature length (uint32), and the
+	// Diffie-Hellman shared secret (abstract.Point)
+	if len(buf) < 2*uint32Size {
+		return errors.New("Buffer size too small")
+	}
+	msgLen  := int(binary.LittleEndian.Uint32(buf))
+	r.rtype = responseType(binary.LittleEndian.Uint32(buf[uint32Size:]))
+
+	if len(buf) < 2*uint32Size + msgLen {
+		return errors.New("Buffer size too small")
+	}
+
+	var err error
+	bufPos := 2 * uint32Size
+
+	if r.rtype == errorResponse {
+		return errors.New("Uninitialized reponse sent")
+	}
+	
+	if r.rtype == signatureResponse {
+		r.signature = new(PromiseSignature).UnmarshalInit(r.suite)
+		err = r.signature.UnmarshalBinary(buf[bufPos : bufPos+msgLen])
+	} else { // r.rtype == proofResponse
+		r.proof = new(BlameProof).UnmarshalInit(r.suite)
+		err = r.proof.UnmarshalBinary(buf[bufPos : bufPos+msgLen])
+	}
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+/* Marshals a BlameProof struct using an io.Writer
+ *
+ * Arguments
+ *    w = the writer to use for marshalling
+ *
+ * Returns
+ *   The number of bytes written
+ *   The error status of the write (nil if no errors)
+ */
+func (r *Response) MarshalTo(w io.Writer) (int, error) {
+	buf, err := r.MarshalBinary()
+	if err != nil {
+		return 0, err
+	}
+	return w.Write(buf)
+}
+
+/* Unmarshals a BlameProof struct using an io.Reader
+ *
+ * Arguments
+ *    r = the reader to use for unmarshalling
+ *
+ * Returns
+ *   The number of bytes read
+ *   The error status of the read (nil if no errors)
+ */
+func (rp *Response) UnmarshalFrom(r io.Reader) (int, error) {
+	// Retrieve the proof length and signature length from the reader
+	buf := make([]byte, uint32Size)
+	n, err := io.ReadFull(r, buf)
+	if err != nil {
+		return n, err
+	}
+	msgLen  := int(binary.LittleEndian.Uint32(buf))
+
+	// Calculate the final buffer, copy the old data to it, and fill it
+	// for unmarshalling
+	finalLen := 2*uint32Size + msgLen
+	finalBuf := make([]byte, finalLen)
+	copy(finalBuf, buf)
+	m, err := io.ReadFull(r, finalBuf[n:])
+	if err != nil {
+		return n + m, err
+	}
+	return n + m, rp.UnmarshalBinary(finalBuf)
+}
+

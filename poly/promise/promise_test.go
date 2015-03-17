@@ -268,6 +268,133 @@ func TestBlameProofBinaryMarshalling(t *testing.T) {
 
 }
 
+// Verifies that constructSignatureResponse properly initalizes a new Response
+func TestResponseConstructSignatureResponse(t *testing.T) {
+	sig := basicPromise.Sign(0, insurerKeys[0])
+
+	response := new(Response).constructSignatureResponse(sig)
+	if response.rtype != signatureResponse {
+		t.Error("Response type not properly initialized.")
+	}
+	if !sig.Equal(response.signature) {
+		t.Error("Signature not properly initialized.")
+	}
+}
+
+// Verifies that constructSignatureResponse properly initalizes a new Response
+func TestResponseConstructProofResponse(t *testing.T) {
+	proof, _ := basicPromise.Blame(0, insurerKeys[0])
+
+	response := new(Response).constructProofResponse(proof)
+	if response.rtype != proofResponse {
+		t.Error("Response type not properly initialized.")
+	}
+	if !proof.Equal(response.proof) {
+		t.Error("Proof not properly initialized.")
+	}
+}
+
+// Verifies that UnMarshalInit properly initalizes for unmarshalling
+func TestResponseUnMarshalInit(t *testing.T) {
+	response := new(Response).UnmarshalInit(suite)
+	if response.suite != suite {
+		t.Error("Response not properly initialized.")
+	}
+}
+
+// Verifies that Equal properly works for Response objects
+func TestResponseEqual(t *testing.T) {
+	sig := basicPromise.Sign(0, insurerKeys[0])
+	proof, _ := basicPromise.Blame(0, insurerKeys[0])
+
+	response := new(Response).constructProofResponse(proof)
+	if !response.Equal(response) {
+		t.Error("Response should equal itself.")
+	}
+
+	// Error cases
+	response2 := new(Response).constructSignatureResponse(sig)
+	if response.Equal(response2) {
+		t.Error("Response differ in type.")
+	}
+	response2 = new(Response).constructProofResponse(proof)
+	response2.proof, _ = basicPromise.Blame(1, insurerKeys[1])
+	if response.Equal(response2) {
+		t.Error("Response differ in Proof.")
+	}
+	response = new(Response).constructSignatureResponse(sig)
+	response2 = new(Response).constructSignatureResponse(sig)
+	response2.signature = basicPromise.Sign(1, insurerKeys[1])
+	if response.Equal(response2) {
+		t.Error("Response differ in Signatures.")
+	}
+
+	// Verify that equal panics if the messages are uninitialized
+	test := func() {
+		defer deferTest(t, "Equal should have panicked.")
+		new(Response).Equal(new(Response))
+	}
+	test()
+}
+
+func responseMarshallingHelper(t *testing.T, response *Response) {
+
+	// Tests BinaryMarshal, BinaryUnmarshal, and MarshalSize
+	encodedResponse, err := response.MarshalBinary()
+	if err != nil || len(encodedResponse) != response.MarshalSize() {
+		t.Fatal("Marshalling failed: ", err)
+	}
+
+	decodedResponse := new(Response).UnmarshalInit(suite)
+	err = decodedResponse.UnmarshalBinary(encodedResponse)
+	if err != nil {
+		t.Fatal("UnMarshalling failed: ", err)
+	}
+	if !response.Equal(decodedResponse) {
+		t.Error("Decoded BlameProof not equal to original")
+	}
+	if response.MarshalSize() != decodedResponse.MarshalSize() {
+		t.Error("MarshalSize of decoded and original differ: ",
+			response.MarshalSize(), decodedResponse.MarshalSize())
+	}
+
+	// Tests MarshlTo and UnmarshalFrom
+	bufWriter := new(bytes.Buffer)
+	bytesWritter, errs := response.MarshalTo(bufWriter)
+	if bytesWritter != response.MarshalSize() || errs != nil {
+		t.Fatal("MarshalTo failed: ", bytesWritter, err)
+	}
+
+	decodedResponse = new(Response).UnmarshalInit(suite)
+	bufReader := bytes.NewReader(bufWriter.Bytes())
+	bytesRead, errs2 := decodedResponse.UnmarshalFrom(bufReader)
+	if bytesRead != response.MarshalSize() || errs2 != nil {
+		t.Fatal("UnmarshalFrom failed: ", bytesRead, errs2)
+	}
+	if response.MarshalSize() != decodedResponse.MarshalSize() {
+		t.Error("MarshalSize of decoded and original differ: ",
+			response.MarshalSize(), decodedResponse.MarshalSize())
+	}
+	if !response.Equal(decodedResponse) {
+		t.Error("Response read does not equal original")
+	}
+}
+
+// Verifies that Response's marshalling methods work properly.
+func TestResponseBinaryMarshalling(t *testing.T) {
+
+	// Verify a signature message can be encoded properly
+	sig := basicPromise.Sign(0, insurerKeys[0])
+	response := new(Response).constructSignatureResponse(sig)
+	responseMarshallingHelper(t, response)
+
+	// Verify a proof message can be encoded properly
+	proof, _ := basicPromise.Blame(0, insurerKeys[0])
+	response = new(Response).constructProofResponse(proof)
+	responseMarshallingHelper(t, response)
+	}
+
+
 // Verifies that ConstructPromise properly initalizes a new Promise struct
 func TestPromiseConstructPromise(t *testing.T) {
 	// Verify that a promise can be initialized properly.
