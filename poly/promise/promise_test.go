@@ -401,7 +401,7 @@ func TestPromiseConstructPromise(t *testing.T) {
 	promise := new(Promise).ConstructPromise(secretKey, promiserKey, pt,
 		r, insurerList)
 
-	if promise.id != secretKey.Public.String() {
+	if !promise.id.Equal(secretKey.Public) {
 		t.Error("id not initialized properly")
 	}
 	if promiserKey.Suite != promise.suite {
@@ -474,7 +474,16 @@ func TestPromiseConstructPromise(t *testing.T) {
 
 // Verifies that UnMarshalInit properly initalizes for unmarshalling
 func TestPromiseUnMarshalInit(t *testing.T) {
-	p := new(Promise).UnmarshalInit(suite)
+	p := new(Promise).UnmarshalInit(pt, r, numInsurers, suite)
+	if p.t != pt {
+		t.Error("t not properly initialized.")
+	}
+	if p.r != r {
+		t.Error("r not properly initialized.")
+	}
+	if p.n != numInsurers {
+		t.Error("n not properly initialized.")
+	}
 	if p.suite != suite {
 		t.Error("Suite not properly initialized.")
 	}
@@ -705,6 +714,15 @@ func TestPromiseEqual(t *testing.T) {
 		r, insurerList)
 	promise.secrets = basicPromise.secrets
 	promise.pubPoly = basicPromise.pubPoly
+	promise.id = promiserKey.Public // <--- should be secretKey.Public
+	if basicPromise.Equal(promise) {
+		t.Error("The id's are not equal")
+	}
+
+	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt,
+		r, insurerList)
+	promise.secrets = basicPromise.secrets
+	promise.pubPoly = basicPromise.pubPoly
 	promise.suite = nil
 	if basicPromise.Equal(promise) {
 		t.Error("The suite's are not equal")
@@ -781,7 +799,7 @@ func TestPromiseBinaryMarshalling(t *testing.T) {
 		t.Fatal("Marshalling failed: ", err)
 	}
 
-	decodedP := new(Promise).UnmarshalInit(suite)
+	decodedP := new(Promise).UnmarshalInit(pt, r, numInsurers, suite)
 	err = decodedP.UnmarshalBinary(encodedP)
 	if err != nil {
 		t.Fatal("UnMarshalling failed: ", err)
@@ -798,7 +816,7 @@ func TestPromiseBinaryMarshalling(t *testing.T) {
 		t.Fatal("MarshalTo failed: ", bytesWritter, err)
 	}
 
-	decodedP2 := new(Promise).UnmarshalInit(suite)
+	decodedP2 := new(Promise).UnmarshalInit(pt, r, numInsurers, suite)
 	bufReader := bytes.NewReader(bufWriter.Bytes())
 	bytesRead, errs2 := decodedP2.UnmarshalFrom(bufReader)
 	if bytesRead != decodedP2.MarshalSize() ||
@@ -815,15 +833,15 @@ func TestPromiseBinaryMarshalling(t *testing.T) {
 	}
 	
 	// Verify that unmarshalling fails if the promise created is invalid.
+	// In this case, the unmarshalling defaults are invalid.
 	promise := new(Promise).ConstructPromise(secretKey, promiserKey, pt,
 		r, insurerList)
-	promise.r = -20
 	encodedP, err = promise.MarshalBinary()
 	if err != nil || len(encodedP) != basicPromise.MarshalSize() {
 		t.Fatal("Marshalling failed: ", err)
 	}
 
-	decodedP = new(Promise).UnmarshalInit(suite)
+	decodedP = new(Promise).UnmarshalInit(pt, 1, numInsurers, suite)
 	err = decodedP.UnmarshalBinary(encodedP)
 	if err == nil {
 		t.Fatal("UnMarshalling should have failed: ", err)

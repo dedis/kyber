@@ -178,7 +178,7 @@ type Promise struct {
 
 	// The id of the promise used to differentiate it from others
 	// The id is the short term public key of the private key being promised
-	id string
+	id abstract.Point
 
 	// The cryptographic key suite used throughout the Promise.
 	suite abstract.Suite
@@ -230,7 +230,7 @@ type Promise struct {
  */
 func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
 	longPair *config.KeyPair, t, r int, insurers []abstract.Point) *Promise {
-	p.id       = secretPair.Public.String()
+	p.id       = secretPair.Public
 	p.t        = t
 	p.r        = r
 	p.n        = len(insurers)
@@ -270,13 +270,22 @@ func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
 /* Initializes a Promise for unmarshalling
  *
  * Arguments
+ *    t     = the minimum number of shares needed to reconstruct the secret
+ *    r     = the minimum number of positive Response's needed to cerifty the
+ *            promise
+ *    n     = the total number of insurers.
  *    suite = the suite used within the Promise
  *
  * Returns
  *   An initialized Promise ready to be unmarshalled
  */
-func (p *Promise) UnmarshalInit(suite abstract.Suite) *Promise {
+func (p *Promise) UnmarshalInit(t,r,n int, suite abstract.Suite,) *Promise {
+	p.t     = t
+	p.r     = r
+	p.n     = n
 	p.suite = suite
+	p.pubPoly = poly.PubPoly{}
+	p.pubPoly.Init(p.suite, p.t, nil)
 	return p
 }
 
@@ -304,7 +313,7 @@ func (p *Promise) verifyPromise() error {
 
 // Returns the id of the Promise
 func (p *Promise) Id() string {
-	return p.id
+	return p.id.String()
 }
 
 /* Given a Diffie-Hellman shared public key, produces a secret to encrypt
@@ -545,7 +554,7 @@ func (p *Promise) Equal(p2 *Promise) bool {
 			return false
 		}
 	}
-	return p.t == p2.t && p.r == p2.r &&
+	return p.id.Equal(p2.id) && p.t == p2.t && p.r == p2.r &&
 		p.pubKey.Equal(p2.pubKey) && p.pubPoly.Equal(&p2.pubPoly)
 }
 
@@ -555,11 +564,10 @@ func (p *Promise) Equal(p2 *Promise) bool {
  *   The marshal size
  *
  * Note
- *   Since the length of insurers and secrets is not known until after
- *   unmarshalling, do not call before unmarshalling.
+ *   This function can be used after UnmarshalInit
  */
 func (p *Promise) MarshalSize() int {
-	return 3*uint32Size + p.suite.PointLen() + p.pubPoly.MarshalSize() +
+	return  2*p.suite.PointLen() + p.pubPoly.MarshalSize() +
 		p.n*p.suite.PointLen() + p.n*p.suite.SecretLen()
 }
 
@@ -572,7 +580,7 @@ func (p *Promise) MarshalSize() int {
  * Note
  *   The buffer is formatted as follows:
  *
- *      ||n||t||r||pubKey||pubPoly||==insurers_array==||==secrets==||
+ *      ||id||pubKey||pubPoly||==insurers_array==||==secrets==||
  *
  *   Remember: n == len(insurers) == len(secrets)
  */
@@ -583,26 +591,27 @@ func (p *Promise) MarshalBinary() ([]byte, error) {
 	polyLen   := p.pubPoly.MarshalSize()
 	secretLen := p.suite.SecretLen()
 
-	// Encode n, r, t
-	binary.LittleEndian.PutUint32(buf, uint32(p.n))
-	binary.LittleEndian.PutUint32(buf[uint32Size:], uint32(p.t))
-	binary.LittleEndian.PutUint32(buf[2*uint32Size:], uint32(p.r))
+	// Encode id, pubKey, and pubPoly
+	idBuf, err := p.id.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	copy(buf, idBuf)
 
-	// Encode pubKey and pubPoly
 	pointBuf, err := p.pubKey.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
-	copy(buf[3*uint32Size:], pointBuf)
+	copy(buf[pointLen:], pointBuf)
 
 	polyBuf, err := p.pubPoly.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
-	copy(buf[3*uint32Size+pointLen:], polyBuf)
+	copy(buf[2*pointLen:], polyBuf)
 
 	// Encode the insurers and secrets array (Based on poly/sharing.go code)
-	bufPos := 3*uint32Size + pointLen + polyLen
+	bufPos := 2*pointLen + polyLen
 	for i := range p.insurers {
 		pb, err := p.insurers[i].MarshalBinary()
 		if err != nil {
@@ -634,22 +643,21 @@ func (p *Promise) UnmarshalBinary(buf []byte) error {
 	pointLen  := p.suite.PointLen()
 	secretLen := p.suite.SecretLen()
 
-	// Decode n, r, t
-	p.n = int(binary.LittleEndian.Uint32(buf))
-	p.t = int(binary.LittleEndian.Uint32(buf[uint32Size:]))
-	p.r = int(binary.LittleEndian.Uint32(buf[2*uint32Size:]))
+	bufPos := 0
 
-	bufPos := 3 * uint32Size
+	// Decode id, pubKey, and pubPoly
+	p.id = p.suite.Point()
+	if err := p.id.UnmarshalBinary(buf[bufPos : bufPos+pointLen]); err != nil {
+		return err
+	}
+	bufPos += pointLen
 
-	// Decode pubKey and pubPoly
 	p.pubKey = p.suite.Point()
 	if err := p.pubKey.UnmarshalBinary(buf[bufPos : bufPos+pointLen]); err != nil {
 		return err
 	}
 	bufPos += pointLen
 
-	p.pubPoly = poly.PubPoly{}
-	p.pubPoly.Init(p.suite, p.t, nil)
 	polyLen := p.pubPoly.MarshalSize()
 	if err := p.pubPoly.UnmarshalBinary(buf[bufPos : bufPos+polyLen]); err != nil {
 		return err
@@ -707,26 +715,12 @@ func (p *Promise) MarshalTo(w io.Writer) (int, error) {
  *   The error status of the read (nil if no errors)
  */
 func (p *Promise) UnmarshalFrom(r io.Reader) (int, error) {
-	// Retrieve p.n and p.t and then initialize p.PubPoly
-	buf := make([]byte, 2*uint32Size)
+	buf    := make([]byte, p.MarshalSize())
 	n, err := io.ReadFull(r, buf)
 	if err != nil {
 		return n, err
 	}
-	p.n = int(binary.LittleEndian.Uint32(buf))
-	p.t = int(binary.LittleEndian.Uint32(buf[uint32Size:]))
-	p.pubPoly = poly.PubPoly{}
-	p.pubPoly.Init(p.suite, p.t, nil)
-
-	// MarshalSize can now be used to construct the final buffer. Copy
-	// the contents into the buffer and unmarshal.
-	finalBuf := make([]byte, p.MarshalSize())
-	copy(finalBuf, buf)
-	m, err := io.ReadFull(r, finalBuf[n:])
-	if err != nil {
-		return n + m, err
-	}
-	return n + m, p.UnmarshalBinary(finalBuf)
+	return n, p.UnmarshalBinary(buf)
 }
 
 /* Returns a string representation of the Promise for easy debugging
