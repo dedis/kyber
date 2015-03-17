@@ -27,7 +27,7 @@ var insurerKeys = produceinsurerKeys()
 var insurerList = produceinsurerList()
 
 var basicPromise = new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
-var basicPromiseState = new(PromiseState).Init(*basicPromise)
+var basicState = new(State).Init(*basicPromise)
 
 func produceKeyPair() *config.KeyPair {
 	keyPair := new(config.KeyPair)
@@ -830,9 +830,9 @@ func TestPromiseBinaryMarshalling(t *testing.T) {
 	}
 }
 
-// Verifies that Init properly initalizes a new PromiseState object
-func TestPromiseStateInit(t *testing.T) {
-	promiseState := new(PromiseState).Init(*basicPromise)
+// Verifies that Init properly initalizes a new State object
+func TestStateInit(t *testing.T) {
+	promiseState := new(State).Init(*basicPromise)
 	if !basicPromise.Equal(&promiseState.Promise) {
 		t.Error("Promise not properly initialized")
 	}
@@ -841,9 +841,9 @@ func TestPromiseStateInit(t *testing.T) {
 	}
 }
 
-// Verify that PromiseState can properly add signature and blame responses
-func TestPromiseStateAddSignature(t *testing.T) {
-	promiseState := new(PromiseState).Init(*basicPromise)
+// Verify that State can properly add signature and blame responses
+func TestStateAddSignature(t *testing.T) {
+	promiseState := new(State).Init(*basicPromise)
 	for i := 0; i < numInsurers; i++ {
 		sig := promiseState.Promise.sign(i, insurerKeys[i], sigMsg)
 		response := new(Response).constructSignatureResponse(sig)
@@ -861,11 +861,11 @@ func TestPromiseStateAddSignature(t *testing.T) {
 	}
 }
 
-// Verify PromiseState's PromiseCertify function
-func TestPromiseStatePromiseCertified(t *testing.T) {
+// Verify State's PromiseCertify function
+func TestStatePromiseCertified(t *testing.T) {
 	promise := new(Promise).ConstructPromise(secretKey, promiserKey,
 		pt, r, insurerList)
-	promiseState := new(PromiseState).Init(*promise)
+	promiseState := new(State).Init(*promise)
 
 	// Insure that bad blameProof structs do not cause the Promise
 	// to be considered uncertified.
@@ -901,7 +901,7 @@ func TestPromiseStatePromiseCertified(t *testing.T) {
 	// Make sure that one valid blameProof makes the Promise forever
 	// uncertified
 	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
-	promiseState = new(PromiseState).Init(*promise)
+	promiseState = new(State).Init(*promise)
 	promise.secrets[0] = promise.suite.Secret()
 	bproof, _ = promiseState.Promise.blame(0, insurerKeys[0])
 	response  = new(Response).constructBlameProofResponse(bproof)

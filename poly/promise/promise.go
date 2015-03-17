@@ -24,7 +24,7 @@
  *   1) Promise = respondible for sharding the secret, creating shares, and
  *                tracking which shares belong to which insurers
 *
- *   2) PromiseState = responsible for keeping state about a given Promise such
+ *   2) State = responsible for keeping state about a given Promise such
  *                     as shares recovered and messages that either certify the
  *                     promise or prove that it is malicious
  *
@@ -47,7 +47,7 @@
  *
  * Step I: Take out the Promise
  *
- *   1) The promiser constructs a new Promise and stores it within a PromiseState.
+ *   1) The promiser constructs a new Promise and stores it within a State.
  *
  * Step II: Certify the Promise
  *
@@ -69,7 +69,7 @@
  *        promiser).
  *
  *     b) If the message is a signature, the promiser can add the signature
- *        to its PromiseState.
+ *        to its State.
  *
  *   4) Repeat steps 1-3 until the promiser has collected enough
  *      signatures for the Promise to be certified.
@@ -754,14 +754,14 @@ func (p *Promise) String() string {
 	return s
 }
 
-/* The PromiseState struct is responsible for maintaining state about Promise
+/* The State struct is responsible for maintaining state about Promise
  * structs. It consists of three main pieces:
  *
  *    1. The promise itself, which should be treated like an immutable object
  *    2. The shared secrets the server has recovered so far
  *    3. A list of signatures from insurers cerifying the promise
  *
- * Each server should have one PromiseState per Promise
+ * Each server should have one State per Promise
  *
  * Note to users of this code:
  *
@@ -778,7 +778,7 @@ func (p *Promise) String() string {
  *
  * TODO Consider if it is worth adding a String function
  */
-type PromiseState struct {
+type State struct {
 
 	// The actual promise
 	Promise Promise
@@ -793,15 +793,15 @@ type PromiseState struct {
 	responses []*Response
 }
 
-/* Initializes a new PromiseState
+/* Initializes a new State
  *
  * Arguments
  *    promise = the promise to keep track of
  *
  * Returns
- *   An initialized PromiseState
+ *   An initialized State
  */
-func (ps *PromiseState) Init(promise Promise) *PromiseState {
+func (ps *State) Init(promise Promise) *State {
 	ps.Promise = promise
 
 	// Initialize a new PriShares based on information from the promise.
@@ -813,7 +813,7 @@ func (ps *PromiseState) Init(promise Promise) *PromiseState {
 	return ps
 }
 
-/* Adds a response from an insurer to the PromiseState
+/* Adds a response from an insurer to the State
  *
  * Arguments
  *    i        = the index in the signature array this signature belongs
@@ -822,7 +822,7 @@ func (ps *PromiseState) Init(promise Promise) *PromiseState {
  * Postcondition
  *   The response has been added
  */
-func (ps *PromiseState) AddResponse(i int, response *Response) {
+func (ps *State) AddResponse(i int, response *Response) {
 	ps.responses[i] = response
 }
 
@@ -847,7 +847,7 @@ func (ps *PromiseState) AddResponse(i int, response *Response) {
  *                  considered valid. If any valid blameProofs are found, the
  *                  Promise is automatically labelled uncertified.
  */
-func (ps *PromiseState) PromiseCertified() error {
+func (ps *State) PromiseCertified() error {
 	if err := ps.Promise.verifyPromise(); err != nil {
 		return err
 	}
