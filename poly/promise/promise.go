@@ -28,12 +28,12 @@
  *                     as shares recovered and messages that either certify the
  *                     promise or prove that it is malicious
  *
- *   3) PromiseSignature = proves that an insurer has signed off on a Promise.
+ *   3) signature = proves that an insurer has signed off on a Promise.
  *                         The signature could either be used to express
  *                         approval or disapproval
  *
- *   4) BlameProof = provides proof that a given Promise share was malicously
- *                   constructed. A valid BlameProof proves that the Promise
+ *   4) blameProof = provides blameProof that a given Promise share was malicously
+ *                   constructed. A valid blameProof proves that the Promise
  *                   is untrustworthy and that the creator of the Promise is
  *                   malicious
  *
@@ -56,23 +56,23 @@
  *   2) The insurers verify the Promise is well-formed and make sure that their
  *      secret shares are valid.
  *
- *     a) If a secret share is invalid, an insurer creates a BlameProof and sends
+ *     a) If a secret share is invalid, an insurer creates a blameProof and sends
  *        it back.
  *
- *     b) If the share is valid, an insurer creates a PromiseSignature to send
+ *     b) If the share is valid, an insurer creates a signature to send
  *        to the promiser.
  *
  *   3) The promiser receives the message from the insurer.
  *
- *     a) If it is a valid BlameProof, the promiser must start all over and
+ *     a) If it is a valid blameProof, the promiser must start all over and
  *        construct a non-malicious Promise (or, the system can ban this malicious
  *        promiser).
  *
- *     b) If the message is a PromiseSignature, the promiser can add the signature
+ *     b) If the message is a signature, the promiser can add the signature
  *        to its PromiseState.
  *
  *   4) Repeat steps 1-3 until the promiser has collected enough
- *      PromiseSignatures for the Promise to be certified.
+ *      signatures for the Promise to be certified.
  *
  * Step III: Distribute the Promise
  *
@@ -83,7 +83,7 @@
  *      the Promise is indeed certified.
  *
  *     a) This prevents a malicious promiser from simply leaving out valid
- *        BlameProofs and only sending good signatures to the clients.
+ *        blameProofs and only sending good signatures to the clients.
  *
  *   3) Once the client receives enough signatures, the client will then trust
  *      the promiser to do work with the promised private key.
@@ -186,7 +186,7 @@ type Promise struct {
 	// The minimum number of shares needed to reconstruct the secret
 	t int
 
-	// The minimum number of PromiseSignatures approving the Promise that
+	// The minimum number of signatures approving the Promise that
 	// are needed before the Promise is certified. t <= r <= n
 	r int
 
@@ -215,7 +215,7 @@ type Promise struct {
  *    secretPair   = the keypair of the secret to be promised
  *    longPair     = the long term keypair of the promiser
  *    t            = minimum number of shares needed to reconstruct the secret.
- *    r            = minimum PromiseSignatures needed to certify the Promise
+ *    r            = minimum signatures needed to certify the Promise
  *    insurers     = a list of the long-term public keys of the insurers.
  *
  *
@@ -326,8 +326,8 @@ func (p *Promise) diffieHellmanSecret(diffieBase abstract.Point) abstract.Secret
 }
 
 
-/* Verifies that a share has been properly constructed. This should be called by
- * insurers to verify that the share they received is valid constructed.
+/* An internal helper function used by ProduceResponse, verifies that a share
+ * has been properly constructed.
  *
  * Arguments
  *    i         = the index of the share to verify
@@ -335,11 +335,8 @@ func (p *Promise) diffieHellmanSecret(diffieBase abstract.Point) abstract.Secret
  *
  * Return
  *  an error if the share is malformed, nil otherwise.
- *
- * Note
- *   Make sure that the proper index and key is specified.
  */
-func (p *Promise) VerifyShare(i int, gKeyPair *config.KeyPair) error {
+func (p *Promise) verifyShare(i int, gKeyPair *config.KeyPair) error {
 	if i < 0 || i >= p.n {
 		return errors.New("Invalid index. Expected 0 <= i < n")
 	}
@@ -365,67 +362,128 @@ func (p *Promise) VerifyShare(i int, gKeyPair *config.KeyPair) error {
  *    msg       = the message to sign
  *
  * Return
- *   A PromiseSignature object with the signature.
+ *   A signature object with the signature.
  */
-func (p *Promise) sign(i int, gKeyPair *config.KeyPair, msg []byte) *PromiseSignature {
+func (p *Promise) sign(i int, gKeyPair *config.KeyPair, msg []byte) *signature {
 	set := anon.Set{gKeyPair.Public}
 	sig := anon.Sign(gKeyPair.Suite, random.Stream, msg, set, nil, 0,
 		gKeyPair.Secret)
-	return new(PromiseSignature).init(gKeyPair.Suite, sig)
+	return new(signature).init(gKeyPair.Suite, sig)
 }
 
 /* An internal helper function, verifies a signature is from a given insurer.
  *
  * Arguments
  *    i   = the index of the insurer in the insurers list
- *    sig = the PromiseSignature object containing the signature
+ *    sig = the signature object containing the signature
  *    msg = the message that was signed
  *
  * Return
  *   an error if the signature is malformed, nil otherwise.
  */
-func (p *Promise) verifySignature(i int, sig *PromiseSignature, msg []byte) error {
+func (p *Promise) verifySignature(i int, sig *signature, msg []byte) error {
 	if i < 0 || i >= p.n {
 		return errors.New("Invalid index. Expected 0 <= i < n")
 	}
 	if sig.signature == nil {
-		return errors.New("Nil PromiseSignature")
+		return errors.New("Nil signature")
 	}
 	set := anon.Set{p.insurers[i]}
 	_, err := anon.Verify(sig.suite, msg, set, nil, sig.signature)
 	return err
 }
 
-/* A public wrapper function for sign, produces a signature for a given insurer.
- * Insurers should use this function to produce a PromiseSignature to express
- * approval of a Promise.
+/* Create a blameProof that the promiser maliciously constructed a shared secret. An
+ * insurer should call this if VerifyShare fails due to the public polynomial
+ * check failing. If it failed for other reasons (such as a bad index) it is not
+ * advised to call this function.
  *
  * Arguments
- *    i         = the index of the insurer's share
- *    gKeyPair  = the long term public/private keypair of the insurer.
+ *    i         = the index of the malicious shared secret
+ *    gKeyPair  = the long term key pair of the insurer of share i
  *
  * Return
- *   A PromiseSignature object with the signature.
- *
- * Note
- *   It is wise to first call VerifyShare to verify the insurer's share before
- *   signing on the promise.
+ *   A blameProof that the promiser is malicious or nil if an error occurs
+ *   An error object denoting the status of the blameProof construction
  */
-func (p *Promise) Sign(i int, gKeyPair *config.KeyPair) *PromiseSignature {
-	return p.sign(i, gKeyPair, sigMsg)
+func (p *Promise) blame(i int, gKeyPair *config.KeyPair) (*blameProof, error) {
+	diffieKey := p.suite.Point().Mul(p.pubKey, gKeyPair.Secret)
+	insurerSig := p.sign(i, gKeyPair, sigBlameMsg)
+
+	choice := make(map[proof.Predicate]int)
+	pred := proof.Rep("D", "x", "P")
+	choice[pred] = 1
+	rand := p.suite.Cipher(abstract.RandomKey)
+	sval := map[string]abstract.Secret{"x": gKeyPair.Secret}
+	pval := map[string]abstract.Point{"D": diffieKey, "P": p.pubKey}
+	prover := pred.Prover(p.suite, sval, pval, choice)
+	proof, err := proof.HashProve(p.suite, protocolName, rand, prover)
+	if err != nil {
+		return nil, err
+	}
+	return new(blameProof).init(p.suite, diffieKey, proof, insurerSig), nil
 }
 
-/* Verifies a signature from a given insurer
+/* Verifies that a blameProof proves a share to be maliciously constructed.
  *
  * Arguments
- *    i   = the index of the insurer in the insurers list
- *    sig = the PromiseSignature object containing the signature
+ *    i     = the index of the share subject to blame
+ *    proof = blameProof that alleges the promiser to have constructed a bad share.
  *
  * Return
- *   an error if the promise is malformed, nil otherwise.
+ *   an error if the blame is unjustified or nil if the blame is justified.
  */
-func (p *Promise) VerifySignature(i int, sig *PromiseSignature) error {
-	return p.verifySignature(i, sig, sigMsg)
+func (p *Promise) verifyBlame(i int, bproof *blameProof) error {
+	// Basic sanity checks
+	if i < 0 || i >= p.n {
+		return errors.New("Invalid index. Expected 0 <= i < n")
+	}
+	if err := p.verifySignature(i, &bproof.signature, sigBlameMsg); err != nil {
+		return err
+	}
+
+	// Verify the Diffie-Hellman shared secret was constructed properly
+	pval := map[string]abstract.Point{"D": bproof.diffieKey, "P": p.pubKey}
+	pred := proof.Rep("D", "x", "P")
+	verifier := pred.Verifier(p.suite, pval)
+	err := proof.HashVerify(p.suite, protocolName, verifier,
+		bproof.proof)
+	if err != nil {
+		return err
+	}
+
+	// Verify the share is bad.
+	diffieSecret := p.diffieHellmanSecret(bproof.diffieKey)
+	share        := p.suite.Secret().Sub(p.secrets[i], diffieSecret)
+	if p.pubPoly.Check(i, share) {
+		return errors.New("Unjustified blame. The share checks out okay.")
+	}
+	return nil
+}
+
+/* For insurers, produces a response to a Promise. If the insurer's share is
+ * valid, the function returns a Response expressing the insurer's approval.
+ * Otherwise, a Response with a blameProof blaming the promiser is made.
+ *
+ * Arguments
+ *    i        = the index of the insurer in the insurers list
+ *    gkeypair = the long term public/private keypair of the insurer.
+ *
+ * Return
+ *   the Response, or nil if there is an error.
+ *   an error (mainly if constructing the blameProof fails), nil otherwise.
+ */
+func (p *Promise) ProduceResponse(i int, gKeyPair *config.KeyPair) (*Response, error) {
+	if err := p.verifyShare(i, gKeyPair); err != nil {
+		blameProof, err := p.blame(i, gKeyPair)
+		if err != nil {
+			return nil, err
+		}
+		return new(Response).constructBlameProofResponse(blameProof), nil
+	}
+	
+	sig := p.sign(i, gKeyPair, sigMsg)
+	return new(Response).constructSignatureResponse(sig), nil
 }
 
 /* Reveals the secret share that the insurer has been protecting. The insurer
@@ -462,74 +520,6 @@ func (p *Promise) VerifyRevealedShare(i int, share abstract.Secret) error {
 	}
 	if !p.pubPoly.Check(i, share) {
 		return errors.New("The share failed the public polynomial check.")
-	}
-	return nil
-}
-
-/* Create a proof that the promiser maliciously constructed a shared secret. An
- * insurer should call this if VerifyShare fails due to the public polynomial
- * check failing. If it failed for other reasons (such as a bad index) it is not
- * advised to call this function.
- *
- * Arguments
- *    i         = the index of the malicious shared secret
- *    gKeyPair  = the long term key pair of the insurer of share i
- *
- * Return
- *   A BlameProof that the promiser is malicious or nil if an error occurs
- *   An error object denoting the status of the proof construction
- */
-func (p *Promise) Blame(i int, gKeyPair *config.KeyPair) (*BlameProof, error) {
-	diffieKey := p.suite.Point().Mul(p.pubKey, gKeyPair.Secret)
-	insurerSig := p.sign(i, gKeyPair, sigBlameMsg)
-
-	choice := make(map[proof.Predicate]int)
-	pred := proof.Rep("D", "x", "P")
-	choice[pred] = 1
-	rand := p.suite.Cipher(abstract.RandomKey)
-	sval := map[string]abstract.Secret{"x": gKeyPair.Secret}
-	pval := map[string]abstract.Point{"D": diffieKey, "P": p.pubKey}
-	prover := pred.Prover(p.suite, sval, pval, choice)
-	proof, err := proof.HashProve(p.suite, protocolName, rand, prover)
-	if err != nil {
-		return nil, err
-	}
-	return new(BlameProof).init(p.suite, diffieKey, proof, insurerSig), nil
-}
-
-/* Verifies that a BlameProof proves a share to be maliciously constructed.
- *
- * Arguments
- *    i     = the index of the share subject to blame
- *    proof = proof that alleges the promiser to have constructed a bad share.
- *
- * Return
- *   an error if the blame is unjustified or nil if the blame is justified.
- */
-func (p *Promise) VerifyBlame(i int, blameProof *BlameProof) error {
-	// Basic sanity checks
-	if i < 0 || i >= p.n {
-		return errors.New("Invalid index. Expected 0 <= i < n")
-	}
-	if err := p.verifySignature(i, &blameProof.signature, sigBlameMsg); err != nil {
-		return err
-	}
-
-	// Verify the Diffie-Hellman shared secret was constructed properly
-	pval := map[string]abstract.Point{"D": blameProof.diffieKey, "P": p.pubKey}
-	pred := proof.Rep("D", "x", "P")
-	verifier := pred.Verifier(p.suite, pval)
-	err := proof.HashVerify(p.suite, protocolName, verifier,
-		blameProof.diffieKeyProof)
-	if err != nil {
-		return err
-	}
-
-	// Verify the share is bad.
-	diffieSecret := p.diffieHellmanSecret(blameProof.diffieKey)
-	share        := p.suite.Secret().Sub(p.secrets[i], diffieSecret)
-	if p.pubPoly.Check(i, share) {
-		return errors.New("Unjustified blame. The share checks out okay.")
 	}
 	return nil
 }
@@ -798,13 +788,9 @@ type PromiseState struct {
 	// promised secret.
 	PriShares poly.PriShares
 
-	// A list of signatures verifying that an insurer has cerified the
-	// secret share it is guarding.
-	signatures []*PromiseSignature
-
-	// A list of blame proofs in which an insurer proves its secret share
-	// to be malformed and hence proves the promiser of being malicious
-	blames []*BlameProof
+	// A list of responses (either approving signatures or blameProofs)
+	// that have been received so far.
+	responses []*Response
 }
 
 /* Initializes a new PromiseState
@@ -822,42 +808,22 @@ func (ps *PromiseState) Init(promise Promise) *PromiseState {
 	ps.PriShares = poly.PriShares{}
 	ps.PriShares.Empty(promise.suite, promise.t, promise.n)
 
-	// There will be at most n signatures and blame proofs, one per insurer
-	ps.signatures = make([]*PromiseSignature, promise.n, promise.n)
-	ps.blames = make([]*BlameProof, promise.n, promise.n)
+	// There will be at most n responses, one per insurer
+	ps.responses = make([]*Response, promise.n, promise.n)
 	return ps
 }
 
-/* Adds a signature from an insurer to the PromiseState
+/* Adds a response from an insurer to the PromiseState
  *
  * Arguments
- *    i   = the index in the signature array this signature belongs
- *    sig = the PromiseSignature to add
+ *    i        = the index in the signature array this signature belongs
+ *    response = the response to add
  *
  * Postcondition
- *   The signature has been added
- *
- * Note to users of this code
- *   Be sure to call ps.Promise.VerifySignature before calling this function
+ *   The response has been added
  */
-func (ps *PromiseState) AddSignature(i int, sig *PromiseSignature) {
-	ps.signatures[i] = sig
-}
-
-/* Adds a blame proof from an insurer to the PromiseState
- *
- * Arguments
- *    i      = the index in the signature array this BlameProof belongs
- *    bproof = the BlameProof to add
- *
- * Postcondition
- *   The BlameProof has been added
- *
- * Note to users of this code
- *   Be sure to call ps.Promise.VerifyBlame before calling this function
- */
-func (ps *PromiseState) AddBlameProof(i int, bproof *BlameProof) {
-	ps.blames[i] = bproof
+func (ps *PromiseState) AddResponse(i int, response *Response) {
+	ps.responses[i] = response
 }
 
 /* Checks whether the Promise object has received enough signatures to be
@@ -871,14 +837,14 @@ func (ps *PromiseState) AddBlameProof(i int, bproof *BlameProof) {
  * Note to users of this code
  *   An error here is not necessarily a cause for alarm, particularly if the
  *   Promise just needs more signatures. However, it could be a red flag if
- *   the error was caused by a valid BlameProof. A single valid BlameProof will
+ *   the error was caused by a valid proof. A single valid blameProof will
  *   permanently make a Promise uncertified.
  *
  * Technical Notes: The function goes through the list of signatures and checks
  *                  whether the signature is properly signed. If at least r of
  *                  these are signed and r is greater than t (the minimum number
  *                  of shares needed to reconstruct the secret), the promise is
- *                  considered valid. If any valid BlameProofs are found, the
+ *                  considered valid. If any valid blameProofs are found, the
  *                  Promise is automatically labelled uncertified.
  */
 func (ps *PromiseState) PromiseCertified() error {
@@ -887,16 +853,19 @@ func (ps *PromiseState) PromiseCertified() error {
 	}
 	validSigs := 0
 	for i := 0; i < ps.Promise.n; i++ {
-		// Check whether the PromiseSignatures and BlameProofs are
-		// non-nil. Otherwise, bad things will happen.
-		if ps.signatures[i] != nil &&
-			ps.Promise.VerifySignature(i, ps.signatures[i]) == nil {
-			validSigs += 1
+		// If no response for this insurer has been received yet, continue
+		if ps.responses[i] == nil {
+			continue
 		}
 
-		if ps.blames[i] != nil &&
-			ps.Promise.VerifyBlame(i, ps.blames[i]) == nil {
-			return errors.New("A valid blame proofs proves this Promise to be uncertified.")
+		if ps.responses[i].rtype == signatureResponse &&
+		   ps.Promise.verifySignature(i, ps.responses[i].signature, sigMsg) == nil {
+			validSigs += 1		
+		}
+
+		if ps.responses[i].rtype == blameProofResponse &&
+		   ps.Promise.verifyBlame(i, ps.responses[i].blameProof) == nil {
+			return errors.New("A valid blameProof proves proves this Promise to be uncertified.")	
 		}
 	}
 	if validSigs < ps.Promise.r {
@@ -905,10 +874,10 @@ func (ps *PromiseState) PromiseCertified() error {
 	return nil
 }
 
-/* The PromiseSignature struct is used by insurers to express their approval
+/* The signature struct is used by insurers to express their approval
  * or disapproval of a given promise. After receiving a promise and verifying
  * that their shares are good, insurers can produce a signature to send back
- * to the promiser. Alternatively, the insurers can produce a BlameProof (see
+ * to the promiser. Alternatively, the insurers can produce a blameProof (see
  * below) and use the signature to certify that they authored the blame.
  *
  * In order for a Promise to be considered certified, a promiser will need to
@@ -919,7 +888,7 @@ func (ps *PromiseState) PromiseCertified() error {
  * a signature directly. Promise structs know how to generate signatures via
  * Promise.Sign
  */
-type PromiseSignature struct {
+type signature struct {
 
 	// The suite used for signing
 	suite abstract.Suite
@@ -929,35 +898,35 @@ type PromiseSignature struct {
 	signature []byte
 }
 
-/* An internal function, initializes a new PromiseSignature
+/* An internal function, initializes a new signature
  *
  * Arguments
  *    suite = the signing suite
  *    sig   = the signature of approval
  *
  * Returns
- *   An initialized PromiseSignature
+ *   An initialized signature
  */
-func (p *PromiseSignature) init(suite abstract.Suite, sig []byte) *PromiseSignature {
+func (p *signature) init(suite abstract.Suite, sig []byte) *signature {
 	p.suite = suite
 	p.signature = sig
 	return p
 }
 
-/* For users of this code, initializes a PromiseSignature for unmarshalling
+/* For users of this code, initializes a signature for unmarshalling
  *
  * Arguments
  *    suite = the signing suite
  *
  * Returns
- *   An initialized PromiseSignature ready to unmarshal a buffer
+ *   An initialized signature ready to unmarshal a buffer
  */
-func (p *PromiseSignature) UnmarshalInit(suite abstract.Suite) *PromiseSignature {
+func (p *signature) UnmarshalInit(suite abstract.Suite) *signature {
 	p.suite = suite
 	return p
 }
 
-/* Tests whether two PromiseSignature structs are equal
+/* Tests whether two signature structs are equal
  *
  * Arguments
  *    p2 = a pointer to the struct to test for equality
@@ -965,7 +934,7 @@ func (p *PromiseSignature) UnmarshalInit(suite abstract.Suite) *PromiseSignature
  * Returns
  *   true if equal, false otherwise
  */
-func (p *PromiseSignature) Equal(p2 *PromiseSignature) bool {
+func (p *signature) Equal(p2 *signature) bool {
 	return p.suite == p2.suite && reflect.DeepEqual(p, p2)
 }
 
@@ -975,15 +944,15 @@ func (p *PromiseSignature) Equal(p2 *PromiseSignature) bool {
  *   The marshal size
  *
  * Note
- *   The function is only useful for a PromiseSignature struct that has already
+ *   The function is only useful for a signature struct that has already
  *   been unmarshalled. Since signatures can be of variable length, the marshal
  *   size is not known before unmarshalling. Do not call before unmarshalling.
  */
-func (p *PromiseSignature) MarshalSize() int {
+func (p *signature) MarshalSize() int {
 	return uint32Size + len(p.signature)
 }
 
-/* Marshals a PromiseSignature struct into a byte array
+/* Marshals a signature struct into a byte array
  *
  * Returns
  *   A buffer of the marshalled struct
@@ -994,22 +963,22 @@ func (p *PromiseSignature) MarshalSize() int {
  *
  *      ||Signature_Length||==Signature_Array===||
  */
-func (p *PromiseSignature) MarshalBinary() ([]byte, error) {
+func (p *signature) MarshalBinary() ([]byte, error) {
 	buf := make([]byte, p.MarshalSize())
 	binary.LittleEndian.PutUint32(buf, uint32(len(p.signature)))
 	copy(buf[uint32Size:], p.signature)
 	return buf, nil
 }
 
-/* Unmarshals a PromiseSignature from a byte buffer
+/* Unmarshals a signature from a byte buffer
  *
  * Arguments
- *    buf = the buffer containing the PromiseSignature
+ *    buf = the buffer containing the signature
  *
  * Returns
  *   The error status of the unmarshalling (nil if no error)
  */
-func (p *PromiseSignature) UnmarshalBinary(buf []byte) error {
+func (p *signature) UnmarshalBinary(buf []byte) error {
 	if len(buf) < uint32Size {
 		return errors.New("Buffer size too small")
 	}
@@ -1023,7 +992,7 @@ func (p *PromiseSignature) UnmarshalBinary(buf []byte) error {
 	return nil
 }
 
-/* Marshals a PromiseSignature struct using an io.Writer
+/* Marshals a signature struct using an io.Writer
  *
  * Arguments
  *    w = the writer to use for marshalling
@@ -1032,7 +1001,7 @@ func (p *PromiseSignature) UnmarshalBinary(buf []byte) error {
  *   The number of bytes written
  *   The error status of the write (nil if no errors)
  */
-func (p *PromiseSignature) MarshalTo(w io.Writer) (int, error) {
+func (p *signature) MarshalTo(w io.Writer) (int, error) {
 	buf, err := p.MarshalBinary()
 	if err != nil {
 		return 0, err
@@ -1040,7 +1009,7 @@ func (p *PromiseSignature) MarshalTo(w io.Writer) (int, error) {
 	return w.Write(buf)
 }
 
-/* Unmarshal a PromiseSignature struct using an io.Reader
+/* Unmarshal a signature struct using an io.Reader
  *
  * Arguments
  *    r = the reader to use for unmarshalling
@@ -1049,7 +1018,7 @@ func (p *PromiseSignature) MarshalTo(w io.Writer) (int, error) {
  *   The number of bytes read
  *   The error status of the read (nil if no errors)
  */
-func (p *PromiseSignature) UnmarshalFrom(r io.Reader) (int, error) {
+func (p *signature) UnmarshalFrom(r io.Reader) (int, error) {
 	// Retrieve the signature length from the reader
 	buf := make([]byte, uint32Size)
 	n, err := io.ReadFull(r, buf)
@@ -1073,34 +1042,34 @@ func (p *PromiseSignature) UnmarshalFrom(r io.Reader) (int, error) {
 	return n + m, p.UnmarshalBinary(finalBuf)
 }
 
-/* Returns a string representation of the PromiseSignature for easy debugging
+/* Returns a string representation of the signature for easy debugging
  *
  * Returns
- *   The PromiseSignature's string representation
+ *   The signature's string representation
  */
-func (p *PromiseSignature) String() string {
-	s := "{PromiseSignature:\n"
+func (p *signature) String() string {
+	s := "{signature:\n"
 	s += "Suite => " + p.suite.String() + ",\n"
 	s += "Signature => " + hex.EncodeToString(p.signature) + "\n"
 	s += "}\n"
 	return s
 }
 
-/* The BlameProof struct provides an accountability measure. If a promiser
- * decides to construct a faulty share, insurers can construct a BlameProof
+/* The blameProof struct provides an accountability measure. If a promiser
+ * decides to construct a faulty share, insurers can construct a blameProof
  * to show that the promiser is malicious.
  *
  * The insurer provides the Diffie-Hellman shared secret with the promiser so
- * that others can decode the share in question. A zero knowledge proof is
+ * that others can decode the share in question. A zero knowledge blameProof is
  * provided to prove that the shared secret was constructed properly. Lastly, a
- * PromiseSignature is attached to prove that the insurer endorses the blame.
- * When other servers receive the BlameProof, they can then verify whether the
+ * signature is attached to prove that the insurer endorses the blame.
+ * When other servers receive the blameProof, they can then verify whether the
  * promiser is malicious or the insurer is falsely accusing the promiser.
  *
  * To quickly summarize the blame procedure, the following must hold for the
  * blame to succeed:
  *
- *   1. The PromiseSignature must be valid
+ *   1. The signature must be valid
  *
  *   2. The Diffie-Hellman key must be verified to be correct
  *
@@ -1111,12 +1080,12 @@ func (p *PromiseSignature) String() string {
  * slanderous.
  *
  * Beyond unmarshalling, users of this code need not worry about constructing a
- * BlameProof struct themselves. The Promise struct knows how to create a
- * BlameProof via the Promise.Blame method.
+ * blameProof struct themselves. The Promise struct knows how to create a
+ * blameProof via the Promise.Blame method.
  */
-type BlameProof struct {
+type blameProof struct {
 
-	// The suite used throughout the BlameProof
+	// The suite used throughout the blameProof
 	suite abstract.Suite
 
 	// The Diffie-Hellman shared secret between the insurer and promiser
@@ -1124,46 +1093,46 @@ type BlameProof struct {
 
 	// A HashProve proof that the insurer properly constructed the Diffie-
 	// Hellman shared secret
-	diffieKeyProof []byte
+	proof []byte
 
 	// The signature denoting that the insurer approves of the blame
-	signature PromiseSignature
+	signature signature
 }
 
-/* An internal function, initializes a new BlameProof struct
+/* An internal function, initializes a new blameProof struct
  *
  * Arguments
- *    suite = the suite used for the Diffie-Hellman key, proof, and signature
+ *    suite = the suite used for the Diffie-Hellman key, blameProof, and signature
  *    key   = the shared Diffie-Hellman key
- *    dkp   = the proof validating the Diffie-Hellman key
+ *    dkp   = the blameProof validating the Diffie-Hellman key
  *    sig   = the insurer's signature
  *
  * Returns
- *   An initialized BlameProof
+ *   An initialized blameProof
  */
-func (bp *BlameProof) init(suite abstract.Suite, key abstract.Point,
-	dkp []byte, sig *PromiseSignature) *BlameProof {
+func (bp *blameProof) init(suite abstract.Suite, key abstract.Point,
+	dkp []byte, sig *signature) *blameProof {
 	bp.suite = suite
 	bp.diffieKey = key
-	bp.diffieKeyProof = dkp
+	bp.proof = dkp
 	bp.signature = *sig
 	return bp
 }
 
-/* Initializes a BlameProof struct for unmarshalling
+/* Initializes a blameProof struct for unmarshalling
  *
  * Arguments
- *    s = the suite used for the Diffie-Hellman key, proof, and signature
+ *    s = the suite used for the Diffie-Hellman key, blameProof, and signature
  *
  * Returns
- *   An initialized BlameProof ready to be unmarshalled
+ *   An initialized blameProof ready to be unmarshalled
  */
-func (bp *BlameProof) UnmarshalInit(suite abstract.Suite) *BlameProof {
+func (bp *blameProof) UnmarshalInit(suite abstract.Suite) *blameProof {
 	bp.suite = suite
 	return bp
 }
 
-/* Tests whether two BlameProof structs are equal
+/* Tests whether two blameProof structs are equal
  *
  * Arguments
  *    bp2 = a pointer to the struct to test for equality
@@ -1171,10 +1140,10 @@ func (bp *BlameProof) UnmarshalInit(suite abstract.Suite) *BlameProof {
  * Returns
  *   true if equal, false otherwise
  */
-func (bp *BlameProof) Equal(bp2 *BlameProof) bool {
+func (bp *blameProof) Equal(bp2 *blameProof) bool {
 	return bp.suite == bp2.suite &&
 		bp.diffieKey.Equal(bp2.diffieKey) &&
-		reflect.DeepEqual(bp.diffieKeyProof, bp2.diffieKeyProof) &&
+		reflect.DeepEqual(bp.proof, bp2.proof) &&
 		bp.signature.Equal(&bp2.signature)
 }
 
@@ -1184,16 +1153,16 @@ func (bp *BlameProof) Equal(bp2 *BlameProof) bool {
  *   The marshal size
  *
  * Note
- *   Since PromiseSignature structs and the Diffie-Hellman proof can be of
- *   variable length, this function is only useful for a BlameProof that is
+ *   Since signature structs and the Diffie-Hellman blameProof can be of
+ *   variable length, this function is only useful for a blameProof that is
  *   already unmarshalled. Do not call before unmarshalling.
  */
-func (bp *BlameProof) MarshalSize() int {
-	return 2*uint32Size + bp.suite.PointLen() + len(bp.diffieKeyProof) +
+func (bp *blameProof) MarshalSize() int {
+	return 2*uint32Size + bp.suite.PointLen() + len(bp.proof) +
 		bp.signature.MarshalSize()
 }
 
-/* Marshals a BlameProof struct into a byte array
+/* Marshals a blameProof struct into a byte array
  *
  * Returns
  *   A buffer of the marshalled struct
@@ -1202,12 +1171,12 @@ func (bp *BlameProof) MarshalSize() int {
  * Note
  *   The buffer is formatted as follows:
  *
- *   ||Diffie_Key_Proof_Length||PromiseSignature_Length||Diffie_Key||
- *      Diffie_Key_Proof||PromiseSignature||
+ *   ||Diffie_Key_blameProof_Length||signature_Length||Diffie_Key||
+ *      Diffie_Key_blameProof||signature||
  */
-func (bp *BlameProof) MarshalBinary() ([]byte, error) {
+func (bp *blameProof) MarshalBinary() ([]byte, error) {
 	pointLen := bp.suite.PointLen()
-	proofLen := len(bp.diffieKeyProof)
+	proofLen := len(bp.proof)
 	buf := make([]byte, bp.MarshalSize())
 
 	binary.LittleEndian.PutUint32(buf, uint32(proofLen))
@@ -1219,7 +1188,7 @@ func (bp *BlameProof) MarshalBinary() ([]byte, error) {
 		return nil, err
 	}
 	copy(buf[2*uint32Size:], pointBuf)
-	copy(buf[2*uint32Size+pointLen:], bp.diffieKeyProof)
+	copy(buf[2*uint32Size+pointLen:], bp.proof)
 
 	sigBuf, err := bp.signature.MarshalBinary()
 	if err != nil {
@@ -1229,17 +1198,17 @@ func (bp *BlameProof) MarshalBinary() ([]byte, error) {
 	return buf, nil
 }
 
-/* Unmarshals a BlameProof from a byte buffer
+/* Unmarshals a blameProof from a byte buffer
  *
  * Arguments
- *    buf = the buffer containing the BlameProof
+ *    buf = the buffer containing the blameProof
  *
  * Returns
  *   The error status of the unmarshalling (nil if no error)
  */
-func (bp *BlameProof) UnmarshalBinary(buf []byte) error {
+func (bp *blameProof) UnmarshalBinary(buf []byte) error {
 	// Verify the buffer is large enough for the diffie proof length
-	// (uint32), the PromiseSignature length (uint32), and the
+	// (uint32), the signature length (uint32), and the
 	// Diffie-Hellman shared secret (abstract.Point)
 	pointLen := bp.suite.PointLen()
 	if len(buf) < 2*uint32Size+pointLen {
@@ -1258,11 +1227,11 @@ func (bp *BlameProof) UnmarshalBinary(buf []byte) error {
 	if len(buf) < 2*uint32Size+pointLen+proofLen+sigLen {
 		return errors.New("Buffer size too small")
 	}
-	bp.diffieKeyProof = make([]byte, proofLen, proofLen)
-	copy(bp.diffieKeyProof, buf[bufPos:bufPos+proofLen])
+	bp.proof = make([]byte, proofLen, proofLen)
+	copy(bp.proof, buf[bufPos:bufPos+proofLen])
 	bufPos += proofLen
 
-	bp.signature = PromiseSignature{}
+	bp.signature = signature{}
 	bp.signature.UnmarshalInit(bp.suite)
 	if err := bp.signature.UnmarshalBinary(buf[bufPos : bufPos+sigLen]); err != nil {
 		return err
@@ -1270,7 +1239,7 @@ func (bp *BlameProof) UnmarshalBinary(buf []byte) error {
 	return nil
 }
 
-/* Marshals a BlameProof struct using an io.Writer
+/* Marshals a blameProof struct using an io.Writer
  *
  * Arguments
  *    w = the writer to use for marshalling
@@ -1279,7 +1248,7 @@ func (bp *BlameProof) UnmarshalBinary(buf []byte) error {
  *   The number of bytes written
  *   The error status of the write (nil if no errors)
  */
-func (bp *BlameProof) MarshalTo(w io.Writer) (int, error) {
+func (bp *blameProof) MarshalTo(w io.Writer) (int, error) {
 	buf, err := bp.MarshalBinary()
 	if err != nil {
 		return 0, err
@@ -1287,7 +1256,7 @@ func (bp *BlameProof) MarshalTo(w io.Writer) (int, error) {
 	return w.Write(buf)
 }
 
-/* Unmarshals a BlameProof struct using an io.Reader
+/* Unmarshals a blameProof struct using an io.Reader
  *
  * Arguments
  *    r = the reader to use for unmarshalling
@@ -1296,7 +1265,7 @@ func (bp *BlameProof) MarshalTo(w io.Writer) (int, error) {
  *   The number of bytes read
  *   The error status of the read (nil if no errors)
  */
-func (bp *BlameProof) UnmarshalFrom(r io.Reader) (int, error) {
+func (bp *blameProof) UnmarshalFrom(r io.Reader) (int, error) {
 	// Retrieve the proof length and signature length from the reader
 	buf := make([]byte, 2*uint32Size)
 	n, err := io.ReadFull(r, buf)
@@ -1319,18 +1288,18 @@ func (bp *BlameProof) UnmarshalFrom(r io.Reader) (int, error) {
 	return n + m, bp.UnmarshalBinary(finalBuf)
 }
 
-/* Returns a string representation of the BlameProof for easy debugging
+/* Returns a string representation of the blameProof for easy debugging
  *
  * Returns
- *   The BlameProof's string representation
+ *   The blameProof's string representation
  */
-func (bp *BlameProof) String() string {
-	proofHex := hex.EncodeToString(bp.diffieKeyProof)
-	s := "{BlameProof:\n"
+func (bp *blameProof) String() string {
+	proofHex := hex.EncodeToString(bp.proof)
+	s := "{blameProof:\n"
 	s += "Suite => " + bp.suite.String() + ",\n"
 	s += "Diffie-Hellman Shared Secret => " + bp.diffieKey.String() + ",\n"
-	s += "Diffie-Hellman Proof => " + proofHex + ",\n"
-	s += "PromiseSignature => " + bp.signature.String() + "\n"
+	s += "Diffie-Hellman blameProof => " + proofHex + ",\n"
+	s += "signature => " + bp.signature.String() + "\n"
 	s += "}\n"
 	return s
 }
@@ -1343,67 +1312,67 @@ const (
 	// distinguish it form the type error.
 	errorResponse responseType = iota
 	
-	// Denotes that the Response contains a PromiseSignature
+	// Denotes that the Response contains a signature
 	signatureResponse
 	
-	// Denotes that the Response contains a BlameProof	
-	proofResponse
+	// Denotes that the Response contains a blameProof	
+	blameProofResponse
 )
 
-/* The Response struct is a union of the PromiseSignature and BlameProof types.
+/* The Response struct is a union of the signature and blameProof types.
  * It is the external-facing message that insurers send in response to a Promise.
- * It hides the details of PromiseSignature's and BlameProofs so that users of
+ * It hides the details of signature's and blameProofs so that users of
  * this code will not have to worry about them.
  *
- * Please see the PromiseSignature and BlameProof structs for more details.
+ * Please see the signature and blameProof structs for more details.
  */
 type Response struct {
 
 	// The type of response
 	rtype responseType
 	
-	// For unmarshalling purposes, the suite of the signature or proof
+	// For unmarshalling purposes, the suite of the signature or blameProof
 	suite abstract.Suite
 
 	// A signature proving that the insurer approves of a Promise
-	signature *PromiseSignature
+	signature *signature
 
-	// Proof showing that the Promise has been badly constructed.	
-	proof *BlameProof
+	// blameProof showing that the Promise has been badly constructed.	
+	blameProof *blameProof
 }
 
-/* An internal function, constructs a new Response with a PromiseSignature
+/* An internal function, constructs a new Response with a signature
  *
  * Arguments
- *    sig = the PromiseSignature to send.
+ *    sig = the signature to send.
  *
  * Returns
  *   An initialized Response
  */
-func (r *Response) constructSignatureResponse(sig *PromiseSignature) *Response {
+func (r *Response) constructSignatureResponse(sig *signature) *Response {
 	r.rtype     = signatureResponse
 	r.signature = sig
 	return r
 }
 
-/* An internal function, constructs a new Response with a BlameProof
+/* An internal function, constructs a new Response with a blameProof
  *
  * Arguments
- *    sig = the BlameProof to send.
+ *    sig = the blameProof to send.
  *
  * Returns
  *   An initialized Response
  */
-func (r *Response) constructProofResponse(proof *BlameProof) *Response {
-	r.rtype     = proofResponse
-	r.proof     = proof
+func (r *Response) constructBlameProofResponse(blameProof *blameProof) *Response {
+	r.rtype      = blameProofResponse
+	r.blameProof = blameProof
 	return r
 }
 
 /* Initializes a Response struct for unmarshalling
  *
  * Arguments
- *    suite = the suite used for the PromiseSignature or BlameProof
+ *    suite = the suite used for the signature or blameProof
  *
  * Returns
  *   An initialized Response ready to be unmarshalled
@@ -1432,8 +1401,8 @@ func (r *Response) Equal(r2 *Response) bool {
 	if r.rtype == signatureResponse {
 		return r.signature.Equal(r2.signature)
 	}
-	// r.rtype == proofSignature
-	return r.proof.Equal(r2.proof)
+	// r.rtype == blameProofSignature
+	return r.blameProof.Equal(r2.blameProof)
 }
 
 /* Returns the number of bytes used by this struct when marshalled
@@ -1442,7 +1411,7 @@ func (r *Response) Equal(r2 *Response) bool {
  *   The marshal size
  *
  * Note
- *   Since PromiseSignature structs and BlameProof structs can be of
+ *   Since signature structs and blameProof structs can be of
  *   variable length, this function is only useful for a Response that is
  *   already unmarshalled. Do not call before unmarshalling.
  */
@@ -1454,8 +1423,8 @@ func (r *Response) MarshalSize() int {
 	if r.rtype == signatureResponse {
 		return 2*uint32Size + r.signature.MarshalSize()
 	}
-	//r.rtype == proofSignature
-	return 2*uint32Size + r.proof.MarshalSize()
+	//r.rtype == blameProofSignature
+	return 2*uint32Size + r.blameProof.MarshalSize()
 }
 
 /* Marshals a Response struct into a byte array
@@ -1467,7 +1436,7 @@ func (r *Response) MarshalSize() int {
  * Note
  *   The buffer is formatted as follows:
  *
- *   ||PromiseSignature_Or_BlameProof_Length||Type||PromiseSignature_or_BlameProof||
+ *   ||signature_Or_blameProof_Length||Type||signature_or_blameProof||
  */
 func (r *Response) MarshalBinary() ([]byte, error) {
 	if r.rtype == errorResponse {
@@ -1479,8 +1448,8 @@ func (r *Response) MarshalBinary() ([]byte, error) {
 	
 	if r.rtype == signatureResponse {
 		msgLen = r.signature.MarshalSize()
-	} else { //r.rtype == proofResponse
-		msgLen = r.proof.MarshalSize()
+	} else { //r.rtype == blameProofResponse
+		msgLen = r.blameProof.MarshalSize()
 	}
 	
 	binary.LittleEndian.PutUint32(buf, uint32(msgLen))
@@ -1491,8 +1460,8 @@ func (r *Response) MarshalBinary() ([]byte, error) {
 
 	if r.rtype == signatureResponse {
 		msgBuf, err = r.signature.MarshalBinary()
-	} else { //r.rtype == proofResponse
-		msgBuf, err = r.proof.MarshalBinary()
+	} else { //r.rtype == blameProofResponse
+		msgBuf, err = r.blameProof.MarshalBinary()
 	}
 	
 	if err != nil {
@@ -1505,14 +1474,14 @@ func (r *Response) MarshalBinary() ([]byte, error) {
 /* Unmarshals a Response from a byte buffer
  *
  * Arguments
- *    buf = the buffer containing the BlameProof
+ *    buf = the buffer containing the blameProof
  *
  * Returns
  *   The error status of the unmarshalling (nil if no error)
  */
 func (r *Response) UnmarshalBinary(buf []byte) error {
 	// Verify the buffer is large enough for the length of the
-	// signature/proof as well as the type of message.
+	// signature/blameProof as well as the type of message.
 	if len(buf) < 2*uint32Size {
 		return errors.New("Buffer size too small")
 	}
@@ -1531,11 +1500,11 @@ func (r *Response) UnmarshalBinary(buf []byte) error {
 	}
 	
 	if r.rtype == signatureResponse {
-		r.signature = new(PromiseSignature).UnmarshalInit(r.suite)
+		r.signature = new(signature).UnmarshalInit(r.suite)
 		err = r.signature.UnmarshalBinary(buf[bufPos : bufPos+msgLen])
-	} else { // r.rtype == proofResponse
-		r.proof = new(BlameProof).UnmarshalInit(r.suite)
-		err = r.proof.UnmarshalBinary(buf[bufPos : bufPos+msgLen])
+	} else { // r.rtype == blameProofResponse
+		r.blameProof = new(blameProof).UnmarshalInit(r.suite)
+		err = r.blameProof.UnmarshalBinary(buf[bufPos : bufPos+msgLen])
 	}
 
 	if err != nil {
@@ -1571,7 +1540,7 @@ func (r *Response) MarshalTo(w io.Writer) (int, error) {
  *   The error status of the read (nil if no errors)
  */
 func (rp *Response) UnmarshalFrom(r io.Reader) (int, error) {
-	// Retrieve the length of the signature/proof
+	// Retrieve the length of the signature/blameProof
 	buf := make([]byte, uint32Size)
 	n, err := io.ReadFull(r, buf)
 	if err != nil {
@@ -1601,10 +1570,10 @@ func (r Response) String() string {
 	s += "ResponseType => " +  strconv.Itoa(int(r.rtype)) + ",\n"
 	
 	if r.rtype == signatureResponse {
-		s += "PromiseSignature => " + r.signature.String() + ",\n"
+		s += "signature => " + r.signature.String() + ",\n"
 	}
-	if r.rtype == proofResponse {
-		s += "BlameProof => " + r.proof.String() + ",\n"
+	if r.rtype == blameProofResponse {
+		s += "blameProof => " + r.blameProof.String() + ",\n"
 	}
 	s += "}\n"
 	return s

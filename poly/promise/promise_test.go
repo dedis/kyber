@@ -64,10 +64,10 @@ func deferTest(t *testing.T, message string) {
 	}
 }
 
-// Verifies that Init properly initalizes a new PromiseSignature object
+// Verifies that Init properly initalizes a new signature object
 func TestPromiseSignatureInit(t *testing.T) {
 	sig := []byte("This is a test signature")
-	p := new(PromiseSignature).init(suite, sig)
+	p := new(signature).init(suite, sig)
 	if p.suite != suite {
 		t.Error("Suite not properly initialized.")
 	}
@@ -78,23 +78,23 @@ func TestPromiseSignatureInit(t *testing.T) {
 
 // Verifies that UnMarshalInit properly initalizes for unmarshalling
 func TestPromiseSignatureUnMarshalInit(t *testing.T) {
-	p := new(PromiseSignature).UnmarshalInit(suite)
+	p := new(signature).UnmarshalInit(suite)
 	if p.suite != suite {
 		t.Error("Suite not properly initialized.")
 	}
 }
 
-// Verifies that PromiseSignature's marshalling code works
+// Verifies that signature's marshalling code works
 func TestPromiseSignatureBinaryMarshalling(t *testing.T) {
 	// Tests BinaryMarshal, BinaryUnmarshal, and MarshalSize
-	sig := basicPromise.Sign(numInsurers-1, insurerKeys[numInsurers-1])
+	sig := basicPromise.sign(numInsurers-1, insurerKeys[numInsurers-1], sigMsg)
 	encodedSig, err := sig.MarshalBinary()
 	if err != nil || len(encodedSig) != sig.MarshalSize() {
 		t.Fatal("Marshalling failed: ", err,
 			len(encodedSig) != sig.MarshalSize())
 	}
 
-	decodedSig := new(PromiseSignature).UnmarshalInit(suite)
+	decodedSig := new(signature).UnmarshalInit(suite)
 	err = decodedSig.UnmarshalBinary(encodedSig)
 	if err != nil {
 		t.Fatal("UnMarshalling failed: ", err)
@@ -102,19 +102,19 @@ func TestPromiseSignatureBinaryMarshalling(t *testing.T) {
 	if !sig.Equal(decodedSig) {
 		t.Error("Decoded signature not equal to original")
 	}
-	if basicPromise.VerifySignature(numInsurers-1, decodedSig) != nil {
+	if basicPromise.verifySignature(numInsurers-1, decodedSig, sigMsg) != nil {
 		t.Error("Decoded signature failed to be verified.")
 	}
 
 	// Tests MarshlTo and UnmarshalFrom
-	sig2 := basicPromise.Sign(1, insurerKeys[1])
+	sig2 := basicPromise.sign(1, insurerKeys[1], sigMsg)
 	bufWriter := new(bytes.Buffer)
 	bytesWritter, errs := sig2.MarshalTo(bufWriter)
 	if bytesWritter != sig2.MarshalSize() || errs != nil {
 		t.Fatal("MarshalTo failed: ", bytesWritter, err)
 	}
 
-	decodedSig2 := new(PromiseSignature).UnmarshalInit(suite)
+	decodedSig2 := new(signature).UnmarshalInit(suite)
 	bufReader := bytes.NewReader(bufWriter.Bytes())
 	bytesRead, errs2 := decodedSig2.UnmarshalFrom(bufReader)
 	if bytesRead != sig2.MarshalSize() || errs2 != nil {
@@ -125,46 +125,46 @@ func TestPromiseSignatureBinaryMarshalling(t *testing.T) {
 			sig2.MarshalSize(), decodedSig2.MarshalSize())
 	}
 	if !sig2.Equal(decodedSig2) {
-		t.Error("PromiseSignature read does not equal original")
+		t.Error("signature read does not equal original")
 	}
-	if basicPromise.VerifySignature(1, decodedSig2) != nil {
+	if basicPromise.verifySignature(1, decodedSig2, sigMsg) != nil {
 		t.Error("Read signature failed to be verified.")
 	}
 
 }
 
-// Verifies that Equal properly works for PromiseSignature objects
+// Verifies that Equal properly works for signature objects
 func TestPromiseSignatureEqual(t *testing.T) {
 	sig := []byte("This is a test")
-	p := new(PromiseSignature).init(suite, sig)
+	p := new(signature).init(suite, sig)
 	if !p.Equal(p) {
-		t.Error("PromiseSignature should equal itself.")
+		t.Error("signature should equal itself.")
 	}
 
 	// Error cases
-	p2 := new(PromiseSignature).init(nil, sig)
+	p2 := new(signature).init(nil, sig)
 	if p.Equal(p2) {
-		t.Error("PromiseSignature's differ in suite.")
+		t.Error("signature's differ in suite.")
 	}
-	p2 = new(PromiseSignature).init(suite, nil)
+	p2 = new(signature).init(suite, nil)
 	if p.Equal(p2) {
-		t.Error("PromiseSignature's differ in signature.")
+		t.Error("signature's differ in signature.")
 	}
 }
 
-// Verifies that Init properly initalizes a new BlameProof object
+// Verifies that Init properly initalizes a new blameProof object
 func TestBlameProofInit(t *testing.T) {
 	proof := []byte("This is a test")
 	sig := []byte("This too is a test")
-	p := new(PromiseSignature).init(suite, sig)
-	bp := new(BlameProof).init(suite, promiserKey.Public, proof, p)
+	p := new(signature).init(suite, sig)
+	bp := new(blameProof).init(suite, promiserKey.Public, proof, p)
 	if suite != bp.suite {
 		t.Error("Suite not properly initialized.")
 	}
 	if !bp.diffieKey.Equal(promiserKey.Public) {
 		t.Error("Diffie-Hellman key not properly initialized.")
 	}
-	if !reflect.DeepEqual(bp.diffieKeyProof, proof) {
+	if !reflect.DeepEqual(bp.proof, proof) {
 		t.Error("Diffie-Hellman proof not properly initialized.")
 	}
 	if !p.Equal(&bp.signature) {
@@ -174,41 +174,41 @@ func TestBlameProofInit(t *testing.T) {
 
 // Verifies that UnMarshalInit properly initalizes for unmarshalling
 func TestBlameProofUnMarshalInit(t *testing.T) {
-	bp := new(BlameProof).UnmarshalInit(suite)
+	bp := new(blameProof).UnmarshalInit(suite)
 	if bp.suite != suite {
-		t.Error("BlameProof not properly initialized.")
+		t.Error("blameProof not properly initialized.")
 	}
 }
 
-// Verifies that Equal properly works for PromiseSignature objects
+// Verifies that Equal properly works for signature objects
 func TestBlameProofEqual(t *testing.T) {
-	p := new(PromiseSignature).init(suite, []byte("Test"))
-	bp := new(BlameProof).init(suite, promiserKey.Public, []byte("Test"), p)
+	p := new(signature).init(suite, []byte("Test"))
+	bp := new(blameProof).init(suite, promiserKey.Public, []byte("Test"), p)
 	if !bp.Equal(bp) {
-		t.Error("BlameProof should equal itself.")
+		t.Error("blameProof should equal itself.")
 	}
 
 	// Error cases
-	bp2 := new(BlameProof).init(nil, promiserKey.Public, []byte("Test"), p)
+	bp2 := new(blameProof).init(nil, promiserKey.Public, []byte("Test"), p)
 	if bp.Equal(bp2) {
-		t.Error("BlameProof differ in key suites.")
+		t.Error("blameProof differ in key suites.")
 	}
-	bp2 = new(BlameProof).init(suite, suite.Point().Base(), []byte("Test"), p)
+	bp2 = new(blameProof).init(suite, suite.Point().Base(), []byte("Test"), p)
 	if bp.Equal(bp2) {
-		t.Error("BlameProof differ in diffie-keys.")
+		t.Error("blameProof differ in diffie-keys.")
 	}
-	bp2 = new(BlameProof).init(suite, promiserKey.Public, []byte("Differ"), p)
+	bp2 = new(blameProof).init(suite, promiserKey.Public, []byte("Differ"), p)
 	if bp.Equal(bp2) {
-		t.Error("BlameProof differ in hash proof.")
+		t.Error("blameProof differ in hash proof.")
 	}
-	p2 := new(PromiseSignature).init(suite, []byte("Differ"))
-	bp2 = new(BlameProof).init(suite, promiserKey.Public, []byte("Test"), p2)
+	p2 := new(signature).init(suite, []byte("Differ"))
+	bp2 = new(blameProof).init(suite, promiserKey.Public, []byte("Test"), p2)
 	if bp.Equal(bp2) {
-		t.Error("BlameProof differ in signatures.")
+		t.Error("blameProof differ in signatures.")
 	}
 }
 
-// Verifies that BlameProof's marshalling methods work properly.
+// Verifies that blameProof's marshalling methods work properly.
 func TestBlameProofBinaryMarshalling(t *testing.T) {
 	// Create a bad promise object. That a blame proof would succeed.
 	promise := new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
@@ -219,37 +219,37 @@ func TestBlameProofBinaryMarshalling(t *testing.T) {
 	promise.secrets[0] = badShare
 
 	// Tests BinaryMarshal, BinaryUnmarshal, and MarshalSize
-	bp, _ := promise.Blame(0, insurerKeys[0])
+	bp, _ := promise.blame(0, insurerKeys[0])
 	encodedBp, err := bp.MarshalBinary()
 	if err != nil || len(encodedBp) != bp.MarshalSize() {
 		t.Fatal("Marshalling failed: ", err)
 	}
 
-	decodedBp := new(BlameProof).UnmarshalInit(suite)
+	decodedBp := new(blameProof).UnmarshalInit(suite)
 	err = decodedBp.UnmarshalBinary(encodedBp)
 	if err != nil {
 		t.Fatal("UnMarshalling failed: ", err)
 	}
 	if !bp.Equal(decodedBp) {
-		t.Error("Decoded BlameProof not equal to original")
+		t.Error("Decoded blameProof not equal to original")
 	}
 	if bp.MarshalSize() != decodedBp.MarshalSize() {
 		t.Error("MarshalSize of decoded and original differ: ",
 			bp.MarshalSize(), decodedBp.MarshalSize())
 	}
-	if promise.VerifyBlame(0, decodedBp) != nil {
-		t.Error("Decoded BlameProof failed to be verified.")
+	if promise.verifyBlame(0, decodedBp) != nil {
+		t.Error("Decoded blameProof failed to be verified.")
 	}
 
 	// Tests MarshlTo and UnmarshalFrom
-	bp2, _ := basicPromise.Blame(0, insurerKeys[0])
+	bp2, _ := basicPromise.blame(0, insurerKeys[0])
 	bufWriter := new(bytes.Buffer)
 	bytesWritter, errs := bp2.MarshalTo(bufWriter)
 	if bytesWritter != bp2.MarshalSize() || errs != nil {
 		t.Fatal("MarshalTo failed: ", bytesWritter, err)
 	}
 
-	decodedBp2 := new(BlameProof).UnmarshalInit(suite)
+	decodedBp2 := new(blameProof).UnmarshalInit(suite)
 	bufReader := bytes.NewReader(bufWriter.Bytes())
 	bytesRead, errs2 := decodedBp2.UnmarshalFrom(bufReader)
 	if bytesRead != bp2.MarshalSize() || errs2 != nil {
@@ -260,17 +260,17 @@ func TestBlameProofBinaryMarshalling(t *testing.T) {
 			bp2.MarshalSize(), decodedBp2.MarshalSize())
 	}
 	if !bp2.Equal(decodedBp2) {
-		t.Error("BlameProof read does not equal original")
+		t.Error("blameProof read does not equal original")
 	}
-	if promise.VerifyBlame(0, decodedBp2) != nil {
-		t.Error("Decoded BlameProof failed to be verified.")
+	if promise.verifyBlame(0, decodedBp2) != nil {
+		t.Error("Decoded blameProof failed to be verified.")
 	}
 
 }
 
 // Verifies that constructSignatureResponse properly initalizes a new Response
 func TestResponseConstructSignatureResponse(t *testing.T) {
-	sig := basicPromise.Sign(0, insurerKeys[0])
+	sig := basicPromise.sign(0, insurerKeys[0], sigMsg)
 
 	response := new(Response).constructSignatureResponse(sig)
 	if response.rtype != signatureResponse {
@@ -281,15 +281,15 @@ func TestResponseConstructSignatureResponse(t *testing.T) {
 	}
 }
 
-// Verifies that constructProofResponse properly initalizes a new Response
+// Verifies that constructBlameProofResponse properly initalizes a new Response
 func TestResponseConstructProofResponse(t *testing.T) {
-	proof, _ := basicPromise.Blame(0, insurerKeys[0])
+	proof, _ := basicPromise.blame(0, insurerKeys[0])
 
-	response := new(Response).constructProofResponse(proof)
-	if response.rtype != proofResponse {
+	response := new(Response).constructBlameProofResponse(proof)
+	if response.rtype != blameProofResponse {
 		t.Error("Response type not properly initialized.")
 	}
-	if !proof.Equal(response.proof) {
+	if !proof.Equal(response.blameProof) {
 		t.Error("Proof not properly initialized.")
 	}
 }
@@ -304,10 +304,10 @@ func TestResponseUnMarshalInit(t *testing.T) {
 
 // Verifies that Equal properly works for Response objects
 func TestResponseEqual(t *testing.T) {
-	sig := basicPromise.Sign(0, insurerKeys[0])
-	proof, _ := basicPromise.Blame(0, insurerKeys[0])
+	sig := basicPromise.sign(0, insurerKeys[0], sigMsg)
+	proof, _ := basicPromise.blame(0, insurerKeys[0])
 
-	response := new(Response).constructProofResponse(proof)
+	response := new(Response).constructBlameProofResponse(proof)
 	if !response.Equal(response) {
 		t.Error("Response should equal itself.")
 	}
@@ -317,14 +317,14 @@ func TestResponseEqual(t *testing.T) {
 	if response.Equal(response2) {
 		t.Error("Response differ in type.")
 	}
-	response2 = new(Response).constructProofResponse(proof)
-	response2.proof, _ = basicPromise.Blame(1, insurerKeys[1])
+	response2 = new(Response).constructBlameProofResponse(proof)
+	response2.blameProof, _ = basicPromise.blame(1, insurerKeys[1])
 	if response.Equal(response2) {
 		t.Error("Response differ in Proof.")
 	}
 	response = new(Response).constructSignatureResponse(sig)
 	response2 = new(Response).constructSignatureResponse(sig)
-	response2.signature = basicPromise.Sign(1, insurerKeys[1])
+	response2.signature = basicPromise.sign(1, insurerKeys[1], sigMsg)
 	if response.Equal(response2) {
 		t.Error("Response differ in Signatures.")
 	}
@@ -351,7 +351,7 @@ func responseMarshallingHelper(t *testing.T, response *Response) {
 		t.Fatal("UnMarshalling failed: ", err)
 	}
 	if !response.Equal(decodedResponse) {
-		t.Error("Decoded BlameProof not equal to original")
+		t.Error("Decoded blameProof not equal to original")
 	}
 	if response.MarshalSize() != decodedResponse.MarshalSize() {
 		t.Error("MarshalSize of decoded and original differ: ",
@@ -384,13 +384,13 @@ func responseMarshallingHelper(t *testing.T, response *Response) {
 func TestResponseBinaryMarshalling(t *testing.T) {
 
 	// Verify a signature response can be encoded properly
-	sig := basicPromise.Sign(0, insurerKeys[0])
+	sig := basicPromise.sign(0, insurerKeys[0], sigMsg)
 	response := new(Response).constructSignatureResponse(sig)
 	responseMarshallingHelper(t, response)
 
 	// Verify a proof response can be encoded properly
-	proof, _ := basicPromise.Blame(0, insurerKeys[0])
-	response = new(Response).constructProofResponse(proof)
+	proof, _ := basicPromise.blame(0, insurerKeys[0])
+	response = new(Response).constructBlameProofResponse(proof)
 	responseMarshallingHelper(t, response)
 }
 
@@ -556,18 +556,18 @@ func TestPromiseDiffieHellmanEncryptDecrypt(t *testing.T) {
 // verification fails if the proper credentials are not supplied (aka Diffie-
 // Hellman decryption failed).
 func TestPromiseVerifyShare(t *testing.T) {
-	if basicPromise.VerifyShare(0, insurerKeys[0]) != nil {
+	if basicPromise.verifyShare(0, insurerKeys[0]) != nil {
 		t.Error("The share should have been verified")
 	}
 
 	// Error handling
-	if basicPromise.VerifyShare(-1, insurerKeys[0]) == nil {
+	if basicPromise.verifyShare(-1, insurerKeys[0]) == nil {
 		t.Error("The share should not have been valid. Index is negative.")
 	}
-	if basicPromise.VerifyShare(basicPromise.n, insurerKeys[0]) == nil {
+	if basicPromise.verifyShare(basicPromise.n, insurerKeys[0]) == nil {
 		t.Error("The share should not have been valid. Index >= n")
 	}
-	if basicPromise.VerifyShare(numInsurers-1, insurerKeys[0]) == nil {
+	if basicPromise.verifyShare(numInsurers-1, insurerKeys[0]) == nil {
 		t.Error("Share should be invalid. Index and Public Key did not match.")
 	}
 }
@@ -575,45 +575,45 @@ func TestPromiseVerifyShare(t *testing.T) {
 // Verify that the promise can produce a valid signature and then verify it.
 // In short, all signatures produced by the sign method should be accepted.
 func TestPromiseSignAndVerify(t *testing.T) {
-	sig := basicPromise.Sign(0, insurerKeys[0])
-	if basicPromise.VerifySignature(0, sig) != nil {
+	sig := basicPromise.sign(0, insurerKeys[0], sigMsg)
+	if basicPromise.verifySignature(0, sig, sigMsg) != nil {
 		t.Error("Signature failed to be validated")
 	}
 }
 
 // Produces a bad signature that has a malformed approve message
-func produceSigWithBadMessage() *PromiseSignature {
+func produceSigWithBadMessage() *signature {
 	set := anon.Set{insurerKeys[0].Public}
 	approveMsg := "Bad message"
 	digSig := anon.Sign(insurerKeys[0].Suite, random.Stream, []byte(approveMsg),
 		set, nil, 0, insurerKeys[0].Secret)
-	return new(PromiseSignature).init(insurerKeys[0].Suite, digSig)
+	return new(signature).init(insurerKeys[0].Suite, digSig)
 }
 
 // Verify that mallformed signatures are not accepted.
 func TestPromiseVerifySignature(t *testing.T) {
 	// Fail if the signature is not the specially formatted approve message.
-	if basicPromise.VerifySignature(0, produceSigWithBadMessage()) == nil {
+	if basicPromise.verifySignature(0, produceSigWithBadMessage(), sigMsg) == nil {
 		t.Error("Signature has a bad message and should be rejected.")
 	}
 
 	//Error Handling
 	// Fail if a valid signature is applied to the wrong share.
-	sig := basicPromise.Sign(0, insurerKeys[0])
-	if basicPromise.VerifySignature(numInsurers-1, sig) == nil {
+	sig := basicPromise.sign(0, insurerKeys[0], sigMsg)
+	if basicPromise.verifySignature(numInsurers-1, sig, sigMsg) == nil {
 		t.Error("Signature is for the wrong share.")
 	}
 	// Fail if index is negative
-	if basicPromise.VerifySignature(-1, sig) == nil {
+	if basicPromise.verifySignature(-1, sig, sigMsg) == nil {
 		t.Error("Error: Index < 0")
 	}
 	// Fail if index >= n
-	if basicPromise.VerifySignature(basicPromise.n, sig) == nil {
+	if basicPromise.verifySignature(basicPromise.n, sig, sigMsg) == nil {
 		t.Error("Error: Index >= n")
 	}
 	// Should return false if passed nil
 	sig.signature = nil
-	if basicPromise.VerifySignature(0, sig) == nil {
+	if basicPromise.verifySignature(0, sig, sigMsg) == nil {
 		t.Error("Error: Signature is nil")
 	}
 }
@@ -653,34 +653,34 @@ func TestPromiseBlameAndVerify(t *testing.T) {
 	badShare := promise.suite.Secret().Add(badKey.Secret, diffieSecret)
 	promise.secrets[0] = badShare
 
-	validProof, err := promise.Blame(0, insurerKeys[0])
+	validProof, err := promise.blame(0, insurerKeys[0])
 	if err != nil {
 		t.Fatal("Blame failed to be properly constructed")
 	}
-	if promise.VerifyBlame(0, validProof) != nil {
+	if promise.verifyBlame(0, validProof) != nil {
 		t.Error("The proof is valid and should be accepted.")
 	}
 
 	// Error handling
-	if promise.VerifyBlame(-10, validProof) == nil {
+	if promise.verifyBlame(-10, validProof) == nil {
 		t.Error("The i index is below 0")
 	}
-	if promise.VerifyBlame(numInsurers, validProof) == nil {
+	if promise.verifyBlame(numInsurers, validProof) == nil {
 		t.Error("The i index is at or above n")
 	}
 
-	goodPromiseShare, _ := basicPromise.Blame(0, insurerKeys[0])
-	if basicPromise.VerifyBlame(0, goodPromiseShare) == nil {
+	goodPromiseShare, _ := basicPromise.blame(0, insurerKeys[0])
+	if basicPromise.verifyBlame(0, goodPromiseShare) == nil {
 		t.Error("Invalid blame: the share is actually good.")
 	}
-	badProof, _ := basicPromise.Blame(0, insurerKeys[0])
-	badProof.diffieKeyProof = []byte("Invalid zero-knowledge proof")
-	if basicPromise.VerifyBlame(0, badProof) == nil {
+	badProof, _ := basicPromise.blame(0, insurerKeys[0])
+	badProof.proof = []byte("Invalid zero-knowledge proof")
+	if basicPromise.verifyBlame(0, badProof) == nil {
 		t.Error("Invalid blame. Bad Diffie-Hellman key proof.")
 	}
-	badSignature, _ := basicPromise.Blame(0, insurerKeys[0])
-	badSignature.signature = *promise.Sign(1, insurerKeys[1])
-	if basicPromise.VerifyBlame(0, badSignature) == nil {
+	badSignature, _ := basicPromise.blame(0, insurerKeys[0])
+	badSignature.signature = *promise.sign(1, insurerKeys[1], sigMsg)
+	if basicPromise.verifyBlame(0, badSignature) == nil {
 		t.Error("Invalid blame. The signature is bad.")
 	}
 }
@@ -836,30 +836,26 @@ func TestPromiseStateInit(t *testing.T) {
 	if !basicPromise.Equal(&promiseState.Promise) {
 		t.Error("Promise not properly initialized")
 	}
-	if len(promiseState.signatures) != numInsurers {
-		t.Error("Signatures array not properly initialized")
+	if len(promiseState.responses) != numInsurers {
+		t.Error("Responses array not properly initialized")
 	}
 }
 
-// Verify that PromiseState can properly add signatures
+// Verify that PromiseState can properly add signature and blame responses
 func TestPromiseStateAddSignature(t *testing.T) {
 	promiseState := new(PromiseState).Init(*basicPromise)
 	for i := 0; i < numInsurers; i++ {
-		sig := promiseState.Promise.Sign(i, insurerKeys[i])
-		promiseState.AddSignature(i, sig)
-		if !sig.Equal(promiseState.signatures[i]) {
+		sig := promiseState.Promise.sign(i, insurerKeys[i], sigMsg)
+		response := new(Response).constructSignatureResponse(sig)
+		promiseState.AddResponse(i, response)
+		if !sig.Equal(promiseState.responses[i].signature) {
 			t.Error("Signature failed to be added")
 		}
-	}
-}
 
-// Verify that PromiseState can add blames.
-func TestPromiseStateAddBlame(t *testing.T) {
-	promiseState := new(PromiseState).Init(*basicPromise)
-	for i := 0; i < numInsurers; i++ {
-		bproof, _ := promiseState.Promise.Blame(i, insurerKeys[i])
-		promiseState.AddBlameProof(i, bproof)
-		if !bproof.Equal(promiseState.blames[i]) {
+		bproof, _ := promiseState.Promise.blame(i, insurerKeys[i])
+		response = new(Response).constructBlameProofResponse(bproof)
+		promiseState.AddResponse(i, response)
+		if !bproof.Equal(promiseState.responses[i].blameProof) {
 			t.Error("Blame failed to be added")
 		}
 	}
@@ -871,21 +867,23 @@ func TestPromiseStatePromiseCertified(t *testing.T) {
 		pt, r, insurerList)
 	promiseState := new(PromiseState).Init(*promise)
 
+	// Insure that bad blameProof structs do not cause the Promise
+	// to be considered uncertified.
+	bproof, _ := promiseState.Promise.blame(0, insurerKeys[0])
+	response := new(Response).constructBlameProofResponse(bproof)
+	promiseState.AddResponse(0, response)
+
 	// Once enough signatures have been added, the Promise should remain
 	// certified.
-	for i := 0; i < numInsurers; i++ {
-		promiseState.AddSignature(i,
-			promiseState.Promise.Sign(i, insurerKeys[i]))
-
-		// Insure that bad BlameProof structs do not cause the Promise
-		// to be considered uncertified.
-		bproof, _ := promiseState.Promise.Blame(i, insurerKeys[i])
-		promiseState.AddBlameProof(i, bproof)
+	for i := 1; i < numInsurers; i++ {
+		sig := promiseState.Promise.sign(i, insurerKeys[i], sigMsg)
+		response := new(Response).constructSignatureResponse(sig)
+		promiseState.AddResponse(i, response)
 
 		err := promiseState.PromiseCertified()
-		if i < r-1 && err == nil {
+		if i < r && err == nil {
 			t.Error("Not enough signtures have been added yet", i, r)
-		} else if i >= r-1 && err != nil {
+		} else if i >= r && err != nil {
 			t.Error("Promise should be valid now.")
 			t.Error(promiseState.PromiseCertified())
 		}
@@ -900,28 +898,31 @@ func TestPromiseStatePromiseCertified(t *testing.T) {
 		t.Error("The Promise is malformed and should be uncertified")
 	}
 
-	// Make sure that one valid BlameProof makes the Promise forever
+	// Make sure that one valid blameProof makes the Promise forever
 	// uncertified
 	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
 	promiseState = new(PromiseState).Init(*promise)
 	promise.secrets[0] = promise.suite.Secret()
-	for i := 0; i < numInsurers; i++ {
-		promiseState.AddSignature(i,
-			promiseState.Promise.Sign(i, insurerKeys[i]))
-		bproof, _ := promiseState.Promise.Blame(i, insurerKeys[i])
-		promiseState.AddBlameProof(i, bproof)
+	bproof, _ = promiseState.Promise.blame(0, insurerKeys[0])
+	response  = new(Response).constructBlameProofResponse(bproof)
+	promiseState.AddResponse(0, response)
+
+	for i := 1; i < numInsurers; i++ {
+		sig := promiseState.Promise.sign(i, insurerKeys[i], sigMsg)
+		response := new(Response).constructSignatureResponse(sig)
+		promiseState.AddResponse(i, response)
 		if promiseState.PromiseCertified() == nil {
-			t.Error("A valid BlameProof makes this uncertified")
+			t.Error("A valid blameProof makes this uncertified")
 		}
 	}
 }
 
 // Tests all the string functions. Simply calls them to make sure they return.
 func TestString(t *testing.T) {
-	sig := basicPromise.Sign(0, insurerKeys[0])
+	sig := basicPromise.sign(0, insurerKeys[0], sigMsg)
 	sig.String()
 
-	bp, _ := basicPromise.Blame(0, insurerKeys[0])
+	bp, _ := basicPromise.blame(0, insurerKeys[0])
 	bp.String()
 
 	basicPromise.String()
@@ -929,6 +930,6 @@ func TestString(t *testing.T) {
 	response := new(Response).constructSignatureResponse(sig)
 	response.String()
 
-	response = new(Response).constructProofResponse(bp)
+	response = new(Response).constructBlameProofResponse(bp)
 	response.String()
 }
