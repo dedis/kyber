@@ -495,9 +495,8 @@ func (p *Promise) ProduceResponse(i int, gKeyPair *config.KeyPair) (*Response, e
 	return new(Response).constructSignatureResponse(sig), nil
 }
 
-/* Reveals the secret share that the insurer has been protecting. The insurer
- * should call this function on behalf of a client after verifying that the
- * Promiser is non-responsive.
+/* An internal function, reveals the secret share that the insurer has been
+ * protecting. The public version is State.RevealShare.
  *
  * Arguments
  *    i        = the index of the insurer
@@ -506,7 +505,7 @@ func (p *Promise) ProduceResponse(i int, gKeyPair *config.KeyPair) (*Response, e
  * Return
  *   the revealed private share
  */
-func (p *Promise) RevealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
+func (p *Promise) revealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
 	diffieBase   := p.suite.Point().Mul(p.pubKey, gKeyPair.Secret)
 	diffieSecret := p.diffieHellmanSecret(diffieBase)
 	share        := p.suite.Secret().Sub(p.secrets[i], diffieSecret)
@@ -818,6 +817,24 @@ func (ps *State) Init(promise Promise) *State {
  */
 func (ps *State) AddResponse(i int, response *Response) {
 	ps.responses[i] = response
+}
+
+/* A public wrapper around Promise.revealShare, ensures that a share is only
+ * revealed for a certified Promise. An insurer should call this function on
+ * behalf of a client after verifying that the promiser is non-responsive.
+ *
+ * Arguments
+ *    i        = the index of the insurer
+ *    gkeyPair = the long-term keypair of the insurer
+ *
+ * Return
+ *   the revealed private share or panics if the Promise is not certified
+ */
+func (ps *State) RevealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
+	if !ps.PromiseCertified() {
+		panic("RevealShare should only be called on a certified promise.")
+	}
+	return ps.Promise.revealShare(i, gKeyPair)
 }
 
 /* Checks whether the Promise object has received enough signatures to be
