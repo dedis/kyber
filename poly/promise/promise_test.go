@@ -14,7 +14,7 @@ import (
 )
 
 var suite = nist.NewAES128SHA256P256()
-var altSuite = new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+var altSuite = edwards.NewAES128SHA256Ed25519(false)
 
 var secretKey = produceKeyPair()
 var promiserKey = produceKeyPair()
