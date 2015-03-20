@@ -34,7 +34,7 @@ func Bits(bitlen uint, exact bool, rand cipher.Stream) []byte {
 // Choose a uniform random boolean
 func Bool(rand cipher.Stream) bool {
 	b := Bits(8, false, rand)
-	return b[0] & 1 != 0
+	return b[0]&1 != 0
 }
 
 // Choose a uniform random byte
