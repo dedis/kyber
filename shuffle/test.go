@@ -7,7 +7,7 @@ import (
 	"github.com/dedis/crypto/proof"
 )
 
-func TestShuffle(suite abstract.Suite, k int) {
+func TestShuffle(suite abstract.Suite, k int, N int) {
 
 	rand := suite.Cipher(abstract.RandomKey)
 
@@ -36,18 +36,22 @@ func TestShuffle(suite abstract.Suite, k int) {
 		Y[i].Add(Y[i], C[i])           // Encrypted client public key
 	}
 
-	// Do a key-shuffle
-	Xbar, Ybar, prover := Shuffle(suite, nil, H, X, Y, rand)
-	prf, err := proof.HashProve(suite, "PairShuffle", rand, prover)
-	if err != nil {
-		panic("Shuffle proof failed: " + err.Error())
-	}
-	//fmt.Printf("proof:\n%s\n",hex.Dump(prf))
+	// Repeat only the actual shuffle portion for test purposes.
+	for i := 0; i < N; i++ {
 
-	// Check it
-	verifier := Verifier(suite, nil, H, X, Y, Xbar, Ybar)
-	err = proof.HashVerify(suite, "PairShuffle", verifier, prf)
-	if err != nil {
-		panic("Shuffle verify failed: " + err.Error())
+		// Do a key-shuffle
+		Xbar, Ybar, prover := Shuffle(suite, nil, H, X, Y, rand)
+		prf, err := proof.HashProve(suite, "PairShuffle", rand, prover)
+		if err != nil {
+			panic("Shuffle proof failed: " + err.Error())
+		}
+		//fmt.Printf("proof:\n%s\n",hex.Dump(prf))
+
+		// Check it
+		verifier := Verifier(suite, nil, H, X, Y, Xbar, Ybar)
+		err = proof.HashVerify(suite, "PairShuffle", verifier, prf)
+		if err != nil {
+			panic("Shuffle verify failed: " + err.Error())
+		}
 	}
 }
