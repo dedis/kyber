@@ -531,9 +531,16 @@ func TestPromiseverifyPromise(t *testing.T) {
 	}
 }
 
-// Verifies that UnMarshalInit properly initalizes for unmarshalling
+// Verifies that Id returns the id expected
 func TestPromiseId(t *testing.T) {
 	if basicPromise.Id() != secretKey.Public.String() {
+		t.Error("Wrong id returned.")
+	}
+}
+
+// Verifies that PromiserId returns the id expected
+func TestPromisePromiserId(t *testing.T) {
+	if basicPromise.PromiserId() != promiserKey.Public.String() {
 		t.Error("Wrong id returned.")
 	}
 }

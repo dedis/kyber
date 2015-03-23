@@ -320,6 +320,12 @@ func (p *Promise) Id() string {
 	return p.id.String()
 }
 
+// Returns the id of the Promiser (aka its long term public key)
+func (p *Promise) PromiserId() string {
+	return p.pubKey.String()
+}
+
+
 /* Given a Diffie-Hellman shared public key, produces a secret to encrypt
  * another secret
  *
