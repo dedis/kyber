@@ -240,7 +240,8 @@ func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
 	p.n = len(insurers)
 	p.suite = secretPair.Suite
 	p.pubKey = longPair.Public
-	p.insurers = insurers
+	p.insurers = make([]abstract.Point, p.n, p.n)
+	copy(p.insurers, insurers)
 	p.secrets = make([]abstract.Secret, p.n, p.n)
 
 	// Verify that t <= r <= n
@@ -323,6 +324,14 @@ func (p *Promise) Id() string {
 // Returns the id of the Promiser (aka its long term public key)
 func (p *Promise) PromiserId() string {
 	return p.pubKey.String()
+}
+
+// Returns the list of insurers of the promise.
+// A copy of insurers is return to prevent tampering.
+func (p *Promise) Insurers() []abstract.Point {
+	result := make([]abstract.Point, p.n, p.n)
+	copy(result, p.insurers)
+	return result
 }
 
 
@@ -877,6 +886,9 @@ func (ps *State) RevealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
  *                  of shares needed to reconstruct the secret), the promise is
  *                  considered certified. If any valid blameProofs are found, the
  *                  Promise is automatically labelled uncertified.
+ *
+ * TODO Add some more verification for Response (like making sure
+ * ps.response.signature != nil)
  */
 func (ps *State) PromiseCertified() error {
 	if err := ps.Promise.verifyPromise(); err != nil {

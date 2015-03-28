@@ -438,6 +438,12 @@ func TestPromiseConstructPromise(t *testing.T) {
 	}
 
 	// Error handling
+	// First, verify that promise creates its own copy of the array data.
+	promise.insurers[0] = nil
+	if insurerList[0] == nil {
+		t.Error("Changing the return result shouldn't change the original array")
+	}
+	
 	// Check that ConstructPromise panics if n < t
 	test := func() {
 		defer deferTest(t, "ConstructPromise should have panicked.")
@@ -543,6 +549,23 @@ func TestPromisePromiserId(t *testing.T) {
 	if basicPromise.PromiserId() != promiserKey.Public.String() {
 		t.Error("Wrong id returned.")
 	}
+}
+
+// Verifies that Insurers returns the insurers slice expected
+func TestPromiseInsurers(t *testing.T) {
+	result := basicPromise.Insurers()
+	for i :=0; i < basicPromise.n; i++ {
+		if result[i] != basicPromise.insurers[i] {
+			t.Fatal("Wrong insurers list returned.")
+		}
+	}
+	
+	result = basicPromise.Insurers()
+	result[0] = nil
+	if basicPromise.insurers[0] == nil {
+		t.Error("Changing the return result shouldn't change the original array")
+	}
+	
 }
 
 // Tests that encrypting a secret with a diffie-hellman shared secret and then
