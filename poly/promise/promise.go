@@ -177,6 +177,8 @@ var maliciousShare = errors.New("Share is malicious. PubPoly.Check failed.")
  * - All
  *   * UnmarshalInit
  *   * Id
+ *   * PromiserId
+ *   * Insurers
  */
 type Promise struct {
 
