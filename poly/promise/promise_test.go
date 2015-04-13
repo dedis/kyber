@@ -551,6 +551,20 @@ func TestPromisePromiserId(t *testing.T) {
 	}
 }
 
+// Verifies that PromiserKey returns a copy of the Promiser's long term key
+func TestPromiserKey(t *testing.T) {
+	result := basicPromise.PromiserKey()
+	if !result.Equal(basicPromise.pubKey) &&
+	   result.String() != basicPromise.pubKey.String() {
+			t.Fatal("Keys should be equal")
+	}
+	
+	result.Base()
+	if result.Equal(basicPromise.pubKey) {
+		t.Error("Changing the return result shouldn't change the original key")
+	}
+}
+
 // Verifies that Insurers returns the insurers slice expected
 func TestPromiseInsurers(t *testing.T) {
 	result := basicPromise.Insurers()

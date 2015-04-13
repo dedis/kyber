@@ -328,6 +328,11 @@ func (p *Promise) PromiserId() string {
 	return p.pubKey.String()
 }
 
+// Returns a copy of the Promiser's long term public key
+func (p *Promise) PromiserKey() abstract.Point {
+	return p.suite.Point().Add(p.suite.Point().Null(), p.pubKey)
+}
+
 // Returns the list of insurers of the promise.
 // A copy of insurers is return to prevent tampering.
 func (p *Promise) Insurers() []abstract.Point {
