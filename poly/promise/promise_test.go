@@ -943,20 +943,50 @@ func TestStateInit(t *testing.T) {
 func TestStateAddSignature(t *testing.T) {
 	promiseState := new(State).Init(*basicPromise)
 	for i := 0; i < numInsurers; i++ {
+		// Verify valid signatures are added.
 		sig := promiseState.Promise.sign(i, insurerKeys[i], sigMsg)
 		response := new(Response).constructSignatureResponse(sig)
-		promiseState.AddResponse(i, response)
-		if !sig.Equal(promiseState.responses[i].signature) {
-			t.Error("Signature failed to be added")
+		err := promiseState.AddResponse(i, response)
+		if err != nil || !sig.Equal(promiseState.responses[i].signature) {
+			t.Error("Signature failed to be added", err)
 		}
 
+		// Verify invalid blameproofs are not added.
 		bproof, _ := promiseState.Promise.blame(i, insurerKeys[i])
 		response = new(Response).constructBlameProofResponse(bproof)
-		promiseState.AddResponse(i, response)
-		if !bproof.Equal(promiseState.responses[i].blameProof) {
-			t.Error("Blame failed to be added")
+		err = promiseState.AddResponse(i, response)
+		if err == nil || promiseState.responses[i].rtype == blameProofResponse {
+			t.Error("Invalid blameproof should not have been added.")
 		}
 	}
+	i := 0
+	promise := new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
+	promiseState = new(State).Init(*promise)
+	
+	// Verify invalid signatures are not added.
+	sig := promiseState.Promise.sign(i, insurerKeys[i], sigMsg)
+	response := new(Response).constructSignatureResponse(sig)
+	err := promiseState.AddResponse(i+1, response)
+	if err == nil || promiseState.responses[i] != nil {
+		t.Error("Signature is invalid and should not be added.", err)
+	}
+	
+	// Change the response to an error and verify it is not added.
+	response.rtype = errorResponse
+	err = promiseState.AddResponse(i, response)
+	if err == nil || promiseState.responses[i] != nil {
+		t.Error("Signature is invalid and should not be added.", err)
+	}	
+	
+	// Verify a valid blameproof can be added.
+	promiseState.Promise.secrets[i] = secretKey.Secret
+	bproof, _ := promiseState.Promise.blame(i, insurerKeys[i])
+	response = new(Response).constructBlameProofResponse(bproof)
+	err = promiseState.AddResponse(i, response)
+	if err != nil || !bproof.Equal(promiseState.responses[i].blameProof) {
+		t.Error("Valid blameproof should have been added.")
+	}
+	
 }
 
 // Verify State's PromiseCertify function
@@ -1000,7 +1030,7 @@ func TestStatePromiseCertified(t *testing.T) {
 	// uncertified
 	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
 	promiseState = new(State).Init(*promise)
-	promise.secrets[0] = promise.suite.Secret()
+	promiseState.Promise.secrets[0] = promise.suite.Secret()
 	bproof, _ = promiseState.Promise.blame(0, insurerKeys[0])
 	response = new(Response).constructBlameProofResponse(bproof)
 	promiseState.AddResponse(0, response)
@@ -1015,10 +1045,43 @@ func TestStatePromiseCertified(t *testing.T) {
 	}
 }
 
+// Verify State's SufficientSignatures function
+func TestStateSufficientSignatures(t *testing.T) {
+	promise := new(Promise).ConstructPromise(secretKey, promiserKey,
+		pt, r, insurerList)
+	promiseState := new(State).Init(*promise)
+
+	// Add a valid blameproof to the start. Ensure it doesn't affect
+	// the results.
+	promiseState.Promise.secrets[0] = promise.suite.Secret()
+	bproof, _ := promiseState.Promise.blame(0, insurerKeys[0])
+	response := new(Response).constructBlameProofResponse(bproof)
+	promiseState.AddResponse(0, response)
+
+	// Once enough signatures have been added, the Promise should remain
+	// certified.
+	for i := 1; i < numInsurers; i++ {
+		sig := promiseState.Promise.sign(i, insurerKeys[i], sigMsg)
+		response := new(Response).constructSignatureResponse(sig)
+		promiseState.AddResponse(i, response)
+
+		err := promiseState.SufficientSignatures()
+		if i < r && err == nil {
+			t.Error("Not enough signtures have been added yet", i, r)
+		} else if i >= r && err != nil {
+			t.Error("Promise should be valid now.")
+			t.Error(promiseState.SufficientSignatures())
+		}
+	}
+}
+
+
 // Verify State's RevealShare function
 func TestStateRevealShare(t *testing.T) {
 
-	promiseState := new(State).Init(*basicPromise)
+	promise := new(Promise).ConstructPromise(secretKey, promiserKey,
+		pt, r, insurerList)
+	promiseState := new(State).Init(*promise)
 
 	test := func() {
 		defer deferTest(t, "RevealShare should have panicked.")
@@ -1026,18 +1089,24 @@ func TestStateRevealShare(t *testing.T) {
 	}
 	test()
 
-	// Once enough signatures have been added, the Promise should remain
-	// certified.
-	for i := 0; i < r; i++ {
+
+	// Add a valid blameproof to the start.
+	promiseState.Promise.secrets[0] = promise.suite.Secret()
+	bproof, _ := promiseState.Promise.blame(0, insurerKeys[0])
+	response := new(Response).constructBlameProofResponse(bproof)
+	promiseState.AddResponse(0, response)
+
+	// Add enough signatures for the promise to be certified otherwise.
+	for i := 1; i < r+1; i++ {
 		sig := promiseState.Promise.sign(i, insurerKeys[i], sigMsg)
 		response := new(Response).constructSignatureResponse(sig)
 		promiseState.AddResponse(i, response)
 	}
 
-	share := promiseState.RevealShare(0, insurerKeys[0])
+	share := promiseState.RevealShare(1, insurerKeys[1])
 
-	if err := promiseState.Promise.VerifyRevealedShare(0, share); err != nil {
-		t.Error("Share is valid")
+	if err := promiseState.Promise.VerifyRevealedShare(1, share); err != nil {
+		t.Error("Share should be valid:", err)
 	}
 }
 

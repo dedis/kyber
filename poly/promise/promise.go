@@ -179,6 +179,8 @@ var maliciousShare = errors.New("Share is malicious. PubPoly.Check failed.")
  *   * Id
  *   * PromiserId
  *   * Insurers
+ *   * State.PromiseCertified
+ *   * State.SufficientSignatures
  */
 type Promise struct {
 
@@ -842,39 +844,85 @@ func (ps *State) Init(promise Promise) *State {
 	return ps
 }
 
-/* Adds a response from an insurer to the State
+/* Adds a response from an insurer to the State. Checks to see whether the response
+ * is valid and then adds it.
  *
  * Arguments
  *    i        = the index in the signature array this signature belongs
  *    response = the response to add
  *
- * Postcondition
- *   The response has been added
+ * Returns
+ *   nil if the promise was added succesfully, an error otherwise.
  */
-func (ps *State) AddResponse(i int, response *Response) {
+func (ps *State) AddResponse(i int, response *Response) error {
+	var err error
+	switch response.rtype {
+		case signatureResponse:
+			err = ps.Promise.verifySignature(i, response.signature, sigMsg)
+		
+		case blameProofResponse:
+			err = ps.Promise.verifyBlame(i, response.blameProof)
+
+		default:
+			err = errors.New("Invalid response.")
+	} 
+	if err != nil {
+		return err
+	}
 	ps.responses[i] = response
+	return nil
 }
 
 /* A public wrapper for Promise.revealShare, ensures that a share is only
- * revealed for a certified Promise. An insurer should call this function on
- * behalf of a client after verifying that the promiser is non-responsive.
+ * revealed for a Promise that has received a sufficient number of signatures. 
+ * An insurer should call this function on behalf of a client after verifying
+ * that the promiser is non-responsive.
  *
  * Arguments
  *    i        = the index of the insurer
  *    gkeyPair = the long-term keypair of the insurer
  *
  * Return
- *   the revealed private share (or panics if the Promise is not certified)
+ *   the revealed private share (or panics if an insufficient number of signatures
+ *      have been received)
+ *
+ * Note
+ *   The reason that SufficientSignatures is used instead of PromiseCertified is
+ *   to prevent the following senario:
+ *
+ *      1) A malicious server creates a promise and selects as an insurer another
+ *         malicious peer. The malicious peer is given an invalid share.
+ *
+ *      2) The other insurers certify the promise and the malicious insurer does
+ *         not respond.
+ * 
+ *      3) The malicious server enters the system and gives its promise to clients.
+ *
+ *      4) The malicious insurer then sends out the valid blameProof.
+ *
+ *      5) Now, the good insurers are unable to reveal the secret and reconstruct
+ *         the promise.
+ *
+ *      6) The malicious server leaves the system. The insurance policy is now
+ *         useless.
+ *
+ *   To prevent this, blameproofs are not taken into consideration. As a result,
+ *   any server that produces an invalid share risks having its secret revealed
+ *   at any moment after the promise has garnered enough signatures to be
+ *   considered certified otherwise. This is further incentive to create valid promises.
  */
 func (ps *State) RevealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
-	if ps.PromiseCertified() != nil {
-		panic("RevealShare should only be called on a certified promise.")
+	if ps.SufficientSignatures() != nil {
+		panic("RevealShare should only be called with promises with enough signatures.")
 	}
 	return ps.Promise.revealShare(i, gKeyPair)
 }
 
 /* Checks whether the Promise object has received enough signatures to be
  * considered certified.
+ *
+ * Arguments
+ *   blameProofFail = whether to fail if a valid blame proof is encountered.
  *
  * Return
  *   an error denoting whether or not the Promise is certified.
@@ -884,20 +932,21 @@ func (ps *State) RevealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
  * Note to users of this code
  *   An error here is not necessarily a cause for alarm, particularly if the
  *   Promise just needs more signatures. However, it could be a red flag if
- *   the error was caused by a valid proof. A single valid blameProof will
+ *   the error was caused by a valid blameProof. A single valid blameProof will
  *   permanently make a Promise uncertified.
  *
  * Technical Notes: The function goes through the list of responses and checks
- *                  for signature that are properly signed. If at least r of
+ *                  for signatures that are properly signed. If at least r of
  *                  these are signed and r is greater than t (the minimum number
  *                  of shares needed to reconstruct the secret), the promise is
- *                  considered certified. If any valid blameProofs are found, the
- *                  Promise is automatically labelled uncertified.
+ *                  considered certified. If any valid blameProofs are found, an
+ *                  error is immediately produced if blameProofFail is true. 
+ *                  Otherwise, it ignores blameProofs.
  *
- * TODO Add some more verification for Response (like making sure
- * ps.response.signature != nil)
+ *                  AddResponse handles promise validation. Hence, it is assumed
+ *                  any promises included within the response array are valid.
  */
-func (ps *State) PromiseCertified() error {
+func (ps *State) promiseCertified(blameProofFail bool) error {
 	if err := ps.Promise.verifyPromise(); err != nil {
 		return err
 	}
@@ -905,22 +954,47 @@ func (ps *State) PromiseCertified() error {
 	for i := 0; i < ps.Promise.n; i++ {
 		if ps.responses[i] == nil {
 			continue
-		}
-
-		if ps.responses[i].rtype == signatureResponse &&
-			ps.Promise.verifySignature(i, ps.responses[i].signature, sigMsg) == nil {
+		} 
+		
+		if ps.responses[i].rtype == signatureResponse {
 			validSigs += 1
 		}
-
-		if ps.responses[i].rtype == blameProofResponse &&
-			ps.Promise.verifyBlame(i, ps.responses[i].blameProof) == nil {
-			return errors.New("A valid blameProof proves proves this Promise to be uncertified.")
+		
+		if blameProofFail && ps.responses[i].rtype == blameProofResponse {
+			return errors.New("A valid blameProof proves this Promise to be uncertified.")
 		}
 	}
 	if validSigs < ps.Promise.r {
 		return errors.New("Not enough signatures yet to be certified")
 	}
 	return nil
+}
+
+/* This public function checks whether the Promise is certified. Three things
+ * must hold for this to be the case:
+ *
+ *   1) The promise must be syntatically valid.
+ *   2) It must have >= r valid signatures
+ *   3) It must not have any valid blameProofs
+ *
+ *
+ * Use this function when determining whether a promise is safe to be accepted.
+ *
+ * Please see promiseCertified for more details.
+ */
+func (ps *State) PromiseCertified() error {
+	return ps.promiseCertified(true)
+}
+
+/* This public function checks whether the State has received enough signatures
+ * for a promise to be considered certified. It ignores any valid blame proofs.
+ *
+ * Use this function when determining whether it is safe to reveal a share.
+ *
+ * Please see promiseCertified for more details.
+ */
+func (ps *State) SufficientSignatures() error {
+	return ps.promiseCertified(false)
 }
 
 /* The signature struct is used by insurers to express their approval
