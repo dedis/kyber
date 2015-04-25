@@ -950,13 +950,10 @@ func TestStateAddSignature(t *testing.T) {
 		if err != nil || !sig.Equal(promiseState.responses[i].signature) {
 			t.Error("Signature failed to be added", err)
 		}
-
-		// Verify invalid blameproofs are not added.
-		bproof, _ := promiseState.Promise.blame(i, insurerKeys[i])
-		response = new(Response).constructBlameProofResponse(bproof)
+		
 		err = promiseState.AddResponse(i, response)
-		if err == nil || promiseState.responses[i].rtype == blameProofResponse {
-			t.Error("Invalid blameproof should not have been added.")
+		if err == nil {
+			t.Error("A particular response entry should be assigned only once")
 		}
 	}
 	i := 0
@@ -977,10 +974,18 @@ func TestStateAddSignature(t *testing.T) {
 	if err == nil || promiseState.responses[i] != nil {
 		t.Error("Signature is invalid and should not be added.", err)
 	}	
-	
+
+	// Verify invalid blameproofs are not added.
+	bproof, _ := promiseState.Promise.blame(i, insurerKeys[i])
+	response = new(Response).constructBlameProofResponse(bproof)
+	err = promiseState.AddResponse(i, response)
+	if err == nil || promiseState.responses[i] != nil {
+		t.Error("Invalid blameproof should not have been added.")
+	}	
+
 	// Verify a valid blameproof can be added.
 	promiseState.Promise.secrets[i] = secretKey.Secret
-	bproof, _ := promiseState.Promise.blame(i, insurerKeys[i])
+	bproof, _ = promiseState.Promise.blame(i, insurerKeys[i])
 	response = new(Response).constructBlameProofResponse(bproof)
 	err = promiseState.AddResponse(i, response)
 	if err != nil || !bproof.Equal(promiseState.responses[i].blameProof) {

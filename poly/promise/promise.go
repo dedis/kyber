@@ -855,6 +855,10 @@ func (ps *State) Init(promise Promise) *State {
  *   nil if the promise was added succesfully, an error otherwise.
  */
 func (ps *State) AddResponse(i int, response *Response) error {
+	if ps.responses[i] != nil {
+		return errors.New("Response already added.")
+	}
+
 	var err error
 	switch response.rtype {
 		case signatureResponse:
