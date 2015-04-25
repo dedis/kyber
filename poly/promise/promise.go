@@ -883,8 +883,16 @@ func (ps *State) AddResponse(i int, response *Response) error {
  *    gkeyPair = the long-term keypair of the insurer
  *
  * Return
- *   the revealed private share (or panics if an insufficient number of signatures
- *      have been received)
+ *   (share, error)
+ *      share = the revealed private share, or nil if the promise share is corrupted
+ *      error = nil if successful, error if the promise share is corrupted
+ *             
+ *   This error checking insures that a good insurer who has produced a valid blameproof does
+ *   not reveal an incorrect share.
+ *
+ * Postcondition
+ *   panics if an insufficient number of signatures have been received
+ *   
  *
  * Note
  *   The reason that SufficientSignatures is used instead of PromiseCertified is
@@ -911,11 +919,15 @@ func (ps *State) AddResponse(i int, response *Response) error {
  *   at any moment after the promise has garnered enough signatures to be
  *   considered certified otherwise. This is further incentive to create valid promises.
  */
-func (ps *State) RevealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
+func (ps *State) RevealShare(i int, gKeyPair *config.KeyPair) (abstract.Secret, error) {
 	if ps.SufficientSignatures() != nil {
 		panic("RevealShare should only be called with promises with enough signatures.")
 	}
-	return ps.Promise.revealShare(i, gKeyPair)
+	share := ps.Promise.revealShare(i, gKeyPair)
+	if !ps.Promise.pubPoly.Check(i, share) {
+		return nil, errors.New("This share is corrupted.")
+	}
+	return share, nil
 }
 
 /* Checks whether the Promise object has received enough signatures to be

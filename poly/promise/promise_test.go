@@ -1103,8 +1103,17 @@ func TestStateRevealShare(t *testing.T) {
 		promiseState.AddResponse(i, response)
 	}
 
-	share := promiseState.RevealShare(1, insurerKeys[1])
+	// Verify that attempting to reveal a bad share results in an error.
+	share, err := promiseState.RevealShare(0, insurerKeys[0])
+	if err == nil || share != nil {
+		t.Error("No error should have been produced: ", err)
+	}
 
+	// Insure a good share can be revealed.
+	share, err = promiseState.RevealShare(1, insurerKeys[1])
+	if err != nil {
+		t.Error("No error should have been produced: ", err)
+	}
 	if err := promiseState.Promise.VerifyRevealedShare(1, share); err != nil {
 		t.Error("Share should be valid:", err)
 	}
