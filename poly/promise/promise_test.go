@@ -443,7 +443,7 @@ func TestPromiseConstructPromise(t *testing.T) {
 	if insurerList[0] == nil {
 		t.Error("Changing the return result shouldn't change the original array")
 	}
-	
+
 	// Check that ConstructPromise panics if n < t
 	test := func() {
 		defer deferTest(t, "ConstructPromise should have panicked.")
@@ -555,10 +555,10 @@ func TestPromisePromiserId(t *testing.T) {
 func TestPromiserKey(t *testing.T) {
 	result := basicPromise.PromiserKey()
 	if !result.Equal(basicPromise.pubKey) &&
-	   result.String() != basicPromise.pubKey.String() {
-			t.Fatal("Keys should be equal")
+		result.String() != basicPromise.pubKey.String() {
+		t.Fatal("Keys should be equal")
 	}
-	
+
 	result.Base()
 	if result.Equal(basicPromise.pubKey) {
 		t.Error("Changing the return result shouldn't change the original key")
@@ -568,18 +568,18 @@ func TestPromiserKey(t *testing.T) {
 // Verifies that Insurers returns the insurers slice expected
 func TestPromiseInsurers(t *testing.T) {
 	result := basicPromise.Insurers()
-	for i :=0; i < basicPromise.n; i++ {
+	for i := 0; i < basicPromise.n; i++ {
 		if result[i] != basicPromise.insurers[i] {
 			t.Fatal("Wrong insurers list returned.")
 		}
 	}
-	
+
 	result = basicPromise.Insurers()
 	result[0] = nil
 	if basicPromise.insurers[0] == nil {
 		t.Error("Changing the return result shouldn't change the original array")
 	}
-	
+
 }
 
 // Tests that encrypting a secret with a diffie-hellman shared secret and then
@@ -950,7 +950,7 @@ func TestStateAddSignature(t *testing.T) {
 		if err != nil || !sig.Equal(promiseState.responses[i].signature) {
 			t.Error("Signature failed to be added", err)
 		}
-		
+
 		err = promiseState.AddResponse(i, response)
 		if err == nil {
 			t.Error("A particular response entry should be assigned only once")
@@ -959,7 +959,7 @@ func TestStateAddSignature(t *testing.T) {
 	i := 0
 	promise := new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
 	promiseState = new(State).Init(*promise)
-	
+
 	// Verify invalid signatures are not added.
 	sig := promiseState.Promise.sign(i, insurerKeys[i], sigMsg)
 	response := new(Response).constructSignatureResponse(sig)
@@ -967,13 +967,13 @@ func TestStateAddSignature(t *testing.T) {
 	if err == nil || promiseState.responses[i] != nil {
 		t.Error("Signature is invalid and should not be added.", err)
 	}
-	
+
 	// Change the response to an error and verify it is not added.
 	response.rtype = errorResponse
 	err = promiseState.AddResponse(i, response)
 	if err == nil || promiseState.responses[i] != nil {
 		t.Error("Signature is invalid and should not be added.", err)
-	}	
+	}
 
 	// Verify invalid blameproofs are not added.
 	bproof, _ := promiseState.Promise.blame(i, insurerKeys[i])
@@ -981,7 +981,7 @@ func TestStateAddSignature(t *testing.T) {
 	err = promiseState.AddResponse(i, response)
 	if err == nil || promiseState.responses[i] != nil {
 		t.Error("Invalid blameproof should not have been added.")
-	}	
+	}
 
 	// Verify a valid blameproof can be added.
 	promiseState.Promise.secrets[i] = secretKey.Secret
@@ -991,7 +991,7 @@ func TestStateAddSignature(t *testing.T) {
 	if err != nil || !bproof.Equal(promiseState.responses[i].blameProof) {
 		t.Error("Valid blameproof should have been added.")
 	}
-	
+
 }
 
 // Verify State's PromiseCertify function
@@ -1080,7 +1080,6 @@ func TestStateSufficientSignatures(t *testing.T) {
 	}
 }
 
-
 // Verify State's RevealShare function
 func TestStateRevealShare(t *testing.T) {
 
@@ -1093,7 +1092,6 @@ func TestStateRevealShare(t *testing.T) {
 		promiseState.RevealShare(0, insurerKeys[0])
 	}
 	test()
-
 
 	// Add a valid blameproof to the start.
 	promiseState.Promise.secrets[0] = promise.suite.Secret()

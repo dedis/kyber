@@ -343,7 +343,6 @@ func (p *Promise) Insurers() []abstract.Point {
 	return result
 }
 
-
 /* Given a Diffie-Hellman shared public key, produces a secret to encrypt
  * another secret
  *
@@ -861,15 +860,15 @@ func (ps *State) AddResponse(i int, response *Response) error {
 
 	var err error
 	switch response.rtype {
-		case signatureResponse:
-			err = ps.Promise.verifySignature(i, response.signature, sigMsg)
-		
-		case blameProofResponse:
-			err = ps.Promise.verifyBlame(i, response.blameProof)
+	case signatureResponse:
+		err = ps.Promise.verifySignature(i, response.signature, sigMsg)
 
-		default:
-			err = errors.New("Invalid response.")
-	} 
+	case blameProofResponse:
+		err = ps.Promise.verifyBlame(i, response.blameProof)
+
+	default:
+		err = errors.New("Invalid response.")
+	}
 	if err != nil {
 		return err
 	}
@@ -878,7 +877,7 @@ func (ps *State) AddResponse(i int, response *Response) error {
 }
 
 /* A public wrapper for Promise.revealShare, ensures that a share is only
- * revealed for a Promise that has received a sufficient number of signatures. 
+ * revealed for a Promise that has received a sufficient number of signatures.
  * An insurer should call this function on behalf of a client after verifying
  * that the promiser is non-responsive.
  *
@@ -890,13 +889,13 @@ func (ps *State) AddResponse(i int, response *Response) error {
  *   (share, error)
  *      share = the revealed private share, or nil if the promise share is corrupted
  *      error = nil if successful, error if the promise share is corrupted
- *             
+ *
  *   This error checking insures that a good insurer who has produced a valid blameproof does
  *   not reveal an incorrect share.
  *
  * Postcondition
  *   panics if an insufficient number of signatures have been received
- *   
+ *
  *
  * Note
  *   The reason that SufficientSignatures is used instead of PromiseCertified is
@@ -907,7 +906,7 @@ func (ps *State) AddResponse(i int, response *Response) error {
  *
  *      2) The other insurers certify the promise and the malicious insurer does
  *         not respond.
- * 
+ *
  *      3) The malicious server enters the system and gives its promise to clients.
  *
  *      4) The malicious insurer then sends out the valid blameProof.
@@ -956,7 +955,7 @@ func (ps *State) RevealShare(i int, gKeyPair *config.KeyPair) (abstract.Secret, 
  *                  these are signed and r is greater than t (the minimum number
  *                  of shares needed to reconstruct the secret), the promise is
  *                  considered certified. If any valid blameProofs are found, an
- *                  error is immediately produced if blameProofFail is true. 
+ *                  error is immediately produced if blameProofFail is true.
  *                  Otherwise, it ignores blameProofs.
  *
  *                  AddResponse handles promise validation. Hence, it is assumed
@@ -970,12 +969,12 @@ func (ps *State) promiseCertified(blameProofFail bool) error {
 	for i := 0; i < ps.Promise.n; i++ {
 		if ps.responses[i] == nil {
 			continue
-		} 
-		
+		}
+
 		if ps.responses[i].rtype == signatureResponse {
 			validSigs += 1
 		}
-		
+
 		if blameProofFail && ps.responses[i].rtype == blameProofResponse {
 			return errors.New("A valid blameProof proves this Promise to be uncertified.")
 		}
