@@ -31,6 +31,12 @@ func Bits(bitlen uint, exact bool, rand cipher.Stream) []byte {
 	return b
 }
 
+// Choose a uniform random boolean
+func Bool(rand cipher.Stream) bool {
+	b := Bits(8, false, rand)
+	return b[0]&1 != 0
+}
+
 // Choose a uniform random byte
 func Byte(rand cipher.Stream) byte {
 	b := Bits(8, false, rand)
