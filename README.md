@@ -8,7 +8,7 @@ targeting applications like [Dissent](http://dedis.cs.yale.edu/dissent/)
 that need more than straightforward signing and encryption.
 Please see the
 [GoDoc documentation for this package](http://godoc.org/github.com/DeDiS/crypto)
-for details on the library's purpose and functionality.
+for details on the library's purpose and API functionality.
 
 Installing
 ----------
@@ -16,27 +16,13 @@ Installing
 First make sure you have [Go](https://golang.org)
 version 1.3 or newer installed.
 
-Install C library dependencies.
-
-OpenSSL: [OpenSSL](https://www.openssl.org/) 
-
-Pairing-Based Cryptography: [PBC](http://crypto.stanford.edu/pbc/)
-    
-    Mac (with homebrew):   $ brew install pbc
-    Otherwise: Install from source.
-        
-    # Download from source http://crypto.stanford.edu/pbc/download.html
-    # Unzip the source directory
-    # cd into the source directory
-    $ ./configure
-    $ make
-    $ make install
-
-Now you can install the crypto library:
+The basic crypto library requires only Go and a few
+third-party Go-language dependencies that can be installed automatically
+as follows:
 
 	go get github.com/dedis/crypto
-    cd $GOPATH/src/github.com/dedis/crypto
-    go get ./... # install 3rd-party dependencies
+	cd $GOPATH/src/github.com/dedis/crypto
+	go get ./... # install 3rd-party dependencies
 
 You should then be able to test its basic function as follows:
 
