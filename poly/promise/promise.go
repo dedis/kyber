@@ -320,6 +320,10 @@ func (p *Promise) verifyPromise() error {
 	return nil
 }
 
+func (p *Promise) PubPoly() *poly.PubPoly {
+	return &p.pubPoly
+}
+
 // Returns the id of the Promise
 func (p *Promise) Id() string {
 	return p.id.String()
@@ -550,7 +554,7 @@ func (p *Promise) revealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
 }
 
 /* Verify that a revealed share is properly formed. This should be called by
- * clients or others who request an insurer to reveal its shared secret.
+ *in clients or others who request an insurer to reveal its shared secret.
  *
  * Arguments
  *    i     = the index of the share
@@ -837,7 +841,6 @@ func (ps *State) Init(promise Promise) *State {
 	// Initialize a new PriShares based on information from the promise.
 	ps.PriShares = poly.PriShares{}
 	ps.PriShares.Empty(promise.suite, promise.t, promise.n)
-
 	// There will be at most n responses, one per insurer
 	ps.responses = make([]*Response, promise.n, promise.n)
 	return ps
