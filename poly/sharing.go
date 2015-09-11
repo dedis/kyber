@@ -232,6 +232,11 @@ func (pub *PubPoly) Init(g abstract.Group, k int, b abstract.Point) {
 	pub.p = make([]abstract.Point, k)
 }
 
+// Return k : the number of shares needed to reconstruct a secret from the corresponding pripoly
+func (pub *PubPoly) GetK() int {
+	return len(pub.p)
+}
+
 // Initialize to a public commitment to a given private polynomial.
 // Create commitments as encryptions of a given base point b,
 // or the standard base if b == nil.
