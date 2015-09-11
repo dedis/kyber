@@ -299,7 +299,7 @@ func TestPubPolyCommit(t *testing.T) {
 	testPubPoly.Init(group, k, nil)
 	testPubPoly = testPubPoly.Commit(testPriPolyGl, nil)
 	for i := 0; i < len(testPubPolyGl.p); i++ {
-		if !point.Mul(nil, testPriPolyGl.s[i]).Equal(
+		if !point.BaseMul(testPriPolyGl.s[i]).Equal(
 			testPubPoly.p[i]) {
 			t.Error("PriPoly should be multiplied by the point")
 		}

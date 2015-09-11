@@ -12,7 +12,7 @@ func keyPair(suite abstract.Suite, rand cipher.Stream,
 	hide bool) (abstract.Point, abstract.Secret, []byte) {
 
 	x := suite.Secret().Pick(rand)
-	X := suite.Point().Mul(nil, x)
+	X := suite.Point().BaseMul(x)
 	if !hide {
 		Xb, _ := X.MarshalBinary()
 		return X, x, Xb
@@ -24,7 +24,7 @@ func keyPair(suite abstract.Suite, rand cipher.Stream,
 			return X, x, Xb // success
 		}
 		x.Pick(rand) // try again with a new key
-		X.Mul(nil, x)
+		X.BaseMul(x)
 	}
 }
 
@@ -112,7 +112,7 @@ func decryptKey(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
 	}
 
 	// Make sure it reproduces the correct ephemeral public key
-	Xv := suite.Point().Mul(nil, x)
+	Xv := suite.Point().BaseMul(x)
 	if !X.Equal(Xv) {
 		return nil, 0, errors.New("invalid ciphertext")
 	}

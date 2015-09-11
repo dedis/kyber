@@ -19,7 +19,7 @@ func ExampleEncrypt_1() {
 	X := make([]abstract.Point, 1)
 	mine := 0                           // which public key is mine
 	x := suite.Secret().Pick(rand)      // create a private key x
-	X[mine] = suite.Point().Mul(nil, x) // corresponding public key X
+	X[mine] = suite.Point().BaseMul(x) // corresponding public key X
 
 	// Encrypt a message with the public key
 	M := []byte("Hello World!") // message to encrypt
@@ -62,7 +62,7 @@ func ExampleEncrypt_anonSet() {
 	// Make just one of them an actual public/private keypair (X[mine],x)
 	mine := 1                           // only the signer knows this
 	x := suite.Secret().Pick(rand)      // create a private key x
-	X[mine] = suite.Point().Mul(nil, x) // corresponding public key X
+	X[mine] = suite.Point().BaseMul(x) // corresponding public key X
 
 	// Encrypt a message with all the public keys
 	M := []byte("Hello World!") // message to encrypt

@@ -45,7 +45,7 @@ func (sk *SKEME) Init(suite abstract.Suite, rand cipher.Stream,
 
 	// Create our Diffie-Hellman keypair
 	sk.lx = suite.Secret().Pick(rand)
-	sk.lX = suite.Point().Mul(nil, sk.lx)
+	sk.lX = suite.Point().BaseMul(sk.lx)
 	sk.lXb, _ = sk.lX.MarshalBinary()
 
 	// Encrypt and send the DH key to the receiver.

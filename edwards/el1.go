@@ -33,27 +33,35 @@ func (el *el1param) init(ec *curve, s *big.Int) *el1param {
 
 	// c = 2/s^2
 	two.Init64(2, &ec.P)
-	el.c.Mul(&el.s, &el.s).Div(&two, &el.c)
+	el.c.Mul(&el.s, &el.s)
+	el.c.Div(&two, &el.c)
 
 	// r = c+1/c
 	invc.Inv(&el.c)
 	el.r.Add(&el.c, &invc)
 
 	// Precomputed values
-	el.r2m2.Mul(&el.r, &el.r).Sub(&el.r2m2, &two)          // r^2-2
+	el.r2m2.Mul(&el.r, &el.r)
+	el.r2m2.Sub(&el.r2m2, &two)          // r^2-2
 	el.invc2.Mul(&invc, &invc)                             // 1/c^2
-	el.pp1d4.Add(&ec.P, one).Div(&el.pp1d4, big.NewInt(4)) // (p+1)/4
+	el.pp1d4.Add(&ec.P, one)
+	el.pp1d4.Div(&el.pp1d4, big.NewInt(4)) // (p+1)/4
 	cm1.Sub(&el.c, &ec.one)
 	el.cm1s.Mul(&cm1, &el.s) // (c-1)s
 	el.m2.Init64(-2, &ec.P)  // -2
 
 	// 2s(c-1)Chi(c)/r
 	chi(&el.c3x, &el.c)
-	el.c3x.Mul(&el.c3x, &two).Mul(&el.c3x, &el.s).Mul(&el.c3x, &cm1)
+	el.c3x.Mul(&el.c3x, &two)
+	el.c3x.Mul(&el.c3x, &el.s)
+	el.c3x.Mul(&el.c3x, &cm1)
 	el.c3x.Div(&el.c3x, &el.r)
 
 	// Sanity check: d = -(c+1)^2/(c-1)^2
-	d.Add(&el.c, &ec.one).Div(&d, &cm1).Mul(&d, &d).Neg(&d)
+	d.Add(&el.c, &ec.one)
+	d.Div(&d, &cm1)
+	d.Mul(&d, &d)
+	d.Neg(&d)
 	if d.Cmp(&ec.d) != 0 {
 		panic("el1 init: d came out wrong")
 	}

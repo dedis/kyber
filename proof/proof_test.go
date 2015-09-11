@@ -15,7 +15,7 @@ func TestRep(t *testing.T) {
 	x := suite.Secret().Pick(rand)
 	y := suite.Secret().Pick(rand)
 	B := suite.Point().Base()
-	X := suite.Point().Mul(nil, x)
+	X := suite.Point().BaseMul(x)
 	Y := suite.Point().Mul(X, y)
 	R := suite.Point().Add(X, Y)
 
@@ -90,7 +90,7 @@ func ExampleRep_2() {
 
 	// Create a public/private keypair (X,x)
 	x := suite.Secret().Pick(rand) // create a private key x
-	X := suite.Point().Mul(nil, x) // corresponding public key X
+	X := suite.Point().BaseMul(x) // corresponding public key X
 
 	// Generate a proof that we know the discrete logarithm of X.
 	sval := map[string]abstract.Secret{"x": x}
@@ -202,7 +202,7 @@ func ExampleOr_2() {
 
 	// Create a public/private keypair (X,x) and a random point Y
 	x := suite.Secret().Pick(rand)        // create a private key x
-	X := suite.Point().Mul(nil, x)        // corresponding public key X
+	X := suite.Point().BaseMul(x)        // corresponding public key X
 	Y, _ := suite.Point().Pick(nil, rand) // pick a random point Y
 
 	// We'll need to tell the prover which Or clause is actually true.

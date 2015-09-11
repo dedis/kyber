@@ -512,7 +512,7 @@ func testSharing(g abstract.Group) {
 	// Produce share commitments from the public polynomial commitment.
 	pubs1 := new(PubShares).Split(pub1, n)
 	for i := 0; i < n; i++ {
-		P := g.Point().Mul(nil, ps1.Share(i))
+		P := g.Point().BaseMul(ps1.Share(i))
 		if !P.Equal(pubs1.Share(i)) {
 			panic("Homomorphic share splitting didn't work")
 		}
@@ -528,7 +528,7 @@ func testSharing(g abstract.Group) {
 	}
 
 	// Homomorphic share reconstruction
-	P := g.Point().Mul(nil, p1.Secret())
+	P := g.Point().BaseMul(p1.Secret())
 	if !P.Equal(pub1.SecretCommit()) {
 		panic("Public polynomial committed wrong secret")
 	}

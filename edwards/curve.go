@@ -14,9 +14,9 @@ import (
 var zero = big.NewInt(0)
 var one = big.NewInt(1)
 
-// Extension of Point interface for elliptic curve X,Y coordinate access
+// Extension of Element interface for elliptic curve X,Y coordinate access
 type point interface {
-	abstract.Point
+	abstract.Element
 
 	initXY(x, y *big.Int, curve abstract.Group)
 
@@ -59,7 +59,7 @@ func (c *curve) SecretLen() int {
 
 // Create a new Secret for this curve.
 func (c *curve) Secret() abstract.Secret {
-	return nist.NewInt(0, &c.order.V)
+	return abstract.Secret{nist.NewInt(0, &c.order.V)}
 }
 
 // Returns the size in bytes of an encoded Point on this curve.
@@ -76,7 +76,7 @@ func (c *curve) init(self abstract.Group, p *Param, fullGroup bool,
 	c.self = self
 	c.Param = *p
 	c.full = fullGroup
-	c.null = null
+	c.null = abstract.Point{null}
 
 	// Edwards curve parameters as ModInts for convenience
 	c.a.Init(&p.A, &p.P)
@@ -247,7 +247,8 @@ func (c *curve) solveForX(x, y *nist.Int) bool {
 
 	yy.Mul(y, y)                     // yy = y^2
 	t1.Sub(&c.one, &yy)              // t1 = 1 - y^-2
-	t2.Mul(&c.d, &yy).Sub(&c.a, &t2) // t2 = a - d*y^2
+	t2.Mul(&c.d, &yy)
+	t2.Sub(&c.a, &t2) // t2 = a - d*y^2
 	t2.Div(&t1, &t2)                 // t2 = x^2
 	return x.Sqrt(&t2)               // may fail if not a square
 }
@@ -263,9 +264,13 @@ func (c *curve) onCurve(x, y *nist.Int) bool {
 	xx.Mul(x, x) // xx = x^2
 	yy.Mul(y, y) // yy = y^2
 
-	l.Mul(&c.a, &xx).Add(&l, &yy) // l = a*x^2 + y^2
-	r.Mul(&c.d, &xx).Mul(&r, &yy).Add(&c.one, &r)
-	// r = 1 + d*x^2*y^2
+	l.Mul(&c.a, &xx)
+	l.Add(&l, &yy) // l = a*x^2 + y^2
+
+	r.Mul(&c.d, &xx)
+	r.Mul(&r, &yy)
+	r.Add(&c.one, &r) // r = 1 + d*x^2*y^2
+
 	return l.Equal(&r)
 }
 
@@ -281,7 +286,7 @@ func (c *curve) validPoint(P point) bool {
 
 	// Check in-subgroup by multiplying by subgroup order
 	Q := c.self.Point()
-	Q.Mul(P, &c.order)
+	Q.Element.Mul(P, &c.order)
 	if !Q.Equal(c.null) {
 		return false
 	}
@@ -310,7 +315,7 @@ func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
 
 	// Retry until we find a valid point
 	var x, y nist.Int
-	var Q abstract.Point
+	var Q abstract.Element
 	for {
 		// Get random bits the size of a compressed Point encoding,
 		// in which the topmost bit is reserved for the x-coord sign.
@@ -353,7 +358,7 @@ func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
 		// simply by multiplying it by the cofactor.
 		if data == nil {
 			P.Mul(P, &c.cofact) // multiply by cofactor
-			if P.Equal(c.null) {
+			if P.Equal(c.null.Element) {
 				continue // unlucky; try again
 			}
 			return data[dl:]
@@ -363,10 +368,10 @@ func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
 		// we must simply check if the point is in the subgroup
 		// and retry point generation until it is.
 		if Q == nil {
-			Q = c.self.Point()
+			Q = c.self.Point().Element
 		}
 		Q.Mul(P, &c.order)
-		if Q.Equal(c.null) {
+		if Q.Equal(c.null.Element) {
 			return data[dl:]
 		}
 

@@ -24,7 +24,7 @@ type KeyPair struct {
 func (p *KeyPair) Gen(suite abstract.Suite, random cipher.Stream) {
 	p.Suite = suite
 	p.Secret = suite.Secret().Pick(random)
-	p.Public = suite.Point().Mul(nil, p.Secret)
+	p.Public = suite.Point().BaseMul(p.Secret)
 }
 
 // Return the base64-encoded HashId for this KeyPair's public key.
@@ -115,7 +115,7 @@ func (f *File) Key(key *KeyInfo, suites map[string]abstract.Suite) (KeyPair, err
 	}
 
 	// Reconstruct and verify the public key
-	p.Public = suite.Point().Mul(nil, p.Secret)
+	p.Public = suite.Point().BaseMul(p.Secret)
 	if p.PubId() != key.PubId {
 		return KeyPair{},
 			errors.New("Secret does not yield public key " +

@@ -33,7 +33,7 @@ together with a suitably matched set of symmetric-key crypto algorithms.
 As a trivial example, generating a public/private keypair is as simple as:
 
 	a := suite.Secret().Pick(random.Stream) // Alice's private key
-	A := suite.Point().Mul(nil, a)          // Alice's public key
+	A := suite.Point().BaseMul(a)          // Alice's public key
 
 The first statement picks a private key (Secret)
 from a specified source of cryptographic random or pseudo-random bits,

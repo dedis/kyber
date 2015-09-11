@@ -14,7 +14,7 @@ func ElGamalEncrypt(suite abstract.Suite, pubkey abstract.Point, message []byte)
 
 	// ElGamal-encrypt the point to produce ciphertext (K,C).
 	k := suite.Secret().Pick(random.Stream) // ephemeral private key
-	K = suite.Point().Mul(nil, k)           // ephemeral DH public key
+	K = suite.Point().BaseMul(k)           // ephemeral DH public key
 	S := suite.Point().Mul(pubkey, k)       // ephemeral DH shared secret
 	C = S.Add(S, M)                         // message blinded with secret
 	return
@@ -58,7 +58,7 @@ func Example_elGamalEncryption() {
 
 	// Create a public/private keypair
 	a := suite.Secret().Pick(random.Stream) // Alice's private key
-	A := suite.Point().Mul(nil, a)          // Alice's public key
+	A := suite.Point().BaseMul(a)          // Alice's public key
 
 	// ElGamal-encrypt a message using the public key.
 	m := []byte("The quick brown fox")

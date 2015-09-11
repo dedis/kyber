@@ -27,7 +27,7 @@ func ExampleSign_1() {
 	X := make([]abstract.Point, 1)
 	mine := 0                           // which public key is mine
 	x := suite.Secret().Pick(rand)      // create a private key x
-	X[mine] = suite.Point().Mul(nil, x) // corresponding public key X
+	X[mine] = suite.Point().BaseMul(x) // corresponding public key X
 
 	// Generate the signature
 	M := []byte("Hello World!") // message we want to sign
@@ -80,7 +80,7 @@ func ExampleSign_anonSet() {
 	// Make just one of them an actual public/private keypair (X[mine],x)
 	mine := 1                           // only the signer knows this
 	x := suite.Secret().Pick(rand)      // create a private key x
-	X[mine] = suite.Point().Mul(nil, x) // corresponding public key X
+	X[mine] = suite.Point().BaseMul(x) // corresponding public key X
 
 	// Generate the signature
 	M := []byte("Hello World!") // message we want to sign
@@ -141,8 +141,8 @@ func ExampleSign_linkable() {
 	mine2 := 2
 	x1 := suite.Secret().Pick(rand) // create a private key x
 	x2 := suite.Secret().Pick(rand)
-	X[mine1] = suite.Point().Mul(nil, x1) // corresponding public key X
-	X[mine2] = suite.Point().Mul(nil, x2)
+	X[mine1] = suite.Point().BaseMul(x1) // corresponding public key X
+	X[mine2] = suite.Point().BaseMul(x2)
 
 	// Generate two signatures using x1 and two using x2
 	M := []byte("Hello World!")     // message we want to sign
@@ -262,7 +262,7 @@ func benchGenKeys(suite abstract.Suite,
 
 	// Make just one of them an actual public/private keypair (X[mine],x)
 	x := suite.Secret().Pick(rand)
-	X[0] = suite.Point().Mul(nil, x)
+	X[0] = suite.Point().BaseMul(x)
 
 	return X, x
 }

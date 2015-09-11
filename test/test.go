@@ -57,12 +57,12 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 	points = append(points, gen)
 
 	// Verify additive and multiplicative identities of the generator.
-	ptmp.Mul(nil, stmp.SetInt64(-1)).Add(ptmp, gen)
+	ptmp.BaseMul(stmp.SetInt64(-1)).Add(ptmp, gen)
 	if !ptmp.Equal(pzero) {
 		panic("oops, generator additive identity doesn't work")
 	}
 	if g.PrimeOrder() { // secret.Inv works only in prime-order groups
-		ptmp.Mul(nil, stmp.SetInt64(2)).Mul(ptmp, stmp.Inv(stmp))
+		ptmp.BaseMul(stmp.SetInt64(2)).Mul(ptmp, stmp.Inv(stmp))
 		if !ptmp.Equal(gen) {
 			panic("oops, generator multiplicative identity doesn't work")
 		}

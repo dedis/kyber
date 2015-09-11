@@ -142,7 +142,7 @@ func Sign(suite abstract.Suite, random cipher.Stream, message []byte,
 	// Pick a random commit for my ring position
 	u := suite.Secret().Pick(random)
 	var UB, UL abstract.Point
-	UB = suite.Point().Mul(nil, u)
+	UB = suite.Point().BaseMul(u)
 	if linkScope != nil {
 		UL = suite.Point().Mul(linkBase, u)
 	}
@@ -159,7 +159,7 @@ func Sign(suite abstract.Suite, random cipher.Stream, message []byte,
 	}
 	for i := (pi + 1) % n; i != pi; i = (i + 1) % n {
 		s[i] = suite.Secret().Pick(random)
-		PG.Add(PG.Mul(nil, s[i]), P.Mul(L[i], c[i]))
+		PG.Add(PG.BaseMul(s[i]), P.Mul(L[i], c[i]))
 		if linkScope != nil {
 			PH.Add(PH.Mul(linkBase, s[i]), P.Mul(linkTag, c[i]))
 		}
@@ -229,7 +229,7 @@ func Verify(suite abstract.Suite, message []byte, anonymitySet Set,
 	s := sig.S
 	ci := sig.C0
 	for i := 0; i < n; i++ {
-		PG.Add(PG.Mul(nil, s[i]), P.Mul(L[i], ci))
+		PG.Add(PG.BaseMul(s[i]), P.Mul(L[i], ci))
 		if linkScope != nil {
 			PH.Add(PH.Mul(linkBase, s[i]), P.Mul(linkTag, ci))
 		}

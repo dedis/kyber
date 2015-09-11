@@ -28,6 +28,10 @@ type point struct {
 	ge extendedGroupElement
 }
 
+func (P *point) New() abstract.Element {
+	return &point{}
+}
+
 func (P *point) String() string {
 	var b [32]byte
 	P.ge.ToBytes(&b)
@@ -52,15 +56,15 @@ func (P *point) UnmarshalBinary(b []byte) error {
 }
 
 func (P *point) MarshalTo(w io.Writer) (int, error) {
-	return group.PointMarshalTo(P, w)
+	return group.MarshalTo(P, w)
 }
 
 func (P *point) UnmarshalFrom(r io.Reader) (int, error) {
-	return group.PointUnmarshalFrom(P, r)
+	return group.UnmarshalFrom(P, r)
 }
 
 // Equality test for two Points on the same curve
-func (P *point) Equal(P2 abstract.Point) bool {
+func (P *point) Equal(P2 abstract.Element) bool {
 
 	// XXX better to test equality without normalizing extended coords
 
@@ -76,21 +80,23 @@ func (P *point) Equal(P2 abstract.Point) bool {
 }
 
 // Set point to be equal to P2.
-func (P *point) Set(P2 abstract.Point) abstract.Point {
+func (P *point) Set(P2 abstract.Element) {
 	P.ge = P2.(*point).ge
-	return P
 }
 
 // Set to the neutral element, which is (0,1) for twisted Edwards curves.
-func (P *point) Null() abstract.Point {
+func (P *point) Zero() {
 	P.ge.Zero()
+}
+
+func (P *point) zero() *point {
+	P.Zero()
 	return P
 }
 
 // Set to the standard base point for this curve
-func (P *point) Base() abstract.Point {
+func (P *point) One() {
 	P.ge = baseext
-	return P
 }
 
 func (P *point) PickLen() int {
@@ -100,7 +106,7 @@ func (P *point) PickLen() int {
 	return (255 - 8 - 8) / 8
 }
 
-func (P *point) Pick(data []byte, rand cipher.Stream) (abstract.Point, []byte) {
+func (P *point) Pick(data []byte, rand cipher.Stream) []byte {
 
 	// How many bytes to embed?
 	dl := P.PickLen()
@@ -123,7 +129,7 @@ func (P *point) Pick(data []byte, rand cipher.Stream) (abstract.Point, []byte) {
 		// If we're using the full group,
 		// we just need any point on the curve, so we're done.
 		//		if c.full {
-		//			return P,data[dl:]
+		//			return data[dl:]
 		//		}
 
 		// We're using the prime-order subgroup,
@@ -132,20 +138,20 @@ func (P *point) Pick(data []byte, rand cipher.Stream) (abstract.Point, []byte) {
 		// we can convert our point into one in the subgroup
 		// simply by multiplying it by the cofactor.
 		if data == nil {
-			P.Mul(P, cofactor) // multiply by cofactor
+			P.Mul(cofactor, P) // multiply by cofactor
 			if P.Equal(nullPoint) {
 				continue // unlucky; try again
 			}
-			return P, data[dl:] // success
+			return data[dl:] // success
 		}
 
 		// Since we need the point's y-coordinate to hold our data,
 		// we must simply check if the point is in the subgroup
 		// and retry point generation until it is.
 		var Q point
-		Q.Mul(P, primeOrder)
+		Q.Mul(primeOrder, P)
 		if Q.Equal(nullPoint) {
-			return P, data[dl:] // success
+			return data[dl:] // success
 		}
 
 		// Keep trying...
@@ -163,7 +169,7 @@ func (P *point) Data() ([]byte, error) {
 	return b[1 : 1+dl], nil
 }
 
-func (P *point) Add(P1, P2 abstract.Point) abstract.Point {
+func (P *point) Add(P1, P2 abstract.Element) {
 	E1 := P1.(*point)
 	E2 := P2.(*point)
 
@@ -175,11 +181,9 @@ func (P *point) Add(P1, P2 abstract.Point) abstract.Point {
 	r.ToExtended(&P.ge)
 
 	// XXX in this case better just to use general addition formula?
-
-	return P
 }
 
-func (P *point) Sub(P1, P2 abstract.Point) abstract.Point {
+func (P *point) Sub(P1, P2 abstract.Element) {
 	E1 := P1.(*point)
 	E2 := P2.(*point)
 
@@ -191,21 +195,18 @@ func (P *point) Sub(P1, P2 abstract.Point) abstract.Point {
 	r.ToExtended(&P.ge)
 
 	// XXX in this case better just to use general addition formula?
-
-	return P
 }
 
 // Find the negative of point A.
 // For Edwards curves, the negative of (x,y) is (-x,y).
-func (P *point) Neg(A abstract.Point) abstract.Point {
+func (P *point) Neg(A abstract.Element) {
 	P.ge.Neg(&A.(*point).ge)
-	return P
 }
 
 // Multiply point p by scalar s using the repeated doubling method.
 // XXX This is vartime; for our general-purpose Mul operator
 // it would be far preferable for security to do this constant-time.
-func (P *point) Mul(A abstract.Point, s abstract.Secret) abstract.Point {
+func (P *point) Mul(s, A abstract.Element) {
 
 	// Convert the scalar to fixed-length little-endian form.
 	sb := s.(*nist.Int).V.Bytes()
@@ -221,8 +222,6 @@ func (P *point) Mul(A abstract.Point, s abstract.Secret) abstract.Point {
 		geScalarMult(&P.ge, &a, &A.(*point).ge)
 		//geScalarMultVartime(&P.ge, &a, &A.(*point).ge)
 	}
-
-	return P
 }
 
 // Curve represents an Ed25519.
@@ -254,7 +253,7 @@ func (c *Curve) Secret() abstract.Secret {
 	//	if c.FullGroup {
 	//		return nist.NewInt(0, fullOrder)
 	//	} else {
-	return nist.NewInt(0, &primeOrder.V)
+	return abstract.Secret{nist.NewInt(0, &primeOrder.V)}
 	//	}
 }
 
@@ -265,9 +264,7 @@ func (c *Curve) PointLen() int {
 
 // Create a new Point on the Ed25519 curve.
 func (c *Curve) Point() abstract.Point {
-	P := new(point)
-	//P.c = c
-	return P
+	return abstract.Point{new(point)}
 }
 
 // Initialize the curve.

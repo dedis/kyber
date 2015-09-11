@@ -108,7 +108,7 @@ func (gb GroupBench) PointMul(iters int) {
 
 func (gb GroupBench) PointBaseMul(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.X.Mul(nil, gb.y)
+		gb.X.BaseMul(gb.y)
 	}
 }
 

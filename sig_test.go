@@ -33,7 +33,7 @@ func SchnorrSign(suite abstract.Suite, random cipher.Stream, message []byte,
 
 	// Create random secret v and public point commitment T
 	v := suite.Secret().Pick(random)
-	T := suite.Point().Mul(nil, v)
+	T := suite.Point().BaseMul(v)
 
 	// Create challenge c based on message and T
 	c := hashSchnorr(suite, message, T)
@@ -67,7 +67,7 @@ func SchnorrVerify(suite abstract.Suite, message []byte, publicKey abstract.Poin
 	var P, T abstract.Point
 	P = suite.Point()
 	T = suite.Point()
-	T.Add(T.Mul(nil, r), P.Mul(publicKey, c))
+	T.Add(T.BaseMul(r), P.Mul(publicKey, c))
 
 	// Verify that the hash based on the message and T
 	// matches the challange c from the signature
@@ -87,7 +87,7 @@ func ExampleSchnorr() {
 
 	// Create a public/private keypair (X,x)
 	x := suite.Secret().Pick(rand) // create a private key x
-	X := suite.Point().Mul(nil, x) // corresponding public key X
+	X := suite.Point().BaseMul(x) // corresponding public key X
 
 	// Generate the signature
 	M := []byte("Hello World!") // message we want to sign

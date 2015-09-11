@@ -22,7 +22,7 @@ var cofactor = nist.NewInt(8, &primeOrder.V)
 var fullOrder = new(big.Int).Mul(&primeOrder.V, &cofactor.V)
 
 // identity point
-var nullPoint = new(point).Null()
+var nullPoint = new(point).zero()
 
 var d = fieldElement{
 	-10913610, 13857413, -15372611, 6949391, 114729, -8787816, -6275908, -3247719, -18696448, -12055116,

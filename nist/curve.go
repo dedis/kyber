@@ -22,7 +22,22 @@ func (p *curvePoint) String() string {
 	return "(" + p.x.String() + "," + p.y.String() + ")"
 }
 
-func (p *curvePoint) Equal(p2 abstract.Point) bool {
+func (p *curvePoint) New() abstract.Element {
+	n := new(curvePoint)
+	n.c = p.c
+	return n
+}
+
+func (p *curvePoint) Set(a abstract.Element) {
+	ca := a.(*curvePoint)
+	*p = *ca
+}
+
+func (p *curvePoint) SetInt64(v int64) {
+	panic("can't initialize elliptic curve point from integer")
+}
+
+func (p *curvePoint) Equal(p2 abstract.Element) bool {
 	cp2 := p2.(*curvePoint)
 
 	// Make sure both coordinates are normalized.
@@ -36,16 +51,14 @@ func (p *curvePoint) Equal(p2 abstract.Point) bool {
 	return p.x.Cmp(cp2.x) == 0 && p.y.Cmp(cp2.y) == 0
 }
 
-func (p *curvePoint) Null() abstract.Point {
+func (p *curvePoint) Zero() {
 	p.x = new(big.Int).SetInt64(0)
 	p.y = new(big.Int).SetInt64(0)
-	return p
 }
 
-func (p *curvePoint) Base() abstract.Point {
+func (p *curvePoint) One() {
 	p.x = p.c.p.Gx
 	p.y = p.c.p.Gy
-	return p
 }
 
 func (p *curvePoint) Valid() bool {
@@ -99,7 +112,7 @@ func (p *curvePoint) PickLen() int {
 
 // Pick a curve point containing a variable amount of embedded data.
 // Remaining bits comprising the point are chosen randomly.
-func (p *curvePoint) Pick(data []byte, rand cipher.Stream) (abstract.Point, []byte) {
+func (p *curvePoint) Pick(data []byte, rand cipher.Stream) []byte {
 
 	l := p.c.coordLen()
 	dl := p.PickLen()
@@ -114,7 +127,7 @@ func (p *curvePoint) Pick(data []byte, rand cipher.Stream) (abstract.Point, []by
 			copy(b[l-dl-1:l-1], data) // Copy in data to embed
 		}
 		if p.genPoint(new(big.Int).SetBytes(b), rand) {
-			return p, data[dl:]
+			return data[dl:]
 		}
 	}
 }
@@ -133,32 +146,25 @@ func (p *curvePoint) Data() ([]byte, error) {
 	return b[l-dl-1 : l-1], nil
 }
 
-func (p *curvePoint) Add(a, b abstract.Point) abstract.Point {
+func (p *curvePoint) Add(a, b abstract.Element) {
 	ca := a.(*curvePoint)
 	cb := b.(*curvePoint)
 	p.x, p.y = p.c.Add(ca.x, ca.y, cb.x, cb.y)
-	return p
 }
 
-func (p *curvePoint) Sub(a, b abstract.Point) abstract.Point {
-	ca := a.(*curvePoint)
-	cb := b.(*curvePoint)
-
-	// XXX a pretty non-optimal implementation of point subtraction...
-	cbn := p.c.Point().Neg(cb).(*curvePoint)
-	p.x, p.y = p.c.Add(ca.x, ca.y, cbn.x, cbn.y)
-	return p
+func (p *curvePoint) Sub(a, b abstract.Element) {
+	abstract.Sub(p, a, b)	// XXX non-optimal default implementation
 }
 
-func (p *curvePoint) Neg(a abstract.Point) abstract.Point {
+func (p *curvePoint) Neg(a abstract.Element) {
 
 	// XXX a pretty non-optimal implementation of point negation...
 	s := p.c.Secret().One()
 	s.Neg(s)
-	return p.Mul(a, s).(*curvePoint)
+	p.Mul(s.FieldElement, a)
 }
 
-func (p *curvePoint) Mul(b abstract.Point, s abstract.Secret) abstract.Point {
+func (p *curvePoint) Mul(s, b abstract.Element) {
 	cs := s.(*Int)
 	if b != nil {
 		cb := b.(*curvePoint)
@@ -166,7 +172,14 @@ func (p *curvePoint) Mul(b abstract.Point, s abstract.Secret) abstract.Point {
 	} else {
 		p.x, p.y = p.c.ScalarBaseMult(cs.V.Bytes())
 	}
-	return p
+}
+
+func (p *curvePoint) Inv(a abstract.Element) {
+	panic("elliptic curve inversion is hard")
+}
+
+func (p *curvePoint) Div(a, b abstract.Element) {
+	panic("elliptic curve division is hard")
 }
 
 func (p *curvePoint) MarshalSize() int {
@@ -187,11 +200,11 @@ func (p *curvePoint) UnmarshalBinary(buf []byte) error {
 }
 
 func (p *curvePoint) MarshalTo(w io.Writer) (int, error) {
-	return group.PointMarshalTo(p, w)
+	return group.MarshalTo(p, w)
 }
 
 func (p *curvePoint) UnmarshalFrom(r io.Reader) (int, error) {
-	return group.PointUnmarshalFrom(p, r)
+	return group.UnmarshalFrom(p, r)
 }
 
 // interface for curve-specifc mathematical functions
@@ -217,7 +230,7 @@ func (c *curve) SecretLen() int { return (c.p.N.BitLen() + 7) / 8 }
 
 // Create a Secret associated with this curve.
 func (c *curve) Secret() abstract.Secret {
-	return NewInt(0, c.p.N)
+	return abstract.Secret{NewInt(0, c.p.N)}
 }
 
 // Number of bytes required to store one coordinate on this curve
@@ -234,9 +247,7 @@ func (c *curve) PointLen() int {
 
 // Create a Point associated with this curve.
 func (c *curve) Point() abstract.Point {
-	p := new(curvePoint)
-	p.c = c
-	return p
+	return abstract.Point{&curvePoint{nil, nil, c}}
 }
 
 // Return the order of this curve: the prime N in the curve parameters.

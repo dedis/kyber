@@ -49,7 +49,7 @@ func TestNego(t *testing.T) {
 		s := suites[i]
 		for j := 0; j < nentries; j++ {
 			pri := s.Secret().Pick(random.Stream)
-			pub := s.Point().Mul(nil, pri)
+			pub := s.Point().BaseMul(pri)
 			data := make([]byte, datalen)
 			entries = append(entries, Entry{s,pub,data})
 		}

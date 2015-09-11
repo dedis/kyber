@@ -13,7 +13,7 @@ func TestShuffle(suite abstract.Suite, k int, N int) {
 
 	// Create a "server" private/public keypair
 	h := suite.Secret().Pick(rand)
-	H := suite.Point().Mul(nil, h)
+	H := suite.Point().BaseMul(h)
 
 	// Create a set of ephemeral "client" keypairs to shuffle
 	c := make([]abstract.Secret, k)
@@ -21,7 +21,7 @@ func TestShuffle(suite abstract.Suite, k int, N int) {
 	//	fmt.Println("\nclient keys:")
 	for i := 0; i < k; i++ {
 		c[i] = suite.Secret().Pick(rand)
-		C[i] = suite.Point().Mul(nil, c[i])
+		C[i] = suite.Point().BaseMul(c[i])
 		//		fmt.Println(" "+C[i].String())
 	}
 
@@ -31,7 +31,7 @@ func TestShuffle(suite abstract.Suite, k int, N int) {
 	r := suite.Secret() // temporary
 	for i := 0; i < k; i++ {
 		r.Pick(rand)
-		X[i] = suite.Point().Mul(nil, r)
+		X[i] = suite.Point().BaseMul(r)
 		Y[i] = suite.Point().Mul(H, r) // ElGamal blinding factor
 		Y[i].Add(Y[i], C[i])           // Encrypted client public key
 	}
