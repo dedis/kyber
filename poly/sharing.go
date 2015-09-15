@@ -248,10 +248,6 @@ func (pub *PubPoly) GetK() int {
 	return len(pub.p)
 }
 
-func (pub *PubPoly) GetB() abstract.Point {
-	return pub.b
-}
-
 // Initialize to a public commitment to a given private polynomial.
 // Create commitments as encryptions of a given base point b,
 // or the standard base if b == nil.

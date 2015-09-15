@@ -15,7 +15,7 @@ import (
 // PolyInfo describe the information needed to construct (and verify) a matrixShare
 type PolyInfo struct {
 	// Group used for working on the polynomials
-	Group abstract.Group
+	Suite abstract.Suite
 	// How many peer do we need to reconstruct a secret
 	T int
 	// How many peers do we need to verify
@@ -33,6 +33,10 @@ type SharedSecret struct {
 
 	// The share of the shared secret
 	Share *abstract.Secret
+
+	// The index of this share regarding the secret private poly / pub poly
+	// i.e. it is the same as the receiver's index
+	Index int
 }
 
 // Dealer is a peer that will create a promise and distribute it to each receivers needed
@@ -136,8 +140,9 @@ func (r *Receiver) ProduceSharedSecret() (*SharedSecret, error) {
 		return nil, errors.New("Receiver has 0 Dealers in its data.Can't produce SharedSecret.")
 	}
 	pub := new(PubPoly)
-	pub.InitNull(r.info.Group, r.info.T, r.Dealers[0].Promise.PubPoly().GetB())
-	share := r.info.Group.Secret()
+	//pub.InitNull(r.info.Suite, r.info.T, r.Dealers[0].Promise.PubPoly().GetB())
+	pub.InitNull(r.info.Suite, r.info.T, r.info.Suite.Point().Base())
+	share := r.info.Suite.Secret()
 	goodShare := 0
 	for index, _ := range r.Dealers {
 		// Only need T shares
@@ -172,5 +177,6 @@ func (r *Receiver) ProduceSharedSecret() (*SharedSecret, error) {
 	return &SharedSecret{
 		Pub:   pub,
 		Share: &share,
+		Index: r.index,
 	}, nil
 }
