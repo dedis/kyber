@@ -117,7 +117,7 @@
  *
  *   Users of this code = programmers wishing to use this code in programs
 */
-package promise
+package poly
 
 import (
 	"encoding/binary"
@@ -130,7 +130,6 @@ import (
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/anon"
 	"github.com/dedis/crypto/config"
-	"github.com/dedis/crypto/poly"
 	"github.com/dedis/crypto/proof"
 	"github.com/dedis/crypto/random"
 )
@@ -205,7 +204,7 @@ type Promise struct {
 	pubKey abstract.Point
 
 	// The public polynomial that is used to verify the shared secrets
-	pubPoly poly.PubPoly
+	pubPoly PubPoly
 
 	// A list of servers who will act as insurers of the Promise. The list
 	// contains the long-term public keys of the insurers
@@ -259,10 +258,10 @@ func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
 
 	// Create the public polynomial and private shares. The number of shares
 	// should be equal to the number of insurers.
-	pripoly := new(poly.PriPoly).Pick(p.suite, p.t,
+	pripoly := new(PriPoly).Pick(p.suite, p.t,
 		secretPair.Secret, random.Stream)
-	prishares := new(poly.PriShares).Split(pripoly, p.n)
-	p.pubPoly = poly.PubPoly{}
+	prishares := new(PriShares).Split(pripoly, p.n)
+	p.pubPoly = PubPoly{}
 	p.pubPoly.Commit(pripoly, nil)
 
 	// Populate the secrets array with the shares encrypted by a Diffie-
@@ -293,7 +292,7 @@ func (p *Promise) UnmarshalInit(t, r, n int, suite abstract.Suite) *Promise {
 	p.r = r
 	p.n = n
 	p.suite = suite
-	p.pubPoly = poly.PubPoly{}
+	p.pubPoly = PubPoly{}
 	p.pubPoly.Init(p.suite, p.t, nil)
 	return p
 }
@@ -320,7 +319,7 @@ func (p *Promise) verifyPromise() error {
 	return nil
 }
 
-func (p *Promise) PubPoly() *poly.PubPoly {
+func (p *Promise) PubPoly() *PubPoly {
 	return &p.pubPoly
 }
 
@@ -820,7 +819,7 @@ type State struct {
 	// Primarily used by clients, contains shares the client has currently
 	// obtained from insurers. This is what will be used to reconstruct the
 	// promised secret.
-	PriShares poly.PriShares
+	PriShares PriShares
 
 	// A list of responses (either approving signatures or blameProofs)
 	// that have been received so far.
@@ -839,7 +838,7 @@ func (ps *State) Init(promise Promise) *State {
 	ps.Promise = promise
 
 	// Initialize a new PriShares based on information from the promise.
-	ps.PriShares = poly.PriShares{}
+	ps.PriShares = PriShares{}
 	ps.PriShares.Empty(promise.suite, promise.t, promise.n)
 	// There will be at most n responses, one per insurer
 	ps.responses = make([]*Response, promise.n, promise.n)
