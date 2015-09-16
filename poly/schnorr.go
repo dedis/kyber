@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/util"
 )
 
 // This file describe the Distributed Threshold Schnorr Signature
@@ -57,6 +58,9 @@ type PartialSchnorrSig struct {
 
 	// The partial signature itself
 	Part *abstract.Secret
+
+	// Suite used  (needed to Unmarshal + Marshal, because only way to know the secretLenght ... ...)
+	Suite abstract.Suite
 }
 
 // SchnorrSig represents the final signature of a distribtued threshold schnorr signature
@@ -171,6 +175,7 @@ func (s *Schnorr) RevealPartialSig() *PartialSchnorrSig {
 	psc := &PartialSchnorrSig{
 		Index: s.index(),
 		Part:  &sigma,
+		Suite: s.info.Suite,
 	}
 	return psc
 }
@@ -245,4 +250,101 @@ func (s *Schnorr) VerifySchnorrSig(sig *SchnorrSig, msg []byte) error {
 		return errors.New("Signature could not have been verified against the message")
 	}
 	return nil
+}
+
+//// DECODING / ENCODING /////
+// Decoding :
+// Use the Schnorr struct to produce already initialized struct
+// 	then call Unmarshal on them. Theses functions are in Schnorr
+// so you can not forget to init the struct with the right fields.
+// Encoding is simple as calling MarshalBinary on them
+
+// Wrapper function to help for the decoding
+func (s *Schnorr) EmptyPartialSig() *PartialSchnorrSig {
+	return new(PartialSchnorrSig).Init(s.info.Suite)
+}
+func (s *Schnorr) EmptySchnorrSig() *SchnorrSig {
+	return new(SchnorrSig).Init(s.info)
+}
+
+// Init is needed before decoding a PartialSchnorrSig so it can now about the length of a secret
+func (pss *PartialSchnorrSig) Init(suite abstract.Suite) *PartialSchnorrSig {
+	pss.Suite = suite
+	return pss
+}
+
+// Marshal a PartialSchnorrSig into a packet
+func (pss *PartialSchnorrSig) MarshalBinary() ([]byte, error) {
+	buf, err := util.Int2Buf(pss.Index)
+	if err != nil {
+		return nil, err
+	}
+	// then add the point
+	sBuf, err := (*pss.Part).MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	return append(buf, sBuf...), nil
+}
+
+// UnmarshalBinary decode a packet into a PartialSchnorrSig.
+// NOTE : PLEASE use Init before decoding, otherwise it can not know the secret length
+func (pss *PartialSchnorrSig) UnmarshalBinary(buf []byte) error {
+	if pss.Suite == nil {
+		return errors.New("Suite has not been set on the PartialSchnorrSig. Cannot decode.")
+	}
+	index, err := util.Buf2Int(buf)
+	if err != nil {
+		return err
+	}
+
+	secret := pss.Suite.Secret()
+	if err := secret.UnmarshalBinary(buf[util.IntSize(index):]); err != nil {
+		return err
+	}
+	pss.Index = index
+	pss.Part = &secret
+	return nil
+}
+
+func (pss *PartialSchnorrSig) Equal(pss2 *PartialSchnorrSig) bool {
+	return pss.Index == pss2.Index && (*pss.Part).Equal(*pss2.Part)
+}
+
+// Init the struct so it can decode itself
+func (s *SchnorrSig) Init(info PolyInfo) *SchnorrSig {
+	s.random = new(PubPoly).Init(info.Suite, info.T, info.Suite.Point().Base())
+	secret := info.Suite.Secret()
+	s.signature = &secret
+	return s
+}
+
+// Marshall SchnorrSig into a packet
+func (s *SchnorrSig) MarshalBinary() ([]byte, error) {
+	buf, err := s.random.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	bufs, err := (*s.signature).MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	return append(buf, bufs...), nil
+}
+
+// Unmarshal a packet into a SchnorrSig
+func (s *SchnorrSig) UnmarshalBinary(buf []byte) error {
+	err := s.random.UnmarshalBinary(buf[:s.random.MarshalSize()])
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error unmarshal random : %v", err))
+	}
+	err = (*s.signature).UnmarshalBinary(buf[s.random.MarshalSize():])
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error unmarshal signature : %v", err))
+	}
+	return nil
+}
+
+func (s *SchnorrSig) Equal(s2 *SchnorrSig) bool {
+	return s.random.Equal(s2.random) && (*s.signature).Equal(*s2.signature)
 }
