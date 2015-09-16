@@ -129,7 +129,9 @@ func (r *Receiver) AddDealer(index int, dealer *Dealer) (*Response, error) {
 	}
 	// produce response
 	resp, err := dealer.Promise.ProduceResponse(index, r.Key)
-	r.Dealers = append(r.Dealers, dealer)
+	if err == nil {
+		r.Dealers = append(r.Dealers, dealer)
+	}
 	return resp, err
 }
 
