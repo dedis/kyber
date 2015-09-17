@@ -29,7 +29,7 @@ func TestReceiverAddDealer(t *testing.T) {
 }
 
 // Test the AddReponse func
-func TestRightDealerAddResponse(t *testing.T) {
+func rightDealerAddResponse(t *testing.T) {
 	// Test if all goes well with the right inputs
 	n := 3
 	m := 3
@@ -57,9 +57,13 @@ func TestRightDealerAddResponse(t *testing.T) {
 	}
 
 }
+func TestDealerAddResponse(t *testing.T) {
+	rightDealerAddResponse(t)
+	wrongDealerAddResponse(t)
+}
 
 // Test the AddReponse func with wrong inputs
-func TestWrongDealerAddResponse(t *testing.T) {
+func wrongDealerAddResponse(t *testing.T) {
 	n := 2
 	m := 3
 	dealers, receivers := generateNDealerMReceiver(PolyInfo{edward, 2, 3, 3}, n, m)

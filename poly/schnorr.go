@@ -275,7 +275,7 @@ func (pss *PartialSchnorrSig) Init(suite abstract.Suite) *PartialSchnorrSig {
 
 // Marshal a PartialSchnorrSig into a packet
 func (pss *PartialSchnorrSig) MarshalBinary() ([]byte, error) {
-	buf, err := util.Int2Buf(pss.Index)
+	buf, err := util.UInt64ToBuf(uint64(pss.Index))
 	if err != nil {
 		return nil, err
 	}
@@ -293,16 +293,16 @@ func (pss *PartialSchnorrSig) UnmarshalBinary(buf []byte) error {
 	if pss.Suite == nil {
 		return errors.New("Suite has not been set on the PartialSchnorrSig. Cannot decode.")
 	}
-	index, err := util.Buf2Int(buf)
+	index, err := util.BufToUInt64(buf)
 	if err != nil {
 		return err
 	}
 
 	secret := pss.Suite.Secret()
-	if err := secret.UnmarshalBinary(buf[util.IntSize(index):]); err != nil {
+	if err := secret.UnmarshalBinary(buf[util.UInt64Size(uint64(index)):]); err != nil {
 		return err
 	}
-	pss.Index = index
+	pss.Index = int(index)
 	pss.Part = &secret
 	return nil
 }
