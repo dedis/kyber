@@ -1,7 +1,6 @@
 package poly
 
 import (
-	"encoding/binary"
 	"fmt"
 	"testing"
 )
@@ -198,7 +197,6 @@ func TestPartialSchnorrSigMarshalling(t *testing.T) {
 		t.Error(fmt.Sprintf("MarshalBinary on PartialSchnorrSig did not work : %v", err))
 	}
 
-	fmt.Printf("Buffer PartialSig length : %d, int64 len = %d,SecretLen = %d", len(buf), binary.Size(int64(3)), schnorrs[0].info.Suite.SecretLen())
 	ps2 := schnorrs[0].EmptyPartialSig()
 	err = ps2.UnmarshalBinary(buf)
 	if err != nil {

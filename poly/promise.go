@@ -925,7 +925,7 @@ func (ps *State) AddResponse(i int, response *Response) error {
  *   considered certified otherwise. This is further incentive to create valid promises.
  */
 func (ps *State) RevealShare(i int, gKeyPair *config.KeyPair) (abstract.Secret, error) {
-	if ps.SufficientSignatures() != nil {
+	if SECURITY == MAXIMUM && ps.SufficientSignatures() != nil {
 		panic("RevealShare should only be called with promises with enough signatures.")
 	}
 	share := ps.Promise.revealShare(i, gKeyPair)

@@ -72,6 +72,8 @@ func TestWrongDealerAddResponse(t *testing.T) {
 }
 
 func TestProduceSharedSecret(t *testing.T) {
+	SECURITY = MODERATE
+	defer func() { SECURITY = MAXIMUM }()
 	n := 3
 	m := 3
 	_, receivers := generateNMSetup(PolyInfo{edward, 2, 3, 3}, n, m)
