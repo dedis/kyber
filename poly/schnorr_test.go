@@ -8,6 +8,8 @@ import (
 var msg []byte = []byte("Hello World!")
 
 func TestNewRound(t *testing.T) {
+	SECURITY = MODERATE
+	defer func() { SECURITY = MAXIMUM }()
 	n := 3
 	pl := PolyInfo{edward, 2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
@@ -30,6 +32,8 @@ func TestNewRound(t *testing.T) {
 }
 
 func TestRevealPartialSig(t *testing.T) {
+	SECURITY = MODERATE
+	defer func() { SECURITY = MAXIMUM }()
 	n := 3
 	pl := PolyInfo{edward, 2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
@@ -55,6 +59,8 @@ func TestRevealPartialSig(t *testing.T) {
 }
 
 func TestAddPartialSig(t *testing.T) {
+	SECURITY = MODERATE
+	defer func() { SECURITY = MAXIMUM }()
 	n := 3
 	pl := PolyInfo{edward, 2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
@@ -96,6 +102,8 @@ func TestAddPartialSig(t *testing.T) {
 }
 
 func TestSchnorrSig(t *testing.T) {
+	SECURITY = MODERATE
+	defer func() { SECURITY = MAXIMUM }()
 	n := 3
 	pl := PolyInfo{edward, 2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
@@ -140,6 +148,8 @@ func TestSchnorrSig(t *testing.T) {
 }
 
 func TestVerifySchnorrSig(t *testing.T) {
+	SECURITY = MODERATE
+	defer func() { SECURITY = MAXIMUM }()
 	n := 3
 	pl := PolyInfo{edward, 2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
@@ -181,6 +191,8 @@ func TestVerifySchnorrSig(t *testing.T) {
 }
 
 func TestPartialSchnorrSigMarshalling(t *testing.T) {
+	SECURITY = MODERATE
+	defer func() { SECURITY = MAXIMUM }()
 	n := 3
 	pl := PolyInfo{edward, 2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
@@ -209,6 +221,8 @@ func TestPartialSchnorrSigMarshalling(t *testing.T) {
 }
 
 func TestSchnorrSigMarshalling(t *testing.T) {
+	SECURITY = MODERATE
+	defer func() { SECURITY = MAXIMUM }()
 	n := 3
 	pl := PolyInfo{edward, 2, n, n}
 	schnorrs := generateSchnorrStructs(pl)

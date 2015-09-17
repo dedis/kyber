@@ -97,3 +97,54 @@ func TestProduceSharedSecret(t *testing.T) {
 		t.Error("SharedSecret's share can not be verified using another's receiver pubpoly")
 	}
 }
+
+func TestPolyInfoMarshalling(t *testing.T) {
+	pl := PolyInfo{
+		T:     3,
+		R:     5,
+		N:     8,
+		Suite: SUITE,
+	}
+	buf, err := pl.MarshalBinary()
+	if err != nil {
+		t.Error(fmt.Sprintf("PolyInfo MarshalBinary should not return error : %v", err))
+	}
+	pl2 := PolyInfo{}
+	err = pl2.UnmarshalBinary(buf)
+	if err != nil {
+		t.Error(fmt.Sprintf("PolyInfo UnmarshalBinary should not return error : %v", err))
+	}
+
+	if !pl.Equal(pl2) {
+		t.Error(fmt.Sprintf("PolyInfo's should be equals: \npl1 : %+v\npl2 : %+v", pl, pl2))
+	}
+
+}
+
+func TestDealerMarshalling(t *testing.T) {
+	pl := PolyInfo{
+		T:     5,
+		R:     6,
+		N:     7,
+		Suite: SUITE,
+	}
+	kpl := generateKeyPairList(7)
+	kp := generatePublicListFromPrivate(kpl)
+	d := NewDealer(pl, generateKeyPair(), generateKeyPair(), kp)
+	buf, err := d.MarshalBinary()
+
+	if err != nil {
+		t.Error(fmt.Sprintf("Error marshaling dealer %v ", err))
+	}
+
+	d2 := new(Dealer)
+	err = d2.UnmarshalBinary(buf)
+
+	if err != nil {
+		t.Error(fmt.Sprintf("Error unmarshaling dealer %v", err))
+	}
+
+	if !d.Equal(d2) {
+		t.Error("Dealers should be equals after marshalling ...")
+	}
+}

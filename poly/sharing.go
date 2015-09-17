@@ -322,7 +322,7 @@ func (pub *PubPoly) UnmarshalFrom(r io.Reader) (int, error) {
 // Assumes they are of the same degree and from the same group.
 func (p1 *PubPoly) Equal(p2 *PubPoly) bool {
 	k := len(p1.p)
-	if p1.g != p2.g || k != len(p2.p) {
+	if p1.g.String() != p2.g.String() || k != len(p2.p) {
 		panic("Mismatched polynomial commitments")
 	}
 	for i := 0; i < len(p1.p); i++ {

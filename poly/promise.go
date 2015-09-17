@@ -123,6 +123,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"reflect"
 	"strconv"
@@ -306,6 +307,8 @@ func (p *Promise) UnmarshalInit(t, r, n int, suite abstract.Suite) *Promise {
  * TODO Consider more ways to verify (such as making sure there are no duplicate
  *      keys in p.insurers or that the promiser's long term public key is not in
  *      p.insurers).
+ * NOT TODO : promiser long term public key COULD and most of the time WILL
+ *		be in p.insurers  (you can insure yourself, there's no problem about that)
  */
 func (p *Promise) verifyPromise() error {
 	// Verify t <= r <= n
@@ -584,9 +587,15 @@ func (p *Promise) Equal(p2 *Promise) bool {
 	if p.n != p2.n {
 		return false
 	}
-	if p.suite != p2.suite {
+	if p.suite != nil && p2.suite != nil {
+		if p.suite.String() != p2.suite.String() {
+			fmt.Printf("Comparise with the suites failed\n")
+			return false
+		}
+	} else {
 		return false
 	}
+
 	for i := 0; i < p.n; i++ {
 		if !p.secrets[i].Equal(p2.secrets[i]) ||
 			!p.insurers[i].Equal(p2.insurers[i]) {
