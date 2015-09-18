@@ -138,7 +138,7 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 	}
 	var err error
 	// Otherwise, reflectively handle composite types.
-	//prindent(depth, "%s: %s\n", v.Kind().String(), v.Type().String())
+	prindent(depth, "%s: %s\n", v.Kind().String(), v.Type().String())
 	switch v.Kind() {
 
 	case reflect.Interface:
@@ -212,7 +212,7 @@ func (en *encoder) value(obj interface{}, depth int) error {
 
 	// Otherwise, reflectively handle composite types.
 	v := reflect.ValueOf(obj)
-	//prindent(depth, "%s: %s\n", v.Kind().String(), v.Type().String())
+	prindent(depth, "%s: %s\n", v.Kind().String(), v.Type().String())
 	switch v.Kind() {
 
 	case reflect.Interface:
