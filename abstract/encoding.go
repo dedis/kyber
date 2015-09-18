@@ -136,9 +136,9 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 		//prindent(depth, "decode: %s\n", e.String())
 		return err
 	}
-
+	var err error
 	// Otherwise, reflectively handle composite types.
-	//prindent(depth, "%s: %s\n", v.Kind().String(), v.Type().String())
+	prindent(depth, "%s: %s\n", v.Kind().String(), v.Type().String())
 	switch v.Kind() {
 
 	case reflect.Interface:
@@ -165,25 +165,23 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 	case reflect.Struct:
 		l := v.NumField()
 		for i := 0; i < l; i++ {
-			if err := de.value(v.Field(i), depth+1); err != nil {
+			if err = de.value(v.Field(i), depth+1); err != nil {
 				return err
 			}
 		}
 
-	case reflect.Array:
-	case reflect.Slice:
+	case reflect.Slice, reflect.Array:
 		l := v.Len()
 		for i := 0; i < l; i++ {
-			if err := de.value(v.Index(i), depth+1); err != nil {
+			if err = de.value(v.Index(i), depth+1); err != nil {
 				return err
 			}
 		}
-
 	default:
-		// Fall back to big-endian binary encoding
-		return binary.Read(de.r, binary.BigEndian, obj)
+
+		return binary.Read(de.r, binary.BigEndian, v.Addr().Interface())
 	}
-	return nil
+	return err
 }
 
 type encoder struct {
@@ -214,7 +212,7 @@ func (en *encoder) value(obj interface{}, depth int) error {
 
 	// Otherwise, reflectively handle composite types.
 	v := reflect.ValueOf(obj)
-	//prindent(depth, "%s: %s\n", v.Kind().String(), v.Type().String())
+	prindent(depth, "%s: %s\n", v.Kind().String(), v.Type().String())
 	switch v.Kind() {
 
 	case reflect.Interface:
@@ -229,8 +227,7 @@ func (en *encoder) value(obj interface{}, depth int) error {
 			}
 		}
 
-	case reflect.Array:
-	case reflect.Slice:
+	case reflect.Slice, reflect.Array:
 		l := v.Len()
 		for i := 0; i < l; i++ {
 			if err := en.value(v.Index(i).Interface(), depth+1); err != nil {
