@@ -158,7 +158,7 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 		fallthrough
 	case reflect.Ptr:
 		if v.IsNil() {
-			panic("null pointer")
+			v.Set(reflect.New(v.Type().Elem()))
 		}
 		return de.value(v.Elem(), depth+1)
 
@@ -177,6 +177,11 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 				return err
 			}
 		}
+	case reflect.Int:
+		var i int64
+		err := binary.Read(de.r, binary.BigEndian, &i)
+		v.SetInt(i)
+		return err
 	default:
 
 		return binary.Read(de.r, binary.BigEndian, v.Addr().Interface())
@@ -234,7 +239,9 @@ func (en *encoder) value(obj interface{}, depth int) error {
 				return err
 			}
 		}
-
+	case reflect.Int:
+		t := reflect.TypeOf(int64(0))
+		return binary.Write(en.w, binary.BigEndian, v.Convert(t).Interface())
 	default:
 		// Fall back to big-endian binary encoding
 		return binary.Write(en.w, binary.BigEndian, obj)
