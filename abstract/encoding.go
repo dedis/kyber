@@ -158,7 +158,7 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 		fallthrough
 	case reflect.Ptr:
 		if v.IsNil() {
-			v.Set(reflect.New(v.Type().Elem()))
+			panic("null pointer")
 		}
 		return de.value(v.Elem(), depth+1)
 
