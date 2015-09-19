@@ -94,7 +94,7 @@ func TestEncoding(t *testing.T) {
 		[]emb{emb{-1}, emb{-2}, emb{-3}},
 	}
 	var buf bytes.Buffer
-	err := Write(&buf, &t1)
+	err := BinaryEncoding{}.Write(&buf, &t1)
 	assert.NoError(t, err)
 	//fmt.Printf("Encoding:\n%s",hex.Dump(buf))
 
@@ -112,7 +112,7 @@ func TestEncoding(t *testing.T) {
 	t2.SBytes[1] = make([]byte, 3)
 	t2.SStruct = make([]emb, 3)
 
-	err = Read(&buf, nil, &t2)
+	err = BinaryEncoding{}.Read(&buf, &t2)
 	assert.NoError(t, err)
 	assert.Equal(t, t2, t1)
 }

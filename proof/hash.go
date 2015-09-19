@@ -24,7 +24,7 @@ func newHashProver(suite abstract.Suite, protoName string,
 }
 
 func (c *hashProver) Put(message interface{}) error {
-	return abstract.Write(&c.msg, message, c.suite)
+	return c.suite.Write(&c.msg, message)
 }
 
 func (c *hashProver) consumeMsg() {
@@ -43,12 +43,12 @@ func (c *hashProver) consumeMsg() {
 // Get public randomness that depends on every bit in the proof so far.
 func (c *hashProver) PubRand(data ...interface{}) error {
 	c.consumeMsg()
-	return abstract.Read(c.pubrand, data, c.suite)
+	return c.suite.Read(c.pubrand, data...)
 }
 
 // Get private randomness
 func (c *hashProver) PriRand(data ...interface{}) {
-	if err := abstract.Read(c.prirand, data, c.suite); err != nil {
+	if err := c.suite.Read(c.prirand, data...); err != nil {
 		panic("error reading random stream: " + err.Error())
 	}
 }
@@ -92,13 +92,13 @@ func (c *hashVerifier) consumeMsg() {
 
 // Read structured data from the proof
 func (c *hashVerifier) Get(message interface{}) error {
-	return abstract.Read(&c.proof, message, c.suite)
+	return c.suite.Read(&c.proof, message)
 }
 
 // Get public randomness that depends on every bit in the proof so far.
 func (c *hashVerifier) PubRand(data ...interface{}) error {
 	c.consumeMsg() // Stir in newly-read data
-	return abstract.Read(c.pubrand, data, c.suite)
+	return c.suite.Read(c.pubrand, data...)
 }
 
 // HashProve runs a given Sigma-protocol prover with a ProverContext
