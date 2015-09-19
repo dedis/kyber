@@ -81,6 +81,16 @@ type Hiding interface {
 	HideDecode(buf []byte)
 }
 
+// Constructor represents a generic constructor
+// that takes a reflect.Type, typically for an interface type,
+// and constructs some suitable concrete instance of that type.
+// The crypto library uses this capability to support
+// dynamic instantiation of cryptographic objects of the concrete type
+// appropriate for a given abstract.Suite.
+type Constructor interface {
+	New(t reflect.Type) interface{}
+}
+
 // Not used other than for reflect.TypeOf()
 var aSecret Secret
 var aPoint Point
@@ -99,38 +109,21 @@ type decoder struct {
 }
 
 // XXX should this perhaps become a Suite method?
-func Read(r io.Reader, obj interface{}, g Group) error {
+// NB: objs must be a list of pointers.
+func Read(r io.Reader, g Group, objs ...interface{}) error {
 	de := decoder{g, r}
-	return de.value(reflect.ValueOf(obj), 0)
+	for i := 0; i < len(objs); i++ {
+		if err := de.value(reflect.ValueOf(objs[i]).Elem(), 0); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (de *decoder) value(v reflect.Value, depth int) error {
 
-	// Does the value need to be instantiated?
-	obj := v.Interface()
-	if false { //obj == nil {
-		println("v: " + v.String())
-		println("t: " + v.Type().String())
-		println("s: ", v.CanSet())
-		println("sec:", v.Type() == tSecret)
-		println("pt:", v.Type() == tPoint)
-
-		switch v.Type() {
-		case tSecret:
-			//v.Set(reflect.ValueOf(de.g.Secret()))
-
-		case tPoint:
-			v.Set(reflect.ValueOf(de.g.Point()))
-		default:
-			panic("unsupported null pointer type: " +
-				v.Type().String())
-		}
-		println("r: ", v.String())
-		println("o: ", v.Interface())
-		obj = v.Interface()
-	}
-
 	// Does the object support our self-decoding interface?
+	obj := v.Interface()
 	if e, ok := obj.(Marshaling); ok {
 		_, err := e.UnmarshalFrom(de.r)
 		//prindent(depth, "decode: %s\n", e.String())
@@ -170,18 +163,31 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 			}
 		}
 
-	case reflect.Slice, reflect.Array:
+	case reflect.Slice:
+		if v.IsNil() {
+			panic("slices must be initialized to correct length before decoding")
+		}
+		fallthrough
+	case reflect.Array:
 		l := v.Len()
 		for i := 0; i < l; i++ {
 			if err = de.value(v.Index(i), depth+1); err != nil {
 				return err
 			}
 		}
+
 	case reflect.Int:
 		var i int64
 		err := binary.Read(de.r, binary.BigEndian, &i)
 		v.SetInt(i)
 		return err
+
+	case reflect.Bool:
+		var b uint8
+		err := binary.Read(de.r, binary.BigEndian, &b)
+		v.SetBool(b != 0)
+		return err
+
 	default:
 
 		return binary.Read(de.r, binary.BigEndian, v.Addr().Interface())
@@ -190,7 +196,6 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 }
 
 type encoder struct {
-	g Group
 	w io.Writer
 }
 
@@ -201,9 +206,14 @@ type encoder struct {
 // and structs, arrays, and slices containing all of these types.
 //
 // XXX should this perhaps become a Suite method?
-func Write(w io.Writer, obj interface{}, g Group) error {
-	en := encoder{g, w}
-	return en.value(obj, 0)
+func Write(w io.Writer, objs ...interface{}) error {
+	en := encoder{w}
+	for i := 0; i < len(objs); i++ {
+		if err := en.value(objs[i], 0); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (en *encoder) value(obj interface{}, depth int) error {
@@ -239,12 +249,22 @@ func (en *encoder) value(obj interface{}, depth int) error {
 				return err
 			}
 		}
+
 	case reflect.Int:
 		t := reflect.TypeOf(int64(0))
 		return binary.Write(en.w, binary.BigEndian, v.Convert(t).Interface())
+
+	case reflect.Bool:
+		b := uint8(0)
+		if v.Bool() {
+			b = 1
+		}
+		return binary.Write(en.w, binary.BigEndian, b)
+
 	default:
 		// Fall back to big-endian binary encoding
 		return binary.Write(en.w, binary.BigEndian, obj)
 	}
 	return nil
 }
+
