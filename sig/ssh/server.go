@@ -4,8 +4,7 @@
 
 package ssh
 
-import (
-)
+import ()
 
 // The Permissions type holds fine-grained permissions that are
 // specific to a user or a specific authentication method for a
@@ -27,4 +26,3 @@ type Permissions struct {
 	// user.
 	Extensions map[string]string
 }
-

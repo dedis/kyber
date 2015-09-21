@@ -17,6 +17,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"math/big"
 )
@@ -218,6 +219,10 @@ func (r *rsaPublicKey) Type() string {
 	return "ssh-rsa"
 }
 
+func (r *rsaPublicKey) Hash() hash.Hash {
+	return crypto.SHA1.New()
+}
+
 // parseRSA parses an RSA key according to RFC 4253, section 6.6.
 func parseRSA(in []byte) (out PublicKey, rest []byte, err error) {
 	var w struct {
@@ -293,6 +298,10 @@ type dsaPublicKey dsa.PublicKey
 
 func (r *dsaPublicKey) Type() string {
 	return "ssh-dss"
+}
+
+func (r *dsaPublicKey) Hash() hash.Hash {
+	return crypto.SHA1.New()
 }
 
 // parseDSA parses an DSA key according to RFC 4253, section 6.6.
@@ -401,6 +410,10 @@ func (key *ecdsaPublicKey) nistID() string {
 		return "nistp521"
 	}
 	panic("ssh: unsupported ecdsa key size")
+}
+
+func (key *ecdsaPublicKey) Hash() hash.Hash {
+	return ecHash(key.Curve).New()
 }
 
 func supportedEllipticCurve(curve elliptic.Curve) bool {

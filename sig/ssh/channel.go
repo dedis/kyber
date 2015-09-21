@@ -90,4 +90,3 @@ const (
 	channelInbound channelDirection = iota
 	channelOutbound
 )
-

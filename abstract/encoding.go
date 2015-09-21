@@ -11,18 +11,14 @@ import (
 )
 
 /*
-Marshaling is a basic interface representing fixed-length (or known-length)
-cryptographic objects or structures having a built-in binary encoding.
+Marshaling is an extension of the standard BinaryMarshaler/BinaryUnmarshaler
+interfaces that adds methods to marshal directly to/from I/O streams.
+These stream-based methods are often simpler to implement and/or use,
+and either can generally be implemented readily in terms of the other.
 */
 type Marshaling interface {
 	encoding.BinaryMarshaler
 	encoding.BinaryUnmarshaler
-
-	// XXX This may go away from the interface.
-	String() string
-
-	// Encoded length of this object in bytes.
-	MarshalSize() int
 
 	// Encode the contents of this object and write it to an io.Writer.
 	MarshalTo(w io.Writer) (int, error)
@@ -31,6 +27,21 @@ type Marshaling interface {
 	// If r is a Cipher, uses it to pick a valid object pseudo-randomly,
 	// which may entail reading more than Len bytes due to retries.
 	UnmarshalFrom(r io.Reader) (int, error)
+}
+
+/*
+RigidMarshaling is a binary marshaling interface for objects
+whose size is fixed or dependent only on well-known configuration information,
+and does not depend in any way on the content of the object(s) marshaled.
+Using a rigid encoding when feasible can simplify marshaling/unmarshaling,
+reduce risks of side-channel leakage via encoded object length,
+and generally make cryptographic objects of the same type more anonymous.
+*/
+type RigidMarshaling interface {
+	Marshaling
+
+	// Encoded length of this object in bytes.
+	MarshalSize() int
 }
 
 /*

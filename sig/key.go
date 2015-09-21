@@ -13,10 +13,13 @@ import (
 type PublicKey interface {
 	abstract.Marshaling
 
+	// Produce a human-readable representation of a PublicKey
+	String() string
+
 	// Create an instance of the hash function this signature scheme uses.
 	Hash() hash.Hash
 
-	// Return the length in bytes of signatures using this scheme.
+	// Return the length in bytes of signatures generated via this scheme.
 	SigSize() int
 
 	// Verify a signature against a hashed message.
