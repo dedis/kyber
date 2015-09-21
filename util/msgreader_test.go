@@ -1,10 +1,10 @@
 package util
 
 import (
-	"io"
 	"bytes"
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"io"
+	"testing"
 )
 
 func TestMessageReader(t *testing.T) {
@@ -32,7 +32,7 @@ func TestMessageReader(t *testing.T) {
 	assert.Equal(t, n, 0)
 
 	// Large message with moderately-large head and tail
-	mlen := 1024*1024
+	mlen := 1024 * 1024
 	m = make([]byte, mlen)
 	for i := 0; i < mlen; i++ {
 		m[i] = byte(mlen)
@@ -40,7 +40,7 @@ func TestMessageReader(t *testing.T) {
 	head = make([]byte, 16*1024)
 	tail = make([]byte, 16*1024)
 	body = make([]byte, len(m))
-	mb := m[len(head):len(m)-len(tail)]
+	mb := m[len(head) : len(m)-len(tail)]
 	mr := MessageReader(bytes.NewReader(m), head, tail)
 	tot := 0
 	for {
@@ -58,4 +58,3 @@ func TestMessageReader(t *testing.T) {
 	assert.Equal(t, head, m[:len(head)])
 	assert.Equal(t, tail, m[len(m)-len(tail):])
 }
-

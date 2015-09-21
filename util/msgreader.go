@@ -1,10 +1,10 @@
 package util
 
 import (
-	"io"
 	"bufio"
 	"errors"
 	"github.com/dedis/crypto/ints"
+	"io"
 )
 
 // MessageReader returns a Reader that reads from rd
@@ -39,9 +39,9 @@ func MessageReader(rd io.Reader, head []byte, tail []byte) io.Reader {
 }
 
 type msgReader struct {
-	buf *bufio.Reader	// Buffer wrapping underlying io.Reader
-	head []byte		// Header buffer or nil
-	tail []byte		// Tailer buffer or nil
+	buf  *bufio.Reader // Buffer wrapping underlying io.Reader
+	head []byte        // Header buffer or nil
+	tail []byte        // Tailer buffer or nil
 }
 
 func (br *msgReader) Read(p []byte) (int, error) {
@@ -62,7 +62,7 @@ func (br *msgReader) Read(p []byte) (int, error) {
 
 	// Fill buf to contain at least one non-tail byte.
 	tlen := len(br.tail)
-	b, err := br.buf.Peek(tlen+1)
+	b, err := br.buf.Peek(tlen + 1)
 	if len(b) < tlen {
 		// Couldn't even get a full trailer: message too short.
 		return 0, msgReaderError(err)
@@ -75,13 +75,13 @@ func (br *msgReader) Read(p []byte) (int, error) {
 		if err == nil {
 			err = io.EOF
 		}
-		br.tail = nil	// count the tail as having been read
+		br.tail = nil // count the tail as having been read
 		return 0, err
 	}
 
 	// We have at least one byte beyond the tail buffered.
 	// Return as much as we have while reserving tail bytes.
-	n := ints.Min(br.buf.Buffered() - tlen, len(p))
+	n := ints.Min(br.buf.Buffered()-tlen, len(p))
 	rn, _ := br.buf.Read(p[:n])
 	if rn != n { // shouldn't happen
 		panic("Can't read already-buffered bytes!?")
@@ -97,4 +97,3 @@ func msgReaderError(err error) error {
 }
 
 var errTooShort = errors.New("message too short")
-

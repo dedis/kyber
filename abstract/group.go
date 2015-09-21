@@ -2,6 +2,7 @@ package abstract
 
 import (
 	"crypto/cipher"
+	"math/big"
 )
 
 // XXX consider renaming Secret to Scalar?
@@ -22,8 +23,15 @@ type Secret interface {
 	// Set equal to another Secret a
 	Set(a Secret) Secret
 
+	// Set to a big integer value
+	SetInt(v *big.Int) Secret
+
 	// Set to a small integer value
 	SetInt64(v int64) Secret
+
+	// Set to a the contents of a byte-slice, typically containing a hash.
+	// May use only a portion of the byte-slice if it is too large.
+	SetBytes(b []byte) Secret
 
 	// Set to the additive identity (0)
 	Zero() Secret

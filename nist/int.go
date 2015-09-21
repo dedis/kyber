@@ -128,7 +128,7 @@ func (i *Int) Set(a abstract.Secret) abstract.Secret {
 }
 
 // Set value to a number represented in a big-endian byte string.
-func (i *Int) SetBytes(a []byte) *Int {
+func (i *Int) SetBytes(a []byte) abstract.Secret {
 	i.V.SetBytes(a).Mod(&i.V, i.M)
 	return i
 }
@@ -150,6 +150,13 @@ func (i *Int) Zero() abstract.Secret {
 // Set to the value 1.  The modulus must already be initialized.
 func (i *Int) One() abstract.Secret {
 	i.V.SetInt64(1)
+	return i
+}
+
+// Set to an arbitrary big.Int value.
+// The modulus must already be initialized.
+func (i *Int) SetInt(v *big.Int) abstract.Secret {
+	i.V.Set(v).Mod(&i.V, i.M)
 	return i
 }
 

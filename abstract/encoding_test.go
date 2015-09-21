@@ -29,17 +29,17 @@ type mybytes []byte
 // XXX 64-bit Unix time?
 
 type test struct {
-	Bool   bool
-	I      int
-	I32    int32
-	I64    int64
-	U32    uint32
-	U64    uint64
-	F32    float32
-	F64    float64
+	Bool bool
+	I    int
+	I32  int32
+	I64  int64
+	U32  uint32
+	U64  uint64
+	F32  float32
+	F64  float64
 
 	Bytes  []byte
-	Array	[3]byte
+	Array  [3]byte
 	Struct emb
 
 	SBool   []mybool
@@ -116,4 +116,3 @@ func TestEncoding(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, t2, t1)
 }
-
