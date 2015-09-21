@@ -6,7 +6,6 @@ package ssh
 
 import (
 	"crypto"
-	"crypto/rand"
 	"fmt"
 	"io"
 	"sync"
@@ -28,16 +27,6 @@ var supportedCiphers = []string{
 	"aes128-ctr", "aes192-ctr", "aes256-ctr",
 	"aes128-gcm@openssh.com",
 	"arcfour256", "arcfour128",
-}
-
-// supportedKexAlgos specifies the supported key-exchange algorithms in
-// preference order.
-var supportedKexAlgos = []string{
-	kexAlgoCurve25519SHA256,
-	// P384 and P521 are not constant-time yet, but since we don't
-	// reuse ephemeral keys, using them for ECDH should be OK.
-	kexAlgoECDH256, kexAlgoECDH384, kexAlgoECDH521,
-	kexAlgoDH14SHA1, kexAlgoDH1SHA1,
 }
 
 // supportedKexAlgos specifies the supported host-key algorithms (i.e. methods
@@ -158,68 +147,6 @@ func findAgreedAlgorithms(clientKexInit, serverKexInit *kexInitMsg) (algs *algor
 // If rekeythreshold is too small, we can't make any progress sending
 // stuff.
 const minRekeyThreshold uint64 = 256
-
-// Config contains configuration data common to both ServerConfig and
-// ClientConfig.
-type Config struct {
-	// Rand provides the source of entropy for cryptographic
-	// primitives. If Rand is nil, the cryptographic random reader
-	// in package crypto/rand will be used.
-	Rand io.Reader
-
-	// The maximum number of bytes sent or received after which a
-	// new key is negotiated. It must be at least 256. If
-	// unspecified, 1 gigabyte is used.
-	RekeyThreshold uint64
-
-	// The allowed key exchanges algorithms. If unspecified then a
-	// default set of algorithms is used.
-	KeyExchanges []string
-
-	// The allowed cipher algorithms. If unspecified then a sensible
-	// default is used.
-	Ciphers []string
-
-	// The allowed MAC algorithms. If unspecified then a sensible default
-	// is used.
-	MACs []string
-}
-
-// SetDefaults sets sensible values for unset fields in config. This is
-// exported for testing: Configs passed to SSH functions are copied and have
-// default values set automatically.
-func (c *Config) SetDefaults() {
-	if c.Rand == nil {
-		c.Rand = rand.Reader
-	}
-	if c.Ciphers == nil {
-		c.Ciphers = supportedCiphers
-	}
-	var ciphers []string
-	for _, c := range c.Ciphers {
-		if cipherModes[c] != nil {
-			// reject the cipher if we have no cipherModes definition
-			ciphers = append(ciphers, c)
-		}
-	}
-	c.Ciphers = ciphers
-
-	if c.KeyExchanges == nil {
-		c.KeyExchanges = supportedKexAlgos
-	}
-
-	if c.MACs == nil {
-		c.MACs = supportedMACs
-	}
-
-	if c.RekeyThreshold == 0 {
-		// RFC 4253, section 9 suggests rekeying after 1G.
-		c.RekeyThreshold = 1 << 30
-	}
-	if c.RekeyThreshold < minRekeyThreshold {
-		c.RekeyThreshold = minRekeyThreshold
-	}
-}
 
 // buildDataSignedForAuth returns the data that is signed in order to prove
 // possession of a private key. See RFC 4252, section 7.

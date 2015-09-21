@@ -44,60 +44,6 @@ type ConnMetadata interface {
 	LocalAddr() net.Addr
 }
 
-// Conn represents an SSH connection for both server and client roles.
-// Conn is the basis for implementing an application layer, such
-// as ClientConn, which implements the traditional shell access for
-// clients.
-type Conn interface {
-	ConnMetadata
-
-	// SendRequest sends a global request, and returns the
-	// reply. If wantReply is true, it returns the response status
-	// and payload. See also RFC4254, section 4.
-	SendRequest(name string, wantReply bool, payload []byte) (bool, []byte, error)
-
-	// OpenChannel tries to open an channel. If the request is
-	// rejected, it returns *OpenChannelError. On success it returns
-	// the SSH Channel and a Go channel for incoming, out-of-band
-	// requests. The Go channel must be serviced, or the
-	// connection will hang.
-	OpenChannel(name string, data []byte) (Channel, <-chan *Request, error)
-
-	// Close closes the underlying network connection
-	Close() error
-
-	// Wait blocks until the connection has shut down, and returns the
-	// error causing the shutdown.
-	Wait() error
-
-	// TODO(hanwen): consider exposing:
-	//   RequestKeyChange
-	//   Disconnect
-}
-
-// DiscardRequests consumes and rejects all requests from the
-// passed-in channel.
-func DiscardRequests(in <-chan *Request) {
-	for req := range in {
-		if req.WantReply {
-			req.Reply(false, nil)
-		}
-	}
-}
-
-// A connection represents an incoming connection.
-type connection struct {
-	transport *handshakeTransport
-	sshConn
-
-	// The connection protocol.
-	*mux
-}
-
-func (c *connection) Close() error {
-	return c.sshConn.conn.Close()
-}
-
 // sshconn provides net.Conn metadata, but disallows direct reads and
 // writes.
 type sshConn struct {
