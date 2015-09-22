@@ -12,6 +12,7 @@ import (
 	"net"
 	"sort"
 	"time"
+	"hash"
 )
 
 // These constants from [PROTOCOL.certkeys] represent the algorithm names
@@ -468,6 +469,10 @@ func (c *Certificate) Type() string {
 // key. It is part of the PublicKey interface.
 func (c *Certificate) Verify(data []byte, sig *Signature) error {
 	return c.Key.Verify(data, sig)
+}
+
+func (c *Certificate) Hash() hash.Hash {
+	return c.Key.Hash()
 }
 
 func parseSignatureBody(in []byte) (out *Signature, rest []byte, ok bool) {

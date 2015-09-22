@@ -2,6 +2,7 @@ package test
 
 import (
 	"bytes"
+	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/sig"
 	"github.com/stretchr/testify/assert"
 	"hash"
@@ -21,7 +22,9 @@ func TestSig(t *testing.T, newKey func() sig.SecretKey) {
 	buf := bytes.Buffer{}
 	n, err := k1.MarshalTo(&buf)
 	assert.NoError(t, err)
-	assert.Equal(t, n, k1.MarshalSize())
+	if rk1, ok := k1.(abstract.RigidMarshaling); ok {
+		assert.Equal(t, n, rk1.MarshalSize())
+	}
 
 	// Key marshaling via BinaryMarshal
 	bufc, err := k1.MarshalBinary()
@@ -30,9 +33,9 @@ func TestSig(t *testing.T, newKey func() sig.SecretKey) {
 
 	// Key unmarshaling via UnmarshalFrom
 	k1c := newKey()
-	n, err = k1c.UnmarshalFrom(&buf)
+	nc, err := k1c.UnmarshalFrom(&buf)
 	assert.NoError(t, err)
-	assert.Equal(t, n, k1.MarshalSize())
+	assert.Equal(t, nc, n)
 	assert.Equal(t, k1.String(), k1c.String())
 
 	// Key unmarshaling via BinaryUnmarshal

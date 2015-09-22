@@ -201,6 +201,8 @@ type PublicKey interface {
 	// Verify that sig is a signature on the given data using this
 	// key. This function will hash the data appropriately first.
 	Verify(data []byte, sig *Signature) error
+
+	Hash() hash.Hash
 }
 
 // A Signer can create signatures that verify against a public key.
