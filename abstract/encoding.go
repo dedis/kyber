@@ -81,6 +81,19 @@ type Hiding interface {
 	HideDecode(buf []byte)
 }
 
+
+// Encoding represents an abstract interface to an encoding/decoding
+// that can be used to marshal/unmarshal objects to and from streams.
+// Different Encodings will have different constraints, of course.
+type Encoding interface {
+
+	// Encode and write objects to an io.Writer.
+	Write(w io.Writer, objs ...interface{}) error
+
+	// Read and decode objects from an io.Reader.
+	Read(r io.Reader, objs ...interface{}) error
+}
+
 // Not used other than for reflect.TypeOf()
 var aSecret Secret
 var aPoint Point
@@ -88,49 +101,64 @@ var aPoint Point
 var tSecret = reflect.TypeOf(&aSecret).Elem()
 var tPoint = reflect.TypeOf(&aPoint).Elem()
 
+
+// Constructor represents a generic constructor
+// that takes a reflect.Type, typically for an interface type,
+// and constructs some suitable concrete instance of that type.
+// The crypto library uses this capability to support
+// dynamic instantiation of cryptographic objects of the concrete type
+// appropriate for a given abstract.Suite.
+type Constructor interface {
+	New(t reflect.Type) interface{}
+}
+
+// BinaryEncoding represents a simple binary encoding
+// suitable for reading and writing fixed-length cryptographic objects.
+// The interface allows reading and writing composite types
+// such as structs, arrays, and slices,
+// but the encoded size of any object must be completely defined
+// by the type and size of the object itself and the ciphersuite in use.
+//
+// Slices must be instantiated to the correct length
+// before either reading or writing:
+// hence the reader must determine the correct length "out of band"
+// (the encoding supports no transmission of length metadata).
+//
+// XXX move this and Constructor to some other, more generic package
+//
+type BinaryEncoding struct {
+	Constructor	// Constructor for instantiating abstract types
+}
+
 func prindent(depth int, format string, a ...interface{}) {
 	fmt.Print(strings.Repeat("  ", depth))
 	fmt.Printf(format, a...)
 }
 
 type decoder struct {
-	g Group
+	c Constructor
 	r io.Reader
 }
 
 // XXX should this perhaps become a Suite method?
-func Read(r io.Reader, obj interface{}, g Group) error {
-	de := decoder{g, r}
-	return de.value(reflect.ValueOf(obj), 0)
+// NB: objs must be a list of pointers.
+func (e BinaryEncoding) Read(r io.Reader, objs ...interface{}) error {
+	de := decoder{e.Constructor, r}
+	for i := 0; i < len(objs); i++ {
+		// XXX check that it's a by-reference type
+		// (pointer, slice, etc.) and complain if not,
+		// to head of accidental misuse?
+		if err := de.value(reflect.ValueOf(objs[i]), 0); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (de *decoder) value(v reflect.Value, depth int) error {
 
-	// Does the value need to be instantiated?
-	obj := v.Interface()
-	if false { //obj == nil {
-		println("v: " + v.String())
-		println("t: " + v.Type().String())
-		println("s: ", v.CanSet())
-		println("sec:", v.Type() == tSecret)
-		println("pt:", v.Type() == tPoint)
-
-		switch v.Type() {
-		case tSecret:
-			//v.Set(reflect.ValueOf(de.g.Secret()))
-
-		case tPoint:
-			v.Set(reflect.ValueOf(de.g.Point()))
-		default:
-			panic("unsupported null pointer type: " +
-				v.Type().String())
-		}
-		println("r: ", v.String())
-		println("o: ", v.Interface())
-		obj = v.Interface()
-	}
-
 	// Does the object support our self-decoding interface?
+	obj := v.Interface()
 	if e, ok := obj.(Marshaling); ok {
 		_, err := e.UnmarshalFrom(de.r)
 		//prindent(depth, "decode: %s\n", e.String())
@@ -145,15 +173,12 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 		if v.IsNil() {
 			// See if we can auto-fill certain interface variables
 			t := v.Type()
-			switch t {
-			case tSecret:
-				v.Set(reflect.ValueOf(de.g.Secret()))
-			case tPoint:
-				v.Set(reflect.ValueOf(de.g.Point()))
-			default:
+			o := de.c.New(t)
+			if o == nil {
 				panic("unsupported null pointer type: " +
 					t.String())
 			}
+			v.Set(reflect.ValueOf(o))
 		}
 		fallthrough
 	case reflect.Ptr:
@@ -170,18 +195,31 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 			}
 		}
 
-	case reflect.Slice, reflect.Array:
+	case reflect.Slice:
+		if v.IsNil() {
+			panic("slices must be initialized to correct length before decoding")
+		}
+		fallthrough
+	case reflect.Array:
 		l := v.Len()
 		for i := 0; i < l; i++ {
 			if err = de.value(v.Index(i), depth+1); err != nil {
 				return err
 			}
 		}
+
 	case reflect.Int:
 		var i int64
 		err := binary.Read(de.r, binary.BigEndian, &i)
 		v.SetInt(i)
 		return err
+
+	case reflect.Bool:
+		var b uint8
+		err := binary.Read(de.r, binary.BigEndian, &b)
+		v.SetBool(b != 0)
+		return err
+
 	default:
 
 		return binary.Read(de.r, binary.BigEndian, v.Addr().Interface())
@@ -190,7 +228,6 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 }
 
 type encoder struct {
-	g Group
 	w io.Writer
 }
 
@@ -201,9 +238,17 @@ type encoder struct {
 // and structs, arrays, and slices containing all of these types.
 //
 // XXX should this perhaps become a Suite method?
-func Write(w io.Writer, obj interface{}, g Group) error {
-	en := encoder{g, w}
-	return en.value(obj, 0)
+//
+// XXX now this code could/should be moved into a separate package
+// relatively independent from this crypto code.
+func (e BinaryEncoding) Write(w io.Writer, objs ...interface{}) error {
+	en := encoder{w}
+	for i := 0; i < len(objs); i++ {
+		if err := en.value(objs[i], 0); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (en *encoder) value(obj interface{}, depth int) error {
@@ -239,12 +284,45 @@ func (en *encoder) value(obj interface{}, depth int) error {
 				return err
 			}
 		}
+
 	case reflect.Int:
 		t := reflect.TypeOf(int64(0))
 		return binary.Write(en.w, binary.BigEndian, v.Convert(t).Interface())
+
+	case reflect.Bool:
+		b := uint8(0)
+		if v.Bool() {
+			b = 1
+		}
+		return binary.Write(en.w, binary.BigEndian, b)
+
 	default:
 		// Fall back to big-endian binary encoding
 		return binary.Write(en.w, binary.BigEndian, obj)
 	}
 	return nil
 }
+
+
+// Default implementation of reflective constructor for ciphersuites
+func SuiteNew(s Suite, t reflect.Type) interface{} {
+	switch t {
+	case tSecret:
+		return s.Secret()
+	case tPoint:
+		return s.Point()
+	}
+	return nil
+}
+
+// Default implementation of Encoding interface Read for ciphersuites
+func SuiteRead(s Suite, r io.Reader, objs ...interface{}) error {
+	return BinaryEncoding{s}.Read(r, objs)
+}
+
+// Default implementation of Encoding interface Write for ciphersuites
+func SuiteWrite(s Suite, w io.Writer, objs ...interface{}) error {
+	return BinaryEncoding{s}.Write(w, objs)
+}
+
+

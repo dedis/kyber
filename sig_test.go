@@ -47,7 +47,7 @@ func SchnorrSign(suite abstract.Suite, random cipher.Stream, message []byte,
 	// And check that hashElgamal for T and the message == c
 	buf := bytes.Buffer{}
 	sig := basicSig{c, r}
-	abstract.Write(&buf, &sig, suite)
+	suite.Write(&buf, &sig)
 	return buf.Bytes()
 }
 
@@ -57,7 +57,7 @@ func SchnorrVerify(suite abstract.Suite, message []byte, publicKey abstract.Poin
 	// Decode the signature
 	buf := bytes.NewBuffer(signatureBuffer)
 	sig := basicSig{}
-	if err := abstract.Read(buf, &sig, suite); err != nil {
+	if err := suite.Read(buf, &sig); err != nil {
 		return err
 	}
 	r := sig.R
