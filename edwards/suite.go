@@ -1,12 +1,12 @@
 package edwards
 
 import (
-	"io"
-	"reflect"
 	"crypto/sha256"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher/sha3"
 	"hash"
+	"io"
+	"reflect"
 	//"github.com/dedis/crypto/edwards/ed25519"
 )
 

@@ -164,8 +164,6 @@ func (p *extendedGroupElement) String() string {
 		p.T.String() + ",\n}"
 }
 
-
-
 // completedGroupElement methods
 
 func (p *completedGroupElement) ToProjective(r *projectiveGroupElement) {
@@ -249,8 +247,6 @@ func (r *completedGroupElement) MixedSub(p *extendedGroupElement, q *preComputed
 	feAdd(&r.T, &t0, &r.T)
 }
 
-
-
 // preComputedGroupElement methods
 
 // Set to u conditionally based on b
@@ -266,8 +262,6 @@ func (r *preComputedGroupElement) Neg(t *preComputedGroupElement) {
 	feCopy(&r.yMinusX, &t.yPlusX)
 	feNeg(&r.xy2d, &t.xy2d)
 }
-
-
 
 // cachedGroupElement methods
 
@@ -293,7 +287,6 @@ func (r *cachedGroupElement) Neg(t *cachedGroupElement) {
 	feCopy(&r.Z, &t.Z)
 	feNeg(&r.T2d, &t.T2d)
 }
-
 
 // Expand the 32-byte (256-bit) exponent in slice a into
 // a sequence of 256 multipliers, one per exponent bit position.
@@ -476,7 +469,6 @@ func geScalarMultBase(h *extendedGroupElement, a *[32]byte) {
 	}
 }
 
-
 func selectCached(c *cachedGroupElement, Ai *[8]cachedGroupElement, b int32) {
 	bNegative := negative(b)
 	bAbs := b - (((-bNegative) & b) << 1)
@@ -500,7 +492,7 @@ func selectCached(c *cachedGroupElement, Ai *[8]cachedGroupElement, b int32) {
 // Preconditions:
 //   a[31] <= 127
 func geScalarMult(h *extendedGroupElement, a *[32]byte,
-			A *extendedGroupElement) {
+	A *extendedGroupElement) {
 
 	var t completedGroupElement
 	var u extendedGroupElement
@@ -542,10 +534,14 @@ func geScalarMult(h *extendedGroupElement, a *[32]byte,
 	for i = 62; i >= 0; i-- {
 
 		// t <<= 4
-		t.ToProjective(&r); r.Double(&t)
-		t.ToProjective(&r); r.Double(&t)
-		t.ToProjective(&r); r.Double(&t)
-		t.ToProjective(&r); r.Double(&t)
+		t.ToProjective(&r)
+		r.Double(&t)
+		t.ToProjective(&r)
+		r.Double(&t)
+		t.ToProjective(&r)
+		r.Double(&t)
+		t.ToProjective(&r)
+		r.Double(&t)
 
 		// Add next nybble
 		t.ToExtended(&u)
@@ -563,7 +559,7 @@ func geScalarMult(h *extendedGroupElement, a *[32]byte,
 // Preconditions:
 //   a[31] <= 127
 func geScalarMultVartime(h *extendedGroupElement, a *[32]byte,
-			 A *extendedGroupElement) {
+	A *extendedGroupElement) {
 
 	var aSlide [256]int8
 	var Ai [8]cachedGroupElement // A,3A,5A,7A,9A,11A,13A,15A
@@ -591,7 +587,7 @@ func geScalarMultVartime(h *extendedGroupElement, a *[32]byte,
 
 	// Process the multiplications from most-significant bit downward
 	for i = 255; ; i-- {
-		if i < 0 {		// no bits set
+		if i < 0 { // no bits set
 			h.Zero()
 			return
 		}
@@ -625,4 +621,3 @@ func geScalarMultVartime(h *extendedGroupElement, a *[32]byte,
 
 	t.ToExtended(h)
 }
-

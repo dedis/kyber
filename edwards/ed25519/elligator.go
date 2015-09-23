@@ -92,21 +92,21 @@ func pointToRep(publicKey, representative *[32]byte, A *extendedGroupElement) bo
 	var inv1 fieldElement
 	feSub(&inv1, &A.Z, &A.Y)
 	feMul(&inv1, &inv1, &A.X)
-	feInvert(&inv1, &inv1)		// inv1 <- 1/X(Z-Y) = 1/x(1-y)Z^2
+	feInvert(&inv1, &inv1) // inv1 <- 1/X(Z-Y) = 1/x(1-y)Z^2
 
 	var t0, u fieldElement
-	feMul(&u, &inv1, &A.X)		// u <- X/X(Z-Y) = 1/(1-y)Z
-	feAdd(&t0, &A.Y, &A.Z)		// t0 <- Y+Z = (1+y)Z
-	feMul(&u, &u, &t0)		// u <- (1+y)/(1-y)
+	feMul(&u, &inv1, &A.X) // u <- X/X(Z-Y) = 1/(1-y)Z
+	feAdd(&t0, &A.Y, &A.Z) // t0 <- Y+Z = (1+y)Z
+	feMul(&u, &u, &t0)     // u <- (1+y)/(1-y)
 
 	var v fieldElement
 	feMul(&v, &t0, &inv1)
 	feMul(&v, &v, &A.Z)
-	feMul(&v, &v, &sqrtMinusA)	// v <- sqrt(-A)Z(Z+Y)/X(Z-Y)
-					// (x-coord on Montgomery curve)
+	feMul(&v, &v, &sqrtMinusA) // v <- sqrt(-A)Z(Z+Y)/X(Z-Y)
+	// (x-coord on Montgomery curve)
 
 	var b fieldElement
-	feAdd(&b, &u, &paramA)		// b <- u+A
+	feAdd(&b, &u, &paramA) // b <- u+A
 
 	var c, b3, b8 fieldElement
 	feSquare(&b3, &b)   // 2
@@ -115,14 +115,14 @@ func pointToRep(publicKey, representative *[32]byte, A *extendedGroupElement) bo
 	feMul(&c, &c, &b)   // 7
 	feMul(&b8, &c, &b)  // 8
 
-	feMul(&c, &c, &u)		// c <- b^7u = u(u+A)^7
-	q58(&c, &c)			// c <- (u(u+A)^7)^((p-5)/8)
-//					= (u^((p-5)/8))((u+A)^(7(p-5)/8))
-//					= (u^((p-5)/8))((u+A)^(7(p-5)/8))
-//					= sqrt(b^7u)-1
+	feMul(&c, &c, &u) // c <- b^7u = u(u+A)^7
+	q58(&c, &c)       // c <- (u(u+A)^7)^((p-5)/8)
+	//					= (u^((p-5)/8))((u+A)^(7(p-5)/8))
+	//					= (u^((p-5)/8))((u+A)^(7(p-5)/8))
+	//					= sqrt(b^7u)-1
 
-//	a^((p+3)/8) = sqrt(a)
-//	a^((p-5)/8) = a^((p+3-8)/8) = a^((p+3)/8-1) = sqrt(a)-1
+	//	a^((p+3)/8) = sqrt(a)
+	//	a^((p-5)/8) = a^((p+3-8)/8) = a^((p+3)/8-1) = sqrt(a)-1
 
 	var chi fieldElement
 	feSquare(&chi, &c)
@@ -202,45 +202,45 @@ func q58(out, z *fieldElement) {
 	var t1, t2, t3 fieldElement
 	var i int
 
-	feSquare(&t1, z)     // 2^1
-	feMul(&t1, &t1, z)   // 2^1 + 2^0
-	feSquare(&t1, &t1)   // 2^2 + 2^1
-	feSquare(&t2, &t1)   // 2^3 + 2^2
-	feSquare(&t2, &t2)   // 2^4 + 2^3
-	feMul(&t2, &t2, &t1) // 4,3,2,1
-	feMul(&t1, &t2, z)   // 4..0
-	feSquare(&t2, &t1)   // 5..1
-	for i = 1; i < 5; i++ {           // 9,8,7,6,5
+	feSquare(&t1, z)        // 2^1
+	feMul(&t1, &t1, z)      // 2^1 + 2^0
+	feSquare(&t1, &t1)      // 2^2 + 2^1
+	feSquare(&t2, &t1)      // 2^3 + 2^2
+	feSquare(&t2, &t2)      // 2^4 + 2^3
+	feMul(&t2, &t2, &t1)    // 4,3,2,1
+	feMul(&t1, &t2, z)      // 4..0
+	feSquare(&t2, &t1)      // 5..1
+	for i = 1; i < 5; i++ { // 9,8,7,6,5
 		feSquare(&t2, &t2)
 	}
-	feMul(&t1, &t2, &t1) // 9,8,7,6,5,4,3,2,1,0
-	feSquare(&t2, &t1)   // 10..1
-	for i = 1; i < 10; i++ {          // 19..10
+	feMul(&t1, &t2, &t1)     // 9,8,7,6,5,4,3,2,1,0
+	feSquare(&t2, &t1)       // 10..1
+	for i = 1; i < 10; i++ { // 19..10
 		feSquare(&t2, &t2)
 	}
-	feMul(&t2, &t2, &t1) // 19..0
-	feSquare(&t3, &t2)   // 20..1
-	for i = 1; i < 20; i++ {          // 39..20
+	feMul(&t2, &t2, &t1)     // 19..0
+	feSquare(&t3, &t2)       // 20..1
+	for i = 1; i < 20; i++ { // 39..20
 		feSquare(&t3, &t3)
 	}
-	feMul(&t2, &t3, &t2) // 39..0
-	feSquare(&t2, &t2)   // 40..1
-	for i = 1; i < 10; i++ {          // 49..10
+	feMul(&t2, &t3, &t2)     // 39..0
+	feSquare(&t2, &t2)       // 40..1
+	for i = 1; i < 10; i++ { // 49..10
 		feSquare(&t2, &t2)
 	}
-	feMul(&t1, &t2, &t1) // 49..0
-	feSquare(&t2, &t1)   // 50..1
-	for i = 1; i < 50; i++ {          // 99..50
+	feMul(&t1, &t2, &t1)     // 49..0
+	feSquare(&t2, &t1)       // 50..1
+	for i = 1; i < 50; i++ { // 99..50
 		feSquare(&t2, &t2)
 	}
-	feMul(&t2, &t2, &t1) // 99..0
-	feSquare(&t3, &t2)   // 100..1
-	for i = 1; i < 100; i++ {         // 199..100
+	feMul(&t2, &t2, &t1)      // 99..0
+	feSquare(&t3, &t2)        // 100..1
+	for i = 1; i < 100; i++ { // 199..100
 		feSquare(&t3, &t3)
 	}
-	feMul(&t2, &t3, &t2) // 199..0
-	feSquare(&t2, &t2)   // 200..1
-	for i = 1; i < 50; i++ {          // 249..50
+	feMul(&t2, &t3, &t2)     // 199..0
+	feSquare(&t2, &t2)       // 200..1
+	for i = 1; i < 50; i++ { // 249..50
 		feSquare(&t2, &t2)
 	}
 	feMul(&t1, &t2, &t1) // 249..0
@@ -257,50 +257,50 @@ func chi(out, z *fieldElement) {
 	var t0, t1, t2, t3 fieldElement
 	var i int
 
-	feSquare(&t0, z)     // 2^1
-	feMul(&t1, &t0, z)   // 2^1 + 2^0
-	feSquare(&t0, &t1)   // 2^2 + 2^1
-	feSquare(&t2, &t0)   // 2^3 + 2^2
-	feSquare(&t2, &t2)   // 4,3
-	feMul(&t2, &t2, &t0) // 4,3,2,1
-	feMul(&t1, &t2, z)   // 4..0
-	feSquare(&t2, &t1)   // 5..1
-	for i = 1; i < 5; i++ {           // 9,8,7,6,5
+	feSquare(&t0, z)        // 2^1
+	feMul(&t1, &t0, z)      // 2^1 + 2^0
+	feSquare(&t0, &t1)      // 2^2 + 2^1
+	feSquare(&t2, &t0)      // 2^3 + 2^2
+	feSquare(&t2, &t2)      // 4,3
+	feMul(&t2, &t2, &t0)    // 4,3,2,1
+	feMul(&t1, &t2, z)      // 4..0
+	feSquare(&t2, &t1)      // 5..1
+	for i = 1; i < 5; i++ { // 9,8,7,6,5
 		feSquare(&t2, &t2)
 	}
-	feMul(&t1, &t2, &t1) // 9,8,7,6,5,4,3,2,1,0
-	feSquare(&t2, &t1)   // 10..1
-	for i = 1; i < 10; i++ {          // 19..10
+	feMul(&t1, &t2, &t1)     // 9,8,7,6,5,4,3,2,1,0
+	feSquare(&t2, &t1)       // 10..1
+	for i = 1; i < 10; i++ { // 19..10
 		feSquare(&t2, &t2)
 	}
-	feMul(&t2, &t2, &t1) // 19..0
-	feSquare(&t3, &t2)   // 20..1
-	for i = 1; i < 20; i++ {          // 39..20
+	feMul(&t2, &t2, &t1)     // 19..0
+	feSquare(&t3, &t2)       // 20..1
+	for i = 1; i < 20; i++ { // 39..20
 		feSquare(&t3, &t3)
 	}
-	feMul(&t2, &t3, &t2) // 39..0
-	feSquare(&t2, &t2)   // 40..1
-	for i = 1; i < 10; i++ {          // 49..10
+	feMul(&t2, &t3, &t2)     // 39..0
+	feSquare(&t2, &t2)       // 40..1
+	for i = 1; i < 10; i++ { // 49..10
 		feSquare(&t2, &t2)
 	}
-	feMul(&t1, &t2, &t1) // 49..0
-	feSquare(&t2, &t1)   // 50..1
-	for i = 1; i < 50; i++ {          // 99..50
+	feMul(&t1, &t2, &t1)     // 49..0
+	feSquare(&t2, &t1)       // 50..1
+	for i = 1; i < 50; i++ { // 99..50
 		feSquare(&t2, &t2)
 	}
-	feMul(&t2, &t2, &t1) // 99..0
-	feSquare(&t3, &t2)   // 100..1
-	for i = 1; i < 100; i++ {         // 199..100
+	feMul(&t2, &t2, &t1)      // 99..0
+	feSquare(&t3, &t2)        // 100..1
+	for i = 1; i < 100; i++ { // 199..100
 		feSquare(&t3, &t3)
 	}
-	feMul(&t2, &t3, &t2) // 199..0
-	feSquare(&t2, &t2)   // 200..1
-	for i = 1; i < 50; i++ {          // 249..50
+	feMul(&t2, &t3, &t2)     // 199..0
+	feSquare(&t2, &t2)       // 200..1
+	for i = 1; i < 50; i++ { // 249..50
 		feSquare(&t2, &t2)
 	}
-	feMul(&t1, &t2, &t1) // 249..0
-	feSquare(&t1, &t1)   // 250..1
-	for i = 1; i < 4; i++ {           // 253..4
+	feMul(&t1, &t2, &t1)    // 249..0
+	feSquare(&t1, &t1)      // 250..1
+	for i = 1; i < 4; i++ { // 253..4
 		feSquare(&t1, &t1)
 	}
 	feMul(out, &t1, &t0) // 253..4,2,1
@@ -337,11 +337,10 @@ func repToCurve25519(publicKey, representative *[32]byte) {
 	// x = ev - (1-e)A/2
 	var negV fieldElement
 	feNeg(&negV, &v)
-	feCMove(&v, &negV, eIsMinus1)		// v <- ev
+	feCMove(&v, &negV, eIsMinus1) // v <- ev
 	feZero(&v2)
-	feCMove(&v2, &paramA, eIsMinus1)	// v2 <- (1-e)A/2 (= 0 or A)
+	feCMove(&v2, &paramA, eIsMinus1) // v2 <- (1-e)A/2 (= 0 or A)
 	feSub(&v, &v, &v2)
 
-	feToBytes(publicKey, &v)		// Curve25519 pubkey
+	feToBytes(publicKey, &v) // Curve25519 pubkey
 }
-
