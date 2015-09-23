@@ -81,7 +81,6 @@ type Hiding interface {
 	HideDecode(buf []byte)
 }
 
-
 // Encoding represents an abstract interface to an encoding/decoding
 // that can be used to marshal/unmarshal objects to and from streams.
 // Different Encodings will have different constraints, of course.
@@ -100,7 +99,6 @@ var aPoint Point
 
 var tSecret = reflect.TypeOf(&aSecret).Elem()
 var tPoint = reflect.TypeOf(&aPoint).Elem()
-
 
 // Constructor represents a generic constructor
 // that takes a reflect.Type, typically for an interface type,
@@ -127,7 +125,7 @@ type Constructor interface {
 // XXX move this and Constructor to some other, more generic package
 //
 type BinaryEncoding struct {
-	Constructor	// Constructor for instantiating abstract types
+	Constructor // Constructor for instantiating abstract types
 }
 
 func prindent(depth int, format string, a ...interface{}) {
@@ -303,7 +301,6 @@ func (en *encoder) value(obj interface{}, depth int) error {
 	return nil
 }
 
-
 // Default implementation of reflective constructor for ciphersuites
 func SuiteNew(s Suite, t reflect.Type) interface{} {
 	switch t {
@@ -324,5 +321,3 @@ func SuiteRead(s Suite, r io.Reader, objs ...interface{}) error {
 func SuiteWrite(s Suite, w io.Writer, objs ...interface{}) error {
 	return BinaryEncoding{s}.Write(w, objs)
 }
-
-

@@ -1,6 +1,7 @@
 package poly
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
 )
@@ -11,7 +12,7 @@ func TestNewRound(t *testing.T) {
 	SECURITY = MODERATE
 	defer func() { SECURITY = MAXIMUM }()
 	n := 3
-	pl := PolyInfo{edward, 2, n, n}
+	pl := PolyInfo{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	randoms2 := generateSharedSecrets(pl)
@@ -35,7 +36,7 @@ func TestRevealPartialSig(t *testing.T) {
 	SECURITY = MODERATE
 	defer func() { SECURITY = MAXIMUM }()
 	n := 3
-	pl := PolyInfo{edward, 2, n, n}
+	pl := PolyInfo{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	for i, _ := range schnorrs {
@@ -62,7 +63,7 @@ func TestAddPartialSig(t *testing.T) {
 	SECURITY = MODERATE
 	defer func() { SECURITY = MAXIMUM }()
 	n := 3
-	pl := PolyInfo{edward, 2, n, n}
+	pl := PolyInfo{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	for i, _ := range schnorrs {
@@ -105,7 +106,7 @@ func TestSchnorrSig(t *testing.T) {
 	SECURITY = MODERATE
 	defer func() { SECURITY = MAXIMUM }()
 	n := 3
-	pl := PolyInfo{edward, 2, n, n}
+	pl := PolyInfo{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	for i, _ := range schnorrs {
@@ -137,10 +138,10 @@ func TestSchnorrSig(t *testing.T) {
 	// test equality of the signature amongst the peers
 	for i, _ := range sig {
 		for j, _ := range sig[i+1:] {
-			if !(*sig[i].signature).Equal(*sig[j].signature) {
+			if !(*sig[i].Signature).Equal(*sig[j].Signature) {
 				t.Error(fmt.Sprintf("SchnorrSig should produce the same signature amongst peer (%d vs %d)", i, j))
 			}
-			if !(sig[i].random.Equal(sig[j].random)) {
+			if !(sig[i].Random.Equal(sig[j].Random)) {
 				t.Error(fmt.Sprintf("SchnorrSig should produce the same signature (random poly %d != %d", i, j))
 			}
 		}
@@ -151,7 +152,7 @@ func TestVerifySchnorrSig(t *testing.T) {
 	SECURITY = MODERATE
 	defer func() { SECURITY = MAXIMUM }()
 	n := 3
-	pl := PolyInfo{edward, 2, n, n}
+	pl := PolyInfo{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	for i, _ := range schnorrs {
@@ -194,7 +195,7 @@ func TestPartialSchnorrSigMarshalling(t *testing.T) {
 	SECURITY = MODERATE
 	defer func() { SECURITY = MAXIMUM }()
 	n := 3
-	pl := PolyInfo{edward, 2, n, n}
+	pl := PolyInfo{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	for i, _ := range schnorrs {
@@ -204,13 +205,15 @@ func TestPartialSchnorrSigMarshalling(t *testing.T) {
 		}
 	}
 	ps := schnorrs[0].RevealPartialSig()
-	buf, err := ps.MarshalBinary()
+	b := new(bytes.Buffer)
+	err := SUITE.Write(b, ps)
 	if err != nil {
 		t.Error(fmt.Sprintf("MarshalBinary on PartialSchnorrSig did not work : %v", err))
 	}
-
-	ps2 := schnorrs[0].EmptyPartialSig()
-	err = ps2.UnmarshalBinary(buf)
+	buf := b.Bytes()
+	bufReader := bytes.NewBuffer(buf)
+	ps2 := new(PartialSchnorrSig)
+	err = SUITE.Read(bufReader, ps2)
 	if err != nil {
 		t.Error(fmt.Sprintf("UnmarshalBinary on PartialSchnorrSig did not work : %v", err))
 	}
@@ -224,7 +227,7 @@ func TestSchnorrSigMarshalling(t *testing.T) {
 	SECURITY = MODERATE
 	defer func() { SECURITY = MAXIMUM }()
 	n := 3
-	pl := PolyInfo{edward, 2, n, n}
+	pl := PolyInfo{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	for i, _ := range schnorrs {
@@ -249,13 +252,13 @@ func TestSchnorrSigMarshalling(t *testing.T) {
 	if err != nil {
 		t.Error(fmt.Sprintf("SchnorrSig should validate : %v", err))
 	}
-
-	sbuf, err := s.MarshalBinary()
+	b := new(bytes.Buffer)
+	err = SUITE.Write(b, s)
 	if err != nil {
 		t.Error(fmt.Sprintf("SchnorrSig had error while Marshalling %v", err))
 	}
 	s2 := schnorrs[0].EmptySchnorrSig()
-	err = s2.UnmarshalBinary(sbuf)
+	err = SUITE.Read(bytes.NewBuffer(b.Bytes()), s2)
 	if err != nil {
 		t.Error(fmt.Sprintf("SchnorrSig Unmarshaling should have been correct : %v", err))
 	}

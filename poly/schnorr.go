@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/util"
 )
 
 // This file describe the Distributed Threshold Schnorr Signature
@@ -58,9 +57,6 @@ type PartialSchnorrSig struct {
 
 	// The partial signature itself
 	Part *abstract.Secret
-
-	// Suite used  (needed to Unmarshal + Marshal, because only way to know the secretLenght ... ...)
-	Suite abstract.Suite
 }
 
 // SchnorrSig represents the final signature of a distribtued threshold schnorr signature
@@ -71,10 +67,10 @@ type PartialSchnorrSig struct {
 type SchnorrSig struct {
 
 	// the signature itself
-	signature *abstract.Secret
+	Signature *abstract.Secret
 
 	// the random public polynomial used during the signature generation
-	random *PubPoly
+	Random *PubPoly
 }
 
 // NewSchnorr nstantiate a Schnorr  struct . A wrapper around Init
@@ -114,9 +110,9 @@ func (s *Schnorr) hashMessage(msg []byte, v abstract.Point) (abstract.Secret, er
 	if err != nil {
 		return nil, err
 	}
-	c := s.info.Suite.Cipher(vb)
+	c := SUITE.Cipher(vb)
 	c.Message(nil, nil, msg)
-	return s.info.Suite.Secret().Pick(c), nil
+	return SUITE.Secret().Pick(c), nil
 }
 
 // Verify if the received structures are good
@@ -141,9 +137,9 @@ func (s *Schnorr) verify() error {
 // of the schnorr structures.
 func (s *Schnorr) verifyPartialSig(ps *PartialSchnorrSig) error {
 	// compute left part of the equation
-	left := s.info.Suite.Point().Mul(s.info.Suite.Point().Base(), *ps.Part)
+	left := SUITE.Point().Mul(SUITE.Point().Base(), *ps.Part)
 	// compute right part of the equation
-	right := s.info.Suite.Point().Add(s.random.Pub.Eval(ps.Index), s.info.Suite.Point().Mul(s.Longterm.Pub.Eval(ps.Index), *s.hash))
+	right := SUITE.Point().Add(s.random.Pub.Eval(ps.Index), SUITE.Point().Mul(s.Longterm.Pub.Eval(ps.Index), *s.hash))
 	if !left.Equal(right) {
 		return errors.New(fmt.Sprintf("Partial Signature of peer %d could not be validated.", ps.Index))
 	}
@@ -165,17 +161,16 @@ func (s *Schnorr) index() int {
 // This signature is to be sent to each others peers
 func (s *Schnorr) RevealPartialSig() *PartialSchnorrSig {
 	hash := *s.hash
-	sigma := s.info.Suite.Secret().Zero()
+	sigma := SUITE.Secret().Zero()
 	sigma = sigma.Add(sigma, *s.random.Share)
 	// H(m||v) * Pi
-	hash = s.info.Suite.Secret().Mul(hash, *s.Longterm.Share)
+	hash = SUITE.Secret().Mul(hash, *s.Longterm.Share)
 	// Ri + H(m||V) * Pi
 	sigma = sigma.Add(sigma, hash)
 
 	psc := &PartialSchnorrSig{
 		Index: s.index(),
 		Part:  &sigma,
-		Suite: s.info.Suite,
 	}
 	return psc
 }
@@ -213,15 +208,15 @@ func (s *Schnorr) SchnorrSig() (*SchnorrSig, error) {
 	}
 
 	pri := PriShares{}
-	pri.Empty(s.info.Suite, s.info.T, s.info.N)
+	pri.Empty(SUITE, s.info.T, s.info.N)
 	for i, ps := range s.partials {
 		pri.SetShare(ps.Index, *s.partials[i].Part)
 	}
 	// lagrange interpolation to compute the gamma
 	gamma := pri.Secret()
 	sig := &SchnorrSig{
-		random:    s.random.Pub,
-		signature: &gamma,
+		Random:    s.random.Pub,
+		Signature: &gamma,
 	}
 	return sig, nil
 }
@@ -234,9 +229,9 @@ func (s *Schnorr) SchnorrSig() (*SchnorrSig, error) {
 //  - a message + a signature to check on ==> VerifySchnorrSig
 func (s *Schnorr) VerifySchnorrSig(sig *SchnorrSig, msg []byte) error {
 	// gamma * G
-	left := s.info.Suite.Point().Mul(s.info.Suite.Point().Base(), *sig.signature)
+	left := SUITE.Point().Mul(SUITE.Point().Base(), *sig.Signature)
 
-	randomCommit := sig.random.SecretCommit()
+	randomCommit := sig.Random.SecretCommit()
 	publicCommit := s.Longterm.Pub.SecretCommit()
 	hash, err := s.hashMessage(msg, randomCommit)
 
@@ -244,7 +239,7 @@ func (s *Schnorr) VerifySchnorrSig(sig *SchnorrSig, msg []byte) error {
 		return err
 	}
 	// RandomSecretCOmmit + H( ...) * LongtermSecretCommit
-	right := s.info.Suite.Point().Add(randomCommit, s.info.Suite.Point().Mul(publicCommit, hash))
+	right := SUITE.Point().Add(randomCommit, SUITE.Point().Mul(publicCommit, hash))
 
 	if !left.Equal(right) {
 		return errors.New("Signature could not have been verified against the message")
@@ -253,98 +248,23 @@ func (s *Schnorr) VerifySchnorrSig(sig *SchnorrSig, msg []byte) error {
 }
 
 //// DECODING / ENCODING /////
-// Decoding :
-// Use the Schnorr struct to produce already initialized struct
-// 	then call Unmarshal on them. Theses functions are in Schnorr
-// so you can not forget to init the struct with the right fields.
-// Encoding is simple as calling MarshalBinary on them
-
-// Wrapper function to help for the decoding
-func (s *Schnorr) EmptyPartialSig() *PartialSchnorrSig {
-	return new(PartialSchnorrSig).Init(s.info.Suite)
-}
-func (s *Schnorr) EmptySchnorrSig() *SchnorrSig {
-	return new(SchnorrSig).Init(s.info)
-}
-
-// Init is needed before decoding a PartialSchnorrSig so it can now about the length of a secret
-func (pss *PartialSchnorrSig) Init(suite abstract.Suite) *PartialSchnorrSig {
-	pss.Suite = suite
-	return pss
-}
-
-// Marshal a PartialSchnorrSig into a packet
-func (pss *PartialSchnorrSig) MarshalBinary() ([]byte, error) {
-	buf, err := util.UInt64ToBuf(uint64(pss.Index))
-	if err != nil {
-		return nil, err
-	}
-	// then add the point
-	sBuf, err := (*pss.Part).MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	return append(buf, sBuf...), nil
-}
-
-// UnmarshalBinary decode a packet into a PartialSchnorrSig.
-// NOTE : PLEASE use Init before decoding, otherwise it can not know the secret length
-func (pss *PartialSchnorrSig) UnmarshalBinary(buf []byte) error {
-	if pss.Suite == nil {
-		return errors.New("Suite has not been set on the PartialSchnorrSig. Cannot decode.")
-	}
-	index, err := util.BufToUInt64(buf)
-	if err != nil {
-		return err
-	}
-
-	secret := pss.Suite.Secret()
-	if err := secret.UnmarshalBinary(buf[util.UInt64Size(uint64(index)):]); err != nil {
-		return err
-	}
-	pss.Index = int(index)
-	pss.Part = &secret
-	return nil
-}
+// Use the Schnorr struct to produce already initialized SchnorrSig
+// The PartialSchnorrSig can be serialized directly
 
 func (pss *PartialSchnorrSig) Equal(pss2 *PartialSchnorrSig) bool {
 	return pss.Index == pss2.Index && (*pss.Part).Equal(*pss2.Part)
 }
 
+func (s *Schnorr) EmptySchnorrSig() *SchnorrSig {
+	return new(SchnorrSig).Init(s.info)
+}
+
 // Init the struct so it can decode itself
 func (s *SchnorrSig) Init(info PolyInfo) *SchnorrSig {
-	s.random = new(PubPoly).Init(info.Suite, info.T, info.Suite.Point().Base())
-	secret := info.Suite.Secret()
-	s.signature = &secret
+	s.Random = new(PubPoly).Init(SUITE, info.T, SUITE.Point().Base())
 	return s
 }
 
-// Marshall SchnorrSig into a packet
-func (s *SchnorrSig) MarshalBinary() ([]byte, error) {
-	buf, err := s.random.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	bufs, err := (*s.signature).MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	return append(buf, bufs...), nil
-}
-
-// Unmarshal a packet into a SchnorrSig
-func (s *SchnorrSig) UnmarshalBinary(buf []byte) error {
-	err := s.random.UnmarshalBinary(buf[:s.random.MarshalSize()])
-	if err != nil {
-		return errors.New(fmt.Sprintf("Error unmarshal random : %v", err))
-	}
-	err = (*s.signature).UnmarshalBinary(buf[s.random.MarshalSize():])
-	if err != nil {
-		return errors.New(fmt.Sprintf("Error unmarshal signature : %v", err))
-	}
-	return nil
-}
-
 func (s *SchnorrSig) Equal(s2 *SchnorrSig) bool {
-	return s.random.Equal(s2.random) && (*s.signature).Equal(*s2.signature)
+	return s.Random.Equal(s2.Random) && (*s.Signature).Equal(*s2.Signature)
 }

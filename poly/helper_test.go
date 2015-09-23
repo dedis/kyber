@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/config"
-	"github.com/dedis/crypto/edwards"
 	"github.com/dedis/crypto/random"
 )
 
-var edward = edwards.NewAES128SHA256Ed25519(false)
+var edward = SUITE
 
 func generateKeyPair() *config.KeyPair {
 	keypair := new(config.KeyPair)

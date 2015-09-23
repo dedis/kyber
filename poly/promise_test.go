@@ -1138,3 +1138,22 @@ func TestString(t *testing.T) {
 	response = new(Response).constructBlameProofResponse(bp)
 	response.String()
 }
+
+func TestPromiseAbstractEncoding(t *testing.T) {
+	promise := new(Promise).ConstructPromise(secretKey, promiserKey,
+		pt, r, insurerList)
+	w := new(bytes.Buffer)
+	err := SUITE.Write(w, promise)
+
+	buf := w.Bytes()
+
+	p := new(Promise).UnmarshalInit(pt, r, numInsurers, suite)
+	r := bytes.NewBuffer(buf)
+	err = SUITE.Read(r, p)
+	if err != nil {
+		t.Error("Promise should not gen any error while encoding")
+	}
+	if !promise.Equal(p) {
+		t.Error("Promise should be equals")
+	}
+}
