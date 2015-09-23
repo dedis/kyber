@@ -351,7 +351,7 @@ func (pub *PubPoly) Eval(i int) abstract.Point {
 func (pub *PubPoly) Add(p1, p2 *PubPoly) *PubPoly {
 	g := p1.g
 	k := len(p1.p)
-	if p1.g.String() != p2.g.String() || !p1.g.Point().Base().Equal(p2.g.Point().Base()) {
+	if p1.g.String() != p2.g.String() {
 		panic("Mismatched Group of polynomial commitments")
 	} else if k != len(p2.p) {
 		panic("Mismatched polynomial commitments")
