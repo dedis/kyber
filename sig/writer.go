@@ -7,6 +7,11 @@ import (
 
 // Create a Writer that interposes on underlying Writer wr,
 // hashing all bytes written and appending a trailing signature on Close.
+//
+// The signature is assumed to be fixed-size at least for a given public key,
+// and is appended to the end of the written data with no framing metadata.
+// Thus we can sign arbitrary-size streaming messages efficiently,
+// and the message's total size does not need to be known in advance.
 func Writer(wr io.Writer, key SecretKey) io.WriteCloser {
 	return &sigWriter{wr, key, key.Hash()}
 }

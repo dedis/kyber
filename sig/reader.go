@@ -9,6 +9,18 @@ import (
 // Create a Reader that interposes on underlying Reader rd,
 // hashing all bytes read and verifying a trailing signature.
 // Never returns normal io.EOF status unless the signature checks.
+//
+// Since Writer does not add any framing metadata other than the signature,
+// the Reader treats the fixed-length signature as a self-delimiting tail.
+// The signature is only checked during a Read call in which
+// the underlying Reader has already returned an EOF condition
+// and there is no further message-body data to return to the caller.
+//
+// Provided the caller processes body data immediately upon reading,
+// the public key against which the signature is to be verified
+// can be part of the message being decoded.
+// This capability can be useful for validating self-signed certificates.
+//
 func Reader(rd io.Reader, key PublicKey) io.Reader {
 	sb := make([]byte, key.SigSize())
 	h := key.Hash()
