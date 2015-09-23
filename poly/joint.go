@@ -248,7 +248,7 @@ func (d *Dealer) MarshalSize() int {
 	if err != nil {
 		return 0
 	}
-	return len(b.Bytes()) + d.Promise.MarshalSize()
+	return b.Len() + d.Promise.MarshalSize()
 }
 func (d *Dealer) MarshalTo(w io.Writer) (int, error) {
 	err := SUITE.Write(w, &d.Info)
