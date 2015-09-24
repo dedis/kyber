@@ -127,6 +127,10 @@ type Constructor interface {
 //
 type BinaryEncoding struct {
 	Constructor // Constructor for instantiating abstract types
+
+	// prevent clients from depending on the exact set of fields,
+	// to reserve the right to extend in backward-compatible ways.
+	hidden struct{}
 }
 
 func prindent(depth int, format string, a ...interface{}) {
@@ -318,10 +322,10 @@ func SuiteNew(s Suite, t reflect.Type) interface{} {
 
 // Default implementation of Encoding interface Read for ciphersuites
 func SuiteRead(s Suite, r io.Reader, objs ...interface{}) error {
-	return BinaryEncoding{s}.Read(r, objs)
+	return BinaryEncoding{ Constructor: s }.Read(r, objs)
 }
 
 // Default implementation of Encoding interface Write for ciphersuites
 func SuiteWrite(s Suite, w io.Writer, objs ...interface{}) error {
-	return BinaryEncoding{s}.Write(w, objs)
+	return BinaryEncoding{ Constructor: s }.Write(w, objs)
 }
