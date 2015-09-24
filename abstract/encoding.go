@@ -292,8 +292,8 @@ func (en *encoder) value(obj interface{}, depth int) error {
 		}
 
 	case reflect.Int:
-		t := reflect.TypeOf(int64(0))
-		return binary.Write(en.w, binary.BigEndian, v.Convert(t).Interface())
+		i := int64(v.Int())
+		return binary.Write(en.w, binary.BigEndian, i)
 
 	case reflect.Bool:
 		b := uint8(0)
