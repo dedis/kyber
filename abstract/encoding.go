@@ -322,10 +322,10 @@ func SuiteNew(s Suite, t reflect.Type) interface{} {
 
 // Default implementation of Encoding interface Read for ciphersuites
 func SuiteRead(s Suite, r io.Reader, objs ...interface{}) error {
-	return BinaryEncoding{ Constructor: s }.Read(r, objs)
+	return BinaryEncoding{Constructor: s}.Read(r, objs)
 }
 
 // Default implementation of Encoding interface Write for ciphersuites
 func SuiteWrite(s Suite, w io.Writer, objs ...interface{}) error {
-	return BinaryEncoding{ Constructor: s }.Write(w, objs)
+	return BinaryEncoding{Constructor: s}.Write(w, objs)
 }
