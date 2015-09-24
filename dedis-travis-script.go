@@ -11,7 +11,7 @@ import (
 
 func main() {
 	// get all changed files + new files - removed files
-	cmdStr := "git diff --name-status origin/master | grep -v ^D | cut -f2"
+	cmdStr := "git diff --name-status production/master | grep -v ^D | cut -f2"
 	cmd := exec.Command("bash", "-c", cmdStr)
 	cmd.Stderr = os.Stderr
 	output, err := cmd.Output()
