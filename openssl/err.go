@@ -14,10 +14,9 @@ import (
 func getErrString() string {
 	e := C.ERR_get_error()
 
-	buf := [120]byte{}	// max length specified in OpenSSL doc
+	buf := [120]byte{} // max length specified in OpenSSL doc
 	bufp := (*_Ctype_char)(unsafe.Pointer(&buf[0]))
 	C.ERR_error_string_n(e, bufp, C.size_t(len(buf)))
 
 	return string(buf[:C.strlen(bufp)])
 }
-

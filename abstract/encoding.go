@@ -4,6 +4,7 @@ import (
 	"crypto/cipher"
 	"encoding"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -126,6 +127,10 @@ type Constructor interface {
 //
 type BinaryEncoding struct {
 	Constructor // Constructor for instantiating abstract types
+
+	// prevent clients from depending on the exact set of fields,
+	// to reserve the right to extend in backward-compatible ways.
+	hidden struct{}
 }
 
 func prindent(depth int, format string, a ...interface{}) {
@@ -138,8 +143,8 @@ type decoder struct {
 	r io.Reader
 }
 
-// XXX should this perhaps become a Suite method?
-// NB: objs must be a list of pointers.
+// Read a series of binary objects from an io.Reader.
+// The objs must be a list of pointers.
 func (e BinaryEncoding) Read(r io.Reader, objs ...interface{}) error {
 	de := decoder{e.Constructor, r}
 	for i := 0; i < len(objs); i++ {
@@ -209,6 +214,9 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 	case reflect.Int:
 		var i int64
 		err := binary.Read(de.r, binary.BigEndian, &i)
+		if int64(int(i)) != i {
+			return errors.New("int too large for this platform")
+		}
 		v.SetInt(i)
 		return err
 
@@ -284,8 +292,8 @@ func (en *encoder) value(obj interface{}, depth int) error {
 		}
 
 	case reflect.Int:
-		t := reflect.TypeOf(int64(0))
-		return binary.Write(en.w, binary.BigEndian, v.Convert(t).Interface())
+		i := int64(v.Int())
+		return binary.Write(en.w, binary.BigEndian, i)
 
 	case reflect.Bool:
 		b := uint8(0)
@@ -314,10 +322,10 @@ func SuiteNew(s Suite, t reflect.Type) interface{} {
 
 // Default implementation of Encoding interface Read for ciphersuites
 func SuiteRead(s Suite, r io.Reader, objs ...interface{}) error {
-	return BinaryEncoding{s}.Read(r, objs)
+	return BinaryEncoding{Constructor: s}.Read(r, objs)
 }
 
 // Default implementation of Encoding interface Write for ciphersuites
 func SuiteWrite(s Suite, w io.Writer, objs ...interface{}) error {
-	return BinaryEncoding{s}.Write(w, objs)
+	return BinaryEncoding{Constructor: s}.Write(w, objs)
 }
