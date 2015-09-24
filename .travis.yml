@@ -1,7 +1,7 @@
 # build script for dedis/crypto libraries
 language: go
 go:
-    - tip
+    - 1.5.1
 env:
     global:
         - REPO="dedis/crypto"
