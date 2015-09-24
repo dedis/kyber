@@ -1,12 +1,12 @@
 package ed25519
 
 import (
-	"io"
-	"reflect"
 	"crypto/sha256"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher/sha3"
 	"hash"
+	"io"
+	"reflect"
 )
 
 type suiteEd25519 struct {
