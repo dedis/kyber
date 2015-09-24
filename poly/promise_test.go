@@ -1,4 +1,4 @@
-package promise
+package poly
 
 import (
 	"bytes"
@@ -58,7 +58,7 @@ func produceinsurerList() []abstract.Point {
 }
 
 // Tests that check whether a method panics can use this funcition
-func deferTest(t *testing.T, message string) {
+func recoverTest(t *testing.T, message string) {
 	if r := recover(); r == nil {
 		t.Error(message)
 	}
@@ -331,7 +331,7 @@ func TestResponseEqual(t *testing.T) {
 
 	// Verify that equal panics if the messages are uninitialized
 	test := func() {
-		defer deferTest(t, "Equal should have panicked.")
+		defer recoverTest(t, "Equal should have panicked.")
 		new(Response).Equal(new(Response))
 	}
 	test()
@@ -446,7 +446,7 @@ func TestPromiseConstructPromise(t *testing.T) {
 
 	// Check that ConstructPromise panics if n < t
 	test := func() {
-		defer deferTest(t, "ConstructPromise should have panicked.")
+		defer recoverTest(t, "ConstructPromise should have panicked.")
 		new(Promise).ConstructPromise(secretKey, promiserKey, 2, r,
 			[]abstract.Point{promiserKey.Public})
 	}
@@ -454,7 +454,7 @@ func TestPromiseConstructPromise(t *testing.T) {
 
 	// Check that r is reset properly when r < t.
 	test = func() {
-		defer deferTest(t, "ConstructPromise should have panicked.")
+		defer recoverTest(t, "ConstructPromise should have panicked.")
 		new(Promise).ConstructPromise(secretKey, promiserKey, pt, pt-1,
 			insurerList)
 	}
@@ -462,7 +462,7 @@ func TestPromiseConstructPromise(t *testing.T) {
 
 	// Check that r is reset properly when r > n.
 	test = func() {
-		defer deferTest(t, "ConstructPromise should have panicked.")
+		defer recoverTest(t, "ConstructPromise should have panicked.")
 		new(Promise).ConstructPromise(secretKey, promiserKey, pt, numInsurers+1,
 			insurerList)
 	}
@@ -470,7 +470,7 @@ func TestPromiseConstructPromise(t *testing.T) {
 
 	// Check that ConstructPromise panics if the keys are of different suites
 	test = func() {
-		defer deferTest(t, "ConstructPromise should have panicked.")
+		defer recoverTest(t, "ConstructPromise should have panicked.")
 		new(Promise).ConstructPromise(produceAltKeyPair(), promiserKey, pt, r,
 			insurerList)
 	}
@@ -1088,7 +1088,7 @@ func TestStateRevealShare(t *testing.T) {
 	promiseState := new(State).Init(*promise)
 
 	test := func() {
-		defer deferTest(t, "RevealShare should have panicked.")
+		defer recoverTest(t, "RevealShare should have panicked.")
 		promiseState.RevealShare(0, insurerKeys[0])
 	}
 	test()
@@ -1137,4 +1137,23 @@ func TestString(t *testing.T) {
 
 	response = new(Response).constructBlameProofResponse(bp)
 	response.String()
+}
+
+func TestPromiseAbstractEncoding(t *testing.T) {
+	promise := new(Promise).ConstructPromise(secretKey, promiserKey,
+		pt, r, insurerList)
+	w := new(bytes.Buffer)
+	err := SUITE.Write(w, promise)
+
+	buf := w.Bytes()
+
+	p := new(Promise).UnmarshalInit(pt, r, numInsurers, suite)
+	r := bytes.NewBuffer(buf)
+	err = SUITE.Read(r, p)
+	if err != nil {
+		t.Error("Promise should not gen any error while encoding")
+	}
+	if !promise.Equal(p) {
+		t.Error("Promise should be equals")
+	}
 }

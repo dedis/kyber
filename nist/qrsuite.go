@@ -6,7 +6,9 @@ import (
 	"github.com/dedis/crypto/cipher/sha3"
 	"github.com/dedis/crypto/random"
 	"hash"
+	"io"
 	"math/big"
+	"reflect"
 )
 
 type qrsuite struct {
@@ -21,6 +23,18 @@ func (s qrsuite) Hash() hash.Hash {
 // SHA3/SHAKE128 Sponge Cipher
 func (s qrsuite) Cipher(key []byte, options ...interface{}) abstract.Cipher {
 	return sha3.NewShakeCipher128(key, options...)
+}
+
+func (s *qrsuite) Read(r io.Reader, objs ...interface{}) error {
+	return abstract.SuiteRead(s, r, objs)
+}
+
+func (s *qrsuite) Write(w io.Writer, objs ...interface{}) error {
+	return abstract.SuiteWrite(s, w, objs)
+}
+
+func (s *qrsuite) New(t reflect.Type) interface{} {
+	return abstract.SuiteNew(s, t)
 }
 
 // Ciphersuite based on AES-128, SHA-256,
