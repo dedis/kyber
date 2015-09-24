@@ -4,6 +4,7 @@ import (
 	"crypto/cipher"
 	"encoding"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -138,8 +139,8 @@ type decoder struct {
 	r io.Reader
 }
 
-// XXX should this perhaps become a Suite method?
-// NB: objs must be a list of pointers.
+// Read a series of binary objects from an io.Reader.
+// The objs must be a list of pointers.
 func (e BinaryEncoding) Read(r io.Reader, objs ...interface{}) error {
 	de := decoder{e.Constructor, r}
 	for i := 0; i < len(objs); i++ {
@@ -209,6 +210,9 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 	case reflect.Int:
 		var i int64
 		err := binary.Read(de.r, binary.BigEndian, &i)
+		if int64(int(i)) != i {
+			return errors.New("int too large for this platform")
+		}
 		v.SetInt(i)
 		return err
 
