@@ -1,6 +1,6 @@
 // Dedis script modified from github.com/dyv/dedis-ci-script.go
 // to take into account deleted files
-package main
+package crypto
 
 import (
 	"fmt"
