@@ -19,37 +19,41 @@ type SchnorrScheme struct {
 	hidden         struct{} // keep it extensible
 }
 
+// XXX maybe Scheme isn't really needed if we're exposing
+// the PublicKey/SecretKey types for each scheme?
+
 // Create a public key object for Schnorr signatures.
 func (s SchnorrScheme) PublicKey() PublicKey {
-	return &schnorrPubKey{s, nil}
+	return &SchnorrPublicKey{s, nil}
 }
 
 // Create a secret key object for Schnorr signatures.
 func (s SchnorrScheme) SecretKey() SecretKey {
-	return &schnorrSecKey{schnorrPubKey{s, nil}, nil}
+	return &SchnorrSecretKey{SchnorrPublicKey{s, nil}, nil}
 }
 
 ///// Schnorr public keys
 
-type schnorrPubKey struct {
-	suite abstract.Suite
-	key   abstract.Point
+// SchnorrPublicKey represents a public key for verifying Schnorr signatures.
+type SchnorrPublicKey struct {
+	Suite abstract.Suite	// Crypto suite
+	Point abstract.Point	// Curve point representing public key
 }
 
-func (k *schnorrPubKey) String() string {
-	return fmt.Sprintf("Schnorr public key: %s", k.key.String())
+func (k *SchnorrPublicKey) String() string {
+	return fmt.Sprintf("Schnorr public key: %s", k.Point.String())
 }
 
-func (k *schnorrPubKey) Hash() hash.Hash {
-	return k.suite.Hash()
+func (k *SchnorrPublicKey) Hash() hash.Hash {
+	return k.Suite.Hash()
 }
 
-func (k *schnorrPubKey) SigSize() int {
-	return k.suite.SecretLen() * 2
+func (k *SchnorrPublicKey) SigSize() int {
+	return k.Suite.SecretLen() * 2
 }
 
-func (k *schnorrPubKey) Verify(sig []byte, hash hash.Hash) error {
-	suite := k.suite
+func (k *SchnorrPublicKey) Verify(sig []byte, hash hash.Hash) error {
+	suite := k.Suite
 
 	// Decode the signature
 	buf := bytes.NewBuffer(sig)
@@ -62,7 +66,7 @@ func (k *schnorrPubKey) Verify(sig []byte, hash hash.Hash) error {
 	var P, T abstract.Point
 	P = suite.Point()
 	T = suite.Point()
-	T.Add(T.Mul(nil, r), P.Mul(k.key, c))
+	T.Add(T.Mul(nil, r), P.Mul(k.Point, c))
 
 	// Update the hash to depend on the reconstructed point commitment
 	_, err := T.MarshalTo(hash)
@@ -82,59 +86,48 @@ func (k *schnorrPubKey) Verify(sig []byte, hash hash.Hash) error {
 	return nil
 }
 
-func (k *schnorrPubKey) MarshalSize() int {
-	return k.key.MarshalSize()
+func (k *SchnorrPublicKey) MarshalSize() int {
+	return k.Point.MarshalSize()
 }
 
-func (k *schnorrPubKey) MarshalBinary() ([]byte, error) {
-	return k.key.MarshalBinary()
+func (k *SchnorrPublicKey) MarshalBinary() ([]byte, error) {
+	return k.Point.MarshalBinary()
 }
 
-func (k *schnorrPubKey) MarshalTo(w io.Writer) (int, error) {
-	return k.key.MarshalTo(w)
+func (k *SchnorrPublicKey) MarshalTo(w io.Writer) (int, error) {
+	return k.Point.MarshalTo(w)
 }
 
-func (k *schnorrPubKey) UnmarshalBinary(b []byte) error {
-	return k.key.UnmarshalBinary(b)
+func (k *SchnorrPublicKey) UnmarshalBinary(b []byte) error {
+	return k.Point.UnmarshalBinary(b)
 }
 
-func (k *schnorrPubKey) UnmarshalFrom(r io.Reader) (int, error) {
-	return k.key.UnmarshalFrom(r)
+func (k *SchnorrPublicKey) UnmarshalFrom(r io.Reader) (int, error) {
+	return k.Point.UnmarshalFrom(r)
 }
 
 ///// Schnorr secret keys
 
-type schnorrSecKey struct {
-	pub schnorrPubKey
-	sec abstract.Secret
+// SchnorrSecretKey represents a secret key for generating Schnorr signatures.
+type SchnorrSecretKey struct {
+	SchnorrPublicKey
+	Secret abstract.Secret	// Scalar representing secret key
 }
 
-func (k *schnorrSecKey) String() string {
+func (k *SchnorrSecretKey) String() string {
 	return fmt.Sprintf("Schnorr public key: %s secret: %s",
-		k.pub.key.String(), k.sec.String())
+		k.Point.String(), k.Secret.String())
 }
 
-func (k *schnorrSecKey) Hash() hash.Hash {
-	return k.pub.Hash()
-}
-
-func (k *schnorrSecKey) SigSize() int {
-	return k.pub.SigSize()
-}
-
-func (k *schnorrSecKey) Pick(rand cipher.Stream) SecretKey {
-	k.sec = k.pub.suite.Secret().Pick(rand)
-	k.pub.key = k.pub.suite.Point().Mul(nil, k.sec)
+func (k *SchnorrSecretKey) Pick(rand cipher.Stream) SecretKey {
+	k.Secret = k.Suite.Secret().Pick(rand)
+	k.Point = k.Suite.Point().Mul(nil, k.Secret)
 	return k
 }
 
-func (k *schnorrSecKey) Verify(sig []byte, hash hash.Hash) error {
-	return k.pub.Verify(sig, hash)
-}
-
-func (k *schnorrSecKey) Sign(sig []byte, hash hash.Hash,
+func (k *SchnorrSecretKey) Sign(sig []byte, hash hash.Hash,
 	rand cipher.Stream) ([]byte, error) {
-	suite := k.pub.suite
+	suite := k.Suite
 
 	// Create random secret v and public point commitment T
 	v := suite.Secret().Pick(rand)
@@ -152,7 +145,7 @@ func (k *schnorrSecKey) Sign(sig []byte, hash hash.Hash,
 
 	// Compute response r = v - x*c
 	r := suite.Secret()
-	r.Mul(k.sec, c).Sub(v, r)
+	r.Mul(k.Secret, c).Sub(v, r)
 
 	// Produce verifiable signature {c, r}
 	// Verifier will be able to compute v = r + x*c
@@ -162,41 +155,41 @@ func (k *schnorrSecKey) Sign(sig []byte, hash hash.Hash,
 	return append(sig, buf.Bytes()...), nil
 }
 
-func (k *schnorrSecKey) PublicKey() PublicKey {
-	return &k.pub
+func (k *SchnorrSecretKey) PublicKey() PublicKey {
+	return &k.SchnorrPublicKey
 }
 
-func (k *schnorrSecKey) MarshalSize() int {
-	return k.sec.MarshalSize()
+func (k *SchnorrSecretKey) MarshalSize() int {
+	return k.Secret.MarshalSize()
 }
 
-func (k *schnorrSecKey) MarshalBinary() ([]byte, error) {
-	return k.sec.MarshalBinary()
+func (k *SchnorrSecretKey) MarshalBinary() ([]byte, error) {
+	return k.Secret.MarshalBinary()
 }
 
-func (k *schnorrSecKey) MarshalTo(w io.Writer) (int, error) {
-	return k.sec.MarshalTo(w)
+func (k *SchnorrSecretKey) MarshalTo(w io.Writer) (int, error) {
+	return k.Secret.MarshalTo(w)
 }
 
-func (k *schnorrSecKey) UnmarshalBinary(b []byte) error {
-	if k.sec == nil {
-		k.sec = k.pub.suite.Secret()
+func (k *SchnorrSecretKey) UnmarshalBinary(b []byte) error {
+	if k.Secret == nil {
+		k.Secret = k.Suite.Secret()
 	}
-	if err := k.sec.UnmarshalBinary(b); err != nil {
+	if err := k.Secret.UnmarshalBinary(b); err != nil {
 		return err
 	}
-	k.pub.key = k.pub.suite.Point().Mul(nil, k.sec)
+	k.Point = k.Suite.Point().Mul(nil, k.Secret)
 	return nil
 }
 
-func (k *schnorrSecKey) UnmarshalFrom(r io.Reader) (int, error) {
-	if k.sec == nil {
-		k.sec = k.pub.suite.Secret()
+func (k *SchnorrSecretKey) UnmarshalFrom(r io.Reader) (int, error) {
+	if k.Secret == nil {
+		k.Secret = k.Suite.Secret()
 	}
-	n, err := k.sec.UnmarshalFrom(r)
+	n, err := k.Secret.UnmarshalFrom(r)
 	if err != nil {
 		return n, err
 	}
-	k.pub.key = k.pub.suite.Point().Mul(nil, k.sec)
+	k.Point = k.Suite.Point().Mul(nil, k.Secret)
 	return n, nil
 }
