@@ -1,9 +1,9 @@
-package test
+package sig
 
 import (
 	"bytes"
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/sig"
+	"github.com/dedis/crypto/random"
 	"github.com/stretchr/testify/assert"
 	"hash"
 	"io"
@@ -11,11 +11,13 @@ import (
 )
 
 // Generic test suite for any signature scheme
-// supporting the interface defined in the crypto/sig package.
-func TestSig(t *testing.T, newKey func() sig.SecretKey) {
+// supporting the interface defined in this package.
+func TestScheme(t *testing.T, scheme Scheme) {
 
-	k1 := newKey().Pick()
-	k2 := newKey().Pick()
+	rand := random.Stream
+
+	k1 := scheme.SecretKey().Pick(rand)
+	k2 := scheme.SecretKey().Pick(rand)
 	assert.NotEqual(t, k1.String(), k2.String())
 
 	// Key marshaling via MarshalTo
@@ -32,14 +34,14 @@ func TestSig(t *testing.T, newKey func() sig.SecretKey) {
 	assert.Equal(t, bufc, buf.Bytes())
 
 	// Key unmarshaling via UnmarshalFrom
-	k1c := newKey()
+	k1c := scheme.SecretKey()
 	nc, err := k1c.UnmarshalFrom(&buf)
 	assert.NoError(t, err)
 	assert.Equal(t, nc, n)
 	assert.Equal(t, k1.String(), k1c.String())
 
 	// Key unmarshaling via BinaryUnmarshal
-	k1c = newKey()
+	k1c = scheme.SecretKey()
 	err = k1c.UnmarshalBinary(bufc)
 	assert.NoError(t, err)
 	assert.Equal(t, k1.String(), k1c.String())
@@ -54,7 +56,7 @@ func TestSig(t *testing.T, newKey func() sig.SecretKey) {
 		return h
 	}
 	h := hashMsg()
-	sb, err := k1.Sign(nil, h)
+	sb, err := k1.Sign(nil, h, rand)
 	assert.NoError(t, err)
 	assert.Equal(t, len(sb), k1.SigSize())
 
@@ -77,7 +79,7 @@ func TestSig(t *testing.T, newKey func() sig.SecretKey) {
 
 	// Test filter-style signing via sig.Writer
 	buf.Reset()
-	sigw := sig.Writer(&buf, k1)
+	sigw := Writer(&buf, k1, rand)
 	n, err = sigw.Write([]byte("Foobar"))
 	assert.NoError(t, err)
 	assert.Equal(t, n, 6)
@@ -89,7 +91,7 @@ func TestSig(t *testing.T, newKey func() sig.SecretKey) {
 	assert.Equal(t, buf.Len(), 10+k1.SigSize())
 
 	// Test filter-style signature verification via sig.Reader
-	sigr := sig.Reader(&buf, k1)
+	sigr := Reader(&buf, k1)
 	msg := make([]byte, 20)
 	n, err = sigr.Read(msg)
 	assert.NoError(t, err)

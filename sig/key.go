@@ -1,6 +1,7 @@
 package sig
 
 import (
+	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
 	"hash"
 )
@@ -36,12 +37,20 @@ type SecretKey interface {
 	PublicKey
 
 	// Set to a fresh, randomly-chosen secret key and return self.
-	Pick() SecretKey
+	Pick(rand cipher.Stream) SecretKey
 
 	// Sign a hashed message, appending the signature to sig.
 	// May further update the hash in the process of signing.
-	Sign(sig []byte, hash hash.Hash) ([]byte, error)
+	Sign(sig []byte, hash hash.Hash, rand cipher.Stream) ([]byte, error)
 
 	// Return the PublicKey for this SecretKey.
 	PublicKey() PublicKey
+}
+
+// Scheme is an interface defining an abstract digital signature scheme.
+// An instance provides constructors for PublicKey and SecretKey objects
+// for a particular digital signature scheme.
+type Scheme interface {
+	PublicKey() PublicKey
+	SecretKey() SecretKey
 }
