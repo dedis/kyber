@@ -208,7 +208,7 @@ func (dp *deniableProver) challengeStep() error {
 
 func (dp *deniableProver) Put(message interface{}) error {
 	// Add onto accumulated prover message
-	return abstract.Write(dp.msg, message, dp.suite)
+	return dp.suite.Write(dp.msg, message)
 }
 
 // Prover will call this after Put()ing all commits for a given step,
@@ -221,12 +221,12 @@ func (dp *deniableProver) PubRand(data ...interface{}) error {
 	if err := dp.challengeStep(); err != nil { // run challenge step
 		return err
 	}
-	return abstract.Read(dp.pubrand, data, dp.suite)
+	return dp.suite.Read(dp.pubrand, data...)
 }
 
 // Get private randomness
 func (dp *deniableProver) PriRand(data ...interface{}) {
-	if err := abstract.Read(dp.prirand, data, dp.suite); err != nil {
+	if err := dp.suite.Read(dp.prirand, data...); err != nil {
 		panic("error reading random stream: " + err.Error())
 	}
 }
@@ -274,7 +274,7 @@ func (dv *deniableVerifier) getProof() {
 
 // Read structured data from the proof
 func (dv *deniableVerifier) Get(message interface{}) error {
-	return abstract.Read(dv.prbuf, message, dv.suite)
+	return dv.suite.Read(dv.prbuf, message)
 }
 
 // Get the next public random challenge.
@@ -288,7 +288,7 @@ func (dv *deniableVerifier) PubRand(data ...interface{}) error {
 
 	// Produce the appropriate publicly random stream
 	dv.pubrand = dv.suite.Cipher(chal)
-	if err := abstract.Read(dv.pubrand, data, dv.suite); err != nil {
+	if err := dv.suite.Read(dv.pubrand, data...); err != nil {
 		return err
 	}
 

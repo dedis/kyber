@@ -986,4 +986,3 @@ func (fe *fieldElement) String() string {
 	s += "}"
 	return s
 }
-
