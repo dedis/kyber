@@ -174,10 +174,10 @@ func Sign(suite abstract.Suite, random cipher.Stream, message []byte,
 	buf := bytes.Buffer{}
 	if linkScope != nil { // linkable ring signature
 		sig := lSig{uSig{c[0], s}, linkTag}
-		abstract.Write(&buf, &sig, suite)
+		suite.Write(&buf, &sig)
 	} else { // unlinkable ring signature
 		sig := uSig{c[0], s}
-		abstract.Write(&buf, &sig, suite)
+		suite.Write(&buf, &sig)
 	}
 	return buf.Bytes()
 }
@@ -204,14 +204,14 @@ func Verify(suite abstract.Suite, message []byte, anonymitySet Set,
 	sig := lSig{}
 	sig.S = make([]abstract.Secret, n)
 	if linkScope != nil { // linkable ring signature
-		if err := abstract.Read(buf, &sig, suite); err != nil {
+		if err := suite.Read(buf, &sig); err != nil {
 			return nil, err
 		}
 		linkStream := suite.Cipher(linkScope)
 		linkBase, _ = suite.Point().Pick(nil, linkStream)
 		linkTag = sig.Tag
 	} else { // unlinkable ring signature
-		if err := abstract.Read(buf, &sig.uSig, suite); err != nil {
+		if err := suite.Read(buf, &sig.uSig); err != nil {
 			return nil, err
 		}
 	}

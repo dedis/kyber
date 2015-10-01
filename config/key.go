@@ -110,7 +110,7 @@ func (f *File) Key(key *KeyInfo, suites map[string]abstract.Suite) (KeyPair, err
 
 	p := KeyPair{}
 	p.Suite = suite
-	if err := abstract.Read(secf, &p.Secret, suite); err != nil {
+	if err := suite.Read(secf, &p.Secret); err != nil {
 		return KeyPair{}, err
 	}
 
@@ -148,7 +148,7 @@ func (f *File) GenKey(keys *Keys, suite abstract.Suite) (KeyPair, error) {
 	defer r.Abort()
 
 	// Write the secret key
-	if err := abstract.Write(r.File, &p.Secret, suite); err != nil {
+	if err := suite.Write(r.File, &p.Secret); err != nil {
 		return KeyPair{}, err
 	}
 

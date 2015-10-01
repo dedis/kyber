@@ -30,12 +30,15 @@ type Suite interface {
 	// Symmetric-key hash function
 	Hash() hash.Hash
 
-	// abstract group for public-key crypto
+	// Abstract group for public-key crypto
 	Group
+
+	// Fixed-length binary encoding for all crypto objects
+	Encoding
 
 	// Generic constructor to instantiate any abstract interface type
 	// supported by this suite: at least Cipher, Hash, Point, Secret.
-	//New(interfaceType reflect.Type) interface{}
+	Constructor
 }
 
 // Sum uses a given ciphersuite's hash function to checksum a byte-slice.

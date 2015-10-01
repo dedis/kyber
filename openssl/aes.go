@@ -11,9 +11,8 @@ import (
 
 const blocksize = 16
 
-
 type aes struct {
-	key C.AES_KEY			// expanded AES key
+	key C.AES_KEY // expanded AES key
 }
 
 // Create a new AES block cipher.
@@ -38,12 +37,11 @@ func (a *aes) Decrypt(dst, src []byte) {
 	C.AES_decrypt((*C.uchar)(&src[0]), (*C.uchar)(&dst[0]), &a.key)
 }
 
-
 // XXX probably obsolete; looks like cipher.NewCTR() is actually faster.
 type aesctr struct {
-	key C.AES_KEY			// expanded AES key
-	ctr, out [blocksize]byte	// input counter and output buffer
-	idx int				// bytes of current block already used
+	key      C.AES_KEY       // expanded AES key
+	ctr, out [blocksize]byte // input counter and output buffer
+	idx      int             // bytes of current block already used
 }
 
 // Create a new stream cipher based on AES in counter mode.
@@ -54,18 +52,18 @@ func newAESCTR(key []byte) cipher.Stream {
 		panic("C.AES_set_encrypt_key failed")
 	}
 	// counter automatically starts at 0
-	a.idx = blocksize		// need a fresh block first time
+	a.idx = blocksize // need a fresh block first time
 	return a
 }
 
 func (a *aesctr) XORKeyStream(dst, src []byte) {
-	for i := range(src) {
+	for i := range src {
 		if a.idx == blocksize {
 			// generate a block by encrypting the current counter
 			C.AES_encrypt((*C.uchar)(&a.ctr[0]), (*C.uchar)(&a.out[0]), &a.key)
 
 			// increment the counter
-			for j := blocksize-1; ; j-- {
+			for j := blocksize - 1; ; j-- {
 				a.ctr[j]++
 				if a.ctr[j] != 0 {
 					break
@@ -79,4 +77,3 @@ func (a *aesctr) XORKeyStream(dst, src []byte) {
 		a.idx++
 	}
 }
-
