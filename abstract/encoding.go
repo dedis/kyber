@@ -143,6 +143,8 @@ type decoder struct {
 	r io.Reader
 }
 
+var int32Type reflect.Type = reflect.TypeOf(int32(0))
+
 // Read a series of binary objects from an io.Reader.
 // The objs must be a list of pointers.
 func (e BinaryEncoding) Read(r io.Reader, objs ...interface{}) error {
@@ -292,10 +294,11 @@ func (en *encoder) value(obj interface{}, depth int) error {
 		}
 
 	case reflect.Int:
-		t := reflect.TypeOf(int32(0))
-		converted := v.Convert(t) // should pass if the int is smaller than 2^32 -1
-		// otherwise it will panic
-		return binary.Write(en.w, binary.BigEndian, converted.Interface())
+		i := int32(obj.(int))
+		if int(i) != obj.(int) {
+			panic("Int does not fit into int32")
+		}
+		return binary.Write(en.w, binary.BigEndian, i)
 
 	case reflect.Bool:
 		b := uint8(0)

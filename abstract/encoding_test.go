@@ -117,4 +117,16 @@ func TestEncoding(t *testing.T) {
 	err = BinaryEncoding{}.Read(&buf, &t2)
 	assert.NoError(t, err)
 	assert.Equal(t, t2, t1)
+
+	overflow := int(0x100000000)
+	defer func(t *testing.T) {
+		if r := recover(); r == nil {
+			t.Error("Putting a int > 32 bits into a int should have panicked")
+		}
+	}(t)
+	var b bytes.Buffer
+	err = BinaryEncoding{}.Write(&b, overflow)
+	if err != nil {
+		t.Error("Overflow int produced error ...?")
+	}
 }
