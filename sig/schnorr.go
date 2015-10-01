@@ -40,6 +40,11 @@ type SchnorrPublicKey struct {
 	Point abstract.Point	// Curve point representing public key
 }
 
+func (k *SchnorrPublicKey) Init(suite abstract.Suite) *SchnorrPublicKey {
+	k.Suite = suite
+	return k
+}
+
 func (k *SchnorrPublicKey) String() string {
 	return fmt.Sprintf("Schnorr public key: %s", k.Point.String())
 }
