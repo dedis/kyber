@@ -7,7 +7,6 @@ package ed25519
 // This code is a port of the public domain, "ref10" implementation of ed25519
 // from SUPERCOP.
 
-
 // The scalars are GF(2^252 + 27742317777372353535851937790883648493).
 
 // Input:
@@ -766,4 +765,3 @@ func scReduce(out *[32]byte, s *[64]byte) {
 	out[30] = byte(s11 >> 9)
 	out[31] = byte(s11 >> 17)
 }
-

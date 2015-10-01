@@ -11,30 +11,29 @@
 // are isomorphic to curves having c == 1.
 // For details see Bernstein et al, "Twisted Edwards Curves",
 // http://eprint.iacr.org/2008/013.pdf
-// 
+//
 package edwards
 
 import (
-	"math/big"
 	"github.com/dedis/crypto/nist"
+	"math/big"
 )
-
 
 // Parameters defining a Twisted Edwards curve (TEC).
 type Param struct {
-	Name string		// Name of curve
+	Name string // Name of curve
 
-	P big.Int		// Prime defining the underlying field
-	Q big.Int		// Order of the prime-order base point
-	R int			// Cofactor: Q*R is the total size of the curve
+	P big.Int // Prime defining the underlying field
+	Q big.Int // Order of the prime-order base point
+	R int     // Cofactor: Q*R is the total size of the curve
 
-	A,D big.Int		// Edwards curve equation parameters
+	A, D big.Int // Edwards curve equation parameters
 
-	FBX,FBY big.Int		// Standard base point for full group
-	PBX,PBY big.Int		// Standard base point for prime-order subgroup
+	FBX, FBY big.Int // Standard base point for full group
+	PBX, PBY big.Int // Standard base point for prime-order subgroup
 
-	Elligator1s big.Int	// Optional s parameter for Elligator 1
-	Elligator2u big.Int	// Optional u parameter for Elligator 2
+	Elligator1s big.Int // Optional s parameter for Elligator 1
+	Elligator2u big.Int // Optional u parameter for Elligator 2
 }
 
 // Return the name of this curve.
@@ -52,21 +51,21 @@ func Param1174() *Param {
 	var mi nist.Int
 
 	p.Name = "1174"
-	p.P.SetBit(zero,251,1).Sub(&p.P,big.NewInt(9))
-	p.Q.SetString("45330879683285730139092453152713398835",10)
-	p.Q.Sub(&p.P,&p.Q).Div(&p.Q,big.NewInt(4))
+	p.P.SetBit(zero, 251, 1).Sub(&p.P, big.NewInt(9))
+	p.Q.SetString("45330879683285730139092453152713398835", 10)
+	p.Q.Sub(&p.P, &p.Q).Div(&p.Q, big.NewInt(4))
 	p.R = 4
 	p.A.SetInt64(1)
 	p.D.SetInt64(-1174)
 
 	// Full-group generator is (4/V,3/5)
-	mi.InitString("4","19225777642111670230408712442205514783403012708409058383774613284963344096",10,&p.P)
+	mi.InitString("4", "19225777642111670230408712442205514783403012708409058383774613284963344096", 10, &p.P)
 	p.FBX.Set(&mi.V)
-	mi.InitString("3","5",10,&p.P)
+	mi.InitString("3", "5", 10, &p.P)
 	p.FBY.Set(&mi.V)
 
 	// Elligator1 parameter s for Curve1174 (Elligator paper section 4.1)
-	p.Elligator1s.SetString("1806494121122717992522804053500797229648438766985538871240722010849934886421",10)
+	p.Elligator1s.SetString("1806494121122717992522804053500797229648438766985538871240722010849934886421", 10)
 
 	return &p
 }
@@ -79,15 +78,15 @@ func Param25519() *Param {
 	var p Param
 	var qs big.Int
 	p.Name = "25519"
-	p.P.SetBit(zero,255,1).Sub(&p.P,big.NewInt(19))
-	qs.SetString("27742317777372353535851937790883648493",10)
-	p.Q.SetBit(zero,252,1).Add(&p.Q,&qs)
+	p.P.SetBit(zero, 255, 1).Sub(&p.P, big.NewInt(19))
+	qs.SetString("27742317777372353535851937790883648493", 10)
+	p.Q.SetBit(zero, 252, 1).Add(&p.Q, &qs)
 	p.R = 8
-	p.A.SetInt64(-1).Add(&p.P,&p.A)
-	p.D.SetString("37095705934669439343138083508754565189542113879843219016388785533085940283555",10)
+	p.A.SetInt64(-1).Add(&p.P, &p.A)
+	p.D.SetString("37095705934669439343138083508754565189542113879843219016388785533085940283555", 10)
 
-	p.PBX.SetString("15112221349535400772501151409588531511454012693041857206046113283949847762202",10)
-	p.PBY.SetString("46316835694926478169428394003475163141307993866256225615783033603165251855960",10)
+	p.PBX.SetString("15112221349535400772501151409588531511454012693041857206046113283949847762202", 10)
+	p.PBY.SetString("46316835694926478169428394003475163141307993866256225615783033603165251855960", 10)
 
 	// Non-square u for Elligator2
 	p.Elligator2u.SetInt64(2)
@@ -107,14 +106,14 @@ func ParamE382() *Param {
 	var p Param
 	var qs big.Int
 	p.Name = "E382"
-	p.P.SetBit(zero,382,1).Sub(&p.P,big.NewInt(105)) // p = 2^382-105
-	qs.SetString("1030303207694556153926491950732314247062623204330168346855",10)
-	p.Q.SetBit(zero,380,1).Sub(&p.Q,&qs)
+	p.P.SetBit(zero, 382, 1).Sub(&p.P, big.NewInt(105)) // p = 2^382-105
+	qs.SetString("1030303207694556153926491950732314247062623204330168346855", 10)
+	p.Q.SetBit(zero, 380, 1).Sub(&p.Q, &qs)
 	p.R = 8
 	p.A.SetInt64(1)
 	p.D.SetInt64(-67254)
-	p.PBX.SetString("3914921414754292646847594472454013487047137431784830634731377862923477302047857640522480241298429278603678181725699",10)
-	p.PBY.SetString("17",10)
+	p.PBX.SetString("3914921414754292646847594472454013487047137431784830634731377862923477302047857640522480241298429278603678181725699", 10)
+	p.PBY.SetString("17", 10)
 	return &p
 }
 
@@ -125,14 +124,14 @@ func Param41417() *Param {
 	var p Param
 	var qs big.Int
 	p.Name = "41417"
-	p.P.SetBit(zero,414,1).Sub(&p.P,big.NewInt(17))
-	qs.SetString("33364140863755142520810177694098385178984727200411208589594759",10)
-	p.Q.SetBit(zero,411,1).Sub(&p.Q,&qs)
+	p.P.SetBit(zero, 414, 1).Sub(&p.P, big.NewInt(17))
+	qs.SetString("33364140863755142520810177694098385178984727200411208589594759", 10)
+	p.Q.SetBit(zero, 411, 1).Sub(&p.Q, &qs)
 	p.R = 8
 	p.A.SetInt64(1)
 	p.D.SetInt64(3617)
-	p.PBX.SetString("17319886477121189177719202498822615443556957307604340815256226171904769976866975908866528699294134494857887698432266169206165",10)
-	p.PBY.SetString("34",10)
+	p.PBX.SetString("17319886477121189177719202498822615443556957307604340815256226171904769976866975908866528699294134494857887698432266169206165", 10)
+	p.PBY.SetString("34", 10)
 	return &p
 }
 
@@ -148,14 +147,13 @@ func ParamE521() *Param {
 	var p Param
 	var qs big.Int
 	p.Name = "E521"
-	p.P.SetBit(zero,521,1).Sub(&p.P,one)
-	qs.SetString("337554763258501705789107630418782636071904961214051226618635150085779108655765",10)
-	p.Q.SetBit(zero,519,1).Sub(&p.Q,&qs)
+	p.P.SetBit(zero, 521, 1).Sub(&p.P, one)
+	qs.SetString("337554763258501705789107630418782636071904961214051226618635150085779108655765", 10)
+	p.Q.SetBit(zero, 519, 1).Sub(&p.Q, &qs)
 	p.R = 8
 	p.A.SetInt64(1)
 	p.D.SetInt64(-376014)
-	p.PBX.SetString("1571054894184995387535939749894317568645297350402905821437625181152304994381188529632591196067604100772673927915114267193389905003276673749012051148356041324",10)
-	p.PBY.SetString("12",10)
+	p.PBX.SetString("1571054894184995387535939749894317568645297350402905821437625181152304994381188529632591196067604100772673927915114267193389905003276673749012051148356041324", 10)
+	p.PBY.SetString("12", 10)
 	return &p
 }
-

@@ -4,6 +4,7 @@ import (
 	"crypto/cipher"
 	"encoding"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -126,6 +127,10 @@ type Constructor interface {
 //
 type BinaryEncoding struct {
 	Constructor // Constructor for instantiating abstract types
+
+	// prevent clients from depending on the exact set of fields,
+	// to reserve the right to extend in backward-compatible ways.
+	hidden struct{}
 }
 
 func prindent(depth int, format string, a ...interface{}) {
@@ -138,8 +143,10 @@ type decoder struct {
 	r io.Reader
 }
 
-// XXX should this perhaps become a Suite method?
-// NB: objs must be a list of pointers.
+var int32Type reflect.Type = reflect.TypeOf(int32(0))
+
+// Read a series of binary objects from an io.Reader.
+// The objs must be a list of pointers.
 func (e BinaryEncoding) Read(r io.Reader, objs ...interface{}) error {
 	de := decoder{e.Constructor, r}
 	for i := 0; i < len(objs); i++ {
@@ -207,9 +214,12 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 		}
 
 	case reflect.Int:
-		var i int64
+		var i int32
 		err := binary.Read(de.r, binary.BigEndian, &i)
-		v.SetInt(i)
+		if err != nil {
+			return errors.New(fmt.Sprintf("Error converting int to int32 ( %v )", err))
+		}
+		v.SetInt(int64(i))
 		return err
 
 	case reflect.Bool:
@@ -284,8 +294,11 @@ func (en *encoder) value(obj interface{}, depth int) error {
 		}
 
 	case reflect.Int:
-		t := reflect.TypeOf(int64(0))
-		return binary.Write(en.w, binary.BigEndian, v.Convert(t).Interface())
+		i := int32(obj.(int))
+		if int(i) != obj.(int) {
+			panic("Int does not fit into int32")
+		}
+		return binary.Write(en.w, binary.BigEndian, i)
 
 	case reflect.Bool:
 		b := uint8(0)
@@ -314,10 +327,10 @@ func SuiteNew(s Suite, t reflect.Type) interface{} {
 
 // Default implementation of Encoding interface Read for ciphersuites
 func SuiteRead(s Suite, r io.Reader, objs ...interface{}) error {
-	return BinaryEncoding{s}.Read(r, objs)
+	return BinaryEncoding{Constructor: s}.Read(r, objs)
 }
 
 // Default implementation of Encoding interface Write for ciphersuites
 func SuiteWrite(s Suite, w io.Writer, objs ...interface{}) error {
-	return BinaryEncoding{s}.Write(w, objs)
+	return BinaryEncoding{Constructor: s}.Write(w, objs)
 }
