@@ -110,20 +110,22 @@ func testHiding(g abstract.Group, k int) {
 
 	// Test conversion from random strings to points and back
 	p := g.Point()
+	hp := p.Element.(abstract.Hiding)
 	p2 := g.Point()
-	l := p.(abstract.Hiding).HideLen()
+	hp2 := p2.Element.(abstract.Hiding)
+	l := hp.HideLen()
 	buf := make([]byte, l)
 	for i := 0; i < k; i++ {
 		rand.XORKeyStream(buf, buf)
 		//println("R "+hex.EncodeToString(buf))
-		p.(abstract.Hiding).HideDecode(buf)
+		hp.HideDecode(buf)
 		//println("P "+p.String())
-		b2 := p.(abstract.Hiding).HideEncode(rand)
+		b2 := hp.HideEncode(rand)
 		if b2 == nil {
 			panic("HideEncode failed")
 		}
 		//println("R'"+hex.EncodeToString(b2))
-		p2.(abstract.Hiding).HideDecode(b2)
+		hp2.HideDecode(b2)
 		//println("P'"+p2.String())
 		if !p.Equal(p2) {
 			panic("HideDecode produced wrong point")

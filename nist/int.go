@@ -126,10 +126,11 @@ func (i *Int) Nonzero() bool {
 // Set both value and modulus to be equal to another Int.
 // Since this method copies the modulus as well,
 // it may be used as an alternative to Init().
-func (i *Int) Set(a abstract.Element) {
+func (i *Int) Set(a abstract.Element) abstract.Element {
 	ai := a.(*Int)
 	i.V.Set(&ai.V)
 	i.M = ai.M
+	return i
 }
 
 // Set value to a number represented in a big-endian byte string.
@@ -147,19 +148,22 @@ func (i *Int) SetLittleEndian(a []byte) *Int {
 }
 
 // Set to the value 0.  The modulus must already be initialized.
-func (i *Int) Zero() {
+func (i *Int) Zero() abstract.Element {
 	i.V.SetInt64(0)
+	return i
 }
 
 // Set to the value 1.  The modulus must already be initialized.
-func (i *Int) One() {
+func (i *Int) One() abstract.Element {
 	i.V.SetInt64(1)
+	return i
 }
 
 // Set to an arbitrary 64-bit "small integer" value.
 // The modulus must already be initialized.
-func (i *Int) SetInt64(v int64) {
+func (i *Int) SetInt64(v int64) abstract.FieldElement {
 	i.V.SetInt64(v).Mod(&i.V, i.M)
+	return i
 }
 
 // Return the int64 representation of the value.
@@ -170,8 +174,9 @@ func (i *Int) Int64() int64 {
 
 // Set to an arbitrary uint64 value.
 // The modulus must already be initialized.
-func (i *Int) SetUint64(v uint64) {
+func (i *Int) SetUint64(v uint64) abstract.Element {
 	i.V.SetUint64(v).Mod(&i.V, i.M)
+	return i
 }
 
 // Return the uint64 representation of the value.
@@ -181,24 +186,26 @@ func (i *Int) Uint64() uint64 {
 }
 
 // Set target to a + b mod M, where M is a's modulus..
-func (i *Int) Add(a, b abstract.Element) {
+func (i *Int) Add(a, b abstract.Element) abstract.Element {
 	ai := a.(*Int)
 	bi := b.(*Int)
 	i.M = ai.M
 	i.V.Add(&ai.V, &bi.V).Mod(&i.V, i.M)
+	return i
 }
 
 // Set target to a - b mod M.
 // Target receives a's modulus.
-func (i *Int) Sub(a, b abstract.Element) {
+func (i *Int) Sub(a, b abstract.Element) abstract.Element {
 	ai := a.(*Int)
 	bi := b.(*Int)
 	i.M = ai.M
 	i.V.Sub(&ai.V, &bi.V).Mod(&i.V, i.M)
+	return i
 }
 
 // Set to -a mod M.
-func (i *Int) Neg(a abstract.Element) {
+func (i *Int) Neg(a abstract.Element) abstract.Element {
 	ai := a.(*Int)
 	i.M = ai.M
 	if ai.V.Sign() > 0 {
@@ -206,40 +213,45 @@ func (i *Int) Neg(a abstract.Element) {
 	} else {
 		i.V.SetUint64(0)
 	}
+	return i
 }
 
 // Set to a * b mod M.
 // Target receives a's modulus.
-func (i *Int) Mul(a, b abstract.Element) {
+func (i *Int) Mul(a, b abstract.Element) abstract.Element {
 	ai := a.(*Int)
 	bi := b.(*Int)
 	i.M = ai.M
 	i.V.Mul(&ai.V, &bi.V).Mod(&i.V, i.M)
+	return i
 }
 
 // Set to a * b^-1 mod M, where b^-1 is the modular inverse of b.
-func (i *Int) Div(a, b abstract.Element) {
+func (i *Int) Div(a, b abstract.Element) abstract.FieldElement {
 	ai := a.(*Int)
 	bi := b.(*Int)
 	var t big.Int
 	i.M = ai.M
 	i.V.Mul(&ai.V, t.ModInverse(&bi.V, i.M))
 	i.V.Mod(&i.V, i.M)
+	return i
 }
 
 // Set to the modular inverse of a with respect to modulus M.
-func (i *Int) Inv(a abstract.Element) {
+func (i *Int) Inv(a abstract.Element) abstract.FieldElement {
 	ai := a.(*Int)
 	i.M = ai.M
 	i.V.ModInverse(&a.(*Int).V, i.M)
+	return i
 }
 
 // Set to a^e mod M,
 // where e is an arbitrary big.Int exponent (not necessarily 0 <= e < M).
-func (i *Int) Exp(a abstract.Element, e *big.Int) {
+func (i *Int) Exp(a abstract.Element, e *big.Int) abstract.Element {
 	ai := a.(*Int)
 	i.M = ai.M
 	i.V.Exp(&ai.V, e, i.M)
+	return i
 }
 
 // Compute the Legendre symbol of i, if modulus M is prime,

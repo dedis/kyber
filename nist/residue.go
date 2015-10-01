@@ -32,26 +32,30 @@ func (p *residuePoint) New() abstract.Element {
 	return &residuePoint{big.Int{}, p.g}
 }
 
-func (p *residuePoint) Set(a abstract.Element) {
+func (p *residuePoint) Set(a abstract.Element) abstract.Element {
 	ra := a.(*residuePoint)
 	p.Int.Set(&ra.Int)
 	p.g = ra.g
+	return p
 }
 
-func (p *residuePoint) SetInt64(i int64) {
+func (p *residuePoint) SetInt64(i int64) abstract.Element {
 	p.Int.SetInt64(i)
+	return p
 }
 
 func (p *residuePoint) Equal(p2 abstract.Element) bool {
 	return p.Int.Cmp(&p2.(*residuePoint).Int) == 0
 }
 
-func (p *residuePoint) Zero() {
+func (p *residuePoint) Zero() abstract.Element {
 	p.Int.SetInt64(1)
+	return p
 }
 
-func (p *residuePoint) One() {
+func (p *residuePoint) One() abstract.Element {
 	p.Int.Set(p.g.G)
+	return p
 }
 
 func (p *residuePoint) Valid() bool {
@@ -104,35 +108,31 @@ func (p *residuePoint) Data() ([]byte, error) {
 	return b[l-dl-2 : l-2], nil
 }
 
-func (p *residuePoint) Add(a, b abstract.Element) {
+func (p *residuePoint) Add(a, b abstract.Element) abstract.Element {
 	p.Int.Mul(&a.(*residuePoint).Int, &b.(*residuePoint).Int)
 	p.Int.Mod(&p.Int, p.g.P)
+	return p
 }
 
-func (p *residuePoint) Sub(a, b abstract.Element) {
+func (p *residuePoint) Sub(a, b abstract.Element) abstract.Element {
 	binv := new(big.Int).ModInverse(&b.(*residuePoint).Int, p.g.P)
 	p.Int.Mul(&a.(*residuePoint).Int, binv)
 	p.Int.Mod(&p.Int, p.g.P)
+	return p
 }
 
-func (p *residuePoint) Neg(a abstract.Element) {
+func (p *residuePoint) Neg(a abstract.Element) abstract.Element {
 	p.Int.ModInverse(&a.(*residuePoint).Int, p.g.P)
+	return p
 }
 
-func (p *residuePoint) Mul(s, b abstract.Element) {
+func (p *residuePoint) Mul(s, b abstract.Element) abstract.Element {
 	if b == nil {
 		p.One()
 		b = p
 	}
 	p.Int.Exp(&b.(*residuePoint).Int, &s.(*Int).V, p.g.P)
-}
-
-func (p *residuePoint) Inv(a abstract.Element) {
-	panic("inversion in residue groups is hard")
-}
-
-func (p *residuePoint) Div(a, b abstract.Element) {
-	panic("division in residue groups is hard")
+	return p
 }
 
 func (p *residuePoint) MarshalSize() int {

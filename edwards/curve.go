@@ -247,8 +247,7 @@ func (c *curve) solveForX(x, y *nist.Int) bool {
 
 	yy.Mul(y, y)                     // yy = y^2
 	t1.Sub(&c.one, &yy)              // t1 = 1 - y^-2
-	t2.Mul(&c.d, &yy)
-	t2.Sub(&c.a, &t2) // t2 = a - d*y^2
+	t2.Mul(&c.d, &yy).Sub(&c.a, &t2) // t2 = a - d*y^2
 	t2.Div(&t1, &t2)                 // t2 = x^2
 	return x.Sqrt(&t2)               // may fail if not a square
 }
@@ -264,13 +263,9 @@ func (c *curve) onCurve(x, y *nist.Int) bool {
 	xx.Mul(x, x) // xx = x^2
 	yy.Mul(y, y) // yy = y^2
 
-	l.Mul(&c.a, &xx)
-	l.Add(&l, &yy) // l = a*x^2 + y^2
-
-	r.Mul(&c.d, &xx)
-	r.Mul(&r, &yy)
-	r.Add(&c.one, &r) // r = 1 + d*x^2*y^2
-
+	l.Mul(&c.a, &xx).Add(&l, &yy) // l = a*x^2 + y^2
+	r.Mul(&c.d, &xx).Mul(&r, &yy).Add(&c.one, &r)
+	// r = 1 + d*x^2*y^2
 	return l.Equal(&r)
 }
 
@@ -286,7 +281,7 @@ func (c *curve) validPoint(P point) bool {
 
 	// Check in-subgroup by multiplying by subgroup order
 	Q := c.self.Point()
-	Q.Element.Mul(P, &c.order)
+	Q.Element.Mul(&c.order, P)
 	if !Q.Equal(c.null) {
 		return false
 	}
@@ -357,7 +352,7 @@ func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
 		// we can convert our point into one in the subgroup
 		// simply by multiplying it by the cofactor.
 		if data == nil {
-			P.Mul(P, &c.cofact) // multiply by cofactor
+			P.Mul(&c.cofact, P) // multiply by cofactor
 			if P.Equal(c.null.Element) {
 				continue // unlucky; try again
 			}
@@ -370,7 +365,7 @@ func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
 		if Q == nil {
 			Q = c.self.Point().Element
 		}
-		Q.Mul(P, &c.order)
+		Q.Mul(&c.order, P)
 		if Q.Equal(c.null.Element) {
 			return data[dl:]
 		}

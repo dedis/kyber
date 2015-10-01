@@ -28,13 +28,10 @@ func (p *curvePoint) New() abstract.Element {
 	return n
 }
 
-func (p *curvePoint) Set(a abstract.Element) {
+func (p *curvePoint) Set(a abstract.Element) abstract.Element {
 	ca := a.(*curvePoint)
 	*p = *ca
-}
-
-func (p *curvePoint) SetInt64(v int64) {
-	panic("can't initialize elliptic curve point from integer")
+	return p
 }
 
 func (p *curvePoint) Equal(p2 abstract.Element) bool {
@@ -51,14 +48,16 @@ func (p *curvePoint) Equal(p2 abstract.Element) bool {
 	return p.x.Cmp(cp2.x) == 0 && p.y.Cmp(cp2.y) == 0
 }
 
-func (p *curvePoint) Zero() {
+func (p *curvePoint) Zero() abstract.Element {
 	p.x = new(big.Int).SetInt64(0)
 	p.y = new(big.Int).SetInt64(0)
+	return p
 }
 
-func (p *curvePoint) One() {
+func (p *curvePoint) One() abstract.Element {
 	p.x = p.c.p.Gx
 	p.y = p.c.p.Gy
+	return p
 }
 
 func (p *curvePoint) Valid() bool {
@@ -146,25 +145,28 @@ func (p *curvePoint) Data() ([]byte, error) {
 	return b[l-dl-1 : l-1], nil
 }
 
-func (p *curvePoint) Add(a, b abstract.Element) {
+func (p *curvePoint) Add(a, b abstract.Element) abstract.Element {
 	ca := a.(*curvePoint)
 	cb := b.(*curvePoint)
 	p.x, p.y = p.c.Add(ca.x, ca.y, cb.x, cb.y)
+	return p
 }
 
-func (p *curvePoint) Sub(a, b abstract.Element) {
+func (p *curvePoint) Sub(a, b abstract.Element) abstract.Element {
 	abstract.Sub(p, a, b)	// XXX non-optimal default implementation
+	return p
 }
 
-func (p *curvePoint) Neg(a abstract.Element) {
+func (p *curvePoint) Neg(a abstract.Element) abstract.Element {
 
 	// XXX a pretty non-optimal implementation of point negation...
 	s := p.c.Secret().One()
 	s.Neg(s)
 	p.Mul(s.FieldElement, a)
+	return p
 }
 
-func (p *curvePoint) Mul(s, b abstract.Element) {
+func (p *curvePoint) Mul(s, b abstract.Element) abstract.Element {
 	cs := s.(*Int)
 	if b != nil {
 		cb := b.(*curvePoint)
@@ -172,14 +174,7 @@ func (p *curvePoint) Mul(s, b abstract.Element) {
 	} else {
 		p.x, p.y = p.c.ScalarBaseMult(cs.V.Bytes())
 	}
-}
-
-func (p *curvePoint) Inv(a abstract.Element) {
-	panic("elliptic curve inversion is hard")
-}
-
-func (p *curvePoint) Div(a, b abstract.Element) {
-	panic("elliptic curve division is hard")
+	return p
 }
 
 func (p *curvePoint) MarshalSize() int {

@@ -32,7 +32,8 @@ func (el *el2param) init(ec *curve, u *big.Int) *el2param {
 	// http://eprint.iacr.org/2008/013.pdf
 	var amd nist.Int
 	amd.Sub(&ec.a, &ec.d) // t = a-d
-	el.A.Add(&ec.a, &ec.d).Add(&el.A, &el.A).Div(&el.A, &amd)
+	el.A.Add(&ec.a, &ec.d).Add(&el.A, &el.A)
+	el.A.Div(&el.A, &amd)
 	el.B.Init64(4, &ec.P).Div(&el.B, &amd)
 
 	// Other precomputed constants
@@ -74,7 +75,8 @@ func (el *el2param) ed2mont(u, v, x, y *nist.Int) {
 	ec := el.ec
 	var t1, t2 nist.Int
 	u.Div(t1.Add(&ec.one, y), t2.Sub(&ec.one, y))
-	v.Mul(u, &el.sqrtB).Div(v, x)
+	v.Mul(u, &el.sqrtB)
+	v.Div(v, x)
 }
 
 // Convert from Montgomery form (u,v) to Edwards (x,y) via:
@@ -85,7 +87,8 @@ func (el *el2param) ed2mont(u, v, x, y *nist.Int) {
 func (el *el2param) mont2ed(x, y, u, v *nist.Int) {
 	ec := el.ec
 	var t1, t2 nist.Int
-	x.Mul(u, &el.sqrtB).Div(x, v)
+	x.Mul(u, &el.sqrtB)
+	x.Div(x, v)
 	y.Div(t1.Sub(u, &ec.one), t2.Add(u, &ec.one))
 }
 
@@ -126,7 +129,8 @@ func (el *el2param) HideDecode(P point, rep []byte) {
 	r.InitBytes(buf, &ec.P)
 
 	// v = -A/(1+ur^2)
-	v.Mul(&r, &r).Mul(&el.u, &v).Add(&ec.one, &v).Div(&el.negA, &v)
+	v.Mul(&r, &r).Mul(&el.u, &v).Add(&ec.one, &v)
+	v.Div(&el.negA, &v)
 
 	// e = Chi(v^3+Av^2+Bv), where B=1 because of ed2mont equivalence
 	t1.Add(&v, &el.A).Mul(&t1, &v).Add(&t1, &ec.one).Mul(&t1, &v)
@@ -185,9 +189,11 @@ func (el *el2param) HideEncode(P point, rand cipher.Stream) []byte {
 	}
 
 	if y.V.Cmp(&el.pm1d2) <= 0 { // y in image of sqrt function
-		r.Mul(&xpA, &el.u).Div(&x, &r)
+		r.Mul(&xpA, &el.u)
+		r.Div(&x, &r)
 	} else { // y not in image of sqrt function
-		r.Mul(&el.u, &x).Div(&xpA, &r)
+		r.Mul(&el.u, &x)
+		r.Div(&xpA, &r)
 	}
 	r.Neg(&r)
 	el.sqrt(&r, &r)

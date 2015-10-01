@@ -54,11 +54,11 @@ func (P *extPoint) UnmarshalBinary(b []byte) error {
 }
 
 func (P *extPoint) MarshalTo(w io.Writer) (int, error) {
-	return group.PointMarshalTo(P, w)
+	return group.MarshalTo(P, w)
 }
 
 func (P *extPoint) UnmarshalFrom(r io.Reader) (int, error) {
-	return group.PointUnmarshalFrom(P, r)
+	return group.UnmarshalFrom(P, r)
 }
 
 func (P *extPoint) HideLen() int {
@@ -80,7 +80,7 @@ func (P *extPoint) HideDecode(rep []byte) {
 //		iff
 //	(X1*Z2,Y1*Z2) == (X2*Z1,Y2*Z1)
 //
-func (P1 *extPoint) Equal(CP2 abstract.Point) bool {
+func (P1 *extPoint) Equal(CP2 abstract.Element) bool {
 	P2 := CP2.(*extPoint)
 	var t1, t2 nist.Int
 	xeq := t1.Mul(&P1.X, &P2.Z).Equal(t2.Mul(&P2.X, &P1.Z))
@@ -88,7 +88,11 @@ func (P1 *extPoint) Equal(CP2 abstract.Point) bool {
 	return xeq && yeq
 }
 
-func (P *extPoint) Set(CP2 abstract.Point) abstract.Point {
+func (p *extPoint) New() abstract.Element {
+	return &extPoint{c: p.c}
+}
+
+func (P *extPoint) Set(CP2 abstract.Element) abstract.Element {
 	P2 := CP2.(*extPoint)
 	P.c = P2.c
 	P.X.Set(&P2.X)
@@ -98,12 +102,12 @@ func (P *extPoint) Set(CP2 abstract.Point) abstract.Point {
 	return P
 }
 
-func (P *extPoint) Null() abstract.Point {
+func (P *extPoint) Zero() abstract.Element {
 	P.Set(&P.c.null)
 	return P
 }
 
-func (P *extPoint) Base() abstract.Point {
+func (P *extPoint) One() abstract.Element {
 	P.Set(&P.c.base)
 	return P
 }
@@ -129,9 +133,9 @@ func (P *extPoint) checkT() {
 	}
 }
 
-func (P *extPoint) Pick(data []byte, rand cipher.Stream) (abstract.Point, []byte) {
+func (P *extPoint) Pick(data []byte, rand cipher.Stream) []byte {
 	leftover := P.c.pickPoint(P, data, rand)
-	return P, leftover
+	return leftover
 }
 
 // Extract embedded data from a point group element
@@ -141,7 +145,7 @@ func (P *extPoint) Data() ([]byte, error) {
 }
 
 // Add two points using optimized extended coordinate addition formulas.
-func (P *extPoint) Add(CP1, CP2 abstract.Point) abstract.Point {
+func (P *extPoint) Add(CP1, CP2 abstract.Element) abstract.Element {
 	P1 := CP1.(*extPoint)
 	P2 := CP2.(*extPoint)
 	X1, Y1, Z1, T1 := &P1.X, &P1.Y, &P1.Z, &P1.T
@@ -165,7 +169,7 @@ func (P *extPoint) Add(CP1, CP2 abstract.Point) abstract.Point {
 }
 
 // Subtract points.
-func (P *extPoint) Sub(CP1, CP2 abstract.Point) abstract.Point {
+func (P *extPoint) Sub(CP1, CP2 abstract.Element) abstract.Element {
 	P1 := CP1.(*extPoint)
 	P2 := CP2.(*extPoint)
 	X1, Y1, Z1, T1 := &P1.X, &P1.Y, &P1.Z, &P1.T
@@ -190,7 +194,7 @@ func (P *extPoint) Sub(CP1, CP2 abstract.Point) abstract.Point {
 
 // Find the negative of point A.
 // For Edwards curves, the negative of (x,y) is (-x,y).
-func (P *extPoint) Neg(CA abstract.Point) abstract.Point {
+func (P *extPoint) Neg(CA abstract.Element) abstract.Element {
 	A := CA.(*extPoint)
 	P.c = A.c
 	P.X.Neg(&A.X)
@@ -227,10 +231,10 @@ func (P *extPoint) double() {
 // switching between projective and extended coordinates during
 // scalar multiplication.
 //
-func (P *extPoint) Mul(G abstract.Point, s abstract.Secret) abstract.Point {
+func (P *extPoint) Mul(s, G abstract.Element) abstract.Element {
 	v := s.(*nist.Int).V
 	if G == nil {
-		return P.Base().Mul(P, s)
+		return P.One().Mul(s, P)
 	}
 	T := P
 	if G == P { // Must use temporary for in-place multiply
@@ -277,10 +281,7 @@ type ExtendedCurve struct {
 
 // Create a new Point on this curve.
 func (c *ExtendedCurve) Point() abstract.Point {
-	P := new(extPoint)
-	P.c = c
-	//P.Set(&c.null)
-	return P
+	return abstract.Point{&extPoint{c: c}}
 }
 
 // Initialize the curve with given parameters.

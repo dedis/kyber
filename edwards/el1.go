@@ -41,27 +41,21 @@ func (el *el1param) init(ec *curve, s *big.Int) *el1param {
 	el.r.Add(&el.c, &invc)
 
 	// Precomputed values
-	el.r2m2.Mul(&el.r, &el.r)
-	el.r2m2.Sub(&el.r2m2, &two)          // r^2-2
+	el.r2m2.Mul(&el.r, &el.r).Sub(&el.r2m2, &two)          // r^2-2
 	el.invc2.Mul(&invc, &invc)                             // 1/c^2
-	el.pp1d4.Add(&ec.P, one)
-	el.pp1d4.Div(&el.pp1d4, big.NewInt(4)) // (p+1)/4
+	el.pp1d4.Add(&ec.P, one).Div(&el.pp1d4, big.NewInt(4)) // (p+1)/4
 	cm1.Sub(&el.c, &ec.one)
 	el.cm1s.Mul(&cm1, &el.s) // (c-1)s
 	el.m2.Init64(-2, &ec.P)  // -2
 
 	// 2s(c-1)Chi(c)/r
 	chi(&el.c3x, &el.c)
-	el.c3x.Mul(&el.c3x, &two)
-	el.c3x.Mul(&el.c3x, &el.s)
-	el.c3x.Mul(&el.c3x, &cm1)
+	el.c3x.Mul(&el.c3x, &two).Mul(&el.c3x, &el.s).Mul(&el.c3x, &cm1)
 	el.c3x.Div(&el.c3x, &el.r)
 
 	// Sanity check: d = -(c+1)^2/(c-1)^2
 	d.Add(&el.c, &ec.one)
-	d.Div(&d, &cm1)
-	d.Mul(&d, &d)
-	d.Neg(&d)
+	d.Div(&d, &cm1).Mul(&d, &d).Neg(&d)
 	if d.Cmp(&ec.d) != 0 {
 		panic("el1 init: d came out wrong")
 	}
@@ -119,7 +113,8 @@ func (el *el1param) HideDecode(P point, rep []byte) {
 	Y.Exp(&Y, &el.pp1d4).Mul(&Y, &Chiv).Mul(&Y, &t1)
 
 	// x = (c-1)sX(1+X)/Y
-	x.Add(&ec.one, &X).Mul(&X, &x).Mul(&el.cm1s, &x).Div(&x, &Y)
+	x.Add(&ec.one, &X).Mul(&X, &x).Mul(&el.cm1s, &x)
+	x.Div(&x, &Y)
 
 	// y = (rX-(1+X)^2)/(rX+(1+X)^2)
 	t1.Mul(&el.r, &X)                 // t1 = rX
@@ -150,7 +145,8 @@ func (el *el1param) HideEncode(P point, rand cipher.Stream) []byte {
 
 	// etar = r(y-1)/2(y+1)
 	t1.Add(y, &ec.one).Add(&t1, &t1) // 2(y+1)
-	etar.Sub(y, &ec.one).Mul(&etar, &el.r).Div(&etar, &t1)
+	etar.Sub(y, &ec.one).Mul(&etar, &el.r)
+	etar.Div(&etar, &t1)
 
 	// condition 2: b = (1 + eta r)^2 - 1 is a square
 	etarp1.Add(&ec.one, &etar) // etarp1 = (1 + eta r)

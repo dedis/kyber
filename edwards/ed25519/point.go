@@ -80,13 +80,15 @@ func (P *point) Equal(P2 abstract.Element) bool {
 }
 
 // Set point to be equal to P2.
-func (P *point) Set(P2 abstract.Element) {
+func (P *point) Set(P2 abstract.Element) abstract.Element {
 	P.ge = P2.(*point).ge
+	return P
 }
 
 // Set to the neutral element, which is (0,1) for twisted Edwards curves.
-func (P *point) Zero() {
+func (P *point) Zero() abstract.Element {
 	P.ge.Zero()
+	return P
 }
 
 func (P *point) zero() *point {
@@ -95,8 +97,9 @@ func (P *point) zero() *point {
 }
 
 // Set to the standard base point for this curve
-func (P *point) One() {
+func (P *point) One() abstract.Element {
 	P.ge = baseext
+	return P
 }
 
 func (P *point) PickLen() int {
@@ -169,7 +172,7 @@ func (P *point) Data() ([]byte, error) {
 	return b[1 : 1+dl], nil
 }
 
-func (P *point) Add(P1, P2 abstract.Element) {
+func (P *point) Add(P1, P2 abstract.Element) abstract.Element {
 	E1 := P1.(*point)
 	E2 := P2.(*point)
 
@@ -181,9 +184,11 @@ func (P *point) Add(P1, P2 abstract.Element) {
 	r.ToExtended(&P.ge)
 
 	// XXX in this case better just to use general addition formula?
+
+	return P
 }
 
-func (P *point) Sub(P1, P2 abstract.Element) {
+func (P *point) Sub(P1, P2 abstract.Element) abstract.Element {
 	E1 := P1.(*point)
 	E2 := P2.(*point)
 
@@ -195,18 +200,21 @@ func (P *point) Sub(P1, P2 abstract.Element) {
 	r.ToExtended(&P.ge)
 
 	// XXX in this case better just to use general addition formula?
+
+	return P
 }
 
 // Find the negative of point A.
 // For Edwards curves, the negative of (x,y) is (-x,y).
-func (P *point) Neg(A abstract.Element) {
+func (P *point) Neg(A abstract.Element) abstract.Element {
 	P.ge.Neg(&A.(*point).ge)
+	return P
 }
 
 // Multiply point p by scalar s using the repeated doubling method.
 // XXX This is vartime; for our general-purpose Mul operator
 // it would be far preferable for security to do this constant-time.
-func (P *point) Mul(s, A abstract.Element) {
+func (P *point) Mul(s, A abstract.Element) abstract.Element {
 
 	// Convert the scalar to fixed-length little-endian form.
 	sb := s.(*nist.Int).V.Bytes()
@@ -222,6 +230,7 @@ func (P *point) Mul(s, A abstract.Element) {
 		geScalarMult(&P.ge, &a, &A.(*point).ge)
 		//geScalarMultVartime(&P.ge, &a, &A.(*point).ge)
 	}
+	return P
 }
 
 // Curve represents an Ed25519.
