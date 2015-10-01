@@ -208,9 +208,9 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 		}
 
 	case reflect.Int:
-		var i int64
+		var i int32
 		err := binary.Read(de.r, binary.BigEndian, &i)
-		if int64(int(i)) != i {
+		if err != nil || int32(int(i)) != i {
 			return errors.New("int too large for this platform")
 		}
 		v.SetInt(i)
@@ -288,8 +288,10 @@ func (en *encoder) value(obj interface{}, depth int) error {
 		}
 
 	case reflect.Int:
-		t := reflect.TypeOf(int64(0))
-		return binary.Write(en.w, binary.BigEndian, v.Convert(t).Interface())
+		t := reflect.TypeOf(int32(0))
+		converted := v.Convert(t) // should pass if the int is smaller than 2^32 -1
+		// otherwise it will panic
+		return binary.Write(en.w, binary.BigEndian, converted.Interface())
 
 	case reflect.Bool:
 		b := uint8(0)
