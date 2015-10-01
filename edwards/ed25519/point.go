@@ -28,7 +28,7 @@ type point struct {
 	ge extendedGroupElement
 }
 
-func (P *point) New() abstract.Element {
+func (P *point) New() group.Element {
 	return &point{}
 }
 
@@ -64,7 +64,7 @@ func (P *point) UnmarshalFrom(r io.Reader) (int, error) {
 }
 
 // Equality test for two Points on the same curve
-func (P *point) Equal(P2 abstract.Element) bool {
+func (P *point) Equal(P2 group.Element) bool {
 
 	// XXX better to test equality without normalizing extended coords
 
@@ -80,13 +80,13 @@ func (P *point) Equal(P2 abstract.Element) bool {
 }
 
 // Set point to be equal to P2.
-func (P *point) Set(P2 abstract.Element) abstract.Element {
+func (P *point) Set(P2 group.Element) group.Element {
 	P.ge = P2.(*point).ge
 	return P
 }
 
 // Set to the neutral element, which is (0,1) for twisted Edwards curves.
-func (P *point) Zero() abstract.Element {
+func (P *point) Zero() group.Element {
 	P.ge.Zero()
 	return P
 }
@@ -97,7 +97,7 @@ func (P *point) zero() *point {
 }
 
 // Set to the standard base point for this curve
-func (P *point) One() abstract.Element {
+func (P *point) One() group.Element {
 	P.ge = baseext
 	return P
 }
@@ -141,7 +141,7 @@ func (P *point) Pick(data []byte, rand cipher.Stream) []byte {
 		// we can convert our point into one in the subgroup
 		// simply by multiplying it by the cofactor.
 		if data == nil {
-			P.Mul(cofactor, P) // multiply by cofactor
+			P.Mul(P, cofactor) // multiply by cofactor
 			if P.Equal(nullPoint) {
 				continue // unlucky; try again
 			}
@@ -152,7 +152,7 @@ func (P *point) Pick(data []byte, rand cipher.Stream) []byte {
 		// we must simply check if the point is in the subgroup
 		// and retry point generation until it is.
 		var Q point
-		Q.Mul(primeOrder, P)
+		Q.Mul(P, primeOrder)
 		if Q.Equal(nullPoint) {
 			return data[dl:] // success
 		}
@@ -172,7 +172,7 @@ func (P *point) Data() ([]byte, error) {
 	return b[1 : 1+dl], nil
 }
 
-func (P *point) Add(P1, P2 abstract.Element) abstract.Element {
+func (P *point) Add(P1, P2 group.Element) group.Element {
 	E1 := P1.(*point)
 	E2 := P2.(*point)
 
@@ -188,7 +188,7 @@ func (P *point) Add(P1, P2 abstract.Element) abstract.Element {
 	return P
 }
 
-func (P *point) Sub(P1, P2 abstract.Element) abstract.Element {
+func (P *point) Sub(P1, P2 group.Element) group.Element {
 	E1 := P1.(*point)
 	E2 := P2.(*point)
 
@@ -206,7 +206,7 @@ func (P *point) Sub(P1, P2 abstract.Element) abstract.Element {
 
 // Find the negative of point A.
 // For Edwards curves, the negative of (x,y) is (-x,y).
-func (P *point) Neg(A abstract.Element) abstract.Element {
+func (P *point) Neg(A group.Element) group.Element {
 	P.ge.Neg(&A.(*point).ge)
 	return P
 }
@@ -214,7 +214,7 @@ func (P *point) Neg(A abstract.Element) abstract.Element {
 // Multiply point p by scalar s using the repeated doubling method.
 // XXX This is vartime; for our general-purpose Mul operator
 // it would be far preferable for security to do this constant-time.
-func (P *point) Mul(s, A abstract.Element) abstract.Element {
+func (P *point) Mul(A, s group.Element) group.Element {
 
 	// Convert the scalar to fixed-length little-endian form.
 	sb := s.(*nist.Int).V.Bytes()

@@ -2,6 +2,7 @@ package abstract
 
 import (
 	"hash"
+	"github.com/dedis/crypto/marshal"
 )
 
 // Suite is an abstract interface to a full suite of
@@ -34,11 +35,11 @@ type Suite interface {
 	Group
 
 	// Fixed-length binary encoding for all crypto objects
-	Encoding
+	marshal.Encoding
 
 	// Generic constructor to instantiate any abstract interface type
 	// supported by this suite: at least Cipher, Hash, Point, Secret.
-	Constructor
+	marshal.Constructor
 }
 
 // Sum uses a given ciphersuite's hash function to checksum a byte-slice.

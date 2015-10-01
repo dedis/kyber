@@ -4,13 +4,12 @@ package group
 
 import (
 	"crypto/cipher"
-	"github.com/dedis/crypto/abstract"
 	"io"
 )
 
 // MarshalTo provides a generic implementation of Element.MarshalTo
 // based on Element.MarshalBinary.
-func MarshalTo(e abstract.Element, w io.Writer) (int, error) {
+func MarshalTo(e Element, w io.Writer) (int, error) {
 	buf, err := e.MarshalBinary()
 	if err != nil {
 		return 0, err
@@ -23,7 +22,7 @@ func MarshalTo(e abstract.Element, w io.Writer) (int, error) {
 // except uses Element.Pick if r is a Cipher or cipher.Stream.
 // The returned byte-count is valid only when decoding from a normal Reader,
 // not when picking from a pseudorandom source.
-func UnmarshalFrom(e abstract.Element, r io.Reader) (int, error) {
+func UnmarshalFrom(e Element, r io.Reader) (int, error) {
 	if strm, ok := r.(cipher.Stream); ok {
 		e.Pick(nil, strm)
 		return -1, nil // no byte-count when picking randomly
@@ -35,4 +34,3 @@ func UnmarshalFrom(e abstract.Element, r io.Reader) (int, error) {
 	}
 	return n, e.UnmarshalBinary(buf)
 }
-

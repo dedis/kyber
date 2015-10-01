@@ -80,7 +80,7 @@ func (P *extPoint) HideDecode(rep []byte) {
 //		iff
 //	(X1*Z2,Y1*Z2) == (X2*Z1,Y2*Z1)
 //
-func (P1 *extPoint) Equal(CP2 abstract.Element) bool {
+func (P1 *extPoint) Equal(CP2 group.Element) bool {
 	P2 := CP2.(*extPoint)
 	var t1, t2 nist.Int
 	xeq := t1.Mul(&P1.X, &P2.Z).Equal(t2.Mul(&P2.X, &P1.Z))
@@ -88,11 +88,11 @@ func (P1 *extPoint) Equal(CP2 abstract.Element) bool {
 	return xeq && yeq
 }
 
-func (p *extPoint) New() abstract.Element {
+func (p *extPoint) New() group.Element {
 	return &extPoint{c: p.c}
 }
 
-func (P *extPoint) Set(CP2 abstract.Element) abstract.Element {
+func (P *extPoint) Set(CP2 group.Element) group.Element {
 	P2 := CP2.(*extPoint)
 	P.c = P2.c
 	P.X.Set(&P2.X)
@@ -102,12 +102,12 @@ func (P *extPoint) Set(CP2 abstract.Element) abstract.Element {
 	return P
 }
 
-func (P *extPoint) Zero() abstract.Element {
+func (P *extPoint) Zero() group.Element {
 	P.Set(&P.c.null)
 	return P
 }
 
-func (P *extPoint) One() abstract.Element {
+func (P *extPoint) One() group.Element {
 	P.Set(&P.c.base)
 	return P
 }
@@ -145,7 +145,7 @@ func (P *extPoint) Data() ([]byte, error) {
 }
 
 // Add two points using optimized extended coordinate addition formulas.
-func (P *extPoint) Add(CP1, CP2 abstract.Element) abstract.Element {
+func (P *extPoint) Add(CP1, CP2 group.Element) group.Element {
 	P1 := CP1.(*extPoint)
 	P2 := CP2.(*extPoint)
 	X1, Y1, Z1, T1 := &P1.X, &P1.Y, &P1.Z, &P1.T
@@ -169,7 +169,7 @@ func (P *extPoint) Add(CP1, CP2 abstract.Element) abstract.Element {
 }
 
 // Subtract points.
-func (P *extPoint) Sub(CP1, CP2 abstract.Element) abstract.Element {
+func (P *extPoint) Sub(CP1, CP2 group.Element) group.Element {
 	P1 := CP1.(*extPoint)
 	P2 := CP2.(*extPoint)
 	X1, Y1, Z1, T1 := &P1.X, &P1.Y, &P1.Z, &P1.T
@@ -194,7 +194,7 @@ func (P *extPoint) Sub(CP1, CP2 abstract.Element) abstract.Element {
 
 // Find the negative of point A.
 // For Edwards curves, the negative of (x,y) is (-x,y).
-func (P *extPoint) Neg(CA abstract.Element) abstract.Element {
+func (P *extPoint) Neg(CA group.Element) group.Element {
 	A := CA.(*extPoint)
 	P.c = A.c
 	P.X.Neg(&A.X)
@@ -231,10 +231,10 @@ func (P *extPoint) double() {
 // switching between projective and extended coordinates during
 // scalar multiplication.
 //
-func (P *extPoint) Mul(s, G abstract.Element) abstract.Element {
+func (P *extPoint) Mul(G, s group.Element) group.Element {
 	v := s.(*nist.Int).V
 	if G == nil {
-		return P.One().Mul(s, P)
+		return P.One().Mul(P, s)
 	}
 	T := P
 	if G == P { // Must use temporary for in-place multiply

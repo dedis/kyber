@@ -27,11 +27,11 @@ func (s *suite128) Cipher(key []byte, options ...interface{}) abstract.Cipher {
 }
 
 func (s *suite128) Read(r io.Reader, objs ...interface{}) error {
-	return abstract.SuiteRead(s, r, objs)
+	return abstract.SuiteRead(s, r, objs...)
 }
 
 func (s *suite128) Write(w io.Writer, objs ...interface{}) error {
-	return abstract.SuiteWrite(s, w, objs)
+	return abstract.SuiteWrite(s, w, objs...)
 }
 
 func (s *suite128) New(t reflect.Type) interface{} {

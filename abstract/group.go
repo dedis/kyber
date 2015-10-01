@@ -2,111 +2,10 @@ package abstract
 
 import (
 	"crypto/cipher"
+	"github.com/dedis/crypto/group"
 )
 
 // XXX consider renaming Secret to Scalar?
-
-/*
-Element is the abstract interface to an algebraic group element,
-supporting the algebraic operations typically used in
-standard public-key crypto.
-Not every instance of Element will necessarily support all operations,
-and supported operations will expect Element operands to be of
-specific, appropriate Element types:
-the caller must know a particular Element type's usage constraints,
-and unsupported or incorrectly-used operations will simply panic.
-The struct types Secret and Point offer slightly higher-level,
-more purpose-specific "front-end" encapsulations for Element.
-*/
-type Element interface {
-	// Any Element has some "native" marshaled encoding
-	Marshaling
-
-	// Create a new uninitialized element of the same type
-	New() Element
-
-	// Set equal to another Element a
-	Set(a Element) Element
-
-	// Equality test for two Elements of the same type
-	Equal(a Element) bool
-
-	// Set to the additive identity (0)
-	Zero() Element
-
-	// Set to the sum of elements a and b
-	Add(a, b Element) Element
-
-	// Set to the difference a - b
-	Sub(a, b Element) Element
-
-	// Set to the additive negation of element a
-	Neg(a Element) Element
-
-	// Set to the multiplicative identity (1)
-	One() Element
-
-	// Set to the product of elements a and b.
-	// For elements of additive groups,
-	// this operation represents scalar multiplication,
-	// in which case a is the integer scalar and b is the base element;
-	// b can be nil to request the standard base.
-	Mul(a, b Element) Element
-
-	// Set to a fresh [pseudo-]random element,
-	// optionally so as to embed given data.
-	// A given Element type supports embedding a limited
-	// number of data bytes, possibly zero.
-	// Returns any remainding data bytes not embedded.
-	Pick(data []byte, rand cipher.Stream) []byte
-
-	// Return the maximum number of bytes that can always be embedded
-	// in a single group element via Pick().
-	// If a Pick call is supplied with more data than this,
-	// it may embed anywhere between PickLen and all supplied bytes,
-	// perhaps nondeterministically based on the supplied randomness.
-	// Returns 0 if this Element type does not support data embedding.
-	PickLen() int
-
-	// Extract data embedded in an Element chosen via Pick().
-	// Returns an error if the Element contains no valid embedded data,
-	// but this error condition is not guaranteed to be detected
-	// for Elements Picked with data == nil.
-	Data() ([]byte, error)
-}
-
-type FieldElement interface {
-	Element
-
-	// Set to a small integer value
-	// XXX maybe this could/should be in Element?
-	SetInt64(v int64) FieldElement
-
-	// Set to the division of element a by element b
-	Div(a, b Element) FieldElement
-
-	// Set to the multiplicative inverse of element a
-	Inv(a Element) FieldElement
-}
-
-
-// Generic, default implementations of some Element operations.
-// XXX perhaps should be elsewhere in a sub-package,
-// since they're only used by Element implementors?
-// (And perhaps the Element interface belongs there too?)
-
-func Sub(dst, a, b Element) {
-	c := b.New()
-	c.Neg(b)
-	dst.Add(a, c)
-}
-
-func Div(dst, a, b FieldElement) {
-	c := b.New().(FieldElement)
-	c.Inv(b)
-	dst.Div(a, c)
-}
-
 
 /*
 A Secret abstractly represents a secret value by which
@@ -117,7 +16,7 @@ and a scalar multiplier in elliptic curve groups.
 XXX probably rename to Scalar.
 */
 type Secret struct {
-	FieldElement
+	group.FieldElement
 }
 
 // Equality test for two Secrets derived from the same Group
@@ -192,6 +91,11 @@ func (s Secret) Pick(rand cipher.Stream) Secret {
 	return s
 }
 
+// Return true if this Secret contains no FieldElement object
+func (s Secret) Nil() bool {
+	return s.FieldElement == nil
+}
+
 
 /*
 A Point abstractly represents an element of a public-key cryptographic Group.
@@ -202,7 +106,7 @@ A Point can contain a Diffie-Hellman public key,
 an ElGamal ciphertext, etc.
 */
 type Point struct {
-	Element
+	group.Element
 }
 
 // Equality test for two Points derived from the same Group
@@ -253,17 +157,21 @@ func (p Point) Neg(a Point) Point {
 }
 
 // Encrypt point p by multiplying with secret s.
-// XXX swap argument order for consistency with additive notation.
 func (p Point) Mul(b Point, s Secret) Point {
-	p.Element.Mul(s.FieldElement, b.Element)
+	p.Element.Mul(b.Element, s.FieldElement)
 	return p
 }
 
 // Set to the standard base point multiplied by scalar s.
 // XXX also support alternate optimized, precomputed base points somehow.
 func (p Point) BaseMul(s Secret) Point {
-	p.Element.Mul(s.FieldElement, nil)
+	p.Element.Mul(nil, s.FieldElement)
 	return p
+}
+
+// Return true if this Point contains no Element object
+func (p Point) Nil() bool {
+	return p.Element == nil
 }
 
 

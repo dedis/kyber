@@ -206,7 +206,7 @@ func (rp *repPred) commit(prf *proof, w abstract.Secret, pv []abstract.Secret) e
 
 	// Compute commit V=wY+v1G1+...+vkGk
 	V := prf.s.Point()
-	if w != nil {	// We're on a non-obligated branch
+	if !w.Nil() {	// We're on a non-obligated branch
 		V.Mul(prf.pval[rp.P],w)
 	} else {	// We're on a proof-obligated branch, so w=0
 		V.Null()
@@ -218,7 +218,7 @@ func (rp *repPred) commit(prf *proof, w abstract.Secret, pv []abstract.Secret) e
 
 		// Choose a blinding secret the first time
 		// we encounter each variable
-		if v[s] == nil {
+		if v[s].Nil() {
 			v[s] = prf.s.Secret()
 			prf.pc.PriRand(v[s])
 		}
@@ -243,8 +243,8 @@ func (rp *repPred) respond(prf *proof, c abstract.Secret,
 
 		// Produce a correct response for each variable
 		// the first time we encounter that variable.
-		if r[s] == nil {
-			if pp.w != nil {
+		if r[s].Nil() {
+			if !pp.w.Nil() {
 				// We're on a non-proof-obligated branch:
 				// w was our challenge, v[s] is our response.
 				r[s] = pp.v[s]
@@ -282,7 +282,7 @@ func (rp *repPred) getCommits(prf *proof, pr []abstract.Secret) error {
 	for i := range(rp.T) {
 		t := rp.T[i]	// current term
 		s := prf.sidx[t.S]
-		if r[s] == nil {
+		if r[s].Nil() {
 			r[s] = prf.s.Secret()
 		}
 	}
@@ -400,7 +400,7 @@ func (ap *andPred) getCommits(prf *proof, pr []abstract.Secret) error {
 
 	// Create per-predicate verifier state
 	r := prf.makeSecrets(pr)
-	vp := &verifierPred{nil,r}
+	vp := &verifierPred{abstract.Point{nil},r}
 	prf.vp[ap] = vp
 
 	for i := range(sub) {
@@ -489,7 +489,7 @@ func (op *orPred) commit(prf *proof, w abstract.Secret, pv []abstract.Secret) er
 	prf.pp[op] = pp
 
 	// Choose pre-challenges for our subs.
-	if w == nil {
+	if w.Nil() {
 		// We're on a proof-obligated branch;
 		// choose random pre-challenges for only non-obligated subs.
 		choice,ok := prf.choice[op]
@@ -536,7 +536,7 @@ func (op *orPred) respond(prf *proof, c abstract.Secret, pr []abstract.Secret) e
 	}
 
 	ci := pp.wi
-	if pp.w == nil {
+	if pp.w.Nil() {
 		// Calculate the challenge for the proof-obligated subtree
 		cs := prf.s.Secret().Set(c)
 		choice := prf.choice[op]
@@ -687,7 +687,7 @@ func (prf *proof) sendResponses(pr []abstract.Secret, r []abstract.Secret) error
 		for i := range(r) {
 			// Send responses only for variables
 			// that were used in this OR-domain.
-			if r[i] != nil {
+			if !r[i].Nil() {
 				if e := prf.pc.Put(r[i]); e != nil {
 					return e
 				}
@@ -702,7 +702,7 @@ func (prf *proof) sendResponses(pr []abstract.Secret, r []abstract.Secret) error
 func (prf *proof) getResponses(pr []abstract.Secret, r []abstract.Secret) error {
 	if pr == nil {
 		for i := range(r) {
-			if r[i] != nil {
+			if !r[i].Nil() {
 				if e := prf.vc.Get(r[i]); e != nil {
 					return e
 				}
@@ -722,7 +722,7 @@ func (prf *proof) prove(p Predicate, sval map[string]abstract.Secret,
 	prf.pp = make(map[Predicate]*proverPred)
 
 	// Generate all commitments
-	if e := p.commit(prf,nil,nil); e != nil {
+	if e := p.commit(prf,abstract.Secret{nil},nil); e != nil {
 		return e
 	}
 

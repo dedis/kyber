@@ -7,6 +7,7 @@ import (
 	//"encoding/hex"
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/util"
 )
@@ -16,7 +17,7 @@ var one = big.NewInt(1)
 
 // Extension of Element interface for elliptic curve X,Y coordinate access
 type point interface {
-	abstract.Element
+	group.Element
 
 	initXY(x, y *big.Int, curve abstract.Group)
 
@@ -281,7 +282,7 @@ func (c *curve) validPoint(P point) bool {
 
 	// Check in-subgroup by multiplying by subgroup order
 	Q := c.self.Point()
-	Q.Element.Mul(&c.order, P)
+	Q.Element.Mul(P, &c.order)
 	if !Q.Equal(c.null) {
 		return false
 	}
@@ -310,7 +311,7 @@ func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
 
 	// Retry until we find a valid point
 	var x, y nist.Int
-	var Q abstract.Element
+	var Q group.Element
 	for {
 		// Get random bits the size of a compressed Point encoding,
 		// in which the topmost bit is reserved for the x-coord sign.
@@ -352,7 +353,7 @@ func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
 		// we can convert our point into one in the subgroup
 		// simply by multiplying it by the cofactor.
 		if data == nil {
-			P.Mul(&c.cofact, P) // multiply by cofactor
+			P.Mul(P, &c.cofact) // multiply by cofactor
 			if P.Equal(c.null.Element) {
 				continue // unlucky; try again
 			}
@@ -365,7 +366,7 @@ func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
 		if Q == nil {
 			Q = c.self.Point().Element
 		}
-		Q.Mul(&c.order, P)
+		Q.Mul(P, &c.order)
 		if Q.Equal(c.null.Element) {
 			return data[dl:]
 		}

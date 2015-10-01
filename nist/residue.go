@@ -28,32 +28,32 @@ func isPrime(i *big.Int) bool {
 
 func (p *residuePoint) String() string { return p.Int.String() }
 
-func (p *residuePoint) New() abstract.Element {
+func (p *residuePoint) New() group.Element {
 	return &residuePoint{big.Int{}, p.g}
 }
 
-func (p *residuePoint) Set(a abstract.Element) abstract.Element {
+func (p *residuePoint) Set(a group.Element) group.Element {
 	ra := a.(*residuePoint)
 	p.Int.Set(&ra.Int)
 	p.g = ra.g
 	return p
 }
 
-func (p *residuePoint) SetInt64(i int64) abstract.Element {
+func (p *residuePoint) SetInt64(i int64) group.Element {
 	p.Int.SetInt64(i)
 	return p
 }
 
-func (p *residuePoint) Equal(p2 abstract.Element) bool {
+func (p *residuePoint) Equal(p2 group.Element) bool {
 	return p.Int.Cmp(&p2.(*residuePoint).Int) == 0
 }
 
-func (p *residuePoint) Zero() abstract.Element {
+func (p *residuePoint) Zero() group.Element {
 	p.Int.SetInt64(1)
 	return p
 }
 
-func (p *residuePoint) One() abstract.Element {
+func (p *residuePoint) One() group.Element {
 	p.Int.Set(p.g.G)
 	return p
 }
@@ -108,25 +108,25 @@ func (p *residuePoint) Data() ([]byte, error) {
 	return b[l-dl-2 : l-2], nil
 }
 
-func (p *residuePoint) Add(a, b abstract.Element) abstract.Element {
+func (p *residuePoint) Add(a, b group.Element) group.Element {
 	p.Int.Mul(&a.(*residuePoint).Int, &b.(*residuePoint).Int)
 	p.Int.Mod(&p.Int, p.g.P)
 	return p
 }
 
-func (p *residuePoint) Sub(a, b abstract.Element) abstract.Element {
+func (p *residuePoint) Sub(a, b group.Element) group.Element {
 	binv := new(big.Int).ModInverse(&b.(*residuePoint).Int, p.g.P)
 	p.Int.Mul(&a.(*residuePoint).Int, binv)
 	p.Int.Mod(&p.Int, p.g.P)
 	return p
 }
 
-func (p *residuePoint) Neg(a abstract.Element) abstract.Element {
+func (p *residuePoint) Neg(a group.Element) group.Element {
 	p.Int.ModInverse(&a.(*residuePoint).Int, p.g.P)
 	return p
 }
 
-func (p *residuePoint) Mul(s, b abstract.Element) abstract.Element {
+func (p *residuePoint) Mul(b, s group.Element) group.Element {
 	if b == nil {
 		p.One()
 		b = p

@@ -22,19 +22,19 @@ func (p *curvePoint) String() string {
 	return "(" + p.x.String() + "," + p.y.String() + ")"
 }
 
-func (p *curvePoint) New() abstract.Element {
+func (p *curvePoint) New() group.Element {
 	n := new(curvePoint)
 	n.c = p.c
 	return n
 }
 
-func (p *curvePoint) Set(a abstract.Element) abstract.Element {
+func (p *curvePoint) Set(a group.Element) group.Element {
 	ca := a.(*curvePoint)
 	*p = *ca
 	return p
 }
 
-func (p *curvePoint) Equal(p2 abstract.Element) bool {
+func (p *curvePoint) Equal(p2 group.Element) bool {
 	cp2 := p2.(*curvePoint)
 
 	// Make sure both coordinates are normalized.
@@ -48,13 +48,13 @@ func (p *curvePoint) Equal(p2 abstract.Element) bool {
 	return p.x.Cmp(cp2.x) == 0 && p.y.Cmp(cp2.y) == 0
 }
 
-func (p *curvePoint) Zero() abstract.Element {
+func (p *curvePoint) Zero() group.Element {
 	p.x = new(big.Int).SetInt64(0)
 	p.y = new(big.Int).SetInt64(0)
 	return p
 }
 
-func (p *curvePoint) One() abstract.Element {
+func (p *curvePoint) One() group.Element {
 	p.x = p.c.p.Gx
 	p.y = p.c.p.Gy
 	return p
@@ -145,28 +145,28 @@ func (p *curvePoint) Data() ([]byte, error) {
 	return b[l-dl-1 : l-1], nil
 }
 
-func (p *curvePoint) Add(a, b abstract.Element) abstract.Element {
+func (p *curvePoint) Add(a, b group.Element) group.Element {
 	ca := a.(*curvePoint)
 	cb := b.(*curvePoint)
 	p.x, p.y = p.c.Add(ca.x, ca.y, cb.x, cb.y)
 	return p
 }
 
-func (p *curvePoint) Sub(a, b abstract.Element) abstract.Element {
-	abstract.Sub(p, a, b)	// XXX non-optimal default implementation
+func (p *curvePoint) Sub(a, b group.Element) group.Element {
+	group.Sub(p, a, b)	// XXX non-optimal default implementation
 	return p
 }
 
-func (p *curvePoint) Neg(a abstract.Element) abstract.Element {
+func (p *curvePoint) Neg(a group.Element) group.Element {
 
 	// XXX a pretty non-optimal implementation of point negation...
 	s := p.c.Secret().One()
 	s.Neg(s)
-	p.Mul(s.FieldElement, a)
+	p.Mul(a, s.FieldElement)
 	return p
 }
 
-func (p *curvePoint) Mul(s, b abstract.Element) abstract.Element {
+func (p *curvePoint) Mul(b, s group.Element) group.Element {
 	cs := s.(*Int)
 	if b != nil {
 		cb := b.(*curvePoint)
