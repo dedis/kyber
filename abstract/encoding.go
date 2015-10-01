@@ -214,10 +214,10 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 	case reflect.Int:
 		var i int32
 		err := binary.Read(de.r, binary.BigEndian, &i)
-		if err != nil || int32(int(i)) != i {
-			return errors.New("int too large for this platform")
+		if err != nil {
+			return errors.New(fmt.Sprintf("Error converting int to int32 ( %v )", err))
 		}
-		v.SetInt(i)
+		v.SetInt(int64(i))
 		return err
 
 	case reflect.Bool:
