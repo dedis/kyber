@@ -6,17 +6,17 @@ import (
 	//"encoding/hex"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/clique"
-	"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto/suite"
 )
 
-var testSuite = nist.NewAES128SHA256P256()
+var testSuite = suite.Default(nil)
 
 type node struct {
 	i    int
 	done bool
 
-	x abstract.Secret
+	x abstract.Scalar
 	X abstract.Point
 
 	proto  clique.Protocol
@@ -32,7 +32,7 @@ func (n *node) Step(msg []byte) ([][]byte, error) {
 }
 
 func (n *node) Random() abstract.Cipher {
-	return testSuite.Cipher(abstract.RandomKey)
+	return testSuite.Cipher(abstract.FreshKey)
 }
 
 func runNode(n *node) {
@@ -83,7 +83,7 @@ func TestDeniable(t *testing.T) {
 	*/
 
 	suite := testSuite
-	rand := random.Stream
+	rand := random.Fresh()
 	B := suite.Point().Base()
 
 	// Make some keypairs
@@ -92,7 +92,7 @@ func TestDeniable(t *testing.T) {
 		n := &node{}
 		nodes[i] = n
 		n.i = i
-		n.x = suite.Secret().Pick(rand)
+		n.x = suite.Scalar().Pick(nil, rand)
 		n.X = suite.Point().BaseMul(n.x)
 	}
 
@@ -100,17 +100,17 @@ func TestDeniable(t *testing.T) {
 	for i := 0; i < nnodes; i++ {
 		n := nodes[i]
 		pred := Rep("X", "x", "B")
-		sval := map[string]abstract.Secret{"x": n.x}
+		sval := map[string]abstract.Scalar{"x": n.x}
 		pval := map[string]abstract.Point{"B": B, "X": n.X}
-		prover := pred.Prover(suite, sval, pval, nil)
+		prover := pred.Prover(suite.Context(), sval, pval, nil)
 
 		vi := (i + 2) % nnodes // which node's proof to verify
 		vrfs := make([]Verifier, nnodes)
 		vpred := Rep("X", "x", "B")
 		vpval := map[string]abstract.Point{"B": B, "X": nodes[vi].X}
-		vrfs[vi] = vpred.Verifier(suite, vpval)
+		vrfs[vi] = vpred.Verifier(suite.Context(), vpval)
 
-		n.proto = DeniableProver(suite, i, prover, vrfs)
+		n.proto = DeniableProver(suite.Context(), i, prover, vrfs)
 		n.outbox = make(chan []byte)
 		n.inbox = make(chan [][]byte)
 

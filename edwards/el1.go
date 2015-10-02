@@ -64,7 +64,7 @@ func (el *el1param) init(ec *curve, s *big.Int) *el1param {
 }
 
 func (el *el1param) HideLen() int {
-	return el.ec.PointLen()
+	return el.ec.ElementLen()
 }
 
 // Produce a mask representing the padding bits we'll need
@@ -82,7 +82,7 @@ func (el *el1param) HideDecode(P point, rep []byte) {
 	ec := el.ec
 	var t, u, u2, v, Chiv, X, Y, x, y, t1, t2 nist.Int
 
-	l := ec.PointLen()
+	l := ec.ElementLen()
 	if len(rep) != l {
 		panic("el1Map: wrong representative length")
 	}

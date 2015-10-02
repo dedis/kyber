@@ -1,9 +1,9 @@
 package bench
 
 import (
-	"crypto/cipher"
 	"crypto/rc4"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/cipher"
 	"github.com/dedis/crypto/cipher/aes"
 	"github.com/dedis/crypto/cipher/norx"
 	"github.com/dedis/crypto/cipher/sha3"
@@ -16,7 +16,7 @@ import (
 var buf = make([]byte, 1024*1024)
 
 // benchmarkCipher tests the speed of a Cipher to process a size-byte message.
-func benchmarkCipher(b *testing.B, cipher abstract.Cipher, size int) {
+func benchmarkCipher(b *testing.B, cipher cipher.State, size int) {
 	b.SetBytes(int64(size))
 	for i := 0; i < b.N; i++ {
 		cipher.Message(buf[:size], buf[:size], buf[:size])

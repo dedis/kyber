@@ -2,11 +2,13 @@ package marshal
 
 import (
 	"encoding/binary"
+	"golang.org/x/net/context"
 	"io"
 	"reflect"
 )
 
 type encoder struct {
+	c context.Context
 	w io.Writer
 }
 
@@ -16,12 +18,8 @@ type encoder struct {
 // basic fixed-length data types supported by encoding/binary/Write(),
 // and structs, arrays, and slices containing all of these types.
 //
-// XXX should this perhaps become a Suite method?
-//
-// XXX now this code could/should be moved into a separate package
-// relatively independent from this crypto code.
-func (e BinaryEncoding) Write(w io.Writer, objs ...interface{}) error {
-	en := encoder{w}
+func Write(c context.Context, w io.Writer, objs ...interface{}) error {
+	en := encoder{c, w}
 	for i := 0; i < len(objs); i++ {
 		if err := en.value(objs[i], 0); err != nil {
 			return err
@@ -33,9 +31,9 @@ func (e BinaryEncoding) Write(w io.Writer, objs ...interface{}) error {
 func (en *encoder) value(obj interface{}, depth int) error {
 
 	// Does the object support our self-decoding interface?
-	if e, ok := obj.(Marshaling); ok {
+	if e, ok := obj.(Marshaler); ok {
 		//prindent(depth, "encode: %s\n", e.String())
-		_, err := e.MarshalTo(en.w)
+		_, err := e.Marshal(en.c, en.w)
 		return err
 	}
 

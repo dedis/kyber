@@ -8,6 +8,7 @@ import (
 	"github.com/dedis/crypto/math"
 	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/util"
+	"golang.org/x/net/context"
 	"io"
 	"math/big"
 )
@@ -337,12 +338,12 @@ func (i *Int) UnmarshalBinary(buf []byte) error {
 	return nil
 }
 
-func (i *Int) MarshalTo(w io.Writer) (int, error) {
-	return group.MarshalTo(i, w)
+func (i *Int) Marshal(c context.Context, w io.Writer) (int, error) {
+	return group.Marshal(c, i, w)
 }
 
-func (i *Int) UnmarshalFrom(r io.Reader) (int, error) {
-	return group.UnmarshalFrom(i, r)
+func (i *Int) Unmarshal(c context.Context, r io.Reader) (int, error) {
+	return group.Unmarshal(c, i, r)
 }
 
 // Encode the value of this Int into a big-endian byte-slice

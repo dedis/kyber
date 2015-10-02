@@ -9,7 +9,7 @@ import (
 
 func TestShuffle(suite abstract.Suite, k int, N int) {
 
-	rand := suite.Cipher(abstract.RandomKey)
+	rand := suite.Cipher(abstract.FreshKey)
 
 	// Create a "server" private/public keypair
 	h := suite.Secret().Pick(rand)

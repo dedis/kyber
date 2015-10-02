@@ -9,43 +9,46 @@ package sha3
 // bytes.
 
 import (
-	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher"
 	"hash"
 )
 
-var sha3opts = []interface{}{cipher.Padding(0x06)}
+const sha3padding byte = 0x06 // Padding byte defined for SHA3
 
 // NewCipher224 creates a Cipher implementing the SHA3-224 algorithm,
 // which provides 224-bit security against preimage attacks
 // and 112-bit security against collisions.
-func NewCipher224(key []byte, options ...interface{}) abstract.Cipher {
-	return cipher.FromSponge(newKeccak448(), key,
-		append(sha3opts, options...)...)
+func NewCipher224(key []byte) cipher.State {
+	c := cipher.FromSponge(newKeccak448(), key)
+	c.(cipher.Padding).SetPadding(sha3padding)
+	return c
 }
 
 // NewCipher256 creates a Cipher implementing the SHA3-256 algorithm,
 // which provides 256-bit security against preimage attacks
 // and 128-bit security against collisions.
-func NewCipher256(key []byte, options ...interface{}) abstract.Cipher {
-	return cipher.FromSponge(newKeccak512(), key,
-		append(sha3opts, options...)...)
+func NewCipher256(key []byte) cipher.State {
+	c := cipher.FromSponge(newKeccak512(), key)
+	c.(cipher.Padding).SetPadding(sha3padding)
+	return c
 }
 
 // NewCipher384 creates a Cipher implementing the SHA3-384 algorithm,
 // which provides 384-bit security against preimage attacks
 // and 192-bit security against collisions.
-func NewCipher384(key []byte, options ...interface{}) abstract.Cipher {
-	return cipher.FromSponge(newKeccak768(), key,
-		append(sha3opts, options...)...)
+func NewCipher384(key []byte) cipher.State {
+	c := cipher.FromSponge(newKeccak768(), key)
+	c.(cipher.Padding).SetPadding(sha3padding)
+	return c
 }
 
 // NewCipher512 creates a Cipher implementing the SHA3-512 algorithm,
 // which provides 512-bit security against preimage attacks
 // and 256-bit security against collisions.
-func NewCipher512(key []byte, options ...interface{}) abstract.Cipher {
-	return cipher.FromSponge(newKeccak1024(), key,
-		append(sha3opts, options...)...)
+func NewCipher512(key []byte) cipher.State {
+	c := cipher.FromSponge(newKeccak1024(), key)
+	c.(cipher.Padding).SetPadding(sha3padding)
+	return c
 }
 
 // New224 creates a new SHA3-224 hash.

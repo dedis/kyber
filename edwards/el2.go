@@ -117,7 +117,7 @@ func (el *el2param) HideDecode(P point, rep []byte) {
 	ec := el.ec
 	var r, v, x, y, t1, edx, edy nist.Int
 
-	l := ec.PointLen()
+	l := ec.ElementLen()
 	if len(rep) != l {
 		panic("el2Map: wrong representative length")
 	}

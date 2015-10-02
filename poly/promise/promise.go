@@ -260,7 +260,7 @@ func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
 	// Create the public polynomial and private shares. The number of shares
 	// should be equal to the number of insurers.
 	pripoly := new(poly.PriPoly).Pick(p.suite, p.t,
-		secretPair.Secret, random.Stream)
+		secretPair.Secret, random.Fresh())
 	prishares := new(poly.PriShares).Split(pripoly, p.n)
 	p.pubPoly = poly.PubPoly{}
 	p.pubPoly.Commit(pripoly, nil)
@@ -401,7 +401,7 @@ func (p *Promise) verifyShare(i int, gKeyPair *config.KeyPair) error {
  */
 func (p *Promise) sign(i int, gKeyPair *config.KeyPair, msg []byte) *signature {
 	set := anon.Set{gKeyPair.Public}
-	sig := anon.Sign(gKeyPair.Suite, random.Stream, msg, set, nil, 0,
+	sig := anon.Sign(gKeyPair.Suite, random.Fresh(), msg, set, nil, 0,
 		gKeyPair.Secret)
 	return new(signature).init(gKeyPair.Suite, sig)
 }
@@ -451,7 +451,7 @@ func (p *Promise) blame(i int, gKeyPair *config.KeyPair) (*blameProof, error) {
 	choice := make(map[proof.Predicate]int)
 	pred := proof.Rep("D", "x", "P")
 	choice[pred] = 1
-	rand := p.suite.Cipher(abstract.RandomKey)
+	rand := p.suite.Cipher(abstract.FreshKey)
 	sval := map[string]abstract.Secret{"x": gKeyPair.Secret}
 	pval := map[string]abstract.Point{"D": diffieKey, "P": p.pubKey}
 	prover := pred.Prover(p.suite, sval, pval, choice)

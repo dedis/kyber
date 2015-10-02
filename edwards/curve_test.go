@@ -1,118 +1,130 @@
 package edwards
 
 import (
-	"testing"
-	//"encoding/hex"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/cipher/sha3"
 	"github.com/dedis/crypto/edwards/ed25519"
 	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/test"
+	"golang.org/x/net/context"
+	"testing"
 )
 
-var testSuite = NewAES128SHA256Ed25519(false)
+var ctxBase = sha3.WithShake128(context.Background())
+
+func testCurve(t *testing.T, curve group.Group) {
+	test.TestGroup(group.Context(ctxBase, curve))
+}
+
+func testCompare(t *testing.T, g1, g2 group.Group) {
+	test.TestCompareGroups(
+			group.Context(ctxBase, g1),
+			group.Context(ctxBase, g2))
+}
 
 // Test each curve implementation of the Ed25519 curve.
 
 func TestProjective25519(t *testing.T) {
-	test.TestGroup(new(ProjectiveCurve).Init(Param25519(), false))
+	testCurve(t, new(ProjectiveCurve).Init(Param25519(), false))
 }
 
 func TestExtended25519(t *testing.T) {
-	test.TestGroup(new(ExtendedCurve).Init(Param25519(), false))
+	testCurve(t, new(ExtendedCurve).Init(Param25519(), false))
 }
 
 func TestEd25519(t *testing.T) {
-	test.TestGroup(new(ed25519.Curve))
+	testCurve(t, new(ed25519.Curve))
 }
 
 // Test the Extended coordinates implementation of each curve.
 
 func Test1174(t *testing.T) {
-	test.TestGroup(new(ExtendedCurve).Init(Param1174(), false))
+	testCurve(t, new(ExtendedCurve).Init(Param1174(), false))
 }
 
 func Test25519(t *testing.T) {
-	test.TestGroup(new(ExtendedCurve).Init(Param25519(), false))
+	testCurve(t, new(ExtendedCurve).Init(Param25519(), false))
 }
 
 func TestE382(t *testing.T) {
-	test.TestGroup(new(ExtendedCurve).Init(ParamE382(), false))
+	testCurve(t, new(ExtendedCurve).Init(ParamE382(), false))
 }
 
 func Test4147(t *testing.T) {
-	test.TestGroup(new(ExtendedCurve).Init(Param41417(), false))
+	testCurve(t, new(ExtendedCurve).Init(Param41417(), false))
 }
 
 func TestE521(t *testing.T) {
-	test.TestGroup(new(ExtendedCurve).Init(ParamE521(), false))
+	testCurve(t, new(ExtendedCurve).Init(ParamE521(), false))
 }
 
 // Test the full-group-order Extended coordinates versions of each curve
 // for which a full-group-order base point is defined.
 
 func TestFullOrder1174(t *testing.T) {
-	test.TestGroup(new(ExtendedCurve).Init(Param1174(), true))
+	testCurve(t, new(ExtendedCurve).Init(Param1174(), true))
 }
 
 func TestFullOrder25519(t *testing.T) {
-	test.TestGroup(new(ExtendedCurve).Init(Param25519(), true))
+	testCurve(t, new(ExtendedCurve).Init(Param25519(), true))
 }
 
 func TestFullOrderE382(t *testing.T) {
-	test.TestGroup(new(ExtendedCurve).Init(ParamE382(), true))
+	testCurve(t, new(ExtendedCurve).Init(ParamE382(), true))
 }
 
 func TestFullOrder4147(t *testing.T) {
-	test.TestGroup(new(ExtendedCurve).Init(Param41417(), true))
+	testCurve(t, new(ExtendedCurve).Init(Param41417(), true))
 }
 
 func TestFullOrderE521(t *testing.T) {
-	test.TestGroup(new(ExtendedCurve).Init(ParamE521(), true))
+	testCurve(t, new(ExtendedCurve).Init(ParamE521(), true))
 }
 
 // Test ExtendedCurve versus ProjectiveCurve implementations
 
 func TestCompareProjectiveExtended25519(t *testing.T) {
-	test.TestCompareGroups(testSuite,
+	testCompare(t,
 		new(ProjectiveCurve).Init(Param25519(), false),
 		new(ExtendedCurve).Init(Param25519(), false))
 }
 
 func TestCompareProjectiveExtendedE382(t *testing.T) {
-	test.TestCompareGroups(testSuite,
+	testCompare(t,
 		new(ProjectiveCurve).Init(ParamE382(), false),
 		new(ExtendedCurve).Init(ParamE382(), false))
 }
 
 func TestCompareProjectiveExtended41417(t *testing.T) {
-	test.TestCompareGroups(testSuite,
+	testCompare(t,
 		new(ProjectiveCurve).Init(Param41417(), false),
 		new(ExtendedCurve).Init(Param41417(), false))
 }
 
 func TestCompareProjectiveExtendedE521(t *testing.T) {
-	test.TestCompareGroups(testSuite,
+	testCompare(t,
 		new(ProjectiveCurve).Init(ParamE521(), false),
 		new(ExtendedCurve).Init(ParamE521(), false))
 }
 
 // Test Ed25519 versus ExtendedCurve implementations of Curve25519.
 func TestCompareEd25519(t *testing.T) {
-	test.TestCompareGroups(testSuite,
+	testCompare(t,
 		new(ExtendedCurve).Init(Param25519(), false),
 		new(ed25519.Curve))
 }
 
 // Test point hiding functionality
 
-func testHiding(g abstract.Group, k int) {
-	rand := random.Stream
+func testHiding(g group.Group, k int) {
+	rand := random.Fresh()
 
 	// Test conversion from random strings to points and back
-	p := g.Point()
-	hp := p.Element.(abstract.Hiding)
-	p2 := g.Point()
-	hp2 := p2.Element.(abstract.Hiding)
+	p := g.Element()
+	hp := p.(abstract.Hiding)
+	p2 := g.Element()
+	hp2 := p2.(abstract.Hiding)
 	l := hp.HideLen()
 	buf := make([]byte, l)
 	for i := 0; i < k; i++ {
@@ -144,9 +156,9 @@ func TestElligator2(t *testing.T) {
 
 // Benchmark contrasting implementations of the Ed25519 curve
 
-var projBench = test.NewGroupBench(new(ProjectiveCurve).Init(Param25519(), false))
-var extBench = test.NewGroupBench(new(ExtendedCurve).Init(Param25519(), false))
-var optBench = test.NewGroupBench(new(ed25519.Curve))
+var projBench = test.NewGroupBench(group.Context(ctxBase, new(ProjectiveCurve).Init(Param25519(), false)))
+var extBench = test.NewGroupBench(group.Context(ctxBase, new(ExtendedCurve).Init(Param25519(), false)))
+var optBench = test.NewGroupBench(group.Context(ctxBase, new(ed25519.Curve)))
 
 func BenchmarkPointAddProjective(b *testing.B) { projBench.PointAdd(b.N) }
 func BenchmarkPointAddExtended(b *testing.B)   { extBench.PointAdd(b.N) }

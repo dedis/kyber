@@ -136,7 +136,7 @@ func (f *File) GenKey(keys *Keys, suite abstract.Suite) (KeyPair, error) {
 
 	// Create a fresh public/private keypair
 	p := KeyPair{}
-	p.Gen(suite, random.Stream)
+	p.Gen(suite, random.Fresh())
 	pubId := p.PubId()
 
 	// Write the private key file

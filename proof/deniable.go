@@ -13,7 +13,7 @@ import (
 // the Sigma-protocol proofs of any or all of the other participants.
 // Different participants may produce different proofs of varying sizes,
 // and may even consist of different numbers of steps.
-func DeniableProver(suite abstract.Suite, self int, prover Prover,
+func DeniableProver(suite abstract.Context, self int, prover Prover,
 	verifiers []Verifier) clique.Protocol {
 
 	return clique.Protocol(func(ctx clique.Context) []error {
@@ -31,7 +31,7 @@ type deniableProver struct {
 	dv []*deniableVerifier
 
 	// per-step state
-	key  []byte        // Secret pre-challenge we committed to
+	key  []byte        // Scalar pre-challenge we committed to
 	msg  *bytes.Buffer // Buffer in which to build prover msg
 	msgs [][]byte      // All messages from last proof step
 
@@ -42,9 +42,9 @@ type deniableProver struct {
 	err []error
 }
 
-func (dp *deniableProver) run(suite abstract.Suite, self int, prv Prover,
+func (dp *deniableProver) run(suite abstract.Context, self int, prv Prover,
 	vrf []Verifier, sc clique.Context) []error {
-	dp.suite = suite
+	dp.suite.Init(suite)
 	dp.self = self
 	dp.sc = sc
 	dp.prirand = sc.Random()
@@ -245,8 +245,8 @@ type deniableVerifier struct {
 	pubrand abstract.Cipher
 }
 
-func (dv *deniableVerifier) start(suite abstract.Suite, vrf Verifier) {
-	dv.suite = suite
+func (dv *deniableVerifier) start(suite abstract.Context, vrf Verifier) {
+	dv.suite.Init(suite)
 	dv.inbox = make(chan []byte)
 	dv.done = make(chan bool)
 

@@ -4,12 +4,13 @@ package group
 
 import (
 	"crypto/cipher"
+	"golang.org/x/net/context"
 	"io"
 )
 
-// MarshalTo provides a generic implementation of Element.MarshalTo
+// Marshal provides a generic implementation of Element.Marshal
 // based on Element.MarshalBinary.
-func MarshalTo(e Element, w io.Writer) (int, error) {
+func Marshal(c context.Context, e Element, w io.Writer) (int, error) {
 	buf, err := e.MarshalBinary()
 	if err != nil {
 		return 0, err
@@ -17,12 +18,12 @@ func MarshalTo(e Element, w io.Writer) (int, error) {
 	return w.Write(buf)
 }
 
-// UnmarshalFrom provides a generic implementation of Element.UnmarshalFrom,
+// Unmarshal provides a generic implementation of Element.Unmarshal,
 // based on Element.UnmarshalBinary,
 // except uses Element.Pick if r is a Cipher or cipher.Stream.
 // The returned byte-count is valid only when decoding from a normal Reader,
 // not when picking from a pseudorandom source.
-func UnmarshalFrom(e Element, r io.Reader) (int, error) {
+func Unmarshal(c context.Context, e Element, r io.Reader) (int, error) {
 	if strm, ok := r.(cipher.Stream); ok {
 		e.Pick(nil, strm)
 		return -1, nil // no byte-count when picking randomly

@@ -18,11 +18,11 @@ func Example_diffieHellman() {
 	suite := nist.NewAES128SHA256P256()
 
 	// Alice's public/private keypair
-	a := suite.Secret().Pick(random.Stream) // Alice's private key
+	a := suite.Secret().Pick(random.Fresh()) // Alice's private key
 	A := suite.Point().BaseMul(a)          // Alice's public key
 
 	// Bob's public/private keypair
-	b := suite.Secret().Pick(random.Stream) // Alice's private key
+	b := suite.Secret().Pick(random.Fresh()) // Alice's private key
 	B := suite.Point().BaseMul(b)          // Alice's public key
 
 	// Assume Alice and Bob have securely obtained each other's public keys.

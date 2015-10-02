@@ -23,9 +23,9 @@ var altGroup abstract.Group = new(edwards.ProjectiveCurve).Init(
 	edwards.ParamE382(), false)
 var k int = 10
 var n int = 20
-var secret = group.Secret().Pick(random.Stream)
+var secret = group.Secret().Pick(random.Fresh())
 var point = group.Point().Mul(group.Point().Base(), secret)
-var altSecret = altGroup.Secret().Pick(random.Stream)
+var altSecret = altGroup.Secret().Pick(random.Fresh())
 var altPoint = altGroup.Point().Mul(altGroup.Point().Base(), altSecret)
 
 /* Setup Functions
@@ -45,7 +45,7 @@ func deferTest(t *testing.T, message string) {
 }
 
 func producePriPoly(g abstract.Group, k int, s abstract.Secret) *PriPoly {
-	return new(PriPoly).Pick(g, k, s, random.Stream)
+	return new(PriPoly).Pick(g, k, s, random.Fresh())
 }
 
 func producePriShares(g abstract.Group, k, n int, s abstract.Secret) *PriShares {
@@ -327,7 +327,7 @@ func TestPubPolyLen(t *testing.T) {
 
 // Encode a public polynomial and then decode it.
 func TestPubPolyEncodeDecode(t *testing.T) {
-	pripolyDOD := new(PriPoly).Pick(group, k, secret, random.Stream)
+	pripolyDOD := new(PriPoly).Pick(group, k, secret, random.Fresh())
 	testPubPoly := new(PubPoly)
 	testPubPoly.Commit(pripolyDOD, nil)
 	decodePubPoly := new(PubPoly)

@@ -14,11 +14,11 @@ type hashProver struct {
 	prirand abstract.Cipher
 }
 
-func newHashProver(suite abstract.Suite, protoName string,
+func newHashProver(suite abstract.Context, protoName string,
 	rand abstract.Cipher) *hashProver {
 	var sc hashProver
-	sc.suite = suite
-	sc.pubrand = suite.Cipher([]byte(protoName))
+	sc.suite.Init(suite)
+	sc.pubrand = sc.suite.Cipher([]byte(protoName))
 	sc.prirand = rand
 	return &sc
 }
@@ -67,15 +67,15 @@ type hashVerifier struct {
 	pubrand abstract.Cipher
 }
 
-func newHashVerifier(suite abstract.Suite, protoName string,
+func newHashVerifier(suite abstract.Context, protoName string,
 	proof []byte) *hashVerifier {
 	var c hashVerifier
 	if _, err := c.proof.Write(proof); err != nil {
 		panic("Buffer.Write failed")
 	}
-	c.suite = suite
+	c.suite.Init(suite)
 	c.prbuf = c.proof.Bytes()
-	c.pubrand = suite.Cipher([]byte(protoName))
+	c.pubrand = c.suite.Cipher([]byte(protoName))
 	return &c
 }
 
@@ -111,11 +111,11 @@ func (c *hashVerifier) PubRand(data ...interface{}) error {
 // will verify successfully only if the verifier uses the same protocolName.
 //
 // The caller must provide a source of random entropy for the proof;
-// this can be random.Stream to use fresh random bits,
+// this can be random.Fresh() to use fresh random bits,
 // or a pseudorandom stream based on a secret seed
 // to create deterministically reproducible proofs.
 //
-func HashProve(suite abstract.Suite, protocolName string,
+func HashProve(suite abstract.Context, protocolName string,
 	random abstract.Cipher, prover Prover) ([]byte, error) {
 	ctx := newHashProver(suite, protocolName, random)
 	if e := (func(ProverContext) error)(prover)(ctx); e != nil {
@@ -127,7 +127,7 @@ func HashProve(suite abstract.Suite, protocolName string,
 // Verifies a hash-based noninteractive proof generated with HashProve.
 // The suite and protocolName must be the same as those given to HashProve.
 // Returns nil if the proof checks out, or an error on any failure.
-func HashVerify(suite abstract.Suite, protocolName string,
+func HashVerify(suite abstract.Context, protocolName string,
 	verifier Verifier, proof []byte) error {
 	ctx := newHashVerifier(suite, protocolName, proof)
 	return (func(VerifierContext) error)(verifier)(ctx)

@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/openssl"
+	"github.com/dedis/crypto/suite"
 )
 
 // This example shows how to build classic ElGamal-style digital signatures
@@ -12,26 +12,26 @@ import (
 func ExampleHashProve_1() {
 
 	// Crypto setup
-	suite := openssl.NewAES128SHA256P256()
+	suite := suite.Default(nil)
 	rand := suite.Cipher([]byte("example"))
 	B := suite.Point().Base() // standard base point
 
 	// Create a public/private keypair (X,x)
-	x := suite.Secret().Pick(rand) // create a private key x
+	x := suite.Scalar().Pick(nil, rand) // create a private key x
 	X := suite.Point().BaseMul(x) // corresponding public key X
 
 	// Generate a proof that we know the discrete logarithm of X.
 	M := "Hello World!" // message we want to sign
 	rep := Rep("X", "x", "B")
-	sec := map[string]abstract.Secret{"x": x}
+	sec := map[string]abstract.Scalar{"x": x}
 	pub := map[string]abstract.Point{"B": B, "X": X}
-	prover := rep.Prover(suite, sec, pub, nil)
-	proof, _ := HashProve(suite, M, rand, prover)
+	prover := rep.Prover(suite.Context(), sec, pub, nil)
+	proof, _ := HashProve(suite.Context(), M, rand, prover)
 	fmt.Print("Signature:\n" + hex.Dump(proof))
 
 	// Verify the signature against the correct message M.
-	verifier := rep.Verifier(suite, pub)
-	err := HashVerify(suite, M, verifier, proof)
+	verifier := rep.Verifier(suite.Context(), pub)
+	err := HashVerify(suite.Context(), M, verifier, proof)
 	if err != nil {
 		panic("signature failed to verify!")
 	}
@@ -39,8 +39,8 @@ func ExampleHashProve_1() {
 
 	// Now verify the signature against the WRONG message.
 	BAD := "Goodbye World!"
-	verifier = rep.Verifier(suite, pub)
-	err = HashVerify(suite, BAD, verifier, proof)
+	verifier = rep.Verifier(suite.Context(), pub)
+	err = HashVerify(suite.Context(), BAD, verifier, proof)
 	fmt.Println("Signature verify against wrong message: " + err.Error())
 
 	// Output:
@@ -77,7 +77,7 @@ func ExampleHashProve_1() {
 func ExampleHashProve_2() {
 
 	// Crypto setup
-	suite := openssl.NewAES128SHA256P256()
+	suite := suite.Default(nil)
 	rand := suite.Cipher([]byte("example"))
 	B := suite.Point().Base() // standard base point
 
@@ -89,7 +89,7 @@ func ExampleHashProve_2() {
 
 	// Make just one of them an actual public/private keypair (X[mine],x)
 	mine := 2                           // only the signer knows this
-	x := suite.Secret().Pick(rand)      // create a private key x
+	x := suite.Scalar().Pick(nil, rand)      // create a private key x
 	X[mine] = suite.Point().BaseMul(x) // corresponding public key X
 
 	// Produce the correct linkage tag for the signature,
@@ -100,7 +100,7 @@ func ExampleHashProve_2() {
 	linkTag := suite.Point().Mul(linkBase, x)
 
 	// Generate the proof predicate: an OR branch for each public key.
-	sec := map[string]abstract.Secret{"x": x}
+	sec := map[string]abstract.Scalar{"x": x}
 	pub := map[string]abstract.Point{"B": B, "BT": linkBase, "T": linkTag}
 	preds := make([]Predicate, len(X))
 	for i := range X {
@@ -120,13 +120,13 @@ func ExampleHashProve_2() {
 
 	// Generate the signature
 	M := "Hello World!" // message we want to sign
-	prover := pred.Prover(suite, sec, pub, choice)
-	proof, _ := HashProve(suite, M, rand, prover)
+	prover := pred.Prover(suite.Context(), sec, pub, choice)
+	proof, _ := HashProve(suite.Context(), M, rand, prover)
 	fmt.Print("Linkable Ring Signature:\n" + hex.Dump(proof))
 
 	// Verify the signature
-	verifier := pred.Verifier(suite, pub)
-	err := HashVerify(suite, M, verifier, proof)
+	verifier := pred.Verifier(suite.Context(), pub)
+	err := HashVerify(suite.Context(), M, verifier, proof)
 	if err != nil {
 		panic("signature failed to verify!")
 	}

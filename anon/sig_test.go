@@ -252,7 +252,7 @@ var benchSig100Ed25519 = benchGenSigEd25519(100)
 func benchGenKeys(suite abstract.Suite,
 	nkeys int) ([]abstract.Point, abstract.Secret) {
 
-	rand := random.Stream
+	rand := random.Fresh()
 
 	// Create an anonymity set of random "public keys"
 	X := make([]abstract.Point, nkeys)

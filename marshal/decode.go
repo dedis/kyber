@@ -3,19 +3,20 @@ package marshal
 import (
 	"encoding/binary"
 	"errors"
+	"golang.org/x/net/context"
 	"io"
 	"reflect"
 )
 
 type decoder struct {
-	c Constructor
+	c context.Context
 	r io.Reader
 }
 
 // Read a series of binary objects from an io.Reader.
 // The objs must be a list of pointers.
-func (e BinaryEncoding) Read(r io.Reader, objs ...interface{}) error {
-	de := decoder{e.Constructor, r}
+func Read(c context.Context, r io.Reader, objs ...interface{}) error {
+	de := decoder{c, r}
 	for i := 0; i < len(objs); i++ {
 		// XXX check that it's a by-reference type
 		// (pointer, slice, etc.) and complain if not,
@@ -27,30 +28,35 @@ func (e BinaryEncoding) Read(r io.Reader, objs ...interface{}) error {
 	return nil
 }
 
-func (de *decoder) value(v reflect.Value, depth int) error {
+func (de *decoder) value(v reflect.Value, depth int) (err error) {
 
 	// Does the object support our self-decoding interface?
-	obj := v.Interface()
-	if e, ok := obj.(Marshaling); ok {
-		_, err := e.UnmarshalFrom(de.r)
-		//prindent(depth, "decode: %s\n", e.String())
-		return err
+	if v.CanAddr() {
+		obj := v.Addr().Interface()
+		if e, ok := obj.(Unmarshaler); ok {
+			_, err := e.Unmarshal(de.c, de.r)
+			//prindent(depth, "decode: %s\n", e.String())
+			return err
+		}
 	}
-	var err error
+
 	// Otherwise, reflectively handle composite types.
 	//prindent(depth, "%s: %s\n", v.Kind().String(), v.Type().String())
 	switch v.Kind() {
 
 	case reflect.Interface:
 		if v.IsNil() {
-			// See if we can auto-fill certain interface variables
-			t := v.Type()
-			o := de.c.New(t)
-			if o == nil {
-				panic("unsupported null pointer type: " +
-					t.String())
-			}
-			v.Set(reflect.ValueOf(o))
+			panic("can't auto-instantiate interface types")
+			/*
+				// See if we can auto-fill certain interface variables
+				t := v.Type()
+				o := de.c.New(t)
+				if o == nil {
+					panic("unsupported null pointer type: " +
+						t.String())
+				}
+				v.Set(reflect.ValueOf(o))
+			*/
 		}
 		fallthrough
 	case reflect.Ptr:

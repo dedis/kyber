@@ -87,7 +87,7 @@ func BiffleVerifier(suite abstract.Suite, G, H abstract.Point,
 
 func BiffleTest(suite abstract.Suite, N int) {
 
-	rand := suite.Cipher(abstract.RandomKey)
+	rand := suite.Cipher(abstract.FreshKey)
 
 	// Create a "server" private/public keypair
 	h := suite.Secret().Pick(rand)

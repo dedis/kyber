@@ -21,6 +21,7 @@ import (
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/nist"
+	"golang.org/x/net/context"
 	"io"
 )
 
@@ -55,12 +56,12 @@ func (P *point) UnmarshalBinary(b []byte) error {
 	return nil
 }
 
-func (P *point) MarshalTo(w io.Writer) (int, error) {
-	return group.MarshalTo(P, w)
+func (P *point) Marshal(ctx context.Context, w io.Writer) (int, error) {
+	return group.Marshal(ctx, P, w)
 }
 
-func (P *point) UnmarshalFrom(r io.Reader) (int, error) {
-	return group.UnmarshalFrom(P, r)
+func (P *point) Unmarshal(ctx context.Context, r io.Reader) (int, error) {
+	return group.Unmarshal(ctx, P, r)
 }
 
 // Equality test for two Points on the same curve
@@ -233,7 +234,7 @@ func (P *point) Mul(A, s group.Element) group.Element {
 	return P
 }
 
-// Curve represents an Ed25519.
+// Curve represents the Ed25519 elliptic curve.
 // There are no parameters and no initialization is required
 // because it supports only this one specific curve.
 type Curve struct {
@@ -243,40 +244,45 @@ type Curve struct {
 	//	FullGroup bool
 }
 
-func (c *Curve) PrimeOrder() bool {
+func (c Curve) PrimeOrder() bool {
 	return true
 }
 
 // Return the name of the curve, "Ed25519".
-func (c *Curve) String() string {
+func (c Curve) String() string {
 	return "Ed25519"
 }
 
-// Returns 32, the size in bytes of an encoded Secret for the Ed25519 curve.
-func (c *Curve) SecretLen() int {
+// Returns 32, the size in bytes of an encoded Scalar for the Ed25519 curve.
+func (c Curve) ScalarLen() int {
 	return 32
 }
 
-// Create a new Secret for the Ed25519 curve.
-func (c *Curve) Secret() abstract.Secret {
+// Create a new Scalar for the Ed25519 curve.
+func (c Curve) Scalar() group.FieldElement {
 	//	if c.FullGroup {
 	//		return nist.NewInt(0, fullOrder)
 	//	} else {
-	return abstract.Secret{nist.NewInt(0, &primeOrder.V)}
+	return nist.NewInt(0, &primeOrder.V)
 	//	}
 }
 
 // Returns 32, the size in bytes of an encoded Point on the Ed25519 curve.
-func (c *Curve) PointLen() int {
+func (c Curve) ElementLen() int {
 	return 32
 }
 
 // Create a new Point on the Ed25519 curve.
-func (c *Curve) Point() abstract.Point {
-	return abstract.Point{new(point)}
+func (c Curve) Element() group.Element {
+	return new(point)
 }
 
 // Initialize the curve.
-//func (c *Curve) Init(fullGroup bool) {
+//func (c Curve) Init(fullGroup bool) {
 //	c.FullGroup = fullGroup
 //}
+
+// Create a context configured with the Ed25519 elliptic curve.
+func WithEd25519(parent abstract.Context) abstract.Context {
+	return group.Context(parent, Curve{})
+}

@@ -8,7 +8,7 @@ import (
 
 // Pick a uint32 uniformly at random
 func randUint32() uint32 {
-	return random.Uint32(random.Stream)
+	return random.Uint32(random.Fresh())
 }
 
 // Pick a random height for a new skip-list node from a suitable distribution.

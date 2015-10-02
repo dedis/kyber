@@ -2,9 +2,8 @@ package test
 
 import (
 	"bytes"
-	"crypto/cipher"
 	"crypto/rand"
-	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/cipher"
 	"github.com/dedis/crypto/subtle"
 	"hash"
 	"testing"
@@ -66,7 +65,7 @@ func BitDiff(a, b []byte) float64 {
 
 // Tests a Cipher can encrypt and decrypt
 func CipherHelloWorldHelper(t *testing.T,
-	newCipher func([]byte, ...interface{}) abstract.Cipher,
+	newCipher func([]byte) cipher.State,
 	n int, bitdiff float64) {
 	text := []byte("Hello, World")
 	cryptsize := len(text)
@@ -115,7 +114,7 @@ func CipherHelloWorldHelper(t *testing.T,
 // 3) Changing a bit in the ciphertext or mac results in failed mac check
 // 4) Different keys produce sufficiently random output
 func TestAuthenticateAndEncrypt(t *testing.T,
-	newCipher func([]byte, ...interface{}) abstract.Cipher,
+	newCipher func([]byte) cipher.State,
 	n int, bitdiff float64, text []byte) {
 	cryptsize := len(text)
 	decrypted := make([]byte, len(text))
@@ -224,7 +223,7 @@ func TestAuthenticateAndEncrypt(t *testing.T,
 // Iterate through various sized messages and verify
 // that encryption and authentication work
 func CipherAuthenticatedEncryptionHelper(t *testing.T,
-	newCipher func([]byte, ...interface{}) abstract.Cipher,
+	newCipher func([]byte) cipher.State,
 	n int, bitdiff float64) {
 	//	AuthenticateAndEncrypt(t, newCipher, n, bitdiff, []byte{})
 	TestAuthenticateAndEncrypt(t, newCipher, n, bitdiff, []byte{'a'})
@@ -244,7 +243,7 @@ func CipherAuthenticatedEncryptionHelper(t *testing.T,
 }
 
 func CipherTest(t *testing.T,
-	newCipher func([]byte, ...interface{}) abstract.Cipher) {
+	newCipher func([]byte) cipher.State) {
 	n := 5
 	bitdiff := .30
 	CipherHelloWorldHelper(t, newCipher, n, bitdiff)

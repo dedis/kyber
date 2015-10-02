@@ -31,13 +31,13 @@ var basicState = new(State).Init(*basicPromise)
 
 func produceKeyPair() *config.KeyPair {
 	keyPair := new(config.KeyPair)
-	keyPair.Gen(suite, random.Stream)
+	keyPair.Gen(suite, random.Fresh())
 	return keyPair
 }
 
 func produceAltKeyPair() *config.KeyPair {
 	keyPair := new(config.KeyPair)
-	keyPair.Gen(altSuite, random.Stream)
+	keyPair.Gen(altSuite, random.Fresh())
 	return keyPair
 }
 
@@ -637,7 +637,7 @@ func TestPromiseSignAndVerify(t *testing.T) {
 func produceSigWithBadMessage() *signature {
 	set := anon.Set{insurerKeys[0].Public}
 	approveMsg := "Bad message"
-	digSig := anon.Sign(insurerKeys[0].Suite, random.Stream, []byte(approveMsg),
+	digSig := anon.Sign(insurerKeys[0].Suite, random.Fresh(), []byte(approveMsg),
 		set, nil, 0, insurerKeys[0].Secret)
 	return new(signature).init(insurerKeys[0].Suite, digSig)
 }

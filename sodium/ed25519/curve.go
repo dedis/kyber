@@ -406,7 +406,7 @@ func BenchCurve25519() {
 			(float64(end.Sub(beg))/1000000000.0))
 
 	// Point encryption
-	s := g.Secret().Pick(random.Stream)
+	s := g.Secret().Pick(random.Fresh())
 	beg = time.Now()
 	iters = 5000
 	for i := 1; i < iters; i++ {

@@ -1,15 +1,13 @@
 package cipher
 
 import (
-	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/util"
-	"hash"
 )
 
-// Wrapper to use a generic mesage Cipher as a Hash
+// Wrapper to use a generic mesage cipher as a Hash
 type cipherHash struct {
-	cipher func(key []byte, options ...interface{}) abstract.Cipher
-	cur    abstract.Cipher
+	cipher func(key []byte) State
+	cur    State
 	size   int
 }
 
@@ -19,10 +17,16 @@ type cipherBlockSize interface {
 	BlockSize() int
 }
 
-func NewHash(cipher func(key []byte, options ...interface{}) abstract.Cipher, size int) hash.Hash {
+// Create a new Hash function generically from a message cipher instance,
+// which will produce hashes of the specified size.
+// If the size parameter is zero, the message cipher's HashSize is used.
+func NewHash(cipher func(key []byte) State, size int) Hash {
 	ch := &cipherHash{}
 	ch.cipher = cipher
-	ch.cur = cipher(abstract.NoKey)
+	ch.cur = cipher(NoKey)
+	if size == 0 {
+		size = ch.cur.HashSize()
+	}
 	ch.size = size
 	return ch
 }
@@ -45,7 +49,7 @@ func (ch *cipherHash) Sum(buf []byte) []byte {
 }
 
 func (ch *cipherHash) Reset() {
-	ch.cur = ch.cipher(abstract.NoKey)
+	ch.cur = ch.cipher(NoKey)
 }
 
 func (ch *cipherHash) Size() int {
@@ -53,7 +57,7 @@ func (ch *cipherHash) Size() int {
 }
 
 func (ch *cipherHash) BlockSize() int {
-	bs, ok := ch.cur.CipherState.(cipherBlockSize)
+	bs, ok := ch.cur.(cipherBlockSize)
 	if !ok {
 		return 1 // default for non-block-based ciphers
 	}

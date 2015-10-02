@@ -7,6 +7,7 @@ import (
 	//"time"	// XXX
 
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/context"
 
 	//"encoding/hex"
 )
@@ -94,7 +95,7 @@ func TestEncoding(t *testing.T) {
 		[]emb{emb{-1}, emb{-2}, emb{-3}},
 	}
 	var buf bytes.Buffer
-	err := BinaryEncoding{}.Write(&buf, &t1)
+	err := Write(context.Background(), &buf, &t1)
 	assert.NoError(t, err)
 	//fmt.Printf("Encoding:\n%s",hex.Dump(buf))
 
@@ -112,7 +113,7 @@ func TestEncoding(t *testing.T) {
 	t2.SBytes[1] = make([]byte, 3)
 	t2.SStruct = make([]emb, 3)
 
-	err = BinaryEncoding{}.Read(&buf, &t2)
+	err = Read(context.Background(), &buf, &t2)
 	assert.NoError(t, err)
 	assert.Equal(t, t2, t1)
 }

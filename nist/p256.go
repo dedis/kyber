@@ -2,6 +2,8 @@ package nist
 
 import (
 	"crypto/elliptic"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 	"math/big"
 )
 
@@ -73,4 +75,11 @@ func (c *p256) Init() curve {
 	c.p = c.Params()
 	c.curveOps = c
 	return c.curve
+}
+
+// Create a context configured with the NIST P-256 elliptic curve.
+func WithP256(parent abstract.Context) abstract.Context {
+	g := &p256{}
+	g.Init()
+	return group.Context(parent, g)
 }

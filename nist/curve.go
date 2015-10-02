@@ -8,9 +8,9 @@ import (
 	"crypto/cipher"
 	"crypto/elliptic"
 
-	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/random"
+	"golang.org/x/net/context"
 )
 
 type curvePoint struct {
@@ -153,16 +153,16 @@ func (p *curvePoint) Add(a, b group.Element) group.Element {
 }
 
 func (p *curvePoint) Sub(a, b group.Element) group.Element {
-	group.Sub(p, a, b)	// XXX non-optimal default implementation
+	group.Sub(p, a, b) // XXX non-optimal default implementation
 	return p
 }
 
 func (p *curvePoint) Neg(a group.Element) group.Element {
 
 	// XXX a pretty non-optimal implementation of point negation...
-	s := p.c.Secret().One()
+	s := p.c.Scalar().One()
 	s.Neg(s)
-	p.Mul(a, s.FieldElement)
+	p.Mul(a, s)
 	return p
 }
 
@@ -194,12 +194,12 @@ func (p *curvePoint) UnmarshalBinary(buf []byte) error {
 	return nil
 }
 
-func (p *curvePoint) MarshalTo(w io.Writer) (int, error) {
-	return group.MarshalTo(p, w)
+func (p *curvePoint) Marshal(c context.Context, w io.Writer) (int, error) {
+	return group.Marshal(c, p, w)
 }
 
-func (p *curvePoint) UnmarshalFrom(r io.Reader) (int, error) {
-	return group.UnmarshalFrom(p, r)
+func (p *curvePoint) Unmarshal(c context.Context, r io.Reader) (int, error) {
+	return group.Unmarshal(c, p, r)
 }
 
 // interface for curve-specifc mathematical functions
@@ -220,12 +220,12 @@ func (g *curve) PrimeOrder() bool {
 	return true
 }
 
-// Return the number of bytes in the encoding of a Secret for this curve.
-func (c *curve) SecretLen() int { return (c.p.N.BitLen() + 7) / 8 }
+// Return the number of bytes in the encoding of a Scalar for this curve.
+func (c *curve) ScalarLen() int { return (c.p.N.BitLen() + 7) / 8 }
 
-// Create a Secret associated with this curve.
-func (c *curve) Secret() abstract.Secret {
-	return abstract.Secret{NewInt(0, c.p.N)}
+// Create a Scalar associated with this curve.
+func (c *curve) Scalar() group.FieldElement {
+	return NewInt(0, c.p.N)
 }
 
 // Number of bytes required to store one coordinate on this curve
@@ -236,13 +236,13 @@ func (c *curve) coordLen() int {
 // Return the number of bytes in the encoding of a Point for this curve.
 // Currently uses uncompressed ANSI X9.62 format with both X and Y coordinates;
 // this could change.
-func (c *curve) PointLen() int {
+func (c *curve) ElementLen() int {
 	return 1 + 2*c.coordLen() // ANSI X9.62: 1 header byte plus 2 coords
 }
 
 // Create a Point associated with this curve.
-func (c *curve) Point() abstract.Point {
-	return abstract.Point{&curvePoint{nil, nil, c}}
+func (c *curve) Element() group.Element {
+	return &curvePoint{nil, nil, c}
 }
 
 // Return the order of this curve: the prime N in the curve parameters.

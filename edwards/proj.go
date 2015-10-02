@@ -2,9 +2,9 @@ package edwards
 
 import (
 	"crypto/cipher"
-	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/nist"
+	"golang.org/x/net/context"
 	"io"
 	"math/big"
 )
@@ -14,7 +14,7 @@ type projPoint struct {
 	c       *ProjectiveCurve
 }
 
-func (P *projPoint) initXY(x, y *big.Int, c abstract.Group) {
+func (P *projPoint) initXY(x, y *big.Int, c group.Group) {
 	P.c = c.(*ProjectiveCurve)
 	P.X.Init(x, &P.c.P)
 	P.Y.Init(y, &P.c.P)
@@ -32,7 +32,7 @@ func (P *projPoint) String() string {
 }
 
 func (P *projPoint) MarshalSize() int {
-	return P.c.PointLen()
+	return P.c.ElementLen()
 }
 
 func (P *projPoint) MarshalBinary() ([]byte, error) {
@@ -45,12 +45,12 @@ func (P *projPoint) UnmarshalBinary(b []byte) error {
 	return P.c.decodePoint(b, &P.X, &P.Y)
 }
 
-func (P *projPoint) MarshalTo(w io.Writer) (int, error) {
-	return group.MarshalTo(P, w)
+func (P *projPoint) Marshal(ctx context.Context, w io.Writer) (int, error) {
+	return group.Marshal(ctx, P, w)
 }
 
-func (P *projPoint) UnmarshalFrom(r io.Reader) (int, error) {
-	return group.UnmarshalFrom(P, r)
+func (P *projPoint) Unmarshal(ctx context.Context, r io.Reader) (int, error) {
+	return group.Unmarshal(ctx, P, r)
 }
 
 func (P *projPoint) HideLen() int {
@@ -241,8 +241,8 @@ type ProjectiveCurve struct {
 }
 
 // Create a new Point on this curve.
-func (c *ProjectiveCurve) Point() abstract.Point {
-	return abstract.Point{&projPoint{c: c}}
+func (c *ProjectiveCurve) Element() group.Element {
+	return &projPoint{c: c}
 }
 
 // Initialize the curve with given parameters.

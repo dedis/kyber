@@ -11,9 +11,10 @@ import (
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/random"
+	"golang.org/x/net/context"
 )
 
-type residuePoint struct {
+type residueElement struct {
 	big.Int
 	g *ResidueGroup
 }
@@ -26,44 +27,44 @@ func isPrime(i *big.Int) bool {
 	return i.ProbablyPrime(numMRTests)
 }
 
-func (p *residuePoint) String() string { return p.Int.String() }
+func (p *residueElement) String() string { return p.Int.String() }
 
-func (p *residuePoint) New() group.Element {
-	return &residuePoint{big.Int{}, p.g}
+func (p *residueElement) New() group.Element {
+	return &residueElement{big.Int{}, p.g}
 }
 
-func (p *residuePoint) Set(a group.Element) group.Element {
-	ra := a.(*residuePoint)
+func (p *residueElement) Set(a group.Element) group.Element {
+	ra := a.(*residueElement)
 	p.Int.Set(&ra.Int)
 	p.g = ra.g
 	return p
 }
 
-func (p *residuePoint) SetInt64(i int64) group.Element {
+func (p *residueElement) SetInt64(i int64) group.Element {
 	p.Int.SetInt64(i)
 	return p
 }
 
-func (p *residuePoint) Equal(p2 group.Element) bool {
-	return p.Int.Cmp(&p2.(*residuePoint).Int) == 0
+func (p *residueElement) Equal(p2 group.Element) bool {
+	return p.Int.Cmp(&p2.(*residueElement).Int) == 0
 }
 
-func (p *residuePoint) Zero() group.Element {
+func (p *residueElement) Zero() group.Element {
 	p.Int.SetInt64(1)
 	return p
 }
 
-func (p *residuePoint) One() group.Element {
+func (p *residueElement) One() group.Element {
 	p.Int.Set(p.g.G)
 	return p
 }
 
-func (p *residuePoint) Valid() bool {
+func (p *residueElement) Valid() bool {
 	return p.Int.Sign() > 0 && p.Int.Cmp(p.g.P) < 0 &&
 		new(big.Int).Exp(&p.Int, p.g.Q, p.g.P).Cmp(one) == 0
 }
 
-func (p *residuePoint) PickLen() int {
+func (p *residueElement) PickLen() int {
 	// Reserve at least 8 most-significant bits for randomness,
 	// and the least-significant 16 bits for embedded data length.
 	return (p.g.P.BitLen() - 8 - 16) / 8
@@ -72,9 +73,9 @@ func (p *residuePoint) PickLen() int {
 // Pick a point containing a variable amount of embedded data.
 // Remaining bits comprising the point are chosen randomly.
 // This will only work efficiently for quadratic residue groups!
-func (p *residuePoint) Pick(data []byte, rand cipher.Stream) []byte {
+func (p *residueElement) Pick(data []byte, rand cipher.Stream) []byte {
 
-	l := p.g.PointLen()
+	l := p.g.ElementLen()
 	dl := p.PickLen()
 	if dl > len(data) {
 		dl = len(data)
@@ -95,9 +96,9 @@ func (p *residuePoint) Pick(data []byte, rand cipher.Stream) []byte {
 }
 
 // Extract embedded data from a Residue group element
-func (p *residuePoint) Data() ([]byte, error) {
+func (p *residueElement) Data() ([]byte, error) {
 	b := p.Int.Bytes()
-	l := p.g.PointLen()
+	l := p.g.ElementLen()
 	if len(b) < l { // pad leading zero bytes if necessary
 		b = append(make([]byte, l-len(b)), b...)
 	}
@@ -108,38 +109,38 @@ func (p *residuePoint) Data() ([]byte, error) {
 	return b[l-dl-2 : l-2], nil
 }
 
-func (p *residuePoint) Add(a, b group.Element) group.Element {
-	p.Int.Mul(&a.(*residuePoint).Int, &b.(*residuePoint).Int)
+func (p *residueElement) Add(a, b group.Element) group.Element {
+	p.Int.Mul(&a.(*residueElement).Int, &b.(*residueElement).Int)
 	p.Int.Mod(&p.Int, p.g.P)
 	return p
 }
 
-func (p *residuePoint) Sub(a, b group.Element) group.Element {
-	binv := new(big.Int).ModInverse(&b.(*residuePoint).Int, p.g.P)
-	p.Int.Mul(&a.(*residuePoint).Int, binv)
+func (p *residueElement) Sub(a, b group.Element) group.Element {
+	binv := new(big.Int).ModInverse(&b.(*residueElement).Int, p.g.P)
+	p.Int.Mul(&a.(*residueElement).Int, binv)
 	p.Int.Mod(&p.Int, p.g.P)
 	return p
 }
 
-func (p *residuePoint) Neg(a group.Element) group.Element {
-	p.Int.ModInverse(&a.(*residuePoint).Int, p.g.P)
+func (p *residueElement) Neg(a group.Element) group.Element {
+	p.Int.ModInverse(&a.(*residueElement).Int, p.g.P)
 	return p
 }
 
-func (p *residuePoint) Mul(b, s group.Element) group.Element {
+func (p *residueElement) Mul(b, s group.Element) group.Element {
 	if b == nil {
 		p.One()
 		b = p
 	}
-	p.Int.Exp(&b.(*residuePoint).Int, &s.(*Int).V, p.g.P)
+	p.Int.Exp(&b.(*residueElement).Int, &s.(*Int).V, p.g.P)
 	return p
 }
 
-func (p *residuePoint) MarshalSize() int {
+func (p *residueElement) MarshalSize() int {
 	return (p.g.P.BitLen() + 7) / 8
 }
 
-func (p *residuePoint) MarshalBinary() ([]byte, error) {
+func (p *residueElement) MarshalBinary() ([]byte, error) {
 	b := p.Int.Bytes() // may be shorter than len(buf)
 	if pre := p.MarshalSize() - len(b); pre != 0 {
 		return append(make([]byte, pre), b...), nil
@@ -147,7 +148,7 @@ func (p *residuePoint) MarshalBinary() ([]byte, error) {
 	return b, nil
 }
 
-func (p *residuePoint) UnmarshalBinary(data []byte) error {
+func (p *residueElement) UnmarshalBinary(data []byte) error {
 	p.Int.SetBytes(data)
 	if !p.Valid() {
 		return errors.New("invalid Residue group element")
@@ -155,19 +156,19 @@ func (p *residuePoint) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func (p *residuePoint) MarshalTo(w io.Writer) (int, error) {
-	return group.MarshalTo(p, w)
+func (p *residueElement) Marshal(ctx context.Context, w io.Writer) (int, error) {
+	return group.Marshal(ctx, p, w)
 }
 
-func (p *residuePoint) UnmarshalFrom(r io.Reader) (int, error) {
-	return group.UnmarshalFrom(p, r)
+func (p *residueElement) Unmarshal(ctx context.Context, r io.Reader) (int, error) {
+	return group.Unmarshal(ctx, p, r)
 }
 
 /*
 A ResidueGroup represents a DSA-style modular integer arithmetic group,
 defined by two primes P and Q and an integer R, such that P = Q*R+1.
-Points in a ResidueGroup are R-residues modulo P,
-and Secrets are integer exponents modulo the group order Q.
+Elements in a ResidueGroup are R-residues modulo P,
+and Scalars are integer exponents modulo the group order Q.
 
 In traditional DSA groups P is typically much larger than Q,
 and hence use a large multiple R.
@@ -177,16 +178,16 @@ P must be on the order of thousands of bits long
 while for security Q is believed to require only hundreds of bits.
 Such computation-optimized groups are suitable
 for Diffie-Hellman agreement, DSA or ElGamal signatures, etc.,
-which depend on Point.Mul() and homomorphic properties.
+which depend on Element.Mul() and homomorphic properties.
 
 However, residue groups with large R are less suitable for
-public-key cryptographic techniques that require choosing Points
+public-key cryptographic techniques that require choosing Elements
 pseudo-randomly or to contain embedded data,
 as required by ElGamal encryption for example, or by Dissent's
 hash-generator construction for verifiable DC-nets.
 For such purposes quadratic residue groups are more suitable -
 representing the special case where R=2 and hence P=2Q+1.
-As a result, the Point.Pick() method should be expected to work efficiently
+As a result, the Element.Pick() method should be expected to work efficiently
 ONLY on quadratic residue groups in which R=2.
 */
 type ResidueGroup struct {
@@ -202,24 +203,24 @@ func (g *ResidueGroup) PrimeOrder() bool {
 	return true
 }
 
-// Return the number of bytes in the encoding of a Secret
+// Return the number of bytes in the encoding of a Scalar
 // for this Residue group.
-func (g *ResidueGroup) SecretLen() int { return (g.Q.BitLen() + 7) / 8 }
+func (g *ResidueGroup) ScalarLen() int { return (g.Q.BitLen() + 7) / 8 }
 
-// Create a Secret associated with this Residue group,
+// Create a Scalar associated with this Residue group,
 // with an initial value of nil.
-func (g *ResidueGroup) Secret() abstract.Secret {
-	return abstract.Secret{NewInt(0, g.Q)}
+func (g *ResidueGroup) Scalar() group.FieldElement {
+	return NewInt(0, g.Q)
 }
 
-// Return the number of bytes in the encoding of a Point
+// Return the number of bytes in the encoding of a Element
 // for this Residue group.
-func (g *ResidueGroup) PointLen() int { return (g.P.BitLen() + 7) / 8 }
+func (g *ResidueGroup) ElementLen() int { return (g.P.BitLen() + 7) / 8 }
 
-// Create a Point associated with this Residue group,
+// Create a Element associated with this Residue group,
 // with an initial value of nil.
-func (g *ResidueGroup) Point() abstract.Point {
-	return abstract.Point{&residuePoint{big.Int{}, g}}
+func (g *ResidueGroup) Element() group.Element {
+	return &residueElement{big.Int{}, g}
 }
 
 // Returns the order of this Residue group, namely the prime Q.
@@ -311,4 +312,24 @@ func (g *ResidueGroup) QuadraticResidueGroup(bitlen uint, rand cipher.Stream) {
 		h.Add(h, one)
 	}
 	println("g", g.G.String())
+}
+
+// Create a context configured with the given residue group.
+func WithResidueGroup(parent abstract.Context, g *ResidueGroup) abstract.Context {
+	return group.Context(parent, g)
+}
+
+// Create a context configured with a 512-bit prime residue group,
+// for internal testing purposes.
+// (This is not a big enough prime to be secure!!)
+func withQR512(parent abstract.Context) abstract.Context {
+	p, _ := new(big.Int).SetString("10198267722357351868598076141027380280417188309231803909918464305012113541414604537422741096561285049775792035177041672305646773132014126091142862443826263", 10)
+	q, _ := new(big.Int).SetString("5099133861178675934299038070513690140208594154615901954959232152506056770707302268711370548280642524887896017588520836152823386566007063045571431221913131", 10)
+	r := new(big.Int).SetInt64(2)
+	g := new(big.Int).SetInt64(4)
+
+	grp := &ResidueGroup{}
+	grp.SetParams(p, q, r, g)
+
+	return group.Context(parent, grp)
 }

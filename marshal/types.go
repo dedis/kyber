@@ -1,17 +1,40 @@
+// This package implements a simple "rigid" binary encoding
+// suitable for reading and writing fixed-length cryptographic objects.
+// The interface allows reading and writing composite types
+// such as structs, arrays, and slices,
+// but the encoded size of any object must be completely defined
+// by the type and size of the object itself and the ciphersuite in use.
+//
+// Slices must be instantiated to the correct length
+// before either reading or writing:
+// hence the reader must determine the correct length "out of band"
+// (the encoding supports no transmission of length metadata).
+//
 package marshal
 
 import (
 	"encoding"
 	"fmt"
 	"io"
-	"reflect"
+	//"reflect"
+	"golang.org/x/net/context"
 	"strings"
 )
 
-/*
-Marshaling is a basic interface representing fixed-length (or known-length)
-cryptographic objects or structures having a built-in binary encoding.
-*/
+type Marshaler interface {
+	// Encode the contents of this object and write it to an io.Writer.
+	Marshal(c context.Context, w io.Writer) (int, error)
+}
+
+type Unmarshaler interface {
+	// Decode the content of this object by reading from an io.Reader.
+	// If r is a Cipher, uses it to pick a valid object pseudo-randomly,
+	// which may entail reading more than Len bytes due to retries.
+	Unmarshal(c context.Context, r io.Reader) (int, error)
+}
+
+// Marshaling is a basic interface representing fixed-length (or known-length)
+// cryptographic objects or structures having a built-in binary encoding.
 type Marshaling interface {
 
 	// XXX This may go away from the interface.
@@ -20,13 +43,8 @@ type Marshaling interface {
 	// Encoded length of this object in bytes.
 	MarshalSize() int
 
-	// Encode the contents of this object and write it to an io.Writer.
-	MarshalTo(w io.Writer) (int, error)
-
-	// Decode the content of this object by reading from an io.Reader.
-	// If r is a Cipher, uses it to pick a valid object pseudo-randomly,
-	// which may entail reading more than Len bytes due to retries.
-	UnmarshalFrom(r io.Reader) (int, error)
+	Marshaler
+	Unmarshaler
 
 	// Byte-slice binary marshaling interface
 	encoding.BinaryMarshaler
@@ -57,31 +75,13 @@ type Encoding interface {
 // The crypto library uses this capability to support
 // dynamic instantiation of cryptographic objects of the concrete type
 // appropriate for a given abstract.Suite.
+//
+// XXX this should probably be replaced by proper use of Context.
+/*
 type Constructor interface {
 	New(t reflect.Type) interface{}
 }
-
-// BinaryEncoding represents a simple binary encoding
-// suitable for reading and writing fixed-length cryptographic objects.
-// The interface allows reading and writing composite types
-// such as structs, arrays, and slices,
-// but the encoded size of any object must be completely defined
-// by the type and size of the object itself and the ciphersuite in use.
-//
-// Slices must be instantiated to the correct length
-// before either reading or writing:
-// hence the reader must determine the correct length "out of band"
-// (the encoding supports no transmission of length metadata).
-//
-// XXX move this and Constructor to some other, more generic package
-//
-type BinaryEncoding struct {
-	Constructor // Constructor for instantiating abstract types
-
-	// prevent clients from depending on the exact set of fields,
-	// to reserve the right to extend in backward-compatible ways.
-	hidden struct{}
-}
+*/
 
 func prindent(depth int, format string, a ...interface{}) {
 	fmt.Print(strings.Repeat("  ", depth))

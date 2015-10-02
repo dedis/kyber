@@ -8,12 +8,17 @@ import (
 	"github.com/dedis/crypto/random"
 )
 
-func testEmbed(g abstract.Group, rand cipher.Stream, points *[]abstract.Point,
+func testEmbed(ctx abstract.Context, rand random.Stream,
+		points *[]abstract.Point,
+
 	s string) {
+
+	suite := abstract.NewSuite(ctx)
+
 	//println("embedding: ",s)
 	b := []byte(s)
 
-	p, rem := g.Point().Pick(b, rand)
+	p, rem := suite.Point().Pick(b, rand)
 	//println("embedded, remainder",len(rem),"/",len(b),":",string(rem))
 	x, err := p.Data()
 	if err != nil {
@@ -35,25 +40,27 @@ func testEmbed(g abstract.Group, rand cipher.Stream, points *[]abstract.Point,
 // for comparison across alternative implementations
 // that are supposed to be equivalent.
 //
-func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
+func testGroup(ctx abstract.Context, rand cipher.Stream) []abstract.Point {
 	//	fmt.Printf("\nTesting group '%s': %d-byte Point, %d-byte Secret\n",
-	//			g.String(), g.PointLen(), g.SecretLen())
+	//			g.String(), suite.PointLen(), suite.ScalarLen())
+
+	suite := abstract.NewSuite(ctx)
 
 	points := make([]abstract.Point, 0)
-	ptmp := g.Point()
-	stmp := g.Secret()
-	pzero := g.Point().Null()
-	szero := g.Secret().Zero()
-	sone := g.Secret().One()
+	ptmp := suite.Point()
+	stmp := suite.Scalar()
+	pzero := suite.Point().Null()
+	szero := suite.Scalar().Zero()
+	sone := suite.Scalar().One()
 
 	// Do a simple Diffie-Hellman test
-	s1 := g.Secret().Pick(rand)
-	s2 := g.Secret().Pick(rand)
+	s1 := suite.Scalar().Pick(nil, rand)
+	s2 := suite.Scalar().Pick(nil, rand)
 	if s1.Equal(s2) {
 		panic("uh-oh, not getting unique secrets!")
 	}
 
-	gen := g.Point().Base()
+	gen := suite.Point().Base()
 	points = append(points, gen)
 
 	// Verify additive and multiplicative identities of the generator.
@@ -61,22 +68,22 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 	if !ptmp.Equal(pzero) {
 		panic("oops, generator additive identity doesn't work")
 	}
-	if g.PrimeOrder() { // secret.Inv works only in prime-order groups
+	if suite.Group().PrimeOrder() { // secret.Inv works only in prime-order groups
 		ptmp.BaseMul(stmp.SetInt64(2)).Mul(ptmp, stmp.Inv(stmp))
 		if !ptmp.Equal(gen) {
 			panic("oops, generator multiplicative identity doesn't work")
 		}
 	}
 
-	p1 := g.Point().Mul(gen, s1)
-	p2 := g.Point().Mul(gen, s2)
+	p1 := suite.Point().Mul(gen, s1)
+	p2 := suite.Point().Mul(gen, s2)
 	if p1.Equal(p2) {
 		panic("uh-oh, encryption isn't producing unique points!")
 	}
 	points = append(points, p1)
 
-	dh1 := g.Point().Mul(p1, s2)
-	dh2 := g.Point().Mul(p2, s1)
+	dh1 := suite.Point().Mul(p1, s2)
+	dh2 := suite.Point().Mul(p2, s1)
 	if !dh1.Equal(dh2) {
 		panic("Diffie-Hellman didn't work")
 	}
@@ -84,8 +91,8 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 	//println("shared secret = ",dh1.String())
 
 	// Test secret inverse to get from dh1 back to p1
-	if g.PrimeOrder() {
-		ptmp.Mul(dh1, g.Secret().Inv(s2))
+	if suite.Group().PrimeOrder() {
+		ptmp.Mul(dh1, suite.Scalar().Inv(s2))
 		if !ptmp.Equal(p1) {
 			panic("Secret inverse didn't work")
 		}
@@ -103,7 +110,7 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 	// Additive homomorphic identities
 	ptmp.Add(p1, p2)
 	stmp.Add(s1, s2)
-	pt2 := g.Point().Mul(gen, stmp)
+	pt2 := suite.Point().Mul(gen, stmp)
 	if !pt2.Equal(ptmp) {
 		panic("Additive homomorphism doesn't work")
 	}
@@ -113,7 +120,7 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 	if !pt2.Equal(ptmp) {
 		panic("Additive homomorphism doesn't work")
 	}
-	st2 := g.Secret().Neg(s2)
+	st2 := suite.Scalar().Neg(s2)
 	st2.Add(s1, st2)
 	if !stmp.Equal(st2) {
 		panic("Secret.Neg doesn't work")
@@ -128,7 +135,7 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 	if !ptmp.Mul(gen, stmp).Equal(dh1) {
 		panic("Multiplicative homomorphism doesn't work")
 	}
-	if g.PrimeOrder() {
+	if suite.Group().PrimeOrder() {
 		st2.Inv(s2)
 		st2.Mul(st2, stmp)
 		if !st2.Equal(s1) {
@@ -143,7 +150,7 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 	// Test randomly picked points
 	last := gen
 	for i := 0; i < 5; i++ {
-		rgen, _ := g.Point().Pick(nil, rand)
+		rgen, _ := suite.Point().Pick(nil, rand)
 		if rgen.Equal(last) {
 			panic("Pick() not producing unique points")
 		}
@@ -153,7 +160,7 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 		if !ptmp.Equal(pzero) {
 			panic("random generator fails additive identity")
 		}
-		if g.PrimeOrder() {
+		if suite.Group().PrimeOrder() {
 			ptmp.Mul(rgen, stmp.SetInt64(2)).Mul(ptmp, stmp.Inv(stmp))
 			if !ptmp.Equal(rgen) {
 				panic("random generator fails multiplicative identity")
@@ -163,8 +170,8 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 	}
 
 	// Test embedding data
-	testEmbed(g, rand, &points, "Hi!")
-	testEmbed(g, rand, &points, "The quick brown fox jumps over the lazy dog")
+	testEmbed(ctx, rand, &points, "Hi!")
+	testEmbed(ctx, rand, &points, "The quick brown fox jumps over the lazy dog")
 
 	// Test verifiable secret sharing
 	// XXX re-enable when we move this into 'test' sub-package
@@ -174,11 +181,11 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 	buf := new(bytes.Buffer)
 	for i := 0; i < 5; i++ {
 		buf.Reset()
-		s := g.Secret().Pick(rand)
-		if _, err := s.MarshalTo(buf); err != nil {
+		s := suite.Scalar().Pick(nil, rand)
+		if _, err := s.Marshal(ctx, buf); err != nil {
 			panic("encoding of secret fails: " + err.Error())
 		}
-		if _, err := stmp.UnmarshalFrom(buf); err != nil {
+		if _, err := stmp.Unmarshal(ctx, buf); err != nil {
 			panic("decoding of secret fails: " + err.Error())
 		}
 		if !stmp.Equal(s) {
@@ -186,11 +193,11 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 		}
 
 		buf.Reset()
-		p, _ := g.Point().Pick(nil, rand)
-		if _, err := p.MarshalTo(buf); err != nil {
+		p, _ := suite.Point().Pick(nil, rand)
+		if _, err := p.Marshal(ctx, buf); err != nil {
 			panic("encoding of point fails: " + err.Error())
 		}
-		if _, err := ptmp.UnmarshalFrom(buf); err != nil {
+		if _, err := ptmp.Unmarshal(ctx, buf); err != nil {
 			panic("decoding of point fails: " + err.Error())
 		}
 		if !ptmp.Equal(p) {
@@ -199,9 +206,9 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 	}
 
 	// Test that we can marshal/ unmarshal null point
-	pzero = g.Point().Null()
+	pzero = suite.Point().Null()
 	b, _ := pzero.MarshalBinary()
-	repzero := g.Point()
+	repzero := suite.Point()
 	err := repzero.UnmarshalBinary(b)
 	if err != nil {
 		panic(err)
@@ -211,17 +218,18 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 }
 
 // Apply a generic set of validation tests to a cryptographic Group.
-func TestGroup(g abstract.Group) {
-	testGroup(g, random.Stream)
+func TestGroup(ctx abstract.Context) {
+	testGroup(ctx, random.Fresh())
 }
 
 // Test two group implementations that are supposed to be equivalent,
 // and compare their results.
-func TestCompareGroups(suite abstract.Suite, g1, g2 abstract.Group) {
+func TestCompareGroups(ctx1, ctx2 abstract.Context) {
+	suite := abstract.NewSuite(ctx1)
 
 	// Produce test results from the same pseudorandom seed
-	r1 := testGroup(g1, suite.Cipher(abstract.NoKey))
-	r2 := testGroup(g2, suite.Cipher(abstract.NoKey))
+	r1 := testGroup(ctx1, suite.Cipher(abstract.NoKey))
+	r2 := testGroup(ctx2, suite.Cipher(abstract.NoKey))
 
 	// Compare resulting Points
 	for i := range r1 {
@@ -237,10 +245,11 @@ func TestCompareGroups(suite abstract.Suite, g1, g2 abstract.Group) {
 }
 
 // Apply a standard set of validation tests to a ciphersuite.
-func TestSuite(suite abstract.Suite) {
+func TestSuite(ctx abstract.Context) {
+	suite := abstract.NewSuite(ctx)
 
 	// Try hashing something
-	h := suite.Hash()
+	h := suite.Hash(abstract.NoKey)
 	l := h.Size()
 	//println("HashLen: ",l)
 	h.Write([]byte("abc"))
@@ -259,5 +268,5 @@ func TestSuite(suite abstract.Suite) {
 	//println(hex.Dump(sb))
 
 	// Test the public-key group arithmetic
-	TestGroup(suite)
+	TestGroup(ctx)
 }

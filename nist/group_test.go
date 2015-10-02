@@ -1,28 +1,31 @@
 package nist
 
 import (
+	"github.com/dedis/crypto/cipher/sha3"
 	"github.com/dedis/crypto/test"
+	"golang.org/x/net/context"
 	"testing"
 )
 
-var testQR512 = NewAES128SHA256QR512()
+var ctxBase = sha3.WithShake128(context.Background())
+var ctxQR512 = withQR512(ctxBase)
 
-func TestQR512(t *testing.T) { test.TestSuite(testQR512) }
+func TestQR512(t *testing.T) { test.TestSuite(ctxQR512) }
 
-var testP256 = NewAES128SHA256P256()
-var benchP256 = test.NewGroupBench(testP256)
+var ctxP256 = WithP256(ctxBase)
+var benchP256 = test.NewGroupBench(ctxP256)
 
-func TestP256(t *testing.T) { test.TestSuite(testP256) }
+func TestP256(t *testing.T) { test.TestSuite(ctxP256) }
 
-func BenchmarkSecretAdd(b *testing.B)    { benchP256.SecretAdd(b.N) }
-func BenchmarkSecretSub(b *testing.B)    { benchP256.SecretSub(b.N) }
-func BenchmarkSecretNeg(b *testing.B)    { benchP256.SecretNeg(b.N) }
-func BenchmarkSecretMul(b *testing.B)    { benchP256.SecretMul(b.N) }
-func BenchmarkSecretDiv(b *testing.B)    { benchP256.SecretDiv(b.N) }
-func BenchmarkSecretInv(b *testing.B)    { benchP256.SecretInv(b.N) }
-func BenchmarkSecretPick(b *testing.B)   { benchP256.SecretPick(b.N) }
-func BenchmarkSecretEncode(b *testing.B) { benchP256.SecretEncode(b.N) }
-func BenchmarkSecretDecode(b *testing.B) { benchP256.SecretDecode(b.N) }
+func BenchmarkScalarAdd(b *testing.B)    { benchP256.ScalarAdd(b.N) }
+func BenchmarkScalarSub(b *testing.B)    { benchP256.ScalarSub(b.N) }
+func BenchmarkScalarNeg(b *testing.B)    { benchP256.ScalarNeg(b.N) }
+func BenchmarkScalarMul(b *testing.B)    { benchP256.ScalarMul(b.N) }
+func BenchmarkScalarDiv(b *testing.B)    { benchP256.ScalarDiv(b.N) }
+func BenchmarkScalarInv(b *testing.B)    { benchP256.ScalarInv(b.N) }
+func BenchmarkScalarPick(b *testing.B)   { benchP256.ScalarPick(b.N) }
+func BenchmarkScalarEncode(b *testing.B) { benchP256.ScalarEncode(b.N) }
+func BenchmarkScalarDecode(b *testing.B) { benchP256.ScalarDecode(b.N) }
 
 func BenchmarkPointAdd(b *testing.B)     { benchP256.PointAdd(b.N) }
 func BenchmarkPointSub(b *testing.B)     { benchP256.PointSub(b.N) }

@@ -1,11 +1,7 @@
 package cipher
 
 import (
-	"fmt"
-	"log"
-	//"encoding/hex"
 	"encoding/binary"
-	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/ints"
 	"github.com/dedis/crypto/random"
 )
@@ -28,12 +24,11 @@ type Sponge interface {
 	Clone() Sponge
 }
 
-// Padding is an Option to configure the multi-rate padding byte
-// to be used with a Sponge cipher.
-type Padding byte
-
-func (p Padding) String() string {
-	return fmt.Sprintf("Padding: %x", byte(p))
+// Padding is an optional extension to the Sponge interface
+// to configure the multi-rate padding byte to be used.
+type Padding interface {
+	Padding() byte
+	SetPadding(pad byte)
 }
 
 // Capacity-byte values used for domain-separation, as used in NORX
@@ -64,7 +59,7 @@ type spongeCipher struct {
 }
 
 // SpongeCipher builds a general message Cipher from a Sponge function.
-func FromSponge(sponge Sponge, key []byte, options ...interface{}) abstract.Cipher {
+func FromSponge(sponge Sponge, key []byte) State {
 	sc := spongeCipher{}
 	sc.sponge = sponge
 	sc.rate = sponge.Rate()
@@ -72,11 +67,10 @@ func FromSponge(sponge Sponge, key []byte, options ...interface{}) abstract.Ciph
 	sc.pad = byte(0x7f) // default, unused by standards
 	sc.buf = make([]byte, sc.rate+sc.cap)
 	sc.pos = 0
-	sc.parseOptions(options)
 
 	// Key the cipher in some appropriate fashion
 	if key == nil {
-		key = random.Bytes(sponge.Capacity(), random.Stream)
+		key = random.Bytes(sponge.Capacity(), random.Fresh())
 	}
 	if len(key) > 0 {
 		sc.Message(nil, nil, key)
@@ -85,20 +79,7 @@ func FromSponge(sponge Sponge, key []byte, options ...interface{}) abstract.Ciph
 	// Setup normal-case domain-separation byte used for message payloads
 	sc.setDomain(domainPayload, 0)
 
-	return abstract.Cipher{&sc}
-}
-
-func (sc *spongeCipher) parseOptions(options []interface{}) bool {
-	more := false
-	for _, opt := range options {
-		switch v := opt.(type) {
-		case Padding:
-			sc.pad = byte(v)
-		default:
-			log.Panicf("Unsupported option %v", opt)
-		}
-	}
-	return more
+	return &sc
 }
 
 func (sc *spongeCipher) setDomain(domain byte, index int) {
@@ -244,7 +225,7 @@ func (sc *spongeCipher) clone() *spongeCipher {
 	return &nsc
 }
 
-func (sc *spongeCipher) Clone() abstract.CipherState {
+func (sc *spongeCipher) Clone() State {
 	return sc.clone()
 }
 
@@ -259,3 +240,12 @@ func (sc *spongeCipher) HashSize() int {
 func (sc *spongeCipher) BlockSize() int {
 	return sc.sponge.Rate()
 }
+
+func (sc *spongeCipher) Padding() byte {
+	return sc.pad
+}
+
+func (sc *spongeCipher) SetPadding(pad byte) {
+	sc.pad = pad
+}
+

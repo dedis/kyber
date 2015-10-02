@@ -48,7 +48,7 @@ func TestNego(t *testing.T) {
 		// Create some entrypoints with this suite
 		s := suites[i]
 		for j := 0; j < nentries; j++ {
-			pri := s.Secret().Pick(random.Stream)
+			pri := s.Secret().Pick(random.Fresh())
 			pub := s.Point().BaseMul(pri)
 			data := make([]byte, datalen)
 			entries = append(entries, Entry{s,pub,data})

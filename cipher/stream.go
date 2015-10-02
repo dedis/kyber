@@ -3,7 +3,6 @@ package cipher
 import (
 	"crypto/cipher"
 	"crypto/hmac"
-	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/ints"
 	"github.com/dedis/crypto/random"
 	"hash"
@@ -30,7 +29,7 @@ var zeroBytes = make([]byte, bufLen)
 // from a Stream cipher and a cryptographic Hash.
 func FromStream(newStream func(key []byte) cipher.Stream,
 	newHash func() hash.Hash, blockLen, keyLen, hashLen int,
-	key []byte, options ...interface{}) abstract.Cipher {
+	key []byte) State {
 
 	sc := streamCipher{}
 	sc.newStream = newStream
@@ -41,17 +40,13 @@ func FromStream(newStream func(key []byte) cipher.Stream,
 	sc.h = sc.newHash()
 
 	if key == nil {
-		key = random.Bytes(hashLen, random.Stream)
+		key = random.Bytes(hashLen, random.Fresh())
 	}
 	if len(key) > 0 {
 		sc.Message(nil, nil, key)
 	}
 
-	if len(options) > 0 {
-		panic("no FromStream options supported yet")
-	}
-
-	return abstract.Cipher{&sc}
+	return &sc
 }
 
 func (sc *streamCipher) Partial(dst, src, key []byte) {
@@ -107,7 +102,7 @@ func (sc *streamCipher) BlockSize() int {
 	return sc.blockLen
 }
 
-func (sc *streamCipher) Clone() abstract.CipherState {
+func (sc *streamCipher) Clone() State {
 	if sc.s != nil {
 		panic("cannot clone cipher state mid-message")
 	}
@@ -123,3 +118,9 @@ func (sc *streamCipher) Clone() abstract.CipherState {
 
 	return &nsc
 }
+
+// Create a new counter-mode Stream cipher based on a Block cipher.
+func NewCTR(block Block, iv []byte) Stream {
+	return cipher.NewCTR(block, iv)
+}
+

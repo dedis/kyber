@@ -3,9 +3,9 @@ package edwards
 import (
 	"crypto/cipher"
 	"encoding/hex"
-	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/nist"
+	"golang.org/x/net/context"
 	"io"
 	"math/big"
 )
@@ -15,7 +15,7 @@ type extPoint struct {
 	c          *ExtendedCurve
 }
 
-func (P *extPoint) initXY(x, y *big.Int, c abstract.Group) {
+func (P *extPoint) initXY(x, y *big.Int, c group.Group) {
 	P.c = c.(*ExtendedCurve)
 	P.X.Init(x, &P.c.P)
 	P.Y.Init(y, &P.c.P)
@@ -36,7 +36,7 @@ func (P *extPoint) String() string {
 }
 
 func (P *extPoint) MarshalSize() int {
-	return P.c.PointLen()
+	return P.c.ElementLen()
 }
 
 func (P *extPoint) MarshalBinary() ([]byte, error) {
@@ -53,12 +53,12 @@ func (P *extPoint) UnmarshalBinary(b []byte) error {
 	return nil
 }
 
-func (P *extPoint) MarshalTo(w io.Writer) (int, error) {
-	return group.MarshalTo(P, w)
+func (P *extPoint) Marshal(ctx context.Context, w io.Writer) (int, error) {
+	return group.Marshal(ctx, P, w)
 }
 
-func (P *extPoint) UnmarshalFrom(r io.Reader) (int, error) {
-	return group.UnmarshalFrom(P, r)
+func (P *extPoint) Unmarshal(ctx context.Context, r io.Reader) (int, error) {
+	return group.Unmarshal(ctx, P, r)
 }
 
 func (P *extPoint) HideLen() int {
@@ -280,8 +280,8 @@ type ExtendedCurve struct {
 }
 
 // Create a new Point on this curve.
-func (c *ExtendedCurve) Point() abstract.Point {
-	return abstract.Point{&extPoint{c: c}}
+func (c *ExtendedCurve) Element() group.Element {
+	return &extPoint{c: c}
 }
 
 // Initialize the curve with given parameters.
@@ -289,3 +289,4 @@ func (c *ExtendedCurve) Init(p *Param, fullGroup bool) *ExtendedCurve {
 	c.curve.init(c, p, fullGroup, &c.null, &c.base)
 	return c
 }
+

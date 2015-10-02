@@ -4,16 +4,16 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/openssl"
+	"github.com/dedis/crypto/suite"
 	"testing"
 )
 
 func TestRep(t *testing.T) {
-	suite := openssl.NewAES128SHA256P256()
-	rand := suite.Cipher(abstract.RandomKey)
+	suite := abstract.NewSuite(suite.WithDefault(nil))
+	rand := suite.Cipher(abstract.FreshKey)
 
-	x := suite.Secret().Pick(rand)
-	y := suite.Secret().Pick(rand)
+	x := suite.Scalar().Pick(nil, rand)
+	y := suite.Scalar().Pick(nil, rand)
 	B := suite.Point().Base()
 	X := suite.Point().BaseMul(x)
 	Y := suite.Point().Mul(X, y)
@@ -50,16 +50,16 @@ func TestRep(t *testing.T) {
 	pred := Or(or1x, or2x)
 	choice[pred] = 0
 
-	sval := map[string]abstract.Secret{"x": x, "y": y}
+	sval := map[string]abstract.Scalar{"x": x, "y": y}
 	pval := map[string]abstract.Point{"B": B, "X": X, "Y": Y, "R": R}
-	prover := pred.Prover(suite, sval, pval, choice)
-	proof, err := HashProve(suite, "TEST", rand, prover)
+	prover := pred.Prover(suite.Context(), sval, pval, choice)
+	proof, err := HashProve(suite.Context(), "TEST", rand, prover)
 	if err != nil {
 		panic("prover: " + err.Error())
 	}
 
-	verifier := pred.Verifier(suite, pval)
-	if err := HashVerify(suite, "TEST", verifier, proof); err != nil {
+	verifier := pred.Verifier(suite.Context(), pval)
+	if err := HashVerify(suite.Context(), "TEST", verifier, proof); err != nil {
 		panic("verify: " + err.Error())
 	}
 }
@@ -84,24 +84,24 @@ func ExampleRep_2() {
 	fmt.Println(pred.String())
 
 	// Crypto setup
-	suite := openssl.NewAES128SHA256P256()
+	suite := suite.Default(nil)
 	rand := suite.Cipher([]byte("example"))
 	B := suite.Point().Base() // standard base point
 
 	// Create a public/private keypair (X,x)
-	x := suite.Secret().Pick(rand) // create a private key x
+	x := suite.Scalar().Pick(nil, rand) // create a private key x
 	X := suite.Point().BaseMul(x) // corresponding public key X
 
 	// Generate a proof that we know the discrete logarithm of X.
-	sval := map[string]abstract.Secret{"x": x}
+	sval := map[string]abstract.Scalar{"x": x}
 	pval := map[string]abstract.Point{"B": B, "X": X}
-	prover := pred.Prover(suite, sval, pval, nil)
-	proof, _ := HashProve(suite, "TEST", rand, prover)
+	prover := pred.Prover(suite.Context(), sval, pval, nil)
+	proof, _ := HashProve(suite.Context(), "TEST", rand, prover)
 	fmt.Print("Proof:\n" + hex.Dump(proof))
 
 	// Verify this knowledge proof.
-	verifier := pred.Verifier(suite, pval)
-	err := HashVerify(suite, "TEST", verifier, proof)
+	verifier := pred.Verifier(suite.Context(), pval)
+	err := HashVerify(suite.Context(), "TEST", verifier, proof)
 	if err != nil {
 		panic("proof failed to verify!")
 	}
@@ -196,12 +196,12 @@ func ExampleOr_2() {
 	fmt.Println("Predicate: " + pred.String())
 
 	// Crypto setup
-	suite := openssl.NewAES128SHA256P256()
+	suite := suite.Default(nil)
 	rand := suite.Cipher([]byte("example"))
 	B := suite.Point().Base() // standard base point
 
 	// Create a public/private keypair (X,x) and a random point Y
-	x := suite.Secret().Pick(rand)        // create a private key x
+	x := suite.Scalar().Pick(nil, rand)        // create a private key x
 	X := suite.Point().BaseMul(x)        // corresponding public key X
 	Y, _ := suite.Point().Pick(nil, rand) // pick a random point Y
 
@@ -212,16 +212,16 @@ func ExampleOr_2() {
 	choice[pred] = 0
 
 	// Generate a proof that we know the discrete logarithm of X or Y.
-	sval := map[string]abstract.Secret{"x": x}
+	sval := map[string]abstract.Scalar{"x": x}
 	pval := map[string]abstract.Point{"B": B, "X": X, "Y": Y}
-	prover := pred.Prover(suite, sval, pval, choice)
-	proof, _ := HashProve(suite, "TEST", rand, prover)
+	prover := pred.Prover(suite.Context(), sval, pval, choice)
+	proof, _ := HashProve(suite.Context(), "TEST", rand, prover)
 	fmt.Print("Proof:\n" + hex.Dump(proof))
 
 	// Verify this knowledge proof.
 	// The verifier doesn't need the secret values or choice map, of course.
-	verifier := pred.Verifier(suite, pval)
-	err := HashVerify(suite, "TEST", verifier, proof)
+	verifier := pred.Verifier(suite.Context(), pval)
+	err := HashVerify(suite.Context(), "TEST", verifier, proof)
 	if err != nil {
 		panic("proof failed to verify!")
 	}

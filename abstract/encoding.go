@@ -2,19 +2,17 @@ package abstract
 
 import (
 	"crypto/cipher"
-	"io"
-	"reflect"
-	"github.com/dedis/crypto/marshal"
+	//"reflect"
 )
 
-
+/*
 // Not used other than for reflect.TypeOf()
-var aSecret Secret
+var aScalar Scalar
 var aPoint Point
 
-var tSecret = reflect.TypeOf(&aSecret).Elem()
+var tScalar = reflect.TypeOf(&aScalar).Elem()
 var tPoint = reflect.TypeOf(&aPoint).Elem()
-
+*/
 
 /*
 Hiding is an alternative encoding interface to encode cryptographic objects
@@ -64,23 +62,14 @@ type Hiding interface {
 	HideDecode(buf []byte)
 }
 
-// Default implementation of reflective constructor for ciphersuites
-func SuiteNew(s Suite, t reflect.Type) interface{} {
-	switch t {
-	case tSecret:
-		return s.Secret()
-	case tPoint:
-		return s.Point()
-	}
-	return nil
-}
-
+/*
 // Default implementation of Encoding interface Read for ciphersuites
 func SuiteRead(s Suite, r io.Reader, objs ...interface{}) error {
-	return marshal.BinaryEncoding{Constructor: s}.Read(r, objs...)
+	return marshal.Read(s, r, objs...)
 }
 
 // Default implementation of Encoding interface Write for ciphersuites
 func SuiteWrite(s Suite, w io.Writer, objs ...interface{}) error {
-	return marshal.BinaryEncoding{Constructor: s}.Write(w, objs...)
+	return marshal.Write(s, w, objs...)
 }
+*/
