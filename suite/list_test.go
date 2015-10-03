@@ -8,8 +8,8 @@ import (
 
 func TestSuites(t *testing.T) {
 	s := All()
-	for name, suite := range s {
+	for name, config := range s {
 		println("Suite", name)
-		test.TestSuite(suite(context.Background()))
+		test.TestSuite(config(context.Background()))
 	}
 }

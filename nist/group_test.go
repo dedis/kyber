@@ -1,6 +1,7 @@
 package nist
 
 import (
+	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher/sha3"
 	"github.com/dedis/crypto/test"
 	"golang.org/x/net/context"
@@ -8,14 +9,14 @@ import (
 )
 
 var ctxBase = sha3.WithShake128(context.Background())
-var ctxQR512 = withQR512(ctxBase)
+var suiteQR512 = abstract.GetSuite(withQR512(ctxBase))
 
-func TestQR512(t *testing.T) { test.TestSuite(ctxQR512) }
+func TestQR512(t *testing.T) { test.TestSuite(suiteQR512) }
 
-var ctxP256 = WithP256(ctxBase)
-var benchP256 = test.NewGroupBench(ctxP256)
+var suiteP256 = abstract.GetSuite(WithP256(ctxBase))
+var benchP256 = test.NewGroupBench(suiteP256)
 
-func TestP256(t *testing.T) { test.TestSuite(ctxP256) }
+func TestP256(t *testing.T) { test.TestSuite(suiteP256) }
 
 func BenchmarkScalarAdd(b *testing.B)    { benchP256.ScalarAdd(b.N) }
 func BenchmarkScalarSub(b *testing.B)    { benchP256.ScalarSub(b.N) }

@@ -7,8 +7,6 @@ import (
 
 // A generic benchmark suite for abstract groups.
 type GroupBench struct {
-	suite abstract.Suite
-
 	// Random secrets and points for testing
 	x, y abstract.Scalar
 	X, Y abstract.Point
@@ -16,14 +14,13 @@ type GroupBench struct {
 	Xe   []byte // encoded Point
 }
 
-func NewGroupBench(ctx abstract.Context) *GroupBench {
+func NewGroupBench(suite *abstract.Suite) *GroupBench {
 	var gb GroupBench
-	gb.suite.Init(ctx)
-	gb.x = gb.suite.Scalar().Pick(nil, random.Fresh())
-	gb.y = gb.suite.Scalar().Pick(nil, random.Fresh())
+	gb.x = suite.Scalar().Pick(nil, random.Fresh())
+	gb.y = suite.Scalar().Pick(nil, random.Fresh())
 	gb.xe, _ = gb.x.MarshalBinary()
-	gb.X, _ = gb.suite.Point().Pick(nil, random.Fresh())
-	gb.Y, _ = gb.suite.Point().Pick(nil, random.Fresh())
+	gb.X, _ = suite.Point().Pick(nil, random.Fresh())
+	gb.Y, _ = suite.Point().Pick(nil, random.Fresh())
 	gb.Xe, _ = gb.X.MarshalBinary()
 	return &gb
 }

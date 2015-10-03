@@ -70,6 +70,9 @@ func (n *bignum) BigInt() *big.Int {
 // Set bignum's value from a native Go BigInt
 func (n *bignum) SetBigInt(i *big.Int) *bignum {
 	n.SetBytes(i.Bytes())
+	if i.Sign() < 0 {
+		panic("negative bigInts not supported")
+	}
 	return n
 }
 

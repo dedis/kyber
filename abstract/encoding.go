@@ -6,15 +6,6 @@ import (
 )
 
 /*
-// Not used other than for reflect.TypeOf()
-var aScalar Scalar
-var aPoint Point
-
-var tScalar = reflect.TypeOf(&aScalar).Elem()
-var tPoint = reflect.TypeOf(&aPoint).Elem()
-*/
-
-/*
 Hiding is an alternative encoding interface to encode cryptographic objects
 such that their representation appears indistinguishable from a
 uniformly random byte-string.

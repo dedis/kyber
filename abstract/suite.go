@@ -21,9 +21,9 @@ type Suite struct {
 	cipher cipher.Suite // cached symmetric-key cipher suite
 }
 
-// Create a Suite object to provide access to the ciphersuite in given context.
-func NewSuite(ctx context.Context) *Suite {
-	return &Suite{ctx, group.Get(ctx), cipher.Get(ctx)}
+// Get a Suite object to provide access to the ciphersuite in given context.
+func GetSuite(ctx context.Context) *Suite {
+	return new(Suite).Init(ctx)
 }
 
 // Initialize an already-created Suite object with the given context.

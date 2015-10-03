@@ -159,6 +159,13 @@ func (i *Int) One() group.Element {
 	return i
 }
 
+// Set to an arbitrary big.Int value.
+// The modulus must already be initialized.
+func (i *Int) SetInt(v *big.Int) group.FieldElement {
+	i.V.Set(v).Mod(&i.V, i.M)
+	return i
+}
+
 // Set to an arbitrary 64-bit "small integer" value.
 // The modulus must already be initialized.
 func (i *Int) SetInt64(v int64) group.FieldElement {

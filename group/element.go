@@ -3,6 +3,7 @@ package group
 import (
 	"crypto/cipher"
 	"github.com/dedis/crypto/marshal"
+	"math/big"
 )
 
 /*
@@ -19,7 +20,7 @@ more purpose-specific "front-end" encapsulations for Element.
 */
 type Element interface {
 	// Any Element has some "native" marshaled encoding
-	marshal.Marshaling
+	marshal.RigidMarshaling
 
 	// Create a new uninitialized element of the same type
 	New() Element
@@ -80,6 +81,9 @@ type FieldElement interface {
 	// Set to a small integer value
 	// XXX maybe this could/should be in Element?
 	SetInt64(v int64) FieldElement
+
+	// Set to a big integer value
+	SetInt(v *big.Int) FieldElement
 
 	// Set to the division of element a by element b
 	Div(a, b Element) FieldElement

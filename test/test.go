@@ -8,12 +8,8 @@ import (
 	"github.com/dedis/crypto/random"
 )
 
-func testEmbed(ctx abstract.Context, rand random.Stream,
-	points *[]abstract.Point,
-
-	s string) {
-
-	suite := abstract.NewSuite(ctx)
+func testEmbed(suite *abstract.Suite, rand random.Stream,
+	points *[]abstract.Point, s string) {
 
 	//println("embedding: ",s)
 	b := []byte(s)
@@ -40,11 +36,9 @@ func testEmbed(ctx abstract.Context, rand random.Stream,
 // for comparison across alternative implementations
 // that are supposed to be equivalent.
 //
-func testGroup(ctx abstract.Context, rand cipher.Stream) []abstract.Point {
+func testGroup(suite *abstract.Suite, rand cipher.Stream) []abstract.Point {
 	//	fmt.Printf("\nTesting group '%s': %d-byte Point, %d-byte Secret\n",
 	//			g.String(), suite.PointLen(), suite.ScalarLen())
-
-	suite := abstract.NewSuite(ctx)
 
 	points := make([]abstract.Point, 0)
 	ptmp := suite.Point()
@@ -170,8 +164,8 @@ func testGroup(ctx abstract.Context, rand cipher.Stream) []abstract.Point {
 	}
 
 	// Test embedding data
-	testEmbed(ctx, rand, &points, "Hi!")
-	testEmbed(ctx, rand, &points, "The quick brown fox jumps over the lazy dog")
+	testEmbed(suite, rand, &points, "Hi!")
+	testEmbed(suite, rand, &points, "The quick brown fox jumps over the lazy dog")
 
 	// Test verifiable secret sharing
 	// XXX re-enable when we move this into 'test' sub-package
@@ -182,10 +176,10 @@ func testGroup(ctx abstract.Context, rand cipher.Stream) []abstract.Point {
 	for i := 0; i < 5; i++ {
 		buf.Reset()
 		s := suite.Scalar().Pick(nil, rand)
-		if _, err := s.Marshal(ctx, buf); err != nil {
+		if _, err := s.Marshal(suite.Context(), buf); err != nil {
 			panic("encoding of secret fails: " + err.Error())
 		}
-		if _, err := stmp.Unmarshal(ctx, buf); err != nil {
+		if _, err := stmp.Unmarshal(suite.Context(), buf); err != nil {
 			panic("decoding of secret fails: " + err.Error())
 		}
 		if !stmp.Equal(s) {
@@ -194,10 +188,10 @@ func testGroup(ctx abstract.Context, rand cipher.Stream) []abstract.Point {
 
 		buf.Reset()
 		p, _ := suite.Point().Pick(nil, rand)
-		if _, err := p.Marshal(ctx, buf); err != nil {
+		if _, err := p.Marshal(suite.Context(), buf); err != nil {
 			panic("encoding of point fails: " + err.Error())
 		}
-		if _, err := ptmp.Unmarshal(ctx, buf); err != nil {
+		if _, err := ptmp.Unmarshal(suite.Context(), buf); err != nil {
 			panic("decoding of point fails: " + err.Error())
 		}
 		if !ptmp.Equal(p) {
@@ -218,18 +212,17 @@ func testGroup(ctx abstract.Context, rand cipher.Stream) []abstract.Point {
 }
 
 // Apply a generic set of validation tests to a cryptographic Group.
-func TestGroup(ctx abstract.Context) {
-	testGroup(ctx, random.Fresh())
+func TestGroup(suite *abstract.Suite) {
+	testGroup(suite, random.Fresh())
 }
 
 // Test two group implementations that are supposed to be equivalent,
 // and compare their results.
-func TestCompareGroups(ctx1, ctx2 abstract.Context) {
-	suite := abstract.NewSuite(ctx1)
+func TestCompareGroups(s1, s2 *abstract.Suite) {
 
 	// Produce test results from the same pseudorandom seed
-	r1 := testGroup(ctx1, suite.Cipher(abstract.NoKey))
-	r2 := testGroup(ctx2, suite.Cipher(abstract.NoKey))
+	r1 := testGroup(s1, s1.Cipher(abstract.NoKey))
+	r2 := testGroup(s2, s1.Cipher(abstract.NoKey))
 
 	// Compare resulting Points
 	for i := range r1 {
@@ -245,8 +238,7 @@ func TestCompareGroups(ctx1, ctx2 abstract.Context) {
 }
 
 // Apply a standard set of validation tests to a ciphersuite.
-func TestSuite(ctx abstract.Context) {
-	suite := abstract.NewSuite(ctx)
+func TestSuite(suite *abstract.Suite) {
 
 	// Try hashing something
 	h := suite.Hash(abstract.NoKey)
@@ -268,5 +260,5 @@ func TestSuite(ctx abstract.Context) {
 	//println(hex.Dump(sb))
 
 	// Test the public-key group arithmetic
-	TestGroup(ctx)
+	TestGroup(suite)
 }

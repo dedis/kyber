@@ -2,25 +2,26 @@ package openssl
 
 import (
 	"github.com/dedis/crypto/test"
+	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher/sha3"
 	"testing"
 	"golang.org/x/net/context"
 )
 
 var ctxBase = sha3.WithShake128(context.Background())
-var ctxP224 = WithP224(ctxBase)
-var ctxP256 = WithP256(ctxBase)
-var ctxP384 = WithP384(ctxBase)
-var ctxP521 = WithP521(ctxBase)
+var suiteP224 = abstract.GetSuite(WithP224(ctxBase))
+var suiteP256 = abstract.GetSuite(WithP256(ctxBase))
+var suiteP384 = abstract.GetSuite(WithP384(ctxBase))
+var suiteP521 = abstract.GetSuite(WithP521(ctxBase))
 
-var groupBench = test.NewGroupBench(ctxP256)
+var groupBench = test.NewGroupBench(suiteP256)
 
-func TestP224(t *testing.T) { test.TestGroup(ctxP224) }
-func TestP256(t *testing.T) { test.TestGroup(ctxP256) }
-func TestP384(t *testing.T) { test.TestGroup(ctxP384) }
-func TestP521(t *testing.T) { test.TestGroup(ctxP521) }
+func TestP224(t *testing.T) { test.TestGroup(suiteP224) }
+func TestP256(t *testing.T) { test.TestGroup(suiteP256) }
+func TestP384(t *testing.T) { test.TestGroup(suiteP384) }
+func TestP521(t *testing.T) { test.TestGroup(suiteP521) }
 
-func TestSuite(t *testing.T) { test.TestSuite(ctxP256) }
+func TestSuite(t *testing.T) { test.TestSuite(suiteP256) }
 
 func BenchmarkScalarAdd(b *testing.B)    { groupBench.ScalarAdd(b.N) }
 func BenchmarkScalarSub(b *testing.B)    { groupBench.ScalarSub(b.N) }

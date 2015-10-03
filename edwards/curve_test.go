@@ -14,13 +14,13 @@ import (
 var ctxBase = sha3.WithShake128(context.Background())
 
 func testCurve(t *testing.T, curve group.Group) {
-	test.TestGroup(group.Context(ctxBase, curve))
+	test.TestGroup(abstract.GetSuite(group.Context(ctxBase, curve)))
 }
 
 func testCompare(t *testing.T, g1, g2 group.Group) {
 	test.TestCompareGroups(
-		group.Context(ctxBase, g1),
-		group.Context(ctxBase, g2))
+		abstract.GetSuite(group.Context(ctxBase, g1)),
+		abstract.GetSuite(group.Context(ctxBase, g2)))
 }
 
 // Test each curve implementation of the Ed25519 curve.
@@ -156,9 +156,9 @@ func TestElligator2(t *testing.T) {
 
 // Benchmark contrasting implementations of the Ed25519 curve
 
-var projBench = test.NewGroupBench(group.Context(ctxBase, new(ProjectiveCurve).Init(Param25519(), false)))
-var extBench = test.NewGroupBench(group.Context(ctxBase, new(ExtendedCurve).Init(Param25519(), false)))
-var optBench = test.NewGroupBench(group.Context(ctxBase, new(ed25519.Curve)))
+var projBench = test.NewGroupBench(abstract.GetSuite(group.Context(ctxBase, new(ProjectiveCurve).Init(Param25519(), false))))
+var extBench = test.NewGroupBench(abstract.GetSuite(group.Context(ctxBase, new(ExtendedCurve).Init(Param25519(), false))))
+var optBench = test.NewGroupBench(abstract.GetSuite(group.Context(ctxBase, new(ed25519.Curve))))
 
 func BenchmarkPointAddProjective(b *testing.B) { projBench.PointAdd(b.N) }
 func BenchmarkPointAddExtended(b *testing.B)   { extBench.PointAdd(b.N) }

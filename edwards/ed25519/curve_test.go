@@ -3,16 +3,17 @@ package ed25519
 import (
 	"github.com/dedis/crypto/cipher/sha3"
 	"github.com/dedis/crypto/test"
+	"github.com/dedis/crypto/abstract"
 	"golang.org/x/net/context"
 	"testing"
 )
 
 var ctxBase = sha3.WithShake128(context.Background())
-var ctx = WithEd25519(ctxBase)
+var suite = abstract.GetSuite(WithEd25519(ctxBase))
 
-var groupBench = test.NewGroupBench(ctx)
+var groupBench = test.NewGroupBench(suite)
 
-func TestSuite(t *testing.T) { test.TestSuite(ctx) }
+func TestSuite(t *testing.T) { test.TestSuite(suite) }
 
 func BenchmarkScalarAdd(b *testing.B)    { groupBench.ScalarAdd(b.N) }
 func BenchmarkScalarSub(b *testing.B)    { groupBench.ScalarSub(b.N) }

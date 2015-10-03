@@ -13,6 +13,7 @@ import (
 	"github.com/dedis/crypto/group"
 	"golang.org/x/net/context"
 	"io"
+	"math/big"
 )
 
 type scalar struct {
@@ -55,6 +56,17 @@ func (s *scalar) Zero() group.Element {
 func (s *scalar) One() group.Element {
 	if C.bn_one(s.bignum.bn) == 0 {
 		panic("BN_one: " + getErrString())
+	}
+	return s
+}
+
+func (s *scalar) SetInt(i *big.Int) group.FieldElement {
+	s.bignum.SetBytes(i.Bytes())	// set absolute value
+	if i.Sign() < 0 {		// negate if needed
+		if C.BN_mod_sub(s.bignum.bn, s.c.n.bn, s.bignum.bn,
+				s.c.n.bn, s.c.ctx) == 0 {
+			panic("BN_sub: " + getErrString())
+		}
 	}
 	return s
 }
