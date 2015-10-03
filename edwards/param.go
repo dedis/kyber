@@ -15,7 +15,7 @@
 package edwards
 
 import (
-	"github.com/dedis/crypto/nist"
+	"github.com/dedis/crypto/group"
 	"math/big"
 )
 
@@ -48,7 +48,7 @@ func (p *Param) String() string {
 //
 func Param1174() *Param {
 	var p Param
-	var mi nist.Int
+	var mi group.Int
 
 	p.Name = "1174"
 	p.P.SetBit(zero, 251, 1).Sub(&p.P, big.NewInt(9))

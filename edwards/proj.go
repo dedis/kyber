@@ -3,14 +3,13 @@ package edwards
 import (
 	"crypto/cipher"
 	"github.com/dedis/crypto/group"
-	"github.com/dedis/crypto/nist"
 	"golang.org/x/net/context"
 	"io"
 	"math/big"
 )
 
 type projPoint struct {
-	X, Y, Z nist.Int
+	X, Y, Z group.Int
 	c       *ProjectiveCurve
 }
 
@@ -21,7 +20,7 @@ func (P *projPoint) initXY(x, y *big.Int, c group.Group) {
 	P.Z.Init64(1, &P.c.P)
 }
 
-func (P *projPoint) getXY() (x, y *nist.Int) {
+func (P *projPoint) getXY() (x, y *group.Int) {
 	P.normalize()
 	return &P.X, &P.Y
 }
@@ -74,7 +73,7 @@ func (P *projPoint) HideDecode(rep []byte) {
 //
 func (P1 *projPoint) Equal(CP2 group.Element) bool {
 	P2 := CP2.(*projPoint)
-	var t1, t2 nist.Int
+	var t1, t2 group.Int
 	xeq := t1.Mul(&P1.X, &P2.Z).Equal(t2.Mul(&P2.X, &P1.Z))
 	yeq := t1.Mul(&P1.Y, &P2.Z).Equal(t2.Mul(&P2.Y, &P1.Z))
 	return xeq && yeq
@@ -137,7 +136,7 @@ func (P *projPoint) Add(CP1, CP2 group.Element) group.Element {
 	X1, Y1, Z1 := &P1.X, &P1.Y, &P1.Z
 	X2, Y2, Z2 := &P2.X, &P2.Y, &P2.Z
 	X3, Y3, Z3 := &P.X, &P.Y, &P.Z
-	var A, B, C, D, E, F, G nist.Int
+	var A, B, C, D, E, F, G group.Int
 
 	A.Mul(Z1, Z2)
 	B.Mul(&A, &A)
@@ -160,7 +159,7 @@ func (P *projPoint) Sub(CP1, CP2 group.Element) group.Element {
 	X1, Y1, Z1 := &P1.X, &P1.Y, &P1.Z
 	X2, Y2, Z2 := &P2.X, &P2.Y, &P2.Z
 	X3, Y3, Z3 := &P.X, &P.Y, &P.Z
-	var A, B, C, D, E, F, G nist.Int
+	var A, B, C, D, E, F, G group.Int
 
 	A.Mul(Z1, Z2)
 	B.Mul(&A, &A)
@@ -189,7 +188,7 @@ func (P *projPoint) Neg(CA group.Element) group.Element {
 
 // Optimized point doubling for use in scalar multiplication.
 func (P *projPoint) double() {
-	var B, C, D, E, F, H, J nist.Int
+	var B, C, D, E, F, H, J group.Int
 
 	B.Add(&P.X, &P.Y).Mul(&B, &B)
 	C.Mul(&P.X, &P.X)
@@ -205,7 +204,7 @@ func (P *projPoint) double() {
 
 // Multiply point p by scalar s using the repeated doubling method.
 func (P *projPoint) Mul(G, s group.Element) group.Element {
-	v := s.(*nist.Int).V
+	v := s.(*group.Int).V
 	if G == nil {
 		return P.One().Mul(P, s)
 	}

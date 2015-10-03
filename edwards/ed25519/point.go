@@ -20,7 +20,6 @@ import (
 	"errors"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
-	"github.com/dedis/crypto/nist"
 	"golang.org/x/net/context"
 	"io"
 )
@@ -218,7 +217,7 @@ func (P *point) Neg(A group.Element) group.Element {
 func (P *point) Mul(A, s group.Element) group.Element {
 
 	// Convert the scalar to fixed-length little-endian form.
-	sb := s.(*nist.Int).V.Bytes()
+	sb := s.(*group.Int).V.Bytes()
 	shi := len(sb) - 1
 	var a [32]byte
 	for i := range sb {
@@ -261,9 +260,9 @@ func (c Curve) ScalarLen() int {
 // Create a new Scalar for the Ed25519 curve.
 func (c Curve) Scalar() group.FieldElement {
 	//	if c.FullGroup {
-	//		return nist.NewInt(0, fullOrder)
+	//		return group.NewInt(0, fullOrder)
 	//	} else {
-	return nist.NewInt(0, &primeOrder.V)
+	return group.NewInt(0, &primeOrder.V)
 	//	}
 }
 

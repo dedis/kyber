@@ -14,6 +14,10 @@ import (
 	"golang.org/x/net/context"
 )
 
+var zero = big.NewInt(0)
+var one = big.NewInt(1)
+var two = big.NewInt(2)
+
 type residueElement struct {
 	big.Int
 	g *ResidueGroup
@@ -132,7 +136,7 @@ func (p *residueElement) Mul(b, s group.Element) group.Element {
 		p.One()
 		b = p
 	}
-	p.Int.Exp(&b.(*residueElement).Int, &s.(*Int).V, p.g.P)
+	p.Int.Exp(&b.(*residueElement).Int, &s.(*group.Int).V, p.g.P)
 	return p
 }
 
@@ -210,7 +214,7 @@ func (g *ResidueGroup) ScalarLen() int { return (g.Q.BitLen() + 7) / 8 }
 // Create a Scalar associated with this Residue group,
 // with an initial value of nil.
 func (g *ResidueGroup) Scalar() group.FieldElement {
-	return NewInt(0, g.Q)
+	return group.NewInt(0, g.Q)
 }
 
 // Return the number of bytes in the encoding of a Element

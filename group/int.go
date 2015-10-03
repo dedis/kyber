@@ -1,10 +1,9 @@
-package nist
+package group
 
 import (
 	"crypto/cipher"
 	"encoding/hex"
 	"errors"
-	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/math"
 	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/util"
@@ -18,10 +17,10 @@ var one = big.NewInt(1)
 var two = big.NewInt(2)
 
 // Int is a generic implementation of finite field arithmetic
-// on integer finite fields with a given constant modulus,
-// built using Go's built-in big.Int package.
-// Int satisfies the abstract group.Element interface,
-// and hence serves as a basic implementation of group.Element,
+// on integer fields with a given constant modulus,
+// using Go's built-in big.Int package.
+// Int satisfies the abstract Element interface,
+// and hence serves as a basic implementation of Element,
 // e.g., representing discrete-log exponents of Schnorr groups
 // or scalar multipliers for elliptic curves.
 //
@@ -48,7 +47,7 @@ func NewInt(v int64, M *big.Int) *Int {
 }
 
 // Create a new Int with the same modulus as an existing one.
-func (i *Int) New() group.Element {
+func (i *Int) New() Element {
 	return &Int{big.Int{}, i.M}
 }
 
@@ -109,12 +108,12 @@ func (i *Int) SetString(n, d string, base int) (*Int, bool) {
 }
 
 // Compare two Ints for equality or inequality
-func (i *Int) Cmp(s2 group.Element) int {
+func (i *Int) Cmp(s2 Element) int {
 	return i.V.Cmp(&s2.(*Int).V)
 }
 
 // Test two Ints for equality
-func (i *Int) Equal(s2 group.Element) bool {
+func (i *Int) Equal(s2 Element) bool {
 	return i.V.Cmp(&s2.(*Int).V) == 0
 }
 
@@ -126,7 +125,7 @@ func (i *Int) Nonzero() bool {
 // Set both value and modulus to be equal to another Int.
 // Since this method copies the modulus as well,
 // it may be used as an alternative to Init().
-func (i *Int) Set(a group.Element) group.Element {
+func (i *Int) Set(a Element) Element {
 	ai := a.(*Int)
 	i.V.Set(&ai.V)
 	i.M = ai.M
@@ -148,27 +147,27 @@ func (i *Int) SetLittleEndian(a []byte) *Int {
 }
 
 // Set to the value 0.  The modulus must already be initialized.
-func (i *Int) Zero() group.Element {
+func (i *Int) Zero() Element {
 	i.V.SetInt64(0)
 	return i
 }
 
 // Set to the value 1.  The modulus must already be initialized.
-func (i *Int) One() group.Element {
+func (i *Int) One() Element {
 	i.V.SetInt64(1)
 	return i
 }
 
 // Set to an arbitrary big.Int value.
 // The modulus must already be initialized.
-func (i *Int) SetInt(v *big.Int) group.FieldElement {
+func (i *Int) SetInt(v *big.Int) FieldElement {
 	i.V.Set(v).Mod(&i.V, i.M)
 	return i
 }
 
 // Set to an arbitrary 64-bit "small integer" value.
 // The modulus must already be initialized.
-func (i *Int) SetInt64(v int64) group.FieldElement {
+func (i *Int) SetInt64(v int64) FieldElement {
 	i.V.SetInt64(v).Mod(&i.V, i.M)
 	return i
 }
@@ -181,7 +180,7 @@ func (i *Int) Int64() int64 {
 
 // Set to an arbitrary uint64 value.
 // The modulus must already be initialized.
-func (i *Int) SetUint64(v uint64) group.Element {
+func (i *Int) SetUint64(v uint64) Element {
 	i.V.SetUint64(v).Mod(&i.V, i.M)
 	return i
 }
@@ -193,7 +192,7 @@ func (i *Int) Uint64() uint64 {
 }
 
 // Set target to a + b mod M, where M is a's modulus..
-func (i *Int) Add(a, b group.Element) group.Element {
+func (i *Int) Add(a, b Element) Element {
 	ai := a.(*Int)
 	bi := b.(*Int)
 	i.M = ai.M
@@ -203,7 +202,7 @@ func (i *Int) Add(a, b group.Element) group.Element {
 
 // Set target to a - b mod M.
 // Target receives a's modulus.
-func (i *Int) Sub(a, b group.Element) group.Element {
+func (i *Int) Sub(a, b Element) Element {
 	ai := a.(*Int)
 	bi := b.(*Int)
 	i.M = ai.M
@@ -212,7 +211,7 @@ func (i *Int) Sub(a, b group.Element) group.Element {
 }
 
 // Set to -a mod M.
-func (i *Int) Neg(a group.Element) group.Element {
+func (i *Int) Neg(a Element) Element {
 	ai := a.(*Int)
 	i.M = ai.M
 	if ai.V.Sign() > 0 {
@@ -225,7 +224,7 @@ func (i *Int) Neg(a group.Element) group.Element {
 
 // Set to a * b mod M.
 // Target receives a's modulus.
-func (i *Int) Mul(a, b group.Element) group.Element {
+func (i *Int) Mul(a, b Element) Element {
 	ai := a.(*Int)
 	bi := b.(*Int)
 	i.M = ai.M
@@ -234,7 +233,7 @@ func (i *Int) Mul(a, b group.Element) group.Element {
 }
 
 // Set to a * b^-1 mod M, where b^-1 is the modular inverse of b.
-func (i *Int) Div(a, b group.Element) group.FieldElement {
+func (i *Int) Div(a, b Element) FieldElement {
 	ai := a.(*Int)
 	bi := b.(*Int)
 	var t big.Int
@@ -245,7 +244,7 @@ func (i *Int) Div(a, b group.Element) group.FieldElement {
 }
 
 // Set to the modular inverse of a with respect to modulus M.
-func (i *Int) Inv(a group.Element) group.FieldElement {
+func (i *Int) Inv(a Element) FieldElement {
 	ai := a.(*Int)
 	i.M = ai.M
 	i.V.ModInverse(&a.(*Int).V, i.M)
@@ -254,7 +253,7 @@ func (i *Int) Inv(a group.Element) group.FieldElement {
 
 // Set to a^e mod M,
 // where e is an arbitrary big.Int exponent (not necessarily 0 <= e < M).
-func (i *Int) Exp(a group.Element, e *big.Int) group.Element {
+func (i *Int) Exp(a Element, e *big.Int) Element {
 	ai := a.(*Int)
 	i.M = ai.M
 	i.V.Exp(&ai.V, e, i.M)
@@ -276,7 +275,7 @@ func (i *Int) legendre() int {
 
 // Set to the Jacobi symbol of (a/M), which indicates whether a is
 // zero (0), a positive square in M (1), or a non-square in M (-1).
-func (i *Int) Jacobi(as group.Element) {
+func (i *Int) Jacobi(as Element) {
 	ai := as.(*Int)
 	i.M = ai.M
 	i.V.SetInt64(int64(math.Jacobi(&ai.V, i.M)))
@@ -286,7 +285,7 @@ func (i *Int) Jacobi(as group.Element) {
 // Assumes the modulus M is an odd prime.
 // Returns true on success, false if input a is not a square.
 // (This really should be part of Go's big.Int library.)
-func (i *Int) Sqrt(as group.Element) bool {
+func (i *Int) Sqrt(as Element) bool {
 	ai := as.(*Int)
 	i.M = ai.M
 	return math.Sqrt(&i.V, &ai.V, ai.M)
@@ -346,11 +345,11 @@ func (i *Int) UnmarshalBinary(buf []byte) error {
 }
 
 func (i *Int) Marshal(c context.Context, w io.Writer) (int, error) {
-	return group.Marshal(c, i, w)
+	return Marshal(c, i, w)
 }
 
 func (i *Int) Unmarshal(c context.Context, r io.Reader) (int, error) {
-	return group.Unmarshal(c, i, r)
+	return Unmarshal(c, i, r)
 }
 
 // Encode the value of this Int into a big-endian byte-slice

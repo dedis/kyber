@@ -6,13 +6,12 @@ import (
 	"crypto/cipher"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
-	"github.com/dedis/crypto/nist"
 	"io"
 	"math/big"
 )
 
 type basicPoint struct {
-	x, y nist.Int
+	x, y group.Int
 	c    *BasicCurve
 }
 
@@ -22,7 +21,7 @@ func (P *basicPoint) initXY(x, y *big.Int, c abstract.Group) {
 	P.y.Init(y, &P.c.P)
 }
 
-func (P *basicPoint) getXY() (x, y *nist.Int) {
+func (P *basicPoint) getXY() (x, y *group.Int) {
 	return &P.x, &P.y
 }
 
@@ -32,8 +31,8 @@ func (P *basicPoint) String() string {
 
 // Create a new ModInt representing a coordinate on this curve,
 // with a given int64 integer value for constant-initialization convenience.
-func (P *basicPoint) coord(v int64) *nist.Int {
-	return nist.NewInt(v, &P.c.P)
+func (P *basicPoint) coord(v int64) *group.Int {
+	return group.NewInt(v, &P.c.P)
 }
 
 func (P *basicPoint) MarshalSize() int {
@@ -121,7 +120,7 @@ func (P *basicPoint) Add(P1, P2 abstract.Point) abstract.Point {
 	x1, y1 := E1.x, E1.y
 	x2, y2 := E2.x, E2.y
 
-	var t1, t2, dm, nx, dx, ny, dy nist.Int
+	var t1, t2, dm, nx, dx, ny, dy group.Int
 
 	// Reused part of denominator: dm = d*x1*x2*y1*y2
 	dm.Mul(&P.c.d, &x1).Mul(&dm, &x2).Mul(&dm, &y1).Mul(&dm, &y2)
@@ -164,7 +163,7 @@ func (P *basicPoint) Neg(A abstract.Point) abstract.Point {
 
 // Multiply point p by scalar s using the repeated doubling method.
 func (P *basicPoint) Mul(G abstract.Point, s abstract.Secret) abstract.Point {
-	v := s.(*nist.Int).V
+	v := s.(*group.Int).V
 	if G == nil {
 		return P.Base().Mul(P, s)
 	}

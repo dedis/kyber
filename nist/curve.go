@@ -167,7 +167,7 @@ func (p *curvePoint) Neg(a group.Element) group.Element {
 }
 
 func (p *curvePoint) Mul(b, s group.Element) group.Element {
-	cs := s.(*Int)
+	cs := s.(*group.Int)
 	if b != nil {
 		cb := b.(*curvePoint)
 		p.x, p.y = p.c.ScalarMult(cb.x, cb.y, cs.V.Bytes())
@@ -225,7 +225,7 @@ func (c *curve) ScalarLen() int { return (c.p.N.BitLen() + 7) / 8 }
 
 // Create a Scalar associated with this curve.
 func (c *curve) Scalar() group.FieldElement {
-	return NewInt(0, c.p.N)
+	return group.NewInt(0, c.p.N)
 }
 
 // Number of bytes required to store one coordinate on this curve

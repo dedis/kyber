@@ -5,28 +5,28 @@ import (
 	//"encoding/hex"
 	"crypto/cipher"
 	"github.com/dedis/crypto/math"
-	"github.com/dedis/crypto/nist"
+	"github.com/dedis/crypto/group"
 )
 
-func chi(r, v *nist.Int) {
+func chi(r, v *group.Int) {
 	r.Init64(int64(math.Jacobi(&v.V, v.M)), v.M)
 }
 
 // Elligator 1 parameters
 type el1param struct {
 	ec      *curve   // back-pointer to curve
-	c, r, s nist.Int // c,r,s parameters
-	r2m2    nist.Int // r^2-2
-	invc2   nist.Int // 1/c^2
+	c, r, s group.Int // c,r,s parameters
+	r2m2    group.Int // r^2-2
+	invc2   group.Int // 1/c^2
 	pp1d4   big.Int  // (p+1)/4
-	cm1s    nist.Int // (c-1)s
-	m2      nist.Int // -2
-	c3x     nist.Int // 2s(c-1)Chi(c)/r
+	cm1s    group.Int // (c-1)s
+	m2      group.Int // -2
+	c3x     group.Int // 2s(c-1)Chi(c)/r
 }
 
 // Initialize Elligator 1 parameters given magic point s
 func (el *el1param) init(ec *curve, s *big.Int) *el1param {
-	var two, invc, cm1, d nist.Int
+	var two, invc, cm1, d group.Int
 
 	el.ec = ec
 	el.s.Init(s, &ec.P)
@@ -80,7 +80,7 @@ func (el *el1param) padmask() byte {
 // See section 3.2 of the Elligator paper.
 func (el *el1param) HideDecode(P point, rep []byte) {
 	ec := el.ec
-	var t, u, u2, v, Chiv, X, Y, x, y, t1, t2 nist.Int
+	var t, u, u2, v, Chiv, X, Y, x, y, t1, t2 group.Int
 
 	l := ec.ElementLen()
 	if len(rep) != l {
@@ -135,7 +135,7 @@ func (el *el1param) HideDecode(P point, rep []byte) {
 func (el *el1param) HideEncode(P point, rand cipher.Stream) []byte {
 	ec := el.ec
 	x, y := P.getXY()
-	var a, b, etar, etarp1, X, z, u, t, t1 nist.Int
+	var a, b, etar, etarp1, X, z, u, t, t1 group.Int
 
 	// condition 1: a = y+1 is nonzero
 	a.Add(y, &ec.one)
