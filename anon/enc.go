@@ -11,7 +11,7 @@ import (
 func keyPair(suite *abstract.Suite, rand cipher.Stream,
 	hide bool) (abstract.Point, abstract.Scalar, []byte) {
 
-	x := suite.Scalar().Pick(nil, rand)
+	x := suite.Scalar().Random(rand)
 	X := suite.Point().BaseMul(x)
 	if !hide {
 		Xb, _ := X.MarshalBinary()
@@ -23,7 +23,7 @@ func keyPair(suite *abstract.Suite, rand cipher.Stream,
 		if Xb != nil {
 			return X, x, Xb // success
 		}
-		x.Pick(nil, rand) // try again with a new key
+		x.Random(rand) // try again with a new key
 		X.BaseMul(x)
 	}
 }

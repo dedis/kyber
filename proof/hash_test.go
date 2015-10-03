@@ -17,8 +17,8 @@ func ExampleHashProve_1() {
 	B := suite.Point().Base() // standard base point
 
 	// Create a public/private keypair (X,x)
-	x := suite.Scalar().Pick(nil, rand) // create a private key x
-	X := suite.Point().BaseMul(x)       // corresponding public key X
+	x := suite.Scalar().Random(rand) // create a private key x
+	X := suite.Point().BaseMul(x)    // corresponding public key X
 
 	// Generate a proof that we know the discrete logarithm of X.
 	M := "Hello World!" // message we want to sign
@@ -84,19 +84,19 @@ func ExampleHashProve_2() {
 	// Create an anonymity ring of random "public keys"
 	X := make([]abstract.Point, 3)
 	for i := range X { // pick random points
-		X[i], _ = suite.Point().Pick(nil, rand)
+		X[i] = suite.Point().Random(rand)
 	}
 
 	// Make just one of them an actual public/private keypair (X[mine],x)
-	mine := 2                           // only the signer knows this
-	x := suite.Scalar().Pick(nil, rand) // create a private key x
-	X[mine] = suite.Point().BaseMul(x)  // corresponding public key X
+	mine := 2                          // only the signer knows this
+	x := suite.Scalar().Random(rand)   // create a private key x
+	X[mine] = suite.Point().BaseMul(x) // corresponding public key X
 
 	// Produce the correct linkage tag for the signature,
 	// as a pseudorandom base point multiplied by our private key.
 	linkScope := []byte("The Linkage Scope")
 	linkHash := suite.Cipher(linkScope)
-	linkBase, _ := suite.Point().Pick(nil, linkHash)
+	linkBase := suite.Point().Random(linkHash)
 	linkTag := suite.Point().Mul(linkBase, x)
 
 	// Generate the proof predicate: an OR branch for each public key.

@@ -9,11 +9,11 @@ import (
 )
 
 func TestRep(t *testing.T) {
-	suite := abstract.NewSuite(suite.WithDefault(nil))
+	suite := suite.Default(nil)
 	rand := suite.Cipher(abstract.FreshKey)
 
-	x := suite.Scalar().Pick(nil, rand)
-	y := suite.Scalar().Pick(nil, rand)
+	x := suite.Scalar().Random(rand)
+	y := suite.Scalar().Random(rand)
 	B := suite.Point().Base()
 	X := suite.Point().BaseMul(x)
 	Y := suite.Point().Mul(X, y)
@@ -89,8 +89,8 @@ func ExampleRep_2() {
 	B := suite.Point().Base() // standard base point
 
 	// Create a public/private keypair (X,x)
-	x := suite.Scalar().Pick(nil, rand) // create a private key x
-	X := suite.Point().BaseMul(x)       // corresponding public key X
+	x := suite.Scalar().Random(rand) // create a private key x
+	X := suite.Point().BaseMul(x)    // corresponding public key X
 
 	// Generate a proof that we know the discrete logarithm of X.
 	sval := map[string]abstract.Scalar{"x": x}
@@ -201,9 +201,9 @@ func ExampleOr_2() {
 	B := suite.Point().Base() // standard base point
 
 	// Create a public/private keypair (X,x) and a random point Y
-	x := suite.Scalar().Pick(nil, rand)   // create a private key x
-	X := suite.Point().BaseMul(x)         // corresponding public key X
-	Y, _ := suite.Point().Pick(nil, rand) // pick a random point Y
+	x := suite.Scalar().Random(rand) // create a private key x
+	X := suite.Point().BaseMul(x)    // corresponding public key X
+	Y := suite.Point().Random(rand)  // pick a random point Y
 
 	// We'll need to tell the prover which Or clause is actually true.
 	// In this case clause 0, the first sub-predicate, is true:

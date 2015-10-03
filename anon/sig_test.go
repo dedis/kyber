@@ -26,7 +26,7 @@ func ExampleSign_1() {
 	// Create a public/private keypair (X[mine],x)
 	X := make([]abstract.Point, 1)
 	mine := 0                          // which public key is mine
-	x := suite.Scalar().Pick(nil, rand)     // create a private key x
+	x := suite.Scalar().Random(rand)   // create a private key x
 	X[mine] = suite.Point().BaseMul(x) // corresponding public key X
 
 	// Generate the signature
@@ -74,12 +74,12 @@ func ExampleSign_anonSet() {
 	// Create an anonymity set of random "public keys"
 	X := make([]abstract.Point, 3)
 	for i := range X { // pick random points
-		X[i], _ = suite.Point().Pick(nil, rand)
+		X[i] = suite.Point().Random(rand)
 	}
 
 	// Make just one of them an actual public/private keypair (X[mine],x)
 	mine := 1                          // only the signer knows this
-	x := suite.Scalar().Pick(nil, rand)     // create a private key x
+	x := suite.Scalar().Random(rand)   // create a private key x
 	X[mine] = suite.Point().BaseMul(x) // corresponding public key X
 
 	// Generate the signature
@@ -133,14 +133,14 @@ func ExampleSign_linkable() {
 	// Create an anonymity set of random "public keys"
 	X := make([]abstract.Point, 3)
 	for i := range X { // pick random points
-		X[i], _ = suite.Point().Pick(nil, rand)
+		X[i] = suite.Point().Random(rand)
 	}
 
 	// Make two actual public/private keypairs (X[mine],x)
 	mine1 := 1 // only the signer knows this
 	mine2 := 2
-	x1 := suite.Scalar().Pick(nil, rand) // create a private key x
-	x2 := suite.Scalar().Pick(nil, rand)
+	x1 := suite.Scalar().Random(rand) // create a private key x
+	x2 := suite.Scalar().Random(rand)
 	X[mine1] = suite.Point().BaseMul(x1) // corresponding public key X
 	X[mine2] = suite.Point().BaseMul(x2)
 
@@ -258,7 +258,7 @@ func benchGenKeys(suite abstract.Suite,
 	// Create an anonymity set of random "public keys"
 	X := make([]abstract.Point, nkeys)
 	for i := range X { // pick random points
-		X[i], _ = suite.Point().Pick(nil, rand)
+		X[i] = suite.Point().Random(rand)
 	}
 
 	// Make just one of them an actual public/private keypair (X[mine],x)

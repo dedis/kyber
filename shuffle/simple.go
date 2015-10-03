@@ -141,7 +141,7 @@ func (ss *SimpleShuffle) Prove(G abstract.Point, gamma abstract.Scalar,
 			theta[i], nilScalar)
 	}
 	Theta[thlen] = thenc(ste, G, theta[thlen-1], gamma,
-			nilScalar, nilScalar)
+		nilScalar, nilScalar)
 	ss.p2.Theta = Theta
 	if err := ctx.Put(ss.p2); err != nil {
 		return err

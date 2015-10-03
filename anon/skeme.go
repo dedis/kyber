@@ -45,7 +45,7 @@ func (sk *SKEME) Init(suite *abstract.Suite, rand cipher.Stream,
 	sk.lpri, sk.rpub = lpri, rpub
 
 	// Create our Diffie-Hellman keypair
-	sk.lx = suite.Scalar().Pick(nil, rand)
+	sk.lx = suite.Scalar().Random(rand)
 	sk.lX = suite.Point().BaseMul(sk.lx)
 	sk.lXb, _ = sk.lX.MarshalBinary()
 

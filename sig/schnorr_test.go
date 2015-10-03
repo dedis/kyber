@@ -1,7 +1,7 @@
 package sig
 
 import (
-	"github.com/dedis/crypto/suites"
+	"github.com/dedis/crypto/suite"
 	"testing"
 )
 

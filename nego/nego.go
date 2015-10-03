@@ -39,7 +39,7 @@ type suiteKey struct {
 
 /*
 func (s *suiteKey) fresh(suite abstract.Suite) {
-	dhpri := entry.suite.Scalar().Pick(nil, rand)
+	dhpri := entry.suite.Scalar().Random(rand)
 	dhpub := entry.Suite.Point().BaseMul(dhpri)
 	dhrep := dhpub.UniformEncode()
 	suites[suite] = suite{dhpri,dhpub}
@@ -368,7 +368,7 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 		pub := si.ste.Point()
 		var buf []byte
 		for {
-			pri.Pick(nil, rand) // pick fresh secret
+			pri.Random(rand) // pick fresh secret
 			pub.BaseMul(pri)    // get DH public key
 			buf = pub.(abstract.Hiding).HideEncode(rand)
 			if buf != nil {

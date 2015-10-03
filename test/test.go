@@ -48,8 +48,8 @@ func testGroup(suite *abstract.Suite, rand cipher.Stream) []abstract.Point {
 	sone := suite.Scalar().One()
 
 	// Do a simple Diffie-Hellman test
-	s1 := suite.Scalar().Pick(nil, rand)
-	s2 := suite.Scalar().Pick(nil, rand)
+	s1 := suite.Scalar().Random(rand)
+	s2 := suite.Scalar().Random(rand)
 	if s1.Equal(s2) {
 		panic("uh-oh, not getting unique secrets!")
 	}
@@ -144,7 +144,7 @@ func testGroup(suite *abstract.Suite, rand cipher.Stream) []abstract.Point {
 	// Test randomly picked points
 	last := gen
 	for i := 0; i < 5; i++ {
-		rgen, _ := suite.Point().Pick(nil, rand)
+		rgen := suite.Point().Random(rand)
 		if rgen.Equal(last) {
 			panic("Pick() not producing unique points")
 		}
@@ -175,7 +175,7 @@ func testGroup(suite *abstract.Suite, rand cipher.Stream) []abstract.Point {
 	buf := new(bytes.Buffer)
 	for i := 0; i < 5; i++ {
 		buf.Reset()
-		s := suite.Scalar().Pick(nil, rand)
+		s := suite.Scalar().Random(rand)
 		if _, err := s.Marshal(suite.Context(), buf); err != nil {
 			panic("encoding of secret fails: " + err.Error())
 		}
@@ -187,7 +187,7 @@ func testGroup(suite *abstract.Suite, rand cipher.Stream) []abstract.Point {
 		}
 
 		buf.Reset()
-		p, _ := suite.Point().Pick(nil, rand)
+		p := suite.Point().Random(rand)
 		if _, err := p.Marshal(suite.Context(), buf); err != nil {
 			panic("encoding of point fails: " + err.Error())
 		}

@@ -336,7 +336,7 @@ func Shuffle(suite *abstract.Suite, g, h abstract.Point, X, Y []abstract.Point,
 	// Pick a fresh ElGamal blinding factor for each pair
 	beta := make([]abstract.Scalar, k)
 	for i := 0; i < k; i++ {
-		beta[i] = ps.ste.Scalar().Pick(nil, rand)
+		beta[i] = ps.ste.Scalar().Random(rand)
 	}
 
 	// Create the output pair vectors

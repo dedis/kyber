@@ -6,16 +6,18 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dedis/crypto/abstract"
+	"golang.org/x/net/context"
 	"hash"
 	"io"
 )
 
+/*
 // SchnorrScheme implements the classic Schnorr signature scheme,
 // as originally proposed by Claus Peter Schnorr in
 // "Efficient identification and signatures for smart cards",
 // CRYPTO '89.
 type SchnorrScheme struct {
-	abstract.Suite          // Required: ciphersuite for signing scheme to use
+	*abstract.Suite          // Required: ciphersuite for signing scheme to use
 	hidden         struct{} // keep it extensible
 }
 
@@ -31,16 +33,17 @@ func (s SchnorrScheme) PublicKey() PublicKey {
 func (s SchnorrScheme) SecretKey() SecretKey {
 	return &SchnorrSecretKey{SchnorrPublicKey{s, nil}, nil}
 }
+*/
 
 ///// Schnorr public keys
 
 // SchnorrPublicKey represents a public key for verifying Schnorr signatures.
 type SchnorrPublicKey struct {
-	Suite abstract.Suite	// Crypto suite
-	Point abstract.Point	// Curve point representing public key
+	Suite *abstract.Suite // Crypto suite
+	Point abstract.Point  // Curve point representing public key
 }
 
-func (k *SchnorrPublicKey) Init(suite abstract.Suite) *SchnorrPublicKey {
+func (k *SchnorrPublicKey) Init(suite *abstract.Suite) *SchnorrPublicKey {
 	k.Suite = suite
 	return k
 }
@@ -50,11 +53,11 @@ func (k *SchnorrPublicKey) String() string {
 }
 
 func (k *SchnorrPublicKey) Hash() hash.Hash {
-	return k.Suite.Hash()
+	return k.Suite.Hash(abstract.NoKey)
 }
 
 func (k *SchnorrPublicKey) SigSize() int {
-	return k.Suite.SecretLen() * 2
+	return k.Suite.ScalarLen() * 2
 }
 
 func (k *SchnorrPublicKey) Verify(sig []byte, hash hash.Hash) error {
@@ -62,7 +65,7 @@ func (k *SchnorrPublicKey) Verify(sig []byte, hash hash.Hash) error {
 
 	// Decode the signature
 	buf := bytes.NewBuffer(sig)
-	var c, r abstract.Secret
+	var c, r abstract.Scalar
 	if err := suite.Read(buf, &c, &r); err != nil {
 		return err
 	}
@@ -71,17 +74,17 @@ func (k *SchnorrPublicKey) Verify(sig []byte, hash hash.Hash) error {
 	var P, T abstract.Point
 	P = suite.Point()
 	T = suite.Point()
-	T.Add(T.Mul(nil, r), P.Mul(k.Point, c))
+	T.Add(T.BaseMul(r), P.Mul(k.Point, c))
 
 	// Update the hash to depend on the reconstructed point commitment
-	_, err := T.MarshalTo(hash)
+	_, err := T.Marshal(suite.Context(), hash)
 	if err != nil {
 		return err
 	}
 
 	// Reconstruct the challenge from the hash
 	hb := hash.Sum(nil)
-	cc := suite.Secret().SetBytes(hb)
+	cc := suite.Scalar().SetBytes(hb)
 
 	// Verify that the reconstructed challenge matches the signature
 	if !cc.Equal(c) {
@@ -99,16 +102,16 @@ func (k *SchnorrPublicKey) MarshalBinary() ([]byte, error) {
 	return k.Point.MarshalBinary()
 }
 
-func (k *SchnorrPublicKey) MarshalTo(w io.Writer) (int, error) {
-	return k.Point.MarshalTo(w)
+func (k *SchnorrPublicKey) Marshal(ctx context.Context, w io.Writer) (int, error) {
+	return k.Point.Marshal(ctx, w)
 }
 
 func (k *SchnorrPublicKey) UnmarshalBinary(b []byte) error {
 	return k.Point.UnmarshalBinary(b)
 }
 
-func (k *SchnorrPublicKey) UnmarshalFrom(r io.Reader) (int, error) {
-	return k.Point.UnmarshalFrom(r)
+func (k *SchnorrPublicKey) Unmarshal(ctx context.Context, r io.Reader) (int, error) {
+	return k.Point.Unmarshal(ctx, r)
 }
 
 ///// Schnorr secret keys
@@ -116,7 +119,12 @@ func (k *SchnorrPublicKey) UnmarshalFrom(r io.Reader) (int, error) {
 // SchnorrSecretKey represents a secret key for generating Schnorr signatures.
 type SchnorrSecretKey struct {
 	SchnorrPublicKey
-	Secret abstract.Secret	// Scalar representing secret key
+	Secret abstract.Scalar // Scalar representing secret key
+}
+
+func (k *SchnorrSecretKey) Init(suite *abstract.Suite) *SchnorrSecretKey {
+	k.SchnorrPublicKey.Init(suite)
+	return k
 }
 
 func (k *SchnorrSecretKey) String() string {
@@ -125,8 +133,8 @@ func (k *SchnorrSecretKey) String() string {
 }
 
 func (k *SchnorrSecretKey) Pick(rand cipher.Stream) SecretKey {
-	k.Secret = k.Suite.Secret().Pick(rand)
-	k.Point = k.Suite.Point().Mul(nil, k.Secret)
+	k.Secret = k.Suite.Scalar().Random(rand)
+	k.Point = k.Suite.Point().BaseMul(k.Secret)
 	return k
 }
 
@@ -135,21 +143,21 @@ func (k *SchnorrSecretKey) Sign(sig []byte, hash hash.Hash,
 	suite := k.Suite
 
 	// Create random secret v and public point commitment T
-	v := suite.Secret().Pick(rand)
-	T := suite.Point().Mul(nil, v)
+	v := suite.Scalar().Random(rand)
+	T := suite.Point().BaseMul(v)
 
 	// Update the hash to depend on the point commitment
-	_, err := T.MarshalTo(hash)
+	_, err := T.Marshal(suite.Context(), hash)
 	if err != nil {
 		return nil, err
 	}
 
 	// Use the resulting hash to generate a Schnorr challenge
 	hb := hash.Sum(nil)
-	c := suite.Secret().SetBytes(hb)
+	c := suite.Scalar().SetBytes(hb)
 
 	// Compute response r = v - x*c
-	r := suite.Secret()
+	r := suite.Scalar()
 	r.Mul(k.Secret, c).Sub(v, r)
 
 	// Produce verifiable signature {c, r}
@@ -172,29 +180,29 @@ func (k *SchnorrSecretKey) MarshalBinary() ([]byte, error) {
 	return k.Secret.MarshalBinary()
 }
 
-func (k *SchnorrSecretKey) MarshalTo(w io.Writer) (int, error) {
-	return k.Secret.MarshalTo(w)
+func (k *SchnorrSecretKey) Marshal(ctx context.Context, w io.Writer) (int, error) {
+	return k.Secret.Marshal(ctx, w)
 }
 
 func (k *SchnorrSecretKey) UnmarshalBinary(b []byte) error {
-	if k.Secret == nil {
-		k.Secret = k.Suite.Secret()
+	if k.Secret.Nil() {
+		k.Secret = k.Suite.Scalar()
 	}
 	if err := k.Secret.UnmarshalBinary(b); err != nil {
 		return err
 	}
-	k.Point = k.Suite.Point().Mul(nil, k.Secret)
+	k.Point = k.Suite.Point().BaseMul(k.Secret)
 	return nil
 }
 
-func (k *SchnorrSecretKey) UnmarshalFrom(r io.Reader) (int, error) {
-	if k.Secret == nil {
-		k.Secret = k.Suite.Secret()
+func (k *SchnorrSecretKey) Unmarshal(ctx context.Context, r io.Reader) (int, error) {
+	if k.Secret.Nil() {
+		k.Secret = k.Suite.Scalar()
 	}
-	n, err := k.Secret.UnmarshalFrom(r)
+	n, err := k.Secret.Unmarshal(ctx, r)
 	if err != nil {
 		return n, err
 	}
-	k.Point = k.Suite.Point().Mul(nil, k.Secret)
+	k.Point = k.Suite.Point().BaseMul(k.Secret)
 	return n, nil
 }

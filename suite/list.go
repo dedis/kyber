@@ -6,8 +6,8 @@ import (
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher/sha3"
 	"github.com/dedis/crypto/edwards/ed25519"
-	"github.com/dedis/crypto/openssl"
 	"github.com/dedis/crypto/nist"
+	"github.com/dedis/crypto/openssl"
 	"golang.org/x/net/context"
 )
 
@@ -21,9 +21,9 @@ func suite(ctx abstract.Context, pub, sym withFunc) *abstract.Suite {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	ctx = pub(ctx)	// Configure public-key group
-	ctx = sym(ctx)	// Configure symmetric-key cipher
-	return abstract.GetSuite(ctx)	// Turn it into a Suite object
+	ctx = pub(ctx)                // Configure public-key group
+	ctx = sym(ctx)                // Configure symmetric-key cipher
+	return abstract.GetSuite(ctx) // Turn it into a Suite object
 }
 
 // Create a NIST-based suite with 128-bit security,
@@ -63,9 +63,9 @@ type Config func(parent abstract.Context) *abstract.Suite
 
 func All() map[string]Config {
 	return map[string]Config{
-		"nist128": Nist128,
+		"nist128":        Nist128,
 		"nist128openssl": Nist128openssl,
-		"ed128": Ed128,
+		"ed128":          Ed128,
 	}
 }
 

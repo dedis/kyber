@@ -2,7 +2,6 @@ package test
 
 import (
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/random"
 )
 
 // A generic benchmark suite for abstract groups.
@@ -16,11 +15,11 @@ type GroupBench struct {
 
 func NewGroupBench(suite *abstract.Suite) *GroupBench {
 	var gb GroupBench
-	gb.x = suite.Scalar().Pick(nil, random.Fresh())
-	gb.y = suite.Scalar().Pick(nil, random.Fresh())
+	gb.x = suite.Scalar().Fresh()
+	gb.y = suite.Scalar().Fresh()
 	gb.xe, _ = gb.x.MarshalBinary()
-	gb.X, _ = suite.Point().Pick(nil, random.Fresh())
-	gb.Y, _ = suite.Point().Pick(nil, random.Fresh())
+	gb.X = suite.Point().Fresh()
+	gb.Y = suite.Point().Fresh()
 	gb.Xe, _ = gb.X.MarshalBinary()
 	return &gb
 }
@@ -63,7 +62,7 @@ func (gb GroupBench) ScalarInv(iters int) {
 
 func (gb GroupBench) ScalarPick(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.x.Pick(nil, random.Fresh())
+		gb.x.Fresh()
 	}
 }
 
@@ -111,7 +110,7 @@ func (gb GroupBench) PointBaseMul(iters int) {
 
 func (gb GroupBench) PointPick(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.X.Pick(nil, random.Fresh())
+		gb.X.Fresh()
 	}
 }
 

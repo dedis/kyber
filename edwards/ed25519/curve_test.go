@@ -1,9 +1,9 @@
 package ed25519
 
 import (
+	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher/sha3"
 	"github.com/dedis/crypto/test"
-	"github.com/dedis/crypto/abstract"
 	"golang.org/x/net/context"
 	"testing"
 )

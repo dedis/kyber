@@ -11,6 +11,9 @@ import (
 // Context is an alias of the standard context.Context interface,
 // which we use to pass cryptographic cipher suite configuration context
 // such as specific symmetric ciphers and public-key groups to use.
+//
+// XXX this type alias isn't as useful as I thought it would be;
+// we could probably do without it.
 type Context context.Context
 
 // Suite provides a convenient front-end convenience class for accessing

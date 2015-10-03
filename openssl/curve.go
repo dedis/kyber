@@ -133,4 +133,3 @@ func WithP384(parent abstract.Context) abstract.Context {
 func WithP521(parent abstract.Context) abstract.Context {
 	return group.Context(parent, new(curve).initP521())
 }
-

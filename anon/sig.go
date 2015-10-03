@@ -39,7 +39,7 @@ func signH1(suite *abstract.Suite, H1pre abstract.Cipher, PG, PH abstract.Point)
 		H1.Write(PHb)
 	}
 	H1.Message(nil, nil, nil) // finish message absorption
-	return suite.Scalar().Pick(nil, H1)
+	return suite.Scalar().Random(H1)
 }
 
 // Sign creates an optionally anonymous, optionally linkable
@@ -130,7 +130,7 @@ func Sign(suite *abstract.Suite, random cipher.Stream, message []byte,
 	var linkBase, linkTag abstract.Point
 	if linkScope != nil {
 		linkStream := suite.Cipher(linkScope)
-		linkBase, _ = suite.Point().Pick(nil, linkStream)
+		linkBase = suite.Point().Random(linkStream)
 		linkTag = suite.Point().Mul(linkBase, privateKey)
 	}
 
@@ -140,7 +140,7 @@ func Sign(suite *abstract.Suite, random cipher.Stream, message []byte,
 	H1pre := signH1pre(suite, linkScope, linkTag, message)
 
 	// Pick a random commit for my ring position
-	u := suite.Scalar().Pick(nil, random)
+	u := suite.Scalar().Random(random)
 	var UB, UL abstract.Point
 	UB = suite.Point().BaseMul(u)
 	if linkScope != nil {
@@ -158,7 +158,7 @@ func Sign(suite *abstract.Suite, random cipher.Stream, message []byte,
 		PH = suite.Point()
 	}
 	for i := (pi + 1) % n; i != pi; i = (i + 1) % n {
-		s[i] = suite.Scalar().Pick(nil, random)
+		s[i] = suite.Scalar().Random(random)
 		PG.Add(PG.BaseMul(s[i]), P.Mul(L[i], c[i]))
 		if linkScope != nil {
 			PH.Add(PH.Mul(linkBase, s[i]), P.Mul(linkTag, c[i]))
@@ -208,7 +208,7 @@ func Verify(suite *abstract.Suite, message []byte, anonymitySet Set,
 			return nil, err
 		}
 		linkStream := suite.Cipher(linkScope)
-		linkBase, _ = suite.Point().Pick(nil, linkStream)
+		linkBase = suite.Point().Random(linkStream)
 		linkTag = sig.Tag
 	} else { // unlinkable ring signature
 		if err := suite.Read(buf, &sig.uSig); err != nil {

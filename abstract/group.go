@@ -3,6 +3,7 @@ package abstract
 import (
 	"crypto/cipher"
 	"github.com/dedis/crypto/group"
+	"github.com/dedis/crypto/random"
 	"golang.org/x/net/context"
 	"io"
 )
@@ -90,6 +91,17 @@ func (s Scalar) Pick(data []byte, rand cipher.Stream) Scalar {
 	return s
 }
 
+// Set to a scalar chosen from a given random or pseudo-random source
+func (s Scalar) Random(rand cipher.Stream) Scalar {
+	s.FieldElement.Pick(nil, rand)
+	return s
+}
+
+// Set to a scalar chosen from fresh cryptographic random bits
+func (s Scalar) Fresh() Scalar {
+	return s.Random(random.Fresh())
+}
+
 // Return true if this Scalar contains no FieldElement object
 func (s Scalar) Nil() bool {
 	return s.FieldElement == nil
@@ -153,6 +165,17 @@ func (p Point) Base() Point {
 func (p Point) Pick(data []byte, rand cipher.Stream) (Point, []byte) {
 	rem := p.Element.Pick(data, rand)
 	return p, rem
+}
+
+// Set to a point chosen from a given random or pseudo-random source
+func (p Point) Random(rand cipher.Stream) Point {
+	p.Element.Pick(nil, rand)
+	return p
+}
+
+// Set to a scalar chosen from fresh cryptographic random bits
+func (p Point) Fresh() Point {
+	return p.Random(random.Fresh())
 }
 
 // Add points so that their secrets add homomorphically

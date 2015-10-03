@@ -1,11 +1,11 @@
 package openssl
 
 import (
-	"github.com/dedis/crypto/test"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher/sha3"
-	"testing"
+	"github.com/dedis/crypto/test"
 	"golang.org/x/net/context"
+	"testing"
 )
 
 var ctxBase = sha3.WithShake128(context.Background())

@@ -54,7 +54,7 @@ func Biffle(suite *abstract.Suite, G, H abstract.Point,
 	// Pick a fresh ElGamal blinding factor for each pair
 	var beta [2]abstract.Scalar
 	for i := 0; i < 2; i++ {
-		beta[i] = suite.Scalar().Pick(nil, rand)
+		beta[i] = suite.Scalar().Random(rand)
 	}
 
 	// Create the output pair vectors
@@ -90,7 +90,7 @@ func BiffleTest(suite *abstract.Suite, N int) {
 	rand := suite.Cipher(abstract.FreshKey)
 
 	// Create a "server" private/public keypair
-	h := suite.Scalar().Pick(nil, rand)
+	h := suite.Scalar().Random(rand)
 	H := suite.Point().BaseMul(h)
 
 	// Create a set of ephemeral "client" keypairs to shuffle
@@ -98,7 +98,7 @@ func BiffleTest(suite *abstract.Suite, N int) {
 	var C [2]abstract.Point
 	//	fmt.Println("\nclient keys:")
 	for i := 0; i < 2; i++ {
-		c[i] = suite.Scalar().Pick(nil, rand)
+		c[i] = suite.Scalar().Random(rand)
 		C[i] = suite.Point().BaseMul(c[i])
 		//		fmt.Println(" "+C[i].String())
 	}
@@ -107,7 +107,7 @@ func BiffleTest(suite *abstract.Suite, N int) {
 	var X, Y [2]abstract.Point
 	r := suite.Scalar() // temporary
 	for i := 0; i < 2; i++ {
-		r.Pick(nil, rand)
+		r.Random(rand)
 		X[i] = suite.Point().BaseMul(r)
 		Y[i] = suite.Point().Mul(H, r) // ElGamal blinding factor
 		Y[i].Add(Y[i], C[i])           // Encrypted client public key

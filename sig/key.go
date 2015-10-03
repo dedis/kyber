@@ -2,7 +2,7 @@ package sig
 
 import (
 	"crypto/cipher"
-	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/marshal"
 	"hash"
 )
 
@@ -12,10 +12,10 @@ import (
 // but it assumes that the signing scheme produces and consumes
 // fixed-size signatures.
 type PublicKey interface {
-	abstract.Marshaling
+	marshal.Marshaling
 
 	// Produce a human-readable representation of a PublicKey
-	String() string
+	//String() string
 
 	// Create an instance of the hash function this signature scheme uses.
 	Hash() hash.Hash
@@ -50,7 +50,9 @@ type SecretKey interface {
 // Scheme is an interface defining an abstract digital signature scheme.
 // An instance provides constructors for PublicKey and SecretKey objects
 // for a particular digital signature scheme.
+/*
 type Scheme interface {
 	PublicKey() PublicKey
 	SecretKey() SecretKey
 }
+*/

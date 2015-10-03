@@ -21,7 +21,7 @@ func hashSchnorr(suite *abstract.Suite, message []byte, p abstract.Point) abstra
 	pb, _ := p.MarshalBinary()
 	c := suite.Cipher(pb)
 	c.Message(nil, nil, message)
-	return suite.Scalar().Pick(nil, c)
+	return suite.Scalar().Random(c)
 }
 
 // This simplified implementation of Schnorr Signatures is based on
@@ -32,7 +32,7 @@ func SchnorrSign(suite *abstract.Suite, random cipher.Stream, message []byte,
 	privateKey abstract.Scalar) []byte {
 
 	// Create random secret v and public point commitment T
-	v := suite.Scalar().Pick(nil, random)
+	v := suite.Scalar().Random(random)
 	T := suite.Point().BaseMul(v)
 
 	// Create challenge c based on message and T
@@ -86,7 +86,7 @@ func ExampleSchnorr() {
 	rand := suite.Cipher([]byte("example"))
 
 	// Create a public/private keypair (X,x)
-	x := suite.Scalar().Pick(nil, rand) // create a private key x
+	x := suite.Scalar().Random(rand) // create a private key x
 	X := suite.Point().BaseMul(x)       // corresponding public key X
 
 	// Generate the signature
