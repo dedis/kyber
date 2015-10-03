@@ -128,23 +128,21 @@ type Suite interface {
 	Cipher(key []byte) State
 }
 
-// HashSuite is an optional extension to Suite
+// Hasher is an optional extension to Suite
 // allowing a ciphersuite to implement a specialized hash algorithm
 // in place of a generic one based on the message cipher.
-type HashSuite interface {
-	Suite
+type Hasher interface {
 
 	// Construct a symmetric-key hash function.
 	Hash(key []byte) Hash
 }
 
-// HashSuite is an optional extension to Suite
+// Streamer is an optional extension to Suite
 // allowing a ciphersuite to implement a specialized hash algorithm
 // in place of a generic one based on the message cipher.
-type StreamSuite interface {
-	Suite
+type Streamer interface {
 
-	// Symmetric-key stream cipher
+	// Construct a symmetric-key stream cipher
 	Stream(key []byte) Stream
 }
 

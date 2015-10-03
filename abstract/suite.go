@@ -81,17 +81,17 @@ func (s *Suite) Cipher(key []byte) Cipher {
 // which may be NoKey for an unkeyed cipher
 // or FreshKey to use a fresh random key.
 func (s *Suite) Hash(key []byte) cipher.Hash {
-	if hashsuite, ok := s.cipher.(cipher.HashSuite); ok {
+	if hashsuite, ok := s.cipher.(cipher.Hasher); ok {
 		return hashsuite.Hash(key)
 	}
-	return cipher.NewHash(s.cipher.Cipher, 0)
+	return cipher.NewCipherHash(s.cipher.Cipher(key))
 }
 
 // Create a new Stream cipher with a given optional key,
 // which may be NoKey for an unkeyed cipher
 // or FreshKey to use a fresh random key.
 func (s *Suite) Stream(key []byte) cipher.Stream {
-	if streamsuite, ok := s.cipher.(cipher.StreamSuite); ok {
+	if streamsuite, ok := s.cipher.(cipher.Streamer); ok {
 		return streamsuite.Stream(key)
 	}
 	return Cipher{s.cipher.Cipher(key)}

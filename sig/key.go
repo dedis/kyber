@@ -3,6 +3,7 @@ package sig
 import (
 	"crypto/cipher"
 	"github.com/dedis/crypto/marshal"
+	"golang.org/x/net/context"
 	"hash"
 )
 
@@ -50,9 +51,8 @@ type SecretKey interface {
 // Scheme is an interface defining an abstract digital signature scheme.
 // An instance provides constructors for PublicKey and SecretKey objects
 // for a particular digital signature scheme.
-/*
 type Scheme interface {
+	Context() context.Context
 	PublicKey() PublicKey
 	SecretKey() SecretKey
 }
-*/

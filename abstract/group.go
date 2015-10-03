@@ -85,13 +85,15 @@ func (s Scalar) Inv(a Scalar) Scalar {
 	return s
 }
 
-// Set to a fresh random or pseudo-random secret
+// Set to a fresh random or pseudo-random scalar.
 func (s Scalar) Pick(data []byte, rand cipher.Stream) Scalar {
 	s.FieldElement.Pick(data, rand)
 	return s
 }
 
-// Set to a scalar chosen from a given random or pseudo-random source
+// Set to a scalar chosen from a given random or pseudo-random source.
+// The scalar is NOT necessarily chosen from a uniform random distribution:
+// some scalars may be up to 2x more likely to be picked than others.
 func (s Scalar) Random(rand cipher.Stream) Scalar {
 	s.FieldElement.Pick(nil, rand)
 	return s
@@ -139,8 +141,8 @@ type Point struct {
 }
 
 // Equality test for two Points derived from the same Group
-func (p Point) Equal(s2 Point) bool {
-	return p.Element.Equal(s2.Element)
+func (p Point) Equal(p2 Point) bool {
+	return p.Element.Equal(p2.Element)
 }
 
 // Set to neutral identity element
@@ -168,6 +170,8 @@ func (p Point) Pick(data []byte, rand cipher.Stream) (Point, []byte) {
 }
 
 // Set to a point chosen from a given random or pseudo-random source
+// The point is NOT necessarily chosen from a uniform random distribution:
+// some points may be up to 2x more likely to be picked than others.
 func (p Point) Random(rand cipher.Stream) Point {
 	p.Element.Pick(nil, rand)
 	return p

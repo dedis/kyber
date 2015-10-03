@@ -2,8 +2,8 @@ package sig
 
 import (
 	"bytes"
-	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto/marshal"
 	"github.com/stretchr/testify/assert"
 	"hash"
 	"io"
@@ -14,7 +14,7 @@ import (
 // supporting the interface defined in this package.
 func TestScheme(t *testing.T, scheme Scheme) {
 
-	rand := random.Stream
+	rand := random.Fresh()
 
 	k1 := scheme.SecretKey().Pick(rand)
 	k2 := scheme.SecretKey().Pick(rand)
@@ -22,9 +22,9 @@ func TestScheme(t *testing.T, scheme Scheme) {
 
 	// Key marshaling via MarshalTo
 	buf := bytes.Buffer{}
-	n, err := k1.MarshalTo(&buf)
+	n, err := k1.Marshal(scheme.Context(), &buf)
 	assert.NoError(t, err)
-	if rk1, ok := k1.(abstract.RigidMarshaling); ok {
+	if rk1, ok := k1.(marshal.RigidMarshaling); ok {
 		assert.Equal(t, n, rk1.MarshalSize())
 	}
 
@@ -35,7 +35,7 @@ func TestScheme(t *testing.T, scheme Scheme) {
 
 	// Key unmarshaling via UnmarshalFrom
 	k1c := scheme.SecretKey()
-	nc, err := k1c.UnmarshalFrom(&buf)
+	nc, err := k1c.Unmarshal(scheme.Context(), &buf)
 	assert.NoError(t, err)
 	assert.Equal(t, nc, n)
 	assert.Equal(t, k1.String(), k1c.String())

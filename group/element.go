@@ -54,10 +54,13 @@ type Element interface {
 	Mul(a, b Element) Element
 
 	// Set to a fresh [pseudo-]random element,
-	// optionally so as to embed given data.
+	// optionally embedding given data if data is non-nil.
 	// A given Element type supports embedding a limited
 	// number of data bytes, possibly zero.
 	// Returns any remainding data bytes not embedded.
+	// Even when picking random points without embedding data,
+	// elements are NOT necessarily chosen from a uniform distribution:
+	// some elements may be up to 2x more likely than others.
 	Pick(data []byte, rand cipher.Stream) []byte
 
 	// Return the maximum number of bytes that can always be embedded

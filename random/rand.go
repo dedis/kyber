@@ -23,8 +23,9 @@ func randOrDefault(rand Stream) Stream {
 	return rand
 }
 
-// Choose a uniform random BigInt with a given maximum BitLen.
-// If 'exact' is true, choose a BigInt with _exactly_ that BitLen, not less
+// Choose a uniform random large integer with a given maximum BitLen,
+// returning the big-endian representation of the integer as a byte-slice.
+// If 'exact' is true, choose an integer of _exactly_ bitlen bits, not less
 func Bits(bitlen uint, exact bool, rand Stream) []byte {
 	b := make([]byte, (bitlen+7)/8)
 	rand.XORKeyStream(b, b)
@@ -96,6 +97,38 @@ func Bytes(n int, rand Stream) []byte {
 	rand.XORKeyStream(b, b)
 	return b
 }
+
+// Create a Stream object representing
+// a specified finite-length stream of [pseudo-]random bytes,
+// most commonly the output of a cryptographic hash function.
+// The resulting Stream object behaves in effect as a one-time pad,
+// and panics if it runs out of bytes:
+// it should thus be used only in situations in which
+// it can be ensured by design that the one-time pad is long enough.
+func ByteStream(bytes []byte) Stream {
+	return &bytestream{bytes}
+}
+
+type bytestream struct {
+	bytes []byte
+}
+
+func (bs *bytestream) XORKeyStream(dst, src []byte) {
+	l := len(dst)
+	if len(src) != l {
+		panic("XORKeyStream: mismatched buffer lengths")
+	}
+	if len(bs.bytes) < l {
+		panic("ByteStream not long enough")
+	}
+
+	for i := 0; i < l; i++ {
+		dst[i] = src[i] ^ bs.bytes[i]
+	}
+	bs.bytes = bs.bytes[l:]
+}
+
+
 
 type randstream struct {
 }

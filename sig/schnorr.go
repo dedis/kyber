@@ -6,34 +6,36 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/random"
 	"golang.org/x/net/context"
 	"hash"
 	"io"
 )
 
-/*
 // SchnorrScheme implements the classic Schnorr signature scheme,
 // as originally proposed by Claus Peter Schnorr in
 // "Efficient identification and signatures for smart cards",
 // CRYPTO '89.
 type SchnorrScheme struct {
-	*abstract.Suite          // Required: ciphersuite for signing scheme to use
-	hidden         struct{} // keep it extensible
+	Suite *abstract.Suite          // Ciphersuite to use
 }
 
 // XXX maybe Scheme isn't really needed if we're exposing
 // the PublicKey/SecretKey types for each scheme?
 
+func (s SchnorrScheme) Context() context.Context {
+	return s.Suite.Context()
+}
+
 // Create a public key object for Schnorr signatures.
 func (s SchnorrScheme) PublicKey() PublicKey {
-	return &SchnorrPublicKey{s, nil}
+	return new(SchnorrPublicKey).Init(s.Suite)
 }
 
 // Create a secret key object for Schnorr signatures.
 func (s SchnorrScheme) SecretKey() SecretKey {
-	return &SchnorrSecretKey{SchnorrPublicKey{s, nil}, nil}
+	return new(SchnorrSecretKey).Init(s.Suite)
 }
-*/
 
 ///// Schnorr public keys
 
@@ -84,7 +86,7 @@ func (k *SchnorrPublicKey) Verify(sig []byte, hash hash.Hash) error {
 
 	// Reconstruct the challenge from the hash
 	hb := hash.Sum(nil)
-	cc := suite.Scalar().SetBytes(hb)
+	cc := suite.Scalar().Random(random.ByteStream(hb))
 
 	// Verify that the reconstructed challenge matches the signature
 	if !cc.Equal(c) {
@@ -154,7 +156,7 @@ func (k *SchnorrSecretKey) Sign(sig []byte, hash hash.Hash,
 
 	// Use the resulting hash to generate a Schnorr challenge
 	hb := hash.Sum(nil)
-	c := suite.Scalar().SetBytes(hb)
+	c := suite.Scalar().Random(random.ByteStream(hb))
 
 	// Compute response r = v - x*c
 	r := suite.Scalar()

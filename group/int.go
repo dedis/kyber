@@ -294,7 +294,8 @@ func (i *Int) Sqrt(as Element) bool {
 // Pick a [pseudo-]random integer modulo M
 // using bits from the given stream cipher.
 func (i *Int) Pick(data []byte, rand cipher.Stream) []byte {
-	i.V.Set(random.Int(i.M, rand))
+	i.V.SetBytes(random.Bits(uint(i.M.BitLen()), false, rand))
+	i.V.Mod(&i.V, i.M)
 	return data
 }
 

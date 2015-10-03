@@ -6,5 +6,5 @@ import (
 )
 
 func TestSignVerify(t *testing.T) {
-	TestScheme(t, SchnorrScheme{Suite: suites.Default})
+	TestScheme(t, SchnorrScheme{suite.Default(nil)})
 }
