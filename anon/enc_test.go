@@ -6,20 +6,20 @@ import (
 	//"testing"
 	"encoding/hex"
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/openssl"
+	"github.com/dedis/crypto/suite"
 )
 
 func ExampleEncrypt_1() {
 
 	// Crypto setup
-	suite := openssl.NewAES128SHA256P256()
+	suite := suite.Default(nil)
 	rand := suite.Cipher([]byte("example"))
 
 	// Create a public/private keypair (X[mine],x)
 	X := make([]abstract.Point, 1)
 	mine := 0                           // which public key is mine
-	x := suite.Secret().Pick(rand)      // create a private key x
-	X[mine] = suite.Point().BaseMul(x) // corresponding public key X
+	x := suite.Scalar().Pick(nil, rand) // create a private key x
+	X[mine] = suite.Point().BaseMul(x)  // corresponding public key X
 
 	// Encrypt a message with the public key
 	M := []byte("Hello World!") // message to encrypt
@@ -50,7 +50,7 @@ func ExampleEncrypt_1() {
 func ExampleEncrypt_anonSet() {
 
 	// Crypto setup
-	suite := openssl.NewAES128SHA256P256()
+	suite := suite.Default(nil)
 	rand := suite.Cipher([]byte("example"))
 
 	// Create an anonymity set of random "public keys"
@@ -61,8 +61,8 @@ func ExampleEncrypt_anonSet() {
 
 	// Make just one of them an actual public/private keypair (X[mine],x)
 	mine := 1                           // only the signer knows this
-	x := suite.Secret().Pick(rand)      // create a private key x
-	X[mine] = suite.Point().BaseMul(x) // corresponding public key X
+	x := suite.Scalar().Pick(nil, rand) // create a private key x
+	X[mine] = suite.Point().BaseMul(x)  // corresponding public key X
 
 	// Encrypt a message with all the public keys
 	M := []byte("Hello World!") // message to encrypt

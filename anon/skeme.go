@@ -7,6 +7,7 @@ import (
 	"errors"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
+	"hash"
 )
 
 // Pairwise anonymous key agreement for point-to-point interactions.
@@ -20,11 +21,11 @@ import (
 // which are not directly usable in multiparty contexts.
 //
 type SKEME struct {
-	suite    abstract.Suite
+	suite    *abstract.Suite
 	hide     bool
 	lpri     PriKey          // local private key
 	rpub     Set             // remote public key
-	lx       abstract.Secret // local Diffie-Hellman private key
+	lx       abstract.Scalar // local Diffie-Hellman private key
 	lX, rX   abstract.Point  // local,remote Diffie-Hellman pubkeys
 	lXb, rXb []byte          // local,remote DH pubkeys byte-encoded
 
@@ -37,14 +38,14 @@ type SKEME struct {
 }
 
 // Initialize...
-func (sk *SKEME) Init(suite abstract.Suite, rand cipher.Stream,
+func (sk *SKEME) Init(suite *abstract.Suite, rand cipher.Stream,
 	lpri PriKey, rpub Set, hide bool) {
 	sk.suite = suite
 	sk.hide = hide
 	sk.lpri, sk.rpub = lpri, rpub
 
 	// Create our Diffie-Hellman keypair
-	sk.lx = suite.Secret().Pick(rand)
+	sk.lx = suite.Scalar().Pick(nil, rand)
 	sk.lX = suite.Point().BaseMul(sk.lx)
 	sk.lXb, _ = sk.lX.MarshalBinary()
 
@@ -72,7 +73,7 @@ func (sk *SKEME) Recv(rm []byte) (bool, error) {
 	if len(M) < ptlen {
 		return false, errors.New("SKEME message too short for DH key")
 	}
-	if sk.rX == nil {
+	if sk.rX.Nil() {
 		rXb := M[:ptlen]
 		rX := sk.suite.Point()
 		if err := rX.UnmarshalBinary(M[:ptlen]); err != nil {
@@ -110,7 +111,8 @@ func (sk *SKEME) Recv(rm []byte) (bool, error) {
 
 func (sk *SKEME) mkmac(masterkey, Xb1, Xb2 []byte) (cipher.Stream, []byte) {
 	keylen := sk.ms.KeySize()
-	hmac := hmac.New(sk.suite.Hash, masterkey)
+	hash := func() hash.Hash { return sk.suite.Hash(abstract.NoKey) }
+	hmac := hmac.New(hash, masterkey)
 	hmac.Write(Xb1)
 	hmac.Write(Xb2)
 	key := hmac.Sum(nil)[:keylen]

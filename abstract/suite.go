@@ -1,11 +1,11 @@
 package abstract
 
 import (
-	"io"
-	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/cipher"
+	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/marshal"
 	"golang.org/x/net/context"
+	"io"
 )
 
 // Context is an alias of the standard context.Context interface,
@@ -16,9 +16,9 @@ type Context context.Context
 // Suite provides a convenient front-end convenience class for accessing
 // the public-key and symmetric-key ciphersuites configured in a context.
 type Suite struct {
-	ctx context.Context
-	group group.Group	// cached public-key cipher suite
-	cipher cipher.Suite	// cached symmetric-key cipher suite
+	ctx    context.Context
+	group  group.Group  // cached public-key cipher suite
+	cipher cipher.Suite // cached symmetric-key cipher suite
 }
 
 // Create a Suite object to provide access to the ciphersuite in given context.
@@ -111,8 +111,6 @@ var NoKey = cipher.NoKey
 
 // Pass FreshKey to a cipher constructor to create a freshly seeded cipher.
 var FreshKey = cipher.FreshKey
-
-
 
 // Sum uses a given ciphersuite's hash function to checksum a byte-slice.
 func Sum(suite Suite, data []byte) []byte {

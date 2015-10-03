@@ -248,4 +248,3 @@ func (sc *spongeCipher) Padding() byte {
 func (sc *spongeCipher) SetPadding(pad byte) {
 	sc.pad = pad
 }
-

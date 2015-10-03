@@ -1,10 +1,10 @@
 package abstract
 
 import (
-	"io"
 	"crypto/cipher"
 	"github.com/dedis/crypto/group"
 	"golang.org/x/net/context"
+	"io"
 )
 
 /*
@@ -114,7 +114,6 @@ func (s *Scalar) Unmarshal(ctx context.Context, r io.Reader) (int, error) {
 	return s.FieldElement.Unmarshal(ctx, r)
 }
 
-
 /*
 A Point abstractly represents an element of a public-key cryptographic Group.
 For example,
@@ -210,4 +209,3 @@ func (p *Point) Unmarshal(ctx context.Context, r io.Reader) (int, error) {
 	}
 	return p.Element.Unmarshal(ctx, r)
 }
-

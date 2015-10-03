@@ -23,6 +23,8 @@ import (
 	"runtime"
 	"unsafe"
 
+	"golang.org/x/net/context"
+
 	"github.com/dedis/crypto/group"
 )
 
@@ -112,7 +114,7 @@ func (p *point) PickLen() int {
 
 func (p *point) Pick(data []byte, rand cipher.Stream) []byte {
 
-	l := p.c.PointLen()
+	l := p.c.ElementLen()
 	dl := p.PickLen()
 	if dl > len(data) {
 		dl = len(data)
@@ -194,7 +196,7 @@ func (p *point) Neg(ca group.Element) group.Element {
 }
 
 func (p *point) Mul(cb, cs group.Element) group.Element {
-	s := cs.(*secret)
+	s := cs.(*scalar)
 	if cb == nil { // multiply standard generator
 		if C.EC_POINT_mul(p.c.g, p.p, s.bignum.bn, nil, nil,
 			p.c.ctx) == 0 {
@@ -243,11 +245,10 @@ func (p *point) UnmarshalBinary(buf []byte) error {
 	return nil
 }
 
-func (p *point) MarshalTo(w io.Writer) (int, error) {
-	return group.MarshalTo(p, w)
+func (p *point) Marshal(ctx context.Context, w io.Writer) (int, error) {
+	return group.Marshal(ctx, p, w)
 }
 
-func (p *point) UnmarshalFrom(r io.Reader) (int, error) {
-	return group.UnmarshalFrom(p, r)
+func (p *point) Unmarshal(ctx context.Context, r io.Reader) (int, error) {
+	return group.Unmarshal(ctx, p, r)
 }
-

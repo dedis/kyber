@@ -289,4 +289,3 @@ func (c *ExtendedCurve) Init(p *Param, fullGroup bool) *ExtendedCurve {
 	c.curve.init(c, p, fullGroup, &c.null, &c.base)
 	return c
 }
-

@@ -7,39 +7,39 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/nist"
+	"github.com/dedis/crypto/suite"
 )
 
 // A basic, verifiable signature
 type basicSig struct {
-	C abstract.Secret // challenge
-	R abstract.Secret // response
+	C abstract.Scalar // challenge
+	R abstract.Scalar // response
 }
 
 // Returns a secret that depends on on a message and a point
-func hashSchnorr(suite abstract.Suite, message []byte, p abstract.Point) abstract.Secret {
+func hashSchnorr(suite *abstract.Suite, message []byte, p abstract.Point) abstract.Scalar {
 	pb, _ := p.MarshalBinary()
 	c := suite.Cipher(pb)
 	c.Message(nil, nil, message)
-	return suite.Secret().Pick(c)
+	return suite.Scalar().Pick(nil, c)
 }
 
 // This simplified implementation of Schnorr Signatures is based on
 // crypto/anon/sig.go
 // The ring structure is removed and
 // The anonimity set is reduced to one public key = no anonimity
-func SchnorrSign(suite abstract.Suite, random cipher.Stream, message []byte,
-	privateKey abstract.Secret) []byte {
+func SchnorrSign(suite *abstract.Suite, random cipher.Stream, message []byte,
+	privateKey abstract.Scalar) []byte {
 
 	// Create random secret v and public point commitment T
-	v := suite.Secret().Pick(random)
+	v := suite.Scalar().Pick(nil, random)
 	T := suite.Point().BaseMul(v)
 
 	// Create challenge c based on message and T
 	c := hashSchnorr(suite, message, T)
 
 	// Compute response r = v - x*c
-	r := suite.Secret()
+	r := suite.Scalar()
 	r.Mul(privateKey, c).Sub(v, r)
 
 	// Return verifiable signature {c, r}
@@ -51,7 +51,7 @@ func SchnorrSign(suite abstract.Suite, random cipher.Stream, message []byte,
 	return buf.Bytes()
 }
 
-func SchnorrVerify(suite abstract.Suite, message []byte, publicKey abstract.Point,
+func SchnorrVerify(suite *abstract.Suite, message []byte, publicKey abstract.Point,
 	signatureBuffer []byte) error {
 
 	// Decode the signature
@@ -82,12 +82,12 @@ func SchnorrVerify(suite abstract.Suite, message []byte, publicKey abstract.Poin
 // Example of using Schnorr
 func ExampleSchnorr() {
 	// Crypto setup
-	suite := nist.NewAES128SHA256P256()
+	suite := suite.Default(nil)
 	rand := suite.Cipher([]byte("example"))
 
 	// Create a public/private keypair (X,x)
-	x := suite.Secret().Pick(rand) // create a private key x
-	X := suite.Point().BaseMul(x) // corresponding public key X
+	x := suite.Scalar().Pick(nil, rand) // create a private key x
+	X := suite.Point().BaseMul(x)       // corresponding public key X
 
 	// Generate the signature
 	M := []byte("Hello World!") // message we want to sign

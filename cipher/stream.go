@@ -123,4 +123,3 @@ func (sc *streamCipher) Clone() State {
 func NewCTR(block Block, iv []byte) Stream {
 	return cipher.NewCTR(block, iv)
 }
-

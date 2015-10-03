@@ -11,54 +11,55 @@ import "C"
 import (
 	"crypto/cipher"
 	"github.com/dedis/crypto/group"
+	"golang.org/x/net/context"
 	"io"
 )
 
-type secret struct {
+type scalar struct {
 	bignum
 	c *curve
 }
 
-func newSecret(c *curve) *secret {
-	s := new(secret)
+func newScalar(c *curve) *scalar {
+	s := new(scalar)
 	s.bignum.Init()
 	s.c = c
 	return s
 }
 
-func (s *secret) String() string { return s.BigInt().String() }
+func (s *scalar) String() string { return s.BigInt().String() }
 
-func (s *secret) Equal(s2 group.Element) bool {
-	return s.Cmp(&s2.(*secret).bignum) == 0
+func (s *scalar) Equal(s2 group.Element) bool {
+	return s.Cmp(&s2.(*scalar).bignum) == 0
 }
 
-func (s *secret) New() group.Element {
-	return newSecret(s.c)
+func (s *scalar) New() group.Element {
+	return newScalar(s.c)
 }
 
-func (s *secret) Set(x group.Element) group.Element {
-	xs := x.(*secret)
+func (s *scalar) Set(x group.Element) group.Element {
+	xs := x.(*scalar)
 	if C.BN_copy(s.bignum.bn, xs.bignum.bn) == nil {
 		panic("BN_copy: " + getErrString())
 	}
 	return s
 }
 
-func (s *secret) Zero() group.Element {
+func (s *scalar) Zero() group.Element {
 	if C.bn_zero(s.bignum.bn) == 0 {
 		panic("BN_zero: " + getErrString())
 	}
 	return s
 }
 
-func (s *secret) One() group.Element {
+func (s *scalar) One() group.Element {
 	if C.bn_one(s.bignum.bn) == 0 {
 		panic("BN_one: " + getErrString())
 	}
 	return s
 }
 
-func (s *secret) SetInt64(v int64) group.FieldElement {
+func (s *scalar) SetInt64(v int64) group.FieldElement {
 	neg := false
 	if v < 0 {
 		neg = true
@@ -84,9 +85,9 @@ func (s *secret) SetInt64(v int64) group.FieldElement {
 	return s
 }
 
-func (s *secret) Add(x, y group.Element) group.Element {
-	xs := x.(*secret)
-	ys := y.(*secret)
+func (s *scalar) Add(x, y group.Element) group.Element {
+	xs := x.(*scalar)
+	ys := y.(*scalar)
 	if C.BN_mod_add(s.bignum.bn, xs.bignum.bn, ys.bignum.bn, s.c.n.bn,
 		s.c.ctx) == 0 {
 		panic("BN_mod_add: " + getErrString())
@@ -94,9 +95,9 @@ func (s *secret) Add(x, y group.Element) group.Element {
 	return s
 }
 
-func (s *secret) Sub(x, y group.Element) group.Element {
-	xs := x.(*secret)
-	ys := y.(*secret)
+func (s *scalar) Sub(x, y group.Element) group.Element {
+	xs := x.(*scalar)
+	ys := y.(*scalar)
 	if C.BN_mod_sub(s.bignum.bn, xs.bignum.bn, ys.bignum.bn, s.c.n.bn,
 		s.c.ctx) == 0 {
 		panic("BN_mod_sub: " + getErrString())
@@ -104,8 +105,8 @@ func (s *secret) Sub(x, y group.Element) group.Element {
 	return s
 }
 
-func (s *secret) Neg(x group.Element) group.Element {
-	xs := x.(*secret)
+func (s *scalar) Neg(x group.Element) group.Element {
+	xs := x.(*scalar)
 	if C.BN_mod_sub(s.bignum.bn, s.c.n.bn, xs.bignum.bn, s.c.n.bn,
 		s.c.ctx) == 0 {
 		panic("BN_mod_sub: " + getErrString())
@@ -113,9 +114,9 @@ func (s *secret) Neg(x group.Element) group.Element {
 	return s
 }
 
-func (s *secret) Mul(x, y group.Element) group.Element {
-	xs := x.(*secret)
-	ys := y.(*secret)
+func (s *scalar) Mul(x, y group.Element) group.Element {
+	xs := x.(*scalar)
+	ys := y.(*scalar)
 	if C.BN_mod_mul(s.bignum.bn, xs.bignum.bn, ys.bignum.bn, s.c.n.bn,
 		s.c.ctx) == 0 {
 		panic("BN_mod_mul: " + getErrString())
@@ -123,9 +124,9 @@ func (s *secret) Mul(x, y group.Element) group.Element {
 	return s
 }
 
-func (s *secret) Div(x, y group.Element) group.FieldElement {
-	xs := x.(*secret)
-	ys := y.(*secret)
+func (s *scalar) Div(x, y group.Element) group.FieldElement {
+	xs := x.(*scalar)
+	ys := y.(*scalar)
 
 	// First compute inverse of y, then multiply by x.
 	// Must use a temporary in the case x == s.
@@ -144,8 +145,8 @@ func (s *secret) Div(x, y group.Element) group.FieldElement {
 	return s
 }
 
-func (s *secret) Inv(x group.Element) group.FieldElement {
-	xs := x.(*secret)
+func (s *scalar) Inv(x group.Element) group.FieldElement {
+	xs := x.(*scalar)
 	if C.BN_mod_inverse(s.bignum.bn, xs.bignum.bn, s.c.n.bn,
 		s.c.ctx) == nil {
 		panic("BN_mod_inverse: " + getErrString())
@@ -153,36 +154,36 @@ func (s *secret) Inv(x group.Element) group.FieldElement {
 	return s
 }
 
-func (s *secret) Pick(data []byte, rand cipher.Stream) []byte {
+func (s *scalar) Pick(data []byte, rand cipher.Stream) []byte {
 	s.bignum.RandMod(s.c.n, rand)
 	return data
 }
 
-func (s *secret) PickLen() int {
+func (s *scalar) PickLen() int {
 	return 0
 }
 
-func (s *secret) Data() ([]byte, error) {
-	panic("secret doesn't support embedding") // XXX it could!
+func (s *scalar) Data() ([]byte, error) {
+	panic("scalar doesn't support embedding") // XXX it could!
 }
 
-func (s *secret) MarshalSize() int {
+func (s *scalar) MarshalSize() int {
 	return s.c.nlen
 }
 
-func (s *secret) MarshalBinary() ([]byte, error) {
+func (s *scalar) MarshalBinary() ([]byte, error) {
 	return s.Bytes(s.c.nlen), nil
 }
 
-func (s *secret) UnmarshalBinary(buf []byte) error {
+func (s *scalar) UnmarshalBinary(buf []byte) error {
 	s.SetBytes(buf)
 	return nil
 }
 
-func (s *secret) MarshalTo(w io.Writer) (int, error) {
-	return group.MarshalTo(s, w)
+func (s *scalar) Marshal(ctx context.Context, w io.Writer) (int, error) {
+	return group.Marshal(ctx, s, w)
 }
 
-func (s *secret) UnmarshalFrom(r io.Reader) (int, error) {
-	return group.UnmarshalFrom(s, r)
+func (s *scalar) Unmarshal(ctx context.Context, r io.Reader) (int, error) {
+	return group.Unmarshal(ctx, s, r)
 }

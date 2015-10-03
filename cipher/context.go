@@ -17,4 +17,3 @@ func Get(ctx context.Context) (cipher Suite) {
 	cipher, _ = ctx.Value(contextKey{}).(Suite)
 	return
 }
-

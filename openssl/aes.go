@@ -6,7 +6,7 @@ package openssl
 import "C"
 
 import (
-	"crypto/cipher"
+	"github.com/dedis/crypto/cipher"
 )
 
 const blocksize = 16

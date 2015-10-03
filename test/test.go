@@ -9,7 +9,7 @@ import (
 )
 
 func testEmbed(ctx abstract.Context, rand random.Stream,
-		points *[]abstract.Point,
+	points *[]abstract.Point,
 
 	s string) {
 

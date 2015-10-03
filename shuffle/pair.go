@@ -42,7 +42,7 @@ type ega1 struct {
 
 // V (Verifier) step 2: random challenge t
 type ega2 struct {
-	Zrho []abstract.Secret
+	Zrho []abstract.Scalar
 }
 
 // P step 3: Theta vectors
@@ -52,13 +52,13 @@ type ega3 struct {
 
 // V step 4: random challenge c
 type ega4 struct {
-	Zlambda abstract.Secret
+	Zlambda abstract.Scalar
 }
 
 // P step 5: alpha vector
 type ega5 struct {
-	Zsigma []abstract.Secret
-	Ztau   abstract.Secret
+	Zsigma []abstract.Scalar
+	Ztau   abstract.Scalar
 }
 
 // P and V, step 5: simple k-shuffle proof
@@ -81,7 +81,7 @@ type ega6 struct {
 // to pick a random permutation, compute the shuffle,
 // and compute the correctness proof.
 type PairShuffle struct {
-	grp abstract.Group
+	ste *abstract.Suite
 	k   int
 	p1  ega1
 	v2  ega2
@@ -94,33 +94,33 @@ type PairShuffle struct {
 // Create a new PairShuffleProof instance for a k-element ElGamal pair shuffle.
 // This protocol follows the ElGamal Pair Shuffle defined in section 4 of
 // Andrew Neff, "Verifiable Mixing (Shuffling) of ElGamal Pairs", 2004.
-func (ps *PairShuffle) Init(grp abstract.Group, k int) *PairShuffle {
+func (ps *PairShuffle) Init(ste *abstract.Suite, k int) *PairShuffle {
 
 	if k <= 1 {
 		panic("can't shuffle permutation of size <= 1")
 	}
 
 	// Create a well-formed PairShuffleProof with arrays correctly sized.
-	ps.grp = grp
+	ps.ste = ste
 	ps.k = k
 	ps.p1.A = make([]abstract.Point, k)
 	ps.p1.C = make([]abstract.Point, k)
 	ps.p1.U = make([]abstract.Point, k)
 	ps.p1.W = make([]abstract.Point, k)
-	ps.v2.Zrho = make([]abstract.Secret, k)
+	ps.v2.Zrho = make([]abstract.Scalar, k)
 	ps.p3.D = make([]abstract.Point, k)
-	ps.p5.Zsigma = make([]abstract.Secret, k)
-	ps.pv6.Init(grp, k)
+	ps.p5.Zsigma = make([]abstract.Scalar, k)
+	ps.pv6.Init(ste, k)
 
 	return ps
 }
 
 func (ps *PairShuffle) Prove(
-	pi []int, g, h abstract.Point, beta []abstract.Secret,
+	pi []int, g, h abstract.Point, beta []abstract.Scalar,
 	X, Y []abstract.Point, rand cipher.Stream,
 	ctx proof.ProverContext) error {
 
-	grp := ps.grp
+	ste := ps.ste
 	k := ps.k
 	if k != len(pi) || k != len(beta) {
 		panic("mismatched vector lengths")
@@ -134,28 +134,28 @@ func (ps *PairShuffle) Prove(
 
 	// P step 1
 	p1 := &ps.p1
-	z := grp.Secret() // scratch
+	z := ste.Scalar() // scratch
 
 	// pick random secrets
-	u := make([]abstract.Secret, k)
-	w := make([]abstract.Secret, k)
-	a := make([]abstract.Secret, k)
-	var tau0, nu, gamma abstract.Secret
+	u := make([]abstract.Scalar, k)
+	w := make([]abstract.Scalar, k)
+	a := make([]abstract.Scalar, k)
+	var tau0, nu, gamma abstract.Scalar
 	ctx.PriRand(u, w, a, &tau0, &nu, &gamma)
 
 	// compute public commits
-	p1.Gamma = grp.Point().Mul(g, gamma)
-	wbeta := grp.Secret() // scratch
-	wbetasum := grp.Secret().Set(tau0)
-	p1.Lambda1 = grp.Point().Null()
-	p1.Lambda2 = grp.Point().Null()
-	XY := grp.Point()  // scratch
-	wu := grp.Secret() // scratch
+	p1.Gamma = ste.Point().Mul(g, gamma)
+	wbeta := ste.Scalar() // scratch
+	wbetasum := ste.Scalar().Set(tau0)
+	p1.Lambda1 = ste.Point().Null()
+	p1.Lambda2 = ste.Point().Null()
+	XY := ste.Point()  // scratch
+	wu := ste.Scalar() // scratch
 	for i := 0; i < k; i++ {
-		p1.A[i] = grp.Point().Mul(g, a[i])
-		p1.C[i] = grp.Point().Mul(g, z.Mul(gamma, a[pi[i]]))
-		p1.U[i] = grp.Point().Mul(g, u[i])
-		p1.W[i] = grp.Point().Mul(g, z.Mul(gamma, w[i]))
+		p1.A[i] = ste.Point().Mul(g, a[i])
+		p1.C[i] = ste.Point().Mul(g, z.Mul(gamma, a[pi[i]]))
+		p1.U[i] = ste.Point().Mul(g, u[i])
+		p1.W[i] = ste.Point().Mul(g, z.Mul(gamma, w[i]))
 		wbetasum.Add(wbetasum, wbeta.Mul(w[i], beta[pi[i]]))
 		p1.Lambda1.Add(p1.Lambda1, XY.Mul(X[i],
 			wu.Sub(w[piinv[i]], u[i])))
@@ -175,20 +175,20 @@ func (ps *PairShuffle) Prove(
 	}
 	B := make([]abstract.Point, k)
 	for i := 0; i < k; i++ {
-		P := grp.Point().Mul(g, v2.Zrho[i])
+		P := ste.Point().Mul(g, v2.Zrho[i])
 		B[i] = P.Sub(P, p1.U[i])
 	}
 
 	// P step 3
 	p3 := &ps.p3
-	b := make([]abstract.Secret, k)
+	b := make([]abstract.Scalar, k)
 	for i := 0; i < k; i++ {
-		b[i] = grp.Secret().Sub(v2.Zrho[i], u[i])
+		b[i] = ste.Scalar().Sub(v2.Zrho[i], u[i])
 	}
-	d := make([]abstract.Secret, k)
+	d := make([]abstract.Scalar, k)
 	for i := 0; i < k; i++ {
-		d[i] = grp.Secret().Mul(gamma, b[pi[i]])
-		p3.D[i] = grp.Point().Mul(g, d[i])
+		d[i] = ste.Scalar().Mul(gamma, b[pi[i]])
+		p3.D[i] = ste.Point().Mul(g, d[i])
 	}
 	if err := ctx.Put(p3); err != nil {
 		return err
@@ -202,17 +202,17 @@ func (ps *PairShuffle) Prove(
 
 	// P step 5
 	p5 := &ps.p5
-	r := make([]abstract.Secret, k)
+	r := make([]abstract.Scalar, k)
 	for i := 0; i < k; i++ {
-		r[i] = grp.Secret().Add(a[i], z.Mul(v4.Zlambda, b[i]))
+		r[i] = ste.Scalar().Add(a[i], z.Mul(v4.Zlambda, b[i]))
 	}
-	s := make([]abstract.Secret, k)
+	s := make([]abstract.Scalar, k)
 	for i := 0; i < k; i++ {
-		s[i] = grp.Secret().Mul(gamma, r[pi[i]])
+		s[i] = ste.Scalar().Mul(gamma, r[pi[i]])
 	}
-	p5.Ztau = grp.Secret().Neg(tau0)
+	p5.Ztau = ste.Scalar().Neg(tau0)
 	for i := 0; i < k; i++ {
-		p5.Zsigma[i] = grp.Secret().Add(w[i], b[pi[i]])
+		p5.Zsigma[i] = ste.Scalar().Add(w[i], b[pi[i]])
 		p5.Ztau.Add(p5.Ztau, z.Mul(b[i], beta[i]))
 	}
 	if err := ctx.Put(p5); err != nil {
@@ -229,7 +229,7 @@ func (ps *PairShuffle) Verify(
 	ctx proof.VerifierContext) error {
 
 	// Validate all vector lengths
-	grp := ps.grp
+	ste := ps.ste
 	k := ps.k
 	if len(X) != k || len(Y) != k || len(Xbar) != k || len(Ybar) != k {
 		panic("mismatched vector lengths")
@@ -248,7 +248,7 @@ func (ps *PairShuffle) Verify(
 	}
 	B := make([]abstract.Point, k)
 	for i := 0; i < k; i++ {
-		P := grp.Point().Mul(g, v2.Zrho[i])
+		P := ste.Point().Mul(g, v2.Zrho[i])
 		B[i] = P.Sub(P, p1.U[i])
 	}
 
@@ -276,10 +276,10 @@ func (ps *PairShuffle) Verify(
 	}
 
 	// V step 7
-	Phi1 := grp.Point().Null()
-	Phi2 := grp.Point().Null()
-	P := grp.Point() // scratch
-	Q := grp.Point() // scratch
+	Phi1 := ste.Point().Null()
+	Phi2 := ste.Point().Null()
+	P := ste.Point() // scratch
+	Q := ste.Point() // scratch
 	for i := 0; i < k; i++ {
 		Phi1 = Phi1.Add(Phi1, P.Mul(Xbar[i], p5.Zsigma[i])) // (31)
 		Phi1 = Phi1.Sub(Phi1, P.Mul(X[i], v2.Zrho[i]))
@@ -308,7 +308,7 @@ func (ps *PairShuffle) Verify(
 // producing a correctness proof in the process.
 // Returns (Xbar,Ybar), the shuffled and randomized pairs.
 // If g or h is nil, the standard base point is used.
-func Shuffle(group abstract.Group, g, h abstract.Point, X, Y []abstract.Point,
+func Shuffle(suite *abstract.Suite, g, h abstract.Point, X, Y []abstract.Point,
 	rand cipher.Stream) (XX, YY []abstract.Point, P proof.Prover) {
 
 	k := len(X)
@@ -317,7 +317,7 @@ func Shuffle(group abstract.Group, g, h abstract.Point, X, Y []abstract.Point,
 	}
 
 	ps := PairShuffle{}
-	ps.Init(group, k)
+	ps.Init(suite, k)
 
 	// Pick a random permutation
 	pi := make([]int, k)
@@ -334,18 +334,18 @@ func Shuffle(group abstract.Group, g, h abstract.Point, X, Y []abstract.Point,
 	}
 
 	// Pick a fresh ElGamal blinding factor for each pair
-	beta := make([]abstract.Secret, k)
+	beta := make([]abstract.Scalar, k)
 	for i := 0; i < k; i++ {
-		beta[i] = ps.grp.Secret().Pick(rand)
+		beta[i] = ps.ste.Scalar().Pick(nil, rand)
 	}
 
 	// Create the output pair vectors
 	Xbar := make([]abstract.Point, k)
 	Ybar := make([]abstract.Point, k)
 	for i := 0; i < k; i++ {
-		Xbar[i] = ps.grp.Point().Mul(g, beta[pi[i]])
+		Xbar[i] = ps.ste.Point().Mul(g, beta[pi[i]])
 		Xbar[i].Add(Xbar[i], X[pi[i]])
-		Ybar[i] = ps.grp.Point().Mul(h, beta[pi[i]])
+		Ybar[i] = ps.ste.Point().Mul(h, beta[pi[i]])
 		Ybar[i].Add(Ybar[i], Y[pi[i]])
 	}
 
@@ -356,11 +356,11 @@ func Shuffle(group abstract.Group, g, h abstract.Point, X, Y []abstract.Point,
 }
 
 // Produce a Sigma-protocol verifier to check the correctness of a shuffle.
-func Verifier(group abstract.Group, g, h abstract.Point,
+func Verifier(suite *abstract.Suite, g, h abstract.Point,
 	X, Y, Xbar, Ybar []abstract.Point) proof.Verifier {
 
 	ps := PairShuffle{}
-	ps.Init(group, len(X))
+	ps.Init(suite, len(X))
 	verifier := func(ctx proof.VerifierContext) error {
 		return ps.Verify(g, h, X, Y, Xbar, Ybar, ctx)
 	}

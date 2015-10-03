@@ -2,25 +2,25 @@ package crypto
 
 import (
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto/suite"
 )
 
-func ElGamalEncrypt(suite abstract.Suite, pubkey abstract.Point, message []byte) (
+func ElGamalEncrypt(suite *abstract.Suite, pubkey abstract.Point, message []byte) (
 	K, C abstract.Point, remainder []byte) {
 
 	// Embed the message (or as much of it as will fit) into a curve point.
 	M, remainder := suite.Point().Pick(message, random.Fresh())
 
 	// ElGamal-encrypt the point to produce ciphertext (K,C).
-	k := suite.Secret().Pick(random.Fresh()) // ephemeral private key
-	K = suite.Point().BaseMul(k)           // ephemeral DH public key
-	S := suite.Point().Mul(pubkey, k)       // ephemeral DH shared secret
-	C = S.Add(S, M)                         // message blinded with secret
+	k := suite.Scalar().Pick(nil, random.Fresh()) // ephemeral private key
+	K = suite.Point().BaseMul(k)                  // ephemeral DH public key
+	S := suite.Point().Mul(pubkey, k)             // ephemeral DH shared secret
+	C = S.Add(S, M)                               // message blinded with secret
 	return
 }
 
-func ElGamalDecrypt(suite abstract.Suite, prikey abstract.Secret, K, C abstract.Point) (
+func ElGamalDecrypt(suite *abstract.Suite, prikey abstract.Scalar, K, C abstract.Point) (
 	message []byte, err error) {
 
 	// ElGamal-decrypt the ciphertext (K,C) to reproduce the message.
@@ -54,11 +54,11 @@ see for example anon.Encrypt, which encrypts a message for
 one of several possible receivers forming an explicit anonymity set.
 */
 func Example_elGamalEncryption() {
-	suite := nist.NewAES128SHA256P256()
+	suite := suite.Default(nil)
 
 	// Create a public/private keypair
-	a := suite.Secret().Pick(random.Fresh()) // Alice's private key
-	A := suite.Point().BaseMul(a)          // Alice's public key
+	a := suite.Scalar().Pick(nil, random.Fresh()) // Alice's private key
+	A := suite.Point().BaseMul(a)                 // Alice's public key
 
 	// ElGamal-encrypt a message using the public key.
 	m := []byte("The quick brown fox")

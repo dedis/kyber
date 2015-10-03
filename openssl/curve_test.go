@@ -2,28 +2,35 @@ package openssl
 
 import (
 	"github.com/dedis/crypto/test"
+	"github.com/dedis/crypto/cipher/sha3"
 	"testing"
+	"golang.org/x/net/context"
 )
 
-var testSuite = NewAES128SHA256P256()
-var groupBench = test.NewGroupBench(testSuite)
+var ctxBase = sha3.WithShake128(context.Background())
+var ctxP224 = WithP224(ctxBase)
+var ctxP256 = WithP256(ctxBase)
+var ctxP384 = WithP384(ctxBase)
+var ctxP521 = WithP521(ctxBase)
 
-func TestP224(t *testing.T) { test.TestGroup(new(curve).InitP224()) }
-func TestP256(t *testing.T) { test.TestGroup(new(curve).InitP256()) }
-func TestP384(t *testing.T) { test.TestGroup(new(curve).InitP384()) }
-func TestP521(t *testing.T) { test.TestGroup(new(curve).InitP521()) }
+var groupBench = test.NewGroupBench(ctxP256)
 
-func TestSuite(t *testing.T) { test.TestSuite(testSuite) }
+func TestP224(t *testing.T) { test.TestGroup(ctxP224) }
+func TestP256(t *testing.T) { test.TestGroup(ctxP256) }
+func TestP384(t *testing.T) { test.TestGroup(ctxP384) }
+func TestP521(t *testing.T) { test.TestGroup(ctxP521) }
 
-func BenchmarkSecretAdd(b *testing.B)    { groupBench.SecretAdd(b.N) }
-func BenchmarkSecretSub(b *testing.B)    { groupBench.SecretSub(b.N) }
-func BenchmarkSecretNeg(b *testing.B)    { groupBench.SecretNeg(b.N) }
-func BenchmarkSecretMul(b *testing.B)    { groupBench.SecretMul(b.N) }
-func BenchmarkSecretDiv(b *testing.B)    { groupBench.SecretDiv(b.N) }
-func BenchmarkSecretInv(b *testing.B)    { groupBench.SecretInv(b.N) }
-func BenchmarkSecretPick(b *testing.B)   { groupBench.SecretPick(b.N) }
-func BenchmarkSecretEncode(b *testing.B) { groupBench.SecretEncode(b.N) }
-func BenchmarkSecretDecode(b *testing.B) { groupBench.SecretDecode(b.N) }
+func TestSuite(t *testing.T) { test.TestSuite(ctxP256) }
+
+func BenchmarkScalarAdd(b *testing.B)    { groupBench.ScalarAdd(b.N) }
+func BenchmarkScalarSub(b *testing.B)    { groupBench.ScalarSub(b.N) }
+func BenchmarkScalarNeg(b *testing.B)    { groupBench.ScalarNeg(b.N) }
+func BenchmarkScalarMul(b *testing.B)    { groupBench.ScalarMul(b.N) }
+func BenchmarkScalarDiv(b *testing.B)    { groupBench.ScalarDiv(b.N) }
+func BenchmarkScalarInv(b *testing.B)    { groupBench.ScalarInv(b.N) }
+func BenchmarkScalarPick(b *testing.B)   { groupBench.ScalarPick(b.N) }
+func BenchmarkScalarEncode(b *testing.B) { groupBench.ScalarEncode(b.N) }
+func BenchmarkScalarDecode(b *testing.B) { groupBench.ScalarDecode(b.N) }
 
 func BenchmarkPointAdd(b *testing.B)     { groupBench.PointAdd(b.N) }
 func BenchmarkPointSub(b *testing.B)     { groupBench.PointSub(b.N) }

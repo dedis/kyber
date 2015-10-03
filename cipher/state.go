@@ -153,4 +153,3 @@ var NoKey = []byte{}
 
 // Pass FreshKey to a Suite constructor to create a freshly seeded cipher.
 var FreshKey []byte = nil
-

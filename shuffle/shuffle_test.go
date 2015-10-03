@@ -1,20 +1,21 @@
 package shuffle
 
 import (
-	"github.com/dedis/crypto/edwards"
-	"github.com/dedis/crypto/nist"
-	"github.com/dedis/crypto/openssl"
+	//"github.com/dedis/crypto/edwards"
+	"github.com/dedis/crypto/suite"
+	//"github.com/dedis/crypto/openssl"
 	"testing"
 )
 
 func TestBiffle(t *testing.T) {
-	BiffleTest(edwards.NewAES128SHA256Ed25519(false), 1)
+	BiffleTest(suite.Default(nil), 1)
 }
 
 func TestPairShuffle(t *testing.T) {
-	TestShuffle(edwards.NewAES128SHA256Ed25519(false), 10, 1)
+	TestShuffle(suite.Default(nil), 10, 1)
 }
 
+/*
 func BenchmarkBiffleP256(b *testing.B) {
 	BiffleTest(nist.NewAES128SHA256P256(), b.N)
 }
@@ -46,3 +47,4 @@ func Benchmark10PairShuffleEd25519(b *testing.B) {
 func Benchmark100PairShuffleEd25519(b *testing.B) {
 	TestShuffle(edwards.NewAES128SHA256Ed25519(false), 100, b.N)
 }
+*/

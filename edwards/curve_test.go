@@ -4,8 +4,8 @@ import (
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher/sha3"
 	"github.com/dedis/crypto/edwards/ed25519"
-	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/group"
+	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/test"
 	"golang.org/x/net/context"
 	"testing"
@@ -19,8 +19,8 @@ func testCurve(t *testing.T, curve group.Group) {
 
 func testCompare(t *testing.T, g1, g2 group.Group) {
 	test.TestCompareGroups(
-			group.Context(ctxBase, g1),
-			group.Context(ctxBase, g2))
+		group.Context(ctxBase, g1),
+		group.Context(ctxBase, g2))
 }
 
 // Test each curve implementation of the Ed25519 curve.

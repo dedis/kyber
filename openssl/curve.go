@@ -16,8 +16,9 @@ package openssl
 import "C"
 
 import (
-	"math/big"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
+	"math/big"
 )
 
 type curve struct {
@@ -37,20 +38,20 @@ func (c *curve) PrimeOrder() bool {
 	return true // we only support the NIST prime-order curves
 }
 
-func (c *curve) SecretLen() int {
+func (c *curve) ScalarLen() int {
 	return c.nlen
 }
 
-func (c *curve) Secret() abstract.Secret {
-	return abstract.Secret{newSecret(c)}
+func (c *curve) Scalar() group.FieldElement {
+	return newScalar(c)
 }
 
-func (c *curve) PointLen() int {
+func (c *curve) ElementLen() int {
 	return 1 + c.plen // compressed encoding
 }
 
-func (c *curve) Point() abstract.Point {
-	return abstract.Point{newPoint(c)}
+func (c *curve) Element() group.Element {
+	return newPoint(c)
 }
 
 func (c *curve) Order() *big.Int {
@@ -97,18 +98,39 @@ func (c *curve) initNamedCurve(name string, nid C.int) *curve {
 	return c
 }
 
-func (c *curve) InitP224() abstract.Group {
+func (c *curve) initP224() group.Group {
 	return c.initNamedCurve("P224", C.NID_secp224r1)
 }
 
-func (c *curve) InitP256() abstract.Group {
+func (c *curve) initP256() group.Group {
 	return c.initNamedCurve("P256", C.NID_X9_62_prime256v1)
 }
 
-func (c *curve) InitP384() abstract.Group {
+func (c *curve) initP384() group.Group {
 	return c.initNamedCurve("P384", C.NID_secp384r1)
 }
 
-func (c *curve) InitP521() abstract.Group {
+func (c *curve) initP521() group.Group {
 	return c.initNamedCurve("P521", C.NID_secp521r1)
 }
+
+// Create a context configured with the NIST P-224 elliptic curve.
+func WithP224(parent abstract.Context) abstract.Context {
+	return group.Context(parent, new(curve).initP224())
+}
+
+// Create a context configured with the NIST P-256 elliptic curve.
+func WithP256(parent abstract.Context) abstract.Context {
+	return group.Context(parent, new(curve).initP256())
+}
+
+// Create a context configured with the NIST P-384 elliptic curve.
+func WithP384(parent abstract.Context) abstract.Context {
+	return group.Context(parent, new(curve).initP384())
+}
+
+// Create a context configured with the NIST P-521 elliptic curve.
+func WithP521(parent abstract.Context) abstract.Context {
+	return group.Context(parent, new(curve).initP521())
+}
+
