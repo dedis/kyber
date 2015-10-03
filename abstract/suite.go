@@ -109,15 +109,16 @@ func (s *Suite) Read(r io.Reader, objs ...interface{}) error {
 	return marshal.Read(s.ctx, r, objs...)
 }
 
+// Sum uses this ciphersuite's hash function to checksum a byte-slice.
+func (s *Suite) Sum(data []byte) []byte {
+	h := s.Hash(cipher.NoKey)
+	h.Write(data)
+	return h.Sum(nil)
+}
+
 // Pass NoKey to a symmetric cipher constructor to create an unkeyed cipher.
 var NoKey = cipher.NoKey
 
 // Pass FreshKey to a cipher constructor to create a freshly seeded cipher.
 var FreshKey = cipher.FreshKey
 
-// Sum uses a given ciphersuite's hash function to checksum a byte-slice.
-func Sum(suite Suite, data []byte) []byte {
-	h := suite.Hash(cipher.NoKey)
-	h.Write(data)
-	return h.Sum(nil)
-}

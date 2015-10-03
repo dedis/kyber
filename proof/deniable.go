@@ -13,7 +13,7 @@ import (
 // the Sigma-protocol proofs of any or all of the other participants.
 // Different participants may produce different proofs of varying sizes,
 // and may even consist of different numbers of steps.
-func DeniableProver(suite abstract.Context, self int, prover Prover,
+func DeniableProver(suite *abstract.Suite, self int, prover Prover,
 	verifiers []Verifier) clique.Protocol {
 
 	return clique.Protocol(func(ctx clique.Context) []error {
@@ -23,7 +23,7 @@ func DeniableProver(suite abstract.Context, self int, prover Prover,
 }
 
 type deniableProver struct {
-	suite abstract.Suite // Agreed-on ciphersuite for protocol
+	suite *abstract.Suite // Agreed-on ciphersuite for protocol
 	self  int            // Our own node number
 	sc    clique.Context // Clique protocol context
 
@@ -42,9 +42,9 @@ type deniableProver struct {
 	err []error
 }
 
-func (dp *deniableProver) run(suite abstract.Context, self int, prv Prover,
+func (dp *deniableProver) run(suite *abstract.Suite, self int, prv Prover,
 	vrf []Verifier, sc clique.Context) []error {
-	dp.suite.Init(suite)
+	dp.suite = suite
 	dp.self = self
 	dp.sc = sc
 	dp.prirand = sc.Random()
@@ -234,7 +234,7 @@ func (dp *deniableProver) PriRand(data ...interface{}) {
 // Interactive Sigma-protocol verifier context.
 // Acts as a slave to a deniableProver instance.
 type deniableVerifier struct {
-	suite abstract.Suite
+	suite *abstract.Suite
 
 	inbox chan []byte   // Channel for receiving proofs and challenges
 	prbuf *bytes.Buffer // Buffer with which to read proof messages
@@ -245,8 +245,8 @@ type deniableVerifier struct {
 	pubrand abstract.Cipher
 }
 
-func (dv *deniableVerifier) start(suite abstract.Context, vrf Verifier) {
-	dv.suite.Init(suite)
+func (dv *deniableVerifier) start(suite *abstract.Suite, vrf Verifier) {
+	dv.suite = suite
 	dv.inbox = make(chan []byte)
 	dv.done = make(chan bool)
 

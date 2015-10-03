@@ -2,7 +2,6 @@ package marshal
 
 import (
 	"encoding/binary"
-	"errors"
 	"golang.org/x/net/context"
 	"io"
 	"reflect"
@@ -87,12 +86,9 @@ func (de *decoder) value(v reflect.Value, depth int) (err error) {
 		}
 
 	case reflect.Int:
-		var i int64
-		err := binary.Read(de.r, binary.BigEndian, &i)
-		if int64(int(i)) != i {
-			return errors.New("int too large for this platform")
-		}
-		v.SetInt(i)
+		var i32 int32
+		err := binary.Read(de.r, binary.BigEndian, &i32)
+		v.SetInt(int64(i32))
 		return err
 
 	case reflect.Bool:

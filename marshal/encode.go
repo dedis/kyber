@@ -63,8 +63,12 @@ func (en *encoder) value(obj interface{}, depth int) error {
 		}
 
 	case reflect.Int:
-		i := int64(v.Int())
-		return binary.Write(en.w, binary.BigEndian, i)
+		i64 := v.Int()
+		i32 := int32(i64)
+		if int64(i32) != i64 {
+			panic("int too large to encode in 32-bit wire format")
+		}
+		return binary.Write(en.w, binary.BigEndian, i32)
 
 	case reflect.Bool:
 		b := uint8(0)

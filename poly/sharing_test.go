@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/edwards"
 	"github.com/dedis/crypto/random"
 )
 
@@ -17,16 +16,12 @@ import (
 
 /* Global Variables */
 
-var group abstract.Group = new(edwards.ExtendedCurve).Init(
-	edwards.Param25519(), false)
-var altGroup abstract.Group = new(edwards.ProjectiveCurve).Init(
-	edwards.ParamE382(), false)
 var k int = 10
 var n int = 20
-var secret = group.Secret().Pick(random.Fresh())
-var point = group.Point().Mul(group.Point().Base(), secret)
-var altSecret = altGroup.Secret().Pick(random.Fresh())
-var altPoint = altGroup.Point().Mul(altGroup.Point().Base(), altSecret)
+var secret = testSuite.Scalar().Fresh()
+var point = testSuite.Point().Mul(testSuite.Point().Base(), secret)
+var altSecret = altSuite.Scalar().Fresh()
+var altPoint = altSuite.Point().Mul(altSuite.Point().Base(), altSecret)
 
 /* Setup Functions
  *
@@ -44,29 +39,29 @@ func deferTest(t *testing.T, message string) {
 	}
 }
 
-func producePriPoly(g abstract.Group, k int, s abstract.Secret) *PriPoly {
-	return new(PriPoly).Pick(g, k, s, random.Fresh())
+func producePriPoly(suite *abstract.Suite, k int, s abstract.Scalar) *PriPoly {
+	return new(PriPoly).Pick(suite, k, s, random.Fresh())
 }
 
-func producePriShares(g abstract.Group, k, n int, s abstract.Secret) *PriShares {
+func producePriShares(suite *abstract.Suite, k, n int, s abstract.Scalar) *PriShares {
 
-	testPoly := producePriPoly(g, k, s)
+	testPoly := producePriPoly(suite, k, s)
 	return new(PriShares).Split(testPoly, n)
 }
 
-func producePubPoly(g abstract.Group, k, n int, s abstract.Secret,
+func producePubPoly(suite *abstract.Suite, k, n int, s abstract.Scalar,
 	p abstract.Point) *PubPoly {
 
-	testPriPoly := producePriPoly(g, k, s)
+	testPriPoly := producePriPoly(suite, k, s)
 	testPubPoly := new(PubPoly)
-	testPubPoly.Init(g, n, p)
+	testPubPoly.Init(suite, n, p)
 	return testPubPoly.Commit(testPriPoly, p)
 }
 
-func producePubShares(g abstract.Group, k, n, t int, s abstract.Secret,
+func producePubShares(suite *abstract.Suite, k, n, t int, s abstract.Scalar,
 	p abstract.Point) *PubShares {
 
-	testPubPoly := producePubPoly(g, k, n, s, p)
+	testPubPoly := producePubPoly(suite, k, n, s, p)
 	return new(PubShares).Split(testPubPoly, t)
 }
 
@@ -79,20 +74,20 @@ func producePubShares(g abstract.Group, k, n, t int, s abstract.Secret,
  * needs to be modified to meet the particular needs of a test.
  */
 
-var testPriPolyGl *PriPoly = producePriPoly(group, k, secret)
-var testPriPolyGl2 *PriPoly = producePriPoly(group, k, secret)
-var testPriSharesGl *PriShares = producePriShares(group, k, k, secret)
-var testPubPolyGl *PubPoly = producePubPoly(group, k, k, secret, point)
-var testPubSharesGl *PubShares = producePubShares(group, k, k, k, secret, point)
+var testPriPolyGl *PriPoly = producePriPoly(testSuite, k, secret)
+var testPriPolyGl2 *PriPoly = producePriPoly(testSuite, k, secret)
+var testPriSharesGl *PriShares = producePriShares(testSuite, k, k, secret)
+var testPubPolyGl *PubPoly = producePubPoly(testSuite, k, k, secret, point)
+var testPubSharesGl *PubShares = producePubShares(testSuite, k, k, k, secret, point)
 
 /* Test Functions */
 
 func TestPriPolyPick(t *testing.T) {
 	// Test that the Pick function creates unique polynomials and
 	// unique secrets.
-	testPoly1 := producePriPoly(group, k, nil)
-	testPoly2 := producePriPoly(group, k, nil)
-	testPoly3 := producePriPoly(group, k, nil)
+	testPoly1 := producePriPoly(testSuite, k, abstract.Scalar{nil})
+	testPoly2 := producePriPoly(testSuite, k, abstract.Scalar{nil})
+	testPoly3 := producePriPoly(testSuite, k, abstract.Scalar{nil})
 	if testPoly1.Equal(testPoly2) || testPoly1.Equal(testPoly3) ||
 		testPoly2.Equal(testPoly3) {
 		t.Error("Failed to create unique polynomials.")
@@ -105,7 +100,7 @@ func TestPriPolyPick(t *testing.T) {
 
 	// Test polynomials that are based on common secrets. Verify that
 	// unique polynomials are made but that the base secrets are the same.
-	testPoly3 = producePriPoly(group, k, secret)
+	testPoly3 = producePriPoly(testSuite, k, secret)
 	if testPriPolyGl.Equal(testPriPolyGl2) ||
 		testPriPolyGl.Equal(testPoly3) ||
 		testPriPolyGl2.Equal(testPoly3) {
@@ -144,11 +139,11 @@ func TestPriPolyEqual(t *testing.T) {
 	}
 
 	// Verify that Equal panics if the polynomials are of different degrees.
-	testPoly2 := producePriPoly(group, k+10, secret)
+	testPoly2 := producePriPoly(testSuite, k+10, secret)
 	test(testPriPolyGl, testPoly2)
 
 	// Verify that Equal panics if the polynomials are of different groups.
-	testPoly2 = producePriPoly(altGroup, k, altSecret)
+	testPoly2 = producePriPoly(altSuite, k, altSecret)
 	test(testPriPolyGl, testPoly2)
 }
 
@@ -156,7 +151,7 @@ func TestPriPolyEqual(t *testing.T) {
 func TestPriPolyAdd(t *testing.T) {
 	testAddedPoly := new(PriPoly).Add(testPriPolyGl, testPriPolyGl2)
 	for i := 0; i < k; i++ {
-		addedResult := testAddedPoly.g.Secret().Add(testPriPolyGl.s[i],
+		addedResult := testAddedPoly.suite.Scalar().Add(testPriPolyGl.s[i],
 			testPriPolyGl2.s[i])
 		if !testAddedPoly.s[i].Equal(addedResult) {
 			t.Error("Polynomials not added together properly.")
@@ -170,11 +165,11 @@ func TestPriPolyAdd(t *testing.T) {
 	}
 
 	// Verify that Add panics if the polynomials are different degrees.
-	testPoly2 := producePriPoly(group, k+10, secret)
+	testPoly2 := producePriPoly(testSuite, k+10, secret)
 	test(testPriPolyGl, testPoly2)
 
 	// Verify Add panics if the polynomials are of different groups.
-	testPoly2 = producePriPoly(altGroup, k, altSecret)
+	testPoly2 = producePriPoly(altSuite, k, altSecret)
 	test(testPriPolyGl, testPoly2)
 }
 
@@ -198,14 +193,14 @@ func TestPriSharesSplitShare(t *testing.T) {
 
 // This verifies that Empty properly creates a fresh, empty private share.
 func TestPriSharesEmpty(t *testing.T) {
-	testShares := producePriShares(group, k, n, secret)
-	testShares.Empty(group, k+1, n+1)
-	if group.String() != testShares.g.String() || testShares.k != k+1 ||
+	testShares := producePriShares(testSuite, k, n, secret)
+	testShares.Empty(testSuite, k+1, n+1)
+	if testSuite != testShares.suite || testShares.k != k+1 ||
 		len(testShares.s) != n+1 {
 		t.Error("Empty failed to set the share object properly.")
 	}
 	for i := 0; i < n+1; i++ {
-		if testShares.Share(i) != nil {
+		if !testShares.Share(i).Nil() {
 			t.Error("Share should be nil.")
 		}
 	}
@@ -214,8 +209,8 @@ func TestPriSharesEmpty(t *testing.T) {
 // This verifies the SetShare function. It sets the share and then ensures that
 // the share returned is as expected.
 func TestPriSharesSetShare(t *testing.T) {
-	testShares := producePriShares(group, k, n, secret)
-	testShares.Empty(group, k, n)
+	testShares := producePriShares(testSuite, k, n, secret)
+	testShares.Empty(testSuite, k, n)
 	testShares.SetShare(0, altSecret)
 	if !altSecret.Equal(testShares.Share(0)) {
 		t.Error("The share was not set properly.")
@@ -228,7 +223,7 @@ func TestPriSharesxCoord(t *testing.T) {
 	x := testPriSharesGl.xCoords()
 	c := 0
 	for i := 0; i < len(x); i++ {
-		if x[i] != nil {
+		if !x[i].Nil() {
 			c += 1
 		}
 	}
@@ -243,8 +238,8 @@ func TestPriSharesxCoord(t *testing.T) {
 	}
 
 	// Ensures that if we have k-1 shares, xCoord panics.
-	testShares := producePriShares(group, k, k, secret)
-	testShares.s[0] = nil
+	testShares := producePriShares(testSuite, k, k, secret)
+	testShares.s[0] = abstract.Scalar{nil}
 	test(testShares)
 }
 
@@ -262,8 +257,8 @@ func TestPriSharesSecret(t *testing.T) {
 	}
 
 	// Ensures that we fail to reconstruct the secret with too little shares.
-	testShares := producePriShares(group, k, k, secret)
-	testShares.s[0] = nil
+	testShares := producePriShares(testSuite, k, k, secret)
+	testShares.s[0] = abstract.Scalar{nil}
 	test(testShares)
 }
 
@@ -275,8 +270,8 @@ func TestPriSharesString(t *testing.T) {
 // Tests Init to insuring it can create a public polynomial correctly.
 func TestPubPolyInit(t *testing.T) {
 	testPoly := new(PubPoly)
-	testPoly.Init(group, k, point)
-	if group.String() != testPoly.g.String() || !point.Equal(testPoly.b) ||
+	testPoly.Init(testSuite, k, point)
+	if testSuite != testPoly.suite || !point.Equal(testPoly.b) ||
 		k != len(testPoly.p) {
 		t.Error("The public polynomial was not initialized properly.")
 	}
@@ -285,10 +280,10 @@ func TestPubPolyInit(t *testing.T) {
 func TestPubPolyCommit(t *testing.T) {
 	// Tests Commit to ensure it properly commits a private polynomial.
 	testPubPoly := new(PubPoly)
-	testPubPoly.Init(group, k, point)
+	testPubPoly.Init(testSuite, k, point)
 	testPubPoly = testPubPoly.Commit(testPriPolyGl, point)
 	for i := 0; i < len(testPubPolyGl.p); i++ {
-		if !group.Point().Mul(point, testPriPolyGl.s[i]).Equal(
+		if !testSuite.Point().Mul(point, testPriPolyGl.s[i]).Equal(
 			testPubPoly.p[i]) {
 			t.Error("PriPoly should be multiplied by the point")
 		}
@@ -296,8 +291,8 @@ func TestPubPolyCommit(t *testing.T) {
 
 	// Tests commit to ensure it works with the standard base.
 	testPubPoly = new(PubPoly)
-	testPubPoly.Init(group, k, nil)
-	testPubPoly = testPubPoly.Commit(testPriPolyGl, nil)
+	testPubPoly.Init(testSuite, k, abstract.Point{nil})
+	testPubPoly = testPubPoly.Commit(testPriPolyGl, abstract.Point{nil})
 	for i := 0; i < len(testPubPolyGl.p); i++ {
 		if !point.BaseMul(testPriPolyGl.s[i]).Equal(
 			testPubPoly.p[i]) {
@@ -309,7 +304,7 @@ func TestPubPolyCommit(t *testing.T) {
 // Verifies SecretCommit returns the altered secret from the private polynomial.
 func TestPubPolySecretCommit(t *testing.T) {
 	testPubPoly := new(PubPoly)
-	testPubPoly.Init(group, k, point)
+	testPubPoly.Init(testSuite, k, point)
 	testPubPoly = testPubPoly.Commit(testPriPolyGl, point)
 	secretCommit := testPubPoly.SecretCommit()
 	if !point.Mul(point, testPriPolyGl.s[0]).Equal(secretCommit) {
@@ -327,11 +322,11 @@ func TestPubPolyLen(t *testing.T) {
 
 // Encode a public polynomial and then decode it.
 func TestPubPolyEncodeDecode(t *testing.T) {
-	pripolyDOD := new(PriPoly).Pick(group, k, secret, random.Fresh())
+	pripolyDOD := new(PriPoly).Pick(testSuite, k, secret, random.Fresh())
 	testPubPoly := new(PubPoly)
-	testPubPoly.Commit(pripolyDOD, nil)
+	testPubPoly.Commit(pripolyDOD, abstract.Point{nil})
 	decodePubPoly := new(PubPoly)
-	decodePubPoly.Init(group, k, nil)
+	decodePubPoly.Init(testSuite, k, abstract.Point{nil})
 	testShares := new(PriShares).Split(pripolyDOD, n)
 
 	buf, _ := testPubPoly.MarshalBinary()
@@ -359,13 +354,13 @@ func TestPubPolyEncodeDecode(t *testing.T) {
 
 	// Verify that encode fails if the group and point are not the same
 	// length (aka not from the same group in this case).
-	testPubPoly = producePubPoly(group, k, k, secret, point)
+	testPubPoly = producePubPoly(testSuite, k, k, secret, point)
 	testPubPoly.p[0] = altPoint
 	test(testPubPoly)
 
 	// Verify decoding/ encoding fails if the new poly is the wrong length.
 	decodePubPoly = new(PubPoly)
-	decodePubPoly.Init(group, k+20, point)
+	decodePubPoly.Init(testSuite, k+20, point)
 	buf, _ = testPubPolyGl.MarshalBinary()
 	if err := decodePubPoly.UnmarshalBinary(buf); err == nil {
 		t.Error("Decode should fail.")
@@ -379,7 +374,7 @@ func TestPubPolyEqual(t *testing.T) {
 	}
 
 	// Verify that Equal returns false for two polynomials that differ
-	testPubPoly2 := producePubPoly(group, k, k, secret, nil)
+	testPubPoly2 := producePubPoly(testSuite, k, k, secret, abstract.Point{nil})
 	if testPubPolyGl.Equal(testPubPoly2) {
 		t.Error("Polynomials are expected to be different.")
 	}
@@ -391,11 +386,11 @@ func TestPubPolyEqual(t *testing.T) {
 	}
 
 	// Verify that Equal panics if the polynomials are different degrees.
-	testPubPoly2 = producePubPoly(group, k+10, k+10, secret, point)
+	testPubPoly2 = producePubPoly(testSuite, k+10, k+10, secret, point)
 	test(testPubPolyGl, testPubPoly2)
 
 	// Verify that Equal panics if the polynomials are of different groups.
-	testPubPoly2 = producePubPoly(altGroup, k, k, altSecret, altPoint)
+	testPubPoly2 = producePubPoly(altSuite, k, k, altSecret, altPoint)
 	test(testPubPolyGl, testPubPoly2)
 }
 
@@ -403,7 +398,7 @@ func TestPubPolyEqual(t *testing.T) {
 func TestPubPolyAdd(t *testing.T) {
 	testAddedPoly := new(PubPoly).Add(testPubPolyGl, testPubPolyGl)
 	for i := 0; i < k; i++ {
-		addResult := testAddedPoly.g.Point().Add(testPubPolyGl.p[i],
+		addResult := testAddedPoly.suite.Point().Add(testPubPolyGl.p[i],
 			testPubPolyGl.p[i])
 		if !testAddedPoly.p[i].Equal(addResult) {
 			t.Error("Polynomials not added together properly.")
@@ -417,18 +412,18 @@ func TestPubPolyAdd(t *testing.T) {
 	}
 
 	// Verify that Add panics if the polynomials are of different degrees.
-	testPubPoly2 := producePubPoly(group, k+10, k+10, secret, point)
+	testPubPoly2 := producePubPoly(testSuite, k+10, k+10, secret, point)
 	test(testPubPolyGl, testPubPoly2)
 
 	// Verify that Add panics if the polynomials are of different groups.
-	testPubPoly2 = producePubPoly(altGroup, k, k, altSecret, altPoint)
+	testPubPoly2 = producePubPoly(altSuite, k, k, altSecret, altPoint)
 	test(testPubPolyGl, testPubPoly2)
 }
 
 // Verifies that Check correctly identifies a valid share.
 func TestPubPolyCheck(t *testing.T) {
 	testPubPoly := new(PubPoly)
-	testPubPoly.Init(group, k, point)
+	testPubPoly.Init(testSuite, k, point)
 	testPubPoly = testPubPoly.Commit(testPriPolyGl, point)
 	testShares := new(PriShares).Split(testPriPolyGl, n)
 	if testPubPoly.Check(1, testShares.Share(1)) == false {
@@ -450,11 +445,11 @@ func TestPubPolyString(t *testing.T) {
 // This function tests the eval functions for both PriPoly and PubPoly
 func TestPolyEval(t *testing.T) {
 	testPubPoly := new(PubPoly)
-	testPubPoly.Init(group, k, point)
+	testPubPoly.Init(testSuite, k, point)
 	testPubPoly = testPubPoly.Commit(testPriPolyGl, point)
 	errorString := "PriPoly.Eval(i) * point should equal PubPoly.Eval(i)"
 	for i := 0; i < k; i++ {
-		priResult := group.Point().Mul(point, testPriPolyGl.Eval(i))
+		priResult := testSuite.Point().Mul(point, testPriPolyGl.Eval(i))
 		if !priResult.Equal(testPubPoly.Eval(i)) {
 			t.Error(errorString)
 		}
@@ -476,7 +471,7 @@ func TestPubSharesSplitShare(t *testing.T) {
 // This verifies the SetShare function. It sets the share and then ensures that
 // the share returned is as expected.
 func TestPubSharesSetShare(t *testing.T) {
-	testShares := producePubShares(group, k, k, n, secret, point)
+	testShares := producePubShares(testSuite, k, k, n, secret, point)
 	testShares.SetShare(0, point.Add(point, point))
 	if !point.Equal(testShares.Share(0)) {
 		t.Error("The share was not set properly.")
@@ -489,7 +484,7 @@ func TestPubSharesxCoord(t *testing.T) {
 	x := testPubSharesGl.xCoords()
 	c := 0
 	for i := 0; i < len(x); i++ {
-		if x[i] != nil {
+		if !x[i].Nil() {
 			c += 1
 		}
 	}
@@ -504,16 +499,16 @@ func TestPubSharesxCoord(t *testing.T) {
 	}
 
 	// Ensures that if given k-1 shares, xCoord panics.
-	testShares := producePubShares(group, k, k, k, secret, point)
-	testShares.p[0] = nil
+	testShares := producePubShares(testSuite, k, k, k, secret, point)
+	testShares.p[0] = abstract.Point{nil}
 	test(testShares)
 }
 
 // Ensures that the code successfully reconstructs the secret if given k shares.
 func TestPubSharesSecret(t *testing.T) {
-	testShares := producePubShares(group, k, k, k, secret, point)
+	testShares := producePubShares(testSuite, k, k, k, secret, point)
 	result := testShares.SecretCommit()
-	if !result.Equal(group.Point().Mul(point, secret)) {
+	if !result.Equal(testSuite.Point().Mul(point, secret)) {
 		t.Error("The point failed to be reconstructed.")
 	}
 
@@ -524,8 +519,8 @@ func TestPubSharesSecret(t *testing.T) {
 	}
 
 	// Ensure that reconstructing the secret fails with too little shares.
-	testShares = producePubShares(group, k, k, k, secret, point)
-	testShares.p[0] = nil
+	testShares = producePubShares(testSuite, k, k, k, secret, point)
+	testShares.p[0] = abstract.Point{nil}
 	test(testShares)
 }
 

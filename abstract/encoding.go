@@ -53,14 +53,3 @@ type Hiding interface {
 	HideDecode(buf []byte)
 }
 
-/*
-// Default implementation of Encoding interface Read for ciphersuites
-func SuiteRead(s Suite, r io.Reader, objs ...interface{}) error {
-	return marshal.Read(s, r, objs...)
-}
-
-// Default implementation of Encoding interface Write for ciphersuites
-func SuiteWrite(s Suite, w io.Writer, objs ...interface{}) error {
-	return marshal.Write(s, w, objs...)
-}
-*/
