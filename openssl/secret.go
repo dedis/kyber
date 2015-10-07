@@ -13,6 +13,7 @@ import (
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
 	"io"
+	"math/big"
 )
 
 type secret struct {
@@ -55,6 +56,12 @@ func (s *secret) One() abstract.Secret {
 	return s
 }
 
+func (s *secret) SetInt(v *big.Int) abstract.Secret {
+	b := v.Bytes()
+	s.bignum.SetBytes(b)
+	return s
+}
+
 func (s *secret) SetInt64(v int64) abstract.Secret {
 	neg := false
 	if v < 0 {
@@ -78,6 +85,11 @@ func (s *secret) SetInt64(v int64) abstract.Secret {
 		}
 	}
 
+	return s
+}
+
+func (s *secret) SetBytes(b []byte) abstract.Secret {
+	s.bignum.SetBytes(b)
 	return s
 }
 

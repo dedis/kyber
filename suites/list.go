@@ -4,8 +4,8 @@ package suites
 
 import (
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/edwards/ed25519"
+	"github.com/dedis/crypto/nist"
 )
 
 // Suites represents a map from ciphersuite name to ciphersuite.
@@ -24,3 +24,6 @@ func All() Suites {
 
 // XXX add Stable() and Experimental() sub-lists?
 
+// Default is a default ciphersuite, mainly to be used for testing.
+// The default ciphersuite is quite likely to change in the future!
+var Default = ed25519.NewAES128SHA256Ed25519(false)

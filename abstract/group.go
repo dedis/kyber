@@ -2,6 +2,7 @@ package abstract
 
 import (
 	"crypto/cipher"
+	"math/big"
 )
 
 // XXX consider renaming Secret to Scalar?
@@ -14,7 +15,10 @@ in which security is based on the Discrete Logarithm assumption,
 and a scalar multiplier in elliptic curve groups.
 */
 type Secret interface {
-	Marshaling
+	RigidMarshaling
+
+	// Produce a human-readable representation of a Secret
+	String() string
 
 	// Equality test for two Secrets derived from the same Group
 	Equal(s2 Secret) bool
@@ -22,8 +26,15 @@ type Secret interface {
 	// Set equal to another Secret a
 	Set(a Secret) Secret
 
+	// Set to a big integer value
+	SetInt(v *big.Int) Secret
+
 	// Set to a small integer value
 	SetInt64(v int64) Secret
+
+	// Set to a the contents of a byte-slice, typically containing a hash.
+	// May use only a portion of the byte-slice if it is too large.
+	SetBytes(b []byte) Secret
 
 	// Set to the additive identity (0)
 	Zero() Secret
@@ -62,7 +73,10 @@ A Point can contain a Diffie-Hellman public key,
 an ElGamal ciphertext, etc.
 */
 type Point interface {
-	Marshaling
+	RigidMarshaling
+
+	// Produce a human-readable representation of a Point
+	String() string
 
 	// Equality test for two Points derived from the same Group
 	Equal(s2 Point) bool
