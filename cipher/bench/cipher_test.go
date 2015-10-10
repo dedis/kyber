@@ -5,7 +5,6 @@ import (
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher"
 	"github.com/dedis/crypto/cipher/aes"
-	"github.com/dedis/crypto/cipher/norx"
 	"github.com/dedis/crypto/cipher/sha3"
 	"golang.org/x/crypto/blowfish"
 	"golang.org/x/crypto/salsa20"
@@ -54,10 +53,6 @@ func BenchmarkSha3_512_1B(b *testing.B) {
 	benchmarkCipher(b, sha3.NewCipher512(abstract.NoKey), 1)
 }
 
-func BenchmarkNORX_1B(b *testing.B) {
-	benchmarkCipher(b, norx.NewCipher(abstract.NoKey), 1)
-}
-
 // 1K messages
 
 func BenchmarkAes128_1K(b *testing.B) {
@@ -87,10 +82,6 @@ func BenchmarkSha3_384_1K(b *testing.B) {
 }
 func BenchmarkSha3_512_1K(b *testing.B) {
 	benchmarkCipher(b, sha3.NewCipher512(abstract.NoKey), 1024)
-}
-
-func BenchmarkNORX_1K(b *testing.B) {
-	benchmarkCipher(b, norx.NewCipher(abstract.NoKey), 1024)
 }
 
 // 1M messages
@@ -124,10 +115,6 @@ func BenchmarkSha3_384_1M(b *testing.B) {
 }
 func BenchmarkSha3_512_1M(b *testing.B) {
 	benchmarkCipher(b, sha3.NewCipher512(abstract.NoKey), 1024*1024)
-}
-
-func BenchmarkNORX_1M(b *testing.B) {
-	benchmarkCipher(b, norx.NewCipher(abstract.NoKey), 1024*1024)
 }
 
 // Some conventional Stream ciphers for comparison
