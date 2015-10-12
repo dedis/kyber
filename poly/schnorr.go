@@ -20,7 +20,7 @@ import (
 //  - Start a new round with the same schnorr struct
 // If you want to verify a given signature, use
 // schnorr.VerifySignature(SchnorrSig, msg)
-// CAREFUL: your schnorr signature is a LONG TERM signature, you must keep the same during 
+// CAREFUL: your schnorr signature is a LONG TERM signature, you must keep the same during
 // all rounds, else you won't be able to verify any signatures. The following have to stay
 // the same:
 //  - LongTerm sharedSecret
@@ -30,7 +30,7 @@ import (
 type Schnorr struct {
 
 	// The info describing which kind of polynomials we using, on which groups etc
-	info PolyInfo
+	info Threshold
 
 	// The long-term shared secret evaluated by receivers
 	Longterm *SharedSecret
@@ -77,12 +77,12 @@ type SchnorrSig struct {
 }
 
 // Instantiates a Schnorr struct. A wrapper around Init
-func NewSchnorr(info PolyInfo, longterm *SharedSecret) *Schnorr {
+func NewSchnorr(info Threshold, longterm *SharedSecret) *Schnorr {
 	return new(Schnorr).Init(info, longterm)
 }
 
 // Initializes the Schnorr struct
-func (s *Schnorr) Init(info PolyInfo, longterm *SharedSecret) *Schnorr {
+func (s *Schnorr) Init(info Threshold, longterm *SharedSecret) *Schnorr {
 	s.info = info
 	s.Longterm = longterm
 	return s
@@ -264,7 +264,7 @@ func (s *Schnorr) EmptySchnorrSig() *SchnorrSig {
 }
 
 // Initialises the struct so it can decode itself
-func (s *SchnorrSig) Init(info PolyInfo) *SchnorrSig {
+func (s *SchnorrSig) Init(info Threshold) *SchnorrSig {
 	s.Random = new(PubPoly).Init(SUITE, info.T, SUITE.Point().Base())
 	return s
 }

@@ -32,7 +32,7 @@ func generatePublicListFromPrivate(private []*config.KeyPair) []abstract.Point {
 }
 
 // Returns N dealers with M receivers with the right keys / public keys ...
-func generateNDealerMReceiver(info PolyInfo, n, m int) ([]*Dealer, []*Receiver) {
+func generateNDealerMReceiver(info Threshold, n, m int) ([]*Dealer, []*Receiver) {
 	receiverKeys := generateKeyPairList(m)
 	receiverPublics := generatePublicListFromPrivate(receiverKeys)
 	receivers := make([]*Receiver, n)
@@ -47,7 +47,7 @@ func generateNDealerMReceiver(info PolyInfo, n, m int) ([]*Dealer, []*Receiver) 
 }
 
 // Same as produceNDealerMReceiver except that it make the exchange of Dealer / Response
-func generateNMSetup(info PolyInfo, n, m int) ([]*Dealer, []*Receiver) {
+func generateNMSetup(info Threshold, n, m int) ([]*Dealer, []*Receiver) {
 	dealers, receivers := generateNDealerMReceiver(info, n, m)
 	for i := 0; i < m; i++ {
 		for j := 0; j < n; j++ {
@@ -68,7 +68,7 @@ func generateNMSetup(info PolyInfo, n, m int) ([]*Dealer, []*Receiver) {
 }
 
 // generateSharedSecret will return an array of SharedSecret structs
-func generateSharedSecrets(info PolyInfo) []*SharedSecret {
+func generateSharedSecrets(info Threshold) []*SharedSecret {
 	_, rs := generateNMSetup(info, info.N, info.N)
 	secrets := make([]*SharedSecret, len(rs)) // len(rs) == n
 	for i, _ := range rs {
@@ -83,7 +83,7 @@ func generateSharedSecrets(info PolyInfo) []*SharedSecret {
 
 // It will generate a long term array of schnorr structs
 // it basically represents a peer in the protocol
-func generateSchnorrStructs(info PolyInfo) []*Schnorr {
+func generateSchnorrStructs(info Threshold) []*Schnorr {
 	longterms := generateSharedSecrets(info)
 	schnorrs := make([]*Schnorr, info.N)
 	for i, _ := range longterms {

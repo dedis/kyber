@@ -12,7 +12,7 @@ func TestNewRound(t *testing.T) {
 	REVEAL_SHARE_CHECK = CHECK_OFF
 	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	n := 3
-	pl := PolyInfo{2, n, n}
+	pl := Threshold{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	randoms2 := generateSharedSecrets(pl)
@@ -36,7 +36,7 @@ func TestRevealPartialSig(t *testing.T) {
 	REVEAL_SHARE_CHECK = CHECK_OFF
 	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	n := 3
-	pl := PolyInfo{2, n, n}
+	pl := Threshold{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	for i, _ := range schnorrs {
@@ -63,7 +63,7 @@ func TestAddPartialSig(t *testing.T) {
 	REVEAL_SHARE_CHECK = CHECK_OFF
 	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	n := 3
-	pl := PolyInfo{2, n, n}
+	pl := Threshold{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	for i, _ := range schnorrs {
@@ -106,7 +106,7 @@ func TestSchnorrSig(t *testing.T) {
 	REVEAL_SHARE_CHECK = CHECK_OFF
 	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	n := 3
-	pl := PolyInfo{2, n, n}
+	pl := Threshold{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	for i, _ := range schnorrs {
@@ -152,7 +152,7 @@ func TestVerifySchnorrSig(t *testing.T) {
 	REVEAL_SHARE_CHECK = CHECK_OFF
 	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	n := 3
-	pl := PolyInfo{2, n, n}
+	pl := Threshold{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	for i, _ := range schnorrs {
@@ -195,7 +195,7 @@ func TestPartialSchnorrSigMarshalling(t *testing.T) {
 	REVEAL_SHARE_CHECK = CHECK_OFF
 	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	n := 3
-	pl := PolyInfo{2, n, n}
+	pl := Threshold{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	for i, _ := range schnorrs {
@@ -227,7 +227,7 @@ func TestSchnorrSigMarshalling(t *testing.T) {
 	REVEAL_SHARE_CHECK = CHECK_OFF
 	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	n := 3
-	pl := PolyInfo{2, n, n}
+	pl := Threshold{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	for i, _ := range schnorrs {
