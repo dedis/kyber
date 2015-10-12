@@ -7,11 +7,11 @@ import (
 	"github.com/dedis/crypto/random"
 )
 
-var edward = SUITE
+var testSuite = SUITE
 
 func generateKeyPair() *config.KeyPair {
 	keypair := new(config.KeyPair)
-	keypair.Gen(edward, random.Stream)
+	keypair.Gen(testSuite, random.Stream)
 	return keypair
 }
 
@@ -31,31 +31,18 @@ func generatePublicListFromPrivate(private []*config.KeyPair) []abstract.Point {
 	return l
 }
 
-// produce M receivers from their private/pub keys
-func generateReceivers(info PolyInfo, keys []*config.KeyPair) []*Receiver {
-	n := len(keys)
-	l := make([]*Receiver, n)
-	for i := 0; i < n; i++ {
-		l[i] = NewReceiver(info, keys[i])
-	}
-	return l
-}
-
-// Produce N dealers with the public keys of the M receivers
-func generateDealers(n int, info PolyInfo, receiverList []abstract.Point) []*Dealer {
-	d := make([]*Dealer, n)
-	for i := 0; i < n; i++ {
-		d[i] = NewDealer(info, generateKeyPair(), generateKeyPair(), receiverList)
-	}
-	return d
-}
-
 // Returns N dealers with M receivers with the right keys / public keys ...
 func generateNDealerMReceiver(info PolyInfo, n, m int) ([]*Dealer, []*Receiver) {
 	receiverKeys := generateKeyPairList(m)
 	receiverPublics := generatePublicListFromPrivate(receiverKeys)
-	receivers := generateReceivers(info, receiverKeys)
-	dealers := generateDealers(n, info, receiverPublics)
+	receivers := make([]*Receiver, n)
+	for i := 0; i < n; i++ {
+		receivers[i] = NewReceiver(info, receiverKeys[i])
+	}
+	dealers := make([]*Dealer, n)
+	for i := 0; i < n; i++ {
+		dealers[i] = NewDealer(info, generateKeyPair(), generateKeyPair(), receiverPublics)
+	}
 	return dealers, receivers
 }
 

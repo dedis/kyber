@@ -78,8 +78,8 @@ func wrongDealerAddResponse(t *testing.T) {
 }
 
 func TestProduceSharedSecret(t *testing.T) {
-	SECURITY = MODERATE
-	defer func() { SECURITY = MAXIMUM }()
+	REVEAL_SHARE_CHECK = CHECK_OFF
+	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	n := 3
 	m := 3
 	_, receivers := generateNMSetup(PolyInfo{2, 3, 3}, n, m)
@@ -159,8 +159,8 @@ func TestDealerMarshalling(t *testing.T) {
 }
 
 func TestProduceSharedSecretMarshalledDealer(t *testing.T) {
-	SECURITY = MODERATE
-	defer func() { SECURITY = MAXIMUM }()
+	REVEAL_SHARE_CHECK = CHECK_OFF
+	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	// Test if all goes well with the right inputs
 	n := 3
 	m := 3

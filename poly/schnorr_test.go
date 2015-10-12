@@ -9,8 +9,8 @@ import (
 var msg []byte = []byte("Hello World!")
 
 func TestNewRound(t *testing.T) {
-	SECURITY = MODERATE
-	defer func() { SECURITY = MAXIMUM }()
+	REVEAL_SHARE_CHECK = CHECK_OFF
+	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	n := 3
 	pl := PolyInfo{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
@@ -33,8 +33,8 @@ func TestNewRound(t *testing.T) {
 }
 
 func TestRevealPartialSig(t *testing.T) {
-	SECURITY = MODERATE
-	defer func() { SECURITY = MAXIMUM }()
+	REVEAL_SHARE_CHECK = CHECK_OFF
+	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	n := 3
 	pl := PolyInfo{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
@@ -60,8 +60,8 @@ func TestRevealPartialSig(t *testing.T) {
 }
 
 func TestAddPartialSig(t *testing.T) {
-	SECURITY = MODERATE
-	defer func() { SECURITY = MAXIMUM }()
+	REVEAL_SHARE_CHECK = CHECK_OFF
+	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	n := 3
 	pl := PolyInfo{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
@@ -94,7 +94,7 @@ func TestAddPartialSig(t *testing.T) {
 	}
 	// nillify an partial sig then add a wrong one to same index
 	schnorrs[0].partials[ps2.Index] = nil
-	s := edward.Secret().One()
+	s := testSuite.Secret().One()
 	ps2.Part = &s
 	err = schnorrs[0].AddPartialSig(ps2)
 	if err == nil {
@@ -103,8 +103,8 @@ func TestAddPartialSig(t *testing.T) {
 }
 
 func TestSchnorrSig(t *testing.T) {
-	SECURITY = MODERATE
-	defer func() { SECURITY = MAXIMUM }()
+	REVEAL_SHARE_CHECK = CHECK_OFF
+	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	n := 3
 	pl := PolyInfo{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
@@ -149,8 +149,8 @@ func TestSchnorrSig(t *testing.T) {
 }
 
 func TestVerifySchnorrSig(t *testing.T) {
-	SECURITY = MODERATE
-	defer func() { SECURITY = MAXIMUM }()
+	REVEAL_SHARE_CHECK = CHECK_OFF
+	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	n := 3
 	pl := PolyInfo{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
@@ -192,8 +192,8 @@ func TestVerifySchnorrSig(t *testing.T) {
 }
 
 func TestPartialSchnorrSigMarshalling(t *testing.T) {
-	SECURITY = MODERATE
-	defer func() { SECURITY = MAXIMUM }()
+	REVEAL_SHARE_CHECK = CHECK_OFF
+	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	n := 3
 	pl := PolyInfo{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
@@ -224,8 +224,8 @@ func TestPartialSchnorrSigMarshalling(t *testing.T) {
 }
 
 func TestSchnorrSigMarshalling(t *testing.T) {
-	SECURITY = MODERATE
-	defer func() { SECURITY = MAXIMUM }()
+	REVEAL_SHARE_CHECK = CHECK_OFF
+	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	n := 3
 	pl := PolyInfo{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
