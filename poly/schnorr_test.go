@@ -212,7 +212,7 @@ func TestPartialSchnorrSigMarshalling(t *testing.T) {
 	}
 	buf := b.Bytes()
 	bufReader := bytes.NewBuffer(buf)
-	ps2 := new(PartialSchnorrSig)
+	ps2 := new(SchnorrPartialSig)
 	err = SUITE.Read(bufReader, ps2)
 	if err != nil {
 		t.Error(fmt.Sprintf("UnmarshalBinary on PartialSchnorrSig did not work : %v", err))

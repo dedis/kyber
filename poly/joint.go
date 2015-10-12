@@ -72,17 +72,12 @@ type Receiver struct {
 
 	// the Receiver private / public key combination
 	// it may or may not have to be the long term key of the node
-	Key *config.KeyPair
+	key *config.KeyPair
 
-	// List of Dealers. Be careful : this receiver should have the SAME index for all the Dealer's promises !!
-	// otherwise we wouldn't know which index to chose from the shared public polynomial
-	Dealers []*Dealer
-
-	// When the dealers are all done, we can compute the shared secret which consists of a
-	// 1. Public Polynomial which is basically the sums of all Dealers's polynomial
-	// 2. Share of the global Private Polynomial (which is to never be computed directly), which is
-	// 		basically SUM of fj(i) for a receiver i
-	Secret SharedSecret
+	// List of Dealers. Be careful : this receiver should have the SAME index in
+	// each of the Dealer's promises otherwise we wouldn't know which index to chose
+	// from the shared public polynomial
+	dealers []*Dealer
 }
 
 // NewDealer returns a newly created & intialized Dealer struct
@@ -119,8 +114,8 @@ func NewReceiver(info Threshold, key *config.KeyPair) *Receiver {
 func (r *Receiver) Init(info Threshold, key *config.KeyPair) *Receiver {
 	r.index = -1 // no dealer received yet
 	r.info = info
-	r.Key = key
-	r.Dealers = make([]*Dealer, 0, info.N)
+	r.key = key
+	r.dealers = make([]*Dealer, 0, info.N)
 	return r
 }
 
@@ -128,7 +123,7 @@ func (r *Receiver) Init(info Threshold, key *config.KeyPair) *Receiver {
 // You must give the index of the receiver in the promise of the dealer,
 // i.e. index is generally the index of the receiver in the matrix, and
 // is usually fixed.
-// Most of the time it will be like , for peer i :
+// Most of the time it will be like, for peer i :
 // receiver(i).AddDealer(i,dealer(j)) for all j
 // It will return a Response to be sent back to the Dealer so he can verify its promise
 func (r *Receiver) AddDealer(index int, dealer *Dealer) (*Response, error) {
@@ -139,17 +134,23 @@ func (r *Receiver) AddDealer(index int, dealer *Dealer) (*Response, error) {
 		return nil, errors.New(fmt.Sprintf("Wrong index received for receiver : %d instead of %d", index, r.index))
 	}
 	// produce response
-	resp, err := dealer.Promise.ProduceResponse(index, r.Key)
+	resp, err := dealer.Promise.ProduceResponse(index, r.key)
 	if err == nil {
-		r.Dealers = append(r.Dealers, dealer)
+		r.dealers = append(r.dealers, dealer)
 	}
 	return resp, err
 }
 
 // ProduceSharedSecret will generate the sharedsecret relative to this receiver
 // it will throw an error if something is wrong such as not enough Dealers received
+// The shared secret can be computed when all dealers have been sent and
+// basically consists of a
+// 1. Public Polynomial which is basically the sums of all Dealers's polynomial
+// 2. Share of the global Private Polynomial (which is to never be computed directly), which is
+// 		basically SUM of fj(i) for a receiver i
+
 func (r *Receiver) ProduceSharedSecret() (*SharedSecret, error) {
-	if len(r.Dealers) < 1 {
+	if len(r.dealers) < 1 {
 		return nil, errors.New("Receiver has 0 Dealers in its data.Can't produce SharedSecret.")
 	}
 	pub := new(PubPoly)
@@ -157,7 +158,7 @@ func (r *Receiver) ProduceSharedSecret() (*SharedSecret, error) {
 	pub.InitNull(SUITE, r.info.T, SUITE.Point().Base())
 	share := SUITE.Secret()
 	goodShare := 0
-	for index, _ := range r.Dealers {
+	for index := range r.dealers {
 		// Only need T shares
 		if goodShare >= r.info.T {
 			break
@@ -168,8 +169,8 @@ func (r *Receiver) ProduceSharedSecret() (*SharedSecret, error) {
 		// In reality we should receive a NEW state struct from the dealer which is Certified so
 		// we can call RevealShare
 		// In testing we don't care about malicous yet so we just create one here
-		state := new(State).Init(*r.Dealers[index].Promise)
-		s, e := state.RevealShare(r.index, r.Key)
+		state := new(State).Init(*r.dealers[index].Promise)
+		s, e := state.RevealShare(r.index, r.key)
 		//s, e := r.Dealers[index].State.RevealShare(r.index, r.Key)
 		if e != nil {
 			//TODO error handling function not implemented right now. Only used for testing / comparison.
@@ -180,7 +181,7 @@ func (r *Receiver) ProduceSharedSecret() (*SharedSecret, error) {
 		share.Add(share, s)
 
 		// Compute shared public polynomial = SUM of indiviual public polynomials
-		pub.Add(pub, r.Dealers[index].Promise.PubPoly())
+		pub.Add(pub, r.dealers[index].Promise.PubPoly())
 
 		goodShare += 1
 	}
@@ -218,33 +219,14 @@ func (d *Dealer) UnmarshalInit(info Threshold) *Dealer {
 
 func (d *Dealer) MarshalBinary() ([]byte, error) {
 	writer := new(bytes.Buffer)
-	err := SUITE.Write(writer, &d.Info)
-	if err != nil {
-		return nil, err
-	}
-	err = SUITE.Write(writer, d.Promise)
-	if err != nil {
-		return nil, err
-	}
-	return writer.Bytes(), nil
+	_, err := d.MarshalTo(writer)
+	return writer.Bytes(), err
 }
 
 func (d *Dealer) UnmarshalBinary(buf []byte) error {
 	reader := bytes.NewBuffer(buf)
-	pl := Threshold{}
-	err := SUITE.Read(reader, &pl)
-	if err != nil {
-		return err
-	}
-	pr := new(Promise).UnmarshalInit(pl.T, pl.R, pl.N, SUITE)
-	err = SUITE.Read(reader, pr)
-	if err != nil {
-		return err
-	}
-	d.Info = pl
-	d.Promise = pr
-	d.State = new(State).Init(*pr)
-	return nil
+	_, err := d.UnmarshalFrom(reader)
+	return err
 }
 
 func (d *Dealer) MarshalSize() int {
@@ -279,6 +261,7 @@ func (d *Dealer) UnmarshalFrom(r io.Reader) (int, error) {
 	}
 	d.Info = info
 	d.Promise = promise
+	//d.State = new(State).Init(*pr)
 	return d.MarshalSize(), nil
 }
 func (d *Dealer) String() string {

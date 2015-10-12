@@ -46,14 +46,14 @@ type Schnorr struct {
 	random *SharedSecret
 
 	// The partial signatures of each other peer (i.e. receiver)
-	partials []*PartialSchnorrSig
+	partials []*SchnorrPartialSig
 
 	/////////////////////////////////////////////////////
 }
 
 // Partial Schnorr Sig represents the partial signatures that each peer must generate in order to
 // create the "global" signature. This struct must be sent across each peer for each peer
-type PartialSchnorrSig struct {
+type SchnorrPartialSig struct {
 	// The index of this partial signature regarding the global one
 	// same as the "receiver" index in the joint.go code
 	Index int
@@ -96,7 +96,7 @@ func (s *Schnorr) NewRound(random *SharedSecret, msg []byte) error {
 	s.random = random
 	s.hash = nil
 	s.partials = nil // erase the previous partial signature from previous round
-	s.partials = make([]*PartialSchnorrSig, s.info.N)
+	s.partials = make([]*SchnorrPartialSig, s.info.N)
 	hash, err := s.hashMessage(msg, s.random.Pub.SecretCommit())
 	if err != nil {
 		return errors.New(fmt.Sprintf("Unable to hash the message with the given shared secret : %v", err))
@@ -138,7 +138,7 @@ func (s *Schnorr) verify() error {
 
 // Verifies if a given partial signature can be checked against the longterm and random secrets
 // of the schnorr structures.
-func (s *Schnorr) verifyPartialSig(ps *PartialSchnorrSig) error {
+func (s *Schnorr) verifyPartialSig(ps *SchnorrPartialSig) error {
 	// compute the left part of the equation
 	left := SUITE.Point().Mul(SUITE.Point().Base(), *ps.Part)
 	// compute the right part of the equation
@@ -162,7 +162,7 @@ func (s *Schnorr) index() int {
 //  - V  = public commitment of the random secret (i.e. Public random poly evaluated at point 0 )
 //  - Pi = share of the longterm secret for peer i
 // This signature is to be sent to each other peer
-func (s *Schnorr) RevealPartialSig() *PartialSchnorrSig {
+func (s *Schnorr) RevealPartialSig() *SchnorrPartialSig {
 	hash := *s.hash
 	sigma := SUITE.Secret().Zero()
 	sigma = sigma.Add(sigma, *s.random.Share)
@@ -171,7 +171,7 @@ func (s *Schnorr) RevealPartialSig() *PartialSchnorrSig {
 	// Ri + H(m||V) * Pi
 	sigma = sigma.Add(sigma, hash)
 
-	psc := &PartialSchnorrSig{
+	psc := &SchnorrPartialSig{
 		Index: s.index(),
 		Part:  &sigma,
 	}
@@ -187,7 +187,7 @@ func (s *Schnorr) RevealPartialSig() *PartialSchnorrSig {
 // NOTE : let s = RevealPartialSig(), s is NOT added automatically to the
 // set of partial signature, for now you have to do it yourself by calling
 // AddPartialSig(s)
-func (s *Schnorr) AddPartialSig(ps *PartialSchnorrSig) error {
+func (s *Schnorr) AddPartialSig(ps *SchnorrPartialSig) error {
 	if ps.Index >= s.info.N {
 		return errors.New(fmt.Sprintf("Cannot add signature with index %d whereas schnorr could have max %s partial signatures", ps.Index, s.info.N))
 	}
@@ -255,7 +255,7 @@ func (s *Schnorr) VerifySchnorrSig(sig *SchnorrSig, msg []byte) error {
 // Use the Schnorr struct to produce already initialized SchnorrSig.
 // The PartialSchnorrSig can be serialized directly.
 
-func (pss *PartialSchnorrSig) Equal(pss2 *PartialSchnorrSig) bool {
+func (pss *SchnorrPartialSig) Equal(pss2 *SchnorrPartialSig) bool {
 	return pss.Index == pss2.Index && (*pss.Part).Equal(*pss2.Part)
 }
 
