@@ -9,24 +9,24 @@ import (
 
 /////// TESTING ///////
 
-func TestReceiverAddDealer(t *testing.T) {
+func TestReceiverAddDeal(t *testing.T) {
 	dealers, receivers := generateNDealerMReceiver(Threshold{2, 3, 3}, 3, 3)
 	// Test adding one dealer
-	_, e1 := receivers[0].AddDealer(0, dealers[0])
+	_, e1 := receivers[0].AddDeal(0, dealers[0])
 	if e1 != nil {
-		t.Error(fmt.Sprintf("AddDealer should not return an error : %v", e1))
+		t.Error(fmt.Sprintf("AddDeal should not return an error : %v", e1))
 	}
 
 	// Test adding another dealer with same index
-	_, e2 := receivers[0].AddDealer(0, dealers[1])
+	_, e2 := receivers[0].AddDeal(0, dealers[1])
 	if e2 != nil {
-		t.Error(fmt.Sprintf("AddDealer should not return an error : %v", e2))
+		t.Error(fmt.Sprintf("AddDeal should not return an error : %v", e2))
 	}
 
 	// Test adding another dealer with different index !
-	_, e3 := receivers[0].AddDealer(1, dealers[2])
+	_, e3 := receivers[0].AddDeal(1, dealers[2])
 	if e3 == nil {
-		t.Error(fmt.Sprintf("AddDealer should have returned an error (adding dealer to a different index for same receiver)"))
+		t.Error(fmt.Sprintf("AddDeal should have returned an error (adding dealer to a different index for same receiver)"))
 	}
 }
 
@@ -36,25 +36,29 @@ func rightDealerAddResponse(t *testing.T) {
 	n := 3
 	m := 3
 	dealers, receivers := generateNDealerMReceiver(Threshold{2, 3, 3}, n, m)
+	states := make([]*State, len(dealers))
+	for i := 0; i < len(dealers); i++ {
+		states[i] = new(State).Init(*dealers[i])
+	}
 	// for each receiver
 	for i := 0; i < m; i++ {
 		// add all the dealers
 		for j := 0; j < n; j++ {
-			resp, err := receivers[i].AddDealer(i, dealers[j])
+			resp, err := receivers[i].AddDeal(i, dealers[j])
 			if err != nil {
-				t.Error("AddDealer should not generate error")
+				t.Error("AddDeal should not generate error")
 			}
 			// then give the response back to the dealer
-			err = dealers[j].AddResponse(i, resp)
+			err = states[j].AddResponse(i, resp)
 			if err != nil {
 				t.Error(fmt.Sprintf("AddResponse should not generate any error : %v", err))
 			}
 		}
 	}
 	for j := 0; j < n; j++ {
-		val := dealers[j].Certified()
+		val := states[j].DealCertified()
 		if val != nil {
-			t.Error(fmt.Sprintf("Dealer %d should be certified : ", j, val))
+			t.Error(fmt.Sprintf("Dealer %d should be certified : %v", j, val))
 		}
 	}
 
@@ -69,17 +73,15 @@ func wrongDealerAddResponse(t *testing.T) {
 	n := 2
 	m := 3
 	dealers, receivers := generateNDealerMReceiver(Threshold{2, 3, 3}, n, m)
-	r1, _ := receivers[0].AddDealer(0, dealers[0])
-	err := dealers[0].AddResponse(1, r1)
+	r1, _ := receivers[0].AddDeal(0, dealers[0])
+	state := new(State).Init(*dealers[0])
+	err := state.AddResponse(1, r1)
 	if err == nil {
 		t.Error("AddResponse should have returned an error when given the wrong index share")
 	}
-	// We may do others tests but I leave it for now as a discussion because, all theses tests are based on the promise package which is already well tested
 }
 
 func TestProduceSharedSecret(t *testing.T) {
-	REVEAL_SHARE_CHECK = CHECK_OFF
-	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	n := 3
 	m := 3
 	_, receivers := generateNMSetup(Threshold{2, 3, 3}, n, m)
@@ -127,40 +129,7 @@ func TestPolyInfoMarshalling(t *testing.T) {
 
 }
 
-func TestDealerMarshalling(t *testing.T) {
-	pl := Threshold{
-		T: 5,
-		R: 6,
-		N: 7,
-	}
-	kpl := generateKeyPairList(7)
-	kp := generatePublicListFromPrivate(kpl)
-	d := NewDealer(testSuite, pl, generateKeyPair(), generateKeyPair(), kp)
-	b := new(bytes.Buffer)
-	err := testSuite.Write(b, d)
-
-	if err != nil {
-		t.Error(fmt.Sprintf("Error marshaling dealer %v ", err))
-	}
-	buf := b.Bytes()
-	d2 := new(Dealer).UnmarshalInit(testSuite, pl)
-	err = testSuite.Read(bytes.NewBuffer(buf), d2)
-
-	if err != nil {
-		t.Error(fmt.Sprintf("Error unmarshaling dealer %v", err))
-	}
-	if !d.Equal(d2) {
-		if !d.info.Equal(d2.info) {
-			t.Error("Dealers do not share common PolyInfo")
-		} else {
-			t.Error("Dealer's Promises should be equals after marshalling ...")
-		}
-	}
-}
-
 func TestProduceSharedSecretMarshalledDealer(t *testing.T) {
-	REVEAL_SHARE_CHECK = CHECK_OFF
-	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	// Test if all goes well with the right inputs
 	n := 3
 	m := 3
@@ -177,20 +146,12 @@ func TestProduceSharedSecretMarshalledDealer(t *testing.T) {
 			}
 			buf := b.Bytes()
 			bb := bytes.NewBuffer(buf)
-			d2 := new(Dealer).UnmarshalInit(testSuite, pl)
+			d2 := new(Deal).UnmarshalInit(pl.T, pl.R, pl.N, testSuite)
 			err = testSuite.Read(bb, d2)
 			if err != nil {
 				t.Error("Read(Dealer) should not gen any error : ", err)
 			}
-			resp, err := receivers[i].AddDealer(i, d2)
-			if err != nil {
-				t.Error("AddDealer should not generate error")
-			}
-			// then give the response back to the dealer
-			err = dealers[j].AddResponse(i, resp)
-			if err != nil {
-				t.Error(fmt.Sprintf("AddResponse should not generate any error : %v", err))
-			}
+			receivers[i].AddDeal(i, d2)
 		}
 	}
 	_, err := receivers[0].ProduceSharedSecret()

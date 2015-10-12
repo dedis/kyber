@@ -33,36 +33,29 @@ func generatePublicListFromPrivate(private []*config.KeyPair) []abstract.Point {
 }
 
 // Returns N dealers with M receivers with the right keys / public keys ...
-func generateNDealerMReceiver(info Threshold, n, m int) ([]*Dealer, []*Receiver) {
+func generateNDealerMReceiver(info Threshold, n, m int) ([]*Deal, []*Receiver) {
 	receiverKeys := generateKeyPairList(m)
 	receiverPublics := generatePublicListFromPrivate(receiverKeys)
 	receivers := make([]*Receiver, n)
 	for i := 0; i < n; i++ {
 		receivers[i] = NewReceiver(testSuite, info, receiverKeys[i])
 	}
-	dealers := make([]*Dealer, n)
+	dealers := make([]*Deal, n)
 	for i := 0; i < n; i++ {
-		dealers[i] = NewDealer(testSuite, info, generateKeyPair(), generateKeyPair(), receiverPublics)
+		dealers[i] = new(Deal).ConstructDeal(generateKeyPair(), generateKeyPair(), info.T, info.R, receiverPublics)
 	}
 	return dealers, receivers
 }
 
 // Same as produceNDealerMReceiver except that it make the exchange of Dealer / Response
-func generateNMSetup(info Threshold, n, m int) ([]*Dealer, []*Receiver) {
+func generateNMSetup(info Threshold, n, m int) ([]*Deal, []*Receiver) {
 	dealers, receivers := generateNDealerMReceiver(info, n, m)
 	for i := 0; i < m; i++ {
 		for j := 0; j < n; j++ {
-			resp, err := receivers[i].AddDealer(i, dealers[j])
+			_, err := receivers[i].AddDeal(i, dealers[j])
 			if err != nil {
-				panic(fmt.Sprintf("Could not AddDealer %d on Receiver %d!", j, i))
+				panic(fmt.Sprintf("Could not AddDeal %d on Receiver %d!", j, i))
 			}
-			dealers[j].AddResponse(i, resp)
-		}
-	}
-	for j := 0; j < n; j++ {
-		err := dealers[j].Certified()
-		if err != nil {
-			panic(fmt.Sprintf("Dealer's %d promise is not certified !", j))
 		}
 	}
 	return dealers, receivers

@@ -1,17 +1,17 @@
-/* This package implements the Promise cryptographic primitive, which is based
+/* This package implements the Deal cryptographic primitive, which is based
  * on poly/sharing.go
  *
  * Failures are frequent in large-scale systems. When reliability is paramount,
  * the system requires some guarentee that it will still be able to make
  * progress in the midst of failures. To do so, recovering critical information
  * from failed nodes is often needed. Herein is the importance of this package.
- * The promise package provides such reliability in the area of private keys.
+ * The deal package provides such reliability in the area of private keys.
  *
  * If a server wishes to have extra reliability for a private key it is using,
- * it can construct a Promise struct. A Promise will take the private key and
+ * it can construct a Deal struct. A Deal will take the private key and
  * shard it into secret shares via poly/sharing.go logic. The server can
  * then give the shares to a group of other servers who can act as insurers
- * of the Promise. The insurers will keep the secret shares. If the original
+ * of the Deal. The insurers will keep the secret shares. If the original
  * server ever goes offline, another server could ask the insurers for their
  * secret shares and then combine them into the original secret key. Hence, this
  * server could continue in the place of the original and the sytem can continue
@@ -21,98 +21,98 @@
  * process. Other files can use these primitives to build a more robust
  * system. In particular, there are 5 structs (3 public, 2 private):
  *
- *   1) Promise = respondible for sharding the secret, creating shares, and
+ *   1) Deal = respondible for sharding the secret, creating shares, and
  *                tracking which shares belong to which insurers
 *
- *   2) State = responsible for keeping state about a given Promise such
+ *   2) State = responsible for keeping state about a given Deal such
  *              as shares recovered and messages that either certify the
- *              promise or prove that it is malicious
+ *              Deal or prove that it is malicious
  *
- *   3) signature = proves that an insurer has signed off on a Promise.
+ *   3) signature = proves that an insurer has signed off on a Deal.
  *                  The signature could either be used to express
  *                  approval or disapproval
  *
- *   4) blameProof = provides proof that a given Promise share was malicously
- *                   constructed. A valid blameProof proves that the Promise
- *                   is untrustworthy and that the creator of the Promise is
+ *   4) blameProof = provides proof that a given Deal share was malicously
+ *                   constructed. A valid blameProof proves that the Deal
+ *                   is untrustworthy and that the creator of the Deal is
  *                   malicious
  *
  *   5) Response = a union of signature and blameProof. This serves as a public
  *                 wrapper for the two structs.
  *
  * Further documentation for each of the different structs can be found below.
- * It is suggested to start with the Promise struct referring to the others
- * as necessary. Once a general knowledge of Promise is gained, the others
+ * It is suggested to start with the Deal struct referring to the others
+ * as necessary. Once a general knowledge of Deal is gained, the others
  * will make more sense.
  *
  * Code using this package will typically have the following flow (please see
  * "Key Terms" below for a definition of terms used):
  *
- * Step I: Take out the Promise
+ * Step I: Take out the Deal
  *
- *   1) The promiser constructs a new Promise and stores it within a State.
+ *   1) The Dealer constructs a new Deal and stores it within a State.
  *
- * Step II: Certify the Promise
+ * Step II: Certify the Dealer
  *
- *   1) The promiser sends the Promise to the insurers.
+ *   1) The Dealer sends the Deal to the insurers.
  *
- *   2) The insurers verify the Promise is well-formed and make sure that their
+ *   2) The insurers verify the Deal is well-formed and make sure that their
  *      secret shares are valid.
  *
  *     a) If a secret share is invalid, an insurer creates a blameProof and sends
  *        it back.
  *
  *     b) If the share is valid, an insurer creates a signature to send
- *        to the promiser.
+ *        to the Dealer.
  *
- *   3) The promiser receives the message from the insurer.
+ *   3) The Dealer receives the message from the insurer.
  *
- *     a) If it is a valid blameProof, the promiser must start all over and
- *        construct a non-malicious Promise (or, the system can ban this malicious
- *        promiser).
+ *     a) If it is a valid blameProof, the Dealer must start all over and
+ *        construct a non-malicious Deal (or, the system can ban this malicious
+ *        Dealer).
  *
- *     b) If the message is a signature, the promiser can add the signature
+ *     b) If the message is a signature, the Dealer can add the signature
  *        to its State.
  *
- *   4) Repeat steps 1-3 until the promiser has collected enough
- *      signatures for the Promise to be certified.
+ *   4) Repeat steps 1-3 until the Dealer has collected enough
+ *      signatures for the Deal to be certified.
  *
- * Step III: Distribute the Promise
+ * Step III: Distribute the Deal
  *
- *   1) Once the Promise is certified, the promiser can then send the promise to
+ *   1) Once the Deal is certified, the Dealer can then send the deal to
  *      clients.
  *
  *   2) Clients can then request the signatures from the insurers to make sure
- *      the Promise is indeed certified.
+ *      the Deal is indeed certified.
  *
- *     a) This prevents a malicious promiser from simply leaving out valid
+ *     a) This prevents a malicious Dealer from simply leaving out valid
  *        blameProofs and only sending good signatures to the clients.
  *
  *   3) Once the client receives enough signatures, the client will then trust
- *      the promiser to do work with the promised private key.
+ *      the Dealer to do work with the deald private key.
  *
  * Step IV: Perform work for Clients
  *
- * Step V: Reconstruct the Promised Secret (if the promiser goes down)
+ * Step V: Reconstruct the Deal Secret (if the Dealer goes down)
  *
- *   1) If the promiser is unresponsive for too long, a client can inform the
- *      insurers of the Promise.
+ *   1) If the Dealer is unresponsive for too long, a client can inform the
+ *      insurers of the Deal.
  *
- *   2) The insurers can then check if the promiser is indeed unresponsive.
+ *   2) The insurers can then check if the Dealer is indeed unresponsive.
  *
  *     a) If so, the insurer reveal its share and sends it to the client.
  *
  *   3) The client repeats steps 1-2 until enough shares are recovered to
  *      reconstruct the secret.
  *
- *   4) The client reconstructs the secret and takes over for the promiser.
+ *   4) The client reconstructs the secret and takes over for the Dealer.
  *
  *
  *
  * Key Terms:
- *   promiser = the server making a Promise
- *   client   = recipients of a Promise who are trusting the promiser
- *   insurer  = servers who store secret shares of a promise. Such servers help
+ *   Dealer = the server making a Deal
+ *   client   = recipients of a Deal who are trusting the Dealer
+ *   insurer  = servers who store secret shares of a deal. Such servers help
  *              during secret reconstruction.
  *
  *   Users of this code = programmers wishing to use this code in programs
@@ -139,19 +139,19 @@ import (
 var uint32Size int = binary.Size(uint32(0))
 
 // This is the protocol name used by crypto/proof verifiers and provers.
-var protocolName string = "Promise Protocol"
+var protocolName string = "Deal Protocol"
 
 // These are messages used for signatures
-var sigMsg []byte = []byte("Promise Signature")
-var sigBlameMsg []byte = []byte("Promise Blame Signature")
+var sigMsg []byte = []byte("Deal Signature")
+var sigBlameMsg []byte = []byte("Deal Blame Signature")
 
 // This error denotes that a share was maliciously constructed (fails
-// the public polynomial check). Hence, the promiser is malicious.
+// the public polynomial check). Hence, the Dealer is malicious.
 var maliciousShare = errors.New("Share is malicious. PubPoly.Check failed.")
 
-/* Promise structs are mechanisms by which a server can promise other servers
+/* Deal structs are mechanisms by which a server can deal other servers
  * that an abstract.Secret will be availble even if the secret's owner goes
- * down. The secret to be promised will be sharded into shared secrets that can
+ * down. The secret to be deald will be sharded into shared secrets that can
  * be combined using Lagrange Interpolation to produce the original secret.
  * Other servers will act as insurers maintaining a share. If a client ever
  * needs the secret to be reconstructed, it can contact the insurers to regain
@@ -164,12 +164,12 @@ var maliciousShare = errors.New("Share is malicious. PubPoly.Check failed.")
  *
  *   Here is a list of methods that should be called by each type of server:
  *
- * - Promisers
- *   * ConstructPromise
+ * - Dealers
+ *   * ConstructDeal
  *
  * - Insurers
  *   * ProduceResponse
- *   * State.RevealShare (public wrapper to Promise.RevealShare in State struct)
+ *   * State.RevealShare (public wrapper to Deal.RevealShare in State struct)
  *
  * - Clients
  *   * VerifyRevealedShare
@@ -177,53 +177,53 @@ var maliciousShare = errors.New("Share is malicious. PubPoly.Check failed.")
  * - All
  *   * UnmarshalInit
  *   * Id
- *   * PromiserId
+ *   * DealerId
  *   * Insurers
- *   * State.PromiseCertified
+ *   * State.DealCertified
  *   * State.SufficientSignatures
  */
-type Promise struct {
+type Deal struct {
 
-	// The id of the promise used to differentiate it from others
-	// The id is the short term public key of the private key being promised
+	// The id of the deal used to differentiate it from others
+	// The id is the short term public key of the private key being deald
 	id abstract.Point
 
-	// The cryptographic key suite used throughout the Promise.
+	// The cryptographic key suite used throughout the Deal.
 	suite abstract.Suite
 
 	// The minimum number of shares needed to reconstruct the secret
 	t int
 
-	// The minimum number of signatures approving the Promise that
-	// are needed before the Promise is certified. t <= r <= n
+	// The minimum number of signatures approving the Deal that
+	// are needed before the Deal is certified. t <= r <= n
 	r int
 
 	// The total number of shares
 	n int
 
-	// The long-term public key of the promiser
+	// The long-term public key of the Dealer
 	pubKey abstract.Point
 
 	// The public polynomial that is used to verify the shared secrets
 	pubPoly PubPoly
 
-	// A list of servers who will act as insurers of the Promise. The list
+	// A list of servers who will act as insurers of the Deal. The list
 	// contains the long-term public keys of the insurers
 	insurers []abstract.Point
 
 	// The list of shared secrets to be sent to the insurers. They are
 	// encrypted with Diffie-Hellman shared secrets between the insurer
-	// and the promiser.
+	// and the Dealer.
 	secrets []abstract.Secret
 }
 
-/* Constructs a new Promise to guarentee a secret.
+/* Constructs a new Deal to guarentee a secret.
  *
  * Arguments
- *    secretPair   = the keypair of the secret to be promised
- *    longPair     = the long term keypair of the promiser
+ *    secretPair   = the keypair of the secret to be deald
+ *    longPair     = the long term keypair of the Dealer
  *    t            = minimum number of shares needed to reconstruct the secret.
- *    r            = minimum signatures needed to certify the Promise
+ *    r            = minimum signatures needed to certify the Deal
  *    insurers     = a list of the long-term public keys of the insurers.
  *
  *
@@ -234,10 +234,10 @@ type Promise struct {
  *    secretPair.Suite == longPair.Suite
  *
  * Returns
- *   A newly constructed Promise
+ *   A newly constructed Deal
  */
-func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
-	longPair *config.KeyPair, t, r int, insurers []abstract.Point) *Promise {
+func (p *Deal) ConstructDeal(secretPair *config.KeyPair,
+	longPair *config.KeyPair, t, r int, insurers []abstract.Point) *Deal {
 	p.id = secretPair.Public
 	p.t = t
 	p.r = r
@@ -266,7 +266,7 @@ func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
 	p.pubPoly.Commit(pripoly, nil)
 
 	// Populate the secrets array with the shares encrypted by a Diffie-
-	// Hellman shared secret between the promiser and appropriate insurer
+	// Hellman shared secret between the Dealer and appropriate insurer
 	for i := 0; i < p.n; i++ {
 		diffieBase := p.suite.Point().Mul(insurers[i], longPair.Secret)
 		diffieSecret := p.diffieHellmanSecret(diffieBase)
@@ -276,19 +276,19 @@ func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
 	return p
 }
 
-/* Initializes a Promise for unmarshalling
+/* Initializes a Deal for unmarshalling
  *
  * Arguments
  *    t           = the minimum number of shares needed to reconstruct the secret
  *    r           = the minimum number of positive Response's needed to cerifty the
- *                  promise
+ *                  deal
  *    n           = the total number of insurers.
- *    suite       = the suite used within the Promise
+ *    suite       = the suite used within the Deal
  *
  * Returns
- *   An initialized Promise ready to be unmarshalled
+ *   An initialized Deal ready to be unmarshalled
  */
-func (p *Promise) UnmarshalInit(t, r, n int, suite abstract.Suite) *Promise {
+func (p *Deal) UnmarshalInit(t, r, n int, suite abstract.Suite) *Deal {
 	p.t = t
 	p.r = r
 	p.n = n
@@ -298,52 +298,52 @@ func (p *Promise) UnmarshalInit(t, r, n int, suite abstract.Suite) *Promise {
 	return p
 }
 
-/* An internal helper used during unmarshalling, verifies that the Promise was
+/* An internal helper used during unmarshalling, verifies that the Deal was
  * constructed correctly.
  *
  * Return
- *   an error if the promise is malformed, nil otherwise.
+ *   an error if the deal is malformed, nil otherwise.
  *
  * TODO Consider more ways to verify (such as making sure there are no duplicate
- *      keys in p.insurers or that the promiser's long term public key is not in
+ *      keys in p.insurers or that the Dealer's long term public key is not in
  *      p.insurers).
- * NOT TODO : promiser long term public key COULD and most of the time WILL
+ * NOT TODO : Dealer long term public key COULD and most of the time WILL
  *		be in p.insurers  (you can insure yourself, there's no problem about that)
  */
-func (p *Promise) verifyPromise() error {
+func (p *Deal) verifyDeal() error {
 	// Verify t <= r <= n
 	if p.t > p.n || p.t > p.r || p.r > p.n {
-		return errors.New("Invalid t-of-n shares Promise. Expected: t <= r <= n")
+		return errors.New("Invalid t-of-n shares Deal. Expected: t <= r <= n")
 	}
 	// There should be a secret and public key for each of the n insurers.
 	if len(p.insurers) != p.n || len(p.secrets) != p.n {
-		return errors.New("Insurers and secrets array should be of length promise.n")
+		return errors.New("Insurers and secrets array should be of length deal.n")
 	}
 	return nil
 }
 
-func (p *Promise) PubPoly() *PubPoly {
+func (p *Deal) PubPoly() *PubPoly {
 	return &p.pubPoly
 }
 
-// Returns the id of the Promise
-func (p *Promise) Id() string {
+// Returns the id of the Deal
+func (p *Deal) Id() string {
 	return p.id.String()
 }
 
-// Returns the id of the Promiser (aka its long term public key)
-func (p *Promise) PromiserId() string {
+// Returns the id of the Dealer (aka its long term public key)
+func (p *Deal) DealerId() string {
 	return p.pubKey.String()
 }
 
-// Returns a copy of the Promiser's long term public key
-func (p *Promise) PromiserKey() abstract.Point {
+// Returns a copy of the Dealer's long term public key
+func (p *Deal) DealerKey() abstract.Point {
 	return p.suite.Point().Add(p.suite.Point().Null(), p.pubKey)
 }
 
-// Returns the list of insurers of the promise.
+// Returns the list of insurers of the deal.
 // A copy of insurers is return to prevent tampering.
-func (p *Promise) Insurers() []abstract.Point {
+func (p *Deal) Insurers() []abstract.Point {
 	result := make([]abstract.Point, p.n, p.n)
 	copy(result, p.insurers)
 	return result
@@ -358,7 +358,7 @@ func (p *Promise) Insurers() []abstract.Point {
  * Return
  *   the DH secret
  */
-func (p *Promise) diffieHellmanSecret(diffieBase abstract.Point) abstract.Secret {
+func (p *Deal) diffieHellmanSecret(diffieBase abstract.Point) abstract.Secret {
 	buff, err := diffieBase.MarshalBinary()
 	if err != nil {
 		panic("Bad shared secret for Diffie-Hellman given.")
@@ -377,11 +377,11 @@ func (p *Promise) diffieHellmanSecret(diffieBase abstract.Point) abstract.Secret
  * Return
  *  an error if the share is malformed, nil otherwise.
  */
-func (p *Promise) verifyShare(i int, gKeyPair *config.KeyPair) error {
+func (p *Deal) verifyShare(i int, gKeyPair *config.KeyPair) error {
 	if i < 0 || i >= p.n {
 		return errors.New("Invalid index. Expected 0 <= i < n")
 	}
-	msg := "The long-term public key the Promise recorded as the insurer" +
+	msg := "The long-term public key the Deal recorded as the insurer" +
 		"of this shares differs from what is expected"
 	if !p.insurers[i].Equal(gKeyPair.Public) {
 		return errors.New(msg)
@@ -405,7 +405,7 @@ func (p *Promise) verifyShare(i int, gKeyPair *config.KeyPair) error {
  * Return
  *   A signature object with the signature.
  */
-func (p *Promise) sign(i int, gKeyPair *config.KeyPair, msg []byte) *signature {
+func (p *Deal) sign(i int, gKeyPair *config.KeyPair, msg []byte) *signature {
 	set := anon.Set{gKeyPair.Public}
 	sig := anon.Sign(gKeyPair.Suite, random.Stream, msg, set, nil, 0,
 		gKeyPair.Secret)
@@ -422,7 +422,7 @@ func (p *Promise) sign(i int, gKeyPair *config.KeyPair, msg []byte) *signature {
  * Return
  *   an error if the signature is malformed, nil otherwise.
  */
-func (p *Promise) verifySignature(i int, sig *signature, msg []byte) error {
+func (p *Deal) verifySignature(i int, sig *signature, msg []byte) error {
 	if i < 0 || i >= p.n {
 		return errors.New("Invalid index. Expected 0 <= i < n")
 	}
@@ -434,7 +434,7 @@ func (p *Promise) verifySignature(i int, sig *signature, msg []byte) error {
 	return err
 }
 
-/* Create a blameProof that the promiser maliciously constructed a shared secret.
+/* Create a blameProof that the Dealer maliciously constructed a shared secret.
  * This should be called if verifyShare fails due to the public polynomial
  * check failing. If it failed for other reasons (such as a bad index) it is not
  * advised to call this function since the share might actually be valid.
@@ -444,13 +444,13 @@ func (p *Promise) verifySignature(i int, sig *signature, msg []byte) error {
  *    gKeyPair  = the long term key pair of the insurer of share i
  *
  * Return
- *   A blameProof that the promiser is malicious or nil if an error occurs
+ *   A blameProof that the Dealer is malicious or nil if an error occurs
  *   An error object denoting the status of the blameProof construction
  *
  * TODO: Consider whether it is worthwile to produce some form of blame if
- *       the promiser gives an invalid index.
+ *       the Dealer gives an invalid index.
  */
-func (p *Promise) blame(i int, gKeyPair *config.KeyPair) (*blameProof, error) {
+func (p *Deal) blame(i int, gKeyPair *config.KeyPair) (*blameProof, error) {
 	diffieKey := p.suite.Point().Mul(p.pubKey, gKeyPair.Secret)
 	insurerSig := p.sign(i, gKeyPair, sigBlameMsg)
 
@@ -472,12 +472,12 @@ func (p *Promise) blame(i int, gKeyPair *config.KeyPair) (*blameProof, error) {
  *
  * Arguments
  *    i     = the index of the share subject to blame
- *    proof = blameProof that alleges the promiser to have constructed a bad share.
+ *    proof = blameProof that alleges the Dealer to have constructed a bad share.
  *
  * Return
  *   an error if the blame is unjustified or nil if the blame is justified.
  */
-func (p *Promise) verifyBlame(i int, bproof *blameProof) error {
+func (p *Deal) verifyBlame(i int, bproof *blameProof) error {
 	// Basic sanity checks
 	if i < 0 || i >= p.n {
 		return errors.New("Invalid index. Expected 0 <= i < n")
@@ -505,9 +505,9 @@ func (p *Promise) verifyBlame(i int, bproof *blameProof) error {
 	return nil
 }
 
-/* For insurers, produces a response to a Promise. If the insurer's share is
+/* For insurers, produces a response to a Deal. If the insurer's share is
  * valid, the function returns a Response expressing the insurer's approval.
- * Otherwise, a Response with a blameProof blaming the promiser is made.
+ * Otherwise, a Response with a blameProof blaming the Dealer is made.
  *
  * Arguments
  *    i        = the index of the insurer in the insurers list
@@ -517,12 +517,12 @@ func (p *Promise) verifyBlame(i int, bproof *blameProof) error {
  *   the Response, or nil if there is an error.
  *   an error, nil otherwise.
  */
-func (p *Promise) ProduceResponse(i int, gKeyPair *config.KeyPair) (*Response, error) {
+func (p *Deal) ProduceResponse(i int, gKeyPair *config.KeyPair) (*Response, error) {
 	if err := p.verifyShare(i, gKeyPair); err != nil {
 		// verifyShare may also fail because the index is invalid or
 		// the insurer key is not the one expected. Do not produce a
-		// blameProof in these cases, simply ignore the Promise till
-		// the promiser sends the valid index for this insurer.
+		// blameProof in these cases, simply ignore the Deal till
+		// the Dealer sends the valid index for this insurer.
 		if err != maliciousShare {
 			return nil, err
 		}
@@ -548,7 +548,7 @@ func (p *Promise) ProduceResponse(i int, gKeyPair *config.KeyPair) (*Response, e
  * Return
  *   the revealed private share
  */
-func (p *Promise) revealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
+func (p *Deal) RevealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
 	diffieBase := p.suite.Point().Mul(p.pubKey, gKeyPair.Secret)
 	diffieSecret := p.diffieHellmanSecret(diffieBase)
 	share := p.suite.Secret().Sub(p.secrets[i], diffieSecret)
@@ -565,7 +565,7 @@ func (p *Promise) revealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
  * Return
  *   Whether the secret is valid
  */
-func (p *Promise) VerifyRevealedShare(i int, share abstract.Secret) error {
+func (p *Deal) VerifyRevealedShare(i int, share abstract.Secret) error {
 	if i < 0 || i >= p.n {
 		return errors.New("Invalid index. Expected 0 <= i < n")
 	}
@@ -575,7 +575,7 @@ func (p *Promise) VerifyRevealedShare(i int, share abstract.Secret) error {
 	return nil
 }
 
-/* Tests whether two Promise structs are equal
+/* Tests whether two Deal structs are equal
  *
  * Arguments
  *    p2 = a pointer to the struct to test for equality
@@ -583,7 +583,7 @@ func (p *Promise) VerifyRevealedShare(i int, share abstract.Secret) error {
  * Returns
  *   true if equal, false otherwise
  */
-func (p *Promise) Equal(p2 *Promise) bool {
+func (p *Deal) Equal(p2 *Deal) bool {
 	if p.n != p2.n {
 		return false
 	}
@@ -614,12 +614,12 @@ func (p *Promise) Equal(p2 *Promise) bool {
  * Note
  *   This function can be used after UnmarshalInit
  */
-func (p *Promise) MarshalSize() int {
+func (p *Deal) MarshalSize() int {
 	return 2*p.suite.PointLen() + p.pubPoly.MarshalSize() +
 		p.n*p.suite.PointLen() + p.n*p.suite.SecretLen()
 }
 
-/* Marshals a Promise struct into a byte array
+/* Marshals a Deal struct into a byte array
  *
  * Returns
  *   A buffer of the marshalled struct
@@ -632,7 +632,7 @@ func (p *Promise) MarshalSize() int {
  *
  *   Remember: n == len(insurers) == len(secrets)
  */
-func (p *Promise) MarshalBinary() ([]byte, error) {
+func (p *Deal) MarshalBinary() ([]byte, error) {
 	buf := make([]byte, p.MarshalSize())
 
 	pointLen := p.suite.PointLen()
@@ -679,15 +679,15 @@ func (p *Promise) MarshalBinary() ([]byte, error) {
 	return buf, nil
 }
 
-/* Unmarshals a Promise from a byte buffer
+/* Unmarshals a Deal from a byte buffer
  *
  * Arguments
- *    buf = the buffer containing the Promise
+ *    buf = the buffer containing the Deal
  *
  * Returns
  *   The error status of the unmarshalling (nil if no error)
  */
-func (p *Promise) UnmarshalBinary(buf []byte) error {
+func (p *Deal) UnmarshalBinary(buf []byte) error {
 	pointLen := p.suite.PointLen()
 	secretLen := p.suite.SecretLen()
 
@@ -732,11 +732,11 @@ func (p *Promise) UnmarshalBinary(buf []byte) error {
 			return err
 		}
 	}
-	// Make sure the Promise is valid.
-	return p.verifyPromise()
+	// Make sure the Deal is valid.
+	return p.verifyDeal()
 }
 
-/* Marshals a Promise struct using an io.Writer
+/* Marshals a Deal struct using an io.Writer
  *
  * Arguments
  *    w = the writer to use for marshalling
@@ -745,7 +745,7 @@ func (p *Promise) UnmarshalBinary(buf []byte) error {
  *   The number of bytes written
  *   The error status of the write (nil if no errors)
  */
-func (p *Promise) MarshalTo(w io.Writer) (int, error) {
+func (p *Deal) MarshalTo(w io.Writer) (int, error) {
 	buf, err := p.MarshalBinary()
 	if err != nil {
 		return 0, err
@@ -753,7 +753,7 @@ func (p *Promise) MarshalTo(w io.Writer) (int, error) {
 	return w.Write(buf)
 }
 
-/* Unmarshals a Promise struct using an io.Reader
+/* Unmarshals a Deal struct using an io.Reader
  *
  * Arguments
  *    r = the reader to use for unmarshalling
@@ -762,7 +762,7 @@ func (p *Promise) MarshalTo(w io.Writer) (int, error) {
  *   The number of bytes read
  *   The error status of the read (nil if no errors)
  */
-func (p *Promise) UnmarshalFrom(r io.Reader) (int, error) {
+func (p *Deal) UnmarshalFrom(r io.Reader) (int, error) {
 	buf := make([]byte, p.MarshalSize())
 	n, err := io.ReadFull(r, buf)
 	if err != nil {
@@ -771,13 +771,13 @@ func (p *Promise) UnmarshalFrom(r io.Reader) (int, error) {
 	return n, p.UnmarshalBinary(buf)
 }
 
-/* Returns a string representation of the Promise for easy debugging
+/* Returns a string representation of the Deal for easy debugging
  *
  * Returns
- *   The Promise's string representation
+ *   The Deal's string representation
  */
-func (p *Promise) String() string {
-	s := "{Promise:\n"
+func (p *Deal) String() string {
+	s := "{Deal:\n"
 	s += "Suite => " + p.suite.String() + ",\n"
 	s += "t => " + strconv.Itoa(p.t) + ",\n"
 	s += "r => " + strconv.Itoa(p.r) + ",\n"
@@ -796,14 +796,14 @@ func (p *Promise) String() string {
 	return s
 }
 
-/* The State struct is responsible for maintaining state about Promise
+/* The State struct is responsible for maintaining state about Deal
  * structs. It consists of three main pieces:
  *
- *    1. The promise itself, which should be treated like an immutable object
+ *    1. The deal itself, which should be treated like an immutable object
  *    2. The shared secrets the server has recovered so far
- *    3. A list of responses from insurers cerifying or blaming the promise
+ *    3. A list of responses from insurers cerifying or blaming the deal
  *
- * Each server should have one State per Promise
+ * Each server should have one State per Deal
  *
  * Note to users of this code:
  *
@@ -822,12 +822,12 @@ func (p *Promise) String() string {
  */
 type State struct {
 
-	// The actual promise
-	Promise Promise
+	// The actual deal
+	Deal Deal
 
 	// Primarily used by clients, contains shares the client has currently
 	// obtained from insurers. This is what will be used to reconstruct the
-	// promised secret.
+	// deald secret.
 	PriShares PriShares
 
 	// A list of responses (either approving signatures or blameProofs)
@@ -838,19 +838,19 @@ type State struct {
 /* Initializes a new State
  *
  * Arguments
- *    promise = the promise to keep track of
+ *    deal = the deal to keep track of
  *
  * Returns
  *   An initialized State
  */
-func (ps *State) Init(promise Promise) *State {
-	ps.Promise = promise
+func (ps *State) Init(deal Deal) *State {
+	ps.Deal = deal
 
-	// Initialize a new PriShares based on information from the promise.
+	// Initialize a new PriShares based on information from the deal.
 	ps.PriShares = PriShares{}
-	ps.PriShares.Empty(promise.suite, promise.t, promise.n)
+	ps.PriShares.Empty(deal.suite, deal.t, deal.n)
 	// There will be at most n responses, one per insurer
-	ps.responses = make([]*Response, promise.n, promise.n)
+	ps.responses = make([]*Response, deal.n, deal.n)
 	return ps
 }
 
@@ -862,7 +862,7 @@ func (ps *State) Init(promise Promise) *State {
  *    response = the response to add
  *
  * Returns
- *   nil if the promise was added succesfully, an error otherwise.
+ *   nil if the deal was added succesfully, an error otherwise.
  */
 func (ps *State) AddResponse(i int, response *Response) error {
 	if ps.responses[i] != nil {
@@ -872,10 +872,10 @@ func (ps *State) AddResponse(i int, response *Response) error {
 	var err error
 	switch response.rtype {
 	case signatureResponse:
-		err = ps.Promise.verifySignature(i, response.signature, sigMsg)
+		err = ps.Deal.verifySignature(i, response.signature, sigMsg)
 
 	case blameProofResponse:
-		err = ps.Promise.verifyBlame(i, response.blameProof)
+		err = ps.Deal.verifyBlame(i, response.blameProof)
 
 	default:
 		err = errors.New("Invalid response.")
@@ -887,10 +887,10 @@ func (ps *State) AddResponse(i int, response *Response) error {
 	return nil
 }
 
-/* A public wrapper for Promise.revealShare, ensures that a share is only
- * revealed for a Promise that has received a sufficient number of signatures.
+/* A public wrapper for Deal.RevealShare, ensures that a share is only
+ * revealed for a Deal that has received a sufficient number of signatures.
  * An insurer should call this function on behalf of a client after verifying
- * that the promiser is non-responsive.
+ * that the Dealer is non-responsive.
  *
  * Arguments
  *    i        = the index of the insurer
@@ -898,8 +898,8 @@ func (ps *State) AddResponse(i int, response *Response) error {
  *
  * Return
  *   (share, error)
- *      share = the revealed private share, or nil if the promise share is corrupted
- *      error = nil if successful, error if the promise share is corrupted
+ *      share = the revealed private share, or nil if the deal share is corrupted
+ *      error = nil if successful, error if the deal share is corrupted
  *
  *   This error checking insures that a good insurer who has produced a valid blameproof does
  *   not reveal an incorrect share.
@@ -909,75 +909,75 @@ func (ps *State) AddResponse(i int, response *Response) error {
  *
  *
  * Note
- *   The reason that SufficientSignatures is used instead of PromiseCertified is
+ *   The reason that SufficientSignatures is used instead of DealCertified is
  *   to prevent the following senario:
  *
- *      1) A malicious server creates a promise and selects as an insurer another
+ *      1) A malicious server creates a deal and selects as an insurer another
  *         malicious peer. The malicious peer is given an invalid share.
  *
- *      2) The other insurers certify the promise and the malicious insurer does
+ *      2) The other insurers certify the deal and the malicious insurer does
  *         not respond.
  *
- *      3) The malicious server enters the system and gives its promise to clients.
+ *      3) The malicious server enters the system and gives its deal to clients.
  *
  *      4) The malicious insurer then sends out the valid blameProof.
  *
  *      5) Now, the good insurers are unable to reveal the secret and reconstruct
- *         the promise.
+ *         the deal.
  *
  *      6) The malicious server leaves the system. The insurance policy is now
  *         useless.
  *
  *   To prevent this, blameproofs are not taken into consideration. As a result,
  *   any server that produces an invalid share risks having its secret revealed
- *   at any moment after the promise has garnered enough signatures to be
- *   considered certified otherwise. This is further incentive to create valid promises.
+ *   at any moment after the deal has garnered enough signatures to be
+ *   considered certified otherwise. This is further incentive to create valid deals.
  */
 func (ps *State) RevealShare(i int, gKeyPair *config.KeyPair) (abstract.Secret, error) {
-	if REVEAL_SHARE_CHECK == CHECK_ON && ps.SufficientSignatures() != nil {
-		panic("RevealShare should only be called with promises with enough signatures.")
+	if ps.SufficientSignatures() != nil {
+		panic("RevealShare should only be called with deals with enough signatures.")
 	}
-	share := ps.Promise.revealShare(i, gKeyPair)
-	if !ps.Promise.pubPoly.Check(i, share) {
+	share := ps.Deal.RevealShare(i, gKeyPair)
+	if !ps.Deal.pubPoly.Check(i, share) {
 		return nil, errors.New("This share is corrupted.")
 	}
 	return share, nil
 }
 
-/* Checks whether the Promise object has received enough signatures to be
+/* Checks whether the Deal object has received enough signatures to be
  * considered certified.
  *
  * Arguments
  *   blameProofFail = whether to fail if a valid blame proof is encountered.
  *
  * Return
- *   an error denoting whether or not the Promise is certified.
+ *   an error denoting whether or not the Deal is certified.
  *     nil       == certified
  *     error     == not_yet_certified
  *
  * Note to users of this code
  *   An error here is not necessarily a cause for alarm, particularly if the
- *   Promise just needs more signatures. However, it could be a red flag if
+ *   Deal just needs more signatures. However, it could be a red flag if
  *   the error was caused by a valid blameProof. A single valid blameProof will
- *   permanently make a Promise uncertified.
+ *   permanently make a Deal uncertified.
  *
  * Technical Notes: The function goes through the list of responses and checks
  *                  for signatures that are properly signed. If at least r of
  *                  these are signed and r is greater than t (the minimum number
- *                  of shares needed to reconstruct the secret), the promise is
+ *                  of shares needed to reconstruct the secret), the deal is
  *                  considered certified. If any valid blameProofs are found, an
  *                  error is immediately produced if blameProofFail is true.
  *                  Otherwise, it ignores blameProofs.
  *
- *                  AddResponse handles promise validation. Hence, it is assumed
- *                  any promises included within the response array are valid.
+ *                  AddResponse handles deal validation. Hence, it is assumed
+ *                  any deals included within the response array are valid.
  */
-func (ps *State) promiseCertified(blameProofFail bool) error {
-	if err := ps.Promise.verifyPromise(); err != nil {
+func (ps *State) dealCertified(blameProofFail bool) error {
+	if err := ps.Deal.verifyDeal(); err != nil {
 		return err
 	}
 	validSigs := 0
-	for i := 0; i < ps.Promise.n; i++ {
+	for i := 0; i < ps.Deal.n; i++ {
 		if ps.responses[i] == nil {
 			continue
 		}
@@ -987,55 +987,55 @@ func (ps *State) promiseCertified(blameProofFail bool) error {
 		}
 
 		if blameProofFail && ps.responses[i].rtype == blameProofResponse {
-			return errors.New("A valid blameProof proves this Promise to be uncertified.")
+			return errors.New("A valid blameProof proves this Deal to be uncertified.")
 		}
 	}
-	if validSigs < ps.Promise.r {
-		return errors.New("Not enough signatures yet to be certified")
+	if validSigs < ps.Deal.r {
+		return errors.New(fmt.Sprintf("Not enough signatures yet to be certified %d vs %d", validSigs, ps.Deal.r))
 	}
 	return nil
 }
 
-/* This public function checks whether the Promise is certified. Three things
+/* This public function checks whether the Deal is certified. Three things
  * must hold for this to be the case:
  *
- *   1) The promise must be syntatically valid.
+ *   1) The deal must be syntatically valid.
  *   2) It must have >= r valid signatures
  *   3) It must not have any valid blameProofs
  *
  *
- * Use this function when determining whether a promise is safe to be accepted.
+ * Use this function when determining whether a deal is safe to be accepted.
  *
- * Please see promiseCertified for more details.
+ * Please see dealCertified for more details.
  */
-func (ps *State) PromiseCertified() error {
-	return ps.promiseCertified(true)
+func (ps *State) DealCertified() error {
+	return ps.dealCertified(true)
 }
 
 /* This public function checks whether the State has received enough signatures
- * for a promise to be considered certified. It ignores any valid blame proofs.
+ * for a deal to be considered certified. It ignores any valid blame proofs.
  *
  * Use this function when determining whether it is safe to reveal a share.
  *
- * Please see promiseCertified for more details.
+ * Please see dealCertified for more details.
  */
 func (ps *State) SufficientSignatures() error {
-	return ps.promiseCertified(false)
+	return ps.dealCertified(false)
 }
 
 /* The signature struct is used by insurers to express their approval
- * or disapproval of a given promise. After receiving a promise and verifying
+ * or disapproval of a given deal. After receiving a deal and verifying
  * that their shares are good, insurers can produce a signature to send back
- * to the promiser. Alternatively, the insurers can produce a blameProof (see
+ * to the Dealer. Alternatively, the insurers can produce a blameProof (see
  * below) and use the signature to certify that they authored the blame.
  *
- * In order for a Promise to be considered certified, a promiser will need to
+ * In order for a Deal to be considered certified, a Dealer will need to
  * collect a certain amount of signatures from its insurers (please see the
- * Promise struct below for more details).
+ * Deal struct below for more details).
  *
  * Besides unmarshalling, users of this code do not need to worry about creating
- * a signature directly. Promise structs know how to generate signatures via
- * Promise.ProduceResponse
+ * a signature directly. Deal structs know how to generate signatures via
+ * Deal.ProduceResponse
  */
 type signature struct {
 
@@ -1043,7 +1043,7 @@ type signature struct {
 	suite abstract.Suite
 
 	// The signature proving that the insurer either approves or disapproves
-	// of a Promise struct
+	// of a Deal struct
 	signature []byte
 }
 
@@ -1204,16 +1204,16 @@ func (p *signature) String() string {
 	return s
 }
 
-/* The blameProof struct provides an accountability measure. If a promiser
+/* The blameProof struct provides an accountability measure. If a Dealer
  * decides to construct a faulty share, insurers can construct a blameProof
- * to show that the promiser is malicious.
+ * to show that the Dealer is malicious.
  *
- * The insurer provides the Diffie-Hellman shared secret with the promiser so
+ * The insurer provides the Diffie-Hellman shared secret with the Dealer so
  * that others can decode the share in question. A zero knowledge blameProof is
  * provided to prove that the shared secret was constructed properly. Lastly, a
  * signature is attached to prove that the insurer endorses the blame.
  * When other servers receive the blameProof, they can then verify whether the
- * promiser is malicious or the insurer is falsely accusing the promiser.
+ * Dealer is malicious or the insurer is falsely accusing the Dealer.
  *
  * To quickly summarize the blame procedure, the following must hold for the
  * blame to succeed:
@@ -1223,21 +1223,21 @@ func (p *signature) String() string {
  *   2. The Diffie-Hellman key must be verified to be correct
  *
  *   3. The insurer's share when decrypted must fail the PubPoly.Check of
- *   the Promise struct
+ *   the Deal struct
  *
- * If all hold, the promiser is proven malicious. Otherwise, the insurer is
+ * If all hold, the Dealer is proven malicious. Otherwise, the insurer is
  * slanderous.
  *
  * Beyond unmarshalling, users of this code need not worry about constructing a
- * blameProof struct themselves. The Promise struct knows how to create a
- * blameProof via the Promise.ProduceResponse method.
+ * blameProof struct themselves. The Deal struct knows how to create a
+ * blameProof via the Deal.ProduceResponse method.
  */
 type blameProof struct {
 
 	// The suite used throughout the blameProof
 	suite abstract.Suite
 
-	// The Diffie-Hellman shared secret between the insurer and promiser
+	// The Diffie-Hellman shared secret between the insurer and Dealer
 	diffieKey abstract.Point
 
 	// A HashProve proof that the insurer properly constructed the Diffie-
@@ -1469,7 +1469,7 @@ const (
 )
 
 /* The Response struct is a union of the signature and blameProof types.
- * It is the public-facing message that insurers send in response to a Promise.
+ * It is the public-facing message that insurers send in response to a Deal.
  * It hides the details of signature's and blameProofs so that users of
  * this code will not have to worry about them.
  *
@@ -1483,10 +1483,10 @@ type Response struct {
 	// For unmarshalling purposes, the suite of the signature or blameProof
 	suite abstract.Suite
 
-	// A signature proving that the insurer approves of a Promise
+	// A signature proving that the insurer approves of a Deal
 	signature *signature
 
-	// blameProof showing that the Promise has been badly constructed.
+	// blameProof showing that the Deal has been badly constructed.
 	blameProof *blameProof
 }
 

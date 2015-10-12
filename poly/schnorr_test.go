@@ -9,8 +9,6 @@ import (
 var msg []byte = []byte("Hello World!")
 
 func TestNewRound(t *testing.T) {
-	REVEAL_SHARE_CHECK = CHECK_OFF
-	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	n := 3
 	pl := Threshold{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
@@ -33,8 +31,6 @@ func TestNewRound(t *testing.T) {
 }
 
 func TestRevealPartialSig(t *testing.T) {
-	REVEAL_SHARE_CHECK = CHECK_OFF
-	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	n := 3
 	pl := Threshold{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
@@ -45,11 +41,11 @@ func TestRevealPartialSig(t *testing.T) {
 			t.Error(fmt.Sprintf("NewRound should validate : %v", err))
 		}
 		ps := schnorrs[i].RevealPartialSig()
-		if ps.index != schnorrs[i].index() {
+		if ps.Index != schnorrs[i].index() {
 			t.Error(fmt.Sprintf("PartialSig does not have the same index as its producer ><"))
 		}
 		ps2 := schnorrs[i].RevealPartialSig()
-		if !(*ps.part).Equal(*ps2.part) {
+		if !(*ps.Part).Equal(*ps2.Part) {
 			t.Error(fmt.Sprintf("PartialSig does not return the same partial signature "))
 		}
 		err = schnorrs[i].verifyPartialSig(ps)
@@ -60,8 +56,6 @@ func TestRevealPartialSig(t *testing.T) {
 }
 
 func TestAddPartialSig(t *testing.T) {
-	REVEAL_SHARE_CHECK = CHECK_OFF
-	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	n := 3
 	pl := Threshold{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
@@ -74,13 +68,13 @@ func TestAddPartialSig(t *testing.T) {
 	}
 	for i, _ := range schnorrs {
 		ps := schnorrs[i].RevealPartialSig()
-		if ps.index != schnorrs[i].index() {
+		if ps.Index != schnorrs[i].index() {
 			t.Error(fmt.Sprintf("PartialSig does not have the same index as its producer ><"))
 		}
 		// geive the partial sig to everyone
 		for j, _ := range schnorrs {
 			if err := schnorrs[j].AddPartialSig(ps); err != nil {
-				t.Error(fmt.Sprintf("AddPartialSig should validate (adding partial sig of peer %d to peer %d : %v", ps.index, schnorrs[j].index(), err))
+				t.Error(fmt.Sprintf("AddPartialSig should validate (adding partial sig of peer %d to peer %d : %v", ps.Index, schnorrs[j].index(), err))
 			}
 		}
 
@@ -93,9 +87,9 @@ func TestAddPartialSig(t *testing.T) {
 		t.Error(fmt.Sprintf("AddPartialSig 2 times should return an error"))
 	}
 	// nillify an partial sig then add a wrong one to same index
-	schnorrs[0].partials[ps2.index] = nil
+	schnorrs[0].partials[ps2.Index] = nil
 	s := testSuite.Secret().One()
-	ps2.part = &s
+	ps2.Part = &s
 	err = schnorrs[0].AddPartialSig(ps2)
 	if err == nil {
 		t.Error(fmt.Sprintf("AddPartialSig with wrong sig should return an error"))
@@ -103,8 +97,6 @@ func TestAddPartialSig(t *testing.T) {
 }
 
 func TestSchnorrSig(t *testing.T) {
-	REVEAL_SHARE_CHECK = CHECK_OFF
-	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	n := 3
 	pl := Threshold{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
@@ -117,13 +109,13 @@ func TestSchnorrSig(t *testing.T) {
 	}
 	for i, _ := range schnorrs {
 		ps := schnorrs[i].RevealPartialSig()
-		if ps.index != schnorrs[i].index() {
+		if ps.Index != schnorrs[i].index() {
 			t.Error(fmt.Sprintf("PartialSig does not have the same index as its producer ><"))
 		}
 		// geive the partial sig to everyone
 		for j, _ := range schnorrs {
 			if err := schnorrs[j].AddPartialSig(ps); err != nil {
-				t.Error(fmt.Sprintf("AddPartialSig should validate (adding partial sig of peer %d to peer %d : %v", ps.index, schnorrs[j].index(), err))
+				t.Error(fmt.Sprintf("AddPartialSig should validate (adding partial sig of peer %d to peer %d : %v", ps.Index, schnorrs[j].index(), err))
 			}
 		}
 	}
@@ -149,8 +141,6 @@ func TestSchnorrSig(t *testing.T) {
 }
 
 func TestVerifySchnorrSig(t *testing.T) {
-	REVEAL_SHARE_CHECK = CHECK_OFF
-	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	n := 3
 	pl := Threshold{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
@@ -163,13 +153,13 @@ func TestVerifySchnorrSig(t *testing.T) {
 	}
 	for i, _ := range schnorrs {
 		ps := schnorrs[i].RevealPartialSig()
-		if ps.index != schnorrs[i].index() {
+		if ps.Index != schnorrs[i].index() {
 			t.Error(fmt.Sprintf("PartialSig does not have the same index as its producer ><"))
 		}
 		// geive the partial sig to everyone
 		for j, _ := range schnorrs {
 			if err := schnorrs[j].AddPartialSig(ps); err != nil {
-				t.Error(fmt.Sprintf("AddPartialSig should validate (adding partial sig of peer %d to peer %d : %v", ps.index, schnorrs[j].index(), err))
+				t.Error(fmt.Sprintf("AddPartialSig should validate (adding partial sig of peer %d to peer %d : %v", ps.Index, schnorrs[j].index(), err))
 			}
 		}
 	}
@@ -192,8 +182,6 @@ func TestVerifySchnorrSig(t *testing.T) {
 }
 
 func TestPartialSchnorrSigMarshalling(t *testing.T) {
-	REVEAL_SHARE_CHECK = CHECK_OFF
-	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	n := 3
 	pl := Threshold{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
@@ -224,8 +212,6 @@ func TestPartialSchnorrSigMarshalling(t *testing.T) {
 }
 
 func TestSchnorrSigMarshalling(t *testing.T) {
-	REVEAL_SHARE_CHECK = CHECK_OFF
-	defer func() { REVEAL_SHARE_CHECK = CHECK_ON }()
 	n := 3
 	pl := Threshold{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
@@ -238,13 +224,13 @@ func TestSchnorrSigMarshalling(t *testing.T) {
 	}
 	for i, _ := range schnorrs {
 		ps := schnorrs[i].RevealPartialSig()
-		if ps.index != schnorrs[i].index() {
+		if ps.Index != schnorrs[i].index() {
 			t.Error(fmt.Sprintf("PartialSig does not have the same index as its producer ><"))
 		}
 		// geive the partial sig to everyone
 		for j, _ := range schnorrs {
 			if err := schnorrs[j].AddPartialSig(ps); err != nil {
-				t.Error(fmt.Sprintf("AddPartialSig should validate (adding partial sig of peer %d to peer %d : %v", ps.index, schnorrs[j].index(), err))
+				t.Error(fmt.Sprintf("AddPartialSig should validate (adding partial sig of peer %d to peer %d : %v", ps.Index, schnorrs[j].index(), err))
 			}
 		}
 	}

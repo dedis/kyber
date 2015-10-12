@@ -1,12 +1,10 @@
 package poly
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/config"
-	"io"
 )
 
 // This package provides  a dealer-less distributed verifiable secret sharing
@@ -46,24 +44,8 @@ type SharedSecret struct {
 	Index int
 }
 
-// Dealer is a peer that will create a promise and distribute it to each receivers needed
-type Dealer struct {
-
-	// Info about the polynomials config used
-	info Threshold
-
-	// the suite used
-	suite abstract.Suite
-
-	// Promise is the promise of peer j
-	promise *Promise
-
-	// State related to peer j 's promise
-	state *State
-}
-
 // Receiver Part : Receiver struct is basically the underlying structure of the general matrix.
-// If a peer is a receiver, it will receive all promises and compute all of its share and then he will
+// If a peer is a receiver, it will receive all deals and compute all of its share and then he will
 // be able to generate the SharedSecret
 type Receiver struct {
 	// info is just the info about the polynomials we're gonna use
@@ -73,7 +55,7 @@ type Receiver struct {
 	suite abstract.Suite
 
 	// This index is the index used by the dealers to make the share for this receiver
-	// For a given receiver, It should be the same for every dealers /!!\
+	// For a given receiver, It should be the same for every deals /!!\
 	index int
 
 	// the Receiver private / public key combination
@@ -81,34 +63,9 @@ type Receiver struct {
 	key *config.KeyPair
 
 	// List of Dealers. Be careful : this receiver should have the SAME index in
-	// each of the Dealer's promises otherwise we wouldn't know which index to chose
+	// each of the Dealer's deals otherwise we wouldn't know which index to chose
 	// from the shared public polynomial
-	dealers []*Dealer
-}
-
-// NewDealer returns a newly created & intialized Dealer struct
-func NewDealer(suite abstract.Suite, info Threshold, secret, promiser *config.KeyPair, receiverList []abstract.Point) *Dealer {
-	return new(Dealer).Init(suite, info, secret, promiser, receiverList)
-}
-
-// Dealer.Init inits a new Dealer structure :
-// That basically create the promise of the dealer and the respective shares using the list of receivers
-func (d *Dealer) Init(suite abstract.Suite, info Threshold, secret, promiser *config.KeyPair, receiverList []abstract.Point) *Dealer {
-	d.info = info
-	d.suite = suite
-	d.promise = new(Promise).ConstructPromise(secret, promiser, info.T, info.R, receiverList)
-	d.state = new(State).Init(*d.promise)
-	return d
-}
-
-// Basically a wrapper around Promise / Response so that a dealer can verify that all its receiver correctly received its promise and are not cheating
-func (d *Dealer) AddResponse(i int, response *Response) error {
-	return d.state.AddResponse(i, response)
-}
-
-// A wrapper around State.PromiseCertified for this dealer. It must have received enough Response (and/or max number of blameProof)
-func (d *Dealer) Certified() error {
-	return d.state.PromiseCertified()
+	deals []*Deal
 }
 
 // Returns a new Receiver
@@ -124,18 +81,18 @@ func (r *Receiver) Init(suite abstract.Suite, info Threshold, key *config.KeyPai
 	r.info = info
 	r.suite = suite
 	r.key = key
-	r.dealers = make([]*Dealer, 0, info.N)
+	r.deals = make([]*Deal, 0, info.N)
 	return r
 }
 
-// AddDealer adds a dealer to the array of dealers the receiver already has.
-// You must give the index of the receiver in the promise of the dealer,
+// Adddeal adds a deal to the array of deals the receiver already has.
+// You must give the index of the receiver so the receiver can generate its
+// response for this deal to the dealer,
 // i.e. index is generally the index of the receiver in the matrix, and
 // is usually fixed.
-// Most of the time it will be like, for peer i :
-// receiver(i).AddDealer(i,dealer(j)) for all j
-// It will return a Response to be sent back to the Dealer so he can verify its promise
-func (r *Receiver) AddDealer(index int, dealer *Dealer) (*Response, error) {
+// It will return a Response to be sent back to the Dealer so he can verify its
+// deal
+func (r *Receiver) AddDeal(index int, deal *Deal) (*Response, error) {
 	if r.index == -1 {
 		r.index = index
 	}
@@ -143,54 +100,41 @@ func (r *Receiver) AddDealer(index int, dealer *Dealer) (*Response, error) {
 		return nil, errors.New(fmt.Sprintf("Wrong index received for receiver : %d instead of %d", index, r.index))
 	}
 	// produce response
-	resp, err := dealer.promise.ProduceResponse(index, r.key)
+	resp, err := deal.ProduceResponse(index, r.key)
 	if err == nil {
-		r.dealers = append(r.dealers, dealer)
+		r.deals = append(r.deals, deal)
 	}
 	return resp, err
 }
 
 // ProduceSharedSecret will generate the sharedsecret relative to this receiver
 // it will throw an error if something is wrong such as not enough Dealers received
-// The shared secret can be computed when all dealers have been sent and
+// The shared secret can be computed when all deals have been sent and
 // basically consists of a
 // 1. Public Polynomial which is basically the sums of all Dealers's polynomial
 // 2. Share of the global Private Polynomial (which is to never be computed directly), which is
 // 		basically SUM of fj(i) for a receiver i
-
 func (r *Receiver) ProduceSharedSecret() (*SharedSecret, error) {
-	if len(r.dealers) < 1 {
+	if len(r.deals) < 1 {
 		return nil, errors.New("Receiver has 0 Dealers in its data.Can't produce SharedSecret.")
 	}
 	pub := new(PubPoly)
-	//pub.InitNull(r.info.Suite, r.info.T, r.Dealers[0].Promise.PubPoly().GetB())
 	pub.InitNull(r.suite, r.info.T, r.suite.Point().Base())
 	share := r.suite.Secret()
 	goodShare := 0
-	for index := range r.dealers {
+	for index := range r.deals {
 		// Only need T shares
 		if goodShare >= r.info.T {
 			break
 		}
 		// Compute secret shares of the shared secret = sum of the respectives shares of peer i
 		// For peer i , s = SUM fj(i)
-		// TODO WARNING : THIS IS TEST IMPLEMENTATION
-		// In reality we should receive a NEW state struct from the dealer which is Certified so
-		// we can call RevealShare
-		// In testing we don't care about malicous yet so we just create one here
-		state := new(State).Init(*r.dealers[index].promise)
-		s, e := state.RevealShare(r.index, r.key)
+		s := r.deals[index].RevealShare(r.index, r.key)
 		//s, e := r.Dealers[index].State.RevealShare(r.index, r.Key)
-		if e != nil {
-			//TODO error handling function not implemented right now. Only used for testing / comparison.
-			// We must be able to tell which share failed and to implement the broadcast of that error to others receiver
-			// so they reconstruct the private polynomial of the malicious dealer and set their share themself
-			return nil, errors.New(fmt.Sprintf("Receiver %d could not reveal its share from Dealer %d promise : %v", r.index, index, e))
-		}
 		share.Add(share, s)
 
 		// Compute shared public polynomial = SUM of indiviual public polynomials
-		pub.Add(pub, r.dealers[index].promise.PubPoly())
+		pub.Add(pub, r.deals[index].PubPoly())
 
 		goodShare += 1
 	}
@@ -218,65 +162,4 @@ func (r *Receiver) ProduceSharedSecret() (*SharedSecret, error) {
 // If you want to change to another suite, just change SUITE = ....
 func (p *Threshold) Equal(p2 Threshold) bool {
 	return p.N == p2.N && p.R == p2.R && p.T == p2.T
-}
-
-// Dealer must implement Marshaling interface (abstract/encoding.go)
-func (d *Dealer) UnmarshalInit(suite abstract.Suite, info Threshold) *Dealer {
-	d.promise = new(Promise).UnmarshalInit(info.T, info.R, info.N, suite)
-	d.suite = suite
-	return d
-}
-
-func (d *Dealer) MarshalBinary() ([]byte, error) {
-	writer := new(bytes.Buffer)
-	_, err := d.MarshalTo(writer)
-	return writer.Bytes(), err
-}
-
-func (d *Dealer) UnmarshalBinary(buf []byte) error {
-	reader := bytes.NewBuffer(buf)
-	_, err := d.UnmarshalFrom(reader)
-	return err
-}
-
-func (d *Dealer) MarshalSize() int {
-	b := new(bytes.Buffer)
-	err := d.suite.Write(b, d.info)
-	if err != nil {
-		return 0
-	}
-	return b.Len() + d.promise.MarshalSize()
-}
-func (d *Dealer) MarshalTo(w io.Writer) (int, error) {
-	err := d.suite.Write(w, &d.info)
-	if err != nil {
-		return 0, err
-	}
-	err = d.suite.Write(w, d.promise)
-	if err != nil {
-		return 0, err
-	}
-	return d.MarshalSize(), nil
-}
-func (d *Dealer) UnmarshalFrom(r io.Reader) (int, error) {
-	info := Threshold{}
-	err := d.suite.Read(r, &info)
-	if err != nil {
-		return 0, nil
-	}
-	promise := new(Promise).UnmarshalInit(info.T, info.R, info.N, d.suite)
-	err = d.suite.Read(r, promise)
-	if err != nil {
-		return 0, nil
-	}
-	d.info = info
-	d.promise = promise
-	//d.State = new(State).Init(*pr)
-	return d.MarshalSize(), nil
-}
-func (d *Dealer) String() string {
-	return fmt.Sprintf("Dealer: info %+v\n%v", d.info, d.promise)
-}
-func (d *Dealer) Equal(d2 *Dealer) bool {
-	return d.promise.Equal(d2.promise) && d.info.Equal(d2.info)
 }

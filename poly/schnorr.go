@@ -59,10 +59,10 @@ type Schnorr struct {
 type SchnorrPartialSig struct {
 	// The index of this partial signature regarding the global one
 	// same as the "receiver" index in the joint.go code
-	index int
+	Index int
 
 	// The partial signature itself
-	part *abstract.Secret
+	Part *abstract.Secret
 }
 
 // SchnorrSig represents the final signature of a distribtued threshold schnorr signature
@@ -144,11 +144,11 @@ func (s *Schnorr) verify() error {
 // of the schnorr structures.
 func (s *Schnorr) verifyPartialSig(ps *SchnorrPartialSig) error {
 	// compute the left part of the equation
-	left := s.suite.Point().Mul(s.suite.Point().Base(), *ps.part)
+	left := s.suite.Point().Mul(s.suite.Point().Base(), *ps.Part)
 	// compute the right part of the equation
-	right := s.suite.Point().Add(s.random.Pub.Eval(ps.index), s.suite.Point().Mul(s.longterm.Pub.Eval(ps.index), *s.hash))
+	right := s.suite.Point().Add(s.random.Pub.Eval(ps.Index), s.suite.Point().Mul(s.longterm.Pub.Eval(ps.Index), *s.hash))
 	if !left.Equal(right) {
-		return errors.New(fmt.Sprintf("Partial Signature of peer %d could not be validated.", ps.index))
+		return errors.New(fmt.Sprintf("Partial Signature of peer %d could not be validated.", ps.Index))
 	}
 	return nil
 }
@@ -176,8 +176,8 @@ func (s *Schnorr) RevealPartialSig() *SchnorrPartialSig {
 	sigma = sigma.Add(sigma, hash)
 
 	psc := &SchnorrPartialSig{
-		index: s.index(),
-		part:  &sigma,
+		Index: s.index(),
+		Part:  &sigma,
 	}
 	return psc
 }
@@ -192,16 +192,16 @@ func (s *Schnorr) RevealPartialSig() *SchnorrPartialSig {
 // set of partial signature, for now you have to do it yourself by calling
 // AddPartialSig(s)
 func (s *Schnorr) AddPartialSig(ps *SchnorrPartialSig) error {
-	if ps.index >= s.info.N {
-		return errors.New(fmt.Sprintf("Cannot add signature with index %d whereas schnorr could have max %s partial signatures", ps.index, s.info.N))
+	if ps.Index >= s.info.N {
+		return errors.New(fmt.Sprintf("Cannot add signature with index %d whereas schnorr could have max %s partial signatures", ps.Index, s.info.N))
 	}
-	if s.partials[ps.index] != nil {
-		return errors.New(fmt.Sprintf("A Partial Signature has already been added for this index %d", ps.index))
+	if s.partials[ps.Index] != nil {
+		return errors.New(fmt.Sprintf("A Partial Signature has already been added for this index %d", ps.Index))
 	}
 	if err := s.verifyPartialSig(ps); err != nil {
 		return errors.New(fmt.Sprintf("Partial signature to add is not valid : %v", err))
 	}
-	s.partials[ps.index] = ps
+	s.partials[ps.Index] = ps
 	return nil
 }
 
@@ -217,7 +217,7 @@ func (s *Schnorr) Sig() (*SchnorrSig, error) {
 	pri := PriShares{}
 	pri.Empty(s.suite, s.info.T, s.info.N)
 	for i, ps := range s.partials {
-		pri.SetShare(ps.index, *s.partials[i].part)
+		pri.SetShare(ps.Index, *s.partials[i].Part)
 	}
 	// lagrange interpolation to compute the gamma
 	gamma := pri.Secret()
@@ -260,7 +260,7 @@ func (s *Schnorr) VerifySchnorrSig(sig *SchnorrSig, msg []byte) error {
 // The PartialSchnorrSig can be serialized directly.
 
 func (pss *SchnorrPartialSig) Equal(pss2 *SchnorrPartialSig) bool {
-	return pss.index == pss2.index && (*pss.part).Equal(*pss2.part)
+	return pss.Index == pss2.Index && (*pss.Part).Equal(*pss2.Part)
 }
 
 func (s *Schnorr) EmptySchnorrSig() *SchnorrSig {
