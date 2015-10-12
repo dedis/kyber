@@ -150,7 +150,7 @@ func TestDealerMarshalling(t *testing.T) {
 		t.Error(fmt.Sprintf("Error unmarshaling dealer %v", err))
 	}
 	if !d.Equal(d2) {
-		if !d.Info.Equal(d2.Info) {
+		if !d.info.Equal(d2.info) {
 			t.Error("Dealers do not share common PolyInfo")
 		} else {
 			t.Error("Dealer's Promises should be equals after marshalling ...")

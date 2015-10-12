@@ -50,16 +50,16 @@ type SharedSecret struct {
 type Dealer struct {
 
 	// Info about the polynomials config used
-	Info Threshold
+	info Threshold
 
 	// the suite used
 	suite abstract.Suite
 
 	// Promise is the promise of peer j
-	Promise *Promise
+	promise *Promise
 
 	// State related to peer j 's promise
-	State *State
+	state *State
 }
 
 // Receiver Part : Receiver struct is basically the underlying structure of the general matrix.
@@ -94,23 +94,24 @@ func NewDealer(suite abstract.Suite, info Threshold, secret, promiser *config.Ke
 // Dealer.Init inits a new Dealer structure :
 // That basically create the promise of the dealer and the respective shares using the list of receivers
 func (d *Dealer) Init(suite abstract.Suite, info Threshold, secret, promiser *config.KeyPair, receiverList []abstract.Point) *Dealer {
-	d.Info = info
+	d.info = info
 	d.suite = suite
-	d.Promise = new(Promise).ConstructPromise(secret, promiser, info.T, info.R, receiverList)
-	d.State = new(State).Init(*d.Promise)
+	d.promise = new(Promise).ConstructPromise(secret, promiser, info.T, info.R, receiverList)
+	d.state = new(State).Init(*d.promise)
 	return d
 }
 
 // Basically a wrapper around Promise / Response so that a dealer can verify that all its receiver correctly received its promise and are not cheating
 func (d *Dealer) AddResponse(i int, response *Response) error {
-	return d.State.AddResponse(i, response)
+	return d.state.AddResponse(i, response)
 }
 
 // A wrapper around State.PromiseCertified for this dealer. It must have received enough Response (and/or max number of blameProof)
 func (d *Dealer) Certified() error {
-	return d.State.PromiseCertified()
+	return d.state.PromiseCertified()
 }
 
+// Returns a new Receiver
 func NewReceiver(suite abstract.Suite, info Threshold, key *config.KeyPair) *Receiver {
 	return new(Receiver).Init(suite, info, key)
 }
@@ -142,7 +143,7 @@ func (r *Receiver) AddDealer(index int, dealer *Dealer) (*Response, error) {
 		return nil, errors.New(fmt.Sprintf("Wrong index received for receiver : %d instead of %d", index, r.index))
 	}
 	// produce response
-	resp, err := dealer.Promise.ProduceResponse(index, r.key)
+	resp, err := dealer.promise.ProduceResponse(index, r.key)
 	if err == nil {
 		r.dealers = append(r.dealers, dealer)
 	}
@@ -177,7 +178,7 @@ func (r *Receiver) ProduceSharedSecret() (*SharedSecret, error) {
 		// In reality we should receive a NEW state struct from the dealer which is Certified so
 		// we can call RevealShare
 		// In testing we don't care about malicous yet so we just create one here
-		state := new(State).Init(*r.dealers[index].Promise)
+		state := new(State).Init(*r.dealers[index].promise)
 		s, e := state.RevealShare(r.index, r.key)
 		//s, e := r.Dealers[index].State.RevealShare(r.index, r.Key)
 		if e != nil {
@@ -189,7 +190,7 @@ func (r *Receiver) ProduceSharedSecret() (*SharedSecret, error) {
 		share.Add(share, s)
 
 		// Compute shared public polynomial = SUM of indiviual public polynomials
-		pub.Add(pub, r.dealers[index].Promise.PubPoly())
+		pub.Add(pub, r.dealers[index].promise.PubPoly())
 
 		goodShare += 1
 	}
@@ -221,7 +222,7 @@ func (p *Threshold) Equal(p2 Threshold) bool {
 
 // Dealer must implement Marshaling interface (abstract/encoding.go)
 func (d *Dealer) UnmarshalInit(suite abstract.Suite, info Threshold) *Dealer {
-	d.Promise = new(Promise).UnmarshalInit(info.T, info.R, info.N, suite)
+	d.promise = new(Promise).UnmarshalInit(info.T, info.R, info.N, suite)
 	d.suite = suite
 	return d
 }
@@ -240,18 +241,18 @@ func (d *Dealer) UnmarshalBinary(buf []byte) error {
 
 func (d *Dealer) MarshalSize() int {
 	b := new(bytes.Buffer)
-	err := d.suite.Write(b, d.Info)
+	err := d.suite.Write(b, d.info)
 	if err != nil {
 		return 0
 	}
-	return b.Len() + d.Promise.MarshalSize()
+	return b.Len() + d.promise.MarshalSize()
 }
 func (d *Dealer) MarshalTo(w io.Writer) (int, error) {
-	err := d.suite.Write(w, &d.Info)
+	err := d.suite.Write(w, &d.info)
 	if err != nil {
 		return 0, err
 	}
-	err = d.suite.Write(w, d.Promise)
+	err = d.suite.Write(w, d.promise)
 	if err != nil {
 		return 0, err
 	}
@@ -268,14 +269,14 @@ func (d *Dealer) UnmarshalFrom(r io.Reader) (int, error) {
 	if err != nil {
 		return 0, nil
 	}
-	d.Info = info
-	d.Promise = promise
+	d.info = info
+	d.promise = promise
 	//d.State = new(State).Init(*pr)
 	return d.MarshalSize(), nil
 }
 func (d *Dealer) String() string {
-	return fmt.Sprintf("Dealer: info %+v\n%v", d.Info, d.Promise)
+	return fmt.Sprintf("Dealer: info %+v\n%v", d.info, d.promise)
 }
 func (d *Dealer) Equal(d2 *Dealer) bool {
-	return d.Promise.Equal(d2.Promise) && d.Info.Equal(d2.Info)
+	return d.promise.Equal(d2.promise) && d.info.Equal(d2.info)
 }
