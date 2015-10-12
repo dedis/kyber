@@ -52,6 +52,9 @@ type Dealer struct {
 	// Info about the polynomials config used
 	Info Threshold
 
+	// the suite used
+	suite abstract.Suite
+
 	// Promise is the promise of peer j
 	Promise *Promise
 
@@ -65,6 +68,9 @@ type Dealer struct {
 type Receiver struct {
 	// info is just the info about the polynomials we're gonna use
 	info Threshold
+
+	// suite [ed25519,nist ...]
+	suite abstract.Suite
 
 	// This index is the index used by the dealers to make the share for this receiver
 	// For a given receiver, It should be the same for every dealers /!!\
@@ -81,14 +87,15 @@ type Receiver struct {
 }
 
 // NewDealer returns a newly created & intialized Dealer struct
-func NewDealer(info Threshold, secret, promiser *config.KeyPair, receiverList []abstract.Point) *Dealer {
-	return new(Dealer).Init(info, secret, promiser, receiverList)
+func NewDealer(suite abstract.Suite, info Threshold, secret, promiser *config.KeyPair, receiverList []abstract.Point) *Dealer {
+	return new(Dealer).Init(suite, info, secret, promiser, receiverList)
 }
 
 // Dealer.Init inits a new Dealer structure :
 // That basically create the promise of the dealer and the respective shares using the list of receivers
-func (d *Dealer) Init(info Threshold, secret, promiser *config.KeyPair, receiverList []abstract.Point) *Dealer {
+func (d *Dealer) Init(suite abstract.Suite, info Threshold, secret, promiser *config.KeyPair, receiverList []abstract.Point) *Dealer {
 	d.Info = info
+	d.suite = suite
 	d.Promise = new(Promise).ConstructPromise(secret, promiser, info.T, info.R, receiverList)
 	d.State = new(State).Init(*d.Promise)
 	return d
@@ -104,16 +111,17 @@ func (d *Dealer) Certified() error {
 	return d.State.PromiseCertified()
 }
 
-func NewReceiver(info Threshold, key *config.KeyPair) *Receiver {
-	return new(Receiver).Init(info, key)
+func NewReceiver(suite abstract.Suite, info Threshold, key *config.KeyPair) *Receiver {
+	return new(Receiver).Init(suite, info, key)
 }
 
 // Init a new Receiver struct
 // info is the info about the structure of the polynomials used
 // key is the long-term public key of the receiver
-func (r *Receiver) Init(info Threshold, key *config.KeyPair) *Receiver {
+func (r *Receiver) Init(suite abstract.Suite, info Threshold, key *config.KeyPair) *Receiver {
 	r.index = -1 // no dealer received yet
 	r.info = info
+	r.suite = suite
 	r.key = key
 	r.dealers = make([]*Dealer, 0, info.N)
 	return r
@@ -155,8 +163,8 @@ func (r *Receiver) ProduceSharedSecret() (*SharedSecret, error) {
 	}
 	pub := new(PubPoly)
 	//pub.InitNull(r.info.Suite, r.info.T, r.Dealers[0].Promise.PubPoly().GetB())
-	pub.InitNull(SUITE, r.info.T, SUITE.Point().Base())
-	share := SUITE.Secret()
+	pub.InitNull(r.suite, r.info.T, r.suite.Point().Base())
+	share := r.suite.Secret()
 	goodShare := 0
 	for index := range r.dealers {
 		// Only need T shares
@@ -212,8 +220,9 @@ func (p *Threshold) Equal(p2 Threshold) bool {
 }
 
 // Dealer must implement Marshaling interface (abstract/encoding.go)
-func (d *Dealer) UnmarshalInit(info Threshold) *Dealer {
-	d.Promise = new(Promise).UnmarshalInit(info.T, info.R, info.N, SUITE)
+func (d *Dealer) UnmarshalInit(suite abstract.Suite, info Threshold) *Dealer {
+	d.Promise = new(Promise).UnmarshalInit(info.T, info.R, info.N, suite)
+	d.suite = suite
 	return d
 }
 
@@ -231,18 +240,18 @@ func (d *Dealer) UnmarshalBinary(buf []byte) error {
 
 func (d *Dealer) MarshalSize() int {
 	b := new(bytes.Buffer)
-	err := SUITE.Write(b, d.Info)
+	err := d.suite.Write(b, d.Info)
 	if err != nil {
 		return 0
 	}
 	return b.Len() + d.Promise.MarshalSize()
 }
 func (d *Dealer) MarshalTo(w io.Writer) (int, error) {
-	err := SUITE.Write(w, &d.Info)
+	err := d.suite.Write(w, &d.Info)
 	if err != nil {
 		return 0, err
 	}
-	err = SUITE.Write(w, d.Promise)
+	err = d.suite.Write(w, d.Promise)
 	if err != nil {
 		return 0, err
 	}
@@ -250,12 +259,12 @@ func (d *Dealer) MarshalTo(w io.Writer) (int, error) {
 }
 func (d *Dealer) UnmarshalFrom(r io.Reader) (int, error) {
 	info := Threshold{}
-	err := SUITE.Read(r, &info)
+	err := d.suite.Read(r, &info)
 	if err != nil {
 		return 0, nil
 	}
-	promise := new(Promise).UnmarshalInit(info.T, info.R, info.N, SUITE)
-	err = SUITE.Read(r, promise)
+	promise := new(Promise).UnmarshalInit(info.T, info.R, info.N, d.suite)
+	err = d.suite.Read(r, promise)
 	if err != nil {
 		return 0, nil
 	}

@@ -111,12 +111,12 @@ func TestPolyInfoMarshalling(t *testing.T) {
 		N: 8,
 	}
 	b := new(bytes.Buffer)
-	err := SUITE.Write(b, &pl)
+	err := testSuite.Write(b, &pl)
 	if err != nil {
 		t.Error(fmt.Sprintf("PolyInfo MarshalBinary should not return error : %v", err))
 	}
 	pl2 := Threshold{}
-	err = SUITE.Read(bytes.NewBuffer(b.Bytes()), &pl2)
+	err = testSuite.Read(bytes.NewBuffer(b.Bytes()), &pl2)
 	if err != nil {
 		t.Error(fmt.Sprintf("PolyInfo UnmarshalBinary should not return error : %v", err))
 	}
@@ -135,16 +135,16 @@ func TestDealerMarshalling(t *testing.T) {
 	}
 	kpl := generateKeyPairList(7)
 	kp := generatePublicListFromPrivate(kpl)
-	d := NewDealer(pl, generateKeyPair(), generateKeyPair(), kp)
+	d := NewDealer(testSuite, pl, generateKeyPair(), generateKeyPair(), kp)
 	b := new(bytes.Buffer)
-	err := SUITE.Write(b, d)
+	err := testSuite.Write(b, d)
 
 	if err != nil {
 		t.Error(fmt.Sprintf("Error marshaling dealer %v ", err))
 	}
 	buf := b.Bytes()
-	d2 := new(Dealer).UnmarshalInit(pl)
-	err = SUITE.Read(bytes.NewBuffer(buf), d2)
+	d2 := new(Dealer).UnmarshalInit(testSuite, pl)
+	err = testSuite.Read(bytes.NewBuffer(buf), d2)
 
 	if err != nil {
 		t.Error(fmt.Sprintf("Error unmarshaling dealer %v", err))
@@ -171,14 +171,14 @@ func TestProduceSharedSecretMarshalledDealer(t *testing.T) {
 		// add all the dealers
 		for j := 0; j < n; j++ {
 			b := new(bytes.Buffer)
-			err := SUITE.Write(b, dealers[j])
+			err := testSuite.Write(b, dealers[j])
 			if err != nil {
 				t.Error("Write(Dealer) should not gen any error : ", err)
 			}
 			buf := b.Bytes()
 			bb := bytes.NewBuffer(buf)
-			d2 := new(Dealer).UnmarshalInit(pl)
-			err = SUITE.Read(bb, d2)
+			d2 := new(Dealer).UnmarshalInit(testSuite, pl)
+			err = testSuite.Read(bb, d2)
 			if err != nil {
 				t.Error("Read(Dealer) should not gen any error : ", err)
 			}

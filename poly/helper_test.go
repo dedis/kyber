@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/config"
+	"github.com/dedis/crypto/edwards"
 	"github.com/dedis/crypto/random"
 )
 
-var testSuite = SUITE
+var testSuite = edwards.NewAES128SHA256Ed25519(true)
 
 func generateKeyPair() *config.KeyPair {
 	keypair := new(config.KeyPair)
@@ -37,11 +38,11 @@ func generateNDealerMReceiver(info Threshold, n, m int) ([]*Dealer, []*Receiver)
 	receiverPublics := generatePublicListFromPrivate(receiverKeys)
 	receivers := make([]*Receiver, n)
 	for i := 0; i < n; i++ {
-		receivers[i] = NewReceiver(info, receiverKeys[i])
+		receivers[i] = NewReceiver(testSuite, info, receiverKeys[i])
 	}
 	dealers := make([]*Dealer, n)
 	for i := 0; i < n; i++ {
-		dealers[i] = NewDealer(info, generateKeyPair(), generateKeyPair(), receiverPublics)
+		dealers[i] = NewDealer(testSuite, info, generateKeyPair(), generateKeyPair(), receiverPublics)
 	}
 	return dealers, receivers
 }
@@ -87,7 +88,7 @@ func generateSchnorrStructs(info Threshold) []*Schnorr {
 	longterms := generateSharedSecrets(info)
 	schnorrs := make([]*Schnorr, info.N)
 	for i, _ := range longterms {
-		schnorrs[i] = NewSchnorr(info, longterms[i])
+		schnorrs[i] = NewSchnorr(testSuite, info, longterms[i])
 	}
 	return schnorrs
 }

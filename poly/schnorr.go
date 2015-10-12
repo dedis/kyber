@@ -32,6 +32,9 @@ type Schnorr struct {
 	// The info describing which kind of polynomials we using, on which groups etc
 	info Threshold
 
+	// the suite used
+	suite abstract.Suite
+
 	// The long-term shared secret evaluated by receivers
 	Longterm *SharedSecret
 
@@ -77,12 +80,13 @@ type SchnorrSig struct {
 }
 
 // Instantiates a Schnorr struct. A wrapper around Init
-func NewSchnorr(info Threshold, longterm *SharedSecret) *Schnorr {
-	return new(Schnorr).Init(info, longterm)
+func NewSchnorr(suite abstract.Suite, info Threshold, longterm *SharedSecret) *Schnorr {
+	return new(Schnorr).Init(suite, info, longterm)
 }
 
 // Initializes the Schnorr struct
-func (s *Schnorr) Init(info Threshold, longterm *SharedSecret) *Schnorr {
+func (s *Schnorr) Init(suite abstract.Suite, info Threshold, longterm *SharedSecret) *Schnorr {
+	s.suite = suite
 	s.info = info
 	s.Longterm = longterm
 	return s
@@ -113,9 +117,9 @@ func (s *Schnorr) hashMessage(msg []byte, v abstract.Point) (abstract.Secret, er
 	if err != nil {
 		return nil, err
 	}
-	c := SUITE.Cipher(vb)
+	c := s.suite.Cipher(vb)
 	c.Message(nil, nil, msg)
-	return SUITE.Secret().Pick(c), nil
+	return s.suite.Secret().Pick(c), nil
 }
 
 // Verifies if the received structures are good and
@@ -140,9 +144,9 @@ func (s *Schnorr) verify() error {
 // of the schnorr structures.
 func (s *Schnorr) verifyPartialSig(ps *SchnorrPartialSig) error {
 	// compute the left part of the equation
-	left := SUITE.Point().Mul(SUITE.Point().Base(), *ps.Part)
+	left := s.suite.Point().Mul(s.suite.Point().Base(), *ps.Part)
 	// compute the right part of the equation
-	right := SUITE.Point().Add(s.random.Pub.Eval(ps.Index), SUITE.Point().Mul(s.Longterm.Pub.Eval(ps.Index), *s.hash))
+	right := s.suite.Point().Add(s.random.Pub.Eval(ps.Index), s.suite.Point().Mul(s.Longterm.Pub.Eval(ps.Index), *s.hash))
 	if !left.Equal(right) {
 		return errors.New(fmt.Sprintf("Partial Signature of peer %d could not be validated.", ps.Index))
 	}
@@ -164,10 +168,10 @@ func (s *Schnorr) index() int {
 // This signature is to be sent to each other peer
 func (s *Schnorr) RevealPartialSig() *SchnorrPartialSig {
 	hash := *s.hash
-	sigma := SUITE.Secret().Zero()
+	sigma := s.suite.Secret().Zero()
 	sigma = sigma.Add(sigma, *s.random.Share)
 	// H(m||v) * Pi
-	hash = SUITE.Secret().Mul(hash, *s.Longterm.Share)
+	hash = s.suite.Secret().Mul(hash, *s.Longterm.Share)
 	// Ri + H(m||V) * Pi
 	sigma = sigma.Add(sigma, hash)
 
@@ -203,7 +207,7 @@ func (s *Schnorr) AddPartialSig(ps *SchnorrPartialSig) error {
 
 // Generates the global schnorr signature
 // by reconstructing the secret contained in the partial responses
-func (s *Schnorr) SchnorrSig() (*SchnorrSig, error) {
+func (s *Schnorr) Sig() (*SchnorrSig, error) {
 	// automatic verification
 	// TODO : change this into a bool flag or public method ?
 	if err := s.verify(); err != nil {
@@ -211,7 +215,7 @@ func (s *Schnorr) SchnorrSig() (*SchnorrSig, error) {
 	}
 
 	pri := PriShares{}
-	pri.Empty(SUITE, s.info.T, s.info.N)
+	pri.Empty(s.suite, s.info.T, s.info.N)
 	for i, ps := range s.partials {
 		pri.SetShare(ps.Index, *s.partials[i].Part)
 	}
@@ -232,7 +236,7 @@ func (s *Schnorr) SchnorrSig() (*SchnorrSig, error) {
 //  - a message + a signature to check on ==> VerifySchnorrSig
 func (s *Schnorr) VerifySchnorrSig(sig *SchnorrSig, msg []byte) error {
 	// gamma * G
-	left := SUITE.Point().Mul(SUITE.Point().Base(), *sig.Signature)
+	left := s.suite.Point().Mul(s.suite.Point().Base(), *sig.Signature)
 
 	randomCommit := sig.Random.SecretCommit()
 	publicCommit := s.Longterm.Pub.SecretCommit()
@@ -242,7 +246,7 @@ func (s *Schnorr) VerifySchnorrSig(sig *SchnorrSig, msg []byte) error {
 		return err
 	}
 	// RandomSecretCOmmit + H( ...) * LongtermSecretCommit
-	right := SUITE.Point().Add(randomCommit, SUITE.Point().Mul(publicCommit, hash))
+	right := s.suite.Point().Add(randomCommit, s.suite.Point().Mul(publicCommit, hash))
 
 	if !left.Equal(right) {
 		return errors.New("Signature could not have been verified against the message")
@@ -260,12 +264,12 @@ func (pss *SchnorrPartialSig) Equal(pss2 *SchnorrPartialSig) bool {
 }
 
 func (s *Schnorr) EmptySchnorrSig() *SchnorrSig {
-	return new(SchnorrSig).Init(s.info)
+	return new(SchnorrSig).Init(s.suite, s.info)
 }
 
 // Initialises the struct so it can decode itself
-func (s *SchnorrSig) Init(info Threshold) *SchnorrSig {
-	s.Random = new(PubPoly).Init(SUITE, info.T, SUITE.Point().Base())
+func (s *SchnorrSig) Init(suite abstract.Suite, info Threshold) *SchnorrSig {
+	s.Random = new(PubPoly).Init(suite, info.T, suite.Point().Base())
 	return s
 }
 

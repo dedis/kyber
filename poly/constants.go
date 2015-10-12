@@ -1,8 +1,6 @@
 package poly
 
-import (
-	"github.com/dedis/crypto/edwards"
-)
+import ()
 
 const (
 	CHECK_ON = iota
@@ -15,5 +13,3 @@ const (
 // promise.go but is not a requirement for now at least in the joint.go +
 // schnorr.go
 var REVEAL_SHARE_CHECK int = CHECK_ON
-
-var SUITE = edwards.NewAES128SHA256Ed25519(true)

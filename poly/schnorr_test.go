@@ -129,7 +129,7 @@ func TestSchnorrSig(t *testing.T) {
 	}
 	sig := make([]*SchnorrSig, n)
 	for i, _ := range schnorrs {
-		s, err := schnorrs[i].SchnorrSig()
+		s, err := schnorrs[i].Sig()
 		if err != nil {
 			t.Error(fmt.Sprintf("SchnorrSig should validate : %v", err))
 		}
@@ -175,7 +175,7 @@ func TestVerifySchnorrSig(t *testing.T) {
 	}
 	sig := make([]*SchnorrSig, n)
 	for i, _ := range schnorrs {
-		s, err := schnorrs[i].SchnorrSig()
+		s, err := schnorrs[i].Sig()
 		if err != nil {
 			t.Error(fmt.Sprintf("SchnorrSig should validate : %v", err))
 		}
@@ -206,14 +206,14 @@ func TestPartialSchnorrSigMarshalling(t *testing.T) {
 	}
 	ps := schnorrs[0].RevealPartialSig()
 	b := new(bytes.Buffer)
-	err := SUITE.Write(b, ps)
+	err := testSuite.Write(b, ps)
 	if err != nil {
 		t.Error(fmt.Sprintf("MarshalBinary on PartialSchnorrSig did not work : %v", err))
 	}
 	buf := b.Bytes()
 	bufReader := bytes.NewBuffer(buf)
 	ps2 := new(SchnorrPartialSig)
-	err = SUITE.Read(bufReader, ps2)
+	err = testSuite.Read(bufReader, ps2)
 	if err != nil {
 		t.Error(fmt.Sprintf("UnmarshalBinary on PartialSchnorrSig did not work : %v", err))
 	}
@@ -248,17 +248,17 @@ func TestSchnorrSigMarshalling(t *testing.T) {
 			}
 		}
 	}
-	s, err := schnorrs[0].SchnorrSig()
+	s, err := schnorrs[0].Sig()
 	if err != nil {
 		t.Error(fmt.Sprintf("SchnorrSig should validate : %v", err))
 	}
 	b := new(bytes.Buffer)
-	err = SUITE.Write(b, s)
+	err = testSuite.Write(b, s)
 	if err != nil {
 		t.Error(fmt.Sprintf("SchnorrSig had error while Marshalling %v", err))
 	}
 	s2 := schnorrs[0].EmptySchnorrSig()
-	err = SUITE.Read(bytes.NewBuffer(b.Bytes()), s2)
+	err = testSuite.Read(bytes.NewBuffer(b.Bytes()), s2)
 	if err != nil {
 		t.Error(fmt.Sprintf("SchnorrSig Unmarshaling should have been correct : %v", err))
 	}
