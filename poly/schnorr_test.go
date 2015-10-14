@@ -3,10 +3,16 @@ package poly
 import (
 	"bytes"
 	"fmt"
+	"hash"
 	"testing"
 )
 
-var msg []byte = []byte("Hello World!")
+var msg hash.Hash
+
+func init() {
+	msg = testSuite.Hash()
+	msg.Write([]byte("Hello World\n"))
+}
 
 func TestNewRound(t *testing.T) {
 	n := 3

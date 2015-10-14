@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dedis/crypto/abstract"
+	"hash"
 )
 
 // This file describes the Distributed Threshold Schnorr Signature
@@ -96,12 +97,12 @@ func (s *Schnorr) Init(suite abstract.Suite, info Threshold, longterm *SharedSec
 // You call this function when you want a new signature to be issued on a specific message.
 // The security of the distributed schnorr signature protocol is the same as for the regular :
 // The random secret "must be fresh* for "each* signature / signed message (hence the 'NewRound')
-func (s *Schnorr) NewRound(random *SharedSecret, msg []byte) error {
+func (s *Schnorr) NewRound(random *SharedSecret, h hash.Hash) error {
 	s.random = random
 	s.hash = nil
 	s.partials = nil // erase the previous partial signature from previous round
 	s.partials = make([]*SchnorrPartialSig, s.info.N)
-	hash, err := s.hashMessage(msg, s.random.Pub.SecretCommit())
+	hash, err := s.hashMessage(h.Sum(nil), s.random.Pub.SecretCommit())
 	if err != nil {
 		return errors.New(fmt.Sprintf("Unable to hash the message with the given shared secret : %v", err))
 	}
@@ -234,13 +235,13 @@ func (s *Schnorr) Sig() (*SchnorrSig, error) {
 // check. Think of the schnorr signature as a black box having two inputs:
 //  - a message to be signed + a random secret ==> NewRound
 //  - a message + a signature to check on ==> VerifySchnorrSig
-func (s *Schnorr) VerifySchnorrSig(sig *SchnorrSig, msg []byte) error {
+func (s *Schnorr) VerifySchnorrSig(sig *SchnorrSig, h hash.Hash) error {
 	// gamma * G
 	left := s.suite.Point().Mul(s.suite.Point().Base(), *sig.Signature)
 
 	randomCommit := sig.Random.SecretCommit()
 	publicCommit := s.longterm.Pub.SecretCommit()
-	hash, err := s.hashMessage(msg, randomCommit)
+	hash, err := s.hashMessage(h.Sum(nil), randomCommit)
 
 	if err != nil {
 		return err
