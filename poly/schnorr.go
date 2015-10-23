@@ -100,7 +100,6 @@ func (s *Schnorr) Init(suite abstract.Suite, info Threshold, longterm *SharedSec
 func (s *Schnorr) NewRound(random *SharedSecret, h hash.Hash) error {
 	s.random = random
 	s.hash = nil
-	s.partials = nil // erase the previous partial signature from previous round
 	s.partials = make([]*SchnorrPartialSig, s.info.N)
 	hash, err := s.hashMessage(h.Sum(nil), s.random.Pub.SecretCommit())
 	if err != nil {
@@ -218,6 +217,10 @@ func (s *Schnorr) Sig() (*SchnorrSig, error) {
 	pri := PriShares{}
 	pri.Empty(s.suite, s.info.T, s.info.N)
 	for i, ps := range s.partials {
+		// Skip the partials we did not receive
+		if ps == nil {
+			continue
+		}
 		pri.SetShare(ps.Index, *s.partials[i].Part)
 	}
 	// lagrange interpolation to compute the gamma
@@ -242,11 +245,10 @@ func (s *Schnorr) VerifySchnorrSig(sig *SchnorrSig, h hash.Hash) error {
 	randomCommit := sig.Random.SecretCommit()
 	publicCommit := s.longterm.Pub.SecretCommit()
 	hash, err := s.hashMessage(h.Sum(nil), randomCommit)
-
 	if err != nil {
 		return err
 	}
-	// RandomSecretCOmmit + H( ...) * LongtermSecretCommit
+	// RandomSecretCommit + H( ...) * LongtermSecretCommit
 	right := s.suite.Point().Add(randomCommit, s.suite.Point().Mul(publicCommit, hash))
 
 	if !left.Equal(right) {

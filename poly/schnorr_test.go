@@ -7,16 +7,17 @@ import (
 	"testing"
 )
 
+var m string = "Hello World"
 var msg hash.Hash
 
 func init() {
 	msg = testSuite.Hash()
-	msg.Write([]byte("Hello World\n"))
+	msg.Write([]byte(m))
 }
 
 func TestNewRound(t *testing.T) {
-	n := 3
-	pl := Threshold{2, n, n}
+	n := 5
+	pl := Threshold{4, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	randoms2 := generateSharedSecrets(pl)
@@ -37,8 +38,8 @@ func TestNewRound(t *testing.T) {
 }
 
 func TestRevealPartialSig(t *testing.T) {
-	n := 3
-	pl := Threshold{2, n, n}
+	n := 6
+	pl := Threshold{4, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	for i, _ := range schnorrs {
@@ -62,8 +63,8 @@ func TestRevealPartialSig(t *testing.T) {
 }
 
 func TestAddPartialSig(t *testing.T) {
-	n := 3
-	pl := Threshold{2, n, n}
+	n := 6
+	pl := Threshold{5, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	for i, _ := range schnorrs {
@@ -103,8 +104,8 @@ func TestAddPartialSig(t *testing.T) {
 }
 
 func TestSchnorrSig(t *testing.T) {
-	n := 3
-	pl := Threshold{2, n, n}
+	n := 9
+	pl := Threshold{6, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	for i, _ := range schnorrs {
@@ -147,8 +148,12 @@ func TestSchnorrSig(t *testing.T) {
 }
 
 func TestVerifySchnorrSig(t *testing.T) {
-	n := 3
-	pl := Threshold{2, n, n}
+	n := 4
+	tt := 4
+	pl := Threshold{T: tt,
+		R: n,
+		N: n,
+	}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	for i, _ := range schnorrs {
@@ -169,7 +174,7 @@ func TestVerifySchnorrSig(t *testing.T) {
 			}
 		}
 	}
-	sig := make([]*SchnorrSig, n)
+	sig := make([]*SchnorrSig, tt)
 	for i, _ := range schnorrs {
 		s, err := schnorrs[i].Sig()
 		if err != nil {
@@ -177,10 +182,11 @@ func TestVerifySchnorrSig(t *testing.T) {
 		}
 		sig[i] = s
 	}
-
 	// Verify the signature amongst each peers
 	for i, _ := range schnorrs {
-		err := schnorrs[i].VerifySchnorrSig(sig[0], msg)
+		newMsg := testSuite.Hash()
+		newMsg.Write([]byte(m))
+		err := schnorrs[i].VerifySchnorrSig(sig[1], msg)
 		if err != nil {
 			t.Error(fmt.Sprintf("VerifySchnorrSig on peer %d should validate the signature : %v", i, err))
 		}
@@ -188,8 +194,8 @@ func TestVerifySchnorrSig(t *testing.T) {
 }
 
 func TestPartialSchnorrSigMarshalling(t *testing.T) {
-	n := 3
-	pl := Threshold{2, n, n}
+	n := 10
+	pl := Threshold{7, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	for i, _ := range schnorrs {

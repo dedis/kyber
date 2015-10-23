@@ -33,25 +33,25 @@ func generatePublicListFromPrivate(private []*config.KeyPair) []abstract.Point {
 }
 
 // Returns N dealers with M receivers with the right keys / public keys ...
-func generateNDealerMReceiver(info Threshold, n, m int) ([]*Deal, []*Receiver) {
-	receiverKeys := generateKeyPairList(m)
+func generateNDealerMReceiver(info Threshold, ndeal, nrec int) ([]*Deal, []*Receiver) {
+	receiverKeys := generateKeyPairList(nrec)
 	receiverPublics := generatePublicListFromPrivate(receiverKeys)
-	receivers := make([]*Receiver, n)
-	for i := 0; i < n; i++ {
+	receivers := make([]*Receiver, nrec)
+	for i := 0; i < nrec; i++ {
 		receivers[i] = NewReceiver(testSuite, info, receiverKeys[i])
 	}
-	dealers := make([]*Deal, n)
-	for i := 0; i < n; i++ {
+	dealers := make([]*Deal, ndeal)
+	for i := 0; i < ndeal; i++ {
 		dealers[i] = new(Deal).ConstructDeal(generateKeyPair(), generateKeyPair(), info.T, info.R, receiverPublics)
 	}
 	return dealers, receivers
 }
 
 // Same as produceNDealerMReceiver except that it make the exchange of Dealer / Response
-func generateNMSetup(info Threshold, n, m int) ([]*Deal, []*Receiver) {
-	dealers, receivers := generateNDealerMReceiver(info, n, m)
-	for i := 0; i < m; i++ {
-		for j := 0; j < n; j++ {
+func generateNMSetup(info Threshold, ndeal, nrec int) ([]*Deal, []*Receiver) {
+	dealers, receivers := generateNDealerMReceiver(info, ndeal, nrec)
+	for i := 0; i < nrec; i++ {
+		for j := 0; j < ndeal; j++ {
 			_, err := receivers[i].AddDeal(i, dealers[j])
 			if err != nil {
 				panic(fmt.Sprintf("Could not AddDeal %d on Receiver %d!", j, i))

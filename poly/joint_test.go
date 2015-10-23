@@ -10,7 +10,7 @@ import (
 /////// TESTING ///////
 
 func TestReceiverAddDeal(t *testing.T) {
-	dealers, receivers := generateNDealerMReceiver(Threshold{2, 3, 3}, 3, 3)
+	dealers, receivers := generateNDealerMReceiver(Threshold{3, 3, 4}, 3, 4)
 	// Test adding one dealer
 	_, e1 := receivers[0].AddDeal(0, dealers[0])
 	if e1 != nil {
@@ -34,8 +34,8 @@ func TestReceiverAddDeal(t *testing.T) {
 func rightDealerAddResponse(t *testing.T) {
 	// Test if all goes well with the right inputs
 	n := 3
-	m := 3
-	dealers, receivers := generateNDealerMReceiver(Threshold{2, 3, 3}, n, m)
+	m := 4
+	dealers, receivers := generateNDealerMReceiver(Threshold{3, 3, 4}, n, m)
 	states := make([]*State, len(dealers))
 	for i := 0; i < len(dealers); i++ {
 		states[i] = new(State).Init(*dealers[i])
@@ -70,9 +70,9 @@ func TestDealerAddResponse(t *testing.T) {
 
 // Test the AddReponse func with wrong inputs
 func wrongDealerAddResponse(t *testing.T) {
-	n := 2
-	m := 3
-	dealers, receivers := generateNDealerMReceiver(Threshold{2, 3, 3}, n, m)
+	n := 3
+	m := 4
+	dealers, receivers := generateNDealerMReceiver(Threshold{3, 3, 4}, n, m)
 	r1, _ := receivers[0].AddDeal(0, dealers[0])
 	state := new(State).Init(*dealers[0])
 	err := state.AddResponse(1, r1)
@@ -82,9 +82,9 @@ func wrongDealerAddResponse(t *testing.T) {
 }
 
 func TestProduceSharedSecret(t *testing.T) {
-	n := 3
-	m := 3
-	_, receivers := generateNMSetup(Threshold{2, 3, 3}, n, m)
+	T := 4
+	m := 5
+	_, receivers := generateNMSetup(Threshold{T, m, m}, T, m)
 	s1, err := receivers[0].ProduceSharedSecret()
 	if err != nil {
 		t.Error(fmt.Sprintf("ProduceSharedSecret should not gen any error : %v", err))
