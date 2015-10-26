@@ -10,19 +10,19 @@ import (
 const PADLEN = 8
 
 //Returns the number of bits required to represent the length of the message and the overhead.
-func GetMsgBits(msg []byte, overhead int) uint64 {
+func GetMsgBits(l, overhead int) uint64 {
 	//Plus one because if the message is a power of 2 it would give a length of 1 less then is needed to store it. A message of 8 bytes, needs 4 bits. But log_2(8)=3
-	return uint64(math.Ceil(math.Log2(float64(len(msg)+overhead) + 1)))
+	return uint64(math.Ceil(math.Log2(float64(l+overhead) + 1)))
 }
 
 //Returns the number of leak bits.
-func GetLeakBits(msg []byte, overhead int) uint64 {
-	return uint64(math.Ceil(math.Log2(float64(GetMsgBits(msg, overhead)))))
+func GetLeakBits(l, overhead int) uint64 {
+	return uint64(math.Ceil(math.Log2(float64(GetMsgBits(l, overhead)))))
 }
 
 //Returns the number of bits that need to be zeroed.
-func GetZeroBits(msg []byte, overhead int) uint64 {
-	return GetMsgBits(msg, overhead) - GetLeakBits(msg, overhead)
+func GetZeroBits(l, overhead int) uint64 {
+	return GetMsgBits(l, overhead) - GetLeakBits(l, overhead)
 }
 
 //Returns how many bytes of padding need to be added
@@ -31,9 +31,9 @@ func GetZeroBits(msg []byte, overhead int) uint64 {
 //For zeroBits
 // sum+= l & (1<<i)
 //Code so that if l&(1<<i) is 0 it adds 2^i, otherwise nothing
-func GetPaddingLen(msg []byte, overhead int) uint64 {
-	l := uint64(len(msg) + overhead)
-	zb := GetZeroBits(msg, overhead)
+func GetPaddingLen(l2, overhead int) uint64 {
+	l := uint64(l2 + overhead)
+	zb := GetZeroBits(l2, overhead)
 
 	var i, mask uint64
 	//Generate a mask that we can use to isolate the first zb bits of the length.
@@ -58,9 +58,9 @@ func GetPaddingLen(msg []byte, overhead int) uint64 {
 }
 
 //Function that checks if a message is padded correctly
-func CheckZeroBits(msg []byte) bool {
-	l := uint64(len(msg))
-	zb := GetZeroBits(msg, 0)
+func CheckZeroBits(l2 int) bool {
+	l := uint64(l2)
+	zb := GetZeroBits(l2, 0)
 	var i, mask uint64
 	for i = 0; i < zb; i++ {
 		mask |= (1 << i)
@@ -94,7 +94,7 @@ func GeneratePadding(p uint64) []byte {
 
 //To call these you need to know the overhead that the encryption process will add.
 func PadGeneric(msg []byte, oh int) []byte {
-	p := GetPaddingLen(msg, oh+PADLEN)
+	p := GetPaddingLen(len(msg), oh+PADLEN)
 	pad := GeneratePadding(p)
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.BigEndian, int64(p))

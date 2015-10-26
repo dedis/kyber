@@ -43,10 +43,10 @@ func TestAESGCM(t *testing.T) {
 	}
 	//aesgcm adds 16 bytes to the end of the encrpyted message. These 16 bytes are the authentication tag.
 	//And an additional 8 bytes for the overhead of how we are padding it.
-	x := GetLeakBits(pt, 16+8)
-	y := GetMsgBits(pt, 16+8)
-	z := GetZeroBits(pt, 16+8)
-	p := GetPaddingLen(pt, 16+8)
+	x := GetLeakBits(len(pt), 16+8)
+	y := GetMsgBits(len(pt), 16+8)
+	z := GetZeroBits(len(pt), 16+8)
+	p := GetPaddingLen(len(pt), 16+8)
 	fmt.Println("Msg w/ static overhead: ", len(pt)+16+8, " Bits to store len: ",
 		y, " Leak Bits: ", x, " ZeroBits: ", z)
 
@@ -61,7 +61,7 @@ func TestAESGCM(t *testing.T) {
 	//Encrypt the plaintext with aesgcm
 	ct := aesgcm.Seal(nil, nonce, pt, ad)
 	//check if our ct is correctly padded
-	if CheckZeroBits(ct) {
+	if CheckZeroBits(len(ct)) {
 		fmt.Println("The ciphertext is of a correct length")
 		fmt.Println("Length is ", len(ct))
 		fmt.Println(strconv.FormatUint(uint64(len(ct)), 2))
