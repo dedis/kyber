@@ -15,6 +15,18 @@ func init() {
 	msg.Write([]byte(m))
 }
 
+func TestHashMessage(t *testing.T) {
+	tr := Threshold{T: 4, R: 4, N: 5}
+	point := testSuite.Point().Base()
+	s1 := new(Schnorr).Init(testSuite, tr, nil)
+	s2 := new(Schnorr).Init(testSuite, tr, nil)
+	h1, _ := s1.hashMessage(msg.Sum(nil), point)
+	h2, _ := s2.hashMessage(msg.Sum(nil), point)
+	if !h1.Equal(h2) {
+		t.Error("hash message does not produce equal hashes")
+	}
+}
+
 func TestNewRound(t *testing.T) {
 	n := 5
 	pl := Threshold{4, n, n}
@@ -174,7 +186,7 @@ func TestVerifySchnorrSig(t *testing.T) {
 			}
 		}
 	}
-	sig := make([]*SchnorrSig, tt)
+	sig := make([]*SchnorrSig, len(schnorrs))
 	for i, _ := range schnorrs {
 		s, err := schnorrs[i].Sig()
 		if err != nil {
@@ -186,7 +198,7 @@ func TestVerifySchnorrSig(t *testing.T) {
 	for i, _ := range schnorrs {
 		newMsg := testSuite.Hash()
 		newMsg.Write([]byte(m))
-		err := schnorrs[i].VerifySchnorrSig(sig[1], msg)
+		err := schnorrs[i].VerifySchnorrSig(sig[0], newMsg)
 		if err != nil {
 			t.Error(fmt.Sprintf("VerifySchnorrSig on peer %d should validate the signature : %v", i, err))
 		}

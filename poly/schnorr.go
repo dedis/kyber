@@ -167,14 +167,13 @@ func (s *Schnorr) index() int {
 //  - Pi = share of the longterm secret for peer i
 // This signature is to be sent to each other peer
 func (s *Schnorr) RevealPartialSig() *SchnorrPartialSig {
-	hash := *s.hash
+	hash := s.suite.Secret().Set(*s.hash)
 	sigma := s.suite.Secret().Zero()
 	sigma = sigma.Add(sigma, *s.random.Share)
 	// H(m||v) * Pi
-	hash = s.suite.Secret().Mul(hash, *s.longterm.Share)
+	hashed := s.suite.Secret().Mul(hash, *s.longterm.Share)
 	// Ri + H(m||V) * Pi
-	sigma = sigma.Add(sigma, hash)
-
+	sigma = sigma.Add(sigma, hashed)
 	psc := &SchnorrPartialSig{
 		Index: s.index(),
 		Part:  &sigma,
@@ -223,8 +222,10 @@ func (s *Schnorr) Sig() (*SchnorrSig, error) {
 		}
 		pri.SetShare(ps.Index, *s.partials[i].Part)
 	}
+
 	// lagrange interpolation to compute the gamma
 	gamma := pri.Secret()
+
 	sig := &SchnorrSig{
 		Random:    s.random.Pub,
 		Signature: &gamma,
@@ -250,7 +251,6 @@ func (s *Schnorr) VerifySchnorrSig(sig *SchnorrSig, h hash.Hash) error {
 	}
 	// RandomSecretCommit + H( ...) * LongtermSecretCommit
 	right := s.suite.Point().Add(randomCommit, s.suite.Point().Mul(publicCommit, hash))
-
 	if !left.Equal(right) {
 		return errors.New("Signature could not have been verified against the message")
 	}

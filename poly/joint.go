@@ -120,13 +120,8 @@ func (r *Receiver) ProduceSharedSecret() (*SharedSecret, error) {
 	}
 	pub := new(PubPoly)
 	pub.InitNull(r.suite, r.info.T, r.suite.Point().Base())
-	share := r.suite.Secret()
-	goodShare := 0
+	share := r.suite.Secret().Zero()
 	for index := range r.deals {
-		// Only need T shares
-		if goodShare >= r.info.T {
-			break
-		}
 		// Compute secret shares of the shared secret = sum of the respectives shares of peer i
 		// For peer i , s = SUM fj(i)
 		s := r.deals[index].RevealShare(r.index, r.key)
@@ -135,12 +130,6 @@ func (r *Receiver) ProduceSharedSecret() (*SharedSecret, error) {
 
 		// Compute shared public polynomial = SUM of indiviual public polynomials
 		pub.Add(pub, r.deals[index].PubPoly())
-
-		goodShare += 1
-	}
-
-	if goodShare < r.info.T {
-		return nil, fmt.Errorf("Not enough shares (%d) received by the Receiver to construct its own share of the shared secret (needed %d)", goodShare, r.info.T)
 	}
 
 	if val := pub.Check(r.index, share); val == false {

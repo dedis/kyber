@@ -273,6 +273,7 @@ func (p *Deal) ConstructDeal(secretPair *config.KeyPair,
 		p.secrets[i] = p.suite.Secret().Add(prishares.Share(i),
 			diffieSecret)
 	}
+
 	return p
 }
 

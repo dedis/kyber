@@ -5,10 +5,13 @@ import (
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/config"
 	"github.com/dedis/crypto/edwards"
+	//"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/random"
 )
 
-var testSuite = edwards.NewAES128SHA256Ed25519(true)
+var testSuite = edwards.NewAES128SHA256Ed25519(false)
+
+//var testSuite = nist.NewAES128SHA256P256()
 
 func generateKeyPair() *config.KeyPair {
 	keypair := new(config.KeyPair)
@@ -42,8 +45,11 @@ func generateNDealerMReceiver(info Threshold, ndeal, nrec int) ([]*Deal, []*Rece
 	}
 	dealers := make([]*Deal, ndeal)
 	for i := 0; i < ndeal; i++ {
-		dealers[i] = new(Deal).ConstructDeal(generateKeyPair(), generateKeyPair(), info.T, info.R, receiverPublics)
+		secret := generateKeyPair()
+		dealers[i] = new(Deal).ConstructDeal(secret, generateKeyPair(), info.T, info.R, receiverPublics)
+
 	}
+
 	return dealers, receivers
 }
 
