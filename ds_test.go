@@ -1,10 +1,11 @@
-package main
+package crypto
 
 import (
 	"fmt"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/config"
-	"github.com/dedis/crypto/edwards"
+	//"github.com/dedis/crypto/edwards"
+	"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/poly"
 	"github.com/dedis/crypto/random"
 )
@@ -13,7 +14,11 @@ import (
 // amongst peers using Verifiable Secret Sharing (Shamir secret sharing)
 
 // The suite we are going to use
-var suite = edwards.NewAES128SHA256Ed25519(true)
+// BE AWARE : if you use edwards suite, do NOT use the extended full group
+// version as it breaks the computation when verifying a signture.
+// Always set to false.
+//var suite = edwards.NewAES128SHA256Ed25519(false)
+var suite = nist.NewAES128SHA256P256()
 
 // how much peers
 var n int = 3
@@ -55,11 +60,6 @@ func generatePublicListFromPrivate(private []*config.KeyPair) []abstract.Point {
 	return l
 }
 
-func main() {
-	Joint()
-	Schnorr2()
-}
-
 // First, let's generate the set of dealers and the set of receivers.
 // A dealer create a secret and can distribute shares of its secret
 // A receiver is one that receives such a share.
@@ -76,7 +76,7 @@ func generateDealerReceiver(info poly.Threshold, ndeals, nreceivers int) ([]*pol
 	// Generate the keys of the receivers
 	receiverKeys := generateKeyPairList(nreceivers)
 	// From it construct the list of the public keys that must be given to a
-	// dealer
+	// dealer. This is list is KNOWN.
 	receiverPublics := generatePublicListFromPrivate(receiverKeys)
 	receivers := make([]*poly.Receiver, nreceivers)
 	for i := 0; i < nreceivers; i++ {
@@ -93,7 +93,7 @@ func generateDealerReceiver(info poly.Threshold, ndeals, nreceivers int) ([]*pol
 	return dealers, receivers
 }
 
-func Joint() {
+func ExampleJoint() {
 	deals, receivers := generateDealerReceiver(threshold, threshold.T, threshold.N)
 	// make the exchange of shares by giving each deals to each receivers
 	// for each receivers
@@ -121,16 +121,15 @@ func Joint() {
 	// share. The secret share is unique to every receivers and can be checked
 	// against the public polynomial. The public polynomial is by definition the
 	// same and represent the commitment to the shared secret.
-	var sec *poly.SharedSecret
 	for i := 0; i < threshold.N; i++ {
 		if s, err := receivers[i].ProduceSharedSecret(); err != nil {
 			panic(fmt.Errorf("Could not produce shared secret for receiver %d (secret : %v) : %v", i, s, err))
-		} else {
-			sec = s
 		}
 	}
+	fmt.Printf("Shared Secret OK")
+	// Output:
+	// Shared Secret OK
 
-	fmt.Printf("%+v", sec)
 }
 
 // Same as produceDealerReceiver except that it make the exchange of Dealer / Response
@@ -149,8 +148,8 @@ func generateNMSetup(info poly.Threshold, ndeal, nrec int) ([]*poly.Deal, []*pol
 }
 
 // generateSharedSecret will return an array of SharedSecret structs
-func generateSharedSecrets() []*poly.SharedSecret {
-	_, rs := generateNMSetup(threshold, threshold.N, threshold.N)
+func generateSharedSecrets(info poly.Threshold) []*poly.SharedSecret {
+	_, rs := generateNMSetup(info, info.N, info.N)
 	secrets := make([]*poly.SharedSecret, len(rs)) // len(rs) == n
 	for i, _ := range rs {
 		ss, err := rs[i].ProduceSharedSecret()
@@ -162,76 +161,27 @@ func generateSharedSecrets() []*poly.SharedSecret {
 	return secrets
 }
 
-// It will generate a long term array of schnorr structs
-// it basically represents a peer in the protocol
-func generateSchnorrStructs(info poly.Threshold) []*poly.Schnorr {
-	longterms := generateSharedSecrets()
-	schnorrs := make([]*poly.Schnorr, info.N)
-	for i, _ := range longterms {
-		schnorrs[i] = poly.NewSchnorr(suite, info, longterms[i])
-	}
-	return schnorrs
-}
-
-func Schnorr2() {
-	var msg = suite.Hash()
-	msg.Write([]byte("Hello World"))
-	schnorrs := generateSchnorrStructs(threshold)
-
-	randoms := generateSharedSecrets()
-	for i, _ := range schnorrs {
-		err := schnorrs[i].NewRound(randoms[i], msg)
-		if err != nil {
-			panic(fmt.Sprintf("NewRound should validate : %v", err))
-		}
-	}
-	for i, _ := range schnorrs {
-		ps := schnorrs[i].RevealPartialSig()
-		// geive the partial sig to everyone
-		for j, _ := range schnorrs {
-			if err := schnorrs[j].AddPartialSig(ps); err != nil {
-				panic(fmt.Sprintf("AddPartialSig should validate (adding partial sig of peer %d to peer %d : %v", ps.Index, schnorrs[j], err))
-			}
-		}
-	}
-	sig := make([]*poly.SchnorrSig, n)
-	for i, _ := range schnorrs {
-		s, err := schnorrs[i].Sig()
-		if err != nil {
-			panic(fmt.Sprintf("SchnorrSig should validate : %v", err))
-		}
-		sig[i] = s
-	}
-	// Verify the signature amongst each peers
-	for i, _ := range schnorrs {
-		err := schnorrs[i].VerifySchnorrSig(sig[0], msg)
-		if err != nil {
-			panic(fmt.Sprintf("VerifySchnorrSig on peer %d should validate the signature : %v", i, err))
-		}
-	}
-}
-
-// ExampleSChnorr shows a simple example of how to distributively sign something
-func Schnorr1() {
+// ExampleDistributedSchnorr shows a simple example of how to distributively sign something
+func ExampleDistributedSchnorr() {
 	var msg = suite.Hash()
 	msg.Write([]byte("Hello Distributed World\n"))
 	// This will be the longterm distributed key used during the schnorr
 	// signing. The process is the same as in the simple schnorr algo, first get
 	// a longterm key, then get a random key then do the signature.
-	longterms := generateSharedSecrets()
+	longterms := generateSharedSecrets(threshold)
 
 	// Create our array of schnorr structs. One schnorr struct by peers. These
 	// structs are handling the process of distributively signing a message
 	// We create one by giving it the info of the polynomials, the suite, and a
 	// secretshare which is part of the long term distributed secret that we
 	// just generated
-	schnorrs := make([]*poly.Schnorr, threshold.N)
-	for i, _ := range longterms {
+	schnorrs := make([]*poly.Schnorr, len(longterms))
+	for i, _ := range schnorrs {
 		schnorrs[i] = poly.NewSchnorr(suite, threshold, longterms[i])
 	}
 	// For generating the random shared secrets, we can simply re-iterate the
 	// previous process
-	randoms := generateSharedSecrets()
+	randoms := generateSharedSecrets(threshold)
 
 	// To start signing something, we call NewRound on the schnorr structs, and
 	// giving it the random secret freshly generated. NewRound is here to remind
@@ -276,6 +226,13 @@ func Schnorr1() {
 	if err != nil {
 		panic(fmt.Errorf("Signature could not have been generated ... %v", err))
 	}
+	sig1, err := schnorrs[1].Sig()
+	if err != nil {
+		panic(fmt.Errorf("Signature could not have been generated ...%v", err))
+	}
+	if !sig0.Equal(sig1) {
+		panic("Both signatures are not equals")
+	}
 
 	// Now the signature can be distributed exchanged or whatever.
 	// You can at any time verify a given signature. For that simply gives the
@@ -286,9 +243,15 @@ func Schnorr1() {
 	// You can see here that the schnorr struct is made to be a longterm struct,
 	// that you can use many times, a bit like signature-as-a-service ;)
 
-	// Let's take any other schnoorrs struct to verify it.
-	if err := schnorrs[0].VerifySchnorrSig(sig0, msg); err != nil {
+	// simulation of reading again the message
+	var newMsg = suite.Hash()
+	newMsg.Write([]byte("Hello Distributed World\n"))
+
+	// verify on any schnorrs struct
+	if err := schnorrs[2].VerifySchnorrSig(sig1, newMsg); err != nil {
 		panic(fmt.Errorf("Signature should have been verified : %v", err))
 	}
-	fmt.Println(sig0)
+	fmt.Printf("Signature OK")
+	// Output:
+	// Signature OK
 }

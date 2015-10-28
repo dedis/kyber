@@ -106,6 +106,7 @@ func (s *Schnorr) NewRound(random *SharedSecret, h hash.Hash) error {
 		return errors.New(fmt.Sprintf("Unable to hash the message with the given shared secret : %v", err))
 	}
 	s.hash = &hash
+
 	return nil
 }
 
@@ -178,6 +179,7 @@ func (s *Schnorr) RevealPartialSig() *SchnorrPartialSig {
 		Index: s.index(),
 		Part:  &sigma,
 	}
+
 	return psc
 }
 
@@ -230,6 +232,7 @@ func (s *Schnorr) Sig() (*SchnorrSig, error) {
 		Random:    s.random.Pub,
 		Signature: &gamma,
 	}
+
 	return sig, nil
 }
 
@@ -249,7 +252,8 @@ func (s *Schnorr) VerifySchnorrSig(sig *SchnorrSig, h hash.Hash) error {
 	if err != nil {
 		return err
 	}
-	// RandomSecretCommit + H( ...) * LongtermSecretCommit
+
+	// RandomSecretCommit + H(...) * LongtermSecretCommit
 	right := s.suite.Point().Add(randomCommit, s.suite.Point().Mul(publicCommit, hash))
 	if !left.Equal(right) {
 		return errors.New("Signature could not have been verified against the message")
