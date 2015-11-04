@@ -6,6 +6,9 @@ import (
 	"crypto/cipher"
 	"encoding/hex"
 	"fmt"
+	//"github.com/dedis/crypto/abstract"
+	dedis "github.com/dedis/crypto/cipher"
+	"github.com/dedis/crypto/cipher/norx"
 	"io/ioutil"
 	"strconv"
 	"testing"
@@ -153,4 +156,57 @@ func TestAESGCM(t *testing.T) {
 	if bytes.Equal(pt, paddedpt) {
 		fmt.Println("The message was decrypted, and unpadded successfully ")
 	}
+}
+
+//Using an implementation from the dedis crypto library(github.com/dedis/crypto).
+func TestNorxAEAD(t *testing.T) {
+	//Info on norx from https://norx.io/data/norx.pdf
+	//Code works while not following input parameters
+	//Guessing wordsize is 64 bits(options are 32 or 64)
+
+	//So key size should be 4*8 bytes
+	//nonce size should be 2*8 bytes long
+	//I am not exactly sure on the implementation. As it can work with keys, and nonces that
+	//don't follow the guidelines.
+	//Possibly need to account for sending the nonce as well as the message in some cases.
+	key := []byte("12345678123456781234567812345678")
+	ciph := norx.NewCipher(key)
+	aead := dedis.NewAEAD(ciph)
+	dst := []byte("")
+	pt := []byte("this is the pt")
+	data := []byte("checking what happens if the data length changes Authentication data(I think)")
+	nonce := []byte("1234567812345678")
+
+	//Test for a lot of values
+	for i := 0; i < 50; i++ {
+		ptpad := PadGeneric(pt, 24)
+		ct := aead.Seal(dst, nonce, ptpad, data)
+		//	fmt.Println("Length of ct is ", len(ct))
+		//	fmt.Println(strconv.FormatUint(uint64(len(ct)), 2))
+		pt2, _ := aead.Open(dst, nonce, ct, data)
+		pt2 = UnPadGeneric(pt2)
+		if !bytes.Equal(pt, pt2) {
+			fmt.Println("Error with adding and removing padding from message")
+		}
+		//	fmt.Println(string(pt))
+		//	fmt.Println(len(ct), len(pt2), len(pt), len(ct)-len(pt))
+		pt = append(pt, byte(0))
+	}
+
+	pt, err := ioutil.ReadFile("testmessage.txt")
+	if err != nil {
+		fmt.Println(err)
+	}
+	//Seems to be a constant size of 24 bytes added.
+	ptpad := PadGeneric(pt, 24)
+	ct2 := aead.Seal(dst, nonce, ptpad, data)
+	fmt.Println("Length of ct is ", len(ct2))
+	fmt.Println(strconv.FormatUint(uint64(len(ct2)), 2))
+	pt3, _ := aead.Open(dst, nonce, ct2, data)
+	pt3 = UnPadGeneric(pt3)
+	if !bytes.Equal(pt, pt3) {
+		fmt.Println("Error with adding and removing padding from message")
+	}
+	fmt.Println(len(ct2), len(pt3), len(pt))
+
 }
