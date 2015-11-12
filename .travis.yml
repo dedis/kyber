@@ -15,5 +15,5 @@ before_install:
 before_script:
     - git remote add production https://github.com/DeDiS/crypto.git
     - git fetch -a production
-    - go get github.com/dyv/dedis-ci-script
-script: dedis-ci-script
+script:
+    - go run dedis-travis-script.go
