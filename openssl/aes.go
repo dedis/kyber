@@ -1,13 +1,9 @@
 package openssl
 
 // #include <openssl/aes.h>
-// #cgo CFLAGS: -Wno-deprecated -I/usr/local/include
+// #cgo CFLAGS: -Wno-deprecated
 // #cgo LDFLAGS: -lcrypto -ldl
 import "C"
-
-// include "/usr/local/include/openssl/aes.h"
-// include "/usr/local/include/openssl/opensslconf.h"
-
 
 import (
 	"crypto/cipher"
