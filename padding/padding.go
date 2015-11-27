@@ -1,6 +1,7 @@
 //Goal is to add padding to messages before encryption that will reduce
 //the amount of information leaked through the length of the message.
 //Specifically by O(loglog(l))
+
 //To pad a message with this all you need to do is call PadGeneric.
 //The first parameter is a byte slice with your message in it.
 //The second parameter is the number of bytes added by the encryption.

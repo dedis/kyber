@@ -89,8 +89,8 @@ func (si *suiteInfo) init(ste abstract.Suite, nlevels int) {
 		levidx := int(si.tag[i]) & levmask
 		si.pos[i] = levofs + levidx*si.plen
 
-		//fmt.Printf("%d: idx %d/%d pos %d\n",
-		//		i, levidx, levlen, si.pos[i])
+		fmt.Printf("%d: idx %d/%d pos %d\n",
+			i, levidx, levlen, si.pos[i])
 
 		levofs += levlen * si.plen // next level table offset
 	}
@@ -358,6 +358,8 @@ func (w *Writer) Payload(data []byte, encrypt cipher.Stream) int {
 // before calling this function.
 func (w *Writer) Write(rand cipher.Stream) []byte {
 
+	fmt.Println("test 0", len(w.buf))
+
 	// Pick an ephemeral secret for each ciphersuite
 	// that produces a hide-encodable Diffie-Hellman public key.
 	for i := range w.suites.s {
@@ -384,9 +386,11 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 		// Insert the hidden point into the message buffer.
 		lo, hi := si.region(si.lev)
 		msgbuf := w.growBuf(lo, hi)
+		fmt.Println(len(buf), len(msgbuf))
 		copy(msgbuf, buf)
+		fmt.Println(len(buf), len(msgbuf))
 	}
-
+	fmt.Println("test 1", len(w.entries))
 	// Encrypt and finalize all the entrypoints.
 	for i := range w.entries {
 		e := &w.entries[i]
@@ -399,17 +403,18 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 
 		// Encrypt the entrypoint data with it.
 		buf, _ := dhkey.MarshalBinary()
+		fmt.Println(buf)
 		stream := si.ste.Cipher(buf)
 		msgbuf := w.growBuf(lo, hi)
 		stream.XORKeyStream(msgbuf, e.Data)
 	}
-
 	// Fill all unused parts of the message with random bits.
 	msglen := len(w.buf) // XXX
 	w.layout.scanFree(func(lo, hi int) {
 		msgbuf := w.growBuf(lo, hi)
 		rand.XORKeyStream(msgbuf, msgbuf)
 	}, msglen)
+	fmt.Println("test 2")
 
 	// Finally, XOR-encode all the hidden Diffie-Hellman public keys.
 	for i := range w.suites.s {
@@ -423,15 +428,19 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 
 		// XOR all the non-primary point positions into it.
 		for j := range si.pos {
+			fmt.Println(j)
 			if j != si.lev {
 				lo, hi := si.region(j)
+				fmt.Println("test 2.1", lo, hi, len(w.buf))
 				buf := w.buf[lo:hi] // had better exist
+				fmt.Println("test 2.2")
 				for k := 0; k < plen; k++ {
 					pbuf[k] ^= buf[k]
 				}
 			}
 		}
 	}
+	fmt.Println("test 3")
 
 	return w.buf
 }

@@ -17,7 +17,7 @@ import (
 	"sort"
 )
 
-const ENTRYPOINTS
+//const ENTRYPOINTS
 
 type Entry struct {
 	Suite  abstract.Suite // Ciphersuite this public key is drawn from
@@ -163,6 +163,43 @@ type Writer struct {
 	entofs  map[int]int                   // Map of entrypoints to header offsets
 	maxLen  int                           // Client-specified maximum header length
 	buf     []byte                        // Buffer in which to build message
+}
+
+//Function that will find, place and reserve part of the header for the data
+//Hash possibly should not be data, but some sort of int value will possibly have
+//to cast it at some point
+//All hash tables start after pos 0.
+//length might be standard and thus not needed to be passed in like this.
+//data will be the symmetric key and the start of the message.
+func (w *Writer) PlaceHash(hash, data []byte, length int) {
+	//Basic setup is to check if the block directly after entry 0 is available
+	//if it is then hash0[0]=data(would probably be encrypted)
+	//if that fails double the hash table size and update its start location
+	//check the next 3 as well.
+	//this is known so
+	//finding the value in the hash table is accomplished like:
+	//check hashtable_0[hash], if that decrypts we are good.
+	//check hashtable_1[hash], in case of conflicts, check hash+1, hash+2
+	//also hashtable_1 starts directly after hashtable_0
+	// and so on.
+	// to build it we just need to find the first empty hash table
+	//The length of each table entry
+	entryLen := 16
+	//hash table size
+	ts := 1
+	//hash table start
+	start := 8 //assumes each entry point is 8 bytes(probably wrong but it works
+	//It seems that reserve returns true if it was able to reserve the region
+	if w.layout.reserve(8, 24, true, "hash") {
+	}
+
+	//Now update the hash table size and start
+	//start = current hash table start + number of entries in the table* the
+	//length of each entry
+	start := start + ts*entryLen
+	//Double the number of entries in each hash table
+	ts *= 2
+
 }
 
 // Set the optional maximum length for the negotiation header,

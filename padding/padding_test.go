@@ -6,7 +6,6 @@ import (
 	"crypto/cipher"
 	"encoding/hex"
 	"fmt"
-	//"github.com/dedis/crypto/abstract"
 	dedis "github.com/dedis/crypto/cipher"
 	"github.com/dedis/crypto/cipher/norx"
 	"io/ioutil"
@@ -174,7 +173,8 @@ func TestNorxAEAD(t *testing.T) {
 	aead := dedis.NewAEAD(ciph)
 	dst := []byte("")
 	pt := []byte("this is the pt")
-	data := []byte("checking what happens if the data length changes Authentication data(I think)")
+	//AT should be 256 or 128 I think
+	data := []byte("12345678123456781234567812345678")
 	nonce := []byte("1234567812345678")
 
 	//Test for a lot of values
