@@ -41,9 +41,15 @@ func TestNego(t *testing.T) {
 	nlevels := 5
 	suiteLevel := make(map[abstract.Suite]int)
 	entries := make([]Entry, 0)
+	suiteEntry := make(map[abstract.Suite][]int)
 	for i := range suites {
 		suiteLevel[suites[i]] = nlevels
 		nlevels++ // vary it a bit for testing
+		ents := make([]int, nlevels)
+		for j := 0; j < nlevels; j++ {
+			ents[j] = j * ENTRYLEN
+		}
+		suiteEntry[suites[i]] = ents
 
 		// Create some entrypoints with this suite
 		s := suites[i]
@@ -56,7 +62,7 @@ func TestNego(t *testing.T) {
 	}
 
 	w := Writer{}
-	_, err := w.Layout(suiteLevel, entries, nil)
+	_, err := w.Layout(suiteLevel, entries, nil, suiteEntry)
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
