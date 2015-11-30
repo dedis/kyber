@@ -226,10 +226,26 @@ type PubPoly struct {
 
 // Initialize to an empty polynomial for a given group and threshold (degree),
 // typically before using Decode() to fill in from a received message.
-func (pub *PubPoly) Init(g abstract.Group, k int, b abstract.Point) {
+func (pub *PubPoly) Init(g abstract.Group, k int, b abstract.Point) *PubPoly {
 	pub.g = g
 	pub.b = b
 	pub.p = make([]abstract.Point, k)
+	return pub
+}
+
+// InitNull does the same thing as Init PLUS initialize every points / coef to the Null
+// Identity Element so we can use it like a "temp" / "aggregate" variable to add with others poly
+func (pub *PubPoly) InitNull(g abstract.Group, k int, b abstract.Point) *PubPoly {
+	pub.Init(g, k, b)
+	for i, _ := range pub.p {
+		pub.p[i] = g.Point().Null()
+	}
+	return pub
+}
+
+// Return k : the number of shares needed to reconstruct a secret from the corresponding pripoly
+func (pub *PubPoly) GetK() int {
+	return len(pub.p)
 }
 
 // Initialize to a public commitment to a given private polynomial.
@@ -306,7 +322,7 @@ func (pub *PubPoly) UnmarshalFrom(r io.Reader) (int, error) {
 // Assumes they are of the same degree and from the same group.
 func (p1 *PubPoly) Equal(p2 *PubPoly) bool {
 	k := len(p1.p)
-	if p1.g != p2.g || k != len(p2.p) {
+	if p1.g.String() != p2.g.String() || k != len(p2.p) {
 		panic("Mismatched polynomial commitments")
 	}
 	for i := 0; i < len(p1.p); i++ {
@@ -335,7 +351,9 @@ func (pub *PubPoly) Eval(i int) abstract.Point {
 func (pub *PubPoly) Add(p1, p2 *PubPoly) *PubPoly {
 	g := p1.g
 	k := len(p1.p)
-	if p1.g != p2.g || k != len(p2.p) {
+	if p1.g.String() != p2.g.String() {
+		panic("Mismatched Group of polynomial commitments")
+	} else if k != len(p2.p) {
 		panic("Mismatched polynomial commitments")
 	}
 	p := make([]abstract.Point, k)
@@ -358,9 +376,16 @@ func (pub *PubPoly) Check(i int, share abstract.Secret) bool {
 // Dump a string representation of the polynomial commitment.
 func (p *PubPoly) String() string {
 	k := len(p.p)
-	s := p.p[0].String()
-	for i := 1; i < k; i++ {
-		s += fmt.Sprintf(",%s", p.p[i].String())
+	if k < 1 {
+		return "Empty PubPoly"
+	}
+	s := ""
+	for i := 0; i < k; i++ {
+		if p.p[i] != nil {
+			s += fmt.Sprintf(",%s", p.p[i].String())
+		} else {
+			s += ",nil"
+		}
 	}
 	return s
 }
