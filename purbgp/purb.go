@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/cipher/aes"
 	"sort"
 	"strconv"
 )
@@ -19,7 +20,9 @@ const ENTRYLEN = 32
 const DATALEN = 24
 
 type Entry struct {
-	Suite  abstract.Suite // Ciphersuite this public key is drawn from
+	Suite abstract.Suite // Ciphersuite this public key is drawn from
+	//XXX TODO REMOVE: Temporary to make testing much easier
+	PriKey abstract.Secret
 	PubKey abstract.Point // Public key of this entrypoint's owner
 	Data   []byte         // Entrypoint data decryptable by owner
 }
@@ -134,7 +137,8 @@ type Writer struct {
 //length might be standard and thus not needed to be passed in like this.
 //len is the length stored will be the same for all
 //no data is needed, this is just for allocating space in the header
-func (w *Writer) PlaceHash(hash, length int) int {
+//Second int is the end of the full hash table
+func (w *Writer) PlaceHash(hash uint) (int, int) {
 	//Basic setup is to check if the block directly after entry 0 is available
 	//if it is then hash0[0]=data(would probably be encrypted)
 	//if that fails double the hash table size and update its start location
@@ -147,17 +151,17 @@ func (w *Writer) PlaceHash(hash, length int) int {
 	// and so on.
 	// to build it we just need to find the first empty hash table
 	//The length of each table entry
-	entryLen := DATALEN
+	entryLen := uint(DATALEN)
 	//hash table size
-	ts := 1
+	ts := uint(1)
 	//hash table start
-	start := ENTRYLEN
+	start := uint(ENTRYLEN)
 
 	//Simply checks if the hashtable 0 spot works
 	//It seems that reserve returns true if it was able to reserve the region
 	//Not sure what the string should be for reserving
-	if w.layout.reserve(start, start+DATALEN, true, "hash"+strconv.Itoa(start)) {
-		return start
+	if w.layout.reserve(int(start), int(start+entryLen), true, "hash"+strconv.Itoa(int(ts))) {
+		return int(start), int(start + entryLen)
 	}
 
 	for {
@@ -168,14 +172,14 @@ func (w *Writer) PlaceHash(hash, length int) int {
 		//Double the number of entries in each hash table
 		ts *= 2
 		//Check if the hash works for this table
-		for i := 0; i < 3; i++ {
+		for i := uint(0); i < 3; i++ {
 			tHash := (hash + i) % ts
-			if w.layout.reserve(start+tHash*DATALEN, start+tHash*DATALEN+DATALEN, true, "hash"+strconv.Itoa(start)) {
-				return start + tHash*DATALEN
+			if w.layout.reserve(int(start+tHash*entryLen), int(start+tHash*entryLen+entryLen), true, "hash"+strconv.Itoa(int(ts))) {
+				return int(start + tHash*entryLen), int(start + ts*entryLen)
 			}
 		}
 	}
-	return -1
+	return -1, -1
 }
 
 // Set the optional maximum length for the negotiation header,
@@ -259,8 +263,9 @@ func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 		// more than 255 ciphersuites.
 		return 0, errors.New("too many ciphersuites")
 	}
-	if w.maxLen != 0 && max > w.maxLen {
-		max = w.maxLen
+	//ws if w.maxLen !=0&& not sure why there was that
+	if max > w.maxLen {
+		w.maxLen = max
 	}
 
 	// Sort the ciphersuites in order of max position,
@@ -280,22 +285,17 @@ func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 	exclude.reset()
 	hdrlen := 0
 	for i := 0; i < nsuites; i++ {
-		fmt.Println("Suite #", i)
 		si := w.suites.s[i]
-		fmt.Println("after si:=w.suites.s[i], sipos", si.pos)
 		//fmt.Printf("max %d: %s\n", si.max, si.ste.String())
 
 		// Reserve all our possible positions in exclude layout,
 		// picking the first non-conflicting position as our primary.
 		lev := len(si.pos)
 		for j := lev - 1; j >= 0; j-- {
-			fmt.Println("Before j:", j)
 			lo := si.pos[j]
-			fmt.Println("after .pos[j] si.plen:", si.plen)
 			hi := lo + si.plen
 			//fmt.Printf("reserving [%d-%d]\n", lo,hi)
 			name := si.String()
-			fmt.Println("before reserve call hi,lo", hi, lo)
 			if exclude.reserve(lo, hi, false, name) && j == lev-1 {
 				lev = j // no conflict, shift down
 			}
@@ -327,13 +327,11 @@ func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 	keymap := make(map[abstract.Suite]suiteKey)
 	w.keys = keymap
 	for suite := range simap {
-		fmt.Println(suite)
 		s := new(suiteKey)
 		var priv abstract.Secret
 		var pub abstract.Point
 		var dhrep []byte
 		for i := 0; i != 1; {
-			fmt.Println("gen potential key: ", i)
 			//Doesn't work because suite isn't a real suite?
 			priv = suite.Secret().Pick(rand)
 			pub = suite.Point().Mul(nil, priv)
@@ -353,7 +351,6 @@ func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 	//This will be done with a hash table sort of thing.
 	// Now layout the entrypoints.
 	for i := range entrypoints {
-		fmt.Println("layout recipients in hash #", i)
 		e := &entrypoints[i]
 		si := simap[e.Suite]
 		if si == nil {
@@ -377,21 +374,26 @@ func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 		if nil == temp {
 			temp = append(temp, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
 		}
-		intHash := int(binary.BigEndian.Uint64(temp))
+		intHash := uint(binary.BigEndian.Uint64(temp))
 		//probably is a better way:
-		fmt.Println("after hash: ", intHash)
 
-		ofs := w.PlaceHash(intHash, DATALEN)
+		ofs, tableEnd := w.PlaceHash(intHash)
 		if ofs < 0 {
 			fmt.Println("Could not find hash")
 		}
 		w.entofs[i] = ofs
-		if ofs+DATALEN > hdrlen {
-			hdrlen = ofs + DATALEN
+		if tableEnd > hdrlen {
+			hdrlen = tableEnd
 		}
 		//fmt.Printf("Entrypoint %d (%s) at [%d-%d]\n",
 		//	i, si.String(), ofs, ofs+l)
 	}
+	if w.maxLen > hdrlen {
+		hdrlen = w.maxLen
+	}
+	//not entierly sure why +1 works, but it does(need to make sure the hdr is long enough
+	//And it is the correct offset for the appended ciphertext
+	w.layout.reserve(hdrlen, hdrlen+1, false, "tablesize")
 
 	fmt.Printf("Point+Entry layout:\n")
 	w.layout.dump()
@@ -489,6 +491,7 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 		stream := si.ste.Cipher(buf)
 		msgbuf := w.growBuf(lo, hi)
 		stream.XORKeyStream(msgbuf, e.Data)
+
 	}
 	fmt.Println("After finalizing entrypoints")
 
@@ -524,4 +527,76 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 	fmt.Println("after xor encoding entry points")
 
 	return w.buf
+}
+
+//First step to decrypt is to xor all possible entry points for the suite
+func attemptDecode(suite abstract.Suite, priv abstract.Secret,
+	entries map[abstract.Suite][]int, file []byte, rand cipher.Stream) (int, []byte) {
+	//make sure suite has entry points
+	entPoints := entries[suite]
+	if entPoints == nil {
+		fmt.Println("We do not know about", suite)
+		return 0, nil
+	}
+	dhpub := make([]byte, ENTRYLEN)
+	for i := range entPoints {
+		k := entPoints[i]
+		temp := file[k : k+ENTRYLEN]
+		for j := range temp {
+			dhpub[j] ^= temp[j]
+		}
+	}
+	//Now that we have the key for our suite calculate the shared key
+	pub := suite.Point()
+	pub.(abstract.Hiding).HideDecode(dhpub)
+	shared := suite.Point().Mul(pub, priv)
+	//Now we have to try and decrypt the message
+	//We must go through all possible hash values
+	temp := shared.(abstract.Hiding).HideEncode(rand)
+
+	//In case Hide fails just set it to 0, client knows to do the same.
+	//This leads to too large header size though.
+	if nil == temp {
+		temp = append(temp, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
+	}
+	intHash := uint(binary.BigEndian.Uint64(temp))
+	ts := uint(1)
+	start := uint(ENTRYLEN)
+	dLen := uint(DATALEN)
+	for start+ts*uint(dLen) <= uint(len(file)) {
+		//try to decrypt hashtable[i]->i+3
+		//could be sped up slightly for case ts is 1 or 2
+		for i := uint(0); i < 3; i++ {
+			tHash := (intHash + i) % ts
+			data := file[start+tHash*dLen : start+tHash*dLen+dLen]
+			//Try to decrypt data.
+			buf, _ := shared.MarshalBinary()
+			stream := suite.Cipher(buf)
+			decrypted := make([]byte, 24)
+			stream.XORKeyStream(decrypted, data)
+			//fmt.Println(decrypted)
+			msgStart := binary.BigEndian.Uint64(decrypted[0:8])
+			if msgStart > uint64(len(file)) {
+				//fmt.Println(msgStart)
+				continue
+			}
+			key := decrypted[8:24]
+			//Try to decrypt
+			dec := make([]byte, 0)
+			cipher := abstract.Cipher(aes.NewCipher128(key))
+			dec, err := cipher.Open(dec, file[msgStart:len(file)])
+			if err == nil {
+
+				//Some way to determine if the message is actually english
+				if string(dec[8:12]) == "This" || (string(dec[0:4]) == "This") {
+					return 0, dec
+				}
+			}
+
+		}
+		start += ts * dLen
+		ts *= 2
+
+	}
+	return 0, nil
 }
