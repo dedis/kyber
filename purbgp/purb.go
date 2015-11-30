@@ -1,12 +1,6 @@
 // Package nego implements cryptographic negotiation
 // and secret entrypoint finding.
-package nego
-
-/* TODO:
--	add SetSizeLimit() method to allow clients to enforce a limit
-	on the produced header size (at the risk of layout failure).
--	incrementally expand allocation mask instead of starting at worst-case
-*/
+package purb
 
 import (
 	"crypto/cipher"
@@ -15,9 +9,14 @@ import (
 	"fmt"
 	"github.com/dedis/crypto/abstract"
 	"sort"
+	"strconv"
 )
 
-//const ENTRYPOINTS
+//Length each entrypoint is(for simplicity assuming all suites HideLen is the same.
+const ENTRYLEN = 32
+
+//How much the symkey+message start is
+const DATALEN = 24
 
 type Entry struct {
 	Suite  abstract.Suite // Ciphersuite this public key is drawn from
@@ -64,44 +63,6 @@ type suiteInfo struct {
 
 func (si *suiteInfo) String() string {
 	return "Suite " + si.ste.String()
-}
-
-// Determine all the alternative DH point positions for a ciphersuite.
-//We will instead be using static entry points.
-//Not really sure how it would be possible otherwise for decryption.
-//Not sure how to init with static, probably just pass in with the abstract.Suite, the list of entry points
-func (si *suiteInfo) init(ste abstract.Suite, nlevels int) {
-	si.ste = ste
-	si.tag = make([]uint32, nlevels)
-	si.pos = make([]int, nlevels)
-	si.plen = ste.Point().(abstract.Hiding).HideLen() // XXX
-
-	// Create a pseudo-random stream from which to pick positions
-	str := fmt.Sprintf("NegoCipherSuite:%s", ste.String())
-	rand := ste.Cipher([]byte(str))
-
-	// Alternative 0 is always at position 0, so start with level 1.
-	levofs := 0 // starting offset for current level
-	//fmt.Printf("Suite %s positions:\n", ste.String())
-	for i := 0; i < nlevels; i++ {
-
-		// Pick a random position within this level
-		var buf [4]byte
-		rand.XORKeyStream(buf[:], buf[:])
-		levlen := 1 << uint(i) // # alt positions at this level
-		levmask := levlen - 1  // alternative index mask
-		si.tag[i] = binary.BigEndian.Uint32(buf[:])
-		levidx := int(si.tag[i]) & levmask
-		si.pos[i] = levofs + levidx*si.plen
-
-		//fmt.Printf("%d: idx %d/%d pos %d\n",
-		//		i, levidx, levlen, si.pos[i])
-
-		levofs += levlen * si.plen // next level table offset
-	}
-
-	// Limit of highest point field
-	si.max = si.pos[nlevels-1] + si.plen
 }
 
 // Return the byte-range for a point at a given level.
@@ -163,6 +124,7 @@ type Writer struct {
 	entofs  map[int]int                   // Map of entrypoints to header offsets
 	maxLen  int                           // Client-specified maximum header length
 	buf     []byte                        // Buffer in which to build message
+	keys    map[abstract.Suite]suiteKey   // Holds the public/private key for each suite
 }
 
 //Function that will find, place and reserve part of the header for the data
@@ -170,8 +132,9 @@ type Writer struct {
 //to cast it at some point
 //All hash tables start after pos 0.
 //length might be standard and thus not needed to be passed in like this.
-//data will be the symmetric key and the start of the message.
-func (w *Writer) PlaceHash(hash, data []byte, length int) {
+//len is the length stored will be the same for all
+//no data is needed, this is just for allocating space in the header
+func (w *Writer) PlaceHash(hash, length int) int {
 	//Basic setup is to check if the block directly after entry 0 is available
 	//if it is then hash0[0]=data(would probably be encrypted)
 	//if that fails double the hash table size and update its start location
@@ -184,22 +147,35 @@ func (w *Writer) PlaceHash(hash, data []byte, length int) {
 	// and so on.
 	// to build it we just need to find the first empty hash table
 	//The length of each table entry
-	entryLen := 16
+	entryLen := DATALEN
 	//hash table size
 	ts := 1
 	//hash table start
-	start := 8 //assumes each entry point is 8 bytes(probably wrong but it works
+	start := ENTRYLEN
+
+	//Simply checks if the hashtable 0 spot works
 	//It seems that reserve returns true if it was able to reserve the region
-	if w.layout.reserve(8, 24, true, "hash") {
+	//Not sure what the string should be for reserving
+	if w.layout.reserve(start, start+DATALEN, true, "hash"+strconv.Itoa(start)) {
+		return start
 	}
 
-	//Now update the hash table size and start
-	//start = current hash table start + number of entries in the table* the
-	//length of each entry
-	start := start + ts*entryLen
-	//Double the number of entries in each hash table
-	ts *= 2
-
+	for {
+		//Now update the hash table size and start
+		//start = current hash table start + number of entries in the table* the
+		//length of each entry
+		start = start + ts*entryLen
+		//Double the number of entries in each hash table
+		ts *= 2
+		//Check if the hash works for this table
+		for i := 0; i < 3; i++ {
+			tHash := (hash + i) % ts
+			if w.layout.reserve(start+tHash*DATALEN, start+tHash*DATALEN+DATALEN, true, "hash"+strconv.Itoa(start)) {
+				return start + tHash*DATALEN
+			}
+		}
+	}
+	return -1
 }
 
 // Set the optional maximum length for the negotiation header,
@@ -236,7 +212,8 @@ func (w *Writer) SetMaxLen(max int) {
 //
 func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 	entrypoints []Entry,
-	rand cipher.Stream) (int, error) {
+	rand cipher.Stream,
+	suiteEntry map[abstract.Suite][]int) (int, error) {
 
 	w.layout.reset()
 	w.entries = entrypoints
@@ -254,6 +231,7 @@ func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 			}
 		}
 	*/
+	fmt.Println("Starting determine suite entrypoint")
 
 	// Compute the alternative DH point positions for each ciphersuite,
 	// and the maximum byte offset for each.
@@ -261,9 +239,14 @@ func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 	max := 0
 	simap := make(map[abstract.Suite]*suiteInfo)
 	w.simap = simap
-	for suite, nlevels := range suiteLevel {
+	for suite, _ := range suiteLevel {
 		si := suiteInfo{}
-		si.init(suite, nlevels)
+		//Assumes suite entry is sorted(easily achieved if its not.
+		si.pos = suiteEntry[suite]
+		si.plen = suite.Point().(abstract.Hiding).HideLen() // XXX
+		si.max = si.pos[len(si.pos)-1] + si.plen
+		si.ste = suite
+		//Not sure on plen
 		if si.max > max {
 			max = si.max
 		}
@@ -285,6 +268,7 @@ func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 	// "first dibs" on the lowest positions.
 	sort.Sort(&w.suites)
 
+	fmt.Println("Ending determine suite entrypoint")
 	// Create two reservation layouts:
 	// - In w.layout only each ciphersuite's primary position is reserved.
 	// - In exclude we reserve _all_ positions in each ciphersuite.
@@ -296,21 +280,27 @@ func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 	exclude.reset()
 	hdrlen := 0
 	for i := 0; i < nsuites; i++ {
+		fmt.Println("Suite #", i)
 		si := w.suites.s[i]
+		fmt.Println("after si:=w.suites.s[i], sipos", si.pos)
 		//fmt.Printf("max %d: %s\n", si.max, si.ste.String())
 
 		// Reserve all our possible positions in exclude layout,
 		// picking the first non-conflicting position as our primary.
 		lev := len(si.pos)
 		for j := lev - 1; j >= 0; j-- {
+			fmt.Println("Before j:", j)
 			lo := si.pos[j]
+			fmt.Println("after .pos[j] si.plen:", si.plen)
 			hi := lo + si.plen
 			//fmt.Printf("reserving [%d-%d]\n", lo,hi)
 			name := si.String()
+			fmt.Println("before reserve call hi,lo", hi, lo)
 			if exclude.reserve(lo, hi, false, name) && j == lev-1 {
 				lev = j // no conflict, shift down
 			}
 		}
+		fmt.Println("Middle of suite entry finding")
 		if lev == len(si.pos) {
 			return 0, errors.New("no viable position for suite" +
 				si.ste.String())
@@ -330,11 +320,40 @@ func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 	}
 
 	fmt.Printf("Total hdrlen: %d\n", hdrlen)
-	//fmt.Printf("Point layout:\n")
-	//w.layout.dump()
+	fmt.Printf("Point layout:\n")
+	w.layout.dump()
 
+	//Generate public/private keys for each suite
+	keymap := make(map[abstract.Suite]suiteKey)
+	w.keys = keymap
+	for suite := range simap {
+		fmt.Println(suite)
+		s := new(suiteKey)
+		var priv abstract.Secret
+		var pub abstract.Point
+		var dhrep []byte
+		for i := 0; i != 1; {
+			fmt.Println("gen potential key: ", i)
+			//Doesn't work because suite isn't a real suite?
+			priv = suite.Secret().Pick(rand)
+			pub = suite.Point().Mul(nil, priv)
+			//XXX TODO how do you uniform encode with points?
+			dhrep = pub.(abstract.Hiding).HideEncode(rand)
+			if dhrep != nil {
+				i = 1
+			}
+		}
+		s.dhpri = priv
+		s.dhpub = pub
+		s.dhrep = dhrep
+		w.keys[suite] = suiteKey{priv, pub, dhrep}
+	}
+	fmt.Println("After key gen")
+
+	//This will be done with a hash table sort of thing.
 	// Now layout the entrypoints.
 	for i := range entrypoints {
+		fmt.Println("layout recipients in hash #", i)
 		e := &entrypoints[i]
 		si := simap[e.Suite]
 		if si == nil {
@@ -344,14 +363,38 @@ func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 		if l == 0 {
 			panic("entrypoint with no data")
 		}
-		ofs := w.layout.alloc(l, e.String())
+		//As it needs to be the same for decryption it will be a hash scheme.
+		//Need to generate private keys possibly
+		hash := e.Suite.Point().Mul(e.PubKey, w.keys[e.Suite].dhpri) //Probably will need to be DH key
+		//Some way to get the hash value from a Point
+		//TODO This doesn't always work, some points aren't able to be hide encoded
+		fmt.Println("before hide")
+		temp := hash.(abstract.Hiding).HideEncode(rand)
+
+		fmt.Println("after hide")
+		//In case Hide fails just set it to 0, client knows to do the same.
+		//This leads to too large header size though.
+		if nil == temp {
+			temp = append(temp, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
+		}
+		intHash := int(binary.BigEndian.Uint64(temp))
+		//probably is a better way:
+		fmt.Println("after hash: ", intHash)
+
+		ofs := w.PlaceHash(intHash, DATALEN)
+		if ofs < 0 {
+			fmt.Println("Could not find hash")
+		}
 		w.entofs[i] = ofs
+		if ofs+DATALEN > hdrlen {
+			hdrlen = ofs + DATALEN
+		}
 		//fmt.Printf("Entrypoint %d (%s) at [%d-%d]\n",
 		//	i, si.String(), ofs, ofs+l)
 	}
 
-	//fmt.Printf("Point+Entry layout:\n")
-	//w.layout.dump()
+	fmt.Printf("Point+Entry layout:\n")
+	w.layout.dump()
 
 	return hdrlen, nil
 }
@@ -405,29 +448,31 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 	for i := range w.suites.s {
 		si := w.suites.s[i]
 
-		// Create a hiding-encoded DH public key.
-		pri := si.ste.Secret()
-		pub := si.ste.Point()
-		var buf []byte
-		for {
-			pri.Pick(rand)    // pick fresh secret
-			pub.Mul(nil, pri) // get DH public key
-			buf = pub.(abstract.Hiding).HideEncode(rand)
-			if buf != nil {
-				break
-			}
-		}
-		if len(buf) != si.plen {
+		/*
+			// Create a hiding-encoded DH public key.
+			pri := si.ste.Secret()
+			pub := si.ste.Point()
+			var buf []byte
+			for {
+				pri.Pick(rand)    // pick fresh secret
+				pub.Mul(nil, pri) // get DH public key
+				buf = pub.(abstract.Hiding).HideEncode(rand)
+				if buf != nil {
+					break
+				}
+			}*/
+		if len(w.keys[si.ste].dhrep) != si.plen {
 			panic("ciphersuite " + si.String() + " wrong pubkey length")
 		}
-		si.pri = pri
-		si.pub = buf
+		si.pri = w.keys[si.ste].dhpri
+		si.pub = w.keys[si.ste].dhrep
 
 		// Insert the hidden point into the message buffer.
 		lo, hi := si.region(si.lev)
 		msgbuf := w.growBuf(lo, hi)
-		copy(msgbuf, buf)
+		copy(msgbuf, si.pub)
 	}
+	fmt.Println("After setting primary entrypoint")
 
 	// Encrypt and finalize all the entrypoints.
 	for i := range w.entries {
@@ -445,6 +490,7 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 		msgbuf := w.growBuf(lo, hi)
 		stream.XORKeyStream(msgbuf, e.Data)
 	}
+	fmt.Println("After finalizing entrypoints")
 
 	// Fill all unused parts of the message with random bits.
 	msglen := len(w.buf) // XXX
@@ -452,6 +498,7 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 		msgbuf := w.growBuf(lo, hi)
 		rand.XORKeyStream(msgbuf, msgbuf)
 	}, msglen)
+	fmt.Println("AFter filling unused parts of message")
 
 	// Finally, XOR-encode all the hidden Diffie-Hellman public keys.
 	for i := range w.suites.s {
@@ -474,6 +521,7 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 			}
 		}
 	}
+	fmt.Println("after xor encoding entry points")
 
 	return w.buf
 }
