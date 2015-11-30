@@ -1,5 +1,4 @@
-package nego
-
+package purb
 
 // Simple reservation byte-mask layout
 type byteLayout struct {
@@ -10,7 +9,7 @@ func (bl *byteLayout) init(max int) {
 	bl.mask = make([]byte, max)
 }
 
-func (bl *byteLayout) reserve(lo,hi int, excl bool, obj interface{}) bool {
+func (bl *byteLayout) reserve(lo, hi int, excl bool, obj interface{}) bool {
 	max := len(bl.mask)
 	if hi > max {
 		hi = max
@@ -35,4 +34,3 @@ func (bl *byteLayout) reserve(lo,hi int, excl bool, obj interface{}) bool {
 	}
 	return gotExcl
 }
-

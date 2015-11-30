@@ -1,6 +1,7 @@
-package nego
+package purb
 
 import (
+	"encoding/binary"
 	"fmt"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/edwards"
@@ -19,7 +20,7 @@ func (f *fakeSuite) String() string {
 	return fmt.Sprintf("%s(%d)", f.Suite.String(), f.idx)
 }
 
-func TestNego(t *testing.T) {
+func TestPurb(t *testing.T) {
 
 	realSuites := []abstract.Suite{
 		edwards.NewAES128SHA256Ed25519(true),
@@ -28,7 +29,7 @@ func TestNego(t *testing.T) {
 
 	fakery := 10
 	nentries := 10
-	datalen := 16
+	datalen := DATALEN
 
 	suites := make([]abstract.Suite, 0)
 	for i := range realSuites {
@@ -62,9 +63,32 @@ func TestNego(t *testing.T) {
 	}
 
 	w := Writer{}
-	_, err := w.Layout(suiteLevel, entries, nil, suiteEntry)
+	hdrend, err := w.Layout(suiteLevel, entries, random.Stream, suiteEntry)
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
 	}
+	msg := "This is the message!"
+	//encrypt message
+	w.layout.reserve(hdrend, hdrend+len(msg), true, "message")
+	//Now test Write, need to fill all entry point
+	fmt.Println("Writing Message")
+	byteLen := make([]byte, 8)
+	binary.BigEndian.PutUint64(byteLen, uint64(hdrend))
+	for i := range w.entries {
+		w.entries[i].Data = append(byteLen, []byte("????????????????")...)
+	}
+	encMessage := w.Write(random.Stream)
+	fmt.Println(len(encMessage))
+}
+func TestPlaceHash(t *testing.T) {
+	w := Writer{}
+	w.layout.reset()
+
+	for i := 0; i < 8; i++ {
+		fmt.Println("hash:", i)
+		w.PlaceHash(i, DATALEN)
+	}
+	fmt.Println("hash test layout")
+	w.layout.dump()
 }

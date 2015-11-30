@@ -1,6 +1,6 @@
 // Package nego implements cryptographic negotiation
 // and secret entrypoint finding.
-package nego
+package purb
 
 import (
 	"crypto/cipher"
@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/dedis/crypto/abstract"
 	"sort"
+	"strconv"
 )
 
 //Length each entrypoint is(for simplicity assuming all suites HideLen is the same.
@@ -155,7 +156,7 @@ func (w *Writer) PlaceHash(hash, length int) int {
 	//Simply checks if the hashtable 0 spot works
 	//It seems that reserve returns true if it was able to reserve the region
 	//Not sure what the string should be for reserving
-	if w.layout.reserve(start, start+DATALEN, true, "hash") {
+	if w.layout.reserve(start, start+DATALEN, true, "hash"+strconv.Itoa(start)) {
 		return start
 	}
 
@@ -169,8 +170,8 @@ func (w *Writer) PlaceHash(hash, length int) int {
 		//Check if the hash works for this table
 		for i := 0; i < 3; i++ {
 			tHash := (hash + i) % ts
-			if w.layout.reserve(start+tHash, start+tHash+DATALEN, true, "hash") {
-				return start + tHash
+			if w.layout.reserve(start+tHash*DATALEN, start+tHash*DATALEN+DATALEN, true, "hash"+strconv.Itoa(start)) {
+				return start + tHash*DATALEN
 			}
 		}
 	}
@@ -352,6 +353,7 @@ func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 	//This will be done with a hash table sort of thing.
 	// Now layout the entrypoints.
 	for i := range entrypoints {
+		fmt.Println("layout recipients in hash #", i)
 		e := &entrypoints[i]
 		si := simap[e.Suite]
 		if si == nil {
@@ -366,10 +368,23 @@ func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 		hash := e.Suite.Point().Mul(e.PubKey, w.keys[e.Suite].dhpri) //Probably will need to be DH key
 		//Some way to get the hash value from a Point
 		//TODO This doesn't always work, some points aren't able to be hide encoded
-		intHash := int(binary.BigEndian.Uint64(hash.(abstract.Hiding).HideEncode(rand)))
+		fmt.Println("before hide")
+		temp := hash.(abstract.Hiding).HideEncode(rand)
+
+		fmt.Println("after hide")
+		//In case Hide fails just set it to 0, client knows to do the same.
+		//This leads to too large header size though.
+		if nil == temp {
+			temp = append(temp, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
+		}
+		intHash := int(binary.BigEndian.Uint64(temp))
 		//probably is a better way:
+		fmt.Println("after hash: ", intHash)
 
 		ofs := w.PlaceHash(intHash, DATALEN)
+		if ofs < 0 {
+			fmt.Println("Could not find hash")
+		}
 		w.entofs[i] = ofs
 		if ofs+DATALEN > hdrlen {
 			hdrlen = ofs + DATALEN
@@ -378,8 +393,8 @@ func (w *Writer) Layout(suiteLevel map[abstract.Suite]int,
 		//	i, si.String(), ofs, ofs+l)
 	}
 
-	//fmt.Printf("Point+Entry layout:\n")
-	//w.layout.dump()
+	fmt.Printf("Point+Entry layout:\n")
+	w.layout.dump()
 
 	return hdrlen, nil
 }
@@ -433,29 +448,31 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 	for i := range w.suites.s {
 		si := w.suites.s[i]
 
-		// Create a hiding-encoded DH public key.
-		pri := si.ste.Secret()
-		pub := si.ste.Point()
-		var buf []byte
-		for {
-			pri.Pick(rand)    // pick fresh secret
-			pub.Mul(nil, pri) // get DH public key
-			buf = pub.(abstract.Hiding).HideEncode(rand)
-			if buf != nil {
-				break
-			}
-		}
-		if len(buf) != si.plen {
+		/*
+			// Create a hiding-encoded DH public key.
+			pri := si.ste.Secret()
+			pub := si.ste.Point()
+			var buf []byte
+			for {
+				pri.Pick(rand)    // pick fresh secret
+				pub.Mul(nil, pri) // get DH public key
+				buf = pub.(abstract.Hiding).HideEncode(rand)
+				if buf != nil {
+					break
+				}
+			}*/
+		if len(w.keys[si.ste].dhrep) != si.plen {
 			panic("ciphersuite " + si.String() + " wrong pubkey length")
 		}
-		si.pri = pri
-		si.pub = buf
+		si.pri = w.keys[si.ste].dhpri
+		si.pub = w.keys[si.ste].dhrep
 
 		// Insert the hidden point into the message buffer.
 		lo, hi := si.region(si.lev)
 		msgbuf := w.growBuf(lo, hi)
-		copy(msgbuf, buf)
+		copy(msgbuf, si.pub)
 	}
+	fmt.Println("After setting primary entrypoint")
 
 	// Encrypt and finalize all the entrypoints.
 	for i := range w.entries {
@@ -473,6 +490,7 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 		msgbuf := w.growBuf(lo, hi)
 		stream.XORKeyStream(msgbuf, e.Data)
 	}
+	fmt.Println("After finalizing entrypoints")
 
 	// Fill all unused parts of the message with random bits.
 	msglen := len(w.buf) // XXX
@@ -480,6 +498,7 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 		msgbuf := w.growBuf(lo, hi)
 		rand.XORKeyStream(msgbuf, msgbuf)
 	}, msglen)
+	fmt.Println("AFter filling unused parts of message")
 
 	// Finally, XOR-encode all the hidden Diffie-Hellman public keys.
 	for i := range w.suites.s {
@@ -502,6 +521,7 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 			}
 		}
 	}
+	fmt.Println("after xor encoding entry points")
 
 	return w.buf
 }
