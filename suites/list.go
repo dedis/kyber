@@ -3,11 +3,11 @@
 package suites
 
 import (
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/nist"
-	"github.com/dedis/crypto/edwards/ed25519"
-	"github.com/dedis/crypto/edwards"
 	"fmt"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/edwards"
+	"github.com/dedis/crypto/edwards/ed25519"
+	"github.com/dedis/crypto/nist"
 )
 
 // Suites represents a map from ciphersuite name to ciphersuite.
@@ -25,7 +25,7 @@ func All() Suites {
 }
 
 // StrintToSuite returns the suite for a string, or an error.
-func StringToSuite(s string) (abstract.Suite, error){
+func StringToSuite(s string) (abstract.Suite, error) {
 	suite, ok := All()[s]
 	if !ok {
 		return nil, fmt.Errorf("Didn't find suite %s", s)
@@ -38,4 +38,3 @@ func (s Suites) add(suite abstract.Suite) {
 }
 
 // XXX add Stable() and Experimental() sub-lists?
-
