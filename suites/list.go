@@ -17,7 +17,7 @@ type Suites map[string]abstract.Suite
 func All() Suites {
 	s := make(Suites)
 	// The P256-nist implementation doesn't work for the moment
-	// s.add(nist.NewAES128SHA256P256())
+	s.add(nist.NewAES128SHA256P256())
 	s.add(nist.NewAES128SHA256QR512())
 	s.add(edwards.NewAES128SHA256Ed25519(false))
 	s.add(ed25519.NewAES128SHA256Ed25519(false))

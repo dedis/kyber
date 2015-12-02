@@ -179,9 +179,16 @@ func (p *curvePoint) MarshalBinary() ([]byte, error) {
 }
 
 func (p *curvePoint) UnmarshalBinary(buf []byte) error {
-	p.x, p.y = elliptic.Unmarshal(p.c, buf)
-	if p.x == nil || !p.Valid() {
-		return errors.New("invalid elliptic curve point")
+	// Check whether all bytes after first one are 0, so we
+	// just return the initial point.
+	for _, b := range buf[1:] {
+		if b != 0 {
+			p.x, p.y = elliptic.Unmarshal(p.c, buf)
+			if p.x == nil || !p.Valid() {
+				return errors.New("invalid elliptic curve point")
+			}
+			return nil
+		}
 	}
 	return nil
 }
