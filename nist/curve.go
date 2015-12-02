@@ -4,7 +4,7 @@ import (
 	"errors"
 	"io"
 	"math/big"
-	//"encoding/hex"
+//"encoding/hex"
 	"crypto/cipher"
 	"crypto/elliptic"
 
@@ -54,7 +54,7 @@ func (p *curvePoint) Valid() bool {
 	// The IsOnCurve function in Go's elliptic curve package
 	// doesn't consider the point-at-infinity to be "on the curve"
 	return p.c.IsOnCurve(p.x, p.y) ||
-		(p.x.Sign() == 0 && p.y.Sign() == 0)
+	(p.x.Sign() == 0 && p.y.Sign() == 0)
 }
 
 // Try to generate a point on this curve from a chosen x-coordinate,
@@ -110,8 +110,8 @@ func (p *curvePoint) Pick(data []byte, rand cipher.Stream) (abstract.Point, []by
 	for {
 		b := random.Bits(uint(p.c.p.P.BitLen()), false, rand)
 		if data != nil {
-			b[l-1] = byte(dl)         // Encode length in low 8 bits
-			copy(b[l-dl-1:l-1], data) // Copy in data to embed
+			b[l - 1] = byte(dl)         // Encode length in low 8 bits
+			copy(b[l - dl - 1:l - 1], data) // Copy in data to embed
 		}
 		if p.genPoint(new(big.Int).SetBytes(b), rand) {
 			return p, data[dl:]
@@ -124,13 +124,13 @@ func (p *curvePoint) Data() ([]byte, error) {
 	b := p.x.Bytes()
 	l := p.c.coordLen()
 	if len(b) < l { // pad leading zero bytes if necessary
-		b = append(make([]byte, l-len(b)), b...)
+		b = append(make([]byte, l - len(b)), b...)
 	}
-	dl := int(b[l-1])
+	dl := int(b[l - 1])
 	if dl > p.PickLen() {
 		return nil, errors.New("invalid embedded data length")
 	}
-	return b[l-dl-1 : l-1], nil
+	return b[l - dl - 1 : l - 1], nil
 }
 
 func (p *curvePoint) Add(a, b abstract.Point) abstract.Point {
@@ -171,7 +171,7 @@ func (p *curvePoint) Mul(b abstract.Point, s abstract.Secret) abstract.Point {
 
 func (p *curvePoint) MarshalSize() int {
 	coordlen := (p.c.Params().BitSize + 7) >> 3
-	return 1 + 2*coordlen // uncompressed ANSI X9.62 representation (XXX)
+	return 1 + 2 * coordlen // uncompressed ANSI X9.62 representation (XXX)
 }
 
 func (p *curvePoint) MarshalBinary() ([]byte, error) {
@@ -190,6 +190,9 @@ func (p *curvePoint) UnmarshalBinary(buf []byte) error {
 			return nil
 		}
 	}
+	// All bytes are 0, so we initialize x and y
+	p.x = big.NewInt(0)
+	p.y = big.NewInt(0)
 	return nil
 }
 
@@ -236,7 +239,7 @@ func (c *curve) coordLen() int {
 // Currently uses uncompressed ANSI X9.62 format with both X and Y coordinates;
 // this could change.
 func (c *curve) PointLen() int {
-	return 1 + 2*c.coordLen() // ANSI X9.62: 1 header byte plus 2 coords
+	return 1 + 2 * c.coordLen() // ANSI X9.62: 1 header byte plus 2 coords
 }
 
 // Create a Point associated with this curve.
