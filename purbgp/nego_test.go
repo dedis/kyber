@@ -32,8 +32,8 @@ func TestPurb(t *testing.T) {
 	}
 	fmt.Println(realSuites[0])
 
-	fakery := 10
-	nentries := 10
+	fakery := 7
+	nentries := 4
 	datalen := DATALEN
 
 	suites := make([]abstract.Suite, 0)
@@ -68,7 +68,7 @@ func TestPurb(t *testing.T) {
 	}
 
 	w := Writer{}
-	hdrend, err := w.Layout(suiteLevel, entries, random.Stream, suiteEntry)
+	hdrend, err := w.Layout(entries, random.Stream, suiteEntry)
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
@@ -108,6 +108,9 @@ func TestPurb(t *testing.T) {
 		panic(err)
 	}
 	for i := range entries {
+		if i%2 == 0 {
+			continue
+		}
 		ent := entries[i]
 		_, msgL := attemptDecode(ent.Suite, ent.PriKey, suiteEntry, encFile, random.Stream)
 		if msgL == nil {
@@ -116,6 +119,7 @@ func TestPurb(t *testing.T) {
 		}
 		msgL = padding.UnPadGeneric(msgL)
 		fmt.Println(len(msgL), string(msgL))
+
 	}
 }
 func TestPlaceHash(t *testing.T) {
@@ -128,4 +132,28 @@ func TestPlaceHash(t *testing.T) {
 	}
 	fmt.Println("hash test layout")
 	w.layout.dump()
+}
+func TestWritePurb(t *testing.T) {
+	//simple test with one suite
+	suite := edwards.NewAES128SHA256Ed25519(true)
+	nentries := 1
+	entries := make([]Entry, 0)
+	suiteEntry := make(map[abstract.Suite][]int)
+	nlevels := 3
+	ents := make([]int, nlevels)
+	for j := 0; j < nlevels; j++ {
+		ents[j] = j * ENTRYLEN
+	}
+	suiteEntry[suite] = ents
+	// Create some entrypoints with this suite
+	s := suite
+	for j := 0; j < nentries; j++ {
+		pri := s.Secret().Pick(random.Stream)
+		pub := s.Point().Mul(nil, pri)
+		data := make([]byte, DATALEN)
+		entries = append(entries, Entry{s, pri, pub, data})
+		fmt.Println(pub)
+	}
+	msg := "This is the message! It will be stored as a file!!"
+	writePurb(entries, suiteEntry, []byte(msg), "test.purb")
 }
