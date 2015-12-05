@@ -182,7 +182,7 @@ func (p *point) Neg(ca abstract.Point) abstract.Point {
 	return p
 }
 
-func (p *point) Mul(ca abstract.Point, cs abstract.Secret) abstract.Point {
+func (p *point) Mul(ca abstract.Point, cs abstract.Scalar) abstract.Point {
 
 	// Convert the scalar to fixed-length little-endian form.
 	sb := cs.(*group.Int).V.Bytes()
@@ -258,7 +258,7 @@ func (c *curve) String() string {
 	return "Curve25519"
 }
 
-func (c *curve) SecretLen() int {
+func (c *curve) ScalarLen() int {
 	return 32
 }
 

@@ -88,7 +88,7 @@ func testGroup(suite abstract.Suite, rand cipher.Stream) []abstract.Point {
 	if suite.Group().PrimeOrder() {
 		ptmp.Mul(dh1, suite.Scalar().Inv(s2))
 		if !ptmp.Equal(p1) {
-			panic("Secret inverse didn't work")
+			panic("Scalar inverse didn't work")
 		}
 	}
 
@@ -117,7 +117,7 @@ func testGroup(suite abstract.Suite, rand cipher.Stream) []abstract.Point {
 	st2 := suite.Scalar().Neg(s2)
 	st2.Add(s1, st2)
 	if !stmp.Equal(st2) {
-		panic("Secret.Neg doesn't work")
+		panic("Scalar.Neg doesn't work")
 	}
 	pt2.Neg(p2).Add(pt2, p1)
 	if !pt2.Equal(ptmp) {
@@ -133,11 +133,11 @@ func testGroup(suite abstract.Suite, rand cipher.Stream) []abstract.Point {
 		st2.Inv(s2)
 		st2.Mul(st2, stmp)
 		if !st2.Equal(s1) {
-			panic("Secret division doesn't work")
+			panic("Scalar division doesn't work")
 		}
 		st2.Div(stmp, s2)
 		if !st2.Equal(s1) {
-			panic("Secret division doesn't work")
+			panic("Scalar division doesn't work")
 		}
 	}
 

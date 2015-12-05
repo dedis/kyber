@@ -56,7 +56,7 @@ func (p *PriPoly) Secret() abstract.Scalar {
 }
 
 // Test polynomials for equality component-wise.
-// Assumes they are of the same degree and from the same Secret field.
+// Assumes they are of the same degree and from the same Scalar field.
 func (p1 *PriPoly) Equal(p2 *PriPoly) bool {
 	k := len(p1.s)
 	if p1.suite != p2.suite || k != len(p2.s) {
@@ -84,7 +84,7 @@ func (p *PriPoly) Eval(i int) abstract.Scalar {
 }
 
 // Set to the component-wise addition of two polynomials,
-// which are assumed to be of the same degree and from the same Secret field.
+// which are assumed to be of the same degree and from the same Scalar field.
 func (p *PriPoly) Add(p1, p2 *PriPoly) *PriPoly {
 	suite := p1.suite
 	k := len(p1.s)
