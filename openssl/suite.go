@@ -1,3 +1,5 @@
+// +build experimental
+
 // Package openssl implements a ciphersuite
 // based on OpenSSL's crypto library.
 package openssl

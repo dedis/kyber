@@ -4,12 +4,12 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/openssl"
+	"github.com/dedis/crypto/nist"
 	"testing"
 )
 
 func TestRep(t *testing.T) {
-	suite := openssl.NewAES128SHA256P256()
+	suite := nist.NewAES128SHA256P256()
 	rand := suite.Cipher(abstract.RandomKey)
 
 	x := suite.Scalar().Pick(rand)
@@ -84,7 +84,7 @@ func ExampleRep_2() {
 	fmt.Println(pred.String())
 
 	// Crypto setup
-	suite := openssl.NewAES128SHA256P256()
+	suite := nist.NewAES128SHA256P256()
 	rand := suite.Cipher([]byte("example"))
 	B := suite.Point().Base() // standard base point
 
@@ -110,11 +110,13 @@ func ExampleRep_2() {
 	// Output:
 	// X=x*B
 	// Proof:
-	// 00000000  02 23 62 b1 f9 cb f4 a2  6d 7f 3e 69 cb b6 77 ab  |.#b.....m.>i..w.|
+	// 00000000  04 23 62 b1 f9 cb f4 a2  6d 7f 3e 69 cb b6 77 ab  |.#b.....m.>i..w.|
 	// 00000010  90 fc 7c db a0 c6 e8 12  f2 0a d4 40 a4 b6 c4 de  |..|........@....|
-	// 00000020  9e 53 67 12 c7 31 0a 92  ed 76 c4 4d 2c 4b fc 2c  |.Sg..1...v.M,K.,|
-	// 00000030  56 db 2d 8a 84 ec 5d e5  31 17 80 76 a8 ea 46 04  |V.-...].1..v..F.|
-	// 00000040  c8                                                |.|
+	// 00000020  9e e8 61 88 5e 50 fd 03  a9 ff 9c a3 c4 29 f7 18  |..a.^P.......)..|
+	// 00000030  49 ad 31 0e f9 17 15 1e  3b 8d 0e 2f b2 c4 28 32  |I.1.....;../..(2|
+	// 00000040  4a 20 ba b2 9d 3a 40 ae  0f 28 16 a2 ad 44 76 d2  |J ...:@..(...Dv.|
+	// 00000050  83 f2 09 4d b8 a5 d0 f6  5e 5d ff 6e b7 9a 0f 1b  |...M....^].n....|
+	// 00000060  9a                                                |.|
 	// Proof verified.
 }
 
@@ -196,7 +198,7 @@ func ExampleOr_2() {
 	fmt.Println("Predicate: " + pred.String())
 
 	// Crypto setup
-	suite := openssl.NewAES128SHA256P256()
+	suite := nist.NewAES128SHA256P256()
 	rand := suite.Cipher([]byte("example"))
 	B := suite.Point().Base() // standard base point
 
@@ -230,18 +232,22 @@ func ExampleOr_2() {
 	// Output:
 	// Predicate: X=x*B || Y=y*B
 	// Proof:
-	// 00000000  02 af 84 ed e5 86 04 cf  81 e4 18 17 84 0c 39 ab  |..............9.|
+	// 00000000  04 af 84 ed e5 86 04 cf  81 e4 18 17 84 0c 39 ab  |..............9.|
 	// 00000010  fe 5c bc cc 00 85 e0 a2  ee aa d5 22 18 dd c4 a1  |.\........."....|
-	// 00000020  5b 03 df 9c 59 21 0e 1c  44 99 23 a1 54 92 21 c9  |[...Y!..D.#.T.!.|
-	// 00000030  d6 b3 84 85 ad 87 dd a3  64 c0 b9 eb 4d 92 5b cb  |........d...M.[.|
-	// 00000040  c6 4f e7 67 95 36 6a e4  e7 ca b5 14 b7 99 16 60  |.O.g.6j........`|
-	// 00000050  71 91 ad b0 f1 86 43 df  6a 45 1f cb a2 93 7e b3  |q.....C.jE....~.|
-	// 00000060  b5 7b 32 17 7d 53 c5 e4  48 79 49 b2 3e 1e e2 62  |.{2.}S..HyI.>..b|
-	// 00000070  39 08 13 d5 2e f8 c5 e9  c1 28 09 91 7a 95 c9 12  |9........(..z...|
-	// 00000080  17 85 f5 eb 2d 8e 6b 37  3a b5 ff 45 25 e7 0c aa  |....-.k7:..E%...|
-	// 00000090  94 43 cf 67 52 2e 1d 2c  1b a4 c0 ca 96 d6 03 08  |.C.gR..,........|
-	// 000000a0  c0 0d 93 8b c6 f6 34 12  83 a0 32 2e 82 2c 4b fb  |......4...2..,K.|
-	// 000000b0  b3 0c a1 4b a5 e3 27 43  b6 2f ed fa ca 4f 93 83  |...K..'C./...O..|
-	// 000000c0  fd 56                                             |.V|
+	// 00000020  5b 85 52 d4 dd 72 9b d2  2b e2 02 d2 5f 6f cb 10  |[.R..r..+..._o..|
+	// 00000030  b5 1b 18 c3 02 1e 2f dd  50 54 9d 4c 19 aa 30 80  |....../.PT.L..0.|
+	// 00000040  4a 04 f8 26 2f 55 ed b3  00 ad 38 ba f9 0f d6 fb  |J..&/U....8.....|
+	// 00000050  0a d1 0e 56 be dd 71 7d  1d a9 36 2f 1f 20 b8 98  |...V..q}..6/. ..|
+	// 00000060  a6 3f d0 fa dc 52 ca 57  8d 7e 37 aa ac e5 8c 4c  |.?...R.W.~7....L|
+	// 00000070  2a eb d9 5c 0c 68 c8 e8  ac 99 7f b4 96 56 cf 59  |*..\.h.......V.Y|
+	// 00000080  79 6f c5 c2 0a 9f 1f 3b  34 61 0f 9b b7 50 00 b7  |yo.....;4a...P..|
+	// 00000090  29 02 8e d5 41 9a 92 95  6b 4e 18 5b 89 a5 93 1e  |)...A...kN.[....|
+	// 000000a0  42 cd 32 17 7d 53 c5 e4  48 79 49 b2 3e 1e e2 62  |B.2.}S..HyI.>..b|
+	// 000000b0  39 08 13 d5 2e f8 c5 e9  c1 28 09 91 7a 95 c9 12  |9........(..z...|
+	// 000000c0  17 85 49 9e b0 3c fe fc  5d 5b 73 b1 d2 bf f9 59  |..I..<..][s....Y|
+	// 000000d0  5b 5f 10 12 cb 9c d0 c6  bc 2c 75 fb 52 9c 66 c5  |[_.......,u.R.f.|
+	// 000000e0  17 cb 93 8b c6 f6 34 12  83 a0 32 2e 82 2c 4b fb  |......4...2..,K.|
+	// 000000f0  b3 0c a1 4b a5 e3 27 43  b6 2f ed fa ca 4f 93 83  |...K..'C./...O..|
+	// 00000100  fd 56                                             |.V|
 	// Proof verified.
 }
