@@ -227,7 +227,7 @@ func (P *extPoint) double() {
 // switching between projective and extended coordinates during
 // scalar multiplication.
 //
-func (P *extPoint) Mul(G abstract.Point, s abstract.Secret) abstract.Point {
+func (P *extPoint) Mul(G abstract.Point, s abstract.Scalar) abstract.Point {
 	v := s.(*nist.Int).V
 	if G == nil {
 		return P.Base().Mul(P, s)

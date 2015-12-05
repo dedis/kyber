@@ -215,7 +215,7 @@ func TestBlameProofBinaryMarshalling(t *testing.T) {
 	badKey := insurerKeys[numInsurers-1]
 	diffieBase := promise.suite.Point().Mul(promiserKey.Public, badKey.Secret)
 	diffieSecret := promise.diffieHellmanSecret(diffieBase)
-	badShare := promise.suite.Secret().Add(badKey.Secret, diffieSecret)
+	badShare := promise.suite.Scalar().Add(badKey.Secret, diffieSecret)
 	promise.secrets[0] = badShare
 
 	// Tests BinaryMarshal, BinaryUnmarshal, and MarshalSize
@@ -431,7 +431,7 @@ func TestPromiseConstructPromise(t *testing.T) {
 		diffieBase := promise.suite.Point().Mul(insurerList[i],
 			promiserKey.Secret)
 		diffieSecret := promise.diffieHellmanSecret(diffieBase)
-		share := promise.suite.Secret().Sub(promise.secrets[i], diffieSecret)
+		share := promise.suite.Scalar().Sub(promise.secrets[i], diffieSecret)
 		if !promise.pubPoly.Check(i, share) {
 			t.Error("Polynomial Check failed for share ", i)
 		}
@@ -531,7 +531,7 @@ func TestPromiseverifyPromise(t *testing.T) {
 
 	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt,
 		r, insurerList)
-	promise.secrets = []abstract.Secret{}
+	promise.secrets = []abstract.Scalar{}
 	if promise.verifyPromise() == nil {
 		t.Error("Promise is invalid: secrets list is the wrong length")
 	}
@@ -592,12 +592,12 @@ func TestPromiseDiffieHellmanEncryptDecrypt(t *testing.T) {
 	diffieBaseBasic := basicPromise.suite.Point().Mul(key2.Public,
 		promiserKey.Secret)
 	diffieSecret := basicPromise.diffieHellmanSecret(diffieBaseBasic)
-	encryptedSecret := basicPromise.suite.Secret().Add(secretKey.Secret, diffieSecret)
+	encryptedSecret := basicPromise.suite.Scalar().Add(secretKey.Secret, diffieSecret)
 
 	diffieBaseKey2 := basicPromise.suite.Point().Mul(promiserKey.Public,
 		key2.Secret)
 	diffieSecret = basicPromise.diffieHellmanSecret(diffieBaseKey2)
-	secret := basicPromise.suite.Secret().Sub(encryptedSecret, diffieSecret)
+	secret := basicPromise.suite.Scalar().Sub(encryptedSecret, diffieSecret)
 
 	if !secret.Equal(secretKey.Secret) {
 		t.Error("Diffie-Hellman encryption/decryption failed.")
@@ -702,7 +702,7 @@ func TestPromiseBlameAndVerify(t *testing.T) {
 	diffieBase := promise.suite.Point().Mul(promiserKey.Public,
 		badKey.Secret)
 	diffieSecret := promise.diffieHellmanSecret(diffieBase)
-	badShare := promise.suite.Secret().Add(badKey.Secret, diffieSecret)
+	badShare := promise.suite.Scalar().Add(badKey.Secret, diffieSecret)
 	promise.secrets[0] = badShare
 
 	validProof, err := promise.blame(0, insurerKeys[0])
@@ -759,7 +759,7 @@ func TestPromiseProduceResponse(t *testing.T) {
 	diffieBase := promise.suite.Point().Mul(promiserKey.Public,
 		badKey.Secret)
 	diffieSecret := promise.diffieHellmanSecret(diffieBase)
-	badShare := promise.suite.Secret().Add(badKey.Secret, diffieSecret)
+	badShare := promise.suite.Scalar().Add(badKey.Secret, diffieSecret)
 	promise.secrets[0] = badShare
 
 	response, err = promise.ProduceResponse(0, insurerKeys[0])
@@ -1035,7 +1035,7 @@ func TestStatePromiseCertified(t *testing.T) {
 	// uncertified
 	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt, r, insurerList)
 	promiseState = new(State).Init(*promise)
-	promiseState.Promise.secrets[0] = promise.suite.Secret()
+	promiseState.Promise.secrets[0] = promise.suite.Scalar()
 	bproof, _ = promiseState.Promise.blame(0, insurerKeys[0])
 	response = new(Response).constructBlameProofResponse(bproof)
 	promiseState.AddResponse(0, response)
@@ -1058,7 +1058,7 @@ func TestStateSufficientSignatures(t *testing.T) {
 
 	// Add a valid blameproof to the start. Ensure it doesn't affect
 	// the results.
-	promiseState.Promise.secrets[0] = promise.suite.Secret()
+	promiseState.Promise.secrets[0] = promise.suite.Scalar()
 	bproof, _ := promiseState.Promise.blame(0, insurerKeys[0])
 	response := new(Response).constructBlameProofResponse(bproof)
 	promiseState.AddResponse(0, response)
@@ -1094,7 +1094,7 @@ func TestStateRevealShare(t *testing.T) {
 	test()
 
 	// Add a valid blameproof to the start.
-	promiseState.Promise.secrets[0] = promise.suite.Secret()
+	promiseState.Promise.secrets[0] = promise.suite.Scalar()
 	bproof, _ := promiseState.Promise.blame(0, insurerKeys[0])
 	response := new(Response).constructBlameProofResponse(bproof)
 	promiseState.AddResponse(0, response)

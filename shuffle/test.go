@@ -12,15 +12,15 @@ func TestShuffle(suite abstract.Suite, k int, N int) {
 	rand := suite.Cipher(abstract.RandomKey)
 
 	// Create a "server" private/public keypair
-	h := suite.Secret().Pick(rand)
+	h := suite.Scalar().Pick(rand)
 	H := suite.Point().Mul(nil, h)
 
 	// Create a set of ephemeral "client" keypairs to shuffle
-	c := make([]abstract.Secret, k)
+	c := make([]abstract.Scalar, k)
 	C := make([]abstract.Point, k)
 	//	fmt.Println("\nclient keys:")
 	for i := 0; i < k; i++ {
-		c[i] = suite.Secret().Pick(rand)
+		c[i] = suite.Scalar().Pick(rand)
 		C[i] = suite.Point().Mul(nil, c[i])
 		//		fmt.Println(" "+C[i].String())
 	}
@@ -28,7 +28,7 @@ func TestShuffle(suite abstract.Suite, k int, N int) {
 	// ElGamal-encrypt all these keypairs with the "server" key
 	X := make([]abstract.Point, k)
 	Y := make([]abstract.Point, k)
-	r := suite.Secret() // temporary
+	r := suite.Scalar() // temporary
 	for i := 0; i < k; i++ {
 		r.Pick(rand)
 		X[i] = suite.Point().Mul(nil, r)

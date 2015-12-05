@@ -95,10 +95,10 @@ type Encoding interface {
 }
 
 // Not used other than for reflect.TypeOf()
-var aSecret Secret
+var aScalar Scalar
 var aPoint Point
 
-var tSecret = reflect.TypeOf(&aSecret).Elem()
+var tScalar = reflect.TypeOf(&aScalar).Elem()
 var tPoint = reflect.TypeOf(&aPoint).Elem()
 
 // Constructor represents a generic constructor
@@ -239,7 +239,7 @@ type encoder struct {
 
 // Write a data structure containing cryptographic objects,
 // using their built-in binary serialization, to an io.Writer.
-// Supports writing of Points, Secrets,
+// Supports writing of Points, Scalars,
 // basic fixed-length data types supported by encoding/binary/Write(),
 // and structs, arrays, and slices containing all of these types.
 //
@@ -312,8 +312,8 @@ func (en *encoder) value(obj interface{}, depth int) error {
 // Default implementation of reflective constructor for ciphersuites
 func SuiteNew(s Suite, t reflect.Type) interface{} {
 	switch t {
-	case tSecret:
-		return s.Secret()
+	case tScalar:
+		return s.Scalar()
 	case tPoint:
 		return s.Point()
 	}

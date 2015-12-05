@@ -16,14 +16,14 @@ import (
 type KeyPair struct {
 	Suite  abstract.Suite  // Ciphersuite this keypair is for
 	Public abstract.Point  // Public key
-	Secret abstract.Secret // Secret key
+	Secret abstract.Scalar // Secret key
 }
 
 // Generate a fresh public/private keypair with the given ciphersuite,
 // using a given source of cryptographic randomness.
 func (p *KeyPair) Gen(suite abstract.Suite, random cipher.Stream) {
 	p.Suite = suite
-	p.Secret = suite.Secret().Pick(random)
+	p.Secret = suite.Scalar().Pick(random)
 	p.Public = suite.Point().Mul(nil, p.Secret)
 }
 

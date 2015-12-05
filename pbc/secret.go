@@ -20,14 +20,14 @@ type secret struct {
 	e C.element_t
 }
 
-func clearSecret(s *secret) {
-	println("clearSecret", s)
+func clearScalar(s *secret) {
+	println("clearScalar", s)
 	C.element_clear(&s.e[0])
 }
 
-func newSecret() *secret {
+func newScalar() *secret {
 	s := new(secret)
-	runtime.SetFinalizer(s, clearSecret)
+	runtime.SetFinalizer(s, clearScalar)
 	return s
 }
 
@@ -41,26 +41,26 @@ func (s *secret) String() string {
 	return string(b[:l])
 }
 
-func (s *secret) Equal(s2 abstract.Secret) bool {
+func (s *secret) Equal(s2 abstract.Scalar) bool {
 	return C.element_cmp(&s.e[0], &s2.(*secret).e[0]) == 0
 }
 
-func (s *secret) Set(x abstract.Secret) abstract.Secret {
+func (s *secret) Set(x abstract.Scalar) abstract.Scalar {
 	C.element_set(&s.e[0], &x.(*secret).e[0])
 	return s
 }
 
-func (s *secret) Zero() abstract.Secret {
+func (s *secret) Zero() abstract.Scalar {
 	C.element_set0(&s.e[0])
 	return s
 }
 
-func (s *secret) One() abstract.Secret {
+func (s *secret) One() abstract.Scalar {
 	C.element_set0(&s.e[0])
 	return s
 }
 
-func (s *secret) SetInt64(v int64) abstract.Secret {
+func (s *secret) SetInt64(v int64) abstract.Scalar {
 	vl := C.long(v)
 	if int64(vl) != v {
 		panic("Oops, int64 initializer doesn't fit into C.ulong")
@@ -73,36 +73,36 @@ func (s *secret) SetInt64(v int64) abstract.Secret {
 	return s
 }
 
-func (s *secret) Pick(rand cipher.Stream) abstract.Secret {
+func (s *secret) Pick(rand cipher.Stream) abstract.Scalar {
 	panic("XXX")
 }
 
-func (s *secret) Add(a, b abstract.Secret) abstract.Secret {
+func (s *secret) Add(a, b abstract.Scalar) abstract.Scalar {
 	C.element_add(&s.e[0], &a.(*secret).e[0], &b.(*secret).e[0])
 	return s
 }
 
-func (s *secret) Sub(a, b abstract.Secret) abstract.Secret {
+func (s *secret) Sub(a, b abstract.Scalar) abstract.Scalar {
 	C.element_sub(&s.e[0], &a.(*secret).e[0], &b.(*secret).e[0])
 	return s
 }
 
-func (s *secret) Neg(a abstract.Secret) abstract.Secret {
+func (s *secret) Neg(a abstract.Scalar) abstract.Scalar {
 	C.element_neg(&s.e[0], &a.(*secret).e[0])
 	return s
 }
 
-func (s *secret) Mul(a, b abstract.Secret) abstract.Secret {
+func (s *secret) Mul(a, b abstract.Scalar) abstract.Scalar {
 	C.element_mul(&s.e[0], &a.(*secret).e[0], &b.(*secret).e[0])
 	return s
 }
 
-func (s *secret) Div(a, b abstract.Secret) abstract.Secret {
+func (s *secret) Div(a, b abstract.Scalar) abstract.Scalar {
 	C.element_div(&s.e[0], &a.(*secret).e[0], &b.(*secret).e[0])
 	return s
 }
 
-func (s *secret) Inv(a abstract.Secret) abstract.Secret {
+func (s *secret) Inv(a abstract.Scalar) abstract.Scalar {
 	C.element_invert(&s.e[0], &a.(*secret).e[0])
 	return s
 }
@@ -135,9 +135,9 @@ func (s *secret) UnmarshalBinary(buf []byte) error {
 }
 
 func (s *secret) MarshalTo(w io.Writer) (int, error) {
-	return group.SecretMarshalTo(s, w)
+	return group.ScalarMarshalTo(s, w)
 }
 
 func (s *secret) UnmarshalFrom(r io.Reader) (int, error) {
-	return group.SecretUnmarshalFrom(s, r)
+	return group.ScalarUnmarshalFrom(s, r)
 }
