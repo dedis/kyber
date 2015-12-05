@@ -8,7 +8,7 @@ import (
 )
 
 // XXX belongs in crypto package?
-func keyPair(suite *abstract.Suite, rand cipher.Stream,
+func keyPair(suite abstract.Suite, rand cipher.Stream,
 	hide bool) (abstract.Point, abstract.Scalar, []byte) {
 
 	x := suite.Scalar().Random(rand)
@@ -28,7 +28,7 @@ func keyPair(suite *abstract.Suite, rand cipher.Stream,
 	}
 }
 
-func header(suite *abstract.Suite, X abstract.Point, x abstract.Scalar,
+func header(suite abstract.Suite, X abstract.Point, x abstract.Scalar,
 	Xb, xb []byte, anonymitySet Set) []byte {
 
 	//fmt.Printf("Xb %s\nxb %s\n",
@@ -51,7 +51,7 @@ func header(suite *abstract.Suite, X abstract.Point, x abstract.Scalar,
 
 // Create and encrypt a fresh key decryptable only by the given receivers.
 // Returns the secret key and the ciphertext.
-func encryptKey(suite *abstract.Suite, rand cipher.Stream,
+func encryptKey(suite abstract.Suite, rand cipher.Stream,
 	anonymitySet Set, hide bool) (k, c []byte) {
 
 	// Choose a keypair and encode its representation
@@ -64,7 +64,7 @@ func encryptKey(suite *abstract.Suite, rand cipher.Stream,
 
 // Decrypt and verify a key encrypted via encryptKey.
 // On success, returns the key and the length of the decrypted header.
-func decryptKey(suite *abstract.Suite, ciphertext []byte, anonymitySet Set,
+func decryptKey(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
 	mine int, privateKey abstract.Scalar,
 	hide bool) ([]byte, int, error) {
 
@@ -143,7 +143,7 @@ func decryptKey(suite *abstract.Suite, ciphertext []byte, anonymitySet Set,
 // The provided abstract.Suite must support
 // uniform-representation encoding of public keys for this to work.
 //
-func Encrypt(suite *abstract.Suite, rand cipher.Stream, message []byte,
+func Encrypt(suite abstract.Suite, rand cipher.Stream, message []byte,
 	anonymitySet Set, hide bool) []byte {
 
 	xb, hdr := encryptKey(suite, rand, anonymitySet, hide)
@@ -179,7 +179,7 @@ func Encrypt(suite *abstract.Suite, rand cipher.Stream, message []byte,
 // that is, it is infeasible for a sender to construct any ciphertext
 // that will be accepted by the receiver without knowing the plaintext.
 //
-func Decrypt(suite *abstract.Suite, ciphertext []byte, anonymitySet Set,
+func Decrypt(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
 	mine int, privateKey abstract.Scalar, hide bool) ([]byte, error) {
 
 	// Decrypt and check the encrypted key-header.

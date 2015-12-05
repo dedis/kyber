@@ -52,14 +52,14 @@ func TestRep(t *testing.T) {
 
 	sval := map[string]abstract.Scalar{"x": x, "y": y}
 	pval := map[string]abstract.Point{"B": B, "X": X, "Y": Y, "R": R}
-	prover := pred.Prover(suite.Context(), sval, pval, choice)
-	proof, err := HashProve(suite.Context(), "TEST", rand, prover)
+	prover := pred.Prover(suite, sval, pval, choice)
+	proof, err := HashProve(suite, "TEST", rand, prover)
 	if err != nil {
 		panic("prover: " + err.Error())
 	}
 
-	verifier := pred.Verifier(suite.Context(), pval)
-	if err := HashVerify(suite.Context(), "TEST", verifier, proof); err != nil {
+	verifier := pred.Verifier(suite, pval)
+	if err := HashVerify(suite, "TEST", verifier, proof); err != nil {
 		panic("verify: " + err.Error())
 	}
 }
@@ -95,13 +95,13 @@ func ExampleRep_2() {
 	// Generate a proof that we know the discrete logarithm of X.
 	sval := map[string]abstract.Scalar{"x": x}
 	pval := map[string]abstract.Point{"B": B, "X": X}
-	prover := pred.Prover(suite.Context(), sval, pval, nil)
-	proof, _ := HashProve(suite.Context(), "TEST", rand, prover)
+	prover := pred.Prover(suite, sval, pval, nil)
+	proof, _ := HashProve(suite, "TEST", rand, prover)
 	fmt.Print("Proof:\n" + hex.Dump(proof))
 
 	// Verify this knowledge proof.
-	verifier := pred.Verifier(suite.Context(), pval)
-	err := HashVerify(suite.Context(), "TEST", verifier, proof)
+	verifier := pred.Verifier(suite, pval)
+	err := HashVerify(suite, "TEST", verifier, proof)
 	if err != nil {
 		panic("proof failed to verify!")
 	}
@@ -214,14 +214,14 @@ func ExampleOr_2() {
 	// Generate a proof that we know the discrete logarithm of X or Y.
 	sval := map[string]abstract.Scalar{"x": x}
 	pval := map[string]abstract.Point{"B": B, "X": X, "Y": Y}
-	prover := pred.Prover(suite.Context(), sval, pval, choice)
-	proof, _ := HashProve(suite.Context(), "TEST", rand, prover)
+	prover := pred.Prover(suite, sval, pval, choice)
+	proof, _ := HashProve(suite, "TEST", rand, prover)
 	fmt.Print("Proof:\n" + hex.Dump(proof))
 
 	// Verify this knowledge proof.
 	// The verifier doesn't need the secret values or choice map, of course.
-	verifier := pred.Verifier(suite.Context(), pval)
-	err := HashVerify(suite.Context(), "TEST", verifier, proof)
+	verifier := pred.Verifier(suite, pval)
+	err := HashVerify(suite, "TEST", verifier, proof)
 	if err != nil {
 		panic("proof failed to verify!")
 	}

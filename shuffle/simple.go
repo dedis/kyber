@@ -38,7 +38,7 @@ type ssa4 struct {
 }
 
 type SimpleShuffle struct {
-	ste *abstract.Suite
+	ste abstract.Suite
 	p0  ssa0
 	v1  ssa1
 	p2  ssa2
@@ -47,7 +47,7 @@ type SimpleShuffle struct {
 }
 
 // Simple helper to compute G^{ab-cd} for Theta vector computation.
-func thenc(ste *abstract.Suite, G abstract.Point,
+func thenc(ste abstract.Suite, G abstract.Point,
 	a, b, c, d abstract.Scalar) abstract.Point {
 
 	var ab, cd abstract.Scalar
@@ -68,7 +68,7 @@ func thenc(ste *abstract.Suite, G abstract.Point,
 	return ste.Point().Mul(G, ab.Sub(ab, cd))
 }
 
-func (ss *SimpleShuffle) Init(ste *abstract.Suite, k int) *SimpleShuffle {
+func (ss *SimpleShuffle) Init(ste abstract.Suite, k int) *SimpleShuffle {
 	ss.ste = ste
 	ss.p0.X = make([]abstract.Point, k)
 	ss.p0.Y = make([]abstract.Point, k)

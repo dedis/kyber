@@ -14,14 +14,14 @@ import (
 // KeyPair represents a public/private keypair
 // together with the ciphersuite the key was generated from.
 type KeyPair struct {
-	Suite  *abstract.Suite  // Ciphersuite this keypair is for
+	Suite  abstract.Suite  // Ciphersuite this keypair is for
 	Public abstract.Point  // Public key
 	Secret abstract.Scalar // Secret key
 }
 
 // Generate a fresh public/private keypair with the given ciphersuite,
 // using a given source of cryptographic randomness.
-func (p *KeyPair) Gen(suite *abstract.Suite, random cipher.Stream) {
+func (p *KeyPair) Gen(suite abstract.Suite, random cipher.Stream) {
 	p.Suite = suite
 	p.Secret = suite.Scalar().Random(random)
 	p.Public = suite.Point().BaseMul(p.Secret)
@@ -60,7 +60,7 @@ type KeyInfo struct {
 // such as a key's ciphersuite becoming no-longer-supported for example,
 // logs a warning but continues to load any other configured keys.
 //
-func (f *File) Keys(keys *Keys, suites map[string]*abstract.Suite,
+func (f *File) Keys(keys *Keys, suites map[string]abstract.Suite,
 	defaultSuite string) ([]KeyPair, error) {
 
 	// Read all existing configured keys
@@ -89,13 +89,13 @@ func (f *File) Keys(keys *Keys, suites map[string]*abstract.Suite,
 }
 
 // Retrieve a public/private keypair for a given KeyInfo configuration record.
-func (f *File) Key(key *KeyInfo, suites map[string]*abstract.Suite) (KeyPair, error) {
+func (f *File) Key(key *KeyInfo, suites map[string]abstract.Suite) (KeyPair, error) {
 
 	// XXX support passphrase-encrypted or system-keychain keys
 
 	// Lookup the appropriate ciphersuite for this public key.
-	suite := suites[key.Suite]
-	if suite == nil {
+	suite, ok := suites[key.Suite]
+	if !ok {
 		return KeyPair{},
 			errors.New("Unsupported ciphersuite '" + key.Suite + "'")
 	}
@@ -127,7 +127,7 @@ func (f *File) Key(key *KeyInfo, suites map[string]*abstract.Suite) (KeyPair, er
 
 // Generate a new public/private keypair with the given ciphersuite
 // and Save it to the application's previously-loaded configuration.
-func (f *File) GenKey(keys *Keys, suite *abstract.Suite, suiteName string) (KeyPair, error) {
+func (f *File) GenKey(keys *Keys, suite abstract.Suite, suiteName string) (KeyPair, error) {
 
 	// Create the map if it doesn't exist
 	//	if *keys == nil {

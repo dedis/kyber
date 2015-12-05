@@ -13,7 +13,7 @@ type GroupBench struct {
 	Xe   []byte // encoded Point
 }
 
-func NewGroupBench(suite *abstract.Suite) *GroupBench {
+func NewGroupBench(suite abstract.Suite) *GroupBench {
 	var gb GroupBench
 	gb.x = suite.Scalar().Fresh()
 	gb.y = suite.Scalar().Fresh()

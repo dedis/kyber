@@ -27,7 +27,7 @@ func bifflePred() proof.Predicate {
 	return or
 }
 
-func bifflePoints(suite *abstract.Suite, G, H abstract.Point,
+func bifflePoints(suite abstract.Suite, G, H abstract.Point,
 	X, Y, Xbar, Ybar [2]abstract.Point) map[string]abstract.Point {
 
 	return map[string]abstract.Point{
@@ -44,7 +44,7 @@ func bifflePoints(suite *abstract.Suite, G, H abstract.Point,
 }
 
 // Binary shuffle ("biffle") for 2 ciphertexts based on general ZKPs.
-func Biffle(suite *abstract.Suite, G, H abstract.Point,
+func Biffle(suite abstract.Suite, G, H abstract.Point,
 	X, Y [2]abstract.Point, rand abstract.Cipher) (
 	Xbar, Ybar [2]abstract.Point, prover proof.Prover) {
 
@@ -72,20 +72,20 @@ func Biffle(suite *abstract.Suite, G, H abstract.Point,
 		"beta1": beta[1]}
 	points := bifflePoints(suite, G, H, X, Y, Xbar, Ybar)
 	choice := map[proof.Predicate]int{or: bit}
-	prover = or.Prover(suite.Context(), secrets, points, choice)
+	prover = or.Prover(suite, secrets, points, choice)
 	return
 }
 
-func BiffleVerifier(suite *abstract.Suite, G, H abstract.Point,
+func BiffleVerifier(suite abstract.Suite, G, H abstract.Point,
 	X, Y, Xbar, Ybar [2]abstract.Point) (
 	verifier proof.Verifier) {
 
 	or := bifflePred()
 	points := bifflePoints(suite, G, H, X, Y, Xbar, Ybar)
-	return or.Verifier(suite.Context(), points)
+	return or.Verifier(suite, points)
 }
 
-func BiffleTest(suite *abstract.Suite, N int) {
+func BiffleTest(suite abstract.Suite, N int) {
 
 	rand := suite.Cipher(abstract.FreshKey)
 
@@ -119,7 +119,7 @@ func BiffleTest(suite *abstract.Suite, N int) {
 		// Do a key-shuffle
 		nilPoint := abstract.Point{nil}
 		Xbar, Ybar, prover := Biffle(suite, nilPoint, H, X, Y, rand)
-		prf, err := proof.HashProve(suite.Context(), "Biffle", rand, prover)
+		prf, err := proof.HashProve(suite, "Biffle", rand, prover)
 		if err != nil {
 			panic("Biffle proof failed: " + err.Error())
 		}
@@ -127,7 +127,7 @@ func BiffleTest(suite *abstract.Suite, N int) {
 
 		// Check it
 		verifier := BiffleVerifier(suite, nilPoint, H, X, Y, Xbar, Ybar)
-		err = proof.HashVerify(suite.Context(), "Biffle", verifier, prf)
+		err = proof.HashVerify(suite, "Biffle", verifier, prf)
 		if err != nil {
 			panic("Biffle verify failed: " + err.Error())
 		}

@@ -17,7 +17,7 @@ type basicSig struct {
 }
 
 // Returns a secret that depends on on a message and a point
-func hashSchnorr(suite *abstract.Suite, message []byte, p abstract.Point) abstract.Scalar {
+func hashSchnorr(suite abstract.Suite, message []byte, p abstract.Point) abstract.Scalar {
 	pb, _ := p.MarshalBinary()
 	c := suite.Cipher(pb)
 	c.Message(nil, nil, message)
@@ -28,7 +28,7 @@ func hashSchnorr(suite *abstract.Suite, message []byte, p abstract.Point) abstra
 // crypto/anon/sig.go
 // The ring structure is removed and
 // The anonimity set is reduced to one public key = no anonimity
-func SchnorrSign(suite *abstract.Suite, random cipher.Stream, message []byte,
+func SchnorrSign(suite abstract.Suite, random cipher.Stream, message []byte,
 	privateKey abstract.Scalar) []byte {
 
 	// Create random secret v and public point commitment T
@@ -51,7 +51,7 @@ func SchnorrSign(suite *abstract.Suite, random cipher.Stream, message []byte,
 	return buf.Bytes()
 }
 
-func SchnorrVerify(suite *abstract.Suite, message []byte, publicKey abstract.Point,
+func SchnorrVerify(suite abstract.Suite, message []byte, publicKey abstract.Point,
 	signatureBuffer []byte) error {
 
 	// Decode the signature

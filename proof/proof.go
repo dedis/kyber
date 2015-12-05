@@ -53,11 +53,11 @@ For now we simply require expressions to be in the appropriate form.
 type Predicate interface {
 
 	// Create a Prover proving the statement this Predicate represents.
-	Prover(suite *abstract.Suite, secrets map[string]abstract.Scalar,
+	Prover(suite abstract.Suite, secrets map[string]abstract.Scalar,
 		points map[string]abstract.Point, choice map[Predicate]int) Prover
 
 	// Create a Verifier for the statement this Predicate represents.
-	Verifier(suite *abstract.Suite, points map[string]abstract.Point) Verifier
+	Verifier(suite abstract.Suite, points map[string]abstract.Point) Verifier
 
 	// Produce a human-readable string representation of the predicate.
 	String() string
@@ -92,7 +92,7 @@ const (
 
 // Internal prover/verifier state
 type proof struct {
-	s *abstract.Suite
+	s abstract.Suite
 
 	nsvars     int            // number of Scalar variables
 	npvars     int            // number of Point variables
@@ -307,13 +307,13 @@ func (rp *repPred) verify(prf *proof, c abstract.Scalar, pr []abstract.Scalar) e
 	return nil
 }
 
-func (rp *repPred) Prover(suite *abstract.Suite, secrets map[string]abstract.Scalar,
+func (rp *repPred) Prover(suite abstract.Suite, secrets map[string]abstract.Scalar,
 	points map[string]abstract.Point,
 	choice map[Predicate]int) Prover {
 	return proof{}.init(suite, rp).prover(rp, secrets, points, choice)
 }
 
-func (rp *repPred) Verifier(suite *abstract.Suite,
+func (rp *repPred) Verifier(suite abstract.Suite,
 	points map[string]abstract.Point) Verifier {
 	return proof{}.init(suite, rp).verifier(rp, points)
 }
@@ -417,13 +417,13 @@ func (ap *andPred) verify(prf *proof, c abstract.Scalar, pr []abstract.Scalar) e
 	return nil
 }
 
-func (ap *andPred) Prover(suite *abstract.Suite, secrets map[string]abstract.Scalar,
+func (ap *andPred) Prover(suite abstract.Suite, secrets map[string]abstract.Scalar,
 	points map[string]abstract.Point,
 	choice map[Predicate]int) Prover {
 	return proof{}.init(suite, ap).prover(ap, secrets, points, choice)
 }
 
-func (ap *andPred) Verifier(suite *abstract.Suite,
+func (ap *andPred) Verifier(suite abstract.Suite,
 	points map[string]abstract.Point) Verifier {
 	return proof{}.init(suite, ap).verifier(ap, points)
 }
@@ -601,13 +601,13 @@ func (op *orPred) verify(prf *proof, c abstract.Scalar, pr []abstract.Scalar) er
 	return nil
 }
 
-func (op *orPred) Prover(suite *abstract.Suite, secrets map[string]abstract.Scalar,
+func (op *orPred) Prover(suite abstract.Suite, secrets map[string]abstract.Scalar,
 	points map[string]abstract.Point,
 	choice map[Predicate]int) Prover {
 	return proof{}.init(suite, op).prover(op, secrets, points, choice)
 }
 
-func (op *orPred) Verifier(suite *abstract.Suite,
+func (op *orPred) Verifier(suite abstract.Suite,
 	points map[string]abstract.Point) Verifier {
 	return proof{}.init(suite, op).verifier(op, points)
 }
@@ -627,7 +627,7 @@ func (p *Prover) Linear(a1,a2,b abstract.Scalar, x1,x2 PriVar) {
 }
 */
 
-func (prf proof) init(suite *abstract.Suite, pred Predicate) *proof {
+func (prf proof) init(suite abstract.Suite, pred Predicate) *proof {
 	prf.s = suite
 
 	// Enumerate all the variables in a consistent order.

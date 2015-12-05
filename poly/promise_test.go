@@ -141,13 +141,9 @@ func TestPromiseSignatureEqual(t *testing.T) {
 	}
 
 	// Error cases
-	p2 := new(signature).init(nil, sig)
+	p2 := new(signature).init(testSuite, nil)
 	if p.Equal(p2) {
-		t.Error("signature's differ in suite.")
-	}
-	p2 = new(signature).init(testSuite, nil)
-	if p.Equal(p2) {
-		t.Error("signature's differ in signature.")
+		t.Error("signatures differ in signature.")
 	}
 }
 
@@ -188,11 +184,7 @@ func TestBlameProofEqual(t *testing.T) {
 	}
 
 	// Error cases
-	bp2 := new(blameProof).init(nil, promiserKey.Public, []byte("Test"), p)
-	if bp.Equal(bp2) {
-		t.Error("blameProof differ in key suites.")
-	}
-	bp2 = new(blameProof).init(testSuite, testSuite.Point().Base(), []byte("Test"), p)
+	bp2 := new(blameProof).init(testSuite, testSuite.Point().Base(), []byte("Test"), p)
 	if bp.Equal(bp2) {
 		t.Error("blameProof differ in diffie-keys.")
 	}
@@ -796,15 +788,6 @@ func TestPromiseEqual(t *testing.T) {
 	promise.id = promiserKey.Public // <--- should be secretKey.Public
 	if basicPromise.Equal(promise) {
 		t.Error("The id's are not equal")
-	}
-
-	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt,
-		r, insurerList)
-	promise.secrets = basicPromise.secrets
-	promise.pubPoly = basicPromise.pubPoly
-	promise.suite = nil
-	if basicPromise.Equal(promise) {
-		t.Error("The suite's are not equal")
 	}
 
 	promise = new(Promise).ConstructPromise(secretKey, promiserKey, pt,

@@ -8,7 +8,7 @@ import (
 	"github.com/dedis/crypto/random"
 )
 
-func testEmbed(suite *abstract.Suite, rand random.Stream,
+func testEmbed(suite abstract.Suite, rand random.Stream,
 	points *[]abstract.Point, s string) {
 
 	//println("embedding: ",s)
@@ -36,7 +36,7 @@ func testEmbed(suite *abstract.Suite, rand random.Stream,
 // for comparison across alternative implementations
 // that are supposed to be equivalent.
 //
-func testGroup(suite *abstract.Suite, rand cipher.Stream) []abstract.Point {
+func testGroup(suite abstract.Suite, rand cipher.Stream) []abstract.Point {
 	//	fmt.Printf("\nTesting group '%s': %d-byte Point, %d-byte Secret\n",
 	//			g.String(), suite.PointLen(), suite.ScalarLen())
 
@@ -212,13 +212,13 @@ func testGroup(suite *abstract.Suite, rand cipher.Stream) []abstract.Point {
 }
 
 // Apply a generic set of validation tests to a cryptographic Group.
-func TestGroup(suite *abstract.Suite) {
+func TestGroup(suite abstract.Suite) {
 	testGroup(suite, random.Fresh())
 }
 
 // Test two group implementations that are supposed to be equivalent,
 // and compare their results.
-func TestCompareGroups(s1, s2 *abstract.Suite) {
+func TestCompareGroups(s1, s2 abstract.Suite) {
 
 	// Produce test results from the same pseudorandom seed
 	r1 := testGroup(s1, s1.Cipher(abstract.NoKey))
@@ -238,7 +238,7 @@ func TestCompareGroups(s1, s2 *abstract.Suite) {
 }
 
 // Apply a standard set of validation tests to a ciphersuite.
-func TestSuite(suite *abstract.Suite) {
+func TestSuite(suite abstract.Suite) {
 
 	// Try hashing something
 	h := suite.Hash(abstract.NoKey)

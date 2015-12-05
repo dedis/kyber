@@ -7,7 +7,7 @@ import (
 	"github.com/dedis/crypto/proof"
 )
 
-func TestShuffle(suite *abstract.Suite, k int, N int) {
+func TestShuffle(suite abstract.Suite, k int, N int) {
 
 	rand := suite.Cipher(abstract.FreshKey)
 
@@ -42,7 +42,7 @@ func TestShuffle(suite *abstract.Suite, k int, N int) {
 		// Do a key-shuffle
 		nilPoint := abstract.Point{nil}
 		Xbar, Ybar, prover := Shuffle(suite, nilPoint, H, X, Y, rand)
-		prf, err := proof.HashProve(suite.Context(), "PairShuffle", rand, prover)
+		prf, err := proof.HashProve(suite, "PairShuffle", rand, prover)
 		if err != nil {
 			panic("Shuffle proof failed: " + err.Error())
 		}
@@ -50,7 +50,7 @@ func TestShuffle(suite *abstract.Suite, k int, N int) {
 
 		// Check it
 		verifier := Verifier(suite, nilPoint, H, X, Y, Xbar, Ybar)
-		err = proof.HashVerify(suite.Context(), "PairShuffle", verifier, prf)
+		err = proof.HashVerify(suite, "PairShuffle", verifier, prf)
 		if err != nil {
 			panic("Shuffle verify failed: " + err.Error())
 		}

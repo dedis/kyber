@@ -123,7 +123,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"io"
 	"reflect"
 	"strconv"
@@ -191,7 +190,7 @@ type Promise struct {
 	id abstract.Point
 
 	// The cryptographic key suite used throughout the Promise.
-	suite *abstract.Suite
+	suite abstract.Suite
 
 	// The minimum number of shares needed to reconstruct the secret
 	t int
@@ -290,7 +289,7 @@ func (p *Promise) ConstructPromise(secretPair *config.KeyPair,
  * Returns
  *   An initialized Promise ready to be unmarshalled
  */
-func (p *Promise) UnmarshalInit(t, r, n int, suite *abstract.Suite) *Promise {
+func (p *Promise) UnmarshalInit(t, r, n int, suite abstract.Suite) *Promise {
 	p.t = t
 	p.r = r
 	p.n = n
@@ -589,13 +588,8 @@ func (p *Promise) Equal(p2 *Promise) bool {
 	if p.n != p2.n {
 		return false
 	}
-	if p.suite != nil && p2.suite != nil {
-		if p.suite != p2.suite {
-			fmt.Printf("Comparise with the suites failed\n")
-			return false
-		}
-	} else {
-		return false
+	if p.suite != p2.suite {
+		panic("Cannot compare promises from different suites\n")
 	}
 
 	for i := 0; i < p.n; i++ {
@@ -1042,7 +1036,7 @@ func (ps *State) SufficientSignatures() error {
 type signature struct {
 
 	// The suite used for signing
-	suite *abstract.Suite
+	suite abstract.Suite
 
 	// The signature proving that the insurer either approves or disapproves
 	// of a Promise struct
@@ -1058,7 +1052,7 @@ type signature struct {
  * Returns
  *   An initialized signature
  */
-func (p *signature) init(suite *abstract.Suite, sig []byte) *signature {
+func (p *signature) init(suite abstract.Suite, sig []byte) *signature {
 	p.suite = suite
 	p.signature = sig
 	return p
@@ -1072,7 +1066,7 @@ func (p *signature) init(suite *abstract.Suite, sig []byte) *signature {
  * Returns
  *   An initialized signature ready to unmarshal a buffer
  */
-func (p *signature) UnmarshalInit(suite *abstract.Suite) *signature {
+func (p *signature) UnmarshalInit(suite abstract.Suite) *signature {
 	p.suite = suite
 	return p
 }
@@ -1237,7 +1231,7 @@ func (p *signature) String() string {
 type blameProof struct {
 
 	// The suite used throughout the blameProof
-	suite *abstract.Suite
+	suite abstract.Suite
 
 	// The Diffie-Hellman shared secret between the insurer and promiser
 	diffieKey abstract.Point
@@ -1261,7 +1255,7 @@ type blameProof struct {
  * Returns
  *   An initialized blameProof
  */
-func (bp *blameProof) init(suite *abstract.Suite, key abstract.Point,
+func (bp *blameProof) init(suite abstract.Suite, key abstract.Point,
 	dkp []byte, sig *signature) *blameProof {
 	bp.suite = suite
 	bp.diffieKey = key
@@ -1278,7 +1272,7 @@ func (bp *blameProof) init(suite *abstract.Suite, key abstract.Point,
  * Returns
  *   An initialized blameProof ready to be unmarshalled
  */
-func (bp *blameProof) UnmarshalInit(suite *abstract.Suite) *blameProof {
+func (bp *blameProof) UnmarshalInit(suite abstract.Suite) *blameProof {
 	bp.suite = suite
 	return bp
 }
@@ -1483,7 +1477,7 @@ type Response struct {
 	rtype responseType
 
 	// For unmarshalling purposes, the suite of the signature or blameProof
-	suite *abstract.Suite
+	suite abstract.Suite
 
 	// A signature proving that the insurer approves of a Promise
 	signature *signature
@@ -1528,7 +1522,7 @@ func (r *Response) constructBlameProofResponse(blameProof *blameProof) *Response
  * Returns
  *   An initialized Response ready to be unmarshalled
  */
-func (r *Response) UnmarshalInit(suite *abstract.Suite) *Response {
+func (r *Response) UnmarshalInit(suite abstract.Suite) *Response {
 	r.suite = suite
 	return r
 }

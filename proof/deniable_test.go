@@ -102,15 +102,15 @@ func TestDeniable(t *testing.T) {
 		pred := Rep("X", "x", "B")
 		sval := map[string]abstract.Scalar{"x": n.x}
 		pval := map[string]abstract.Point{"B": B, "X": n.X}
-		prover := pred.Prover(suite.Context(), sval, pval, nil)
+		prover := pred.Prover(suite, sval, pval, nil)
 
 		vi := (i + 2) % nnodes // which node's proof to verify
 		vrfs := make([]Verifier, nnodes)
 		vpred := Rep("X", "x", "B")
 		vpval := map[string]abstract.Point{"B": B, "X": nodes[vi].X}
-		vrfs[vi] = vpred.Verifier(suite.Context(), vpval)
+		vrfs[vi] = vpred.Verifier(suite, vpval)
 
-		n.proto = DeniableProver(suite.Context(), i, prover, vrfs)
+		n.proto = DeniableProver(suite, i, prover, vrfs)
 		n.outbox = make(chan []byte)
 		n.inbox = make(chan [][]byte)
 

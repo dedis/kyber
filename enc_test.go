@@ -6,7 +6,7 @@ import (
 	"github.com/dedis/crypto/suite"
 )
 
-func ElGamalEncrypt(suite *abstract.Suite, pubkey abstract.Point, message []byte) (
+func ElGamalEncrypt(suite abstract.Suite, pubkey abstract.Point, message []byte) (
 	K, C abstract.Point, remainder []byte) {
 
 	// Embed the message (or as much of it as will fit) into a curve point.
@@ -20,7 +20,7 @@ func ElGamalEncrypt(suite *abstract.Suite, pubkey abstract.Point, message []byte
 	return
 }
 
-func ElGamalDecrypt(suite *abstract.Suite, prikey abstract.Scalar, K, C abstract.Point) (
+func ElGamalDecrypt(suite abstract.Suite, prikey abstract.Scalar, K, C abstract.Point) (
 	message []byte, err error) {
 
 	// ElGamal-decrypt the ciphertext (K,C) to reproduce the message.

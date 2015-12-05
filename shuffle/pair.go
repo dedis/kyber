@@ -81,7 +81,7 @@ type ega6 struct {
 // to pick a random permutation, compute the shuffle,
 // and compute the correctness proof.
 type PairShuffle struct {
-	ste *abstract.Suite
+	ste abstract.Suite
 	k   int
 	p1  ega1
 	v2  ega2
@@ -94,7 +94,7 @@ type PairShuffle struct {
 // Create a new PairShuffleProof instance for a k-element ElGamal pair shuffle.
 // This protocol follows the ElGamal Pair Shuffle defined in section 4 of
 // Andrew Neff, "Verifiable Mixing (Shuffling) of ElGamal Pairs", 2004.
-func (ps *PairShuffle) Init(ste *abstract.Suite, k int) *PairShuffle {
+func (ps *PairShuffle) Init(ste abstract.Suite, k int) *PairShuffle {
 
 	if k <= 1 {
 		panic("can't shuffle permutation of size <= 1")
@@ -308,7 +308,7 @@ func (ps *PairShuffle) Verify(
 // producing a correctness proof in the process.
 // Returns (Xbar,Ybar), the shuffled and randomized pairs.
 // If g or h is nil, the standard base point is used.
-func Shuffle(suite *abstract.Suite, g, h abstract.Point, X, Y []abstract.Point,
+func Shuffle(suite abstract.Suite, g, h abstract.Point, X, Y []abstract.Point,
 	rand cipher.Stream) (XX, YY []abstract.Point, P proof.Prover) {
 
 	k := len(X)
@@ -356,7 +356,7 @@ func Shuffle(suite *abstract.Suite, g, h abstract.Point, X, Y []abstract.Point,
 }
 
 // Produce a Sigma-protocol verifier to check the correctness of a shuffle.
-func Verifier(suite *abstract.Suite, g, h abstract.Point,
+func Verifier(suite abstract.Suite, g, h abstract.Point,
 	X, Y, Xbar, Ybar []abstract.Point) proof.Verifier {
 
 	ps := PairShuffle{}

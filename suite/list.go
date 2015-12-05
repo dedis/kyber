@@ -17,7 +17,7 @@ func ctx(parent abstract.Context) abstract.Context {
 
 type withFunc func(abstract.Context) abstract.Context
 
-func suite(ctx abstract.Context, pub, sym withFunc) *abstract.Suite {
+func suite(ctx abstract.Context, pub, sym withFunc) abstract.Suite {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -28,13 +28,13 @@ func suite(ctx abstract.Context, pub, sym withFunc) *abstract.Suite {
 
 // Create a NIST-based suite with 128-bit security,
 // using the P-256 curve and the SHAKE128 sponge cipher.
-func Nist128(parent abstract.Context) *abstract.Suite {
+func Nist128(parent abstract.Context) abstract.Suite {
 	return suite(parent, nist.WithP256, sha3.WithShake128)
 }
 
 // Create a NIST-based suite with 128-bit security,
 // equivalent to Nist128 but implemented using the OpenSSL library.
-func Nist128openssl(parent abstract.Context) *abstract.Suite {
+func Nist128openssl(parent abstract.Context) abstract.Suite {
 	return suite(parent, openssl.WithP256, sha3.WithShake128)
 }
 
@@ -43,14 +43,14 @@ func Nist128openssl(parent abstract.Context) *abstract.Suite {
 // Create a context configured to use the Ed25519 curve
 // and the SHAKE158 sponge cipher.
 // XXX change to use BLAKE2 instead of SHAKE
-func Ed128(parent abstract.Context) *abstract.Suite {
+func Ed128(parent abstract.Context) abstract.Suite {
 	return suite(parent, ed25519.WithEd25519, sha3.WithShake128)
 }
 
 // Create a Suite configured with some default ciphersuite,
 // mainly for testing and development purposes.
 // Which particular ciphersuite this corresponds to may change at any time.
-func Default(parent abstract.Context) *abstract.Suite {
+func Default(parent abstract.Context) abstract.Suite {
 	return Ed128(parent)
 }
 
@@ -59,7 +59,7 @@ func Default(parent abstract.Context) *abstract.Suite {
 // the Config functions defined here accept nil as a synonym for
 // context.Background().
 //
-type Config func(parent abstract.Context) *abstract.Suite
+type Config func(parent abstract.Context) abstract.Suite
 
 func All() map[string]Config {
 	return map[string]Config{

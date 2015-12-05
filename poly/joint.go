@@ -10,7 +10,7 @@ import (
 	"io"
 )
 
-var SUITE *abstract.Suite = testSuite	// XXX
+var SUITE abstract.Suite = testSuite	// XXX
 
 // This package provides  a dealer-less distributed verifiable secret sharing
 // using Pedersen VSS scheme as explained in "Provably Secure Distributed

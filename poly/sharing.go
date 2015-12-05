@@ -29,13 +29,13 @@ import (
 
 // Private polynomial for Shamir secret sharing.
 type PriPoly struct {
-	suite *abstract.Suite    // Cryptographic suite in use
+	suite abstract.Suite    // Cryptographic suite in use
 	s []abstract.Scalar // Coefficients of secret polynomial
 }
 
 // Create a fresh sharing polynomial in the Secret space of a given group.
 // Shares the provided Secret s, or picks a random one if s == nil.
-func (p *PriPoly) Pick(suite *abstract.Suite, k int, s0 abstract.Scalar,
+func (p *PriPoly) Pick(suite abstract.Suite, k int, s0 abstract.Scalar,
 	rand cipher.Stream) *PriPoly {
 	p.suite = suite
 	s := make([]abstract.Scalar, k)
@@ -115,7 +115,7 @@ func (p *PriPoly) String() string {
 
 // Secret shares generated from a private polynomial.
 type PriShares struct {
-	suite *abstract.Suite    // Cryptographic suite in use
+	suite abstract.Suite    // Cryptographic suite in use
 	k int               // Reconstruction threshold
 	s []abstract.Scalar // Secret shares, one per sharing party.
 }
@@ -144,7 +144,7 @@ func (ps *PriShares) Share(i int) abstract.Scalar {
 
 // Initialize a set of secret-shares to an initially empty list,
 // before populating using SetShare() and reconstruction.
-func (ps *PriShares) Empty(suite *abstract.Suite, k, n int) {
+func (ps *PriShares) Empty(suite abstract.Suite, k, n int) {
 	ps.suite = suite
 	ps.k = k
 	ps.s = make([]abstract.Scalar, n)
@@ -222,14 +222,14 @@ func (ps *PriShares) String() string {
 
 // A public commitment to a secret-sharing polynomial.
 type PubPoly struct {
-	suite *abstract.Suite   // Cryptographic suite to use
+	suite abstract.Suite   // Cryptographic suite to use
 	b abstract.Point   // Base point, nil for standard base
 	p []abstract.Point // Commitments to polynomial coefficients
 }
 
 // Initialize to an empty polynomial for a given group and threshold (degree),
 // typically before using Decode() to fill in from a received message.
-func (pub *PubPoly) Init(suite *abstract.Suite, k int, b abstract.Point) *PubPoly {
+func (pub *PubPoly) Init(suite abstract.Suite, k int, b abstract.Point) *PubPoly {
 	pub.suite = suite
 	pub.b = b
 	pub.p = make([]abstract.Point, k)
@@ -238,7 +238,7 @@ func (pub *PubPoly) Init(suite *abstract.Suite, k int, b abstract.Point) *PubPol
 
 // InitNull does the same thing as Init PLUS initialize every points / coef to the Null
 // Identity Element so we can use it like a "temp" / "aggregate" variable to add with others poly
-func (pub *PubPoly) InitNull(suite *abstract.Suite, k int, b abstract.Point) *PubPoly {
+func (pub *PubPoly) InitNull(suite abstract.Suite, k int, b abstract.Point) *PubPoly {
 	pub.Init(suite, k, b)
 	for i, _ := range pub.p {
 		pub.p[i] = suite.Point().Null()
@@ -395,7 +395,7 @@ func (p *PubPoly) String() string {
 
 // Public commitments to shares generated from a private polynomial.
 type PubShares struct {
-	suite *abstract.Suite   // Cryptographic suite in use
+	suite abstract.Suite   // Cryptographic suite in use
 	k int              // Reconstruction threshold
 	b abstract.Point   // Base point, nil for standard base
 	p []abstract.Point // Commitment shares, one per sharing party.
@@ -497,7 +497,7 @@ func (ps *PubShares) String() string {
 	return s
 }
 
-func testSharing(suite *abstract.Suite) {
+func testSharing(suite abstract.Suite) {
 
 	k := 4
 	n := 10

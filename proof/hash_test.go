@@ -25,13 +25,13 @@ func ExampleHashProve_1() {
 	rep := Rep("X", "x", "B")
 	sec := map[string]abstract.Scalar{"x": x}
 	pub := map[string]abstract.Point{"B": B, "X": X}
-	prover := rep.Prover(suite.Context(), sec, pub, nil)
-	proof, _ := HashProve(suite.Context(), M, rand, prover)
+	prover := rep.Prover(suite, sec, pub, nil)
+	proof, _ := HashProve(suite, M, rand, prover)
 	fmt.Print("Signature:\n" + hex.Dump(proof))
 
 	// Verify the signature against the correct message M.
-	verifier := rep.Verifier(suite.Context(), pub)
-	err := HashVerify(suite.Context(), M, verifier, proof)
+	verifier := rep.Verifier(suite, pub)
+	err := HashVerify(suite, M, verifier, proof)
 	if err != nil {
 		panic("signature failed to verify!")
 	}
@@ -39,8 +39,8 @@ func ExampleHashProve_1() {
 
 	// Now verify the signature against the WRONG message.
 	BAD := "Goodbye World!"
-	verifier = rep.Verifier(suite.Context(), pub)
-	err = HashVerify(suite.Context(), BAD, verifier, proof)
+	verifier = rep.Verifier(suite, pub)
+	err = HashVerify(suite, BAD, verifier, proof)
 	fmt.Println("Signature verify against wrong message: " + err.Error())
 
 	// Output:
@@ -120,13 +120,13 @@ func ExampleHashProve_2() {
 
 	// Generate the signature
 	M := "Hello World!" // message we want to sign
-	prover := pred.Prover(suite.Context(), sec, pub, choice)
-	proof, _ := HashProve(suite.Context(), M, rand, prover)
+	prover := pred.Prover(suite, sec, pub, choice)
+	proof, _ := HashProve(suite, M, rand, prover)
 	fmt.Print("Linkable Ring Signature:\n" + hex.Dump(proof))
 
 	// Verify the signature
-	verifier := pred.Verifier(suite.Context(), pub)
-	err := HashVerify(suite.Context(), M, verifier, proof)
+	verifier := pred.Verifier(suite, pub)
+	err := HashVerify(suite, M, verifier, proof)
 	if err != nil {
 		panic("signature failed to verify!")
 	}
