@@ -128,6 +128,11 @@ func (s *Scalar) Unmarshal(ctx context.Context, r io.Reader) (int, error) {
 	return s.FieldElement.Unmarshal(ctx, r)
 }
 
+// Return a nil Scalar.
+func NilScalar() Scalar {
+	return Scalar{nil}
+}
+
 /*
 A Point abstractly represents an element of a public-key cryptographic Group.
 For example,
@@ -236,3 +241,9 @@ func (p *Point) Unmarshal(ctx context.Context, r io.Reader) (int, error) {
 	}
 	return p.Element.Unmarshal(ctx, r)
 }
+
+// Return a nil Point.
+func NilPoint() Point {
+	return Point{nil}
+}
+

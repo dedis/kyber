@@ -221,8 +221,12 @@ func TestGroup(suite abstract.Suite) {
 func TestCompareGroups(s1, s2 abstract.Suite) {
 
 	// Produce test results from the same pseudorandom seed
-	r1 := testGroup(s1, s1.Cipher(abstract.NoKey))
-	r2 := testGroup(s2, s1.Cipher(abstract.NoKey))
+	r1 := testGroup(s1, s1.Cipher([]byte{0}))
+	r2 := testGroup(s2, s2.Cipher([]byte{0}))
+	// XXX the above is a temporary hack; see comment in
+	// sponge.FromSponge().
+//	r1 := testGroup(s1, s1.Cipher(abstract.NoKey))
+//	r2 := testGroup(s2, s2.Cipher(abstract.NoKey))
 
 	// Compare resulting Points
 	for i := range r1 {

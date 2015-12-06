@@ -72,6 +72,11 @@ func FromSponge(sponge Sponge, key []byte) State {
 	if key == nil {
 		key = random.Bytes(sponge.Capacity(), random.Fresh())
 	}
+	// XXX for a proper monkeyDuplex this if should be deleted,
+	// ensuring that "useful" pseudorandom output can be produced
+	// even before anything is absorbed -
+	// but first we need to decuple CipherHash
+	// (or the SHAKE impl that currently uses it).
 	if len(key) > 0 {
 		sc.Message(nil, nil, key)
 	}

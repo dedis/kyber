@@ -7,8 +7,8 @@ import (
 	"github.com/dedis/crypto/cipher/sha3"
 	"github.com/dedis/crypto/edwards/ed25519"
 	"github.com/dedis/crypto/nist"
-	"github.com/dedis/crypto/openssl"
 	"golang.org/x/net/context"
+	"fmt"
 )
 
 func ctx(parent abstract.Context) abstract.Context {
@@ -30,12 +30,6 @@ func suite(ctx abstract.Context, pub, sym withFunc) abstract.Suite {
 // using the P-256 curve and the SHAKE128 sponge cipher.
 func Nist128(parent abstract.Context) abstract.Suite {
 	return suite(parent, nist.WithP256, sha3.WithShake128)
-}
-
-// Create a NIST-based suite with 128-bit security,
-// equivalent to Nist128 but implemented using the OpenSSL library.
-func Nist128openssl(parent abstract.Context) abstract.Suite {
-	return suite(parent, openssl.WithP256, sha3.WithShake128)
 }
 
 // XXX add 384-bit and 512-bit NIST-based suites.
@@ -64,9 +58,17 @@ type Config func(parent abstract.Context) abstract.Suite
 func All() map[string]Config {
 	return map[string]Config{
 		"nist128":        Nist128,
-		"nist128openssl": Nist128openssl,
 		"ed128":          Ed128,
 	}
+}
+
+// Named returns the Config named by a string if any, or else an error.
+func Named(s string) (Config, error) {
+	suite, ok := All()[s]
+	if !ok {
+		return nil, fmt.Errorf("No suite named %s", s)
+	}
+	return suite, nil
 }
 
 // XXX add Stable() and Experimental() sub-lists?

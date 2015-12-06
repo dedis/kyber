@@ -1,3 +1,5 @@
+// +build experimental
+
 package openssl
 
 // #include <openssl/sha.h>

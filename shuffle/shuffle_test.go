@@ -1,9 +1,7 @@
 package shuffle
 
 import (
-	//"github.com/dedis/crypto/edwards"
 	"github.com/dedis/crypto/suite"
-	//"github.com/dedis/crypto/openssl"
 	"testing"
 )
 
@@ -26,10 +24,6 @@ func Benchmark2PairShuffleP256(b *testing.B) {
 
 func Benchmark10PairShuffleP256(b *testing.B) {
 	TestShuffle(nist.NewAES128SHA256P256(), 10, b.N)
-}
-
-func Benchmark10PairShuffleOSSLP256(b *testing.B) {
-	TestShuffle(openssl.NewAES128SHA256P256(), 10, b.N)
 }
 
 func BenchmarkBiffleEd25519(b *testing.B) {

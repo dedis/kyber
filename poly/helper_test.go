@@ -29,57 +29,40 @@ func generatePublicListFromPrivate(private []*config.KeyPair) []abstract.Point {
 	return l
 }
 
-// produce M receivers from their private/pub keys
-func generateReceivers(info PolyInfo, keys []*config.KeyPair) []*Receiver {
-	n := len(keys)
-	l := make([]*Receiver, n)
-	for i := 0; i < n; i++ {
-		l[i] = NewReceiver(info, keys[i])
-	}
-	return l
-}
-
-// Produce N dealers with the public keys of the M receivers
-func generateDealers(n int, info PolyInfo, receiverList []abstract.Point) []*Dealer {
-	d := make([]*Dealer, n)
-	for i := 0; i < n; i++ {
-		d[i] = NewDealer(info, generateKeyPair(), generateKeyPair(), receiverList)
-	}
-	return d
-}
-
 // Returns N dealers with M receivers with the right keys / public keys ...
-func generateNDealerMReceiver(info PolyInfo, n, m int) ([]*Dealer, []*Receiver) {
-	receiverKeys := generateKeyPairList(m)
+func generateNDealerMReceiver(info Threshold, ndeal, nrec int) ([]*Deal, []*Receiver) {
+	receiverKeys := generateKeyPairList(nrec)
 	receiverPublics := generatePublicListFromPrivate(receiverKeys)
-	receivers := generateReceivers(info, receiverKeys)
-	dealers := generateDealers(n, info, receiverPublics)
+	receivers := make([]*Receiver, nrec)
+	for i := 0; i < nrec; i++ {
+		receivers[i] = NewReceiver(testSuite, info, receiverKeys[i])
+	}
+	dealers := make([]*Deal, ndeal)
+	for i := 0; i < ndeal; i++ {
+		secret := generateKeyPair()
+		dealers[i] = new(Deal).ConstructDeal(secret, generateKeyPair(), info.T, info.R, receiverPublics)
+
+	}
+
 	return dealers, receivers
 }
 
 // Same as produceNDealerMReceiver except that it make the exchange of Dealer / Response
-func generateNMSetup(info PolyInfo, n, m int) ([]*Dealer, []*Receiver) {
-	dealers, receivers := generateNDealerMReceiver(info, n, m)
-	for i := 0; i < m; i++ {
-		for j := 0; j < n; j++ {
-			resp, err := receivers[i].AddDealer(i, dealers[j])
+func generateNMSetup(info Threshold, ndeal, nrec int) ([]*Deal, []*Receiver) {
+	dealers, receivers := generateNDealerMReceiver(info, ndeal, nrec)
+	for i := 0; i < nrec; i++ {
+		for j := 0; j < ndeal; j++ {
+			_, err := receivers[i].AddDeal(i, dealers[j])
 			if err != nil {
-				panic(fmt.Sprintf("Could not AddDealer %d on Receiver %d!", j, i))
+				panic(fmt.Sprintf("Could not AddDeal %d on Receiver %d!", j, i))
 			}
-			dealers[j].AddResponse(i, resp)
-		}
-	}
-	for j := 0; j < n; j++ {
-		err := dealers[j].Certified()
-		if err != nil {
-			panic(fmt.Sprintf("Dealer's %d promise is not certified !", j))
 		}
 	}
 	return dealers, receivers
 }
 
 // generateSharedSecret will return an array of SharedSecret structs
-func generateSharedSecrets(info PolyInfo) []*SharedSecret {
+func generateSharedSecrets(info Threshold) []*SharedSecret {
 	_, rs := generateNMSetup(info, info.N, info.N)
 	secrets := make([]*SharedSecret, len(rs)) // len(rs) == n
 	for i, _ := range rs {
@@ -94,11 +77,11 @@ func generateSharedSecrets(info PolyInfo) []*SharedSecret {
 
 // It will generate a long term array of schnorr structs
 // it basically represents a peer in the protocol
-func generateSchnorrStructs(info PolyInfo) []*Schnorr {
+func generateSchnorrStructs(info Threshold) []*Schnorr {
 	longterms := generateSharedSecrets(info)
 	schnorrs := make([]*Schnorr, info.N)
 	for i, _ := range longterms {
-		schnorrs[i] = NewSchnorr(info, longterms[i])
+		schnorrs[i] = NewSchnorr(testSuite, info, longterms[i])
 	}
 	return schnorrs
 }

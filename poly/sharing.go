@@ -30,7 +30,7 @@ import (
 // Private polynomial for Shamir secret sharing.
 type PriPoly struct {
 	suite abstract.Suite    // Cryptographic suite in use
-	s []abstract.Scalar // Coefficients of secret polynomial
+	s     []abstract.Scalar // Coefficients of secret polynomial
 }
 
 // Create a fresh sharing polynomial in the Secret space of a given group.
@@ -116,8 +116,8 @@ func (p *PriPoly) String() string {
 // Secret shares generated from a private polynomial.
 type PriShares struct {
 	suite abstract.Suite    // Cryptographic suite in use
-	k int               // Reconstruction threshold
-	s []abstract.Scalar // Secret shares, one per sharing party.
+	k     int               // Reconstruction threshold
+	s     []abstract.Scalar // Secret shares, one per sharing party.
 }
 
 // Create a desired number of secret-shares from a private polynomial,
@@ -223,8 +223,8 @@ func (ps *PriShares) String() string {
 // A public commitment to a secret-sharing polynomial.
 type PubPoly struct {
 	suite abstract.Suite   // Cryptographic suite to use
-	b abstract.Point   // Base point, nil for standard base
-	p []abstract.Point // Commitments to polynomial coefficients
+	b     abstract.Point   // Base point, nil for standard base
+	p     []abstract.Point // Commitments to polynomial coefficients
 }
 
 // Initialize to an empty polynomial for a given group and threshold (degree),
@@ -396,9 +396,9 @@ func (p *PubPoly) String() string {
 // Public commitments to shares generated from a private polynomial.
 type PubShares struct {
 	suite abstract.Suite   // Cryptographic suite in use
-	k int              // Reconstruction threshold
-	b abstract.Point   // Base point, nil for standard base
-	p []abstract.Point // Commitment shares, one per sharing party.
+	k     int              // Reconstruction threshold
+	b     abstract.Point   // Base point, nil for standard base
+	p     []abstract.Point // Commitment shares, one per sharing party.
 }
 
 // Create individual share commitments from a polynomial commitment,

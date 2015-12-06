@@ -3,16 +3,35 @@ package poly
 import (
 	"bytes"
 	"fmt"
+	"hash"
 	"testing"
+
+	"github.com/dedis/crypto/abstract"
 )
 
-var msg []byte = []byte("Hello World!")
+var m string = "Hello World"
+var msg hash.Hash
+
+func init() {
+	msg = testSuite.Hash(abstract.NoKey)
+	msg.Write([]byte(m))
+}
+
+func TestHashMessage(t *testing.T) {
+	tr := Threshold{T: 4, R: 4, N: 5}
+	point := testSuite.Point().Base()
+	s1 := new(Schnorr).Init(testSuite, tr, nil)
+	s2 := new(Schnorr).Init(testSuite, tr, nil)
+	h1, _ := s1.hashMessage(msg.Sum(nil), point)
+	h2, _ := s2.hashMessage(msg.Sum(nil), point)
+	if !h1.Equal(h2) {
+		t.Error("hash message does not produce equal hashes")
+	}
+}
 
 func TestNewRound(t *testing.T) {
-	SECURITY = MODERATE
-	defer func() { SECURITY = MAXIMUM }()
-	n := 3
-	pl := PolyInfo{2, n, n}
+	n := 5
+	pl := Threshold{4, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	randoms2 := generateSharedSecrets(pl)
@@ -33,10 +52,8 @@ func TestNewRound(t *testing.T) {
 }
 
 func TestRevealPartialSig(t *testing.T) {
-	SECURITY = MODERATE
-	defer func() { SECURITY = MAXIMUM }()
-	n := 3
-	pl := PolyInfo{2, n, n}
+	n := 6
+	pl := Threshold{4, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	for i, _ := range schnorrs {
@@ -60,10 +77,8 @@ func TestRevealPartialSig(t *testing.T) {
 }
 
 func TestAddPartialSig(t *testing.T) {
-	SECURITY = MODERATE
-	defer func() { SECURITY = MAXIMUM }()
-	n := 3
-	pl := PolyInfo{2, n, n}
+	n := 6
+	pl := Threshold{5, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	for i, _ := range schnorrs {
@@ -103,10 +118,8 @@ func TestAddPartialSig(t *testing.T) {
 }
 
 func TestSchnorrSig(t *testing.T) {
-	SECURITY = MODERATE
-	defer func() { SECURITY = MAXIMUM }()
-	n := 3
-	pl := PolyInfo{2, n, n}
+	n := 9
+	pl := Threshold{6, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	for i, _ := range schnorrs {
@@ -129,7 +142,7 @@ func TestSchnorrSig(t *testing.T) {
 	}
 	sig := make([]*SchnorrSig, n)
 	for i, _ := range schnorrs {
-		s, err := schnorrs[i].SchnorrSig()
+		s, err := schnorrs[i].Sig()
 		if err != nil {
 			t.Error(fmt.Sprintf("SchnorrSig should validate : %v", err))
 		}
@@ -149,10 +162,12 @@ func TestSchnorrSig(t *testing.T) {
 }
 
 func TestVerifySchnorrSig(t *testing.T) {
-	SECURITY = MODERATE
-	defer func() { SECURITY = MAXIMUM }()
-	n := 3
-	pl := PolyInfo{2, n, n}
+	n := 4
+	tt := 4
+	pl := Threshold{T: tt,
+		R: n,
+		N: n,
+	}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	for i, _ := range schnorrs {
@@ -173,18 +188,19 @@ func TestVerifySchnorrSig(t *testing.T) {
 			}
 		}
 	}
-	sig := make([]*SchnorrSig, n)
+	sig := make([]*SchnorrSig, len(schnorrs))
 	for i, _ := range schnorrs {
-		s, err := schnorrs[i].SchnorrSig()
+		s, err := schnorrs[i].Sig()
 		if err != nil {
 			t.Error(fmt.Sprintf("SchnorrSig should validate : %v", err))
 		}
 		sig[i] = s
 	}
-
 	// Verify the signature amongst each peers
 	for i, _ := range schnorrs {
-		err := schnorrs[i].VerifySchnorrSig(sig[0], msg)
+		newMsg := testSuite.Hash(abstract.NoKey)
+		newMsg.Write([]byte(m))
+		err := schnorrs[i].VerifySchnorrSig(sig[0], newMsg)
 		if err != nil {
 			t.Error(fmt.Sprintf("VerifySchnorrSig on peer %d should validate the signature : %v", i, err))
 		}
@@ -192,10 +208,8 @@ func TestVerifySchnorrSig(t *testing.T) {
 }
 
 func TestPartialSchnorrSigMarshalling(t *testing.T) {
-	SECURITY = MODERATE
-	defer func() { SECURITY = MAXIMUM }()
-	n := 3
-	pl := PolyInfo{2, n, n}
+	n := 10
+	pl := Threshold{7, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	for i, _ := range schnorrs {
@@ -206,14 +220,14 @@ func TestPartialSchnorrSigMarshalling(t *testing.T) {
 	}
 	ps := schnorrs[0].RevealPartialSig()
 	b := new(bytes.Buffer)
-	err := SUITE.Write(b, ps)
+	err := testSuite.Write(b, ps)
 	if err != nil {
 		t.Error(fmt.Sprintf("MarshalBinary on PartialSchnorrSig did not work : %v", err))
 	}
 	buf := b.Bytes()
 	bufReader := bytes.NewBuffer(buf)
-	ps2 := new(PartialSchnorrSig)
-	err = SUITE.Read(bufReader, ps2)
+	ps2 := new(SchnorrPartialSig)
+	err = testSuite.Read(bufReader, ps2)
 	if err != nil {
 		t.Error(fmt.Sprintf("UnmarshalBinary on PartialSchnorrSig did not work : %v", err))
 	}
@@ -224,10 +238,8 @@ func TestPartialSchnorrSigMarshalling(t *testing.T) {
 }
 
 func TestSchnorrSigMarshalling(t *testing.T) {
-	SECURITY = MODERATE
-	defer func() { SECURITY = MAXIMUM }()
 	n := 3
-	pl := PolyInfo{2, n, n}
+	pl := Threshold{2, n, n}
 	schnorrs := generateSchnorrStructs(pl)
 	randoms := generateSharedSecrets(pl)
 	for i, _ := range schnorrs {
@@ -248,17 +260,17 @@ func TestSchnorrSigMarshalling(t *testing.T) {
 			}
 		}
 	}
-	s, err := schnorrs[0].SchnorrSig()
+	s, err := schnorrs[0].Sig()
 	if err != nil {
 		t.Error(fmt.Sprintf("SchnorrSig should validate : %v", err))
 	}
 	b := new(bytes.Buffer)
-	err = SUITE.Write(b, s)
+	err = testSuite.Write(b, s)
 	if err != nil {
 		t.Error(fmt.Sprintf("SchnorrSig had error while Marshalling %v", err))
 	}
 	s2 := schnorrs[0].EmptySchnorrSig()
-	err = SUITE.Read(bytes.NewBuffer(b.Bytes()), s2)
+	err = testSuite.Read(bytes.NewBuffer(b.Bytes()), s2)
 	if err != nil {
 		t.Error(fmt.Sprintf("SchnorrSig Unmarshaling should have been correct : %v", err))
 	}

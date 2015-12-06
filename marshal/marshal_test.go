@@ -39,10 +39,10 @@ type test struct {
 	F32  float32
 	F64  float64
 
-	Bytes  []byte
-	Array  [3]byte
-	Struct emb
-
+	Bytes   []byte
+	Array   [3]byte
+	Struct  emb
+	StructP *emb
 	SBool   []mybool
 	SI32    []myint32
 	SI64    []myint64
@@ -71,6 +71,8 @@ func (t1 *test) equal(t2 *test) bool {
 		t1.F64 == t2.F64 &&
 		bytes.Equal(t1.Bytes, t2.Bytes) &&
 		t1.Struct.equal(&t2.Struct) &&
+		t1.StructP != nil && t2.StructP != nil &&
+		t1.StructP.equal(t2.StructP) &&
 		eqrep(t1.SBool, t2.SBool) && // repeated
 		eqrep(t1.SI32, t2.SI32) &&
 		eqrep(t1.SI64, t2.SI64) &&
@@ -86,7 +88,7 @@ func (t1 *test) equal(t2 *test) bool {
 func TestEncoding(t *testing.T) {
 
 	t1 := test{true, 0, -1, -2, 3, 4, 5.0, 6.0,
-		[]byte("789"), [3]byte{1, 2, 3}, emb{123},
+		[]byte("789"), [3]byte{1, 2, 3}, emb{123}, &emb{-1},
 		[]mybool{true, false, true},
 		[]myint32{1, -2, 3}, []myint64{2, -3, 4},
 		[]myuint32{3, 4, 5}, []myuint64{4, 5, 6},
@@ -116,4 +118,16 @@ func TestEncoding(t *testing.T) {
 	err = Read(context.Background(), &buf, &t2)
 	assert.NoError(t, err)
 	assert.Equal(t, t2, t1)
+
+	overflow := int(0x100000000)
+	defer func(t *testing.T) {
+		if r := recover(); r == nil {
+			t.Error("Putting a int > 32 bits into a int should have panicked")
+		}
+	}(t)
+	var b bytes.Buffer
+	err = Write(context.Background(), &b, overflow)
+	if err != nil {
+		t.Error("Overflow int produced error ...?")
+	}
 }
