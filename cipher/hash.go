@@ -6,8 +6,8 @@ import (
 
 // CipherHash wraps a generic mesage cipher to produce a Hash.
 type CipherHash struct {
-	orig, cur	State
-	size   int
+	orig, cur State
+	size      int
 }
 
 // interface representing an optional BlockSize method a Cipher may support

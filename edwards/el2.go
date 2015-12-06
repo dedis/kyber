@@ -4,19 +4,19 @@ import (
 	"math/big"
 	//"encoding/hex"
 	"crypto/cipher"
-	"github.com/dedis/crypto/math"
 	"github.com/dedis/crypto/group"
+	"github.com/dedis/crypto/math"
 )
 
 // Elligator 2 parameters
 type el2param struct {
-	ec     *curve   // back-pointer to curve
+	ec     *curve    // back-pointer to curve
 	u      group.Int // u: any non-square element
 	A, B   group.Int // Montgomery curve parameters
 	sqrtB  group.Int // sqrt(B)
 	negA   group.Int // -A
-	pp3d8  big.Int  // (p+3)/8
-	pm1d2  big.Int  // (p-1)/2
+	pp3d8  big.Int   // (p+3)/8
+	pm1d2  big.Int   // (p-1)/2
 	sqrtm1 group.Int // sqrt(-1)
 }
 

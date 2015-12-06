@@ -52,4 +52,3 @@ type Hiding interface {
 	// an attacker could use decoding as a hidden object detection test.
 	HideDecode(buf []byte)
 }
-

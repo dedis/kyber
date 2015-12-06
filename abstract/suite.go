@@ -121,4 +121,3 @@ var NoKey = cipher.NoKey
 
 // Pass FreshKey to a cipher constructor to create a freshly seeded cipher.
 var FreshKey = cipher.FreshKey
-

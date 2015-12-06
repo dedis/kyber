@@ -128,8 +128,6 @@ func (bs *bytestream) XORKeyStream(dst, src []byte) {
 	bs.bytes = bs.bytes[l:]
 }
 
-
-
 type randstream struct {
 }
 

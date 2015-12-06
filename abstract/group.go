@@ -246,4 +246,3 @@ func (p *Point) Unmarshal(ctx context.Context, r io.Reader) (int, error) {
 func NilPoint() Point {
 	return Point{nil}
 }
-

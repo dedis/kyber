@@ -17,7 +17,7 @@ import (
 // "Efficient identification and signatures for smart cards",
 // CRYPTO '89.
 type SchnorrScheme struct {
-	Suite abstract.Suite          // Ciphersuite to use
+	Suite abstract.Suite // Ciphersuite to use
 }
 
 // XXX maybe Scheme isn't really needed if we're exposing
@@ -42,7 +42,7 @@ func (s SchnorrScheme) SecretKey() SecretKey {
 // SchnorrPublicKey represents a public key for verifying Schnorr signatures.
 type SchnorrPublicKey struct {
 	Suite abstract.Suite // Crypto suite
-	Point abstract.Point  // Curve point representing public key
+	Point abstract.Point // Curve point representing public key
 }
 
 func (k *SchnorrPublicKey) Init(suite abstract.Suite) *SchnorrPublicKey {

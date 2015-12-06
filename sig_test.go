@@ -87,7 +87,7 @@ func ExampleSchnorr() {
 
 	// Create a public/private keypair (X,x)
 	x := suite.Scalar().Random(rand) // create a private key x
-	X := suite.Point().BaseMul(x)       // corresponding public key X
+	X := suite.Point().BaseMul(x)    // corresponding public key X
 
 	// Generate the signature
 	M := []byte("Hello World!") // message we want to sign

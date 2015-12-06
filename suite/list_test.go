@@ -19,7 +19,7 @@ func TestNamed(t *testing.T) {
 	if err == nil {
 		t.Fatal("Shouldn't find suite 'unknown'")
 	}
-/* not sure what positive text makes sense for function-pointer Config
+	/* not sure what positive text makes sense for function-pointer Config
 	s := All()
 	for n := range s {
 		search, _ := Named(n)
@@ -27,5 +27,5 @@ func TestNamed(t *testing.T) {
 			t.Fatal("Suite", n, "returned", search.String())
 		}
 	}
-*/
+	*/
 }

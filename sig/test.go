@@ -2,8 +2,8 @@ package sig
 
 import (
 	"bytes"
-	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/marshal"
+	"github.com/dedis/crypto/random"
 	"github.com/stretchr/testify/assert"
 	"hash"
 	"io"

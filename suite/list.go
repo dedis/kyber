@@ -3,12 +3,12 @@
 package suite
 
 import (
+	"fmt"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher/sha3"
 	"github.com/dedis/crypto/edwards/ed25519"
 	"github.com/dedis/crypto/nist"
 	"golang.org/x/net/context"
-	"fmt"
 )
 
 func ctx(parent abstract.Context) abstract.Context {
@@ -57,8 +57,8 @@ type Config func(parent abstract.Context) abstract.Suite
 
 func All() map[string]Config {
 	return map[string]Config{
-		"nist128":        Nist128,
-		"ed128":          Ed128,
+		"nist128": Nist128,
+		"ed128":   Ed128,
 	}
 }
 

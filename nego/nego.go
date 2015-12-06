@@ -369,7 +369,7 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 		var buf []byte
 		for {
 			pri.Random(rand) // pick fresh secret
-			pub.BaseMul(pri)    // get DH public key
+			pub.BaseMul(pri) // get DH public key
 			buf = pub.(abstract.Hiding).HideEncode(rand)
 			if buf != nil {
 				break

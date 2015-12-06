@@ -4,8 +4,8 @@ import (
 	"math/big"
 	//"encoding/hex"
 	"crypto/cipher"
-	"github.com/dedis/crypto/math"
 	"github.com/dedis/crypto/group"
+	"github.com/dedis/crypto/math"
 )
 
 func chi(r, v *group.Int) {
@@ -14,11 +14,11 @@ func chi(r, v *group.Int) {
 
 // Elligator 1 parameters
 type el1param struct {
-	ec      *curve   // back-pointer to curve
+	ec      *curve    // back-pointer to curve
 	c, r, s group.Int // c,r,s parameters
 	r2m2    group.Int // r^2-2
 	invc2   group.Int // 1/c^2
-	pp1d4   big.Int  // (p+1)/4
+	pp1d4   big.Int   // (p+1)/4
 	cm1s    group.Int // (c-1)s
 	m2      group.Int // -2
 	c3x     group.Int // 2s(c-1)Chi(c)/r

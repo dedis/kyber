@@ -17,4 +17,3 @@ func BenchmarkNORX_1K(b *testing.B) {
 func BenchmarkNORX_1M(b *testing.B) {
 	benchmarkCipher(b, norx.NewCipher(abstract.NoKey), 1024*1024)
 }
-
