@@ -31,7 +31,7 @@ type deniableProver struct {
 	dv []*deniableVerifier
 
 	// per-step state
-	key  []byte        // Secret pre-challenge we committed to
+	key  []byte        // Scalar pre-challenge we committed to
 	msg  *bytes.Buffer // Buffer in which to build prover msg
 	msgs [][]byte      // All messages from last proof step
 

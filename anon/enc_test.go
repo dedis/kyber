@@ -6,20 +6,20 @@ import (
 	//"testing"
 	"encoding/hex"
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/openssl"
+	"github.com/dedis/crypto/suite"
 )
 
 func ExampleEncrypt_1() {
 
 	// Crypto setup
-	suite := openssl.NewAES128SHA256P256()
+	suite := suite.Default(nil)
 	rand := suite.Cipher([]byte("example"))
 
 	// Create a public/private keypair (X[mine],x)
 	X := make([]abstract.Point, 1)
-	mine := 0                           // which public key is mine
-	x := suite.Secret().Pick(rand)      // create a private key x
-	X[mine] = suite.Point().Mul(nil, x) // corresponding public key X
+	mine := 0                          // which public key is mine
+	x := suite.Scalar().Random(rand)   // create a private key x
+	X[mine] = suite.Point().BaseMul(x) // corresponding public key X
 
 	// Encrypt a message with the public key
 	M := []byte("Hello World!") // message to encrypt
@@ -38,31 +38,31 @@ func ExampleEncrypt_1() {
 
 	// Output:
 	// Encryption of 'Hello World!':
-	// 00000000  02 23 62 b1 f9 cb f4 a2  6d 7f 3e 69 cb b6 77 ab  |.#b.....m.>i..w.|
-	// 00000010  90 fc 7c db a0 c6 e8 12  f2 0a d4 40 a4 b6 c4 de  |..|........@....|
-	// 00000020  9e 5a 8a 1d 5b e4 96 f7  a9 cb 78 4e 8e ee 23 6b  |.Z..[.....xN..#k|
-	// 00000030  f3 5c fc 85 95 59 b0 81  72 bc e2 7b bf d5 1f c1  |.\...Y..r..{....|
-	// 00000040  5f d2 08 9a e5 f0 d9 3c  6b 0d 83 35 6d 15 b1 93  |_......<k..5m...|
-	// 00000050  af 1d a2 17 df db 3c 2b  89 32 1b 62 1b           |......<+.2.b.|
+	// 00000000  80 63 15 19 7f 91 5f 81  94 40 3b a0 7b cd b2 53  |.c...._..@;.{..S|
+	// 00000010  39 e6 09 e8 dd 6b 33 9a  4a fa cc 6b b5 aa ef 52  |9....k3.J..k...R|
+	// 00000020  6d 0f 62 25 4f e8 3a 83  55 18 1a c3 5f 88 fc 1c  |m.b%O.:.U..._...|
+	// 00000030  1e 97 dc 03 9d 3b 3e a4  07 08 0a 92 6c 10 9a 09  |.....;>.....l...|
+	// 00000040  a6 51 09 9f 3c b6 65 0e  1d 9e 06 51 11 b2 01 1c  |.Q..<.e....Q....|
+	// 00000050  84 43 ab fd 4a 32 e4 b2  1d d9 61 da              |.C..J2....a.|
 	// Decrypted: 'Hello World!'
 }
 
 func ExampleEncrypt_anonSet() {
 
 	// Crypto setup
-	suite := openssl.NewAES128SHA256P256()
+	suite := suite.Default(nil)
 	rand := suite.Cipher([]byte("example"))
 
 	// Create an anonymity set of random "public keys"
 	X := make([]abstract.Point, 3)
 	for i := range X { // pick random points
-		X[i], _ = suite.Point().Pick(nil, rand)
+		X[i] = suite.Point().Random(rand)
 	}
 
 	// Make just one of them an actual public/private keypair (X[mine],x)
-	mine := 1                           // only the signer knows this
-	x := suite.Secret().Pick(rand)      // create a private key x
-	X[mine] = suite.Point().Mul(nil, x) // corresponding public key X
+	mine := 1                          // only the signer knows this
+	x := suite.Scalar().Random(rand)   // create a private key x
+	X[mine] = suite.Point().BaseMul(x) // corresponding public key X
 
 	// Encrypt a message with all the public keys
 	M := []byte("Hello World!") // message to encrypt
@@ -81,15 +81,15 @@ func ExampleEncrypt_anonSet() {
 
 	// Output:
 	// Encryption of 'Hello World!':
-	// 00000000  02 c2 6c b8 1b 87 94 1d  71 c8 50 63 75 e1 80 5e  |..l.....q.Pcu..^|
-	// 00000010  b2 b8 1a d6 10 be 1a c6  35 bf b9 c0 cb af 67 d0  |........5.....g.|
-	// 00000020  c1 38 04 f2 7e 70 c0 0e  ce 2a 3e 8d a4 1a 8f d8  |.8..~p...*>.....|
-	// 00000030  c6 ca 2d 81 2a 50 d0 4e  96 74 2a 8b 44 22 12 5f  |..-.*P.N.t*.D"._|
-	// 00000040  57 73 d1 1f a3 a9 21 96  2e e3 bd 77 bf 3b 3f a7  |Ws....!....w.;?.|
-	// 00000050  b7 aa 91 37 7d d6 12 c6  73 db 9f 01 fd b3 f6 b6  |...7}...s.......|
-	// 00000060  82 cf 0d e1 5c 57 ac 8e  82 72 20 06 af 70 90 15  |....\W...r ..p..|
-	// 00000070  cb 5c f5 87 8d 39 3a 29  66 8e df 62 3d b0 ba fa  |.\...9:)f..b=...|
-	// 00000080  3f 38 83 eb 92 62 fd 33  cb b0 76 ae e1 af 60 f3  |?8...b.3..v...`.|
-	// 00000090  7b ba 1d ef b0 2a 7a 19  a5 92 23 fa d3           |{....*z...#..|
+	// 00000000  62 f9 88 18 91 74 d4 29  37 3c aa 51 53 75 e7 96  |b....t.)7<.QSu..|
+	// 00000010  cf ea 66 18 7c ce 47 c3  e3 73 5e 36 d1 6b fb e0  |..f.|.G..s^6.k..|
+	// 00000020  40 75 1e 24 9d 4e dd cc  3e 65 0b 41 c4 5b ac 3e  |@u.$.N..>e.A.[.>|
+	// 00000030  4f 6c de 7c 5a d0 e4 b7  87 0b c6 4c 06 bf c9 7c  |Ol.|Z......L...||
+	// 00000040  be 8a 57 7e 0a 80 24 b8  13 b6 6e 1a e6 a3 a3 4d  |..W~..$...n....M|
+	// 00000050  cd c7 84 7c 89 ca 2d 24  31 e1 4a 2a 90 af 52 d8  |...|..-$1.J*..R.|
+	// 00000060  98 82 4a df d8 b0 56 13  55 c9 d6 e4 11 1c 1a 71  |..J...V.U......q|
+	// 00000070  bf 75 2a a4 2e d6 16 e4  59 da 4f e9 5e 21 d4 97  |.u*.....Y.O.^!..|
+	// 00000080  cf 1d 70 85 84 52 d0 80  b4 5f fb a2 c1 dd 2d d6  |..p..R..._....-.|
+	// 00000090  65 12 29 1a d1 07 88 2b  87 36 99 8f              |e.)....+.6..|
 	// Decrypted: 'Hello World!'
 }

@@ -1,3 +1,5 @@
+// +build experimental
+
 // Package NORX implements the experimental NORX cipher.
 // For details on the NORX cipher see https://norx.io
 // This package is very experimental and NOT for use in prodution systems.
@@ -8,7 +10,6 @@ package norx
 
 import (
 	"encoding/binary"
-	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher"
 )
 
@@ -49,6 +50,6 @@ func newSponge() cipher.Sponge {
 }
 
 // NewCipher creates a Cipher implementing the 64-4-1 mode of NORX.
-func NewCipher(key []byte, options ...interface{}) abstract.Cipher {
-	return cipher.FromSponge(newSponge(), key, options...)
+func NewCipher(key []byte) cipher.State {
+	return cipher.FromSponge(newSponge(), key)
 }

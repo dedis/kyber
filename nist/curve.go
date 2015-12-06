@@ -8,9 +8,9 @@ import (
 	"crypto/cipher"
 	"crypto/elliptic"
 
-	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/random"
+	"golang.org/x/net/context"
 )
 
 type curvePoint struct {
@@ -22,7 +22,19 @@ func (p *curvePoint) String() string {
 	return "(" + p.x.String() + "," + p.y.String() + ")"
 }
 
-func (p *curvePoint) Equal(p2 abstract.Point) bool {
+func (p *curvePoint) New() group.Element {
+	n := new(curvePoint)
+	n.c = p.c
+	return n
+}
+
+func (p *curvePoint) Set(a group.Element) group.Element {
+	ca := a.(*curvePoint)
+	*p = *ca
+	return p
+}
+
+func (p *curvePoint) Equal(p2 group.Element) bool {
 	cp2 := p2.(*curvePoint)
 
 	// Make sure both coordinates are normalized.
@@ -36,13 +48,13 @@ func (p *curvePoint) Equal(p2 abstract.Point) bool {
 	return p.x.Cmp(cp2.x) == 0 && p.y.Cmp(cp2.y) == 0
 }
 
-func (p *curvePoint) Null() abstract.Point {
+func (p *curvePoint) Zero() group.Element {
 	p.x = new(big.Int).SetInt64(0)
 	p.y = new(big.Int).SetInt64(0)
 	return p
 }
 
-func (p *curvePoint) Base() abstract.Point {
+func (p *curvePoint) One() group.Element {
 	p.x = p.c.p.Gx
 	p.y = p.c.p.Gy
 	return p
@@ -99,7 +111,7 @@ func (p *curvePoint) PickLen() int {
 
 // Pick a curve point containing a variable amount of embedded data.
 // Remaining bits comprising the point are chosen randomly.
-func (p *curvePoint) Pick(data []byte, rand cipher.Stream) (abstract.Point, []byte) {
+func (p *curvePoint) Pick(data []byte, rand cipher.Stream) []byte {
 
 	l := p.c.coordLen()
 	dl := p.PickLen()
@@ -114,7 +126,7 @@ func (p *curvePoint) Pick(data []byte, rand cipher.Stream) (abstract.Point, []by
 			copy(b[l-dl-1:l-1], data) // Copy in data to embed
 		}
 		if p.genPoint(new(big.Int).SetBytes(b), rand) {
-			return p, data[dl:]
+			return data[dl:]
 		}
 	}
 }
@@ -133,33 +145,29 @@ func (p *curvePoint) Data() ([]byte, error) {
 	return b[l-dl-1 : l-1], nil
 }
 
-func (p *curvePoint) Add(a, b abstract.Point) abstract.Point {
+func (p *curvePoint) Add(a, b group.Element) group.Element {
 	ca := a.(*curvePoint)
 	cb := b.(*curvePoint)
 	p.x, p.y = p.c.Add(ca.x, ca.y, cb.x, cb.y)
 	return p
 }
 
-func (p *curvePoint) Sub(a, b abstract.Point) abstract.Point {
-	ca := a.(*curvePoint)
-	cb := b.(*curvePoint)
-
-	// XXX a pretty non-optimal implementation of point subtraction...
-	cbn := p.c.Point().Neg(cb).(*curvePoint)
-	p.x, p.y = p.c.Add(ca.x, ca.y, cbn.x, cbn.y)
+func (p *curvePoint) Sub(a, b group.Element) group.Element {
+	group.Sub(p, a, b) // XXX non-optimal default implementation
 	return p
 }
 
-func (p *curvePoint) Neg(a abstract.Point) abstract.Point {
+func (p *curvePoint) Neg(a group.Element) group.Element {
 
 	// XXX a pretty non-optimal implementation of point negation...
-	s := p.c.Secret().One()
+	s := p.c.Scalar().One()
 	s.Neg(s)
-	return p.Mul(a, s).(*curvePoint)
+	p.Mul(a, s)
+	return p
 }
 
-func (p *curvePoint) Mul(b abstract.Point, s abstract.Secret) abstract.Point {
-	cs := s.(*Int)
+func (p *curvePoint) Mul(b, s group.Element) group.Element {
+	cs := s.(*group.Int)
 	if b != nil {
 		cb := b.(*curvePoint)
 		p.x, p.y = p.c.ScalarMult(cb.x, cb.y, cs.V.Bytes())
@@ -179,19 +187,32 @@ func (p *curvePoint) MarshalBinary() ([]byte, error) {
 }
 
 func (p *curvePoint) UnmarshalBinary(buf []byte) error {
-	p.x, p.y = elliptic.Unmarshal(p.c, buf)
-	if p.x == nil || !p.Valid() {
-		return errors.New("invalid elliptic curve point")
+	// Check whether all bytes after first one are 0, so we
+	// just return the initial point. Read everything to
+	// prevent timing-leakage.
+	var c byte = 0
+	for _, b := range buf[1:] {
+		c |= b
+	}
+	if c != 0 {
+		p.x, p.y = elliptic.Unmarshal(p.c, buf)
+		if p.x == nil || !p.Valid() {
+			return errors.New("invalid elliptic curve point")
+		}
+	} else {
+		// All bytes are 0, so we initialize x and y
+		p.x = big.NewInt(0)
+		p.y = big.NewInt(0)
 	}
 	return nil
 }
 
-func (p *curvePoint) MarshalTo(w io.Writer) (int, error) {
-	return group.PointMarshalTo(p, w)
+func (p *curvePoint) Marshal(c context.Context, w io.Writer) (int, error) {
+	return group.Marshal(c, p, w)
 }
 
-func (p *curvePoint) UnmarshalFrom(r io.Reader) (int, error) {
-	return group.PointUnmarshalFrom(p, r)
+func (p *curvePoint) Unmarshal(c context.Context, r io.Reader) (int, error) {
+	return group.Unmarshal(c, p, r)
 }
 
 // interface for curve-specifc mathematical functions
@@ -212,12 +233,12 @@ func (g *curve) PrimeOrder() bool {
 	return true
 }
 
-// Return the number of bytes in the encoding of a Secret for this curve.
-func (c *curve) SecretLen() int { return (c.p.N.BitLen() + 7) / 8 }
+// Return the number of bytes in the encoding of a Scalar for this curve.
+func (c *curve) ScalarLen() int { return (c.p.N.BitLen() + 7) / 8 }
 
-// Create a Secret associated with this curve.
-func (c *curve) Secret() abstract.Secret {
-	return NewInt(0, c.p.N)
+// Create a Scalar associated with this curve.
+func (c *curve) Scalar() group.FieldElement {
+	return group.NewInt(0, c.p.N)
 }
 
 // Number of bytes required to store one coordinate on this curve
@@ -228,15 +249,13 @@ func (c *curve) coordLen() int {
 // Return the number of bytes in the encoding of a Point for this curve.
 // Currently uses uncompressed ANSI X9.62 format with both X and Y coordinates;
 // this could change.
-func (c *curve) PointLen() int {
+func (c *curve) ElementLen() int {
 	return 1 + 2*c.coordLen() // ANSI X9.62: 1 header byte plus 2 coords
 }
 
 // Create a Point associated with this curve.
-func (c *curve) Point() abstract.Point {
-	p := new(curvePoint)
-	p.c = c
-	return p
+func (c *curve) Element() group.Element {
+	return &curvePoint{nil, nil, c}
 }
 
 // Return the order of this curve: the prime N in the curve parameters.

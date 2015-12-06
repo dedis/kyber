@@ -4,36 +4,37 @@ import (
 	"math/big"
 	//"encoding/hex"
 	"crypto/cipher"
+	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/math"
-	"github.com/dedis/crypto/nist"
 )
 
-func chi(r, v *nist.Int) {
+func chi(r, v *group.Int) {
 	r.Init64(int64(math.Jacobi(&v.V, v.M)), v.M)
 }
 
 // Elligator 1 parameters
 type el1param struct {
-	ec      *curve   // back-pointer to curve
-	c, r, s nist.Int // c,r,s parameters
-	r2m2    nist.Int // r^2-2
-	invc2   nist.Int // 1/c^2
-	pp1d4   big.Int  // (p+1)/4
-	cm1s    nist.Int // (c-1)s
-	m2      nist.Int // -2
-	c3x     nist.Int // 2s(c-1)Chi(c)/r
+	ec      *curve    // back-pointer to curve
+	c, r, s group.Int // c,r,s parameters
+	r2m2    group.Int // r^2-2
+	invc2   group.Int // 1/c^2
+	pp1d4   big.Int   // (p+1)/4
+	cm1s    group.Int // (c-1)s
+	m2      group.Int // -2
+	c3x     group.Int // 2s(c-1)Chi(c)/r
 }
 
 // Initialize Elligator 1 parameters given magic point s
 func (el *el1param) init(ec *curve, s *big.Int) *el1param {
-	var two, invc, cm1, d nist.Int
+	var two, invc, cm1, d group.Int
 
 	el.ec = ec
 	el.s.Init(s, &ec.P)
 
 	// c = 2/s^2
 	two.Init64(2, &ec.P)
-	el.c.Mul(&el.s, &el.s).Div(&two, &el.c)
+	el.c.Mul(&el.s, &el.s)
+	el.c.Div(&two, &el.c)
 
 	// r = c+1/c
 	invc.Inv(&el.c)
@@ -53,7 +54,8 @@ func (el *el1param) init(ec *curve, s *big.Int) *el1param {
 	el.c3x.Div(&el.c3x, &el.r)
 
 	// Sanity check: d = -(c+1)^2/(c-1)^2
-	d.Add(&el.c, &ec.one).Div(&d, &cm1).Mul(&d, &d).Neg(&d)
+	d.Add(&el.c, &ec.one)
+	d.Div(&d, &cm1).Mul(&d, &d).Neg(&d)
 	if d.Cmp(&ec.d) != 0 {
 		panic("el1 init: d came out wrong")
 	}
@@ -62,7 +64,7 @@ func (el *el1param) init(ec *curve, s *big.Int) *el1param {
 }
 
 func (el *el1param) HideLen() int {
-	return el.ec.PointLen()
+	return el.ec.ElementLen()
 }
 
 // Produce a mask representing the padding bits we'll need
@@ -78,9 +80,9 @@ func (el *el1param) padmask() byte {
 // See section 3.2 of the Elligator paper.
 func (el *el1param) HideDecode(P point, rep []byte) {
 	ec := el.ec
-	var t, u, u2, v, Chiv, X, Y, x, y, t1, t2 nist.Int
+	var t, u, u2, v, Chiv, X, Y, x, y, t1, t2 group.Int
 
-	l := ec.PointLen()
+	l := ec.ElementLen()
 	if len(rep) != l {
 		panic("el1Map: wrong representative length")
 	}
@@ -111,7 +113,8 @@ func (el *el1param) HideDecode(P point, rep []byte) {
 	Y.Exp(&Y, &el.pp1d4).Mul(&Y, &Chiv).Mul(&Y, &t1)
 
 	// x = (c-1)sX(1+X)/Y
-	x.Add(&ec.one, &X).Mul(&X, &x).Mul(&el.cm1s, &x).Div(&x, &Y)
+	x.Add(&ec.one, &X).Mul(&X, &x).Mul(&el.cm1s, &x)
+	x.Div(&x, &Y)
 
 	// y = (rX-(1+X)^2)/(rX+(1+X)^2)
 	t1.Mul(&el.r, &X)                 // t1 = rX
@@ -132,7 +135,7 @@ func (el *el1param) HideDecode(P point, rep []byte) {
 func (el *el1param) HideEncode(P point, rand cipher.Stream) []byte {
 	ec := el.ec
 	x, y := P.getXY()
-	var a, b, etar, etarp1, X, z, u, t, t1 nist.Int
+	var a, b, etar, etarp1, X, z, u, t, t1 group.Int
 
 	// condition 1: a = y+1 is nonzero
 	a.Add(y, &ec.one)
@@ -142,7 +145,8 @@ func (el *el1param) HideEncode(P point, rand cipher.Stream) []byte {
 
 	// etar = r(y-1)/2(y+1)
 	t1.Add(y, &ec.one).Add(&t1, &t1) // 2(y+1)
-	etar.Sub(y, &ec.one).Mul(&etar, &el.r).Div(&etar, &t1)
+	etar.Sub(y, &ec.one).Mul(&etar, &el.r)
+	etar.Div(&etar, &t1)
 
 	// condition 2: b = (1 + eta r)^2 - 1 is a square
 	etarp1.Add(&ec.one, &etar) // etarp1 = (1 + eta r)

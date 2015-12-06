@@ -9,26 +9,26 @@ import (
 
 // XXX belongs in crypto package?
 func keyPair(suite abstract.Suite, rand cipher.Stream,
-	hide bool) (abstract.Point, abstract.Secret, []byte) {
+	hide bool) (abstract.Point, abstract.Scalar, []byte) {
 
-	x := suite.Secret().Pick(rand)
-	X := suite.Point().Mul(nil, x)
+	x := suite.Scalar().Random(rand)
+	X := suite.Point().BaseMul(x)
 	if !hide {
 		Xb, _ := X.MarshalBinary()
 		return X, x, Xb
 	}
-	Xh := X.(abstract.Hiding)
+	Xh := X.Element.(abstract.Hiding)
 	for {
 		Xb := Xh.HideEncode(rand) // try to encode as uniform blob
 		if Xb != nil {
 			return X, x, Xb // success
 		}
-		x.Pick(rand) // try again with a new key
-		X.Mul(nil, x)
+		x.Random(rand) // try again with a new key
+		X.BaseMul(x)
 	}
 }
 
-func header(suite abstract.Suite, X abstract.Point, x abstract.Secret,
+func header(suite abstract.Suite, X abstract.Point, x abstract.Scalar,
 	Xb, xb []byte, anonymitySet Set) []byte {
 
 	//fmt.Printf("Xb %s\nxb %s\n",
@@ -65,19 +65,19 @@ func encryptKey(suite abstract.Suite, rand cipher.Stream,
 // Decrypt and verify a key encrypted via encryptKey.
 // On success, returns the key and the length of the decrypted header.
 func decryptKey(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
-	mine int, privateKey abstract.Secret,
+	mine int, privateKey abstract.Scalar,
 	hide bool) ([]byte, int, error) {
 
 	// Decode the (supposed) ephemeral public key from the front
 	X := suite.Point()
 	var Xb []byte
 	if hide {
-		Xh := X.(abstract.Hiding)
+		Xh := X.Element.(abstract.Hiding)
 		hidelen := Xh.HideLen()
 		if len(ciphertext) < hidelen {
 			return nil, 0, errors.New("ciphertext too short")
 		}
-		X.(abstract.Hiding).HideDecode(ciphertext[:hidelen])
+		Xh.HideDecode(ciphertext[:hidelen])
 		Xb = ciphertext[:hidelen]
 	} else {
 		enclen := X.MarshalSize()
@@ -96,7 +96,7 @@ func decryptKey(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
 	if mine < 0 || mine >= nkeys {
 		panic("private-key index out of range")
 	}
-	seclen := suite.SecretLen()
+	seclen := suite.ScalarLen()
 	if len(ciphertext) < Xblen+seclen*nkeys {
 		return nil, 0, errors.New("ciphertext too short")
 	}
@@ -106,13 +106,13 @@ func decryptKey(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
 	xb := make([]byte, seclen)
 	secofs := Xblen + seclen*mine
 	cipher.Partial(xb, ciphertext[secofs:secofs+seclen], nil)
-	x := suite.Secret()
+	x := suite.Scalar()
 	if err := x.UnmarshalBinary(xb); err != nil {
 		return nil, 0, err
 	}
 
 	// Make sure it reproduces the correct ephemeral public key
-	Xv := suite.Point().Mul(nil, x)
+	Xv := suite.Point().BaseMul(x)
 	if !X.Equal(Xv) {
 		return nil, 0, errors.New("invalid ciphertext")
 	}
@@ -180,7 +180,7 @@ func Encrypt(suite abstract.Suite, rand cipher.Stream, message []byte,
 // that will be accepted by the receiver without knowing the plaintext.
 //
 func Decrypt(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
-	mine int, privateKey abstract.Secret, hide bool) ([]byte, error) {
+	mine int, privateKey abstract.Scalar, hide bool) ([]byte, error) {
 
 	// Decrypt and check the encrypted key-header.
 	xb, hdrlen, err := decryptKey(suite, ciphertext, anonymitySet,

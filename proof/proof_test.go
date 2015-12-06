@@ -4,18 +4,18 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/openssl"
+	"github.com/dedis/crypto/suite"
 	"testing"
 )
 
 func TestRep(t *testing.T) {
-	suite := openssl.NewAES128SHA256P256()
-	rand := suite.Cipher(abstract.RandomKey)
+	suite := suite.Default(nil)
+	rand := suite.Cipher(abstract.FreshKey)
 
-	x := suite.Secret().Pick(rand)
-	y := suite.Secret().Pick(rand)
+	x := suite.Scalar().Random(rand)
+	y := suite.Scalar().Random(rand)
 	B := suite.Point().Base()
-	X := suite.Point().Mul(nil, x)
+	X := suite.Point().BaseMul(x)
 	Y := suite.Point().Mul(X, y)
 	R := suite.Point().Add(X, Y)
 
@@ -50,7 +50,7 @@ func TestRep(t *testing.T) {
 	pred := Or(or1x, or2x)
 	choice[pred] = 0
 
-	sval := map[string]abstract.Secret{"x": x, "y": y}
+	sval := map[string]abstract.Scalar{"x": x, "y": y}
 	pval := map[string]abstract.Point{"B": B, "X": X, "Y": Y, "R": R}
 	prover := pred.Prover(suite, sval, pval, choice)
 	proof, err := HashProve(suite, "TEST", rand, prover)
@@ -84,16 +84,16 @@ func ExampleRep_2() {
 	fmt.Println(pred.String())
 
 	// Crypto setup
-	suite := openssl.NewAES128SHA256P256()
+	suite := suite.Default(nil)
 	rand := suite.Cipher([]byte("example"))
 	B := suite.Point().Base() // standard base point
 
 	// Create a public/private keypair (X,x)
-	x := suite.Secret().Pick(rand) // create a private key x
-	X := suite.Point().Mul(nil, x) // corresponding public key X
+	x := suite.Scalar().Random(rand) // create a private key x
+	X := suite.Point().BaseMul(x)    // corresponding public key X
 
 	// Generate a proof that we know the discrete logarithm of X.
-	sval := map[string]abstract.Secret{"x": x}
+	sval := map[string]abstract.Scalar{"x": x}
 	pval := map[string]abstract.Point{"B": B, "X": X}
 	prover := pred.Prover(suite, sval, pval, nil)
 	proof, _ := HashProve(suite, "TEST", rand, prover)
@@ -110,11 +110,10 @@ func ExampleRep_2() {
 	// Output:
 	// X=x*B
 	// Proof:
-	// 00000000  02 23 62 b1 f9 cb f4 a2  6d 7f 3e 69 cb b6 77 ab  |.#b.....m.>i..w.|
-	// 00000010  90 fc 7c db a0 c6 e8 12  f2 0a d4 40 a4 b6 c4 de  |..|........@....|
-	// 00000020  9e 53 67 12 c7 31 0a 92  ed 76 c4 4d 2c 4b fc 2c  |.Sg..1...v.M,K.,|
-	// 00000030  56 db 2d 8a 84 ec 5d e5  31 17 80 76 a8 ea 46 04  |V.-...].1..v..F.|
-	// 00000040  c8                                                |.|
+	// 00000000  80 63 15 19 7f 91 5f 81  94 40 3b a0 7b cd b2 53  |.c...._..@;.{..S|
+	// 00000010  39 e6 09 e8 dd 6b 33 9a  4a fa cc 6b b5 aa ef 52  |9....k3.J..k...R|
+	// 00000020  0a af 3e f6 39 5e a4 7f  60 b5 15 ac 10 82 1c ee  |..>.9^..`.......|
+	// 00000030  9f 70 7a e1 2a 7e 20 c3  ad 9a 8b b7 f2 6e 30 ae  |.pz.*~ ......n0.|
 	// Proof verified.
 }
 
@@ -196,14 +195,14 @@ func ExampleOr_2() {
 	fmt.Println("Predicate: " + pred.String())
 
 	// Crypto setup
-	suite := openssl.NewAES128SHA256P256()
+	suite := suite.Default(nil)
 	rand := suite.Cipher([]byte("example"))
 	B := suite.Point().Base() // standard base point
 
 	// Create a public/private keypair (X,x) and a random point Y
-	x := suite.Secret().Pick(rand)        // create a private key x
-	X := suite.Point().Mul(nil, x)        // corresponding public key X
-	Y, _ := suite.Point().Pick(nil, rand) // pick a random point Y
+	x := suite.Scalar().Random(rand) // create a private key x
+	X := suite.Point().BaseMul(x)    // corresponding public key X
+	Y := suite.Point().Random(rand)  // pick a random point Y
 
 	// We'll need to tell the prover which Or clause is actually true.
 	// In this case clause 0, the first sub-predicate, is true:
@@ -212,7 +211,7 @@ func ExampleOr_2() {
 	choice[pred] = 0
 
 	// Generate a proof that we know the discrete logarithm of X or Y.
-	sval := map[string]abstract.Secret{"x": x}
+	sval := map[string]abstract.Scalar{"x": x}
 	pval := map[string]abstract.Point{"B": B, "X": X, "Y": Y}
 	prover := pred.Prover(suite, sval, pval, choice)
 	proof, _ := HashProve(suite, "TEST", rand, prover)
@@ -230,18 +229,17 @@ func ExampleOr_2() {
 	// Output:
 	// Predicate: X=x*B || Y=y*B
 	// Proof:
-	// 00000000  02 af 84 ed e5 86 04 cf  81 e4 18 17 84 0c 39 ab  |..............9.|
-	// 00000010  fe 5c bc cc 00 85 e0 a2  ee aa d5 22 18 dd c4 a1  |.\........."....|
-	// 00000020  5b 03 df 9c 59 21 0e 1c  44 99 23 a1 54 92 21 c9  |[...Y!..D.#.T.!.|
-	// 00000030  d6 b3 84 85 ad 87 dd a3  64 c0 b9 eb 4d 92 5b cb  |........d...M.[.|
-	// 00000040  c6 4f e7 67 95 36 6a e4  e7 ca b5 14 b7 99 16 60  |.O.g.6j........`|
-	// 00000050  71 91 ad b0 f1 86 43 df  6a 45 1f cb a2 93 7e b3  |q.....C.jE....~.|
-	// 00000060  b5 7b 32 17 7d 53 c5 e4  48 79 49 b2 3e 1e e2 62  |.{2.}S..HyI.>..b|
-	// 00000070  39 08 13 d5 2e f8 c5 e9  c1 28 09 91 7a 95 c9 12  |9........(..z...|
-	// 00000080  17 85 f5 eb 2d 8e 6b 37  3a b5 ff 45 25 e7 0c aa  |....-.k7:..E%...|
-	// 00000090  94 43 cf 67 52 2e 1d 2c  1b a4 c0 ca 96 d6 03 08  |.C.gR..,........|
-	// 000000a0  c0 0d 93 8b c6 f6 34 12  83 a0 32 2e 82 2c 4b fb  |......4...2..,K.|
-	// 000000b0  b3 0c a1 4b a5 e3 27 43  b6 2f ed fa ca 4f 93 83  |...K..'C./...O..|
-	// 000000c0  fd 56                                             |.V|
+	// 00000000  62 22 5e ef 5a 93 60 f2  d8 f8 87 41 06 53 33 e9  |b"^.Z.`....A.S3.|
+	// 00000010  68 20 ea 1b 5d 7b 0d de  5f 2c 0c 76 cd ce 57 85  |h ..]{.._,.v..W.|
+	// 00000020  20 d4 30 9b 06 5b dd f1  3d d6 be 3c ab b7 bf f8  | .0..[..=..<....|
+	// 00000030  9a 4e 73 0e 01 eb c8 6c  1e 8c 52 64 6a 6b 7d cd  |.Ns....l..Rdjk}.|
+	// 00000040  0f 61 a8 44 7b 3b bc 42  c7 e3 6e 41 12 b3 7d 3f  |.a.D{;.B..nA..}?|
+	// 00000050  d5 97 3c 29 1b d8 8d b2  9c 25 78 db 9a c3 0d 19  |..<).....%x.....|
+	// 00000060  00 78 6c ff 40 ae 0b 42  60 b5 7f 1e 23 1b 26 98  |.xl.@..B`...#.&.|
+	// 00000070  54 bc bb 6d ff 68 2b f4  77 7c 4f 22 a3 3a 82 63  |T..m.h+.w|O".:.c|
+	// 00000080  03 1e 0d 24 1e e7 bc 9b  7b f0 d5 5d 43 e0 31 1b  |...$....{..]C.1.|
+	// 00000090  80 c4 94 41 d6 85 e0 85  ec 3d 40 d6 bf 75 d8 e8  |...A.....=@..u..|
+	// 000000a0  00 dc 00 fb a1 ff d8 63  80 5d b0 0a 2f b6 0d 55  |.......c.]../..U|
+	// 000000b0  bd 0e 81 bb fb 4f ce 76  3b 6f 94 b8 a5 90 f5 43  |.....O.v;o.....C|
 	// Proof verified.
 }

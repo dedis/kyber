@@ -18,7 +18,7 @@ func newHashProver(suite abstract.Suite, protoName string,
 	rand abstract.Cipher) *hashProver {
 	var sc hashProver
 	sc.suite = suite
-	sc.pubrand = suite.Cipher([]byte(protoName))
+	sc.pubrand = sc.suite.Cipher([]byte(protoName))
 	sc.prirand = rand
 	return &sc
 }
@@ -75,7 +75,7 @@ func newHashVerifier(suite abstract.Suite, protoName string,
 	}
 	c.suite = suite
 	c.prbuf = c.proof.Bytes()
-	c.pubrand = suite.Cipher([]byte(protoName))
+	c.pubrand = c.suite.Cipher([]byte(protoName))
 	return &c
 }
 
@@ -111,7 +111,7 @@ func (c *hashVerifier) PubRand(data ...interface{}) error {
 // will verify successfully only if the verifier uses the same protocolName.
 //
 // The caller must provide a source of random entropy for the proof;
-// this can be random.Stream to use fresh random bits,
+// this can be random.Fresh() to use fresh random bits,
 // or a pseudorandom stream based on a secret seed
 // to create deterministically reproducible proofs.
 //

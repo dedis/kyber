@@ -9,71 +9,74 @@ package sha3
 // bytes.
 
 import (
-	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher"
 	"hash"
 )
 
-var sha3opts = []interface{}{cipher.Padding(0x06)}
+const sha3padding byte = 0x06 // Padding byte defined for SHA3
 
 // NewCipher224 creates a Cipher implementing the SHA3-224 algorithm,
 // which provides 224-bit security against preimage attacks
 // and 112-bit security against collisions.
-func NewCipher224(key []byte, options ...interface{}) abstract.Cipher {
-	return cipher.FromSponge(newKeccak448(), key,
-		append(sha3opts, options...)...)
+func NewCipher224(key []byte) cipher.State {
+	c := cipher.FromSponge(newKeccak448(), key)
+	c.(cipher.Padding).SetPadding(sha3padding)
+	return c
 }
 
 // NewCipher256 creates a Cipher implementing the SHA3-256 algorithm,
 // which provides 256-bit security against preimage attacks
 // and 128-bit security against collisions.
-func NewCipher256(key []byte, options ...interface{}) abstract.Cipher {
-	return cipher.FromSponge(newKeccak512(), key,
-		append(sha3opts, options...)...)
+func NewCipher256(key []byte) cipher.State {
+	c := cipher.FromSponge(newKeccak512(), key)
+	c.(cipher.Padding).SetPadding(sha3padding)
+	return c
 }
 
 // NewCipher384 creates a Cipher implementing the SHA3-384 algorithm,
 // which provides 384-bit security against preimage attacks
 // and 192-bit security against collisions.
-func NewCipher384(key []byte, options ...interface{}) abstract.Cipher {
-	return cipher.FromSponge(newKeccak768(), key,
-		append(sha3opts, options...)...)
+func NewCipher384(key []byte) cipher.State {
+	c := cipher.FromSponge(newKeccak768(), key)
+	c.(cipher.Padding).SetPadding(sha3padding)
+	return c
 }
 
 // NewCipher512 creates a Cipher implementing the SHA3-512 algorithm,
 // which provides 512-bit security against preimage attacks
 // and 256-bit security against collisions.
-func NewCipher512(key []byte, options ...interface{}) abstract.Cipher {
-	return cipher.FromSponge(newKeccak1024(), key,
-		append(sha3opts, options...)...)
+func NewCipher512(key []byte) cipher.State {
+	c := cipher.FromSponge(newKeccak1024(), key)
+	c.(cipher.Padding).SetPadding(sha3padding)
+	return c
 }
 
 // New224 creates a new SHA3-224 hash.
 // Its generic security strength is 224 bits against preimage attacks,
 // and 112 bits against collision attacks.
 func New224() hash.Hash {
-	return cipher.NewHash(NewCipher224, 224/8)
+	return cipher.NewCipherHash(NewCipher224(cipher.NoKey)).SetSize(224 / 8)
 }
 
 // New256 creates a new SHA3-256 hash.
 // Its generic security strength is 256 bits against preimage attacks,
 // and 128 bits against collision attacks.
 func New256() hash.Hash {
-	return cipher.NewHash(NewCipher256, 256/8)
+	return cipher.NewCipherHash(NewCipher256(cipher.NoKey)).SetSize(256 / 8)
 }
 
 // New384 creates a new SHA3-384 hash.
 // Its generic security strength is 384 bits against preimage attacks,
 // and 192 bits against collision attacks.
 func New384() hash.Hash {
-	return cipher.NewHash(NewCipher384, 384/8)
+	return cipher.NewCipherHash(NewCipher384(cipher.NoKey)).SetSize(384 / 8)
 }
 
 // New512 creates a new SHA3-512 hash.
 // Its generic security strength is 512 bits against preimage attacks,
 // and 256 bits against collision attacks.
 func New512() hash.Hash {
-	return cipher.NewHash(NewCipher512, 512/8)
+	return cipher.NewCipherHash(NewCipher512(cipher.NoKey)).SetSize(512 / 8)
 }
 
 // Sum224 returns the SHA3-224 digest of the data.

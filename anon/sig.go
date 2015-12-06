@@ -9,8 +9,8 @@ import (
 
 // unlinkable ring signature
 type uSig struct {
-	C0 abstract.Secret
-	S  []abstract.Secret
+	C0 abstract.Scalar
+	S  []abstract.Scalar
 }
 
 // linkable ring signature
@@ -30,16 +30,16 @@ func signH1pre(suite abstract.Suite, linkScope []byte, linkTag abstract.Point,
 	return H1pre
 }
 
-func signH1(suite abstract.Suite, H1pre abstract.Cipher, PG, PH abstract.Point) abstract.Secret {
+func signH1(suite abstract.Suite, H1pre abstract.Cipher, PG, PH abstract.Point) abstract.Scalar {
 	H1 := H1pre.Clone()
 	PGb, _ := PG.MarshalBinary()
 	H1.Write(PGb)
-	if PH != nil {
+	if !PH.Nil() {
 		PHb, _ := PH.MarshalBinary()
 		H1.Write(PHb)
 	}
 	H1.Message(nil, nil, nil) // finish message absorption
-	return suite.Secret().Pick(H1)
+	return suite.Scalar().Random(H1)
 }
 
 // Sign creates an optionally anonymous, optionally linkable
@@ -67,8 +67,8 @@ func signH1(suite abstract.Suite, H1pre abstract.Cipher, PG, PH abstract.Point) 
 // even if all members' private keys are later released.
 // For cryptographic background on unlinkable anonymity-set signatures -
 // also known as ring signatures or ad-hoc group signatures -
-// see Rivest, "How to Leak a Secret" at
-// http://people.csail.mit.edu/rivest/RivestShamirTauman-HowToLeakASecret.pdf.
+// see Rivest, "How to Leak a Scalar" at
+// http://people.csail.mit.edu/rivest/RivestShamirTauman-HowToLeakAScalar.pdf.
 //
 // If the caller passes a non-nil linkScope,
 // the resulting anonymous signature will be linkable.
@@ -106,7 +106,7 @@ func signH1(suite abstract.Suite, H1pre abstract.Cipher, PG, PH abstract.Point) 
 // they produced a signature of interest.
 //
 func Sign(suite abstract.Suite, random cipher.Stream, message []byte,
-	anonymitySet Set, linkScope []byte, mine int, privateKey abstract.Secret) []byte {
+	anonymitySet Set, linkScope []byte, mine int, privateKey abstract.Scalar) []byte {
 
 	// Note that Rivest's original ring construction directly supports
 	// heterogeneous rings containing public keys of different types -
@@ -130,7 +130,7 @@ func Sign(suite abstract.Suite, random cipher.Stream, message []byte,
 	var linkBase, linkTag abstract.Point
 	if linkScope != nil {
 		linkStream := suite.Cipher(linkScope)
-		linkBase, _ = suite.Point().Pick(nil, linkStream)
+		linkBase = suite.Point().Random(linkStream)
 		linkTag = suite.Point().Mul(linkBase, privateKey)
 	}
 
@@ -140,16 +140,16 @@ func Sign(suite abstract.Suite, random cipher.Stream, message []byte,
 	H1pre := signH1pre(suite, linkScope, linkTag, message)
 
 	// Pick a random commit for my ring position
-	u := suite.Secret().Pick(random)
+	u := suite.Scalar().Random(random)
 	var UB, UL abstract.Point
-	UB = suite.Point().Mul(nil, u)
+	UB = suite.Point().BaseMul(u)
 	if linkScope != nil {
 		UL = suite.Point().Mul(linkBase, u)
 	}
 
 	// Build the challenge ring
-	s := make([]abstract.Secret, n)
-	c := make([]abstract.Secret, n)
+	s := make([]abstract.Scalar, n)
+	c := make([]abstract.Scalar, n)
 	c[(pi+1)%n] = signH1(suite, H1pre, UB, UL)
 	var P, PG, PH abstract.Point
 	P = suite.Point()
@@ -158,8 +158,8 @@ func Sign(suite abstract.Suite, random cipher.Stream, message []byte,
 		PH = suite.Point()
 	}
 	for i := (pi + 1) % n; i != pi; i = (i + 1) % n {
-		s[i] = suite.Secret().Pick(random)
-		PG.Add(PG.Mul(nil, s[i]), P.Mul(L[i], c[i]))
+		s[i] = suite.Scalar().Random(random)
+		PG.Add(PG.BaseMul(s[i]), P.Mul(L[i], c[i]))
 		if linkScope != nil {
 			PH.Add(PH.Mul(linkBase, s[i]), P.Mul(linkTag, c[i]))
 		}
@@ -167,7 +167,7 @@ func Sign(suite abstract.Suite, random cipher.Stream, message []byte,
 		//fmt.Printf("s%d %s\n",i,s[i].String())
 		//fmt.Printf("c%d %s\n",(i+1)%n,c[(i+1)%n].String())
 	}
-	s[pi] = suite.Secret()
+	s[pi] = suite.Scalar()
 	s[pi].Mul(privateKey, c[pi]).Sub(u, s[pi]) // s_pi = u - x_pi c_pi
 
 	// Encode and return the signature
@@ -202,13 +202,13 @@ func Verify(suite abstract.Suite, message []byte, anonymitySet Set,
 	buf := bytes.NewBuffer(signatureBuffer)
 	var linkBase, linkTag abstract.Point
 	sig := lSig{}
-	sig.S = make([]abstract.Secret, n)
+	sig.S = make([]abstract.Scalar, n)
 	if linkScope != nil { // linkable ring signature
 		if err := suite.Read(buf, &sig); err != nil {
 			return nil, err
 		}
 		linkStream := suite.Cipher(linkScope)
-		linkBase, _ = suite.Point().Pick(nil, linkStream)
+		linkBase = suite.Point().Random(linkStream)
 		linkTag = sig.Tag
 	} else { // unlinkable ring signature
 		if err := suite.Read(buf, &sig.uSig); err != nil {
@@ -229,7 +229,7 @@ func Verify(suite abstract.Suite, message []byte, anonymitySet Set,
 	s := sig.S
 	ci := sig.C0
 	for i := 0; i < n; i++ {
-		PG.Add(PG.Mul(nil, s[i]), P.Mul(L[i], ci))
+		PG.Add(PG.BaseMul(s[i]), P.Mul(L[i], ci))
 		if linkScope != nil {
 			PH.Add(PH.Mul(linkBase, s[i]), P.Mul(linkTag, ci))
 		}

@@ -1,16 +1,13 @@
 package cipher
 
 import (
-	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/util"
-	"hash"
 )
 
-// Wrapper to use a generic mesage Cipher as a Hash
-type cipherHash struct {
-	cipher func(key []byte, options ...interface{}) abstract.Cipher
-	cur    abstract.Cipher
-	size   int
+// CipherHash wraps a generic mesage cipher to produce a Hash.
+type CipherHash struct {
+	orig, cur State
+	size      int
 }
 
 // interface representing an optional BlockSize method a Cipher may support
@@ -19,20 +16,28 @@ type cipherBlockSize interface {
 	BlockSize() int
 }
 
-func NewHash(cipher func(key []byte, options ...interface{}) abstract.Cipher, size int) hash.Hash {
-	ch := &cipherHash{}
-	ch.cipher = cipher
-	ch.cur = cipher(abstract.NoKey)
-	ch.size = size
+// Create a new Hash function generically from a message cipher instance,
+// producing hashes whose length corresponds to the cipher's HashSize.
+func NewCipherHash(state State) *CipherHash {
+	return new(CipherHash).Init(state)
+}
+
+// Initialize a CipherHash with a given message cipher instance,
+// producing hashes whose length corresponds to the cipher's HashSize.
+func (ch *CipherHash) Init(state State) *CipherHash {
+	*ch = CipherHash{state, state.Clone(), state.HashSize()}
 	return ch
 }
 
-func (ch *cipherHash) Write(src []byte) (int, error) {
+// Absorb bytes into the CipherHash, satisfying the io.Writer interface.
+func (ch *CipherHash) Write(src []byte) (int, error) {
 	ch.cur.Partial(nil, nil, src)
 	return len(src), nil
 }
 
-func (ch *cipherHash) Sum(buf []byte) []byte {
+// Compute the checksum of the bytes absorbed so far,
+// appending the hash onto buf and returning the resulting slice.
+func (ch *CipherHash) Sum(buf []byte) []byte {
 
 	// Clone the Cipher to leave the original's state unaffected
 	c := ch.cur.Clone()
@@ -44,16 +49,31 @@ func (ch *cipherHash) Sum(buf []byte) []byte {
 	return buf
 }
 
-func (ch *cipherHash) Reset() {
-	ch.cur = ch.cipher(abstract.NoKey)
+// Reset the CipherHash to its initial state.
+func (ch *CipherHash) Reset() {
+	ch.cur = ch.orig.Clone()
 }
 
-func (ch *cipherHash) Size() int {
+// Return the size in bytes of hashes this CipherHash produces.
+func (ch *CipherHash) Size() int {
 	return ch.size
 }
 
-func (ch *cipherHash) BlockSize() int {
-	bs, ok := ch.cur.CipherState.(cipherBlockSize)
+// Set the size of hashes this CipherHash will produce
+// in subsequent calls to Sum,
+// overriding the default determined by the underlying cipher.
+func (ch *CipherHash) SetSize(size int) *CipherHash {
+	if size <= 0 {
+		panic("invalid hash size")
+	}
+	ch.size = size
+	return ch
+}
+
+// Return the recommended block size for maximum performance,
+// or 1 if no block size information is available.
+func (ch *CipherHash) BlockSize() int {
+	bs, ok := ch.cur.(cipherBlockSize)
 	if !ok {
 		return 1 // default for non-block-based ciphers
 	}

@@ -73,25 +73,27 @@ func (s *shake) Clone() ShakeHash {
 }
 
 func (s *shake) Reset() {
-	s.cipher = cipher.FromSponge(s.sponge(), abstract.NoKey,
-		cipher.Padding(0x1f))
+	s.cipher.State = cipher.FromSponge(s.sponge(), abstract.NoKey)
+	s.cipher.State.(cipher.Padding).SetPadding(shakePadding)
 	s.squeezing = false
 }
 
-var shakeOpts = []interface{}{cipher.Padding(0x1f)}
+const shakePadding byte = 0x1f // Padding byte defined for SHAKE schemes
 
 // NewShakeCipher128 creates a Cipher implementing the SHAKE128 algorithm,
 // which provides 128-bit security against all known attacks.
-func NewShakeCipher128(key []byte, options ...interface{}) abstract.Cipher {
-	return cipher.FromSponge(newKeccak256(), key,
-		append(shakeOpts, options...)...)
+func NewShakeCipher128(key []byte) cipher.State {
+	c := cipher.FromSponge(newKeccak256(), key)
+	c.(cipher.Padding).SetPadding(shakePadding)
+	return c
 }
 
 // NewShakeCipher256 creates a Cipher implementing the SHAKE256 algorithm,
 // which provides 256-bit security against all known attacks.
-func NewShakeCipher256(key []byte, options ...interface{}) abstract.Cipher {
-	return cipher.FromSponge(newKeccak512(), key,
-		append(shakeOpts, options...)...)
+func NewShakeCipher256(key []byte) cipher.State {
+	c := cipher.FromSponge(newKeccak512(), key)
+	c.(cipher.Padding).SetPadding(shakePadding)
+	return c
 }
 
 // NewShake128 creates a new SHAKE128 variable-output-length ShakeHash.
@@ -116,4 +118,26 @@ func ShakeSum256(hash, data []byte) {
 	h := NewShake256()
 	h.Write(data)
 	h.Read(hash)
+}
+
+type suite128 struct{}
+
+func (_ suite128) Cipher(key []byte) cipher.State {
+	return NewShakeCipher128(key)
+}
+
+// Create a context configured with Shake256 as the symmetric cipher.
+func WithShake128(parent abstract.Context) abstract.Context {
+	return cipher.Context(parent, suite128{})
+}
+
+type suite256 struct{}
+
+func (_ suite256) Cipher(key []byte) cipher.State {
+	return NewShakeCipher256(key)
+}
+
+// Create a context configured with Shake256 as the symmetric cipher.
+func WithShake256(parent abstract.Context) abstract.Context {
+	return cipher.Context(parent, suite256{})
 }

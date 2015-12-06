@@ -1,11 +1,10 @@
 package bench
 
 import (
-	"crypto/cipher"
 	"crypto/rc4"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/cipher"
 	"github.com/dedis/crypto/cipher/aes"
-	"github.com/dedis/crypto/cipher/norx"
 	"github.com/dedis/crypto/cipher/sha3"
 	"golang.org/x/crypto/blowfish"
 	"golang.org/x/crypto/salsa20"
@@ -16,7 +15,7 @@ import (
 var buf = make([]byte, 1024*1024)
 
 // benchmarkCipher tests the speed of a Cipher to process a size-byte message.
-func benchmarkCipher(b *testing.B, cipher abstract.Cipher, size int) {
+func benchmarkCipher(b *testing.B, cipher cipher.State, size int) {
 	b.SetBytes(int64(size))
 	for i := 0; i < b.N; i++ {
 		cipher.Message(buf[:size], buf[:size], buf[:size])
@@ -54,10 +53,6 @@ func BenchmarkSha3_512_1B(b *testing.B) {
 	benchmarkCipher(b, sha3.NewCipher512(abstract.NoKey), 1)
 }
 
-func BenchmarkNORX_1B(b *testing.B) {
-	benchmarkCipher(b, norx.NewCipher(abstract.NoKey), 1)
-}
-
 // 1K messages
 
 func BenchmarkAes128_1K(b *testing.B) {
@@ -87,10 +82,6 @@ func BenchmarkSha3_384_1K(b *testing.B) {
 }
 func BenchmarkSha3_512_1K(b *testing.B) {
 	benchmarkCipher(b, sha3.NewCipher512(abstract.NoKey), 1024)
-}
-
-func BenchmarkNORX_1K(b *testing.B) {
-	benchmarkCipher(b, norx.NewCipher(abstract.NoKey), 1024)
 }
 
 // 1M messages
@@ -124,10 +115,6 @@ func BenchmarkSha3_384_1M(b *testing.B) {
 }
 func BenchmarkSha3_512_1M(b *testing.B) {
 	benchmarkCipher(b, sha3.NewCipher512(abstract.NoKey), 1024*1024)
-}
-
-func BenchmarkNORX_1M(b *testing.B) {
-	benchmarkCipher(b, norx.NewCipher(abstract.NoKey), 1024*1024)
 }
 
 // Some conventional Stream ciphers for comparison

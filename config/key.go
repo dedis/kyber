@@ -16,21 +16,21 @@ import (
 type KeyPair struct {
 	Suite  abstract.Suite  // Ciphersuite this keypair is for
 	Public abstract.Point  // Public key
-	Secret abstract.Secret // Secret key
+	Secret abstract.Scalar // Secret key
 }
 
 // Generate a fresh public/private keypair with the given ciphersuite,
 // using a given source of cryptographic randomness.
 func (p *KeyPair) Gen(suite abstract.Suite, random cipher.Stream) {
 	p.Suite = suite
-	p.Secret = suite.Secret().Pick(random)
-	p.Public = suite.Point().Mul(nil, p.Secret)
+	p.Secret = suite.Scalar().Random(random)
+	p.Public = suite.Point().BaseMul(p.Secret)
 }
 
 // Return the base64-encoded HashId for this KeyPair's public key.
 func (p *KeyPair) PubId() string {
 	buf, _ := p.Public.MarshalBinary()
-	hash := abstract.Sum(p.Suite, buf)
+	hash := p.Suite.Sum(buf)
 	return base64.RawURLEncoding.EncodeToString(hash)
 }
 
@@ -61,7 +61,7 @@ type KeyInfo struct {
 // logs a warning but continues to load any other configured keys.
 //
 func (f *File) Keys(keys *Keys, suites map[string]abstract.Suite,
-	defaultSuite abstract.Suite) ([]KeyPair, error) {
+	defaultSuite string) ([]KeyPair, error) {
 
 	// Read all existing configured keys
 	klist := *keys
@@ -77,8 +77,8 @@ func (f *File) Keys(keys *Keys, suites map[string]abstract.Suite,
 	}
 
 	// Create a keypair if none exists yet and we have a defaultSuite.
-	if len(pairs) == 0 && defaultSuite != nil {
-		pair, err := f.GenKey(keys, defaultSuite)
+	if len(pairs) == 0 && defaultSuite != "" {
+		pair, err := f.GenKey(keys, suites[defaultSuite], defaultSuite)
 		if err != nil {
 			return nil, err
 		}
@@ -94,8 +94,8 @@ func (f *File) Key(key *KeyInfo, suites map[string]abstract.Suite) (KeyPair, err
 	// XXX support passphrase-encrypted or system-keychain keys
 
 	// Lookup the appropriate ciphersuite for this public key.
-	suite := suites[key.Suite]
-	if suite == nil {
+	suite, ok := suites[key.Suite]
+	if !ok {
 		return KeyPair{},
 			errors.New("Unsupported ciphersuite '" + key.Suite + "'")
 	}
@@ -115,7 +115,7 @@ func (f *File) Key(key *KeyInfo, suites map[string]abstract.Suite) (KeyPair, err
 	}
 
 	// Reconstruct and verify the public key
-	p.Public = suite.Point().Mul(nil, p.Secret)
+	p.Public = suite.Point().BaseMul(p.Secret)
 	if p.PubId() != key.PubId {
 		return KeyPair{},
 			errors.New("Secret does not yield public key " +
@@ -127,7 +127,7 @@ func (f *File) Key(key *KeyInfo, suites map[string]abstract.Suite) (KeyPair, err
 
 // Generate a new public/private keypair with the given ciphersuite
 // and Save it to the application's previously-loaded configuration.
-func (f *File) GenKey(keys *Keys, suite abstract.Suite) (KeyPair, error) {
+func (f *File) GenKey(keys *Keys, suite abstract.Suite, suiteName string) (KeyPair, error) {
 
 	// Create the map if it doesn't exist
 	//	if *keys == nil {
@@ -136,7 +136,7 @@ func (f *File) GenKey(keys *Keys, suite abstract.Suite) (KeyPair, error) {
 
 	// Create a fresh public/private keypair
 	p := KeyPair{}
-	p.Gen(suite, random.Stream)
+	p.Gen(suite, random.Fresh())
 	pubId := p.PubId()
 
 	// Write the private key file
@@ -158,7 +158,7 @@ func (f *File) GenKey(keys *Keys, suite abstract.Suite) (KeyPair, error) {
 	}
 
 	// Re-write the config file with the new public key
-	*keys = append(*keys, KeyInfo{suite.String(), pubId})
+	*keys = append(*keys, KeyInfo{suiteName, pubId})
 	if err := f.Save(); err != nil {
 		return KeyPair{}, err
 	}

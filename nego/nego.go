@@ -32,15 +32,15 @@ type suiteKey struct {
 
 	// Ephemeral Diffie-Hellman key for all key-holders using this suite.
 	// Should have a uniform representation, e.g., an Elligator point.
-	dhpri abstract.Secret
+	dhpri abstract.Scalar
 	dhpub abstract.Point
 	dhrep []byte
 }
 
 /*
 func (s *suiteKey) fresh(suite abstract.Suite) {
-	dhpri := entry.suite.Secret().Pick(rand)
-	dhpub := entry.Suite.Point().Mul(nil, dhpri)
+	dhpri := entry.suite.Scalar().Random(rand)
+	dhpub := entry.Suite.Point().BaseMul(dhpri)
 	dhrep := dhpub.UniformEncode()
 	suites[suite] = suite{dhpri,dhpub}
 }
@@ -56,7 +56,7 @@ type suiteInfo struct {
 	// layout info
 	//nodes []*node			// layout node for reserved positions
 	lev int             // layout-chosen level for this suite
-	pri abstract.Secret // ephemeral Diffie-Hellman private key
+	pri abstract.Scalar // ephemeral Diffie-Hellman private key
 	pub []byte          // corresponding encoded public key
 }
 
@@ -364,12 +364,12 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 		si := w.suites.s[i]
 
 		// Create a hiding-encoded DH public key.
-		pri := si.ste.Secret()
+		pri := si.ste.Scalar()
 		pub := si.ste.Point()
 		var buf []byte
 		for {
-			pri.Pick(rand)    // pick fresh secret
-			pub.Mul(nil, pri) // get DH public key
+			pri.Random(rand) // pick fresh secret
+			pub.BaseMul(pri) // get DH public key
 			buf = pub.(abstract.Hiding).HideEncode(rand)
 			if buf != nil {
 				break

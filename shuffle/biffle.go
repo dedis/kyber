@@ -52,9 +52,9 @@ func Biffle(suite abstract.Suite, G, H abstract.Point,
 	bit := int(random.Byte(rand) & 1)
 
 	// Pick a fresh ElGamal blinding factor for each pair
-	var beta [2]abstract.Secret
+	var beta [2]abstract.Scalar
 	for i := 0; i < 2; i++ {
-		beta[i] = suite.Secret().Pick(rand)
+		beta[i] = suite.Scalar().Random(rand)
 	}
 
 	// Create the output pair vectors
@@ -67,7 +67,7 @@ func Biffle(suite abstract.Suite, G, H abstract.Point,
 	}
 
 	or := bifflePred()
-	secrets := map[string]abstract.Secret{
+	secrets := map[string]abstract.Scalar{
 		"beta0": beta[0],
 		"beta1": beta[1]}
 	points := bifflePoints(suite, G, H, X, Y, Xbar, Ybar)
@@ -87,28 +87,28 @@ func BiffleVerifier(suite abstract.Suite, G, H abstract.Point,
 
 func BiffleTest(suite abstract.Suite, N int) {
 
-	rand := suite.Cipher(abstract.RandomKey)
+	rand := suite.Cipher(abstract.FreshKey)
 
 	// Create a "server" private/public keypair
-	h := suite.Secret().Pick(rand)
-	H := suite.Point().Mul(nil, h)
+	h := suite.Scalar().Random(rand)
+	H := suite.Point().BaseMul(h)
 
 	// Create a set of ephemeral "client" keypairs to shuffle
-	var c [2]abstract.Secret
+	var c [2]abstract.Scalar
 	var C [2]abstract.Point
 	//	fmt.Println("\nclient keys:")
 	for i := 0; i < 2; i++ {
-		c[i] = suite.Secret().Pick(rand)
-		C[i] = suite.Point().Mul(nil, c[i])
+		c[i] = suite.Scalar().Random(rand)
+		C[i] = suite.Point().BaseMul(c[i])
 		//		fmt.Println(" "+C[i].String())
 	}
 
 	// ElGamal-encrypt all these keypairs with the "server" key
 	var X, Y [2]abstract.Point
-	r := suite.Secret() // temporary
+	r := suite.Scalar() // temporary
 	for i := 0; i < 2; i++ {
-		r.Pick(rand)
-		X[i] = suite.Point().Mul(nil, r)
+		r.Random(rand)
+		X[i] = suite.Point().BaseMul(r)
 		Y[i] = suite.Point().Mul(H, r) // ElGamal blinding factor
 		Y[i].Add(Y[i], C[i])           // Encrypted client public key
 	}
@@ -117,7 +117,8 @@ func BiffleTest(suite abstract.Suite, N int) {
 	for i := 0; i < N; i++ {
 
 		// Do a key-shuffle
-		Xbar, Ybar, prover := Biffle(suite, nil, H, X, Y, rand)
+		nilPoint := abstract.Point{nil}
+		Xbar, Ybar, prover := Biffle(suite, nilPoint, H, X, Y, rand)
 		prf, err := proof.HashProve(suite, "Biffle", rand, prover)
 		if err != nil {
 			panic("Biffle proof failed: " + err.Error())
@@ -125,7 +126,7 @@ func BiffleTest(suite abstract.Suite, N int) {
 		//fmt.Printf("proof:\n%s\n",hex.Dump(prf))
 
 		// Check it
-		verifier := BiffleVerifier(suite, nil, H, X, Y, Xbar, Ybar)
+		verifier := BiffleVerifier(suite, nilPoint, H, X, Y, Xbar, Ybar)
 		err = proof.HashVerify(suite, "Biffle", verifier, prf)
 		if err != nil {
 			panic("Biffle verify failed: " + err.Error())

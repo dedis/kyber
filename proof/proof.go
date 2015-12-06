@@ -10,10 +10,8 @@ import (
 	"github.com/dedis/crypto/abstract"
 )
 
-
 // XXX simplify using the reflection API?
-// just pass a 'struct' with the Point and Secret variables?
-
+// just pass a 'struct' with the Point and Scalar variables?
 
 /*
 A Predicate is a composable logic expression in a knowledge proof system,
@@ -28,7 +26,7 @@ or reuse for any number of proofs and verifications.
 
 After constructing a Predicate using the Rep, And, and Or functions below,
 the caller invokes Prover() to create a Sigma-protocol prover.
-Prover() requires maps defining the values of both the Secret variables
+Prover() requires maps defining the values of both the Scalar variables
 and the public Point variables that the Predicate refers to.
 If the statement contains logical Or operators, the caller must also pass
 a map containing branch choices for each Or predicate
@@ -55,7 +53,7 @@ For now we simply require expressions to be in the appropriate form.
 type Predicate interface {
 
 	// Create a Prover proving the statement this Predicate represents.
-	Prover(suite abstract.Suite, secrets map[string]abstract.Secret, 
+	Prover(suite abstract.Suite, secrets map[string]abstract.Scalar,
 		points map[string]abstract.Point, choice map[Predicate]int) Prover
 
 	// Create a Verifier for the statement this Predicate represents.
@@ -71,19 +69,18 @@ type Predicate interface {
 	enumVars(prf *proof)
 
 	// prover: recursively produce all commitments
-	commit(prf *proof, w abstract.Secret, v []abstract.Secret) error
+	commit(prf *proof, w abstract.Scalar, v []abstract.Scalar) error
 
 	// prover: given challenge, recursively produce all responses
-	respond(prf *proof, c abstract.Secret, r []abstract.Secret) error
+	respond(prf *proof, c abstract.Scalar, r []abstract.Scalar) error
 
 	// verifier: get all the commitments required in this predicate,
 	// and fill the r slice with empty secrets for responses needed.
-	getCommits(prf *proof, r []abstract.Secret) error
+	getCommits(prf *proof, r []abstract.Scalar) error
 
 	// verifier: check all commitments against challenges and responses
-	verify(prf *proof, c abstract.Secret, r []abstract.Secret) error
+	verify(prf *proof, c abstract.Scalar, r []abstract.Scalar) error
 }
-
 
 // stringification precedence levels
 const (
@@ -93,53 +90,48 @@ const (
 	precAtom
 )
 
-
-
-
 // Internal prover/verifier state
 type proof struct {
 	s abstract.Suite
 
-	nsvars int			// number of Secret variables
-	npvars int			// number of Point variables
-	svar, pvar []string		// Secret and Point variable names
-	sidx, pidx map[string]int	// Maps from strings to variable indexes
+	nsvars     int            // number of Scalar variables
+	npvars     int            // number of Point variables
+	svar, pvar []string       // Scalar and Point variable names
+	sidx, pidx map[string]int // Maps from strings to variable indexes
 
-	pval map[string]abstract.Point	// values of public Point variables
+	pval map[string]abstract.Point // values of public Point variables
 
 	// prover-specific state
-	pc ProverContext
-	sval map[string]abstract.Secret	// values of private Secret variables
-	choice map[Predicate]int	// OR branch choices set by caller
-	pp map[Predicate]*proverPred	// per-predicate prover state
+	pc     ProverContext
+	sval   map[string]abstract.Scalar // values of private Scalar variables
+	choice map[Predicate]int          // OR branch choices set by caller
+	pp     map[Predicate]*proverPred  // per-predicate prover state
 
 	// verifier-specific state
 	vc VerifierContext
-	vp map[Predicate]*verifierPred	// per-predicate verifier state
+	vp map[Predicate]*verifierPred // per-predicate verifier state
 }
 type proverPred struct {
-	w abstract.Secret		// secret pre-challenge
-	v []abstract.Secret	// secret blinding factor for each variable
-	wi []abstract.Secret	// OR predicates: individual sub-challenges
+	w  abstract.Scalar   // secret pre-challenge
+	v  []abstract.Scalar // secret blinding factor for each variable
+	wi []abstract.Scalar // OR predicates: individual sub-challenges
 }
 type verifierPred struct {
-	V abstract.Point		// public commitment produced by verifier
-	r []abstract.Secret	// per-variable responses produced by verifier
+	V abstract.Point    // public commitment produced by verifier
+	r []abstract.Scalar // per-variable responses produced by verifier
 }
-
-
 
 ////////// Rep predicate //////////
 
 // A term describes a point-multiplication term in a representation expression.
 type term struct {
-	S string	// Secret multiplier for this term
-	B string	// Generator for this term
+	S string // Scalar multiplier for this term
+	B string // Generator for this term
 }
 
 type repPred struct {
-	P string	// Public point of which a representation is known
-	T []term	// Terms comprising the known representation
+	P string // Public point of which a representation is known
+	T []term // Terms comprising the known representation
 }
 
 // Rep creates a predicate stating that the prover knows
@@ -152,21 +144,21 @@ type repPred struct {
 //
 //	Rep(P,x,B)
 //
-// Rep can take any number of (Secret,Base) variable name pairs, however.
+// Rep can take any number of (Scalar,Base) variable name pairs, however.
 // A Rep statement of the form Rep(P,x1,B1,...,xn,Bn)
 // indicates that the prover knows secrets x1,...,xn
 // such that point P is the sum x1*B1+...+xn*Bn.
 //
 func Rep(P string, SB ...string) Predicate {
-	if len(SB) & 1 != 0 {
-		panic("mismatched Secret")
+	if len(SB)&1 != 0 {
+		panic("mismatched Scalar")
 	}
-	t := make([]term,len(SB)/2)
-	for i := range(t) {
+	t := make([]term, len(SB)/2)
+	for i := range t {
 		t[i].S = SB[i*2]
 		t[i].B = SB[i*2+1]
 	}
-	return &repPred{P,t}
+	return &repPred{P, t}
 }
 
 // Return a string representation of this proof-of-representation predicate,
@@ -177,7 +169,7 @@ func (rp *repPred) String() string {
 
 func (rp *repPred) precString(prec int) string {
 	s := rp.P + "="
-	for i := range(rp.T) {
+	for i := range rp.T {
 		if i > 0 {
 			s += "+"
 		}
@@ -191,60 +183,60 @@ func (rp *repPred) precString(prec int) string {
 
 func (rp *repPred) enumVars(prf *proof) {
 	prf.enumPointVar(rp.P)
-	for i := range(rp.T) {
-		prf.enumSecretVar(rp.T[i].S)
+	for i := range rp.T {
+		prf.enumScalarVar(rp.T[i].S)
 		prf.enumPointVar(rp.T[i].B)
 	}
 }
 
-func (rp *repPred) commit(prf *proof, w abstract.Secret, pv []abstract.Secret) error {
+func (rp *repPred) commit(prf *proof, w abstract.Scalar, pv []abstract.Scalar) error {
 
 	// Create per-predicate prover state
-	v := prf.makeSecrets(pv)
-	pp := &proverPred{w,v,nil}
+	v := prf.makeScalars(pv)
+	pp := &proverPred{w, v, nil}
 	prf.pp[rp] = pp
 
 	// Compute commit V=wY+v1G1+...+vkGk
 	V := prf.s.Point()
-	if w != nil {	// We're on a non-obligated branch
-		V.Mul(prf.pval[rp.P],w)
-	} else {	// We're on a proof-obligated branch, so w=0
+	if !w.Nil() { // We're on a non-obligated branch
+		V.Mul(prf.pval[rp.P], w)
+	} else { // We're on a proof-obligated branch, so w=0
 		V.Null()
 	}
 	P := prf.s.Point()
 	for i := 0; i < len(rp.T); i++ {
-		t := rp.T[i]	// current term
+		t := rp.T[i] // current term
 		s := prf.sidx[t.S]
 
 		// Choose a blinding secret the first time
 		// we encounter each variable
-		if v[s] == nil {
-			v[s] = prf.s.Secret()
+		if v[s].Nil() {
+			v[s] = prf.s.Scalar()
 			prf.pc.PriRand(v[s])
 		}
-		P.Mul(prf.pval[t.B],v[s])
-		V.Add(V,P)
+		P.Mul(prf.pval[t.B], v[s])
+		V.Add(V, P)
 	}
 
 	// Encode and send the commitment to the verifier
 	return prf.pc.Put(V)
 }
 
-func (rp *repPred) respond(prf *proof, c abstract.Secret,
-			pr []abstract.Secret) error {
+func (rp *repPred) respond(prf *proof, c abstract.Scalar,
+	pr []abstract.Scalar) error {
 	pp := prf.pp[rp]
 
 	// Create a response array for this OR-domain if not done already
-	r := prf.makeSecrets(pr)
+	r := prf.makeScalars(pr)
 
-	for i := range(rp.T) {
-		t := rp.T[i]	// current term
+	for i := range rp.T {
+		t := rp.T[i] // current term
 		s := prf.sidx[t.S]
 
 		// Produce a correct response for each variable
 		// the first time we encounter that variable.
-		if r[s] == nil {
-			if pp.w != nil {
+		if r[s].Nil() {
+			if !pp.w.Nil() {
 				// We're on a non-proof-obligated branch:
 				// w was our challenge, v[s] is our response.
 				r[s] = pp.v[s]
@@ -254,9 +246,9 @@ func (rp *repPred) respond(prf *proof, c abstract.Secret,
 			// We're on a proof-obligated branch,
 			// so we need to calculate the correct response
 			// as r = v-cx where x is the secret variable
-			ri := prf.s.Secret()
-			ri.Mul(c,prf.sval[t.S])
-			ri.Sub(pp.v[s],ri)
+			ri := prf.s.Scalar()
+			ri.Mul(c, prf.sval[t.S])
+			ri.Sub(pp.v[s], ri)
 			r[s] = ri
 		}
 	}
@@ -265,12 +257,12 @@ func (rp *repPred) respond(prf *proof, c abstract.Secret,
 	return prf.sendResponses(pr, r)
 }
 
-func (rp *repPred) getCommits(prf *proof, pr []abstract.Secret) error {
+func (rp *repPred) getCommits(prf *proof, pr []abstract.Scalar) error {
 
 	// Create per-predicate verifier state
 	V := prf.s.Point()
-	r := prf.makeSecrets(pr)
-	vp := &verifierPred{V,r}
+	r := prf.makeScalars(pr)
+	vp := &verifierPred{V, r}
 	prf.vp[rp] = vp
 
 	// Get the commitment for this representation
@@ -279,34 +271,34 @@ func (rp *repPred) getCommits(prf *proof, pr []abstract.Secret) error {
 	}
 
 	// Fill in the r vector with the responses we'll need.
-	for i := range(rp.T) {
-		t := rp.T[i]	// current term
+	for i := range rp.T {
+		t := rp.T[i] // current term
 		s := prf.sidx[t.S]
-		if r[s] == nil {
-			r[s] = prf.s.Secret()
+		if r[s].Nil() {
+			r[s] = prf.s.Scalar()
 		}
 	}
 	return nil
 }
 
-func (rp *repPred) verify(prf *proof, c abstract.Secret, pr []abstract.Secret) error {
+func (rp *repPred) verify(prf *proof, c abstract.Scalar, pr []abstract.Scalar) error {
 	vp := prf.vp[rp]
 	r := vp.r
 
 	// Get the needed responses if a parent didn't already
-	if e := prf.getResponses(pr,r); e != nil {
+	if e := prf.getResponses(pr, r); e != nil {
 		return e
 	}
 
 	// Recompute commit V=cY+r1G1+...+rkGk
 	V := prf.s.Point()
-	V.Mul(prf.pval[rp.P],c)
+	V.Mul(prf.pval[rp.P], c)
 	P := prf.s.Point()
 	for i := 0; i < len(rp.T); i++ {
-		t := rp.T[i]	// current term
+		t := rp.T[i] // current term
 		s := prf.sidx[t.S]
-		P.Mul(prf.pval[t.B],r[s])
-		V.Add(V,P)
+		P.Mul(prf.pval[t.B], r[s])
+		V.Add(V, P)
 	}
 	if !V.Equal(vp.V) {
 		return errors.New("invalid proof: commit mismatch")
@@ -315,18 +307,16 @@ func (rp *repPred) verify(prf *proof, c abstract.Secret, pr []abstract.Secret) e
 	return nil
 }
 
-func (rp *repPred) Prover(suite abstract.Suite, secrets map[string]abstract.Secret, 
-			points map[string]abstract.Point,
-			choice map[Predicate]int) Prover {
-	return proof{}.init(suite,rp).prover(rp,secrets,points,choice)
+func (rp *repPred) Prover(suite abstract.Suite, secrets map[string]abstract.Scalar,
+	points map[string]abstract.Point,
+	choice map[Predicate]int) Prover {
+	return proof{}.init(suite, rp).prover(rp, secrets, points, choice)
 }
 
 func (rp *repPred) Verifier(suite abstract.Suite,
-			points map[string]abstract.Point) Verifier {
-	return proof{}.init(suite,rp).verifier(rp,points)
+	points map[string]abstract.Point) Verifier {
+	return proof{}.init(suite, rp).verifier(rp, points)
 }
-
-
 
 ////////// And predicate //////////
 
@@ -334,7 +324,7 @@ type andPred []Predicate
 
 // An And predicate states that all of the constituent sub-predicates are true.
 // And predicates may contain Rep predicates and/or other And predicates.
-func And(sub...Predicate) Predicate {
+func And(sub ...Predicate) Predicate {
 	and := andPred(sub)
 	return &and
 }
@@ -358,22 +348,22 @@ func (ap *andPred) precString(prec int) string {
 
 func (ap *andPred) enumVars(prf *proof) {
 	sub := []Predicate(*ap)
-	for i := range(sub) {
+	for i := range sub {
 		sub[i].enumVars(prf)
 	}
 }
 
-func (ap *andPred) commit(prf *proof, w abstract.Secret, pv []abstract.Secret) error {
+func (ap *andPred) commit(prf *proof, w abstract.Scalar, pv []abstract.Scalar) error {
 	sub := []Predicate(*ap)
 
 	// Create per-predicate prover state
-	v := prf.makeSecrets(pv)
+	v := prf.makeScalars(pv)
 	//pp := proverPred{w,v,nil}
 	//prf.pp[ap] = pp
 
 	// Recursively generate commitments
 	for i := 0; i < len(sub); i++ {
-		if e := sub[i].commit(prf,w,v); e != nil {
+		if e := sub[i].commit(prf, w, v); e != nil {
 			return e
 		}
 	}
@@ -381,64 +371,62 @@ func (ap *andPred) commit(prf *proof, w abstract.Secret, pv []abstract.Secret) e
 	return nil
 }
 
-func (ap *andPred) respond(prf *proof, c abstract.Secret, pr []abstract.Secret) error {
+func (ap *andPred) respond(prf *proof, c abstract.Scalar, pr []abstract.Scalar) error {
 	sub := []Predicate(*ap)
 	//pp := prf.pp[ap]
 
 	// Recursively compute responses in all sub-predicates
-	r := prf.makeSecrets(pr)
-	for i := range(sub) {
-		if e := sub[i].respond(prf,c,r); e != nil {
+	r := prf.makeScalars(pr)
+	for i := range sub {
+		if e := sub[i].respond(prf, c, r); e != nil {
 			return e
 		}
 	}
 	return prf.sendResponses(pr, r)
 }
 
-func (ap *andPred) getCommits(prf *proof, pr []abstract.Secret) error {
+func (ap *andPred) getCommits(prf *proof, pr []abstract.Scalar) error {
 	sub := []Predicate(*ap)
 
 	// Create per-predicate verifier state
-	r := prf.makeSecrets(pr)
-	vp := &verifierPred{nil,r}
+	r := prf.makeScalars(pr)
+	vp := &verifierPred{abstract.Point{nil}, r}
 	prf.vp[ap] = vp
 
-	for i := range(sub) {
-		if e := sub[i].getCommits(prf,r); e != nil {
+	for i := range sub {
+		if e := sub[i].getCommits(prf, r); e != nil {
 			return e
 		}
 	}
 	return nil
 }
 
-func (ap *andPred) verify(prf *proof, c abstract.Secret, pr []abstract.Secret) error {
+func (ap *andPred) verify(prf *proof, c abstract.Scalar, pr []abstract.Scalar) error {
 	sub := []Predicate(*ap)
 	vp := prf.vp[ap]
 	r := vp.r
 
-	if e := prf.getResponses(pr,r); e != nil {
+	if e := prf.getResponses(pr, r); e != nil {
 		return e
 	}
-	for i := range(sub) {
-		if e := sub[i].verify(prf,c,r); e != nil {
+	for i := range sub {
+		if e := sub[i].verify(prf, c, r); e != nil {
 			return e
 		}
 	}
 	return nil
 }
 
-func (ap *andPred) Prover(suite abstract.Suite, secrets map[string]abstract.Secret, 
-			points map[string]abstract.Point,
-			choice map[Predicate]int) Prover {
-	return proof{}.init(suite,ap).prover(ap,secrets,points,choice)
+func (ap *andPred) Prover(suite abstract.Suite, secrets map[string]abstract.Scalar,
+	points map[string]abstract.Point,
+	choice map[Predicate]int) Prover {
+	return proof{}.init(suite, ap).prover(ap, secrets, points, choice)
 }
 
 func (ap *andPred) Verifier(suite abstract.Suite,
-			points map[string]abstract.Point) Verifier {
-	return proof{}.init(suite,ap).verifier(ap,points)
+	points map[string]abstract.Point) Verifier {
+	return proof{}.init(suite, ap).verifier(ap, points)
 }
-
-
 
 ////////// Or predicate //////////
 
@@ -448,7 +436,7 @@ type orPred []Predicate
 // at least one of the sub-predicates to be true,
 // but the proof does not reveal any information about which.
 
-func Or(sub...Predicate) Predicate {
+func Or(sub ...Predicate) Predicate {
 	or := orPred(sub)
 	return &or
 }
@@ -472,34 +460,34 @@ func (op *orPred) precString(prec int) string {
 
 func (op *orPred) enumVars(prf *proof) {
 	sub := []Predicate(*op)
-	for i := range(sub) {
+	for i := range sub {
 		sub[i].enumVars(prf)
 	}
 }
 
-func (op *orPred) commit(prf *proof, w abstract.Secret, pv []abstract.Secret) error {
+func (op *orPred) commit(prf *proof, w abstract.Scalar, pv []abstract.Scalar) error {
 	sub := []Predicate(*op)
-	if pv != nil {		// only happens within an AND expression
+	if pv != nil { // only happens within an AND expression
 		panic("can't have OR predicates within AND predicates")
 	}
 
 	// Create per-predicate prover state
-	wi := make([]abstract.Secret, len(sub))
-	pp := &proverPred{w,nil,wi}
+	wi := make([]abstract.Scalar, len(sub))
+	pp := &proverPred{w, nil, wi}
 	prf.pp[op] = pp
 
 	// Choose pre-challenges for our subs.
-	if w == nil {
+	if w.Nil() {
 		// We're on a proof-obligated branch;
 		// choose random pre-challenges for only non-obligated subs.
-		choice,ok := prf.choice[op]
+		choice, ok := prf.choice[op]
 		if !ok || choice < 0 || choice >= len(sub) {
-			panic("no choice of proof branch for OR-predicate "+
+			panic("no choice of proof branch for OR-predicate " +
 				op.String())
 		}
 		for i := 0; i < len(sub); i++ {
 			if i != choice {
-				wi[i] = prf.s.Secret()
+				wi[i] = prf.s.Scalar()
 				prf.pc.PriRand(wi[i])
 			} // else wi[i] == nil for proof-obligated sub
 		}
@@ -507,12 +495,12 @@ func (op *orPred) commit(prf *proof, w abstract.Secret, pv []abstract.Secret) er
 		// Since w != nil, we're in a non-obligated branch,
 		// so choose random pre-challenges for all subs
 		// such that they add up to the master pre-challenge w.
-		last := len(sub)-1		// index of last sub
-		wl := prf.s.Secret().Set(w)
-		for i := 0; i < last; i++ {	// choose all but last
-			wi[i] = prf.s.Secret()
+		last := len(sub) - 1 // index of last sub
+		wl := prf.s.Scalar().Set(w)
+		for i := 0; i < last; i++ { // choose all but last
+			wi[i] = prf.s.Scalar()
 			prf.pc.PriRand(wi[i])
-			wl.Sub(wl,wi[i])
+			wl.Sub(wl, wi[i])
 		}
 		wi[last] = wl
 	}
@@ -520,7 +508,7 @@ func (op *orPred) commit(prf *proof, w abstract.Secret, pv []abstract.Secret) er
 	// Now recursively choose commitments within each sub
 	for i := 0; i < len(sub); i++ {
 		// Fresh variable-blinding secrets for each pre-commitment
-		if e := sub[i].commit(prf,wi[i],nil); e != nil {
+		if e := sub[i].commit(prf, wi[i], nil); e != nil {
 			return e
 		}
 	}
@@ -528,7 +516,7 @@ func (op *orPred) commit(prf *proof, w abstract.Secret, pv []abstract.Secret) er
 	return nil
 }
 
-func (op *orPred) respond(prf *proof, c abstract.Secret, pr []abstract.Secret) error {
+func (op *orPred) respond(prf *proof, c abstract.Scalar, pr []abstract.Scalar) error {
 	sub := []Predicate(*op)
 	pp := prf.pp[op]
 	if pr != nil {
@@ -536,13 +524,13 @@ func (op *orPred) respond(prf *proof, c abstract.Secret, pr []abstract.Secret) e
 	}
 
 	ci := pp.wi
-	if pp.w == nil {
+	if pp.w.Nil() {
 		// Calculate the challenge for the proof-obligated subtree
-		cs := prf.s.Secret().Set(c)
+		cs := prf.s.Scalar().Set(c)
 		choice := prf.choice[op]
 		for i := 0; i < len(sub); i++ {
 			if i != choice {
-				cs.Sub(cs,ci[i])
+				cs.Sub(cs, ci[i])
 			}
 		}
 		ci[choice] = cs
@@ -556,8 +544,8 @@ func (op *orPred) respond(prf *proof, c abstract.Secret, pr []abstract.Secret) e
 	}
 
 	// Recursively compute responses in all subtrees
-	for i := range(sub) {
-		if e := sub[i].respond(prf,ci[i],nil); e != nil {
+	for i := range sub {
+		if e := sub[i].respond(prf, ci[i], nil); e != nil {
 			return e
 		}
 	}
@@ -566,17 +554,17 @@ func (op *orPred) respond(prf *proof, c abstract.Secret, pr []abstract.Secret) e
 }
 
 // Get from the verifier all the commitments needed for this predicate
-func (op *orPred) getCommits(prf *proof, pr []abstract.Secret) error {
+func (op *orPred) getCommits(prf *proof, pr []abstract.Scalar) error {
 	sub := []Predicate(*op)
-	for i := range(sub) {
-		if e := sub[i].getCommits(prf,nil); e != nil {
+	for i := range sub {
+		if e := sub[i].getCommits(prf, nil); e != nil {
 			return e
 		}
 	}
 	return nil
 }
 
-func (op *orPred) verify(prf *proof, c abstract.Secret, pr []abstract.Secret) error {
+func (op *orPred) verify(prf *proof, c abstract.Scalar, pr []abstract.Scalar) error {
 	sub := []Predicate(*op)
 	if pr != nil {
 		panic("OR predicates can't be in anything else")
@@ -584,14 +572,14 @@ func (op *orPred) verify(prf *proof, c abstract.Secret, pr []abstract.Secret) er
 
 	// Get the prover's sub-challenges
 	nsub := len(sub)
-	ci := make([]abstract.Secret, nsub)
+	ci := make([]abstract.Scalar, nsub)
 	if nsub > 1 {
 		if e := prf.vc.Get(ci); e != nil {
 			return e
 		}
 
 		// Make sure they add up to the parent's composite challenge
-		csum := prf.s.Secret().Zero()
+		csum := prf.s.Scalar().Zero()
 		for i := 0; i < nsub; i++ {
 			csum.Add(csum, ci[i])
 		}
@@ -599,13 +587,13 @@ func (op *orPred) verify(prf *proof, c abstract.Secret, pr []abstract.Secret) er
 			return errors.New("invalid proof: bad sub-challenges")
 		}
 
-	} else {	// trivial single-sub OR
+	} else { // trivial single-sub OR
 		ci[0] = c
 	}
 
 	// Recursively verify all subs
-	for i := range(sub) {
-		if e := sub[i].verify(prf,ci[i], nil); e != nil {
+	for i := range sub {
+		if e := sub[i].verify(prf, ci[i], nil); e != nil {
 			return e
 		}
 	}
@@ -613,22 +601,20 @@ func (op *orPred) verify(prf *proof, c abstract.Secret, pr []abstract.Secret) er
 	return nil
 }
 
-func (op *orPred) Prover(suite abstract.Suite, secrets map[string]abstract.Secret, 
-			points map[string]abstract.Point,
-			choice map[Predicate]int) Prover {
-	return proof{}.init(suite,op).prover(op,secrets,points,choice)
+func (op *orPred) Prover(suite abstract.Suite, secrets map[string]abstract.Scalar,
+	points map[string]abstract.Point,
+	choice map[Predicate]int) Prover {
+	return proof{}.init(suite, op).prover(op, secrets, points, choice)
 }
 
 func (op *orPred) Verifier(suite abstract.Suite,
-			points map[string]abstract.Point) Verifier {
-	return proof{}.init(suite,op).verifier(op,points)
+	points map[string]abstract.Point) Verifier {
+	return proof{}.init(suite, op).verifier(op, points)
 }
-
-
 
 /*
 type lin struct {
-	a1,a2,b abstract.Secret
+	a1,a2,b abstract.Scalar
 	x1,x2 PriVar
 }
 */
@@ -636,12 +622,10 @@ type lin struct {
 // Construct a predicate asserting a linear relationship a1x1+a2x2=b,
 // where a1,a2,b are public values and x1,x2 are secrets.
 /*
-func (p *Prover) Linear(a1,a2,b abstract.Secret, x1,x2 PriVar) {
+func (p *Prover) Linear(a1,a2,b abstract.Scalar, x1,x2 PriVar) {
 	return &lin{a1,a2,b,x1,x2}
 }
 */
-
-
 
 func (prf proof) init(suite abstract.Suite, pred Predicate) *proof {
 	prf.s = suite
@@ -659,7 +643,7 @@ func (prf proof) init(suite abstract.Suite, pred Predicate) *proof {
 	return &prf
 }
 
-func (prf *proof) enumSecretVar(name string) {
+func (prf *proof) enumScalarVar(name string) {
 	if prf.sidx[name] == 0 {
 		prf.sidx[name] = len(prf.svar)
 		prf.svar = append(prf.svar, name)
@@ -674,20 +658,20 @@ func (prf *proof) enumPointVar(name string) {
 }
 
 // Make a response-array if that wasn't already done in a parent predicate.
-func (prf *proof) makeSecrets(pr []abstract.Secret) []abstract.Secret {
+func (prf *proof) makeScalars(pr []abstract.Scalar) []abstract.Scalar {
 	if pr == nil {
-		return make([]abstract.Secret, prf.nsvars)
+		return make([]abstract.Scalar, prf.nsvars)
 	}
 	return pr
 }
 
-// Transmit our response-array if a corresponding makeSecrets() created it.
-func (prf *proof) sendResponses(pr []abstract.Secret, r []abstract.Secret) error {
+// Transmit our response-array if a corresponding makeScalars() created it.
+func (prf *proof) sendResponses(pr []abstract.Scalar, r []abstract.Scalar) error {
 	if pr == nil {
-		for i := range(r) {
+		for i := range r {
 			// Send responses only for variables
 			// that were used in this OR-domain.
-			if r[i] != nil {
+			if !r[i].Nil() {
 				if e := prf.pc.Put(r[i]); e != nil {
 					return e
 				}
@@ -698,11 +682,11 @@ func (prf *proof) sendResponses(pr []abstract.Secret, r []abstract.Secret) error
 }
 
 // In the verifier, get the responses at the top of an OR-domain,
-// if a corresponding makeSecrets() call created it.
-func (prf *proof) getResponses(pr []abstract.Secret, r []abstract.Secret) error {
+// if a corresponding makeScalars() call created it.
+func (prf *proof) getResponses(pr []abstract.Scalar, r []abstract.Scalar) error {
 	if pr == nil {
-		for i := range(r) {
-			if r[i] != nil {
+		for i := range r {
+			if !r[i].Nil() {
 				if e := prf.vc.Get(r[i]); e != nil {
 					return e
 				}
@@ -712,9 +696,9 @@ func (prf *proof) getResponses(pr []abstract.Secret, r []abstract.Secret) error 
 	return nil
 }
 
-func (prf *proof) prove(p Predicate, sval map[string]abstract.Secret, 
-			pval map[string]abstract.Point,
-			choice map[Predicate]int, pc ProverContext) error {
+func (prf *proof) prove(p Predicate, sval map[string]abstract.Scalar,
+	pval map[string]abstract.Point,
+	choice map[Predicate]int, pc ProverContext) error {
 	prf.pc = pc
 	prf.sval = sval
 	prf.pval = pval
@@ -722,48 +706,48 @@ func (prf *proof) prove(p Predicate, sval map[string]abstract.Secret,
 	prf.pp = make(map[Predicate]*proverPred)
 
 	// Generate all commitments
-	if e := p.commit(prf,nil,nil); e != nil {
+	if e := p.commit(prf, abstract.Scalar{nil}, nil); e != nil {
 		return e
 	}
 
 	// Generate top-level challenge from public randomness
-	c := prf.s.Secret()
+	c := prf.s.Scalar()
 	if e := pc.PubRand(c); e != nil {
 		return e
 	}
 
 	// Generate all responses based on master challenge
-	return p.respond(prf,c,nil)
+	return p.respond(prf, c, nil)
 }
 
 func (prf *proof) verify(p Predicate, pval map[string]abstract.Point,
-			vc VerifierContext) error {
+	vc VerifierContext) error {
 	prf.vc = vc
 	prf.pval = pval
 	prf.vp = make(map[Predicate]*verifierPred)
 
 	// Get the commitments from the verifier,
 	// and calculate the sets of responses we'll need for each OR-domain.
-	if e := p.getCommits(prf,nil); e != nil {
+	if e := p.getCommits(prf, nil); e != nil {
 		return e
 	}
 
 	// Produce the top-level challenge
-	c := prf.s.Secret()
+	c := prf.s.Scalar()
 	if e := vc.PubRand(c); e != nil {
 		return e
 	}
 
 	// Check all the responses and sub-challenges against the commitments.
-	return p.verify(prf,c,nil)
+	return p.verify(prf, c, nil)
 }
 
 // Produce a higher-order Prover embodying a given proof predicate.
-func (prf *proof) prover(p Predicate, sval map[string]abstract.Secret, 
-			pval map[string]abstract.Point,
-			choice map[Predicate]int) Prover {
+func (prf *proof) prover(p Predicate, sval map[string]abstract.Scalar,
+	pval map[string]abstract.Point,
+	choice map[Predicate]int) Prover {
 
-	return Prover(func(ctx ProverContext)error{
+	return Prover(func(ctx ProverContext) error {
 		return prf.prove(p, sval, pval, choice, ctx)
 	})
 }
@@ -771,8 +755,7 @@ func (prf *proof) prover(p Predicate, sval map[string]abstract.Secret,
 // Produce a higher-order Verifier embodying a given proof predicate.
 func (prf *proof) verifier(p Predicate, pval map[string]abstract.Point) Verifier {
 
-	return Verifier(func(ctx VerifierContext)error{
+	return Verifier(func(ctx VerifierContext) error {
 		return prf.verify(p, pval, ctx)
 	})
 }
-

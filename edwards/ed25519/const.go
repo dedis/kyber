@@ -5,7 +5,7 @@
 package ed25519
 
 import (
-	"github.com/dedis/crypto/nist"
+	"github.com/dedis/crypto/group"
 	"math/big"
 )
 
@@ -13,16 +13,16 @@ import (
 var prime, _ = new(big.Int).SetString("57896044618658097711785492504343953926634992332820282019728792003956564819949", 10)
 
 // prime order of base point = 2^252 + 27742317777372353535851937790883648493
-var primeOrder, _ = new(nist.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989", "", 10)
+var primeOrder, _ = new(group.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989", "", 10)
 
 // cofactor of the curve, as a ModInt
-var cofactor = nist.NewInt(8, &primeOrder.V)
+var cofactor = group.NewInt(8, &primeOrder.V)
 
 // order of the full curve including the cofactor
 var fullOrder = new(big.Int).Mul(&primeOrder.V, &cofactor.V)
 
 // identity point
-var nullPoint = new(point).Null()
+var nullPoint = new(point).zero()
 
 var d = fieldElement{
 	-10913610, 13857413, -15372611, 6949391, 114729, -8787816, -6275908, -3247719, -18696448, -12055116,

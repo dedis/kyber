@@ -1,8 +1,7 @@
 package crypto
 
 import (
-	"github.com/dedis/crypto/nist"
-	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto/suite"
 )
 
 /*
@@ -13,17 +12,15 @@ Any other suitable elliptic curve or other cryptographic group may be used
 simply by changing the first line that picks the suite.
 */
 func Example_diffieHellman() {
-
-	// Crypto setup: NIST-standardized P256 curve with AES-128 and SHA-256
-	suite := nist.NewAES128SHA256P256()
+	suite := suite.Default(nil)
 
 	// Alice's public/private keypair
-	a := suite.Secret().Pick(random.Stream) // Alice's private key
-	A := suite.Point().Mul(nil, a)          // Alice's public key
+	a := suite.Scalar().Fresh()   // Alice's private key
+	A := suite.Point().BaseMul(a) // Alice's public key
 
 	// Bob's public/private keypair
-	b := suite.Secret().Pick(random.Stream) // Alice's private key
-	B := suite.Point().Mul(nil, b)          // Alice's public key
+	b := suite.Scalar().Fresh()   // Alice's private key
+	B := suite.Point().BaseMul(b) // Alice's public key
 
 	// Assume Alice and Bob have securely obtained each other's public keys.
 

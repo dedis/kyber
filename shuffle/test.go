@@ -9,29 +9,29 @@ import (
 
 func TestShuffle(suite abstract.Suite, k int, N int) {
 
-	rand := suite.Cipher(abstract.RandomKey)
+	rand := suite.Cipher(abstract.FreshKey)
 
 	// Create a "server" private/public keypair
-	h := suite.Secret().Pick(rand)
-	H := suite.Point().Mul(nil, h)
+	h := suite.Scalar().Random(rand)
+	H := suite.Point().BaseMul(h)
 
 	// Create a set of ephemeral "client" keypairs to shuffle
-	c := make([]abstract.Secret, k)
+	c := make([]abstract.Scalar, k)
 	C := make([]abstract.Point, k)
 	//	fmt.Println("\nclient keys:")
 	for i := 0; i < k; i++ {
-		c[i] = suite.Secret().Pick(rand)
-		C[i] = suite.Point().Mul(nil, c[i])
+		c[i] = suite.Scalar().Random(rand)
+		C[i] = suite.Point().BaseMul(c[i])
 		//		fmt.Println(" "+C[i].String())
 	}
 
 	// ElGamal-encrypt all these keypairs with the "server" key
 	X := make([]abstract.Point, k)
 	Y := make([]abstract.Point, k)
-	r := suite.Secret() // temporary
+	r := suite.Scalar() // temporary
 	for i := 0; i < k; i++ {
-		r.Pick(rand)
-		X[i] = suite.Point().Mul(nil, r)
+		r.Random(rand)
+		X[i] = suite.Point().BaseMul(r)
 		Y[i] = suite.Point().Mul(H, r) // ElGamal blinding factor
 		Y[i].Add(Y[i], C[i])           // Encrypted client public key
 	}
@@ -40,7 +40,8 @@ func TestShuffle(suite abstract.Suite, k int, N int) {
 	for i := 0; i < N; i++ {
 
 		// Do a key-shuffle
-		Xbar, Ybar, prover := Shuffle(suite, nil, H, X, Y, rand)
+		nilPoint := abstract.Point{nil}
+		Xbar, Ybar, prover := Shuffle(suite, nilPoint, H, X, Y, rand)
 		prf, err := proof.HashProve(suite, "PairShuffle", rand, prover)
 		if err != nil {
 			panic("Shuffle proof failed: " + err.Error())
@@ -48,7 +49,7 @@ func TestShuffle(suite abstract.Suite, k int, N int) {
 		//fmt.Printf("proof:\n%s\n",hex.Dump(prf))
 
 		// Check it
-		verifier := Verifier(suite, nil, H, X, Y, Xbar, Ybar)
+		verifier := Verifier(suite, nilPoint, H, X, Y, Xbar, Ybar)
 		err = proof.HashVerify(suite, "PairShuffle", verifier, prf)
 		if err != nil {
 			panic("Shuffle verify failed: " + err.Error())

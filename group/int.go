@@ -1,14 +1,13 @@
-package nist
+package group
 
 import (
 	"crypto/cipher"
 	"encoding/hex"
 	"errors"
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/math"
 	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/util"
+	"golang.org/x/net/context"
 	"io"
 	"math/big"
 )
@@ -18,10 +17,10 @@ var one = big.NewInt(1)
 var two = big.NewInt(2)
 
 // Int is a generic implementation of finite field arithmetic
-// on integer finite fields with a given constant modulus,
-// built using Go's built-in big.Int package.
-// Int satisfies the abstract abstract.Secret interface,
-// and hence serves as a basic implementation of abstract.Secret,
+// on integer fields with a given constant modulus,
+// using Go's built-in big.Int package.
+// Int satisfies the abstract Element interface,
+// and hence serves as a basic implementation of Element,
 // e.g., representing discrete-log exponents of Schnorr groups
 // or scalar multipliers for elliptic curves.
 //
@@ -36,6 +35,7 @@ var two = big.NewInt(2)
 // For efficiency the modulus field M is a pointer,
 // whose target is assumed never to change.
 //
+// XXX rename IntElement or something like that?
 type Int struct {
 	V big.Int  // Integer value from 0 through M-1
 	M *big.Int // Modulus for finite field arithmetic
@@ -44,6 +44,11 @@ type Int struct {
 // Create a new Int with a given int64 value and big.Int modulus.
 func NewInt(v int64, M *big.Int) *Int {
 	return new(Int).Init64(v, M)
+}
+
+// Create a new Int with the same modulus as an existing one.
+func (i *Int) New() Element {
+	return &Int{big.Int{}, i.M}
 }
 
 // Initialize a Int with a given big.Int value and modulus pointer.
@@ -103,12 +108,12 @@ func (i *Int) SetString(n, d string, base int) (*Int, bool) {
 }
 
 // Compare two Ints for equality or inequality
-func (i *Int) Cmp(s2 abstract.Secret) int {
+func (i *Int) Cmp(s2 Element) int {
 	return i.V.Cmp(&s2.(*Int).V)
 }
 
 // Test two Ints for equality
-func (i *Int) Equal(s2 abstract.Secret) bool {
+func (i *Int) Equal(s2 Element) bool {
 	return i.V.Cmp(&s2.(*Int).V) == 0
 }
 
@@ -120,7 +125,7 @@ func (i *Int) Nonzero() bool {
 // Set both value and modulus to be equal to another Int.
 // Since this method copies the modulus as well,
 // it may be used as an alternative to Init().
-func (i *Int) Set(a abstract.Secret) abstract.Secret {
+func (i *Int) Set(a Element) Element {
 	ai := a.(*Int)
 	i.V.Set(&ai.V)
 	i.M = ai.M
@@ -142,20 +147,27 @@ func (i *Int) SetLittleEndian(a []byte) *Int {
 }
 
 // Set to the value 0.  The modulus must already be initialized.
-func (i *Int) Zero() abstract.Secret {
+func (i *Int) Zero() Element {
 	i.V.SetInt64(0)
 	return i
 }
 
 // Set to the value 1.  The modulus must already be initialized.
-func (i *Int) One() abstract.Secret {
+func (i *Int) One() Element {
 	i.V.SetInt64(1)
+	return i
+}
+
+// Set to an arbitrary big.Int value.
+// The modulus must already be initialized.
+func (i *Int) SetInt(v *big.Int) FieldElement {
+	i.V.Set(v).Mod(&i.V, i.M)
 	return i
 }
 
 // Set to an arbitrary 64-bit "small integer" value.
 // The modulus must already be initialized.
-func (i *Int) SetInt64(v int64) abstract.Secret {
+func (i *Int) SetInt64(v int64) FieldElement {
 	i.V.SetInt64(v).Mod(&i.V, i.M)
 	return i
 }
@@ -168,7 +180,7 @@ func (i *Int) Int64() int64 {
 
 // Set to an arbitrary uint64 value.
 // The modulus must already be initialized.
-func (i *Int) SetUint64(v uint64) abstract.Secret {
+func (i *Int) SetUint64(v uint64) Element {
 	i.V.SetUint64(v).Mod(&i.V, i.M)
 	return i
 }
@@ -180,7 +192,7 @@ func (i *Int) Uint64() uint64 {
 }
 
 // Set target to a + b mod M, where M is a's modulus..
-func (i *Int) Add(a, b abstract.Secret) abstract.Secret {
+func (i *Int) Add(a, b Element) Element {
 	ai := a.(*Int)
 	bi := b.(*Int)
 	i.M = ai.M
@@ -190,7 +202,7 @@ func (i *Int) Add(a, b abstract.Secret) abstract.Secret {
 
 // Set target to a - b mod M.
 // Target receives a's modulus.
-func (i *Int) Sub(a, b abstract.Secret) abstract.Secret {
+func (i *Int) Sub(a, b Element) Element {
 	ai := a.(*Int)
 	bi := b.(*Int)
 	i.M = ai.M
@@ -199,7 +211,7 @@ func (i *Int) Sub(a, b abstract.Secret) abstract.Secret {
 }
 
 // Set to -a mod M.
-func (i *Int) Neg(a abstract.Secret) abstract.Secret {
+func (i *Int) Neg(a Element) Element {
 	ai := a.(*Int)
 	i.M = ai.M
 	if ai.V.Sign() > 0 {
@@ -212,7 +224,7 @@ func (i *Int) Neg(a abstract.Secret) abstract.Secret {
 
 // Set to a * b mod M.
 // Target receives a's modulus.
-func (i *Int) Mul(a, b abstract.Secret) abstract.Secret {
+func (i *Int) Mul(a, b Element) Element {
 	ai := a.(*Int)
 	bi := b.(*Int)
 	i.M = ai.M
@@ -221,7 +233,7 @@ func (i *Int) Mul(a, b abstract.Secret) abstract.Secret {
 }
 
 // Set to a * b^-1 mod M, where b^-1 is the modular inverse of b.
-func (i *Int) Div(a, b abstract.Secret) abstract.Secret {
+func (i *Int) Div(a, b Element) FieldElement {
 	ai := a.(*Int)
 	bi := b.(*Int)
 	var t big.Int
@@ -232,7 +244,7 @@ func (i *Int) Div(a, b abstract.Secret) abstract.Secret {
 }
 
 // Set to the modular inverse of a with respect to modulus M.
-func (i *Int) Inv(a abstract.Secret) abstract.Secret {
+func (i *Int) Inv(a Element) FieldElement {
 	ai := a.(*Int)
 	i.M = ai.M
 	i.V.ModInverse(&a.(*Int).V, i.M)
@@ -241,7 +253,7 @@ func (i *Int) Inv(a abstract.Secret) abstract.Secret {
 
 // Set to a^e mod M,
 // where e is an arbitrary big.Int exponent (not necessarily 0 <= e < M).
-func (i *Int) Exp(a abstract.Secret, e *big.Int) abstract.Secret {
+func (i *Int) Exp(a Element, e *big.Int) Element {
 	ai := a.(*Int)
 	i.M = ai.M
 	i.V.Exp(&ai.V, e, i.M)
@@ -263,18 +275,17 @@ func (i *Int) legendre() int {
 
 // Set to the Jacobi symbol of (a/M), which indicates whether a is
 // zero (0), a positive square in M (1), or a non-square in M (-1).
-func (i *Int) Jacobi(as abstract.Secret) abstract.Secret {
+func (i *Int) Jacobi(as Element) {
 	ai := as.(*Int)
 	i.M = ai.M
 	i.V.SetInt64(int64(math.Jacobi(&ai.V, i.M)))
-	return i
 }
 
 // Compute some square root of a mod M of one exists.
 // Assumes the modulus M is an odd prime.
 // Returns true on success, false if input a is not a square.
 // (This really should be part of Go's big.Int library.)
-func (i *Int) Sqrt(as abstract.Secret) bool {
+func (i *Int) Sqrt(as Element) bool {
 	ai := as.(*Int)
 	i.M = ai.M
 	return math.Sqrt(&i.V, &ai.V, ai.M)
@@ -282,9 +293,22 @@ func (i *Int) Sqrt(as abstract.Secret) bool {
 
 // Pick a [pseudo-]random integer modulo M
 // using bits from the given stream cipher.
-func (i *Int) Pick(rand cipher.Stream) abstract.Secret {
-	i.V.Set(random.Int(i.M, rand))
-	return i
+func (i *Int) Pick(data []byte, rand cipher.Stream) []byte {
+	i.V.SetBytes(random.Bits(uint(i.M.BitLen()), false, rand))
+	i.V.Mod(&i.V, i.M)
+	return data
+}
+
+// Return the number of data bytes that can be reliably embedded.
+// Int elements currently don't support data embedding
+// (but might in the future).
+func (i *Int) PickLen() int {
+	return 0
+}
+
+// Extract embedded data
+func (i *Int) Data() ([]byte, error) {
+	panic("Int doesn't support embedding") // XXX it easily could!
 }
 
 // Return the length in bytes of encoded integers with modulus M.
@@ -321,12 +345,12 @@ func (i *Int) UnmarshalBinary(buf []byte) error {
 	return nil
 }
 
-func (i *Int) MarshalTo(w io.Writer) (int, error) {
-	return group.SecretMarshalTo(i, w)
+func (i *Int) Marshal(c context.Context, w io.Writer) (int, error) {
+	return Marshal(c, i, w)
 }
 
-func (i *Int) UnmarshalFrom(r io.Reader) (int, error) {
-	return group.SecretUnmarshalFrom(i, r)
+func (i *Int) Unmarshal(c context.Context, r io.Reader) (int, error) {
+	return Unmarshal(c, i, r)
 }
 
 // Encode the value of this Int into a big-endian byte-slice

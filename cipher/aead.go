@@ -3,19 +3,18 @@ package cipher
 import (
 	"crypto/cipher"
 	"errors"
-	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/subtle"
 	"github.com/dedis/crypto/util"
 )
 
 type cipherAEAD struct {
-	abstract.Cipher
+	State
 }
 
 // Wrap an abstract message Cipher to implement
 // the Authenticated Encryption with Associated Data (AEAD) interface.
-func NewAEAD(c abstract.Cipher) cipher.AEAD {
-	return &cipherAEAD{c}
+func NewAEAD(cipher State) cipher.AEAD {
+	return &cipherAEAD{cipher}
 }
 
 func (ca *cipherAEAD) NonceSize() int {
