@@ -1,9 +1,7 @@
 package abstract
 
 import (
-	"bytes"
 	"crypto/cipher"
-	"fmt"
 )
 
 // XXX consider renaming Secret to Scalar?
@@ -72,42 +70,6 @@ type Secret struct {
 	SecretInterface
 }
 
-func (s *Secret) MarshalSize() int {
-	return s.SecretInterface.MarshalSize() + 8
-}
-
-func (s *Secret) MarshalBinary() (data []byte, err error) {
-	var b bytes.Buffer
-	bvalue, err := s.SecretInterface.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	fmt.Fprintln(&b, s.GetSuite().String(), len(bvalue))
-	b.Write(bvalue)
-	return b.Bytes(), nil
-}
-
-func (s *Secret) UnmarshalBinary(data []byte) error {
-	if len(data) == 0 {
-		return nil
-	}
-	b := bytes.NewBuffer(data)
-	var length int
-	var suiteStr string
-	_, err := fmt.Fscanln(b, &suiteStr, &length)
-	bvalue := make([]byte, length)
-	b.Read(bvalue)
-	suite, err := StringToSuite(suiteStr)
-	if err != nil {
-		return err
-	}
-	secret := suite.Secret()
-	s.SecretInterface = secret.SecretInterface
-	s.SecretInterface.SetSuite(suite)
-	s.SecretInterface.UnmarshalBinary(bvalue)
-	return err
-}
-
 /*
 A Point abstractly represents an element of a public-key cryptographic Group.
 For example,
@@ -169,81 +131,6 @@ Point is a structure that holds also the suite used for easy unmarshalling.
 
 type Point struct {
 	PointInterface
-}
-
-func (p *Point) MarshalSize() int {
-	return p.PointInterface.MarshalSize() + 8
-}
-
-func (p *Point) MarshalBinary() (data []byte, err error) {
-	var b bytes.Buffer
-	bvalue, err := p.PointInterface.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	fmt.Fprintln(&b, p.GetSuite().String(), len(bvalue))
-	b.Write(bvalue)
-	return b.Bytes(), nil
-}
-
-func (p *Point) UnmarshalBinary(data []byte) error {
-	if len(data) == 0 {
-		return nil
-	}
-	b := bytes.NewBuffer(data)
-	var length int
-	var suiteStr string
-	_, err := fmt.Fscanln(b, &suiteStr, &length)
-	bvalue := make([]byte, length)
-	b.Read(bvalue)
-	suite, err := StringToSuite(suiteStr)
-	if err != nil {
-		return err
-	}
-	point := suite.Point()
-	point.PointInterface.UnmarshalBinary(bvalue)
-	if p.PointInterface != nil {
-		p.Null()
-		p.Add(p, point)
-	} else {
-		p.PointInterface = point.PointInterface
-		p.SetSuite(suite)
-	}
-	return err
-}
-
-/*
-Payload is used to store the suite and help thus with the unmarshalling
-*/
-type Payload struct {
-	// Suite is stored as string
-	Suite string
-}
-
-// GetSuite returns the suite used with this point/secret
-func (pl *Payload) GetSuite() Suite {
-	if pl.Suite != "" {
-		s, err := StringToSuite(pl.Suite)
-		if err == nil {
-			return s
-		}
-	}
-	return nil
-}
-
-// SetSuite sets the suite used with this point/secret
-func (pl *Payload) SetSuite(s Suite) {
-	pl.Suite = s.String()
-}
-
-// MakePoint creates a Point from a PointInterface
-func (pl *Payload) MakePoint(p PointInterface) *Point {
-	return &Point{p}
-}
-
-// MakeSecret creates a Secret from a SecretInterface
-func (pl *Payload) MakeSecret(s SecretInterface) *Secret {
-	return &Secret{s}
 }
 
 /*

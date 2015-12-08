@@ -14,9 +14,23 @@ import (
 )
 
 type curvePoint struct {
-	x, y *big.Int
-	c    *curve
-	*abstract.Payload
+	x, y  *big.Int
+	c     *curve
+	Suite string
+}
+
+func (cp *curvePoint) GetSuite() abstract.Suite {
+	s, _ := abstract.StringToSuite(cp.Suite)
+	return s
+}
+
+func (cp *curvePoint) SetSuite(s abstract.Suite) {
+	cp.Suite = s.String()
+}
+
+// Point creates a Point-structure from a PointInterface
+func (cp *curvePoint) Point() *abstract.Point {
+	return &abstract.Point{cp}
 }
 
 func (p *curvePoint) String() string {
@@ -40,13 +54,13 @@ func (p *curvePoint) Equal(p2 *abstract.Point) bool {
 func (p *curvePoint) Null() *abstract.Point {
 	p.x = new(big.Int).SetInt64(0)
 	p.y = new(big.Int).SetInt64(0)
-	return p.MakePoint(p)
+	return p.Point()
 }
 
 func (p *curvePoint) Base() *abstract.Point {
 	p.x = p.c.p.Gx
 	p.y = p.c.p.Gy
-	return p.MakePoint(p)
+	return p.Point()
 }
 
 func (p *curvePoint) Valid() bool {
@@ -115,7 +129,7 @@ func (p *curvePoint) Pick(data []byte, rand cipher.Stream) (*abstract.Point, []b
 			copy(b[l-dl-1:l-1], data) // Copy in data to embed
 		}
 		if p.genPoint(new(big.Int).SetBytes(b), rand) {
-			return p.MakePoint(p), data[dl:]
+			return p.Point(), data[dl:]
 		}
 	}
 }
@@ -138,7 +152,7 @@ func (p *curvePoint) Add(a, b *abstract.Point) *abstract.Point {
 	ca := a.PointInterface.(*curvePoint)
 	cb := b.PointInterface.(*curvePoint)
 	p.x, p.y = p.c.Add(ca.x, ca.y, cb.x, cb.y)
-	return p.MakePoint(p)
+	return p.Point()
 }
 
 func (p *curvePoint) Sub(a, b *abstract.Point) *abstract.Point {
@@ -147,7 +161,7 @@ func (p *curvePoint) Sub(a, b *abstract.Point) *abstract.Point {
 	// XXX a pretty non-optimal implementation of point subtraction...
 	cbn := p.c.Point().Neg(b).PointInterface.(*curvePoint)
 	p.x, p.y = p.c.Add(ca.x, ca.y, cbn.x, cbn.y)
-	return p.MakePoint(p)
+	return p.Point()
 }
 
 func (p *curvePoint) Neg(a *abstract.Point) *abstract.Point {
@@ -166,7 +180,7 @@ func (p *curvePoint) Mul(b *abstract.Point, s *abstract.Secret) *abstract.Point 
 	} else {
 		p.x, p.y = p.c.ScalarBaseMult(cs.V.Bytes())
 	}
-	return p.MakePoint(p)
+	return p.Point()
 }
 
 func (p *curvePoint) MarshalSize() int {
@@ -200,11 +214,11 @@ func (p *curvePoint) UnmarshalBinary(buf []byte) error {
 }
 
 func (p *curvePoint) MarshalTo(w io.Writer) (int, error) {
-	return group.PointMarshalTo(p.MakePoint(p), w)
+	return group.PointMarshalTo(p.Point(), w)
 }
 
 func (p *curvePoint) UnmarshalFrom(r io.Reader) (int, error) {
-	return group.PointUnmarshalFrom(p.MakePoint(p), r)
+	return group.PointUnmarshalFrom(p.Point(), r)
 }
 
 // interface for curve-specifc mathematical functions
@@ -252,8 +266,8 @@ func (c *curve) PointLen() int {
 func (c *curve) Point() *abstract.Point {
 	p := new(curvePoint)
 	p.c = c
-	p.Payload = &abstract.Payload{Suite: c.name}
-	return p.MakePoint(p)
+	p.Suite = c.name
+	return p.Point()
 }
 
 // Return the order of this curve: the prime N in the curve parameters.
