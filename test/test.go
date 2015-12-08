@@ -8,7 +8,7 @@ import (
 	"github.com/dedis/crypto/random"
 )
 
-func testEmbed(g abstract.Group, rand cipher.Stream, points *[]abstract.Point,
+func testEmbed(g abstract.Group, rand cipher.Stream, points *[]*abstract.Point,
 	s string) {
 	//println("embedding: ",s)
 	b := []byte(s)
@@ -35,11 +35,11 @@ func testEmbed(g abstract.Group, rand cipher.Stream, points *[]abstract.Point,
 // for comparison across alternative implementations
 // that are supposed to be equivalent.
 //
-func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
+func testGroup(g abstract.Group, rand cipher.Stream) []*abstract.Point {
 	//	fmt.Printf("\nTesting group '%s': %d-byte Point, %d-byte Secret\n",
 	//			g.String(), g.PointLen(), g.SecretLen())
 
-	points := make([]abstract.Point, 0)
+	points := make([]*abstract.Point, 0)
 	ptmp := g.Point()
 	stmp := g.Secret()
 	pzero := g.Point().Null()

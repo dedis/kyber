@@ -35,7 +35,7 @@ type SharedSecret struct {
 	Pub *PubPoly
 
 	// The share of the shared secret
-	Share *abstract.Secret
+	Share **abstract.Secret
 
 	// The index where the share has been evaluated in the shared private polynomial
 	// and the index to use where the share can be checked against the shared

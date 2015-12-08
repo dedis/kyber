@@ -27,8 +27,8 @@ func generateKeyPairList(n int) []*config.KeyPair {
 	return l
 }
 
-func generatePublicListFromPrivate(private []*config.KeyPair) []abstract.Point {
-	l := make([]abstract.Point, len(private))
+func generatePublicListFromPrivate(private []*config.KeyPair) []*abstract.Point {
+	l := make([]*abstract.Point, len(private))
 	for i := 0; i < len(private); i++ {
 		l[i] = private[i].Public
 	}

@@ -31,11 +31,11 @@ func newSecret(c *curve) *secret {
 
 func (s *secret) String() string { return s.BigInt().String() }
 
-func (s *secret) Equal(s2 abstract.Secret) bool {
+func (s *secret) Equal(s2 *abstract.Secret) bool {
 	return s.Cmp(&s2.(*secret).bignum) == 0
 }
 
-func (s *secret) Set(x abstract.Secret) abstract.Secret {
+func (s *secret) Set(x *abstract.Secret) *abstract.Secret {
 	xs := x.(*secret)
 	if C.BN_copy(s.bignum.bn, xs.bignum.bn) == nil {
 		panic("BN_copy: " + getErrString())
@@ -43,21 +43,21 @@ func (s *secret) Set(x abstract.Secret) abstract.Secret {
 	return s
 }
 
-func (s *secret) Zero() abstract.Secret {
+func (s *secret) Zero() *abstract.Secret {
 	if C.bn_zero(s.bignum.bn) == 0 {
 		panic("BN_zero: " + getErrString())
 	}
 	return s
 }
 
-func (s *secret) One() abstract.Secret {
+func (s *secret) One() *abstract.Secret {
 	if C.bn_one(s.bignum.bn) == 0 {
 		panic("BN_one: " + getErrString())
 	}
 	return s
 }
 
-func (s *secret) SetInt64(v int64) abstract.Secret {
+func (s *secret) SetInt64(v int64) *abstract.Secret {
 	neg := false
 	if v < 0 {
 		neg = true
@@ -83,7 +83,7 @@ func (s *secret) SetInt64(v int64) abstract.Secret {
 	return s
 }
 
-func (s *secret) Add(x, y abstract.Secret) abstract.Secret {
+func (s *secret) Add(x, y *abstract.Secret) *abstract.Secret {
 	xs := x.(*secret)
 	ys := y.(*secret)
 	if C.BN_mod_add(s.bignum.bn, xs.bignum.bn, ys.bignum.bn, s.c.n.bn,
@@ -93,7 +93,7 @@ func (s *secret) Add(x, y abstract.Secret) abstract.Secret {
 	return s
 }
 
-func (s *secret) Sub(x, y abstract.Secret) abstract.Secret {
+func (s *secret) Sub(x, y *abstract.Secret) *abstract.Secret {
 	xs := x.(*secret)
 	ys := y.(*secret)
 	if C.BN_mod_sub(s.bignum.bn, xs.bignum.bn, ys.bignum.bn, s.c.n.bn,
@@ -103,7 +103,7 @@ func (s *secret) Sub(x, y abstract.Secret) abstract.Secret {
 	return s
 }
 
-func (s *secret) Neg(x abstract.Secret) abstract.Secret {
+func (s *secret) Neg(x *abstract.Secret) *abstract.Secret {
 	xs := x.(*secret)
 	if C.BN_mod_sub(s.bignum.bn, s.c.n.bn, xs.bignum.bn, s.c.n.bn,
 		s.c.ctx) == 0 {
@@ -112,7 +112,7 @@ func (s *secret) Neg(x abstract.Secret) abstract.Secret {
 	return s
 }
 
-func (s *secret) Mul(x, y abstract.Secret) abstract.Secret {
+func (s *secret) Mul(x, y *abstract.Secret) *abstract.Secret {
 	xs := x.(*secret)
 	ys := y.(*secret)
 	if C.BN_mod_mul(s.bignum.bn, xs.bignum.bn, ys.bignum.bn, s.c.n.bn,
@@ -122,7 +122,7 @@ func (s *secret) Mul(x, y abstract.Secret) abstract.Secret {
 	return s
 }
 
-func (s *secret) Div(x, y abstract.Secret) abstract.Secret {
+func (s *secret) Div(x, y *abstract.Secret) *abstract.Secret {
 	xs := x.(*secret)
 	ys := y.(*secret)
 
@@ -143,7 +143,7 @@ func (s *secret) Div(x, y abstract.Secret) abstract.Secret {
 	return s
 }
 
-func (s *secret) Inv(x abstract.Secret) abstract.Secret {
+func (s *secret) Inv(x *abstract.Secret) *abstract.Secret {
 	xs := x.(*secret)
 	if C.BN_mod_inverse(s.bignum.bn, xs.bignum.bn, s.c.n.bn,
 		s.c.ctx) == nil {
@@ -152,7 +152,7 @@ func (s *secret) Inv(x abstract.Secret) abstract.Secret {
 	return s
 }
 
-func (s *secret) Pick(rand cipher.Stream) abstract.Secret {
+func (s *secret) Pick(rand cipher.Stream) *abstract.Secret {
 	s.bignum.RandMod(s.c.n, rand)
 	return s
 }

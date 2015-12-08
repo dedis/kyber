@@ -55,11 +55,11 @@ For now we simply require expressions to be in the appropriate form.
 type Predicate interface {
 
 	// Create a Prover proving the statement this Predicate represents.
-	Prover(suite abstract.Suite, secrets map[string]abstract.Secret, 
-		points map[string]abstract.Point, choice map[Predicate]int) Prover
+	Prover(suite abstract.Suite, secrets map[string]*abstract.Secret, 
+		points map[string]*abstract.Point, choice map[Predicate]int) Prover
 
 	// Create a Verifier for the statement this Predicate represents.
-	Verifier(suite abstract.Suite, points map[string]abstract.Point) Verifier
+	Verifier(suite abstract.Suite, points map[string]*abstract.Point) Verifier
 
 	// Produce a human-readable string representation of the predicate.
 	String() string
@@ -71,17 +71,17 @@ type Predicate interface {
 	enumVars(prf *proof)
 
 	// prover: recursively produce all commitments
-	commit(prf *proof, w abstract.Secret, v []abstract.Secret) error
+	commit(prf *proof, w *abstract.Secret, v []*abstract.Secret) error
 
 	// prover: given challenge, recursively produce all responses
-	respond(prf *proof, c abstract.Secret, r []abstract.Secret) error
+	respond(prf *proof, c *abstract.Secret, r []*abstract.Secret) error
 
 	// verifier: get all the commitments required in this predicate,
 	// and fill the r slice with empty secrets for responses needed.
-	getCommits(prf *proof, r []abstract.Secret) error
+	getCommits(prf *proof, r []*abstract.Secret) error
 
 	// verifier: check all commitments against challenges and responses
-	verify(prf *proof, c abstract.Secret, r []abstract.Secret) error
+	verify(prf *proof, c *abstract.Secret, r []*abstract.Secret) error
 }
 
 
@@ -105,11 +105,11 @@ type proof struct {
 	svar, pvar []string		// Secret and Point variable names
 	sidx, pidx map[string]int	// Maps from strings to variable indexes
 
-	pval map[string]abstract.Point	// values of public Point variables
+	pval map[string]*abstract.Point	// values of public Point variables
 
 	// prover-specific state
 	pc ProverContext
-	sval map[string]abstract.Secret	// values of private Secret variables
+	sval map[string]*abstract.Secret	// values of private Secret variables
 	choice map[Predicate]int	// OR branch choices set by caller
 	pp map[Predicate]*proverPred	// per-predicate prover state
 
@@ -118,13 +118,13 @@ type proof struct {
 	vp map[Predicate]*verifierPred	// per-predicate verifier state
 }
 type proverPred struct {
-	w abstract.Secret		// secret pre-challenge
-	v []abstract.Secret	// secret blinding factor for each variable
-	wi []abstract.Secret	// OR predicates: individual sub-challenges
+	w *abstract.Secret		// secret pre-challenge
+	v []*abstract.Secret	// secret blinding factor for each variable
+	wi []*abstract.Secret	// OR predicates: individual sub-challenges
 }
 type verifierPred struct {
-	V abstract.Point		// public commitment produced by verifier
-	r []abstract.Secret	// per-variable responses produced by verifier
+	V *abstract.Point		// public commitment produced by verifier
+	r []*abstract.Secret	// per-variable responses produced by verifier
 }
 
 
@@ -197,7 +197,7 @@ func (rp *repPred) enumVars(prf *proof) {
 	}
 }
 
-func (rp *repPred) commit(prf *proof, w abstract.Secret, pv []abstract.Secret) error {
+func (rp *repPred) commit(prf *proof, w *abstract.Secret, pv []*abstract.Secret) error {
 
 	// Create per-predicate prover state
 	v := prf.makeSecrets(pv)
@@ -230,8 +230,8 @@ func (rp *repPred) commit(prf *proof, w abstract.Secret, pv []abstract.Secret) e
 	return prf.pc.Put(V)
 }
 
-func (rp *repPred) respond(prf *proof, c abstract.Secret,
-			pr []abstract.Secret) error {
+func (rp *repPred) respond(prf *proof, c *abstract.Secret,
+			pr []*abstract.Secret) error {
 	pp := prf.pp[rp]
 
 	// Create a response array for this OR-domain if not done already
@@ -265,7 +265,7 @@ func (rp *repPred) respond(prf *proof, c abstract.Secret,
 	return prf.sendResponses(pr, r)
 }
 
-func (rp *repPred) getCommits(prf *proof, pr []abstract.Secret) error {
+func (rp *repPred) getCommits(prf *proof, pr []*abstract.Secret) error {
 
 	// Create per-predicate verifier state
 	V := prf.s.Point()
@@ -289,7 +289,7 @@ func (rp *repPred) getCommits(prf *proof, pr []abstract.Secret) error {
 	return nil
 }
 
-func (rp *repPred) verify(prf *proof, c abstract.Secret, pr []abstract.Secret) error {
+func (rp *repPred) verify(prf *proof, c *abstract.Secret, pr []*abstract.Secret) error {
 	vp := prf.vp[rp]
 	r := vp.r
 
@@ -315,14 +315,14 @@ func (rp *repPred) verify(prf *proof, c abstract.Secret, pr []abstract.Secret) e
 	return nil
 }
 
-func (rp *repPred) Prover(suite abstract.Suite, secrets map[string]abstract.Secret, 
-			points map[string]abstract.Point,
+func (rp *repPred) Prover(suite abstract.Suite, secrets map[string]*abstract.Secret, 
+			points map[string]*abstract.Point,
 			choice map[Predicate]int) Prover {
 	return proof{}.init(suite,rp).prover(rp,secrets,points,choice)
 }
 
 func (rp *repPred) Verifier(suite abstract.Suite,
-			points map[string]abstract.Point) Verifier {
+			points map[string]*abstract.Point) Verifier {
 	return proof{}.init(suite,rp).verifier(rp,points)
 }
 
@@ -363,7 +363,7 @@ func (ap *andPred) enumVars(prf *proof) {
 	}
 }
 
-func (ap *andPred) commit(prf *proof, w abstract.Secret, pv []abstract.Secret) error {
+func (ap *andPred) commit(prf *proof, w *abstract.Secret, pv []*abstract.Secret) error {
 	sub := []Predicate(*ap)
 
 	// Create per-predicate prover state
@@ -381,7 +381,7 @@ func (ap *andPred) commit(prf *proof, w abstract.Secret, pv []abstract.Secret) e
 	return nil
 }
 
-func (ap *andPred) respond(prf *proof, c abstract.Secret, pr []abstract.Secret) error {
+func (ap *andPred) respond(prf *proof, c *abstract.Secret, pr []*abstract.Secret) error {
 	sub := []Predicate(*ap)
 	//pp := prf.pp[ap]
 
@@ -395,7 +395,7 @@ func (ap *andPred) respond(prf *proof, c abstract.Secret, pr []abstract.Secret) 
 	return prf.sendResponses(pr, r)
 }
 
-func (ap *andPred) getCommits(prf *proof, pr []abstract.Secret) error {
+func (ap *andPred) getCommits(prf *proof, pr []*abstract.Secret) error {
 	sub := []Predicate(*ap)
 
 	// Create per-predicate verifier state
@@ -411,7 +411,7 @@ func (ap *andPred) getCommits(prf *proof, pr []abstract.Secret) error {
 	return nil
 }
 
-func (ap *andPred) verify(prf *proof, c abstract.Secret, pr []abstract.Secret) error {
+func (ap *andPred) verify(prf *proof, c *abstract.Secret, pr []*abstract.Secret) error {
 	sub := []Predicate(*ap)
 	vp := prf.vp[ap]
 	r := vp.r
@@ -427,14 +427,14 @@ func (ap *andPred) verify(prf *proof, c abstract.Secret, pr []abstract.Secret) e
 	return nil
 }
 
-func (ap *andPred) Prover(suite abstract.Suite, secrets map[string]abstract.Secret, 
-			points map[string]abstract.Point,
+func (ap *andPred) Prover(suite abstract.Suite, secrets map[string]*abstract.Secret, 
+			points map[string]*abstract.Point,
 			choice map[Predicate]int) Prover {
 	return proof{}.init(suite,ap).prover(ap,secrets,points,choice)
 }
 
 func (ap *andPred) Verifier(suite abstract.Suite,
-			points map[string]abstract.Point) Verifier {
+			points map[string]*abstract.Point) Verifier {
 	return proof{}.init(suite,ap).verifier(ap,points)
 }
 
@@ -477,14 +477,14 @@ func (op *orPred) enumVars(prf *proof) {
 	}
 }
 
-func (op *orPred) commit(prf *proof, w abstract.Secret, pv []abstract.Secret) error {
+func (op *orPred) commit(prf *proof, w *abstract.Secret, pv []*abstract.Secret) error {
 	sub := []Predicate(*op)
 	if pv != nil {		// only happens within an AND expression
 		panic("can't have OR predicates within AND predicates")
 	}
 
 	// Create per-predicate prover state
-	wi := make([]abstract.Secret, len(sub))
+	wi := make([]*abstract.Secret, len(sub))
 	pp := &proverPred{w,nil,wi}
 	prf.pp[op] = pp
 
@@ -528,7 +528,7 @@ func (op *orPred) commit(prf *proof, w abstract.Secret, pv []abstract.Secret) er
 	return nil
 }
 
-func (op *orPred) respond(prf *proof, c abstract.Secret, pr []abstract.Secret) error {
+func (op *orPred) respond(prf *proof, c *abstract.Secret, pr []*abstract.Secret) error {
 	sub := []Predicate(*op)
 	pp := prf.pp[op]
 	if pr != nil {
@@ -566,7 +566,7 @@ func (op *orPred) respond(prf *proof, c abstract.Secret, pr []abstract.Secret) e
 }
 
 // Get from the verifier all the commitments needed for this predicate
-func (op *orPred) getCommits(prf *proof, pr []abstract.Secret) error {
+func (op *orPred) getCommits(prf *proof, pr []*abstract.Secret) error {
 	sub := []Predicate(*op)
 	for i := range(sub) {
 		if e := sub[i].getCommits(prf,nil); e != nil {
@@ -576,7 +576,7 @@ func (op *orPred) getCommits(prf *proof, pr []abstract.Secret) error {
 	return nil
 }
 
-func (op *orPred) verify(prf *proof, c abstract.Secret, pr []abstract.Secret) error {
+func (op *orPred) verify(prf *proof, c *abstract.Secret, pr []*abstract.Secret) error {
 	sub := []Predicate(*op)
 	if pr != nil {
 		panic("OR predicates can't be in anything else")
@@ -584,7 +584,7 @@ func (op *orPred) verify(prf *proof, c abstract.Secret, pr []abstract.Secret) er
 
 	// Get the prover's sub-challenges
 	nsub := len(sub)
-	ci := make([]abstract.Secret, nsub)
+	ci := make([]*abstract.Secret, nsub)
 	if nsub > 1 {
 		if e := prf.vc.Get(ci); e != nil {
 			return e
@@ -613,14 +613,14 @@ func (op *orPred) verify(prf *proof, c abstract.Secret, pr []abstract.Secret) er
 	return nil
 }
 
-func (op *orPred) Prover(suite abstract.Suite, secrets map[string]abstract.Secret, 
-			points map[string]abstract.Point,
+func (op *orPred) Prover(suite abstract.Suite, secrets map[string]*abstract.Secret, 
+			points map[string]*abstract.Point,
 			choice map[Predicate]int) Prover {
 	return proof{}.init(suite,op).prover(op,secrets,points,choice)
 }
 
 func (op *orPred) Verifier(suite abstract.Suite,
-			points map[string]abstract.Point) Verifier {
+			points map[string]*abstract.Point) Verifier {
 	return proof{}.init(suite,op).verifier(op,points)
 }
 
@@ -628,7 +628,7 @@ func (op *orPred) Verifier(suite abstract.Suite,
 
 /*
 type lin struct {
-	a1,a2,b abstract.Secret
+	a1,a2,b *abstract.Secret
 	x1,x2 PriVar
 }
 */
@@ -636,7 +636,7 @@ type lin struct {
 // Construct a predicate asserting a linear relationship a1x1+a2x2=b,
 // where a1,a2,b are public values and x1,x2 are secrets.
 /*
-func (p *Prover) Linear(a1,a2,b abstract.Secret, x1,x2 PriVar) {
+func (p *Prover) Linear(a1,a2,b *abstract.Secret, x1,x2 PriVar) {
 	return &lin{a1,a2,b,x1,x2}
 }
 */
@@ -674,15 +674,15 @@ func (prf *proof) enumPointVar(name string) {
 }
 
 // Make a response-array if that wasn't already done in a parent predicate.
-func (prf *proof) makeSecrets(pr []abstract.Secret) []abstract.Secret {
+func (prf *proof) makeSecrets(pr []*abstract.Secret) []*abstract.Secret {
 	if pr == nil {
-		return make([]abstract.Secret, prf.nsvars)
+		return make([]*abstract.Secret, prf.nsvars)
 	}
 	return pr
 }
 
 // Transmit our response-array if a corresponding makeSecrets() created it.
-func (prf *proof) sendResponses(pr []abstract.Secret, r []abstract.Secret) error {
+func (prf *proof) sendResponses(pr []*abstract.Secret, r []*abstract.Secret) error {
 	if pr == nil {
 		for i := range(r) {
 			// Send responses only for variables
@@ -699,7 +699,7 @@ func (prf *proof) sendResponses(pr []abstract.Secret, r []abstract.Secret) error
 
 // In the verifier, get the responses at the top of an OR-domain,
 // if a corresponding makeSecrets() call created it.
-func (prf *proof) getResponses(pr []abstract.Secret, r []abstract.Secret) error {
+func (prf *proof) getResponses(pr []*abstract.Secret, r []*abstract.Secret) error {
 	if pr == nil {
 		for i := range(r) {
 			if r[i] != nil {
@@ -712,8 +712,8 @@ func (prf *proof) getResponses(pr []abstract.Secret, r []abstract.Secret) error 
 	return nil
 }
 
-func (prf *proof) prove(p Predicate, sval map[string]abstract.Secret, 
-			pval map[string]abstract.Point,
+func (prf *proof) prove(p Predicate, sval map[string]*abstract.Secret, 
+			pval map[string]*abstract.Point,
 			choice map[Predicate]int, pc ProverContext) error {
 	prf.pc = pc
 	prf.sval = sval
@@ -736,7 +736,7 @@ func (prf *proof) prove(p Predicate, sval map[string]abstract.Secret,
 	return p.respond(prf,c,nil)
 }
 
-func (prf *proof) verify(p Predicate, pval map[string]abstract.Point,
+func (prf *proof) verify(p Predicate, pval map[string]*abstract.Point,
 			vc VerifierContext) error {
 	prf.vc = vc
 	prf.pval = pval
@@ -759,8 +759,8 @@ func (prf *proof) verify(p Predicate, pval map[string]abstract.Point,
 }
 
 // Produce a higher-order Prover embodying a given proof predicate.
-func (prf *proof) prover(p Predicate, sval map[string]abstract.Secret, 
-			pval map[string]abstract.Point,
+func (prf *proof) prover(p Predicate, sval map[string]*abstract.Secret, 
+			pval map[string]*abstract.Point,
 			choice map[Predicate]int) Prover {
 
 	return Prover(func(ctx ProverContext)error{
@@ -769,7 +769,7 @@ func (prf *proof) prover(p Predicate, sval map[string]abstract.Secret,
 }
 
 // Produce a higher-order Verifier embodying a given proof predicate.
-func (prf *proof) verifier(p Predicate, pval map[string]abstract.Point) Verifier {
+func (prf *proof) verifier(p Predicate, pval map[string]*abstract.Point) Verifier {
 
 	return Verifier(func(ctx VerifierContext)error{
 		return prf.verify(p, pval, ctx)

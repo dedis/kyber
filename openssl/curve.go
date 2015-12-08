@@ -66,7 +66,7 @@ func (p *point) String() string {
 func (p *point) Valid() bool {
 	return C.EC_POINT_is_on_curve(p.g, p.p, p.c.ctx) != 0
 }
-func (p *point) Equal(p2 abstract.Point) bool {
+func (p *point) Equal(p2 *abstract.Point) bool {
 	return C.EC_POINT_cmp(p.g, p.p, p2.(*point).p, p.c.ctx) == 0
 }
 func (p *point) GetX() *bignum {
@@ -86,14 +86,14 @@ func (p *point) GetY() *bignum {
 	return y
 }
 
-func (p *point) Null() abstract.Point {
+func (p *point) Null() *abstract.Point {
 	if C.EC_POINT_set_to_infinity(p.c.g, p.p) == 0 {
 		panic("EC_POINT_set_to_infinity: " + getErrString())
 	}
 	return p
 }
 
-func (p *point) Base() abstract.Point {
+func (p *point) Base() *abstract.Point {
 	genp := C.EC_GROUP_get0_generator(p.c.g)
 	if genp == nil {
 		panic("EC_GROUP_get0_generator: " + getErrString())
@@ -111,7 +111,7 @@ func (p *point) PickLen() int {
 	return (p.c.p.BitLen() - 8 - 8) / 8
 }
 
-func (p *point) Pick(data []byte, rand cipher.Stream) (abstract.Point, []byte) {
+func (p *point) Pick(data []byte, rand cipher.Stream) (*abstract.Point, []byte) {
 
 	l := p.c.PointLen()
 	dl := p.PickLen()
@@ -152,7 +152,7 @@ func (p *point) Data() ([]byte, error) {
 	return b[l-dl-1 : l-1], nil
 }
 
-func (p *point) Add(ca, cb abstract.Point) abstract.Point {
+func (p *point) Add(ca, cb *abstract.Point) *abstract.Point {
 	a := ca.(*point)
 	b := cb.(*point)
 	if C.EC_POINT_add(p.c.g, p.p, a.p, b.p, p.c.ctx) == 0 {
@@ -161,7 +161,7 @@ func (p *point) Add(ca, cb abstract.Point) abstract.Point {
 	return p
 }
 
-func (p *point) Sub(ca, cb abstract.Point) abstract.Point {
+func (p *point) Sub(ca, cb *abstract.Point) *abstract.Point {
 	a := ca.(*point)
 	b := cb.(*point)
 	// Add the point inverse.  Must use temporary if p == a.
@@ -181,7 +181,7 @@ func (p *point) Sub(ca, cb abstract.Point) abstract.Point {
 	return p
 }
 
-func (p *point) Neg(ca abstract.Point) abstract.Point {
+func (p *point) Neg(ca *abstract.Point) *abstract.Point {
 	if ca != p {
 		a := ca.(*point)
 		if C.EC_POINT_copy(p.p, a.p) == 0 {
@@ -194,7 +194,7 @@ func (p *point) Neg(ca abstract.Point) abstract.Point {
 	return p
 }
 
-func (p *point) Mul(cb abstract.Point, cs abstract.Secret) abstract.Point {
+func (p *point) Mul(cb *abstract.Point, cs *abstract.Secret) *abstract.Point {
 	s := cs.(*secret)
 	if cb == nil { // multiply standard generator
 		if C.EC_POINT_mul(p.c.g, p.p, s.bignum.bn, nil, nil,
@@ -264,7 +264,7 @@ func (c *curve) SecretLen() int {
 	return c.nlen
 }
 
-func (c *curve) Secret() abstract.Secret {
+func (c *curve) Secret() *abstract.Secret {
 	s := newSecret(c)
 	s.c = c
 	return s
@@ -274,7 +274,7 @@ func (c *curve) PointLen() int {
 	return 1 + c.plen // compressed encoding
 }
 
-func (c *curve) Point() abstract.Point {
+func (c *curve) Point() *abstract.Point {
 	return newPoint(c)
 }
 

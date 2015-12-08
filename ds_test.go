@@ -52,8 +52,8 @@ func generateKeyPairList(n int) []*config.KeyPair {
 
 // Transforms a list of key pair into a list of only public keys
 // That list is distributed amongst the peers
-func generatePublicListFromPrivate(private []*config.KeyPair) []abstract.Point {
-	l := make([]abstract.Point, len(private))
+func generatePublicListFromPrivate(private []*config.KeyPair) []*abstract.Point {
+	l := make([]*abstract.Point, len(private))
 	for i := 0; i < len(private); i++ {
 		l[i] = private[i].Public
 	}

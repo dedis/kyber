@@ -15,8 +15,8 @@ import (
 // together with the ciphersuite the key was generated from.
 type KeyPair struct {
 	Suite  abstract.Suite  // Ciphersuite this keypair is for
-	Public abstract.Point  // Public key
-	Secret abstract.Secret // Secret key
+	Public *abstract.Point  // Public key
+	Secret *abstract.Secret // Secret key
 }
 
 // Generate a fresh public/private keypair with the given ciphersuite,

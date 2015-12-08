@@ -150,7 +150,7 @@ var sigBlameMsg []byte = []byte("Deal Blame Signature")
 var maliciousShare = errors.New("Share is malicious. PubPoly.Check failed.")
 
 /* Deal structs are mechanisms by which a server can deal other servers
- * that an abstract.Secret will be availble even if the secret's owner goes
+ * that an *abstract.Secret will be availble even if the secret's owner goes
  * down. The secret to be deald will be sharded into shared secrets that can
  * be combined using Lagrange Interpolation to produce the original secret.
  * Other servers will act as insurers maintaining a share. If a client ever
@@ -186,7 +186,7 @@ type Deal struct {
 
 	// The id of the deal used to differentiate it from others
 	// The id is the short term public key of the private key being deald
-	id abstract.Point
+	id *abstract.Point
 
 	// The cryptographic key suite used throughout the Deal.
 	suite abstract.Suite
@@ -202,19 +202,19 @@ type Deal struct {
 	n int
 
 	// The long-term public key of the Dealer
-	pubKey abstract.Point
+	pubKey *abstract.Point
 
 	// The public polynomial that is used to verify the shared secrets
 	pubPoly PubPoly
 
 	// A list of servers who will act as insurers of the Deal. The list
 	// contains the long-term public keys of the insurers
-	insurers []abstract.Point
+	insurers []*abstract.Point
 
 	// The list of shared secrets to be sent to the insurers. They are
 	// encrypted with Diffie-Hellman shared secrets between the insurer
 	// and the Dealer.
-	secrets []abstract.Secret
+	secrets []*abstract.Secret
 }
 
 /* Constructs a new Deal to guarentee a secret.
@@ -237,16 +237,16 @@ type Deal struct {
  *   A newly constructed Deal
  */
 func (p *Deal) ConstructDeal(secretPair *config.KeyPair,
-	longPair *config.KeyPair, t, r int, insurers []abstract.Point) *Deal {
+	longPair *config.KeyPair, t, r int, insurers []*abstract.Point) *Deal {
 	p.id = secretPair.Public
 	p.t = t
 	p.r = r
 	p.n = len(insurers)
 	p.suite = secretPair.Suite
 	p.pubKey = longPair.Public
-	p.insurers = make([]abstract.Point, p.n, p.n)
+	p.insurers = make([]*abstract.Point, p.n, p.n)
 	copy(p.insurers, insurers)
-	p.secrets = make([]abstract.Secret, p.n, p.n)
+	p.secrets = make([]*abstract.Secret, p.n, p.n)
 
 	// Verify that t <= r <= n
 	if !(p.t <= r && p.r <= p.n) {
@@ -338,14 +338,14 @@ func (p *Deal) DealerId() string {
 }
 
 // Returns a copy of the Dealer's long term public key
-func (p *Deal) DealerKey() abstract.Point {
+func (p *Deal) DealerKey() *abstract.Point {
 	return p.suite.Point().Add(p.suite.Point().Null(), p.pubKey)
 }
 
 // Returns the list of insurers of the deal.
 // A copy of insurers is return to prevent tampering.
-func (p *Deal) Insurers() []abstract.Point {
-	result := make([]abstract.Point, p.n, p.n)
+func (p *Deal) Insurers() []*abstract.Point {
+	result := make([]*abstract.Point, p.n, p.n)
 	copy(result, p.insurers)
 	return result
 }
@@ -359,7 +359,7 @@ func (p *Deal) Insurers() []abstract.Point {
  * Return
  *   the DH secret
  */
-func (p *Deal) diffieHellmanSecret(diffieBase abstract.Point) abstract.Secret {
+func (p *Deal) diffieHellmanSecret(diffieBase *abstract.Point) *abstract.Secret {
 	buff, err := diffieBase.MarshalBinary()
 	if err != nil {
 		panic("Bad shared secret for Diffie-Hellman given.")
@@ -459,8 +459,8 @@ func (p *Deal) blame(i int, gKeyPair *config.KeyPair) (*blameProof, error) {
 	pred := proof.Rep("D", "x", "P")
 	choice[pred] = 1
 	rand := p.suite.Cipher(abstract.RandomKey)
-	sval := map[string]abstract.Secret{"x": gKeyPair.Secret}
-	pval := map[string]abstract.Point{"D": diffieKey, "P": p.pubKey}
+	sval := map[string]*abstract.Secret{"x": gKeyPair.Secret}
+	pval := map[string]*abstract.Point{"D": diffieKey, "P": p.pubKey}
 	prover := pred.Prover(p.suite, sval, pval, choice)
 	proof, err := proof.HashProve(p.suite, protocolName, rand, prover)
 	if err != nil {
@@ -488,7 +488,7 @@ func (p *Deal) verifyBlame(i int, bproof *blameProof) error {
 	}
 
 	// Verify the Diffie-Hellman shared secret was constructed properly
-	pval := map[string]abstract.Point{"D": bproof.diffieKey, "P": p.pubKey}
+	pval := map[string]*abstract.Point{"D": bproof.diffieKey, "P": p.pubKey}
 	pred := proof.Rep("D", "x", "P")
 	verifier := pred.Verifier(p.suite, pval)
 	err := proof.HashVerify(p.suite, protocolName, verifier,
@@ -549,7 +549,7 @@ func (p *Deal) ProduceResponse(i int, gKeyPair *config.KeyPair) (*Response, erro
  * Return
  *   the revealed private share
  */
-func (p *Deal) RevealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
+func (p *Deal) RevealShare(i int, gKeyPair *config.KeyPair) *abstract.Secret {
 	diffieBase := p.suite.Point().Mul(p.pubKey, gKeyPair.Secret)
 	diffieSecret := p.diffieHellmanSecret(diffieBase)
 	share := p.suite.Secret().Sub(p.secrets[i], diffieSecret)
@@ -566,7 +566,7 @@ func (p *Deal) RevealShare(i int, gKeyPair *config.KeyPair) abstract.Secret {
  * Return
  *   Whether the secret is valid
  */
-func (p *Deal) VerifyRevealedShare(i int, share abstract.Secret) error {
+func (p *Deal) VerifyRevealedShare(i int, share *abstract.Secret) error {
 	if i < 0 || i >= p.n {
 		return errors.New("Invalid index. Expected 0 <= i < n")
 	}
@@ -714,7 +714,7 @@ func (p *Deal) UnmarshalBinary(buf []byte) error {
 	bufPos += polyLen
 
 	// Decode the insurers and secrets array (Based on poly/sharing.go code)
-	p.insurers = make([]abstract.Point, p.n, p.n)
+	p.insurers = make([]*abstract.Point, p.n, p.n)
 	for i := 0; i < p.n; i++ {
 		start := bufPos + i*pointLen
 		end := start + pointLen
@@ -724,7 +724,7 @@ func (p *Deal) UnmarshalBinary(buf []byte) error {
 		}
 	}
 	bufPos += p.n * pointLen
-	p.secrets = make([]abstract.Secret, p.n, p.n)
+	p.secrets = make([]*abstract.Secret, p.n, p.n)
 	for i := 0; i < p.n; i++ {
 		start := bufPos + i*secretLen
 		end := start + secretLen
@@ -934,7 +934,7 @@ func (ps *State) AddResponse(i int, response *Response) error {
  *   at any moment after the deal has garnered enough signatures to be
  *   considered certified otherwise. This is further incentive to create valid deals.
  */
-func (ps *State) RevealShare(i int, gKeyPair *config.KeyPair) (abstract.Secret, error) {
+func (ps *State) RevealShare(i int, gKeyPair *config.KeyPair) (*abstract.Secret, error) {
 	if ps.SufficientSignatures() != nil {
 		panic("RevealShare should only be called with deals with enough signatures.")
 	}
@@ -1239,7 +1239,7 @@ type blameProof struct {
 	suite abstract.Suite
 
 	// The Diffie-Hellman shared secret between the insurer and Dealer
-	diffieKey abstract.Point
+	diffieKey *abstract.Point
 
 	// A HashProve proof that the insurer properly constructed the Diffie-
 	// Hellman shared secret
@@ -1260,7 +1260,7 @@ type blameProof struct {
  * Returns
  *   An initialized blameProof
  */
-func (bp *blameProof) init(suite abstract.Suite, key abstract.Point,
+func (bp *blameProof) init(suite abstract.Suite, key *abstract.Point,
 	dkp []byte, sig *signature) *blameProof {
 	bp.suite = suite
 	bp.diffieKey = key
@@ -1359,7 +1359,7 @@ func (bp *blameProof) MarshalBinary() ([]byte, error) {
 func (bp *blameProof) UnmarshalBinary(buf []byte) error {
 	// Verify the buffer is large enough for the diffie proof length
 	// (uint32), the signature length (uint32), and the
-	// Diffie-Hellman shared secret (abstract.Point)
+	// Diffie-Hellman shared secret (*abstract.Point)
 	pointLen := bp.suite.PointLen()
 	if len(buf) < 2*uint32Size+pointLen {
 		return errors.New("Buffer size too small")

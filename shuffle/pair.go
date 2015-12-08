@@ -35,30 +35,30 @@ import (
 
 // P (Prover) step 1: public commitments
 type ega1 struct {
-	Gamma            abstract.Point
-	A, C, U, W       []abstract.Point
-	Lambda1, Lambda2 abstract.Point
+	Gamma            *abstract.Point
+	A, C, U, W       []*abstract.Point
+	Lambda1, Lambda2 *abstract.Point
 }
 
 // V (Verifier) step 2: random challenge t
 type ega2 struct {
-	Zrho []abstract.Secret
+	Zrho []*abstract.Secret
 }
 
 // P step 3: Theta vectors
 type ega3 struct {
-	D []abstract.Point
+	D []*abstract.Point
 }
 
 // V step 4: random challenge c
 type ega4 struct {
-	Zlambda abstract.Secret
+	Zlambda *abstract.Secret
 }
 
 // P step 5: alpha vector
 type ega5 struct {
-	Zsigma []abstract.Secret
-	Ztau   abstract.Secret
+	Zsigma []*abstract.Secret
+	Ztau   *abstract.Secret
 }
 
 // P and V, step 5: simple k-shuffle proof
@@ -103,21 +103,21 @@ func (ps *PairShuffle) Init(grp abstract.Group, k int) *PairShuffle {
 	// Create a well-formed PairShuffleProof with arrays correctly sized.
 	ps.grp = grp
 	ps.k = k
-	ps.p1.A = make([]abstract.Point, k)
-	ps.p1.C = make([]abstract.Point, k)
-	ps.p1.U = make([]abstract.Point, k)
-	ps.p1.W = make([]abstract.Point, k)
-	ps.v2.Zrho = make([]abstract.Secret, k)
-	ps.p3.D = make([]abstract.Point, k)
-	ps.p5.Zsigma = make([]abstract.Secret, k)
+	ps.p1.A = make([]*abstract.Point, k)
+	ps.p1.C = make([]*abstract.Point, k)
+	ps.p1.U = make([]*abstract.Point, k)
+	ps.p1.W = make([]*abstract.Point, k)
+	ps.v2.Zrho = make([]*abstract.Secret, k)
+	ps.p3.D = make([]*abstract.Point, k)
+	ps.p5.Zsigma = make([]*abstract.Secret, k)
 	ps.pv6.Init(grp, k)
 
 	return ps
 }
 
 func (ps *PairShuffle) Prove(
-	pi []int, g, h abstract.Point, beta []abstract.Secret,
-	X, Y []abstract.Point, rand cipher.Stream,
+	pi []int, g, h *abstract.Point, beta []*abstract.Secret,
+	X, Y []*abstract.Point, rand cipher.Stream,
 	ctx proof.ProverContext) error {
 
 	grp := ps.grp
@@ -137,10 +137,10 @@ func (ps *PairShuffle) Prove(
 	z := grp.Secret() // scratch
 
 	// pick random secrets
-	u := make([]abstract.Secret, k)
-	w := make([]abstract.Secret, k)
-	a := make([]abstract.Secret, k)
-	var tau0, nu, gamma abstract.Secret
+	u := make([]*abstract.Secret, k)
+	w := make([]*abstract.Secret, k)
+	a := make([]*abstract.Secret, k)
+	var tau0, nu, gamma *abstract.Secret
 	ctx.PriRand(u, w, a, &tau0, &nu, &gamma)
 
 	// compute public commits
@@ -173,7 +173,7 @@ func (ps *PairShuffle) Prove(
 	if err := ctx.PubRand(v2); err != nil {
 		return err
 	}
-	B := make([]abstract.Point, k)
+	B := make([]*abstract.Point, k)
 	for i := 0; i < k; i++ {
 		P := grp.Point().Mul(g, v2.Zrho[i])
 		B[i] = P.Sub(P, p1.U[i])
@@ -181,11 +181,11 @@ func (ps *PairShuffle) Prove(
 
 	// P step 3
 	p3 := &ps.p3
-	b := make([]abstract.Secret, k)
+	b := make([]*abstract.Secret, k)
 	for i := 0; i < k; i++ {
 		b[i] = grp.Secret().Sub(v2.Zrho[i], u[i])
 	}
-	d := make([]abstract.Secret, k)
+	d := make([]*abstract.Secret, k)
 	for i := 0; i < k; i++ {
 		d[i] = grp.Secret().Mul(gamma, b[pi[i]])
 		p3.D[i] = grp.Point().Mul(g, d[i])
@@ -202,11 +202,11 @@ func (ps *PairShuffle) Prove(
 
 	// P step 5
 	p5 := &ps.p5
-	r := make([]abstract.Secret, k)
+	r := make([]*abstract.Secret, k)
 	for i := 0; i < k; i++ {
 		r[i] = grp.Secret().Add(a[i], z.Mul(v4.Zlambda, b[i]))
 	}
-	s := make([]abstract.Secret, k)
+	s := make([]*abstract.Secret, k)
 	for i := 0; i < k; i++ {
 		s[i] = grp.Secret().Mul(gamma, r[pi[i]])
 	}
@@ -225,7 +225,7 @@ func (ps *PairShuffle) Prove(
 
 // Verifier for ElGamal Pair Shuffle proofs.
 func (ps *PairShuffle) Verify(
-	g, h abstract.Point, X, Y, Xbar, Ybar []abstract.Point,
+	g, h *abstract.Point, X, Y, Xbar, Ybar []*abstract.Point,
 	ctx proof.VerifierContext) error {
 
 	// Validate all vector lengths
@@ -246,7 +246,7 @@ func (ps *PairShuffle) Verify(
 	if err := ctx.PubRand(v2); err != nil {
 		return err
 	}
-	B := make([]abstract.Point, k)
+	B := make([]*abstract.Point, k)
 	for i := 0; i < k; i++ {
 		P := grp.Point().Mul(g, v2.Zrho[i])
 		B[i] = P.Sub(P, p1.U[i])
@@ -308,8 +308,8 @@ func (ps *PairShuffle) Verify(
 // producing a correctness proof in the process.
 // Returns (Xbar,Ybar), the shuffled and randomized pairs.
 // If g or h is nil, the standard base point is used.
-func Shuffle(group abstract.Group, g, h abstract.Point, X, Y []abstract.Point,
-	rand cipher.Stream) (XX, YY []abstract.Point, P proof.Prover) {
+func Shuffle(group abstract.Group, g, h *abstract.Point, X, Y []*abstract.Point,
+	rand cipher.Stream) (XX, YY []*abstract.Point, P proof.Prover) {
 
 	k := len(X)
 	if k != len(Y) {
@@ -334,14 +334,14 @@ func Shuffle(group abstract.Group, g, h abstract.Point, X, Y []abstract.Point,
 	}
 
 	// Pick a fresh ElGamal blinding factor for each pair
-	beta := make([]abstract.Secret, k)
+	beta := make([]*abstract.Secret, k)
 	for i := 0; i < k; i++ {
 		beta[i] = ps.grp.Secret().Pick(rand)
 	}
 
 	// Create the output pair vectors
-	Xbar := make([]abstract.Point, k)
-	Ybar := make([]abstract.Point, k)
+	Xbar := make([]*abstract.Point, k)
+	Ybar := make([]*abstract.Point, k)
 	for i := 0; i < k; i++ {
 		Xbar[i] = ps.grp.Point().Mul(g, beta[pi[i]])
 		Xbar[i].Add(Xbar[i], X[pi[i]])
@@ -356,8 +356,8 @@ func Shuffle(group abstract.Group, g, h abstract.Point, X, Y []abstract.Point,
 }
 
 // Produce a Sigma-protocol verifier to check the correctness of a shuffle.
-func Verifier(group abstract.Group, g, h abstract.Point,
-	X, Y, Xbar, Ybar []abstract.Point) proof.Verifier {
+func Verifier(group abstract.Group, g, h *abstract.Point,
+	X, Y, Xbar, Ybar []*abstract.Point) proof.Verifier {
 
 	ps := PairShuffle{}
 	ps.Init(group, len(X))

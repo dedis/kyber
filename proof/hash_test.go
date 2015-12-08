@@ -23,8 +23,8 @@ func ExampleHashProve_1() {
 	// Generate a proof that we know the discrete logarithm of X.
 	M := "Hello World!" // message we want to sign
 	rep := Rep("X", "x", "B")
-	sec := map[string]abstract.Secret{"x": x}
-	pub := map[string]abstract.Point{"B": B, "X": X}
+	sec := map[string]*abstract.Secret{"x": x}
+	pub := map[string]*abstract.Point{"B": B, "X": X}
 	prover := rep.Prover(suite, sec, pub, nil)
 	proof, _ := HashProve(suite, M, rand, prover)
 	fmt.Print("Signature:\n" + hex.Dump(proof))
@@ -84,7 +84,7 @@ func ExampleHashProve_2() {
 	B := suite.Point().Base() // standard base point
 
 	// Create an anonymity ring of random "public keys"
-	X := make([]abstract.Point, 3)
+	X := make([]*abstract.Point, 3)
 	for i := range X { // pick random points
 		X[i], _ = suite.Point().Pick(nil, rand)
 	}
@@ -102,8 +102,8 @@ func ExampleHashProve_2() {
 	linkTag := suite.Point().Mul(linkBase, x)
 
 	// Generate the proof predicate: an OR branch for each public key.
-	sec := map[string]abstract.Secret{"x": x}
-	pub := map[string]abstract.Point{"B": B, "BT": linkBase, "T": linkTag}
+	sec := map[string]*abstract.Secret{"x": x}
+	pub := map[string]*abstract.Point{"B": B, "BT": linkBase, "T": linkTag}
 	preds := make([]Predicate, len(X))
 	for i := range X {
 		name := fmt.Sprintf("X[%d]", i) // "X[0]","X[1]",...

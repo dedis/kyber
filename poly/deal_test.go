@@ -49,8 +49,8 @@ func produceinsurerKeys() []*config.KeyPair {
 	return newArray
 }
 
-func produceinsurerList() []abstract.Point {
-	newArray := make([]abstract.Point, numInsurers, numInsurers)
+func produceinsurerList() []*abstract.Point {
+	newArray := make([]*abstract.Point, numInsurers, numInsurers)
 	for i := 0; i < numInsurers; i++ {
 		newArray[i] = insurerKeys[i].Public
 	}
@@ -448,7 +448,7 @@ func TestDealConstructDeal(t *testing.T) {
 	test := func() {
 		defer recoverTest(t, "Constructdealshould have panicked.")
 		new(Deal).ConstructDeal(secretKey, DealerKey, 2, r,
-			[]abstract.Point{DealerKey.Public})
+			[]*abstract.Point{DealerKey.Public})
 	}
 	test()
 
@@ -524,14 +524,14 @@ func TestDealverifyDeal(t *testing.T) {
 
 	deal = new(Deal).ConstructDeal(secretKey, DealerKey, pt,
 		r, insurerList)
-	deal.insurers = []abstract.Point{}
+	deal.insurers = []*abstract.Point{}
 	if deal.verifyDeal() == nil {
 		t.Error("dealis invalid: insurers list is the wrong length")
 	}
 
 	deal = new(Deal).ConstructDeal(secretKey, DealerKey, pt,
 		r, insurerList)
-	deal.secrets = []abstract.Secret{}
+	deal.secrets = []*abstract.Secret{}
 	if deal.verifyDeal() == nil {
 		t.Error("dealis invalid: secrets list is the wrong length")
 	}
@@ -855,7 +855,7 @@ func TestDealEqual(t *testing.T) {
 		r, insurerList)
 	deal.secrets = basicDeal.secrets
 	deal.pubPoly = basicDeal.pubPoly
-	deal.insurers = make([]abstract.Point, deal.n, deal.n)
+	deal.insurers = make([]*abstract.Point, deal.n, deal.n)
 	copy(deal.insurers, insurerList)
 	deal.insurers[numInsurers-1] = suite.Point().Base()
 	if basicDeal.Equal(deal) {

@@ -24,8 +24,8 @@ type SKEME struct {
 	hide     bool
 	lpri     PriKey          // local private key
 	rpub     Set             // remote public key
-	lx       abstract.Secret // local Diffie-Hellman private key
-	lX, rX   abstract.Point  // local,remote Diffie-Hellman pubkeys
+	lx       *abstract.Secret // local Diffie-Hellman private key
+	lX, rX   *abstract.Point  // local,remote Diffie-Hellman pubkeys
 	lXb, rXb []byte          // local,remote DH pubkeys byte-encoded
 
 	ms         abstract.Cipher // master symmetric shared stream

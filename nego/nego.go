@@ -19,7 +19,7 @@ import (
 
 type Entry struct {
 	Suite  abstract.Suite // Ciphersuite this public key is drawn from
-	PubKey abstract.Point // Public key of this entrypoint's owner
+	PubKey *abstract.Point // Public key of this entrypoint's owner
 	Data   []byte         // Entrypoint data decryptable by owner
 }
 
@@ -32,8 +32,8 @@ type suiteKey struct {
 
 	// Ephemeral Diffie-Hellman key for all key-holders using this suite.
 	// Should have a uniform representation, e.g., an Elligator point.
-	dhpri abstract.Secret
-	dhpub abstract.Point
+	dhpri *abstract.Secret
+	dhpub *abstract.Point
 	dhrep []byte
 }
 
@@ -56,7 +56,7 @@ type suiteInfo struct {
 	// layout info
 	//nodes []*node			// layout node for reserved positions
 	lev int             // layout-chosen level for this suite
-	pri abstract.Secret // ephemeral Diffie-Hellman private key
+	pri *abstract.Secret // ephemeral Diffie-Hellman private key
 	pub []byte          // corresponding encoded public key
 }
 

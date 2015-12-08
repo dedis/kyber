@@ -43,7 +43,7 @@ type Schnorr struct {
 	// For each round, we have the following members :
 
 	// hash is the hash of the message
-	hash *abstract.Secret
+	hash **abstract.Secret
 
 	// The short term shared secret, only to be used for this signature,
 	// i.e. the random secret in the regular schnorr signature
@@ -63,7 +63,7 @@ type SchnorrPartialSig struct {
 	Index int
 
 	// The partial signature itself
-	Part *abstract.Secret
+	Part **abstract.Secret
 }
 
 // SchnorrSig represents the final signature of a distribtued threshold schnorr signature
@@ -74,7 +74,7 @@ type SchnorrPartialSig struct {
 type SchnorrSig struct {
 
 	// the signature itself
-	Signature *abstract.Secret
+	Signature **abstract.Secret
 
 	// the random public polynomial used during the signature generation
 	Random *PubPoly
@@ -113,7 +113,7 @@ func (s *Schnorr) NewRound(random *SharedSecret, h hash.Hash) error {
 // Returns a hash of the message and the random secret:
 // H( m || V )
 // Returns an error if something went wrong with the marshalling
-func (s *Schnorr) hashMessage(msg []byte, v abstract.Point) (abstract.Secret, error) {
+func (s *Schnorr) hashMessage(msg []byte, v *abstract.Point) (*abstract.Secret, error) {
 	vb, err := v.MarshalBinary()
 	if err != nil {
 		return nil, err
