@@ -1,4 +1,4 @@
-package suites
+package abstract
 
 import (
 	"github.com/dedis/crypto/test"

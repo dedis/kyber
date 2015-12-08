@@ -11,10 +11,9 @@ type Set []*abstract.Point
 
 // A private key representing a member of an anonymity set
 type PriKey struct {
-	Set			// Public key-set
-	Mine int		// Index of the public key I own
-	Pri *abstract.Secret	// Private key for that public key
+	Set                   // Public key-set
+	Mine int              // Index of the public key I own
+	Pri  *abstract.Secret // Private key for that public key
 }
 
 // XXX name PubSet, PriSet?
-

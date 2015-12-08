@@ -118,7 +118,7 @@ func Sign(suite abstract.Suite, random cipher.Stream, message []byte,
 	// e.g., we also easily obtain linkable ring signatures,
 	// which are not readily feasible with the original ring construction.
 
-	n := len(anonymitySet)              // anonymity set size
+	n := len(anonymitySet)               // anonymity set size
 	L := []*abstract.Point(anonymitySet) // public keys in anonymity set
 	pi := mine
 
@@ -195,7 +195,7 @@ func Sign(suite abstract.Suite, random cipher.Stream, message []byte,
 func Verify(suite abstract.Suite, message []byte, anonymitySet Set,
 	linkScope []byte, signatureBuffer []byte) ([]byte, error) {
 
-	n := len(anonymitySet)              // anonymity set size
+	n := len(anonymitySet)               // anonymity set size
 	L := []*abstract.Point(anonymitySet) // public keys in ring
 
 	// Decode the signature

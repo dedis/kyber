@@ -3,9 +3,10 @@ package test
 import (
 	"bytes"
 	"crypto/cipher"
-
+	"encoding/gob"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
+	"log"
 )
 
 func testEmbed(g abstract.Group, rand cipher.Stream, points *[]*abstract.Point,
@@ -205,6 +206,23 @@ func testGroup(g abstract.Group, rand cipher.Stream) []*abstract.Point {
 	err := repzero.UnmarshalBinary(b)
 	if err != nil {
 		panic(err)
+	}
+
+	// Test direct marshaling/unmarshaling
+	secret_src := g.Secret().Pick(rand)
+	log.Printf("Group: %+v - Src: %+v\n", g, secret_src)
+	var network bytes.Buffer
+	enc := gob.NewEncoder(&network)
+	err = enc.Encode(secret_src)
+	if err != nil {
+		log.Fatal("encode:", err)
+	}
+	log.Printf("Encoded: %+v\n", network.Bytes())
+	dec := gob.NewDecoder(&network)
+	var t abstract.Secret
+	err = dec.Decode(&t)
+	if err != nil {
+		log.Fatal("decode:", err)
 	}
 
 	return points

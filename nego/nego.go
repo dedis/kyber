@@ -18,9 +18,9 @@ import (
 )
 
 type Entry struct {
-	Suite  abstract.Suite // Ciphersuite this public key is drawn from
+	Suite  abstract.Suite  // Ciphersuite this public key is drawn from
 	PubKey *abstract.Point // Public key of this entrypoint's owner
-	Data   []byte         // Entrypoint data decryptable by owner
+	Data   []byte          // Entrypoint data decryptable by owner
 }
 
 func (e *Entry) String() string {
@@ -55,9 +55,9 @@ type suiteInfo struct {
 
 	// layout info
 	//nodes []*node			// layout node for reserved positions
-	lev int             // layout-chosen level for this suite
+	lev int              // layout-chosen level for this suite
 	pri *abstract.Secret // ephemeral Diffie-Hellman private key
-	pub []byte          // corresponding encoded public key
+	pub []byte           // corresponding encoded public key
 }
 
 func (si *suiteInfo) String() string {

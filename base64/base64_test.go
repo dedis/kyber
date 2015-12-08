@@ -45,7 +45,6 @@ var pairs = []testpair{
 	{"sure.", "c3VyZS4="},
 }
 
-
 // Do nothing to a reference base64 string (leave in standard format)
 func stdRef(ref string) string {
 	return ref
@@ -69,8 +68,8 @@ func rawUrlRef(ref string) string {
 }
 
 type encodingTest struct {
-	enc *Encoding			// Encoding to test
-	conv func(string)string		// Reference string converter
+	enc  *Encoding           // Encoding to test
+	conv func(string) string // Reference string converter
 }
 
 var encodingTests = []encodingTest{
@@ -79,7 +78,6 @@ var encodingTests = []encodingTest{
 	encodingTest{RawStdEncoding, rawRef},
 	encodingTest{RawURLEncoding, rawUrlRef},
 }
-
 
 var bigtest = testpair{
 	"Twas brillig, and the slithy toves",
@@ -100,7 +98,7 @@ func TestEncode(t *testing.T) {
 			et := &encodingTests[i]
 			got := et.enc.EncodeToString([]byte(p.decoded))
 			testEqual(t, "Encode(%q) = %q, want %q", p.decoded,
-					got, et.conv(p.encoded))
+				got, et.conv(p.encoded))
 		}
 	}
 }
@@ -145,7 +143,7 @@ func TestDecode(t *testing.T) {
 			testEqual(t, "Decode(%q) = error %v, want %v", encoded, err, error(nil))
 			testEqual(t, "Decode(%q) = length %v, want %v", encoded, count, len(p.decoded))
 			if len(encoded) > 0 {
-				testEqual(t, "Decode(%q) = end %v, want %v", encoded, end, len(p.decoded) % 3 != 0)
+				testEqual(t, "Decode(%q) = end %v, want %v", encoded, end, len(p.decoded)%3 != 0)
 			}
 			testEqual(t, "Decode(%q) = %q, want %q", encoded, string(dbuf[0:count]), p.decoded)
 

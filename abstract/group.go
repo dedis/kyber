@@ -2,6 +2,7 @@ package abstract
 
 import (
 	"crypto/cipher"
+	"github.com/dedis/crypto/suites"
 )
 
 // XXX consider renaming Secret to Scalar?
@@ -51,6 +52,13 @@ type SecretInterface interface {
 
 	// Set to a fresh random or pseudo-random secret
 	Pick(rand cipher.Stream) *Secret
+
+	// GetSuite returns the suite used to create that secret
+	GetSuite() Suite
+
+	// SetSuite sets the suite used for that point - only used in
+	// setting up that secret
+	SetSuite(s Suite)
 }
 
 /*
@@ -60,7 +68,6 @@ interface to be initialised first.
 */
 
 type Secret struct {
-	Suite string
 	SecretInterface
 }
 
@@ -110,6 +117,13 @@ type PointInterface interface {
 	// Encrypt point p by multiplying with secret s.
 	// If p == nil, encrypt the standard base point Base().
 	Mul(p *Point, s *Secret) *Point
+
+	// GetSuite returns the suite used to create that point
+	GetSuite() Suite
+
+	// SetSuite sets the suite used for that point - only used in
+	// setting up that point
+	SetSuite(s Suite)
 }
 
 /*
@@ -117,8 +131,38 @@ Point is a structure that holds also the suite used for easy unmarshalling.
 */
 
 type Point struct {
-	Suite string
 	PointInterface
+}
+
+/*
+Payload is used to store the suite and help thus with the unmarshalling
+*/
+type Payload struct {
+	// Suite is stored as string
+	Suite string
+}
+
+// GetSuite returns the suite used with this point/secret
+func (pl *Payload) GetSuite() Suite {
+	if pl.Suite != "" {
+		return StringToSuite(pl.Suite)
+	}
+	return nil
+}
+
+// SetSuite sets the suite used with this point/secret
+func (pl *Payload) SetSuite(s Suite) {
+	pl.Suite = s.String()
+}
+
+// MakePoint creates a Point from a PointInterface
+func (pl *Payload) MakePoint(p PointInterface) *Point {
+	return &Point{p}
+}
+
+// MakeSecret creates a Secret from a SecretInterface
+func (pl *Payload) MakeSecret(s SecretInterface) *Secret {
+	return &Secret{s}
 }
 
 /*

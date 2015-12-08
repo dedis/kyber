@@ -14,7 +14,7 @@ import (
 // KeyPair represents a public/private keypair
 // together with the ciphersuite the key was generated from.
 type KeyPair struct {
-	Suite  abstract.Suite  // Ciphersuite this keypair is for
+	Suite  abstract.Suite   // Ciphersuite this keypair is for
 	Public *abstract.Point  // Public key
 	Secret *abstract.Secret // Secret key
 }
