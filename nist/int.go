@@ -4,7 +4,6 @@ import (
 	"crypto/cipher"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/math"
@@ -38,9 +37,23 @@ var two = big.NewInt(2)
 // whose target is assumed never to change.
 //
 type Int struct {
-	V big.Int  // Integer value from 0 through M-1
-	M *big.Int // Modulus for finite field arithmetic
-	abstract.Payload
+	V     big.Int  // Integer value from 0 through M-1
+	M     *big.Int // Modulus for finite field arithmetic
+	Suite string
+}
+
+func (i *Int) GetSuite() abstract.Suite {
+	s, _ := abstract.StringToSuite(i.Suite)
+	return s
+}
+
+func (i *Int) SetSuite(s abstract.Suite) {
+	i.Suite = s.String()
+}
+
+// MakeSecret creates a Secret from a SecretInterface
+func (i *Int) Secret() *abstract.Secret {
+	return &abstract.Secret{i}
 }
 
 // Create a new Int with a given int64 value and big.Int modulus.
@@ -99,7 +112,7 @@ func (i *Int) SetString(n, d string, base int) (*Int, bool) {
 		if _, succ := di.SetString(d, "", base); !succ {
 			return nil, false
 		}
-		i.Div(i.MakeSecret(i), di.MakeSecret(&di))
+		i.Div(i.Secret(), di.Secret())
 	}
 	return i, true
 }
@@ -126,7 +139,7 @@ func (i *Int) Set(a *abstract.Secret) *abstract.Secret {
 	ai := a.SecretInterface.(*Int)
 	i.V.Set(&ai.V)
 	i.M = ai.M
-	return i.MakeSecret(i)
+	return i.Secret()
 }
 
 // Set value to a number represented in a big-endian byte string.
@@ -146,20 +159,20 @@ func (i *Int) SetLittleEndian(a []byte) *Int {
 // Set to the value 0.  The modulus must already be initialized.
 func (i *Int) Zero() *abstract.Secret {
 	i.V.SetInt64(0)
-	return i.MakeSecret(i)
+	return i.Secret()
 }
 
 // Set to the value 1.  The modulus must already be initialized.
 func (i *Int) One() *abstract.Secret {
 	i.V.SetInt64(1)
-	return i.MakeSecret(i)
+	return i.Secret()
 }
 
 // Set to an arbitrary 64-bit "small integer" value.
 // The modulus must already be initialized.
 func (i *Int) SetInt64(v int64) *abstract.Secret {
 	i.V.SetInt64(v).Mod(&i.V, i.M)
-	return i.MakeSecret(i)
+	return i.Secret()
 }
 
 // Return the int64 representation of the value.
@@ -172,7 +185,7 @@ func (i *Int) Int64() int64 {
 // The modulus must already be initialized.
 func (i *Int) SetUint64(v uint64) *abstract.Secret {
 	i.V.SetUint64(v).Mod(&i.V, i.M)
-	return i.MakeSecret(i)
+	return i.Secret()
 }
 
 // Return the uint64 representation of the value.
@@ -187,7 +200,7 @@ func (i *Int) Add(a, b *abstract.Secret) *abstract.Secret {
 	bi := b.SecretInterface.(*Int)
 	i.M = ai.M
 	i.V.Add(&ai.V, &bi.V).Mod(&i.V, i.M)
-	return i.MakeSecret(i)
+	return i.Secret()
 }
 
 // Set target to a - b mod M.
@@ -197,7 +210,7 @@ func (i *Int) Sub(a, b *abstract.Secret) *abstract.Secret {
 	bi := b.SecretInterface.(*Int)
 	i.M = ai.M
 	i.V.Sub(&ai.V, &bi.V).Mod(&i.V, i.M)
-	return i.MakeSecret(i)
+	return i.Secret()
 }
 
 // Set to -a mod M.
@@ -209,7 +222,7 @@ func (i *Int) Neg(a *abstract.Secret) *abstract.Secret {
 	} else {
 		i.V.SetUint64(0)
 	}
-	return i.MakeSecret(i)
+	return i.Secret()
 }
 
 // Set to a * b mod M.
@@ -219,7 +232,7 @@ func (i *Int) Mul(a, b *abstract.Secret) *abstract.Secret {
 	bi := b.SecretInterface.(*Int)
 	i.M = ai.M
 	i.V.Mul(&ai.V, &bi.V).Mod(&i.V, i.M)
-	return i.MakeSecret(i)
+	return i.Secret()
 }
 
 // Set to a * b^-1 mod M, where b^-1 is the modular inverse of b.
@@ -230,7 +243,7 @@ func (i *Int) Div(a, b *abstract.Secret) *abstract.Secret {
 	i.M = ai.M
 	i.V.Mul(&ai.V, t.ModInverse(&bi.V, i.M))
 	i.V.Mod(&i.V, i.M)
-	return i.MakeSecret(i)
+	return i.Secret()
 }
 
 // Set to the modular inverse of a with respect to modulus M.
@@ -238,7 +251,7 @@ func (i *Int) Inv(a *abstract.Secret) *abstract.Secret {
 	ai := a.SecretInterface.(*Int)
 	i.M = ai.M
 	i.V.ModInverse(&a.SecretInterface.(*Int).V, i.M)
-	return i.MakeSecret(i)
+	return i.Secret()
 }
 
 // Set to a^e mod M,
@@ -247,7 +260,7 @@ func (i *Int) Exp(a *abstract.Secret, e *big.Int) *abstract.Secret {
 	ai := a.SecretInterface.(*Int)
 	i.M = ai.M
 	i.V.Exp(&ai.V, e, i.M)
-	return i.MakeSecret(i)
+	return i.Secret()
 }
 
 // Compute the Legendre symbol of i, if modulus M is prime,
@@ -269,7 +282,7 @@ func (i *Int) Jacobi(as *abstract.Secret) *abstract.Secret {
 	ai := as.SecretInterface.(*Int)
 	i.M = ai.M
 	i.V.SetInt64(int64(math.Jacobi(&ai.V, i.M)))
-	return i.MakeSecret(i)
+	return i.Secret()
 }
 
 // Compute some square root of a mod M of one exists.
@@ -286,7 +299,7 @@ func (i *Int) Sqrt(as *abstract.Secret) bool {
 // using bits from the given stream cipher.
 func (i *Int) Pick(rand cipher.Stream) *abstract.Secret {
 	i.V.Set(random.Int(i.M, rand))
-	return i.MakeSecret(i)
+	return i.Secret()
 }
 
 // Return the length in bytes of encoded integers with modulus M.
@@ -299,7 +312,6 @@ func (i *Int) MarshalSize() int {
 
 // Encode the value of this Int into a byte-slice exactly Len() bytes long.
 func (i *Int) MarshalBinary() ([]byte, error) {
-	fmt.Println("Marshal Int")
 	l := i.MarshalSize()
 	b := i.V.Bytes() // may be shorter than l
 	if ofs := l - len(b); ofs != 0 {
@@ -314,7 +326,6 @@ func (i *Int) MarshalBinary() ([]byte, error) {
 // Returns an error if the buffer is not exactly Len() bytes long
 // or if the contents of the buffer represents an out-of-range integer.
 func (i *Int) UnmarshalBinary(buf []byte) error {
-	fmt.Println("Unmarshal Int")
 	if len(buf) != i.MarshalSize() {
 		return errors.New("Int.Decode: wrong size buffer")
 	}
@@ -326,13 +337,11 @@ func (i *Int) UnmarshalBinary(buf []byte) error {
 }
 
 func (i *Int) MarshalTo(w io.Writer) (int, error) {
-	fmt.Println("MarshalTo Int")
-	return group.SecretMarshalTo(i.MakeSecret(i), w)
+	return group.SecretMarshalTo(i.Secret(), w)
 }
 
 func (i *Int) UnmarshalFrom(r io.Reader) (int, error) {
-	fmt.Println("Unmarshalfrom int")
-	ic := *i.MakeSecret(i)
+	ic := *i.Secret()
 	ret, err := group.SecretUnmarshalFrom(&ic, r)
 	*i = *ic.SecretInterface.(*Int)
 	return ret, err

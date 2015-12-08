@@ -2,7 +2,6 @@ package nist
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"math/big"
 	//"encoding/hex"
@@ -176,12 +175,10 @@ func (p *curvePoint) MarshalSize() int {
 }
 
 func (p *curvePoint) MarshalBinary() ([]byte, error) {
-	fmt.Println("MarshalBinary cp")
 	return elliptic.Marshal(p.c, p.x, p.y), nil
 }
 
 func (p *curvePoint) UnmarshalBinary(buf []byte) error {
-	fmt.Println("Unmarshal curvepoint")
 	// Check whether all bytes after first one are 0, so we
 	// just return the initial point. Read everything to
 	// prevent timing-leakage.
@@ -203,12 +200,10 @@ func (p *curvePoint) UnmarshalBinary(buf []byte) error {
 }
 
 func (p *curvePoint) MarshalTo(w io.Writer) (int, error) {
-	fmt.Println("MarshalTo cp")
 	return group.PointMarshalTo(p.MakePoint(p), w)
 }
 
 func (p *curvePoint) UnmarshalFrom(r io.Reader) (int, error) {
-	fmt.Println("Unmarshalfrom curvepoint")
 	return group.PointUnmarshalFrom(p.MakePoint(p), r)
 }
 
@@ -238,7 +233,7 @@ func (c *curve) SecretLen() int { return (c.p.N.BitLen() + 7) / 8 }
 func (c *curve) Secret() *abstract.Secret {
 	s := NewInt(0, c.p.N)
 	s.Suite = c.name
-	return s.MakeSecret(s)
+	return s.Secret()
 }
 
 // Number of bytes required to store one coordinate on this curve
@@ -257,7 +252,7 @@ func (c *curve) PointLen() int {
 func (c *curve) Point() *abstract.Point {
 	p := new(curvePoint)
 	p.c = c
-	p.Suite = c.name
+	p.Payload = &abstract.Payload{Suite: c.name}
 	return p.MakePoint(p)
 }
 

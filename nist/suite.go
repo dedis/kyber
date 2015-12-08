@@ -9,6 +9,10 @@ import (
 	"reflect"
 )
 
+func init() {
+	abstract.AddSuite(NewAES128SHA256P256())
+}
+
 type suite128 struct {
 	p256
 }
@@ -39,5 +43,6 @@ func (s *suite128) New(t reflect.Type) interface{} {
 func NewAES128SHA256P256() abstract.Suite {
 	suite := new(suite128)
 	suite.p256.Init()
+	suite.name = suite.String()
 	return suite
 }

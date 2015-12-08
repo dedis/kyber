@@ -208,19 +208,30 @@ func testGroup(g abstract.Group, rand cipher.Stream) []*abstract.Point {
 		panic(err)
 	}
 
-	// Test direct marshaling/unmarshaling
+	// Test direct marshaling/unmarshaling of Secrets
 	secret_src := g.Secret().Pick(rand)
-	log.Printf("Group: %+v - Src: %+v\n", g, secret_src)
 	var network bytes.Buffer
 	enc := gob.NewEncoder(&network)
 	err = enc.Encode(secret_src)
 	if err != nil {
 		log.Fatal("encode:", err)
 	}
-	log.Printf("Encoded: %+v\n", network.Bytes())
 	dec := gob.NewDecoder(&network)
-	var t abstract.Secret
-	err = dec.Decode(&t)
+	var secret_new abstract.Secret
+	err = dec.Decode(&secret_new)
+	if err != nil {
+		log.Fatal("decode:", err)
+	}
+
+	// Test direct marshaling/unmarshaling of Points
+	point_src := g.Point().Mul(nil, secret_src)
+	network.Reset()
+	err = enc.Encode(point_src)
+	if err != nil {
+		log.Fatal("encode:", err)
+	}
+	var point_new abstract.Point
+	err = dec.Decode(&point_new)
 	if err != nil {
 		log.Fatal("decode:", err)
 	}

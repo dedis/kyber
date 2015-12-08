@@ -4,35 +4,35 @@ package abstract
 
 import (
 	"fmt"
-	//	"github.com/dedis/crypto/edwards"
-	//	"github.com/dedis/crypto/edwards/ed25519"
-	"github.com/dedis/crypto/nist"
 )
 
 // Suites represents a map from ciphersuite name to ciphersuite.
 type Suites map[string]Suite
 
+var allSuites Suites
+
 // Returns a map of all suites
-func All() Suites {
-	s := make(Suites)
-	s.add(nist.NewAES128SHA256P256())
-	//	s.add(nist.NewAES128SHA256QR512())
-	//	s.add(edwards.NewAES128SHA256Ed25519(false))
-	//	s.add(ed25519.NewAES128SHA256Ed25519(false))
-	return s
+func AllSuites() Suites {
+	if allSuites == nil {
+		allSuites = make(map[string]Suite, 0)
+	}
+	return allSuites
 }
 
 // StrintToSuite returns the suite for a string, or an error.
 func StringToSuite(s string) (Suite, error) {
-	suite, ok := All()[s]
+	suite, ok := allSuites[s]
 	if !ok {
 		return nil, fmt.Errorf("Didn't find suite %s", s)
 	}
 	return suite, nil
 }
 
-func (s Suites) add(suite Suite) {
-	s[suite.String()] = suite
+func AddSuite(suite Suite) {
+	_, exists := AllSuites()[suite.String()]
+	if !exists {
+		allSuites[suite.String()] = suite
+	}
 }
 
 // XXX add Stable() and Experimental() sub-lists?

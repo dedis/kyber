@@ -4,7 +4,6 @@ package group
 
 import (
 	"crypto/cipher"
-	"fmt"
 	"github.com/dedis/crypto/abstract"
 	"io"
 )
@@ -12,7 +11,6 @@ import (
 // PointEncodeTo provides a generic implementation of Point.EncodeTo
 // based on Point.Encode.
 func PointMarshalTo(p *abstract.Point, w io.Writer) (int, error) {
-	fmt.Println("PointMarshalTo")
 	buf, err := p.MarshalBinary()
 	if err != nil {
 		return 0, err
