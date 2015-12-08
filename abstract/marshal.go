@@ -2,6 +2,7 @@ package abstract
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 )
 
@@ -53,6 +54,34 @@ func (s *Secret) UnmarshalBinary(data []byte) error {
 }
 
 /*
+Prepares for JSON-marshaling by putting all the data in a field
+called Data.
+*/
+func (s *Secret) MarshalJSON() (data []byte, err error) {
+	data, err = s.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(struct{ Data []byte }{Data: data})
+}
+
+/*
+Unmarshals the data from the point using the Data-field
+*/
+func (s *Secret) UnmarshalJSON(data []byte) error {
+	v_json := struct{ Data []byte }{}
+	err := json.Unmarshal(data, &v_json)
+	if err != nil {
+		return err
+	}
+	err = s.UnmarshalBinary(v_json.Data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+/*
 Adjust the marshal-size with regard to our storage of the suite
 */
 func (p *Point) MarshalSize() int {
@@ -101,4 +130,32 @@ func (p *Point) UnmarshalBinary(data []byte) error {
 		p.SetSuite(suite)
 	}
 	return err
+}
+
+/*
+Prepares for JSON-marshaling by putting all the data in a field
+called Data.
+*/
+func (p *Point) MarshalJSON() (data []byte, err error) {
+	data, err = p.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(struct{ Data []byte }{Data: data})
+}
+
+/*
+Unmarshals the data from the point using the Data-field
+*/
+func (p *Point) UnmarshalJSON(data []byte) error {
+	v_json := struct{ Data []byte }{}
+	err := json.Unmarshal(data, &v_json)
+	if err != nil {
+		return err
+	}
+	err = p.UnmarshalBinary(v_json.Data)
+	if err != nil {
+		return err
+	}
+	return nil
 }

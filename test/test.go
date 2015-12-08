@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/cipher"
 	"encoding/gob"
+	"encoding/json"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
 	"log"
@@ -208,7 +209,7 @@ func testGroup(g abstract.Group, rand cipher.Stream) []*abstract.Point {
 		panic(err)
 	}
 
-	// Test direct marshaling/unmarshaling of Secrets
+	// Test direct marshaling/unmarshaling of Secrets using gob
 	secret_src := g.Secret().Pick(rand)
 	var network bytes.Buffer
 	enc := gob.NewEncoder(&network)
@@ -217,23 +218,63 @@ func testGroup(g abstract.Group, rand cipher.Stream) []*abstract.Point {
 		log.Fatal("encode:", err)
 	}
 	dec := gob.NewDecoder(&network)
-	var secret_new abstract.Secret
+	var secret_new *abstract.Secret
 	err = dec.Decode(&secret_new)
 	if err != nil {
 		log.Fatal("decode:", err)
 	}
+	if !secret_src.Equal(secret_new) {
+		log.Fatal("Gob-Secrets are not the same")
+	}
 
-	// Test direct marshaling/unmarshaling of Points
+	// Test direct marshaling/unmarshaling of Points using gob
 	point_src := g.Point().Mul(nil, secret_src)
 	network.Reset()
 	err = enc.Encode(point_src)
 	if err != nil {
 		log.Fatal("encode:", err)
 	}
-	var point_new abstract.Point
+	var point_new *abstract.Point
 	err = dec.Decode(&point_new)
 	if err != nil {
 		log.Fatal("decode:", err)
+	}
+	if !point_src.Equal(point_new) {
+		log.Fatal("Gob-Points are not the same")
+	}
+
+	// Test direct marshaling/unmarshaling of Secrets using JSON
+	secret2_src := g.Secret().Pick(rand)
+	network.Reset()
+	encJson := json.NewEncoder(&network)
+	err = encJson.Encode(secret2_src)
+	if err != nil {
+		log.Fatal("encode:", err)
+	}
+	decJson := json.NewDecoder(&network)
+	var secret2_new *abstract.Secret
+	err = decJson.Decode(&secret2_new)
+	if err != nil {
+		log.Fatal("decode:", err)
+	}
+	if !secret2_src.Equal(secret2_new) {
+		log.Fatal("JSON-Secrets are not the same")
+	}
+
+	// Test direct marshaling/unmarshaling of Points using JSON
+	point2_src := g.Point().Mul(nil, secret_src)
+	network.Reset()
+	err = encJson.Encode(point2_src)
+	if err != nil {
+		log.Fatal("encode:", err)
+	}
+	var point2_new *abstract.Point
+	err = decJson.Decode(&point2_new)
+	if err != nil {
+		log.Fatal("decode:", err)
+	}
+	if !point2_src.Equal(point2_new) {
+		log.Fatal("JSON-Points are not the same")
 	}
 
 	return points
