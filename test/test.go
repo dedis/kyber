@@ -277,7 +277,24 @@ func testGroup(g abstract.Group, rand cipher.Stream) []*abstract.Point {
 		log.Fatal("JSON-Points are not the same")
 	}
 
+	p_src := &BigStruct{}
+	p_src.Points = make(map[string]*abstract.Point)
+	point_src.Add(point_src, point_src)
+	p_src.Points["one"] = point_src
+	p_src.Points["two"] = point2_src
+	network.Reset()
+	encJson.Encode(p_src)
+	p_copy := &BigStruct{}
+	decJson.Decode(p_copy)
+	if !p_src.Points["one"].Equal(p_copy.Points["one"]) {
+		log.Fatal("Points are not the same in map[string]")
+	}
+
 	return points
+}
+
+type BigStruct struct {
+	Points map[string]*abstract.Point
 }
 
 // Apply a generic set of validation tests to a cryptographic Group.
