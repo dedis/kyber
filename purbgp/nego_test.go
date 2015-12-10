@@ -1,15 +1,18 @@
 package purb
 
 import (
+	//	"bufio"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher/aes"
+	//	"github.com/dedis/crypto/config"
 	"github.com/dedis/crypto/edwards"
 	"github.com/dedis/crypto/padding"
 	"github.com/dedis/crypto/random"
 	"io/ioutil"
+	"os"
 	"testing"
 )
 
@@ -27,10 +30,8 @@ func (f *fakeSuite) String() string {
 func TestPurb(t *testing.T) {
 
 	realSuites := []abstract.Suite{
-		//nist.NewAES128SHA256QR512(),
 		edwards.NewAES128SHA256Ed25519(true),
 	}
-	fmt.Println(realSuites[0])
 
 	fakery := 7
 	nentries := 4
@@ -96,7 +97,6 @@ func TestPurb(t *testing.T) {
 	encMessage := w.Write(random.Stream)
 	fmt.Println(len(encMessage), hdrend)
 	encMessage = append(encMessage, enc...)
-	fmt.Println(len(encMessage))
 	err = ioutil.WriteFile("test.bin", encMessage, 0644)
 	if err != nil {
 		panic(err)
@@ -136,10 +136,10 @@ func TestPlaceHash(t *testing.T) {
 func TestWritePurb(t *testing.T) {
 	//simple test with one suite
 	suite := edwards.NewAES128SHA256Ed25519(true)
-	nentries := 1
+	nentries := 3
 	entries := make([]Entry, 0)
 	suiteEntry := make(map[abstract.Suite][]int)
-	nlevels := 3
+	nlevels := 1
 	ents := make([]int, nlevels)
 	for j := 0; j < nlevels; j++ {
 		ents[j] = j * ENTRYLEN
@@ -152,8 +152,71 @@ func TestWritePurb(t *testing.T) {
 		pub := s.Point().Mul(nil, pri)
 		data := make([]byte, DATALEN)
 		entries = append(entries, Entry{s, pri, pub, data})
-		fmt.Println(pub)
 	}
 	msg := "This is the message! It will be stored as a file!!"
 	writePurb(entries, suiteEntry, []byte(msg), "test.purb")
+	file, _ := os.Create("keyfile1")
+	i, err := entries[0].PriKey.MarshalTo(file)
+	file, _ = os.Create("keyfile2")
+	i, err = entries[1].PriKey.MarshalTo(file)
+	file, _ = os.Create("keyfile3")
+	i, err = entries[2].PriKey.MarshalTo(file)
+	if err != nil {
+		fmt.Println(err, i)
+	}
 }
+
+//Reads single ed25519 private keys from single files
+func TestReadPurbFromFile(t *testing.T) {
+	//get a public key
+	//Problem need to know the suite already I think.
+	suite := edwards.NewAES128SHA256Ed25519(true)
+	suiteEntry := make(map[abstract.Suite][]int)
+	nlevels := 1
+	ents := make([]int, nlevels)
+	for j := 0; j < nlevels; j++ {
+		ents[j] = j * ENTRYLEN
+	}
+	suiteEntry[suite] = ents
+	file, err := os.Open("keyfile1")
+	priKey := suite.Secret()
+	something, err := priKey.UnmarshalFrom(file)
+	if err != nil {
+		fmt.Println(something, err)
+	}
+	encFile := make([]byte, 0)
+	encFile, err = ioutil.ReadFile("test.purb")
+	fmt.Println(err)
+	_, msgL := attemptDecode(suite, priKey, suiteEntry, encFile, random.Stream)
+	if msgL == nil {
+		fmt.Println("Could not decrypt")
+	} else {
+		msgL = padding.UnPadGeneric(msgL)
+		fmt.Println(len(msgL), string(msgL))
+	}
+	file, err = os.Open("keyfile2")
+	something, err = priKey.UnmarshalFrom(file)
+	_, msgL = attemptDecode(suite, priKey, suiteEntry, encFile, random.Stream)
+	if msgL == nil {
+		fmt.Println("Could not decrypt")
+	} else {
+		msgL = padding.UnPadGeneric(msgL)
+		fmt.Println(len(msgL), string(msgL))
+	}
+	file, err = os.Open("keyfile3")
+	something, err = priKey.UnmarshalFrom(file)
+	_, msgL = attemptDecode(suite, priKey, suiteEntry, encFile, random.Stream)
+	if msgL == nil {
+		fmt.Println("Could not decrypt")
+	} else {
+		msgL = padding.UnPadGeneric(msgL)
+		fmt.Println(len(msgL), string(msgL))
+	}
+	fmt.Println(something)
+}
+
+/*Possibly should do this later, but there is only one suite we can test with at this point.
+func TestConfig(t *testing.T) {
+	//Create a few keys.
+	suite := edwards.NewAES128SHA256Ed25519(true)
+}*/
