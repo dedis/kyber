@@ -31,6 +31,7 @@ func TestPurb(t *testing.T) {
 
 	realSuites := []abstract.Suite{
 		edwards.NewAES128SHA256Ed25519(true),
+		edwards.NewAES128SHA256Ed1174(true),
 	}
 
 	fakery := 7
@@ -135,7 +136,7 @@ func TestPlaceHash(t *testing.T) {
 }
 func TestWritePurb(t *testing.T) {
 	//simple test with one suite
-	suite := edwards.NewAES128SHA256Ed25519(true)
+	suite := edwards.NewAES128SHA256Ed1174(true)
 	nentries := 3
 	entries := make([]Entry, 0)
 	suiteEntry := make(map[abstract.Suite][]int)
@@ -153,7 +154,7 @@ func TestWritePurb(t *testing.T) {
 		data := make([]byte, DATALEN)
 		entries = append(entries, Entry{s, pri, pub, data})
 	}
-	msg := "This is the message! It will be stored as a file!!"
+	msg := "This is the message! It will be stored as a file!! for" + entries[0].PubKey.String() + suite.String()
 	writePurb(entries, suiteEntry, []byte(msg), "test.purb")
 	file, _ := os.Create("keyfile1")
 	i, err := entries[0].PriKey.MarshalTo(file)
@@ -170,7 +171,7 @@ func TestWritePurb(t *testing.T) {
 func TestReadPurbFromFile(t *testing.T) {
 	//get a public key
 	//Problem need to know the suite already I think.
-	suite := edwards.NewAES128SHA256Ed25519(true)
+	suite := edwards.NewAES128SHA256Ed1174(true)
 	suiteEntry := make(map[abstract.Suite][]int)
 	nlevels := 1
 	ents := make([]int, nlevels)

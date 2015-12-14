@@ -45,3 +45,10 @@ func NewAES128SHA256Ed25519(fullGroup bool) abstract.Suite {
 	suite.Init(Param25519(), fullGroup)
 	return suite
 }
+
+//TODO XXX FIX should be a different type, used for testing.
+func NewAES128SHA256Ed1174(fullGroup bool) abstract.Suite {
+	suite := new(suiteEd25519)
+	suite.Init(Param1174(), fullGroup)
+	return suite
+}
