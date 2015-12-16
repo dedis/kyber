@@ -33,11 +33,14 @@ const DATALEN = 24
 //Input: Any string
 //Output integer hashed version of string.
 //Not secure, just for use in a simple hash table
+//TODO figure out a better hash alg
 func stringHash(s string) uint {
 	var hash uint
 	hash = 0
 	for i := range s {
+		//hash = uint(s[i]) + 128*hash Super bad
 		hash += uint(s[i])
+		//hash += uint(s[i])*uint(s[i]) - uint(s[i])
 	}
 	return hash
 }
@@ -178,6 +181,7 @@ func (w *Writer) PlaceHash(hash uint) (int, int) {
 			if w.layout.reserve(int(start+tHash*entryLen), int(start+tHash*entryLen+entryLen), true, "hash"+strconv.Itoa(int(ts))) {
 				return int(start + tHash*entryLen), int(start + ts*entryLen)
 			}
+			//	fmt.Println("Collision:", start+tHash*entryLen)
 		}
 	}
 	return -1, -1
@@ -234,6 +238,7 @@ func (w *Writer) Layout(entrypoints []Entry,
 		//Assumes suite entry is sorted(easily achieved if it's not.
 		si.pos = suiteEntry[suite]
 		si.plen = suite.Point().(abstract.Hiding).HideLen() // XXX(seems to work)
+		//fmt.Println(suite.String(), si.plen, "\n\n\n")
 		si.max = si.pos[len(si.pos)-1] + si.plen
 		si.ste = suite
 		//Not sure on plen
@@ -303,9 +308,9 @@ func (w *Writer) Layout(entrypoints []Entry,
 		}
 	}
 
-	fmt.Printf("Total hdrlen: %d\n", hdrlen)
-	fmt.Printf("Point layout:\n")
-	w.layout.dump()
+	//fmt.Printf("Total hdrlen: %d\n", hdrlen)
+	//fmt.Printf("Point layout:\n")
+	//w.layout.dump()
 
 	//Generate public/private keys for each suite
 	keymap := make(map[abstract.Suite]suiteKey)
@@ -348,7 +353,7 @@ func (w *Writer) Layout(entrypoints []Entry,
 		intHash := stringHash(hash.String())
 		ofs, tableEnd := w.PlaceHash(intHash)
 		if ofs < 0 {
-			fmt.Println("Could not find hash")
+			//	fmt.Println("Could not find hash")
 		}
 		w.entofs[i] = ofs
 		if tableEnd > hdrlen {
@@ -364,8 +369,8 @@ func (w *Writer) Layout(entrypoints []Entry,
 	//And it is the correct offset for the appended ciphertext
 	w.layout.reserve(hdrlen, hdrlen+1, false, "tablesize")
 
-	fmt.Printf("Point+Entry layout:\n")
-	w.layout.dump()
+	//fmt.Printf("Point+Entry layout:\n")
+	//w.layout.dump()
 
 	return hdrlen, nil
 }
@@ -497,7 +502,7 @@ func attemptDecode(suite abstract.Suite, priv abstract.Secret,
 	//make sure suite has entry points
 	entPoints := entryPoints[suite]
 	if entPoints == nil {
-		fmt.Println("We do not know about", suite)
+		//fmt.Println("We do not know about", suite)
 		return 0, nil
 	}
 	dhpub := make([]byte, ENTRYLEN)
@@ -539,8 +544,8 @@ func attemptDecode(suite abstract.Suite, priv abstract.Secret,
 			dec := make([]byte, 0)
 			cipher := abstract.Cipher(aes.NewCipher128(key))
 			dec, err := cipher.Open(dec, file[msgStart:])
-			fmt.Println(msgStart)
-			fmt.Println(key)
+			//fmt.Println(msgStart)
+			//fmt.Println(key)
 			if err == nil {
 
 				//Some way to determine if the message is actually english
@@ -549,7 +554,7 @@ func attemptDecode(suite abstract.Suite, priv abstract.Secret,
 					return 0, dec
 				}
 			}
-			fmt.Println(err)
+			//fmt.Println(err)
 
 		}
 		start += ts * dLen
@@ -595,12 +600,50 @@ func writePurb(entries []Entry, entryPoints map[abstract.Suite][]int,
 		w.entries[i].Data = append(byteLen, key...)
 	}
 	encMessage := w.Write(random.Stream)
-	fmt.Println(len(encMessage), hdrend)
+	//fmt.Println(len(encMessage), hdrend)
 	encMessage = append(encMessage, enc...)
-	fmt.Println(len(encMessage))
+	//fmt.Println(len(encMessage))
 	err = ioutil.WriteFile(filePath, encMessage, 0644)
 	if err != nil {
 		panic(err)
 	}
+}
 
+//Same as writePurb, but instead it returns the byte string instead of writing it to a file.
+func genPurb(entries []Entry, entryPoints map[abstract.Suite][]int,
+	message []byte, pad bool) ([]byte, int) {
+	//Now we need to go through the steps of setting it up.
+	w := Writer{}
+	hdrend, err := w.Layout(entries, random.Stream, entryPoints)
+	if err != nil {
+		panic(err)
+	}
+
+	key, _ := hex.DecodeString("9a4fea86a621a91ab371e492457796c0")
+
+	key[0] = byte(len(entries))
+	//Probably insecure way to use it.
+	//TODO come up with a way to generate keys here.
+	cipher := abstract.Cipher(aes.NewCipher128(key))
+	//from testing
+	encOverhead := 16
+	var msg []byte
+	if pad == true {
+		msg = padding.PadGeneric(message, encOverhead+hdrend)
+	} else {
+		msg = message
+	}
+	enc := make([]byte, 0)
+	enc = cipher.Seal(enc, msg)
+	//encrypt message
+	//w.layout.reserve(hdrend, hdrend+len(msg), true, "message")
+	//Now test Write, need to fill all entry point
+	byteLen := make([]byte, 8)
+	binary.BigEndian.PutUint64(byteLen, uint64(hdrend))
+	for i := range w.entries {
+		w.entries[i].Data = append(byteLen, key...)
+	}
+	encMessage := w.Write(random.Stream)
+	encMessage = append(encMessage, enc...)
+	return encMessage, hdrend
 }
