@@ -19,6 +19,13 @@ type KeyPair struct {
 	Secret abstract.Secret // Secret key
 }
 
+// NewKeyPair directly creates a secret/public key pair
+func NewKeyPair(suite abstract.Suite) (abstract.Secret, abstract.Point) {
+	kp := &KeyPair{}
+	kp.Gen(suite, random.Stream)
+	return kp.Secret, kp.Public
+}
+
 // Generate a fresh public/private keypair with the given ciphersuite,
 // using a given source of cryptographic randomness.
 func (p *KeyPair) Gen(suite abstract.Suite, random cipher.Stream) {
@@ -27,7 +34,7 @@ func (p *KeyPair) Gen(suite abstract.Suite, random cipher.Stream) {
 	p.Public = suite.Point().Mul(nil, p.Secret)
 }
 
-// Return the base64-encoded HashId for this KeyPair's public key.
+// PubId returns the base64-encoded HashId for this KeyPair's public key.
 func (p *KeyPair) PubId() string {
 	buf, _ := p.Public.MarshalBinary()
 	hash := abstract.Sum(p.Suite, buf)
