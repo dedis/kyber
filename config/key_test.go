@@ -1,16 +1,17 @@
 package config_test
 
 import (
+	"testing"
+
 	"github.com/dedis/crypto/config"
 	"github.com/dedis/crypto/edwards"
-	"testing"
 )
 
 func TestNewKeyPair(t *testing.T) {
 	suite := edwards.NewAES128SHA256Ed25519(false)
-	priv, pub := config.NewKeyPair(suite)
-	pub2 := suite.Point().Mul(nil, priv)
-	if !pub.Equal(pub2) {
+	keypair := config.NewKeyPair(suite)
+	pub := suite.Point().Mul(nil, keypair.Secret)
+	if !pub.Equal(keypair.Public) {
 		t.Fatal("Public and private-key don't match")
 	}
 }
