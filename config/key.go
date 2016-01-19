@@ -3,12 +3,13 @@ package config
 import (
 	"crypto/cipher"
 	"errors"
+	"log"
+	"os"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/base64"
 	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/util"
-	"log"
-	"os"
 )
 
 // KeyPair represents a public/private keypair
@@ -20,10 +21,10 @@ type KeyPair struct {
 }
 
 // NewKeyPair directly creates a secret/public key pair
-func NewKeyPair(suite abstract.Suite) (abstract.Secret, abstract.Point) {
-	kp := &KeyPair{}
+func NewKeyPair(suite abstract.Suite) *KeyPair {
+	kp := new(KeyPair)
 	kp.Gen(suite, random.Stream)
-	return kp.Secret, kp.Public
+	return kp
 }
 
 // Generate a fresh public/private keypair with the given ciphersuite,
