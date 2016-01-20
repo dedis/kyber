@@ -21,6 +21,10 @@ import (
 //Length each entrypoint is(for simplicity assuming all suites HideLen is the same.
 const ENTRYLEN = 32
 
+//Change this value to see if it can give nicer numbers
+//--Trade off between header size and decryption time.
+const HASHATTEMPTS = 3
+
 //How many bytes symkey+message_start is
 const DATALEN = 24
 
@@ -173,10 +177,11 @@ func (w *Writer) PlaceHash(hash uint) (int, int) {
 		//start = current hash table start + number of entries in the table* the
 		//length of each entry
 		start = start + ts*entryLen
+
 		//Double the number of entries in each hash table
 		ts *= 2
 		//Check if the hash works for this table
-		for i := uint(0); i < 3; i++ {
+		for i := uint(0); i < HASHATTEMPTS; i++ {
 			tHash := (hash + i) % ts
 			if w.layout.reserve(int(start+tHash*entryLen), int(start+tHash*entryLen+entryLen), true, "hash"+strconv.Itoa(int(ts))) {
 				return int(start + tHash*entryLen), int(start + ts*entryLen)
@@ -249,11 +254,11 @@ func (w *Writer) Layout(entrypoints []Entry,
 		simap[suite] = &si
 	}
 	nsuites := len(w.suites.s)
-	if nsuites > 255 {
-		// Our reservation calculation scheme currently can't handle
-		// more than 255 ciphersuites.
-		return 0, errors.New("too many ciphersuites")
-	}
+	//	if nsuites > 255 {
+	// Our reservation calculation scheme currently can't handle
+	// more than 255 ciphersuites.
+	//		return 0, errors.New("too many ciphersuites")
+	//	}
 	//ws if w.maxLen !=0&& not sure why there was that
 	if max > w.maxLen {
 		w.maxLen = max
@@ -527,7 +532,7 @@ func attemptDecode(suite abstract.Suite, priv abstract.Secret,
 	for start+ts*uint(dLen) <= uint(len(file)) {
 		//try to decrypt hashtable[i]->i+3
 		//could be sped up slightly for case ts is 1 or 2
-		for i := uint(0); i < 3; i++ {
+		for i := uint(0); i < HASHATTEMPTS; i++ {
 			tHash := (intHash + i) % ts
 			data := file[start+tHash*dLen : start+tHash*dLen+dLen]
 			//Try to decrypt data.

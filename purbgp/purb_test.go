@@ -17,6 +17,8 @@ import (
 	"testing"
 )
 
+var NUMTEST = 12
+
 // Simple harness to create lots of fake ciphersuites out of a few real ones,
 // for testing purposes.
 type fakeSuite struct {
@@ -233,7 +235,7 @@ func TestSuite(t *testing.T) {
 		},
 	}
 	msg := []byte("This is the message, it is short")
-	increaseFactor := 10
+	//increaseFactor := 2
 	for s := range suites {
 		name := ""
 		for suite := range suites[s] {
@@ -241,9 +243,32 @@ func TestSuite(t *testing.T) {
 			name += suites[s][suite].String()
 		}
 		fmt.Println("Suites:", name)
+		fmt.Println("numEntries,hdrlen,encryptTime,avgDecrypt,failTime")
+		//fmt.Println("NumSuites numEntries hdrlen encryptTime avgDecrypt")
 		buildPurb(1, 1, suites[s], msg)
-		for i := 1; i < 11; i++ {
-			buildPurb(1, i*increaseFactor, suites[s], msg)
+		entries := 1
+		for i := 1; i < NUMTEST; i++ { //Last test before killed because of time
+			entries *= 2
+			buildPurb(1, entries, suites[s], msg)
+		}
+	}
+	//Now test for an increasing number of suites.
+	realSuites := []abstract.Suite{
+		edwards.NewAES128SHA256Ed25519(true),
+		//	edwards.NewAES128SHA256Ed1174(true),
+	}
+
+	ss := make([]abstract.Suite, 0)
+	for i := range realSuites {
+		real := realSuites[i]
+		fmt.Println("numSuites,numEntries,hdrlen,encryptTime,avgDecrypt,failTime")
+		ss = append(ss, &fakeSuite{real, 0})
+		for k := 0; k < NUMTEST; k++ {
+			iter := (len(ss))
+			for j := 0; j < iter; j++ {
+				ss = append(ss, &fakeSuite{real, j + iter/2})
+			}
+			buildPurb(1, 1, ss, msg)
 		}
 	}
 }
@@ -287,14 +312,21 @@ func buildPurb(nlevels, nentries int, suites []abstract.Suite, msg []byte) {
 	start := time.Now()
 	encMsg, hdrlen := genPurb(entries, suiteEntry, msg, true)
 	elapsed := time.Since(start)
-	encMsg[0] = 0
 	//Decrypt to get avg decrypt time, may be messed up because sometimes messages don't decrypt properly.
 	start2 := time.Now()
 	for _, v := range entries {
 		_, _ = attemptDecode(v.Suite, v.PriKey, suiteEntry, encMsg, random.Stream)
+		//fmt.Println(a, string(b))
 	}
 	elapsed2 := time.Since(start2)
+	//What happens if it fails to decrypt?
+	s := suites[len(suites)-1]
+	pri := s.Secret().Pick(random.Stream)
+	start3 := time.Now()
+	_, _ = attemptDecode(s, pri, suiteEntry, encMsg, random.Stream)
+	elapsed3 := time.Since(start3)
 
-	fmt.Printf("**** %v %v %v %s %vs\n", len(suites), nentries, hdrlen, elapsed, elapsed2.Seconds()/float64(len(entries)))
+	//fmt.Printf("**** %v %v %v %s %vs\n", len(suites), nentries, hdrlen, elapsed, elapsed2.Seconds()/float64(len(entries)))
+	fmt.Printf("%v %v,%v,%s,%vs,%s\n", len(suites), nentries*len(suites), hdrlen, elapsed, elapsed2.Seconds()/float64(len(entries)), elapsed3)
 	//fmt.Printf("**** %v %v %v %s %vs\n", len(suites), nentries, hdrlen, elapsed, elapsed2.Seconds())
 }
