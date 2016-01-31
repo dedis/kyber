@@ -10,8 +10,8 @@ type GroupBench struct {
 	g abstract.Group
 
 	// Random secrets and points for testing
-	x, y abstract.Secret
-	X, Y abstract.Point
+	x, y *abstract.Secret
+	X, Y *abstract.Point
 	xe   []byte // encoded Secret
 	Xe   []byte // encoded Point
 }

@@ -13,44 +13,61 @@ This is an exponent in DSA-style groups,
 in which security is based on the Discrete Logarithm assumption,
 and a scalar multiplier in elliptic curve groups.
 */
-type Secret interface {
+type SecretInterface interface {
 	Marshaling
 
 	// Equality test for two Secrets derived from the same Group
-	Equal(s2 Secret) bool
+	Equal(s2 *Secret) bool
 
 	// Set equal to another Secret a
-	Set(a Secret) Secret
+	Set(a *Secret) *Secret
 
 	// Set to a small integer value
-	SetInt64(v int64) Secret
+	SetInt64(v int64) *Secret
 
 	// Set to the additive identity (0)
-	Zero() Secret
+	Zero() *Secret
 
 	// Set to the modular sum of secrets a and b
-	Add(a, b Secret) Secret
+	Add(a, b *Secret) *Secret
 
 	// Set to the modular difference a - b
-	Sub(a, b Secret) Secret
+	Sub(a, b *Secret) *Secret
 
 	// Set to the modular negation of secret a
-	Neg(a Secret) Secret
+	Neg(a *Secret) *Secret
 
 	// Set to the multiplicative identity (1)
-	One() Secret
+	One() *Secret
 
 	// Set to the modular product of secrets a and b
-	Mul(a, b Secret) Secret
+	Mul(a, b *Secret) *Secret
 
 	// Set to the modular division of secret a by secret b
-	Div(a, b Secret) Secret
+	Div(a, b *Secret) *Secret
 
 	// Set to the modular inverse of secret a
-	Inv(a Secret) Secret
+	Inv(a *Secret) *Secret
 
 	// Set to a fresh random or pseudo-random secret
-	Pick(rand cipher.Stream) Secret
+	Pick(rand cipher.Stream) *Secret
+
+	// GetSuite returns the suite used to create that secret
+	GetSuite() Suite
+
+	// SetSuite sets the suite used for that point - only used in
+	// setting up that secret
+	SetSuite(s Suite)
+}
+
+/*
+Secrets carry around their suite their using, so we can easily unmarshal
+into that structure, whereas unmarshalling into an interface needs the
+interface to be initialised first.
+*/
+
+type Secret struct {
+	SecretInterface
 }
 
 /*
@@ -61,23 +78,23 @@ or an x,y point on an elliptic curve.
 A Point can contain a Diffie-Hellman public key,
 an ElGamal ciphertext, etc.
 */
-type Point interface {
+type PointInterface interface {
 	Marshaling
 
 	// Equality test for two Points derived from the same Group
-	Equal(s2 Point) bool
+	Equal(s2 *Point) bool
 
-	Null() Point // Set to neutral identity element
+	Null() *Point // Set to neutral identity element
 
 	// Set to this group's standard base point.
-	Base() Point
+	Base() *Point
 
 	// Pick and set to a point that is at least partly [pseudo-]random,
 	// and optionally so as to encode a limited amount of specified data.
 	// If data is nil, the point is completely [pseudo]-random.
 	// Returns this Point and a slice containing the remaining data
 	// following the data that was successfully embedded in this point.
-	Pick(data []byte, rand cipher.Stream) (Point, []byte)
+	Pick(data []byte, rand cipher.Stream) (*Point, []byte)
 
 	// Maximum number of bytes that can be reliably embedded
 	// in a single group element via Pick().
@@ -88,17 +105,32 @@ type Point interface {
 	Data() ([]byte, error)
 
 	// Add points so that their secrets add homomorphically
-	Add(a, b Point) Point
+	Add(a, b *Point) *Point
 
 	// Subtract points so that their secrets subtract homomorphically
-	Sub(a, b Point) Point
+	Sub(a, b *Point) *Point
 
 	// Set to the negation of point a
-	Neg(a Point) Point
+	Neg(a *Point) *Point
 
 	// Encrypt point p by multiplying with secret s.
 	// If p == nil, encrypt the standard base point Base().
-	Mul(p Point, s Secret) Point
+	Mul(p *Point, s *Secret) *Point
+
+	// GetSuite returns the suite used to create that point
+	GetSuite() Suite
+
+	// SetSuite sets the suite used for that point - only used in
+	// setting up that point
+	SetSuite(s Suite)
+}
+
+/*
+Point is a structure that holds also the suite used for easy unmarshalling.
+*/
+
+type Point struct {
+	PointInterface
 }
 
 /*
@@ -138,11 +170,11 @@ XXX should probably delete the somewhat redundant ...Len() methods.
 type Group interface {
 	String() string
 
-	SecretLen() int // Max len of secrets in bytes
-	Secret() Secret // Create new secret
+	SecretLen() int  // Max len of secrets in bytes
+	Secret() *Secret // Create new secret
 
 	PointLen() int // Max len of point in bytes
-	Point() Point  // Create new point
+	Point() *Point // Create new point
 
 	PrimeOrder() bool // Returns true if group is prime-order
 }

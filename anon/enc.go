@@ -9,7 +9,7 @@ import (
 
 // XXX belongs in crypto package?
 func keyPair(suite abstract.Suite, rand cipher.Stream,
-	hide bool) (abstract.Point, abstract.Secret, []byte) {
+	hide bool) (*abstract.Point, *abstract.Secret, []byte) {
 
 	x := suite.Secret().Pick(rand)
 	X := suite.Point().Mul(nil, x)
@@ -28,7 +28,7 @@ func keyPair(suite abstract.Suite, rand cipher.Stream,
 	}
 }
 
-func header(suite abstract.Suite, X abstract.Point, x abstract.Secret,
+func header(suite abstract.Suite, X *abstract.Point, x *abstract.Secret,
 	Xb, xb []byte, anonymitySet Set) []byte {
 
 	//fmt.Printf("Xb %s\nxb %s\n",
@@ -65,7 +65,7 @@ func encryptKey(suite abstract.Suite, rand cipher.Stream,
 // Decrypt and verify a key encrypted via encryptKey.
 // On success, returns the key and the length of the decrypted header.
 func decryptKey(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
-	mine int, privateKey abstract.Secret,
+	mine int, privateKey *abstract.Secret,
 	hide bool) ([]byte, int, error) {
 
 	// Decode the (supposed) ephemeral public key from the front
@@ -180,7 +180,7 @@ func Encrypt(suite abstract.Suite, rand cipher.Stream, message []byte,
 // that will be accepted by the receiver without knowing the plaintext.
 //
 func Decrypt(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
-	mine int, privateKey abstract.Secret, hide bool) ([]byte, error) {
+	mine int, privateKey *abstract.Secret, hide bool) ([]byte, error) {
 
 	// Decrypt and check the encrypted key-header.
 	xb, hdrlen, err := decryptKey(suite, ciphertext, anonymitySet,

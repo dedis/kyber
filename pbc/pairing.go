@@ -46,11 +46,11 @@ type PairingGroup interface {
 // Point interface extension for a point in a pairing target group (GT),
 // which supports the Pairing operation.
 type PairingPoint interface {
-	abstract.Point			// Standard Point operations
+	*abstract.Point			// Standard Point operations
 
 	// Compute the pairing of two points p1 and p2,
 	// which must be in the associated groups G1 and G2 respectively.
-	Pairing(p1,p2 abstract.Point) abstract.Point
+	Pairing(p1,p2 *abstract.Point) *abstract.Point
 }
 
 
@@ -166,7 +166,7 @@ func (g *g1group) SecretLen() int {
 	return int(C.pairing_length_in_bytes_Zr(&g.p.p[0]))
 }
 
-func (g *g1group) Secret() abstract.Secret {
+func (g *g1group) Secret() *abstract.Secret {
 	s := newSecret()
 	C.element_init_Zr(&s.e[0], &g.p.p[0])
 	return s
@@ -176,7 +176,7 @@ func (g *g1group) PointLen() int {
 	return int(C.pairing_length_in_bytes_compressed_G1(&g.p.p[0]))
 }
 
-func (g *g1group) Point() abstract.Point {
+func (g *g1group) Point() *abstract.Point {
 	p := newCurvePoint()
 	C.element_init_G1(&p.e[0], &g.p.p[0])
 	return p
@@ -197,7 +197,7 @@ func (g *g2group) SecretLen() int {
 	return int(C.pairing_length_in_bytes_Zr(&g.p.p[0]))
 }
 
-func (g *g2group) Secret() abstract.Secret {
+func (g *g2group) Secret() *abstract.Secret {
 	s := newSecret()
 	C.element_init_Zr(&s.e[0], &g.p.p[0])
 	return s
@@ -207,7 +207,7 @@ func (g *g2group) PointLen() int {
 	return int(C.pairing_length_in_bytes_compressed_G2(&g.p.p[0]))
 }
 
-func (g *g2group) Point() abstract.Point {
+func (g *g2group) Point() *abstract.Point {
 	p := newCurvePoint()
 	C.element_init_G2(&p.e[0], &g.p.p[0])
 	return p
@@ -228,7 +228,7 @@ func (g *gtgroup) SecretLen() int {
 	return int(C.pairing_length_in_bytes_Zr(&g.p.p[0]))
 }
 
-func (g *gtgroup) Secret() abstract.Secret {
+func (g *gtgroup) Secret() *abstract.Secret {
 	s := newSecret()
 	C.element_init_Zr(&s.e[0], &g.p.p[0])
 	return s
@@ -238,7 +238,7 @@ func (g *gtgroup) PointLen() int {
 	return int(C.pairing_length_in_bytes_GT(&g.p.p[0]))
 }
 
-func (g *gtgroup) Point() abstract.Point {
+func (g *gtgroup) Point() *abstract.Point {
 	return g.PairingPoint()
 }
 

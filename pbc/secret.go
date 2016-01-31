@@ -41,26 +41,26 @@ func (s *secret) String() string {
 	return string(b[:l])
 }
 
-func (s *secret) Equal(s2 abstract.Secret) bool {
+func (s *secret) Equal(s2 *abstract.Secret) bool {
 	return C.element_cmp(&s.e[0], &s2.(*secret).e[0]) == 0
 }
 
-func (s *secret) Set(x abstract.Secret) abstract.Secret {
+func (s *secret) Set(x *abstract.Secret) *abstract.Secret {
 	C.element_set(&s.e[0], &x.(*secret).e[0])
 	return s
 }
 
-func (s *secret) Zero() abstract.Secret {
+func (s *secret) Zero() *abstract.Secret {
 	C.element_set0(&s.e[0])
 	return s
 }
 
-func (s *secret) One() abstract.Secret {
+func (s *secret) One() *abstract.Secret {
 	C.element_set0(&s.e[0])
 	return s
 }
 
-func (s *secret) SetInt64(v int64) abstract.Secret {
+func (s *secret) SetInt64(v int64) *abstract.Secret {
 	vl := C.long(v)
 	if int64(vl) != v {
 		panic("Oops, int64 initializer doesn't fit into C.ulong")
@@ -73,36 +73,36 @@ func (s *secret) SetInt64(v int64) abstract.Secret {
 	return s
 }
 
-func (s *secret) Pick(rand cipher.Stream) abstract.Secret {
+func (s *secret) Pick(rand cipher.Stream) *abstract.Secret {
 	panic("XXX")
 }
 
-func (s *secret) Add(a, b abstract.Secret) abstract.Secret {
+func (s *secret) Add(a, b *abstract.Secret) *abstract.Secret {
 	C.element_add(&s.e[0], &a.(*secret).e[0], &b.(*secret).e[0])
 	return s
 }
 
-func (s *secret) Sub(a, b abstract.Secret) abstract.Secret {
+func (s *secret) Sub(a, b *abstract.Secret) *abstract.Secret {
 	C.element_sub(&s.e[0], &a.(*secret).e[0], &b.(*secret).e[0])
 	return s
 }
 
-func (s *secret) Neg(a abstract.Secret) abstract.Secret {
+func (s *secret) Neg(a *abstract.Secret) *abstract.Secret {
 	C.element_neg(&s.e[0], &a.(*secret).e[0])
 	return s
 }
 
-func (s *secret) Mul(a, b abstract.Secret) abstract.Secret {
+func (s *secret) Mul(a, b *abstract.Secret) *abstract.Secret {
 	C.element_mul(&s.e[0], &a.(*secret).e[0], &b.(*secret).e[0])
 	return s
 }
 
-func (s *secret) Div(a, b abstract.Secret) abstract.Secret {
+func (s *secret) Div(a, b *abstract.Secret) *abstract.Secret {
 	C.element_div(&s.e[0], &a.(*secret).e[0], &b.(*secret).e[0])
 	return s
 }
 
-func (s *secret) Inv(a abstract.Secret) abstract.Secret {
+func (s *secret) Inv(a *abstract.Secret) *abstract.Secret {
 	C.element_invert(&s.e[0], &a.(*secret).e[0])
 	return s
 }

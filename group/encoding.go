@@ -10,7 +10,7 @@ import (
 
 // PointEncodeTo provides a generic implementation of Point.EncodeTo
 // based on Point.Encode.
-func PointMarshalTo(p abstract.Point, w io.Writer) (int, error) {
+func PointMarshalTo(p *abstract.Point, w io.Writer) (int, error) {
 	buf, err := p.MarshalBinary()
 	if err != nil {
 		return 0, err
@@ -22,7 +22,7 @@ func PointMarshalTo(p abstract.Point, w io.Writer) (int, error) {
 // based on Point.Decode, or Point.Pick if r is a Cipher or cipher.Stream.
 // The returned byte-count is valid only when decoding from a normal Reader,
 // not when picking from a pseudorandom source.
-func PointUnmarshalFrom(p abstract.Point, r io.Reader) (int, error) {
+func PointUnmarshalFrom(p *abstract.Point, r io.Reader) (int, error) {
 	if strm, ok := r.(cipher.Stream); ok {
 		p.Pick(nil, strm)
 		return -1, nil // no byte-count when picking randomly
@@ -37,7 +37,7 @@ func PointUnmarshalFrom(p abstract.Point, r io.Reader) (int, error) {
 
 // SecretEncodeTo provides a generic implementation of Secret.EncodeTo
 // based on Secret.Encode.
-func SecretMarshalTo(s abstract.Secret, w io.Writer) (int, error) {
+func SecretMarshalTo(s *abstract.Secret, w io.Writer) (int, error) {
 	buf, err := s.MarshalBinary()
 	if err != nil {
 		return 0, err
@@ -49,7 +49,7 @@ func SecretMarshalTo(s abstract.Secret, w io.Writer) (int, error) {
 // based on Secret.Decode, or Secret.Pick if r is a Cipher or cipher.Stream.
 // The returned byte-count is valid only when decoding from a normal Reader,
 // not when picking from a pseudorandom source.
-func SecretUnmarshalFrom(s abstract.Secret, r io.Reader) (int, error) {
+func SecretUnmarshalFrom(s *abstract.Secret, r io.Reader) (int, error) {
 	if strm, ok := r.(cipher.Stream); ok {
 		s.Pick(strm)
 		return -1, nil // no byte-count when picking randomly

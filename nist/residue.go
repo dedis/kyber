@@ -15,7 +15,22 @@ import (
 
 type residuePoint struct {
 	big.Int
-	g *ResidueGroup
+	g     *ResidueGroup
+	Suite string
+}
+
+func (rp *residuePoint) GetSuite() abstract.Suite {
+	s, _ := abstract.StringToSuite(rp.Suite)
+	return s
+}
+
+func (rp *residuePoint) SetSuite(s abstract.Suite) {
+	rp.Suite = s.String()
+}
+
+// Point creates a Point-structure from a PointInterface
+func (rp *residuePoint) Point() *abstract.Point {
+	return &abstract.Point{rp}
 }
 
 // Steal value from DSA, which uses recommendation from FIPS 186-3
@@ -28,18 +43,18 @@ func isPrime(i *big.Int) bool {
 
 func (p *residuePoint) String() string { return p.Int.String() }
 
-func (p *residuePoint) Equal(p2 abstract.Point) bool {
-	return p.Int.Cmp(&p2.(*residuePoint).Int) == 0
+func (p *residuePoint) Equal(p2 *abstract.Point) bool {
+	return p.Int.Cmp(&p2.PointInterface.(*residuePoint).Int) == 0
 }
 
-func (p *residuePoint) Null() abstract.Point {
+func (p *residuePoint) Null() *abstract.Point {
 	p.Int.SetInt64(1)
-	return p
+	return p.Point()
 }
 
-func (p *residuePoint) Base() abstract.Point {
+func (p *residuePoint) Base() *abstract.Point {
 	p.Int.Set(p.g.G)
-	return p
+	return p.Point()
 }
 
 func (p *residuePoint) Valid() bool {
@@ -56,7 +71,7 @@ func (p *residuePoint) PickLen() int {
 // Pick a point containing a variable amount of embedded data.
 // Remaining bits comprising the point are chosen randomly.
 // This will only work efficiently for quadratic residue groups!
-func (p *residuePoint) Pick(data []byte, rand cipher.Stream) (abstract.Point, []byte) {
+func (p *residuePoint) Pick(data []byte, rand cipher.Stream) (*abstract.Point, []byte) {
 
 	l := p.g.PointLen()
 	dl := p.PickLen()
@@ -73,7 +88,7 @@ func (p *residuePoint) Pick(data []byte, rand cipher.Stream) (abstract.Point, []
 		}
 		p.Int.SetBytes(b)
 		if p.Valid() {
-			return p, data[dl:]
+			return p.Point(), data[dl:]
 		}
 	}
 }
@@ -92,30 +107,30 @@ func (p *residuePoint) Data() ([]byte, error) {
 	return b[l-dl-2 : l-2], nil
 }
 
-func (p *residuePoint) Add(a, b abstract.Point) abstract.Point {
-	p.Int.Mul(&a.(*residuePoint).Int, &b.(*residuePoint).Int)
+func (p *residuePoint) Add(a, b *abstract.Point) *abstract.Point {
+	p.Int.Mul(&a.PointInterface.(*residuePoint).Int, &b.PointInterface.(*residuePoint).Int)
 	p.Int.Mod(&p.Int, p.g.P)
-	return p
+	return p.Point()
 }
 
-func (p *residuePoint) Sub(a, b abstract.Point) abstract.Point {
-	binv := new(big.Int).ModInverse(&b.(*residuePoint).Int, p.g.P)
-	p.Int.Mul(&a.(*residuePoint).Int, binv)
+func (p *residuePoint) Sub(a, b *abstract.Point) *abstract.Point {
+	binv := new(big.Int).ModInverse(&b.PointInterface.(*residuePoint).Int, p.g.P)
+	p.Int.Mul(&a.PointInterface.(*residuePoint).Int, binv)
 	p.Int.Mod(&p.Int, p.g.P)
-	return p
+	return p.Point()
 }
 
-func (p *residuePoint) Neg(a abstract.Point) abstract.Point {
-	p.Int.ModInverse(&a.(*residuePoint).Int, p.g.P)
-	return p
+func (p *residuePoint) Neg(a *abstract.Point) *abstract.Point {
+	p.Int.ModInverse(&a.PointInterface.(*residuePoint).Int, p.g.P)
+	return p.Point()
 }
 
-func (p *residuePoint) Mul(b abstract.Point, s abstract.Secret) abstract.Point {
+func (p *residuePoint) Mul(b *abstract.Point, s *abstract.Secret) *abstract.Point {
 	if b == nil {
-		return p.Base().Mul(p, s)
+		return p.Base().Mul(p.Point(), s)
 	}
-	p.Int.Exp(&b.(*residuePoint).Int, &s.(*Int).V, p.g.P)
-	return p
+	p.Int.Exp(&b.PointInterface.(*residuePoint).Int, &s.SecretInterface.(*Int).V, p.g.P)
+	return p.Point()
 }
 
 func (p *residuePoint) MarshalSize() int {
@@ -131,6 +146,7 @@ func (p *residuePoint) MarshalBinary() ([]byte, error) {
 }
 
 func (p *residuePoint) UnmarshalBinary(data []byte) error {
+	fmt.Println("Unmarshal residue")
 	p.Int.SetBytes(data)
 	if !p.Valid() {
 		return errors.New("invalid Residue group element")
@@ -139,11 +155,12 @@ func (p *residuePoint) UnmarshalBinary(data []byte) error {
 }
 
 func (p *residuePoint) MarshalTo(w io.Writer) (int, error) {
-	return group.PointMarshalTo(p, w)
+	return group.PointMarshalTo(p.Point(), w)
 }
 
 func (p *residuePoint) UnmarshalFrom(r io.Reader) (int, error) {
-	return group.PointUnmarshalFrom(p, r)
+	fmt.Println("Unmarshalfrom residue")
+	return group.PointUnmarshalFrom(p.Point(), r)
 }
 
 /*
@@ -191,8 +208,8 @@ func (g *ResidueGroup) SecretLen() int { return (g.Q.BitLen() + 7) / 8 }
 
 // Create a Secret associated with this Residue group,
 // with an initial value of nil.
-func (g *ResidueGroup) Secret() abstract.Secret {
-	return NewInt(0, g.Q)
+func (g *ResidueGroup) Secret() *abstract.Secret {
+	return &abstract.Secret{NewInt(0, g.Q)}
 }
 
 // Return the number of bytes in the encoding of a Point
@@ -201,10 +218,10 @@ func (g *ResidueGroup) PointLen() int { return (g.P.BitLen() + 7) / 8 }
 
 // Create a Point associated with this Residue group,
 // with an initial value of nil.
-func (g *ResidueGroup) Point() abstract.Point {
+func (g *ResidueGroup) Point() *abstract.Point {
 	p := new(residuePoint)
 	p.g = g
-	return p
+	return p.Point()
 }
 
 // Returns the order of this Residue group, namely the prime Q.

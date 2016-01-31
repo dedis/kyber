@@ -72,5 +72,6 @@ func (c *p256) Init() curve {
 	c.curve.Curve = elliptic.P256()
 	c.p = c.Params()
 	c.curveOps = c
+	c.name = c.String()
 	return c.curve
 }

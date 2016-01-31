@@ -3,12 +3,14 @@ package test
 import (
 	"bytes"
 	"crypto/cipher"
-
+	"encoding/gob"
+	"encoding/json"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
+	"log"
 )
 
-func testEmbed(g abstract.Group, rand cipher.Stream, points *[]abstract.Point,
+func testEmbed(g abstract.Group, rand cipher.Stream, points *[]*abstract.Point,
 	s string) {
 	//println("embedding: ",s)
 	b := []byte(s)
@@ -35,11 +37,11 @@ func testEmbed(g abstract.Group, rand cipher.Stream, points *[]abstract.Point,
 // for comparison across alternative implementations
 // that are supposed to be equivalent.
 //
-func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
+func testGroup(g abstract.Group, rand cipher.Stream) []*abstract.Point {
 	//	fmt.Printf("\nTesting group '%s': %d-byte Point, %d-byte Secret\n",
 	//			g.String(), g.PointLen(), g.SecretLen())
 
-	points := make([]abstract.Point, 0)
+	points := make([]*abstract.Point, 0)
 	ptmp := g.Point()
 	stmp := g.Secret()
 	pzero := g.Point().Null()
@@ -207,7 +209,92 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 		panic(err)
 	}
 
+	// Test direct marshaling/unmarshaling of Secrets using gob
+	secret_src := g.Secret().Pick(rand)
+	var network bytes.Buffer
+	enc := gob.NewEncoder(&network)
+	err = enc.Encode(secret_src)
+	if err != nil {
+		log.Fatal("encode:", err)
+	}
+	dec := gob.NewDecoder(&network)
+	var secret_new *abstract.Secret
+	err = dec.Decode(&secret_new)
+	if err != nil {
+		log.Fatal("decode:", err)
+	}
+	if !secret_src.Equal(secret_new) {
+		log.Fatal("Gob-Secrets are not the same")
+	}
+
+	// Test direct marshaling/unmarshaling of Points using gob
+	point_src := g.Point().Mul(nil, secret_src)
+	network.Reset()
+	err = enc.Encode(point_src)
+	if err != nil {
+		log.Fatal("encode:", err)
+	}
+	var point_new *abstract.Point
+	err = dec.Decode(&point_new)
+	if err != nil {
+		log.Fatal("decode:", err)
+	}
+	if !point_src.Equal(point_new) {
+		log.Fatal("Gob-Points are not the same")
+	}
+
+	// Test direct marshaling/unmarshaling of Secrets using JSON
+	secret2_src := g.Secret().Pick(rand)
+	network.Reset()
+	encJson := json.NewEncoder(&network)
+	err = encJson.Encode(secret2_src)
+	if err != nil {
+		log.Fatal("encode:", err)
+	}
+	decJson := json.NewDecoder(&network)
+	var secret2_new *abstract.Secret
+	err = decJson.Decode(&secret2_new)
+	if err != nil {
+		log.Fatal("decode:", err)
+	}
+	if !secret2_src.Equal(secret2_new) {
+		log.Fatal("JSON-Secrets are not the same")
+	}
+
+	// Test direct marshaling/unmarshaling of Points using JSON
+	point2_src := g.Point().Mul(nil, secret_src)
+	network.Reset()
+	err = encJson.Encode(point2_src)
+	if err != nil {
+		log.Fatal("encode:", err)
+	}
+	var point2_new *abstract.Point
+	err = decJson.Decode(&point2_new)
+	if err != nil {
+		log.Fatal("decode:", err)
+	}
+	if !point2_src.Equal(point2_new) {
+		log.Fatal("JSON-Points are not the same")
+	}
+
+	p_src := &BigStruct{}
+	p_src.Points = make(map[string]*abstract.Point)
+	point_src.Add(point_src, point_src)
+	p_src.Points["one"] = point_src
+	p_src.Points["two"] = point2_src
+	network.Reset()
+	encJson.Encode(p_src)
+	p_copy := &BigStruct{}
+	decJson.Decode(p_copy)
+	if !p_src.Points["one"].Equal(p_copy.Points["one"]) {
+		log.Fatal("Points are not the same in map[string]")
+	}
+
 	return points
+}
+
+type BigStruct struct {
+	Points map[string]*abstract.Point
 }
 
 // Apply a generic set of validation tests to a cryptographic Group.

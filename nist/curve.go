@@ -14,16 +14,31 @@ import (
 )
 
 type curvePoint struct {
-	x, y *big.Int
-	c    *curve
+	x, y  *big.Int
+	c     *curve
+	Suite string
+}
+
+func (cp *curvePoint) GetSuite() abstract.Suite {
+	s, _ := abstract.StringToSuite(cp.Suite)
+	return s
+}
+
+func (cp *curvePoint) SetSuite(s abstract.Suite) {
+	cp.Suite = s.String()
+}
+
+// Point creates a Point-structure from a PointInterface
+func (cp *curvePoint) Point() *abstract.Point {
+	return &abstract.Point{cp}
 }
 
 func (p *curvePoint) String() string {
 	return "(" + p.x.String() + "," + p.y.String() + ")"
 }
 
-func (p *curvePoint) Equal(p2 abstract.Point) bool {
-	cp2 := p2.(*curvePoint)
+func (p *curvePoint) Equal(p2 *abstract.Point) bool {
+	cp2 := p2.PointInterface.(*curvePoint)
 
 	// Make sure both coordinates are normalized.
 	// Apparently Go's elliptic curve code doesn't always ensure this.
@@ -36,16 +51,16 @@ func (p *curvePoint) Equal(p2 abstract.Point) bool {
 	return p.x.Cmp(cp2.x) == 0 && p.y.Cmp(cp2.y) == 0
 }
 
-func (p *curvePoint) Null() abstract.Point {
+func (p *curvePoint) Null() *abstract.Point {
 	p.x = new(big.Int).SetInt64(0)
 	p.y = new(big.Int).SetInt64(0)
-	return p
+	return p.Point()
 }
 
-func (p *curvePoint) Base() abstract.Point {
+func (p *curvePoint) Base() *abstract.Point {
 	p.x = p.c.p.Gx
 	p.y = p.c.p.Gy
-	return p
+	return p.Point()
 }
 
 func (p *curvePoint) Valid() bool {
@@ -99,7 +114,7 @@ func (p *curvePoint) PickLen() int {
 
 // Pick a curve point containing a variable amount of embedded data.
 // Remaining bits comprising the point are chosen randomly.
-func (p *curvePoint) Pick(data []byte, rand cipher.Stream) (abstract.Point, []byte) {
+func (p *curvePoint) Pick(data []byte, rand cipher.Stream) (*abstract.Point, []byte) {
 
 	l := p.c.coordLen()
 	dl := p.PickLen()
@@ -114,7 +129,7 @@ func (p *curvePoint) Pick(data []byte, rand cipher.Stream) (abstract.Point, []by
 			copy(b[l-dl-1:l-1], data) // Copy in data to embed
 		}
 		if p.genPoint(new(big.Int).SetBytes(b), rand) {
-			return p, data[dl:]
+			return p.Point(), data[dl:]
 		}
 	}
 }
@@ -133,40 +148,39 @@ func (p *curvePoint) Data() ([]byte, error) {
 	return b[l-dl-1 : l-1], nil
 }
 
-func (p *curvePoint) Add(a, b abstract.Point) abstract.Point {
-	ca := a.(*curvePoint)
-	cb := b.(*curvePoint)
+func (p *curvePoint) Add(a, b *abstract.Point) *abstract.Point {
+	ca := a.PointInterface.(*curvePoint)
+	cb := b.PointInterface.(*curvePoint)
 	p.x, p.y = p.c.Add(ca.x, ca.y, cb.x, cb.y)
-	return p
+	return p.Point()
 }
 
-func (p *curvePoint) Sub(a, b abstract.Point) abstract.Point {
-	ca := a.(*curvePoint)
-	cb := b.(*curvePoint)
+func (p *curvePoint) Sub(a, b *abstract.Point) *abstract.Point {
+	ca := a.PointInterface.(*curvePoint)
 
 	// XXX a pretty non-optimal implementation of point subtraction...
-	cbn := p.c.Point().Neg(cb).(*curvePoint)
+	cbn := p.c.Point().Neg(b).PointInterface.(*curvePoint)
 	p.x, p.y = p.c.Add(ca.x, ca.y, cbn.x, cbn.y)
-	return p
+	return p.Point()
 }
 
-func (p *curvePoint) Neg(a abstract.Point) abstract.Point {
+func (p *curvePoint) Neg(a *abstract.Point) *abstract.Point {
 
 	// XXX a pretty non-optimal implementation of point negation...
 	s := p.c.Secret().One()
 	s.Neg(s)
-	return p.Mul(a, s).(*curvePoint)
+	return p.Mul(a, s)
 }
 
-func (p *curvePoint) Mul(b abstract.Point, s abstract.Secret) abstract.Point {
-	cs := s.(*Int)
+func (p *curvePoint) Mul(b *abstract.Point, s *abstract.Secret) *abstract.Point {
+	cs := s.SecretInterface.(*Int)
 	if b != nil {
-		cb := b.(*curvePoint)
+		cb := b.PointInterface.(*curvePoint)
 		p.x, p.y = p.c.ScalarMult(cb.x, cb.y, cs.V.Bytes())
 	} else {
 		p.x, p.y = p.c.ScalarBaseMult(cs.V.Bytes())
 	}
-	return p
+	return p.Point()
 }
 
 func (p *curvePoint) MarshalSize() int {
@@ -200,11 +214,11 @@ func (p *curvePoint) UnmarshalBinary(buf []byte) error {
 }
 
 func (p *curvePoint) MarshalTo(w io.Writer) (int, error) {
-	return group.PointMarshalTo(p, w)
+	return group.PointMarshalTo(p.Point(), w)
 }
 
 func (p *curvePoint) UnmarshalFrom(r io.Reader) (int, error) {
-	return group.PointUnmarshalFrom(p, r)
+	return group.PointUnmarshalFrom(p.Point(), r)
 }
 
 // interface for curve-specifc mathematical functions
@@ -217,7 +231,8 @@ type curveOps interface {
 type curve struct {
 	elliptic.Curve
 	curveOps
-	p *elliptic.CurveParams
+	p    *elliptic.CurveParams
+	name string
 }
 
 // All the NIST curves we support are prime-order.
@@ -229,8 +244,10 @@ func (g *curve) PrimeOrder() bool {
 func (c *curve) SecretLen() int { return (c.p.N.BitLen() + 7) / 8 }
 
 // Create a Secret associated with this curve.
-func (c *curve) Secret() abstract.Secret {
-	return NewInt(0, c.p.N)
+func (c *curve) Secret() *abstract.Secret {
+	s := NewInt(0, c.p.N)
+	s.Suite = c.name
+	return s.Secret()
 }
 
 // Number of bytes required to store one coordinate on this curve
@@ -246,10 +263,11 @@ func (c *curve) PointLen() int {
 }
 
 // Create a Point associated with this curve.
-func (c *curve) Point() abstract.Point {
+func (c *curve) Point() *abstract.Point {
 	p := new(curvePoint)
 	p.c = c
-	return p
+	p.Suite = c.name
+	return p.Point()
 }
 
 // Return the order of this curve: the prime N in the curve parameters.

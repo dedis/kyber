@@ -16,7 +16,7 @@ var one = big.NewInt(1)
 
 // Extension of Point interface for elliptic curve X,Y coordinate access
 type point interface {
-	abstract.Point
+	*abstract.Point
 
 	initXY(x, y *big.Int, curve abstract.Group)
 
@@ -43,7 +43,7 @@ type curve struct {
 	order  nist.Int // Order of appropriate subgroup as a ModInt
 	cofact nist.Int // Group's cofactor as a ModInt
 
-	null abstract.Point // Identity point for this group
+	null *abstract.Point // Identity point for this group
 
 	hide hiding // Uniform point encoding method
 }
@@ -58,7 +58,7 @@ func (c *curve) SecretLen() int {
 }
 
 // Create a new Secret for this curve.
-func (c *curve) Secret() abstract.Secret {
+func (c *curve) Secret() *abstract.Secret {
 	return nist.NewInt(0, &c.order.V)
 }
 
@@ -310,7 +310,7 @@ func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
 
 	// Retry until we find a valid point
 	var x, y nist.Int
-	var Q abstract.Point
+	var Q *abstract.Point
 	for {
 		// Get random bits the size of a compressed Point encoding,
 		// in which the topmost bit is reserved for the x-coord sign.

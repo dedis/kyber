@@ -16,7 +16,7 @@ func ExampleEncrypt_1() {
 	rand := suite.Cipher([]byte("example"))
 
 	// Create a public/private keypair (X[mine],x)
-	X := make([]abstract.Point, 1)
+	X := make([]*abstract.Point, 1)
 	mine := 0                           // which public key is mine
 	x := suite.Secret().Pick(rand)      // create a private key x
 	X[mine] = suite.Point().Mul(nil, x) // corresponding public key X
@@ -56,7 +56,7 @@ func ExampleEncrypt_anonSet() {
 	rand := suite.Cipher([]byte("example"))
 
 	// Create an anonymity set of random "public keys"
-	X := make([]abstract.Point, 3)
+	X := make([]*abstract.Point, 3)
 	for i := range X { // pick random points
 		X[i], _ = suite.Point().Pick(nil, rand)
 	}

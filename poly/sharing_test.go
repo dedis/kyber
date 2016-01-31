@@ -44,18 +44,18 @@ func deferTest(t *testing.T, message string) {
 	}
 }
 
-func producePriPoly(g abstract.Group, k int, s abstract.Secret) *PriPoly {
+func producePriPoly(g abstract.Group, k int, s *abstract.Secret) *PriPoly {
 	return new(PriPoly).Pick(g, k, s, random.Stream)
 }
 
-func producePriShares(g abstract.Group, k, n int, s abstract.Secret) *PriShares {
+func producePriShares(g abstract.Group, k, n int, s *abstract.Secret) *PriShares {
 
 	testPoly := producePriPoly(g, k, s)
 	return new(PriShares).Split(testPoly, n)
 }
 
-func producePubPoly(g abstract.Group, k, n int, s abstract.Secret,
-	p abstract.Point) *PubPoly {
+func producePubPoly(g abstract.Group, k, n int, s *abstract.Secret,
+	p *abstract.Point) *PubPoly {
 
 	testPriPoly := producePriPoly(g, k, s)
 	testPubPoly := new(PubPoly)
@@ -63,8 +63,8 @@ func producePubPoly(g abstract.Group, k, n int, s abstract.Secret,
 	return testPubPoly.Commit(testPriPoly, p)
 }
 
-func producePubShares(g abstract.Group, k, n, t int, s abstract.Secret,
-	p abstract.Point) *PubShares {
+func producePubShares(g abstract.Group, k, n, t int, s *abstract.Secret,
+	p *abstract.Point) *PubShares {
 
 	testPubPoly := producePubPoly(g, k, n, s, p)
 	return new(PubShares).Split(testPubPoly, t)

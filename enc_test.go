@@ -6,8 +6,8 @@ import (
 	"github.com/dedis/crypto/random"
 )
 
-func ElGamalEncrypt(suite abstract.Suite, pubkey abstract.Point, message []byte) (
-	K, C abstract.Point, remainder []byte) {
+func ElGamalEncrypt(suite abstract.Suite, pubkey *abstract.Point, message []byte) (
+	K, C *abstract.Point, remainder []byte) {
 
 	// Embed the message (or as much of it as will fit) into a curve point.
 	M, remainder := suite.Point().Pick(message, random.Stream)
@@ -20,7 +20,7 @@ func ElGamalEncrypt(suite abstract.Suite, pubkey abstract.Point, message []byte)
 	return
 }
 
-func ElGamalDecrypt(suite abstract.Suite, prikey abstract.Secret, K, C abstract.Point) (
+func ElGamalDecrypt(suite abstract.Suite, prikey *abstract.Secret, K, C *abstract.Point) (
 	message []byte, err error) {
 
 	// ElGamal-decrypt the ciphertext (K,C) to reproduce the message.

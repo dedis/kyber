@@ -27,10 +27,10 @@ func bifflePred() proof.Predicate {
 	return or
 }
 
-func bifflePoints(suite abstract.Suite, G, H abstract.Point,
-	X, Y, Xbar, Ybar [2]abstract.Point) map[string]abstract.Point {
+func bifflePoints(suite abstract.Suite, G, H *abstract.Point,
+	X, Y, Xbar, Ybar [2]*abstract.Point) map[string]*abstract.Point {
 
-	return map[string]abstract.Point{
+	return map[string]*abstract.Point{
 		"G":        G,
 		"H":        H,
 		"Xbar0-X0": suite.Point().Sub(Xbar[0], X[0]),
@@ -44,15 +44,15 @@ func bifflePoints(suite abstract.Suite, G, H abstract.Point,
 }
 
 // Binary shuffle ("biffle") for 2 ciphertexts based on general ZKPs.
-func Biffle(suite abstract.Suite, G, H abstract.Point,
-	X, Y [2]abstract.Point, rand abstract.Cipher) (
-	Xbar, Ybar [2]abstract.Point, prover proof.Prover) {
+func Biffle(suite abstract.Suite, G, H *abstract.Point,
+	X, Y [2]*abstract.Point, rand abstract.Cipher) (
+	Xbar, Ybar [2]*abstract.Point, prover proof.Prover) {
 
 	// Pick the single-bit permutation.
 	bit := int(random.Byte(rand) & 1)
 
 	// Pick a fresh ElGamal blinding factor for each pair
-	var beta [2]abstract.Secret
+	var beta [2]*abstract.Secret
 	for i := 0; i < 2; i++ {
 		beta[i] = suite.Secret().Pick(rand)
 	}
@@ -67,7 +67,7 @@ func Biffle(suite abstract.Suite, G, H abstract.Point,
 	}
 
 	or := bifflePred()
-	secrets := map[string]abstract.Secret{
+	secrets := map[string]*abstract.Secret{
 		"beta0": beta[0],
 		"beta1": beta[1]}
 	points := bifflePoints(suite, G, H, X, Y, Xbar, Ybar)
@@ -76,8 +76,8 @@ func Biffle(suite abstract.Suite, G, H abstract.Point,
 	return
 }
 
-func BiffleVerifier(suite abstract.Suite, G, H abstract.Point,
-	X, Y, Xbar, Ybar [2]abstract.Point) (
+func BiffleVerifier(suite abstract.Suite, G, H *abstract.Point,
+	X, Y, Xbar, Ybar [2]*abstract.Point) (
 	verifier proof.Verifier) {
 
 	or := bifflePred()
@@ -94,8 +94,8 @@ func BiffleTest(suite abstract.Suite, N int) {
 	H := suite.Point().Mul(nil, h)
 
 	// Create a set of ephemeral "client" keypairs to shuffle
-	var c [2]abstract.Secret
-	var C [2]abstract.Point
+	var c [2]*abstract.Secret
+	var C [2]*abstract.Point
 	//	fmt.Println("\nclient keys:")
 	for i := 0; i < 2; i++ {
 		c[i] = suite.Secret().Pick(rand)
@@ -104,7 +104,7 @@ func BiffleTest(suite abstract.Suite, N int) {
 	}
 
 	// ElGamal-encrypt all these keypairs with the "server" key
-	var X, Y [2]abstract.Point
+	var X, Y [2]*abstract.Point
 	r := suite.Secret() // temporary
 	for i := 0; i < 2; i++ {
 		r.Pick(rand)

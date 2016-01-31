@@ -27,7 +27,7 @@ import (
 type Encoding struct {
 	encode    string
 	decodeMap [256]byte
-	pad	  bool
+	pad       bool
 }
 
 const encodeStd = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
@@ -57,7 +57,6 @@ func NewEncoding(encoder string) *Encoding {
 func RawEncoding(encoder string) *Encoding {
 	return newEncoding(encoder, false)
 }
-
 
 // StdEncoding is the standard base64 encoding, as defined in
 // RFC 4648.
@@ -124,7 +123,7 @@ func (enc *Encoding) Encode(dst, src []byte) {
 		if len(src) >= 3 {
 			dst[2] = enc.encode[b2]
 			dst[3] = enc.encode[b3]
-		} else {		// Final incomplete quantum
+		} else { // Final incomplete quantum
 			if len(src) >= 2 {
 				dst[2] = enc.encode[b2]
 			}
@@ -233,7 +232,7 @@ func (enc *Encoding) EncodedLen(n int) int {
 	if enc.pad {
 		return (n + 2) / 3 * 4
 	} else {
-		return (n + 2) / 3 * 4 - 2 + (n + 2) % 3
+		return (n+2)/3*4 - 2 + (n+2)%3
 	}
 }
 
@@ -434,6 +433,6 @@ func (enc *Encoding) DecodedLen(n int) int {
 		return n / 4 * 3
 	} else {
 		// Unpadded base64 data may end with partial block of 2 or 3 characters.
-		return n / 4 * 3 + (n & 2)
+		return n/4*3 + (n & 2)
 	}
 }

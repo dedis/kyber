@@ -50,8 +50,8 @@ func TestRep(t *testing.T) {
 	pred := Or(or1x, or2x)
 	choice[pred] = 0
 
-	sval := map[string]abstract.Secret{"x": x, "y": y}
-	pval := map[string]abstract.Point{"B": B, "X": X, "Y": Y, "R": R}
+	sval := map[string]*abstract.Secret{"x": x, "y": y}
+	pval := map[string]*abstract.Point{"B": B, "X": X, "Y": Y, "R": R}
 	prover := pred.Prover(suite, sval, pval, choice)
 	proof, err := HashProve(suite, "TEST", rand, prover)
 	if err != nil {
@@ -93,8 +93,8 @@ func ExampleRep_2() {
 	X := suite.Point().Mul(nil, x) // corresponding public key X
 
 	// Generate a proof that we know the discrete logarithm of X.
-	sval := map[string]abstract.Secret{"x": x}
-	pval := map[string]abstract.Point{"B": B, "X": X}
+	sval := map[string]*abstract.Secret{"x": x}
+	pval := map[string]*abstract.Point{"B": B, "X": X}
 	prover := pred.Prover(suite, sval, pval, nil)
 	proof, _ := HashProve(suite, "TEST", rand, prover)
 	fmt.Print("Proof:\n" + hex.Dump(proof))
@@ -214,8 +214,8 @@ func ExampleOr_2() {
 	choice[pred] = 0
 
 	// Generate a proof that we know the discrete logarithm of X or Y.
-	sval := map[string]abstract.Secret{"x": x}
-	pval := map[string]abstract.Point{"B": B, "X": X, "Y": Y}
+	sval := map[string]*abstract.Secret{"x": x}
+	pval := map[string]*abstract.Point{"B": B, "X": X, "Y": Y}
 	prover := pred.Prover(suite, sval, pval, choice)
 	proof, _ := HashProve(suite, "TEST", rand, prover)
 	fmt.Print("Proof:\n" + hex.Dump(proof))
