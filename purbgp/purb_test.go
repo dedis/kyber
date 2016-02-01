@@ -2,18 +2,18 @@ package purb
 
 import (
 	//	"bufio"
-	"encoding/binary"
-	"encoding/hex"
+//	"encoding/binary"
+//	"encoding/hex"
 	"fmt"
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/cipher/aes"
+//	"github.com/dedis/crypto/cipher/aes"
 	"time"
 	//	"github.com/dedis/crypto/config"
 	"github.com/dedis/crypto/edwards"
-	"github.com/dedis/crypto/padding"
+//	"github.com/dedis/crypto/padding"
 	"github.com/dedis/crypto/random"
-	"io/ioutil"
-	"os"
+//	"io/ioutil"
+//	"os"
 	"testing"
 )
 
@@ -29,7 +29,7 @@ type fakeSuite struct {
 func (f *fakeSuite) String() string {
 	return fmt.Sprintf("%s(%d)", f.Suite.String(), f.idx)
 }
-
+/*
 func TestPurb(t *testing.T) {
 
 	realSuites := []abstract.Suite{
@@ -220,7 +220,7 @@ func TestReadPurbFromFile(t *testing.T) {
 	}
 	fmt.Println(something)
 }
-
+*/
 func TestSuite(t *testing.T) {
 	suites := [][]abstract.Suite{
 		{
@@ -327,6 +327,6 @@ func buildPurb(nlevels, nentries int, suites []abstract.Suite, msg []byte) {
 	elapsed3 := time.Since(start3)
 
 	//fmt.Printf("**** %v %v %v %s %vs\n", len(suites), nentries, hdrlen, elapsed, elapsed2.Seconds()/float64(len(entries)))
-	fmt.Printf("%v %v,%v,%s,%vs,%s\n", len(suites), nentries*len(suites), hdrlen, elapsed, elapsed2.Seconds()/float64(len(entries)), elapsed3)
+	fmt.Printf("%v,%v,%v,%v,%v,%v\n", len(suites), nentries*len(suites), hdrlen, elapsed.Seconds(), elapsed2.Seconds()/float64(len(entries)), elapsed3.Seconds())
 	//fmt.Printf("**** %v %v %v %s %vs\n", len(suites), nentries, hdrlen, elapsed, elapsed2.Seconds())
 }
