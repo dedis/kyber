@@ -12,6 +12,7 @@ package padding
 import (
 	"bytes"
 	"encoding/binary"
+	//	"fmt"
 	"math"
 )
 
@@ -25,7 +26,7 @@ const PADBYTE = 0x51
 //length int, is the length of the message.
 //overhead int, is the overhead(in bytes) added by the encryption and padding
 //Returns the number of bits required to store the length of the message.
-func GetMsgBits(length, overhead int) uint64 {
+func GetMsgBits(length, overhead uint64) uint64 {
 	//Plus one because if the message is a power of 2 it would be wrong
 	//A message of 8 bytes, needs 4 bits. But log_2(8)=3
 	return uint64(math.Ceil(math.Log2(float64(length+overhead) + 1)))
@@ -35,17 +36,20 @@ func GetMsgBits(length, overhead int) uint64 {
 //length int, is the length of the message.
 //overhead int, is the overhead(in bytes) added by the encryption and padding
 //Returns the number of leak bits.
-func GetLeakBits(length, overhead int) uint64 {
+func GetLeakBits(length, overhead uint64) uint64 {
 	return uint64(math.Ceil(math.Log2(float64(
-		GetMsgBits(length, overhead)))))
+		GetMsgBits(length, overhead))))) + 1
 }
 
 //Inputs:
 //length int, is the length of the message.
 //overhead int, is the overhead(in bytes) added by the encryption and padding
 //Returns the number of bits that need to be zeroed.
-func GetZeroBits(length, overhead int) uint64 {
-	return GetMsgBits(length, overhead) - GetLeakBits(length, overhead)
+func GetZeroBits(length, overhead uint64) uint64 {
+	msg := GetMsgBits(length, overhead)
+	leak := GetLeakBits(length, overhead)
+	//	fmt.Println(msg, leak)
+	return msg - leak
 }
 
 //Inputs:
@@ -59,7 +63,7 @@ func GetZeroBits(length, overhead int) uint64 {
 //For zeroBits
 // sum+= l & (1<<i)
 //Code so that if l&(1<<i) is 0 it adds 2^i, otherwise nothing
-func GetPaddingLen(msgLen, overhead int) uint64 {
+func GetPaddingLen(msgLen, overhead uint64) uint64 {
 	paddingNeeded := uint64(msgLen + overhead)
 	zeroBits := GetZeroBits(msgLen, overhead)
 
@@ -67,6 +71,7 @@ func GetPaddingLen(msgLen, overhead int) uint64 {
 	//Generate a mask that we use to isolate the zeroBits bits of the length
 	for i = 0; i < zeroBits; i++ {
 		mask |= (1 << i)
+		//fmt.Println(i, zeroBits)
 	}
 	//invert the mask
 	mask = ^mask
@@ -88,7 +93,7 @@ func GetPaddingLen(msgLen, overhead int) uint64 {
 //Inputs:
 //msgLen int, msgLen is the length of the message to check.
 //Returns true if it is an acceptable length, false otherwise.
-func CheckZeroBits(msgLen int) bool {
+func CheckZeroBits(msgLen uint64) bool {
 	paddingNeeded := uint64(msgLen)
 	zeroBits := GetZeroBits(msgLen, 0)
 	var i, mask uint64
@@ -129,8 +134,8 @@ func GeneratePadding(paddingAmount uint64) []byte {
 //overhead int, is the number of bytes the encryption will add to the plaintext
 //msg []byte, is the plaintext message that needs to be padded.
 //Returns a properly padded message.
-func PadGeneric(msg []byte, overhead int) []byte {
-	padAmount := GetPaddingLen(len(msg), overhead+PADLEN)
+func PadGeneric(msg []byte, overhead uint64) []byte {
+	padAmount := GetPaddingLen(uint64(len(msg)), overhead+PADLEN)
 	padding := GeneratePadding(padAmount)
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.BigEndian, int64(padAmount))

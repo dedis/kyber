@@ -1,20 +1,22 @@
 package padding
 
 import (
-	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
-	"encoding/hex"
+	//	"bytes"
+	//	"crypto/aes"
+	//	"crypto/cipher"
+	//	"encoding/hex"
 	"fmt"
-	dedis "github.com/dedis/crypto/cipher"
-	"github.com/dedis/crypto/cipher/norx"
-	"io/ioutil"
-	"strconv"
+	//	dedis "github.com/dedis/crypto/cipher"
+	//	"github.com/dedis/crypto/cipher/norx"
+	//	"io/ioutil"
+	//	"strconv"
 	"testing"
 )
 
-//The same things will need to be tested for most of the following functions.
+const NUMTEST = 64
 
+//The same things will need to be tested for most of the following functions.
+/*
 var tests = []struct {
 	test                                    int
 	msgbits, leakbits, zerobits, paddinglen uint64
@@ -209,4 +211,17 @@ func TestNorxAEAD(t *testing.T) {
 	}
 	fmt.Println(len(ct2), len(pt3), len(pt))
 
+}
+*/
+func TestPaddingOverhead(t *testing.T) {
+	msg := uint64(1)
+	fmt.Println("power+1,overhead")
+	for i := 0; i < NUMTEST; i++ {
+
+		tmp := msg + 1
+		//fmt.Println(tmp, GetPaddingLen(tmp, 0))
+
+		fmt.Printf("%v,%v\n", tmp, (float64(GetPaddingLen(tmp, 0))/float64(tmp))*100)
+		msg *= 2
+	}
 }
