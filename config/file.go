@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"runtime"
 	"errors"
 	"github.com/BurntSushi/toml"
 	"github.com/dedis/crypto/util"
@@ -25,6 +26,11 @@ func (f *File) init(appName string) error {
 
 	// XXX os-specific stuff
 	homedir := os.Getenv("HOME")
+
+	if runtime.GOOS == "windows"{ //LB fix : HOME does not exists on Windows (and should not, incompatible with babun for instance)
+		homedir = os.Getenv("APPDATA")
+	}
+
 	confdir := homedir + "/." + appName
 
 	// Create the config directory if it doesn't already exist
@@ -33,7 +39,7 @@ func (f *File) init(appName string) error {
 	}
 
 	// Sanity-check the config directory permission bits for security
-	if fi,err := os.Stat(confdir); err != nil || (fi.Mode() & 0077) != 0 {
+	if fi,err := os.Stat(confdir); err != nil || (runtime.GOOS != "windows" && (fi.Mode() & 0077) != 0) { //skip this check that possibly fails on Windows
 		return errors.New("Directory "+confdir+
 				" has insecure permissions")
 	}
