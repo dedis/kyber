@@ -19,7 +19,7 @@ type ssa0 struct {
 
 // V (Verifier) step 1: random challenge t
 type ssa1 struct {
-	Zt abstract.Secret
+	Zt abstract.Scalar
 }
 
 // P step 2: Theta vectors
@@ -29,12 +29,12 @@ type ssa2 struct {
 
 // V step 3: random challenge c
 type ssa3 struct {
-	Zc abstract.Secret
+	Zc abstract.Scalar
 }
 
 // P step 4: alpha vector
 type ssa4 struct {
-	Zalpha []abstract.Secret
+	Zalpha []abstract.Scalar
 }
 
 type SimpleShuffle struct {
@@ -48,22 +48,22 @@ type SimpleShuffle struct {
 
 // Simple helper to compute G^{ab-cd} for Theta vector computation.
 func thenc(grp abstract.Group, G abstract.Point,
-	a, b, c, d abstract.Secret) abstract.Point {
+	a, b, c, d abstract.Scalar) abstract.Point {
 
-	var ab, cd abstract.Secret
+	var ab, cd abstract.Scalar
 	if a != nil {
-		ab = grp.Secret().Mul(a, b)
+		ab = grp.Scalar().Mul(a, b)
 	} else {
-		ab = grp.Secret().Zero()
+		ab = grp.Scalar().Zero()
 	}
 	if c != nil {
 		if d != nil {
-			cd = grp.Secret().Mul(c, d)
+			cd = grp.Scalar().Mul(c, d)
 		} else {
 			cd = c
 		}
 	} else {
-		cd = grp.Secret().Zero()
+		cd = grp.Scalar().Zero()
 	}
 	return grp.Point().Mul(G, ab.Sub(ab, cd))
 }
@@ -73,16 +73,16 @@ func (ss *SimpleShuffle) Init(grp abstract.Group, k int) *SimpleShuffle {
 	ss.p0.X = make([]abstract.Point, k)
 	ss.p0.Y = make([]abstract.Point, k)
 	ss.p2.Theta = make([]abstract.Point, 2*k)
-	ss.p4.Zalpha = make([]abstract.Secret, 2*k-1)
+	ss.p4.Zalpha = make([]abstract.Scalar, 2*k-1)
 	return ss
 }
 
 // The "Simple k-shuffle" defined in section 3 of
 // Neff, "Verifiable Mixing (Shuffling) of ElGamal Pairs", 2004.
-// The Secret vector y must be a permutation of Secret vector x
-// but with all elements multiplied by common Secret gamma.
-func (ss *SimpleShuffle) Prove(G abstract.Point, gamma abstract.Secret,
-	x, y []abstract.Secret, rand cipher.Stream,
+// The Scalar vector y must be a permutation of Scalar vector x
+// but with all elements multiplied by common Scalar gamma.
+func (ss *SimpleShuffle) Prove(G abstract.Point, gamma abstract.Scalar,
+	x, y []abstract.Scalar, rand cipher.Stream,
 	ctx proof.ProverContext) error {
 
 	grp := ss.grp
@@ -97,7 +97,7 @@ func (ss *SimpleShuffle) Prove(G abstract.Point, gamma abstract.Secret,
 
 	//	// Dump input vectors to show their correspondences
 	//	for i := 0; i < k; i++ {
-	//		println("x",grp.Secret().Mul(gamma,x[i]).String())
+	//		println("x",grp.Scalar().Mul(gamma,x[i]).String())
 	//	}
 	//	for i := 0; i < k; i++ {
 	//		println("y",y[i].String())
@@ -119,15 +119,15 @@ func (ss *SimpleShuffle) Prove(G abstract.Point, gamma abstract.Secret,
 	t := ss.v1.Zt
 
 	// P step 2
-	gamma_t := grp.Secret().Mul(gamma, t)
-	xhat := make([]abstract.Secret, k)
-	yhat := make([]abstract.Secret, k)
+	gamma_t := grp.Scalar().Mul(gamma, t)
+	xhat := make([]abstract.Scalar, k)
+	yhat := make([]abstract.Scalar, k)
 	for i := 0; i < k; i++ { // (5) and (6) xhat,yhat vectors
-		xhat[i] = grp.Secret().Sub(x[i], t)
-		yhat[i] = grp.Secret().Sub(y[i], gamma_t)
+		xhat[i] = grp.Scalar().Sub(x[i], t)
+		yhat[i] = grp.Scalar().Sub(y[i], gamma_t)
 	}
 	thlen := 2*k - 1 // (7) theta and Theta vectors
-	theta := make([]abstract.Secret, thlen)
+	theta := make([]abstract.Scalar, thlen)
 	ctx.PriRand(theta)
 	Theta := make([]abstract.Point, thlen+1)
 	Theta[0] = thenc(grp, G, nil, nil, theta[0], yhat[0])
@@ -152,18 +152,18 @@ func (ss *SimpleShuffle) Prove(G abstract.Point, gamma abstract.Secret,
 	c := ss.v3.Zc
 
 	// P step 4
-	alpha := make([]abstract.Secret, thlen)
-	runprod := grp.Secret().Set(c)
+	alpha := make([]abstract.Scalar, thlen)
+	runprod := grp.Scalar().Set(c)
 	for i := 0; i < k; i++ { // (8)
 		runprod.Mul(runprod, xhat[i])
 		runprod.Div(runprod, yhat[i])
-		alpha[i] = grp.Secret().Add(theta[i], runprod)
+		alpha[i] = grp.Scalar().Add(theta[i], runprod)
 	}
-	gammainv := grp.Secret().Inv(gamma)
-	rungamma := grp.Secret().Set(c)
+	gammainv := grp.Scalar().Inv(gamma)
+	rungamma := grp.Scalar().Set(c)
 	for i := 1; i < k; i++ {
 		rungamma.Mul(rungamma, gammainv)
-		alpha[thlen-i] = grp.Secret().Add(theta[thlen-i], rungamma)
+		alpha[thlen-i] = grp.Scalar().Add(theta[thlen-i], rungamma)
 	}
 	ss.p4.Zalpha = alpha
 	if err := ctx.Put(ss.p4); err != nil {
@@ -175,8 +175,8 @@ func (ss *SimpleShuffle) Prove(G abstract.Point, gamma abstract.Secret,
 
 // Simple helper to verify Theta elements,
 // by checking whether A^a*B^-b = T.
-// P,Q,s are simply "scratch" abstract.Point/Secrets reused for efficiency.
-func thver(A, B, T, P, Q abstract.Point, a, b, s abstract.Secret) bool {
+// P,Q,s are simply "scratch" abstract.Point/Scalars reused for efficiency.
+func thver(A, B, T, P, Q abstract.Point, a, b, s abstract.Scalar) bool {
 	P.Mul(A, a)
 	Q.Mul(B, s.Neg(b))
 	P.Add(P, Q)
@@ -223,7 +223,7 @@ func (ss *SimpleShuffle) Verify(G, Gamma abstract.Point,
 	}
 
 	// Verifier step 5
-	negt := grp.Secret().Neg(t)
+	negt := grp.Scalar().Neg(t)
 	U := grp.Point().Mul(G, negt)
 	W := grp.Point().Mul(Gamma, negt)
 	Xhat := make([]abstract.Point, k)
@@ -234,7 +234,7 @@ func (ss *SimpleShuffle) Verify(G, Gamma abstract.Point,
 	}
 	P := grp.Point() // scratch variables
 	Q := grp.Point()
-	s := grp.Secret()
+	s := grp.Scalar()
 	good := true
 	good = good && thver(Xhat[0], Yhat[0], Theta[0], P, Q, c, alpha[0], s)
 	for i := 1; i < k; i++ {

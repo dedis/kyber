@@ -183,7 +183,7 @@ func (p *point) Neg(ca abstract.Point) abstract.Point {
 	return p
 }
 
-func (p *point) Mul(ca abstract.Point, cs abstract.Secret) abstract.Point {
+func (p *point) Mul(ca abstract.Point, cs abstract.Scalar) abstract.Point {
 
 	// Convert the scalar to fixed-length little-endian form.
 	sb := cs.(*nist.Int).V.Bytes()
@@ -259,11 +259,11 @@ func (c *curve) String() string {
 	return "Curve25519"
 }
 
-func (c *curve) SecretLen() int {
+func (c *curve) ScalarLen() int {
 	return 32
 }
 
-func (c *curve) Secret() abstract.Secret {
+func (c *curve) Scalar() abstract.Scalar {
 	return nist.NewInt(0, &primeOrder.V)
 }
 
@@ -406,7 +406,7 @@ func BenchCurve25519() {
 			(float64(end.Sub(beg))/1000000000.0))
 
 	// Point encryption
-	s := g.Secret().Pick(random.Stream)
+	s := g.Scalar().Pick(random.Stream)
 	beg = time.Now()
 	iters = 5000
 	for i := 1; i < iters; i++ {

@@ -37,7 +37,7 @@ type Suite interface {
 	Encoding
 
 	// Generic constructor to instantiate any abstract interface type
-	// supported by this suite: at least Cipher, Hash, Point, Secret.
+	// supported by this suite: at least Cipher, Hash, Point, Scalar.
 	Constructor
 }
 

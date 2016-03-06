@@ -12,16 +12,16 @@ import (
 
 // A basic, verifiable signature
 type basicSig struct {
-	C abstract.Secret // challenge
-	R abstract.Secret // response
+	C abstract.Scalar // challenge
+	R abstract.Scalar // response
 }
 
 // Returns a secret that depends on on a message and a point
-func hashSchnorr(suite abstract.Suite, message []byte, p abstract.Point) abstract.Secret {
+func hashSchnorr(suite abstract.Suite, message []byte, p abstract.Point) abstract.Scalar {
 	pb, _ := p.MarshalBinary()
 	c := suite.Cipher(pb)
 	c.Message(nil, nil, message)
-	return suite.Secret().Pick(c)
+	return suite.Scalar().Pick(c)
 }
 
 // This simplified implementation of Schnorr Signatures is based on
@@ -29,17 +29,17 @@ func hashSchnorr(suite abstract.Suite, message []byte, p abstract.Point) abstrac
 // The ring structure is removed and
 // The anonimity set is reduced to one public key = no anonimity
 func SchnorrSign(suite abstract.Suite, random cipher.Stream, message []byte,
-	privateKey abstract.Secret) []byte {
+	privateKey abstract.Scalar) []byte {
 
 	// Create random secret v and public point commitment T
-	v := suite.Secret().Pick(random)
+	v := suite.Scalar().Pick(random)
 	T := suite.Point().Mul(nil, v)
 
 	// Create challenge c based on message and T
 	c := hashSchnorr(suite, message, T)
 
 	// Compute response r = v - x*c
-	r := suite.Secret()
+	r := suite.Scalar()
 	r.Mul(privateKey, c).Sub(v, r)
 
 	// Return verifiable signature {c, r}
@@ -86,7 +86,7 @@ func ExampleSchnorr() {
 	rand := suite.Cipher([]byte("example"))
 
 	// Create a public/private keypair (X,x)
-	x := suite.Secret().Pick(rand) // create a private key x
+	x := suite.Scalar().Pick(rand) // create a private key x
 	X := suite.Point().Mul(nil, x) // corresponding public key X
 
 	// Generate the signature

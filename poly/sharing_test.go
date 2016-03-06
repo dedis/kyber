@@ -23,9 +23,9 @@ var altGroup abstract.Group = new(edwards.ProjectiveCurve).Init(
 	edwards.ParamE382(), false)
 var k int = 10
 var n int = 20
-var secret = group.Secret().Pick(random.Stream)
+var secret = group.Scalar().Pick(random.Stream)
 var point = group.Point().Mul(group.Point().Base(), secret)
-var altSecret = altGroup.Secret().Pick(random.Stream)
+var altSecret = altGroup.Scalar().Pick(random.Stream)
 var altPoint = altGroup.Point().Mul(altGroup.Point().Base(), altSecret)
 
 /* Setup Functions
@@ -44,17 +44,17 @@ func deferTest(t *testing.T, message string) {
 	}
 }
 
-func producePriPoly(g abstract.Group, k int, s abstract.Secret) *PriPoly {
+func producePriPoly(g abstract.Group, k int, s abstract.Scalar) *PriPoly {
 	return new(PriPoly).Pick(g, k, s, random.Stream)
 }
 
-func producePriShares(g abstract.Group, k, n int, s abstract.Secret) *PriShares {
+func producePriShares(g abstract.Group, k, n int, s abstract.Scalar) *PriShares {
 
 	testPoly := producePriPoly(g, k, s)
 	return new(PriShares).Split(testPoly, n)
 }
 
-func producePubPoly(g abstract.Group, k, n int, s abstract.Secret,
+func producePubPoly(g abstract.Group, k, n int, s abstract.Scalar,
 	p abstract.Point) *PubPoly {
 
 	testPriPoly := producePriPoly(g, k, s)
@@ -63,7 +63,7 @@ func producePubPoly(g abstract.Group, k, n int, s abstract.Secret,
 	return testPubPoly.Commit(testPriPoly, p)
 }
 
-func producePubShares(g abstract.Group, k, n, t int, s abstract.Secret,
+func producePubShares(g abstract.Group, k, n, t int, s abstract.Scalar,
 	p abstract.Point) *PubShares {
 
 	testPubPoly := producePubPoly(g, k, n, s, p)
@@ -156,7 +156,7 @@ func TestPriPolyEqual(t *testing.T) {
 func TestPriPolyAdd(t *testing.T) {
 	testAddedPoly := new(PriPoly).Add(testPriPolyGl, testPriPolyGl2)
 	for i := 0; i < k; i++ {
-		addedResult := testAddedPoly.g.Secret().Add(testPriPolyGl.s[i],
+		addedResult := testAddedPoly.g.Scalar().Add(testPriPolyGl.s[i],
 			testPriPolyGl2.s[i])
 		if !testAddedPoly.s[i].Equal(addedResult) {
 			t.Error("Polynomials not added together properly.")

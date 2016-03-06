@@ -163,7 +163,7 @@ func (P *basicPoint) Neg(A abstract.Point) abstract.Point {
 }
 
 // Multiply point p by scalar s using the repeated doubling method.
-func (P *basicPoint) Mul(G abstract.Point, s abstract.Secret) abstract.Point {
+func (P *basicPoint) Mul(G abstract.Point, s abstract.Scalar) abstract.Point {
 	v := s.(*nist.Int).V
 	if G == nil {
 		return P.Base().Mul(P, s)

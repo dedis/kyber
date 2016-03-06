@@ -42,7 +42,7 @@ type ega1 struct {
 
 // V (Verifier) step 2: random challenge t
 type ega2 struct {
-	Zrho []abstract.Secret
+	Zrho []abstract.Scalar
 }
 
 // P step 3: Theta vectors
@@ -52,13 +52,13 @@ type ega3 struct {
 
 // V step 4: random challenge c
 type ega4 struct {
-	Zlambda abstract.Secret
+	Zlambda abstract.Scalar
 }
 
 // P step 5: alpha vector
 type ega5 struct {
-	Zsigma []abstract.Secret
-	Ztau   abstract.Secret
+	Zsigma []abstract.Scalar
+	Ztau   abstract.Scalar
 }
 
 // P and V, step 5: simple k-shuffle proof
@@ -107,16 +107,16 @@ func (ps *PairShuffle) Init(grp abstract.Group, k int) *PairShuffle {
 	ps.p1.C = make([]abstract.Point, k)
 	ps.p1.U = make([]abstract.Point, k)
 	ps.p1.W = make([]abstract.Point, k)
-	ps.v2.Zrho = make([]abstract.Secret, k)
+	ps.v2.Zrho = make([]abstract.Scalar, k)
 	ps.p3.D = make([]abstract.Point, k)
-	ps.p5.Zsigma = make([]abstract.Secret, k)
+	ps.p5.Zsigma = make([]abstract.Scalar, k)
 	ps.pv6.Init(grp, k)
 
 	return ps
 }
 
 func (ps *PairShuffle) Prove(
-	pi []int, g, h abstract.Point, beta []abstract.Secret,
+	pi []int, g, h abstract.Point, beta []abstract.Scalar,
 	X, Y []abstract.Point, rand cipher.Stream,
 	ctx proof.ProverContext) error {
 
@@ -134,23 +134,23 @@ func (ps *PairShuffle) Prove(
 
 	// P step 1
 	p1 := &ps.p1
-	z := grp.Secret() // scratch
+	z := grp.Scalar() // scratch
 
 	// pick random secrets
-	u := make([]abstract.Secret, k)
-	w := make([]abstract.Secret, k)
-	a := make([]abstract.Secret, k)
-	var tau0, nu, gamma abstract.Secret
+	u := make([]abstract.Scalar, k)
+	w := make([]abstract.Scalar, k)
+	a := make([]abstract.Scalar, k)
+	var tau0, nu, gamma abstract.Scalar
 	ctx.PriRand(u, w, a, &tau0, &nu, &gamma)
 
 	// compute public commits
 	p1.Gamma = grp.Point().Mul(g, gamma)
-	wbeta := grp.Secret() // scratch
-	wbetasum := grp.Secret().Set(tau0)
+	wbeta := grp.Scalar() // scratch
+	wbetasum := grp.Scalar().Set(tau0)
 	p1.Lambda1 = grp.Point().Null()
 	p1.Lambda2 = grp.Point().Null()
 	XY := grp.Point()  // scratch
-	wu := grp.Secret() // scratch
+	wu := grp.Scalar() // scratch
 	for i := 0; i < k; i++ {
 		p1.A[i] = grp.Point().Mul(g, a[i])
 		p1.C[i] = grp.Point().Mul(g, z.Mul(gamma, a[pi[i]]))
@@ -181,13 +181,13 @@ func (ps *PairShuffle) Prove(
 
 	// P step 3
 	p3 := &ps.p3
-	b := make([]abstract.Secret, k)
+	b := make([]abstract.Scalar, k)
 	for i := 0; i < k; i++ {
-		b[i] = grp.Secret().Sub(v2.Zrho[i], u[i])
+		b[i] = grp.Scalar().Sub(v2.Zrho[i], u[i])
 	}
-	d := make([]abstract.Secret, k)
+	d := make([]abstract.Scalar, k)
 	for i := 0; i < k; i++ {
-		d[i] = grp.Secret().Mul(gamma, b[pi[i]])
+		d[i] = grp.Scalar().Mul(gamma, b[pi[i]])
 		p3.D[i] = grp.Point().Mul(g, d[i])
 	}
 	if err := ctx.Put(p3); err != nil {
@@ -202,17 +202,17 @@ func (ps *PairShuffle) Prove(
 
 	// P step 5
 	p5 := &ps.p5
-	r := make([]abstract.Secret, k)
+	r := make([]abstract.Scalar, k)
 	for i := 0; i < k; i++ {
-		r[i] = grp.Secret().Add(a[i], z.Mul(v4.Zlambda, b[i]))
+		r[i] = grp.Scalar().Add(a[i], z.Mul(v4.Zlambda, b[i]))
 	}
-	s := make([]abstract.Secret, k)
+	s := make([]abstract.Scalar, k)
 	for i := 0; i < k; i++ {
-		s[i] = grp.Secret().Mul(gamma, r[pi[i]])
+		s[i] = grp.Scalar().Mul(gamma, r[pi[i]])
 	}
-	p5.Ztau = grp.Secret().Neg(tau0)
+	p5.Ztau = grp.Scalar().Neg(tau0)
 	for i := 0; i < k; i++ {
-		p5.Zsigma[i] = grp.Secret().Add(w[i], b[pi[i]])
+		p5.Zsigma[i] = grp.Scalar().Add(w[i], b[pi[i]])
 		p5.Ztau.Add(p5.Ztau, z.Mul(b[i], beta[i]))
 	}
 	if err := ctx.Put(p5); err != nil {
@@ -334,9 +334,9 @@ func Shuffle(group abstract.Group, g, h abstract.Point, X, Y []abstract.Point,
 	}
 
 	// Pick a fresh ElGamal blinding factor for each pair
-	beta := make([]abstract.Secret, k)
+	beta := make([]abstract.Scalar, k)
 	for i := 0; i < k; i++ {
-		beta[i] = ps.grp.Secret().Pick(rand)
+		beta[i] = ps.grp.Scalar().Pick(rand)
 	}
 
 	// Create the output pair vectors

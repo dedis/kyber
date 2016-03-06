@@ -215,7 +215,7 @@ func TestBlameProofBinaryMarshalling(t *testing.T) {
 	badKey := insurerKeys[numInsurers-1]
 	diffieBase := deal.suite.Point().Mul(DealerKey.Public, badKey.Secret)
 	diffieSecret := deal.diffieHellmanSecret(diffieBase)
-	badShare := deal.suite.Secret().Add(badKey.Secret, diffieSecret)
+	badShare := deal.suite.Scalar().Add(badKey.Secret, diffieSecret)
 	deal.secrets[0] = badShare
 
 	// Tests BinaryMarshal, BinaryUnmarshal, and MarshalSize
@@ -431,7 +431,7 @@ func TestDealConstructDeal(t *testing.T) {
 		diffieBase := deal.suite.Point().Mul(insurerList[i],
 			DealerKey.Secret)
 		diffieSecret := deal.diffieHellmanSecret(diffieBase)
-		share := deal.suite.Secret().Sub(deal.secrets[i], diffieSecret)
+		share := deal.suite.Scalar().Sub(deal.secrets[i], diffieSecret)
 		if !deal.pubPoly.Check(i, share) {
 			t.Error("Polynomial Check failed for share ", i)
 		}
@@ -531,7 +531,7 @@ func TestDealverifyDeal(t *testing.T) {
 
 	deal = new(Deal).ConstructDeal(secretKey, DealerKey, pt,
 		r, insurerList)
-	deal.secrets = []abstract.Secret{}
+	deal.secrets = []abstract.Scalar{}
 	if deal.verifyDeal() == nil {
 		t.Error("dealis invalid: secrets list is the wrong length")
 	}
@@ -592,12 +592,12 @@ func TestDealDiffieHellmanEncryptDecrypt(t *testing.T) {
 	diffieBaseBasic := basicDeal.suite.Point().Mul(key2.Public,
 		DealerKey.Secret)
 	diffieSecret := basicDeal.diffieHellmanSecret(diffieBaseBasic)
-	encryptedSecret := basicDeal.suite.Secret().Add(secretKey.Secret, diffieSecret)
+	encryptedSecret := basicDeal.suite.Scalar().Add(secretKey.Secret, diffieSecret)
 
 	diffieBaseKey2 := basicDeal.suite.Point().Mul(DealerKey.Public,
 		key2.Secret)
 	diffieSecret = basicDeal.diffieHellmanSecret(diffieBaseKey2)
-	secret := basicDeal.suite.Secret().Sub(encryptedSecret, diffieSecret)
+	secret := basicDeal.suite.Scalar().Sub(encryptedSecret, diffieSecret)
 
 	if !secret.Equal(secretKey.Secret) {
 		t.Error("Diffie-Hellman encryption/decryption failed.")
@@ -702,7 +702,7 @@ func TestDealBlameAndVerify(t *testing.T) {
 	diffieBase := deal.suite.Point().Mul(DealerKey.Public,
 		badKey.Secret)
 	diffieSecret := deal.diffieHellmanSecret(diffieBase)
-	badShare := deal.suite.Secret().Add(badKey.Secret, diffieSecret)
+	badShare := deal.suite.Scalar().Add(badKey.Secret, diffieSecret)
 	deal.secrets[0] = badShare
 
 	validProof, err := deal.blame(0, insurerKeys[0])
@@ -759,7 +759,7 @@ func TestDealProduceResponse(t *testing.T) {
 	diffieBase := deal.suite.Point().Mul(DealerKey.Public,
 		badKey.Secret)
 	diffieSecret := deal.diffieHellmanSecret(diffieBase)
-	badShare := deal.suite.Secret().Add(badKey.Secret, diffieSecret)
+	badShare := deal.suite.Scalar().Add(badKey.Secret, diffieSecret)
 	deal.secrets[0] = badShare
 
 	response, err = deal.ProduceResponse(0, insurerKeys[0])
@@ -1035,7 +1035,7 @@ func TestStateDealCertified(t *testing.T) {
 	// uncertified
 	deal = new(Deal).ConstructDeal(secretKey, DealerKey, pt, r, insurerList)
 	DealState = new(State).Init(*deal)
-	DealState.Deal.secrets[0] = deal.suite.Secret()
+	DealState.Deal.secrets[0] = deal.suite.Scalar()
 	bproof, _ = DealState.Deal.blame(0, insurerKeys[0])
 	response = new(Response).constructBlameProofResponse(bproof)
 	DealState.AddResponse(0, response)
@@ -1058,7 +1058,7 @@ func TestStateSufficientSignatures(t *testing.T) {
 
 	// Add a valid blameproof to the start. Ensure it doesn't affect
 	// the results.
-	DealState.Deal.secrets[0] = deal.suite.Secret()
+	DealState.Deal.secrets[0] = deal.suite.Scalar()
 	bproof, _ := DealState.Deal.blame(0, insurerKeys[0])
 	response := new(Response).constructBlameProofResponse(bproof)
 	DealState.AddResponse(0, response)
@@ -1094,7 +1094,7 @@ func TestStateRevealShare(t *testing.T) {
 	test()
 
 	// Add a valid blameproof to the start.
-	DealState.Deal.secrets[0] = deal.suite.Secret()
+	DealState.Deal.secrets[0] = deal.suite.Scalar()
 	bproof, _ := DealState.Deal.blame(0, insurerKeys[0])
 	response := new(Response).constructBlameProofResponse(bproof)
 	DealState.AddResponse(0, response)

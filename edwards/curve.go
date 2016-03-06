@@ -52,13 +52,13 @@ func (c *curve) PrimeOrder() bool {
 	return !c.full
 }
 
-// Returns the size in bytes of an encoded Secret for this curve.
-func (c *curve) SecretLen() int {
+// Returns the size in bytes of an encoded Scalar for this curve.
+func (c *curve) ScalarLen() int {
 	return (c.order.V.BitLen() + 7) / 8
 }
 
-// Create a new Secret for this curve.
-func (c *curve) Secret() abstract.Secret {
+// Create a new Scalar for this curve.
+func (c *curve) Scalar() abstract.Scalar {
 	return nist.NewInt(0, &c.order.V)
 }
 
@@ -92,7 +92,7 @@ func (c *curve) init(self abstract.Group, p *Param, fullGroup bool,
 	// We want it to be in a ModInt so we can pass it to P.Mul(),
 	// but the secret's modulus isn't needed for point multiplication.
 	if fullGroup {
-		// Secret modulus is prime-order times the ccofactor
+		// Scalar modulus is prime-order times the ccofactor
 		c.order.V.SetInt64(int64(p.R)).Mul(&c.order.V, &p.Q)
 	} else {
 		c.order.V.Set(&p.Q) // Prime-order subgroup

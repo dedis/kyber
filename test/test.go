@@ -36,19 +36,19 @@ func testEmbed(g abstract.Group, rand cipher.Stream, points *[]abstract.Point,
 // that are supposed to be equivalent.
 //
 func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
-	//	fmt.Printf("\nTesting group '%s': %d-byte Point, %d-byte Secret\n",
-	//			g.String(), g.PointLen(), g.SecretLen())
+	//	fmt.Printf("\nTesting group '%s': %d-byte Point, %d-byte Scalar\n",
+	//			g.String(), g.PointLen(), g.ScalarLen())
 
 	points := make([]abstract.Point, 0)
 	ptmp := g.Point()
-	stmp := g.Secret()
+	stmp := g.Scalar()
 	pzero := g.Point().Null()
-	szero := g.Secret().Zero()
-	sone := g.Secret().One()
+	szero := g.Scalar().Zero()
+	sone := g.Scalar().One()
 
 	// Do a simple Diffie-Hellman test
-	s1 := g.Secret().Pick(rand)
-	s2 := g.Secret().Pick(rand)
+	s1 := g.Scalar().Pick(rand)
+	s2 := g.Scalar().Pick(rand)
 	if s1.Equal(s2) {
 		panic("uh-oh, not getting unique secrets!")
 	}
@@ -85,9 +85,9 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 
 	// Test secret inverse to get from dh1 back to p1
 	if g.PrimeOrder() {
-		ptmp.Mul(dh1, g.Secret().Inv(s2))
+		ptmp.Mul(dh1, g.Scalar().Inv(s2))
 		if !ptmp.Equal(p1) {
-			panic("Secret inverse didn't work")
+			panic("Scalar inverse didn't work")
 		}
 	}
 
@@ -113,10 +113,10 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 	if !pt2.Equal(ptmp) {
 		panic("Additive homomorphism doesn't work")
 	}
-	st2 := g.Secret().Neg(s2)
+	st2 := g.Scalar().Neg(s2)
 	st2.Add(s1, st2)
 	if !stmp.Equal(st2) {
-		panic("Secret.Neg doesn't work")
+		panic("Scalar.Neg doesn't work")
 	}
 	pt2.Neg(p2).Add(pt2, p1)
 	if !pt2.Equal(ptmp) {
@@ -132,11 +132,11 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 		st2.Inv(s2)
 		st2.Mul(st2, stmp)
 		if !st2.Equal(s1) {
-			panic("Secret division doesn't work")
+			panic("Scalar division doesn't work")
 		}
 		st2.Div(stmp, s2)
 		if !st2.Equal(s1) {
-			panic("Secret division doesn't work")
+			panic("Scalar division doesn't work")
 		}
 	}
 
@@ -174,7 +174,7 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 	buf := new(bytes.Buffer)
 	for i := 0; i < 5; i++ {
 		buf.Reset()
-		s := g.Secret().Pick(rand)
+		s := g.Scalar().Pick(rand)
 		if _, err := s.MarshalTo(buf); err != nil {
 			panic("encoding of secret fails: " + err.Error())
 		}

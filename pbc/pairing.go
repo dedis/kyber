@@ -162,12 +162,12 @@ func (g *g1group) String() string {
 	return g.p.name + ".G1"
 }
 
-func (g *g1group) SecretLen() int {
+func (g *g1group) ScalarLen() int {
 	return int(C.pairing_length_in_bytes_Zr(&g.p.p[0]))
 }
 
-func (g *g1group) Secret() abstract.Secret {
-	s := newSecret()
+func (g *g1group) Scalar() abstract.Scalar {
+	s := newScalar()
 	C.element_init_Zr(&s.e[0], &g.p.p[0])
 	return s
 }
@@ -193,12 +193,12 @@ func (g *g2group) String() string {
 	return g.p.name + ".G2"
 }
 
-func (g *g2group) SecretLen() int {
+func (g *g2group) ScalarLen() int {
 	return int(C.pairing_length_in_bytes_Zr(&g.p.p[0]))
 }
 
-func (g *g2group) Secret() abstract.Secret {
-	s := newSecret()
+func (g *g2group) Scalar() abstract.Scalar {
+	s := newScalar()
 	C.element_init_Zr(&s.e[0], &g.p.p[0])
 	return s
 }
@@ -224,12 +224,12 @@ func (g *gtgroup) String() string {
 	return g.p.name + ".GT"
 }
 
-func (g *gtgroup) SecretLen() int {
+func (g *gtgroup) ScalarLen() int {
 	return int(C.pairing_length_in_bytes_Zr(&g.p.p[0]))
 }
 
-func (g *gtgroup) Secret() abstract.Secret {
-	s := newSecret()
+func (g *gtgroup) Scalar() abstract.Scalar {
+	s := newScalar()
 	C.element_init_Zr(&s.e[0], &g.p.p[0])
 	return s
 }

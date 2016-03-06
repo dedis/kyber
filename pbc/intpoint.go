@@ -87,7 +87,7 @@ func (p *intPoint) Neg(a abstract.Point) abstract.Point {
 	return p
 }
 
-func (p *intPoint) Mul(b abstract.Point, s abstract.Secret) abstract.Point {
+func (p *intPoint) Mul(b abstract.Point, s abstract.Scalar) abstract.Point {
 	if b == nil {
 		return p.Base().Mul(p, s)
 	}
