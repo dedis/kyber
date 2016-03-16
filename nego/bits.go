@@ -9,7 +9,7 @@ import (
 // for the first bit with value b.
 // Returns the position of the first b-bit found,
 // or -1 if every bit in the bit-field is set to 1-b.
-func BitScan(x *big.Int, i,j int, b uint) int {
+func BitScan(x *big.Int, i, j int, b uint) int {
 
 	// XXX could be made a lot more efficient using x.Words()
 	inc := 1
@@ -26,7 +26,7 @@ func BitScan(x *big.Int, i,j int, b uint) int {
 
 // Set z to x, but with the bit-field from bit i
 // up or down to bit j filled with bit value b.
-func BitFill(z,x *big.Int, i,j int, b uint) {
+func BitFill(z, x *big.Int, i, j int, b uint) {
 	if z != x {
 		z.Set(x)
 	}
@@ -38,4 +38,3 @@ func BitFill(z,x *big.Int, i,j int, b uint) {
 		z.SetBit(z, i, b)
 	}
 }
-

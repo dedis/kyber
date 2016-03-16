@@ -1,6 +1,5 @@
 package proof
 
-
 // Prover represents the prover role in an arbitrary Sigma-protocol.
 // A prover is simply a higher-order function that takes a ProverContext,
 // runs the protocol while making calls to the ProverContext methods as needed,
@@ -15,8 +14,6 @@ type Prover func(ctx ProverContext) error
 // runs the protocol while making calls to VerifierContext methods as needed,
 // and returns nil on success or an error once the protocol run concludes.
 type Verifier func(ctx VerifierContext) error
-
-
 
 // ProverContext represents the abstract environment
 // required by the prover in a Sigma protocol.
@@ -37,9 +34,9 @@ type Verifier func(ctx VerifierContext) error
 // in this case the prover simply calls PubRand() multiple times.
 //
 type ProverContext interface {
-	Put(message interface{}) error 		// Send message to verifier
-	PubRand(message...interface{}) error	// Get public randomness
-	PriRand(message...interface{})		// Get private randomness
+	Put(message interface{}) error        // Send message to verifier
+	PubRand(message ...interface{}) error // Get public randomness
+	PriRand(message ...interface{})       // Get private randomness
 }
 
 // ProverContext represents the abstract environment
@@ -54,7 +51,6 @@ type ProverContext interface {
 // in both non-interactive proofs (e.g., via HashProve)
 // and in interactive proofs (e.g., via DeniableProver).
 type VerifierContext interface {
-	Get(message interface{}) error		// Receive message from prover
-	PubRand(message...interface{}) error	// Get public randomness
+	Get(message interface{}) error        // Receive message from prover
+	PubRand(message ...interface{}) error // Get public randomness
 }
-
