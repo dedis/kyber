@@ -42,8 +42,10 @@ type Suite interface {
 }
 
 // Sum uses a given ciphersuite's hash function to checksum a byte-slice.
-func Sum(suite Suite, data []byte) []byte {
+func Sum(suite Suite, data ...[]byte) []byte {
 	h := suite.Hash()
-	h.Write(data)
+	for _, b := range data {
+		h.Write(b)
+	}
 	return h.Sum(nil)
 }
