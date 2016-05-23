@@ -352,7 +352,7 @@ func (i *Int) BigEndian(min, max int) []byte {
 // Panics if max != 0 and the Int cannot be represented in max bytes.
 func (i *Int) LittleEndian(min, max int) []byte {
 	act := i.MarshalSize()
-	vSize := i.V.BitLen()
+	vSize := len(i.V.Bytes())
 	if vSize < act {
 		act = vSize
 	}
