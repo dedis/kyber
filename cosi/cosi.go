@@ -190,10 +190,6 @@ func (c *Cosi) CreateChallenge(msg []byte) (*Challenge, error) {
 	// reducing the challenge
 	c.challenge = sliceToSecret(c.suite, chalBuff)
 	c.message = msg
-	/*fmt.Println("Abstract Challenge aggCommit = ", own.Abstract2Hex(c.aggregateCommitment))*/
-	//fmt.Println("Abstract Challenge aggPublic = ", own.Abstract2Hex(c.mask.Aggregate()))
-	//fmt.Println("Abstract Challenge msg = ", hex.EncodeToString(msg))
-	/*fmt.Println("Abstract Challenge k = ", own.Abstract2Hex(c.challenge))*/
 	return &Challenge{
 		Challenge:        c.challenge,
 		GlobalCommitment: c.aggregateCommitment,
@@ -246,9 +242,6 @@ func (c *Cosi) Response(responses []*Response) (*Response, error) {
 func (c *Cosi) Signature() []byte {
 	// Sig = R || S || bitmask
 	sigS := secretToSlice(c.aggregateResponse)
-	/*fmt.Println("Abstract Signature() aggResponse = ", own.Abstract2Hex(c.aggregateResponse))*/
-	/*fmt.Println("Abstract Signature() sigS = ", hex.EncodeToString(sigS))*/
-	//sigS := c.aggregateResponse.(*nist.Int).LittleEndian(32, 32)
 	sigR, err := c.aggregateCommitment.MarshalBinary()
 	if err != nil {
 		panic("Can't generate signature !")
@@ -280,14 +273,6 @@ func (c *Cosi) GetCommitment() abstract.Point {
 // public key the tree is using.
 // Reconstruct the AggCommit
 func (c *Cosi) VerifyResponses(aggregatedPublic abstract.Point) error {
-	/*var aggCommitMarshal []byte*/
-	//var aggPublicMarshal []byte
-	//var err error
-	//if aggCommitMarshal, err = c.mask.Aggregate().MarshalBinary(); err != nil {
-	//return err
-	//} else if aggPublicMarshal, err = c.globalCommitment.MarshalBinary(); err != nil {
-	//return err
-	/*}*/
 	k := c.challenge
 
 	// k * -aggPublic + s * B = k*-A + s*B
@@ -297,14 +282,6 @@ func (c *Cosi) VerifyResponses(aggregatedPublic abstract.Point) error {
 	kA := c.suite.Point().Mul(minusPublic, k)
 	sB := c.suite.Point().Mul(nil, c.aggregateResponse)
 	left := c.suite.Point().Add(kA, sB)
-
-	/*fmt.Println("Abstract VerifyResponse Global AggCommit = ", hex.EncodeToString(aggCommitMarshal))*/
-	//fmt.Println("Abstract VerifyResponse Global AggPublic = ", hex.EncodeToString(aggPublicMarshal))
-	//fmt.Println("Abstract VerifyResponse SubTree AggPublic = ", own.Abstract2Hex(aggregatedPublic))
-	//fmt.Println("Abstract VerifyResponse -(AggPublic) = ", own.Abstract2Hex(minusPublic))
-	//fmt.Println("Abstract VerifyResponse Message = ", hex.EncodeToString(c.message))
-	//fmt.Println("Abstract VerifyResponse k = ", own.Abstract2Hex(k))
-	//fmt.Println("Abstract VerifyResponse sig(S) = ", own.Abstract2Hex(left))
 
 	if !left.Equal(c.aggregateCommitment) {
 		return errors.New("recreated commitment is not equal to one given")
@@ -348,16 +325,6 @@ func VerifySignature(suite abstract.Suite, publics []abstract.Point, message, si
 	kA := suite.Point().Mul(minusPublic, k)
 	sB := suite.Point().Mul(nil, sigInt)
 	left := suite.Point().Add(kA, sB)
-
-	/*fmt.Println("Abstract Verify AggCommit = ", hex.EncodeToString(aggCommitBuff))*/
-	//fmt.Println("Abstract Verify AggPublic = ", hex.EncodeToString(aggPublicMarshal))
-	//fmt.Println("Abstract Verify -(AggPublic) = ", own.Abstract2Hex(minusPublic))
-	//fmt.Println("Abstract Verify Message = ", hex.EncodeToString(message))
-	//fmt.Println("Abstract Verify k = ", own.Abstract2Hex(k))
-	//fmt.Println("Abstract Verify sig(S) = ", hex.EncodeToString(sigBuff))
-	//fmt.Println("Abstract Verify sig(S)int = ", own.Abstract2Hex(sigInt))
-	//fmt.Println("Abstract Verify sig(R) = ", hex.EncodeToString(aggCommitBuff))
-	//fmt.Println("Abstract Verify checkR = ", own.Abstract2Hex(left))
 
 	if !left.Equal(aggCommit) {
 		return errors.New("Signature invalid")
