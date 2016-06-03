@@ -18,10 +18,11 @@ import (
 	"crypto/cipher"
 	"encoding/hex"
 	"errors"
+	"io"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/nist"
-	"io"
 )
 
 type point struct {
@@ -251,11 +252,7 @@ func (c *Curve) SecretLen() int {
 
 // Create a new Secret for the Ed25519 curve.
 func (c *Curve) Secret() abstract.Secret {
-	//	if c.FullGroup {
-	//		return nist.NewInt(0, fullOrder)
-	//	} else {
-	return nist.NewInt(0, &primeOrder.V)
-	//	}
+	return newSecret()
 }
 
 // Returns 32, the size in bytes of an encoded Point on the Ed25519 curve.
