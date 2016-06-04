@@ -3,6 +3,8 @@ package test
 import (
 	"bytes"
 	"crypto/cipher"
+	"fmt"
+	"reflect"
 
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
@@ -56,12 +58,21 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 	gen := g.Point().Base()
 	points = append(points, gen)
 
+	fmt.Println("stmp.SetInt64(-1)=", stmp.SetInt64(-1))
+	fmt.Println("pzero = ", pzero)
+	fmt.Println("ptmp = ", ptmp)
 	// Verify additive and multiplicative identities of the generator.
-	ptmp.Mul(nil, stmp.SetInt64(-1)).Add(ptmp, gen)
+	ptmp.Mul(nil, stmp).Add(ptmp, gen)
 	if !ptmp.Equal(pzero) {
 		panic("oops, generator additive identity doesn't work")
 	}
 	if g.PrimeOrder() { // secret.Inv works only in prime-order groups
+
+		fmt.Println("stmp BEFORE =", stmp)
+		fmt.Println("stmp type BEFORE = ", reflect.TypeOf(stmp))
+		fmt.Println("stmp AFTER =", stmp)
+		fmt.Println("stmp type AFTER = ", reflect.TypeOf(stmp))
+
 		ptmp.Mul(nil, stmp.SetInt64(2)).Mul(ptmp, stmp.Inv(stmp))
 		if !ptmp.Equal(gen) {
 			panic("oops, generator multiplicative identity doesn't work")
