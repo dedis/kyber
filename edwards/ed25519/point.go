@@ -208,14 +208,14 @@ func (P *point) Neg(A abstract.Point) abstract.Point {
 func (P *point) Mul(A abstract.Point, s abstract.Secret) abstract.Point {
 
 	// Convert the scalar to fixed-length little-endian form.
-	//sb := s.(*secret).Int.V.Bytes()
-	sb, _ := s.MarshalBinary()
-	/*shi := len(sb) - 1*/
+	sb := s.(*secret).Int.V.Bytes()
+	//sb, _ := s.MarshalBinary()
+	shi := len(sb) - 1
 	var a [32]byte
-	//for i := range sb {
-	//a[shi-i] = sb[i]
-	/*}*/
-	copy(a[:], sb)
+	for i := range sb {
+		a[shi-i] = sb[i]
+	}
+	//copy(a[:], sb)
 
 	if A == nil {
 		geScalarMultBase(&P.ge, &a)

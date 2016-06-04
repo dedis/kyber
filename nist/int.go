@@ -4,7 +4,6 @@ import (
 	"crypto/cipher"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"io"
 	"math/big"
 
@@ -219,8 +218,6 @@ func (i *Int) Mul(a, b abstract.Secret) abstract.Secret {
 	bi := b.(*Int)
 	i.M = ai.M
 	i.V.Mul(&ai.V, &bi.V)
-	fmt.Println("i.V = ", i.V)
-	fmt.Println("i.M = ", i.M)
 	i.V.Mod(&i.V, i.M)
 	return i
 }
