@@ -64,7 +64,7 @@ func EdDSASign(suite abstract.Suite, a abstract.Secret, A abstract.Point, msg []
 	return sig[:], nil
 }
 
-// EdDSAVerify verify a signature issued by EdDSASign
+// EdDSAVerify verifies a signature issued by EdDSASign
 // Takes:
 //  - suite to use
 //  - public key used in signing
