@@ -1,14 +1,19 @@
 package ed25519
 
 import (
-	"github.com/dedis/crypto/test"
 	"testing"
+
+	"github.com/dedis/crypto/test"
 )
 
 var testSuite = NewAES128SHA256Ed25519(false)
 var groupBench = test.NewGroupBench(testSuite)
 
+var testSuiteEdDSA = NewCurve25519()
+
 func TestSuite(t *testing.T) { test.TestSuite(testSuite) }
+
+func TestSuiteEdDSA(t *testing.T) { test.TestSuite(testSuiteEdDSA) }
 
 func BenchmarkSecretAdd(b *testing.B)    { groupBench.SecretAdd(b.N) }
 func BenchmarkSecretSub(b *testing.B)    { groupBench.SecretSub(b.N) }

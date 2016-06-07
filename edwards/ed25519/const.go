@@ -5,8 +5,9 @@
 package ed25519
 
 import (
-	"github.com/dedis/crypto/nist"
 	"math/big"
+
+	"github.com/dedis/crypto/nist"
 )
 
 // prime modulus of underlying field = 2^255 - 19
@@ -15,11 +16,12 @@ var prime, _ = new(big.Int).SetString("57896044618658097711785492504343953926634
 // prime order of base point = 2^252 + 27742317777372353535851937790883648493
 var primeOrder, _ = new(nist.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989", "", 10)
 
+//var primeOrder = newSecretFromString("7237005577332262213973186563042994240857116359379907606001950938285454250989", 10)
+
 // cofactor of the curve, as a ModInt
 var cofactor = nist.NewInt(8, &primeOrder.V)
 
-// order of the full curve including the cofactor
-var fullOrder = new(big.Int).Mul(&primeOrder.V, &cofactor.V)
+//var cofactor = newSecretFromInt64(8)
 
 // identity point
 var nullPoint = new(point).Null()
