@@ -15,10 +15,6 @@ var primeOrder = newSecretFromString("723700557733226221397318656304299424085711
 // cofactor of the curve, as a ModInt
 var cofactor = newSecretFromInt64(8)
 
-// order of the full curve including the cofactor
-// XXX NON USED
-//var fullOrder = newSecret().Mul(primeOrder, cofactor)
-
 // identity point
 var nullPoint = new(point).Null()
 
