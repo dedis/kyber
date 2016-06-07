@@ -207,13 +207,11 @@ func (P *point) Neg(A abstract.Point) abstract.Point {
 // it would be far preferable for security to do this constant-time.
 func (P *point) Mul(A abstract.Point, s abstract.Secret) abstract.Point {
 
-	// Convert the scalar to fixed-length little-endian form.
-	sb := s.(*secret).Int.V.Bytes()
-	shi := len(sb) - 1
+	// Note here that our secret representation is supposed to
+	// be little endian
+	sb, _ := s.MarshalBinary()
 	var a [32]byte
-	for i := range sb {
-		a[shi-i] = sb[i]
-	}
+	copy(a[:], sb)
 
 	if A == nil {
 		geScalarMultBase(&P.ge, &a)

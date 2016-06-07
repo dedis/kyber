@@ -5,11 +5,24 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"errors"
+	"math/big"
 
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/random"
 )
+
+// maxModulo needed because of some inconsistencies in nist.Int:
+// if you want to have a prime order modulo as a secret
+// (to use with Point.Mul()), then its MarshalBinary needs to return the same
+// endianess with the secret defined here, i.e. LittleEndian. Using
+// marshalbinary needs the MarshalSize which looks for the modulo
+// (of the modulo!)
+// Here it defines the maximum value allowed in 32 bytes, namely
+// 2^256 - 1. It is ONLY to be used to define constants secrets are really
+// *constants* !! If you add two secret with this *maxModulo* you might loose
+// a value, namely 2^256 -1
+var maxModulo, _ = new(big.Int).SetString("115792089237316195423570985008687907853269984665640564039457584007913129639935", 10)
 
 type secret struct {
 	*nist.Int
@@ -30,6 +43,7 @@ func newSecretFromInt64(v int64) *secret {
 
 func newSecretFromString(str string, b int) *secret {
 	i, _ := new(nist.Int).SetString(str, "", b)
+	i.M = maxModulo
 	return &secret{
 		Int: i,
 	}
@@ -100,14 +114,6 @@ func (s *secret) Pick(rand cipher.Stream) abstract.Secret {
 	expandedSecretKey[0] &= 0xf8
 	expandedSecretKey[31] &= 0x3f
 	expandedSecretKey[31] |= 0x40
-
-	/* base := big.NewInt(2)*/
-	//exp := big.NewInt(256)
-	//modulo := big.NewInt(0).Exp(base, exp, nil)
-	//modulo.Sub(modulo, big.NewInt(1))
-	//secPruned := nist.NewInt(0, modulo)
-	//secPruned.SetLittleEndian(expandedSecretKey[:32])
-	/*s.Int = secPruned*/
 
 	s.Int.SetLittleEndian(expandedSecretKey[:32])
 	s.prefix = expandedSecretKey[32:]
