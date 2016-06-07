@@ -13,7 +13,7 @@ var prime, _ = new(big.Int).SetString("57896044618658097711785492504343953926634
 var primeOrder = newSecretFromString("7237005577332262213973186563042994240857116359379907606001950938285454250989", 10)
 
 // cofactor of the curve, as a ModInt
-var cofactor = newSecret().SetInt64(8)
+var cofactor = newSecretFromInt64(8)
 
 // order of the full curve including the cofactor
 // XXX NON USED

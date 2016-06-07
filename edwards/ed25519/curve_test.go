@@ -1,8 +1,9 @@
 package ed25519
 
 import (
-	"github.com/dedis/crypto/test"
 	"testing"
+
+	"github.com/dedis/crypto/test"
 )
 
 var testSuite = NewAES128SHA256Ed25519(false)
