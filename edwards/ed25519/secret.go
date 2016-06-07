@@ -17,14 +17,8 @@ type secret struct {
 }
 
 func newSecret() *secret {
-	/* base := big.NewInt(2)*/
-	//exp := big.NewInt(255)
-	//modulo := big.NewInt(0).Exp(base, exp, nil)
-	//modulo.Sub(modulo, big.NewInt(19))
-
 	return &secret{
 		Int: nist.NewInt(0, &primeOrder.Int.V),
-		//Int: nist.NewInt(0, modulo),
 	}
 }
 
