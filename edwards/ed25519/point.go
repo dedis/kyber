@@ -22,6 +22,7 @@ import (
 
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
+	"github.com/dedis/crypto/nist"
 )
 
 type point struct {
@@ -208,7 +209,7 @@ func (P *point) Neg(A abstract.Point) abstract.Point {
 func (P *point) Mul(A abstract.Point, s abstract.Secret) abstract.Point {
 
 	// Convert the scalar to fixed-length little-endian form.
-	sb := s.(*secret).Int.V.Bytes()
+	sb := s.(*nist.Int).V.Bytes()
 	shi := len(sb) - 1
 	var a [32]byte
 	for i := range sb {
@@ -230,6 +231,9 @@ func (P *point) Mul(A abstract.Point, s abstract.Secret) abstract.Point {
 // because it supports only this one specific curve.
 type Curve struct {
 
+	// is this curve generate scalars formatted as in Curve25519 / Ed25519 specs
+	// or simply uses the general scalars modulo q
+	formatted bool
 	// Set to true to use the full group of order 8Q,
 	// or false to use the prime-order subgroup of order Q.
 	//	FullGroup bool
@@ -251,7 +255,10 @@ func (c *Curve) SecretLen() int {
 
 // Create a new Secret for the Ed25519 curve.
 func (c *Curve) Secret() abstract.Secret {
-	return newSecret()
+	if c.formatted {
+		return newSecret()
+	}
+	return nist.NewInt(0, &primeOrder.V)
 }
 
 // Returns 32, the size in bytes of an encoded Point on the Ed25519 curve.
@@ -261,8 +268,10 @@ func (c *Curve) PointLen() int {
 
 // Create a new Point on the Ed25519 curve.
 func (c *Curve) Point() abstract.Point {
+	if c.formatted {
+		return newEd25519Point()
+	}
 	P := new(point)
-	//P.c = c
 	return P
 }
 

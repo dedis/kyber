@@ -2,6 +2,7 @@ package ed25519
 
 import (
 	"crypto/sha256"
+	"crypto/sha512"
 	"hash"
 	"io"
 	"reflect"
@@ -18,6 +19,9 @@ type suiteEd25519 struct {
 
 // SHA256 hash function
 func (s *suiteEd25519) Hash() hash.Hash {
+	if s.formatted {
+		return sha512.New()
+	}
 	return sha256.New()
 }
 
@@ -41,5 +45,11 @@ func (s *suiteEd25519) New(t reflect.Type) interface{} {
 // Ciphersuite based on AES-128, SHA-256, and the Ed25519 curve.
 func NewAES128SHA256Ed25519(fullGroup bool) abstract.Suite {
 	suite := new(suiteEd25519)
+	return suite
+}
+
+func NewCurve25519() abstract.Suite {
+	suite := new(suiteEd25519)
+	suite.Curve.formatted = true
 	return suite
 }

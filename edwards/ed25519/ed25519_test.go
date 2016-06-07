@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var suite = NewAES128SHA256Ed25519(false)
+var suite = NewCurve25519()
 
 func randomSecret() abstract.Secret {
 	return suite.Secret().Pick(random.Stream)

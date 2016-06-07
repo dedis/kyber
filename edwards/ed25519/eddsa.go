@@ -19,7 +19,7 @@ import (
 // NOTE: Code taken from the Python implementation from the RFC
 // https://tools.ietf.org/html/draft-josefsson-eddsa-ed25519-02
 func EdDSASign(suite abstract.Suite, a abstract.Secret, A abstract.Point, msg []byte) ([]byte, error) {
-	sec := a.(*secret)
+	sec := a.(*ed25519Secret)
 	hash := sha512.New()
 	hash.Write(sec.prefix)
 	hash.Write(msg)
