@@ -3,6 +3,7 @@ package ed25519
 import (
 	"crypto/cipher"
 	"crypto/sha512"
+	"crypto/subtle"
 	"encoding/hex"
 	"errors"
 	"math/big"
@@ -109,7 +110,7 @@ func (s *secret) Inv(a abstract.Secret) abstract.Secret {
 }
 
 func (s *secret) Pick(rand cipher.Stream) abstract.Secret {
-	pre := random.Bytes(32, rand)
+	pre := getNonZeroRandomBytes(32, rand)
 	expandedSecretKey := sha512.Sum512(pre)
 	expandedSecretKey[0] &= 0xf8
 	expandedSecretKey[31] &= 0x3f
@@ -139,4 +140,24 @@ func (s *secret) String() string {
 func (s *secret) setString(str, d string, base int) (*secret, bool) {
 	_, b := s.Int.SetString(str, d, base)
 	return s, b
+}
+
+var zeroBytes = make([]byte, 32)
+
+// getNonZeroRandomBytes returns a slice of length *size* which is *NOT* equal to
+// a default slice == 0x00....00. This is needed when using suite.Cipher(abstract.NoKey)
+// because the first 6 iterations returns 0000...000 as bytes for edwards &
+// ed25519 cipher.
+// XXX Issue reported in https://github.com/dedis/crypto/issues/70
+func getNonZeroRandomBytes(size int, rand cipher.Stream) []byte {
+	var randoms []byte
+	for {
+		randoms = random.Bytes(size, rand)
+		// Maybe not needed to use subtle here, but it does not harm
+		// (only a bit slower)
+		if subtle.ConstantTimeCompare(randoms, zeroBytes) != 1 {
+			return randoms
+		}
+	}
+	return randoms
 }
