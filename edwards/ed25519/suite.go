@@ -1,12 +1,13 @@
 package ed25519
 
 import (
-	"crypto/sha256"
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/cipher/sha3"
+	"crypto/sha512"
 	"hash"
 	"io"
 	"reflect"
+
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/cipher/sha3"
 )
 
 type suiteEd25519 struct {
@@ -17,7 +18,7 @@ type suiteEd25519 struct {
 
 // SHA256 hash function
 func (s *suiteEd25519) Hash() hash.Hash {
-	return sha256.New()
+	return sha512.New()
 }
 
 // SHA3/SHAKE128 Sponge Cipher
@@ -38,7 +39,7 @@ func (s *suiteEd25519) New(t reflect.Type) interface{} {
 }
 
 // Ciphersuite based on AES-128, SHA-256, and the Ed25519 curve.
-func NewAES128SHA256Ed25519(fullGroup bool) abstract.Suite {
+func NewAES128SHA512Ed25519() abstract.Suite {
 	suite := new(suiteEd25519)
 	return suite
 }
