@@ -4,7 +4,6 @@ import (
 	"crypto/cipher"
 	"crypto/sha256"
 	"crypto/sha512"
-	"encoding/binary"
 	"hash"
 	"io"
 	"reflect"
@@ -48,8 +47,8 @@ func (s *suiteEd25519) New(t reflect.Type) interface{} {
 func (s *suiteEd25519) NewKey(stream cipher.Stream) abstract.Secret {
 	scalar, _ := NewEd25519Scalar(stream)
 	nint := nist.NewInt(0, &primeOrder.V)
-	nint.SetEndianness(binary.LittleEndian)
-	nint.SetLittleEndian(scalar)
+	nint.Bo = LittleEndian
+	nint.SetBytes(scalar)
 	return nint
 }
 
