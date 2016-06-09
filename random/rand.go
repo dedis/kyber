@@ -86,6 +86,24 @@ func Bytes(n int, rand cipher.Stream) []byte {
 	return b
 }
 
+// NonZeroBytes calls Bytes as long as it gets a slice full of '0's.
+// This is needed when using suite.Cipher(abstract.NoKey)
+// because the first 6 iterations returns 0000...000 as
+// bytes for edwards & ed25519 cipher.
+// XXX Issue reported in https://github.com/dedis/crypto/issues/70
+func NonZeroBytes(n int, rand cipher.Stream) []byte {
+	var randoms []byte
+	for {
+		randoms = Bytes(n, rand)
+		for _, b := range randoms {
+			if b != 0x00 {
+				return randoms
+			}
+		}
+	}
+	return randoms
+}
+
 type randstream struct {
 }
 

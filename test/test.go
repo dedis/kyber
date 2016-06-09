@@ -6,7 +6,6 @@ import (
 
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
-	"github.com/stretchr/testify/assert"
 )
 
 func testEmbed(g abstract.Group, rand cipher.Stream, points *[]abstract.Point,
@@ -262,20 +261,34 @@ func TestSuite(suite abstract.Suite) {
 	// Test if it generates two fresh keys with nil cipher
 	s1 := suite.NewKey(nil)
 	s2 := suite.NewKey(nil)
-	assert.False(t, s1.Equal(s2))
+	if s1.Equal(s2) {
+		panic("NewKey returns twice the same key given nil")
+	}
 
 	// Test if it creates the same with the same seed
 	fs := &fixedStream{[]byte("Thisismysecretseed")}
 	s3 := suite.NewKey(fs)
 	s4 := suite.NewKey(fs)
-	assert.True(t, s3.Equal(s4))
+	if !s3.Equal(s4) {
+		panic("NewKey returns two different keys given same stream")
+	}
 
 	// Test if it creates two different with random stream
 	stream := random.Stream
 	s5 := suite.NewKey(stream)
 	s6 := suite.NewKey(stream)
-	assert.False(t, s5.Equal(s6))
+	if s5.Equal(s6) {
+		panic("NewKey returns same key given random stream")
+	}
 
 	// Test the public-key group arithmetic
 	TestGroup(suite)
+}
+
+type fixedStream struct {
+	seed []byte
+}
+
+func (fs *fixedStream) XORKeyStream(dst, src []byte) {
+	copy(dst, fs.seed)
 }
