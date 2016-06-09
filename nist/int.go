@@ -345,7 +345,7 @@ func (i *Int) BigEndian(min, max int) []byte {
 
 // Set value to a number represented by a byte string.
 // Endianness depends on the endianess set in i.
-func (i *Int) SetBytes(a []byte) *Int {
+func (i *Int) SetBytes(a []byte) abstract.Secret {
 	var buff = a
 	if i.Bo == LittleEndian {
 		buff = make([]byte, len(a))

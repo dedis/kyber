@@ -51,6 +51,9 @@ type Secret interface {
 
 	// Set to a fresh random or pseudo-random secret
 	Pick(rand cipher.Stream) Secret
+
+	// SetBytes will take bytes and create a secret out of it
+	SetBytes([]byte) Secret
 }
 
 /*

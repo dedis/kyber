@@ -6,6 +6,7 @@ import (
 
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto/util"
 )
 
 func testEmbed(g abstract.Group, rand cipher.Stream, points *[]abstract.Point,
@@ -266,7 +267,7 @@ func TestSuite(suite abstract.Suite) {
 	}
 
 	// Test if it creates the same with the same seed
-	fs := &fixedStream{[]byte("Thisismysecretseed")}
+	fs := util.NewConstantStream(byte("Thisismysecretseed"))
 	s3 := suite.NewKey(fs)
 	s4 := suite.NewKey(fs)
 	if !s3.Equal(s4) {
@@ -283,12 +284,4 @@ func TestSuite(suite abstract.Suite) {
 
 	// Test the public-key group arithmetic
 	TestGroup(suite)
-}
-
-type fixedStream struct {
-	seed []byte
-}
-
-func (fs *fixedStream) XORKeyStream(dst, src []byte) {
-	copy(dst, fs.seed)
 }
