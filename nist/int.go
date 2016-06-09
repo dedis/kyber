@@ -134,20 +134,6 @@ func (i *Int) Set(a abstract.Secret) abstract.Secret {
 	return i
 }
 
-// Set value to a number represented in a big-endian byte string.
-func (i *Int) SetBytes(a []byte) *Int {
-	i.V.SetBytes(a).Mod(&i.V, i.M)
-	return i
-}
-
-// Set value to a number represented in a little-endian byte string.
-func (i *Int) SetLittleEndian(a []byte) *Int {
-	be := make([]byte, len(a))
-	util.Reverse(be, a)
-	i.V.SetBytes(be).Mod(&i.V, i.M)
-	return i
-}
-
 // Set to the value 0.  The modulus must already be initialized.
 func (i *Int) Zero() abstract.Secret {
 	i.V.SetInt64(0)
@@ -306,10 +292,16 @@ func (i *Int) MarshalSize() int {
 func (i *Int) MarshalBinary() ([]byte, error) {
 	l := i.MarshalSize()
 	b := i.V.Bytes() // may be shorter than l
-	if ofs := l - len(b); ofs != 0 {
+	offset := l - len(b)
+
+	if i.endianness == binary.LittleEndian {
+		return i.LittleEndian(l, l), nil
+	}
+
+	if offset != 0 {
 		nb := make([]byte, l)
-		copy(nb[ofs:], b)
-		return nb, nil
+		copy(nb[offset:], b)
+		b = nb
 	}
 	return b, nil
 }
@@ -321,19 +313,15 @@ func (i *Int) UnmarshalBinary(buf []byte) error {
 	if len(buf) != i.MarshalSize() {
 		return errors.New("Int.Decode: wrong size buffer")
 	}
-	i.V.SetBytes(buf)
+	if i.endianness == binary.LittleEndian {
+		i.SetLittleEndian(buf)
+	} else {
+		i.V.SetBytes(buf)
+	}
 	if i.V.Cmp(i.M) >= 0 {
 		return errors.New("Int.Decode: value out of range")
 	}
 	return nil
-}
-
-func (i *Int) MarshalTo(w io.Writer) (int, error) {
-	return group.SecretMarshalTo(i, w)
-}
-
-func (i *Int) UnmarshalFrom(r io.Reader) (int, error) {
-	return group.SecretUnmarshalFrom(i, r)
 }
 
 // Encode the value of this Int into a big-endian byte-slice
@@ -353,6 +341,21 @@ func (i *Int) BigEndian(min, max int) []byte {
 	return buf
 }
 
+// Set value to a number represented by a byte string.
+// Endianness depends on the endianess set in i.
+func (i *Int) SetBytes(a []byte) *Int {
+	i.V.SetBytes(a).Mod(&i.V, i.M)
+	return i
+}
+
+// Set value to a number represented in a little-endian byte string.
+func (i *Int) SetLittleEndian(a []byte) *Int {
+	be := make([]byte, len(a))
+	util.Reverse(be, a)
+	i.V.SetBytes(be).Mod(&i.V, i.M)
+	return i
+}
+
 // Encode the value of this Int into a little-endian byte-slice
 // at least min bytes but no more than max bytes long.
 // Panics if max != 0 and the Int cannot be represented in max bytes.
@@ -368,6 +371,14 @@ func (i *Int) LittleEndian(min, max int) []byte {
 	buf := make([]byte, pad)
 	util.Reverse(buf[:act], i.V.Bytes())
 	return buf
+}
+
+func (i *Int) MarshalTo(w io.Writer) (int, error) {
+	return group.SecretMarshalTo(i, w)
+}
+
+func (i *Int) UnmarshalFrom(r io.Reader) (int, error) {
+	return group.SecretUnmarshalFrom(i, r)
 }
 
 // Return the length in bytes of a uniform byte-string encoding of this Int,
@@ -424,10 +435,13 @@ func (i *Int) HideDecode(buf []byte) {
 	i.V.Mod(&i.V, i.M)
 }
 
+// SetEndianess will set the endianness of the value to end.
 func (i *Int) SetEndianness(end binary.ByteOrder) {
 	i.endianness = end
 }
 
+// Endianness returns the current endianness used when calling MarshalBinary
+// and UnmarshalBinary.
 func (i *Int) Endianness() binary.ByteOrder {
 	return i.endianness
 }
