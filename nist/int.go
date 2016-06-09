@@ -2,15 +2,17 @@ package nist
 
 import (
 	"crypto/cipher"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"io"
+	"math/big"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/math"
 	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/util"
-	"io"
-	"math/big"
 )
 
 var zero = big.NewInt(0)
@@ -37,8 +39,9 @@ var two = big.NewInt(2)
 // whose target is assumed never to change.
 //
 type Int struct {
-	V big.Int  // Integer value from 0 through M-1
-	M *big.Int // Modulus for finite field arithmetic
+	V          big.Int          // Integer value from 0 through M-1
+	M          *big.Int         // Modulus for finite field arithmetic
+	endianness binary.ByteOrder // Endianness considered for this int
 }
 
 // Create a new Int with a given int64 value and big.Int modulus.
@@ -50,6 +53,7 @@ func NewInt(v int64, M *big.Int) *Int {
 // Note that the value is copied; the modulus is not.
 func (i *Int) Init(V *big.Int, M *big.Int) *Int {
 	i.M = M
+	i.endianness = binary.BigEndian
 	i.V.Set(V).Mod(&i.V, M)
 	return i
 }
@@ -57,6 +61,7 @@ func (i *Int) Init(V *big.Int, M *big.Int) *Int {
 // Initialize a Int with an int64 value and big.Int modulus.
 func (i *Int) Init64(v int64, M *big.Int) *Int {
 	i.M = M
+	i.endianness = binary.BigEndian
 	i.V.SetInt64(v).Mod(&i.V, M)
 	return i
 }
@@ -64,6 +69,7 @@ func (i *Int) Init64(v int64, M *big.Int) *Int {
 // Initializa to a number represented in a big-endian byte string.
 func (i *Int) InitBytes(a []byte, M *big.Int) *Int {
 	i.M = M
+	i.endianness = binary.BigEndian
 	i.V.SetBytes(a).Mod(&i.V, i.M)
 	return i
 }
@@ -72,6 +78,7 @@ func (i *Int) InitBytes(a []byte, M *big.Int) *Int {
 // specified with a pair of strings in a given base.
 func (i *Int) InitString(n, d string, base int, M *big.Int) *Int {
 	i.M = M
+	i.endianness = binary.BigEndian
 	if _, succ := i.SetString(n, d, base); !succ {
 		panic("InitString: invalid fraction representation")
 	}
@@ -415,4 +422,12 @@ func (i *Int) HideDecode(buf []byte) {
 	}
 	i.V.SetBytes(buf)
 	i.V.Mod(&i.V, i.M)
+}
+
+func (i *Int) SetEndianness(end binary.ByteOrder) {
+	i.endianness = end
+}
+
+func (i *Int) Endianness() binary.ByteOrder {
+	return i.endianness
 }
