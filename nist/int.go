@@ -2,7 +2,6 @@ package nist
 
 import (
 	"crypto/cipher"
-	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"io"
@@ -18,6 +17,13 @@ import (
 var zero = big.NewInt(0)
 var one = big.NewInt(1)
 var two = big.NewInt(2)
+
+type ByteOrder bool
+
+const (
+	LittleEndian ByteOrder = false
+	BigEndian    ByteOrder = true
+)
 
 // Int is a generic implementation of finite field arithmetic
 // on integer finite fields with a given constant modulus,
@@ -39,9 +45,9 @@ var two = big.NewInt(2)
 // whose target is assumed never to change.
 //
 type Int struct {
-	V          big.Int          // Integer value from 0 through M-1
-	M          *big.Int         // Modulus for finite field arithmetic
-	endianness binary.ByteOrder // Endianness considered for this int
+	V  big.Int   // Integer value from 0 through M-1
+	M  *big.Int  // Modulus for finite field arithmetic
+	Bo ByteOrder // Endianness considered for this int
 }
 
 // Create a new Int with a given int64 value and big.Int modulus.
@@ -53,7 +59,7 @@ func NewInt(v int64, M *big.Int) *Int {
 // Note that the value is copied; the modulus is not.
 func (i *Int) Init(V *big.Int, M *big.Int) *Int {
 	i.M = M
-	i.endianness = binary.BigEndian
+	i.Bo = BigEndian
 	i.V.Set(V).Mod(&i.V, M)
 	return i
 }
@@ -61,7 +67,7 @@ func (i *Int) Init(V *big.Int, M *big.Int) *Int {
 // Initialize a Int with an int64 value and big.Int modulus.
 func (i *Int) Init64(v int64, M *big.Int) *Int {
 	i.M = M
-	i.endianness = binary.BigEndian
+	i.Bo = BigEndian
 	i.V.SetInt64(v).Mod(&i.V, M)
 	return i
 }
@@ -69,7 +75,7 @@ func (i *Int) Init64(v int64, M *big.Int) *Int {
 // Initializa to a number represented in a big-endian byte string.
 func (i *Int) InitBytes(a []byte, M *big.Int) *Int {
 	i.M = M
-	i.endianness = binary.BigEndian
+	i.Bo = BigEndian
 	i.V.SetBytes(a).Mod(&i.V, i.M)
 	return i
 }
@@ -78,7 +84,7 @@ func (i *Int) InitBytes(a []byte, M *big.Int) *Int {
 // specified with a pair of strings in a given base.
 func (i *Int) InitString(n, d string, base int, M *big.Int) *Int {
 	i.M = M
-	i.endianness = binary.BigEndian
+	i.Bo = BigEndian
 	if _, succ := i.SetString(n, d, base); !succ {
 		panic("InitString: invalid fraction representation")
 	}
@@ -294,7 +300,7 @@ func (i *Int) MarshalBinary() ([]byte, error) {
 	b := i.V.Bytes() // may be shorter than l
 	offset := l - len(b)
 
-	if i.endianness == binary.LittleEndian {
+	if i.Bo == LittleEndian {
 		return i.LittleEndian(l, l), nil
 	}
 
@@ -313,11 +319,7 @@ func (i *Int) UnmarshalBinary(buf []byte) error {
 	if len(buf) != i.MarshalSize() {
 		return errors.New("Int.Decode: wrong size buffer")
 	}
-	if i.endianness == binary.LittleEndian {
-		i.SetLittleEndian(buf)
-	} else {
-		i.V.SetBytes(buf)
-	}
+	i.SetBytes(buf)
 	if i.V.Cmp(i.M) >= 0 {
 		return errors.New("Int.Decode: value out of range")
 	}
@@ -344,15 +346,12 @@ func (i *Int) BigEndian(min, max int) []byte {
 // Set value to a number represented by a byte string.
 // Endianness depends on the endianess set in i.
 func (i *Int) SetBytes(a []byte) *Int {
-	i.V.SetBytes(a).Mod(&i.V, i.M)
-	return i
-}
-
-// Set value to a number represented in a little-endian byte string.
-func (i *Int) SetLittleEndian(a []byte) *Int {
-	be := make([]byte, len(a))
-	util.Reverse(be, a)
-	i.V.SetBytes(be).Mod(&i.V, i.M)
+	var buff = a
+	if i.Bo == LittleEndian {
+		buff = make([]byte, len(a))
+		util.Reverse(buff, a)
+	}
+	i.V.SetBytes(buff).Mod(&i.V, i.M)
 	return i
 }
 
@@ -433,15 +432,4 @@ func (i *Int) HideDecode(buf []byte) {
 	}
 	i.V.SetBytes(buf)
 	i.V.Mod(&i.V, i.M)
-}
-
-// SetEndianess will set the endianness of the value to end.
-func (i *Int) SetEndianness(end binary.ByteOrder) {
-	i.endianness = end
-}
-
-// Endianness returns the current endianness used when calling MarshalBinary
-// and UnmarshalBinary.
-func (i *Int) Endianness() binary.ByteOrder {
-	return i.endianness
 }
