@@ -348,8 +348,7 @@ func (i *Int) BigEndian(min, max int) []byte {
 func (i *Int) SetBytes(a []byte) abstract.Secret {
 	var buff = a
 	if i.BO == LittleEndian {
-		buff = make([]byte, len(a))
-		util.Reverse(buff, a)
+		buff = util.Reverse(nil, a)
 	}
 	i.V.SetBytes(buff).Mod(&i.V, i.M)
 	return i
