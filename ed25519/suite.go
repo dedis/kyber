@@ -10,7 +10,6 @@ import (
 
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher/sha3"
-	"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/random"
 )
 
@@ -45,22 +44,6 @@ func (s *suiteEd25519) New(t reflect.Type) interface{} {
 // NewKey returns a formatted Ed25519 key (avoiding subgroup attack by requiring
 // it to be a multiple of 8)
 func (s *suiteEd25519) NewKey(stream cipher.Stream) abstract.Secret {
-	scalar, _ := NewEd25519Scalar(stream)
-	nint := nist.NewInt(0, &primeOrder.V)
-	nint.Bo = nist.LittleEndian
-	nint.SetBytes(scalar)
-	return nint
-}
-
-// Ciphersuite based on AES-128, SHA-256, and the Ed25519 curve.
-func NewAES128SHA256Ed25519(fullGroup bool) abstract.Suite {
-	suite := new(suiteEd25519)
-	return suite
-}
-
-// NewEd25519Scalar returns the scalar derived from the stream and the right
-// half of the hash during the derivation of the scalar.
-func NewEd25519Scalar(stream cipher.Stream) ([]byte, []byte) {
 	if stream == nil {
 		stream = random.Stream
 	}
@@ -69,5 +52,13 @@ func NewEd25519Scalar(stream cipher.Stream) ([]byte, []byte) {
 	scalar[0] &= 0xf8
 	scalar[31] &= 0x3f
 	scalar[31] |= 0x40
-	return scalar[:32], scalar[32:]
+
+	secret := s.Secret().SetBytes(scalar[:32])
+	return secret
+}
+
+// Ciphersuite based on AES-128, SHA-256, and the Ed25519 curve.
+func NewAES128SHA256Ed25519(fullGroup bool) abstract.Suite {
+	suite := new(suiteEd25519)
+	return suite
 }

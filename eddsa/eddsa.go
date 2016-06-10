@@ -84,14 +84,7 @@ func (e *EdDSA) UnmarshalBinary(buff []byte) error {
 	return nil
 }
 
-// EdDSASign will return a EdDSA signature using Ed25519. The secret must be
-// Picked() so it can use the prefix, the right part of the hashing done in
-// Pick.
-// Takes
-// - suite is the suite to use
-// - a secret to use to sign the message
-// - A corresponding public key
-// - msg message to sign
+// Sign will return a EdDSA signature of the message msg using Ed25519.
 // NOTE: Code taken from the Python implementation from the RFC
 // https://tools.ietf.org/html/draft-josefsson-eddsa-ed25519-02
 func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
