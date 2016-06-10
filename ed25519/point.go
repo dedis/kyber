@@ -256,7 +256,7 @@ func (c *Curve) Secret() abstract.Secret {
 	//		return nist.NewInt(0, fullOrder)
 	//	} else {
 	i := nist.NewInt(0, &primeOrder.V)
-	i.Bo = nist.LittleEndian
+	i.BO = nist.LittleEndian
 	return i
 	//	}
 }

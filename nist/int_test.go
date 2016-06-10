@@ -12,17 +12,17 @@ func TestIntEndianness(t *testing.T) {
 	var v int64 = 65500
 	// Let's assume it is bigendian and test that
 	i := new(Int).Init64(v, modulo)
-	assert.Equal(t, i.Bo, BigEndian)
+	assert.Equal(t, i.BO, BigEndian)
 
 	buff1, err := i.MarshalBinary()
 	assert.Nil(t, err)
-	i.Bo = BigEndian
+	i.BO = BigEndian
 	buff2, err := i.MarshalBinary()
 	assert.Nil(t, err)
 	assert.Equal(t, buff1, buff2)
 
 	// Let's change endianness and check the result
-	i.Bo = LittleEndian
+	i.BO = LittleEndian
 	buff3, err := i.MarshalBinary()
 	assert.NotEqual(t, buff2, buff3)
 
@@ -30,7 +30,7 @@ func TestIntEndianness(t *testing.T) {
 	buff4 := i.LittleEndian(0, 32)
 	assert.Equal(t, buff3, buff4)
 	// set endianess but using littleendian should not change anything
-	i.Bo = BigEndian
+	i.BO = BigEndian
 	assert.Equal(t, buff4, i.LittleEndian(0, 32))
 
 	// Try to reconstruct the int from the buffer
@@ -40,13 +40,13 @@ func TestIntEndianness(t *testing.T) {
 	assert.Nil(t, i2.UnmarshalBinary(buff))
 	assert.True(t, i.Equal(i2))
 
-	i.Bo = LittleEndian
+	i.BO = LittleEndian
 	buff, _ = i.MarshalBinary()
-	i2.Bo = LittleEndian
+	i2.BO = LittleEndian
 	assert.Nil(t, i2.UnmarshalBinary(buff))
 	assert.True(t, i.Equal(i2))
 
-	i2.Bo = BigEndian
+	i2.BO = BigEndian
 	assert.Nil(t, i2.UnmarshalBinary(buff))
 	assert.False(t, i.Equal(i2))
 }

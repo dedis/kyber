@@ -47,7 +47,7 @@ const (
 type Int struct {
 	V  big.Int   // Integer value from 0 through M-1
 	M  *big.Int  // Modulus for finite field arithmetic
-	Bo ByteOrder // Endianness considered for this int
+	BO ByteOrder // Endianness considered for this int
 }
 
 // Create a new Int with a given int64 value and big.Int modulus.
@@ -59,7 +59,7 @@ func NewInt(v int64, M *big.Int) *Int {
 // Note that the value is copied; the modulus is not.
 func (i *Int) Init(V *big.Int, M *big.Int) *Int {
 	i.M = M
-	i.Bo = BigEndian
+	i.BO = BigEndian
 	i.V.Set(V).Mod(&i.V, M)
 	return i
 }
@@ -67,7 +67,7 @@ func (i *Int) Init(V *big.Int, M *big.Int) *Int {
 // Initialize a Int with an int64 value and big.Int modulus.
 func (i *Int) Init64(v int64, M *big.Int) *Int {
 	i.M = M
-	i.Bo = BigEndian
+	i.BO = BigEndian
 	i.V.SetInt64(v).Mod(&i.V, M)
 	return i
 }
@@ -75,7 +75,7 @@ func (i *Int) Init64(v int64, M *big.Int) *Int {
 // Initializa to a number represented in a big-endian byte string.
 func (i *Int) InitBytes(a []byte, M *big.Int) *Int {
 	i.M = M
-	i.Bo = BigEndian
+	i.BO = BigEndian
 	i.V.SetBytes(a).Mod(&i.V, i.M)
 	return i
 }
@@ -84,7 +84,7 @@ func (i *Int) InitBytes(a []byte, M *big.Int) *Int {
 // specified with a pair of strings in a given base.
 func (i *Int) InitString(n, d string, base int, M *big.Int) *Int {
 	i.M = M
-	i.Bo = BigEndian
+	i.BO = BigEndian
 	if _, succ := i.SetString(n, d, base); !succ {
 		panic("InitString: invalid fraction representation")
 	}
@@ -300,7 +300,7 @@ func (i *Int) MarshalBinary() ([]byte, error) {
 	b := i.V.Bytes() // may be shorter than l
 	offset := l - len(b)
 
-	if i.Bo == LittleEndian {
+	if i.BO == LittleEndian {
 		return i.LittleEndian(l, l), nil
 	}
 
@@ -347,7 +347,7 @@ func (i *Int) BigEndian(min, max int) []byte {
 // Endianness depends on the endianess set in i.
 func (i *Int) SetBytes(a []byte) abstract.Secret {
 	var buff = a
-	if i.Bo == LittleEndian {
+	if i.BO == LittleEndian {
 		buff = make([]byte, len(a))
 		util.Reverse(buff, a)
 	}
