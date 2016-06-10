@@ -319,7 +319,11 @@ func (i *Int) UnmarshalBinary(buf []byte) error {
 	if len(buf) != i.MarshalSize() {
 		return errors.New("Int.Decode: wrong size buffer")
 	}
-	i.SetBytes(buf)
+	// Still needed here because of the comparison with the modulo
+	if i.BO == LittleEndian {
+		buf = util.Reverse(nil, buf)
+	}
+	i.V.SetBytes(buf)
 	if i.V.Cmp(i.M) >= 0 {
 		return errors.New("Int.Decode: value out of range")
 	}
@@ -343,7 +347,8 @@ func (i *Int) BigEndian(min, max int) []byte {
 	return buf
 }
 
-// Set value to a number represented by a byte string.
+// SetBytes set the value value to a number represented
+// by a byte string.
 // Endianness depends on the endianess set in i.
 func (i *Int) SetBytes(a []byte) abstract.Secret {
 	var buff = a
@@ -352,6 +357,16 @@ func (i *Int) SetBytes(a []byte) abstract.Secret {
 	}
 	i.V.SetBytes(buff).Mod(&i.V, i.M)
 	return i
+}
+
+// Bytes returns the variable length byte slice of the value.
+// It returns the byte slice using the same endianness as i.
+func (i *Int) Bytes() []byte {
+	buff := i.V.Bytes()
+	if i.BO == LittleEndian {
+		buff = util.Reverse(buff, buff)
+	}
+	return buff
 }
 
 // Encode the value of this Int into a little-endian byte-slice
