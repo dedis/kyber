@@ -374,7 +374,8 @@ func (i *Int) Bytes() []byte {
 // Panics if max != 0 and the Int cannot be represented in max bytes.
 func (i *Int) LittleEndian(min, max int) []byte {
 	act := i.MarshalSize()
-	vSize := len(i.V.Bytes())
+	vBytes := i.V.Bytes()
+	vSize := len(vBytes)
 	if vSize < act {
 		act = vSize
 	}
@@ -386,7 +387,7 @@ func (i *Int) LittleEndian(min, max int) []byte {
 		panic("Int not representable in max bytes")
 	}
 	buf := make([]byte, pad)
-	util.Reverse(buf[:act], i.V.Bytes())
+	util.Reverse(buf[:act], vBytes)
 	return buf
 }
 
