@@ -267,7 +267,7 @@ func TestSuite(suite abstract.Suite) {
 	}
 
 	// Test if it creates the same with the same seed
-	fs := util.NewConstantStream(byte("Thisismysecretseed"))
+	fs := util.NewConstantStream([]byte("Thisismysecretseed"))
 	s3 := suite.NewKey(fs)
 	s4 := suite.NewKey(fs)
 	if !s3.Equal(s4) {

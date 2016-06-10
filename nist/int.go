@@ -360,6 +360,10 @@ func (i *Int) SetBytes(a []byte) abstract.Secret {
 // Panics if max != 0 and the Int cannot be represented in max bytes.
 func (i *Int) LittleEndian(min, max int) []byte {
 	act := i.MarshalSize()
+	vSize := len(i.V.Bytes())
+	if vSize < act {
+		act = vSize
+	}
 	pad := act
 	if pad < min {
 		pad = min

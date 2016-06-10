@@ -32,6 +32,7 @@ func NewEdDSA(stream cipher.Stream) *EdDSA {
 		stream = random.Stream
 	}
 	buffer := random.NonZeroBytes(32, stream)
+
 	scalar := sha512.Sum512(buffer)
 	scalar[0] &= 0xf8
 	scalar[31] &= 0x3f
@@ -40,14 +41,19 @@ func NewEdDSA(stream cipher.Stream) *EdDSA {
 	secret := suite.Secret().SetBytes(scalar[:32])
 	public := suite.Point().Mul(nil, secret)
 
-	return &EdDSA{buffer, scalar[32:], secret, public}
+	return &EdDSA{
+		seed:   buffer,
+		prefix: scalar[32:],
+		Secret: secret,
+		Public: public,
+	}
 }
 
 // Prefix returns the Prefix as being the right part of
 // the hashed seed
 func (e *EdDSA) Prefix() []byte {
-	c := make([]byte, len(e.seed))
-	copy(c, e.seed)
+	c := make([]byte, len(e.prefix))
+	copy(c, e.prefix)
 	return c
 }
 
@@ -64,6 +70,18 @@ func (e *EdDSA) MarshalBinary() ([]byte, error) {
 	copy(eddsa, e.seed)
 	copy(eddsa[32:], pBuff)
 	return eddsa, nil
+}
+
+func (e *EdDSA) UnmarshalBinary(buff []byte) error {
+	if len(buff) != 64 {
+		return errors.New("Wrong length for decoding EdDSA private")
+	}
+
+	e.seed = buff[:32]
+	e.prefix = buff[32:64]
+	e.Secret = suite.Secret().SetBytes(e.seed)
+	e.Public = suite.Point().Mul(nil, e.Secret)
+	return nil
 }
 
 // EdDSASign will return a EdDSA signature using Ed25519. The secret must be
