@@ -115,7 +115,7 @@ func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 	h := suite.Secret().SetBytes(hash.Sum(nil))
 
 	// response
-	// s = r  h * secret
+	// s = r  h * s
 	s := suite.Secret().Mul(e.Secret, h)
 	s.Add(r, s)
 
