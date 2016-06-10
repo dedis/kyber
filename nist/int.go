@@ -4,13 +4,14 @@ import (
 	"crypto/cipher"
 	"encoding/hex"
 	"errors"
+	"io"
+	"math/big"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/math"
 	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/util"
-	"io"
-	"math/big"
 )
 
 var zero = big.NewInt(0)
@@ -351,6 +352,11 @@ func (i *Int) BigEndian(min, max int) []byte {
 // Panics if max != 0 and the Int cannot be represented in max bytes.
 func (i *Int) LittleEndian(min, max int) []byte {
 	act := i.MarshalSize()
+	vBytes := i.V.Bytes()
+	vSize := len(vBytes)
+	if vSize < act {
+		act = vSize
+	}
 	pad := act
 	if pad < min {
 		pad = min
@@ -359,7 +365,7 @@ func (i *Int) LittleEndian(min, max int) []byte {
 		panic("Int not representable in max bytes")
 	}
 	buf := make([]byte, pad)
-	util.Reverse(buf[:act], i.V.Bytes())
+	util.Reverse(buf[:act], vBytes)
 	return buf
 }
 

@@ -2,13 +2,14 @@ package nist
 
 import (
 	"crypto/sha256"
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/cipher/sha3"
-	"github.com/dedis/crypto/random"
 	"hash"
 	"io"
 	"math/big"
 	"reflect"
+
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/cipher/sha3"
+	"github.com/dedis/crypto/random"
 )
 
 type qrsuite struct {
