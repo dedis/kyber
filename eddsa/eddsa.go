@@ -132,12 +132,12 @@ func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 	return sig[:], nil
 }
 
-// Verify verify a signature issued by EdDSA.Sign
+// Verify takes a signature issued by EdDSA.Sign and
+// return nil if it is a valid signature, or an error otherwise
 // Takes:
 //  - public key used in signing
 //  - msg is the message to sign
 //  - sig is the signature return by EdDSA.Sign
-// Returns an error on failure and nil on success
 func Verify(public abstract.Point, msg, sig []byte) error {
 	if len(sig) != 64 {
 		return errors.New("Signature length invalid")
