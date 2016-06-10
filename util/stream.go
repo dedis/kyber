@@ -2,18 +2,17 @@ package util
 
 import "crypto/cipher"
 
-// ConstantStream is a cipher.Stream which always returns
-// the same value.
-type ConstantStream struct {
+type constantStream struct {
 	seed []byte
 }
 
-// NewConstantStream returns a ConstantStream seeded with buff
-func NewConstantStream(buff []byte) cipher.Stream {
-	return &ConstantStream{buff}
+// ConstantStream is a cipher.Stream which always returns
+// the same value.
+func ConstantStream(buff []byte) cipher.Stream {
+	return &constantStream{buff}
 }
 
 // XORKexStream implements the cipher.Stream interface
-func (cs *ConstantStream) XORKeyStream(dst, src []byte) {
+func (cs *constantStream) XORKeyStream(dst, src []byte) {
 	copy(dst, cs.seed)
 }

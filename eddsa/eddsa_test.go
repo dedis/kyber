@@ -41,7 +41,7 @@ func TestEdDSASigning(t *testing.T) {
 		seed, err := hex.DecodeString(vec.private)
 		assert.Nil(t, err)
 
-		stream := util.NewConstantStream(seed)
+		stream := util.ConstantStream(seed)
 
 		ed := NewEdDSA(stream)
 
