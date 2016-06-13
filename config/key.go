@@ -31,7 +31,7 @@ func NewKeyPair(suite abstract.Suite) *KeyPair {
 // using a given source of cryptographic randomness.
 func (p *KeyPair) Gen(suite abstract.Suite, random cipher.Stream) {
 	p.Suite = suite
-	p.Secret = suite.Secret().Pick(random)
+	p.Secret = suite.NewKey(random)
 	p.Public = suite.Point().Mul(nil, p.Secret)
 }
 
