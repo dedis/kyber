@@ -1,6 +1,7 @@
 package abstract
 
 import (
+	"crypto/cipher"
 	"hash"
 )
 
@@ -39,6 +40,10 @@ type Suite interface {
 	// Generic constructor to instantiate any abstract interface type
 	// supported by this suite: at least Cipher, Hash, Point, Secret.
 	Constructor
+
+	// NewKey returns a freshly generated private key from the cipher stream.
+	// If cipher == nil, it uses random.Stream.
+	NewKey(cipher.Stream) Secret
 }
 
 // Sum uses a given ciphersuite's hash function to checksum a byte-slice.
