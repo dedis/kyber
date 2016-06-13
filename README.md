@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/DeDiS/crypto.svg)](https://travis-ci.org/DeDiS/crypto)
+[![Build Status](https://travis-ci.org/dedis/crypto.svg?branch=master)](https://travis-ci.org/dedis/crypto)
 
 DeDiS Advanced Crypto Library for Go
 ====================================

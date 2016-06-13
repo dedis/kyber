@@ -1,12 +1,15 @@
 package nist
 
 import (
+	"crypto/cipher"
 	"crypto/sha256"
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/cipher/sha3"
 	"hash"
 	"io"
 	"reflect"
+
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/cipher/sha3"
+	"github.com/dedis/crypto/random"
 )
 
 type suite128 struct {
@@ -33,6 +36,13 @@ func (s *suite128) Write(w io.Writer, objs ...interface{}) error {
 
 func (s *suite128) New(t reflect.Type) interface{} {
 	return abstract.SuiteNew(s, t)
+}
+
+func (s *suite128) NewKey(rand cipher.Stream) abstract.Secret {
+	if rand == nil {
+		rand = random.Stream
+	}
+	return s.Secret().Pick(rand)
 }
 
 // Ciphersuite based on AES-128, SHA-256, and the NIST P-256 elliptic curve.
