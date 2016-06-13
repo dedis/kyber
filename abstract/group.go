@@ -54,6 +54,9 @@ type Secret interface {
 
 	// SetBytes will take bytes and create a secret out of it
 	SetBytes([]byte) Secret
+
+	// Bytes returns the raw internal representation
+	Bytes() []byte
 }
 
 /*

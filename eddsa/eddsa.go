@@ -115,7 +115,7 @@ func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 	h := suite.Secret().SetBytes(hash.Sum(nil))
 
 	// response
-	// s = r  h * s
+	// s = r + h * s
 	s := suite.Secret().Mul(e.Secret, h)
 	s.Add(r, s)
 
@@ -162,7 +162,7 @@ func Verify(public abstract.Point, msg, sig []byte) error {
 	hash.Write(msg)
 
 	h := suite.Secret().SetBytes(hash.Sum(nil))
-	// reconstruct S == k*A  R
+	// reconstruct S == k*A + R
 	S := suite.Point().Mul(nil, s)
 	hA := suite.Point().Mul(public, h)
 	RhA := suite.Point().Add(R, hA)
