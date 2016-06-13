@@ -21,8 +21,8 @@ var two = big.NewInt(2)
 type ByteOrder bool
 
 const (
-	LittleEndian ByteOrder = false
-	BigEndian    ByteOrder = true
+	LittleEndian ByteOrder = true
+	BigEndian    ByteOrder = false
 )
 
 // Int is a generic implementation of finite field arithmetic
