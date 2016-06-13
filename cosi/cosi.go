@@ -34,45 +34,55 @@ up to its parent, unless i is the root.
 package cosi
 
 import (
-	cryptoRand "crypto/rand"
+	"crypto/cipher"
 	"crypto/sha512"
 	"errors"
 	"fmt"
-	"io"
-	"time"
 
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/random"
 	//own "github.com/nikkolasg/learning/crypto/util"
 )
 
-// Cosi is the struct that implements the basic cosi.
-type Cosi struct {
+// CoSi is the struct that implements one round of a CoSi protocol.
+// It's important to only use this struct *once per round*, and if you  try to
+// use it twice, it will try to alert you if it can.
+// You create a CoSi struct by giving your secret key you wish to pariticipate
+// with during the CoSi protocol, and the list of public keys representing the
+// list of all co-signer's public keys involved in the round.
+// To use CoSi, call three different functions on it which corresponds to the last
+// three phases of the protocols:
+//  - (Create)Commitment: creates a new secret and its commitment. The output has to
+//  be passed up to the parent in the tree.
+//  - CreateChallenge: the root creates the challenge from receiving all the
+//  commitments. This output must be sent down the tree using Challenge()
+//  function.
+//  - (Create)Response: creates and possibly aggregates all responses and the
+//  output must be sent up into the tree.
+// The root can then issue `Signature()` to get the final signature that can be
+// verified using `VerifySignature()`.
+type CoSi struct {
 	// Suite used
 	suite abstract.Suite
-	// publics is the list of public keys used for signing
-	publics []abstract.Point
 	// mask is the mask used to select which signers participated in this round
 	// or not. All code regarding the mask is directly inspired from
 	// github.com/bford/golang-x-crypto/ed25519/cosi code.
-	mask *CosiMask
-	// the longterm private key we use during the rounds
-	private abstract.Secret
+	mask *Mask
 	// the message being co-signed
 	message []byte
-	// timestamp of when the announcement is done (i.e. timestamp of the four
-	// phases)
-	timestamp int64
+	// V_hat is the aggregated commit (our own + the children's)
+	aggregateCommitment abstract.Point
+	// challenge holds the challenge for this round
+	challenge abstract.Secret
+
+	// the longterm private key CoSi will use during the response phase.
+	// The private key must have its public version in the list of publics keys
+	// given to CoSi.
+	private abstract.Secret
 	// random is our own secret that we wish to commit during the commitment phase.
 	random abstract.Secret
 	// commitment is our own commitment
 	commitment abstract.Point
-	// V_hat is the aggregated commit (our own + the children's)
-	aggregateCommitment abstract.Point
-	// globalComitment is the global commit of all participants
-	//passed down in the challenge phase
-	globalCommitment abstract.Point
-	// challenge holds the challenge for this round
-	challenge abstract.Secret
 	// response is our own computed response
 	response abstract.Secret
 	// aggregateResponses is the aggregated response from the children + our own
@@ -82,166 +92,111 @@ type Cosi struct {
 // NewCosi returns a new Cosi struct given the suite, the longterm secret, and
 // the list of public keys. If some signers were not to be participating, you
 // have to set the mask using `SetMask` method. By default, all participants are
-// designated as participating.
-func NewCosi(suite abstract.Suite, private abstract.Secret, publics []abstract.Point) *Cosi {
-	cos := &Cosi{
+// designated as participating. If you wish to specify which co-signers are
+// participating, use NewCosiWithMask
+func NewCosi(suite abstract.Suite, private abstract.Secret, publics []abstract.Point) *CoSi {
+	cos := &CoSi{
 		suite:   suite,
 		private: private,
-		publics: publics,
 	}
 	// Start with an all-disabled participation mask, then set it correctly
-	cos.mask = NewCosiMask(suite, publics)
+	cos.mask = NewMask(suite, publics)
 	return cos
 }
 
-// Announcement holds only the timestamp for that round
-type Announcement struct {
-	Timestamp int64
-}
-
-// Commitment sends it's own commit Vi and the aggregate children's
-// commit V^i
-type Commitment struct {
-	Commitment     abstract.Point
-	ChildrenCommit abstract.Point
-}
-
-// Challenge is the Hash of Commit || Publics || Msg
-// Commit is the aggregated global commit
-type Challenge struct {
-	Challenge        abstract.Secret
-	GlobalCommitment abstract.Point
-}
-
-// Response holds the actual node's response ri and the
-// aggregate response r^i
-type Response struct {
-	Response     abstract.Secret
-	ChildrenResp abstract.Secret
-}
-
-// CreateAnnouncement creates an Announcement message with the timestamp set
-// to the current time.
-func (c *Cosi) CreateAnnouncement() *Announcement {
-	now := time.Now().Unix()
-	c.timestamp = now
-	return &Announcement{now}
-}
-
-// Announce stores the timestamp and relays the message.
-func (c *Cosi) Announce(in *Announcement) *Announcement {
-	c.timestamp = in.Timestamp
-	return in
-}
-
-// CreateCommitment creates the commitment out of the random secret and returns
-// the message to pass up in the tree. This is typically called by the leaves.
-func (c *Cosi) CreateCommitment(r io.Reader) *Commitment {
-	c.genCommit(r)
-	return &Commitment{
-		Commitment: c.commitment,
+// NewCosiWithMask returns a new CoSi struct as in NewCosi but also set the
+// internal mask to the given *mask*.
+func NewCosiWithMask(suite abstract.Suite, private abstract.Secret, mask *Mask) *CoSi {
+	cos := &CoSi{
+		suite:   suite,
+		private: private,
 	}
+	cos.mask = mask
+	return cos
 }
 
-// Commit creates the commitment / secret + aggregate children commitments from
-// the children's messages.
-func (c *Cosi) Commit(r io.Reader, comms []*Commitment) *Commitment {
+// CreateCommitment creates the commitment of a random secret generated from the
+// given s stream. It returns the message to pass up in the tree. This is
+// typically called by the leaves.
+func (c *CoSi) CreateCommitment(s cipher.Stream) abstract.Point {
+	c.genCommit(s)
+	return c.commitment
+}
+
+// Commit creates the commitment / secret as in CreateCommitment and it also
+// aggregate children commitments from the children's messages.
+func (c *CoSi) Commit(s cipher.Stream, subComms []abstract.Point) abstract.Point {
 	// generate our own commit
-	c.genCommit(r)
+	c.genCommit(s)
 
-	// take the children commitment
-	childVHat := c.suite.Point().Null()
-	for _, com := range comms {
-		// Add commitment of one child
-		childVHat = childVHat.Add(childVHat, com.Commitment)
-		// add commitment of it's children if there is one (i.e. if it is not a
-		// leaf)
-		if com.ChildrenCommit != nil {
-			childVHat = childVHat.Add(childVHat, com.ChildrenCommit)
-		}
+	// add our own commitment to the aggregate commitment
+	c.aggregateCommitment = c.suite.Point().Add(c.suite.Point().Null(), c.commitment)
+	// take the children commitments
+	for _, com := range subComms {
+		c.aggregateCommitment.Add(c.aggregateCommitment, com)
 	}
-	// add our own commitment to the global V_hat
-	c.aggregateCommitment = c.suite.Point().Add(childVHat, c.commitment)
-	return &Commitment{
-		ChildrenCommit: childVHat,
-		Commitment:     c.commitment,
-	}
+	return c.aggregateCommitment
 
 }
 
 // CreateChallenge creates the challenge out of the message it has been given.
 // This is typically called by Root.
-func (c *Cosi) CreateChallenge(msg []byte) (*Challenge, error) {
+func (c *CoSi) CreateChallenge(msg []byte) (abstract.Secret, error) {
 	// H( Commit || AggPublic || M)
 	hash := sha512.New()
-
-	pb, err := c.aggregateCommitment.MarshalBinary()
-	if err != nil {
+	if _, err := c.aggregateCommitment.MarshalTo(hash); err != nil {
 		return nil, err
 	}
-	hash.Write(pb)
-	pb, err = c.mask.Aggregate().MarshalBinary()
-	if err != nil {
+	if _, err := c.mask.Aggregate().MarshalTo(hash); err != nil {
 		return nil, err
 	}
-	hash.Write(pb)
 	hash.Write(msg)
 	chalBuff := hash.Sum(nil)
 	// reducing the challenge
-	c.challenge = sliceToSecret(c.suite, chalBuff)
+	c.challenge = c.suite.Secret().SetBytes(chalBuff)
 	c.message = msg
-	return &Challenge{
-		Challenge:        c.challenge,
-		GlobalCommitment: c.aggregateCommitment,
-	}, nil
+	return c.challenge, nil
 }
 
 // Challenge keeps in memory the Challenge from the message.
-func (c *Cosi) Challenge(ch *Challenge) *Challenge {
-	c.challenge = ch.Challenge
-	c.globalCommitment = ch.GlobalCommitment
-	return ch
+func (c *CoSi) Challenge(challenge abstract.Secret) {
+	c.challenge = challenge
 }
 
 // CreateResponse is called by a leaf to create its own response from the
 // challenge + commitment + private key. It returns the response to send up to
 // the tree.
-func (c *Cosi) CreateResponse() (*Response, error) {
+func (c *CoSi) CreateResponse() (abstract.Secret, error) {
 	err := c.genResponse()
-	return &Response{Response: c.response}, err
+	return c.response, err
 }
 
 // Response generates the response from the commitment, challenge and the
 // responses of its children.
-func (c *Cosi) Response(responses []*Response) (*Response, error) {
-	// //create your own response
+func (c *CoSi) Response(responses []abstract.Secret) (abstract.Secret, error) {
+	//create your own response
 	if err := c.genResponse(); err != nil {
 		return nil, err
 	}
-	aggregateResponse := c.suite.Secret().Zero()
+	// Add our own
+	c.aggregateResponse = c.suite.Secret().Set(c.response)
 	for _, resp := range responses {
 		// add responses of child
-		aggregateResponse = aggregateResponse.Add(aggregateResponse, resp.Response)
-		// add responses of it's children if there is one (i.e. if it is not a
-		// leaf)
-		if resp.ChildrenResp != nil {
-			aggregateResponse = aggregateResponse.Add(aggregateResponse, resp.ChildrenResp)
-		}
+		c.aggregateResponse.Add(c.aggregateResponse, resp)
 	}
-	// Add our own
-	c.aggregateResponse = c.suite.Secret().Add(aggregateResponse, c.response)
-	return &Response{
-		Response:     c.response,
-		ChildrenResp: aggregateResponse,
-	}, nil
+	return c.aggregateResponse, nil
 }
 
-// Signature returns a signature in the like the EdDSA signature format plus the
-// bitmask at the end.
-// Sig = AggCommit || AggResponse || bitmask
-func (c *Cosi) Signature() []byte {
+// Signature returns a signature using the same format as EdDSA signature
+// AggregateCommit || AggregateResponse || Mask
+// *NOTE*: Signature() is only intended to be called by the root since only the
+// root knows the aggregate response.
+func (c *CoSi) Signature() []byte {
 	// Sig = R || S || bitmask
-	sigS := secretToSlice(c.aggregateResponse)
+	sigS, err := c.aggregateResponse.MarshalBinary()
+	if err != nil {
+		panic("Can't marshal response")
+	}
 	sigR, err := c.aggregateCommitment.MarshalBinary()
 	if err != nil {
 		panic("Can't generate signature !")
@@ -253,26 +208,27 @@ func (c *Cosi) Signature() []byte {
 	return final
 }
 
-// GetAggregateResponse returns the aggregated response that this cosi has
+// AggregateResponse returns the aggregated response that this cosi has
 // accumulated.
-func (c *Cosi) GetAggregateResponse() abstract.Secret {
+func (c *CoSi) AggregateResponse() abstract.Secret {
 	return c.aggregateResponse
 }
 
-// GetChallenge returns the challenge that were passed down to this cosi.
-func (c *Cosi) GetChallenge() abstract.Secret {
+// Challenge returns the challenge that were passed down to this cosi.
+func (c *CoSi) GetChallenge() abstract.Secret {
 	return c.challenge
 }
 
 // GetCommitment returns the commitment generated by this CoSi (not aggregated).
-func (c *Cosi) GetCommitment() abstract.Point {
+func (c *CoSi) GetCommitment() abstract.Point {
 	return c.commitment
 }
 
 // VerifyResponses verifies the response this CoSi has against the aggregated
-// public key the tree is using.
-// Reconstruct the AggCommit
-func (c *Cosi) VerifyResponses(aggregatedPublic abstract.Point) error {
+// public key the tree is using. This is callable by any nodes in the tree,
+// after it has aggregated its responses. You can enforce verification at each
+// level of the tree for faster reactivity.
+func (c *CoSi) VerifyResponses(aggregatedPublic abstract.Point) error {
 	k := c.challenge
 
 	// k * -aggPublic + s * B = k*-A + s*B
@@ -301,9 +257,9 @@ func VerifySignature(suite abstract.Suite, publics []abstract.Point, message, si
 		panic(err)
 	}
 	sigBuff := sig[32:64]
-	sigInt := sliceToSecret(suite, sigBuff)
+	sigInt := suite.Secret().SetBytes(sigBuff)
 	maskBuff := sig[64:]
-	mask := NewCosiMask(suite, publics)
+	mask := NewMask(suite, publics)
 	mask.Set(maskBuff)
 	aggPublic := mask.Aggregate()
 	aggPublicMarshal, err := aggPublic.MarshalBinary()
@@ -316,7 +272,7 @@ func VerifySignature(suite abstract.Suite, publics []abstract.Point, message, si
 	hash.Write(aggPublicMarshal)
 	hash.Write(message)
 	kBuff := hash.Sum(nil)
-	k := sliceToSecret(suite, kBuff)
+	k := suite.Secret().SetBytes(kBuff)
 
 	// k * -aggPublic + s * B = k*-A + s*B
 	// from s = k * a + r => s * B = k * a * B + r * B <=> s*B = k*A + r*B
@@ -333,24 +289,20 @@ func VerifySignature(suite abstract.Suite, publics []abstract.Point, message, si
 	return nil
 }
 
-// genCommit generates a random secret vi and computes it's individual commit
+// genCommit generates a random secret vi and computes its individual commit
 // Vi = G^vi
-func (c *Cosi) genCommit(r io.Reader) {
-	var reader = r
-	if r == nil {
-		reader = cryptoRand.Reader
+func (c *CoSi) genCommit(s cipher.Stream) {
+	var stream = s
+	if s == nil {
+		stream = random.Stream
 	}
-	var randomFull [64]byte
-	if _, err := io.ReadFull(reader, randomFull[:]); err != nil {
-		panic(err)
-	}
-	c.random = sliceToSecret(c.suite, randomFull[:])
+	c.random = c.suite.Secret().Pick(stream)
 	c.commitment = c.suite.Point().Mul(nil, c.random)
 	c.aggregateCommitment = c.commitment
 }
 
 // genResponse creates the response
-func (c *Cosi) genResponse() error {
+func (c *CoSi) genResponse() error {
 	if c.private == nil {
 		return errors.New("No private key given in this cosi")
 	}
@@ -361,53 +313,42 @@ func (c *Cosi) genResponse() error {
 		return errors.New("No challenge computed in this cosi")
 	}
 
-	// hash the private key
-	hash := sha512.New()
-	privKeyBuff := secretToSlice(c.private)
-	//privKeyBuff := c.private.(*nist.Int).LittleEndian(32, 32)
-
-	hash.Write(privKeyBuff)
-	h := hash.Sum(nil)
-
-	// prune it up
-	expandedPrivKey := h[0:32]
-	expandedPrivKey[0] &= 248
-	expandedPrivKey[31] &= 127
-	expandedPrivKey[31] |= 64
-	expandedPrivKeyInt := sliceToSecret(c.suite, expandedPrivKey)
-
 	// resp = random - challenge * privatekey
 	// i.e. ri = vi + c * xi
-	resp := c.suite.Secret().Mul(expandedPrivKeyInt, c.challenge)
+	resp := c.suite.Secret().Mul(c.private, c.challenge)
 	c.response = resp.Add(c.random, resp)
 	// no aggregation here
 	c.aggregateResponse = c.response
+	// paranoid protection: delete the random
+	c.random = nil
 	return nil
 }
 
-// CosiMask holds the mask utilities
-type CosiMask struct {
+// Mask holds the mask utilities
+type Mask struct {
 	mask      []byte
 	publics   []abstract.Point
 	aggPublic abstract.Point
 	suite     abstract.Suite
 }
 
-// NewCosiMask returns a new mask to use with the cosigning with all cosigners enabled
-func NewCosiMask(suite abstract.Suite, publics []abstract.Point) *CosiMask {
+// NewMask returns a new mask to use with the cosigning with all cosigners enabled
+func NewMask(suite abstract.Suite, publics []abstract.Point) *Mask {
 	// Start with an all-disabled participation mask, then set it correctly
-	cm := &CosiMask{
+	cm := &Mask{
 		publics: publics,
 		suite:   suite,
 	}
-	cm.mask = make([]byte, cm.MaskLen()) //(len(publics)+7)>>3)
+	cm.mask = make([]byte, cm.MaskLen())
 	cm.aggPublic = cm.suite.Point().Null()
 	cm.AllEnabled()
 	return cm
 
 }
 
-func (cm *CosiMask) AllEnabled() {
+// AllEnabled sets the pariticipation bit mask accordingly to make all
+// signers participating.
+func (cm *Mask) AllEnabled() {
 	for i := range cm.mask {
 		cm.mask[i] = 0xff // all disabled
 	}
@@ -424,7 +365,7 @@ func (cm *CosiMask) AllEnabled() {
 // If the mask provided is too short (or nil),
 // SetMask conservatively interprets the bits of the missing bytes
 // to be 0, or Enabled.
-func (cm *CosiMask) Set(mask []byte) error {
+func (cm *Mask) Set(mask []byte) error {
 	if cm.MaskLen() != len(mask) {
 		err := fmt.Errorf("CosiMask.MaskLen() is %d but is given %d bytes)", cm.MaskLen(), len(mask))
 		return err
@@ -452,12 +393,12 @@ func (cm *CosiMask) Set(mask []byte) error {
 
 // MaskLen returns the length in bytes
 // of a complete disable-mask for this cosigner list.
-func (cm *CosiMask) MaskLen() int {
+func (cm *Mask) MaskLen() int {
 	return (len(cm.publics) + 7) >> 3
 }
 
 // SetMaskBit enables or disables the mask bit for an individual cosigner.
-func (cm *CosiMask) SetMaskBit(signer int, enabled bool) {
+func (cm *Mask) SetMaskBit(signer int, enabled bool) {
 	if signer > len(cm.publics) {
 		panic("SetMaskBit range out of index")
 	}
@@ -478,7 +419,7 @@ func (cm *CosiMask) SetMaskBit(signer int, enabled bool) {
 
 // MaskBit returns a boolean value indicating whether
 // the indicated signer is enabled (true) or disabled (false)
-func (cm *CosiMask) MaskBit(signer int) bool {
+func (cm *Mask) MaskBit(signer int) bool {
 	if signer > len(cm.publics) {
 		panic("MaskBit given index out of range")
 	}
@@ -487,16 +428,16 @@ func (cm *CosiMask) MaskBit(signer int) bool {
 	return (cm.mask[byt] & bit) != 0
 }
 
-func (cm *CosiMask) MarshalBinary() ([]byte, error) {
+func (cm *Mask) MarshalBinary() ([]byte, error) {
 	clone := make([]byte, len(cm.mask))
 	copy(clone[:], cm.mask)
 	return clone, nil
 }
 
-func (cm *CosiMask) UnmarshalBinary(buff []byte) error {
+func (cm *Mask) UnmarshalBinary(buff []byte) error {
 	return cm.Set(buff)
 }
 
-func (cm *CosiMask) Aggregate() abstract.Point {
+func (cm *Mask) Aggregate() abstract.Point {
 	return cm.aggPublic
 }

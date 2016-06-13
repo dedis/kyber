@@ -6,14 +6,14 @@ import (
 
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/config"
-	"github.com/dedis/crypto/edwards"
+	"github.com/dedis/crypto/ed25519"
 	// XXX In order to check the compatibility with the bford fork of
 	// golang-x-crypto we do a comparison in the test. Uncomment if you want to
 	// try.
 	/*"github.com/bford/golang-x-crypto/ed25519"*/ //"github.com/bford/golang-x-crypto/ed25519/cosi"
 	/*own "github.com/nikkolasg/learning/crypto/util"*/)
 
-var testSuite = edwards.NewAES128SHA256Ed25519(false)
+var testSuite = ed25519.NewAES128SHA256Ed25519(false)
 
 // TestCosiCommitment test if the commitment generation is correct
 func TestCosiCommitment(t *testing.T) {
@@ -27,7 +27,7 @@ func TestCosiCommitment(t *testing.T) {
 	aggCommit := testSuite.Point().Null()
 	// add commitment of children
 	for _, com := range commitments {
-		aggCommit = aggCommit.Add(aggCommit, com.Commitment)
+		aggCommit = aggCommit.Add(aggCommit, com)
 	}
 	// add commitment of root
 	aggCommit = aggCommit.Add(aggCommit, root.commitment)
@@ -37,7 +37,9 @@ func TestCosiCommitment(t *testing.T) {
 }
 
 func TestCosiChallenge(t *testing.T) {
-	root, children := genPostCommitmentPhaseCosi(5)
+	cosis := genCosis(5)
+	genPostCommitmentPhaseCosi(cosis)
+	root, children := cosis[0], cosis[1:]
 	msg := []byte("Hello World Cosi\n")
 	chal, err := root.CreateChallenge(msg)
 	if err != nil {
@@ -45,7 +47,7 @@ func TestCosiChallenge(t *testing.T) {
 	}
 	for _, child := range children {
 		child.Challenge(chal)
-		if !child.challenge.Equal(chal.Challenge) {
+		if !child.challenge.Equal(chal) {
 			t.Fatal("Error during challenge on children")
 		}
 	}
@@ -55,8 +57,10 @@ func TestCosiChallenge(t *testing.T) {
 func TestCosiResponse(t *testing.T) {
 	msg := []byte("Hello World Cosi")
 	// go to the challenge phase
-	root, children := genPostChallengePhaseCosi(5, msg)
-	var responses []*Response
+	cosis := genCosis(5)
+	genPostChallengePhaseCosi(cosis, msg)
+	root, children := cosis[0], cosis[1:]
+	var responses []abstract.Secret
 
 	// for verification later
 	aggResponse := testSuite.Secret().Zero()
@@ -67,7 +71,7 @@ func TestCosiResponse(t *testing.T) {
 			t.Fatal("Error creating response:", err)
 		}
 		responses = append(responses, r)
-		aggResponse = aggResponse.Add(aggResponse, r.Response)
+		aggResponse = aggResponse.Add(aggResponse, r)
 	}
 	// pass them up to the root
 	_, err := root.Response(responses)
@@ -87,20 +91,17 @@ func TestCosiResponse(t *testing.T) {
 func TestCosiSignature(t *testing.T) {
 	msg := []byte("Hello World Cosi")
 	nb := 2
-	root, children, err := genFinalCosi(nb, msg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	cosis := genCosis(nb)
+	genFinalCosi(cosis, msg)
+	root, children := cosis[0], cosis[1:]
 	var publics []abstract.Point
 	// add root public key
-	rootPublic := Ed25519ToPublic(testSuite, root.private)
-	//fmt.Println("TestCosi genPublic root : ", own.Abstract2Hex(rootPublic))
+	rootPublic := testSuite.Point().Mul(nil, root.private)
 	publics = append(publics, rootPublic)
 	for _, ch := range children {
 		// add children public key
-		public := Ed25519ToPublic(testSuite, ch.private)
+		public := testSuite.Point().Mul(nil, ch.private)
 		publics = append(publics, public)
-		//fmt.Println("TestCosi genPublic : ", own.Abstract2Hex(public))
 	}
 	sig := root.Signature()
 
@@ -109,30 +110,57 @@ func TestCosiSignature(t *testing.T) {
 	}
 }
 
+func TestCosiSignatureWithMask(t *testing.T) {
+	msg := []byte("Hello World Cosi")
+	nb := 5
+	fail := 2
+	cosis, publics := genCosisFailing(nb, fail)
+	genFinalCosi(cosis, msg)
+	root := cosis[0]
+	sig := root.Signature()
+
+	if err := VerifySignature(testSuite, publics, msg, sig); err != nil {
+		t.Fatal("Error veriying:", err)
+	}
+
+}
+
 func genKeyPair(nb int) ([]*config.KeyPair, []abstract.Point) {
 	var kps []*config.KeyPair
 	var publics []abstract.Point
 	for i := 0; i < nb; i++ {
 		kp := config.NewKeyPair(testSuite)
-		kp.Public = Ed25519ToPublic(testSuite, kp.Secret)
 		kps = append(kps, kp)
 		publics = append(publics, kp.Public)
-		//fmt.Println("genKeyPair: genPublic: ", own.Abstract2Hex(kp.Public))
 	}
 	return kps, publics
 }
 
-func genCosis(nb int) []*Cosi {
+func genCosis(nb int) []*CoSi {
 	kps, publics := genKeyPair(nb)
-	var cosis []*Cosi
+	var cosis []*CoSi
 	for _, kp := range kps {
 		cosis = append(cosis, NewCosi(testSuite, kp.Secret, publics))
 	}
 	return cosis
 }
 
-func genCommitments(cosis []*Cosi) []*Commitment {
-	commitments := make([]*Commitment, len(cosis))
+func genCosisFailing(nb int, failing int) (cosis []*CoSi, allPublics []abstract.Point) {
+	kps, publics := genKeyPair(nb)
+	allPublics = publics
+	mask := NewMask(testSuite, publics)
+	for i := 0; i < nb; i++ {
+		if i > nb-failing {
+			mask.SetMaskBit(i, false)
+			continue
+		}
+		cosis = append(cosis, NewCosiWithMask(testSuite, kps[i].Secret, mask))
+	}
+	return
+}
+
+func genCommitments(cosis []*CoSi) []abstract.Point {
+	commitments := make([]abstract.Point, len(cosis))
 	for i := range cosis {
 		commitments[i] = cosis[i].CreateCommitment(nil)
 	}
@@ -141,27 +169,26 @@ func genCommitments(cosis []*Cosi) []*Commitment {
 
 // genPostCommitmentPhaseCosi returns the Root and its Children Cosi. They have
 // already made the Commitment phase.
-func genPostCommitmentPhaseCosi(nb int) (*Cosi, []*Cosi) {
-	cosis := genCosis(nb)
+func genPostCommitmentPhaseCosi(cosis []*CoSi) {
 	commitments := genCommitments(cosis[1:])
 	root := cosis[0]
 	root.Commit(nil, commitments)
-	return root, cosis[1:]
 }
 
-func genPostChallengePhaseCosi(nb int, msg []byte) (*Cosi, []*Cosi) {
-	r, children := genPostCommitmentPhaseCosi(nb)
-	chal, _ := r.CreateChallenge(msg)
-	for _, ch := range children {
+func genPostChallengePhaseCosi(cosis []*CoSi, msg []byte) {
+	genPostCommitmentPhaseCosi(cosis)
+	chal, _ := cosis[0].CreateChallenge(msg)
+	for _, ch := range cosis[1:] {
 		ch.Challenge(chal)
 	}
-	return r, children
 }
 
-func genFinalCosi(nb int, msg []byte) (*Cosi, []*Cosi, error) {
+func genFinalCosi(cosis []*CoSi, msg []byte) error {
+	genPostChallengePhaseCosi(cosis, msg)
+	children := cosis[1:]
+	root := cosis[0]
 	// go to the challenge phase
-	root, children := genPostChallengePhaseCosi(nb, msg)
-	var responses []*Response
+	var responses []abstract.Secret
 	for _, ch := range children {
 		resp, err := ch.CreateResponse()
 		if err != nil {
@@ -172,9 +199,9 @@ func genFinalCosi(nb int, msg []byte) (*Cosi, []*Cosi, error) {
 	// pass them up to the root
 	_, err := root.Response(responses)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Response phase failed:%v", err)
+		return fmt.Errorf("Response phase failed:%v", err)
 	}
-	return root, children, nil
+	return nil
 }
 
 /*func TestCosiEd25519(t *testing.T) {*/
