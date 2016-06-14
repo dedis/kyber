@@ -429,9 +429,10 @@ func (cm *Mask) MaskBit(signer int) bool {
 }
 
 // MarshalBinary returns the byte representation of the mask
+// The bits that are left are set to a default value (1) for
+// non malleability.
 func (cm *Mask) MarshalBinary() ([]byte, error) {
 	clone := make([]byte, len(cm.mask))
-	// default value for non malleability
 	for i := range clone {
 		clone[i] = 0xff
 	}
