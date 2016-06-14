@@ -142,6 +142,10 @@ func TestCosiSignatureWithMask(t *testing.T) {
 	if !cosi.Verify(Ed25519Publics, cosi.ThresholdPolicy(3), msg, sig) {
 		t.Error("github.com/bforg/golang-x-crypto/ed25519/cosi fork can't verify")
 	}
+	if cosi.Verify(Ed25519Publics, cosi.ThresholdPolicy(4), msg, sig) {
+		t.Error("github.com/bforg/golang-x-crypto/ed25519/cosi fork can't verify")
+	}
+
 }
 
 func genKeyPair(nb int) ([]*config.KeyPair, []abstract.Point) {
@@ -169,7 +173,7 @@ func genCosisFailing(nb int, failing int) (cosis []*CoSi, allPublics []abstract.
 	allPublics = publics
 	mask := NewMask(testSuite, publics)
 	for i := 0; i < nb; i++ {
-		if i > nb-failing {
+		if i >= nb-failing {
 			mask.SetMaskBit(i, false)
 			continue
 		}
