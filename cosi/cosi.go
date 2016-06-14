@@ -65,7 +65,8 @@ import (
 // the end of the signature with each bit index set corresponding to a missing
 // cosigner. If you need to specify a missing signer, you can call
 // SetMaskBit(i int, enabled bool) which will set the signer i disabled in the
-// mask. You can also give the full mask directly with SetMask().
+// mask. The index comes from the list of public keys you give when creating the
+// CoSi struct. You can also give the full mask directly with SetMask().
 type CoSi struct {
 	// Suite used
 	suite abstract.Suite
