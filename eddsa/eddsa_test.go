@@ -1,10 +1,10 @@
 package eddsa
 
 import (
+	"crypto/cipher"
 	"encoding/hex"
 	"testing"
 
-	"github.com/dedis/crypto/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,7 +41,7 @@ func TestEdDSASigning(t *testing.T) {
 		seed, err := hex.DecodeString(vec.private)
 		assert.Nil(t, err)
 
-		stream := util.ConstantStream(seed)
+		stream := ConstantStream(seed)
 
 		ed := NewEdDSA(stream)
 
@@ -60,4 +60,19 @@ func TestEdDSASigning(t *testing.T) {
 		}
 		assert.Nil(t, Verify(ed.Public, msg, sig))
 	}
+}
+
+type constantStream struct {
+	seed []byte
+}
+
+// ConstantStream is a cipher.Stream which always returns
+// the same value.
+func ConstantStream(buff []byte) cipher.Stream {
+	return &constantStream{buff}
+}
+
+// XORKexStream implements the cipher.Stream interface
+func (cs *constantStream) XORKeyStream(dst, src []byte) {
+	copy(dst, cs.seed)
 }
