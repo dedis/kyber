@@ -10,7 +10,6 @@ import (
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher/sha3"
 	"github.com/dedis/crypto/random"
-	//"github.com/dedis/crypto/edwards/ed25519"
 )
 
 type suiteEd25519 struct {

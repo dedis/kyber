@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/edwards"
-	"github.com/dedis/crypto/edwards/ed25519"
+	"github.com/dedis/crypto/ed25519"
 	"github.com/dedis/crypto/nist"
 )
 
