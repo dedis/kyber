@@ -6,7 +6,6 @@ import (
 
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
-	"github.com/dedis/crypto/util"
 )
 
 func testEmbed(g abstract.Group, rand cipher.Stream, points *[]abstract.Point,
@@ -267,9 +266,10 @@ func TestSuite(suite abstract.Suite) {
 	}
 
 	// Test if it creates the same with the same seed
-	fs := util.ConstantStream([]byte("Thisismysecretseed"))
-	s3 := suite.NewKey(fs)
-	s4 := suite.NewKey(fs)
+	st1 := suite.Cipher(hb)
+	st2 := suite.Cipher(hb)
+	s3 := suite.NewKey(st1)
+	s4 := suite.NewKey(st2)
 	if !s3.Equal(s4) {
 		panic("NewKey returns two different keys given same stream")
 	}

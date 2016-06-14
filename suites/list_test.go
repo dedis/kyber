@@ -1,8 +1,9 @@
 package suites
 
 import (
-	"github.com/dedis/crypto/test"
 	"testing"
+
+	"github.com/dedis/crypto/test"
 )
 
 func TestSuites(t *testing.T) {
