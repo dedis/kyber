@@ -4,16 +4,17 @@ package suites
 
 import (
 	"fmt"
+
 	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/edwards"
 	"github.com/dedis/crypto/ed25519"
+	"github.com/dedis/crypto/edwards"
 	"github.com/dedis/crypto/nist"
 )
 
 // Suites represents a map from ciphersuite name to ciphersuite.
 type Suites map[string]abstract.Suite
 
-// Returns a map of all suites
+// All Returns a map of all suites
 func All() Suites {
 	s := make(Suites)
 	s.add(nist.NewAES128SHA256P256())
@@ -23,7 +24,7 @@ func All() Suites {
 	return s
 }
 
-// StrintToSuite returns the suite for a string, or an error.
+// StringToSuite returns the suite for a string, or an error.
 func StringToSuite(s string) (abstract.Suite, error) {
 	suite, ok := All()[s]
 	if !ok {
