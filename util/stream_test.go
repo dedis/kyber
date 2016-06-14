@@ -8,7 +8,7 @@ import (
 
 func TestConstantStream(t *testing.T) {
 	seed := []byte("Hellothisismyfixedseed")
-	stream := NewConstantStream(seed)
+	stream := ConstantStream(seed)
 
 	b1 := make([]byte, len(seed))
 	b2 := make([]byte, len(seed))
