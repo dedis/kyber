@@ -61,6 +61,11 @@ import (
 //  output must be sent up into the tree.
 // The root can then issue `Signature()` to get the final signature that can be
 // verified using `VerifySignature()`.
+// To handle missing signers, the signature generation will append a bitmask at
+// the end of the signature with each bit index set corresponding to a missing
+// cosigner. If you need to specify a missing signer, you can call
+// SetMaskBit(i int, enabled bool) which will set the signer i disabled in the
+// mask. You can also give the full mask directly with SetMask().
 type CoSi struct {
 	// Suite used
 	suite abstract.Suite
