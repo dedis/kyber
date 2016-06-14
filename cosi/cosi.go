@@ -67,7 +67,7 @@ type CoSi struct {
 	// mask is the mask used to select which signers participated in this round
 	// or not. All code regarding the mask is directly inspired from
 	// github.com/bford/golang-x-crypto/ed25519/cosi code.
-	mask *Mask
+	*mask
 	// the message being co-signed
 	message []byte
 	// V_hat is the aggregated commit (our own + the children's)
@@ -95,24 +95,13 @@ type CoSi struct {
 // designated as participating. If you wish to specify which co-signers are
 // participating, use NewCosiWithMask
 func NewCosi(suite abstract.Suite, private abstract.Secret, publics []abstract.Point) *CoSi {
-	cos := &CoSi{
+	cosi := &CoSi{
 		suite:   suite,
 		private: private,
 	}
 	// Start with an all-disabled participation mask, then set it correctly
-	cos.mask = NewMask(suite, publics)
-	return cos
-}
-
-// NewCosiWithMask returns a new CoSi struct as in NewCosi but also set the
-// internal mask to the given *mask*.
-func NewCosiWithMask(suite abstract.Suite, private abstract.Secret, mask *Mask) *CoSi {
-	cos := &CoSi{
-		suite:   suite,
-		private: private,
-	}
-	cos.mask = mask
-	return cos
+	cosi.mask = newMask(suite, publics)
+	return cosi
 }
 
 // CreateCommitment creates the commitment of a random secret generated from the
@@ -243,8 +232,8 @@ func VerifySignature(suite abstract.Suite, publics []abstract.Point, message, si
 	sigBuff := sig[32:64]
 	sigInt := suite.Secret().SetBytes(sigBuff)
 	maskBuff := sig[64:]
-	mask := NewMask(suite, publics)
-	mask.Set(maskBuff)
+	mask := newMask(suite, publics)
+	mask.SetMask(maskBuff)
 	aggPublic := mask.Aggregate()
 	aggPublicMarshal, err := aggPublic.MarshalBinary()
 	if err != nil {
@@ -324,35 +313,35 @@ func (c *CoSi) genResponse() error {
 	return nil
 }
 
-// Mask holds the mask utilities
-type Mask struct {
+// mask holds the mask utilities
+type mask struct {
 	mask      []byte
 	publics   []abstract.Point
 	aggPublic abstract.Point
 	suite     abstract.Suite
 }
 
-// NewMask returns a new mask to use with the cosigning with all cosigners enabled
-func NewMask(suite abstract.Suite, publics []abstract.Point) *Mask {
+// newMask returns a new mask to use with the cosigning with all cosigners enabled
+func newMask(suite abstract.Suite, publics []abstract.Point) *mask {
 	// Start with an all-disabled participation mask, then set it correctly
-	cm := &Mask{
+	cm := &mask{
 		publics: publics,
 		suite:   suite,
 	}
 	cm.mask = make([]byte, cm.MaskLen())
 	cm.aggPublic = cm.suite.Point().Null()
-	cm.AllEnabled()
+	cm.allEnabled()
 	return cm
 
 }
 
 // AllEnabled sets the pariticipation bit mask accordingly to make all
 // signers participating.
-func (cm *Mask) AllEnabled() {
+func (cm *mask) allEnabled() {
 	for i := range cm.mask {
 		cm.mask[i] = 0xff // all disabled
 	}
-	cm.Set(make([]byte, len(cm.mask)))
+	cm.SetMask(make([]byte, len(cm.mask)))
 }
 
 // Set the entire participation bitmask according to the provided
@@ -365,7 +354,7 @@ func (cm *Mask) AllEnabled() {
 // If the mask provided is too short (or nil),
 // SetMask conservatively interprets the bits of the missing bytes
 // to be 0, or Enabled.
-func (cm *Mask) Set(mask []byte) error {
+func (cm *mask) SetMask(mask []byte) error {
 	if cm.MaskLen() != len(mask) {
 		err := fmt.Errorf("CosiMask.MaskLen() is %d but is given %d bytes)", cm.MaskLen(), len(mask))
 		return err
@@ -393,12 +382,12 @@ func (cm *Mask) Set(mask []byte) error {
 
 // MaskLen returns the length in bytes
 // of a complete disable-mask for this cosigner list.
-func (cm *Mask) MaskLen() int {
+func (cm *mask) MaskLen() int {
 	return (len(cm.publics) + 7) >> 3
 }
 
 // SetMaskBit enables or disables the mask bit for an individual cosigner.
-func (cm *Mask) SetMaskBit(signer int, enabled bool) {
+func (cm *mask) SetMaskBit(signer int, enabled bool) {
 	if signer > len(cm.publics) {
 		panic("SetMaskBit range out of index")
 	}
@@ -419,7 +408,7 @@ func (cm *Mask) SetMaskBit(signer int, enabled bool) {
 
 // MaskBit returns a boolean value indicating whether
 // the indicated signer is enabled (true) or disabled (false)
-func (cm *Mask) MaskBit(signer int) bool {
+func (cm *mask) MaskBit(signer int) bool {
 	if signer > len(cm.publics) {
 		panic("MaskBit given index out of range")
 	}
@@ -428,24 +417,19 @@ func (cm *Mask) MaskBit(signer int) bool {
 	return (cm.mask[byt] & bit) != 0
 }
 
-// MarshalBinary returns the byte representation of the mask
+// bytes returns the byte representation of the mask
 // The bits that are left are set to a default value (1) for
 // non malleability.
-func (cm *Mask) MarshalBinary() ([]byte, error) {
+func (cm *mask) bytes() []byte {
 	clone := make([]byte, len(cm.mask))
 	for i := range clone {
 		clone[i] = 0xff
 	}
 	copy(clone[:], cm.mask)
-	return clone, nil
+	return clone
 }
 
-// UnmarshalBinary creates a Mask out of the buffer
-func (cm *Mask) UnmarshalBinary(buff []byte) error {
-	return cm.Set(buff)
-}
-
-// Aggregate returns the aggregate public key of all participating signers
-func (cm *Mask) Aggregate() abstract.Point {
+// Aggregate returns the aggregate public key of all *participating* signers
+func (cm *mask) Aggregate() abstract.Point {
 	return cm.aggPublic
 }

@@ -171,13 +171,13 @@ func genCosis(nb int) []*CoSi {
 func genCosisFailing(nb int, failing int) (cosis []*CoSi, allPublics []abstract.Point) {
 	kps, publics := genKeyPair(nb)
 	allPublics = publics
-	mask := NewMask(testSuite, publics)
-	for i := 0; i < nb; i++ {
-		if i >= nb-failing {
-			mask.SetMaskBit(i, false)
-			continue
+	for i := 0; i < nb-failing; i++ {
+		cosis = append(cosis, NewCosi(testSuite, kps[i].Secret, allPublics))
+	}
+	for i := range cosis {
+		for j := nb - failing; j < nb; j++ {
+			cosis[i].SetMaskBit(j, false)
 		}
-		cosis = append(cosis, NewCosiWithMask(testSuite, kps[i].Secret, mask))
 	}
 	return
 }
