@@ -18,6 +18,13 @@ var zero = big.NewInt(0)
 var one = big.NewInt(1)
 var two = big.NewInt(2)
 
+type ByteOrder bool
+
+const (
+	LittleEndian ByteOrder = true
+	BigEndian    ByteOrder = false
+)
+
 // Int is a generic implementation of finite field arithmetic
 // on integer finite fields with a given constant modulus,
 // built using Go's built-in big.Int package.
@@ -38,8 +45,9 @@ var two = big.NewInt(2)
 // whose target is assumed never to change.
 //
 type Int struct {
-	V big.Int  // Integer value from 0 through M-1
-	M *big.Int // Modulus for finite field arithmetic
+	V  big.Int   // Integer value from 0 through M-1
+	M  *big.Int  // Modulus for finite field arithmetic
+	BO ByteOrder // Endianness considered for this int
 }
 
 // Create a new Int with a given int64 value and big.Int modulus.
@@ -51,6 +59,7 @@ func NewInt(v int64, M *big.Int) *Int {
 // Note that the value is copied; the modulus is not.
 func (i *Int) Init(V *big.Int, M *big.Int) *Int {
 	i.M = M
+	i.BO = BigEndian
 	i.V.Set(V).Mod(&i.V, M)
 	return i
 }
@@ -58,6 +67,7 @@ func (i *Int) Init(V *big.Int, M *big.Int) *Int {
 // Initialize a Int with an int64 value and big.Int modulus.
 func (i *Int) Init64(v int64, M *big.Int) *Int {
 	i.M = M
+	i.BO = BigEndian
 	i.V.SetInt64(v).Mod(&i.V, M)
 	return i
 }
@@ -65,6 +75,7 @@ func (i *Int) Init64(v int64, M *big.Int) *Int {
 // Initializa to a number represented in a big-endian byte string.
 func (i *Int) InitBytes(a []byte, M *big.Int) *Int {
 	i.M = M
+	i.BO = BigEndian
 	i.V.SetBytes(a).Mod(&i.V, i.M)
 	return i
 }
@@ -73,6 +84,7 @@ func (i *Int) InitBytes(a []byte, M *big.Int) *Int {
 // specified with a pair of strings in a given base.
 func (i *Int) InitString(n, d string, base int, M *big.Int) *Int {
 	i.M = M
+	i.BO = BigEndian
 	if _, succ := i.SetString(n, d, base); !succ {
 		panic("InitString: invalid fraction representation")
 	}
@@ -125,20 +137,6 @@ func (i *Int) Set(a abstract.Secret) abstract.Secret {
 	ai := a.(*Int)
 	i.V.Set(&ai.V)
 	i.M = ai.M
-	return i
-}
-
-// Set value to a number represented in a big-endian byte string.
-func (i *Int) SetBytes(a []byte) *Int {
-	i.V.SetBytes(a).Mod(&i.V, i.M)
-	return i
-}
-
-// Set value to a number represented in a little-endian byte string.
-func (i *Int) SetLittleEndian(a []byte) *Int {
-	be := make([]byte, len(a))
-	util.Reverse(be, a)
-	i.V.SetBytes(be).Mod(&i.V, i.M)
 	return i
 }
 
@@ -300,10 +298,16 @@ func (i *Int) MarshalSize() int {
 func (i *Int) MarshalBinary() ([]byte, error) {
 	l := i.MarshalSize()
 	b := i.V.Bytes() // may be shorter than l
-	if ofs := l - len(b); ofs != 0 {
+	offset := l - len(b)
+
+	if i.BO == LittleEndian {
+		return i.LittleEndian(l, l), nil
+	}
+
+	if offset != 0 {
 		nb := make([]byte, l)
-		copy(nb[ofs:], b)
-		return nb, nil
+		copy(nb[offset:], b)
+		b = nb
 	}
 	return b, nil
 }
@@ -315,19 +319,15 @@ func (i *Int) UnmarshalBinary(buf []byte) error {
 	if len(buf) != i.MarshalSize() {
 		return errors.New("Int.Decode: wrong size buffer")
 	}
+	// Still needed here because of the comparison with the modulo
+	if i.BO == LittleEndian {
+		buf = util.Reverse(nil, buf)
+	}
 	i.V.SetBytes(buf)
 	if i.V.Cmp(i.M) >= 0 {
 		return errors.New("Int.Decode: value out of range")
 	}
 	return nil
-}
-
-func (i *Int) MarshalTo(w io.Writer) (int, error) {
-	return group.SecretMarshalTo(i, w)
-}
-
-func (i *Int) UnmarshalFrom(r io.Reader) (int, error) {
-	return group.SecretUnmarshalFrom(i, r)
 }
 
 // Encode the value of this Int into a big-endian byte-slice
@@ -345,6 +345,28 @@ func (i *Int) BigEndian(min, max int) []byte {
 	buf := make([]byte, pad)
 	copy(buf[ofs:], i.V.Bytes())
 	return buf
+}
+
+// SetBytes set the value value to a number represented
+// by a byte string.
+// Endianness depends on the endianess set in i.
+func (i *Int) SetBytes(a []byte) abstract.Secret {
+	var buff = a
+	if i.BO == LittleEndian {
+		buff = util.Reverse(nil, a)
+	}
+	i.V.SetBytes(buff).Mod(&i.V, i.M)
+	return i
+}
+
+// Bytes returns the variable length byte slice of the value.
+// It returns the byte slice using the same endianness as i.
+func (i *Int) Bytes() []byte {
+	buff := i.V.Bytes()
+	if i.BO == LittleEndian {
+		buff = util.Reverse(buff, buff)
+	}
+	return buff
 }
 
 // Encode the value of this Int into a little-endian byte-slice
@@ -367,6 +389,14 @@ func (i *Int) LittleEndian(min, max int) []byte {
 	buf := make([]byte, pad)
 	util.Reverse(buf[:act], vBytes)
 	return buf
+}
+
+func (i *Int) MarshalTo(w io.Writer) (int, error) {
+	return group.SecretMarshalTo(i, w)
+}
+
+func (i *Int) UnmarshalFrom(r io.Reader) (int, error) {
+	return group.SecretUnmarshalFrom(i, r)
 }
 
 // Return the length in bytes of a uniform byte-string encoding of this Int,
