@@ -4,7 +4,8 @@ go:
       - 1.6
 
 script:
-      - go test -race -p=1 ./...
+      - ./gofmt.sh
+      - go test -v -race ./...
 
 notifications:
       email: false
