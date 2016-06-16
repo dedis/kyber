@@ -92,7 +92,7 @@ func (p *intPoint) Mul(b abstract.Point, s abstract.Scalar) abstract.Point {
 	if b == nil {
 		return p.Base().Mul(p, s)
 	}
-	C.element_pow_zn(&p.e[0], &b.(*intPoint).e[0], &s.(*secret).e[0])
+	C.element_pow_zn(&p.e[0], &b.(*intPoint).e[0], &s.(*scalar).e[0])
 	return p
 }
 

@@ -195,7 +195,7 @@ func (p *point) Neg(ca abstract.Point) abstract.Point {
 }
 
 func (p *point) Mul(cb abstract.Point, cs abstract.Scalar) abstract.Point {
-	s := cs.(*secret)
+	s := cs.(*scalar)
 	if cb == nil { // multiply standard generator
 		if C.EC_POINT_mul(p.c.g, p.p, s.bignum.bn, nil, nil,
 			p.c.ctx) == 0 {

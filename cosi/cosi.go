@@ -10,7 +10,7 @@ The CoSi-protocol has 4 stages:
 of the start of this round down through the spanning tree,
 optionally including the statement S to be signed.
 
-2. Commitment: Each node i picks a random secret vi and
+2. Commitment: Each node i picks a random scalar vi and
 computes its individual commit Vi = Gvi . In a bottom-up
 process, each node i waits for an aggregate commit Vˆj from
 each immediate child j, if any. Node i then computes its
@@ -148,7 +148,7 @@ func (c *CoSi) CreateChallenge(msg []byte) (abstract.Scalar, error) {
 	hash.Write(msg)
 	chalBuff := hash.Sum(nil)
 	// reducing the challenge
-	c.challenge = c.suite.Secret().SetBytes(chalBuff)
+	c.challenge = c.suite.Scalar().SetBytes(chalBuff)
 	c.message = msg
 	return c.challenge, nil
 }
@@ -174,7 +174,7 @@ func (c *CoSi) Response(responses []abstract.Scalar) (abstract.Scalar, error) {
 		return nil, err
 	}
 	// Add our own
-	c.aggregateResponse = c.suite.Secret().Set(c.response)
+	c.aggregateResponse = c.suite.Scalar().Set(c.response)
 	for _, resp := range responses {
 		// add responses of child
 		c.aggregateResponse.Add(c.aggregateResponse, resp)
@@ -236,7 +236,7 @@ func VerifySignature(suite abstract.Suite, publics []abstract.Point, message, si
 		panic(err)
 	}
 	sigBuff := sig[32:64]
-	sigInt := suite.Secret().SetBytes(sigBuff)
+	sigInt := suite.Scalar().SetBytes(sigBuff)
 	maskBuff := sig[64:]
 	mask := newMask(suite, publics)
 	mask.SetMask(maskBuff)
@@ -251,7 +251,7 @@ func VerifySignature(suite abstract.Suite, publics []abstract.Point, message, si
 	hash.Write(aggPublicMarshal)
 	hash.Write(message)
 	buff := hash.Sum(nil)
-	k := suite.Secret().SetBytes(buff)
+	k := suite.Scalar().SetBytes(buff)
 
 	// k * -aggPublic + s * B = k*-A + s*B
 	// from s = k * a + r => s * B = k * a * B + r * B <=> s*B = k*A + r*B
@@ -284,14 +284,14 @@ func (c *CoSi) GetCommitment() abstract.Point {
 	return c.commitment
 }
 
-// genCommit generates a random secret vi and computes its individual commit
+// genCommit generates a random scalar vi and computes its individual commit
 // Vi = G^vi
 func (c *CoSi) genCommit(s cipher.Stream) {
 	var stream = s
 	if s == nil {
 		stream = random.Stream
 	}
-	c.random = c.suite.Secret().Pick(stream)
+	c.random = c.suite.Scalar().Pick(stream)
 	c.commitment = c.suite.Point().Mul(nil, c.random)
 	c.aggregateCommitment = c.commitment
 }
@@ -302,7 +302,7 @@ func (c *CoSi) genResponse() error {
 		return errors.New("No private key given in this cosi")
 	}
 	if c.random == nil {
-		return errors.New("No random secret computed in this cosi")
+		return errors.New("No random scalar computed in this cosi")
 	}
 	if c.challenge == nil {
 		return errors.New("No challenge computed in this cosi")
@@ -310,7 +310,7 @@ func (c *CoSi) genResponse() error {
 
 	// resp = random - challenge * privatekey
 	// i.e. ri = vi + c * xi
-	resp := c.suite.Secret().Mul(c.private, c.challenge)
+	resp := c.suite.Scalar().Mul(c.private, c.challenge)
 	c.response = resp.Add(c.random, resp)
 	// no aggregation here
 	c.aggregateResponse = c.response

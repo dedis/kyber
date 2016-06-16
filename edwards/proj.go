@@ -150,7 +150,7 @@ func (P *projPoint) Add(CP1, CP2 abstract.Point) abstract.Point {
 	return P
 }
 
-// Subtract points so that their secrets subtract homomorphically
+// Subtract points so that their scalars subtract homomorphically
 func (P *projPoint) Sub(CP1, CP2 abstract.Point) abstract.Point {
 	P1 := CP1.(*projPoint)
 	P2 := CP2.(*projPoint)

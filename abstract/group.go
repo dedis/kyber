@@ -5,7 +5,7 @@ import (
 )
 
 /*
-A Scalar abstractly represents a secret value by which
+A Scalar abstractly represents a scalar value by which
 a Point (group element) may be encrypted to produce another Point.
 This is an exponent in DSA-style groups,
 in which security is based on the Discrete Logarithm assumption,
@@ -26,30 +26,30 @@ type Scalar interface {
 	// Set to the additive identity (0)
 	Zero() Scalar
 
-	// Set to the modular sum of secrets a and b
+	// Set to the modular sum of scalars a and b
 	Add(a, b Scalar) Scalar
 
 	// Set to the modular difference a - b
 	Sub(a, b Scalar) Scalar
 
-	// Set to the modular negation of secret a
+	// Set to the modular negation of scalar a
 	Neg(a Scalar) Scalar
 
 	// Set to the multiplicative identity (1)
 	One() Scalar
 
-	// Set to the modular product of secrets a and b
+	// Set to the modular product of scalars a and b
 	Mul(a, b Scalar) Scalar
 
-	// Set to the modular division of secret a by secret b
+	// Set to the modular division of scalar a by scalar b
 	Div(a, b Scalar) Scalar
 
-	// Set to the modular inverse of secret a
+	// Set to the modular inverse of scalar a
 	Inv(a Scalar) Scalar
 
-	// Set to a fresh random or pseudo-random secret
+	// Set to a fresh random or pseudo-random scalar
 	Pick(rand cipher.Stream) Scalar
-	// SetBytes will take bytes and create a secret out of it
+	// SetBytes will take bytes and create a scalar out of it
 	SetBytes([]byte) Scalar
 
 	// Bytes returns the raw internal representation
@@ -90,16 +90,16 @@ type Point interface {
 	// Returns an error if doesn't represent valid embedded data.
 	Data() ([]byte, error)
 
-	// Add points so that their secrets add homomorphically
+	// Add points so that their scalars add homomorphically
 	Add(a, b Point) Point
 
-	// Subtract points so that their secrets subtract homomorphically
+	// Subtract points so that their scalars subtract homomorphically
 	Sub(a, b Point) Point
 
 	// Set to the negation of point a
 	Neg(a Point) Point
 
-	// Encrypt point p by multiplying with secret s.
+	// Encrypt point p by multiplying with scalar s.
 	// If p == nil, encrypt the standard base point Base().
 	Mul(p Point, s Scalar) Point
 }
@@ -141,8 +141,8 @@ XXX should probably delete the somewhat redundant ...Len() methods.
 type Group interface {
 	String() string
 
-	ScalarLen() int // Max len of secrets in bytes
-	Scalar() Scalar // Create new secret
+	ScalarLen() int // Max len of scalars in bytes
+	Scalar() Scalar // Create new scalar
 
 	PointLen() int // Max len of point in bytes
 	Point() Point  // Create new point

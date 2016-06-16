@@ -53,7 +53,7 @@ func (s *suiteEd25519) NewKey(stream cipher.Stream) abstract.Scalar {
 	scalar[31] &= 0x3f
 	scalar[31] |= 0x40
 
-	secret := s.Secret().SetBytes(scalar[:32])
+	secret := s.Scalar().SetBytes(scalar[:32])
 	return secret
 }
 

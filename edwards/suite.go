@@ -45,7 +45,7 @@ func (s *suiteEd25519) NewKey(rand cipher.Stream) abstract.Scalar {
 	if rand == nil {
 		rand = random.Stream
 	}
-	return s.Secret().Pick(rand)
+	return s.Scalar().Pick(rand)
 }
 
 // Ciphersuite based on AES-128, SHA-256, and the Ed25519 curve.

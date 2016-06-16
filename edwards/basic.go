@@ -147,7 +147,7 @@ func (P *basicPoint) double() abstract.Point {
 	return P.Add(P, P)
 }
 
-// Subtract points so that their secrets subtract homomorphically
+// Subtract points so that their scalars subtract homomorphically
 func (P *basicPoint) Sub(A, B abstract.Point) abstract.Point {
 	var nB basicPoint
 	return P.Add(A, nB.Neg(B))

@@ -8,7 +8,7 @@ import (
 )
 
 // CipherState defines an interface to an abstract symmetric message cipher.
-// The cipher embodies a secret that may be used to encrypt/decrypt data
+// The cipher embodies a scalar that may be used to encrypt/decrypt data
 // as well as to generate cryptographically random bits.
 // The Cipher can also cryptographically absorb data or key material,
 // updating its state to produce cryptographic hashes and authenticators.
@@ -138,7 +138,7 @@ var NoKey = []byte{}
 var RandomKey []byte = nil
 
 // Cipher represents a general-purpose symmetric message cipher.
-// A Cipher instance embodies a secret that may be used to encrypt/decrypt data
+// A Cipher instance embodies a scalar that may be used to encrypt/decrypt data
 // as well as to generate cryptographically random bits.
 // The Cipher can also cryptographically absorb data or key material,
 // updating its state to produce cryptographic hashes and authenticators.

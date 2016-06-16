@@ -18,7 +18,7 @@ exactly what kind of group,
 let alone which precise security parameters or elliptic curves,
 are being used.
 The abstract group interface supports the standard algebraic
-operations on group elements and secrets that nontrivial
+operations on group elements and scalars that nontrivial
 public-key algorithms tend to rely on.
 The interface uses additive group terminology typical for elliptic curves,
 such that point addition is homomorphically equivalent to

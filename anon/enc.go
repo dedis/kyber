@@ -35,7 +35,7 @@ func header(suite abstract.Suite, X abstract.Point, x abstract.Scalar,
 	//fmt.Printf("Xb %s\nxb %s\n",
 	//		hex.EncodeToString(Xb),hex.EncodeToString(xb))
 
-	// Encrypt the master secret key with each public key in the set
+	// Encrypt the master scalar key with each public key in the set
 	S := suite.Point()
 	hdr := Xb
 	for i := range anonymitySet {

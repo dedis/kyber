@@ -280,7 +280,7 @@ func (p *Deal) ConstructDeal(secretPair *config.KeyPair,
 /* Initializes a Deal for unmarshalling
  *
  * Arguments
- *    t           = the minimum number of shares needed to reconstruct the secret
+ *    t           = the minimum number of shares needed to reconstruct the scalar
  *    r           = the minimum number of positive Response's needed to cerifty the
  *                  deal
  *    n           = the total number of insurers.
@@ -316,9 +316,9 @@ func (p *Deal) verifyDeal() error {
 	if p.t > p.n || p.t > p.r || p.r > p.n {
 		return errors.New("Invalid t-of-n shares Deal. Expected: t <= r <= n")
 	}
-	// There should be a secret and public key for each of the n insurers.
+	// There should be a scalar and public key for each of the n insurers.
 	if len(p.insurers) != p.n || len(p.secrets) != p.n {
-		return errors.New("Insurers and secrets array should be of length deal.n")
+		return errors.New("Insurers and scalars array should be of length deal.n")
 	}
 	return nil
 }
@@ -350,8 +350,8 @@ func (p *Deal) Insurers() []abstract.Point {
 	return result
 }
 
-/* Given a Diffie-Hellman shared public key, produces a secret to encrypt
- * another secret
+/* Given a Diffie-Hellman shared public key, produces a scalar to encrypt
+ * another scalar
  *
  * Arguments
  *    diffieBase  = the DH shared public key

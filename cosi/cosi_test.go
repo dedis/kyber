@@ -62,7 +62,7 @@ func TestCosiResponse(t *testing.T) {
 	var responses []abstract.Scalar
 
 	// for verification later
-	aggResponse := testSuite.Secret().Zero()
+	aggResponse := testSuite.Scalar().Zero()
 	for _, ch := range children {
 		// generate the response of each children
 		r, err := ch.CreateResponse()
