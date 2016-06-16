@@ -17,7 +17,7 @@ import (
 type KeyPair struct {
 	Suite  abstract.Suite  // Ciphersuite this keypair is for
 	Public abstract.Point  // Public key
-	Secret abstract.Secret // Secret key
+	Secret abstract.Scalar // Secret key
 }
 
 // NewKeyPair directly creates a secret/public key pair

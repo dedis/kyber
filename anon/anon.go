@@ -13,7 +13,7 @@ type Set []abstract.Point
 type PriKey struct {
 	Set                  // Public key-set
 	Mine int             // Index of the public key I own
-	Pri  abstract.Secret // Private key for that public key
+	Pri  abstract.Scalar // Private key for that public key
 }
 
 // XXX name PubSet, PriSet?

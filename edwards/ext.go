@@ -3,11 +3,12 @@ package edwards
 import (
 	"crypto/cipher"
 	"encoding/hex"
+	"io"
+	"math/big"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/nist"
-	"io"
-	"math/big"
 )
 
 type extPoint struct {
@@ -227,7 +228,7 @@ func (P *extPoint) double() {
 // switching between projective and extended coordinates during
 // scalar multiplication.
 //
-func (P *extPoint) Mul(G abstract.Point, s abstract.Secret) abstract.Point {
+func (P *extPoint) Mul(G abstract.Point, s abstract.Scalar) abstract.Point {
 	v := s.(*nist.Int).V
 	if G == nil {
 		return P.Base().Mul(P, s)

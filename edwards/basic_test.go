@@ -3,8 +3,9 @@
 package edwards
 
 import (
-	"github.com/dedis/crypto/test"
 	"testing"
+
+	"github.com/dedis/crypto/test"
 )
 
 // Test the basic implementation of the Ed25519 curve.

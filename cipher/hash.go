@@ -1,9 +1,10 @@
 package cipher
 
 import (
+	"hash"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/util"
-	"hash"
 )
 
 // Wrapper to use a generic mesage Cipher as a Hash

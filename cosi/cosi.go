@@ -10,7 +10,7 @@ The CoSi-protocol has 4 stages:
 of the start of this round down through the spanning tree,
 optionally including the statement S to be signed.
 
-2. Commitment: Each node i picks a random secret vi and
+2. Commitment: Each node i picks a random scalar vi and
 computes its individual commit Vi = Gvi . In a bottom-up
 process, each node i waits for an aggregate commit Vˆj from
 each immediate child j, if any. Node i then computes its
@@ -79,20 +79,20 @@ type CoSi struct {
 	// V_hat is the aggregated commit (our own + the children's)
 	aggregateCommitment abstract.Point
 	// challenge holds the challenge for this round
-	challenge abstract.Secret
+	challenge abstract.Scalar
 
 	// the longterm private key CoSi will use during the response phase.
 	// The private key must have its public version in the list of publics keys
 	// given to CoSi.
-	private abstract.Secret
+	private abstract.Scalar
 	// random is our own secret that we wish to commit during the commitment phase.
-	random abstract.Secret
+	random abstract.Scalar
 	// commitment is our own commitment
 	commitment abstract.Point
 	// response is our own computed response
-	response abstract.Secret
+	response abstract.Scalar
 	// aggregateResponses is the aggregated response from the children + our own
-	aggregateResponse abstract.Secret
+	aggregateResponse abstract.Scalar
 }
 
 // NewCosi returns a new Cosi struct given the suite, the longterm secret, and
@@ -100,7 +100,7 @@ type CoSi struct {
 // have to set the mask using `SetMask` method. By default, all participants are
 // designated as participating. If you wish to specify which co-signers are
 // participating, use NewCosiWithMask
-func NewCosi(suite abstract.Suite, private abstract.Secret, publics []abstract.Point) *CoSi {
+func NewCosi(suite abstract.Suite, private abstract.Scalar, publics []abstract.Point) *CoSi {
 	cosi := &CoSi{
 		suite:   suite,
 		private: private,
@@ -136,7 +136,7 @@ func (c *CoSi) Commit(s cipher.Stream, subComms []abstract.Point) abstract.Point
 
 // CreateChallenge creates the challenge out of the message it has been given.
 // This is typically called by Root.
-func (c *CoSi) CreateChallenge(msg []byte) (abstract.Secret, error) {
+func (c *CoSi) CreateChallenge(msg []byte) (abstract.Scalar, error) {
 	// H( Commit || AggPublic || M)
 	hash := sha512.New()
 	if _, err := c.aggregateCommitment.MarshalTo(hash); err != nil {
@@ -148,33 +148,33 @@ func (c *CoSi) CreateChallenge(msg []byte) (abstract.Secret, error) {
 	hash.Write(msg)
 	chalBuff := hash.Sum(nil)
 	// reducing the challenge
-	c.challenge = c.suite.Secret().SetBytes(chalBuff)
+	c.challenge = c.suite.Scalar().SetBytes(chalBuff)
 	c.message = msg
 	return c.challenge, nil
 }
 
 // Challenge keeps in memory the Challenge from the message.
-func (c *CoSi) Challenge(challenge abstract.Secret) {
+func (c *CoSi) Challenge(challenge abstract.Scalar) {
 	c.challenge = challenge
 }
 
 // CreateResponse is called by a leaf to create its own response from the
 // challenge + commitment + private key. It returns the response to send up to
 // the tree.
-func (c *CoSi) CreateResponse() (abstract.Secret, error) {
+func (c *CoSi) CreateResponse() (abstract.Scalar, error) {
 	err := c.genResponse()
 	return c.response, err
 }
 
 // Response generates the response from the commitment, challenge and the
 // responses of its children.
-func (c *CoSi) Response(responses []abstract.Secret) (abstract.Secret, error) {
+func (c *CoSi) Response(responses []abstract.Scalar) (abstract.Scalar, error) {
 	//create your own response
 	if err := c.genResponse(); err != nil {
 		return nil, err
 	}
 	// Add our own
-	c.aggregateResponse = c.suite.Secret().Set(c.response)
+	c.aggregateResponse = c.suite.Scalar().Set(c.response)
 	for _, resp := range responses {
 		// add responses of child
 		c.aggregateResponse.Add(c.aggregateResponse, resp)
@@ -236,7 +236,7 @@ func VerifySignature(suite abstract.Suite, publics []abstract.Point, message, si
 		panic(err)
 	}
 	sigBuff := sig[32:64]
-	sigInt := suite.Secret().SetBytes(sigBuff)
+	sigInt := suite.Scalar().SetBytes(sigBuff)
 	maskBuff := sig[64:]
 	mask := newMask(suite, publics)
 	mask.SetMask(maskBuff)
@@ -251,7 +251,7 @@ func VerifySignature(suite abstract.Suite, publics []abstract.Point, message, si
 	hash.Write(aggPublicMarshal)
 	hash.Write(message)
 	buff := hash.Sum(nil)
-	k := suite.Secret().SetBytes(buff)
+	k := suite.Scalar().SetBytes(buff)
 
 	// k * -aggPublic + s * B = k*-A + s*B
 	// from s = k * a + r => s * B = k * a * B + r * B <=> s*B = k*A + r*B
@@ -270,12 +270,12 @@ func VerifySignature(suite abstract.Suite, publics []abstract.Point, message, si
 
 // AggregateResponse returns the aggregated response that this cosi has
 // accumulated.
-func (c *CoSi) AggregateResponse() abstract.Secret {
+func (c *CoSi) AggregateResponse() abstract.Scalar {
 	return c.aggregateResponse
 }
 
 // GetChallenge returns the challenge that were passed down to this cosi.
-func (c *CoSi) GetChallenge() abstract.Secret {
+func (c *CoSi) GetChallenge() abstract.Scalar {
 	return c.challenge
 }
 
@@ -284,14 +284,14 @@ func (c *CoSi) GetCommitment() abstract.Point {
 	return c.commitment
 }
 
-// genCommit generates a random secret vi and computes its individual commit
+// genCommit generates a random scalar vi and computes its individual commit
 // Vi = G^vi
 func (c *CoSi) genCommit(s cipher.Stream) {
 	var stream = s
 	if s == nil {
 		stream = random.Stream
 	}
-	c.random = c.suite.Secret().Pick(stream)
+	c.random = c.suite.Scalar().Pick(stream)
 	c.commitment = c.suite.Point().Mul(nil, c.random)
 	c.aggregateCommitment = c.commitment
 }
@@ -302,7 +302,7 @@ func (c *CoSi) genResponse() error {
 		return errors.New("No private key given in this cosi")
 	}
 	if c.random == nil {
-		return errors.New("No random secret computed in this cosi")
+		return errors.New("No random scalar computed in this cosi")
 	}
 	if c.challenge == nil {
 		return errors.New("No challenge computed in this cosi")
@@ -310,7 +310,7 @@ func (c *CoSi) genResponse() error {
 
 	// resp = random - challenge * privatekey
 	// i.e. ri = vi + c * xi
-	resp := c.suite.Secret().Mul(c.private, c.challenge)
+	resp := c.suite.Scalar().Mul(c.private, c.challenge)
 	c.response = resp.Add(c.random, resp)
 	// no aggregation here
 	c.aggregateResponse = c.response

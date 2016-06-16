@@ -1,8 +1,9 @@
 package sha3
 
 import (
-	"github.com/dedis/crypto/test"
 	"testing"
+
+	"github.com/dedis/crypto/test"
 )
 
 func TestAES(t *testing.T) {

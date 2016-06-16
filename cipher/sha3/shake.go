@@ -9,9 +9,10 @@ package sha3
 // functions for hashing bytes to arbitrary-length output.
 
 import (
+	"io"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher"
-	"io"
 )
 
 // ShakeHash defines the interface to hash functions that

@@ -3,6 +3,7 @@ package poly
 import (
 	"errors"
 	"fmt"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/config"
 )
@@ -35,7 +36,7 @@ type SharedSecret struct {
 	Pub *PubPoly
 
 	// The share of the shared secret
-	Share *abstract.Secret
+	Share *abstract.Scalar
 
 	// The index where the share has been evaluated in the shared private polynomial
 	// and the index to use where the share can be checked against the shared
@@ -120,7 +121,7 @@ func (r *Receiver) ProduceSharedSecret() (*SharedSecret, error) {
 	}
 	pub := new(PubPoly)
 	pub.InitNull(r.suite, r.info.T, r.suite.Point().Base())
-	share := r.suite.Secret().Zero()
+	share := r.suite.Scalar().Zero()
 	for index := range r.deals {
 		// Compute secret shares of the shared secret = sum of the respectives shares of peer i
 		// For peer i , s = SUM fj(i)

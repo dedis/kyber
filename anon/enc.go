@@ -3,15 +3,16 @@ package anon
 import (
 	"crypto/cipher"
 	"errors"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/subtle"
 )
 
 // XXX belongs in crypto package?
 func keyPair(suite abstract.Suite, rand cipher.Stream,
-	hide bool) (abstract.Point, abstract.Secret, []byte) {
+	hide bool) (abstract.Point, abstract.Scalar, []byte) {
 
-	x := suite.Secret().Pick(rand)
+	x := suite.Scalar().Pick(rand)
 	X := suite.Point().Mul(nil, x)
 	if !hide {
 		Xb, _ := X.MarshalBinary()
@@ -28,13 +29,13 @@ func keyPair(suite abstract.Suite, rand cipher.Stream,
 	}
 }
 
-func header(suite abstract.Suite, X abstract.Point, x abstract.Secret,
+func header(suite abstract.Suite, X abstract.Point, x abstract.Scalar,
 	Xb, xb []byte, anonymitySet Set) []byte {
 
 	//fmt.Printf("Xb %s\nxb %s\n",
 	//		hex.EncodeToString(Xb),hex.EncodeToString(xb))
 
-	// Encrypt the master secret key with each public key in the set
+	// Encrypt the master scalar key with each public key in the set
 	S := suite.Point()
 	hdr := Xb
 	for i := range anonymitySet {
@@ -65,7 +66,7 @@ func encryptKey(suite abstract.Suite, rand cipher.Stream,
 // Decrypt and verify a key encrypted via encryptKey.
 // On success, returns the key and the length of the decrypted header.
 func decryptKey(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
-	mine int, privateKey abstract.Secret,
+	mine int, privateKey abstract.Scalar,
 	hide bool) ([]byte, int, error) {
 
 	// Decode the (supposed) ephemeral public key from the front
@@ -96,7 +97,7 @@ func decryptKey(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
 	if mine < 0 || mine >= nkeys {
 		panic("private-key index out of range")
 	}
-	seclen := suite.SecretLen()
+	seclen := suite.ScalarLen()
 	if len(ciphertext) < Xblen+seclen*nkeys {
 		return nil, 0, errors.New("ciphertext too short")
 	}
@@ -106,7 +107,7 @@ func decryptKey(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
 	xb := make([]byte, seclen)
 	secofs := Xblen + seclen*mine
 	cipher.Partial(xb, ciphertext[secofs:secofs+seclen], nil)
-	x := suite.Secret()
+	x := suite.Scalar()
 	if err := x.UnmarshalBinary(xb); err != nil {
 		return nil, 0, err
 	}
@@ -180,7 +181,7 @@ func Encrypt(suite abstract.Suite, rand cipher.Stream, message []byte,
 // that will be accepted by the receiver without knowing the plaintext.
 //
 func Decrypt(suite abstract.Suite, ciphertext []byte, anonymitySet Set,
-	mine int, privateKey abstract.Secret, hide bool) ([]byte, error) {
+	mine int, privateKey abstract.Scalar, hide bool) ([]byte, error) {
 
 	// Decrypt and check the encrypted key-header.
 	xb, hdrlen, err := decryptKey(suite, ciphertext, anonymitySet,

@@ -9,29 +9,30 @@ import "C"
 import (
 	"crypto/cipher"
 	"errors"
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/group"
 	"io"
 	"runtime"
 	"unsafe"
+
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 )
 
-type secret struct {
+type scalar struct {
 	e C.element_t
 }
 
-func clearSecret(s *secret) {
-	println("clearSecret", s)
+func clearScalar(s *scalar) {
+	println("clearScalar", s)
 	C.element_clear(&s.e[0])
 }
 
-func newSecret() *secret {
-	s := new(secret)
-	runtime.SetFinalizer(s, clearSecret)
+func newScalar() *scalar {
+	s := new(scalar)
+	runtime.SetFinalizer(s, clearScalar)
 	return s
 }
 
-func (s *secret) String() string {
+func (s *scalar) String() string {
 	var b [256]byte
 	l := C.element_snprint((*C.char)(unsafe.Pointer(&b[0])),
 		C.size_t(len(b)), &s.e[0])
@@ -41,26 +42,26 @@ func (s *secret) String() string {
 	return string(b[:l])
 }
 
-func (s *secret) Equal(s2 abstract.Secret) bool {
-	return C.element_cmp(&s.e[0], &s2.(*secret).e[0]) == 0
+func (s *scalar) Equal(s2 abstract.Scalar) bool {
+	return C.element_cmp(&s.e[0], &s2.(*scalar).e[0]) == 0
 }
 
-func (s *secret) Set(x abstract.Secret) abstract.Secret {
-	C.element_set(&s.e[0], &x.(*secret).e[0])
+func (s *scalar) Set(x abstract.Scalar) abstract.Scalar {
+	C.element_set(&s.e[0], &x.(*scalar).e[0])
 	return s
 }
 
-func (s *secret) Zero() abstract.Secret {
+func (s *scalar) Zero() abstract.Scalar {
 	C.element_set0(&s.e[0])
 	return s
 }
 
-func (s *secret) One() abstract.Secret {
+func (s *scalar) One() abstract.Scalar {
 	C.element_set0(&s.e[0])
 	return s
 }
 
-func (s *secret) SetInt64(v int64) abstract.Secret {
+func (s *scalar) SetInt64(v int64) abstract.Scalar {
 	vl := C.long(v)
 	if int64(vl) != v {
 		panic("Oops, int64 initializer doesn't fit into C.ulong")
@@ -73,45 +74,45 @@ func (s *secret) SetInt64(v int64) abstract.Secret {
 	return s
 }
 
-func (s *secret) Pick(rand cipher.Stream) abstract.Secret {
+func (s *scalar) Pick(rand cipher.Stream) abstract.Scalar {
 	panic("XXX")
 }
 
-func (s *secret) Add(a, b abstract.Secret) abstract.Secret {
-	C.element_add(&s.e[0], &a.(*secret).e[0], &b.(*secret).e[0])
+func (s *scalar) Add(a, b abstract.Scalar) abstract.Scalar {
+	C.element_add(&s.e[0], &a.(*scalar).e[0], &b.(*scalar).e[0])
 	return s
 }
 
-func (s *secret) Sub(a, b abstract.Secret) abstract.Secret {
-	C.element_sub(&s.e[0], &a.(*secret).e[0], &b.(*secret).e[0])
+func (s *scalar) Sub(a, b abstract.Scalar) abstract.Scalar {
+	C.element_sub(&s.e[0], &a.(*scalar).e[0], &b.(*scalar).e[0])
 	return s
 }
 
-func (s *secret) Neg(a abstract.Secret) abstract.Secret {
-	C.element_neg(&s.e[0], &a.(*secret).e[0])
+func (s *scalar) Neg(a abstract.Scalar) abstract.Scalar {
+	C.element_neg(&s.e[0], &a.(*scalar).e[0])
 	return s
 }
 
-func (s *secret) Mul(a, b abstract.Secret) abstract.Secret {
-	C.element_mul(&s.e[0], &a.(*secret).e[0], &b.(*secret).e[0])
+func (s *scalar) Mul(a, b abstract.Scalar) abstract.Scalar {
+	C.element_mul(&s.e[0], &a.(*scalar).e[0], &b.(*scalar).e[0])
 	return s
 }
 
-func (s *secret) Div(a, b abstract.Secret) abstract.Secret {
-	C.element_div(&s.e[0], &a.(*secret).e[0], &b.(*secret).e[0])
+func (s *scalar) Div(a, b abstract.Scalar) abstract.Scalar {
+	C.element_div(&s.e[0], &a.(*scalar).e[0], &b.(*scalar).e[0])
 	return s
 }
 
-func (s *secret) Inv(a abstract.Secret) abstract.Secret {
-	C.element_invert(&s.e[0], &a.(*secret).e[0])
+func (s *scalar) Inv(a abstract.Scalar) abstract.Scalar {
+	C.element_invert(&s.e[0], &a.(*scalar).e[0])
 	return s
 }
 
-func (s *secret) MarshalSize() int {
+func (s *scalar) MarshalSize() int {
 	return int(C.element_length_in_bytes(&s.e[0]))
 }
 
-func (s *secret) MarshalBinary() ([]byte, error) {
+func (s *scalar) MarshalBinary() ([]byte, error) {
 	l := s.Len()
 	b := make([]byte, l)
 	a := C.element_to_bytes((*C.uchar)(unsafe.Pointer(&b[0])),
@@ -122,7 +123,7 @@ func (s *secret) MarshalBinary() ([]byte, error) {
 	return b, nil
 }
 
-func (s *secret) UnmarshalBinary(buf []byte) error {
+func (s *scalar) UnmarshalBinary(buf []byte) error {
 	l := s.Len()
 	if len(buf) != l {
 		return errors.New("Encoded element wrong length")
@@ -134,10 +135,10 @@ func (s *secret) UnmarshalBinary(buf []byte) error {
 	return nil
 }
 
-func (s *secret) MarshalTo(w io.Writer) (int, error) {
-	return group.SecretMarshalTo(s, w)
+func (s *scalar) MarshalTo(w io.Writer) (int, error) {
+	return group.ScalarMarshalTo(s, w)
 }
 
-func (s *secret) UnmarshalFrom(r io.Reader) (int, error) {
-	return group.SecretUnmarshalFrom(s, r)
+func (s *scalar) UnmarshalFrom(r io.Reader) (int, error) {
+	return group.ScalarUnmarshalFrom(s, r)
 }

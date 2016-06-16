@@ -2,6 +2,7 @@ package proof
 
 import (
 	"bytes"
+
 	"github.com/dedis/crypto/abstract"
 )
 

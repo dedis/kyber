@@ -206,7 +206,7 @@ func (P *point) Neg(A abstract.Point) abstract.Point {
 // Multiply point p by scalar s using the repeated doubling method.
 // XXX This is vartime; for our general-purpose Mul operator
 // it would be far preferable for security to do this constant-time.
-func (P *point) Mul(A abstract.Point, s abstract.Secret) abstract.Point {
+func (P *point) Mul(A abstract.Point, s abstract.Scalar) abstract.Point {
 
 	// Convert the scalar to fixed-length little-endian form.
 	sb := s.(*nist.Int).V.Bytes()
@@ -245,13 +245,13 @@ func (c *Curve) String() string {
 	return "Ed25519"
 }
 
-// Returns 32, the size in bytes of an encoded Secret for the Ed25519 curve.
-func (c *Curve) SecretLen() int {
+// Returns 32, the size in bytes of an encoded Scalar for the Ed25519 curve.
+func (c *Curve) ScalarLen() int {
 	return 32
 }
 
-// Create a new Secret for the Ed25519 curve.
-func (c *Curve) Secret() abstract.Secret {
+// Create a new Scalar for the Ed25519 curve.
+func (c *Curve) Scalar() abstract.Scalar {
 	//	if c.FullGroup {
 	//		return nist.NewInt(0, fullOrder)
 	//	} else {

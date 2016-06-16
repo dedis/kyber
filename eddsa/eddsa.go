@@ -19,7 +19,7 @@ type EdDSA struct {
 	seed   []byte
 	prefix []byte
 	// Secret being already hashed + bit tweaked
-	Secret abstract.Secret
+	Secret abstract.Scalar
 	// Public is the corresponding public key
 	Public abstract.Point
 }
@@ -38,7 +38,7 @@ func NewEdDSA(stream cipher.Stream) *EdDSA {
 	scalar[31] &= 0x3f
 	scalar[31] |= 0x40
 
-	secret := suite.Secret().SetBytes(scalar[:32])
+	secret := suite.Scalar().SetBytes(scalar[:32])
 	public := suite.Point().Mul(nil, secret)
 
 	return &EdDSA{
@@ -79,7 +79,7 @@ func (e *EdDSA) UnmarshalBinary(buff []byte) error {
 
 	e.seed = buff[:32]
 	e.prefix = buff[32:64]
-	e.Secret = suite.Secret().SetBytes(e.seed)
+	e.Secret = suite.Scalar().SetBytes(e.seed)
 	e.Public = suite.Point().Mul(nil, e.Secret)
 	return nil
 }
@@ -93,7 +93,7 @@ func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 	hash.Write(msg)
 
 	// deterministic random secret and its commit
-	r := suite.Secret().SetBytes(hash.Sum(nil))
+	r := suite.Scalar().SetBytes(hash.Sum(nil))
 	R := suite.Point().Mul(nil, r)
 
 	// challenge
@@ -112,11 +112,11 @@ func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 	hash.Write(Abuff)
 	hash.Write(msg)
 
-	h := suite.Secret().SetBytes(hash.Sum(nil))
+	h := suite.Scalar().SetBytes(hash.Sum(nil))
 
 	// response
 	// s = r + h * s
-	s := suite.Secret().Mul(e.Secret, h)
+	s := suite.Scalar().Mul(e.Secret, h)
 	s.Add(r, s)
 
 	sBuff, err := s.MarshalBinary()
@@ -148,7 +148,7 @@ func Verify(public abstract.Point, msg, sig []byte) error {
 		return fmt.Errorf("R invalid point: %s", err)
 	}
 
-	s := suite.Secret()
+	s := suite.Scalar()
 	s.UnmarshalBinary(sig[32:])
 
 	// reconstruct h = H(R || Public || Msg)
@@ -161,7 +161,7 @@ func Verify(public abstract.Point, msg, sig []byte) error {
 	hash.Write(Pbuff)
 	hash.Write(msg)
 
-	h := suite.Secret().SetBytes(hash.Sum(nil))
+	h := suite.Scalar().SetBytes(hash.Sum(nil))
 	// reconstruct S == k*A + R
 	S := suite.Point().Mul(nil, s)
 	hA := suite.Point().Mul(public, h)

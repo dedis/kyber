@@ -16,7 +16,7 @@ type node struct {
 	i    int
 	done bool
 
-	x abstract.Secret
+	x abstract.Scalar
 	X abstract.Point
 
 	proto  clique.Protocol
@@ -92,7 +92,7 @@ func TestDeniable(t *testing.T) {
 		n := &node{}
 		nodes[i] = n
 		n.i = i
-		n.x = suite.Secret().Pick(rand)
+		n.x = suite.Scalar().Pick(rand)
 		n.X = suite.Point().Mul(nil, n.x)
 	}
 
@@ -100,7 +100,7 @@ func TestDeniable(t *testing.T) {
 	for i := 0; i < nnodes; i++ {
 		n := nodes[i]
 		pred := Rep("X", "x", "B")
-		sval := map[string]abstract.Secret{"x": n.x}
+		sval := map[string]abstract.Scalar{"x": n.x}
 		pval := map[string]abstract.Point{"B": B, "X": n.X}
 		prover := pred.Prover(suite, sval, pval, nil)
 
