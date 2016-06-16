@@ -2,8 +2,9 @@ package cipher
 
 import (
 	"crypto/cipher"
-	"github.com/dedis/crypto/abstract"
 	"hash"
+
+	"github.com/dedis/crypto/abstract"
 )
 
 // Construct a general message Cipher

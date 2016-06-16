@@ -59,7 +59,7 @@ func TestCosiResponse(t *testing.T) {
 	cosis := genCosis(5)
 	genPostChallengePhaseCosi(cosis, msg)
 	root, children := cosis[0], cosis[1:]
-	var responses []abstract.Secret
+	var responses []abstract.Scalar
 
 	// for verification later
 	aggResponse := testSuite.Secret().Zero()
@@ -211,7 +211,7 @@ func genFinalCosi(cosis []*CoSi, msg []byte) error {
 	children := cosis[1:]
 	root := cosis[0]
 	// go to the challenge phase
-	var responses []abstract.Secret
+	var responses []abstract.Scalar
 	for _, ch := range children {
 		resp, err := ch.CreateResponse()
 		if err != nil {

@@ -6,6 +6,7 @@ import (
 	"crypto/aes"
 	"crypto/sha256"
 	"crypto/sha512"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher"
 )

@@ -43,7 +43,7 @@ type Suite interface {
 
 	// NewKey returns a freshly generated private key from the cipher stream.
 	// If cipher == nil, it uses random.Stream.
-	NewKey(cipher.Stream) Secret
+	NewKey(cipher.Stream) Scalar
 }
 
 // Sum uses a given ciphersuite's hash function to checksum a byte-slice.

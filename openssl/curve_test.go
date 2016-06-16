@@ -3,8 +3,9 @@
 package openssl
 
 import (
-	"github.com/dedis/crypto/test"
 	"testing"
+
+	"github.com/dedis/crypto/test"
 )
 
 var testSuite = NewAES128SHA256P256()

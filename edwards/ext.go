@@ -3,11 +3,12 @@ package edwards
 import (
 	"crypto/cipher"
 	"encoding/hex"
+	"io"
+	"math/big"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/nist"
-	"io"
-	"math/big"
 )
 
 type extPoint struct {

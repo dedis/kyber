@@ -2,6 +2,7 @@ package abstract
 
 import (
 	"errors"
+
 	"github.com/dedis/crypto/subtle"
 	"github.com/dedis/crypto/util"
 )

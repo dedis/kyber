@@ -16,8 +16,8 @@ type uSig struct {
 
 // linkable ring signature
 type lSig struct {
-	C0  abstract.Secret
-	S   []abstract.Secret
+	C0  abstract.Scalar
+	S   []abstract.Scalar
 	Tag abstract.Point
 }
 

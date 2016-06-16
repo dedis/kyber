@@ -1,9 +1,10 @@
 package shuffle
 
 import (
+	"testing"
+
 	"github.com/dedis/crypto/edwards"
 	"github.com/dedis/crypto/nist"
-	"testing"
 )
 
 func TestBiffle(t *testing.T) {

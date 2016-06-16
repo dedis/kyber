@@ -9,9 +9,12 @@ import "C"
 import (
 	"crypto/cipher"
 	"errors"
-	"github.com/dedis/crypto/abstract"
+	"io"
 	"runtime"
 	"unsafe"
+
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 )
 
 // Elliptic curve point for G1,G2 groups

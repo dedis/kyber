@@ -7,6 +7,7 @@ package sha3
 import (
 	//"encoding/hex"
 	"encoding/binary"
+
 	"github.com/dedis/crypto/cipher"
 )
 

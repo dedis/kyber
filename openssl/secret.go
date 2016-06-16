@@ -12,9 +12,10 @@ import "C"
 
 import (
 	"crypto/cipher"
+	"io"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
-	"io"
 )
 
 type secret struct {

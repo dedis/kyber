@@ -43,7 +43,7 @@ func (s *suiteEd25519) New(t reflect.Type) interface{} {
 
 // NewKey returns a formatted Ed25519 key (avoiding subgroup attack by requiring
 // it to be a multiple of 8)
-func (s *suiteEd25519) NewKey(stream cipher.Stream) abstract.Secret {
+func (s *suiteEd25519) NewKey(stream cipher.Stream) abstract.Scalar {
 	if stream == nil {
 		stream = random.Stream
 	}

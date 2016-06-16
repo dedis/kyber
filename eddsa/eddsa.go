@@ -19,7 +19,7 @@ type EdDSA struct {
 	seed   []byte
 	prefix []byte
 	// Secret being already hashed + bit tweaked
-	Secret abstract.Secret
+	Secret abstract.Scalar
 	// Public is the corresponding public key
 	Public abstract.Point
 }

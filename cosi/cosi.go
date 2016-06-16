@@ -79,20 +79,20 @@ type CoSi struct {
 	// V_hat is the aggregated commit (our own + the children's)
 	aggregateCommitment abstract.Point
 	// challenge holds the challenge for this round
-	challenge abstract.Secret
+	challenge abstract.Scalar
 
 	// the longterm private key CoSi will use during the response phase.
 	// The private key must have its public version in the list of publics keys
 	// given to CoSi.
-	private abstract.Secret
+	private abstract.Scalar
 	// random is our own secret that we wish to commit during the commitment phase.
-	random abstract.Secret
+	random abstract.Scalar
 	// commitment is our own commitment
 	commitment abstract.Point
 	// response is our own computed response
-	response abstract.Secret
+	response abstract.Scalar
 	// aggregateResponses is the aggregated response from the children + our own
-	aggregateResponse abstract.Secret
+	aggregateResponse abstract.Scalar
 }
 
 // NewCosi returns a new Cosi struct given the suite, the longterm secret, and
@@ -100,7 +100,7 @@ type CoSi struct {
 // have to set the mask using `SetMask` method. By default, all participants are
 // designated as participating. If you wish to specify which co-signers are
 // participating, use NewCosiWithMask
-func NewCosi(suite abstract.Suite, private abstract.Secret, publics []abstract.Point) *CoSi {
+func NewCosi(suite abstract.Suite, private abstract.Scalar, publics []abstract.Point) *CoSi {
 	cosi := &CoSi{
 		suite:   suite,
 		private: private,
@@ -136,7 +136,7 @@ func (c *CoSi) Commit(s cipher.Stream, subComms []abstract.Point) abstract.Point
 
 // CreateChallenge creates the challenge out of the message it has been given.
 // This is typically called by Root.
-func (c *CoSi) CreateChallenge(msg []byte) (abstract.Secret, error) {
+func (c *CoSi) CreateChallenge(msg []byte) (abstract.Scalar, error) {
 	// H( Commit || AggPublic || M)
 	hash := sha512.New()
 	if _, err := c.aggregateCommitment.MarshalTo(hash); err != nil {
@@ -154,21 +154,21 @@ func (c *CoSi) CreateChallenge(msg []byte) (abstract.Secret, error) {
 }
 
 // Challenge keeps in memory the Challenge from the message.
-func (c *CoSi) Challenge(challenge abstract.Secret) {
+func (c *CoSi) Challenge(challenge abstract.Scalar) {
 	c.challenge = challenge
 }
 
 // CreateResponse is called by a leaf to create its own response from the
 // challenge + commitment + private key. It returns the response to send up to
 // the tree.
-func (c *CoSi) CreateResponse() (abstract.Secret, error) {
+func (c *CoSi) CreateResponse() (abstract.Scalar, error) {
 	err := c.genResponse()
 	return c.response, err
 }
 
 // Response generates the response from the commitment, challenge and the
 // responses of its children.
-func (c *CoSi) Response(responses []abstract.Secret) (abstract.Secret, error) {
+func (c *CoSi) Response(responses []abstract.Scalar) (abstract.Scalar, error) {
 	//create your own response
 	if err := c.genResponse(); err != nil {
 		return nil, err
@@ -270,12 +270,12 @@ func VerifySignature(suite abstract.Suite, publics []abstract.Point, message, si
 
 // AggregateResponse returns the aggregated response that this cosi has
 // accumulated.
-func (c *CoSi) AggregateResponse() abstract.Secret {
+func (c *CoSi) AggregateResponse() abstract.Scalar {
 	return c.aggregateResponse
 }
 
 // GetChallenge returns the challenge that were passed down to this cosi.
-func (c *CoSi) GetChallenge() abstract.Secret {
+func (c *CoSi) GetChallenge() abstract.Scalar {
 	return c.challenge
 }
 

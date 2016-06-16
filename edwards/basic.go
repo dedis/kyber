@@ -4,11 +4,12 @@ package edwards
 
 import (
 	"crypto/cipher"
+	"io"
+	"math/big"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/nist"
-	"io"
-	"math/big"
 )
 
 type basicPoint struct {

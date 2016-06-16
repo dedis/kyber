@@ -330,7 +330,6 @@ func (i *Int) UnmarshalBinary(buf []byte) error {
 	return nil
 }
 
-<<<<<<< HEAD
 func (i *Int) MarshalTo(w io.Writer) (int, error) {
 	return group.ScalarMarshalTo(i, w)
 }
@@ -339,8 +338,6 @@ func (i *Int) UnmarshalFrom(r io.Reader) (int, error) {
 	return group.ScalarUnmarshalFrom(i, r)
 }
 
-=======
->>>>>>> development
 // Encode the value of this Int into a big-endian byte-slice
 // at least min bytes but no more than max bytes long.
 // Panics if max != 0 and the Int cannot be represented in max bytes.
@@ -361,7 +358,7 @@ func (i *Int) BigEndian(min, max int) []byte {
 // SetBytes set the value value to a number represented
 // by a byte string.
 // Endianness depends on the endianess set in i.
-func (i *Int) SetBytes(a []byte) abstract.Secret {
+func (i *Int) SetBytes(a []byte) abstract.Scalar {
 	var buff = a
 	if i.BO == LittleEndian {
 		buff = util.Reverse(nil, a)
@@ -400,14 +397,6 @@ func (i *Int) LittleEndian(min, max int) []byte {
 	buf := make([]byte, pad)
 	util.Reverse(buf[:act], vBytes)
 	return buf
-}
-
-func (i *Int) MarshalTo(w io.Writer) (int, error) {
-	return group.SecretMarshalTo(i, w)
-}
-
-func (i *Int) UnmarshalFrom(r io.Reader) (int, error) {
-	return group.SecretUnmarshalFrom(i, r)
 }
 
 // Return the length in bytes of a uniform byte-string encoding of this Int,

@@ -2,6 +2,7 @@ package poly
 
 import (
 	"fmt"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/config"
 	"github.com/dedis/crypto/edwards"

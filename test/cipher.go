@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"crypto/cipher"
 	"crypto/rand"
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/subtle"
 	"hash"
 	"testing"
+
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/subtle"
 )
 
 func HashBench(b *testing.B, hash func() hash.Hash) {

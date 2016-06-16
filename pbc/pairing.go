@@ -10,16 +10,15 @@ package pbc
 import "C"
 
 import (
-	"unsafe"
 	"runtime"
+	"unsafe"
+
 	"github.com/dedis/crypto/abstract"
 )
 
-
-type g1group struct { p *Pairing }
-type g2group struct { p *Pairing }
-type gtgroup struct { p *Pairing }
-
+type g1group struct{ p *Pairing }
+type g2group struct{ p *Pairing }
+type gtgroup struct{ p *Pairing }
 
 // A Pairing object represents a pairing-based cryptography environment,
 // consisting of two source groups G1 and G2 and a target group GT.
@@ -29,34 +28,32 @@ type gtgroup struct { p *Pairing }
 // The input groups G1 and G2 may be identical or different,
 // as indicated by the Symmetric() method.
 type Pairing struct {
-	p C.pairing_t
+	p    C.pairing_t
 	name string
-	g1 g1group
-	g2 g2group
-	gt gtgroup
+	g1   g1group
+	g2   g2group
+	gt   gtgroup
 }
 
 // Group interface extension to create pairing-capable points.
 type PairingGroup interface {
-	abstract.Group			// Standard Group operations
+	abstract.Group // Standard Group operations
 
-	PairingPoint() PairingPoint	// Create new pairing-capable Point
+	PairingPoint() PairingPoint // Create new pairing-capable Point
 }
 
 // Point interface extension for a point in a pairing target group (GT),
 // which supports the Pairing operation.
 type PairingPoint interface {
-	abstract.Point			// Standard Point operations
+	abstract.Point // Standard Point operations
 
 	// Compute the pairing of two points p1 and p2,
 	// which must be in the associated groups G1 and G2 respectively.
-	Pairing(p1,p2 abstract.Point) abstract.Point
+	Pairing(p1, p2 abstract.Point) abstract.Point
 }
 
-
-
 func clearPairing(p *Pairing) {
-	println("clearPairing",p)
+	println("clearPairing", p)
 	C.pairing_clear(&p.p[0])
 }
 
@@ -80,8 +77,9 @@ func (p *Pairing) Init(name string, param string) *Pairing {
 }
 
 // Initialize the standard D159 pairing.
-func (p *Pairing) InitD159() *Pairing { return p.Init("D159",
-`type d
+func (p *Pairing) InitD159() *Pairing {
+	return p.Init("D159",
+		`type d
 q 625852803282871856053922297323874661378036491717
 n 625852803282871856053923088432465995634661283063
 h 3
@@ -95,11 +93,13 @@ coeff0 472731500571015189154958232321864199355792223347
 coeff1 352243926696145937581894994871017455453604730246
 coeff2 289113341693870057212775990719504267185772707305
 nqr 431211441436589568382088865288592347194866189652
-`) }
+`)
+}
 
 // Initialize the standard D201 pairing.
-func (p *Pairing) InitD201() *Pairing { return p.Init("D201",
-`type d
+func (p *Pairing) InitD201() *Pairing {
+	return p.Init("D201",
+		`type d
 q 2094476214847295281570670320144695883131009753607350517892357
 n 2094476214847295281570670320143248652598286201895740019876423
 h 1122591
@@ -113,11 +113,13 @@ coeff0 362345194706722765382504711221797122584657971082977778415831
 coeff1 856577648996637037517940613304411075703495574379408261091623
 coeff2 372728063705230489408480761157081724912117414311754674153886
 nqr 279252656555925299126768437760706333663688384547737180929542
-`) }
+`)
+}
 
 // Initialize the standard D224 pairing.
-func (p *Pairing) InitD224() *Pairing { return p.Init("D224",
-`type d
+func (p *Pairing) InitD224() *Pairing {
+	return p.Init("D224",
+		`type d
 q 15028799613985034465755506450771565229282832217860390155996483840017
 n 15028799613985034465755506450771561352583254744125520639296541195021
 h 1
@@ -131,7 +133,8 @@ coeff0 11975189258259697166257037825227536931446707944682470951111859446192
 coeff1 13433042200347934827742738095249546804006687562088254057411901362771
 coeff2 8327464521117791238079105175448122006759863625508043495770887411614
 nqr 142721363302176037340346936780070353538541593770301992936740616924
-`) }
+`)
+}
 
 // Return the G1 source group for this pairing.
 func (p *Pairing) G1() abstract.Group {
@@ -153,8 +156,6 @@ func (p *Pairing) GT() PairingGroup {
 func (p *Pairing) Symmetric() bool {
 	return C.pairing_is_symmetric(&p.p[0]) != 0
 }
-
-
 
 // G1 group
 
@@ -186,7 +187,6 @@ func (g *g1group) PrimeOrder() bool {
 	return true
 }
 
-
 // G2 group
 
 func (g *g2group) String() string {
@@ -216,7 +216,6 @@ func (g *g2group) Point() abstract.Point {
 func (g *g2group) PrimeOrder() bool {
 	return true
 }
-
 
 // GT group
 
@@ -251,5 +250,3 @@ func (g *gtgroup) PairingPoint() PairingPoint {
 func (g *gtgroup) PrimeOrder() bool {
 	return true
 }
-
-

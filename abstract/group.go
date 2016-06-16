@@ -48,17 +48,12 @@ type Scalar interface {
 	Inv(a Scalar) Scalar
 
 	// Set to a fresh random or pseudo-random secret
-<<<<<<< HEAD
 	Pick(rand cipher.Stream) Scalar
-=======
-	Pick(rand cipher.Stream) Secret
-
 	// SetBytes will take bytes and create a secret out of it
-	SetBytes([]byte) Secret
+	SetBytes([]byte) Scalar
 
 	// Bytes returns the raw internal representation
 	Bytes() []byte
->>>>>>> development
 }
 
 /*

@@ -3,6 +3,7 @@ package shuffle
 import (
 	"crypto/cipher"
 	"errors"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/proof"
 )

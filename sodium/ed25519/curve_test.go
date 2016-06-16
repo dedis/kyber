@@ -4,16 +4,15 @@ package ed25519
 
 import (
 	"testing"
+
 	"github.com/dedis/crypto/test"
 )
 
 var testSuite = NewAES128SHA256Ed25519()
 
-
 func TestGroup(t *testing.T) {
 	test.TestSuite(testSuite)
 }
-
 
 func BenchmarkScalarAdd(b *testing.B) {
 	test.NewGroupBench(testSuite).ScalarAdd(b.N)
@@ -51,7 +50,6 @@ func BenchmarkScalarDecode(b *testing.B) {
 	test.NewGroupBench(testSuite).ScalarDecode(b.N)
 }
 
-
 func BenchmarkPointAdd(b *testing.B) {
 	test.NewGroupBench(testSuite).PointAdd(b.N)
 }
@@ -83,4 +81,3 @@ func BenchmarkPointEncode(b *testing.B) {
 func BenchmarkPointDecode(b *testing.B) {
 	test.NewGroupBench(testSuite).PointDecode(b.N)
 }
-

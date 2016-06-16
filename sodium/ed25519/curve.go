@@ -47,12 +47,13 @@ import (
 	"crypto/cipher"
 	"crypto/sha256"
 	"encoding/hex"
+	"math/big"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/sha3"
-	"math/big"
 )
 
 // prime order of base point = 2^252 + 27742317777372353535851937790883648493

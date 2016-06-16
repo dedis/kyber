@@ -41,7 +41,7 @@ func (s *suiteEd25519) New(t reflect.Type) interface{} {
 	return abstract.SuiteNew(s, t)
 }
 
-func (s *suiteEd25519) NewKey(rand cipher.Stream) abstract.Secret {
+func (s *suiteEd25519) NewKey(rand cipher.Stream) abstract.Scalar {
 	if rand == nil {
 		rand = random.Stream
 	}

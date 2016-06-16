@@ -6,9 +6,10 @@ import (
 	"crypto/cipher"
 	"errors"
 	"fmt"
+	"io"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
-	"io"
 )
 
 // Clique protocol outline:

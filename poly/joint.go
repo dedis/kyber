@@ -3,6 +3,7 @@ package poly
 import (
 	"errors"
 	"fmt"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/config"
 )
