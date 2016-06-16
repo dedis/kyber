@@ -258,6 +258,30 @@ func TestSuite(suite abstract.Suite) {
 	//println("Stream:")
 	//println(hex.Dump(sb))
 
+	// Test if it generates two fresh keys with nil cipher
+	s1 := suite.NewKey(nil)
+	s2 := suite.NewKey(nil)
+	if s1.Equal(s2) {
+		panic("NewKey returns twice the same key given nil")
+	}
+
+	// Test if it creates the same with the same seed
+	st1 := suite.Cipher(hb)
+	st2 := suite.Cipher(hb)
+	s3 := suite.NewKey(st1)
+	s4 := suite.NewKey(st2)
+	if !s3.Equal(s4) {
+		panic("NewKey returns two different keys given same stream")
+	}
+
+	// Test if it creates two different with random stream
+	stream := random.Stream
+	s5 := suite.NewKey(stream)
+	s6 := suite.NewKey(stream)
+	if s5.Equal(s6) {
+		panic("NewKey returns same key given random stream")
+	}
+
 	// Test the public-key group arithmetic
 	TestGroup(suite)
 }

@@ -1,19 +1,12 @@
-# build script for dedis/crypto libraries
-env:
-    global:
-        - REPO="dedis/crypto"
-        - HOME="/home/travis"
-        - GOPATH="$HOME"
-        - PATH="$HOME/bin:$PATH"
-before_install:
-    - mkdir -p $HOME/src/github.com/dedis
-    - mkdir -p $HOME/bin
-    - ls $TRAVIS_BUILD_DIR
-    - mv $TRAVIS_BUILD_DIR $HOME/src/github.com/dedis
-    - cd $HOME/src/github.com/dedis/crypto
-    - go list -f '{{join .Deps "\n"}} {{join .TestImports "\n"}}' ./... | grep -v "^github.com/dedis/crypto" | xargs go get -t -v
-before_script:
-    - git remote add production https://github.com/DeDiS/crypto.git
-    - git fetch -a production
+language: go
+
+go:
+      - 1.6
+
 script:
-    - go run dedis-travis-script.go
+      - ./gofmt.sh
+      - go test -v -race ./...
+
+notifications:
+      email: false
+

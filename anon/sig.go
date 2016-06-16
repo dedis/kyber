@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/cipher"
 	"errors"
+
 	"github.com/dedis/crypto/abstract"
 )
 
@@ -15,7 +16,8 @@ type uSig struct {
 
 // linkable ring signature
 type lSig struct {
-	uSig
+	C0  abstract.Secret
+	S   []abstract.Secret
 	Tag abstract.Point
 }
 
@@ -173,7 +175,7 @@ func Sign(suite abstract.Suite, random cipher.Stream, message []byte,
 	// Encode and return the signature
 	buf := bytes.Buffer{}
 	if linkScope != nil { // linkable ring signature
-		sig := lSig{uSig{c[0], s}, linkTag}
+		sig := lSig{c[0], s, linkTag}
 		suite.Write(&buf, &sig)
 	} else { // unlinkable ring signature
 		sig := uSig{c[0], s}
@@ -211,7 +213,10 @@ func Verify(suite abstract.Suite, message []byte, anonymitySet Set,
 		linkBase, _ = suite.Point().Pick(nil, linkStream)
 		linkTag = sig.Tag
 	} else { // unlinkable ring signature
-		if err := suite.Read(buf, &sig.uSig); err != nil {
+		if err := suite.Read(buf, &sig.C0); err != nil {
+			return nil, err
+		}
+		if err := suite.Read(buf, &sig.S); err != nil {
 			return nil, err
 		}
 	}

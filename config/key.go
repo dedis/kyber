@@ -3,12 +3,13 @@ package config
 import (
 	"crypto/cipher"
 	"errors"
+	"log"
+	"os"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/base64"
 	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/util"
-	"log"
-	"os"
 )
 
 // KeyPair represents a public/private keypair
@@ -19,15 +20,26 @@ type KeyPair struct {
 	Secret abstract.Scalar // Secret key
 }
 
+// NewKeyPair directly creates a secret/public key pair
+func NewKeyPair(suite abstract.Suite) *KeyPair {
+	kp := new(KeyPair)
+	kp.Gen(suite, random.Stream)
+	return kp
+}
+
 // Generate a fresh public/private keypair with the given ciphersuite,
 // using a given source of cryptographic randomness.
 func (p *KeyPair) Gen(suite abstract.Suite, random cipher.Stream) {
 	p.Suite = suite
+<<<<<<< HEAD
 	p.Secret = suite.Scalar().Pick(random)
+=======
+	p.Secret = suite.NewKey(random)
+>>>>>>> development
 	p.Public = suite.Point().Mul(nil, p.Secret)
 }
 
-// Return the base64-encoded HashId for this KeyPair's public key.
+// PubId returns the base64-encoded HashId for this KeyPair's public key.
 func (p *KeyPair) PubId() string {
 	buf, _ := p.Public.MarshalBinary()
 	hash := abstract.Sum(p.Suite, buf)

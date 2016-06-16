@@ -7,7 +7,6 @@ import (
 	//"time"	// XXX
 
 	"github.com/stretchr/testify/assert"
-
 	//"encoding/hex"
 )
 
