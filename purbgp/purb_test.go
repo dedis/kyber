@@ -2,18 +2,18 @@ package purb
 
 import (
 	//	"bufio"
-//	"encoding/binary"
-//	"encoding/hex"
+	//	"encoding/binary"
+	//	"encoding/hex"
 	"fmt"
 	"github.com/dedis/crypto/abstract"
-//	"github.com/dedis/crypto/cipher/aes"
+	//	"github.com/dedis/crypto/cipher/aes"
 	"time"
 	//	"github.com/dedis/crypto/config"
 	"github.com/dedis/crypto/edwards"
-//	"github.com/dedis/crypto/padding"
+	//	"github.com/dedis/crypto/padding"
 	"github.com/dedis/crypto/random"
-//	"io/ioutil"
-//	"os"
+	//	"io/ioutil"
+	//	"os"
 	"testing"
 )
 
@@ -29,6 +29,7 @@ type fakeSuite struct {
 func (f *fakeSuite) String() string {
 	return fmt.Sprintf("%s(%d)", f.Suite.String(), f.idx)
 }
+
 /*
 func TestPurb(t *testing.T) {
 
@@ -58,7 +59,7 @@ func TestPurb(t *testing.T) {
 		nlevels++ // vary it a bit for testing
 		ents := make([]int, nlevels)
 		for j := 0; j < nlevels; j++ {
-			ents[j] = j * ENTRYLEN
+			ents[j] = j * KEYLEN
 		}
 		suiteEntry[suites[i]] = ents
 
@@ -295,7 +296,7 @@ func buildPurb(nlevels, nentries int, suites []abstract.Suite, msg []byte) {
 		nlevels++ // vary it a bit for testing
 		ents := make([]int, nlevels)
 		for j := 0; j < nlevels; j++ {
-			ents[j] = j * ENTRYLEN
+			ents[j] = j * KEYLEN
 		}
 		suiteEntry[suites[i]] = ents
 

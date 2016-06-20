@@ -1,6 +1,7 @@
+package purb
+
 // Package nego implements cryptographic negotiation
 // and secret entrypoint finding.
-package purb
 
 import (
 	"crypto/cipher"
@@ -19,13 +20,14 @@ import (
 )
 
 //Length each entrypoint is(for simplicity assuming all suites HideLen is the same.
-const ENTRYLEN = 32
+const KEYLEN = 32
 
 //Change this value to see if it can give nicer numbers
 //--Trade off between header size and decryption time.
 const HASHATTEMPTS = 3
 
 //How many bytes symkey+message_start is
+//TODO make it easy for different entrypoint sizes.
 const DATALEN = 24
 
 //var ENTRYPOINTS = map[abstract.Suite][]int{
@@ -49,6 +51,7 @@ func stringHash(s string) uint {
 	return hash
 }
 
+//Entry holds the info required to create an entrypoint for each recipient.
 type Entry struct {
 	Suite abstract.Suite // Ciphersuite this public key is drawn from
 	//XXX TODO REMOVE: Temporary to make testing much easier
@@ -163,7 +166,7 @@ func (w *Writer) PlaceHash(hash uint) (int, int) {
 	//hash table size
 	ts := uint(1)
 	//hash table start
-	start := uint(ENTRYLEN)
+	start := uint(KEYLEN)
 
 	//Simply checks if the hashtable 0 spot works
 	//It seems that reserve returns true if it was able to reserve the region
@@ -502,18 +505,18 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 //Output: int---???Some error code eventually?
 //	[]byte-- The decoded message, or nil.
 func attemptDecode(suite abstract.Suite, priv abstract.Secret,
-	entryPoints map[abstract.Suite][]int, file []byte,
+	suiteKeyPos map[abstract.Suite][]int, file []byte,
 	rand cipher.Stream) (int, []byte) {
 	//make sure suite has entry points
-	entPoints := entryPoints[suite]
-	if entPoints == nil {
+	keyPos := suiteKeyPos[suite]
+	if keyPos == nil {
 		//fmt.Println("We do not know about", suite)
 		return 0, nil
 	}
-	dhpub := make([]byte, ENTRYLEN)
-	for i := range entPoints {
-		k := entPoints[i]
-		temp := file[k : k+ENTRYLEN]
+	dhpub := make([]byte, KEYLEN)
+	for i := range keyPos {
+		k := keyPos[i]
+		temp := file[k : k+KEYLEN]
 		for j := range temp {
 			dhpub[j] ^= temp[j]
 		}
@@ -527,7 +530,7 @@ func attemptDecode(suite abstract.Suite, priv abstract.Secret,
 
 	intHash := stringHash(shared.String())
 	ts := uint(1)
-	start := uint(ENTRYLEN)
+	start := uint(KEYLEN)
 	dLen := uint(DATALEN)
 	for start+ts*uint(dLen) <= uint(len(file)) {
 		//try to decrypt hashtable[i]->i+3
@@ -593,7 +596,7 @@ func writePurb(entries []Entry, entryPoints map[abstract.Suite][]int,
 	cipher := abstract.Cipher(aes.NewCipher128(key))
 	//from testing
 	encOverhead := 16
-	msg := padding.PadGeneric(message, encOverhead+hdrend)
+	msg := padding.PadGeneric(message, uint64(encOverhead+hdrend))
 	enc := make([]byte, 0)
 	enc = cipher.Seal(enc, msg)
 	//encrypt message
@@ -623,18 +626,20 @@ func genPurb(entries []Entry, entryPoints map[abstract.Suite][]int,
 	if err != nil {
 		panic(err)
 	}
-
+	//Obviously should be generated in a safe way.
 	key, _ := hex.DecodeString("9a4fea86a621a91ab371e492457796c0")
 
 	key[0] = byte(len(entries))
 	//Probably insecure way to use it.
 	//TODO come up with a way to generate keys here.
+	//TODO parameterize --make it so that what suite is used can be any Suite
+	//with a good AEAD.
 	cipher := abstract.Cipher(aes.NewCipher128(key))
 	//from testing
 	encOverhead := 16
 	var msg []byte
 	if pad == true {
-		msg = padding.PadGeneric(message, encOverhead+hdrend)
+		msg = padding.PadGeneric(message, uint64(encOverhead+hdrend))
 	} else {
 		msg = message
 	}
