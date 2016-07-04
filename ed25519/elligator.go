@@ -84,12 +84,18 @@ func feBytesLE(a, b *[32]byte) int32 {
 	return int32(^equalSoFar & 1 & greater)
 }
 
-// ScalarBaseMult computes a curve25519 public key from a private key and also
+// scalarToRepresentative computes a curve25519 public key from a private key and also
 // a uniform representative for that public key. Note that this function will
 // fail and return false for about half of private keys.
 // See http://elligator.cr.yp.to/elligator-20130828.pdf.
-func pointToRep(publicKey, representative *[32]byte, A *extendedGroupElement) bool {
+func scalarToRepresentative(publicKey, representative *[32]byte, privateKey *[32]byte) bool {
 	var inv1 fieldElement
+
+	var A extendedGroupElement
+	// make sure we use the "masked" private key:
+	maskedPrivateKey := getMaskedPrivateKey(privateKey)
+	geScalarMultBase(&A, &maskedPrivateKey)
+
 	feSub(&inv1, &A.Z, &A.Y)
 	feMul(&inv1, &inv1, &A.X)
 	feInvert(&inv1, &inv1) // inv1 <- 1/X(Z-Y) = 1/x(1-y)Z^2
@@ -306,11 +312,11 @@ func chi(out, z *fieldElement) {
 	feMul(out, &t1, &t0) // 253..4,2,1
 }
 
-// RepresentativeToPublicKey converts a uniform representative value for a
-// curve25519 public key, as produced by ScalarBaseMult, to a curve25519 public
+// repToCurve25519 converts a uniform representative value for a
+// curve25519 public key, as produced by pointToRep, to a curve25519 public
 // key.
 // See Elligator paper section 5.2.
-func repToCurve25519(publicKey, representative *[32]byte) {
+func representativeToCurve25519(publicKey, representative *[32]byte) {
 	var rr2, v, e fieldElement
 	feFromBytes(&rr2, representative[:])
 
@@ -343,4 +349,14 @@ func repToCurve25519(publicKey, representative *[32]byte) {
 	feSub(&v, &v, &v2)
 
 	feToBytes(publicKey, &v) // Curve25519 pubkey
+}
+
+func getMaskedPrivateKey(privateKey *[32]byte) (maskedPrivateKey [32]byte) {
+	copy(maskedPrivateKey[:], privateKey[:])
+
+	maskedPrivateKey[0] &= 248
+	maskedPrivateKey[31] &= 127
+	maskedPrivateKey[31] |= 64
+
+	return
 }

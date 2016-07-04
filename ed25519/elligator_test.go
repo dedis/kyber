@@ -8,11 +8,10 @@ import (
 	"bytes"
 	"crypto/rand"
 	"testing"
-
-	"code.google.com/p/go.crypto/curve25519"
-	"github.com/agl/ed25519"
+	// "golang.org/x/crypto/curve25519"
 )
 
+/*
 func TestCurve25519Conversion(t *testing.T) {
 	public, private, _ := ed25519.GenerateKey(rand.Reader)
 
@@ -28,25 +27,26 @@ func TestCurve25519Conversion(t *testing.T) {
 		t.Errorf("Values didn't match: curve25519 produced %x, conversion produced %x", curve25519Public[:], curve25519Public2[:])
 	}
 }
-
+*/
 func TestElligator(t *testing.T) {
-	var publicKey, publicKey2, publicKey3, representative, privateKey [32]byte
+	var publicKey, publicKey2, /*publicKey3,*/ representative, privateKey  [32]byte
 
 	for i := 0; i < 1000; i++ {
-		rand.Reader.Read(privateKey[:])
-
-		if !ScalarBaseMult(&publicKey, &representative, &privateKey) {
+		private := testSuite.NewKey(nil)
+		copy(privateKey[:], private.Bytes())
+		if !scalarToRepresentative(&publicKey, &representative, &privateKey) {
 			continue
 		}
-		RepresentativeToPublicKey(&publicKey2, &representative)
+		representativeToCurve25519(&publicKey2, &representative)
 		if !bytes.Equal(publicKey[:], publicKey2[:]) {
 			t.Fatal("The resulting public key doesn't match the initial one.")
 		}
-
-		curve25519.ScalarBaseMult(&publicKey3, &privateKey)
-		if !bytes.Equal(publicKey[:], publicKey3[:]) {
-			t.Fatal("The public key doesn't match the value that curve25519 produced.")
-		}
+		// test against golang's curve25519 implementation:
+		// commented to avoid the additional dependency (see commented import)
+		//curve25519.ScalarBaseMult(&publicKey3, &privateKey)
+		//if !bytes.Equal(publicKey[:], publicKey3[:]) {
+		//	t.Fatal("The public key doesn't match the value that curve25519 produced.")
+		//}
 	}
 }
 
@@ -56,14 +56,14 @@ func BenchmarkKeyGeneration(b *testing.B) {
 	// Find the private key that results in a point that's in the image of the map.
 	for {
 		rand.Reader.Read(privateKey[:])
-		if ScalarBaseMult(&publicKey, &representative, &privateKey) {
+		if scalarToRepresentative(&publicKey, &representative, &privateKey) {
 			break
 		}
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		ScalarBaseMult(&publicKey, &representative, &privateKey);
+		scalarToRepresentative(&publicKey, &representative, &privateKey);
 	}
 }
 
@@ -73,6 +73,6 @@ func BenchmarkMap(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		RepresentativeToPublicKey(&publicKey, &representative);
+		representativeToCurve25519(&publicKey, &representative);
 	}
 }
