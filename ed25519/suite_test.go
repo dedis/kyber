@@ -42,7 +42,7 @@ func TestCurvePointSet(t *testing.T) {
 	assert.False(t, P1.Equal(P2))
 }
 
-func TestCurvePointRandom(t *testing.T) {
+func TestCurvePointSetRandom(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Randomized test skipped in short mode")
 	}

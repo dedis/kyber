@@ -42,7 +42,7 @@ func TestCurvePointSet(t *testing.T) {
 	assert.False(t, P1.Equal(P2))
 }
 
-func TestCurvePointRandom(t *testing.T) {
+func TestCurvePointSetRandom(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Randomized test skipped in short mode")
 	}
@@ -60,4 +60,13 @@ func TestCurvePointRandom(t *testing.T) {
 		}
 		iters--
 	}
+}
+
+func TestCurveScalarClone(t *testing.T) {
+	s1 := edSuite.Scalar().Pick(edSuite.Cipher(nil))
+	s2 := s1.Clone()
+	assert.True(t, s1.Equal(s2))
+	s1.Mul(s1, s1)
+	assert.False(t, s1.Equal(s2))
+
 }
