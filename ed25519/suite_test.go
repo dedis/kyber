@@ -2,9 +2,6 @@ package ed25519
 
 import (
 	"testing"
-
-	//"fmt"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -64,86 +61,3 @@ func TestCurvePointRandom(t *testing.T) {
 		iters--
 	}
 }
-
-/*
-func (P *point) CloneInternal() abstract.Point {
-	p2 := &point{}
-	p2.ge = P.ge
-	return p2
-}
-
-func (P *point) CloneMarshal() abstract.Point {
-	p2 := suite.Point()
-	b,_:= P.MarshalBinary()
-	p2.UnmarshalBinary(b)
-	return p2
-}
-
-func (P *point) CloneAdd() abstract.Point {
-	p2 := suite.Point().Null()
-
-	p2.Add(p2, abstract.Point(P))
-	return p2
-}
-
-func (P *point) CloneMul() abstract.Point {
-	p2 := suite.Point()
-	p2.Mul(P, suite.Scalar().One())
-
-	return p2
-}
-
-
-func BenchmarkCloneInternal(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		b.StopTimer()
-		P1,_ := suite.Point().Pick(nil, suite.Cipher(nil))
-		b.StartTimer()
-		P2 := P1.(*point).CloneInternal()
-
-		if !P1.Equal(P2) {
-			b.Fatal("Not equal")
-		}
-
-	}
-}
-
-func BenchmarkCloneMarshal(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		b.StopTimer()
-		P1,_ := suite.Point().Pick(nil, suite.Cipher(nil))
-		b.StartTimer()
-		P2 := P1.(*point).CloneMarshal()
-
-		if !P1.Equal(P2) {
-			b.Fatal("Not equal")
-		}
-	}
-}
-
-func BenchmarkCloneAdd(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		b.StopTimer()
-		P1,_ := suite.Point().Pick(nil, suite.Cipher(nil))
-		b.StartTimer()
-		P2 := P1.(*point).CloneAdd()
-
-		if !P1.Equal(P2) {
-			b.Fatal("Not equal")
-		}
-	}
-}
-
-func BenchmarkCloneMul(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		b.StopTimer()
-		P1,_ := suite.Point().Pick(nil, suite.Cipher(nil))
-		b.StartTimer()
-		P2 := P1.(*point).CloneMul()
-
-		if !P1.Equal(P2) {
-			b.Fatal("Not equal")
-		}
-	}
-}
-*/
