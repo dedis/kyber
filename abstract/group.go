@@ -20,6 +20,9 @@ type Scalar interface {
 	// Set equal to another Scalar a
 	Set(a Scalar) Scalar
 
+	// Clone creates a new Scalar with same value
+	Clone() Scalar
+
 	// Set to a small integer value
 	SetInt64(v int64) Scalar
 
