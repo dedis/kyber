@@ -86,6 +86,12 @@ type Point interface {
 	// in a single group element via Pick().
 	PickLen() int
 
+	// Set equal to another Point p.
+	Set(p Point) Point
+
+	// Clone clones the underlying point.
+	Clone() Point
+
 	// Extract data embedded in a point chosen via Embed().
 	// Returns an error if doesn't represent valid embedded data.
 	Data() ([]byte, error)

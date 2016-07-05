@@ -82,6 +82,11 @@ func (P *point) Set(P2 abstract.Point) abstract.Point {
 	return P
 }
 
+// Set point to be equal to P2.
+func (P *point) Clone() abstract.Point {
+	return &point{ge: P.ge}
+}
+
 // Set to the neutral element, which is (0,1) for twisted Edwards curves.
 func (P *point) Null() abstract.Point {
 	P.ge.Zero()

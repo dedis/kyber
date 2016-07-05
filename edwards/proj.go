@@ -90,6 +90,15 @@ func (P *projPoint) Set(CP2 abstract.Point) abstract.Point {
 	return P
 }
 
+func (P *projPoint) Clone() abstract.Point {
+	return &projPoint{
+		c: P.c,
+		X: P.X,
+		Y: P.Y,
+		Z: P.Z,
+	}
+}
+
 func (P *projPoint) Null() abstract.Point {
 	P.Set(&P.c.null)
 	return P

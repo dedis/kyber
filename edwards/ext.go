@@ -99,6 +99,16 @@ func (P *extPoint) Set(CP2 abstract.Point) abstract.Point {
 	return P
 }
 
+func (P *extPoint) Clone() abstract.Point {
+	return &extPoint{
+		c: P.c,
+		X: P.X,
+		Y: P.Y,
+		Z: P.Z,
+		T: P.T,
+	}
+}
+
 func (P *extPoint) Null() abstract.Point {
 	P.Set(&P.c.null)
 	return P
