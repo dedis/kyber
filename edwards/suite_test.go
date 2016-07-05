@@ -1,8 +1,8 @@
 package edwards
 
 import (
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 var edSuite = NewAES128SHA256Ed25519(false)

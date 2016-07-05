@@ -261,7 +261,7 @@ func (p *curvePoint) Set(P abstract.Point) abstract.Point {
 func (p *curvePoint) Clone() abstract.Point {
 	// TODO test if we really created a new Point
 	// changing original point doesn't change cloned
-	return &curvePoint{x: p.x,y: p.y, c: p.c }
+	return &curvePoint{x: p.x, y: p.y, c: p.c}
 }
 
 // Return the order of this curve: the prime N in the curve parameters.

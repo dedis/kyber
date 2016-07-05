@@ -44,14 +44,13 @@ func (p *residuePoint) Base() abstract.Point {
 
 func (p *residuePoint) Set(p2 abstract.Point) abstract.Point {
 	p.g = p2.(*residuePoint).g
-	p.Int =p2.(*residuePoint).Int
+	p.Int = p2.(*residuePoint).Int
 	return p
 }
 
 func (p *residuePoint) Clone() abstract.Point {
 	return &residuePoint{g: p.g, Int: p.Int}
 }
-
 
 func (p *residuePoint) Valid() bool {
 	return p.Int.Sign() > 0 && p.Int.Cmp(p.g.P) < 0 &&
