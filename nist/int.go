@@ -14,7 +14,6 @@ import (
 	"github.com/dedis/crypto/util"
 )
 
-var zero = big.NewInt(0)
 var one = big.NewInt(1)
 var two = big.NewInt(2)
 
@@ -72,7 +71,7 @@ func (i *Int) Init64(v int64, M *big.Int) *Int {
 	return i
 }
 
-// Initializa to a number represented in a big-endian byte string.
+// Initialize to a number represented in a big-endian byte string.
 func (i *Int) InitBytes(a []byte, M *big.Int) *Int {
 	i.M = M
 	i.BO = BigEndian
