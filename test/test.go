@@ -28,6 +28,80 @@ func testEmbed(g abstract.Group, rand cipher.Stream, points *[]abstract.Point,
 	*points = append(*points, p)
 }
 
+func testPointSet(g abstract.Group, rand cipher.Stream) {
+	N := 1000
+	null := g.Point().Null()
+	for i := 0; i < N; i++ {
+		P1, _ := g.Point().Pick(nil, rand)
+		P2 := g.Point()
+		P2.Set(P1)
+		if !P1.Equal(P2) {
+			panic("Set() set to a different point.")
+		}
+		if !P1.Equal(null) {
+			P1.Add(P1, P1)
+			if P1.Equal(P2) {
+				panic("Modifying P1 shouldn't modify P2")
+			}
+		}
+	}
+}
+
+func testPointClone(g abstract.Group, rand cipher.Stream) {
+	N := 1000
+	null := g.Point().Null()
+	for i := 0; i < N; i++ {
+		P1, _ := g.Point().Pick(nil, rand)
+		P2 := P1.Clone()
+		if !P1.Equal(P2) {
+			panic("Clone didn't create a point with same " +
+				"coordinates as the original point.")
+		}
+		if !P1.Equal(null) {
+			P1.Add(P1, P1)
+			if P1.Equal(P2) {
+				panic("Modifying P1 shouldn't modify P2")
+			}
+		}
+	}
+}
+
+func testScalarSet(g abstract.Group, rand cipher.Stream) {
+	N := 1000
+	one := g.Scalar().One()
+	for i := 0; i < N; i++ {
+		s1 := g.Scalar().Pick(rand)
+		s2 := g.Scalar().Set(s1)
+		if !s1.Equal(s2) {
+			panic("Clone didn't create a scalar s2 with same value as s1's.")
+		}
+		if !s1.Equal(one) {
+			s1.Mul(s1, s1)
+			if s1.Equal(s2) {
+				panic("Modifying s1 shouldn't modify s2")
+			}
+		}
+	}
+}
+
+func testScalarClone(g abstract.Group, rand cipher.Stream) {
+	N := 1000
+	one := g.Scalar().One()
+	for i := 0; i < N; i++ {
+		s1 := g.Scalar().Pick(rand)
+		s2 := s1.Clone()
+		if !s1.Equal(s2) {
+			panic("Clone didn't create a scalar s2 with same value as s1's.")
+		}
+		if !s1.Equal(one) {
+			s1.Mul(s1, s1)
+			if s1.Equal(s2) {
+				panic("Modifying s1 shouldn't modify s2")
+			}
+		}
+	}
+}
+
 // Apply a generic set of validation tests to a cryptographic Group,
 // using a given source of [pseudo-]randomness.
 //
@@ -206,6 +280,11 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 	if err != nil {
 		panic(err)
 	}
+
+	testPointSet(g, rand)
+	testPointClone(g, rand)
+	testScalarSet(g, rand)
+	testScalarClone(g, rand)
 
 	return points
 }

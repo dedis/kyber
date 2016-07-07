@@ -252,6 +252,16 @@ func (c *curve) Point() abstract.Point {
 	return p
 }
 
+func (p *curvePoint) Set(P abstract.Point) abstract.Point {
+	p.x = P.(*curvePoint).x
+	p.y = P.(*curvePoint).y
+	return p
+}
+
+func (p *curvePoint) Clone() abstract.Point {
+	return &curvePoint{x: p.x, y: p.y, c: p.c}
+}
+
 // Return the order of this curve: the prime N in the curve parameters.
 func (c *curve) Order() *big.Int {
 	return c.p.N
