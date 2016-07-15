@@ -456,6 +456,10 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 		dhkey := si.ste.Point().Mul(e.PubKey, si.pri)
 
 		// Encrypt the entrypoint data with it.
+		// TODO is this right at all?
+		//This is probably wrong, especially if dhkey.len() is < e.data.len
+		//Maybe what does .Cipher() do?
+
 		buf, _ := dhkey.MarshalBinary()
 		stream := si.ste.Cipher(buf)
 		msgbuf := w.growBuf(lo, hi)
@@ -541,12 +545,13 @@ func attemptDecode(suite abstract.Suite, priv abstract.Secret,
 			//Try to decrypt data.
 			buf, _ := shared.MarshalBinary()
 			stream := suite.Cipher(buf)
-			decrypted := make([]byte, 24)
+			decrypted := make([]byte, DATALEN)
 			stream.XORKeyStream(decrypted, data)
 			msgStart := binary.BigEndian.Uint64(decrypted[0:8])
 			if msgStart > uint64(len(file)) {
 				continue
 			}
+			//
 			key := decrypted[8:24]
 			//Try to decrypt
 			dec := make([]byte, 0)
@@ -629,6 +634,7 @@ func genPurb(entries []Entry, entryPoints map[abstract.Suite][]int,
 	//Obviously should be generated in a safe way.
 	key, _ := hex.DecodeString("9a4fea86a621a91ab371e492457796c0")
 
+	//Why is this done?
 	key[0] = byte(len(entries))
 	//Probably insecure way to use it.
 	//TODO come up with a way to generate keys here.
