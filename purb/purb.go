@@ -1,4 +1,4 @@
-package purbgp
+package purb
 
 // Package nego implements cryptographic negotiation
 // and secret entrypoint finding.
@@ -135,7 +135,7 @@ type Writer struct {
 	entofs  map[int]int                   // Map of entrypoints to header offsets
 	maxLen  int                           // Client-specified maximum header length
 	buf     []byte                        // Buffer in which to build message
-	keys    map[abstract.Suite]suiteKey   // Holds the public/private key for each suite
+	keys    map[string]suiteKey           // Holds the public/private key for each suite
 }
 
 //Function that will find, place and reserve part of the header for the data
@@ -223,7 +223,7 @@ func (w *Writer) PlaceHash(hash uint) (int, int) {
 //
 func (w *Writer) Layout(entrypoints []Entry,
 	rand cipher.Stream,
-	suiteEntry map[abstract.Suite][]int) (int, error) {
+	suiteEntry map[string][]int) (int, error) {
 
 	w.layout.reset()
 	w.entries = entrypoints
@@ -244,7 +244,9 @@ func (w *Writer) Layout(entrypoints []Entry,
 	for suite, _ := range suiteLevel {
 		si := suiteInfo{}
 		//Assumes suite entry is sorted(easily achieved if it's not.
-		si.pos = suiteEntry[suite]
+		si.pos = suiteEntry[suite.String()]
+		fmt.Println(suiteEntry[suite.String()])
+		fmt.Println(si.pos)
 		si.plen = suite.Point().(abstract.Hiding).HideLen() // XXX(seems to work)
 		//fmt.Println(suite.String(), si.plen, "\n\n\n")
 		si.max = si.pos[len(si.pos)-1] + si.plen
@@ -321,7 +323,7 @@ func (w *Writer) Layout(entrypoints []Entry,
 	//w.layout.dump()
 
 	//Generate public/private keys for each suite
-	keymap := make(map[abstract.Suite]suiteKey)
+	keymap := make(map[string]suiteKey)
 	w.keys = keymap
 	for suite := range simap {
 		s := new(suiteKey)
@@ -339,9 +341,10 @@ func (w *Writer) Layout(entrypoints []Entry,
 		s.dhpri = priv
 		s.dhpub = pub
 		s.dhrep = dhrep
-		w.keys[suite] = suiteKey{priv, pub, dhrep}
+		w.keys[suite.String()] = suiteKey{priv, pub, dhrep}
 	}
 
+	fmt.Println(entrypoints)
 	// Now layout the entrypoints.
 	for i := range entrypoints {
 		e := &entrypoints[i]
@@ -349,13 +352,14 @@ func (w *Writer) Layout(entrypoints []Entry,
 		if si == nil {
 			panic("suite " + e.Suite.String() + " wasn't on the list")
 		}
+		fmt.Println(e.Data)
 		l := len(e.Data)
 		if l == 0 {
 			panic("entrypoint with no data")
 		}
 		//As it needs to be the same for decryption it will be a hash scheme.
 		//Need to generate private keys possibly
-		hash := e.Suite.Point().Mul(e.PubKey, w.keys[e.Suite].dhpri) //Probably will need to be DH key
+		hash := e.Suite.Point().Mul(e.PubKey, w.keys[e.Suite.String()].dhpri) //Probably will need to be DH key
 		//Some way to get the hash value from a Point
 
 		intHash := stringHash(hash.String())
@@ -433,11 +437,11 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 	for i := range w.suites.s {
 		si := w.suites.s[i]
 
-		if len(w.keys[si.ste].dhrep) != si.plen {
+		if len(w.keys[si.ste.String()].dhrep) != si.plen {
 			panic("ciphersuite " + si.String() + " wrong pubkey length")
 		}
-		si.pri = w.keys[si.ste].dhpri
-		si.pub = w.keys[si.ste].dhrep
+		si.pri = w.keys[si.ste.String()].dhpri
+		si.pub = w.keys[si.ste.String()].dhrep
 
 		// Insert the hidden point into the message buffer.
 		lo, hi := si.region(si.lev)
@@ -509,10 +513,10 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 //Output: int---???Some error code eventually?
 //	[]byte-- The decoded message, or nil.
 func attemptDecode(suite abstract.Suite, priv abstract.Secret,
-	suiteKeyPos map[abstract.Suite][]int, file []byte,
+	suiteKeyPos map[string][]int, file []byte,
 	rand cipher.Stream) (int, []byte) {
 	//make sure suite has entry points
-	keyPos := suiteKeyPos[suite]
+	keyPos := suiteKeyPos[suite.String()]
 	if keyPos == nil {
 		//fmt.Println("We do not know about", suite)
 		return 0, nil
@@ -586,7 +590,7 @@ func attemptDecode(suite abstract.Suite, priv abstract.Secret,
 //	filepath-- Where the purb file should be written.
 //output:
 //	Writes the purb to a file
-func writePurb(entries []Entry, entryPoints map[abstract.Suite][]int,
+func writePurb(entries []Entry, entryPoints map[string][]int,
 	message []byte, filePath string) {
 	//Now we need to go through the steps of setting it up.
 	w := Writer{}
@@ -623,7 +627,7 @@ func writePurb(entries []Entry, entryPoints map[abstract.Suite][]int,
 }
 
 //Same as writePurb, but instead it returns the byte string instead of writing it to a file.
-func genPurb(entries []Entry, entryPoints map[abstract.Suite][]int,
+func genPurb(entries []Entry, entryPoints map[string][]int,
 	message []byte, pad bool) ([]byte, int) {
 	//Now we need to go through the steps of setting it up.
 	w := Writer{}
@@ -662,4 +666,82 @@ func genPurb(entries []Entry, entryPoints map[abstract.Suite][]int,
 	encMessage := w.Write(random.Stream)
 	encMessage = append(encMessage, enc...)
 	return encMessage, hdrend
+}
+
+//Does not deal with padding
+//Same as writePurb, but instead it returns the byte string instead of writing it to a file.
+func GenPurbTLS(entries []Entry, entryPoints map[string][]int) ([]byte, int) {
+	//Now we need to go through the steps of setting it up.
+	w := Writer{}
+	fmt.Println(entries)
+	hdrend, err := w.Layout(entries, random.Stream, entryPoints)
+	if err != nil {
+		panic(err)
+	}
+	encMessage := w.Write(random.Stream)
+	return encMessage, hdrend
+}
+
+//First step to decrypt is to xor all possible entry points for the suite
+//Tries to decode a purb given a private key.
+//Input: suite-- The suite that the key is to decode.
+//	priv-- Secret key
+//	entryPoints-- entrypoints for all possible keys.
+//	file-- the file to be decoded
+//	rand-- random stream
+//Output: int---???Some error code eventually?
+//	[]byte-- The decoded message, or nil.
+func AttemptDecodeTLS(suite abstract.Suite, priv abstract.Secret,
+	suiteKeyPos map[string][]int, file []byte,
+	rand cipher.Stream, expData string) (int, []byte) {
+	//make sure suite has entry points
+	keyPos := suiteKeyPos[suite.String()]
+	if keyPos == nil {
+		//fmt.Println("We do not know about", suite)
+		return 0, nil
+	}
+	dhpub := make([]byte, KEYLEN)
+	for i := range keyPos {
+		k := keyPos[i]
+		temp := file[k : k+KEYLEN]
+		for j := range temp {
+			dhpub[j] ^= temp[j]
+		}
+	}
+	//Now that we have the key for our suite calculate the shared key
+	pub := suite.Point()
+	pub.(abstract.Hiding).HideDecode(dhpub)
+	shared := suite.Point().Mul(pub, priv)
+	//Now we have to try and decrypt the message
+	//We must go through all possible hash values
+
+	intHash := stringHash(shared.String())
+	ts := uint(1)
+	start := uint(KEYLEN)
+	dLen := uint(DATALEN)
+	for start+ts*uint(dLen) <= uint(len(file)) {
+		//try to decrypt hashtable[i]->i+3
+		//could be sped up slightly for case ts is 1 or 2
+		for i := uint(0); i < HASHATTEMPTS; i++ {
+			tHash := (intHash + i) % ts
+			data := file[start+tHash*dLen : start+tHash*dLen+dLen]
+			//Try to decrypt data.
+			//TODO make not shitty encryption
+			buf, _ := shared.MarshalBinary()
+			stream := suite.Cipher(buf)
+			decrypted := make([]byte, DATALEN)
+			stream.XORKeyStream(decrypted, data)
+
+			//Some way to determine if the message is actually english
+			//In case it has 8 bytes from padding
+			if string(decrypted) == expData {
+				return 0, decrypted
+			}
+
+		}
+		start += ts * dLen
+		ts *= 2
+
+	}
+	return 0, nil
 }

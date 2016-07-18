@@ -1,4 +1,4 @@
-package purbgp
+package purb
 
 // Simple reservation byte-mask layout
 type byteLayout struct {

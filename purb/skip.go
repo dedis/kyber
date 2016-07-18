@@ -1,4 +1,4 @@
-package purbgp
+package purb
 
 import (
 	"fmt"

@@ -61,7 +61,6 @@ func TestPurb(t *testing.T) {
 		for j := 0; j < nlevels; j++ {
 			ents[j] = j * KEYLEN
 		}
-
 		suiteEntry[suites[i]] = ents
 
 		// Create some entrypoints with this suite
@@ -291,7 +290,7 @@ func buildPurb(nlevels, nentries int, suites []abstract.Suite, msg []byte) {
 	datalen := DATALEN
 	suiteLevel := make(map[abstract.Suite]int)
 	entries := make([]Entry, 0)
-	suiteEntry := make(map[abstract.Suite][]int)
+	suiteEntry := make(map[string][]int)
 	for i := range suites {
 		suiteLevel[suites[i]] = nlevels
 		nlevels++ // vary it a bit for testing
@@ -299,7 +298,7 @@ func buildPurb(nlevels, nentries int, suites []abstract.Suite, msg []byte) {
 		for j := 0; j < nlevels; j++ {
 			ents[j] = j * KEYLEN
 		}
-		suiteEntry[suites[i]] = ents
+		suiteEntry[suites[i].String()] = ents
 
 		// Create some entrypoints with this suite
 		s := suites[i]
