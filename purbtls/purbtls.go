@@ -33,9 +33,9 @@ import (
 	//	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/edwards"
 	//	"github.com/dedis/crypto/cipher/aes"
-	//	"github.com/dedis/crypto/random"
 	"fmt"
 	"github.com/dedis/crypto/purb"
+	"github.com/dedis/crypto/random"
 	"net"
 	"time"
 )
@@ -76,8 +76,10 @@ type Config struct {
 	//Server public key. known by client
 	//Server Private key. known by server
 	//holds the server keys, if it is client then only public keys will be seen
-	Keys      []purb.Entry
+	keys      []purb.Entry
 	is_client bool
+	sendKey   []byte
+	recvKey   []byte
 }
 
 //listener structure taken from golang tls implementation
@@ -130,7 +132,12 @@ func Server(c net.Conn, conf *Config) *PurbConn {
 			fmt.Println(err)
 		}
 		if l > 0 {
-			//		i, val := purb.attemptDecrypt(buf)
+			//Choose a key
+			entry := conf.keys[len(conf.keys)-1]
+			//		entry := conf.keys[0]
+			_, val := purb.AttemptDecodeTLS(entry.Suite, entry.PriKey, KEYPOS,
+				buf, random.Stream, CONFDATA)
+			fmt.Println(val.String())
 			fmt.Println(l, "recieved purb")
 			break
 		}
@@ -148,17 +155,17 @@ func Client(c net.Conn, conf *Config) *PurbConn {
 	purbc.con = c
 	purbc.cf = conf
 	//Set entrypoints
-	for i := range conf.Keys {
-		e := &conf.Keys[i]
+	for i := range conf.keys {
+		e := &conf.keys[i]
 		e.Data = []byte(CONFDATA)
 		fmt.Println(i)
 		fmt.Println(e.Suite)
 		fmt.Println(e.PubKey)
 		fmt.Println(e.Data)
 	}
-	fmt.Println(KEYPOS)
-	purbHeader, _ := purb.GenPurbTLS(conf.Keys, KEYPOS)
-	fmt.Println(len(purbHeader))
+	fmt.Println(conf.keys)
+	purbHeader, _ := purb.GenPurbTLS(conf.keys, KEYPOS)
+	fmt.Println(conf.keys)
 	c.Write(purbHeader)
 	buf := make([]byte, 1024)
 	for {
@@ -168,6 +175,7 @@ func Client(c net.Conn, conf *Config) *PurbConn {
 		}
 
 		if l > 0 {
+			//Decrypt using shared keys from conf.keys (populated by GenPurbTLS)
 			fmt.Println(string(buf))
 			break
 		}

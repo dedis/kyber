@@ -75,8 +75,8 @@ func TestBasicConn(t *testing.T) {
 	//Build the keys.
 	suites := []abstract.Suite{edwards.NewAES128SHA256Ed25519(true)}
 	ents := genKeys(10, suites)
-	cConf := Config{ents, true}
-	sConf := Config{ents, false}
+	cConf := Config{ents, true, nil, nil}
+	sConf := Config{ents, false, nil, nil}
 	go server(&sConf)
 	conn, err := Dial("tcp", "localhost:8080", &cConf)
 	if err != nil {
@@ -98,7 +98,7 @@ func genKeys(num int, suites []abstract.Suite) []purb.Entry {
 		for i := 0; i < num; i++ {
 			pri := s.Secret().Pick(random.Stream)
 			pub := s.Point().Mul(nil, pri)
-			entries = append(entries, purb.Entry{s, pri, pub, nil})
+			entries = append(entries, purb.Entry{s, pri, pub, nil, nil, nil, nil})
 		}
 	}
 	return entries

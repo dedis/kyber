@@ -53,11 +53,13 @@ func stringHash(s string) uint {
 
 //Entry holds the info required to create an entrypoint for each recipient.
 type Entry struct {
-	Suite abstract.Suite // Ciphersuite this public key is drawn from
-	//XXX TODO REMOVE: Temporary to make testing much easier
-	PriKey abstract.Secret
-	PubKey abstract.Point // Public key of this entrypoint's owner
-	Data   []byte         // Entrypoint data decryptable by owner
+	Suite     abstract.Suite // Ciphersuite this public key is drawn from
+	PriKey    abstract.Secret
+	PubKey    abstract.Point // Public key of this entrypoint's owner
+	Data      []byte         // Entrypoint data decryptable by owner
+	SharedKey abstract.Point //Key shared between client created during purbGen
+	SendKey   []byte         //Key created to encrypt PURB entrypoint
+	RecvKey   []byte         //key created for recieving communication
 }
 
 func (e *Entry) String() string {
@@ -85,7 +87,12 @@ type suiteInfo struct {
 	pri abstract.Secret // ephemeral Diffie-Hellman private key
 	pub []byte          // corresponding encoded public key
 }
+//Key derive function Probably should actually be passed in by the application
+//(tls or pgp)
+func KDF(s abstract.Suite, k abstract.Point) []byte{
+	s.
 
+}
 func (si *suiteInfo) String() string {
 	return "Suite " + si.ste.String()
 }
@@ -152,7 +159,7 @@ type Writer struct {
 func (w *Writer) PlaceHash(hash uint) (int, int) {
 	//Basic setup is to check if the block directly after entry 0 is available
 	//if it is then hash0[0]=data(would probably be encrypted)
-	//if that fails double the hash table size and update its start location
+	//if that fails double the hash table size and update its sta@rt location
 	//check the next 3 as well.
 	//this is known so
 	//finding the value in the hash table is accomplished like:
@@ -245,8 +252,8 @@ func (w *Writer) Layout(entrypoints []Entry,
 		si := suiteInfo{}
 		//Assumes suite entry is sorted(easily achieved if it's not.
 		si.pos = suiteEntry[suite.String()]
-		fmt.Println(suiteEntry[suite.String()])
-		fmt.Println(si.pos)
+		//fmt.Println(suiteEntry[suite.String()])
+		//fmt.Println(si.pos)
 		si.plen = suite.Point().(abstract.Hiding).HideLen() // XXX(seems to work)
 		//fmt.Println(suite.String(), si.plen, "\n\n\n")
 		si.max = si.pos[len(si.pos)-1] + si.plen
@@ -344,7 +351,6 @@ func (w *Writer) Layout(entrypoints []Entry,
 		w.keys[suite.String()] = suiteKey{priv, pub, dhrep}
 	}
 
-	fmt.Println(entrypoints)
 	// Now layout the entrypoints.
 	for i := range entrypoints {
 		e := &entrypoints[i]
@@ -352,7 +358,7 @@ func (w *Writer) Layout(entrypoints []Entry,
 		if si == nil {
 			panic("suite " + e.Suite.String() + " wasn't on the list")
 		}
-		fmt.Println(e.Data)
+		//fmt.Println(e.Data)
 		l := len(e.Data)
 		if l == 0 {
 			panic("entrypoint with no data")
@@ -361,6 +367,7 @@ func (w *Writer) Layout(entrypoints []Entry,
 		//Need to generate private keys possibly
 		hash := e.Suite.Point().Mul(e.PubKey, w.keys[e.Suite.String()].dhpri) //Probably will need to be DH key
 		//Some way to get the hash value from a Point
+		e.SharedKey = hash
 
 		intHash := stringHash(hash.String())
 		ofs, tableEnd := w.PlaceHash(intHash)
@@ -673,7 +680,6 @@ func genPurb(entries []Entry, entryPoints map[string][]int,
 func GenPurbTLS(entries []Entry, entryPoints map[string][]int) ([]byte, int) {
 	//Now we need to go through the steps of setting it up.
 	w := Writer{}
-	fmt.Println(entries)
 	hdrend, err := w.Layout(entries, random.Stream, entryPoints)
 	if err != nil {
 		panic(err)
@@ -693,7 +699,7 @@ func GenPurbTLS(entries []Entry, entryPoints map[string][]int) ([]byte, int) {
 //	[]byte-- The decoded message, or nil.
 func AttemptDecodeTLS(suite abstract.Suite, priv abstract.Secret,
 	suiteKeyPos map[string][]int, file []byte,
-	rand cipher.Stream, expData string) (int, []byte) {
+	rand cipher.Stream, expData string) (int, abstract.Point) {
 	//make sure suite has entry points
 	keyPos := suiteKeyPos[suite.String()]
 	if keyPos == nil {
@@ -735,7 +741,7 @@ func AttemptDecodeTLS(suite abstract.Suite, priv abstract.Secret,
 			//Some way to determine if the message is actually english
 			//In case it has 8 bytes from padding
 			if string(decrypted) == expData {
-				return 0, decrypted
+				return 0, shared
 			}
 
 		}
