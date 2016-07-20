@@ -87,10 +87,19 @@ type suiteInfo struct {
 	pri abstract.Secret // ephemeral Diffie-Hellman private key
 	pub []byte          // corresponding encoded public key
 }
+
 //Key derive function Probably should actually be passed in by the application
 //(tls or pgp)
-func KDF(s abstract.Suite, k abstract.Point) []byte{
-	s.
+func KDF(s abstract.Suite, k abstract.Point) ([]byte, []byte) {
+	//	s.
+	s1, err := k.MarshalBinary()
+	if err != nil {
+		fmt.Println(err)
+
+	}
+	s2 := s1
+	s2[0]++
+	return s1, s2
 
 }
 func (si *suiteInfo) String() string {
@@ -471,8 +480,10 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 		//This is probably wrong, especially if dhkey.len() is < e.data.len
 		//Maybe what does .Cipher() do?
 
-		buf, _ := dhkey.MarshalBinary()
-		stream := si.ste.Cipher(buf)
+		send, recv := KDF(si.ste, dhkey)
+		e.SendKey = send
+		e.RecvKey = recv
+		stream := si.ste.Cipher(send)
 		msgbuf := w.growBuf(lo, hi)
 		stream.XORKeyStream(msgbuf, e.Data)
 
@@ -697,10 +708,12 @@ func GenPurbTLS(entries []Entry, entryPoints map[string][]int) ([]byte, int) {
 //	rand-- random stream
 //Output: int---???Some error code eventually?
 //	[]byte-- The decoded message, or nil.
-func AttemptDecodeTLS(suite abstract.Suite, priv abstract.Secret,
+func AttemptDecodeTLS(entry *Entry,
 	suiteKeyPos map[string][]int, file []byte,
 	rand cipher.Stream, expData string) (int, abstract.Point) {
 	//make sure suite has entry points
+	suite := entry.Suite
+	priv := entry.PriKey
 	keyPos := suiteKeyPos[suite.String()]
 	if keyPos == nil {
 		//fmt.Println("We do not know about", suite)
@@ -733,8 +746,10 @@ func AttemptDecodeTLS(suite abstract.Suite, priv abstract.Secret,
 			data := file[start+tHash*dLen : start+tHash*dLen+dLen]
 			//Try to decrypt data.
 			//TODO make not shitty encryption
-			buf, _ := shared.MarshalBinary()
-			stream := suite.Cipher(buf)
+			recv, send := KDF(suite, shared)
+			entry.SendKey = send
+			entry.RecvKey = recv
+			stream := suite.Cipher(recv)
 			decrypted := make([]byte, DATALEN)
 			stream.XORKeyStream(decrypted, data)
 

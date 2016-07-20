@@ -30,7 +30,7 @@
 package purbtls
 
 import (
-	//	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/edwards"
 	//	"github.com/dedis/crypto/cipher/aes"
 	"fmt"
@@ -43,6 +43,8 @@ import (
 //How many bytes symkey+message_start is
 //TODO make it easy for different entrypoint sizes.
 const DATALEN = 24
+
+const AEADLEN = 16
 
 //Confirmation data
 const CONFDATA = "confirmation message1234"
@@ -80,6 +82,7 @@ type Config struct {
 	is_client bool
 	sendKey   []byte
 	recvKey   []byte
+	suite     abstract.Suite
 }
 
 //listener structure taken from golang tls implementation
@@ -132,17 +135,32 @@ func Server(c net.Conn, conf *Config) *PurbConn {
 			fmt.Println(err)
 		}
 		if l > 0 {
+			//TODO implement trying multiple keys
 			//Choose a key
 			entry := conf.keys[len(conf.keys)-1]
 			//		entry := conf.keys[0]
-			_, val := purb.AttemptDecodeTLS(entry.Suite, entry.PriKey, KEYPOS,
+			//			fmt.Println("-----------Before--------------")
+			//			fmt.Println(entry)
+			_, _ = purb.AttemptDecodeTLS(&entry, KEYPOS,
 				buf, random.Stream, CONFDATA)
-			fmt.Println(val.String())
-			fmt.Println(l, "recieved purb")
+			conf.recvKey = entry.RecvKey
+			conf.sendKey = entry.SendKey
+			conf.suite = entry.Suite
+			/*			fmt.Println("-----------After--------------")
+						fmt.Println(entry)
+						fmt.Println(val.String())
+						fmt.Println(l, "recieved purb")*/
 			break
 		}
 	}
-	c.Write([]byte("test:"))
+	m := "test:"
+	cipher := make([]byte, 0)
+	cipher = conf.suite.Cipher(conf.sendKey).Seal(cipher, []byte(m))
+
+	//	fmt.Println(conf.sendKey)
+	//	fmt.Println(cipher)
+	//	fmt.Println(len(cipher))
+	c.Write(cipher)
 	purbs.con = c
 	purbs.cf = conf
 
@@ -158,14 +176,16 @@ func Client(c net.Conn, conf *Config) *PurbConn {
 	for i := range conf.keys {
 		e := &conf.keys[i]
 		e.Data = []byte(CONFDATA)
-		fmt.Println(i)
-		fmt.Println(e.Suite)
-		fmt.Println(e.PubKey)
-		fmt.Println(e.Data)
+		/*		fmt.Println(i)
+				fmt.Println(e.Suite)
+				fmt.Println(e.PubKey)
+				fmt.Println(e.Data)*/
 	}
-	fmt.Println(conf.keys)
+	//	fmt.Println("-----------Before--------------")
+	//	fmt.Println(conf.keys)
 	purbHeader, _ := purb.GenPurbTLS(conf.keys, KEYPOS)
-	fmt.Println(conf.keys)
+	//	fmt.Println("-----------After--------------")
+	//	fmt.Println(conf.keys)
 	c.Write(purbHeader)
 	buf := make([]byte, 1024)
 	for {
@@ -176,7 +196,31 @@ func Client(c net.Conn, conf *Config) *PurbConn {
 
 		if l > 0 {
 			//Decrypt using shared keys from conf.keys (populated by GenPurbTLS)
-			fmt.Println(string(buf))
+			for k := range conf.keys {
+				e := conf.keys[k]
+				//e := conf.keys[len(conf.keys)-k-1]
+				res := make([]byte, 0)
+				//				fmt.Println(e.RecvKey)
+				//Destroys buf so need to copy
+				cpy := make([]byte, l)
+				copy(cpy, buf)
+				res, err = e.Suite.Cipher(e.RecvKey).Open(res, cpy)
+				//				fmt.Println(cpy)
+				if err != nil {
+					fmt.Println(err)
+					continue
+				} else {
+					fmt.Println("okay")
+				}
+				//	fmt.Println(string(buf))
+				if string(res[0:5]) == "test:" {
+					//					fmt.Println(string(res))
+					conf.sendKey = e.SendKey
+					conf.recvKey = e.RecvKey
+					conf.suite = e.Suite
+					break
+				}
+			}
 			break
 		}
 	}
@@ -215,12 +259,35 @@ func Dial(network, address string, conf *Config) (*PurbConn, error) {
 }
 
 func (conn *PurbConn) Write(data []byte) (int, error) {
-	return conn.con.Write(data)
+	c := conn.cf.suite.Cipher(conn.cf.sendKey).Seal(nil, data)
+	//	fmt.Println(len(c), len(data))
+	//	fmt.Println(c)
+	//fmt.Println(data)
+	return conn.con.Write(c)
 }
 
 func (conn *PurbConn) Read(data []byte) (int, error) {
 	i, err := conn.con.Read(data)
-	return i, err
+	if i > 0 {
+		//fmt.Println(i)
+		//fmt.Println(data[0:i])
+		c := make([]byte, 0)
+		cpy := make([]byte, i)
+		copy(cpy, data)
+		//fmt.Println(cpy)
+		//fmt.Println("test")
+		c, err2 := conn.cf.suite.Cipher(conn.cf.recvKey).Open(c, cpy)
+		//fmt.Println("test")
+		if err2 != nil {
+			fmt.Println(err2)
+		}
+		//fmt.Println(c)
+		//fmt.Println("test")
+		//Figure out how to actually clear the buffer
+		data := data[:i-AEADLEN]
+		copy(data, c)
+	}
+	return i - AEADLEN, err
 
 }
 func (conn *PurbConn) Close() error {
