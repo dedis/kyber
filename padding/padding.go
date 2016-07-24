@@ -20,7 +20,8 @@ import (
 const PADLEN = 8
 
 //the byte used to pad messages.
-const PADBYTE = 0x51
+//0 because it makes things easier elsewhere, might need to be changed
+const PADBYTE = 0x00
 
 //Inputs:
 //length int, is the length of the message.
@@ -37,6 +38,7 @@ func GetMsgBits(length, overhead uint64) uint64 {
 //overhead int, is the overhead(in bytes) added by the encryption and padding
 //Returns the number of leak bits.
 func GetLeakBits(length, overhead uint64) uint64 {
+	//Not sure why there is +1, possibly should be removed
 	return uint64(math.Ceil(math.Log2(float64(
 		GetMsgBits(length, overhead))))) + 1
 }
