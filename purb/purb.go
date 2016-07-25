@@ -479,6 +479,8 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 		// TODO is this right at all?
 		//This is probably wrong, especially if dhkey.len() is < e.data.len
 		//Maybe what does .Cipher() do?
+                //TODO Make AEAD encryption.
+                //Will likely need to modify entry point further to hold the streams?
 
 		send, recv := KDF(si.ste, dhkey)
 		e.SendKey = send
