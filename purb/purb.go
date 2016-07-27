@@ -90,6 +90,7 @@ type suiteInfo struct {
 
 //Key derive function Probably should actually be passed in by the application
 //(tls or pgp)
+//TODO make not terrible also above comment.
 func KDF(s abstract.Suite, k abstract.Point) ([]byte, []byte) {
 	//	s.
 	s1, err := k.MarshalBinary()
@@ -747,7 +748,7 @@ func AttemptDecodeTLS(entry *Entry,
 			tHash := (intHash + i) % ts
 			data := file[start+tHash*dLen : start+tHash*dLen+dLen]
 			//Try to decrypt data.
-			//TODO make not shitty encryption
+			//TODO make not shitty KDF
 			recv, send := KDF(suite, shared)
 			entry.SendKey = send
 			entry.RecvKey = recv

@@ -1,0 +1,2 @@
+make sure entire message is also padded correctly.
+Currently only records are so it could be badly padded.

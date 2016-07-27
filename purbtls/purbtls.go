@@ -2,31 +2,6 @@
 //Assumes that the client has a public key for the server at the beggining of
 //the protocol.
 
-/* Protocol overview:
-* Client already has public key and suite.
-* Client generates a clientHelloPurb that contains required session info:
-	*
-	*
-	*
-* Server then replies with a serverHelloPurb that contains the following:
-	*
-	*
-	*
-	* Then shared key is generated (ECDH probably)
-
-
-	Can purbs be simplified, because we know the message will always be with
-	one key to one recipient?
-	What is lost if you do this?
-	PURB for sinle recipient could just be
-	[elligator key][encrypted sym key][encrypted message]
-	Can we authenticate encrypted sym key?
-
-	Ignores why the server can trust the client?
-
-
-	Only need 1 round trip.
-*/
 package purbtls
 
 import (
@@ -50,7 +25,10 @@ const DATALEN = 24
 const AEADLEN = 16
 
 //Confirmation data
+//Currently 24 bytes. 
+//TODO make it 8 bytes, and change PURB to actually do AEAD encryption
 const CONFDATA = "confirmation message1234"
+
 
 //Default next recordLen
 const DEFAULTLEN = 256
@@ -63,6 +41,10 @@ const PACKET = 0x01
 
 //The overhead from the packet packet type (1) + len (8) + content (1)
 const RECORDOVERHEAD = 10
+
+//The maximum length of a record, possibly not needed and caused by me
+//not using buffers TODO check buffers
+const MAXRECLEN = 16384
 
 //layout of suite entrypoints default
 var KEYPOS = map[string][]int{
@@ -458,6 +440,7 @@ func (conn *PurbConn) Read(data []byte) (int, error) {
 	return i, err
 
 }
+//Functions to finish the conn interface
 func (conn *PurbConn) Close() error {
 	return conn.con.Close()
 }
