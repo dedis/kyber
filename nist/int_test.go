@@ -63,3 +63,22 @@ func TestIntEndianBytes(t *testing.T) {
 	assert.Equal(t, 2, i.MarshalSize())
 	assert.NotPanics(t, func() { i.LittleEndian(2, 2) })
 }
+
+func TestIntClone(t *testing.T) {
+	modulo, err := hex.DecodeString("1000")
+	moduloI := new(big.Int).SetBytes(modulo)
+	assert.Nil(t, err)
+	v, err := hex.DecodeString("10")
+	assert.Nil(t, err)
+
+	base := new(Int).InitBytes(v, moduloI)
+
+	for i := 0; i < 10; i++ {
+		clone := base.Clone()
+		clone.Add(base, clone)
+		if clone.Equal(base) {
+			t.Error("Should not be equal")
+		}
+	}
+
+}
