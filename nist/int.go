@@ -140,7 +140,10 @@ func (i *Int) Set(a abstract.Scalar) abstract.Scalar {
 }
 
 func (i *Int) Clone() abstract.Scalar {
-	return &Int{V: i.V, M: i.M, BO: i.BO}
+	//return new(Int).Init(&i.V, i.M)
+	ni := new(Int).Init(&i.V, i.M)
+	ni.BO = i.BO
+	return ni
 }
 
 // Set to the value 0.  The modulus must already be initialized.
