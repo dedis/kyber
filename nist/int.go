@@ -140,7 +140,6 @@ func (i *Int) Set(a abstract.Scalar) abstract.Scalar {
 }
 
 func (i *Int) Clone() abstract.Scalar {
-	//return new(Int).Init(&i.V, i.M)
 	ni := new(Int).Init(&i.V, i.M)
 	ni.BO = i.BO
 	return ni
