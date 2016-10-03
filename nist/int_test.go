@@ -36,7 +36,7 @@ func TestIntEndianness(t *testing.T) {
 
 	// Try to reconstruct the int from the buffer
 	i = new(Int).Init64(v, modulo)
-	i2 := NewInt(0, modulo)
+	i2 := NewInt64(0, modulo)
 	buff, _ := i.MarshalBinary()
 	assert.Nil(t, i2.UnmarshalBinary(buff))
 	assert.True(t, i.Equal(i2))
@@ -62,4 +62,14 @@ func TestIntEndianBytes(t *testing.T) {
 
 	assert.Equal(t, 2, i.MarshalSize())
 	assert.NotPanics(t, func() { i.LittleEndian(2, 2) })
+}
+
+func TestInits(t *testing.T) {
+	i1 := NewInt64(int64(65500), big.NewInt(65535))
+	i2 := NewInt(&i1.V, i1.M)
+	assert.True(t, i1.Equal(i2))
+	i3 := NewIntBytes(i1.Bytes(), i1.M)
+	assert.True(t, i1.Equal(i3))
+	i4 := NewIntString(i1.String(), "", 16, i1.M)
+	assert.True(t, i1.Equal(i4))
 }

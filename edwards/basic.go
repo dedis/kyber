@@ -34,7 +34,7 @@ func (P *basicPoint) String() string {
 // Create a new ModInt representing a coordinate on this curve,
 // with a given int64 integer value for constant-initialization convenience.
 func (P *basicPoint) coord(v int64) *nist.Int {
-	return nist.NewInt(v, &P.c.P)
+	return nist.NewInt64(v, &P.c.P)
 }
 
 func (P *basicPoint) MarshalSize() int {

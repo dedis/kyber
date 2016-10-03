@@ -49,31 +49,47 @@ type Int struct {
 	BO ByteOrder // Endianness considered for this int
 }
 
-// Create a new Int with a given int64 value and big.Int modulus.
-func NewInt(v int64, M *big.Int) *Int {
+// NewInt creaters a new Int with a given big.Int and a big.Int modulus.
+func NewInt(v *big.Int, m *big.Int) *Int {
+	return new(Int).Init(v, m)
+}
+
+// NewInt64 creates a new Int with a given int64 value and big.Int modulus.
+func NewInt64(v int64, M *big.Int) *Int {
 	return new(Int).Init64(v, M)
+}
+
+// NewIntBytes creates a new Int with a given slice of bytes and a big.Int
+// modulus.
+func NewIntBytes(a []byte, m *big.Int) *Int {
+	return new(Int).InitBytes(a, m)
+}
+
+// NewIntString creates a new Int with a given string and a big.Int modulus.
+func NewIntString(n, d string, base int, m *big.Int) *Int {
+	return new(Int).InitString(n, d, base, m)
 }
 
 // Initialize a Int with a given big.Int value and modulus pointer.
 // Note that the value is copied; the modulus is not.
-func (i *Int) Init(V *big.Int, M *big.Int) *Int {
-	i.M = M
+func (i *Int) Init(V *big.Int, m *big.Int) *Int {
+	i.M = m
 	i.BO = BigEndian
-	i.V.Set(V).Mod(&i.V, M)
+	i.V.Set(V).Mod(&i.V, m)
 	return i
 }
 
 // Initialize a Int with an int64 value and big.Int modulus.
-func (i *Int) Init64(v int64, M *big.Int) *Int {
-	i.M = M
+func (i *Int) Init64(v int64, m *big.Int) *Int {
+	i.M = m
 	i.BO = BigEndian
-	i.V.SetInt64(v).Mod(&i.V, M)
+	i.V.SetInt64(v).Mod(&i.V, m)
 	return i
 }
 
 // Initialize to a number represented in a big-endian byte string.
-func (i *Int) InitBytes(a []byte, M *big.Int) *Int {
-	i.M = M
+func (i *Int) InitBytes(a []byte, m *big.Int) *Int {
+	i.M = m
 	i.BO = BigEndian
 	i.V.SetBytes(a).Mod(&i.V, i.M)
 	return i
@@ -81,8 +97,8 @@ func (i *Int) InitBytes(a []byte, M *big.Int) *Int {
 
 // Initialize a Int to a rational fraction n/d
 // specified with a pair of strings in a given base.
-func (i *Int) InitString(n, d string, base int, M *big.Int) *Int {
-	i.M = M
+func (i *Int) InitString(n, d string, base int, m *big.Int) *Int {
+	i.M = m
 	i.BO = BigEndian
 	if _, succ := i.SetString(n, d, base); !succ {
 		panic("InitString: invalid fraction representation")

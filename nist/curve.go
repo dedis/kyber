@@ -230,7 +230,7 @@ func (c *curve) ScalarLen() int { return (c.p.N.BitLen() + 7) / 8 }
 
 // Create a Scalar associated with this curve.
 func (c *curve) Scalar() abstract.Scalar {
-	return NewInt(0, c.p.N)
+	return NewInt64(0, c.p.N)
 }
 
 // Number of bytes required to store one coordinate on this curve
