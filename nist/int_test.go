@@ -5,6 +5,8 @@ import (
 	"math/big"
 	"testing"
 
+	"bytes"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,7 +38,7 @@ func TestIntEndianness(t *testing.T) {
 
 	// Try to reconstruct the int from the buffer
 	i = new(Int).Init64(v, modulo)
-	i2 := NewInt(0, modulo)
+	i2 := NewInt64(0, modulo)
 	buff, _ := i.MarshalBinary()
 	assert.Nil(t, i2.UnmarshalBinary(buff))
 	assert.True(t, i.Equal(i2))
@@ -65,20 +67,12 @@ func TestIntEndianBytes(t *testing.T) {
 }
 
 func TestIntClone(t *testing.T) {
-	modulo, err := hex.DecodeString("1000")
-	moduloI := new(big.Int).SetBytes(modulo)
-	assert.Nil(t, err)
-	v, err := hex.DecodeString("10")
-	assert.Nil(t, err)
+	moduloI := new(big.Int).SetBytes([]byte{0x10, 0})
+	base := new(Int).InitBytes([]byte{0x10}, moduloI)
 
-	base := new(Int).InitBytes(v, moduloI)
-
-	for i := 0; i < 10; i++ {
-		clone := base.Clone()
-		clone.Add(base, clone)
-		if clone.Equal(base) {
-			t.Error("Should not be equal")
-		}
+	clone := base.Clone()
+	clone.Add(clone, clone)
+	if bytes.Compare(clone.Bytes(), base.Bytes()) == 0 {
+		t.Error("Should not be equal")
 	}
-
 }

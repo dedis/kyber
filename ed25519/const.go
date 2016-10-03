@@ -17,7 +17,7 @@ var prime, _ = new(big.Int).SetString("57896044618658097711785492504343953926634
 var primeOrder, _ = new(nist.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989", "", 10)
 
 // cofactor of the curve, as a ModInt
-var cofactor = nist.NewInt(8, &primeOrder.V)
+var cofactor = nist.NewInt64(8, &primeOrder.V)
 
 // order of the full curve including the cofactor
 var fullOrder = new(big.Int).Mul(&primeOrder.V, &cofactor.V)

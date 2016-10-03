@@ -50,8 +50,15 @@ type Int struct {
 }
 
 // Create a new Int with a given int64 value and big.Int modulus.
-func NewInt(v int64, M *big.Int) *Int {
+func NewInt64(v int64, M *big.Int) *Int {
 	return new(Int).Init64(v, M)
+}
+
+// Create a new Int with a big.Int.
+func NewInt(v *big.Int, m *big.Int, bo ByteOrder) *Int {
+	i := new(Int).Init(v, m)
+	i.BO = bo
+	return i
 }
 
 // Initialize a Int with a given big.Int value and modulus pointer.
@@ -140,9 +147,12 @@ func (i *Int) Set(a abstract.Scalar) abstract.Scalar {
 }
 
 func (i *Int) Clone() abstract.Scalar {
-	v := new(big.Int).Set(&i.V)
-	m := new(big.Int).Set(i.M)
-	return &Int{V: *v, M: m, BO: i.BO}
+	//v := new(big.Int).Set(&i.V)
+	//m := new(big.Int).Set(i.M)
+	//return &Int{V: *v, M: m, BO: i.BO}
+	//return &Int{V: i.V, M: i.M, BO: i.BO}
+	//return new(Int).Init(&i.V, i.M)
+	return NewInt(&i.V, i.M, i.BO)
 }
 
 // Set to the value 0.  The modulus must already be initialized.

@@ -60,7 +60,7 @@ import (
 var primeOrder, _ = new(nist.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989", "", 10)
 
 // curve's cofactor
-var cofactor = nist.NewInt(8, &primeOrder.V)
+var cofactor = nist.NewInt64(8, &primeOrder.V)
 
 var nullPoint = new(point).Null()
 
@@ -265,7 +265,7 @@ func (c *curve) ScalarLen() int {
 }
 
 func (c *curve) Scalar() abstract.Scalar {
-	return nist.NewInt(0, &primeOrder.V)
+	return nist.NewInt64(0, &primeOrder.V)
 }
 
 func (c *curve) PointLen() int {

@@ -3,6 +3,7 @@ package ed25519
 import (
 	"testing"
 
+	"github.com/dedis/cothority/log"
 	"github.com/dedis/crypto/test"
 )
 
@@ -29,3 +30,11 @@ func BenchmarkPointBaseMul(b *testing.B) { groupBench.PointBaseMul(b.N) }
 func BenchmarkPointPick(b *testing.B)    { groupBench.PointPick(b.N) }
 func BenchmarkPointEncode(b *testing.B)  { groupBench.PointEncode(b.N) }
 func BenchmarkPointDecode(b *testing.B)  { groupBench.PointDecode(b.N) }
+
+func TestClone(t *testing.T) {
+	suite := NewAES128SHA256Ed25519(false)
+	a := suite.Scalar().One()
+	b := a.Clone()
+	b.Add(b, b)
+	log.Print(a, b)
+}
