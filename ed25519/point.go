@@ -260,7 +260,7 @@ func (c *Curve) Scalar() abstract.Scalar {
 	//	if c.FullGroup {
 	//		return nist.NewInt(0, fullOrder)
 	//	} else {
-	i := nist.NewInt(0, &primeOrder.V)
+	i := nist.NewInt64(0, &primeOrder.V)
 	i.BO = nist.LittleEndian
 	return i
 	//	}

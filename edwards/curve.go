@@ -60,7 +60,7 @@ func (c *curve) ScalarLen() int {
 
 // Create a new Scalar for this curve.
 func (c *curve) Scalar() abstract.Scalar {
-	return nist.NewInt(0, &c.order.V)
+	return nist.NewInt64(0, &c.order.V)
 }
 
 // Returns the size in bytes of an encoded Point on this curve.

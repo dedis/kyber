@@ -202,7 +202,7 @@ func (g *ResidueGroup) ScalarLen() int { return (g.Q.BitLen() + 7) / 8 }
 // Create a Scalar associated with this Residue group,
 // with an initial value of nil.
 func (g *ResidueGroup) Scalar() abstract.Scalar {
-	return NewInt(0, g.Q)
+	return NewInt64(0, g.Q)
 }
 
 // Return the number of bytes in the encoding of a Point
