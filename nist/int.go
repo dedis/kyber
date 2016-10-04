@@ -66,6 +66,7 @@ func NewIntBytes(a []byte, m *big.Int) *Int {
 }
 
 // NewIntString creates a new Int with a given string and a big.Int modulus.
+// The value is set to a rational fraction n/d in a given base.
 func NewIntString(n, d string, base int, m *big.Int) *Int {
 	return new(Int).InitString(n, d, base, m)
 }
@@ -156,7 +157,6 @@ func (i *Int) Set(a abstract.Scalar) abstract.Scalar {
 }
 
 func (i *Int) Clone() abstract.Scalar {
-	//return new(Int).Init(&i.V, i.M)
 	ni := new(Int).Init(&i.V, i.M)
 	ni.BO = i.BO
 	return ni

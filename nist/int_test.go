@@ -1,6 +1,7 @@
 package nist
 
 import (
+	"bytes"
 	"encoding/hex"
 	"math/big"
 	"testing"
@@ -72,4 +73,15 @@ func TestInits(t *testing.T) {
 	assert.True(t, i1.Equal(i3))
 	i4 := NewIntString(i1.String(), "", 16, i1.M)
 	assert.True(t, i1.Equal(i4))
+}
+
+func TestIntClone(t *testing.T) {
+	moduloI := new(big.Int).SetBytes([]byte{0x10, 0})
+	base := new(Int).InitBytes([]byte{0x10}, moduloI)
+
+	clone := base.Clone()
+	clone.Add(clone, clone)
+	if bytes.Compare(clone.Bytes(), base.Bytes()) == 0 {
+		t.Error("Should not be equal")
+	}
 }
