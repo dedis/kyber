@@ -5,6 +5,8 @@ import (
 	"math/big"
 	"testing"
 
+	"bytes"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -62,4 +64,15 @@ func TestIntEndianBytes(t *testing.T) {
 
 	assert.Equal(t, 2, i.MarshalSize())
 	assert.NotPanics(t, func() { i.LittleEndian(2, 2) })
+}
+
+func TestIntClone(t *testing.T) {
+	moduloI := new(big.Int).SetBytes([]byte{0x10, 0})
+	base := new(Int).InitBytes([]byte{0x10}, moduloI)
+
+	clone := base.Clone()
+	clone.Add(clone, clone)
+	if bytes.Compare(clone.Bytes(), base.Bytes()) == 0 {
+		t.Error("Should not be equal")
+	}
 }
