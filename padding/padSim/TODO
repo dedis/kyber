@@ -1,0 +1,11 @@
+Soon:
+Update system so there is one function, that you pass the padding function,
+and the leakage analysis function to. 
+So there is only one version of the code.
+
+
+Future:
+Look into using .har files instead.
+Is any information actually needed lost?
+.har seems to just have a list of HTTPSrequest/responses
+which might be a better fit foor our analysis.
