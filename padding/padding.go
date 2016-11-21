@@ -40,7 +40,7 @@ func GetMsgBits(length, overhead uint64) uint64 {
 func GetLeakBits(length, overhead uint64) uint64 {
 	//Not sure why there is +1, possibly should be removed
 	return uint64(math.Ceil(math.Log2(float64(
-		GetMsgBits(length, overhead))))) 
+		GetMsgBits(length, overhead)))))
 }
 
 //Inputs:

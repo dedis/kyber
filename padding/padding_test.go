@@ -1,18 +1,17 @@
 package padding
 
 import (
-		"bytes"
-		"crypto/aes"
-		"crypto/cipher"
-		"encoding/hex"
+	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
+	"encoding/hex"
 	"fmt"
-		dedis "github.com/dedis/crypto/cipher"
-		"github.com/dedis/crypto/cipher/norx"
-		"io/ioutil"
-		"strconv"
+	dedis "github.com/dedis/crypto/cipher"
+	"github.com/dedis/crypto/cipher/norx"
+	"io/ioutil"
+	"strconv"
 	"testing"
 )
-
 
 //The same things will need to be tested for most of the following functions.
 var tests = []struct {
@@ -101,18 +100,18 @@ func TestAESGCM(t *testing.T) {
 	//need to generate key.
 	key, _ := hex.DecodeString("9a4fea86a621a91ab371e492457796c0")
 	//initialize pt from file TODO create test message of a size you
-        //want to test with
-    	/*pt, err := ioutil.ReadFile("testmessage.txt")
+	//want to test with
+	/*pt, err := ioutil.ReadFile("testmessage.txt")
 
 	if err != nil {
 		fmt.Println(err)
 
 	}*/
-        pts := "this is the test message to be padded"
-        for  i := 0; i < 20; i++ {
-            pts+=pts
-        }
-        pt := []byte(pts)
+	pts := "this is the test message to be padded"
+	for i := 0; i < 20; i++ {
+		pts += pts
+	}
+	pt := []byte(pts)
 	ad := []byte("1234567890123456123123123123123123")
 	//nonce by default needs to be 12 bytes
 	nonce := []byte("123456781238")
@@ -219,6 +218,7 @@ func TestNorxAEAD(t *testing.T) {
 }
 
 const NUMTEST = 64
+
 func TestPaddingOverhead(t *testing.T) {
 	msg := uint64(1)
 	fmt.Println("power+1,overhead")
