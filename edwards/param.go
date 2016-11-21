@@ -15,8 +15,9 @@
 package edwards
 
 import (
-	"github.com/dedis/crypto/nist"
 	"math/big"
+
+	"github.com/dedis/crypto/nist"
 )
 
 // Parameters defining a Twisted Edwards curve (TEC).

@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"testing"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/edwards"
 	"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/random"
-	"testing"
 )
 
 // This example demonstrates signing and signature verification
@@ -26,7 +27,7 @@ func ExampleSign_1() {
 	// Create a public/private keypair (X[mine],x)
 	X := make([]abstract.Point, 1)
 	mine := 0                           // which public key is mine
-	x := suite.Secret().Pick(rand)      // create a private key x
+	x := suite.Scalar().Pick(rand)      // create a private key x
 	X[mine] = suite.Point().Mul(nil, x) // corresponding public key X
 
 	// Generate the signature
@@ -79,7 +80,7 @@ func ExampleSign_anonSet() {
 
 	// Make just one of them an actual public/private keypair (X[mine],x)
 	mine := 1                           // only the signer knows this
-	x := suite.Secret().Pick(rand)      // create a private key x
+	x := suite.Scalar().Pick(rand)      // create a private key x
 	X[mine] = suite.Point().Mul(nil, x) // corresponding public key X
 
 	// Generate the signature
@@ -139,8 +140,8 @@ func ExampleSign_linkable() {
 	// Make two actual public/private keypairs (X[mine],x)
 	mine1 := 1 // only the signer knows this
 	mine2 := 2
-	x1 := suite.Secret().Pick(rand) // create a private key x
-	x2 := suite.Secret().Pick(rand)
+	x1 := suite.Scalar().Pick(rand) // create a private key x
+	x2 := suite.Scalar().Pick(rand)
 	X[mine1] = suite.Point().Mul(nil, x1) // corresponding public key X
 	X[mine2] = suite.Point().Mul(nil, x2)
 
@@ -258,7 +259,7 @@ var benchSig10Ed25519 = benchGenSigEd25519(10)
 var benchSig100Ed25519 = benchGenSigEd25519(100)
 
 func benchGenKeys(suite abstract.Suite,
-	nkeys int) ([]abstract.Point, abstract.Secret) {
+	nkeys int) ([]abstract.Point, abstract.Scalar) {
 
 	rand := random.Stream
 
@@ -269,13 +270,13 @@ func benchGenKeys(suite abstract.Suite,
 	}
 
 	// Make just one of them an actual public/private keypair (X[mine],x)
-	x := suite.Secret().Pick(rand)
+	x := suite.Scalar().Pick(rand)
 	X[0] = suite.Point().Mul(nil, x)
 
 	return X, x
 }
 
-func benchGenKeysOpenSSL(nkeys int) ([]abstract.Point, abstract.Secret) {
+func benchGenKeysOpenSSL(nkeys int) ([]abstract.Point, abstract.Scalar) {
 	return benchGenKeys(nist.NewAES128SHA256P256(), nkeys)
 }
 func benchGenSigOpenSSL(nkeys int) []byte {
@@ -286,7 +287,7 @@ func benchGenSigOpenSSL(nkeys int) []byte {
 		0, benchPriOpenSSL)
 }
 
-func benchGenKeysEd25519(nkeys int) ([]abstract.Point, abstract.Secret) {
+func benchGenKeysEd25519(nkeys int) ([]abstract.Point, abstract.Scalar) {
 	return benchGenKeys(edwards.NewAES128SHA256Ed25519(false), nkeys)
 }
 func benchGenSigEd25519(nkeys int) []byte {
@@ -297,7 +298,7 @@ func benchGenSigEd25519(nkeys int) []byte {
 		0, benchPriEd25519)
 }
 
-func benchSign(suite abstract.Suite, pub []abstract.Point, pri abstract.Secret,
+func benchSign(suite abstract.Suite, pub []abstract.Point, pri abstract.Scalar,
 	niter int) {
 	rand := suite.Cipher([]byte("example"))
 	for i := 0; i < niter; i++ {

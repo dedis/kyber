@@ -8,6 +8,7 @@ package norx
 
 import (
 	"encoding/binary"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher"
 )

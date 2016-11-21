@@ -5,6 +5,7 @@ import (
 	"fmt"
 	//"testing"
 	"encoding/hex"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/nist"
 )
@@ -18,7 +19,7 @@ func ExampleEncrypt_1() {
 	// Create a public/private keypair (X[mine],x)
 	X := make([]abstract.Point, 1)
 	mine := 0                           // which public key is mine
-	x := suite.Secret().Pick(rand)      // create a private key x
+	x := suite.Scalar().Pick(rand)      // create a private key x
 	X[mine] = suite.Point().Mul(nil, x) // corresponding public key X
 
 	// Encrypt a message with the public key
@@ -63,7 +64,7 @@ func ExampleEncrypt_anonSet() {
 
 	// Make just one of them an actual public/private keypair (X[mine],x)
 	mine := 1                           // only the signer knows this
-	x := suite.Secret().Pick(rand)      // create a private key x
+	x := suite.Scalar().Pick(rand)      // create a private key x
 	X[mine] = suite.Point().Mul(nil, x) // corresponding public key X
 
 	// Encrypt a message with all the public keys

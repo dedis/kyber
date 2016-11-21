@@ -3,6 +3,7 @@ package cipher
 import (
 	"crypto/cipher"
 	"errors"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/subtle"
 	"github.com/dedis/crypto/util"

@@ -194,8 +194,8 @@ func (p *point) Neg(ca abstract.Point) abstract.Point {
 	return p
 }
 
-func (p *point) Mul(cb abstract.Point, cs abstract.Secret) abstract.Point {
-	s := cs.(*secret)
+func (p *point) Mul(cb abstract.Point, cs abstract.Scalar) abstract.Point {
+	s := cs.(*scalar)
 	if cb == nil { // multiply standard generator
 		if C.EC_POINT_mul(p.c.g, p.p, s.bignum.bn, nil, nil,
 			p.c.ctx) == 0 {
@@ -260,12 +260,12 @@ func (c *curve) PrimeOrder() bool {
 	return true // we only support the NIST prime-order curves
 }
 
-func (c *curve) SecretLen() int {
+func (c *curve) ScalarLen() int {
 	return c.nlen
 }
 
-func (c *curve) Secret() abstract.Secret {
-	s := newSecret(c)
+func (c *curve) Scalar() abstract.Scalar {
+	s := newScalar(c)
 	s.c = c
 	return s
 }

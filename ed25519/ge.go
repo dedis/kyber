@@ -568,7 +568,7 @@ func geScalarMultVartime(h *extendedGroupElement, a *[32]byte,
 	var r projectiveGroupElement
 	var i int
 
-	// Slide through the secret exponent clumping sequences of bits,
+	// Slide through the scalar exponent clumping sequences of bits,
 	// resulting in only zero or odd multipliers between -15 and 15.
 	slide(&aSlide, a)
 

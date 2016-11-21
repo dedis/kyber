@@ -107,7 +107,7 @@ func TestAddPartialSig(t *testing.T) {
 	}
 	// nillify an partial sig then add a wrong one to same index
 	schnorrs[0].partials[ps2.Index] = nil
-	s := testSuite.Secret().One()
+	s := testSuite.Scalar().One()
 	ps2.Part = &s
 	err = schnorrs[0].AddPartialSig(ps2)
 	if err == nil {

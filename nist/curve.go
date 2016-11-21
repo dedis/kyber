@@ -153,12 +153,12 @@ func (p *curvePoint) Sub(a, b abstract.Point) abstract.Point {
 func (p *curvePoint) Neg(a abstract.Point) abstract.Point {
 
 	// XXX a pretty non-optimal implementation of point negation...
-	s := p.c.Secret().One()
+	s := p.c.Scalar().One()
 	s.Neg(s)
 	return p.Mul(a, s).(*curvePoint)
 }
 
-func (p *curvePoint) Mul(b abstract.Point, s abstract.Secret) abstract.Point {
+func (p *curvePoint) Mul(b abstract.Point, s abstract.Scalar) abstract.Point {
 	cs := s.(*Int)
 	if b != nil {
 		cb := b.(*curvePoint)
@@ -225,12 +225,12 @@ func (g *curve) PrimeOrder() bool {
 	return true
 }
 
-// Return the number of bytes in the encoding of a Secret for this curve.
-func (c *curve) SecretLen() int { return (c.p.N.BitLen() + 7) / 8 }
+// Return the number of bytes in the encoding of a Scalar for this curve.
+func (c *curve) ScalarLen() int { return (c.p.N.BitLen() + 7) / 8 }
 
-// Create a Secret associated with this curve.
-func (c *curve) Secret() abstract.Secret {
-	return NewInt(0, c.p.N)
+// Create a Scalar associated with this curve.
+func (c *curve) Scalar() abstract.Scalar {
+	return NewInt64(0, c.p.N)
 }
 
 // Number of bytes required to store one coordinate on this curve
@@ -250,6 +250,16 @@ func (c *curve) Point() abstract.Point {
 	p := new(curvePoint)
 	p.c = c
 	return p
+}
+
+func (p *curvePoint) Set(P abstract.Point) abstract.Point {
+	p.x = P.(*curvePoint).x
+	p.y = P.(*curvePoint).y
+	return p
+}
+
+func (p *curvePoint) Clone() abstract.Point {
+	return &curvePoint{x: p.x, y: p.y, c: p.c}
 }
 
 // Return the order of this curve: the prime N in the curve parameters.

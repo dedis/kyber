@@ -1,6 +1,7 @@
 package nist
 
 import (
+	"crypto/cipher"
 	"crypto/sha256"
 	"hash"
 	"io"
@@ -36,6 +37,13 @@ func (s *qrsuite) Write(w io.Writer, objs ...interface{}) error {
 
 func (s *qrsuite) New(t reflect.Type) interface{} {
 	return abstract.SuiteNew(s, t)
+}
+
+func (s *qrsuite) NewKey(rand cipher.Stream) abstract.Scalar {
+	if rand == nil {
+		rand = random.Stream
+	}
+	return s.Scalar().Pick(rand)
 }
 
 // Ciphersuite based on AES-128, SHA-256,

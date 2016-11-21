@@ -10,17 +10,17 @@ type GroupBench struct {
 	g abstract.Group
 
 	// Random secrets and points for testing
-	x, y abstract.Secret
+	x, y abstract.Scalar
 	X, Y abstract.Point
-	xe   []byte // encoded Secret
+	xe   []byte // encoded Scalar
 	Xe   []byte // encoded Point
 }
 
 func NewGroupBench(g abstract.Group) *GroupBench {
 	var gb GroupBench
 	gb.g = g
-	gb.x = g.Secret().Pick(random.Stream)
-	gb.y = g.Secret().Pick(random.Stream)
+	gb.x = g.Scalar().Pick(random.Stream)
+	gb.y = g.Scalar().Pick(random.Stream)
 	gb.xe, _ = gb.x.MarshalBinary()
 	gb.X, _ = g.Point().Pick(nil, random.Stream)
 	gb.Y, _ = g.Point().Pick(nil, random.Stream)
@@ -28,55 +28,55 @@ func NewGroupBench(g abstract.Group) *GroupBench {
 	return &gb
 }
 
-func (gb GroupBench) SecretAdd(iters int) {
+func (gb GroupBench) ScalarAdd(iters int) {
 	for i := 1; i < iters; i++ {
 		gb.x.Add(gb.x, gb.y)
 	}
 }
 
-func (gb GroupBench) SecretSub(iters int) {
+func (gb GroupBench) ScalarSub(iters int) {
 	for i := 1; i < iters; i++ {
 		gb.x.Sub(gb.x, gb.y)
 	}
 }
 
-func (gb GroupBench) SecretNeg(iters int) {
+func (gb GroupBench) ScalarNeg(iters int) {
 	for i := 1; i < iters; i++ {
 		gb.x.Neg(gb.x)
 	}
 }
 
-func (gb GroupBench) SecretMul(iters int) {
+func (gb GroupBench) ScalarMul(iters int) {
 	for i := 1; i < iters; i++ {
 		gb.x.Mul(gb.x, gb.y)
 	}
 }
 
-func (gb GroupBench) SecretDiv(iters int) {
+func (gb GroupBench) ScalarDiv(iters int) {
 	for i := 1; i < iters; i++ {
 		gb.x.Div(gb.x, gb.y)
 	}
 }
 
-func (gb GroupBench) SecretInv(iters int) {
+func (gb GroupBench) ScalarInv(iters int) {
 	for i := 1; i < iters; i++ {
 		gb.x.Inv(gb.x)
 	}
 }
 
-func (gb GroupBench) SecretPick(iters int) {
+func (gb GroupBench) ScalarPick(iters int) {
 	for i := 1; i < iters; i++ {
 		gb.x.Pick(random.Stream)
 	}
 }
 
-func (gb GroupBench) SecretEncode(iters int) {
+func (gb GroupBench) ScalarEncode(iters int) {
 	for i := 1; i < iters; i++ {
 		gb.x.MarshalBinary()
 	}
 }
 
-func (gb GroupBench) SecretDecode(iters int) {
+func (gb GroupBench) ScalarDecode(iters int) {
 	for i := 1; i < iters; i++ {
 		gb.x.UnmarshalBinary(gb.xe)
 	}

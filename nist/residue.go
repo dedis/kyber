@@ -42,6 +42,16 @@ func (p *residuePoint) Base() abstract.Point {
 	return p
 }
 
+func (p *residuePoint) Set(p2 abstract.Point) abstract.Point {
+	p.g = p2.(*residuePoint).g
+	p.Int = p2.(*residuePoint).Int
+	return p
+}
+
+func (p *residuePoint) Clone() abstract.Point {
+	return &residuePoint{g: p.g, Int: p.Int}
+}
+
 func (p *residuePoint) Valid() bool {
 	return p.Int.Sign() > 0 && p.Int.Cmp(p.g.P) < 0 &&
 		new(big.Int).Exp(&p.Int, p.g.Q, p.g.P).Cmp(one) == 0
@@ -110,7 +120,7 @@ func (p *residuePoint) Neg(a abstract.Point) abstract.Point {
 	return p
 }
 
-func (p *residuePoint) Mul(b abstract.Point, s abstract.Secret) abstract.Point {
+func (p *residuePoint) Mul(b abstract.Point, s abstract.Scalar) abstract.Point {
 	if b == nil {
 		return p.Base().Mul(p, s)
 	}
@@ -150,7 +160,7 @@ func (p *residuePoint) UnmarshalFrom(r io.Reader) (int, error) {
 A ResidueGroup represents a DSA-style modular integer arithmetic group,
 defined by two primes P and Q and an integer R, such that P = Q*R+1.
 Points in a ResidueGroup are R-residues modulo P,
-and Secrets are integer exponents modulo the group order Q.
+and Scalars are integer exponents modulo the group order Q.
 
 In traditional DSA groups P is typically much larger than Q,
 and hence use a large multiple R.
@@ -185,14 +195,14 @@ func (g *ResidueGroup) PrimeOrder() bool {
 	return true
 }
 
-// Return the number of bytes in the encoding of a Secret
+// Return the number of bytes in the encoding of a Scalar
 // for this Residue group.
-func (g *ResidueGroup) SecretLen() int { return (g.Q.BitLen() + 7) / 8 }
+func (g *ResidueGroup) ScalarLen() int { return (g.Q.BitLen() + 7) / 8 }
 
-// Create a Secret associated with this Residue group,
+// Create a Scalar associated with this Residue group,
 // with an initial value of nil.
-func (g *ResidueGroup) Secret() abstract.Secret {
-	return NewInt(0, g.Q)
+func (g *ResidueGroup) Scalar() abstract.Scalar {
+	return NewInt64(0, g.Q)
 }
 
 // Return the number of bytes in the encoding of a Point

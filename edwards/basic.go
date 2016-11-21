@@ -4,11 +4,12 @@ package edwards
 
 import (
 	"crypto/cipher"
+	"io"
+	"math/big"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/nist"
-	"io"
-	"math/big"
 )
 
 type basicPoint struct {
@@ -33,7 +34,7 @@ func (P *basicPoint) String() string {
 // Create a new ModInt representing a coordinate on this curve,
 // with a given int64 integer value for constant-initialization convenience.
 func (P *basicPoint) coord(v int64) *nist.Int {
-	return nist.NewInt(v, &P.c.P)
+	return nist.NewInt64(v, &P.c.P)
 }
 
 func (P *basicPoint) MarshalSize() int {
@@ -146,7 +147,7 @@ func (P *basicPoint) double() abstract.Point {
 	return P.Add(P, P)
 }
 
-// Subtract points so that their secrets subtract homomorphically
+// Subtract points so that their scalars subtract homomorphically
 func (P *basicPoint) Sub(A, B abstract.Point) abstract.Point {
 	var nB basicPoint
 	return P.Add(A, nB.Neg(B))
@@ -163,7 +164,7 @@ func (P *basicPoint) Neg(A abstract.Point) abstract.Point {
 }
 
 // Multiply point p by scalar s using the repeated doubling method.
-func (P *basicPoint) Mul(G abstract.Point, s abstract.Secret) abstract.Point {
+func (P *basicPoint) Mul(G abstract.Point, s abstract.Scalar) abstract.Point {
 	v := s.(*nist.Int).V
 	if G == nil {
 		return P.Base().Mul(P, s)

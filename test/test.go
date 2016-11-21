@@ -28,6 +28,80 @@ func testEmbed(g abstract.Group, rand cipher.Stream, points *[]abstract.Point,
 	*points = append(*points, p)
 }
 
+func testPointSet(g abstract.Group, rand cipher.Stream) {
+	N := 1000
+	null := g.Point().Null()
+	for i := 0; i < N; i++ {
+		P1, _ := g.Point().Pick(nil, rand)
+		P2 := g.Point()
+		P2.Set(P1)
+		if !P1.Equal(P2) {
+			panic("Set() set to a different point.")
+		}
+		if !P1.Equal(null) {
+			P1.Add(P1, P1)
+			if P1.Equal(P2) {
+				panic("Modifying P1 shouldn't modify P2")
+			}
+		}
+	}
+}
+
+func testPointClone(g abstract.Group, rand cipher.Stream) {
+	N := 1000
+	null := g.Point().Null()
+	for i := 0; i < N; i++ {
+		P1, _ := g.Point().Pick(nil, rand)
+		P2 := P1.Clone()
+		if !P1.Equal(P2) {
+			panic("Clone didn't create a point with same " +
+				"coordinates as the original point.")
+		}
+		if !P1.Equal(null) {
+			P1.Add(P1, P1)
+			if P1.Equal(P2) {
+				panic("Modifying P1 shouldn't modify P2")
+			}
+		}
+	}
+}
+
+func testScalarSet(g abstract.Group, rand cipher.Stream) {
+	N := 1000
+	one := g.Scalar().One()
+	for i := 0; i < N; i++ {
+		s1 := g.Scalar().Pick(rand)
+		s2 := g.Scalar().Set(s1)
+		if !s1.Equal(s2) {
+			panic("Clone didn't create a scalar s2 with same value as s1's.")
+		}
+		if !s1.Equal(one) {
+			s1.Mul(s1, s1)
+			if s1.Equal(s2) {
+				panic("Modifying s1 shouldn't modify s2")
+			}
+		}
+	}
+}
+
+func testScalarClone(g abstract.Group, rand cipher.Stream) {
+	N := 1000
+	one := g.Scalar().One()
+	for i := 0; i < N; i++ {
+		s1 := g.Scalar().Pick(rand)
+		s2 := s1.Clone()
+		if !s1.Equal(s2) {
+			panic("Clone didn't create a scalar s2 with same value as s1's.")
+		}
+		if !s1.Equal(one) {
+			s1.Mul(s1, s1)
+			if s1.Equal(s2) {
+				panic("Modifying s1 shouldn't modify s2")
+			}
+		}
+	}
+}
+
 // Apply a generic set of validation tests to a cryptographic Group,
 // using a given source of [pseudo-]randomness.
 //
@@ -36,19 +110,19 @@ func testEmbed(g abstract.Group, rand cipher.Stream, points *[]abstract.Point,
 // that are supposed to be equivalent.
 //
 func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
-	//	fmt.Printf("\nTesting group '%s': %d-byte Point, %d-byte Secret\n",
-	//			g.String(), g.PointLen(), g.SecretLen())
+	//	fmt.Printf("\nTesting group '%s': %d-byte Point, %d-byte Scalar\n",
+	//			g.String(), g.PointLen(), g.ScalarLen())
 
 	points := make([]abstract.Point, 0)
 	ptmp := g.Point()
-	stmp := g.Secret()
+	stmp := g.Scalar()
 	pzero := g.Point().Null()
-	szero := g.Secret().Zero()
-	sone := g.Secret().One()
+	szero := g.Scalar().Zero()
+	sone := g.Scalar().One()
 
 	// Do a simple Diffie-Hellman test
-	s1 := g.Secret().Pick(rand)
-	s2 := g.Secret().Pick(rand)
+	s1 := g.Scalar().Pick(rand)
+	s2 := g.Scalar().Pick(rand)
 	if s1.Equal(s2) {
 		panic("uh-oh, not getting unique secrets!")
 	}
@@ -85,9 +159,9 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 
 	// Test secret inverse to get from dh1 back to p1
 	if g.PrimeOrder() {
-		ptmp.Mul(dh1, g.Secret().Inv(s2))
+		ptmp.Mul(dh1, g.Scalar().Inv(s2))
 		if !ptmp.Equal(p1) {
-			panic("Secret inverse didn't work")
+			panic("Scalar inverse didn't work")
 		}
 	}
 
@@ -113,10 +187,10 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 	if !pt2.Equal(ptmp) {
 		panic("Additive homomorphism doesn't work")
 	}
-	st2 := g.Secret().Neg(s2)
+	st2 := g.Scalar().Neg(s2)
 	st2.Add(s1, st2)
 	if !stmp.Equal(st2) {
-		panic("Secret.Neg doesn't work")
+		panic("Scalar.Neg doesn't work")
 	}
 	pt2.Neg(p2).Add(pt2, p1)
 	if !pt2.Equal(ptmp) {
@@ -132,11 +206,11 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 		st2.Inv(s2)
 		st2.Mul(st2, stmp)
 		if !st2.Equal(s1) {
-			panic("Secret division doesn't work")
+			panic("Scalar division doesn't work")
 		}
 		st2.Div(stmp, s2)
 		if !st2.Equal(s1) {
-			panic("Secret division doesn't work")
+			panic("Scalar division doesn't work")
 		}
 	}
 
@@ -174,7 +248,7 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 	buf := new(bytes.Buffer)
 	for i := 0; i < 5; i++ {
 		buf.Reset()
-		s := g.Secret().Pick(rand)
+		s := g.Scalar().Pick(rand)
 		if _, err := s.MarshalTo(buf); err != nil {
 			panic("encoding of secret fails: " + err.Error())
 		}
@@ -206,6 +280,11 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 	if err != nil {
 		panic(err)
 	}
+
+	testPointSet(g, rand)
+	testPointClone(g, rand)
+	testScalarSet(g, rand)
+	testScalarClone(g, rand)
 
 	return points
 }
@@ -257,6 +336,30 @@ func TestSuite(suite abstract.Suite) {
 	s.XORKeyStream(sb, sb)
 	//println("Stream:")
 	//println(hex.Dump(sb))
+
+	// Test if it generates two fresh keys with nil cipher
+	s1 := suite.NewKey(nil)
+	s2 := suite.NewKey(nil)
+	if s1.Equal(s2) {
+		panic("NewKey returns twice the same key given nil")
+	}
+
+	// Test if it creates the same with the same seed
+	st1 := suite.Cipher(hb)
+	st2 := suite.Cipher(hb)
+	s3 := suite.NewKey(st1)
+	s4 := suite.NewKey(st2)
+	if !s3.Equal(s4) {
+		panic("NewKey returns two different keys given same stream")
+	}
+
+	// Test if it creates two different with random stream
+	stream := random.Stream
+	s5 := suite.NewKey(stream)
+	s6 := suite.NewKey(stream)
+	if s5.Equal(s6) {
+		panic("NewKey returns same key given random stream")
+	}
 
 	// Test the public-key group arithmetic
 	TestGroup(suite)

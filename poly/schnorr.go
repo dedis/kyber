@@ -3,8 +3,9 @@ package poly
 import (
 	"errors"
 	"fmt"
-	"github.com/dedis/crypto/abstract"
 	"hash"
+
+	"github.com/dedis/crypto/abstract"
 )
 
 // This file describes the Distributed Threshold Schnorr Signature
@@ -43,7 +44,7 @@ type Schnorr struct {
 	// For each round, we have the following members :
 
 	// hash is the hash of the message
-	hash *abstract.Secret
+	hash *abstract.Scalar
 
 	// The short term shared secret, only to be used for this signature,
 	// i.e. the random secret in the regular schnorr signature
@@ -63,7 +64,7 @@ type SchnorrPartialSig struct {
 	Index int
 
 	// The partial signature itself
-	Part *abstract.Secret
+	Part *abstract.Scalar
 }
 
 // SchnorrSig represents the final signature of a distribtued threshold schnorr signature
@@ -74,7 +75,7 @@ type SchnorrPartialSig struct {
 type SchnorrSig struct {
 
 	// the signature itself
-	Signature *abstract.Secret
+	Signature *abstract.Scalar
 
 	// the random public polynomial used during the signature generation
 	Random *PubPoly
@@ -113,14 +114,14 @@ func (s *Schnorr) NewRound(random *SharedSecret, h hash.Hash) error {
 // Returns a hash of the message and the random secret:
 // H( m || V )
 // Returns an error if something went wrong with the marshalling
-func (s *Schnorr) hashMessage(msg []byte, v abstract.Point) (abstract.Secret, error) {
+func (s *Schnorr) hashMessage(msg []byte, v abstract.Point) (abstract.Scalar, error) {
 	vb, err := v.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	c := s.suite.Cipher(vb)
 	c.Message(nil, nil, msg)
-	return s.suite.Secret().Pick(c), nil
+	return s.suite.Scalar().Pick(c), nil
 }
 
 // Verifies if the received structures are good and
@@ -168,11 +169,11 @@ func (s *Schnorr) index() int {
 //  - Pi = share of the longterm secret for peer i
 // This signature is to be sent to each other peer
 func (s *Schnorr) RevealPartialSig() *SchnorrPartialSig {
-	hash := s.suite.Secret().Set(*s.hash)
-	sigma := s.suite.Secret().Zero()
+	hash := s.suite.Scalar().Set(*s.hash)
+	sigma := s.suite.Scalar().Zero()
 	sigma = sigma.Add(sigma, *s.random.Share)
 	// H(m||v) * Pi
-	hashed := s.suite.Secret().Mul(hash, *s.longterm.Share)
+	hashed := s.suite.Scalar().Mul(hash, *s.longterm.Share)
 	// Ri + H(m||V) * Pi
 	sigma = sigma.Add(sigma, hashed)
 	psc := &SchnorrPartialSig{

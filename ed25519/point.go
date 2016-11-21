@@ -18,10 +18,11 @@ import (
 	"crypto/cipher"
 	"encoding/hex"
 	"errors"
+	"io"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/nist"
-	"io"
 )
 
 type point struct {
@@ -79,6 +80,11 @@ func (P *point) Equal(P2 abstract.Point) bool {
 func (P *point) Set(P2 abstract.Point) abstract.Point {
 	P.ge = P2.(*point).ge
 	return P
+}
+
+// Set point to be equal to P2.
+func (P *point) Clone() abstract.Point {
+	return &point{ge: P.ge}
 }
 
 // Set to the neutral element, which is (0,1) for twisted Edwards curves.
@@ -205,7 +211,7 @@ func (P *point) Neg(A abstract.Point) abstract.Point {
 // Multiply point p by scalar s using the repeated doubling method.
 // XXX This is vartime; for our general-purpose Mul operator
 // it would be far preferable for security to do this constant-time.
-func (P *point) Mul(A abstract.Point, s abstract.Secret) abstract.Point {
+func (P *point) Mul(A abstract.Point, s abstract.Scalar) abstract.Point {
 
 	// Convert the scalar to fixed-length little-endian form.
 	sb := s.(*nist.Int).V.Bytes()
@@ -244,17 +250,19 @@ func (c *Curve) String() string {
 	return "Ed25519"
 }
 
-// Returns 32, the size in bytes of an encoded Secret for the Ed25519 curve.
-func (c *Curve) SecretLen() int {
+// Returns 32, the size in bytes of an encoded Scalar for the Ed25519 curve.
+func (c *Curve) ScalarLen() int {
 	return 32
 }
 
-// Create a new Secret for the Ed25519 curve.
-func (c *Curve) Secret() abstract.Secret {
+// Create a new Scalar for the Ed25519 curve.
+func (c *Curve) Scalar() abstract.Scalar {
 	//	if c.FullGroup {
 	//		return nist.NewInt(0, fullOrder)
 	//	} else {
-	return nist.NewInt(0, &primeOrder.V)
+	i := nist.NewInt64(0, &primeOrder.V)
+	i.BO = nist.LittleEndian
+	return i
 	//	}
 }
 

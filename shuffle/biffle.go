@@ -52,9 +52,9 @@ func Biffle(suite abstract.Suite, G, H abstract.Point,
 	bit := int(random.Byte(rand) & 1)
 
 	// Pick a fresh ElGamal blinding factor for each pair
-	var beta [2]abstract.Secret
+	var beta [2]abstract.Scalar
 	for i := 0; i < 2; i++ {
-		beta[i] = suite.Secret().Pick(rand)
+		beta[i] = suite.Scalar().Pick(rand)
 	}
 
 	// Create the output pair vectors
@@ -67,7 +67,7 @@ func Biffle(suite abstract.Suite, G, H abstract.Point,
 	}
 
 	or := bifflePred()
-	secrets := map[string]abstract.Secret{
+	secrets := map[string]abstract.Scalar{
 		"beta0": beta[0],
 		"beta1": beta[1]}
 	points := bifflePoints(suite, G, H, X, Y, Xbar, Ybar)
@@ -90,22 +90,22 @@ func BiffleTest(suite abstract.Suite, N int) {
 	rand := suite.Cipher(abstract.RandomKey)
 
 	// Create a "server" private/public keypair
-	h := suite.Secret().Pick(rand)
+	h := suite.Scalar().Pick(rand)
 	H := suite.Point().Mul(nil, h)
 
 	// Create a set of ephemeral "client" keypairs to shuffle
-	var c [2]abstract.Secret
+	var c [2]abstract.Scalar
 	var C [2]abstract.Point
 	//	fmt.Println("\nclient keys:")
 	for i := 0; i < 2; i++ {
-		c[i] = suite.Secret().Pick(rand)
+		c[i] = suite.Scalar().Pick(rand)
 		C[i] = suite.Point().Mul(nil, c[i])
 		//		fmt.Println(" "+C[i].String())
 	}
 
 	// ElGamal-encrypt all these keypairs with the "server" key
 	var X, Y [2]abstract.Point
-	r := suite.Secret() // temporary
+	r := suite.Scalar() // temporary
 	for i := 0; i < 2; i++ {
 		r.Pick(rand)
 		X[i] = suite.Point().Mul(nil, r)

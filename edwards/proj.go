@@ -2,11 +2,12 @@ package edwards
 
 import (
 	"crypto/cipher"
+	"io"
+	"math/big"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/nist"
-	"io"
-	"math/big"
 )
 
 type projPoint struct {
@@ -89,6 +90,15 @@ func (P *projPoint) Set(CP2 abstract.Point) abstract.Point {
 	return P
 }
 
+func (P *projPoint) Clone() abstract.Point {
+	return &projPoint{
+		c: P.c,
+		X: P.X,
+		Y: P.Y,
+		Z: P.Z,
+	}
+}
+
 func (P *projPoint) Null() abstract.Point {
 	P.Set(&P.c.null)
 	return P
@@ -149,7 +159,7 @@ func (P *projPoint) Add(CP1, CP2 abstract.Point) abstract.Point {
 	return P
 }
 
-// Subtract points so that their secrets subtract homomorphically
+// Subtract points so that their scalars subtract homomorphically
 func (P *projPoint) Sub(CP1, CP2 abstract.Point) abstract.Point {
 	P1 := CP1.(*projPoint)
 	P2 := CP2.(*projPoint)
@@ -200,7 +210,7 @@ func (P *projPoint) double() {
 }
 
 // Multiply point p by scalar s using the repeated doubling method.
-func (P *projPoint) Mul(G abstract.Point, s abstract.Secret) abstract.Point {
+func (P *projPoint) Mul(G abstract.Point, s abstract.Scalar) abstract.Point {
 	v := s.(*nist.Int).V
 	if G == nil {
 		return P.Base().Mul(P, s)

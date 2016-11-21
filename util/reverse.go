@@ -6,10 +6,12 @@ package util
 //
 // XXX would be nice to have this function in the 'bytes' standard package
 func Reverse(dst, src []byte) []byte {
-	l := len(dst)
-	if len(src) != l {
+	if dst == nil {
+		dst = make([]byte, len(src))
+	} else if len(src) != len(dst) {
 		panic("Reverse requires equal-length slices")
 	}
+	l := len(dst)
 	for i, j := 0, l-1; i < (l+1)/2; {
 		dst[i], dst[j] = src[j], src[i]
 		i++

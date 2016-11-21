@@ -47,19 +47,20 @@ import (
 	"crypto/cipher"
 	"crypto/sha256"
 	"encoding/hex"
+	"math/big"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/sha3"
-	"math/big"
 )
 
 // prime order of base point = 2^252 + 27742317777372353535851937790883648493
 var primeOrder, _ = new(nist.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989", "", 10)
 
 // curve's cofactor
-var cofactor = nist.NewInt(8, &primeOrder.V)
+var cofactor = nist.NewInt64(8, &primeOrder.V)
 
 var nullPoint = new(point).Null()
 
@@ -183,7 +184,7 @@ func (p *point) Neg(ca abstract.Point) abstract.Point {
 	return p
 }
 
-func (p *point) Mul(ca abstract.Point, cs abstract.Secret) abstract.Point {
+func (p *point) Mul(ca abstract.Point, cs abstract.Scalar) abstract.Point {
 
 	// Convert the scalar to fixed-length little-endian form.
 	sb := cs.(*nist.Int).V.Bytes()
@@ -259,12 +260,12 @@ func (c *curve) String() string {
 	return "Curve25519"
 }
 
-func (c *curve) SecretLen() int {
+func (c *curve) ScalarLen() int {
 	return 32
 }
 
-func (c *curve) Secret() abstract.Secret {
-	return nist.NewInt(0, &primeOrder.V)
+func (c *curve) Scalar() abstract.Scalar {
+	return nist.NewInt64(0, &primeOrder.V)
 }
 
 func (c *curve) PointLen() int {
@@ -406,7 +407,7 @@ func BenchCurve25519() {
 			(float64(end.Sub(beg))/1000000000.0))
 
 	// Point encryption
-	s := g.Secret().Pick(random.Stream)
+	s := g.Scalar().Pick(random.Stream)
 	beg = time.Now()
 	iters = 5000
 	for i := 1; i < iters; i++ {

@@ -4,53 +4,51 @@ package ed25519
 
 import (
 	"testing"
+
 	"github.com/dedis/crypto/test"
 )
 
 var testSuite = NewAES128SHA256Ed25519()
 
-
 func TestGroup(t *testing.T) {
 	test.TestSuite(testSuite)
 }
 
-
-func BenchmarkSecretAdd(b *testing.B) {
-	test.NewGroupBench(testSuite).SecretAdd(b.N)
+func BenchmarkScalarAdd(b *testing.B) {
+	test.NewGroupBench(testSuite).ScalarAdd(b.N)
 }
 
-func BenchmarkSecretSub(b *testing.B) {
-	test.NewGroupBench(testSuite).SecretSub(b.N)
+func BenchmarkScalarSub(b *testing.B) {
+	test.NewGroupBench(testSuite).ScalarSub(b.N)
 }
 
-func BenchmarkSecretNeg(b *testing.B) {
-	test.NewGroupBench(testSuite).SecretNeg(b.N)
+func BenchmarkScalarNeg(b *testing.B) {
+	test.NewGroupBench(testSuite).ScalarNeg(b.N)
 }
 
-func BenchmarkSecretMul(b *testing.B) {
-	test.NewGroupBench(testSuite).SecretMul(b.N)
+func BenchmarkScalarMul(b *testing.B) {
+	test.NewGroupBench(testSuite).ScalarMul(b.N)
 }
 
-func BenchmarkSecretDiv(b *testing.B) {
-	test.NewGroupBench(testSuite).SecretDiv(b.N)
+func BenchmarkScalarDiv(b *testing.B) {
+	test.NewGroupBench(testSuite).ScalarDiv(b.N)
 }
 
-func BenchmarkSecretInv(b *testing.B) {
-	test.NewGroupBench(testSuite).SecretInv(b.N)
+func BenchmarkScalarInv(b *testing.B) {
+	test.NewGroupBench(testSuite).ScalarInv(b.N)
 }
 
-func BenchmarkSecretPick(b *testing.B) {
-	test.NewGroupBench(testSuite).SecretPick(b.N)
+func BenchmarkScalarPick(b *testing.B) {
+	test.NewGroupBench(testSuite).ScalarPick(b.N)
 }
 
-func BenchmarkSecretEncode(b *testing.B) {
-	test.NewGroupBench(testSuite).SecretEncode(b.N)
+func BenchmarkScalarEncode(b *testing.B) {
+	test.NewGroupBench(testSuite).ScalarEncode(b.N)
 }
 
-func BenchmarkSecretDecode(b *testing.B) {
-	test.NewGroupBench(testSuite).SecretDecode(b.N)
+func BenchmarkScalarDecode(b *testing.B) {
+	test.NewGroupBench(testSuite).ScalarDecode(b.N)
 }
-
 
 func BenchmarkPointAdd(b *testing.B) {
 	test.NewGroupBench(testSuite).PointAdd(b.N)
@@ -83,4 +81,3 @@ func BenchmarkPointEncode(b *testing.B) {
 func BenchmarkPointDecode(b *testing.B) {
 	test.NewGroupBench(testSuite).PointDecode(b.N)
 }
-

@@ -13,6 +13,7 @@ import (
 	//"runtime"
 	"crypto/cipher"
 	"encoding/hex"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
 )
@@ -27,7 +28,7 @@ var s2 = secret{[32]byte{2}}
 var s3 = secret{[32]byte{3}}
 var s4 = secret{[32]byte{4}}
 
-func (s *secret) Set(s2 abstract.Secret) abstract.Secret {
+func (s *secret) Set(s2 abstract.Scalar) abstract.Scalar {
 	s.b = s2.(*secret).b
 	return s
 }
@@ -50,30 +51,30 @@ func (s *secret) UnmarshalBinary(buf []byte) error {
 }
 
 func (s *secret) MarshalTo(w io.Writer) (int, error) {
-	return group.SecretMarshalTo(s, w)
+	return group.ScalarMarshalTo(s, w)
 }
 
 func (s *secret) UnmarshalFrom(r io.Reader) (int, error) {
-	return group.SecretUnmarshalFrom(s, r)
+	return group.ScalarUnmarshalFrom(s, r)
 }
 
-func (s *secret) Zero() abstract.Secret {
+func (s *secret) Zero() abstract.Scalar {
 	panic("XXX")
 }
 
-func (s *secret) One() abstract.Secret {
+func (s *secret) One() abstract.Scalar {
 	panic("XXX")
 }
 
-func (s *secret) SetInt64(v int64) abstract.Secret {
+func (s *secret) SetInt64(v int64) abstract.Scalar {
 	panic("XXX")
 }
 
-func (s *secret) Equal(s2 abstract.Secret) bool {
+func (s *secret) Equal(s2 abstract.Scalar) bool {
 	return bytes.Equal(s.b[:], s2.(*secret).b[:])
 }
 
-func (s *secret) Add(cx, cy abstract.Secret) abstract.Secret {
+func (s *secret) Add(cx, cy abstract.Scalar) abstract.Scalar {
 	x := cx.(*secret)
 	y := cy.(*secret)
 
@@ -86,27 +87,27 @@ func (s *secret) Add(cx, cy abstract.Secret) abstract.Secret {
 	return s
 }
 
-func (s *secret) Sub(cx, cy abstract.Secret) abstract.Secret {
+func (s *secret) Sub(cx, cy abstract.Scalar) abstract.Scalar {
 	panic("XXX")
 }
 
-func (s *secret) Neg(x abstract.Secret) abstract.Secret {
+func (s *secret) Neg(x abstract.Scalar) abstract.Scalar {
 	panic("XXX")
 }
 
-func (s *secret) Mul(cx, cy abstract.Secret) abstract.Secret {
+func (s *secret) Mul(cx, cy abstract.Scalar) abstract.Scalar {
 	panic("XXX")
 }
 
-func (s *secret) Div(cx, cy abstract.Secret) abstract.Secret {
+func (s *secret) Div(cx, cy abstract.Scalar) abstract.Scalar {
 	panic("XXX")
 }
 
-func (s *secret) Inv(x abstract.Secret) abstract.Secret {
+func (s *secret) Inv(x abstract.Scalar) abstract.Scalar {
 	panic("XXX")
 }
 
-func (s *secret) Pick(rand cipher.Stream) abstract.Secret {
+func (s *secret) Pick(rand cipher.Stream) abstract.Scalar {
 	rand.XORKeyStream(s.b[:], s.b[:])
 	s.b[0] &= 248
 	s.b[31] &= 63

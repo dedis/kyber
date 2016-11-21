@@ -5,6 +5,7 @@ import (
 	"crypto/hmac"
 	"crypto/subtle"
 	"errors"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
 )
@@ -24,7 +25,7 @@ type SKEME struct {
 	hide     bool
 	lpri     PriKey          // local private key
 	rpub     Set             // remote public key
-	lx       abstract.Secret // local Diffie-Hellman private key
+	lx       abstract.Scalar // local Diffie-Hellman private key
 	lX, rX   abstract.Point  // local,remote Diffie-Hellman pubkeys
 	lXb, rXb []byte          // local,remote DH pubkeys byte-encoded
 
@@ -44,7 +45,7 @@ func (sk *SKEME) Init(suite abstract.Suite, rand cipher.Stream,
 	sk.lpri, sk.rpub = lpri, rpub
 
 	// Create our Diffie-Hellman keypair
-	sk.lx = suite.Secret().Pick(rand)
+	sk.lx = suite.Scalar().Pick(rand)
 	sk.lX = suite.Point().Mul(nil, sk.lx)
 	sk.lXb, _ = sk.lX.MarshalBinary()
 

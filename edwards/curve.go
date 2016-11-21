@@ -6,6 +6,7 @@ import (
 	"math/big"
 	//"encoding/hex"
 	"crypto/cipher"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/util"
@@ -52,14 +53,14 @@ func (c *curve) PrimeOrder() bool {
 	return !c.full
 }
 
-// Returns the size in bytes of an encoded Secret for this curve.
-func (c *curve) SecretLen() int {
+// Returns the size in bytes of an encoded Scalar for this curve.
+func (c *curve) ScalarLen() int {
 	return (c.order.V.BitLen() + 7) / 8
 }
 
-// Create a new Secret for this curve.
-func (c *curve) Secret() abstract.Secret {
-	return nist.NewInt(0, &c.order.V)
+// Create a new Scalar for this curve.
+func (c *curve) Scalar() abstract.Scalar {
+	return nist.NewInt64(0, &c.order.V)
 }
 
 // Returns the size in bytes of an encoded Point on this curve.
@@ -85,14 +86,14 @@ func (c *curve) init(self abstract.Group, p *Param, fullGroup bool,
 	// Cofactor
 	c.cofact.Init64(int64(p.R), &c.P)
 
-	// Determine the modulus for secrets on this curve.
+	// Determine the modulus for scalars on this curve.
 	// Note that we do NOT initialize c.order with Init(),
 	// as that would normalize to the modulus, resulting in zero.
 	// Just to be sure it's never used, we leave c.order.M set to nil.
 	// We want it to be in a ModInt so we can pass it to P.Mul(),
-	// but the secret's modulus isn't needed for point multiplication.
+	// but the scalar's modulus isn't needed for point multiplication.
 	if fullGroup {
-		// Secret modulus is prime-order times the ccofactor
+		// Scalar modulus is prime-order times the ccofactor
 		c.order.V.SetInt64(int64(p.R)).Mul(&c.order.V, &p.Q)
 	} else {
 		c.order.V.Set(&p.Q) // Prime-order subgroup
@@ -207,7 +208,7 @@ func (c *curve) encodePoint(x, y *nist.Int) []byte {
 // ensure that none of these other subgroups are small
 // other than the tiny ones represented by the cofactor;
 // hence Diffie-Hellman exchange can be done without subgroup checking
-// without exposing more than the least-significant bits of the secret.
+// without exposing more than the least-significant bits of the scalar.
 func (c *curve) decodePoint(bb []byte, x, y *nist.Int) error {
 
 	// Convert from little-endian
