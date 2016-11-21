@@ -54,7 +54,7 @@ func stringHash(s string) uint {
 //Entry holds the info required to create an entrypoint for each recipient.
 type Entry struct {
 	Suite     abstract.Suite // Ciphersuite this public key is drawn from
-	PriKey    abstract.Secret
+	PriKey    abstract.Scalar
 	PubKey    abstract.Point // Public key of this entrypoint's owner
 	Data      []byte         // Entrypoint data decryptable by owner
 	SharedKey abstract.Point //Key shared between client created during purbGen
@@ -71,7 +71,7 @@ type suiteKey struct {
 
 	// Ephemeral Diffie-Hellman key for all key-holders using this suite.
 	// Should have a uniform representation, e.g., an Elligator point.
-	dhpri abstract.Secret
+	dhpri abstract.Scalar
 	dhpub abstract.Point
 	dhrep []byte
 }
@@ -84,7 +84,7 @@ type suiteInfo struct {
 	max  int            // limit of highest point field
 
 	lev int             // layout-chosen level for this suite
-	pri abstract.Secret // ephemeral Diffie-Hellman private key
+	pri abstract.Scalar // ephemeral Diffie-Hellman private key
 	pub []byte          // corresponding encoded public key
 }
 
@@ -344,11 +344,11 @@ func (w *Writer) Layout(entrypoints []Entry,
 	w.keys = keymap
 	for suite := range simap {
 		s := new(suiteKey)
-		var priv abstract.Secret
+		var priv abstract.Scalar
 		var pub abstract.Point
 		var dhrep []byte
 		for i := 0; i != 1; {
-			priv = suite.Secret().Pick(rand)
+			priv = suite.Scalar().Pick(rand)
 			pub = suite.Point().Mul(nil, priv)
 			dhrep = pub.(abstract.Hiding).HideEncode(rand)
 			if dhrep != nil {
@@ -527,13 +527,13 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 //First step to decrypt is to xor all possible entry points for the suite
 //Tries to decode a purb given a private key.
 //Input: suite-- The suite that the key is to decode.
-//	priv-- Secret key
+//	priv-- Scalar key
 //	entryPoints-- entrypoints for all possible keys.
 //	file-- the file to be decoded
 //	rand-- random stream
 //Output: int---???Some error code eventually?
 //	[]byte-- The decoded message, or nil.
-func AttemptDecode(suite abstract.Suite, priv abstract.Secret,
+func AttemptDecode(suite abstract.Suite, priv abstract.Scalar,
 	suiteKeyPos map[string][]int, file []byte,
 	rand cipher.Stream) (int, []byte) {
 	//make sure suite has entry points
@@ -714,7 +714,7 @@ func GenPurbTLS(entries []Entry, entryPoints map[string][]int) ([]byte, int) {
 //First step to decrypt is to xor all possible entry points for the suite
 //Tries to decode a purb given a private key.
 //Input: suite-- The suite that the key is to decode.
-//	priv-- Secret key
+//	priv-- Scalar key
 //	entryPoints-- entrypoints for all possible keys.
 //	file-- the file to be decoded
 //	rand-- random stream

@@ -65,7 +65,7 @@ func TestPurb(t *testing.T) {
 		// Create some entrypoints with this suite
 		s := suites[i]
 		for j := 0; j < nentries; j++ {
-			pri := s.Secret().Pick(random.Stream)
+			pri := s.Scalar().Pick(random.Stream)
 			pub := s.Point().Mul(nil, pri)
 			data := make([]byte, datalen-16)
 			entries = append(entries, Entry{s, pri, pub, data, nil, nil, nil})
@@ -154,7 +154,7 @@ func TestWritePurb(t *testing.T) {
 	// Create some entrypoints with this suite
 	s := suite
 	for j := 0; j < nentries; j++ {
-		pri := s.Secret().Pick(random.Stream)
+		pri := s.Scalar().Pick(random.Stream)
 		pub := s.Point().Mul(nil, pri)
 		data := make([]byte, DATALEN)
 		entries = append(entries, Entry{s, pri, pub, data, nil, nil, nil})
@@ -186,7 +186,7 @@ func TestReadPurbFromFile(t *testing.T) {
 	}
 	suiteEntry[suite.String()] = ents
 	file, err := os.Open("keyfile1")
-	priKey := suite.Secret()
+	priKey := suite.Scalar()
 	something, err := priKey.UnmarshalFrom(file)
 	if err != nil {
 		fmt.Println(something, err)
@@ -307,7 +307,7 @@ func buildPurb(nlevels, nentries int, suites []abstract.Suite, msg []byte) {
 		// Create some entrypoints with this suite
 		s := suites[i]
 		for j := 0; j < nentries; j++ {
-			pri := s.Secret().Pick(random.Stream)
+			pri := s.Scalar().Pick(random.Stream)
 			pub := s.Point().Mul(nil, pri)
 			data := make([]byte, datalen)
 			entries = append(entries, Entry{s, pri, pub, data, nil, nil, nil})
@@ -332,7 +332,7 @@ func buildPurb(nlevels, nentries int, suites []abstract.Suite, msg []byte) {
 	elapsed2 := time.Since(start2)
 	//What happens if it fails to decrypt?
 	s := suites[len(suites)-1]
-	pri := s.Secret().Pick(random.Stream)
+	pri := s.Scalar().Pick(random.Stream)
 	start3 := time.Now()
 	_, _ = AttemptDecode(s, pri, suiteEntry, encMsg, random.Stream)
 	elapsed3 := time.Since(start3)
