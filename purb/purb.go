@@ -480,8 +480,8 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 		// TODO is this right at all?
 		//This is probably wrong, especially if dhkey.len() is < e.data.len
 		//Maybe what does .Cipher() do?
-                //TODO Make AEAD encryption.
-                //Will likely need to modify entry point further to hold the streams?
+		//TODO Make AEAD encryption.
+		//Will likely need to modify entry point further to hold the streams?
 
 		send, recv := KDF(si.ste, dhkey)
 		e.SendKey = send
@@ -533,7 +533,7 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 //	rand-- random stream
 //Output: int---???Some error code eventually?
 //	[]byte-- The decoded message, or nil.
-func attemptDecode(suite abstract.Suite, priv abstract.Secret,
+func AttemptDecode(suite abstract.Suite, priv abstract.Secret,
 	suiteKeyPos map[string][]int, file []byte,
 	rand cipher.Stream) (int, []byte) {
 	//make sure suite has entry points
@@ -554,6 +554,7 @@ func attemptDecode(suite abstract.Suite, priv abstract.Secret,
 	pub := suite.Point()
 	pub.(abstract.Hiding).HideDecode(dhpub)
 	shared := suite.Point().Mul(pub, priv)
+	send, _ := KDF(suite, shared)
 	//Now we have to try and decrypt the message
 	//We must go through all possible hash values
 
@@ -568,8 +569,8 @@ func attemptDecode(suite abstract.Suite, priv abstract.Secret,
 			tHash := (intHash + i) % ts
 			data := file[start+tHash*dLen : start+tHash*dLen+dLen]
 			//Try to decrypt data.
-			buf, _ := shared.MarshalBinary()
-			stream := suite.Cipher(buf)
+			//	buf, _ := shared.MarshalBinary()
+			stream := suite.Cipher(send)
 			decrypted := make([]byte, DATALEN)
 			stream.XORKeyStream(decrypted, data)
 			msgStart := binary.BigEndian.Uint64(decrypted[0:8])
@@ -582,6 +583,14 @@ func attemptDecode(suite abstract.Suite, priv abstract.Secret,
 			dec := make([]byte, 0)
 			cipher := abstract.Cipher(aes.NewCipher128(key))
 			dec, err := cipher.Open(dec, file[msgStart:])
+			if err != nil {
+				key := decrypted[8:24]
+				//Try to decrypt
+				dec = make([]byte, 0)
+				cipher = abstract.Cipher(aes.NewCipher128(key))
+				dec, err = cipher.Open(dec, file[msgStart:])
+
+			}
 			//fmt.Println(msgStart)
 			//fmt.Println(key)
 			if err == nil {

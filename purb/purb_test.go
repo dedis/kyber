@@ -2,22 +2,22 @@ package purb
 
 import (
 	//	"bufio"
-	//	"encoding/binary"
-	//	"encoding/hex"
+	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"github.com/dedis/crypto/abstract"
-	//	"github.com/dedis/crypto/cipher/aes"
+	"github.com/dedis/crypto/cipher/aes"
 	"time"
 	//	"github.com/dedis/crypto/config"
 	"github.com/dedis/crypto/edwards"
-	//	"github.com/dedis/crypto/padding"
+	"github.com/dedis/crypto/padding"
 	"github.com/dedis/crypto/random"
-	//	"io/ioutil"
-	//	"os"
+	"io/ioutil"
+	"os"
 	"testing"
 )
 
-var NUMTEST = 12
+var NUMTEST = 3
 
 // Simple harness to create lots of fake ciphersuites out of a few real ones,
 // for testing purposes.
@@ -30,7 +30,6 @@ func (f *fakeSuite) String() string {
 	return fmt.Sprintf("%s(%d)", f.Suite.String(), f.idx)
 }
 
-/*
 func TestPurb(t *testing.T) {
 
 	realSuites := []abstract.Suite{
@@ -53,7 +52,7 @@ func TestPurb(t *testing.T) {
 	nlevels := 5
 	suiteLevel := make(map[abstract.Suite]int)
 	entries := make([]Entry, 0)
-	suiteEntry := make(map[abstract.Suite][]int)
+	suiteEntry := make(map[string][]int)
 	for i := range suites {
 		suiteLevel[suites[i]] = nlevels
 		nlevels++ // vary it a bit for testing
@@ -61,15 +60,15 @@ func TestPurb(t *testing.T) {
 		for j := 0; j < nlevels; j++ {
 			ents[j] = j * KEYLEN
 		}
-		suiteEntry[suites[i]] = ents
+		suiteEntry[suites[i].String()] = ents
 
 		// Create some entrypoints with this suite
 		s := suites[i]
 		for j := 0; j < nentries; j++ {
 			pri := s.Secret().Pick(random.Stream)
 			pub := s.Point().Mul(nil, pri)
-			data := make([]byte, datalen)
-			entries = append(entries, Entry{s, pri, pub, data})
+			data := make([]byte, datalen-16)
+			entries = append(entries, Entry{s, pri, pub, data, nil, nil, nil})
 		}
 	}
 
@@ -87,7 +86,7 @@ func TestPurb(t *testing.T) {
 	msg := []byte("This is the message!")
 	//from testing
 	encOverhead := 16
-	msg = padding.PadGeneric(msg, encOverhead+hdrend)
+	msg = padding.PadGeneric(msg, uint64(encOverhead+hdrend))
 	enc := make([]byte, 0)
 	enc = cipher.Seal(enc, msg)
 	//encrypt message
@@ -117,7 +116,7 @@ func TestPurb(t *testing.T) {
 			continue
 		}
 		ent := entries[i]
-		_, msgL := attemptDecode(ent.Suite, ent.PriKey, suiteEntry, encFile, random.Stream)
+		_, msgL := AttemptDecode(ent.Suite, ent.PriKey, suiteEntry, encFile, random.Stream)
 		if msgL == nil {
 			fmt.Println("Could not decrypt", ent, "\n")
 			continue
@@ -145,20 +144,20 @@ func TestWritePurb(t *testing.T) {
 	suite := edwards.NewAES128SHA256Ed1174(true)
 	nentries := 3
 	entries := make([]Entry, 0)
-	suiteEntry := make(map[abstract.Suite][]int)
+	suiteEntry := make(map[string][]int)
 	nlevels := 1
 	ents := make([]int, nlevels)
 	for j := 0; j < nlevels; j++ {
-		ents[j] = j * ENTRYLEN
+		ents[j] = j * DATALEN
 	}
-	suiteEntry[suite] = ents
+	suiteEntry[suite.String()] = ents
 	// Create some entrypoints with this suite
 	s := suite
 	for j := 0; j < nentries; j++ {
 		pri := s.Secret().Pick(random.Stream)
 		pub := s.Point().Mul(nil, pri)
 		data := make([]byte, DATALEN)
-		entries = append(entries, Entry{s, pri, pub, data})
+		entries = append(entries, Entry{s, pri, pub, data, nil, nil, nil})
 	}
 	msg := "This is the message! It will be stored as a file!! for" + entries[0].PubKey.String() + suite.String()
 	writePurb(entries, suiteEntry, []byte(msg), "test.purb")
@@ -177,14 +176,15 @@ func TestWritePurb(t *testing.T) {
 func TestReadPurbFromFile(t *testing.T) {
 	//get a public key
 	//Problem need to know the suite already I think.
+	fmt.Println("Testing reading purb from file")
 	suite := edwards.NewAES128SHA256Ed1174(true)
-	suiteEntry := make(map[abstract.Suite][]int)
+	suiteEntry := make(map[string][]int)
 	nlevels := 1
 	ents := make([]int, nlevels)
 	for j := 0; j < nlevels; j++ {
-		ents[j] = j * ENTRYLEN
+		ents[j] = j * DATALEN
 	}
-	suiteEntry[suite] = ents
+	suiteEntry[suite.String()] = ents
 	file, err := os.Open("keyfile1")
 	priKey := suite.Secret()
 	something, err := priKey.UnmarshalFrom(file)
@@ -193,8 +193,10 @@ func TestReadPurbFromFile(t *testing.T) {
 	}
 	encFile := make([]byte, 0)
 	encFile, err = ioutil.ReadFile("test.purb")
-	fmt.Println(err)
-	_, msgL := attemptDecode(suite, priKey, suiteEntry, encFile, random.Stream)
+	if err != nil {
+		fmt.Println(err)
+	}
+	_, msgL := AttemptDecode(suite, priKey, suiteEntry, encFile, random.Stream)
 	if msgL == nil {
 		fmt.Println("Could not decrypt")
 	} else {
@@ -203,7 +205,7 @@ func TestReadPurbFromFile(t *testing.T) {
 	}
 	file, err = os.Open("keyfile2")
 	something, err = priKey.UnmarshalFrom(file)
-	_, msgL = attemptDecode(suite, priKey, suiteEntry, encFile, random.Stream)
+	_, msgL = AttemptDecode(suite, priKey, suiteEntry, encFile, random.Stream)
 	if msgL == nil {
 		fmt.Println("Could not decrypt")
 	} else {
@@ -212,7 +214,7 @@ func TestReadPurbFromFile(t *testing.T) {
 	}
 	file, err = os.Open("keyfile3")
 	something, err = priKey.UnmarshalFrom(file)
-	_, msgL = attemptDecode(suite, priKey, suiteEntry, encFile, random.Stream)
+	_, msgL = AttemptDecode(suite, priKey, suiteEntry, encFile, random.Stream)
 	if msgL == nil {
 		fmt.Println("Could not decrypt")
 	} else {
@@ -221,7 +223,7 @@ func TestReadPurbFromFile(t *testing.T) {
 	}
 	fmt.Println(something)
 }
-*/
+
 func TestSuite(t *testing.T) {
 	suites := [][]abstract.Suite{
 		{
@@ -259,6 +261,7 @@ func TestSuite(t *testing.T) {
 		//	edwards.NewAES128SHA256Ed1174(true),
 	}
 
+	scnt := 1
 	ss := make([]abstract.Suite, 0)
 	for i := range realSuites {
 		real := realSuites[i]
@@ -267,7 +270,8 @@ func TestSuite(t *testing.T) {
 		for k := 0; k < NUMTEST; k++ {
 			iter := (len(ss))
 			for j := 0; j < iter; j++ {
-				ss = append(ss, &fakeSuite{real, j + iter/2})
+				ss = append(ss, &fakeSuite{real, scnt})
+				scnt += 1
 			}
 			buildPurb(1, 1, ss, msg)
 		}
@@ -293,11 +297,11 @@ func buildPurb(nlevels, nentries int, suites []abstract.Suite, msg []byte) {
 	suiteEntry := make(map[string][]int)
 	for i := range suites {
 		suiteLevel[suites[i]] = nlevels
-		nlevels++ // vary it a bit for testing
 		ents := make([]int, nlevels)
 		for j := 0; j < nlevels; j++ {
 			ents[j] = j * KEYLEN
 		}
+		nlevels++ // vary it a bit for testing
 		suiteEntry[suites[i].String()] = ents
 
 		// Create some entrypoints with this suite
@@ -316,7 +320,13 @@ func buildPurb(nlevels, nentries int, suites []abstract.Suite, msg []byte) {
 	//Decrypt to get avg decrypt time, may be messed up because sometimes messages don't decrypt properly.
 	start2 := time.Now()
 	for _, v := range entries {
-		_, _ = attemptDecode(v.Suite, v.PriKey, suiteEntry, encMsg, random.Stream)
+		_, msg = AttemptDecode(v.Suite, v.PriKey, suiteEntry, encMsg, random.Stream)
+		if msg == nil {
+			fmt.Println("Failed to decrypt")
+		} else {
+			fmt.Println("decrypted")
+		}
+
 		//fmt.Println(a, string(b))
 	}
 	elapsed2 := time.Since(start2)
@@ -324,7 +334,7 @@ func buildPurb(nlevels, nentries int, suites []abstract.Suite, msg []byte) {
 	s := suites[len(suites)-1]
 	pri := s.Secret().Pick(random.Stream)
 	start3 := time.Now()
-	_, _ = attemptDecode(s, pri, suiteEntry, encMsg, random.Stream)
+	_, _ = AttemptDecode(s, pri, suiteEntry, encMsg, random.Stream)
 	elapsed3 := time.Since(start3)
 
 	//fmt.Printf("**** %v %v %v %s %vs\n", len(suites), nentries, hdrlen, elapsed, elapsed2.Seconds()/float64(len(entries)))
