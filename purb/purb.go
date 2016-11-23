@@ -14,7 +14,6 @@ import (
 	//	"github.com/dedis/crypto/edwards"
 	"github.com/dedis/crypto/padding"
 	"github.com/dedis/crypto/random"
-	"io/ioutil"
 	"sort"
 	"strconv"
 )
@@ -611,6 +610,7 @@ func AttemptDecode(suite abstract.Suite, priv abstract.Scalar,
 	return 0, nil
 }
 
+/*
 //Functions to simply build a purb file. It will
 //Only the suite, and pub key need to be filled for
 //entryPoints possibly should just be a constant at the top(probably should be)
@@ -654,10 +654,20 @@ func writePurb(entries []Entry, entryPoints map[string][]int,
 	if err != nil {
 		panic(err)
 	}
-}
+}*/
 
-//Same as writePurb, but instead it returns the byte string instead of writing it to a file.
-func genPurb(entries []Entry, entryPoints map[string][]int,
+//Functions to simply build a purb file. It will
+//Only the suite, and pub key need to be filled for
+//entryPoints possibly should just be a constant at the top(probably should be)
+//input: entries-- a slice of Entry that is who the message is to be encrypted to.
+//	entryPoints-- the possible entry points for each possible sutie
+//	message-- The message that is to be encrypted.
+//	pad-- If the message should be padded.
+//output:
+// Returns PURB byte slice
+//TODO: Key should be passed in. Entry points should already be filled.
+//Will need key, and encOverhead
+func GenPurb(entries []Entry, entryPoints map[string][]int,
 	message []byte, pad bool) ([]byte, int) {
 	//Now we need to go through the steps of setting it up.
 	w := Writer{}
@@ -778,3 +788,21 @@ func AttemptDecodeTLS(entry *Entry,
 	}
 	return 0, nil
 }
+
+//TODO: Modify GenPurb so that it works for all(at least pgp,tls) applications.
+//Generalize it so that it can create any type of PURB with/without data, etc.
+//How to handle if the entrypoint requires hdrlen data? Is there a chance that EPs
+//Will require some other data?
+//Idea: pass in a function that is run on all entry points.
+// func foo(entry, hdrlen) which sets the Entrypoints correctly.
+//Decode would also need a function that will verify if it is a correct Purb.
+//Probably func bar(entry, encMsg) []byte, bool if it returns true, return []byte.
+
+//Should pass in DATLEN, KEYLEN(or gotten automatically from list of suites),
+//HASHATTEMPTS, and APPOVERHEAD==Overhead from AEAD scheme, and any other application
+//overhead that is not reflected in the msg or DATALEN.
+
+//Maybe make a PURB interface that needs to have
+//GenPURB
+//DecodePURB
+//???

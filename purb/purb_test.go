@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/cipher/aes"
-	"time"
+	//	"time"
 	//	"github.com/dedis/crypto/config"
 	"github.com/dedis/crypto/edwards"
 	"github.com/dedis/crypto/padding"
@@ -16,8 +16,6 @@ import (
 	"os"
 	"testing"
 )
-
-var NUMTEST = 3
 
 // Simple harness to create lots of fake ciphersuites out of a few real ones,
 // for testing purposes.
@@ -38,7 +36,7 @@ func TestPurb(t *testing.T) {
 	}
 
 	fakery := 1
-	nentries := 2
+	nentries := 10
 	datalen := DATALEN
 
 	suites := make([]abstract.Suite, 0)
@@ -83,7 +81,11 @@ func TestPurb(t *testing.T) {
 	//Probably insecure way to use it.
 
 	cipher := abstract.Cipher(aes.NewCipher128(key))
-	msg := []byte("This is the message!")
+	msg2 := ("This is the message!")
+	for i := 0; i < 10; i++ {
+		msg2 += msg2
+	}
+	msg := []byte(msg2)
 	//from testing
 	encOverhead := 16
 	msg = padding.PadGeneric(msg, uint64(encOverhead+hdrend))
@@ -99,8 +101,11 @@ func TestPurb(t *testing.T) {
 		w.entries[i].Data = append(byteLen, key...)
 	}
 	encMessage := w.Write(random.Stream)
-	fmt.Println(len(encMessage), hdrend)
 	encMessage = append(encMessage, enc...)
+	if padding.CheckZeroBits(uint64(len(encMessage))) != true {
+		panic("not padded correctly")
+	}
+	fmt.Println(len(encMessage), hdrend)
 	err = ioutil.WriteFile("test.bin", encMessage, 0644)
 	if err != nil {
 		panic(err)
@@ -123,8 +128,8 @@ func TestPurb(t *testing.T) {
 		}
 
 		msgL = padding.UnPadGeneric(msgL)
-		fmt.Println(ent)
-		fmt.Println(len(msgL), string(msgL), "\n\n")
+		//fmt.Println(ent)
+		//fmt.Println(len(msgL), string(msgL), "\n\n")
 
 	}
 }
@@ -133,8 +138,9 @@ func TestPlaceHash(t *testing.T) {
 	w.layout.reset()
 
 	for i := uint(0); i < 8; i++ {
-		fmt.Println("hash:", i)
-		w.PlaceHash(i)
+		x := random.Uint64(random.Stream)
+		fmt.Println("hash:", x)
+		w.PlaceHash(uint(x))
 	}
 	fmt.Println("hash test layout")
 	w.layout.dump()
@@ -159,12 +165,27 @@ func TestWritePurb(t *testing.T) {
 		data := make([]byte, DATALEN)
 		entries = append(entries, Entry{s, pri, pub, data, nil, nil, nil})
 	}
-	msg := "This is the message! It will be stored as a file!! for" + entries[0].PubKey.String() + suite.String()
-	writePurb(entries, suiteEntry, []byte(msg), "test.purb")
+	msg := "This is the message! It will be stored as a file!! for suite: " + suite.String()
+	//	for i, _ := range entries {
+	//		msg += entries[i].PubKey.String()
+	//	}
+	//TODO writePurb shouldn't exist, writing the purb to a file is the applications job
+	enc, _ := GenPurb(entries, suiteEntry, []byte(msg), true)
+	err := ioutil.WriteFile("test.purb", enc, 0644)
+	if err != nil {
+		panic(err)
+	}
+
 	file, _ := os.Create("keyfile1")
 	i, err := entries[0].PriKey.MarshalTo(file)
+	if err != nil {
+		fmt.Println(err, i)
+	}
 	file, _ = os.Create("keyfile2")
 	i, err = entries[1].PriKey.MarshalTo(file)
+	if err != nil {
+		fmt.Println(err, i)
+	}
 	file, _ = os.Create("keyfile3")
 	i, err = entries[2].PriKey.MarshalTo(file)
 	if err != nil {
@@ -193,6 +214,9 @@ func TestReadPurbFromFile(t *testing.T) {
 	}
 	encFile := make([]byte, 0)
 	encFile, err = ioutil.ReadFile("test.purb")
+	if padding.CheckZeroBits(uint64(len(encFile))) != true {
+		panic("not padded correctly")
+	}
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -222,122 +246,4 @@ func TestReadPurbFromFile(t *testing.T) {
 		fmt.Println(len(msgL), string(msgL))
 	}
 	fmt.Println(something)
-}
-
-func TestSuite(t *testing.T) {
-	suites := [][]abstract.Suite{
-		{
-			edwards.NewAES128SHA256Ed25519(true),
-		},
-		{
-			edwards.NewAES128SHA256Ed1174(true),
-		},
-		{
-			edwards.NewAES128SHA256Ed1174(true),
-			edwards.NewAES128SHA256Ed25519(true),
-		},
-	}
-	msg := []byte("This is the message, it is short")
-	//increaseFactor := 2
-	for s := range suites {
-		name := ""
-		for suite := range suites[s] {
-			name += " "
-			name += suites[s][suite].String()
-		}
-		fmt.Println("Suites:", name)
-		fmt.Println("numEntries,hdrlen,encryptTime,avgDecrypt,failTime")
-		//fmt.Println("NumSuites numEntries hdrlen encryptTime avgDecrypt")
-		buildPurb(1, 1, suites[s], msg)
-		entries := 1
-		for i := 1; i < NUMTEST; i++ { //Last test before killed because of time
-			entries *= 2
-			buildPurb(1, entries, suites[s], msg)
-		}
-	}
-	//Now test for an increasing number of suites.
-	realSuites := []abstract.Suite{
-		edwards.NewAES128SHA256Ed25519(true),
-		//	edwards.NewAES128SHA256Ed1174(true),
-	}
-
-	scnt := 1
-	ss := make([]abstract.Suite, 0)
-	for i := range realSuites {
-		real := realSuites[i]
-		fmt.Println("numSuites,numEntries,hdrlen,encryptTime,avgDecrypt,failTime")
-		ss = append(ss, &fakeSuite{real, 0})
-		for k := 0; k < NUMTEST; k++ {
-			iter := (len(ss))
-			for j := 0; j < iter; j++ {
-				ss = append(ss, &fakeSuite{real, scnt})
-				scnt += 1
-			}
-			buildPurb(1, 1, ss, msg)
-		}
-	}
-}
-
-//for simplicity each suite has the same number of entries. can be changed later
-//by passing a map from suite->int that is the number of entries each suite will have.
-//probably it would just replace suites
-
-//Output: Will print out nsuites nentries hdrlen timeToEncrypt avgDecryptTime
-//timeToEncrypt is the total time it takes to generate the purb.
-//--a potential problem is that the printing of hdrlen will be added to it.
-//--so possibly don't print hdrlen, just return it.
-//generate a purb for each of the following.
-//nlevels is the minimum number of entry points each suite must have.
-func buildPurb(nlevels, nentries int, suites []abstract.Suite, msg []byte) {
-	//Entries for each suite
-	//Suite entrypoint map
-	datalen := DATALEN
-	suiteLevel := make(map[abstract.Suite]int)
-	entries := make([]Entry, 0)
-	suiteEntry := make(map[string][]int)
-	for i := range suites {
-		suiteLevel[suites[i]] = nlevels
-		ents := make([]int, nlevels)
-		for j := 0; j < nlevels; j++ {
-			ents[j] = j * KEYLEN
-		}
-		nlevels++ // vary it a bit for testing
-		suiteEntry[suites[i].String()] = ents
-
-		// Create some entrypoints with this suite
-		s := suites[i]
-		for j := 0; j < nentries; j++ {
-			pri := s.Scalar().Pick(random.Stream)
-			pub := s.Point().Mul(nil, pri)
-			data := make([]byte, datalen)
-			entries = append(entries, Entry{s, pri, pub, data, nil, nil, nil})
-		}
-	}
-
-	start := time.Now()
-	encMsg, hdrlen := genPurb(entries, suiteEntry, msg, true)
-	elapsed := time.Since(start)
-	//Decrypt to get avg decrypt time, may be messed up because sometimes messages don't decrypt properly.
-	start2 := time.Now()
-	for _, v := range entries {
-		_, msg = AttemptDecode(v.Suite, v.PriKey, suiteEntry, encMsg, random.Stream)
-		if msg == nil {
-			fmt.Println("Failed to decrypt")
-		} else {
-			fmt.Println("decrypted")
-		}
-
-		//fmt.Println(a, string(b))
-	}
-	elapsed2 := time.Since(start2)
-	//What happens if it fails to decrypt?
-	s := suites[len(suites)-1]
-	pri := s.Scalar().Pick(random.Stream)
-	start3 := time.Now()
-	_, _ = AttemptDecode(s, pri, suiteEntry, encMsg, random.Stream)
-	elapsed3 := time.Since(start3)
-
-	//fmt.Printf("**** %v %v %v %s %vs\n", len(suites), nentries, hdrlen, elapsed, elapsed2.Seconds()/float64(len(entries)))
-	fmt.Printf("%v,%v,%v,%v,%v,%v\n", len(suites), nentries*len(suites), hdrlen, elapsed.Seconds(), elapsed2.Seconds()/float64(len(entries)), elapsed3.Seconds())
-	//fmt.Printf("**** %v %v %v %s %vs\n", len(suites), nentries, hdrlen, elapsed, elapsed2.Seconds())
 }
