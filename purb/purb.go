@@ -5,8 +5,8 @@ package purb
 
 import (
 	"crypto/cipher"
-	"encoding/binary"
-	"encoding/hex"
+	//	"encoding/binary"
+	//	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/dedis/crypto/abstract"
@@ -23,7 +23,7 @@ const KEYLEN = 32
 
 //Change this value to see if it can give nicer numbers
 //--Trade off between header size and decryption time.
-const HASHATTEMPTS = 3
+const HASHATTEMPTS = 5
 
 //How many bytes symkey+message_start is
 //TODO make it easy for different entrypoint sizes.
@@ -94,7 +94,7 @@ func KDF(s abstract.Suite, k abstract.Point) ([]byte, []byte) {
 	//	s.
 	s1, err := k.MarshalBinary()
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 
 	}
 	s2 := s1
@@ -532,14 +532,14 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 //	rand-- random stream
 //Output: int---???Some error code eventually?
 //	[]byte-- The decoded message, or nil.
-func AttemptDecode(suite abstract.Suite, priv abstract.Scalar,
-	suiteKeyPos map[string][]int, file []byte,
-	rand cipher.Stream) (int, []byte) {
+func AttemptDecode(ent *Entry, suite abstract.Suite, priv abstract.Scalar,
+	suiteKeyPos map[string][]int, check func([]byte, []byte) (bool, []byte),
+	file []byte, rand cipher.Stream) ([]byte, error) {
 	//make sure suite has entry points
 	keyPos := suiteKeyPos[suite.String()]
 	if keyPos == nil {
 		//fmt.Println("We do not know about", suite)
-		return 0, nil
+		return nil, errors.New("No possible key positions")
 	}
 	dhpub := make([]byte, KEYLEN)
 	for i := range keyPos {
@@ -553,7 +553,12 @@ func AttemptDecode(suite abstract.Suite, priv abstract.Scalar,
 	pub := suite.Point()
 	pub.(abstract.Hiding).HideDecode(dhpub)
 	shared := suite.Point().Mul(pub, priv)
-	send, _ := KDF(suite, shared)
+
+	recv, send := KDF(suite, shared)
+	if ent != nil {
+		ent.SendKey = send
+		ent.RecvKey = recv
+	}
 	//Now we have to try and decrypt the message
 	//We must go through all possible hash values
 
@@ -569,45 +574,20 @@ func AttemptDecode(suite abstract.Suite, priv abstract.Scalar,
 			data := file[start+tHash*dLen : start+tHash*dLen+dLen]
 			//Try to decrypt data.
 			//	buf, _ := shared.MarshalBinary()
-			stream := suite.Cipher(send)
+			stream := suite.Cipher(recv)
 			decrypted := make([]byte, DATALEN)
 			stream.XORKeyStream(decrypted, data)
-			msgStart := binary.BigEndian.Uint64(decrypted[0:8])
-			if msgStart > uint64(len(file)) {
-				continue
+			suc, msg := check(decrypted, file)
+			if suc {
+				return msg, nil
 			}
-			//
-			key := decrypted[8:24]
-			//Try to decrypt
-			dec := make([]byte, 0)
-			cipher := abstract.Cipher(aes.NewCipher128(key))
-			dec, err := cipher.Open(dec, file[msgStart:])
-			if err != nil {
-				key := decrypted[8:24]
-				//Try to decrypt
-				dec = make([]byte, 0)
-				cipher = abstract.Cipher(aes.NewCipher128(key))
-				dec, err = cipher.Open(dec, file[msgStart:])
-
-			}
-			//fmt.Println(msgStart)
-			//fmt.Println(key)
-			if err == nil {
-
-				//Some way to determine if the message is actually english
-				//In case it has 8 bytes from padding
-				if string(dec[8:12]) == "This" || (string(dec[0:4]) == "This") {
-					return 0, dec
-				}
-			}
-			//fmt.Println(err)
 
 		}
 		start += ts * dLen
 		ts *= 2
 
 	}
-	return 0, nil
+	return nil, errors.New("Could not decrypt")
 }
 
 /*
@@ -661,53 +641,57 @@ func writePurb(entries []Entry, entryPoints map[string][]int,
 //entryPoints possibly should just be a constant at the top(probably should be)
 //input: entries-- a slice of Entry that is who the message is to be encrypted to.
 //	entryPoints-- the possible entry points for each possible sutie
-//	message-- The message that is to be encrypted.
+//  entFill-- Function that correctly fills entrypoint. Currently takes key and
+// header length. The function is then run on every entrypoint. if nil
+// Entrypoints data must already be set.
+//	message-- The message that is to be encrypted. If nil GenPurb will not
+// do anything with encrypting a message.
+// key -- The key to encrypt the message with, and information passed to entFill
 //	pad-- If the message should be padded.
 //output:
 // Returns PURB byte slice
 //TODO: Key should be passed in. Entry points should already be filled.
 //Will need key, and encOverhead
-func GenPurb(entries []Entry, entryPoints map[string][]int,
-	message []byte, pad bool) ([]byte, int) {
+func GenPurb(entries []Entry, entryPoints map[string][]int, entFill func(*Entry,
+	[]byte, int), message, key []byte, pad bool) ([]byte, int) {
 	//Now we need to go through the steps of setting it up.
 	w := Writer{}
 	hdrend, err := w.Layout(entries, random.Stream, entryPoints)
 	if err != nil {
 		panic(err)
 	}
-	//Obviously should be generated in a safe way.
-	key, _ := hex.DecodeString("9a4fea86a621a91ab371e492457796c0")
-
-	//Why is this done?
-	key[0] = byte(len(entries))
-	//Probably insecure way to use it.
-	//TODO come up with a way to generate keys here.
-	//TODO parameterize --make it so that what suite is used can be any Suite
-	//with a good AEAD.
-	cipher := abstract.Cipher(aes.NewCipher128(key))
-	//from testing
-	encOverhead := 16
-	var msg []byte
-	if pad == true {
-		msg = padding.PadGeneric(message, uint64(encOverhead+hdrend))
-	} else {
-		msg = message
-	}
-	enc := make([]byte, 0)
-	enc = cipher.Seal(enc, msg)
 	//encrypt message
 	//w.layout.reserve(hdrend, hdrend+len(msg), true, "message")
 	//Now test Write, need to fill all entry point
-	byteLen := make([]byte, 8)
-	binary.BigEndian.PutUint64(byteLen, uint64(hdrend))
-	for i := range w.entries {
-		w.entries[i].Data = append(byteLen, key...)
+	if entFill != nil {
+		for i := range w.entries {
+			entFill(&w.entries[i], key, hdrend)
+		}
 	}
+
 	encMessage := w.Write(random.Stream)
-	encMessage = append(encMessage, enc...)
+	if message != nil {
+		//Probably insecure way to use it.
+		//TODO come up with a way to generate keys here.
+		//TODO parameterize --make it so that what suite is used can be any Suite
+		//with a good AEAD.
+		cipher := abstract.Cipher(aes.NewCipher128(key))
+		//from testing
+		encOverhead := 16
+		var msg []byte
+		if pad == true {
+			msg = padding.PadGeneric(message, uint64(encOverhead+hdrend))
+		} else {
+			msg = message
+		}
+		enc := make([]byte, 0)
+		enc = cipher.Seal(enc, msg)
+		encMessage = append(encMessage, enc...)
+	}
 	return encMessage, hdrend
 }
 
+/*
 //Does not deal with padding
 //Same as writePurb, but instead it returns the byte string instead of writing it to a file.
 func GenPurbTLS(entries []Entry, entryPoints map[string][]int) ([]byte, int) {
@@ -788,6 +772,7 @@ func AttemptDecodeTLS(entry *Entry,
 	}
 	return 0, nil
 }
+*/
 
 //TODO: Modify GenPurb so that it works for all(at least pgp,tls) applications.
 //Generalize it so that it can create any type of PURB with/without data, etc.

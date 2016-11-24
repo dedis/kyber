@@ -17,6 +17,8 @@ import (
 	"testing"
 )
 
+//Tests are done implementing a simple pgp like format.
+
 // Simple harness to create lots of fake ciphersuites out of a few real ones,
 // for testing purposes.
 type fakeSuite struct {
@@ -121,7 +123,7 @@ func TestPurb(t *testing.T) {
 			continue
 		}
 		ent := entries[i]
-		_, msgL := AttemptDecode(ent.Suite, ent.PriKey, suiteEntry, encFile, random.Stream)
+		msgL, _ := AttemptDecode(&ent, ent.Suite, ent.PriKey, suiteEntry, checkPurb, encFile, random.Stream)
 		if msgL == nil {
 			fmt.Println("Could not decrypt", ent, "\n")
 			continue
@@ -145,7 +147,7 @@ func TestPlaceHash(t *testing.T) {
 	fmt.Println("hash test layout")
 	w.layout.dump()
 }
-func TestWritePurb(t *testing.T) {
+func TestGenPurb(t *testing.T) {
 	//simple test with one suite
 	suite := edwards.NewAES128SHA256Ed1174(true)
 	nentries := 3
@@ -166,11 +168,16 @@ func TestWritePurb(t *testing.T) {
 		entries = append(entries, Entry{s, pri, pub, data, nil, nil, nil})
 	}
 	msg := "This is the message! It will be stored as a file!! for suite: " + suite.String()
+
+	//Obviously should be generated in a safe way.
+	key, _ := hex.DecodeString("9a4fea86a621a91ab371e492457796c0")
+	//Why is this done?
+	key[0] = byte(len(entries))
 	//	for i, _ := range entries {
 	//		msg += entries[i].PubKey.String()
 	//	}
 	//TODO writePurb shouldn't exist, writing the purb to a file is the applications job
-	enc, _ := GenPurb(entries, suiteEntry, []byte(msg), true)
+	enc, _ := GenPurb(entries, suiteEntry, fillEntry, []byte(msg), key, true)
 	err := ioutil.WriteFile("test.purb", enc, 0644)
 	if err != nil {
 		panic(err)
@@ -220,7 +227,7 @@ func TestReadPurbFromFile(t *testing.T) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	_, msgL := AttemptDecode(suite, priKey, suiteEntry, encFile, random.Stream)
+	msgL, _ := AttemptDecode(nil, suite, priKey, suiteEntry, checkPurb, encFile, random.Stream)
 	if msgL == nil {
 		fmt.Println("Could not decrypt")
 	} else {
@@ -229,7 +236,7 @@ func TestReadPurbFromFile(t *testing.T) {
 	}
 	file, err = os.Open("keyfile2")
 	something, err = priKey.UnmarshalFrom(file)
-	_, msgL = AttemptDecode(suite, priKey, suiteEntry, encFile, random.Stream)
+	msgL, _ = AttemptDecode(nil, suite, priKey, suiteEntry, checkPurb, encFile, random.Stream)
 	if msgL == nil {
 		fmt.Println("Could not decrypt")
 	} else {
@@ -238,7 +245,7 @@ func TestReadPurbFromFile(t *testing.T) {
 	}
 	file, err = os.Open("keyfile3")
 	something, err = priKey.UnmarshalFrom(file)
-	_, msgL = AttemptDecode(suite, priKey, suiteEntry, encFile, random.Stream)
+	msgL, _ = AttemptDecode(nil, suite, priKey, suiteEntry, checkPurb, encFile, random.Stream)
 	if msgL == nil {
 		fmt.Println("Could not decrypt")
 	} else {
@@ -246,4 +253,44 @@ func TestReadPurbFromFile(t *testing.T) {
 		fmt.Println(len(msgL), string(msgL))
 	}
 	fmt.Println(something)
+}
+
+func fillEntry(ent *Entry, key []byte, headerLen int) {
+	byteLen := make([]byte, 8)
+	binary.BigEndian.PutUint64(byteLen, uint64(headerLen))
+	ent.Data = append(byteLen, key...)
+}
+func checkPurb(decrypted, file []byte) (bool, []byte) {
+
+	msgStart := binary.BigEndian.Uint64(decrypted[0:8])
+	//Simple check to skip symmetric encryption
+	if msgStart > uint64(len(file)) {
+		return false, nil
+	}
+	//
+	key := decrypted[8:24]
+	//Try to decrypt
+	dec := make([]byte, 0)
+	cipher := abstract.Cipher(aes.NewCipher128(key))
+	dec, err := cipher.Open(dec, file[msgStart:])
+	if err != nil {
+		key := decrypted[8:24]
+		//Try to decrypt
+		dec = make([]byte, 0)
+		cipher = abstract.Cipher(aes.NewCipher128(key))
+		dec, err = cipher.Open(dec, file[msgStart:])
+
+	}
+	//fmt.Println(msgStart)
+	//fmt.Println(key)
+	if err == nil {
+
+		//Some way to determine if the message is actually english
+		//In case it has 8 bytes from padding
+		if string(dec[8:12]) == "This" || (string(dec[0:4]) == "This") {
+			return true, dec
+		}
+	}
+	//fmt.Println(err)
+	return false, nil
 }
