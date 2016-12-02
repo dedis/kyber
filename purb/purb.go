@@ -615,7 +615,7 @@ func writePurb(entries []Entry, entryPoints map[string][]int,
 	cipher := abstract.Cipher(aes.NewCipher128(key))
 	//from testing
 	encOverhead := 16
-	msg := padding.PadGeneric(message, uint64(encOverhead+hdrend))
+	msg := padding.Pad(message, uint64(encOverhead+hdrend))
 	enc := make([]byte, 0)
 	enc = cipher.Seal(enc, msg)
 	//encrypt message
@@ -680,7 +680,7 @@ func GenPurb(entries []Entry, entryPoints map[string][]int, entFill func(*Entry,
 		encOverhead := 16
 		var msg []byte
 		if pad == true {
-			msg = padding.PadGeneric(message, uint64(encOverhead+hdrend))
+			msg = padding.Pad(message, uint64(encOverhead+hdrend))
 		} else {
 			msg = message
 		}

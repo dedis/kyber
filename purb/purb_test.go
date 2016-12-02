@@ -90,7 +90,7 @@ func TestPurb(t *testing.T) {
 	msg := []byte(msg2)
 	//from testing
 	encOverhead := 16
-	msg = padding.PadGeneric(msg, uint64(encOverhead+hdrend))
+	msg = padding.Pad(msg, uint64(encOverhead+hdrend))
 	enc := make([]byte, 0)
 	enc = cipher.Seal(enc, msg)
 	//encrypt message
@@ -104,7 +104,7 @@ func TestPurb(t *testing.T) {
 	}
 	encMessage := w.Write(random.Stream)
 	encMessage = append(encMessage, enc...)
-	if padding.CheckZeroBits(uint64(len(encMessage))) != true {
+	if padding.CheckPadding(uint64(len(encMessage))) != true {
 		panic("not padded correctly")
 	}
 	fmt.Println(len(encMessage), hdrend)
@@ -129,7 +129,7 @@ func TestPurb(t *testing.T) {
 			continue
 		}
 
-		msgL = padding.UnPadGeneric(msgL)
+		msgL = padding.UnPad(msgL)
 		//fmt.Println(ent)
 		//fmt.Println(len(msgL), string(msgL), "\n\n")
 
@@ -221,8 +221,8 @@ func TestReadPurbFromFile(t *testing.T) {
 	}
 	encFile := make([]byte, 0)
 	encFile, err = ioutil.ReadFile("test.purb")
-	if padding.CheckZeroBits(uint64(len(encFile))) != true {
-		panic("not padded correctly")
+	if padding.CheckPadding(uint64(len(encFile))) != true {
+		panic("not Porrectly")
 	}
 	if err != nil {
 		fmt.Println(err)
@@ -231,7 +231,7 @@ func TestReadPurbFromFile(t *testing.T) {
 	if msgL == nil {
 		fmt.Println("Could not decrypt")
 	} else {
-		msgL = padding.UnPadGeneric(msgL)
+		msgL = padding.UnPad(msgL)
 		fmt.Println(len(msgL), string(msgL))
 	}
 	file, err = os.Open("keyfile2")
@@ -240,7 +240,7 @@ func TestReadPurbFromFile(t *testing.T) {
 	if msgL == nil {
 		fmt.Println("Could not decrypt")
 	} else {
-		msgL = padding.UnPadGeneric(msgL)
+		msgL = padding.UnPad(msgL)
 		fmt.Println(len(msgL), string(msgL))
 	}
 	file, err = os.Open("keyfile3")
@@ -249,17 +249,22 @@ func TestReadPurbFromFile(t *testing.T) {
 	if msgL == nil {
 		fmt.Println("Could not decrypt")
 	} else {
-		msgL = padding.UnPadGeneric(msgL)
+		msgL = padding.UnPad(msgL)
 		fmt.Println(len(msgL), string(msgL))
 	}
 	fmt.Println(something)
 }
 
+//Function that is passed to GenPurb that is used to stoer the correct data in
+//an entry point.
 func fillEntry(ent *Entry, key []byte, headerLen int) {
 	byteLen := make([]byte, 8)
 	binary.BigEndian.PutUint64(byteLen, uint64(headerLen))
 	ent.Data = append(byteLen, key...)
 }
+
+//Function passed to AttemptDecode that is used to verfify that the application data
+//is decrypted.
 func checkPurb(decrypted, file []byte) (bool, []byte) {
 
 	msgStart := binary.BigEndian.Uint64(decrypted[0:8])

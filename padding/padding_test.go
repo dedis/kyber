@@ -34,62 +34,62 @@ var tests = []struct {
 	{98723, 17, 5, 12, 3677, false},
 }
 
-func TestGetMsgBits(t *testing.T) {
-	fmt.Println("Testing GetMsgBits")
+func TestmsgBits(t *testing.T) {
+	fmt.Println("Testing msgBits")
 	for _, v := range tests {
-		if GetMsgBits(v.test, 0) != v.msgbits {
+		if msgBits(v.test, 0) != v.msgbits {
 			fmt.Printf("Error on %v, computed:%v correct:%v\n",
-				v.test, GetMsgBits(v.test, 0), v.msgbits)
+				v.test, msgBits(v.test, 0), v.msgbits)
 		}
 	}
 }
 
-func TestGetLeakBits(t *testing.T) {
-	fmt.Println("Testing GetLeakBits")
+func TestleakBits(t *testing.T) {
+	fmt.Println("Testing leakBits")
 	for _, v := range tests {
-		if GetLeakBits(v.test, 0) != v.leakbits {
+		if leakBits(v.test, 0) != v.leakbits {
 			fmt.Printf("Error on %v, computed:%v correct:%v\n",
-				v.test, GetLeakBits(v.test, 0), v.leakbits)
+				v.test, leakBits(v.test, 0), v.leakbits)
 		}
 	}
 }
 
-func TestGetZeroBits(t *testing.T) {
-	fmt.Println("Testing GetZeroBits")
+func TestzeroBits(t *testing.T) {
+	fmt.Println("Testing zeroBits")
 	for _, v := range tests {
-		if GetZeroBits(v.test, 0) != v.zerobits {
+		if zeroBits(v.test, 0) != v.zerobits {
 			fmt.Printf("Error on %v, computed:%v correct:%v\n",
-				v.test, GetZeroBits(v.test, 0), v.zerobits)
+				v.test, zeroBits(v.test, 0), v.zerobits)
 		}
 	}
 }
 
-func TestGetPaddingLen(t *testing.T) {
-	fmt.Println("Testing GetPaddingLen")
+func TestpaddingLength(t *testing.T) {
+	fmt.Println("Testing paddingLength")
 	for _, v := range tests {
-		if GetPaddingLen(v.test, 0) != v.paddinglen {
+		if paddingLength(v.test, 0) != v.paddinglen {
 			fmt.Printf("Error on %v, computed:%v correct:%v\n",
-				v.test, GetPaddingLen(v.test, 0), v.paddinglen)
+				v.test, paddingLength(v.test, 0), v.paddinglen)
 		}
 	}
 }
 
-func TestCheckZeroBits(t *testing.T) {
-	fmt.Println("Testing CheckZeroBits")
+func TestCheckPadding(t *testing.T) {
+	fmt.Println("Testing CheckPadding")
 	for _, v := range tests {
-		if CheckZeroBits(v.test) != v.padded {
+		if CheckPadding(v.test) != v.padded {
 			fmt.Printf("Error on %v, computed:%v correct:%v\n",
-				v.test, CheckZeroBits(v.test), v.padded)
+				v.test, CheckPadding(v.test), v.padded)
 		}
 	}
 }
 
-func TestGeneratePadding(t *testing.T) {
-	fmt.Println("Testing GeneratePadding")
+func TestgeneratePadding(t *testing.T) {
+	fmt.Println("Testing generatePadding")
 	for _, v := range tests {
-		if len(GeneratePadding(uint64(v.test))) != int(v.test) {
+		if len(generatePadding(uint64(v.test))) != int(v.test) {
 			fmt.Printf("Error on %v, computed:%v correct:%v\n",
-				v.test, len(GeneratePadding(uint64(v.test))), v.test)
+				v.test, len(generatePadding(uint64(v.test))), v.test)
 		}
 	}
 }
@@ -126,24 +126,24 @@ func TestAESGCM(t *testing.T) {
 	}
 	//aesgcm adds 16 bytes to the end of the encrpyted message. These 16 bytes are the authentication tag.
 	//And an additional 8 bytes for the overhead of how we are padding it.
-	x := GetLeakBits(uint64(len(pt)), 16+8)
-	y := GetMsgBits(uint64(len(pt)), 16+8)
-	z := GetZeroBits(uint64(len(pt)), 16+8)
-	p := GetPaddingLen(uint64(len(pt)), 16+8)
+	x := leakBits(uint64(len(pt)), 16+8)
+	y := msgBits(uint64(len(pt)), 16+8)
+	z := zeroBits(uint64(len(pt)), 16+8)
+	p := paddingLength(uint64(len(pt)), 16+8)
 	fmt.Println("Msg w/ static overhead: ", len(pt)+16+8, " Bits to store len: ",
 		y, " Leak Bits: ", x, " ZeroBits: ", z)
 
 	fmt.Println("Padding needed: ", p)
 	fmt.Printf("Increase in message size caused by the padding (padding+len+oh)/len: %.4f\n", ((float64(p+24) + float64(len(pt))) / float64(len(pt))))
 
-	//PadGeneric takes in a pt, and the overhead that encryption scheme will add. It returns a p' with the format [Amount of padding(8 bytes)][original pt][padding]
+	//Pad takes in a pt, and the overhead that encryption scheme will add. It returns a p' with the format [Amount of padding(8 bytes)][original pt][padding]
 
-	paddedpt := PadGeneric(pt, 16)
+	paddedpt := Pad(pt, 16)
 	//fmt.Println(pt)
 	//Encrypt the plaintext with aesgcm
 	ct := aesgcm.Seal(nil, nonce, paddedpt, ad)
 	//check if our ct is correctly padded
-	if CheckZeroBits(uint64(len(ct))) {
+	if CheckPadding(uint64(len(ct))) {
 		fmt.Println("The ciphertext is of a correct length")
 		fmt.Println("Length is ", len(ct))
 		fmt.Println(strconv.FormatUint(uint64(len(ct)), 2))
@@ -156,7 +156,7 @@ func TestAESGCM(t *testing.T) {
 	//decrypt the ct
 	paddedpt, _ = aesgcm.Open(nil, nonce, ct, ad)
 	//unpad the pt
-	paddedpt = UnPadGeneric(paddedpt)
+	paddedpt = UnPad(paddedpt)
 	//check if the message was recovered correctly.
 	if bytes.Equal(pt, paddedpt) {
 		fmt.Println("The message was decrypted, and unpadded successfully ")
@@ -185,12 +185,12 @@ func TestNorxAEAD(t *testing.T) {
 
 	//Test for a lot of values
 	for i := 0; i < 50; i++ {
-		ptpad := PadGeneric(pt, 24)
+		ptpad := Pad(pt, 24)
 		ct := aead.Seal(dst, nonce, ptpad, data)
 		//	fmt.Println("Length of ct is ", len(ct))
 		//	fmt.Println(strconv.FormatUint(uint64(len(ct)), 2))
 		pt2, _ := aead.Open(dst, nonce, ct, data)
-		pt2 = UnPadGeneric(pt2)
+		pt2 = UnPad(pt2)
 		if !bytes.Equal(pt, pt2) {
 			fmt.Println("Error with adding and removing padding from message")
 		}
@@ -204,12 +204,12 @@ func TestNorxAEAD(t *testing.T) {
 		fmt.Println(err)
 	}
 	//Seems to be a constant size of 24 bytes added.
-	ptpad := PadGeneric(pt, 24)
+	ptpad := Pad(pt, 24)
 	ct2 := aead.Seal(dst, nonce, ptpad, data)
 	fmt.Println("Length of ct is ", len(ct2))
 	fmt.Println(strconv.FormatUint(uint64(len(ct2)), 2))
 	pt3, _ := aead.Open(dst, nonce, ct2, data)
-	pt3 = UnPadGeneric(pt3)
+	pt3 = UnPad(pt3)
 	if !bytes.Equal(pt, pt3) {
 		fmt.Println("Error with adding and removing padding from message")
 	}
@@ -225,9 +225,9 @@ func TestPaddingOverhead(t *testing.T) {
 	for i := 0; i < NUMTEST; i++ {
 
 		tmp := msg + 1
-		//fmt.Println(tmp, GetPaddingLen(tmp, 0))
+		//fmt.Println(tmp, paddingLength(tmp, 0))
 
-		fmt.Printf("%v,%v\n", tmp, (float64(GetPaddingLen(tmp, 0))/float64(tmp))*100)
+		fmt.Printf("%v,%v\n", tmp, (float64(paddingLength(tmp, 0))/float64(tmp))*100)
 		msg *= 2
 	}
 }
