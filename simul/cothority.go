@@ -1,8 +1,4 @@
-// The simulation cothority used for all protocols.
-// This should not be used stand-alone and is only for
-// the simulations. It loads the simulation-file, initialises all
-// necessary conodes and starts the simulation on the root-node.
-package main
+package simul
 
 import (
 	"flag"
@@ -25,21 +21,16 @@ var monitorAddress string
 // Simul is != "" if this node needs to start a simulation of that protocol
 var simul string
 
-var debugVisible int
-
 // Initialize before 'init' so we can directly use the fields as parameters
 // to 'Flag'
 func init() {
 	flag.StringVar(&conodeAddress, "address", "", "our address to use")
 	flag.StringVar(&simul, "simul", "", "start simulating that protocol")
 	flag.StringVar(&monitorAddress, "monitor", "", "remote monitor")
-	flag.IntVar(&debugVisible, "debug", 1, "verbosity: 0-5")
 }
 
-// Main starts the conode and will setup the protocol.
-func main() {
-	flag.Parse()
-	log.SetDebugVisible(debugVisible)
+// Simulate starts the conode and will setup the protocol.
+func Simulate() {
 	log.Lvl3("Flags are:", conodeAddress, simul, log.DebugVisible, monitorAddress)
 
 	scs, err := sda.LoadSimulationConfig(".", conodeAddress)
