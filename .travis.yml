@@ -1,0 +1,22 @@
+language: go
+
+go:
+  - 1.7
+
+install:
+  - go get -t ./...
+  - go get golang.org/x/tools/cmd/cover
+  - go get github.com/mattn/goveralls
+
+env:
+  global:
+    secure: Qu8PbKlf0Q5LoVeiut3+vEgghyLdZmvgrLsW/wI4XKSOL49K2LetELsZA6298OCoCaXm2BbESsoMApLglDx4h4PAOUwm/Sf28kJKRzmA0WidTR3XnIvBDnQrW7bm/9KV+de4uW6HUi7j4jp93E4y3LhBjBiq4ayVxlTHMKgQFBD02QFA7namD3LF5xjGnU99y7RNw0QNBv7BJfuOllIBJaetXQsHAcGX2pQmyZK5uQy52hXe6lVivWPdRrtDUVJQ3Yb7ez80fnLw3+5cBU21Om3L8P88QfbPZu7BCbUb6uwqruHX8a+ZqeDXVe9zpzqhvW+FckQz8MCHkLVXM6BucAS1y//s7VtYOiw6uhU4vsmP6dPbh90yS325n310P43mZ+7JX4XOV41/33CCK/zG4HxsTlsLeH0MTWjDpIBHR+UVJGySYrLD4hj1/WLTFPcycbTb9RwatUFao80KksaLG1TEH7zp14hav8M6cgZcJooabmNlqvj6UvkAOU88ZdUnjt3Bu64dhZpd/9cXQ65NRLFaQAyt3gufFUtT31azrPhomAP+JcK77CqcGDGye/Nhl2BEeio/dqeoACwwZHDPbhveCDqWEtumtV0LVUKuIyj0/EFkXByZBcnpzecIl5F4BB3ihgckQP5cS/OLKAsCztNOoIwewm+5/aCjIKh+T2M=
+
+script:
+  - make test
+
+after_success:
+  - goveralls -coverprofile=profile.cov -service=travis-ci -repotoken $COVERALLS_TOKEN
+
+notifications:
+  email: false
