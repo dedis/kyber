@@ -7,8 +7,8 @@ import (
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/sda"
 
-	"github.com/dedis/onet/monitor"
 	"github.com/dedis/onet/protocols/manage"
+	"github.com/dedis/onet/simul/monitor"
 )
 
 // The address of this conode - if there is only one conode in the config

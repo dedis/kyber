@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/monitor"
+	"github.com/dedis/onet/simul/monitor"
 	"github.com/dedis/onet/simul/platform"
 )
 
