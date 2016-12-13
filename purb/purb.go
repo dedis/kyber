@@ -95,7 +95,6 @@ func KDF(s abstract.Suite, k abstract.Point) ([]byte, []byte) {
 	s1, err := k.MarshalBinary()
 	if err != nil {
 		panic(err)
-
 	}
 	s2 := s1
 	s2[0]++
@@ -413,7 +412,7 @@ func (w *Writer) growBuf(lo, hi int) []byte {
 	}
 	return w.buf[lo:hi]
 }
-
+/*
 //Isn't used
 // After Layout() has been called to layout the header,
 // the client may call Payload() any number of times
@@ -442,7 +441,7 @@ func (w *Writer) Payload(data []byte, encrypt cipher.Stream) int {
 
 	return lo
 }
-
+*/
 // Finalize and encrypt the negotiation message.
 // The data slices in all the entrypoints must be filled in
 // before calling this function.

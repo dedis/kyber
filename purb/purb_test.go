@@ -16,6 +16,7 @@ import (
 	"os"
 	"testing"
 )
+//TODO add tests to cover fail cases
 
 //Tests are done implementing a simple pgp like format.
 
