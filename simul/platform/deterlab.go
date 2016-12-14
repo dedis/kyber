@@ -119,7 +119,7 @@ func (d *Deterlab) Configure(pc *Config) {
 // If 'build' is empty, all binaries are created, else only
 // the ones indicated. Either "simul" or "users"
 func (d *Deterlab) Build(build string, arg ...string) error {
-	log.Lvl1("Building for", d.Login, d.Host, d.Project, build, "cothorityDir=", d.simulDir)
+	log.Lvl1("Building for", d.Login, d.Host, d.Project, build, "simulDir=", d.simulDir)
 	start := time.Now()
 
 	var wg sync.WaitGroup
@@ -248,8 +248,8 @@ func (d *Deterlab) Deploy(rc RunConfig) error {
 	}
 
 	// Copy limit-files for more connections
-	ioutil.WriteFile(path.Join(d.deployDir, "cothority.conf"),
-		[]byte(cothorityConf), 0444)
+	ioutil.WriteFile(path.Join(d.deployDir, "simul.conf"),
+		[]byte(simulConnectionsConf), 0444)
 
 	// Copying build-files to deploy-directory
 	build, err := ioutil.ReadDir(d.buildDir)
@@ -401,8 +401,8 @@ func readString(msg, dft string) string {
 	return str
 }
 
-const cothorityConf = `
-# This is for the cothority testbed, which can use up an awful lot of connections
+const simulConnectionsConf = `
+# This is for the onet-deterlab testbed, which can use up an awful lot of connections
 
 * soft nofile 128000
 * hard nofile 128000
