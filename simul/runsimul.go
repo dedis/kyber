@@ -30,7 +30,7 @@ func init() {
 }
 
 // Main starts the conode and will setup the protocol.
-func simulation() {
+func simulate() {
 	flag.Parse()
 	log.Lvl3("Flags are:", conodeAddress, simul, log.DebugVisible, monitorAddress)
 
