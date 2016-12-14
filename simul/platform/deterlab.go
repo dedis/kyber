@@ -146,7 +146,7 @@ func (d *Deterlab) Build(build string, arg ...string) error {
 	// but built for another architecture.
 	packages := []pkg{
 		{"simul", "amd64", "linux", d.simulDir},
-		{"users", "386", "freebsd", path.Join(d.platformDir, "deterlab_users", ".")},
+		{"users", "386", "freebsd", path.Join(d.platformDir, "deterlab_users")},
 	}
 	if build == "" {
 		build = "simul,users"
