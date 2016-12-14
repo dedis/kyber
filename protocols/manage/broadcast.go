@@ -3,29 +3,29 @@ package manage
 import (
 	"errors"
 
+	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
-	"github.com/dedis/onet"
 )
 
 func init() {
 	network.RegisterPacketType(ContactNodes{})
 	network.RegisterPacketType(Done{})
-	sda.GlobalProtocolRegister("Broadcast", NewBroadcastProtocol)
+	onet.GlobalProtocolRegister("Broadcast", NewBroadcastProtocol)
 }
 
 // Broadcast ensures that all nodes are connected to each other. If you need
 // a confirmation once everything is set up, you can register a callback-function
 // using RegisterOnDone()
 type Broadcast struct {
-	*sda.TreeNodeInstance
+	*onet.TreeNodeInstance
 	onDoneCb    func()
 	repliesLeft int
 	tnIndex     int
 }
 
 // NewBroadcastProtocol returns a new Broadcast protocol
-func NewBroadcastProtocol(n *sda.TreeNodeInstance) (sda.ProtocolInstance, error) {
+func NewBroadcastProtocol(n *onet.TreeNodeInstance) (onet.ProtocolInstance, error) {
 	b := &Broadcast{
 		TreeNodeInstance: n,
 		tnIndex:          -1,
@@ -61,7 +61,7 @@ func (b *Broadcast) Start() error {
 // handleAnnounce receive the announcement from another node
 // it reply with an ACK.
 func (b *Broadcast) handleContactNodes(msg struct {
-	*sda.TreeNode
+	*onet.TreeNode
 	ContactNodes
 }) error {
 	log.Lvl3(b.Info(), "Received message from", msg.TreeNode.String())
@@ -93,7 +93,7 @@ func (b *Broadcast) handleContactNodes(msg struct {
 // Every node being contacted sends back a Done to the root which has
 // to count to decide if all is done
 func (b *Broadcast) handleDone(msg struct {
-	*sda.TreeNode
+	*onet.TreeNode
 	Done
 }) error {
 	b.repliesLeft--

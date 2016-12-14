@@ -1,4 +1,4 @@
-package sda
+package onet
 
 func (c *Conode) CreateProtocol(name string, t *Tree) (ProtocolInstance, error) {
 	return c.overlay.CreateProtocolSDA(name, t)

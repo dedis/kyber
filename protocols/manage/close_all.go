@@ -3,9 +3,9 @@ package manage
 import (
 	"time"
 
+	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
-	"github.com/dedis/onet"
 )
 
 /*
@@ -20,12 +20,12 @@ The protocol waits for the `Close`-message to arrive at the root.
 func init() {
 	network.RegisterPacketType(PrepareClose{})
 	network.RegisterPacketType(Close{})
-	sda.GlobalProtocolRegister("CloseAll", NewCloseAll)
+	onet.GlobalProtocolRegister("CloseAll", NewCloseAll)
 }
 
 // ProtocolCloseAll is the structure used to hold the Done-channel
 type ProtocolCloseAll struct {
-	*sda.TreeNodeInstance
+	*onet.TreeNodeInstance
 	// Done receives a 'true' once the protocol is done.
 	Done chan bool
 }
@@ -35,7 +35,7 @@ type PrepareClose struct{}
 
 // PrepareCloseMsg is the wrapper for the PrepareClose message
 type PrepareCloseMsg struct {
-	*sda.TreeNode
+	*onet.TreeNode
 	PrepareClose
 }
 
@@ -44,12 +44,12 @@ type Close struct{}
 
 // CloseMsg is the wrapper for the Close message
 type CloseMsg struct {
-	*sda.TreeNode
+	*onet.TreeNode
 	Close
 }
 
 // NewCloseAll will create a new protocol
-func NewCloseAll(n *sda.TreeNodeInstance) (sda.ProtocolInstance, error) {
+func NewCloseAll(n *onet.TreeNodeInstance) (onet.ProtocolInstance, error) {
 	p := &ProtocolCloseAll{TreeNodeInstance: n}
 	p.Done = make(chan bool, 1)
 	if err := p.RegisterHandler(p.FuncPrepareClose); err != nil {

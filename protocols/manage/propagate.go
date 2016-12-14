@@ -7,9 +7,9 @@ import (
 
 	"reflect"
 
+	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
-	"github.com/dedis/onet"
 )
 
 func init() {
@@ -20,16 +20,16 @@ func init() {
 // Propagate is a protocol that sends some data to all attached nodes
 // and waits for confirmation before returning.
 type Propagate struct {
-	*sda.TreeNodeInstance
+	*onet.TreeNodeInstance
 	onData    PropagationStore
 	onDoneCb  func(int)
 	sd        *PropagateSendData
 	ChannelSD chan struct {
-		*sda.TreeNode
+		*onet.TreeNode
 		PropagateSendData
 	}
 	ChannelReply chan struct {
-		*sda.TreeNode
+		*onet.TreeNode
 		PropagateReply
 	}
 
@@ -56,22 +56,22 @@ type PropagateReply struct {
 // all children stored the new value or the timeout has been reached.
 // The return value is the number of nodes that acknowledged having
 // stored the new value or an error if the protocol couldn't start.
-type PropagationFunc func(el *sda.Roster, msg network.Body, msec int) (int, error)
+type PropagationFunc func(el *onet.Roster, msg network.Body, msec int) (int, error)
 
 // PropagationStore is the function that will store the new data.
 type PropagationStore func(network.Body)
 
 // propagationContext is used for testing.
 type propagationContext interface {
-	ProtocolRegister(name string, protocol sda.NewProtocol) (sda.ProtocolID, error)
+	ProtocolRegister(name string, protocol onet.NewProtocol) (onet.ProtocolID, error)
 	ServerIdentity() *network.ServerIdentity
-	CreateProtocolSDA(name string, t *sda.Tree) (sda.ProtocolInstance, error)
+	CreateProtocolSDA(name string, t *onet.Tree) (onet.ProtocolInstance, error)
 }
 
 // NewPropagationFunc registers a new protocol name with the context c and will
 // set f as handler for every new instance of that protocol.
 func NewPropagationFunc(c propagationContext, name string, f PropagationStore) (PropagationFunc, error) {
-	pid, err := c.ProtocolRegister(name, func(n *sda.TreeNodeInstance) (sda.ProtocolInstance, error) {
+	pid, err := c.ProtocolRegister(name, func(n *onet.TreeNodeInstance) (onet.ProtocolInstance, error) {
 		p := &Propagate{
 			sd:               &PropagateSendData{[]byte{}, 1000},
 			TreeNodeInstance: n,
@@ -88,7 +88,7 @@ func NewPropagationFunc(c propagationContext, name string, f PropagationStore) (
 	})
 	log.Lvl3("Registering new propagation for", c.ServerIdentity(),
 		name, pid)
-	return func(el *sda.Roster, msg network.Body, msec int) (int, error) {
+	return func(el *onet.Roster, msg network.Body, msec int) (int, error) {
 		tree := el.GenerateNaryTreeWithRoot(8, c.ServerIdentity())
 		log.Lvl3(el.List[0].Address, "Starting to propagate", reflect.TypeOf(msg))
 		pi, err := c.CreateProtocolSDA(name, tree)
@@ -100,7 +100,7 @@ func NewPropagationFunc(c propagationContext, name string, f PropagationStore) (
 }
 
 // Separate function for testing
-func propagateStartAndWait(pi sda.ProtocolInstance, msg network.Body, msec int, f PropagationStore) (int, error) {
+func propagateStartAndWait(pi onet.ProtocolInstance, msg network.Body, msec int, f PropagationStore) (int, error) {
 	d, err := network.MarshalRegisteredType(msg)
 	if err != nil {
 		return -1, err

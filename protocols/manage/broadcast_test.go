@@ -4,16 +4,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 	"github.com/dedis/onet/protocols/manage"
-	"github.com/dedis/onet"
 )
 
 // Tests a 2-node system
 func TestBroadcast(t *testing.T) {
 	for _, nbrNodes := range []int{3, 10, 14} {
-		local := sda.NewLocalTest()
+		local := onet.NewLocalTest()
 		_, _, tree := local.GenTree(nbrNodes, false)
 
 		pi, err := local.CreateProtocol("Broadcast", tree)

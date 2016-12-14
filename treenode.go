@@ -1,4 +1,4 @@
-package sda
+package onet
 
 import (
 	"errors"
@@ -391,17 +391,17 @@ func (n *TreeNodeInstance) dispatchMsgReader() {
 	}
 }
 
-// dispatchMsgToProtocol will dispatch this sda.Data to the right instance
-func (n *TreeNodeInstance) dispatchMsgToProtocol(sdaMsg *ProtocolMsg) error {
+// dispatchMsgToProtocol will dispatch this onet.Data to the right instance
+func (n *TreeNodeInstance) dispatchMsgToProtocol(onetMsg *ProtocolMsg) error {
 	// if message comes from parent, dispatch directly
 	// if messages come from children we must aggregate them
 	// if we still need to wait for additional messages, we return
-	msgType, msgs, done := n.aggregate(sdaMsg)
+	msgType, msgs, done := n.aggregate(onetMsg)
 	if !done {
 		log.Lvl3(n.Name(), "Not done aggregating children msgs")
 		return nil
 	}
-	log.Lvlf5("%s->%s: Message is: %+v", sdaMsg.From, n.Name(), sdaMsg.Msg)
+	log.Lvlf5("%s->%s: Message is: %+v", onetMsg.From, n.Name(), onetMsg.Msg)
 
 	var err error
 	switch {
@@ -412,7 +412,7 @@ func (n *TreeNodeInstance) dispatchMsgToProtocol(sdaMsg *ProtocolMsg) error {
 		log.Lvl4("Dispatching to handler", n.ServerIdentity().Address)
 		err = n.dispatchHandler(msgs)
 	default:
-		return fmt.Errorf("message-type not handled the protocol: %s", reflect.TypeOf(sdaMsg.Msg))
+		return fmt.Errorf("message-type not handled the protocol: %s", reflect.TypeOf(onetMsg.Msg))
 	}
 	return err
 }
@@ -436,17 +436,17 @@ func (n *TreeNodeInstance) HasFlag(mt network.PacketTypeID, f uint32) bool {
 // instances will get all its children messages at once.
 // node is the node the host is representing in this Tree, and sda is the
 // message being analyzed.
-func (n *TreeNodeInstance) aggregate(sdaMsg *ProtocolMsg) (network.PacketTypeID, []*ProtocolMsg, bool) {
-	mt := sdaMsg.MsgType
-	fromParent := !n.IsRoot() && sdaMsg.From.TreeNodeID.Equal(n.Parent().ID)
+func (n *TreeNodeInstance) aggregate(onetMsg *ProtocolMsg) (network.PacketTypeID, []*ProtocolMsg, bool) {
+	mt := onetMsg.MsgType
+	fromParent := !n.IsRoot() && onetMsg.From.TreeNodeID.Equal(n.Parent().ID)
 	if fromParent || !n.HasFlag(mt, AggregateMessages) {
-		return mt, []*ProtocolMsg{sdaMsg}, true
+		return mt, []*ProtocolMsg{onetMsg}, true
 	}
 	// store the msg according to its type
 	if _, ok := n.msgQueue[mt]; !ok {
 		n.msgQueue[mt] = make([]*ProtocolMsg, 0)
 	}
-	msgs := append(n.msgQueue[mt], sdaMsg)
+	msgs := append(n.msgQueue[mt], onetMsg)
 	n.msgQueue[mt] = msgs
 	log.Lvl4(n.ServerIdentity().Address, "received", len(msgs), "of", len(n.Children()), "messages")
 
@@ -500,7 +500,7 @@ func (n *TreeNodeInstance) Public() abstract.Point {
 	return n.ServerIdentity().Public
 }
 
-// CloseHost closes the underlying sda.Host (which closes the overlay
+// CloseHost closes the underlying onet.Host (which closes the overlay
 // and sends Shutdown to all protocol instances)
 func (n *TreeNodeInstance) CloseHost() error {
 	return n.Host().Close()
@@ -523,7 +523,7 @@ func (n *TreeNodeInstance) TokenID() TokenID {
 	return n.token.ID()
 }
 
-// Token returns a CLONE of the underlying sda.Token struct.
+// Token returns a CLONE of the underlying onet.Token struct.
 // Useful for unit testing.
 func (n *TreeNodeInstance) Token() *Token {
 	return n.token.Clone()

@@ -5,13 +5,13 @@ import (
 
 	"time"
 
-	"github.com/dedis/onet/log"
 	"github.com/dedis/onet"
+	"github.com/dedis/onet/log"
 )
 
 // Tests a 2-node system
 func TestCloseAll(t *testing.T) {
-	local := sda.NewLocalTest()
+	local := onet.NewLocalTest()
 	defer log.AfterTest(t)
 	nbrNodes := 2
 	_, _, tree := local.GenTree(nbrNodes, true)

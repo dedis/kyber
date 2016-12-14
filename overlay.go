@@ -1,4 +1,4 @@
-package sda
+package onet
 
 import (
 	"errors"
@@ -120,10 +120,10 @@ func (o *Overlay) Process(data *network.Packet) {
 // - pass it to a given protocolInstance
 // io is the messageProxy to use if a specific wireformat protocol is used.
 // It can be nil: in that case it fall backs to default wire protocol.
-func (o *Overlay) TransmitMsg(sdaMsg *ProtocolMsg, io MessageProxy) error {
-	tree := o.Tree(sdaMsg.To.TreeID)
+func (o *Overlay) TransmitMsg(onetMsg *ProtocolMsg, io MessageProxy) error {
+	tree := o.Tree(onetMsg.To.TreeID)
 	if tree == nil {
-		return o.requestTree(sdaMsg.ServerIdentity, sdaMsg, io)
+		return o.requestTree(onetMsg.ServerIdentity, onetMsg, io)
 	}
 
 	o.transmitMux.Lock()
@@ -131,8 +131,8 @@ func (o *Overlay) TransmitMsg(sdaMsg *ProtocolMsg, io MessageProxy) error {
 	// TreeNodeInstance
 	var pi ProtocolInstance
 	o.instancesLock.Lock()
-	pi, ok := o.protocolInstances[sdaMsg.To.ID()]
-	done := o.instancesInfo[sdaMsg.To.ID()]
+	pi, ok := o.protocolInstances[onetMsg.To.ID()]
+	done := o.instancesInfo[onetMsg.To.ID()]
 	o.instancesLock.Unlock()
 	if done {
 		log.Error("Message for TreeNodeInstance that is already finished")
@@ -140,19 +140,19 @@ func (o *Overlay) TransmitMsg(sdaMsg *ProtocolMsg, io MessageProxy) error {
 	}
 	// if the TreeNodeInstance is not there, creates it
 	if !ok {
-		log.Lvlf4("Creating TreeNodeInstance at %s %x", o.conode.ServerIdentity, sdaMsg.To.ID())
-		tn, err := o.TreeNodeFromToken(sdaMsg.To)
+		log.Lvlf4("Creating TreeNodeInstance at %s %x", o.conode.ServerIdentity, onetMsg.To.ID())
+		tn, err := o.TreeNodeFromToken(onetMsg.To)
 		if err != nil {
 			return errors.New("No TreeNode defined in this tree here")
 		}
-		tni := o.newTreeNodeInstanceFromToken(tn, sdaMsg.To, io)
+		tni := o.newTreeNodeInstanceFromToken(tn, onetMsg.To, io)
 		// see if we know the Service Recipient
-		s, ok := o.conode.serviceManager.serviceByID(sdaMsg.To.ServiceID)
+		s, ok := o.conode.serviceManager.serviceByID(onetMsg.To.ServiceID)
 
 		// no servies defined => check if there is a protocol that can be
 		// created
 		if !ok {
-			pi, err = o.conode.ProtocolInstantiate(sdaMsg.To.ProtoID, tni)
+			pi, err = o.conode.ProtocolInstantiate(onetMsg.To.ProtoID, tni)
 			if err != nil {
 				return err
 			}
@@ -161,7 +161,7 @@ func (o *Overlay) TransmitMsg(sdaMsg *ProtocolMsg, io MessageProxy) error {
 			/// use the Services to instantiate it
 		} else {
 			// request the PI from the Service and binds the two
-			pi, err = s.NewProtocol(tni, &sdaMsg.Config)
+			pi, err = s.NewProtocol(tni, &onetMsg.Config)
 			if err != nil {
 				return err
 			}
@@ -175,12 +175,12 @@ func (o *Overlay) TransmitMsg(sdaMsg *ProtocolMsg, io MessageProxy) error {
 				err.Error())
 		}
 		log.Lvl4(o.conode.Address(), "Overlay created new ProtocolInstace msg => ",
-			fmt.Sprintf("%+v", sdaMsg.To))
+			fmt.Sprintf("%+v", onetMsg.To))
 
 	}
 
 	// TODO Check if TreeNodeInstance is already Done
-	pi.ProcessProtocolMsg(sdaMsg)
+	pi.ProcessProtocolMsg(onetMsg)
 	return nil
 }
 
@@ -246,10 +246,10 @@ func (o *Overlay) checkPendingTreeMarshal(el *Roster) {
 	o.pendingTreeLock.Unlock()
 }
 
-func (o *Overlay) savePendingMsg(sdaMsg *ProtocolMsg, io MessageProxy) {
+func (o *Overlay) savePendingMsg(onetMsg *ProtocolMsg, io MessageProxy) {
 	o.pendingMsgLock.Lock()
 	o.pendingMsg = append(o.pendingMsg, pendingMsg{
-		ProtocolMsg:  sdaMsg,
+		ProtocolMsg:  onetMsg,
 		MessageProxy: io,
 	})
 	o.pendingMsgLock.Unlock()
@@ -260,12 +260,12 @@ func (o *Overlay) savePendingMsg(sdaMsg *ProtocolMsg, io MessageProxy) {
 // it will put the message inside the pending list of sda message waiting to
 // have their trees.
 // io is the wrapper to use to send the message, it can be nil.
-func (o *Overlay) requestTree(si *network.ServerIdentity, sdaMsg *ProtocolMsg, io MessageProxy) error {
-	o.savePendingMsg(sdaMsg, io)
+func (o *Overlay) requestTree(si *network.ServerIdentity, onetMsg *ProtocolMsg, io MessageProxy) error {
+	o.savePendingMsg(onetMsg, io)
 
 	var msg interface{}
 	om := &OverlayMessage{
-		RequestTree: &RequestTree{sdaMsg.To.TreeID},
+		RequestTree: &RequestTree{onetMsg.To.TreeID},
 	}
 	msg, err := io.Wrap(nil, om)
 	if err != nil {
@@ -728,16 +728,16 @@ func (d *defaultProtoIO) Unwrap(msg interface{}) (interface{}, *OverlayMessage, 
 
 	switch inner := msg.(type) {
 	case ProtocolMsg:
-		sdaMsg := inner
+		onetMsg := inner
 		var err error
-		_, protoMsg, err := network.UnmarshalRegistered(sdaMsg.MsgSlice)
+		_, protoMsg, err := network.UnmarshalRegistered(onetMsg.MsgSlice)
 		if err != nil {
 			return nil, nil, err
 		}
 		// Put the msg into SDAData
 		returnOverlay.TreeNodeInfo = &TreeNodeInfo{
-			To:   sdaMsg.To,
-			From: sdaMsg.From,
+			To:   onetMsg.To,
+			From: onetMsg.From,
 		}
 		returnMsg = protoMsg
 	case RequestTree:

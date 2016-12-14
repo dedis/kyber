@@ -8,9 +8,9 @@ import (
 
 	"reflect"
 
+	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
-	"github.com/dedis/onet"
 )
 
 type PropagateMsg struct {
@@ -24,7 +24,7 @@ func init() {
 // Tests an n-node system
 func TestPropagate(t *testing.T) {
 	for _, nbrNodes := range []int{3, 10, 14} {
-		local := sda.NewLocalTest()
+		local := onet.NewLocalTest()
 		conodes, el, _ := local.GenTree(nbrNodes, true)
 		var i int
 		var iMut sync.Mutex
@@ -62,17 +62,17 @@ func TestPropagate(t *testing.T) {
 }
 
 type PC struct {
-	C *sda.Conode
-	O *sda.Overlay
+	C *onet.Conode
+	O *onet.Overlay
 }
 
-func (pc *PC) ProtocolRegister(name string, protocol sda.NewProtocol) (sda.ProtocolID, error) {
+func (pc *PC) ProtocolRegister(name string, protocol onet.NewProtocol) (onet.ProtocolID, error) {
 	return pc.C.ProtocolRegister(name, protocol)
 }
 func (pc *PC) ServerIdentity() *network.ServerIdentity {
 	return pc.C.ServerIdentity
 
 }
-func (pc *PC) CreateProtocolSDA(name string, t *sda.Tree) (sda.ProtocolInstance, error) {
+func (pc *PC) CreateProtocolSDA(name string, t *onet.Tree) (onet.ProtocolInstance, error) {
 	return pc.O.CreateProtocolSDA(name, t)
 }

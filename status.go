@@ -1,4 +1,4 @@
-package sda
+package onet
 
 // Status holds key/value pairs of the status to be returned to the requester.
 type Status map[string]string

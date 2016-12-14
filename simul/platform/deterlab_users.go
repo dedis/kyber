@@ -14,8 +14,8 @@ import (
 
 	"github.com/dedis/cothority/log"
 	"github.com/dedis/cothority/monitor"
-	"github.com/dedis/cothority/sda"
 	"github.com/dedis/cothority/simul/platform"
+	"github.com/dedis/onet"
 )
 
 var kill = false
@@ -152,7 +152,7 @@ func deterFromConfig(name ...string) *platform.Deterlab {
 	if len(name) > 0 {
 		configName = name[0]
 	}
-	err := sda.ReadTomlConfig(d, configName)
+	err := onet.ReadTomlConfig(d, configName)
 	_, caller, line, _ := runtime.Caller(1)
 	who := caller + ":" + strconv.Itoa(line)
 	if err != nil {

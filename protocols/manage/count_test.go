@@ -4,15 +4,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 	"github.com/dedis/onet/protocols/manage"
-	"github.com/dedis/onet"
 )
 
 // Tests a 2-node system
 func TestCount(t *testing.T) {
-	local := sda.NewLocalTest()
+	local := onet.NewLocalTest()
 	nbrNodes := 2
 	_, _, tree := local.GenTree(nbrNodes, true)
 	defer local.CloseAll()

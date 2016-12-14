@@ -1,4 +1,4 @@
-package sda
+package onet
 
 import "github.com/dedis/onet/network"
 

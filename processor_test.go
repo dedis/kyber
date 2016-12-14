@@ -1,4 +1,4 @@
-package sda
+package onet
 
 import (
 	"testing"

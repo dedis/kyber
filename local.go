@@ -1,4 +1,4 @@
-package sda
+package onet
 
 import (
 	"errors"
@@ -235,14 +235,14 @@ func (l *LocalTest) SendTreeNode(proto string, from, to *TreeNodeInstance, msg n
 	if from.Tree().ID != to.Tree().ID {
 		return errors.New("Can't send from one tree to another")
 	}
-	sdaMsg := &ProtocolMsg{
+	onetMsg := &ProtocolMsg{
 		Msg:     msg,
 		MsgType: network.TypeToPacketTypeID(msg),
 		From:    from.token,
 		To:      to.token,
 	}
 	io := l.Overlays[to.ServerIdentity().ID].protoIO.getByName(proto)
-	return to.overlay.TransmitMsg(sdaMsg, io)
+	return to.overlay.TransmitMsg(onetMsg, io)
 }
 
 // AddPendingTreeMarshal takes a treeMarshal and adds it to the list of the

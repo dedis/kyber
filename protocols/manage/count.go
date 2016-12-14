@@ -5,9 +5,9 @@ import (
 
 	"sync"
 
+	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
-	"github.com/dedis/onet"
 )
 
 /*
@@ -22,26 +22,26 @@ func init() {
 	network.RegisterPacketType(PrepareCount{})
 	network.RegisterPacketType(Count{})
 	network.RegisterPacketType(NodeIsUp{})
-	sda.GlobalProtocolRegister("Count", NewCount)
+	onet.GlobalProtocolRegister("Count", NewCount)
 }
 
 // ProtocolCount holds all channels. If a timeout occurs or the counting
 // is done, the Count-channel receives the number of nodes reachable in
 // the tree.
 type ProtocolCount struct {
-	*sda.TreeNodeInstance
+	*onet.TreeNodeInstance
 	Replies          int
 	Count            chan int
 	Quit             chan bool
 	timeout          int
 	timeoutMu        sync.Mutex
 	PrepareCountChan chan struct {
-		*sda.TreeNode
+		*onet.TreeNode
 		PrepareCount
 	}
 	CountChan    chan []CountMsg
 	NodeIsUpChan chan struct {
-		*sda.TreeNode
+		*onet.TreeNode
 		NodeIsUp
 	}
 }
@@ -62,12 +62,12 @@ type Count struct {
 
 // CountMsg is wrapper around the Count-structure
 type CountMsg struct {
-	*sda.TreeNode
+	*onet.TreeNode
 	Count
 }
 
 // NewCount returns a new protocolInstance
-func NewCount(n *sda.TreeNodeInstance) (sda.ProtocolInstance, error) {
+func NewCount(n *onet.TreeNodeInstance) (onet.ProtocolInstance, error) {
 	p := &ProtocolCount{
 		TreeNodeInstance: n,
 		Quit:             make(chan bool),
@@ -144,7 +144,7 @@ func (p *ProtocolCount) FuncPC() {
 	}
 	if !p.IsLeaf() {
 		for _, child := range p.Children() {
-			go func(c *sda.TreeNode) {
+			go func(c *onet.TreeNode) {
 				log.Lvl3(p.Info(), "sending to", c.ServerIdentity.Address, c.ID, p.timeout)
 				err := p.SendTo(c, &PrepareCount{Timeout: p.timeout})
 				if err != nil {
