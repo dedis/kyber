@@ -15,11 +15,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dedis/onet"
 	"github.com/dedis/onet/app/config"
 	"github.com/dedis/onet/crypto"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
-	"github.com/dedis/onet/sda"
 
 	// CoSi-protocol is not part of the cothority.
 
@@ -185,7 +185,7 @@ func InteractiveConfig(binaryName string) {
 
 // entityListToPublics returns a slice of Points of all elements
 // of the roster.
-func entityListToPublics(el *sda.Roster) []abstract.Point {
+func entityListToPublics(el *onet.Roster) []abstract.Point {
 	publics := make([]abstract.Point, len(el.List))
 	for i, e := range el.List {
 		publics[i] = e.Public
