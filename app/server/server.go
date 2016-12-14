@@ -19,7 +19,7 @@ import (
 	"github.com/dedis/onet/crypto"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
-	"github.com/dedis/onet/sda"
+	"github.com/dedis/onet"
 
 	// CoSi-protocol is not part of the cothority.
 

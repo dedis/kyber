@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/sda"
+	"github.com/dedis/onet"
 )
 
 // Tests a 2-node system

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/sda"
+	"github.com/dedis/onet"
 	// Import protocols so every protocols is registered to the sda
 	"strings"
 )

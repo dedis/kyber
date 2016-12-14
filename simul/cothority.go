@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/sda"
+	"github.com/dedis/onet"
 
 	"github.com/dedis/onet/protocols/manage"
 	"github.com/dedis/onet/simul/monitor"
