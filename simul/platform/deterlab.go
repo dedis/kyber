@@ -185,7 +185,7 @@ func (d *Deterlab) Cleanup() error {
 			log.Lvl3("Error while cleaning up:", err)
 		}
 
-		err := SSHRunStdout(d.Login, d.Host, "test -f remote/users && ( cd remote; ./users -kill )")
+		err := SSHRunStdout(d.Login, d.Host, "test -f remote/users && ( cd remote; ./users -kill -deteruser )")
 		if err != nil {
 			log.Lvl1("NOT-Normal error from cleanup")
 			sshKill <- "error"
@@ -292,7 +292,7 @@ func (d *Deterlab) Start(args ...string) error {
 	}
 	log.Lvl3("Setup remote port forwarding", cmd)
 	go func() {
-		err := SSHRunStdout(d.Login, d.Host, "cd remote; GOMAXPROCS=8 ./users")
+		err := SSHRunStdout(d.Login, d.Host, "cd remote; GOMAXPROCS=8 ./users -deteruser")
 		if err != nil {
 			log.Lvl3(err)
 		}

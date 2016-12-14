@@ -20,7 +20,7 @@ import (
 var deterlabUser bool
 
 func init() {
-	flag.BoolVar(&deterlabUser, "user", false, "start as deterlab-user-binary")
+	flag.BoolVar(&deterlabUser, "deteruser", false, "start as deterlab-user-binary")
 }
 
 // Start decides on the '--simul'-flag whether it needs to build or start the

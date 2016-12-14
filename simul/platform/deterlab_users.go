@@ -12,10 +12,9 @@ import (
 	"runtime"
 	"strconv"
 
-	"github.com/dedis/cothority/log"
-	"github.com/dedis/cothority/monitor"
-	"github.com/dedis/cothority/simul/platform"
 	"github.com/dedis/onet"
+	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/simul/monitor"
 )
 
 var kill = false
@@ -26,7 +25,7 @@ func init() {
 
 // DeterlabUser is run on the deterlab-server to launch the final binary.
 func DeterlabUser() {
-	// init with deter.toml
+	// init with toml
 	deter := deterFromConfig()
 
 	// kill old processes
@@ -60,13 +59,13 @@ func DeterlabUser() {
 				time.Sleep(1 * time.Second)
 				if log.DebugVisible() > 3 {
 					log.Lvl4("Cleaning report:")
-					_ = platform.SSHRunStdout("", h, "ps aux")
+					_ = SSHRunStdout("", h, "ps aux")
 				}
 			} else {
 				log.Lvl3("Setting the file-limit higher on", h)
 
 				// Copy configuration file to make higher file-limits
-				err := platform.SSHRunStdout("", h, "sudo cp remote/cothority.conf /etc/security/limits.d")
+				err := SSHRunStdout("", h, "sudo cp remote/cothority.conf /etc/security/limits.d")
 				if err != nil {
 					log.Fatal("Couldn't copy limit-file:", err)
 				}
@@ -127,7 +126,7 @@ func DeterlabUser() {
 				" -monitor=" + monitorAddr +
 				" -debug=" + strconv.Itoa(log.DebugVisible())
 			log.Lvl3("Args is", args)
-			err := platform.SSHRunStdout("", phys, "cd remote; sudo ./cothority "+
+			err := SSHRunStdout("", phys, "cd remote; sudo ./cothority "+
 				args)
 			if err != nil && !killing {
 				log.Lvl1("Error starting cothority - will kill all others:", err, internal)
@@ -146,8 +145,8 @@ func DeterlabUser() {
 }
 
 // Reads in the deterlab-config and drops out if there is an error
-func deterFromConfig(name ...string) *platform.Deterlab {
-	d := &platform.Deterlab{}
+func deterFromConfig(name ...string) *Deterlab {
+	d := &Deterlab{}
 	configName := "deter.toml"
 	if len(name) > 0 {
 		configName = name[0]
@@ -164,7 +163,7 @@ func deterFromConfig(name ...string) *platform.Deterlab {
 
 // Runs a command on the remote host and outputs an eventual error if debug level >= 3
 func runSSH(host, cmd string) {
-	if _, err := platform.SSHRun("", host, cmd); err != nil {
+	if _, err := SSHRun("", host, cmd); err != nil {
 		log.Lvlf3("Host %s got error %s while running [%s]", host, err.Error(), cmd)
 	}
 }
