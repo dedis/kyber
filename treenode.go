@@ -391,7 +391,7 @@ func (n *TreeNodeInstance) dispatchMsgReader() {
 	}
 }
 
-// dispatchMsgToProtocol will dispatch this sda.Data to the right instance
+// dispatchMsgToProtocol will dispatch this onet.Data to the right instance
 func (n *TreeNodeInstance) dispatchMsgToProtocol(sdaMsg *ProtocolMsg) error {
 	// if message comes from parent, dispatch directly
 	// if messages come from children we must aggregate them
@@ -500,7 +500,7 @@ func (n *TreeNodeInstance) Public() abstract.Point {
 	return n.ServerIdentity().Public
 }
 
-// CloseHost closes the underlying sda.Host (which closes the overlay
+// CloseHost closes the underlying onet.Host (which closes the overlay
 // and sends Shutdown to all protocol instances)
 func (n *TreeNodeInstance) CloseHost() error {
 	return n.Host().Close()
@@ -523,7 +523,7 @@ func (n *TreeNodeInstance) TokenID() TokenID {
 	return n.token.ID()
 }
 
-// Token returns a CLONE of the underlying sda.Token struct.
+// Token returns a CLONE of the underlying onet.Token struct.
 // Useful for unit testing.
 func (n *TreeNodeInstance) Token() *Token {
 	return n.token.Clone()

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/sda"
 	// Import protocols so every protocols is registered to the sda
 	"strings"
 )
@@ -56,7 +55,7 @@ type Localhost struct {
 	monitorPort int
 
 	// SimulationConfig holds all things necessary for the run
-	sc *sda.SimulationConfig
+	sc *onet.SimulationConfig
 }
 
 // Configure various internal variables
@@ -132,7 +131,7 @@ func (d *Localhost) Deploy(rc RunConfig) error {
 
 	d.servers, _ = strconv.Atoi(rc.Get("servers"))
 	log.Lvl2("Localhost: Deploying and writing config-files for", d.servers, "servers")
-	sim, err := sda.NewSimulation(d.Simulation, string(rc.Toml()))
+	sim, err := onet.NewSimulation(d.Simulation, string(rc.Toml()))
 	if err != nil {
 		return err
 	}

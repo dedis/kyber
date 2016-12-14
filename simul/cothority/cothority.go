@@ -9,7 +9,6 @@ import (
 	"sync"
 
 	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/sda"
 
 	"github.com/dedis/onet/monitor"
 	"github.com/dedis/onet/protocols/manage"
@@ -42,7 +41,7 @@ func main() {
 	log.SetDebugVisible(debugVisible)
 	log.Lvl3("Flags are:", conodeAddress, simul, log.DebugVisible, monitorAddress)
 
-	scs, err := sda.LoadSimulationConfig(".", conodeAddress)
+	scs, err := onet.LoadSimulationConfig(".", conodeAddress)
 	measures := make([]*monitor.CounterIOMeasure, len(scs))
 	if err != nil {
 		// We probably are not needed
@@ -54,9 +53,9 @@ func main() {
 			log.Error("Couldn't connect monitor to sink:", err)
 		}
 	}
-	sims := make([]sda.Simulation, len(scs))
-	var rootSC *sda.SimulationConfig
-	var rootSim sda.Simulation
+	sims := make([]onet.Simulation, len(scs))
+	var rootSC *onet.SimulationConfig
+	var rootSim onet.Simulation
 	// having a waitgroup so the binary stops when all conodes are closed
 	var wg sync.WaitGroup
 	var ready = make(chan bool)
@@ -68,7 +67,7 @@ func main() {
 		// Launch a conode and notifies when it's done
 
 		wg.Add(1)
-		go func(c *sda.Conode, m monitor.Measure) {
+		go func(c *onet.Conode, m monitor.Measure) {
 			ready <- true
 			defer wg.Done()
 			c.Start()
@@ -79,7 +78,7 @@ func main() {
 		// wait to be sure the goroutine started
 		<-ready
 
-		sim, err := sda.NewSimulation(simul, sc.Config)
+		sim, err := onet.NewSimulation(simul, sc.Config)
 		if err != nil {
 			log.Fatal(err)
 		}

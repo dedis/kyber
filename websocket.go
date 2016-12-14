@@ -108,7 +108,7 @@ func (w *WebSocket) Stop() {
 }
 
 // Client is a struct used to communicate with a remote Service running on a
-// sda.Conode. Using Send it can connect to multiple remote Conodes.
+// onet.Conode. Using Send it can connect to multiple remote Conodes.
 type Client struct {
 	service string
 	si      *network.ServerIdentity

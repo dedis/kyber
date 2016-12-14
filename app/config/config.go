@@ -16,7 +16,6 @@ import (
 	"github.com/dedis/onet/crypto"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
-	"github.com/dedis/onet/sda"
 )
 
 var in *bufio.Reader
@@ -53,7 +52,7 @@ func (hc *CothoritydConfig) Save(file string) error {
 // ParseCothorityd parses the config file into a CothoritydConfig.
 // It returns the CothoritydConfig, the Host so we can already use it, and an error if
 // the file is inaccessible or has wrong values in it.
-func ParseCothorityd(file string) (*CothoritydConfig, *sda.Conode, error) {
+func ParseCothorityd(file string) (*CothoritydConfig, *onet.Conode, error) {
 	hc := &CothoritydConfig{}
 	_, err := toml.DecodeFile(file, hc)
 	if err != nil {
@@ -70,7 +69,7 @@ func ParseCothorityd(file string) (*CothoritydConfig, *sda.Conode, error) {
 	}
 	si := network.NewServerIdentity(point, hc.Address)
 	si.Description = hc.Description
-	conode := sda.NewConodeTCP(si, secret)
+	conode := onet.NewConodeTCP(si, secret)
 	return hc, conode, nil
 }
 
@@ -99,7 +98,7 @@ type ServerToml struct {
 
 // Group holds the Roster and the server-description.
 type Group struct {
-	Roster      *sda.Roster
+	Roster      *onet.Roster
 	description map[*network.ServerIdentity]string
 }
 
@@ -129,14 +128,14 @@ func ReadGroupDescToml(f io.Reader) (*Group, error) {
 		entities[i] = en
 		descs[en] = s.Description
 	}
-	el := sda.NewRoster(entities)
+	el := onet.NewRoster(entities)
 	return &Group{el, descs}, nil
 }
 
 // ReadGroupToml reads a group.toml file and returns the list of ServerIdentity
 // described in the file.
 // If the file holds an invalid ServerIdentity-description, an error is returned.
-func ReadGroupToml(f io.Reader) (*sda.Roster, error) {
+func ReadGroupToml(f io.Reader) (*onet.Roster, error) {
 	group, err := ReadGroupDescToml(f)
 	if err != nil {
 		return nil, err

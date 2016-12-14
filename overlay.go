@@ -499,7 +499,7 @@ func (o *Overlay) Close() {
 
 // CreateProtocolSDA returns a fresh Protocol Instance with an attached
 // TreeNodeInstance. This protocol won't be handled by the service, but
-// only by the SDA.
+// only by the onet.
 func (o *Overlay) CreateProtocolSDA(name string, t *Tree) (ProtocolInstance, error) {
 	return o.CreateProtocolService(name, t, ServiceID(uuid.Nil))
 }
