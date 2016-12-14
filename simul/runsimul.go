@@ -7,7 +7,7 @@ import (
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 
-	"github.com/dedis/onet/protocols/manage"
+	"github.com/dedis/onet/simul/manage"
 	"github.com/dedis/onet/simul/monitor"
 )
 
@@ -29,8 +29,9 @@ func init() {
 	flag.StringVar(&monitorAddress, "monitor", "", "remote monitor")
 }
 
-// Simulate starts the conode and will setup the protocol.
-func Simulate() {
+// Main starts the conode and will setup the protocol.
+func simulation() {
+	flag.Parse()
 	log.Lvl3("Flags are:", conodeAddress, simul, log.DebugVisible, monitorAddress)
 
 	scs, err := onet.LoadSimulationConfig(".", conodeAddress)

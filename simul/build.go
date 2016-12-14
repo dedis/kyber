@@ -44,8 +44,9 @@ func init() {
 	log.RegisterFlags()
 }
 
-// Build reads in the platform that we want to use and prepares for the tests.
-func Build() {
+// Reads in the platform that we want to use and prepares for the tests
+func startBuild() {
+	flag.Parse()
 	deployP = platform.NewPlatform(platformDst)
 	if deployP == nil {
 		log.Fatal("Platform not recognized.", platformDst)

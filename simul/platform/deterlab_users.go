@@ -23,10 +23,13 @@ func init() {
 	flag.BoolVar(&kill, "kill", false, "kill everything (and don't start anything)")
 }
 
-// DeterlabUser is run on the deterlab-server to launch the final binary.
-func DeterlabUser() {
-	// init with toml
+// DeterlabUsers is called on the users.deterlab.net-server and will:
+// - copy the simulation-files to the server
+// - start the simulation
+func DeterlabUsers() {
+	// init with deter.toml
 	deter := deterFromConfig()
+	flag.Parse()
 
 	// kill old processes
 	var wg sync.WaitGroup

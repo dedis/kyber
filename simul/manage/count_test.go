@@ -7,7 +7,7 @@ import (
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
-	"github.com/dedis/onet/protocols/manage"
+	"github.com/dedis/onet/simul/manage"
 )
 
 // Tests a 2-node system
