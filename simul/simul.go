@@ -13,14 +13,16 @@ package simul
 
 import "flag"
 
-// Start decides on the '--simul'-flag whether it needs to build or start the
-// simulation.
+// Start has to be called by the main-file that imports the protocol and/or the
+// service. If a user calls the simulation-file, `simul` is empty, and the
+// build is started.
+// Only the platform will call this binary with a simul-flag set to the name of the
+// simulation to run.
 func Start() {
 	flag.Parse()
-	switch {
-	case simul != "":
-		simulate()
-	default:
+	if simul == "" {
 		startBuild()
+	} else {
+		simulate()
 	}
 }
