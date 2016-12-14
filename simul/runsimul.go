@@ -1,8 +1,4 @@
-// The simulation cothority used for all protocols.
-// This should not be used stand-alone and is only for
-// the simulations. It loads the simulation-file, initialises all
-// necessary conodes and starts the simulation on the root-node.
-package main
+package simul
 
 import (
 	"flag"
@@ -11,8 +7,8 @@ import (
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 
-	"github.com/dedis/onet/monitor"
-	"github.com/dedis/onet/protocols/manage"
+	"github.com/dedis/onet/simul/manage"
+	"github.com/dedis/onet/simul/monitor"
 )
 
 // The address of this conode - if there is only one conode in the config
@@ -25,21 +21,17 @@ var monitorAddress string
 // Simul is != "" if this node needs to start a simulation of that protocol
 var simul string
 
-var debugVisible int
-
 // Initialize before 'init' so we can directly use the fields as parameters
 // to 'Flag'
 func init() {
 	flag.StringVar(&conodeAddress, "address", "", "our address to use")
 	flag.StringVar(&simul, "simul", "", "start simulating that protocol")
 	flag.StringVar(&monitorAddress, "monitor", "", "remote monitor")
-	flag.IntVar(&debugVisible, "debug", 1, "verbosity: 0-5")
 }
 
 // Main starts the conode and will setup the protocol.
-func main() {
+func simulation() {
 	flag.Parse()
-	log.SetDebugVisible(debugVisible)
 	log.Lvl3("Flags are:", conodeAddress, simul, log.DebugVisible, monitorAddress)
 
 	scs, err := onet.LoadSimulationConfig(".", conodeAddress)
