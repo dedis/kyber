@@ -32,6 +32,8 @@ import (
 
 	"runtime"
 
+	"path/filepath"
+
 	"github.com/BurntSushi/toml"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
@@ -50,6 +52,8 @@ type Deterlab struct {
 	Experiment string
 	// Directory holding the simulation-main file
 	simulDir string
+	// Directory where the deterlab-users-file is held
+	usersDir string
 	// Directory where everything is copied into
 	deployDir string
 	// Directory for building
@@ -115,6 +119,13 @@ func (d *Deterlab) Configure(pc *Config) {
 	d.sshDeter = make(chan string)
 }
 
+type pkg struct {
+	name      string
+	processor string
+	system    string
+	path      string
+}
+
 // Build prepares all binaries for the Deterlab-simulation.
 // If 'build' is empty, all binaries are created, else only
 // the ones indicated. Either "simul" or "users"
@@ -133,33 +144,35 @@ func (d *Deterlab) Build(build string, arg ...string) error {
 
 	// start building the necessary binaries - it's always the same,
 	// but built for another architecture.
-	packages := []string{"simul", "users"}
-	if build != "" {
-		packages = strings.Split(build, ",")
+	packages := []pkg{
+		{"simul", "amd64", "linux", d.simulDir},
+		{"users", "386", "freebsd", path.Join(d.platformDir, "deterlab_users", ".")},
+	}
+	if build == "" {
+		build = "simul,users"
 	}
 	log.Lvl3("Starting to build all executables", packages)
 	for _, p := range packages {
-		dst := path.Join(d.buildDir, p)
-
-		log.Lvl3("Building", p)
-		wg.Add(1)
-		processor := "amd64"
-		system := "linux"
-		if p == "users" {
-			processor = "386"
-			system = "freebsd"
+		if !strings.Contains(build, p.name) {
+			log.Lvl2("Skipping build of", p.name)
+			continue
 		}
-		go func(dest string) {
+		log.LLvl3("Building", p)
+		wg.Add(1)
+		go func(p pkg) {
 			defer wg.Done()
+			dst := path.Join(d.buildDir, p.name)
+			path, err := filepath.Rel(d.simulDir, p.path)
+			log.ErrFatal(err)
 			// deter has an amd64, linux architecture
-			out, err := Build(".", dest,
-				processor, system, arg...)
+			out, err := Build(path, dst,
+				p.processor, p.system, arg...)
 			if err != nil {
 				KillGo()
 				log.Lvl1(out)
 				log.Fatal(err)
 			}
-		}(dst)
+		}(p)
 	}
 	// wait for the build to finish
 	wg.Wait()
@@ -185,7 +198,7 @@ func (d *Deterlab) Cleanup() error {
 			log.Lvl3("Error while cleaning up:", err)
 		}
 
-		err := SSHRunStdout(d.Login, d.Host, "test -f remote/users && ( cd remote; ./users -kill -deteruser )")
+		err := SSHRunStdout(d.Login, d.Host, "test -f remote/users && ( cd remote; ./users -kill )")
 		if err != nil {
 			log.Lvl1("NOT-Normal error from cleanup")
 			sshKill <- "error"
@@ -292,7 +305,7 @@ func (d *Deterlab) Start(args ...string) error {
 	}
 	log.Lvl3("Setup remote port forwarding", cmd)
 	go func() {
-		err := SSHRunStdout(d.Login, d.Host, "cd remote; GOMAXPROCS=8 ./users -deteruser")
+		err := SSHRunStdout(d.Login, d.Host, "cd remote; GOMAXPROCS=8 ./users")
 		if err != nil {
 			log.Lvl3(err)
 		}

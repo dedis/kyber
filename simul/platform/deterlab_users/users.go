@@ -1,4 +1,4 @@
-package platform
+package main
 
 import (
 	"flag"
@@ -15,6 +15,7 @@ import (
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/simul/monitor"
+	"github.com/dedis/onet/simul/platform"
 )
 
 var kill = false
@@ -26,7 +27,7 @@ func init() {
 // DeterlabUsers is called on the users.deterlab.net-server and will:
 // - copy the simulation-files to the server
 // - start the simulation
-func DeterlabUsers() {
+func main() {
 	// init with deter.toml
 	deter := deterFromConfig()
 	flag.Parse()
@@ -62,13 +63,13 @@ func DeterlabUsers() {
 				time.Sleep(1 * time.Second)
 				if log.DebugVisible() > 3 {
 					log.Lvl4("Cleaning report:")
-					_ = SSHRunStdout("", h, "ps aux")
+					_ = platform.SSHRunStdout("", h, "ps aux")
 				}
 			} else {
 				log.Lvl3("Setting the file-limit higher on", h)
 
 				// Copy configuration file to make higher file-limits
-				err := SSHRunStdout("", h, "sudo cp remote/simul.conf /etc/security/limits.d")
+				err := platform.SSHRunStdout("", h, "sudo cp remote/simul.conf /etc/security/limits.d")
 				if err != nil {
 					log.Fatal("Couldn't copy limit-file:", err)
 				}
@@ -129,7 +130,7 @@ func DeterlabUsers() {
 				" -monitor=" + monitorAddr +
 				" -debug=" + strconv.Itoa(log.DebugVisible())
 			log.Lvl3("Args is", args)
-			err := SSHRunStdout("", phys, "cd remote; sudo ./simul "+
+			err := platform.SSHRunStdout("", phys, "cd remote; sudo ./simul "+
 				args)
 			if err != nil && !killing {
 				log.Lvl1("Error starting simul - will kill all others:", err, internal)
@@ -148,8 +149,8 @@ func DeterlabUsers() {
 }
 
 // Reads in the deterlab-config and drops out if there is an error
-func deterFromConfig(name ...string) *Deterlab {
-	d := &Deterlab{}
+func deterFromConfig(name ...string) *platform.Deterlab {
+	d := &platform.Deterlab{}
 	configName := "deter.toml"
 	if len(name) > 0 {
 		configName = name[0]
@@ -166,7 +167,7 @@ func deterFromConfig(name ...string) *Deterlab {
 
 // Runs a command on the remote host and outputs an eventual error if debug level >= 3
 func runSSH(host, cmd string) {
-	if _, err := SSHRun("", host, cmd); err != nil {
+	if _, err := platform.SSHRun("", host, cmd); err != nil {
 		log.Lvlf3("Host %s got error %s while running [%s]", host, err.Error(), cmd)
 	}
 }

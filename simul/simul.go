@@ -11,17 +11,7 @@ protocol!
 */
 package simul
 
-import (
-	"flag"
-
-	"github.com/dedis/onet/simul/platform"
-)
-
-var deterlabUser bool
-
-func init() {
-	flag.BoolVar(&deterlabUser, "deteruser", false, "to start in deterlab-user-mode")
-}
+import "flag"
 
 // Start decides on the '--simul'-flag whether it needs to build or start the
 // simulation.
@@ -30,8 +20,6 @@ func Start() {
 	switch {
 	case simul != "":
 		simulate()
-	case deterlabUser:
-		platform.DeterlabUsers()
 	default:
 		startBuild()
 	}
