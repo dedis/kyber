@@ -146,7 +146,7 @@ func (d *Deterlab) Build(build string, arg ...string) error {
 	// but built for another architecture.
 	packages := []pkg{
 		{"simul", "amd64", "linux", d.simulDir},
-		{"users", "386", "freebsd", path.Join(d.platformDir, "deterlab_users", ".")},
+		{"users", "386", "freebsd", path.Join(d.platformDir, "deterlab_users")},
 	}
 	if build == "" {
 		build = "simul,users"
@@ -269,7 +269,7 @@ func (d *Deterlab) Deploy(rc RunConfig) error {
 	for _, file := range build {
 		err = exec.Command("cp", d.buildDir+"/"+file.Name(), d.deployDir).Run()
 		if err != nil {
-			log.Fatal("error copying build-file:", d.buildDir, file.Name, d.deployDir, err)
+			log.Fatal("error copying build-file:", d.buildDir, file.Name(), d.deployDir, err)
 		}
 	}
 
