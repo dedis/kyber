@@ -157,7 +157,7 @@ func (d *Deterlab) Build(build string, arg ...string) error {
 			log.Lvl2("Skipping build of", p.name)
 			continue
 		}
-		log.LLvl3("Building", p)
+		log.Lvl3("Building", p)
 		wg.Add(1)
 		go func(p pkg) {
 			defer wg.Done()
