@@ -68,8 +68,8 @@ func NewWebSocket(si *network.ServerIdentity) *WebSocket {
 	return w
 }
 
-// Start listening on the port.
-func (w *WebSocket) Start() {
+// start listening on the port.
+func (w *WebSocket) start() {
 	w.Lock()
 	w.started = true
 	w.Unlock()
@@ -81,9 +81,9 @@ func (w *WebSocket) Start() {
 	w.startstop <- true
 }
 
-// RegisterService stores a service to the given path. All requests to that
+// registerService stores a service to the given path. All requests to that
 // path and it's sub-endpoints will be forwarded to ProcessClientRequest.
-func (w *WebSocket) RegisterService(service string, s Service) error {
+func (w *WebSocket) registerService(service string, s Service) error {
 	w.services[service] = s
 	h := &wsHandler{
 		service:     s,
@@ -93,8 +93,8 @@ func (w *WebSocket) RegisterService(service string, s Service) error {
 	return nil
 }
 
-// Stop the websocket and free the port.
-func (w *WebSocket) Stop() {
+// stop the websocket and free the port.
+func (w *WebSocket) stop() {
 	w.Lock()
 	defer w.Unlock()
 	if !w.started {
@@ -105,6 +105,58 @@ func (w *WebSocket) Stop() {
 	w.server.Stop(100 * time.Millisecond)
 	<-w.startstop
 	w.started = false
+}
+
+// Pass the request to the websocket.
+type wsHandler struct {
+	serviceName string
+	service     Service
+}
+
+// Wrapper-function so that http.Requests get 'upgraded' to websockets
+// and handled correctly.
+func (t wsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	u := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+		EnableCompression: true,
+	}
+	ws, err := u.Upgrade(w, r, http.Header{})
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	defer func() {
+		ws.Close()
+	}()
+	var ce ClientError
+	// Loop as long as we don't return an error.
+	for ce == nil {
+		mt, buf, err := ws.ReadMessage()
+		if err != nil {
+			ce = NewClientErrorCode(WebSocketErrorRead, err.Error())
+			return
+		}
+		s := t.service
+		var reply []byte
+		path := strings.TrimPrefix(r.URL.Path, "/"+t.serviceName+"/")
+		log.Lvl3("Got request for", t.serviceName, path)
+		reply, ce = s.ProcessClientRequest(path, buf)
+		if ce == nil {
+			err := ws.WriteMessage(mt, reply)
+			if err != nil {
+				log.Error(err)
+				return
+			}
+		}
+	}
+	if ce.ErrorCode() < 4000 || ce.ErrorCode() >= 5000 {
+		ce = NewClientErrorCode(WebSocketErrorInvalidErrorCode, ce.Error())
+	}
+	ws.WriteControl(websocket.CloseMessage,
+		websocket.FormatCloseMessage(ce.ErrorCode(), ce.ErrorMsg()),
+		time.Now().Add(time.Millisecond*500))
 }
 
 // Client is a struct used to communicate with a remote Service running on a
@@ -235,60 +287,6 @@ func (c *Client) Close() error {
 		return c.conn.Close()
 	}
 	return nil
-}
-
-// Pass the request to the websocket.
-type wsHandler struct {
-	serviceName string
-	service     Service
-}
-
-// Wrapper-function so that http.Requests get 'upgraded' to websockets
-// and handled correctly.
-func (t wsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	u := websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
-		EnableCompression: true,
-	}
-	ws, err := u.Upgrade(w, r, http.Header{})
-	if err != nil {
-		log.Error(err)
-		return
-	}
-	defer func() {
-		ws.Close()
-	}()
-	var ce ClientError
-	// Loop as long as we don't return an error.
-	for ce == nil {
-		mt, buf, err := ws.ReadMessage()
-		if err != nil {
-			ce = NewClientErrorCode(WebSocketErrorRead, err.Error())
-			return
-		}
-		s := t.service
-		var reply []byte
-		path := strings.TrimPrefix(r.URL.Path, "/"+t.serviceName+"/")
-		log.Lvl3("Got request for", t.serviceName, path)
-		reply, ce = s.ProcessClientRequest(path, buf)
-		if ce == nil {
-			err := ws.WriteMessage(mt, reply)
-			if err != nil {
-				log.Error(err)
-				return
-			}
-		}
-	}
-	if ce.ErrorCode() < 4000 || ce.ErrorCode() >= 5000 {
-		ce = NewClientErrorCode(WebSocketErrorInvalidErrorCode, ce.Error())
-	}
-	ws.WriteControl(websocket.CloseMessage,
-		websocket.FormatCloseMessage(ce.ErrorCode(), ce.ErrorMsg()),
-		time.Now().Add(time.Millisecond*500))
 }
 
 // ClientError allows for returning error-codes and error-messages. It is

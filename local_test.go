@@ -59,7 +59,6 @@ func newClientService(c *Context, path string) Service {
 		ServiceProcessor: NewServiceProcessor(c),
 		cl:               NewClient(clientServiceName),
 	}
-	log.ErrFatal(s.RegisterMessage(s.SimpleMessage))
-	log.ErrFatal(s.RegisterMessage(s.SimpleMessage2))
+	log.ErrFatal(s.RegisterHandlers(s.SimpleMessage, s.SimpleMessage2))
 	return s
 }

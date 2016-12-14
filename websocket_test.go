@@ -140,6 +140,6 @@ func newServiceWebSocket(c *Context, path string) Service {
 	s := &ServiceWebSocket{
 		ServiceProcessor: NewServiceProcessor(c),
 	}
-	log.ErrFatal(s.RegisterMessage(s.SimpleResponse))
+	log.ErrFatal(s.RegisterHandler(s.SimpleResponse))
 	return s
 }

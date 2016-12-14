@@ -24,7 +24,7 @@ func TestProcessor_AddMessage(t *testing.T) {
 	h1 := NewLocalConode(2000)
 	defer h1.Close()
 	p := NewServiceProcessor(&Context{conode: h1})
-	log.ErrFatal(p.RegisterMessage(procMsg))
+	log.ErrFatal(p.RegisterHandler(procMsg))
 	if len(p.handlers) != 1 {
 		t.Fatal("Should have registered one function")
 	}
@@ -41,7 +41,7 @@ func TestProcessor_AddMessage(t *testing.T) {
 	for _, f := range wrongFunctions {
 		fsig := reflect.TypeOf(f).String()
 		log.Lvl2("Checking function", fsig)
-		assert.Error(t, p.RegisterMessage(f),
+		assert.Error(t, p.RegisterHandler(f),
 			"Could register wrong function: "+fsig)
 	}
 }
@@ -50,15 +50,15 @@ func TestProcessor_RegisterMessages(t *testing.T) {
 	h1 := NewLocalConode(2000)
 	defer h1.Close()
 	p := NewServiceProcessor(&Context{conode: h1})
-	log.ErrFatal(p.RegisterMessages(procMsg, procMsg2))
-	assert.Error(t, p.RegisterMessages(procMsg3, procMsgWrong4))
+	log.ErrFatal(p.RegisterHandlers(procMsg, procMsg2))
+	assert.Error(t, p.RegisterHandlers(procMsg3, procMsgWrong4))
 }
 
 func TestServiceProcessor_ProcessClientRequest(t *testing.T) {
 	h1 := NewLocalConode(2000)
 	defer h1.Close()
 	p := NewServiceProcessor(&Context{conode: h1})
-	log.ErrFatal(p.RegisterMessage(procMsg))
+	log.ErrFatal(p.RegisterHandler(procMsg))
 
 	buf, err := protobuf.Encode(&testMsg{11})
 	log.ErrFatal(err)
@@ -144,7 +144,7 @@ func newTestService(c *Context, path string) Service {
 	ts := &testService{
 		ServiceProcessor: NewServiceProcessor(c),
 	}
-	log.ErrFatal(ts.RegisterMessage(ts.ProcessMsg))
+	log.ErrFatal(ts.RegisterHandler(ts.ProcessMsg))
 	return ts
 }
 
