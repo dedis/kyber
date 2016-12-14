@@ -157,7 +157,7 @@ func TestTCPConnReceiveRaw(t *testing.T) {
 		binary.Write(c, globalOrder, Size(len(buff)))
 		// then send pieces and check if the other side already returned or not
 		for i, slice := range slices[:len(slices)-1] {
-			log.Lvlf1("Will write slice %d/%d...", i, len(slices))
+			log.Lvlf1("Will write slice %d/%d...", i+1, len(slices))
 			if n, err := c.Write(slice); err != nil || n != len(slice) {
 				t.Fatal("Could not write enough")
 			}

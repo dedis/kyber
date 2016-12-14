@@ -25,9 +25,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
-	"path/filepath"
 	"strconv"
 	"time"
+
+	"os/user"
+
+	"runtime"
+
+	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 	"github.com/dedis/onet"
@@ -45,14 +50,16 @@ type Deterlab struct {
 	Project string
 	// Name of the Experiment - also name of hosts
 	Experiment string
-	// Directory holding the cothority-go-file
-	cothorityDir string
+	// Directory holding the simulation-main file
+	simulDir string
+	// Directory where the deterlab-users-file is held
+	usersDir string
 	// Directory where everything is copied into
 	deployDir string
 	// Directory for building
 	buildDir string
-	// Working directory of deterlab
-	deterDir string
+	// Directory holding all go-files of onet/simul/platform
+	platformDir string
 	// DNS-resolvable names
 	Phys []string
 	// VLAN-IP names (physical machines)
@@ -91,12 +98,16 @@ var simulConfig *onet.SimulationConfig
 func (d *Deterlab) Configure(pc *Config) {
 	// Directory setup - would also be possible in /tmp
 	pwd, _ := os.Getwd()
-	d.cothorityDir = pwd + "/cothority"
-	d.deterDir = pwd + "/platform/deterlab"
-	d.deployDir = d.deterDir + "/remote"
-	d.buildDir = d.deterDir + "/build"
+	d.simulDir = pwd
+	d.deployDir = pwd + "/deploy"
+	d.buildDir = pwd + "/build"
+	_, file, _, _ := runtime.Caller(0)
+	d.platformDir = path.Dir(file)
+	os.RemoveAll(d.deployDir)
+	os.Mkdir(d.deployDir, 0770)
+	os.Mkdir(d.buildDir, 0770)
 	d.MonitorPort = pc.MonitorPort
-	log.Lvl3("Dirs are:", d.deterDir, d.deployDir)
+	log.Lvl3("Dirs are:", pwd, d.deployDir)
 	d.loadAndCheckDeterlabVars()
 
 	d.Debug = pc.Debug
@@ -108,28 +119,22 @@ func (d *Deterlab) Configure(pc *Config) {
 	d.sshDeter = make(chan string)
 }
 
+type pkg struct {
+	name      string
+	processor string
+	system    string
+	path      string
+}
+
 // Build prepares all binaries for the Deterlab-simulation.
 // If 'build' is empty, all binaries are created, else only
 // the ones indicated. Either "simul" or "users"
 func (d *Deterlab) Build(build string, arg ...string) error {
-	log.Lvl1("Building for", d.Login, d.Host, d.Project, build, "cothorityDir=", d.cothorityDir)
+	log.Lvl1("Building for", d.Login, d.Host, d.Project, build, "simulDir=", d.simulDir)
 	start := time.Now()
 
 	var wg sync.WaitGroup
 
-	// Start with a clean build-directory
-	current, _ := os.Getwd()
-	log.Lvl3("Current dir is:", current, d.deterDir)
-	defer func() {
-		if err := os.Chdir(current); err != nil {
-			log.Error("Couldn't change back to", current)
-		}
-	}()
-
-	// Go into deterlab-dir and create the build-dir
-	if err := os.Chdir(d.deterDir); err != nil {
-		return err
-	}
 	if err := os.RemoveAll(d.buildDir); err != nil {
 		return err
 	}
@@ -137,42 +142,37 @@ func (d *Deterlab) Build(build string, arg ...string) error {
 		return err
 	}
 
-	// start building the necessary packages
-	packages := []string{"simul", "users"}
-	if build != "" {
-		packages = strings.Split(build, ",")
+	// start building the necessary binaries - it's always the same,
+	// but built for another architecture.
+	packages := []pkg{
+		{"simul", "amd64", "linux", d.simulDir},
+		{"users", "386", "freebsd", path.Join(d.platformDir, "deterlab_users")},
+	}
+	if build == "" {
+		build = "simul,users"
 	}
 	log.Lvl3("Starting to build all executables", packages)
 	for _, p := range packages {
-		srcDir := d.deterDir + "/" + p
-		basename := path.Base(p)
-		if p == "simul" {
-			srcDir = d.cothorityDir
-			basename = "cothority"
+		if !strings.Contains(build, p.name) {
+			log.Lvl2("Skipping build of", p.name)
+			continue
 		}
-		dst := d.buildDir + "/" + basename
-
-		log.Lvl3("Building", p, "from", srcDir, "into", basename)
+		log.Lvl3("Building", p)
 		wg.Add(1)
-		processor := "amd64"
-		system := "linux"
-		if p == "users" {
-			processor = "386"
-			system = "freebsd"
-		}
-		go func(src, dest string) {
+		go func(p pkg) {
 			defer wg.Done()
+			dst := path.Join(d.buildDir, p.name)
+			path, err := filepath.Rel(d.simulDir, p.path)
+			log.ErrFatal(err)
 			// deter has an amd64, linux architecture
-			srcRel, _ := filepath.Rel(d.deterDir, src)
-			log.Lvl3("Relative-path is", srcRel, " will build into ", dest)
-			out, err := Build("./"+srcRel, dest,
-				processor, system, arg...)
+			out, err := Build(path, dst,
+				p.processor, p.system, arg...)
 			if err != nil {
 				KillGo()
 				log.Lvl1(out)
 				log.Fatal(err)
 			}
-		}(srcDir, dst)
+		}(p)
 	}
 	// wait for the build to finish
 	wg.Wait()
@@ -261,17 +261,15 @@ func (d *Deterlab) Deploy(rc RunConfig) error {
 	}
 
 	// Copy limit-files for more connections
-	err = exec.Command("cp", d.deterDir+"/cothority.conf", d.deployDir).Run()
-	if err != nil {
-		log.Error("Couldn't copy files to", d.deployDir, err)
-	}
+	ioutil.WriteFile(path.Join(d.deployDir, "simul.conf"),
+		[]byte(simulConnectionsConf), 0444)
 
 	// Copying build-files to deploy-directory
 	build, err := ioutil.ReadDir(d.buildDir)
 	for _, file := range build {
 		err = exec.Command("cp", d.buildDir+"/"+file.Name(), d.deployDir).Run()
 		if err != nil {
-			log.Fatal("error copying build-file:", err)
+			log.Fatal("error copying build-file:", d.buildDir, file.Name(), d.deployDir, err)
 		}
 	}
 
@@ -366,7 +364,7 @@ func (d *Deterlab) createHosts() {
 // public key for a more easy communication
 func (d *Deterlab) loadAndCheckDeterlabVars() {
 	deter := Deterlab{}
-	err := onet.ReadTomlConfig(&deter, "deter.toml", d.deterDir)
+	err := onet.ReadTomlConfig(&deter, "deter.toml")
 	d.Host, d.Login, d.Project, d.Experiment, d.ProxyAddress, d.MonitorAddress =
 		deter.Host, deter.Login, deter.Project, deter.Experiment,
 		deter.ProxyAddress, deter.MonitorAddress
@@ -379,8 +377,10 @@ func (d *Deterlab) loadAndCheckDeterlabVars() {
 		d.Host = readString("Please enter the hostname of deterlab", "users.deterlab.net")
 	}
 
+	login, err := user.Current()
+	log.ErrFatal(err)
 	if d.Login == "" {
-		d.Login = readString("Please enter the login-name on "+d.Host, "")
+		d.Login = readString("Please enter the login-name on "+d.Host, login.Username)
 	}
 
 	if d.Project == "" {
@@ -398,7 +398,7 @@ func (d *Deterlab) loadAndCheckDeterlabVars() {
 		d.ProxyAddress = readString("Please enter the proxy redirection address", "localhost")
 	}
 
-	onet.WriteTomlConfig(*d, "deter.toml", d.deterDir)
+	onet.WriteTomlConfig(*d, "deter.toml")
 }
 
 // Shows a messages and reads in a string, eventually returning a default (dft) string
@@ -413,3 +413,10 @@ func readString(msg, dft string) string {
 	}
 	return str
 }
+
+const simulConnectionsConf = `
+# This is for the onet-deterlab testbed, which can use up an awful lot of connections
+
+* soft nofile 128000
+* hard nofile 128000
+`

@@ -4,9 +4,12 @@ import (
 	"testing"
 
 	"github.com/dedis/crypto/config"
+	"github.com/dedis/onet/log"
 )
 
 func TestServerIdentity(t *testing.T) {
+	log.OutputToBuf()
+	defer log.OutputToOs()
 	kp1 := config.NewKeyPair(Suite)
 	kp2 := config.NewKeyPair(Suite)
 

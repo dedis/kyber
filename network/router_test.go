@@ -345,6 +345,8 @@ func testRouterSendMsgDuplex(t *testing.T, fac routerFactory) {
 }
 
 func TestRouterExchange(t *testing.T) {
+	log.OutputToBuf()
+	defer log.OutputToOs()
 	router1, err := NewTestRouterTCP(7878)
 	router2, err2 := NewTestRouterTCP(8787)
 	if err != nil || err2 != nil {

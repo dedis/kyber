@@ -1,4 +1,4 @@
-package platform
+package main
 
 import (
 	"flag"
@@ -15,6 +15,7 @@ import (
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/simul/monitor"
+	"github.com/dedis/onet/simul/platform"
 )
 
 var kill = false
@@ -26,7 +27,7 @@ func init() {
 // DeterlabUsers is called on the users.deterlab.net-server and will:
 // - copy the simulation-files to the server
 // - start the simulation
-func DeterlabUsers() {
+func main() {
 	// init with deter.toml
 	deter := deterFromConfig()
 	flag.Parse()
@@ -52,9 +53,9 @@ func DeterlabUsers() {
 			defer wg.Done()
 			if kill {
 				log.Lvl3("Cleaning up host", h, ".")
-				runSSH(h, "sudo killall -9 cothority scp 2>/dev/null >/dev/null")
+				runSSH(h, "sudo killall -9 simul scp 2>/dev/null >/dev/null")
 				time.Sleep(1 * time.Second)
-				runSSH(h, "sudo killall -9 cothority 2>/dev/null >/dev/null")
+				runSSH(h, "sudo killall -9 simul 2>/dev/null >/dev/null")
 				time.Sleep(1 * time.Second)
 				// Also kill all other process that start with "./" and are probably
 				// locally started processes
@@ -62,13 +63,13 @@ func DeterlabUsers() {
 				time.Sleep(1 * time.Second)
 				if log.DebugVisible() > 3 {
 					log.Lvl4("Cleaning report:")
-					_ = SSHRunStdout("", h, "ps aux")
+					_ = platform.SSHRunStdout("", h, "ps aux")
 				}
 			} else {
 				log.Lvl3("Setting the file-limit higher on", h)
 
 				// Copy configuration file to make higher file-limits
-				err := SSHRunStdout("", h, "sudo cp remote/cothority.conf /etc/security/limits.d")
+				err := platform.SSHRunStdout("", h, "sudo cp remote/simul.conf /etc/security/limits.d")
 				if err != nil {
 					log.Fatal("Couldn't copy limit-file:", err)
 				}
@@ -116,7 +117,7 @@ func DeterlabUsers() {
 	log.Lvl1("starting", deter.Servers, "cothorities for a total of", deter.Hosts, "processes.")
 	killing := false
 	for i, phys := range deter.Phys {
-		log.Lvl2("Launching cothority on", phys)
+		log.Lvl2("Launching simul on", phys)
 		wg.Add(1)
 		go func(phys, internal string) {
 			//log.Lvl4("running on", phys, cmd)
@@ -129,17 +130,17 @@ func DeterlabUsers() {
 				" -monitor=" + monitorAddr +
 				" -debug=" + strconv.Itoa(log.DebugVisible())
 			log.Lvl3("Args is", args)
-			err := SSHRunStdout("", phys, "cd remote; sudo ./cothority "+
+			err := platform.SSHRunStdout("", phys, "cd remote; sudo ./simul "+
 				args)
 			if err != nil && !killing {
-				log.Lvl1("Error starting cothority - will kill all others:", err, internal)
+				log.Lvl1("Error starting simul - will kill all others:", err, internal)
 				killing = true
 				err := exec.Command("killall", "ssh").Run()
 				if err != nil {
 					log.Fatal("Couldn't killall ssh:", err)
 				}
 			}
-			log.Lvl4("Finished with cothority on", internal)
+			log.Lvl4("Finished with simul on", internal)
 		}(phys, deter.Virt[i])
 	}
 
@@ -148,8 +149,8 @@ func DeterlabUsers() {
 }
 
 // Reads in the deterlab-config and drops out if there is an error
-func deterFromConfig(name ...string) *Deterlab {
-	d := &Deterlab{}
+func deterFromConfig(name ...string) *platform.Deterlab {
+	d := &platform.Deterlab{}
 	configName := "deter.toml"
 	if len(name) > 0 {
 		configName = name[0]
@@ -166,7 +167,7 @@ func deterFromConfig(name ...string) *Deterlab {
 
 // Runs a command on the remote host and outputs an eventual error if debug level >= 3
 func runSSH(host, cmd string) {
-	if _, err := SSHRun("", host, cmd); err != nil {
+	if _, err := platform.SSHRun("", host, cmd); err != nil {
 		log.Lvlf3("Host %s got error %s while running [%s]", host, err.Error(), cmd)
 	}
 }

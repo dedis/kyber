@@ -62,7 +62,9 @@ type Localhost struct {
 // Configure various internal variables
 func (d *Localhost) Configure(pc *Config) {
 	pwd, _ := os.Getwd()
-	d.runDir = pwd + "/platform/localhost"
+	d.runDir = pwd + "/build"
+	os.RemoveAll(d.runDir)
+	log.ErrFatal(os.Mkdir(d.runDir, 0770))
 	d.localDir = pwd
 	d.debug = pc.Debug
 	d.running = false
@@ -77,7 +79,7 @@ func (d *Localhost) Configure(pc *Config) {
 
 // Build makes sure that the binary is available for our local platform
 func (d *Localhost) Build(build string, arg ...string) error {
-	src := "./cothority"
+	src := "."
 	dst := d.runDir + "/" + d.Simulation
 	start := time.Now()
 	// build for the local machine
