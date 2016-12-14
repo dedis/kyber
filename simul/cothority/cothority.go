@@ -8,6 +8,7 @@ import (
 	"flag"
 	"sync"
 
+	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 
 	"github.com/dedis/onet/monitor"

@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	// Import protocols so every protocols is registered to the sda
 	"strings"

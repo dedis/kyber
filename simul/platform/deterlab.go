@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 )
 

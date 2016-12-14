@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dedis/onet"
 	"github.com/dedis/onet/app/config"
 	"github.com/dedis/onet/crypto"
 	"github.com/dedis/onet/log"
