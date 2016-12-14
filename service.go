@@ -235,7 +235,7 @@ func newServiceManager(c *Conode, o *Overlay) *serviceManager {
 		log.Lvl3("Started Service", name, " (config in", configName, ")")
 		services[id] = s
 		configs[id] = configName
-		c.websocket.RegisterService(name, s)
+		c.websocket.registerService(name, s)
 	}
 	log.Lvl3(c.Address(), "instantiated all services")
 	return s

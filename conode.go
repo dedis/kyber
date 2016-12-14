@@ -1,6 +1,7 @@
 package onet
 
 import (
+	"runtime"
 	"sync"
 
 	"strings"
@@ -13,7 +14,7 @@ import (
 
 	"time"
 
-	"os/exec"
+	"fmt"
 
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/onet/log"
@@ -86,9 +87,9 @@ func (c *Conode) GetStatus() Status {
 	m["TX_bytes"] = strconv.FormatUint(c.Router.Tx(), 10)
 	m["RX_bytes"] = strconv.FormatUint(c.Router.Rx(), 10)
 	m["Uptime"] = time.Now().Sub(c.started).String()
-	uname, _ := exec.Command("uname", "-a").Output()
-	m["System"] = strings.TrimRight(string(uname), "\n\r")
-	m["Version"] = "0.9.1"
+	m["System"] = fmt.Sprintf("%s/%s/%s", runtime.GOOS, runtime.GOARCH,
+		runtime.Version())
+	m["Version"] = Version
 	m["Host"] = c.ServerIdentity.Address.Host()
 	m["Port"] = c.ServerIdentity.Address.Port()
 	m["Description"] = c.ServerIdentity.Description
@@ -98,7 +99,7 @@ func (c *Conode) GetStatus() Status {
 
 // Close closes the overlay and the Router
 func (c *Conode) Close() error {
-	c.websocket.Stop()
+	c.websocket.stop()
 	c.overlay.Close()
 	err := c.Router.Stop()
 	log.Lvl3("Host Close ", c.ServerIdentity.Address, "listening?", c.Router.Listening())
@@ -135,5 +136,5 @@ func (c *Conode) ProtocolInstantiate(protoID ProtocolID, tni *TreeNodeInstance) 
 // ports.
 func (c *Conode) Start() {
 	go c.Router.Start()
-	c.websocket.Start()
+	c.websocket.start()
 }

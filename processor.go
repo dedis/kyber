@@ -34,7 +34,7 @@ func NewServiceProcessor(c *Context) *ServiceProcessor {
 	}
 }
 
-// RegisterMessage will store the given handler that will be used by the service.
+// RegisterHandler will store the given handler that will be used by the service.
 // WebSocket will then forward requests to "ws://service_name/struct_name"
 // to the given function f, which must be of the following form:
 // func(msg interface{})(ret interface{}, err ClientError)
@@ -43,7 +43,10 @@ func NewServiceProcessor(c *Context) *ServiceProcessor {
 //  * ret is a pointer to a struct of the return-message.
 //  * err is a Client-error and can return nil or a ClientError that holds
 //	an error-id and an error-msg.
-func (p *ServiceProcessor) RegisterMessage(f interface{}) error {
+//
+// struct_name is stripped of its package-name, so a structure like
+// network.Body will be converted to Body.
+func (p *ServiceProcessor) RegisterHandler(f interface{}) error {
 	ft := reflect.TypeOf(f)
 	// Check that we have the correct channel-type.
 	if ft.Kind() != reflect.Func {
@@ -77,11 +80,11 @@ func (p *ServiceProcessor) RegisterMessage(f interface{}) error {
 	return nil
 }
 
-// RegisterMessages takes a vararg of messages to register and returns
+// RegisterHandlers takes a vararg of messages to register and returns
 // the first error encountered or nil if everything was OK.
-func (p *ServiceProcessor) RegisterMessages(procs ...interface{}) error {
+func (p *ServiceProcessor) RegisterHandlers(procs ...interface{}) error {
 	for _, pr := range procs {
-		if err := p.RegisterMessage(pr); err != nil {
+		if err := p.RegisterHandler(pr); err != nil {
 			return err
 		}
 	}
@@ -96,6 +99,7 @@ func (p *ServiceProcessor) Process(packet *network.Packet) {
 // NewProtocol is a stub for services that don't want to intervene in the
 // protocol-handling.
 func (p *ServiceProcessor) NewProtocol(tn *TreeNodeInstance, conf *GenericConfig) (ProtocolInstance, error) {
+	log.Panic("Asked for new protocol, but none given.")
 	return nil, nil
 }
 
