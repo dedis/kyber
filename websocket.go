@@ -64,6 +64,7 @@ func NewWebSocket(si *network.ServerIdentity) *WebSocket {
 			Addr:    webHost,
 			Handler: w.mux,
 		},
+		NoSignalHandling: true,
 	}
 	return w
 }
@@ -361,5 +362,5 @@ func getWebHost(si *network.ServerIdentity) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s:%d", si.Address.Host(), p+1), nil
+	return fmt.Sprintf("0.0.0.0:%d", p+1), nil
 }
