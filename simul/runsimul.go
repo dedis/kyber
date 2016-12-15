@@ -98,7 +98,7 @@ func simulate() {
 		// each level of the tree.
 		timeout := 1000
 		for wait {
-			p, err := rootSC.Overlay.CreateProtocolSDA("Count", rootSC.Tree)
+			p, err := rootSC.Overlay.CreateProtocolOnet("Count", rootSC.Tree)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -143,7 +143,7 @@ func simulate() {
 			closeTree = rootSC.Roster.GenerateBinaryTree()
 			rootSC.Overlay.RegisterTree(closeTree)
 		}
-		pi, err := rootSC.Overlay.CreateProtocolSDA("CloseAll", closeTree)
+		pi, err := rootSC.Overlay.CreateProtocolOnet("CloseAll", closeTree)
 		pi.Start()
 		if err != nil {
 			log.Fatal(err)

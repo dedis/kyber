@@ -51,10 +51,10 @@ func (c *Context) CreateProtocolService(name string, t *Tree) (ProtocolInstance,
 	return pi, err
 }
 
-// CreateProtocolSDA is like CreateProtocolService but doesn't bind it to a
+// CreateProtocolOnet is like CreateProtocolService but doesn't bind it to a
 // service, so it will be handled automatically by the onet.
-func (c *Context) CreateProtocolSDA(name string, t *Tree) (ProtocolInstance, error) {
-	pi, err := c.overlay.CreateProtocolSDA(name, t)
+func (c *Context) CreateProtocolOnet(name string, t *Tree) (ProtocolInstance, error) {
+	pi, err := c.overlay.CreateProtocolOnet(name, t)
 	return pi, err
 }
 

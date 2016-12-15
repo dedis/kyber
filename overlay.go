@@ -37,11 +37,11 @@ type Overlay struct {
 	// lock associated with pending TreeMarshal
 	pendingTreeLock sync.Mutex
 
-	// pendingSDAData are a list of message we received that does not correspond
+	// pendingMsg is a list of message we received that does not correspond
 	// to any local Tree or/and Roster. We first request theses so we can
-	// instantiate properly protocolInstance that will use these SDAData msg.
+	// instantiate properly protocolInstance that will use these ProtocolMsg msg.
 	pendingMsg []pendingMsg
-	// lock associated with pending SDAdata
+	// lock associated with pending ProtocolMsg
 	pendingMsgLock sync.Mutex
 
 	transmitMux sync.Mutex
@@ -73,7 +73,7 @@ func NewOverlay(c *Conode) *Overlay {
 	o.protoIO = newMessageProxyStore(c, o)
 	// messages going to protocol instances
 	c.RegisterProcessor(o,
-		SDADataMessageID,       // protocol instance's messages
+		ProtocolMsgID,          // protocol instance's messages
 		RequestTreeMessageID,   // request a tree
 		SendTreeMessageID,      // send a tree back to a request
 		RequestRosterMessageID, // request a roster
@@ -102,14 +102,14 @@ func (o *Overlay) Process(data *network.Packet) {
 		o.handleSendRoster(data.ServerIdentity, info.Roster)
 	default:
 		typ := network.TypeToPacketTypeID(inner)
-		sda := &ProtocolMsg{
+		protoMsg := &ProtocolMsg{
 			From:           info.TreeNodeInfo.From,
 			To:             info.TreeNodeInfo.To,
 			ServerIdentity: data.ServerIdentity,
 			Msg:            inner,
 			MsgType:        typ,
 		}
-		o.TransmitMsg(sda, io)
+		o.TransmitMsg(protoMsg, io)
 	}
 }
 
@@ -200,9 +200,9 @@ func (o *Overlay) addPendingTreeMarshal(tm *TreeMarshal) {
 	o.pendingTreeLock.Unlock()
 }
 
-// checkPendingMessages is called each time we receive a new tree if there are some SDA
-// messages using this tree. If there are, we can make an instance of a protocolinstance
-// and give it the message.
+// checkPendingMessages is called each time we receive a new tree if there are
+// some pending ProtocolMessage messages using this tree. If there are, we can
+// make an instance of a protocolinstance and give it the message.
 func (o *Overlay) checkPendingMessages(t *Tree) {
 	go func() {
 		o.pendingMsgLock.Lock()
@@ -256,8 +256,8 @@ func (o *Overlay) savePendingMsg(onetMsg *ProtocolMsg, io MessageProxy) {
 
 }
 
-// requestTree will ask for the tree the sdadata is related to.
-// it will put the message inside the pending list of sda message waiting to
+// requestTree will ask for the tree the ProtocolMessage is related to.
+// it will put the message inside the pending list of ProtocolMessage waiting to
 // have their trees.
 // io is the wrapper to use to send the message, it can be nil.
 func (o *Overlay) requestTree(si *network.ServerIdentity, onetMsg *ProtocolMsg, io MessageProxy) error {
@@ -497,10 +497,10 @@ func (o *Overlay) Close() {
 	}
 }
 
-// CreateProtocolSDA returns a fresh Protocol Instance with an attached
+// CreateProtocolOnet returns a fresh Protocol Instance with an attached
 // TreeNodeInstance. This protocol won't be handled by the service, but
 // only by the onet.
-func (o *Overlay) CreateProtocolSDA(name string, t *Tree) (ProtocolInstance, error) {
+func (o *Overlay) CreateProtocolOnet(name string, t *Tree) (ProtocolInstance, error) {
 	return o.CreateProtocolService(name, t, ServiceID(uuid.Nil))
 }
 
@@ -522,7 +522,7 @@ func (o *Overlay) CreateProtocolService(name string, t *Tree, sid ServiceID) (Pr
 
 // StartProtocol will create and start a P.I.
 func (o *Overlay) StartProtocol(t *Tree, name string) (ProtocolInstance, error) {
-	pi, err := o.CreateProtocolSDA(name, t)
+	pi, err := o.CreateProtocolOnet(name, t)
 	if err != nil {
 		return nil, err
 	}
@@ -734,7 +734,7 @@ func (d *defaultProtoIO) Unwrap(msg interface{}) (interface{}, *OverlayMessage, 
 		if err != nil {
 			return nil, nil, err
 		}
-		// Put the msg into SDAData
+		// Put the msg into ProtocolMsg
 		returnOverlay.TreeNodeInfo = &TreeNodeInfo{
 			To:   onetMsg.To,
 			From: onetMsg.From,

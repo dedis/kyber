@@ -20,7 +20,7 @@ func init() {
 // Service is a generic interface to define any type of services.
 // A Service has multiple roles:
 // * Processing websocket client requests with ProcessClientRequests
-// * Handling sda information to ProtocolInstances created with
+// * Handling onet information to ProtocolInstances created with
 //  	NewProtocol
 // * Handling any kind of messages between Services between different hosts with
 //   	the Processor interface
@@ -192,7 +192,7 @@ type serviceManager struct {
 	services map[ServiceID]Service
 	// the config paths
 	paths map[ServiceID]string
-	// the sda host
+	// the onet host
 	conode *Conode
 	// the dispatcher can take registration of Processors
 	network.Dispatcher

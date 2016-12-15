@@ -1,4 +1,4 @@
-// Package platform contains interface and implementation to run SDA code
+// Package platform contains interface and implementation to run onet code
 // amongst multiple platforms. Such implementations include Localhost (run your
 // test locally) and Deterlab (similar to emulab).
 package platform

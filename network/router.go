@@ -116,7 +116,7 @@ func (r *Router) Stop() error {
 	return nil
 }
 
-// Send sends to an ServerIdentity without wrapping the msg into a SDAMessage
+// Send sends to an ServerIdentity without wrapping the msg into a ProtocolMsg
 func (r *Router) Send(e *ServerIdentity, msg Body) error {
 	if msg == nil {
 		return errors.New("Can't send nil-packet")

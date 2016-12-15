@@ -1,7 +1,7 @@
 package onet
 
 func (c *Conode) CreateProtocol(name string, t *Tree) (ProtocolInstance, error) {
-	return c.overlay.CreateProtocolSDA(name, t)
+	return c.overlay.CreateProtocolOnet(name, t)
 }
 
 func (c *Conode) StartProtocol(name string, t *Tree) (ProtocolInstance, error) {

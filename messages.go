@@ -7,9 +7,9 @@ import (
 	"github.com/satori/go.uuid"
 )
 
-// SDADataMessageID is to be embedded in every message that is made for a
-// ID of SDAData message as registered in network
-var SDADataMessageID = network.RegisterPacketType(ProtocolMsg{})
+// ProtocolMsgID is to be embedded in every message that is made for a
+// ID of ProtocolMsg message as registered in network
+var ProtocolMsgID = network.RegisterPacketType(ProtocolMsg{})
 
 // RequestTreeMessageID of RequestTree message as registered in network
 var RequestTreeMessageID = network.RegisterPacketType(RequestTree{})
@@ -61,7 +61,7 @@ func (t *TokenID) String() string {
 // A Token contains all identifiers needed to uniquely identify one protocol
 // instance. It gets passed when a new protocol instance is created and get used
 // by every protocol instance when they want to send a message. That way, the
-// host knows how to create the SDAData message around the protocol's message
+// host knows how to create the ProtocolMsg message around the protocol's message
 // with the right fields set.
 type Token struct {
 	RosterID RosterID

@@ -434,7 +434,7 @@ func (n *TreeNodeInstance) HasFlag(mt network.PacketTypeID, f uint32) bool {
 
 // aggregate store the message for a protocol instance such that a protocol
 // instances will get all its children messages at once.
-// node is the node the host is representing in this Tree, and sda is the
+// node is the node the host is representing in this Tree, and onetMsg is the
 // message being analyzed.
 func (n *TreeNodeInstance) aggregate(onetMsg *ProtocolMsg) (network.PacketTypeID, []*ProtocolMsg, bool) {
 	mt := onetMsg.MsgType
@@ -623,11 +623,11 @@ func (n *TreeNodeInstance) SendToChildrenInParallel(msg interface{}) error {
 	return collectErrors("Error while sending to %s: %s\n", errs)
 }
 
-// CreateProtocol makes SDA instantiates a new protocol of name "name" and
+// CreateProtocol makes onet instantiates a new protocol of name "name" and
 // returns it with any error that might have happened during the creation. This
-// protocol is only handled by SDA, no service are "attached" to it.
+// protocol is only handled by onet, no service are "attached" to it.
 func (n *TreeNodeInstance) CreateProtocol(name string, t *Tree) (ProtocolInstance, error) {
-	pi, err := n.overlay.CreateProtocolSDA(name, t)
+	pi, err := n.overlay.CreateProtocolOnet(name, t)
 	return pi, err
 }
 
