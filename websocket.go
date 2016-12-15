@@ -357,17 +357,9 @@ func (ce *cerror) Error() string {
 
 // getWebHost returns the host:port+1 of the serverIdentity.
 func getWebHost(si *network.ServerIdentity) (string, error) {
-	global, err := network.GlobalBind(si.Address.NetworkAddress())
+	p, err := strconv.Atoi(si.Address.Port())
 	if err != nil {
 		return "", err
 	}
-	hp := strings.Split(global, ":")
-	if len(hp) != 2 {
-		return "", errors.New("No Address:Port given")
-	}
-	p, err := strconv.Atoi(hp[1])
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("%s:%d", hp[0], p+1), nil
+	return fmt.Sprintf("0.0.0.0:%d", p+1), nil
 }
