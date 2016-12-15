@@ -27,7 +27,7 @@ func TestNewWebSocket(t *testing.T) {
 	defer c.Close()
 	require.Equal(t, len(c.serviceManager.services), len(c.websocket.services))
 	require.NotEmpty(t, c.websocket.services[serviceWebSocket])
-	url, err := getWebHost(c.ServerIdentity)
+	url, err := getWebHost(c.ServerIdentity, false)
 	log.ErrFatal(err)
 	ws, err := websocket.Dial(fmt.Sprintf("ws://%s/WebSocket/SimpleResponse", url),
 		"", "http://localhost/")
@@ -50,7 +50,7 @@ func TestNewWebSocket(t *testing.T) {
 func TestGetWebHost(t *testing.T) {
 	url, err := getWebHost(&network.ServerIdentity{Address: "tcp://8.8.8.8"}, true)
 	require.NotNil(t, err)
-	url, err := getWebHost(&network.ServerIdentity{Address: "tcp://8.8.8.8"}, false)
+	url, err = getWebHost(&network.ServerIdentity{Address: "tcp://8.8.8.8"}, false)
 	require.NotNil(t, err)
 	url, err = getWebHost(&network.ServerIdentity{Address: "tcp://8.8.8.8:7770"}, true)
 	log.ErrFatal(err)

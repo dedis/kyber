@@ -366,5 +366,5 @@ func getWebHost(si *network.ServerIdentity, server bool) (string, error) {
 	if server {
 		host = "0.0.0.0"
 	}
-	return fmt.Sprintf("%s:%d", si.Address.Host(), p+1), nil
+	return fmt.Sprintf("%s:%d", host, p+1), nil
 }
