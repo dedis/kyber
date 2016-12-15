@@ -24,6 +24,5 @@ _testmain.go
 *.prof
 *.iml
 *.cov
-*/test/
 
 config/
