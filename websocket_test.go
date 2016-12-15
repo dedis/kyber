@@ -47,6 +47,14 @@ func TestNewWebSocket(t *testing.T) {
 	assert.Equal(t, 1, rcvMsg.Val)
 }
 
+func TestGetWebHost(t *testing.T) {
+	url, err := getWebHost(&network.ServerIdentity{Address: "tcp://8.8.8.8"})
+	require.NotNil(t, err)
+	url, err = getWebHost(&network.ServerIdentity{Address: "tcp://8.8.8.8:7770"})
+	log.ErrFatal(err)
+	require.Equal(t, "0.0.0.0:7771", url)
+}
+
 func TestClient_Send(t *testing.T) {
 	local := NewTCPTest()
 	defer local.CloseAll()
