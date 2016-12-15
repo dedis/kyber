@@ -64,6 +64,7 @@ func NewWebSocket(si *network.ServerIdentity) *WebSocket {
 			Addr:    webHost,
 			Handler: w.mux,
 		},
+		NoSignalHandling: true,
 	}
 	return w
 }
