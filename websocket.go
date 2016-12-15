@@ -55,7 +55,7 @@ func NewWebSocket(si *network.ServerIdentity) *WebSocket {
 		services:  make(map[string]Service),
 		startstop: make(chan bool),
 	}
-	webHost, err := getWebHost(si)
+	webHost, err := getWebHost(si, true)
 	log.ErrFatal(err)
 	w.mux = http.NewServeMux()
 	w.server = &graceful.Server{
@@ -199,7 +199,7 @@ func (c *Client) Send(dst *network.ServerIdentity, path string, buf []byte) ([]b
 	}
 	if c.si == nil {
 		// Open connection to service.
-		url, err := getWebHost(dst)
+		url, err := getWebHost(dst, false)
 		if err != nil {
 			return nil, NewClientError(err)
 		}
@@ -357,10 +357,14 @@ func (ce *cerror) Error() string {
 }
 
 // getWebHost returns the host:port+1 of the serverIdentity.
-func getWebHost(si *network.ServerIdentity) (string, error) {
+func getWebHost(si *network.ServerIdentity, server bool) (string, error) {
 	p, err := strconv.Atoi(si.Address.Port())
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("0.0.0.0:%d", p+1), nil
+	host := si.Address.Host()
+	if server {
+		host = "0.0.0.0"
+	}
+	return fmt.Sprintf("%s:%d", si.Address.Host(), p+1), nil
 }

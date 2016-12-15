@@ -48,11 +48,16 @@ func TestNewWebSocket(t *testing.T) {
 }
 
 func TestGetWebHost(t *testing.T) {
-	url, err := getWebHost(&network.ServerIdentity{Address: "tcp://8.8.8.8"})
+	url, err := getWebHost(&network.ServerIdentity{Address: "tcp://8.8.8.8"}, true)
 	require.NotNil(t, err)
-	url, err = getWebHost(&network.ServerIdentity{Address: "tcp://8.8.8.8:7770"})
+	url, err := getWebHost(&network.ServerIdentity{Address: "tcp://8.8.8.8"}, false)
+	require.NotNil(t, err)
+	url, err = getWebHost(&network.ServerIdentity{Address: "tcp://8.8.8.8:7770"}, true)
 	log.ErrFatal(err)
 	require.Equal(t, "0.0.0.0:7771", url)
+	url, err = getWebHost(&network.ServerIdentity{Address: "tcp://8.8.8.8:7770"}, false)
+	log.ErrFatal(err)
+	require.Equal(t, "8.8.8.8:7771", url)
 }
 
 func TestClient_Send(t *testing.T) {
