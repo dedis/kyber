@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/dedis/onet.svg?branch=master)](https://travis-ci.org/dedis/onet)
+[![Coverage Status](https://coveralls.io/repos/github/dedis/onet/badge.svg)](https://coveralls.io/github/dedis/onet)
+
 # onet
 
 Overlay-network (onet) is a library for simulation and deployment of decentralized,
@@ -26,3 +29,11 @@ Onet is double-licensed under a GNU/AGPL 3.0 and a commercial license. If you
 want to have more information, contact us at linus.gassser@epfl.ch.
 
 ## Contribution
+
+If you want to contribute to Onet, please have a look at 
+[CONTRIBUTION](https://github.com/dedis/onet/blobl/master/CONTRIBUTION) for
+licensing details. Once you are OK with those, you can have a look at our
+coding-guidelines in
+[Coding](https://github.com/dedis/Coding). In short, we use the github-issues
+to communicate and pull-requests to do code-review. Travis makes sure that
+everything goes smoothly. And we'd like to have good code-coverage.
