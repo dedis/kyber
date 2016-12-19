@@ -60,7 +60,7 @@ type NewServiceFunc func(c *Context, path string) Service
 // GenericConfig is a config that can withhold any type of specific configs for
 // protocols. It is passed down to the service NewProtocol function.
 type GenericConfig struct {
-	Type uuid.UUID
+	Data []byte
 }
 
 // A serviceFactory is used to register a NewServiceFunc

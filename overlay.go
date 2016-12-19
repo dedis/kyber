@@ -47,15 +47,9 @@ type Overlay struct {
 	transmitMux sync.Mutex
 
 	protoIO *messageProxyStore
-}
 
-// pendingMsg is used to store messages destined for ProtocolInstances but when
-// the tree designated is not known to the Overlay. When the tree is sent to the
-// overlay, then the pendingMsg that are relying on this tree will get
-// processed.
-type pendingMsg struct {
-	*ProtocolMsg
-	MessageProxy
+	pendingConfigs    map[TokenID]*GenericConfig
+	pendingConfigsMut sync.Mutex
 }
 
 // NewOverlay creates a new overlay-structure
@@ -69,6 +63,7 @@ func NewOverlay(c *Conode) *Overlay {
 		instancesInfo:      make(map[TokenID]bool),
 		protocolInstances:  make(map[TokenID]ProtocolInstance),
 		pendingTreeMarshal: make(map[RosterID][]*TreeMarshal),
+		pendingConfigs:     make(map[TokenID]*GenericConfig),
 	}
 	o.protoIO = newMessageProxyStore(c, o)
 	// messages going to protocol instances
@@ -77,13 +72,20 @@ func NewOverlay(c *Conode) *Overlay {
 		RequestTreeMessageID,   // request a tree
 		SendTreeMessageID,      // send a tree back to a request
 		RequestRosterMessageID, // request a roster
-		SendRosterMessageID)    // send a roster back to request
+		SendRosterMessageID,    // send a roster back to request
+		ConfigMessageID)        // fetch config information
 	return o
 }
 
 // Process implements the Processor interface so it process the messages that it
 // wants.
 func (o *Overlay) Process(data *network.Packet) {
+	// Messages handled by the overlay directly without any messageProxyIO
+	if data.MsgType == ConfigMessageID {
+		o.handleConfigMessage(data)
+		return
+	}
+
 	// get messageProxy or default one
 	io := o.protoIO.getByPacketType(data.MsgType)
 	inner, info, err := io.Unwrap(data.Msg)
@@ -160,8 +162,10 @@ func (o *Overlay) TransmitMsg(onetMsg *ProtocolMsg, io MessageProxy) error {
 
 			/// use the Services to instantiate it
 		} else {
+			// retrieve the possible generic config for this message
+			config := o.getConfig(onetMsg.To.ID())
 			// request the PI from the Service and binds the two
-			pi, err = s.NewProtocol(tni, &onetMsg.Config)
+			pi, err = s.NewProtocol(tni, config)
 			if err != nil {
 				return err
 			}
@@ -441,13 +445,56 @@ func (o *Overlay) handleSendRoster(si *network.ServerIdentity, roster *Roster) {
 	log.Lvl4("Received new entityList")
 }
 
+// handleConfigMessage stores the config message so it can be dispatched
+// alongside with the protocol message later to the service.
+func (o *Overlay) handleConfigMessage(data *network.Packet) {
+	config, ok := data.Msg.(ConfigMessage)
+	if !ok {
+		// This should never happen <=> assert
+		log.Panic(o.conode.Address(), "wrong config type")
+		return
+	}
+
+	o.pendingConfigsMut.Lock()
+	defer o.pendingConfigsMut.Unlock()
+	o.pendingConfigs[config.Dest] = &config.Config
+}
+
+// getConfig returns the generic config corresponding to this node if present,
+// and removes it from the list of pending configs.
+func (o *Overlay) getConfig(id TokenID) *GenericConfig {
+	o.pendingConfigsMut.Lock()
+	defer o.pendingConfigsMut.Unlock()
+	c := o.pendingConfigs[id]
+	delete(o.pendingConfigs, id)
+	return c
+}
+
 // SendToTreeNode sends a message to a treeNode
-func (o *Overlay) SendToTreeNode(from *Token, to *TreeNode, msg network.Body, io MessageProxy) error {
+// from is the sender token
+// to is the treenode of the destination
+// msg is the message to send
+// io is the messageproxy used to correctly create the wire format
+// c is the generic config that should be sent beforehand in order to get passed
+// in the `NewProtocol` method if a Service has created the protocol and set the
+// config with `SetConfig`. It can be nil.
+func (o *Overlay) SendToTreeNode(from *Token, to *TreeNode, msg network.Body,
+	io MessageProxy, c *GenericConfig) error {
+	tokenTo := from.ChangeTreeNodeID(to.ID)
+
+	// first send the config if present
+	if c != nil {
+		if err := o.conode.Send(to.ServerIdentity, &ConfigMessage{*c, tokenTo.ID()}); err != nil {
+			log.Error("sending config failed:", err)
+			return err
+		}
+	}
+	// then send the message
 	var final interface{}
 	info := &OverlayMessage{
 		TreeNodeInfo: &TreeNodeInfo{
 			From: from,
-			To:   from.ChangeTreeNodeID(to.ID),
+			To:   tokenTo,
 		},
 	}
 	final, err := io.Wrap(msg, info)
@@ -619,6 +666,15 @@ func (o *Overlay) RegisterProtocolInstance(pi ProtocolInstance) error {
 	o.protocolInstances[tok.ID()] = pi
 	log.Lvlf4("%s registered ProtocolInstance %x", o.conode.Address(), tok.ID())
 	return nil
+}
+
+// pendingMsg is used to store messages destined for ProtocolInstances but when
+// the tree designated is not known to the Overlay. When the tree is sent to the
+// overlay, then the pendingMsg that are relying on this tree will get
+// processed.
+type pendingMsg struct {
+	*ProtocolMsg
+	MessageProxy
 }
 
 // TreeNodeCache is a cache that maps from token to treeNode. Since the mapping
