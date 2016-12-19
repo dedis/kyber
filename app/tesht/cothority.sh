@@ -21,6 +21,7 @@ makeTestDir(){
     done
 	build $GOPATH/src/github.com/dedis/cothority
 	build $BUILDDIR
+	APP=$(basename $BUILDDIR)
 	cothoritySetup
 }
 
@@ -51,23 +52,22 @@ runCoCfg(){
 }
 
 runCoBG(){
-    nb=$1
+    local nb=$1
     shift
     testOut "starting cothority-server #$nb"
-#    ( ./cothority -d $DBG_SRV -c co$nb/config.toml $@ 2>&1 > /dev/null & )
     ( ./cothority -d $DBG_SRV -c co$nb/config.toml $@ | tee $COLOG$nb.log & )
 }
 
 runCo(){
-    nb=$1
+    local nb=$1
     shift
     testOut "starting cothority-server #$nb"
     dbgRun ./cothority -d $DBG_SRV -c co$nb/config.toml $@
 }
 
 build(){
-	appdir=$1
-    app=$(basename $appdir)
+	local appdir=$1
+    local app=$(basename $appdir)
     if [ ! -e $app -o "$BUILD" ]; then
         if ! go build -o $app $appdir/*.go; then
             fail "Couldn't build $appdir"
