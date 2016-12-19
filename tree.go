@@ -36,7 +36,7 @@ type Tree struct {
 	Root   *TreeNode
 }
 
-// TreeID uniquely identifies a Tree struct in the sda framework.
+// TreeID uniquely identifies a Tree struct in the onet framework.
 type TreeID uuid.UUID
 
 // Equals returns true if and only if the given TreeID equals the current one.
@@ -545,7 +545,7 @@ type TreeNode struct {
 	PublicAggregateSubTree abstract.Point
 }
 
-// TreeNodeID identifies a given TreeNode struct in the sda framework.
+// TreeNodeID identifies a given TreeNode struct in the onet framework.
 type TreeNodeID uuid.UUID
 
 // String returns a canonical representation of the TreeNodeID.

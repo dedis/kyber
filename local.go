@@ -91,7 +91,7 @@ func (l *LocalTest) CreateProtocol(name string, t *Tree) (ProtocolInstance, erro
 		if h.ServerIdentity.ID.Equal(rootServerIdentityID) {
 			// XXX do we really need multiples overlays ? Can't we just use the
 			// Node, since it is already dispatched as like a TreeNode ?
-			return l.Overlays[h.ServerIdentity.ID].CreateProtocolSDA(name, t)
+			return l.Overlays[h.ServerIdentity.ID].CreateProtocolOnet(name, t)
 		}
 	}
 	return nil, errors.New("Didn't find conode for tree-root")
@@ -246,7 +246,7 @@ func (l *LocalTest) SendTreeNode(proto string, from, to *TreeNodeInstance, msg n
 }
 
 // AddPendingTreeMarshal takes a treeMarshal and adds it to the list of the
-// known trees, also triggering dispatching of SDA-messages waiting for that
+// known trees, also triggering dispatching of onet-messages waiting for that
 // tree
 func (l *LocalTest) AddPendingTreeMarshal(c *Conode, tm *TreeMarshal) {
 	c.overlay.addPendingTreeMarshal(tm)

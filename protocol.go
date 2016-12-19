@@ -28,7 +28,7 @@ type ProtocolInstance interface {
 	// in turns instantiate a new protocol (with a fresh token), and then call
 	// Start on it.
 	Start() error
-	// Dispatch is called at the beginning by SDA for listening on the channels
+	// Dispatch is called at the beginning by onet for listening on the channels
 	Dispatch() error
 
 	// DispatchMsg is a method that is called each time a message arrives for

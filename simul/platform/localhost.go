@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
+	"strings"
+
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
-	// Import protocols so every protocols is registered to the sda
-	"strings"
 )
 
 // Localhost is responsible for launching the app with the specified number of nodes

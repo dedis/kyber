@@ -301,7 +301,7 @@ func testRouterLotsOfConn(t *testing.T, fac routerFactory, nbrRouter int) {
 	}
 }
 
-// Test sending data back and forth using the sendSDAData
+// Test sending data back and forth using the sendProtocolMsg
 func TestRouterSendMsgDuplexTCP(t *testing.T) {
 	testRouterSendMsgDuplex(t, NewTestRouterTCP)
 }
