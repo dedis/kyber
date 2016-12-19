@@ -8,6 +8,13 @@ STATICDIR=${STATICDIR:-}
 BUILD=${BUILD:-}
 # Show the output of the commands
 DBG_SHOW=${DBG_SHOW:-0}
+# Builddir is usually where the test.sh-script is located
+BUILDDIR=${BUILDDIR:-$(pwd)}
+# The app is the name of the builddir
+APP=${APP:-$(basename $BUILDDIR)}
+
+# Mark this library as loaded
+LIBTEST=1
 
 RUNOUT=/tmp/run.out
 
@@ -165,11 +172,31 @@ backg(){
     ( $@ 2>&1 & )
 }
 
+appBuild(){
+    if [ "$STATICDIR" ]; then
+        DIR=$STATICDIR
+    else
+        DIR=$(mktemp -d)
+    fi
+    mkdir -p $DIR
+    cd $DIR
+    echo "Building in $DIR"
+	build $BUILDDIR
+}
+
+build(){
+	local builddir=$1
+	local app=$( basename $builddir )
+    if [ ! -e $app -o "$BUILD" ]; then
+        if ! go build -o $app $builddir/*.go; then
+            fail "Couldn't build $builddir"
+        fi
+    fi
+}
+
 cleanup(){
     pkill -9 cothority 2> /dev/null
-    pkill -9 cosi 2> /dev/null
-    pkill -9 ssh-ks 2> /dev/null
-    pkill -9 pop 2> /dev/null
+    pkill -9 $APP 2> /dev/null
     sleep .5
     rm -f srv*/*bin
     rm -f cl*/*bin
@@ -191,4 +218,8 @@ if ! which pcregrep > /dev/null; then
 	echo "brew install pcre"
 	echo "Not aborting because it might work anyway."
 	echo
+fi
+
+if [ "$1" -a "$STATICDIR" ]; then
+    rm -f $STATICDIR/{cothority,$APP}
 fi

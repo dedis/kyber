@@ -1,0 +1,7 @@
+[submodule "wiki/onet.wiki"]
+	path = wiki/onet.wiki
+	url = git@github.com:dedis/onet.wiki
+
+[submodule "onet.wiki"]
+	path = onet.wiki
+	url = git@github.com:dedis/onet.wiki
