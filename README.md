@@ -16,10 +16,10 @@ a large number of conodes for distributed signing and related projects.
 
 The documentation for Onet is split into three parts:
 
-- For users: have a look at the [Apps](https://github.com/dedis/cothority)
+- For users: have a look at the [Apps](https://github.com/dedis/cothority/wiki)
 that have been written using Onet
 - For PhD-students: if you want to start a project using Onet, have a look
-at the [template](https://github.com/dedis/cothority_template)
+at the [template](https://github.com/dedis/cothority_template/wiki)
 - For developers: wanting to participate in the development of Onet? Then
 go to our [wiki](https://github.com/dedis/onet/wiki)
 
@@ -37,3 +37,7 @@ coding-guidelines in
 [Coding](https://github.com/dedis/Coding). In short, we use the github-issues
 to communicate and pull-requests to do code-review. Travis makes sure that
 everything goes smoothly. And we'd like to have good code-coverage.
+
+# Contact
+
+You can contact us at https://groups.google.com/forum/#!forum/cothority
