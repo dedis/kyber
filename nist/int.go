@@ -260,6 +260,14 @@ func (i *Int) Inv(a abstract.Scalar) abstract.Scalar {
 	return i
 }
 
+// Set to the gcd of a and its module
+func (i *Int) Gcd(a abstract.Scalar) abstract.Scalar {
+	ai := a.(*Int)
+	i.M = ai.M
+	i.V.GCD(nil, nil, &ai.V, i.M)
+	return i
+}
+
 // Set to a^e mod M,
 // where e is an arbitrary big.Int exponent (not necessarily 0 <= e < M).
 func (i *Int) Exp(a abstract.Scalar, e *big.Int) abstract.Scalar {
