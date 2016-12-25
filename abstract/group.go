@@ -49,6 +49,9 @@ type Scalar interface {
 
 	// Set to the modular inverse of scalar a
 	Inv(a Scalar) Scalar
+	
+	// Set to the gcd of a and its module
+	Gcd(a Scalar) Scalar
 
 	// Set to a fresh random or pseudo-random scalar
 	Pick(rand cipher.Stream) Scalar
