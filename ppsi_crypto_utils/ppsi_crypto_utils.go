@@ -1,11 +1,13 @@
 package ppsi_crypto_utils
 
 import (
-	"github.com/dedis/crypto/elgamal"
+	"fmt"
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/elgamal"
 	"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/random"
 	"math/rand"
+	"sync"
 )
 
 type PPSI struct {
@@ -16,9 +18,23 @@ type PPSI struct {
 	suite         abstract.Suite
 	publics       []abstract.Point
 	private       abstract.Scalar
+	UpdatedSet    []map[int]abstract.Point
+	numOfThreads  int
 }
 
-func NewPPSI(suite abstract.Suite, private abstract.Scalar, publics []abstract.Point, ids int) *PPSI {
+func NewPPSI(suite abstract.Suite, private abstract.Scalar, publics []abstract.Point, ids int, numOfThreads int) *PPSI {
+	ppsi := &PPSI{
+		suite:        suite,
+		private:      private,
+		publics:      publics,
+		numOfThreads: numOfThreads,
+	}
+	ppsi.ids = ids
+	ppsi.createKeys()
+	return ppsi
+}
+
+func NewPPSI3(suite abstract.Suite, private abstract.Scalar, publics []abstract.Point, ids int) *PPSI {
 	ppsi := &PPSI{
 		suite:   suite,
 		private: private,
@@ -28,7 +44,6 @@ func NewPPSI(suite abstract.Suite, private abstract.Scalar, publics []abstract.P
 	ppsi.createKeys()
 	return ppsi
 }
-
 func NewPPSI2(suite abstract.Suite, publics []abstract.Point, ids int) *PPSI {
 	ppsi := &PPSI{
 		suite: suite,
@@ -113,32 +128,56 @@ func (c *PPSI) EncryptionOneSetOfPhones(set []string, ids int) (
 
 //Given one set of ciphers, for each cipher, performs an elgamal decryption with the user "id" private key,
 //and Phoilg Hellman encryption with the user's "id" PH key
-func (c *PPSI) DecryptElgEncrptPH(set []map[int]abstract.Point, id int) (
-	UpdatedSet []map[int]abstract.Point) {
+func (c *PPSI) DecryptElgEncryptPH(set []map[int]abstract.Point, id int) (
+	newSet []map[int]abstract.Point) {
 
-	UpdatedSet = make([]map[int]abstract.Point, len(set))
-	UpdatedSet = set
+	c.UpdatedSet = make([]map[int]abstract.Point, len(set))
+	c.UpdatedSet = set
+	var wg sync.WaitGroup
 
-	for i := 0; i < len(set); i++ {
-		cipher := set[i]
-		K := cipher[id]
+	var ciphersToThread = len(set) / c.numOfThreads
+
+	for i := 0; i < c.numOfThreads; i++ {
+
+		wg.Add(1)
+		if i == c.numOfThreads-1 {
+			go c.DecryptElgEncryptPHworker(&wg, i, id, i*ciphersToThread, len(set), set)
+		}
+		if i != c.numOfThreads-1 {
+			go c.DecryptElgEncryptPHworker(&wg, i, id, i*ciphersToThread, (i*ciphersToThread)+ciphersToThread, set)
+		}
+
+	}
+
+	wg.Wait()
+	c.UpdatedSet = c.Shuffle(c.UpdatedSet)
+	newSet = c.UpdatedSet
+	return
+}
+
+func (c *PPSI) DecryptElgEncryptPHworker(wg *sync.WaitGroup, id int, idd int, start int, end int, set []map[int]abstract.Point) {
+	defer wg.Done()
+
+	//fmt.Printf("Worker %v: Started\n", id)
+
+	for ii := start; ii < end; ii++ {
+
+		cipher := set[ii]
+		K := cipher[idd]
 
 		C := cipher[-1]
-
 		resElg, _ := elgamal.PartialElGamalDecrypt(c.suite, c.private, K, C)
 
 		resPH := c.PHEncrypt(resElg)
 
-		UpdatedSet[i][-1] = resPH
+		c.UpdatedSet[ii][-1] = resPH
 
 		for j := 0; j < c.ids; j++ {
 			res2PH := c.PHEncrypt(cipher[j])
-			UpdatedSet[i][j] = res2PH
+			c.UpdatedSet[ii][j] = res2PH
 		}
-
 	}
-	UpdatedSet = c.Shuffle(UpdatedSet)
-	return
+	//fmt.Printf("Worker %v: Finished\n", id)
 }
 
 //Extracts the ciphers themselves from a map to a slice
@@ -246,10 +285,10 @@ func test_utils() {
 	private3 := c
 	private4 := d
 
-	c1 = NewPPSI(suite, private1, publics, 3)
-	c2 = NewPPSI(suite, private2, publics, 3)
-	c3 = NewPPSI(suite, private3, publics, 3)
-	rep = NewPPSI(suite, private4, publics, 3)
+	c1 = NewPPSI3(suite, private1, publics, 3)
+	c2 = NewPPSI3(suite, private2, publics, 3)
+	c3 = NewPPSI3(suite, private3, publics, 3)
+	rep = NewPPSI3(suite, private4, publics, 3)
 
 	//	var set1,set2,set3 []map[int]abstract.Point
 	var set4, set5, set6, set7 []abstract.Point
@@ -258,9 +297,9 @@ func test_utils() {
 
 	set0 = rep.EncryptionOneSetOfPhones(set11, 3)
 
-	set1 := c1.DecryptElgEncrptPH(set0, 0)
-	set2 := c2.DecryptElgEncrptPH(set1, 1)
-	set3 := c3.DecryptElgEncrptPH(set2, 2)
+	set1 := c1.DecryptElgEncryptPH(set0, 0)
+	set2 := c2.DecryptElgEncryptPH(set1, 1)
+	set3 := c3.DecryptElgEncryptPH(set2, 2)
 	set4 = c3.ExtractPHEncryptions(set3)
 	//fmt.Printf("%v\n",   set4)
 
@@ -274,3 +313,4 @@ func test_utils() {
 	println("Decryption : " + set8[2])
 
 }
+
