@@ -18,11 +18,11 @@ import (
 	"crypto/cipher"
 	"encoding/hex"
 	"errors"
-	"io"
-
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/group"
 	"github.com/dedis/crypto/nist"
+	"io"
+	"math/rand"
 )
 
 type point struct {
@@ -105,9 +105,30 @@ func (P *point) PickLen() int {
 	// (Hopefully it's unlikely we'll need >=2048-bit curves soon.)
 	return (255 - 8 - 8) / 8
 }
+func XORKeyStreamDet(dst, src []byte, c int64) {
+
+	rand.Seed(c)
+	l := len(dst)
+	if len(src) != l {
+		panic("XORKeyStream: mismatched buffer lengths")
+	}
+
+	buf := make([]byte, l)
+	n, err := rand.Read(buf)
+	if err != nil {
+		panic(err)
+	}
+	if n < len(buf) {
+		panic("short read on infinite random stream!?")
+	}
+
+	for i := 0; i < l; i++ {
+		dst[i] = src[i] ^ buf[i]
+	}
+}
 
 func (P *point) Pick(data []byte, rand cipher.Stream) (abstract.Point, []byte) {
-
+	var c int64
 	// How many bytes to embed?
 	dl := P.PickLen()
 	if dl > len(data) {
@@ -117,7 +138,10 @@ func (P *point) Pick(data []byte, rand cipher.Stream) (abstract.Point, []byte) {
 	for {
 		// Pick a random point, with optional embedded data
 		var b [32]byte
-		rand.XORKeyStream(b[:], b[:])
+
+		XORKeyStreamDet(b[:], b[:], c)
+		c = c + 1
+
 		if data != nil {
 			b[0] = byte(dl)       // Encode length in low 8 bits
 			copy(b[1:1+dl], data) // Copy in data to embed
@@ -155,6 +179,7 @@ func (P *point) Pick(data []byte, rand cipher.Stream) (abstract.Point, []byte) {
 		}
 
 		// Keep trying...
+
 	}
 }
 
