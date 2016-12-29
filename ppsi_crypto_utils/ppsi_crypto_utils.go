@@ -1,7 +1,7 @@
 package ppsi_crypto_utils
 
 import (
-	"fmt"
+	
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/elgamal"
 	"github.com/dedis/crypto/nist"
