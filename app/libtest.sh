@@ -2,17 +2,28 @@
 
 # highest number of servers and clients
 NBR=${NBR:-3}
-# Use for suppressing building if that directory exists
-STATICDIR=${STATICDIR:-}
-# If set, always build
-BUILD=${BUILD:-}
-# Show the output of the commands
-DBG_SHOW=${DBG_SHOW:-0}
+# Per default, have $NBR servers
+NBR_SERVERS=${NBR_SERVERS:-$NBR}
+# Per default, keep one inactive server
+NBR_SERVERS_GROUP=${NBR_SERVERS_GROUP:-$(( NBR_SERVERS - 1))}
+# Show the output of the commands: 0=none, 1=test-names, 2=all
+DBG_TEST=${DBG_TEST:-0}
+# DBG-level for server
+DBG_SRV=${DBG_SRV:-0}
+# APPDIR is usually where the test.sh-script is located
+APPDIR=${APPDIR:-$(pwd)}
+# The app is the name of the builddir
+APP=${APP:-$(basename $APPDIR)}
 
 RUNOUT=/tmp/run.out
 
 startTest(){
     set +m
+	buildDir
+	if [ "$CLEANBUILD" ]; then
+		rm -f cothority $APP
+	fi
+	build $APPDIR
 }
 
 test(){
@@ -114,19 +125,19 @@ testCount(){
 }
 
 testOut(){
-    if [ "$DBG_SHOW" -ge 1 ]; then
+    if [ "$DBG_TEST" -ge 1 ]; then
         echo -e "$@"
     fi
 }
 
 dbgOut(){
-    if [ "$DBG_SHOW" -ge 2 ]; then
+    if [ "$DBG_TEST" -ge 2 ]; then
         echo -e "$@"
     fi
 }
 
 dbgRun(){
-    if [ "$DBG_SHOW" -ge 2 ]; then
+    if [ "$DBG_TEST" -ge 2 ]; then
         OUT=/dev/stdout
     else
         OUT=/dev/null
@@ -165,10 +176,90 @@ backg(){
     ( $@ 2>&1 & )
 }
 
+build(){
+	local builddir=$1
+	local app=$( basename $builddir )
+    if [ ! -e $app -o "$BUILD" ]; then
+    	testOut "Building $app"
+        if ! go build -o $app $builddir/*.go; then
+            fail "Couldn't build $builddir"
+        fi
+    else
+    	dbgOut "Not building $app because it's here"
+    fi
+}
+
+buildDir(){
+    BUILDDIR=${BUILDDIR:-$(mktemp -d)}
+    mkdir -p $BUILDDIR
+    cd $BUILDDIR
+}
+
+buildCothority(){
+	local incl=$1
+    local pkg=$( realpath $BUILDDIR | sed -e "s:$GOPATH/src/::" )
+    local cotdir=$( mktemp -d )/cothority
+    mkdir -p $cotdir
+    if [ ! "$incl" ]; then
+    	incl=${APPDIR#$GOPATH/src/}/service
+    fi
+    if [ -f $APPDIR/$incl ]; then
+    	cp $APPDIR/$incl $cotdir
+    elif [ "$incl" ]; then
+    	cat - > $cotdir/import.go << EOF
+package main
+
+import _ "$incl"
+EOF
+    fi
+    cat - > $cotdir/main.go << EOF
+package main
+
+import "github.com/dedis/onet/app"
+
+func main(){
+	app.Cothority()
+}
+EOF
+	build $cotdir
+	rm -rf $cotdir
+	setupCothority
+}
+
+setupCothority(){
+	# Don't show any setup messages
+    DBG_OLD=$DBG_TEST
+    DBG_TEST=0
+	rm -f group.toml
+    for n in $( seq $NBR_SERVERS ); do
+        co=co$n
+        rm -f $co/*
+		mkdir -p $co
+    	echo -e "127.0.0.1:200$(( 2 * $n ))\nCot-$n\n$co\n" | dbgRun runCo $n setup
+    	if [ $n -le $NBR_SERVERS_GROUP ]; then
+		    tail -n 4 $co/group.toml >> group.toml
+		fi
+	done
+    DBG_TEST=$DBG_OLD
+}
+
+runCoBG(){
+    for nb in $@; do
+    	testOut "starting cothority-server #$nb"
+    	( ./cothority -d $DBG_SRV -c co$nb/config.toml | tee $COLOG$nb.log & )
+    done
+}
+
+runCo(){
+    local nb=$1
+    shift
+    testOut "starting cothority-server #$nb"
+    dbgRun ./cothority -d $DBG_SRV -c co$nb/config.toml $@
+}
+
 cleanup(){
-    pkill -9 cothorityd 2> /dev/null
-    pkill -9 cosi 2> /dev/null
-    pkill -9 ssh-ks 2> /dev/null
+    pkill -9 cothority 2> /dev/null
+    pkill -9 $APP 2> /dev/null
     sleep .5
     rm -f srv*/*bin
     rm -f cl*/*bin
@@ -176,9 +267,9 @@ cleanup(){
 
 stopTest(){
     cleanup
-    if [ ! "$STATICDIR" ]; then
-        echo "removing $DIR"
-        rm -rf $DIR
+    if [ "$BUILDDIR" != build ]; then
+        dbgOut "removing $BUILDDIR"
+        rm -rf $BUILDDIR
     fi
     echo "Success"
 }
@@ -191,3 +282,16 @@ if ! which pcregrep > /dev/null; then
 	echo "Not aborting because it might work anyway."
 	echo
 fi
+
+for i in "$@"; do
+case $i in
+    -b|--build)
+    CLEANBUILD=yes
+    shift # past argument=value
+    ;;
+    -nt|--notemp)
+	BUILDDIR=build
+    shift # past argument=value
+    ;;
+esac
+done

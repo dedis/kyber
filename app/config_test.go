@@ -1,4 +1,4 @@
-package config
+package app
 
 import (
 	"bufio"
@@ -16,12 +16,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var b bytes.Buffer
-var o *bufio.Writer
+var o bytes.Buffer
 
 func TestMain(m *testing.M) {
-	o = bufio.NewWriter(&b)
-	out = o
+	out = &o
 	log.MainTest(m)
 }
 
@@ -101,8 +99,7 @@ func setInput(s string) {
 }
 
 func getOutput() string {
-	o.Flush()
-	ret := b.String()
-	b.Reset()
-	return ret
+	out := o.Bytes()
+	o.Reset()
+	return string(out)
 }
