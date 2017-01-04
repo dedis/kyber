@@ -118,9 +118,6 @@ type wsHandler struct {
 // and handled correctly.
 func (t wsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	u := websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
 		EnableCompression: true,
 	}
 	ws, err := u.Upgrade(w, r, http.Header{})
@@ -208,7 +205,7 @@ func (c *Client) Send(dst *network.ServerIdentity, path string, buf []byte) ([]b
 		// Re-try to connect in case the websocket is just about to start
 		for a := 0; a < network.MaxRetryConnect; a++ {
 			c.conn, _, err = d.Dial(fmt.Sprintf("ws://%s/%s/%s", url, c.service, path),
-				http.Header{})
+				http.Header{"Origin": []string{"http://" + url}})
 			if err == nil {
 				break
 			}
