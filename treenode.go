@@ -641,7 +641,7 @@ func (n *TreeNodeInstance) SendToChildrenInParallel(msg interface{}) error {
 // returns it with any error that might have happened during the creation. This
 // protocol is only handled by onet, no service are "attached" to it.
 func (n *TreeNodeInstance) CreateProtocol(name string, t *Tree) (ProtocolInstance, error) {
-	pi, err := n.overlay.CreateProtocolOnet(name, t)
+	pi, err := n.overlay.CreateProtocol(name, t, NilServiceID)
 	return pi, err
 }
 

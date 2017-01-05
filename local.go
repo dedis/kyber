@@ -77,7 +77,7 @@ func (l *LocalTest) StartProtocol(name string, t *Tree) (ProtocolInstance, error
 		if h.ServerIdentity.ID.Equal(rootServerIdentityID) {
 			// XXX do we really need multiples overlays ? Can't we just use the
 			// Node, since it is already dispatched as like a TreeNode ?
-			return l.Overlays[h.ServerIdentity.ID].StartProtocol(t, name)
+			return l.Overlays[h.ServerIdentity.ID].StartProtocol(name, t, NilServiceID)
 		}
 	}
 	return nil, errors.New("Didn't find conode for tree-root")
@@ -91,7 +91,7 @@ func (l *LocalTest) CreateProtocol(name string, t *Tree) (ProtocolInstance, erro
 		if h.ServerIdentity.ID.Equal(rootServerIdentityID) {
 			// XXX do we really need multiples overlays ? Can't we just use the
 			// Node, since it is already dispatched as like a TreeNode ?
-			return l.Overlays[h.ServerIdentity.ID].CreateProtocolOnet(name, t)
+			return l.Overlays[h.ServerIdentity.ID].CreateProtocol(name, t, NilServiceID)
 		}
 	}
 	return nil, errors.New("Didn't find conode for tree-root")

@@ -78,7 +78,7 @@ func Simulate(conodeAddress, simul, monitorAddress string) error {
 		// each level of the tree.
 		timeout := 1000
 		for wait {
-			p, err := rootSC.Overlay.CreateProtocolOnet("Count", rootSC.Tree)
+			p, err := rootSC.Overlay.CreateProtocol("Count", rootSC.Tree, onet.NilServiceID)
 			if err != nil {
 				return err
 			}
@@ -123,7 +123,7 @@ func Simulate(conodeAddress, simul, monitorAddress string) error {
 			closeTree = rootSC.Roster.GenerateBinaryTree()
 			rootSC.Overlay.RegisterTree(closeTree)
 		}
-		pi, err := rootSC.Overlay.CreateProtocolOnet("CloseAll", closeTree)
+		pi, err := rootSC.Overlay.CreateProtocol("CloseAll", closeTree, onet.NilServiceID)
 		pi.Start()
 		if err != nil {
 			return err

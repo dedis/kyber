@@ -25,6 +25,10 @@ func init() {
 // * Handling any kind of messages between Services between different hosts with
 //   	the Processor interface
 type Service interface {
+	// NewProtocol is called upon a ProtocolInstance's first message when Onet needs
+	// to instantiate the protocol. A Service is expected to manually create
+	// the ProtocolInstance it is using. If a Service returns (nil,nil), that
+	// means this Service lets Onet handle the protocol instance.
 	NewProtocol(*TreeNodeInstance, *GenericConfig) (ProtocolInstance, error)
 	// ProcessClientRequest is called when a message from an external client is received by
 	// the websocket for this service. It returns a message that will be
@@ -296,4 +300,23 @@ func (s *serviceManager) serviceByID(id ServiceID) (Service, bool) {
 		return nil, false
 	}
 	return serv, true
+}
+
+// newProtocol contains the logic of how and where a ProtocolInstance is
+// created. If the token's ServiceID is nil, then onet handles the creation of
+// the PI. If the corresponding service returns (nil,nil), then onet handles
+// the creation of the PI. Otherwise the service is responsible for setting up
+// the PI.
+func (s *serviceManager) newProtocol(tni *TreeNodeInstance, config *GenericConfig) (ProtocolInstance, error) {
+	si, ok := s.serviceByID(tni.Token().ServiceID)
+	defaultHandle := func() (ProtocolInstance, error) { return s.conode.protocolInstantiate(tni.Token().ProtoID, tni) }
+	if !ok {
+		// let onet handle it
+		return defaultHandle()
+	}
+	pi, err := si.NewProtocol(tni, config)
+	if pi == nil && err == nil {
+		return defaultHandle()
+	}
+	return pi, err
 }

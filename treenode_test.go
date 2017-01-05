@@ -16,7 +16,7 @@ func TestTreeNodeCreateProtocol(t *testing.T) {
 	defer local.CloseAll()
 
 	hosts, _, tree := local.GenTree(1, true)
-	pi, err := hosts[0].overlay.CreateProtocolOnet(spawnName, tree)
+	pi, err := hosts[0].overlay.CreateProtocol(spawnName, tree, NilServiceID)
 	log.ErrFatal(err)
 	p := pi.(*spawnProto)
 	p.spawn = true
@@ -33,7 +33,7 @@ func TestHandlerReturn(t *testing.T) {
 	defer local.CloseAll()
 
 	hosts, _, tree := local.GenTree(1, true)
-	pi, err := hosts[0].overlay.CreateProtocolOnet(spawnName, tree)
+	pi, err := hosts[0].overlay.CreateProtocol(spawnName, tree, NilServiceID)
 	log.ErrFatal(err)
 	p := pi.(*spawnProto)
 	assert.NotNil(t, p.RegisterHandler(p.HandlerError1))
