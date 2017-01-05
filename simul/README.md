@@ -6,7 +6,7 @@ different settings:
 - localhost - for up to 100 nodes
 - deterlab - for up to 50'000 nodes
 
-Refer to the simulation-examples in 
+Refer to the simulation-examples in simul/manage/simulation and 
 https://github.com/dedis/cothority_template
 
 ## Runfile for simulations
@@ -26,9 +26,9 @@ experiment, where each experiment makes up one line.
 - Hosts - how many hosts to instantiate
 - Servers - how many servers to use
 
-### sda.SimulationBFTree
+### onet.SimulationBFTree
 
-If you use the `sda.SimulationBFTree`, the following variables are also available:
+If you use the `onet.SimulationBFTree`, the following variables are also available:
 
 - BF - branching factor: how many children each node has
 - Depth - the depth of the tree in levels below the root-node

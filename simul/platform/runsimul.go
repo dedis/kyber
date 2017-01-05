@@ -1,7 +1,6 @@
-package simul
+package platform
 
 import (
-	"flag"
 	"sync"
 
 	"github.com/dedis/onet"
@@ -11,36 +10,17 @@ import (
 	"github.com/dedis/onet/simul/monitor"
 )
 
-// The address of this conode - if there is only one conode in the config
-// file, it will be derived from it automatically
-var conodeAddress string
-
-// ip addr of the logger to connect to
-var monitorAddress string
-
-// Simul is != "" if this node needs to start a simulation of that protocol
-var simul string
-
-// Initialize before 'init' so we can directly use the fields as parameters
-// to 'Flag'
-func init() {
-	flag.StringVar(&conodeAddress, "address", "", "our address to use")
-	flag.StringVar(&simul, "simul", "", "start simulating that protocol")
-	flag.StringVar(&monitorAddress, "monitor", "", "remote monitor")
-}
-
-// Main starts the conode and will setup the protocol.
-func simulate() {
-	flag.Parse()
+// Simulate starts the conode and will setup the protocol.
+func Simulate(conodeAddress, simul, monitorAddress string) error {
 	log.Lvl3("Flags are:", conodeAddress, simul, log.DebugVisible, monitorAddress)
 
 	scs, err := onet.LoadSimulationConfig(".", conodeAddress)
-	measures := make([]*monitor.CounterIOMeasure, len(scs))
 	if err != nil {
 		// We probably are not needed
 		log.Lvl2(err, conodeAddress)
-		return
+		return nil
 	}
+	measures := make([]*monitor.CounterIOMeasure, len(scs))
 	if monitorAddress != "" {
 		if err := monitor.ConnectSink(monitorAddress); err != nil {
 			log.Error("Couldn't connect monitor to sink:", err)
@@ -73,11 +53,11 @@ func simulate() {
 
 		sim, err := onet.NewSimulation(simul, sc.Config)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		err = sim.Node(sc)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		sims[i] = sim
 		if conode.ServerIdentity.ID == sc.Tree.Root.ServerIdentity.ID {
@@ -100,7 +80,7 @@ func simulate() {
 		for wait {
 			p, err := rootSC.Overlay.CreateProtocolOnet("Count", rootSC.Tree)
 			if err != nil {
-				log.Fatal(err)
+				return err
 			}
 			proto := p.(*manage.ProtocolCount)
 			proto.SetTimeout(timeout)
@@ -123,7 +103,7 @@ func simulate() {
 		measureNet := monitor.NewCounterIOMeasure("bandwidth_root", rootSC.Conode)
 		err := rootSim.Run(rootSC)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		measureNet.Record()
 
@@ -146,12 +126,15 @@ func simulate() {
 		pi, err := rootSC.Overlay.CreateProtocolOnet("CloseAll", closeTree)
 		pi.Start()
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 	}
 
 	log.Lvl3(conodeAddress, scs[0].Conode.ServerIdentity, "is waiting for all conodes to close")
 	wg.Wait()
 	log.Lvl2(conodeAddress, "has all conodes closed")
-	monitor.EndAndCleanup()
+	if monitorAddress != "" {
+		monitor.EndAndCleanup()
+	}
+	return nil
 }

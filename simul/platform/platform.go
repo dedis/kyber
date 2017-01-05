@@ -122,11 +122,11 @@ func ReadRunFile(p Platform, filename string) []*RunConfig {
 			break
 		}
 	}
-	args := strings.Split(scanner.Text(), ", ")
+	args := strings.Split(scanner.Text(), ",")
 	for scanner.Scan() {
 		rc := masterConfig.Clone()
 		// put each individual test configs
-		for i, value := range strings.Split(scanner.Text(), ", ") {
+		for i, value := range strings.Split(scanner.Text(), ",") {
 			rc.Put(strings.TrimSpace(args[i]), strings.TrimSpace(value))
 		}
 		runconfigs = append(runconfigs, rc)

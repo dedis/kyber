@@ -122,19 +122,23 @@ func AverageStats(stats []*Stats) *Stats {
 	s := new(Stats).init()
 	s.valuesMutex.Lock()
 	defer s.valuesMutex.Unlock()
+	stats[0].valuesMutex.Lock()
 	s.filter = stats[0].filter
 	s.static = stats[0].static
 	s.staticKeys = stats[0].staticKeys
 	s.keys = stats[0].keys
+	stats[0].valuesMutex.Unlock()
 	// Average
 	for _, k := range s.keys {
 		var values []*Value
 		for _, stat := range stats {
+			stat.valuesMutex.Lock()
 			value, ok := stat.values[k]
 			if !ok {
 				continue
 			}
 			values = append(values, value)
+			stat.valuesMutex.Unlock()
 		}
 		// make the average
 		avg := AverageValue(values...)
