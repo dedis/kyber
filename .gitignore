@@ -26,3 +26,5 @@ _testmain.go
 *.cov
 
 config/
+build/
+test_data/
