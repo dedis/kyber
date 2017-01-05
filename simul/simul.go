@@ -54,6 +54,7 @@ func Start(rcs ...string) {
 			Start()
 			os.Chdir(wd)
 		}
+		return
 	}
 	flag.Parse()
 	if simul == "" {
