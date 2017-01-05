@@ -66,7 +66,9 @@ func (s *Stats) Update(m *singleMeasure) {
 		s.keys = append(s.keys, m.Name)
 		sort.Strings(s.keys)
 	}
+	value.Lock()
 	value.Store(m.Value)
+	value.Unlock()
 }
 
 // WriteHeader will write the header to the writer
@@ -311,6 +313,7 @@ type Value struct {
 
 	// Store where are kept the values
 	store []float64
+	sync.Mutex
 }
 
 // NewValue returns a new value object with this name
@@ -376,7 +379,9 @@ func AverageValue(st ...*Value) *Value {
 			log.Error("Averaging not the sames Values ...?")
 			return new(Value)
 		}
+		s.Lock()
 		t.store = append(t.store, s.store...)
+		s.Unlock()
 	}
 	t.name = name
 	return &t
