@@ -127,6 +127,7 @@ func (d *Localhost) Deploy(rc *RunConfig) error {
 		return err
 	}
 	log.Lvl2("Localhost: Done deploying")
+	d.wgRun.Add(d.servers)
 	return nil
 
 }
@@ -143,7 +144,6 @@ func (d *Localhost) Start(args ...string) error {
 	log.Lvl1("Starting", d.servers, "applications of", ex)
 	time.Sleep(100 * time.Millisecond)
 	log.ErrFatal(monitor.ConnectSink("localhost:" + strconv.Itoa(d.monitorPort)))
-	d.wgRun.Add(d.servers)
 	// add one to the channel length to indicate it's done
 	d.errChan = make(chan error, d.servers+1)
 	for index := 0; index < d.servers; index++ {
