@@ -22,7 +22,7 @@ func TestDepth(t *testing.T) {
 		{5, 3, 156},
 	}
 	for _, s := range testStruct {
-		rc := *platform.NewRunConfig()
+		rc := platform.NewRunConfig()
 		rc.Put("bf", strconv.Itoa(s.BF))
 		rc.Put("depth", strconv.Itoa(s.depth))
 		CheckHosts(rc)

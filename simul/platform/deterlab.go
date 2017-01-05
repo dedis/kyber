@@ -223,7 +223,7 @@ func (d *Deterlab) Cleanup() error {
 
 // Deploy creates the appropriate configuration-files and copies everything to the
 // deterlab-installation.
-func (d *Deterlab) Deploy(rc RunConfig) error {
+func (d *Deterlab) Deploy(rc *RunConfig) error {
 	if err := os.RemoveAll(d.deployDir); err != nil {
 		return err
 	}

@@ -80,11 +80,11 @@ func startBuild() {
 		} else {
 			logname := strings.Replace(filepath.Base(simulation), ".toml", "", 1)
 			testsDone := make(chan bool)
+			timeout := getExperimentWait(runconfigs)
 			go func() {
 				RunTests(logname, runconfigs)
 				testsDone <- true
 			}()
-			timeout := getExperimentWait(runconfigs)
 			select {
 			case <-testsDone:
 				log.Lvl3("Done with test", simulation)
@@ -97,7 +97,7 @@ func startBuild() {
 
 // RunTests the given tests and puts the output into the
 // given file name. It outputs RunStats in a CSV format.
-func RunTests(name string, runconfigs []platform.RunConfig) {
+func RunTests(name string, runconfigs []*platform.RunConfig) {
 
 	if nobuild == false {
 		if race {
@@ -139,10 +139,10 @@ func RunTests(name string, runconfigs []platform.RunConfig) {
 	}
 
 	start, stop := getStartStop(len(runconfigs))
-	for i, t := range runconfigs {
+	for i, rc := range runconfigs {
 		// Implement a simple range-argument that will skip checks not in range
 		if i < start || i > stop {
-			log.Lvl2("Skipping", t, "because of range")
+			log.Lvl2("Skipping", rc, "because of range")
 			continue
 		}
 		// Waiting for the document-branch to be merged, then uncomment this
@@ -152,7 +152,7 @@ func RunTests(name string, runconfigs []platform.RunConfig) {
 		// take the average of all successful runs
 		runs := make([]*monitor.Stats, 0, nTimes)
 		for r := 0; r < nTimes; r++ {
-			stats, err := RunTest(t)
+			stats, err := RunTest(rc)
 			if err != nil {
 				log.Error("Error running test, trying again:", err)
 				continue
@@ -165,7 +165,7 @@ func RunTests(name string, runconfigs []platform.RunConfig) {
 		}
 
 		if len(runs) == 0 {
-			log.Lvl1("unable to get any data for test:", t)
+			log.Lvl1("unable to get any data for test:", rc)
 			continue
 		}
 
@@ -184,7 +184,7 @@ func RunTests(name string, runconfigs []platform.RunConfig) {
 
 // RunTest a single test - takes a test-file as a string that will be copied
 // to the deterlab-server
-func RunTest(rc platform.RunConfig) (*monitor.Stats, error) {
+func RunTest(rc *platform.RunConfig) (*monitor.Stats, error) {
 	done := make(chan struct{})
 	CheckHosts(rc)
 	rc.Delete("simulation")
@@ -242,7 +242,7 @@ func RunTest(rc platform.RunConfig) (*monitor.Stats, error) {
 
 // CheckHosts verifies that there is either a 'Hosts' or a 'Depth/BF'
 // -parameter in the Runconfig
-func CheckHosts(rc platform.RunConfig) {
+func CheckHosts(rc *platform.RunConfig) {
 	hosts, _ := rc.GetInt("hosts")
 	bf, _ := rc.GetInt("bf")
 	depth, _ := rc.GetInt("depth")
@@ -320,7 +320,7 @@ func getStartStop(rcs int) (int, int) {
 
 // getRunWait returns either the command-line value or the value from the runconfig
 // file
-func getRunWait(rc platform.RunConfig) int {
+func getRunWait(rc *platform.RunConfig) int {
 	rcWait, err := rc.GetInt("runwait")
 	if err == nil {
 		return rcWait
@@ -332,7 +332,7 @@ func getRunWait(rc platform.RunConfig) int {
 // 1. the command-line value
 // 2. the value from runconfig
 // 3. #runconfigs * runWait
-func getExperimentWait(rcs []platform.RunConfig) int {
+func getExperimentWait(rcs []*platform.RunConfig) int {
 	if experimentWait > 0 {
 		return experimentWait
 	}

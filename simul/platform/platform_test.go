@@ -47,7 +47,7 @@ type TPlat struct {
 
 func (t *TPlat) Configure(pc *platform.Config)       {}
 func (t *TPlat) Build(s string, arg ...string) error { return nil }
-func (t *TPlat) Deploy(rc platform.RunConfig) error  { return nil }
+func (t *TPlat) Deploy(rc *platform.RunConfig) error { return nil }
 func (t *TPlat) Start(...string) error               { return nil }
 func (t *TPlat) Stop() error                         { return nil }
 func (t *TPlat) Cleanup() error                      { return nil }

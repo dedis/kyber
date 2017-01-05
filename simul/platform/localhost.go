@@ -110,7 +110,7 @@ func (d *Localhost) Cleanup() error {
 }
 
 // Deploy copies all files to the run-directory
-func (d *Localhost) Deploy(rc RunConfig) error {
+func (d *Localhost) Deploy(rc *RunConfig) error {
 	if runtime.GOOS == "darwin" {
 		files, err := exec.Command("ulimit", "-n").Output()
 		if err != nil {
