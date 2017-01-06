@@ -68,12 +68,12 @@ func NewOverlay(c *Conode) *Overlay {
 	o.protoIO = newMessageProxyStore(c, o)
 	// messages going to protocol instances
 	c.RegisterProcessor(o,
-		ProtocolMsgID,          // protocol instance's messages
-		RequestTreeMessageID,   // request a tree
-		SendTreeMessageID,      // send a tree back to a request
-		RequestRosterMessageID, // request a roster
-		SendRosterMessageID,    // send a roster back to request
-		ConfigMessageID)        // fetch config information
+		ProtocolMsgID,      // protocol instance's messages
+		RequestTreeMsgID,   // request a tree
+		SendTreeMsgID,      // send a tree back to a request
+		RequestRosterMsgID, // request a roster
+		SendRosterMsgID,    // send a roster back to request
+		ConfigMsgID)        // fetch config information
 	return o
 }
 
@@ -81,7 +81,7 @@ func NewOverlay(c *Conode) *Overlay {
 // wants.
 func (o *Overlay) Process(data *network.Packet) {
 	// Messages handled by the overlay directly without any messageProxyIO
-	if data.MsgType == ConfigMessageID {
+	if data.MsgType == ConfigMsgID {
 		o.handleConfigMessage(data)
 		return
 	}
@@ -251,7 +251,7 @@ func (o *Overlay) requestTree(si *network.ServerIdentity, onetMsg *ProtocolMsg, 
 	o.savePendingMsg(onetMsg, io)
 
 	var msg interface{}
-	om := &OverlayMessage{
+	om := &OverlayMsg{
 		RequestTree: &RequestTree{onetMsg.To.TreeID},
 	}
 	msg, err := io.Wrap(nil, om)
@@ -341,7 +341,7 @@ func (o *Overlay) handleRequestTree(si *network.ServerIdentity, req *RequestTree
 		// "error" ?
 		treeM = (&Tree{}).MakeTreeMarshal()
 	}
-	msg, err = io.Wrap(nil, &OverlayMessage{
+	msg, err = io.Wrap(nil, &OverlayMsg{
 		TreeMarshal: treeM,
 	})
 
@@ -364,7 +364,7 @@ func (o *Overlay) handleSendTree(si *network.ServerIdentity, tm *TreeMarshal, io
 	roster := o.Roster(tm.RosterID)
 	// The roster does not exists, we should request that, too
 	if roster == nil {
-		msg, err := io.Wrap(nil, &OverlayMessage{
+		msg, err := io.Wrap(nil, &OverlayMsg{
 			RequestRoster: &RequestRoster{tm.RosterID},
 		})
 		if err != nil {
@@ -399,7 +399,7 @@ func (o *Overlay) handleRequestRoster(si *network.ServerIdentity, req *RequestRo
 		roster = &Roster{}
 	}
 
-	msg, err = io.Wrap(nil, &OverlayMessage{
+	msg, err = io.Wrap(nil, &OverlayMsg{
 		Roster: roster,
 	})
 
@@ -431,7 +431,7 @@ func (o *Overlay) handleSendRoster(si *network.ServerIdentity, roster *Roster) {
 // handleConfigMessage stores the config message so it can be dispatched
 // alongside with the protocol message later to the service.
 func (o *Overlay) handleConfigMessage(data *network.Packet) {
-	config, ok := data.Msg.(ConfigMessage)
+	config, ok := data.Msg.(ConfigMsg)
 	if !ok {
 		// This should never happen <=> assert
 		log.Panic(o.conode.Address(), "wrong config type")
@@ -467,14 +467,14 @@ func (o *Overlay) SendToTreeNode(from *Token, to *TreeNode, msg network.Body,
 
 	// first send the config if present
 	if c != nil {
-		if err := o.conode.Send(to.ServerIdentity, &ConfigMessage{*c, tokenTo.ID()}); err != nil {
+		if err := o.conode.Send(to.ServerIdentity, &ConfigMsg{*c, tokenTo.ID()}); err != nil {
 			log.Error("sending config failed:", err)
 			return err
 		}
 	}
 	// then send the message
 	var final interface{}
-	info := &OverlayMessage{
+	info := &OverlayMsg{
 		TreeNodeInfo: &TreeNodeInfo{
 			From: from,
 			To:   tokenTo,
@@ -723,7 +723,7 @@ func (tnc *TreeNodeCache) GetFromToken(tok *Token) *TreeNode {
 type defaultProtoIO struct{}
 
 // Wrap implements the MessageProxy interface for the Overlay.
-func (d *defaultProtoIO) Wrap(msg interface{}, info *OverlayMessage) (interface{}, error) {
+func (d *defaultProtoIO) Wrap(msg interface{}, info *OverlayMsg) (interface{}, error) {
 	if msg != nil {
 		buff, err := network.MarshalRegisteredType(msg)
 		if err != nil {
@@ -755,9 +755,9 @@ func (d *defaultProtoIO) Wrap(msg interface{}, info *OverlayMessage) (interface{
 }
 
 // Unwrap implements the MessageProxy interface for the Overlay.
-func (d *defaultProtoIO) Unwrap(msg interface{}) (interface{}, *OverlayMessage, error) {
+func (d *defaultProtoIO) Unwrap(msg interface{}) (interface{}, *OverlayMsg, error) {
 	var returnMsg interface{}
-	var returnOverlay = new(OverlayMessage)
+	var returnOverlay = new(OverlayMsg)
 	var err error
 
 	switch inner := msg.(type) {

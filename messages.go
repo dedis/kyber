@@ -11,20 +11,20 @@ import (
 // ID of ProtocolMsg message as registered in network
 var ProtocolMsgID = network.RegisterPacketType(ProtocolMsg{})
 
-// RequestTreeMessageID of RequestTree message as registered in network
-var RequestTreeMessageID = network.RegisterPacketType(RequestTree{})
+// RequestTreeMsgID of RequestTree message as registered in network
+var RequestTreeMsgID = network.RegisterPacketType(RequestTree{})
 
-// RequestRosterMessageID of RequestRoster message as registered in network
-var RequestRosterMessageID = network.RegisterPacketType(RequestRoster{})
+// RequestRosterMsgID of RequestRoster message as registered in network
+var RequestRosterMsgID = network.RegisterPacketType(RequestRoster{})
 
-// SendTreeMessageID of TreeMarshal message as registered in network
-var SendTreeMessageID = TreeMarshalTypeID
+// SendTreeMsgID of TreeMarshal message as registered in network
+var SendTreeMsgID = TreeMarshalTypeID
 
-// SendRosterMessageID of Roster message as registered in network
-var SendRosterMessageID = RosterTypeID
+// SendRosterMsgID of Roster message as registered in network
+var SendRosterMsgID = RosterTypeID
 
-// ConfigMessageID of the generic config message
-var ConfigMessageID = network.RegisterPacketType(ConfigMessage{})
+// ConfigMsgID of the generic config message
+var ConfigMsgID = network.RegisterPacketType(ConfigMsg{})
 
 // ProtocolMsg is to be embedded in every message that is made for a
 // ProtocolInstance
@@ -43,9 +43,9 @@ type ProtocolMsg struct {
 	MsgSlice []byte
 }
 
-// ConfigMessage is sent by the overlay containing a generic slice of bytes to
+// ConfigMsg is sent by the overlay containing a generic slice of bytes to
 // give to service in the `NewProtocol` method.
-type ConfigMessage struct {
+type ConfigMsg struct {
 	Config GenericConfig
 	Dest   TokenID
 }
@@ -123,9 +123,9 @@ type TreeNodeInfo struct {
 	From *Token
 }
 
-// OverlayMessage contains all routing-information about the tree and the
+// OverlayMsg contains all routing-information about the tree and the
 // roster.
-type OverlayMessage struct {
+type OverlayMsg struct {
 	TreeNodeInfo *TreeNodeInfo
 
 	RequestTree   *RequestTree

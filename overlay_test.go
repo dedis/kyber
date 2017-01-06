@@ -105,17 +105,17 @@ func newOverlayProc() *overlayProc {
 
 func (op *overlayProc) Process(msg *network.Packet) {
 	switch msg.MsgType {
-	case SendRosterMessageID:
+	case SendRosterMsgID:
 		op.sendRoster <- msg.Msg.(Roster)
 	case TreeMarshalTypeID:
 		op.treeMarshal <- msg.Msg.(TreeMarshal)
-	case RequestTreeMessageID:
+	case RequestTreeMsgID:
 		op.requestTree <- msg.Msg.(RequestTree)
 	}
 }
 
 func (op *overlayProc) Types() []network.PacketTypeID {
-	return []network.PacketTypeID{SendRosterMessageID, TreeMarshalTypeID}
+	return []network.PacketTypeID{SendRosterMsgID, TreeMarshalTypeID}
 }
 
 // Test propagation of roster - both known and unknown
@@ -159,7 +159,7 @@ func TestOverlayRosterPropagation(t *testing.T) {
 	packet := network.Packet{
 		ServerIdentity: h2.ServerIdentity,
 		Msg:            ros,
-		MsgType:        SendRosterMessageID,
+		MsgType:        SendRosterMsgID,
 	}
 	h1.overlay.Process(&packet)
 	list, ok := h1.Roster(el.ID)
@@ -179,7 +179,7 @@ func TestOverlayTreePropagation(t *testing.T) {
 	h2.AddRoster(el)
 
 	proc := newOverlayProc()
-	h1.RegisterProcessor(proc, SendTreeMessageID)
+	h1.RegisterProcessor(proc, SendTreeMsgID)
 	//h2.RegisterProcessor(proc, proc.Types()...)
 
 	// Check that h2 sends back an empty tree if it is unknown
@@ -208,7 +208,7 @@ func TestOverlayTreePropagation(t *testing.T) {
 	packet := network.Packet{
 		ServerIdentity: h2.ServerIdentity,
 		Msg:            tm,
-		MsgType:        SendTreeMessageID,
+		MsgType:        SendTreeMsgID,
 	}
 	h1.overlay.Process(&packet)
 
@@ -243,8 +243,8 @@ func TestOverlayRosterTreePropagation(t *testing.T) {
 	}
 
 	proc := newOverlayProc()
-	h1.RegisterProcessor(proc, SendRosterMessageID)
-	h1.RegisterProcessor(proc, SendTreeMessageID)
+	h1.RegisterProcessor(proc, SendRosterMsgID)
+	h1.RegisterProcessor(proc, SendTreeMsgID)
 
 	// check if we have the tree
 	treeM := <-proc.treeMarshal
@@ -252,7 +252,7 @@ func TestOverlayRosterTreePropagation(t *testing.T) {
 	packet := network.Packet{
 		ServerIdentity: h2.ServerIdentity,
 		Msg:            treeM,
-		MsgType:        SendTreeMessageID,
+		MsgType:        SendTreeMsgID,
 	}
 	// give it to overlay
 	h1.overlay.Process(&packet)
@@ -267,7 +267,7 @@ func TestOverlayRosterTreePropagation(t *testing.T) {
 	packet = network.Packet{
 		ServerIdentity: h2.ServerIdentity,
 		Msg:            roster,
-		MsgType:        SendRosterMessageID,
+		MsgType:        SendRosterMsgID,
 	}
 	h1.overlay.Process(&packet)
 

@@ -118,12 +118,12 @@ type MessageProxy interface {
 	// that has to be sent directly to the network alongside with any error that
 	// happened.
 	// If msg is nil, it is only an internal message of the Overlay.
-	Wrap(msg interface{}, info *OverlayMessage) (interface{}, error)
+	Wrap(msg interface{}, info *OverlayMsg) (interface{}, error)
 	// Unwrap takes the message coming from the network and returns the
 	// inner message that is going to be dispatched to the ProtocolInstance, the
 	// OverlayMessage needed by the Overlay to function correctly and then any
 	// error that might have occurred.
-	Unwrap(msg interface{}) (interface{}, *OverlayMessage, error)
+	Unwrap(msg interface{}) (interface{}, *OverlayMsg, error)
 	// PacketType returns the packet type ID that this Protocol expects from the
 	// network. This is needed in order for the Overlay to receive those
 	// messages and dispatch them to the correct MessageProxy.

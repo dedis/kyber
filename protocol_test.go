@@ -262,7 +262,7 @@ var chanProtoIOFeedback = make(chan string)
 const testProtoIOName = "TestIO"
 
 type OuterPacket struct {
-	Info  *OverlayMessage
+	Info  *OverlayMsg
 	Inner *SimpleMessage
 }
 
@@ -283,7 +283,7 @@ func eraseAllMessageProxy() {
 	messageProxyFactory.factories = nil
 }
 
-func (t *TestMessageProxy) Wrap(msg interface{}, info *OverlayMessage) (interface{}, error) {
+func (t *TestMessageProxy) Wrap(msg interface{}, info *OverlayMsg) (interface{}, error) {
 	outer := &OuterPacket{}
 	inner, ok := msg.(*SimpleMessage)
 	if !ok {
@@ -295,7 +295,7 @@ func (t *TestMessageProxy) Wrap(msg interface{}, info *OverlayMessage) (interfac
 	return outer, nil
 }
 
-func (t *TestMessageProxy) Unwrap(msg interface{}) (interface{}, *OverlayMessage, error) {
+func (t *TestMessageProxy) Unwrap(msg interface{}) (interface{}, *OverlayMsg, error) {
 	if msg == nil {
 		chanProtoIOFeedback <- "message nil!"
 		return nil, nil, errors.New("message nil")
