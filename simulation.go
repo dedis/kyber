@@ -115,7 +115,7 @@ func LoadSimulationConfig(dir, ha string) ([]*SimulationConfig, error) {
 			}
 		}
 		if len(ret) == 0 {
-			return nil, errors.New("Didn't find address: " + ha)
+			return nil, errors.New("Address not used in simulation: " + ha)
 		}
 	} else {
 		ret = append(ret, sc)
