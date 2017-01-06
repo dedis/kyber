@@ -79,22 +79,22 @@ func (c *Conode) Suite() abstract.Suite {
 }
 
 // GetStatus is a function that returns the status report of the server.
-func (c *Conode) GetStatus() Status {
-	m := make(map[string]string)
+func (c *Conode) GetStatus() *Status {
 	a := ServiceFactory.RegisteredServiceNames()
 	sort.Strings(a)
-	m["Available_Services"] = strings.Join(a, ",")
-	m["TX_bytes"] = strconv.FormatUint(c.Router.Tx(), 10)
-	m["RX_bytes"] = strconv.FormatUint(c.Router.Rx(), 10)
-	m["Uptime"] = time.Now().Sub(c.started).String()
-	m["System"] = fmt.Sprintf("%s/%s/%s", runtime.GOOS, runtime.GOARCH,
-		runtime.Version())
-	m["Version"] = Version
-	m["Host"] = c.ServerIdentity.Address.Host()
-	m["Port"] = c.ServerIdentity.Address.Port()
-	m["Description"] = c.ServerIdentity.Description
-	m["ConnType"] = string(c.ServerIdentity.Address.ConnType())
-	return m
+	return &Status{map[string]string{
+		"Available_Services": strings.Join(a, ","),
+		"TX_bytes":           strconv.FormatUint(c.Router.Tx(), 10),
+		"RX_bytes":           strconv.FormatUint(c.Router.Rx(), 10),
+		"Uptime":             time.Now().Sub(c.started).String(),
+		"System": fmt.Sprintf("%s/%s/%s", runtime.GOOS, runtime.GOARCH,
+			runtime.Version()),
+		"Version":     Version,
+		"Host":        c.ServerIdentity.Address.Host(),
+		"Port":        c.ServerIdentity.Address.Port(),
+		"Description": c.ServerIdentity.Description,
+		"ConnType":    string(c.ServerIdentity.Address.ConnType()),
+	}}
 }
 
 // Close closes the overlay and the Router
