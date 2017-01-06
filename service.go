@@ -87,9 +87,9 @@ var ServiceFactory = serviceFactory{
 
 // Register takes a name and a function, then creates a ServiceID out of it and stores the
 // mapping and the creation function.
-func (s *serviceFactory) Register(name string, fn NewServiceFunc) error {
+func (s *serviceFactory) Register(name string, fn NewServiceFunc) (ServiceID, error) {
 	if s.ServiceID(name) != NilServiceID {
-		return fmt.Errorf("service %s already registered", name)
+		return NilServiceID, fmt.Errorf("service %s already registered", name)
 	}
 	id := ServiceID(uuid.NewV5(uuid.NamespaceURL, name))
 	s.mutex.Lock()
@@ -99,7 +99,7 @@ func (s *serviceFactory) Register(name string, fn NewServiceFunc) error {
 		serviceID:   id,
 		name:        name,
 	})
-	return nil
+	return id, nil
 }
 
 // Unregister - mainly for tests
@@ -121,7 +121,7 @@ func (s *serviceFactory) Unregister(name string) error {
 }
 
 // RegisterNewService is a wrapper around service factory
-func RegisterNewService(name string, fn NewServiceFunc) error {
+func RegisterNewService(name string, fn NewServiceFunc) (ServiceID, error) {
 	return ServiceFactory.Register(name, fn)
 }
 

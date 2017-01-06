@@ -76,14 +76,15 @@ func TestServiceNew(t *testing.T) {
 
 func TestServiceProcessRequest(t *testing.T) {
 	link := make(chan bool, 1)
-	log.ErrFatal(RegisterNewService(dummyServiceName, func(c *Context, path string) Service {
+	_, err := RegisterNewService(dummyServiceName, func(c *Context, path string) Service {
 		ds := &DummyService{
 			link: link,
 			c:    c,
 			path: path,
 		}
 		return ds
-	}))
+	})
+	log.ErrFatal(err)
 	defer UnregisterService(dummyServiceName)
 
 	local := NewTCPTest()
@@ -94,11 +95,11 @@ func TestServiceProcessRequest(t *testing.T) {
 	// Send a request to the service
 	client := NewClient(dummyServiceName)
 	log.Lvl1("Sending request to service...")
-	_, err := client.Send(conode.ServerIdentity, "nil", []byte("a"))
+	_, cerr := client.Send(conode.ServerIdentity, "nil", []byte("a"))
 	log.Lvl2("Got reply")
-	require.Error(t, err)
-	require.Equal(t, 4100, err.ErrorCode())
-	require.Equal(t, "wrong message", err.ErrorMsg())
+	require.Error(t, cerr)
+	require.Equal(t, 4100, cerr.ErrorCode())
+	require.Equal(t, "wrong message", cerr.ErrorMsg())
 	// wait for the link
 	if <-link {
 		t.Fatal("was expecting false !")
@@ -243,11 +244,12 @@ func TestServiceBackForthProtocol(t *testing.T) {
 	defer local.CloseAll()
 
 	// register service
-	log.ErrFatal(RegisterNewService(backForthServiceName, func(c *Context, path string) Service {
+	_, err := RegisterNewService(backForthServiceName, func(c *Context, path string) Service {
 		return &simpleService{
 			ctx: c,
 		}
-	}))
+	})
+	log.ErrFatal(err)
 	defer ServiceFactory.Unregister(backForthServiceName)
 
 	// create conodes
@@ -262,8 +264,8 @@ func TestServiceBackForthProtocol(t *testing.T) {
 		Val:              10,
 	}
 	sr := &SimpleResponse{}
-	err := client.SendProtobuf(conodes[0].ServerIdentity, r, sr)
-	log.ErrFatal(err)
+	cerr := client.SendProtobuf(conodes[0].ServerIdentity, r, sr)
+	log.ErrFatal(cerr)
 	assert.Equal(t, sr.Val, 10)
 }
 
