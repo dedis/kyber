@@ -120,7 +120,7 @@ func (si *ServerIdentity) Equal(e2 *ServerIdentity) bool {
 // Toml converts an ServerIdentity to a Toml-structure
 func (si *ServerIdentity) Toml(suite abstract.Suite) *ServerIdentityToml {
 	var buf bytes.Buffer
-	if err := crypto.WritePub64(suite, &buf, si.Public); err != nil {
+	if err := crypto.Write64Pub(suite, &buf, si.Public); err != nil {
 		log.Error("Error while writing public key:", err)
 	}
 	return &ServerIdentityToml{
@@ -131,7 +131,7 @@ func (si *ServerIdentity) Toml(suite abstract.Suite) *ServerIdentityToml {
 
 // ServerIdentity converts an ServerIdentityToml structure back to an ServerIdentity
 func (si *ServerIdentityToml) ServerIdentity(suite abstract.Suite) *ServerIdentity {
-	pub, err := crypto.ReadPub64(suite, strings.NewReader(si.Public))
+	pub, err := crypto.Read64Pub(suite, strings.NewReader(si.Public))
 	if err != nil {
 		log.Error("Error while reading public key:", err)
 	}
