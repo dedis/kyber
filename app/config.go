@@ -1,15 +1,10 @@
-package config
+package app
 
 import (
-	"bufio"
 	"bytes"
-	"fmt"
 	"io"
 	"os"
-	"path"
 	"strings"
-
-	"os/user"
 
 	"github.com/BurntSushi/toml"
 	"github.com/dedis/crypto/abstract"
@@ -19,26 +14,18 @@ import (
 	"github.com/dedis/onet/network"
 )
 
-var in *bufio.Reader
-var out io.Writer
-
-func init() {
-	in = bufio.NewReader(os.Stdin)
-	out = os.Stdout
-}
-
-// CothoritydConfig is the configuration structure of the cothority daemon.
-type CothoritydConfig struct {
+// CothorityConfig is the configuration structure of the cothority daemon.
+type CothorityConfig struct {
 	Public      string
 	Private     string
 	Address     network.Address
 	Description string
 }
 
-// Save will save this CothoritydConfig to the given file name. It
+// Save will save this CothorityConfig to the given file name. It
 // will return an error if the file couldn't be created or if
 // there is an error in the encoding.
-func (hc *CothoritydConfig) Save(file string) error {
+func (hc *CothorityConfig) Save(file string) error {
 	fd, err := os.Create(file)
 	if err != nil {
 		return err
@@ -50,11 +37,11 @@ func (hc *CothoritydConfig) Save(file string) error {
 	return nil
 }
 
-// ParseCothorityd parses the config file into a CothoritydConfig.
-// It returns the CothoritydConfig, the Host so we can already use it, and an error if
+// ParseCothority parses the config file into a CothorityConfig.
+// It returns the CothorityConfig, the Host so we can already use it, and an error if
 // the file is inaccessible or has wrong values in it.
-func ParseCothorityd(file string) (*CothoritydConfig, *onet.Conode, error) {
-	hc := &CothoritydConfig{}
+func ParseCothority(file string) (*CothorityConfig, *onet.Conode, error) {
+	hc := &CothorityConfig{}
 	_, err := toml.DecodeFile(file, hc)
 	if err != nil {
 		return nil, nil, err
@@ -214,74 +201,4 @@ func (s *ServerToml) String() string {
 		return "## Error encoding server informations ##" + err.Error()
 	}
 	return buff.String()
-}
-
-// TildeToHome takes a path and replaces an eventual "~" with the home-directory.
-// If the user-directory is not defined it will return a path relative to the
-// root-directory "/".
-func TildeToHome(path string) string {
-	if strings.HasPrefix(path, "~/") {
-		usr, err := user.Current()
-		log.ErrFatal(err, "Got error while fetching home-directory")
-		return usr.HomeDir + path[1:]
-	}
-	return path
-}
-
-// Input prints the arguments given with an 'input'-format and
-// proposes the 'def' string as default. If the user presses
-// 'enter', the 'dev' will be returned.
-// In the case of an error it will Fatal.
-func Input(def string, args ...interface{}) string {
-	fmt.Fprint(out, args...)
-	fmt.Fprintf(out, " [%s]: ", def)
-	str, err := in.ReadString('\n')
-	if err != nil {
-		log.Fatal("Could not read input.")
-	}
-	str = strings.TrimSpace(str)
-	if str == "" {
-		return def
-	}
-	return str
-}
-
-// Inputf takes a format string and arguments and calls
-// Input.
-func Inputf(def string, f string, args ...interface{}) string {
-	return Input(def, fmt.Sprintf(f, args...))
-}
-
-// InputYN asks a Yes/No question. Anything else than upper/lower-case
-// 'y' will be interpreted as no.
-func InputYN(def bool, args ...interface{}) bool {
-	defStr := "Yn"
-	if !def {
-		defStr = "Ny"
-	}
-	return strings.ToLower(string(Input(defStr, args...)[0])) == "y"
-}
-
-// Copy makes a copy of a local file with the same file-mode-bits set.
-func Copy(dst, src string) error {
-	info, err := os.Stat(dst)
-	if err == nil && info.IsDir() {
-		return Copy(path.Join(dst, path.Base(src)), src)
-	}
-	fSrc, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer fSrc.Close()
-	stat, err := fSrc.Stat()
-	if err != nil {
-		return err
-	}
-	fDst, err := os.OpenFile(dst, os.O_CREATE|os.O_RDWR, stat.Mode())
-	if err != nil {
-		return err
-	}
-	defer fDst.Close()
-	_, err = io.Copy(fDst, fSrc)
-	return err
 }

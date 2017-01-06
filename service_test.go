@@ -1,6 +1,7 @@
 package onet
 
 import (
+	"bytes"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 )
 
 const dummyServiceName = "dummyService"
+const dummyService2Name = "dummyService2"
 const ismServiceName = "ismService"
 const backForthServiceName = "backForth"
 
@@ -23,6 +25,8 @@ func init() {
 	network.RegisterPacketType(SimpleRequest{})
 	dummyMsgType = network.RegisterPacketType(DummyMsg{})
 	RegisterNewService(ismServiceName, newServiceMessages)
+	RegisterNewService(dummyService2Name, newDummyService2)
+	GlobalProtocolRegister("DummyProtocol2,", newDummyProtocol2)
 }
 
 func TestServiceRegistration(t *testing.T) {
@@ -287,6 +291,36 @@ func TestServiceMessages(t *testing.T) {
 	require.True(t, <-ism.GotResponse, "Didn't get response")
 }
 
+func TestServiceGenericConfig(t *testing.T) {
+	local := NewLocalTest()
+	defer local.CloseAll()
+	conodes, _, tree := local.GenTree(2, true)
+
+	s1 := conodes[0].serviceManager.Service(dummyService2Name)
+	s2 := conodes[1].serviceManager.Service(dummyService2Name)
+
+	ds1 := s1.(*dummyService2)
+	ds2 := s2.(*dummyService2)
+
+	link := make(chan bool)
+	ds1.link = link
+	ds2.link = link
+
+	// First launch without any config
+	go ds1.launchProto(tree, false)
+	// wait for the service's protocol creation
+	waitOrFatalValue(link, true, t)
+	// wait for the service 2 say there is no config
+	waitOrFatalValue(link, false, t)
+	// then laucnh with config
+	go ds1.launchProto(tree, true)
+	// wait for the service's protocol creation
+	waitOrFatalValue(link, true, t)
+	// wait for the service 2 say there is no config
+	waitOrFatalValue(link, true, t)
+
+}
+
 // BackForthProtocolForth & Back are messages that go down and up the tree.
 // => BackForthProtocol protocol / message
 type SimpleMessageForth struct {
@@ -542,6 +576,63 @@ func newServiceMessages(c *Context, path string) Service {
 	}
 	c.RegisterProcessorFunc(SimpleResponseType, s.SimpleResponse)
 	return s
+}
+
+type dummyService2 struct {
+	*Context
+	link chan bool
+}
+
+func newDummyService2(c *Context, path string) Service {
+	return &dummyService2{Context: c}
+}
+
+func (ds *dummyService2) ProcessClientRequest(path string, buf []byte) ([]byte, ClientError) {
+	panic("should not be called")
+}
+
+var serviceConfig = []byte{0x01, 0x02, 0x03, 0x04}
+
+func (ds *dummyService2) NewProtocol(tn *TreeNodeInstance, conf *GenericConfig) (ProtocolInstance, error) {
+	ds.link <- conf != nil && bytes.Equal(conf.Data, serviceConfig)
+	return newDummyProtocol2(tn)
+}
+
+func (ds *dummyService2) Process(packet *network.Packet) {
+	panic("should not be called")
+}
+
+func (ds *dummyService2) launchProto(t *Tree, config bool) {
+	tni := ds.NewTreeNodeInstance(t, t.Root, dummyService2Name)
+	pi, err := newDummyProtocol2(tni)
+	err2 := ds.RegisterProtocolInstance(pi)
+	ds.link <- err == nil && err2 == nil
+
+	if config {
+		tni.SetConfig(&GenericConfig{serviceConfig})
+	}
+	go pi.Start()
+}
+
+type DummyProtocol2 struct {
+	*TreeNodeInstance
+	c chan WrapDummyMsg
+}
+
+type WrapDummyMsg struct {
+	*TreeNode
+	DummyMsg
+}
+
+func newDummyProtocol2(n *TreeNodeInstance) (ProtocolInstance, error) {
+	d := &DummyProtocol2{TreeNodeInstance: n}
+	d.c = make(chan WrapDummyMsg, 1)
+	d.RegisterChannel(d.c)
+	return d, nil
+}
+
+func (dp2 *DummyProtocol2) Start() error {
+	return dp2.SendToChildren(&DummyMsg{20})
 }
 
 func waitOrFatalValue(ch chan bool, v bool, t *testing.T) {

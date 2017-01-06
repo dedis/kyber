@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 
+	"sync"
+
 	"github.com/BurntSushi/toml"
 	"github.com/dedis/onet/log"
 )
@@ -28,7 +30,7 @@ type Platform interface {
 	// Copies the binaries to the appropriate directory/machines, together with
 	// the necessary configuration. RunConfig is a simple string that should
 	// be copied as 'app.toml' to the directory where the app resides
-	Deploy(RunConfig) error
+	Deploy(*RunConfig) error
 	// Starts the application and returns - non-blocking!
 	Start(args ...string) error
 	// Waits for the application to quit
@@ -71,8 +73,8 @@ func NewPlatform(t string) Platform {
 // n1..nn are configuration-options for one run
 // Both the global and the run-configuration are copied to both
 // the platform and the app-configuration.
-func ReadRunFile(p Platform, filename string) []RunConfig {
-	var runconfigs []RunConfig
+func ReadRunFile(p Platform, filename string) []*RunConfig {
+	var runconfigs []*RunConfig
 	masterConfig := NewRunConfig()
 	log.Lvl3("Reading file", filename)
 
@@ -120,14 +122,14 @@ func ReadRunFile(p Platform, filename string) []RunConfig {
 			break
 		}
 	}
-	args := strings.Split(scanner.Text(), ", ")
+	args := strings.Split(scanner.Text(), ",")
 	for scanner.Scan() {
 		rc := masterConfig.Clone()
 		// put each individual test configs
-		for i, value := range strings.Split(scanner.Text(), ", ") {
+		for i, value := range strings.Split(scanner.Text(), ",") {
 			rc.Put(strings.TrimSpace(args[i]), strings.TrimSpace(value))
 		}
-		runconfigs = append(runconfigs, *rc)
+		runconfigs = append(runconfigs, rc)
 	}
 
 	return runconfigs
@@ -137,6 +139,7 @@ func ReadRunFile(p Platform, filename string) []RunConfig {
 // Note: a "simulation" is a set of "tests"
 type RunConfig struct {
 	fields map[string]string
+	sync.RWMutex
 }
 
 // NewRunConfig returns an initialised config to be used for reading
@@ -148,18 +151,22 @@ func NewRunConfig() *RunConfig {
 }
 
 // One problem for now is RunConfig read also the ' " ' char (34 ASCII)
-// and thus when doing Get() , also return the value enclosed by ' " '
-// One fix is to each time we Get(), aautomatically delete those chars
+// and thus when doing Get(), also return the value enclosed by ' " '
+// One fix is to each time we Get(), automatically delete those chars
 var replacer = strings.NewReplacer("\"", "", "'", "")
 
 // Get returns the associated value of the field in the config
 func (r *RunConfig) Get(field string) string {
+	r.RLock()
+	defer r.RUnlock()
 	return replacer.Replace(r.fields[strings.ToLower(field)])
 }
 
 // Delete a field from the runconfig (delete for example Simulation which we
 // dont care in the final csv)
 func (r *RunConfig) Delete(field string) {
+	r.Lock()
+	defer r.Unlock()
 	delete(r.fields, field)
 }
 
@@ -175,11 +182,15 @@ func (r *RunConfig) GetInt(field string) (int, error) {
 
 // Put inserts a new field - value relationship
 func (r *RunConfig) Put(field, value string) {
+	r.Lock()
+	defer r.Unlock()
 	r.fields[strings.ToLower(field)] = value
 }
 
 // Toml returns this config as bytes in a Toml format
 func (r *RunConfig) Toml() []byte {
+	r.RLock()
+	defer r.RUnlock()
 	var buf bytes.Buffer
 	for k, v := range r.fields {
 		fmt.Fprintf(&buf, "%s = %s\n", k, v)
@@ -189,6 +200,8 @@ func (r *RunConfig) Toml() []byte {
 
 // Map returns this config as a Map
 func (r *RunConfig) Map() map[string]string {
+	r.RLock()
+	defer r.RUnlock()
 	tomap := make(map[string]string)
 	for k := range r.fields {
 		tomap[k] = r.Get(k)
@@ -198,6 +211,8 @@ func (r *RunConfig) Map() map[string]string {
 
 // Clone this runconfig so it has all fields-value relationship already present
 func (r *RunConfig) Clone() *RunConfig {
+	r.RLock()
+	defer r.RUnlock()
 	rc := NewRunConfig()
 	for k, v := range r.fields {
 		rc.fields[k] = v
@@ -207,6 +222,8 @@ func (r *RunConfig) Clone() *RunConfig {
 
 // String prints out the current status-line
 func (r *RunConfig) String() string {
+	r.RLock()
+	defer r.RUnlock()
 	fields := []string{"simulation", "servers", "hosts", "bf", "depth", "rounds"}
 	var ret string
 	for _, f := range fields {

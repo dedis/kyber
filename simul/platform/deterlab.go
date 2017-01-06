@@ -87,8 +87,8 @@ type Deterlab struct {
 	Hosts int
 	// Debugging-level: 0 is none - 5 is everything
 	Debug int
-	// The number of seconds to wait for closing the connection
-	CloseWait int
+	// RunWait for long simulations
+	RunWait int
 }
 
 var simulConfig *onet.SimulationConfig
@@ -223,7 +223,7 @@ func (d *Deterlab) Cleanup() error {
 
 // Deploy creates the appropriate configuration-files and copies everything to the
 // deterlab-installation.
-func (d *Deterlab) Deploy(rc RunConfig) error {
+func (d *Deterlab) Deploy(rc *RunConfig) error {
 	if err := os.RemoveAll(d.deployDir); err != nil {
 		return err
 	}
@@ -317,7 +317,7 @@ func (d *Deterlab) Start(args ...string) error {
 
 // Wait for the process to finish
 func (d *Deterlab) Wait() error {
-	wait := d.CloseWait
+	wait := d.RunWait
 	if wait == 0 {
 		wait = 600
 	}

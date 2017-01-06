@@ -45,16 +45,9 @@ func (c *Context) ServiceID() ServiceID {
 	return c.servID
 }
 
-// CreateProtocolService returns a ProtocolInstance bound to the service.
-func (c *Context) CreateProtocolService(name string, t *Tree) (ProtocolInstance, error) {
-	pi, err := c.overlay.CreateProtocolService(name, t, c.servID)
-	return pi, err
-}
-
-// CreateProtocolOnet is like CreateProtocolService but doesn't bind it to a
-// service, so it will be handled automatically by the onet.
-func (c *Context) CreateProtocolOnet(name string, t *Tree) (ProtocolInstance, error) {
-	pi, err := c.overlay.CreateProtocolOnet(name, t)
+// CreateProtocol returns a ProtocolInstance bound to the service.
+func (c *Context) CreateProtocol(name string, t *Tree) (ProtocolInstance, error) {
+	pi, err := c.overlay.CreateProtocol(name, t, c.servID)
 	return pi, err
 }
 

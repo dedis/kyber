@@ -99,7 +99,6 @@ func (p *ServiceProcessor) Process(packet *network.Packet) {
 // NewProtocol is a stub for services that don't want to intervene in the
 // protocol-handling.
 func (p *ServiceProcessor) NewProtocol(tn *TreeNodeInstance, conf *GenericConfig) (ProtocolInstance, error) {
-	log.Panic("Asked for new protocol, but none given.")
 	return nil, nil
 }
 

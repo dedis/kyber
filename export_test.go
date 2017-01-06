@@ -1,11 +1,11 @@
 package onet
 
 func (c *Conode) CreateProtocol(name string, t *Tree) (ProtocolInstance, error) {
-	return c.overlay.CreateProtocolOnet(name, t)
+	return c.overlay.CreateProtocol(name, t, NilServiceID)
 }
 
 func (c *Conode) StartProtocol(name string, t *Tree) (ProtocolInstance, error) {
-	return c.overlay.StartProtocol(t, name)
+	return c.overlay.StartProtocol(name, t, NilServiceID)
 }
 
 func (c *Conode) Roster(id RosterID) (*Roster, bool) {

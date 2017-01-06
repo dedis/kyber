@@ -1,4 +1,4 @@
-package server
+package app
 
 import (
 	"bytes"
@@ -13,10 +13,8 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/dedis/onet"
-	"github.com/dedis/onet/app/config"
 	"github.com/dedis/onet/crypto"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
@@ -44,9 +42,6 @@ const DefaultAddress = "127.0.0.1"
 // Service used to get the public IP-address.
 const whatsMyIP = "http://www.whatsmyip.org/"
 
-// RequestTimeOut is how long we're willing to wait for a signature.
-var RequestTimeOut = time.Second * 10
-
 // InteractiveConfig uses stdin to get the [address:]PORT of the server.
 // If no address is given, whatsMyIP is used to find the public IP. In case
 // no public IP can be configured, localhost will be used.
@@ -54,7 +49,7 @@ var RequestTimeOut = time.Second * 10
 // In case of an error this method Fatals.
 func InteractiveConfig(binaryName string) {
 	log.Info("Setting up a cothority-server.")
-	str := config.Inputf(strconv.Itoa(DefaultPort), "Please enter the [address:]PORT for incoming requests")
+	str := Inputf(strconv.Itoa(DefaultPort), "Please enter the [address:]PORT for incoming requests")
 	// let's dissect the port / IP
 	var hostStr string
 	var ipProvided = true
@@ -87,7 +82,7 @@ func InteractiveConfig(binaryName string) {
 		return
 	}
 
-	log.Info("We now need to get a reachable address for other CoSi servers")
+	log.Info("We now need to get a reachable address for other Conodes")
 	log.Info("and clients to contact you. This address will be put in a group definition")
 	log.Info("file that you can share and combine with others to form a Cothority roster.")
 
@@ -138,11 +133,11 @@ func InteractiveConfig(binaryName string) {
 
 	// create the keys
 	privStr, pubStr := createKeyPair()
-	conf := &config.CothoritydConfig{
+	conf := &CothorityConfig{
 		Public:  pubStr,
 		Private: privStr,
 		Address: publicAddress,
-		Description: config.Input("New cothority",
+		Description: Input("New cothority",
 			"Give a description of the cothority"),
 	}
 
@@ -154,7 +149,7 @@ func InteractiveConfig(binaryName string) {
 
 	for !configDone {
 		// get name of config file and write to config file
-		configFolder = config.Input(defaultFolder, "Please enter a folder for the configuration files")
+		configFolder = Input(defaultFolder, "Please enter a folder for the configuration files")
 		configFile = path.Join(configFolder, DefaultServerConfig)
 		groupFile = path.Join(configFolder, DefaultGroupFile)
 
@@ -176,8 +171,8 @@ func InteractiveConfig(binaryName string) {
 		log.Fatal("Impossible to parse public key:", err)
 	}
 
-	server := config.NewServerToml(network.Suite, public, publicAddress, conf.Description)
-	group := config.NewGroupToml(server)
+	server := NewServerToml(network.Suite, public, publicAddress, conf.Description)
+	group := NewGroupToml(server)
 
 	saveFiles(conf, configFile, group, groupFile)
 	log.Info("All configurations saved, ready to serve signatures now.")
@@ -198,7 +193,7 @@ func entityListToPublics(el *onet.Roster) []abstract.Point {
 func checkOverwrite(file string) bool {
 	// check if the file exists and ask for override
 	if _, err := os.Stat(file); err == nil {
-		return config.InputYN(true, "Configuration file "+file+" already exists. Override?")
+		return InputYN(true, "Configuration file "+file+" already exists. Override?")
 	}
 	return true
 }
@@ -224,10 +219,10 @@ func createKeyPair() (string, string) {
 	return privStr, pubStr
 }
 
-// saveFiles takes a CothoritydConfig and its filename, and a GroupToml and its filename,
+// saveFiles takes a CothorityConfig and its filename, and a GroupToml and its filename,
 // and saves the data to these files.
 // In case of a failure it Fatals.
-func saveFiles(conf *config.CothoritydConfig, fileConf string, group *config.GroupToml, fileGroup string) {
+func saveFiles(conf *CothorityConfig, fileConf string, group *GroupToml, fileGroup string) {
 	if err := conf.Save(fileConf); err != nil {
 		log.Fatal("Unable to write the config to file:", err)
 	}
@@ -270,7 +265,7 @@ func GetDefaultConfigFile(binaryName string) string {
 // and adding port if necessary.
 // In case of an error, it will Fatal.
 func askReachableAddress(port string) network.Address {
-	ipStr := config.Input(DefaultAddress, "IP-address where your server can be reached")
+	ipStr := Input(DefaultAddress, "IP-address where your server can be reached")
 
 	splitted := strings.Split(ipStr, ":")
 	if len(splitted) == 2 && splitted[1] != port {
@@ -357,7 +352,7 @@ func RunServer(configFilename string) {
 		log.Fatalf("[-] Configuration file does not exists. %s", configFilename)
 	}
 	// Let's read the config
-	_, conode, err := config.ParseCothorityd(configFilename)
+	_, conode, err := ParseCothority(configFilename)
 	if err != nil {
 		log.Fatal("Couldn't parse config:", err)
 	}

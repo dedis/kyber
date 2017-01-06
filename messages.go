@@ -23,6 +23,9 @@ var SendTreeMessageID = TreeMarshalTypeID
 // SendRosterMessageID of Roster message as registered in network
 var SendRosterMessageID = RosterTypeID
 
+// ConfigMessageID of the generic config message
+var ConfigMessageID = network.RegisterPacketType(ConfigMessage{})
+
 // ProtocolMsg is to be embedded in every message that is made for a
 // ProtocolInstance
 type ProtocolMsg struct {
@@ -38,8 +41,13 @@ type ProtocolMsg struct {
 	Msg network.Body
 	// The actual data as binary blob
 	MsgSlice []byte
-	// Config the actual config
+}
+
+// ConfigMessage is sent by the overlay containing a generic slice of bytes to
+// give to service in the `NewProtocol` method.
+type ConfigMessage struct {
 	Config GenericConfig
+	Dest   TokenID
 }
 
 // RoundID uniquely identifies a round of a protocol run

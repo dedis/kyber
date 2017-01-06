@@ -30,7 +30,7 @@ func TestNewWebSocket(t *testing.T) {
 	url, err := getWebAddress(c.ServerIdentity, false)
 	log.ErrFatal(err)
 	ws, err := websocket.Dial(fmt.Sprintf("ws://%s/WebSocket/SimpleResponse", url),
-		"", "http://localhost/")
+		"", "http://"+url)
 	log.ErrFatal(err)
 	req := &SimpleResponse{}
 	log.Lvlf1("Sending message Request: %x", uuid.UUID(network.TypeFromData(req)).Bytes())
@@ -137,6 +137,11 @@ func TestNewClientError(t *testing.T) {
 
 	assert.True(t, NewClientError(nil) == nil)
 	assert.True(t, NewClientError((error)(nil)) == nil)
+}
+
+func TestNewClientKeep(t *testing.T) {
+	c := NewClientKeep(serviceWebSocket)
+	assert.True(t, c.keep)
 }
 
 const serviceWebSocket = "WebSocket"

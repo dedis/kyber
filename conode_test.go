@@ -17,7 +17,7 @@ func TestConode_ProtocolRegisterName(t *testing.T) {
 	log.ErrFatal(err)
 	require.NotNil(t, id)
 	require.True(t, plen < len(c.protocols.instantiators))
-	_, err = c.ProtocolInstantiate(ProtocolID(uuid.Nil), nil)
+	_, err = c.protocolInstantiate(ProtocolID(uuid.Nil), nil)
 	require.NotNil(t, err)
 	// Test for not overwriting
 	_, err = c.ProtocolRegister("ConodeProtocol", NewConodeProtocol2)

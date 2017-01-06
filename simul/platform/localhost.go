@@ -7,12 +7,14 @@ import (
 	"runtime"
 	"strconv"
 	"sync"
-	"time"
 
 	"strings"
 
+	"time"
+
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/simul/monitor"
 )
 
 // Localhost is responsible for launching the app with the specified number of nodes
@@ -69,7 +71,6 @@ func (d *Localhost) Configure(pc *Config) {
 	d.debug = pc.Debug
 	d.running = false
 	d.monitorPort = pc.MonitorPort
-	d.errChan = make(chan error)
 	if d.Simulation == "" {
 		log.Fatal("No simulation defined in simulation")
 	}
@@ -77,49 +78,24 @@ func (d *Localhost) Configure(pc *Config) {
 	log.Lvl3("Localhost configured ...")
 }
 
-// Build makes sure that the binary is available for our local platform
+// Build does nothing, as we're using our own binary, no need to build
 func (d *Localhost) Build(build string, arg ...string) error {
-	src := "."
-	dst := d.runDir + "/" + d.Simulation
-	start := time.Now()
-	// build for the local machine
-	res, err := Build(src, dst,
-		runtime.GOARCH, runtime.GOOS,
-		arg...)
-	if err != nil {
-		log.Fatal("Error while building for localhost (src", src, ", dst", dst, ":", res)
-	}
-	log.Lvl3("Localhost: Build src", src, ", dst", dst)
-	log.Lvl4("Localhost: Results of localhost build:", res)
-	log.Lvl2("Localhost: build finished in", time.Since(start))
-	return err
+	return nil
 }
 
 // Cleanup kills all running cothority-binaryes
 func (d *Localhost) Cleanup() error {
-	log.Lvl3("Cleaning up")
-	ex := d.runDir + "/" + d.Simulation
-	err := exec.Command("pkill", "-f", ex).Run()
-	if err != nil {
-		log.Lvl3("Error stopping localhost", err)
-	}
-
-	// Wait for eventual connections to clean up
-	time.Sleep(time.Second)
+	log.Lvl1("Nothing to clean up")
 	return nil
 }
 
 // Deploy copies all files to the run-directory
-func (d *Localhost) Deploy(rc RunConfig) error {
+func (d *Localhost) Deploy(rc *RunConfig) error {
 	if runtime.GOOS == "darwin" {
 		files, err := exec.Command("ulimit", "-n").Output()
-		if err != nil {
-			log.Fatal("Couldn't check for file-limit:", err)
-		}
+		log.ErrFatal(err)
 		filesNbr, err := strconv.Atoi(strings.TrimSpace(string(files)))
-		if err != nil {
-			log.Fatal("Couldn't convert", files, "to a number:", err)
-		}
+		log.ErrFatal(err)
 		hosts, _ := strconv.Atoi(rc.Get("hosts"))
 		if filesNbr < hosts*2 {
 			maxfiles := 10000 + hosts*2
@@ -151,6 +127,7 @@ func (d *Localhost) Deploy(rc RunConfig) error {
 		return err
 	}
 	log.Lvl2("Localhost: Done deploying")
+	d.wgRun.Add(d.servers)
 	return nil
 
 }
@@ -165,23 +142,16 @@ func (d *Localhost) Start(args ...string) error {
 	ex := d.runDir + "/" + d.Simulation
 	d.running = true
 	log.Lvl1("Starting", d.servers, "applications of", ex)
+	time.Sleep(100 * time.Millisecond)
+	log.ErrFatal(monitor.ConnectSink("localhost:" + strconv.Itoa(d.monitorPort)))
+	// add one to the channel length to indicate it's done
+	d.errChan = make(chan error, d.servers+1)
 	for index := 0; index < d.servers; index++ {
-		d.wgRun.Add(1)
 		log.Lvl3("Starting", index)
 		host := "127.0.0." + strconv.Itoa(index)
-		cmdArgs := []string{"-address", host, "-monitor",
-			"localhost:" + strconv.Itoa(d.monitorPort),
-			"-simul", d.Simulation,
-			"-debug", strconv.Itoa(log.DebugVisible()),
-		}
-		cmdArgs = append(args, cmdArgs...)
-		log.Lvl3("CmdArgs are", cmdArgs)
-		cmd := exec.Command(ex, cmdArgs...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
 		go func(i int, h string) {
-			log.Lvl3("Localhost: will start host", h)
-			err := cmd.Run()
+			log.Lvl3("Localhost: will start host", i, h)
+			err := Simulate(host, d.Simulation, "")
 			if err != nil {
 				log.Error("Error running localhost", h, ":", err)
 				d.errChan <- err
@@ -217,7 +187,7 @@ func (d *Localhost) Wait() error {
 			err = e
 		}
 	}
-
+	monitor.EndAndCleanup()
 	log.Lvl2("Processes finished")
 	return err
 }

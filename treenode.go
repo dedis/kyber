@@ -48,6 +48,11 @@ type TreeNodeInstance struct {
 	closing bool
 
 	protoIO MessageProxy
+
+	// config is to be passed down in the first message of what the protocol is
+	// sending if it is non nil. Set with `tni.SetConfig()`.
+	config    *GenericConfig
+	configMut sync.Mutex
 }
 
 // aggregateMessages (if set) tells to aggregate messages from all children
@@ -118,7 +123,16 @@ func (n *TreeNodeInstance) SendTo(to *TreeNode, msg interface{}) error {
 	if to == nil {
 		return errors.New("Sent to a nil TreeNode")
 	}
-	return n.overlay.SendToTreeNode(n.token, to, msg, n.protoIO)
+	var c *GenericConfig
+	// only sends the config once
+	n.configMut.Lock()
+	if n.config != nil {
+		c = n.config
+		n.config = nil
+	}
+	n.configMut.Unlock()
+
+	return n.overlay.SendToTreeNode(n.token, to, msg, n.protoIO, c)
 }
 
 // Tree returns the tree of that node
@@ -627,7 +641,7 @@ func (n *TreeNodeInstance) SendToChildrenInParallel(msg interface{}) error {
 // returns it with any error that might have happened during the creation. This
 // protocol is only handled by onet, no service are "attached" to it.
 func (n *TreeNodeInstance) CreateProtocol(name string, t *Tree) (ProtocolInstance, error) {
-	pi, err := n.overlay.CreateProtocolOnet(name, t)
+	pi, err := n.overlay.CreateProtocol(name, t, NilServiceID)
 	return pi, err
 }
 
@@ -644,6 +658,16 @@ func (n *TreeNodeInstance) Host() *Conode {
 func (n *TreeNodeInstance) TreeNodeInstance() *TreeNodeInstance {
 	return n
 }
+
+// SetConfig sets the GenericConfig c to be passed down in the first message
+// alongside with the protocol if it is non nil. This config can later be read
+// by Services in the NewProtocol method.
+func (n *TreeNodeInstance) SetConfig(c *GenericConfig) {
+	n.configMut.Lock()
+	defer n.configMut.Unlock()
+	n.config = c
+}
+
 func (n *TreeNodeInstance) isBound() bool {
 	return n.instance != nil
 }

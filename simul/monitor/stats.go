@@ -66,7 +66,9 @@ func (s *Stats) Update(m *singleMeasure) {
 		s.keys = append(s.keys, m.Name)
 		sort.Strings(s.keys)
 	}
+	value.Lock()
 	value.Store(m.Value)
+	value.Unlock()
 }
 
 // WriteHeader will write the header to the writer
@@ -120,19 +122,23 @@ func AverageStats(stats []*Stats) *Stats {
 	s := new(Stats).init()
 	s.valuesMutex.Lock()
 	defer s.valuesMutex.Unlock()
+	stats[0].valuesMutex.Lock()
 	s.filter = stats[0].filter
 	s.static = stats[0].static
 	s.staticKeys = stats[0].staticKeys
 	s.keys = stats[0].keys
+	stats[0].valuesMutex.Unlock()
 	// Average
 	for _, k := range s.keys {
 		var values []*Value
 		for _, stat := range stats {
+			stat.valuesMutex.Lock()
 			value, ok := stat.values[k]
 			if !ok {
 				continue
 			}
 			values = append(values, value)
+			stat.valuesMutex.Unlock()
 		}
 		// make the average
 		avg := AverageValue(values...)
@@ -311,6 +317,7 @@ type Value struct {
 
 	// Store where are kept the values
 	store []float64
+	sync.Mutex
 }
 
 // NewValue returns a new value object with this name
@@ -376,7 +383,9 @@ func AverageValue(st ...*Value) *Value {
 			log.Error("Averaging not the sames Values ...?")
 			return new(Value)
 		}
+		s.Lock()
 		t.store = append(t.store, s.store...)
+		s.Unlock()
 	}
 	t.name = name
 	return &t

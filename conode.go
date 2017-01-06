@@ -123,8 +123,8 @@ func (c *Conode) ProtocolRegister(name string, protocol NewProtocol) (ProtocolID
 	return c.protocols.Register(name, protocol)
 }
 
-// ProtocolInstantiate instantiate a protocol from its ID
-func (c *Conode) ProtocolInstantiate(protoID ProtocolID, tni *TreeNodeInstance) (ProtocolInstance, error) {
+// protocolInstantiate instantiate a protocol from its ID
+func (c *Conode) protocolInstantiate(protoID ProtocolID, tni *TreeNodeInstance) (ProtocolInstance, error) {
 	fn, ok := c.protocols.instantiators[c.protocols.ProtocolIDToName(protoID)]
 	if !ok {
 		return nil, errors.New("No protocol constructor with this ID")

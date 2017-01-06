@@ -1,0 +1,7 @@
+Servers = 16
+Simulation = "Count"
+BF = 2
+
+Hosts,Rounds
+3, 3
+7,3

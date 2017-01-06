@@ -47,15 +47,9 @@ type Overlay struct {
 	transmitMux sync.Mutex
 
 	protoIO *messageProxyStore
-}
 
-// pendingMsg is used to store messages destined for ProtocolInstances but when
-// the tree designated is not known to the Overlay. When the tree is sent to the
-// overlay, then the pendingMsg that are relying on this tree will get
-// processed.
-type pendingMsg struct {
-	*ProtocolMsg
-	MessageProxy
+	pendingConfigs    map[TokenID]*GenericConfig
+	pendingConfigsMut sync.Mutex
 }
 
 // NewOverlay creates a new overlay-structure
@@ -69,6 +63,7 @@ func NewOverlay(c *Conode) *Overlay {
 		instancesInfo:      make(map[TokenID]bool),
 		protocolInstances:  make(map[TokenID]ProtocolInstance),
 		pendingTreeMarshal: make(map[RosterID][]*TreeMarshal),
+		pendingConfigs:     make(map[TokenID]*GenericConfig),
 	}
 	o.protoIO = newMessageProxyStore(c, o)
 	// messages going to protocol instances
@@ -77,13 +72,20 @@ func NewOverlay(c *Conode) *Overlay {
 		RequestTreeMessageID,   // request a tree
 		SendTreeMessageID,      // send a tree back to a request
 		RequestRosterMessageID, // request a roster
-		SendRosterMessageID)    // send a roster back to request
+		SendRosterMessageID,    // send a roster back to request
+		ConfigMessageID)        // fetch config information
 	return o
 }
 
 // Process implements the Processor interface so it process the messages that it
 // wants.
 func (o *Overlay) Process(data *network.Packet) {
+	// Messages handled by the overlay directly without any messageProxyIO
+	if data.MsgType == ConfigMessageID {
+		o.handleConfigMessage(data)
+		return
+	}
+
 	// get messageProxy or default one
 	io := o.protoIO.getByPacketType(data.MsgType)
 	inner, info, err := io.Unwrap(data.Msg)
@@ -146,39 +148,24 @@ func (o *Overlay) TransmitMsg(onetMsg *ProtocolMsg, io MessageProxy) error {
 			return errors.New("No TreeNode defined in this tree here")
 		}
 		tni := o.newTreeNodeInstanceFromToken(tn, onetMsg.To, io)
-		// see if we know the Service Recipient
-		s, ok := o.conode.serviceManager.serviceByID(onetMsg.To.ServiceID)
-
-		// no servies defined => check if there is a protocol that can be
-		// created
-		if !ok {
-			pi, err = o.conode.ProtocolInstantiate(onetMsg.To.ProtoID, tni)
-			if err != nil {
-				return err
-			}
-			go pi.Dispatch()
-
-			/// use the Services to instantiate it
-		} else {
-			// request the PI from the Service and binds the two
-			pi, err = s.NewProtocol(tni, &onetMsg.Config)
-			if err != nil {
-				return err
-			}
-			if pi == nil {
-				return nil
-			}
-			go pi.Dispatch()
+		// retrieve the possible generic config for this message
+		config := o.getConfig(onetMsg.To.ID())
+		// request the PI from the Service and binds the two
+		pi, err = o.conode.serviceManager.newProtocol(tni, config)
+		if err != nil {
+			return err
 		}
+		if pi == nil {
+			return nil
+		}
+		go pi.Dispatch()
 		if err := o.RegisterProtocolInstance(pi); err != nil {
-			return errors.New("Error Binding TreeNodeInstance and ProtocolInstance: " +
+			return errors.New("Error Binding TreeNodeInstance and ProtocolInstance:" +
 				err.Error())
 		}
 		log.Lvl4(o.conode.Address(), "Overlay created new ProtocolInstace msg => ",
 			fmt.Sprintf("%+v", onetMsg.To))
-
 	}
-
 	// TODO Check if TreeNodeInstance is already Done
 	pi.ProcessProtocolMsg(onetMsg)
 	return nil
@@ -441,13 +428,56 @@ func (o *Overlay) handleSendRoster(si *network.ServerIdentity, roster *Roster) {
 	log.Lvl4("Received new entityList")
 }
 
+// handleConfigMessage stores the config message so it can be dispatched
+// alongside with the protocol message later to the service.
+func (o *Overlay) handleConfigMessage(data *network.Packet) {
+	config, ok := data.Msg.(ConfigMessage)
+	if !ok {
+		// This should never happen <=> assert
+		log.Panic(o.conode.Address(), "wrong config type")
+		return
+	}
+
+	o.pendingConfigsMut.Lock()
+	defer o.pendingConfigsMut.Unlock()
+	o.pendingConfigs[config.Dest] = &config.Config
+}
+
+// getConfig returns the generic config corresponding to this node if present,
+// and removes it from the list of pending configs.
+func (o *Overlay) getConfig(id TokenID) *GenericConfig {
+	o.pendingConfigsMut.Lock()
+	defer o.pendingConfigsMut.Unlock()
+	c := o.pendingConfigs[id]
+	delete(o.pendingConfigs, id)
+	return c
+}
+
 // SendToTreeNode sends a message to a treeNode
-func (o *Overlay) SendToTreeNode(from *Token, to *TreeNode, msg network.Body, io MessageProxy) error {
+// from is the sender token
+// to is the treenode of the destination
+// msg is the message to send
+// io is the messageproxy used to correctly create the wire format
+// c is the generic config that should be sent beforehand in order to get passed
+// in the `NewProtocol` method if a Service has created the protocol and set the
+// config with `SetConfig`. It can be nil.
+func (o *Overlay) SendToTreeNode(from *Token, to *TreeNode, msg network.Body,
+	io MessageProxy, c *GenericConfig) error {
+	tokenTo := from.ChangeTreeNodeID(to.ID)
+
+	// first send the config if present
+	if c != nil {
+		if err := o.conode.Send(to.ServerIdentity, &ConfigMessage{*c, tokenTo.ID()}); err != nil {
+			log.Error("sending config failed:", err)
+			return err
+		}
+	}
+	// then send the message
 	var final interface{}
 	info := &OverlayMessage{
 		TreeNodeInfo: &TreeNodeInfo{
 			From: from,
-			To:   from.ChangeTreeNodeID(to.ID),
+			To:   tokenTo,
 		},
 	}
 	final, err := io.Wrap(msg, info)
@@ -497,19 +527,14 @@ func (o *Overlay) Close() {
 	}
 }
 
-// CreateProtocolOnet returns a fresh Protocol Instance with an attached
-// TreeNodeInstance. This protocol won't be handled by the service, but
-// only by the onet.
-func (o *Overlay) CreateProtocolOnet(name string, t *Tree) (ProtocolInstance, error) {
-	return o.CreateProtocolService(name, t, ServiceID(uuid.Nil))
-}
-
-// CreateProtocolService adds the service-id to the token so the protocol will
-// be picked up by the correct service and handled by its NewProtocol method.
-func (o *Overlay) CreateProtocolService(name string, t *Tree, sid ServiceID) (ProtocolInstance, error) {
+// CreateProtocol creates a ProtocolInstance, registers it to the Overlay.
+// Additionally, if sid is different than NilServiceID, sid is added to the token
+// so the protocol will be picked up by the correct service and handled by its
+// NewProtocol method. If the sid is NilServiceID, then the protoocol is handled by onet alone.
+func (o *Overlay) CreateProtocol(name string, t *Tree, sid ServiceID) (ProtocolInstance, error) {
 	io := o.protoIO.getByName(name)
 	tni := o.NewTreeNodeInstanceFromService(t, t.Root, ProtocolNameToID(name), sid, io)
-	pi, err := o.conode.ProtocolInstantiate(tni.token.ProtoID, tni)
+	pi, err := o.conode.protocolInstantiate(tni.token.ProtoID, tni)
 	if err != nil {
 		return nil, err
 	}
@@ -520,9 +545,9 @@ func (o *Overlay) CreateProtocolService(name string, t *Tree, sid ServiceID) (Pr
 	return pi, err
 }
 
-// StartProtocol will create and start a P.I.
-func (o *Overlay) StartProtocol(t *Tree, name string) (ProtocolInstance, error) {
-	pi, err := o.CreateProtocolOnet(name, t)
+// StartProtocol will create and start a ProtocolInstance.
+func (o *Overlay) StartProtocol(name string, t *Tree, sid ServiceID) (ProtocolInstance, error) {
+	pi, err := o.CreateProtocol(name, t, sid)
 	if err != nil {
 		return nil, err
 	}
@@ -619,6 +644,15 @@ func (o *Overlay) RegisterProtocolInstance(pi ProtocolInstance) error {
 	o.protocolInstances[tok.ID()] = pi
 	log.Lvlf4("%s registered ProtocolInstance %x", o.conode.Address(), tok.ID())
 	return nil
+}
+
+// pendingMsg is used to store messages destined for ProtocolInstances but when
+// the tree designated is not known to the Overlay. When the tree is sent to the
+// overlay, then the pendingMsg that are relying on this tree will get
+// processed.
+type pendingMsg struct {
+	*ProtocolMsg
+	MessageProxy
 }
 
 // TreeNodeCache is a cache that maps from token to treeNode. Since the mapping

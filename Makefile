@@ -39,8 +39,7 @@ test_verbose:
 	go test -v -race -short ./...
 
 test_go:
-	@echo Running coveralls test suite
-	$$GOPATH/bin/goveralls -service=travis-ci
+	./coveralls.sh
 
 test: test_fmt test_lint test_go
 

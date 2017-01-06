@@ -124,7 +124,7 @@ func (m *Monitor) Listen() error {
 			if len(m.conns) == 0 {
 				m.listenerLock.Lock()
 				if err := m.listener.Close(); err != nil {
-					log.Error("Couldn't close listener:",
+					log.Lvl2("Couldn't close listener:",
 						err)
 				}
 				m.listener = nil
@@ -135,7 +135,9 @@ func (m *Monitor) Listen() error {
 		}
 	}
 	log.Lvl2("Monitor finished waiting")
+	m.mutexConn.Lock()
 	m.conns = make(map[string]net.Conn)
+	m.mutexConn.Unlock()
 	return nil
 }
 
@@ -186,11 +188,12 @@ func (m *Monitor) handleConnection(conn net.Conn) {
 		switch strings.ToLower(measure.Name) {
 		case "end":
 			log.Lvl3("Finishing monitor")
-			m.done <- conn.RemoteAddr().String()
+			break
 		default:
 			m.measures <- measure
 		}
 	}
+	m.done <- conn.RemoteAddr().String()
 }
 
 // updateMeasures will add that specific measure to the global stats
