@@ -54,7 +54,7 @@ func (c *clientService) SimpleMessage2(msg *SimpleMessage2) (network.Body, Clien
 	return nil, nil
 }
 
-func newClientService(c *Context, path string) Service {
+func newClientService(c *Context) Service {
 	s := &clientService{
 		ServiceProcessor: NewServiceProcessor(c),
 		cl:               NewClient(clientServiceName),

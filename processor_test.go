@@ -140,7 +140,7 @@ type testService struct {
 	Msg interface{}
 }
 
-func newTestService(c *Context, path string) Service {
+func newTestService(c *Context) Service {
 	ts := &testService{
 		ServiceProcessor: NewServiceProcessor(c),
 	}

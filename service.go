@@ -3,8 +3,6 @@ package onet
 import (
 	"errors"
 	"fmt"
-	"os"
-	"path"
 
 	"sync"
 
@@ -56,10 +54,8 @@ func (s *ServiceID) String() string {
 var NilServiceID = ServiceID(uuid.Nil)
 
 // NewServiceFunc is the type of a function that is used to instantiate a given Service
-// A service is initialized with a Host (to send messages to someone), the
-// overlay (to register a Tree + Roster + start new node), and a path where
-// it can finds / write everything it needs
-type NewServiceFunc func(c *Context, path string) Service
+// A service is initialized with a Conode (to send messages to someone).
+type NewServiceFunc func(c *Context) Service
 
 // GenericConfig is a config that can withhold any type of specific configs for
 // protocols. It is passed down to the service NewProtocol function.
@@ -177,25 +173,22 @@ func (s *serviceFactory) Name(id ServiceID) string {
 }
 
 // start launches a new service
-func (s *serviceFactory) start(name string, con *Context, path string) (Service, error) {
+func (s *serviceFactory) start(name string, con *Context) (Service, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	for _, c := range s.constructors {
 		if name == c.name {
-			return c.constructor(con, path), nil
+			return c.constructor(con), nil
 		}
 	}
 	return nil, errors.New("Didn't find service " + name)
 }
 
 // serviceManager is the place where all instantiated services are stored
-// It gives access to: all the currently running services and is handling the
-// configuration path for them
+// It gives access to: all the currently running services
 type serviceManager struct {
 	// the actual services
 	services map[ServiceID]Service
-	// the config paths
-	paths map[ServiceID]string
 	// the onet host
 	conode *Conode
 	// the dispatcher can take registration of Processors
@@ -205,40 +198,20 @@ type serviceManager struct {
 const configFolder = "config"
 
 // newServiceStore will create a serviceStore out of all the registered Service
-// it creates the path for the config folder of each service. basically
-// ```configFolder / *nameOfService*```
 func newServiceManager(c *Conode, o *Overlay) *serviceManager {
-	// check if we have a config folder
-	if err := os.MkdirAll(configFolder, 0770); err != nil {
-		_, ok := err.(*os.PathError)
-		if !ok {
-			// we cannot continue from here
-			log.Panic(err)
-		}
-	}
 	services := make(map[ServiceID]Service)
-	configs := make(map[ServiceID]string)
-	s := &serviceManager{services, configs, c, network.NewRoutineDispatcher()}
+	s := &serviceManager{services, c, network.NewRoutineDispatcher()}
 	ids := ServiceFactory.registeredServiceIDs()
 	for _, id := range ids {
 		name := ServiceFactory.Name(id)
 		log.Lvl3("Starting service", name)
-		pwd, err := os.Getwd()
-		if err != nil {
-			log.Panic(err)
-		}
-		configName := path.Join(pwd, configFolder, name)
-		if err := os.MkdirAll(configName, 0770); err != nil {
-			log.Error("Service", name, "Might not work properly: error setting up its config directory(", configName, "):", err)
-		}
 		cont := newContext(c, o, id, s)
-		s, err := ServiceFactory.start(name, cont, configName)
+		s, err := ServiceFactory.start(name, cont)
 		if err != nil {
 			log.Error("Trying to instantiate service:", err)
 		}
-		log.Lvl3("Started Service", name, " (config in", configName, ")")
+		log.Lvl3("Started Service", name)
 		services[id] = s
-		configs[id] = configName
 		c.websocket.registerService(name, s)
 	}
 	log.Lvl3(c.Address(), "instantiated all services")

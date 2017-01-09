@@ -65,7 +65,7 @@ func TestClient_Send(t *testing.T) {
 	defer local.CloseAll()
 
 	// register service
-	RegisterNewService(backForthServiceName, func(c *Context, path string) Service {
+	RegisterNewService(backForthServiceName, func(c *Context) Service {
 		return &simpleService{
 			ctx: c,
 		}
@@ -92,7 +92,7 @@ func TestClient_Parallel(t *testing.T) {
 	defer local.CloseAll()
 
 	// register service
-	RegisterNewService(backForthServiceName, func(c *Context, path string) Service {
+	RegisterNewService(backForthServiceName, func(c *Context) Service {
 		return &simpleService{
 			ctx: c,
 		}
@@ -154,7 +154,7 @@ func (i *ServiceWebSocket) SimpleResponse(msg *SimpleResponse) (network.Body, Cl
 	return &SimpleResponse{msg.Val + 1}, nil
 }
 
-func newServiceWebSocket(c *Context, path string) Service {
+func newServiceWebSocket(c *Context) Service {
 	s := &ServiceWebSocket{
 		ServiceProcessor: NewServiceProcessor(c),
 	}

@@ -31,7 +31,7 @@ func init() {
 
 func TestServiceRegistration(t *testing.T) {
 	var name = "dummy"
-	RegisterNewService(name, func(c *Context, path string) Service {
+	RegisterNewService(name, func(c *Context) Service {
 		return &DummyService{}
 	})
 
@@ -58,9 +58,8 @@ func TestServiceNew(t *testing.T) {
 	ds := &DummyService{
 		link: make(chan bool),
 	}
-	RegisterNewService(dummyServiceName, func(c *Context, path string) Service {
+	RegisterNewService(dummyServiceName, func(c *Context) Service {
 		ds.c = c
-		ds.path = path
 		ds.link <- true
 		return ds
 	})
@@ -76,11 +75,10 @@ func TestServiceNew(t *testing.T) {
 
 func TestServiceProcessRequest(t *testing.T) {
 	link := make(chan bool, 1)
-	_, err := RegisterNewService(dummyServiceName, func(c *Context, path string) Service {
+	_, err := RegisterNewService(dummyServiceName, func(c *Context) Service {
 		ds := &DummyService{
 			link: link,
 			c:    c,
-			path: path,
 		}
 		return ds
 	})
@@ -111,9 +109,8 @@ func TestServiceRequestNewProtocol(t *testing.T) {
 	ds := &DummyService{
 		link: make(chan bool, 1),
 	}
-	RegisterNewService(dummyServiceName, func(c *Context, path string) Service {
+	RegisterNewService(dummyServiceName, func(c *Context) Service {
 		ds.c = c
-		ds.path = path
 		return ds
 	})
 
@@ -156,7 +153,7 @@ func TestServiceNewProtocol(t *testing.T) {
 	}
 	var count int
 	countMutex := sync.Mutex{}
-	RegisterNewService(dummyServiceName, func(c *Context, path string) Service {
+	RegisterNewService(dummyServiceName, func(c *Context) Service {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		log.Lvl2("Creating service", count)
@@ -171,7 +168,6 @@ func TestServiceNewProtocol(t *testing.T) {
 			localDs = ds1
 		}
 		localDs.c = c
-		localDs.path = path
 
 		count++
 		return localDs
@@ -211,7 +207,7 @@ func TestServiceProcessor(t *testing.T) {
 		link: make(chan bool),
 	}
 	var count int
-	RegisterNewService(dummyServiceName, func(c *Context, path string) Service {
+	RegisterNewService(dummyServiceName, func(c *Context) Service {
 		var s *DummyService
 		if count == 0 {
 			s = ds1
@@ -219,7 +215,6 @@ func TestServiceProcessor(t *testing.T) {
 			s = ds2
 		}
 		s.c = c
-		s.path = path
 		c.RegisterProcessor(s, dummyMsgType)
 		return s
 	})
@@ -244,7 +239,7 @@ func TestServiceBackForthProtocol(t *testing.T) {
 	defer local.CloseAll()
 
 	// register service
-	_, err := RegisterNewService(backForthServiceName, func(c *Context, path string) Service {
+	_, err := RegisterNewService(backForthServiceName, func(c *Context) Service {
 		return &simpleService{
 			ctx: c,
 		}
@@ -514,7 +509,6 @@ func (dm *DummyProtocol) Dispatch() error {
 
 type DummyService struct {
 	c        *Context
-	path     string
 	link     chan bool
 	fakeTree *Tree
 	firstTni *TreeNodeInstance
@@ -571,7 +565,7 @@ func (i *ServiceMessages) SimpleResponse(msg *network.Packet) {
 	i.GotResponse <- true
 }
 
-func newServiceMessages(c *Context, path string) Service {
+func newServiceMessages(c *Context) Service {
 	s := &ServiceMessages{
 		ServiceProcessor: NewServiceProcessor(c),
 		GotResponse:      make(chan bool),
@@ -585,7 +579,7 @@ type dummyService2 struct {
 	link chan bool
 }
 
-func newDummyService2(c *Context, path string) Service {
+func newDummyService2(c *Context) Service {
 	return &dummyService2{Context: c}
 }
 
