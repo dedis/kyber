@@ -5,11 +5,11 @@ type Conn interface {
 	// Send a message through the connection.
 	// obj should be a POINTER to the actual struct to send, or an interface.
 	// It should not be a Golang type.
-	Send(obj Body) error
+	Send(Message) error
 	// Receive any message through the connection. It is a blocking call that
 	// returns either when a message arrived or when Close() has been called, or
 	// when a network error occurred.
-	Receive() (Packet, error)
+	Receive() (Envelope, error)
 	// Close will close the connection. Implementations must take care that
 	// Close() makes Receive() returns with an error, and any subsequent Send()
 	// will return with an error. Calling Close() on a closed Conn will return

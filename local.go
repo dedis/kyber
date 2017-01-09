@@ -231,13 +231,13 @@ func (l *LocalTest) GetNodes(tn *TreeNode) []*TreeNodeInstance {
 
 // SendTreeNode injects a message directly in the Overlay-layer, bypassing
 // Host and Network
-func (l *LocalTest) SendTreeNode(proto string, from, to *TreeNodeInstance, msg network.Body) error {
+func (l *LocalTest) SendTreeNode(proto string, from, to *TreeNodeInstance, msg network.Message) error {
 	if from.Tree().ID != to.Tree().ID {
 		return errors.New("Can't send from one tree to another")
 	}
 	onetMsg := &ProtocolMsg{
 		Msg:     msg,
-		MsgType: network.TypeToPacketTypeID(msg),
+		MsgType: network.TypeToMessageTypeID(msg),
 		From:    from.token,
 		To:      to.token,
 	}

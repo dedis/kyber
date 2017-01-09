@@ -46,20 +46,21 @@ var ErrUnknown = errors.New("Unknown Error")
 // correctly decode it.
 type Size uint32
 
-// Packet is the container for any Msg
-type Packet struct {
+// Envelope is a container for any Message received through the network that
+// contains the Message itself as well as some metadata such as the type and the
+// sender. This is created by the network stack upon reception and is never
+// transmitted.
+type Envelope struct {
 	// The ServerIdentity of the remote peer we are talking to.
 	// Basically, this means that when you open a new connection to someone, and
 	// / or listens to incoming connections, the network library will already
 	// make some exchange between the two communicants so each knows the
 	// ServerIdentity of the others.
 	ServerIdentity *ServerIdentity
-	// the origin of the message
-	From Address
 	// What kind of msg do we have
-	MsgType PacketTypeID
+	MsgType MessageTypeID
 	// The underlying message
-	Msg Body
+	Msg Message
 	// which constructors are used
 	Constructors protobuf.Constructors
 	// possible error during unmarshalling so that upper layer can know it
@@ -92,7 +93,7 @@ func (si *ServerIdentity) String() string {
 }
 
 // ServerIdentityType can be used to recognise an ServerIdentity-message
-var ServerIdentityType = RegisterPacketType(ServerIdentity{})
+var ServerIdentityType = RegisterMessage(ServerIdentity{})
 
 // ServerIdentityToml is the struct that can be marshalled into a toml file
 type ServerIdentityToml struct {

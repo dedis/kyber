@@ -117,7 +117,7 @@ func (r *Router) Stop() error {
 }
 
 // Send sends to an ServerIdentity without wrapping the msg into a ProtocolMsg
-func (r *Router) Send(e *ServerIdentity, msg Body) error {
+func (r *Router) Send(e *ServerIdentity, msg Message) error {
 	if msg == nil {
 		return errors.New("Can't send nil-packet")
 	}
@@ -233,7 +233,6 @@ func (r *Router) handleConn(remote *ServerIdentity, c Conn) {
 			continue
 		}
 
-		packet.From = address
 		packet.ServerIdentity = remote
 
 		if err := r.Dispatch(&packet); err != nil {

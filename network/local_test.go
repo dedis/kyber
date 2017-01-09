@@ -354,4 +354,4 @@ type AddressTest struct {
 	Val  int
 }
 
-var AddressTestType = RegisterPacketType(&AddressTest{})
+var AddressTestType = RegisterMessage(&AddressTest{})

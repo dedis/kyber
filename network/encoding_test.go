@@ -19,7 +19,7 @@ func TestRegister(t *testing.T) {
 		t.Fatal("TestRegister should not yet be there")
 	}
 
-	trType := RegisterPacketType(&TestRegisterS{})
+	trType := RegisterMessage(&TestRegisterS{})
 	if uuid.Equal(uuid.UUID(trType), uuid.Nil) {
 		t.Fatal("Couldn't register TestRegister-struct")
 	}
@@ -34,7 +34,7 @@ func TestRegister(t *testing.T) {
 
 func TestUnmarshalRegister(t *testing.T) {
 	constructors := DefaultConstructors(Suite)
-	trType := RegisterPacketType(&TestRegisterS{})
+	trType := RegisterMessage(&TestRegisterS{})
 	buff, err := MarshalRegisteredType(&TestRegisterS{10})
 	require.Nil(t, err)
 
@@ -52,8 +52,8 @@ func TestUnmarshalRegister(t *testing.T) {
 }
 
 func TestRegisterReflect(t *testing.T) {
-	typ := RegisterPacketType(TestRegisterS{})
-	typReflect := RTypeToPacketTypeID(reflect.TypeOf(TestRegisterS{}))
+	typ := RegisterMessage(TestRegisterS{})
+	typReflect := RTypeToMessageTypeID(reflect.TypeOf(TestRegisterS{}))
 	if typ != typReflect {
 		t.Fatal("Register does not work")
 	}

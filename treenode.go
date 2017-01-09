@@ -26,16 +26,16 @@ type TreeNodeInstance struct {
 	mtx sync.Mutex
 
 	// channels holds all channels available for the different message-types
-	channels map[network.PacketTypeID]interface{}
+	channels map[network.MessageTypeID]interface{}
 	// registered handler-functions for that protocol
-	handlers map[network.PacketTypeID]interface{}
+	handlers map[network.MessageTypeID]interface{}
 	// flags for messages - only one channel/handler possible
-	messageTypeFlags map[network.PacketTypeID]uint32
+	messageTypeFlags map[network.MessageTypeID]uint32
 	// The protocolInstance belonging to that node
 	instance ProtocolInstance
 	// aggregate messages in order to dispatch them at once in the protocol
 	// instance
-	msgQueue map[network.PacketTypeID][]*ProtocolMsg
+	msgQueue map[network.MessageTypeID][]*ProtocolMsg
 	// done callback
 	onDoneCallback func() bool
 	// queue holding msgs
@@ -69,10 +69,10 @@ type MsgHandler func([]*interface{})
 func newTreeNodeInstance(o *Overlay, tok *Token, tn *TreeNode, io MessageProxy) *TreeNodeInstance {
 	n := &TreeNodeInstance{overlay: o,
 		token:                tok,
-		channels:             make(map[network.PacketTypeID]interface{}),
-		handlers:             make(map[network.PacketTypeID]interface{}),
-		messageTypeFlags:     make(map[network.PacketTypeID]uint32),
-		msgQueue:             make(map[network.PacketTypeID][]*ProtocolMsg),
+		channels:             make(map[network.MessageTypeID]interface{}),
+		handlers:             make(map[network.MessageTypeID]interface{}),
+		messageTypeFlags:     make(map[network.MessageTypeID]uint32),
+		msgQueue:             make(map[network.MessageTypeID][]*ProtocolMsg),
 		treeNode:             tn,
 		msgDispatchQueue:     make([]*ProtocolMsg, 0, 1),
 		msgDispatchQueueWait: make(chan bool, 1),
@@ -187,7 +187,7 @@ func (n *TreeNodeInstance) RegisterChannel(c interface{}) error {
 		return errors.New("Input-channel doesn't have TreeNode as element")
 	}
 	// Automatic registration of the message to the network library.
-	typ := network.RegisterPacketUUID(network.RTypeToPacketTypeID(
+	typ := network.RegisterPacketUUID(network.RTypeToMessageTypeID(
 		cr.Elem().Field(1).Type),
 		cr.Elem().Field(1).Type)
 	n.channels[typ] = c
@@ -243,7 +243,7 @@ func (n *TreeNodeInstance) RegisterHandler(c interface{}) error {
 		return errors.New("Input-handler doesn't have TreeNode as element")
 	}
 	// Automatic registration of the message to the network library.
-	typ := network.RegisterPacketUUID(network.RTypeToPacketTypeID(
+	typ := network.RegisterPacketUUID(network.RTypeToMessageTypeID(
 		ci.Field(1).Type),
 		ci.Field(1).Type)
 	//typ := network.RTypeToUUID(cr.Elem().Field(1).Type)
@@ -441,17 +441,17 @@ func (n *TreeNodeInstance) dispatchMsgToProtocol(onetMsg *ProtocolMsg) error {
 }
 
 // SetFlag makes sure a given flag is set
-func (n *TreeNodeInstance) SetFlag(mt network.PacketTypeID, f uint32) {
+func (n *TreeNodeInstance) SetFlag(mt network.MessageTypeID, f uint32) {
 	n.messageTypeFlags[mt] |= f
 }
 
 // ClearFlag makes sure a given flag is removed
-func (n *TreeNodeInstance) ClearFlag(mt network.PacketTypeID, f uint32) {
+func (n *TreeNodeInstance) ClearFlag(mt network.MessageTypeID, f uint32) {
 	n.messageTypeFlags[mt] &^= f
 }
 
 // HasFlag returns true if the given flag is set
-func (n *TreeNodeInstance) HasFlag(mt network.PacketTypeID, f uint32) bool {
+func (n *TreeNodeInstance) HasFlag(mt network.MessageTypeID, f uint32) bool {
 	return n.messageTypeFlags[mt]&f != 0
 }
 
@@ -459,7 +459,7 @@ func (n *TreeNodeInstance) HasFlag(mt network.PacketTypeID, f uint32) bool {
 // instances will get all its children messages at once.
 // node is the node the host is representing in this Tree, and onetMsg is the
 // message being analyzed.
-func (n *TreeNodeInstance) aggregate(onetMsg *ProtocolMsg) (network.PacketTypeID, []*ProtocolMsg, bool) {
+func (n *TreeNodeInstance) aggregate(onetMsg *ProtocolMsg) (network.MessageTypeID, []*ProtocolMsg, bool) {
 	mt := onetMsg.MsgType
 	fromParent := !n.IsRoot() && onetMsg.From.TreeNodeID.Equal(n.Parent().ID)
 	if fromParent || !n.HasFlag(mt, AggregateMessages) {

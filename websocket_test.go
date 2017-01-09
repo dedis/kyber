@@ -150,7 +150,7 @@ type ServiceWebSocket struct {
 	*ServiceProcessor
 }
 
-func (i *ServiceWebSocket) SimpleResponse(msg *SimpleResponse) (network.Body, ClientError) {
+func (i *ServiceWebSocket) SimpleResponse(msg *SimpleResponse) (network.Message, ClientError) {
 	return &SimpleResponse{msg.Val + 1}, nil
 }
 

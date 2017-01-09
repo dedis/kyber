@@ -20,10 +20,10 @@ const ismServiceName = "ismService"
 const backForthServiceName = "backForth"
 
 func init() {
-	network.RegisterPacketType(SimpleMessageForth{})
-	network.RegisterPacketType(SimpleMessageBack{})
-	network.RegisterPacketType(SimpleRequest{})
-	dummyMsgType = network.RegisterPacketType(DummyMsg{})
+	network.RegisterMessage(SimpleMessageForth{})
+	network.RegisterMessage(SimpleMessageBack{})
+	network.RegisterMessage(SimpleRequest{})
+	dummyMsgType = network.RegisterMessage(DummyMsg{})
 	RegisterNewService(ismServiceName, newServiceMessages)
 	RegisterNewService(dummyService2Name, newDummyService2)
 	GlobalProtocolRegister("DummyProtocol2,", newDummyProtocol2)
@@ -428,7 +428,7 @@ type SimpleResponse struct {
 	Val int
 }
 
-var SimpleResponseType = network.RegisterPacketType(SimpleResponse{})
+var SimpleResponseType = network.RegisterMessage(SimpleResponse{})
 
 type simpleService struct {
 	ctx *Context
@@ -465,7 +465,7 @@ func (s *simpleService) NewProtocol(tni *TreeNodeInstance, conf *GenericConfig) 
 	return pi, err
 }
 
-func (s *simpleService) Process(packet *network.Packet) {
+func (s *simpleService) Process(env *network.Envelope) {
 	return
 }
 
@@ -484,7 +484,7 @@ type DummyMsg struct {
 	A int
 }
 
-var dummyMsgType network.PacketTypeID
+var dummyMsgType network.MessageTypeID
 
 func newDummyProtocol(tni *TreeNodeInstance, conf DummyConfig, link chan bool) *DummyProtocol {
 	return &DummyProtocol{tni, link, conf}
@@ -549,12 +549,12 @@ func (ds *DummyService) NewProtocol(tn *TreeNodeInstance, conf *GenericConfig) (
 	return dp, nil
 }
 
-func (ds *DummyService) Process(packet *network.Packet) {
-	if packet.MsgType != dummyMsgType {
+func (ds *DummyService) Process(env *network.Envelope) {
+	if env.MsgType != dummyMsgType {
 		ds.link <- false
 		return
 	}
-	dms := packet.Msg.(DummyMsg)
+	dms := env.Msg.(DummyMsg)
 	if dms.A != 10 {
 		ds.link <- false
 		return
@@ -567,7 +567,7 @@ type ServiceMessages struct {
 	GotResponse chan bool
 }
 
-func (i *ServiceMessages) SimpleResponse(msg *network.Packet) {
+func (i *ServiceMessages) SimpleResponse(env *network.Envelope) {
 	i.GotResponse <- true
 }
 
@@ -600,7 +600,7 @@ func (ds *dummyService2) NewProtocol(tn *TreeNodeInstance, conf *GenericConfig) 
 	return newDummyProtocol2(tn)
 }
 
-func (ds *dummyService2) Process(packet *network.Packet) {
+func (ds *dummyService2) Process(env *network.Envelope) {
 	panic("should not be called")
 }
 

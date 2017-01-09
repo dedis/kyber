@@ -18,8 +18,8 @@ The protocol waits for the `Close`-message to arrive at the root.
 */
 
 func init() {
-	network.RegisterPacketType(PrepareClose{})
-	network.RegisterPacketType(Close{})
+	network.RegisterMessage(PrepareClose{})
+	network.RegisterMessage(Close{})
 	onet.GlobalProtocolRegister("CloseAll", NewCloseAll)
 }
 
