@@ -187,9 +187,8 @@ func (n *TreeNodeInstance) RegisterChannel(c interface{}) error {
 		return errors.New("Input-channel doesn't have TreeNode as element")
 	}
 	// Automatic registration of the message to the network library.
-	typ := network.RegisterPacketUUID(network.RTypeToMessageTypeID(
-		cr.Elem().Field(1).Type),
-		cr.Elem().Field(1).Type)
+	m := reflect.New(cr.Elem().Field(1).Type)
+	typ := network.RegisterMessage(m.Interface())
 	n.channels[typ] = c
 	//typ := network.RTypeToUUID(cr.Elem().Field(1).Type) n.channels[typ] = c
 	n.messageTypeFlags[typ] = flags
@@ -243,10 +242,8 @@ func (n *TreeNodeInstance) RegisterHandler(c interface{}) error {
 		return errors.New("Input-handler doesn't have TreeNode as element")
 	}
 	// Automatic registration of the message to the network library.
-	typ := network.RegisterPacketUUID(network.RTypeToMessageTypeID(
-		ci.Field(1).Type),
-		ci.Field(1).Type)
-	//typ := network.RTypeToUUID(cr.Elem().Field(1).Type)
+	ptr := reflect.New(ci.Field(1).Type)
+	typ := network.RegisterMessage(ptr.Interface())
 	n.handlers[typ] = c
 	n.messageTypeFlags[typ] = flags
 	log.Lvl3("Registered handler", typ, "with flags", flags)

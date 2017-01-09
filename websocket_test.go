@@ -33,7 +33,7 @@ func TestNewWebSocket(t *testing.T) {
 		"", "http://"+url)
 	log.ErrFatal(err)
 	req := &SimpleResponse{}
-	log.Lvlf1("Sending message Request: %x", uuid.UUID(network.TypeFromData(req)).Bytes())
+	log.Lvlf1("Sending message Request: %x", uuid.UUID(network.MessageType(req)).Bytes())
 	buf, err := protobuf.Encode(req)
 	log.ErrFatal(err)
 	log.ErrFatal(websocket.Message.Send(ws, buf))

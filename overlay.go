@@ -103,7 +103,7 @@ func (o *Overlay) Process(env *network.Envelope) {
 	case info.Roster != nil:
 		o.handleSendRoster(env.ServerIdentity, info.Roster)
 	default:
-		typ := network.TypeToMessageTypeID(inner)
+		typ := network.MessageType(inner)
 		protoMsg := &ProtocolMsg{
 			From:           info.TreeNodeInfo.From,
 			To:             info.TreeNodeInfo.To,
@@ -728,7 +728,7 @@ func (d *defaultProtoIO) Wrap(msg interface{}, info *OverlayMsg) (interface{}, e
 		if err != nil {
 			return nil, err
 		}
-		typ := network.TypeFromData(msg)
+		typ := network.MessageType(msg)
 		protoMsg := &ProtocolMsg{
 			From:     info.TreeNodeInfo.From,
 			To:       info.TreeNodeInfo.To,

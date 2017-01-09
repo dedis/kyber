@@ -237,7 +237,7 @@ func (l *LocalTest) SendTreeNode(proto string, from, to *TreeNodeInstance, msg n
 	}
 	onetMsg := &ProtocolMsg{
 		Msg:     msg,
-		MsgType: network.TypeToMessageTypeID(msg),
+		MsgType: network.MessageType(msg),
 		From:    from.token,
 		To:      to.token,
 	}

@@ -15,7 +15,7 @@ type TestRegisterS struct {
 }
 
 func TestRegister(t *testing.T) {
-	if TypeFromData(&TestRegisterS{}) != ErrorType {
+	if MessageType(&TestRegisterS{}) != ErrorType {
 		t.Fatal("TestRegister should not yet be there")
 	}
 
@@ -24,10 +24,10 @@ func TestRegister(t *testing.T) {
 		t.Fatal("Couldn't register TestRegister-struct")
 	}
 
-	if TypeFromData(&TestRegisterS{}) != trType {
+	if MessageType(&TestRegisterS{}) != trType {
 		t.Fatal("TestRegister is different now")
 	}
-	if TypeFromData(TestRegisterS{}) != trType {
+	if MessageType(TestRegisterS{}) != trType {
 		t.Fatal("TestRegister is different now")
 	}
 }

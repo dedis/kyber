@@ -61,46 +61,35 @@ const NamespaceBodyType = NamespaceURL + "/protocolType/"
 // corresponding MessageTypeID. Once a struct is registered, it can be sent and
 // received by the network library.
 func RegisterMessage(msg Message) MessageTypeID {
-	msgType := TypeToMessageTypeID(msg)
+	msgType := computeMessageType(msg)
 	val := reflect.ValueOf(msg)
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
 	}
 	t := val.Type()
-	return RegisterPacketUUID(msgType, t)
-}
-
-// RegisterPacketUUID can be used if the uuid and the type is already known
-// NOTE: be sure to only registers VALUE message and not POINTERS to message.
-func RegisterPacketUUID(mt MessageTypeID, rt reflect.Type) MessageTypeID {
-	if _, typeRegistered := registry.get(mt); typeRegistered {
-		return mt
-	}
-	registry.put(mt, rt)
-	return mt
-}
-
-// TypeFromData returns the PacketTypeID corresponding to the given structure.
-// It returns 'ErrorType' if the type wasn't found or an error occurred.
-func TypeFromData(msg Message) MessageTypeID {
-	msgType := TypeToMessageTypeID(msg)
-	_, ok := registry.get(msgType)
-	if !ok {
-		return ErrorType
-	}
+	registry.put(msgType, t)
 	return msgType
 }
 
-// TypeToMessageTypeID converts a Message to a MessageTypeID
-func TypeToMessageTypeID(msg Message) MessageTypeID {
+func computeMessageType(msg Message) MessageTypeID {
 	val := reflect.ValueOf(msg)
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
 	}
 	url := NamespaceBodyType + val.Type().String()
 	u := uuid.NewV5(uuid.NamespaceURL, url)
-	log.Lvl5("Reflecting", reflect.TypeOf(msg), "to", u)
 	return MessageTypeID(u)
+}
+
+// MessageType returns a Message's MessageTypeID if registered or ErrorType if
+// the message has not been registered with RegisterMessage().
+func MessageType(msg Message) MessageTypeID {
+	msgType := computeMessageType(msg)
+	_, ok := registry.get(msgType)
+	if !ok {
+		return ErrorType
+	}
+	return msgType
 }
 
 // RTypeToMessageTypeID converts a reflect.Type to a MessageTypeID
@@ -180,17 +169,12 @@ var globalOrder = binary.BigEndian
 // https://github.com/golang/go/commit/feb2a5d6103dad76b6374c5f346e33d55612cb2a
 var EmptyEnvelope = Envelope{MsgType: MessageTypeID(uuid.Nil)}
 
-// global mutex for MarshalRegisteredType
-var marshalLock sync.Mutex
-
 // MarshalRegisteredType will marshal a struct with its respective type into a
 // slice of bytes. That slice of bytes can be then decoded in
 // UnmarshalRegisteredType. data must be a pointer to the message.
 func MarshalRegisteredType(msg Message) ([]byte, error) {
-	marshalLock.Lock()
-	defer marshalLock.Unlock()
 	var msgType MessageTypeID
-	if msgType = TypeFromData(msg); msgType == ErrorType {
+	if msgType = MessageType(msg); msgType == ErrorType {
 		return nil, fmt.Errorf("type of message %s not registered to the network library", reflect.TypeOf(msg))
 	}
 	b := new(bytes.Buffer)
@@ -252,8 +236,8 @@ func UnmarshalRegistered(buf []byte) (MessageTypeID, Message, error) {
 	return tID, ptrVal.Interface(), nil
 }
 
-// MarshalBinary the application packet => to bytes
-// Implements BinaryMarshaler interface so it will be used when sending with protobuf
+// MarshalBinary returns the bytes representation of the envelope's message and
+// message type.
 func (env *Envelope) MarshalBinary() ([]byte, error) {
 	return MarshalRegisteredType(env.Msg)
 }
@@ -267,14 +251,14 @@ func (env *Envelope) UnmarshalBinary(buf []byte) error {
 	return err
 }
 
-// NewEnvelope takes a Body and then constructs a
+// newEnvelope takes a Body and then constructs a
 // Message from it. Error if the type is unknown
-func NewEnvelope(msg Message) (*Envelope, error) {
+func newEnvelope(msg Message) (*Envelope, error) {
 	val := reflect.ValueOf(msg)
 	if val.Kind() != reflect.Ptr {
 		return nil, fmt.Errorf("Expected a pointer to the message")
 	}
-	ty := TypeFromData(msg)
+	ty := MessageType(msg)
 	if ty == ErrorType {
 		return nil, fmt.Errorf("Packet to send is not known. Please register packet: %s",
 			reflect.TypeOf(msg).String())

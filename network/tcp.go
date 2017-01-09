@@ -139,7 +139,7 @@ func (c *TCPConn) receiveRaw() ([]byte, error) {
 func (c *TCPConn) Send(msg Message) error {
 	c.sendMutex.Lock()
 	defer c.sendMutex.Unlock()
-	env, err := NewEnvelope(msg)
+	env, err := newEnvelope(msg)
 	if err != nil {
 		return fmt.Errorf("Error converting packet: %v", err)
 	}

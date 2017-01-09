@@ -28,7 +28,7 @@ func TestProcessor_AddMessage(t *testing.T) {
 	if len(p.handlers) != 1 {
 		t.Fatal("Should have registered one function")
 	}
-	mt := network.TypeFromData(&testMsg{})
+	mt := network.MessageType(&testMsg{})
 	if mt == network.ErrorType {
 		t.Fatal("Didn't register message-type correctly")
 	}
