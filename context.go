@@ -1,6 +1,23 @@
 package onet
 
-import "github.com/dedis/onet/network"
+import (
+	"errors"
+	"fmt"
+
+	"io/ioutil"
+
+	"os/user"
+	"path"
+
+	"runtime"
+
+	"os"
+
+	"flag"
+
+	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/network"
+)
 
 // Context represents the methods that are available to a service.
 type Context struct {
@@ -20,6 +37,16 @@ func newContext(c *Conode, o *Overlay, servID ServiceID, manager *serviceManager
 		servID:     servID,
 		manager:    manager,
 		Dispatcher: network.NewBlockingDispatcher(),
+	}
+}
+
+// contextDataPath indicates where the service-data will be stored. If it is
+// empty, a memory-map is used.
+var contextDataPath = ""
+
+func init() {
+	if flag.Lookup("test.v") == nil {
+		initContextDataPath()
 	}
 }
 
@@ -95,4 +122,78 @@ func (c *Context) Service(name string) Service {
 // String returns the host it's running on.
 func (c *Context) String() string {
 	return c.conode.ServerIdentity.String()
+}
+
+var contextData = map[string][]byte{}
+
+// Save takes an identifier and an interface. The interface will be network.Marshaled
+// and written to the filename based on the identifier. An eventual error will be returned.
+func (c *Context) Save(id string, data interface{}) error {
+	buf, err := network.MarshalRegisteredType(data)
+	if err != nil {
+		return err
+	}
+	fname := c.Path(id)
+	if contextDataPath == "" {
+		contextData[fname] = buf
+		return nil
+	}
+	return ioutil.WriteFile(fname, buf, 0660)
+}
+
+// Load takes a filename and returns the network.Unmarshaled data. If an error
+// occurs, the data is nil.
+// The file is read from a service-conode owned directory, so two services have
+// two distinct directories.
+func (c *Context) Load(id string) (interface{}, error) {
+	var buf []byte
+	if contextDataPath == "" {
+		var ok bool
+		buf, ok = contextData[c.Path(id)]
+		if !ok {
+			return nil, errors.New("This exntry doesn't exist")
+		}
+	} else {
+		var err error
+		buf, err = ioutil.ReadFile(c.Path(id))
+		if err != nil {
+			return nil, err
+		}
+	}
+	_, ret, err := network.UnmarshalRegistered(buf)
+	return ret, err
+}
+
+// Path returns the absolute path to load and save the configuration.
+// The file is chosen as "#{ServerIdentity.Public}_#{ServiceName}_#{id}.bin",
+// so no service and no conode share the same file.
+func (c *Context) Path(id string) string {
+	pub, _ := c.ServerIdentity().Public.MarshalBinary()
+	return path.Join(contextDataPath, fmt.Sprintf("%x_%s_%s.bin", pub,
+		ServiceFactory.Name(c.ServiceID()), id))
+}
+
+// Returns the path to the file for storage/retrieval of the service-state.
+// It tries to come up with a suitable name for MacOS/Linux/Windows and also
+// accepts an override with the environmental-variable "CONODE_SERVICE".
+func initContextDataPath() {
+	// Set contextDataMemory to true if we're running in a test
+	p := os.Getenv("CONODE_SERVICE")
+	if p == "" {
+		u, err := user.Current()
+		if err != nil {
+			switch runtime.GOOS {
+			case "darwin":
+				p = path.Join(u.HomeDir, "Library", "Conode", "Services")
+			case "freebsd", "linux", "netbsd", "openbsd", "plan9", "solaris":
+				p = path.Join(u.HomeDir, ".local", "share", "conode")
+			case "windows":
+				p = path.Join(u.HomeDir, "AppData", "Local", "Conode")
+			default:
+				log.Fatal("Couldn't find OS")
+			}
+		}
+	}
+	os.MkdirAll(p, 0770)
+	contextDataPath = p
 }
