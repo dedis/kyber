@@ -28,6 +28,10 @@ type Context struct {
 	network.Dispatcher
 }
 
+// ENVConodeData is the environmental variable that can be used to override the
+// service-data-path.
+const ENVConodeData = "CONODE_SERVICE_PATH"
+
 // defaultContext is the implementation of the Context interface. It is
 // instantiated for each Service.
 func newContext(c *Conode, o *Overlay, servID ServiceID, manager *serviceManager) *Context {
@@ -128,6 +132,8 @@ var contextData = map[string][]byte{}
 
 // Save takes an identifier and an interface. The interface will be network.Marshaled
 // and written to the filename based on the identifier. An eventual error will be returned.
+// If the destination is a file, it will be created with rw-r----- permissions
+// (0640).
 func (c *Context) Save(id string, data interface{}) error {
 	buf, err := network.MarshalRegisteredType(data)
 	if err != nil {
@@ -138,7 +144,7 @@ func (c *Context) Save(id string, data interface{}) error {
 		contextData[fname] = buf
 		return nil
 	}
-	return ioutil.WriteFile(fname, buf, 0660)
+	return ioutil.WriteFile(fname, buf, 0640)
 }
 
 // Load takes a filename and returns the network.Unmarshaled data. If an error
@@ -151,7 +157,7 @@ func (c *Context) Load(id string) (interface{}, error) {
 		var ok bool
 		buf, ok = contextData[c.Path(id)]
 		if !ok {
-			return nil, errors.New("This exntry doesn't exist")
+			return nil, errors.New("This entry doesn't exist")
 		}
 	} else {
 		var err error
@@ -174,26 +180,31 @@ func (c *Context) Path(id string) string {
 }
 
 // Returns the path to the file for storage/retrieval of the service-state.
-// It tries to come up with a suitable name for MacOS/Linux/Windows and also
-// accepts an override with the environmental-variable "CONODE_SERVICE".
+// It choses a suitable name for MacOS/Linux/Windows and also
+// accepts an override with the environmental-variable "CONODE_SERVICE_DATA".
+// Mac: ~/Library/Conode/Services
+// Other Unix: ~/.local/share/conode
+// Windows: $HOME$\AppData\Local\Conode
+// The directory will be created using rwxr-x--- permissions (0750).
 func initContextDataPath() {
 	// Set contextDataMemory to true if we're running in a test
-	p := os.Getenv("CONODE_SERVICE")
+	p := os.Getenv(ENVConodeData)
 	if p == "" {
 		u, err := user.Current()
 		if err != nil {
-			switch runtime.GOOS {
-			case "darwin":
-				p = path.Join(u.HomeDir, "Library", "Conode", "Services")
-			case "freebsd", "linux", "netbsd", "openbsd", "plan9", "solaris":
-				p = path.Join(u.HomeDir, ".local", "share", "conode")
-			case "windows":
-				p = path.Join(u.HomeDir, "AppData", "Local", "Conode")
-			default:
-				log.Fatal("Couldn't find OS")
-			}
+			log.Fatal("Couldn't get current user's environment:", err)
+		}
+		switch runtime.GOOS {
+		case "darwin":
+			p = path.Join(u.HomeDir, "Library", "Conode", "Services")
+		case "freebsd", "linux", "netbsd", "openbsd", "plan9", "solaris":
+			p = path.Join(u.HomeDir, ".local", "share", "conode")
+		case "windows":
+			p = path.Join(u.HomeDir, "AppData", "Local", "Conode")
+		default:
+			log.Fatal("Couldn't find OS")
 		}
 	}
-	os.MkdirAll(p, 0770)
+	os.MkdirAll(p, 0750)
 	contextDataPath = p
 }
