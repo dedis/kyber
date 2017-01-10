@@ -185,7 +185,8 @@ func (c *Context) Path(id string) string {
 // Mac: ~/Library/Conode/Services
 // Other Unix: ~/.local/share/conode
 // Windows: $HOME$\AppData\Local\Conode
-// The directory will be created using rwxr-x--- permissions (0750).
+// If the directory doesn't exist, it will be created using rwxr-x---
+// permissions (0750).
 func initContextDataPath() {
 	// Set contextDataMemory to true if we're running in a test
 	p := os.Getenv(ENVServiceData)
