@@ -28,9 +28,9 @@ type Context struct {
 	network.Dispatcher
 }
 
-// ENVConodeData is the environmental variable that can be used to override the
+// ENVServiceData is the environmental variable that can be used to override the
 // service-data-path.
-const ENVConodeData = "CONODE_SERVICE_PATH"
+const ENVServiceData = "CONODE_SERVICE_PATH"
 
 // defaultContext is the implementation of the Context interface. It is
 // instantiated for each Service.
@@ -188,7 +188,7 @@ func (c *Context) Path(id string) string {
 // The directory will be created using rwxr-x--- permissions (0750).
 func initContextDataPath() {
 	// Set contextDataMemory to true if we're running in a test
-	p := os.Getenv(ENVConodeData)
+	p := os.Getenv(ENVServiceData)
 	if p == "" {
 		u, err := user.Current()
 		if err != nil {

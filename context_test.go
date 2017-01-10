@@ -37,7 +37,7 @@ func TestContextSaveLoad(t *testing.T) {
 
 	tmp := "/tmp/conode"
 	log.ErrFatal(os.RemoveAll(tmp))
-	os.Setenv(ENVConodeData, tmp)
+	os.Setenv(ENVServiceData, tmp)
 	initContextDataPath()
 	testLoadSave(t, false, c)
 	files, err := ioutil.ReadDir(tmp)
@@ -80,7 +80,7 @@ func TestContext_Path(t *testing.T) {
 	base := c.Path("test")
 	tmp := "/tmp/conode"
 	log.ErrFatal(os.RemoveAll(tmp))
-	os.Setenv(ENVConodeData, tmp)
+	os.Setenv(ENVServiceData, tmp)
 	initContextDataPath()
 	require.Equal(t, tmp, contextDataPath)
 	_, err := os.Stat(tmp)
