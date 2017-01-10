@@ -15,6 +15,8 @@ import (
 
 	"flag"
 
+	"sync"
+
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 )
@@ -140,7 +142,7 @@ func (c *Context) Save(id string, data interface{}) error {
 		return err
 	}
 	fname := c.Path(id)
-	if contextDataPath == "" {
+	if getContextDataPath() == "" {
 		contextData[fname] = buf
 		return nil
 	}
@@ -153,7 +155,7 @@ func (c *Context) Save(id string, data interface{}) error {
 // two distinct directories.
 func (c *Context) Load(id string) (interface{}, error) {
 	var buf []byte
-	if contextDataPath == "" {
+	if getContextDataPath() == "" {
 		var ok bool
 		buf, ok = contextData[c.Path(id)]
 		if !ok {
@@ -175,7 +177,7 @@ func (c *Context) Load(id string) (interface{}, error) {
 // so no service and no conode share the same file.
 func (c *Context) Path(id string) string {
 	pub, _ := c.ServerIdentity().Public.MarshalBinary()
-	return path.Join(contextDataPath, fmt.Sprintf("%x_%s_%s.bin", pub,
+	return path.Join(getContextDataPath(), fmt.Sprintf("%x_%s_%s.bin", pub,
 		ServiceFactory.Name(c.ServiceID()), id))
 }
 
@@ -207,5 +209,19 @@ func initContextDataPath() {
 		}
 	}
 	os.MkdirAll(p, 0750)
-	contextDataPath = p
+	setContextDataPath(p)
+}
+
+var cdpMutex sync.Mutex
+
+func setContextDataPath(path string) {
+	cdpMutex.Lock()
+	defer cdpMutex.Unlock()
+	contextDataPath = path
+}
+
+func getContextDataPath() string {
+	cdpMutex.Lock()
+	defer cdpMutex.Unlock()
+	return contextDataPath
 }
