@@ -164,6 +164,8 @@ func (c *Context) Save(id string, data interface{}) error {
 // If contextDataPath is non-empty, the data will be read from the corresponding
 // file. The path is explained in Save().
 // If contextDataPath is empty, the data will be read from the contextData map.
+//
+// If no data is found in either a file or the map, it returns an error.
 func (c *Context) Load(id string) (interface{}, error) {
 	var buf []byte
 	if getContextDataPath() == "" {
