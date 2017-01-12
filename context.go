@@ -185,6 +185,17 @@ func (c *Context) Load(id string) (interface{}, error) {
 	return ret, err
 }
 
+// DataAvailable checks if any data is stored either in a file or in the
+// contextData map.
+func (c *Context) DataAvailable(id string) bool {
+	if getContextDataPath() == "" {
+		_, ok := contextData[c.absFilename(id)]
+		return ok
+	}
+	_, err := os.Stat(c.absFilename(id))
+	return !os.IsNotExist(err)
+}
+
 // absFilename returns the absolute path to load and save the configuration.
 // The file is chosen as "#{ServerIdentity.Public}_#{ServiceName}_#{id}.bin",
 // so no service and no conode share the same file.
