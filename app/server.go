@@ -27,10 +27,10 @@ import (
 )
 
 // DefaultServerConfig is the default server configuration file-name.
-const DefaultServerConfig = "config.toml"
+const DefaultServerConfig = "private.toml"
 
 // DefaultGroupFile is the default group definition file-name.
-const DefaultGroupFile = "group.toml"
+const DefaultGroupFile = "public.toml"
 
 // DefaultPort to listen and connect to. As of this writing, this port is not listed in
 // /etc/services

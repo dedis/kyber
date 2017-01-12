@@ -30,6 +30,8 @@ func (hc *CothorityConfig) Save(file string) error {
 	if err != nil {
 		return err
 	}
+	fd.WriteString("# This file contains your private key.\n")
+	fd.WriteString("# Do not give it away lightly!\n")
 	err = toml.NewEncoder(fd).Encode(hc)
 	if err != nil {
 		return err
@@ -63,8 +65,7 @@ func ParseCothority(file string) (*CothorityConfig, *onet.Conode, error) {
 
 // GroupToml holds the data of the group.toml file.
 type GroupToml struct {
-	Description string
-	Servers     []*ServerToml `toml:"servers"`
+	Servers []*ServerToml `toml:"servers"`
 }
 
 // NewGroupToml creates a new GroupToml struct from the given ServerTomls.
@@ -147,9 +148,6 @@ func (gt *GroupToml) Save(fname string) error {
 // String returns the TOML representation of this GroupToml.
 func (gt *GroupToml) String() string {
 	var buff bytes.Buffer
-	if gt.Description == "" {
-		gt.Description = "Description of your cothority roster"
-	}
 	for _, s := range gt.Servers {
 		if s.Description == "" {
 			s.Description = "Description of your server"
