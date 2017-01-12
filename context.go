@@ -147,7 +147,7 @@ var contextData = map[string][]byte{}
 //
 // If contextDataPath is empty, the data will be written to the contextData map.
 func (c *Context) Save(id string, data interface{}) error {
-	buf, err := network.MarshalRegisteredType(data)
+	buf, err := network.Marshal(data)
 	if err != nil {
 		return err
 	}
@@ -179,7 +179,7 @@ func (c *Context) Load(id string) (interface{}, error) {
 			return nil, err
 		}
 	}
-	_, ret, err := network.UnmarshalRegistered(buf)
+	_, ret, err := network.Unmarshal(buf)
 	return ret, err
 }
 

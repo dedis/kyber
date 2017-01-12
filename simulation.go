@@ -88,7 +88,7 @@ func LoadSimulationConfig(dir, ca string) ([]*SimulationConfig, error) {
 	}
 	// Redirect all calls from context.(Save|Load) to memory.
 	setContextDataPath("")
-	scf := msg.(SimulationConfigFile)
+	scf := msg.(*SimulationConfigFile)
 	sc := &SimulationConfig{
 		Roster:      scf.Roster,
 		PrivateKeys: scf.PrivateKeys,

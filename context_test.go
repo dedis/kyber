@@ -53,7 +53,7 @@ func testLoadSave(t *testing.T, first bool, c *Context) {
 	cd := &ContextData{42, "meaning of life"}
 	if first {
 		require.NotNil(t, c.Save(file, cd))
-		network.RegisterPacketType(ContextData{})
+		network.RegisterMessage(ContextData{})
 	}
 	log.ErrFatal(c.Save(file, cd))
 
