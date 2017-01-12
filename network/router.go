@@ -235,7 +235,7 @@ func (r *Router) handleConn(remote *ServerIdentity, c Conn) {
 
 		packet.ServerIdentity = remote
 
-		if err := r.Dispatch(&packet); err != nil {
+		if err := r.Dispatch(packet); err != nil {
 			log.Lvl3("Error dispatching:", err)
 		}
 

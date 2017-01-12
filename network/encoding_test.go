@@ -2,7 +2,6 @@ package network
 
 import (
 	"crypto/rand"
-	"reflect"
 	"testing"
 
 	"github.com/satori/go.uuid"
@@ -48,12 +47,4 @@ func TestUnmarshalRegister(t *testing.T) {
 	ty, b, err = Unmarshal(buff)
 	assert.NotNil(t, err)
 	assert.Equal(t, ErrorType, ty)
-}
-
-func TestRegisterReflect(t *testing.T) {
-	typ := RegisterMessage(TestRegisterS{})
-	typReflect := RTypeToMessageTypeID(reflect.TypeOf(TestRegisterS{}))
-	if typ != typReflect {
-		t.Fatal("Register does not work")
-	}
 }

@@ -9,7 +9,7 @@ type Conn interface {
 	// Receive any message through the connection. It is a blocking call that
 	// returns either when a message arrived or when Close() has been called, or
 	// when a network error occurred.
-	Receive() (Envelope, error)
+	Receive() (*Envelope, error)
 	// Close will close the connection. Implementations must take care that
 	// Close() makes Receive() returns with an error, and any subsequent Send()
 	// will return with an error. Calling Close() on a closed Conn will return

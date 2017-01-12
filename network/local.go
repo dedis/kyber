@@ -258,15 +258,15 @@ func (lc *LocalConn) Send(msg Message) error {
 // Receive takes a context (that is not used) and waits for a packet to
 // be ready. It returns the received packet.
 // In case of an error the packet is nil and the error is returned.
-func (lc *LocalConn) Receive() (Envelope, error) {
+func (lc *LocalConn) Receive() (*Envelope, error) {
 	buff, opened := <-lc.outgoingQueue
 	if !opened {
-		return EmptyEnvelope, ErrClosed
+		return nil, ErrClosed
 	}
 	lc.updateRx(uint64(len(buff)))
 
 	id, body, err := Unmarshal(buff)
-	return Envelope{
+	return &Envelope{
 		MsgType: id,
 		Msg:     body,
 	}, err
