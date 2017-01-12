@@ -133,15 +133,16 @@ func (c *Context) String() string {
 var contextData = map[string][]byte{}
 
 // Save takes an identifier and an interface. The interface will be network.Marshaled
-// and written to the filename based on the identifier. An eventual error will be returned.
-// If the destination is a file, it will be created with rw-r----- permissions
-// (0640).
+// and saved under a filename based on the identifier. An eventual error will be returned.
+// If contextDataPath is non-empty, the destination is a file: it will be created
+// with rw-r----- permissions (0640). If the file already exists, it will be overwritten.
+// If contextDataPath is empty, the data will be written to the contextData map.
 func (c *Context) Save(id string, data interface{}) error {
 	buf, err := network.MarshalRegisteredType(data)
 	if err != nil {
 		return err
 	}
-	fname := c.Path(id)
+	fname := c.absFilename(id)
 	if getContextDataPath() == "" {
 		contextData[fname] = buf
 		return nil
@@ -149,21 +150,22 @@ func (c *Context) Save(id string, data interface{}) error {
 	return ioutil.WriteFile(fname, buf, 0640)
 }
 
-// Load takes a filename and returns the network.Unmarshaled data. If an error
+// Load takes an id and returns the network.Unmarshaled data. If an error
 // occurs, the data is nil.
-// The file is read from a service-conode owned directory, so two services have
-// two distinct directories.
+// If contextDataPath is non-empty, the data will be read from the corresponding
+// file.
+// If contextDataPath is empty, the data will be read from the contextData map.
 func (c *Context) Load(id string) (interface{}, error) {
 	var buf []byte
 	if getContextDataPath() == "" {
 		var ok bool
-		buf, ok = contextData[c.Path(id)]
+		buf, ok = contextData[c.absFilename(id)]
 		if !ok {
 			return nil, errors.New("This entry doesn't exist")
 		}
 	} else {
 		var err error
-		buf, err = ioutil.ReadFile(c.Path(id))
+		buf, err = ioutil.ReadFile(c.absFilename(id))
 		if err != nil {
 			return nil, err
 		}
@@ -172,10 +174,10 @@ func (c *Context) Load(id string) (interface{}, error) {
 	return ret, err
 }
 
-// Path returns the absolute path to load and save the configuration.
+// absFilename returns the absolute path to load and save the configuration.
 // The file is chosen as "#{ServerIdentity.Public}_#{ServiceName}_#{id}.bin",
 // so no service and no conode share the same file.
-func (c *Context) Path(id string) string {
+func (c *Context) absFilename(id string) string {
 	pub, _ := c.ServerIdentity().Public.MarshalBinary()
 	return path.Join(getContextDataPath(), fmt.Sprintf("%x_%s_%s.bin", pub,
 		ServiceFactory.Name(c.ServiceID()), id))
@@ -208,7 +210,7 @@ func initContextDataPath() {
 			log.Fatal("Couldn't find OS")
 		}
 	}
-	os.MkdirAll(p, 0750)
+	log.ErrFatal(os.MkdirAll(p, 0750))
 	setContextDataPath(p)
 }
 

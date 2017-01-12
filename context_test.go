@@ -77,7 +77,7 @@ func TestContext_Path(t *testing.T) {
 		},
 	}
 	c := newContext(cn, nil, NilServiceID, nil)
-	base := c.Path("test")
+	base := c.absFilename("test")
 	tmp := "/tmp/conode"
 	log.ErrFatal(os.RemoveAll(tmp))
 	os.Setenv(ENVServiceData, tmp)
@@ -85,6 +85,6 @@ func TestContext_Path(t *testing.T) {
 	require.Equal(t, tmp, contextDataPath)
 	_, err := os.Stat(tmp)
 	log.ErrFatal(err)
-	require.Equal(t, path.Join(tmp, base), c.Path("test"))
+	require.Equal(t, path.Join(tmp, base), c.absFilename("test"))
 	log.ErrFatal(os.RemoveAll(tmp))
 }
