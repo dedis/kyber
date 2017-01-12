@@ -67,15 +67,14 @@ func NewTree(el *Roster, r *TreeNode) *Tree {
 // NewTreeFromMarshal takes a slice of bytes and an Roster to re-create
 // the original tree
 func NewTreeFromMarshal(buf []byte, el *Roster) (*Tree, error) {
-	tp, pm, err := network.UnmarshalRegisteredType(buf,
-		network.DefaultConstructors(network.Suite))
+	tp, pm, err := network.Unmarshal(buf)
 	if err != nil {
 		return nil, err
 	}
 	if tp != TreeMarshalTypeID {
 		return nil, errors.New("Didn't receive TreeMarshal-struct")
 	}
-	t, err := pm.(TreeMarshal).MakeTree(el)
+	t, err := pm.(*TreeMarshal).MakeTree(el)
 	t.computeSubtreeAggregate(network.Suite, t.Root)
 	return t, err
 }
@@ -98,7 +97,7 @@ func (t *Tree) MakeTreeMarshal() *TreeMarshal {
 // the ids of the elements. Use NewTreeFromMarshal to get back the original
 // tree
 func (t *Tree) Marshal() ([]byte, error) {
-	buf, err := network.MarshalRegisteredType(t.MakeTreeMarshal())
+	buf, err := network.Marshal(t.MakeTreeMarshal())
 	return buf, err
 }
 
@@ -117,7 +116,7 @@ func (t *Tree) BinaryMarshaler() ([]byte, error) {
 		T:  bt,
 		EL: t.Roster,
 	}
-	b, err := network.MarshalRegisteredType(tbm)
+	b, err := network.Marshal(tbm)
 	if err != nil {
 		return nil, err
 	}
@@ -126,8 +125,8 @@ func (t *Tree) BinaryMarshaler() ([]byte, error) {
 
 // BinaryUnmarshaler takes a TreeMarshal and stores it in the tree
 func (t *Tree) BinaryUnmarshaler(b []byte) error {
-	_, m, err := network.UnmarshalRegisteredType(b, network.DefaultConstructors(network.Suite))
-	tbm, ok := m.(tbmStruct)
+	_, m, err := network.Unmarshal(b)
+	tbm, ok := m.(*tbmStruct)
 	if !ok {
 		return errors.New("Didn't find TBMstruct")
 	}

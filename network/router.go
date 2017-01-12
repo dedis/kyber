@@ -338,11 +338,11 @@ func (r *Router) receiveServerIdentity(c Conn) (*ServerIdentity, error) {
 		return nil, fmt.Errorf("Received wrong type during negotiation %s", nm.MsgType.String())
 	}
 	// Set the ServerIdentity for this connection
-	dst := nm.Msg.(ServerIdentity)
+	dst := nm.Msg.(*ServerIdentity)
 
 	if err != nil {
 		return nil, err
 	}
 	log.Lvl4(r.address, "Identity received from", dst.Address)
-	return &dst, nil
+	return dst, nil
 }

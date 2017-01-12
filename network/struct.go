@@ -59,7 +59,7 @@ type Envelope struct {
 	ServerIdentity *ServerIdentity
 	// What kind of msg do we have
 	MsgType MessageTypeID
-	// The underlying message
+	// A *pointer* to the underlying message
 	Msg Message
 	// which constructors are used
 	Constructors protobuf.Constructors

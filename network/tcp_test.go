@@ -140,7 +140,7 @@ func TestTCPConnReceiveRaw(t *testing.T) {
 	}
 	// prepare the msg
 	msg := &BigMsg{Array: make([]byte, 7893)}
-	buff, err := MarshalRegisteredType(msg)
+	buff, err := Marshal(msg)
 	require.Nil(t, err)
 
 	fn := func(c net.Conn) {
@@ -505,8 +505,8 @@ func (smp *simpleMessageProc) Process(e *Envelope) {
 	if e.MsgType != SimpleMessageType {
 		smp.t.Fatal("Wrong message")
 	}
-	sm := e.Msg.(SimpleMessage)
-	smp.relay <- sm
+	sm := e.Msg.(*SimpleMessage)
+	smp.relay <- *sm
 }
 
 type statusMessage struct {
@@ -530,9 +530,9 @@ func (sp *simpleProcessor) Process(env *Envelope) {
 
 		sp.relay <- statusMessage{false, 0}
 	}
-	sm := env.Msg.(statusMessage)
+	sm := env.Msg.(*statusMessage)
 
-	sp.relay <- sm
+	sp.relay <- *sm
 }
 
 func sendrcv_proc(from, to *Router) error {

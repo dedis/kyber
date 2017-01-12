@@ -90,27 +90,27 @@ func TestOverlayPendingTreeMarshal(t *testing.T) {
 // i.e. Roster & Tree management.
 // Each type of message will be sent trhough the appropriate channel
 type overlayProc struct {
-	sendRoster  chan Roster
-	treeMarshal chan TreeMarshal
-	requestTree chan RequestTree
+	sendRoster  chan *Roster
+	treeMarshal chan *TreeMarshal
+	requestTree chan *RequestTree
 }
 
 func newOverlayProc() *overlayProc {
 	return &overlayProc{
-		sendRoster:  make(chan Roster, 1),
-		treeMarshal: make(chan TreeMarshal, 1),
-		requestTree: make(chan RequestTree, 1),
+		sendRoster:  make(chan *Roster, 1),
+		treeMarshal: make(chan *TreeMarshal, 1),
+		requestTree: make(chan *RequestTree, 1),
 	}
 }
 
 func (op *overlayProc) Process(env *network.Envelope) {
 	switch env.MsgType {
 	case SendRosterMsgID:
-		op.sendRoster <- env.Msg.(Roster)
+		op.sendRoster <- env.Msg.(*Roster)
 	case TreeMarshalTypeID:
-		op.treeMarshal <- env.Msg.(TreeMarshal)
+		op.treeMarshal <- env.Msg.(*TreeMarshal)
 	case RequestTreeMsgID:
-		op.requestTree <- env.Msg.(RequestTree)
+		op.requestTree <- env.Msg.(*RequestTree)
 	}
 }
 
@@ -203,7 +203,7 @@ func TestOverlayTreePropagation(t *testing.T) {
 	err = h1.Send(h2.ServerIdentity, &RequestTree{TreeID: tree.ID})
 	require.Nil(t, err)
 	// check if we receive the tree then
-	var tm TreeMarshal
+	var tm *TreeMarshal
 	tm = <-proc.treeMarshal
 	packet := network.Envelope{
 		ServerIdentity: h2.ServerIdentity,

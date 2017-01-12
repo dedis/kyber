@@ -33,20 +33,19 @@ func TestRegister(t *testing.T) {
 }
 
 func TestUnmarshalRegister(t *testing.T) {
-	constructors := DefaultConstructors(Suite)
 	trType := RegisterMessage(&TestRegisterS{})
-	buff, err := MarshalRegisteredType(&TestRegisterS{10})
+	buff, err := Marshal(&TestRegisterS{10})
 	require.Nil(t, err)
 
-	ty, b, err := UnmarshalRegisteredType(buff, constructors)
+	ty, b, err := Unmarshal(buff)
 	assert.Nil(t, err)
 	assert.Equal(t, trType, ty)
-	assert.Equal(t, 10, b.(TestRegisterS).I)
+	assert.Equal(t, 10, b.(*TestRegisterS).I)
 
 	var randType [16]byte
 	rand.Read(randType[:])
 	buff = append(randType[:], buff[16:]...)
-	ty, b, err = UnmarshalRegisteredType(buff, constructors)
+	ty, b, err = Unmarshal(buff)
 	assert.NotNil(t, err)
 	assert.Equal(t, ErrorType, ty)
 }

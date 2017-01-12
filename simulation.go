@@ -82,12 +82,11 @@ func LoadSimulationConfig(dir, ha string) ([]*SimulationConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, msg, err := network.UnmarshalRegisteredType(bin,
-		network.DefaultConstructors(network.Suite))
+	_, msg, err := network.Unmarshal(bin)
 	if err != nil {
 		return nil, err
 	}
-	scf := msg.(SimulationConfigFile)
+	scf := msg.(*SimulationConfigFile)
 	sc := &SimulationConfig{
 		Roster:      scf.Roster,
 		PrivateKeys: scf.PrivateKeys,
@@ -142,7 +141,7 @@ func (sc *SimulationConfig) Save(dir string) error {
 		PrivateKeys: sc.PrivateKeys,
 		Config:      sc.Config,
 	}
-	buf, err := network.MarshalRegisteredType(scf)
+	buf, err := network.Marshal(scf)
 	if err != nil {
 		log.Fatal(err)
 	}

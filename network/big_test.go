@@ -66,7 +66,7 @@ func TestTCPHugeConnections(t *testing.T) {
 				if nm.MsgType != bigMessageType {
 					t.Fatal("Received message type is wrong")
 				}
-				bigCopy := nm.Msg.(bigMessage)
+				bigCopy := nm.Msg.(*bigMessage)
 				if bigCopy.Msize != msgSize {
 					t.Fatal(h, "Message-size is wrong:", bigCopy.Msize, bigCopy, big)
 				}
@@ -118,7 +118,7 @@ func TestTCPHugeConnections(t *testing.T) {
 				if err != nil {
 					t.Fatal(i, j, "Couldn't receive:", err)
 				}
-				bc := nm.Msg.(bigMessage)
+				bc := nm.Msg.(*bigMessage)
 				if bc.Msize != msgSize {
 					t.Fatal(i, j, "Message-size is wrong")
 				}

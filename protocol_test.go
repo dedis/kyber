@@ -301,7 +301,7 @@ func (t *TestMessageProxy) Unwrap(msg interface{}) (interface{}, *OverlayMsg, er
 		return nil, nil, errors.New("message nil")
 	}
 
-	real, ok := msg.(OuterPacket)
+	real, ok := msg.(*OuterPacket)
 	if !ok {
 		chanProtoIOFeedback <- "wrong type of message in unwrap"
 		return nil, nil, errors.New("wrong message")

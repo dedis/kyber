@@ -247,7 +247,7 @@ func (lc *LocalConn) start() {
 // will be sent to the remote endpoint.
 // If there is an error in the connection, it will be returned.
 func (lc *LocalConn) Send(msg Message) error {
-	buff, err := MarshalRegisteredType(msg)
+	buff, err := Marshal(msg)
 	if err != nil {
 		return err
 	}
@@ -265,7 +265,7 @@ func (lc *LocalConn) Receive() (Envelope, error) {
 	}
 	lc.updateRx(uint64(len(buff)))
 
-	id, body, err := UnmarshalRegisteredType(buff, DefaultConstructors(Suite))
+	id, body, err := Unmarshal(buff)
 	return Envelope{
 		MsgType: id,
 		Msg:     body,

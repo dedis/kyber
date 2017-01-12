@@ -554,7 +554,7 @@ func (ds *DummyService) Process(env *network.Envelope) {
 		ds.link <- false
 		return
 	}
-	dms := env.Msg.(DummyMsg)
+	dms := env.Msg.(*DummyMsg)
 	if dms.A != 10 {
 		ds.link <- false
 		return

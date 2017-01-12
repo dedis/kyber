@@ -157,7 +157,7 @@ func testConnListener(ctx *LocalManager, done chan error, listenA, connA *Server
 			return err
 		}
 
-		at := p.Msg.(AddressTest)
+		at := p.Msg.(*AddressTest)
 		if at.Addr != receiving {
 			return fmt.Errorf("Receiveid wrong address")
 		}
@@ -240,7 +240,7 @@ func testLocalConn(t *testing.T, a1, a2 Address) {
 			incomingConn <- true
 			nm, err := c.Receive()
 			assert.Nil(t, err)
-			assert.Equal(t, 3, nm.Msg.(SimpleMessage).I)
+			assert.Equal(t, 3, nm.Msg.(*SimpleMessage).I)
 			// acknoledge the message
 			incomingConn <- true
 			err = c.Send(&SimpleMessage{3})
@@ -271,7 +271,7 @@ func testLocalConn(t *testing.T, a1, a2 Address) {
 	// receive stg and send ack
 	nm, err := outgoing.Receive()
 	assert.Nil(t, err)
-	assert.Equal(t, 3, nm.Msg.(SimpleMessage).I)
+	assert.Equal(t, 3, nm.Msg.(*SimpleMessage).I)
 	outgoingConn <- true
 
 	<-incomingConn
@@ -317,7 +317,7 @@ func TestLocalManyConn(t *testing.T) {
 			assert.Nil(t, c.Send(&SimpleMessage{3}))
 			nm, err := c.Receive()
 			assert.Nil(t, err)
-			assert.Equal(t, 3, nm.Msg.(SimpleMessage).I)
+			assert.Equal(t, 3, nm.Msg.(*SimpleMessage).I)
 			assert.Nil(t, c.Close())
 			wg.Done()
 		}(i)
