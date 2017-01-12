@@ -9,13 +9,13 @@ import (
 
 // ProtocolMsgID is to be embedded in every message that is made for a
 // ID of ProtocolMsg message as registered in network
-var ProtocolMsgID = network.RegisterPacketType(ProtocolMsg{})
+var ProtocolMsgID = network.RegisterMessage(ProtocolMsg{})
 
 // RequestTreeMsgID of RequestTree message as registered in network
-var RequestTreeMsgID = network.RegisterPacketType(RequestTree{})
+var RequestTreeMsgID = network.RegisterMessage(RequestTree{})
 
 // RequestRosterMsgID of RequestRoster message as registered in network
-var RequestRosterMsgID = network.RegisterPacketType(RequestRoster{})
+var RequestRosterMsgID = network.RegisterMessage(RequestRoster{})
 
 // SendTreeMsgID of TreeMarshal message as registered in network
 var SendTreeMsgID = TreeMarshalTypeID
@@ -24,7 +24,7 @@ var SendTreeMsgID = TreeMarshalTypeID
 var SendRosterMsgID = RosterTypeID
 
 // ConfigMsgID of the generic config message
-var ConfigMsgID = network.RegisterPacketType(ConfigMsg{})
+var ConfigMsgID = network.RegisterMessage(ConfigMsg{})
 
 // ProtocolMsg is to be embedded in every message that is made for a
 // ProtocolInstance
@@ -36,9 +36,9 @@ type ProtocolMsg struct {
 	// NOTE: this is taken from network.NetworkMessage
 	ServerIdentity *network.ServerIdentity
 	// MsgType of the underlying data
-	MsgType network.PacketTypeID
+	MsgType network.MessageTypeID
 	// The interface to the actual Data
-	Msg network.Body
+	Msg network.Message
 	// The actual data as binary blob
 	MsgSlice []byte
 }

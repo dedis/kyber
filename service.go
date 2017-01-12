@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	network.RegisterPacketType(GenericConfig{})
+	network.RegisterMessage(GenericConfig{})
 }
 
 // Service is a generic interface to define any type of services.
@@ -247,9 +247,9 @@ func newServiceManager(c *Conode, o *Overlay) *serviceManager {
 
 // Process implements the Processor interface: service manager will relay
 // messages to the right Service.
-func (s *serviceManager) Process(data *network.Packet) {
+func (s *serviceManager) Process(env *network.Envelope) {
 	// will launch a go routine for that message
-	s.Dispatch(data)
+	s.Dispatch(env)
 }
 
 // RegisterProcessor the processor to the service manager and tells the host to dispatch
@@ -259,14 +259,14 @@ func (s *serviceManager) Process(data *network.Packet) {
 // This behavior with go routine is fine for the moment but for better
 // performance / memory / resilience, it may be changed to a real queuing
 // system later.
-func (s *serviceManager) RegisterProcessor(p network.Processor, msgType network.PacketTypeID) {
+func (s *serviceManager) RegisterProcessor(p network.Processor, msgType network.MessageTypeID) {
 	// delegate message to host so the host will pass the message to ourself
 	s.conode.RegisterProcessor(s, msgType)
 	// handle the message ourselves (will be launched in a go routine)
 	s.Dispatcher.RegisterProcessor(p, msgType)
 }
 
-func (s *serviceManager) RegisterProcessorFunc(msgType network.PacketTypeID, fn func(*network.Packet)) {
+func (s *serviceManager) RegisterProcessorFunc(msgType network.MessageTypeID, fn func(*network.Envelope)) {
 	// delegate message to host so the host will pass the message to ourself
 	s.conode.RegisterProcessor(s, msgType)
 	// handle the message ourselves (will be launched in a go routine)
