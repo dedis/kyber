@@ -136,6 +136,15 @@ var contextData = map[string][]byte{}
 // and saved under a filename based on the identifier. An eventual error will be returned.
 // If contextDataPath is non-empty, the destination is a file: it will be created
 // with rw-r----- permissions (0640). If the file already exists, it will be overwritten.
+//
+// The path to the file is chosen as follows:
+//   Mac: ~/Library/Conode/Services
+//   Other Unix: ~/.local/share/conode
+//   Windows: $HOME$\AppData\Local\Conode
+// If the directory doesn't exist, it will be created using rwxr-x---
+// permissions (0750).
+// The path can be overwritten with the environmental-variable "CONODE_SERVICE_DATA".
+//
 // If contextDataPath is empty, the data will be written to the contextData map.
 func (c *Context) Save(id string, data interface{}) error {
 	buf, err := network.MarshalRegisteredType(data)
@@ -153,7 +162,7 @@ func (c *Context) Save(id string, data interface{}) error {
 // Load takes an id and returns the network.Unmarshaled data. If an error
 // occurs, the data is nil.
 // If contextDataPath is non-empty, the data will be read from the corresponding
-// file.
+// file. The path is explained in Save().
 // If contextDataPath is empty, the data will be read from the contextData map.
 func (c *Context) Load(id string) (interface{}, error) {
 	var buf []byte
@@ -184,13 +193,6 @@ func (c *Context) absFilename(id string) string {
 }
 
 // Returns the path to the file for storage/retrieval of the service-state.
-// It choses a suitable name for MacOS/Linux/Windows and also
-// accepts an override with the environmental-variable "CONODE_SERVICE_DATA".
-// Mac: ~/Library/Conode/Services
-// Other Unix: ~/.local/share/conode
-// Windows: $HOME$\AppData\Local\Conode
-// If the directory doesn't exist, it will be created using rwxr-x---
-// permissions (0750).
 func initContextDataPath() {
 	// Set contextDataMemory to true if we're running in a test
 	p := os.Getenv(ENVServiceData)
