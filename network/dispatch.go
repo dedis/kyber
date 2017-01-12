@@ -16,31 +16,31 @@ import (
 //     another message
 //   * RoutineDispatcher - starts every Processor in a go-routine
 type Dispatcher interface {
-	// RegisterProcessor is called by a Processor so it can receive all packets
+	// RegisterProcessor is called by a Processor so it can receive all messages
 	// of type msgType. If given multiple msgType, the same processor will be
 	// called for each of the msgType given.
 	// **NOTE** In the current version, if a subsequent call to RegisterProcessor
 	// happens for the same msgType, the latest Processor will be used; there
 	// is no *copy* or *duplication* of messages.
-	RegisterProcessor(p Processor, msgType ...PacketTypeID)
+	RegisterProcessor(p Processor, msgType ...MessageTypeID)
 	// RegisterProcessorFunc enables to register directly a function that will
-	// be called for each packet of type msgType. It's a shorter way of
+	// be called for each message of type msgType. It's a shorter way of
 	// registering a Processor.
-	RegisterProcessorFunc(PacketTypeID, func(*Packet))
+	RegisterProcessorFunc(MessageTypeID, func(*Envelope))
 	// Dispatch will find the right processor to dispatch the packet to. The id
 	// is the identity of the author / sender of the packet.
 	// It can be called for example by the network layer.
 	// If no processor is found for this message type, then an error is returned
-	Dispatch(packet *Packet) error
+	Dispatch(*Envelope) error
 }
 
 // Processor is an abstraction to represent any object that want to process
-// packets. It is used in conjunction with Dispatcher:
+// messages. It is used in conjunction with Dispatcher:
 // A processor must register itself to a Dispatcher so the Dispatcher will
-// dispatch every messages to the Processor asked for.
+// dispatch every messages asked for to the Processor.
 type Processor interface {
-	// Process takes a received Packet.
-	Process(packet *Packet)
+	// Process takes a received Envelope.
+	Process(*Envelope)
 }
 
 // BlockingDispatcher is a Dispatcher that simply calls `p.Process()` on a
@@ -49,18 +49,18 @@ type Processor interface {
 // It can be re-used for more complex dispatchers.
 type BlockingDispatcher struct {
 	sync.Mutex
-	procs map[PacketTypeID]Processor
+	procs map[MessageTypeID]Processor
 }
 
 // NewBlockingDispatcher will return a new BlockingDispatcher.
 func NewBlockingDispatcher() *BlockingDispatcher {
 	return &BlockingDispatcher{
-		procs: make(map[PacketTypeID]Processor),
+		procs: make(map[MessageTypeID]Processor),
 	}
 }
 
 // RegisterProcessor saves the given processor in the dispatcher.
-func (d *BlockingDispatcher) RegisterProcessor(p Processor, msgType ...PacketTypeID) {
+func (d *BlockingDispatcher) RegisterProcessor(p Processor, msgType ...MessageTypeID) {
 	d.Lock()
 	defer d.Unlock()
 	for _, t := range msgType {
@@ -70,7 +70,7 @@ func (d *BlockingDispatcher) RegisterProcessor(p Processor, msgType ...PacketTyp
 
 // RegisterProcessorFunc takes a func, creates a Processor struct around it and
 // registers it to the dispatcher.
-func (d *BlockingDispatcher) RegisterProcessorFunc(msgType PacketTypeID, fn func(*Packet)) {
+func (d *BlockingDispatcher) RegisterProcessorFunc(msgType MessageTypeID, fn func(*Envelope)) {
 	p := &defaultProcessor{
 		fn: fn,
 	}
@@ -79,7 +79,7 @@ func (d *BlockingDispatcher) RegisterProcessorFunc(msgType PacketTypeID, fn func
 
 // Dispatch calls the corresponding processor's method Process. It's a
 // blocking call if the Processor is blocking.
-func (d *BlockingDispatcher) Dispatch(packet *Packet) error {
+func (d *BlockingDispatcher) Dispatch(packet *Envelope) error {
 	d.Lock()
 	defer d.Unlock()
 	var p Processor
@@ -106,7 +106,7 @@ func NewRoutineDispatcher() *RoutineDispatcher {
 
 // Dispatch implements the Dispatcher interface. It will give the packet to the
 // right Processor in a go routine.
-func (d *RoutineDispatcher) Dispatch(packet *Packet) error {
+func (d *RoutineDispatcher) Dispatch(packet *Envelope) error {
 	d.Lock()
 	defer d.Unlock()
 	var p = d.procs[packet.MsgType]
@@ -118,9 +118,9 @@ func (d *RoutineDispatcher) Dispatch(packet *Packet) error {
 }
 
 type defaultProcessor struct {
-	fn func(*Packet)
+	fn func(*Envelope)
 }
 
-func (dp *defaultProcessor) Process(msg *Packet) {
+func (dp *defaultProcessor) Process(msg *Envelope) {
 	dp.fn(msg)
 }

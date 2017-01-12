@@ -117,7 +117,7 @@ func (r *Router) Stop() error {
 }
 
 // Send sends to an ServerIdentity without wrapping the msg into a ProtocolMsg
-func (r *Router) Send(e *ServerIdentity, msg Body) error {
+func (r *Router) Send(e *ServerIdentity, msg Message) error {
 	if msg == nil {
 		return errors.New("Can't send nil-packet")
 	}
@@ -233,10 +233,9 @@ func (r *Router) handleConn(remote *ServerIdentity, c Conn) {
 			continue
 		}
 
-		packet.From = address
 		packet.ServerIdentity = remote
 
-		if err := r.Dispatch(&packet); err != nil {
+		if err := r.Dispatch(packet); err != nil {
 			log.Lvl3("Error dispatching:", err)
 		}
 
@@ -339,11 +338,11 @@ func (r *Router) receiveServerIdentity(c Conn) (*ServerIdentity, error) {
 		return nil, fmt.Errorf("Received wrong type during negotiation %s", nm.MsgType.String())
 	}
 	// Set the ServerIdentity for this connection
-	dst := nm.Msg.(ServerIdentity)
+	dst := nm.Msg.(*ServerIdentity)
 
 	if err != nil {
 		return nil, err
 	}
 	log.Lvl4(r.address, "Identity received from", dst.Address)
-	return &dst, nil
+	return dst, nil
 }

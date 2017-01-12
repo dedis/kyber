@@ -127,7 +127,7 @@ type MessageProxy interface {
 	// PacketType returns the packet type ID that this Protocol expects from the
 	// network. This is needed in order for the Overlay to receive those
 	// messages and dispatch them to the correct MessageProxy.
-	PacketType() network.PacketTypeID
+	PacketType() network.MessageTypeID
 	// Name returns the name associated with this MessageProxy. When creating a
 	// protocol, if one use a name used by a MessageProxy, this MessageProxy will be
 	// used to Wrap and Unwrap messages.
@@ -169,11 +169,11 @@ func (p *messageProxyStore) getByName(name string) MessageProxy {
 	return p.defaultIO
 }
 
-func (p *messageProxyStore) getByPacketType(t network.PacketTypeID) MessageProxy {
+func (p *messageProxyStore) getByPacketType(mid network.MessageTypeID) MessageProxy {
 	p.Lock()
 	defer p.Unlock()
 	for _, pio := range p.protos {
-		if pio.PacketType().Equal(t) {
+		if pio.PacketType().Equal(mid) {
 			return pio
 		}
 	}

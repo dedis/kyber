@@ -19,9 +19,9 @@ still goes on.
 */
 
 func init() {
-	network.RegisterPacketType(PrepareCount{})
-	network.RegisterPacketType(Count{})
-	network.RegisterPacketType(NodeIsUp{})
+	network.RegisterMessage(PrepareCount{})
+	network.RegisterMessage(Count{})
+	network.RegisterMessage(NodeIsUp{})
 	onet.GlobalProtocolRegister("Count", NewCount)
 }
 

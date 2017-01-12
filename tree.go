@@ -24,8 +24,8 @@ import (
 // It contains the PeerId of the parent and the sub tree of the children.
 
 func init() {
-	network.RegisterPacketType(Tree{})
-	network.RegisterPacketType(tbmStruct{})
+	network.RegisterMessage(Tree{})
+	network.RegisterMessage(tbmStruct{})
 }
 
 // Tree is a topology to be used by any network layer/host layer
@@ -67,15 +67,14 @@ func NewTree(el *Roster, r *TreeNode) *Tree {
 // NewTreeFromMarshal takes a slice of bytes and an Roster to re-create
 // the original tree
 func NewTreeFromMarshal(buf []byte, el *Roster) (*Tree, error) {
-	tp, pm, err := network.UnmarshalRegisteredType(buf,
-		network.DefaultConstructors(network.Suite))
+	tp, pm, err := network.Unmarshal(buf)
 	if err != nil {
 		return nil, err
 	}
 	if tp != TreeMarshalTypeID {
 		return nil, errors.New("Didn't receive TreeMarshal-struct")
 	}
-	t, err := pm.(TreeMarshal).MakeTree(el)
+	t, err := pm.(*TreeMarshal).MakeTree(el)
 	t.computeSubtreeAggregate(network.Suite, t.Root)
 	return t, err
 }
@@ -98,7 +97,7 @@ func (t *Tree) MakeTreeMarshal() *TreeMarshal {
 // the ids of the elements. Use NewTreeFromMarshal to get back the original
 // tree
 func (t *Tree) Marshal() ([]byte, error) {
-	buf, err := network.MarshalRegisteredType(t.MakeTreeMarshal())
+	buf, err := network.Marshal(t.MakeTreeMarshal())
 	return buf, err
 }
 
@@ -117,7 +116,7 @@ func (t *Tree) BinaryMarshaler() ([]byte, error) {
 		T:  bt,
 		EL: t.Roster,
 	}
-	b, err := network.MarshalRegisteredType(tbm)
+	b, err := network.Marshal(tbm)
 	if err != nil {
 		return nil, err
 	}
@@ -126,8 +125,8 @@ func (t *Tree) BinaryMarshaler() ([]byte, error) {
 
 // BinaryUnmarshaler takes a TreeMarshal and stores it in the tree
 func (t *Tree) BinaryUnmarshaler(b []byte) error {
-	_, m, err := network.UnmarshalRegisteredType(b, network.DefaultConstructors(network.Suite))
-	tbm, ok := m.(tbmStruct)
+	_, m, err := network.Unmarshal(b)
+	tbm, ok := m.(*tbmStruct)
 	if !ok {
 		return errors.New("Didn't find TBMstruct")
 	}
@@ -284,7 +283,7 @@ func (tm *TreeMarshal) String() string {
 }
 
 // TreeMarshalTypeID of TreeMarshal message as registered in network
-var TreeMarshalTypeID = network.RegisterPacketType(TreeMarshal{})
+var TreeMarshalTypeID = network.RegisterMessage(TreeMarshal{})
 
 // TreeMarshalCopyTree takes a TreeNode and returns a corresponding
 // TreeMarshal
@@ -351,7 +350,7 @@ func (elId RosterID) String() string {
 }
 
 // RosterTypeID of Roster message as registered in network
-var RosterTypeID = network.RegisterPacketType(Roster{})
+var RosterTypeID = network.RegisterMessage(Roster{})
 
 // NewRoster creates a new ServerIdentity from a list of entities. It also
 // adds a UUID which is randomly chosen.
@@ -564,7 +563,7 @@ func (t *TreeNode) Name() string {
 	return t.ServerIdentity.Address.String()
 }
 
-var _ = network.RegisterPacketType(TreeNode{})
+var _ = network.RegisterMessage(TreeNode{})
 
 // NewTreeNode creates a new TreeNode with the proper Id
 func NewTreeNode(entityIdx int, ni *network.ServerIdentity) *TreeNode {

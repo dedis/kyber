@@ -482,7 +482,7 @@ func BenchmarkUnmarshalRegisteredType(b *testing.B) {
 	buf, _ := tree.BinaryMarshaler()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _, _ = network.UnmarshalRegisteredType(buf, network.DefaultConstructors(network.Suite))
+		_, _, _ = network.Unmarshal(buf)
 	}
 }
 

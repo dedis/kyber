@@ -43,13 +43,13 @@ type clientService struct {
 
 type SimpleMessage2 struct{}
 
-func (c *clientService) SimpleMessage(msg *SimpleMessage) (network.Body, ClientError) {
+func (c *clientService) SimpleMessage(msg *SimpleMessage) (network.Message, ClientError) {
 	log.Lvl3("Got request", msg)
 	c.cl.SendProtobuf(c.ServerIdentity(), &SimpleMessage2{}, nil)
 	return nil, nil
 }
 
-func (c *clientService) SimpleMessage2(msg *SimpleMessage2) (network.Body, ClientError) {
+func (c *clientService) SimpleMessage2(msg *SimpleMessage2) (network.Message, ClientError) {
 	log.Lvl3("Got request", msg)
 	return nil, nil
 }
