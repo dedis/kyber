@@ -75,8 +75,8 @@ type SimulationConfigFile struct {
 }
 
 // LoadSimulationConfig gets all configuration from dir + SimulationFileName and instantiates the
-// corresponding host 'ha'.
-func LoadSimulationConfig(dir, ha string) ([]*SimulationConfig, error) {
+// corresponding host 'ca'.
+func LoadSimulationConfig(dir, ca string) ([]*SimulationConfig, error) {
 	network.RegisterMessage(SimulationConfigFile{})
 	bin, err := ioutil.ReadFile(dir + "/" + SimulationFileName)
 	if err != nil {
@@ -86,6 +86,8 @@ func LoadSimulationConfig(dir, ha string) ([]*SimulationConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Redirect all calls from context.(Save|Load) to memory.
+	setContextDataPath("")
 	scf := msg.(*SimulationConfigFile)
 	sc := &SimulationConfig{
 		Roster:      scf.Roster,
@@ -98,14 +100,14 @@ func LoadSimulationConfig(dir, ha string) ([]*SimulationConfig, error) {
 	}
 
 	var ret []*SimulationConfig
-	if ha != "" {
-		if !strings.Contains(ha, ":") {
+	if ca != "" {
+		if !strings.Contains(ca, ":") {
 			// to correctly match hosts a column is needed, else
 			// 10.255.0.1 would also match 10.255.0.10 and others
-			ha += ":"
+			ca += ":"
 		}
 		for _, e := range sc.Roster.List {
-			if strings.Contains(e.Address.String(), ha) {
+			if strings.Contains(e.Address.String(), ca) {
 				conode := NewConodeTCP(e, scf.PrivateKeys[e.Address])
 				scNew := *sc
 				scNew.Conode = conode
@@ -114,7 +116,7 @@ func LoadSimulationConfig(dir, ha string) ([]*SimulationConfig, error) {
 			}
 		}
 		if len(ret) == 0 {
-			return nil, errors.New("Address not used in simulation: " + ha)
+			return nil, errors.New("Address not used in simulation: " + ca)
 		}
 	} else {
 		ret = append(ret, sc)
