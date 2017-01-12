@@ -164,6 +164,8 @@ func (c *Context) Save(id string, data interface{}) error {
 // If contextDataPath is non-empty, the data will be read from the corresponding
 // file. The path is explained in Save().
 // If contextDataPath is empty, the data will be read from the contextData map.
+//
+// If no data is found in either a file or the map, it returns an error.
 func (c *Context) Load(id string) (interface{}, error) {
 	var buf []byte
 	if getContextDataPath() == "" {
@@ -181,6 +183,17 @@ func (c *Context) Load(id string) (interface{}, error) {
 	}
 	_, ret, err := network.Unmarshal(buf)
 	return ret, err
+}
+
+// DataAvailable checks if any data is stored either in a file or in the
+// contextData map.
+func (c *Context) DataAvailable(id string) bool {
+	if getContextDataPath() == "" {
+		_, ok := contextData[c.absFilename(id)]
+		return ok
+	}
+	_, err := os.Stat(c.absFilename(id))
+	return !os.IsNotExist(err)
 }
 
 // absFilename returns the absolute path to load and save the configuration.

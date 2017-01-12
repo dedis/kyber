@@ -23,16 +23,8 @@ type ContextData struct {
 }
 
 func TestContextSaveLoad(t *testing.T) {
-	contextDataPath = ""
-	pub, _ := network.Suite.Point().Pick(nil, random.Stream)
-	si := network.NewServerIdentity(pub,
-		network.NewAddress(network.Local, "localhost:0"))
-	cn := &Conode{
-		Router: &network.Router{
-			ServerIdentity: si,
-		},
-	}
-	c := newContext(cn, nil, NilServiceID, nil)
+	setContextDataPath("")
+	c := createContext()
 	testLoadSave(t, true, c)
 
 	tmp := "/tmp/conode"
@@ -67,16 +59,8 @@ func testLoadSave(t *testing.T, first bool, c *Context) {
 }
 
 func TestContext_Path(t *testing.T) {
-	contextDataPath = ""
-	pub, _ := network.Suite.Point().Pick(nil, random.Stream)
-	si := network.NewServerIdentity(pub,
-		network.NewAddress(network.Local, "localhost:0"))
-	cn := &Conode{
-		Router: &network.Router{
-			ServerIdentity: si,
-		},
-	}
-	c := newContext(cn, nil, NilServiceID, nil)
+	setContextDataPath("")
+	c := createContext()
 	base := c.absFilename("test")
 	tmp := "/tmp/conode"
 	log.ErrFatal(os.RemoveAll(tmp))
@@ -87,4 +71,38 @@ func TestContext_Path(t *testing.T) {
 	log.ErrFatal(err)
 	require.Equal(t, path.Join(tmp, base), c.absFilename("test"))
 	log.ErrFatal(os.RemoveAll(tmp))
+}
+
+type CD2 struct {
+	I int
+}
+
+func TestContext_DataAvailable(t *testing.T) {
+	setContextDataPath("")
+	network.RegisterMessage(CD2{})
+	c := createContext()
+
+	require.False(t, c.DataAvailable("test"))
+	log.ErrFatal(c.Save("test", &CD2{42}))
+	require.True(t, c.DataAvailable("test"))
+
+	tmpdir, err := ioutil.TempDir("", "test")
+	log.ErrFatal(err)
+	setContextDataPath(tmpdir)
+	require.False(t, c.DataAvailable("test"))
+	log.ErrFatal(c.Save("test", &CD2{42}))
+	require.True(t, c.DataAvailable("test"))
+	os.RemoveAll(tmpdir)
+}
+
+func createContext() *Context {
+	pub, _ := network.Suite.Point().Pick(nil, random.Stream)
+	si := network.NewServerIdentity(pub,
+		network.NewAddress(network.Local, "localhost:0"))
+	cn := &Conode{
+		Router: &network.Router{
+			ServerIdentity: si,
+		},
+	}
+	return newContext(cn, nil, NilServiceID, nil)
 }
