@@ -67,7 +67,7 @@ type Envelope struct {
 	err error
 }
 
-// ServerIdentity is used to represent a Conode in the whole internet.
+// ServerIdentity is used to represent a Server in the whole internet.
 // It's based on a public key, and there can be one or more addresses to contact it.
 type ServerIdentity struct {
 	// This is the public key of that ServerIdentity

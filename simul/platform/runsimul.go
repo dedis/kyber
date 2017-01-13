@@ -10,14 +10,14 @@ import (
 	"github.com/dedis/onet/simul/monitor"
 )
 
-// Simulate starts the conode and will setup the protocol.
-func Simulate(conodeAddress, simul, monitorAddress string) error {
-	log.Lvl3("Flags are:", conodeAddress, simul, log.DebugVisible, monitorAddress)
+// Simulate starts the server and will setup the protocol.
+func Simulate(serverAddress, simul, monitorAddress string) error {
+	log.Lvl3("Flags are:", serverAddress, simul, log.DebugVisible, monitorAddress)
 
-	scs, err := onet.LoadSimulationConfig(".", conodeAddress)
+	scs, err := onet.LoadSimulationConfig(".", serverAddress)
 	if err != nil {
 		// We probably are not needed
-		log.Lvl2(err, conodeAddress)
+		log.Lvl2(err, serverAddress)
 		return nil
 	}
 	measures := make([]*monitor.CounterIOMeasure, len(scs))
@@ -29,25 +29,25 @@ func Simulate(conodeAddress, simul, monitorAddress string) error {
 	sims := make([]onet.Simulation, len(scs))
 	var rootSC *onet.SimulationConfig
 	var rootSim onet.Simulation
-	// having a waitgroup so the binary stops when all conodes are closed
+	// having a waitgroup so the binary stops when all servers are closed
 	var wg sync.WaitGroup
 	var ready = make(chan bool)
 	for i, sc := range scs {
-		// Starting all conodes for that server
-		conode := sc.Conode
-		measures[i] = monitor.NewCounterIOMeasure("bandwidth", conode)
-		log.Lvl3(conodeAddress, "Starting conode", conode.ServerIdentity.Address)
-		// Launch a conode and notifies when it's done
+		// Starting all servers for that server
+		server := sc.Server
+		measures[i] = monitor.NewCounterIOMeasure("bandwidth", server)
+		log.Lvl3(serverAddress, "Starting server", server.ServerIdentity.Address)
+		// Launch a server and notifies when it's done
 
 		wg.Add(1)
-		go func(c *onet.Conode, m monitor.Measure) {
+		go func(c *onet.Server, m monitor.Measure) {
 			ready <- true
 			defer wg.Done()
 			c.Start()
 			// record bandwidth
 			m.Record()
-			log.Lvl3(conodeAddress, "Simulation closed conode", c.ServerIdentity)
-		}(conode, measures[i])
+			log.Lvl3(serverAddress, "Simulation closed server", c.ServerIdentity)
+		}(server, measures[i])
 		// wait to be sure the goroutine started
 		<-ready
 
@@ -60,15 +60,15 @@ func Simulate(conodeAddress, simul, monitorAddress string) error {
 			return err
 		}
 		sims[i] = sim
-		if conode.ServerIdentity.ID == sc.Tree.Root.ServerIdentity.ID {
-			log.Lvl2(conodeAddress, "is root-node, will start protocol")
+		if server.ServerIdentity.ID == sc.Tree.Root.ServerIdentity.ID {
+			log.Lvl2(serverAddress, "is root-node, will start protocol")
 			rootSim = sim
 			rootSC = sc
 		}
 	}
 	if rootSim != nil {
-		// If this cothority has the root-conode, it will start the simulation
-		log.Lvl2("Starting protocol", simul, "on conode", rootSC.Conode.ServerIdentity.Address)
+		// If this cothority has the root-server, it will start the simulation
+		log.Lvl2("Starting protocol", simul, "on server", rootSC.Server.ServerIdentity.Address)
 		//log.Lvl5("Tree is", rootSC.Tree.Dump())
 
 		// First count the number of available children
@@ -100,7 +100,7 @@ func Simulate(conodeAddress, simul, monitorAddress string) error {
 		}
 		childrenWait.Record()
 		log.Lvl1("Starting new node", simul)
-		measureNet := monitor.NewCounterIOMeasure("bandwidth_root", rootSC.Conode)
+		measureNet := monitor.NewCounterIOMeasure("bandwidth_root", rootSC.Server)
 		err := rootSim.Run(rootSC)
 		if err != nil {
 			return err
@@ -130,9 +130,9 @@ func Simulate(conodeAddress, simul, monitorAddress string) error {
 		}
 	}
 
-	log.Lvl3(conodeAddress, scs[0].Conode.ServerIdentity, "is waiting for all conodes to close")
+	log.Lvl3(serverAddress, scs[0].Server.ServerIdentity, "is waiting for all servers to close")
 	wg.Wait()
-	log.Lvl2(conodeAddress, "has all conodes closed")
+	log.Lvl2(serverAddress, "has all servers closed")
 	if monitorAddress != "" {
 		monitor.EndAndCleanup()
 	}

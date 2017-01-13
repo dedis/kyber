@@ -291,7 +291,7 @@ func (n *TreeNodeInstance) Close() error {
 
 // ProtocolName will return the string representing that protocol
 func (n *TreeNodeInstance) ProtocolName() string {
-	return n.overlay.conode.protocols.ProtocolIDToName(n.token.ProtoID)
+	return n.overlay.server.protocols.ProtocolIDToName(n.token.ProtoID)
 }
 
 func (n *TreeNodeInstance) dispatchHandler(msgSlice []*ProtocolMsg) error {
@@ -654,9 +654,9 @@ func (n *TreeNodeInstance) CreateProtocol(name string, t *Tree) (ProtocolInstanc
 // Host returns the underlying Host of this node.
 // WARNING: you should not play with that feature unless you know what you are
 // doing. This feature is mean to access the low level parts of the API. For
-// example it is used to add a new tree config / new entity list to the Conode.
-func (n *TreeNodeInstance) Host() *Conode {
-	return n.overlay.conode
+// example it is used to add a new tree config / new entity list to the Server.
+func (n *TreeNodeInstance) Host() *Server {
+	return n.overlay.server
 }
 
 // TreeNodeInstance returns itself (XXX quick hack for this services2 branch

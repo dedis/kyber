@@ -23,7 +23,7 @@ func init() {
 }
 
 func TestNewWebSocket(t *testing.T) {
-	c := NewTCPConode(0)
+	c := NewTCPServer(0)
 	defer c.Close()
 	require.Equal(t, len(c.serviceManager.services), len(c.websocket.services))
 	require.NotEmpty(t, c.websocket.services[serviceWebSocket])
@@ -72,8 +72,8 @@ func TestClient_Send(t *testing.T) {
 	})
 	defer ServiceFactory.Unregister(backForthServiceName)
 
-	// create conodes
-	conodes, el, _ := local.GenTree(4, false)
+	// create servers
+	servers, el, _ := local.GenTree(4, false)
 	client := local.NewClient(backForthServiceName)
 
 	r := &SimpleRequest{
@@ -81,7 +81,7 @@ func TestClient_Send(t *testing.T) {
 		Val:              10,
 	}
 	sr := &SimpleResponse{}
-	log.ErrFatal(client.SendProtobuf(conodes[0].ServerIdentity, r, sr))
+	log.ErrFatal(client.SendProtobuf(servers[0].ServerIdentity, r, sr))
 	assert.Equal(t, sr.Val, 10)
 }
 
@@ -99,8 +99,8 @@ func TestClient_Parallel(t *testing.T) {
 	})
 	defer ServiceFactory.Unregister(backForthServiceName)
 
-	// create conodes
-	conodes, el, _ := local.GenTree(nbrNodes, true)
+	// create servers
+	servers, el, _ := local.GenTree(nbrNodes, true)
 
 	wg := sync.WaitGroup{}
 	wg.Add(nbrParallel)
@@ -113,7 +113,7 @@ func TestClient_Parallel(t *testing.T) {
 			}
 			client := local.NewClient(backForthServiceName)
 			sr := &SimpleResponse{}
-			log.ErrFatal(client.SendProtobuf(conodes[0].ServerIdentity, r, sr))
+			log.ErrFatal(client.SendProtobuf(servers[0].ServerIdentity, r, sr))
 			assert.Equal(t, 10*i, sr.Val)
 			log.Lvl1("Done with message", i)
 			wg.Done()

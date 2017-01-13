@@ -11,10 +11,10 @@ import (
 	"github.com/satori/go.uuid"
 )
 
-// Overlay keeps all trees and entity-lists for a given Conode. It creates
+// Overlay keeps all trees and entity-lists for a given Server. It creates
 // Nodes and ProtocolInstances upon request and dispatches the messages.
 type Overlay struct {
-	conode *Conode
+	server *Server
 	// mapping from Tree.Id to Tree
 	trees    map[TreeID]*Tree
 	treesMut sync.Mutex
@@ -53,9 +53,9 @@ type Overlay struct {
 }
 
 // NewOverlay creates a new overlay-structure
-func NewOverlay(c *Conode) *Overlay {
+func NewOverlay(c *Server) *Overlay {
 	o := &Overlay{
-		conode:             c,
+		server:             c,
 		trees:              make(map[TreeID]*Tree),
 		entityLists:        make(map[RosterID]*Roster),
 		cache:              NewTreeNodeCache(),
@@ -142,7 +142,7 @@ func (o *Overlay) TransmitMsg(onetMsg *ProtocolMsg, io MessageProxy) error {
 	}
 	// if the TreeNodeInstance is not there, creates it
 	if !ok {
-		log.Lvlf4("Creating TreeNodeInstance at %s %x", o.conode.ServerIdentity, onetMsg.To.ID())
+		log.Lvlf4("Creating TreeNodeInstance at %s %x", o.server.ServerIdentity, onetMsg.To.ID())
 		tn, err := o.TreeNodeFromToken(onetMsg.To)
 		if err != nil {
 			return errors.New("No TreeNode defined in this tree here")
@@ -151,7 +151,7 @@ func (o *Overlay) TransmitMsg(onetMsg *ProtocolMsg, io MessageProxy) error {
 		// retrieve the possible generic config for this message
 		config := o.getConfig(onetMsg.To.ID())
 		// request the PI from the Service and binds the two
-		pi, err = o.conode.serviceManager.newProtocol(tni, config)
+		pi, err = o.server.serviceManager.newProtocol(tni, config)
 		if err != nil {
 			return err
 		}
@@ -163,7 +163,7 @@ func (o *Overlay) TransmitMsg(onetMsg *ProtocolMsg, io MessageProxy) error {
 			return errors.New("Error Binding TreeNodeInstance and ProtocolInstance:" +
 				err.Error())
 		}
-		log.Lvl4(o.conode.Address(), "Overlay created new ProtocolInstace msg => ",
+		log.Lvl4(o.server.Address(), "Overlay created new ProtocolInstace msg => ",
 			fmt.Sprintf("%+v", onetMsg.To))
 	}
 	// TODO Check if TreeNodeInstance is already Done
@@ -259,7 +259,7 @@ func (o *Overlay) requestTree(si *network.ServerIdentity, onetMsg *ProtocolMsg, 
 		return err
 	}
 
-	err = o.conode.Send(si, msg)
+	err = o.server.Send(si, msg)
 	return err
 }
 
@@ -350,7 +350,7 @@ func (o *Overlay) handleRequestTree(si *network.ServerIdentity, req *RequestTree
 		return
 	}
 
-	err = o.conode.Send(si, msg)
+	err = o.server.Send(si, msg)
 	if err != nil {
 		log.Error("Couldn't send tree:", err)
 	}
@@ -370,7 +370,7 @@ func (o *Overlay) handleSendTree(si *network.ServerIdentity, tm *TreeMarshal, io
 		if err != nil {
 			log.Error("could not wrap RequestRoster:", err)
 		}
-		if err := o.conode.Send(si, msg); err != nil {
+		if err := o.server.Send(si, msg); err != nil {
 			log.Error("Requesting Roster in SendTree failed", err)
 		}
 		// put the tree marshal into pending queue so when we receive the
@@ -408,10 +408,10 @@ func (o *Overlay) handleRequestRoster(si *network.ServerIdentity, req *RequestRo
 		return
 	}
 
-	err = o.conode.Send(si, msg)
+	err = o.server.Send(si, msg)
 	if err != nil {
 		log.Error("Couldn't send empty entity list from host:",
-			o.conode.ServerIdentity.String(),
+			o.server.ServerIdentity.String(),
 			err)
 		return
 	}
@@ -434,7 +434,7 @@ func (o *Overlay) handleConfigMessage(env *network.Envelope) {
 	config, ok := env.Msg.(*ConfigMsg)
 	if !ok {
 		// This should never happen <=> assert
-		log.Panic(o.conode.Address(), "wrong config type")
+		log.Panic(o.server.Address(), "wrong config type")
 		return
 	}
 
@@ -466,7 +466,7 @@ func (o *Overlay) SendToTreeNode(from *Token, to *TreeNode, msg network.Message,
 
 	// first send the config if present
 	if c != nil {
-		if err := o.conode.Send(to.ServerIdentity, &ConfigMsg{*c, tokenTo.ID()}); err != nil {
+		if err := o.server.Send(to.ServerIdentity, &ConfigMsg{*c, tokenTo.ID()}); err != nil {
 			log.Error("sending config failed:", err)
 			return err
 		}
@@ -483,7 +483,7 @@ func (o *Overlay) SendToTreeNode(from *Token, to *TreeNode, msg network.Message,
 	if err != nil {
 		return err
 	}
-	return o.conode.Send(to.ServerIdentity, final)
+	return o.server.Send(to.ServerIdentity, final)
 }
 
 // nodeDone is called by node to signify that its work is finished and its
@@ -513,7 +513,7 @@ func (o *Overlay) nodeDelete(tok *Token) {
 }
 
 func (o *Overlay) suite() abstract.Suite {
-	return o.conode.Suite()
+	return o.server.Suite()
 }
 
 // Close calls all nodes, deletes them from the list and closes them
@@ -521,7 +521,7 @@ func (o *Overlay) Close() {
 	o.instancesLock.Lock()
 	defer o.instancesLock.Unlock()
 	for _, tni := range o.instances {
-		log.Lvl4(o.conode.Address(), "Closing TNI", tni.TokenID())
+		log.Lvl4(o.server.Address(), "Closing TNI", tni.TokenID())
 		o.nodeDelete(tni.Token())
 	}
 }
@@ -533,7 +533,7 @@ func (o *Overlay) Close() {
 func (o *Overlay) CreateProtocol(name string, t *Tree, sid ServiceID) (ProtocolInstance, error) {
 	io := o.protoIO.getByName(name)
 	tni := o.NewTreeNodeInstanceFromService(t, t.Root, ProtocolNameToID(name), sid, io)
-	pi, err := o.conode.protocolInstantiate(tni.token.ProtoID, tni)
+	pi, err := o.server.protocolInstantiate(tni.token.ProtoID, tni)
 	if err != nil {
 		return nil, err
 	}
@@ -601,7 +601,7 @@ func (o *Overlay) NewTreeNodeInstanceFromService(t *Tree, tn *TreeNode, protoID 
 
 // ServerIdentity Returns the entity of the Host
 func (o *Overlay) ServerIdentity() *network.ServerIdentity {
-	return o.conode.ServerIdentity
+	return o.server.ServerIdentity
 }
 
 // newTreeNodeInstanceFromToken is to be called by the Overlay when it receives
@@ -641,7 +641,7 @@ func (o *Overlay) RegisterProtocolInstance(pi ProtocolInstance) error {
 
 	tni.bind(pi)
 	o.protocolInstances[tok.ID()] = pi
-	log.Lvlf4("%s registered ProtocolInstance %x", o.conode.Address(), tok.ID())
+	log.Lvlf4("%s registered ProtocolInstance %x", o.server.Address(), tok.ID())
 	return nil
 }
 

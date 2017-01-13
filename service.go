@@ -54,7 +54,7 @@ func (s *ServiceID) String() string {
 var NilServiceID = ServiceID(uuid.Nil)
 
 // NewServiceFunc is the type of a function that is used to instantiate a given Service
-// A service is initialized with a Conode (to send messages to someone).
+// A service is initialized with a Server (to send messages to someone).
 type NewServiceFunc func(c *Context) Service
 
 // GenericConfig is a config that can withhold any type of specific configs for
@@ -190,7 +190,7 @@ type serviceManager struct {
 	// the actual services
 	services map[ServiceID]Service
 	// the onet host
-	conode *Conode
+	server *Server
 	// the dispatcher can take registration of Processors
 	network.Dispatcher
 }
@@ -198,7 +198,7 @@ type serviceManager struct {
 const configFolder = "config"
 
 // newServiceStore will create a serviceStore out of all the registered Service
-func newServiceManager(c *Conode, o *Overlay) *serviceManager {
+func newServiceManager(c *Server, o *Overlay) *serviceManager {
 	services := make(map[ServiceID]Service)
 	s := &serviceManager{services, c, network.NewRoutineDispatcher()}
 	ids := ServiceFactory.registeredServiceIDs()
@@ -234,14 +234,14 @@ func (s *serviceManager) Process(env *network.Envelope) {
 // system later.
 func (s *serviceManager) RegisterProcessor(p network.Processor, msgType network.MessageTypeID) {
 	// delegate message to host so the host will pass the message to ourself
-	s.conode.RegisterProcessor(s, msgType)
+	s.server.RegisterProcessor(s, msgType)
 	// handle the message ourselves (will be launched in a go routine)
 	s.Dispatcher.RegisterProcessor(p, msgType)
 }
 
 func (s *serviceManager) RegisterProcessorFunc(msgType network.MessageTypeID, fn func(*network.Envelope)) {
 	// delegate message to host so the host will pass the message to ourself
-	s.conode.RegisterProcessor(s, msgType)
+	s.server.RegisterProcessor(s, msgType)
 	// handle the message ourselves (will be launched in a go routine)
 	s.Dispatcher.RegisterProcessorFunc(msgType, fn)
 
@@ -282,7 +282,7 @@ func (s *serviceManager) serviceByID(id ServiceID) (Service, bool) {
 // the PI.
 func (s *serviceManager) newProtocol(tni *TreeNodeInstance, config *GenericConfig) (ProtocolInstance, error) {
 	si, ok := s.serviceByID(tni.Token().ServiceID)
-	defaultHandle := func() (ProtocolInstance, error) { return s.conode.protocolInstantiate(tni.Token().ProtoID, tni) }
+	defaultHandle := func() (ProtocolInstance, error) { return s.server.protocolInstantiate(tni.Token().ProtoID, tni) }
 	if !ok {
 		// let onet handle it
 		return defaultHandle()

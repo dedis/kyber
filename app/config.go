@@ -42,7 +42,7 @@ func (hc *CothorityConfig) Save(file string) error {
 // ParseCothority parses the config file into a CothorityConfig.
 // It returns the CothorityConfig, the Host so we can already use it, and an error if
 // the file is inaccessible or has wrong values in it.
-func ParseCothority(file string) (*CothorityConfig, *onet.Conode, error) {
+func ParseCothority(file string) (*CothorityConfig, *onet.Server, error) {
 	hc := &CothorityConfig{}
 	_, err := toml.DecodeFile(file, hc)
 	if err != nil {
@@ -59,8 +59,8 @@ func ParseCothority(file string) (*CothorityConfig, *onet.Conode, error) {
 	}
 	si := network.NewServerIdentity(point, hc.Address)
 	si.Description = hc.Description
-	conode := onet.NewConodeTCP(si, secret)
-	return hc, conode, nil
+	server := onet.NewServerTCP(si, secret)
+	return hc, server, nil
 }
 
 // GroupToml holds the data of the group.toml file.

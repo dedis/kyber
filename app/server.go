@@ -82,7 +82,7 @@ func InteractiveConfig(binaryName string) {
 		return
 	}
 
-	log.Info("We now need to get a reachable address for other Conodes")
+	log.Info("We now need to get a reachable address for other Servers")
 	log.Info("and clients to contact you. This address will be put in a group definition")
 	log.Info("file that you can share and combine with others to form a Cothority roster.")
 
@@ -352,9 +352,9 @@ func RunServer(configFilename string) {
 		log.Fatalf("[-] Configuration file does not exists. %s", configFilename)
 	}
 	// Let's read the config
-	_, conode, err := ParseCothority(configFilename)
+	_, server, err := ParseCothority(configFilename)
 	if err != nil {
 		log.Fatal("Couldn't parse config:", err)
 	}
-	conode.Start()
+	server.Start()
 }

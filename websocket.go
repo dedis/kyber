@@ -158,7 +158,7 @@ func (t wsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // Client is a struct used to communicate with a remote Service running on a
-// onet.Conode. Using Send it can connect to multiple remote Conodes.
+// onet.Server. Using Send it can connect to multiple remote Servers.
 type Client struct {
 	service string
 	si      *network.ServerIdentity
@@ -177,7 +177,7 @@ func NewClient(s string) *Client {
 }
 
 // NewClientKeep returns a Client that doesn't close the connection between
-// two messages if it's the same conode.
+// two messages if it's the same server.
 func NewClientKeep(s string) *Client {
 	return &Client{
 		service: s,

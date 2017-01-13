@@ -43,7 +43,7 @@ type ProtocolInstance interface {
 
 var protocols = newProtocolStorage()
 
-// protocolStorage holds all protocols either globally or per-Conode.
+// protocolStorage holds all protocols either globally or per-Server.
 type protocolStorage struct {
 	// Instantiators maps the name of the protocols to the `NewProtocol`-
 	// methods.
@@ -96,8 +96,8 @@ func ProtocolNameToID(name string) ProtocolID {
 
 // GlobalProtocolRegister registers a protocol in the global namespace.
 // This is used in protocols that register themselves in the `init`-method.
-// All registered protocols will be copied to every instantiated Conode. If a
-// protocol is tied to a service, use `Conode.ProtocolRegisterName`
+// All registered protocols will be copied to every instantiated Server. If a
+// protocol is tied to a service, use `Server.ProtocolRegisterName`
 func GlobalProtocolRegister(name string, protocol NewProtocol) (ProtocolID, error) {
 	return protocols.Register(name, protocol)
 }
@@ -144,8 +144,8 @@ type messageProxyFactoryStruct struct {
 var messageProxyFactory = messageProxyFactoryStruct{}
 
 // RegisterMessageProxy saves a new NewMessageProxy under its name.
-// When a Conode is instantiated, all MessageProxys will be generated and stored
-// for this Conode.
+// When a Server is instantiated, all MessageProxys will be generated and stored
+// for this Server.
 func RegisterMessageProxy(n NewMessageProxy) {
 	messageProxyFactory.factories = append(messageProxyFactory.factories, n)
 }

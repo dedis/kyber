@@ -66,7 +66,7 @@ func TestServiceNew(t *testing.T) {
 	defer UnregisterService(dummyServiceName)
 	go func() {
 		local := NewLocalTest()
-		local.GenConodes(1)
+		local.GenServers(1)
 		defer local.CloseAll()
 	}()
 
@@ -86,14 +86,14 @@ func TestServiceProcessRequest(t *testing.T) {
 	defer UnregisterService(dummyServiceName)
 
 	local := NewTCPTest()
-	hs := local.GenConodes(2)
-	conode := hs[0]
+	hs := local.GenServers(2)
+	server := hs[0]
 	log.Lvl1("Host created and listening")
 	defer local.CloseAll()
 	// Send a request to the service
 	client := NewClient(dummyServiceName)
 	log.Lvl1("Sending request to service...")
-	_, cerr := client.Send(conode.ServerIdentity, "nil", []byte("a"))
+	_, cerr := client.Send(server.ServerIdentity, "nil", []byte("a"))
 	log.Lvl2("Got reply")
 	require.Error(t, cerr)
 	require.Equal(t, 4100, cerr.ErrorCode())
@@ -116,25 +116,25 @@ func TestServiceRequestNewProtocol(t *testing.T) {
 
 	defer UnregisterService(dummyServiceName)
 	local := NewTCPTest()
-	hs := local.GenConodes(2)
-	conode := hs[0]
+	hs := local.GenServers(2)
+	server := hs[0]
 	client := local.NewClient(dummyServiceName)
 	defer local.CloseAll()
 	// create the entityList and tree
-	el := NewRoster([]*network.ServerIdentity{conode.ServerIdentity})
+	el := NewRoster([]*network.ServerIdentity{server.ServerIdentity})
 	tree := el.GenerateBinaryTree()
 	// give it to the service
 	ds.fakeTree = tree
 
 	// Send a request to the service
 	log.Lvl1("Sending request to service...")
-	log.ErrFatal(client.SendProtobuf(conode.ServerIdentity, &DummyMsg{10}, nil))
+	log.ErrFatal(client.SendProtobuf(server.ServerIdentity, &DummyMsg{10}, nil))
 	// wait for the link from the
 	waitOrFatalValue(ds.link, true, t)
 
 	// Now resend the value so we instantiate using the same treenode
 	log.Lvl1("Sending request again to service...")
-	cerr := client.SendProtobuf(conode.ServerIdentity, &DummyMsg{10}, nil)
+	cerr := client.SendProtobuf(server.ServerIdentity, &DummyMsg{10}, nil)
 	assert.Error(t, cerr)
 	// this should fail
 	waitOrFatalValue(ds.link, false, t)
@@ -176,20 +176,20 @@ func TestServiceNewProtocol(t *testing.T) {
 	defer UnregisterService(dummyServiceName)
 	local := NewTCPTest()
 	defer local.CloseAll()
-	hs := local.GenConodes(3)
-	conode1, conode2 := hs[0], hs[1]
+	hs := local.GenServers(3)
+	server1, server2 := hs[0], hs[1]
 	client := local.NewClient(dummyServiceName)
 	log.Lvl1("Host created and listening")
 
 	// create the entityList and tree
-	el := NewRoster([]*network.ServerIdentity{conode1.ServerIdentity, conode2.ServerIdentity})
+	el := NewRoster([]*network.ServerIdentity{server1.ServerIdentity, server2.ServerIdentity})
 	tree := el.GenerateBinaryTree()
 	// give it to the service
 	ds1.fakeTree = tree
 
 	// Send a request to the service
 	log.Lvl1("Sending request to service...")
-	log.ErrFatal(client.SendProtobuf(conode1.ServerIdentity, &DummyMsg{10}, nil))
+	log.ErrFatal(client.SendProtobuf(server1.ServerIdentity, &DummyMsg{10}, nil))
 	log.Lvl1("Waiting for end")
 	// wait for the link from the protocol that Starts
 	waitOrFatalValue(ds1.link, true, t)
@@ -220,17 +220,17 @@ func TestServiceProcessor(t *testing.T) {
 	})
 	local := NewLocalTest()
 	defer local.CloseAll()
-	hs := local.GenConodes(2)
-	conode1, conode2 := hs[0], hs[1]
+	hs := local.GenServers(2)
+	server1, server2 := hs[0], hs[1]
 
 	defer UnregisterService(dummyServiceName)
-	// create two conodes
+	// create two servers
 	log.Lvl1("Host created and listening")
 	// create request
 	log.Lvl1("Sending request to service...")
-	assert.Nil(t, conode2.Send(conode1.ServerIdentity, &DummyMsg{10}))
+	assert.Nil(t, server2.Send(server1.ServerIdentity, &DummyMsg{10}))
 
-	// wait for the link from the Service on conode 1
+	// wait for the link from the Service on server 1
 	waitOrFatalValue(ds1.link, true, t)
 }
 
@@ -247,8 +247,8 @@ func TestServiceBackForthProtocol(t *testing.T) {
 	log.ErrFatal(err)
 	defer ServiceFactory.Unregister(backForthServiceName)
 
-	// create conodes
-	conodes, el, _ := local.GenTree(4, false)
+	// create servers
+	servers, el, _ := local.GenTree(4, false)
 
 	// create client
 	client := local.NewClient(backForthServiceName)
@@ -259,7 +259,7 @@ func TestServiceBackForthProtocol(t *testing.T) {
 		Val:              10,
 	}
 	sr := &SimpleResponse{}
-	cerr := client.SendProtobuf(conodes[0].ServerIdentity, r, sr)
+	cerr := client.SendProtobuf(servers[0].ServerIdentity, r, sr)
 	log.ErrFatal(cerr)
 	assert.Equal(t, sr.Val, 10)
 }
@@ -267,34 +267,34 @@ func TestServiceBackForthProtocol(t *testing.T) {
 func TestServiceManager_Service(t *testing.T) {
 	local := NewLocalTest()
 	defer local.CloseAll()
-	conodes, _, _ := local.GenTree(2, true)
+	servers, _, _ := local.GenTree(2, true)
 
-	services := conodes[0].serviceManager.AvailableServices()
+	services := servers[0].serviceManager.AvailableServices()
 	assert.NotEqual(t, 0, len(services), "no services available")
 
-	service := conodes[0].serviceManager.Service("testService")
+	service := servers[0].serviceManager.Service("testService")
 	assert.NotNil(t, service, "Didn't find service testService")
 }
 
 func TestServiceMessages(t *testing.T) {
 	local := NewLocalTest()
 	defer local.CloseAll()
-	conodes, _, _ := local.GenTree(2, true)
+	servers, _, _ := local.GenTree(2, true)
 
-	service := conodes[0].serviceManager.Service(ismServiceName)
+	service := servers[0].serviceManager.Service(ismServiceName)
 	assert.NotNil(t, service, "Didn't find service ISMService")
 	ism := service.(*ServiceMessages)
-	ism.SendRaw(conodes[0].ServerIdentity, &SimpleResponse{})
+	ism.SendRaw(servers[0].ServerIdentity, &SimpleResponse{})
 	require.True(t, <-ism.GotResponse, "Didn't get response")
 }
 
 func TestServiceGenericConfig(t *testing.T) {
 	local := NewLocalTest()
 	defer local.CloseAll()
-	conodes, _, tree := local.GenTree(2, true)
+	servers, _, tree := local.GenTree(2, true)
 
-	s1 := conodes[0].serviceManager.Service(dummyService2Name)
-	s2 := conodes[1].serviceManager.Service(dummyService2Name)
+	s1 := servers[0].serviceManager.Service(dummyService2Name)
+	s2 := servers[1].serviceManager.Service(dummyService2Name)
 
 	ds1 := s1.(*dummyService2)
 	ds2 := s2.(*dummyService2)

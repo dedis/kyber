@@ -23,10 +23,10 @@ import (
 
 // Context represents the methods that are available to a service.
 type Context struct {
-	overlay *Overlay
-	conode  *Conode
-	servID  ServiceID
-	manager *serviceManager
+	overlay   *Overlay
+	server    *Server
+	serviceID ServiceID
+	manager   *serviceManager
 	network.Dispatcher
 }
 
@@ -36,11 +36,11 @@ const ENVServiceData = "CONODE_SERVICE_PATH"
 
 // defaultContext is the implementation of the Context interface. It is
 // instantiated for each Service.
-func newContext(c *Conode, o *Overlay, servID ServiceID, manager *serviceManager) *Context {
+func newContext(c *Server, o *Overlay, servID ServiceID, manager *serviceManager) *Context {
 	return &Context{
 		overlay:    o,
-		conode:     c,
-		servID:     servID,
+		server:     c,
+		serviceID:  servID,
 		manager:    manager,
 		Dispatcher: network.NewBlockingDispatcher(),
 	}
@@ -60,37 +60,37 @@ func init() {
 // service instead of the Overlay.
 func (c *Context) NewTreeNodeInstance(t *Tree, tn *TreeNode, protoName string) *TreeNodeInstance {
 	io := c.overlay.protoIO.getByName(protoName)
-	return c.overlay.NewTreeNodeInstanceFromService(t, tn, ProtocolNameToID(protoName), c.servID, io)
+	return c.overlay.NewTreeNodeInstanceFromService(t, tn, ProtocolNameToID(protoName), c.serviceID, io)
 }
 
 // SendRaw sends a message to the ServerIdentity.
 func (c *Context) SendRaw(si *network.ServerIdentity, msg interface{}) error {
-	return c.conode.Send(si, msg)
+	return c.server.Send(si, msg)
 }
 
-// ServerIdentity returns this Conode's identity.
+// ServerIdentity returns this server's identity.
 func (c *Context) ServerIdentity() *network.ServerIdentity {
-	return c.conode.ServerIdentity
+	return c.server.ServerIdentity
 }
 
 // ServiceID returns the service-id.
 func (c *Context) ServiceID() ServiceID {
-	return c.servID
+	return c.serviceID
 }
 
 // CreateProtocol returns a ProtocolInstance bound to the service.
 func (c *Context) CreateProtocol(name string, t *Tree) (ProtocolInstance, error) {
-	pi, err := c.overlay.CreateProtocol(name, t, c.servID)
+	pi, err := c.overlay.CreateProtocol(name, t, c.serviceID)
 	return pi, err
 }
 
-// ProtocolRegister signs up a new protocol to this Conode. Contrary go
-// GlobalProtocolRegister, the protocol registered here is tied to that conode.
-// This is useful for simulations where more than one Conode exists in the
+// ProtocolRegister signs up a new protocol to this Server. Contrary go
+// GlobalProtocolRegister, the protocol registered here is tied to that server.
+// This is useful for simulations where more than one Server exists in the
 // global namespace.
 // It returns the ID of the protocol.
 func (c *Context) ProtocolRegister(name string, protocol NewProtocol) (ProtocolID, error) {
-	return c.conode.ProtocolRegister(name, protocol)
+	return c.server.ProtocolRegister(name, protocol)
 }
 
 // RegisterProtocolInstance registers a new instance of a protocol using overlay.
@@ -100,12 +100,12 @@ func (c *Context) RegisterProtocolInstance(pi ProtocolInstance) error {
 
 // ReportStatus returns all status of the services.
 func (c *Context) ReportStatus() map[string]*Status {
-	return c.conode.statusReporterStruct.ReportStatus()
+	return c.server.statusReporterStruct.ReportStatus()
 }
 
 // RegisterStatusReporter registers a new StatusReporter.
 func (c *Context) RegisterStatusReporter(name string, s StatusReporter) {
-	c.conode.statusReporterStruct.RegisterStatusReporter(name, s)
+	c.server.statusReporterStruct.RegisterStatusReporter(name, s)
 }
 
 // RegisterProcessor overrides the RegisterProcessor methods of the Dispatcher.
@@ -127,7 +127,7 @@ func (c *Context) Service(name string) Service {
 
 // String returns the host it's running on.
 func (c *Context) String() string {
-	return c.conode.ServerIdentity.String()
+	return c.server.ServerIdentity.String()
 }
 
 var contextData = map[string][]byte{}
@@ -198,7 +198,7 @@ func (c *Context) DataAvailable(id string) bool {
 
 // absFilename returns the absolute path to load and save the configuration.
 // The file is chosen as "#{ServerIdentity.Public}_#{ServiceName}_#{id}.bin",
-// so no service and no conode share the same file.
+// so no service and no server share the same file.
 func (c *Context) absFilename(id string) string {
 	pub, _ := c.ServerIdentity().Public.MarshalBinary()
 	return path.Join(getContextDataPath(), fmt.Sprintf("%x_%s_%s.bin", pub,

@@ -20,7 +20,7 @@ func TestSRStruct(t *testing.T) {
 }
 
 func TestStatusHost(t *testing.T) {
-	c := NewTCPConode(2000)
+	c := NewTCPServer(2000)
 	defer c.Close()
 	stats := c.GetStatus()
 	a := ServiceFactory.RegisteredServiceNames()

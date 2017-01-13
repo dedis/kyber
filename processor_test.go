@@ -21,9 +21,9 @@ func init() {
 }
 
 func TestProcessor_AddMessage(t *testing.T) {
-	h1 := NewLocalConode(2000)
+	h1 := NewLocalServer(2000)
 	defer h1.Close()
-	p := NewServiceProcessor(&Context{conode: h1})
+	p := NewServiceProcessor(&Context{server: h1})
 	log.ErrFatal(p.RegisterHandler(procMsg))
 	if len(p.handlers) != 1 {
 		t.Fatal("Should have registered one function")
@@ -47,17 +47,17 @@ func TestProcessor_AddMessage(t *testing.T) {
 }
 
 func TestProcessor_RegisterMessages(t *testing.T) {
-	h1 := NewLocalConode(2000)
+	h1 := NewLocalServer(2000)
 	defer h1.Close()
-	p := NewServiceProcessor(&Context{conode: h1})
+	p := NewServiceProcessor(&Context{server: h1})
 	log.ErrFatal(p.RegisterHandlers(procMsg, procMsg2))
 	assert.Error(t, p.RegisterHandlers(procMsg3, procMsgWrong4))
 }
 
 func TestServiceProcessor_ProcessClientRequest(t *testing.T) {
-	h1 := NewLocalConode(2000)
+	h1 := NewLocalServer(2000)
 	defer h1.Close()
-	p := NewServiceProcessor(&Context{conode: h1})
+	p := NewServiceProcessor(&Context{server: h1})
 	log.ErrFatal(p.RegisterHandler(procMsg))
 
 	buf, err := protobuf.Encode(&testMsg{11})
@@ -80,7 +80,7 @@ func TestProcessor_ProcessClientRequest(t *testing.T) {
 	local := NewTCPTest()
 
 	// generate 5 hosts,
-	h := local.GenConodes(1)[0]
+	h := local.GenServers(1)[0]
 	defer local.CloseAll()
 
 	client := local.NewClient(testServiceName)
