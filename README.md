@@ -45,4 +45,5 @@ everything goes smoothly. And we'd like to have good code-coverage.
 
 # Contact
 
-You can contact us at https://groups.google.com/forum/#!forum/cothority
+You can contact us at https://groups.google.com/forum/#!forum/cothority or
+privately at dedis@epfl.ch.
