@@ -41,5 +41,5 @@ test_verbose:
 test_go:
 	./coveralls.sh
 
-test: test_fmt test_lint test_playground
+test: test_fmt test_lint test_go
 

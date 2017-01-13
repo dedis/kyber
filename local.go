@@ -297,10 +297,12 @@ func NewPrivIdentity(port int) (abstract.Scalar, *network.ServerIdentity) {
 // NewTCPServer creates a new server with a tcpRouter with "localserver:"+port as an
 // address.
 func NewTCPServer(port int) *Server {
-	log.Print(port)
 	priv, id := NewPrivIdentity(port)
 	addr := network.NewTCPAddress(id.Address.NetworkAddress())
 	var tcpHost *network.TCPHost
+	// For the websocket we need a port at the address one higher than the
+	// TCPHost. Let TCPHost chose a port, then check if the port+1 is also
+	// available. Else redo the search.
 	for {
 		var err error
 		tcpHost, err = network.NewTCPHost(addr)
@@ -326,7 +328,6 @@ func NewTCPServer(port int) *Server {
 	h := NewServer(router, priv)
 	go h.Start()
 	for !h.Listening() {
-		log.Print("Waiting to listen on", port)
 		time.Sleep(10 * time.Millisecond)
 	}
 	return h
