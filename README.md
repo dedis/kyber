@@ -16,7 +16,7 @@ a large number of conodes for distributed signing and related projects.
 ## Documentation
 
 - To run and use a conode, have a look at 
-	[Cothority Node](https://github.com/dedis/cothority/conode/wiki)
+	[Cothority Node](https://github.com/dedis/cothority/wiki/Conode)
 	with examples of protocols, services and apps
 - To start a new project by developing and integrating a new protocol, have a look at
 	the [Cothority Template](https://github.com/dedis/cothority_template/wiki)
@@ -25,14 +25,18 @@ a large number of conodes for distributed signing and related projects.
 
 ## License
 
-All repositories in https://github.com/cothority are double-licensed under a 
+All repositories for the cothority-project 
+([ONet](https://github.com/dedis/onet), 
+[cothority](https://github.com/dedis/cothority), 
+[cothority_template](https://github.com/dedis/cothority_template))
+are double-licensed under a 
 GNU/AGPL 3.0 and a commercial license. If you want to have more information, 
-contact us at bryan.ford@epfl.ch or linus.gassser@epfl.ch.
+contact us at dedis@epfl.ch.
 
 ## Contribution
 
 If you want to contribute to Cothority-ONet, please have a look at 
-[CONTRIBUTION](https://github.com/dedis/cothority/onet/blob/master/CONTRIBUTION) for
+[CONTRIBUTION](https://github.com/dedis/onet/blob/master/CONTRIBUTION) for
 licensing details. Once you are OK with those, you can have a look at our
 coding-guidelines in
 [Coding](https://github.com/dedis/Coding). In short, we use the github-issues
