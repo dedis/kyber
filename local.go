@@ -7,6 +7,9 @@ import (
 
 	"os"
 
+	"fmt"
+	"net"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/config"
 	"github.com/dedis/onet/log"
@@ -294,17 +297,36 @@ func NewPrivIdentity(port int) (abstract.Scalar, *network.ServerIdentity) {
 // NewTCPServer creates a new server with a tcpRouter with "localserver:"+port as an
 // address.
 func NewTCPServer(port int) *Server {
+	log.Print(port)
 	priv, id := NewPrivIdentity(port)
 	addr := network.NewTCPAddress(id.Address.NetworkAddress())
-	tcpHost, err := network.NewTCPHost(addr)
-	if err != nil {
-		panic(err)
+	var tcpHost *network.TCPHost
+	for {
+		var err error
+		tcpHost, err = network.NewTCPHost(addr)
+		if err != nil {
+			panic(err)
+		}
+		id.Address = tcpHost.Address()
+		if port != 0 {
+			break
+		}
+		port, err := strconv.Atoi(id.Address.Port())
+		if err != nil {
+			panic(err)
+		}
+		addr := fmt.Sprintf("%s:%d", id.Address.Host(), port+1)
+		if l, err := net.Listen("tcp", addr); err == nil {
+			l.Close()
+			break
+		}
+		log.Lvl2("Found closed port:", addr)
 	}
-	id.Address = tcpHost.Address()
 	router := network.NewRouter(id, tcpHost)
 	h := NewServer(router, priv)
 	go h.Start()
 	for !h.Listening() {
+		log.Print("Waiting to listen on", port)
 		time.Sleep(10 * time.Millisecond)
 	}
 	return h
