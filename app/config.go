@@ -30,6 +30,8 @@ func (hc *CothorityConfig) Save(file string) error {
 	if err != nil {
 		return err
 	}
+	fd.WriteString("# This file contains your private key.\n")
+	fd.WriteString("# Do not give it away lightly!\n")
 	err = toml.NewEncoder(fd).Encode(hc)
 	if err != nil {
 		return err
@@ -40,31 +42,30 @@ func (hc *CothorityConfig) Save(file string) error {
 // ParseCothority parses the config file into a CothorityConfig.
 // It returns the CothorityConfig, the Host so we can already use it, and an error if
 // the file is inaccessible or has wrong values in it.
-func ParseCothority(file string) (*CothorityConfig, *onet.Conode, error) {
+func ParseCothority(file string) (*CothorityConfig, *onet.Server, error) {
 	hc := &CothorityConfig{}
 	_, err := toml.DecodeFile(file, hc)
 	if err != nil {
 		return nil, nil, err
 	}
 	// Try to decode the Hex values
-	secret, err := crypto.ReadScalarHex(network.Suite, hc.Private)
+	secret, err := crypto.StringHexToScalar(network.Suite, hc.Private)
 	if err != nil {
 		return nil, nil, err
 	}
-	point, err := crypto.ReadPubHex(network.Suite, hc.Public)
+	point, err := crypto.StringHexToPub(network.Suite, hc.Public)
 	if err != nil {
 		return nil, nil, err
 	}
 	si := network.NewServerIdentity(point, hc.Address)
 	si.Description = hc.Description
-	conode := onet.NewConodeTCP(si, secret)
-	return hc, conode, nil
+	server := onet.NewServerTCP(si, secret)
+	return hc, server, nil
 }
 
 // GroupToml holds the data of the group.toml file.
 type GroupToml struct {
-	Description string
-	Servers     []*ServerToml `toml:"servers"`
+	Servers []*ServerToml `toml:"servers"`
 }
 
 // NewGroupToml creates a new GroupToml struct from the given ServerTomls.
@@ -147,9 +148,6 @@ func (gt *GroupToml) Save(fname string) error {
 // String returns the TOML representation of this GroupToml.
 func (gt *GroupToml) String() string {
 	var buff bytes.Buffer
-	if gt.Description == "" {
-		gt.Description = "Description of your cothority roster"
-	}
 	for _, s := range gt.Servers {
 		if s.Description == "" {
 			s.Description = "Description of your server"
@@ -165,7 +163,7 @@ func (gt *GroupToml) String() string {
 // toServerIdentity converts this ServerToml struct to a ServerIdentity.
 func (s *ServerToml) toServerIdentity(suite abstract.Suite) (*network.ServerIdentity, error) {
 	pubR := strings.NewReader(s.Public)
-	public, err := crypto.ReadPub64(suite, pubR)
+	public, err := crypto.Read64Pub(suite, pubR)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +177,7 @@ func (s *ServerToml) toServerIdentity(suite abstract.Suite) (*network.ServerIden
 func NewServerToml(suite abstract.Suite, public abstract.Point, addr network.Address,
 	desc string) *ServerToml {
 	var buff bytes.Buffer
-	if err := crypto.WritePub64(suite, &buff, public); err != nil {
+	if err := crypto.Write64Pub(suite, &buff, public); err != nil {
 		log.Error("Error writing public key")
 		return nil
 	}

@@ -96,18 +96,18 @@ func TestSimulationMultipleInstances(t *testing.T) {
 	if len(sc2) != 4 {
 		t.Fatal("We should have 4 local1-hosts but have", len(sc2))
 	}
-	if sc2[0].Conode.ServerIdentity.ID == sc2[1].Conode.ServerIdentity.ID {
+	if sc2[0].Server.ServerIdentity.ID == sc2[1].Server.ServerIdentity.ID {
 		t.Fatal("Hosts are not copies")
 	}
 }
 
 func closeAll(scs []*SimulationConfig) {
 	for _, s := range scs {
-		if err := s.Conode.Close(); err != nil {
-			log.Error("Error closing host ", s.Conode.ServerIdentity)
+		if err := s.Server.Close(); err != nil {
+			log.Error("Error closing host ", s.Server.ServerIdentity)
 		}
 
-		for s.Conode.Router.Listening() {
+		for s.Server.Router.Listening() {
 			log.Lvl2("Sleeping while waiting for router to be closed")
 			time.Sleep(20 * time.Millisecond)
 		}

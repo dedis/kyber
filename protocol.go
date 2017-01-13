@@ -43,7 +43,7 @@ type ProtocolInstance interface {
 
 var protocols = newProtocolStorage()
 
-// protocolStorage holds all protocols either globally or per-Conode.
+// protocolStorage holds all protocols either globally or per-Server.
 type protocolStorage struct {
 	// Instantiators maps the name of the protocols to the `NewProtocol`-
 	// methods.
@@ -96,8 +96,8 @@ func ProtocolNameToID(name string) ProtocolID {
 
 // GlobalProtocolRegister registers a protocol in the global namespace.
 // This is used in protocols that register themselves in the `init`-method.
-// All registered protocols will be copied to every instantiated Conode. If a
-// protocol is tied to a service, use `Conode.ProtocolRegisterName`
+// All registered protocols will be copied to every instantiated Server. If a
+// protocol is tied to a service, use `Server.ProtocolRegisterName`
 func GlobalProtocolRegister(name string, protocol NewProtocol) (ProtocolID, error) {
 	return protocols.Register(name, protocol)
 }
@@ -118,16 +118,16 @@ type MessageProxy interface {
 	// that has to be sent directly to the network alongside with any error that
 	// happened.
 	// If msg is nil, it is only an internal message of the Overlay.
-	Wrap(msg interface{}, info *OverlayMessage) (interface{}, error)
+	Wrap(msg interface{}, info *OverlayMsg) (interface{}, error)
 	// Unwrap takes the message coming from the network and returns the
 	// inner message that is going to be dispatched to the ProtocolInstance, the
 	// OverlayMessage needed by the Overlay to function correctly and then any
 	// error that might have occurred.
-	Unwrap(msg interface{}) (interface{}, *OverlayMessage, error)
+	Unwrap(msg interface{}) (interface{}, *OverlayMsg, error)
 	// PacketType returns the packet type ID that this Protocol expects from the
 	// network. This is needed in order for the Overlay to receive those
 	// messages and dispatch them to the correct MessageProxy.
-	PacketType() network.PacketTypeID
+	PacketType() network.MessageTypeID
 	// Name returns the name associated with this MessageProxy. When creating a
 	// protocol, if one use a name used by a MessageProxy, this MessageProxy will be
 	// used to Wrap and Unwrap messages.
@@ -144,8 +144,8 @@ type messageProxyFactoryStruct struct {
 var messageProxyFactory = messageProxyFactoryStruct{}
 
 // RegisterMessageProxy saves a new NewMessageProxy under its name.
-// When a Conode is instantiated, all MessageProxys will be generated and stored
-// for this Conode.
+// When a Server is instantiated, all MessageProxys will be generated and stored
+// for this Server.
 func RegisterMessageProxy(n NewMessageProxy) {
 	messageProxyFactory.factories = append(messageProxyFactory.factories, n)
 }
@@ -169,11 +169,11 @@ func (p *messageProxyStore) getByName(name string) MessageProxy {
 	return p.defaultIO
 }
 
-func (p *messageProxyStore) getByPacketType(t network.PacketTypeID) MessageProxy {
+func (p *messageProxyStore) getByPacketType(mid network.MessageTypeID) MessageProxy {
 	p.Lock()
 	defer p.Unlock()
 	for _, pio := range p.protos {
-		if pio.PacketType().Equal(t) {
+		if pio.PacketType().Equal(mid) {
 			return pio
 		}
 	}

@@ -19,9 +19,9 @@ import (
 	"github.com/dedis/onet/simul/platform"
 )
 
-// The address of this conode - if there is only one conode in the config
+// The address of this server - if there is only one server in the config
 // file, it will be derived from it automatically
-var conodeAddress string
+var serverAddress string
 
 // ip addr of the logger to connect to
 var monitorAddress string
@@ -32,7 +32,7 @@ var simul string
 // Initialize before 'init' so we can directly use the fields as parameters
 // to 'Flag'
 func init() {
-	flag.StringVar(&conodeAddress, "address", "", "our address to use")
+	flag.StringVar(&serverAddress, "address", "", "our address to use")
 	flag.StringVar(&simul, "simul", "", "start simulating that protocol")
 	flag.StringVar(&monitorAddress, "monitor", "", "remote monitor")
 }
@@ -60,7 +60,7 @@ func Start(rcs ...string) {
 	if simul == "" {
 		startBuild()
 	} else {
-		err := platform.Simulate(conodeAddress, simul, monitorAddress)
+		err := platform.Simulate(serverAddress, simul, monitorAddress)
 		log.ErrFatal(err)
 	}
 }

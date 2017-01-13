@@ -222,10 +222,10 @@ func newNSquareProc(t *testing.T, r *Router, expect int, wg *sync.WaitGroup) *nS
 	return &nSquareProc{t, r, expect, wg, make(map[Address]bool), make(map[Address]bool), sync.Mutex{}}
 }
 
-func (p *nSquareProc) Process(pack *Packet) {
+func (p *nSquareProc) Process(env *Envelope) {
 	p.Lock()
 	defer p.Unlock()
-	remote := pack.ServerIdentity.Address
+	remote := env.ServerIdentity.Address
 	ok := p.firstRound[remote]
 	if ok {
 		// second round
@@ -242,7 +242,7 @@ func (p *nSquareProc) Process(pack *Packet) {
 	}
 
 	p.firstRound[remote] = true
-	if err := p.r.Send(pack.ServerIdentity, &SimpleMessage{3}); err != nil {
+	if err := p.r.Send(env.ServerIdentity, &SimpleMessage{3}); err != nil {
 		p.t.Fatal("Could not send to first round dest.")
 	}
 

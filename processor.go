@@ -65,7 +65,7 @@ func (p *ServiceProcessor) RegisterHandler(f interface{}) error {
 	if ft.NumOut() != 2 {
 		return errors.New("Need 2 return values: network.Body and ClientError")
 	}
-	if ft.Out(0) != reflect.TypeOf((*network.Body)(nil)).Elem() {
+	if ft.Out(0) != reflect.TypeOf((*network.Message)(nil)).Elem() {
 		return errors.New("1st return value has to be: network.Body, but is: " +
 			ft.Out(0).String())
 	}
@@ -92,7 +92,7 @@ func (p *ServiceProcessor) RegisterHandlers(procs ...interface{}) error {
 }
 
 // Process implements the Processor interface and dispatches ClientRequest messages.
-func (p *ServiceProcessor) Process(packet *network.Packet) {
+func (p *ServiceProcessor) Process(env *network.Envelope) {
 	log.Panic("Cannot handle message.")
 }
 

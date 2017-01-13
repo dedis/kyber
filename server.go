@@ -21,9 +21,9 @@ import (
 	"github.com/dedis/onet/network"
 )
 
-// Conode is the structure responsible for holding information about the current
-// state
-type Conode struct {
+// Server connects the Router, the Overlay, and the Services together. It sets
+// up everything and returns once a working network has been set up.
+type Server struct {
 	// Our private-key
 	private abstract.Scalar
 	*network.Router
@@ -43,9 +43,9 @@ type Conode struct {
 	started time.Time
 }
 
-// NewConode returns a fresh Host with a given Router.
-func NewConode(r *network.Router, pkey abstract.Scalar) *Conode {
-	c := &Conode{
+// NewServer returns a fresh Server tied to a given Router.
+func NewServer(r *network.Router, pkey abstract.Scalar) *Server {
+	c := &Server{
 		private:              pkey,
 		statusReporterStruct: newStatusReporterStruct(),
 		Router:               r,
@@ -63,42 +63,42 @@ func NewConode(r *network.Router, pkey abstract.Scalar) *Conode {
 	return c
 }
 
-// NewConodeTCP returns a new Host that out of a private-key and its relating public
-// key within the ServerIdentity. The host will create a default TcpRouter as Router.
-func NewConodeTCP(e *network.ServerIdentity, pkey abstract.Scalar) *Conode {
+// NewServerTCP returns a new Server out of a private-key and its related public
+// key within the ServerIdentity. The server will use a default TcpRouter as Router.
+func NewServerTCP(e *network.ServerIdentity, pkey abstract.Scalar) *Server {
 	r, err := network.NewTCPRouter(e)
 	log.ErrFatal(err)
-	return NewConode(r, pkey)
+	return NewServer(r, pkey)
 }
 
 // Suite can (and should) be used to get the underlying abstract.Suite.
 // Currently the suite is hardcoded into the network library.
 // Don't use network.Suite but Host's Suite function instead if possible.
-func (c *Conode) Suite() abstract.Suite {
+func (c *Server) Suite() abstract.Suite {
 	return network.Suite
 }
 
 // GetStatus is a function that returns the status report of the server.
-func (c *Conode) GetStatus() Status {
-	m := make(map[string]string)
+func (c *Server) GetStatus() *Status {
 	a := ServiceFactory.RegisteredServiceNames()
 	sort.Strings(a)
-	m["Available_Services"] = strings.Join(a, ",")
-	m["TX_bytes"] = strconv.FormatUint(c.Router.Tx(), 10)
-	m["RX_bytes"] = strconv.FormatUint(c.Router.Rx(), 10)
-	m["Uptime"] = time.Now().Sub(c.started).String()
-	m["System"] = fmt.Sprintf("%s/%s/%s", runtime.GOOS, runtime.GOARCH,
-		runtime.Version())
-	m["Version"] = Version
-	m["Host"] = c.ServerIdentity.Address.Host()
-	m["Port"] = c.ServerIdentity.Address.Port()
-	m["Description"] = c.ServerIdentity.Description
-	m["ConnType"] = string(c.ServerIdentity.Address.ConnType())
-	return m
+	return &Status{map[string]string{
+		"Available_Services": strings.Join(a, ","),
+		"TX_bytes":           strconv.FormatUint(c.Router.Tx(), 10),
+		"RX_bytes":           strconv.FormatUint(c.Router.Rx(), 10),
+		"Uptime":             time.Now().Sub(c.started).String(),
+		"System": fmt.Sprintf("%s/%s/%s", runtime.GOOS, runtime.GOARCH,
+			runtime.Version()),
+		"Version":     Version,
+		"Host":        c.ServerIdentity.Address.Host(),
+		"Port":        c.ServerIdentity.Address.Port(),
+		"Description": c.ServerIdentity.Description,
+		"ConnType":    string(c.ServerIdentity.Address.ConnType()),
+	}}
 }
 
 // Close closes the overlay and the Router
-func (c *Conode) Close() error {
+func (c *Server) Close() error {
 	c.websocket.stop()
 	c.overlay.Close()
 	err := c.Router.Stop()
@@ -108,23 +108,23 @@ func (c *Conode) Close() error {
 }
 
 // Address returns the address used by the Router.
-func (c *Conode) Address() network.Address {
+func (c *Server) Address() network.Address {
 	return c.ServerIdentity.Address
 }
 
 // GetService returns the service with the given name.
-func (c *Conode) GetService(name string) Service {
+func (c *Server) GetService(name string) Service {
 	return c.serviceManager.Service(name)
 }
 
-// ProtocolRegister will sign up a new protocol to this Conode.
+// ProtocolRegister will sign up a new protocol to this Server.
 // It returns the ID of the protocol.
-func (c *Conode) ProtocolRegister(name string, protocol NewProtocol) (ProtocolID, error) {
+func (c *Server) ProtocolRegister(name string, protocol NewProtocol) (ProtocolID, error) {
 	return c.protocols.Register(name, protocol)
 }
 
 // protocolInstantiate instantiate a protocol from its ID
-func (c *Conode) protocolInstantiate(protoID ProtocolID, tni *TreeNodeInstance) (ProtocolInstance, error) {
+func (c *Server) protocolInstantiate(protoID ProtocolID, tni *TreeNodeInstance) (ProtocolInstance, error) {
 	fn, ok := c.protocols.instantiators[c.protocols.ProtocolIDToName(protoID)]
 	if !ok {
 		return nil, errors.New("No protocol constructor with this ID")
@@ -134,7 +134,7 @@ func (c *Conode) protocolInstantiate(protoID ProtocolID, tni *TreeNodeInstance) 
 
 // Start makes the router and the websocket listen on their respective
 // ports.
-func (c *Conode) Start() {
+func (c *Server) Start() {
 	go c.Router.Start()
 	c.websocket.start()
 }

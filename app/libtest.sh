@@ -21,7 +21,7 @@ startTest(){
     set +m
 	buildDir
 	if [ "$CLEANBUILD" ]; then
-		rm -f cothority $APP
+		rm -f conode $APP
 	fi
 	build $APPDIR
 }
@@ -195,10 +195,10 @@ buildDir(){
     cd $BUILDDIR
 }
 
-buildCothority(){
+buildConode(){
 	local incl=$1
     local pkg=$( realpath $BUILDDIR | sed -e "s:$GOPATH/src/::" )
-    local cotdir=$( mktemp -d )/cothority
+    local cotdir=$( mktemp -d )/conode
     mkdir -p $cotdir
     if [ ! "$incl" ]; then
     	incl=${APPDIR#$GOPATH/src/}/service
@@ -218,26 +218,26 @@ package main
 import "github.com/dedis/onet/app"
 
 func main(){
-	app.Cothority()
+	app.Server()
 }
 EOF
 	build $cotdir
 	rm -rf $cotdir
-	setupCothority
+	setupConode
 }
 
-setupCothority(){
+setupConode(){
 	# Don't show any setup messages
     DBG_OLD=$DBG_TEST
     DBG_TEST=0
-	rm -f group.toml
+	rm -f public.toml
     for n in $( seq $NBR_SERVERS ); do
         co=co$n
         rm -f $co/*
 		mkdir -p $co
     	echo -e "127.0.0.1:200$(( 2 * $n ))\nCot-$n\n$co\n" | dbgRun runCo $n setup
     	if [ $n -le $NBR_SERVERS_GROUP ]; then
-		    tail -n 4 $co/group.toml >> group.toml
+		    cat $co/public.toml >> public.toml
 		fi
 	done
     DBG_TEST=$DBG_OLD
@@ -245,20 +245,20 @@ setupCothority(){
 
 runCoBG(){
     for nb in $@; do
-    	testOut "starting cothority-server #$nb"
-    	( ./cothority -d $DBG_SRV -c co$nb/config.toml | tee $COLOG$nb.log & )
+    	testOut "starting conode-server #$nb"
+    	( ./conode -d $DBG_SRV -c co$nb/private.toml | tee $COLOG$nb.log & )
     done
 }
 
 runCo(){
     local nb=$1
     shift
-    testOut "starting cothority-server #$nb"
-    dbgRun ./cothority -d $DBG_SRV -c co$nb/config.toml $@
+    testOut "starting conode-server #$nb"
+    dbgRun ./conode -d $DBG_SRV -c co$nb/private.toml $@
 }
 
 cleanup(){
-    pkill -9 cothority 2> /dev/null
+    pkill -9 conode 2> /dev/null
     pkill -9 $APP 2> /dev/null
     sleep .5
     rm -f srv*/*bin

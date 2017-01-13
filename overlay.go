@@ -11,10 +11,10 @@ import (
 	"github.com/satori/go.uuid"
 )
 
-// Overlay keeps all trees and entity-lists for a given Conode. It creates
+// Overlay keeps all trees and entity-lists for a given Server. It creates
 // Nodes and ProtocolInstances upon request and dispatches the messages.
 type Overlay struct {
-	conode *Conode
+	server *Server
 	// mapping from Tree.Id to Tree
 	trees    map[TreeID]*Tree
 	treesMut sync.Mutex
@@ -53,9 +53,9 @@ type Overlay struct {
 }
 
 // NewOverlay creates a new overlay-structure
-func NewOverlay(c *Conode) *Overlay {
+func NewOverlay(c *Server) *Overlay {
 	o := &Overlay{
-		conode:             c,
+		server:             c,
 		trees:              make(map[TreeID]*Tree),
 		entityLists:        make(map[RosterID]*Roster),
 		cache:              NewTreeNodeCache(),
@@ -68,46 +68,46 @@ func NewOverlay(c *Conode) *Overlay {
 	o.protoIO = newMessageProxyStore(c, o)
 	// messages going to protocol instances
 	c.RegisterProcessor(o,
-		ProtocolMsgID,          // protocol instance's messages
-		RequestTreeMessageID,   // request a tree
-		SendTreeMessageID,      // send a tree back to a request
-		RequestRosterMessageID, // request a roster
-		SendRosterMessageID,    // send a roster back to request
-		ConfigMessageID)        // fetch config information
+		ProtocolMsgID,      // protocol instance's messages
+		RequestTreeMsgID,   // request a tree
+		SendTreeMsgID,      // send a tree back to a request
+		RequestRosterMsgID, // request a roster
+		SendRosterMsgID,    // send a roster back to request
+		ConfigMsgID)        // fetch config information
 	return o
 }
 
 // Process implements the Processor interface so it process the messages that it
 // wants.
-func (o *Overlay) Process(data *network.Packet) {
+func (o *Overlay) Process(env *network.Envelope) {
 	// Messages handled by the overlay directly without any messageProxyIO
-	if data.MsgType == ConfigMessageID {
-		o.handleConfigMessage(data)
+	if env.MsgType == ConfigMsgID {
+		o.handleConfigMessage(env)
 		return
 	}
 
 	// get messageProxy or default one
-	io := o.protoIO.getByPacketType(data.MsgType)
-	inner, info, err := io.Unwrap(data.Msg)
+	io := o.protoIO.getByPacketType(env.MsgType)
+	inner, info, err := io.Unwrap(env.Msg)
 	if err != nil {
 		log.Error("unwrapping: ", err)
 		return
 	}
 	switch true {
 	case info.RequestTree != nil:
-		o.handleRequestTree(data.ServerIdentity, info.RequestTree, io)
+		o.handleRequestTree(env.ServerIdentity, info.RequestTree, io)
 	case info.TreeMarshal != nil:
-		o.handleSendTree(data.ServerIdentity, info.TreeMarshal, io)
+		o.handleSendTree(env.ServerIdentity, info.TreeMarshal, io)
 	case info.RequestRoster != nil:
-		o.handleRequestRoster(data.ServerIdentity, info.RequestRoster, io)
+		o.handleRequestRoster(env.ServerIdentity, info.RequestRoster, io)
 	case info.Roster != nil:
-		o.handleSendRoster(data.ServerIdentity, info.Roster)
+		o.handleSendRoster(env.ServerIdentity, info.Roster)
 	default:
-		typ := network.TypeToPacketTypeID(inner)
+		typ := network.MessageType(inner)
 		protoMsg := &ProtocolMsg{
 			From:           info.TreeNodeInfo.From,
 			To:             info.TreeNodeInfo.To,
-			ServerIdentity: data.ServerIdentity,
+			ServerIdentity: env.ServerIdentity,
 			Msg:            inner,
 			MsgType:        typ,
 		}
@@ -142,7 +142,7 @@ func (o *Overlay) TransmitMsg(onetMsg *ProtocolMsg, io MessageProxy) error {
 	}
 	// if the TreeNodeInstance is not there, creates it
 	if !ok {
-		log.Lvlf4("Creating TreeNodeInstance at %s %x", o.conode.ServerIdentity, onetMsg.To.ID())
+		log.Lvlf4("Creating TreeNodeInstance at %s %x", o.server.ServerIdentity, onetMsg.To.ID())
 		tn, err := o.TreeNodeFromToken(onetMsg.To)
 		if err != nil {
 			return errors.New("No TreeNode defined in this tree here")
@@ -151,7 +151,7 @@ func (o *Overlay) TransmitMsg(onetMsg *ProtocolMsg, io MessageProxy) error {
 		// retrieve the possible generic config for this message
 		config := o.getConfig(onetMsg.To.ID())
 		// request the PI from the Service and binds the two
-		pi, err = o.conode.serviceManager.newProtocol(tni, config)
+		pi, err = o.server.serviceManager.newProtocol(tni, config)
 		if err != nil {
 			return err
 		}
@@ -163,7 +163,7 @@ func (o *Overlay) TransmitMsg(onetMsg *ProtocolMsg, io MessageProxy) error {
 			return errors.New("Error Binding TreeNodeInstance and ProtocolInstance:" +
 				err.Error())
 		}
-		log.Lvl4(o.conode.Address(), "Overlay created new ProtocolInstace msg => ",
+		log.Lvl4(o.server.Address(), "Overlay created new ProtocolInstace msg => ",
 			fmt.Sprintf("%+v", onetMsg.To))
 	}
 	// TODO Check if TreeNodeInstance is already Done
@@ -251,7 +251,7 @@ func (o *Overlay) requestTree(si *network.ServerIdentity, onetMsg *ProtocolMsg, 
 	o.savePendingMsg(onetMsg, io)
 
 	var msg interface{}
-	om := &OverlayMessage{
+	om := &OverlayMsg{
 		RequestTree: &RequestTree{onetMsg.To.TreeID},
 	}
 	msg, err := io.Wrap(nil, om)
@@ -259,7 +259,7 @@ func (o *Overlay) requestTree(si *network.ServerIdentity, onetMsg *ProtocolMsg, 
 		return err
 	}
 
-	err = o.conode.Send(si, msg)
+	err = o.server.Send(si, msg)
 	return err
 }
 
@@ -341,7 +341,7 @@ func (o *Overlay) handleRequestTree(si *network.ServerIdentity, req *RequestTree
 		// "error" ?
 		treeM = (&Tree{}).MakeTreeMarshal()
 	}
-	msg, err = io.Wrap(nil, &OverlayMessage{
+	msg, err = io.Wrap(nil, &OverlayMsg{
 		TreeMarshal: treeM,
 	})
 
@@ -350,7 +350,7 @@ func (o *Overlay) handleRequestTree(si *network.ServerIdentity, req *RequestTree
 		return
 	}
 
-	err = o.conode.Send(si, msg)
+	err = o.server.Send(si, msg)
 	if err != nil {
 		log.Error("Couldn't send tree:", err)
 	}
@@ -364,13 +364,13 @@ func (o *Overlay) handleSendTree(si *network.ServerIdentity, tm *TreeMarshal, io
 	roster := o.Roster(tm.RosterID)
 	// The roster does not exists, we should request that, too
 	if roster == nil {
-		msg, err := io.Wrap(nil, &OverlayMessage{
+		msg, err := io.Wrap(nil, &OverlayMsg{
 			RequestRoster: &RequestRoster{tm.RosterID},
 		})
 		if err != nil {
 			log.Error("could not wrap RequestRoster:", err)
 		}
-		if err := o.conode.Send(si, msg); err != nil {
+		if err := o.server.Send(si, msg); err != nil {
 			log.Error("Requesting Roster in SendTree failed", err)
 		}
 		// put the tree marshal into pending queue so when we receive the
@@ -399,7 +399,7 @@ func (o *Overlay) handleRequestRoster(si *network.ServerIdentity, req *RequestRo
 		roster = &Roster{}
 	}
 
-	msg, err = io.Wrap(nil, &OverlayMessage{
+	msg, err = io.Wrap(nil, &OverlayMsg{
 		Roster: roster,
 	})
 
@@ -408,10 +408,10 @@ func (o *Overlay) handleRequestRoster(si *network.ServerIdentity, req *RequestRo
 		return
 	}
 
-	err = o.conode.Send(si, msg)
+	err = o.server.Send(si, msg)
 	if err != nil {
 		log.Error("Couldn't send empty entity list from host:",
-			o.conode.ServerIdentity.String(),
+			o.server.ServerIdentity.String(),
 			err)
 		return
 	}
@@ -430,11 +430,11 @@ func (o *Overlay) handleSendRoster(si *network.ServerIdentity, roster *Roster) {
 
 // handleConfigMessage stores the config message so it can be dispatched
 // alongside with the protocol message later to the service.
-func (o *Overlay) handleConfigMessage(data *network.Packet) {
-	config, ok := data.Msg.(ConfigMessage)
+func (o *Overlay) handleConfigMessage(env *network.Envelope) {
+	config, ok := env.Msg.(*ConfigMsg)
 	if !ok {
 		// This should never happen <=> assert
-		log.Panic(o.conode.Address(), "wrong config type")
+		log.Panic(o.server.Address(), "wrong config type")
 		return
 	}
 
@@ -461,20 +461,19 @@ func (o *Overlay) getConfig(id TokenID) *GenericConfig {
 // c is the generic config that should be sent beforehand in order to get passed
 // in the `NewProtocol` method if a Service has created the protocol and set the
 // config with `SetConfig`. It can be nil.
-func (o *Overlay) SendToTreeNode(from *Token, to *TreeNode, msg network.Body,
-	io MessageProxy, c *GenericConfig) error {
+func (o *Overlay) SendToTreeNode(from *Token, to *TreeNode, msg network.Message, io MessageProxy, c *GenericConfig) error {
 	tokenTo := from.ChangeTreeNodeID(to.ID)
 
 	// first send the config if present
 	if c != nil {
-		if err := o.conode.Send(to.ServerIdentity, &ConfigMessage{*c, tokenTo.ID()}); err != nil {
+		if err := o.server.Send(to.ServerIdentity, &ConfigMsg{*c, tokenTo.ID()}); err != nil {
 			log.Error("sending config failed:", err)
 			return err
 		}
 	}
 	// then send the message
 	var final interface{}
-	info := &OverlayMessage{
+	info := &OverlayMsg{
 		TreeNodeInfo: &TreeNodeInfo{
 			From: from,
 			To:   tokenTo,
@@ -484,7 +483,7 @@ func (o *Overlay) SendToTreeNode(from *Token, to *TreeNode, msg network.Body,
 	if err != nil {
 		return err
 	}
-	return o.conode.Send(to.ServerIdentity, final)
+	return o.server.Send(to.ServerIdentity, final)
 }
 
 // nodeDone is called by node to signify that its work is finished and its
@@ -514,7 +513,7 @@ func (o *Overlay) nodeDelete(tok *Token) {
 }
 
 func (o *Overlay) suite() abstract.Suite {
-	return o.conode.Suite()
+	return o.server.Suite()
 }
 
 // Close calls all nodes, deletes them from the list and closes them
@@ -522,7 +521,7 @@ func (o *Overlay) Close() {
 	o.instancesLock.Lock()
 	defer o.instancesLock.Unlock()
 	for _, tni := range o.instances {
-		log.Lvl4(o.conode.Address(), "Closing TNI", tni.TokenID())
+		log.Lvl4(o.server.Address(), "Closing TNI", tni.TokenID())
 		o.nodeDelete(tni.Token())
 	}
 }
@@ -534,7 +533,7 @@ func (o *Overlay) Close() {
 func (o *Overlay) CreateProtocol(name string, t *Tree, sid ServiceID) (ProtocolInstance, error) {
 	io := o.protoIO.getByName(name)
 	tni := o.NewTreeNodeInstanceFromService(t, t.Root, ProtocolNameToID(name), sid, io)
-	pi, err := o.conode.protocolInstantiate(tni.token.ProtoID, tni)
+	pi, err := o.server.protocolInstantiate(tni.token.ProtoID, tni)
 	if err != nil {
 		return nil, err
 	}
@@ -602,7 +601,7 @@ func (o *Overlay) NewTreeNodeInstanceFromService(t *Tree, tn *TreeNode, protoID 
 
 // ServerIdentity Returns the entity of the Host
 func (o *Overlay) ServerIdentity() *network.ServerIdentity {
-	return o.conode.ServerIdentity
+	return o.server.ServerIdentity
 }
 
 // newTreeNodeInstanceFromToken is to be called by the Overlay when it receives
@@ -642,7 +641,7 @@ func (o *Overlay) RegisterProtocolInstance(pi ProtocolInstance) error {
 
 	tni.bind(pi)
 	o.protocolInstances[tok.ID()] = pi
-	log.Lvlf4("%s registered ProtocolInstance %x", o.conode.Address(), tok.ID())
+	log.Lvlf4("%s registered ProtocolInstance %x", o.server.Address(), tok.ID())
 	return nil
 }
 
@@ -723,13 +722,13 @@ func (tnc *TreeNodeCache) GetFromToken(tok *Token) *TreeNode {
 type defaultProtoIO struct{}
 
 // Wrap implements the MessageProxy interface for the Overlay.
-func (d *defaultProtoIO) Wrap(msg interface{}, info *OverlayMessage) (interface{}, error) {
+func (d *defaultProtoIO) Wrap(msg interface{}, info *OverlayMsg) (interface{}, error) {
 	if msg != nil {
-		buff, err := network.MarshalRegisteredType(msg)
+		buff, err := network.Marshal(msg)
 		if err != nil {
 			return nil, err
 		}
-		typ := network.TypeFromData(msg)
+		typ := network.MessageType(msg)
 		protoMsg := &ProtocolMsg{
 			From:     info.TreeNodeInfo.From,
 			To:       info.TreeNodeInfo.To,
@@ -755,16 +754,16 @@ func (d *defaultProtoIO) Wrap(msg interface{}, info *OverlayMessage) (interface{
 }
 
 // Unwrap implements the MessageProxy interface for the Overlay.
-func (d *defaultProtoIO) Unwrap(msg interface{}) (interface{}, *OverlayMessage, error) {
+func (d *defaultProtoIO) Unwrap(msg interface{}) (interface{}, *OverlayMsg, error) {
 	var returnMsg interface{}
-	var returnOverlay = new(OverlayMessage)
+	var returnOverlay = new(OverlayMsg)
 	var err error
 
 	switch inner := msg.(type) {
-	case ProtocolMsg:
+	case *ProtocolMsg:
 		onetMsg := inner
 		var err error
-		_, protoMsg, err := network.UnmarshalRegistered(onetMsg.MsgSlice)
+		_, protoMsg, err := network.Unmarshal(onetMsg.MsgSlice)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -774,14 +773,14 @@ func (d *defaultProtoIO) Unwrap(msg interface{}) (interface{}, *OverlayMessage, 
 			From: onetMsg.From,
 		}
 		returnMsg = protoMsg
-	case RequestTree:
-		returnOverlay.RequestTree = &inner
-	case RequestRoster:
-		returnOverlay.RequestRoster = &inner
-	case TreeMarshal:
-		returnOverlay.TreeMarshal = &inner
-	case Roster:
-		returnOverlay.Roster = &inner
+	case *RequestTree:
+		returnOverlay.RequestTree = inner
+	case *RequestRoster:
+		returnOverlay.RequestRoster = inner
+	case *TreeMarshal:
+		returnOverlay.TreeMarshal = inner
+	case *Roster:
+		returnOverlay.Roster = inner
 	default:
 		err = errors.New("default protoIO: unwraping an unknown message type")
 	}
@@ -789,8 +788,8 @@ func (d *defaultProtoIO) Unwrap(msg interface{}) (interface{}, *OverlayMessage, 
 }
 
 // Unwrap implements the MessageProxy interface for the Overlay.
-func (d *defaultProtoIO) PacketType() network.PacketTypeID {
-	return network.PacketTypeID([16]byte{})
+func (d *defaultProtoIO) PacketType() network.MessageTypeID {
+	return network.MessageTypeID([16]byte{})
 }
 
 // Name implements the MessageProxy interface. It returns the value "default".

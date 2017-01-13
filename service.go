@@ -3,8 +3,6 @@ package onet
 import (
 	"errors"
 	"fmt"
-	"os"
-	"path"
 
 	"sync"
 
@@ -14,7 +12,7 @@ import (
 )
 
 func init() {
-	network.RegisterPacketType(GenericConfig{})
+	network.RegisterMessage(GenericConfig{})
 }
 
 // Service is a generic interface to define any type of services.
@@ -56,10 +54,8 @@ func (s *ServiceID) String() string {
 var NilServiceID = ServiceID(uuid.Nil)
 
 // NewServiceFunc is the type of a function that is used to instantiate a given Service
-// A service is initialized with a Host (to send messages to someone), the
-// overlay (to register a Tree + Roster + start new node), and a path where
-// it can finds / write everything it needs
-type NewServiceFunc func(c *Context, path string) Service
+// A service is initialized with a Server (to send messages to someone).
+type NewServiceFunc func(c *Context) Service
 
 // GenericConfig is a config that can withhold any type of specific configs for
 // protocols. It is passed down to the service NewProtocol function.
@@ -87,9 +83,9 @@ var ServiceFactory = serviceFactory{
 
 // Register takes a name and a function, then creates a ServiceID out of it and stores the
 // mapping and the creation function.
-func (s *serviceFactory) Register(name string, fn NewServiceFunc) error {
+func (s *serviceFactory) Register(name string, fn NewServiceFunc) (ServiceID, error) {
 	if s.ServiceID(name) != NilServiceID {
-		return fmt.Errorf("service %s already registered", name)
+		return NilServiceID, fmt.Errorf("service %s already registered", name)
 	}
 	id := ServiceID(uuid.NewV5(uuid.NamespaceURL, name))
 	s.mutex.Lock()
@@ -99,7 +95,7 @@ func (s *serviceFactory) Register(name string, fn NewServiceFunc) error {
 		serviceID:   id,
 		name:        name,
 	})
-	return nil
+	return id, nil
 }
 
 // Unregister - mainly for tests
@@ -121,7 +117,7 @@ func (s *serviceFactory) Unregister(name string) error {
 }
 
 // RegisterNewService is a wrapper around service factory
-func RegisterNewService(name string, fn NewServiceFunc) error {
+func RegisterNewService(name string, fn NewServiceFunc) (ServiceID, error) {
 	return ServiceFactory.Register(name, fn)
 }
 
@@ -177,27 +173,24 @@ func (s *serviceFactory) Name(id ServiceID) string {
 }
 
 // start launches a new service
-func (s *serviceFactory) start(name string, con *Context, path string) (Service, error) {
+func (s *serviceFactory) start(name string, con *Context) (Service, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	for _, c := range s.constructors {
 		if name == c.name {
-			return c.constructor(con, path), nil
+			return c.constructor(con), nil
 		}
 	}
 	return nil, errors.New("Didn't find service " + name)
 }
 
 // serviceManager is the place where all instantiated services are stored
-// It gives access to: all the currently running services and is handling the
-// configuration path for them
+// It gives access to: all the currently running services
 type serviceManager struct {
 	// the actual services
 	services map[ServiceID]Service
-	// the config paths
-	paths map[ServiceID]string
 	// the onet host
-	conode *Conode
+	server *Server
 	// the dispatcher can take registration of Processors
 	network.Dispatcher
 }
@@ -205,40 +198,20 @@ type serviceManager struct {
 const configFolder = "config"
 
 // newServiceStore will create a serviceStore out of all the registered Service
-// it creates the path for the config folder of each service. basically
-// ```configFolder / *nameOfService*```
-func newServiceManager(c *Conode, o *Overlay) *serviceManager {
-	// check if we have a config folder
-	if err := os.MkdirAll(configFolder, 0770); err != nil {
-		_, ok := err.(*os.PathError)
-		if !ok {
-			// we cannot continue from here
-			log.Panic(err)
-		}
-	}
+func newServiceManager(c *Server, o *Overlay) *serviceManager {
 	services := make(map[ServiceID]Service)
-	configs := make(map[ServiceID]string)
-	s := &serviceManager{services, configs, c, network.NewRoutineDispatcher()}
+	s := &serviceManager{services, c, network.NewRoutineDispatcher()}
 	ids := ServiceFactory.registeredServiceIDs()
 	for _, id := range ids {
 		name := ServiceFactory.Name(id)
 		log.Lvl3("Starting service", name)
-		pwd, err := os.Getwd()
-		if err != nil {
-			log.Panic(err)
-		}
-		configName := path.Join(pwd, configFolder, name)
-		if err := os.MkdirAll(configName, 0770); err != nil {
-			log.Error("Service", name, "Might not work properly: error setting up its config directory(", configName, "):", err)
-		}
 		cont := newContext(c, o, id, s)
-		s, err := ServiceFactory.start(name, cont, configName)
+		s, err := ServiceFactory.start(name, cont)
 		if err != nil {
 			log.Error("Trying to instantiate service:", err)
 		}
-		log.Lvl3("Started Service", name, " (config in", configName, ")")
+		log.Lvl3("Started Service", name)
 		services[id] = s
-		configs[id] = configName
 		c.websocket.registerService(name, s)
 	}
 	log.Lvl3(c.Address(), "instantiated all services")
@@ -247,9 +220,9 @@ func newServiceManager(c *Conode, o *Overlay) *serviceManager {
 
 // Process implements the Processor interface: service manager will relay
 // messages to the right Service.
-func (s *serviceManager) Process(data *network.Packet) {
+func (s *serviceManager) Process(env *network.Envelope) {
 	// will launch a go routine for that message
-	s.Dispatch(data)
+	s.Dispatch(env)
 }
 
 // RegisterProcessor the processor to the service manager and tells the host to dispatch
@@ -259,16 +232,16 @@ func (s *serviceManager) Process(data *network.Packet) {
 // This behavior with go routine is fine for the moment but for better
 // performance / memory / resilience, it may be changed to a real queuing
 // system later.
-func (s *serviceManager) RegisterProcessor(p network.Processor, msgType network.PacketTypeID) {
+func (s *serviceManager) RegisterProcessor(p network.Processor, msgType network.MessageTypeID) {
 	// delegate message to host so the host will pass the message to ourself
-	s.conode.RegisterProcessor(s, msgType)
+	s.server.RegisterProcessor(s, msgType)
 	// handle the message ourselves (will be launched in a go routine)
 	s.Dispatcher.RegisterProcessor(p, msgType)
 }
 
-func (s *serviceManager) RegisterProcessorFunc(msgType network.PacketTypeID, fn func(*network.Packet)) {
+func (s *serviceManager) RegisterProcessorFunc(msgType network.MessageTypeID, fn func(*network.Envelope)) {
 	// delegate message to host so the host will pass the message to ourself
-	s.conode.RegisterProcessor(s, msgType)
+	s.server.RegisterProcessor(s, msgType)
 	// handle the message ourselves (will be launched in a go routine)
 	s.Dispatcher.RegisterProcessorFunc(msgType, fn)
 
@@ -309,7 +282,7 @@ func (s *serviceManager) serviceByID(id ServiceID) (Service, bool) {
 // the PI.
 func (s *serviceManager) newProtocol(tni *TreeNodeInstance, config *GenericConfig) (ProtocolInstance, error) {
 	si, ok := s.serviceByID(tni.Token().ServiceID)
-	defaultHandle := func() (ProtocolInstance, error) { return s.conode.protocolInstantiate(tni.Token().ProtoID, tni) }
+	defaultHandle := func() (ProtocolInstance, error) { return s.server.protocolInstantiate(tni.Token().ProtoID, tni) }
 	if !ok {
 		// let onet handle it
 		return defaultHandle()

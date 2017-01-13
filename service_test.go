@@ -20,10 +20,10 @@ const ismServiceName = "ismService"
 const backForthServiceName = "backForth"
 
 func init() {
-	network.RegisterPacketType(SimpleMessageForth{})
-	network.RegisterPacketType(SimpleMessageBack{})
-	network.RegisterPacketType(SimpleRequest{})
-	dummyMsgType = network.RegisterPacketType(DummyMsg{})
+	network.RegisterMessage(SimpleMessageForth{})
+	network.RegisterMessage(SimpleMessageBack{})
+	network.RegisterMessage(SimpleRequest{})
+	dummyMsgType = network.RegisterMessage(DummyMsg{})
 	RegisterNewService(ismServiceName, newServiceMessages)
 	RegisterNewService(dummyService2Name, newDummyService2)
 	GlobalProtocolRegister("DummyProtocol2,", newDummyProtocol2)
@@ -31,7 +31,7 @@ func init() {
 
 func TestServiceRegistration(t *testing.T) {
 	var name = "dummy"
-	RegisterNewService(name, func(c *Context, path string) Service {
+	RegisterNewService(name, func(c *Context) Service {
 		return &DummyService{}
 	})
 
@@ -58,16 +58,15 @@ func TestServiceNew(t *testing.T) {
 	ds := &DummyService{
 		link: make(chan bool),
 	}
-	RegisterNewService(dummyServiceName, func(c *Context, path string) Service {
+	RegisterNewService(dummyServiceName, func(c *Context) Service {
 		ds.c = c
-		ds.path = path
 		ds.link <- true
 		return ds
 	})
 	defer UnregisterService(dummyServiceName)
 	go func() {
 		local := NewLocalTest()
-		local.GenConodes(1)
+		local.GenServers(1)
 		defer local.CloseAll()
 	}()
 
@@ -76,29 +75,29 @@ func TestServiceNew(t *testing.T) {
 
 func TestServiceProcessRequest(t *testing.T) {
 	link := make(chan bool, 1)
-	log.ErrFatal(RegisterNewService(dummyServiceName, func(c *Context, path string) Service {
+	_, err := RegisterNewService(dummyServiceName, func(c *Context) Service {
 		ds := &DummyService{
 			link: link,
 			c:    c,
-			path: path,
 		}
 		return ds
-	}))
+	})
+	log.ErrFatal(err)
 	defer UnregisterService(dummyServiceName)
 
 	local := NewTCPTest()
-	hs := local.GenConodes(2)
-	conode := hs[0]
+	hs := local.GenServers(2)
+	server := hs[0]
 	log.Lvl1("Host created and listening")
 	defer local.CloseAll()
 	// Send a request to the service
 	client := NewClient(dummyServiceName)
 	log.Lvl1("Sending request to service...")
-	_, err := client.Send(conode.ServerIdentity, "nil", []byte("a"))
+	_, cerr := client.Send(server.ServerIdentity, "nil", []byte("a"))
 	log.Lvl2("Got reply")
-	require.Error(t, err)
-	require.Equal(t, 4100, err.ErrorCode())
-	require.Equal(t, "wrong message", err.ErrorMsg())
+	require.Error(t, cerr)
+	require.Equal(t, 4100, cerr.ErrorCode())
+	require.Equal(t, "wrong message", cerr.ErrorMsg())
 	// wait for the link
 	if <-link {
 		t.Fatal("was expecting false !")
@@ -110,33 +109,32 @@ func TestServiceRequestNewProtocol(t *testing.T) {
 	ds := &DummyService{
 		link: make(chan bool, 1),
 	}
-	RegisterNewService(dummyServiceName, func(c *Context, path string) Service {
+	RegisterNewService(dummyServiceName, func(c *Context) Service {
 		ds.c = c
-		ds.path = path
 		return ds
 	})
 
 	defer UnregisterService(dummyServiceName)
 	local := NewTCPTest()
-	hs := local.GenConodes(2)
-	conode := hs[0]
+	hs := local.GenServers(2)
+	server := hs[0]
 	client := local.NewClient(dummyServiceName)
 	defer local.CloseAll()
 	// create the entityList and tree
-	el := NewRoster([]*network.ServerIdentity{conode.ServerIdentity})
+	el := NewRoster([]*network.ServerIdentity{server.ServerIdentity})
 	tree := el.GenerateBinaryTree()
 	// give it to the service
 	ds.fakeTree = tree
 
 	// Send a request to the service
 	log.Lvl1("Sending request to service...")
-	log.ErrFatal(client.SendProtobuf(conode.ServerIdentity, &DummyMsg{10}, nil))
+	log.ErrFatal(client.SendProtobuf(server.ServerIdentity, &DummyMsg{10}, nil))
 	// wait for the link from the
 	waitOrFatalValue(ds.link, true, t)
 
 	// Now resend the value so we instantiate using the same treenode
 	log.Lvl1("Sending request again to service...")
-	cerr := client.SendProtobuf(conode.ServerIdentity, &DummyMsg{10}, nil)
+	cerr := client.SendProtobuf(server.ServerIdentity, &DummyMsg{10}, nil)
 	assert.Error(t, cerr)
 	// this should fail
 	waitOrFatalValue(ds.link, false, t)
@@ -155,7 +153,7 @@ func TestServiceNewProtocol(t *testing.T) {
 	}
 	var count int
 	countMutex := sync.Mutex{}
-	RegisterNewService(dummyServiceName, func(c *Context, path string) Service {
+	RegisterNewService(dummyServiceName, func(c *Context) Service {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		log.Lvl2("Creating service", count)
@@ -170,7 +168,6 @@ func TestServiceNewProtocol(t *testing.T) {
 			localDs = ds1
 		}
 		localDs.c = c
-		localDs.path = path
 
 		count++
 		return localDs
@@ -179,20 +176,20 @@ func TestServiceNewProtocol(t *testing.T) {
 	defer UnregisterService(dummyServiceName)
 	local := NewTCPTest()
 	defer local.CloseAll()
-	hs := local.GenConodes(3)
-	conode1, conode2 := hs[0], hs[1]
+	hs := local.GenServers(3)
+	server1, server2 := hs[0], hs[1]
 	client := local.NewClient(dummyServiceName)
 	log.Lvl1("Host created and listening")
 
 	// create the entityList and tree
-	el := NewRoster([]*network.ServerIdentity{conode1.ServerIdentity, conode2.ServerIdentity})
+	el := NewRoster([]*network.ServerIdentity{server1.ServerIdentity, server2.ServerIdentity})
 	tree := el.GenerateBinaryTree()
 	// give it to the service
 	ds1.fakeTree = tree
 
 	// Send a request to the service
 	log.Lvl1("Sending request to service...")
-	log.ErrFatal(client.SendProtobuf(conode1.ServerIdentity, &DummyMsg{10}, nil))
+	log.ErrFatal(client.SendProtobuf(server1.ServerIdentity, &DummyMsg{10}, nil))
 	log.Lvl1("Waiting for end")
 	// wait for the link from the protocol that Starts
 	waitOrFatalValue(ds1.link, true, t)
@@ -210,7 +207,7 @@ func TestServiceProcessor(t *testing.T) {
 		link: make(chan bool),
 	}
 	var count int
-	RegisterNewService(dummyServiceName, func(c *Context, path string) Service {
+	RegisterNewService(dummyServiceName, func(c *Context) Service {
 		var s *DummyService
 		if count == 0 {
 			s = ds1
@@ -218,23 +215,22 @@ func TestServiceProcessor(t *testing.T) {
 			s = ds2
 		}
 		s.c = c
-		s.path = path
 		c.RegisterProcessor(s, dummyMsgType)
 		return s
 	})
 	local := NewLocalTest()
 	defer local.CloseAll()
-	hs := local.GenConodes(2)
-	conode1, conode2 := hs[0], hs[1]
+	hs := local.GenServers(2)
+	server1, server2 := hs[0], hs[1]
 
 	defer UnregisterService(dummyServiceName)
-	// create two conodes
+	// create two servers
 	log.Lvl1("Host created and listening")
 	// create request
 	log.Lvl1("Sending request to service...")
-	assert.Nil(t, conode2.Send(conode1.ServerIdentity, &DummyMsg{10}))
+	assert.Nil(t, server2.Send(server1.ServerIdentity, &DummyMsg{10}))
 
-	// wait for the link from the Service on conode 1
+	// wait for the link from the Service on server 1
 	waitOrFatalValue(ds1.link, true, t)
 }
 
@@ -243,15 +239,16 @@ func TestServiceBackForthProtocol(t *testing.T) {
 	defer local.CloseAll()
 
 	// register service
-	log.ErrFatal(RegisterNewService(backForthServiceName, func(c *Context, path string) Service {
+	_, err := RegisterNewService(backForthServiceName, func(c *Context) Service {
 		return &simpleService{
 			ctx: c,
 		}
-	}))
+	})
+	log.ErrFatal(err)
 	defer ServiceFactory.Unregister(backForthServiceName)
 
-	// create conodes
-	conodes, el, _ := local.GenTree(4, false)
+	// create servers
+	servers, el, _ := local.GenTree(4, false)
 
 	// create client
 	client := local.NewClient(backForthServiceName)
@@ -262,42 +259,42 @@ func TestServiceBackForthProtocol(t *testing.T) {
 		Val:              10,
 	}
 	sr := &SimpleResponse{}
-	err := client.SendProtobuf(conodes[0].ServerIdentity, r, sr)
-	log.ErrFatal(err)
+	cerr := client.SendProtobuf(servers[0].ServerIdentity, r, sr)
+	log.ErrFatal(cerr)
 	assert.Equal(t, sr.Val, 10)
 }
 
 func TestServiceManager_Service(t *testing.T) {
 	local := NewLocalTest()
 	defer local.CloseAll()
-	conodes, _, _ := local.GenTree(2, true)
+	servers, _, _ := local.GenTree(2, true)
 
-	services := conodes[0].serviceManager.AvailableServices()
+	services := servers[0].serviceManager.AvailableServices()
 	assert.NotEqual(t, 0, len(services), "no services available")
 
-	service := conodes[0].serviceManager.Service("testService")
+	service := servers[0].serviceManager.Service("testService")
 	assert.NotNil(t, service, "Didn't find service testService")
 }
 
 func TestServiceMessages(t *testing.T) {
 	local := NewLocalTest()
 	defer local.CloseAll()
-	conodes, _, _ := local.GenTree(2, true)
+	servers, _, _ := local.GenTree(2, true)
 
-	service := conodes[0].serviceManager.Service(ismServiceName)
+	service := servers[0].serviceManager.Service(ismServiceName)
 	assert.NotNil(t, service, "Didn't find service ISMService")
 	ism := service.(*ServiceMessages)
-	ism.SendRaw(conodes[0].ServerIdentity, &SimpleResponse{})
+	ism.SendRaw(servers[0].ServerIdentity, &SimpleResponse{})
 	require.True(t, <-ism.GotResponse, "Didn't get response")
 }
 
 func TestServiceGenericConfig(t *testing.T) {
 	local := NewLocalTest()
 	defer local.CloseAll()
-	conodes, _, tree := local.GenTree(2, true)
+	servers, _, tree := local.GenTree(2, true)
 
-	s1 := conodes[0].serviceManager.Service(dummyService2Name)
-	s2 := conodes[1].serviceManager.Service(dummyService2Name)
+	s1 := servers[0].serviceManager.Service(dummyService2Name)
+	s2 := servers[1].serviceManager.Service(dummyService2Name)
 
 	ds1 := s1.(*dummyService2)
 	ds2 := s2.(*dummyService2)
@@ -426,7 +423,7 @@ type SimpleResponse struct {
 	Val int
 }
 
-var SimpleResponseType = network.RegisterPacketType(SimpleResponse{})
+var SimpleResponseType = network.RegisterMessage(SimpleResponse{})
 
 type simpleService struct {
 	ctx *Context
@@ -463,7 +460,7 @@ func (s *simpleService) NewProtocol(tni *TreeNodeInstance, conf *GenericConfig) 
 	return pi, err
 }
 
-func (s *simpleService) Process(packet *network.Packet) {
+func (s *simpleService) Process(env *network.Envelope) {
 	return
 }
 
@@ -482,7 +479,7 @@ type DummyMsg struct {
 	A int
 }
 
-var dummyMsgType network.PacketTypeID
+var dummyMsgType network.MessageTypeID
 
 func newDummyProtocol(tni *TreeNodeInstance, conf DummyConfig, link chan bool) *DummyProtocol {
 	return &DummyProtocol{tni, link, conf}
@@ -512,7 +509,6 @@ func (dm *DummyProtocol) Dispatch() error {
 
 type DummyService struct {
 	c        *Context
-	path     string
 	link     chan bool
 	fakeTree *Tree
 	firstTni *TreeNodeInstance
@@ -547,12 +543,12 @@ func (ds *DummyService) NewProtocol(tn *TreeNodeInstance, conf *GenericConfig) (
 	return dp, nil
 }
 
-func (ds *DummyService) Process(packet *network.Packet) {
-	if packet.MsgType != dummyMsgType {
+func (ds *DummyService) Process(env *network.Envelope) {
+	if env.MsgType != dummyMsgType {
 		ds.link <- false
 		return
 	}
-	dms := packet.Msg.(DummyMsg)
+	dms := env.Msg.(*DummyMsg)
 	if dms.A != 10 {
 		ds.link <- false
 		return
@@ -565,11 +561,11 @@ type ServiceMessages struct {
 	GotResponse chan bool
 }
 
-func (i *ServiceMessages) SimpleResponse(msg *network.Packet) {
+func (i *ServiceMessages) SimpleResponse(env *network.Envelope) {
 	i.GotResponse <- true
 }
 
-func newServiceMessages(c *Context, path string) Service {
+func newServiceMessages(c *Context) Service {
 	s := &ServiceMessages{
 		ServiceProcessor: NewServiceProcessor(c),
 		GotResponse:      make(chan bool),
@@ -583,7 +579,7 @@ type dummyService2 struct {
 	link chan bool
 }
 
-func newDummyService2(c *Context, path string) Service {
+func newDummyService2(c *Context) Service {
 	return &dummyService2{Context: c}
 }
 
@@ -598,7 +594,7 @@ func (ds *dummyService2) NewProtocol(tn *TreeNodeInstance, conf *GenericConfig) 
 	return newDummyProtocol2(tn)
 }
 
-func (ds *dummyService2) Process(packet *network.Packet) {
+func (ds *dummyService2) Process(env *network.Envelope) {
 	panic("should not be called")
 }
 

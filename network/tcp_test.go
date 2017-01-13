@@ -17,8 +17,8 @@ import (
 )
 
 func init() {
-	RegisterPacketType(BigMsg{})
-	SimpleMessageType = RegisterPacketType(SimpleMessage{})
+	RegisterMessage(BigMsg{})
+	SimpleMessageType = RegisterMessage(SimpleMessage{})
 }
 
 type BigMsg struct {
@@ -140,7 +140,7 @@ func TestTCPConnReceiveRaw(t *testing.T) {
 	}
 	// prepare the msg
 	msg := &BigMsg{Array: make([]byte, 7893)}
-	buff, err := MarshalRegisteredType(msg)
+	buff, err := Marshal(msg)
 	require.Nil(t, err)
 
 	fn := func(c net.Conn) {
@@ -487,7 +487,7 @@ type SimpleMessage struct {
 	I int
 }
 
-var SimpleMessageType PacketTypeID
+var SimpleMessageType MessageTypeID
 
 type simpleMessageProc struct {
 	t     *testing.T
@@ -501,12 +501,12 @@ func newSimpleMessageProc(t *testing.T) *simpleMessageProc {
 	}
 }
 
-func (smp *simpleMessageProc) Process(p *Packet) {
-	if p.MsgType != SimpleMessageType {
+func (smp *simpleMessageProc) Process(e *Envelope) {
+	if e.MsgType != SimpleMessageType {
 		smp.t.Fatal("Wrong message")
 	}
-	sm := p.Msg.(SimpleMessage)
-	smp.relay <- sm
+	sm := e.Msg.(*SimpleMessage)
+	smp.relay <- *sm
 }
 
 type statusMessage struct {
@@ -514,7 +514,7 @@ type statusMessage struct {
 	Val int
 }
 
-var statusMsgID = RegisterPacketType(statusMessage{})
+var statusMsgID = RegisterMessage(statusMessage{})
 
 type simpleProcessor struct {
 	relay chan statusMessage
@@ -525,14 +525,14 @@ func newSimpleProcessor() *simpleProcessor {
 		relay: make(chan statusMessage),
 	}
 }
-func (sp *simpleProcessor) Process(msg *Packet) {
-	if msg.MsgType != statusMsgID {
+func (sp *simpleProcessor) Process(env *Envelope) {
+	if env.MsgType != statusMsgID {
 
 		sp.relay <- statusMessage{false, 0}
 	}
-	sm := msg.Msg.(statusMessage)
+	sm := env.Msg.(*statusMessage)
 
-	sp.relay <- sm
+	sp.relay <- *sm
 }
 
 func sendrcv_proc(from, to *Router) error {

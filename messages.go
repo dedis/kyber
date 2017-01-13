@@ -9,22 +9,22 @@ import (
 
 // ProtocolMsgID is to be embedded in every message that is made for a
 // ID of ProtocolMsg message as registered in network
-var ProtocolMsgID = network.RegisterPacketType(ProtocolMsg{})
+var ProtocolMsgID = network.RegisterMessage(ProtocolMsg{})
 
-// RequestTreeMessageID of RequestTree message as registered in network
-var RequestTreeMessageID = network.RegisterPacketType(RequestTree{})
+// RequestTreeMsgID of RequestTree message as registered in network
+var RequestTreeMsgID = network.RegisterMessage(RequestTree{})
 
-// RequestRosterMessageID of RequestRoster message as registered in network
-var RequestRosterMessageID = network.RegisterPacketType(RequestRoster{})
+// RequestRosterMsgID of RequestRoster message as registered in network
+var RequestRosterMsgID = network.RegisterMessage(RequestRoster{})
 
-// SendTreeMessageID of TreeMarshal message as registered in network
-var SendTreeMessageID = TreeMarshalTypeID
+// SendTreeMsgID of TreeMarshal message as registered in network
+var SendTreeMsgID = TreeMarshalTypeID
 
-// SendRosterMessageID of Roster message as registered in network
-var SendRosterMessageID = RosterTypeID
+// SendRosterMsgID of Roster message as registered in network
+var SendRosterMsgID = RosterTypeID
 
-// ConfigMessageID of the generic config message
-var ConfigMessageID = network.RegisterPacketType(ConfigMessage{})
+// ConfigMsgID of the generic config message
+var ConfigMsgID = network.RegisterMessage(ConfigMsg{})
 
 // ProtocolMsg is to be embedded in every message that is made for a
 // ProtocolInstance
@@ -36,16 +36,16 @@ type ProtocolMsg struct {
 	// NOTE: this is taken from network.NetworkMessage
 	ServerIdentity *network.ServerIdentity
 	// MsgType of the underlying data
-	MsgType network.PacketTypeID
+	MsgType network.MessageTypeID
 	// The interface to the actual Data
-	Msg network.Body
+	Msg network.Message
 	// The actual data as binary blob
 	MsgSlice []byte
 }
 
-// ConfigMessage is sent by the overlay containing a generic slice of bytes to
+// ConfigMsg is sent by the overlay containing a generic slice of bytes to
 // give to service in the `NewProtocol` method.
-type ConfigMessage struct {
+type ConfigMsg struct {
 	Config GenericConfig
 	Dest   TokenID
 }
@@ -123,9 +123,9 @@ type TreeNodeInfo struct {
 	From *Token
 }
 
-// OverlayMessage contains all routing-information about the tree and the
+// OverlayMsg contains all routing-information about the tree and the
 // roster.
-type OverlayMessage struct {
+type OverlayMsg struct {
 	TreeNodeInfo *TreeNodeInfo
 
 	RequestTree   *RequestTree

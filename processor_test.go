@@ -17,18 +17,18 @@ const testServiceName = "testService"
 func init() {
 	RegisterNewService(testServiceName, newTestService)
 	ServiceFactory.ServiceID(testServiceName)
-	network.RegisterPacketType(&testMsg{})
+	network.RegisterMessage(&testMsg{})
 }
 
 func TestProcessor_AddMessage(t *testing.T) {
-	h1 := NewLocalConode(2000)
+	h1 := NewLocalServer(2000)
 	defer h1.Close()
-	p := NewServiceProcessor(&Context{conode: h1})
+	p := NewServiceProcessor(&Context{server: h1})
 	log.ErrFatal(p.RegisterHandler(procMsg))
 	if len(p.handlers) != 1 {
 		t.Fatal("Should have registered one function")
 	}
-	mt := network.TypeFromData(&testMsg{})
+	mt := network.MessageType(&testMsg{})
 	if mt == network.ErrorType {
 		t.Fatal("Didn't register message-type correctly")
 	}
@@ -47,17 +47,17 @@ func TestProcessor_AddMessage(t *testing.T) {
 }
 
 func TestProcessor_RegisterMessages(t *testing.T) {
-	h1 := NewLocalConode(2000)
+	h1 := NewLocalServer(2000)
 	defer h1.Close()
-	p := NewServiceProcessor(&Context{conode: h1})
+	p := NewServiceProcessor(&Context{server: h1})
 	log.ErrFatal(p.RegisterHandlers(procMsg, procMsg2))
 	assert.Error(t, p.RegisterHandlers(procMsg3, procMsgWrong4))
 }
 
 func TestServiceProcessor_ProcessClientRequest(t *testing.T) {
-	h1 := NewLocalConode(2000)
+	h1 := NewLocalServer(2000)
 	defer h1.Close()
-	p := NewServiceProcessor(&Context{conode: h1})
+	p := NewServiceProcessor(&Context{server: h1})
 	log.ErrFatal(p.RegisterHandler(procMsg))
 
 	buf, err := protobuf.Encode(&testMsg{11})
@@ -80,7 +80,7 @@ func TestProcessor_ProcessClientRequest(t *testing.T) {
 	local := NewTCPTest()
 
 	// generate 5 hosts,
-	h := local.GenConodes(1)[0]
+	h := local.GenServers(1)[0]
 	defer local.CloseAll()
 
 	client := local.NewClient(testServiceName)
@@ -104,7 +104,7 @@ type testMsg3 testMsg
 type testMsg4 testMsg
 type testMsg5 testMsg
 
-func procMsg(msg *testMsg) (network.Body, ClientError) {
+func procMsg(msg *testMsg) (network.Message, ClientError) {
 	// Return an error for testing
 	if msg.I == 42 {
 		return nil, NewClientErrorCode(4142, "")
@@ -112,18 +112,18 @@ func procMsg(msg *testMsg) (network.Body, ClientError) {
 	return msg, nil
 }
 
-func procMsg2(msg *testMsg2) (network.Body, ClientError) {
+func procMsg2(msg *testMsg2) (network.Message, ClientError) {
 	return nil, nil
 }
-func procMsg3(msg *testMsg3) (network.Body, ClientError) {
-	return nil, nil
-}
-
-func procMsgWrong1() (network.Body, ClientError) {
+func procMsg3(msg *testMsg3) (network.Message, ClientError) {
 	return nil, nil
 }
 
-func procMsgWrong2(msg testMsg2) (network.Body, ClientError) {
+func procMsgWrong1() (network.Message, ClientError) {
+	return nil, nil
+}
+
+func procMsgWrong2(msg testMsg2) (network.Message, ClientError) {
 	return msg, nil
 }
 
@@ -131,7 +131,7 @@ func procMsgWrong3(msg *testMsg3) ClientError {
 	return nil
 }
 
-func procMsgWrong4(msg *testMsg4) (ClientError, network.Body) {
+func procMsgWrong4(msg *testMsg4) (ClientError, network.Message) {
 	return nil, msg
 }
 
@@ -140,7 +140,7 @@ type testService struct {
 	Msg interface{}
 }
 
-func newTestService(c *Context, path string) Service {
+func newTestService(c *Context) Service {
 	ts := &testService{
 		ServiceProcessor: NewServiceProcessor(c),
 	}
@@ -152,7 +152,7 @@ func (ts *testService) NewProtocol(tn *TreeNodeInstance, conf *GenericConfig) (P
 	return nil, nil
 }
 
-func (ts *testService) ProcessMsg(msg *testMsg) (network.Body, ClientError) {
+func (ts *testService) ProcessMsg(msg *testMsg) (network.Message, ClientError) {
 	ts.Msg = msg
 	return msg, nil
 }

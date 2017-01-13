@@ -15,7 +15,7 @@ import (
 var testProto = "test"
 
 func init() {
-	network.RegisterPacketType(SimpleMessage{})
+	network.RegisterMessage(SimpleMessage{})
 }
 
 // ProtocolTest is the most simple protocol to be implemented, ignoring
@@ -262,11 +262,11 @@ var chanProtoIOFeedback = make(chan string)
 const testProtoIOName = "TestIO"
 
 type OuterPacket struct {
-	Info  *OverlayMessage
+	Info  *OverlayMsg
 	Inner *SimpleMessage
 }
 
-var OuterPacketType = network.RegisterPacketType(OuterPacket{})
+var OuterPacketType = network.RegisterMessage(OuterPacket{})
 
 type TestMessageProxy struct{}
 
@@ -283,7 +283,7 @@ func eraseAllMessageProxy() {
 	messageProxyFactory.factories = nil
 }
 
-func (t *TestMessageProxy) Wrap(msg interface{}, info *OverlayMessage) (interface{}, error) {
+func (t *TestMessageProxy) Wrap(msg interface{}, info *OverlayMsg) (interface{}, error) {
 	outer := &OuterPacket{}
 	inner, ok := msg.(*SimpleMessage)
 	if !ok {
@@ -295,13 +295,13 @@ func (t *TestMessageProxy) Wrap(msg interface{}, info *OverlayMessage) (interfac
 	return outer, nil
 }
 
-func (t *TestMessageProxy) Unwrap(msg interface{}) (interface{}, *OverlayMessage, error) {
+func (t *TestMessageProxy) Unwrap(msg interface{}) (interface{}, *OverlayMsg, error) {
 	if msg == nil {
 		chanProtoIOFeedback <- "message nil!"
 		return nil, nil, errors.New("message nil")
 	}
 
-	real, ok := msg.(OuterPacket)
+	real, ok := msg.(*OuterPacket)
 	if !ok {
 		chanProtoIOFeedback <- "wrong type of message in unwrap"
 		return nil, nil, errors.New("wrong message")
@@ -310,7 +310,7 @@ func (t *TestMessageProxy) Unwrap(msg interface{}) (interface{}, *OverlayMessage
 	return real.Inner, real.Info, nil
 }
 
-func (t *TestMessageProxy) PacketType() network.PacketTypeID {
+func (t *TestMessageProxy) PacketType() network.MessageTypeID {
 	return OuterPacketType
 }
 

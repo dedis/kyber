@@ -27,10 +27,10 @@ import (
 )
 
 // DefaultServerConfig is the default server configuration file-name.
-const DefaultServerConfig = "config.toml"
+const DefaultServerConfig = "private.toml"
 
 // DefaultGroupFile is the default group definition file-name.
-const DefaultGroupFile = "group.toml"
+const DefaultGroupFile = "public.toml"
 
 // DefaultPort to listen and connect to. As of this writing, this port is not listed in
 // /etc/services
@@ -82,7 +82,7 @@ func InteractiveConfig(binaryName string) {
 		return
 	}
 
-	log.Info("We now need to get a reachable address for other Conodes")
+	log.Info("We now need to get a reachable address for other Servers")
 	log.Info("and clients to contact you. This address will be put in a group definition")
 	log.Info("file that you can share and combine with others to form a Cothority roster.")
 
@@ -166,7 +166,7 @@ func InteractiveConfig(binaryName string) {
 		}
 	}
 
-	public, err := crypto.ReadPubHex(network.Suite, pubStr)
+	public, err := crypto.StringHexToPub(network.Suite, pubStr)
 	if err != nil {
 		log.Fatal("Impossible to parse public key:", err)
 	}
@@ -202,7 +202,7 @@ func checkOverwrite(file string) bool {
 func createKeyPair() (string, string) {
 	log.Info("Creating ed25519 private and public keys.")
 	kp := crypconf.NewKeyPair(network.Suite)
-	privStr, err := crypto.ScalarHex(network.Suite, kp.Secret)
+	privStr, err := crypto.ScalarToStringHex(network.Suite, kp.Secret)
 	if err != nil {
 		log.Fatal("Error formating private key to hexadecimal. Abort.")
 	}
@@ -210,7 +210,7 @@ func createKeyPair() (string, string) {
 	// use the transformation for EdDSA signatures
 	//point = cosi.Ed25519Public(network.Suite, kp.Secret)
 	point = kp.Public
-	pubStr, err := crypto.PubHex(network.Suite, point)
+	pubStr, err := crypto.PubToStringHex(network.Suite, point)
 	if err != nil {
 		log.Fatal("Could not parse public key. Abort.")
 	}
@@ -352,9 +352,9 @@ func RunServer(configFilename string) {
 		log.Fatalf("[-] Configuration file does not exists. %s", configFilename)
 	}
 	// Let's read the config
-	_, conode, err := ParseCothority(configFilename)
+	_, server, err := ParseCothority(configFilename)
 	if err != nil {
 		log.Fatal("Couldn't parse config:", err)
 	}
-	conode.Start()
+	server.Start()
 }
