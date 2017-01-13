@@ -1,0 +1,9 @@
+package onet;
+
+import "network/network.proto";
+
+message Roster {
+    optional bytes id = 1;
+    repeated network.ServerIdentity list = 2;
+    required bytes aggregate = 3;
+}
