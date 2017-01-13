@@ -29,7 +29,7 @@ func TestCothority(t *testing.T) {
 	}()
 
 	os.Args = []string{os.Args[0], "help"}
-	Cothority()
+	Server()
 	// back to normal state
 	log.ErrFatal(w.Close())
 	require.Contains(t, <-outC, "Serve a cothority")

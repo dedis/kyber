@@ -52,8 +52,8 @@ var FlagConfig = cli.StringFlag{
 	Usage: "Configuration file of the server",
 }
 
-// Cothority creates a stand-alone cothority-binary
-func Cothority() {
+// Server runs a stand-alone server with all imported services
+func Server() {
 	cliApp := cli.NewApp()
 	cliApp.Name = "Cothority server"
 	cliApp.Usage = "Serve a cothority"
