@@ -2,7 +2,6 @@ package monitor
 
 import (
 	"bytes"
-	"fmt"
 	"strconv"
 	"strings"
 	"testing"
@@ -20,7 +19,7 @@ func TestNewDataFilter(t *testing.T) {
 		t.Error("Datafilter not correctly parsed the run config")
 	}
 	if df.percentiles["round"] != 50.0 || df.percentiles["verify"] != 90.0 {
-		t.Error(fmt.Sprintf("datafilter not correctly parsed the percentile: %f vs 50 or %f vs 90", df.percentiles["round"], df.percentiles["verifiy"]))
+		t.Errorf("datafilter not correctly parsed the percentile: %f vs 50 or %f vs 90", df.percentiles["round"], df.percentiles["verifiy"])
 	}
 }
 
@@ -33,11 +32,11 @@ func TestDataFilterFilter(t *testing.T) {
 	filtered := df.Filter("round", values)
 	shouldBe := []float64{35, 20, 15, 40}
 	if len(shouldBe) != len(filtered) {
-		t.Error(fmt.Sprintf("Filter returned %d values instead of %d", len(filtered), len(shouldBe)))
+		t.Errorf("Filter returned %d values instead of %d", len(filtered), len(shouldBe))
 	}
 	for i, v := range filtered {
 		if v != shouldBe[i] {
-			t.Error(fmt.Sprintf("Element %d = %f vs %f", i, filtered[i], shouldBe[i]))
+			t.Errorf("Element %d = %f vs %f", i, filtered[i], shouldBe[i])
 		}
 	}
 }

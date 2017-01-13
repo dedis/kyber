@@ -73,6 +73,7 @@ func TestServiceProcessor_ProcessClientRequest(t *testing.T) {
 	buf, err = protobuf.Encode(&testMsg{42})
 	log.ErrFatal(err)
 	rep, cerr = p.ProcessClientRequest("testMsg", buf)
+	assert.NotNil(t, cerr)
 	require.Equal(t, 4142, cerr.ErrorCode())
 }
 

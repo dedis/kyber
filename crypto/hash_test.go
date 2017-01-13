@@ -13,6 +13,7 @@ import (
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/ed25519"
 	"github.com/dedis/onet/log"
+	"github.com/stretchr/testify/assert"
 )
 
 var hashSuite = ed25519.NewAES128SHA256Ed25519(false)
@@ -103,6 +104,7 @@ func TestHashFile(t *testing.T) {
 			t.Fatal("Length of sha256 should be 32")
 		}
 		hash2, err := HashFileSuite(hashSuite, tmpfile)
+		assert.Nil(t, err)
 		if bytes.Compare(hash, hash2) != 0 {
 			t.Fatal("HashFile and HashFileSuite should give the same result")
 		}

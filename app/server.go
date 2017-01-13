@@ -226,7 +226,7 @@ func saveFiles(conf *CothorityConfig, fileConf string, group *GroupToml, fileGro
 	if err := conf.Save(fileConf); err != nil {
 		log.Fatal("Unable to write the config to file:", err)
 	}
-	log.Info("Sucess! You can now use the CoSi server with the config file", fileConf)
+	log.Info("Success! You can now use the CoSi server with the config file", fileConf)
 	// group definition part
 	if err := group.Save(fileGroup); err != nil {
 		log.Fatal("Could not write your group file snippet:", err)

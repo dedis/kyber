@@ -116,7 +116,7 @@ func TestProtocolRegistration(t *testing.T) {
 }
 
 // This makes h2 the leader, so it creates a tree and entity list
-// and start a protocol. H1 should receive that message and request the entitity
+// and start a protocol. H1 should receive that message and request the entity
 // list and the treelist and then instantiate the protocol.
 func TestProtocolAutomaticInstantiation(t *testing.T) {
 	var simpleProto = "simpleAI"

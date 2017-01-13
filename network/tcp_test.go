@@ -535,7 +535,7 @@ func (sp *simpleProcessor) Process(env *Envelope) {
 	sp.relay <- *sm
 }
 
-func sendrcv_proc(from, to *Router) error {
+func sendrcvProc(from, to *Router) error {
 	sp := newSimpleProcessor()
 	// new processing
 	to.RegisterProcessor(sp, statusMsgID)

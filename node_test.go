@@ -64,7 +64,7 @@ func TestNodeChannelCreate(t *testing.T) {
 	if err != nil {
 		t.Fatal("Couldn't register channel:", err)
 	}
-	err = tni.DispatchChannel([]*ProtocolMsg{&ProtocolMsg{
+	err = tni.DispatchChannel([]*ProtocolMsg{{
 		Msg:     NodeTestMsg{3},
 		MsgType: network.RegisterMessage(NodeTestMsg{}),
 		From: &Token{
@@ -99,7 +99,7 @@ func TestNodeChannel(t *testing.T) {
 	if err != nil {
 		t.Fatal("Couldn't register channel:", err)
 	}
-	err = tni.DispatchChannel([]*ProtocolMsg{&ProtocolMsg{
+	err = tni.DispatchChannel([]*ProtocolMsg{{
 		Msg:     NodeTestMsg{3},
 		MsgType: network.RegisterMessage(NodeTestMsg{}),
 		From: &Token{

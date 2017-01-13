@@ -19,4 +19,4 @@ ProtocolInstance.
 package onet
 
 // Version of onet.
-const Version = "1"
+const Version = "1.0"
