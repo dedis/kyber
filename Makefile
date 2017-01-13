@@ -30,7 +30,7 @@ test_lint:
 # for more than once in Travis. Change `make test` in .travis.yml
 # to `make test_playground`.
 test_playground:
-	cd services/skipchain; \
+	cd .; \
 	for a in $$( seq 10 ); do \
 	  go test -v -race -short || exit 1 ; \
 	done;

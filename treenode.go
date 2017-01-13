@@ -286,7 +286,11 @@ func (n *TreeNodeInstance) closeDispatch() error {
 		n.msgDispatchQueueWait <- true
 	}
 	n.msgDispatchQueueMutex.Unlock()
-	return n.ProtocolInstance().Shutdown()
+	pni := n.ProtocolInstance()
+	if pni == nil {
+		return errors.New("Can't shutdown empty ProtocolInstance")
+	}
+	return pni.Shutdown()
 }
 
 // ProtocolName will return the string representing that protocol
