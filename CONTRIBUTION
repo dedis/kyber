@@ -1,25 +1,24 @@
 Making Contributions
 
-Cothority is an Open Source program with many contributors (listed in the AUTHORS
-files), so we actively seek contributions (help on the Cothority users list,
-documentation, source code, ideas, …).  All contributions help us make a
-better product.
+Onet is an open source project with many contributors (listed in the AUTHORS
+files), so we actively seek contributions (documentation, source code, ideas, …).
+All contributions help us make a better product.
 
 All contributions without an explicit copyright statement or a CLAI/CLAC (see below)
-are assumed to be covered under a AGPL 2-Clause license as described in the
+are assumed to be covered under a AGPL 3-Clause license as described in the
 file LICENSE.
 
-Developers who have contributed significant changes to the Cothority code must sign
+Developers who have contributed significant changes to the Onet-code must sign
 a Contributor License Agreement (CLAI), eventually also a CLAC if they work for
 a corporation. Together they guarantee them the right to use the code they have
-developed, and also ensures that EPFL/DEDIS (and thus the Cothority project) has the
+developed, and also ensure that EPFL/DEDIS (and thus the Onet project) has the
 rights to the code.
 By signing the CLAI/CLAC, your contributions are eligible to be integrated into the
-Cothority source code.
-Having the CLAI/CLAC signed is essential for the Cothority project to maintain a
-clean copyright and guarantees that Cothority and your source code will always remain
+Onet source code.
+Having the CLAI/CLAC signed is essential for the Onet project to maintain a
+clean copyright and guarantees that Onet and your source code will always remain
 Free Software (Open Source).
-Providing that your contribution is accepted by the Cothority project, your signed
+Providing that your contribution is accepted by the Onet project, your signed
 CLAI/CLAC also permits EPFL/DEDIS to submit your contribution for use in other
 EPFL/DEDIS-projects.
 
