@@ -277,8 +277,8 @@ func (n *TreeNodeInstance) Shutdown() error {
 	return nil
 }
 
-// Close shuts down the go-routine and calls the protocolInstance-shutdown
-func (n *TreeNodeInstance) Close() error {
+// closeDispatch shuts down the go-routine and calls the protocolInstance-shutdown
+func (n *TreeNodeInstance) closeDispatch() error {
 	log.Lvl3("Closing node", n.Info())
 	n.msgDispatchQueueMutex.Lock()
 	n.closing = true
@@ -299,7 +299,7 @@ func (n *TreeNodeInstance) dispatchHandler(msgSlice []*ProtocolMsg) error {
 	to := reflect.TypeOf(n.handlers[mt]).In(0)
 	f := reflect.ValueOf(n.handlers[mt])
 	var errV reflect.Value
-	if n.HasFlag(mt, AggregateMessages) {
+	if n.hasFlag(mt, AggregateMessages) {
 		msgs := reflect.MakeSlice(to, len(msgSlice), len(msgSlice))
 		for i, msg := range msgSlice {
 			msgs.Index(i).Set(n.reflectCreate(to.Elem(), msg))
@@ -340,7 +340,7 @@ func (n *TreeNodeInstance) reflectCreate(t reflect.Type, msg *ProtocolMsg) refle
 func (n *TreeNodeInstance) DispatchChannel(msgSlice []*ProtocolMsg) error {
 	mt := msgSlice[0].MsgType
 	to := reflect.TypeOf(n.channels[mt])
-	if n.HasFlag(mt, AggregateMessages) {
+	if n.hasFlag(mt, AggregateMessages) {
 		log.Lvl4("Received aggregated message of type:", mt)
 		to = to.Elem()
 		out := reflect.MakeSlice(to, len(msgSlice), len(msgSlice))
@@ -437,18 +437,18 @@ func (n *TreeNodeInstance) dispatchMsgToProtocol(onetMsg *ProtocolMsg) error {
 	return err
 }
 
-// SetFlag makes sure a given flag is set
-func (n *TreeNodeInstance) SetFlag(mt network.MessageTypeID, f uint32) {
+// setFlag makes sure a given flag is set
+func (n *TreeNodeInstance) setFlag(mt network.MessageTypeID, f uint32) {
 	n.messageTypeFlags[mt] |= f
 }
 
-// ClearFlag makes sure a given flag is removed
-func (n *TreeNodeInstance) ClearFlag(mt network.MessageTypeID, f uint32) {
+// clearFlag makes sure a given flag is removed
+func (n *TreeNodeInstance) clearFlag(mt network.MessageTypeID, f uint32) {
 	n.messageTypeFlags[mt] &^= f
 }
 
-// HasFlag returns true if the given flag is set
-func (n *TreeNodeInstance) HasFlag(mt network.MessageTypeID, f uint32) bool {
+// hasFlag returns true if the given flag is set
+func (n *TreeNodeInstance) hasFlag(mt network.MessageTypeID, f uint32) bool {
 	return n.messageTypeFlags[mt]&f != 0
 }
 
@@ -459,7 +459,7 @@ func (n *TreeNodeInstance) HasFlag(mt network.MessageTypeID, f uint32) bool {
 func (n *TreeNodeInstance) aggregate(onetMsg *ProtocolMsg) (network.MessageTypeID, []*ProtocolMsg, bool) {
 	mt := onetMsg.MsgType
 	fromParent := !n.IsRoot() && onetMsg.From.TreeNodeID.Equal(n.Parent().ID)
-	if fromParent || !n.HasFlag(mt, AggregateMessages) {
+	if fromParent || !n.hasFlag(mt, AggregateMessages) {
 		return mt, []*ProtocolMsg{onetMsg}, true
 	}
 	// store the msg according to its type
@@ -482,9 +482,9 @@ func (n *TreeNodeInstance) aggregate(onetMsg *ProtocolMsg) (network.MessageTypeI
 	return mt, nil, false
 }
 
-// StartProtocol calls the Start() on the underlying protocol which in turn will
+// startProtocol calls the Start() on the underlying protocol which in turn will
 // initiate the first message to its children
-func (n *TreeNodeInstance) StartProtocol() error {
+func (n *TreeNodeInstance) startProtocol() error {
 	return n.instance.Start()
 }
 
@@ -498,6 +498,7 @@ func (n *TreeNodeInstance) Done() {
 		}
 	}
 	log.Lvl3(n.Info(), "has finished. Deleting its resources")
+	n.closeDispatch()
 	n.overlay.nodeDone(n.token)
 }
 
@@ -522,6 +523,8 @@ func (n *TreeNodeInstance) Public() abstract.Point {
 
 // CloseHost closes the underlying onet.Host (which closes the overlay
 // and sends Shutdown to all protocol instances)
+// NOTE: It is to be used VERY carefully and is likely to disappear in the next
+// releases.
 func (n *TreeNodeInstance) CloseHost() error {
 	return n.Host().Close()
 }

@@ -104,7 +104,7 @@ func (p *ServiceProcessor) NewProtocol(tn *TreeNodeInstance, conf *GenericConfig
 
 // ProcessClientRequest takes a request from a client, calculates the reply
 // and sends it back. It uses the path to find the appropriate handler-
-// function.
+// function. It implements the Server interface.
 func (p *ServiceProcessor) ProcessClientRequest(path string, buf []byte) ([]byte, ClientError) {
 	mh, ok := p.handlers[path]
 	reply, cerr := func() (interface{}, ClientError) {

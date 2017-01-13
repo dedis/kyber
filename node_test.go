@@ -186,17 +186,17 @@ func TestTreeNodeMsgAggregation(t *testing.T) {
 	<-Incoming
 	<-Incoming
 	log.Lvl3("Both children are up")
-	child1 := local.GetNodes(tree.Root.Children[0])[0]
-	child2 := local.GetNodes(tree.Root.Children[1])[0]
+	child1 := local.getNodes(tree.Root.Children[0])[0]
+	child2 := local.getNodes(tree.Root.Children[1])[0]
 
-	err = local.SendTreeNode(ProtocolChannelsName, child1, proto.TreeNodeInstance, &NodeTestAggMsg{3})
+	err = local.sendTreeNode(ProtocolChannelsName, child1, proto.TreeNodeInstance, &NodeTestAggMsg{3})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(proto.IncomingAgg) > 0 {
 		t.Fatal("Messages should NOT be there")
 	}
-	err = local.SendTreeNode(ProtocolChannelsName, child2, proto.TreeNodeInstance, &NodeTestAggMsg{4})
+	err = local.sendTreeNode(ProtocolChannelsName, child2, proto.TreeNodeInstance, &NodeTestAggMsg{4})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,15 +221,15 @@ func TestTreeNodeFlags(t *testing.T) {
 		t.Fatal("Couldn't create node.")
 	}
 	tni := p.(*ProtocolChannels).TreeNodeInstance
-	if tni.HasFlag(testType, AggregateMessages) {
+	if tni.hasFlag(testType, AggregateMessages) {
 		t.Fatal("Should NOT have AggregateMessages-flag")
 	}
-	tni.SetFlag(testType, AggregateMessages)
-	if !tni.HasFlag(testType, AggregateMessages) {
+	tni.setFlag(testType, AggregateMessages)
+	if !tni.hasFlag(testType, AggregateMessages) {
 		t.Fatal("Should HAVE AggregateMessages-flag cleared")
 	}
-	tni.ClearFlag(testType, AggregateMessages)
-	if tni.HasFlag(testType, AggregateMessages) {
+	tni.clearFlag(testType, AggregateMessages)
+	if tni.hasFlag(testType, AggregateMessages) {
 		t.Fatal("Should NOT have AggregateMessages-flag")
 	}
 }
@@ -385,17 +385,17 @@ func TestNodeBlocking(t *testing.T) {
 	tn2 := p2.TreeNodeInstance
 	go func() {
 		// Send two messages to n1, which blocks the old interface
-		err := l.SendTreeNode("", tn2, tn1, &NodeTestMsg{})
+		err := l.sendTreeNode("", tn2, tn1, &NodeTestMsg{})
 		if err != nil {
 			t.Fatal("Couldn't send message:", err)
 		}
-		err = l.SendTreeNode("", tn2, tn1, &NodeTestMsg{})
+		err = l.sendTreeNode("", tn2, tn1, &NodeTestMsg{})
 		if err != nil {
 			t.Fatal("Couldn't send message:", err)
 		}
 		// Now send a message to n2, but in the old interface this
 		// blocks.
-		err = l.SendTreeNode("", tn1, tn2, &NodeTestMsg{})
+		err = l.sendTreeNode("", tn1, tn2, &NodeTestMsg{})
 		if err != nil {
 			t.Fatal("Couldn't send message:", err)
 		}

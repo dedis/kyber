@@ -269,10 +269,10 @@ func TestServiceManager_Service(t *testing.T) {
 	defer local.CloseAll()
 	servers, _, _ := local.GenTree(2, true)
 
-	services := servers[0].serviceManager.AvailableServices()
+	services := servers[0].serviceManager.availableServices()
 	assert.NotEqual(t, 0, len(services), "no services available")
 
-	service := servers[0].serviceManager.Service("testService")
+	service := servers[0].serviceManager.service("testService")
 	assert.NotNil(t, service, "Didn't find service testService")
 }
 
@@ -281,7 +281,7 @@ func TestServiceMessages(t *testing.T) {
 	defer local.CloseAll()
 	servers, _, _ := local.GenTree(2, true)
 
-	service := servers[0].serviceManager.Service(ismServiceName)
+	service := servers[0].serviceManager.service(ismServiceName)
 	assert.NotNil(t, service, "Didn't find service ISMService")
 	ism := service.(*ServiceMessages)
 	ism.SendRaw(servers[0].ServerIdentity, &SimpleResponse{})
@@ -293,8 +293,8 @@ func TestServiceGenericConfig(t *testing.T) {
 	defer local.CloseAll()
 	servers, _, tree := local.GenTree(2, true)
 
-	s1 := servers[0].serviceManager.Service(dummyService2Name)
-	s2 := servers[1].serviceManager.Service(dummyService2Name)
+	s1 := servers[0].serviceManager.service(dummyService2Name)
+	s2 := servers[1].serviceManager.service(dummyService2Name)
 
 	ds1 := s1.(*dummyService2)
 	ds2 := s2.(*dummyService2)

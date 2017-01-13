@@ -503,7 +503,7 @@ func (o *Overlay) nodeDelete(tok *Token) {
 		return
 	}
 	log.Lvl4("Closing node", tok.ID())
-	err := tni.Close()
+	err := tni.closeDispatch()
 	if err != nil {
 		log.Error("Error while closing node:", err)
 	}

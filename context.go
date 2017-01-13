@@ -111,18 +111,18 @@ func (c *Context) RegisterStatusReporter(name string, s StatusReporter) {
 // RegisterProcessor overrides the RegisterProcessor methods of the Dispatcher.
 // It delegates the dispatching to the serviceManager.
 func (c *Context) RegisterProcessor(p network.Processor, msgType network.MessageTypeID) {
-	c.manager.RegisterProcessor(p, msgType)
+	c.manager.registerProcessor(p, msgType)
 }
 
 // RegisterProcessorFunc takes a message-type and a function that will be called
 // if this message-type is received.
 func (c *Context) RegisterProcessorFunc(msgType network.MessageTypeID, fn func(*network.Envelope)) {
-	c.manager.RegisterProcessorFunc(msgType, fn)
+	c.manager.registerProcessorFunc(msgType, fn)
 }
 
 // Service returns the corresponding service.
 func (c *Context) Service(name string) Service {
-	return c.manager.Service(name)
+	return c.manager.service(name)
 }
 
 // String returns the host it's running on.

@@ -75,12 +75,12 @@ func TestOverlayPendingTreeMarshal(t *testing.T) {
 	h1 := hosts[0]
 
 	// Add the marshalled version of the tree
-	local.AddPendingTreeMarshal(h1, tree.MakeTreeMarshal())
+	local.addPendingTreeMarshal(h1, tree.MakeTreeMarshal())
 	if _, ok := h1.GetTree(tree.ID); ok {
 		t.Fatal("host 1 should not have the tree definition yet.")
 	}
 	// Now make it check
-	local.CheckPendingTreeMarshal(h1, el)
+	local.checkPendingTreeMarshal(h1, el)
 	if _, ok := h1.GetTree(tree.ID); !ok {
 		t.Fatal("Host 1 should have the tree definition now.")
 	}

@@ -80,7 +80,7 @@ func (c *Server) Suite() abstract.Suite {
 
 // GetStatus is a function that returns the status report of the server.
 func (c *Server) GetStatus() *Status {
-	a := ServiceFactory.RegisteredServiceNames()
+	a := c.serviceManager.availableServices()
 	sort.Strings(a)
 	return &Status{map[string]string{
 		"Available_Services": strings.Join(a, ","),
@@ -114,7 +114,7 @@ func (c *Server) Address() network.Address {
 
 // GetService returns the service with the given name.
 func (c *Server) GetService(name string) Service {
-	return c.serviceManager.Service(name)
+	return c.serviceManager.service(name)
 }
 
 // ProtocolRegister will sign up a new protocol to this Server.

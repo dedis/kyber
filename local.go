@@ -174,15 +174,15 @@ func (l *LocalTest) CloseAll() {
 	}
 	for _, node := range l.Nodes {
 		log.Lvl3("Closing node", node)
-		node.Close()
+		node.closeDispatch()
 	}
 	l.Nodes = make([]*TreeNodeInstance, 0)
 	// Give the nodes some time to correctly close down
 	//time.Sleep(time.Millisecond * 500)
 }
 
-// GetTree returns the tree of the given TreeNode
-func (l *LocalTest) GetTree(tn *TreeNode) *Tree {
+// getTree returns the tree of the given TreeNode
+func (l *LocalTest) getTree(tn *TreeNode) *Tree {
 	var tree *Tree
 	for _, t := range l.Trees {
 		if tn.IsInTree(t) {
@@ -199,7 +199,7 @@ func (l *LocalTest) NewTreeNodeInstance(tn *TreeNode, protName string) (*TreeNod
 	if o == nil {
 		return nil, errors.New("Didn't find corresponding overlay")
 	}
-	tree := l.GetTree(tn)
+	tree := l.getTree(tn)
 	if tree == nil {
 		return nil, errors.New("Didn't find tree corresponding to TreeNode")
 	}
@@ -220,8 +220,8 @@ func (l *LocalTest) NewTreeNodeInstance(tn *TreeNode, protName string) (*TreeNod
 	return node, nil
 }
 
-// GetNodes returns all Nodes that belong to a treeNode
-func (l *LocalTest) GetNodes(tn *TreeNode) []*TreeNodeInstance {
+// getNodes returns all Nodes that belong to a treeNode
+func (l *LocalTest) getNodes(tn *TreeNode) []*TreeNodeInstance {
 	var nodes []*TreeNodeInstance
 	for _, n := range l.Overlays[tn.ServerIdentity.ID].instances {
 		nodes = append(nodes, n)
@@ -229,9 +229,9 @@ func (l *LocalTest) GetNodes(tn *TreeNode) []*TreeNodeInstance {
 	return nodes
 }
 
-// SendTreeNode injects a message directly in the Overlay-layer, bypassing
+// sendTreeNode injects a message directly in the Overlay-layer, bypassing
 // Host and Network
-func (l *LocalTest) SendTreeNode(proto string, from, to *TreeNodeInstance, msg network.Message) error {
+func (l *LocalTest) sendTreeNode(proto string, from, to *TreeNodeInstance, msg network.Message) error {
 	if from.Tree().ID != to.Tree().ID {
 		return errors.New("Can't send from one tree to another")
 	}
@@ -245,16 +245,16 @@ func (l *LocalTest) SendTreeNode(proto string, from, to *TreeNodeInstance, msg n
 	return to.overlay.TransmitMsg(onetMsg, io)
 }
 
-// AddPendingTreeMarshal takes a treeMarshal and adds it to the list of the
+// addPendingTreeMarshal takes a treeMarshal and adds it to the list of the
 // known trees, also triggering dispatching of onet-messages waiting for that
 // tree
-func (l *LocalTest) AddPendingTreeMarshal(c *Server, tm *TreeMarshal) {
+func (l *LocalTest) addPendingTreeMarshal(c *Server, tm *TreeMarshal) {
 	c.overlay.addPendingTreeMarshal(tm)
 }
 
-// CheckPendingTreeMarshal looks whether there are any treeMarshals to be
+// checkPendingTreeMarshal looks whether there are any treeMarshals to be
 // called
-func (l *LocalTest) CheckPendingTreeMarshal(c *Server, el *Roster) {
+func (l *LocalTest) checkPendingTreeMarshal(c *Server, el *Roster) {
 	c.overlay.checkPendingTreeMarshal(el)
 }
 
