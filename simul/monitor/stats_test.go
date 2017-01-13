@@ -3,6 +3,7 @@ package monitor
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -190,8 +191,9 @@ func TestStatsString(t *testing.T) {
 			log.Fatal("Could not Listen():", err)
 		}
 	}()
+	defer EndAndCleanup()
 	time.Sleep(100 * time.Millisecond)
-	ConnectSink("localhost:10000")
+	ConnectSink("localhost:" + strconv.Itoa(DefaultSinkPort))
 	measure := NewTimeMeasure("test")
 	time.Sleep(time.Millisecond * 100)
 	measure.Record()
@@ -200,5 +202,4 @@ func TestStatsString(t *testing.T) {
 	if !strings.Contains(rs.String(), "0.1") {
 		t.Fatal("The measurement should contain 0.1:", rs.String())
 	}
-	EndAndCleanup()
 }

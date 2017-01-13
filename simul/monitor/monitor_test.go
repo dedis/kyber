@@ -37,7 +37,7 @@ func TestReadyNormal(t *testing.T) {
 	newSingleMeasure("round", 20)
 	EndAndCleanup()
 	time.Sleep(100 * time.Millisecond)
-	updated := mon.Stats().String()
+	updated := mon.stats.String()
 	if updated == fresh {
 		t.Fatal("Stats not updated ?")
 	}

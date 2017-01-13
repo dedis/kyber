@@ -48,7 +48,7 @@ func TestProxy(t *testing.T) {
 
 	select {
 	case <-done:
-		s := monitor.Stats()
+		s := monitor.stats
 		s.Collect()
 		if s.String() == fresh {
 			t.Error("stats not updated?")

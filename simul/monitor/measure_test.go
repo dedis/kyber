@@ -40,7 +40,7 @@ func TestCounterIOMeasureRecord(t *testing.T) {
 	// Important otherwise data don't get written down to the monitor yet.
 	time.Sleep(100 * time.Millisecond)
 	str := new(bytes.Buffer)
-	stat := mon.Stats()
+	stat := mon.stats
 	stat.Collect()
 	stat.WriteHeader(str)
 	stat.WriteValues(str)

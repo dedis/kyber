@@ -49,8 +49,6 @@ type Monitor struct {
 
 	// Current stats
 	stats *Stats
-	// and the mutex to play with it
-	mutexStats sync.Mutex
 
 	// channel to give new measures
 	measures chan *singleMeasure
@@ -67,7 +65,6 @@ func NewMonitor(stats *Stats) *Monitor {
 	return &Monitor{
 		conns:        make(map[string]net.Conn),
 		stats:        stats,
-		mutexStats:   sync.Mutex{},
 		SinkPort:     DefaultSinkPort,
 		measures:     make(chan *singleMeasure),
 		done:         make(chan string),
@@ -199,16 +196,6 @@ func (m *Monitor) handleConnection(conn net.Conn) {
 // updateMeasures will add that specific measure to the global stats
 // in a concurrently safe manner
 func (m *Monitor) update(meas *singleMeasure) {
-	m.mutexStats.Lock()
 	// updating
 	m.stats.Update(meas)
-	m.mutexStats.Unlock()
-}
-
-// Stats returns the updated stats in a concurrent-safe manner
-func (m *Monitor) Stats() *Stats {
-	m.mutexStats.Lock()
-	s := m.stats
-	m.mutexStats.Unlock()
-	return s
 }

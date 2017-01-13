@@ -32,8 +32,7 @@ type Stats struct {
 
 	// The filter used to filter out abberant data
 	filter DataFilter
-	// Mutex for the values
-	valuesMutex sync.Mutex
+	sync.Mutex
 }
 
 // NewStats return a NewStats with some fields extracted from the platform run config
@@ -55,10 +54,10 @@ func (s *Stats) init() *Stats {
 
 // Update will update the Stats with this given measure
 func (s *Stats) Update(m *singleMeasure) {
+	s.Lock()
+	defer s.Unlock()
 	var value *Value
 	var ok bool
-	s.valuesMutex.Lock()
-	defer s.valuesMutex.Unlock()
 	value, ok = s.values[m.Name]
 	if !ok {
 		value = NewValue(m.Name)
@@ -66,15 +65,13 @@ func (s *Stats) Update(m *singleMeasure) {
 		s.keys = append(s.keys, m.Name)
 		sort.Strings(s.keys)
 	}
-	value.Lock()
 	value.Store(m.Value)
-	value.Unlock()
 }
 
 // WriteHeader will write the header to the writer
 func (s *Stats) WriteHeader(w io.Writer) {
-	s.valuesMutex.Lock()
-	defer s.valuesMutex.Unlock()
+	s.Lock()
+	defer s.Unlock()
 	// write static  fields
 	var fields []string
 	for _, k := range s.staticKeys {
@@ -94,10 +91,10 @@ func (s *Stats) WriteHeader(w io.Writer) {
 
 // WriteValues will write the values to the specified writer
 func (s *Stats) WriteValues(w io.Writer) {
-	s.valuesMutex.Lock()
-	defer s.valuesMutex.Unlock()
 	// by default
 	s.Collect()
+	s.Lock()
+	defer s.Unlock()
 	// write static fields
 	var values []string
 	for _, k := range s.staticKeys {
@@ -120,25 +117,23 @@ func AverageStats(stats []*Stats) *Stats {
 		return new(Stats)
 	}
 	s := new(Stats).init()
-	s.valuesMutex.Lock()
-	defer s.valuesMutex.Unlock()
-	stats[0].valuesMutex.Lock()
+	stats[0].Lock()
 	s.filter = stats[0].filter
 	s.static = stats[0].static
 	s.staticKeys = stats[0].staticKeys
 	s.keys = stats[0].keys
-	stats[0].valuesMutex.Unlock()
+	stats[0].Unlock()
 	// Average
 	for _, k := range s.keys {
 		var values []*Value
 		for _, stat := range stats {
-			stat.valuesMutex.Lock()
+			stat.Lock()
 			value, ok := stat.values[k]
 			if !ok {
 				continue
 			}
 			values = append(values, value)
-			stat.valuesMutex.Unlock()
+			stat.Unlock()
 		}
 		// make the average
 		avg := AverageValue(values...)
@@ -223,6 +218,8 @@ func (df *DataFilter) Filter(measure string, values []float64) []float64 {
 // Collect make the final computations before stringing or writing.
 // Autmatically done in other methods anyway.
 func (s *Stats) Collect() {
+	s.Lock()
+	defer s.Unlock()
 	for _, v := range s.values {
 		v.Filter(s.filter)
 		v.Collect()
@@ -231,6 +228,8 @@ func (s *Stats) Collect() {
 
 // Value returns the value object corresponding to this name in this Stats
 func (s *Stats) Value(name string) *Value {
+	s.Lock()
+	defer s.Unlock()
 	if val, ok := s.values[name]; ok {
 		return val
 	}
@@ -239,9 +238,9 @@ func (s *Stats) Value(name string) *Value {
 
 // Returns an overview of the stats - not complete data returned!
 func (s *Stats) String() string {
-	s.valuesMutex.Lock()
-	defer s.valuesMutex.Unlock()
 	s.Collect()
+	s.Lock()
+	defer s.Unlock()
 	var str string
 	for _, k := range s.staticKeys {
 		str += fmt.Sprintf("%s = %d ", k, s.static[k])
@@ -331,12 +330,16 @@ func NewValue(name string) *Value {
 // streaming percentile algorithm exists in case the number of messages is
 // growing to big.
 func (t *Value) Store(newTime float64) {
+	t.Lock()
+	defer t.Unlock()
 	t.store = append(t.store, newTime)
 }
 
 // Collect will collect all float64 stored in the store's Value and will compute
 // the basic statistics about them such as min, max, dev and avg.
 func (t *Value) Collect() {
+	t.Lock()
+	defer t.Unlock()
 	// It is kept as a streaming average / dev processus for the moment (not the most
 	// optimized).
 	// streaming dev algo taken from http://www.johndcook.com/blog/standard_deviation/
@@ -368,6 +371,8 @@ func (t *Value) Collect() {
 
 // Filter outs its Values
 func (t *Value) Filter(filt DataFilter) {
+	t.Lock()
+	defer t.Unlock()
 	t.store = filt.Filter(t.name, t.store)
 }
 
@@ -393,31 +398,43 @@ func AverageValue(st ...*Value) *Value {
 
 // Min returns the minimum of all stored float64
 func (t *Value) Min() float64 {
+	t.Lock()
+	defer t.Unlock()
 	return t.min
 }
 
 // Max returns the maximum of all stored float64
 func (t *Value) Max() float64 {
+	t.Lock()
+	defer t.Unlock()
 	return t.max
 }
 
 // Sum returns the sum of all stored float64
 func (t *Value) Sum() float64 {
+	t.Lock()
+	defer t.Unlock()
 	return t.sum
 }
 
 // NumValue returns the number of Value added
 func (t *Value) NumValue() int {
+	t.Lock()
+	defer t.Unlock()
 	return t.n
 }
 
 // Avg returns the average (mean) of the Values
 func (t *Value) Avg() float64 {
+	t.Lock()
+	defer t.Unlock()
 	return t.newM
 }
 
 // Dev returns the standard deviation of the Values
 func (t *Value) Dev() float64 {
+	t.Lock()
+	defer t.Unlock()
 	return t.dev
 }
 
