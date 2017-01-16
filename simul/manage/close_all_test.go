@@ -1,4 +1,4 @@
-package manage_test
+package manage
 
 import (
 	"testing"

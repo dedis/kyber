@@ -1,13 +1,13 @@
-package manage_test
+package manage
 
 import (
 	"testing"
 	"time"
 
-	"github.com/dedis/onet"
-	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/network"
-	"github.com/dedis/onet/simul/manage"
+	"gopkg.in/dedis/onet.v1"
+	"gopkg.in/dedis/onet.v1/log"
+	"gopkg.in/dedis/onet.v1/network"
+	"gopkg.in/dedis/onet.v1/simul/manage"
 )
 
 // Tests a 2-node system
