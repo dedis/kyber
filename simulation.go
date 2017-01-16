@@ -254,7 +254,7 @@ func (s *SimulationBFTree) CreateRoster(sc *SimulationConfig, addresses []string
 			add = network.NewTCPAddress(address)
 			log.Lvl4("Found free port", address)
 		} else {
-			address += strconv.Itoa(port + c/nbrAddr)
+			address += strconv.Itoa(port + (c*2)/nbrAddr)
 			add = network.NewTCPAddress(address)
 		}
 		entities[c] = network.NewServerIdentity(key.Public.Clone(), add)
