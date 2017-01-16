@@ -20,11 +20,11 @@ func TestSimulationBF(t *testing.T) {
 	addresses := []string{
 		"test1:2000",
 		"test2:2000",
-		"test1:2001",
-		"test2:2001",
 		"test1:2002",
 		"test2:2002",
-		"test1:2003",
+		"test1:2004",
+		"test2:2004",
+		"test1:2006",
 	}
 
 	for i, a := range sc.Roster.List {
