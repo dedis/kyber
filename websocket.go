@@ -121,7 +121,7 @@ func (t wsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		EnableCompression: true,
 		// As the website will not be served from ourselves, we
 		// need to accept _all_ origins. Cross-site scriptiong is
-		// required!
+		// required.
 		CheckOrigin: func(*http.Request) bool {
 			return true
 		},
