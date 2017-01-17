@@ -30,7 +30,7 @@ func TestNewWebSocket(t *testing.T) {
 	url, err := getWebAddress(c.ServerIdentity, false)
 	log.ErrFatal(err)
 	ws, err := websocket.Dial(fmt.Sprintf("ws://%s/WebSocket/SimpleResponse", url),
-		"", "http://"+url)
+		"", "http://something_else")
 	log.ErrFatal(err)
 	req := &SimpleResponse{}
 	log.Lvlf1("Sending message Request: %x", uuid.UUID(network.MessageType(req)).Bytes())
