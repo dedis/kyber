@@ -2,9 +2,23 @@ import "github.com/dedis/crypto/abstract"
 
 // XXX: Un/Marshalling functions are still missing.
 
+// PriShare represents an individual private share v = p(i).
+type PriShare struct {
+	i int             // Index of the private share
+	v abstract.Scalar // Value of the private share
+}
+
+// XXX: PriShare should probably have public parameters i and v
+
+// Info returns the index and the value of the private share
+func (p *PriShare) Info() (int, abstract.Scalar) {
+	return p.i, p.v
+}
+
 // PriPoly represents a secret sharing polynomial.
 type PriPoly struct {
 	g      abstract.Group    // Cryptographic group
+	t      int               // Secret sharing threshold // XXX: corresponds to len(coeffs)
 	coeffs []abstract.Scalar // Coefficients of the polynomial
 }
 
@@ -32,7 +46,7 @@ func (p *PriPoly) Eval(i int) *PriShare {
 }
 
 // Shares creates a list of n private shares p(1),...,p(n).
-func (p *PriPoly) Shares(n int) *PriShares {
+func (p *PriPoly) Shares(n int) []PriShare {
 	// XXX: uses PriPoly.Eval()
 	// XXX: this is the old PriShare.Split()
 	return nil
@@ -54,65 +68,42 @@ func (p *PriPoly) String() String {
 	return nil
 }
 
-// PriShare represents an individual private share v = p(i).
-type PriShare struct {
-	i int             // Index of the private share
-	v abstract.Scalar // Value of the private share
-}
-
-// Info returns the index and the value of the private share
-func (p *PriShare) Info() (int, abstract.Scalar) {
-	return p.i, p.v
-}
-
-// PriShares represents a list of private shares.
-type PriShares struct {
-	g      abstract.Group // Cryptographic group
-	t      int            // Secret sharing threshold
-	shares []PriShare     // List of private shares
-}
-
-// NewPriShares creates a new empty list of n private shares for a secret sharing threshold t.
-func NewPriShares(g abstract.Group, t int, n int) *PriShares {
-	// XXX: this is the old PriShares.Empty()
-	return nil
-}
-
-// Set stores the given private share.
-func (p *PriShares) Set(s *PriShare) {
-}
-
-// Get returns the private share at index i.
-func (p *PriShares) Get(i int) *PriShare {
-	return nil
-}
-
 // xCoords creates an array of x-coordinates for Lagrange interpolation. In the
 // returned array, exactly t x-coordinates are non-nil.
-func (p *PriShares) xCoords() []abstract.Scalar {
+func (p *PriPoly) xCoords() []abstract.Scalar {
 	return nil
 }
 
 // RecoverSecret reconstructs the shared secret using Lagrange interpolation.
-func (p *PriShares) RecoverSecret() abstract.Scalar {
+func (p *PriPoly) RecoverSecret(shares []PriShare, t int) abstract.Scalar {
 	// XXX: this is the old PriShares.Secret()
+	// XXX: maybe it should be even completely independent of the PriPoly struct
 	return nil
 }
 
-// XXX: Do we need that?
-func (p *PriShares) String() String {
-	return nil
+// PubShare represents an individual public share v = p(i).
+type PubShare struct {
+	i int            // Index of the public share
+	v abstract.Point // Value of the public share
+}
+
+// XXX: PubShare should probably have public parameters i and v
+
+// Info returns the index and the value of the public share
+func (p *PubShare) Info() (int, abstract.Point) {
+	return p.i, p.v
 }
 
 // PubPoly represents a public commitment polynomial to a secret sharing polynomial.
 type PubPoly struct {
 	g       abstract.Group   // Cryptographic group
 	b       abstract.Point   // Base point, nil for standard base
+	t       int              // Secret sharing threshold // XXX: corresponds to len(commits)
 	commits []abstract.Point // Commitments to polynomial coefficients
 }
 
 // NewPubPoly creates a new public commitment polynomial.
-func NewPubPoly(g abstract.Group, b abstract.Point, n int) *PubPoly {
+func NewPubPoly(g abstract.Group, b abstract.Point, t int, n int) *PubPoly {
 	return nil
 }
 
@@ -138,7 +129,7 @@ func (p *PubPoly) Eval(i int) *PubShare {
 }
 
 // Shares creates a list of n public commitment shares p(1),...,p(n).
-func (p *PubPoly) Shares(n int) *PubShares {
+func (p *PubPoly) Shares(n int) []PubShare {
 	// XXX: uses PubPoly.Eval()
 	// XXX: this is the old PubShares.Split()
 	return nil
@@ -165,54 +156,16 @@ func (p *PubPoly) String() string {
 	return nil
 }
 
-// PubShare represents an individual public share v = p(i).
-type PubShare struct {
-	i int            // Index of the public share
-	v abstract.Point // Value of the public share
-}
-
-// Info returns the index and the value of the public share
-func (p *PubShare) Info() (int, abstract.Point) {
-	return p.i, p.v
-}
-
-// PubShares represents a list of public shares.
-type PubShares struct {
-	g      abstract.Group // Cryptograhpic group
-	b      abstract.Point // Base point, nil for standard base
-	t      int            // Secret sharing threshold
-	shares []PubShare     // List of public shares
-}
-
-// NewPubShares creates a new empty list of n public shares for a base point
-// b and a secret sharing threshold t.
-func NewPubShares(g abstract.Group, b abstract.Point, t int, n int) *PubShares {
-	return nil
-}
-
-// Set stores the given public share.
-func (p *PubShares) Set(s *PubShare) {
-}
-
-// Get returns the public share at index i.
-func (p *PubShares) Get(i int) *PubShare {
-	return nil
-}
-
 // xCoords creates an array of x-coordinates for Lagrange interpolation. In the
 // returned array, exactly t x-coordinates are non-nil.
-func (p *PubShares) xCoords() []abstract.Scalar {
+func (p *PubPoly) xCoords() []abstract.Scalar {
 	return nil
 }
 
 // RecoverCommit reconstructs the secret commitment using Lagrange interpolation.
-func (p *PubShares) RecoverCommit() abstract.Point {
+func (p *PubPoly) RecoverCommit(shares []PubShare, t int) abstract.Point {
 	// XXX: this is the old PubShares.SecretCommit()
-	return nil
-}
-
-// XXX: Do we need that?
-func (p *PubShares) String() string {
+	// XXX: maybe it should be even completely independent of the PubPoly struct
 	return nil
 }
 
