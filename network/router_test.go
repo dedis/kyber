@@ -8,7 +8,6 @@ import (
 	"github.com/dedis/onet/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/dedis/onet.v1/network"
 )
 
 func NewTestRouterTCP(port int) (*Router, error) {
@@ -405,7 +404,7 @@ func TestRouterRxTx(t *testing.T) {
 	log.ErrFatal(err)
 	go router1.Start()
 	go router2.Start()
-	si1 := NewServerIdentity(network.Suite.Point().Null(), router1.address)
+	si1 := NewServerIdentity(Suite.Point().Null(), router1.address)
 	log.ErrFatal(router2.Send(si1, si1))
 
 	// Wait for the message to be sent and received
