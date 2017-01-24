@@ -38,8 +38,8 @@ func (p *PriPoly) Threshold() int {
 	return len(p.coeffs)
 }
 
-// SharedSecret returns the shared secret p(0), i.e., the constant term of the polynomial.
-func (p *PriPoly) SharedSecret() abstract.Scalar {
+// GetSecret returns the shared secret p(0), i.e., the constant term of the polynomial.
+func (p *PriPoly) GetSecret() abstract.Scalar {
 	return p.coeffs[0]
 }
 
@@ -85,19 +85,19 @@ func (p *PriPoly) Add(q *PriPoly) (*PriPoly, error) {
 }
 
 // Equal checks equality of two secret sharing polynomials p and q.
-func (p *PriPoly) Equal(q *PriPoly) (bool, error) {
+func (p *PriPoly) Equal(q *PriPoly) bool {
 
-	if p.g != q.g {
-		return false, errors.New("Non-matching groups")
+	if p.g.String() != q.g.String() {
+		return false
 	}
 
 	for i := 0; i < p.Threshold(); i++ {
 		if !p.coeffs[i].Equal(q.coeffs[i]) {
-			return false, nil
+			return false
 		}
 	}
 
-	return true, nil
+	return true
 }
 
 // Commit creates a public commitment polynomial for the given base point b or
@@ -109,11 +109,6 @@ func (p *PriPoly) Commit(b abstract.Point) *PubPoly {
 		commits[i] = p.g.Point().Mul(b, p.coeffs[i])
 	}
 	return &PubPoly{p.g, b, commits}
-}
-
-// XXX: Do we need that?
-func (p *PriPoly) String() string {
-	return ""
 }
 
 // RecoverSecret reconstructs the shared secret p(0) using Lagrange interpolation.
@@ -128,10 +123,10 @@ func RecoverSecret(g abstract.Group, shares []*PriShare, t int) (abstract.Scalar
 		return nil, err
 	}
 
-	acc := g.Scalar().Zero() // sum accumulator
-	num := g.Scalar()        // numerator temporary
-	den := g.Scalar()        // denominator temporary
-	tmp := g.Scalar()        // temporary
+	acc := g.Scalar().Zero() // scalar sum accumulator
+	num := g.Scalar()        // numerator
+	den := g.Scalar()        // denominator
+	tmp := g.Scalar()        // scalar buffer
 
 	for i := range x {
 		if x[i] == nil {
@@ -172,58 +167,123 @@ func NewPubPoly(g abstract.Group, b abstract.Point, commits []abstract.Point) *P
 
 // Info returns the base point and the commitments to the polynomial coefficients.
 func (p *PubPoly) Info() (abstract.Point, []abstract.Point) {
-	return nil, nil
+	return p.b, p.commits
 }
 
 // Threshold returns the secret sharing threshold.
 func (p *PubPoly) Threshold() int {
-	// XXX: this is the old PubPoly.GetK()
 	return len(p.commits)
 }
 
-// SecretCommit returns the secret commitment p(0), i.e., the constant term of the polynomial.
-func (p *PubPoly) SecretCommit() abstract.Point {
-	return nil
+// GetCommit returns the secret commitment p(0), i.e., the constant term of the polynomial.
+func (p *PubPoly) GetCommit() abstract.Point {
+	return p.commits[0]
 }
 
 // Eval computes the public share p(i).
 func (p *PubPoly) Eval(i int) *PubShare {
-	return nil
+	xi := p.g.Scalar().SetInt64(1 + int64(i)) // x-coordinate of this share
+	pv := p.g.Point().Null()
+	for j := p.Threshold() - 1; j >= 0; j-- {
+		pv.Mul(pv, xi)
+		pv.Add(pv, p.commits[j])
+	}
+	return &PubShare{i, pv}
 }
 
 // Shares creates a list of n public commitment shares p(1),...,p(n).
-func (p *PubPoly) Shares(n int) []PubShare {
-	// XXX: uses PubPoly.Eval()
-	// XXX: this is the old PubShares.Split()
-	return nil
+func (p *PubPoly) Shares(n int) []*PubShare {
+	shares := make([]*PubShare, n)
+	for i := 0; i < n; i++ {
+		shares[i] = p.Eval(i)
+	}
+	return shares
 }
 
 // Add computes the component-wise sum of the polynomials p and q and returns it
 // as a new polynomial.
 func (p *PubPoly) Add(q *PubPoly) (*PubPoly, error) {
-	return nil, nil
+
+	if p.g != q.g {
+		return nil, errors.New("Non-matching groups")
+	}
+
+	if p.b != q.b {
+		return nil, errors.New("Non-matching base points")
+	}
+
+	if p.Threshold() != q.Threshold() {
+		return nil, errors.New("Non-matching number of coefficients")
+	}
+
+	t := p.Threshold()
+	commits := make([]abstract.Point, t)
+	for i := 0; i < t; i++ {
+		commits[i] = p.g.Point().Add(p.commits[i], q.commits[i])
+	}
+
+	return &PubPoly{p.g, p.b, commits}, nil
 }
 
 // Equal checks equality of two public commitment polynomials p and q.
-func (p *PubPoly) Equal(q *PubPoly) (bool, error) {
-	return true, nil
+func (p *PubPoly) Equal(q *PubPoly) bool {
+
+	if p.g.String() != q.g.String() {
+		return false
+	}
+
+	for i := 0; i < p.Threshold(); i++ {
+		if !p.commits[i].Equal(q.commits[i]) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // Check a private share against a public commitment polynomial.
 func (p *PubPoly) Check(s *PriShare) bool {
-	return true
-}
-
-// XXX: Do we need that?
-func (p *PubPoly) String() string {
-	return ""
+	pv := p.Eval(s.I)
+	ps := p.g.Point().Mul(p.b, s.V)
+	return pv.V.Equal(ps)
 }
 
 // RecoverCommit reconstructs the secret commitment p(0) using Lagrange interpolation.
-func RecoverCommit(shares []PubShare, t int) (abstract.Point, error) {
-	// XXX: this is the old PubShares.SecretCommit()
-	// XXX: uses xCoords
-	return nil, nil
+func RecoverCommit(g abstract.Group, shares []*PubShare, t int) (abstract.Point, error) {
+
+	isNotNil := func(i int) bool {
+		return i < len(shares) && shares[i] != nil
+	}
+
+	x, err := xCoords(g, t, len(shares), isNotNil)
+	if err != nil {
+		return nil, err
+	}
+
+	num := g.Scalar()       // numerator
+	den := g.Scalar()       // denominator
+	tmp := g.Scalar()       // scalar buffer
+	Acc := g.Point().Null() // point accumulator
+	Tmp := g.Point()        // point buffer
+
+	for i := range x {
+		if x[i] == nil {
+			continue
+		}
+		num.One()
+		den.One()
+		for j := range x {
+			if j == i || x[j] == nil {
+				continue
+			}
+			num.Mul(num, x[j])
+			den.Mul(den, tmp.Sub(x[j], x[i]))
+		}
+		Tmp.Mul(shares[i].V, num.Div(num, den))
+		Acc.Add(Acc, Tmp)
+	}
+
+	return Acc, nil
 }
 
 // xCoords creates an array of x-coordinates for Lagrange interpolation. In the

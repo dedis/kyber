@@ -10,13 +10,12 @@ import (
 )
 
 var group abstract.Group = new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
-var threshold int = 10
 var numShares int = 20
+var threshold int = 11
 
-func TestRecovery(t *testing.T) {
+func TestSecretRecovery(t *testing.T) {
 
-	secret := group.Scalar().Pick(random.Stream)
-	poly := share.NewPriPoly(group, threshold, secret, random.Stream)
+	poly := share.NewPriPoly(group, threshold, nil, random.Stream)
 	shares := poly.Shares(numShares)
 
 	recovered, err := share.RecoverSecret(group, shares, threshold)
@@ -24,20 +23,18 @@ func TestRecovery(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !secret.Equal(recovered) {
+	if !recovered.Equal(poly.GetSecret()) {
 		t.Fatal("Recovered secret does not match initial value")
 	}
 
 }
 
-func TestRecoveryDelete(t *testing.T) {
+func TestSecretRecoveryDelete(t *testing.T) {
 
-	secret := group.Scalar().Pick(random.Stream)
-	poly := share.NewPriPoly(group, threshold, secret, random.Stream)
+	poly := share.NewPriPoly(group, threshold, nil, random.Stream)
 	shares := poly.Shares(numShares)
 
 	// Delete a few shares
-	shares[1] = nil
 	shares[2] = nil
 	shares[5] = nil
 	shares[7] = nil
@@ -53,20 +50,18 @@ func TestRecoveryDelete(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !secret.Equal(recovered) {
+	if !recovered.Equal(poly.GetSecret()) {
 		t.Fatal("Recovered secret does not match initial value")
 	}
 
 }
 
-func TestRecoveryDeleteFail(t *testing.T) {
+func TestSecretRecoveryDeleteFail(t *testing.T) {
 
-	secret := group.Scalar().Pick(random.Stream)
-	poly := share.NewPriPoly(group, threshold, secret, random.Stream)
+	poly := share.NewPriPoly(group, threshold, nil, random.Stream)
 	shares := poly.Shares(numShares)
 
 	// Delete one more share than acceptable
-	shares[0] = nil
 	shares[1] = nil
 	shares[2] = nil
 	shares[5] = nil
@@ -81,6 +76,92 @@ func TestRecoveryDeleteFail(t *testing.T) {
 	_, err := share.RecoverSecret(group, shares, threshold)
 	if err == nil {
 		t.Fatal("Recovered secret unexpectably")
+	}
+
+}
+
+func TestPublicCheck(t *testing.T) {
+
+	priPoly := share.NewPriPoly(group, threshold, nil, random.Stream)
+	priShares := priPoly.Shares(numShares)
+
+	pubPoly := priPoly.Commit(nil)
+	//pubShares := pubPoly.Shares(numShares)
+
+	for i, share := range priShares {
+		if !pubPoly.Check(share) {
+			t.Fatalf("Private share %v not valid with respect to the public commitment polynomial", i)
+		}
+	}
+
+}
+
+func TestPublicRecovery(t *testing.T) {
+
+	priPoly := share.NewPriPoly(group, threshold, nil, random.Stream)
+	pubPoly := priPoly.Commit(nil)
+	pubShares := pubPoly.Shares(numShares)
+
+	recovered, err := share.RecoverCommit(group, pubShares, threshold)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !recovered.Equal(pubPoly.GetCommit()) {
+		t.Fatal("Recovered commi does not match initial value")
+	}
+
+}
+
+func TestPublicRecoveryDelete(t *testing.T) {
+
+	priPoly := share.NewPriPoly(group, threshold, nil, random.Stream)
+	pubPoly := priPoly.Commit(nil)
+	shares := pubPoly.Shares(numShares)
+
+	// Delete a few shares
+	shares[2] = nil
+	shares[5] = nil
+	shares[7] = nil
+	shares[8] = nil
+	shares[10] = nil
+	shares[15] = nil
+	shares[16] = nil
+	shares[17] = nil
+	shares[19] = nil
+
+	recovered, err := share.RecoverCommit(group, shares, threshold)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !recovered.Equal(pubPoly.GetCommit()) {
+		t.Fatal("Recovered commi does not match initial value")
+	}
+
+}
+
+func TestPublicRecoveryDeleteFail(t *testing.T) {
+
+	priPoly := share.NewPriPoly(group, threshold, nil, random.Stream)
+	pubPoly := priPoly.Commit(nil)
+	shares := pubPoly.Shares(numShares)
+
+	// Delete one more share than acceptable
+	shares[1] = nil
+	shares[2] = nil
+	shares[5] = nil
+	shares[7] = nil
+	shares[8] = nil
+	shares[10] = nil
+	shares[15] = nil
+	shares[16] = nil
+	shares[17] = nil
+	shares[19] = nil
+
+	_, err := share.RecoverCommit(group, shares, threshold)
+	if err == nil {
+		t.Fatal("Recovered commit unexpectably")
 	}
 
 }
