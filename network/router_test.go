@@ -413,10 +413,12 @@ func TestRouterRxTx(t *testing.T) {
 	})
 	rx := router1.Rx()
 	assert.Equal(t, 1, len(router1.connections))
+	router1.Lock()
 	var si2 ServerIdentityID
 	for si2 = range router1.connections {
 		log.Lvl3("Connection:", si2)
 	}
+	router1.Unlock()
 	router2.Stop()
 	waitTimeout(time.Second, 10, func() bool {
 		router1.Lock()
