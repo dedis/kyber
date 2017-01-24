@@ -164,7 +164,27 @@ func TestPublicRecoveryDeleteFail(t *testing.T) {
 
 }
 
-func TestAdd(t *testing.T) {
+func TestPrivateAdd(t *testing.T) {
+
+	p := share.NewPriPoly(group, threshold, nil, random.Stream)
+	q := share.NewPriPoly(group, threshold, nil, random.Stream)
+
+	r, err := p.Add(q)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ps := p.GetSecret()
+	qs := q.GetSecret()
+	rs := group.Scalar().Add(ps, qs)
+
+	if !rs.Equal(r.GetSecret()) {
+		t.Fatal("Addition of secret sharing polynomials failed")
+	}
+
+}
+
+func TestPublicAdd(t *testing.T) {
 
 	G, _ := group.Point().Pick([]byte("G"), random.Stream)
 	H, _ := group.Point().Pick([]byte("H"), random.Stream)
@@ -186,14 +206,12 @@ func TestAdd(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ps := p.GetSecret()
-	qs := q.GetSecret()
-	x := group.Point().Mul(G, ps)
-	y := group.Point().Mul(H, qs)
+	x := P.GetCommit()
+	y := Q.GetCommit()
 	z := group.Point().Add(x, y)
 
 	if !recovered.Equal(z) {
-		t.Fatal("Homomorphic polynomial addition failed")
+		t.Fatal("Addition of public commitment polynomials failed")
 	}
 
 }
