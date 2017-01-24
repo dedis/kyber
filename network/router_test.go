@@ -396,3 +396,52 @@ func TestRouterExchange(t *testing.T) {
 	}
 	<-done
 }
+
+func TestRouterRxTx(t *testing.T) {
+	router1, err := NewTestRouterTCP(0)
+	log.ErrFatal(err)
+	router2, err := NewTestRouterTCP(0)
+	log.ErrFatal(err)
+	go router1.Start()
+	go router2.Start()
+	si1 := NewServerIdentity(Suite.Point().Null(), router1.address)
+	log.ErrFatal(router2.Send(si1, si1))
+
+	// Wait for the message to be sent and received
+	waitTimeout(time.Second, 10, func() bool {
+		return router1.Rx() > 0 && router1.Rx() == router2.Tx()
+	})
+	rx := router1.Rx()
+	assert.Equal(t, 1, len(router1.connections))
+	router1.Lock()
+	var si2 ServerIdentityID
+	for si2 = range router1.connections {
+		log.Lvl3("Connection:", si2)
+	}
+	router1.Unlock()
+	router2.Stop()
+	waitTimeout(time.Second, 10, func() bool {
+		router1.Lock()
+		defer router1.Unlock()
+		return len(router1.connections[si2]) == 0
+	})
+	assert.Equal(t, rx, router1.Rx())
+	defer router1.Stop()
+}
+
+func waitTimeout(timeout time.Duration, repeat int,
+	f func() bool) {
+	success := make(chan bool)
+	go func() {
+		for !f() {
+			time.Sleep(timeout / time.Duration(repeat))
+		}
+		success <- true
+	}()
+	select {
+	case <-success:
+	case <-time.After(timeout):
+		log.Fatal("Timeout" + log.Stack())
+	}
+
+}
