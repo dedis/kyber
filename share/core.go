@@ -208,10 +208,6 @@ func (p *PubPoly) Add(q *PubPoly) (*PubPoly, error) {
 		return nil, errors.New("Non-matching groups")
 	}
 
-	if p.b != q.b {
-		return nil, errors.New("Non-matching base points")
-	}
-
 	if p.Threshold() != q.Threshold() {
 		return nil, errors.New("Non-matching number of coefficients")
 	}
@@ -222,7 +218,10 @@ func (p *PubPoly) Add(q *PubPoly) (*PubPoly, error) {
 		commits[i] = p.g.Point().Add(p.commits[i], q.commits[i])
 	}
 
-	return &PubPoly{p.g, p.b, commits}, nil
+	// NOTE: The base point of this new PubPoly should not be use in further
+	// computations since we cannot compute it without knowning the discret
+	// logarithm between the two base points p.b and q.b.
+	return &PubPoly{p.g, nil, commits}, nil
 }
 
 // Equal checks equality of two public commitment polynomials p and q.
