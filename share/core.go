@@ -229,7 +229,7 @@ func RecoverCommit(shares []PubShare, t int) (abstract.Point, error) {
 // xCoords creates an array of x-coordinates for Lagrange interpolation. In the
 // returned array, exactly t x-coordinates are non-nil.
 func xCoords(g abstract.Group, t int, n int, isNotNil func(int) bool) ([]abstract.Scalar, error) {
-	x := make([]abstract.Scalar, t)
+	x := make([]abstract.Scalar, n)
 	c := 0
 	for i := 0; i < n; i++ {
 		if isNotNil(i) {
