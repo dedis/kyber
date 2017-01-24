@@ -1,3 +1,6 @@
+// Package share implements different secret sharing mechanisms, including
+// simple Shamir secret sharing, verifiable secret sharing (vss), and public
+// verifiable secret sharing (pvss).
 package share
 
 import (
@@ -157,7 +160,7 @@ type PubShare struct {
 type PubPoly struct {
 	g       abstract.Group   // Cryptographic group
 	b       abstract.Point   // Base point, nil for standard base
-	commits []abstract.Point // Commitments to polynomial coefficients
+	commits []abstract.Point // Commitments to coefficients of the secret sharing polynomial
 }
 
 // NewPubPoly creates a new public commitment polynomial
@@ -201,10 +204,11 @@ func (p *PubPoly) Shares(n int) []*PubShare {
 }
 
 // Add computes the component-wise sum of the polynomials p and q and returns it
-// as a new polynomial.
-// NOTE: The base point of this new PubPoly should not be use in further
-// computations since we cannot compute it without knowning the discret
-// logarithm between the two base points p.b and q.b.
+// as a new polynomial. If the base points p.b and q.b are different then the
+// base point of the resulting PubPoly cannot be computed without knowing the
+// discrete logarithm between p.b and q.b. In this particular case, we are using
+// p.b as a default value which of cousre does not correspond to the correct
+// base point.
 func (p *PubPoly) Add(q *PubPoly) (*PubPoly, error) {
 
 	if p.g != q.g {
@@ -221,7 +225,7 @@ func (p *PubPoly) Add(q *PubPoly) (*PubPoly, error) {
 		commits[i] = p.g.Point().Add(p.commits[i], q.commits[i])
 	}
 
-	return &PubPoly{p.g, nil, commits}, nil
+	return &PubPoly{p.g, p.b, commits}, nil
 }
 
 // Equal checks equality of two public commitment polynomials p and q.
