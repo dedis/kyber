@@ -202,6 +202,9 @@ func (p *PubPoly) Shares(n int) []*PubShare {
 
 // Add computes the component-wise sum of the polynomials p and q and returns it
 // as a new polynomial.
+// NOTE: The base point of this new PubPoly should not be use in further
+// computations since we cannot compute it without knowning the discret
+// logarithm between the two base points p.b and q.b.
 func (p *PubPoly) Add(q *PubPoly) (*PubPoly, error) {
 
 	if p.g != q.g {
@@ -218,9 +221,6 @@ func (p *PubPoly) Add(q *PubPoly) (*PubPoly, error) {
 		commits[i] = p.g.Point().Add(p.commits[i], q.commits[i])
 	}
 
-	// NOTE: The base point of this new PubPoly should not be use in further
-	// computations since we cannot compute it without knowning the discret
-	// logarithm between the two base points p.b and q.b.
 	return &PubPoly{p.g, nil, commits}, nil
 }
 
