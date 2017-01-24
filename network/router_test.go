@@ -419,6 +419,8 @@ func TestRouterRxTx(t *testing.T) {
 	}
 	router2.Stop()
 	waitTimeout(time.Second, 10, func() bool {
+		router1.Lock()
+		defer router1.Unlock()
 		return len(router1.connections[si2]) == 0
 	})
 	assert.Equal(t, rx, router1.Rx())

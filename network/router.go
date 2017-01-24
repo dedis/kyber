@@ -40,6 +40,11 @@ type Router struct {
 
 	// wg waits for all handleConn routines to be done.
 	wg sync.WaitGroup
+
+	// keep bandwidth of closed connections
+	rx       uint64
+	tx       uint64
+	rtxMutex sync.Mutex
 }
 
 // NewRouter returns a new Router attached to a ServerIdentity and the host we want to
@@ -205,6 +210,10 @@ func (r *Router) handleConn(remote *ServerIdentity, c Conn) {
 		if err := c.Close(); err != nil {
 			log.Lvl5(r.address, "having error closing conn to", remote.Address, ":", err)
 		}
+		r.rtxMutex.Lock()
+		r.rx += c.Rx()
+		r.tx += c.Tx()
+		r.rtxMutex.Unlock()
 		r.wg.Done()
 		r.removeConnection(remote, c)
 	}()
@@ -302,6 +311,9 @@ func (r *Router) Tx() uint64 {
 			tx += c.Tx()
 		}
 	}
+	r.rtxMutex.Lock()
+	tx += r.tx
+	r.rtxMutex.Unlock()
 	return tx
 }
 
@@ -316,6 +328,9 @@ func (r *Router) Rx() uint64 {
 			rx += c.Rx()
 		}
 	}
+	r.rtxMutex.Lock()
+	rx += r.rx
+	r.rtxMutex.Unlock()
 	return rx
 }
 
