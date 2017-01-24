@@ -8,6 +8,7 @@ import (
 	"github.com/dedis/onet/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/dedis/onet.v1/network"
 )
 
 func NewTestRouterTCP(port int) (*Router, error) {
@@ -395,4 +396,49 @@ func TestRouterExchange(t *testing.T) {
 		t.Fatal("Couldn't close host", err)
 	}
 	<-done
+}
+
+func TestRouterRxTx(t *testing.T) {
+	router1, err := NewTestRouterTCP(0)
+	log.ErrFatal(err)
+	router2, err := NewTestRouterTCP(0)
+	log.ErrFatal(err)
+	go router1.Start()
+	go router2.Start()
+	si1 := NewServerIdentity(network.Suite.Point().Null(), router1.address)
+	log.ErrFatal(router2.Send(si1, si1))
+
+	// Wait for the message to be sent and received
+	waitTimeout(time.Second, 10, func() bool {
+		return router1.Rx() > 0 && router1.Rx() == router2.Tx()
+	})
+	rx := router1.Rx()
+	assert.Equal(t, 1, len(router1.connections))
+	var si2 ServerIdentityID
+	for si2 = range router1.connections {
+		log.Lvl3("Connection:", si2)
+	}
+	router2.Stop()
+	waitTimeout(time.Second, 10, func() bool {
+		return len(router1.connections[si2]) == 0
+	})
+	assert.Equal(t, rx, router1.Rx())
+	defer router1.Stop()
+}
+
+func waitTimeout(timeout time.Duration, repeat int,
+	f func() bool) {
+	success := make(chan bool)
+	go func() {
+		for !f() {
+			time.Sleep(timeout / time.Duration(repeat))
+		}
+		success <- true
+	}()
+	select {
+	case <-success:
+	case <-time.After(timeout):
+		log.Fatal("Timeout" + log.Stack())
+	}
+
 }

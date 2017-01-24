@@ -175,6 +175,7 @@ func (r *Router) connect(si *ServerIdentity) (Conn, error) {
 }
 
 func (r *Router) removeConnection(si *ServerIdentity, c Conn) {
+	log.Print("removing", si, c)
 	r.Lock()
 	defer r.Unlock()
 
@@ -219,13 +220,13 @@ func (r *Router) handleConn(remote *ServerIdentity, c Conn) {
 
 		if err != nil {
 			if err == ErrTimeout {
-				log.Lvlf5("%s drops %s connection: timeout", r.ServerIdentity.Address, remote.Address)
+				log.LLvlf5("%s drops %s connection: timeout", r.ServerIdentity.Address, remote.Address)
 				return
 			}
 
 			if err == ErrClosed || err == ErrEOF {
 				// Connection got closed.
-				log.Lvlf5("%s drops %s connection: closed", r.ServerIdentity.Address, remote.Address)
+				log.LLvlf5("%s drops %s connection: closed", r.ServerIdentity.Address, remote.Address)
 				return
 			}
 			// Temporary error, continue.
