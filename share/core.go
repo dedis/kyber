@@ -10,7 +10,10 @@ import (
 	"github.com/dedis/crypto/abstract"
 )
 
-// PriShare represents an individual private share v = p(i).
+// This file provides the core functionality for secret sharing including
+// Shamir's scheme and public commitment polynomials.
+
+// PriShare represents a private share.
 type PriShare struct {
 	I int             // Index of the private share
 	V abstract.Scalar // Value of the private share
@@ -46,15 +49,15 @@ func (p *PriPoly) GetSecret() abstract.Scalar {
 	return p.coeffs[0]
 }
 
-// Eval computes the private share p(i).
+// Eval computes the private share v = p(i).
 func (p *PriPoly) Eval(i int) *PriShare {
 	xi := p.g.Scalar().SetInt64(1 + int64(i)) // x-coordinate of this share
-	sv := p.g.Scalar().Zero()
+	v := p.g.Scalar().Zero()
 	for j := p.Threshold() - 1; j >= 0; j-- {
-		sv.Mul(sv, xi)
-		sv.Add(sv, p.coeffs[j])
+		v.Mul(v, xi)
+		v.Add(v, p.coeffs[j])
 	}
-	return &PriShare{i, sv}
+	return &PriShare{i, v}
 }
 
 // Shares creates a list of n private shares p(1),...,p(n).
@@ -150,7 +153,7 @@ func RecoverSecret(g abstract.Group, shares []*PriShare, t int) (abstract.Scalar
 	return acc, nil
 }
 
-// PubShare represents an individual public share v = p(i).
+// PubShare represents a public share.
 type PubShare struct {
 	I int            // Index of the public share
 	V abstract.Point // Value of the public share
@@ -183,15 +186,15 @@ func (p *PubPoly) GetCommit() abstract.Point {
 	return p.commits[0]
 }
 
-// Eval computes the public share p(i).
+// Eval computes the public share v = p(i).
 func (p *PubPoly) Eval(i int) *PubShare {
 	xi := p.g.Scalar().SetInt64(1 + int64(i)) // x-coordinate of this share
-	pv := p.g.Point().Null()
+	v := p.g.Point().Null()
 	for j := p.Threshold() - 1; j >= 0; j-- {
-		pv.Mul(pv, xi)
-		pv.Add(pv, p.commits[j])
+		v.Mul(v, xi)
+		v.Add(v, p.commits[j])
 	}
-	return &PubShare{i, pv}
+	return &PubShare{i, v}
 }
 
 // Shares creates a list of n public commitment shares p(1),...,p(n).
