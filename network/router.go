@@ -41,6 +41,11 @@ type Router struct {
 	// wg waits for all handleConn routines to be done.
 	wg sync.WaitGroup
 
+	// Every handler in this list is called by this router when a network error occurs (Timeout, Connection
+	// Closed, or EOF). Those handler should be added by using SetErrorHandler(). The 1st argument is the remote
+	// server with whom the error happened
+	connectionErrorHandlers []func(*ServerIdentity)
+
 	// keep bandwidth of closed connections
 	traffic counterSafe
 }
@@ -49,10 +54,11 @@ type Router struct {
 // use.
 func NewRouter(own *ServerIdentity, h Host) *Router {
 	r := &Router{
-		ServerIdentity: own,
-		connections:    make(map[ServerIdentityID][]Conn),
-		host:           h,
-		Dispatcher:     NewBlockingDispatcher(),
+		ServerIdentity:          own,
+		connections:             make(map[ServerIdentityID][]Conn),
+		host:                    h,
+		Dispatcher:              NewBlockingDispatcher(),
+		connectionErrorHandlers: make([]func(*ServerIdentity), 0),
 	}
 	r.address = h.Address()
 	return r
@@ -199,6 +205,13 @@ func (r *Router) removeConnection(si *ServerIdentity, c Conn) {
 	r.connections[si.ID] = arr[:len(arr)-1]
 }
 
+// triggerConnectionErrorHandlers trigger all registered connectionsErrorHandlers
+func (r *Router) triggerConnectionErrorHandlers(remote *ServerIdentity) {
+	for _, v := range r.connectionErrorHandlers {
+		v(remote)
+	}
+}
+
 // handleConn waits for incoming messages and calls the dispatcher for
 // each new message. It only quits if the connection is closed or another
 // unrecoverable error in the connection appears.
@@ -225,12 +238,14 @@ func (r *Router) handleConn(remote *ServerIdentity, c Conn) {
 		if err != nil {
 			if err == ErrTimeout {
 				log.Lvlf5("%s drops %s connection: timeout", r.ServerIdentity.Address, remote.Address)
+				r.triggerConnectionErrorHandlers(remote)
 				return
 			}
 
 			if err == ErrClosed || err == ErrEOF {
 				// Connection got closed.
 				log.Lvlf5("%s drops %s connection: closed", r.ServerIdentity.Address, remote.Address)
+				r.triggerConnectionErrorHandlers(remote)
 				return
 			}
 			// Temporary error, continue.
@@ -352,4 +367,11 @@ func (r *Router) receiveServerIdentity(c Conn) (*ServerIdentity, error) {
 	}
 	log.Lvl4(r.address, "Identity received from", dst.Address)
 	return dst, nil
+}
+
+// AddErrorHandler adds a network error handler function for this router. The functions will be called
+// on network error (e.g. Timeout, Connection Closed, or EOF) with the identity of the faulty
+// remote host as 1st parameter.
+func (r *Router) AddErrorHandler(errorHandler func(*ServerIdentity)) {
+	r.connectionErrorHandlers = append(r.connectionErrorHandlers, errorHandler)
 }
