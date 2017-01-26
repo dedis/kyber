@@ -84,3 +84,14 @@ func TestVSSSessionID(t *testing.T) {
 	assert.NoError(t, err3)
 	assert.NotEqual(t, sid3, sid2)
 }
+
+func TestVSSFindIndex(t *testing.T) {
+	randIdx := rand.Int() % len(verifiersPub)
+	i, ok := findIndex(verifiersPub, verifiersPub[randIdx])
+	assert.True(t, ok)
+	assert.Equal(t, randIdx, i)
+
+	_, wrongPub := genPair()
+	i, ok = findIndex(verifiersPub, wrongPub)
+	assert.False(t, ok)
+}
