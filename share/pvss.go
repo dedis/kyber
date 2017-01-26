@@ -71,29 +71,19 @@ func (pv *PVSS) EncShares(X []abstract.Point, secret abstract.Scalar) ([]*PubVer
 	return encShares, pubPoly, nil
 }
 
-// Commits reconstructs a list of commits from the given polynomials and indices.
-func (pv *PVSS) Commits(polys []*PubPoly, index []int) ([]*PubShare, error) {
+func (pv *PVSS) verifyEncShares(H abstract.Point, X []abstract.Point, polys []*PubPoly, encShares []*PubVerShare) ([]abstract.Point, []*PubVerShare, error) {
 
-	if len(polys) != len(index) {
-		return nil, errorDifferentLengths
-	}
-
-	n := len(polys)
-	sH := make([]*PubShare, n)
-	for i := 0; i < n; i++ {
-		sH[i] = polys[i].Eval(index[i])
-	}
-
-	return sH, nil
-}
-
-func (pv *PVSS) verifyEncShares(H abstract.Point, X []abstract.Point, sH []*PubShare, encShares []*PubVerShare) ([]abstract.Point, []*PubVerShare, error) {
-
-	if len(X) != len(sH) && len(sH) != len(encShares) {
+	if len(X) != len(polys) && len(polys) != len(encShares) {
 		return nil, nil, errorDifferentLengths
 	}
 
+	// Recover commits from polynomials
 	n := len(X)
+	sH := make([]*PubShare, n)
+	for i := 0; i < n; i++ {
+		sH[i] = polys[i].Eval(encShares[i].S.I)
+	}
+
 	var goodKeys []abstract.Point
 	var goodShares []*PubVerShare
 	for i := 0; i < n; i++ {
@@ -110,13 +100,13 @@ func (pv *PVSS) verifyEncShares(H abstract.Point, X []abstract.Point, sH []*PubS
 // consistency proofs, i.e., it checks that every share sX satisfies log_H(sH)
 // == log_X(sX), decrypts all valid shares, and creates decryption consistency
 // proofs.
-func (pv *PVSS) DecShares(H abstract.Point, X []abstract.Point, sH []*PubShare, x abstract.Scalar, encShares []*PubVerShare) ([]abstract.Point, []*PubVerShare, []*PubVerShare, error) {
+func (pv *PVSS) DecShares(H abstract.Point, X []abstract.Point, polys []*PubPoly, x abstract.Scalar, encShares []*PubVerShare) ([]abstract.Point, []*PubVerShare, []*PubVerShare, error) {
 
-	if len(X) != len(sH) && len(sH) != len(encShares) {
+	if len(X) != len(polys) && len(polys) != len(encShares) {
 		return nil, nil, nil, errorDifferentLengths
 	}
 
-	goodKeys, goodEncShares, err := pv.verifyEncShares(H, X, sH, encShares)
+	goodKeys, goodEncShares, err := pv.verifyEncShares(H, X, polys, encShares)
 	if err != nil {
 		return nil, nil, nil, err
 	}
