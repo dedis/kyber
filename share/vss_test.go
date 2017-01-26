@@ -1,6 +1,7 @@
 package share
 
 import (
+	"math/rand"
 	"testing"
 
 	"github.com/dedis/crypto/abstract"
@@ -21,6 +22,8 @@ var verifiersSec []abstract.Scalar
 var dealerPub abstract.Point
 var dealerSec abstract.Scalar
 
+var secret abstract.Scalar
+
 func genPair() (abstract.Scalar, abstract.Point) {
 	secret := suite.Scalar().Pick(reader)
 	public := suite.Point().Mul(nil, secret)
@@ -39,10 +42,10 @@ func genCommits(n int) ([]abstract.Scalar, []abstract.Point) {
 func init() {
 	verifiersSec, verifiersPub = genCommits(nbVerifiers)
 	dealerSec, dealerPub = genPair()
+	secret, _ = genPair()
 }
 
 func TestVSSDealerT(t *testing.T) {
-	secret, _ := genPair()
 	dealer, err := NewDealer(suite, dealerSec, secret, verifiersPub, reader)
 	assert.NoError(t, err)
 	assert.Equal(t, defaultT(verifiersPub), dealer.t)
@@ -54,5 +57,14 @@ func TestVSSDealerT(t *testing.T) {
 	badT := defaultT(verifiersPub) + 1
 	_, err = NewDealerWithT(suite, dealerSec, secret, verifiersPub, reader, badT)
 	assert.Error(t, err)
+}
 
+func TestVSSVerifier(t *testing.T) {
+	randIdx := rand.Int() % len(verifiersPub)
+	_, err := NewVerifier(suite, verifiersSec[randIdx], dealerPub, verifiersPub)
+	assert.NoError(t, err)
+
+	wrongKey := suite.Scalar().Pick(reader)
+	_, err = NewVerifier(suite, wrongKey, dealerPub, verifiersPub)
+	assert.Error(t, err)
 }
