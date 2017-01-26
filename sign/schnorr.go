@@ -1,7 +1,8 @@
-package crypto
+package sign
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 
@@ -9,7 +10,12 @@ import (
 	"github.com/dedis/crypto/random"
 )
 
-// Schnorr creates a Schnorr signature from a msg and a private key
+// HashFunc is the hash function used to hash the message for the signature
+// generation and verification
+var HashFunc = sha256.New
+
+// Schnorr creates a Schnorr signature from a msg and a private key. This
+// signature can be verified with VerifySchnorr.
 func Schnorr(suite abstract.Suite, private abstract.Scalar, msg []byte) ([]byte, error) {
 	// using notation from https://en.wikipedia.org/wiki/Schnorr_signature
 	// create random secret k and public point commitment r
@@ -17,7 +23,8 @@ func Schnorr(suite abstract.Suite, private abstract.Scalar, msg []byte) ([]byte,
 	r := suite.Point().Mul(nil, k)
 
 	// create challenge e based on message and r
-	e, err := hash(suite, r, msg)
+	public := suite.Point().Mul(nil, private)
+	e, err := hash(suite, public, r, msg)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +66,7 @@ func VerifySchnorr(suite abstract.Suite, public abstract.Point, msg, sig []byte)
 	rv := suite.Point().Add(gs, ye)
 
 	// recompute challenge (e) from rv
-	e, err := hash(suite, rv, msg)
+	e, err := hash(suite, public, rv, msg)
 	if err != nil {
 		return err
 	}
@@ -71,13 +78,16 @@ func VerifySchnorr(suite abstract.Suite, public abstract.Point, msg, sig []byte)
 	return nil
 }
 
-func hash(suite abstract.Suite, r abstract.Point, msg []byte) (abstract.Scalar, error) {
-	rBuf, err := r.MarshalBinary()
-	if err != nil {
+func hash(suite abstract.Suite, public, r abstract.Point, msg []byte) (abstract.Scalar, error) {
+	h := HashFunc()
+	if _, err := r.MarshalTo(h); err != nil {
 		return nil, err
 	}
-	cipher := suite.Cipher(rBuf)
-	cipher.Message(nil, nil, msg)
-	// (re)compute challenge (e)
-	return suite.Scalar().Pick(cipher), nil
+	if _, err := public.MarshalTo(h); err != nil {
+		return nil, err
+	}
+	if _, err := h.Write(msg); err != nil {
+		return nil, err
+	}
+	return suite.Scalar().SetBytes(h.Sum(nil)), nil
 }
