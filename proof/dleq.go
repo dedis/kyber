@@ -22,16 +22,16 @@ type DLEQProof struct {
 // NewDLEQProof computes a new NIZK dlog-equality proof by randomly selecting a
 // commitment v, determining the challenge c = H(xG,xH,vG,vH) and the response r
 // = v - cx. It also returns the encrypted base points xG and xH.
-func NewDLEQProof(suite abstract.Suite, g abstract.Point, h abstract.Point, x abstract.Scalar) (*DLEQProof, abstract.Point, abstract.Point, error) {
+func NewDLEQProof(suite abstract.Suite, G abstract.Point, H abstract.Point, x abstract.Scalar) (*DLEQProof, abstract.Point, abstract.Point, error) {
 
 	// Encrypt base points with secret
-	xG := suite.Point().Mul(g, x)
-	xH := suite.Point().Mul(h, x)
+	xG := suite.Point().Mul(G, x)
+	xH := suite.Point().Mul(H, x)
 
 	// Commitment
 	v := suite.Scalar().Pick(random.Stream)
-	vG := suite.Point().Mul(g, v)
-	vH := suite.Point().Mul(h, v)
+	vG := suite.Point().Mul(G, v)
+	vH := suite.Point().Mul(H, v)
 
 	// Challenge
 	cb, err := hash.Args(suite.Hash(), xG, xH, vG, vH)
@@ -50,7 +50,7 @@ func NewDLEQProof(suite abstract.Suite, g abstract.Point, h abstract.Point, x ab
 // NewDLEQProofBatch computes lists of NIZK dlog-equality proofs and of
 // encrypted base points xG and xH. Note that the challenge is computed over all
 // input values.
-func NewDLEQProofBatch(suite abstract.Suite, g []abstract.Point, h []abstract.Point, secrets []abstract.Scalar) ([]*DLEQProof, []abstract.Point, []abstract.Point, error) {
+func NewDLEQProofBatch(suite abstract.Suite, G []abstract.Point, H []abstract.Point, secrets []abstract.Scalar) ([]*DLEQProof, []abstract.Point, []abstract.Point, error) {
 
 	if (len(g) != len(h)) && (len(h) != len(secrets)) {
 		return nil, nil, nil, errors.New("inputs of different lengths")
@@ -67,13 +67,13 @@ func NewDLEQProofBatch(suite abstract.Suite, g []abstract.Point, h []abstract.Po
 	for i, x := range secrets {
 
 		// Encrypt base points with secrets
-		xG[i] = suite.Point().Mul(g[i], x)
-		xH[i] = suite.Point().Mul(h[i], x)
+		xG[i] = suite.Point().Mul(G[i], x)
+		xH[i] = suite.Point().Mul(H[i], x)
 
 		// Commitments
 		v[i] = suite.Scalar().Pick(random.Stream)
-		vG[i] = suite.Point().Mul(g[i], v[i])
-		vH[i] = suite.Point().Mul(h[i], v[i])
+		vG[i] = suite.Point().Mul(G[i], v[i])
+		vH[i] = suite.Point().Mul(H[i], v[i])
 	}
 
 	// Collective challenge
@@ -95,9 +95,9 @@ func NewDLEQProofBatch(suite abstract.Suite, g []abstract.Point, h []abstract.Po
 
 // Verify examines the validity of the corresponding NIZK dlog-equality proof
 // by checking that vG == rG + c(xG) and vH == rH + c(xH).
-func (p *DLEQProof) Verify(suite abstract.Suite, g abstract.Point, h abstract.Point, xG abstract.Point, xH abstract.Point) bool {
-	rG := suite.Point().Mul(g, p.R)
-	rH := suite.Point().Mul(h, p.R)
+func (p *DLEQProof) Verify(suite abstract.Suite, G abstract.Point, H abstract.Point, xG abstract.Point, xH abstract.Point) bool {
+	rG := suite.Point().Mul(G, p.R)
+	rH := suite.Point().Mul(H, p.R)
 	cxG := suite.Point().Mul(xG, p.C)
 	cxH := suite.Point().Mul(xH, p.C)
 	a := suite.Point().Add(rG, cxG)

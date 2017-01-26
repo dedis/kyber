@@ -19,7 +19,7 @@ type PubVerShare struct {
 
 // PVSS is the main public verifiable secret sharing struct.
 type PVSS struct {
-	suite abstract.Suite // Suite
+	suite abstract.Suite // Cryptographic suite
 	h     abstract.Point // Base point for polynomial commits
 	t     int            // Secret sharing threshold
 	n     int            // Number of shares
