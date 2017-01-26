@@ -1,106 +1,81 @@
-package proof_test
+package proof
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/edwards"
-	"github.com/dedis/crypto/proof"
 	"github.com/dedis/crypto/random"
 )
 
-func TestDLEQ(t *testing.T) {
+func TestDLEQProof(t *testing.T) {
 
 	suite := edwards.NewAES128SHA256Ed25519(false)
 
-	// 1st set of base points
-	g1, _ := suite.Point().Pick([]byte("G1"), random.Stream)
-	h1, _ := suite.Point().Pick([]byte("H1"), random.Stream)
+	n := 10
+	var good []int
+	var bad []int
 
-	// 1st secret value
-	x := suite.Scalar().Pick(random.Stream)
+	for i := 0; i < n; i++ {
 
-	// 2nd set of base points
-	g2, _ := suite.Point().Pick([]byte("G2"), random.Stream)
-	h2, _ := suite.Point().Pick([]byte("H2"), random.Stream)
+		// Create some random secrets and base points
+		x := suite.Scalar().Pick(random.Stream)
+		g, _ := suite.Point().Pick([]byte(fmt.Sprintf("G%d", i)), random.Stream)
+		h, _ := suite.Point().Pick([]byte(fmt.Sprintf("H%d", i)), random.Stream)
 
-	// 2nd secret value
-	y := suite.Scalar().Pick(random.Stream)
+		proof, xG, xH, err := NewDLEQProof(suite, g, h, x)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	// Create proofs
-	g := []abstract.Point{g1, g2}
-	h := []abstract.Point{h1, h2}
-	p, err := proof.NewDLEQ(suite, g, h, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+		if proof.Verify(suite, g, h, xG, xH) {
+			good = append(good, i)
+		} else {
+			bad = append(bad, i)
+		}
 
-	xG, xH, err := p.Setup(x, y)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Verify proofs
-	q, err := proof.NewDLEQ(suite, g, h, p.Core)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, bad, err := q.Verify(xG, xH)
-	if err != nil {
-		t.Fatal(err)
 	}
 
 	if len(bad) != 0 {
-		t.Fatalf("Some proofs failed: %v", bad)
+		t.Fatalf("some proofs are invalid: %v", bad)
 	}
 
 }
 
-func TestDLEQCollective(t *testing.T) {
+func TestDLEQProofBatch(t *testing.T) {
 
 	suite := edwards.NewAES128SHA256Ed25519(false)
 
-	// 1st set of base points
-	g1, _ := suite.Point().Pick([]byte("G1"), random.Stream)
-	h1, _ := suite.Point().Pick([]byte("H1"), random.Stream)
+	n := 10
+	x := make([]abstract.Scalar, n)
+	g := make([]abstract.Point, n)
+	h := make([]abstract.Point, n)
 
-	// 1st secret value
-	x := suite.Scalar().Pick(random.Stream)
+	for i := 0; i < n; i++ {
+		x[i] = suite.Scalar().Pick(random.Stream)
+		g[i], _ = suite.Point().Pick([]byte(fmt.Sprintf("G%d", i)), random.Stream)
+		h[i], _ = suite.Point().Pick([]byte(fmt.Sprintf("H%d", i)), random.Stream)
+	}
 
-	// 2nd set of base points
-	g2, _ := suite.Point().Pick([]byte("G2"), random.Stream)
-	h2, _ := suite.Point().Pick([]byte("H2"), random.Stream)
-
-	// 2nd secret value
-	y := suite.Scalar().Pick(random.Stream)
-
-	// Create proof
-	g := []abstract.Point{g1, g2}
-	h := []abstract.Point{h1, h2}
-	p, err := proof.NewDLEQ(suite, g, h, nil)
+	proofs, xG, xH, err := NewDLEQProofBatch(suite, g, h, x)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	xG, xH, err := p.SetupCollective(x, y)
-	if err != nil {
-		t.Fatal(err)
-	}
+	var good []int
+	var bad []int
 
-	// Verify proof
-	q, err := proof.NewDLEQ(suite, g, h, p.Core)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, bad, err := q.Verify(xG, xH)
-	if err != nil {
-		t.Fatal(err)
+	for i := 0; i < n; i++ {
+		if proofs[i].Verify(suite, g[i], h[i], xG[i], xH[i]) {
+			good = append(good, i)
+		} else {
+			bad = append(bad, i)
+		}
 	}
 
 	if len(bad) != 0 {
-		t.Fatalf("Some proofs failed: %v", bad)
+		t.Fatalf("some proofs are invalid: %v", bad)
 	}
 
 }

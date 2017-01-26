@@ -74,11 +74,11 @@ func (p *PriPoly) Shares(n int) []*PriShare {
 func (p *PriPoly) Add(q *PriPoly) (*PriPoly, error) {
 
 	if p.g != q.g {
-		return nil, errors.New("Non-matching groups")
+		return nil, errors.New("non-matching groups")
 	}
 
 	if p.Threshold() != q.Threshold() {
-		return nil, errors.New("Non-matching number of coefficients")
+		return nil, errors.New("non-matching number of coefficients")
 	}
 
 	t := p.Threshold()
@@ -118,15 +118,18 @@ func (p *PriPoly) Commit(b abstract.Point) *PubPoly {
 }
 
 // RecoverSecret reconstructs the shared secret p(0) using Lagrange interpolation.
-func RecoverSecret(g abstract.Group, shares []*PriShare, t int) (abstract.Scalar, error) {
+func RecoverSecret(g abstract.Group, shares []*PriShare, t int, n int) (abstract.Scalar, error) {
 
-	isNotNil := func(i int) bool {
-		return i < len(shares) && shares[i] != nil
+	c := 0
+	for _, s := range shares {
+		if s == nil || n <= s.I {
+			continue
+		}
+		c++
 	}
 
-	x, err := xCoords(g, t, len(shares), isNotNil)
-	if err != nil {
-		return nil, err
+	if c < t {
+		return nil, errors.New("not enough good private shares to reconstruct shared secret")
 	}
 
 	acc := g.Scalar().Zero() // scalar sum accumulator
@@ -134,18 +137,20 @@ func RecoverSecret(g abstract.Group, shares []*PriShare, t int) (abstract.Scalar
 	den := g.Scalar()        // denominator
 	tmp := g.Scalar()        // scalar buffer
 
-	for i := range x {
-		if x[i] == nil {
+	for _, si := range shares {
+		if si == nil || n <= si.I {
 			continue
 		}
-		num.Set(shares[i].V)
+		num.Set(si.V)
 		den.One()
-		for j := range x {
-			if j == i || x[j] == nil {
+		xi := g.Scalar().SetInt64(1 + int64(si.I))
+		for _, sj := range shares {
+			if sj == nil || sj.I == si.I || n <= sj.I {
 				continue
 			}
-			num.Mul(num, x[j])
-			den.Mul(den, tmp.Sub(x[j], x[i]))
+			xj := g.Scalar().SetInt64(1 + int64(sj.I))
+			num.Mul(num, xj)
+			den.Mul(den, tmp.Sub(xj, xi))
 		}
 		acc.Add(acc, num.Div(num, den))
 	}
@@ -215,11 +220,11 @@ func (p *PubPoly) Shares(n int) []*PubShare {
 func (p *PubPoly) Add(q *PubPoly) (*PubPoly, error) {
 
 	if p.g != q.g {
-		return nil, errors.New("Non-matching groups")
+		return nil, errors.New("non-matching groups")
 	}
 
 	if p.Threshold() != q.Threshold() {
-		return nil, errors.New("Non-matching number of coefficients")
+		return nil, errors.New("non-matching number of coefficients")
 	}
 
 	t := p.Threshold()
@@ -255,15 +260,18 @@ func (p *PubPoly) Check(s *PriShare) bool {
 }
 
 // RecoverCommit reconstructs the secret commitment p(0) using Lagrange interpolation.
-func RecoverCommit(g abstract.Group, shares []*PubShare, t int) (abstract.Point, error) {
+func RecoverCommit(g abstract.Group, shares []*PubShare, t int, n int) (abstract.Point, error) {
 
-	isNotNil := func(i int) bool {
-		return i < len(shares) && shares[i] != nil
+	c := 0
+	for _, s := range shares {
+		if s == nil || n <= s.I {
+			continue
+		}
+		c++
 	}
 
-	x, err := xCoords(g, t, len(shares), isNotNil)
-	if err != nil {
-		return nil, err
+	if c < t {
+		return nil, errors.New("not enough good public shares to reconstruct secret commitment")
 	}
 
 	num := g.Scalar()       // numerator
@@ -272,42 +280,24 @@ func RecoverCommit(g abstract.Group, shares []*PubShare, t int) (abstract.Point,
 	Acc := g.Point().Null() // point accumulator
 	Tmp := g.Point()        // point buffer
 
-	for i := range x {
-		if x[i] == nil {
+	for _, si := range shares {
+		if si == nil || n <= si.I {
 			continue
 		}
 		num.One()
 		den.One()
-		for j := range x {
-			if j == i || x[j] == nil {
+		xi := g.Scalar().SetInt64(1 + int64(si.I))
+		for _, sj := range shares {
+			if sj == nil || sj.I == si.I || n <= sj.I {
 				continue
 			}
-			num.Mul(num, x[j])
-			den.Mul(den, tmp.Sub(x[j], x[i]))
+			xj := g.Scalar().SetInt64(1 + int64(sj.I))
+			num.Mul(num, xj)
+			den.Mul(den, tmp.Sub(xj, xi))
 		}
-		Tmp.Mul(shares[i].V, num.Div(num, den))
+		Tmp.Mul(si.V, num.Div(num, den))
 		Acc.Add(Acc, Tmp)
 	}
 
 	return Acc, nil
-}
-
-// xCoords creates an array of x-coordinates for Lagrange interpolation. In the
-// returned array, exactly t x-coordinates are non-nil.
-func xCoords(g abstract.Group, t int, n int, isNotNil func(int) bool) ([]abstract.Scalar, error) {
-	x := make([]abstract.Scalar, n)
-	c := 0
-	for i := 0; i < n; i++ {
-		if isNotNil(i) {
-			x[i] = g.Scalar().SetInt64(1 + int64(i))
-			c++
-			if c >= t {
-				break // have enough shares, ignore any more
-			}
-		}
-	}
-	if c < t {
-		return nil, errors.New("Not enough shares to reconstruct secret")
-	}
-	return x, nil
 }
