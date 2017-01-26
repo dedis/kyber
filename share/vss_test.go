@@ -68,3 +68,19 @@ func TestVSSVerifier(t *testing.T) {
 	_, err = NewVerifier(suite, wrongKey, dealerPub, verifiersPub)
 	assert.Error(t, err)
 }
+
+func TestVSSSessionID(t *testing.T) {
+	dealer, _ := NewDealer(suite, dealerSec, secret, verifiersPub, reader)
+	sid, err := sessionID(dealerPub, verifiersPub, dealer.commitments, dealer.t)
+	assert.NoError(t, err)
+
+	sid2, err2 := sessionID(dealerPub, verifiersPub, dealer.commitments, dealer.t)
+	assert.NoError(t, err2)
+	assert.Equal(t, sid, sid2)
+
+	wrongDealerPub := suite.Point().Add(dealerPub, dealerPub)
+
+	sid3, err3 := sessionID(wrongDealerPub, verifiersPub, dealer.commitments, dealer.t)
+	assert.NoError(t, err3)
+	assert.NotEqual(t, sid3, sid2)
+}
