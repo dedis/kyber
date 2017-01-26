@@ -26,7 +26,7 @@ type Dealer struct {
 	secret abstract.Scalar
 
 	verifiers []abstract.Point
-	// threshold of malicious participants; default is t = (n - 1)/ 2
+	// threshold of shares that is needed to reconstruct the secret
 	t int
 	// sessionID is a unique identifier for the whole session of the scheme
 	sessionID []byte
@@ -42,16 +42,9 @@ type Dealer struct {
 
 // NewDealer returns a Dealer capable of leading the secret sharing scheme. It
 // does not have to be trusted by other Verifiers. The security parameter t is
-// chosen automatically to a safe default value. If a different t value is
-// required, it is possible to set it with `dealer.SetT()`.
-func NewDealer(suite abstract.Suite, longterm, secret abstract.Scalar, verifiers []abstract.Point, r cipher.Stream) (*Dealer, error) {
-	return NewDealerWithT(suite, longterm, secret, verifiers, r, defaultT(verifiers))
-}
-
-// NewDealerWithT is equivalent to NewDealer but sets a custom t parameters when
-// creating the shares. If the t is invalid, it will return an error. A t is
-// invalid when is is higher than (len(verifiers)-1)/2
-func NewDealerWithT(suite abstract.Suite, longterm, secret abstract.Scalar, verifiers []abstract.Point, r cipher.Stream, t int) (*Dealer, error) {
+// the number of shares required to reconstruct the secret. It must be between
+// (len(verifiers) + 1)/2 <= t <= len(verifiers)
+func NewDealer(suite abstract.Suite, longterm, secret abstract.Scalar, verifiers []abstract.Point, r cipher.Stream, t int) (*Dealer, error) {
 	d := &Dealer{
 		suite:     suite,
 		long:      longterm,
@@ -411,22 +404,22 @@ func (a *aggregator) EnoughApprovals() bool {
 	if !a.dealReceived {
 		return false
 	}
-	return len(a.approvals) >= a.t+1
+	return len(a.approvals) >= a.t
 }
 
 func (a *aggregator) DealCertified() bool {
-	if len(a.complaints) > a.t {
+	if len(a.complaints) >= a.t-1 {
 		return false
 	}
 	return true
 }
 
-func defaultT(verifiers []abstract.Point) int {
-	return (len(verifiers) - 1) / 2
+func minimumT(verifiers []abstract.Point) int {
+	return (len(verifiers) + 1) / 2
 }
 
 func validT(t int, verifiers []abstract.Point) bool {
-	return t <= defaultT(verifiers) && t > 0 && int(uint32(t)) == t
+	return t >= minimumT(verifiers) && t <= len(verifiers) && int(uint32(t)) == t
 }
 
 // HashFunc is used to compute
@@ -446,31 +439,6 @@ func deriveH(suite abstract.Suite, verifiers []abstract.Point) abstract.Point {
 	return base
 }
 
-func weirdDHEncrypt(suite abstract.Suite, share *PriShare, local abstract.Scalar, remote abstract.Point) *PriShare {
-	diffieBase := suite.Point().Mul(remote, local)
-	diffieSecret := fromPointToScalar(suite, diffieBase)
-	sh := *share
-	sh.V = suite.Scalar().Add(diffieSecret, share.V)
-	return &sh
-}
-
-func weirdDHDecrypt(suite abstract.Suite, share *PriShare, local abstract.Scalar, remote abstract.Point) *PriShare {
-	diffieBase := suite.Point().Mul(remote, local)
-	diffieSecret := fromPointToScalar(suite, diffieBase)
-	sh := *share
-	sh.V = suite.Scalar().Sub(share.V, diffieSecret)
-	return &sh
-}
-
-func fromPointToScalar(suite abstract.Suite, p abstract.Point) abstract.Scalar {
-	b, err := p.MarshalBinary()
-	if err != nil {
-		panic(err)
-	}
-	cipher := suite.Cipher(b)
-	return suite.Scalar().Pick(cipher)
-}
-
 func findIndex(verifiers []abstract.Point, public abstract.Point) (int, bool) {
 	for i := range verifiers {
 		if verifiers[i].Equal(public) {
@@ -479,8 +447,6 @@ func findIndex(verifiers []abstract.Point, public abstract.Point) (int, bool) {
 	}
 	return 0, false
 }
-
-var randSize int64 = 32
 
 func sessionID(dealer abstract.Point, verifiers, commitments []abstract.Point, t int) ([]byte, error) {
 	h := HashFunc()

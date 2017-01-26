@@ -16,6 +16,8 @@ var suite = ed25519.NewAES128SHA256Ed25519(false)
 
 var nbVerifiers = 7
 
+var vssThreshold int
+
 var verifiersPub []abstract.Point
 var verifiersSec []abstract.Scalar
 
@@ -43,20 +45,19 @@ func init() {
 	verifiersSec, verifiersPub = genCommits(nbVerifiers)
 	dealerSec, dealerPub = genPair()
 	secret, _ = genPair()
+	vssThreshold = minimumT(verifiersPub)
 }
 
 func TestVSSDealerT(t *testing.T) {
-	dealer, err := NewDealer(suite, dealerSec, secret, verifiersPub, reader)
-	assert.NoError(t, err)
-	assert.Equal(t, defaultT(verifiersPub), dealer.t)
-
-	goodT := defaultT(verifiersPub) - 1
-	_, err = NewDealerWithT(suite, dealerSec, secret, verifiersPub, reader, goodT)
+	goodT := minimumT(verifiersPub)
+	_, err := NewDealer(suite, dealerSec, secret, verifiersPub, reader, goodT)
 	assert.NoError(t, err)
 
-	badT := defaultT(verifiersPub) + 1
-	_, err = NewDealerWithT(suite, dealerSec, secret, verifiersPub, reader, badT)
-	assert.Error(t, err)
+	for badT := range []int{goodT - 1, len(verifiersPub) + 1, -4} {
+		_, err = NewDealer(suite, dealerSec, secret, verifiersPub, reader, badT)
+		assert.Error(t, err)
+	}
+
 }
 
 func TestVSSVerifier(t *testing.T) {
@@ -70,7 +71,7 @@ func TestVSSVerifier(t *testing.T) {
 }
 
 func TestVSSSessionID(t *testing.T) {
-	dealer, _ := NewDealer(suite, dealerSec, secret, verifiersPub, reader)
+	dealer, _ := NewDealer(suite, dealerSec, secret, verifiersPub, reader, vssThreshold)
 	sid, err := sessionID(dealerPub, verifiersPub, dealer.commitments, dealer.t)
 	assert.NoError(t, err)
 
