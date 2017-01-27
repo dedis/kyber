@@ -40,10 +40,20 @@ type Dealer struct {
 	*aggregator
 }
 
+// Deal is sent by the Dealer to each participants. It contains the encrypted
+// share for a specific Verifier.
+type Deal struct {
+	SessionID   []byte
+	SecShare    *PriShare
+	RndShare    *PriShare
+	T           uint32
+	Commitments []abstract.Point
+}
+
 // NewDealer returns a Dealer capable of leading the secret sharing scheme. It
 // does not have to be trusted by other Verifiers. The security parameter t is
 // the number of shares required to reconstruct the secret. It must be between
-// (len(verifiers) + 1)/2 <= t <= len(verifiers)
+// (len(verifiers) + 1)/2 <= t <= len(verifiers).
 func NewDealer(suite abstract.Suite, longterm, secret abstract.Scalar, verifiers []abstract.Point, r cipher.Stream, t int) (*Dealer, error) {
 	d := &Dealer{
 		suite:     suite,
@@ -97,9 +107,6 @@ func NewDealer(suite abstract.Suite, longterm, secret abstract.Scalar, verifiers
 }
 
 // Deals returns a list of deal for each verifiers.
-// The creation of the deals are dependent of the parameter t. A safe value is
-// taken by default. It can be changed by calling `d.SetT()` but in that case,
-// it MUST be changed*before* the call to `d.Deals`.
 func (d *Dealer) Deals() []*Deal {
 	var out = make([]*Deal, len(d.deals))
 	copy(out, d.deals)
@@ -128,16 +135,6 @@ func (d *Dealer) ReceiveComplaint(c *Complaint) (*DealerResponse, error) {
 // and if true, `d.DealCertified`.
 func (d *Dealer) ReceiveApproval(a *Approval) error {
 	return d.verifyApproval(a)
-}
-
-// Deal is sent by the Dealer to each participants. It contains the encrypted
-// share for a specific Verifier.
-type Deal struct {
-	SessionID   []byte
-	SecShare    *PriShare
-	RndShare    *PriShare
-	T           uint32
-	Commitments []abstract.Point
 }
 
 // Verifier receives a Deal from a Dealer, can reply by a Complaint, and can
@@ -221,7 +218,7 @@ func (v *Verifier) ReceiveDeal(d *Deal) (*Approval, *Complaint, error) {
 
 	sig, err := sign.Schnorr(v.suite, v.long, sid)
 	if err := v.verifyDeal(d, true); err != nil {
-		if err == ErrDealAlreadyReceived {
+		if err == errDealAlreadyReceived {
 			return nil, nil, err
 		}
 		complaint := &Complaint{
@@ -308,11 +305,11 @@ type aggregator struct {
 	verifiers []abstract.Point
 	commits   []abstract.Point
 
-	complaints   map[string]*Complaint
-	approvals    map[string]*Approval
-	sid          []byte
-	dealReceived bool
-	t            int
+	complaints map[string]*Complaint
+	approvals  map[string]*Approval
+	sid        []byte
+	deal       *Deal
+	t          int
 }
 
 func newAggregator(suite abstract.Suite, verifiers, commitments []abstract.Point, t int, sid []byte) *aggregator {
@@ -329,16 +326,21 @@ func newAggregator(suite abstract.Suite, verifiers, commitments []abstract.Point
 
 }
 
-var ErrDealAlreadyReceived = errors.New("deal: already received a deal")
+var errDealAlreadyReceived = errors.New("deal: already received a deal")
 
 func (a *aggregator) verifyDeal(d *Deal, inclusion bool) error {
-	if a.dealReceived && inclusion {
-		return ErrDealAlreadyReceived
+	if a.deal != nil && inclusion {
+		return errDealAlreadyReceived
+
 	}
-	if !a.dealReceived {
+	if a.deal == nil {
 		a.commits = d.Commitments
 		a.sid = d.SessionID
-		a.dealReceived = true
+		a.deal = d
+	}
+
+	if !bytes.Equal(a.sid, d.SessionID) {
+		return errors.New("deal: sessionID is different from locally computed")
 	}
 
 	fi := d.SecShare
@@ -401,7 +403,7 @@ func (a *aggregator) verifyApproval(ap *Approval) error {
 }
 
 func (a *aggregator) EnoughApprovals() bool {
-	if !a.dealReceived {
+	if a.deal == nil {
 		return false
 	}
 	return len(a.approvals) >= a.t

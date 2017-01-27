@@ -41,6 +41,11 @@ func genCommits(n int) ([]abstract.Scalar, []abstract.Point) {
 	return secrets, publics
 }
 
+func genDealer() *Dealer {
+	d, _ := NewDealer(suite, dealerSec, secret, verifiersPub, reader, vssThreshold)
+	return d
+}
+
 func init() {
 	verifiersSec, verifiersPub = genCommits(nbVerifiers)
 	dealerSec, dealerPub = genPair()
@@ -68,6 +73,45 @@ func TestVSSVerifier(t *testing.T) {
 	wrongKey := suite.Scalar().Pick(reader)
 	_, err = NewVerifier(suite, wrongKey, dealerPub, verifiersPub)
 	assert.Error(t, err)
+}
+
+func TestVSSAggregatorVerifyDeal(t *testing.T) {
+	dealer := genDealer()
+	aggr := newAggregator(suite, verifiersPub, dealer.commitments, dealer.t, dealer.sessionID)
+	deals := dealer.Deals()
+
+	// OK
+	deal := deals[0]
+	err := aggr.verifyDeal(deal, true)
+	assert.NoError(t, err)
+	assert.NotNil(t, aggr.deal)
+
+	// already received deal
+	err = aggr.verifyDeal(deal, true)
+	assert.Error(t, err)
+
+	// wrong SessionID
+	goodSid := deal.SessionID
+	deal.SessionID = make([]byte, 32)
+	assert.Error(t, aggr.verifyDeal(deal, false))
+	deal.SessionID = goodSid
+
+	// index different in one share
+	goodI := deal.RndShare.I
+	deal.RndShare.I = goodI + 1
+	assert.Error(t, aggr.verifyDeal(deal, false))
+	deal.RndShare.I = goodI
+
+	// index not in bounds
+	deal.SecShare.I = -1
+	assert.Error(t, aggr.verifyDeal(deal, false))
+	deal.SecShare.I = len(verifiersPub)
+	assert.Error(t, aggr.verifyDeal(deal, false))
+
+	// shares invalid in respect to the commitments
+	wrongSec, _ := genPair()
+	deal.SecShare.V = wrongSec
+	assert.Error(t, aggr.verifyDeal(deal, false))
 }
 
 func TestVSSSessionID(t *testing.T) {
