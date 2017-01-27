@@ -4,10 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/dedis/onet.v1"
-	"gopkg.in/dedis/onet.v1/log"
-	"gopkg.in/dedis/onet.v1/network"
-	"gopkg.in/dedis/onet.v1/simul/manage"
+	"github.com/dedis/onet"
+	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/network"
 )
 
 // Tests a 2-node system
@@ -21,7 +20,7 @@ func TestCount(t *testing.T) {
 	if err != nil {
 		t.Fatal("Couldn't start protocol:", err)
 	}
-	protocol := pi.(*manage.ProtocolCount)
+	protocol := pi.(*ProtocolCount)
 	timeout := network.WaitRetry * time.Duration(network.MaxRetryConnect*nbrNodes*2) * time.Millisecond
 	select {
 	case children := <-protocol.Count:
