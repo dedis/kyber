@@ -8,6 +8,7 @@ import (
 	"github.com/dedis/crypto/ed25519"
 	"github.com/dedis/crypto/random"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var reader = random.Stream
@@ -46,6 +47,16 @@ func genDealer() *Dealer {
 	return d
 }
 
+func genAll() (*Dealer, []*Verifier) {
+	dealer := genDealer()
+	var verifiers = make([]*Verifier, nbVerifiers)
+	for i := 0; i < nbVerifiers; i++ {
+		v, _ := NewVerifier(suite, verifiersSec[i], dealerPub, verifiersPub)
+		verifiers[i] = v
+	}
+	return dealer, verifiers
+}
+
 func init() {
 	verifiersSec, verifiersPub = genCommits(nbVerifiers)
 	dealerSec, dealerPub = genPair()
@@ -53,7 +64,7 @@ func init() {
 	vssThreshold = minimumT(verifiersPub)
 }
 
-func TestVSSDealerT(t *testing.T) {
+func TestVSSDealerNew(t *testing.T) {
 	goodT := minimumT(verifiersPub)
 	_, err := NewDealer(suite, dealerSec, secret, verifiersPub, reader, goodT)
 	assert.NoError(t, err)
@@ -62,10 +73,9 @@ func TestVSSDealerT(t *testing.T) {
 		_, err = NewDealer(suite, dealerSec, secret, verifiersPub, reader, badT)
 		assert.Error(t, err)
 	}
-
 }
 
-func TestVSSVerifier(t *testing.T) {
+func TestVSSVerifierNew(t *testing.T) {
 	randIdx := rand.Int() % len(verifiersPub)
 	_, err := NewVerifier(suite, verifiersSec[randIdx], dealerPub, verifiersPub)
 	assert.NoError(t, err)
@@ -73,6 +83,60 @@ func TestVSSVerifier(t *testing.T) {
 	wrongKey := suite.Scalar().Pick(reader)
 	_, err = NewVerifier(suite, wrongKey, dealerPub, verifiersPub)
 	assert.Error(t, err)
+}
+
+func TestVSSVerifierReceiveDeal(t *testing.T) {
+	dealer, verifiers := genAll()
+	v := verifiers[0]
+	d := dealer.deals[0]
+
+	ap, c, err := v.ReceiveDeal(d)
+	require.NotNil(t, ap)
+	assert.Nil(t, c)
+	assert.Nil(t, err)
+
+}
+
+func TestVSSAggregatorVerifyComplaint(t *testing.T) {
+	dealer, verifiers := genAll()
+	v := verifiers[0]
+	deal := dealer.deals[0]
+	goodSec := deal.SecShare.V
+	wrongSec, _ := genPair()
+	deal.SecShare.V = wrongSec
+
+	_, c, err := v.ReceiveDeal(deal)
+	aggr := v.aggregator
+	assert.Error(t, err)
+	assert.NotNil(t, c)
+	assert.NotNil(t, v.aggregator)
+	_, ok := aggr.complaints[v.pub.String()]
+	assert.True(t, ok)
+
+	// give a valid deal
+	deal.SecShare.V = goodSec
+	c.Deal = deal
+	assert.Error(t, aggr.verifyComplaint(c))
+
+	// put complaint twice
+	deal.SecShare.V = wrongSec
+	c.Deal = deal
+	assert.Error(t, aggr.verifyComplaint(c))
+	delete(aggr.complaints, v.pub.String())
+
+	// wrong index
+	rndIdx := 1 + (rand.Int() % (nbVerifiers - 1))
+	c.Public = verifiersPub[rndIdx]
+	assert.Error(t, aggr.verifyComplaint(c))
+	c.Public = verifiersPub[0]
+
+	// wrong signature
+	var goodSig = make([]byte, len(c.Signature))
+	copy(goodSig, c.Signature)
+	c.Signature[rand.Int()%len(c.Signature)] = byte(rand.Int())
+	assert.Error(t, aggr.verifyComplaint(c))
+	c.Signature = goodSig
+
 }
 
 func TestVSSAggregatorVerifyDeal(t *testing.T) {

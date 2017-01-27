@@ -118,7 +118,7 @@ func (d *Dealer) Deals() []*Deal {
 // participants. If it's an invalid complaint, it returns an error about the
 // complaints. The verifiers will also ignore an invalid Complaint.
 func (d *Dealer) ReceiveComplaint(c *Complaint) (*DealerResponse, error) {
-	if err := d.verifyComplaint(c, true); err != nil {
+	if err := d.verifyComplaint(c); err != nil {
 		return nil, err
 	}
 	// index is guaranteed to be found because verifyComplaint does the check
@@ -226,6 +226,8 @@ func (v *Verifier) ReceiveDeal(d *Deal) (*Approval, *Complaint, error) {
 			Deal:      d,
 			Signature: sig,
 		}
+		// add it to the list of complaints directly, no need to verify
+		v.complaints[v.pub.String()] = complaint
 		return nil, complaint, err
 	}
 	approval := &Approval{
@@ -242,7 +244,7 @@ func (v *Verifier) ReceiveDeal(d *Deal) (*Approval, *Complaint, error) {
 // be treated.  To know whether the deal is good, call first v.EnoughApproval(),
 // and if true, call v.IsDealGood().
 func (v *Verifier) ReceiveComplaint(c *Complaint) error {
-	return v.verifyComplaint(c, true)
+	return v.verifyComplaint(c)
 }
 
 // ReceiveDealerResponse takes a DealerResponse and returns an error if
@@ -365,15 +367,15 @@ func (a *aggregator) verifyDeal(d *Deal, inclusion bool) error {
 	return nil
 }
 
-func (a *aggregator) verifyComplaint(c *Complaint, incComplaint bool) error {
+func (a *aggregator) verifyComplaint(c *Complaint) error {
 	if err := a.verifyDeal(c.Deal, false); err == nil {
 		return errors.New("complaint: invalid because contains a valid deal")
 	}
-	if _, ok := a.complaints[c.Public.String()]; incComplaint && ok {
+	if _, ok := a.complaints[c.Public.String()]; ok {
 		return errors.New("complaint: already stored one from same origin")
 	}
 
-	idx, ok := findIndex(a.verifiers, c.Public)
+	_, ok := findIndex(a.verifiers, c.Public)
 	if !ok {
 		return errors.New("complaint: from unknown participant")
 	}
@@ -382,9 +384,6 @@ func (a *aggregator) verifyComplaint(c *Complaint, incComplaint bool) error {
 		return err
 	}
 
-	if idx >= len(a.verifiers) {
-		return errors.New("complaint: out-of-bound index")
-	}
 	a.complaints[c.Public.String()] = c
 	return nil
 }
