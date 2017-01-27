@@ -113,7 +113,7 @@ func (p *ProtocolCount) Dispatch() error {
 			if p.Parent() != nil {
 				err := p.SendTo(p.Parent(), &NodeIsUp{})
 				if err != nil {
-					log.Error(p.Info(), "couldn't send to parent",
+					log.Lvl2(p.Info(), "couldn't send to parent",
 						p.Parent().Name(), err)
 				}
 			} else {
@@ -138,7 +138,7 @@ func (p *ProtocolCount) FuncPC() {
 	if !p.IsRoot() {
 		err := p.SendTo(p.Parent(), &NodeIsUp{})
 		if err != nil {
-			log.Error(p.Info(), "couldn't send to parent",
+			log.Lvl2(p.Info(), "couldn't send to parent",
 				p.Parent().Name(), err)
 		}
 	}
@@ -148,7 +148,7 @@ func (p *ProtocolCount) FuncPC() {
 				log.Lvl3(p.Info(), "sending to", c.ServerIdentity.Address, c.ID, p.timeout)
 				err := p.SendTo(c, &PrepareCount{Timeout: p.timeout})
 				if err != nil {
-					log.Error(p.Info(), "couldn't send to child",
+					log.Lvl2(p.Info(), "couldn't send to child",
 						c.Name())
 				}
 			}(child)
@@ -168,7 +168,7 @@ func (p *ProtocolCount) FuncC(cc []CountMsg) {
 	if !p.IsRoot() {
 		log.Lvl3(p.Info(), "Sends to", p.Parent().ID, p.Parent().ServerIdentity.Address)
 		if err := p.SendTo(p.Parent(), &Count{count}); err != nil {
-			log.Error(p.Name(), "coouldn't send to parent",
+			log.Lvl2(p.Name(), "coouldn't send to parent",
 				p.Parent().Name())
 		}
 	} else {

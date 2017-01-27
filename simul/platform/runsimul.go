@@ -12,7 +12,7 @@ import (
 
 // Simulate starts the server and will setup the protocol.
 func Simulate(serverAddress, simul, monitorAddress string) error {
-	log.Lvl3("Flags are:", serverAddress, simul, log.DebugVisible, monitorAddress)
+	log.Lvl3("Flags are:", serverAddress, simul, log.DebugVisible(), monitorAddress)
 
 	scs, err := onet.LoadSimulationConfig(".", serverAddress)
 	if err != nil {
