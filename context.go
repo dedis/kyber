@@ -13,8 +13,6 @@ import (
 
 	"os"
 
-	"flag"
-
 	"sync"
 
 	"github.com/dedis/onet/log"
@@ -51,9 +49,7 @@ func newContext(c *Server, o *Overlay, servID ServiceID, manager *serviceManager
 var contextDataPath = ""
 
 func init() {
-	if flag.Lookup("test.v") == nil {
-		initContextDataPath()
-	}
+	initContextDataPath()
 }
 
 // NewTreeNodeInstance creates a TreeNodeInstance that is bound to a
@@ -207,7 +203,6 @@ func (c *Context) absFilename(id string) string {
 
 // Returns the path to the file for storage/retrieval of the service-state.
 func initContextDataPath() {
-	// Set contextDataMemory to true if we're running in a test
 	p := os.Getenv(ENVServiceData)
 	if p == "" {
 		u, err := user.Current()

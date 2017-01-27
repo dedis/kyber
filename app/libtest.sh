@@ -19,7 +19,6 @@ RUNOUT=/tmp/run.out
 
 startTest(){
     set +m
-	buildDir
 	if [ "$CLEANBUILD" ]; then
 		rm -f conode $APP
 	fi
@@ -290,8 +289,11 @@ case $i in
     shift # past argument=value
     ;;
     -nt|--notemp)
-	BUILDDIR=build
+	BUILDDIR=$(pwd)/build
     shift # past argument=value
     ;;
 esac
 done
+buildDir
+
+export CONODE_SERVICE_PATH=$BUILDDIR/service_storage

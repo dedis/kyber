@@ -52,6 +52,7 @@ func NewLocalTest() *LocalTest {
 		log.Lvl4("Removing config-dir")
 		os.RemoveAll("config")
 	}
+	setContextDataPath("")
 	return &LocalTest{
 		Servers:  make(map[network.ServerIdentityID]*Server),
 		Overlays: make(map[network.ServerIdentityID]*Overlay),
@@ -69,6 +70,7 @@ func NewLocalTest() *LocalTest {
 func NewTCPTest() *LocalTest {
 	t := NewLocalTest()
 	t.mode = TCP
+	setContextDataPath("")
 	return t
 }
 
