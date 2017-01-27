@@ -51,6 +51,7 @@ func newContext(c *Server, o *Overlay, servID ServiceID, manager *serviceManager
 var contextDataPath = ""
 
 func init() {
+	log.Print("hi", flag.Lookup("test.v"))
 	if flag.Lookup("test.v") == nil {
 		initContextDataPath()
 	}
@@ -207,8 +208,8 @@ func (c *Context) absFilename(id string) string {
 
 // Returns the path to the file for storage/retrieval of the service-state.
 func initContextDataPath() {
-	// Set contextDataMemory to true if we're running in a test
 	p := os.Getenv(ENVServiceData)
+	log.Print("path is", p)
 	if p == "" {
 		u, err := user.Current()
 		if err != nil {
@@ -234,6 +235,7 @@ var cdpMutex sync.Mutex
 func setContextDataPath(path string) {
 	cdpMutex.Lock()
 	defer cdpMutex.Unlock()
+	log.Print(log.Stack())
 	contextDataPath = path
 }
 
