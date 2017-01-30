@@ -95,6 +95,14 @@ func TestVSSVerifierNew(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestVSSAggregatorEnoughApprovals(t *testing.T) {
+
+}
+
+func TestVSSAggregatorDealCertified(t *testing.T) {
+
+}
+
 func TestVSSVerifierReceiveDeal(t *testing.T) {
 	dealer, verifiers := genAll()
 	v := verifiers[0]
@@ -132,12 +140,61 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 
 	// valid complaint
 	v.aggregator.deal = nil
+	delete(v.aggregator.approvals, v.pub.String())
 	d.RndShare.V = suite.Scalar().SetBytes(randomBytes(32))
 	ap, c, err = v.ReceiveDeal(d)
 	assert.Nil(t, ap)
 	assert.NotNil(t, c)
 	assert.Error(t, err)
+}
 
+func TestVSSAggregatorDealerResponse(t *testing.T) {
+	dealer, verifiers := genAll()
+	v := verifiers[0]
+	deals := dealer.Deals()
+	d := deals[0]
+
+	wrongV := suite.Scalar().Pick(random.Stream)
+	goodV := d.SecShare.V
+	d.SecShare.V = wrongV
+	ap, c, err := v.ReceiveDeal(d)
+	assert.Nil(t, ap)
+	assert.NotNil(t, c)
+	assert.Error(t, err)
+
+	c.Deal = &Deal{
+		SessionID:   deals[0].SessionID,
+		SecShare:    deals[0].SecShare,
+		RndShare:    deals[0].RndShare,
+		T:           deals[0].T,
+		Commitments: deals[0].Commitments,
+	}
+	c.Deal.SecShare.V = wrongV
+	// valid complaint
+	dr, err := dealer.ReceiveComplaint(c)
+	d.SecShare.V = goodV // in tests, pointers point to the same underlying share..
+	assert.Nil(t, err)
+	assert.Equal(t, dr.Deal, d)
+	assert.Nil(t, v.ReceiveDealerResponse(dr))
+
+	// invalid  complaint
+	c.SessionID = randomBytes(len(c.SessionID))
+	badDr, err := dealer.ReceiveComplaint(c)
+	assert.Nil(t, badDr)
+	assert.Error(t, err)
+	c.SessionID = dealer.sid
+
+	// no complaints for this DR before
+	delete(v.aggregator.complaints, v.pub.String())
+	assert.Error(t, v.ReceiveDealerResponse(dr))
+	v.aggregator.complaints[v.pub.String()] = c
+
+	// invalid deal revealed
+	goodV = dr.Deal.SecShare.V
+	dr.Deal.SecShare.V = wrongV
+	assert.Error(t, v.ReceiveDealerResponse(dr))
+	assert.True(t, v.aggregator.badDealer)
+	dr.Deal.SecShare.V = goodV
 }
 
 func TestVSSAggregatorVerifyComplaint(t *testing.T) {
@@ -168,6 +225,8 @@ func TestVSSAggregatorVerifyComplaint(t *testing.T) {
 	c.Deal = deal
 	assert.Error(t, aggr.verifyComplaint(c))
 	delete(aggr.complaints, v.pub.String())
+
+	// approval with same id
 
 	// wrong index
 	rndIdx := 1 + (rand.Int() % (nbVerifiers - 1))
@@ -234,6 +293,77 @@ func TestVSSAggregatorVerifyDeal(t *testing.T) {
 	wrongSec, _ := genPair()
 	deal.SecShare.V = wrongSec
 	assert.Error(t, aggr.verifyDeal(deal, false))
+}
+
+func TestVSSAggregatorVerifyApproval(t *testing.T) {
+	dealer, verifiers := genAll()
+	deals := dealer.Deals()
+	v := verifiers[0]
+
+	// ok
+	ap, c, err := v.ReceiveDeal(deals[0])
+	assert.Nil(t, c)
+	assert.Nil(t, err)
+	assert.NotNil(t, ap)
+
+	aggr := v.aggregator
+	// nil deal
+	aggr.deal = nil
+	assert.Error(t, aggr.verifyApproval(ap))
+	aggr.deal = deals[0]
+	// twice approval
+	assert.Error(t, aggr.verifyApproval(ap))
+	delete(aggr.approvals, v.pub.String())
+	// wrong SID
+	ap.SessionID = randomBytes(len(ap.SessionID))
+	assert.Error(t, aggr.verifyApproval(ap))
+	ap.SessionID = dealer.sid
+	// wrong signature
+	goodSig := ap.Signature
+	wrongSig := randomBytes(len(goodSig))
+	ap.Signature = wrongSig
+	assert.Error(t, aggr.verifyApproval(ap))
+	ap.Signature = goodSig
+}
+
+func TestVSSAggregatorAddComplaint(t *testing.T) {
+	dealer := genDealer()
+	aggr := dealer.aggregator
+
+	c := &Complaint{
+		Public: verifiersPub[0],
+	}
+	// ok
+	assert.Nil(t, aggr.addComplaint(c))
+	assert.Equal(t, aggr.complaints[c.Public.String()], c)
+
+	// complaint already there
+	assert.Error(t, aggr.addComplaint(c))
+	delete(aggr.complaints, c.Public.String())
+
+	// approval same origin
+	aggr.approvals[verifiersPub[0].String()] = &Approval{}
+	assert.Error(t, aggr.addComplaint(c))
+}
+
+func TestVSSAggregatorAddApproval(t *testing.T) {
+	dealer := genDealer()
+	aggr := dealer.aggregator
+
+	ap := &Approval{
+		Public: verifiersPub[0],
+	}
+	// ok
+	assert.Nil(t, aggr.addApproval(ap))
+	assert.Equal(t, aggr.approvals[ap.Public.String()], ap)
+
+	// approval already existing
+	assert.Error(t, aggr.addApproval(ap))
+	delete(aggr.approvals, ap.Public.String())
+
+	// complaint same origin
+	aggr.complaints[ap.Public.String()] = &Complaint{}
+	assert.Error(t, aggr.addApproval(ap))
 }
 
 func TestVSSSessionID(t *testing.T) {

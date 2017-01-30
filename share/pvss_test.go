@@ -15,7 +15,7 @@ func TestPVSS(t *testing.T) {
 	G := suite.Point().Base()
 	H, _ := suite.Point().Pick(nil, suite.Cipher([]byte("H")))
 
-	n := 20
+	n := 10
 	threshold := 2*n/3 + 1
 	x := make([]abstract.Scalar, n) // trustee private keys
 	X := make([]abstract.Point, n)  // trustee public keys
@@ -70,7 +70,7 @@ func TestPVSSDelete(t *testing.T) {
 	G := suite.Point().Base()
 	H, _ := suite.Point().Pick(nil, suite.Cipher([]byte("H")))
 
-	n := 20
+	n := 10
 	threshold := 2*n/3 + 1
 	x := make([]abstract.Scalar, n) // trustee private keys
 	X := make([]abstract.Point, n)  // trustee public keys

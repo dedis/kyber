@@ -230,8 +230,9 @@ func (v *Verifier) ReceiveDeal(d *Deal) (*Approval, *Complaint, error) {
 			Deal:      d,
 			Signature: sig,
 		}
-		// add it to the list of complaints directly, no need to verify
-		v.complaints[v.pub.String()] = complaint
+		if err2 := v.aggregator.addComplaint(complaint); err2 != nil {
+			return nil, nil, err2
+		}
 		return nil, complaint, err
 	}
 	approval := &Approval{
@@ -239,7 +240,14 @@ func (v *Verifier) ReceiveDeal(d *Deal) (*Approval, *Complaint, error) {
 		SessionID: v.sid,
 		Signature: sig,
 	}
-	return approval, nil, nil
+	return approval, nil, v.aggregator.addApproval(approval)
+}
+
+func (v *Verifier) Share() *PriShare {
+	if !v.EnoughApprovals() || !v.DealCertified() {
+		return nil
+	}
+	return v.deal.SecShare
 }
 
 // ReceiveComplaints takes a Complaint and stores it if the Complaint is valid.
@@ -259,27 +267,11 @@ func (v *Verifier) ReceiveComplaint(c *Complaint) error {
 // NOTE: it does *not* verify the complaint associated with since it is supposed
 // to already have received it.
 func (v *Verifier) ReceiveDealerResponse(dr *DealerResponse) error {
-	pub := dr.Complaint.Public
-	if _, ok := v.aggregator.complaints[pub.String()]; !ok {
-		return errors.New("verifier: no complaints received for this response")
-	}
-	// XXX should we verify the corectness of the complaint and make sure we
-	// actually received it ?
-
-	if err := v.verifyDeal(dr.Deal, false); err != nil {
-		// if one response is bad, flag the dealer as malicious
-		v.dealerBad = true
-		return err
-	}
-	return nil
+	return v.aggregator.verifyDealerResponse(dr)
 }
 
 func (v *Verifier) ReceiveApproval(ap *Approval) error {
 	return v.verifyApproval(ap)
-}
-
-func (v *Verifier) DealCertified() bool {
-	return v.aggregator.DealCertified() && !v.dealerBad
 }
 
 // Complaint is a message that must be broadcasted to every verifiers when
@@ -297,8 +289,8 @@ type Complaint struct {
 // a Complaint. It contains the original Complaint as well as the shares
 // distributed to the complainer.
 type DealerResponse struct {
-	*Complaint
-	*Deal
+	Complaint *Complaint
+	Deal      *Deal
 }
 
 // Approval is a message that is sent if a verifier approves the Deal he
@@ -321,6 +313,7 @@ type aggregator struct {
 	sid        []byte
 	deal       *Deal
 	t          int
+	badDealer  bool
 }
 
 func newAggregator(suite abstract.Suite, verifiers, commitments []abstract.Point, t int, sid []byte) *aggregator {
@@ -400,11 +393,13 @@ func (a *aggregator) verifyComplaint(c *Complaint) error {
 		return err
 	}
 
-	a.complaints[c.Public.String()] = c
-	return nil
+	return a.addComplaint(c)
 }
 
 func (a *aggregator) verifyApproval(ap *Approval) error {
+	if a.deal == nil {
+		return errors.New("approval: deal has not been received")
+	}
 	if _, ok := a.approvals[ap.Public.String()]; ok {
 		return errors.New("approval: already stored one from same origin")
 	}
@@ -417,6 +412,43 @@ func (a *aggregator) verifyApproval(ap *Approval) error {
 		return err
 	}
 
+	return a.addApproval(ap)
+}
+
+func (a *aggregator) verifyDealerResponse(dr *DealerResponse) error {
+	pub := dr.Complaint.Public
+	if _, ok := a.complaints[pub.String()]; !ok {
+		return errors.New("verifier: no complaints received for this response")
+	}
+	// XXX should we verify the corectness of the complaint and make sure we
+	// actually received it ?
+
+	if err := a.verifyDeal(dr.Deal, false); err != nil {
+		// if one response is bad, flag the dealer as malicious
+		a.badDealer = true
+		return err
+	}
+	// "deletes" the complaint since the dealer is honest
+	delete(a.complaints, pub.String())
+	return nil
+}
+
+func (a *aggregator) addComplaint(c *Complaint) error {
+	if _, ok := a.complaints[c.Public.String()]; ok {
+		return errors.New("complaint: already existing complaint from same origin")
+	} else if _, ok := a.approvals[c.Public.String()]; ok {
+		return errors.New("complaint: approval existing from same origin")
+	}
+	a.complaints[c.Public.String()] = c
+	return nil
+}
+
+func (a *aggregator) addApproval(ap *Approval) error {
+	if _, ok := a.complaints[ap.Public.String()]; ok {
+		return errors.New("approval: complaint existing from same origin")
+	} else if _, ok := a.approvals[ap.Public.String()]; ok {
+		return errors.New("approval: approval already existing from same origin")
+	}
 	a.approvals[ap.Public.String()] = ap
 	return nil
 }
@@ -429,10 +461,7 @@ func (a *aggregator) EnoughApprovals() bool {
 }
 
 func (a *aggregator) DealCertified() bool {
-	if len(a.complaints) >= a.t-1 {
-		return false
-	}
-	return true
+	return !(len(a.complaints) >= a.t-1 || a.badDealer)
 }
 
 func minimumT(verifiers []abstract.Point) int {
