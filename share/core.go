@@ -13,6 +13,10 @@ import (
 // This file provides the core functionality for secret sharing including
 // Shamir's scheme and public commitment polynomials.
 
+// Some error definitions
+var errorGroups = errors.New("non-matching groups")
+var errorCoeffs = errors.New("different number of coefficients")
+
 // PriShare represents a private share.
 type PriShare struct {
 	I int             // Index of the private share
@@ -74,11 +78,11 @@ func (p *PriPoly) Shares(n int) []*PriShare {
 func (p *PriPoly) Add(q *PriPoly) (*PriPoly, error) {
 
 	if p.g != q.g {
-		return nil, errors.New("non-matching groups")
+		return nil, errorGroups
 	}
 
 	if p.Threshold() != q.Threshold() {
-		return nil, errors.New("non-matching number of coefficients")
+		return nil, errorCoeffs
 	}
 
 	t := p.Threshold()
@@ -120,11 +124,17 @@ func (p *PriPoly) Commit(b abstract.Point) *PubPoly {
 // RecoverSecret reconstructs the shared secret p(0) using Lagrange interpolation.
 func RecoverSecret(g abstract.Group, shares []*PriShare, t int, n int) (abstract.Scalar, error) {
 
+	isBad := func(s *PriShare) bool {
+		return s == nil || s.V == nil || s.I < 0 || n <= s.I
+	}
+
 	c := 0
+	x := make(map[int]abstract.Scalar)
 	for _, s := range shares {
-		if s == nil || n <= s.I {
+		if isBad(s) {
 			continue
 		}
+		x[s.I] = g.Scalar().SetInt64(1 + int64(s.I))
 		c++
 	}
 
@@ -138,19 +148,17 @@ func RecoverSecret(g abstract.Group, shares []*PriShare, t int, n int) (abstract
 	tmp := g.Scalar()        // scalar buffer
 
 	for _, si := range shares {
-		if si == nil || n <= si.I {
+		if isBad(si) {
 			continue
 		}
 		num.Set(si.V)
 		den.One()
-		xi := g.Scalar().SetInt64(1 + int64(si.I))
 		for _, sj := range shares {
-			if sj == nil || sj.I == si.I || n <= sj.I {
+			if isBad(sj) || sj.I == si.I {
 				continue
 			}
-			xj := g.Scalar().SetInt64(1 + int64(sj.I))
-			num.Mul(num, xj)
-			den.Mul(den, tmp.Sub(xj, xi))
+			num.Mul(num, x[sj.I])
+			den.Mul(den, tmp.Sub(x[sj.I], x[si.I]))
 		}
 		acc.Add(acc, num.Div(num, den))
 	}
@@ -215,16 +223,16 @@ func (p *PubPoly) Shares(n int) []*PubShare {
 // as a new polynomial. If the base points p.b and q.b are different then the
 // base point of the resulting PubPoly cannot be computed without knowing the
 // discrete logarithm between p.b and q.b. In this particular case, we are using
-// p.b as a default value which of cousre does not correspond to the correct
-// base point.
+// p.b as a default value which of course does not correspond to the correct
+// base point and thus should not be used in further computations.
 func (p *PubPoly) Add(q *PubPoly) (*PubPoly, error) {
 
 	if p.g != q.g {
-		return nil, errors.New("non-matching groups")
+		return nil, errorGroups
 	}
 
 	if p.Threshold() != q.Threshold() {
-		return nil, errors.New("non-matching number of coefficients")
+		return nil, errorCoeffs
 	}
 
 	t := p.Threshold()
@@ -262,11 +270,17 @@ func (p *PubPoly) Check(s *PriShare) bool {
 // RecoverCommit reconstructs the secret commitment p(0) using Lagrange interpolation.
 func RecoverCommit(g abstract.Group, shares []*PubShare, t int, n int) (abstract.Point, error) {
 
+	isBad := func(s *PubShare) bool {
+		return s == nil || s.V == nil || s.I < 0 || n <= s.I
+	}
+
 	c := 0
+	x := make(map[int]abstract.Scalar)
 	for _, s := range shares {
-		if s == nil || n <= s.I {
+		if isBad(s) {
 			continue
 		}
+		x[s.I] = g.Scalar().SetInt64(1 + int64(s.I))
 		c++
 	}
 
@@ -281,19 +295,17 @@ func RecoverCommit(g abstract.Group, shares []*PubShare, t int, n int) (abstract
 	Tmp := g.Point()        // point buffer
 
 	for _, si := range shares {
-		if si == nil || n <= si.I {
+		if isBad(si) {
 			continue
 		}
 		num.One()
 		den.One()
-		xi := g.Scalar().SetInt64(1 + int64(si.I))
 		for _, sj := range shares {
-			if sj == nil || sj.I == si.I || n <= sj.I {
+			if isBad(sj) || sj.I == si.I {
 				continue
 			}
-			xj := g.Scalar().SetInt64(1 + int64(sj.I))
-			num.Mul(num, xj)
-			den.Mul(den, tmp.Sub(xj, xi))
+			num.Mul(num, x[sj.I])
+			den.Mul(den, tmp.Sub(x[sj.I], x[si.I]))
 		}
 		Tmp.Mul(si.V, num.Div(num, den))
 		Acc.Add(Acc, Tmp)

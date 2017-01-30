@@ -8,7 +8,7 @@ import (
 )
 
 var group = new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
-var numShares = 20
+var numShares = 10
 var threshold = numShares/2 + 1
 
 func TestSecretRecovery(t *testing.T) {
@@ -36,11 +36,6 @@ func TestSecretRecoveryDelete(t *testing.T) {
 	shares[5] = nil
 	shares[7] = nil
 	shares[8] = nil
-	shares[10] = nil
-	shares[15] = nil
-	shares[16] = nil
-	shares[17] = nil
-	shares[19] = nil
 
 	recovered, err := RecoverSecret(group, shares, threshold, numShares)
 	if err != nil {
@@ -63,11 +58,6 @@ func TestSecretRecoveryDeleteFail(t *testing.T) {
 	shares[5] = nil
 	shares[7] = nil
 	shares[8] = nil
-	shares[10] = nil
-	shares[15] = nil
-	shares[16] = nil
-	shares[17] = nil
-	shares[19] = nil
 
 	_, err := RecoverSecret(group, shares, threshold, numShares)
 	if err == nil {
@@ -115,11 +105,6 @@ func TestPublicRecoveryDelete(t *testing.T) {
 	shares[5] = nil
 	shares[7] = nil
 	shares[8] = nil
-	shares[10] = nil
-	shares[15] = nil
-	shares[16] = nil
-	shares[17] = nil
-	shares[19] = nil
 
 	recovered, err := RecoverCommit(group, shares, threshold, numShares)
 	if err != nil {
@@ -143,11 +128,6 @@ func TestPublicRecoveryDeleteFail(t *testing.T) {
 	shares[5] = nil
 	shares[7] = nil
 	shares[8] = nil
-	shares[10] = nil
-	shares[15] = nil
-	shares[16] = nil
-	shares[17] = nil
-	shares[19] = nil
 
 	_, err := RecoverCommit(group, shares, threshold, numShares)
 	if err == nil {

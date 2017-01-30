@@ -92,7 +92,6 @@ func TestPVSSDelete(t *testing.T) {
 	// Corrupt some of the encrypted shares
 	encShares[0].S.V = suite.Point().Null()
 	encShares[5].S.V = suite.Point().Null()
-	encShares[8].S.V = suite.Point().Null()
 
 	// (2) Share decryption (Trustee)
 	polys := make([]*PubPoly, n)
@@ -116,7 +115,6 @@ func TestPVSSDelete(t *testing.T) {
 	}
 
 	// Corrupt some of the decrypted shares
-	DS[0].S.V = suite.Point().Null()
 	DS[1].S.V = suite.Point().Null()
 
 	// (3) Check decrypted shares and recover secret if possible (Dealer)
@@ -138,7 +136,7 @@ func TestPVSSDeleteFail(t *testing.T) {
 	G := suite.Point().Base()
 	H, _ := suite.Point().Pick(nil, suite.Cipher([]byte("H")))
 
-	n := 20
+	n := 10
 	threshold := 2*n/3 + 1
 	x := make([]abstract.Scalar, n) // trustee private keys
 	X := make([]abstract.Point, n)  // trustee public keys
@@ -160,7 +158,6 @@ func TestPVSSDeleteFail(t *testing.T) {
 	// Corrupt some of the encrypted shares
 	encShares[0].S.V = suite.Point().Null()
 	encShares[5].S.V = suite.Point().Null()
-	encShares[8].S.V = suite.Point().Null()
 
 	// (2) Share decryption (Trustee)
 	polys := make([]*PubPoly, n)
@@ -186,8 +183,6 @@ func TestPVSSDeleteFail(t *testing.T) {
 	// Corrupt enough decrypted shares to make the secret unrecoverable
 	DS[0].S.V = suite.Point().Null()
 	DS[1].S.V = suite.Point().Null()
-	DS[2].S.V = suite.Point().Null()
-	DS[8].S.V = suite.Point().Null()
 
 	// (3) Check decrypted shares and recover secret if possible (Dealer)
 	_, err = pvss.RecoverSecret(G, XX, ES, DS)
