@@ -1,7 +1,7 @@
 // Package poly implements polynomial commitments, openings,
 // and verifiable Shamir secret sharing.
 
-package other
+package poly
 
 import (
 	"crypto/cipher"

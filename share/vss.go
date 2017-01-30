@@ -26,7 +26,7 @@ type Dealer struct {
 	secret abstract.Scalar
 
 	verifiers []abstract.Point
-	// threshold of malicious participants; default is t = (n - 1)/ 2
+	// threshold of shares that is needed to reconstruct the secret
 	t int
 	// sessionID is a unique identifier for the whole session of the scheme
 	sessionID []byte
@@ -40,18 +40,21 @@ type Dealer struct {
 	*aggregator
 }
 
-// NewDealer returns a Dealer capable of leading the secret sharing scheme. It
-// does not have to be trusted by other Verifiers. The security parameter t is
-// chosen automatically to a safe default value. If a different t value is
-// required, it is possible to set it with `dealer.SetT()`.
-func NewDealer(suite abstract.Suite, longterm, secret abstract.Scalar, verifiers []abstract.Point, r cipher.Stream) (*Dealer, error) {
-	return NewDealerWithT(suite, longterm, secret, verifiers, r, defaultT(verifiers))
+// Deal is sent by the Dealer to each participants. It contains the encrypted
+// share for a specific Verifier.
+type Deal struct {
+	SessionID   []byte
+	SecShare    *PriShare
+	RndShare    *PriShare
+	T           uint32
+	Commitments []abstract.Point
 }
 
-// NewDealerWithT is equivalent to NewDealer but sets a custom t parameters when
-// creating the shares. If the t is invalid, it will return an error. A t is
-// invalid when is is higher than (len(verifiers)-1)/2
-func NewDealerWithT(suite abstract.Suite, longterm, secret abstract.Scalar, verifiers []abstract.Point, r cipher.Stream, t int) (*Dealer, error) {
+// NewDealer returns a Dealer capable of leading the secret sharing scheme. It
+// does not have to be trusted by other Verifiers. The security parameter t is
+// the number of shares required to reconstruct the secret. It must be between
+// (len(verifiers) + 1)/2 <= t <= len(verifiers).
+func NewDealer(suite abstract.Suite, longterm, secret abstract.Scalar, verifiers []abstract.Point, r cipher.Stream, t int) (*Dealer, error) {
 	d := &Dealer{
 		suite:     suite,
 		long:      longterm,
@@ -104,9 +107,6 @@ func NewDealerWithT(suite abstract.Suite, longterm, secret abstract.Scalar, veri
 }
 
 // Deals returns a list of deal for each verifiers.
-// The creation of the deals are dependent of the parameter t. A safe value is
-// taken by default. It can be changed by calling `d.SetT()` but in that case,
-// it MUST be changed*before* the call to `d.Deals`.
 func (d *Dealer) Deals() []*Deal {
 	var out = make([]*Deal, len(d.deals))
 	copy(out, d.deals)
@@ -118,7 +118,7 @@ func (d *Dealer) Deals() []*Deal {
 // participants. If it's an invalid complaint, it returns an error about the
 // complaints. The verifiers will also ignore an invalid Complaint.
 func (d *Dealer) ReceiveComplaint(c *Complaint) (*DealerResponse, error) {
-	if err := d.verifyComplaint(c, true); err != nil {
+	if err := d.verifyComplaint(c); err != nil {
 		return nil, err
 	}
 	// index is guaranteed to be found because verifyComplaint does the check
@@ -135,16 +135,6 @@ func (d *Dealer) ReceiveComplaint(c *Complaint) (*DealerResponse, error) {
 // and if true, `d.DealCertified`.
 func (d *Dealer) ReceiveApproval(a *Approval) error {
 	return d.verifyApproval(a)
-}
-
-// Deal is sent by the Dealer to each participants. It contains the encrypted
-// share for a specific Verifier.
-type Deal struct {
-	SessionID   []byte
-	SecShare    *PriShare
-	RndShare    *PriShare
-	T           uint32
-	Commitments []abstract.Point
 }
 
 // Verifier receives a Deal from a Dealer, can reply by a Complaint, and can
@@ -198,11 +188,17 @@ func NewVerifier(suite abstract.Suite, longterm abstract.Scalar, dealerKey abstr
 }
 
 // ReceiveDeal takes a Deal, tries to decrypt it and see if it is correct or
-// not. In case the Deal is correct, an Approval is returned and must be
+// not. In case the Deal is correct,ie. the verifier can verify the shares
+// against the public coefficients, an Approval is returned and must be
 // broadcasted to every participants including the Dealer. In case the Deal
-// is not correct, it returns a Complaint which must be broadcasted to every
-// participants including the Dealer. ReceiveDeal returns an error in any case
-// to let the user know what went wrong.
+// is not correct because of the public polynomial checking, or the indexes are
+// not the same, or the session identifier is wrong, it returns a Complaint
+// which must be broadcasted to every participants including the Dealer.
+// If the complaint is deemed invalid because of a wrong index (not the same as
+// the verifier) or because the verifier already received a Deal, it does not
+// return a complaint.
+// ReceiveDeal returns an error in any case to let the user know what was the
+// error.
 // XXX API question: return value.For the moment, the default is to let the user
 // know everything that is wrong through the error.
 func (v *Verifier) ReceiveDeal(d *Deal) (*Approval, *Complaint, error) {
@@ -210,9 +206,6 @@ func (v *Verifier) ReceiveDeal(d *Deal) (*Approval, *Complaint, error) {
 		return nil, nil, errors.New("verifier: wrong index from deal")
 	}
 
-	if !validT(int(d.T), v.verifiers) {
-		return nil, nil, errors.New("verifier: invalid t received in Deal")
-	}
 	t := int(d.T)
 
 	sid, err := sessionID(v.dealer, v.verifiers, d.Commitments, t)
@@ -228,18 +221,22 @@ func (v *Verifier) ReceiveDeal(d *Deal) (*Approval, *Complaint, error) {
 
 	sig, err := sign.Schnorr(v.suite, v.long, sid)
 	if err := v.verifyDeal(d, true); err != nil {
-		if err == ErrDealAlreadyReceived {
+		if err == errDealAlreadyReceived {
 			return nil, nil, err
 		}
 		complaint := &Complaint{
+			SessionID: sid,
 			Public:    v.pub,
 			Deal:      d,
 			Signature: sig,
 		}
+		// add it to the list of complaints directly, no need to verify
+		v.complaints[v.pub.String()] = complaint
 		return nil, complaint, err
 	}
 	approval := &Approval{
 		Public:    v.pub,
+		SessionID: v.sid,
 		Signature: sig,
 	}
 	return approval, nil, nil
@@ -252,7 +249,7 @@ func (v *Verifier) ReceiveDeal(d *Deal) (*Approval, *Complaint, error) {
 // be treated.  To know whether the deal is good, call first v.EnoughApproval(),
 // and if true, call v.IsDealGood().
 func (v *Verifier) ReceiveComplaint(c *Complaint) error {
-	return v.verifyComplaint(c, true)
+	return v.verifyComplaint(c)
 }
 
 // ReceiveDealerResponse takes a DealerResponse and returns an error if
@@ -266,6 +263,8 @@ func (v *Verifier) ReceiveDealerResponse(dr *DealerResponse) error {
 	if _, ok := v.aggregator.complaints[pub.String()]; !ok {
 		return errors.New("verifier: no complaints received for this response")
 	}
+	// XXX should we verify the corectness of the complaint and make sure we
+	// actually received it ?
 
 	if err := v.verifyDeal(dr.Deal, false); err != nil {
 		// if one response is bad, flag the dealer as malicious
@@ -286,8 +285,9 @@ func (v *Verifier) DealCertified() bool {
 // Complaint is a message that must be broadcasted to every verifiers when
 // a verifier receives an invalid Deal.
 type Complaint struct {
-	Public abstract.Point
-	Deal   *Deal
+	Public    abstract.Point
+	SessionID []byte
+	Deal      *Deal
 	// Signature over the msg
 	// H(Index || deal.MarshalBinary() || verifiers)
 	Signature []byte
@@ -304,7 +304,8 @@ type DealerResponse struct {
 // Approval is a message that is sent if a verifier approves the Deal he
 // received from the Dealer.
 type Approval struct {
-	Public abstract.Point
+	Public    abstract.Point
+	SessionID []byte
 	// Signature over the msg
 	// H(Index || commitments || verifiers)
 	Signature []byte
@@ -315,11 +316,11 @@ type aggregator struct {
 	verifiers []abstract.Point
 	commits   []abstract.Point
 
-	complaints   map[string]*Complaint
-	approvals    map[string]*Approval
-	sid          []byte
-	dealReceived bool
-	t            int
+	complaints map[string]*Complaint
+	approvals  map[string]*Approval
+	sid        []byte
+	deal       *Deal
+	t          int
 }
 
 func newAggregator(suite abstract.Suite, verifiers, commitments []abstract.Point, t int, sid []byte) *aggregator {
@@ -336,16 +337,25 @@ func newAggregator(suite abstract.Suite, verifiers, commitments []abstract.Point
 
 }
 
-var ErrDealAlreadyReceived = errors.New("deal: already received a deal")
+var errDealAlreadyReceived = errors.New("deal: already received a deal")
 
 func (a *aggregator) verifyDeal(d *Deal, inclusion bool) error {
-	if a.dealReceived && inclusion {
-		return ErrDealAlreadyReceived
+	if a.deal != nil && inclusion {
+		return errDealAlreadyReceived
+
 	}
-	if !a.dealReceived {
+	if a.deal == nil {
 		a.commits = d.Commitments
 		a.sid = d.SessionID
-		a.dealReceived = true
+		a.deal = d
+	}
+
+	if !validT(int(d.T), a.verifiers) {
+		return errors.New("verifier: invalid t received in Deal")
+	}
+
+	if !bytes.Equal(a.sid, d.SessionID) {
+		return errors.New("deal: sessionID is different from locally computed")
 	}
 
 	fi := d.SecShare
@@ -370,15 +380,18 @@ func (a *aggregator) verifyDeal(d *Deal, inclusion bool) error {
 	return nil
 }
 
-func (a *aggregator) verifyComplaint(c *Complaint, incComplaint bool) error {
+func (a *aggregator) verifyComplaint(c *Complaint) error {
 	if err := a.verifyDeal(c.Deal, false); err == nil {
 		return errors.New("complaint: invalid because contains a valid deal")
 	}
-	if _, ok := a.complaints[c.Public.String()]; incComplaint && ok {
+	if _, ok := a.complaints[c.Public.String()]; ok {
 		return errors.New("complaint: already stored one from same origin")
 	}
+	if !bytes.Equal(c.SessionID, a.sid) {
+		return errors.New("complaint: receiving inconsistent sessionID")
+	}
 
-	idx, ok := findIndex(a.verifiers, c.Public)
+	_, ok := findIndex(a.verifiers, c.Public)
 	if !ok {
 		return errors.New("complaint: from unknown participant")
 	}
@@ -387,9 +400,6 @@ func (a *aggregator) verifyComplaint(c *Complaint, incComplaint bool) error {
 		return err
 	}
 
-	if idx >= len(a.verifiers) {
-		return errors.New("complaint: out-of-bound index")
-	}
 	a.complaints[c.Public.String()] = c
 	return nil
 }
@@ -397,6 +407,10 @@ func (a *aggregator) verifyComplaint(c *Complaint, incComplaint bool) error {
 func (a *aggregator) verifyApproval(ap *Approval) error {
 	if _, ok := a.approvals[ap.Public.String()]; ok {
 		return errors.New("approval: already stored one from same origin")
+	}
+
+	if !bytes.Equal(ap.SessionID, a.sid) {
+		return errors.New("approval: does not match session id recorded")
 	}
 
 	if err := sign.VerifySchnorr(a.suite, ap.Public, a.sid, ap.Signature); err != nil {
@@ -408,25 +422,25 @@ func (a *aggregator) verifyApproval(ap *Approval) error {
 }
 
 func (a *aggregator) EnoughApprovals() bool {
-	if !a.dealReceived {
+	if a.deal == nil {
 		return false
 	}
-	return len(a.approvals) >= a.t+1
+	return len(a.approvals) >= a.t
 }
 
 func (a *aggregator) DealCertified() bool {
-	if len(a.complaints) > a.t {
+	if len(a.complaints) >= a.t-1 {
 		return false
 	}
 	return true
 }
 
-func defaultT(verifiers []abstract.Point) int {
-	return (len(verifiers) - 1) / 2
+func minimumT(verifiers []abstract.Point) int {
+	return (len(verifiers) + 1) / 2
 }
 
 func validT(t int, verifiers []abstract.Point) bool {
-	return t <= defaultT(verifiers) && t > 0 && int(uint32(t)) == t
+	return t >= minimumT(verifiers) && t <= len(verifiers) && int(uint32(t)) == t
 }
 
 // HashFunc is used to compute
@@ -446,31 +460,6 @@ func deriveH(suite abstract.Suite, verifiers []abstract.Point) abstract.Point {
 	return base
 }
 
-func weirdDHEncrypt(suite abstract.Suite, share *PriShare, local abstract.Scalar, remote abstract.Point) *PriShare {
-	diffieBase := suite.Point().Mul(remote, local)
-	diffieSecret := fromPointToScalar(suite, diffieBase)
-	sh := *share
-	sh.V = suite.Scalar().Add(diffieSecret, share.V)
-	return &sh
-}
-
-func weirdDHDecrypt(suite abstract.Suite, share *PriShare, local abstract.Scalar, remote abstract.Point) *PriShare {
-	diffieBase := suite.Point().Mul(remote, local)
-	diffieSecret := fromPointToScalar(suite, diffieBase)
-	sh := *share
-	sh.V = suite.Scalar().Sub(share.V, diffieSecret)
-	return &sh
-}
-
-func fromPointToScalar(suite abstract.Suite, p abstract.Point) abstract.Scalar {
-	b, err := p.MarshalBinary()
-	if err != nil {
-		panic(err)
-	}
-	cipher := suite.Cipher(b)
-	return suite.Scalar().Pick(cipher)
-}
-
 func findIndex(verifiers []abstract.Point, public abstract.Point) (int, bool) {
 	for i := range verifiers {
 		if verifiers[i].Equal(public) {
@@ -479,8 +468,6 @@ func findIndex(verifiers []abstract.Point, public abstract.Point) (int, bool) {
 	}
 	return 0, false
 }
-
-var randSize int64 = 32
 
 func sessionID(dealer abstract.Point, verifiers, commitments []abstract.Point, t int) ([]byte, error) {
 	h := HashFunc()
