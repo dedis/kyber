@@ -129,10 +129,12 @@ func RecoverSecret(g abstract.Group, shares []*PriShare, t int, n int) (abstract
 	}
 
 	c := 0
+	x := make(map[int]abstract.Scalar)
 	for _, s := range shares {
 		if isBad(s) {
 			continue
 		}
+		x[s.I] = g.Scalar().SetInt64(1 + int64(s.I))
 		c++
 	}
 
@@ -151,14 +153,12 @@ func RecoverSecret(g abstract.Group, shares []*PriShare, t int, n int) (abstract
 		}
 		num.Set(si.V)
 		den.One()
-		xi := g.Scalar().SetInt64(1 + int64(si.I))
 		for _, sj := range shares {
 			if isBad(sj) || sj.I == si.I {
 				continue
 			}
-			xj := g.Scalar().SetInt64(1 + int64(sj.I))
-			num.Mul(num, xj)
-			den.Mul(den, tmp.Sub(xj, xi))
+			num.Mul(num, x[sj.I])
+			den.Mul(den, tmp.Sub(x[sj.I], x[si.I]))
 		}
 		acc.Add(acc, num.Div(num, den))
 	}
@@ -275,10 +275,12 @@ func RecoverCommit(g abstract.Group, shares []*PubShare, t int, n int) (abstract
 	}
 
 	c := 0
+	x := make(map[int]abstract.Scalar)
 	for _, s := range shares {
 		if isBad(s) {
 			continue
 		}
+		x[s.I] = g.Scalar().SetInt64(1 + int64(s.I))
 		c++
 	}
 
@@ -298,14 +300,12 @@ func RecoverCommit(g abstract.Group, shares []*PubShare, t int, n int) (abstract
 		}
 		num.One()
 		den.One()
-		xi := g.Scalar().SetInt64(1 + int64(si.I))
 		for _, sj := range shares {
 			if isBad(sj) || sj.I == si.I {
 				continue
 			}
-			xj := g.Scalar().SetInt64(1 + int64(sj.I))
-			num.Mul(num, xj)
-			den.Mul(den, tmp.Sub(xj, xi))
+			num.Mul(num, x[sj.I])
+			den.Mul(den, tmp.Sub(x[sj.I], x[si.I]))
 		}
 		Tmp.Mul(si.V, num.Div(num, den))
 		Acc.Add(Acc, Tmp)
