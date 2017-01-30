@@ -131,11 +131,12 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	assert.Error(t, err)
 
 	// valid complaint
-	/*v.aggregator.deal = nil*/
-	//ap, c, err = v.ReceiveDeal(d)
-	//assert.Nil(t, ap)
-	//assert.NotNil(t, c)
-	/*assert.Error(t, err)*/
+	v.aggregator.deal = nil
+	d.RndShare.V = suite.Scalar().SetBytes(randomBytes(32))
+	ap, c, err = v.ReceiveDeal(d)
+	assert.Nil(t, ap)
+	assert.NotNil(t, c)
+	assert.Error(t, err)
 
 }
 
