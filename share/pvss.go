@@ -98,8 +98,8 @@ func (pv *PVSS) verifyEncShares(H abstract.Point, X []abstract.Point, polys []*P
 
 // DecShares first verifies the given encrypted shares against their encryption
 // consistency proofs, i.e., it checks that every share sX satisfies log_H(sH)
-// == log_X(sX), decrypts all valid shares, and creates decryption consistency
-// proofs.
+// == log_X(sX). Afterwards all valid shares are decrypted and decryption consistency
+// proofs are created.
 func (pv *PVSS) DecShares(H abstract.Point, X []abstract.Point, polys []*PubPoly, x abstract.Scalar, encShares []*PubVerShare) ([]abstract.Point, []*PubVerShare, []*PubVerShare, error) {
 
 	if len(X) != len(polys) && len(polys) != len(encShares) {
