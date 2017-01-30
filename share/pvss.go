@@ -11,6 +11,10 @@ import (
 // This package implements public verifiable secret sharing as introduced by
 // Berry Schoenmakers at CRYPTO'99.
 
+// Some error definitions
+var errorTooFewShares = errors.New("not enough shares to recover secret")
+var errorDifferentLengths = errors.New("inputs of different lengths")
+
 // PubVerShare is a public verifiable share.
 type PubVerShare struct {
 	S PubShare        // Share
@@ -168,6 +172,3 @@ func (pv *PVSS) RecoverSecret(G abstract.Point, X []abstract.Point, encShares []
 
 	return RecoverCommit(pv.suite, shares, pv.t, pv.n)
 }
-
-var errorTooFewShares = errors.New("not enough shares to recover secret")
-var errorDifferentLengths = errors.New("inputs of different lengths")

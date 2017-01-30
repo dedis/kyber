@@ -52,7 +52,7 @@ func NewDLEQProof(suite abstract.Suite, G abstract.Point, H abstract.Point, x ab
 // input values.
 func NewDLEQProofBatch(suite abstract.Suite, G []abstract.Point, H []abstract.Point, secrets []abstract.Scalar) ([]*DLEQProof, []abstract.Point, []abstract.Point, error) {
 
-	if (len(G) != len(H)) && (len(H) != len(secrets)) {
+	if len(G) != len(H) && len(H) != len(secrets) {
 		return nil, nil, nil, errors.New("inputs of different lengths")
 	}
 
