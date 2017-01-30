@@ -7,7 +7,9 @@ import (
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/ed25519"
 	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto/sign"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var reader = random.Stream
@@ -56,6 +58,15 @@ func genAll() (*Dealer, []*Verifier) {
 	return dealer, verifiers
 }
 
+func randomBytes(n int) []byte {
+	var buff = make([]byte, n)
+	_, err := rand.Read(buff)
+	if err != nil {
+		panic(err)
+	}
+	return buff
+}
+
 func init() {
 	verifiersSec, verifiersPub = genCommits(nbVerifiers)
 	dealerSec, dealerPub = genPair()
@@ -85,24 +96,46 @@ func TestVSSVerifierNew(t *testing.T) {
 }
 
 func TestVSSVerifierReceiveDeal(t *testing.T) {
-	/*dealer, verifiers := genAll()*/
-	//v := verifiers[0]
-	//d := dealer.deals[0]
+	dealer, verifiers := genAll()
+	v := verifiers[0]
+	d := dealer.deals[0]
 
-	//// correct deal
-	//ap, c, err := v.ReceiveDeal(d)
-	//require.NotNil(t, ap)
-	//assert.Nil(t, c)
-	//assert.Nil(t, err)
-	//assert.Equal(t, v.Pub.String(), ap.Public.String())
-	//assert.Equal(t, dealer.sid, ap.SessionID)
-	//sig, err := sign.Schnorr(suite, v.long, dealer.sid)
-	//require.Nil(t, err)
-	//assert.Equal(t, sig, ap.Signature)
+	// correct deal
+	ap, c, err := v.ReceiveDeal(d)
+	require.NotNil(t, ap)
+	assert.Nil(t, c)
+	assert.Nil(t, err)
+	assert.Equal(t, v.pub.String(), ap.Public.String())
+	assert.Equal(t, dealer.sid, ap.SessionID)
+	assert.Nil(t, sign.VerifySchnorr(suite, v.pub, ap.SessionID, ap.Signature))
 
-	//// wrong index
-	//goodIdx := d.SecShare.I
-	//d.SecShare.I = (goodIdx - 1) % nbVerifiers
+	// wrong index
+	goodIdx := d.SecShare.I
+	d.SecShare.I = (goodIdx - 1) % nbVerifiers
+	_, c, err = v.ReceiveDeal(d)
+	assert.Error(t, err)
+	assert.Nil(t, c)
+	d.SecShare.I = goodIdx
+
+	// wrong sid
+	goodCommit := d.Commitments[0]
+	d.Commitments[0], _ = suite.Point().Pick(nil, random.Stream)
+	_, c, err = v.ReceiveDeal(d)
+	assert.Error(t, err)
+	assert.Nil(t, c)
+	d.Commitments[0] = goodCommit
+
+	// already seen twice
+	_, c, err = v.ReceiveDeal(d)
+	assert.Nil(t, c)
+	assert.Error(t, err)
+
+	// valid complaint
+	/*v.aggregator.deal = nil*/
+	//ap, c, err = v.ReceiveDeal(d)
+	//assert.Nil(t, ap)
+	//assert.NotNil(t, c)
+	/*assert.Error(t, err)*/
 
 }
 
@@ -114,11 +147,13 @@ func TestVSSAggregatorVerifyComplaint(t *testing.T) {
 	wrongSec, _ := genPair()
 	deal.SecShare.V = wrongSec
 
+	// valid complaint
 	_, c, err := v.ReceiveDeal(deal)
 	aggr := v.aggregator
 	assert.Error(t, err)
 	assert.NotNil(t, c)
 	assert.NotNil(t, v.aggregator)
+	assert.Equal(t, c.SessionID, dealer.sid)
 	_, ok := aggr.complaints[v.pub.String()]
 	assert.True(t, ok)
 
@@ -146,6 +181,12 @@ func TestVSSAggregatorVerifyComplaint(t *testing.T) {
 	assert.Error(t, aggr.verifyComplaint(c))
 	c.Signature = goodSig
 
+	// wrongID
+	wrongID := randomBytes(len(c.SessionID))
+	goodID := c.SessionID
+	c.SessionID = wrongID
+	assert.Error(t, aggr.verifyComplaint(c))
+	c.SessionID = goodID
 }
 
 func TestVSSAggregatorVerifyDeal(t *testing.T) {

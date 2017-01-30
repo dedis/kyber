@@ -225,6 +225,7 @@ func (v *Verifier) ReceiveDeal(d *Deal) (*Approval, *Complaint, error) {
 			return nil, nil, err
 		}
 		complaint := &Complaint{
+			SessionID: sid,
 			Public:    v.pub,
 			Deal:      d,
 			Signature: sig,
@@ -262,6 +263,8 @@ func (v *Verifier) ReceiveDealerResponse(dr *DealerResponse) error {
 	if _, ok := v.aggregator.complaints[pub.String()]; !ok {
 		return errors.New("verifier: no complaints received for this response")
 	}
+	// XXX should we verify the corectness of the complaint and make sure we
+	// actually received it ?
 
 	if err := v.verifyDeal(dr.Deal, false); err != nil {
 		// if one response is bad, flag the dealer as malicious
@@ -282,8 +285,9 @@ func (v *Verifier) DealCertified() bool {
 // Complaint is a message that must be broadcasted to every verifiers when
 // a verifier receives an invalid Deal.
 type Complaint struct {
-	Public abstract.Point
-	Deal   *Deal
+	Public    abstract.Point
+	SessionID []byte
+	Deal      *Deal
 	// Signature over the msg
 	// H(Index || deal.MarshalBinary() || verifiers)
 	Signature []byte
@@ -382,6 +386,9 @@ func (a *aggregator) verifyComplaint(c *Complaint) error {
 	}
 	if _, ok := a.complaints[c.Public.String()]; ok {
 		return errors.New("complaint: already stored one from same origin")
+	}
+	if !bytes.Equal(c.SessionID, a.sid) {
+		return errors.New("complaint: receiving inconsistent sessionID")
 	}
 
 	_, ok := findIndex(a.verifiers, c.Public)
