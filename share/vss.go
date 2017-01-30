@@ -188,11 +188,17 @@ func NewVerifier(suite abstract.Suite, longterm abstract.Scalar, dealerKey abstr
 }
 
 // ReceiveDeal takes a Deal, tries to decrypt it and see if it is correct or
-// not. In case the Deal is correct, an Approval is returned and must be
+// not. In case the Deal is correct,ie. the verifier can verify the shares
+// against the public coefficients, an Approval is returned and must be
 // broadcasted to every participants including the Dealer. In case the Deal
-// is not correct, it returns a Complaint which must be broadcasted to every
-// participants including the Dealer. ReceiveDeal returns an error in any case
-// to let the user know what went wrong.
+// is not correct because of the public polynomial checking, or the indexes are
+// not the same, or the session identifier is wrong, it returns a Complaint
+// which must be broadcasted to every participants including the Dealer.
+// If the complaint is deemed invalid because of a wrong index (not the same as
+// the verifier) or because the verifier already received a Deal, it does not
+// return a complaint.
+// ReceiveDeal returns an error in any case to let the user know what was the
+// error.
 // XXX API question: return value.For the moment, the default is to let the user
 // know everything that is wrong through the error.
 func (v *Verifier) ReceiveDeal(d *Deal) (*Approval, *Complaint, error) {
@@ -200,9 +206,6 @@ func (v *Verifier) ReceiveDeal(d *Deal) (*Approval, *Complaint, error) {
 		return nil, nil, errors.New("verifier: wrong index from deal")
 	}
 
-	if !validT(int(d.T), v.verifiers) {
-		return nil, nil, errors.New("verifier: invalid t received in Deal")
-	}
 	t := int(d.T)
 
 	sid, err := sessionID(v.dealer, v.verifiers, d.Commitments, t)
@@ -232,6 +235,7 @@ func (v *Verifier) ReceiveDeal(d *Deal) (*Approval, *Complaint, error) {
 	}
 	approval := &Approval{
 		Public:    v.pub,
+		SessionID: v.sid,
 		Signature: sig,
 	}
 	return approval, nil, nil
@@ -296,7 +300,8 @@ type DealerResponse struct {
 // Approval is a message that is sent if a verifier approves the Deal he
 // received from the Dealer.
 type Approval struct {
-	Public abstract.Point
+	Public    abstract.Point
+	SessionID []byte
 	// Signature over the msg
 	// H(Index || commitments || verifiers)
 	Signature []byte
@@ -339,6 +344,10 @@ func (a *aggregator) verifyDeal(d *Deal, inclusion bool) error {
 		a.commits = d.Commitments
 		a.sid = d.SessionID
 		a.deal = d
+	}
+
+	if !validT(int(d.T), a.verifiers) {
+		return errors.New("verifier: invalid t received in Deal")
 	}
 
 	if !bytes.Equal(a.sid, d.SessionID) {
@@ -391,6 +400,10 @@ func (a *aggregator) verifyComplaint(c *Complaint) error {
 func (a *aggregator) verifyApproval(ap *Approval) error {
 	if _, ok := a.approvals[ap.Public.String()]; ok {
 		return errors.New("approval: already stored one from same origin")
+	}
+
+	if !bytes.Equal(ap.SessionID, a.sid) {
+		return errors.New("approval: does not match session id recorded")
 	}
 
 	if err := sign.VerifySchnorr(a.suite, ap.Public, a.sid, ap.Signature); err != nil {

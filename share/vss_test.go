@@ -8,7 +8,6 @@ import (
 	"github.com/dedis/crypto/ed25519"
 	"github.com/dedis/crypto/random"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var reader = random.Stream
@@ -86,14 +85,24 @@ func TestVSSVerifierNew(t *testing.T) {
 }
 
 func TestVSSVerifierReceiveDeal(t *testing.T) {
-	dealer, verifiers := genAll()
-	v := verifiers[0]
-	d := dealer.deals[0]
+	/*dealer, verifiers := genAll()*/
+	//v := verifiers[0]
+	//d := dealer.deals[0]
 
-	ap, c, err := v.ReceiveDeal(d)
-	require.NotNil(t, ap)
-	assert.Nil(t, c)
-	assert.Nil(t, err)
+	//// correct deal
+	//ap, c, err := v.ReceiveDeal(d)
+	//require.NotNil(t, ap)
+	//assert.Nil(t, c)
+	//assert.Nil(t, err)
+	//assert.Equal(t, v.Pub.String(), ap.Public.String())
+	//assert.Equal(t, dealer.sid, ap.SessionID)
+	//sig, err := sign.Schnorr(suite, v.long, dealer.sid)
+	//require.Nil(t, err)
+	//assert.Equal(t, sig, ap.Signature)
+
+	//// wrong index
+	//goodIdx := d.SecShare.I
+	//d.SecShare.I = (goodIdx - 1) % nbVerifiers
 
 }
 
@@ -153,6 +162,13 @@ func TestVSSAggregatorVerifyDeal(t *testing.T) {
 	// already received deal
 	err = aggr.verifyDeal(deal, true)
 	assert.Error(t, err)
+
+	// wrong T
+	wrongT := uint32(nbVerifiers / 3)
+	goodT := deal.T
+	deal.T = wrongT
+	assert.Error(t, aggr.verifyDeal(deal, false))
+	deal.T = goodT
 
 	// wrong SessionID
 	goodSid := deal.SessionID
