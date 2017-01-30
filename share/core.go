@@ -223,8 +223,8 @@ func (p *PubPoly) Shares(n int) []*PubShare {
 // as a new polynomial. If the base points p.b and q.b are different then the
 // base point of the resulting PubPoly cannot be computed without knowing the
 // discrete logarithm between p.b and q.b. In this particular case, we are using
-// p.b as a default value which of cousre does not correspond to the correct
-// base point.
+// p.b as a default value which of course does not correspond to the correct
+// base point and thus should not be used in further computations.
 func (p *PubPoly) Add(q *PubPoly) (*PubPoly, error) {
 
 	if p.g != q.g {
