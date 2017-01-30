@@ -211,8 +211,6 @@ func (v *Verifier) ReceiveDeal(d *Deal) (*Approval, *Complaint, error) {
 	sid, err := sessionID(v.dealer, v.verifiers, d.Commitments, t)
 	if err != nil {
 		return nil, nil, err
-	} else if !bytes.Equal(sid, d.SessionID) {
-		return nil, nil, errors.New("verifier: invalid session id in Deal")
 	}
 
 	if v.aggregator == nil {
@@ -327,7 +325,11 @@ func newAggregator(suite abstract.Suite, verifiers, commitments []abstract.Point
 		approvals:  make(map[string]*Approval),
 	}
 	return agg
+}
 
+// used only by the Dealer
+func (a *aggregator) setDeal(d *Deal) {
+	a.deal = d
 }
 
 var errDealAlreadyReceived = errors.New("deal: already received a deal")
@@ -377,9 +379,6 @@ func (a *aggregator) verifyComplaint(c *Complaint) error {
 	if err := a.verifyDeal(c.Deal, false); err == nil {
 		return errors.New("complaint: invalid because contains a valid deal")
 	}
-	if _, ok := a.complaints[c.Public.String()]; ok {
-		return errors.New("complaint: already stored one from same origin")
-	}
 	if !bytes.Equal(c.SessionID, a.sid) {
 		return errors.New("complaint: receiving inconsistent sessionID")
 	}
@@ -400,10 +399,6 @@ func (a *aggregator) verifyApproval(ap *Approval) error {
 	if a.deal == nil {
 		return errors.New("approval: deal has not been received")
 	}
-	if _, ok := a.approvals[ap.Public.String()]; ok {
-		return errors.New("approval: already stored one from same origin")
-	}
-
 	if !bytes.Equal(ap.SessionID, a.sid) {
 		return errors.New("approval: does not match session id recorded")
 	}
@@ -454,14 +449,11 @@ func (a *aggregator) addApproval(ap *Approval) error {
 }
 
 func (a *aggregator) EnoughApprovals() bool {
-	if a.deal == nil {
-		return false
-	}
 	return len(a.approvals) >= a.t
 }
 
 func (a *aggregator) DealCertified() bool {
-	return !(len(a.complaints) >= a.t-1 || a.badDealer)
+	return a.EnoughApprovals() && !(len(a.complaints) >= a.t || a.badDealer)
 }
 
 func minimumT(verifiers []abstract.Point) int {
