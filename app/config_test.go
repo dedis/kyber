@@ -46,10 +46,10 @@ func TestReadGroupDescToml(t *testing.T) {
 	if !nikkoAddr.Valid() || nikkoAddr != network.NewTCPAddress("5.135.161.91:2000") {
 		t.Fatal("Address not valid " + group.Roster.List[0].Address.String())
 	}
-	if len(group.description) != 2 {
+	if len(group.Description) != 2 {
 		t.Fatal("Should have 2 descriptions")
 	}
-	if group.description[group.Roster.List[1]] != "Ismail's server" {
+	if group.Description[group.Roster.List[1]] != "Ismail's server" {
 		t.Fatal("This should be Ismail's server")
 	}
 }

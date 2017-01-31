@@ -88,12 +88,12 @@ type ServerToml struct {
 // Group holds the Roster and the server-description.
 type Group struct {
 	Roster      *onet.Roster
-	description map[*network.ServerIdentity]string
+	Description map[*network.ServerIdentity]string
 }
 
 // GetDescription returns the description of a ServerIdentity.
 func (g *Group) GetDescription(e *network.ServerIdentity) string {
-	return g.description[e]
+	return g.Description[e]
 }
 
 // ReadGroupDescToml reads a group.toml file and returns the list of ServerIdentities
