@@ -1,12 +1,32 @@
-// vss.go implements the verifiable secret sharing scheme by Pedersen from
-// "Non-interactive and information-theoretic secure verifiable secret
-// sharing", in Crypto ’91, pages 129–140, 1991
+// vss.go implements the verifiable secret sharing scheme by Pedersen recalled
+// in "Provably Secure Distributed Schnorr Signatures and a (t, n) Threshold
+// Scheme for Implicit Certificates"  by Stinson and Strobl.
+// The basic scheme is taken from Pedersen's paper: "Non-interactive and
+// information-theoretic secure verifiable secret sharing", in Crypto ’91, pages
+// 129–140, 1991.
+// At a higher level, you have one party called the Dealer who wishes to share a
+// secret securly between other parties, called the Verifiers. In this scheme,
+// neither the verifiers or the dealer is deemed trustworthy, but rather, the
+// assumptions is that the adversary has at most t verifiers amongst n, or the
+// dealer is malicious. In that case, there needs to be some way for Verifiers to
+// check the correctness of the shares they receive. This is the scheme goal.
+// 1) The dealer send a Deal to every verifiers using `Deals()`
+// 2) Each verifier process the Deal with `ProcessDeal`. They can either return:
+//    - an Approval, which means the deal seems correct
+//    - an Complaint, which means the deal is not correct and the dealer might
+//    be malicious.
+// 3) The dealer can respond to each Complaint by a Justification, basically
+// revealing the share he sent out to the original "complainer"
+// 4) All verifiers accept the deal iif there has been at least t Approval. They
+// refuse the deal if there has been more than t-1 complaints OR if a
+// Justification is wrong.
+// At the end of the scheme, all verifiers can re-unite their Share to
+// reconstruct the original secret. Only t out of n verifiers are needed.
 package share
 
 import (
 	"bytes"
 	"crypto/cipher"
-	"crypto/sha256"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -30,13 +50,9 @@ type Dealer struct {
 	t int
 	// sessionID is a unique identifier for the whole session of the scheme
 	sessionID []byte
-	// second base derived from the list of verifiers H ( Verifiers )
-	h abstract.Point
 
 	// list of deals this Dealer has generated
 	deals []*Deal
-	// commitments of (f + g) polynomial
-	commitments []abstract.Point
 	*aggregator
 }
 
@@ -48,6 +64,32 @@ type Deal struct {
 	RndShare    *PriShare
 	T           uint32
 	Commitments []abstract.Point
+	Signature   []byte
+}
+
+// Complaint is a message that must be broadcasted to every verifiers when
+// a verifier receives an invalid Deal.
+type Complaint struct {
+	SessionID []byte
+	Index     uint32
+	Deal      *Deal
+	Signature []byte
+}
+
+// Justification is a message that is broadcasted by the Dealer in response to
+// a Complaint. It contains the original Complaint as well as the shares
+// distributed to the complainer.
+type Justification struct {
+	Complaint *Complaint
+	Deal      *Deal
+}
+
+// Approval is a message that is sent if a verifier approves the Deal he
+// received from the Dealer.
+type Approval struct {
+	SessionID []byte
+	Index     uint32
+	Signature []byte
 }
 
 // NewDealer returns a Dealer capable of leading the secret sharing scheme. It
@@ -60,7 +102,6 @@ func NewDealer(suite abstract.Suite, longterm, secret abstract.Scalar, verifiers
 		long:      longterm,
 		secret:    secret,
 		verifiers: verifiers,
-		reader:    r,
 	}
 	if !validT(t, verifiers) {
 		return nil, fmt.Errorf("dealer: t %d invalid.", t)
@@ -68,28 +109,28 @@ func NewDealer(suite abstract.Suite, longterm, secret abstract.Scalar, verifiers
 
 	d.t = t
 
-	d.h = deriveH(d.suite, d.verifiers)
-	f := NewPriPoly(d.suite, d.t, d.secret, d.reader)
-	g := NewPriPoly(d.suite, d.t, nil, d.reader)
+	H := deriveH(d.suite, d.verifiers)
+	f := NewPriPoly(d.suite, d.t, d.secret, r)
+	g := NewPriPoly(d.suite, d.t, nil, r)
 	pub := d.suite.Point().Mul(nil, d.long)
 
 	// F = coeff * B
 	F := f.Commit(d.suite.Point().Base())
 	// G = coeff * H
-	G := g.Commit(d.h)
+	G := g.Commit(H)
 
 	C, err := F.Add(G)
 	if err != nil {
 		return nil, err
 	}
-	_, d.commitments = C.Info()
+	_, commitments := C.Info()
 
-	d.sessionID, err = sessionID(pub, d.verifiers, d.commitments, d.t)
+	d.sessionID, err = sessionID(d.suite, pub, d.verifiers, commitments, d.t)
 	if err != nil {
 		return nil, err
 	}
 
-	d.aggregator = newAggregator(d.suite, d.verifiers, d.commitments, d.t, d.sessionID)
+	d.aggregator = newAggregator(d.suite, pub, d.verifiers, commitments, d.t, d.sessionID)
 	// C = F + G
 	d.deals = make([]*Deal, len(d.verifiers))
 	for i := range d.verifiers {
@@ -99,8 +140,11 @@ func NewDealer(suite abstract.Suite, longterm, secret abstract.Scalar, verifiers
 			SessionID:   d.sessionID,
 			SecShare:    fi,
 			RndShare:    gi,
-			Commitments: d.commitments,
+			Commitments: commitments,
 			T:           uint32(d.t),
+		}
+		if d.deals[i].Signature, err = sign.Schnorr(d.suite, d.long, msgDeal(d.deals[i])); err != nil {
+			return nil, err
 		}
 	}
 	return d, nil
@@ -113,27 +157,26 @@ func (d *Dealer) Deals() []*Deal {
 	return out
 }
 
-// ReceiveComplaint analyzes the given complaint. If it's a valid complaint,
-// then it returns a DealerResponse. This response must be broadcasted to every
+// ProcessComplaint analyzes the given complaint. If it's a valid complaint,
+// then it returns a Justification. This response must be broadcasted to every
 // participants. If it's an invalid complaint, it returns an error about the
 // complaints. The verifiers will also ignore an invalid Complaint.
-func (d *Dealer) ReceiveComplaint(c *Complaint) (*DealerResponse, error) {
+func (d *Dealer) ProcessComplaint(c *Complaint) (*Justification, error) {
 	if err := d.verifyComplaint(c); err != nil {
 		return nil, err
 	}
-	// index is guaranteed to be found because verifyComplaint does the check
-	i, _ := findIndex(d.verifiers, c.Public)
-	return &DealerResponse{
-		Deal:      d.deals[i],
+	return &Justification{
+		// index is guaranteed to be good because of d.verifyComplaint before
+		Deal:      d.deals[int(c.Index)],
 		Complaint: c,
 	}, nil
 }
 
-// ReceiveApproval looks if the approval is legitimate and stores it. If the
+// ProcessApprovals looks if the approval is legitimate and stores it. If the
 // approval is not legitimate or has already been received, it returns an error.
 // To knoew whether participants approved the sharing, call `d.EnoughApproval`
 // and if true, `d.DealCertified`.
-func (d *Dealer) ReceiveApproval(a *Approval) error {
+func (d *Dealer) ProcessApprovals(a *Approval) error {
 	return d.verifyApproval(a)
 }
 
@@ -162,14 +205,7 @@ type Verifier struct {
 
 	h abstract.Point
 
-	commitPoly *PubPoly
-
-	fi *PriShare
-	gi *PriShare
-
 	*aggregator
-
-	dealerBad bool
 }
 
 // NewVerifier returns a Verifier out of:
@@ -190,14 +226,21 @@ func NewVerifier(suite abstract.Suite, longterm abstract.Scalar, dealerKey abstr
 	}
 	v.pub = v.suite.Point().Mul(nil, v.long)
 	var ok bool
-	if v.index, ok = findIndex(verifiers, v.pub); !ok {
-		return nil, errors.New("verifier: not in the list of verifiers")
+	for i := range verifiers {
+		if verifiers[i].Equal(v.pub) {
+			ok = true
+			break
+		}
 	}
+	if !ok {
+		return nil, errors.New("verifier: public key not found in the list of verifiers")
+	}
+
 	v.h = deriveH(suite, verifiers)
 	return v, nil
 }
 
-// ReceiveDeal takes a Deal, tries to decrypt it and see if it is correct or
+// ProcessDeal takes a Deal, tries to decrypt it and see if it is correct or
 // not. In case the Deal is correct,ie. the verifier can verify the shares
 // against the public coefficients, an Approval is returned and must be
 // broadcasted to every participants including the Dealer. In case the Deal
@@ -207,50 +250,57 @@ func NewVerifier(suite abstract.Suite, longterm abstract.Scalar, dealerKey abstr
 // If the complaint is deemed invalid because of a wrong index (not the same as
 // the verifier) or because the verifier already received a Deal, it does not
 // return a complaint.
-// ReceiveDeal returns an error in any case to let the user know what was the
+// ProcessDeal returns an error in any case to let the user know what was the
 // error.
 // XXX API question: return value.For the moment, the default is to let the user
 // know everything that is wrong through the error.
-func (v *Verifier) ReceiveDeal(d *Deal) (*Approval, *Complaint, error) {
+func (v *Verifier) ProcessDeal(d *Deal) (*Approval, *Complaint, error) {
 	if d.SecShare.I != v.index {
 		return nil, nil, errors.New("verifier: wrong index from deal")
 	}
 
 	t := int(d.T)
 
-	sid, err := sessionID(v.dealer, v.verifiers, d.Commitments, t)
+	sid, err := sessionID(v.suite, v.dealer, v.verifiers, d.Commitments, t)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	if v.aggregator == nil {
-		v.aggregator = newAggregator(v.suite, v.verifiers, d.Commitments, t, d.SessionID)
+		v.aggregator = newAggregator(v.suite, v.dealer, v.verifiers, d.Commitments, t, d.SessionID)
 	}
 
-	sig, err := sign.Schnorr(v.suite, v.long, sid)
 	if err := v.verifyDeal(d, true); err != nil {
-		if err == errDealAlreadyReceived {
+		if err == errDealAlreadyProcessed {
 			return nil, nil, err
 		}
-		complaint := &Complaint{
+		c := &Complaint{
 			SessionID: sid,
-			Public:    v.pub,
+			Index:     uint32(v.index),
 			Deal:      d,
-			Signature: sig,
 		}
-		if err2 := v.aggregator.addComplaint(complaint); err2 != nil {
+		var err2 error
+		if c.Signature, err2 = sign.Schnorr(v.suite, v.long, msgComplaint(c)); err2 != nil {
 			return nil, nil, err2
 		}
-		return nil, complaint, err
+
+		if err2 = v.aggregator.addComplaint(c); err2 != nil {
+			return nil, nil, err2
+		}
+		return nil, c, err
 	}
-	approval := &Approval{
-		Public:    v.pub,
+	ap := &Approval{
+		Index:     uint32(v.index),
 		SessionID: v.sid,
-		Signature: sig,
 	}
-	return approval, nil, v.aggregator.addApproval(approval)
+	if ap.Signature, err = sign.Schnorr(v.suite, v.long, msgApproval(ap)); err != nil {
+		return nil, nil, err
+	}
+	return ap, nil, v.aggregator.addApproval(ap)
 }
 
+// Share returns the private share that this verifier has received. It returns
+// nil if the deal is not certified or there is not enough approvals.
 func (v *Verifier) Share() *PriShare {
 	if !v.EnoughApprovals() || !v.DealCertified() {
 		return nil
@@ -258,81 +308,54 @@ func (v *Verifier) Share() *PriShare {
 	return v.deal.SecShare
 }
 
-// ReceiveComplaints takes a Complaint and stores it if the Complaint is valid.
+// ProcessComplaint takes a Complaint and stores it if the Complaint is valid.
 // If the verifier already saw a Complaint from the same origin, it returns an error.
 // If the Complaint is not valid, it returns an error. That does NOT mean the
 // Deal is not good, but rather only this Complaint is not valid and should not
 // be treated.  To know whether the deal is good, call first v.EnoughApproval(),
 // and if true, call v.IsDealGood().
-func (v *Verifier) ReceiveComplaint(c *Complaint) error {
+func (v *Verifier) ProcessComplaint(c *Complaint) error {
 	return v.verifyComplaint(c)
 }
 
-// ReceiveDealerResponse takes a DealerResponse and returns an error if
+// ProcessJustification takes a DealerResponse and returns an error if
 // something went wrong during the verification. If it is the case, that
 // probably means the Dealer is acting maliciously. In order to be sure, call
 // v.EnoughApprovals() and if true, v.IsDealGood().
 // NOTE: it does *not* verify the complaint associated with since it is supposed
 // to already have received it.
-func (v *Verifier) ReceiveDealerResponse(dr *DealerResponse) error {
-	return v.aggregator.verifyDealerResponse(dr)
+func (v *Verifier) ProcessJustification(dr *Justification) error {
+	return v.aggregator.verifyJustification(dr)
 }
 
-func (v *Verifier) ReceiveApproval(ap *Approval) error {
+func (v *Verifier) ProcessApproval(ap *Approval) error {
 	return v.verifyApproval(ap)
-}
-
-// Complaint is a message that must be broadcasted to every verifiers when
-// a verifier receives an invalid Deal.
-type Complaint struct {
-	Public    abstract.Point
-	SessionID []byte
-	Deal      *Deal
-	// Signature over the msg
-	// H(Index || deal.MarshalBinary() || verifiers)
-	Signature []byte
-}
-
-// DealerResponse is a message that is broadcasted by the Dealer in response to
-// a Complaint. It contains the original Complaint as well as the shares
-// distributed to the complainer.
-type DealerResponse struct {
-	Complaint *Complaint
-	Deal      *Deal
-}
-
-// Approval is a message that is sent if a verifier approves the Deal he
-// received from the Dealer.
-type Approval struct {
-	Public    abstract.Point
-	SessionID []byte
-	// Signature over the msg
-	// H(Index || commitments || verifiers)
-	Signature []byte
 }
 
 type aggregator struct {
 	suite     abstract.Suite
+	dealer    abstract.Point
 	verifiers []abstract.Point
 	commits   []abstract.Point
 
-	complaints map[string]*Complaint
-	approvals  map[string]*Approval
+	complaints map[uint32]*Complaint
+	approvals  map[uint32]*Approval
 	sid        []byte
 	deal       *Deal
 	t          int
 	badDealer  bool
 }
 
-func newAggregator(suite abstract.Suite, verifiers, commitments []abstract.Point, t int, sid []byte) *aggregator {
+func newAggregator(suite abstract.Suite, dealer abstract.Point, verifiers, commitments []abstract.Point, t int, sid []byte) *aggregator {
 	agg := &aggregator{
 		suite:      suite,
+		dealer:     dealer,
 		verifiers:  verifiers,
 		commits:    commitments,
 		t:          t,
 		sid:        sid,
-		complaints: make(map[string]*Complaint),
-		approvals:  make(map[string]*Approval),
+		complaints: make(map[uint32]*Complaint),
+		approvals:  make(map[uint32]*Approval),
 	}
 	return agg
 }
@@ -342,11 +365,11 @@ func (a *aggregator) setDeal(d *Deal) {
 	a.deal = d
 }
 
-var errDealAlreadyReceived = errors.New("deal: already received a deal")
+var errDealAlreadyProcessed = errors.New("deal: already received a deal")
 
 func (a *aggregator) verifyDeal(d *Deal, inclusion bool) error {
 	if a.deal != nil && inclusion {
-		return errDealAlreadyReceived
+		return errDealAlreadyProcessed
 
 	}
 	if a.deal == nil {
@@ -361,6 +384,10 @@ func (a *aggregator) verifyDeal(d *Deal, inclusion bool) error {
 
 	if !bytes.Equal(a.sid, d.SessionID) {
 		return errors.New("deal: sessionID is different from locally computed")
+	}
+
+	if err := sign.VerifySchnorr(a.suite, a.dealer, msgDeal(d), d.Signature); err != nil {
+		return err
 	}
 
 	fi := d.SecShare
@@ -393,12 +420,12 @@ func (a *aggregator) verifyComplaint(c *Complaint) error {
 		return errors.New("complaint: receiving inconsistent sessionID")
 	}
 
-	_, ok := findIndex(a.verifiers, c.Public)
+	pub, ok := findPub(a.verifiers, c.Index)
 	if !ok {
-		return errors.New("complaint: from unknown participant")
+		return errors.New("complaint: index out of bounds")
 	}
 
-	if err := sign.VerifySchnorr(a.suite, c.Public, a.sid, c.Signature); err != nil {
+	if err := sign.VerifySchnorr(a.suite, pub, msgComplaint(c), c.Signature); err != nil {
 		return err
 	}
 
@@ -413,20 +440,26 @@ func (a *aggregator) verifyApproval(ap *Approval) error {
 		return errors.New("approval: does not match session id recorded")
 	}
 
-	if err := sign.VerifySchnorr(a.suite, ap.Public, a.sid, ap.Signature); err != nil {
+	pub, ok := findPub(a.verifiers, ap.Index)
+	if !ok {
+		return errors.New("approval: index out of bounds")
+	}
+
+	if err := sign.VerifySchnorr(a.suite, pub, msgApproval(ap), ap.Signature); err != nil {
 		return err
 	}
 
 	return a.addApproval(ap)
 }
 
-func (a *aggregator) verifyDealerResponse(dr *DealerResponse) error {
-	pub := dr.Complaint.Public
-	if _, ok := a.complaints[pub.String()]; !ok {
-		return errors.New("verifier: no complaints received for this response")
+func (a *aggregator) verifyJustification(dr *Justification) error {
+	if _, ok := findPub(a.verifiers, dr.Complaint.Index); !ok {
+		return errors.New("verifier: complaint's index out of bounds.")
 	}
-	// XXX should we verify the corectness of the complaint and make sure we
-	// actually received it ?
+	if _, ok := a.complaints[dr.Complaint.Index]; !ok {
+		return errors.New("verifier: no complaints received for this justification")
+	}
+	// XXX should we verify the correctness of the complaint
 
 	if err := a.verifyDeal(dr.Deal, false); err != nil {
 		// if one response is bad, flag the dealer as malicious
@@ -434,27 +467,34 @@ func (a *aggregator) verifyDealerResponse(dr *DealerResponse) error {
 		return err
 	}
 	// "deletes" the complaint since the dealer is honest
-	delete(a.complaints, pub.String())
+	delete(a.complaints, dr.Complaint.Index)
 	return nil
 }
 
 func (a *aggregator) addComplaint(c *Complaint) error {
-	if _, ok := a.complaints[c.Public.String()]; ok {
-		return errors.New("complaint: already existing complaint from same origin")
-	} else if _, ok := a.approvals[c.Public.String()]; ok {
-		return errors.New("complaint: approval existing from same origin")
+	if _, ok := findPub(a.verifiers, c.Index); !ok {
+		return errors.New("complaint: index out of bounds")
 	}
-	a.complaints[c.Public.String()] = c
+	if _, ok := a.complaints[c.Index]; ok {
+		return errors.New("complaint: already existing complaint from same origin")
+	} else if _, ok := a.approvals[c.Index]; ok {
+		return errors.New("complaint: approval existing from same origin")
+
+	}
+	a.complaints[c.Index] = c
 	return nil
 }
 
 func (a *aggregator) addApproval(ap *Approval) error {
-	if _, ok := a.complaints[ap.Public.String()]; ok {
+	if _, ok := findPub(a.verifiers, ap.Index); !ok {
+		return errors.New("approval: index out of bounds")
+	}
+	if _, ok := a.complaints[ap.Index]; ok {
 		return errors.New("approval: complaint existing from same origin")
-	} else if _, ok := a.approvals[ap.Public.String()]; ok {
+	} else if _, ok := a.approvals[ap.Index]; ok {
 		return errors.New("approval: approval already existing from same origin")
 	}
-	a.approvals[ap.Public.String()] = ap
+	a.approvals[ap.Index] = ap
 	return nil
 }
 
@@ -474,51 +514,66 @@ func validT(t int, verifiers []abstract.Point) bool {
 	return t >= minimumT(verifiers) && t <= len(verifiers) && int(uint32(t)) == t
 }
 
-// HashFunc is used to compute
-//  - the second base H out of a list of public keys
-//  - the hash of the message to sign in a Complaint
-var HashFunc = sha256.New
-
 func deriveH(suite abstract.Suite, verifiers []abstract.Point) abstract.Point {
 	var b bytes.Buffer
 	for i := range verifiers {
 		verifiers[i].MarshalTo(&b)
 	}
-	h := HashFunc()
+	h := suite.Hash()
 	h.Write(b.Bytes())
 	digest := h.Sum(nil)
 	base, _ := suite.Point().Pick(nil, suite.Cipher(digest))
 	return base
 }
 
-func findIndex(verifiers []abstract.Point, public abstract.Point) (int, bool) {
-	for i := range verifiers {
-		if verifiers[i].Equal(public) {
-			return i, true
-		}
+func findPub(verifiers []abstract.Point, idx uint32) (abstract.Point, bool) {
+	iidx := int(idx)
+	if iidx >= len(verifiers) {
+		return nil, false
 	}
-	return 0, false
+	return verifiers[iidx], true
 }
 
-func sessionID(dealer abstract.Point, verifiers, commitments []abstract.Point, t int) ([]byte, error) {
-	h := HashFunc()
-	if _, err := dealer.MarshalTo(h); err != nil {
-		return nil, err
-	}
+func sessionID(suite abstract.Suite, dealer abstract.Point, verifiers, commitments []abstract.Point, t int) ([]byte, error) {
+	h := suite.Hash()
+	dealer.MarshalTo(h)
 
 	for i := range verifiers {
-		if _, err := verifiers[i].MarshalTo(h); err != nil {
-			return nil, err
-		}
+		verifiers[i].MarshalTo(h)
 	}
 
 	for i := range commitments {
-		if _, err := commitments[i].MarshalTo(h); err != nil {
-			return nil, err
-		}
+		commitments[i].MarshalTo(h)
 	}
-	if err := binary.Write(h, binary.LittleEndian, uint32(t)); err != nil {
-		return nil, err
-	}
+	binary.Write(h, binary.LittleEndian, uint32(t))
+
 	return h.Sum(nil), nil
+}
+
+func msgApproval(a *Approval) []byte {
+	var buf bytes.Buffer
+	buf.WriteString("approval")
+	buf.Write(a.SessionID)
+	binary.Write(&buf, binary.LittleEndian, a.Index)
+	return buf.Bytes()
+}
+
+func msgComplaint(c *Complaint) []byte {
+	var buf bytes.Buffer
+	buf.WriteString("complaint")
+	buf.Write(c.SessionID)
+	binary.Write(&buf, binary.LittleEndian, c.Index)
+	buf.Write(msgDeal(c.Deal))
+	return buf.Bytes()
+}
+
+func msgDeal(d *Deal) []byte {
+	var buf bytes.Buffer
+	buf.WriteString("deal")
+	buf.Write(d.SessionID) // sid already includes all other info
+	binary.Write(&buf, binary.LittleEndian, d.SecShare.I)
+	d.SecShare.V.MarshalTo(&buf)
+	binary.Write(&buf, binary.LittleEndian, d.RndShare.I)
+	d.RndShare.V.MarshalTo(&buf)
+	return buf.Bytes()
 }

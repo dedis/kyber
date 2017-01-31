@@ -12,9 +12,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var reader = random.Stream
-
 var suite = ed25519.NewAES128SHA256Ed25519(false)
+
+var reader = random.Stream
 
 var nbVerifiers = 7
 
@@ -98,7 +98,7 @@ func TestVSSVerifierNew(t *testing.T) {
 func TestVSSShare(t *testing.T) {
 	dealer, verifiers := genAll()
 	ver := verifiers[0]
-	ap, c, err := ver.ReceiveDeal(dealer.deals[0])
+	ap, c, err := ver.ProcessDeal(dealer.deals[0])
 	require.NotNil(t, ap)
 	require.Nil(t, c)
 	require.Nil(t, err)
@@ -106,11 +106,11 @@ func TestVSSShare(t *testing.T) {
 	aggr := ver.aggregator
 
 	for i := 1; i < aggr.t-1; i++ {
-		aggr.approvals[verifiersPub[i].String()] = &Approval{}
+		aggr.approvals[uint32(i)] = &Approval{}
 	}
 	// not enough approvals
 	assert.Nil(t, ver.Share())
-	aggr.approvals[verifiersPub[aggr.t].String()] = &Approval{}
+	aggr.approvals[uint32(aggr.t)] = &Approval{}
 	// deal not certified
 	aggr.badDealer = true
 	assert.Nil(t, ver.Share())
@@ -125,16 +125,16 @@ func TestVSSAggregatorEnoughApprovals(t *testing.T) {
 	aggr := dealer.aggregator
 	// just below
 	for i := 0; i < aggr.t-1; i++ {
-		aggr.approvals[verifiersPub[i].String()] = &Approval{}
+		aggr.approvals[uint32(i)] = &Approval{}
 	}
 	assert.False(t, aggr.EnoughApprovals())
 	assert.Nil(t, dealer.SecretCommit())
 
-	aggr.approvals[verifiersPub[aggr.t].String()] = &Approval{}
+	aggr.approvals[uint32(aggr.t)] = &Approval{}
 	assert.True(t, aggr.EnoughApprovals())
 
 	for i := aggr.t + 1; i < nbVerifiers; i++ {
-		aggr.approvals[verifiersPub[i].String()] = &Approval{}
+		aggr.approvals[uint32(i)] = &Approval{}
 	}
 	assert.True(t, aggr.EnoughApprovals())
 	assert.Equal(t, suite.Point().Mul(nil, secret), dealer.SecretCommit())
@@ -145,7 +145,7 @@ func TestVSSAggregatorDealCertified(t *testing.T) {
 	aggr := dealer.aggregator
 
 	for i := 0; i < aggr.t; i++ {
-		aggr.approvals[verifiersPub[i].String()] = &Approval{}
+		aggr.approvals[uint32(i)] = &Approval{}
 	}
 	assert.True(t, aggr.DealCertified())
 	assert.Equal(t, suite.Point().Mul(nil, secret), dealer.SecretCommit())
@@ -156,7 +156,7 @@ func TestVSSAggregatorDealCertified(t *testing.T) {
 	// inconsistent state on purpose
 	// too much complaints
 	for i := 0; i < aggr.t; i++ {
-		aggr.complaints[verifiersPub[i].String()] = &Complaint{}
+		aggr.complaints[uint32(i)] = &Complaint{}
 	}
 	assert.False(t, aggr.DealCertified())
 }
@@ -167,19 +167,19 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	d := dealer.deals[0]
 
 	// correct deal
-	ap, c, err := v.ReceiveDeal(d)
+	ap, c, err := v.ProcessDeal(d)
 	require.NotNil(t, ap)
 	assert.Nil(t, c)
 	assert.Nil(t, err)
-	assert.Equal(t, v.pub.String(), ap.Public.String())
+	assert.Equal(t, v.index, int(ap.Index))
 	assert.Equal(t, dealer.sid, ap.SessionID)
-	assert.Nil(t, sign.VerifySchnorr(suite, v.pub, ap.SessionID, ap.Signature))
-	assert.Equal(t, v.approvals[v.pub.String()], ap)
+	assert.Nil(t, sign.VerifySchnorr(suite, v.pub, msgApproval(ap), ap.Signature))
+	assert.Equal(t, v.approvals[uint32(v.index)], ap)
 
 	// wrong index
 	goodIdx := d.SecShare.I
 	d.SecShare.I = (goodIdx - 1) % nbVerifiers
-	_, c, err = v.ReceiveDeal(d)
+	_, c, err = v.ProcessDeal(d)
 	assert.Error(t, err)
 	assert.Nil(t, c)
 	d.SecShare.I = goodIdx
@@ -187,23 +187,23 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	// wrong commitments
 	goodCommit := d.Commitments[0]
 	d.Commitments[0], _ = suite.Point().Pick(nil, random.Stream)
-	ap, c, err = v.ReceiveDeal(d)
+	ap, c, err = v.ProcessDeal(d)
 	assert.Error(t, err)
 	assert.Nil(t, c)
 	assert.Nil(t, ap)
 	d.Commitments[0] = goodCommit
 
 	// already seen twice
-	ap, c, err = v.ReceiveDeal(d)
+	ap, c, err = v.ProcessDeal(d)
 	assert.Nil(t, c)
 	assert.Error(t, err)
 	assert.Nil(t, ap)
 	v.aggregator.deal = nil
 
 	// approval already existing from same origin, should never happen right ?
-	v.aggregator.approvals[v.pub.String()] = &Approval{}
+	v.aggregator.approvals[uint32(v.index)] = &Approval{}
 	d.Commitments[0], _ = suite.Point().Pick(nil, random.Stream)
-	ap, c, err = v.ReceiveDeal(d)
+	ap, c, err = v.ProcessDeal(d)
 	assert.Nil(t, c)
 	assert.Error(t, err)
 	assert.Nil(t, ap)
@@ -211,9 +211,9 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 
 	// valid complaint
 	v.aggregator.deal = nil
-	delete(v.aggregator.approvals, v.pub.String())
+	delete(v.aggregator.approvals, uint32(v.index))
 	d.RndShare.V = suite.Scalar().SetBytes(randomBytes(32))
-	ap, c, err = v.ReceiveDeal(d)
+	ap, c, err = v.ProcessDeal(d)
 	assert.Nil(t, ap)
 	assert.NotNil(t, c)
 	assert.Error(t, err)
@@ -228,11 +228,11 @@ func TestVSSAggregatorDealerResponse(t *testing.T) {
 	wrongV := suite.Scalar().Pick(random.Stream)
 	goodV := d.SecShare.V
 	d.SecShare.V = wrongV
-	ap, c, err := v.ReceiveDeal(d)
+	ap, c, err := v.ProcessDeal(d)
 	assert.Nil(t, ap)
 	assert.NotNil(t, c)
 	assert.Error(t, err)
-	assert.Equal(t, v.complaints[c.Public.String()], c)
+	assert.Equal(t, v.complaints[uint32(v.index)], c)
 
 	c.Deal = &Deal{
 		SessionID:   deals[0].SessionID,
@@ -240,31 +240,32 @@ func TestVSSAggregatorDealerResponse(t *testing.T) {
 		RndShare:    deals[0].RndShare,
 		T:           deals[0].T,
 		Commitments: deals[0].Commitments,
+		Signature:   deals[0].Signature,
 	}
 	c.Deal.SecShare.V = wrongV
 	// valid complaint
-	dr, err := dealer.ReceiveComplaint(c)
+	dr, err := dealer.ProcessComplaint(c)
 	d.SecShare.V = goodV // in tests, pointers point to the same underlying share..
 	assert.Nil(t, err)
 	assert.Equal(t, dr.Deal, d)
-	assert.Nil(t, v.ReceiveDealerResponse(dr))
+	assert.Nil(t, v.ProcessJustification(dr))
 
 	// invalid  complaint
 	c.SessionID = randomBytes(len(c.SessionID))
-	badDr, err := dealer.ReceiveComplaint(c)
+	badDr, err := dealer.ProcessComplaint(c)
 	assert.Nil(t, badDr)
 	assert.Error(t, err)
 	c.SessionID = dealer.sid
 
 	// no complaints for this DR before
-	delete(v.aggregator.complaints, v.pub.String())
-	assert.Error(t, v.ReceiveDealerResponse(dr))
-	v.aggregator.complaints[v.pub.String()] = c
+	delete(v.aggregator.complaints, uint32(v.index))
+	assert.Error(t, v.ProcessJustification(dr))
+	v.aggregator.complaints[uint32(v.index)] = c
 
 	// invalid deal revealed
 	goodV = dr.Deal.SecShare.V
 	dr.Deal.SecShare.V = wrongV
-	assert.Error(t, v.ReceiveDealerResponse(dr))
+	assert.Error(t, v.ProcessJustification(dr))
 	assert.True(t, v.aggregator.badDealer)
 	dr.Deal.SecShare.V = goodV
 }
@@ -278,13 +279,13 @@ func TestVSSAggregatorVerifyComplaint(t *testing.T) {
 	deal.SecShare.V = wrongSec
 
 	// valid complaint
-	_, c, err := v.ReceiveDeal(deal)
+	_, c, err := v.ProcessDeal(deal)
 	aggr := v.aggregator
 	assert.Error(t, err)
 	assert.NotNil(t, c)
 	assert.NotNil(t, v.aggregator)
 	assert.Equal(t, c.SessionID, dealer.sid)
-	_, ok := aggr.complaints[v.pub.String()]
+	_, ok := aggr.complaints[uint32(v.index)]
 	assert.True(t, ok)
 
 	// give a valid deal
@@ -293,13 +294,11 @@ func TestVSSAggregatorVerifyComplaint(t *testing.T) {
 	assert.Error(t, aggr.verifyComplaint(c))
 
 	// wrong index
-	priv, pub := genPair()
-	sig, err := sign.Schnorr(suite, priv, c.SessionID)
-	require.Nil(t, err)
-	c.Public = pub
+	c.Index = uint32(len(verifiersPub))
+	sig, err := sign.Schnorr(suite, v.long, msgComplaint(c))
 	c.Signature = sig
 	assert.Error(t, aggr.verifyComplaint(c))
-	c.Public = verifiersPub[0]
+	c.Index = 0
 
 	// wrong signature
 	var goodSig = make([]byte, len(c.Signature))
@@ -318,7 +317,7 @@ func TestVSSAggregatorVerifyComplaint(t *testing.T) {
 
 func TestVSSAggregatorVerifyDeal(t *testing.T) {
 	dealer := genDealer()
-	aggr := newAggregator(suite, verifiersPub, dealer.commitments, dealer.t, dealer.sessionID)
+	aggr := dealer.aggregator
 	deals := dealer.Deals()
 
 	// OK
@@ -368,7 +367,7 @@ func TestVSSAggregatorVerifyApproval(t *testing.T) {
 	v := verifiers[0]
 
 	// ok
-	ap, c, err := v.ReceiveDeal(deals[0])
+	ap, c, err := v.ProcessDeal(deals[0])
 	assert.Nil(t, c)
 	assert.Nil(t, err)
 	assert.NotNil(t, ap)
@@ -380,7 +379,7 @@ func TestVSSAggregatorVerifyApproval(t *testing.T) {
 	aggr.deal = deals[0]
 	// twice approval
 	assert.Error(t, aggr.verifyApproval(ap))
-	delete(aggr.approvals, v.pub.String())
+	delete(aggr.approvals, uint32(v.index))
 	// wrong SID
 	ap.SessionID = randomBytes(len(ap.SessionID))
 	assert.Error(t, aggr.verifyApproval(ap))
@@ -397,19 +396,20 @@ func TestVSSAggregatorAddComplaint(t *testing.T) {
 	dealer := genDealer()
 	aggr := dealer.aggregator
 
+	var idx uint32 = 1
 	c := &Complaint{
-		Public: verifiersPub[0],
+		Index: idx,
 	}
 	// ok
 	assert.Nil(t, aggr.addComplaint(c))
-	assert.Equal(t, aggr.complaints[c.Public.String()], c)
+	assert.Equal(t, aggr.complaints[idx], c)
 
 	// complaint already there
 	assert.Error(t, aggr.addComplaint(c))
-	delete(aggr.complaints, c.Public.String())
+	delete(aggr.complaints, idx)
 
 	// approval same origin
-	aggr.approvals[verifiersPub[0].String()] = &Approval{}
+	aggr.approvals[idx] = &Approval{}
 	assert.Error(t, aggr.addComplaint(c))
 }
 
@@ -417,45 +417,47 @@ func TestVSSAggregatorAddApproval(t *testing.T) {
 	dealer := genDealer()
 	aggr := dealer.aggregator
 
+	var idx uint32 = 0
 	ap := &Approval{
-		Public: verifiersPub[0],
+		Index: idx,
 	}
 	// ok
 	assert.Nil(t, aggr.addApproval(ap))
-	assert.Equal(t, aggr.approvals[ap.Public.String()], ap)
+	assert.Equal(t, aggr.approvals[idx], ap)
 
 	// approval already existing
 	assert.Error(t, aggr.addApproval(ap))
-	delete(aggr.approvals, ap.Public.String())
+	delete(aggr.approvals, idx)
 
 	// complaint same origin
-	aggr.complaints[ap.Public.String()] = &Complaint{}
+	aggr.complaints[idx] = &Complaint{}
 	assert.Error(t, aggr.addApproval(ap))
 }
 
 func TestVSSSessionID(t *testing.T) {
 	dealer, _ := NewDealer(suite, dealerSec, secret, verifiersPub, reader, vssThreshold)
-	sid, err := sessionID(dealerPub, verifiersPub, dealer.commitments, dealer.t)
+	commitments := dealer.deals[0].Commitments
+	sid, err := sessionID(suite, dealerPub, verifiersPub, commitments, dealer.t)
 	assert.NoError(t, err)
 
-	sid2, err2 := sessionID(dealerPub, verifiersPub, dealer.commitments, dealer.t)
+	sid2, err2 := sessionID(suite, dealerPub, verifiersPub, commitments, dealer.t)
 	assert.NoError(t, err2)
 	assert.Equal(t, sid, sid2)
 
 	wrongDealerPub := suite.Point().Add(dealerPub, dealerPub)
 
-	sid3, err3 := sessionID(wrongDealerPub, verifiersPub, dealer.commitments, dealer.t)
+	sid3, err3 := sessionID(suite, wrongDealerPub, verifiersPub, commitments, dealer.t)
 	assert.NoError(t, err3)
 	assert.NotEqual(t, sid3, sid2)
 }
 
-func TestVSSFindIndex(t *testing.T) {
-	randIdx := rand.Int() % len(verifiersPub)
-	i, ok := findIndex(verifiersPub, verifiersPub[randIdx])
+func TestVSSFindPub(t *testing.T) {
+	p, ok := findPub(verifiersPub, 0)
 	assert.True(t, ok)
-	assert.Equal(t, randIdx, i)
+	assert.Equal(t, verifiersPub[0], p)
 
-	_, wrongPub := genPair()
-	i, ok = findIndex(verifiersPub, wrongPub)
+	p, ok = findPub(verifiersPub, uint32(len(verifiersPub)))
 	assert.False(t, ok)
+	assert.Nil(t, p)
+
 }
