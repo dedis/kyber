@@ -137,6 +137,16 @@ func (d *Dealer) ReceiveApproval(a *Approval) error {
 	return d.verifyApproval(a)
 }
 
+// SecretCommit returns the commitment of the secret being shared by this
+// dealer. This function is only to be called once the deal has enough approvals
+// and is verified otherwise it returns nil.
+func (d *Dealer) SecretCommit() abstract.Point {
+	if !d.EnoughApprovals() || !d.DealCertified() {
+		return nil
+	}
+	return d.suite.Point().Mul(nil, d.secret)
+}
+
 // Verifier receives a Deal from a Dealer, can reply by a Complaint, and can
 // collaborate with other Verifiers to reconstruct a secret.
 type Verifier struct {

@@ -58,23 +58,6 @@ func genAll() (*Dealer, []*Verifier) {
 	return dealer, verifiers
 }
 
-/*func genAllFinish(npAp, nbCo, nbDr int) (*Dealer, []*Verifier, []*Approval, []*Complaints) {*/
-//dealer, verifiers := genAll()
-//if nbAp+nbCo != nbVerifiers {
-//panic("genAllFinish is given some wrong arguments")
-//} else if nbDr > nbCo {
-//panic("genAllFinish is given some wrong arguments")
-//}
-//var approvals = make([]*Approval, nbAp)
-//var complaints = make([]*Complaints, nbCo)
-//for i := 0; i < nbAp; i++ {
-//approvals[i], _, _ = verifiers[i].ReceiveDeal(dealer.deals[i])
-//}
-//for j := nbAp; j < nbVerifiers; j++ {
-//_, complaints[j], _ = verifiers[j].ReceiveDeal(dealer.deals[j])
-//}
-/*}*/
-
 func randomBytes(n int) []byte {
 	var buff = make([]byte, n)
 	_, err := rand.Read(buff)
@@ -145,6 +128,7 @@ func TestVSSAggregatorEnoughApprovals(t *testing.T) {
 		aggr.approvals[verifiersPub[i].String()] = &Approval{}
 	}
 	assert.False(t, aggr.EnoughApprovals())
+	assert.Nil(t, dealer.SecretCommit())
 
 	aggr.approvals[verifiersPub[aggr.t].String()] = &Approval{}
 	assert.True(t, aggr.EnoughApprovals())
@@ -153,6 +137,7 @@ func TestVSSAggregatorEnoughApprovals(t *testing.T) {
 		aggr.approvals[verifiersPub[i].String()] = &Approval{}
 	}
 	assert.True(t, aggr.EnoughApprovals())
+	assert.Equal(t, suite.Point().Mul(nil, secret), dealer.SecretCommit())
 }
 
 func TestVSSAggregatorDealCertified(t *testing.T) {
@@ -163,9 +148,11 @@ func TestVSSAggregatorDealCertified(t *testing.T) {
 		aggr.approvals[verifiersPub[i].String()] = &Approval{}
 	}
 	assert.True(t, aggr.DealCertified())
+	assert.Equal(t, suite.Point().Mul(nil, secret), dealer.SecretCommit())
 	// bad dealer response
 	aggr.badDealer = true
 	assert.False(t, aggr.DealCertified())
+	assert.Nil(t, dealer.SecretCommit())
 	// inconsistent state on purpose
 	// too much complaints
 	for i := 0; i < aggr.t; i++ {
