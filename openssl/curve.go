@@ -26,8 +26,8 @@ import (
 	"runtime"
 	"unsafe"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/group"
+	"gopkg.in/dedis/crypto.v0/abstract"
+	"gopkg.in/dedis/crypto.v0/group"
 )
 
 type point struct {

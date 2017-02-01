@@ -10,7 +10,7 @@
 package clique
 
 import (
-	"github.com/dedis/crypto/abstract"
+	"gopkg.in/dedis/crypto.v0/abstract"
 )
 
 // Protocol represents the role of a participant in a clique protocol.

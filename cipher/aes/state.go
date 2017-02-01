@@ -10,9 +10,9 @@ import (
 	"crypto/aes"
 	"crypto/hmac"
 	"crypto/sha256"
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/cipher"
-	"github.com/dedis/crypto/cipher/generic"
+	"gopkg.in/dedis/crypto.v0/abstract"
+	"gopkg.in/dedis/crypto.v0/cipher"
+	"gopkg.in/dedis/crypto.v0/cipher/generic"
 )
 
 

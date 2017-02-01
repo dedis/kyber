@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/edwards"
-	"github.com/dedis/crypto/nist"
-	"github.com/dedis/crypto/random"
+	"gopkg.in/dedis/crypto.v0/abstract"
+	"gopkg.in/dedis/crypto.v0/edwards"
+	"gopkg.in/dedis/crypto.v0/nist"
+	"gopkg.in/dedis/crypto.v0/random"
 )
 
 // This example demonstrates signing and signature verification

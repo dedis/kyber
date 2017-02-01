@@ -6,8 +6,8 @@ import (
 	//"testing"
 	"encoding/hex"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/nist"
+	"gopkg.in/dedis/crypto.v0/abstract"
+	"gopkg.in/dedis/crypto.v0/nist"
 )
 
 func ExampleEncrypt_1() {

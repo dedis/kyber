@@ -3,7 +3,7 @@ package proof
 import (
 	"bytes"
 
-	"github.com/dedis/crypto/abstract"
+	"gopkg.in/dedis/crypto.v0/abstract"
 )
 
 // Hash-based noninteractive Sigma-protocol prover context
