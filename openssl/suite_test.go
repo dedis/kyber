@@ -5,7 +5,7 @@ package openssl
 import (
 	"testing"
 
-	"github.com/dedis/crypto/test"
+	"gopkg.in/dedis/crypto.v0/test"
 )
 
 func BenchmarkAES128(b *testing.B) {

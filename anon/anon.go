@@ -2,7 +2,7 @@
 package anon
 
 import (
-	"github.com/dedis/crypto/abstract"
+	"gopkg.in/dedis/crypto.v0/abstract"
 )
 
 // An anon.Set represents an explicit anonymity set

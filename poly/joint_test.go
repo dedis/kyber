@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	_ "github.com/dedis/crypto/abstract"
+	_ "gopkg.in/dedis/crypto.v0/abstract"
 )
 
 /////// TESTING ///////

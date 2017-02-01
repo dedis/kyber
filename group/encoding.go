@@ -6,7 +6,7 @@ import (
 	"crypto/cipher"
 	"io"
 
-	"github.com/dedis/crypto/abstract"
+	"gopkg.in/dedis/crypto.v0/abstract"
 )
 
 // PointEncodeTo provides a generic implementation of Point.EncodeTo

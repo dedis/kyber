@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/config"
+	"gopkg.in/dedis/crypto.v0/abstract"
+	"gopkg.in/dedis/crypto.v0/config"
 )
 
 // This package provides  a dealer-less distributed verifiable secret sharing

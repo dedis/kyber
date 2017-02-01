@@ -8,7 +8,7 @@ import (
 	//"encoding/hex"
 	"encoding/binary"
 
-	"github.com/dedis/crypto/cipher"
+	"gopkg.in/dedis/crypto.v0/cipher"
 )
 
 const (
