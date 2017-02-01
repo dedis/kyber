@@ -10,8 +10,8 @@ import (
 	"encoding"
 	"reflect"
 
-	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/onet/log"
+	"gopkg.in/dedis/crypto.v0/abstract"
 )
 
 // Hash simply returns the Hash of the slice of bytes given

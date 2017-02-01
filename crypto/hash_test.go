@@ -10,10 +10,10 @@ import (
 
 	"encoding"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/ed25519"
 	"github.com/dedis/onet/log"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/dedis/crypto.v0/abstract"
+	"gopkg.in/dedis/crypto.v0/ed25519"
 )
 
 var hashSuite = ed25519.NewAES128SHA256Ed25519(false)

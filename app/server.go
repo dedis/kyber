@@ -22,8 +22,8 @@ import (
 	// CoSi-protocol is not part of the cothority.
 
 	// For the moment, the server only serves CoSi requests
-	"github.com/dedis/crypto/abstract"
-	crypconf "github.com/dedis/crypto/config"
+	"gopkg.in/dedis/crypto.v0/abstract"
+	crypconf "gopkg.in/dedis/crypto.v0/config"
 )
 
 // DefaultServerConfig is the default server configuration file-name.

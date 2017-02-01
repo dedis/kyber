@@ -8,9 +8,9 @@ import (
 
 	"strings"
 
-	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
+	"gopkg.in/dedis/crypto.v0/abstract"
 )
 
 // TreeNodeInstance represents a protocol-instance in a given TreeNode. It embeds an

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 	"github.com/satori/go.uuid"
+	"gopkg.in/dedis/crypto.v0/abstract"
 )
 
 // Overlay keeps all trees and entity-lists for a given Server. It creates

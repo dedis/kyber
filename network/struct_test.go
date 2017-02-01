@@ -3,8 +3,8 @@ package network
 import (
 	"testing"
 
-	"github.com/dedis/crypto/config"
 	"github.com/dedis/onet/log"
+	"gopkg.in/dedis/crypto.v0/config"
 )
 
 func TestServerIdentity(t *testing.T) {

@@ -16,9 +16,9 @@ import (
 
 	"fmt"
 
-	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
+	"gopkg.in/dedis/crypto.v0/abstract"
 )
 
 // Server connects the Router, the Overlay, and the Services together. It sets

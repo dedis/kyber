@@ -11,10 +11,10 @@ import (
 
 	"strings"
 
-	"github.com/dedis/crypto/random"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/dedis/crypto.v0/random"
 )
 
 type ContextData struct {

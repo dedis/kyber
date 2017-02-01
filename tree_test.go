@@ -6,12 +6,12 @@ import (
 
 	"strings"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/config"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/dedis/crypto.v0/abstract"
+	"gopkg.in/dedis/crypto.v0/config"
 )
 
 var tSuite = network.Suite
