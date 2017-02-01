@@ -1,8 +1,8 @@
 package crypto
 
 import (
-	"gopkg.in/dedis/crypto.v0/nist"
-	"gopkg.in/dedis/crypto.v0/random"
+	"github.com/dedis/crypto/nist"
+	"github.com/dedis/crypto/random"
 )
 
 /*

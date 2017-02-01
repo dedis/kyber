@@ -9,8 +9,8 @@ package norx
 import (
 	"encoding/binary"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/cipher"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/cipher"
 )
 
 func (s *state_t) Rate() int { return BYTES_RATE }

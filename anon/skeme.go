@@ -6,8 +6,8 @@ import (
 	"crypto/subtle"
 	"errors"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/random"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/random"
 )
 
 // Pairwise anonymous key agreement for point-to-point interactions.

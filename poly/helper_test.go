@@ -3,11 +3,11 @@ package poly
 import (
 	"fmt"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/config"
-	"gopkg.in/dedis/crypto.v0/edwards"
-	//"gopkg.in/dedis/crypto.v0/nist"
-	"gopkg.in/dedis/crypto.v0/random"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/config"
+	"github.com/dedis/crypto/edwards"
+	//"github.com/dedis/crypto/nist"
+	"github.com/dedis/crypto/random"
 )
 
 var testSuite = edwards.NewAES128SHA256Ed25519(false)

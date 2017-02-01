@@ -7,11 +7,11 @@ import (
 	"io"
 	"math/big"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/group"
-	"gopkg.in/dedis/crypto.v0/math"
-	"gopkg.in/dedis/crypto.v0/random"
-	"gopkg.in/dedis/crypto.v0/util"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
+	"github.com/dedis/crypto/math"
+	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto/util"
 )
 
 var one = big.NewInt(1)

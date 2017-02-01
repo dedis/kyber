@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"testing"
 	//"encoding/hex"
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/clique"
-	"gopkg.in/dedis/crypto.v0/nist"
-	"gopkg.in/dedis/crypto.v0/random"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/clique"
+	"github.com/dedis/crypto/nist"
+	"github.com/dedis/crypto/random"
 )
 
 var testSuite = nist.NewAES128SHA256P256()

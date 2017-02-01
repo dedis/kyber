@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
-	"gopkg.in/dedis/crypto.v0/util"
+	"github.com/dedis/crypto/util"
 )
 
 // XXX it wouldn't be hard to parameterize the file format parser

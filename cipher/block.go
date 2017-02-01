@@ -4,7 +4,7 @@ import (
 	"crypto/cipher"
 	"hash"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
+	"github.com/dedis/crypto/abstract"
 )
 
 // Construct a general message Cipher

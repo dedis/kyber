@@ -8,9 +8,9 @@ import (
 	"crypto/cipher"
 	"crypto/elliptic"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/group"
-	"gopkg.in/dedis/crypto.v0/random"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
+	"github.com/dedis/crypto/random"
 )
 
 type curvePoint struct {

@@ -14,8 +14,8 @@ import (
 	"crypto/cipher"
 	"io"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/group"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
 )
 
 type scalar struct {

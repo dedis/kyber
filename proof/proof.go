@@ -8,7 +8,7 @@ package proof
 import (
 	"errors"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
+	"github.com/dedis/crypto/abstract"
 )
 
 // XXX simplify using the reflection API?

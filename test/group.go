@@ -1,8 +1,8 @@
 package test
 
 import (
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/random"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/random"
 )
 
 // A generic benchmark suite for abstract groups.

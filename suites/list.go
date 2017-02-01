@@ -5,10 +5,10 @@ package suites
 import (
 	"fmt"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/ed25519"
-	"gopkg.in/dedis/crypto.v0/edwards"
-	"gopkg.in/dedis/crypto.v0/nist"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/ed25519"
+	"github.com/dedis/crypto/edwards"
+	"github.com/dedis/crypto/nist"
 )
 
 // Suites represents a map from ciphersuite name to ciphersuite.

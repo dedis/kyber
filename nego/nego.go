@@ -15,7 +15,7 @@ import (
 	"fmt"
 	"sort"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
+	"github.com/dedis/crypto/abstract"
 )
 
 type Entry struct {

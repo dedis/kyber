@@ -3,7 +3,7 @@ package aes
 import (
 	"testing"
 
-	"gopkg.in/dedis/crypto.v0/test"
+	"github.com/dedis/crypto/test"
 )
 
 func TestAES(t *testing.T) {

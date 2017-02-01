@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/ed25519"
-	"gopkg.in/dedis/crypto.v0/random"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/ed25519"
+	"github.com/dedis/crypto/random"
 )
 
 var suite = ed25519.NewAES128SHA256Ed25519(false)

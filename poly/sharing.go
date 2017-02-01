@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"io"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/random"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/random"
 )
 
 // Clique protocol outline:

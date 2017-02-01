@@ -5,7 +5,7 @@ import (
 	"crypto/cipher"
 	"errors"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
+	"github.com/dedis/crypto/abstract"
 )
 
 // unlinkable ring signature

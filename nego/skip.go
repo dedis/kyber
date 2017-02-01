@@ -3,7 +3,7 @@ package nego
 import (
 	"fmt"
 
-	"gopkg.in/dedis/crypto.v0/random"
+	"github.com/dedis/crypto/random"
 )
 
 // Pick a uint32 uniformly at random

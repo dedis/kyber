@@ -6,9 +6,9 @@ import (
 	"io"
 	"math/big"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/group"
-	"gopkg.in/dedis/crypto.v0/nist"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/group"
+	"github.com/dedis/crypto/nist"
 )
 
 type extPoint struct {

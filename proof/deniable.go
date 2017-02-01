@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"errors"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/clique"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/clique"
 )
 
 // Create a clique.Protocol implementing an interactive Sigma-protocol

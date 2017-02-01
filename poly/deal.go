@@ -128,11 +128,11 @@ import (
 	"reflect"
 	"strconv"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/anon"
-	"gopkg.in/dedis/crypto.v0/config"
-	"gopkg.in/dedis/crypto.v0/proof"
-	"gopkg.in/dedis/crypto.v0/random"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/anon"
+	"github.com/dedis/crypto/config"
+	"github.com/dedis/crypto/proof"
+	"github.com/dedis/crypto/random"
 )
 
 // Used mostly in marshalling code, this is the size of a uint32

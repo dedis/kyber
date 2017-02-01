@@ -3,7 +3,7 @@ package suites
 import (
 	"testing"
 
-	"gopkg.in/dedis/crypto.v0/test"
+	"github.com/dedis/crypto/test"
 )
 
 func TestSuites(t *testing.T) {

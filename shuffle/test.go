@@ -3,8 +3,8 @@ package shuffle
 import (
 	//"fmt"
 	//"encoding/hex"
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/proof"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/proof"
 )
 
 func TestShuffle(suite abstract.Suite, k int, N int) {

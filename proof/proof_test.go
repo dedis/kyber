@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/nist"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/nist"
 )
 
 func TestRep(t *testing.T) {

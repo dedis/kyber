@@ -7,9 +7,9 @@ import (
 	//"encoding/hex"
 	"crypto/cipher"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/nist"
-	"gopkg.in/dedis/crypto.v0/util"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/nist"
+	"github.com/dedis/crypto/util"
 )
 
 var zero = big.NewInt(0)

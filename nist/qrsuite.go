@@ -8,9 +8,9 @@ import (
 	"math/big"
 	"reflect"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/cipher/sha3"
-	"gopkg.in/dedis/crypto.v0/random"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/cipher/sha3"
+	"github.com/dedis/crypto/random"
 )
 
 type qrsuite struct {

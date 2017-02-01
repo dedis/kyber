@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/nist"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/nist"
 )
 
 // A basic, verifiable signature

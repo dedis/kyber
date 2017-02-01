@@ -13,7 +13,7 @@ import (
 	"runtime"
 	"unsafe"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
+	"github.com/dedis/crypto/abstract"
 )
 
 type g1group struct{ p *Pairing }

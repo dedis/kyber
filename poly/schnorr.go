@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"hash"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
+	"github.com/dedis/crypto/abstract"
 )
 
 // This file describes the Distributed Threshold Schnorr Signature

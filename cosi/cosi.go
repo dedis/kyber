@@ -39,8 +39,8 @@ import (
 	"errors"
 	"fmt"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/random"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/random"
 	//own "github.com/nikkolasg/learning/crypto/util"
 )
 

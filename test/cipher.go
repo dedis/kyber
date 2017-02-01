@@ -7,8 +7,8 @@ import (
 	"hash"
 	"testing"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/subtle"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/subtle"
 )
 
 func HashBench(b *testing.B, hash func() hash.Hash) {

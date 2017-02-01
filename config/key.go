@@ -6,10 +6,10 @@ import (
 	"log"
 	"os"
 
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/base64"
-	"gopkg.in/dedis/crypto.v0/random"
-	"gopkg.in/dedis/crypto.v0/util"
+	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/base64"
+	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto/util"
 )
 
 // KeyPair represents a public/private keypair
