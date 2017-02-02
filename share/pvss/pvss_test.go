@@ -1,4 +1,4 @@
-package share
+package pvss
 
 import (
 	"testing"
@@ -6,6 +6,7 @@ import (
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/edwards"
 	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto/share"
 )
 
 func TestPVSS(t *testing.T) {
@@ -34,7 +35,7 @@ func TestPVSS(t *testing.T) {
 	}
 
 	// (2) Share decryption (trustee)
-	polys := make([]*PubPoly, n)
+	polys := make([]*share.PubPoly, n)
 	for i := 0; i < n; i++ {
 		polys[i] = pubPoly // NOTE: polynomials can be different
 	}
@@ -52,7 +53,7 @@ func TestPVSS(t *testing.T) {
 	}
 
 	// (3) Check decrypted shares and recover secret if possible (dealer/3rd party)
-	recovered, err := RecoverSecretFoo(suite, G, K, E, D, th, n)
+	recovered, err := RecoverSecret(suite, G, K, E, D, th, n)
 	if err != nil {
 		t.Fatal(err)
 	}
