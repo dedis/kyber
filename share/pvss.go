@@ -14,6 +14,8 @@ import (
 // Some error definitions
 var errorTooFewShares = errors.New("not enough shares to recover secret")
 var errorDifferentLengths = errors.New("inputs of different lengths")
+var errorEncVerification = errors.New("verification of encrypted share failed")
+var errorDecVerification = errors.New("verification of decrypted share failed")
 
 // PubVerShare is a public verifiable share.
 type PubVerShare struct {
@@ -21,48 +23,34 @@ type PubVerShare struct {
 	P proof.DLEQProof // Proof
 }
 
-// PVSS is the main public verifiable secret sharing struct.
-type PVSS struct {
-	suite abstract.Suite // Cryptographic suite
-	h     abstract.Point // Base point for polynomial commits
-	t     int            // Secret sharing threshold
-	n     int            // Number of shares
-}
-
-// NewPVSS creates a new PVSS struct using the given suite, base point, and
-// secret sharing threshold.
-func NewPVSS(s abstract.Suite, h abstract.Point, t int, n int) *PVSS {
-	return &PVSS{suite: s, h: h, t: t, n: n}
-}
-
 // EncShares creates encrypted PVSS shares using the public keys in X and
 // provides a NIZK encryption consistency proof for each share.
-func (pv *PVSS) EncShares(X []abstract.Point, secret abstract.Scalar) ([]*PubVerShare, *PubPoly, error) {
+func EncShares(suite abstract.Suite, H abstract.Point, X []abstract.Point, secret abstract.Scalar, t int) ([]*PubVerShare, *PubPoly, error) {
 
 	n := len(X)
 	encShares := make([]*PubVerShare, n)
 
 	// Create secret sharing polynomial
-	priPoly := NewPriPoly(pv.suite, pv.t, secret, random.Stream)
+	priPoly := NewPriPoly(suite, t, secret, random.Stream)
 
 	// Create secret set of shares
 	priShares := priPoly.Shares(n)
 
 	// Create public polynomial commitments with respect to basis H
-	pubPoly := priPoly.Commit(pv.h)
+	pubPoly := priPoly.Commit(H)
 
 	// Prepare data for encryption consistency proofs ...
 	indices := make([]int, n)
 	values := make([]abstract.Scalar, n)
-	H := make([]abstract.Point, n)
+	HS := make([]abstract.Point, n)
 	for i := 0; i < n; i++ {
 		indices[i] = priShares[i].I
 		values[i] = priShares[i].V
-		H[i] = pv.h
+		HS[i] = H
 	}
 
 	// Create NIZK discrete-logarithm equality proofs
-	proofs, _, sX, err := proof.NewDLEQProofBatch(pv.suite, H, X, values)
+	proofs, _, sX, err := proof.NewDLEQProofBatch(suite, HS, X, values)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -75,100 +63,118 @@ func (pv *PVSS) EncShares(X []abstract.Point, secret abstract.Scalar) ([]*PubVer
 	return encShares, pubPoly, nil
 }
 
-func (pv *PVSS) verifyEncShares(H abstract.Point, X []abstract.Point, polys []*PubPoly, encShares []*PubVerShare) ([]abstract.Point, []*PubVerShare, error) {
+func VerifyEncShare(suite abstract.Suite, H abstract.Point, X abstract.Point, poly *PubPoly, encShare *PubVerShare) error {
+	sH := poly.Eval(encShare.S.I)
+	if !encShare.P.Verify(suite, H, X, sH.V, encShare.S.V) {
+		return errorEncVerification
+	}
+	return nil
+}
+
+func VerifyEncShareBatch(suite abstract.Suite, H abstract.Point, X []abstract.Point, polys []*PubPoly, encShares []*PubVerShare) ([]abstract.Point, []*PubVerShare, error) {
 
 	if len(X) != len(polys) && len(polys) != len(encShares) {
 		return nil, nil, errorDifferentLengths
 	}
 
-	// Recover commits from polynomials
 	n := len(X)
-	sH := make([]*PubShare, n)
+	var K []abstract.Point // good public keys
+	var E []*PubVerShare   // good encrypted keys
 	for i := 0; i < n; i++ {
-		sH[i] = polys[i].Eval(encShares[i].S.I)
-	}
-
-	var goodKeys []abstract.Point
-	var goodShares []*PubVerShare
-	for i := 0; i < n; i++ {
-		if encShares[i].P.Verify(pv.suite, H, X[i], sH[i].V, encShares[i].S.V) {
-			goodKeys = append(goodKeys, X[i])
-			goodShares = append(goodShares, encShares[i])
+		if err := VerifyEncShare(suite, H, X[i], polys[i], encShares[i]); err == nil {
+			K = append(K, X[i])
+			E = append(E, encShares[i])
 		}
 	}
 
-	return goodKeys, goodShares, nil
+	return K, E, nil
+}
+
+func DecShare(suite abstract.Suite, H abstract.Point, X abstract.Point, poly *PubPoly, x abstract.Scalar, encShare *PubVerShare) (*PubVerShare, error) {
+
+	if err := VerifyEncShare(suite, H, X, poly, encShare); err != nil {
+		return nil, err
+	}
+
+	G := suite.Point().Base()
+	V := suite.Point().Mul(encShare.S.V, suite.Scalar().Inv(x)) // decryption: x^{-1} * (xS)
+	ps := &PubShare{encShare.S.I, V}
+	P, _, _, err := proof.NewDLEQProof(suite, G, V, x)
+	if err != nil {
+		return nil, err
+	}
+
+	return &PubVerShare{*ps, *P}, nil
 }
 
 // DecShares first verifies the given encrypted shares against their encryption
 // consistency proofs, i.e., it checks that every share sX satisfies log_H(sH)
 // == log_X(sX). Afterwards all valid shares are decrypted and decryption consistency
 // proofs are created.
-func (pv *PVSS) DecShares(H abstract.Point, X []abstract.Point, polys []*PubPoly, x abstract.Scalar, encShares []*PubVerShare) ([]abstract.Point, []*PubVerShare, []*PubVerShare, error) {
+func DecShareBatch(suite abstract.Suite, H abstract.Point, X []abstract.Point, polys []*PubPoly, x abstract.Scalar, encShares []*PubVerShare) ([]abstract.Point, []*PubVerShare, []*PubVerShare, error) {
 
 	if len(X) != len(polys) && len(polys) != len(encShares) {
 		return nil, nil, nil, errorDifferentLengths
 	}
 
-	goodKeys, goodEncShares, err := pv.verifyEncShares(H, X, polys, encShares)
-	if err != nil {
-		return nil, nil, nil, err
-	}
+	var K []abstract.Point // good public keys
+	var E []*PubVerShare   // good encrypted shares
+	var D []*PubVerShare   // good decrypted shares
 
-	var decShares []*PubVerShare
-	for _, s := range goodEncShares {
-
-		G := pv.suite.Point().Base()
-		V := pv.suite.Point().Mul(s.S.V, pv.suite.Scalar().Inv(x)) // decryption: x^{-1} * (xS)
-
-		P, _, _, err := proof.NewDLEQProof(pv.suite, G, V, x)
-		if err != nil {
-			return nil, nil, nil, err
+	for i := 0; i < len(encShares); i++ {
+		if ds, err := DecShare(suite, H, X[i], polys[i], x, encShares[i]); err == nil {
+			K = append(K, X[i])
+			E = append(E, encShares[i])
+			D = append(D, ds)
 		}
-
-		ps := &PubShare{s.S.I, V}
-		decShares = append(decShares, &PubVerShare{*ps, *P})
 	}
 
-	return goodKeys, goodEncShares, decShares, nil
+	return K, E, D, nil
 }
 
-func (pv *PVSS) verifyDecShares(G abstract.Point, X []abstract.Point, encShares []*PubVerShare, decShares []*PubVerShare) ([]*PubVerShare, error) {
+func VerifyDecShare(suite abstract.Suite, G abstract.Point, X abstract.Point, encShare *PubVerShare, decShare *PubVerShare) error {
+	if !decShare.P.Verify(suite, G, decShare.S.V, X, encShare.S.V) {
+		return errorDecVerification
+	}
+	return nil
+}
+
+func VerifyDecShareBatch(suite abstract.Suite, G abstract.Point, X []abstract.Point, encShares []*PubVerShare, decShares []*PubVerShare) ([]*PubVerShare, error) {
 
 	if len(X) != len(encShares) || len(encShares) != len(decShares) {
 		return nil, errorDifferentLengths
 	}
 
-	var goodShares []*PubVerShare
+	var D []*PubVerShare // good decrypted shares
 	for i := 0; i < len(X); i++ {
-		if decShares[i].P.Verify(pv.suite, G, decShares[i].S.V, X[i], encShares[i].S.V) {
-			goodShares = append(goodShares, decShares[i])
+		if err := VerifyDecShare(suite, G, X[i], encShares[i], decShares[i]); err == nil {
+			D = append(D, decShares[i])
 		}
 	}
 
-	return goodShares, nil
+	return D, nil
 }
 
 // RecoverSecret first verifies the given decrypted shares against their
 // decryption consistency proofs, i.e., it checks that every share sG satisfies
 // log_G(sG) == log_X(sX), and then tries to recover the shared secret.
-func (pv *PVSS) RecoverSecret(G abstract.Point, X []abstract.Point, encShares []*PubVerShare, decShares []*PubVerShare) (abstract.Point, error) {
+func RecoverSecretFoo(suite abstract.Suite, G abstract.Point, X []abstract.Point, encShares []*PubVerShare, decShares []*PubVerShare, t int, n int) (abstract.Point, error) {
 
 	// Verify shares before continuing
-	goodShares, err := pv.verifyDecShares(G, X, encShares, decShares)
+	D, err := VerifyDecShareBatch(suite, G, X, encShares, decShares)
 	if err != nil {
 		return nil, err
 	}
 
 	// Check that we have enough good shares
-	if len(goodShares) < pv.t {
+	if len(D) < t {
 		return nil, errorTooFewShares
 	}
 
 	var shares []*PubShare
-	for _, s := range goodShares {
+	for _, s := range D {
 		shares = append(shares, &s.S)
 	}
 
-	return RecoverCommit(pv.suite, shares, pv.t, pv.n)
+	return RecoverCommit(suite, shares, t, n)
 }
