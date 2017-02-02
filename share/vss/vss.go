@@ -32,6 +32,7 @@ import (
 	"fmt"
 
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/share"
 	"github.com/dedis/crypto/sign"
 )
 
@@ -60,8 +61,8 @@ type Dealer struct {
 // share for a specific Verifier.
 type Deal struct {
 	SessionID   []byte
-	SecShare    *PriShare
-	RndShare    *PriShare
+	SecShare    *share.PriShare
+	RndShare    *share.PriShare
 	T           uint32
 	Commitments []abstract.Point
 	Signature   []byte
@@ -110,8 +111,8 @@ func NewDealer(suite abstract.Suite, longterm, secret abstract.Scalar, verifiers
 	d.t = t
 
 	H := deriveH(d.suite, d.verifiers)
-	f := NewPriPoly(d.suite, d.t, d.secret, r)
-	g := NewPriPoly(d.suite, d.t, nil, r)
+	f := share.NewPriPoly(d.suite, d.t, d.secret, r)
+	g := share.NewPriPoly(d.suite, d.t, nil, r)
 	pub := d.suite.Point().Mul(nil, d.long)
 
 	// F = coeff * B
@@ -301,7 +302,7 @@ func (v *Verifier) ProcessDeal(d *Deal) (*Approval, *Complaint, error) {
 
 // Share returns the private share that this verifier has received. It returns
 // nil if the deal is not certified or there is not enough approvals.
-func (v *Verifier) Share() *PriShare {
+func (v *Verifier) Share() *share.PriShare {
 	if !v.EnoughApprovals() || !v.DealCertified() {
 		return nil
 	}
@@ -403,7 +404,7 @@ func (a *aggregator) verifyDeal(d *Deal, inclusion bool) error {
 	gih := a.suite.Point().Mul(H, gi.V)
 	ci := a.suite.Point().Add(fig, gih)
 
-	commitPoly := NewPubPoly(a.suite, nil, d.Commitments)
+	commitPoly := share.NewPubPoly(a.suite, nil, d.Commitments)
 
 	pubShare := commitPoly.Eval(fi.I)
 	if !ci.Equal(pubShare.V) {
