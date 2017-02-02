@@ -64,6 +64,9 @@ func EncShares(suite abstract.Suite, H abstract.Point, X []abstract.Point, secre
 	return encShares, pubPoly, nil
 }
 
+// VerifyEncShare checks that the encrypted share sX satisfies
+// log_{H}(sH) == log_{X}(sX) where sH is the public commitment computed by
+// evaluating the public commitment polynomial at the encrypted share's index i.
 func VerifyEncShare(suite abstract.Suite, H abstract.Point, X abstract.Point, poly *share.PubPoly, encShare *PubVerShare) error {
 	sH := poly.Eval(encShare.S.I)
 	if !encShare.P.Verify(suite, H, X, sH.V, encShare.S.V) {
@@ -72,6 +75,8 @@ func VerifyEncShare(suite abstract.Suite, H abstract.Point, X abstract.Point, po
 	return nil
 }
 
+// VerifyEncShareBatch provides the same functionality as VerifyEncShare but
+// for slices of encrypted shares.
 func VerifyEncShareBatch(suite abstract.Suite, H abstract.Point, X []abstract.Point, polys []*share.PubPoly, encShares []*PubVerShare) ([]abstract.Point, []*PubVerShare, error) {
 
 	if len(X) != len(polys) && len(polys) != len(encShares) {
@@ -91,6 +96,9 @@ func VerifyEncShareBatch(suite abstract.Suite, H abstract.Point, X []abstract.Po
 	return K, E, nil
 }
 
+// DecShare first verifies the encrypted share against the encryption
+// consistency proof and, if valid, decrypts it and creates a decryption
+// consistency proof.
 func DecShare(suite abstract.Suite, H abstract.Point, X abstract.Point, poly *share.PubPoly, x abstract.Scalar, encShare *PubVerShare) (*PubVerShare, error) {
 
 	if err := VerifyEncShare(suite, H, X, poly, encShare); err != nil {
@@ -108,10 +116,8 @@ func DecShare(suite abstract.Suite, H abstract.Point, X abstract.Point, poly *sh
 	return &PubVerShare{*ps, *P}, nil
 }
 
-// DecShares first verifies the given encrypted shares against their encryption
-// consistency proofs, i.e., it checks that every share sX satisfies log_H(sH)
-// == log_X(sX). Afterwards all valid shares are decrypted and decryption consistency
-// proofs are created.
+// DecShareBatch provides the same functionality as DecShare but for slices of
+// encrypted shares.
 func DecShareBatch(suite abstract.Suite, H abstract.Point, X []abstract.Point, polys []*share.PubPoly, x abstract.Scalar, encShares []*PubVerShare) ([]abstract.Point, []*PubVerShare, []*PubVerShare, error) {
 
 	if len(X) != len(polys) && len(polys) != len(encShares) {
@@ -133,6 +139,8 @@ func DecShareBatch(suite abstract.Suite, H abstract.Point, X []abstract.Point, p
 	return K, E, D, nil
 }
 
+// VerifyDecShare checks that the decrypted share sG satisfies
+// log_{G}(X) == log_{sG}(sX). Note that X = xG and sX = s(xG) = x(sG).
 func VerifyDecShare(suite abstract.Suite, G abstract.Point, X abstract.Point, encShare *PubVerShare, decShare *PubVerShare) error {
 	if !decShare.P.Verify(suite, G, decShare.S.V, X, encShare.S.V) {
 		return errorDecVerification
@@ -140,6 +148,8 @@ func VerifyDecShare(suite abstract.Suite, G abstract.Point, X abstract.Point, en
 	return nil
 }
 
+// VerifyDecShareBatch provides the same functionality as VerifyDecShare but for
+// slices of decrypted shares.
 func VerifyDecShareBatch(suite abstract.Suite, G abstract.Point, X []abstract.Point, encShares []*PubVerShare, decShares []*PubVerShare) ([]*PubVerShare, error) {
 
 	if len(X) != len(encShares) || len(encShares) != len(decShares) {
@@ -157,8 +167,7 @@ func VerifyDecShareBatch(suite abstract.Suite, G abstract.Point, X []abstract.Po
 }
 
 // RecoverSecret first verifies the given decrypted shares against their
-// decryption consistency proofs, i.e., it checks that every share sG satisfies
-// log_G(sG) == log_X(sX), and then tries to recover the shared secret.
+// decryption consistency proofs and then tries to recover the shared secret.
 func RecoverSecret(suite abstract.Suite, G abstract.Point, X []abstract.Point, encShares []*PubVerShare, decShares []*PubVerShare, t int, n int) (abstract.Point, error) {
 
 	// Verify shares before continuing
