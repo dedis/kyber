@@ -11,6 +11,8 @@ import (
 // This package provides functionality to create and verify non-interactive
 // zero-knowledge (NIZK) proofs for the equality (EQ) of discrete logarithms (DL).
 
+var errorDifferentLengths = errors.New("inputs of different lengths")
+
 // DLEQProof represents a NIZK dlog-equality proof.
 type DLEQProof struct {
 	C  abstract.Scalar // challenge
@@ -52,8 +54,8 @@ func NewDLEQProof(suite abstract.Suite, G abstract.Point, H abstract.Point, x ab
 // input values.
 func NewDLEQProofBatch(suite abstract.Suite, G []abstract.Point, H []abstract.Point, secrets []abstract.Scalar) ([]*DLEQProof, []abstract.Point, []abstract.Point, error) {
 
-	if len(G) != len(H) && len(H) != len(secrets) {
-		return nil, nil, nil, errors.New("inputs of different lengths")
+	if len(G) != len(H) || len(H) != len(secrets) {
+		return nil, nil, nil, errorDifferentLengths
 	}
 
 	n := len(secrets)
@@ -102,8 +104,5 @@ func (p *DLEQProof) Verify(suite abstract.Suite, G abstract.Point, H abstract.Po
 	cxH := suite.Point().Mul(xH, p.C)
 	a := suite.Point().Add(rG, cxG)
 	b := suite.Point().Add(rH, cxH)
-	if p.VG.Equal(a) && p.VH.Equal(b) {
-		return true
-	}
-	return false
+	return p.VG.Equal(a) && p.VH.Equal(b)
 }

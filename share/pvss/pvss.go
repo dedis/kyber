@@ -79,13 +79,13 @@ func VerifyEncShare(suite abstract.Suite, H abstract.Point, X abstract.Point, po
 // for slices of encrypted shares.
 func VerifyEncShareBatch(suite abstract.Suite, H abstract.Point, X []abstract.Point, polys []*share.PubPoly, encShares []*PubVerShare) ([]abstract.Point, []*PubVerShare, error) {
 
-	if len(X) != len(polys) && len(polys) != len(encShares) {
+	if len(X) != len(polys) || len(polys) != len(encShares) {
 		return nil, nil, errorDifferentLengths
 	}
 
 	n := len(X)
 	var K []abstract.Point // good public keys
-	var E []*PubVerShare   // good encrypted keys
+	var E []*PubVerShare   // good encrypted shares
 	for i := 0; i < n; i++ {
 		if err := VerifyEncShare(suite, H, X[i], polys[i], encShares[i]); err == nil {
 			K = append(K, X[i])
@@ -120,7 +120,7 @@ func DecShare(suite abstract.Suite, H abstract.Point, X abstract.Point, poly *sh
 // encrypted shares.
 func DecShareBatch(suite abstract.Suite, H abstract.Point, X []abstract.Point, polys []*share.PubPoly, x abstract.Scalar, encShares []*PubVerShare) ([]abstract.Point, []*PubVerShare, []*PubVerShare, error) {
 
-	if len(X) != len(polys) && len(polys) != len(encShares) {
+	if len(X) != len(polys) || len(polys) != len(encShares) {
 		return nil, nil, nil, errorDifferentLengths
 	}
 
