@@ -10,9 +10,7 @@ import (
 )
 
 func TestPVSS(test *testing.T) {
-
 	suite := edwards.NewAES128SHA256Ed25519(false)
-
 	G := suite.Point().Base()
 	H, _ := suite.Point().Pick(nil, suite.Cipher([]byte("H")))
 
@@ -65,9 +63,7 @@ func TestPVSS(test *testing.T) {
 }
 
 func TestPVSSDelete(test *testing.T) {
-
 	suite := edwards.NewAES128SHA256Ed25519(false)
-
 	G := suite.Point().Base()
 	H, _ := suite.Point().Pick(nil, suite.Cipher([]byte("H")))
 
@@ -128,9 +124,7 @@ func TestPVSSDelete(test *testing.T) {
 }
 
 func TestPVSSDeleteFail(test *testing.T) {
-
 	suite := edwards.NewAES128SHA256Ed25519(false)
-
 	G := suite.Point().Base()
 	H, _ := suite.Point().Pick(nil, suite.Cipher([]byte("H")))
 

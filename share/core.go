@@ -1,17 +1,14 @@
-// Package share implements different secret sharing mechanisms, including
-// simple Shamir secret sharing, verifiable secret sharing (vss), and public
-// verifiable secret sharing (pvss).
+// Package share implements simple Shamir secret sharing and public
+// commitment polynomials.
 package share
 
 import (
 	"crypto/cipher"
+	"crypto/subtle"
 	"errors"
 
 	"github.com/dedis/crypto/abstract"
 )
-
-// This file provides the core functionality for secret sharing including
-// Shamir's scheme and public commitment polynomials.
 
 // Some error definitions
 var errorGroups = errors.New("non-matching groups")
@@ -49,13 +46,13 @@ func (p *PriPoly) Threshold() int {
 }
 
 // GetSecret returns the shared secret p(0), i.e., the constant term of the polynomial.
-func (p *PriPoly) GetSecret() abstract.Scalar {
+func (p *PriPoly) Secret() abstract.Scalar {
 	return p.coeffs[0]
 }
 
 // Eval computes the private share v = p(i).
 func (p *PriPoly) Eval(i int) *PriShare {
-	xi := p.g.Scalar().SetInt64(1 + int64(i)) // x-coordinate of this share
+	xi := p.g.Scalar().SetInt64(1 + int64(i))
 	v := p.g.Scalar().Zero()
 	for j := p.Threshold() - 1; j >= 0; j-- {
 		v.Mul(v, xi)
@@ -94,12 +91,13 @@ func (p *PriPoly) Equal(q *PriPoly) bool {
 	if p.g.String() != q.g.String() {
 		return false
 	}
+	b := 1
 	for i := 0; i < p.Threshold(); i++ {
-		if !p.coeffs[i].Equal(q.coeffs[i]) {
-			return false
-		}
+		pb := p.coeffs[i].Bytes()
+		qb := q.coeffs[i].Bytes()
+		b &= subtle.ConstantTimeCompare(pb, qb)
 	}
-	return true
+	return b == 1
 }
 
 // Commit creates a public commitment polynomial for the given base point b or
@@ -112,7 +110,8 @@ func (p *PriPoly) Commit(b abstract.Point) *PubPoly {
 	return &PubPoly{p.g, b, commits}
 }
 
-// RecoverSecret reconstructs the shared secret p(0) using Lagrange interpolation.
+// RecoverSecret reconstructs the shared secret p(0) from a list of private
+// shares using Lagrange interpolation.
 func RecoverSecret(g abstract.Group, shares []*PriShare, t int, n int) (abstract.Scalar, error) {
 	isBad := func(s *PriShare) bool {
 		return s == nil || s.V == nil || s.I < 0 || n <= s.I
@@ -132,10 +131,10 @@ func RecoverSecret(g abstract.Group, shares []*PriShare, t int, n int) (abstract
 		return nil, errors.New("not enough good private shares to reconstruct shared secret")
 	}
 
-	acc := g.Scalar().Zero() // scalar sum accumulator
-	num := g.Scalar()        // numerator
-	den := g.Scalar()        // denominator
-	tmp := g.Scalar()        // scalar buffer
+	acc := g.Scalar().Zero()
+	num := g.Scalar()
+	den := g.Scalar()
+	tmp := g.Scalar()
 
 	for _, si := range shares {
 		if isBad(si) {
@@ -210,7 +209,7 @@ func (p *PubPoly) Shares(n int) []*PubShare {
 }
 
 // Add computes the component-wise sum of the polynomials p and q and returns it
-// as a new polynomial. If the base points p.b and q.b are different then the
+// as a new polynomial. NOTE: If the base points p.b and q.b are different then the
 // base point of the resulting PubPoly cannot be computed without knowing the
 // discrete logarithm between p.b and q.b. In this particular case, we are using
 // p.b as a default value which of course does not correspond to the correct
@@ -237,14 +236,13 @@ func (p *PubPoly) Equal(q *PubPoly) bool {
 	if p.g.String() != q.g.String() {
 		return false
 	}
-
+	b := 1
 	for i := 0; i < p.Threshold(); i++ {
-		if !p.commits[i].Equal(q.commits[i]) {
-			return false
-		}
+		pb, _ := p.commits[i].MarshalBinary()
+		qb, _ := q.commits[i].MarshalBinary()
+		b &= subtle.ConstantTimeCompare(pb, qb)
 	}
-
-	return true
+	return b == 1
 }
 
 // Check a private share against a public commitment polynomial.
@@ -254,7 +252,8 @@ func (p *PubPoly) Check(s *PriShare) bool {
 	return pv.V.Equal(ps)
 }
 
-// RecoverCommit reconstructs the secret commitment p(0) using Lagrange interpolation.
+// RecoverCommit reconstructs the secret commitment p(0) from a list of public
+// shares using Lagrange interpolation.
 func RecoverCommit(g abstract.Group, shares []*PubShare, t int, n int) (abstract.Point, error) {
 	isBad := func(s *PubShare) bool {
 		return s == nil || s.V == nil || s.I < 0 || n <= s.I
@@ -274,11 +273,11 @@ func RecoverCommit(g abstract.Group, shares []*PubShare, t int, n int) (abstract
 		return nil, errors.New("not enough good public shares to reconstruct secret commitment")
 	}
 
-	num := g.Scalar()       // numerator
-	den := g.Scalar()       // denominator
-	tmp := g.Scalar()       // scalar buffer
-	Acc := g.Point().Null() // point accumulator
-	Tmp := g.Point()        // point buffer
+	num := g.Scalar()
+	den := g.Scalar()
+	tmp := g.Scalar()
+	Acc := g.Point().Null()
+	Tmp := g.Point()
 
 	for _, si := range shares {
 		if isBad(si) {
