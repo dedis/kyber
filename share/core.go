@@ -76,46 +76,37 @@ func (p *PriPoly) Shares(n int) []*PriShare {
 // Add computes the component-wise sum of the polynomials p and q and returns it
 // as a new polynomial.
 func (p *PriPoly) Add(q *PriPoly) (*PriPoly, error) {
-
-	if p.g != q.g {
+	if p.g.String() != q.g.String() {
 		return nil, errorGroups
 	}
-
 	if p.Threshold() != q.Threshold() {
 		return nil, errorCoeffs
 	}
-
-	t := p.Threshold()
-	coeffs := make([]abstract.Scalar, t)
-	for i := 0; i < t; i++ {
+	coeffs := make([]abstract.Scalar, p.Threshold())
+	for i := range coeffs {
 		coeffs[i] = p.g.Scalar().Add(p.coeffs[i], q.coeffs[i])
 	}
-
 	return &PriPoly{p.g, coeffs}, nil
 }
 
 // Equal checks equality of two secret sharing polynomials p and q.
 func (p *PriPoly) Equal(q *PriPoly) bool {
-
 	if p.g.String() != q.g.String() {
 		return false
 	}
-
 	for i := 0; i < p.Threshold(); i++ {
 		if !p.coeffs[i].Equal(q.coeffs[i]) {
 			return false
 		}
 	}
-
 	return true
 }
 
 // Commit creates a public commitment polynomial for the given base point b or
 // the standard base if b == nil.
 func (p *PriPoly) Commit(b abstract.Point) *PubPoly {
-	t := p.Threshold()
-	commits := make([]abstract.Point, t)
-	for i := 0; i < t; i++ {
+	commits := make([]abstract.Point, p.Threshold())
+	for i := range commits {
 		commits[i] = p.g.Point().Mul(b, p.coeffs[i])
 	}
 	return &PubPoly{p.g, b, commits}
@@ -123,7 +114,6 @@ func (p *PriPoly) Commit(b abstract.Point) *PubPoly {
 
 // RecoverSecret reconstructs the shared secret p(0) using Lagrange interpolation.
 func RecoverSecret(g abstract.Group, shares []*PriShare, t int, n int) (abstract.Scalar, error) {
-
 	isBad := func(s *PriShare) bool {
 		return s == nil || s.V == nil || s.I < 0 || n <= s.I
 	}
@@ -179,7 +169,7 @@ type PubPoly struct {
 	commits []abstract.Point // Commitments to coefficients of the secret sharing polynomial
 }
 
-// NewPubPoly creates a new public commitment polynomial
+// NewPubPoly creates a new public commitment polynomial.
 func NewPubPoly(g abstract.Group, b abstract.Point, commits []abstract.Point) *PubPoly {
 	return &PubPoly{g, b, commits}
 }
@@ -226,8 +216,7 @@ func (p *PubPoly) Shares(n int) []*PubShare {
 // p.b as a default value which of course does not correspond to the correct
 // base point and thus should not be used in further computations.
 func (p *PubPoly) Add(q *PubPoly) (*PubPoly, error) {
-
-	if p.g != q.g {
+	if p.g.String() != q.g.String() {
 		return nil, errorGroups
 	}
 
@@ -235,9 +224,8 @@ func (p *PubPoly) Add(q *PubPoly) (*PubPoly, error) {
 		return nil, errorCoeffs
 	}
 
-	t := p.Threshold()
-	commits := make([]abstract.Point, t)
-	for i := 0; i < t; i++ {
+	commits := make([]abstract.Point, p.Threshold())
+	for i := range commits {
 		commits[i] = p.g.Point().Add(p.commits[i], q.commits[i])
 	}
 
@@ -246,7 +234,6 @@ func (p *PubPoly) Add(q *PubPoly) (*PubPoly, error) {
 
 // Equal checks equality of two public commitment polynomials p and q.
 func (p *PubPoly) Equal(q *PubPoly) bool {
-
 	if p.g.String() != q.g.String() {
 		return false
 	}
@@ -269,7 +256,6 @@ func (p *PubPoly) Check(s *PriShare) bool {
 
 // RecoverCommit reconstructs the secret commitment p(0) using Lagrange interpolation.
 func RecoverCommit(g abstract.Group, shares []*PubShare, t int, n int) (abstract.Point, error) {
-
 	isBad := func(s *PubShare) bool {
 		return s == nil || s.V == nil || s.I < 0 || n <= s.I
 	}
