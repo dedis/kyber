@@ -38,7 +38,7 @@ func NewDLEQProof(suite abstract.Suite, G abstract.Point, H abstract.Point, x ab
 	vH := suite.Point().Mul(H, v)
 
 	// Challenge
-	cb, err := hash.Args(suite.Hash(), xG, xH, vG, vH)
+	cb, err := hash.Structures(suite.Hash(), xG, xH, vG, vH)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -81,7 +81,7 @@ func NewDLEQProofBatch(suite abstract.Suite, G []abstract.Point, H []abstract.Po
 	}
 
 	// Collective challenge
-	cb, err := hash.Args(suite.Hash(), xG, xH, vG, vH)
+	cb, err := hash.Structures(suite.Hash(), xG, xH, vG, vH)
 	if err != nil {
 		return nil, nil, nil, err
 	}

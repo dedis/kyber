@@ -59,29 +59,29 @@ func TestFile(t *testing.T) {
 	}
 }
 
-func TestArgs(t *testing.T) {
+func TestStructures(t *testing.T) {
 
 	x := suite.Scalar().Pick(random.Stream)
 	y := suite.Scalar().Pick(random.Stream)
 	X, _ := suite.Point().Pick(nil, random.Stream)
 	Y, _ := suite.Point().Pick(nil, random.Stream)
 
-	h1, err := hash.Args(suite.Hash(), x, y)
+	h1, err := hash.Structures(suite.Hash(), x, y)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	h2, err := hash.Args(suite.Hash(), X, Y)
+	h2, err := hash.Structures(suite.Hash(), X, Y)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	h3, err := hash.Args(suite.Hash(), x, y, X, Y)
+	h3, err := hash.Structures(suite.Hash(), x, y, X, Y)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	h4, err := hash.Args(suite.Hash(), x, y, X, Y, []abstract.Scalar{x, y, x}, []abstract.Point{Y, X, Y})
+	h4, err := hash.Structures(suite.Hash(), x, y, X, Y, []abstract.Scalar{x, y, x}, []abstract.Point{Y, X, Y})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,12 +90,12 @@ func TestArgs(t *testing.T) {
 		t.Fatal("Unexpectably obtained equal hashes")
 	}
 
-	h5, err := hash.Args(suite.Hash(), x, x, y, y)
+	h5, err := hash.Structures(suite.Hash(), x, x, y, y)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	h6, err := hash.Args(suite.Hash(), []abstract.Scalar{x, x, y, y})
+	h6, err := hash.Structures(suite.Hash(), []abstract.Scalar{x, x, y, y})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,12 +104,12 @@ func TestArgs(t *testing.T) {
 		t.Fatal("Hashes do not match")
 	}
 
-	h7, err := hash.Args(suite.Hash(), X, Y, Y, X)
+	h7, err := hash.Structures(suite.Hash(), X, Y, Y, X)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	h8, err := hash.Args(suite.Hash(), []abstract.Point{X, Y, Y, X})
+	h8, err := hash.Structures(suite.Hash(), []abstract.Point{X, Y, Y, X})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -30,9 +30,9 @@ func File(hash hash.Hash, file string) ([]byte, error) {
 	return Stream(hash, f)
 }
 
-// Args returns the hash of all the given arguments. Each argument has to
+// Structures returns the hash of all the given arguments. Each argument has to
 // implement the BinaryMarshaler interface.
-func Args(hash hash.Hash, args ...interface{}) ([]byte, error) {
+func Structures(hash hash.Hash, args ...interface{}) ([]byte, error) {
 	var res, buf []byte
 	bmArgs, err := convertToBinaryMarshaler(args)
 	if err != nil {
