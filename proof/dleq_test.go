@@ -40,7 +40,6 @@ func TestDLEQProof(t *testing.T) {
 	if len(bad) != 0 {
 		t.Fatalf("some proofs are invalid: %v", bad)
 	}
-
 }
 
 func TestDLEQProofBatch(t *testing.T) {
@@ -77,7 +76,6 @@ func TestDLEQProofBatch(t *testing.T) {
 	if len(bad) != 0 {
 		t.Fatalf("some proofs are invalid: %v", bad)
 	}
-
 }
 
 func TestDLEQLengths(t *testing.T) {

@@ -10,6 +10,8 @@ import (
 
 // This package provides functionality to create and verify non-interactive
 // zero-knowledge (NIZK) proofs for the equality (EQ) of discrete logarithms (DL).
+// This means, for two values xG and xH one can check that log_{G}(xG) == log_{H}(xH)
+// without revealing the secret value x.
 
 var errorDifferentLengths = errors.New("inputs of different lengths")
 
@@ -24,7 +26,7 @@ type DLEQProof struct {
 // NewDLEQProof computes a new NIZK dlog-equality proof by randomly selecting a
 // commitment v, determining the challenge c = H(xG,xH,vG,vH) and the response r
 // = v - cx. It also returns the encrypted base points xG and xH.
-func NewDLEQProof(suite abstract.Suite, G abstract.Point, H abstract.Point, x abstract.Scalar) (*DLEQProof, abstract.Point, abstract.Point, error) {
+func NewDLEQProof(suite abstract.Suite, G abstract.Point, H abstract.Point, x abstract.Scalar) (proof *DLEQProof, xG abstract.Point, xH abstract.Point, err error) {
 
 	// Encrypt base points with secret
 	xG := suite.Point().Mul(G, x)
@@ -52,7 +54,7 @@ func NewDLEQProof(suite abstract.Suite, G abstract.Point, H abstract.Point, x ab
 // NewDLEQProofBatch computes lists of NIZK dlog-equality proofs and of
 // encrypted base points xG and xH. Note that the challenge is computed over all
 // input values.
-func NewDLEQProofBatch(suite abstract.Suite, G []abstract.Point, H []abstract.Point, secrets []abstract.Scalar) ([]*DLEQProof, []abstract.Point, []abstract.Point, error) {
+func NewDLEQProofBatch(suite abstract.Suite, G []abstract.Point, H []abstract.Point, secrets []abstract.Scalar) (proof []*DLEQProof, xG []abstract.Point, xH []abstract.Point, err error) {
 
 	if len(G) != len(H) || len(H) != len(secrets) {
 		return nil, nil, nil, errorDifferentLengths
