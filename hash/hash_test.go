@@ -16,23 +16,23 @@ import (
 
 var suite = ed25519.NewAES128SHA256Ed25519(false)
 
-func TestStreamChunk(t *testing.T) {
+func TestStream(t *testing.T) {
 	var buff bytes.Buffer
 	str := "Hello World"
 	buff.WriteString(str)
-	hashed, err := hash.StreamChunk(suite.Hash(), &buff, 32)
+	hashed, err := hash.Stream(suite.Hash(), &buff)
 	if err != nil {
-		t.Fatal("error hashing" + err.Error())
+		t.Fatal(err)
 	}
 	h := suite.Hash()
 	h.Write([]byte(str))
 	b := h.Sum(nil)
 	if !bytes.Equal(b, hashed) {
-		t.Fatal("Hashes not equal")
+		t.Fatal("hashes not equal")
 	}
 }
 
-func TestFileChunk(t *testing.T) {
+func TestFile(t *testing.T) {
 	tmpfileIO, err := ioutil.TempFile("", "hash_test.bin")
 	if err != nil {
 		t.Fatal(err)
@@ -47,11 +47,11 @@ func TestFileChunk(t *testing.T) {
 			t.Fatal(err)
 		}
 		if err := ioutil.WriteFile(tmpfile, buf, 0777); err != nil {
-			t.Fatal("Could not write file")
+			t.Fatal(err)
 		}
-		hash, err := hash.FileChunk(suite.Hash(), tmpfile, i)
+		hash, err := hash.File(suite.Hash(), tmpfile)
 		if err != nil {
-			t.Fatal("Could not hash", tmpfile, err)
+			t.Fatal(err)
 		}
 		if len(hash) != 32 {
 			t.Fatal("Output of SHA256 should be 32 bytes")
