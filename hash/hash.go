@@ -27,6 +27,7 @@ func File(hash hash.Hash, file string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
 	return Stream(hash, f)
 }
 
