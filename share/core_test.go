@@ -118,7 +118,7 @@ func TestPublicRecovery(test *testing.T) {
 		test.Fatal(err)
 	}
 
-	if !recovered.Equal(pubPoly.GetCommit()) {
+	if !recovered.Equal(pubPoly.Commit()) {
 		test.Fatal("recovered commi does not match initial value")
 	}
 }
@@ -143,7 +143,7 @@ func TestPublicRecoveryDelete(test *testing.T) {
 		test.Fatal(err)
 	}
 
-	if !recovered.Equal(pubPoly.GetCommit()) {
+	if !recovered.Equal(pubPoly.Commit()) {
 		test.Fatal("recovered commit does not match initial value")
 	}
 }
@@ -217,8 +217,8 @@ func TestPublicAdd(test *testing.T) {
 		test.Fatal(err)
 	}
 
-	x := P.GetCommit()
-	y := Q.GetCommit()
+	x := P.Commit()
+	y := Q.Commit()
 	z := g.Point().Add(x, y)
 
 	if !recovered.Equal(z) {
