@@ -10,15 +10,12 @@ import (
 )
 
 func TestDLEQProof(t *testing.T) {
-
 	suite := edwards.NewAES128SHA256Ed25519(false)
-
 	n := 10
 	var good []int
 	var bad []int
 
 	for i := 0; i < n; i++ {
-
 		// Create some random secrets and base points
 		x := suite.Scalar().Pick(random.Stream)
 		g, _ := suite.Point().Pick([]byte(fmt.Sprintf("G%d", i)), random.Stream)
@@ -29,12 +26,11 @@ func TestDLEQProof(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if proof.Verify(suite, g, h, xG, xH) {
+		if err := proof.Verify(suite, g, h, xG, xH); err == nil {
 			good = append(good, i)
 		} else {
 			bad = append(bad, i)
 		}
-
 	}
 
 	if len(bad) != 0 {
@@ -43,9 +39,7 @@ func TestDLEQProof(t *testing.T) {
 }
 
 func TestDLEQProofBatch(t *testing.T) {
-
 	suite := edwards.NewAES128SHA256Ed25519(false)
-
 	n := 10
 	x := make([]abstract.Scalar, n)
 	g := make([]abstract.Point, n)
@@ -66,7 +60,7 @@ func TestDLEQProofBatch(t *testing.T) {
 	var bad []int
 
 	for i := 0; i < n; i++ {
-		if proofs[i].Verify(suite, g[i], h[i], xG[i], xH[i]) {
+		if err := proofs[i].Verify(suite, g[i], h[i], xG[i], xH[i]); err == nil {
 			good = append(good, i)
 		} else {
 			bad = append(bad, i)
@@ -79,9 +73,7 @@ func TestDLEQProofBatch(t *testing.T) {
 }
 
 func TestDLEQLengths(t *testing.T) {
-
 	suite := edwards.NewAES128SHA256Ed25519(false)
-
 	n := 10
 	x := make([]abstract.Scalar, n)
 	g := make([]abstract.Point, n)
