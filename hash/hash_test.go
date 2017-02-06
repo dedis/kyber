@@ -60,7 +60,6 @@ func TestFile(t *testing.T) {
 }
 
 func TestStructures(t *testing.T) {
-
 	x := suite.Scalar().Pick(random.Stream)
 	y := suite.Scalar().Pick(random.Stream)
 	X, _ := suite.Point().Pick(nil, random.Stream)
