@@ -113,21 +113,15 @@ func (p *PriPoly) Commit(b abstract.Point) *PubPoly {
 // RecoverSecret reconstructs the shared secret p(0) from a list of private
 // shares using Lagrange interpolation.
 func RecoverSecret(g abstract.Group, shares []*PriShare, t int, n int) (abstract.Scalar, error) {
-	isBad := func(s *PriShare) bool {
-		return s == nil || s.V == nil || s.I < 0 || n <= s.I
-	}
-
-	c := 0
 	x := make(map[int]abstract.Scalar)
-	for _, s := range shares {
-		if isBad(s) {
+	for i, s := range shares {
+		if s == nil || s.V == nil || s.I < 0 || n <= s.I {
 			continue
 		}
-		x[s.I] = g.Scalar().SetInt64(1 + int64(s.I))
-		c++
+		x[i] = g.Scalar().SetInt64(1 + int64(s.I))
 	}
 
-	if c < t {
+	if len(x) < t {
 		return nil, errors.New("not enough good private shares to reconstruct shared secret")
 	}
 
@@ -136,18 +130,15 @@ func RecoverSecret(g abstract.Group, shares []*PriShare, t int, n int) (abstract
 	den := g.Scalar()
 	tmp := g.Scalar()
 
-	for _, si := range shares {
-		if isBad(si) {
-			continue
-		}
-		num.Set(si.V)
+	for i, xi := range x {
+		num.Set(shares[i].V)
 		den.One()
-		for _, sj := range shares {
-			if isBad(sj) || sj.I == si.I {
+		for j, xj := range x {
+			if i == j {
 				continue
 			}
-			num.Mul(num, x[sj.I])
-			den.Mul(den, tmp.Sub(x[sj.I], x[si.I]))
+			num.Mul(num, xj)
+			den.Mul(den, tmp.Sub(xj, xi))
 		}
 		acc.Add(acc, num.Div(num, den))
 	}
@@ -255,21 +246,15 @@ func (p *PubPoly) Check(s *PriShare) bool {
 // RecoverCommit reconstructs the secret commitment p(0) from a list of public
 // shares using Lagrange interpolation.
 func RecoverCommit(g abstract.Group, shares []*PubShare, t int, n int) (abstract.Point, error) {
-	isBad := func(s *PubShare) bool {
-		return s == nil || s.V == nil || s.I < 0 || n <= s.I
-	}
-
-	c := 0
 	x := make(map[int]abstract.Scalar)
-	for _, s := range shares {
-		if isBad(s) {
+	for i, s := range shares {
+		if s == nil || s.V == nil || s.I < 0 || n <= s.I {
 			continue
 		}
-		x[s.I] = g.Scalar().SetInt64(1 + int64(s.I))
-		c++
+		x[i] = g.Scalar().SetInt64(1 + int64(s.I))
 	}
 
-	if c < t {
+	if len(x) < t {
 		return nil, errors.New("not enough good public shares to reconstruct secret commitment")
 	}
 
@@ -279,20 +264,17 @@ func RecoverCommit(g abstract.Group, shares []*PubShare, t int, n int) (abstract
 	Acc := g.Point().Null()
 	Tmp := g.Point()
 
-	for _, si := range shares {
-		if isBad(si) {
-			continue
-		}
+	for i, xi := range x {
 		num.One()
 		den.One()
-		for _, sj := range shares {
-			if isBad(sj) || sj.I == si.I {
+		for j, xj := range x {
+			if i == j {
 				continue
 			}
-			num.Mul(num, x[sj.I])
-			den.Mul(den, tmp.Sub(x[sj.I], x[si.I]))
+			num.Mul(num, xj)
+			den.Mul(den, tmp.Sub(xj, xi))
 		}
-		Tmp.Mul(si.V, num.Div(num, den))
+		Tmp.Mul(shares[i].V, num.Div(num, den))
 		Acc.Add(Acc, Tmp)
 	}
 
