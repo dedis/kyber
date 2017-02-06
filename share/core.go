@@ -174,8 +174,8 @@ func (p *PubPoly) Threshold() int {
 	return len(p.commits)
 }
 
-// GetCommit returns the secret commitment p(0), i.e., the constant term of the polynomial.
-func (p *PubPoly) GetCommit() abstract.Point {
+// Commit returns the secret commitment p(0), i.e., the constant term of the polynomial.
+func (p *PubPoly) Commit() abstract.Point {
 	return p.commits[0]
 }
 
