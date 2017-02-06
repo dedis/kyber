@@ -44,7 +44,8 @@ type Dealer struct {
 	reader cipher.Stream
 	long   abstract.Scalar
 
-	secret abstract.Scalar
+	secret        abstract.Scalar
+	secretCommits []abstract.Point
 
 	verifiers []abstract.Point
 	// threshold of shares that is needed to reconstruct the secret
@@ -72,7 +73,6 @@ type Deal struct {
 type Complaint struct {
 	SessionID []byte
 	Index     uint32
-	Deal      *Deal
 	Signature []byte
 }
 
@@ -80,8 +80,11 @@ type Complaint struct {
 // a Complaint. It contains the original Complaint as well as the shares
 // distributed to the complainer.
 type Justification struct {
-	Complaint *Complaint
+	SessionID []byte
+	// Index of the verifier who issued the Complaint
+	Index     uint32
 	Deal      *Deal
+	Signature []byte
 }
 
 // Approval is a message that is sent if a verifier approves the Deal he
@@ -116,6 +119,7 @@ func NewDealer(suite abstract.Suite, longterm, secret abstract.Scalar, verifiers
 
 	// F = coeff * B
 	F := f.Commit(d.suite.Point().Base())
+	_, d.secretCommits = F.Info()
 	// G = coeff * H
 	G := g.Commit(H)
 
@@ -165,11 +169,18 @@ func (d *Dealer) ProcessComplaint(c *Complaint) (*Justification, error) {
 	if err := d.verifyComplaint(c); err != nil {
 		return nil, err
 	}
-	return &Justification{
+	j := &Justification{
+		SessionID: d.sessionID,
 		// index is guaranteed to be good because of d.verifyComplaint before
-		Deal:      d.deals[int(c.Index)],
-		Complaint: c,
-	}, nil
+		Deal:  d.deals[int(c.Index)],
+		Index: c.Index,
+	}
+	sig, err := sign.Schnorr(d.suite, d.long, msgJustification(j))
+	if err != nil {
+		return nil, err
+	}
+	j.Signature = sig
+	return j, nil
 }
 
 // ProcessApprovals looks if the approval is legitimate and stores it. If the
@@ -188,6 +199,13 @@ func (d *Dealer) SecretCommit() abstract.Point {
 		return nil
 	}
 	return d.suite.Point().Mul(nil, d.secret)
+}
+
+func (d *Dealer) Commits() []abstract.Point {
+	if !d.EnoughApprovals() || !d.DealCertified() {
+		return nil
+	}
+	return d.secretCommits
 }
 
 // Verifier receives a Deal from a Dealer, can reply by a Complaint, and can
@@ -277,7 +295,6 @@ func (v *Verifier) ProcessDeal(d *Deal) (*Approval, *Complaint, error) {
 		c := &Complaint{
 			SessionID: sid,
 			Index:     uint32(v.index),
-			Deal:      d,
 		}
 		var err2 error
 		if c.Signature, err2 = sign.Schnorr(v.suite, v.long, msgComplaint(c)); err2 != nil {
@@ -299,13 +316,13 @@ func (v *Verifier) ProcessDeal(d *Deal) (*Approval, *Complaint, error) {
 	return ap, nil, v.aggregator.addApproval(ap)
 }
 
-// Share returns the private share that this verifier has received. It returns
+// Share returns the Deal that this verifier has received. It returns
 // nil if the deal is not certified or there is not enough approvals.
-func (v *Verifier) Share() *share.PriShare {
+func (v *Verifier) Deal() *Deal {
 	if !v.EnoughApprovals() || !v.DealCertified() {
 		return nil
 	}
-	return v.deal.SecShare
+	return v.deal
 }
 
 // ProcessComplaint takes a Complaint and stores it if the Complaint is valid.
@@ -413,9 +430,6 @@ func (a *aggregator) verifyDeal(d *Deal, inclusion bool) error {
 }
 
 func (a *aggregator) verifyComplaint(c *Complaint) error {
-	if err := a.verifyDeal(c.Deal, false); err == nil {
-		return errors.New("complaint: invalid because contains a valid deal")
-	}
 	if !bytes.Equal(c.SessionID, a.sid) {
 		return errors.New("complaint: receiving inconsistent sessionID")
 	}
@@ -452,22 +466,21 @@ func (a *aggregator) verifyApproval(ap *Approval) error {
 	return a.addApproval(ap)
 }
 
-func (a *aggregator) verifyJustification(dr *Justification) error {
-	if _, ok := findPub(a.verifiers, dr.Complaint.Index); !ok {
-		return errors.New("verifier: complaint's index out of bounds.")
+func (a *aggregator) verifyJustification(j *Justification) error {
+	if _, ok := findPub(a.verifiers, j.Index); !ok {
+		return errors.New("verifier: justification's index out of bounds.")
 	}
-	if _, ok := a.complaints[dr.Complaint.Index]; !ok {
+	if _, ok := a.complaints[j.Index]; !ok {
 		return errors.New("verifier: no complaints received for this justification")
 	}
-	// XXX should we verify the correctness of the complaint
 
-	if err := a.verifyDeal(dr.Deal, false); err != nil {
+	if err := a.verifyDeal(j.Deal, false); err != nil {
 		// if one response is bad, flag the dealer as malicious
 		a.badDealer = true
 		return err
 	}
 	// "deletes" the complaint since the dealer is honest
-	delete(a.complaints, dr.Complaint.Index)
+	delete(a.complaints, j.Index)
 	return nil
 }
 
@@ -563,7 +576,6 @@ func msgComplaint(c *Complaint) []byte {
 	buf.WriteString("complaint")
 	buf.Write(c.SessionID)
 	binary.Write(&buf, binary.LittleEndian, c.Index)
-	buf.Write(msgDeal(c.Deal))
 	return buf.Bytes()
 }
 
@@ -575,5 +587,13 @@ func msgDeal(d *Deal) []byte {
 	d.SecShare.V.MarshalTo(&buf)
 	binary.Write(&buf, binary.LittleEndian, d.RndShare.I)
 	d.RndShare.V.MarshalTo(&buf)
+	return buf.Bytes()
+}
+
+func msgJustification(j *Justification) []byte {
+	var buf bytes.Buffer
+	buf.Write(j.SessionID)
+	binary.Write(&buf, binary.LittleEndian, j.Index)
+	buf.Write(msgDeal(j.Deal))
 	return buf.Bytes()
 }
