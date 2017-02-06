@@ -14,6 +14,8 @@ DBG_SRV=${DBG_SRV:-0}
 APPDIR=${APPDIR:-$(pwd)}
 # The app is the name of the builddir
 APP=${APP:-$(basename $APPDIR)}
+# Name of conode-log
+COLOG=conode
 
 RUNOUT=/tmp/run.out
 
@@ -195,22 +197,19 @@ buildDir(){
 }
 
 buildConode(){
-	local incl=$1
+	local incl="$@"
     local pkg=$( realpath $BUILDDIR | sed -e "s:$GOPATH/src/::" )
     local cotdir=$( mktemp -d )/conode
     mkdir -p $cotdir
     if [ ! "$incl" ]; then
     	incl=${APPDIR#$GOPATH/src/}/service
     fi
-    if [ -f $APPDIR/$incl ]; then
-    	cp $APPDIR/$incl $cotdir
-    elif [ "$incl" ]; then
-    	cat - > $cotdir/import.go << EOF
-package main
 
-import _ "$incl"
-EOF
-    fi
+    ( echo -e "package main\nimport ("
+    for i in $incl; do
+    	echo -e "\t_ \"$i\""
+    done
+    echo ")" ) > $cotdir/import.go
     cat - > $cotdir/main.go << EOF
 package main
 
@@ -260,13 +259,13 @@ cleanup(){
     pkill -9 conode 2> /dev/null
     pkill -9 $APP 2> /dev/null
     sleep .5
-    rm -f srv*/*bin
+    rm -f co*/*bin
     rm -f cl*/*bin
 }
 
 stopTest(){
     cleanup
-    if [ "$BUILDDIR" != build ]; then
+    if [ $( basename $BUILDDIR ) != build ]; then
         dbgOut "removing $BUILDDIR"
         rm -rf $BUILDDIR
     fi
