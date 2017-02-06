@@ -1,3 +1,8 @@
+// This package provides functionality to create and verify non-interactive
+// zero-knowledge (NIZK) proofs for the equality (EQ) of discrete logarithms (DL).
+// This means, for two values xG and xH one can check that
+//   log_{G}(xG) == log_{H}(xH)
+// without revealing the secret value x.
 package proof
 
 import (
@@ -8,12 +13,8 @@ import (
 	"github.com/dedis/crypto/random"
 )
 
-// This package provides functionality to create and verify non-interactive
-// zero-knowledge (NIZK) proofs for the equality (EQ) of discrete logarithms (DL).
-// This means, for two values xG and xH one can check that log_{G}(xG) == log_{H}(xH)
-// without revealing the secret value x.
-
 var errorDifferentLengths = errors.New("inputs of different lengths")
+var errorInvalidProof = errors.New("invalid proof")
 
 // DLEQProof represents a NIZK dlog-equality proof.
 type DLEQProof struct {
@@ -24,8 +25,10 @@ type DLEQProof struct {
 }
 
 // NewDLEQProof computes a new NIZK dlog-equality proof by randomly selecting a
-// commitment v, determining the challenge c = H(xG,xH,vG,vH) and the response r
-// = v - cx. It also returns the encrypted base points xG and xH.
+// commitment v, determining the challenge and the response r:
+//   c = H(xG,xH,vG,vH)
+//   r = v - cx
+// It also returns the encrypted base points xG and xH.
 func NewDLEQProof(suite abstract.Suite, G abstract.Point, H abstract.Point, x abstract.Scalar) (proof *DLEQProof, xG abstract.Point, xH abstract.Point, err error) {
 	// Encrypt base points with secret
 	xG = suite.Point().Mul(G, x)
@@ -67,7 +70,6 @@ func NewDLEQProofBatch(suite abstract.Suite, G []abstract.Point, H []abstract.Po
 	vH := make([]abstract.Point, n)
 
 	for i, x := range secrets {
-
 		// Encrypt base points with secrets
 		xG[i] = suite.Point().Mul(G[i], x)
 		xH[i] = suite.Point().Mul(H[i], x)
@@ -95,14 +97,19 @@ func NewDLEQProofBatch(suite abstract.Suite, G []abstract.Point, H []abstract.Po
 	return proofs, xG, xH, nil
 }
 
-// Verify examines the validity of the corresponding NIZK dlog-equality proof
-// by checking that vG == rG + c(xG) and vH == rH + c(xH).
-func (p *DLEQProof) Verify(suite abstract.Suite, G abstract.Point, H abstract.Point, xG abstract.Point, xH abstract.Point) bool {
+// Verify examines the validity of the NIZK dlog-equality proof.
+// The proof is valid if the following two conditions hold:
+//   vG == rG + c(xG)
+//   vH == rH + c(xH)
+func (p *DLEQProof) Verify(suite abstract.Suite, G abstract.Point, H abstract.Point, xG abstract.Point, xH abstract.Point) error {
 	rG := suite.Point().Mul(G, p.R)
 	rH := suite.Point().Mul(H, p.R)
 	cxG := suite.Point().Mul(xG, p.C)
 	cxH := suite.Point().Mul(xH, p.C)
 	a := suite.Point().Add(rG, cxG)
 	b := suite.Point().Add(rH, cxH)
-	return p.VG.Equal(a) && p.VH.Equal(b)
+	if !(p.VG.Equal(a) && p.VH.Equal(b)) {
+		return errorInvalidProof
+	}
+	return nil
 }
