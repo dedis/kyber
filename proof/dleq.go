@@ -27,7 +27,6 @@ type DLEQProof struct {
 // commitment v, determining the challenge c = H(xG,xH,vG,vH) and the response r
 // = v - cx. It also returns the encrypted base points xG and xH.
 func NewDLEQProof(suite abstract.Suite, G abstract.Point, H abstract.Point, x abstract.Scalar) (proof *DLEQProof, xG abstract.Point, xH abstract.Point, err error) {
-
 	// Encrypt base points with secret
 	xG = suite.Point().Mul(G, x)
 	xH = suite.Point().Mul(H, x)
@@ -55,7 +54,6 @@ func NewDLEQProof(suite abstract.Suite, G abstract.Point, H abstract.Point, x ab
 // encrypted base points xG and xH. Note that the challenge is computed over all
 // input values.
 func NewDLEQProofBatch(suite abstract.Suite, G []abstract.Point, H []abstract.Point, secrets []abstract.Scalar) (proof []*DLEQProof, xG []abstract.Point, xH []abstract.Point, err error) {
-
 	if len(G) != len(H) || len(H) != len(secrets) {
 		return nil, nil, nil, errorDifferentLengths
 	}
