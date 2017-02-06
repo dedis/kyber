@@ -22,7 +22,7 @@
 // Justification is wrong.
 // At the end of the scheme, all verifiers can re-unite their Share to
 // reconstruct the original secret. Only t out of n verifiers are needed.
-package share
+package vss
 
 import (
 	"bytes"

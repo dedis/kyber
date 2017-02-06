@@ -1,4 +1,4 @@
-package share
+package vss
 
 import (
 	"math/rand"
