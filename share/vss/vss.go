@@ -57,8 +57,7 @@ type Dealer struct {
 	*aggregator
 }
 
-// Deal is sent by the Dealer to each participants. It contains the encrypted
-// share for a specific Verifier.
+// Deal is sent by the Dealer to each participants.
 type Deal struct {
 	SessionID   []byte
 	SecShare    *share.PriShare
