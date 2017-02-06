@@ -29,8 +29,8 @@ type DLEQProof struct {
 func NewDLEQProof(suite abstract.Suite, G abstract.Point, H abstract.Point, x abstract.Scalar) (proof *DLEQProof, xG abstract.Point, xH abstract.Point, err error) {
 
 	// Encrypt base points with secret
-	xG := suite.Point().Mul(G, x)
-	xH := suite.Point().Mul(H, x)
+	xG = suite.Point().Mul(G, x)
+	xH = suite.Point().Mul(H, x)
 
 	// Commitment
 	v := suite.Scalar().Pick(random.Stream)
@@ -63,8 +63,8 @@ func NewDLEQProofBatch(suite abstract.Suite, G []abstract.Point, H []abstract.Po
 	n := len(secrets)
 	proofs := make([]*DLEQProof, n)
 	v := make([]abstract.Scalar, n)
-	xG := make([]abstract.Point, n)
-	xH := make([]abstract.Point, n)
+	xG = make([]abstract.Point, n)
+	xH = make([]abstract.Point, n)
 	vG := make([]abstract.Point, n)
 	vH := make([]abstract.Point, n)
 
