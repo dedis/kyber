@@ -16,23 +16,23 @@ import (
 
 var suite = ed25519.NewAES128SHA256Ed25519(false)
 
-func TestStreamChunk(t *testing.T) {
+func TestStream(t *testing.T) {
 	var buff bytes.Buffer
 	str := "Hello World"
 	buff.WriteString(str)
-	hashed, err := hash.StreamChunk(suite.Hash(), &buff, 32)
+	hashed, err := hash.Stream(suite.Hash(), &buff)
 	if err != nil {
-		t.Fatal("error hashing" + err.Error())
+		t.Fatal(err)
 	}
 	h := suite.Hash()
 	h.Write([]byte(str))
 	b := h.Sum(nil)
 	if !bytes.Equal(b, hashed) {
-		t.Fatal("Hashes not equal")
+		t.Fatal("hashes not equal")
 	}
 }
 
-func TestFileChunk(t *testing.T) {
+func TestFile(t *testing.T) {
 	tmpfileIO, err := ioutil.TempFile("", "hash_test.bin")
 	if err != nil {
 		t.Fatal(err)
@@ -47,11 +47,11 @@ func TestFileChunk(t *testing.T) {
 			t.Fatal(err)
 		}
 		if err := ioutil.WriteFile(tmpfile, buf, 0777); err != nil {
-			t.Fatal("Could not write file")
+			t.Fatal(err)
 		}
-		hash, err := hash.FileChunk(suite.Hash(), tmpfile, i)
+		hash, err := hash.File(suite.Hash(), tmpfile)
 		if err != nil {
-			t.Fatal("Could not hash", tmpfile, err)
+			t.Fatal(err)
 		}
 		if len(hash) != 32 {
 			t.Fatal("Output of SHA256 should be 32 bytes")
@@ -59,29 +59,29 @@ func TestFileChunk(t *testing.T) {
 	}
 }
 
-func TestArgs(t *testing.T) {
+func TestStructures(t *testing.T) {
 
 	x := suite.Scalar().Pick(random.Stream)
 	y := suite.Scalar().Pick(random.Stream)
 	X, _ := suite.Point().Pick(nil, random.Stream)
 	Y, _ := suite.Point().Pick(nil, random.Stream)
 
-	h1, err := hash.Args(suite.Hash(), x, y)
+	h1, err := hash.Structures(suite.Hash(), x, y)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	h2, err := hash.Args(suite.Hash(), X, Y)
+	h2, err := hash.Structures(suite.Hash(), X, Y)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	h3, err := hash.Args(suite.Hash(), x, y, X, Y)
+	h3, err := hash.Structures(suite.Hash(), x, y, X, Y)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	h4, err := hash.Args(suite.Hash(), x, y, X, Y, []abstract.Scalar{x, y, x}, []abstract.Point{Y, X, Y})
+	h4, err := hash.Structures(suite.Hash(), x, y, X, Y, []abstract.Scalar{x, y, x}, []abstract.Point{Y, X, Y})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,12 +90,12 @@ func TestArgs(t *testing.T) {
 		t.Fatal("Unexpectably obtained equal hashes")
 	}
 
-	h5, err := hash.Args(suite.Hash(), x, x, y, y)
+	h5, err := hash.Structures(suite.Hash(), x, x, y, y)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	h6, err := hash.Args(suite.Hash(), []abstract.Scalar{x, x, y, y})
+	h6, err := hash.Structures(suite.Hash(), []abstract.Scalar{x, x, y, y})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,12 +104,12 @@ func TestArgs(t *testing.T) {
 		t.Fatal("Hashes do not match")
 	}
 
-	h7, err := hash.Args(suite.Hash(), X, Y, Y, X)
+	h7, err := hash.Structures(suite.Hash(), X, Y, Y, X)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	h8, err := hash.Args(suite.Hash(), []abstract.Point{X, Y, Y, X})
+	h8, err := hash.Structures(suite.Hash(), []abstract.Point{X, Y, Y, X})
 	if err != nil {
 		t.Fatal(err)
 	}

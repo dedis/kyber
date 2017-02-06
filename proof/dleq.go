@@ -10,6 +10,10 @@ import (
 
 // This package provides functionality to create and verify non-interactive
 // zero-knowledge (NIZK) proofs for the equality (EQ) of discrete logarithms (DL).
+// This means, for two values xG and xH one can check that log_{G}(xG) == log_{H}(xH)
+// without revealing the secret value x.
+
+var errorDifferentLengths = errors.New("inputs of different lengths")
 
 // DLEQProof represents a NIZK dlog-equality proof.
 type DLEQProof struct {
@@ -22,11 +26,10 @@ type DLEQProof struct {
 // NewDLEQProof computes a new NIZK dlog-equality proof by randomly selecting a
 // commitment v, determining the challenge c = H(xG,xH,vG,vH) and the response r
 // = v - cx. It also returns the encrypted base points xG and xH.
-func NewDLEQProof(suite abstract.Suite, G abstract.Point, H abstract.Point, x abstract.Scalar) (*DLEQProof, abstract.Point, abstract.Point, error) {
-
+func NewDLEQProof(suite abstract.Suite, G abstract.Point, H abstract.Point, x abstract.Scalar) (proof *DLEQProof, xG abstract.Point, xH abstract.Point, err error) {
 	// Encrypt base points with secret
-	xG := suite.Point().Mul(G, x)
-	xH := suite.Point().Mul(H, x)
+	xG = suite.Point().Mul(G, x)
+	xH = suite.Point().Mul(H, x)
 
 	// Commitment
 	v := suite.Scalar().Pick(random.Stream)
@@ -34,7 +37,7 @@ func NewDLEQProof(suite abstract.Suite, G abstract.Point, H abstract.Point, x ab
 	vH := suite.Point().Mul(H, v)
 
 	// Challenge
-	cb, err := hash.Args(suite.Hash(), xG, xH, vG, vH)
+	cb, err := hash.Structures(suite.Hash(), xG, xH, vG, vH)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -50,17 +53,16 @@ func NewDLEQProof(suite abstract.Suite, G abstract.Point, H abstract.Point, x ab
 // NewDLEQProofBatch computes lists of NIZK dlog-equality proofs and of
 // encrypted base points xG and xH. Note that the challenge is computed over all
 // input values.
-func NewDLEQProofBatch(suite abstract.Suite, G []abstract.Point, H []abstract.Point, secrets []abstract.Scalar) ([]*DLEQProof, []abstract.Point, []abstract.Point, error) {
-
-	if len(G) != len(H) && len(H) != len(secrets) {
-		return nil, nil, nil, errors.New("inputs of different lengths")
+func NewDLEQProofBatch(suite abstract.Suite, G []abstract.Point, H []abstract.Point, secrets []abstract.Scalar) (proof []*DLEQProof, xG []abstract.Point, xH []abstract.Point, err error) {
+	if len(G) != len(H) || len(H) != len(secrets) {
+		return nil, nil, nil, errorDifferentLengths
 	}
 
 	n := len(secrets)
 	proofs := make([]*DLEQProof, n)
 	v := make([]abstract.Scalar, n)
-	xG := make([]abstract.Point, n)
-	xH := make([]abstract.Point, n)
+	xG = make([]abstract.Point, n)
+	xH = make([]abstract.Point, n)
 	vG := make([]abstract.Point, n)
 	vH := make([]abstract.Point, n)
 
@@ -77,7 +79,7 @@ func NewDLEQProofBatch(suite abstract.Suite, G []abstract.Point, H []abstract.Po
 	}
 
 	// Collective challenge
-	cb, err := hash.Args(suite.Hash(), xG, xH, vG, vH)
+	cb, err := hash.Structures(suite.Hash(), xG, xH, vG, vH)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -102,8 +104,5 @@ func (p *DLEQProof) Verify(suite abstract.Suite, G abstract.Point, H abstract.Po
 	cxH := suite.Point().Mul(xH, p.C)
 	a := suite.Point().Add(rG, cxG)
 	b := suite.Point().Add(rH, cxH)
-	if p.VG.Equal(a) && p.VH.Equal(b) {
-		return true
-	}
-	return false
+	return p.VG.Equal(a) && p.VH.Equal(b)
 }

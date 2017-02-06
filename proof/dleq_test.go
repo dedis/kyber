@@ -40,7 +40,6 @@ func TestDLEQProof(t *testing.T) {
 	if len(bad) != 0 {
 		t.Fatalf("some proofs are invalid: %v", bad)
 	}
-
 }
 
 func TestDLEQProofBatch(t *testing.T) {
@@ -77,5 +76,27 @@ func TestDLEQProofBatch(t *testing.T) {
 	if len(bad) != 0 {
 		t.Fatalf("some proofs are invalid: %v", bad)
 	}
+}
 
+func TestDLEQLengths(t *testing.T) {
+
+	suite := edwards.NewAES128SHA256Ed25519(false)
+
+	n := 10
+	x := make([]abstract.Scalar, n)
+	g := make([]abstract.Point, n)
+	h := make([]abstract.Point, n)
+
+	for i := 0; i < n; i++ {
+		x[i] = suite.Scalar().Pick(random.Stream)
+		g[i], _ = suite.Point().Pick([]byte(fmt.Sprintf("G%d", i)), random.Stream)
+		h[i], _ = suite.Point().Pick([]byte(fmt.Sprintf("H%d", i)), random.Stream)
+	}
+
+	// Remove an element to make the test fail
+	x = append(x[:5], x[6:]...)
+
+	if _, _, _, err := NewDLEQProofBatch(suite, g, h, x); err != errorDifferentLengths {
+		t.Fatal("unexpected outcome:", err)
+	}
 }

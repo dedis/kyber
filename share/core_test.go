@@ -7,29 +7,29 @@ import (
 	"github.com/dedis/crypto/random"
 )
 
-var group = new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
-var numShares = 10
-var threshold = numShares/2 + 1
+func TestSecretRecovery(test *testing.T) {
+	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	n := 10
+	t := n/2 + 1
+	poly := NewPriPoly(g, t, nil, random.Stream)
+	shares := poly.Shares(n)
 
-func TestSecretRecovery(t *testing.T) {
-
-	poly := NewPriPoly(group, threshold, nil, random.Stream)
-	shares := poly.Shares(numShares)
-
-	recovered, err := RecoverSecret(group, shares, threshold, numShares)
+	recovered, err := RecoverSecret(g, shares, t, n)
 	if err != nil {
-		t.Fatal(err)
+		test.Fatal(err)
 	}
 
-	if !recovered.Equal(poly.GetSecret()) {
-		t.Fatal("recovered secret does not match initial value")
+	if !recovered.Equal(poly.Secret()) {
+		test.Fatal("recovered secret does not match initial value")
 	}
 }
 
-func TestSecretRecoveryDelete(t *testing.T) {
-
-	poly := NewPriPoly(group, threshold, nil, random.Stream)
-	shares := poly.Shares(numShares)
+func TestSecretRecoveryDelete(test *testing.T) {
+	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	n := 10
+	t := n/2 + 1
+	poly := NewPriPoly(g, t, nil, random.Stream)
+	shares := poly.Shares(n)
 
 	// Corrupt a few shares
 	shares[2] = nil
@@ -37,20 +37,23 @@ func TestSecretRecoveryDelete(t *testing.T) {
 	shares[7] = nil
 	shares[8] = nil
 
-	recovered, err := RecoverSecret(group, shares, threshold, numShares)
+	recovered, err := RecoverSecret(g, shares, t, n)
 	if err != nil {
-		t.Fatal(err)
+		test.Fatal(err)
 	}
 
-	if !recovered.Equal(poly.GetSecret()) {
-		t.Fatal("recovered secret does not match initial value")
+	if !recovered.Equal(poly.Secret()) {
+		test.Fatal("recovered secret does not match initial value")
 	}
 }
 
-func TestSecretRecoveryDeleteFail(t *testing.T) {
+func TestSecretRecoveryDeleteFail(test *testing.T) {
+	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	n := 10
+	t := n/2 + 1
 
-	poly := NewPriPoly(group, threshold, nil, random.Stream)
-	shares := poly.Shares(numShares)
+	poly := NewPriPoly(g, t, nil, random.Stream)
+	shares := poly.Shares(n)
 
 	// Corrupt one more share than acceptable
 	shares[1] = nil
@@ -59,46 +62,75 @@ func TestSecretRecoveryDeleteFail(t *testing.T) {
 	shares[7] = nil
 	shares[8] = nil
 
-	_, err := RecoverSecret(group, shares, threshold, numShares)
+	_, err := RecoverSecret(g, shares, t, n)
 	if err == nil {
-		t.Fatal("recovered secret unexpectably")
+		test.Fatal("recovered secret unexpectably")
 	}
 }
 
-func TestPublicCheck(t *testing.T) {
+func TestSecretPolyEqual(test *testing.T) {
+	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	n := 10
+	t := n/2 + 1
 
-	priPoly := NewPriPoly(group, threshold, nil, random.Stream)
-	priShares := priPoly.Shares(numShares)
+	p1 := NewPriPoly(g, t, nil, random.Stream)
+	p2 := NewPriPoly(g, t, nil, random.Stream)
+	p3 := NewPriPoly(g, t, nil, random.Stream)
+
+	p12, _ := p1.Add(p2)
+	p13, _ := p1.Add(p3)
+
+	p123, _ := p12.Add(p3)
+	p132, _ := p13.Add(p2)
+
+	if !p123.Equal(p132) {
+		test.Fatal("private polynomials not equal")
+	}
+}
+
+func TestPublicCheck(test *testing.T) {
+	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	n := 10
+	t := n/2 + 1
+
+	priPoly := NewPriPoly(g, t, nil, random.Stream)
+	priShares := priPoly.Shares(n)
 	pubPoly := priPoly.Commit(nil)
 
 	for i, share := range priShares {
 		if !pubPoly.Check(share) {
-			t.Fatalf("private share %v not valid with respect to the public commitment polynomial", i)
+			test.Fatalf("private share %v not valid with respect to the public commitment polynomial", i)
 		}
 	}
 }
 
-func TestPublicRecovery(t *testing.T) {
+func TestPublicRecovery(test *testing.T) {
+	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	n := 10
+	t := n/2 + 1
 
-	priPoly := NewPriPoly(group, threshold, nil, random.Stream)
+	priPoly := NewPriPoly(g, t, nil, random.Stream)
 	pubPoly := priPoly.Commit(nil)
-	pubShares := pubPoly.Shares(numShares)
+	pubShares := pubPoly.Shares(n)
 
-	recovered, err := RecoverCommit(group, pubShares, threshold, numShares)
+	recovered, err := RecoverCommit(g, pubShares, t, n)
 	if err != nil {
-		t.Fatal(err)
+		test.Fatal(err)
 	}
 
 	if !recovered.Equal(pubPoly.GetCommit()) {
-		t.Fatal("recovered commi does not match initial value")
+		test.Fatal("recovered commi does not match initial value")
 	}
 }
 
-func TestPublicRecoveryDelete(t *testing.T) {
+func TestPublicRecoveryDelete(test *testing.T) {
+	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	n := 10
+	t := n/2 + 1
 
-	priPoly := NewPriPoly(group, threshold, nil, random.Stream)
+	priPoly := NewPriPoly(g, t, nil, random.Stream)
 	pubPoly := priPoly.Commit(nil)
-	shares := pubPoly.Shares(numShares)
+	shares := pubPoly.Shares(n)
 
 	// Corrupt a few shares
 	shares[2] = nil
@@ -106,21 +138,24 @@ func TestPublicRecoveryDelete(t *testing.T) {
 	shares[7] = nil
 	shares[8] = nil
 
-	recovered, err := RecoverCommit(group, shares, threshold, numShares)
+	recovered, err := RecoverCommit(g, shares, t, n)
 	if err != nil {
-		t.Fatal(err)
+		test.Fatal(err)
 	}
 
 	if !recovered.Equal(pubPoly.GetCommit()) {
-		t.Fatal("recovered commit does not match initial value")
+		test.Fatal("recovered commit does not match initial value")
 	}
 }
 
-func TestPublicRecoveryDeleteFail(t *testing.T) {
+func TestPublicRecoveryDeleteFail(test *testing.T) {
+	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	n := 10
+	t := n/2 + 1
 
-	priPoly := NewPriPoly(group, threshold, nil, random.Stream)
+	priPoly := NewPriPoly(g, t, nil, random.Stream)
 	pubPoly := priPoly.Commit(nil)
-	shares := pubPoly.Shares(numShares)
+	shares := pubPoly.Shares(n)
 
 	// Corrupt one more share than acceptable
 	shares[1] = nil
@@ -129,58 +164,90 @@ func TestPublicRecoveryDeleteFail(t *testing.T) {
 	shares[7] = nil
 	shares[8] = nil
 
-	_, err := RecoverCommit(group, shares, threshold, numShares)
+	_, err := RecoverCommit(g, shares, t, n)
 	if err == nil {
-		t.Fatal("recovered commit unexpectably")
+		test.Fatal("recovered commit unexpectably")
 	}
 }
 
-func TestPrivateAdd(t *testing.T) {
+func TestPrivateAdd(test *testing.T) {
+	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	n := 10
+	t := n/2 + 1
 
-	p := NewPriPoly(group, threshold, nil, random.Stream)
-	q := NewPriPoly(group, threshold, nil, random.Stream)
+	p := NewPriPoly(g, t, nil, random.Stream)
+	q := NewPriPoly(g, t, nil, random.Stream)
 
 	r, err := p.Add(q)
 	if err != nil {
-		t.Fatal(err)
+		test.Fatal(err)
 	}
 
-	ps := p.GetSecret()
-	qs := q.GetSecret()
-	rs := group.Scalar().Add(ps, qs)
+	ps := p.Secret()
+	qs := q.Secret()
+	rs := g.Scalar().Add(ps, qs)
 
-	if !rs.Equal(r.GetSecret()) {
-		t.Fatal("addition of secret sharing polynomials failed")
+	if !rs.Equal(r.Secret()) {
+		test.Fatal("addition of secret sharing polynomials failed")
 	}
 }
 
-func TestPublicAdd(t *testing.T) {
+func TestPublicAdd(test *testing.T) {
+	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	n := 10
+	t := n/2 + 1
 
-	G, _ := group.Point().Pick([]byte("G"), random.Stream)
-	H, _ := group.Point().Pick([]byte("H"), random.Stream)
+	G, _ := g.Point().Pick([]byte("G"), random.Stream)
+	H, _ := g.Point().Pick([]byte("H"), random.Stream)
 
-	p := NewPriPoly(group, threshold, nil, random.Stream)
-	q := NewPriPoly(group, threshold, nil, random.Stream)
+	p := NewPriPoly(g, t, nil, random.Stream)
+	q := NewPriPoly(g, t, nil, random.Stream)
 
 	P := p.Commit(G)
 	Q := q.Commit(H)
 
 	R, err := P.Add(Q)
 	if err != nil {
-		t.Fatal(err)
+		test.Fatal(err)
 	}
 
-	shares := R.Shares(numShares)
-	recovered, err := RecoverCommit(group, shares, threshold, numShares)
+	shares := R.Shares(n)
+	recovered, err := RecoverCommit(g, shares, t, n)
 	if err != nil {
-		t.Fatal(err)
+		test.Fatal(err)
 	}
 
 	x := P.GetCommit()
 	y := Q.GetCommit()
-	z := group.Point().Add(x, y)
+	z := g.Point().Add(x, y)
 
 	if !recovered.Equal(z) {
-		t.Fatal("addition of public commitment polynomials failed")
+		test.Fatal("addition of public commitment polynomials failed")
+	}
+}
+
+func TestPublicPolyEqual(test *testing.T) {
+	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	n := 10
+	t := n/2 + 1
+
+	G, _ := g.Point().Pick([]byte("G"), random.Stream)
+
+	p1 := NewPriPoly(g, t, nil, random.Stream)
+	p2 := NewPriPoly(g, t, nil, random.Stream)
+	p3 := NewPriPoly(g, t, nil, random.Stream)
+
+	P1 := p1.Commit(G)
+	P2 := p2.Commit(G)
+	P3 := p3.Commit(G)
+
+	P12, _ := P1.Add(P2)
+	P13, _ := P1.Add(P3)
+
+	P123, _ := P12.Add(P3)
+	P132, _ := P13.Add(P2)
+
+	if !P123.Equal(P132) {
+		test.Fatal("public polynomials not equal")
 	}
 }

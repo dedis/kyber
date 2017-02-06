@@ -5,7 +5,7 @@ package hash
 import (
 	"bytes"
 	"errors"
-	h "hash"
+	"hash"
 	"io"
 	"os"
 
@@ -13,49 +13,26 @@ import (
 	"reflect"
 )
 
-var defaultChunkSize = 1024
-
-// Stream returns the hash of a data stream separated into chunks of the defaultChunkSize.
-func Stream(hash h.Hash, stream io.Reader) ([]byte, error) {
-	return StreamChunk(hash, stream, defaultChunkSize)
-}
-
-// StreamChunk returns the hash of a data stream separated into chunks of the given byte size.
-func StreamChunk(hash h.Hash, stream io.Reader, size int) ([]byte, error) {
-	if size < 1 {
-		return nil, errors.New("Invalid chunk size")
-	}
-	b := make([]byte, size)
-	for {
-		n, errRead := stream.Read(b)
-		_, err := hash.Write(b[:n])
-		if err != nil {
-			return nil, err
-		}
-		if errRead == io.EOF || n < size {
-			break
-		}
+// Stream returns the hash of a data stream.
+func Stream(hash hash.Hash, stream io.Reader) ([]byte, error) {
+	if _, err := io.Copy(hash, stream); err != nil {
+		return nil, err
 	}
 	return hash.Sum(nil), nil
 }
 
-// File returns the hash of a file processed as a data stream of chunks of the defaultChunkSize.
-func File(hash h.Hash, stream io.Reader) ([]byte, error) {
-	return StreamChunk(hash, stream, defaultChunkSize)
-}
-
-// FileChunk returns the hash of a file processed as a data stream of chunks with the given byte size.
-func FileChunk(hash h.Hash, file string, size int) ([]byte, error) {
+// File returns the hash of a file.
+func File(hash hash.Hash, file string) ([]byte, error) {
 	f, err := os.Open(file)
 	if err != nil {
 		return nil, err
 	}
-	return StreamChunk(hash, f, size)
+	return Stream(hash, f)
 }
 
-// Args returns the hash of all the given arguments. Each argument has to
+// Structures returns the hash of all the given arguments. Each argument has to
 // implement the BinaryMarshaler interface.
-func Args(hash h.Hash, args ...interface{}) ([]byte, error) {
+func Structures(hash hash.Hash, args ...interface{}) ([]byte, error) {
 	var res, buf []byte
 	bmArgs, err := convertToBinaryMarshaler(args)
 	if err != nil {
