@@ -1,7 +1,8 @@
-// Package pvss implements public verifiable secret sharing as introduced by
-// Berry Schoenmakers at CRYPTO'99. In comparison to regular verifiable secret
-// sharing schemes, PVSS enables any third party to verify shares distributed by
-// a dealer using zero-knowledge proofs.
+// Package pvss implements public verifiable secret sharing as introduced in
+// "A Simple Publicly Verifiable Secret Sharing Scheme and its Application to
+// Electronic Voting" by Berry Schoenmakers. In comparison to regular verifiable
+// secret sharing schemes, PVSS enables any third party to verify shares
+// distributed by a dealer using zero-knowledge proofs.
 package pvss
 
 import (
@@ -25,7 +26,7 @@ type PubVerShare struct {
 	P proof.DLEQProof // Proof
 }
 
-// EncShares creates encrypted PVSS shares using the public keys in X and
+// EncShares creates encrypted PVSS shares using the public keys X and
 // provides a NIZK encryption consistency proof for each share.
 func EncShares(suite abstract.Suite, H abstract.Point, X []abstract.Point, secret abstract.Scalar, t int) ([]*PubVerShare, *share.PubPoly, error) {
 	n := len(X)
@@ -69,7 +70,7 @@ func EncShares(suite abstract.Suite, H abstract.Point, X []abstract.Point, secre
 // evaluating the public commitment polynomial at the encrypted share's index i.
 func VerifyEncShare(suite abstract.Suite, H abstract.Point, X abstract.Point, poly *share.PubPoly, encShare *PubVerShare) error {
 	sH := poly.Eval(encShare.S.I)
-	if !encShare.P.Verify(suite, H, X, sH.V, encShare.S.V) {
+	if err := encShare.P.Verify(suite, H, X, sH.V, encShare.S.V); err != nil {
 		return errorEncVerification
 	}
 	return nil
@@ -132,7 +133,7 @@ func DecShareBatch(suite abstract.Suite, H abstract.Point, X []abstract.Point, p
 // VerifyDecShare checks that the decrypted share sG satisfies
 // log_{G}(X) == log_{sG}(sX). Note that X = xG and sX = s(xG) = x(sG).
 func VerifyDecShare(suite abstract.Suite, G abstract.Point, X abstract.Point, encShare *PubVerShare, decShare *PubVerShare) error {
-	if !decShare.P.Verify(suite, G, decShare.S.V, X, encShare.S.V) {
+	if err := decShare.P.Verify(suite, G, decShare.S.V, X, encShare.S.V); err != nil {
 		return errorDecVerification
 	}
 	return nil

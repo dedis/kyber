@@ -13,7 +13,6 @@ func TestPVSS(test *testing.T) {
 	suite := edwards.NewAES128SHA256Ed25519(false)
 	G := suite.Point().Base()
 	H, _ := suite.Point().Pick(nil, suite.Cipher([]byte("H")))
-
 	n := 10
 	t := 2*n/3 + 1
 	x := make([]abstract.Scalar, n) // trustee private keys
@@ -66,7 +65,6 @@ func TestPVSSDelete(test *testing.T) {
 	suite := edwards.NewAES128SHA256Ed25519(false)
 	G := suite.Point().Base()
 	H, _ := suite.Point().Pick(nil, suite.Cipher([]byte("H")))
-
 	n := 10
 	t := 2*n/3 + 1
 	x := make([]abstract.Scalar, n) // trustee private keys
@@ -127,7 +125,6 @@ func TestPVSSDeleteFail(test *testing.T) {
 	suite := edwards.NewAES128SHA256Ed25519(false)
 	G := suite.Point().Base()
 	H, _ := suite.Point().Pick(nil, suite.Cipher([]byte("H")))
-
 	n := 10
 	t := 2*n/3 + 1
 	x := make([]abstract.Scalar, n) // trustee private keys
@@ -179,13 +176,9 @@ func TestPVSSDeleteFail(test *testing.T) {
 }
 
 func TestPVSSBatch(test *testing.T) {
-
 	suite := edwards.NewAES128SHA256Ed25519(false)
-
 	G := suite.Point().Base()
 	H, _ := suite.Point().Pick(nil, suite.Cipher([]byte("H")))
-	_ = G
-
 	n := 5
 	t := 2*n/3 + 1
 	x := make([]abstract.Scalar, n) // trustee private keys
@@ -314,5 +307,4 @@ func TestPVSSBatch(test *testing.T) {
 	if !(suite.Point().Mul(nil, s2).Equal(S2)) {
 		test.Fatalf("recovered incorrect shared secret S2")
 	}
-
 }
