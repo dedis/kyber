@@ -7,6 +7,7 @@ import (
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/ed25519"
 	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto/share/vss"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -69,7 +70,7 @@ func TestDKGNewDistKeyGenerator(t *testing.T) {
 func TestDKGDeal(t *testing.T) {
 	dkg := dkgs[0]
 
-	deals := dkg.Deal()
+	deals := dkg.Deals()
 	assert.Len(t, deals, nbParticipants-1)
 
 	for i := range deals {
@@ -83,8 +84,9 @@ func TestDKGDeal(t *testing.T) {
 }
 
 func TestDKGProcessDeal(t *testing.T) {
+	dkgs = dkgGen()
 	dkg := dkgs[0]
-	deals := dkg.Deal()
+	deals := dkg.Deals()
 
 	rec := dkgs[1]
 	deal := deals[1]
@@ -92,25 +94,24 @@ func TestDKGProcessDeal(t *testing.T) {
 	assert.Equal(t, uint32(1), rec.index)
 
 	// good deal
-	ap, cp, err := rec.ProcessDeal(deal)
-	assert.NotNil(t, ap)
-	assert.Nil(t, cp)
+	resp, err := rec.ProcessDeal(deal)
+	assert.NotNil(t, resp)
+	assert.Equal(t, vss.StatusApproval, resp.Response.Status)
 	assert.Nil(t, err)
 	_, ok := rec.verifiers[deal.Index]
 	require.True(t, ok)
+	assert.Equal(t, uint32(0), resp.Index)
 
 	// duplicate
-	ap, cp, err = rec.ProcessDeal(deal)
-	assert.Nil(t, ap)
-	assert.Nil(t, cp)
+	resp, err = rec.ProcessDeal(deal)
+	assert.Nil(t, resp)
 	assert.Error(t, err)
 
 	// wrong index
 	goodIdx := deal.Index
 	deal.Index = uint32(nbParticipants + 1)
-	ap, cp, err = rec.ProcessDeal(deal)
-	assert.Nil(t, ap)
-	assert.Nil(t, cp)
+	resp, err = rec.ProcessDeal(deal)
+	assert.Nil(t, resp)
 	assert.Error(t, err)
 	deal.Index = goodIdx
 
@@ -118,17 +119,16 @@ func TestDKGProcessDeal(t *testing.T) {
 	wrongSig := randomBytes(len(deal.Deal.Signature))
 	goodSig := deal.Deal.Signature
 	deal.Deal.Signature = wrongSig
-	ap, cp, err = rec.ProcessDeal(deal)
-	assert.Nil(t, ap)
-	assert.Nil(t, cp)
+	resp, err = rec.ProcessDeal(deal)
+	assert.Nil(t, resp)
 	assert.Error(t, err)
 	deal.Deal.SessionID = goodSig
 }
 
-func TestDKGProcessComplaint(t *testing.T) {
+func TestDKGProcessResponse(t *testing.T) {
 	dkgs = dkgGen()
 	dkg := dkgs[0]
-	deals := dkg.Deal()
+	deals := dkg.Deals()
 	v, ok := dkg.verifiers[0]
 	require.NotNil(t, v)
 	require.True(t, ok)
@@ -139,52 +139,76 @@ func TestDKGProcessComplaint(t *testing.T) {
 	deal.Deal.Signature = randomBytes(len(sig))
 
 	// give a wrong deal
-	ap, cp, err := rec.ProcessDeal(deal)
-	assert.Nil(t, ap)
-	assert.NotNil(t, cp)
-	assert.NotNil(t, err)
+	resp, err := rec.ProcessDeal(deal)
+	assert.NotNil(t, resp)
+	assert.Equal(t, vss.StatusComplaint, resp.Response.Status)
+	assert.Nil(t, err)
+	deal.Deal.Signature = sig
 
-	// no verifier tied to complaint
+	// no verifier tied to Response
 	v = dkg.verifiers[0]
 	require.NotNil(t, v)
 	delete(dkg.verifiers, 0)
-	j, err := dkg.ProcessComplaint(cp)
+	j, err := dkg.ProcessResponse(resp)
 	assert.Nil(t, j)
 	assert.NotNil(t, err)
-	dkg.verifiers[cp.Index] = v
+	dkg.verifiers[resp.Index] = v
 
-	// invalid complaint
-	goodSig := cp.Complaint.Signature
-	cp.Complaint.Signature = randomBytes(len(goodSig))
-	j, err = dkg.ProcessComplaint(cp)
+	// invalid response
+	goodSig := resp.Response.Signature
+	resp.Response.Signature = randomBytes(len(goodSig))
+	j, err = dkg.ProcessResponse(resp)
 	assert.Nil(t, j)
 	assert.Error(t, err)
-	cp.Complaint.Signature = goodSig
+	resp.Response.Signature = goodSig
 
 	// valid complaint from our deal
-	j, err = dkg.ProcessComplaint(cp)
+	j, err = dkg.ProcessResponse(resp)
 	assert.NotNil(t, j)
 	assert.Nil(t, err)
 
-	// valid complaint from another deal
+	// valid complaint from another deal from another peer
 	dkg2 := dkgs[2]
-	deals2 := dkg2.Deal()
+	deals2 := dkg2.Deals()
 	// fake a wrong deal
 	deal21 := deals2[1]
 	deal20 := deals2[0]
+	sig21 := deal21.Deal.Signature
 	deal21.Deal.Signature = randomBytes(32)
 
-	ap, cp, err = rec.ProcessDeal(deals2[1])
-	assert.Nil(t, ap)
-	assert.NotNil(t, cp)
+	resp, err = rec.ProcessDeal(deal21)
+	assert.NotNil(t, resp)
+	assert.Equal(t, vss.StatusComplaint, resp.Response.Status)
+	deal21.Deal.Signature = sig21
 
 	// give it to the first peer
 	// XXX Should we let peers know about approval/complaint for non-received
 	// deal yet ?
+	// process dealer 2's deal
 	dkg.ProcessDeal(deal20)
-	j, err = dkg.ProcessComplaint(cp)
+	// process response from peer 1
+	j, err = dkg.ProcessResponse(resp)
 	assert.Nil(t, j)
 	assert.Nil(t, err)
+
+	// Justification part:
+	// give the complaint to the dealer
+	j, err = dkg2.ProcessResponse(resp)
+	assert.Nil(t, err)
+	assert.NotNil(t, j)
+
+	// hack because all is local, and resp has been modified locally by dkg2's
+	// verifier
+	resp.Response.Status = vss.StatusComplaint
+	err = dkg.ProcessJustification(j)
+	assert.Nil(t, err)
+
+	// remove verifiers
+	v = dkg.verifiers[j.Index]
+	delete(dkg.verifiers, j.Index)
+	err = dkg.ProcessJustification(j)
+	assert.Error(t, err)
+	dkg.verifiers[j.Index] = v
 }
 
 /*func TestReceiverAddDeal(t *testing.T) {*/

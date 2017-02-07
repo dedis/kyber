@@ -41,11 +41,11 @@ type Deal struct {
 	Deal  *vss.Deal
 }
 
-type Complaint struct {
-	// Index of the Dealer for which this complaint is about
+type Response struct {
+	// Index of the Dealer for which this response is for
 	Index uint32
 
-	Complaint *vss.Complaint
+	Response *vss.Response
 }
 
 type Justification struct {
@@ -53,13 +53,6 @@ type Justification struct {
 	Index uint32
 
 	Justification *vss.Justification
-}
-
-type Approval struct {
-	// Index of the Dealer for which this approval is for
-	Index uint32
-
-	Approval *vss.Approval
 }
 
 // SecretCommit is sent during the distributed public key reconstruction phase,
@@ -144,7 +137,7 @@ func NewDistKeyGenerator(suite abstract.Suite, longterm abstract.Scalar, partici
 //      sendTo(participants[i],dd)
 //   }
 //
-func (d *DistKeyGenerator) Deal() map[int]*Deal {
+func (d *DistKeyGenerator) Deals() map[int]*Deal {
 	deals := d.dealer.Deals()
 	dd := make(map[int]*Deal)
 	for i := range d.participants {
@@ -153,7 +146,9 @@ func (d *DistKeyGenerator) Deal() map[int]*Deal {
 			Deal:  deals[i],
 		}
 		if i == int(d.index) {
-			d.ProcessDeal(distd)
+			if _, err := d.ProcessDeal(distd); err != nil {
+				panic(err)
+			}
 			continue
 		}
 		dd[i] = distd
@@ -161,67 +156,48 @@ func (d *DistKeyGenerator) Deal() map[int]*Deal {
 	return dd
 }
 
-func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Approval, *Complaint, error) {
+func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 	// public key of the dealer
 	pub, ok := findPub(d.participants, dd.Index)
 	if !ok {
-		return nil, nil, errors.New("dkg: dist deal out of bounds index")
+		return nil, errors.New("dkg: dist deal out of bounds index")
 	}
 
 	if _, ok := d.verifiers[dd.Index]; ok {
-		return nil, nil, errors.New("dkg: already received dist deal from same index")
+		return nil, errors.New("dkg: already received dist deal from same index")
 	}
 
 	// verifier receiving the dealer's deal
 	ver, err := vss.NewVerifier(d.suite, d.long, pub, d.participants)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	d.verifiers[dd.Index] = ver
-	ap, cp, err := ver.ProcessDeal(dd.Deal)
-
-	if ap != nil {
-		return &Approval{
-			Index:    dd.Index,
-			Approval: ap,
-		}, nil, err
-	} else if cp != nil {
-		return nil, &Complaint{
-			Index:     dd.Index,
-			Complaint: cp,
-		}, err
-	}
-	return nil, nil, err
+	resp, err := ver.ProcessDeal(dd.Deal)
+	return &Response{
+		Index:    dd.Index,
+		Response: resp,
+	}, err
 }
 
-func (d *DistKeyGenerator) ProcessApproval(ap *Approval) error {
-	v, ok := d.verifiers[ap.Index]
-	if !ok {
-		return errors.New("dkg: approval received but no deal for it")
-	}
-	err := v.ProcessApproval(ap.Approval)
-	if ap.Index == d.index {
-		return d.dealer.ProcessApprovals(ap.Approval)
-	}
-	return err
-}
-
-func (d *DistKeyGenerator) ProcessComplaint(cp *Complaint) (*Justification, error) {
-	v, ok := d.verifiers[cp.Index]
+func (d *DistKeyGenerator) ProcessResponse(resp *Response) (*Justification, error) {
+	v, ok := d.verifiers[resp.Index]
 	if !ok {
 		return nil, errors.New("dkg: complaint received but no deal for it")
 	}
 
-	if err := v.ProcessComplaint(cp.Complaint); err != nil {
+	if err := v.ProcessResponse(resp.Response); err != nil {
 		return nil, err
 	}
 
 	// if we are processing a complaint for this d, return a justification and
 	// process that justification for d's verifier
-	if cp.Index == uint32(d.index) {
-		j, err := d.dealer.ProcessComplaint(cp.Complaint)
-		v.ProcessJustification(j)
+	if resp.Index == uint32(d.index) {
+		j, err := d.dealer.ProcessResponse(resp.Response)
+		if err := v.ProcessJustification(j); err != nil {
+			panic(err)
+		}
 		return &Justification{
 			Index:         d.index,
 			Justification: j,
