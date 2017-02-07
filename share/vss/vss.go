@@ -315,6 +315,10 @@ func (v *Verifier) ProcessDeal(d *Deal) (*Response, error) {
 	return r, nil
 }
 
+func (v *Verifier) ProcessResponse(resp *Response) error {
+	return v.aggregator.verifyResponse(resp)
+}
+
 // Share returns the Deal that this verifier has received. It returns
 // nil if the deal is not certified or there is not enough approvals.
 func (v *Verifier) Deal() *Deal {
