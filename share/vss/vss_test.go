@@ -71,15 +71,15 @@ func init() {
 	verifiersSec, verifiersPub = genCommits(nbVerifiers)
 	dealerSec, dealerPub = genPair()
 	secret, _ = genPair()
-	vssThreshold = minimumT(verifiersPub)
+	vssThreshold = MinimumT(nbVerifiers)
 }
 
 func TestVSSDealerNew(t *testing.T) {
-	goodT := minimumT(verifiersPub)
+	goodT := MinimumT(nbVerifiers)
 	_, err := NewDealer(suite, dealerSec, secret, verifiersPub, reader, goodT)
 	assert.NoError(t, err)
 
-	for badT := range []int{goodT - 1, len(verifiersPub) + 1, -4} {
+	for _, badT := range []int{0, 1, -4} {
 		_, err = NewDealer(suite, dealerSec, secret, verifiersPub, reader, badT)
 		assert.Error(t, err)
 	}
@@ -87,8 +87,9 @@ func TestVSSDealerNew(t *testing.T) {
 
 func TestVSSVerifierNew(t *testing.T) {
 	randIdx := rand.Int() % len(verifiersPub)
-	_, err := NewVerifier(suite, verifiersSec[randIdx], dealerPub, verifiersPub)
+	v, err := NewVerifier(suite, verifiersSec[randIdx], dealerPub, verifiersPub)
 	assert.NoError(t, err)
+	assert.Equal(t, randIdx, v.index)
 
 	wrongKey := suite.Scalar().Pick(reader)
 	_, err = NewVerifier(suite, wrongKey, dealerPub, verifiersPub)
@@ -109,14 +110,14 @@ func TestVSSShare(t *testing.T) {
 		aggr.approvals[uint32(i)] = &Approval{}
 	}
 	// not enough approvals
-	assert.Nil(t, ver.Share())
+	assert.Nil(t, ver.Deal())
 	aggr.approvals[uint32(aggr.t)] = &Approval{}
 	// deal not certified
 	aggr.badDealer = true
-	assert.Nil(t, ver.Share())
+	assert.Nil(t, ver.Deal())
 	aggr.badDealer = false
 
-	assert.NotNil(t, ver.Share())
+	assert.NotNil(t, ver.Deal())
 
 }
 
@@ -234,20 +235,10 @@ func TestVSSAggregatorDealerResponse(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, v.complaints[uint32(v.index)], c)
 
-	c.Deal = &Deal{
-		SessionID:   deals[0].SessionID,
-		SecShare:    deals[0].SecShare,
-		RndShare:    deals[0].RndShare,
-		T:           deals[0].T,
-		Commitments: deals[0].Commitments,
-		Signature:   deals[0].Signature,
-	}
-	c.Deal.SecShare.V = wrongV
 	// valid complaint
 	dr, err := dealer.ProcessComplaint(c)
 	d.SecShare.V = goodV // in tests, pointers point to the same underlying share..
 	assert.Nil(t, err)
-	assert.Equal(t, dr.Deal, d)
 	assert.Nil(t, v.ProcessJustification(dr))
 
 	// invalid  complaint
@@ -274,7 +265,7 @@ func TestVSSAggregatorVerifyComplaint(t *testing.T) {
 	dealer, verifiers := genAll()
 	v := verifiers[0]
 	deal := dealer.deals[0]
-	goodSec := deal.SecShare.V
+	//goodSec := deal.SecShare.V
 	wrongSec, _ := genPair()
 	deal.SecShare.V = wrongSec
 
@@ -289,9 +280,9 @@ func TestVSSAggregatorVerifyComplaint(t *testing.T) {
 	assert.True(t, ok)
 
 	// give a valid deal
-	deal.SecShare.V = goodSec
-	c.Deal = deal
-	assert.Error(t, aggr.verifyComplaint(c))
+	//deal.SecShare.V = goodSec
+	//c.Deal = deal
+	//assert.Error(t, aggr.verifyComplaint(c))
 
 	// wrong index
 	c.Index = uint32(len(verifiersPub))
@@ -331,7 +322,7 @@ func TestVSSAggregatorVerifyDeal(t *testing.T) {
 	assert.Error(t, err)
 
 	// wrong T
-	wrongT := uint32(nbVerifiers / 3)
+	wrongT := uint32(1)
 	goodT := deal.T
 	deal.T = wrongT
 	assert.Error(t, aggr.verifyDeal(deal, false))

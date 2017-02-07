@@ -8,13 +8,16 @@ import (
 
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/share"
+	"github.com/dedis/crypto/share/vss"
 	"github.com/dedis/crypto/sign"
 )
 
 type DistKeyShare struct {
 
-	// the public key generated
-	Public abstract.Point
+	// Commitments is the list of commitment of the coefficient of the private
+	// polynomial. The Share can be verified against of this list of
+	// commitments. The first element is the distributed public key.
+	Commitments []abstract.Point
 
 	// share of the distributed secret
 	Share abstract.Scalar
@@ -23,13 +26,40 @@ type DistKeyShare struct {
 	Index int
 }
 
+// Public returns the distributed public key generated.
+func (dks *DistKeyShare) Public() abstract.Point {
+	return dks.Commitments[0]
+}
+
 // DistDeal is a simple wrapper around Deal used to provide the index of the
 // Dealer in the list of participants together with its Deal.
 // NOTE: Doing that in vss.go would be possible but then the Dealer is always
 // assumed to be a member of the participants. It's only the case here.
-type DistDeal struct {
+type Deal struct {
+	// Index of the Dealer in the list of participants
 	Index uint32
-	Deal  *Deal
+	Deal  *vss.Deal
+}
+
+type Complaint struct {
+	// Index of the Dealer for which this complaint is about
+	Index uint32
+
+	Complaint *vss.Complaint
+}
+
+type Justification struct {
+	// Index of the Dealer who answered with this Justification
+	Index uint32
+
+	Justification *vss.Justification
+}
+
+type Approval struct {
+	// Index of the Dealer for which this approval is for
+	Index uint32
+
+	Approval *vss.Approval
 }
 
 // SecretCommit is sent during the distributed public key reconstruction phase,
@@ -67,13 +97,13 @@ type DistKeyGenerator struct {
 
 	t int
 
-	dealer    *Dealer
-	verifiers map[uint32]*Verifier
+	dealer    *vss.Dealer
+	verifiers map[uint32]*vss.Verifier
 
 	commitments map[uint32]*share.PubPoly
 }
 
-func NewDistKeyGeneration(suite abstract.Suite, longterm abstract.Scalar, participants []abstract.Point, r cipher.Stream, t int) (*DistKeyGenerator, error) {
+func NewDistKeyGenerator(suite abstract.Suite, longterm abstract.Scalar, participants []abstract.Point, r cipher.Stream, t int) (*DistKeyGenerator, error) {
 	d := new(DistKeyGenerator)
 	pub := suite.Point().Mul(nil, longterm)
 	// find our index
@@ -91,12 +121,12 @@ func NewDistKeyGeneration(suite abstract.Suite, longterm abstract.Scalar, partic
 	var err error
 	// generate our dealer / deal
 	ownSec := suite.Scalar().Pick(r)
-	d.dealer, err = NewDealer(suite, longterm, ownSec, participants, r, t)
+	d.dealer, err = vss.NewDealer(suite, longterm, ownSec, participants, r, t)
 	if err != nil {
 		return nil, err
 	}
 	// to receive the other deals
-	d.verifiers = make(map[uint32]*Verifier)
+	d.verifiers = make(map[uint32]*vss.Verifier)
 	d.t = t
 	d.suite = suite
 	d.long = longterm
@@ -107,93 +137,133 @@ func NewDistKeyGeneration(suite abstract.Suite, longterm abstract.Scalar, partic
 
 // DistDeals returns all the DistDeal that must be broadcasted to every
 // participants. The DistDeal corresponding to this DKG is already added
-// to this DKG and is ommitted from the returned slice. To know
-// to which one to give the DistDeal, simply look the "Index" field.
-func (d *DistKeyGenerator) DistDeal() []*DistDeal {
+// to this DKG and is ommitted from the returned map. To know
+// to which participant to give the DistDeal, loop over the keys as indexes in
+// the list of participants:
+//   for i,dd := range distDeals {
+//      sendTo(participants[i],dd)
+//   }
+//
+func (d *DistKeyGenerator) Deal() map[int]*Deal {
 	deals := d.dealer.Deals()
-	dd := make([]*DistDeal, len(deals))
-	for i, deal := range deals {
-		distd := &DistDeal{
+	dd := make(map[int]*Deal)
+	for i := range d.participants {
+		distd := &Deal{
 			Index: d.index,
-			Deal:  deal,
+			Deal:  deals[i],
 		}
 		if i == int(d.index) {
-			d.ProcessDistDeal(distd)
+			d.ProcessDeal(distd)
+			continue
 		}
+		dd[i] = distd
 	}
 	return dd
 }
 
-func (d *DistKeyGenerator) ProcessDistDeal(dd *DistDeal) (*Approval, *Complaint, error) {
+func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Approval, *Complaint, error) {
+	// public key of the dealer
 	pub, ok := findPub(d.participants, dd.Index)
 	if !ok {
 		return nil, nil, errors.New("dkg: dist deal out of bounds index")
 	}
-	if _, ok := d.verifiers[d.index]; ok {
+
+	if _, ok := d.verifiers[dd.Index]; ok {
 		return nil, nil, errors.New("dkg: already received dist deal from same index")
 	}
 
-	ver, err := NewVerifier(d.suite, d.long, pub, d.participants)
+	// verifier receiving the dealer's deal
+	ver, err := vss.NewVerifier(d.suite, d.long, pub, d.participants)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	d.verifiers[dd.Index] = ver
-	return ver.ProcessDeal(dd.Deal)
+	ap, cp, err := ver.ProcessDeal(dd.Deal)
+
+	if ap != nil {
+		return &Approval{
+			Index:    dd.Index,
+			Approval: ap,
+		}, nil, err
+	} else if cp != nil {
+		return nil, &Complaint{
+			Index:     dd.Index,
+			Complaint: cp,
+		}, err
+	}
+	return nil, nil, err
 }
 
 func (d *DistKeyGenerator) ProcessApproval(ap *Approval) error {
-	if v, ok := d.verifiers[ap.Index]; !ok {
+	v, ok := d.verifiers[ap.Index]
+	if !ok {
 		return errors.New("dkg: approval received but no deal for it")
-	} else {
-		return v.ProcessApproval(ap)
 	}
+	err := v.ProcessApproval(ap.Approval)
+	if ap.Index == d.index {
+		return d.dealer.ProcessApprovals(ap.Approval)
+	}
+	return err
 }
 
 func (d *DistKeyGenerator) ProcessComplaint(cp *Complaint) (*Justification, error) {
-	if cp.Index == uint32(d.index) {
-		return d.dealer.ProcessComplaint(cp)
-	}
-	if v, ok := d.verifiers[cp.Index]; !ok {
+	v, ok := d.verifiers[cp.Index]
+	if !ok {
 		return nil, errors.New("dkg: complaint received but no deal for it")
-	} else {
-		return nil, v.ProcessComplaint(cp)
 	}
+
+	if err := v.ProcessComplaint(cp.Complaint); err != nil {
+		return nil, err
+	}
+
+	// if we are processing a complaint for this d, return a justification and
+	// process that justification for d's verifier
+	if cp.Index == uint32(d.index) {
+		j, err := d.dealer.ProcessComplaint(cp.Complaint)
+		v.ProcessJustification(j)
+		return &Justification{
+			Index:         d.index,
+			Justification: j,
+		}, err
+	}
+	return nil, nil
 }
 
 func (d *DistKeyGenerator) ProcessJustification(j *Justification) error {
 	if v, ok := d.verifiers[j.Index]; !ok {
 		return errors.New("dkg: Justification received but no deal for it")
 	} else {
-		return v.ProcessJustification(j)
+		return v.ProcessJustification(j.Justification)
 	}
 }
 
 func (d *DistKeyGenerator) Certified() bool {
 	var good int
-	d.qualIter(func(v *Verifier) { good++ })
+	d.qualIter(func(v *vss.Verifier) { good++ })
 	return good >= d.t
 }
 
 func (d *DistKeyGenerator) QUAL() []abstract.Point {
 	var good []abstract.Point
-	d.qualIter(func(v *Verifier) {
-		good = append(good, v.pub)
+	d.qualIter(func(v *vss.Verifier) {
+		_, pub := v.Key()
+		good = append(good, pub)
 	})
 	return good
 }
 
 func (d *DistKeyGenerator) isInQUAL(idx uint32) bool {
 	var found bool
-	d.qualIter(func(v *Verifier) {
-		if uint32(v.index) == idx {
+	d.qualIter(func(v *vss.Verifier) {
+		if uint32(v.Index()) == idx {
 			found = true
 		}
 	})
 	return found
 }
 
-func (d *DistKeyGenerator) qualIter(fn func(v *Verifier)) {
+func (d *DistKeyGenerator) qualIter(fn func(v *vss.Verifier)) {
 	for _, v := range d.verifiers {
 		if v.EnoughApprovals() && v.DealCertified() {
 			fn(v)
@@ -209,7 +279,7 @@ func (d *DistKeyGenerator) SecretCommits() (*SecretCommits, error) {
 	sc := &SecretCommits{
 		Commitments: d.dealer.Commits(),
 		Index:       uint32(d.index),
-		SessionID:   d.dealer.sessionID,
+		SessionID:   d.dealer.SessionID(),
 	}
 	msg := msgSecretCommit(sc)
 	sig, err := sign.Schnorr(d.suite, d.long, msg)
@@ -230,14 +300,7 @@ func (d *DistKeyGenerator) ProcessSecretCommits(sc *SecretCommits) (*ComplaintCo
 		return nil, errors.New("dkg: secretcommits received with index out of bounds")
 	}
 
-	var found bool
-	d.qualIter(func(v *Verifier) {
-		if sc.Index == uint32(v.index) {
-			found = true
-		}
-	})
-
-	if !found {
+	if !d.isInQUAL(sc.Index) {
 		return nil, errors.New("dkg: secretcommits from a non QUAL member")
 	}
 
@@ -249,7 +312,7 @@ func (d *DistKeyGenerator) ProcessSecretCommits(sc *SecretCommits) (*ComplaintCo
 	if !ok {
 		return nil, errors.New("dkg: secretcommits received without corresponding verifier")
 	}
-	if !bytes.Equal(v.sid, sc.SessionID) {
+	if !bytes.Equal(v.SessionID(), sc.SessionID) {
 		return nil, errors.New("dkg: secretcommits received with wrong session id")
 	}
 	deal := v.Deal()
@@ -275,7 +338,7 @@ func (d *DistKeyGenerator) ProcessSecretCommits(sc *SecretCommits) (*ComplaintCo
 	return nil, nil
 }
 
-func (d *DistKeyGenerator) ProcessCommitComplaint(cc *ComplaintCommits) (*Deal, error) {
+func (d *DistKeyGenerator) ProcessCommitComplaint(cc *ComplaintCommits) (*vss.Deal, error) {
 	issuer, ok := findPub(d.participants, cc.Index)
 	if !ok {
 		return nil, errors.New("dkg: commitcomplaint with unknown issuer")
@@ -311,7 +374,7 @@ func (d *DistKeyGenerator) DistKeyShare() (*DistKeyShare, error) {
 	sh := d.suite.Scalar().Zero()
 	// share of dist. secret = sum of all share received.
 	// Dist. public key = sum of all revealed commitments
-	d.qualIter(func(v *Verifier) {
+	d.qualIter(func(v *vss.Verifier) {
 		s := v.Deal().SecShare.V
 		sh = sh.Add(sh, s)
 	})
@@ -336,11 +399,11 @@ func (d *DistKeyGenerator) DistKeyShare() (*DistKeyShare, error) {
 	if !pub.Check(secretShare) {
 		return nil, errors.New("dkg: share can't be verifie against commitments")
 	}
-
+	_, commits := pub.Info()
 	return &DistKeyShare{
-		Index:  int(d.index),
-		Public: pub.Commit(),
-		Share:  secretShare.V,
+		Index:       int(d.index),
+		Commitments: commits,
+		Share:       secretShare.V,
 	}, nil
 }
 
@@ -362,4 +425,13 @@ func msgCommitComplaint(cc *ComplaintCommits) []byte {
 	binary.Write(&buf, binary.LittleEndian, cc.Index)
 	binary.Write(&buf, binary.LittleEndian, cc.DealerIndex)
 	return buf.Bytes()
+}
+
+// XXX: maybe put that as internal package for vss & dkg since they both use the
+// same function
+func findPub(list []abstract.Point, i uint32) (abstract.Point, bool) {
+	if i >= uint32(len(list)) {
+		return nil, false
+	}
+	return list[i], true
 }
