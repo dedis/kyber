@@ -473,7 +473,7 @@ func (a *aggregator) addResponse(r *Response) error {
 		return errors.New("vss: index out of bounds in Complaint")
 	}
 	if _, ok := a.responses[r.Index]; ok {
-		return errors.New("vss: already existing complaint from same origin")
+		return errors.New("vss: already existing response from same origin")
 	}
 	a.responses[r.Index] = r
 	return nil
