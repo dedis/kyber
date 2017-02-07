@@ -69,13 +69,18 @@ type Deal struct {
 	Signature   []byte
 }
 
-// Complaint is a message that must be broadcasted to every verifiers when
-// a verifier receives an invalid Deal.
-type Complaint struct {
+type Response struct {
 	SessionID []byte
 	Index     uint32
+	// 0 = NO APPROVAL == Complaint , 1 = APPROVAL
+	Status    byte
 	Signature []byte
 }
+
+const (
+	StatusComplaint byte = iota
+	StatusApproval
+)
 
 // Justification is a message that is broadcasted by the Dealer in response to
 // a Complaint. It contains the original Complaint as well as the shares
@@ -85,14 +90,6 @@ type Justification struct {
 	// Index of the verifier who issued the Complaint,i.e. index of this Deal
 	Index     uint32
 	Deal      *Deal
-	Signature []byte
-}
-
-// Approval is a message that is sent if a verifier approves the Deal he
-// received from the Dealer.
-type Approval struct {
-	SessionID []byte
-	Index     uint32
 	Signature []byte
 }
 
@@ -166,15 +163,19 @@ func (d *Dealer) Deals() []*Deal {
 // then it returns a Justification. This response must be broadcasted to every
 // participants. If it's an invalid complaint, it returns an error about the
 // complaints. The verifiers will also ignore an invalid Complaint.
-func (d *Dealer) ProcessComplaint(c *Complaint) (*Justification, error) {
-	if err := d.verifyComplaint(c); err != nil {
+func (d *Dealer) ProcessResponse(r *Response) (*Justification, error) {
+	if err := d.verifyResponse(r); err != nil {
 		return nil, err
 	}
+	if r.Status == StatusApproval {
+		return nil, nil
+	}
+
 	j := &Justification{
 		SessionID: d.sessionID,
 		// index is guaranteed to be good because of d.verifyComplaint before
-		Deal:  d.deals[int(c.Index)],
-		Index: c.Index,
+		Index: r.Index,
+		Deal:  d.deals[int(r.Index)],
 	}
 	sig, err := sign.Schnorr(d.suite, d.long, msgJustification(j))
 	if err != nil {
@@ -182,14 +183,6 @@ func (d *Dealer) ProcessComplaint(c *Complaint) (*Justification, error) {
 	}
 	j.Signature = sig
 	return j, nil
-}
-
-// ProcessApprovals looks if the approval is legitimate and stores it. If the
-// approval is not legitimate or has already been received, it returns an error.
-// To knoew whether participants approved the sharing, call `d.EnoughApproval`
-// and if true, `d.DealCertified`.
-func (d *Dealer) ProcessApprovals(a *Approval) error {
-	return d.verifyApproval(a)
 }
 
 // SecretCommit returns the commitment of the secret being shared by this
@@ -261,7 +254,7 @@ func NewVerifier(suite abstract.Suite, longterm abstract.Scalar, dealerKey abstr
 		}
 	}
 	if !ok {
-		return nil, errors.New("verifier: public key not found in the list of verifiers")
+		return nil, errors.New("vss: public key not found in the list of verifiers")
 	}
 
 	v.h = deriveH(suite, verifiers)
@@ -282,48 +275,44 @@ func NewVerifier(suite abstract.Suite, longterm abstract.Scalar, dealerKey abstr
 // error.
 // XXX API question: return value.For the moment, the default is to let the user
 // know everything that is wrong through the error.
-func (v *Verifier) ProcessDeal(d *Deal) (*Approval, *Complaint, error) {
+func (v *Verifier) ProcessDeal(d *Deal) (*Response, error) {
 	if d.SecShare.I != v.index {
-		return nil, nil, errors.New("verifier: wrong index from deal")
+		return nil, errors.New("vss: verifier got wrong index from deal")
 	}
 
 	t := int(d.T)
 
 	sid, err := sessionID(v.suite, v.dealer, v.verifiers, d.Commitments, t)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if v.aggregator == nil {
 		v.aggregator = newAggregator(v.suite, v.dealer, v.verifiers, d.Commitments, t, d.SessionID)
 	}
 
-	if err := v.verifyDeal(d, true); err != nil {
-		if err == errDealAlreadyProcessed {
-			return nil, nil, err
-		}
-		c := &Complaint{
-			SessionID: sid,
-			Index:     uint32(v.index),
-		}
-		var err2 error
-		if c.Signature, err2 = sign.Schnorr(v.suite, v.long, msgComplaint(c)); err2 != nil {
-			return nil, nil, err2
-		}
-
-		if err2 = v.aggregator.addComplaint(c); err2 != nil {
-			return nil, nil, err2
-		}
-		return nil, c, err
-	}
-	ap := &Approval{
+	r := &Response{
+		SessionID: sid,
 		Index:     uint32(v.index),
-		SessionID: v.sid,
+		Status:    StatusApproval,
 	}
-	if ap.Signature, err = sign.Schnorr(v.suite, v.long, msgApproval(ap)); err != nil {
-		return nil, nil, err
+	if err = v.verifyDeal(d, true); err != nil {
+		r.Status = StatusComplaint
 	}
-	return ap, nil, v.aggregator.addApproval(ap)
+
+	if err == errDealAlreadyProcessed {
+		return nil, err
+	}
+
+	if r.Signature, err = sign.Schnorr(v.suite, v.long, msgResponse(r)); err != nil {
+		return nil, err
+	}
+
+	if err = v.aggregator.addResponse(r); err != nil {
+		return nil, err
+	}
+
+	return r, nil
 }
 
 // Share returns the Deal that this verifier has received. It returns
@@ -335,16 +324,6 @@ func (v *Verifier) Deal() *Deal {
 	return v.deal
 }
 
-// ProcessComplaint takes a Complaint and stores it if the Complaint is valid.
-// If the verifier already saw a Complaint from the same origin, it returns an error.
-// If the Complaint is not valid, it returns an error. That does NOT mean the
-// Deal is not good, but rather only this Complaint is not valid and should not
-// be treated.  To know whether the deal is good, call first v.EnoughApproval(),
-// and if true, call v.IsDealGood().
-func (v *Verifier) ProcessComplaint(c *Complaint) error {
-	return v.verifyComplaint(c)
-}
-
 // ProcessJustification takes a DealerResponse and returns an error if
 // something went wrong during the verification. If it is the case, that
 // probably means the Dealer is acting maliciously. In order to be sure, call
@@ -353,10 +332,6 @@ func (v *Verifier) ProcessComplaint(c *Complaint) error {
 // to already have received it.
 func (v *Verifier) ProcessJustification(dr *Justification) error {
 	return v.aggregator.verifyJustification(dr)
-}
-
-func (v *Verifier) ProcessApproval(ap *Approval) error {
-	return v.verifyApproval(ap)
 }
 
 func (v *Verifier) Key() (abstract.Scalar, abstract.Point) {
@@ -379,24 +354,22 @@ type aggregator struct {
 	verifiers []abstract.Point
 	commits   []abstract.Point
 
-	complaints map[uint32]*Complaint
-	approvals  map[uint32]*Approval
-	sid        []byte
-	deal       *Deal
-	t          int
-	badDealer  bool
+	responses map[uint32]*Response
+	sid       []byte
+	deal      *Deal
+	t         int
+	badDealer bool
 }
 
 func newAggregator(suite abstract.Suite, dealer abstract.Point, verifiers, commitments []abstract.Point, t int, sid []byte) *aggregator {
 	agg := &aggregator{
-		suite:      suite,
-		dealer:     dealer,
-		verifiers:  verifiers,
-		commits:    commitments,
-		t:          t,
-		sid:        sid,
-		complaints: make(map[uint32]*Complaint),
-		approvals:  make(map[uint32]*Approval),
+		suite:     suite,
+		dealer:    dealer,
+		verifiers: verifiers,
+		commits:   commitments,
+		t:         t,
+		sid:       sid,
+		responses: make(map[uint32]*Response),
 	}
 	return agg
 }
@@ -406,7 +379,7 @@ func (a *aggregator) setDeal(d *Deal) {
 	a.deal = d
 }
 
-var errDealAlreadyProcessed = errors.New("deal: already received a deal")
+var errDealAlreadyProcessed = errors.New("vss: verifier already received a deal")
 
 func (a *aggregator) verifyDeal(d *Deal, inclusion bool) error {
 	if a.deal != nil && inclusion {
@@ -420,11 +393,11 @@ func (a *aggregator) verifyDeal(d *Deal, inclusion bool) error {
 	}
 
 	if !validT(int(d.T), a.verifiers) {
-		return errors.New("verifier: invalid t received in Deal")
+		return errors.New("vss: invalid t received in Deal")
 	}
 
 	if !bytes.Equal(a.sid, d.SessionID) {
-		return errors.New("deal: sessionID is different from locally computed")
+		return errors.New("vss: find different sessionIDs from Deal")
 	}
 
 	if err := sign.VerifySchnorr(a.suite, a.dealer, msgDeal(d), d.Signature); err != nil {
@@ -434,9 +407,9 @@ func (a *aggregator) verifyDeal(d *Deal, inclusion bool) error {
 	fi := d.SecShare
 	gi := d.RndShare
 	if fi.I != gi.I {
-		return errors.New("deal: not the same index for f and g share")
+		return errors.New("vss: not the same index for f and g share in Deal")
 	} else if fi.I < 0 || fi.I >= len(a.verifiers) {
-		return errors.New("deal: index out of bounds")
+		return errors.New("vss: index out of bounds in Deal")
 	}
 	// compute fi * G + gi * H
 	fig := a.suite.Point().Base().Mul(nil, fi.V)
@@ -448,54 +421,37 @@ func (a *aggregator) verifyDeal(d *Deal, inclusion bool) error {
 
 	pubShare := commitPoly.Eval(fi.I)
 	if !ci.Equal(pubShare.V) {
-		return errors.New("deal: share do not verify against commitments")
+		return errors.New("vss: share do not verify against commitments in Deal")
 	}
 	return nil
 }
 
-func (a *aggregator) verifyComplaint(c *Complaint) error {
-	if !bytes.Equal(c.SessionID, a.sid) {
-		return errors.New("complaint: receiving inconsistent sessionID")
+func (a *aggregator) verifyResponse(r *Response) error {
+	if !bytes.Equal(r.SessionID, a.sid) {
+		return errors.New("vss: receiving inconsistent sessionID in response")
 	}
 
-	pub, ok := findPub(a.verifiers, c.Index)
+	pub, ok := findPub(a.verifiers, r.Index)
 	if !ok {
-		return errors.New("complaint: index out of bounds")
+		return errors.New("vss: index out of bounds in response")
 	}
 
-	if err := sign.VerifySchnorr(a.suite, pub, msgComplaint(c), c.Signature); err != nil {
+	if err := sign.VerifySchnorr(a.suite, pub, msgResponse(r), r.Signature); err != nil {
 		return err
 	}
 
-	return a.addComplaint(c)
-}
-
-func (a *aggregator) verifyApproval(ap *Approval) error {
-	if a.deal == nil {
-		return errors.New("approval: deal has not been received")
-	}
-	if !bytes.Equal(ap.SessionID, a.sid) {
-		return errors.New("approval: does not match session id recorded")
-	}
-
-	pub, ok := findPub(a.verifiers, ap.Index)
-	if !ok {
-		return errors.New("approval: index out of bounds")
-	}
-
-	if err := sign.VerifySchnorr(a.suite, pub, msgApproval(ap), ap.Signature); err != nil {
-		return err
-	}
-
-	return a.addApproval(ap)
+	return a.addResponse(r)
 }
 
 func (a *aggregator) verifyJustification(j *Justification) error {
 	if _, ok := findPub(a.verifiers, j.Index); !ok {
-		return errors.New("verifier: justification's index out of bounds.")
+		return errors.New("vss: index out of bounds in justification")
 	}
-	if _, ok := a.complaints[j.Index]; !ok {
-		return errors.New("verifier: no complaints received for this justification")
+	r, ok := a.responses[j.Index]
+	if !ok {
+		return errors.New("vss: no complaints received for this justification")
+	} else if r.Status != StatusComplaint {
+		return errors.New("vss: justification received for an approval")
 	}
 
 	if err := a.verifyDeal(j.Deal, false); err != nil {
@@ -504,43 +460,39 @@ func (a *aggregator) verifyJustification(j *Justification) error {
 		return err
 	}
 	// "deletes" the complaint since the dealer is honest
-	delete(a.complaints, j.Index)
+	r.Status = StatusApproval
 	return nil
 }
 
-func (a *aggregator) addComplaint(c *Complaint) error {
-	if _, ok := findPub(a.verifiers, c.Index); !ok {
-		return errors.New("complaint: index out of bounds")
+func (a *aggregator) addResponse(r *Response) error {
+	if _, ok := findPub(a.verifiers, r.Index); !ok {
+		return errors.New("vss: index out of bounds in Complaint")
 	}
-	if _, ok := a.complaints[c.Index]; ok {
-		return errors.New("complaint: already existing complaint from same origin")
-	} else if _, ok := a.approvals[c.Index]; ok {
-		return errors.New("complaint: approval existing from same origin")
-
+	if _, ok := a.responses[r.Index]; ok {
+		return errors.New("vss: already existing complaint from same origin")
 	}
-	a.complaints[c.Index] = c
-	return nil
-}
-
-func (a *aggregator) addApproval(ap *Approval) error {
-	if _, ok := findPub(a.verifiers, ap.Index); !ok {
-		return errors.New("approval: index out of bounds")
-	}
-	if _, ok := a.complaints[ap.Index]; ok {
-		return errors.New("approval: complaint existing from same origin")
-	} else if _, ok := a.approvals[ap.Index]; ok {
-		return errors.New("approval: approval already existing from same origin")
-	}
-	a.approvals[ap.Index] = ap
+	a.responses[r.Index] = r
 	return nil
 }
 
 func (a *aggregator) EnoughApprovals() bool {
-	return len(a.approvals) >= a.t
+	var app int
+	for _, r := range a.responses {
+		if r.Status == StatusApproval {
+			app++
+		}
+	}
+	return app >= a.t
 }
 
 func (a *aggregator) DealCertified() bool {
-	return a.EnoughApprovals() && !(len(a.complaints) >= a.t || a.badDealer)
+	var comps int
+	for _, r := range a.responses {
+		if r.Status == StatusComplaint {
+			comps++
+		}
+	}
+	return a.EnoughApprovals() && !(comps >= a.t || a.badDealer)
 }
 
 func MinimumT(n int) int {
@@ -587,19 +539,12 @@ func sessionID(suite abstract.Suite, dealer abstract.Point, verifiers, commitmen
 	return h.Sum(nil), nil
 }
 
-func msgApproval(a *Approval) []byte {
+func msgResponse(r *Response) []byte {
 	var buf bytes.Buffer
-	buf.WriteString("approval")
-	buf.Write(a.SessionID)
-	binary.Write(&buf, binary.LittleEndian, a.Index)
-	return buf.Bytes()
-}
-
-func msgComplaint(c *Complaint) []byte {
-	var buf bytes.Buffer
-	buf.WriteString("complaint")
-	buf.Write(c.SessionID)
-	binary.Write(&buf, binary.LittleEndian, c.Index)
+	buf.WriteString("response")
+	buf.Write(r.SessionID)
+	binary.Write(&buf, binary.LittleEndian, r.Index)
+	binary.Write(&buf, binary.LittleEndian, r.Status)
 	return buf.Bytes()
 }
 
