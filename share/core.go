@@ -64,7 +64,7 @@ func (p *PriPoly) Eval(i int) *PriShare {
 // Shares creates a list of n private shares p(1),...,p(n).
 func (p *PriPoly) Shares(n int) []*PriShare {
 	shares := make([]*PriShare, n)
-	for i := 0; i < n; i++ {
+	for i := range shares {
 		shares[i] = p.Eval(i)
 	}
 	return shares
@@ -112,7 +112,7 @@ func (p *PriPoly) Commit(b abstract.Point) *PubPoly {
 
 // RecoverSecret reconstructs the shared secret p(0) from a list of private
 // shares using Lagrange interpolation.
-func RecoverSecret(g abstract.Group, shares []*PriShare, t int, n int) (abstract.Scalar, error) {
+func RecoverSecret(g abstract.Group, shares []*PriShare, t, n int) (abstract.Scalar, error) {
 	x := make(map[int]abstract.Scalar)
 	for i, s := range shares {
 		if s == nil || s.V == nil || s.I < 0 || n <= s.I {
@@ -193,7 +193,7 @@ func (p *PubPoly) Eval(i int) *PubShare {
 // Shares creates a list of n public commitment shares p(1),...,p(n).
 func (p *PubPoly) Shares(n int) []*PubShare {
 	shares := make([]*PubShare, n)
-	for i := 0; i < n; i++ {
+	for i := range shares {
 		shares[i] = p.Eval(i)
 	}
 	return shares
@@ -245,7 +245,7 @@ func (p *PubPoly) Check(s *PriShare) bool {
 
 // RecoverCommit reconstructs the secret commitment p(0) from a list of public
 // shares using Lagrange interpolation.
-func RecoverCommit(g abstract.Group, shares []*PubShare, t int, n int) (abstract.Point, error) {
+func RecoverCommit(g abstract.Group, shares []*PubShare, t, n int) (abstract.Point, error) {
 	x := make(map[int]abstract.Scalar)
 	for i, s := range shares {
 		if s == nil || s.V == nil || s.I < 0 || n <= s.I {
