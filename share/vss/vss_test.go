@@ -74,6 +74,48 @@ func init() {
 	vssThreshold = MinimumT(nbVerifiers)
 }
 
+func TestVSSWhole(t *testing.T) {
+	dealer, verifiers := genAll()
+	// 1. dispatch deal
+	resps := make([]*Response, nbVerifiers)
+	for i, d := range dealer.Deals() {
+		resp, err := verifiers[i].ProcessDeal(d)
+		require.Nil(t, err)
+		resps[i] = resp
+	}
+
+	// 2. dispatch responses
+	for _, resp := range resps {
+		for i, v := range verifiers {
+			if resp.Index == uint32(i) {
+				continue
+			}
+			require.Nil(t, v.ProcessResponse(resp))
+		}
+		// 2.1. check dealer (no justification here)
+		j, err := dealer.ProcessResponse(resp)
+		require.Nil(t, err)
+		require.Nil(t, j)
+	}
+
+	// 3. check certified
+	for _, v := range verifiers {
+		require.True(t, v.DealCertified())
+	}
+
+	// 4. collect deals
+	deals := make([]*Deal, nbVerifiers)
+	for i, v := range verifiers {
+		deals[i] = v.Deal()
+	}
+
+	// 5. recover
+	sec, err := RecoverSecret(suite, deals, nbVerifiers, MinimumT(nbVerifiers))
+	assert.Nil(t, err)
+	require.NotNil(t, sec)
+	assert.Equal(t, dealer.secret.String(), sec.String())
+}
+
 func TestVSSDealerNew(t *testing.T) {
 	goodT := MinimumT(nbVerifiers)
 	_, err := NewDealer(suite, dealerSec, secret, verifiersPub, reader, goodT)

@@ -352,6 +352,19 @@ func (v *Verifier) SessionID() []byte {
 	return v.sid
 }
 
+func RecoverSecret(suite abstract.Suite, deals []*Deal, n, t int) (abstract.Scalar, error) {
+	shares := make([]*share.PriShare, len(deals))
+	for i, deal := range deals {
+		// all sids the same
+		if bytes.Equal(deal.SessionID, deals[0].SessionID) {
+			shares[i] = deal.SecShare
+		} else {
+			return nil, errors.New("vss: all deals need to have same session id")
+		}
+	}
+	return share.RecoverSecret(suite, shares, t, n)
+}
+
 type aggregator struct {
 	suite     abstract.Suite
 	dealer    abstract.Point
