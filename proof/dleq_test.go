@@ -7,6 +7,7 @@ import (
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/edwards"
 	"github.com/dedis/crypto/random"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDLEQProof(t *testing.T) {
@@ -32,10 +33,7 @@ func TestDLEQProof(t *testing.T) {
 			bad = append(bad, i)
 		}
 	}
-
-	if len(bad) != 0 {
-		t.Fatalf("some proofs are invalid: %v", bad)
-	}
+	require.Equal(t, len(bad), 0)
 }
 
 func TestDLEQProofBatch(t *testing.T) {
@@ -66,10 +64,7 @@ func TestDLEQProofBatch(t *testing.T) {
 			bad = append(bad, i)
 		}
 	}
-
-	if len(bad) != 0 {
-		t.Fatalf("some proofs are invalid: %v", bad)
-	}
+	require.Equal(t, len(bad), 0)
 }
 
 func TestDLEQLengths(t *testing.T) {
@@ -88,7 +83,6 @@ func TestDLEQLengths(t *testing.T) {
 	// Remove an element to make the test fail
 	x = append(x[:5], x[6:]...)
 
-	if _, _, _, err := NewDLEQProofBatch(suite, g, h, x); err != errorDifferentLengths {
-		t.Fatal("unexpected outcome:", err)
-	}
+	_, _, _, err := NewDLEQProofBatch(suite, g, h, x)
+	require.Equal(t, err, errorDifferentLengths)
 }
