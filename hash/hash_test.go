@@ -27,35 +27,24 @@ func TestStream(t *testing.T) {
 	h := suite.Hash()
 	h.Write([]byte(str))
 	b := h.Sum(nil)
-	if !bytes.Equal(b, hashed) {
-		t.Fatal("hashes not equal")
-	}
+	assert.Equal(t, b, hashed)
 }
 
 func TestFile(t *testing.T) {
 	tmpfileIO, err := ioutil.TempFile("", "hash_test.bin")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 	tmpfileIO.Close()
 	tmpfile := tmpfileIO.Name()
 	defer os.Remove(tmpfile)
 	for _, i := range []int{16, 32, 128, 1024, 1536, 2048, 10001} {
 		buf := make([]byte, i)
 		_, err := rand.Read(buf)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := ioutil.WriteFile(tmpfile, buf, 0777); err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
+		err := ioutil.WriteFile(tmpfile, buf, 0777)
+		require.Nil(t, err)
 		hash, err := hash.File(suite.Hash(), tmpfile)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(hash) != 32 {
-			t.Fatal("Output of SHA256 should be 32 bytes")
-		}
+		require.Nil(t, err)
+		require.Equal(t, 32, len(hash), "Output of SHA256 should be 32 bytes")
 	}
 }
 
@@ -66,54 +55,32 @@ func TestStructures(t *testing.T) {
 	Y, _ := suite.Point().Pick(nil, random.Stream)
 
 	h1, err := hash.Structures(suite.Hash(), x, y)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	h2, err := hash.Structures(suite.Hash(), X, Y)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	h3, err := hash.Structures(suite.Hash(), x, y, X, Y)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	h4, err := hash.Structures(suite.Hash(), x, y, X, Y, []abstract.Scalar{x, y, x}, []abstract.Point{Y, X, Y})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
-	if bytes.Equal(h1, h2) || bytes.Equal(h2, h3) || bytes.Equal(h3, h4) {
-		t.Fatal("Unexpectably obtained equal hashes")
-	}
+	require.Equal(t, h1, h2)
+	require.Equal(t, h2, h3)
+	require.Equal(t, h3, h4)
 
 	h5, err := hash.Structures(suite.Hash(), x, x, y, y)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	h6, err := hash.Structures(suite.Hash(), []abstract.Scalar{x, x, y, y})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !bytes.Equal(h5, h6) {
-		t.Fatal("Hashes do not match")
-	}
+	require.Nil(t, err)
+	require.Equal(t, h5, h6)
 
 	h7, err := hash.Structures(suite.Hash(), X, Y, Y, X)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	h8, err := hash.Structures(suite.Hash(), []abstract.Point{X, Y, Y, X})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !bytes.Equal(h7, h8) {
-		t.Fatal("Hashes do not match")
-	}
+	require.Nil(t, err)
+	require.Equal(t, h7, h8)
 }
