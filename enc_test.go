@@ -1,6 +1,8 @@
 package crypto
 
 import (
+	"fmt"
+
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/nist"
 	"github.com/dedis/crypto/random"
@@ -11,6 +13,8 @@ func ElGamalEncrypt(suite abstract.Suite, pubkey abstract.Point, message []byte)
 
 	// Embed the message (or as much of it as will fit) into a curve point.
 	M, remainder := suite.Point().Pick(message, random.Stream)
+	fmt.Println("MESSAGE: %d", len(message))
+	fmt.Printf("REMAINDER: %x", remainder)
 
 	// ElGamal-encrypt the point to produce ciphertext (K,C).
 	k := suite.Scalar().Pick(random.Stream) // ephemeral private key
@@ -61,7 +65,8 @@ func Example_elGamalEncryption() {
 	A := suite.Point().Mul(nil, a)          // Alice's public key
 
 	// ElGamal-encrypt a message using the public key.
-	m := []byte("The quick brown fox")
+	//	m := []byte("The quick brown fox")
+	m := []byte("12345678901234567890123456789012")
 	K, C, _ := ElGamalEncrypt(suite, A, m)
 
 	// Decrypt it using the corresponding private key.
@@ -72,7 +77,7 @@ func Example_elGamalEncryption() {
 		panic("decryption failed: " + err.Error())
 	}
 	if string(mm) != string(m) {
-		panic("decryption produced wrong output: " + string(mm))
+		panic("decryption produced wrong output: " + string(mm) + " vs " + string(m))
 	}
 	println("Decryption succeeded: " + string(mm))
 
