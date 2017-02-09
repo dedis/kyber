@@ -169,6 +169,8 @@ type Client struct {
 	conn    *websocket.Conn
 	// whether to keep the connection
 	keep bool
+	rx   uint64
+	tx   uint64
 	sync.Mutex
 }
 
@@ -228,11 +230,13 @@ func (c *Client) Send(dst *network.ServerIdentity, path string, buf []byte) ([]b
 	if err := c.conn.WriteMessage(websocket.BinaryMessage, buf); err != nil {
 		return nil, NewClientError(err)
 	}
+	c.tx += uint64(len(buf))
 	_, rcv, err := c.conn.ReadMessage()
 	if err != nil {
 		return nil, NewClientError(err)
 	}
 	log.Lvlf4("Received %x", rcv)
+	c.rx += uint64(len(buf))
 	return rcv, nil
 }
 
@@ -289,6 +293,22 @@ func (c *Client) Close() error {
 		return c.conn.Close()
 	}
 	return nil
+}
+
+// Tx returns the number of bytes transmitted by this Client. It implements
+// the monitor.CounterIOMeasure interface.
+func (c *Client) Tx() uint64 {
+	c.Lock()
+	defer c.Unlock()
+	return c.tx
+}
+
+// Rx returns the number of bytes read by this Client. It implements
+// the monitor.CounterIOMeasure interface.
+func (c *Client) Rx() uint64 {
+	c.Lock()
+	defer c.Unlock()
+	return c.rx
 }
 
 // ClientError allows for returning error-codes and error-messages. It is
