@@ -7,6 +7,8 @@
 // a verifier can check the claimed evaluations of the committed polynomial.
 // Both schemes of this package are core building blocks for more advanced
 // secret sharing techniques.
+package share
+
 import (
 	"crypto/cipher"
 	"crypto/subtle"
