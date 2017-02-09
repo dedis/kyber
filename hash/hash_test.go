@@ -12,6 +12,7 @@ import (
 	"github.com/dedis/crypto/ed25519"
 	"github.com/dedis/crypto/hash"
 	"github.com/dedis/crypto/random"
+	"github.com/stretchr/testify/require"
 )
 
 var suite = ed25519.NewAES128SHA256Ed25519(false)
