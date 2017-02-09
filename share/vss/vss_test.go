@@ -303,6 +303,38 @@ func TestVSSAggregatorVerifyJustification(t *testing.T) {
 
 }
 
+func TestVSSAggregatorVerifyResponseDuplicate(t *testing.T) {
+	dealer, verifiers := genAll()
+	v1 := verifiers[0]
+	v2 := verifiers[1]
+	d1 := dealer.deals[0]
+	d2 := dealer.deals[1]
+
+	resp1, err := v1.ProcessDeal(d1)
+	assert.Nil(t, err)
+	assert.NotNil(t, resp1)
+	assert.Equal(t, StatusApproval, resp1.Status)
+
+	resp2, err := v2.ProcessDeal(d2)
+	assert.Nil(t, err)
+	assert.NotNil(t, resp2)
+	assert.Equal(t, StatusApproval, resp2.Status)
+
+	err = v1.ProcessResponse(resp2)
+	assert.Nil(t, err)
+	r, ok := v1.aggregator.responses[uint32(v2.index)]
+	assert.True(t, ok)
+	assert.Equal(t, resp2, r)
+
+	err = v1.ProcessResponse(resp2)
+	assert.Error(t, err)
+
+	delete(v1.aggregator.responses, uint32(v2.index))
+	v1.aggregator.responses[uint32(v2.index)] = &Response{Status: StatusApproval}
+	err = v1.ProcessResponse(resp2)
+	assert.Error(t, err)
+}
+
 func TestVSSAggregatorVerifyResponse(t *testing.T) {
 	dealer, verifiers := genAll()
 	v := verifiers[0]
@@ -323,11 +355,6 @@ func TestVSSAggregatorVerifyResponse(t *testing.T) {
 	r, ok := aggr.responses[uint32(v.index)]
 	assert.True(t, ok)
 	assert.Equal(t, StatusComplaint, r.Status)
-
-	// give a valid deal
-	//deal.SecShare.V = goodSec
-	//c.Deal = deal
-	//assert.Error(t, aggr.verifyResponse(c))
 
 	// wrong index
 	resp.Index = uint32(len(verifiersPub))
@@ -357,43 +384,43 @@ func TestVSSAggregatorVerifyDeal(t *testing.T) {
 
 	// OK
 	deal := deals[0]
-	err := aggr.verifyDeal(deal, true)
+	err := aggr.VerifyDeal(deal, true)
 	assert.NoError(t, err)
 	assert.NotNil(t, aggr.deal)
 
 	// already received deal
-	err = aggr.verifyDeal(deal, true)
+	err = aggr.VerifyDeal(deal, true)
 	assert.Error(t, err)
 
 	// wrong T
 	wrongT := uint32(1)
 	goodT := deal.T
 	deal.T = wrongT
-	assert.Error(t, aggr.verifyDeal(deal, false))
+	assert.Error(t, aggr.VerifyDeal(deal, false))
 	deal.T = goodT
 
 	// wrong SessionID
 	goodSid := deal.SessionID
 	deal.SessionID = make([]byte, 32)
-	assert.Error(t, aggr.verifyDeal(deal, false))
+	assert.Error(t, aggr.VerifyDeal(deal, false))
 	deal.SessionID = goodSid
 
 	// index different in one share
 	goodI := deal.RndShare.I
 	deal.RndShare.I = goodI + 1
-	assert.Error(t, aggr.verifyDeal(deal, false))
+	assert.Error(t, aggr.VerifyDeal(deal, false))
 	deal.RndShare.I = goodI
 
 	// index not in bounds
 	deal.SecShare.I = -1
-	assert.Error(t, aggr.verifyDeal(deal, false))
+	assert.Error(t, aggr.VerifyDeal(deal, false))
 	deal.SecShare.I = len(verifiersPub)
-	assert.Error(t, aggr.verifyDeal(deal, false))
+	assert.Error(t, aggr.VerifyDeal(deal, false))
 
 	// shares invalid in respect to the commitments
 	wrongSec, _ := genPair()
 	deal.SecShare.V = wrongSec
-	assert.Error(t, aggr.verifyDeal(deal, false))
+	assert.Error(t, aggr.VerifyDeal(deal, false))
 }
 
 func TestVSSAggregatorAddComplaint(t *testing.T) {

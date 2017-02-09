@@ -69,6 +69,20 @@ type Deal struct {
 	Signature   []byte
 }
 
+func (d *Deal) MarshalBinary() []byte {
+	var buf bytes.Buffer
+	buf.Write(d.SessionID)
+	binary.Write(&buf, binary.LittleEndian, d.SecShare.I)
+	d.SecShare.V.MarshalTo(&buf)
+	binary.Write(&buf, binary.LittleEndian, d.RndShare.I)
+	d.RndShare.V.MarshalTo(&buf)
+	binary.Write(&buf, binary.LittleEndian, d.T)
+	for _, c := range d.Commitments {
+		c.MarshalTo(&buf)
+	}
+	return buf.Bytes()
+}
+
 type Response struct {
 	SessionID []byte
 	Index     uint32
@@ -80,6 +94,8 @@ type Response struct {
 const (
 	StatusComplaint byte = iota
 	StatusApproval
+	// special status when a complaint has been justified
+	statusJustified
 )
 
 // Justification is a message that is broadcasted by the Dealer in response to
@@ -296,7 +312,7 @@ func (v *Verifier) ProcessDeal(d *Deal) (*Response, error) {
 		Index:     uint32(v.index),
 		Status:    StatusApproval,
 	}
-	if err = v.verifyDeal(d, true); err != nil {
+	if err = v.VerifyDeal(d, true); err != nil {
 		r.Status = StatusComplaint
 	}
 
@@ -311,7 +327,6 @@ func (v *Verifier) ProcessDeal(d *Deal) (*Response, error) {
 	if err = v.aggregator.addResponse(r); err != nil {
 		return nil, err
 	}
-
 	return r, nil
 }
 
@@ -398,7 +413,7 @@ func (a *aggregator) setDeal(d *Deal) {
 
 var errDealAlreadyProcessed = errors.New("vss: verifier already received a deal")
 
-func (a *aggregator) verifyDeal(d *Deal, inclusion bool) error {
+func (a *aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 	if a.deal != nil && inclusion {
 		return errDealAlreadyProcessed
 
@@ -471,13 +486,12 @@ func (a *aggregator) verifyJustification(j *Justification) error {
 		return errors.New("vss: justification received for an approval")
 	}
 
-	if err := a.verifyDeal(j.Deal, false); err != nil {
+	if err := a.VerifyDeal(j.Deal, false); err != nil {
 		// if one response is bad, flag the dealer as malicious
 		a.badDealer = true
 		return err
 	}
-	// "deletes" the complaint since the dealer is honest
-	r.Status = StatusApproval
+	r.Status = statusJustified
 	return nil
 }
 
