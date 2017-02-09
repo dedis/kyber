@@ -119,7 +119,7 @@ func TestPublicRecovery(test *testing.T) {
 	}
 
 	if !recovered.Equal(pubPoly.Commit()) {
-		test.Fatal("recovered commi does not match initial value")
+		test.Fatal("recovered commit does not match initial value")
 	}
 }
 
