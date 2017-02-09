@@ -7,7 +7,9 @@ import (
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/ed25519"
 	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto/share"
 	"github.com/dedis/crypto/share/vss"
+	"github.com/dedis/crypto/sign"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -211,153 +213,230 @@ func TestDKGProcessResponse(t *testing.T) {
 	dkg.verifiers[j.Index] = v
 }
 
-/*func TestReceiverAddDeal(t *testing.T) {*/
-//dealers, receivers := generateNDealerMReceiver(Threshold{3, 3, 4}, 3, 4)
-//// Test adding one dealer
-//_, e1 := receivers[0].AddDeal(0, dealers[0])
-//if e1 != nil {
-//t.Error(fmt.Sprintf("AddDeal should not return an error : %v", e1))
-//}
+func TestDKGSecretCommits(t *testing.T) {
+	fullExchange(t)
 
-//// Test adding another dealer with same index
-//_, e2 := receivers[0].AddDeal(0, dealers[1])
-//if e2 != nil {
-//t.Error(fmt.Sprintf("AddDeal should not return an error : %v", e2))
-//}
+	dkg := dkgs[0]
 
-//// Test adding another dealer with different index !
-//_, e3 := receivers[0].AddDeal(1, dealers[2])
-//if e3 == nil {
-//t.Error(fmt.Sprintf("AddDeal should have returned an error (adding dealer to a different index for same receiver)"))
-//}
-//}
+	sc, err := dkg.SecretCommits()
+	assert.Nil(t, err)
+	msg := msgSecretCommit(sc)
+	assert.Nil(t, sign.VerifySchnorr(suite, dkg.pub, msg, sc.Signature))
 
-//// Test the AddReponse func
-//func rightDealerAddResponse(t *testing.T) {
-//// Test if all goes well with the right inputs
-//n := 3
-//m := 4
-//dealers, receivers := generateNDealerMReceiver(Threshold{3, 3, 4}, n, m)
-//states := make([]*State, len(dealers))
-//for i := 0; i < len(dealers); i++ {
-//states[i] = new(State).Init(*dealers[i])
-//}
-//// for each receiver
-//for i := 0; i < m; i++ {
-//// add all the dealers
-//for j := 0; j < n; j++ {
-//resp, err := receivers[i].AddDeal(i, dealers[j])
-//if err != nil {
-//t.Error("AddDeal should not generate error")
-//}
-//// then give the response back to the dealer
-//err = states[j].AddResponse(i, resp)
-//if err != nil {
-//t.Error(fmt.Sprintf("AddResponse should not generate any error : %v", err))
-//}
-//}
-//}
-//for j := 0; j < n; j++ {
-//val := states[j].DealCertified()
-//if val != nil {
-//t.Error(fmt.Sprintf("Dealer %d should be certified : %v", j, val))
-//}
-//}
+	dkg2 := dkgs[1]
+	// wrong index
+	goodIdx := sc.Index
+	sc.Index = uint32(nbParticipants + 1)
+	cc, err := dkg2.ProcessSecretCommits(sc)
+	assert.Nil(t, cc)
+	assert.Error(t, err)
+	sc.Index = goodIdx
+	// not in qual XXX how to test...
 
-//}
-//func TestDealerAddResponse(t *testing.T) {
-//rightDealerAddResponse(t)
-//wrongDealerAddResponse(t)
-//}
+	// invalid sig
+	goodSig := sc.Signature
+	sc.Signature = randomBytes(len(goodSig))
+	cc, err = dkg2.ProcessSecretCommits(sc)
+	assert.Nil(t, cc)
+	assert.Error(t, err)
+	sc.Signature = goodSig
+	// invalid session id
+	goodSid := sc.SessionID
+	sc.SessionID = randomBytes(len(goodSid))
+	cc, err = dkg2.ProcessSecretCommits(sc)
+	assert.Nil(t, cc)
+	assert.Error(t, err)
+	sc.SessionID = goodSid
 
-//// Test the AddReponse func with wrong inputs
-//func wrongDealerAddResponse(t *testing.T) {
-//n := 3
-//m := 4
-//dealers, receivers := generateNDealerMReceiver(Threshold{3, 3, 4}, n, m)
-//r1, _ := receivers[0].AddDeal(0, dealers[0])
-//state := new(State).Init(*dealers[0])
-//err := state.AddResponse(1, r1)
-//if err == nil {
-//t.Error("AddResponse should have returned an error when given the wrong index share")
-//}
-//}
+	// wrong commitments
+	goodPoint := sc.Commitments[0]
+	sc.Commitments[0] = suite.Point().Null()
+	msg = msgSecretCommit(sc)
+	sig, err := sign.Schnorr(suite, dkg.long, msg)
+	require.Nil(t, err)
+	goodSig = sc.Signature
+	sc.Signature = sig
+	cc, err = dkg2.ProcessSecretCommits(sc)
+	assert.NotNil(t, cc)
+	assert.Nil(t, err)
+	sc.Commitments[0] = goodPoint
+	sc.Signature = goodSig
 
-//func TestProduceSharedSecret(t *testing.T) {
-//T := 4
-//m := 5
-//_, receivers := generateNMSetup(Threshold{T, m, m}, T, m)
-//s1, err := receivers[0].ProduceSharedSecret()
-//if err != nil {
-//t.Error(fmt.Sprintf("ProduceSharedSecret should not gen any error : %v", err))
-//}
-//s2, err := receivers[1].ProduceSharedSecret()
-//if err != nil {
-//t.Error(fmt.Sprintf("ProdueSharedSecret should not gen any error : %v", err))
-//}
+	// all fine
+	cc, err = dkg2.ProcessSecretCommits(sc)
+	assert.Nil(t, cc)
+	assert.Nil(t, err)
+}
 
-//if !s1.Pub.Equal(s2.Pub) {
-//t.Error("SharedSecret's polynomials should be equals")
-//}
+func TestDKGComplaintCommits(t *testing.T) {
+	/* //  --- process the complaint ---*/
+	//// invalid index
+	//ccGoodIndex := cc.Index
+	//cc.Index = uint32(nbParticipants + 1)
+	//d, err := dkg.ProcessCommitComplaint(cc)
+	//assert.Nil(t, d)
+	//assert.Error(t, err)
+	//cc.Index = ccGoodIndex
 
-//if v := s1.Pub.Check(receivers[1].index, *s2.Share); v == false {
-//t.Error("SharedSecret's share can not be verified using another's receiver pubpoly")
-//}
-//if v := s2.Pub.Check(receivers[0].index, *s1.Share); v == false {
-//t.Error("SharedSecret's share can not be verified using another's receiver pubpoly")
-//}
-//}
+	//// invalid signature
+	//ccGoodSig := cc.Signature
+	//cc.Signature = randomBytes(len(cc.Signature))
+	//d, err = dkg.ProcessCommitComplaint(cc)
+	//assert.Nil(t, d)
+	//assert.Error(t, err)
+	//cc.Signature = ccGoodSig
 
-//func TestPolyInfoMarshalling(t *testing.T) {
-//pl := Threshold{
-//T: 3,
-//R: 5,
-//N: 8,
-//}
-//b := new(bytes.Buffer)
-//err := testSuite.Write(b, &pl)
-//if err != nil {
-//t.Error(fmt.Sprintf("PolyInfo MarshalBinary should not return error : %v", err))
-//}
-//pl2 := Threshold{}
-//err = testSuite.Read(bytes.NewBuffer(b.Bytes()), &pl2)
-//if err != nil {
-//t.Error(fmt.Sprintf("PolyInfo UnmarshalBinary should not return error : %v", err))
-//}
+	//// wrong DealerIndex
+	//ccGoodDealerIndex := cc.DealerIndex
+	//cc.DealerIndex = uint32(nbParticipants + 1)
+	//d, err = dkg.ProcessCommitComplaint(cc)
+	//assert.Error(t, err)
+	//assert.Nil(t, d)
+	//cc.DealerIndex = ccGoodDealerIndex
 
-//if !pl.Equal(pl2) {
-//t.Error(fmt.Sprintf("PolyInfo's should be equals: \npl1 : %+v\npl2 : %+v", pl, pl2))
-//}
+	//// wrong deal
+	//ccDealSID := cc.Deal.SessionID
+	//cc.Deal.SessionID = randomBytes(len(ccDealSID))
+	//d, err = dkg.ProcessCommitComplaint(cc)
+	//assert.Error(t, err)
+	//assert.Nil(t, d)
+	//cc.Deal.SessionID = ccDealSID
 
-//}
+	//// XXX Skip non-received commitments for now
 
-//func TestProduceSharedSecretMarshalledDealer(t *testing.T) {
-//// Test if all goes well with the right inputs
-//n := 3
-//m := 3
-//pl := Threshold{2, 3, 3}
-//dealers, receivers := generateNDealerMReceiver(pl, n, m)
-//// for each receiver
-//for i := 0; i < m; i++ {
-//// add all the dealers
-//for j := 0; j < n; j++ {
-//b := new(bytes.Buffer)
-//err := testSuite.Write(b, dealers[j])
-//if err != nil {
-//t.Error("Write(Dealer) should not gen any error : ", err)
-//}
-//buf := b.Bytes()
-//bb := bytes.NewBuffer(buf)
-//d2 := new(Deal).UnmarshalInit(pl.T, pl.R, pl.N, testSuite)
-//err = testSuite.Read(bb, d2)
-//if err != nil {
-//t.Error("Read(Dealer) should not gen any error : ", err)
-//}
-//receivers[i].AddDeal(i, d2)
-//}
-//}
-//_, err := receivers[0].ProduceSharedSecret()
-//if err != nil {
-//t.Error(fmt.Sprintf("ProduceSharedSecret with Marshalled dealer should work : %v", err))
-//}
-/*}*/
+	//// correct verification of the secshare (commits are good at this point)
+	//sc2, err := dkg2.SecretCommits()
+	//assert.Nil(t, err)
+	//cc2, err := dkg.ProcessSecretCommits(sc2)
+	//assert.Nil(t, err)
+	//assert.Nil(t, cc)
+	//// here
+	//d, err = dkg.ProcessCommitComplaint(cc2)
+	//assert.Nil(t, d)
+	//assert.Error(t, err)
+
+	//// normal behavior
+	//polycommits2 := dkg.commitments[dkg2.index]
+	//_, commits2 := polycommits2.Info()
+	//commits20 := commits2[0]
+	//commits2[0] = suite.Point().Null()
+	//d, err = dkg.ProcessCommitComplaint(cc)
+	//assert.Nil(t, err)
+	//assert.NotNil(t, d)
+	//commits2[0] = commits20
+
+	// ----- process the complaint END ----
+
+}
+
+func TestDistKeyShare(t *testing.T) {
+	fullExchange(t)
+
+	var scs []*SecretCommits
+	for i, dkg := range dkgs[:len(dkgs)-1] {
+		sc, err := dkg.SecretCommits()
+		require.Nil(t, err)
+		scs = append(scs, sc)
+		for j, dkg := range dkgs[:len(dkgs)-1] {
+			if i == j {
+				continue
+			}
+			cc, err := dkg.ProcessSecretCommits(sc)
+			require.Nil(t, err)
+			require.Nil(t, cc)
+		}
+	}
+
+	lastDkg := dkgs[len(dkgs)-1]
+	dks, err := lastDkg.DistKeyShare()
+	assert.Nil(t, dks)
+	assert.Error(t, err)
+
+	for _, sc := range scs {
+		cc, err := lastDkg.ProcessSecretCommits(sc)
+		require.Nil(t, cc)
+		require.Nil(t, err)
+	}
+
+	sc, err := lastDkg.SecretCommits()
+	require.Nil(t, err)
+	require.NotNil(t, sc)
+
+	for _, dkg := range dkgs[:len(dkgs)-1] {
+		sc, err := dkg.ProcessSecretCommits(sc)
+		require.Nil(t, sc)
+		require.Nil(t, err)
+
+		require.Equal(t, nbParticipants, len(dkg.QUAL()))
+		require.Equal(t, nbParticipants, len(dkg.commitments))
+	}
+
+	// missing one commitment
+	lastCommitment0 := lastDkg.commitments[0]
+	delete(lastDkg.commitments, uint32(0))
+	dks, err = lastDkg.DistKeyShare()
+	assert.Nil(t, dks)
+	assert.Error(t, err)
+	lastDkg.commitments[uint32(0)] = lastCommitment0
+
+	// everyone should be certified
+
+	// normal
+	dkss := make([]*DistKeyShare, nbParticipants)
+	for i, dkg := range dkgs {
+		dks, err := dkg.DistKeyShare()
+		require.NotNil(t, dks)
+		assert.Nil(t, err)
+		dkss[i] = dks
+		assert.Equal(t, dkg.index, uint32(dks.Share.I))
+	}
+
+	shares := make([]*share.PriShare, nbParticipants)
+	for i, dks := range dkss {
+		if !dks.Public.Equal(dkss[0].Public) {
+			t.Errorf("dist key share not equal %d vs %d", dks.Share.I, 0)
+		}
+		shares[i] = dks.Share
+	}
+
+	secret, err := share.RecoverSecret(suite, shares, nbParticipants, nbParticipants)
+	assert.Nil(t, err)
+
+	commitSecret := suite.Point().Mul(nil, secret)
+	assert.Equal(t, dkss[0].Public.String(), commitSecret.String())
+}
+
+func fullExchange(t *testing.T) {
+	dkgs = dkgGen()
+	// full secret sharing exchange
+	// 1. broadcast deals
+	resps := make([]*Response, 0, nbParticipants*nbParticipants)
+	for _, dkg := range dkgs {
+		deals := dkg.Deals()
+		for i, d := range deals {
+			resp, err := dkgs[i].ProcessDeal(d)
+			require.Nil(t, err)
+			require.Equal(t, vss.StatusApproval, resp.Response.Status)
+			resps = append(resps, resp)
+		}
+	}
+	// 2. Broadcast responses
+	for _, resp := range resps {
+		for _, dkg := range dkgs {
+			// ignore all messages from ourself
+			if resp.Response.Index == dkg.index {
+				continue
+			}
+			j, err := dkg.ProcessResponse(resp)
+			require.Nil(t, err)
+			require.Nil(t, j)
+		}
+	}
+	// 3. make sure everyone has the same QUAL set
+	for _, dkg := range dkgs {
+		for _, dkg2 := range dkgs {
+			require.True(t, dkg.isInQUAL(dkg2.index))
+		}
+	}
+
+}
