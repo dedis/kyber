@@ -2,7 +2,6 @@ package sign
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 
@@ -10,12 +9,9 @@ import (
 	"github.com/dedis/crypto/random"
 )
 
-// HashFunc is the hash function used to hash the message for the signature
-// generation and verification
-var HashFunc = sha256.New
-
 // Schnorr creates a Schnorr signature from a msg and a private key. This
-// signature can be verified with VerifySchnorr.
+// signature can be verified with VerifySchnorr. It's also a valid EdDSA
+// signature.
 func Schnorr(suite abstract.Suite, private abstract.Scalar, msg []byte) ([]byte, error) {
 	// using notation from https://en.wikipedia.org/wiki/Schnorr_signature
 	// create random secret k and public point commitment r
@@ -43,12 +39,13 @@ func Schnorr(suite abstract.Suite, private abstract.Scalar, msg []byte) ([]byte,
 	return b.Bytes(), nil
 }
 
-// VerifySchnorr verifies a given Schnorr signature. It returns nil iff the given signature is valid.
-// NOTE: this signature scheme is still malleable because the response
-// unmarshalling is done directly into a big.Int modulo (see nist.Int).
+// VerifySchnorr verifies a given Schnorr signature. It returns nil iff the
+// given signature is valid.  NOTE: this signature scheme is malleable because
+// the response's unmarshalling is done directly into a big.Int modulo (see
+// nist.Int).
 func VerifySchnorr(suite abstract.Suite, public abstract.Point, msg, sig []byte) error {
-	var challenge = suite.Scalar()
-	var response = suite.Scalar()
+	challenge := suite.Scalar()
+	response := suite.Scalar()
 	scalarSize := challenge.MarshalSize()
 	sigSize := scalarSize * 2
 	if len(sig) != sigSize {
@@ -79,7 +76,7 @@ func VerifySchnorr(suite abstract.Suite, public abstract.Point, msg, sig []byte)
 }
 
 func hash(suite abstract.Suite, public, r abstract.Point, msg []byte) (abstract.Scalar, error) {
-	h := HashFunc()
+	h := suite.Hash()
 	if _, err := r.MarshalTo(h); err != nil {
 		return nil, err
 	}
