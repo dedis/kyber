@@ -1,7 +1,12 @@
-// Package share implements simple Shamir secret sharing and public
-// commitment polynomials.
-package share
-
+// Package share implements Shamir secret sharing and polynomial commitments.
+// Shamir's scheme allows to split a secret value into multiple parts, so called
+// shares, by evaluating a secret sharing polynomial at certain indices. The
+// shared secret can only be reconstructed (via Lagrange interpolation) if a
+// threshold of the participants provide their shares. A polynomial commitment
+// scheme allows a committer to commit to a secret sharing polynomial so that
+// a verifier can check the claimed evaluations of the committed polynomial.
+// Both schemes of this package are core building blocks for more advanced
+// secret sharing techniques.
 import (
 	"crypto/cipher"
 	"crypto/subtle"
