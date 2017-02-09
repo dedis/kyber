@@ -67,9 +67,9 @@ func TestStructures(t *testing.T) {
 	h4, err := hash.Structures(suite.Hash(), x, y, X, Y, []abstract.Scalar{x, y, x}, []abstract.Point{Y, X, Y})
 	require.Nil(t, err)
 
-	require.Equal(t, h1, h2)
-	require.Equal(t, h2, h3)
-	require.Equal(t, h3, h4)
+	require.NotEqual(t, h1, h2)
+	require.NotEqual(t, h2, h3)
+	require.NotEqual(t, h3, h4)
 
 	h5, err := hash.Structures(suite.Hash(), x, x, y, y)
 	require.Nil(t, err)
