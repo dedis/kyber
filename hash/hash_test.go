@@ -41,7 +41,7 @@ func TestFile(t *testing.T) {
 		buf := make([]byte, i)
 		_, err := rand.Read(buf)
 		require.Nil(t, err)
-		err := ioutil.WriteFile(tmpfile, buf, 0777)
+		err = ioutil.WriteFile(tmpfile, buf, 0777)
 		require.Nil(t, err)
 		hash, err := hash.File(suite.Hash(), tmpfile)
 		require.Nil(t, err)
