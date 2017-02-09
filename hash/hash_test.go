@@ -27,7 +27,7 @@ func TestStream(t *testing.T) {
 	h := suite.Hash()
 	h.Write([]byte(str))
 	b := h.Sum(nil)
-	assert.Equal(t, b, hashed)
+	require.Equal(t, b, hashed)
 }
 
 func TestFile(t *testing.T) {
