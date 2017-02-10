@@ -13,27 +13,15 @@ import (
 func TestDLEQProof(t *testing.T) {
 	suite := edwards.NewAES128SHA256Ed25519(false)
 	n := 10
-	var good []int
-	var bad []int
-
 	for i := 0; i < n; i++ {
 		// Create some random secrets and base points
 		x := suite.Scalar().Pick(random.Stream)
 		g, _ := suite.Point().Pick([]byte(fmt.Sprintf("G%d", i)), random.Stream)
 		h, _ := suite.Point().Pick([]byte(fmt.Sprintf("H%d", i)), random.Stream)
-
 		proof, xG, xH, err := NewDLEQProof(suite, g, h, x)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if err := proof.Verify(suite, g, h, xG, xH); err == nil {
-			good = append(good, i)
-		} else {
-			bad = append(bad, i)
-		}
+		require.Equal(t, err, nil)
+		require.Nil(t, proof.Verify(suite, g, h, xG, xH))
 	}
-	require.Equal(t, len(bad), 0)
 }
 
 func TestDLEQProofBatch(t *testing.T) {
@@ -42,29 +30,16 @@ func TestDLEQProofBatch(t *testing.T) {
 	x := make([]abstract.Scalar, n)
 	g := make([]abstract.Point, n)
 	h := make([]abstract.Point, n)
-
-	for i := 0; i < n; i++ {
+	for i := range x {
 		x[i] = suite.Scalar().Pick(random.Stream)
 		g[i], _ = suite.Point().Pick([]byte(fmt.Sprintf("G%d", i)), random.Stream)
 		h[i], _ = suite.Point().Pick([]byte(fmt.Sprintf("H%d", i)), random.Stream)
 	}
-
 	proofs, xG, xH, err := NewDLEQProofBatch(suite, g, h, x)
-	if err != nil {
-		t.Fatal(err)
+	require.Equal(t, err, nil)
+	for i := range proofs {
+		require.Nil(t, proofs[i].Verify(suite, g[i], h[i], xG[i], xH[i]))
 	}
-
-	var good []int
-	var bad []int
-
-	for i := 0; i < n; i++ {
-		if err := proofs[i].Verify(suite, g[i], h[i], xG[i], xH[i]); err == nil {
-			good = append(good, i)
-		} else {
-			bad = append(bad, i)
-		}
-	}
-	require.Equal(t, len(bad), 0)
 }
 
 func TestDLEQLengths(t *testing.T) {
@@ -73,16 +48,13 @@ func TestDLEQLengths(t *testing.T) {
 	x := make([]abstract.Scalar, n)
 	g := make([]abstract.Point, n)
 	h := make([]abstract.Point, n)
-
-	for i := 0; i < n; i++ {
+	for i := range x {
 		x[i] = suite.Scalar().Pick(random.Stream)
 		g[i], _ = suite.Point().Pick([]byte(fmt.Sprintf("G%d", i)), random.Stream)
 		h[i], _ = suite.Point().Pick([]byte(fmt.Sprintf("H%d", i)), random.Stream)
 	}
-
 	// Remove an element to make the test fail
 	x = append(x[:5], x[6:]...)
-
 	_, _, _, err := NewDLEQProofBatch(suite, g, h, x)
 	require.Equal(t, err, errorDifferentLengths)
 }
