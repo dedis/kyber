@@ -13,6 +13,7 @@ import (
 	"crypto/cipher"
 	"crypto/subtle"
 	"errors"
+	"strings"
 
 	"github.com/dedis/crypto/abstract"
 )
@@ -98,6 +99,9 @@ func (p *PriPoly) Equal(q *PriPoly) bool {
 	if p.g.String() != q.g.String() {
 		return false
 	}
+	if len(p.coeffs) != len(q.coeffs) {
+		return false
+	}
 	b := 1
 	for i := 0; i < p.Threshold(); i++ {
 		pb := p.coeffs[i].Bytes()
@@ -117,19 +121,35 @@ func (p *PriPoly) Commit(b abstract.Point) *PubPoly {
 	return &PubPoly{p.g, b, commits}
 }
 
+// Mul multiples p  and p2 together. The result is a polynomial of the sum of
+// the two degrees of p and p2. NOTE: it does not check for null coefficients
+// after the multiplication, so the degree of the polynomial is "always" as
+// described above. This is only to use in secret sharing schemes, and is not to
+// be considered a general polynomial manipulation routine.
+func (p *PriPoly) Mul(q *PriPoly) *PriPoly {
+	d1 := len(p.coeffs) - 1
+	d2 := len(q.coeffs) - 1
+	newDegree := d1 + d2
+	coeffs := make([]abstract.Scalar, newDegree+1)
+	for i := range coeffs {
+		coeffs[i] = p.g.Scalar().Zero()
+	}
+	for i := range p.coeffs {
+		for j := range q.coeffs {
+			tmp := p.g.Scalar().Mul(p.coeffs[i], q.coeffs[j])
+			coeffs[i+j] = tmp.Add(coeffs[i+j], tmp)
+		}
+	}
+	return &PriPoly{p.g, coeffs}
+}
+
 // RecoverSecret reconstructs the shared secret p(0) from a list of private
 // shares using Lagrange interpolation.
 func RecoverSecret(g abstract.Group, shares []*PriShare, t, n int) (abstract.Scalar, error) {
-	x := make(map[int]abstract.Scalar)
-	for i, s := range shares {
-		if s == nil || s.V == nil || s.I < 0 || n <= s.I {
-			continue
-		}
-		x[i] = g.Scalar().SetInt64(1 + int64(s.I))
-	}
+	x := xScalar(g, shares, t, n)
 
-	if len(x) < t {
-		return nil, errors.New("not enough good private shares to reconstruct shared secret")
+	if len(x) != t {
+		return nil, errors.New("share: not enough shares to recover secret")
 	}
 
 	acc := g.Scalar().Zero()
@@ -151,6 +171,87 @@ func RecoverSecret(g abstract.Group, shares []*PriShare, t, n int) (abstract.Sca
 	}
 
 	return acc, nil
+}
+
+func xScalar(g abstract.Group, shares []*PriShare, t, n int) map[int]abstract.Scalar {
+	x := make(map[int]abstract.Scalar)
+	for i, s := range shares {
+		if s == nil || s.V == nil || s.I < 0 || n <= s.I {
+			continue
+		}
+		x[i] = g.Scalar().SetInt64(1 + int64(s.I))
+		if len(x) == t {
+			break
+		}
+	}
+	return x
+}
+
+func RecoverPriPoly(g abstract.Group, shares []*PriShare, t, n int) (*PriPoly, error) {
+	x := xScalar(g, shares, t, n)
+	if len(x) != t {
+		return nil, errors.New("share: not enough shares to recove private polynomial")
+	}
+
+	var accPoly *PriPoly
+	var err error
+	tmpPoly := &PriPoly{g: g}
+	den := g.Scalar()
+	num := g.Scalar()
+	frac0 := g.Scalar()
+	frac1 := g.Scalar()
+	// notations following the wikipedia article on Lagrange interpolation
+	// https://en.wikipedia.org/wiki/Lagrange_polynomial
+	for j, xj := range x {
+		var basis *PriPoly
+		// compute lagrange basis l_j
+		for m, xm := range x {
+			if j == m {
+				continue
+			}
+			// compute each intermediate polynomials and multiply them together
+			num.Neg(xm)         // num = -xm
+			den.Sub(xj, xm)     // den = xj - xm
+			frac0.Div(num, den) // frac0 = -xm / (xj - xm)
+			frac1.Inv(den)      // frac1 = 1 / (xj -xm)
+			test := g.Scalar().Mul(frac1, num)
+			if !test.Equal(frac0) {
+				panic("wow")
+			}
+			// coef = [num/den, 1/den]
+			tmpPoly.coeffs = []abstract.Scalar{frac0, frac1}
+			if basis == nil {
+				basis = tmpPoly
+				continue
+			}
+			basis = basis.Mul(tmpPoly)
+		}
+
+		// L_j * y_j
+		for i, c := range basis.coeffs {
+			basis.coeffs[i] = g.Scalar().Mul(c, shares[j].V)
+		}
+
+		if accPoly == nil {
+			accPoly = basis
+			continue
+		}
+
+		// add all L_j * y_j together
+		accPoly, err = accPoly.Add(basis)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return accPoly, nil
+}
+
+func (p *PriPoly) String() string {
+	var strs = make([]string, len(p.coeffs))
+	for i, c := range p.coeffs {
+		strs[i] = c.String()
+	}
+	return "[ " + strings.Join(strs, ", ") + " ]"
 }
 
 // PubShare represents a public share.
