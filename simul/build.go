@@ -185,7 +185,6 @@ func RunTests(name string, runconfigs []*platform.RunConfig) {
 // RunTest a single test - takes a test-file as a string that will be copied
 // to the deterlab-server
 func RunTest(rc *platform.RunConfig) (*monitor.Stats, error) {
-	done := make(chan struct{})
 	CheckHosts(rc)
 	rc.Delete("simulation")
 	rs := monitor.NewStats(rc.Map(), "hosts", "bf")
@@ -202,10 +201,9 @@ func RunTest(rc *platform.RunConfig) (*monitor.Stats, error) {
 		return rs, err
 	}
 	monitor.SinkPort = monitorPort
+	done := make(chan error)
 	go func() {
-		if err := monitor.Listen(); err != nil {
-			log.Fatal("Could not monitor.Listen():", err)
-		}
+		done <- monitor.Listen()
 	}()
 	// Start monitor before so ssh tunnel can connect to the monitor
 	// in case of deterlab.
@@ -222,17 +220,18 @@ func RunTest(rc *platform.RunConfig) (*monitor.Stats, error) {
 			if err := deployP.Cleanup(); err != nil {
 				log.Lvl3("Couldn't cleanup platform:", err)
 			}
-			done <- struct{}{}
+			monitor.Stop()
 		}
 		log.Lvl3("Test complete:", rs)
-		done <- struct{}{}
 	}()
 
 	timeOut := getRunWait(rc)
 	// can timeout the command if it takes too long
 	select {
-	case <-done:
-		monitor.Stop()
+	case err := <-done:
+		if err != nil {
+			return nil, err
+		}
 		return rs, nil
 	case <-time.After(time.Second * time.Duration(timeOut)):
 		monitor.Stop()
