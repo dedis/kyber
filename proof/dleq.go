@@ -24,11 +24,11 @@ type DLEQProof struct {
 	VH abstract.Point  // public commitment with respect to base point H
 }
 
-// NewDLEQProof computes a new NIZK dlog-equality proof by randomly selecting a
-// commitment v, determining the challenge and the response r:
-//   c = H(xG,xH,vG,vH)
-//   r = v - cx
-// It also returns the encrypted base points xG and xH.
+// NewDLEQProof computes a new NIZK dlog-equality proof for the scalar x with
+// respect to base points G and H. It therefore randomly selects a commitment v
+// and then computes the challenge c = H(xG,xH,vG,vH) and response r = v - cx.
+// Besides the proof, this function also returns the encrypted base points xG
+// and xH.
 func NewDLEQProof(suite abstract.Suite, G abstract.Point, H abstract.Point, x abstract.Scalar) (proof *DLEQProof, xG abstract.Point, xH abstract.Point, err error) {
 	// Encrypt base points with secret
 	xG = suite.Point().Mul(G, x)
