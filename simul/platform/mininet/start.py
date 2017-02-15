@@ -174,6 +174,10 @@ def RunNet():
             time.sleep(1)
 
         time.sleep(1)
+
+    # Write last line of log
+    print(log.read(), end="")
+    sys.stdout.flush()
     log.close()
 
     dbg( 2, "conode is finished %s" % myNet )
