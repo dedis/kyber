@@ -172,6 +172,9 @@ func fg(c ct.Color, bright bool) {
 // or
 // Lvl1 -> lvld -> lvl
 func lvlf(l int, f string, args ...interface{}) {
+	if l > debugVisible {
+		return
+	}
 	lvl(l, 3, fmt.Sprintf(f, args...))
 }
 func lvld(l int, args ...interface{}) {
