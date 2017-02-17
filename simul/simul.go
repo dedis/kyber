@@ -45,14 +45,13 @@ func init() {
 // If given an array of rcs, each element will be interpreted as a .toml-file
 // to load and simulate.
 func Start(rcs ...string) {
+	wd, err := os.Getwd()
 	if len(rcs) > 0 {
-		wd, err := os.Getwd()
 		log.ErrFatal(err)
 		for _, rc := range rcs {
 			log.Lvl1("Running toml-file:", rc)
 			os.Args = []string{os.Args[0], rc}
 			Start()
-			os.Chdir(wd)
 		}
 		return
 	}
@@ -63,4 +62,5 @@ func Start(rcs ...string) {
 		err := platform.Simulate(serverAddress, simul, monitorAddress)
 		log.ErrFatal(err)
 	}
+	os.Chdir(wd)
 }
