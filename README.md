@@ -23,6 +23,18 @@ a large number of conodes for distributed signing and related projects.
 	the [Cothority Template](https://github.com/dedis/cothority_template/wiki)
 - To participate as a core-developer, go to 
 	[Cothority Network Library](https://github.com/dedis/onet/wiki)
+	
+## Version
+
+We have a development and a stable version. The `master`-branch in
+`github.com/dedis/onet` is the development version that works but can have
+incompatible changes.
+
+The version at `gopkg.in/dedis/onet.v1` is stable and has no incompatible
+changes.
+
+Also have a look at https://github.com/dedis/onet/blob/master/CHANGELOG.md for
+any incompatible changes.
 
 ## License
 
