@@ -187,6 +187,14 @@ func xScalar(g abstract.Group, shares []*PriShare, t, n int) map[int]abstract.Sc
 	return x
 }
 
+func xMinusConst(g abstract.Group, c abstract.Scalar) *PriPoly {
+	neg := g.Scalar().Neg(c)
+	return &PriPoly{
+		g:      g,
+		coeffs: []abstract.Scalar{neg, g.Scalar().One()},
+	}
+}
+
 func RecoverPriPoly(g abstract.Group, shares []*PriShare, t, n int) (*PriPoly, error) {
 	x := xScalar(g, shares, t, n)
 	if len(x) != t {
@@ -195,59 +203,29 @@ func RecoverPriPoly(g abstract.Group, shares []*PriShare, t, n int) (*PriPoly, e
 
 	var accPoly *PriPoly
 	var err error
-	tmpPoly := &PriPoly{g: g}
 	den := g.Scalar()
-	num := g.Scalar()
-	frac0 := g.Scalar()
-	frac1 := g.Scalar()
 	// notations following the wikipedia article on Lagrange interpolation
 	// https://en.wikipedia.org/wiki/Lagrange_polynomial
 	for j, xj := range x {
-		var basis *PriPoly
+		var basis = &PriPoly{
+			g:      g,
+			coeffs: []abstract.Scalar{g.Scalar().One()},
+		}
+		var acc = g.Scalar().Set(shares[j].V)
 		// compute lagrange basis l_j
 		for m, xm := range x {
 			if j == m {
 				continue
 			}
-			// compute each intermediate polynomials and multiply them together
-			num.Neg(xm)         // num = -xm
-			den.Sub(xj, xm)     // den = xj - xm
-			frac0.Div(num, den) // frac0 = -xm / (xj - xm)
-			frac1.Inv(den)      // frac1 = 1 / (xj -xm)
-			test := g.Scalar().Mul(frac1, num)
-			if !test.Equal(frac0) {
-				panic("wow")
-			}
-			// coef = [num/den, 1/den]
-			tmpPoly.coeffs = []abstract.Scalar{frac0, frac1}
-			if basis == nil {
-				basis = tmpPoly
-				continue
-			}
-			basis = basis.Mul(tmpPoly)
+			basis = basis.Mul(xMinusConst(g, xm)) // basis = basis * (x - xm)
+
+			den.Sub(xj, xm)   // den = xj - xm
+			den.Inv(den)      // den = 1 / den
+			acc.Mul(acc, den) // acc = acc * den
 		}
 
-		one := g.Scalar().One()
-		if !basis.Eval(shares[j].I).V.Equal(one) {
-			panic("wrong basis")
-		}
-
-		/*zero := g.Scalar().Zero()*/
-		//for u := range x {
-		//if u != j {
-		//if !basis.Eval(shares[u].I).V.Equal(zero) {
-		//panic("wrong basis 2")
-		//}
-		//}
-		/*}*/
-
-		// L_j * y_j
-		for i, c := range basis.coeffs {
-			basis.coeffs[i] = g.Scalar().Mul(c, shares[j].V)
-		}
-
-		if !basis.Eval(shares[j].I).V.Equal(shares[j].V) {
-			panic("wrong basis 3")
+		for i := range basis.coeffs {
+			basis.coeffs[i] = basis.coeffs[i].Mul(basis.coeffs[i], acc)
 		}
 
 		if accPoly == nil {

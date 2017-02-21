@@ -1,7 +1,6 @@
 package share
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/dedis/crypto/ed25519"
@@ -300,13 +299,8 @@ func TestRecoverPriPoly(test *testing.T) {
 	reverseRecovered, err := RecoverPriPoly(suite, reverses, t, n)
 	assert.Nil(test, err)
 
-	fmt.Println("a.coeffs", len(a.coeffs), " vs recov.", len(recovered.coeffs))
-	fmt.Println("a: ", a.String())
-	fmt.Println("recovered: ", recovered.String())
-	fmt.Println("reversed: ", reverseRecovered.String())
-	//assert.True(test, recovered.Equal(a))
-
 	for i := 0; i < t; i++ {
 		assert.Equal(test, recovered.Eval(i).V.String(), a.Eval(i).V.String())
+		assert.Equal(test, reverseRecovered.Eval(i).V.String(), a.Eval(i).V.String())
 	}
 }
