@@ -227,9 +227,27 @@ func RecoverPriPoly(g abstract.Group, shares []*PriShare, t, n int) (*PriPoly, e
 			basis = basis.Mul(tmpPoly)
 		}
 
+		one := g.Scalar().One()
+		if !basis.Eval(shares[j].I).V.Equal(one) {
+			panic("wrong basis")
+		}
+
+		/*zero := g.Scalar().Zero()*/
+		//for u := range x {
+		//if u != j {
+		//if !basis.Eval(shares[u].I).V.Equal(zero) {
+		//panic("wrong basis 2")
+		//}
+		//}
+		/*}*/
+
 		// L_j * y_j
 		for i, c := range basis.coeffs {
 			basis.coeffs[i] = g.Scalar().Mul(c, shares[j].V)
+		}
+
+		if !basis.Eval(shares[j].I).V.Equal(shares[j].V) {
+			panic("wrong basis 3")
 		}
 
 		if accPoly == nil {

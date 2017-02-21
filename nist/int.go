@@ -226,6 +226,7 @@ func (i *Int) Neg(a abstract.Scalar) abstract.Scalar {
 	if ai.V.Sign() > 0 {
 		i.V.Sub(i.M, &ai.V)
 	} else {
+		panic("hihi")
 		i.V.SetUint64(0)
 	}
 	return i

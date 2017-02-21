@@ -284,8 +284,8 @@ func TestPriPolyMul(test *testing.T) {
 
 func TestRecoverPriPoly(test *testing.T) {
 	suite := ed25519.NewAES128SHA256Ed25519(false)
-	n := 4
-	t := 2
+	n := 10
+	t := n/2 + 1
 	a := NewPriPoly(suite, t, nil, random.Stream)
 
 	shares := a.Shares(n)
@@ -304,5 +304,9 @@ func TestRecoverPriPoly(test *testing.T) {
 	fmt.Println("a: ", a.String())
 	fmt.Println("recovered: ", recovered.String())
 	fmt.Println("reversed: ", reverseRecovered.String())
-	assert.True(test, recovered.Equal(a))
+	//assert.True(test, recovered.Equal(a))
+
+	for i := 0; i < t; i++ {
+		assert.Equal(test, recovered.Eval(i).V.String(), a.Eval(i).V.String())
+	}
 }
