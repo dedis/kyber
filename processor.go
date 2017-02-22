@@ -137,7 +137,7 @@ func (p *ServiceProcessor) ProcessClientRequest(path string, buf []byte) ([]byte
 	}
 	buf, err := protobuf.Encode(reply)
 	if err != nil {
-		log.Error(buf)
+		log.Error(err)
 		return nil, NewClientErrorCode(WebSocketErrorProtobufEncode, "")
 	}
 	return buf, nil
