@@ -74,7 +74,7 @@ func (e *EdDSA) MarshalBinary() ([]byte, error) {
 
 func (e *EdDSA) UnmarshalBinary(buff []byte) error {
 	if len(buff) != 64 {
-		return errors.New("Wrong length for decoding EdDSA private")
+		return errors.New("wrong length for decoding EdDSA private")
 	}
 
 	e.seed = buff[:32]
@@ -140,12 +140,12 @@ func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 //  - sig is the signature return by EdDSA.Sign
 func Verify(public abstract.Point, msg, sig []byte) error {
 	if len(sig) != 64 {
-		return errors.New("Signature length invalid")
+		return errors.New("signature length invalid")
 	}
 
 	R := suite.Point()
 	if err := R.UnmarshalBinary(sig[:32]); err != nil {
-		return fmt.Errorf("R invalid point: %s", err)
+		return fmt.Errorf("got R invalid point: %s", err)
 	}
 
 	s := suite.Scalar()
@@ -168,7 +168,7 @@ func Verify(public abstract.Point, msg, sig []byte) error {
 	RhA := suite.Point().Add(R, hA)
 
 	if !RhA.Equal(S) {
-		return errors.New("Recontructed S is not equal to signature")
+		return errors.New("reconstructed S is not equal to signature")
 	}
 	return nil
 }
