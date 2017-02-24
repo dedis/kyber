@@ -4,7 +4,6 @@
 *.swp
 *~
 moc_*
-Makefile
 ext/
 dissent
 docs/html

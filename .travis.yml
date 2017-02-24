@@ -1,12 +1,18 @@
 language: go
 
 go:
-      - 1.6
+  - tip
+
+install:
+  - go get -t ./...
+  - go get golang.org/x/tools/cmd/cover
+  - go get github.com/mattn/goveralls
 
 script:
-      - ./gofmt.sh
-      - go test -v -race ./...
+  - make test
+
+after_success:
+  - goveralls -coverprofile=profile.cov -service=travis-ci
 
 notifications:
       email: false
-
