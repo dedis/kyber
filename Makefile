@@ -37,4 +37,4 @@ test_playground:
 test_verbose:
 	go test -v -race -short ./...
 
-test: test_fmt test_lint test_verbose
+test: test_fmt test_lint
