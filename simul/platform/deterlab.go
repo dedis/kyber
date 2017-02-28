@@ -34,6 +34,8 @@ import (
 
 	"path/filepath"
 
+	"errors"
+
 	"github.com/BurntSushi/toml"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
@@ -343,19 +345,62 @@ func (d *Deterlab) Wait() error {
 // Write the hosts.txt file automatically
 // from project name and number of servers
 func (d *Deterlab) createHosts() {
-	numServers := d.Servers
+	// Query deterlab's API for servers
+	log.Lvl2("Querying Deterlab's API to retrieve server names and addresses")
+	command := fmt.Sprintf("/usr/testbed/bin/expinfo -l -e %s,%s", d.Project, d.Experiment)
+	apiReply, err := SSHRun(d.Login, d.Host, command)
+	if err != nil {
+		log.Fatal("Error while querying Deterlab:", err)
+	}
+	log.ErrFatal(d.parseHosts(string(apiReply)))
+}
 
-	ip := "10.255.0."
-	name := d.Project + ".isi.deterlab.net"
-	d.Phys = make([]string, 0, numServers)
-	d.Virt = make([]string, 0, numServers)
-	for i := 1; i <= numServers; i++ {
-		d.Phys = append(d.Phys, fmt.Sprintf("server-%d.%s.%s", i-1, d.Experiment, name))
-		d.Virt = append(d.Virt, fmt.Sprintf("%s%d", ip, i))
+func (d *Deterlab) parseHosts(str string) error {
+	// Get the link-information, which is the second block in `expinfo`-output
+	infos := strings.Split(str, "\n\n")
+	if len(infos) < 2 {
+		return errors.New("didn't recognize output of 'expinfo'")
+	}
+	linkInfo := infos[1]
+	// Test for correct version in case the API-output changes
+	if !strings.HasPrefix(linkInfo, "Virtual Lan/Link Info:") {
+		return errors.New("didn't recognize output of 'expinfo'")
+	}
+	linkLines := strings.Split(linkInfo, "\n")
+	if len(linkLines) < 5 {
+		return errors.New("didn't recognice output of 'expinfo'")
+	}
+	nodes := linkLines[3:]
+
+	d.Phys = []string{}
+	d.Virt = []string{}
+	names := make(map[string]bool)
+
+	for i, node := range nodes {
+		if i%2 == 1 {
+			continue
+		}
+		matches := strings.Fields(node)
+		if len(matches) != 6 {
+			return errors.New("expinfo-output seems to have changed")
+		}
+		// Convert client-0:0 to client-0
+		name := strings.Split(matches[1], ":")[0]
+		ip := matches[2]
+
+		fullName := fmt.Sprintf("%s.%s.%s.isi.deterlab.net", name, d.Experiment, d.Project)
+		log.Lvl3("Discovered", fullName, "on ip", ip)
+
+		if _, exists := names[fullName]; !exists {
+			d.Phys = append(d.Phys, fullName)
+			d.Virt = append(d.Virt, ip)
+			names[fullName] = true
+		}
 	}
 
-	log.Lvl3("Physical:", d.Phys)
-	log.Lvl3("Internal:", d.Virt)
+	log.Lvl2("Physical:", d.Phys)
+	log.Lvl2("Internal:", d.Virt)
+	return nil
 }
 
 // Checks whether host, login and project are defined. If any of them are missing, it will
