@@ -10,7 +10,6 @@ install:
 
 script:
   - make test
-  - $GOPATH/bin/goveralls -service=travis-ci
 
 notifications:
       email: false

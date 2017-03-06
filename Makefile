@@ -37,4 +37,7 @@ test_playground:
 test_verbose:
 	go test -v -race -short ./...
 
-test: test_fmt test_lint
+test_goverall:
+	${GOPATH}/bin/goveralls -service=travis-ci
+
+test: test_goverall
