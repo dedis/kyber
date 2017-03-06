@@ -260,11 +260,24 @@ func (i *Int) Inv(a abstract.Scalar) abstract.Scalar {
 	return i
 }
 
-// Set to the gcd of a and its module
-func (i *Int) Gcd(a abstract.Scalar) abstract.Scalar {
+// Set to the gcd of a and its module:
+//if b!=0 --> gcd(a,b) will be computed
+//if b==0 --> gcd(a,a.module) will be computed
+// this use of b=0 is compatible with golang's bigInt as it
+//requires both a and b to be >0, which makes gcd(a,0) meaningless in the bigInt context
+//(and thus can be used for the module gcd purpose).
+func (i *Int) Gcd(a,b abstract.Scalar) abstract.Scalar {
 	ai := a.(*Int)
-	i.M = ai.M
-	i.V.GCD(nil, nil, &ai.V, i.M)
+	bi := b.(*Int)
+	
+	if bi.Nonzero() {
+		i.V.GCD(nil, nil, &ai.V, &bi.V)
+	} 
+	if !bi.Nonzero() {
+		i.M = ai.M
+		i.V.GCD(nil, nil, &ai.V, i.M)
+	}
+	
 	return i
 }
 
