@@ -460,8 +460,9 @@ func TestDKGReconstructCommits(t *testing.T) {
 		dkg2.ProcessReconstructCommits(rc)
 	}
 	assert.True(t, dkg2.reconstructed[uint32(0)])
-	assert.NotNil(t, dkg2.commitments[uint32(0)])
-
+	com := dkg2.commitments[uint32(0)]
+	assert.NotNil(t, com)
+	assert.Equal(t, dkgs[0].dealer.SecretCommit().String(), com.Commit().String())
 }
 
 // Copy from vss.go... TODO: look to a nice separation with vss, using a
