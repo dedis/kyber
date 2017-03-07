@@ -7,6 +7,7 @@ import (
 	"github.com/dedis/crypto/edwards"
 	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/share"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPVSS(test *testing.T) {
@@ -27,9 +28,7 @@ func TestPVSS(test *testing.T) {
 
 	// (1) Share distribution (dealer)
 	encShares, pubPoly, err := EncShares(suite, H, X, secret, t)
-	if err != nil {
-		test.Fatal(err)
-	}
+	require.Equal(test, err, nil)
 
 	// (2) Share decryption (trustees)
 	polys := make([]*share.PubPoly, n)
@@ -51,14 +50,8 @@ func TestPVSS(test *testing.T) {
 
 	// (3) Check decrypted shares and recover secret if possible (dealer/3rd party)
 	recovered, err := RecoverSecret(suite, G, K, E, D, t, n)
-	if err != nil {
-		test.Fatal(err)
-	}
-
-	// Verify recovered secret
-	if !(suite.Point().Mul(nil, secret).Equal(recovered)) {
-		test.Fatalf("recovered incorrect shared secret")
-	}
+	require.Equal(test, err, nil)
+	require.Equal(test, suite.Point().Mul(nil, secret), recovered)
 }
 
 func TestPVSSDelete(test *testing.T) {
@@ -79,9 +72,7 @@ func TestPVSSDelete(test *testing.T) {
 
 	// (1) Share distribution (dealer)
 	encShares, pubPoly, err := EncShares(suite, H, X, secret, t)
-	if err != nil {
-		test.Fatal(err)
-	}
+	require.Equal(test, err, nil)
 
 	// Corrupt some of the encrypted shares
 	encShares[0].S.V = suite.Point().Null()
@@ -110,15 +101,8 @@ func TestPVSSDelete(test *testing.T) {
 
 	// (3) Check decrypted shares and recover secret if possible (dealer/3rd party)
 	recovered, err := RecoverSecret(suite, G, K, E, D, t, n)
-	if err != nil {
-		test.Fatal(err)
-	}
-
-	// Verify recovered secret
-	if !(suite.Point().Mul(nil, secret).Equal(recovered)) {
-		test.Fatalf("recovered incorrect shared secret")
-	}
-
+	require.Equal(test, err, nil)
+	require.Equal(test, suite.Point().Mul(nil, secret), recovered)
 }
 
 func TestPVSSDeleteFail(test *testing.T) {
@@ -139,9 +123,7 @@ func TestPVSSDeleteFail(test *testing.T) {
 
 	// (1) Share distribution (dealer)
 	encShares, pubPoly, err := EncShares(suite, H, X, secret, t)
-	if err != nil {
-		test.Fatal(err)
-	}
+	require.Equal(test, err, nil)
 
 	// Corrupt some of the encrypted shares
 	encShares[0].S.V = suite.Point().Null()
@@ -170,9 +152,8 @@ func TestPVSSDeleteFail(test *testing.T) {
 	D[1].S.V = suite.Point().Null()
 
 	// (3) Check decrypted shares and recover secret if possible (dealer/3rd party)
-	if _, err := RecoverSecret(suite, G, K, E, D, t, n); err != errorTooFewShares {
-		test.Fatal("unexpected outcome:", err) // this test is supposed to fail
-	}
+	_, err := RecoverSecret(suite, G, K, E, D, t, n)
+	require.Equal(test, err, errorTooFewShares) // this test is supposed to fail
 }
 
 func TestPVSSBatch(test *testing.T) {
@@ -191,21 +172,15 @@ func TestPVSSBatch(test *testing.T) {
 	// (1) Share distribution (multiple dealers)
 	s0 := suite.Scalar().Pick(random.Stream)
 	e0, p0, err := EncShares(suite, H, X, s0, t)
-	if err != nil {
-		test.Fatal(err)
-	}
+	require.Equal(test, err, nil)
 
 	s1 := suite.Scalar().Pick(random.Stream)
 	e1, p1, err := EncShares(suite, H, X, s1, t)
-	if err != nil {
-		test.Fatal(err)
-	}
+	require.Equal(test, err, nil)
 
 	s2 := suite.Scalar().Pick(random.Stream)
 	e2, p2, err := EncShares(suite, H, X, s2, t)
-	if err != nil {
-		test.Fatal(err)
-	}
+	require.Equal(test, err, nil)
 
 	p0s := make([]*share.PubPoly, n)
 	p1s := make([]*share.PubPoly, n)
@@ -218,19 +193,13 @@ func TestPVSSBatch(test *testing.T) {
 
 	// Batch verification
 	X0, E0, err := VerifyEncShareBatch(suite, H, X, p0s, e0)
-	if err != nil {
-		test.Fatal(err)
-	}
+	require.Equal(test, err, nil)
 
 	X1, E1, err := VerifyEncShareBatch(suite, H, X, p1s, e1)
-	if err != nil {
-		test.Fatal(err)
-	}
+	require.Equal(test, err, nil)
 
 	X2, E2, err := VerifyEncShareBatch(suite, H, X, p2s, e2)
-	if err != nil {
-		test.Fatal(err)
-	}
+	require.Equal(test, err, nil)
 
 	// Reorder (some) polys, keys, and shares
 	P := []*share.PubPoly{p0, p1, p2}
@@ -247,24 +216,16 @@ func TestPVSSBatch(test *testing.T) {
 
 	// (2) Share batch decryption (trustees)
 	KD0, ED0, DD0, err := DecShareBatch(suite, H, Y0, P, x[0], Z0)
-	if err != nil {
-		test.Fatal(err)
-	}
+	require.Equal(test, err, nil)
 
 	KD1, ED1, DD1, err := DecShareBatch(suite, H, Y1, P, x[1], Z1)
-	if err != nil {
-		test.Fatal(err)
-	}
+	require.Equal(test, err, nil)
 
 	KD2, ED2, DD2, err := DecShareBatch(suite, H, Y2, P, x[2], Z2)
-	if err != nil {
-		test.Fatal(err)
-	}
+	require.Equal(test, err, nil)
 
 	KD3, ED3, DD3, err := DecShareBatch(suite, H, Y3, P, x[3], Z3)
-	if err != nil {
-		test.Fatal(err)
-	}
+	require.Equal(test, err, nil)
 
 	// Re-establish order
 	XF0 := []abstract.Point{KD0[0], KD1[0], KD2[0], KD3[0]}
@@ -281,30 +242,16 @@ func TestPVSSBatch(test *testing.T) {
 
 	// (3) Recover secrets
 	S0, err := RecoverSecret(suite, G, XF0, EF0, DF0, t, n)
-	if err != nil {
-		test.Fatal(err)
-	}
+	require.Equal(test, err, nil)
 
 	S1, err := RecoverSecret(suite, G, XF1, EF1, DF1, t, n)
-	if err != nil {
-		test.Fatal(err)
-	}
+	require.Equal(test, err, nil)
 
 	S2, err := RecoverSecret(suite, G, XF2, EF2, DF2, t, n)
-	if err != nil {
-		test.Fatal(err)
-	}
+	require.Equal(test, err, nil)
 
 	// Verify secrets
-	if !(suite.Point().Mul(nil, s0).Equal(S0)) {
-		test.Fatalf("recovered incorrect shared secret S0")
-	}
-
-	if !(suite.Point().Mul(nil, s1).Equal(S1)) {
-		test.Fatalf("recovered incorrect shared secret S1")
-	}
-
-	if !(suite.Point().Mul(nil, s2).Equal(S2)) {
-		test.Fatalf("recovered incorrect shared secret S2")
-	}
+	require.Equal(test, suite.Point().Mul(nil, s0), S0)
+	require.Equal(test, suite.Point().Mul(nil, s1), S1)
+	require.Equal(test, suite.Point().Mul(nil, s2), S2)
 }
