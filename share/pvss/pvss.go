@@ -2,7 +2,15 @@
 // "A Simple Publicly Verifiable Secret Sharing Scheme and its Application to
 // Electronic Voting" by Berry Schoenmakers. In comparison to regular verifiable
 // secret sharing schemes, PVSS enables any third party to verify shares
-// distributed by a dealer using zero-knowledge proofs.
+// distributed by a dealer using zero-knowledge proofs. PVSS runs in three steps:
+// (1) The dealer creates a list of encrypted public verifiable shares using
+//     EncShares() and distributes them to the trustees.
+// (2) Upon the announcement that the secret should be released, each trustee
+//     uses DecShare() to first verify and, if valid, decrypt his share.
+// (3) Once a threshold of decrypted shares has been released, anyone can
+//     verify them and, if enough shares are valid, recover the shared secret
+//     using RecoverSecret().
+// For concrete examples see pvss_test.go.
 package pvss
 
 import (
@@ -26,8 +34,10 @@ type PubVerShare struct {
 	P proof.DLEQProof // Proof
 }
 
-// EncShares creates encrypted PVSS shares using the public keys X and
-// provides a NIZK encryption consistency proof for each share.
+// EncShares creates a list of encrypted publicly verifiable PVSS shares for
+// the given secret and the list of public keys X using the sharing threshold
+// t and the base point H. The function returns the list of shares and the
+// public commitment polynomial.
 func EncShares(suite abstract.Suite, H abstract.Point, X []abstract.Point, secret abstract.Scalar, t int) ([]*PubVerShare, *share.PubPoly, error) {
 	n := len(X)
 	encShares := make([]*PubVerShare, n)
