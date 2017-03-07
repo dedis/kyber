@@ -1,4 +1,17 @@
-package vss
+// Package dkg implements the protocol described in
+// "Secure Distributed Key Generation for Discrete-Log
+// Based Cryptosystems".
+// DKG enables a group of participants to generate a distributed key
+// with every participants holding only a share of the key. The key is also
+// never computed locally but generated distributively whereas the public part
+// of the key is known by every participants.
+// The underlying basis for this protocol is the vss protocol implemented in the
+// share/vss package.
+//
+// The protocol works as follow:
+//  -
+//  -
+package dkg
 
 import (
 	"bytes"
@@ -13,37 +26,45 @@ import (
 	"github.com/dedis/crypto/sign"
 )
 
+// DistKeyShare holds the share of a distributed key for a participant.
 type DistKeyShare struct {
+	// Coefficients of the public polynomial holding the public key
 	Commits []abstract.Point
 	// share of the distributed secret
 	Share *share.PriShare
 }
 
+// Public returns the public key associated with the distributed private key.
 func (d *DistKeyShare) Public() abstract.Point {
 	return d.Commits[0]
 }
 
-// DistDeal is a simple wrapper around Deal used to provide the index of the
-// Dealer in the list of participants together with its Deal.
+// Deal holds the Deal for one participants as well as the index of the issuing
+// Dealer.
 // NOTE: Doing that in vss.go would be possible but then the Dealer is always
 // assumed to be a member of the participants. It's only the case here.
 type Deal struct {
 	// Index of the Dealer in the list of participants
 	Index uint32
-	Deal  *vss.Deal
+	// Deal issued for another participant.
+	Deal *vss.Deal
 }
 
+// Response holds the Response from another participants as well as the index of
+// the targeted Dealer.
 type Response struct {
 	// Index of the Dealer for which this response is for
 	Index uint32
-
+	// Response issued from another participant.
 	Response *vss.Response
 }
 
+// Justification holds the Justification from a Dealer as well as the index of
+// the Dealer in question.
 type Justification struct {
 	// Index of the Dealer who answered with this Justification
 	Index uint32
-
+	// Justification issued from the Dealer.
 	Justification *vss.Justification
 }
 
