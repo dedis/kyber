@@ -34,7 +34,7 @@ func TestPVSS(test *testing.T) {
 	// (2) Share decryption (trustees)
 	polys := make([]*share.PubPoly, n)
 	for i := 0; i < n; i++ {
-		polys[i] = pubPoly // NOTE: polynomials can be different
+		polys[i] = pubPoly
 	}
 
 	var K []abstract.Point // good public keys
@@ -90,7 +90,7 @@ func TestPVSSDelete(test *testing.T) {
 	// (2) Share decryption (trustees)
 	polys := make([]*share.PubPoly, n)
 	for i := 0; i < n; i++ {
-		polys[i] = pubPoly // NOTE: polynomials can be different
+		polys[i] = pubPoly
 	}
 
 	var K []abstract.Point // good public keys
@@ -150,7 +150,7 @@ func TestPVSSDeleteFail(test *testing.T) {
 	// (2) Share decryption (trustees)
 	polys := make([]*share.PubPoly, n)
 	for i := 0; i < n; i++ {
-		polys[i] = pubPoly // NOTE: polynomials can be different
+		polys[i] = pubPoly
 	}
 
 	var K []abstract.Point // good public keys
