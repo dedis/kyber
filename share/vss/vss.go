@@ -599,6 +599,7 @@ func msgDeal(d *Deal) []byte {
 
 func msgJustification(j *Justification) []byte {
 	var buf bytes.Buffer
+	buf.WriteString("justification")
 	buf.Write(j.SessionID)
 	binary.Write(&buf, binary.LittleEndian, j.Index)
 	buf.Write(msgDeal(j.Deal))

@@ -195,6 +195,10 @@ func xMinusConst(g abstract.Group, c abstract.Scalar) *PriPoly {
 	}
 }
 
+// RecoverPriPoly takes a list of shares and the parameters t and n to
+// reconstruct the secret polynomial completely,i.e. all private coefficients.
+// It is up to the caller to make sure there is enough shares to correctly
+// re-construct the polynomial. There must be at least t shares.
 func RecoverPriPoly(g abstract.Group, shares []*PriShare, t, n int) (*PriPoly, error) {
 	x := xScalar(g, shares, t, n)
 	if len(x) != t {
