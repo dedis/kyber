@@ -28,45 +28,6 @@ var dealerSec abstract.Scalar
 
 var secret abstract.Scalar
 
-func genPair() (abstract.Scalar, abstract.Point) {
-	secret := suite.Scalar().Pick(reader)
-	public := suite.Point().Mul(nil, secret)
-	return secret, public
-}
-
-func genCommits(n int) ([]abstract.Scalar, []abstract.Point) {
-	var secrets = make([]abstract.Scalar, n)
-	var publics = make([]abstract.Point, n)
-	for i := 0; i < n; i++ {
-		secrets[i], publics[i] = genPair()
-	}
-	return secrets, publics
-}
-
-func genDealer() *Dealer {
-	d, _ := NewDealer(suite, dealerSec, secret, verifiersPub, reader, vssThreshold)
-	return d
-}
-
-func genAll() (*Dealer, []*Verifier) {
-	dealer := genDealer()
-	var verifiers = make([]*Verifier, nbVerifiers)
-	for i := 0; i < nbVerifiers; i++ {
-		v, _ := NewVerifier(suite, verifiersSec[i], dealerPub, verifiersPub)
-		verifiers[i] = v
-	}
-	return dealer, verifiers
-}
-
-func randomBytes(n int) []byte {
-	var buff = make([]byte, n)
-	_, err := rand.Read(buff)
-	if err != nil {
-		panic(err)
-	}
-	return buff
-}
-
 func init() {
 	verifiersSec, verifiersPub = genCommits(nbVerifiers)
 	dealerSec, dealerPub = genPair()
@@ -358,7 +319,7 @@ func TestVSSAggregatorVerifyResponse(t *testing.T) {
 
 	// wrong index
 	resp.Index = uint32(len(verifiersPub))
-	sig, err := sign.Schnorr(suite, v.long, msgResponse(resp))
+	sig, err := sign.Schnorr(suite, v.longterm, msgResponse(resp))
 	resp.Signature = sig
 	assert.Error(t, aggr.verifyResponse(resp))
 	resp.Index = 0
@@ -468,4 +429,43 @@ func TestVSSFindPub(t *testing.T) {
 	assert.False(t, ok)
 	assert.Nil(t, p)
 
+}
+
+func genPair() (abstract.Scalar, abstract.Point) {
+	secret := suite.Scalar().Pick(reader)
+	public := suite.Point().Mul(nil, secret)
+	return secret, public
+}
+
+func genCommits(n int) ([]abstract.Scalar, []abstract.Point) {
+	var secrets = make([]abstract.Scalar, n)
+	var publics = make([]abstract.Point, n)
+	for i := 0; i < n; i++ {
+		secrets[i], publics[i] = genPair()
+	}
+	return secrets, publics
+}
+
+func genDealer() *Dealer {
+	d, _ := NewDealer(suite, dealerSec, secret, verifiersPub, reader, vssThreshold)
+	return d
+}
+
+func genAll() (*Dealer, []*Verifier) {
+	dealer := genDealer()
+	var verifiers = make([]*Verifier, nbVerifiers)
+	for i := 0; i < nbVerifiers; i++ {
+		v, _ := NewVerifier(suite, verifiersSec[i], dealerPub, verifiersPub)
+		verifiers[i] = v
+	}
+	return dealer, verifiers
+}
+
+func randomBytes(n int) []byte {
+	var buff = make([]byte, n)
+	_, err := rand.Read(buff)
+	if err != nil {
+		panic(err)
+	}
+	return buff
 }

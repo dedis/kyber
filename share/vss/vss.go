@@ -246,7 +246,7 @@ func (d *Dealer) SessionID() []byte {
 // collaborate with other Verifiers to reconstruct a secret.
 type Verifier struct {
 	suite     abstract.Suite
-	long      abstract.Scalar
+	longterm  abstract.Scalar
 	pub       abstract.Point
 	dealer    abstract.Point
 	index     int
@@ -280,7 +280,7 @@ func NewVerifier(suite abstract.Suite, longterm abstract.Scalar, dealerKey abstr
 	}
 	v := &Verifier{
 		suite:     suite,
-		long:      longterm,
+		longterm:  longterm,
 		dealer:    dealerKey,
 		verifiers: verifiers,
 		pub:       pub,
@@ -327,7 +327,7 @@ func (v *Verifier) ProcessDeal(d *Deal) (*Response, error) {
 		return nil, err
 	}
 
-	if r.Signature, err = sign.Schnorr(v.suite, v.long, msgResponse(r)); err != nil {
+	if r.Signature, err = sign.Schnorr(v.suite, v.longterm, msgResponse(r)); err != nil {
 		return nil, err
 	}
 
@@ -365,7 +365,7 @@ func (v *Verifier) ProcessJustification(dr *Justification) error {
 // Key returns the longterm key pair this verifier is using during this protocol
 // run.
 func (v *Verifier) Key() (abstract.Scalar, abstract.Point) {
-	return v.long, v.pub
+	return v.longterm, v.pub
 }
 
 // Index returns the index of the verifier in the list of participants used
