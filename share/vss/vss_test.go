@@ -289,7 +289,7 @@ func TestVSSAggregatorVerifyJustification(t *testing.T) {
 	// valid complaint
 	assert.Nil(t, v.ProcessJustification(j))
 
-	// invalid  complaint
+	// invalid complaint
 	resp.SessionID = randomBytes(len(resp.SessionID))
 	badJ, err := dealer.ProcessResponse(resp)
 	assert.Nil(t, badJ)

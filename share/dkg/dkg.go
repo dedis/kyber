@@ -571,7 +571,16 @@ func msgCommitComplaint(cc *ComplaintCommits) []byte {
 	buf.WriteString("commitcomplaint")
 	binary.Write(&buf, binary.LittleEndian, cc.Index)
 	binary.Write(&buf, binary.LittleEndian, cc.DealerIndex)
-	buf.Write(cc.Deal.MarshalBinary())
+	d := cc.Deal
+	buf.Write(d.SessionID)
+	binary.Write(&buf, binary.LittleEndian, d.SecShare.I)
+	d.SecShare.V.MarshalTo(&buf)
+	binary.Write(&buf, binary.LittleEndian, d.RndShare.I)
+	d.RndShare.V.MarshalTo(&buf)
+	binary.Write(&buf, binary.LittleEndian, d.T)
+	for _, c := range d.Commitments {
+		c.MarshalTo(&buf)
+	}
 	return buf.Bytes()
 }
 

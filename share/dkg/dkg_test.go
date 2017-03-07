@@ -447,7 +447,7 @@ func TestDKGReconstructCommits(t *testing.T) {
 		}
 	}
 	assert.True(t, found)
-
+	assert.False(t, dkg2.Finished())
 	// generate enough secret commits  to recover the secret
 	for _, dkg := range dkgs[1:] {
 		rc = &ReconstructCommits{
@@ -463,6 +463,8 @@ func TestDKGReconstructCommits(t *testing.T) {
 	com := dkg2.commitments[uint32(0)]
 	assert.NotNil(t, com)
 	assert.Equal(t, dkgs[0].dealer.SecretCommit().String(), com.Commit().String())
+
+	assert.True(t, dkg2.Finished())
 }
 
 // Copy from vss.go... TODO: look to a nice separation with vss, using a
