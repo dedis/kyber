@@ -51,7 +51,7 @@ func TestPVSS(test *testing.T) {
 	// (3) Check decrypted shares and recover secret if possible (dealer/3rd party)
 	recovered, err := RecoverSecret(suite, G, K, E, D, t, n)
 	require.Equal(test, err, nil)
-	require.Equal(test, suite.Point().Mul(nil, secret), recovered)
+	require.True(test, suite.Point().Mul(nil, secret).Equal(recovered))
 }
 
 func TestPVSSDelete(test *testing.T) {
@@ -102,7 +102,7 @@ func TestPVSSDelete(test *testing.T) {
 	// (3) Check decrypted shares and recover secret if possible (dealer/3rd party)
 	recovered, err := RecoverSecret(suite, G, K, E, D, t, n)
 	require.Equal(test, err, nil)
-	require.Equal(test, suite.Point().Mul(nil, secret), recovered)
+	require.True(test, suite.Point().Mul(nil, secret).Equal(recovered))
 }
 
 func TestPVSSDeleteFail(test *testing.T) {
@@ -152,7 +152,7 @@ func TestPVSSDeleteFail(test *testing.T) {
 	D[1].S.V = suite.Point().Null()
 
 	// (3) Check decrypted shares and recover secret if possible (dealer/3rd party)
-	_, err := RecoverSecret(suite, G, K, E, D, t, n)
+	_, err = RecoverSecret(suite, G, K, E, D, t, n)
 	require.Equal(test, err, errorTooFewShares) // this test is supposed to fail
 }
 
@@ -251,7 +251,7 @@ func TestPVSSBatch(test *testing.T) {
 	require.Equal(test, err, nil)
 
 	// Verify secrets
-	require.Equal(test, suite.Point().Mul(nil, s0), S0)
-	require.Equal(test, suite.Point().Mul(nil, s1), S1)
-	require.Equal(test, suite.Point().Mul(nil, s2), S2)
+	require.True(test, suite.Point().Mul(nil, s0).Equal(S0))
+	require.True(test, suite.Point().Mul(nil, s1).Equal(S1))
+	require.True(test, suite.Point().Mul(nil, s2).Equal(S2))
 }
