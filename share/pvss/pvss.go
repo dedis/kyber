@@ -3,11 +3,11 @@
 // Electronic Voting" by Berry Schoenmakers. In comparison to regular verifiable
 // secret sharing schemes, PVSS enables any third party to verify shares
 // distributed by a dealer using zero-knowledge proofs. PVSS runs in three steps:
-// (1) The dealer creates a list of encrypted public verifiable shares using
+//  1. The dealer creates a list of encrypted public verifiable shares using
 //     EncShares() and distributes them to the trustees.
-// (2) Upon the announcement that the secret should be released, each trustee
+//  2. Upon the announcement that the secret should be released, each trustee
 //     uses DecShare() to first verify and, if valid, decrypt his share.
-// (3) Once a threshold of decrypted shares has been released, anyone can
+//  3. Once a threshold of decrypted shares has been released, anyone can
 //     verify them and, if enough shares are valid, recover the shared secret
 //     using RecoverSecret().
 // For concrete examples see pvss_test.go.
@@ -22,7 +22,7 @@ import (
 	"github.com/dedis/crypto/share"
 )
 
-// Some error definitions
+// Some error definitions.
 var errorTooFewShares = errors.New("not enough shares to recover secret")
 var errorDifferentLengths = errors.New("inputs of different lengths")
 var errorEncVerification = errors.New("verification of encrypted share failed")
@@ -86,16 +86,16 @@ func VerifyEncShare(suite abstract.Suite, H abstract.Point, X abstract.Point, po
 	return nil
 }
 
-// VerifyEncShareBatch provides the same functionality as VerifyEncShare but
-// for slices of encrypted shares.
+// VerifyEncShareBatch provides the same functionality as VerifyEncShare but for
+// slices of encrypted shares. The function returns the valid encrypted shares
+// together with the corresponding public keys.
 func VerifyEncShareBatch(suite abstract.Suite, H abstract.Point, X []abstract.Point, polys []*share.PubPoly, encShares []*PubVerShare) ([]abstract.Point, []*PubVerShare, error) {
 	if len(X) != len(polys) || len(polys) != len(encShares) {
 		return nil, nil, errorDifferentLengths
 	}
-	n := len(X)
 	var K []abstract.Point // good public keys
 	var E []*PubVerShare   // good encrypted shares
-	for i := 0; i < n; i++ {
+	for i := 0; i < len(X); i++ {
 		if err := VerifyEncShare(suite, H, X[i], polys[i], encShares[i]); err == nil {
 			K = append(K, X[i])
 			E = append(E, encShares[i])
@@ -122,7 +122,8 @@ func DecShare(suite abstract.Suite, H abstract.Point, X abstract.Point, poly *sh
 }
 
 // DecShareBatch provides the same functionality as DecShare but for slices of
-// encrypted shares.
+// encrypted shares. The function returns the valid encrypted and decrypted
+// shares as well as the corresponding public keys.
 func DecShareBatch(suite abstract.Suite, H abstract.Point, X []abstract.Point, polys []*share.PubPoly, x abstract.Scalar, encShares []*PubVerShare) ([]abstract.Point, []*PubVerShare, []*PubVerShare, error) {
 	if len(X) != len(polys) || len(polys) != len(encShares) {
 		return nil, nil, nil, errorDifferentLengths
@@ -150,7 +151,7 @@ func VerifyDecShare(suite abstract.Suite, G abstract.Point, X abstract.Point, en
 }
 
 // VerifyDecShareBatch provides the same functionality as VerifyDecShare but for
-// slices of decrypted shares.
+// slices of decrypted shares. The function returns the the valid decrypted shares.
 func VerifyDecShareBatch(suite abstract.Suite, G abstract.Point, X []abstract.Point, encShares []*PubVerShare, decShares []*PubVerShare) ([]*PubVerShare, error) {
 	if len(X) != len(encShares) || len(encShares) != len(decShares) {
 		return nil, errorDifferentLengths
