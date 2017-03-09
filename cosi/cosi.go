@@ -188,11 +188,11 @@ func (c *CoSi) Response(responses []abstract.Scalar) (abstract.Scalar, error) {
 // root knows the aggregate response.
 func (c *CoSi) Signature() []byte {
 	// Sig = R || S || bitmask
-	sigS, err := c.aggregateResponse.MarshalBinary()
-	if err != nil {
-		panic("Can't marshal response")
-	}
 	sigR, err := c.aggregateCommitment.MarshalBinary()
+	if err != nil {
+		panic("Can't marshal Commitment")
+	}
+	sigS, err := c.aggregateResponse.MarshalBinary()
 	if err != nil {
 		panic("Can't generate signature !")
 	}
