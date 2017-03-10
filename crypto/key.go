@@ -12,16 +12,16 @@ import (
 	"gopkg.in/dedis/crypto.v0/abstract"
 )
 
-// Read64Pub reads a public point from a base64 representation
-func Read64Pub(suite abstract.Suite, r io.Reader) (abstract.Point, error) {
-	public := suite.Point()
+// Read64Point reads a point from a base64 representation
+func Read64Point(suite abstract.Suite, r io.Reader) (abstract.Point, error) {
+	point := suite.Point()
 	dec := base64.NewDecoder(base64.StdEncoding, r)
-	err := suite.Read(dec, &public)
-	return public, err
+	err := suite.Read(dec, &point)
+	return point, err
 }
 
-// Write64Pub writes a public point to a base64 representation
-func Write64Pub(suite abstract.Suite, w io.Writer, point abstract.Point) error {
+// Write64Point writes a point to a base64 representation
+func Write64Point(suite abstract.Suite, w io.Writer, point abstract.Point) error {
 	enc := base64.NewEncoder(base64.StdEncoding, w)
 	return write64(suite, enc, point)
 }
@@ -41,19 +41,19 @@ func Write64Scalar(suite abstract.Suite, w io.Writer, scalar abstract.Scalar) er
 	return write64(suite, enc, scalar)
 }
 
-// ReadHexPub reads a public point from a hex representation
-func ReadHexPub(suite abstract.Suite, r io.Reader) (abstract.Point, error) {
-	public := suite.Point()
-	buf, err := getHex(r, public.MarshalSize())
+// ReadHexPoint reads a point from a hex representation
+func ReadHexPoint(suite abstract.Suite, r io.Reader) (abstract.Point, error) {
+	point := suite.Point()
+	buf, err := getHex(r, point.MarshalSize())
 	if err != nil {
 		return nil, err
 	}
-	public.UnmarshalBinary(buf)
-	return public, err
+	point.UnmarshalBinary(buf)
+	return point, err
 }
 
-// WriteHexPub writes a public point to a hex representation
-func WriteHexPub(suite abstract.Suite, w io.Writer, point abstract.Point) error {
+// WriteHexPoint writes a point to a hex representation
+func WriteHexPoint(suite abstract.Suite, w io.Writer, point abstract.Point) error {
 	buf, err := point.MarshalBinary()
 	if err != nil {
 		return err
@@ -86,28 +86,28 @@ func WriteHexScalar(suite abstract.Suite, w io.Writer, scalar abstract.Scalar) e
 	return err
 }
 
-// PubToStringHex converts a Public point to a hexadecimal representation
-func PubToStringHex(suite abstract.Suite, point abstract.Point) (string, error) {
+// PointToStringHex converts a point to a hexadecimal representation
+func PointToStringHex(suite abstract.Suite, point abstract.Point) (string, error) {
 	pbuf, err := point.MarshalBinary()
 	return hex.EncodeToString(pbuf), err
 }
 
-// StringHexToPub reads a hexadecimal representation of a public point and convert it to the
+// StringHexToPoint reads a hexadecimal representation of a point and convert it to the
 // right struct
-func StringHexToPub(suite abstract.Suite, s string) (abstract.Point, error) {
-	return ReadHexPub(suite, strings.NewReader(s))
+func StringHexToPoint(suite abstract.Suite, s string) (abstract.Point, error) {
+	return ReadHexPoint(suite, strings.NewReader(s))
 }
 
-// PubToString64 converts a Public point to a base64 representation
-func PubToString64(suite abstract.Suite, point abstract.Point) (string, error) {
+// PointToString64 converts a point to a base64 representation
+func PointToString64(suite abstract.Suite, point abstract.Point) (string, error) {
 	pbuf, err := point.MarshalBinary()
 	return base64.StdEncoding.EncodeToString(pbuf), err
 }
 
-// String64ToPub reads a base64 representation of a public point and converts it
+// String64ToPoint reads a base64 representation of a point and converts it
 // back to a point.
-func String64ToPub(suite abstract.Suite, s string) (abstract.Point, error) {
-	return Read64Pub(suite, strings.NewReader(s))
+func String64ToPoint(suite abstract.Suite, s string) (abstract.Point, error) {
+	return Read64Point(suite, strings.NewReader(s))
 }
 
 // ScalarToStringHex encodes a scalar to hexadecimal

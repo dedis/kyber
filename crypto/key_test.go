@@ -20,12 +20,12 @@ func TestPub64(t *testing.T) {
 	b := &bytes.Buffer{}
 	rand := s.Cipher([]byte("example"))
 	p, _ := s.Point().Pick(nil, rand)
-	log.ErrFatal(Write64Pub(s, b, p))
-	log.ErrFatal(Write64Pub(s, b, p))
-	p2, err := Read64Pub(s, b)
+	log.ErrFatal(Write64Point(s, b, p))
+	log.ErrFatal(Write64Point(s, b, p))
+	p2, err := Read64Point(s, b)
 	log.ErrFatal(err)
 	require.Equal(t, p, p2)
-	p2, err = Read64Pub(s, b)
+	p2, err = Read64Point(s, b)
 	log.ErrFatal(err)
 	require.Equal(t, p, p2)
 }
@@ -48,12 +48,12 @@ func TestPubHexStream(t *testing.T) {
 	b := &bytes.Buffer{}
 	rand := s.Cipher([]byte("example"))
 	p, _ := s.Point().Pick(nil, rand)
-	log.ErrFatal(WriteHexPub(s, b, p))
-	log.ErrFatal(WriteHexPub(s, b, p))
-	p2, err := ReadHexPub(s, b)
+	log.ErrFatal(WriteHexPoint(s, b, p))
+	log.ErrFatal(WriteHexPoint(s, b, p))
+	p2, err := ReadHexPoint(s, b)
 	log.ErrFatal(err)
 	require.Equal(t, p, p2)
-	p2, err = ReadHexPub(s, b)
+	p2, err = ReadHexPoint(s, b)
 	log.ErrFatal(err)
 	require.Equal(t, p, p2)
 }
@@ -75,9 +75,9 @@ func TestScalarHexStream(t *testing.T) {
 func TestPubHexString(t *testing.T) {
 	rand := s.Cipher([]byte("example"))
 	p, _ := s.Point().Pick(nil, rand)
-	pstr, err := PubToStringHex(s, p)
+	pstr, err := PointToStringHex(s, p)
 	log.ErrFatal(err)
-	p2, err := StringHexToPub(s, pstr)
+	p2, err := StringHexToPoint(s, pstr)
 	log.ErrFatal(err)
 	require.Equal(t, p, p2)
 }
@@ -85,9 +85,9 @@ func TestPubHexString(t *testing.T) {
 func TestPub64String(t *testing.T) {
 	rand := s.Cipher([]byte("example"))
 	p, _ := s.Point().Pick(nil, rand)
-	pstr, err := PubToString64(s, p)
+	pstr, err := PointToString64(s, p)
 	log.ErrFatal(err)
-	p2, err := String64ToPub(s, pstr)
+	p2, err := String64ToPoint(s, pstr)
 	log.ErrFatal(err)
 	require.Equal(t, p, p2)
 }

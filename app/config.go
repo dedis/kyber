@@ -53,7 +53,7 @@ func ParseCothority(file string) (*CothorityConfig, *onet.Server, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	point, err := crypto.StringHexToPub(network.Suite, hc.Public)
+	point, err := crypto.StringHexToPoint(network.Suite, hc.Public)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -163,7 +163,7 @@ func (gt *GroupToml) String() string {
 // toServerIdentity converts this ServerToml struct to a ServerIdentity.
 func (s *ServerToml) toServerIdentity(suite abstract.Suite) (*network.ServerIdentity, error) {
 	pubR := strings.NewReader(s.Public)
-	public, err := crypto.Read64Pub(suite, pubR)
+	public, err := crypto.Read64Point(suite, pubR)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +177,7 @@ func (s *ServerToml) toServerIdentity(suite abstract.Suite) (*network.ServerIden
 func NewServerToml(suite abstract.Suite, public abstract.Point, addr network.Address,
 	desc string) *ServerToml {
 	var buff bytes.Buffer
-	if err := crypto.Write64Pub(suite, &buff, public); err != nil {
+	if err := crypto.Write64Point(suite, &buff, public); err != nil {
 		log.Error("Error writing public key")
 		return nil
 	}
