@@ -8,24 +8,23 @@
 // verifier can check the validity of the received share. The protocol has the
 // following steps:
 //
-//   1) The dealer send a Deal to every verifiers using `Deals()`. Each deal must
-//   be sent securely to one verifier whose public key is at the same index than
-//   the index of the Deal.
-//
+//   1) The dealer sends a Deal to every verifier using `Deals()`. Each deal must
+//    be sent securely to one verifier whose public key is at the same index than
+//    the index of the Deal.
 //   2) Each verifier processes the Deal with `ProcessDeal`.
-//   This function returns a Response which can be twofold:
+//    This function returns a Response which can be twofold:
 //   - an approval, to confirm a correct deal
 //   - a complaint to announce an incorrect deal notifying others that the
 //     dealer might be malicious.
-//	 All Responses must be broadcasted to every verifiers and the dealer.
+//    All Responses must be broadcasted to every verifiers and the dealer.
 //   3) The dealer can respond to each complaint by a justification revealing the
-//   share he originally sent out to the accusing verifier. This is done by
-//   calling `ProcessResponse` on the `Dealer`.
+//    share he originally sent out to the accusing verifier. This is done by
+//    calling `ProcessResponse` on the `Dealer`.
 //   4) The verifiers refuse the shared secret and abort the protocol if there
-//   are at least t complaints OR if a Justification is wrong. The verifiers
-//   accept the shared secret if there are at least t approvals at which point
-//   any t out of n verifiers can reveal their shares to reconstruct the shared
-//   secret.
+//    are at least t complaints OR if a Justification is wrong. The verifiers
+//    accept the shared secret if there are at least t approvals at which point
+//    any t out of n verifiers can reveal their shares to reconstruct the shared
+//    secret.
 package vss
 
 import (
@@ -84,7 +83,8 @@ type Response struct {
 	SessionID []byte
 	// Index of the verifier issuing this Response
 	Index uint32
-	// 0 = NO APPROVAL == Complaint , 1 = APPROVAL
+	// Status of the response: 0->StatusComplaint, 1->StatusApproval,
+	// 2->statusJustified
 	Status byte
 	// Signature over the whole packet. It is automatically verified by this
 	// library.
@@ -98,7 +98,7 @@ const (
 	// StatusApproval is a constant value meaning that a verifier agrees with
 	// the share it received.
 	StatusApproval
-	// special status when a complaint has been justified
+	// special status when a complaint has been justified.
 	statusJustified
 )
 
@@ -106,11 +106,11 @@ const (
 // a Complaint. It contains the original Complaint as well as the shares
 // distributed to the complainer.
 type Justification struct {
-	// SessionID related to the current run of the protocol
+	// SessionID related to the current run of the protocol.
 	SessionID []byte
-	// Index of the verifier who issued the Complaint,i.e. index of this Deal
+	// Index of the verifier who issued the Complaint, i.e. index of this Deal.
 	Index uint32
-	// Deal in clear text
+	// Deal in clear text.
 	Deal *Deal
 	// Signature over the whole packet. It is automatically verified by this
 	// library.
@@ -188,7 +188,7 @@ func (d *Dealer) Deals() []*Deal {
 
 // ProcessResponse analyzes the given Response. If it's a valid complaint, then
 // it returns a Justification. This Justification must be broadcasted to every
-// participants. If it's an invalid complaint, it returns an error about the
+// participant. If it's an invalid complaint, it returns an error about the
 // complaint. The verifiers will also ignore an invalid Complaint.
 func (d *Dealer) ProcessResponse(r *Response) (*Justification, error) {
 	if err := d.verifyResponse(r); err != nil {
@@ -214,7 +214,7 @@ func (d *Dealer) ProcessResponse(r *Response) (*Justification, error) {
 
 // SecretCommit returns the commitment of the secret being shared by this
 // dealer. This function is only to be called once the deal has enough approvals
-// and is verified otherwise it returns nil.
+// and is verified, otherwise it returns nil.
 func (d *Dealer) SecretCommit() abstract.Point {
 	if !d.EnoughApprovals() || !d.DealCertified() {
 		return nil
@@ -255,10 +255,10 @@ type Verifier struct {
 }
 
 // NewVerifier returns a Verifier out of:
-// - its longterm secret key
-// - the longterm dealer public key
-// - the list of public key of verifiers. The list MUST include the public key
-// of this Verifier also.
+//  - its longterm secret key
+//  - the longterm dealer public key
+//  - the list of public key of verifiers. The list MUST include the public key
+//  of this Verifier also.
 // The security parameter t of the secret sharing scheme is automatically set to
 // a default safe value. If a different t value is required, it is possible to set
 // it with `verifier.SetT()`.
@@ -292,10 +292,10 @@ func NewVerifier(suite abstract.Suite, longterm abstract.Scalar, dealerKey abstr
 // ProcessDeal analyzes the Deal received from the Dealer.
 // If the Deal is valid, i.e. the verifier can verify its shares
 // against the public coefficients and the signature is valid, an approval
-// Response is returned and must be broadcasted to every participants
+// Response is returned and must be broadcasted to every participant
 // including the Dealer.
-// For the Deal itself is invalid, it returns a complaint Response that must be
-// broadcasted to every other participants including the Dealer.
+// For the Deal itself to be invalid, it returns a complaint Response that must be
+// broadcasted to every other participant including the Dealer.
 // If the Deal has already been received, or the signature generation of the
 // Response failed, it returns an error without any Response.
 func (v *Verifier) ProcessDeal(d *Deal) (*Response, error) {
@@ -375,7 +375,7 @@ func (v *Verifier) Index() int {
 }
 
 // SessionID returns the session id generated by the Dealer. WARNING: it returns
-// an nil slice if the verifier has not received the Deal yet !
+// a nil slice if the verifier has not received the Deal yet.
 func (v *Verifier) SessionID() []byte {
 	return v.sid
 }
@@ -433,7 +433,7 @@ func (a *aggregator) setDeal(d *Deal) {
 var errDealAlreadyProcessed = errors.New("vss: verifier already received a deal")
 
 // VerifyDeal analyzes the deal and returns an error if it's incorrect. If
-// inclusion is true, it also returns an error if it the second time this struct
+// inclusion is true, it also returns an error if this is the second time this struct
 // analyzes a Deal.
 func (a *aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 	if a.deal != nil && inclusion {
@@ -465,6 +465,7 @@ func (a *aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 	} else if fi.I < 0 || fi.I >= len(a.verifiers) {
 		return errors.New("vss: index out of bounds in Deal")
 	}
+
 	// compute fi * G + gi * H
 	fig := a.suite.Point().Base().Mul(nil, fi.V)
 	H := deriveH(a.suite, a.verifiers)
@@ -540,7 +541,7 @@ func (a *aggregator) EnoughApprovals() bool {
 	return app >= a.t
 }
 
-// DealCertified returns true if there has been less than t complaints, all
+// DealCertified returns true if there have been less than t complaints, all
 // Justifications were correct and if EnoughApprovals() returns true.
 func (a *aggregator) DealCertified() bool {
 	var comps int
