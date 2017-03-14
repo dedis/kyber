@@ -37,6 +37,7 @@ func init() {
 
 func TestVSSWhole(t *testing.T) {
 	dealer, verifiers := genAll()
+	
 	// 1. dispatch deal
 	resps := make([]*Response, nbVerifiers)
 	for i, d := range dealer.Deals() {
@@ -234,7 +235,8 @@ func TestVSSAggregatorVerifyJustification(t *testing.T) {
 	assert.Equal(t, StatusComplaint, resp.Status)
 	assert.Nil(t, err)
 	assert.Equal(t, v.responses[uint32(v.index)], resp)
-	d.SecShare.V = goodV // in tests, pointers point to the same underlying share..
+	// in tests, pointers point to the same underlying share..
+	d.SecShare.V = goodV 
 
 	j, err := dealer.ProcessResponse(resp)
 
