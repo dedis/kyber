@@ -19,6 +19,8 @@ import (
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 
+	"github.com/shirou/gopsutil/mem"
+
 	// CoSi-protocol is not part of the cothority.
 
 	// For the moment, the server only serves CoSi requests
@@ -49,6 +51,7 @@ const whatsMyIP = "http://www.whatsmyip.org/"
 // In case of an error this method Fatals.
 func InteractiveConfig(binaryName string) {
 	log.Info("Setting up a cothority-server.")
+	checkAvailableMemory()
 	str := Inputf(strconv.Itoa(DefaultPort), "Please enter the [address:]PORT for incoming requests")
 	// let's dissect the port / IP
 	var hostStr string
@@ -291,8 +294,8 @@ func askReachableAddress(port string) network.Address {
 // rules etc).
 // In case anything goes wrong, an error is returned.
 func tryConnect(ip, binding network.Address) error {
-
 	stopCh := make(chan bool, 1)
+	listening := make(chan bool)
 	// let's bind
 	go func() {
 		ln, err := net.Listen("tcp", binding.NetworkAddress())
@@ -300,11 +303,20 @@ func tryConnect(ip, binding network.Address) error {
 			log.Error("Trouble with binding to the address:", err)
 			return
 		}
+		listening <- true
 		con, _ := ln.Accept()
 		<-stopCh
 		con.Close()
 	}()
 	defer func() { stopCh <- true }()
+	<-listening
+	conn, err := net.Dial("tcp", ip.NetworkAddress())
+	log.ErrFatal(err, "Could not connect itself to public address. This is most"+
+		" probably an error in your system-setup. Please make sure this conode "+
+		"can connect to", ip.NetworkAddress())
+
+	log.Info("Succesfully connected istelf to port")
+	conn.Close()
 
 	_, port, err := net.SplitHostPort(ip.NetworkAddress())
 	if err != nil {
@@ -343,6 +355,25 @@ func tryConnect(ip, binding network.Address) error {
 		return errors.New("Address unreachable")
 	}
 	return nil
+}
+
+//checkAvailableMemory detects the system's memory and warns if there is not
+//enough. Works only with darwin or linux
+func checkAvailableMemory() {
+	log.Info("checking system memory")
+	if runtime.GOOS == "darwin" || runtime.GOOS == "linux" {
+		v, err := mem.VirtualMemory()
+		if err != nil {
+			log.Error("Could not get systems memory:", err)
+		}
+		//v.Total is the total memory in bytes
+		memoryInMB := (v.Total / 1024) / 1024
+		if memoryInMB <= 512 {
+			log.Error("System has less than 512MB of memory ")
+		} else if memoryInMB <= 1024 {
+			log.Warn("System has less than 1024MB of memory, another GB would be nice")
+		}
+	}
 }
 
 // RunServer starts a cothority server with the given config file name. It can
