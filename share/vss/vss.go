@@ -610,10 +610,11 @@ func (d *Deal) Hash(s abstract.Suite) []byte {
 	h := s.Hash()
 	h.Write([]byte("deal"))
 	h.Write(d.SessionID) // sid already includes all other info
-	binary.Write(h, binary.LittleEndian, d.SecShare.I)
-	d.SecShare.V.MarshalTo(h)
-	binary.Write(h, binary.LittleEndian, d.RndShare.I)
-	d.RndShare.V.MarshalTo(h)
+	h.Write(d.SecShare.Hash(s))
+	h.Write(d.RndShare.Hash(s))
+	for _, c := range d.Commitments {
+		c.MarshalTo(h)
+	}
 	return h.Sum(nil)
 }
 
