@@ -609,8 +609,8 @@ func (d *Deal) Hash(s abstract.Suite) []byte {
 	h := s.Hash()
 	h.Write([]byte("deal"))
 	h.Write(d.SessionID) // sid already includes all other info
-	h.Write(d.RndShare.Hash(s))
 	h.Write(d.SecShare.Hash(s))
+	h.Write(d.RndShare.Hash(s))
 	for _, c := range d.Commitments {
 		c.MarshalTo(h)
 	}
