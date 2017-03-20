@@ -37,6 +37,7 @@ func init() {
 
 func TestVSSWhole(t *testing.T) {
 	dealer, verifiers := genAll()
+
 	// 1. dispatch deal
 	resps := make([]*Response, nbVerifiers)
 	for i, d := range dealer.Deals() {
@@ -177,7 +178,7 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, v.index, int(resp.Index))
 	assert.Equal(t, dealer.sid, resp.SessionID)
-	assert.Nil(t, sign.VerifySchnorr(suite, v.pub, msgResponse(resp), resp.Signature))
+	assert.Nil(t, sign.VerifySchnorr(suite, v.pub, resp.Hash(suite), resp.Signature))
 	assert.Equal(t, v.responses[uint32(v.index)], resp)
 
 	// wrong index
@@ -234,7 +235,8 @@ func TestVSSAggregatorVerifyJustification(t *testing.T) {
 	assert.Equal(t, StatusComplaint, resp.Status)
 	assert.Nil(t, err)
 	assert.Equal(t, v.responses[uint32(v.index)], resp)
-	d.SecShare.V = goodV // in tests, pointers point to the same underlying share..
+	// in tests, pointers point to the same underlying share..
+	d.SecShare.V = goodV
 
 	j, err := dealer.ProcessResponse(resp)
 
@@ -319,7 +321,7 @@ func TestVSSAggregatorVerifyResponse(t *testing.T) {
 
 	// wrong index
 	resp.Index = uint32(len(verifiersPub))
-	sig, err := sign.Schnorr(suite, v.longterm, msgResponse(resp))
+	sig, err := sign.Schnorr(suite, v.longterm, resp.Hash(suite))
 	resp.Signature = sig
 	assert.Error(t, aggr.verifyResponse(resp))
 	resp.Index = 0
