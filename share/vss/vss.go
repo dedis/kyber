@@ -171,7 +171,7 @@ func NewDealer(suite abstract.Suite, longterm, secret abstract.Scalar, verifiers
 			Commitments: commitments,
 			T:           uint32(d.t),
 		}
-		if d.deals[i].Signature, err = sign.Schnorr(d.suite, d.long, msgDeal(d.deals[i])); err != nil {
+		if d.deals[i].Signature, err = sign.Schnorr(d.suite, d.long, d.deals[i].Hash(d.suite)); err != nil {
 			return nil, err
 		}
 	}
@@ -201,7 +201,7 @@ func (d *Dealer) ProcessResponse(r *Response) (*Justification, error) {
 		Index: r.Index,
 		Deal:  d.deals[int(r.Index)],
 	}
-	sig, err := sign.Schnorr(d.suite, d.long, msgJustification(j))
+	sig, err := sign.Schnorr(d.suite, d.long, j.Hash(d.suite))
 	if err != nil {
 		return nil, err
 	}
@@ -324,7 +324,7 @@ func (v *Verifier) ProcessDeal(d *Deal) (*Response, error) {
 		return nil, err
 	}
 
-	if r.Signature, err = sign.Schnorr(v.suite, v.longterm, msgResponse(r)); err != nil {
+	if r.Signature, err = sign.Schnorr(v.suite, v.longterm, r.Hash(v.suite)); err != nil {
 		return nil, err
 	}
 
@@ -446,7 +446,7 @@ func (a *aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 		return errors.New("vss: find different sessionIDs from Deal")
 	}
 
-	if err := sign.VerifySchnorr(a.suite, a.dealer, msgDeal(d), d.Signature); err != nil {
+	if err := sign.VerifySchnorr(a.suite, a.dealer, d.Hash(a.suite), d.Signature); err != nil {
 		return err
 	}
 
@@ -484,7 +484,7 @@ func (a *aggregator) verifyResponse(r *Response) error {
 		return errors.New("vss: index out of bounds in response")
 	}
 
-	if err := sign.VerifySchnorr(a.suite, pub, msgResponse(r), r.Signature); err != nil {
+	if err := sign.VerifySchnorr(a.suite, pub, r.Hash(a.suite), r.Signature); err != nil {
 		return err
 	}
 
@@ -597,31 +597,31 @@ func sessionID(suite abstract.Suite, dealer abstract.Point, verifiers, commitmen
 	return h.Sum(nil), nil
 }
 
-func msgResponse(r *Response) []byte {
-	var buf bytes.Buffer
-	buf.WriteString("response")
-	buf.Write(r.SessionID)
-	binary.Write(&buf, binary.LittleEndian, r.Index)
-	binary.Write(&buf, binary.LittleEndian, r.Status)
-	return buf.Bytes()
+func (r *Response) Hash(s abstract.Suite) []byte {
+	h := s.Hash()
+	h.Write([]byte("response"))
+	h.Write(r.SessionID)
+	binary.Write(h, binary.LittleEndian, r.Index)
+	binary.Write(h, binary.LittleEndian, r.Status)
+	return h.Sum(nil)
 }
 
-func msgDeal(d *Deal) []byte {
-	var buf bytes.Buffer
-	buf.WriteString("deal")
-	buf.Write(d.SessionID) // sid already includes all other info
-	binary.Write(&buf, binary.LittleEndian, d.SecShare.I)
-	d.SecShare.V.MarshalTo(&buf)
-	binary.Write(&buf, binary.LittleEndian, d.RndShare.I)
-	d.RndShare.V.MarshalTo(&buf)
-	return buf.Bytes()
+func (d *Deal) Hash(s abstract.Suite) []byte {
+	h := s.Hash()
+	h.Write([]byte("deal"))
+	h.Write(d.SessionID) // sid already includes all other info
+	binary.Write(h, binary.LittleEndian, d.SecShare.I)
+	d.SecShare.V.MarshalTo(h)
+	binary.Write(h, binary.LittleEndian, d.RndShare.I)
+	d.RndShare.V.MarshalTo(h)
+	return h.Sum(nil)
 }
 
-func msgJustification(j *Justification) []byte {
-	var buf bytes.Buffer
-	buf.WriteString("justification")
-	buf.Write(j.SessionID)
-	binary.Write(&buf, binary.LittleEndian, j.Index)
-	buf.Write(msgDeal(j.Deal))
-	return buf.Bytes()
+func (j *Justification) Hash(s abstract.Suite) []byte {
+	h := s.Hash()
+	h.Write([]byte("justification"))
+	h.Write(j.SessionID)
+	binary.Write(h, binary.LittleEndian, j.Index)
+	h.Write(j.Deal.Hash(s))
+	return h.Sum(nil)
 }
