@@ -330,7 +330,7 @@ func (d *DistKeyGenerator) SecretCommits() (*SecretCommits, error) {
 		Index:       uint32(d.index),
 		SessionID:   d.dealer.SessionID(),
 	}
-	msg := msgSecretCommit(sc)
+	msg := sc.Hash(d.suite)
 	sig, err := sign.Schnorr(d.suite, d.long, msg)
 	if err != nil {
 		return nil, err
@@ -356,16 +356,14 @@ func (d *DistKeyGenerator) ProcessSecretCommits(sc *SecretCommits) (*ComplaintCo
 		return nil, errors.New("dkg: secretcommits from a non QUAL member")
 	}
 
-	v, ok := d.verifiers[sc.Index]
-	if !ok {
-		return nil, errors.New("dkg: secretcommits received without corresponding verifier")
-	}
+	// mapping verified by isInQUAL
+	v := d.verifiers[sc.Index]
 
 	if !bytes.Equal(v.SessionID(), sc.SessionID) {
 		return nil, errors.New("dkg: secretcommits received with wrong session id")
 	}
 
-	msg := msgSecretCommit(sc)
+	msg := sc.Hash(d.suite)
 	if err := sign.VerifySchnorr(d.suite, pub, msg, sc.Signature); err != nil {
 		return nil, err
 	}
@@ -379,7 +377,7 @@ func (d *DistKeyGenerator) ProcessSecretCommits(sc *SecretCommits) (*ComplaintCo
 			Deal:        deal,
 		}
 		var err error
-		msg := msgCommitComplaint(cc)
+		msg := cc.Hash(d.suite)
 		if cc.Signature, err = sign.Schnorr(d.suite, d.long, msg); err != nil {
 			return nil, err
 		}
@@ -404,7 +402,7 @@ func (d *DistKeyGenerator) ProcessComplaintCommits(cc *ComplaintCommits) (*Recon
 		return nil, errors.New("dkg: complaintcommit from non-qual member")
 	}
 
-	if err := sign.VerifySchnorr(d.suite, issuer, msgCommitComplaint(cc), cc.Signature); err != nil {
+	if err := sign.VerifySchnorr(d.suite, issuer, cc.Hash(d.suite), cc.Signature); err != nil {
 		return nil, err
 	}
 
@@ -442,7 +440,7 @@ func (d *DistKeyGenerator) ProcessComplaintCommits(cc *ComplaintCommits) (*Recon
 		Share:       deal.SecShare,
 	}
 
-	msg := msgReconstructCommits(rc)
+	msg := rc.Hash(d.suite)
 	var err error
 	rc.Signature, err = sign.Schnorr(d.suite, d.long, msg)
 	if err != nil {
@@ -471,7 +469,7 @@ func (d *DistKeyGenerator) ProcessReconstructCommits(rs *ReconstructCommits) err
 		return errors.New("dkg: reconstruct commits with invalid verifier index")
 	}
 
-	msg := msgReconstructCommits(rs)
+	msg := rs.Hash(d.suite)
 	if err := sign.VerifySchnorr(d.suite, pub, msg, rs.Signature); err != nil {
 		return err
 	}
@@ -523,15 +521,13 @@ func (d *DistKeyGenerator) Finished() bool {
 	return nb >= d.t && ret
 }
 
-// ProduceSharedSecret will generate the sharedsecret relative to this receiver
-// it will throw an error if something is wrong such as not enough Dealers received
+// ProduceSharedSecret generates the sharedsecret relative to this receiver
+// It throws an error if something is wrong such as not enough deals received.
 // The shared secret can be computed when all deals have been sent and
 // basically consists of a
 // 1. Public point which is the sum of all aggregated individual public commits
 // of each individual secrets.
-// 2. Share of the global Private Polynomial (which is to never be computed directly), which is
-// 		basically SUM of fj(i) for a receiver i
-//
+// 2. Share of the global Private Polynomial, basically SUM of fj(i) for a receiver i
 func (d *DistKeyGenerator) DistKeyShare() (*DistKeyShare, error) {
 	if !d.Certified() {
 		return nil, errors.New("dkg: distributed key not certified")
@@ -577,42 +573,32 @@ func (d *DistKeyGenerator) DistKeyShare() (*DistKeyShare, error) {
 	}, nil
 }
 
-func msgSecretCommit(sc *SecretCommits) []byte {
-	var buf bytes.Buffer
-	buf.WriteString("secretcommits")
-	binary.Write(&buf, binary.LittleEndian, sc.Index)
+func (sc *SecretCommits) Hash(s abstract.Suite) []byte {
+	h := s.Hash()
+	h.Write([]byte("secretcommits"))
+	binary.Write(h, binary.LittleEndian, sc.Index)
 	for _, p := range sc.Commitments {
-		p.MarshalTo(&buf)
+		p.MarshalTo(h)
 	}
-	return buf.Bytes()
+	return h.Sum(nil)
 }
 
-func msgCommitComplaint(cc *ComplaintCommits) []byte {
-	var buf bytes.Buffer
-	buf.WriteString("commitcomplaint")
-	binary.Write(&buf, binary.LittleEndian, cc.Index)
-	binary.Write(&buf, binary.LittleEndian, cc.DealerIndex)
-	d := cc.Deal
-	buf.Write(d.SessionID)
-	binary.Write(&buf, binary.LittleEndian, d.SecShare.I)
-	d.SecShare.V.MarshalTo(&buf)
-	binary.Write(&buf, binary.LittleEndian, d.RndShare.I)
-	d.RndShare.V.MarshalTo(&buf)
-	binary.Write(&buf, binary.LittleEndian, d.T)
-	for _, c := range d.Commitments {
-		c.MarshalTo(&buf)
-	}
-	return buf.Bytes()
+func (cc *ComplaintCommits) Hash(s abstract.Suite) []byte {
+	h := s.Hash()
+	h.Write([]byte("commitcomplaint"))
+	binary.Write(h, binary.LittleEndian, cc.Index)
+	binary.Write(h, binary.LittleEndian, cc.DealerIndex)
+	h.Write(cc.Deal.Hash(s))
+	return h.Sum(nil)
 }
 
-func msgReconstructCommits(rc *ReconstructCommits) []byte {
-	var buf bytes.Buffer
-	buf.WriteString("reconstructcommits")
-	binary.Write(&buf, binary.LittleEndian, rc.Index)
-	binary.Write(&buf, binary.LittleEndian, rc.DealerIndex)
-	binary.Write(&buf, binary.LittleEndian, rc.Share.I)
-	rc.Share.V.MarshalTo(&buf)
-	return buf.Bytes()
+func (rc *ReconstructCommits) Hash(s abstract.Suite) []byte {
+	h := s.Hash()
+	h.Write([]byte("reconstructcommits"))
+	binary.Write(h, binary.LittleEndian, rc.Index)
+	binary.Write(h, binary.LittleEndian, rc.DealerIndex)
+	h.Write(rc.Share.Hash(s))
+	return h.Sum(nil)
 }
 
 // XXX: maybe put that as internal package for vss & dkg since they both use the

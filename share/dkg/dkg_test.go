@@ -1,9 +1,7 @@
 package dkg
 
 import (
-	"bytes"
 	"crypto/rand"
-	"encoding/binary"
 	"testing"
 
 	"github.com/dedis/crypto/abstract"
@@ -64,6 +62,10 @@ func TestDKGNewDistKeyGenerator(t *testing.T) {
 	dkg, err := NewDistKeyGenerator(suite, long, partPubs, random.Stream, nbParticipants/2+1)
 	assert.Nil(t, err)
 	assert.NotNil(t, dkg.dealer)
+	// quick testing here; easier.
+	scs, err := dkg.SecretCommits()
+	assert.Nil(t, scs)
+	assert.Error(t, err)
 
 	sec, _ := genPair()
 	_, err = NewDistKeyGenerator(suite, sec, partPubs, random.Stream, nbParticipants/2+1)
@@ -73,6 +75,10 @@ func TestDKGNewDistKeyGenerator(t *testing.T) {
 
 func TestDKGDeal(t *testing.T) {
 	dkg := dkgs[0]
+
+	dks, err := dkg.DistKeyShare()
+	assert.Error(t, err)
+	assert.Nil(t, dks)
 
 	deals := dkg.Deals()
 	assert.Len(t, deals, nbParticipants-1)
@@ -97,8 +103,16 @@ func TestDKGProcessDeal(t *testing.T) {
 	assert.Equal(t, int(deal.Index), 0)
 	assert.Equal(t, uint32(1), rec.index)
 
-	// good deal
+	// verifier don't find itself
+	goodP := rec.participants
+	rec.participants = make([]abstract.Point, 0)
 	resp, err := rec.ProcessDeal(deal)
+	assert.Nil(t, resp)
+	assert.Error(t, err)
+	rec.participants = goodP
+
+	// good deal
+	resp, err = rec.ProcessDeal(deal)
 	assert.NotNil(t, resp)
 	assert.Equal(t, vss.StatusApproval, resp.Response.Status)
 	assert.Nil(t, err)
@@ -127,6 +141,7 @@ func TestDKGProcessDeal(t *testing.T) {
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 	deal.Deal.SessionID = goodSig
+
 }
 
 func TestDKGProcessResponse(t *testing.T) {
@@ -213,6 +228,7 @@ func TestDKGProcessResponse(t *testing.T) {
 	err = dkg.ProcessJustification(j)
 	assert.Error(t, err)
 	dkg.verifiers[j.Index] = v
+
 }
 
 func TestDKGSecretCommits(t *testing.T) {
@@ -222,7 +238,7 @@ func TestDKGSecretCommits(t *testing.T) {
 
 	sc, err := dkg.SecretCommits()
 	assert.Nil(t, err)
-	msg := msgSecretCommit(sc)
+	msg := sc.Hash(suite)
 	assert.Nil(t, sign.VerifySchnorr(suite, dkg.pub, msg, sc.Signature))
 
 	dkg2 := dkgs[1]
@@ -233,7 +249,14 @@ func TestDKGSecretCommits(t *testing.T) {
 	assert.Nil(t, cc)
 	assert.Error(t, err)
 	sc.Index = goodIdx
-	// not in qual XXX how to test...
+
+	// not in qual: delete the verifier
+	goodV := dkg2.verifiers[uint32(0)]
+	delete(dkg2.verifiers, uint32(0))
+	cc, err = dkg2.ProcessSecretCommits(sc)
+	assert.Nil(t, cc)
+	assert.Error(t, err)
+	dkg2.verifiers[uint32(0)] = goodV
 
 	// invalid sig
 	goodSig := sc.Signature
@@ -253,7 +276,7 @@ func TestDKGSecretCommits(t *testing.T) {
 	// wrong commitments
 	goodPoint := sc.Commitments[0]
 	sc.Commitments[0] = suite.Point().Null()
-	msg = msgSecretCommit(sc)
+	msg = sc.Hash(suite)
 	sig, err := sign.Schnorr(suite, dkg.long, msg)
 	require.Nil(t, err)
 	goodSig = sc.Signature
@@ -296,7 +319,7 @@ func TestDKGComplaintCommits(t *testing.T) {
 	copy(wrongSc.Commitments, scs[0].Commitments)
 	//goodScCommit := scs[0].Commitments[0]
 	wrongSc.Commitments[0] = suite.Point().Null()
-	msg := msgSecretCommit(wrongSc)
+	msg := wrongSc.Hash(suite)
 	wrongSc.Signature, _ = sign.Schnorr(suite, dkgs[0].long, msg)
 
 	dkg := dkgs[1]
@@ -409,7 +432,7 @@ func TestDKGReconstructCommits(t *testing.T) {
 		DealerIndex: 0,
 		Share:       dkgs[uint32(1)].verifiers[uint32(0)].Deal().SecShare,
 	}
-	msg := msgReconstructCommits(rc)
+	msg := rc.Hash(suite)
 	rc.Signature, _ = sign.Schnorr(suite, dkgs[1].long, msg)
 
 	dkg2 := dkgs[2]
@@ -455,7 +478,7 @@ func TestDKGReconstructCommits(t *testing.T) {
 			DealerIndex: 0,
 			Share:       dkg.verifiers[uint32(0)].Deal().SecShare,
 		}
-		msg := msgReconstructCommits(rc)
+		msg := rc.Hash(suite)
 		rc.Signature, _ = sign.Schnorr(suite, dkg.long, msg)
 		dkg2.ProcessReconstructCommits(rc)
 	}
@@ -465,20 +488,6 @@ func TestDKGReconstructCommits(t *testing.T) {
 	assert.Equal(t, dkgs[0].dealer.SecretCommit().String(), com.Commit().String())
 
 	assert.True(t, dkg2.Finished())
-}
-
-// Copy from vss.go... TODO: look to a nice separation with vss, using a
-// internal/ package might be the solution so it does not export methods just
-// for testing.
-func msgDeal(d *vss.Deal) []byte {
-	var buf bytes.Buffer
-	buf.WriteString("deal")
-	buf.Write(d.SessionID) // sid already includes all other info
-	binary.Write(&buf, binary.LittleEndian, d.SecShare.I)
-	d.SecShare.V.MarshalTo(&buf)
-	binary.Write(&buf, binary.LittleEndian, d.RndShare.I)
-	d.RndShare.V.MarshalTo(&buf)
-	return buf.Bytes()
 }
 
 func TestDistKeyShare(t *testing.T) {
