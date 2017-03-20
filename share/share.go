@@ -14,6 +14,7 @@ import (
 	"crypto/subtle"
 	"encoding/binary"
 	"errors"
+	"strings"
 
 	"github.com/dedis/crypto/abstract"
 )
@@ -106,6 +107,9 @@ func (p *PriPoly) Equal(q *PriPoly) bool {
 	if p.g.String() != q.g.String() {
 		return false
 	}
+	if len(p.coeffs) != len(q.coeffs) {
+		return false
+	}
 	b := 1
 	for i := 0; i < p.Threshold(); i++ {
 		pb := p.coeffs[i].Bytes()
@@ -125,19 +129,35 @@ func (p *PriPoly) Commit(b abstract.Point) *PubPoly {
 	return &PubPoly{p.g, b, commits}
 }
 
+// Mul multiples p  and p2 together. The result is a polynomial of the sum of
+// the two degrees of p and p2. NOTE: it does not check for null coefficients
+// after the multiplication, so the degree of the polynomial is "always" as
+// described above. This is only to use in secret sharing schemes, and is not to
+// be considered a general polynomial manipulation routine.
+func (p *PriPoly) Mul(q *PriPoly) *PriPoly {
+	d1 := len(p.coeffs) - 1
+	d2 := len(q.coeffs) - 1
+	newDegree := d1 + d2
+	coeffs := make([]abstract.Scalar, newDegree+1)
+	for i := range coeffs {
+		coeffs[i] = p.g.Scalar().Zero()
+	}
+	for i := range p.coeffs {
+		for j := range q.coeffs {
+			tmp := p.g.Scalar().Mul(p.coeffs[i], q.coeffs[j])
+			coeffs[i+j] = tmp.Add(coeffs[i+j], tmp)
+		}
+	}
+	return &PriPoly{p.g, coeffs}
+}
+
 // RecoverSecret reconstructs the shared secret p(0) from a list of private
 // shares using Lagrange interpolation.
 func RecoverSecret(g abstract.Group, shares []*PriShare, t, n int) (abstract.Scalar, error) {
-	x := make(map[int]abstract.Scalar)
-	for i, s := range shares {
-		if s == nil || s.V == nil || s.I < 0 || n <= s.I {
-			continue
-		}
-		x[i] = g.Scalar().SetInt64(1 + int64(s.I))
-	}
+	x := xScalar(g, shares, t, n)
 
-	if len(x) < t {
-		return nil, errors.New("not enough good private shares to reconstruct shared secret")
+	if len(x) != t {
+		return nil, errors.New("share: not enough shares to recover secret")
 	}
 
 	acc := g.Scalar().Zero()
@@ -159,6 +179,87 @@ func RecoverSecret(g abstract.Group, shares []*PriShare, t, n int) (abstract.Sca
 	}
 
 	return acc, nil
+}
+
+func xScalar(g abstract.Group, shares []*PriShare, t, n int) map[int]abstract.Scalar {
+	x := make(map[int]abstract.Scalar)
+	for i, s := range shares {
+		if s == nil || s.V == nil || s.I < 0 || n <= s.I {
+			continue
+		}
+		x[i] = g.Scalar().SetInt64(1 + int64(s.I))
+		if len(x) == t {
+			break
+		}
+	}
+	return x
+}
+
+func xMinusConst(g abstract.Group, c abstract.Scalar) *PriPoly {
+	neg := g.Scalar().Neg(c)
+	return &PriPoly{
+		g:      g,
+		coeffs: []abstract.Scalar{neg, g.Scalar().One()},
+	}
+}
+
+// RecoverPriPoly takes a list of shares and the parameters t and n to
+// reconstruct the secret polynomial completely,i.e. all private coefficients.
+// It is up to the caller to make sure there is enough shares to correctly
+// re-construct the polynomial. There must be at least t shares.
+func RecoverPriPoly(g abstract.Group, shares []*PriShare, t, n int) (*PriPoly, error) {
+	x := xScalar(g, shares, t, n)
+	if len(x) != t {
+		return nil, errors.New("share: not enough shares to recove private polynomial")
+	}
+
+	var accPoly *PriPoly
+	var err error
+	den := g.Scalar()
+	// notations following the wikipedia article on Lagrange interpolation
+	// https://en.wikipedia.org/wiki/Lagrange_polynomial
+	for j, xj := range x {
+		var basis = &PriPoly{
+			g:      g,
+			coeffs: []abstract.Scalar{g.Scalar().One()},
+		}
+		var acc = g.Scalar().Set(shares[j].V)
+		// compute lagrange basis l_j
+		for m, xm := range x {
+			if j == m {
+				continue
+			}
+			basis = basis.Mul(xMinusConst(g, xm)) // basis = basis * (x - xm)
+
+			den.Sub(xj, xm)   // den = xj - xm
+			den.Inv(den)      // den = 1 / den
+			acc.Mul(acc, den) // acc = acc * den
+		}
+
+		for i := range basis.coeffs {
+			basis.coeffs[i] = basis.coeffs[i].Mul(basis.coeffs[i], acc)
+		}
+
+		if accPoly == nil {
+			accPoly = basis
+			continue
+		}
+
+		// add all L_j * y_j together
+		accPoly, err = accPoly.Add(basis)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return accPoly, nil
+}
+
+func (p *PriPoly) String() string {
+	var strs = make([]string, len(p.coeffs))
+	for i, c := range p.coeffs {
+		strs[i] = c.String()
+	}
+	return "[ " + strings.Join(strs, ", ") + " ]"
 }
 
 // PubShare represents a public share.
