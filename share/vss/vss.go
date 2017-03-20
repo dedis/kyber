@@ -134,7 +134,6 @@ func NewDealer(suite abstract.Suite, longterm, secret abstract.Scalar, verifiers
 	if !validT(t, verifiers) {
 		return nil, fmt.Errorf("dealer: t %d invalid", t)
 	}
-
 	d.t = t
 
 	H := deriveH(d.suite, d.verifiers)
@@ -181,9 +180,7 @@ func NewDealer(suite abstract.Suite, longterm, secret abstract.Scalar, verifiers
 
 // Deals returns the list of previously generated deals.
 func (d *Dealer) Deals() []*Deal {
-	out := make([]*Deal, len(d.deals))
-	copy(out, d.deals)
-	return out
+	return d.deals
 }
 
 // ProcessResponse analyzes the given Response. If it's a valid complaint, then
@@ -268,8 +265,8 @@ func NewVerifier(suite abstract.Suite, longterm abstract.Scalar, dealerKey abstr
 	pub := suite.Point().Mul(nil, longterm)
 	var ok bool
 	var index int
-	for i := range verifiers {
-		if verifiers[i].Equal(pub) {
+	for i, v := range verifiers {
+		if v.Equal(pub) {
 			ok = true
 			index = i
 			break
@@ -462,7 +459,8 @@ func (a *aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 	gi := d.RndShare
 	if fi.I != gi.I {
 		return errors.New("vss: not the same index for f and g share in Deal")
-	} else if fi.I < 0 || fi.I >= len(a.verifiers) {
+	}
+	if fi.I < 0 || fi.I >= len(a.verifiers) {
 		return errors.New("vss: index out of bounds in Deal")
 	}
 
@@ -505,7 +503,8 @@ func (a *aggregator) verifyJustification(j *Justification) error {
 	r, ok := a.responses[j.Index]
 	if !ok {
 		return errors.New("vss: no complaints received for this justification")
-	} else if r.Status != StatusComplaint {
+	}
+	if r.Status != StatusComplaint {
 		return errors.New("vss: justification received for an approval")
 	}
 
@@ -550,11 +549,13 @@ func (a *aggregator) DealCertified() bool {
 			comps++
 		}
 	}
-	return a.EnoughApprovals() && !(comps >= a.t || a.badDealer)
+	tooMuchComplaints := comps >= a.t || a.badDealer
+	return a.EnoughApprovals() && !tooMuchComplaints
 }
 
-// MinimumT the minimum safe T that should be used with this protocol as it's
-// proven to be secure with such a T. WARNING: Setting a lower T could make
+// MinimumT returns the minimum safe T that is proven to be secure with this
+// protocol. It expects n, the total number of participants.
+// WARNING: Setting a lower T could make
 // the whole protocol insecure. Setting a higher T only makes it harder to
 // reconstruct the secret.
 func MinimumT(n int) int {
@@ -567,8 +568,8 @@ func validT(t int, verifiers []abstract.Point) bool {
 
 func deriveH(suite abstract.Suite, verifiers []abstract.Point) abstract.Point {
 	var b bytes.Buffer
-	for i := range verifiers {
-		verifiers[i].MarshalTo(&b)
+	for _, v := range verifiers {
+		v.MarshalTo(&b)
 	}
 	h := suite.Hash()
 	h.Write(b.Bytes())
@@ -589,12 +590,12 @@ func sessionID(suite abstract.Suite, dealer abstract.Point, verifiers, commitmen
 	h := suite.Hash()
 	dealer.MarshalTo(h)
 
-	for i := range verifiers {
-		verifiers[i].MarshalTo(h)
+	for _, v := range verifiers {
+		v.MarshalTo(h)
 	}
 
-	for i := range commitments {
-		commitments[i].MarshalTo(h)
+	for _, c := range commitments {
+		c.MarshalTo(h)
 	}
 	binary.Write(h, binary.LittleEndian, uint32(t))
 
