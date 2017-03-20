@@ -422,11 +422,6 @@ func newAggregator(suite abstract.Suite, dealer abstract.Point, verifiers, commi
 	return agg
 }
 
-// used only by the Dealer
-func (a *aggregator) setDeal(d *Deal) {
-	a.deal = d
-}
-
 var errDealAlreadyProcessed = errors.New("vss: verifier already received a deal")
 
 // VerifyDeal analyzes the deal and returns an error if it's incorrect. If
