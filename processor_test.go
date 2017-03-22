@@ -37,6 +37,9 @@ func TestProcessor_AddMessage(t *testing.T) {
 		procMsgWrong2,
 		procMsgWrong3,
 		procMsgWrong4,
+		procMsgWrong5,
+		procMsgWrong6,
+		procMsgWrong7,
 	}
 	for _, f := range wrongFunctions {
 		fsig := reflect.TypeOf(f).String()
@@ -50,7 +53,7 @@ func TestProcessor_RegisterMessages(t *testing.T) {
 	h1 := NewLocalServer(2000)
 	defer h1.Close()
 	p := NewServiceProcessor(&Context{server: h1})
-	log.ErrFatal(p.RegisterHandlers(procMsg, procMsg2))
+	log.ErrFatal(p.RegisterHandlers(procMsg, procMsg2, procMsg3, procMsg4))
 	assert.Error(t, p.RegisterHandlers(procMsg3, procMsgWrong4))
 }
 
@@ -119,6 +122,9 @@ func procMsg2(msg *testMsg2) (network.Message, ClientError) {
 func procMsg3(msg *testMsg3) (network.Message, ClientError) {
 	return nil, nil
 }
+func procMsg4(msg *testMsg4) (*testMsg4, ClientError) {
+	return msg, nil
+}
 
 func procMsgWrong1() (network.Message, ClientError) {
 	return nil, nil
@@ -134,6 +140,17 @@ func procMsgWrong3(msg *testMsg3) ClientError {
 
 func procMsgWrong4(msg *testMsg4) (ClientError, network.Message) {
 	return nil, msg
+}
+
+func procMsgWrong5(msg *testMsg) (*network.Message, ClientError) {
+	return nil, nil
+}
+
+func procMsgWrong6(msg *testMsg) (int, ClientError) {
+	return 10, nil
+}
+func procMsgWrong7(msg *testMsg) (testMsg, ClientError) {
+	return *msg, nil
 }
 
 type testService struct {

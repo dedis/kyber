@@ -65,10 +65,17 @@ func (p *ServiceProcessor) RegisterHandler(f interface{}) error {
 	if ft.NumOut() != 2 {
 		return errors.New("Need 2 return values: network.Body and ClientError")
 	}
-	if ft.Out(0) != reflect.TypeOf((*network.Message)(nil)).Elem() {
-		return errors.New("1st return value has to be: network.Body, but is: " +
-			ft.Out(0).String())
+
+	ret := ft.Out(0)
+	if ret.Kind() != reflect.Interface {
+		if ret.Kind() != reflect.Ptr {
+			return errors.New("1st return value must be a *pointer* to a struct or an interface")
+		}
+		if ret.Elem().Kind() != reflect.Struct {
+			return errors.New("1st return value must be a pointer to a *struct* or an interface")
+		}
 	}
+
 	if ft.Out(1) != reflect.TypeOf((*ClientError)(nil)).Elem() {
 		return errors.New("2nd return value has to be: ClientError, but is: " +
 			ft.Out(1).String())
