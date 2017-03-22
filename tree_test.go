@@ -1,6 +1,8 @@
 package onet
 
 import (
+	"io/ioutil"
+	"os"
 	"strconv"
 	"testing"
 
@@ -75,11 +77,16 @@ func TestInitPeerListFromConfigFile(t *testing.T) {
 	names := genLocalhostPeerNames(3, 2000)
 	idsList := genRoster(tSuite, names)
 	// write it
-	WriteTomlConfig(idsList.Toml(tSuite), "identities.toml", "/tmp")
+	tmpDir, err := ioutil.TempDir("", "tree_test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+	WriteTomlConfig(idsList.Toml(tSuite), "identities.toml", tmpDir)
 	// decode it
 	var decoded RosterToml
-	if err := ReadTomlConfig(&decoded, "identities.toml", "/tmp"); err != nil {
-		t.Fatal("COuld not read from file the entityList")
+	if err := ReadTomlConfig(&decoded, "identities.toml", tmpDir); err != nil {
+		t.Fatal("Could not read from file the entityList")
 	}
 	decodedList := decoded.Roster(tSuite)
 	if len(decodedList.List) != 3 {
