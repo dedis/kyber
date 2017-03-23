@@ -137,7 +137,7 @@ func (o *Overlay) TransmitMsg(onetMsg *ProtocolMsg, io MessageProxy) error {
 	done := o.instancesInfo[onetMsg.To.ID()]
 	o.instancesLock.Unlock()
 	if done {
-		log.Error("Message for TreeNodeInstance that is already finished")
+		log.Lvl5("Message for TreeNodeInstance that is already finished")
 		return nil
 	}
 	// if the TreeNodeInstance is not there, creates it
