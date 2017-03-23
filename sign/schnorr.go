@@ -2,6 +2,7 @@ package sign
 
 import (
 	"bytes"
+	"crypto/sha512"
 	"errors"
 	"fmt"
 
@@ -13,24 +14,24 @@ import (
 // signature can be verified with VerifySchnorr. It's also a valid EdDSA
 // signature.
 func Schnorr(suite abstract.Suite, private abstract.Scalar, msg []byte) ([]byte, error) {
-	// using notation from https://en.wikipedia.org/wiki/Schnorr_signature
-	// create random secret k and public point commitment r
+	// create random secret k and public point commitment R
 	k := suite.Scalar().Pick(random.Stream)
-	r := suite.Point().Mul(nil, k)
+	R := suite.Point().Mul(nil, k)
 
-	// create challenge e based on message and r
+	// create hash(public || R || message)
 	public := suite.Point().Mul(nil, private)
-	e, err := hash(suite, public, r, msg)
+	h, err := hash(suite, public, R, msg)
 	if err != nil {
 		return nil, err
 	}
 
-	// compute response s = k - x*e
-	xe := suite.Scalar().Mul(private, e)
-	s := suite.Scalar().Sub(k, xe)
+	// compute response s = k + x*h
+	xh := suite.Scalar().Mul(private, h)
+	s := suite.Scalar().Add(k, xh)
 
+	// return R || s
 	var b bytes.Buffer
-	if _, err := e.MarshalTo(&b); err != nil {
+	if _, err := R.MarshalTo(&b); err != nil {
 		return nil, err
 	}
 	if _, err := s.MarshalTo(&b); err != nil {
@@ -44,31 +45,33 @@ func Schnorr(suite abstract.Suite, private abstract.Scalar, msg []byte) ([]byte,
 // the response's unmarshalling is done directly into a big.Int modulo (see
 // nist.Int).
 func VerifySchnorr(suite abstract.Suite, public abstract.Point, msg, sig []byte) error {
-	challenge := suite.Scalar()
-	response := suite.Scalar()
-	scalarSize := challenge.MarshalSize()
-	sigSize := scalarSize * 2
+	R := suite.Point()
+	s := suite.Scalar()
+	pointSize := R.MarshalSize()
+	scalarSize := s.MarshalSize()
+	sigSize := scalarSize + pointSize
 	if len(sig) != sigSize {
 		return fmt.Errorf("schnorr: signature of invalid length %d instead of %d", len(sig), sigSize)
 	}
-	if err := challenge.UnmarshalBinary(sig[:scalarSize]); err != nil {
+	if err := R.UnmarshalBinary(sig[:pointSize]); err != nil {
 		return err
 	}
-	if err := response.UnmarshalBinary(sig[scalarSize:]); err != nil {
+	if err := s.UnmarshalBinary(sig[pointSize:]); err != nil {
 		return err
 	}
-	// compute rv = g^s * y^e (where y = g^x)
-	gs := suite.Point().Mul(nil, response)
-	ye := suite.Point().Mul(public, challenge)
-	rv := suite.Point().Add(gs, ye)
-
-	// recompute challenge (e) from rv
-	e, err := hash(suite, public, rv, msg)
+	// recompute hash(public || R || msg)
+	h, err := hash(suite, public, R, msg)
 	if err != nil {
 		return err
 	}
 
-	if !e.Equal(challenge) {
+	// compute S = g^s
+	S := suite.Point().Mul(nil, s)
+	// compute RAh = R + A^h
+	Ah := suite.Point().Mul(public, h)
+	RAs := suite.Point().Add(R, Ah)
+
+	if !S.Equal(RAs) {
 		return errors.New("schnorr: invalid signature")
 	}
 
@@ -76,7 +79,7 @@ func VerifySchnorr(suite abstract.Suite, public abstract.Point, msg, sig []byte)
 }
 
 func hash(suite abstract.Suite, public, r abstract.Point, msg []byte) (abstract.Scalar, error) {
-	h := suite.Hash()
+	h := sha512.New()
 	if _, err := r.MarshalTo(h); err != nil {
 		return nil, err
 	}

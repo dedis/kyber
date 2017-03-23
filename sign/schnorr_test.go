@@ -5,6 +5,7 @@ import (
 
 	"github.com/dedis/crypto/config"
 	"github.com/dedis/crypto/ed25519"
+	"github.com/dedis/crypto/eddsa"
 	"github.com/dedis/crypto/random"
 	"github.com/stretchr/testify/assert"
 )
@@ -42,4 +43,20 @@ func TestSchnorrSignature(t *testing.T) {
 	// wrong public key
 	wrKp := config.NewKeyPair(suite)
 	assert.Error(t, VerifySchnorr(suite, wrKp.Public, msg, s))
+}
+
+func TestEdDSACompatibility(t *testing.T) {
+	msg := []byte("Hello Schnorr")
+	suite := ed25519.NewAES128SHA256Ed25519(false)
+	kp := config.NewKeyPair(suite)
+
+	s, err := Schnorr(suite, kp.Secret, msg)
+	if err != nil {
+		t.Fatalf("Couldn't sign msg: %s: %v", msg, err)
+	}
+	err = eddsa.Verify(kp.Public, msg, s)
+	if err != nil {
+		t.Fatalf("Couldn't verify signature: \n%+v\nfor msg:'%s'. Error:\n%v", s, msg, err)
+	}
+
 }
