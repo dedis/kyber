@@ -145,6 +145,7 @@ func TestDSSSignature(t *testing.T) {
 	assert.Nil(t, err)
 	err = eddsa.Verify(longterms[0].Public(), dss0.msg, buff)
 	assert.Nil(t, err)
+	assert.Nil(t, Verify(longterms[0].Public(), dss0.msg, buff))
 }
 
 func getDSS(i int) *DSS {
