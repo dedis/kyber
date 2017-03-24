@@ -28,17 +28,6 @@ var randoms []*dkg.DistKeyShare
 
 var dss []*DSS
 
-func genPair() (abstract.Scalar, abstract.Point) {
-	sc := suite.Scalar().Pick(random.Stream)
-	return sc, suite.Point().Mul(nil, sc)
-}
-
-func randomBytes(n int) []byte {
-	var buff = make([]byte, n)
-	rand.Read(buff[:])
-	return buff
-}
-
 func init() {
 	partPubs = make([]abstract.Point, nbParticipants)
 	partSec = make([]abstract.Scalar, nbParticipants)
@@ -222,4 +211,14 @@ func genDistSecret() []*dkg.DistKeyShare {
 	}
 	return dkss
 
+}
+func genPair() (abstract.Scalar, abstract.Point) {
+	sc := suite.Scalar().Pick(random.Stream)
+	return sc, suite.Point().Mul(nil, sc)
+}
+
+func randomBytes(n int) []byte {
+	var buff = make([]byte, n)
+	rand.Read(buff[:])
+	return buff
 }
