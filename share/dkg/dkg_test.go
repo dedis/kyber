@@ -357,30 +357,33 @@ func TestDKGComplaintCommits(t *testing.T) {
 	assert.Nil(t, rc)
 	assert.Error(t, err)
 
-	// TODO find a way to be the malicious guys,i.e.
-	// make a deal which validates, but revealing the commitments coefficients makes
-	// the check fails.
-	// f is the secret polynomial
-	// g is the "random" one
-	// [f(i) + g(i)]*G == [F + G](i)
-	// but
-	// f(i)*G != F(i)
-	/*goodV := cc.Deal.SecShare.V*/
-	//goodDSig := cc.Deal.Signature
-	//cc.Deal.SecShare.V = suite.Scalar().Zero()
-	//msg = msgDeal(cc.Deal)
-	//sig, _ := sign.Schnorr(suite, dkgs[cc.DealerIndex].long, msg)
-	//cc.Deal.Signature = sig
-	//msg = msgCommitComplaint(cc)
-	//sig, _ = sign.Schnorr(suite, dkgs[cc.Index].long, msg)
-	//goodCCSig := cc.Signature
-	//cc.Signature = sig
-	//rc, err = dkg2.ProcessComplaintCommits(cc)
-	//assert.Nil(t, err)
-	//assert.NotNil(t, rc)
-	//cc.Deal.SecShare.V = goodV
-	//cc.Deal.Signature = goodDSig
-	//cc.Signature = goodCCSig
+	/*
+		TODO find a way to be the malicious guys,i.e.
+		make a deal which validates, but revealing the commitments coefficients makes
+		the check fails.
+		f is the secret polynomial
+		g is the "random" one
+		[f(i) + g(i)]*G == [F + G](i)
+		but
+		f(i)*G != F(i)
+
+		goodV := cc.Deal.SecShare.V
+		goodDSig := cc.Deal.Signature
+		cc.Deal.SecShare.V = suite.Scalar().Zero()
+		msg = msgDeal(cc.Deal)
+		sig, _ := sign.Schnorr(suite, dkgs[cc.DealerIndex].long, msg)
+		cc.Deal.Signature = sig
+		msg = msgCommitComplaint(cc)
+		sig, _ = sign.Schnorr(suite, dkgs[cc.Index].long, msg)
+		goodCCSig := cc.Signature
+		cc.Signature = sig
+		rc, err = dkg2.ProcessComplaintCommits(cc)
+		assert.Nil(t, err)
+		assert.NotNil(t, rc)
+		cc.Deal.SecShare.V = goodV
+		cc.Deal.Signature = goodDSig
+		cc.Signature = goodCCSig
+	*/
 
 }
 
