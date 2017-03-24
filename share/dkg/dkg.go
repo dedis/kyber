@@ -9,8 +9,31 @@
 // share/vss package.
 //
 // The protocol works as follow:
-//  -
-//  -
+//
+//	   1. Each participant instantiates a DistKeyShare (DKS) struct.
+//	   2. First, each participant runs a VSS protocol:
+//			- each participant generates their deals with the method `Deals()` and then
+//			sends them to the right recipient.
+//			- each participant processes the received deal with `ProcessDeal()` and
+//			broadcast the resulting response.
+//			- each participant process the response with `ProcessResponse()`. If a
+//			justification is returned, it must be broadcasted.
+//	   3. Each participant can check if the step 2. is done by calling
+//	   `Certified()`. The set of participants having `Certified()` returning true is
+//	   the set of "qualified" participants, which can be queried using `QUAL()`.
+//	   This set only is going to generate a distributed secret.
+//	   4. Each QUAL participant generate their secret commitments calling
+//	   `SecretCommits()` and broadcast them to the QUAL set.
+//	   5. Each QUAL participant process the received secret commitments using
+//	   `SecretCommits()`. If there is an error, it can return a commitment complaint
+//	   (ComplaintCommits) that must be broadcasted to the QUAL set.
+//	   6. Each QUAL participant receiving a complaint can process it with
+//	   `ProcessComplaintCommits()` which returns the secret share
+//	   (ReconstructCommits) given from the malicious participant. This structure
+//	   must be broadcasted to all the QUAL participant.
+//	   7. At this point, every QUAL participant can issue the distributed key by
+//	   calling `DistKeyShare()` !
+//
 package dkg
 
 import (
@@ -68,7 +91,7 @@ type Justification struct {
 	Justification *vss.Justification
 }
 
-// SecretCommit is sent during the distributed public key reconstruction phase,
+// SecretCommits is sent during the distributed public key reconstruction phase,
 // basically a Feldman VSS scheme.
 type SecretCommits struct {
 	// Index of the Dealer in the list of participants
@@ -81,6 +104,8 @@ type SecretCommits struct {
 	Signature []byte
 }
 
+// ComplaintCommits is sent if the secret commitments revealed by a peer are not
+// valid.
 type ComplaintCommits struct {
 	// Index of the Verifier _issuing_ the ComplaintCommit
 	Index uint32
@@ -107,6 +132,7 @@ type ReconstructCommits struct {
 	Signature []byte
 }
 
+// DistKeyGenerator is the struct that runs the DKG protocol.
 type DistKeyGenerator struct {
 	suite abstract.Suite
 
@@ -132,15 +158,19 @@ type DistKeyGenerator struct {
 	reconstructed      map[uint32]bool
 }
 
+// NewDistKeyGenerator returns a DistKeyGenerator out of the suite, the longterm
+// secret key, the list of participants, the random stream to use and the
+// threshold t parameter. It returns an error if the secret key's commitment
+// can't be found in the list of participants.
 func NewDistKeyGenerator(suite abstract.Suite, longterm abstract.Scalar, participants []abstract.Point, r cipher.Stream, t int) (*DistKeyGenerator, error) {
-	d := new(DistKeyGenerator)
 	pub := suite.Point().Mul(nil, longterm)
 	// find our index
 	var found bool
+	var index uint32
 	for i, p := range participants {
 		if p.Equal(pub) {
 			found = true
-			d.index = uint32(i)
+			index = uint32(i)
 			break
 		}
 	}
@@ -150,31 +180,36 @@ func NewDistKeyGenerator(suite abstract.Suite, longterm abstract.Scalar, partici
 	var err error
 	// generate our dealer / deal
 	ownSec := suite.Scalar().Pick(r)
-	d.dealer, err = vss.NewDealer(suite, longterm, ownSec, participants, r, t)
+	dealer, err := vss.NewDealer(suite, longterm, ownSec, participants, r, t)
 	if err != nil {
 		return nil, err
 	}
-	// to receive the other deals
-	d.verifiers = make(map[uint32]*vss.Verifier)
-	d.commitments = make(map[uint32]*share.PubPoly)
-	d.pendingReconstruct = make(map[uint32][]*ReconstructCommits)
-	d.reconstructed = make(map[uint32]bool)
-	d.t = t
-	d.suite = suite
-	d.long = longterm
-	d.pub = pub
-	d.participants = participants
-	return d, nil
+
+	return &DistKeyGenerator{
+		dealer:             dealer,
+		verifiers:          make(map[uint32]*vss.Verifier),
+		commitments:        make(map[uint32]*share.PubPoly),
+		pendingReconstruct: make(map[uint32][]*ReconstructCommits),
+		reconstructed:      make(map[uint32]bool),
+		t:                  t,
+		suite:              suite,
+		long:               longterm,
+		pub:                pub,
+		participants:       participants,
+		index:              index,
+	}, nil
 }
 
-// DistDeals returns all the DistDeal that must be broadcasted to every
-// participants. The DistDeal corresponding to this DKG is already added
+// Deals returns all the deals that must be broadcasted to every
+// participants. The deal corresponding to this DKG is already added
 // to this DKG and is ommitted from the returned map. To know
-// to which participant to give the DistDeal, loop over the keys as indexes in
+// to which participant a deal is to, loop over the keys as indexes in
 // the list of participants:
+//
 //   for i,dd := range distDeals {
 //      sendTo(participants[i],dd)
 //   }
+//
 // This method panics if it can't process it's own deal.
 func (d *DistKeyGenerator) Deals() map[int]*Deal {
 	deals := d.dealer.Deals()
@@ -266,11 +301,11 @@ func (d *DistKeyGenerator) ProcessResponse(resp *Response) (*Justification, erro
 // ProcessJustification takes a justification and validates it. It returns an
 // error in case the justification is wrong.
 func (d *DistKeyGenerator) ProcessJustification(j *Justification) error {
-	if v, ok := d.verifiers[j.Index]; !ok {
+	v, ok := d.verifiers[j.Index]
+	if !ok {
 		return errors.New("dkg: Justification received but no deal for it")
-	} else {
-		return v.ProcessJustification(j.Justification)
 	}
+	return v.ProcessJustification(j.Justification)
 }
 
 // Certified returns true if at least t deals are certified (see
@@ -479,18 +514,17 @@ func (d *DistKeyGenerator) ProcessReconstructCommits(rs *ReconstructCommits) err
 	// check if packet is already received or not
 	for _, r := range arr {
 		if r.Index == rs.Index {
-			// no-op ? error ?
 			return nil
 		}
 	}
-	// add it to list of pending
+	// add it to list of pending shares
 	arr = append(arr, rs)
 	d.pendingReconstruct[rs.DealerIndex] = arr
 	// check if we can reconstruct commitments
 	if len(arr) >= d.t {
-		var shares = make([]*share.PriShare, 0, len(arr))
-		for _, r := range arr {
-			shares = append(shares, r.Share)
+		var shares = make([]*share.PriShare, len(arr))
+		for i, r := range arr {
+			shares[i] = r.Share
 		}
 		// error only happens when you have less than t shares, but we ensure
 		// there are more just before
@@ -522,13 +556,13 @@ func (d *DistKeyGenerator) Finished() bool {
 	return nb >= d.t && ret
 }
 
-// ProduceSharedSecret generates the sharedsecret relative to this receiver
+// DistKeyShare generates the distributed key relative to this receiver
 // It throws an error if something is wrong such as not enough deals received.
 // The shared secret can be computed when all deals have been sent and
-// basically consists of a
-// 1. Public point which is the sum of all aggregated individual public commits
-// of each individual secrets.
-// 2. Share of the global Private Polynomial, basically SUM of fj(i) for a receiver i
+// basically consists of a public point and a share. The public point is the sum
+// of all aggregated individual public commits of each individual secrets.
+// the share is evaluated from the global Private Polynomial, basically SUM of
+// fj(i) for a receiver i.
 func (d *DistKeyGenerator) DistKeyShare() (*DistKeyShare, error) {
 	if !d.Certified() {
 		return nil, errors.New("dkg: distributed key not certified")
@@ -574,6 +608,7 @@ func (d *DistKeyGenerator) DistKeyShare() (*DistKeyShare, error) {
 	}, nil
 }
 
+// Hash returns the hash value of this struct used in the signature process.
 func (sc *SecretCommits) Hash(s abstract.Suite) []byte {
 	h := s.Hash()
 	h.Write([]byte("secretcommits"))
@@ -584,6 +619,7 @@ func (sc *SecretCommits) Hash(s abstract.Suite) []byte {
 	return h.Sum(nil)
 }
 
+// Hash returns the hash value of this struct used in the signature process.
 func (cc *ComplaintCommits) Hash(s abstract.Suite) []byte {
 	h := s.Hash()
 	h.Write([]byte("commitcomplaint"))
@@ -593,6 +629,7 @@ func (cc *ComplaintCommits) Hash(s abstract.Suite) []byte {
 	return h.Sum(nil)
 }
 
+// Hash returns the hash value of this struct used in the signature process.
 func (rc *ReconstructCommits) Hash(s abstract.Suite) []byte {
 	h := s.Hash()
 	h.Write([]byte("reconstructcommits"))

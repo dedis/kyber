@@ -23,29 +23,6 @@ var partSec []abstract.Scalar
 
 var dkgs []*DistKeyGenerator
 
-func dkgGen() []*DistKeyGenerator {
-	dkgs := make([]*DistKeyGenerator, nbParticipants)
-	for i := 0; i < nbParticipants; i++ {
-		dkg, err := NewDistKeyGenerator(suite, partSec[i], partPubs, random.Stream, nbParticipants/2+1)
-		if err != nil {
-			panic(err)
-		}
-		dkgs[i] = dkg
-	}
-	return dkgs
-}
-
-func genPair() (abstract.Scalar, abstract.Point) {
-	sc := suite.Scalar().Pick(random.Stream)
-	return sc, suite.Point().Mul(nil, sc)
-}
-
-func randomBytes(n int) []byte {
-	var buff = make([]byte, n)
-	rand.Read(buff[:])
-	return buff
-}
-
 func init() {
 	partPubs = make([]abstract.Point, nbParticipants)
 	partSec = make([]abstract.Scalar, nbParticipants)
@@ -380,30 +357,33 @@ func TestDKGComplaintCommits(t *testing.T) {
 	assert.Nil(t, rc)
 	assert.Error(t, err)
 
-	// TODO find a way to be the malicious guys,i.e.
-	// make a deal which validates, but revealing the commitments coefficients makes
-	// the check fails.
-	// f is the secret polynomial
-	// g is the "random" one
-	// [f(i) + g(i)]*G == [F + G](i)
-	// but
-	// f(i)*G != F(i)
-	/*goodV := cc.Deal.SecShare.V*/
-	//goodDSig := cc.Deal.Signature
-	//cc.Deal.SecShare.V = suite.Scalar().Zero()
-	//msg = msgDeal(cc.Deal)
-	//sig, _ := sign.Schnorr(suite, dkgs[cc.DealerIndex].long, msg)
-	//cc.Deal.Signature = sig
-	//msg = msgCommitComplaint(cc)
-	//sig, _ = sign.Schnorr(suite, dkgs[cc.Index].long, msg)
-	//goodCCSig := cc.Signature
-	//cc.Signature = sig
-	//rc, err = dkg2.ProcessComplaintCommits(cc)
-	//assert.Nil(t, err)
-	//assert.NotNil(t, rc)
-	//cc.Deal.SecShare.V = goodV
-	//cc.Deal.Signature = goodDSig
-	//cc.Signature = goodCCSig
+	/*
+		TODO find a way to be the malicious guys,i.e.
+		make a deal which validates, but revealing the commitments coefficients makes
+		the check fails.
+		f is the secret polynomial
+		g is the "random" one
+		[f(i) + g(i)]*G == [F + G](i)
+		but
+		f(i)*G != F(i)
+
+		goodV := cc.Deal.SecShare.V
+		goodDSig := cc.Deal.Signature
+		cc.Deal.SecShare.V = suite.Scalar().Zero()
+		msg = msgDeal(cc.Deal)
+		sig, _ := sign.Schnorr(suite, dkgs[cc.DealerIndex].long, msg)
+		cc.Deal.Signature = sig
+		msg = msgCommitComplaint(cc)
+		sig, _ = sign.Schnorr(suite, dkgs[cc.Index].long, msg)
+		goodCCSig := cc.Signature
+		cc.Signature = sig
+		rc, err = dkg2.ProcessComplaintCommits(cc)
+		assert.Nil(t, err)
+		assert.NotNil(t, rc)
+		cc.Deal.SecShare.V = goodV
+		cc.Deal.Signature = goodDSig
+		cc.Signature = goodCCSig
+	*/
 
 }
 
@@ -443,7 +423,6 @@ func TestDKGReconstructCommits(t *testing.T) {
 
 	// commitments not invalidated by any complaints
 	assert.Error(t, dkg2.ProcessReconstructCommits(rc))
-	//comms := dkg2.commitments[uint32(0)]
 	delete(dkg2.commitments, uint32(0))
 
 	// invalid index
@@ -568,6 +547,28 @@ func TestDistKeyShare(t *testing.T) {
 	assert.Equal(t, dkss[0].Public().String(), commitSecret.String())
 }
 
+func dkgGen() []*DistKeyGenerator {
+	dkgs := make([]*DistKeyGenerator, nbParticipants)
+	for i := 0; i < nbParticipants; i++ {
+		dkg, err := NewDistKeyGenerator(suite, partSec[i], partPubs, random.Stream, nbParticipants/2+1)
+		if err != nil {
+			panic(err)
+		}
+		dkgs[i] = dkg
+	}
+	return dkgs
+}
+
+func genPair() (abstract.Scalar, abstract.Point) {
+	sc := suite.Scalar().Pick(random.Stream)
+	return sc, suite.Point().Mul(nil, sc)
+}
+
+func randomBytes(n int) []byte {
+	var buff = make([]byte, n)
+	rand.Read(buff[:])
+	return buff
+}
 func checkDks(dks1, dks2 *DistKeyShare) bool {
 	if len(dks1.Commits) != len(dks2.Commits) {
 		return false
