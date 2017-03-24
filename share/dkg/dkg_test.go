@@ -23,29 +23,6 @@ var partSec []abstract.Scalar
 
 var dkgs []*DistKeyGenerator
 
-func dkgGen() []*DistKeyGenerator {
-	dkgs := make([]*DistKeyGenerator, nbParticipants)
-	for i := 0; i < nbParticipants; i++ {
-		dkg, err := NewDistKeyGenerator(suite, partSec[i], partPubs, random.Stream, nbParticipants/2+1)
-		if err != nil {
-			panic(err)
-		}
-		dkgs[i] = dkg
-	}
-	return dkgs
-}
-
-func genPair() (abstract.Scalar, abstract.Point) {
-	sc := suite.Scalar().Pick(random.Stream)
-	return sc, suite.Point().Mul(nil, sc)
-}
-
-func randomBytes(n int) []byte {
-	var buff = make([]byte, n)
-	rand.Read(buff[:])
-	return buff
-}
-
 func init() {
 	partPubs = make([]abstract.Point, nbParticipants)
 	partSec = make([]abstract.Scalar, nbParticipants)
@@ -443,7 +420,6 @@ func TestDKGReconstructCommits(t *testing.T) {
 
 	// commitments not invalidated by any complaints
 	assert.Error(t, dkg2.ProcessReconstructCommits(rc))
-	//comms := dkg2.commitments[uint32(0)]
 	delete(dkg2.commitments, uint32(0))
 
 	// invalid index
@@ -568,6 +544,28 @@ func TestDistKeyShare(t *testing.T) {
 	assert.Equal(t, dkss[0].Public().String(), commitSecret.String())
 }
 
+func dkgGen() []*DistKeyGenerator {
+	dkgs := make([]*DistKeyGenerator, nbParticipants)
+	for i := 0; i < nbParticipants; i++ {
+		dkg, err := NewDistKeyGenerator(suite, partSec[i], partPubs, random.Stream, nbParticipants/2+1)
+		if err != nil {
+			panic(err)
+		}
+		dkgs[i] = dkg
+	}
+	return dkgs
+}
+
+func genPair() (abstract.Scalar, abstract.Point) {
+	sc := suite.Scalar().Pick(random.Stream)
+	return sc, suite.Point().Mul(nil, sc)
+}
+
+func randomBytes(n int) []byte {
+	var buff = make([]byte, n)
+	rand.Read(buff[:])
+	return buff
+}
 func checkDks(dks1, dks2 *DistKeyShare) bool {
 	if len(dks1.Commits) != len(dks2.Commits) {
 		return false
