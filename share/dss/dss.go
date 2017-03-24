@@ -1,6 +1,7 @@
 // DSS implements the Distributed Schnorr Signature protocol from the
 // paper "Provably Secure Distributed Schnorr Signatures and a (t, n)
 // Threshold Scheme for Implicit Certificates".
+// https://dl.acm.org/citation.cfm?id=678297
 // To generate a distributed signature from a group of participants, the group
 // must first generate one longterm distributed secret with the share/dkg
 // package, and then one random secret to be used only once.
@@ -43,14 +44,14 @@ type DSS struct {
 	partials     []*share.PriShare
 	partialsIdx  map[int]bool
 	signed       bool
+	sessionID    []byte
 }
 
 // PartialSig is partial representation of the final distributed signature. It
 // must be sent to each other participants.
-// XXX should we include a sessionID ? Can derive one from the two dist. key
-// shares
 type PartialSig struct {
 	Partial   *share.PriShare
+	SessionID []byte
 	Signature []byte
 }
 
@@ -87,6 +88,7 @@ func NewDSS(suite abstract.Suite, secret abstract.Scalar, participants []abstrac
 		msg:          msg,
 		T:            T,
 		partialsIdx:  make(map[int]bool),
+		sessionID:    sessionID(suite, long, random),
 	}, nil
 }
 
@@ -108,6 +110,7 @@ func (d *DSS) PartialSig() (*PartialSig, error) {
 			V: right.Add(right, beta),
 			I: d.index,
 		},
+		SessionID: d.sessionID,
 	}
 	var err error
 	ps.Signature, err = sign.Schnorr(d.suite, d.secret, ps.Hash(d.suite))
@@ -132,6 +135,11 @@ func (d *DSS) ProcessPartialSig(ps *PartialSig) error {
 
 	if err := sign.VerifySchnorr(d.suite, public, ps.Hash(d.suite), ps.Signature); err != nil {
 		return err
+	}
+
+	// nothing secret here
+	if !bytes.Equal(ps.SessionID, d.sessionID) {
+		return errors.New("dss: session id do not match")
 	}
 
 	if _, ok := d.partialsIdx[ps.Partial.I]; ok {
@@ -201,7 +209,10 @@ func Verify(public abstract.Point, msg, sig []byte) error {
 // Hash returns the hash representation of this PartialSig to be used in a
 // signature.
 func (ps *PartialSig) Hash(s abstract.Suite) []byte {
-	return ps.Partial.Hash(s)
+	h := s.Hash()
+	h.Write(ps.Partial.Hash(s))
+	h.Write(ps.SessionID)
+	return h.Sum(nil)
 }
 
 // XXX: maybe put that as internal package for vss & dkg since they both use the
@@ -211,4 +222,17 @@ func findPub(list []abstract.Point, i int) (abstract.Point, bool) {
 		return nil, false
 	}
 	return list[i], true
+}
+
+func sessionID(s abstract.Suite, a, b *dkg.DistKeyShare) []byte {
+	h := s.Hash()
+	for _, p := range a.Commits {
+		p.MarshalTo(h)
+	}
+
+	for _, p := range b.Commits {
+		p.MarshalTo(h)
+	}
+
+	return h.Sum(nil)
 }
