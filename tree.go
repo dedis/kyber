@@ -470,11 +470,12 @@ func (el *Roster) GenerateBigNaryTree(N, nodes int) *Tree {
 }
 
 // GenerateNaryTreeWithRoot creates a tree where each node has N children.
-// The root is given as an ServerIdentity.
-func (el *Roster) GenerateNaryTreeWithRoot(N int, rootServerIdentity *network.ServerIdentity) *Tree {
-	rootIndex, _ := el.Search(rootServerIdentity.ID)
+// The root is given as an ServerIdentity. If root doesn't exist in the
+// roster, `nil` will be returned.
+func (el *Roster) GenerateNaryTreeWithRoot(N int, root *network.ServerIdentity) *Tree {
+	rootIndex, _ := el.Search(root.ID)
 	if rootIndex < 0 {
-		log.Fatal(rootServerIdentity, el.List, log.Stack())
+		log.Lvl2("Asked for non-existing root:", root, el.List)
 		return nil
 	}
 	cList := el.List

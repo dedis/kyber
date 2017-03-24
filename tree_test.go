@@ -407,6 +407,8 @@ func TestRoster_GenerateNaryTree(t *testing.T) {
 func TestRoster_GenerateNaryTreeWithRoot(t *testing.T) {
 	names := genLocalhostPeerNames(10, 2000)
 	peerList := genRoster(tSuite, names)
+	tree := NewRoster(peerList.List[1:10]).GenerateNaryTreeWithRoot(2, peerList.List[0])
+	assert.Nil(t, tree)
 	for _, e := range peerList.List {
 		tree := peerList.GenerateNaryTreeWithRoot(4, e)
 		for i := 0; i <= 9; i++ {
