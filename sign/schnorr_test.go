@@ -27,18 +27,18 @@ func TestSchnorrSignature(t *testing.T) {
 	larger := append(s, []byte{0x01, 0x02}...)
 	assert.Error(t, VerifySchnorr(suite, kp.Public, msg, larger))
 
-	constantBytes := []byte{243, 45, 180, 140, 73, 23, 41, 212, 250, 87, 157, 243,
+	// wrong challenge
+	wrongEncoding := []byte{243, 45, 180, 140, 73, 23, 41, 212, 250, 87, 157, 243,
 		242, 19, 114, 161, 145, 47, 76, 26, 174, 150, 22, 177, 78, 79, 122, 30, 74,
 		42, 156, 203}
-	// wrong challenge
 	wrChall := make([]byte, len(s))
-	copy(wrChall[:32], constantBytes)
+	copy(wrChall[:32], wrongEncoding)
 	copy(wrChall[32:], s[32:])
 	assert.Error(t, VerifySchnorr(suite, kp.Public, msg, wrChall))
 
 	// wrong response
 	wrResp := make([]byte, len(s))
-	copy(wrResp[32:], constantBytes)
+	copy(wrResp[32:], wrongEncoding)
 	copy(wrResp[:32], s[:32])
 	assert.Error(t, VerifySchnorr(suite, kp.Public, msg, wrResp))
 
