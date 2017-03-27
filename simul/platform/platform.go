@@ -119,8 +119,7 @@ func ReadRunFile(p Platform, filename string) []*RunConfig {
 		log.Lvlf5("Platform is now %+v", p)
 	}
 
-	for {
-		scanner.Scan()
+	for scanner.Scan() {
 		if scanner.Text() != "" {
 			break
 		}

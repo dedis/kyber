@@ -15,6 +15,9 @@ Ppm, Rounds
 2, 30
 4, 30`
 
+var testfile2 = `Machines = 8
+App = "sign"`
+
 func TestReadRunfile(t *testing.T) {
 	tplat := &TPlat{}
 
@@ -37,6 +40,26 @@ func TestReadRunfile(t *testing.T) {
 	}
 	if tests[0].Get("machines") != "8" {
 		log.Fatal("Machines = 8 has not been copied into RunConfig")
+	}
+}
+
+func TestReadRunfile2(t *testing.T) {
+	tplat := &TPlat{}
+
+	tmpfile, err := ioutil.TempFile("", "testrun.toml")
+	log.ErrFatal(err)
+	_, err = tmpfile.Write([]byte(testfile2))
+	if err != nil {
+		log.Fatal("Couldn't write to tmp-file:", err)
+	}
+	tmpfile.Close()
+
+	platform.ReadRunFile(tplat, tmpfile.Name())
+	if tplat.App != "sign" {
+		log.Fatal("App should be 'sign'")
+	}
+	if tplat.Machines != 8 {
+		log.Fatal("Machines should be 8")
 	}
 }
 
