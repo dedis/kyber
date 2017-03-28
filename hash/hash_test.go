@@ -18,16 +18,10 @@ import (
 var suite = ed25519.NewAES128SHA256Ed25519(false)
 
 func TestBytes(t *testing.T) {
-	var b1 bytes.Buffer
-	var b2 bytes.Buffer
-	var b3 bytes.Buffer
 	s1 := "Hello"
 	s2 := "World"
-	s3 := "!"
-	b1.WriteString(s1)
-	b2.WriteString(s2)
-	b3.WriteString(s3)
-	hash1, err := hash.Bytes(suite.Hash(), b1.Bytes(), b2.Bytes(), b3.Bytes())
+	s3 := "!1234"
+	hash1, err := hash.Bytes(suite.Hash(), []byte(s1), []byte(s2), []byte(s3))
 	if err != nil {
 		t.Fatal(err)
 	}
