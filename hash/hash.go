@@ -13,7 +13,7 @@ import (
 	"reflect"
 )
 
-// Bytes returns the hash of a all given byte slices.
+// Bytes returns the hash of all given byte slices.
 func Bytes(hash hash.Hash, bytes ...[]byte) ([]byte, error) {
 	for _, slice := range bytes {
 		if _, err := hash.Write(slice); err != nil {
