@@ -78,25 +78,31 @@ func EncShares(suite abstract.Suite, H abstract.Point, X []abstract.Point, secre
 // VerifyEncShare checks that the encrypted share sX satisfies
 // log_{H}(sH) == log_{X}(sX) where sH is the public commitment computed by
 // evaluating the public commitment polynomial at the encrypted share's index i.
-func VerifyEncShare(suite abstract.Suite, H abstract.Point, X abstract.Point, poly *share.PubPoly, encShare *PubVerShare) error {
-	sH := poly.Eval(encShare.S.I)
+func VerifyEncShare(suite abstract.Suite, H abstract.Point, X abstract.Point, sH *share.PubShare, encShare *PubVerShare) error {
 	if err := encShare.P.Verify(suite, H, X, sH.V, encShare.S.V); err != nil {
 		return errorEncVerification
 	}
 	return nil
 }
 
+// VerifyEncSharePoly is a wrapper around VerifyEncShare that recovers the
+// commit from the given polynomial first.
+func VerifyEncSharePoly(suite abstract.Suite, H abstract.Point, X abstract.Point, poly *share.PubPoly, encShare *PubVerShare) error {
+	sH := poly.Eval(encShare.S.I)
+	return VerifyEncShare(suite, H, X, sH, encShare)
+}
+
 // VerifyEncShareBatch provides the same functionality as VerifyEncShare but for
 // slices of encrypted shares. The function returns the valid encrypted shares
 // together with the corresponding public keys.
-func VerifyEncShareBatch(suite abstract.Suite, H abstract.Point, X []abstract.Point, polys []*share.PubPoly, encShares []*PubVerShare) ([]abstract.Point, []*PubVerShare, error) {
-	if len(X) != len(polys) || len(polys) != len(encShares) {
+func VerifyEncShareBatch(suite abstract.Suite, H abstract.Point, X []abstract.Point, sH []*share.PubShare, encShares []*PubVerShare) ([]abstract.Point, []*PubVerShare, error) {
+	if len(X) != len(sH) || len(sH) != len(encShares) {
 		return nil, nil, errorDifferentLengths
 	}
 	var K []abstract.Point // good public keys
 	var E []*PubVerShare   // good encrypted shares
 	for i := 0; i < len(X); i++ {
-		if err := VerifyEncShare(suite, H, X[i], polys[i], encShares[i]); err == nil {
+		if err := VerifyEncShare(suite, H, X[i], sH[i], encShares[i]); err == nil {
 			K = append(K, X[i])
 			E = append(E, encShares[i])
 		}
@@ -104,11 +110,24 @@ func VerifyEncShareBatch(suite abstract.Suite, H abstract.Point, X []abstract.Po
 	return K, E, nil
 }
 
+// VerifyEncSharePolyBatch is a wrapper around VerifyEncShareBatch that recovers
+// the commits from the given polynomials first.
+func VerifyEncSharePolyBatch(suite abstract.Suite, H abstract.Point, X []abstract.Point, polys []*share.PubPoly, encShares []*PubVerShare) ([]abstract.Point, []*PubVerShare, error) {
+	if len(X) != len(polys) || len(polys) != len(encShares) {
+		return nil, nil, errorDifferentLengths
+	}
+	sH := make([]*share.PubShare, len(polys))
+	for i, poly := range polys {
+		sH[i] = poly.Eval(encShares[i].S.I)
+	}
+	return VerifyEncShareBatch(suite, H, X, sH, encShares)
+}
+
 // DecShare first verifies the encrypted share against the encryption
 // consistency proof and, if valid, decrypts it and creates a decryption
 // consistency proof.
-func DecShare(suite abstract.Suite, H abstract.Point, X abstract.Point, poly *share.PubPoly, x abstract.Scalar, encShare *PubVerShare) (*PubVerShare, error) {
-	if err := VerifyEncShare(suite, H, X, poly, encShare); err != nil {
+func DecShare(suite abstract.Suite, H abstract.Point, X abstract.Point, sH *share.PubShare, x abstract.Scalar, encShare *PubVerShare) (*PubVerShare, error) {
+	if err := VerifyEncShare(suite, H, X, sH, encShare); err != nil {
 		return nil, err
 	}
 	G := suite.Point().Base()
@@ -121,24 +140,44 @@ func DecShare(suite abstract.Suite, H abstract.Point, X abstract.Point, poly *sh
 	return &PubVerShare{*ps, *P}, nil
 }
 
+// DecSharePoly is a wrapper around DecShare that recovers the commit
+// from the given polynomial first.
+func DecSharePoly(suite abstract.Suite, H abstract.Point, X abstract.Point, poly *share.PubPoly, x abstract.Scalar, encShare *PubVerShare) (*PubVerShare, error) {
+	sH := poly.Eval(encShare.S.I)
+	return DecShare(suite, H, X, sH, x, encShare)
+}
+
 // DecShareBatch provides the same functionality as DecShare but for slices of
 // encrypted shares. The function returns the valid encrypted and decrypted
 // shares as well as the corresponding public keys.
-func DecShareBatch(suite abstract.Suite, H abstract.Point, X []abstract.Point, polys []*share.PubPoly, x abstract.Scalar, encShares []*PubVerShare) ([]abstract.Point, []*PubVerShare, []*PubVerShare, error) {
-	if len(X) != len(polys) || len(polys) != len(encShares) {
+func DecShareBatch(suite abstract.Suite, H abstract.Point, X []abstract.Point, sH []*share.PubShare, x abstract.Scalar, encShares []*PubVerShare) ([]abstract.Point, []*PubVerShare, []*PubVerShare, error) {
+	if len(X) != len(sH) || len(sH) != len(encShares) {
 		return nil, nil, nil, errorDifferentLengths
 	}
 	var K []abstract.Point // good public keys
 	var E []*PubVerShare   // good encrypted shares
 	var D []*PubVerShare   // good decrypted shares
 	for i := 0; i < len(encShares); i++ {
-		if ds, err := DecShare(suite, H, X[i], polys[i], x, encShares[i]); err == nil {
+		if ds, err := DecShare(suite, H, X[i], sH[i], x, encShares[i]); err == nil {
 			K = append(K, X[i])
 			E = append(E, encShares[i])
 			D = append(D, ds)
 		}
 	}
 	return K, E, D, nil
+}
+
+// DecSharePolyBatch is a wrapper around DecShareBatch that recovers the commits
+// from the given polynomials first.
+func DecSharePolyBatch(suite abstract.Suite, H abstract.Point, X []abstract.Point, polys []*share.PubPoly, x abstract.Scalar, encShares []*PubVerShare) ([]abstract.Point, []*PubVerShare, []*PubVerShare, error) {
+	if len(X) != len(polys) || len(polys) != len(encShares) {
+		return nil, nil, nil, errorDifferentLengths
+	}
+	sH := make([]*share.PubShare, len(polys))
+	for i, poly := range polys {
+		sH[i] = poly.Eval(encShares[i].S.I)
+	}
+	return DecShareBatch(suite, H, X, sH, x, encShares)
 }
 
 // VerifyDecShare checks that the decrypted share sG satisfies

@@ -41,7 +41,7 @@ func TestPVSS(test *testing.T) {
 	var D []*PubVerShare   // good decrypted shares
 
 	for i := 0; i < n; i++ {
-		if ds, err := DecShare(suite, H, X[i], polys[i], x[i], encShares[i]); err == nil {
+		if ds, err := DecSharePoly(suite, H, X[i], polys[i], x[i], encShares[i]); err == nil {
 			K = append(K, X[i])
 			E = append(E, encShares[i])
 			D = append(D, ds)
@@ -89,7 +89,7 @@ func TestPVSSDelete(test *testing.T) {
 	var D []*PubVerShare   // good decrypted shares
 
 	for i := 0; i < n; i++ {
-		if ds, err := DecShare(suite, H, X[i], polys[i], x[i], encShares[i]); err == nil {
+		if ds, err := DecSharePoly(suite, H, X[i], polys[i], x[i], encShares[i]); err == nil {
 			K = append(K, X[i])
 			E = append(E, encShares[i])
 			D = append(D, ds)
@@ -140,7 +140,7 @@ func TestPVSSDeleteFail(test *testing.T) {
 	var D []*PubVerShare   // good decrypted shares
 
 	for i := 0; i < n; i++ {
-		if ds, err := DecShare(suite, H, X[i], polys[i], x[i], encShares[i]); err == nil {
+		if ds, err := DecSharePoly(suite, H, X[i], polys[i], x[i], encShares[i]); err == nil {
 			K = append(K, X[i])
 			E = append(E, encShares[i])
 			D = append(D, ds)
@@ -192,13 +192,13 @@ func TestPVSSBatch(test *testing.T) {
 	}
 
 	// Batch verification
-	X0, E0, err := VerifyEncShareBatch(suite, H, X, p0s, e0)
+	X0, E0, err := VerifyEncSharePolyBatch(suite, H, X, p0s, e0)
 	require.Equal(test, err, nil)
 
-	X1, E1, err := VerifyEncShareBatch(suite, H, X, p1s, e1)
+	X1, E1, err := VerifyEncSharePolyBatch(suite, H, X, p1s, e1)
 	require.Equal(test, err, nil)
 
-	X2, E2, err := VerifyEncShareBatch(suite, H, X, p2s, e2)
+	X2, E2, err := VerifyEncSharePolyBatch(suite, H, X, p2s, e2)
 	require.Equal(test, err, nil)
 
 	// Reorder (some) polys, keys, and shares
@@ -215,16 +215,16 @@ func TestPVSSBatch(test *testing.T) {
 	Z3 := []*PubVerShare{E0[3], E1[3], E2[3]}
 
 	// (2) Share batch decryption (trustees)
-	KD0, ED0, DD0, err := DecShareBatch(suite, H, Y0, P, x[0], Z0)
+	KD0, ED0, DD0, err := DecSharePolyBatch(suite, H, Y0, P, x[0], Z0)
 	require.Equal(test, err, nil)
 
-	KD1, ED1, DD1, err := DecShareBatch(suite, H, Y1, P, x[1], Z1)
+	KD1, ED1, DD1, err := DecSharePolyBatch(suite, H, Y1, P, x[1], Z1)
 	require.Equal(test, err, nil)
 
-	KD2, ED2, DD2, err := DecShareBatch(suite, H, Y2, P, x[2], Z2)
+	KD2, ED2, DD2, err := DecSharePolyBatch(suite, H, Y2, P, x[2], Z2)
 	require.Equal(test, err, nil)
 
-	KD3, ED3, DD3, err := DecShareBatch(suite, H, Y3, P, x[3], Z3)
+	KD3, ED3, DD3, err := DecSharePolyBatch(suite, H, Y3, P, x[3], Z3)
 	require.Equal(test, err, nil)
 
 	// Re-establish order
