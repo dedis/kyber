@@ -17,6 +17,28 @@ import (
 
 var suite = ed25519.NewAES128SHA256Ed25519(false)
 
+func TestBytes(t *testing.T) {
+	var b1 bytes.Buffer
+	var b2 bytes.Buffer
+	var b3 bytes.Buffer
+	s1 := "Hello"
+	s2 := "World"
+	s3 := "!"
+	b1.WriteString(s1)
+	b2.WriteString(s2)
+	b3.WriteString(s3)
+	hash1, err := hash.Bytes(suite.Hash(), b1.Bytes(), b2.Bytes(), b3.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := suite.Hash()
+	h.Write([]byte(s1))
+	h.Write([]byte(s2))
+	h.Write([]byte(s3))
+	hash2 := h.Sum(nil)
+	require.Equal(t, hash1, hash2)
+}
+
 func TestStream(t *testing.T) {
 	var buff bytes.Buffer
 	str := "Hello World"
