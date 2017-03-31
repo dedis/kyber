@@ -6,7 +6,6 @@ import (
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/edwards"
 	"github.com/dedis/crypto/random"
-	"github.com/dedis/crypto/share"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,9 +30,9 @@ func TestPVSS(test *testing.T) {
 	require.Equal(test, err, nil)
 
 	// (2) Share decryption (trustees)
-	polys := make([]*share.PubPoly, n)
+	sH := make([]abstract.Point, n)
 	for i := 0; i < n; i++ {
-		polys[i] = pubPoly
+		sH[i] = pubPoly.Eval(encShares[i].S.I).V
 	}
 
 	var K []abstract.Point // good public keys
@@ -41,7 +40,7 @@ func TestPVSS(test *testing.T) {
 	var D []*PubVerShare   // good decrypted shares
 
 	for i := 0; i < n; i++ {
-		if ds, err := DecSharePoly(suite, H, X[i], polys[i], x[i], encShares[i]); err == nil {
+		if ds, err := DecShare(suite, H, X[i], sH[i], x[i], encShares[i]); err == nil {
 			K = append(K, X[i])
 			E = append(E, encShares[i])
 			D = append(D, ds)
@@ -79,9 +78,9 @@ func TestPVSSDelete(test *testing.T) {
 	encShares[5].S.V = suite.Point().Null()
 
 	// (2) Share decryption (trustees)
-	polys := make([]*share.PubPoly, n)
+	sH := make([]abstract.Point, n)
 	for i := 0; i < n; i++ {
-		polys[i] = pubPoly
+		sH[i] = pubPoly.Eval(encShares[i].S.I).V
 	}
 
 	var K []abstract.Point // good public keys
@@ -89,7 +88,7 @@ func TestPVSSDelete(test *testing.T) {
 	var D []*PubVerShare   // good decrypted shares
 
 	for i := 0; i < n; i++ {
-		if ds, err := DecSharePoly(suite, H, X[i], polys[i], x[i], encShares[i]); err == nil {
+		if ds, err := DecShare(suite, H, X[i], sH[i], x[i], encShares[i]); err == nil {
 			K = append(K, X[i])
 			E = append(E, encShares[i])
 			D = append(D, ds)
@@ -130,9 +129,9 @@ func TestPVSSDeleteFail(test *testing.T) {
 	encShares[5].S.V = suite.Point().Null()
 
 	// (2) Share decryption (trustees)
-	polys := make([]*share.PubPoly, n)
+	sH := make([]abstract.Point, n)
 	for i := 0; i < n; i++ {
-		polys[i] = pubPoly
+		sH[i] = pubPoly.Eval(encShares[i].S.I).V
 	}
 
 	var K []abstract.Point // good public keys
@@ -140,7 +139,7 @@ func TestPVSSDeleteFail(test *testing.T) {
 	var D []*PubVerShare   // good decrypted shares
 
 	for i := 0; i < n; i++ {
-		if ds, err := DecSharePoly(suite, H, X[i], polys[i], x[i], encShares[i]); err == nil {
+		if ds, err := DecShare(suite, H, X[i], sH[i], x[i], encShares[i]); err == nil {
 			K = append(K, X[i])
 			E = append(E, encShares[i])
 			D = append(D, ds)
@@ -182,27 +181,30 @@ func TestPVSSBatch(test *testing.T) {
 	e2, p2, err := EncShares(suite, H, X, s2, t)
 	require.Equal(test, err, nil)
 
-	p0s := make([]*share.PubPoly, n)
-	p1s := make([]*share.PubPoly, n)
-	p2s := make([]*share.PubPoly, n)
+	sH0 := make([]abstract.Point, n)
+	sH1 := make([]abstract.Point, n)
+	sH2 := make([]abstract.Point, n)
 	for i := 0; i < n; i++ {
-		p0s[i] = p0
-		p1s[i] = p1
-		p2s[i] = p2
+		sH0[i] = p0.Eval(e0[i].S.I).V
+		sH1[i] = p1.Eval(e1[i].S.I).V
+		sH2[i] = p2.Eval(e2[i].S.I).V
 	}
 
 	// Batch verification
-	X0, E0, err := VerifyEncSharePolyBatch(suite, H, X, p0s, e0)
+	X0, E0, err := VerifyEncShareBatch(suite, H, X, sH0, e0)
 	require.Equal(test, err, nil)
 
-	X1, E1, err := VerifyEncSharePolyBatch(suite, H, X, p1s, e1)
+	X1, E1, err := VerifyEncShareBatch(suite, H, X, sH1, e1)
 	require.Equal(test, err, nil)
 
-	X2, E2, err := VerifyEncSharePolyBatch(suite, H, X, p2s, e2)
+	X2, E2, err := VerifyEncShareBatch(suite, H, X, sH2, e2)
 	require.Equal(test, err, nil)
 
-	// Reorder (some) polys, keys, and shares
-	P := []*share.PubPoly{p0, p1, p2}
+	// Reorder (some) poly evals, keys, and shares
+	P0 := []abstract.Point{p0.Eval(E0[0].S.I).V, p1.Eval(E1[0].S.I).V, p2.Eval(E2[0].S.I).V}
+	P1 := []abstract.Point{p0.Eval(E0[1].S.I).V, p1.Eval(E1[1].S.I).V, p2.Eval(E2[1].S.I).V}
+	P2 := []abstract.Point{p0.Eval(E0[2].S.I).V, p1.Eval(E1[2].S.I).V, p2.Eval(E2[2].S.I).V}
+	P3 := []abstract.Point{p0.Eval(E0[3].S.I).V, p1.Eval(E1[3].S.I).V, p2.Eval(E2[3].S.I).V}
 
 	Y0 := []abstract.Point{X0[0], X1[0], X2[0]}
 	Y1 := []abstract.Point{X0[1], X1[1], X2[1]}
@@ -215,16 +217,16 @@ func TestPVSSBatch(test *testing.T) {
 	Z3 := []*PubVerShare{E0[3], E1[3], E2[3]}
 
 	// (2) Share batch decryption (trustees)
-	KD0, ED0, DD0, err := DecSharePolyBatch(suite, H, Y0, P, x[0], Z0)
+	KD0, ED0, DD0, err := DecShareBatch(suite, H, Y0, P0, x[0], Z0)
 	require.Equal(test, err, nil)
 
-	KD1, ED1, DD1, err := DecSharePolyBatch(suite, H, Y1, P, x[1], Z1)
+	KD1, ED1, DD1, err := DecShareBatch(suite, H, Y1, P1, x[1], Z1)
 	require.Equal(test, err, nil)
 
-	KD2, ED2, DD2, err := DecSharePolyBatch(suite, H, Y2, P, x[2], Z2)
+	KD2, ED2, DD2, err := DecShareBatch(suite, H, Y2, P2, x[2], Z2)
 	require.Equal(test, err, nil)
 
-	KD3, ED3, DD3, err := DecSharePolyBatch(suite, H, Y3, P, x[3], Z3)
+	KD3, ED3, DD3, err := DecShareBatch(suite, H, Y3, P3, x[3], Z3)
 	require.Equal(test, err, nil)
 
 	// Re-establish order
