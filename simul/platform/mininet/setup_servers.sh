@@ -35,7 +35,7 @@ for s in $SERVERS; do
 		echo "$s does not have Ubuntu 14.04 or Debian 8 installed - aborting"
 		exit 1
 	fi
-	scp install_mininet.sh $login: > /dev/null
+	scp $mininet/install_mininet.sh $login: > /dev/null
 	if ! ssh $login which mn; then
 		ssh -f $login "./install_mininet.sh &> /dev/null"
 	else

@@ -272,7 +272,7 @@ if __name__ == '__main__':
     threads = []
     if len(sys.argv) > 2:
         if len(otherNets) > 0:
-            dbg( 1, "Starting remotely on nets", otherNets)
+            dbg( 2, "Starting remotely on nets", otherNets)
         for (server, mn, nbr) in otherNets:
             dbg( 3, "Cleaning up", server )
             call("ssh -q %s 'mn -c; pkill -9 -f start.py' > /dev/null 2>&1" % server, shell=True)
@@ -293,4 +293,4 @@ if __name__ == '__main__':
     for thr in threads:
         thr.join()
 
-    dbg( 1, "Done with main in %s" % platform.node())
+    dbg( 2, "Done with main in %s" % platform.node())
