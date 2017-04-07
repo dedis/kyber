@@ -27,8 +27,9 @@ func TestContextSaveLoad(t *testing.T) {
 	c := createContext()
 	testLoadSave(t, true, c)
 
-	tmp := "/tmp/conode"
-	log.ErrFatal(os.RemoveAll(tmp))
+	tmp, err := ioutil.TempDir("", "conode")
+	log.ErrFatal(err)
+	defer os.RemoveAll(tmp)
 	os.Setenv(ENVServiceData, tmp)
 	initContextDataPath()
 	testLoadSave(t, false, c)
@@ -37,7 +38,6 @@ func TestContextSaveLoad(t *testing.T) {
 	require.False(t, files[0].IsDir())
 	require.True(t, files[0].Mode().IsRegular())
 	require.True(t, strings.HasSuffix(files[0].Name(), ".bin"))
-	log.ErrFatal(os.RemoveAll(tmp))
 }
 
 func testLoadSave(t *testing.T, first bool, c *Context) {
@@ -62,15 +62,15 @@ func TestContext_Path(t *testing.T) {
 	setContextDataPath("")
 	c := createContext()
 	base := c.absFilename("test")
-	tmp := "/tmp/conode"
-	log.ErrFatal(os.RemoveAll(tmp))
+	tmp, err := ioutil.TempDir("", "conode")
+	log.ErrFatal(err)
+	defer os.RemoveAll(tmp)
 	os.Setenv(ENVServiceData, tmp)
 	initContextDataPath()
 	require.Equal(t, tmp, contextDataPath)
-	_, err := os.Stat(tmp)
+	_, err = os.Stat(tmp)
 	log.ErrFatal(err)
 	require.Equal(t, path.Join(tmp, base), c.absFilename("test"))
-	log.ErrFatal(os.RemoveAll(tmp))
 }
 
 type CD2 struct {
