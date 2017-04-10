@@ -40,8 +40,10 @@ func TestVSSWhole(t *testing.T) {
 
 	// 1. dispatch deal
 	resps := make([]*Response, nbVerifiers)
-	for i, d := range dealer.Deals() {
-		resp, err := verifiers[i].ProcessDeal(d)
+	encDeals, err := dealer.EncryptedDeals()
+	require.Nil(t, err)
+	for i, d := range encDeals {
+		resp, err := verifiers[i].ProcessEncryptedDeal(d)
 		require.Nil(t, err)
 		resps[i] = resp
 	}
@@ -103,7 +105,10 @@ func TestVSSVerifierNew(t *testing.T) {
 func TestVSSShare(t *testing.T) {
 	dealer, verifiers := genAll()
 	ver := verifiers[0]
-	resp, err := ver.ProcessDeal(dealer.deals[0])
+	deal, err := dealer.EncryptedDeal(0)
+	require.Nil(t, err)
+
+	resp, err := ver.ProcessEncryptedDeal(deal)
 	require.NotNil(t, resp)
 	require.Equal(t, StatusApproval, resp.Status)
 	require.Nil(t, err)
@@ -170,9 +175,12 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	dealer, verifiers := genAll()
 	v := verifiers[0]
 	d := dealer.deals[0]
+	require.Nil(t, err)
+	encD, err := dealer.EncryptedDeal(0)
+	require.Nil(t, err)
 
 	// correct deal
-	resp, err := v.ProcessDeal(d)
+	resp, err := v.ProcessEncryptedDeal(encD)
 	require.NotNil(t, resp)
 	assert.Equal(t, StatusApproval, resp.Status)
 	assert.Nil(t, err)
@@ -184,7 +192,8 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	// wrong index
 	goodIdx := d.SecShare.I
 	d.SecShare.I = (goodIdx - 1) % nbVerifiers
-	resp, err = v.ProcessDeal(d)
+	encD, _ := dealer.EncryptedDeal(0)
+	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.Error(t, err)
 	assert.Nil(t, resp)
 	d.SecShare.I = goodIdx
@@ -192,13 +201,14 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	// wrong commitments
 	goodCommit := d.Commitments[0]
 	d.Commitments[0], _ = suite.Point().Pick(nil, random.Stream)
-	resp, err = v.ProcessDeal(d)
+	resp, _ := v.ProcessEncryptedDeal(encD)
+	resp, err = v.ProcessEncryptedDeal(d)
 	assert.Error(t, err)
 	assert.Nil(t, resp)
 	d.Commitments[0] = goodCommit
 
 	// already seen twice
-	resp, err = v.ProcessDeal(d)
+	resp, err = v.ProcessEncryptedDeal(d)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 	v.aggregator.deal = nil
@@ -206,7 +216,7 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	// approval already existing from same origin, should never happen right ?
 	v.aggregator.responses[uint32(v.index)] = &Response{Status: StatusApproval}
 	d.Commitments[0], _ = suite.Point().Pick(nil, random.Stream)
-	resp, err = v.ProcessDeal(d)
+	resp, err = v.ProcessEncryptedDeal(d)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 	d.Commitments[0] = goodCommit
@@ -215,7 +225,7 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	v.aggregator.deal = nil
 	delete(v.aggregator.responses, uint32(v.index))
 	d.RndShare.V = suite.Scalar().SetBytes(randomBytes(32))
-	resp, err = v.ProcessDeal(d)
+	resp, err = v.ProcessEncryptedDeal(d)
 	assert.NotNil(t, resp)
 	assert.Equal(t, StatusComplaint, resp.Status)
 	assert.Nil(t, err)
@@ -230,7 +240,7 @@ func TestVSSAggregatorVerifyJustification(t *testing.T) {
 	wrongV := suite.Scalar().Pick(random.Stream)
 	goodV := d.SecShare.V
 	d.SecShare.V = wrongV
-	resp, err := v.ProcessDeal(d)
+	resp, err := v.ProcessEncryptedDeal(d)
 	assert.NotNil(t, resp)
 	assert.Equal(t, StatusComplaint, resp.Status)
 	assert.Nil(t, err)
@@ -273,12 +283,12 @@ func TestVSSAggregatorVerifyResponseDuplicate(t *testing.T) {
 	d1 := dealer.deals[0]
 	d2 := dealer.deals[1]
 
-	resp1, err := v1.ProcessDeal(d1)
+	resp1, err := v1.ProcessEncryptedDeal(d1)
 	assert.Nil(t, err)
 	assert.NotNil(t, resp1)
 	assert.Equal(t, StatusApproval, resp1.Status)
 
-	resp2, err := v2.ProcessDeal(d2)
+	resp2, err := v2.ProcessEncryptedDeal(d2)
 	assert.Nil(t, err)
 	assert.NotNil(t, resp2)
 	assert.Equal(t, StatusApproval, resp2.Status)
@@ -307,7 +317,7 @@ func TestVSSAggregatorVerifyResponse(t *testing.T) {
 	deal.SecShare.V = wrongSec
 
 	// valid complaint
-	resp, err := v.ProcessDeal(deal)
+	resp, err := v.ProcessEncryptedDeal(deal)
 	assert.Nil(t, err)
 	assert.NotNil(t, resp)
 	assert.Equal(t, StatusComplaint, resp.Status)

@@ -36,6 +36,7 @@ import (
 	"fmt"
 
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/share"
 	"github.com/dedis/crypto/sign"
 )
@@ -51,6 +52,7 @@ type Dealer struct {
 	secret        abstract.Scalar
 	secretCommits []abstract.Point
 	verifiers     []abstract.Point
+	hkdfContext   []byte
 	// threshold of shares that is needed to reconstruct the secret
 	t int
 	// sessionID is a unique identifier for the whole session of the scheme
@@ -72,9 +74,21 @@ type Deal struct {
 	T uint32
 	// Commitments are the coefficients used to verify the shares against.
 	Commitments []abstract.Point
-	// Signature is over the whole deal, and is made using sign.Schnorr. It is
-	// automatically verified by this library.
+}
+
+// EncryptedDeal contains the deal in a encrypted form only decipherable by the
+// correct recipient. The encryption is performed in a similar manner as what is
+// done in TLS. The dealer generates a temporary key pair, signs it with its
+// longterm secret key.
+type EncryptedDeal struct {
+	// Ephemeral Diffie Hellman key
+	DHKey abstract.Point
+	// Signature of the DH key by the longterm key of the dealer
 	Signature []byte
+	// Nonce during for the encryption
+	Nonce []byte
+	// Encryption of the deal using AEAD. The deal is marshalled using protobuf.
+	Cipher []byte
 }
 
 // Response is sent by the verifiers to all participants and holds each
@@ -171,16 +185,63 @@ func NewDealer(suite abstract.Suite, longterm, secret abstract.Scalar, verifiers
 			Commitments: commitments,
 			T:           uint32(d.t),
 		}
-		if d.deals[i].Signature, err = sign.Schnorr(d.suite, d.long, d.deals[i].Hash(d.suite)); err != nil {
-			return nil, err
-		}
 	}
+	d.hkdfContext = hkdfContext(suite, d.pub, verifiers)
 	return d, nil
 }
 
-// Deals returns the list of previously generated deals.
-func (d *Dealer) Deals() []*Deal {
-	return d.deals
+// EncryptedDeal returns the encryption of the deal that must be given to the
+// verifier at index i.
+// The dealer first generates a temporary Diffie Hellman key, signs it using its
+// longterm key, and computes the shared key depending on its longterm and
+// ephemeral key and the verifier's public key.
+// This shared key is then fed into a HKDF whose output is the key to a AEAD
+// (AES256-GCM) scheme to encrypt the deal.
+func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
+	vPub, ok := findPub(d.verifiers, uint32(i))
+	if !ok {
+		return nil, errors.New("dealer: wrong index to generate encrypted deal")
+	}
+	// gen ephemeral key
+	dhSecret := d.suite.Scalar().Pick(random.Stream)
+	dhPublic := d.suite.Point().Mul(nil, dhSecret)
+	// signs the public key
+	dhPublicBuff, _ := dhPublic.MarshalBinary()
+	signature, err := sign.Schnorr(d.suite, d.long, dhPublicBuff)
+	if err != nil {
+		return nil, err
+	}
+	// AES128-GCM
+	pre := dhExchange(d.suite, dhSecret, vPub)
+	gcm, err := newAEAD(d.suite.Hash, pre, d.hkdfContext)
+	if err != nil {
+		return nil, err
+	}
+
+	nonce := make([]byte, gcm.NonceSize())
+	dealBuff := d.deals[i].MarshalBinary()
+	encrypted := gcm.Seal(nil, nonce, dealBuff, d.hkdfContext)
+	return &EncryptedDeal{
+		DHKey:     dhPublic,
+		Signature: signature,
+		Nonce:     nonce,
+		Cipher:    encrypted,
+	}, nil
+}
+
+// EncryptedDeals calls `EncryptedDeal` for each index of the verifier and
+// returns the list of encrypted deals. Each index in the returned slice
+// corresponds to the index in the list of verifiers.
+func (d *Dealer) EncryptedDeals() ([]*EncryptedDeal, error) {
+	deals := make([]*EncryptedDeal, len(d.verifiers))
+	var err error
+	for i := range d.verifiers {
+		deals[i], err = d.EncryptedDeal(i)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return deals, nil
 }
 
 // ProcessResponse analyzes the given Response. If it's a valid complaint, then
@@ -242,12 +303,13 @@ func (d *Dealer) SessionID() []byte {
 // Verifier receives a Deal from a Dealer, can reply by a Complaint, and can
 // collaborate with other Verifiers to reconstruct a secret.
 type Verifier struct {
-	suite     abstract.Suite
-	longterm  abstract.Scalar
-	pub       abstract.Point
-	dealer    abstract.Point
-	index     int
-	verifiers []abstract.Point
+	suite       abstract.Suite
+	longterm    abstract.Scalar
+	pub         abstract.Point
+	dealer      abstract.Point
+	index       int
+	verifiers   []abstract.Point
+	hkdfContext []byte
 	*aggregator
 }
 
@@ -276,12 +338,13 @@ func NewVerifier(suite abstract.Suite, longterm abstract.Scalar, dealerKey abstr
 		return nil, errors.New("vss: public key not found in the list of verifiers")
 	}
 	v := &Verifier{
-		suite:     suite,
-		longterm:  longterm,
-		dealer:    dealerKey,
-		verifiers: verifiers,
-		pub:       pub,
-		index:     index,
+		suite:       suite,
+		longterm:    longterm,
+		dealer:      dealerKey,
+		verifiers:   verifiers,
+		pub:         pub,
+		index:       index,
+		hkdfContext: hkdfContext(suite, dealerKey, verifiers),
 	}
 	return v, nil
 }
@@ -295,7 +358,11 @@ func NewVerifier(suite abstract.Suite, longterm abstract.Scalar, dealerKey abstr
 // broadcasted to every other participants including the Dealer.
 // If the Deal has already been received, or the signature generation of the
 // Response failed, it returns an error without any Response.
-func (v *Verifier) ProcessDeal(d *Deal) (*Response, error) {
+func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
+	d, err := v.decryptDeal(e)
+	if err != nil {
+		return nil, err
+	}
 	if d.SecShare.I != v.index {
 		return nil, errors.New("vss: verifier got wrong index from deal")
 	}
@@ -332,6 +399,28 @@ func (v *Verifier) ProcessDeal(d *Deal) (*Response, error) {
 		return nil, err
 	}
 	return r, nil
+}
+
+func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
+	ephBuff, _ := e.DHKey.MarshalBinary()
+	// verify signature
+	if err := sign.VerifySchnorr(v.suite, v.dealer, ephBuff, e.Signature); err != nil {
+		return nil, err
+	}
+
+	// compute shared key and AES128-GCM cipher
+	pre := dhExchange(v.suite, v.longterm, e.DHKey)
+	gcm, err := newAEAD(v.suite.Hash, pre, v.hkdfContext)
+	if err != nil {
+		return nil, err
+	}
+	decrypted, err := gcm.Open(nil, e.Nonce, e.Cipher, v.hkdfContext)
+	if err != nil {
+		return nil, err
+	}
+	deal := &Deal{}
+	err = deal.UnmarshalBinary(v.suite, decrypted)
+	return deal, err
 }
 
 // ProcessResponse analyzes the given response. If it's a valid complaint, the
@@ -444,10 +533,6 @@ func (a *aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 
 	if !bytes.Equal(a.sid, d.SessionID) {
 		return errors.New("vss: find different sessionIDs from Deal")
-	}
-
-	if err := sign.VerifySchnorr(a.suite, a.dealer, d.Hash(a.suite), d.Signature); err != nil {
-		return err
 	}
 
 	fi := d.SecShare
@@ -605,16 +690,42 @@ func (r *Response) Hash(s abstract.Suite) []byte {
 	return h.Sum(nil)
 }
 
-func (d *Deal) Hash(s abstract.Suite) []byte {
-	h := s.Hash()
-	h.Write([]byte("deal"))
-	h.Write(d.SessionID) // sid already includes all other info
-	h.Write(d.SecShare.Hash(s))
-	h.Write(d.RndShare.Hash(s))
+func (d *Deal) MarshalBinary() []byte {
+	var buff = new(bytes.Buffer)
+	buff.Write(d.SessionID)
+	binary.Write(buff, binary.LittleEndian, d.SecShare.I)
+	d.SecShare.V.MarshalTo(buff)
+	binary.Write(buff, binary.LittleEndian, d.RndShare.I)
+	d.RndShare.V.MarshalTo(buff)
 	for _, c := range d.Commitments {
-		c.MarshalTo(h)
+		c.MarshalTo(buff)
 	}
-	return h.Sum(nil)
+	return buff.Bytes()
+}
+
+func (d *Deal) UnmarshalBinary(s abstract.Suite, buff []byte) error {
+	var buffer = bytes.NewBuffer(buff)
+	sid := make([]byte, s.Hash().Size())
+	if _, err := buffer.Read(sid); err != nil {
+		return err
+	}
+	sec := &share.PriShare{}
+	if err := binary.Read(buffer, binary.LittleEndian, sec.I); err != nil {
+		return err
+	}
+	sec.V = s.Scalar()
+	if err := sec.V.UnmarshalBinary(buffer.Next(s.ScalarLen())); err != nil {
+		return err
+	}
+	rnd := &share.PriShare{}
+	if err := binary.Read(buffer, binary.LittleEndian, rnd.I); err != nil {
+		return err
+	}
+	rnd.V = s.Scalar()
+	if err := rnd.V.UnmarshalBinary(buffer.Next(s.ScalarLen())); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (j *Justification) Hash(s abstract.Suite) []byte {
@@ -622,6 +733,6 @@ func (j *Justification) Hash(s abstract.Suite) []byte {
 	h.Write([]byte("justification"))
 	h.Write(j.SessionID)
 	binary.Write(h, binary.LittleEndian, j.Index)
-	h.Write(j.Deal.Hash(s))
+	h.Write(j.Deal.MarshalBinary())
 	return h.Sum(nil)
 }
