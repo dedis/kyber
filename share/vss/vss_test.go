@@ -171,11 +171,43 @@ func TestVSSAggregatorDealCertified(t *testing.T) {
 	assert.False(t, aggr.DealCertified())
 }
 
+func TestVSSVerifierDecryptDeal(t *testing.T) {
+	dealer, verifiers := genAll()
+	v := verifiers[0]
+	d := dealer.deals[0]
+
+	// all fine
+	encD, err := dealer.EncryptedDeal(0)
+	require.Nil(t, err)
+	decD, err := v.decryptDeal(encD)
+	require.Nil(t, err)
+	b1, _ := d.MarshalBinary()
+	b2, _ := decD.MarshalBinary()
+	assert.Equal(t, b1, b2)
+
+	// wrong dh key
+	goodDh := encD.DHKey
+	encD.DHKey = suite.Point()
+	decD, err = v.decryptDeal(encD)
+	assert.Error(t, err)
+	assert.Nil(t, decD)
+	encD.DHKey = goodDh
+
+	// wrong signature
+	goodSig := encD.Signature
+	encD.Signature = randomBytes(32)
+	decD, err = v.decryptDeal(encD)
+	assert.Error(t, err)
+	assert.Nil(t, decD)
+	encD.Signature = goodSig
+
+}
+
 func TestVSSVerifierReceiveDeal(t *testing.T) {
 	dealer, verifiers := genAll()
 	v := verifiers[0]
 	d := dealer.deals[0]
-	require.Nil(t, err)
+
 	encD, err := dealer.EncryptedDeal(0)
 	require.Nil(t, err)
 
@@ -192,7 +224,7 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	// wrong index
 	goodIdx := d.SecShare.I
 	d.SecShare.I = (goodIdx - 1) % nbVerifiers
-	encD, _ := dealer.EncryptedDeal(0)
+	encD, _ = dealer.EncryptedDeal(0)
 	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.Error(t, err)
 	assert.Nil(t, resp)
@@ -201,14 +233,14 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	// wrong commitments
 	goodCommit := d.Commitments[0]
 	d.Commitments[0], _ = suite.Point().Pick(nil, random.Stream)
-	resp, _ := v.ProcessEncryptedDeal(encD)
-	resp, err = v.ProcessEncryptedDeal(d)
+	encD, _ = dealer.EncryptedDeal(0)
+	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.Error(t, err)
 	assert.Nil(t, resp)
 	d.Commitments[0] = goodCommit
 
 	// already seen twice
-	resp, err = v.ProcessEncryptedDeal(d)
+	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 	v.aggregator.deal = nil
@@ -216,7 +248,7 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	// approval already existing from same origin, should never happen right ?
 	v.aggregator.responses[uint32(v.index)] = &Response{Status: StatusApproval}
 	d.Commitments[0], _ = suite.Point().Pick(nil, random.Stream)
-	resp, err = v.ProcessEncryptedDeal(d)
+	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 	d.Commitments[0] = goodCommit
@@ -225,7 +257,7 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	v.aggregator.deal = nil
 	delete(v.aggregator.responses, uint32(v.index))
 	d.RndShare.V = suite.Scalar().SetBytes(randomBytes(32))
-	resp, err = v.ProcessEncryptedDeal(d)
+	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.NotNil(t, resp)
 	assert.Equal(t, StatusComplaint, resp.Status)
 	assert.Nil(t, err)
@@ -234,13 +266,13 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 func TestVSSAggregatorVerifyJustification(t *testing.T) {
 	dealer, verifiers := genAll()
 	v := verifiers[0]
-	deals := dealer.Deals()
-	d := deals[0]
+	d := dealer.deals[0]
 
 	wrongV := suite.Scalar().Pick(random.Stream)
 	goodV := d.SecShare.V
 	d.SecShare.V = wrongV
-	resp, err := v.ProcessEncryptedDeal(d)
+	encD, _ := dealer.EncryptedDeal(0)
+	resp, err := v.ProcessEncryptedDeal(encD)
 	assert.NotNil(t, resp)
 	assert.Equal(t, StatusComplaint, resp.Status)
 	assert.Nil(t, err)
@@ -280,15 +312,17 @@ func TestVSSAggregatorVerifyResponseDuplicate(t *testing.T) {
 	dealer, verifiers := genAll()
 	v1 := verifiers[0]
 	v2 := verifiers[1]
-	d1 := dealer.deals[0]
-	d2 := dealer.deals[1]
+	//d1 := dealer.deals[0]
+	//d2 := dealer.deals[1]
+	encD1, _ := dealer.EncryptedDeal(0)
+	encD2, _ := dealer.EncryptedDeal(1)
 
-	resp1, err := v1.ProcessEncryptedDeal(d1)
+	resp1, err := v1.ProcessEncryptedDeal(encD1)
 	assert.Nil(t, err)
 	assert.NotNil(t, resp1)
 	assert.Equal(t, StatusApproval, resp1.Status)
 
-	resp2, err := v2.ProcessEncryptedDeal(d2)
+	resp2, err := v2.ProcessEncryptedDeal(encD2)
 	assert.Nil(t, err)
 	assert.NotNil(t, resp2)
 	assert.Equal(t, StatusApproval, resp2.Status)
@@ -315,9 +349,9 @@ func TestVSSAggregatorVerifyResponse(t *testing.T) {
 	//goodSec := deal.SecShare.V
 	wrongSec, _ := genPair()
 	deal.SecShare.V = wrongSec
-
+	encD, _ := dealer.EncryptedDeal(0)
 	// valid complaint
-	resp, err := v.ProcessEncryptedDeal(deal)
+	resp, err := v.ProcessEncryptedDeal(encD)
 	assert.Nil(t, err)
 	assert.NotNil(t, resp)
 	assert.Equal(t, StatusComplaint, resp.Status)
@@ -353,7 +387,7 @@ func TestVSSAggregatorVerifyResponse(t *testing.T) {
 func TestVSSAggregatorVerifyDeal(t *testing.T) {
 	dealer := genDealer()
 	aggr := dealer.aggregator
-	deals := dealer.Deals()
+	deals := dealer.deals
 
 	// OK
 	deal := deals[0]
@@ -440,7 +474,18 @@ func TestVSSFindPub(t *testing.T) {
 	p, ok = findPub(verifiersPub, uint32(len(verifiersPub)))
 	assert.False(t, ok)
 	assert.Nil(t, p)
+}
 
+func TestVSSDHExchange(t *testing.T) {
+	pub := suite.Point().Base()
+	priv := suite.Scalar().Pick(random.Stream)
+	point := dhExchange(suite, priv, pub)
+	assert.Equal(t, pub.Mul(nil, priv).String(), point.String())
+}
+
+func TestVSSContext(t *testing.T) {
+	c := context(suite, dealerPub, verifiersPub)
+	assert.Len(t, c, suite.Hash().Size())
 }
 
 func genPair() (abstract.Scalar, abstract.Point) {

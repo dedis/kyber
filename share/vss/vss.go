@@ -34,11 +34,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/dedis/crypto/abstract"
 	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/share"
 	"github.com/dedis/crypto/sign"
+	"github.com/dedis/protobuf"
 )
 
 // Dealer encapsulates for creating and distributing the shares and for
@@ -186,7 +188,7 @@ func NewDealer(suite abstract.Suite, longterm, secret abstract.Scalar, verifiers
 			T:           uint32(d.t),
 		}
 	}
-	d.hkdfContext = hkdfContext(suite, d.pub, verifiers)
+	d.hkdfContext = context(suite, d.pub, verifiers)
 	return d, nil
 }
 
@@ -219,7 +221,10 @@ func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
 	}
 
 	nonce := make([]byte, gcm.NonceSize())
-	dealBuff := d.deals[i].MarshalBinary()
+	dealBuff, err := d.deals[i].MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
 	encrypted := gcm.Seal(nil, nonce, dealBuff, d.hkdfContext)
 	return &EncryptedDeal{
 		DHKey:     dhPublic,
@@ -344,7 +349,7 @@ func NewVerifier(suite abstract.Suite, longterm abstract.Scalar, dealerKey abstr
 		verifiers:   verifiers,
 		pub:         pub,
 		index:       index,
-		hkdfContext: hkdfContext(suite, dealerKey, verifiers),
+		hkdfContext: context(suite, dealerKey, verifiers),
 	}
 	return v, nil
 }
@@ -402,7 +407,10 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
 }
 
 func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
-	ephBuff, _ := e.DHKey.MarshalBinary()
+	ephBuff, err := e.DHKey.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
 	// verify signature
 	if err := sign.VerifySchnorr(v.suite, v.dealer, ephBuff, e.Signature); err != nil {
 		return nil, err
@@ -420,6 +428,7 @@ func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
 	}
 	deal := &Deal{}
 	err = deal.UnmarshalBinary(v.suite, decrypted)
+	fmt.Println("eeeee", err)
 	return deal, err
 }
 
@@ -690,42 +699,17 @@ func (r *Response) Hash(s abstract.Suite) []byte {
 	return h.Sum(nil)
 }
 
-func (d *Deal) MarshalBinary() []byte {
-	var buff = new(bytes.Buffer)
-	buff.Write(d.SessionID)
-	binary.Write(buff, binary.LittleEndian, d.SecShare.I)
-	d.SecShare.V.MarshalTo(buff)
-	binary.Write(buff, binary.LittleEndian, d.RndShare.I)
-	d.RndShare.V.MarshalTo(buff)
-	for _, c := range d.Commitments {
-		c.MarshalTo(buff)
-	}
-	return buff.Bytes()
+func (d *Deal) MarshalBinary() ([]byte, error) {
+	return protobuf.Encode(d)
 }
 
 func (d *Deal) UnmarshalBinary(s abstract.Suite, buff []byte) error {
-	var buffer = bytes.NewBuffer(buff)
-	sid := make([]byte, s.Hash().Size())
-	if _, err := buffer.Read(sid); err != nil {
-		return err
-	}
-	sec := &share.PriShare{}
-	if err := binary.Read(buffer, binary.LittleEndian, sec.I); err != nil {
-		return err
-	}
-	sec.V = s.Scalar()
-	if err := sec.V.UnmarshalBinary(buffer.Next(s.ScalarLen())); err != nil {
-		return err
-	}
-	rnd := &share.PriShare{}
-	if err := binary.Read(buffer, binary.LittleEndian, rnd.I); err != nil {
-		return err
-	}
-	rnd.V = s.Scalar()
-	if err := rnd.V.UnmarshalBinary(buffer.Next(s.ScalarLen())); err != nil {
-		return err
-	}
-	return nil
+	constructors := make(protobuf.Constructors)
+	var point abstract.Point
+	var secret abstract.Scalar
+	constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return s.Point() }
+	constructors[reflect.TypeOf(&secret).Elem()] = func() interface{} { return s.Scalar() }
+	return protobuf.DecodeWithConstructors(buff, d, constructors)
 }
 
 func (j *Justification) Hash(s abstract.Suite) []byte {
@@ -733,6 +717,7 @@ func (j *Justification) Hash(s abstract.Suite) []byte {
 	h.Write([]byte("justification"))
 	h.Write(j.SessionID)
 	binary.Write(h, binary.LittleEndian, j.Index)
-	h.Write(j.Deal.MarshalBinary())
+	buff, _ := j.Deal.MarshalBinary()
+	h.Write(buff)
 	return h.Sum(nil)
 }
