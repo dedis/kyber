@@ -81,10 +81,13 @@ func TestClient_Send(t *testing.T) {
 		Val:              10,
 	}
 	sr := &SimpleResponse{}
+	assert.Equal(t, uint64(0), client.Rx())
+	assert.Equal(t, uint64(0), client.Tx())
 	log.ErrFatal(client.SendProtobuf(servers[0].ServerIdentity, r, sr))
 	assert.Equal(t, sr.Val, 10)
 	assert.NotEqual(t, uint64(0), client.Rx())
 	assert.NotEqual(t, uint64(0), client.Tx())
+	assert.True(t, client.Tx() > client.Rx())
 }
 
 func TestClient_Parallel(t *testing.T) {

@@ -236,7 +236,7 @@ func (c *Client) Send(dst *network.ServerIdentity, path string, buf []byte) ([]b
 		return nil, NewClientError(err)
 	}
 	log.Lvlf4("Received %x", rcv)
-	c.rx += uint64(len(buf))
+	c.rx += uint64(len(rcv))
 	return rcv, nil
 }
 
