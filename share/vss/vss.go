@@ -412,7 +412,7 @@ func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
 		return nil, err
 	}
 
-	// compute shared key and AES128-GCM cipher
+	// compute shared key and AES526-GCM cipher
 	pre := dhExchange(v.suite, v.longterm, e.DHKey)
 	gcm, err := newAEAD(v.suite.Hash, pre, v.hkdfContext)
 	if err != nil {
