@@ -8,23 +8,24 @@
 // verifier can check the validity of the received share. The protocol has the
 // following steps:
 //
-//   1) The dealer sends a Deal to every verifier using `Deals()`. Each deal must
-//    be sent securely to one verifier whose public key is at the same index than
-//    the index of the Deal.
+//   1) The dealer send a Deal to every verifiers using `Deals()`. Each deal must
+//   be sent securely to one verifier whose public key is at the same index than
+//   the index of the Deal.
+//
 //   2) Each verifier processes the Deal with `ProcessDeal`.
-//    This function returns a Response which can be twofold:
+//   This function returns a Response which can be twofold:
 //   - an approval, to confirm a correct deal
 //   - a complaint to announce an incorrect deal notifying others that the
 //     dealer might be malicious.
-//    All Responses must be broadcasted to every verifiers and the dealer.
+//	 All Responses must be broadcasted to every verifiers and the dealer.
 //   3) The dealer can respond to each complaint by a justification revealing the
-//    share he originally sent out to the accusing verifier. This is done by
-//    calling `ProcessResponse` on the `Dealer`.
+//   share he originally sent out to the accusing verifier. This is done by
+//   calling `ProcessResponse` on the `Dealer`.
 //   4) The verifiers refuse the shared secret and abort the protocol if there
-//    are at least t complaints OR if a Justification is wrong. The verifiers
-//    accept the shared secret if there are at least t approvals at which point
-//    any t out of n verifiers can reveal their shares to reconstruct the shared
-//    secret.
+//   are at least t complaints OR if a Justification is wrong. The verifiers
+//   accept the shared secret if there are at least t approvals at which point
+//   any t out of n verifiers can reveal their shares to reconstruct the shared
+//   secret.
 package vss
 
 import (
@@ -33,10 +34,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto/random"
 	"github.com/dedis/crypto/share"
 	"github.com/dedis/crypto/sign"
+	"github.com/dedis/protobuf"
 )
 
 // Dealer encapsulates for creating and distributing the shares and for
@@ -50,6 +54,7 @@ type Dealer struct {
 	secret        abstract.Scalar
 	secretCommits []abstract.Point
 	verifiers     []abstract.Point
+	hkdfContext   []byte
 	// threshold of shares that is needed to reconstruct the secret
 	t int
 	// sessionID is a unique identifier for the whole session of the scheme
@@ -71,9 +76,21 @@ type Deal struct {
 	T uint32
 	// Commitments are the coefficients used to verify the shares against.
 	Commitments []abstract.Point
-	// Signature is over the whole deal, and is made using sign.Schnorr. It is
-	// automatically verified by this library.
+}
+
+// EncryptedDeal contains the deal in a encrypted form only decipherable by the
+// correct recipient. The encryption is performed in a similar manner as what is
+// done in TLS. The dealer generates a temporary key pair, signs it with its
+// longterm secret key.
+type EncryptedDeal struct {
+	// Ephemeral Diffie Hellman key
+	DHKey abstract.Point
+	// Signature of the DH key by the longterm key of the dealer
 	Signature []byte
+	// Nonce during for the encryption
+	Nonce []byte
+	// Encryption of the deal using AEAD. The deal is marshalled using protobuf.
+	Cipher []byte
 }
 
 // Response is sent by the verifiers to all participants and holds each
@@ -83,8 +100,7 @@ type Response struct {
 	SessionID []byte
 	// Index of the verifier issuing this Response
 	Index uint32
-	// Status of the response: 0->StatusComplaint, 1->StatusApproval,
-	// 2->statusJustified
+	// 0 = NO APPROVAL == Complaint , 1 = APPROVAL
 	Status byte
 	// Signature over the whole packet. It is automatically verified by this
 	// library.
@@ -98,7 +114,7 @@ const (
 	// StatusApproval is a constant value meaning that a verifier agrees with
 	// the share it received.
 	StatusApproval
-	// special status when a complaint has been justified.
+	// special status when a complaint has been justified
 	statusJustified
 )
 
@@ -106,11 +122,11 @@ const (
 // a Complaint. It contains the original Complaint as well as the shares
 // distributed to the complainer.
 type Justification struct {
-	// SessionID related to the current run of the protocol.
+	// SessionID related to the current run of the protocol
 	SessionID []byte
-	// Index of the verifier who issued the Complaint, i.e. index of this Deal.
+	// Index of the verifier who issued the Complaint,i.e. index of this Deal
 	Index uint32
-	// Deal in clear text.
+	// Deal in clear text
 	Deal *Deal
 	// Signature over the whole packet. It is automatically verified by this
 	// library.
@@ -171,21 +187,71 @@ func NewDealer(suite abstract.Suite, longterm, secret abstract.Scalar, verifiers
 			Commitments: commitments,
 			T:           uint32(d.t),
 		}
-		if d.deals[i].Signature, err = sign.Schnorr(d.suite, d.long, d.deals[i].Hash(d.suite)); err != nil {
-			return nil, err
-		}
 	}
+	d.hkdfContext = context(suite, d.pub, verifiers)
 	return d, nil
 }
 
-// Deals returns the list of previously generated deals.
-func (d *Dealer) Deals() []*Deal {
-	return d.deals
+// EncryptedDeal returns the encryption of the deal that must be given to the
+// verifier at index i.
+// The dealer first generates a temporary Diffie Hellman key, signs it using its
+// longterm key, and computes the shared key depending on its longterm and
+// ephemeral key and the verifier's public key.
+// This shared key is then fed into a HKDF whose output is the key to a AEAD
+// (AES256-GCM) scheme to encrypt the deal.
+func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
+	vPub, ok := findPub(d.verifiers, uint32(i))
+	if !ok {
+		return nil, errors.New("dealer: wrong index to generate encrypted deal")
+	}
+	// gen ephemeral key
+	dhSecret := d.suite.Scalar().Pick(random.Stream)
+	dhPublic := d.suite.Point().Mul(nil, dhSecret)
+	// signs the public key
+	dhPublicBuff, _ := dhPublic.MarshalBinary()
+	signature, err := sign.Schnorr(d.suite, d.long, dhPublicBuff)
+	if err != nil {
+		return nil, err
+	}
+	// AES128-GCM
+	pre := dhExchange(d.suite, dhSecret, vPub)
+	gcm, err := newAEAD(d.suite.Hash, pre, d.hkdfContext)
+	if err != nil {
+		return nil, err
+	}
+
+	nonce := make([]byte, gcm.NonceSize())
+	dealBuff, err := d.deals[i].MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	encrypted := gcm.Seal(nil, nonce, dealBuff, d.hkdfContext)
+	return &EncryptedDeal{
+		DHKey:     dhPublic,
+		Signature: signature,
+		Nonce:     nonce,
+		Cipher:    encrypted,
+	}, nil
+}
+
+// EncryptedDeals calls `EncryptedDeal` for each index of the verifier and
+// returns the list of encrypted deals. Each index in the returned slice
+// corresponds to the index in the list of verifiers.
+func (d *Dealer) EncryptedDeals() ([]*EncryptedDeal, error) {
+	deals := make([]*EncryptedDeal, len(d.verifiers))
+	var err error
+	for i := range d.verifiers {
+		deals[i], err = d.EncryptedDeal(i)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return deals, nil
 }
 
 // ProcessResponse analyzes the given Response. If it's a valid complaint, then
 // it returns a Justification. This Justification must be broadcasted to every
-// participant. If it's an invalid complaint, it returns an error about the
+// participants. If it's an invalid complaint, it returns an error about the
 // complaint. The verifiers will also ignore an invalid Complaint.
 func (d *Dealer) ProcessResponse(r *Response) (*Justification, error) {
 	if err := d.verifyResponse(r); err != nil {
@@ -211,7 +277,7 @@ func (d *Dealer) ProcessResponse(r *Response) (*Justification, error) {
 
 // SecretCommit returns the commitment of the secret being shared by this
 // dealer. This function is only to be called once the deal has enough approvals
-// and is verified, otherwise it returns nil.
+// and is verified otherwise it returns nil.
 func (d *Dealer) SecretCommit() abstract.Point {
 	if !d.EnoughApprovals() || !d.DealCertified() {
 		return nil
@@ -242,20 +308,21 @@ func (d *Dealer) SessionID() []byte {
 // Verifier receives a Deal from a Dealer, can reply by a Complaint, and can
 // collaborate with other Verifiers to reconstruct a secret.
 type Verifier struct {
-	suite     abstract.Suite
-	longterm  abstract.Scalar
-	pub       abstract.Point
-	dealer    abstract.Point
-	index     int
-	verifiers []abstract.Point
+	suite       abstract.Suite
+	longterm    abstract.Scalar
+	pub         abstract.Point
+	dealer      abstract.Point
+	index       int
+	verifiers   []abstract.Point
+	hkdfContext []byte
 	*aggregator
 }
 
 // NewVerifier returns a Verifier out of:
-//  - its longterm secret key
-//  - the longterm dealer public key
-//  - the list of public key of verifiers. The list MUST include the public key
-//  of this Verifier also.
+// - its longterm secret key
+// - the longterm dealer public key
+// - the list of public key of verifiers. The list MUST include the public key
+// of this Verifier also.
 // The security parameter t of the secret sharing scheme is automatically set to
 // a default safe value. If a different t value is required, it is possible to set
 // it with `verifier.SetT()`.
@@ -276,26 +343,31 @@ func NewVerifier(suite abstract.Suite, longterm abstract.Scalar, dealerKey abstr
 		return nil, errors.New("vss: public key not found in the list of verifiers")
 	}
 	v := &Verifier{
-		suite:     suite,
-		longterm:  longterm,
-		dealer:    dealerKey,
-		verifiers: verifiers,
-		pub:       pub,
-		index:     index,
+		suite:       suite,
+		longterm:    longterm,
+		dealer:      dealerKey,
+		verifiers:   verifiers,
+		pub:         pub,
+		index:       index,
+		hkdfContext: context(suite, dealerKey, verifiers),
 	}
 	return v, nil
 }
 
-// ProcessDeal analyzes the Deal received from the Dealer.
-// If the Deal is valid, i.e. the verifier can verify its shares
+// ProcessEncryptedDeal decrypt the deal received from the Dealer.
+// If the deal is valid, i.e. the verifier can verify its shares
 // against the public coefficients and the signature is valid, an approval
-// Response is returned and must be broadcasted to every participant
-// including the Dealer.
-// For the Deal itself to be invalid, it returns a complaint Response that must be
-// broadcasted to every other participant including the Dealer.
-// If the Deal has already been received, or the signature generation of the
-// Response failed, it returns an error without any Response.
-func (v *Verifier) ProcessDeal(d *Deal) (*Response, error) {
+// response is returned and must be broadcasted to every participants
+// including the dealer.
+// If the deal itself is invalid, it returns a complaint response that must be
+// broadcasted to every other participants including the dealer.
+// If the deal has already been received, or the signature generation of the
+// response failed, it returns an error without any responses.
+func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
+	d, err := v.decryptDeal(e)
+	if err != nil {
+		return nil, err
+	}
 	if d.SecShare.I != v.index {
 		return nil, errors.New("vss: verifier got wrong index from deal")
 	}
@@ -332,6 +404,31 @@ func (v *Verifier) ProcessDeal(d *Deal) (*Response, error) {
 		return nil, err
 	}
 	return r, nil
+}
+
+func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
+	ephBuff, err := e.DHKey.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	// verify signature
+	if err := sign.VerifySchnorr(v.suite, v.dealer, ephBuff, e.Signature); err != nil {
+		return nil, err
+	}
+
+	// compute shared key and AES128-GCM cipher
+	pre := dhExchange(v.suite, v.longterm, e.DHKey)
+	gcm, err := newAEAD(v.suite.Hash, pre, v.hkdfContext)
+	if err != nil {
+		return nil, err
+	}
+	decrypted, err := gcm.Open(nil, e.Nonce, e.Cipher, v.hkdfContext)
+	if err != nil {
+		return nil, err
+	}
+	deal := &Deal{}
+	err = deal.UnmarshalBinary(v.suite, decrypted)
+	return deal, err
 }
 
 // ProcessResponse analyzes the given response. If it's a valid complaint, the
@@ -372,7 +469,7 @@ func (v *Verifier) Index() int {
 }
 
 // SessionID returns the session id generated by the Dealer. WARNING: it returns
-// a nil slice if the verifier has not received the Deal yet.
+// an nil slice if the verifier has not received the Deal yet !
 func (v *Verifier) SessionID() []byte {
 	return v.sid
 }
@@ -425,7 +522,7 @@ func newAggregator(suite abstract.Suite, dealer abstract.Point, verifiers, commi
 var errDealAlreadyProcessed = errors.New("vss: verifier already received a deal")
 
 // VerifyDeal analyzes the deal and returns an error if it's incorrect. If
-// inclusion is true, it also returns an error if this is the second time this struct
+// inclusion is true, it also returns an error if it the second time this struct
 // analyzes a Deal.
 func (a *aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 	if a.deal != nil && inclusion {
@@ -446,10 +543,6 @@ func (a *aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 		return errors.New("vss: find different sessionIDs from Deal")
 	}
 
-	if err := sign.VerifySchnorr(a.suite, a.dealer, d.Hash(a.suite), d.Signature); err != nil {
-		return err
-	}
-
 	fi := d.SecShare
 	gi := d.RndShare
 	if fi.I != gi.I {
@@ -458,7 +551,6 @@ func (a *aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 	if fi.I < 0 || fi.I >= len(a.verifiers) {
 		return errors.New("vss: index out of bounds in Deal")
 	}
-
 	// compute fi * G + gi * H
 	fig := a.suite.Point().Base().Mul(nil, fi.V)
 	H := deriveH(a.suite, a.verifiers)
@@ -535,7 +627,7 @@ func (a *aggregator) EnoughApprovals() bool {
 	return app >= a.t
 }
 
-// DealCertified returns true if there have been less than t complaints, all
+// DealCertified returns true if there has been less than t complaints, all
 // Justifications were correct and if EnoughApprovals() returns true.
 func (a *aggregator) DealCertified() bool {
 	var comps int
@@ -606,16 +698,17 @@ func (r *Response) Hash(s abstract.Suite) []byte {
 	return h.Sum(nil)
 }
 
-func (d *Deal) Hash(s abstract.Suite) []byte {
-	h := s.Hash()
-	h.Write([]byte("deal"))
-	h.Write(d.SessionID) // sid already includes all other info
-	h.Write(d.SecShare.Hash(s))
-	h.Write(d.RndShare.Hash(s))
-	for _, c := range d.Commitments {
-		c.MarshalTo(h)
-	}
-	return h.Sum(nil)
+func (d *Deal) MarshalBinary() ([]byte, error) {
+	return protobuf.Encode(d)
+}
+
+func (d *Deal) UnmarshalBinary(s abstract.Suite, buff []byte) error {
+	constructors := make(protobuf.Constructors)
+	var point abstract.Point
+	var secret abstract.Scalar
+	constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return s.Point() }
+	constructors[reflect.TypeOf(&secret).Elem()] = func() interface{} { return s.Scalar() }
+	return protobuf.DecodeWithConstructors(buff, d, constructors)
 }
 
 func (j *Justification) Hash(s abstract.Suite) []byte {
@@ -623,6 +716,7 @@ func (j *Justification) Hash(s abstract.Suite) []byte {
 	h.Write([]byte("justification"))
 	h.Write(j.SessionID)
 	binary.Write(h, binary.LittleEndian, j.Index)
-	h.Write(j.Deal.Hash(s))
+	buff, _ := j.Deal.MarshalBinary()
+	h.Write(buff)
 	return h.Sum(nil)
 }
