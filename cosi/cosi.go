@@ -187,18 +187,18 @@ func (c *CoSi) Response(responses []abstract.Scalar) (abstract.Scalar, error) {
 // *NOTE*: Signature() is only intended to be called by the root since only the
 // root knows the aggregate response.
 func (c *CoSi) Signature() []byte {
-	// Sig = R || S || bitmask
-	sigS, err := c.aggregateResponse.MarshalBinary()
+	// Sig = C || R || bitmask
+	sigC, err := c.aggregateCommitment.MarshalBinary()
 	if err != nil {
-		panic("Can't marshal response")
+		panic("Can't marshal Commitment")
 	}
-	sigR, err := c.aggregateCommitment.MarshalBinary()
+	sigR, err := c.aggregateResponse.MarshalBinary()
 	if err != nil {
 		panic("Can't generate signature !")
 	}
 	final := make([]byte, 64+c.mask.MaskLen())
-	copy(final[:], sigR)
-	copy(final[32:64], sigS)
+	copy(final[:], sigC)
+	copy(final[32:64], sigR)
 	copy(final[64:], c.mask.mask)
 	return final
 }

@@ -13,6 +13,16 @@ import (
 	"reflect"
 )
 
+// Bytes returns the hash of all given byte slices.
+func Bytes(hash hash.Hash, bytes ...[]byte) ([]byte, error) {
+	for _, slice := range bytes {
+		if _, err := hash.Write(slice); err != nil {
+			return nil, err
+		}
+	}
+	return hash.Sum(nil), nil
+}
+
 // Stream returns the hash of a data stream.
 func Stream(hash hash.Hash, stream io.Reader) ([]byte, error) {
 	if _, err := io.Copy(hash, stream); err != nil {
