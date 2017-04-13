@@ -64,6 +64,7 @@ func (d *DistKeyShare) Public() abstract.Point {
 
 // Deal holds the Deal for one participants as well as the index of the issuing
 // Dealer.
+//
 // NOTE: Doing that in vss.go would be possible but then the Dealer is always
 // assumed to be a member of the participants. It's only the case here.
 type Deal struct {
