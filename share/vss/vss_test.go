@@ -201,6 +201,13 @@ func TestVSSVerifierDecryptDeal(t *testing.T) {
 	assert.Nil(t, decD)
 	encD.Signature = goodSig
 
+	// wrong ciphertext
+	goodCipher := encD.Cipher
+	encD.Cipher = randomBytes(len(goodCipher))
+	decD, err = v.decryptDeal(encD)
+	assert.Error(t, err)
+	assert.Nil(t, decD)
+	encD.Cipher = goodCipher
 }
 
 func TestVSSVerifierReceiveDeal(t *testing.T) {
@@ -220,6 +227,14 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	assert.Equal(t, dealer.sid, resp.SessionID)
 	assert.Nil(t, sign.VerifySchnorr(suite, v.pub, resp.Hash(suite), resp.Signature))
 	assert.Equal(t, v.responses[uint32(v.index)], resp)
+
+	// wrong encryption
+	goodSig := encD.Signature
+	encD.Signature = randomBytes(32)
+	resp, err = v.ProcessEncryptedDeal(encD)
+	assert.Nil(t, resp)
+	assert.Error(t, err)
+	encD.Signature = goodSig
 
 	// wrong index
 	goodIdx := d.SecShare.I

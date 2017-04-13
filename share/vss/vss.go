@@ -354,15 +354,15 @@ func NewVerifier(suite abstract.Suite, longterm abstract.Scalar, dealerKey abstr
 	return v, nil
 }
 
-// ProcessDeal analyzes the Deal received from the Dealer.
-// If the Deal is valid, i.e. the verifier can verify its shares
+// ProcessEncryptedDeal decrypt the deal received from the Dealer.
+// If the deal is valid, i.e. the verifier can verify its shares
 // against the public coefficients and the signature is valid, an approval
-// Response is returned and must be broadcasted to every participants
-// including the Dealer.
-// For the Deal itself is invalid, it returns a complaint Response that must be
-// broadcasted to every other participants including the Dealer.
-// If the Deal has already been received, or the signature generation of the
-// Response failed, it returns an error without any Response.
+// response is returned and must be broadcasted to every participants
+// including the dealer.
+// If the deal itself is invalid, it returns a complaint response that must be
+// broadcasted to every other participants including the dealer.
+// If the deal has already been received, or the signature generation of the
+// response failed, it returns an error without any responses.
 func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
 	d, err := v.decryptDeal(e)
 	if err != nil {
@@ -428,7 +428,6 @@ func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
 	}
 	deal := &Deal{}
 	err = deal.UnmarshalBinary(v.suite, decrypted)
-	fmt.Println("eeeee", err)
 	return deal, err
 }
 
