@@ -3,6 +3,8 @@ language: go
 go:
       - 1.6
 
+go_import_path: gopkg.in/dedis/crypto.v0
+
 script:
       - ./gofmt.sh
       - go test -v -race ./...
