@@ -114,10 +114,6 @@ func RunTests(name string, runconfigs []*platform.RunConfig) {
 	}
 
 	mkTestDir()
-	rs := make([]*monitor.Stats, len(runconfigs))
-	// Try 10 times to run the test
-	nTimes := 10
-	stopOnSuccess := true
 	var f *os.File
 	args := os.O_CREATE | os.O_RDWR | os.O_TRUNC
 	// If a range is given, we only append
@@ -150,31 +146,21 @@ func RunTests(name string, runconfigs []*platform.RunConfig) {
 
 		// run test t nTimes times
 		// take the average of all successful runs
-		runs := make([]*monitor.Stats, 0, nTimes)
-		for r := 0; r < nTimes; r++ {
-			stats, err := RunTest(rc)
-			if err != nil {
-				log.Error("Error running test, trying again:", err)
-				continue
-			}
-
-			runs = append(runs, stats)
-			if stopOnSuccess {
-				break
-			}
-		}
-
-		if len(runs) == 0 {
-			log.Lvl1("unable to get any data for test:", rc)
+		stats, err := RunTest(rc)
+		if err != nil {
+			log.Error("Error running test, trying again:", err)
 			continue
 		}
 
-		s := monitor.AverageStats(runs)
 		if i == 0 {
-			s.WriteHeader(f)
+			stats.WriteHeader(f)
 		}
-		rs[i] = s
-		rs[i].WriteValues(f)
+		if rc.Get("IndividualStats") != "" {
+			err := stats.WriteIndividualStats(f)
+			log.ErrFatal(err)
+		} else {
+			stats.WriteValues(f)
+		}
 		err = f.Sync()
 		if err != nil {
 			log.Fatal("error syncing data to test file:", err)

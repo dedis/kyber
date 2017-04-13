@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 
+	"errors"
+
 	"github.com/dedis/onet/log"
 	"github.com/montanaflynn/stats"
 )
@@ -109,6 +111,59 @@ func (s *Stats) WriteValues(w io.Writer) {
 	}
 	fmt.Fprintf(w, "%s", strings.Join(values, ","))
 	fmt.Fprintf(w, "\n")
+}
+
+// WriteIndividualStats will write the values to the specified writer but without
+// making averages. Each value should either be:
+//   - represented once - then it'll be copied to all runs
+//   - have the same frequency as the other non-once values
+func (s *Stats) WriteIndividualStats(w io.Writer) error {
+	// by default
+	s.Lock()
+	defer s.Unlock()
+
+	// Verify we have either one or n values, where n >= 1 but constant
+	// over all values
+	n := 1
+	for _, k := range s.keys {
+		if newN := len(s.values[k].store); newN > 1 {
+			if n == 1 {
+				n = newN
+			} else if n != newN {
+				return errors.New("Found inconsistencies in values")
+			}
+		}
+	}
+
+	// store static fields
+	var static []string
+	for _, k := range s.staticKeys {
+		if v, ok := s.static[k]; ok {
+			static = append(static, fmt.Sprintf("%d", v))
+		}
+	}
+
+	// add all values
+	for entry := 0; entry < n; entry++ {
+		var values []string
+		// write the values
+		for _, k := range s.keys {
+			v := s.values[k]
+			values = append(values, v.SingleValues(entry)...)
+		}
+
+		all := append(static, values...)
+		_, err := fmt.Fprintf(w, "%s", strings.Join(all, ","))
+		if err != nil {
+			return err
+		}
+		_, err = fmt.Fprintf(w, "\n")
+		if err != nil {
+			return err
+		}
+
+	}
+	return nil
 }
 
 // AverageStats will make an average of the given stats
@@ -216,7 +271,7 @@ func (df *DataFilter) Filter(measure string, values []float64) []float64 {
 }
 
 // Collect make the final computations before stringing or writing.
-// Autmatically done in other methods anyway.
+// Automatically done in other methods anyway.
 func (s *Stats) Collect() {
 	s.Lock()
 	defer s.Unlock()
@@ -446,4 +501,13 @@ func (t *Value) HeaderFields() []string {
 // Values returns the string representation of a Value
 func (t *Value) Values() []string {
 	return []string{fmt.Sprintf("%f", t.Min()), fmt.Sprintf("%f", t.Max()), fmt.Sprintf("%f", t.Avg()), fmt.Sprintf("%f", t.Sum()), fmt.Sprintf("%f", t.Dev())}
+}
+
+// SingleValues returns the string representation of an entry in the value
+func (t *Value) SingleValues(i int) []string {
+	v := fmt.Sprintf("%f", t.store[0])
+	if i < len(t.store) {
+		v = fmt.Sprintf("%f", t.store[i])
+	}
+	return []string{v, v, v, v, "NaN"}
 }

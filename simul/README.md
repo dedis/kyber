@@ -34,6 +34,14 @@ If you use the `onet.SimulationBFTree`, the following variables are also availab
 - Depth - the depth of the tree in levels below the root-node
 - Rounds - for how many rounds the simulation should run
 
+### Simulations with long setup-times and multiple measurements
+
+Per default, all rounds of an individual simulation-run will be averaged and
+written to the csv-file. If you set `IndividualStats` to a non-`""`-value,
+every round will create a new line. This is useful if you have a simulation
+with a long setup-time and you want to do multiple measurements for the same
+setup.
+
 ### Timeouts
 
 Two timeout variables are available:
