@@ -35,6 +35,26 @@ var EdDSATestVectors = []struct {
 		"0aab4c900501b3e24d7cdf4663326a3a87df5e4843b2cbdb67cbf6e460fec350aa5371b1508f9f4528ecea23c436d94b5e8fcd4f681e30a6ac00a9704a188a03"},
 }
 
+// Tests if marshalling and unmarshalling an EdDSA signature gives us the same
+// signature
+func TestEdDSAMarshalling(t *testing.T) {
+	for _, vec := range EdDSATestVectors {
+		seed, err := hex.DecodeString(vec.private)
+		assert.Nil(t, err)
+
+		stream := ConstantStream(seed)
+		edDSA := NewEdDSA(stream)
+		marshalled, err := edDSA.MarshalBinary()
+		assert.Nil(t, err)
+		assert.NotNil(t, marshalled)
+
+		unmarshalled := &EdDSA{}
+		err = unmarshalled.UnmarshalBinary(marshalled)
+		assert.Nil(t, err)
+		assert.Equal(t, edDSA, unmarshalled)
+	}
+}
+
 // Comparing our implementation with the test vectors of the RFC
 func TestEdDSASigning(t *testing.T) {
 	for _, vec := range EdDSATestVectors {
