@@ -188,6 +188,13 @@ func NewDealer(suite abstract.Suite, longterm, secret abstract.Scalar, verifiers
 	return d, nil
 }
 
+func (d *Dealer) PlaintextDeal(i int) (*Deal, error) {
+	if i >= len(d.deals) {
+		return nil, errors.New("dealer: PlaintextDeal given wrong index")
+	}
+	return d.deals[i], nil
+}
+
 // EncryptedDeal returns the encryption of the deal that must be given to the
 // verifier at index i.
 // The dealer first generates a temporary Diffie Hellman key, signs it using its
