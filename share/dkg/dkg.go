@@ -64,14 +64,13 @@ func (d *DistKeyShare) Public() abstract.Point {
 
 // Deal holds the Deal for one participants as well as the index of the issuing
 // Dealer.
-//
 // NOTE: Doing that in vss.go would be possible but then the Dealer is always
 // assumed to be a member of the participants. It's only the case here.
 type Deal struct {
 	// Index of the Dealer in the list of participants
 	Index uint32
 	// Deal issued for another participant.
-	Deal *vss.Deal
+	Deal *vss.EncryptedDeal
 }
 
 // Response holds the Response from another participants as well as the index of
@@ -212,8 +211,11 @@ func NewDistKeyGenerator(suite abstract.Suite, longterm abstract.Scalar, partici
 //   }
 //
 // This method panics if it can't process it's own deal.
-func (d *DistKeyGenerator) Deals() map[int]*Deal {
-	deals := d.dealer.Deals()
+func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
+	deals, err := d.dealer.EncryptedDeals()
+	if err != nil {
+		return nil, err
+	}
 	dd := make(map[int]*Deal)
 	for i := range d.participants {
 		distd := &Deal{
@@ -221,6 +223,10 @@ func (d *DistKeyGenerator) Deals() map[int]*Deal {
 			Deal:  deals[i],
 		}
 		if i == int(d.index) {
+			if _, ok := d.verifiers[d.index]; ok {
+				// already processed our own deal
+				continue
+			}
 			if resp, err := d.ProcessDeal(distd); err != nil {
 				panic(err)
 			} else if resp.Response.Status != vss.StatusApproval {
@@ -230,13 +236,13 @@ func (d *DistKeyGenerator) Deals() map[int]*Deal {
 		}
 		dd[i] = distd
 	}
-	return dd
+	return dd, nil
 }
 
 // ProcessDeal takes a Deal created by Deals() and store and verifies it. It
 // returns a Response to broadcast to every other participants. It returns an
 // error in case the deal has already been stored, or if the deal is incorrect
-// (see vss.Verifier.ProcessDeal()).
+// (see `vss.Verifier.ProcessEncryptedDeal()`).
 func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 	// public key of the dealer
 	pub, ok := findPub(d.participants, dd.Index)
@@ -255,7 +261,7 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 	}
 
 	d.verifiers[dd.Index] = ver
-	resp, err := ver.ProcessDeal(dd.Deal)
+	resp, err := ver.ProcessEncryptedDeal(dd.Deal)
 	return &Response{
 		Index:    dd.Index,
 		Response: resp,
@@ -626,7 +632,8 @@ func (cc *ComplaintCommits) Hash(s abstract.Suite) []byte {
 	h.Write([]byte("commitcomplaint"))
 	binary.Write(h, binary.LittleEndian, cc.Index)
 	binary.Write(h, binary.LittleEndian, cc.DealerIndex)
-	h.Write(cc.Deal.Hash(s))
+	buff, _ := cc.Deal.MarshalBinary()
+	h.Write(buff)
 	return h.Sum(nil)
 }
 
