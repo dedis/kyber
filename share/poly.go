@@ -12,6 +12,7 @@ package share
 import (
 	"crypto/cipher"
 	"crypto/subtle"
+	"encoding/binary"
 	"errors"
 
 	"github.com/dedis/crypto/abstract"
@@ -25,6 +26,13 @@ var errorCoeffs = errors.New("different number of coefficients")
 type PriShare struct {
 	I int             // Index of the private share
 	V abstract.Scalar // Value of the private share
+}
+
+func (p *PriShare) Hash(s abstract.Suite) []byte {
+	h := s.Hash()
+	p.V.MarshalTo(h)
+	binary.Write(h, binary.LittleEndian, p.I)
+	return h.Sum(nil)
 }
 
 // PriPoly represents a secret sharing polynomial.
@@ -157,6 +165,13 @@ func RecoverSecret(g abstract.Group, shares []*PriShare, t, n int) (abstract.Sca
 type PubShare struct {
 	I int            // Index of the public share
 	V abstract.Point // Value of the public share
+}
+
+func (p *PubShare) Hash(s abstract.Suite) []byte {
+	h := s.Hash()
+	p.V.MarshalTo(h)
+	binary.Write(h, binary.LittleEndian, p.I)
+	return h.Sum(nil)
 }
 
 // PubPoly represents a public commitment polynomial to a secret sharing polynomial.
