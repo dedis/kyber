@@ -11,8 +11,8 @@ package sha3
 import (
 	"io"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/cipher"
+	"gopkg.in/dedis/crypto.v0/abstract"
+	"gopkg.in/dedis/crypto.v0/cipher"
 )
 
 // ShakeHash defines the interface to hash functions that

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/edwards"
-	"github.com/dedis/crypto/random"
+	"gopkg.in/dedis/crypto.v0/abstract"
+	"gopkg.in/dedis/crypto.v0/edwards"
+	"gopkg.in/dedis/crypto.v0/random"
 )
 
 // Simple harness to create lots of fake ciphersuites out of a few real ones,

@@ -5,8 +5,8 @@ import (
 	//"encoding/hex"
 	"crypto/cipher"
 
-	"github.com/dedis/crypto/math"
-	"github.com/dedis/crypto/nist"
+	"gopkg.in/dedis/crypto.v0/math"
+	"gopkg.in/dedis/crypto.v0/nist"
 )
 
 // Elligator 2 parameters

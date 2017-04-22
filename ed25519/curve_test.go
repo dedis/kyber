@@ -3,7 +3,7 @@ package ed25519
 import (
 	"testing"
 
-	"github.com/dedis/crypto/test"
+	"gopkg.in/dedis/crypto.v0/test"
 )
 
 var testSuite = NewAES128SHA256Ed25519(false)

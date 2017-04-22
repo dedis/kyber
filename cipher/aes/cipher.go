@@ -7,8 +7,8 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/cipher"
+	"gopkg.in/dedis/crypto.v0/abstract"
+	"gopkg.in/dedis/crypto.v0/cipher"
 )
 
 // NewBlockCipher creates a conventional AES block cipher.

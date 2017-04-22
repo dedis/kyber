@@ -3,8 +3,8 @@ package config_test
 import (
 	"testing"
 
-	"github.com/dedis/crypto/config"
-	"github.com/dedis/crypto/edwards"
+	"gopkg.in/dedis/crypto.v0/config"
+	"gopkg.in/dedis/crypto.v0/edwards"
 )
 
 func TestNewKeyPair(t *testing.T) {

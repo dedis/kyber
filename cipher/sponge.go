@@ -6,9 +6,9 @@ import (
 	//"encoding/hex"
 	"encoding/binary"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/ints"
-	"github.com/dedis/crypto/random"
+	"gopkg.in/dedis/crypto.v0/abstract"
+	"gopkg.in/dedis/crypto.v0/ints"
+	"gopkg.in/dedis/crypto.v0/random"
 )
 
 // Sponge is an interface representing a primitive sponge function.
