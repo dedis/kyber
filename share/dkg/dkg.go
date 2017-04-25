@@ -10,30 +10,29 @@
 //
 // The protocol works as follow:
 //
-//	   1. Each participant instantiates a DistKeyShare (DKS) struct.
-//	   2. First, each participant runs a VSS protocol:
-//			- each participant generates their deals with the method `Deals()` and then
-//			sends them to the right recipient.
-//			- each participant processes the received deal with `ProcessDeal()` and
-//			broadcast the resulting response.
-//			- each participant process the response with `ProcessResponse()`. If a
-//			justification is returned, it must be broadcasted.
-//	   3. Each participant can check if the step 2. is done by calling
-//	   `Certified()`. The set of participants having `Certified()` returning true is
-//	   the set of "qualified" participants, which can be queried using `QUAL()`.
-//	   This set only is going to generate a distributed secret.
-//	   4. Each QUAL participant generate their secret commitments calling
-//	   `SecretCommits()` and broadcast them to the QUAL set.
-//	   5. Each QUAL participant process the received secret commitments using
-//	   `SecretCommits()`. If there is an error, it can return a commitment complaint
-//	   (ComplaintCommits) that must be broadcasted to the QUAL set.
-//	   6. Each QUAL participant receiving a complaint can process it with
-//	   `ProcessComplaintCommits()` which returns the secret share
-//	   (ReconstructCommits) given from the malicious participant. This structure
-//	   must be broadcasted to all the QUAL participant.
-//	   7. At this point, every QUAL participant can issue the distributed key by
-//	   calling `DistKeyShare()` !
-//
+//   1. Each participant instantiates a DistKeyShare (DKS) struct.
+//   2. First, each participant runs a VSS protocol:
+//     - each participant generates their deals with the method `Deals()` and then
+//      sends them to the right recipient.
+//     - each participant processes the received deal with `ProcessDeal()` and
+//      broadcast the resulting response.
+//     - each participant process the response with `ProcessResponse()`. If a
+//      justification is returned, it must be broadcasted.
+//   3. Each participant can check if the step 2. is done by calling
+//    `Certified()`. The set of participants having `Certified()` returning true is
+//    the set of "qualified" participants, which can be queried using `QUAL()`.
+//     This set only is going to generate a distributed secret.
+//   4. Each QUAL participant generate their secret commitments calling
+//    `SecretCommits()` and broadcast them to the QUAL set.
+//   5. Each QUAL participant process the received secret commitments using
+//    `SecretCommits()`. If there is an error, it can return a commitment complaint
+//    (ComplaintCommits) that must be broadcasted to the QUAL set.
+//   6. Each QUAL participant receiving a complaint can process it with
+//    `ProcessComplaintCommits()` which returns the secret share
+//    (ReconstructCommits) given from the malicious participant. This structure
+//    must be broadcasted to all the QUAL participant.
+//   7. At this point, every QUAL participant can issue the distributed key by
+//    calling `DistKeyShare()` !
 package dkg
 
 import (
@@ -64,8 +63,8 @@ func (d *DistKeyShare) Public() abstract.Point {
 
 // Deal holds the Deal for one participants as well as the index of the issuing
 // Dealer.
-// NOTE: Doing that in vss.go would be possible but then the Dealer is always
-// assumed to be a member of the participants. It's only the case here.
+//  NOTE: Doing that in vss.go would be possible but then the Dealer is always
+//  assumed to be a member of the participants. It's only the case here.
 type Deal struct {
 	// Index of the Dealer in the list of participants
 	Index uint32
@@ -647,8 +646,6 @@ func (rc *ReconstructCommits) Hash(s abstract.Suite) []byte {
 	return h.Sum(nil)
 }
 
-// XXX: maybe put that as internal package for vss & dkg since they both use the
-// same function
 func findPub(list []abstract.Point, i uint32) (abstract.Point, bool) {
 	if i >= uint32(len(list)) {
 		return nil, false
