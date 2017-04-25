@@ -158,7 +158,10 @@ func genDistSecret() []*dkg.DistKeyShare {
 	// 1. broadcast deals
 	resps := make([]*dkg.Response, 0, nbParticipants*nbParticipants)
 	for _, dkg := range dkgs {
-		deals := dkg.Deals()
+		deals, err := dkg.Deals()
+		if err != nil {
+			panic(err)
+		}
 		for i, d := range deals {
 			resp, err := dkgs[i].ProcessDeal(d)
 			if err != nil {
