@@ -210,7 +210,7 @@ func NewDistKeyGenerator(suite abstract.Suite, longterm abstract.Scalar, partici
 //      sendTo(participants[i],dd)
 //   }
 //
-// This method panics if it can't process it's own deal.
+// This method panics if it can't process its own deal.
 func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 	deals, err := d.dealer.EncryptedDeals()
 	if err != nil {
