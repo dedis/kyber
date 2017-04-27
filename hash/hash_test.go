@@ -12,7 +12,7 @@ import (
 	"gopkg.in/dedis/crypto.v0/abstract"
 	"gopkg.in/dedis/crypto.v0/ed25519"
 	"gopkg.in/dedis/crypto.v0/hash"
-	"gopkg.in/dedis/crypto/random"
+	"gopkg.in/dedis/crypto.v0/random"
 )
 
 var suite = ed25519.NewAES128SHA256Ed25519(false)
