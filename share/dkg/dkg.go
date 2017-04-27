@@ -1,6 +1,6 @@
 // Package dkg implements the protocol described in
 // "Secure Distributed Key Generation for Discrete-Log
-// Based Cryptosystems".
+// Based Cryptosystems" by R. Gennaro, S. Jarecki, H. Krawczyk, and T. Rabin.
 // DKG enables a group of participants to generate a distributed key
 // with every participants holding only a share of the key. The key is also
 // never computed locally but generated distributively whereas the public part
@@ -70,7 +70,7 @@ type Deal struct {
 	// Index of the Dealer in the list of participants
 	Index uint32
 	// Deal issued for another participant.
-	Deal *vss.Deal
+	Deal *vss.EncryptedDeal
 }
 
 // Response holds the Response from another participants as well as the index of
@@ -122,6 +122,8 @@ type ComplaintCommits struct {
 // the deal received from a peer that have received a ComplaintCommits.
 // XXX There's no "SessionID" identification here... missing?
 type ReconstructCommits struct {
+	// Id of the session
+	SessionID []byte
 	// Index of the verifier who received the deal
 	Index uint32
 	// DealerIndex is the index of the dealer who issued the Deal
@@ -210,9 +212,12 @@ func NewDistKeyGenerator(suite abstract.Suite, longterm abstract.Scalar, partici
 //      sendTo(participants[i],dd)
 //   }
 //
-// This method panics if it can't process it's own deal.
-func (d *DistKeyGenerator) Deals() map[int]*Deal {
-	deals := d.dealer.Deals()
+// This method panics if it can't process its own deal.
+func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
+	deals, err := d.dealer.EncryptedDeals()
+	if err != nil {
+		return nil, err
+	}
 	dd := make(map[int]*Deal)
 	for i := range d.participants {
 		distd := &Deal{
@@ -220,6 +225,10 @@ func (d *DistKeyGenerator) Deals() map[int]*Deal {
 			Deal:  deals[i],
 		}
 		if i == int(d.index) {
+			if _, ok := d.verifiers[d.index]; ok {
+				// already processed our own deal
+				continue
+			}
 			if resp, err := d.ProcessDeal(distd); err != nil {
 				panic(err)
 			} else if resp.Response.Status != vss.StatusApproval {
@@ -229,13 +238,13 @@ func (d *DistKeyGenerator) Deals() map[int]*Deal {
 		}
 		dd[i] = distd
 	}
-	return dd
+	return dd, nil
 }
 
 // ProcessDeal takes a Deal created by Deals() and store and verifies it. It
 // returns a Response to broadcast to every other participants. It returns an
 // error in case the deal has already been stored, or if the deal is incorrect
-// (see vss.Verifier.ProcessDeal()).
+// (see `vss.Verifier.ProcessEncryptedDeal()`).
 func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 	// public key of the dealer
 	pub, ok := findPub(d.participants, dd.Index)
@@ -254,7 +263,7 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 	}
 
 	d.verifiers[dd.Index] = ver
-	resp, err := ver.ProcessDeal(dd.Deal)
+	resp, err := ver.ProcessEncryptedDeal(dd.Deal)
 	return &Response{
 		Index:    dd.Index,
 		Response: resp,
@@ -471,6 +480,7 @@ func (d *DistKeyGenerator) ProcessComplaintCommits(cc *ComplaintCommits) (*Recon
 
 	delete(d.commitments, cc.DealerIndex)
 	rc := &ReconstructCommits{
+		SessionID:   cc.Deal.SessionID,
 		Index:       d.index,
 		DealerIndex: cc.DealerIndex,
 		Share:       deal.SecShare,
@@ -512,9 +522,13 @@ func (d *DistKeyGenerator) ProcessReconstructCommits(rs *ReconstructCommits) err
 
 	var arr = d.pendingReconstruct[rs.DealerIndex]
 	// check if packet is already received or not
+	// or if the session ID does not match the others
 	for _, r := range arr {
 		if r.Index == rs.Index {
 			return nil
+		}
+		if !bytes.Equal(r.SessionID, rs.SessionID) {
+			return errors.New("dkg: reconstruct commits invalid session id")
 		}
 	}
 	// add it to list of pending shares
@@ -625,7 +639,8 @@ func (cc *ComplaintCommits) Hash(s abstract.Suite) []byte {
 	h.Write([]byte("commitcomplaint"))
 	binary.Write(h, binary.LittleEndian, cc.Index)
 	binary.Write(h, binary.LittleEndian, cc.DealerIndex)
-	h.Write(cc.Deal.Hash(s))
+	buff, _ := cc.Deal.MarshalBinary()
+	h.Write(buff)
 	return h.Sum(nil)
 }
 

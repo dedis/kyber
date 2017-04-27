@@ -57,7 +57,8 @@ func TestDKGDeal(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, dks)
 
-	deals := dkg.Deals()
+	deals, err := dkg.Deals()
+	require.Nil(t, err)
 	assert.Len(t, deals, nbParticipants-1)
 
 	for i := range deals {
@@ -73,7 +74,8 @@ func TestDKGDeal(t *testing.T) {
 func TestDKGProcessDeal(t *testing.T) {
 	dkgs = dkgGen()
 	dkg := dkgs[0]
-	deals := dkg.Deals()
+	deals, err := dkg.Deals()
+	require.Nil(t, err)
 
 	rec := dkgs[1]
 	deal := deals[1]
@@ -111,44 +113,51 @@ func TestDKGProcessDeal(t *testing.T) {
 	deal.Index = goodIdx
 
 	// wrong deal
-	wrongSig := randomBytes(len(deal.Deal.Signature))
 	goodSig := deal.Deal.Signature
-	deal.Deal.Signature = wrongSig
+	deal.Deal.Signature = randomBytes(len(deal.Deal.Signature))
 	resp, err = rec.ProcessDeal(deal)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
-	deal.Deal.SessionID = goodSig
+	deal.Deal.Signature = goodSig
 
 }
 
 func TestDKGProcessResponse(t *testing.T) {
+	// first peer generates wrong deal
+	// second peer processes it and returns a complaint
+	// first peer process the complaint
+
 	dkgs = dkgGen()
 	dkg := dkgs[0]
-	deals := dkg.Deals()
+	idxRec := 1
+	rec := dkgs[idxRec]
+	deal, err := dkg.dealer.PlaintextDeal(idxRec)
+	require.Nil(t, err)
+
+	// give a wrong deal
+	goodSecret := deal.RndShare.V
+	deal.RndShare.V = suite.Scalar().Zero()
+	dd, err := dkg.Deals()
+	encD := dd[idxRec]
+	require.Nil(t, err)
+	resp, err := rec.ProcessDeal(encD)
+	assert.Nil(t, err)
+	require.NotNil(t, resp)
+	assert.Equal(t, vss.StatusComplaint, resp.Response.Status)
+	deal.RndShare.V = goodSecret
+	dd, _ = dkg.Deals()
+	encD = dd[idxRec]
+
+	// no verifier tied to Response
 	v, ok := dkg.verifiers[0]
 	require.NotNil(t, v)
 	require.True(t, ok)
-
-	rec := dkgs[1]
-	deal := deals[1]
-	sig := deal.Deal.Signature
-	deal.Deal.Signature = randomBytes(len(sig))
-
-	// give a wrong deal
-	resp, err := rec.ProcessDeal(deal)
-	assert.NotNil(t, resp)
-	assert.Equal(t, vss.StatusComplaint, resp.Response.Status)
-	assert.Nil(t, err)
-	deal.Deal.Signature = sig
-
-	// no verifier tied to Response
-	v = dkg.verifiers[0]
 	require.NotNil(t, v)
 	delete(dkg.verifiers, 0)
 	j, err := dkg.ProcessResponse(resp)
 	assert.Nil(t, j)
 	assert.NotNil(t, err)
-	dkg.verifiers[resp.Index] = v
+	dkg.verifiers[0] = v
 
 	// invalid response
 	goodSig := resp.Response.Signature
@@ -165,37 +174,47 @@ func TestDKGProcessResponse(t *testing.T) {
 
 	// valid complaint from another deal from another peer
 	dkg2 := dkgs[2]
-	deals2 := dkg2.Deals()
+	require.Nil(t, err)
 	// fake a wrong deal
-	deal21 := deals2[1]
-	deal20 := deals2[0]
-	sig21 := deal21.Deal.Signature
-	deal21.Deal.Signature = randomBytes(32)
+	//deal20, err := dkg2.dealer.PlaintextDeal(0)
+	//require.Nil(t, err)
+	deal21, err := dkg2.dealer.PlaintextDeal(1)
+	require.Nil(t, err)
+	goodRnd21 := deal21.RndShare.V
+	deal21.RndShare.V = suite.Scalar().Zero()
+	deals2, err := dkg2.Deals()
+	require.Nil(t, err)
 
-	resp, err = rec.ProcessDeal(deal21)
+	resp12, err := rec.ProcessDeal(deals2[idxRec])
 	assert.NotNil(t, resp)
-	assert.Equal(t, vss.StatusComplaint, resp.Response.Status)
-	deal21.Deal.Signature = sig21
+	assert.Equal(t, vss.StatusComplaint, resp12.Response.Status)
+
+	deal21.RndShare.V = goodRnd21
+	deals2, err = dkg2.Deals()
+	require.Nil(t, err)
 
 	// give it to the first peer
 	// XXX Should we let peers know about approval/complaint for non-received
 	// deal yet ?
 	// process dealer 2's deal
-	dkg.ProcessDeal(deal20)
+	r, err := dkg.ProcessDeal(deals2[0])
+	assert.Nil(t, err)
+	assert.NotNil(t, r)
+
 	// process response from peer 1
-	j, err = dkg.ProcessResponse(resp)
+	j, err = dkg.ProcessResponse(resp12)
 	assert.Nil(t, j)
 	assert.Nil(t, err)
 
 	// Justification part:
 	// give the complaint to the dealer
-	j, err = dkg2.ProcessResponse(resp)
+	j, err = dkg2.ProcessResponse(resp12)
 	assert.Nil(t, err)
 	assert.NotNil(t, j)
 
 	// hack because all is local, and resp has been modified locally by dkg2's
-	// verifier
-	resp.Response.Status = vss.StatusComplaint
+	// dealer, the status has became "justified"
+	resp12.Response.Status = vss.StatusComplaint
 	err = dkg.ProcessJustification(j)
 	assert.Nil(t, err)
 
@@ -337,7 +356,6 @@ func TestDKGComplaintCommits(t *testing.T) {
 		RndShare:    goodDeal.RndShare,
 		T:           goodDeal.T,
 		Commitments: goodDeal.Commitments,
-		Signature:   randomBytes(len(goodDeal.Signature)),
 	}
 	rc, err = dkg2.ProcessComplaintCommits(cc)
 	assert.Nil(t, rc)
@@ -411,6 +429,7 @@ func TestDKGReconstructCommits(t *testing.T) {
 		Index:       1,
 		DealerIndex: 0,
 		Share:       dkgs[uint32(1)].verifiers[uint32(0)].Deal().SecShare,
+		SessionID:   dkgs[uint32(1)].verifiers[uint32(0)].Deal().SessionID,
 	}
 	msg := rc.Hash(suite)
 	rc.Signature, _ = sign.Schnorr(suite, dkgs[1].long, msg)
@@ -451,14 +470,25 @@ func TestDKGReconstructCommits(t *testing.T) {
 	assert.True(t, found)
 	assert.False(t, dkg2.Finished())
 	// generate enough secret commits  to recover the secret
-	for _, dkg := range dkgs[1:] {
+	for _, dkg := range dkgs[2:] {
 		rc = &ReconstructCommits{
+			SessionID:   dkg.verifiers[uint32(0)].Deal().SessionID,
 			Index:       dkg.index,
 			DealerIndex: 0,
 			Share:       dkg.verifiers[uint32(0)].Deal().SecShare,
 		}
 		msg := rc.Hash(suite)
 		rc.Signature, _ = sign.Schnorr(suite, dkg.long, msg)
+
+		if dkg2.reconstructed[uint32(0)] {
+			break
+		}
+		// invalid session ID
+		goodSID := rc.SessionID
+		rc.SessionID = randomBytes(len(goodSID))
+		require.Error(t, dkg2.ProcessReconstructCommits(rc))
+		rc.SessionID = goodSID
+
 		dkg2.ProcessReconstructCommits(rc)
 	}
 	assert.True(t, dkg2.reconstructed[uint32(0)])
@@ -587,7 +617,8 @@ func fullExchange(t *testing.T) {
 	// 1. broadcast deals
 	resps := make([]*Response, 0, nbParticipants*nbParticipants)
 	for _, dkg := range dkgs {
-		deals := dkg.Deals()
+		deals, err := dkg.Deals()
+		require.Nil(t, err)
 		for i, d := range deals {
 			resp, err := dkgs[i].ProcessDeal(d)
 			require.Nil(t, err)
