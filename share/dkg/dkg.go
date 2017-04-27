@@ -1,6 +1,6 @@
 // Package dkg implements the protocol described in
 // "Secure Distributed Key Generation for Discrete-Log
-// Based Cryptosystems".
+// Based Cryptosystems" by R. Gennaro, S. Jarecki, H. Krawczyk, and T. Rabin.
 // DKG enables a group of participants to generate a distributed key
 // with every participants holding only a share of the key. The key is also
 // never computed locally but generated distributively whereas the public part
@@ -121,6 +121,8 @@ type ComplaintCommits struct {
 // the deal received from a peer that have received a ComplaintCommits.
 // XXX There's no "SessionID" identification here... missing?
 type ReconstructCommits struct {
+	// Id of the session
+	SessionID []byte
 	// Index of the verifier who received the deal
 	Index uint32
 	// DealerIndex is the index of the dealer who issued the Deal
@@ -477,6 +479,7 @@ func (d *DistKeyGenerator) ProcessComplaintCommits(cc *ComplaintCommits) (*Recon
 
 	delete(d.commitments, cc.DealerIndex)
 	rc := &ReconstructCommits{
+		SessionID:   cc.Deal.SessionID,
 		Index:       d.index,
 		DealerIndex: cc.DealerIndex,
 		Share:       deal.SecShare,
@@ -518,9 +521,13 @@ func (d *DistKeyGenerator) ProcessReconstructCommits(rs *ReconstructCommits) err
 
 	var arr = d.pendingReconstruct[rs.DealerIndex]
 	// check if packet is already received or not
+	// or if the session ID does not match the others
 	for _, r := range arr {
 		if r.Index == rs.Index {
 			return nil
+		}
+		if !bytes.Equal(r.SessionID, rs.SessionID) {
+			return errors.New("dkg: reconstruct commits invalid session id")
 		}
 	}
 	// add it to list of pending shares

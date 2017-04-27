@@ -429,6 +429,7 @@ func TestDKGReconstructCommits(t *testing.T) {
 		Index:       1,
 		DealerIndex: 0,
 		Share:       dkgs[uint32(1)].verifiers[uint32(0)].Deal().SecShare,
+		SessionID:   dkgs[uint32(1)].verifiers[uint32(0)].Deal().SessionID,
 	}
 	msg := rc.Hash(suite)
 	rc.Signature, _ = sign.Schnorr(suite, dkgs[1].long, msg)
@@ -469,14 +470,25 @@ func TestDKGReconstructCommits(t *testing.T) {
 	assert.True(t, found)
 	assert.False(t, dkg2.Finished())
 	// generate enough secret commits  to recover the secret
-	for _, dkg := range dkgs[1:] {
+	for _, dkg := range dkgs[2:] {
 		rc = &ReconstructCommits{
+			SessionID:   dkg.verifiers[uint32(0)].Deal().SessionID,
 			Index:       dkg.index,
 			DealerIndex: 0,
 			Share:       dkg.verifiers[uint32(0)].Deal().SecShare,
 		}
 		msg := rc.Hash(suite)
 		rc.Signature, _ = sign.Schnorr(suite, dkg.long, msg)
+
+		if dkg2.reconstructed[uint32(0)] {
+			break
+		}
+		// invalid session ID
+		goodSID := rc.SessionID
+		rc.SessionID = randomBytes(len(goodSID))
+		require.Error(t, dkg2.ProcessReconstructCommits(rc))
+		rc.SessionID = goodSID
+
 		dkg2.ProcessReconstructCommits(rc)
 	}
 	assert.True(t, dkg2.reconstructed[uint32(0)])
