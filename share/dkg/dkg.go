@@ -119,7 +119,6 @@ type ComplaintCommits struct {
 
 // ReconstructCommits holds the information given by a participants who reveals
 // the deal received from a peer that have received a ComplaintCommits.
-// XXX There's no "SessionID" identification here... missing?
 type ReconstructCommits struct {
 	// Id of the session
 	SessionID []byte

@@ -156,7 +156,7 @@ func (p *PriPoly) Mul(q *PriPoly) *PriPoly {
 func RecoverSecret(g abstract.Group, shares []*PriShare, t, n int) (abstract.Scalar, error) {
 	x := xScalar(g, shares, t, n)
 
-	if len(x) != t {
+	if len(x) < t {
 		return nil, errors.New("share: not enough shares to recover secret")
 	}
 
