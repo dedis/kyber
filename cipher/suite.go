@@ -8,7 +8,7 @@ import (
 
 // Generic reflection-driven "universal constructor" interface,
 // which determines how to create concrete objects
-// instantiating a given set of abstract interface types.
+// instantiating a given set of crypto.interface types.
 type Constructor interface {
 
 	// Create a fresh object of a given (usually interface) type.

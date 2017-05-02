@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"crypto/cipher"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/util/random"
 )
 
-func testEmbed(g abstract.Group, rand cipher.Stream, points *[]abstract.Point,
+func testEmbed(g crypto.Group, rand cipher.Stream, points *[]crypto.Point,
 	s string) {
 	//println("embedding: ",s)
 	b := []byte(s)
@@ -28,7 +28,7 @@ func testEmbed(g abstract.Group, rand cipher.Stream, points *[]abstract.Point,
 	*points = append(*points, p)
 }
 
-func testPointSet(g abstract.Group, rand cipher.Stream) {
+func testPointSet(g crypto.Group, rand cipher.Stream) {
 	N := 1000
 	null := g.Point().Null()
 	for i := 0; i < N; i++ {
@@ -47,7 +47,7 @@ func testPointSet(g abstract.Group, rand cipher.Stream) {
 	}
 }
 
-func testPointClone(g abstract.Group, rand cipher.Stream) {
+func testPointClone(g crypto.Group, rand cipher.Stream) {
 	N := 1000
 	null := g.Point().Null()
 	for i := 0; i < N; i++ {
@@ -66,7 +66,7 @@ func testPointClone(g abstract.Group, rand cipher.Stream) {
 	}
 }
 
-func testScalarSet(g abstract.Group, rand cipher.Stream) {
+func testScalarSet(g crypto.Group, rand cipher.Stream) {
 	N := 1000
 	one := g.Scalar().One()
 	for i := 0; i < N; i++ {
@@ -84,7 +84,7 @@ func testScalarSet(g abstract.Group, rand cipher.Stream) {
 	}
 }
 
-func testScalarClone(g abstract.Group, rand cipher.Stream) {
+func testScalarClone(g crypto.Group, rand cipher.Stream) {
 	N := 1000
 	one := g.Scalar().One()
 	for i := 0; i < N; i++ {
@@ -109,11 +109,11 @@ func testScalarClone(g abstract.Group, rand cipher.Stream) {
 // for comparison across alternative implementations
 // that are supposed to be equivalent.
 //
-func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
+func testGroup(g crypto.Group, rand cipher.Stream) []crypto.Point {
 	//	fmt.Printf("\nTesting group '%s': %d-byte Point, %d-byte Scalar\n",
 	//			g.String(), g.PointLen(), g.ScalarLen())
 
-	points := make([]abstract.Point, 0)
+	points := make([]crypto.Point, 0)
 	ptmp := g.Point()
 	stmp := g.Scalar()
 	pzero := g.Point().Null()
@@ -290,17 +290,17 @@ func testGroup(g abstract.Group, rand cipher.Stream) []abstract.Point {
 }
 
 // Apply a generic set of validation tests to a cryptographic Group.
-func TestGroup(g abstract.Group) {
+func TestGroup(g crypto.Group) {
 	testGroup(g, random.Stream)
 }
 
 // Test two group implementations that are supposed to be equivalent,
 // and compare their results.
-func TestCompareGroups(suite abstract.Suite, g1, g2 abstract.Group) {
+func TestCompareGroups(suite crypto.Suite, g1, g2 crypto.Group) {
 
 	// Produce test results from the same pseudorandom seed
-	r1 := testGroup(g1, suite.Cipher(abstract.NoKey))
-	r2 := testGroup(g2, suite.Cipher(abstract.NoKey))
+	r1 := testGroup(g1, suite.Cipher(crypto.NoKey))
+	r2 := testGroup(g2, suite.Cipher(crypto.NoKey))
 
 	// Compare resulting Points
 	for i := range r1 {
@@ -316,7 +316,7 @@ func TestCompareGroups(suite abstract.Suite, g1, g2 abstract.Group) {
 }
 
 // Apply a standard set of validation tests to a ciphersuite.
-func TestSuite(suite abstract.Suite) {
+func TestSuite(suite crypto.Suite) {
 
 	// Try hashing something
 	h := suite.Hash()

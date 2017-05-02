@@ -5,7 +5,7 @@ import (
 	"crypto/rc4"
 	"testing"
 
-	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto"
 	"github.com/dedis/crypto/cipher/aes"
 	"github.com/dedis/crypto/cipher/norx"
 	"github.com/dedis/crypto/cipher/sha3"
@@ -17,7 +17,7 @@ import (
 var buf = make([]byte, 1024*1024)
 
 // benchmarkCipher tests the speed of a Cipher to process a size-byte message.
-func benchmarkCipher(b *testing.B, cipher abstract.Cipher, size int) {
+func benchmarkCipher(b *testing.B, cipher crypto.Cipher, size int) {
 	b.SetBytes(int64(size))
 	for i := 0; i < b.N; i++ {
 		cipher.Message(buf[:size], buf[:size], buf[:size])
@@ -27,108 +27,108 @@ func benchmarkCipher(b *testing.B, cipher abstract.Cipher, size int) {
 // 1B messages
 
 func BenchmarkAes128_1B(b *testing.B) {
-	benchmarkCipher(b, aes.NewCipher128(abstract.NoKey), 1)
+	benchmarkCipher(b, aes.NewCipher128(crypto.NoKey), 1)
 }
 func BenchmarkAes192_1B(b *testing.B) {
-	benchmarkCipher(b, aes.NewCipher192(abstract.NoKey), 1)
+	benchmarkCipher(b, aes.NewCipher192(crypto.NoKey), 1)
 }
 func BenchmarkAes256_1B(b *testing.B) {
-	benchmarkCipher(b, aes.NewCipher256(abstract.NoKey), 1)
+	benchmarkCipher(b, aes.NewCipher256(crypto.NoKey), 1)
 }
 
 func BenchmarkShake128_1B(b *testing.B) {
-	benchmarkCipher(b, sha3.NewShakeCipher128(abstract.NoKey), 1)
+	benchmarkCipher(b, sha3.NewShakeCipher128(crypto.NoKey), 1)
 }
 func BenchmarkShake256_1B(b *testing.B) {
-	benchmarkCipher(b, sha3.NewShakeCipher256(abstract.NoKey), 1)
+	benchmarkCipher(b, sha3.NewShakeCipher256(crypto.NoKey), 1)
 }
 func BenchmarkSha3_224_1B(b *testing.B) {
-	benchmarkCipher(b, sha3.NewCipher224(abstract.NoKey), 1)
+	benchmarkCipher(b, sha3.NewCipher224(crypto.NoKey), 1)
 }
 func BenchmarkSha3_256_1B(b *testing.B) {
-	benchmarkCipher(b, sha3.NewCipher256(abstract.NoKey), 1)
+	benchmarkCipher(b, sha3.NewCipher256(crypto.NoKey), 1)
 }
 func BenchmarkSha3_384_1B(b *testing.B) {
-	benchmarkCipher(b, sha3.NewCipher384(abstract.NoKey), 1)
+	benchmarkCipher(b, sha3.NewCipher384(crypto.NoKey), 1)
 }
 func BenchmarkSha3_512_1B(b *testing.B) {
-	benchmarkCipher(b, sha3.NewCipher512(abstract.NoKey), 1)
+	benchmarkCipher(b, sha3.NewCipher512(crypto.NoKey), 1)
 }
 
 func BenchmarkNORX_1B(b *testing.B) {
-	benchmarkCipher(b, norx.NewCipher(abstract.NoKey), 1)
+	benchmarkCipher(b, norx.NewCipher(crypto.NoKey), 1)
 }
 
 // 1K messages
 
 func BenchmarkAes128_1K(b *testing.B) {
-	benchmarkCipher(b, aes.NewCipher128(abstract.NoKey), 1024)
+	benchmarkCipher(b, aes.NewCipher128(crypto.NoKey), 1024)
 }
 func BenchmarkAes192_1K(b *testing.B) {
-	benchmarkCipher(b, aes.NewCipher192(abstract.NoKey), 1024)
+	benchmarkCipher(b, aes.NewCipher192(crypto.NoKey), 1024)
 }
 func BenchmarkAes256_1K(b *testing.B) {
-	benchmarkCipher(b, aes.NewCipher256(abstract.NoKey), 1024)
+	benchmarkCipher(b, aes.NewCipher256(crypto.NoKey), 1024)
 }
 
 func BenchmarkShake128_1K(b *testing.B) {
-	benchmarkCipher(b, sha3.NewShakeCipher128(abstract.NoKey), 1024)
+	benchmarkCipher(b, sha3.NewShakeCipher128(crypto.NoKey), 1024)
 }
 func BenchmarkShake256_1K(b *testing.B) {
-	benchmarkCipher(b, sha3.NewShakeCipher256(abstract.NoKey), 1024)
+	benchmarkCipher(b, sha3.NewShakeCipher256(crypto.NoKey), 1024)
 }
 func BenchmarkSha3_224_1K(b *testing.B) {
-	benchmarkCipher(b, sha3.NewCipher224(abstract.NoKey), 1024)
+	benchmarkCipher(b, sha3.NewCipher224(crypto.NoKey), 1024)
 }
 func BenchmarkSha3_256_1K(b *testing.B) {
-	benchmarkCipher(b, sha3.NewCipher256(abstract.NoKey), 1024)
+	benchmarkCipher(b, sha3.NewCipher256(crypto.NoKey), 1024)
 }
 func BenchmarkSha3_384_1K(b *testing.B) {
-	benchmarkCipher(b, sha3.NewCipher384(abstract.NoKey), 1024)
+	benchmarkCipher(b, sha3.NewCipher384(crypto.NoKey), 1024)
 }
 func BenchmarkSha3_512_1K(b *testing.B) {
-	benchmarkCipher(b, sha3.NewCipher512(abstract.NoKey), 1024)
+	benchmarkCipher(b, sha3.NewCipher512(crypto.NoKey), 1024)
 }
 
 func BenchmarkNORX_1K(b *testing.B) {
-	benchmarkCipher(b, norx.NewCipher(abstract.NoKey), 1024)
+	benchmarkCipher(b, norx.NewCipher(crypto.NoKey), 1024)
 }
 
 // 1M messages
 
 /* XXX 1MB buffers cause some kind of super-slowdown here??
 func BenchmarkAes128_1M(b *testing.B) {
-	benchmarkCipher(b, aes.NewCipher128(abstract.NoKey), 1024*1024)
+	benchmarkCipher(b, aes.NewCipher128(crypto.NoKey), 1024*1024)
 }
 func BenchmarkAes192_1M(b *testing.B) {
-	benchmarkCipher(b, aes.NewCipher192(abstract.NoKey), 1024*1024)
+	benchmarkCipher(b, aes.NewCipher192(crypto.NoKey), 1024*1024)
 }
 func BenchmarkAes256_1M(b *testing.B) {
-	benchmarkCipher(b, aes.NewCipher256(abstract.NoKey), 1024*1024)
+	benchmarkCipher(b, aes.NewCipher256(crypto.NoKey), 1024*1024)
 }
 */
 
 func BenchmarkShake128_1M(b *testing.B) {
-	benchmarkCipher(b, sha3.NewShakeCipher128(abstract.NoKey), 1024*1024)
+	benchmarkCipher(b, sha3.NewShakeCipher128(crypto.NoKey), 1024*1024)
 }
 func BenchmarkShake256_1M(b *testing.B) {
-	benchmarkCipher(b, sha3.NewShakeCipher256(abstract.NoKey), 1024*1024)
+	benchmarkCipher(b, sha3.NewShakeCipher256(crypto.NoKey), 1024*1024)
 }
 func BenchmarkSha3_224_1M(b *testing.B) {
-	benchmarkCipher(b, sha3.NewCipher224(abstract.NoKey), 1024*1024)
+	benchmarkCipher(b, sha3.NewCipher224(crypto.NoKey), 1024*1024)
 }
 func BenchmarkSha3_256_1M(b *testing.B) {
-	benchmarkCipher(b, sha3.NewCipher256(abstract.NoKey), 1024*1024)
+	benchmarkCipher(b, sha3.NewCipher256(crypto.NoKey), 1024*1024)
 }
 func BenchmarkSha3_384_1M(b *testing.B) {
-	benchmarkCipher(b, sha3.NewCipher384(abstract.NoKey), 1024*1024)
+	benchmarkCipher(b, sha3.NewCipher384(crypto.NoKey), 1024*1024)
 }
 func BenchmarkSha3_512_1M(b *testing.B) {
-	benchmarkCipher(b, sha3.NewCipher512(abstract.NoKey), 1024*1024)
+	benchmarkCipher(b, sha3.NewCipher512(crypto.NoKey), 1024*1024)
 }
 
 func BenchmarkNORX_1M(b *testing.B) {
-	benchmarkCipher(b, norx.NewCipher(abstract.NoKey), 1024*1024)
+	benchmarkCipher(b, norx.NewCipher(crypto.NoKey), 1024*1024)
 }
 
 // Some conventional Stream ciphers for comparison

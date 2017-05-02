@@ -15,7 +15,7 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto"
 )
 
 // Some error definitions
@@ -24,11 +24,11 @@ var errorCoeffs = errors.New("different number of coefficients")
 
 // PriShare represents a private share.
 type PriShare struct {
-	I int             // Index of the private share
-	V abstract.Scalar // Value of the private share
+	I int           // Index of the private share
+	V crypto.Scalar // Value of the private share
 }
 
-func (p *PriShare) Hash(s abstract.Suite) []byte {
+func (p *PriShare) Hash(s crypto.Suite) []byte {
 	h := s.Hash()
 	p.V.MarshalTo(h)
 	binary.Write(h, binary.LittleEndian, p.I)
@@ -37,14 +37,14 @@ func (p *PriShare) Hash(s abstract.Suite) []byte {
 
 // PriPoly represents a secret sharing polynomial.
 type PriPoly struct {
-	g      abstract.Group    // Cryptographic group
-	coeffs []abstract.Scalar // Coefficients of the polynomial
+	g      crypto.Group    // Cryptographic group
+	coeffs []crypto.Scalar // Coefficients of the polynomial
 }
 
 // NewPriPoly creates a new secret sharing polynomial for the cryptographic
 // group g, the secret sharing threshold t, and the secret to be shared s.
-func NewPriPoly(g abstract.Group, t int, s abstract.Scalar, rand cipher.Stream) *PriPoly {
-	coeffs := make([]abstract.Scalar, t)
+func NewPriPoly(g crypto.Group, t int, s crypto.Scalar, rand cipher.Stream) *PriPoly {
+	coeffs := make([]crypto.Scalar, t)
 	coeffs[0] = s
 	if coeffs[0] == nil {
 		coeffs[0] = g.Scalar().Pick(rand)
@@ -61,7 +61,7 @@ func (p *PriPoly) Threshold() int {
 }
 
 // GetSecret returns the shared secret p(0), i.e., the constant term of the polynomial.
-func (p *PriPoly) Secret() abstract.Scalar {
+func (p *PriPoly) Secret() crypto.Scalar {
 	return p.coeffs[0]
 }
 
@@ -94,7 +94,7 @@ func (p *PriPoly) Add(q *PriPoly) (*PriPoly, error) {
 	if p.Threshold() != q.Threshold() {
 		return nil, errorCoeffs
 	}
-	coeffs := make([]abstract.Scalar, p.Threshold())
+	coeffs := make([]crypto.Scalar, p.Threshold())
 	for i := range coeffs {
 		coeffs[i] = p.g.Scalar().Add(p.coeffs[i], q.coeffs[i])
 	}
@@ -117,8 +117,8 @@ func (p *PriPoly) Equal(q *PriPoly) bool {
 
 // Commit creates a public commitment polynomial for the given base point b or
 // the standard base if b == nil.
-func (p *PriPoly) Commit(b abstract.Point) *PubPoly {
-	commits := make([]abstract.Point, p.Threshold())
+func (p *PriPoly) Commit(b crypto.Point) *PubPoly {
+	commits := make([]crypto.Point, p.Threshold())
 	for i := range commits {
 		commits[i] = p.g.Point().Mul(b, p.coeffs[i])
 	}
@@ -127,8 +127,8 @@ func (p *PriPoly) Commit(b abstract.Point) *PubPoly {
 
 // RecoverSecret reconstructs the shared secret p(0) from a list of private
 // shares using Lagrange interpolation.
-func RecoverSecret(g abstract.Group, shares []*PriShare, t, n int) (abstract.Scalar, error) {
-	x := make(map[int]abstract.Scalar)
+func RecoverSecret(g crypto.Group, shares []*PriShare, t, n int) (crypto.Scalar, error) {
+	x := make(map[int]crypto.Scalar)
 	for i, s := range shares {
 		if s == nil || s.V == nil || s.I < 0 || n <= s.I {
 			continue
@@ -163,11 +163,11 @@ func RecoverSecret(g abstract.Group, shares []*PriShare, t, n int) (abstract.Sca
 
 // PubShare represents a public share.
 type PubShare struct {
-	I int            // Index of the public share
-	V abstract.Point // Value of the public share
+	I int          // Index of the public share
+	V crypto.Point // Value of the public share
 }
 
-func (p *PubShare) Hash(s abstract.Suite) []byte {
+func (p *PubShare) Hash(s crypto.Suite) []byte {
 	h := s.Hash()
 	p.V.MarshalTo(h)
 	binary.Write(h, binary.LittleEndian, p.I)
@@ -176,18 +176,18 @@ func (p *PubShare) Hash(s abstract.Suite) []byte {
 
 // PubPoly represents a public commitment polynomial to a secret sharing polynomial.
 type PubPoly struct {
-	g       abstract.Group   // Cryptographic group
-	b       abstract.Point   // Base point, nil for standard base
-	commits []abstract.Point // Commitments to coefficients of the secret sharing polynomial
+	g       crypto.Group   // Cryptographic group
+	b       crypto.Point   // Base point, nil for standard base
+	commits []crypto.Point // Commitments to coefficients of the secret sharing polynomial
 }
 
 // NewPubPoly creates a new public commitment polynomial.
-func NewPubPoly(g abstract.Group, b abstract.Point, commits []abstract.Point) *PubPoly {
+func NewPubPoly(g crypto.Group, b crypto.Point, commits []crypto.Point) *PubPoly {
 	return &PubPoly{g, b, commits}
 }
 
 // Info returns the base point and the commitments to the polynomial coefficients.
-func (p *PubPoly) Info() (abstract.Point, []abstract.Point) {
+func (p *PubPoly) Info() (crypto.Point, []crypto.Point) {
 	return p.b, p.commits
 }
 
@@ -197,7 +197,7 @@ func (p *PubPoly) Threshold() int {
 }
 
 // Commit returns the secret commitment p(0), i.e., the constant term of the polynomial.
-func (p *PubPoly) Commit() abstract.Point {
+func (p *PubPoly) Commit() crypto.Point {
 	return p.commits[0]
 }
 
@@ -236,7 +236,7 @@ func (p *PubPoly) Add(q *PubPoly) (*PubPoly, error) {
 		return nil, errorCoeffs
 	}
 
-	commits := make([]abstract.Point, p.Threshold())
+	commits := make([]crypto.Point, p.Threshold())
 	for i := range commits {
 		commits[i] = p.g.Point().Add(p.commits[i], q.commits[i])
 	}
@@ -267,8 +267,8 @@ func (p *PubPoly) Check(s *PriShare) bool {
 
 // RecoverCommit reconstructs the secret commitment p(0) from a list of public
 // shares using Lagrange interpolation.
-func RecoverCommit(g abstract.Group, shares []*PubShare, t, n int) (abstract.Point, error) {
-	x := make(map[int]abstract.Scalar)
+func RecoverCommit(g crypto.Group, shares []*PubShare, t, n int) (crypto.Point, error) {
+	x := make(map[int]crypto.Scalar)
 	for i, s := range shares {
 		if s == nil || s.V == nil || s.I < 0 || n <= s.I {
 			continue

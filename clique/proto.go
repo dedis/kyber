@@ -1,17 +1,15 @@
-// A clique protocol is an abstraction for a cryptographic protocol
+// A clique protocol is an crypto.on for a cryptographic protocol
 // in which every participant knows about and interacts directly
 // in lock-step with every other participant in the clique.
 // Clique protocols are suitable for small-scale groups,
 // such as "boards of trustees" chosen from larger groups.
 //
-// The basic clique protocol abstraction
+// The basic clique protocol crypto.on
 // assumes that nodes are always "live" and never go offline,
 // but we can achieve availability via threshold crypto.
 package clique
 
-import (
-	"github.com/dedis/crypto/abstract"
-)
+import "github.com/dedis/crypto"
 
 // Protocol represents the role of a participant in a clique protocol.
 // A participant is represented as a higher-order function taking a StarContext,
@@ -22,7 +20,7 @@ import (
 // XXX this interface should probably move to a "protocol" module of some kind.
 type Protocol func(ctx Context) []error
 
-// Context represents an abstract context for running a clique protocol.
+// Context represents an crypto.context for running a clique protocol.
 // A clique protocol is initiated by a leader
 // but incorporates a variable number of followers,
 // all of whom operate in lock-step under the leader's direction.
@@ -43,5 +41,5 @@ type Context interface {
 	Step(msg []byte) ([][]byte, error)
 
 	// Get a source of private cryptographic randomness.
-	Random() abstract.Cipher
+	Random() crypto.Cipher
 }

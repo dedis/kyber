@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto"
 	"github.com/dedis/crypto/clique"
 )
 
@@ -14,7 +14,7 @@ import (
 // the Sigma-protocol proofs of any or all of the other participants.
 // Different participants may produce different proofs of varying sizes,
 // and may even consist of different numbers of steps.
-func DeniableProver(suite abstract.Suite, self int, prover Prover,
+func DeniableProver(suite crypto.Suite, self int, prover Prover,
 	verifiers []Verifier) clique.Protocol {
 
 	return clique.Protocol(func(ctx clique.Context) []error {
@@ -24,7 +24,7 @@ func DeniableProver(suite abstract.Suite, self int, prover Prover,
 }
 
 type deniableProver struct {
-	suite abstract.Suite // Agreed-on ciphersuite for protocol
+	suite crypto.Suite   // Agreed-on ciphersuite for protocol
 	self  int            // Our own node number
 	sc    clique.Context // Clique protocol context
 
@@ -36,14 +36,14 @@ type deniableProver struct {
 	msg  *bytes.Buffer // Buffer in which to build prover msg
 	msgs [][]byte      // All messages from last proof step
 
-	pubrand abstract.Cipher
-	prirand abstract.Cipher
+	pubrand crypto.Cipher
+	prirand crypto.Cipher
 
 	// Error/success indicators for all participants
 	err []error
 }
 
-func (dp *deniableProver) run(suite abstract.Suite, self int, prv Prover,
+func (dp *deniableProver) run(suite crypto.Suite, self int, prv Prover,
 	vrf []Verifier, sc clique.Context) []error {
 	dp.suite = suite
 	dp.self = self
@@ -235,7 +235,7 @@ func (dp *deniableProver) PriRand(data ...interface{}) {
 // Interactive Sigma-protocol verifier context.
 // Acts as a slave to a deniableProver instance.
 type deniableVerifier struct {
-	suite abstract.Suite
+	suite crypto.Suite
 
 	inbox chan []byte   // Channel for receiving proofs and challenges
 	prbuf *bytes.Buffer // Buffer with which to read proof messages
@@ -243,10 +243,10 @@ type deniableVerifier struct {
 	done chan bool // Channel for sending done status indicators
 	err  error     // When done indicates verify error if non-nil
 
-	pubrand abstract.Cipher
+	pubrand crypto.Cipher
 }
 
-func (dv *deniableVerifier) start(suite abstract.Suite, vrf Verifier) {
+func (dv *deniableVerifier) start(suite crypto.Suite, vrf Verifier) {
 	dv.suite = suite
 	dv.inbox = make(chan []byte)
 	dv.done = make(chan bool)

@@ -5,9 +5,9 @@ import (
 	"crypto/hmac"
 	"hash"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/ints"
-	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/util/ints"
+	"github.com/dedis/crypto/util/random"
 )
 
 type streamCipher struct {
@@ -31,7 +31,7 @@ var zeroBytes = make([]byte, bufLen)
 // from a Stream cipher and a cryptographic Hash.
 func FromStream(newStream func(key []byte) cipher.Stream,
 	newHash func() hash.Hash, blockLen, keyLen, hashLen int,
-	key []byte, options ...interface{}) abstract.Cipher {
+	key []byte, options ...interface{}) crypto.Cipher {
 
 	sc := streamCipher{}
 	sc.newStream = newStream
@@ -52,7 +52,7 @@ func FromStream(newStream func(key []byte) cipher.Stream,
 		panic("no FromStream options supported yet")
 	}
 
-	return abstract.Cipher{&sc}
+	return crypto.Cipher{&sc}
 }
 
 func (sc *streamCipher) Partial(dst, src, key []byte) {
@@ -108,7 +108,7 @@ func (sc *streamCipher) BlockSize() int {
 	return sc.blockLen
 }
 
-func (sc *streamCipher) Clone() abstract.CipherState {
+func (sc *streamCipher) Clone() crypto.CipherState {
 	if sc.s != nil {
 		panic("cannot clone cipher state mid-message")
 	}

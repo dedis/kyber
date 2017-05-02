@@ -3,12 +3,13 @@ package cipher
 import (
 	"fmt"
 	"log"
+
+	"gopkg.in/dedis/crypto.v0/ints"
 	//"encoding/hex"
 	"encoding/binary"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/ints"
-	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/util/random"
 )
 
 // Sponge is an interface representing a primitive sponge function.
@@ -65,7 +66,7 @@ type spongeCipher struct {
 }
 
 // SpongeCipher builds a general message Cipher from a Sponge function.
-func FromSponge(sponge Sponge, key []byte, options ...interface{}) abstract.Cipher {
+func FromSponge(sponge Sponge, key []byte, options ...interface{}) crypto.Cipher {
 	sc := spongeCipher{}
 	sc.sponge = sponge
 	sc.rate = sponge.Rate()
@@ -86,7 +87,7 @@ func FromSponge(sponge Sponge, key []byte, options ...interface{}) abstract.Ciph
 	// Setup normal-case domain-separation byte used for message payloads
 	sc.setDomain(domainPayload, 0)
 
-	return abstract.Cipher{&sc}
+	return crypto.Cipher{&sc}
 }
 
 func (sc *spongeCipher) parseOptions(options []interface{}) bool {
@@ -198,10 +199,10 @@ func (sc *spongeCipher) special(domain byte, index int) {
 }
 
 /*
-// XXX move to abstract.Cipher?
-func (sc *spongeCipher) Fork(nsubs int) []abstract.CipherState {
+// XXX move to crypto.Cipher?
+func (sc *spongeCipher) Fork(nsubs int) []crypto.CipherState {
 
-	subs := make([]abstract.Cipher, nsubs)
+	subs := make([]crypto.Cipher, nsubs)
 	for i := range subs {
 		sub := sc.clone()
 		sub.special(domainFork, 1+i) // reserve 0 for parent
@@ -220,8 +221,8 @@ func xorBytes(dst, src []byte) {
 	}
 }
 
-// XXX move to abstract.Cipher?
-func (sc *spongeCipher) Join(subs ...abstract.CipherState) {
+// XXX move to crypto.Cipher?
+func (sc *spongeCipher) Join(subs ...crypto.CipherState) {
 
 	// mark the join transformation in the parent first
 	sc.special(domainJoin, 0)
@@ -245,7 +246,7 @@ func (sc *spongeCipher) clone() *spongeCipher {
 	return &nsc
 }
 
-func (sc *spongeCipher) Clone() abstract.CipherState {
+func (sc *spongeCipher) Clone() crypto.CipherState {
 	return sc.clone()
 }
 

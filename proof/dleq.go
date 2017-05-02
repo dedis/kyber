@@ -8,9 +8,9 @@ package proof
 import (
 	"errors"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/hash"
-	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/util/hash"
+	"github.com/dedis/crypto/util/random"
 )
 
 var errorDifferentLengths = errors.New("inputs of different lengths")
@@ -18,10 +18,10 @@ var errorInvalidProof = errors.New("invalid proof")
 
 // DLEQProof represents a NIZK dlog-equality proof.
 type DLEQProof struct {
-	C  abstract.Scalar // challenge
-	R  abstract.Scalar // response
-	VG abstract.Point  // public commitment with respect to base point G
-	VH abstract.Point  // public commitment with respect to base point H
+	C  crypto.Scalar // challenge
+	R  crypto.Scalar // response
+	VG crypto.Point  // public commitment with respect to base point G
+	VH crypto.Point  // public commitment with respect to base point H
 }
 
 // NewDLEQProof computes a new NIZK dlog-equality proof for the scalar x with
@@ -29,7 +29,7 @@ type DLEQProof struct {
 // and then computes the challenge c = H(xG,xH,vG,vH) and response r = v - cx.
 // Besides the proof, this function also returns the encrypted base points xG
 // and xH.
-func NewDLEQProof(suite abstract.Suite, G abstract.Point, H abstract.Point, x abstract.Scalar) (proof *DLEQProof, xG abstract.Point, xH abstract.Point, err error) {
+func NewDLEQProof(suite crypto.Suite, G crypto.Point, H crypto.Point, x crypto.Scalar) (proof *DLEQProof, xG crypto.Point, xH crypto.Point, err error) {
 	// Encrypt base points with secret
 	xG = suite.Point().Mul(G, x)
 	xH = suite.Point().Mul(H, x)
@@ -56,18 +56,18 @@ func NewDLEQProof(suite abstract.Suite, G abstract.Point, H abstract.Point, x ab
 // NewDLEQProofBatch computes lists of NIZK dlog-equality proofs and of
 // encrypted base points xG and xH. Note that the challenge is computed over all
 // input values.
-func NewDLEQProofBatch(suite abstract.Suite, G []abstract.Point, H []abstract.Point, secrets []abstract.Scalar) (proof []*DLEQProof, xG []abstract.Point, xH []abstract.Point, err error) {
+func NewDLEQProofBatch(suite crypto.Suite, G []crypto.Point, H []crypto.Point, secrets []crypto.Scalar) (proof []*DLEQProof, xG []crypto.Point, xH []crypto.Point, err error) {
 	if len(G) != len(H) || len(H) != len(secrets) {
 		return nil, nil, nil, errorDifferentLengths
 	}
 
 	n := len(secrets)
 	proofs := make([]*DLEQProof, n)
-	v := make([]abstract.Scalar, n)
-	xG = make([]abstract.Point, n)
-	xH = make([]abstract.Point, n)
-	vG := make([]abstract.Point, n)
-	vH := make([]abstract.Point, n)
+	v := make([]crypto.Scalar, n)
+	xG = make([]crypto.Point, n)
+	xH = make([]crypto.Point, n)
+	vG := make([]crypto.Point, n)
+	vH := make([]crypto.Point, n)
 
 	for i, x := range secrets {
 		// Encrypt base points with secrets
@@ -101,7 +101,7 @@ func NewDLEQProofBatch(suite abstract.Suite, G []abstract.Point, H []abstract.Po
 // The proof is valid if the following two conditions hold:
 //   vG == rG + c(xG)
 //   vH == rH + c(xH)
-func (p *DLEQProof) Verify(suite abstract.Suite, G abstract.Point, H abstract.Point, xG abstract.Point, xH abstract.Point) error {
+func (p *DLEQProof) Verify(suite crypto.Suite, G crypto.Point, H crypto.Point, xG crypto.Point, xH crypto.Point) error {
 	rG := suite.Point().Mul(G, p.R)
 	rH := suite.Point().Mul(H, p.R)
 	cxG := suite.Point().Mul(xG, p.C)

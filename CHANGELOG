@@ -1,0 +1,34 @@
+Refactoring for crypto v1:
+    - moved:
+        - all examples from top level to examples/
+        - all abstract/*go to top level
+        - ed25519/, edwards/ and nist/ to group/
+        - former nist/int.go to group/mod/int.go
+        - eddsa to sign/eddsa
+        - anon to sign/anon
+        - cosi to sign/cosi
+        - sign/schnorr.go to sign/schnorr/schnorr.go
+        - math/{jacobi,sqrt} to group/mod/
+        - config/key.go - the KeyPair struct + methods - to /util/key/
+        - hash/ to util/hash
+        - ints/ints.go to util/ints/ints.go
+        - util/{reverse,grow,replace} to util/bytes/
+        - group/encoding.go to util/encoding/encoding.go
+        - subtle/ to util/subtle
+        - random to util/random
+    
+    - removed:
+        - abstract
+        - base64
+        - clique
+        - pbc
+        - openssl
+        - sodium
+        - nego
+        - shuffle
+        - poly
+        - suites
+        - config/file,
+        - binary encoding part of encoding.go
+
+    - commented out the dh_test.go which is not up-to-date anymore

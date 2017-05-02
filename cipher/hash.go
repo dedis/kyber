@@ -3,14 +3,14 @@ package cipher
 import (
 	"hash"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/util"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/util/bytes"
 )
 
 // Wrapper to use a generic mesage Cipher as a Hash
 type cipherHash struct {
-	cipher func(key []byte, options ...interface{}) abstract.Cipher
-	cur    abstract.Cipher
+	cipher func(key []byte, options ...interface{}) crypto.Cipher
+	cur    crypto.Cipher
 	size   int
 }
 
@@ -20,10 +20,10 @@ type cipherBlockSize interface {
 	BlockSize() int
 }
 
-func NewHash(cipher func(key []byte, options ...interface{}) abstract.Cipher, size int) hash.Hash {
+func NewHash(cipher func(key []byte, options ...interface{}) crypto.Cipher, size int) hash.Hash {
 	ch := &cipherHash{}
 	ch.cipher = cipher
-	ch.cur = cipher(abstract.NoKey)
+	ch.cur = cipher(crypto.NoKey)
 	ch.size = size
 	return ch
 }
@@ -40,13 +40,13 @@ func (ch *cipherHash) Sum(buf []byte) []byte {
 	c.Message(nil, nil, nil) // finalize the message
 
 	// Squeeze out a hash of any requested size.
-	buf, hash := util.Grow(buf, ch.size)
+	buf, hash := bytes.Grow(buf, ch.size)
 	c.Partial(hash, nil, nil)
 	return buf
 }
 
 func (ch *cipherHash) Reset() {
-	ch.cur = ch.cipher(abstract.NoKey)
+	ch.cur = ch.cipher(crypto.NoKey)
 }
 
 func (ch *cipherHash) Size() int {
