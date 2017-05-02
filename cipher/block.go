@@ -4,14 +4,14 @@ import (
 	"crypto/cipher"
 	"hash"
 
-	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto"
 )
 
 // Construct a general message Cipher
 // from a Block cipher and a cryptographic Hash.
 func FromBlock(newCipher func(key []byte) (cipher.Block, error),
 	newHash func() hash.Hash, blockLen, keyLen, hashLen int,
-	key []byte, options ...interface{}) abstract.Cipher {
+	key []byte, options ...interface{}) crypto.Cipher {
 
 	newStream := func(key []byte) cipher.Stream {
 		b, err := newCipher(key)

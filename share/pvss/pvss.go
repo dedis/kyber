@@ -16,9 +16,9 @@ package pvss
 import (
 	"errors"
 
-	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/crypto"
 	"github.com/dedis/crypto/proof"
-	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto/util/random"
 	"github.com/dedis/crypto/share"
 )
 
@@ -38,7 +38,7 @@ type PubVerShare struct {
 // the given secret and the list of public keys X using the sharing threshold
 // t and the base point H. The function returns the list of shares and the
 // public commitment polynomial.
-func EncShares(suite abstract.Suite, H abstract.Point, X []abstract.Point, secret abstract.Scalar, t int) ([]*PubVerShare, *share.PubPoly, error) {
+func EncShares(suite crypto.Suite, H crypto.Point, X []crypto.Point, secret crypto.Scalar, t int) ([]*PubVerShare, *share.PubPoly, error) {
 	n := len(X)
 	encShares := make([]*PubVerShare, n)
 
@@ -53,8 +53,8 @@ func EncShares(suite abstract.Suite, H abstract.Point, X []abstract.Point, secre
 
 	// Prepare data for encryption consistency proofs ...
 	indices := make([]int, n)
-	values := make([]abstract.Scalar, n)
-	HS := make([]abstract.Point, n)
+	values := make([]crypto.Scalar, n)
+	HS := make([]crypto.Point, n)
 	for i := 0; i < n; i++ {
 		indices[i] = priShares[i].I
 		values[i] = priShares[i].V
@@ -78,7 +78,7 @@ func EncShares(suite abstract.Suite, H abstract.Point, X []abstract.Point, secre
 // VerifyEncShare checks that the encrypted share sX satisfies
 // log_{H}(sH) == log_{X}(sX) where sH is the public commitment computed by
 // evaluating the public commitment polynomial at the encrypted share's index i.
-func VerifyEncShare(suite abstract.Suite, H abstract.Point, X abstract.Point, sH abstract.Point, encShare *PubVerShare) error {
+func VerifyEncShare(suite crypto.Suite, H crypto.Point, X crypto.Point, sH crypto.Point, encShare *PubVerShare) error {
 	if err := encShare.P.Verify(suite, H, X, sH, encShare.S.V); err != nil {
 		return errorEncVerification
 	}
@@ -88,12 +88,12 @@ func VerifyEncShare(suite abstract.Suite, H abstract.Point, X abstract.Point, sH
 // VerifyEncShareBatch provides the same functionality as VerifyEncShare but for
 // slices of encrypted shares. The function returns the valid encrypted shares
 // together with the corresponding public keys.
-func VerifyEncShareBatch(suite abstract.Suite, H abstract.Point, X []abstract.Point, sH []abstract.Point, encShares []*PubVerShare) ([]abstract.Point, []*PubVerShare, error) {
+func VerifyEncShareBatch(suite crypto.Suite, H crypto.Point, X []crypto.Point, sH []crypto.Point, encShares []*PubVerShare) ([]crypto.Point, []*PubVerShare, error) {
 	if len(X) != len(sH) || len(sH) != len(encShares) {
 		return nil, nil, errorDifferentLengths
 	}
-	var K []abstract.Point // good public keys
-	var E []*PubVerShare   // good encrypted shares
+	var K []crypto.Point // good public keys
+	var E []*PubVerShare // good encrypted shares
 	for i := 0; i < len(X); i++ {
 		if err := VerifyEncShare(suite, H, X[i], sH[i], encShares[i]); err == nil {
 			K = append(K, X[i])
@@ -106,7 +106,7 @@ func VerifyEncShareBatch(suite abstract.Suite, H abstract.Point, X []abstract.Po
 // DecShare first verifies the encrypted share against the encryption
 // consistency proof and, if valid, decrypts it and creates a decryption
 // consistency proof.
-func DecShare(suite abstract.Suite, H abstract.Point, X abstract.Point, sH abstract.Point, x abstract.Scalar, encShare *PubVerShare) (*PubVerShare, error) {
+func DecShare(suite crypto.Suite, H crypto.Point, X crypto.Point, sH crypto.Point, x crypto.Scalar, encShare *PubVerShare) (*PubVerShare, error) {
 	if err := VerifyEncShare(suite, H, X, sH, encShare); err != nil {
 		return nil, err
 	}
@@ -123,13 +123,13 @@ func DecShare(suite abstract.Suite, H abstract.Point, X abstract.Point, sH abstr
 // DecShareBatch provides the same functionality as DecShare but for slices of
 // encrypted shares. The function returns the valid encrypted and decrypted
 // shares as well as the corresponding public keys.
-func DecShareBatch(suite abstract.Suite, H abstract.Point, X []abstract.Point, sH []abstract.Point, x abstract.Scalar, encShares []*PubVerShare) ([]abstract.Point, []*PubVerShare, []*PubVerShare, error) {
+func DecShareBatch(suite crypto.Suite, H crypto.Point, X []crypto.Point, sH []crypto.Point, x crypto.Scalar, encShares []*PubVerShare) ([]crypto.Point, []*PubVerShare, []*PubVerShare, error) {
 	if len(X) != len(sH) || len(sH) != len(encShares) {
 		return nil, nil, nil, errorDifferentLengths
 	}
-	var K []abstract.Point // good public keys
-	var E []*PubVerShare   // good encrypted shares
-	var D []*PubVerShare   // good decrypted shares
+	var K []crypto.Point // good public keys
+	var E []*PubVerShare // good encrypted shares
+	var D []*PubVerShare // good decrypted shares
 	for i := 0; i < len(encShares); i++ {
 		if ds, err := DecShare(suite, H, X[i], sH[i], x, encShares[i]); err == nil {
 			K = append(K, X[i])
@@ -142,7 +142,7 @@ func DecShareBatch(suite abstract.Suite, H abstract.Point, X []abstract.Point, s
 
 // VerifyDecShare checks that the decrypted share sG satisfies
 // log_{G}(X) == log_{sG}(sX). Note that X = xG and sX = s(xG) = x(sG).
-func VerifyDecShare(suite abstract.Suite, G abstract.Point, X abstract.Point, encShare *PubVerShare, decShare *PubVerShare) error {
+func VerifyDecShare(suite crypto.Suite, G crypto.Point, X crypto.Point, encShare *PubVerShare, decShare *PubVerShare) error {
 	if err := decShare.P.Verify(suite, G, decShare.S.V, X, encShare.S.V); err != nil {
 		return errorDecVerification
 	}
@@ -151,7 +151,7 @@ func VerifyDecShare(suite abstract.Suite, G abstract.Point, X abstract.Point, en
 
 // VerifyDecShareBatch provides the same functionality as VerifyDecShare but for
 // slices of decrypted shares. The function returns the the valid decrypted shares.
-func VerifyDecShareBatch(suite abstract.Suite, G abstract.Point, X []abstract.Point, encShares []*PubVerShare, decShares []*PubVerShare) ([]*PubVerShare, error) {
+func VerifyDecShareBatch(suite crypto.Suite, G crypto.Point, X []crypto.Point, encShares []*PubVerShare, decShares []*PubVerShare) ([]*PubVerShare, error) {
 	if len(X) != len(encShares) || len(encShares) != len(decShares) {
 		return nil, errorDifferentLengths
 	}
@@ -166,7 +166,7 @@ func VerifyDecShareBatch(suite abstract.Suite, G abstract.Point, X []abstract.Po
 
 // RecoverSecret first verifies the given decrypted shares against their
 // decryption consistency proofs and then tries to recover the shared secret.
-func RecoverSecret(suite abstract.Suite, G abstract.Point, X []abstract.Point, encShares []*PubVerShare, decShares []*PubVerShare, t int, n int) (abstract.Point, error) {
+func RecoverSecret(suite crypto.Suite, G crypto.Point, X []crypto.Point, encShares []*PubVerShare, decShares []*PubVerShare, t int, n int) (crypto.Point, error) {
 	D, err := VerifyDecShareBatch(suite, G, X, encShares, decShares)
 	if err != nil {
 		return nil, err

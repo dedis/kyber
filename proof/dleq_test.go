@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/edwards"
-	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/group/edwards25519"
+	"github.com/dedis/crypto/util/random"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDLEQProof(t *testing.T) {
-	suite := edwards.NewAES128SHA256Ed25519(false)
+	suite := edwards25519.NewAES128SHA256Ed25519(false)
 	n := 10
 	for i := 0; i < n; i++ {
 		// Create some random secrets and base points
@@ -25,11 +25,11 @@ func TestDLEQProof(t *testing.T) {
 }
 
 func TestDLEQProofBatch(t *testing.T) {
-	suite := edwards.NewAES128SHA256Ed25519(false)
+	suite := edwards25519.NewAES128SHA256Ed25519(false)
 	n := 10
-	x := make([]abstract.Scalar, n)
-	g := make([]abstract.Point, n)
-	h := make([]abstract.Point, n)
+	x := make([]crypto.Scalar, n)
+	g := make([]crypto.Point, n)
+	h := make([]crypto.Point, n)
 	for i := range x {
 		x[i] = suite.Scalar().Pick(random.Stream)
 		g[i], _ = suite.Point().Pick([]byte(fmt.Sprintf("G%d", i)), random.Stream)
@@ -43,11 +43,11 @@ func TestDLEQProofBatch(t *testing.T) {
 }
 
 func TestDLEQLengths(t *testing.T) {
-	suite := edwards.NewAES128SHA256Ed25519(false)
+	suite := edwards25519.NewAES128SHA256Ed25519(false)
 	n := 10
-	x := make([]abstract.Scalar, n)
-	g := make([]abstract.Point, n)
-	h := make([]abstract.Point, n)
+	x := make([]crypto.Scalar, n)
+	g := make([]crypto.Point, n)
+	h := make([]crypto.Point, n)
 	for i := range x {
 		x[i] = suite.Scalar().Pick(random.Stream)
 		g[i], _ = suite.Point().Pick([]byte(fmt.Sprintf("G%d", i)), random.Stream)

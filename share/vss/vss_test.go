@@ -4,15 +4,15 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/ed25519"
-	"github.com/dedis/crypto/random"
-	"github.com/dedis/crypto/sign"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/group/edwards25519"
+	"github.com/dedis/crypto/util/random"
+	sign "github.com/dedis/crypto/sign/schnorr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var suite = ed25519.NewAES128SHA256Ed25519(false)
+var suite = edwards25519.NewAES128SHA256Ed25519(false)
 
 var reader = random.Stream
 
@@ -20,13 +20,13 @@ var nbVerifiers = 7
 
 var vssThreshold int
 
-var verifiersPub []abstract.Point
-var verifiersSec []abstract.Scalar
+var verifiersPub []crypto.Point
+var verifiersSec []crypto.Scalar
 
-var dealerPub abstract.Point
-var dealerSec abstract.Scalar
+var dealerPub crypto.Point
+var dealerSec crypto.Scalar
 
-var secret abstract.Scalar
+var secret crypto.Scalar
 
 func init() {
 	verifiersSec, verifiersPub = genCommits(nbVerifiers)
@@ -503,15 +503,15 @@ func TestVSSContext(t *testing.T) {
 	assert.Len(t, c, suite.Hash().Size())
 }
 
-func genPair() (abstract.Scalar, abstract.Point) {
+func genPair() (crypto.Scalar, crypto.Point) {
 	secret := suite.Scalar().Pick(reader)
 	public := suite.Point().Mul(nil, secret)
 	return secret, public
 }
 
-func genCommits(n int) ([]abstract.Scalar, []abstract.Point) {
-	var secrets = make([]abstract.Scalar, n)
-	var publics = make([]abstract.Point, n)
+func genCommits(n int) ([]crypto.Scalar, []crypto.Point) {
+	var secrets = make([]crypto.Scalar, n)
+	var publics = make([]crypto.Point, n)
 	for i := 0; i < n; i++ {
 		secrets[i], publics[i] = genPair()
 	}

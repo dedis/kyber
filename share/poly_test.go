@@ -3,12 +3,12 @@ package share
 import (
 	"testing"
 
-	"github.com/dedis/crypto/edwards"
-	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto/group/edwards25519"
+	"github.com/dedis/crypto/util/random"
 )
 
 func TestSecretRecovery(test *testing.T) {
-	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	g := edwards25519.NewAES128SHA256Ed25519(false)
 	n := 10
 	t := n/2 + 1
 	poly := NewPriPoly(g, t, nil, random.Stream)
@@ -25,7 +25,7 @@ func TestSecretRecovery(test *testing.T) {
 }
 
 func TestSecretRecoveryDelete(test *testing.T) {
-	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	g := edwards25519.NewAES128SHA256Ed25519(false)
 	n := 10
 	t := n/2 + 1
 	poly := NewPriPoly(g, t, nil, random.Stream)
@@ -48,7 +48,7 @@ func TestSecretRecoveryDelete(test *testing.T) {
 }
 
 func TestSecretRecoveryDeleteFail(test *testing.T) {
-	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	g := edwards25519.NewAES128SHA256Ed25519(false)
 	n := 10
 	t := n/2 + 1
 
@@ -69,7 +69,7 @@ func TestSecretRecoveryDeleteFail(test *testing.T) {
 }
 
 func TestSecretPolyEqual(test *testing.T) {
-	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	g := edwards25519.NewAES128SHA256Ed25519(false)
 	n := 10
 	t := n/2 + 1
 
@@ -89,7 +89,7 @@ func TestSecretPolyEqual(test *testing.T) {
 }
 
 func TestPublicCheck(test *testing.T) {
-	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	g := edwards25519.NewAES128SHA256Ed25519(false)
 	n := 10
 	t := n/2 + 1
 
@@ -105,7 +105,7 @@ func TestPublicCheck(test *testing.T) {
 }
 
 func TestPublicRecovery(test *testing.T) {
-	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	g := edwards25519.NewAES128SHA256Ed25519(false)
 	n := 10
 	t := n/2 + 1
 
@@ -124,7 +124,7 @@ func TestPublicRecovery(test *testing.T) {
 }
 
 func TestPublicRecoveryDelete(test *testing.T) {
-	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	g := edwards25519.NewAES128SHA256Ed25519(false)
 	n := 10
 	t := n/2 + 1
 
@@ -149,7 +149,7 @@ func TestPublicRecoveryDelete(test *testing.T) {
 }
 
 func TestPublicRecoveryDeleteFail(test *testing.T) {
-	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	g := edwards25519.NewAES128SHA256Ed25519(false)
 	n := 10
 	t := n/2 + 1
 
@@ -171,7 +171,7 @@ func TestPublicRecoveryDeleteFail(test *testing.T) {
 }
 
 func TestPrivateAdd(test *testing.T) {
-	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	g := edwards25519.NewAES128SHA256Ed25519(false)
 	n := 10
 	t := n/2 + 1
 
@@ -193,7 +193,7 @@ func TestPrivateAdd(test *testing.T) {
 }
 
 func TestPublicAdd(test *testing.T) {
-	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	g := edwards25519.NewAES128SHA256Ed25519(false)
 	n := 10
 	t := n/2 + 1
 
@@ -227,7 +227,7 @@ func TestPublicAdd(test *testing.T) {
 }
 
 func TestPublicPolyEqual(test *testing.T) {
-	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	g := edwards25519.NewAES128SHA256Ed25519(false)
 	n := 10
 	t := n/2 + 1
 

@@ -36,24 +36,24 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/util/random"
 	"github.com/dedis/crypto/share"
-	"github.com/dedis/crypto/sign"
+	sign "github.com/dedis/crypto/sign/schnorr"
 	"github.com/dedis/protobuf"
 )
 
 // Dealer encapsulates for creating and distributing the shares and for
 // replying to any Responses.
 type Dealer struct {
-	suite  abstract.Suite
+	suite  crypto.Suite
 	reader cipher.Stream
 	// long is the longterm key of the Dealer
-	long          abstract.Scalar
-	pub           abstract.Point
-	secret        abstract.Scalar
-	secretCommits []abstract.Point
-	verifiers     []abstract.Point
+	long          crypto.Scalar
+	pub           crypto.Point
+	secret        crypto.Scalar
+	secretCommits []crypto.Point
+	verifiers     []crypto.Point
 	hkdfContext   []byte
 	// threshold of shares that is needed to reconstruct the secret
 	t int
@@ -75,7 +75,7 @@ type Deal struct {
 	// Threshold used for this secret sharing run
 	T uint32
 	// Commitments are the coefficients used to verify the shares against
-	Commitments []abstract.Point
+	Commitments []crypto.Point
 }
 
 // EncryptedDeal contains the deal in a encrypted form only decipherable by the
@@ -84,7 +84,7 @@ type Deal struct {
 // longterm secret key.
 type EncryptedDeal struct {
 	// Ephemeral Diffie Hellman key
-	DHKey abstract.Point
+	DHKey crypto.Point
 	// Signature of the DH key by the longterm key of the dealer
 	Signature []byte
 	// Nonce used for the encryption
@@ -137,7 +137,7 @@ type Justification struct {
 // RECOMMENDED to use a threshold higher or equal than what the method
 // MinimumT() returns, otherwise it breaks the security assumptions of the whole
 // scheme. It returns an error if the t is inferior or equal to 2.
-func NewDealer(suite abstract.Suite, longterm, secret abstract.Scalar, verifiers []abstract.Point, r cipher.Stream, t int) (*Dealer, error) {
+func NewDealer(suite crypto.Suite, longterm, secret crypto.Scalar, verifiers []crypto.Point, r cipher.Stream, t int) (*Dealer, error) {
 	d := &Dealer{
 		suite:     suite,
 		long:      longterm,
@@ -274,7 +274,7 @@ func (d *Dealer) ProcessResponse(r *Response) (*Justification, error) {
 // SecretCommit returns the commitment of the secret being shared by this
 // dealer. This function is only to be called once the deal has enough approvals
 // and is verified otherwise it returns nil.
-func (d *Dealer) SecretCommit() abstract.Point {
+func (d *Dealer) SecretCommit() crypto.Point {
 	if !d.EnoughApprovals() || !d.DealCertified() {
 		return nil
 	}
@@ -283,7 +283,7 @@ func (d *Dealer) SecretCommit() abstract.Point {
 
 // Commits returns the commitments of the coefficient of the secret polynomial
 // the Dealer is sharing.
-func (d *Dealer) Commits() []abstract.Point {
+func (d *Dealer) Commits() []crypto.Point {
 	if !d.EnoughApprovals() || !d.DealCertified() {
 		return nil
 	}
@@ -291,7 +291,7 @@ func (d *Dealer) Commits() []abstract.Point {
 }
 
 // Key returns the longterm key pair used by this Dealer.
-func (d *Dealer) Key() (abstract.Scalar, abstract.Point) {
+func (d *Dealer) Key() (crypto.Scalar, crypto.Point) {
 	return d.long, d.pub
 }
 
@@ -304,12 +304,12 @@ func (d *Dealer) SessionID() []byte {
 // Verifier receives a Deal from a Dealer, can reply with a Complaint, and can
 // collaborate with other Verifiers to reconstruct a secret.
 type Verifier struct {
-	suite       abstract.Suite
-	longterm    abstract.Scalar
-	pub         abstract.Point
-	dealer      abstract.Point
+	suite       crypto.Suite
+	longterm    crypto.Scalar
+	pub         crypto.Point
+	dealer      crypto.Point
 	index       int
-	verifiers   []abstract.Point
+	verifiers   []crypto.Point
 	hkdfContext []byte
 	*aggregator
 }
@@ -322,8 +322,8 @@ type Verifier struct {
 // The security parameter t of the secret sharing scheme is automatically set to
 // a default safe value. If a different t value is required, it is possible to set
 // it with `verifier.SetT()`.
-func NewVerifier(suite abstract.Suite, longterm abstract.Scalar, dealerKey abstract.Point,
-	verifiers []abstract.Point) (*Verifier, error) {
+func NewVerifier(suite crypto.Suite, longterm crypto.Scalar, dealerKey crypto.Point,
+	verifiers []crypto.Point) (*Verifier, error) {
 
 	pub := suite.Point().Mul(nil, longterm)
 	var ok bool
@@ -454,7 +454,7 @@ func (v *Verifier) ProcessJustification(dr *Justification) error {
 
 // Key returns the longterm key pair this verifier is using during this protocol
 // run.
-func (v *Verifier) Key() (abstract.Scalar, abstract.Point) {
+func (v *Verifier) Key() (crypto.Scalar, crypto.Point) {
 	return v.longterm, v.pub
 }
 
@@ -473,7 +473,7 @@ func (v *Verifier) SessionID() []byte {
 // RecoverSecret recovers the secret shared by a Dealer by gathering at least t
 // Deals from the verifiers. It returns an error if there is not enough Deals or
 // if all Deals don't have the same SessionID.
-func RecoverSecret(suite abstract.Suite, deals []*Deal, n, t int) (abstract.Scalar, error) {
+func RecoverSecret(suite crypto.Suite, deals []*Deal, n, t int) (crypto.Scalar, error) {
 	shares := make([]*share.PriShare, len(deals))
 	for i, deal := range deals {
 		// all sids the same
@@ -489,10 +489,10 @@ func RecoverSecret(suite abstract.Suite, deals []*Deal, n, t int) (abstract.Scal
 // aggregator is used to collect all deals, and responses for one protocol run.
 // It brings common functionalities for both Dealer and Verifier structs.
 type aggregator struct {
-	suite     abstract.Suite
-	dealer    abstract.Point
-	verifiers []abstract.Point
-	commits   []abstract.Point
+	suite     crypto.Suite
+	dealer    crypto.Point
+	verifiers []crypto.Point
+	commits   []crypto.Point
 
 	responses map[uint32]*Response
 	sid       []byte
@@ -501,7 +501,7 @@ type aggregator struct {
 	badDealer bool
 }
 
-func newAggregator(suite abstract.Suite, dealer abstract.Point, verifiers, commitments []abstract.Point, t int, sid []byte) *aggregator {
+func newAggregator(suite crypto.Suite, dealer crypto.Point, verifiers, commitments []crypto.Point, t int, sid []byte) *aggregator {
 	agg := &aggregator{
 		suite:     suite,
 		dealer:    dealer,
@@ -644,11 +644,11 @@ func MinimumT(n int) int {
 	return (n + 1) / 2
 }
 
-func validT(t int, verifiers []abstract.Point) bool {
+func validT(t int, verifiers []crypto.Point) bool {
 	return t >= 2 && t <= len(verifiers) && int(uint32(t)) == t
 }
 
-func deriveH(suite abstract.Suite, verifiers []abstract.Point) abstract.Point {
+func deriveH(suite crypto.Suite, verifiers []crypto.Point) crypto.Point {
 	var b bytes.Buffer
 	for _, v := range verifiers {
 		v.MarshalTo(&b)
@@ -660,7 +660,7 @@ func deriveH(suite abstract.Suite, verifiers []abstract.Point) abstract.Point {
 	return base
 }
 
-func findPub(verifiers []abstract.Point, idx uint32) (abstract.Point, bool) {
+func findPub(verifiers []crypto.Point, idx uint32) (crypto.Point, bool) {
 	iidx := int(idx)
 	if iidx >= len(verifiers) {
 		return nil, false
@@ -668,7 +668,7 @@ func findPub(verifiers []abstract.Point, idx uint32) (abstract.Point, bool) {
 	return verifiers[iidx], true
 }
 
-func sessionID(suite abstract.Suite, dealer abstract.Point, verifiers, commitments []abstract.Point, t int) ([]byte, error) {
+func sessionID(suite crypto.Suite, dealer crypto.Point, verifiers, commitments []crypto.Point, t int) ([]byte, error) {
 	h := suite.Hash()
 	dealer.MarshalTo(h)
 
@@ -685,7 +685,7 @@ func sessionID(suite abstract.Suite, dealer abstract.Point, verifiers, commitmen
 }
 
 // Hash returns the Hash representation of the Response
-func (r *Response) Hash(s abstract.Suite) []byte {
+func (r *Response) Hash(s crypto.Suite) []byte {
 	h := s.Hash()
 	h.Write([]byte("response"))
 	h.Write(r.SessionID)
@@ -701,17 +701,17 @@ func (d *Deal) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary reads the Deal from the binary represenstation.
-func (d *Deal) UnmarshalBinary(s abstract.Suite, buff []byte) error {
+func (d *Deal) UnmarshalBinary(s crypto.Suite, buff []byte) error {
 	constructors := make(protobuf.Constructors)
-	var point abstract.Point
-	var secret abstract.Scalar
+	var point crypto.Point
+	var secret crypto.Scalar
 	constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return s.Point() }
 	constructors[reflect.TypeOf(&secret).Elem()] = func() interface{} { return s.Scalar() }
 	return protobuf.DecodeWithConstructors(buff, d, constructors)
 }
 
 // Hash returns the hash of a Justification.
-func (j *Justification) Hash(s abstract.Suite) []byte {
+func (j *Justification) Hash(s crypto.Suite) []byte {
 	h := s.Hash()
 	h.Write([]byte("justification"))
 	h.Write(j.SessionID)

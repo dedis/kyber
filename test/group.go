@@ -1,22 +1,22 @@
 package test
 
 import (
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/random"
+	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/util/random"
 )
 
-// A generic benchmark suite for abstract groups.
+// A generic benchmark suite for crypto.groups.
 type GroupBench struct {
-	g abstract.Group
+	g crypto.Group
 
 	// Random secrets and points for testing
-	x, y abstract.Scalar
-	X, Y abstract.Point
+	x, y crypto.Scalar
+	X, Y crypto.Point
 	xe   []byte // encoded Scalar
 	Xe   []byte // encoded Point
 }
 
-func NewGroupBench(g abstract.Group) *GroupBench {
+func NewGroupBench(g crypto.Group) *GroupBench {
 	var gb GroupBench
 	gb.g = g
 	gb.x = g.Scalar().Pick(random.Stream)
