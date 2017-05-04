@@ -129,8 +129,8 @@ func (p *PriPoly) Commit(b abstract.Point) *PubPoly {
 	return &PubPoly{p.g, b, commits}
 }
 
-// Mul multiples p  and p2 together. The result is a polynomial of the sum of
-// the two degrees of p and p2. NOTE: it does not check for null coefficients
+// Mul multiples p  and q together. The result is a polynomial of the sum of
+// the two degrees of p and q. NOTE: it does not check for null coefficients
 // after the multiplication, so the degree of the polynomial is "always" as
 // described above. This is only to use in secret sharing schemes, and is not to
 // be considered a general polynomial manipulation routine.
@@ -204,8 +204,8 @@ func xMinusConst(g abstract.Group, c abstract.Scalar) *PriPoly {
 }
 
 // RecoverPriPoly takes a list of shares and the parameters t and n to
-// reconstruct the secret polynomial completely,i.e. all private coefficients.
-// It is up to the caller to make sure there is enough shares to correctly
+// reconstruct the secret polynomial completely, i.e., all private coefficients.
+// It is up to the caller to make sure there are enough shares to correctly
 // re-construct the polynomial. There must be at least t shares.
 func RecoverPriPoly(g abstract.Group, shares []*PriShare, t, n int) (*PriPoly, error) {
 	x := xScalar(g, shares, t, n)
