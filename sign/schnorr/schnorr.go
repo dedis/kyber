@@ -7,13 +7,14 @@ import (
 	"fmt"
 
 	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/sign"
 	"github.com/dedis/crypto/util/random"
 )
 
 // Schnorr creates a Schnorr signature from a msg and a private key. This
 // signature can be verified with VerifySchnorr. It's also a valid EdDSA
 // signature.
-func Schnorr(suite crypto.Suite, private crypto.Scalar, msg []byte) ([]byte, error) {
+func Schnorr(suite sign.Suite, private crypto.Scalar, msg []byte) ([]byte, error) {
 	// create random secret k and public point commitment R
 	k := suite.Scalar().Pick(random.Stream)
 	R := suite.Point().Mul(nil, k)
@@ -41,10 +42,10 @@ func Schnorr(suite crypto.Suite, private crypto.Scalar, msg []byte) ([]byte, err
 }
 
 // VerifySchnorr verifies a given Schnorr signature. It returns nil iff the
-// given signature is valid.  NOTE: this signature scheme is malleable because
+// given signature is valid.  NOTE XXX TODO: this signature scheme is malleable because
 // the response's unmarshalling is done directly into a big.Int modulo (see
 // nist.Int).
-func VerifySchnorr(suite crypto.Suite, public crypto.Point, msg, sig []byte) error {
+func VerifySchnorr(suite sign.Suite, public crypto.Point, msg, sig []byte) error {
 	R := suite.Point()
 	s := suite.Scalar()
 	pointSize := R.MarshalSize()
@@ -78,7 +79,7 @@ func VerifySchnorr(suite crypto.Suite, public crypto.Point, msg, sig []byte) err
 	return nil
 }
 
-func hash(suite crypto.Suite, public, r crypto.Point, msg []byte) (crypto.Scalar, error) {
+func hash(suite sign.Suite, public, r crypto.Point, msg []byte) (crypto.Scalar, error) {
 	h := sha512.New()
 	if _, err := r.MarshalTo(h); err != nil {
 		return nil, err

@@ -40,6 +40,7 @@ import (
 	"fmt"
 
 	"github.com/dedis/crypto"
+	"github.com/dedis/crypto/sign"
 	"github.com/dedis/crypto/util/random"
 	//own "github.com/nikkolasg/learning/crypto/util"
 )
@@ -69,7 +70,7 @@ import (
 // CoSi struct. You can also give the full mask directly with SetMask().
 type CoSi struct {
 	// Suite used
-	suite crypto.Suite
+	suite sign.Suite
 	// mask is the mask used to select which signers participated in this round
 	// or not. All code regarding the mask is directly inspired from
 	// github.com/bford/golang-x-crypto/ed25519/cosi code.
@@ -100,7 +101,7 @@ type CoSi struct {
 // have to set the mask using `SetMask` method. By default, all participants are
 // designated as participating. If you wish to specify which co-signers are
 // participating, use NewCosiWithMask
-func NewCosi(suite crypto.Suite, private crypto.Scalar, publics []crypto.Point) *CoSi {
+func NewCosi(suite sign.Suite, private crypto.Scalar, publics []crypto.Point) *CoSi {
 	cosi := &CoSi{
 		suite:   suite,
 		private: private,
@@ -229,7 +230,7 @@ func (c *CoSi) VerifyResponses(aggregatedPublic crypto.Point) error {
 // struct. Publics is the WHOLE list of publics keys, the mask at the end of the
 // signature will take care of removing the indivual public keys that did not
 // participate
-func VerifySignature(suite crypto.Suite, publics []crypto.Point, message, sig []byte) error {
+func VerifySignature(suite sign.Suite, publics []crypto.Point, message, sig []byte) error {
 	aggCommitBuff := sig[:32]
 	aggCommit := suite.Point()
 	if err := aggCommit.UnmarshalBinary(aggCommitBuff); err != nil {
@@ -329,11 +330,11 @@ type mask struct {
 	mask      []byte
 	publics   []crypto.Point
 	aggPublic crypto.Point
-	suite     crypto.Suite
+	suite     sign.Suite
 }
 
 // newMask returns a new mask to use with the cosigning with all cosigners enabled
-func newMask(suite crypto.Suite, publics []crypto.Point) *mask {
+func newMask(suite sign.Suite, publics []crypto.Point) *mask {
 	// Start with an all-disabled participation mask, then set it correctly
 	cm := &mask{
 		publics: publics,
