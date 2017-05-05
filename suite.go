@@ -37,7 +37,7 @@ type Suite interface {
 	// Fixed-length binary encoding for all crypto objects
 	Encoding
 
-	// Generic constructor to instantiate any crypto.interface type
+	// Generic constructor to instantiate any abstract interface type
 	// supported by this suite: at least Cipher, Hash, Point, Scalar.
 	Constructor
 
