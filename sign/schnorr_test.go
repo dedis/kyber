@@ -3,10 +3,10 @@ package sign
 import (
 	"testing"
 
-	"github.com/dedis/crypto/config"
-	"github.com/dedis/crypto/ed25519"
-	"github.com/dedis/crypto/eddsa"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/dedis/crypto.v0/config"
+	"gopkg.in/dedis/crypto.v0/ed25519"
+	"gopkg.in/dedis/crypto.v0/eddsa"
 )
 
 func TestSchnorrSignature(t *testing.T) {

@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/random"
+	"gopkg.in/dedis/crypto.v0/abstract"
+	"gopkg.in/dedis/crypto.v0/random"
 )
 
 // Schnorr creates a Schnorr signature from a msg and a private key. This
