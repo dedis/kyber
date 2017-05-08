@@ -1,16 +1,13 @@
 package edwards25519
 
 import (
-	"crypto/cipher"
 	"crypto/sha256"
-	"crypto/sha512"
 	"hash"
 	"io"
 	"reflect"
 
 	"github.com/dedis/crypto"
 	"github.com/dedis/crypto/cipher/sha3"
-	"github.com/dedis/crypto/util/random"
 )
 
 // This structure is not removed so this brings the questions of naming and
@@ -47,22 +44,6 @@ func (s *suiteEd25519) Write(w io.Writer, objs ...interface{}) error {
 
 func (s *suiteEd25519) New(t reflect.Type) interface{} {
 	return crypto.SuiteNew(s, t)
-}
-
-// NewKey returns a formatted Ed25519 key (avoiding subgroup attack by requiring
-// it to be a multiple of 8)
-func (s *suiteEd25519) NewKey(stream cipher.Stream) crypto.Scalar {
-	if stream == nil {
-		stream = random.Stream
-	}
-	buffer := random.NonZeroBytes(32, stream)
-	scalar := sha512.Sum512(buffer)
-	scalar[0] &= 0xf8
-	scalar[31] &= 0x3f
-	scalar[31] |= 0x40
-
-	secret := s.Scalar().SetBytes(scalar[:32])
-	return secret
 }
 
 // Ciphersuite based on AES-128, SHA-256, and the Ed25519 curve.

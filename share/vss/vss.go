@@ -44,6 +44,9 @@ import (
 	"github.com/dedis/protobuf"
 )
 
+// NOTE: This suite is almost the same as the one defined in abstract/group
+// => again another place where code is repeated and adds a new abstraction to
+// take care of.
 type Suite interface {
 	crypto.Group
 	Cipher(key []byte, options ...interface{}) crypto.Cipher

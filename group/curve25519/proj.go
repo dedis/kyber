@@ -8,6 +8,7 @@ import (
 	"github.com/dedis/crypto"
 	"github.com/dedis/crypto/group/mod"
 	"github.com/dedis/crypto/util/encoding"
+	"github.com/dedis/crypto/util/random"
 )
 
 type projPoint struct {
@@ -244,6 +245,13 @@ type ProjectiveCurve struct {
 	curve           // generic Edwards curve functionality
 	null  projPoint // Constant identity/null point (0,1)
 	base  projPoint // Standard base point
+}
+
+func (p *ProjectiveCurve) NewKey(rand cipher.Stream) crypto.Scalar {
+	if rand == nil {
+		rand = random.Stream
+	}
+	return p.Scalar().Pick(rand)
 }
 
 // Create a new Point on this curve.

@@ -11,6 +11,12 @@ import (
 	"github.com/dedis/crypto/group/nist"
 )
 
+type Suite interface {
+	crypto.Group
+	Cipher(key []byte, options ...interface{}) crypto.Cipher
+	crypto.Encoding
+}
+
 // A basic, verifiable signature
 type basicSig struct {
 	C crypto.Scalar // challenge
@@ -18,29 +24,29 @@ type basicSig struct {
 }
 
 // Returns a secret that depends on on a message and a point
-func hashSchnorr(suite crypto.Suite, message []byte, p crypto.Point) crypto.Scalar {
+func hashSchnorr(group Suite, message []byte, p crypto.Point) crypto.Scalar {
 	pb, _ := p.MarshalBinary()
-	c := suite.Cipher(pb)
+	c := group.Cipher(pb)
 	c.Message(nil, nil, message)
-	return suite.Scalar().Pick(c)
+	return group.Scalar().Pick(c)
 }
 
 // This simplified implementation of Schnorr Signatures is based on
 // crypto/anon/sig.go
 // The ring structure is removed and
 // The anonimity set is reduced to one public key = no anonimity
-func SchnorrSign(suite crypto.Suite, random cipher.Stream, message []byte,
+func SchnorrSign(group Suite, random cipher.Stream, message []byte,
 	privateKey crypto.Scalar) []byte {
 
 	// Create random secret v and public point commitment T
-	v := suite.Scalar().Pick(random)
-	T := suite.Point().Mul(nil, v)
+	v := group.Scalar().Pick(random)
+	T := group.Point().Mul(nil, v)
 
 	// Create challenge c based on message and T
-	c := hashSchnorr(suite, message, T)
+	c := hashSchnorr(group, message, T)
 
 	// Compute response r = v - x*c
-	r := suite.Scalar()
+	r := group.Scalar()
 	r.Mul(privateKey, c).Sub(v, r)
 
 	// Return verifiable signature {c, r}
@@ -48,17 +54,17 @@ func SchnorrSign(suite crypto.Suite, random cipher.Stream, message []byte,
 	// And check that hashElgamal for T and the message == c
 	buf := bytes.Buffer{}
 	sig := basicSig{c, r}
-	suite.Write(&buf, &sig)
+	group.Write(&buf, &sig)
 	return buf.Bytes()
 }
 
-func SchnorrVerify(suite crypto.Suite, message []byte, publicKey crypto.Point,
+func SchnorrVerify(group Suite, message []byte, publicKey crypto.Point,
 	signatureBuffer []byte) error {
 
 	// Decode the signature
 	buf := bytes.NewBuffer(signatureBuffer)
 	sig := basicSig{}
-	if err := suite.Read(buf, &sig); err != nil {
+	if err := group.Read(buf, &sig); err != nil {
 		return err
 	}
 	r := sig.R
@@ -66,13 +72,13 @@ func SchnorrVerify(suite crypto.Suite, message []byte, publicKey crypto.Point,
 
 	// Compute base**(r + x*c) == T
 	var P, T crypto.Point
-	P = suite.Point()
-	T = suite.Point()
+	P = group.Point()
+	T = group.Point()
 	T.Add(T.Mul(nil, r), P.Mul(publicKey, c))
 
 	// Verify that the hash based on the message and T
 	// matches the challange c from the signature
-	c = hashSchnorr(suite, message, T)
+	c = hashSchnorr(group, message, T)
 	if !c.Equal(sig.C) {
 		return errors.New("invalid signature")
 	}
@@ -83,20 +89,20 @@ func SchnorrVerify(suite crypto.Suite, message []byte, publicKey crypto.Point,
 // Example of using Schnorr
 func ExampleSchnorr() {
 	// Crypto setup
-	suite := nist.NewAES128SHA256P256()
-	rand := suite.Cipher([]byte("example"))
+	group := nist.NewAES128SHA256P256()
+	rand := group.Cipher([]byte("example"))
 
 	// Create a public/private keypair (X,x)
-	x := suite.Scalar().Pick(rand) // create a private key x
-	X := suite.Point().Mul(nil, x) // corresponding public key X
+	x := group.Scalar().Pick(rand) // create a private key x
+	X := group.Point().Mul(nil, x) // corresponding public key X
 
 	// Generate the signature
 	M := []byte("Hello World!") // message we want to sign
-	sig := SchnorrSign(suite, rand, M, x)
+	sig := SchnorrSign(group, rand, M, x)
 	fmt.Print("Signature:\n" + hex.Dump(sig))
 
 	// Verify the signature against the correct message
-	err := SchnorrVerify(suite, M, X, sig)
+	err := SchnorrVerify(group, M, X, sig)
 	if err != nil {
 		panic(err.Error())
 	}

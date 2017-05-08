@@ -6,26 +6,26 @@ import (
 	"github.com/dedis/crypto/util/random"
 )
 
-func ElGamalEncrypt(suite crypto.Suite, pubkey crypto.Point, message []byte) (
+func ElGamalEncrypt(group crypto.Group, pubkey crypto.Point, message []byte) (
 	K, C crypto.Point, remainder []byte) {
 
 	// Embed the message (or as much of it as will fit) into a curve point.
-	M, remainder := suite.Point().Pick(message, random.Stream)
+	M, remainder := group.Point().Pick(message, random.Stream)
 
 	// ElGamal-encrypt the point to produce ciphertext (K,C).
-	k := suite.Scalar().Pick(random.Stream) // ephemeral private key
-	K = suite.Point().Mul(nil, k)           // ephemeral DH public key
-	S := suite.Point().Mul(pubkey, k)       // ephemeral DH shared secret
+	k := group.Scalar().Pick(random.Stream) // ephemeral private key
+	K = group.Point().Mul(nil, k)           // ephemeral DH public key
+	S := group.Point().Mul(pubkey, k)       // ephemeral DH shared secret
 	C = S.Add(S, M)                         // message blinded with secret
 	return
 }
 
-func ElGamalDecrypt(suite crypto.Suite, prikey crypto.Scalar, K, C crypto.Point) (
+func ElGamalDecrypt(group crypto.Group, prikey crypto.Scalar, K, C crypto.Point) (
 	message []byte, err error) {
 
 	// ElGamal-decrypt the ciphertext (K,C) to reproduce the message.
-	S := suite.Point().Mul(K, prikey) // regenerate shared secret
-	M := suite.Point().Sub(C, S)      // use to un-blind the message
+	S := group.Point().Mul(K, prikey) // regenerate shared secret
+	M := group.Point().Sub(C, S)      // use to un-blind the message
 	message, err = M.Data()           // extract the embedded data
 	return
 }
@@ -54,18 +54,18 @@ see for example anon.Encrypt, which encrypts a message for
 one of several possible receivers forming an explicit anonymity set.
 */
 func Example_elGamalEncryption() {
-	suite := nist.NewAES128SHA256P256()
+	group := nist.NewAES128SHA256P256()
 
 	// Create a public/private keypair
-	a := suite.Scalar().Pick(random.Stream) // Alice's private key
-	A := suite.Point().Mul(nil, a)          // Alice's public key
+	a := group.Scalar().Pick(random.Stream) // Alice's private key
+	A := group.Point().Mul(nil, a)          // Alice's public key
 
 	// ElGamal-encrypt a message using the public key.
 	m := []byte("The quick brown fox")
-	K, C, _ := ElGamalEncrypt(suite, A, m)
+	K, C, _ := ElGamalEncrypt(group, A, m)
 
 	// Decrypt it using the corresponding private key.
-	mm, err := ElGamalDecrypt(suite, a, K, C)
+	mm, err := ElGamalDecrypt(group, a, K, C)
 
 	// Make sure it worked!
 	if err != nil {

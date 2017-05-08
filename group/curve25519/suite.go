@@ -49,7 +49,7 @@ func (s *suiteEd25519) NewKey(rand cipher.Stream) crypto.Scalar {
 }
 
 // Ciphersuite based on AES-128, SHA-256, and the Ed25519 curve.
-func NewAES128SHA256Ed25519(fullGroup bool) crypto.Suite {
+func NewAES128SHA256Ed25519(fullGroup bool) *suiteEd25519 {
 	suite := new(suiteEd25519)
 	suite.Init(Param25519(), fullGroup)
 	return suite
