@@ -258,7 +258,7 @@ var benchSig1Ed25519 = benchGenSigEd25519(1)
 var benchSig10Ed25519 = benchGenSigEd25519(10)
 var benchSig100Ed25519 = benchGenSigEd25519(100)
 
-func benchGenKeys(suite crypto.Suite,
+func benchGenKeys(g crypto.Group,
 	nkeys int) ([]crypto.Point, crypto.Scalar) {
 
 	rand := random.Stream
@@ -266,12 +266,12 @@ func benchGenKeys(suite crypto.Suite,
 	// Create an anonymity set of random "public keys"
 	X := make([]crypto.Point, nkeys)
 	for i := range X { // pick random points
-		X[i], _ = suite.Point().Pick(nil, rand)
+		X[i], _ = g.Point().Pick(nil, rand)
 	}
 
 	// Make just one of them an actual public/private keypair (X[mine],x)
-	x := suite.Scalar().Pick(rand)
-	X[0] = suite.Point().Mul(nil, x)
+	x := g.Scalar().Pick(rand)
+	X[0] = g.Point().Mul(nil, x)
 
 	return X, x
 }
@@ -298,7 +298,7 @@ func benchGenSigEd25519(nkeys int) []byte {
 		0, benchPriEd25519)
 }
 
-func benchSign(suite crypto.Suite, pub []crypto.Point, pri crypto.Scalar,
+func benchSign(suite Suite, pub []crypto.Point, pri crypto.Scalar,
 	niter int) {
 	rand := suite.Cipher([]byte("example"))
 	for i := 0; i < niter; i++ {
@@ -306,7 +306,7 @@ func benchSign(suite crypto.Suite, pub []crypto.Point, pri crypto.Scalar,
 	}
 }
 
-func benchVerify(suite crypto.Suite, pub []crypto.Point,
+func benchVerify(suite Suite, pub []crypto.Point,
 	sig []byte, niter int) {
 	for i := 0; i < niter; i++ {
 		tag, err := Verify(suite, benchMessage, Set(pub), nil, sig)

@@ -9,7 +9,7 @@ import (
 )
 
 // XXX belongs in crypto package?
-func keyPair(suite crypto.Suite, rand cipher.Stream,
+func keyPair(suite Suite, rand cipher.Stream,
 	hide bool) (crypto.Point, crypto.Scalar, []byte) {
 
 	x := suite.Scalar().Pick(rand)
@@ -29,7 +29,7 @@ func keyPair(suite crypto.Suite, rand cipher.Stream,
 	}
 }
 
-func header(suite crypto.Suite, X crypto.Point, x crypto.Scalar,
+func header(suite Suite, X crypto.Point, x crypto.Scalar,
 	Xb, xb []byte, anonymitySet Set) []byte {
 
 	//fmt.Printf("Xb %s\nxb %s\n",
@@ -52,7 +52,7 @@ func header(suite crypto.Suite, X crypto.Point, x crypto.Scalar,
 
 // Create and encrypt a fresh key decryptable only by the given receivers.
 // Returns the secret key and the ciphertext.
-func encryptKey(suite crypto.Suite, rand cipher.Stream,
+func encryptKey(suite Suite, rand cipher.Stream,
 	anonymitySet Set, hide bool) (k, c []byte) {
 
 	// Choose a keypair and encode its representation
@@ -65,7 +65,7 @@ func encryptKey(suite crypto.Suite, rand cipher.Stream,
 
 // Decrypt and verify a key encrypted via encryptKey.
 // On success, returns the key and the length of the decrypted header.
-func decryptKey(suite crypto.Suite, ciphertext []byte, anonymitySet Set,
+func decryptKey(suite Suite, ciphertext []byte, anonymitySet Set,
 	mine int, privateKey crypto.Scalar,
 	hide bool) ([]byte, int, error) {
 
@@ -141,10 +141,10 @@ func decryptKey(suite crypto.Suite, ciphertext []byte, anonymitySet Set,
 // Encrypt will produce a uniformly random-looking byte-stream,
 // which reveals no metadata other than message length
 // to anyone unable to decrypt the message.
-// The provided crypto.Suite must support
+// The provided Suite must support
 // uniform-representation encoding of public keys for this to work.
 //
-func Encrypt(suite crypto.Suite, rand cipher.Stream, message []byte,
+func Encrypt(suite Suite, rand cipher.Stream, message []byte,
 	anonymitySet Set, hide bool) []byte {
 
 	xb, hdr := encryptKey(suite, rand, anonymitySet, hide)
@@ -180,7 +180,7 @@ func Encrypt(suite crypto.Suite, rand cipher.Stream, message []byte,
 // that is, it is infeasible for a sender to construct any ciphertext
 // that will be accepted by the receiver without knowing the plaintext.
 //
-func Decrypt(suite crypto.Suite, ciphertext []byte, anonymitySet Set,
+func Decrypt(suite Suite, ciphertext []byte, anonymitySet Set,
 	mine int, privateKey crypto.Scalar, hide bool) ([]byte, error) {
 
 	// Decrypt and check the encrypted key-header.

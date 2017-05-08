@@ -21,7 +21,7 @@ import (
 // which are not directly usable in multiparty contexts.
 //
 type SKEME struct {
-	suite    crypto.Suite
+	suite    Suite
 	hide     bool
 	lpri     PriKey        // local private key
 	rpub     Set           // remote public key
@@ -38,7 +38,7 @@ type SKEME struct {
 }
 
 // Initialize...
-func (sk *SKEME) Init(suite crypto.Suite, rand cipher.Stream,
+func (sk *SKEME) Init(suite Suite, rand cipher.Stream,
 	lpri PriKey, rpub Set, hide bool) {
 	sk.suite = suite
 	sk.hide = hide

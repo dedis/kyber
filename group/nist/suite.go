@@ -46,7 +46,7 @@ func (s *suite128) NewKey(rand cipher.Stream) crypto.Scalar {
 }
 
 // Ciphersuite based on AES-128, SHA-256, and the NIST P-256 elliptic curve.
-func NewAES128SHA256P256() crypto.Suite {
+func NewAES128SHA256P256() *suite128 {
 	suite := new(suite128)
 	suite.p256.Init()
 	return suite

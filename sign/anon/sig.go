@@ -21,7 +21,7 @@ type lSig struct {
 	Tag crypto.Point
 }
 
-func signH1pre(suite crypto.Suite, linkScope []byte, linkTag crypto.Point,
+func signH1pre(suite Suite, linkScope []byte, linkTag crypto.Point,
 	message []byte) crypto.Cipher {
 	H1pre := suite.Cipher(message) // m
 	if linkScope != nil {
@@ -32,7 +32,7 @@ func signH1pre(suite crypto.Suite, linkScope []byte, linkTag crypto.Point,
 	return H1pre
 }
 
-func signH1(suite crypto.Suite, H1pre crypto.Cipher, PG, PH crypto.Point) crypto.Scalar {
+func signH1(suite Suite, H1pre crypto.Cipher, PG, PH crypto.Point) crypto.Scalar {
 	H1 := H1pre.Clone()
 	PGb, _ := PG.MarshalBinary()
 	H1.Write(PGb)
@@ -107,7 +107,7 @@ func signH1(suite crypto.Suite, H1pre crypto.Cipher, PG, PH crypto.Point) crypto
 // or that members may be persuaded or coerced into revealing whether or not
 // they produced a signature of interest.
 //
-func Sign(suite crypto.Suite, random cipher.Stream, message []byte,
+func Sign(suite Suite, random cipher.Stream, message []byte,
 	anonymitySet Set, linkScope []byte, mine int, privateKey crypto.Scalar) []byte {
 
 	// Note that Rivest's original ring construction directly supports
@@ -194,7 +194,7 @@ func Sign(suite crypto.Suite, random cipher.Stream, message []byte,
 // If the signature is a valid unlinkable signature (linkScope == nil),
 // returns an empty but non-nil byte-slice instead of a linkage tag on success.
 // Returns a nil linkage tag and an error if the signature is invalid.
-func Verify(suite crypto.Suite, message []byte, anonymitySet Set,
+func Verify(suite Suite, message []byte, anonymitySet Set,
 	linkScope []byte, signatureBuffer []byte) ([]byte, error) {
 
 	n := len(anonymitySet)            // anonymity set size

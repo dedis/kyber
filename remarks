@@ -1,0 +1,12 @@
+edwards25519.suite.go file
+test/test.go
+proof/
+
+: proof/ 
+// NOTE This suite is the same as the global one. Writing it is not an easy when you
+// don't know what methods you want to have (i.e.  the same set of methods that
+// edwards25519 implements etc).
+// dleq.go uses this interface 
+
+
+

@@ -11,7 +11,7 @@ import (
 	"github.com/dedis/crypto/util/random"
 )
 
-var suite = edwards25519.NewAES128SHA256Ed25519(false)
+var group = new(edwards25519.Curve)
 
 // EdDSA implements the EdDSA signature algorithm according to
 // the RFC https://tools.ietf.org/html/draft-josefsson-eddsa-ed25519-02
@@ -35,8 +35,8 @@ func NewEdDSA(stream cipher.Stream) *EdDSA {
 
 	scalar := hashSeed(buffer)
 
-	secret := suite.Scalar().SetBytes(scalar[:32])
-	public := suite.Point().Mul(nil, secret)
+	secret := group.Scalar().SetBytes(scalar[:32])
+	public := group.Point().Mul(nil, secret)
 
 	return &EdDSA{
 		seed:   buffer,
@@ -78,8 +78,8 @@ func (e *EdDSA) UnmarshalBinary(buff []byte) error {
 	e.seed = buff[:32]
 	scalar := hashSeed(e.seed)
 	e.prefix = scalar[32:]
-	e.Secret = suite.Scalar().SetBytes(scalar[:32])
-	e.Public = suite.Point().Mul(nil, e.Secret)
+	e.Secret = group.Scalar().SetBytes(scalar[:32])
+	e.Public = group.Point().Mul(nil, e.Secret)
 	return nil
 }
 
@@ -92,8 +92,8 @@ func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 	hash.Write(msg)
 
 	// deterministic random secret and its commit
-	r := suite.Scalar().SetBytes(hash.Sum(nil))
-	R := suite.Point().Mul(nil, r)
+	r := group.Scalar().SetBytes(hash.Sum(nil))
+	R := group.Point().Mul(nil, r)
 
 	// challenge
 	// H( R || Public || Msg)
@@ -111,11 +111,11 @@ func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 	hash.Write(Abuff)
 	hash.Write(msg)
 
-	h := suite.Scalar().SetBytes(hash.Sum(nil))
+	h := group.Scalar().SetBytes(hash.Sum(nil))
 
 	// response
 	// s = r + h * s
-	s := suite.Scalar().Mul(e.Secret, h)
+	s := group.Scalar().Mul(e.Secret, h)
 	s.Add(r, s)
 
 	sBuff, err := s.MarshalBinary()
@@ -142,12 +142,12 @@ func Verify(public crypto.Point, msg, sig []byte) error {
 		return errors.New("signature length invalid")
 	}
 
-	R := suite.Point()
+	R := group.Point()
 	if err := R.UnmarshalBinary(sig[:32]); err != nil {
 		return fmt.Errorf("got R invalid point: %s", err)
 	}
 
-	s := suite.Scalar()
+	s := group.Scalar()
 	s.UnmarshalBinary(sig[32:])
 
 	// reconstruct h = H(R || Public || Msg)
@@ -160,11 +160,11 @@ func Verify(public crypto.Point, msg, sig []byte) error {
 	hash.Write(Pbuff)
 	hash.Write(msg)
 
-	h := suite.Scalar().SetBytes(hash.Sum(nil))
+	h := group.Scalar().SetBytes(hash.Sum(nil))
 	// reconstruct S == k*A + R
-	S := suite.Point().Mul(nil, s)
-	hA := suite.Point().Mul(public, h)
-	RhA := suite.Point().Add(R, hA)
+	S := group.Point().Mul(nil, s)
+	hA := group.Point().Mul(public, h)
+	RhA := group.Point().Add(R, hA)
 
 	if !RhA.Equal(S) {
 		return errors.New("reconstructed S is not equal to signature")

@@ -14,9 +14,15 @@ import (
 	"crypto/subtle"
 	"encoding/binary"
 	"errors"
+	"hash"
 
 	"github.com/dedis/crypto"
 )
+
+type Suite interface {
+	crypto.Group
+	Hash() hash.Hash
+}
 
 // Some error definitions
 var errorGroups = errors.New("non-matching groups")
@@ -28,7 +34,7 @@ type PriShare struct {
 	V crypto.Scalar // Value of the private share
 }
 
-func (p *PriShare) Hash(s crypto.Suite) []byte {
+func (p *PriShare) Hash(s Suite) []byte {
 	h := s.Hash()
 	p.V.MarshalTo(h)
 	binary.Write(h, binary.LittleEndian, p.I)
@@ -167,7 +173,7 @@ type PubShare struct {
 	V crypto.Point // Value of the public share
 }
 
-func (p *PubShare) Hash(s crypto.Suite) []byte {
+func (p *PubShare) Hash(s Suite) []byte {
 	h := s.Hash()
 	p.V.MarshalTo(h)
 	binary.Write(h, binary.LittleEndian, p.I)

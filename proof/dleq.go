@@ -29,7 +29,7 @@ type DLEQProof struct {
 // and then computes the challenge c = H(xG,xH,vG,vH) and response r = v - cx.
 // Besides the proof, this function also returns the encrypted base points xG
 // and xH.
-func NewDLEQProof(suite crypto.Suite, G crypto.Point, H crypto.Point, x crypto.Scalar) (proof *DLEQProof, xG crypto.Point, xH crypto.Point, err error) {
+func NewDLEQProof(suite Suite, G crypto.Point, H crypto.Point, x crypto.Scalar) (proof *DLEQProof, xG crypto.Point, xH crypto.Point, err error) {
 	// Encrypt base points with secret
 	xG = suite.Point().Mul(G, x)
 	xH = suite.Point().Mul(H, x)
@@ -56,7 +56,7 @@ func NewDLEQProof(suite crypto.Suite, G crypto.Point, H crypto.Point, x crypto.S
 // NewDLEQProofBatch computes lists of NIZK dlog-equality proofs and of
 // encrypted base points xG and xH. Note that the challenge is computed over all
 // input values.
-func NewDLEQProofBatch(suite crypto.Suite, G []crypto.Point, H []crypto.Point, secrets []crypto.Scalar) (proof []*DLEQProof, xG []crypto.Point, xH []crypto.Point, err error) {
+func NewDLEQProofBatch(suite Suite, G []crypto.Point, H []crypto.Point, secrets []crypto.Scalar) (proof []*DLEQProof, xG []crypto.Point, xH []crypto.Point, err error) {
 	if len(G) != len(H) || len(H) != len(secrets) {
 		return nil, nil, nil, errorDifferentLengths
 	}
@@ -101,7 +101,7 @@ func NewDLEQProofBatch(suite crypto.Suite, G []crypto.Point, H []crypto.Point, s
 // The proof is valid if the following two conditions hold:
 //   vG == rG + c(xG)
 //   vH == rH + c(xH)
-func (p *DLEQProof) Verify(suite crypto.Suite, G crypto.Point, H crypto.Point, xG crypto.Point, xH crypto.Point) error {
+func (p *DLEQProof) Verify(suite Suite, G crypto.Point, H crypto.Point, xG crypto.Point, xH crypto.Point) error {
 	rG := suite.Point().Mul(G, p.R)
 	rH := suite.Point().Mul(H, p.R)
 	cxG := suite.Point().Mul(xG, p.C)

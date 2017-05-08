@@ -3,10 +3,17 @@ package test
 import (
 	"bytes"
 	"crypto/cipher"
+	"hash"
 
 	"github.com/dedis/crypto"
 	"github.com/dedis/crypto/util/random"
 )
+
+type Suite interface {
+	crypto.Group
+	Hash() hash.Hash
+	Cipher(key []byte, options ...interface{}) crypto.Cipher
+}
 
 func testEmbed(g crypto.Group, rand cipher.Stream, points *[]crypto.Point,
 	s string) {
@@ -296,11 +303,11 @@ func TestGroup(g crypto.Group) {
 
 // Test two group implementations that are supposed to be equivalent,
 // and compare their results.
-func TestCompareGroups(suite crypto.Suite, g1, g2 crypto.Group) {
+func TestCompareGroups(fn func(key []byte, options ...interface{}) crypto.Cipher, g1, g2 crypto.Group) {
 
 	// Produce test results from the same pseudorandom seed
-	r1 := testGroup(g1, suite.Cipher(crypto.NoKey))
-	r2 := testGroup(g2, suite.Cipher(crypto.NoKey))
+	r1 := testGroup(g1, fn(crypto.NoKey))
+	r2 := testGroup(g2, fn(crypto.NoKey))
 
 	// Compare resulting Points
 	for i := range r1 {
@@ -316,7 +323,7 @@ func TestCompareGroups(suite crypto.Suite, g1, g2 crypto.Group) {
 }
 
 // Apply a standard set of validation tests to a ciphersuite.
-func TestSuite(suite crypto.Suite) {
+func TestSuite(suite Suite) {
 
 	// Try hashing something
 	h := suite.Hash()

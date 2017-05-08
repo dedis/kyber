@@ -7,9 +7,24 @@ package proof
 
 import (
 	"errors"
+	"hash"
 
 	"github.com/dedis/crypto"
 )
+
+// NOTE This suite is the same as the global one. Writing it is not an easy when you
+// don't know what methods you want to have (i.e.  the same set of methods that
+// edwards25519 implements etc).
+// dleq.go uses this interface while it does not need it all of it, so we're back to same
+// problem as before. Solution is to move it out to an external package, and
+// that brings an additional amount of work for "giving out to a package only
+// what it needs".
+type Suite interface {
+	crypto.Group
+	Hash() hash.Hash
+	Cipher(key []byte, options ...interface{}) crypto.Cipher
+	crypto.Encoding
+}
 
 // XXX simplify using the reflection API?
 // just pass a 'struct' with the Point and Scalar variables?
@@ -54,11 +69,11 @@ For now we simply require expressions to be in the appropriate form.
 type Predicate interface {
 
 	// Create a Prover proving the statement this Predicate represents.
-	Prover(suite crypto.Suite, secrets map[string]crypto.Scalar,
+	Prover(suite Suite, secrets map[string]crypto.Scalar,
 		points map[string]crypto.Point, choice map[Predicate]int) Prover
 
 	// Create a Verifier for the statement this Predicate represents.
-	Verifier(suite crypto.Suite, points map[string]crypto.Point) Verifier
+	Verifier(suite Suite, points map[string]crypto.Point) Verifier
 
 	// Produce a human-readable string representation of the predicate.
 	String() string
@@ -93,7 +108,7 @@ const (
 
 // Internal prover/verifier state
 type proof struct {
-	s crypto.Suite
+	s Suite
 
 	nsvars     int            // number of Scalar variables
 	npvars     int            // number of Point variables
@@ -308,13 +323,13 @@ func (rp *repPred) verify(prf *proof, c crypto.Scalar, pr []crypto.Scalar) error
 	return nil
 }
 
-func (rp *repPred) Prover(suite crypto.Suite, secrets map[string]crypto.Scalar,
+func (rp *repPred) Prover(suite Suite, secrets map[string]crypto.Scalar,
 	points map[string]crypto.Point,
 	choice map[Predicate]int) Prover {
 	return proof{}.init(suite, rp).prover(rp, secrets, points, choice)
 }
 
-func (rp *repPred) Verifier(suite crypto.Suite,
+func (rp *repPred) Verifier(suite Suite,
 	points map[string]crypto.Point) Verifier {
 	return proof{}.init(suite, rp).verifier(rp, points)
 }
@@ -418,13 +433,13 @@ func (ap *andPred) verify(prf *proof, c crypto.Scalar, pr []crypto.Scalar) error
 	return nil
 }
 
-func (ap *andPred) Prover(suite crypto.Suite, secrets map[string]crypto.Scalar,
+func (ap *andPred) Prover(suite Suite, secrets map[string]crypto.Scalar,
 	points map[string]crypto.Point,
 	choice map[Predicate]int) Prover {
 	return proof{}.init(suite, ap).prover(ap, secrets, points, choice)
 }
 
-func (ap *andPred) Verifier(suite crypto.Suite,
+func (ap *andPred) Verifier(suite Suite,
 	points map[string]crypto.Point) Verifier {
 	return proof{}.init(suite, ap).verifier(ap, points)
 }
@@ -602,13 +617,13 @@ func (op *orPred) verify(prf *proof, c crypto.Scalar, pr []crypto.Scalar) error 
 	return nil
 }
 
-func (op *orPred) Prover(suite crypto.Suite, secrets map[string]crypto.Scalar,
+func (op *orPred) Prover(suite Suite, secrets map[string]crypto.Scalar,
 	points map[string]crypto.Point,
 	choice map[Predicate]int) Prover {
 	return proof{}.init(suite, op).prover(op, secrets, points, choice)
 }
 
-func (op *orPred) Verifier(suite crypto.Suite,
+func (op *orPred) Verifier(suite Suite,
 	points map[string]crypto.Point) Verifier {
 	return proof{}.init(suite, op).verifier(op, points)
 }
@@ -628,7 +643,7 @@ func (p *Prover) Linear(a1,a2,b crypto.Scalar, x1,x2 PriVar) {
 }
 */
 
-func (prf proof) init(suite crypto.Suite, pred Predicate) *proof {
+func (prf proof) init(suite Suite, pred Predicate) *proof {
 	prf.s = suite
 
 	// Enumerate all the variables in a consistent order.

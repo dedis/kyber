@@ -11,7 +11,7 @@ import (
 )
 
 // dhExchange computes the shared key from a private key and a public key
-func dhExchange(suite crypto.Suite, ownPrivate crypto.Scalar, remotePublic crypto.Point) crypto.Point {
+func dhExchange(suite Suite, ownPrivate crypto.Scalar, remotePublic crypto.Point) crypto.Point {
 	sk := suite.Point()
 	sk.Mul(remotePublic, ownPrivate)
 	return sk
@@ -40,7 +40,7 @@ func newAEAD(fn func() hash.Hash, preSharedKey crypto.Point, context []byte) (ci
 }
 
 // context returns the context slice to be used when encrypting a share
-func context(suite crypto.Suite, dealer crypto.Point, verifiers []crypto.Point) []byte {
+func context(suite Suite, dealer crypto.Point, verifiers []crypto.Point) []byte {
 	h := suite.Hash()
 	h.Write([]byte("vss-dealer"))
 	dealer.MarshalTo(h)

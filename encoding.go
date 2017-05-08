@@ -315,22 +315,22 @@ func (en *encoder) value(obj interface{}, depth int) error {
 }
 
 // Default implementation of reflective constructor for ciphersuites
-func SuiteNew(s Suite, t reflect.Type) interface{} {
+func SuiteNew(g Group, t reflect.Type) interface{} {
 	switch t {
 	case tScalar:
-		return s.Scalar()
+		return g.Scalar()
 	case tPoint:
-		return s.Point()
+		return g.Point()
 	}
 	return nil
 }
 
 // Default implementation of Encoding interface Read for ciphersuites
-func SuiteRead(s Suite, r io.Reader, objs ...interface{}) error {
+func SuiteRead(s Constructor, r io.Reader, objs ...interface{}) error {
 	return BinaryEncoding{Constructor: s}.Read(r, objs)
 }
 
 // Default implementation of Encoding interface Write for ciphersuites
-func SuiteWrite(s Suite, w io.Writer, objs ...interface{}) error {
+func SuiteWrite(s Constructor, w io.Writer, objs ...interface{}) error {
 	return BinaryEncoding{Constructor: s}.Write(w, objs)
 }
