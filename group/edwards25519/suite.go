@@ -10,7 +10,7 @@ import (
 	"github.com/dedis/crypto/cipher/sha3"
 )
 
-// This structure is not removed so this brings the questions of naming and
+// NOTE: This structure is not removed so this brings the questions of naming and
 // consistency:
 // + what is a suite ? why would we call it a suite in this package and not something else
 // in curve25519 etc ?
