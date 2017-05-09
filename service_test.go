@@ -544,7 +544,7 @@ func (ds *DummyService) NewProtocol(tn *TreeNodeInstance, conf *GenericConfig) (
 }
 
 func (ds *DummyService) Process(env *network.Envelope) {
-	if env.MsgType != dummyMsgType {
+	if !env.MsgType.Equal(dummyMsgType) {
 		ds.link <- false
 		return
 	}

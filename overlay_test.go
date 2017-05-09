@@ -135,7 +135,7 @@ func TestOverlayRosterPropagation(t *testing.T) {
 		t.Fatal("Couldn't send message to h2:", err)
 	}
 	roster := <-proc.sendRoster
-	if roster.ID != RosterID(uuid.Nil) {
+	if !roster.ID.IsNil() {
 		t.Fatal("List should be empty")
 	}
 
@@ -146,7 +146,7 @@ func TestOverlayRosterPropagation(t *testing.T) {
 		t.Fatal("Couldn't send message to h2:", err)
 	}
 	msg := <-proc.sendRoster
-	if msg.ID != el.ID {
+	if !msg.ID.Equal(el.ID) {
 		t.Fatal("List should be equal to original list")
 	}
 
@@ -188,7 +188,7 @@ func TestOverlayTreePropagation(t *testing.T) {
 		t.Fatal("Couldn't send message to h2:", err)
 	}
 	msg := <-proc.treeMarshal
-	if msg.RosterID != RosterID(uuid.Nil) {
+	if !msg.RosterID.IsNil() {
 		t.Fatal("List should be empty")
 	}
 
@@ -295,10 +295,10 @@ func TestTokenId(t *testing.T) {
 		RoundID:  RoundID(uuid.NewV1()),
 	}
 	id2 := t2.ID()
-	if uuid.Equal(uuid.UUID(id1), uuid.UUID(id2)) {
+	if id1.Equal(id2) {
 		t.Fatal("Both token are the same")
 	}
-	if !uuid.Equal(uuid.UUID(id1), uuid.UUID(t1.ID())) {
+	if !id1.Equal(t1.ID()) {
 		t.Fatal("Twice the Id of the same token should be equal")
 	}
 	t3 := t1.ChangeTreeNodeID(TreeNodeID(uuid.NewV1()))

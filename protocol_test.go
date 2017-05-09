@@ -106,7 +106,7 @@ func TestProtocolRegistration(t *testing.T) {
 	if !protocols.ProtocolExists(testProtoID) {
 		t.Fatal("Test should exist now")
 	}
-	if ProtocolNameToID(testProtoName) != testProtoID {
+	if !ProtocolNameToID(testProtoName).Equal(testProtoID) {
 		t.Fatal("Not correct translation from string to ID")
 	}
 	require.Equal(t, "", protocols.ProtocolIDToName(ProtocolID(uuid.Nil)))

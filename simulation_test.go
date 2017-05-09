@@ -73,7 +73,7 @@ func TestSimulationLoadSave(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if sc2[0].Tree.ID != sc.Tree.ID {
+	if !sc2[0].Tree.ID.Equal(sc.Tree.ID) {
 		t.Fatal("Tree-id is not correct")
 	}
 	closeAll(sc2)
@@ -96,7 +96,7 @@ func TestSimulationMultipleInstances(t *testing.T) {
 	if len(sc2) != 4 {
 		t.Fatal("We should have 4 local1-hosts but have", len(sc2))
 	}
-	if sc2[0].Server.ServerIdentity.ID == sc2[1].Server.ServerIdentity.ID {
+	if sc2[0].Server.ServerIdentity.ID.Equal(sc2[1].Server.ServerIdentity.ID) {
 		t.Fatal("Hosts are not copies")
 	}
 }

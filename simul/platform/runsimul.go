@@ -89,7 +89,7 @@ func Simulate(serverAddress, simul, monitorAddress string) error {
 		server.RegisterProcessorFunc(simulInitDoneID, func(env *network.Envelope) {
 			wgSimulInit.Done()
 		})
-		if server.ServerIdentity.ID == sc.Tree.Root.ServerIdentity.ID {
+		if server.ServerIdentity.ID.Equal(sc.Tree.Root.ServerIdentity.ID) {
 			log.Lvl2(serverAddress, "is root-node, will start protocol")
 			rootSim = sim
 			rootSC = sc

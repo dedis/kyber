@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -14,19 +13,19 @@ type TestRegisterS struct {
 }
 
 func TestRegister(t *testing.T) {
-	if MessageType(&TestRegisterS{}) != ErrorType {
+	if !MessageType(&TestRegisterS{}).Equal(ErrorType) {
 		t.Fatal("TestRegister should not yet be there")
 	}
 
 	trType := RegisterMessage(&TestRegisterS{})
-	if uuid.Equal(uuid.UUID(trType), uuid.Nil) {
+	if trType.IsNil() {
 		t.Fatal("Couldn't register TestRegister-struct")
 	}
 
-	if MessageType(&TestRegisterS{}) != trType {
+	if !MessageType(&TestRegisterS{}).Equal(trType) {
 		t.Fatal("TestRegister is different now")
 	}
-	if MessageType(TestRegisterS{}) != trType {
+	if !MessageType(TestRegisterS{}).Equal(trType) {
 		t.Fatal("TestRegister is different now")
 	}
 }

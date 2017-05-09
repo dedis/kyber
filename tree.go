@@ -39,14 +39,19 @@ type Tree struct {
 // TreeID uniquely identifies a Tree struct in the onet framework.
 type TreeID uuid.UUID
 
-// Equals returns true if and only if the given TreeID equals the current one.
-func (tId TreeID) Equals(tID2 TreeID) bool {
+// Equal returns true if and only if tID2 equals this TreeID.
+func (tId TreeID) Equal(tID2 TreeID) bool {
 	return uuid.Equal(uuid.UUID(tId), uuid.UUID(tID2))
 }
 
 // String returns a canonical representation of the TreeID.
 func (tId TreeID) String() string {
 	return uuid.UUID(tId).String()
+}
+
+// IsNil returns true iff the TreeID is Nil
+func (tId TreeID) IsNil() bool {
+	return tId.Equal(TreeID(uuid.Nil))
 }
 
 // NewTree creates a new tree using the entityList and the root-node. It
@@ -71,7 +76,7 @@ func NewTreeFromMarshal(buf []byte, el *Roster) (*Tree, error) {
 	if err != nil {
 		return nil, err
 	}
-	if tp != TreeMarshalTypeID {
+	if !tp.Equal(TreeMarshalTypeID) {
 		return nil, errors.New("Didn't receive TreeMarshal-struct")
 	}
 	t, err := pm.(*TreeMarshal).MakeTree(el)
@@ -142,7 +147,7 @@ func (t *Tree) BinaryUnmarshaler(b []byte) error {
 
 // Equal verifies if the given tree is equal
 func (t *Tree) Equal(t2 *Tree) bool {
-	if t.ID != t2.ID || t.Roster.ID != t2.Roster.ID {
+	if !t.ID.Equal(t2.ID) || !t.Roster.ID.Equal(t2.Roster.ID) {
 		log.Lvl4("Ids of trees don't match")
 		return false
 	}
@@ -173,7 +178,7 @@ func (t *Tree) Dump() string {
 // Search searches the Tree for the given TreeNodeID and returns the corresponding TreeNode
 func (t *Tree) Search(tn TreeNodeID) (ret *TreeNode) {
 	found := func(d int, tns *TreeNode) {
-		if tns.ID == tn {
+		if tns.ID.Equal(tn) {
 			ret = tns
 		}
 	}
@@ -227,7 +232,7 @@ func (t *Tree) UsesList() bool {
 	for _, p := range t.Roster.List {
 		found := false
 		for _, n := range nodes {
-			if n.ServerIdentity.ID == p.ID {
+			if n.ServerIdentity.ID.Equal(p.ID) {
 				found = true
 				break
 			}
@@ -301,7 +306,7 @@ func TreeMarshalCopyTree(tr *TreeNode) *TreeMarshal {
 
 // MakeTree creates a tree given an Roster
 func (tm TreeMarshal) MakeTree(el *Roster) (*Tree, error) {
-	if el.ID != tm.RosterID {
+	if !el.ID.Equal(tm.RosterID) {
 		return nil, errors.New("Not correct Roster-Id")
 	}
 	tree := &Tree{
@@ -349,6 +354,16 @@ func (elId RosterID) String() string {
 	return uuid.UUID(elId).String()
 }
 
+// Equal returns true if and only if elID2 equals this RosterID.
+func (elId RosterID) Equal(elID2 RosterID) bool {
+	return uuid.Equal(uuid.UUID(elId), uuid.UUID(elID2))
+}
+
+// IsNil returns true iff the RosterID is Nil
+func (elId RosterID) IsNil() bool {
+	return elId.Equal(RosterID(uuid.Nil))
+}
+
 // RosterTypeID of Roster message as registered in network
 var RosterTypeID = network.RegisterMessage(Roster{})
 
@@ -371,7 +386,7 @@ func NewRoster(ids []*network.ServerIdentity) *Roster {
 // corresponding ServerIdentity.
 func (el *Roster) Search(eID network.ServerIdentityID) (int, *network.ServerIdentity) {
 	for i, e := range el.List {
-		if e.ID == eID {
+		if e.ID.Equal(eID) {
 			return i, e
 		}
 	}
@@ -553,10 +568,14 @@ func (tId TreeNodeID) String() string {
 	return uuid.UUID(tId).String()
 }
 
-// Equal returns true if and only if the given TreeNodeID equals the current
-// one.
+// Equal returns true if and only if the given TreeNodeID equals tId.
 func (tId TreeNodeID) Equal(tID2 TreeNodeID) bool {
 	return uuid.Equal(uuid.UUID(tId), uuid.UUID(tID2))
+}
+
+// IsNil returns true iff the TreeNodID is Nil
+func (tId TreeNodeID) IsNil() bool {
+	return tId.Equal(TreeNodeID(uuid.Nil))
 }
 
 // Name returns a human readable representation of the TreeNode (IP address).
@@ -609,7 +628,7 @@ func (t *TreeNode) IsInTree(tree *Tree) bool {
 	for root.Parent != nil {
 		root = *root.Parent
 	}
-	return tree.Root.ID == root.ID
+	return tree.Root.ID.Equal(root.ID)
 }
 
 // AddChild adds a child to this tree-node.
@@ -620,7 +639,7 @@ func (t *TreeNode) AddChild(c *TreeNode) {
 
 // Equal tests if that node is equal to the given node
 func (t *TreeNode) Equal(t2 *TreeNode) bool {
-	if t.ID != t2.ID || t.ServerIdentity.ID != t2.ServerIdentity.ID {
+	if !t.ID.Equal(t2.ID) || !t.ServerIdentity.ID.Equal(t2.ServerIdentity.ID) {
 		log.Lvl4("TreeNode: ids are not equal")
 		return false
 	}

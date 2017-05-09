@@ -28,7 +28,7 @@ func TestHash(t *testing.T) {
 	hasher.Write(buf)
 	b := hasher.Sum(nil)
 	if !bytes.Equal(b, hashed) {
-		t.Fatal("Hashes are not equals")
+		t.Fatal("Hashes are not equal")
 	}
 }
 
@@ -150,7 +150,7 @@ func TestHashSuite(t *testing.T) {
 		t.Fatal("error hashing" + err.Error() + err2.Error())
 	}
 	if !bytes.Equal(hashed, hashedSuite) {
-		t.Fatal("hashes not equals")
+		t.Fatal("hashes not equal")
 	}
 }
 

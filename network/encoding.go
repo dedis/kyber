@@ -44,9 +44,14 @@ func (mId MessageTypeID) String() string {
 	return uuid.UUID(mId).String()
 }
 
-// Equal returns true if pId is equal to t
-func (mId MessageTypeID) Equal(t MessageTypeID) bool {
-	return bytes.Compare(uuid.UUID(mId).Bytes(), uuid.UUID(t).Bytes()) == 0
+// Equal returns true if and only if mID2 equals this MessageTypeID
+func (mId MessageTypeID) Equal(mID2 MessageTypeID) bool {
+	return uuid.Equal(uuid.UUID(mId), uuid.UUID(mID2))
+}
+
+// IsNil returns true iff the MessageTypeID is Nil
+func (mId MessageTypeID) IsNil() bool {
+	return mId.Equal(MessageTypeID(uuid.Nil))
 }
 
 // NamespaceURL is the basic namespace used for uuid

@@ -17,6 +17,16 @@ func (pid ProtocolID) String() string {
 	return uuid.UUID(pid).String()
 }
 
+// Equal returns true if and only if pid2 equals this ProtocolID.
+func (pid ProtocolID) Equal(pid2 ProtocolID) bool {
+	return uuid.Equal(uuid.UUID(pid), uuid.UUID(pid2))
+}
+
+// IsNil returns true iff the ProtocolID is Nil
+func (pid ProtocolID) IsNil() bool {
+	return pid.Equal(ProtocolID(uuid.Nil))
+}
+
 // NewProtocol is the function-signature needed to instantiate a new protocol
 type NewProtocol func(*TreeNodeInstance) (ProtocolInstance, error)
 
@@ -60,7 +70,7 @@ func newProtocolStorage() *protocolStorage {
 // ProtocolIDToName returns the name to the corresponding protocolID.
 func (ps *protocolStorage) ProtocolIDToName(id ProtocolID) string {
 	for n := range ps.instantiators {
-		if id == ProtocolNameToID(n) {
+		if id.Equal(ProtocolNameToID(n)) {
 			return n
 		}
 	}

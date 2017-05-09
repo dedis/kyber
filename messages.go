@@ -58,12 +58,33 @@ func (rId RoundID) String() string {
 	return uuid.UUID(rId).String()
 }
 
+// Equal returns true if and only if rID2 equals this RoundID.
+func (rId RoundID) Equal(rID2 RoundID) bool {
+	return uuid.Equal(uuid.UUID(rId), uuid.UUID(rID2))
+}
+
+// IsNil returns true iff the RoundID is Nil
+func (rId RoundID) IsNil() bool {
+	return rId.Equal(RoundID(uuid.Nil))
+}
+
 // TokenID uniquely identifies the start and end-point of a message by an ID
 // (see Token struct)
 type TokenID uuid.UUID
 
-func (t *TokenID) String() string {
-	return uuid.UUID(*t).String()
+// String returns the canonical representation of the TokenID (wrapper around // uuid.UUID.String())
+func (t TokenID) String() string {
+	return uuid.UUID(t).String()
+}
+
+// Equal returns true if and only if t2 equals this TokenID.
+func (t TokenID) Equal(t2 TokenID) bool {
+	return uuid.Equal(uuid.UUID(t), uuid.UUID(t2))
+}
+
+// IsNil returns true iff the TokenID is Nil
+func (t TokenID) IsNil() bool {
+	return t.Equal(TokenID(uuid.Nil))
 }
 
 // A Token contains all identifiers needed to uniquely identify one protocol
@@ -91,7 +112,7 @@ var tokenMutex sync.Mutex
 func (t *Token) ID() TokenID {
 	tokenMutex.Lock()
 	defer tokenMutex.Unlock()
-	if t.cacheID == TokenID(uuid.Nil) {
+	if t.cacheID.IsNil() {
 		url := network.NamespaceURL + "token/" + t.RosterID.String() +
 			t.RoundID.String() + t.ServiceID.String() + t.ProtoID.String() + t.TreeID.String() +
 			t.TreeNodeID.String()

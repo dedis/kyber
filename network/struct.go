@@ -83,9 +83,19 @@ type ServerIdentity struct {
 // ServerIdentityID uniquely identifies an ServerIdentity struct
 type ServerIdentityID uuid.UUID
 
+// String returns a canonical representation of the ServerIdentityID.
+func (eId ServerIdentityID) String() string {
+	return uuid.UUID(eId).String()
+}
+
 // Equal returns true if both ServerIdentityID are equal or false otherwise.
-func (eid ServerIdentityID) Equal(other ServerIdentityID) bool {
-	return uuid.Equal(uuid.UUID(eid), uuid.UUID(other))
+func (eId ServerIdentityID) Equal(other ServerIdentityID) bool {
+	return uuid.Equal(uuid.UUID(eId), uuid.UUID(other))
+}
+
+// IsNil returns true iff the ServerIdentityID is Nil
+func (eId ServerIdentityID) IsNil() bool {
+	return eId.Equal(ServerIdentityID(uuid.Nil))
 }
 
 func (si *ServerIdentity) String() string {

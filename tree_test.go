@@ -10,7 +10,6 @@ import (
 
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
-	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/dedis/crypto.v0/abstract"
 	"gopkg.in/dedis/crypto.v0/config"
@@ -64,7 +63,7 @@ func TestRosterNew(t *testing.T) {
 	if len(pl.List) != 2 {
 		t.Fatalf("Expected two peers in PeerList. Instead got %d", len(pl.List))
 	}
-	if pl.ID == RosterID(uuid.Nil) {
+	if pl.ID.IsNil() {
 		t.Fatal("PeerList without ID is not allowed")
 	}
 	if len(pl.ID.String()) != 36 {
@@ -92,7 +91,7 @@ func TestInitPeerListFromConfigFile(t *testing.T) {
 	if len(decodedList.List) != 3 {
 		t.Fatalf("Expected two identities in Roster. Instead got %d", len(decodedList.List))
 	}
-	if decodedList.ID == RosterID(uuid.Nil) {
+	if decodedList.ID.IsNil() {
 		t.Fatal("PeerList without ID is not allowed")
 	}
 	if len(decodedList.ID.String()) != 36 {
@@ -118,7 +117,7 @@ func TestTreeParent(t *testing.T) {
 	// Generate two example topology
 	tree := peerList.GenerateBinaryTree()
 	child := tree.Root.Children[0]
-	if child.Parent.ID != tree.Root.ID {
+	if !child.Parent.ID.Equal(tree.Root.ID) {
 		t.Fatal("Parent of child of root is not the root...")
 	}
 }
@@ -130,7 +129,7 @@ func TestTreeChildren(t *testing.T) {
 	// Generate two example topology
 	tree := peerList.GenerateBinaryTree()
 	child := tree.Root.Children[0]
-	if child.ServerIdentity.ID != peerList.List[1].ID {
+	if !child.ServerIdentity.ID.Equal(peerList.List[1].ID) {
 		t.Fatal("Parent of child of root is not the root...")
 	}
 }
@@ -261,11 +260,11 @@ func TestBigNaryTree(t *testing.T) {
 		t.Fatal("Tree should be 3-ary")
 	}
 	for _, child := range root.Children {
-		if child.ServerIdentity.ID == root.ServerIdentity.ID {
+		if child.ServerIdentity.ID.Equal(root.ServerIdentity.ID) {
 			t.Fatal("Child should not have same identity as parent")
 		}
 		for _, c := range child.Children {
-			if c.ServerIdentity.ID == child.ServerIdentity.ID {
+			if c.ServerIdentity.ID.Equal(child.ServerIdentity.ID) {
 				t.Fatal("Child should not have same identity as parent")
 			}
 		}
@@ -417,7 +416,7 @@ func TestRoster_GenerateNaryTreeWithRoot(t *testing.T) {
 				t.Fatal("Missing port:", 2000+i, peerList.List)
 			}
 		}
-		if tree.Root.ServerIdentity.ID != e.ID {
+		if !tree.Root.ServerIdentity.ID.Equal(e.ID) {
 			t.Fatal("ServerIdentity", e, "is not root", tree.Dump())
 		}
 		if len(tree.List()) != 10 {

@@ -46,8 +46,18 @@ type Service interface {
 type ServiceID uuid.UUID
 
 // String returns the string representation of this ServiceID
-func (s *ServiceID) String() string {
-	return uuid.UUID(*s).String()
+func (s ServiceID) String() string {
+	return uuid.UUID(s).String()
+}
+
+// Equal returns true if and only if s2 equals this ServiceID.
+func (s ServiceID) Equal(s2 ServiceID) bool {
+	return uuid.Equal(uuid.UUID(s), uuid.UUID(s2))
+}
+
+// IsNil returns true iff the ServiceID is Nil
+func (s ServiceID) IsNil() bool {
+	return s.Equal(ServiceID(uuid.Nil))
 }
 
 // NilServiceID is the empty ServiceID
@@ -84,7 +94,7 @@ var ServiceFactory = serviceFactory{
 // Register takes a name and a function, then creates a ServiceID out of it and stores the
 // mapping and the creation function.
 func (s *serviceFactory) Register(name string, fn NewServiceFunc) (ServiceID, error) {
-	if s.ServiceID(name) != NilServiceID {
+	if !s.ServiceID(name).Equal(NilServiceID) {
 		return NilServiceID, fmt.Errorf("service %s already registered", name)
 	}
 	id := ServiceID(uuid.NewV5(uuid.NamespaceURL, name))
@@ -165,7 +175,7 @@ func (s *serviceFactory) Name(id ServiceID) string {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	for _, c := range s.constructors {
-		if id == c.serviceID {
+		if id.Equal(c.serviceID) {
 			return c.name
 		}
 	}
@@ -260,7 +270,7 @@ func (s *serviceManager) availableServices() (ret []string) {
 // nil if no service by this name is available.
 func (s *serviceManager) service(name string) Service {
 	id := ServiceFactory.ServiceID(name)
-	if id == NilServiceID {
+	if id.Equal(NilServiceID) {
 		return nil
 	}
 	return s.services[id]

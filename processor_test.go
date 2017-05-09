@@ -29,7 +29,7 @@ func TestProcessor_AddMessage(t *testing.T) {
 		t.Fatal("Should have registered one function")
 	}
 	mt := network.MessageType(&testMsg{})
-	if mt == network.ErrorType {
+	if mt.Equal(network.ErrorType) {
 		t.Fatal("Didn't register message-type correctly")
 	}
 	var wrongFunctions = []interface{}{

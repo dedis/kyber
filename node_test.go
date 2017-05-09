@@ -155,7 +155,7 @@ func TestTreeNodeProtocolHandlers(t *testing.T) {
 	log.Lvl2("Waiting for response from child 2/2")
 	child2 := <-IncomingHandlers
 
-	if child1.ServerIdentity().ID == child2.ServerIdentity().ID {
+	if child1.ServerIdentity().ID.Equal(child2.ServerIdentity().ID) {
 		t.Fatal("Both entities should be different")
 	}
 
@@ -168,7 +168,7 @@ func TestTreeNodeProtocolHandlers(t *testing.T) {
 	}
 	child2.SendTo(tni.TreeNode(), &NodeTestAggMsg{})
 	final := <-IncomingHandlers
-	if final.ServerIdentity().ID != tni.ServerIdentity().ID {
+	if !final.ServerIdentity().ID.Equal(tni.ServerIdentity().ID) {
 		t.Fatal("This should be the same ID")
 	}
 }

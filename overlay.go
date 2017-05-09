@@ -81,7 +81,7 @@ func NewOverlay(c *Server) *Overlay {
 // wants.
 func (o *Overlay) Process(env *network.Envelope) {
 	// Messages handled by the overlay directly without any messageProxyIO
-	if env.MsgType == ConfigMsgID {
+	if env.MsgType.Equal(ConfigMsgID) {
 		o.handleConfigMessage(env)
 		return
 	}
@@ -195,7 +195,7 @@ func (o *Overlay) checkPendingMessages(t *Tree) {
 		o.pendingMsgLock.Lock()
 		var newPending []pendingMsg
 		for _, pending := range o.pendingMsg {
-			if t.ID.Equals(pending.ProtocolMsg.To.TreeID) {
+			if t.ID.Equal(pending.ProtocolMsg.To.TreeID) {
 				// if this message references t, instantiate it and go
 				err := o.TransmitMsg(pending.ProtocolMsg, pending.MessageProxy)
 				if err != nil {
@@ -357,7 +357,7 @@ func (o *Overlay) handleRequestTree(si *network.ServerIdentity, req *RequestTree
 }
 
 func (o *Overlay) handleSendTree(si *network.ServerIdentity, tm *TreeMarshal, io MessageProxy) {
-	if tm.TreeID == TreeID(uuid.Nil) {
+	if tm.TreeID.IsNil() {
 		log.Error("Received an empty Tree")
 		return
 	}
@@ -418,7 +418,7 @@ func (o *Overlay) handleRequestRoster(si *network.ServerIdentity, req *RequestRo
 }
 
 func (o *Overlay) handleSendRoster(si *network.ServerIdentity, roster *Roster) {
-	if roster.ID == RosterID(uuid.Nil) {
+	if roster.ID.IsNil() {
 		log.Lvl2("Received an empty Roster")
 	} else {
 		o.RegisterRoster(roster)
