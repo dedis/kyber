@@ -529,7 +529,7 @@ func (o *Overlay) Close() {
 // CreateProtocol creates a ProtocolInstance, registers it to the Overlay.
 // Additionally, if sid is different than NilServiceID, sid is added to the token
 // so the protocol will be picked up by the correct service and handled by its
-// NewProtocol method. If the sid is NilServiceID, then the protoocol is handled by onet alone.
+// NewProtocol method. If the sid is NilServiceID, then the protocol is handled by onet alone.
 func (o *Overlay) CreateProtocol(name string, t *Tree, sid ServiceID) (ProtocolInstance, error) {
 	io := o.protoIO.getByName(name)
 	tni := o.NewTreeNodeInstanceFromService(t, t.Root, ProtocolNameToID(name), sid, io)

@@ -2,8 +2,10 @@ package onet
 
 import (
 	"testing"
+	"time"
 
 	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/network"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,6 +41,62 @@ func TestHandlerReturn(t *testing.T) {
 	assert.NotNil(t, p.RegisterHandler(p.HandlerError1))
 	assert.Nil(t, p.RegisterHandler(p.HandlerError2))
 	assert.NotNil(t, p.RegisterHandler(p.HandlerError3))
+}
+
+type dummyMsg struct{}
+
+type configProcessor struct {
+	configCount int
+	expected    int
+	done        chan<- bool
+}
+
+func (p *configProcessor) Process(env *network.Envelope) {
+	if env.MsgType == ConfigMsgID {
+		p.configCount++
+		if p.configCount == p.expected {
+			p.done <- true
+		}
+	}
+}
+
+func TestConfigPropagation(t *testing.T) {
+	local := NewLocalTest()
+	defer local.CloseAll()
+	const treeSize = 3
+	var serviceConfig = []byte{0x01, 0x02, 0x03, 0x04}
+	hosts, _, tree := local.GenTree(treeSize, true)
+	_, err := hosts[0].overlay.CreateProtocol(spawnName, tree, NilServiceID)
+	log.ErrFatal(err)
+
+	done := make(chan bool)
+	pr := &configProcessor{expected: treeSize - 1, done: done}
+
+	for _, host := range hosts {
+		host.RegisterProcessor(pr,
+			ProtocolMsgID,
+			RequestTreeMsgID,
+			SendTreeMsgID,
+			RequestRosterMsgID,
+			SendRosterMsgID,
+			ConfigMsgID)
+	}
+
+	network.RegisterMessage(dummyMsg{})
+	rootInstance, _ := local.NewTreeNodeInstance(tree.Root, spawnName)
+	err = rootInstance.SetConfig(&GenericConfig{serviceConfig})
+	assert.Nil(t, err)
+	err = rootInstance.SetConfig(&GenericConfig{serviceConfig})
+	assert.NotNil(t, err)
+	err = rootInstance.SendToChildren(&dummyMsg{})
+	log.ErrFatal(err)
+	// wait until the processor has processed the expected number of config messages
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("Didn't receive response in time")
+	}
+
 }
 
 // spawnCh is used to dispatch information from a spawnProto to the test

@@ -52,6 +52,7 @@ type TreeNodeInstance struct {
 	// config is to be passed down in the first message of what the protocol is
 	// sending if it is non nil. Set with `tni.SetConfig()`.
 	config    *GenericConfig
+	sentTo    map[TreeNodeID]bool
 	configMut sync.Mutex
 }
 
@@ -77,6 +78,7 @@ func newTreeNodeInstance(o *Overlay, tok *Token, tn *TreeNode, io MessageProxy) 
 		msgDispatchQueue:     make([]*ProtocolMsg, 0, 1),
 		msgDispatchQueueWait: make(chan bool, 1),
 		protoIO:              io,
+		sentTo:               make(map[TreeNodeID]bool),
 	}
 	go n.dispatchMsgReader()
 	return n
@@ -126,9 +128,9 @@ func (n *TreeNodeInstance) SendTo(to *TreeNode, msg interface{}) error {
 	var c *GenericConfig
 	// only sends the config once
 	n.configMut.Lock()
-	if n.config != nil {
+	if !n.sentTo[to.ID] {
 		c = n.config
-		n.config = nil
+		n.sentTo[to.ID] = true
 	}
 	n.configMut.Unlock()
 
@@ -675,10 +677,14 @@ func (n *TreeNodeInstance) TreeNodeInstance() *TreeNodeInstance {
 // SetConfig sets the GenericConfig c to be passed down in the first message
 // alongside with the protocol if it is non nil. This config can later be read
 // by Services in the NewProtocol method.
-func (n *TreeNodeInstance) SetConfig(c *GenericConfig) {
+func (n *TreeNodeInstance) SetConfig(c *GenericConfig) error {
 	n.configMut.Lock()
 	defer n.configMut.Unlock()
+	if n.config != nil {
+		return errors.New("Can't set config twice")
+	}
 	n.config = c
+	return nil
 }
 
 func (n *TreeNodeInstance) isBound() bool {
