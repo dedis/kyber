@@ -24,7 +24,7 @@ type EdDSA struct {
 	Public abstract.Point
 }
 
-// NewEdDSAKey will return a freshly generated key pair to use for generating
+// NewEdDSA will return a freshly generated key pair to use for generating
 // EdDSA signatures.
 // If stream == nil, it will take the random.Stream.
 func NewEdDSA(stream cipher.Stream) *EdDSA {
@@ -33,10 +33,7 @@ func NewEdDSA(stream cipher.Stream) *EdDSA {
 	}
 	buffer := random.NonZeroBytes(32, stream)
 
-	scalar := sha512.Sum512(buffer)
-	scalar[0] &= 0xf8
-	scalar[31] &= 0x3f
-	scalar[31] |= 0x40
+	scalar := hashSeed(buffer)
 
 	secret := suite.Scalar().SetBytes(scalar[:32])
 	public := suite.Point().Mul(nil, secret)
@@ -72,14 +69,16 @@ func (e *EdDSA) MarshalBinary() ([]byte, error) {
 	return eddsa, nil
 }
 
+//UnmarshalBinary transforms a slice of bytes into a EdDSA signature
 func (e *EdDSA) UnmarshalBinary(buff []byte) error {
 	if len(buff) != 64 {
 		return errors.New("wrong length for decoding EdDSA private")
 	}
 
 	e.seed = buff[:32]
-	e.prefix = buff[32:64]
-	e.Secret = suite.Scalar().SetBytes(e.seed)
+	scalar := hashSeed(e.seed)
+	e.prefix = scalar[32:]
+	e.Secret = suite.Scalar().SetBytes(scalar[:32])
 	e.Public = suite.Point().Mul(nil, e.Secret)
 	return nil
 }
@@ -171,4 +170,12 @@ func Verify(public abstract.Point, msg, sig []byte) error {
 		return errors.New("reconstructed S is not equal to signature")
 	}
 	return nil
+}
+
+func hashSeed(seed []byte) (hash [64]byte) {
+	hash = sha512.Sum512(seed)
+	hash[0] &= 0xf8
+	hash[31] &= 0x3f
+	hash[31] |= 0x40
+	return
 }
