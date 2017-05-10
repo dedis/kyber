@@ -7,7 +7,7 @@ import (
 
 	"golang.org/x/crypto/hkdf"
 
-	"github.com/dedis/crypto/abstract"
+	"gopkg.in/dedis/crypto.v0/abstract"
 )
 
 // dhExchange computes the shared key from a private key and a public key

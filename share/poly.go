@@ -16,7 +16,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/dedis/crypto/abstract"
+	"gopkg.in/dedis/crypto.v0/abstract"
 )
 
 // Some error definitions

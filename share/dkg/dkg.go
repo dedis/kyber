@@ -42,10 +42,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/share"
-	"github.com/dedis/crypto/share/vss"
-	"github.com/dedis/crypto/sign"
+	"gopkg.in/dedis/crypto.v0/abstract"
+	"gopkg.in/dedis/crypto.v0/share"
+	"gopkg.in/dedis/crypto.v0/share/vss"
+	"gopkg.in/dedis/crypto.v0/sign"
 )
 
 // DistKeyShare holds the share of a distributed key for a participant.
