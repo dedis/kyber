@@ -3,15 +3,22 @@
 // This means, for two values xG and xH one can check that
 //   log_{G}(xG) == log_{H}(xH)
 // without revealing the secret value x.
-package proof
+package dleq
 
 import (
 	"errors"
+	"hash"
 
 	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/util/hash"
+	h "github.com/dedis/crypto/util/hash"
 	"github.com/dedis/crypto/util/random"
 )
+
+type Suite interface {
+	crypto.Group
+	Hash() hash.Hash
+	Cipher(key []byte, options ...interface{}) crypto.Cipher
+}
 
 var errorDifferentLengths = errors.New("inputs of different lengths")
 var errorInvalidProof = errors.New("invalid proof")
@@ -40,7 +47,7 @@ func NewDLEQProof(suite Suite, G crypto.Point, H crypto.Point, x crypto.Scalar) 
 	vH := suite.Point().Mul(H, v)
 
 	// Challenge
-	cb, err := hash.Structures(suite.Hash(), xG, xH, vG, vH)
+	cb, err := h.Structures(suite.Hash(), xG, xH, vG, vH)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -81,7 +88,7 @@ func NewDLEQProofBatch(suite Suite, G []crypto.Point, H []crypto.Point, secrets 
 	}
 
 	// Collective challenge
-	cb, err := hash.Structures(suite.Hash(), xG, xH, vG, vH)
+	cb, err := h.Structures(suite.Hash(), xG, xH, vG, vH)
 	if err != nil {
 		return nil, nil, nil, err
 	}
