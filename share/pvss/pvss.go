@@ -18,7 +18,7 @@ import (
 	"hash"
 
 	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/proof"
+	"github.com/dedis/crypto/proof/dleq"
 	"github.com/dedis/crypto/share"
 	"github.com/dedis/crypto/util/random"
 )
@@ -45,8 +45,8 @@ var errorDecVerification = errors.New("verification of decrypted share failed")
 
 // PubVerShare is a public verifiable share.
 type PubVerShare struct {
-	S share.PubShare  // Share
-	P proof.DLEQProof // Proof
+	S share.PubShare // Share
+	P dleq.DLEQProof // Proof
 }
 
 // EncShares creates a list of encrypted publicly verifiable PVSS shares for
@@ -77,7 +77,7 @@ func EncShares(suite Suite, H crypto.Point, X []crypto.Point, secret crypto.Scal
 	}
 
 	// Create NIZK discrete-logarithm equality proofs
-	proofs, _, sX, err := proof.NewDLEQProofBatch(suite, HS, X, values)
+	proofs, _, sX, err := dleq.NewDLEQProofBatch(suite, HS, X, values)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -128,7 +128,7 @@ func DecShare(suite Suite, H crypto.Point, X crypto.Point, sH crypto.Point, x cr
 	G := suite.Point().Base()
 	V := suite.Point().Mul(encShare.S.V, suite.Scalar().Inv(x)) // decryption: x^{-1} * (xS)
 	ps := &share.PubShare{encShare.S.I, V}
-	P, _, _, err := proof.NewDLEQProof(suite, G, V, x)
+	P, _, _, err := dleq.NewDLEQProof(suite, G, V, x)
 	if err != nil {
 		return nil, err
 	}
