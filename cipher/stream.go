@@ -5,9 +5,9 @@ import (
 	"crypto/hmac"
 	"hash"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/util/ints"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/ints"
+	"github.com/dedis/kyber/util/random"
 )
 
 type streamCipher struct {

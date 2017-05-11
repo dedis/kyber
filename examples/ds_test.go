@@ -1,8 +1,8 @@
 package examples
 
-import "github.com/dedis/crypto/group/edwards25519"
+import "github.com/dedis/kyber/group/edwards25519"
 
-//"github.com/dedis/crypto/edwards"
+//"github.com/dedis/kyber/edwards"
 
 // This file is an concrete example of how to generate a distrituted secret
 // amongst peers using Verifiable Secret Sharing (Shamir secret sharing)

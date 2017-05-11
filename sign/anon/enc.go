@@ -4,8 +4,8 @@ import (
 	"crypto/cipher"
 	"errors"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/util/subtle"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/subtle"
 )
 
 // XXX belongs in crypto package?

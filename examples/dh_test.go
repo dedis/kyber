@@ -1,8 +1,8 @@
 package examples
 
 import (
-	"github.com/dedis/crypto/group/nist"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber/group/nist"
+	"github.com/dedis/kyber/util/random"
 )
 
 /*

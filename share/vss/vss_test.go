@@ -4,10 +4,10 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/group/edwards25519"
-	"github.com/dedis/crypto/util/random"
-	sign "github.com/dedis/crypto/sign/schnorr"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/edwards25519"
+	"github.com/dedis/kyber/util/random"
+	sign "github.com/dedis/kyber/sign/schnorr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

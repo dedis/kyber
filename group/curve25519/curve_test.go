@@ -4,10 +4,10 @@ import (
 	"testing"
 
 	//"encoding/hex"
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/group/edwards25519"
-	"github.com/dedis/crypto/test"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/edwards25519"
+	"github.com/dedis/kyber/test"
+	"github.com/dedis/kyber/util/random"
 )
 
 var testSuite = NewAES128SHA256Ed25519(false)

@@ -5,7 +5,7 @@ import (
 	"crypto/cipher"
 	"errors"
 
-	"github.com/dedis/crypto"
+	"github.com/dedis/kyber"
 )
 
 // unlinkable ring signature

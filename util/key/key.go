@@ -4,8 +4,8 @@ import (
 	"crypto/cipher"
 	"encoding/base64"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/random"
 )
 
 // KeyPair represents a public/private keypair

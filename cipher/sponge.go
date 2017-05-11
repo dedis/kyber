@@ -8,8 +8,8 @@ import (
 	//"encoding/hex"
 	"encoding/binary"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/random"
 )
 
 // Sponge is an interface representing a primitive sponge function.

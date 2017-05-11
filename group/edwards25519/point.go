@@ -20,9 +20,9 @@ import (
 	"errors"
 	"io"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/group/mod"
-	"github.com/dedis/crypto/util/encoding"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/mod"
+	"github.com/dedis/kyber/util/encoding"
 )
 
 type point struct {

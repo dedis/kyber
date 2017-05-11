@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/clique"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/clique"
 )
 
 // Create a clique.Protocol implementing an interactive Sigma-protocol

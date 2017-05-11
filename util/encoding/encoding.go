@@ -4,7 +4,7 @@ import (
 	"crypto/cipher"
 	"io"
 
-	"github.com/dedis/crypto"
+	"github.com/dedis/kyber"
 )
 
 // PointEncodeTo provides a generic implementation of Point.EncodeTo

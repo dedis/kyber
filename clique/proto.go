@@ -9,7 +9,7 @@
 // but we can achieve availability via threshold kyber.
 package clique
 
-import "github.com/dedis/crypto"
+import "github.com/dedis/kyber"
 
 // Protocol represents the role of a participant in a clique protocol.
 // A participant is represented as a higher-order function taking a StarContext,

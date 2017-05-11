@@ -1,8 +1,8 @@
 package test
 
 import (
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/random"
 )
 
 // A generic benchmark suite for kyber.groups.

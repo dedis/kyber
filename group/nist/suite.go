@@ -7,9 +7,9 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/cipher/sha3"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/cipher/sha3"
+	"github.com/dedis/kyber/util/random"
 )
 
 type suite128 struct {

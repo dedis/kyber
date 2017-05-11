@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/group/nist"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/nist"
 )
 
 // A basic, verifiable signature

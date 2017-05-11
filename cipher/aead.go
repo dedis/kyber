@@ -4,9 +4,9 @@ import (
 	"crypto/cipher"
 	"errors"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/util/bytes"
-	"github.com/dedis/crypto/util/subtle"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/bytes"
+	"github.com/dedis/kyber/util/subtle"
 )
 
 type cipherAEAD struct {

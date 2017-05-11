@@ -7,7 +7,7 @@ package edwards25519
 import (
 	"math/big"
 
-	"github.com/dedis/crypto/group/mod"
+	"github.com/dedis/kyber/group/mod"
 )
 
 // prime modulus of underlying field = 2^255 - 19

@@ -9,8 +9,8 @@ package norx
 import (
 	"encoding/binary"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/cipher"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/cipher"
 )
 
 func (s *state_t) Rate() int { return BYTES_RATE }

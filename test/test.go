@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"crypto/cipher"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/random"
 )
 
 func testEmbed(g kyber.Group, rand cipher.Stream, points *[]kyber.Point,

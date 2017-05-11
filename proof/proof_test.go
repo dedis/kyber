@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/group/nist"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/nist"
 )
 
 func TestRep(t *testing.T) {

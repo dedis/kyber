@@ -16,10 +16,10 @@ package pvss
 import (
 	"errors"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/proof"
-	"github.com/dedis/crypto/util/random"
-	"github.com/dedis/crypto/share"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/proof"
+	"github.com/dedis/kyber/util/random"
+	"github.com/dedis/kyber/share"
 )
 
 // Some error definitions.

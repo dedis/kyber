@@ -8,9 +8,9 @@ package proof
 import (
 	"errors"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/util/hash"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/hash"
+	"github.com/dedis/kyber/util/random"
 )
 
 var errorDifferentLengths = errors.New("inputs of different lengths")

@@ -39,8 +39,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/random"
 	//own "github.com/nikkolasg/learning/crypto/util"
 )
 

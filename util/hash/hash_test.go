@@ -8,10 +8,10 @@ import (
 
 	"os"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/group/edwards25519"
-	"github.com/dedis/crypto/util/hash"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/edwards25519"
+	"github.com/dedis/kyber/util/hash"
+	"github.com/dedis/kyber/util/random"
 	"github.com/stretchr/testify/require"
 )
 

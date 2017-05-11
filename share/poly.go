@@ -15,7 +15,7 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/dedis/crypto"
+	"github.com/dedis/kyber"
 )
 
 // Some error definitions

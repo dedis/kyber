@@ -36,10 +36,10 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/util/random"
-	"github.com/dedis/crypto/share"
-	sign "github.com/dedis/crypto/sign/schnorr"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/random"
+	"github.com/dedis/kyber/share"
+	sign "github.com/dedis/kyber/sign/schnorr"
 	"github.com/dedis/protobuf"
 )
 
