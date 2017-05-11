@@ -10,16 +10,6 @@ import (
 	"github.com/dedis/crypto/cipher/sha3"
 )
 
-// NOTE: This structure is not removed so this brings the questions of naming and
-// consistency:
-// + what is a suite ? why would we call it a suite in this package and not something else
-// in curve25519 etc ?
-// + how do I know which method to implement ? For example. we'll want to add
-// ed448 to the our list, so we'll need to lookup here to see which methods
-// ed448 is supposed to implement to be sure one can ecchange edwards25519 and
-// edwards448 without any issues.
-// The Suite interface solves these issues by defining the common set of method
-// that be implemented (exactly as this `suiteed25519` suggests).
 type suiteEd25519 struct {
 	Curve
 }
