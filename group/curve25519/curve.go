@@ -17,9 +17,9 @@ var one = big.NewInt(1)
 
 // Extension of Point interface for elliptic curve X,Y coordinate access
 type point interface {
-	crypto.Point
+	kyber.Point
 
-	initXY(x, y *big.Int, curve crypto.Group)
+	initXY(x, y *big.Int, curve kyber.Group)
 
 	getXY() (x, y *mod.Int)
 }
@@ -32,10 +32,10 @@ type hiding interface {
 	HideDecode(p point, representative []byte)
 }
 
-// Generic "crypto.base class" for Edwards curves,
+// Generic "kyber.base class" for Edwards curves,
 // embodying functionality independent of internal Point representation.
 type curve struct {
-	self      crypto.Group // "Self pointer" for derived class
+	self      kyber.Group // "Self pointer" for derived class
 	Param                  // Twisted Edwards curve parameters
 	zero, one mod.Int      // Constant ModInts with correct modulus
 	a, d      mod.Int      // Curve equation parameters as ModInts
@@ -44,7 +44,7 @@ type curve struct {
 	order  mod.Int // Order of appropriate subgroup as a ModInt
 	cofact mod.Int // Group's cofactor as a ModInt
 
-	null crypto.Point // Identity point for this group
+	null kyber.Point // Identity point for this group
 
 	hide hiding // Uniform point encoding method
 }
@@ -59,7 +59,7 @@ func (c *curve) ScalarLen() int {
 }
 
 // Create a new Scalar for this curve.
-func (c *curve) Scalar() crypto.Scalar {
+func (c *curve) Scalar() kyber.Scalar {
 	return mod.NewInt64(0, &c.order.V)
 }
 
@@ -72,7 +72,7 @@ func (c *curve) PointLen() int {
 
 // Initialize a twisted Edwards curve with given parameters.
 // Caller passes pointers to null and base point prototypes to be initialized.
-func (c *curve) init(self crypto.Group, p *Param, fullGroup bool,
+func (c *curve) init(self kyber.Group, p *Param, fullGroup bool,
 	null, base point) *curve {
 	c.self = self
 	c.Param = *p
@@ -311,7 +311,7 @@ func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
 
 	// Retry until we find a valid point
 	var x, y mod.Int
-	var Q crypto.Point
+	var Q kyber.Point
 	for {
 		// Get random bits the size of a compressed Point encoding,
 		// in which the topmost bit is reserved for the x-coord sign.

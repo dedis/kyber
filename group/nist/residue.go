@@ -33,27 +33,27 @@ func isPrime(i *big.Int) bool {
 
 func (p *residuePoint) String() string { return p.Int.String() }
 
-func (p *residuePoint) Equal(p2 crypto.Point) bool {
+func (p *residuePoint) Equal(p2 kyber.Point) bool {
 	return p.Int.Cmp(&p2.(*residuePoint).Int) == 0
 }
 
-func (p *residuePoint) Null() crypto.Point {
+func (p *residuePoint) Null() kyber.Point {
 	p.Int.SetInt64(1)
 	return p
 }
 
-func (p *residuePoint) Base() crypto.Point {
+func (p *residuePoint) Base() kyber.Point {
 	p.Int.Set(p.g.G)
 	return p
 }
 
-func (p *residuePoint) Set(p2 crypto.Point) crypto.Point {
+func (p *residuePoint) Set(p2 kyber.Point) kyber.Point {
 	p.g = p2.(*residuePoint).g
 	p.Int = p2.(*residuePoint).Int
 	return p
 }
 
-func (p *residuePoint) Clone() crypto.Point {
+func (p *residuePoint) Clone() kyber.Point {
 	return &residuePoint{g: p.g, Int: p.Int}
 }
 
@@ -71,7 +71,7 @@ func (p *residuePoint) PickLen() int {
 // Pick a point containing a variable amount of embedded data.
 // Remaining bits comprising the point are chosen randomly.
 // This will only work efficiently for quadratic residue groups!
-func (p *residuePoint) Pick(data []byte, rand cipher.Stream) (crypto.Point, []byte) {
+func (p *residuePoint) Pick(data []byte, rand cipher.Stream) (kyber.Point, []byte) {
 
 	l := p.g.PointLen()
 	dl := p.PickLen()
@@ -107,25 +107,25 @@ func (p *residuePoint) Data() ([]byte, error) {
 	return b[l-dl-2 : l-2], nil
 }
 
-func (p *residuePoint) Add(a, b crypto.Point) crypto.Point {
+func (p *residuePoint) Add(a, b kyber.Point) kyber.Point {
 	p.Int.Mul(&a.(*residuePoint).Int, &b.(*residuePoint).Int)
 	p.Int.Mod(&p.Int, p.g.P)
 	return p
 }
 
-func (p *residuePoint) Sub(a, b crypto.Point) crypto.Point {
+func (p *residuePoint) Sub(a, b kyber.Point) kyber.Point {
 	binv := new(big.Int).ModInverse(&b.(*residuePoint).Int, p.g.P)
 	p.Int.Mul(&a.(*residuePoint).Int, binv)
 	p.Int.Mod(&p.Int, p.g.P)
 	return p
 }
 
-func (p *residuePoint) Neg(a crypto.Point) crypto.Point {
+func (p *residuePoint) Neg(a kyber.Point) kyber.Point {
 	p.Int.ModInverse(&a.(*residuePoint).Int, p.g.P)
 	return p
 }
 
-func (p *residuePoint) Mul(b crypto.Point, s crypto.Scalar) crypto.Point {
+func (p *residuePoint) Mul(b kyber.Point, s kyber.Scalar) kyber.Point {
 	if b == nil {
 		return p.Base().Mul(p, s)
 	}
@@ -206,7 +206,7 @@ func (g *ResidueGroup) ScalarLen() int { return (g.Q.BitLen() + 7) / 8 }
 
 // Create a Scalar associated with this Residue group,
 // with an initial value of nil.
-func (g *ResidueGroup) Scalar() crypto.Scalar {
+func (g *ResidueGroup) Scalar() kyber.Scalar {
 	return mod.NewInt64(0, g.Q)
 }
 
@@ -216,7 +216,7 @@ func (g *ResidueGroup) PointLen() int { return (g.P.BitLen() + 7) / 8 }
 
 // Create a Point associated with this Residue group,
 // with an initial value of nil.
-func (g *ResidueGroup) Point() crypto.Point {
+func (g *ResidueGroup) Point() kyber.Point {
 	p := new(residuePoint)
 	p.g = g
 	return p

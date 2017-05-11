@@ -10,12 +10,12 @@ import (
 )
 
 type cipherAEAD struct {
-	crypto.Cipher
+	kyber.Cipher
 }
 
-// Wrap an crypto.message Cipher to implement
+// Wrap an kyber.message Cipher to implement
 // the Authenticated Encryption with Associated Data (AEAD) interface.
-func NewAEAD(c crypto.Cipher) cipher.AEAD {
+func NewAEAD(c kyber.Cipher) cipher.AEAD {
 	return &cipherAEAD{c}
 }
 

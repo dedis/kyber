@@ -59,7 +59,7 @@ func TestCosiResponse(t *testing.T) {
 	cosis := genCosis(5)
 	genPostChallengePhaseCosi(cosis, msg)
 	root, children := cosis[0], cosis[1:]
-	var responses []crypto.Scalar
+	var responses []kyber.Scalar
 
 	// for verification later
 	aggResponse := testSuite.Scalar().Zero()
@@ -93,7 +93,7 @@ func TestCosiSignature(t *testing.T) {
 	cosis := genCosis(nb)
 	genFinalCosi(cosis, msg)
 	root, children := cosis[0], cosis[1:]
-	var publics []crypto.Point
+	var publics []kyber.Point
 	// add root public key
 	rootPublic := testSuite.Point().Mul(nil, root.private)
 	publics = append(publics, rootPublic)
@@ -148,9 +148,9 @@ func TestCosiSignatureWithMask(t *testing.T) {
 
 }
 
-func genKeyPair(nb int) ([]*key.KeyPair, []crypto.Point) {
+func genKeyPair(nb int) ([]*key.KeyPair, []kyber.Point) {
 	var kps []*key.KeyPair
-	var publics []crypto.Point
+	var publics []kyber.Point
 	for i := 0; i < nb; i++ {
 		kp := key.NewKeyPair(testSuite)
 		kps = append(kps, kp)
@@ -168,7 +168,7 @@ func genCosis(nb int) []*CoSi {
 	return cosis
 }
 
-func genCosisFailing(nb int, failing int) (cosis []*CoSi, allPublics []crypto.Point) {
+func genCosisFailing(nb int, failing int) (cosis []*CoSi, allPublics []kyber.Point) {
 	kps, publics := genKeyPair(nb)
 	allPublics = publics
 	for i := 0; i < nb-failing; i++ {
@@ -182,8 +182,8 @@ func genCosisFailing(nb int, failing int) (cosis []*CoSi, allPublics []crypto.Po
 	return
 }
 
-func genCommitments(cosis []*CoSi) []crypto.Point {
-	commitments := make([]crypto.Point, len(cosis))
+func genCommitments(cosis []*CoSi) []kyber.Point {
+	commitments := make([]kyber.Point, len(cosis))
 	for i := range cosis {
 		commitments[i] = cosis[i].CreateCommitment(nil)
 	}
@@ -211,7 +211,7 @@ func genFinalCosi(cosis []*CoSi, msg []byte) error {
 	children := cosis[1:]
 	root := cosis[0]
 	// go to the challenge phase
-	var responses []crypto.Scalar
+	var responses []kyber.Scalar
 	for _, ch := range children {
 		resp, err := ch.CreateResponse()
 		if err != nil {

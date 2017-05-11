@@ -80,7 +80,7 @@ func TestStructures(t *testing.T) {
 	h3, err := hash.Structures(suite.Hash(), x, y, X, Y)
 	require.Nil(t, err)
 
-	h4, err := hash.Structures(suite.Hash(), x, y, X, Y, []crypto.Scalar{x, y, x}, []crypto.Point{Y, X, Y})
+	h4, err := hash.Structures(suite.Hash(), x, y, X, Y, []kyber.Scalar{x, y, x}, []kyber.Point{Y, X, Y})
 	require.Nil(t, err)
 
 	require.NotEqual(t, h1, h2)
@@ -90,14 +90,14 @@ func TestStructures(t *testing.T) {
 	h5, err := hash.Structures(suite.Hash(), x, x, y, y)
 	require.Nil(t, err)
 
-	h6, err := hash.Structures(suite.Hash(), []crypto.Scalar{x, x, y, y})
+	h6, err := hash.Structures(suite.Hash(), []kyber.Scalar{x, x, y, y})
 	require.Nil(t, err)
 	require.Equal(t, h5, h6)
 
 	h7, err := hash.Structures(suite.Hash(), X, Y, Y, X)
 	require.Nil(t, err)
 
-	h8, err := hash.Structures(suite.Hash(), []crypto.Point{X, Y, Y, X})
+	h8, err := hash.Structures(suite.Hash(), []kyber.Point{X, Y, Y, X})
 	require.Nil(t, err)
 	require.Equal(t, h7, h8)
 }

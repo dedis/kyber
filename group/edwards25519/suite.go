@@ -25,25 +25,25 @@ func (s *suiteEd25519) Hash() hash.Hash {
 }
 
 // SHA3/SHAKE128 Sponge Cipher
-func (s *suiteEd25519) Cipher(key []byte, options ...interface{}) crypto.Cipher {
+func (s *suiteEd25519) Cipher(key []byte, options ...interface{}) kyber.Cipher {
 	return sha3.NewShakeCipher128(key, options...)
 }
 
 func (s *suiteEd25519) Read(r io.Reader, objs ...interface{}) error {
-	return crypto.SuiteRead(s, r, objs)
+	return kyber.SuiteRead(s, r, objs)
 }
 
 func (s *suiteEd25519) Write(w io.Writer, objs ...interface{}) error {
-	return crypto.SuiteWrite(s, w, objs)
+	return kyber.SuiteWrite(s, w, objs)
 }
 
 func (s *suiteEd25519) New(t reflect.Type) interface{} {
-	return crypto.SuiteNew(s, t)
+	return kyber.SuiteNew(s, t)
 }
 
 // NewKey returns a formatted Ed25519 key (avoiding subgroup attack by requiring
 // it to be a multiple of 8)
-func (s *suiteEd25519) NewKey(stream cipher.Stream) crypto.Scalar {
+func (s *suiteEd25519) NewKey(stream cipher.Stream) kyber.Scalar {
 	if stream == nil {
 		stream = random.Stream
 	}
@@ -58,7 +58,7 @@ func (s *suiteEd25519) NewKey(stream cipher.Stream) crypto.Scalar {
 }
 
 // Ciphersuite based on AES-128, SHA-256, and the Ed25519 curve.
-func NewAES128SHA256Ed25519(fullGroup bool) crypto.Suite {
+func NewAES128SHA256Ed25519(fullGroup bool) kyber.Suite {
 	suite := new(suiteEd25519)
 	return suite
 }

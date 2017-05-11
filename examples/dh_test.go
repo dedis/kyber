@@ -6,7 +6,7 @@ import (
 )
 
 /*
-This example illustrates how to use the crypto toolkit's crypto.group API
+This example illustrates how to use the crypto toolkit's kyber.group API
 to perform basic Diffie-Hellman key exchange calculations,
 using the NIST-standard P256 elliptic curve in this case.
 Any other suitable elliptic curve or other cryptographic group may be used

@@ -13,7 +13,7 @@ import (
 // Schnorr creates a Schnorr signature from a msg and a private key. This
 // signature can be verified with VerifySchnorr. It's also a valid EdDSA
 // signature.
-func Schnorr(suite crypto.Suite, private crypto.Scalar, msg []byte) ([]byte, error) {
+func Schnorr(suite kyber.Suite, private kyber.Scalar, msg []byte) ([]byte, error) {
 	// create random secret k and public point commitment R
 	k := suite.Scalar().Pick(random.Stream)
 	R := suite.Point().Mul(nil, k)
@@ -44,7 +44,7 @@ func Schnorr(suite crypto.Suite, private crypto.Scalar, msg []byte) ([]byte, err
 // given signature is valid.  NOTE: this signature scheme is malleable because
 // the response's unmarshalling is done directly into a big.Int modulo (see
 // nist.Int).
-func VerifySchnorr(suite crypto.Suite, public crypto.Point, msg, sig []byte) error {
+func VerifySchnorr(suite kyber.Suite, public kyber.Point, msg, sig []byte) error {
 	R := suite.Point()
 	s := suite.Scalar()
 	pointSize := R.MarshalSize()
@@ -78,7 +78,7 @@ func VerifySchnorr(suite crypto.Suite, public crypto.Point, msg, sig []byte) err
 	return nil
 }
 
-func hash(suite crypto.Suite, public, r crypto.Point, msg []byte) (crypto.Scalar, error) {
+func hash(suite kyber.Suite, public, r kyber.Point, msg []byte) (kyber.Scalar, error) {
 	h := sha512.New()
 	if _, err := r.MarshalTo(h); err != nil {
 		return nil, err

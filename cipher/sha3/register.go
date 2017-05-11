@@ -11,8 +11,8 @@ import (
 )
 
 func init() {
-	crypto.RegisterHash(crypto.SHA3_224, New224)
-	crypto.RegisterHash(crypto.SHA3_256, New256)
-	crypto.RegisterHash(crypto.SHA3_384, New384)
-	crypto.RegisterHash(crypto.SHA3_512, New512)
+	kyber.RegisterHash(kyber.SHA3_224, New224)
+	kyber.RegisterHash(kyber.SHA3_256, New256)
+	kyber.RegisterHash(kyber.SHA3_384, New384)
+	kyber.RegisterHash(kyber.SHA3_512, New512)
 }

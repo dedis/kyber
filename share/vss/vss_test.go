@@ -20,13 +20,13 @@ var nbVerifiers = 7
 
 var vssThreshold int
 
-var verifiersPub []crypto.Point
-var verifiersSec []crypto.Scalar
+var verifiersPub []kyber.Point
+var verifiersSec []kyber.Scalar
 
-var dealerPub crypto.Point
-var dealerSec crypto.Scalar
+var dealerPub kyber.Point
+var dealerSec kyber.Scalar
 
-var secret crypto.Scalar
+var secret kyber.Scalar
 
 func init() {
 	verifiersSec, verifiersPub = genCommits(nbVerifiers)
@@ -503,15 +503,15 @@ func TestVSSContext(t *testing.T) {
 	assert.Len(t, c, suite.Hash().Size())
 }
 
-func genPair() (crypto.Scalar, crypto.Point) {
+func genPair() (kyber.Scalar, kyber.Point) {
 	secret := suite.Scalar().Pick(reader)
 	public := suite.Point().Mul(nil, secret)
 	return secret, public
 }
 
-func genCommits(n int) ([]crypto.Scalar, []crypto.Point) {
-	var secrets = make([]crypto.Scalar, n)
-	var publics = make([]crypto.Point, n)
+func genCommits(n int) ([]kyber.Scalar, []kyber.Point) {
+	var secrets = make([]kyber.Scalar, n)
+	var publics = make([]kyber.Point, n)
 	for i := 0; i < n; i++ {
 		secrets[i], publics[i] = genPair()
 	}

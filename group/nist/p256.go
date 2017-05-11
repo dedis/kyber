@@ -5,7 +5,7 @@ import (
 	"math/big"
 )
 
-// P256 implements the crypto.Group interface
+// P256 implements the kyber.Group interface
 // for the NIST P-256 elliptic curve,
 // based on Go's native elliptic curve library.
 type p256 struct {

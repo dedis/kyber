@@ -8,15 +8,15 @@ import (
 
 // Hash-based noninteractive Sigma-protocol prover context
 type hashProver struct {
-	suite   crypto.Suite
+	suite   kyber.Suite
 	proof   bytes.Buffer
 	msg     bytes.Buffer
-	pubrand crypto.Cipher
-	prirand crypto.Cipher
+	pubrand kyber.Cipher
+	prirand kyber.Cipher
 }
 
-func newHashProver(suite crypto.Suite, protoName string,
-	rand crypto.Cipher) *hashProver {
+func newHashProver(suite kyber.Suite, protoName string,
+	rand kyber.Cipher) *hashProver {
 	var sc hashProver
 	sc.suite = suite
 	sc.pubrand = suite.Cipher([]byte(protoName))
@@ -62,13 +62,13 @@ func (c *hashProver) Proof() []byte {
 
 // Noninteractive Sigma-protocol verifier context
 type hashVerifier struct {
-	suite   crypto.Suite
+	suite   kyber.Suite
 	proof   bytes.Buffer // Buffer with which to read the proof
 	prbuf   []byte       // Byte-slice underlying proof buffer
-	pubrand crypto.Cipher
+	pubrand kyber.Cipher
 }
 
-func newHashVerifier(suite crypto.Suite, protoName string,
+func newHashVerifier(suite kyber.Suite, protoName string,
 	proof []byte) *hashVerifier {
 	var c hashVerifier
 	if _, err := c.proof.Write(proof); err != nil {
@@ -116,8 +116,8 @@ func (c *hashVerifier) PubRand(data ...interface{}) error {
 // or a pseudorandom stream based on a secret seed
 // to create deterministically reproducible proofs.
 //
-func HashProve(suite crypto.Suite, protocolName string,
-	random crypto.Cipher, prover Prover) ([]byte, error) {
+func HashProve(suite kyber.Suite, protocolName string,
+	random kyber.Cipher, prover Prover) ([]byte, error) {
 	ctx := newHashProver(suite, protocolName, random)
 	if e := (func(ProverContext) error)(prover)(ctx); e != nil {
 		return nil, e
@@ -128,7 +128,7 @@ func HashProve(suite crypto.Suite, protocolName string,
 // Verifies a hash-based noninteractive proof generated with HashProve.
 // The suite and protocolName must be the same as those given to HashProve.
 // Returns nil if the proof checks out, or an error on any failure.
-func HashVerify(suite crypto.Suite, protocolName string,
+func HashVerify(suite kyber.Suite, protocolName string,
 	verifier Verifier, proof []byte) error {
 	ctx := newHashVerifier(suite, protocolName, proof)
 	return (func(VerifierContext) error)(verifier)(ctx)

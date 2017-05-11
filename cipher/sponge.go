@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"gopkg.in/dedis/crypto.v0/ints"
+	"gopkg.in/dedis/kyber.v0/ints"
 	//"encoding/hex"
 	"encoding/binary"
 
@@ -66,7 +66,7 @@ type spongeCipher struct {
 }
 
 // SpongeCipher builds a general message Cipher from a Sponge function.
-func FromSponge(sponge Sponge, key []byte, options ...interface{}) crypto.Cipher {
+func FromSponge(sponge Sponge, key []byte, options ...interface{}) kyber.Cipher {
 	sc := spongeCipher{}
 	sc.sponge = sponge
 	sc.rate = sponge.Rate()
@@ -87,7 +87,7 @@ func FromSponge(sponge Sponge, key []byte, options ...interface{}) crypto.Cipher
 	// Setup normal-case domain-separation byte used for message payloads
 	sc.setDomain(domainPayload, 0)
 
-	return crypto.Cipher{&sc}
+	return kyber.Cipher{&sc}
 }
 
 func (sc *spongeCipher) parseOptions(options []interface{}) bool {
@@ -199,10 +199,10 @@ func (sc *spongeCipher) special(domain byte, index int) {
 }
 
 /*
-// XXX move to crypto.Cipher?
-func (sc *spongeCipher) Fork(nsubs int) []crypto.CipherState {
+// XXX move to kyber.Cipher?
+func (sc *spongeCipher) Fork(nsubs int) []kyber.CipherState {
 
-	subs := make([]crypto.Cipher, nsubs)
+	subs := make([]kyber.Cipher, nsubs)
 	for i := range subs {
 		sub := sc.clone()
 		sub.special(domainFork, 1+i) // reserve 0 for parent
@@ -221,8 +221,8 @@ func xorBytes(dst, src []byte) {
 	}
 }
 
-// XXX move to crypto.Cipher?
-func (sc *spongeCipher) Join(subs ...crypto.CipherState) {
+// XXX move to kyber.Cipher?
+func (sc *spongeCipher) Join(subs ...kyber.CipherState) {
 
 	// mark the join transformation in the parent first
 	sc.special(domainJoin, 0)
@@ -246,7 +246,7 @@ func (sc *spongeCipher) clone() *spongeCipher {
 	return &nsc
 }
 
-func (sc *spongeCipher) Clone() crypto.CipherState {
+func (sc *spongeCipher) Clone() kyber.CipherState {
 	return sc.clone()
 }
 

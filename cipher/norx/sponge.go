@@ -50,6 +50,6 @@ func newSponge() cipher.Sponge {
 }
 
 // NewCipher creates a Cipher implementing the 64-4-1 mode of NORX.
-func NewCipher(key []byte, options ...interface{}) crypto.Cipher {
+func NewCipher(key []byte, options ...interface{}) kyber.Cipher {
 	return cipher.FromSponge(newSponge(), key, options...)
 }

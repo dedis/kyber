@@ -22,23 +22,23 @@ func (s *suite128) Hash() hash.Hash {
 }
 
 // SHA3/SHAKE128 Sponge Cipher
-func (s *suite128) Cipher(key []byte, options ...interface{}) crypto.Cipher {
+func (s *suite128) Cipher(key []byte, options ...interface{}) kyber.Cipher {
 	return sha3.NewShakeCipher128(key, options...)
 }
 
 func (s *suite128) Read(r io.Reader, objs ...interface{}) error {
-	return crypto.SuiteRead(s, r, objs)
+	return kyber.SuiteRead(s, r, objs)
 }
 
 func (s *suite128) Write(w io.Writer, objs ...interface{}) error {
-	return crypto.SuiteWrite(s, w, objs)
+	return kyber.SuiteWrite(s, w, objs)
 }
 
 func (s *suite128) New(t reflect.Type) interface{} {
-	return crypto.SuiteNew(s, t)
+	return kyber.SuiteNew(s, t)
 }
 
-func (s *suite128) NewKey(rand cipher.Stream) crypto.Scalar {
+func (s *suite128) NewKey(rand cipher.Stream) kyber.Scalar {
 	if rand == nil {
 		rand = random.Stream
 	}
@@ -46,7 +46,7 @@ func (s *suite128) NewKey(rand cipher.Stream) crypto.Scalar {
 }
 
 // Ciphersuite based on AES-128, SHA-256, and the NIST P-256 elliptic curve.
-func NewAES128SHA256P256() crypto.Suite {
+func NewAES128SHA256P256() kyber.Suite {
 	suite := new(suite128)
 	suite.p256.Init()
 	return suite

@@ -13,12 +13,12 @@ import (
 
 // A basic, verifiable signature
 type basicSig struct {
-	C crypto.Scalar // challenge
-	R crypto.Scalar // response
+	C kyber.Scalar // challenge
+	R kyber.Scalar // response
 }
 
 // Returns a secret that depends on on a message and a point
-func hashSchnorr(suite crypto.Suite, message []byte, p crypto.Point) crypto.Scalar {
+func hashSchnorr(suite kyber.Suite, message []byte, p kyber.Point) kyber.Scalar {
 	pb, _ := p.MarshalBinary()
 	c := suite.Cipher(pb)
 	c.Message(nil, nil, message)
@@ -29,8 +29,8 @@ func hashSchnorr(suite crypto.Suite, message []byte, p crypto.Point) crypto.Scal
 // crypto/anon/sig.go
 // The ring structure is removed and
 // The anonimity set is reduced to one public key = no anonimity
-func SchnorrSign(suite crypto.Suite, random cipher.Stream, message []byte,
-	privateKey crypto.Scalar) []byte {
+func SchnorrSign(suite kyber.Suite, random cipher.Stream, message []byte,
+	privateKey kyber.Scalar) []byte {
 
 	// Create random secret v and public point commitment T
 	v := suite.Scalar().Pick(random)
@@ -52,7 +52,7 @@ func SchnorrSign(suite crypto.Suite, random cipher.Stream, message []byte,
 	return buf.Bytes()
 }
 
-func SchnorrVerify(suite crypto.Suite, message []byte, publicKey crypto.Point,
+func SchnorrVerify(suite kyber.Suite, message []byte, publicKey kyber.Point,
 	signatureBuffer []byte) error {
 
 	// Decode the signature
@@ -65,7 +65,7 @@ func SchnorrVerify(suite crypto.Suite, message []byte, publicKey crypto.Point,
 	c := sig.C
 
 	// Compute base**(r + x*c) == T
-	var P, T crypto.Point
+	var P, T kyber.Point
 	P = suite.Point()
 	T = suite.Point()
 	T.Add(T.Mul(nil, r), P.Mul(publicKey, c))

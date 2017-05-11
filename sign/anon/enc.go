@@ -9,8 +9,8 @@ import (
 )
 
 // XXX belongs in crypto package?
-func keyPair(suite crypto.Suite, rand cipher.Stream,
-	hide bool) (crypto.Point, crypto.Scalar, []byte) {
+func keyPair(suite kyber.Suite, rand cipher.Stream,
+	hide bool) (kyber.Point, kyber.Scalar, []byte) {
 
 	x := suite.Scalar().Pick(rand)
 	X := suite.Point().Mul(nil, x)
@@ -18,7 +18,7 @@ func keyPair(suite crypto.Suite, rand cipher.Stream,
 		Xb, _ := X.MarshalBinary()
 		return X, x, Xb
 	}
-	Xh := X.(crypto.Hiding)
+	Xh := X.(kyber.Hiding)
 	for {
 		Xb := Xh.HideEncode(rand) // try to encode as uniform blob
 		if Xb != nil {
@@ -29,7 +29,7 @@ func keyPair(suite crypto.Suite, rand cipher.Stream,
 	}
 }
 
-func header(suite crypto.Suite, X crypto.Point, x crypto.Scalar,
+func header(suite kyber.Suite, X kyber.Point, x kyber.Scalar,
 	Xb, xb []byte, anonymitySet Set) []byte {
 
 	//fmt.Printf("Xb %s\nxb %s\n",
@@ -52,7 +52,7 @@ func header(suite crypto.Suite, X crypto.Point, x crypto.Scalar,
 
 // Create and encrypt a fresh key decryptable only by the given receivers.
 // Returns the secret key and the ciphertext.
-func encryptKey(suite crypto.Suite, rand cipher.Stream,
+func encryptKey(suite kyber.Suite, rand cipher.Stream,
 	anonymitySet Set, hide bool) (k, c []byte) {
 
 	// Choose a keypair and encode its representation
@@ -65,20 +65,20 @@ func encryptKey(suite crypto.Suite, rand cipher.Stream,
 
 // Decrypt and verify a key encrypted via encryptKey.
 // On success, returns the key and the length of the decrypted header.
-func decryptKey(suite crypto.Suite, ciphertext []byte, anonymitySet Set,
-	mine int, privateKey crypto.Scalar,
+func decryptKey(suite kyber.Suite, ciphertext []byte, anonymitySet Set,
+	mine int, privateKey kyber.Scalar,
 	hide bool) ([]byte, int, error) {
 
 	// Decode the (supposed) ephemeral public key from the front
 	X := suite.Point()
 	var Xb []byte
 	if hide {
-		Xh := X.(crypto.Hiding)
+		Xh := X.(kyber.Hiding)
 		hidelen := Xh.HideLen()
 		if len(ciphertext) < hidelen {
 			return nil, 0, errors.New("ciphertext too short")
 		}
-		X.(crypto.Hiding).HideDecode(ciphertext[:hidelen])
+		X.(kyber.Hiding).HideDecode(ciphertext[:hidelen])
 		Xb = ciphertext[:hidelen]
 	} else {
 		enclen := X.MarshalSize()
@@ -141,10 +141,10 @@ func decryptKey(suite crypto.Suite, ciphertext []byte, anonymitySet Set,
 // Encrypt will produce a uniformly random-looking byte-stream,
 // which reveals no metadata other than message length
 // to anyone unable to decrypt the message.
-// The provided crypto.Suite must support
+// The provided kyber.Suite must support
 // uniform-representation encoding of public keys for this to work.
 //
-func Encrypt(suite crypto.Suite, rand cipher.Stream, message []byte,
+func Encrypt(suite kyber.Suite, rand cipher.Stream, message []byte,
 	anonymitySet Set, hide bool) []byte {
 
 	xb, hdr := encryptKey(suite, rand, anonymitySet, hide)
@@ -180,8 +180,8 @@ func Encrypt(suite crypto.Suite, rand cipher.Stream, message []byte,
 // that is, it is infeasible for a sender to construct any ciphertext
 // that will be accepted by the receiver without knowing the plaintext.
 //
-func Decrypt(suite crypto.Suite, ciphertext []byte, anonymitySet Set,
-	mine int, privateKey crypto.Scalar, hide bool) ([]byte, error) {
+func Decrypt(suite kyber.Suite, ciphertext []byte, anonymitySet Set,
+	mine int, privateKey kyber.Scalar, hide bool) ([]byte, error) {
 
 	// Decrypt and check the encrypted key-header.
 	xb, hdrlen, err := decryptKey(suite, ciphertext, anonymitySet,

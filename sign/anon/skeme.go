@@ -21,15 +21,15 @@ import (
 // which are not directly usable in multiparty contexts.
 //
 type SKEME struct {
-	suite    crypto.Suite
+	suite    kyber.Suite
 	hide     bool
 	lpri     PriKey        // local private key
 	rpub     Set           // remote public key
-	lx       crypto.Scalar // local Diffie-Hellman private key
-	lX, rX   crypto.Point  // local,remote Diffie-Hellman pubkeys
+	lx       kyber.Scalar // local Diffie-Hellman private key
+	lX, rX   kyber.Point  // local,remote Diffie-Hellman pubkeys
 	lXb, rXb []byte        // local,remote DH pubkeys byte-encoded
 
-	ms         crypto.Cipher // master symmetric shared stream
+	ms         kyber.Cipher // master symmetric shared stream
 	ls, rs     cipher.Stream // local->remote,remote->local streams
 	lmac, rmac []byte        // local,remote key-confirmation MACs
 
@@ -38,7 +38,7 @@ type SKEME struct {
 }
 
 // Initialize...
-func (sk *SKEME) Init(suite crypto.Suite, rand cipher.Stream,
+func (sk *SKEME) Init(suite kyber.Suite, rand cipher.Stream,
 	lpri PriKey, rpub Set, hide bool) {
 	sk.suite = suite
 	sk.hide = hide

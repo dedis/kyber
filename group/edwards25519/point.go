@@ -4,7 +4,7 @@
 //
 // This code is based on Adam Langley's Go port of the public domain,
 // "ref10" implementation of the ed25519 signing scheme in C from SUPERCOP.
-// It was generalized and extended to support full crypto.group arithmetic
+// It was generalized and extended to support full kyber.group arithmetic
 // by the Yale Decentralized/Distributed Systems (DeDiS) encoding.
 //
 // Due to the field element and group arithmetic optimizations
@@ -61,7 +61,7 @@ func (P *point) UnmarshalFrom(r io.Reader) (int, error) {
 }
 
 // Equality test for two Points on the same curve
-func (P *point) Equal(P2 crypto.Point) bool {
+func (P *point) Equal(P2 kyber.Point) bool {
 
 	// XXX better to test equality without normalizing extended coords
 
@@ -77,24 +77,24 @@ func (P *point) Equal(P2 crypto.Point) bool {
 }
 
 // Set point to be equal to P2.
-func (P *point) Set(P2 crypto.Point) crypto.Point {
+func (P *point) Set(P2 kyber.Point) kyber.Point {
 	P.ge = P2.(*point).ge
 	return P
 }
 
 // Set point to be equal to P2.
-func (P *point) Clone() crypto.Point {
+func (P *point) Clone() kyber.Point {
 	return &point{ge: P.ge}
 }
 
 // Set to the neutral element, which is (0,1) for twisted Edwards curves.
-func (P *point) Null() crypto.Point {
+func (P *point) Null() kyber.Point {
 	P.ge.Zero()
 	return P
 }
 
 // Set to the standard base point for this curve
-func (P *point) Base() crypto.Point {
+func (P *point) Base() kyber.Point {
 	P.ge = baseext
 	return P
 }
@@ -106,7 +106,7 @@ func (P *point) PickLen() int {
 	return (255 - 8 - 8) / 8
 }
 
-func (P *point) Pick(data []byte, rand cipher.Stream) (crypto.Point, []byte) {
+func (P *point) Pick(data []byte, rand cipher.Stream) (kyber.Point, []byte) {
 
 	// How many bytes to embed?
 	dl := P.PickLen()
@@ -169,7 +169,7 @@ func (P *point) Data() ([]byte, error) {
 	return b[1 : 1+dl], nil
 }
 
-func (P *point) Add(P1, P2 crypto.Point) crypto.Point {
+func (P *point) Add(P1, P2 kyber.Point) kyber.Point {
 	E1 := P1.(*point)
 	E2 := P2.(*point)
 
@@ -185,7 +185,7 @@ func (P *point) Add(P1, P2 crypto.Point) crypto.Point {
 	return P
 }
 
-func (P *point) Sub(P1, P2 crypto.Point) crypto.Point {
+func (P *point) Sub(P1, P2 kyber.Point) kyber.Point {
 	E1 := P1.(*point)
 	E2 := P2.(*point)
 
@@ -203,7 +203,7 @@ func (P *point) Sub(P1, P2 crypto.Point) crypto.Point {
 
 // Find the negative of point A.
 // For Edwards curves, the negative of (x,y) is (-x,y).
-func (P *point) Neg(A crypto.Point) crypto.Point {
+func (P *point) Neg(A kyber.Point) kyber.Point {
 	P.ge.Neg(&A.(*point).ge)
 	return P
 }
@@ -211,7 +211,7 @@ func (P *point) Neg(A crypto.Point) crypto.Point {
 // Multiply point p by scalar s using the repeated doubling method.
 // XXX This is vartime; for our general-purpose Mul operator
 // it would be far preferable for security to do this constant-time.
-func (P *point) Mul(A crypto.Point, s crypto.Scalar) crypto.Point {
+func (P *point) Mul(A kyber.Point, s kyber.Scalar) kyber.Point {
 
 	// Convert the scalar to fixed-length little-endian form.
 	sb := s.(*mod.Int).V.Bytes()
@@ -256,7 +256,7 @@ func (c *Curve) ScalarLen() int {
 }
 
 // Create a new Scalar for the Ed25519 curve.
-func (c *Curve) Scalar() crypto.Scalar {
+func (c *Curve) Scalar() kyber.Scalar {
 	//	if c.FullGroup {
 	//		return mod.NewInt(0, fullOrder)
 	//	} else {
@@ -272,7 +272,7 @@ func (c *Curve) PointLen() int {
 }
 
 // Create a new Point on the Ed25519 curve.
-func (c *Curve) Point() crypto.Point {
+func (c *Curve) Point() kyber.Point {
 	P := new(point)
 	//P.c = c
 	return P

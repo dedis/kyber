@@ -9,7 +9,7 @@ import (
 
 // PointEncodeTo provides a generic implementation of Point.EncodeTo
 // based on Point.Encode.
-func PointMarshalTo(p crypto.Point, w io.Writer) (int, error) {
+func PointMarshalTo(p kyber.Point, w io.Writer) (int, error) {
 	buf, err := p.MarshalBinary()
 	if err != nil {
 		return 0, err
@@ -21,7 +21,7 @@ func PointMarshalTo(p crypto.Point, w io.Writer) (int, error) {
 // based on Point.Decode, or Point.Pick if r is a Cipher or cipher.Stream.
 // The returned byte-count is valid only when decoding from a normal Reader,
 // not when picking from a pseudorandom source.
-func PointUnmarshalFrom(p crypto.Point, r io.Reader) (int, error) {
+func PointUnmarshalFrom(p kyber.Point, r io.Reader) (int, error) {
 	if strm, ok := r.(cipher.Stream); ok {
 		p.Pick(nil, strm)
 		return -1, nil // no byte-count when picking randomly
@@ -36,7 +36,7 @@ func PointUnmarshalFrom(p crypto.Point, r io.Reader) (int, error) {
 
 // ScalarEncodeTo provides a generic implementation of Scalar.EncodeTo
 // based on Scalar.Encode.
-func ScalarMarshalTo(s crypto.Scalar, w io.Writer) (int, error) {
+func ScalarMarshalTo(s kyber.Scalar, w io.Writer) (int, error) {
 	buf, err := s.MarshalBinary()
 	if err != nil {
 		return 0, err
@@ -48,7 +48,7 @@ func ScalarMarshalTo(s crypto.Scalar, w io.Writer) (int, error) {
 // based on Scalar.Decode, or Scalar.Pick if r is a Cipher or cipher.Stream.
 // The returned byte-count is valid only when decoding from a normal Reader,
 // not when picking from a pseudorandom source.
-func ScalarUnmarshalFrom(s crypto.Scalar, r io.Reader) (int, error) {
+func ScalarUnmarshalFrom(s kyber.Scalar, r io.Reader) (int, error) {
 	if strm, ok := r.(cipher.Stream); ok {
 		s.Pick(strm)
 		return -1, nil // no byte-count when picking randomly

@@ -11,7 +11,7 @@ import (
 
 func TestRep(t *testing.T) {
 	suite := nist.NewAES128SHA256P256()
-	rand := suite.Cipher(crypto.RandomKey)
+	rand := suite.Cipher(kyber.RandomKey)
 
 	x := suite.Scalar().Pick(rand)
 	y := suite.Scalar().Pick(rand)
@@ -51,8 +51,8 @@ func TestRep(t *testing.T) {
 	pred := Or(or1x, or2x)
 	choice[pred] = 0
 
-	sval := map[string]crypto.Scalar{"x": x, "y": y}
-	pval := map[string]crypto.Point{"B": B, "X": X, "Y": Y, "R": R}
+	sval := map[string]kyber.Scalar{"x": x, "y": y}
+	pval := map[string]kyber.Point{"B": B, "X": X, "Y": Y, "R": R}
 	prover := pred.Prover(suite, sval, pval, choice)
 	proof, err := HashProve(suite, "TEST", rand, prover)
 	if err != nil {
@@ -94,8 +94,8 @@ func ExampleRep_2() {
 	X := suite.Point().Mul(nil, x) // corresponding public key X
 
 	// Generate a proof that we know the discrete logarithm of X.
-	sval := map[string]crypto.Scalar{"x": x}
-	pval := map[string]crypto.Point{"B": B, "X": X}
+	sval := map[string]kyber.Scalar{"x": x}
+	pval := map[string]kyber.Point{"B": B, "X": X}
 	prover := pred.Prover(suite, sval, pval, nil)
 	proof, _ := HashProve(suite, "TEST", rand, prover)
 	fmt.Print("Proof:\n" + hex.Dump(proof))
@@ -215,8 +215,8 @@ func ExampleOr_2() {
 	choice[pred] = 0
 
 	// Generate a proof that we know the discrete logarithm of X or Y.
-	sval := map[string]crypto.Scalar{"x": x}
-	pval := map[string]crypto.Point{"B": B, "X": X, "Y": Y}
+	sval := map[string]kyber.Scalar{"x": x}
+	pval := map[string]kyber.Point{"B": B, "X": X, "Y": Y}
 	prover := pred.Prover(suite, sval, pval, choice)
 	proof, _ := HashProve(suite, "TEST", rand, prover)
 	fmt.Print("Proof:\n" + hex.Dump(proof))
