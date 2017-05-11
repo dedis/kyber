@@ -1,4 +1,4 @@
-package crypto
+package kyber
 
 import (
 	"errors"

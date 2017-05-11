@@ -125,4 +125,4 @@ This library incorporates and/or builds on existing code
 from a variety of sources,
 as documented in the relevant sub-packages.
 */
-package crypto
+package kyber
