@@ -4,7 +4,7 @@
 // Clique protocols are suitable for small-scale groups,
 // such as "boards of trustees" chosen from larger groups.
 //
-// The basic clique protocol kyber.on
+// The basic clique protocol
 // assumes that nodes are always "live" and never go offline,
 // but we can achieve availability via threshold kyber.
 package clique
