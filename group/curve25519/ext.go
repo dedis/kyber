@@ -6,6 +6,8 @@ import (
 	"io"
 	"math/big"
 
+	"github.com/dedis/kyber/util/random"
+
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/mod"
 	"github.com/dedis/kyber/util/encoding"
@@ -284,6 +286,13 @@ type ExtendedCurve struct {
 	curve          // generic Edwards curve functionality
 	null  extPoint // Constant identity/null point (0,1)
 	base  extPoint // Standard base point
+}
+
+func (p *ExtendedCurve) NewKey(rand cipher.Stream) kyber.Scalar {
+	if rand == nil {
+		rand = random.Stream
+	}
+	return p.Scalar().Pick(rand)
 }
 
 // Create a new Point on this curve.

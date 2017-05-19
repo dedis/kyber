@@ -16,6 +16,7 @@ package edwards25519
 
 import (
 	"crypto/cipher"
+	"crypto/sha512"
 	"encoding/hex"
 	"errors"
 	"io"
@@ -23,6 +24,7 @@ import (
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/mod"
 	"github.com/dedis/kyber/util/encoding"
+	"github.com/dedis/kyber/util/random"
 )
 
 type point struct {
@@ -276,6 +278,22 @@ func (c *Curve) Point() kyber.Point {
 	P := new(point)
 	//P.c = c
 	return P
+}
+
+// NewKey returns a formatted Ed25519 key (avoiding subgroup attack by requiring
+// it to be a multiple of 8)
+func (s *Curve) NewKey(stream cipher.Stream) kyber.Scalar {
+	if stream == nil {
+		stream = random.Stream
+	}
+	buffer := random.NonZeroBytes(32, stream)
+	scalar := sha512.Sum512(buffer)
+	scalar[0] &= 0xf8
+	scalar[31] &= 0x3f
+	scalar[31] |= 0x40
+
+	secret := s.Scalar().SetBytes(scalar[:32])
+	return secret
 }
 
 // Initialize the curve.

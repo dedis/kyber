@@ -11,7 +11,7 @@ import (
 )
 
 // dhExchange computes the shared key from a private key and a public key
-func dhExchange(suite kyber.Suite, ownPrivate kyber.Scalar, remotePublic kyber.Point) kyber.Point {
+func dhExchange(suite Suite, ownPrivate kyber.Scalar, remotePublic kyber.Point) kyber.Point {
 	sk := suite.Point()
 	sk.Mul(remotePublic, ownPrivate)
 	return sk
@@ -40,7 +40,7 @@ func newAEAD(fn func() hash.Hash, preSharedKey kyber.Point, context []byte) (cip
 }
 
 // context returns the context slice to be used when encrypting a share
-func context(suite kyber.Suite, dealer kyber.Point, verifiers []kyber.Point) []byte {
+func context(suite Suite, dealer kyber.Point, verifiers []kyber.Point) []byte {
 	h := suite.Hash()
 	h.Write([]byte("vss-dealer"))
 	dealer.MarshalTo(h)

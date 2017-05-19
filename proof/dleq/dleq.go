@@ -3,15 +3,22 @@
 // This means, for two values xG and xH one can check that
 //   log_{G}(xG) == log_{H}(xH)
 // without revealing the secret value x.
-package proof
+package dleq
 
 import (
 	"errors"
+	"hash"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/hash"
+	h "github.com/dedis/kyber/util/hash"
 	"github.com/dedis/kyber/util/random"
 )
+
+type Suite interface {
+	kyber.Group
+	Hash() hash.Hash
+	Cipher(key []byte, options ...interface{}) kyber.Cipher
+}
 
 var errorDifferentLengths = errors.New("inputs of different lengths")
 var errorInvalidProof = errors.New("invalid proof")
@@ -29,7 +36,7 @@ type DLEQProof struct {
 // and then computes the challenge c = H(xG,xH,vG,vH) and response r = v - cx.
 // Besides the proof, this function also returns the encrypted base points xG
 // and xH.
-func NewDLEQProof(suite kyber.Suite, G kyber.Point, H kyber.Point, x kyber.Scalar) (proof *DLEQProof, xG kyber.Point, xH kyber.Point, err error) {
+func NewDLEQProof(suite Suite, G kyber.Point, H kyber.Point, x kyber.Scalar) (proof *DLEQProof, xG kyber.Point, xH kyber.Point, err error) {
 	// Encrypt base points with secret
 	xG = suite.Point().Mul(G, x)
 	xH = suite.Point().Mul(H, x)
@@ -40,7 +47,7 @@ func NewDLEQProof(suite kyber.Suite, G kyber.Point, H kyber.Point, x kyber.Scala
 	vH := suite.Point().Mul(H, v)
 
 	// Challenge
-	cb, err := hash.Structures(suite.Hash(), xG, xH, vG, vH)
+	cb, err := h.Structures(suite.Hash(), xG, xH, vG, vH)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -56,7 +63,7 @@ func NewDLEQProof(suite kyber.Suite, G kyber.Point, H kyber.Point, x kyber.Scala
 // NewDLEQProofBatch computes lists of NIZK dlog-equality proofs and of
 // encrypted base points xG and xH. Note that the challenge is computed over all
 // input values.
-func NewDLEQProofBatch(suite kyber.Suite, G []kyber.Point, H []kyber.Point, secrets []kyber.Scalar) (proof []*DLEQProof, xG []kyber.Point, xH []kyber.Point, err error) {
+func NewDLEQProofBatch(suite Suite, G []kyber.Point, H []kyber.Point, secrets []kyber.Scalar) (proof []*DLEQProof, xG []kyber.Point, xH []kyber.Point, err error) {
 	if len(G) != len(H) || len(H) != len(secrets) {
 		return nil, nil, nil, errorDifferentLengths
 	}
@@ -81,7 +88,7 @@ func NewDLEQProofBatch(suite kyber.Suite, G []kyber.Point, H []kyber.Point, secr
 	}
 
 	// Collective challenge
-	cb, err := hash.Structures(suite.Hash(), xG, xH, vG, vH)
+	cb, err := h.Structures(suite.Hash(), xG, xH, vG, vH)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -101,7 +108,7 @@ func NewDLEQProofBatch(suite kyber.Suite, G []kyber.Point, H []kyber.Point, secr
 // The proof is valid if the following two conditions hold:
 //   vG == rG + c(xG)
 //   vH == rH + c(xH)
-func (p *DLEQProof) Verify(suite kyber.Suite, G kyber.Point, H kyber.Point, xG kyber.Point, xH kyber.Point) error {
+func (p *DLEQProof) Verify(suite Suite, G kyber.Point, H kyber.Point, xG kyber.Point, xH kyber.Point) error {
 	rG := suite.Point().Mul(G, p.R)
 	rH := suite.Point().Mul(H, p.R)
 	cxG := suite.Point().Mul(xG, p.C)

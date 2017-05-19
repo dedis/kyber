@@ -3,10 +3,17 @@ package test
 import (
 	"bytes"
 	"crypto/cipher"
+	"hash"
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/util/random"
 )
+
+type Suite interface {
+	kyber.Group
+	Hash() hash.Hash
+	Cipher(key []byte, options ...interface{}) kyber.Cipher
+}
 
 func testEmbed(g kyber.Group, rand cipher.Stream, points *[]kyber.Point,
 	s string) {
@@ -296,11 +303,11 @@ func TestGroup(g kyber.Group) {
 
 // Test two group implementations that are supposed to be equivalent,
 // and compare their results.
-func TestCompareGroups(suite kyber.Suite, g1, g2 kyber.Group) {
+func TestCompareGroups(fn func(key []byte, options ...interface{}) kyber.Cipher, g1, g2 kyber.Group) {
 
 	// Produce test results from the same pseudorandom seed
-	r1 := testGroup(g1, suite.Cipher(kyber.NoKey))
-	r2 := testGroup(g2, suite.Cipher(kyber.NoKey))
+	r1 := testGroup(g1, fn(kyber.NoKey))
+	r2 := testGroup(g2, fn(kyber.NoKey))
 
 	// Compare resulting Points
 	for i := range r1 {
@@ -316,7 +323,7 @@ func TestCompareGroups(suite kyber.Suite, g1, g2 kyber.Group) {
 }
 
 // Apply a standard set of validation tests to a ciphersuite.
-func TestSuite(suite kyber.Suite) {
+func TestSuite(suite Suite) {
 
 	// Try hashing something
 	h := suite.Hash()

@@ -21,7 +21,7 @@ type lSig struct {
 	Tag kyber.Point
 }
 
-func signH1pre(suite kyber.Suite, linkScope []byte, linkTag kyber.Point,
+func signH1pre(suite Suite, linkScope []byte, linkTag kyber.Point,
 	message []byte) kyber.Cipher {
 	H1pre := suite.Cipher(message) // m
 	if linkScope != nil {
@@ -32,7 +32,7 @@ func signH1pre(suite kyber.Suite, linkScope []byte, linkTag kyber.Point,
 	return H1pre
 }
 
-func signH1(suite kyber.Suite, H1pre kyber.Cipher, PG, PH kyber.Point) kyber.Scalar {
+func signH1(suite Suite, H1pre kyber.Cipher, PG, PH kyber.Point) kyber.Scalar {
 	H1 := H1pre.Clone()
 	PGb, _ := PG.MarshalBinary()
 	H1.Write(PGb)
@@ -107,7 +107,7 @@ func signH1(suite kyber.Suite, H1pre kyber.Cipher, PG, PH kyber.Point) kyber.Sca
 // or that members may be persuaded or coerced into revealing whether or not
 // they produced a signature of interest.
 //
-func Sign(suite kyber.Suite, random cipher.Stream, message []byte,
+func Sign(suite Suite, random cipher.Stream, message []byte,
 	anonymitySet Set, linkScope []byte, mine int, privateKey kyber.Scalar) []byte {
 
 	// Note that Rivest's original ring construction directly supports
@@ -120,7 +120,7 @@ func Sign(suite kyber.Suite, random cipher.Stream, message []byte,
 	// e.g., we also easily obtain linkable ring signatures,
 	// which are not readily feasible with the original ring construction.
 
-	n := len(anonymitySet)            // anonymity set size
+	n := len(anonymitySet)           // anonymity set size
 	L := []kyber.Point(anonymitySet) // public keys in anonymity set
 	pi := mine
 
@@ -194,10 +194,10 @@ func Sign(suite kyber.Suite, random cipher.Stream, message []byte,
 // If the signature is a valid unlinkable signature (linkScope == nil),
 // returns an empty but non-nil byte-slice instead of a linkage tag on success.
 // Returns a nil linkage tag and an error if the signature is invalid.
-func Verify(suite kyber.Suite, message []byte, anonymitySet Set,
+func Verify(suite Suite, message []byte, anonymitySet Set,
 	linkScope []byte, signatureBuffer []byte) ([]byte, error) {
 
-	n := len(anonymitySet)            // anonymity set size
+	n := len(anonymitySet)           // anonymity set size
 	L := []kyber.Point(anonymitySet) // public keys in ring
 
 	// Decode the signature

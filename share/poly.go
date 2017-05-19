@@ -14,9 +14,15 @@ import (
 	"crypto/subtle"
 	"encoding/binary"
 	"errors"
+	"hash"
 
 	"github.com/dedis/kyber"
 )
+
+type Suite interface {
+	kyber.Group
+	Hash() hash.Hash
+}
 
 // Some error definitions
 var errorGroups = errors.New("non-matching groups")
@@ -24,11 +30,11 @@ var errorCoeffs = errors.New("different number of coefficients")
 
 // PriShare represents a private share.
 type PriShare struct {
-	I int           // Index of the private share
+	I int          // Index of the private share
 	V kyber.Scalar // Value of the private share
 }
 
-func (p *PriShare) Hash(s kyber.Suite) []byte {
+func (p *PriShare) Hash(s Suite) []byte {
 	h := s.Hash()
 	p.V.MarshalTo(h)
 	binary.Write(h, binary.LittleEndian, p.I)
@@ -163,11 +169,11 @@ func RecoverSecret(g kyber.Group, shares []*PriShare, t, n int) (kyber.Scalar, e
 
 // PubShare represents a public share.
 type PubShare struct {
-	I int          // Index of the public share
+	I int         // Index of the public share
 	V kyber.Point // Value of the public share
 }
 
-func (p *PubShare) Hash(s kyber.Suite) []byte {
+func (p *PubShare) Hash(s Suite) []byte {
 	h := s.Hash()
 	p.V.MarshalTo(h)
 	binary.Write(h, binary.LittleEndian, p.I)

@@ -24,7 +24,7 @@ func DeniableProver(suite kyber.Suite, self int, prover Prover,
 }
 
 type deniableProver struct {
-	suite kyber.Suite   // Agreed-on ciphersuite for protocol
+	suite Suite          // Agreed-on ciphersuite for protocol
 	self  int            // Our own node number
 	sc    clique.Context // Clique protocol context
 
@@ -235,7 +235,7 @@ func (dp *deniableProver) PriRand(data ...interface{}) {
 // Interactive Sigma-protocol verifier context.
 // Acts as a slave to a deniableProver instance.
 type deniableVerifier struct {
-	suite kyber.Suite
+	suite Suite
 
 	inbox chan []byte   // Channel for receiving proofs and challenges
 	prbuf *bytes.Buffer // Buffer with which to read proof messages
@@ -246,7 +246,7 @@ type deniableVerifier struct {
 	pubrand kyber.Cipher
 }
 
-func (dv *deniableVerifier) start(suite kyber.Suite, vrf Verifier) {
+func (dv *deniableVerifier) start(suite Suite, vrf Verifier) {
 	dv.suite = suite
 	dv.inbox = make(chan []byte)
 	dv.done = make(chan bool)

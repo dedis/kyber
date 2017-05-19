@@ -1,23 +1,18 @@
 package edwards25519
 
 import (
-	"crypto/cipher"
 	"crypto/sha256"
-	"crypto/sha512"
 	"hash"
 	"io"
 	"reflect"
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/cipher/sha3"
-	"github.com/dedis/kyber/util/random"
 )
 
 type suiteEd25519 struct {
 	Curve
 }
-
-// XXX non-NIST ciphers?
 
 // SHA256 hash function
 func (s *suiteEd25519) Hash() hash.Hash {
@@ -41,24 +36,8 @@ func (s *suiteEd25519) New(t reflect.Type) interface{} {
 	return kyber.SuiteNew(s, t)
 }
 
-// NewKey returns a formatted Ed25519 key (avoiding subgroup attack by requiring
-// it to be a multiple of 8)
-func (s *suiteEd25519) NewKey(stream cipher.Stream) kyber.Scalar {
-	if stream == nil {
-		stream = random.Stream
-	}
-	buffer := random.NonZeroBytes(32, stream)
-	scalar := sha512.Sum512(buffer)
-	scalar[0] &= 0xf8
-	scalar[31] &= 0x3f
-	scalar[31] |= 0x40
-
-	secret := s.Scalar().SetBytes(scalar[:32])
-	return secret
-}
-
 // Ciphersuite based on AES-128, SHA-256, and the Ed25519 curve.
-func NewAES128SHA256Ed25519(fullGroup bool) kyber.Suite {
+func NewAES128SHA256Ed25519(fullGroup bool) *suiteEd25519 {
 	suite := new(suiteEd25519)
 	return suite
 }

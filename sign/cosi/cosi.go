@@ -41,7 +41,7 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/util/random"
-	//own "github.com/nikkolasg/learning/crypto/util"
+	//own "github.com/nikkolasg/learning/kyber/util"
 )
 
 // CoSi is the struct that implements one round of a CoSi protocol.
@@ -69,7 +69,7 @@ import (
 // CoSi struct. You can also give the full mask directly with SetMask().
 type CoSi struct {
 	// Suite used
-	suite kyber.Suite
+	group kyber.Group
 	// mask is the mask used to select which signers participated in this round
 	// or not. All code regarding the mask is directly inspired from
 	// github.com/bford/golang-x-crypto/ed25519/cosi code.
@@ -95,18 +95,18 @@ type CoSi struct {
 	aggregateResponse kyber.Scalar
 }
 
-// NewCosi returns a new Cosi struct given the suite, the longterm secret, and
+// NewCosi returns a new Cosi struct given the group, the longterm secret, and
 // the list of public keys. If some signers were not to be participating, you
 // have to set the mask using `SetMask` method. By default, all participants are
 // designated as participating. If you wish to specify which co-signers are
 // participating, use NewCosiWithMask
-func NewCosi(suite kyber.Suite, private kyber.Scalar, publics []kyber.Point) *CoSi {
+func NewCosi(group kyber.Group, private kyber.Scalar, publics []kyber.Point) *CoSi {
 	cosi := &CoSi{
-		suite:   suite,
+		group:   group,
 		private: private,
 	}
 	// Start with an all-disabled participation mask, then set it correctly
-	cosi.mask = newMask(suite, publics)
+	cosi.mask = newMask(group, publics)
 	return cosi
 }
 
@@ -125,7 +125,7 @@ func (c *CoSi) Commit(s cipher.Stream, subComms []kyber.Point) kyber.Point {
 	c.genCommit(s)
 
 	// add our own commitment to the aggregate commitment
-	c.aggregateCommitment = c.suite.Point().Add(c.suite.Point().Null(), c.commitment)
+	c.aggregateCommitment = c.group.Point().Add(c.group.Point().Null(), c.commitment)
 	// take the children commitments
 	for _, com := range subComms {
 		c.aggregateCommitment.Add(c.aggregateCommitment, com)
@@ -148,7 +148,7 @@ func (c *CoSi) CreateChallenge(msg []byte) (kyber.Scalar, error) {
 	hash.Write(msg)
 	chalBuff := hash.Sum(nil)
 	// reducing the challenge
-	c.challenge = c.suite.Scalar().SetBytes(chalBuff)
+	c.challenge = c.group.Scalar().SetBytes(chalBuff)
 	c.message = msg
 	return c.challenge, nil
 }
@@ -174,7 +174,7 @@ func (c *CoSi) Response(responses []kyber.Scalar) (kyber.Scalar, error) {
 		return nil, err
 	}
 	// Add our own
-	c.aggregateResponse = c.suite.Scalar().Set(c.response)
+	c.aggregateResponse = c.group.Scalar().Set(c.response)
 	for _, resp := range responses {
 		// add responses of child
 		c.aggregateResponse.Add(c.aggregateResponse, resp)
@@ -213,10 +213,10 @@ func (c *CoSi) VerifyResponses(aggregatedPublic kyber.Point) error {
 	// k * -aggPublic + s * B = k*-A + s*B
 	// from s = k * a + r => s * B = k * a * B + r * B <=> s*B = k*A + r*B
 	// <=> s*B + k*-A = r*B
-	minusPublic := c.suite.Point().Neg(aggregatedPublic)
-	kA := c.suite.Point().Mul(minusPublic, k)
-	sB := c.suite.Point().Mul(nil, c.aggregateResponse)
-	left := c.suite.Point().Add(kA, sB)
+	minusPublic := c.group.Point().Neg(aggregatedPublic)
+	kA := c.group.Point().Mul(minusPublic, k)
+	sB := c.group.Point().Mul(nil, c.aggregateResponse)
+	left := c.group.Point().Add(kA, sB)
 
 	if !left.Equal(c.aggregateCommitment) {
 		return errors.New("recreated commitment is not equal to one given")
@@ -229,16 +229,16 @@ func (c *CoSi) VerifyResponses(aggregatedPublic kyber.Point) error {
 // struct. Publics is the WHOLE list of publics keys, the mask at the end of the
 // signature will take care of removing the indivual public keys that did not
 // participate
-func VerifySignature(suite kyber.Suite, publics []kyber.Point, message, sig []byte) error {
+func VerifySignature(group kyber.Group, publics []kyber.Point, message, sig []byte) error {
 	aggCommitBuff := sig[:32]
-	aggCommit := suite.Point()
+	aggCommit := group.Point()
 	if err := aggCommit.UnmarshalBinary(aggCommitBuff); err != nil {
 		panic(err)
 	}
 	sigBuff := sig[32:64]
-	sigInt := suite.Scalar().SetBytes(sigBuff)
+	sigInt := group.Scalar().SetBytes(sigBuff)
 	maskBuff := sig[64:]
-	mask := newMask(suite, publics)
+	mask := newMask(group, publics)
 	mask.SetMask(maskBuff)
 	aggPublic := mask.Aggregate()
 	aggPublicMarshal, err := aggPublic.MarshalBinary()
@@ -251,15 +251,15 @@ func VerifySignature(suite kyber.Suite, publics []kyber.Point, message, sig []by
 	hash.Write(aggPublicMarshal)
 	hash.Write(message)
 	buff := hash.Sum(nil)
-	k := suite.Scalar().SetBytes(buff)
+	k := group.Scalar().SetBytes(buff)
 
 	// k * -aggPublic + s * B = k*-A + s*B
 	// from s = k * a + r => s * B = k * a * B + r * B <=> s*B = k*A + r*B
 	// <=> s*B + k*-A = r*B
-	minusPublic := suite.Point().Neg(aggPublic)
-	kA := suite.Point().Mul(minusPublic, k)
-	sB := suite.Point().Mul(nil, sigInt)
-	left := suite.Point().Add(kA, sB)
+	minusPublic := group.Point().Neg(aggPublic)
+	kA := group.Point().Mul(minusPublic, k)
+	sB := group.Point().Mul(nil, sigInt)
+	left := group.Point().Add(kA, sB)
 
 	if !left.Equal(aggCommit) {
 		return errors.New("Signature invalid")
@@ -296,8 +296,8 @@ func (c *CoSi) genCommit(s cipher.Stream) {
 	if s == nil {
 		stream = random.Stream
 	}
-	c.random = c.suite.Scalar().Pick(stream)
-	c.commitment = c.suite.Point().Mul(nil, c.random)
+	c.random = c.group.Scalar().Pick(stream)
+	c.commitment = c.group.Point().Mul(nil, c.random)
 	c.aggregateCommitment = c.commitment
 }
 
@@ -315,7 +315,7 @@ func (c *CoSi) genResponse() error {
 
 	// resp = random - challenge * privatekey
 	// i.e. ri = vi + c * xi
-	resp := c.suite.Scalar().Mul(c.private, c.challenge)
+	resp := c.group.Scalar().Mul(c.private, c.challenge)
 	c.response = resp.Add(c.random, resp)
 	// no aggregation here
 	c.aggregateResponse = c.response
@@ -329,18 +329,18 @@ type mask struct {
 	mask      []byte
 	publics   []kyber.Point
 	aggPublic kyber.Point
-	suite     kyber.Suite
+	group     kyber.Group
 }
 
 // newMask returns a new mask to use with the cosigning with all cosigners enabled
-func newMask(suite kyber.Suite, publics []kyber.Point) *mask {
+func newMask(group kyber.Group, publics []kyber.Point) *mask {
 	// Start with an all-disabled participation mask, then set it correctly
 	cm := &mask{
 		publics: publics,
-		suite:   suite,
+		group:   group,
 	}
 	cm.mask = make([]byte, cm.MaskLen())
-	cm.aggPublic = cm.suite.Point().Null()
+	cm.aggPublic = cm.group.Point().Null()
 	cm.allEnabled()
 	return cm
 
