@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"gopkg.in/dedis/kyber.v0/ints"
+	"github.com/dedis/kyber/util/ints"
 	//"encoding/hex"
 	"encoding/binary"
 
