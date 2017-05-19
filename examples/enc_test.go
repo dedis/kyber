@@ -6,7 +6,7 @@ import (
 	"github.com/dedis/kyber/util/random"
 )
 
-func ElGamalEncrypt(suite kyber.Group, pubkey kyber.Point, message []byte) (
+func ElGamalEncrypt(group kyber.Group, pubkey kyber.Point, message []byte) (
 	K, C kyber.Point, remainder []byte) {
 
 	// Embed the message (or as much of it as will fit) into a curve point.
@@ -20,7 +20,7 @@ func ElGamalEncrypt(suite kyber.Group, pubkey kyber.Point, message []byte) (
 	return
 }
 
-func ElGamalDecrypt(suite kyber.Group, prikey kyber.Scalar, K, C kyber.Point) (
+func ElGamalDecrypt(group kyber.Group, prikey kyber.Scalar, K, C kyber.Point) (
 	message []byte, err error) {
 
 	// ElGamal-decrypt the ciphertext (K,C) to reproduce the message.

@@ -26,9 +26,9 @@ type basicSig struct {
 // Returns a secret that depends on on a message and a point
 func hashSchnorr(suite Suite, message []byte, p kyber.Point) kyber.Scalar {
 	pb, _ := p.MarshalBinary()
-	c := group.Cipher(pb)
+	c := suite.Cipher(pb)
 	c.Message(nil, nil, message)
-	return group.Scalar().Pick(c)
+	return suite.Scalar().Pick(c)
 }
 
 // This simplified implementation of Schnorr Signatures is based on
@@ -39,14 +39,14 @@ func SchnorrSign(suite Suite, random cipher.Stream, message []byte,
 	privateKey kyber.Scalar) []byte {
 
 	// Create random secret v and public point commitment T
-	v := group.Scalar().Pick(random)
-	T := group.Point().Mul(nil, v)
+	v := suite.Scalar().Pick(random)
+	T := suite.Point().Mul(nil, v)
 
 	// Create challenge c based on message and T
-	c := hashSchnorr(group, message, T)
+	c := hashSchnorr(suite, message, T)
 
 	// Compute response r = v - x*c
-	r := group.Scalar()
+	r := suite.Scalar()
 	r.Mul(privateKey, c).Sub(v, r)
 
 	// Return verifiable signature {c, r}
@@ -54,7 +54,7 @@ func SchnorrSign(suite Suite, random cipher.Stream, message []byte,
 	// And check that hashElgamal for T and the message == c
 	buf := bytes.Buffer{}
 	sig := basicSig{c, r}
-	group.Write(&buf, &sig)
+	suite.Write(&buf, &sig)
 	return buf.Bytes()
 }
 
@@ -64,7 +64,7 @@ func SchnorrVerify(suite Suite, message []byte, publicKey kyber.Point,
 	// Decode the signature
 	buf := bytes.NewBuffer(signatureBuffer)
 	sig := basicSig{}
-	if err := group.Read(buf, &sig); err != nil {
+	if err := suite.Read(buf, &sig); err != nil {
 		return err
 	}
 	r := sig.R
@@ -78,7 +78,7 @@ func SchnorrVerify(suite Suite, message []byte, publicKey kyber.Point,
 
 	// Verify that the hash based on the message and T
 	// matches the challange c from the signature
-	c = hashSchnorr(group, message, T)
+	c = hashSchnorr(suite, message, T)
 	if !c.Equal(sig.C) {
 		return errors.New("invalid signature")
 	}
