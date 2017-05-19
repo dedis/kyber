@@ -3,7 +3,7 @@ package key
 import (
 	"testing"
 
-	"github.com/dedis/crypto/group/edwards25519"
+	"github.com/dedis/kyber/group/edwards25519"
 )
 
 func TestNewKeyPair(t *testing.T) {

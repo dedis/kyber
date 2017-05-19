@@ -4,10 +4,10 @@ import (
 	"testing"
 
 	//"encoding/hex"
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/group/edwards25519"
-	"github.com/dedis/crypto/test"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/edwards25519"
+	"github.com/dedis/kyber/test"
+	"github.com/dedis/kyber/util/random"
 )
 
 var testSuite = NewAES128SHA256Ed25519(false)
@@ -106,25 +106,25 @@ func TestCompareEd25519(t *testing.T) {
 
 // Test point hiding functionality
 
-func testHiding(g crypto.Group, k int) {
+func testHiding(g kyber.Group, k int) {
 	rand := random.Stream
 
 	// Test conversion from random strings to points and back
 	p := g.Point()
 	p2 := g.Point()
-	l := p.(crypto.Hiding).HideLen()
+	l := p.(kyber.Hiding).HideLen()
 	buf := make([]byte, l)
 	for i := 0; i < k; i++ {
 		rand.XORKeyStream(buf, buf)
 		//println("R "+hex.EncodeToString(buf))
-		p.(crypto.Hiding).HideDecode(buf)
+		p.(kyber.Hiding).HideDecode(buf)
 		//println("P "+p.String())
-		b2 := p.(crypto.Hiding).HideEncode(rand)
+		b2 := p.(kyber.Hiding).HideEncode(rand)
 		if b2 == nil {
 			panic("HideEncode failed")
 		}
 		//println("R'"+hex.EncodeToString(b2))
-		p2.(crypto.Hiding).HideDecode(b2)
+		p2.(kyber.Hiding).HideDecode(b2)
 		//println("P'"+p2.String())
 		if !p.Equal(p2) {
 			panic("HideDecode produced wrong point")

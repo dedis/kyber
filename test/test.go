@@ -5,17 +5,17 @@ import (
 	"crypto/cipher"
 	"hash"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/random"
 )
 
 type Suite interface {
-	crypto.Group
+	kyber.Group
 	Hash() hash.Hash
-	Cipher(key []byte, options ...interface{}) crypto.Cipher
+	Cipher(key []byte, options ...interface{}) kyber.Cipher
 }
 
-func testEmbed(g crypto.Group, rand cipher.Stream, points *[]crypto.Point,
+func testEmbed(g kyber.Group, rand cipher.Stream, points *[]kyber.Point,
 	s string) {
 	//println("embedding: ",s)
 	b := []byte(s)
@@ -35,7 +35,7 @@ func testEmbed(g crypto.Group, rand cipher.Stream, points *[]crypto.Point,
 	*points = append(*points, p)
 }
 
-func testPointSet(g crypto.Group, rand cipher.Stream) {
+func testPointSet(g kyber.Group, rand cipher.Stream) {
 	N := 1000
 	null := g.Point().Null()
 	for i := 0; i < N; i++ {
@@ -54,7 +54,7 @@ func testPointSet(g crypto.Group, rand cipher.Stream) {
 	}
 }
 
-func testPointClone(g crypto.Group, rand cipher.Stream) {
+func testPointClone(g kyber.Group, rand cipher.Stream) {
 	N := 1000
 	null := g.Point().Null()
 	for i := 0; i < N; i++ {
@@ -73,7 +73,7 @@ func testPointClone(g crypto.Group, rand cipher.Stream) {
 	}
 }
 
-func testScalarSet(g crypto.Group, rand cipher.Stream) {
+func testScalarSet(g kyber.Group, rand cipher.Stream) {
 	N := 1000
 	one := g.Scalar().One()
 	for i := 0; i < N; i++ {
@@ -91,7 +91,7 @@ func testScalarSet(g crypto.Group, rand cipher.Stream) {
 	}
 }
 
-func testScalarClone(g crypto.Group, rand cipher.Stream) {
+func testScalarClone(g kyber.Group, rand cipher.Stream) {
 	N := 1000
 	one := g.Scalar().One()
 	for i := 0; i < N; i++ {
@@ -116,11 +116,11 @@ func testScalarClone(g crypto.Group, rand cipher.Stream) {
 // for comparison across alternative implementations
 // that are supposed to be equivalent.
 //
-func testGroup(g crypto.Group, rand cipher.Stream) []crypto.Point {
+func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 	//	fmt.Printf("\nTesting group '%s': %d-byte Point, %d-byte Scalar\n",
 	//			g.String(), g.PointLen(), g.ScalarLen())
 
-	points := make([]crypto.Point, 0)
+	points := make([]kyber.Point, 0)
 	ptmp := g.Point()
 	stmp := g.Scalar()
 	pzero := g.Point().Null()
@@ -297,17 +297,17 @@ func testGroup(g crypto.Group, rand cipher.Stream) []crypto.Point {
 }
 
 // Apply a generic set of validation tests to a cryptographic Group.
-func TestGroup(g crypto.Group) {
+func TestGroup(g kyber.Group) {
 	testGroup(g, random.Stream)
 }
 
 // Test two group implementations that are supposed to be equivalent,
 // and compare their results.
-func TestCompareGroups(fn func(key []byte, options ...interface{}) crypto.Cipher, g1, g2 crypto.Group) {
+func TestCompareGroups(fn func(key []byte, options ...interface{}) kyber.Cipher, g1, g2 kyber.Group) {
 
 	// Produce test results from the same pseudorandom seed
-	r1 := testGroup(g1, fn(crypto.NoKey))
-	r2 := testGroup(g2, fn(crypto.NoKey))
+	r1 := testGroup(g1, fn(kyber.NoKey))
+	r2 := testGroup(g2, fn(kyber.NoKey))
 
 	// Compare resulting Points
 	for i := range r1 {

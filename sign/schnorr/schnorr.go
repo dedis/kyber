@@ -6,14 +6,14 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/random"
 )
 
 // Schnorr creates a Schnorr signature from a msg and a private key. This
 // signature can be verified with VerifySchnorr. It's also a valid EdDSA
 // signature.
-func Schnorr(g crypto.Group, private crypto.Scalar, msg []byte) ([]byte, error) {
+func Schnorr(g kyber.Group, private kyber.Scalar, msg []byte) ([]byte, error) {
 	// create random secret k and public point commitment R
 	k := g.Scalar().Pick(random.Stream)
 	R := g.Point().Mul(nil, k)
@@ -44,7 +44,7 @@ func Schnorr(g crypto.Group, private crypto.Scalar, msg []byte) ([]byte, error) 
 // given signature is valid.  NOTE XXX TODO: this signature scheme is malleable because
 // the response's unmarshalling is done directly into a big.Int modulo (see
 // nist.Int).
-func VerifySchnorr(g crypto.Group, public crypto.Point, msg, sig []byte) error {
+func VerifySchnorr(g kyber.Group, public kyber.Point, msg, sig []byte) error {
 	R := g.Point()
 	s := g.Scalar()
 	pointSize := R.MarshalSize()
@@ -78,7 +78,7 @@ func VerifySchnorr(g crypto.Group, public crypto.Point, msg, sig []byte) error {
 	return nil
 }
 
-func hash(g crypto.Group, public, r crypto.Point, msg []byte) (crypto.Scalar, error) {
+func hash(g kyber.Group, public, r kyber.Point, msg []byte) (kyber.Scalar, error) {
 	h := sha512.New()
 	if _, err := r.MarshalTo(h); err != nil {
 		return nil, err

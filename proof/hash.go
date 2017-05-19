@@ -3,7 +3,7 @@ package proof
 import (
 	"bytes"
 
-	"github.com/dedis/crypto"
+	"github.com/dedis/kyber"
 )
 
 // Hash-based noninteractive Sigma-protocol prover context
@@ -11,12 +11,12 @@ type hashProver struct {
 	suite   Suite
 	proof   bytes.Buffer
 	msg     bytes.Buffer
-	pubrand crypto.Cipher
-	prirand crypto.Cipher
+	pubrand kyber.Cipher
+	prirand kyber.Cipher
 }
 
 func newHashProver(suite Suite, protoName string,
-	rand crypto.Cipher) *hashProver {
+	rand kyber.Cipher) *hashProver {
 	var sc hashProver
 	sc.suite = suite
 	sc.pubrand = suite.Cipher([]byte(protoName))
@@ -65,7 +65,7 @@ type hashVerifier struct {
 	suite   Suite
 	proof   bytes.Buffer // Buffer with which to read the proof
 	prbuf   []byte       // Byte-slice underlying proof buffer
-	pubrand crypto.Cipher
+	pubrand kyber.Cipher
 }
 
 func newHashVerifier(suite Suite, protoName string,
@@ -117,7 +117,7 @@ func (c *hashVerifier) PubRand(data ...interface{}) error {
 // to create deterministically reproducible proofs.
 //
 func HashProve(suite Suite, protocolName string,
-	random crypto.Cipher, prover Prover) ([]byte, error) {
+	random kyber.Cipher, prover Prover) ([]byte, error) {
 	ctx := newHashProver(suite, protocolName, random)
 	if e := (func(ProverContext) error)(prover)(ctx); e != nil {
 		return nil, e

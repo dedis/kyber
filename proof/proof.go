@@ -9,7 +9,7 @@ import (
 	"errors"
 	"hash"
 
-	"github.com/dedis/crypto"
+	"github.com/dedis/kyber"
 )
 
 // NOTE This suite is the same as the global one. Writing it is not an easy when you
@@ -20,10 +20,10 @@ import (
 // that brings an additional amount of work for "giving out to a package only
 // what it needs".
 type Suite interface {
-	crypto.Group
+	kyber.Group
 	Hash() hash.Hash
-	Cipher(key []byte, options ...interface{}) crypto.Cipher
-	crypto.Encoding
+	Cipher(key []byte, options ...interface{}) kyber.Cipher
+	kyber.Encoding
 }
 
 // XXX simplify using the reflection API?
@@ -69,11 +69,11 @@ For now we simply require expressions to be in the appropriate form.
 type Predicate interface {
 
 	// Create a Prover proving the statement this Predicate represents.
-	Prover(suite Suite, secrets map[string]crypto.Scalar,
-		points map[string]crypto.Point, choice map[Predicate]int) Prover
+	Prover(suite Suite, secrets map[string]kyber.Scalar,
+		points map[string]kyber.Point, choice map[Predicate]int) Prover
 
 	// Create a Verifier for the statement this Predicate represents.
-	Verifier(suite Suite, points map[string]crypto.Point) Verifier
+	Verifier(suite Suite, points map[string]kyber.Point) Verifier
 
 	// Produce a human-readable string representation of the predicate.
 	String() string
@@ -85,17 +85,17 @@ type Predicate interface {
 	enumVars(prf *proof)
 
 	// prover: recursively produce all commitments
-	commit(prf *proof, w crypto.Scalar, v []crypto.Scalar) error
+	commit(prf *proof, w kyber.Scalar, v []kyber.Scalar) error
 
 	// prover: given challenge, recursively produce all responses
-	respond(prf *proof, c crypto.Scalar, r []crypto.Scalar) error
+	respond(prf *proof, c kyber.Scalar, r []kyber.Scalar) error
 
 	// verifier: get all the commitments required in this predicate,
 	// and fill the r slice with empty secrets for responses needed.
-	getCommits(prf *proof, r []crypto.Scalar) error
+	getCommits(prf *proof, r []kyber.Scalar) error
 
 	// verifier: check all commitments against challenges and responses
-	verify(prf *proof, c crypto.Scalar, r []crypto.Scalar) error
+	verify(prf *proof, c kyber.Scalar, r []kyber.Scalar) error
 }
 
 // stringification precedence levels
@@ -115,11 +115,11 @@ type proof struct {
 	svar, pvar []string       // Scalar and Point variable names
 	sidx, pidx map[string]int // Maps from strings to variable indexes
 
-	pval map[string]crypto.Point // values of public Point variables
+	pval map[string]kyber.Point // values of public Point variables
 
 	// prover-specific state
 	pc     ProverContext
-	sval   map[string]crypto.Scalar  // values of private Scalar variables
+	sval   map[string]kyber.Scalar   // values of private Scalar variables
 	choice map[Predicate]int         // OR branch choices set by caller
 	pp     map[Predicate]*proverPred // per-predicate prover state
 
@@ -128,13 +128,13 @@ type proof struct {
 	vp map[Predicate]*verifierPred // per-predicate verifier state
 }
 type proverPred struct {
-	w  crypto.Scalar   // secret pre-challenge
-	v  []crypto.Scalar // secret blinding factor for each variable
-	wi []crypto.Scalar // OR predicates: individual sub-challenges
+	w  kyber.Scalar   // secret pre-challenge
+	v  []kyber.Scalar // secret blinding factor for each variable
+	wi []kyber.Scalar // OR predicates: individual sub-challenges
 }
 type verifierPred struct {
-	V crypto.Point    // public commitment produced by verifier
-	r []crypto.Scalar // per-variable responses produced by verifier
+	V kyber.Point    // public commitment produced by verifier
+	r []kyber.Scalar // per-variable responses produced by verifier
 }
 
 ////////// Rep predicate //////////
@@ -205,7 +205,7 @@ func (rp *repPred) enumVars(prf *proof) {
 	}
 }
 
-func (rp *repPred) commit(prf *proof, w crypto.Scalar, pv []crypto.Scalar) error {
+func (rp *repPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 
 	// Create per-predicate prover state
 	v := prf.makeScalars(pv)
@@ -238,8 +238,8 @@ func (rp *repPred) commit(prf *proof, w crypto.Scalar, pv []crypto.Scalar) error
 	return prf.pc.Put(V)
 }
 
-func (rp *repPred) respond(prf *proof, c crypto.Scalar,
-	pr []crypto.Scalar) error {
+func (rp *repPred) respond(prf *proof, c kyber.Scalar,
+	pr []kyber.Scalar) error {
 	pp := prf.pp[rp]
 
 	// Create a response array for this OR-domain if not done already
@@ -273,7 +273,7 @@ func (rp *repPred) respond(prf *proof, c crypto.Scalar,
 	return prf.sendResponses(pr, r)
 }
 
-func (rp *repPred) getCommits(prf *proof, pr []crypto.Scalar) error {
+func (rp *repPred) getCommits(prf *proof, pr []kyber.Scalar) error {
 
 	// Create per-predicate verifier state
 	V := prf.s.Point()
@@ -297,7 +297,7 @@ func (rp *repPred) getCommits(prf *proof, pr []crypto.Scalar) error {
 	return nil
 }
 
-func (rp *repPred) verify(prf *proof, c crypto.Scalar, pr []crypto.Scalar) error {
+func (rp *repPred) verify(prf *proof, c kyber.Scalar, pr []kyber.Scalar) error {
 	vp := prf.vp[rp]
 	r := vp.r
 
@@ -323,14 +323,14 @@ func (rp *repPred) verify(prf *proof, c crypto.Scalar, pr []crypto.Scalar) error
 	return nil
 }
 
-func (rp *repPred) Prover(suite Suite, secrets map[string]crypto.Scalar,
-	points map[string]crypto.Point,
+func (rp *repPred) Prover(suite Suite, secrets map[string]kyber.Scalar,
+	points map[string]kyber.Point,
 	choice map[Predicate]int) Prover {
 	return proof{}.init(suite, rp).prover(rp, secrets, points, choice)
 }
 
 func (rp *repPred) Verifier(suite Suite,
-	points map[string]crypto.Point) Verifier {
+	points map[string]kyber.Point) Verifier {
 	return proof{}.init(suite, rp).verifier(rp, points)
 }
 
@@ -369,7 +369,7 @@ func (ap *andPred) enumVars(prf *proof) {
 	}
 }
 
-func (ap *andPred) commit(prf *proof, w crypto.Scalar, pv []crypto.Scalar) error {
+func (ap *andPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 	sub := []Predicate(*ap)
 
 	// Create per-predicate prover state
@@ -387,7 +387,7 @@ func (ap *andPred) commit(prf *proof, w crypto.Scalar, pv []crypto.Scalar) error
 	return nil
 }
 
-func (ap *andPred) respond(prf *proof, c crypto.Scalar, pr []crypto.Scalar) error {
+func (ap *andPred) respond(prf *proof, c kyber.Scalar, pr []kyber.Scalar) error {
 	sub := []Predicate(*ap)
 	//pp := prf.pp[ap]
 
@@ -401,7 +401,7 @@ func (ap *andPred) respond(prf *proof, c crypto.Scalar, pr []crypto.Scalar) erro
 	return prf.sendResponses(pr, r)
 }
 
-func (ap *andPred) getCommits(prf *proof, pr []crypto.Scalar) error {
+func (ap *andPred) getCommits(prf *proof, pr []kyber.Scalar) error {
 	sub := []Predicate(*ap)
 
 	// Create per-predicate verifier state
@@ -417,7 +417,7 @@ func (ap *andPred) getCommits(prf *proof, pr []crypto.Scalar) error {
 	return nil
 }
 
-func (ap *andPred) verify(prf *proof, c crypto.Scalar, pr []crypto.Scalar) error {
+func (ap *andPred) verify(prf *proof, c kyber.Scalar, pr []kyber.Scalar) error {
 	sub := []Predicate(*ap)
 	vp := prf.vp[ap]
 	r := vp.r
@@ -433,14 +433,14 @@ func (ap *andPred) verify(prf *proof, c crypto.Scalar, pr []crypto.Scalar) error
 	return nil
 }
 
-func (ap *andPred) Prover(suite Suite, secrets map[string]crypto.Scalar,
-	points map[string]crypto.Point,
+func (ap *andPred) Prover(suite Suite, secrets map[string]kyber.Scalar,
+	points map[string]kyber.Point,
 	choice map[Predicate]int) Prover {
 	return proof{}.init(suite, ap).prover(ap, secrets, points, choice)
 }
 
 func (ap *andPred) Verifier(suite Suite,
-	points map[string]crypto.Point) Verifier {
+	points map[string]kyber.Point) Verifier {
 	return proof{}.init(suite, ap).verifier(ap, points)
 }
 
@@ -481,14 +481,14 @@ func (op *orPred) enumVars(prf *proof) {
 	}
 }
 
-func (op *orPred) commit(prf *proof, w crypto.Scalar, pv []crypto.Scalar) error {
+func (op *orPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 	sub := []Predicate(*op)
 	if pv != nil { // only happens within an AND expression
 		panic("can't have OR predicates within AND predicates")
 	}
 
 	// Create per-predicate prover state
-	wi := make([]crypto.Scalar, len(sub))
+	wi := make([]kyber.Scalar, len(sub))
 	pp := &proverPred{w, nil, wi}
 	prf.pp[op] = pp
 
@@ -532,7 +532,7 @@ func (op *orPred) commit(prf *proof, w crypto.Scalar, pv []crypto.Scalar) error 
 	return nil
 }
 
-func (op *orPred) respond(prf *proof, c crypto.Scalar, pr []crypto.Scalar) error {
+func (op *orPred) respond(prf *proof, c kyber.Scalar, pr []kyber.Scalar) error {
 	sub := []Predicate(*op)
 	pp := prf.pp[op]
 	if pr != nil {
@@ -570,7 +570,7 @@ func (op *orPred) respond(prf *proof, c crypto.Scalar, pr []crypto.Scalar) error
 }
 
 // Get from the verifier all the commitments needed for this predicate
-func (op *orPred) getCommits(prf *proof, pr []crypto.Scalar) error {
+func (op *orPred) getCommits(prf *proof, pr []kyber.Scalar) error {
 	sub := []Predicate(*op)
 	for i := range sub {
 		if e := sub[i].getCommits(prf, nil); e != nil {
@@ -580,7 +580,7 @@ func (op *orPred) getCommits(prf *proof, pr []crypto.Scalar) error {
 	return nil
 }
 
-func (op *orPred) verify(prf *proof, c crypto.Scalar, pr []crypto.Scalar) error {
+func (op *orPred) verify(prf *proof, c kyber.Scalar, pr []kyber.Scalar) error {
 	sub := []Predicate(*op)
 	if pr != nil {
 		panic("OR predicates can't be in anything else")
@@ -588,7 +588,7 @@ func (op *orPred) verify(prf *proof, c crypto.Scalar, pr []crypto.Scalar) error 
 
 	// Get the prover's sub-challenges
 	nsub := len(sub)
-	ci := make([]crypto.Scalar, nsub)
+	ci := make([]kyber.Scalar, nsub)
 	if nsub > 1 {
 		if e := prf.vc.Get(ci); e != nil {
 			return e
@@ -617,20 +617,20 @@ func (op *orPred) verify(prf *proof, c crypto.Scalar, pr []crypto.Scalar) error 
 	return nil
 }
 
-func (op *orPred) Prover(suite Suite, secrets map[string]crypto.Scalar,
-	points map[string]crypto.Point,
+func (op *orPred) Prover(suite Suite, secrets map[string]kyber.Scalar,
+	points map[string]kyber.Point,
 	choice map[Predicate]int) Prover {
 	return proof{}.init(suite, op).prover(op, secrets, points, choice)
 }
 
 func (op *orPred) Verifier(suite Suite,
-	points map[string]crypto.Point) Verifier {
+	points map[string]kyber.Point) Verifier {
 	return proof{}.init(suite, op).verifier(op, points)
 }
 
 /*
 type lin struct {
-	a1,a2,b crypto.Scalar
+	a1,a2,b kyber.Scalar
 	x1,x2 PriVar
 }
 */
@@ -638,7 +638,7 @@ type lin struct {
 // Construct a predicate asserting a linear relationship a1x1+a2x2=b,
 // where a1,a2,b are public values and x1,x2 are secrets.
 /*
-func (p *Prover) Linear(a1,a2,b crypto.Scalar, x1,x2 PriVar) {
+func (p *Prover) Linear(a1,a2,b kyber.Scalar, x1,x2 PriVar) {
 	return &lin{a1,a2,b,x1,x2}
 }
 */
@@ -674,15 +674,15 @@ func (prf *proof) enumPointVar(name string) {
 }
 
 // Make a response-array if that wasn't already done in a parent predicate.
-func (prf *proof) makeScalars(pr []crypto.Scalar) []crypto.Scalar {
+func (prf *proof) makeScalars(pr []kyber.Scalar) []kyber.Scalar {
 	if pr == nil {
-		return make([]crypto.Scalar, prf.nsvars)
+		return make([]kyber.Scalar, prf.nsvars)
 	}
 	return pr
 }
 
 // Transmit our response-array if a corresponding makeScalars() created it.
-func (prf *proof) sendResponses(pr []crypto.Scalar, r []crypto.Scalar) error {
+func (prf *proof) sendResponses(pr []kyber.Scalar, r []kyber.Scalar) error {
 	if pr == nil {
 		for i := range r {
 			// Send responses only for variables
@@ -699,7 +699,7 @@ func (prf *proof) sendResponses(pr []crypto.Scalar, r []crypto.Scalar) error {
 
 // In the verifier, get the responses at the top of an OR-domain,
 // if a corresponding makeScalars() call created it.
-func (prf *proof) getResponses(pr []crypto.Scalar, r []crypto.Scalar) error {
+func (prf *proof) getResponses(pr []kyber.Scalar, r []kyber.Scalar) error {
 	if pr == nil {
 		for i := range r {
 			if r[i] != nil {
@@ -712,8 +712,8 @@ func (prf *proof) getResponses(pr []crypto.Scalar, r []crypto.Scalar) error {
 	return nil
 }
 
-func (prf *proof) prove(p Predicate, sval map[string]crypto.Scalar,
-	pval map[string]crypto.Point,
+func (prf *proof) prove(p Predicate, sval map[string]kyber.Scalar,
+	pval map[string]kyber.Point,
 	choice map[Predicate]int, pc ProverContext) error {
 	prf.pc = pc
 	prf.sval = sval
@@ -736,7 +736,7 @@ func (prf *proof) prove(p Predicate, sval map[string]crypto.Scalar,
 	return p.respond(prf, c, nil)
 }
 
-func (prf *proof) verify(p Predicate, pval map[string]crypto.Point,
+func (prf *proof) verify(p Predicate, pval map[string]kyber.Point,
 	vc VerifierContext) error {
 	prf.vc = vc
 	prf.pval = pval
@@ -759,8 +759,8 @@ func (prf *proof) verify(p Predicate, pval map[string]crypto.Point,
 }
 
 // Produce a higher-order Prover embodying a given proof predicate.
-func (prf *proof) prover(p Predicate, sval map[string]crypto.Scalar,
-	pval map[string]crypto.Point,
+func (prf *proof) prover(p Predicate, sval map[string]kyber.Scalar,
+	pval map[string]kyber.Point,
 	choice map[Predicate]int) Prover {
 
 	return Prover(func(ctx ProverContext) error {
@@ -769,7 +769,7 @@ func (prf *proof) prover(p Predicate, sval map[string]crypto.Scalar,
 }
 
 // Produce a higher-order Verifier embodying a given proof predicate.
-func (prf *proof) verifier(p Predicate, pval map[string]crypto.Point) Verifier {
+func (prf *proof) verifier(p Predicate, pval map[string]kyber.Point) Verifier {
 
 	return Verifier(func(ctx VerifierContext) error {
 		return prf.verify(p, pval, ctx)

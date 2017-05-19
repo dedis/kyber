@@ -3,9 +3,9 @@ package pvss
 import (
 	"testing"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/group/edwards25519"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/edwards25519"
+	"github.com/dedis/kyber/util/random"
 	"github.com/stretchr/testify/require"
 )
 
@@ -15,8 +15,8 @@ func TestPVSS(test *testing.T) {
 	H, _ := suite.Point().Pick(nil, suite.Cipher([]byte("H")))
 	n := 10
 	t := 2*n/3 + 1
-	x := make([]crypto.Scalar, n) // trustee private keys
-	X := make([]crypto.Point, n)  // trustee public keys
+	x := make([]kyber.Scalar, n) // trustee private keys
+	X := make([]kyber.Point, n)  // trustee public keys
 	for i := 0; i < n; i++ {
 		x[i] = suite.Scalar().Pick(random.Stream)
 		X[i] = suite.Point().Mul(nil, x[i])
@@ -30,12 +30,12 @@ func TestPVSS(test *testing.T) {
 	require.Equal(test, err, nil)
 
 	// (2) Share decryption (trustees)
-	sH := make([]crypto.Point, n)
+	sH := make([]kyber.Point, n)
 	for i := 0; i < n; i++ {
 		sH[i] = pubPoly.Eval(encShares[i].S.I).V
 	}
 
-	var K []crypto.Point // good public keys
+	var K []kyber.Point // good public keys
 	var E []*PubVerShare // good encrypted shares
 	var D []*PubVerShare // good decrypted shares
 
@@ -59,8 +59,8 @@ func TestPVSSDelete(test *testing.T) {
 	H, _ := suite.Point().Pick(nil, suite.Cipher([]byte("H")))
 	n := 10
 	t := 2*n/3 + 1
-	x := make([]crypto.Scalar, n) // trustee private keys
-	X := make([]crypto.Point, n)  // trustee public keys
+	x := make([]kyber.Scalar, n) // trustee private keys
+	X := make([]kyber.Point, n)  // trustee public keys
 	for i := 0; i < n; i++ {
 		x[i] = suite.Scalar().Pick(random.Stream)
 		X[i] = suite.Point().Mul(nil, x[i])
@@ -78,12 +78,12 @@ func TestPVSSDelete(test *testing.T) {
 	encShares[5].S.V = suite.Point().Null()
 
 	// (2) Share decryption (trustees)
-	sH := make([]crypto.Point, n)
+	sH := make([]kyber.Point, n)
 	for i := 0; i < n; i++ {
 		sH[i] = pubPoly.Eval(encShares[i].S.I).V
 	}
 
-	var K []crypto.Point // good public keys
+	var K []kyber.Point // good public keys
 	var E []*PubVerShare // good encrypted shares
 	var D []*PubVerShare // good decrypted shares
 
@@ -110,8 +110,8 @@ func TestPVSSDeleteFail(test *testing.T) {
 	H, _ := suite.Point().Pick(nil, suite.Cipher([]byte("H")))
 	n := 10
 	t := 2*n/3 + 1
-	x := make([]crypto.Scalar, n) // trustee private keys
-	X := make([]crypto.Point, n)  // trustee public keys
+	x := make([]kyber.Scalar, n) // trustee private keys
+	X := make([]kyber.Point, n)  // trustee public keys
 	for i := 0; i < n; i++ {
 		x[i] = suite.Scalar().Pick(random.Stream)
 		X[i] = suite.Point().Mul(nil, x[i])
@@ -129,12 +129,12 @@ func TestPVSSDeleteFail(test *testing.T) {
 	encShares[5].S.V = suite.Point().Null()
 
 	// (2) Share decryption (trustees)
-	sH := make([]crypto.Point, n)
+	sH := make([]kyber.Point, n)
 	for i := 0; i < n; i++ {
 		sH[i] = pubPoly.Eval(encShares[i].S.I).V
 	}
 
-	var K []crypto.Point // good public keys
+	var K []kyber.Point // good public keys
 	var E []*PubVerShare // good encrypted shares
 	var D []*PubVerShare // good decrypted shares
 
@@ -161,8 +161,8 @@ func TestPVSSBatch(test *testing.T) {
 	H, _ := suite.Point().Pick(nil, suite.Cipher([]byte("H")))
 	n := 5
 	t := 2*n/3 + 1
-	x := make([]crypto.Scalar, n) // trustee private keys
-	X := make([]crypto.Point, n)  // trustee public keys
+	x := make([]kyber.Scalar, n) // trustee private keys
+	X := make([]kyber.Point, n)  // trustee public keys
 	for i := 0; i < n; i++ {
 		x[i] = suite.Scalar().Pick(random.Stream)
 		X[i] = suite.Point().Mul(nil, x[i])
@@ -181,9 +181,9 @@ func TestPVSSBatch(test *testing.T) {
 	e2, p2, err := EncShares(suite, H, X, s2, t)
 	require.Equal(test, err, nil)
 
-	sH0 := make([]crypto.Point, n)
-	sH1 := make([]crypto.Point, n)
-	sH2 := make([]crypto.Point, n)
+	sH0 := make([]kyber.Point, n)
+	sH1 := make([]kyber.Point, n)
+	sH2 := make([]kyber.Point, n)
 	for i := 0; i < n; i++ {
 		sH0[i] = p0.Eval(e0[i].S.I).V
 		sH1[i] = p1.Eval(e1[i].S.I).V
@@ -201,15 +201,15 @@ func TestPVSSBatch(test *testing.T) {
 	require.Equal(test, err, nil)
 
 	// Reorder (some) poly evals, keys, and shares
-	P0 := []crypto.Point{p0.Eval(E0[0].S.I).V, p1.Eval(E1[0].S.I).V, p2.Eval(E2[0].S.I).V}
-	P1 := []crypto.Point{p0.Eval(E0[1].S.I).V, p1.Eval(E1[1].S.I).V, p2.Eval(E2[1].S.I).V}
-	P2 := []crypto.Point{p0.Eval(E0[2].S.I).V, p1.Eval(E1[2].S.I).V, p2.Eval(E2[2].S.I).V}
-	P3 := []crypto.Point{p0.Eval(E0[3].S.I).V, p1.Eval(E1[3].S.I).V, p2.Eval(E2[3].S.I).V}
+	P0 := []kyber.Point{p0.Eval(E0[0].S.I).V, p1.Eval(E1[0].S.I).V, p2.Eval(E2[0].S.I).V}
+	P1 := []kyber.Point{p0.Eval(E0[1].S.I).V, p1.Eval(E1[1].S.I).V, p2.Eval(E2[1].S.I).V}
+	P2 := []kyber.Point{p0.Eval(E0[2].S.I).V, p1.Eval(E1[2].S.I).V, p2.Eval(E2[2].S.I).V}
+	P3 := []kyber.Point{p0.Eval(E0[3].S.I).V, p1.Eval(E1[3].S.I).V, p2.Eval(E2[3].S.I).V}
 
-	Y0 := []crypto.Point{X0[0], X1[0], X2[0]}
-	Y1 := []crypto.Point{X0[1], X1[1], X2[1]}
-	Y2 := []crypto.Point{X0[2], X1[2], X2[2]}
-	Y3 := []crypto.Point{X0[3], X1[3], X2[3]}
+	Y0 := []kyber.Point{X0[0], X1[0], X2[0]}
+	Y1 := []kyber.Point{X0[1], X1[1], X2[1]}
+	Y2 := []kyber.Point{X0[2], X1[2], X2[2]}
+	Y3 := []kyber.Point{X0[3], X1[3], X2[3]}
 
 	Z0 := []*PubVerShare{E0[0], E1[0], E2[0]}
 	Z1 := []*PubVerShare{E0[1], E1[1], E2[1]}
@@ -230,9 +230,9 @@ func TestPVSSBatch(test *testing.T) {
 	require.Equal(test, err, nil)
 
 	// Re-establish order
-	XF0 := []crypto.Point{KD0[0], KD1[0], KD2[0], KD3[0]}
-	XF1 := []crypto.Point{KD0[1], KD1[1], KD2[1], KD3[1]}
-	XF2 := []crypto.Point{KD0[2], KD1[2], KD2[2], KD3[2]}
+	XF0 := []kyber.Point{KD0[0], KD1[0], KD2[0], KD3[0]}
+	XF1 := []kyber.Point{KD0[1], KD1[1], KD2[1], KD3[1]}
+	XF2 := []kyber.Point{KD0[2], KD1[2], KD2[2], KD3[2]}
 
 	EF0 := []*PubVerShare{ED0[0], ED1[0], ED2[0], ED3[0]}
 	EF1 := []*PubVerShare{ED0[1], ED1[1], ED2[1], ED3[1]}

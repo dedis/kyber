@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/group/edwards25519"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/edwards25519"
+	"github.com/dedis/kyber/util/random"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,9 +27,9 @@ func TestDLEQProof(t *testing.T) {
 func TestDLEQProofBatch(t *testing.T) {
 	suite := edwards25519.NewAES128SHA256Ed25519(false)
 	n := 10
-	x := make([]crypto.Scalar, n)
-	g := make([]crypto.Point, n)
-	h := make([]crypto.Point, n)
+	x := make([]kyber.Scalar, n)
+	g := make([]kyber.Point, n)
+	h := make([]kyber.Point, n)
 	for i := range x {
 		x[i] = suite.Scalar().Pick(random.Stream)
 		g[i], _ = suite.Point().Pick([]byte(fmt.Sprintf("G%d", i)), random.Stream)
@@ -45,9 +45,9 @@ func TestDLEQProofBatch(t *testing.T) {
 func TestDLEQLengths(t *testing.T) {
 	suite := edwards25519.NewAES128SHA256Ed25519(false)
 	n := 10
-	x := make([]crypto.Scalar, n)
-	g := make([]crypto.Point, n)
-	h := make([]crypto.Point, n)
+	x := make([]kyber.Scalar, n)
+	g := make([]kyber.Point, n)
+	h := make([]kyber.Point, n)
 	for i := range x {
 		x[i] = suite.Scalar().Pick(random.Stream)
 		g[i], _ = suite.Point().Pick([]byte(fmt.Sprintf("G%d", i)), random.Stream)

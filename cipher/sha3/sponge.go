@@ -8,7 +8,7 @@ import (
 	//"encoding/hex"
 	"encoding/binary"
 
-	"github.com/dedis/crypto/cipher"
+	"github.com/dedis/kyber/cipher"
 )
 
 const (

@@ -11,8 +11,8 @@ package sha3
 import (
 	"hash"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/cipher"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/cipher"
 )
 
 var sha3opts = []interface{}{cipher.Padding(0x06)}
@@ -20,7 +20,7 @@ var sha3opts = []interface{}{cipher.Padding(0x06)}
 // NewCipher224 creates a Cipher implementing the SHA3-224 algorithm,
 // which provides 224-bit security against preimage attacks
 // and 112-bit security against collisions.
-func NewCipher224(key []byte, options ...interface{}) crypto.Cipher {
+func NewCipher224(key []byte, options ...interface{}) kyber.Cipher {
 	return cipher.FromSponge(newKeccak448(), key,
 		append(sha3opts, options...)...)
 }
@@ -28,7 +28,7 @@ func NewCipher224(key []byte, options ...interface{}) crypto.Cipher {
 // NewCipher256 creates a Cipher implementing the SHA3-256 algorithm,
 // which provides 256-bit security against preimage attacks
 // and 128-bit security against collisions.
-func NewCipher256(key []byte, options ...interface{}) crypto.Cipher {
+func NewCipher256(key []byte, options ...interface{}) kyber.Cipher {
 	return cipher.FromSponge(newKeccak512(), key,
 		append(sha3opts, options...)...)
 }
@@ -36,7 +36,7 @@ func NewCipher256(key []byte, options ...interface{}) crypto.Cipher {
 // NewCipher384 creates a Cipher implementing the SHA3-384 algorithm,
 // which provides 384-bit security against preimage attacks
 // and 192-bit security against collisions.
-func NewCipher384(key []byte, options ...interface{}) crypto.Cipher {
+func NewCipher384(key []byte, options ...interface{}) kyber.Cipher {
 	return cipher.FromSponge(newKeccak768(), key,
 		append(sha3opts, options...)...)
 }
@@ -44,7 +44,7 @@ func NewCipher384(key []byte, options ...interface{}) crypto.Cipher {
 // NewCipher512 creates a Cipher implementing the SHA3-512 algorithm,
 // which provides 512-bit security against preimage attacks
 // and 256-bit security against collisions.
-func NewCipher512(key []byte, options ...interface{}) crypto.Cipher {
+func NewCipher512(key []byte, options ...interface{}) kyber.Cipher {
 	return cipher.FromSponge(newKeccak1024(), key,
 		append(sha3opts, options...)...)
 }

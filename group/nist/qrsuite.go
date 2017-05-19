@@ -8,9 +8,9 @@ import (
 	"math/big"
 	"reflect"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/cipher/sha3"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/cipher/sha3"
+	"github.com/dedis/kyber/util/random"
 )
 
 type qrsuite struct {
@@ -23,23 +23,23 @@ func (s qrsuite) Hash() hash.Hash {
 }
 
 // SHA3/SHAKE128 Sponge Cipher
-func (s qrsuite) Cipher(key []byte, options ...interface{}) crypto.Cipher {
+func (s qrsuite) Cipher(key []byte, options ...interface{}) kyber.Cipher {
 	return sha3.NewShakeCipher128(key, options...)
 }
 
 func (s *qrsuite) Read(r io.Reader, objs ...interface{}) error {
-	return crypto.SuiteRead(s, r, objs)
+	return kyber.SuiteRead(s, r, objs)
 }
 
 func (s *qrsuite) Write(w io.Writer, objs ...interface{}) error {
-	return crypto.SuiteWrite(s, w, objs)
+	return kyber.SuiteWrite(s, w, objs)
 }
 
 func (s *qrsuite) New(t reflect.Type) interface{} {
-	return crypto.SuiteNew(s, t)
+	return kyber.SuiteNew(s, t)
 }
 
-func (s *qrsuite) NewKey(rand cipher.Stream) crypto.Scalar {
+func (s *qrsuite) NewKey(rand cipher.Stream) kyber.Scalar {
 	if rand == nil {
 		rand = random.Stream
 	}

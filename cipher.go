@@ -1,13 +1,13 @@
-package crypto
+package kyber
 
 import (
 	"errors"
 
-	"github.com/dedis/crypto/util/bytes"
-	"github.com/dedis/crypto/util/subtle"
+	"github.com/dedis/kyber/util/bytes"
+	"github.com/dedis/kyber/util/subtle"
 )
 
-// CipherState defines an interface to an crypto.symmetric message cipher.
+// CipherState defines an interface to an kyber.symmetric message cipher.
 // The cipher embodies a scalar that may be used to encrypt/decrypt data
 // as well as to generate cryptographically random bits.
 // The Cipher can also cryptographically absorb data or key material,
@@ -146,7 +146,7 @@ var RandomKey []byte = nil
 // a Cipher may be used for authenticated encryption and decryption.
 //
 // A Cipher is in fact simply a convenience/helper wrapper around
-// the CipherState interface, which represents and crypto. over
+// the CipherState interface, which represents and kyber. over
 // an underlying message cipher implementation.
 // The underlying CipherState instance typically embodies
 // both the specific message cipher algorithm in use,

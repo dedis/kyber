@@ -5,21 +5,21 @@ import (
 	"encoding/base64"
 	"hash"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/random"
 )
 
 type Suite interface {
-	crypto.Group
+	kyber.Group
 	Hash() hash.Hash
 }
 
 // KeyPair represents a public/private keypair
 // together with the ciphersuite the key was generated from.
 type KeyPair struct {
-	Suite  Suite         // Ciphersuite this keypair is for
-	Public crypto.Point  // Public key
-	Secret crypto.Scalar // Secret key
+	Suite  Suite        // Ciphersuite this keypair is for
+	Public kyber.Point  // Public key
+	Secret kyber.Scalar // Secret key
 }
 
 // NewKeyPair directly creates a secret/public key pair

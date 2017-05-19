@@ -9,8 +9,8 @@ package norx
 import (
 	"encoding/binary"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/cipher"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/cipher"
 )
 
 func (s *state_t) Rate() int { return BYTES_RATE }
@@ -50,6 +50,6 @@ func newSponge() cipher.Sponge {
 }
 
 // NewCipher creates a Cipher implementing the 64-4-1 mode of NORX.
-func NewCipher(key []byte, options ...interface{}) crypto.Cipher {
+func NewCipher(key []byte, options ...interface{}) kyber.Cipher {
 	return cipher.FromSponge(newSponge(), key, options...)
 }

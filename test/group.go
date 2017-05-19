@@ -1,22 +1,22 @@
 package test
 
 import (
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/random"
 )
 
-// A generic benchmark suite for crypto.groups.
+// A generic benchmark suite for kyber.groups.
 type GroupBench struct {
-	g crypto.Group
+	g kyber.Group
 
 	// Random secrets and points for testing
-	x, y crypto.Scalar
-	X, Y crypto.Point
+	x, y kyber.Scalar
+	X, Y kyber.Point
 	xe   []byte // encoded Scalar
 	Xe   []byte // encoded Point
 }
 
-func NewGroupBench(g crypto.Group) *GroupBench {
+func NewGroupBench(g kyber.Group) *GroupBench {
 	var gb GroupBench
 	gb.g = g
 	gb.x = g.Scalar().Pick(random.Stream)

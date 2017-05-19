@@ -2,7 +2,7 @@
 // random or pseudorandom cryptographic objects.
 //
 // XXX this package might go away and get subsumed by the
-// currently equivalent crypto.Stream type.
+// currently equivalent kyber.Stream type.
 package random
 
 import (
@@ -87,10 +87,10 @@ func Bytes(n int, rand cipher.Stream) []byte {
 }
 
 // NonZeroBytes calls Bytes as long as it gets a slice full of '0's.
-// This is needed when using suite.Cipher(crypto.NoKey)
+// This is needed when using suite.Cipher(kyber.NoKey)
 // because the first 6 iterations returns 0000...000 as
 // bytes for edwards & ed25519 cipher.
-// XXX Issue reported in https://github.com/dedis/crypto/issues/70
+// XXX Issue reported in https://github.com/dedis/kyber/issues/70
 func NonZeroBytes(n int, rand cipher.Stream) []byte {
 	var randoms []byte
 	for {

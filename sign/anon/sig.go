@@ -5,24 +5,24 @@ import (
 	"crypto/cipher"
 	"errors"
 
-	"github.com/dedis/crypto"
+	"github.com/dedis/kyber"
 )
 
 // unlinkable ring signature
 type uSig struct {
-	C0 crypto.Scalar
-	S  []crypto.Scalar
+	C0 kyber.Scalar
+	S  []kyber.Scalar
 }
 
 // linkable ring signature
 type lSig struct {
-	C0  crypto.Scalar
-	S   []crypto.Scalar
-	Tag crypto.Point
+	C0  kyber.Scalar
+	S   []kyber.Scalar
+	Tag kyber.Point
 }
 
-func signH1pre(suite Suite, linkScope []byte, linkTag crypto.Point,
-	message []byte) crypto.Cipher {
+func signH1pre(suite Suite, linkScope []byte, linkTag kyber.Point,
+	message []byte) kyber.Cipher {
 	H1pre := suite.Cipher(message) // m
 	if linkScope != nil {
 		H1pre.Write(linkScope) // L
@@ -32,7 +32,7 @@ func signH1pre(suite Suite, linkScope []byte, linkTag crypto.Point,
 	return H1pre
 }
 
-func signH1(suite Suite, H1pre crypto.Cipher, PG, PH crypto.Point) crypto.Scalar {
+func signH1(suite Suite, H1pre kyber.Cipher, PG, PH kyber.Point) kyber.Scalar {
 	H1 := H1pre.Clone()
 	PGb, _ := PG.MarshalBinary()
 	H1.Write(PGb)
@@ -108,7 +108,7 @@ func signH1(suite Suite, H1pre crypto.Cipher, PG, PH crypto.Point) crypto.Scalar
 // they produced a signature of interest.
 //
 func Sign(suite Suite, random cipher.Stream, message []byte,
-	anonymitySet Set, linkScope []byte, mine int, privateKey crypto.Scalar) []byte {
+	anonymitySet Set, linkScope []byte, mine int, privateKey kyber.Scalar) []byte {
 
 	// Note that Rivest's original ring construction directly supports
 	// heterogeneous rings containing public keys of different types -
@@ -120,8 +120,8 @@ func Sign(suite Suite, random cipher.Stream, message []byte,
 	// e.g., we also easily obtain linkable ring signatures,
 	// which are not readily feasible with the original ring construction.
 
-	n := len(anonymitySet)            // anonymity set size
-	L := []crypto.Point(anonymitySet) // public keys in anonymity set
+	n := len(anonymitySet)           // anonymity set size
+	L := []kyber.Point(anonymitySet) // public keys in anonymity set
 	pi := mine
 
 	// If we want a linkable ring signature, produce correct linkage tag,
@@ -129,7 +129,7 @@ func Sign(suite Suite, random cipher.Stream, message []byte,
 	// Liu's scheme specifies the linkScope as a hash of the ring;
 	// this is one reasonable choice of linkage scope,
 	// but there are others, so we parameterize this choice.
-	var linkBase, linkTag crypto.Point
+	var linkBase, linkTag kyber.Point
 	if linkScope != nil {
 		linkStream := suite.Cipher(linkScope)
 		linkBase, _ = suite.Point().Pick(nil, linkStream)
@@ -143,17 +143,17 @@ func Sign(suite Suite, random cipher.Stream, message []byte,
 
 	// Pick a random commit for my ring position
 	u := suite.Scalar().Pick(random)
-	var UB, UL crypto.Point
+	var UB, UL kyber.Point
 	UB = suite.Point().Mul(nil, u)
 	if linkScope != nil {
 		UL = suite.Point().Mul(linkBase, u)
 	}
 
 	// Build the challenge ring
-	s := make([]crypto.Scalar, n)
-	c := make([]crypto.Scalar, n)
+	s := make([]kyber.Scalar, n)
+	c := make([]kyber.Scalar, n)
 	c[(pi+1)%n] = signH1(suite, H1pre, UB, UL)
-	var P, PG, PH crypto.Point
+	var P, PG, PH kyber.Point
 	P = suite.Point()
 	PG = suite.Point()
 	if linkScope != nil {
@@ -197,14 +197,14 @@ func Sign(suite Suite, random cipher.Stream, message []byte,
 func Verify(suite Suite, message []byte, anonymitySet Set,
 	linkScope []byte, signatureBuffer []byte) ([]byte, error) {
 
-	n := len(anonymitySet)            // anonymity set size
-	L := []crypto.Point(anonymitySet) // public keys in ring
+	n := len(anonymitySet)           // anonymity set size
+	L := []kyber.Point(anonymitySet) // public keys in ring
 
 	// Decode the signature
 	buf := bytes.NewBuffer(signatureBuffer)
-	var linkBase, linkTag crypto.Point
+	var linkBase, linkTag kyber.Point
 	sig := lSig{}
-	sig.S = make([]crypto.Scalar, n)
+	sig.S = make([]kyber.Scalar, n)
 	if linkScope != nil { // linkable ring signature
 		if err := suite.Read(buf, &sig); err != nil {
 			return nil, err
@@ -225,7 +225,7 @@ func Verify(suite Suite, message []byte, anonymitySet Set,
 	H1pre := signH1pre(suite, linkScope, linkTag, message)
 
 	// Verify the signature
-	var P, PG, PH crypto.Point
+	var P, PG, PH kyber.Point
 	P = suite.Point()
 	PG = suite.Point()
 	if linkScope != nil {

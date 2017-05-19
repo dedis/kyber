@@ -5,13 +5,13 @@ import (
 	"crypto/cipher"
 	"hash"
 
-	"github.com/dedis/crypto"
+	"github.com/dedis/kyber"
 
 	"golang.org/x/crypto/hkdf"
 )
 
 // dhExchange computes the shared key from a private key and a public key
-func dhExchange(suite Suite, ownPrivate crypto.Scalar, remotePublic crypto.Point) crypto.Point {
+func dhExchange(suite Suite, ownPrivate kyber.Scalar, remotePublic kyber.Point) kyber.Point {
 	sk := suite.Point()
 	sk.Mul(remotePublic, ownPrivate)
 	return sk
@@ -20,7 +20,7 @@ func dhExchange(suite Suite, ownPrivate crypto.Scalar, remotePublic crypto.Point
 var sharedKeyLength = 32
 
 // newAEAD returns the AEAD cipher to be use to encrypt a share
-func newAEAD(fn func() hash.Hash, preSharedKey crypto.Point, context []byte) (cipher.AEAD, error) {
+func newAEAD(fn func() hash.Hash, preSharedKey kyber.Point, context []byte) (cipher.AEAD, error) {
 	preBuff, _ := preSharedKey.MarshalBinary()
 	reader := hkdf.New(fn, preBuff, nil, context)
 
@@ -40,7 +40,7 @@ func newAEAD(fn func() hash.Hash, preSharedKey crypto.Point, context []byte) (ci
 }
 
 // context returns the context slice to be used when encrypting a share
-func context(suite Suite, dealer crypto.Point, verifiers []crypto.Point) []byte {
+func context(suite Suite, dealer kyber.Point, verifiers []kyber.Point) []byte {
 	h := suite.Hash()
 	h.Write([]byte("vss-dealer"))
 	dealer.MarshalTo(h)

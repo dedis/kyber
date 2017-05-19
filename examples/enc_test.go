@@ -1,13 +1,13 @@
 package examples
 
 import (
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/group/nist"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/nist"
+	"github.com/dedis/kyber/util/random"
 )
 
-func ElGamalEncrypt(group crypto.Group, pubkey crypto.Point, message []byte) (
-	K, C crypto.Point, remainder []byte) {
+func ElGamalEncrypt(suite kyber.Group, pubkey kyber.Point, message []byte) (
+	K, C kyber.Point, remainder []byte) {
 
 	// Embed the message (or as much of it as will fit) into a curve point.
 	M, remainder := group.Point().Pick(message, random.Stream)
@@ -20,7 +20,7 @@ func ElGamalEncrypt(group crypto.Group, pubkey crypto.Point, message []byte) (
 	return
 }
 
-func ElGamalDecrypt(group crypto.Group, prikey crypto.Scalar, K, C crypto.Point) (
+func ElGamalDecrypt(suite kyber.Group, prikey kyber.Scalar, K, C kyber.Point) (
 	message []byte, err error) {
 
 	// ElGamal-decrypt the ciphertext (K,C) to reproduce the message.

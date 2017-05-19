@@ -3,14 +3,14 @@ package cipher
 import (
 	"hash"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/util/bytes"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/bytes"
 )
 
 // Wrapper to use a generic mesage Cipher as a Hash
 type cipherHash struct {
-	cipher func(key []byte, options ...interface{}) crypto.Cipher
-	cur    crypto.Cipher
+	cipher func(key []byte, options ...interface{}) kyber.Cipher
+	cur    kyber.Cipher
 	size   int
 }
 
@@ -20,10 +20,10 @@ type cipherBlockSize interface {
 	BlockSize() int
 }
 
-func NewHash(cipher func(key []byte, options ...interface{}) crypto.Cipher, size int) hash.Hash {
+func NewHash(cipher func(key []byte, options ...interface{}) kyber.Cipher, size int) hash.Hash {
 	ch := &cipherHash{}
 	ch.cipher = cipher
-	ch.cur = cipher(crypto.NoKey)
+	ch.cur = cipher(kyber.NoKey)
 	ch.size = size
 	return ch
 }
@@ -46,7 +46,7 @@ func (ch *cipherHash) Sum(buf []byte) []byte {
 }
 
 func (ch *cipherHash) Reset() {
-	ch.cur = ch.cipher(crypto.NoKey)
+	ch.cur = ch.cipher(kyber.NoKey)
 }
 
 func (ch *cipherHash) Size() int {

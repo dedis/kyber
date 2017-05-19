@@ -6,8 +6,8 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/cipher/sha3"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/cipher/sha3"
 )
 
 type suiteEd25519 struct {
@@ -20,20 +20,20 @@ func (s *suiteEd25519) Hash() hash.Hash {
 }
 
 // SHA3/SHAKE128 Sponge Cipher
-func (s *suiteEd25519) Cipher(key []byte, options ...interface{}) crypto.Cipher {
+func (s *suiteEd25519) Cipher(key []byte, options ...interface{}) kyber.Cipher {
 	return sha3.NewShakeCipher128(key, options...)
 }
 
 func (s *suiteEd25519) Read(r io.Reader, objs ...interface{}) error {
-	return crypto.SuiteRead(s, r, objs)
+	return kyber.SuiteRead(s, r, objs)
 }
 
 func (s *suiteEd25519) Write(w io.Writer, objs ...interface{}) error {
-	return crypto.SuiteWrite(s, w, objs)
+	return kyber.SuiteWrite(s, w, objs)
 }
 
 func (s *suiteEd25519) New(t reflect.Type) interface{} {
-	return crypto.SuiteNew(s, t)
+	return kyber.SuiteNew(s, t)
 }
 
 // Ciphersuite based on AES-128, SHA-256, and the Ed25519 curve.

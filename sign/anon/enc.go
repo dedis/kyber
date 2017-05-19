@@ -4,13 +4,13 @@ import (
 	"crypto/cipher"
 	"errors"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/util/subtle"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/subtle"
 )
 
 // XXX belongs in crypto package?
 func keyPair(suite Suite, rand cipher.Stream,
-	hide bool) (crypto.Point, crypto.Scalar, []byte) {
+	hide bool) (kyber.Point, kyber.Scalar, []byte) {
 
 	x := suite.Scalar().Pick(rand)
 	X := suite.Point().Mul(nil, x)
@@ -18,7 +18,7 @@ func keyPair(suite Suite, rand cipher.Stream,
 		Xb, _ := X.MarshalBinary()
 		return X, x, Xb
 	}
-	Xh := X.(crypto.Hiding)
+	Xh := X.(kyber.Hiding)
 	for {
 		Xb := Xh.HideEncode(rand) // try to encode as uniform blob
 		if Xb != nil {
@@ -29,7 +29,7 @@ func keyPair(suite Suite, rand cipher.Stream,
 	}
 }
 
-func header(suite Suite, X crypto.Point, x crypto.Scalar,
+func header(suite Suite, X kyber.Point, x kyber.Scalar,
 	Xb, xb []byte, anonymitySet Set) []byte {
 
 	//fmt.Printf("Xb %s\nxb %s\n",
@@ -66,19 +66,19 @@ func encryptKey(suite Suite, rand cipher.Stream,
 // Decrypt and verify a key encrypted via encryptKey.
 // On success, returns the key and the length of the decrypted header.
 func decryptKey(suite Suite, ciphertext []byte, anonymitySet Set,
-	mine int, privateKey crypto.Scalar,
+	mine int, privateKey kyber.Scalar,
 	hide bool) ([]byte, int, error) {
 
 	// Decode the (supposed) ephemeral public key from the front
 	X := suite.Point()
 	var Xb []byte
 	if hide {
-		Xh := X.(crypto.Hiding)
+		Xh := X.(kyber.Hiding)
 		hidelen := Xh.HideLen()
 		if len(ciphertext) < hidelen {
 			return nil, 0, errors.New("ciphertext too short")
 		}
-		X.(crypto.Hiding).HideDecode(ciphertext[:hidelen])
+		X.(kyber.Hiding).HideDecode(ciphertext[:hidelen])
 		Xb = ciphertext[:hidelen]
 	} else {
 		enclen := X.MarshalSize()
@@ -141,7 +141,7 @@ func decryptKey(suite Suite, ciphertext []byte, anonymitySet Set,
 // Encrypt will produce a uniformly random-looking byte-stream,
 // which reveals no metadata other than message length
 // to anyone unable to decrypt the message.
-// The provided Suite must support
+// The provided kyber.Suite must support
 // uniform-representation encoding of public keys for this to work.
 //
 func Encrypt(suite Suite, rand cipher.Stream, message []byte,
@@ -181,7 +181,7 @@ func Encrypt(suite Suite, rand cipher.Stream, message []byte,
 // that will be accepted by the receiver without knowing the plaintext.
 //
 func Decrypt(suite Suite, ciphertext []byte, anonymitySet Set,
-	mine int, privateKey crypto.Scalar, hide bool) ([]byte, error) {
+	mine int, privateKey kyber.Scalar, hide bool) ([]byte, error) {
 
 	// Decrypt and check the encrypted key-header.
 	xb, hdrlen, err := decryptKey(suite, ciphertext, anonymitySet,

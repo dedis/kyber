@@ -39,9 +39,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/util/random"
-	//own "github.com/nikkolasg/learning/crypto/util"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/random"
+	//own "github.com/nikkolasg/learning/kyber/util"
 )
 
 // CoSi is the struct that implements one round of a CoSi protocol.
@@ -69,7 +69,7 @@ import (
 // CoSi struct. You can also give the full mask directly with SetMask().
 type CoSi struct {
 	// Suite used
-	group crypto.Group
+	group kyber.Group
 	// mask is the mask used to select which signers participated in this round
 	// or not. All code regarding the mask is directly inspired from
 	// github.com/bford/golang-x-crypto/ed25519/cosi code.
@@ -77,22 +77,22 @@ type CoSi struct {
 	// the message being co-signed
 	message []byte
 	// V_hat is the aggregated commit (our own + the children's)
-	aggregateCommitment crypto.Point
+	aggregateCommitment kyber.Point
 	// challenge holds the challenge for this round
-	challenge crypto.Scalar
+	challenge kyber.Scalar
 
 	// the longterm private key CoSi will use during the response phase.
 	// The private key must have its public version in the list of publics keys
 	// given to CoSi.
-	private crypto.Scalar
+	private kyber.Scalar
 	// random is our own secret that we wish to commit during the commitment phase.
-	random crypto.Scalar
+	random kyber.Scalar
 	// commitment is our own commitment
-	commitment crypto.Point
+	commitment kyber.Point
 	// response is our own computed response
-	response crypto.Scalar
+	response kyber.Scalar
 	// aggregateResponses is the aggregated response from the children + our own
-	aggregateResponse crypto.Scalar
+	aggregateResponse kyber.Scalar
 }
 
 // NewCosi returns a new Cosi struct given the group, the longterm secret, and
@@ -100,7 +100,7 @@ type CoSi struct {
 // have to set the mask using `SetMask` method. By default, all participants are
 // designated as participating. If you wish to specify which co-signers are
 // participating, use NewCosiWithMask
-func NewCosi(group crypto.Group, private crypto.Scalar, publics []crypto.Point) *CoSi {
+func NewCosi(group kyber.Group, private kyber.Scalar, publics []kyber.Point) *CoSi {
 	cosi := &CoSi{
 		group:   group,
 		private: private,
@@ -113,14 +113,14 @@ func NewCosi(group crypto.Group, private crypto.Scalar, publics []crypto.Point) 
 // CreateCommitment creates the commitment of a random secret generated from the
 // given s stream. It returns the message to pass up in the tree. This is
 // typically called by the leaves.
-func (c *CoSi) CreateCommitment(s cipher.Stream) crypto.Point {
+func (c *CoSi) CreateCommitment(s cipher.Stream) kyber.Point {
 	c.genCommit(s)
 	return c.commitment
 }
 
 // Commit creates the commitment / secret as in CreateCommitment and it also
 // aggregate children commitments from the children's messages.
-func (c *CoSi) Commit(s cipher.Stream, subComms []crypto.Point) crypto.Point {
+func (c *CoSi) Commit(s cipher.Stream, subComms []kyber.Point) kyber.Point {
 	// generate our own commit
 	c.genCommit(s)
 
@@ -136,7 +136,7 @@ func (c *CoSi) Commit(s cipher.Stream, subComms []crypto.Point) crypto.Point {
 
 // CreateChallenge creates the challenge out of the message it has been given.
 // This is typically called by Root.
-func (c *CoSi) CreateChallenge(msg []byte) (crypto.Scalar, error) {
+func (c *CoSi) CreateChallenge(msg []byte) (kyber.Scalar, error) {
 	// H( Commit || AggPublic || M)
 	hash := sha512.New()
 	if _, err := c.aggregateCommitment.MarshalTo(hash); err != nil {
@@ -154,21 +154,21 @@ func (c *CoSi) CreateChallenge(msg []byte) (crypto.Scalar, error) {
 }
 
 // Challenge keeps in memory the Challenge from the message.
-func (c *CoSi) Challenge(challenge crypto.Scalar) {
+func (c *CoSi) Challenge(challenge kyber.Scalar) {
 	c.challenge = challenge
 }
 
 // CreateResponse is called by a leaf to create its own response from the
 // challenge + commitment + private key. It returns the response to send up to
 // the tree.
-func (c *CoSi) CreateResponse() (crypto.Scalar, error) {
+func (c *CoSi) CreateResponse() (kyber.Scalar, error) {
 	err := c.genResponse()
 	return c.response, err
 }
 
 // Response generates the response from the commitment, challenge and the
 // responses of its children.
-func (c *CoSi) Response(responses []crypto.Scalar) (crypto.Scalar, error) {
+func (c *CoSi) Response(responses []kyber.Scalar) (kyber.Scalar, error) {
 	//create your own response
 	if err := c.genResponse(); err != nil {
 		return nil, err
@@ -207,7 +207,7 @@ func (c *CoSi) Signature() []byte {
 // public key the tree is using. This is callable by any nodes in the tree,
 // after it has aggregated its responses. You can enforce verification at each
 // level of the tree for faster reactivity.
-func (c *CoSi) VerifyResponses(aggregatedPublic crypto.Point) error {
+func (c *CoSi) VerifyResponses(aggregatedPublic kyber.Point) error {
 	k := c.challenge
 
 	// k * -aggPublic + s * B = k*-A + s*B
@@ -229,7 +229,7 @@ func (c *CoSi) VerifyResponses(aggregatedPublic crypto.Point) error {
 // struct. Publics is the WHOLE list of publics keys, the mask at the end of the
 // signature will take care of removing the indivual public keys that did not
 // participate
-func VerifySignature(group crypto.Group, publics []crypto.Point, message, sig []byte) error {
+func VerifySignature(group kyber.Group, publics []kyber.Point, message, sig []byte) error {
 	aggCommitBuff := sig[:32]
 	aggCommit := group.Point()
 	if err := aggCommit.UnmarshalBinary(aggCommitBuff); err != nil {
@@ -270,22 +270,22 @@ func VerifySignature(group crypto.Group, publics []crypto.Point, message, sig []
 
 // AggregateResponse returns the aggregated response that this cosi has
 // accumulated.
-func (c *CoSi) AggregateResponse() crypto.Scalar {
+func (c *CoSi) AggregateResponse() kyber.Scalar {
 	return c.aggregateResponse
 }
 
 // GetChallenge returns the challenge that were passed down to this cosi.
-func (c *CoSi) GetChallenge() crypto.Scalar {
+func (c *CoSi) GetChallenge() kyber.Scalar {
 	return c.challenge
 }
 
 // GetCommitment returns the commitment generated by this CoSi (not aggregated).
-func (c *CoSi) GetCommitment() crypto.Point {
+func (c *CoSi) GetCommitment() kyber.Point {
 	return c.commitment
 }
 
 // GetResponse returns the individual response generated by this CoSi
-func (c *CoSi) GetResponse() crypto.Scalar {
+func (c *CoSi) GetResponse() kyber.Scalar {
 	return c.response
 }
 
@@ -327,13 +327,13 @@ func (c *CoSi) genResponse() error {
 // mask holds the mask utilities
 type mask struct {
 	mask      []byte
-	publics   []crypto.Point
-	aggPublic crypto.Point
-	group     crypto.Group
+	publics   []kyber.Point
+	aggPublic kyber.Point
+	group     kyber.Group
 }
 
 // newMask returns a new mask to use with the cosigning with all cosigners enabled
-func newMask(group crypto.Group, publics []crypto.Point) *mask {
+func newMask(group kyber.Group, publics []kyber.Point) *mask {
 	// Start with an all-disabled participation mask, then set it correctly
 	cm := &mask{
 		publics: publics,
@@ -441,6 +441,6 @@ func (cm *mask) bytes() []byte {
 }
 
 // Aggregate returns the aggregate public key of all *participating* signers
-func (cm *mask) Aggregate() crypto.Point {
+func (cm *mask) Aggregate() kyber.Point {
 	return cm.aggPublic
 }

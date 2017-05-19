@@ -10,19 +10,19 @@ import (
 	"crypto/aes"
 	"crypto/hmac"
 	"crypto/sha256"
-	"github.com/dedis/crypto
-	"github.com/dedis/crypto/cipher"
-	"github.com/dedis/crypto/cipher/generic"
+	"github.com/dedis/kyber
+	"github.com/dedis/kyber/cipher"
+	"github.com/dedis/kyber/cipher/generic"
 )
 
 
-// Secret state comprising an AES/SHA-based crypto.stateful cipher.
+// Secret state comprising an AES/SHA-based kyber.stateful cipher.
 type state128 struct {
 	suite128		// inherit methods from AES128 suite
 	h [32]byte		// SHA256 hash-based cipher state
 }
 
-// AES128-CTR stream cipher keyed with the current crypto.cipher state
+// AES128-CTR stream cipher keyed with the current kyber.cipher state
 func (s *state128) stream() cipher.Stream {
 	aes, err := aes.NewCipher(s.h[:16])
 	if err != nil {

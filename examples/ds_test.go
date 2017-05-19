@@ -1,8 +1,8 @@
 package examples
 
-import "github.com/dedis/crypto/group/edwards25519"
+import "github.com/dedis/kyber/group/edwards25519"
 
-//"github.com/dedis/crypto/edwards"
+//"github.com/dedis/kyber/edwards"
 
 // This file is an concrete example of how to generate a distrituted secret
 // amongst peers using Verifiable Secret Sharing (Shamir secret sharing)
@@ -25,15 +25,15 @@ var t int = 3
 
 //// Some helpers function are below
 //// generateKeyPair will generate a random & fresh public / private key pair
-//func generateKeyPair() *crypto.KeyPair {
-//keypair := new(crypto.KeyPair)
+//func generateKeyPair() *kyber.KeyPair {
+//keypair := new(kyber.KeyPair)
 //keypair.Gen(suite, random.Stream)
 //return keypair
 //}
 
 //// generateKeyPairList will generate N keypair
-//func generateKeyPairList(n int) []*crypto.KeyPair {
-//l := make([]*crypto.KeyPair, n)
+//func generateKeyPairList(n int) []*kyber.KeyPair {
+//l := make([]*kyber.KeyPair, n)
 //for i := 0; i < n; i++ {
 //l[i] = generateKeyPair()
 //}
@@ -42,8 +42,8 @@ var t int = 3
 
 //// Transforms a list of key pair into a list of only public keys
 //// That list is distributed amongst the peers
-//func generatePublicListFromPrivate(private []*crypto.KeyPair) []crypto.Point {
-//l := make([]crypto.Point, len(private))
+//func generatePublicListFromPrivate(private []*kyber.KeyPair) []kyber.Point {
+//l := make([]kyber.Point, len(private))
 //for i := 0; i < len(private); i++ {
 //l[i] = private[i].Public
 //}

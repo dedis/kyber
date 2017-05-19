@@ -6,8 +6,8 @@ import (
 	"crypto/subtle"
 	"errors"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/random"
 )
 
 // Pairwise anonymous key agreement for point-to-point interactions.
@@ -23,13 +23,13 @@ import (
 type SKEME struct {
 	suite    Suite
 	hide     bool
-	lpri     PriKey        // local private key
-	rpub     Set           // remote public key
-	lx       crypto.Scalar // local Diffie-Hellman private key
-	lX, rX   crypto.Point  // local,remote Diffie-Hellman pubkeys
-	lXb, rXb []byte        // local,remote DH pubkeys byte-encoded
+	lpri     PriKey       // local private key
+	rpub     Set          // remote public key
+	lx       kyber.Scalar // local Diffie-Hellman private key
+	lX, rX   kyber.Point  // local,remote Diffie-Hellman pubkeys
+	lXb, rXb []byte       // local,remote DH pubkeys byte-encoded
 
-	ms         crypto.Cipher // master symmetric shared stream
+	ms         kyber.Cipher  // master symmetric shared stream
 	ls, rs     cipher.Stream // local->remote,remote->local streams
 	lmac, rmac []byte        // local,remote key-confirmation MACs
 

@@ -7,9 +7,9 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/cipher/sha3"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/cipher/sha3"
+	"github.com/dedis/kyber/util/random"
 )
 
 type suite128 struct {
@@ -22,23 +22,23 @@ func (s *suite128) Hash() hash.Hash {
 }
 
 // SHA3/SHAKE128 Sponge Cipher
-func (s *suite128) Cipher(key []byte, options ...interface{}) crypto.Cipher {
+func (s *suite128) Cipher(key []byte, options ...interface{}) kyber.Cipher {
 	return sha3.NewShakeCipher128(key, options...)
 }
 
 func (s *suite128) Read(r io.Reader, objs ...interface{}) error {
-	return crypto.SuiteRead(s, r, objs)
+	return kyber.SuiteRead(s, r, objs)
 }
 
 func (s *suite128) Write(w io.Writer, objs ...interface{}) error {
-	return crypto.SuiteWrite(s, w, objs)
+	return kyber.SuiteWrite(s, w, objs)
 }
 
 func (s *suite128) New(t reflect.Type) interface{} {
-	return crypto.SuiteNew(s, t)
+	return kyber.SuiteNew(s, t)
 }
 
-func (s *suite128) NewKey(rand cipher.Stream) crypto.Scalar {
+func (s *suite128) NewKey(rand cipher.Stream) kyber.Scalar {
 	if rand == nil {
 		rand = random.Stream
 	}

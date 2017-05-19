@@ -1,11 +1,11 @@
-package crypto
+package kyber
 
 import (
 	"crypto/cipher"
 )
 
 /*
-A Scalar crypto.y represents a scalar value by which
+A Scalar kyber.y represents a scalar value by which
 a Point (group element) may be encrypted to produce another Point.
 This is an exponent in DSA-style groups,
 in which security is based on the Discrete Logarithm assumption,
@@ -60,7 +60,7 @@ type Scalar interface {
 }
 
 /*
-A Point crypto.y represents an element of a public-key cryptographic Group.
+A Point kyber.y represents an element of a public-key cryptographic Group.
 For example,
 this is a number modulo the prime P in a DSA-style Schnorr group,
 or an x,y point on an elliptic curve.
@@ -114,7 +114,7 @@ type Point interface {
 }
 
 /*
-This interface represents an crypto.cryptographic group
+This interface represents an kyber.cryptographic group
 usable for Diffie-Hellman key exchange, ElGamal encryption,
 and the related body of public-key cryptographic algorithms
 and zero-knowledge proof methods.

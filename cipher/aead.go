@@ -4,18 +4,18 @@ import (
 	"crypto/cipher"
 	"errors"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/util/bytes"
-	"github.com/dedis/crypto/util/subtle"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/bytes"
+	"github.com/dedis/kyber/util/subtle"
 )
 
 type cipherAEAD struct {
-	crypto.Cipher
+	kyber.Cipher
 }
 
-// Wrap an crypto.message Cipher to implement
+// Wrap an kyber.message Cipher to implement
 // the Authenticated Encryption with Associated Data (AEAD) interface.
-func NewAEAD(c crypto.Cipher) cipher.AEAD {
+func NewAEAD(c kyber.Cipher) cipher.AEAD {
 	return &cipherAEAD{c}
 }
 

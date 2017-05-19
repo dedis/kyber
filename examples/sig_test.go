@@ -7,24 +7,24 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/group/nist"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/nist"
 )
 
 type Suite interface {
-	crypto.Group
-	Cipher(key []byte, options ...interface{}) crypto.Cipher
-	crypto.Encoding
+	kyber.Group
+	Cipher(key []byte, options ...interface{}) kyber.Cipher
+	kyber.Encoding
 }
 
 // A basic, verifiable signature
 type basicSig struct {
-	C crypto.Scalar // challenge
-	R crypto.Scalar // response
+	C kyber.Scalar // challenge
+	R kyber.Scalar // response
 }
 
 // Returns a secret that depends on on a message and a point
-func hashSchnorr(group Suite, message []byte, p crypto.Point) crypto.Scalar {
+func hashSchnorr(suite Suite, message []byte, p kyber.Point) kyber.Scalar {
 	pb, _ := p.MarshalBinary()
 	c := group.Cipher(pb)
 	c.Message(nil, nil, message)
@@ -35,8 +35,8 @@ func hashSchnorr(group Suite, message []byte, p crypto.Point) crypto.Scalar {
 // crypto/anon/sig.go
 // The ring structure is removed and
 // The anonimity set is reduced to one public key = no anonimity
-func SchnorrSign(group Suite, random cipher.Stream, message []byte,
-	privateKey crypto.Scalar) []byte {
+func SchnorrSign(suite Suite, random cipher.Stream, message []byte,
+	privateKey kyber.Scalar) []byte {
 
 	// Create random secret v and public point commitment T
 	v := group.Scalar().Pick(random)
@@ -58,7 +58,7 @@ func SchnorrSign(group Suite, random cipher.Stream, message []byte,
 	return buf.Bytes()
 }
 
-func SchnorrVerify(group Suite, message []byte, publicKey crypto.Point,
+func SchnorrVerify(suite Suite, message []byte, publicKey kyber.Point,
 	signatureBuffer []byte) error {
 
 	// Decode the signature
@@ -71,9 +71,9 @@ func SchnorrVerify(group Suite, message []byte, publicKey crypto.Point,
 	c := sig.C
 
 	// Compute base**(r + x*c) == T
-	var P, T crypto.Point
-	P = group.Point()
-	T = group.Point()
+	var P, T kyber.Point
+	P = suite.Point()
+	T = suite.Point()
 	T.Add(T.Mul(nil, r), P.Mul(publicKey, c))
 
 	// Verify that the hash based on the message and T

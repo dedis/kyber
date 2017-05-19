@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/group/edwards25519"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/edwards25519"
+	"github.com/dedis/kyber/util/random"
 )
 
 var group = new(edwards25519.Curve)
@@ -19,9 +19,9 @@ type EdDSA struct {
 	seed   []byte
 	prefix []byte
 	// Secret being already hashed + bit tweaked
-	Secret crypto.Scalar
+	Secret kyber.Scalar
 	// Public is the corresponding public key
-	Public crypto.Point
+	Public kyber.Point
 }
 
 // NewEdDSA will return a freshly generated key pair to use for generating
@@ -137,7 +137,7 @@ func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 //  - public key used in signing
 //  - msg is the message to sign
 //  - sig is the signature return by EdDSA.Sign
-func Verify(public crypto.Point, msg, sig []byte) error {
+func Verify(public kyber.Point, msg, sig []byte) error {
 	if len(sig) != 64 {
 		return errors.New("signature length invalid")
 	}

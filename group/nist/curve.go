@@ -8,10 +8,10 @@ import (
 	"crypto/cipher"
 	"crypto/elliptic"
 
-	"github.com/dedis/crypto"
-	"github.com/dedis/crypto/group/mod"
-	"github.com/dedis/crypto/util/encoding"
-	"github.com/dedis/crypto/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/mod"
+	"github.com/dedis/kyber/util/encoding"
+	"github.com/dedis/kyber/util/random"
 )
 
 type curvePoint struct {
@@ -23,7 +23,7 @@ func (p *curvePoint) String() string {
 	return "(" + p.x.String() + "," + p.y.String() + ")"
 }
 
-func (p *curvePoint) Equal(p2 crypto.Point) bool {
+func (p *curvePoint) Equal(p2 kyber.Point) bool {
 	cp2 := p2.(*curvePoint)
 
 	// Make sure both coordinates are normalized.
@@ -37,13 +37,13 @@ func (p *curvePoint) Equal(p2 crypto.Point) bool {
 	return p.x.Cmp(cp2.x) == 0 && p.y.Cmp(cp2.y) == 0
 }
 
-func (p *curvePoint) Null() crypto.Point {
+func (p *curvePoint) Null() kyber.Point {
 	p.x = new(big.Int).SetInt64(0)
 	p.y = new(big.Int).SetInt64(0)
 	return p
 }
 
-func (p *curvePoint) Base() crypto.Point {
+func (p *curvePoint) Base() kyber.Point {
 	p.x = p.c.p.Gx
 	p.y = p.c.p.Gy
 	return p
@@ -100,7 +100,7 @@ func (p *curvePoint) PickLen() int {
 
 // Pick a curve point containing a variable amount of embedded data.
 // Remaining bits comprising the point are chosen randomly.
-func (p *curvePoint) Pick(data []byte, rand cipher.Stream) (crypto.Point, []byte) {
+func (p *curvePoint) Pick(data []byte, rand cipher.Stream) (kyber.Point, []byte) {
 
 	l := p.c.coordLen()
 	dl := p.PickLen()
@@ -134,14 +134,14 @@ func (p *curvePoint) Data() ([]byte, error) {
 	return b[l-dl-1 : l-1], nil
 }
 
-func (p *curvePoint) Add(a, b crypto.Point) crypto.Point {
+func (p *curvePoint) Add(a, b kyber.Point) kyber.Point {
 	ca := a.(*curvePoint)
 	cb := b.(*curvePoint)
 	p.x, p.y = p.c.Add(ca.x, ca.y, cb.x, cb.y)
 	return p
 }
 
-func (p *curvePoint) Sub(a, b crypto.Point) crypto.Point {
+func (p *curvePoint) Sub(a, b kyber.Point) kyber.Point {
 	ca := a.(*curvePoint)
 	cb := b.(*curvePoint)
 
@@ -151,7 +151,7 @@ func (p *curvePoint) Sub(a, b crypto.Point) crypto.Point {
 	return p
 }
 
-func (p *curvePoint) Neg(a crypto.Point) crypto.Point {
+func (p *curvePoint) Neg(a kyber.Point) kyber.Point {
 
 	// XXX a pretty non-optimal implementation of point negation...
 	s := p.c.Scalar().One()
@@ -159,7 +159,7 @@ func (p *curvePoint) Neg(a crypto.Point) crypto.Point {
 	return p.Mul(a, s).(*curvePoint)
 }
 
-func (p *curvePoint) Mul(b crypto.Point, s crypto.Scalar) crypto.Point {
+func (p *curvePoint) Mul(b kyber.Point, s kyber.Scalar) kyber.Point {
 	cs := s.(*mod.Int)
 	if b != nil {
 		cb := b.(*curvePoint)
@@ -213,7 +213,7 @@ type curveOps interface {
 	sqrt(y *big.Int) *big.Int
 }
 
-// Curve is an implementation of the crypto.Group interface
+// Curve is an implementation of the kyber.Group interface
 // for NIST elliptic curves, built on Go's native elliptic curve library.
 type curve struct {
 	elliptic.Curve
@@ -230,7 +230,7 @@ func (g *curve) PrimeOrder() bool {
 func (c *curve) ScalarLen() int { return (c.p.N.BitLen() + 7) / 8 }
 
 // Create a Scalar associated with this curve.
-func (c *curve) Scalar() crypto.Scalar {
+func (c *curve) Scalar() kyber.Scalar {
 	return mod.NewInt64(0, c.p.N)
 }
 
@@ -247,19 +247,19 @@ func (c *curve) PointLen() int {
 }
 
 // Create a Point associated with this curve.
-func (c *curve) Point() crypto.Point {
+func (c *curve) Point() kyber.Point {
 	p := new(curvePoint)
 	p.c = c
 	return p
 }
 
-func (p *curvePoint) Set(P crypto.Point) crypto.Point {
+func (p *curvePoint) Set(P kyber.Point) kyber.Point {
 	p.x = P.(*curvePoint).x
 	p.y = P.(*curvePoint).y
 	return p
 }
 
-func (p *curvePoint) Clone() crypto.Point {
+func (p *curvePoint) Clone() kyber.Point {
 	return &curvePoint{x: p.x, y: p.y, c: p.c}
 }
 
