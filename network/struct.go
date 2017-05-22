@@ -7,11 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dedis/onet/crypto"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/encoding"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/protobuf"
 	"github.com/satori/go.uuid"
-	"gopkg.in/dedis/crypto.v0/abstract"
 )
 
 // MaxRetryConnect defines how many times we should try to connect.
@@ -71,7 +71,7 @@ type Envelope struct {
 // It's based on a public key, and there can be one or more addresses to contact it.
 type ServerIdentity struct {
 	// This is the public key of that ServerIdentity
-	Public abstract.Point
+	Public kyber.Point
 	// The ServerIdentityID corresponding to that public key
 	ID ServerIdentityID
 	// A slice of addresses of where that Id might be found
@@ -114,7 +114,7 @@ type ServerIdentityToml struct {
 // NewServerIdentity creates a new ServerIdentity based on a public key and with a slice
 // of IP-addresses where to find that entity. The Id is based on a
 // version5-UUID which can include a URL that is based on it's public key.
-func NewServerIdentity(public abstract.Point, address Address) *ServerIdentity {
+func NewServerIdentity(public kyber.Point, address Address) *ServerIdentity {
 	url := NamespaceURL + "id/" + public.String()
 	return &ServerIdentity{
 		Public:  public,
@@ -129,9 +129,9 @@ func (si *ServerIdentity) Equal(e2 *ServerIdentity) bool {
 }
 
 // Toml converts an ServerIdentity to a Toml-structure
-func (si *ServerIdentity) Toml(suite abstract.Suite) *ServerIdentityToml {
+func (si *ServerIdentity) Toml(suite Suite) *ServerIdentityToml {
 	var buf bytes.Buffer
-	if err := crypto.Write64Point(suite, &buf, si.Public); err != nil {
+	if err := encoding.Write64Point(suite, &buf, si.Public); err != nil {
 		log.Error("Error while writing public key:", err)
 	}
 	return &ServerIdentityToml{
@@ -141,8 +141,8 @@ func (si *ServerIdentity) Toml(suite abstract.Suite) *ServerIdentityToml {
 }
 
 // ServerIdentity converts an ServerIdentityToml structure back to an ServerIdentity
-func (si *ServerIdentityToml) ServerIdentity(suite abstract.Suite) *ServerIdentity {
-	pub, err := crypto.Read64Point(suite, strings.NewReader(si.Public))
+func (si *ServerIdentityToml) ServerIdentity(suite Suite) *ServerIdentity {
+	pub, err := encoding.Read64Point(suite, strings.NewReader(si.Public))
 	if err != nil {
 		log.Error("Error while reading public key:", err)
 	}
