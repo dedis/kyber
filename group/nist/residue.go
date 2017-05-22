@@ -11,8 +11,8 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/mod"
+	"github.com/dedis/kyber/util/marshalling"
 	"github.com/dedis/kyber/util/random"
-	"github.com/dedis/kyber/util/encoding"
 )
 
 var one = big.NewInt(1)
@@ -154,11 +154,11 @@ func (p *residuePoint) UnmarshalBinary(data []byte) error {
 }
 
 func (p *residuePoint) MarshalTo(w io.Writer) (int, error) {
-	return encoding.PointMarshalTo(p, w)
+	return marshalling.PointMarshalTo(p, w)
 }
 
 func (p *residuePoint) UnmarshalFrom(r io.Reader) (int, error) {
-	return encoding.PointUnmarshalFrom(p, r)
+	return marshalling.PointUnmarshalFrom(p, r)
 }
 
 /*

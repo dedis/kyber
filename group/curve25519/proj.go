@@ -7,7 +7,7 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/mod"
-	"github.com/dedis/kyber/util/encoding"
+	"github.com/dedis/kyber/util/marshalling"
 	"github.com/dedis/kyber/util/random"
 )
 
@@ -48,11 +48,11 @@ func (P *projPoint) UnmarshalBinary(b []byte) error {
 }
 
 func (P *projPoint) MarshalTo(w io.Writer) (int, error) {
-	return encoding.PointMarshalTo(P, w)
+	return marshalling.PointMarshalTo(P, w)
 }
 
 func (P *projPoint) UnmarshalFrom(r io.Reader) (int, error) {
-	return encoding.PointUnmarshalFrom(P, r)
+	return marshalling.PointUnmarshalFrom(P, r)
 }
 
 func (P *projPoint) HideLen() int {

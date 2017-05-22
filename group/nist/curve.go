@@ -10,7 +10,7 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/mod"
-	"github.com/dedis/kyber/util/encoding"
+	"github.com/dedis/kyber/util/marshalling"
 	"github.com/dedis/kyber/util/random"
 )
 
@@ -201,11 +201,11 @@ func (p *curvePoint) UnmarshalBinary(buf []byte) error {
 }
 
 func (p *curvePoint) MarshalTo(w io.Writer) (int, error) {
-	return encoding.PointMarshalTo(p, w)
+	return marshalling.PointMarshalTo(p, w)
 }
 
 func (p *curvePoint) UnmarshalFrom(r io.Reader) (int, error) {
-	return encoding.PointUnmarshalFrom(p, r)
+	return marshalling.PointUnmarshalFrom(p, r)
 }
 
 // interface for curve-specifc mathematical functions

@@ -23,7 +23,7 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/mod"
-	"github.com/dedis/kyber/util/encoding"
+	"github.com/dedis/kyber/util/marshalling"
 	"github.com/dedis/kyber/util/random"
 )
 
@@ -55,11 +55,11 @@ func (P *point) UnmarshalBinary(b []byte) error {
 }
 
 func (P *point) MarshalTo(w io.Writer) (int, error) {
-	return encoding.PointMarshalTo(P, w)
+	return marshalling.PointMarshalTo(P, w)
 }
 
 func (P *point) UnmarshalFrom(r io.Reader) (int, error) {
-	return encoding.PointUnmarshalFrom(P, r)
+	return marshalling.PointUnmarshalFrom(P, r)
 }
 
 // Equality test for two Points on the same curve

@@ -32,3 +32,5 @@ Refactoring for crypto v1:
         - binary encoding part of encoding.go
 
     - commented out the dh_test.go which is not up-to-date anymore
+    - taken onet/crypto/key{_test}.go to kyber/util/encoding
+        + Removed abstract.Suite, only taking kyber.Group now

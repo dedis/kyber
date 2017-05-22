@@ -9,7 +9,7 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/util/bytes"
-	"github.com/dedis/kyber/util/encoding"
+	"github.com/dedis/kyber/util/marshalling"
 	"github.com/dedis/kyber/util/random"
 )
 
@@ -352,11 +352,11 @@ func (i *Int) UnmarshalBinary(buf []byte) error {
 }
 
 func (i *Int) MarshalTo(w io.Writer) (int, error) {
-	return encoding.ScalarMarshalTo(i, w)
+	return marshalling.ScalarMarshalTo(i, w)
 }
 
 func (i *Int) UnmarshalFrom(r io.Reader) (int, error) {
-	return encoding.ScalarUnmarshalFrom(i, r)
+	return marshalling.ScalarUnmarshalFrom(i, r)
 }
 
 // Encode the value of this Int into a big-endian byte-slice

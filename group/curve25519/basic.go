@@ -9,7 +9,7 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/mod"
-	"github.com/dedis/kyber/util/encoding"
+	"github.com/dedis/kyber/util/marshalling"
 )
 
 type basicPoint struct {
@@ -52,11 +52,11 @@ func (P *basicPoint) UnmarshalBinary(b []byte) error {
 }
 
 func (P *basicPoint) MarshalTo(w io.Writer) (int, error) {
-	return encoding.PointMarshalTo(P, w)
+	return marshalling.PointMarshalTo(P, w)
 }
 
 func (P *basicPoint) UnmarshalFrom(r io.Reader) (int, error) {
-	return encoding.PointUnmarshalFrom(P, r)
+	return marshalling.PointUnmarshalFrom(P, r)
 }
 
 func (P *basicPoint) HideLen() int {

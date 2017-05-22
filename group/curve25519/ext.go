@@ -10,7 +10,7 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/mod"
-	"github.com/dedis/kyber/util/encoding"
+	"github.com/dedis/kyber/util/marshalling"
 )
 
 type extPoint struct {
@@ -57,11 +57,11 @@ func (P *extPoint) UnmarshalBinary(b []byte) error {
 }
 
 func (P *extPoint) MarshalTo(w io.Writer) (int, error) {
-	return encoding.PointMarshalTo(P, w)
+	return marshalling.PointMarshalTo(P, w)
 }
 
 func (P *extPoint) UnmarshalFrom(r io.Reader) (int, error) {
-	return encoding.PointUnmarshalFrom(P, r)
+	return marshalling.PointUnmarshalFrom(P, r)
 }
 
 func (P *extPoint) HideLen() int {
