@@ -29,10 +29,14 @@ Refactoring for crypto v1:
         - poly
         - suites
         - config/file,
-        - binary encoding part of encoding.go
+        - gofmt.sh
+        - GO-WISHLIST
 
     - commented out the dh_test.go which is not up-to-date anymore
     - taken onet/crypto/key{_test}.go to kyber/util/encoding
         + Removed abstract.Suite, only taking kyber.Group now
     - new package util/marshalling for `{Read,Write}{Scalar,Point}` used by all
       suite implementations.
+    
+    XXX TODO:
+    - remove binary encoding part of encoding.go
