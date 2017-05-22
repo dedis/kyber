@@ -5,7 +5,6 @@ import (
 	"testing"
 	//"encoding/hex"
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/clique"
 	"github.com/dedis/kyber/group/nist"
 	"github.com/dedis/kyber/util/random"
 )
@@ -19,7 +18,7 @@ type node struct {
 	x kyber.Scalar
 	X kyber.Point
 
-	proto  clique.Protocol
+	proto  Protocol
 	outbox chan []byte
 	inbox  chan [][]byte
 }
@@ -36,7 +35,7 @@ func (n *node) Random() kyber.Cipher {
 }
 
 func runNode(n *node) {
-	errs := (func(clique.Context) []error)(n.proto)(n)
+	errs := (func(Context) []error)(n.proto)(n)
 
 	fmt.Printf("node %d finished\n", n.i)
 	for i := range errs {

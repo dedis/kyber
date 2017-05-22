@@ -5,28 +5,27 @@ import (
 	"errors"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/clique"
 )
 
-// Create a clique.Protocol implementing an interactive Sigma-protocol
+// Create a Protocol implementing an interactive Sigma-protocol
 // to prove a particular statement to the other participants.
-// Optionally the clique.Protocol participant can also verify
+// Optionally the Protocol participant can also verify
 // the Sigma-protocol proofs of any or all of the other participants.
 // Different participants may produce different proofs of varying sizes,
 // and may even consist of different numbers of steps.
 func DeniableProver(suite Suite, self int, prover Prover,
-	verifiers []Verifier) clique.Protocol {
+	verifiers []Verifier) Protocol {
 
-	return clique.Protocol(func(ctx clique.Context) []error {
+	return Protocol(func(ctx Context) []error {
 		dp := deniableProver{}
 		return dp.run(suite, self, prover, verifiers, ctx)
 	})
 }
 
 type deniableProver struct {
-	suite Suite          // Agreed-on ciphersuite for protocol
-	self  int            // Our own node number
-	sc    clique.Context // Clique protocol context
+	suite Suite   // Agreed-on ciphersuite for protocol
+	self  int     // Our own node number
+	sc    Context // Clique protocol context
 
 	// verifiers for other nodes' proofs
 	dv []*deniableVerifier
@@ -44,7 +43,7 @@ type deniableProver struct {
 }
 
 func (dp *deniableProver) run(suite Suite, self int, prv Prover,
-	vrf []Verifier, sc clique.Context) []error {
+	vrf []Verifier, sc Context) []error {
 	dp.suite = suite
 	dp.self = self
 	dp.sc = sc
