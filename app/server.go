@@ -14,9 +14,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/encoding"
-	"github.com/dedis/kyber/util/key"
+	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/util/encoding"
+	"gopkg.in/dedis/kyber.v1/util/key"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"

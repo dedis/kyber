@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/encoding"
+	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/util/encoding"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/protobuf"
 	"github.com/satori/go.uuid"

@@ -6,7 +6,7 @@ import (
 
 	"math/rand"
 
-	"github.com/dedis/kyber"
+	"gopkg.in/dedis/kyber.v1"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 	"github.com/satori/go.uuid"

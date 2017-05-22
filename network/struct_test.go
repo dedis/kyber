@@ -3,7 +3,7 @@ package network
 import (
 	"testing"
 
-	"github.com/dedis/kyber/util/key"
+	"gopkg.in/dedis/kyber.v1/util/key"
 	"github.com/dedis/onet/log"
 )
 

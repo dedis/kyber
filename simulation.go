@@ -10,8 +10,8 @@ import (
 	"net"
 
 	"github.com/BurntSushi/toml"
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/key"
+	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/util/key"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 )
