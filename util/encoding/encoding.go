@@ -1,62 +1,157 @@
 package encoding
 
 import (
-	"crypto/cipher"
+	"encoding/base64"
+	"encoding/hex"
+	"errors"
 	"io"
+	"strings"
 
 	"github.com/dedis/kyber"
 )
 
-// PointEncodeTo provides a generic implementation of Point.EncodeTo
-// based on Point.Encode.
-func PointMarshalTo(p kyber.Point, w io.Writer) (int, error) {
-	buf, err := p.MarshalBinary()
-	if err != nil {
-		return 0, err
-	}
-	return w.Write(buf)
+// Read64Point reads a point from a base64 representation
+func Read64Point(group kyber.Group, r io.Reader) (kyber.Point, error) {
+	point := group.Point()
+	dec := base64.NewDecoder(base64.StdEncoding, r)
+	_, err := point.UnmarshalFrom(dec)
+	return point, err
 }
 
-// PointDecodeFrom provides a generic implementation of Point.DecodeFrom,
-// based on Point.Decode, or Point.Pick if r is a Cipher or cipher.Stream.
-// The returned byte-count is valid only when decoding from a normal Reader,
-// not when picking from a pseudorandom source.
-func PointUnmarshalFrom(p kyber.Point, r io.Reader) (int, error) {
-	if strm, ok := r.(cipher.Stream); ok {
-		p.Pick(nil, strm)
-		return -1, nil // no byte-count when picking randomly
-	}
-	buf := make([]byte, p.MarshalSize())
-	n, err := io.ReadFull(r, buf)
-	if err != nil {
-		return n, err
-	}
-	return n, p.UnmarshalBinary(buf)
+// Write64Point writes a point to a base64 representation
+func Write64Point(group kyber.Group, w io.Writer, point kyber.Point) error {
+	enc := base64.NewEncoder(base64.StdEncoding, w)
+	return write64(enc, point)
 }
 
-// ScalarEncodeTo provides a generic implementation of Scalar.EncodeTo
-// based on Scalar.Encode.
-func ScalarMarshalTo(s kyber.Scalar, w io.Writer) (int, error) {
-	buf, err := s.MarshalBinary()
-	if err != nil {
-		return 0, err
-	}
-	return w.Write(buf)
+// Read64Scalar takes a Base64-encoded scalar and returns that scalar,
+// optionally an error
+func Read64Scalar(group kyber.Group, r io.Reader) (kyber.Scalar, error) {
+	s := group.Scalar()
+	dec := base64.NewDecoder(base64.StdEncoding, r)
+	_, err := s.UnmarshalFrom(dec)
+	return s, err
 }
 
-// ScalarDecodeFrom provides a generic implementation of Scalar.DecodeFrom,
-// based on Scalar.Decode, or Scalar.Pick if r is a Cipher or cipher.Stream.
-// The returned byte-count is valid only when decoding from a normal Reader,
-// not when picking from a pseudorandom source.
-func ScalarUnmarshalFrom(s kyber.Scalar, r io.Reader) (int, error) {
-	if strm, ok := r.(cipher.Stream); ok {
-		s.Pick(strm)
-		return -1, nil // no byte-count when picking randomly
-	}
-	buf := make([]byte, s.MarshalSize())
-	n, err := io.ReadFull(r, buf)
+// Write64Scalar converts a scalar key to a Base64-string
+func Write64Scalar(group kyber.Group, w io.Writer, scalar kyber.Scalar) error {
+	enc := base64.NewEncoder(base64.StdEncoding, w)
+	return write64(enc, scalar)
+}
+
+// ReadHexPoint reads a point from a hex representation
+func ReadHexPoint(group kyber.Group, r io.Reader) (kyber.Point, error) {
+	point := group.Point()
+	buf, err := getHex(r, point.MarshalSize())
 	if err != nil {
-		return n, err
+		return nil, err
 	}
-	return n, s.UnmarshalBinary(buf)
+	err = point.UnmarshalBinary(buf)
+	return point, err
+}
+
+// WriteHexPoint writes a point to a hex representation
+func WriteHexPoint(group kyber.Group, w io.Writer, point kyber.Point) error {
+	buf, err := point.MarshalBinary()
+	if err != nil {
+		return err
+	}
+	out := hex.EncodeToString(buf)
+	_, err = w.Write([]byte(out))
+	return err
+}
+
+// ReadHexScalar takes a hex-encoded scalar and returns that scalar,
+// optionally an error
+func ReadHexScalar(group kyber.Group, r io.Reader) (kyber.Scalar, error) {
+	s := group.Scalar()
+	buf, err := getHex(r, s.MarshalSize())
+	if err != nil {
+		return nil, err
+	}
+	s.UnmarshalBinary(buf)
+	return s, nil
+}
+
+// WriteHexScalar converts a scalar key to a hex-string
+func WriteHexScalar(group kyber.Group, w io.Writer, scalar kyber.Scalar) error {
+	buf, err := scalar.MarshalBinary()
+	if err != nil {
+		return err
+	}
+	out := hex.EncodeToString(buf)
+	_, err = w.Write([]byte(out))
+	return err
+}
+
+// PointToStringHex converts a point to a hexadecimal representation
+func PointToStringHex(group kyber.Group, point kyber.Point) (string, error) {
+	pbuf, err := point.MarshalBinary()
+	return hex.EncodeToString(pbuf), err
+}
+
+// StringHexToPoint reads a hexadecimal representation of a point and convert it to the
+// right struct
+func StringHexToPoint(group kyber.Group, s string) (kyber.Point, error) {
+	return ReadHexPoint(group, strings.NewReader(s))
+}
+
+// PointToString64 converts a point to a base64 representation
+func PointToString64(group kyber.Group, point kyber.Point) (string, error) {
+	pbuf, err := point.MarshalBinary()
+	return base64.StdEncoding.EncodeToString(pbuf), err
+}
+
+// String64ToPoint reads a base64 representation of a point and converts it
+// back to a point.
+func String64ToPoint(group kyber.Group, s string) (kyber.Point, error) {
+	return Read64Point(group, strings.NewReader(s))
+}
+
+// ScalarToStringHex encodes a scalar to hexadecimal
+func ScalarToStringHex(group kyber.Group, scalar kyber.Scalar) (string, error) {
+	sbuf, err := scalar.MarshalBinary()
+	return hex.EncodeToString(sbuf), err
+}
+
+// StringHexToScalar reads a scalar in hexadecimal from string
+func StringHexToScalar(group kyber.Group, str string) (kyber.Scalar, error) {
+	return ReadHexScalar(group, strings.NewReader(str))
+}
+
+// ScalarToString64 encodes a scalar to a base64
+func ScalarToString64(group kyber.Group, scalar kyber.Scalar) (string, error) {
+	sbuf, err := scalar.MarshalBinary()
+	return base64.StdEncoding.EncodeToString(sbuf), err
+}
+
+// String64ToScalar reads a scalar in base64 from a string
+func String64ToScalar(group kyber.Group, str string) (kyber.Scalar, error) {
+	return Read64Scalar(group, strings.NewReader(str))
+}
+
+func write64(wc io.WriteCloser, data ...kyber.Marshaling) error {
+	for _, d := range data {
+		if _, err := d.MarshalTo(wc); err != nil {
+			return err
+		}
+	}
+	return wc.Close()
+}
+
+func getHex(r io.Reader, len int) ([]byte, error) {
+	bufHex := make([]byte, len*2)
+	bufByte := make([]byte, len)
+	l, err := r.Read(bufHex)
+	if err != nil {
+		return nil, err
+	}
+	if l < len {
+		return nil, errors.New("didn't get enough bytes from stream")
+	}
+	_, err = hex.Decode(bufByte, bufHex)
+	if err != nil {
+		return nil, err
+	}
+	return bufByte, nil
 }
