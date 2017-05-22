@@ -3,7 +3,7 @@ package edwards25519
 import (
 	"testing"
 
-	"github.com/dedis/kyber/test"
+	"github.com/dedis/kyber/util/test"
 )
 
 var testSuite = NewAES128SHA256Ed25519(false)
