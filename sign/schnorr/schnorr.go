@@ -1,4 +1,4 @@
-package sign
+package schnorr
 
 import (
 	"bytes"
