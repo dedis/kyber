@@ -11,8 +11,8 @@ package sha3
 import (
 	"hash"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/cipher"
+	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/cipher"
 )
 
 var sha3opts = []interface{}{cipher.Padding(0x06)}

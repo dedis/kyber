@@ -3,7 +3,7 @@ package sha3
 import (
 	"testing"
 
-	"github.com/dedis/kyber/util/test"
+	"gopkg.in/dedis/kyber.v1/util/test"
 )
 
 func TestAES(t *testing.T) {

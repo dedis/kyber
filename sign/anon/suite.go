@@ -3,7 +3,7 @@ package anon
 import (
 	"hash"
 
-	"github.com/dedis/kyber"
+	"gopkg.in/dedis/kyber.v1"
 )
 
 type Suite interface {

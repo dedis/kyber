@@ -90,7 +90,7 @@ func Bytes(n int, rand cipher.Stream) []byte {
 // This is needed when using suite.Cipher(kyber.NoKey)
 // because the first 6 iterations returns 0000...000 as
 // bytes for edwards & ed25519 cipher.
-// XXX Issue reported in https://github.com/dedis/kyber/issues/70
+// XXX Issue reported in https://gopkg.in/dedis/kyber.v1/issues/70
 func NonZeroBytes(n int, rand cipher.Stream) []byte {
 	var randoms []byte
 	for {

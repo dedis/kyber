@@ -7,8 +7,8 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/cipher"
+	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/cipher"
 )
 
 // NewBlockCipher creates a conventional AES block cipher.

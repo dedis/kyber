@@ -37,10 +37,10 @@ import (
 	"hash"
 	"reflect"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/share"
-	sign "github.com/dedis/kyber/sign/schnorr"
-	"github.com/dedis/kyber/util/random"
+	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/share"
+	sign "gopkg.in/dedis/kyber.v1/sign/schnorr"
+	"gopkg.in/dedis/kyber.v1/util/random"
 	"github.com/dedis/protobuf"
 )
 

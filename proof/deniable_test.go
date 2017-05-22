@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 	//"encoding/hex"
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group/nist"
-	"github.com/dedis/kyber/util/random"
+	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/group/nist"
+	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
 var testSuite = nist.NewAES128SHA256P256()

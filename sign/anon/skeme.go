@@ -6,8 +6,8 @@ import (
 	"crypto/subtle"
 	"errors"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/random"
+	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
 // Pairwise anonymous key agreement for point-to-point interactions.

@@ -7,9 +7,9 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/cipher/sha3"
-	"github.com/dedis/kyber/util/random"
+	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/cipher/sha3"
+	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
 type suite128 struct {

@@ -5,8 +5,8 @@ import (
 	"encoding/base64"
 	"hash"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/random"
+	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
 type Suite interface {

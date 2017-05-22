@@ -9,7 +9,7 @@ import (
 	"errors"
 	"hash"
 
-	"github.com/dedis/kyber"
+	"gopkg.in/dedis/kyber.v1"
 )
 
 // NOTE This suite is the same as the global one. Writing it is not an easy when you

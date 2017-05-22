@@ -9,10 +9,10 @@ import (
 	"math/big"
 	//"encoding/hex"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group/mod"
-	"github.com/dedis/kyber/util/marshalling"
-	"github.com/dedis/kyber/util/random"
+	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/group/mod"
+	"gopkg.in/dedis/kyber.v1/util/marshalling"
+	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
 var one = big.NewInt(1)

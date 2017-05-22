@@ -3,8 +3,8 @@ package kyber
 import (
 	"errors"
 
-	"github.com/dedis/kyber/util/bytes"
-	"github.com/dedis/kyber/util/subtle"
+	"gopkg.in/dedis/kyber.v1/util/bytes"
+	"gopkg.in/dedis/kyber.v1/util/subtle"
 )
 
 // CipherState defines an interface to an kyber.symmetric message cipher.

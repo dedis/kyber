@@ -7,7 +7,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/dedis/kyber"
+	"gopkg.in/dedis/kyber.v1"
 )
 
 // Read64Point reads a point from a base64 representation

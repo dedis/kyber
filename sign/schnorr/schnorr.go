@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/random"
+	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
 // Schnorr creates a Schnorr signature from a msg and a private key. This

@@ -4,7 +4,7 @@ import (
 	"crypto/cipher"
 	"hash"
 
-	"github.com/dedis/kyber"
+	"gopkg.in/dedis/kyber.v1"
 )
 
 // Construct a general message Cipher

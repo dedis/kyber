@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group/nist"
+	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/group/nist"
 )
 
 // This example shows how to build classic ElGamal-style digital signatures

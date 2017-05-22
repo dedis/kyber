@@ -3,8 +3,8 @@ package share
 import (
 	"testing"
 
-	"github.com/dedis/kyber/group/edwards25519"
-	"github.com/dedis/kyber/util/random"
+	"gopkg.in/dedis/kyber.v1/group/edwards25519"
+	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
 func TestSecretRecovery(test *testing.T) {

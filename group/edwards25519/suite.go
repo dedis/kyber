@@ -6,8 +6,8 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/cipher/sha3"
+	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/cipher/sha3"
 )
 
 type suiteEd25519 struct {

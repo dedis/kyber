@@ -7,8 +7,8 @@ import (
 	"hash"
 	"testing"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/subtle"
+	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/util/subtle"
 )
 
 func HashBench(b *testing.B, hash func() hash.Hash) {

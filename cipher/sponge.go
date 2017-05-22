@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/dedis/kyber/util/ints"
+	"gopkg.in/dedis/kyber.v1/util/ints"
 	//"encoding/hex"
 	"encoding/binary"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/random"
+	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
 // Sponge is an interface representing a primitive sponge function.

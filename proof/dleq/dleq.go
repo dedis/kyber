@@ -9,9 +9,9 @@ import (
 	"errors"
 	"hash"
 
-	"github.com/dedis/kyber"
-	h "github.com/dedis/kyber/util/hash"
-	"github.com/dedis/kyber/util/random"
+	"gopkg.in/dedis/kyber.v1"
+	h "gopkg.in/dedis/kyber.v1/util/hash"
+	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
 type Suite interface {
