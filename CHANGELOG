@@ -16,6 +16,8 @@ Refactoring for crypto v1:
         - group/encoding.go to util/encoding/encoding.go
         - subtle/ to util/subtle
         - random to util/random
+        - test/ inside util/test
+        - clique/clique.go to proof/clique.go 
     
     - removed:
         - abstract
