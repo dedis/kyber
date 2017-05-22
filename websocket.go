@@ -259,7 +259,7 @@ func (c *Client) SendProtobuf(dst *network.ServerIdentity, msg interface{}, ret 
 	}
 	if ret != nil {
 		err := protobuf.DecodeWithConstructors(reply, ret,
-			network.DefaultConstructors(network.Suite))
+			network.DefaultConstructors(network.S))
 		return NewClientError(err)
 	}
 	return nil

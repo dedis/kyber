@@ -16,16 +16,16 @@ import (
 
 	"fmt"
 
+	"github.com/dedis/kyber"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
-	"gopkg.in/dedis/crypto.v0/abstract"
 )
 
 // Server connects the Router, the Overlay, and the Services together. It sets
 // up everything and returns once a working network has been set up.
 type Server struct {
 	// Our private-key
-	private abstract.Scalar
+	private kyber.Scalar
 	*network.Router
 	// Overlay handles the mapping from tree and entityList to ServerIdentity.
 	// It uses tokens to represent an unique ProtocolInstance in the system
@@ -44,7 +44,7 @@ type Server struct {
 }
 
 // NewServer returns a fresh Server tied to a given Router.
-func NewServer(r *network.Router, pkey abstract.Scalar) *Server {
+func NewServer(r *network.Router, pkey kyber.Scalar) *Server {
 	c := &Server{
 		private:              pkey,
 		statusReporterStruct: newStatusReporterStruct(),
@@ -65,17 +65,17 @@ func NewServer(r *network.Router, pkey abstract.Scalar) *Server {
 
 // NewServerTCP returns a new Server out of a private-key and its related public
 // key within the ServerIdentity. The server will use a default TcpRouter as Router.
-func NewServerTCP(e *network.ServerIdentity, pkey abstract.Scalar) *Server {
+func NewServerTCP(e *network.ServerIdentity, pkey kyber.Scalar) *Server {
 	r, err := network.NewTCPRouter(e)
 	log.ErrFatal(err)
 	return NewServer(r, pkey)
 }
 
-// Suite can (and should) be used to get the underlying abstract.Suite.
+// Suite can (and should) be used to get the underlying Suite.
 // Currently the suite is hardcoded into the network library.
 // Don't use network.Suite but Host's Suite function instead if possible.
-func (c *Server) Suite() abstract.Suite {
-	return network.Suite
+func (c *Server) Suite() network.Suite {
+	return network.S
 }
 
 // GetStatus is a function that returns the status report of the server.

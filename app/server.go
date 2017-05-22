@@ -14,18 +14,16 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/encoding"
+	"github.com/dedis/kyber/util/key"
 	"github.com/dedis/onet"
-	"github.com/dedis/onet/crypto"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 
 	"github.com/shirou/gopsutil/mem"
-
 	// CoSi-protocol is not part of the cothority.
-
 	// For the moment, the server only serves CoSi requests
-	"gopkg.in/dedis/crypto.v0/abstract"
-	crypconf "gopkg.in/dedis/crypto.v0/config"
 )
 
 // DefaultServerConfig is the default server configuration file-name.
@@ -169,12 +167,12 @@ func InteractiveConfig(binaryName string) {
 		}
 	}
 
-	public, err := crypto.StringHexToPoint(network.Suite, pubStr)
+	public, err := encoding.StringHexToPoint(network.S, pubStr)
 	if err != nil {
 		log.Fatal("Impossible to parse public key:", err)
 	}
 
-	server := NewServerToml(network.Suite, public, publicAddress, conf.Description)
+	server := NewServerToml(network.S, public, publicAddress, conf.Description)
 	group := NewGroupToml(server)
 
 	saveFiles(conf, configFile, group, groupFile)
@@ -183,8 +181,8 @@ func InteractiveConfig(binaryName string) {
 
 // entityListToPublics returns a slice of Points of all elements
 // of the roster.
-func entityListToPublics(el *onet.Roster) []abstract.Point {
-	publics := make([]abstract.Point, len(el.List))
+func entityListToPublics(el *onet.Roster) []kyber.Point {
+	publics := make([]kyber.Point, len(el.List))
 	for i, e := range el.List {
 		publics[i] = e.Public
 	}
@@ -204,16 +202,16 @@ func checkOverwrite(file string) bool {
 // createKeyPair returns the private and public key in hexadecimal representation.
 func createKeyPair() (string, string) {
 	log.Info("Creating ed25519 private and public keys.")
-	kp := crypconf.NewKeyPair(network.Suite)
-	privStr, err := crypto.ScalarToStringHex(network.Suite, kp.Secret)
+	kp := key.NewKeyPair(network.S)
+	privStr, err := encoding.ScalarToStringHex(network.S, kp.Secret)
 	if err != nil {
 		log.Fatal("Error formating private key to hexadecimal. Abort.")
 	}
-	var point abstract.Point
+	var point kyber.Point
 	// use the transformation for EdDSA signatures
 	//point = cosi.Ed25519Public(network.Suite, kp.Secret)
 	point = kp.Public
-	pubStr, err := crypto.PointToStringHex(network.Suite, point)
+	pubStr, err := encoding.PointToStringHex(network.S, point)
 	if err != nil {
 		log.Fatal("Could not parse public key. Abort.")
 	}

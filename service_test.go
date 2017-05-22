@@ -431,7 +431,7 @@ type simpleService struct {
 
 func (s *simpleService) ProcessClientRequest(path string, buf []byte) ([]byte, ClientError) {
 	msg := &SimpleRequest{}
-	err := protobuf.DecodeWithConstructors(buf, msg, network.DefaultConstructors(network.Suite))
+	err := protobuf.DecodeWithConstructors(buf, msg, network.DefaultConstructors(network.S))
 	if err != nil {
 		return nil, NewClientErrorCode(WebSocketErrorProtobufDecode, "")
 	}

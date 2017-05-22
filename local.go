@@ -10,11 +10,11 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/key"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 	"github.com/satori/go.uuid"
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/config"
 )
 
 // LocalTest represents all that is needed for a local test-run
@@ -264,7 +264,7 @@ func (l *LocalTest) checkPendingTreeMarshal(c *Server, el *Roster) {
 }
 
 // GetPrivate returns the private key of a server
-func (l *LocalTest) GetPrivate(c *Server) abstract.Scalar {
+func (l *LocalTest) GetPrivate(c *Server) kyber.Scalar {
 	return c.private
 }
 
@@ -289,7 +289,7 @@ func (l *LocalTest) MakeHELS(nbr int, sid ServiceID) ([]*Server, *Roster, Servic
 
 // NewPrivIdentity returns a secret + ServerIdentity. The SI will have
 // "localserver:+port as first address.
-func NewPrivIdentity(port int) (abstract.Scalar, *network.ServerIdentity) {
+func NewPrivIdentity(port int) (kyber.Scalar, *network.ServerIdentity) {
 	address := network.NewLocalAddress("127.0.0.1:" + strconv.Itoa(port))
 	priv, pub := PrivPub()
 	id := network.NewServerIdentity(pub, address)
@@ -420,7 +420,7 @@ func (l *LocalTest) NewLocalServer(port int) *Server {
 }
 
 // PrivPub creates a private/public key pair.
-func PrivPub() (abstract.Scalar, abstract.Point) {
-	keypair := config.NewKeyPair(network.Suite)
+func PrivPub() (kyber.Scalar, kyber.Point) {
+	keypair := key.NewKeyPair(network.S)
 	return keypair.Secret, keypair.Public
 }

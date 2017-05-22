@@ -17,13 +17,13 @@ import (
 
 /// Encoding part ///
 
+// Suite functionalities used globally by the network library.
 type Suite interface {
 	kyber.Group
 	Hash() hash.Hash
 	Cipher(key []byte, options ...interface{}) kyber.Cipher
 }
 
-// Suite used globally by this network library.
 // For the moment, this will stay,as our focus is not on having the possibility
 // to use any suite we want (the decoding stuff is much harder then, because we
 // don't want to send the suite in the wire).

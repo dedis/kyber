@@ -6,10 +6,10 @@ import (
 
 	"math/rand"
 
+	"github.com/dedis/kyber"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 	"github.com/satori/go.uuid"
-	"gopkg.in/dedis/crypto.v0/abstract"
 )
 
 // In this file we define the main structures used for a running protocol
@@ -65,7 +65,7 @@ func NewTree(el *Roster, r *TreeNode) *Tree {
 	}
 	// network.Suite used for the moment => explicit mark that something is
 	// wrong and that needs to be changed !
-	t.computeSubtreeAggregate(network.Suite, r)
+	t.computeSubtreeAggregate(network.S, r)
 	return t
 }
 
@@ -80,7 +80,7 @@ func NewTreeFromMarshal(buf []byte, el *Roster) (*Tree, error) {
 		return nil, errors.New("Didn't receive TreeMarshal-struct")
 	}
 	t, err := pm.(*TreeMarshal).MakeTree(el)
-	t.computeSubtreeAggregate(network.Suite, t.Root)
+	t.computeSubtreeAggregate(network.S, t.Root)
 	return t, err
 }
 
@@ -250,7 +250,7 @@ func (t *Tree) UsesList() bool {
 // recursive function so it will go down to the leaves then go up to the root
 // Return the aggregate sub tree public key for this root (and compute each sub
 // aggregate public key for each of the children).
-func (t *Tree) computeSubtreeAggregate(suite abstract.Suite, root *TreeNode) abstract.Point {
+func (t *Tree) computeSubtreeAggregate(suite network.Suite, root *TreeNode) kyber.Point {
 	aggregate := suite.Point().Add(suite.Point().Null(), root.ServerIdentity.Public)
 	// DFS search
 	for _, ch := range root.Children {
@@ -314,7 +314,7 @@ func (tm TreeMarshal) MakeTree(el *Roster) (*Tree, error) {
 		Roster: el,
 	}
 	tree.Root = tm.Children[0].MakeTreeFromList(nil, el)
-	tree.computeSubtreeAggregate(network.Suite, tree.Root)
+	tree.computeSubtreeAggregate(network.S, tree.Root)
 	return tree, nil
 }
 
@@ -342,7 +342,7 @@ type Roster struct {
 	// Be careful if you access it in go-routines (not safe by default)
 	List []*network.ServerIdentity
 	// Aggregate public key
-	Aggregate abstract.Point
+	Aggregate kyber.Point
 }
 
 // RosterID uniquely identifies an Roster
@@ -371,7 +371,7 @@ var RosterTypeID = network.RegisterMessage(Roster{})
 // adds a UUID which is randomly chosen.
 func NewRoster(ids []*network.ServerIdentity) *Roster {
 	// compute the aggregate key already
-	agg := network.Suite.Point().Null()
+	agg := network.S.Point().Null()
 	for _, e := range ids {
 		agg = agg.Add(agg, e.Public)
 	}
@@ -404,8 +404,8 @@ func (el *Roster) Get(idx int) *network.ServerIdentity {
 
 // Publics returns the public-keys of the underlying Roster. It won't modify
 // the underlying list.
-func (el *Roster) Publics() []abstract.Point {
-	res := make([]abstract.Point, len(el.List))
+func (el *Roster) Publics() []kyber.Point {
+	res := make([]kyber.Point, len(el.List))
 	for i, p := range el.List {
 		res[i] = p.Public
 	}
@@ -557,7 +557,7 @@ type TreeNode struct {
 	Children []*TreeNode
 	// Aggregate public key for *this* subtree,i.e. this node's public key + the
 	// aggregate of all its children's aggregate public key
-	PublicAggregateSubTree abstract.Point
+	PublicAggregateSubTree kyber.Point
 }
 
 // TreeNodeID identifies a given TreeNode struct in the onet framework.
@@ -680,8 +680,8 @@ func (t *TreeNode) SubtreeCount() int {
 
 // AggregatePublic will return the aggregate public key of the TreeNode
 // and all it's children
-func (t *TreeNode) AggregatePublic() abstract.Point {
-	agg := network.Suite.Point().Null()
+func (t *TreeNode) AggregatePublic() kyber.Point {
+	agg := network.S.Point().Null()
 	t.Visit(0, func(i int, tn *TreeNode) {
 		agg.Add(agg, tn.ServerIdentity.Public)
 	})
@@ -696,7 +696,7 @@ type RosterToml struct {
 }
 
 // Toml returns the toml-writable version of this entityList
-func (el *Roster) Toml(suite abstract.Suite) *RosterToml {
+func (el *Roster) Toml(suite network.Suite) *RosterToml {
 	ids := make([]*network.ServerIdentityToml, len(el.List))
 	for i := range el.List {
 		ids[i] = el.List[i].Toml(suite)
@@ -708,7 +708,7 @@ func (el *Roster) Toml(suite abstract.Suite) *RosterToml {
 }
 
 // Roster returns the Id list from this toml read struct
-func (elt *RosterToml) Roster(suite abstract.Suite) *Roster {
+func (elt *RosterToml) Roster(suite network.Suite) *Roster {
 	ids := make([]*network.ServerIdentity, len(elt.List))
 	for i := range elt.List {
 		ids[i] = elt.List[i].ServerIdentity(suite)

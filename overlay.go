@@ -8,7 +8,6 @@ import (
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 	"github.com/satori/go.uuid"
-	"gopkg.in/dedis/crypto.v0/abstract"
 )
 
 // Overlay keeps all trees and entity-lists for a given Server. It creates
@@ -512,7 +511,7 @@ func (o *Overlay) nodeDelete(tok *Token) {
 	o.instancesInfo[tok.ID()] = true
 }
 
-func (o *Overlay) suite() abstract.Suite {
+func (o *Overlay) suite() network.Suite {
 	return o.server.Suite()
 }
 

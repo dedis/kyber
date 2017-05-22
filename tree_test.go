@@ -8,14 +8,13 @@ import (
 
 	"strings"
 
+	"github.com/dedis/kyber/util/key"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/config"
 )
 
-var tSuite = network.Suite
+var tSuite = network.S
 var prefix = "127.0.0.1:"
 
 // test the ID generation
@@ -536,10 +535,10 @@ func genLocalPeerName(nbrLocal, nbrPort int) []network.Address {
 }
 
 // genRoster generates a Roster out of names
-func genRoster(suite abstract.Suite, names []network.Address) *Roster {
+func genRoster(suite network.Suite, names []network.Address) *Roster {
 	var ids []*network.ServerIdentity
 	for _, n := range names {
-		kp := config.NewKeyPair(suite)
+		kp := key.NewKeyPair(suite)
 		ids = append(ids, network.NewServerIdentity(kp.Public, n))
 	}
 	return NewRoster(ids)

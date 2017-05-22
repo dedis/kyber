@@ -7,11 +7,11 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/encoding"
 	"github.com/dedis/onet"
-	"github.com/dedis/onet/crypto"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
-	"gopkg.in/dedis/crypto.v0/abstract"
 )
 
 // CothorityConfig is the configuration structure of the cothority daemon.
@@ -49,11 +49,11 @@ func ParseCothority(file string) (*CothorityConfig, *onet.Server, error) {
 		return nil, nil, err
 	}
 	// Try to decode the Hex values
-	secret, err := crypto.StringHexToScalar(network.Suite, hc.Private)
+	secret, err := encoding.StringHexToScalar(network.S, hc.Private)
 	if err != nil {
 		return nil, nil, err
 	}
-	point, err := crypto.StringHexToPoint(network.Suite, hc.Public)
+	point, err := encoding.StringHexToPoint(network.S, hc.Public)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -110,7 +110,7 @@ func ReadGroupDescToml(f io.Reader) (*Group, error) {
 	var entities = make([]*network.ServerIdentity, len(group.Servers))
 	var descs = make(map[*network.ServerIdentity]string)
 	for i, s := range group.Servers {
-		en, err := s.toServerIdentity(network.Suite)
+		en, err := s.toServerIdentity(network.S)
 		if err != nil {
 			return nil, err
 		}
@@ -161,9 +161,9 @@ func (gt *GroupToml) String() string {
 }
 
 // toServerIdentity converts this ServerToml struct to a ServerIdentity.
-func (s *ServerToml) toServerIdentity(suite abstract.Suite) (*network.ServerIdentity, error) {
+func (s *ServerToml) toServerIdentity(suite network.Suite) (*network.ServerIdentity, error) {
 	pubR := strings.NewReader(s.Public)
-	public, err := crypto.Read64Point(suite, pubR)
+	public, err := encoding.Read64Point(suite, pubR)
 	if err != nil {
 		return nil, err
 	}
@@ -174,10 +174,10 @@ func (s *ServerToml) toServerIdentity(suite abstract.Suite) (*network.ServerIden
 // the corresponding ServerToml.
 // If an error occurs, it will be printed to StdErr and nil
 // is returned.
-func NewServerToml(suite abstract.Suite, public abstract.Point, addr network.Address,
+func NewServerToml(suite network.Suite, public kyber.Point, addr network.Address,
 	desc string) *ServerToml {
 	var buff bytes.Buffer
-	if err := crypto.Write64Point(suite, &buff, public); err != nil {
+	if err := encoding.Write64Point(suite, &buff, public); err != nil {
 		log.Error("Error writing public key")
 		return nil
 	}
