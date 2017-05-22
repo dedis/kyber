@@ -14,7 +14,7 @@ import (
 // the Sigma-protocol proofs of any or all of the other participants.
 // Different participants may produce different proofs of varying sizes,
 // and may even consist of different numbers of steps.
-func DeniableProver(suite kyber.Suite, self int, prover Prover,
+func DeniableProver(suite Suite, self int, prover Prover,
 	verifiers []Verifier) clique.Protocol {
 
 	return clique.Protocol(func(ctx clique.Context) []error {
@@ -43,7 +43,7 @@ type deniableProver struct {
 	err []error
 }
 
-func (dp *deniableProver) run(suite kyber.Suite, self int, prv Prover,
+func (dp *deniableProver) run(suite Suite, self int, prv Prover,
 	vrf []Verifier, sc clique.Context) []error {
 	dp.suite = suite
 	dp.self = self
