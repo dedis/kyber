@@ -192,7 +192,7 @@ func TestStatsString(t *testing.T) {
 	}()
 	defer EndAndCleanup()
 	time.Sleep(100 * time.Millisecond)
-	ConnectSink("localhost:" + strconv.Itoa(DefaultSinkPort))
+	log.ErrFatal(ConnectSink("localhost:" + strconv.Itoa(DefaultSinkPort)))
 	measure := NewTimeMeasure("test")
 	time.Sleep(time.Millisecond * 100)
 	measure.Record()
