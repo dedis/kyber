@@ -10,10 +10,10 @@ import (
 	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
-// Schnorr creates a Schnorr signature from a msg and a private key. This
+// Sign creates a Sign signature from a msg and a private key. This
 // signature can be verified with VerifySchnorr. It's also a valid EdDSA
 // signature.
-func Schnorr(g kyber.Group, private kyber.Scalar, msg []byte) ([]byte, error) {
+func Sign(g kyber.Group, private kyber.Scalar, msg []byte) ([]byte, error) {
 	// create random secret k and public point commitment R
 	k := g.Scalar().Pick(random.Stream)
 	R := g.Point().Mul(nil, k)
@@ -40,11 +40,11 @@ func Schnorr(g kyber.Group, private kyber.Scalar, msg []byte) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-// VerifySchnorr verifies a given Schnorr signature. It returns nil iff the
+// Verify verifies a given Schnorr signature. It returns nil iff the
 // given signature is valid.  NOTE XXX TODO: this signature scheme is malleable because
 // the response's unmarshalling is done directly into a big.Int modulo (see
 // nist.Int).
-func VerifySchnorr(g kyber.Group, public kyber.Point, msg, sig []byte) error {
+func Verify(g kyber.Group, public kyber.Point, msg, sig []byte) error {
 	R := g.Point()
 	s := g.Scalar()
 	pointSize := R.MarshalSize()

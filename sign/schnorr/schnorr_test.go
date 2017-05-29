@@ -3,10 +3,10 @@ package schnorr
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 	"gopkg.in/dedis/kyber.v1/sign/eddsa"
 	"gopkg.in/dedis/kyber.v1/util/key"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestSchnorrSignature(t *testing.T) {
@@ -14,18 +14,18 @@ func TestSchnorrSignature(t *testing.T) {
 	suite := edwards25519.NewAES128SHA256Ed25519(false)
 	kp := key.NewKeyPair(suite)
 
-	s, err := Schnorr(suite, kp.Secret, msg)
+	s, err := Sign(suite, kp.Secret, msg)
 	if err != nil {
 		t.Fatalf("Couldn't sign msg: %s: %v", msg, err)
 	}
-	err = VerifySchnorr(suite, kp.Public, msg, s)
+	err = Verify(suite, kp.Public, msg, s)
 	if err != nil {
 		t.Fatalf("Couldn't verify signature: \n%+v\nfor msg:'%s'. Error:\n%v", s, msg, err)
 	}
 
 	// wrong size
 	larger := append(s, []byte{0x01, 0x02}...)
-	assert.Error(t, VerifySchnorr(suite, kp.Public, msg, larger))
+	assert.Error(t, Verify(suite, kp.Public, msg, larger))
 
 	// wrong challenge
 	wrongEncoding := []byte{243, 45, 180, 140, 73, 23, 41, 212, 250, 87, 157, 243,
@@ -34,17 +34,17 @@ func TestSchnorrSignature(t *testing.T) {
 	wrChall := make([]byte, len(s))
 	copy(wrChall[:32], wrongEncoding)
 	copy(wrChall[32:], s[32:])
-	assert.Error(t, VerifySchnorr(suite, kp.Public, msg, wrChall))
+	assert.Error(t, Verify(suite, kp.Public, msg, wrChall))
 
 	// wrong response
 	wrResp := make([]byte, len(s))
 	copy(wrResp[32:], wrongEncoding)
 	copy(wrResp[:32], s[:32])
-	assert.Error(t, VerifySchnorr(suite, kp.Public, msg, wrResp))
+	assert.Error(t, Verify(suite, kp.Public, msg, wrResp))
 
 	// wrong public key
 	wrKp := key.NewKeyPair(suite)
-	assert.Error(t, VerifySchnorr(suite, wrKp.Public, msg, s))
+	assert.Error(t, Verify(suite, wrKp.Public, msg, s))
 }
 
 func TestEdDSACompatibility(t *testing.T) {
@@ -52,7 +52,7 @@ func TestEdDSACompatibility(t *testing.T) {
 	suite := edwards25519.NewAES128SHA256Ed25519(false)
 	kp := key.NewKeyPair(suite)
 
-	s, err := Schnorr(suite, kp.Secret, msg)
+	s, err := Sign(suite, kp.Secret, msg)
 	if err != nil {
 		t.Fatalf("Couldn't sign msg: %s: %v", msg, err)
 	}
