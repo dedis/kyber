@@ -438,7 +438,7 @@ func (n *TreeNodeInstance) dispatchMsgToProtocol(onetMsg *ProtocolMsg) error {
 		log.Lvl4("Dispatching to handler", n.ServerIdentity().Address)
 		err = n.dispatchHandler(msgs)
 	default:
-		return fmt.Errorf("message-type not handled the protocol: %s", reflect.TypeOf(onetMsg.Msg))
+		return fmt.Errorf("message-type not handled by the protocol: %s", reflect.TypeOf(onetMsg.Msg))
 	}
 	return err
 }
