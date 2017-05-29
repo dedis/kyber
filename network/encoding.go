@@ -8,11 +8,11 @@ import (
 	"reflect"
 	"sync"
 
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/protobuf"
 	"github.com/satori/go.uuid"
+	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 )
 
 /// Encoding part ///
@@ -24,10 +24,11 @@ type Suite interface {
 	Cipher(key []byte, options ...interface{}) kyber.Cipher
 }
 
-// For the moment, this will stay,as our focus is not on having the possibility
-// to use any suite we want (the decoding stuff is much harder then, because we
-// don't want to send the suite in the wire).
-// It will surely change in futur releases so we can permit this behavior.
+// S is the global suite used by onet. For the moment, this will stay,as our
+// focus is not on having the possibility to use any suite we want (the decoding
+// stuff is much harder then, because we don't want to send the suite in the
+// wire).  It will surely change in futur releases so we can permit this
+// behavior.
 var S Suite = edwards25519.NewAES128SHA256Ed25519(false)
 
 // Message is a type for any message that the user wants to send

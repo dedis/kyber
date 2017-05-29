@@ -8,9 +8,9 @@ import (
 
 	"strings"
 
-	"gopkg.in/dedis/kyber.v1"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
+	"gopkg.in/dedis/kyber.v1"
 )
 
 // TreeNodeInstance represents a protocol-instance in a given TreeNode. It embeds an

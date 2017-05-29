@@ -10,10 +10,10 @@ import (
 	"net"
 
 	"github.com/BurntSushi/toml"
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/util/key"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
+	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/util/key"
 )
 
 type simulationCreate func(string) (Simulation, error)
