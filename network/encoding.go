@@ -21,7 +21,6 @@ import (
 type Suite interface {
 	kyber.Group
 	Hash() hash.Hash
-	Cipher(key []byte, options ...interface{}) kyber.Cipher
 }
 
 // S is the global suite used by onet. For the moment, this will stay,as our
