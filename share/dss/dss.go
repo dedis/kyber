@@ -19,6 +19,7 @@ import (
 	"crypto/sha512"
 	"errors"
 	"fmt"
+	"hash"
 
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/share"
@@ -27,7 +28,10 @@ import (
 	"gopkg.in/dedis/kyber.v1/sign/schnorr"
 )
 
-type Suite kyber.Group
+type Suite interface {
+	kyber.Group
+	Hash() hash.Hash
+}
 
 // DSS holds the information used to issue partial signatures as well as to
 // compute the distributed schnorr signature.

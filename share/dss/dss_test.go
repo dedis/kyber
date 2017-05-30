@@ -4,18 +4,18 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"gopkg.in/dedis/kyber.v1/abstract"
-	"gopkg.in/dedis/kyber.v1/ed25519"
-	"gopkg.in/dedis/kyber.v1/eddsa"
-	"gopkg.in/dedis/kyber.v1/random"
-	"gopkg.in/dedis/kyber.v1/share/dkg"
-	"gopkg.in/dedis/kyber.v1/share/vss"
-	"gopkg.in/dedis/kyber.v1/sign"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/group/edwards25519"
+	"gopkg.in/dedis/kyber.v1/share/dkg"
+	"gopkg.in/dedis/kyber.v1/share/vss"
+	"gopkg.in/dedis/kyber.v1/sign/eddsa"
+	"gopkg.in/dedis/kyber.v1/sign/schnorr"
+	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
-var suite = ed25519.NewAES128SHA256Ed25519(false)
+var suite = edwards25519.NewAES128SHA256Ed25519(false)
 
 var nbParticipants = 7
 var t = nbParticipants/2 + 1
@@ -78,7 +78,7 @@ func TestDSSPartialSigs(t *testing.T) {
 	// invalid partial sig
 	goodV := ps0.Partial.V
 	ps0.Partial.V = suite.Scalar().Zero()
-	ps0.Signature, err = sign.Schnorr(suite, dss0.secret, ps0.Hash(suite))
+	ps0.Signature, err = schnorr.Sign(suite, dss0.secret, ps0.Hash(suite))
 	require.Nil(t, err)
 	err = dss1.ProcessPartialSig(ps0)
 	assert.Error(t, err)

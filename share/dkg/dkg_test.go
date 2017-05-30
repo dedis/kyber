@@ -4,9 +4,9 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/dedis/kyber"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 	"gopkg.in/dedis/kyber.v1/share"
 	"gopkg.in/dedis/kyber.v1/share/vss"
@@ -316,7 +316,7 @@ func TestDKGComplaintCommits(t *testing.T) {
 	//goodScCommit := scs[0].Commitments[0]
 	wrongSc.Commitments[0] = suite.Point().Null()
 	msg := wrongSc.Hash(suite)
-	wrongSc.Signature, _ = schorr.Sign(suite, dkgs[0].long, msg)
+	wrongSc.Signature, _ = schnorr.Sign(suite, dkgs[0].long, msg)
 
 	dkg := dkgs[1]
 	cc, err := dkg.ProcessSecretCommits(wrongSc)
