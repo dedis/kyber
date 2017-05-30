@@ -4,12 +4,12 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/dedis/kyber/sign/schnorr"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 	"gopkg.in/dedis/kyber.v1/util/random"
-	sign "gopkg.in/dedis/kyber.v1/sign/schnorr"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var suite = edwards25519.NewAES128SHA256Ed25519(false)
@@ -225,7 +225,7 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, v.index, int(resp.Index))
 	assert.Equal(t, dealer.sid, resp.SessionID)
-	assert.Nil(t, sign.VerifySchnorr(suite, v.pub, resp.Hash(suite), resp.Signature))
+	assert.Nil(t, schnorr.Verify(suite, v.pub, resp.Hash(suite), resp.Signature))
 	assert.Equal(t, v.responses[uint32(v.index)], resp)
 
 	// wrong encryption
@@ -380,7 +380,7 @@ func TestVSSAggregatorVerifyResponse(t *testing.T) {
 
 	// wrong index
 	resp.Index = uint32(len(verifiersPub))
-	sig, err := sign.Schnorr(suite, v.longterm, resp.Hash(suite))
+	sig, err := schnorr.Sign(suite, v.longterm, resp.Hash(suite))
 	resp.Signature = sig
 	assert.Error(t, aggr.verifyResponse(resp))
 	resp.Index = 0

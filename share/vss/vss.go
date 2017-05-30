@@ -37,11 +37,11 @@ import (
 	"hash"
 	"reflect"
 
+	"github.com/dedis/kyber/sign/schnorr"
+	"github.com/dedis/protobuf"
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/share"
-	sign "gopkg.in/dedis/kyber.v1/sign/schnorr"
 	"gopkg.in/dedis/kyber.v1/util/random"
-	"github.com/dedis/protobuf"
 )
 
 type Suite interface {
@@ -212,7 +212,7 @@ func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
 	dhPublic := d.suite.Point().Mul(nil, dhSecret)
 	// signs the public key
 	dhPublicBuff, _ := dhPublic.MarshalBinary()
-	signature, err := sign.Schnorr(d.suite, d.long, dhPublicBuff)
+	signature, err := schnorr.Sign(d.suite, d.long, dhPublicBuff)
 	if err != nil {
 		return nil, err
 	}
@@ -270,7 +270,7 @@ func (d *Dealer) ProcessResponse(r *Response) (*Justification, error) {
 		Index: r.Index,
 		Deal:  d.deals[int(r.Index)],
 	}
-	sig, err := sign.Schnorr(d.suite, d.long, j.Hash(d.suite))
+	sig, err := schnorr.Sign(d.suite, d.long, j.Hash(d.suite))
 	if err != nil {
 		return nil, err
 	}
@@ -399,7 +399,7 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
 		return nil, err
 	}
 
-	if r.Signature, err = sign.Schnorr(v.suite, v.longterm, r.Hash(v.suite)); err != nil {
+	if r.Signature, err = schnorr.Sign(v.suite, v.longterm, r.Hash(v.suite)); err != nil {
 		return nil, err
 	}
 
@@ -415,7 +415,7 @@ func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
 		return nil, err
 	}
 	// verify signature
-	if err := sign.VerifySchnorr(v.suite, v.dealer, ephBuff, e.Signature); err != nil {
+	if err := schnorr.Verify(v.suite, v.dealer, ephBuff, e.Signature); err != nil {
 		return nil, err
 	}
 
@@ -578,7 +578,7 @@ func (a *aggregator) verifyResponse(r *Response) error {
 		return errors.New("vss: index out of bounds in response")
 	}
 
-	if err := sign.VerifySchnorr(a.suite, pub, r.Hash(a.suite), r.Signature); err != nil {
+	if err := schnorr.Verify(a.suite, pub, r.Hash(a.suite), r.Signature); err != nil {
 		return err
 	}
 
