@@ -4,11 +4,11 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/dedis/kyber/sign/schnorr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/group/edwards25519"
+	"gopkg.in/dedis/kyber.v1/sign/schnorr"
 	"gopkg.in/dedis/kyber.v1/util/random"
 )
 

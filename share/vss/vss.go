@@ -37,13 +37,14 @@ import (
 	"hash"
 	"reflect"
 
-	"github.com/dedis/kyber/sign/schnorr"
 	"github.com/dedis/protobuf"
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/share"
+	"gopkg.in/dedis/kyber.v1/sign/schnorr"
 	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
+// Suite defines the capabilities required by the vss package.
 type Suite interface {
 	kyber.Group
 	Cipher(key []byte, options ...interface{}) kyber.Cipher
@@ -193,6 +194,13 @@ func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Poi
 	}
 	d.hkdfContext = context(suite, d.pub, verifiers)
 	return d, nil
+}
+
+func (d *Dealer) PlaintextDeal(i int) (*Deal, error) {
+	if i >= len(d.deals) {
+		return nil, errors.New("dealer: PlaintextDeal given wrong index")
+	}
+	return d.deals[i], nil
 }
 
 // EncryptedDeal returns the encryption of the deal that must be given to the
