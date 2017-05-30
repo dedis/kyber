@@ -3,6 +3,7 @@ package share
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 	"gopkg.in/dedis/kyber.v1/util/random"
 )
@@ -249,5 +250,56 @@ func TestPublicPolyEqual(test *testing.T) {
 
 	if !P123.Equal(P132) {
 		test.Fatal("public polynomials not equal")
+	}
+}
+
+func TestPriPolyMul(test *testing.T) {
+	suite := edwards25519.NewAES128SHA256Ed25519(false)
+	n := 10
+	t := n/2 + 1
+	a := NewPriPoly(suite, t, nil, random.Stream)
+	b := NewPriPoly(suite, t, nil, random.Stream)
+
+	c := a.Mul(b)
+	assert.Equal(test, len(a.coeffs)+len(b.coeffs)-1, len(c.coeffs))
+	nul := suite.Scalar().Zero()
+	for _, coeff := range c.coeffs {
+		assert.NotEqual(test, nul.String(), coeff.String())
+	}
+
+	a0 := a.coeffs[0]
+	b0 := b.coeffs[0]
+	mul := suite.Scalar().Mul(b0, a0)
+	c0 := c.coeffs[0]
+	assert.Equal(test, c0.String(), mul.String())
+
+	at := a.coeffs[len(a.coeffs)-1]
+	bt := b.coeffs[len(b.coeffs)-1]
+	mul = suite.Scalar().Mul(at, bt)
+	ct := c.coeffs[len(c.coeffs)-1]
+	assert.Equal(test, ct.String(), mul.String())
+}
+
+func TestRecoverPriPoly(test *testing.T) {
+	suite := edwards25519.NewAES128SHA256Ed25519(false)
+	n := 10
+	t := n/2 + 1
+	a := NewPriPoly(suite, t, nil, random.Stream)
+
+	shares := a.Shares(n)
+	reverses := make([]*PriShare, len(shares))
+	l := len(shares) - 1
+	for i := range shares {
+		reverses[l-i] = shares[i]
+	}
+	recovered, err := RecoverPriPoly(suite, shares, t, n)
+	assert.Nil(test, err)
+
+	reverseRecovered, err := RecoverPriPoly(suite, reverses, t, n)
+	assert.Nil(test, err)
+
+	for i := 0; i < t; i++ {
+		assert.Equal(test, recovered.Eval(i).V.String(), a.Eval(i).V.String())
+		assert.Equal(test, reverseRecovered.Eval(i).V.String(), a.Eval(i).V.String())
 	}
 }

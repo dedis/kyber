@@ -4,17 +4,17 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"gopkg.in/dedis/kyber.v1/abstract"
-	"gopkg.in/dedis/kyber.v1/ed25519"
-	"gopkg.in/dedis/kyber.v1/random"
-	"gopkg.in/dedis/kyber.v1/share"
-	"gopkg.in/dedis/kyber.v1/share/vss"
-	"gopkg.in/dedis/kyber.v1/sign"
+	"github.com/dedis/kyber"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/dedis/kyber.v1/group/edwards25519"
+	"gopkg.in/dedis/kyber.v1/share"
+	"gopkg.in/dedis/kyber.v1/share/vss"
+	"gopkg.in/dedis/kyber.v1/sign/schnorr"
+	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
-var suite = ed25519.NewAES128SHA256Ed25519(false)
+var suite = edwards25519.NewAES128SHA256Ed25519(false)
 
 var nbParticipants = 7
 
@@ -235,7 +235,7 @@ func TestDKGSecretCommits(t *testing.T) {
 	sc, err := dkg.SecretCommits()
 	assert.Nil(t, err)
 	msg := sc.Hash(suite)
-	assert.Nil(t, sign.VerifySchnorr(suite, dkg.pub, msg, sc.Signature))
+	assert.Nil(t, schnorr.Verify(suite, dkg.pub, msg, sc.Signature))
 
 	dkg2 := dkgs[1]
 	// wrong index
@@ -273,7 +273,7 @@ func TestDKGSecretCommits(t *testing.T) {
 	goodPoint := sc.Commitments[0]
 	sc.Commitments[0] = suite.Point().Null()
 	msg = sc.Hash(suite)
-	sig, err := sign.Schnorr(suite, dkg.long, msg)
+	sig, err := schnorr.Sign(suite, dkg.long, msg)
 	require.Nil(t, err)
 	goodSig = sc.Signature
 	sc.Signature = sig
@@ -316,7 +316,7 @@ func TestDKGComplaintCommits(t *testing.T) {
 	//goodScCommit := scs[0].Commitments[0]
 	wrongSc.Commitments[0] = suite.Point().Null()
 	msg := wrongSc.Hash(suite)
-	wrongSc.Signature, _ = sign.Schnorr(suite, dkgs[0].long, msg)
+	wrongSc.Signature, _ = schorr.Sign(suite, dkgs[0].long, msg)
 
 	dkg := dkgs[1]
 	cc, err := dkg.ProcessSecretCommits(wrongSc)
@@ -432,7 +432,7 @@ func TestDKGReconstructCommits(t *testing.T) {
 		SessionID:   dkgs[uint32(1)].verifiers[uint32(0)].Deal().SessionID,
 	}
 	msg := rc.Hash(suite)
-	rc.Signature, _ = sign.Schnorr(suite, dkgs[1].long, msg)
+	rc.Signature, _ = schnorr.Sign(suite, dkgs[1].long, msg)
 
 	dkg2 := dkgs[2]
 	// reconstructed already set
@@ -478,7 +478,7 @@ func TestDKGReconstructCommits(t *testing.T) {
 			Share:       dkg.verifiers[uint32(0)].Deal().SecShare,
 		}
 		msg := rc.Hash(suite)
-		rc.Signature, _ = sign.Schnorr(suite, dkg.long, msg)
+		rc.Signature, _ = schnorr.Sign(suite, dkg.long, msg)
 
 		if dkg2.reconstructed[uint32(0)] {
 			break

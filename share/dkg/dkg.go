@@ -489,7 +489,7 @@ func (d *DistKeyGenerator) ProcessComplaintCommits(cc *ComplaintCommits) (*Recon
 
 	msg := rc.Hash(d.suite)
 	var err error
-	rc.Signature, err = schnorr.Verify(d.suite, d.long, msg)
+	rc.Signature, err = schnorr.Sign(d.suite, d.long, msg)
 	if err != nil {
 		return nil, err
 	}

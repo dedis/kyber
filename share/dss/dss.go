@@ -23,8 +23,8 @@ import (
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/share"
 	"gopkg.in/dedis/kyber.v1/share/dkg"
-	"gopkg.in/dedis/kyber.v1/sign"
 	"gopkg.in/dedis/kyber.v1/sign/eddsa"
+	"gopkg.in/dedis/kyber.v1/sign/schnorr"
 )
 
 type Suite kyber.Group
@@ -115,7 +115,7 @@ func (d *DSS) PartialSig() (*PartialSig, error) {
 		SessionID: d.sessionID,
 	}
 	var err error
-	ps.Signature, err = sign.Schnorr(d.suite, d.secret, ps.Hash(d.suite))
+	ps.Signature, err = schnorr.Sign(d.suite, d.secret, ps.Hash(d.suite))
 	if !d.signed {
 		d.partialsIdx[d.index] = true
 		d.partials = append(d.partials, ps.Partial)
@@ -135,7 +135,7 @@ func (d *DSS) ProcessPartialSig(ps *PartialSig) error {
 		return errors.New("dss: partial signature with invalid index")
 	}
 
-	if err := sign.VerifySchnorr(d.suite, public, ps.Hash(d.suite), ps.Signature); err != nil {
+	if err := schnorr.Verify(d.suite, public, ps.Hash(d.suite), ps.Signature); err != nil {
 		return err
 	}
 
