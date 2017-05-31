@@ -94,7 +94,9 @@ type Point interface {
 
 	// Embed encodes a limited amount of specified data in the Point.
 	// Implementations only embed the first EmbedLen bytes of the given data.
-	Embed(data []byte) Point
+	// Currently probabilistic approach requires to include some randomness
+	// given by the cipher.Stream.
+	Embed(data []byte, r cipher.Stream) Point
 
 	// Extract data embedded in a point chosen via Embed().
 	// Returns an error if doesn't represent valid embedded data.
