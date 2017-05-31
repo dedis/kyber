@@ -20,7 +20,7 @@ func testEmbed(g kyber.Group, rand cipher.Stream, points *[]kyber.Point,
 	//println("embedding: ",s)
 	b := []byte(s)
 
-	p, rem := g.Point().Pick(b, rand)
+	p := g.Point().Embed(b, rand)
 	//println("embedded, remainder",len(rem),"/",len(b),":",string(rem))
 	x, err := p.Data()
 	if err != nil {
@@ -28,7 +28,7 @@ func testEmbed(g kyber.Group, rand cipher.Stream, points *[]kyber.Point,
 	}
 	//println("extracted data: ",string(x))
 
-	if !bytes.Equal(append(x, rem...), b) {
+	if !bytes.Equal(append(x, b[g.Point().EmbedLen():]...), b) {
 		panic("Point embedding corrupted the data")
 	}
 
@@ -39,7 +39,7 @@ func testPointSet(g kyber.Group, rand cipher.Stream) {
 	N := 1000
 	null := g.Point().Null()
 	for i := 0; i < N; i++ {
-		P1, _ := g.Point().Pick(nil, rand)
+		P1 := g.Point().Pick(rand)
 		P2 := g.Point()
 		P2.Set(P1)
 		if !P1.Equal(P2) {
@@ -58,7 +58,7 @@ func testPointClone(g kyber.Group, rand cipher.Stream) {
 	N := 1000
 	null := g.Point().Null()
 	for i := 0; i < N; i++ {
-		P1, _ := g.Point().Pick(nil, rand)
+		P1 := g.Point().Pick(rand)
 		P2 := P1.Clone()
 		if !P1.Equal(P2) {
 			panic("Clone didn't create a point with same " +
@@ -224,7 +224,7 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 	// Test randomly picked points
 	last := gen
 	for i := 0; i < 5; i++ {
-		rgen, _ := g.Point().Pick(nil, rand)
+		rgen := g.Point().Pick(rand)
 		if rgen.Equal(last) {
 			panic("Pick() not producing unique points")
 		}
@@ -267,7 +267,7 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 		}
 
 		buf.Reset()
-		p, _ := g.Point().Pick(nil, rand)
+		p := g.Point().Pick(rand)
 		if _, err := p.MarshalTo(buf); err != nil {
 			panic("encoding of point fails: " + err.Error())
 		}

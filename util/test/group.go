@@ -22,8 +22,8 @@ func NewGroupBench(g kyber.Group) *GroupBench {
 	gb.x = g.Scalar().Pick(random.Stream)
 	gb.y = g.Scalar().Pick(random.Stream)
 	gb.xe, _ = gb.x.MarshalBinary()
-	gb.X, _ = g.Point().Pick(nil, random.Stream)
-	gb.Y, _ = g.Point().Pick(nil, random.Stream)
+	gb.X = g.Point().Pick(random.Stream)
+	gb.Y = g.Point().Pick(random.Stream)
 	gb.Xe, _ = gb.X.MarshalBinary()
 	return &gb
 }
@@ -114,7 +114,7 @@ func (gb GroupBench) PointBaseMul(iters int) {
 
 func (gb GroupBench) PointPick(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.X.Pick(nil, random.Stream)
+		gb.X.Pick(random.Stream)
 	}
 }
 
