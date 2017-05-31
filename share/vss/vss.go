@@ -671,7 +671,7 @@ func deriveH(suite Suite, verifiers []kyber.Point) kyber.Point {
 	h := suite.Hash()
 	h.Write(b.Bytes())
 	digest := h.Sum(nil)
-	base, _ := suite.Point().Pick(nil, suite.Cipher(digest))
+	base := suite.Point().Pick(suite.Cipher(digest))
 	return base
 }
 

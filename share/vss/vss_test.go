@@ -247,7 +247,7 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 
 	// wrong commitments
 	goodCommit := d.Commitments[0]
-	d.Commitments[0], _ = suite.Point().Pick(nil, random.Stream)
+	d.Commitments[0] = suite.Point().Pick(random.Stream)
 	encD, _ = dealer.EncryptedDeal(0)
 	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.Error(t, err)
@@ -262,7 +262,7 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 
 	// approval already existing from same origin, should never happen right ?
 	v.aggregator.responses[uint32(v.index)] = &Response{Status: StatusApproval}
-	d.Commitments[0], _ = suite.Point().Pick(nil, random.Stream)
+	d.Commitments[0] = suite.Point().Pick(random.Stream)
 	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.Nil(t, resp)
 	assert.Error(t, err)

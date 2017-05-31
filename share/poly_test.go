@@ -198,8 +198,8 @@ func TestPublicAdd(test *testing.T) {
 	n := 10
 	t := n/2 + 1
 
-	G, _ := g.Point().Pick([]byte("G"), random.Stream)
-	H, _ := g.Point().Pick([]byte("H"), random.Stream)
+	G := g.Point().Pick(random.Stream)
+	H := g.Point().Pick(random.Stream)
 
 	p := NewPriPoly(g, t, nil, random.Stream)
 	q := NewPriPoly(g, t, nil, random.Stream)
@@ -232,7 +232,7 @@ func TestPublicPolyEqual(test *testing.T) {
 	n := 10
 	t := n/2 + 1
 
-	G, _ := g.Point().Pick([]byte("G"), random.Stream)
+	G := g.Point().Pick(random.Stream)
 
 	p1 := NewPriPoly(g, t, nil, random.Stream)
 	p2 := NewPriPoly(g, t, nil, random.Stream)

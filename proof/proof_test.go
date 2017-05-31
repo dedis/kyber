@@ -204,9 +204,9 @@ func ExampleOr_2() {
 	B := suite.Point().Base() // standard base point
 
 	// Create a public/private keypair (X,x) and a random point Y
-	x := suite.Scalar().Pick(rand)        // create a private key x
-	X := suite.Point().Mul(x, nil)        // corresponding public key X
-	Y, _ := suite.Point().Pick(nil, rand) // pick a random point Y
+	x := suite.Scalar().Pick(rand) // create a private key x
+	X := suite.Point().Mul(x, nil) // corresponding public key X
+	Y := suite.Point().Pick(rand)  // pick a random point Y
 
 	// We'll need to tell the prover which Or clause is actually true.
 	// In this case clause 0, the first sub-predicate, is true:

@@ -132,7 +132,7 @@ func Sign(suite Suite, random cipher.Stream, message []byte,
 	var linkBase, linkTag kyber.Point
 	if linkScope != nil {
 		linkStream := suite.Cipher(linkScope)
-		linkBase, _ = suite.Point().Pick(nil, linkStream)
+		linkBase = suite.Point().Pick(linkStream)
 		linkTag = suite.Point().Mul(privateKey, linkBase)
 	}
 
@@ -210,7 +210,7 @@ func Verify(suite Suite, message []byte, anonymitySet Set,
 			return nil, err
 		}
 		linkStream := suite.Cipher(linkScope)
-		linkBase, _ = suite.Point().Pick(nil, linkStream)
+		linkBase = suite.Point().Pick(linkStream)
 		linkTag = sig.Tag
 	} else { // unlinkable ring signature
 		if err := suite.Read(buf, &sig.C0); err != nil {

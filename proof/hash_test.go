@@ -87,7 +87,7 @@ func ExampleHashProve_2() {
 	// Create an anonymity ring of random "public keys"
 	X := make([]kyber.Point, 3)
 	for i := range X { // pick random points
-		X[i], _ = suite.Point().Pick(nil, rand)
+		X[i] = suite.Point().Pick(rand)
 	}
 
 	// Make just one of them an actual public/private keypair (X[mine],x)
@@ -99,7 +99,7 @@ func ExampleHashProve_2() {
 	// as a pseudorandom base point multiplied by our private key.
 	linkScope := []byte("The Linkage Scope")
 	linkHash := suite.Cipher(linkScope)
-	linkBase, _ := suite.Point().Pick(nil, linkHash)
+	linkBase := suite.Point().Pick(linkHash)
 	linkTag := suite.Point().Mul(x, linkBase)
 
 	// Generate the proof predicate: an OR branch for each public key.

@@ -75,7 +75,7 @@ func ExampleSign_anonSet() {
 	// Create an anonymity set of random "public keys"
 	X := make([]kyber.Point, 3)
 	for i := range X { // pick random points
-		X[i], _ = suite.Point().Pick(nil, rand)
+		X[i] = suite.Point().Pick(rand)
 	}
 
 	// Make just one of them an actual public/private keypair (X[mine],x)
@@ -134,7 +134,7 @@ func ExampleSign_linkable() {
 	// Create an anonymity set of random "public keys"
 	X := make([]kyber.Point, 3)
 	for i := range X { // pick random points
-		X[i], _ = suite.Point().Pick(nil, rand)
+		X[i] = suite.Point().Pick(rand)
 	}
 
 	// Make two actual public/private keypairs (X[mine],x)
@@ -266,7 +266,7 @@ func benchGenKeys(g kyber.Group,
 	// Create an anonymity set of random "public keys"
 	X := make([]kyber.Point, nkeys)
 	for i := range X { // pick random points
-		X[i], _ = g.Point().Pick(nil, rand)
+		X[i] = g.Point().Pick(rand)
 	}
 
 	// Make just one of them an actual public/private keypair (X[mine],x)
