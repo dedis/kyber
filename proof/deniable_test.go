@@ -92,7 +92,7 @@ func TestDeniable(t *testing.T) {
 		nodes[i] = n
 		n.i = i
 		n.x = suite.Scalar().Pick(rand)
-		n.X = suite.Point().Mul(nil, n.x)
+		n.X = suite.Point().Mul(n.x, nil)
 	}
 
 	// Make some provers and verifiers

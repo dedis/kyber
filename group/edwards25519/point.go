@@ -140,7 +140,7 @@ func (P *point) Pick(data []byte, rand cipher.Stream) (kyber.Point, []byte) {
 		// we can convert our point into one in the subgroup
 		// simply by multiplying it by the cofactor.
 		if data == nil {
-			P.Mul(P, cofactor) // multiply by cofactor
+			P.Mul(cofactor, P) // multiply by cofactor
 			if P.Equal(nullPoint) {
 				continue // unlucky; try again
 			}
@@ -151,7 +151,7 @@ func (P *point) Pick(data []byte, rand cipher.Stream) (kyber.Point, []byte) {
 		// we must simply check if the point is in the subgroup
 		// and retry point generation until it is.
 		var Q point
-		Q.Mul(P, primeOrder)
+		Q.Mul(primeOrder, P)
 		if Q.Equal(nullPoint) {
 			return P, data[dl:] // success
 		}
@@ -213,7 +213,7 @@ func (P *point) Neg(A kyber.Point) kyber.Point {
 // Multiply point p by scalar s using the repeated doubling method.
 // XXX This is vartime; for our general-purpose Mul operator
 // it would be far preferable for security to do this constant-time.
-func (P *point) Mul(A kyber.Point, s kyber.Scalar) kyber.Point {
+func (P *point) Mul(s kyber.Scalar, A kyber.Point) kyber.Point {
 
 	// Convert the scalar to fixed-length little-endian form.
 	sb := s.(*mod.Int).V.Bytes()

@@ -217,7 +217,7 @@ func genDistSecret() []*dkg.DistKeyShare {
 }
 func genPair() (kyber.Scalar, kyber.Point) {
 	sc := suite.Scalar().Pick(random.Stream)
-	return sc, suite.Point().Mul(nil, sc)
+	return sc, suite.Point().Mul(sc, nil)
 }
 
 func randomBytes(n int) []byte {

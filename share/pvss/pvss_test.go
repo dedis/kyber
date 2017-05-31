@@ -3,10 +3,10 @@ package pvss
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 	"gopkg.in/dedis/kyber.v1/util/random"
-	"github.com/stretchr/testify/require"
 )
 
 func TestPVSS(test *testing.T) {
@@ -19,7 +19,7 @@ func TestPVSS(test *testing.T) {
 	X := make([]kyber.Point, n)  // trustee public keys
 	for i := 0; i < n; i++ {
 		x[i] = suite.Scalar().Pick(random.Stream)
-		X[i] = suite.Point().Mul(nil, x[i])
+		X[i] = suite.Point().Mul(x[i], nil)
 	}
 
 	// Scalar of shared secret
@@ -35,7 +35,7 @@ func TestPVSS(test *testing.T) {
 		sH[i] = pubPoly.Eval(encShares[i].S.I).V
 	}
 
-	var K []kyber.Point // good public keys
+	var K []kyber.Point  // good public keys
 	var E []*PubVerShare // good encrypted shares
 	var D []*PubVerShare // good decrypted shares
 
@@ -50,7 +50,7 @@ func TestPVSS(test *testing.T) {
 	// (3) Check decrypted shares and recover secret if possible (dealer/3rd party)
 	recovered, err := RecoverSecret(suite, G, K, E, D, t, n)
 	require.Equal(test, err, nil)
-	require.True(test, suite.Point().Mul(nil, secret).Equal(recovered))
+	require.True(test, suite.Point().Mul(secret, nil).Equal(recovered))
 }
 
 func TestPVSSDelete(test *testing.T) {
@@ -63,7 +63,7 @@ func TestPVSSDelete(test *testing.T) {
 	X := make([]kyber.Point, n)  // trustee public keys
 	for i := 0; i < n; i++ {
 		x[i] = suite.Scalar().Pick(random.Stream)
-		X[i] = suite.Point().Mul(nil, x[i])
+		X[i] = suite.Point().Mul(x[i], nil)
 	}
 
 	// Scalar of shared secret
@@ -83,7 +83,7 @@ func TestPVSSDelete(test *testing.T) {
 		sH[i] = pubPoly.Eval(encShares[i].S.I).V
 	}
 
-	var K []kyber.Point // good public keys
+	var K []kyber.Point  // good public keys
 	var E []*PubVerShare // good encrypted shares
 	var D []*PubVerShare // good decrypted shares
 
@@ -101,7 +101,7 @@ func TestPVSSDelete(test *testing.T) {
 	// (3) Check decrypted shares and recover secret if possible (dealer/3rd party)
 	recovered, err := RecoverSecret(suite, G, K, E, D, t, n)
 	require.Equal(test, err, nil)
-	require.True(test, suite.Point().Mul(nil, secret).Equal(recovered))
+	require.True(test, suite.Point().Mul(secret, nil).Equal(recovered))
 }
 
 func TestPVSSDeleteFail(test *testing.T) {
@@ -114,7 +114,7 @@ func TestPVSSDeleteFail(test *testing.T) {
 	X := make([]kyber.Point, n)  // trustee public keys
 	for i := 0; i < n; i++ {
 		x[i] = suite.Scalar().Pick(random.Stream)
-		X[i] = suite.Point().Mul(nil, x[i])
+		X[i] = suite.Point().Mul(x[i], nil)
 	}
 
 	// Scalar of shared secret
@@ -134,7 +134,7 @@ func TestPVSSDeleteFail(test *testing.T) {
 		sH[i] = pubPoly.Eval(encShares[i].S.I).V
 	}
 
-	var K []kyber.Point // good public keys
+	var K []kyber.Point  // good public keys
 	var E []*PubVerShare // good encrypted shares
 	var D []*PubVerShare // good decrypted shares
 
@@ -165,7 +165,7 @@ func TestPVSSBatch(test *testing.T) {
 	X := make([]kyber.Point, n)  // trustee public keys
 	for i := 0; i < n; i++ {
 		x[i] = suite.Scalar().Pick(random.Stream)
-		X[i] = suite.Point().Mul(nil, x[i])
+		X[i] = suite.Point().Mul(x[i], nil)
 	}
 
 	// (1) Share distribution (multiple dealers)
@@ -253,7 +253,7 @@ func TestPVSSBatch(test *testing.T) {
 	require.Equal(test, err, nil)
 
 	// Verify secrets
-	require.True(test, suite.Point().Mul(nil, s0).Equal(S0))
-	require.True(test, suite.Point().Mul(nil, s1).Equal(S1))
-	require.True(test, suite.Point().Mul(nil, s2).Equal(S2))
+	require.True(test, suite.Point().Mul(s0, nil).Equal(S0))
+	require.True(test, suite.Point().Mul(s1, nil).Equal(S1))
+	require.True(test, suite.Point().Mul(s2, nil).Equal(S2))
 }

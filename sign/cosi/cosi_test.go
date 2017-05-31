@@ -6,10 +6,10 @@ import (
 
 	xEd25519 "github.com/bford/golang-x-crypto/ed25519"
 	"github.com/bford/golang-x-crypto/ed25519/cosi"
+	"github.com/stretchr/testify/assert"
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 	"gopkg.in/dedis/kyber.v1/util/key"
-	"github.com/stretchr/testify/assert"
 )
 
 var testSuite = edwards25519.NewAES128SHA256Ed25519(false)
@@ -95,11 +95,11 @@ func TestCosiSignature(t *testing.T) {
 	root, children := cosis[0], cosis[1:]
 	var publics []kyber.Point
 	// add root public key
-	rootPublic := testSuite.Point().Mul(nil, root.private)
+	rootPublic := testSuite.Point().Mul(root.private, nil)
 	publics = append(publics, rootPublic)
 	for _, ch := range children {
 		// add children public key
-		public := testSuite.Point().Mul(nil, ch.private)
+		public := testSuite.Point().Mul(ch.private, nil)
 		publics = append(publics, public)
 	}
 	sig := root.Signature()

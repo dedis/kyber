@@ -166,7 +166,7 @@ type DistKeyGenerator struct {
 // threshold t parameter. It returns an error if the secret key's commitment
 // can't be found in the list of participants.
 func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, r cipher.Stream, t int) (*DistKeyGenerator, error) {
-	pub := suite.Point().Mul(nil, longterm)
+	pub := suite.Point().Mul(longterm, nil)
 	// find our index
 	var found bool
 	var index uint32

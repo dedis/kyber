@@ -68,7 +68,7 @@ type PartialSig struct {
 // in the list of participants.
 func NewDSS(suite Suite, secret kyber.Scalar, participants []kyber.Point,
 	long, random *dkg.DistKeyShare, msg []byte, T int) (*DSS, error) {
-	public := suite.Point().Mul(nil, secret)
+	public := suite.Point().Mul(secret, nil)
 	var i int
 	var found bool
 	for j, p := range participants {
@@ -156,9 +156,9 @@ func (d *DSS) ProcessPartialSig(ps *PartialSig) error {
 	idx := ps.Partial.I
 	randShare := d.randomPoly.Eval(idx)
 	longShare := d.longPoly.Eval(idx)
-	right := d.suite.Point().Mul(longShare.V, hash)
+	right := d.suite.Point().Mul(hash, longShare.V)
 	right.Add(randShare.V, right)
-	left := d.suite.Point().Mul(nil, ps.Partial.V)
+	left := d.suite.Point().Mul(ps.Partial.V, nil)
 	if !left.Equal(right) {
 		return errors.New("dss: partial signature not valid")
 	}

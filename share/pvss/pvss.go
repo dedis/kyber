@@ -119,7 +119,7 @@ func DecShare(suite Suite, H kyber.Point, X kyber.Point, sH kyber.Point, x kyber
 		return nil, err
 	}
 	G := suite.Point().Base()
-	V := suite.Point().Mul(encShare.S.V, suite.Scalar().Inv(x)) // decryption: x^{-1} * (xS)
+	V := suite.Point().Mul(suite.Scalar().Inv(x), encShare.S.V) // decryption: x^{-1} * (xS)
 	ps := &share.PubShare{encShare.S.I, V}
 	P, _, _, err := dleq.NewDLEQProof(suite, G, V, x)
 	if err != nil {

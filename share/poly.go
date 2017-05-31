@@ -131,7 +131,7 @@ func (p *PriPoly) Equal(q *PriPoly) bool {
 func (p *PriPoly) Commit(b kyber.Point) *PubPoly {
 	commits := make([]kyber.Point, p.Threshold())
 	for i := range commits {
-		commits[i] = p.g.Point().Mul(b, p.coeffs[i])
+		commits[i] = p.g.Point().Mul(p.coeffs[i], b)
 	}
 	return &PubPoly{p.g, b, commits}
 }
@@ -314,7 +314,7 @@ func (p *PubPoly) Eval(i int) *PubShare {
 	xi := p.g.Scalar().SetInt64(1 + int64(i)) // x-coordinate of this share
 	v := p.g.Point().Null()
 	for j := p.Threshold() - 1; j >= 0; j-- {
-		v.Mul(v, xi)
+		v.Mul(xi, v)
 		v.Add(v, p.commits[j])
 	}
 	return &PubShare{i, v}
@@ -369,7 +369,7 @@ func (p *PubPoly) Equal(q *PubPoly) bool {
 // Check a private share against a public commitment polynomial.
 func (p *PubPoly) Check(s *PriShare) bool {
 	pv := p.Eval(s.I)
-	ps := p.g.Point().Mul(p.b, s.V)
+	ps := p.g.Point().Mul(s.V, p.b)
 	return pv.V.Equal(ps)
 }
 
@@ -404,7 +404,7 @@ func RecoverCommit(g kyber.Group, shares []*PubShare, t, n int) (kyber.Point, er
 			num.Mul(num, xj)
 			den.Mul(den, tmp.Sub(xj, xi))
 		}
-		Tmp.Mul(shares[i].V, num.Div(num, den))
+		Tmp.Mul(num.Div(num, den), shares[i].V)
 		Acc.Add(Acc, Tmp)
 	}
 

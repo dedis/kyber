@@ -164,7 +164,7 @@ func (P *basicPoint) Neg(A kyber.Point) kyber.Point {
 }
 
 // Multiply point p by scalar s using the repeated doubling method.
-func (P *basicPoint) Mul(G kyber.Point, s kyber.Scalar) kyber.Point {
+func (P *basicPoint) Mul(s kyber.Scalar, G kyber.Point) kyber.Point {
 	v := s.(*mod.Int).V
 	if G == nil {
 		return P.Base().Mul(P, s)

@@ -19,7 +19,7 @@ func ExampleHashProve_1() {
 
 	// Create a public/private keypair (X,x)
 	x := suite.Scalar().Pick(rand) // create a private key x
-	X := suite.Point().Mul(nil, x) // corresponding public key X
+	X := suite.Point().Mul(x, nil) // corresponding public key X
 
 	// Generate a proof that we know the discrete logarithm of X.
 	M := "Hello World!" // message we want to sign
@@ -93,14 +93,14 @@ func ExampleHashProve_2() {
 	// Make just one of them an actual public/private keypair (X[mine],x)
 	mine := 2                           // only the signer knows this
 	x := suite.Scalar().Pick(rand)      // create a private key x
-	X[mine] = suite.Point().Mul(nil, x) // corresponding public key X
+	X[mine] = suite.Point().Mul(x, nil) // corresponding public key X
 
 	// Produce the correct linkage tag for the signature,
 	// as a pseudorandom base point multiplied by our private key.
 	linkScope := []byte("The Linkage Scope")
 	linkHash := suite.Cipher(linkScope)
 	linkBase, _ := suite.Point().Pick(nil, linkHash)
-	linkTag := suite.Point().Mul(linkBase, x)
+	linkTag := suite.Point().Mul(x, linkBase)
 
 	// Generate the proof predicate: an OR branch for each public key.
 	sec := map[string]kyber.Scalar{"x": x}

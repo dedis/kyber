@@ -160,7 +160,7 @@ func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Poi
 	H := deriveH(d.suite, d.verifiers)
 	f := share.NewPriPoly(d.suite, d.t, d.secret, r)
 	g := share.NewPriPoly(d.suite, d.t, nil, r)
-	d.pub = d.suite.Point().Mul(nil, d.long)
+	d.pub = d.suite.Point().Mul(d.long, nil)
 
 	// Compute public polynomial coefficients
 	F := f.Commit(d.suite.Point().Base())
@@ -217,7 +217,7 @@ func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
 	}
 	// gen ephemeral key
 	dhSecret := d.suite.Scalar().Pick(random.Stream)
-	dhPublic := d.suite.Point().Mul(nil, dhSecret)
+	dhPublic := d.suite.Point().Mul(dhSecret, nil)
 	// signs the public key
 	dhPublicBuff, _ := dhPublic.MarshalBinary()
 	signature, err := schnorr.Sign(d.suite, d.long, dhPublicBuff)
@@ -293,7 +293,7 @@ func (d *Dealer) SecretCommit() kyber.Point {
 	if !d.EnoughApprovals() || !d.DealCertified() {
 		return nil
 	}
-	return d.suite.Point().Mul(nil, d.secret)
+	return d.suite.Point().Mul(d.secret, nil)
 }
 
 // Commits returns the commitments of the coefficient of the secret polynomial
@@ -340,7 +340,7 @@ type Verifier struct {
 func NewVerifier(suite Suite, longterm kyber.Scalar, dealerKey kyber.Point,
 	verifiers []kyber.Point) (*Verifier, error) {
 
-	pub := suite.Point().Mul(nil, longterm)
+	pub := suite.Point().Mul(longterm, nil)
 	var ok bool
 	var index int
 	for i, v := range verifiers {
@@ -562,9 +562,9 @@ func (a *aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 		return errors.New("vss: index out of bounds in Deal")
 	}
 	// compute fi * G + gi * H
-	fig := a.suite.Point().Base().Mul(nil, fi.V)
+	fig := a.suite.Point().Base().Mul(fi.V, nil)
 	H := deriveH(a.suite, a.verifiers)
-	gih := a.suite.Point().Mul(H, gi.V)
+	gih := a.suite.Point().Mul(gi.V, H)
 	ci := a.suite.Point().Add(fig, gih)
 
 	commitPoly := share.NewPubPoly(a.suite, nil, d.Commitments)

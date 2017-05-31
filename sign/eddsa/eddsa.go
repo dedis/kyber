@@ -36,7 +36,7 @@ func NewEdDSA(stream cipher.Stream) *EdDSA {
 	scalar := hashSeed(buffer)
 
 	secret := group.Scalar().SetBytes(scalar[:32])
-	public := group.Point().Mul(nil, secret)
+	public := group.Point().Mul(secret, nil)
 
 	return &EdDSA{
 		seed:   buffer,
@@ -79,7 +79,7 @@ func (e *EdDSA) UnmarshalBinary(buff []byte) error {
 	scalar := hashSeed(e.seed)
 	e.prefix = scalar[32:]
 	e.Secret = group.Scalar().SetBytes(scalar[:32])
-	e.Public = group.Point().Mul(nil, e.Secret)
+	e.Public = group.Point().Mul(e.Secret, nil)
 	return nil
 }
 
@@ -93,7 +93,7 @@ func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 
 	// deterministic random secret and its commit
 	r := group.Scalar().SetBytes(hash.Sum(nil))
-	R := group.Point().Mul(nil, r)
+	R := group.Point().Mul(r, nil)
 
 	// challenge
 	// H( R || Public || Msg)
@@ -162,8 +162,8 @@ func Verify(public kyber.Point, msg, sig []byte) error {
 
 	h := group.Scalar().SetBytes(hash.Sum(nil))
 	// reconstruct S == k*A + R
-	S := group.Point().Mul(nil, s)
-	hA := group.Point().Mul(public, h)
+	S := group.Point().Mul(s, nil)
+	hA := group.Point().Mul(h, public)
 	RhA := group.Point().Add(R, hA)
 
 	if !RhA.Equal(S) {

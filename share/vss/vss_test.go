@@ -147,7 +147,7 @@ func TestVSSAggregatorEnoughApprovals(t *testing.T) {
 		aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
 	}
 	assert.True(t, aggr.EnoughApprovals())
-	assert.Equal(t, suite.Point().Mul(nil, secret), dealer.SecretCommit())
+	assert.Equal(t, suite.Point().Mul(secret, nil), dealer.SecretCommit())
 }
 
 func TestVSSAggregatorDealCertified(t *testing.T) {
@@ -158,7 +158,7 @@ func TestVSSAggregatorDealCertified(t *testing.T) {
 		aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
 	}
 	assert.True(t, aggr.DealCertified())
-	assert.Equal(t, suite.Point().Mul(nil, secret), dealer.SecretCommit())
+	assert.Equal(t, suite.Point().Mul(secret, nil), dealer.SecretCommit())
 	// bad dealer response
 	aggr.badDealer = true
 	assert.False(t, aggr.DealCertified())
@@ -495,7 +495,7 @@ func TestVSSDHExchange(t *testing.T) {
 	pub := suite.Point().Base()
 	priv := suite.Scalar().Pick(random.Stream)
 	point := dhExchange(suite, priv, pub)
-	assert.Equal(t, pub.Mul(nil, priv).String(), point.String())
+	assert.Equal(t, pub.Mul(priv, nil).String(), point.String())
 }
 
 func TestVSSContext(t *testing.T) {
@@ -505,7 +505,7 @@ func TestVSSContext(t *testing.T) {
 
 func genPair() (kyber.Scalar, kyber.Point) {
 	secret := suite.Scalar().Pick(reader)
-	public := suite.Point().Mul(nil, secret)
+	public := suite.Point().Mul(secret, nil)
 	return secret, public
 }
 

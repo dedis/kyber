@@ -102,13 +102,13 @@ func (gb GroupBench) PointNeg(iters int) {
 
 func (gb GroupBench) PointMul(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.X.Mul(gb.X, gb.y)
+		gb.X.Mul(gb.y, gb.X)
 	}
 }
 
 func (gb GroupBench) PointBaseMul(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.X.Mul(nil, gb.y)
+		gb.X.Mul(gb.y, nil)
 	}
 }
 

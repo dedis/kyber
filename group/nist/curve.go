@@ -156,10 +156,10 @@ func (p *curvePoint) Neg(a kyber.Point) kyber.Point {
 	// XXX a pretty non-optimal implementation of point negation...
 	s := p.c.Scalar().One()
 	s.Neg(s)
-	return p.Mul(a, s).(*curvePoint)
+	return p.Mul(s, a).(*curvePoint)
 }
 
-func (p *curvePoint) Mul(b kyber.Point, s kyber.Scalar) kyber.Point {
+func (p *curvePoint) Mul(s kyber.Scalar, b kyber.Point) kyber.Point {
 	cs := s.(*mod.Int)
 	if b != nil {
 		cb := b.(*curvePoint)

@@ -125,9 +125,9 @@ func (p *residuePoint) Neg(a kyber.Point) kyber.Point {
 	return p
 }
 
-func (p *residuePoint) Mul(b kyber.Point, s kyber.Scalar) kyber.Point {
+func (p *residuePoint) Mul(s kyber.Scalar, b kyber.Point) kyber.Point {
 	if b == nil {
-		return p.Base().Mul(p, s)
+		return p.Base().Mul(s, p)
 	}
 	p.Int.Exp(&b.(*residuePoint).Int, &s.(*mod.Int).V, p.g.P)
 	return p

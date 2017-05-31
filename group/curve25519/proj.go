@@ -211,10 +211,10 @@ func (P *projPoint) double() {
 }
 
 // Multiply point p by scalar s using the repeated doubling method.
-func (P *projPoint) Mul(G kyber.Point, s kyber.Scalar) kyber.Point {
+func (P *projPoint) Mul(s kyber.Scalar, G kyber.Point) kyber.Point {
 	v := s.(*mod.Int).V
 	if G == nil {
-		return P.Base().Mul(P, s)
+		return P.Base().Mul(s, P)
 	}
 	T := P
 	if G == P { // Must use temporary for in-place multiply

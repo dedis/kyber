@@ -133,7 +133,7 @@ func Sign(suite Suite, random cipher.Stream, message []byte,
 	if linkScope != nil {
 		linkStream := suite.Cipher(linkScope)
 		linkBase, _ = suite.Point().Pick(nil, linkStream)
-		linkTag = suite.Point().Mul(linkBase, privateKey)
+		linkTag = suite.Point().Mul(privateKey, linkBase)
 	}
 
 	// First pre-hash the parameters to H1
@@ -144,9 +144,9 @@ func Sign(suite Suite, random cipher.Stream, message []byte,
 	// Pick a random commit for my ring position
 	u := suite.Scalar().Pick(random)
 	var UB, UL kyber.Point
-	UB = suite.Point().Mul(nil, u)
+	UB = suite.Point().Mul(u, nil)
 	if linkScope != nil {
-		UL = suite.Point().Mul(linkBase, u)
+		UL = suite.Point().Mul(u, linkBase)
 	}
 
 	// Build the challenge ring
@@ -161,9 +161,9 @@ func Sign(suite Suite, random cipher.Stream, message []byte,
 	}
 	for i := (pi + 1) % n; i != pi; i = (i + 1) % n {
 		s[i] = suite.Scalar().Pick(random)
-		PG.Add(PG.Mul(nil, s[i]), P.Mul(L[i], c[i]))
+		PG.Add(PG.Mul(s[i], nil), P.Mul(c[i], L[i]))
 		if linkScope != nil {
-			PH.Add(PH.Mul(linkBase, s[i]), P.Mul(linkTag, c[i]))
+			PH.Add(PH.Mul(s[i], linkBase), P.Mul(c[i], linkTag))
 		}
 		c[(i+1)%n] = signH1(suite, H1pre, PG, PH)
 		//fmt.Printf("s%d %s\n",i,s[i].String())
@@ -234,9 +234,9 @@ func Verify(suite Suite, message []byte, anonymitySet Set,
 	s := sig.S
 	ci := sig.C0
 	for i := 0; i < n; i++ {
-		PG.Add(PG.Mul(nil, s[i]), P.Mul(L[i], ci))
+		PG.Add(PG.Mul(s[i], nil), P.Mul(ci, L[i]))
 		if linkScope != nil {
-			PH.Add(PH.Mul(linkBase, s[i]), P.Mul(linkTag, ci))
+			PH.Add(PH.Mul(s[i], linkBase), P.Mul(ci, linkTag))
 		}
 		ci = signH1(suite, H1pre, PG, PH)
 	}

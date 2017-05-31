@@ -13,7 +13,7 @@ import (
 // dhExchange computes the shared key from a private key and a public key
 func dhExchange(suite Suite, ownPrivate kyber.Scalar, remotePublic kyber.Point) kyber.Point {
 	sk := suite.Point()
-	sk.Mul(remotePublic, ownPrivate)
+	sk.Mul(ownPrivate, remotePublic)
 	return sk
 }
 

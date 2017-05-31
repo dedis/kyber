@@ -36,10 +36,10 @@ type hiding interface {
 // embodying functionality independent of internal Point representation.
 type curve struct {
 	self      kyber.Group // "Self pointer" for derived class
-	Param                  // Twisted Edwards curve parameters
-	zero, one mod.Int      // Constant ModInts with correct modulus
-	a, d      mod.Int      // Curve equation parameters as ModInts
-	full      bool         // True if we're using the full group
+	Param                 // Twisted Edwards curve parameters
+	zero, one mod.Int     // Constant ModInts with correct modulus
+	a, d      mod.Int     // Curve equation parameters as ModInts
+	full      bool        // True if we're using the full group
 
 	order  mod.Int // Order of appropriate subgroup as a ModInt
 	cofact mod.Int // Group's cofactor as a ModInt
@@ -282,7 +282,7 @@ func (c *curve) validPoint(P point) bool {
 
 	// Check in-subgroup by multiplying by subgroup order
 	Q := c.self.Point()
-	Q.Mul(P, &c.order)
+	Q.Mul(&c.order, P)
 	if !Q.Equal(c.null) {
 		return false
 	}
@@ -353,7 +353,7 @@ func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
 		// we can convert our point into one in the subgroup
 		// simply by multiplying it by the cofactor.
 		if data == nil {
-			P.Mul(P, &c.cofact) // multiply by cofactor
+			P.Mul(&c.cofact, P) // multiply by cofactor
 			if P.Equal(c.null) {
 				continue // unlucky; try again
 			}
@@ -366,7 +366,7 @@ func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
 		if Q == nil {
 			Q = c.self.Point()
 		}
-		Q.Mul(P, &c.order)
+		Q.Mul(&c.order, P)
 		if Q.Equal(c.null) {
 			return data[dl:]
 		}

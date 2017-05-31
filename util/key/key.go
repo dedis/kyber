@@ -34,7 +34,7 @@ func NewKeyPair(suite Suite) *KeyPair {
 func (p *KeyPair) Gen(suite Suite, random cipher.Stream) {
 	p.Suite = suite
 	p.Secret = suite.NewKey(random)
-	p.Public = suite.Point().Mul(nil, p.Secret)
+	p.Public = suite.Point().Mul(p.Secret, nil)
 }
 
 // PubId returns the base64-encoded HashId for this KeyPair's public key.

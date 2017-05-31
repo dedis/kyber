@@ -13,7 +13,7 @@ func keyPair(suite Suite, rand cipher.Stream,
 	hide bool) (kyber.Point, kyber.Scalar, []byte) {
 
 	x := suite.Scalar().Pick(rand)
-	X := suite.Point().Mul(nil, x)
+	X := suite.Point().Mul(x, nil)
 	if !hide {
 		Xb, _ := X.MarshalBinary()
 		return X, x, Xb
@@ -25,7 +25,7 @@ func keyPair(suite Suite, rand cipher.Stream,
 			return X, x, Xb // success
 		}
 		x.Pick(rand) // try again with a new key
-		X.Mul(nil, x)
+		X.Mul(x, nil)
 	}
 }
 
@@ -40,7 +40,7 @@ func header(suite Suite, X kyber.Point, x kyber.Scalar,
 	hdr := Xb
 	for i := range anonymitySet {
 		Y := anonymitySet[i]
-		S.Mul(Y, x) // compute DH shared secret
+		S.Mul(x, Y) // compute DH shared secret
 		seed, _ := S.MarshalBinary()
 		cipher := suite.Cipher(seed)
 		xc := make([]byte, len(xb))
@@ -101,7 +101,7 @@ func decryptKey(suite Suite, ciphertext []byte, anonymitySet Set,
 	if len(ciphertext) < Xblen+seclen*nkeys {
 		return nil, 0, errors.New("ciphertext too short")
 	}
-	S := suite.Point().Mul(X, privateKey)
+	S := suite.Point().Mul(privateKey, X)
 	seed, _ := S.MarshalBinary()
 	cipher := suite.Cipher(seed)
 	xb := make([]byte, seclen)
@@ -113,7 +113,7 @@ func decryptKey(suite Suite, ciphertext []byte, anonymitySet Set,
 	}
 
 	// Make sure it reproduces the correct ephemeral public key
-	Xv := suite.Point().Mul(nil, x)
+	Xv := suite.Point().Mul(x, nil)
 	if !X.Equal(Xv) {
 		return nil, 0, errors.New("invalid ciphertext")
 	}

@@ -138,26 +138,26 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 	points = append(points, gen)
 
 	// Verify additive and multiplicative identities of the generator.
-	ptmp.Mul(nil, stmp.SetInt64(-1)).Add(ptmp, gen)
+	ptmp.Mul(stmp.SetInt64(-1), nil).Add(ptmp, gen)
 	if !ptmp.Equal(pzero) {
 		panic("oops, generator additive identity doesn't work")
 	}
 	if g.PrimeOrder() { // secret.Inv works only in prime-order groups
-		ptmp.Mul(nil, stmp.SetInt64(2)).Mul(ptmp, stmp.Inv(stmp))
+		ptmp.Mul(stmp.SetInt64(2), nil).Mul(stmp.Inv(stmp), ptmp)
 		if !ptmp.Equal(gen) {
 			panic("oops, generator multiplicative identity doesn't work")
 		}
 	}
 
-	p1 := g.Point().Mul(gen, s1)
-	p2 := g.Point().Mul(gen, s2)
+	p1 := g.Point().Mul(s1, gen)
+	p2 := g.Point().Mul(s2, gen)
 	if p1.Equal(p2) {
 		panic("uh-oh, encryption isn't producing unique points!")
 	}
 	points = append(points, p1)
 
-	dh1 := g.Point().Mul(p1, s2)
-	dh2 := g.Point().Mul(p2, s1)
+	dh1 := g.Point().Mul(s2, p1)
+	dh2 := g.Point().Mul(s1, p2)
 	if !dh1.Equal(dh2) {
 		panic("Diffie-Hellman didn't work")
 	}
@@ -166,7 +166,7 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 
 	// Test secret inverse to get from dh1 back to p1
 	if g.PrimeOrder() {
-		ptmp.Mul(dh1, g.Scalar().Inv(s2))
+		ptmp.Mul(g.Scalar().Inv(s2), dh1)
 		if !ptmp.Equal(p1) {
 			panic("Scalar inverse didn't work")
 		}
@@ -174,23 +174,23 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 
 	// Zero and One identity secrets
 	//println("dh1^0 = ",ptmp.Mul(dh1, szero).String())
-	if !ptmp.Mul(dh1, szero).Equal(pzero) {
+	if !ptmp.Mul(szero, dh1).Equal(pzero) {
 		panic("Encryption with secret=0 didn't work")
 	}
-	if !ptmp.Mul(dh1, sone).Equal(dh1) {
+	if !ptmp.Mul(sone, dh1).Equal(dh1) {
 		panic("Encryption with secret=1 didn't work")
 	}
 
 	// Additive homomorphic identities
 	ptmp.Add(p1, p2)
 	stmp.Add(s1, s2)
-	pt2 := g.Point().Mul(gen, stmp)
+	pt2 := g.Point().Mul(stmp, gen)
 	if !pt2.Equal(ptmp) {
 		panic("Additive homomorphism doesn't work")
 	}
 	ptmp.Sub(p1, p2)
 	stmp.Sub(s1, s2)
-	pt2.Mul(gen, stmp)
+	pt2.Mul(stmp, gen)
 	if !pt2.Equal(ptmp) {
 		panic("Additive homomorphism doesn't work")
 	}
@@ -206,7 +206,7 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 
 	// Multiplicative homomorphic identities
 	stmp.Mul(s1, s2)
-	if !ptmp.Mul(gen, stmp).Equal(dh1) {
+	if !ptmp.Mul(stmp, gen).Equal(dh1) {
 		panic("Multiplicative homomorphism doesn't work")
 	}
 	if g.PrimeOrder() {
@@ -230,12 +230,12 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 		}
 		last = rgen
 
-		ptmp.Mul(rgen, stmp.SetInt64(-1)).Add(ptmp, rgen)
+		ptmp.Mul(stmp.SetInt64(-1), rgen).Add(ptmp, rgen)
 		if !ptmp.Equal(pzero) {
 			panic("random generator fails additive identity")
 		}
 		if g.PrimeOrder() {
-			ptmp.Mul(rgen, stmp.SetInt64(2)).Mul(ptmp, stmp.Inv(stmp))
+			ptmp.Mul(stmp.SetInt64(2), rgen).Mul(stmp.Inv(stmp), ptmp)
 			if !ptmp.Equal(rgen) {
 				panic("random generator fails multiplicative identity")
 			}

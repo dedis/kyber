@@ -573,7 +573,7 @@ func TestDistKeyShare(t *testing.T) {
 	secret, err := share.RecoverSecret(suite, shares, nbParticipants, nbParticipants)
 	assert.Nil(t, err)
 
-	commitSecret := suite.Point().Mul(nil, secret)
+	commitSecret := suite.Point().Mul(secret, nil)
 	assert.Equal(t, dkss[0].Public().String(), commitSecret.String())
 }
 
@@ -591,7 +591,7 @@ func dkgGen() []*DistKeyGenerator {
 
 func genPair() (kyber.Scalar, kyber.Point) {
 	sc := suite.Scalar().Pick(random.Stream)
-	return sc, suite.Point().Mul(nil, sc)
+	return sc, suite.Point().Mul(sc, nil)
 }
 
 func randomBytes(n int) []byte {

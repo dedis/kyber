@@ -215,7 +215,7 @@ func (rp *repPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 	// Compute commit V=wY+v1G1+...+vkGk
 	V := prf.s.Point()
 	if w != nil { // We're on a non-obligated branch
-		V.Mul(prf.pval[rp.P], w)
+		V.Mul(w, prf.pval[rp.P])
 	} else { // We're on a proof-obligated branch, so w=0
 		V.Null()
 	}
@@ -230,7 +230,7 @@ func (rp *repPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 			v[s] = prf.s.Scalar()
 			prf.pc.PriRand(v[s])
 		}
-		P.Mul(prf.pval[t.B], v[s])
+		P.Mul(v[s], prf.pval[t.B])
 		V.Add(V, P)
 	}
 
@@ -308,12 +308,12 @@ func (rp *repPred) verify(prf *proof, c kyber.Scalar, pr []kyber.Scalar) error {
 
 	// Recompute commit V=cY+r1G1+...+rkGk
 	V := prf.s.Point()
-	V.Mul(prf.pval[rp.P], c)
+	V.Mul(c, prf.pval[rp.P])
 	P := prf.s.Point()
 	for i := 0; i < len(rp.T); i++ {
 		t := rp.T[i] // current term
 		s := prf.sidx[t.S]
-		P.Mul(prf.pval[t.B], r[s])
+		P.Mul(r[s], prf.pval[t.B])
 		V.Add(V, P)
 	}
 	if !V.Equal(vp.V) {

@@ -38,13 +38,13 @@ type DLEQProof struct {
 // and xH.
 func NewDLEQProof(suite Suite, G kyber.Point, H kyber.Point, x kyber.Scalar) (proof *DLEQProof, xG kyber.Point, xH kyber.Point, err error) {
 	// Encrypt base points with secret
-	xG = suite.Point().Mul(G, x)
-	xH = suite.Point().Mul(H, x)
+	xG = suite.Point().Mul(x, G)
+	xH = suite.Point().Mul(x, H)
 
 	// Commitment
 	v := suite.Scalar().Pick(random.Stream)
-	vG := suite.Point().Mul(G, v)
-	vH := suite.Point().Mul(H, v)
+	vG := suite.Point().Mul(v, G)
+	vH := suite.Point().Mul(v, H)
 
 	// Challenge
 	cb, err := h.Structures(suite.Hash(), xG, xH, vG, vH)
@@ -78,13 +78,13 @@ func NewDLEQProofBatch(suite Suite, G []kyber.Point, H []kyber.Point, secrets []
 
 	for i, x := range secrets {
 		// Encrypt base points with secrets
-		xG[i] = suite.Point().Mul(G[i], x)
-		xH[i] = suite.Point().Mul(H[i], x)
+		xG[i] = suite.Point().Mul(x, G[i])
+		xH[i] = suite.Point().Mul(x, H[i])
 
 		// Commitments
 		v[i] = suite.Scalar().Pick(random.Stream)
-		vG[i] = suite.Point().Mul(G[i], v[i])
-		vH[i] = suite.Point().Mul(H[i], v[i])
+		vG[i] = suite.Point().Mul(v[i], G[i])
+		vH[i] = suite.Point().Mul(v[i], H[i])
 	}
 
 	// Collective challenge
@@ -109,10 +109,10 @@ func NewDLEQProofBatch(suite Suite, G []kyber.Point, H []kyber.Point, secrets []
 //   vG == rG + c(xG)
 //   vH == rH + c(xH)
 func (p *DLEQProof) Verify(suite Suite, G kyber.Point, H kyber.Point, xG kyber.Point, xH kyber.Point) error {
-	rG := suite.Point().Mul(G, p.R)
-	rH := suite.Point().Mul(H, p.R)
-	cxG := suite.Point().Mul(xG, p.C)
-	cxH := suite.Point().Mul(xH, p.C)
+	rG := suite.Point().Mul(p.R, G)
+	rH := suite.Point().Mul(p.R, H)
+	cxG := suite.Point().Mul(p.C, xG)
+	cxH := suite.Point().Mul(p.C, xH)
 	a := suite.Point().Add(rG, cxG)
 	b := suite.Point().Add(rH, cxH)
 	if !(p.VG.Equal(a) && p.VH.Equal(b)) {

@@ -16,10 +16,10 @@ import (
 func Sign(g kyber.Group, private kyber.Scalar, msg []byte) ([]byte, error) {
 	// create random secret k and public point commitment R
 	k := g.Scalar().Pick(random.Stream)
-	R := g.Point().Mul(nil, k)
+	R := g.Point().Mul(k, nil)
 
 	// create hash(public || R || message)
-	public := g.Point().Mul(nil, private)
+	public := g.Point().Mul(private, nil)
 	h, err := hash(g, public, R, msg)
 	if err != nil {
 		return nil, err
@@ -66,9 +66,9 @@ func Verify(g kyber.Group, public kyber.Point, msg, sig []byte) error {
 	}
 
 	// compute S = g^s
-	S := g.Point().Mul(nil, s)
+	S := g.Point().Mul(s, nil)
 	// compute RAh = R + A^h
-	Ah := g.Point().Mul(public, h)
+	Ah := g.Point().Mul(h, public)
 	RAs := g.Point().Add(R, Ah)
 
 	if !S.Equal(RAs) {

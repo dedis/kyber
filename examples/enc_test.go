@@ -14,8 +14,8 @@ func ElGamalEncrypt(group kyber.Group, pubkey kyber.Point, message []byte) (
 
 	// ElGamal-encrypt the point to produce ciphertext (K,C).
 	k := group.Scalar().Pick(random.Stream) // ephemeral private key
-	K = group.Point().Mul(nil, k)           // ephemeral DH public key
-	S := group.Point().Mul(pubkey, k)       // ephemeral DH shared secret
+	K = group.Point().Mul(k, nil)           // ephemeral DH public key
+	S := group.Point().Mul(k, pubkey)       // ephemeral DH shared secret
 	C = S.Add(S, M)                         // message blinded with secret
 	return
 }
@@ -24,7 +24,7 @@ func ElGamalDecrypt(group kyber.Group, prikey kyber.Scalar, K, C kyber.Point) (
 	message []byte, err error) {
 
 	// ElGamal-decrypt the ciphertext (K,C) to reproduce the message.
-	S := group.Point().Mul(K, prikey) // regenerate shared secret
+	S := group.Point().Mul(prikey, K) // regenerate shared secret
 	M := group.Point().Sub(C, S)      // use to un-blind the message
 	message, err = M.Data()           // extract the embedded data
 	return
@@ -58,7 +58,7 @@ func Example_elGamalEncryption() {
 
 	// Create a public/private keypair
 	a := group.Scalar().Pick(random.Stream) // Alice's private key
-	A := group.Point().Mul(nil, a)          // Alice's public key
+	A := group.Point().Mul(a, nil)          // Alice's public key
 
 	// ElGamal-encrypt a message using the public key.
 	m := []byte("The quick brown fox")

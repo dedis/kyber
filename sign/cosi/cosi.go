@@ -214,8 +214,8 @@ func (c *CoSi) VerifyResponses(aggregatedPublic kyber.Point) error {
 	// from s = k * a + r => s * B = k * a * B + r * B <=> s*B = k*A + r*B
 	// <=> s*B + k*-A = r*B
 	minusPublic := c.group.Point().Neg(aggregatedPublic)
-	kA := c.group.Point().Mul(minusPublic, k)
-	sB := c.group.Point().Mul(nil, c.aggregateResponse)
+	kA := c.group.Point().Mul(k, minusPublic)
+	sB := c.group.Point().Mul(c.aggregateResponse, nil)
 	left := c.group.Point().Add(kA, sB)
 
 	if !left.Equal(c.aggregateCommitment) {
@@ -257,8 +257,8 @@ func VerifySignature(group kyber.Group, publics []kyber.Point, message, sig []by
 	// from s = k * a + r => s * B = k * a * B + r * B <=> s*B = k*A + r*B
 	// <=> s*B + k*-A = r*B
 	minusPublic := group.Point().Neg(aggPublic)
-	kA := group.Point().Mul(minusPublic, k)
-	sB := group.Point().Mul(nil, sigInt)
+	kA := group.Point().Mul(k, minusPublic)
+	sB := group.Point().Mul(sigInt, nil)
 	left := group.Point().Add(kA, sB)
 
 	if !left.Equal(aggCommit) {
@@ -297,7 +297,7 @@ func (c *CoSi) genCommit(s cipher.Stream) {
 		stream = random.Stream
 	}
 	c.random = c.group.Scalar().Pick(stream)
-	c.commitment = c.group.Point().Mul(nil, c.random)
+	c.commitment = c.group.Point().Mul(c.random, nil)
 	c.aggregateCommitment = c.commitment
 }
 
