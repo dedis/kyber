@@ -17,18 +17,21 @@ type Suite interface {
 
 func testEmbed(g kyber.Group, rand cipher.Stream, points *[]kyber.Point,
 	s string) {
-	//println("embedding: ",s)
+	// println("embedding: ", s)
 	b := []byte(s)
 
 	p := g.Point().Embed(b, rand)
-	//println("embedded, remainder",len(rem),"/",len(b),":",string(rem))
 	x, err := p.Data()
 	if err != nil {
 		panic("Point extraction failed: " + err.Error())
 	}
-	//println("extracted data: ",string(x))
-
-	if !bytes.Equal(append(x, b[g.Point().EmbedLen():]...), b) {
+	//println("extracted data (", len(x), " bytes): ", string(x))
+	//println("EmbedLen(): ", g.Point().EmbedLen())
+	max := g.Point().EmbedLen()
+	if max > len(b) {
+		max = len(b)
+	}
+	if !bytes.Equal(append(x, b[max:]...), b) {
 		panic("Point embedding corrupted the data")
 	}
 
