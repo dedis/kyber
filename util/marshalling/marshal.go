@@ -23,7 +23,7 @@ func PointMarshalTo(p kyber.Point, w io.Writer) (int, error) {
 // not when picking from a pseudorandom source.
 func PointUnmarshalFrom(p kyber.Point, r io.Reader) (int, error) {
 	if strm, ok := r.(cipher.Stream); ok {
-		p.Pick(nil, strm)
+		p.Pick(strm)
 		return -1, nil // no byte-count when picking randomly
 	}
 	buf := make([]byte, p.MarshalSize())
