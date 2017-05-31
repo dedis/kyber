@@ -52,6 +52,7 @@ type Scalar interface {
 
 	// Set to a fresh random or pseudo-random scalar
 	Pick(rand cipher.Stream) Scalar
+
 	// SetBytes will take bytes and create a scalar out of it
 	SetBytes([]byte) Scalar
 
@@ -78,22 +79,23 @@ type Point interface {
 	// Set to this group's standard base point.
 	Base() Point
 
-	// Pick and set to a point that is at least partly [pseudo-]random,
-	// and optionally so as to encode a limited amount of specified data.
-	// If data is nil, the point is completely [pseudo]-random.
-	// Returns this Point and a slice containing the remaining data
-	// following the data that was successfully embedded in this point.
-	Pick(data []byte, rand cipher.Stream) (Point, []byte)
-
-	// Maximum number of bytes that can be reliably embedded
-	// in a single group element via Pick().
-	PickLen() int
+	// Pick set to a fresh random or pseudo-random Point.
+	Pick(rand cipher.Stream) Point
 
 	// Set equal to another Point p.
 	Set(p Point) Point
 
 	// Clone clones the underlying point.
 	Clone() Point
+
+	// Maximum number of bytes that can be reliably embedded
+	// in a single group element via Pick().
+	EmbedLen() int
+
+	// Embed encodes a limited amount of specified data in the Point. It can
+	// only embed a maximum of EmbedLen() bytes. Implementations must return an
+	// error if the data is not of the correct size.
+	Embed(data []byte) (Point, error)
 
 	// Extract data embedded in a point chosen via Embed().
 	// Returns an error if doesn't represent valid embedded data.
