@@ -121,8 +121,8 @@ func (P *extPoint) Base() kyber.Point {
 	return P
 }
 
-func (P *extPoint) PickLen() int {
-	return P.c.pickLen()
+func (P *extPoint) EmbedLen() int {
+	return P.c.embedLen()
 }
 
 // Normalize the point's representation to Z=1.
@@ -142,9 +142,14 @@ func (P *extPoint) checkT() {
 	}
 }
 
-func (P *extPoint) Pick(data []byte, rand cipher.Stream) (kyber.Point, []byte) {
-	leftover := P.c.pickPoint(P, data, rand)
-	return P, leftover
+func (P *extPoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
+	P.c.embed(P, data, rand)
+	return P
+}
+
+func (P *extPoint) Pick(rand cipher.Stream) kyber.Point {
+	P.c.embed(P, nil, rand)
+	return P
 }
 
 // Extract embedded data from a point group element

@@ -62,19 +62,22 @@ func (p *residuePoint) Valid() bool {
 		new(big.Int).Exp(&p.Int, p.g.Q, p.g.P).Cmp(one) == 0
 }
 
-func (p *residuePoint) PickLen() int {
+func (p *residuePoint) EmbedLen() int {
 	// Reserve at least 8 most-significant bits for randomness,
 	// and the least-significant 16 bits for embedded data length.
 	return (p.g.P.BitLen() - 8 - 16) / 8
 }
 
-// Pick a point containing a variable amount of embedded data.
-// Remaining bits comprising the point are chosen randomly.
+func (p *residuePoint) Pick(rand cipher.Stream) kyber.Point {
+	return p.Embed(nil, rand)
+}
+
+// Embed the given data with some pseudo-random bits.
 // This will only work efficiently for quadratic residue groups!
-func (p *residuePoint) Pick(data []byte, rand cipher.Stream) (kyber.Point, []byte) {
+func (p *residuePoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
 
 	l := p.g.PointLen()
-	dl := p.PickLen()
+	dl := p.EmbedLen()
 	if dl > len(data) {
 		dl = len(data)
 	}
@@ -88,7 +91,7 @@ func (p *residuePoint) Pick(data []byte, rand cipher.Stream) (kyber.Point, []byt
 		}
 		p.Int.SetBytes(b)
 		if p.Valid() {
-			return p, data[dl:]
+			return p
 		}
 	}
 }
@@ -101,7 +104,7 @@ func (p *residuePoint) Data() ([]byte, error) {
 		b = append(make([]byte, l-len(b)), b...)
 	}
 	dl := int(b[l-2])<<8 + int(b[l-1])
-	if dl > p.PickLen() {
+	if dl > p.EmbedLen() {
 		return nil, errors.New("invalid embedded data length")
 	}
 	return b[l-dl-2 : l-2], nil

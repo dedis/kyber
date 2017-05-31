@@ -101,17 +101,17 @@ func (P *point) Base() kyber.Point {
 	return P
 }
 
-func (P *point) PickLen() int {
-	// Reserve at least 8 most-significant bits for randomness,
-	// and the least-significant 8 bits for embedded data length.
+func (P *point) EmbedLen() int {
+	// Reserve the most-significant 8 bits for pseudo-randomness.
+	// Reserve the least-significant 8 bits for embedded data length.
 	// (Hopefully it's unlikely we'll need >=2048-bit curves soon.)
 	return (255 - 8 - 8) / 8
 }
 
-func (P *point) Pick(data []byte, rand cipher.Stream) (kyber.Point, []byte) {
+func (P *point) Embed(data []byte, rand cipher.Stream) kyber.Point {
 
 	// How many bytes to embed?
-	dl := P.PickLen()
+	dl := P.EmbedLen()
 	if dl > len(data) {
 		dl = len(data)
 	}
@@ -144,7 +144,7 @@ func (P *point) Pick(data []byte, rand cipher.Stream) (kyber.Point, []byte) {
 			if P.Equal(nullPoint) {
 				continue // unlucky; try again
 			}
-			return P, data[dl:] // success
+			return P // success
 		}
 
 		// Since we need the point's y-coordinate to hold our data,
@@ -153,11 +153,14 @@ func (P *point) Pick(data []byte, rand cipher.Stream) (kyber.Point, []byte) {
 		var Q point
 		Q.Mul(primeOrder, P)
 		if Q.Equal(nullPoint) {
-			return P, data[dl:] // success
+			return P // success
 		}
-
 		// Keep trying...
 	}
+}
+
+func (P *point) Pick(rand cipher.Stream) kyber.Point {
+	return P.Embed(nil, rand)
 }
 
 // Extract embedded data from a point group element
@@ -165,7 +168,7 @@ func (P *point) Data() ([]byte, error) {
 	var b [32]byte
 	P.ge.ToBytes(&b)
 	dl := int(b[0]) // extract length byte
-	if dl > P.PickLen() {
+	if dl > P.EmbedLen() {
 		return nil, errors.New("invalid embedded data length")
 	}
 	return b[1 : 1+dl], nil

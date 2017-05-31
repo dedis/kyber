@@ -291,7 +291,7 @@ func (c *curve) validPoint(P point) bool {
 }
 
 // Return number of bytes that can be embedded into points on this curve.
-func (c *curve) pickLen() int {
+func (c *curve) embedLen() int {
 	// Reserve at least 8 most-significant bits for randomness,
 	// and the least-significant 8 bits for embedded data length.
 	// (Hopefully it's unlikely we'll need >=2048-bit curves soon.)
@@ -300,11 +300,10 @@ func (c *curve) pickLen() int {
 
 // Pick a [pseudo-]random curve point with optional embedded data,
 // filling in the point's x,y coordinates
-// and returning any remaining data not embedded.
-func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
+func (c *curve) embed(P point, data []byte, rand cipher.Stream) {
 
 	// How much data to embed?
-	dl := c.pickLen()
+	dl := c.embedLen()
 	if dl > len(data) {
 		dl = len(data)
 	}
@@ -344,7 +343,7 @@ func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
 		if c.full {
 			// If we're using the full group,
 			// we just need any point on the curve, so we're done.
-			return data[dl:]
+			return
 		}
 
 		// We're using the prime-order subgroup,
@@ -357,7 +356,7 @@ func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
 			if P.Equal(c.null) {
 				continue // unlucky; try again
 			}
-			return data[dl:]
+			return
 		}
 
 		// Since we need the point's y-coordinate to make sense,
@@ -368,7 +367,7 @@ func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
 		}
 		Q.Mul(&c.order, P)
 		if Q.Equal(c.null) {
-			return data[dl:]
+			return
 		}
 
 		// Keep trying...
@@ -380,7 +379,7 @@ func (c *curve) pickPoint(P point, data []byte, rand cipher.Stream) []byte {
 func (c *curve) data(x, y *mod.Int) ([]byte, error) {
 	b := c.encodePoint(x, y)
 	dl := int(b[0])
-	if dl > c.pickLen() {
+	if dl > c.embedLen() {
 		return nil, errors.New("invalid embedded data length")
 	}
 	return b[1 : 1+dl], nil

@@ -110,8 +110,8 @@ func (P *projPoint) Base() kyber.Point {
 	return P
 }
 
-func (P *projPoint) PickLen() int {
-	return P.c.pickLen()
+func (P *projPoint) EmbedLen() int {
+	return P.c.embedLen()
 }
 
 // Normalize the point's representation to Z=1.
@@ -122,8 +122,13 @@ func (P *projPoint) normalize() {
 	P.Z.V.SetInt64(1)
 }
 
-func (P *projPoint) Pick(data []byte, rand cipher.Stream) (kyber.Point, []byte) {
-	return P, P.c.pickPoint(P, data, rand)
+func (P *projPoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
+	P.c.embed(P, data, rand)
+	return P
+}
+
+func (P *projPoint) Pick(rand cipher.Stream) kyber.Point {
+	return P.Embed(nil, rand)
 }
 
 // Extract embedded data from a point group element

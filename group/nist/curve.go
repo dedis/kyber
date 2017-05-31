@@ -91,19 +91,23 @@ func (p *curvePoint) genPoint(x *big.Int, rand cipher.Stream) bool {
 	return true
 }
 
-func (p *curvePoint) PickLen() int {
+func (p *curvePoint) EmbedLen() int {
 	// Reserve at least 8 most-significant bits for randomness,
 	// and the least-significant 8 bits for embedded data length.
 	// (Hopefully it's unlikely we'll need >=2048-bit curves soon.)
 	return (p.c.p.P.BitLen() - 8 - 8) / 8
 }
 
+func (p *curvePoint) Pick(rand cipher.Stream) kyber.Point {
+	return p.Embed(nil, rand)
+}
+
 // Pick a curve point containing a variable amount of embedded data.
 // Remaining bits comprising the point are chosen randomly.
-func (p *curvePoint) Pick(data []byte, rand cipher.Stream) (kyber.Point, []byte) {
+func (p *curvePoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
 
 	l := p.c.coordLen()
-	dl := p.PickLen()
+	dl := p.EmbedLen()
 	if dl > len(data) {
 		dl = len(data)
 	}
@@ -115,7 +119,7 @@ func (p *curvePoint) Pick(data []byte, rand cipher.Stream) (kyber.Point, []byte)
 			copy(b[l-dl-1:l-1], data) // Copy in data to embed
 		}
 		if p.genPoint(new(big.Int).SetBytes(b), rand) {
-			return p, data[dl:]
+			return p
 		}
 	}
 }
@@ -128,7 +132,7 @@ func (p *curvePoint) Data() ([]byte, error) {
 		b = append(make([]byte, l-len(b)), b...)
 	}
 	dl := int(b[l-1])
-	if dl > p.PickLen() {
+	if dl > p.EmbedLen() {
 		return nil, errors.New("invalid embedded data length")
 	}
 	return b[l-dl-1 : l-1], nil
