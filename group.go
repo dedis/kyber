@@ -110,7 +110,7 @@ type Point interface {
 
 	// Encrypt point p by multiplying with scalar s.
 	// If p == nil, encrypt the standard base point Base().
-	Mul(p Point, s Scalar) Point
+	Mul(s Scalar, p Point) Point
 }
 
 /*
