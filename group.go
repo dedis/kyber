@@ -92,10 +92,9 @@ type Point interface {
 	// in a single group element via Pick().
 	EmbedLen() int
 
-	// Embed encodes a limited amount of specified data in the Point. It can
-	// only embed a maximum of EmbedLen() bytes. Implementations must return an
-	// error if the data is not of the correct size.
-	Embed(data []byte) (Point, error)
+	// Embed encodes a limited amount of specified data in the Point.
+	// Implementations only embed the first EmbedLen bytes of the given data.
+	Embed(data []byte) Point
 
 	// Extract data embedded in a point chosen via Embed().
 	// Returns an error if doesn't represent valid embedded data.
