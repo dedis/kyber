@@ -8,11 +8,11 @@ import (
 
 	"os"
 
+	"github.com/stretchr/testify/require"
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 	"gopkg.in/dedis/kyber.v1/util/hash"
 	"gopkg.in/dedis/kyber.v1/util/random"
-	"github.com/stretchr/testify/require"
 )
 
 var suite = edwards25519.NewAES128SHA256Ed25519(false)
@@ -68,8 +68,8 @@ func TestFile(t *testing.T) {
 func TestStructures(t *testing.T) {
 	x := suite.Scalar().Pick(random.Stream)
 	y := suite.Scalar().Pick(random.Stream)
-	X, _ := suite.Point().Pick(nil, random.Stream)
-	Y, _ := suite.Point().Pick(nil, random.Stream)
+	X := suite.Point().Pick(random.Stream)
+	Y := suite.Point().Pick(random.Stream)
 
 	h1, err := hash.Structures(suite.Hash(), x, y)
 	require.Nil(t, err)
