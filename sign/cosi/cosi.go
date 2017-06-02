@@ -2,8 +2,6 @@
 Package cosi is the Collective Signing implementation according to the paper of
 Bryan Ford: http://arxiv.org/pdf/1503.08768v1.pdf .
 
-Stages of CoSi
-
 The CoSi-protocol has 4 stages:
 
 1. Announcement: The leader multicasts an announcement
@@ -50,17 +48,25 @@ import (
 // You create a CoSi struct by giving your secret key you wish to pariticipate
 // with during the CoSi protocol, and the list of public keys representing the
 // list of all co-signer's public keys involved in the round.
+//
 // To use CoSi, call three different functions on it which corresponds to the last
 // three phases of the protocols:
-//  - (Create)Commitment: creates a new secret and its commitment. The output has to
-//  be passed up to the parent in the tree.
-//  - CreateChallenge: the root creates the challenge from receiving all the
-//  commitments. This output must be sent down the tree using Challenge()
-//  function.
-//  - (Create)Response: creates and possibly aggregates all responses and the
-//  output must be sent up into the tree.
-// The root can then issue `Signature()` to get the final signature that can be
-// verified using `VerifySignature()`.
+//
+// - (Create)Commitment: creates a new secret and its commitment. The output has to
+// be passed up to the parent in the tree.
+//
+// - CreateChallenge: the root creates the challenge from receiving all the
+// commitments. This output must be sent down the tree using Challenge()
+// function.
+//
+// - (Create)Response: creates and possibly aggregates all responses and the
+// output must be sent up into the tree.
+//
+// The root can then issue
+//   Signature()
+// to get the final signature that can be verified using
+//   VerifySignature()
+//
 // To handle missing signers, the signature generation will append a bitmask at
 // the end of the signature with each bit index set corresponding to a missing
 // cosigner. If you need to specify a missing signer, you can call

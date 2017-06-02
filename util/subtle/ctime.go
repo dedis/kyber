@@ -1,3 +1,4 @@
+// Package subtle provides constant time utilities for bytes slices.
 package subtle
 
 import (

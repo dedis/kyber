@@ -1,3 +1,8 @@
+// Package encoding package provides many methods to encode/decode a Point/Scalar in
+// base64 or hexadecimal.
+//
+// This package is useful when dealing with custom encoding that are not able to process
+// any interfaces such as Point. It is first needed to encode a Point in its string equivalent.
 package encoding
 
 import (

@@ -1,3 +1,4 @@
+// Package key provide a wrapper to handle conveniently an asymmetric key pair.
 package key
 
 import (

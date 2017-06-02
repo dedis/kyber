@@ -1,3 +1,5 @@
+// Package ints provide some utility functions to deal with integers.
+//
 package ints
 
 // Max returns the maximum of its arguments.

@@ -1,3 +1,5 @@
+// EdDSA implements the EdDSA signature algorithm according to
+// the RFC https://tools.ietf.org/html/draft-josefsson-eddsa-ed25519-02
 package eddsa
 
 import (

@@ -1,10 +1,12 @@
 /*
 The schnorr packages implements the vanilla Schnorr signature scheme.
 See https://en.wikipedia.org/wiki/Schnorr_signature.
+
 The only difference regarding the vanilla reference is the computation of
 the response. This implementation adds the the random component with the
 challenge times private key while the wikipedia article substracts them.
-The resulting signature is however compatible with EdDSA verification algorithm
+
+The resulting signature is compatible with EdDSA verification algorithm
 when using the edwards25519 group, and by extension the CoSi verification algorithm.
 */
 package schnorr
