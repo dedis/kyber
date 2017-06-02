@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 	"gopkg.in/dedis/kyber.v1/util/random"
-	"github.com/stretchr/testify/require"
 )
 
 var s = edwards25519.NewAES128SHA256Ed25519(false)
@@ -20,7 +20,7 @@ func ErrFatal(err error) {
 
 func TestPub64(t *testing.T) {
 	b := &bytes.Buffer{}
-	p, _ := s.Point().Pick(nil, random.Stream)
+	p := s.Point().Pick(random.Stream)
 	ErrFatal(Write64Point(s, b, p))
 	ErrFatal(Write64Point(s, b, p))
 	p2, err := Read64Point(s, b)
@@ -47,7 +47,7 @@ func TestScalar64(t *testing.T) {
 
 func TestPubHexStream(t *testing.T) {
 	b := &bytes.Buffer{}
-	p, _ := s.Point().Pick(nil, random.Stream)
+	p := s.Point().Pick(random.Stream)
 	ErrFatal(WriteHexPoint(s, b, p))
 	ErrFatal(WriteHexPoint(s, b, p))
 	p2, err := ReadHexPoint(s, b)
@@ -72,7 +72,7 @@ func TestScalarHexStream(t *testing.T) {
 }
 
 func TestPubHexString(t *testing.T) {
-	p, _ := s.Point().Pick(nil, random.Stream)
+	p := s.Point().Pick(random.Stream)
 	pstr, err := PointToStringHex(s, p)
 	ErrFatal(err)
 	p2, err := StringHexToPoint(s, pstr)
@@ -81,7 +81,7 @@ func TestPubHexString(t *testing.T) {
 }
 
 func TestPub64String(t *testing.T) {
-	p, _ := s.Point().Pick(nil, random.Stream)
+	p := s.Point().Pick(random.Stream)
 	pstr, err := PointToString64(s, p)
 	ErrFatal(err)
 	p2, err := String64ToPoint(s, pstr)

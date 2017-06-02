@@ -1,3 +1,12 @@
+/*
+The schnorr packages implements the vanilla Schnorr signature scheme.
+See https://en.wikipedia.org/wiki/Schnorr_signature.
+The only difference regarding the vanilla reference is the computation of
+the response. This implementation adds the the random component with the
+challenge times private key while the wikipedia article substracts them.
+The resulting signature is however compatible with EdDSA verification algorithm
+when using the edwards25519 group, and by extension the CoSi verification algorithm.
+*/
 package schnorr
 
 import (
@@ -12,7 +21,7 @@ import (
 
 // Sign creates a Sign signature from a msg and a private key. This
 // signature can be verified with VerifySchnorr. It's also a valid EdDSA
-// signature.
+// signature when using the edwards25519 Group.
 func Sign(g kyber.Group, private kyber.Scalar, msg []byte) ([]byte, error) {
 	// create random secret k and public point commitment R
 	k := g.Scalar().Pick(random.Stream)
@@ -41,9 +50,7 @@ func Sign(g kyber.Group, private kyber.Scalar, msg []byte) ([]byte, error) {
 }
 
 // Verify verifies a given Schnorr signature. It returns nil iff the
-// given signature is valid.  NOTE XXX TODO: this signature scheme is malleable because
-// the response's unmarshalling is done directly into a big.Int modulo (see
-// nist.Int).
+// given signature is valid.
 func Verify(g kyber.Group, public kyber.Point, msg, sig []byte) error {
 	R := g.Point()
 	s := g.Scalar()
