@@ -29,6 +29,7 @@ import (
 
 type point struct {
 	ge extendedGroupElement
+	varTime bool
 }
 
 func (P *point) String() string {
@@ -229,14 +230,23 @@ func (P *point) Mul(s kyber.Scalar, A kyber.Point) kyber.Point {
 	if A == nil {
 		geScalarMultBase(&P.ge, &a)
 	} else {
-		geScalarMult(&P.ge, &a, &A.(*point).ge)
-		//geScalarMultVartime(&P.ge, &a, &A.(*point).ge)
+		if P.varTime {
+			geScalarMultVartime(&P.ge, &a, &A.(*point).ge)
+		} else {
+			geScalarMult(&P.ge, &a, &A.(*point).ge)
+		}
 	}
 
 	return P
 }
 
-// Curve represents an Ed25519.
+func (P *point) SetVarTime(varTime bool) bool {
+	old := P.varTime
+	P.varTime = varTime
+	return old
+}
+
+// Curve represents the Ed25519 group.
 // There are no parameters and no initialization is required
 // because it supports only this one specific curve.
 type Curve struct {
@@ -299,7 +309,3 @@ func (s *Curve) NewKey(stream cipher.Stream) kyber.Scalar {
 	return secret
 }
 
-// Initialize the curve.
-//func (c *Curve) Init(fullGroup bool) {
-//	c.FullGroup = fullGroup
-//}

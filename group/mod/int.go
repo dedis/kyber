@@ -473,3 +473,11 @@ func (i *Int) HideDecode(buf []byte) {
 	i.V.SetBytes(buf)
 	i.V.Mod(&i.V, i.M)
 }
+
+// Allow or disallow variable-time implementation.
+// This implementation unfortunately provices only variable-time operations,
+// so the flag is hard-coded to true.
+func (i *Int) SetVarTime(varTime bool) bool {
+	return true
+}
+

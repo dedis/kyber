@@ -53,11 +53,17 @@ type Scalar interface {
 	// Set to a fresh random or pseudo-random scalar
 	Pick(rand cipher.Stream) Scalar
 
-	// SetBytes will take bytes and create a scalar out of it
+	// SetBytes sets the scalar from a big-endian byte-slice
 	SetBytes([]byte) Scalar
 
-	// Bytes returns the raw internal representation
+	// Bytes returns a big-Endian representation of the scalar
 	Bytes() []byte
+
+	// Allow or disallow use of faster variable-time implementations
+	// of operations on this Point, returning the old flag value.
+	// This flag always defaults to false (constant-time only)
+	// in implementations that can provide constant-time operations.
+	SetVarTime(varTime bool) bool
 }
 
 /*
@@ -111,9 +117,15 @@ type Point interface {
 	// Set to the negation of point a
 	Neg(a Point) Point
 
-	// Encrypt point p by multiplying with scalar s.
-	// If p == nil, encrypt the standard base point Base().
+	// Multiply point p by the scalar s.
+	// If p == nil, multiply with the standard base point Base().
 	Mul(s Scalar, p Point) Point
+
+	// Allow or disallow use of faster variable-time implementations
+	// of operations on this Point.  Returns the old flag value.
+	// This flag always defaults to false (constant-time only)
+	// in implementations that can provide constant-time operations.
+	SetVarTime(varTime bool) bool
 }
 
 /*
