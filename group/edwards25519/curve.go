@@ -33,9 +33,9 @@ func (c *Curve) ScalarLen() int {
 	return 32
 }
 
-// Create a new Scalar for the Ed25519 curve.
+// Create a new Scalar for the prime-order subgroup of the Ed25519 curve.
 func (c *Curve) Scalar() kyber.Scalar {
-	//i := mod.NewInt64(0, &primeOrder.V)
+	//i := mod.NewInt64(0, primeOrder)
 	//i.BO = mod.LittleEndian
 	//return i
 

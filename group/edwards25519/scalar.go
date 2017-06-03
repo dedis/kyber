@@ -8,6 +8,7 @@ import (
 	"io"
 	"errors"
 	"crypto/cipher"
+	"math/big"
 
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/group/mod"
@@ -54,11 +55,11 @@ func (s *scalar) setInt(i *mod.Int) kyber.Scalar {
 
 // Set to a small integer value
 func (s *scalar) SetInt64(v int64) kyber.Scalar {
-	return s.setInt(mod.NewInt64(v, &primeOrder.V))
+	return s.setInt(mod.NewInt64(v, primeOrder))
 }
 
 func (s *scalar) toInt() *mod.Int {
-	return mod.NewIntBytes(s.v[:], &primeOrder.V, mod.LittleEndian)
+	return mod.NewIntBytes(s.v[:], primeOrder, mod.LittleEndian)
 }
 
 // Set to the additive identity (0)
@@ -117,14 +118,14 @@ func (s *scalar) Inv(a kyber.Scalar) kyber.Scalar {
 
 // Set to a fresh random or pseudo-random scalar
 func (s *scalar) Pick(rand cipher.Stream) kyber.Scalar {
-	i := mod.NewInt(random.Int(&primeOrder.V, rand), &primeOrder.V)
+	i := mod.NewInt(random.Int(primeOrder, rand), primeOrder)
 	return s.setInt(i)
 }
 
 // SetBytes sets the scalar from a big-endian byte-slice
 func (s *scalar) SetBytes(b []byte) kyber.Scalar {
 	// XXX handle simple and scReduce cases appropriately
-	return s.setInt(mod.NewIntBytes(b, &primeOrder.V, mod.BigEndian))
+	return s.setInt(mod.NewIntBytes(b, primeOrder, mod.BigEndian))
 }
 
 // Bytes returns a big-Endian representation of the scalar
@@ -176,6 +177,11 @@ func (s *scalar) SetVarTime(varTime bool) bool {
 	return old
 }
 
+func newScalarInt(i *big.Int) *scalar {
+	s := scalar{}
+	s.setInt(mod.NewInt(i, fullOrder))
+	return &s
+}
 
 
 // Input:

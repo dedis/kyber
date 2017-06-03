@@ -138,7 +138,7 @@ func (P *point) Embed(data []byte, rand cipher.Stream) kyber.Point {
 		// we can convert our point into one in the subgroup
 		// simply by multiplying it by the cofactor.
 		if data == nil {
-			P.Mul(cofactor, P) // multiply by cofactor
+			P.Mul(cofactorScalar, P) // multiply by cofactor
 			if P.Equal(nullPoint) {
 				continue // unlucky; try again
 			}
@@ -149,7 +149,7 @@ func (P *point) Embed(data []byte, rand cipher.Stream) kyber.Point {
 		// we must simply check if the point is in the subgroup
 		// and retry point generation until it is.
 		var Q point
-		Q.Mul(primeOrder, P)
+		Q.Mul(primeOrderScalar, P)
 		if Q.Equal(nullPoint) {
 			return P // success
 		}

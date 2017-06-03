@@ -6,8 +6,6 @@ package edwards25519
 
 import (
 	"math/big"
-
-	"gopkg.in/dedis/kyber.v1/group/mod"
 )
 
 // prime modulus of underlying field = 2^255 - 19
@@ -15,13 +13,17 @@ var prime, _ = new(big.Int).SetString("57896044618658097711785492504343953926634
 
 // prime order of base point = 2^252 + 27742317777372353535851937790883648493
 // XXX this should probably just be a big.Int
-var primeOrder, _ = new(mod.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989", "", 10)
+var primeOrder, _ = new(big.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989", 10)
 
 // cofactor of the curve, as a ModInt
-var cofactor = (&scalar{}).SetInt64(8)
+var cofactor = new(big.Int).SetInt64(8)
 
-// order of the full curve including the cofactor
-//var fullOrder = new(big.Int).Mul(&primeOrder.V, &cofactor.V)
+// order of the full group including the cofactor
+var fullOrder = new(big.Int).Mul(primeOrder, cofactor)
+
+// scalar versions of these, usable for multiplication
+var primeOrderScalar = newScalarInt(primeOrder)
+var cofactorScalar = newScalarInt(primeOrder)
 
 // identity point
 var nullPoint = new(point).Null()
