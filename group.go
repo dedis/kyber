@@ -53,7 +53,8 @@ type Scalar interface {
 	// Set to a fresh random or pseudo-random scalar
 	Pick(rand cipher.Stream) Scalar
 
-	// SetBytes sets the scalar from a big-endian byte-slice
+	// SetBytes sets the scalar from a big-endian byte-slice,
+	// reducing if necessary to the appropriate modulus.
 	SetBytes([]byte) Scalar
 
 	// Bytes returns a big-Endian representation of the scalar

@@ -60,8 +60,8 @@ func NewInt64(v int64, M *big.Int) *Int {
 
 // NewIntBytes creates a new Int with a given slice of bytes and a big.Int
 // modulus.
-func NewIntBytes(a []byte, m *big.Int) *Int {
-	return new(Int).InitBytes(a, m)
+func NewIntBytes(a []byte, m *big.Int, byteOrder ByteOrder) *Int {
+	return new(Int).InitBytes(a, m, byteOrder)
 }
 
 // NewIntString creates a new Int with a given string and a big.Int modulus.
@@ -88,9 +88,10 @@ func (i *Int) Init64(v int64, m *big.Int) *Int {
 }
 
 // Initialize to a number represented in a big-endian byte string.
-func (i *Int) InitBytes(a []byte, m *big.Int) *Int {
+// XXX either delete or add an endianness parameter
+func (i *Int) InitBytes(a []byte, m *big.Int, byteOrder ByteOrder) *Int {
 	i.M = m
-	i.BO = BigEndian
+	i.BO = byteOrder
 	i.V.SetBytes(a).Mod(&i.V, i.M)
 	return i
 }

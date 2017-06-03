@@ -140,20 +140,35 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 	gen := g.Point().Base()
 	points = append(points, gen)
 
+	// Sanity-check relationship between addition and multiplication
+	p1 := g.Point().Add(gen, gen)
+	p2 := g.Point().Mul(stmp.SetInt64(2), nil)
+	if !p1.Equal(p2) {
+		panic("oops, multiply by two doesn't work")
+	}
+	p1.Add(p1, p1)
+	p2.Mul(stmp.SetInt64(4), nil)
+	if !p1.Equal(p2) {
+		panic("oops, multiply by four doesn't work")
+	}
+	points = append(points, p1)
+
 	// Verify additive and multiplicative identities of the generator.
 	ptmp.Mul(stmp.SetInt64(-1), nil).Add(ptmp, gen)
 	if !ptmp.Equal(pzero) {
 		panic("oops, generator additive identity doesn't work")
 	}
 	if g.PrimeOrder() { // secret.Inv works only in prime-order groups
+		println("gen", gen.String())
 		ptmp.Mul(stmp.SetInt64(2), nil).Mul(stmp.Inv(stmp), ptmp)
+		println("after", ptmp.String())
 		if !ptmp.Equal(gen) {
 			panic("oops, generator multiplicative identity doesn't work")
 		}
 	}
 
-	p1 := g.Point().Mul(s1, gen)
-	p2 := g.Point().Mul(s2, gen)
+	p1.Mul(s1, gen)
+	p2.Mul(s2, gen)
 	if p1.Equal(p2) {
 		panic("uh-oh, encryption isn't producing unique points!")
 	}
