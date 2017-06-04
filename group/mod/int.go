@@ -2,7 +2,6 @@ package mod
 
 import (
 	"crypto/cipher"
-	"encoding/hex"
 	"errors"
 	"io"
 	"math/big"
@@ -109,7 +108,8 @@ func (i *Int) InitString(n, d string, base int, m *big.Int) *Int {
 
 // Return the Int's integer value in decimal string representation.
 func (i *Int) String() string {
-	return hex.EncodeToString(i.V.Bytes())
+	return i.V.String()
+	//return hex.EncodeToString(i.V.Bytes())
 }
 
 // Set value to a rational fraction n/d represented by a pair of strings.

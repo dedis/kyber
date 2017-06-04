@@ -23,7 +23,7 @@ var fullOrder = new(big.Int).Mul(primeOrder, cofactor)
 
 // scalar versions of these, usable for multiplication
 var primeOrderScalar = newScalarInt(primeOrder)
-var cofactorScalar = newScalarInt(primeOrder)
+var cofactorScalar = newScalarInt(cofactor)
 
 // identity point
 var nullPoint = new(point).Null()

@@ -159,9 +159,7 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 		panic("oops, generator additive identity doesn't work")
 	}
 	if g.PrimeOrder() { // secret.Inv works only in prime-order groups
-		println("gen", gen.String())
 		ptmp.Mul(stmp.SetInt64(2), nil).Mul(stmp.Inv(stmp), ptmp)
-		println("after", ptmp.String())
 		if !ptmp.Equal(gen) {
 			panic("oops, generator multiplicative identity doesn't work")
 		}
