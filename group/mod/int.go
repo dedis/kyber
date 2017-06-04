@@ -92,7 +92,7 @@ func (i *Int) Init64(v int64, m *big.Int) *Int {
 func (i *Int) InitBytes(a []byte, m *big.Int, byteOrder ByteOrder) *Int {
 	i.M = m
 	i.BO = byteOrder
-	i.V.SetBytes(a).Mod(&i.V, i.M)
+	i.SetBytes(a)
 	return i
 }
 

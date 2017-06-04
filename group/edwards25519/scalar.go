@@ -9,6 +9,8 @@ import (
 	"errors"
 	"crypto/cipher"
 	"math/big"
+	//"encoding/hex"
+	//"runtime/debug"
 
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/group/mod"
@@ -105,13 +107,6 @@ func (s *scalar) Div(a, b kyber.Scalar) kyber.Scalar {
 // XXX not yet constant-time implementation; should be fixed
 func (s *scalar) Inv(a kyber.Scalar) kyber.Scalar {
 	i := a.(*scalar).toInt()
-	println("A"+ i.String())
-	i.Inv(i)
-	println("B"+ i.String())
-	i.Inv(i)
-	println("C"+ i.String())
-	i.Inv(i)
-	println("D"+ i.String())
 	i.Inv(i)
 	return s.setInt(i)
 }
