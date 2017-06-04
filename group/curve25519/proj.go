@@ -92,12 +92,12 @@ func (P *projPoint) Set(CP2 kyber.Point) kyber.Point {
 }
 
 func (P *projPoint) Clone() kyber.Point {
-	return &projPoint{
-		c: P.c,
-		X: P.X,
-		Y: P.Y,
-		Z: P.Z,
-	}
+	P2 := projPoint{}
+	P2.c = P.c
+	P2.X.Set(&P.X)
+	P2.Y.Set(&P.Y)
+	P2.Z.Set(&P.Z)
+	return &P2
 }
 
 func (P *projPoint) Null() kyber.Point {

@@ -102,13 +102,13 @@ func (P *extPoint) Set(CP2 kyber.Point) kyber.Point {
 }
 
 func (P *extPoint) Clone() kyber.Point {
-	return &extPoint{
-		c: P.c,
-		X: P.X,
-		Y: P.Y,
-		Z: P.Z,
-		T: P.T,
-	}
+	P2 := extPoint{}
+	P2.c = P.c
+	P2.X.Set(&P.X)
+	P2.Y.Set(&P.Y)
+	P2.Z.Set(&P.Z)
+	P2.T.Set(&P.T)
+	return &P2
 }
 
 func (P *extPoint) Null() kyber.Point {
