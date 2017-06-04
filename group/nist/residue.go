@@ -164,6 +164,13 @@ func (p *residuePoint) UnmarshalFrom(r io.Reader) (int, error) {
 	return marshalling.PointUnmarshalFrom(p, r)
 }
 
+// This implementation only supports variable-time operations
+func (P *residuePoint) SetVarTime(varTime bool) bool {
+	return true
+}
+
+
+
 /*
 A ResidueGroup represents a DSA-style modular integer arithmetic group,
 defined by two primes P and Q and an integer R, such that P = Q*R+1.

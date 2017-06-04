@@ -267,6 +267,12 @@ func (P *extPoint) Mul(s kyber.Scalar, G kyber.Point) kyber.Point {
 	return P
 }
 
+// This implementation only supports variable-time operations
+func (P *extPoint) SetVarTime(varTime bool) bool {
+	return true
+}
+
+
 // ExtendedCurve implements Twisted Edwards curves
 // using projective coordinate representation (X:Y:Z),
 // satisfying the identities x = X/Z, y = Y/Z.

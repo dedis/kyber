@@ -123,7 +123,7 @@ func (el *el2param) HideDecode(P point, rep []byte) {
 	buf := make([]byte, l)
 	copy(buf, rep)
 	buf[0] &^= el.padmask() // mask off the padding bits
-	r.InitBytes(buf, &ec.P)
+	r.InitBytes(buf, &ec.P, mod.BigEndian)
 
 	// v = -A/(1+ur^2)
 	v.Mul(&r, &r).Mul(&el.u, &v).Add(&ec.one, &v).Div(&el.negA, &v)

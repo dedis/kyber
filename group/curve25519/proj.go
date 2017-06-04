@@ -148,8 +148,7 @@ func (P *projPoint) Add(CP1, CP2 kyber.Point) kyber.Point {
 	P2 := CP2.(*projPoint)
 	X1, Y1, Z1 := &P1.X, &P1.Y, &P1.Z
 	X2, Y2, Z2 := &P2.X, &P2.Y, &P2.Z
-	X3, Y3, Z3 := &P.X, &P.Y, &P.Z
-	var A, B, C, D, E, F, G mod.Int
+	var A, B, C, D, E, F, G, X3, Y3, Z3 mod.Int
 
 	A.Mul(Z1, Z2)
 	B.Mul(&A, &A)
@@ -158,10 +157,15 @@ func (P *projPoint) Add(CP1, CP2 kyber.Point) kyber.Point {
 	E.Mul(&C, &D).Mul(&P.c.d, &E)
 	F.Sub(&B, &E)
 	G.Add(&B, &E)
-	X3.Add(X1, Y1).Mul(X3, Z3.Add(X2, Y2)).Sub(X3, &C).Sub(X3, &D).
-		Mul(&F, X3).Mul(&A, X3)
-	Y3.Mul(&P.c.a, &C).Sub(&D, Y3).Mul(&G, Y3).Mul(&A, Y3)
+	X3.Add(X1, Y1).Mul(&X3, Z3.Add(X2, Y2)).Sub(&X3, &C).Sub(&X3, &D).
+		Mul(&F, &X3).Mul(&A, &X3)
+	Y3.Mul(&P.c.a, &C).Sub(&D, &Y3).Mul(&G, &Y3).Mul(&A, &Y3)
 	Z3.Mul(&F, &G)
+
+	P.c = P1.c
+	P.X.Set(&X3)
+	P.Y.Set(&Y3)
+	P.Z.Set(&Z3)
 	return P
 }
 
@@ -171,8 +175,7 @@ func (P *projPoint) Sub(CP1, CP2 kyber.Point) kyber.Point {
 	P2 := CP2.(*projPoint)
 	X1, Y1, Z1 := &P1.X, &P1.Y, &P1.Z
 	X2, Y2, Z2 := &P2.X, &P2.Y, &P2.Z
-	X3, Y3, Z3 := &P.X, &P.Y, &P.Z
-	var A, B, C, D, E, F, G mod.Int
+	var A, B, C, D, E, F, G, X3, Y3, Z3 mod.Int
 
 	A.Mul(Z1, Z2)
 	B.Mul(&A, &A)
@@ -181,10 +184,15 @@ func (P *projPoint) Sub(CP1, CP2 kyber.Point) kyber.Point {
 	E.Mul(&C, &D).Mul(&P.c.d, &E)
 	F.Add(&B, &E)
 	G.Sub(&B, &E)
-	X3.Add(X1, Y1).Mul(X3, Z3.Sub(Y2, X2)).Add(X3, &C).Sub(X3, &D).
-		Mul(&F, X3).Mul(&A, X3)
-	Y3.Mul(&P.c.a, &C).Add(&D, Y3).Mul(&G, Y3).Mul(&A, Y3)
+	X3.Add(X1, Y1).Mul(&X3, Z3.Sub(Y2, X2)).Add(&X3, &C).Sub(&X3, &D).
+		Mul(&F, &X3).Mul(&A, &X3)
+	Y3.Mul(&P.c.a, &C).Add(&D, &Y3).Mul(&G, &Y3).Mul(&A, &Y3)
 	Z3.Mul(&F, &G)
+
+	P.c = P1.c
+	P.X.Set(&X3)
+	P.Y.Set(&Y3)
+	P.Z.Set(&Z3)
 	return P
 }
 
@@ -237,6 +245,12 @@ func (P *projPoint) Mul(s kyber.Scalar, G kyber.Point) kyber.Point {
 	}
 	return P
 }
+
+// This implementation only supports variable-time operations
+func (P *projPoint) SetVarTime(varTime bool) bool {
+	return true
+}
+
 
 // ProjectiveCurve implements Twisted Edwards curves
 // using projective coordinate representation (X:Y:Z),

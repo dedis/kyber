@@ -212,6 +212,12 @@ func (p *curvePoint) UnmarshalFrom(r io.Reader) (int, error) {
 	return marshalling.PointUnmarshalFrom(p, r)
 }
 
+// This implementation only supports variable-time operations
+func (P *curvePoint) SetVarTime(varTime bool) bool {
+	return true
+}
+
+
 // interface for curve-specifc mathematical functions
 type curveOps interface {
 	sqrt(y *big.Int) *big.Int
