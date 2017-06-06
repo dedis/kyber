@@ -41,20 +41,23 @@ type Server struct {
 	websocket *WebSocket
 	// when this node has been started
 	started time.Time
+
+	suite network.Suite
 }
 
 // NewServer returns a fresh Server tied to a given Router.
-func NewServer(r *network.Router, pkey kyber.Scalar) *Server {
+func NewServer(r *network.Router, pkey kyber.Scalar, s network.Suite) *Server {
 	c := &Server{
 		private:              pkey,
 		statusReporterStruct: newStatusReporterStruct(),
 		Router:               r,
 		protocols:            newProtocolStorage(),
 		started:              time.Now(),
+		suite:                s,
 	}
 	c.overlay = NewOverlay(c)
 	c.websocket = NewWebSocket(r.ServerIdentity)
-	c.serviceManager = newServiceManager(c, c.overlay)
+	c.serviceManager = newServiceManager(c, c.overlay, s)
 	c.statusReporterStruct.RegisterStatusReporter("Status", c)
 	for name, inst := range protocols.instantiators {
 		log.Lvl4("Registering global protocol", name)
@@ -65,17 +68,17 @@ func NewServer(r *network.Router, pkey kyber.Scalar) *Server {
 
 // NewServerTCP returns a new Server out of a private-key and its related public
 // key within the ServerIdentity. The server will use a default TcpRouter as Router.
-func NewServerTCP(e *network.ServerIdentity, pkey kyber.Scalar) *Server {
-	r, err := network.NewTCPRouter(e)
+func NewServerTCP(e *network.ServerIdentity, pkey kyber.Scalar, suite network.Suite) *Server {
+	r, err := network.NewTCPRouter(e, suite)
 	log.ErrFatal(err)
-	return NewServer(r, pkey)
+	return NewServer(r, pkey, suite)
 }
 
 // Suite can (and should) be used to get the underlying Suite.
 // Currently the suite is hardcoded into the network library.
 // Don't use network.Suite but Host's Suite function instead if possible.
 func (c *Server) Suite() network.Suite {
-	return network.S
+	return c.suite
 }
 
 // GetStatus is a function that returns the status report of the server.

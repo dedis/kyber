@@ -167,6 +167,7 @@ type Client struct {
 	service string
 	si      *network.ServerIdentity
 	conn    *websocket.Conn
+	suite   network.Suite
 	// whether to keep the connection
 	keep bool
 	rx   uint64
@@ -176,18 +177,20 @@ type Client struct {
 
 // NewClient returns a client using the service s. On the first Send, the
 // connection will be started, until Close is called.
-func NewClient(s string) *Client {
+func NewClient(s string, suite network.Suite) *Client {
 	return &Client{
 		service: s,
+		suite:   suite,
 	}
 }
 
 // NewClientKeep returns a Client that doesn't close the connection between
 // two messages if it's the same server.
-func NewClientKeep(s string) *Client {
+func NewClientKeep(s string, suite network.Suite) *Client {
 	return &Client{
 		service: s,
 		keep:    true,
+		suite:   suite,
 	}
 }
 
@@ -259,7 +262,7 @@ func (c *Client) SendProtobuf(dst *network.ServerIdentity, msg interface{}, ret 
 	}
 	if ret != nil {
 		err := protobuf.DecodeWithConstructors(reply, ret,
-			network.DefaultConstructors(network.S))
+			network.DefaultConstructors(c.suite))
 		return NewClientError(err)
 	}
 	return nil

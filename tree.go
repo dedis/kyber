@@ -6,6 +6,7 @@ import (
 
 	"math/rand"
 
+	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 	"github.com/satori/go.uuid"
@@ -65,14 +66,14 @@ func NewTree(el *Roster, r *TreeNode) *Tree {
 	}
 	// network.Suite used for the moment => explicit mark that something is
 	// wrong and that needs to be changed !
-	t.computeSubtreeAggregate(network.S, r)
+	t.computeSubtreeAggregate(RosterSuite, r)
 	return t
 }
 
 // NewTreeFromMarshal takes a slice of bytes and an Roster to re-create
 // the original tree
 func NewTreeFromMarshal(buf []byte, el *Roster) (*Tree, error) {
-	tp, pm, err := network.Unmarshal(buf)
+	tp, pm, err := network.Unmarshal(buf, RosterSuite)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +81,7 @@ func NewTreeFromMarshal(buf []byte, el *Roster) (*Tree, error) {
 		return nil, errors.New("Didn't receive TreeMarshal-struct")
 	}
 	t, err := pm.(*TreeMarshal).MakeTree(el)
-	t.computeSubtreeAggregate(network.S, t.Root)
+	t.computeSubtreeAggregate(RosterSuite, t.Root)
 	return t, err
 }
 
@@ -130,7 +131,7 @@ func (t *Tree) BinaryMarshaler() ([]byte, error) {
 
 // BinaryUnmarshaler takes a TreeMarshal and stores it in the tree
 func (t *Tree) BinaryUnmarshaler(b []byte) error {
-	_, m, err := network.Unmarshal(b)
+	_, m, err := network.Unmarshal(b, RosterSuite)
 	tbm, ok := m.(*tbmStruct)
 	if !ok {
 		return errors.New("Didn't find TBMstruct")
@@ -314,7 +315,7 @@ func (tm TreeMarshal) MakeTree(el *Roster) (*Tree, error) {
 		Roster: el,
 	}
 	tree.Root = tm.Children[0].MakeTreeFromList(nil, el)
-	tree.computeSubtreeAggregate(network.S, tree.Root)
+	tree.computeSubtreeAggregate(RosterSuite, tree.Root)
 	return tree, nil
 }
 
@@ -367,11 +368,13 @@ func (elId RosterID) IsNil() bool {
 // RosterTypeID of Roster message as registered in network
 var RosterTypeID = network.RegisterMessage(Roster{})
 
+var RosterSuite = edwards25519.NewAES128SHA256Ed25519(false)
+
 // NewRoster creates a new ServerIdentity from a list of entities. It also
 // adds a UUID which is randomly chosen.
 func NewRoster(ids []*network.ServerIdentity) *Roster {
 	// compute the aggregate key already
-	agg := network.S.Point().Null()
+	agg := RosterSuite.Point().Null()
 	for _, e := range ids {
 		agg = agg.Add(agg, e.Public)
 	}
@@ -681,7 +684,7 @@ func (t *TreeNode) SubtreeCount() int {
 // AggregatePublic will return the aggregate public key of the TreeNode
 // and all it's children
 func (t *TreeNode) AggregatePublic() kyber.Point {
-	agg := network.S.Point().Null()
+	agg := RosterSuite.Point().Null()
 	t.Visit(0, func(i int, tn *TreeNode) {
 		agg.Add(agg, tn.ServerIdentity.Public)
 	})

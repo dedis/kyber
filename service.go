@@ -188,7 +188,7 @@ func (s *serviceFactory) start(name string, con *Context, suite interface{}) (Se
 	defer s.mutex.RUnlock()
 	for _, c := range s.constructors {
 		if name == c.name {
-			return c.constructor(con), nil
+			return c.constructor(con, suite), nil
 		}
 	}
 	return nil, errors.New("Didn't find service " + name)
@@ -208,6 +208,8 @@ type serviceManager struct {
 const configFolder = "config"
 
 // newServiceStore will create a serviceStore out of all the registered Service
+// XXX How to do different suites for different services ? By using some kind of
+// constructor map[service name(string)]suite impplementation(interface{}) ? ...
 func newServiceManager(c *Server, o *Overlay, suite interface{}) *serviceManager {
 	services := make(map[ServiceID]Service)
 	s := &serviceManager{services, c, network.NewRoutineDispatcher()}
@@ -218,7 +220,7 @@ func newServiceManager(c *Server, o *Overlay, suite interface{}) *serviceManager
 		cont := newContext(c, o, id, s)
 		s, err := ServiceFactory.start(name, cont, suite)
 		if err != nil {
-			log.Error("Trying to instantiate service:", err)
+			log.Panic("Trying to instantiate service", name, ":", err)
 		}
 		log.Lvl3("Started Service", name)
 		services[id] = s

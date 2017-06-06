@@ -17,6 +17,7 @@ import (
 // with RegisterMessage.
 type ServiceProcessor struct {
 	handlers map[string]serviceHandler
+	suite    network.Suite
 	*Context
 }
 
@@ -27,10 +28,11 @@ type serviceHandler struct {
 }
 
 // NewServiceProcessor initializes your ServiceProcessor.
-func NewServiceProcessor(c *Context) *ServiceProcessor {
+func NewServiceProcessor(c *Context, s network.Suite) *ServiceProcessor {
 	return &ServiceProcessor{
 		handlers: make(map[string]serviceHandler),
 		Context:  c,
+		suite:    s,
 	}
 }
 
@@ -120,7 +122,7 @@ func (p *ServiceProcessor) ProcessClientRequest(path string, buf []byte) ([]byte
 		}
 		msg := reflect.New(mh.msgType).Interface()
 		err := protobuf.DecodeWithConstructors(buf, msg,
-			network.DefaultConstructors(network.S))
+			network.DefaultConstructors(p.suite))
 		if err != nil {
 			return nil, NewClientErrorCode(WebSocketErrorProtobufDecode, err.Error())
 		}

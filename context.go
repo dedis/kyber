@@ -184,7 +184,7 @@ func (c *Context) Load(id string) (interface{}, error) {
 			return nil, err
 		}
 	}
-	_, ret, err := network.Unmarshal(buf)
+	_, ret, err := network.Unmarshal(buf, c.server.suite)
 	return ret, err
 }
 

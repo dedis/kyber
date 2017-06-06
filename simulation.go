@@ -76,13 +76,13 @@ type SimulationConfigFile struct {
 
 // LoadSimulationConfig gets all configuration from dir + SimulationFileName and instantiates the
 // corresponding host 'ca'.
-func LoadSimulationConfig(dir, ca string) ([]*SimulationConfig, error) {
+func LoadSimulationConfig(dir, ca string, s network.Suite) ([]*SimulationConfig, error) {
 	network.RegisterMessage(SimulationConfigFile{})
 	bin, err := ioutil.ReadFile(dir + "/" + SimulationFileName)
 	if err != nil {
 		return nil, err
 	}
-	_, msg, err := network.Unmarshal(bin)
+	_, msg, err := network.Unmarshal(bin, s)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func LoadSimulationConfig(dir, ca string) ([]*SimulationConfig, error) {
 		}
 		for _, e := range sc.Roster.List {
 			if strings.Contains(e.Address.String(), ca) {
-				server := NewServerTCP(e, scf.PrivateKeys[e.Address])
+				server := NewServerTCP(e, scf.PrivateKeys[e.Address], s)
 				scNew := *sc
 				scNew.Server = server
 				scNew.Overlay = server.overlay
@@ -201,7 +201,7 @@ type SimulationBFTree struct {
 // CreateRoster creates an Roster with the host-names in 'addresses'.
 // It creates 's.Hosts' entries, starting from 'port' for each round through
 // 'addresses'. The network.Address(es) created are of type PlainTCP.
-func (s *SimulationBFTree) CreateRoster(sc *SimulationConfig, addresses []string, port int) {
+func (s *SimulationBFTree) CreateRoster(sc *SimulationConfig, addresses []string, port int, suite network.Suite) {
 	start := time.Now()
 	nbrAddr := len(addresses)
 	if sc.PrivateKeys == nil {
@@ -225,7 +225,7 @@ func (s *SimulationBFTree) CreateRoster(sc *SimulationConfig, addresses []string
 	}
 	entities := make([]*network.ServerIdentity, hosts)
 	log.Lvl3("Doing", hosts, "hosts")
-	key := key.NewKeyPair(network.S)
+	key := key.NewKeyPair(suite)
 	for c := 0; c < hosts; c++ {
 		key.Secret.Add(key.Secret,
 			key.Suite.Scalar().One())

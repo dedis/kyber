@@ -190,10 +190,10 @@ func (p *messageProxyStore) getByPacketType(mid network.MessageTypeID) MessagePr
 	return p.defaultIO
 }
 
-func newMessageProxyStore(disp network.Dispatcher, proc network.Processor) *messageProxyStore {
+func newMessageProxyStore(disp network.Dispatcher, proc network.Processor, s network.Suite) *messageProxyStore {
 	pstore := &messageProxyStore{
 		// also add the default one
-		defaultIO: new(defaultProtoIO),
+		defaultIO: &defaultProtoIO{s},
 	}
 	for name, newIO := range messageProxyFactory.factories {
 		io := newIO()
