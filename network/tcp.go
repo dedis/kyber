@@ -19,8 +19,8 @@ import (
 var readTimeout = 1 * time.Minute
 
 // NewTCPRouter returns a new Router using TCPHost as the underlying Host.
-func NewTCPRouter(sid *ServerIdentity) (*Router, error) {
-	h, err := NewTCPHost(sid.Address)
+func NewTCPRouter(sid *ServerIdentity, suite Suite) (*Router, error) {
+	h, err := NewTCPHost(sid.Address, suite)
 	if err != nil {
 		return nil, err
 	}
@@ -36,6 +36,9 @@ type TCPConn struct {
 	// The connection used
 	conn net.Conn
 
+	// the suite used to unmarshal messages
+	suite Suite
+
 	// closed indicator
 	closed    bool
 	closedMut sync.Mutex
@@ -49,7 +52,7 @@ type TCPConn struct {
 
 // NewTCPConn will open a TCPConn to the given address.
 // In case of an error it returns a nil TCPConn and the error.
-func NewTCPConn(addr Address) (conn *TCPConn, err error) {
+func NewTCPConn(addr Address, suite Suite) (conn *TCPConn, err error) {
 	netAddr := addr.NetworkAddress()
 	for i := 1; i <= MaxRetryConnect; i++ {
 		var c net.Conn
@@ -87,7 +90,7 @@ func (c *TCPConn) Receive() (env *Envelope, e error) {
 		return nil, err
 	}
 
-	id, body, err := Unmarshal(buff)
+	id, body, err := Unmarshal(buff, c.suite)
 	return &Envelope{
 		MsgType: id,
 		Msg:     body,
@@ -244,6 +247,9 @@ type TCPListener struct {
 	// actual listening addr which might differ from initial address in
 	// case of ":0"-address.
 	addr net.Addr
+
+	// suite that is given to each incoming connection
+	suite Suite
 }
 
 // NewTCPListener returns a TCPListener. This function binds to the given
@@ -252,13 +258,14 @@ type TCPListener struct {
 // the binding.
 // A subsequent call to Address() gives the actual listening
 // address which is different if you gave it a ":0"-address.
-func NewTCPListener(addr Address) (*TCPListener, error) {
+func NewTCPListener(addr Address, s Suite) (*TCPListener, error) {
 	if addr.ConnType() != PlainTCP {
 		return nil, errors.New("TCPListener can't listen on non-tcp address")
 	}
 	t := &TCPListener{
 		quit:         make(chan bool),
 		quitListener: make(chan bool),
+		suite:        s,
 	}
 	global, _ := GlobalBind(addr.NetworkAddress())
 	for i := 0; i < MaxRetryConnect; i++ {
@@ -366,17 +373,19 @@ func (t *TCPListener) Listening() bool {
 
 // TCPHost implements the Host interface using TCP connections.
 type TCPHost struct {
-	addr Address
+	addr  Address
+	suite Suite
 	*TCPListener
 }
 
 // NewTCPHost returns a new Host using TCP connection based type.
-func NewTCPHost(addr Address) (*TCPHost, error) {
+func NewTCPHost(addr Address, s Suite) (*TCPHost, error) {
 	h := &TCPHost{
-		addr: addr,
+		addr:  addr,
+		suite: s,
 	}
 	var err error
-	h.TCPListener, err = NewTCPListener(addr)
+	h.TCPListener, err = NewTCPListener(addr, s)
 	return h, err
 }
 
@@ -386,7 +395,7 @@ func (t *TCPHost) Connect(si *ServerIdentity) (Conn, error) {
 	addr := si.Address
 	switch addr.ConnType() {
 	case PlainTCP:
-		c, err := NewTCPConn(addr)
+		c, err := NewTCPConn(addr, t.suite)
 		return c, err
 	}
 	return nil, fmt.Errorf("TCPHost %s can't handle this type of connection: %s", addr, addr.ConnType())
