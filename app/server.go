@@ -47,7 +47,7 @@ const whatsMyIP = "http://www.whatsmyip.org/"
 // no public IP can be configured, localhost will be used.
 // If everything is OK, the configuration-files will be written.
 // In case of an error this method Fatals.
-func InteractiveConfig(binaryName string) {
+func InteractiveConfig(binaryName string, suite network.Suite) {
 	log.Info("Setting up a cothority-server.")
 	checkAvailableMemory()
 	str := Inputf(strconv.Itoa(DefaultPort), "Please enter the [address:]PORT for incoming requests")
@@ -133,7 +133,7 @@ func InteractiveConfig(binaryName string) {
 	}
 
 	// create the keys
-	privStr, pubStr := createKeyPair()
+	privStr, pubStr := createKeyPair(suite)
 	conf := &CothorityConfig{
 		Public:  pubStr,
 		Private: privStr,
@@ -167,12 +167,12 @@ func InteractiveConfig(binaryName string) {
 		}
 	}
 
-	public, err := encoding.StringHexToPoint(network.S, pubStr)
+	public, err := encoding.StringHexToPoint(suite, pubStr)
 	if err != nil {
 		log.Fatal("Impossible to parse public key:", err)
 	}
 
-	server := NewServerToml(network.S, public, publicAddress, conf.Description)
+	server := NewServerToml(suite, public, publicAddress, conf.Description)
 	group := NewGroupToml(server)
 
 	saveFiles(conf, configFile, group, groupFile)
@@ -200,10 +200,10 @@ func checkOverwrite(file string) bool {
 }
 
 // createKeyPair returns the private and public key in hexadecimal representation.
-func createKeyPair() (string, string) {
+func createKeyPair(suite network.Suite) (string, string) {
 	log.Info("Creating ed25519 private and public keys.")
-	kp := key.NewKeyPair(network.S)
-	privStr, err := encoding.ScalarToStringHex(network.S, kp.Secret)
+	kp := key.NewKeyPair(suite)
+	privStr, err := encoding.ScalarToStringHex(suite, kp.Secret)
 	if err != nil {
 		log.Fatal("Error formating private key to hexadecimal. Abort.")
 	}
@@ -211,7 +211,7 @@ func createKeyPair() (string, string) {
 	// use the transformation for EdDSA signatures
 	//point = cosi.Ed25519Public(network.Suite, kp.Secret)
 	point = kp.Public
-	pubStr, err := encoding.PointToStringHex(network.S, point)
+	pubStr, err := encoding.PointToStringHex(suite, point)
 	if err != nil {
 		log.Fatal("Could not parse public key. Abort.")
 	}
@@ -376,12 +376,12 @@ func checkAvailableMemory() {
 
 // RunServer starts a cothority server with the given config file name. It can
 // be used by different apps (like CoSi, for example)
-func RunServer(configFilename string) {
+func RunServer(configFilename string, suite network.Suite) {
 	if _, err := os.Stat(configFilename); os.IsNotExist(err) {
 		log.Fatalf("[-] Configuration file does not exists. %s", configFilename)
 	}
 	// Let's read the config
-	_, server, err := ParseCothority(configFilename)
+	_, server, err := ParseCothority(configFilename, suite)
 	if err != nil {
 		log.Fatal("Couldn't parse config:", err)
 	}

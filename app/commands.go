@@ -3,7 +3,9 @@ package app
 import (
 	"os"
 
+	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/network"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -17,7 +19,7 @@ var CmdSetup = cli.Command{
 	Aliases: []string{"s"},
 	Usage:   "Setup the configuration for the server (interactive)",
 	Action: func(c *cli.Context) error {
-		InteractiveConfig("cothority")
+		InteractiveConfig("cothority", onet.RosterSuite)
 		return nil
 	},
 }
@@ -26,9 +28,9 @@ var CmdSetup = cli.Command{
 var CmdServer = cli.Command{
 	Name:  "server",
 	Usage: "Run the cothority server",
-	Action: func(c *cli.Context) {
-		runServer(c)
-	},
+	/*Action: func(c *cli.Context) {*/
+	//runServer(c)
+	/*},*/
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:  "config, c",
@@ -53,14 +55,13 @@ var FlagConfig = cli.StringFlag{
 }
 
 // Server runs a stand-alone server with all imported services
-func Server() {
+func Server(suite network.Suite) {
 	cliApp := cli.NewApp()
 	cliApp.Name = "Cothority server"
 	cliApp.Usage = "Serve a cothority"
 
 	cliApp.Commands = []cli.Command{
 		CmdSetup,
-		CmdServer,
 	}
 	cliApp.Flags = []cli.Flag{
 		FlagDebug,
@@ -68,6 +69,10 @@ func Server() {
 		//cli.StringFlag{Name: "test.run"},
 		//cli.StringFlag{Name: "test.v"},
 	}
+	CmdServer.Action = func(c *cli.Context) {
+		runServer(c, suite)
+	}
+	cliApp.Commands = append(cliApp.Commands, CmdServer)
 
 	cliApp.Before = func(c *cli.Context) error {
 		log.SetDebugVisible(c.Int("d"))
@@ -76,7 +81,7 @@ func Server() {
 
 	// default action
 	cliApp.Action = func(c *cli.Context) error {
-		runServer(c)
+		runServer(c, suite)
 		return nil
 	}
 
@@ -85,8 +90,8 @@ func Server() {
 }
 
 // RunServer starts the server
-func runServer(ctx *cli.Context) {
+func runServer(ctx *cli.Context, suite network.Suite) {
 	// first check the options
 	config := ctx.String("config")
-	RunServer(config)
+	RunServer(config, suite)
 }

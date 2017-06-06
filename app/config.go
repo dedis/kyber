@@ -42,24 +42,24 @@ func (hc *CothorityConfig) Save(file string) error {
 // ParseCothority parses the config file into a CothorityConfig.
 // It returns the CothorityConfig, the Host so we can already use it, and an error if
 // the file is inaccessible or has wrong values in it.
-func ParseCothority(file string) (*CothorityConfig, *onet.Server, error) {
+func ParseCothority(file string, suite network.Suite) (*CothorityConfig, *onet.Server, error) {
 	hc := &CothorityConfig{}
 	_, err := toml.DecodeFile(file, hc)
 	if err != nil {
 		return nil, nil, err
 	}
 	// Try to decode the Hex values
-	secret, err := encoding.StringHexToScalar(network.S, hc.Private)
+	secret, err := encoding.StringHexToScalar(suite, hc.Private)
 	if err != nil {
 		return nil, nil, err
 	}
-	point, err := encoding.StringHexToPoint(network.S, hc.Public)
+	point, err := encoding.StringHexToPoint(suite, hc.Public)
 	if err != nil {
 		return nil, nil, err
 	}
 	si := network.NewServerIdentity(point, hc.Address)
 	si.Description = hc.Description
-	server := onet.NewServerTCP(si, secret)
+	server := onet.NewServerTCP(si, secret, suite)
 	return hc, server, nil
 }
 
@@ -100,7 +100,7 @@ func (g *Group) GetDescription(e *network.ServerIdentity) string {
 // and descriptions in the file.
 // If the file couldn't be decoded or doesn't hold valid ServerIdentities,
 // an error is returned.
-func ReadGroupDescToml(f io.Reader) (*Group, error) {
+func ReadGroupDescToml(f io.Reader, suite network.Suite) (*Group, error) {
 	group := &GroupToml{}
 	_, err := toml.DecodeReader(f, group)
 	if err != nil {
@@ -110,7 +110,7 @@ func ReadGroupDescToml(f io.Reader) (*Group, error) {
 	var entities = make([]*network.ServerIdentity, len(group.Servers))
 	var descs = make(map[*network.ServerIdentity]string)
 	for i, s := range group.Servers {
-		en, err := s.toServerIdentity(network.S)
+		en, err := s.toServerIdentity(suite)
 		if err != nil {
 			return nil, err
 		}
@@ -124,8 +124,8 @@ func ReadGroupDescToml(f io.Reader) (*Group, error) {
 // ReadGroupToml reads a group.toml file and returns the list of ServerIdentity
 // described in the file.
 // If the file holds an invalid ServerIdentity-description, an error is returned.
-func ReadGroupToml(f io.Reader) (*onet.Roster, error) {
-	group, err := ReadGroupDescToml(f)
+func ReadGroupToml(f io.Reader, suite network.Suite) (*onet.Roster, error) {
+	group, err := ReadGroupDescToml(f, suite)
 	if err != nil {
 		return nil, err
 	}
