@@ -7,7 +7,6 @@ package dleq
 
 import (
 	"errors"
-	"hash"
 
 	"gopkg.in/dedis/kyber.v1"
 	h "gopkg.in/dedis/kyber.v1/util/hash"
@@ -16,8 +15,8 @@ import (
 
 type Suite interface {
 	kyber.Group
-	Hash() hash.Hash
-	Cipher(key []byte, options ...interface{}) kyber.Cipher
+	kyber.HashFactory
+	kyber.CipherFactory
 }
 
 var errorDifferentLengths = errors.New("inputs of different lengths")

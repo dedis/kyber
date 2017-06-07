@@ -2,6 +2,7 @@ package kyber
 
 import (
 	"errors"
+	"hash"
 
 	"gopkg.in/dedis/kyber.v1/util/bytes"
 	"gopkg.in/dedis/kyber.v1/util/subtle"
@@ -362,4 +363,14 @@ func (c Cipher) Open(dst, src []byte) ([]byte, error) {
 // Warning:: misuse of Clone can lead to replay or key-reuse vulnerabilities.
 func (c Cipher) Clone() Cipher {
 	return Cipher{c.CipherState.Clone()}
+}
+
+// CipherFactory abstracts the creation of a Cipher.
+type CipherFactory interface {
+	Cipher(key []byte, options ...interface{}) Cipher
+}
+
+// HashFactory abstracts away the creation of a Hash
+type HashFactory interface {
+	Hash() hash.Hash
 }

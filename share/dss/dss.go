@@ -19,7 +19,6 @@ import (
 	"crypto/sha512"
 	"errors"
 	"fmt"
-	"hash"
 
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/share"
@@ -30,7 +29,7 @@ import (
 
 type Suite interface {
 	kyber.Group
-	Hash() hash.Hash
+	kyber.HashFactory
 }
 
 // DSS holds the information used to issue partial signatures as well as to
