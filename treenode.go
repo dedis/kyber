@@ -8,8 +8,8 @@ import (
 
 	"strings"
 
-	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/network"
+	"gopkg.in/dedis/onet.v2/log"
+	"gopkg.in/dedis/onet.v2/network"
 	"gopkg.in/dedis/kyber.v1"
 )
 
@@ -359,10 +359,10 @@ func (n *TreeNodeInstance) DispatchChannel(msgSlice []*ProtocolMsg) error {
 		// Debugging some rare error found in travis
 		switch {
 		case mt == network.ErrorType:
-			log.Print("https://github.com/dedis/onet/issues/51",
+			log.Print("https://gopkg.in/dedis/onet.v2/issues/51",
 				log.Stack())
 		case n.channels[mt] == nil:
-			log.Print("https://github.com/dedis/onet/issues/51",
+			log.Print("https://gopkg.in/dedis/onet.v2/issues/51",
 				mt, log.Stack())
 		}
 		reflect.ValueOf(n.channels[mt]).Send(out)

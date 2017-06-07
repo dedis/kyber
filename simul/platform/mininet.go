@@ -24,9 +24,9 @@ import (
 	"runtime"
 
 	"github.com/BurntSushi/toml"
-	"github.com/dedis/onet"
-	"github.com/dedis/onet/app"
-	"github.com/dedis/onet/log"
+	"gopkg.in/dedis/onet.v2"
+	"gopkg.in/dedis/onet.v2/app"
+	"gopkg.in/dedis/onet.v2/log"
 )
 
 // MiniNet represents all the configuration that is necessary to run a simulation

@@ -37,8 +37,8 @@ import (
 	"errors"
 
 	"github.com/BurntSushi/toml"
-	"github.com/dedis/onet"
-	"github.com/dedis/onet/log"
+	"gopkg.in/dedis/onet.v2"
+	"gopkg.in/dedis/onet.v2/log"
 )
 
 // Deterlab holds all fields necessary for a Deterlab-run

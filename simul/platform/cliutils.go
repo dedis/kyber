@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/dedis/onet/log"
+	"gopkg.in/dedis/onet.v2/log"
 )
 
 // Scp copies the given files to the remote host

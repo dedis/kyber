@@ -3,7 +3,7 @@ package network
 import (
 	"testing"
 
-	"github.com/dedis/onet/log"
+	"gopkg.in/dedis/onet.v2/log"
 	"github.com/stretchr/testify/assert"
 )
 

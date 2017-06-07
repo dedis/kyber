@@ -3,7 +3,7 @@ package onet
 import (
 	"sync"
 
-	"github.com/dedis/onet/network"
+	"gopkg.in/dedis/onet.v2/network"
 	"github.com/satori/go.uuid"
 )
 

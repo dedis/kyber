@@ -3,13 +3,13 @@ package platform
 import (
 	"sync"
 
-	"github.com/dedis/onet"
-	"github.com/dedis/onet/log"
+	"gopkg.in/dedis/onet.v2"
+	"gopkg.in/dedis/onet.v2/log"
 
 	"github.com/BurntSushi/toml"
-	"github.com/dedis/onet/network"
-	"github.com/dedis/onet/simul/manage"
-	"github.com/dedis/onet/simul/monitor"
+	"gopkg.in/dedis/onet.v2/network"
+	"gopkg.in/dedis/onet.v2/simul/manage"
+	"gopkg.in/dedis/onet.v2/simul/monitor"
 )
 
 type simulInit struct{}

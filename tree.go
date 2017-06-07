@@ -7,8 +7,8 @@ import (
 	"math/rand"
 
 	"github.com/dedis/kyber/group/edwards25519"
-	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/network"
+	"gopkg.in/dedis/onet.v2/log"
+	"gopkg.in/dedis/onet.v2/network"
 	"github.com/satori/go.uuid"
 	"gopkg.in/dedis/kyber.v1"
 )

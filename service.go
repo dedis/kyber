@@ -6,9 +6,9 @@ import (
 
 	"sync"
 
-	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/network"
 	"github.com/satori/go.uuid"
+	"gopkg.in/dedis/onet.v2/log"
+	"gopkg.in/dedis/onet.v2/network"
 )
 
 func init() {
@@ -65,7 +65,7 @@ var NilServiceID = ServiceID(uuid.Nil)
 
 // NewServiceFunc is the type of a function that is used to instantiate a given Service
 // A service is initialized with a Server (to send messages to someone).
-type NewServiceFunc func(c *Context, suite interface{}) Service
+type NewServiceFunc func(c *Context, suite interface{}) (Service, error)
 
 // GenericConfig is a config that can withhold any type of specific configs for
 // protocols. It is passed down to the service NewProtocol function.
@@ -188,7 +188,7 @@ func (s *serviceFactory) start(name string, con *Context, suite interface{}) (Se
 	defer s.mutex.RUnlock()
 	for _, c := range s.constructors {
 		if name == c.name {
-			return c.constructor(con, suite), nil
+			return c.constructor(con, suite)
 		}
 	}
 	return nil, errors.New("Didn't find service " + name)

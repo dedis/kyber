@@ -7,7 +7,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/dedis/onet/log"
+	"gopkg.in/dedis/onet.v2/log"
 )
 
 // Sink is the server address where all measures are transmitted to for

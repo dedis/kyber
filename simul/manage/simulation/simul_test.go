@@ -7,7 +7,7 @@ import (
 
 	"strings"
 
-	"github.com/dedis/onet/simul"
+	"gopkg.in/dedis/onet.v2/simul"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/dedis/onet.v1/log"
 )

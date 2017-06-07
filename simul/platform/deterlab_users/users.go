@@ -12,10 +12,10 @@ import (
 	"runtime"
 	"strconv"
 
-	"github.com/dedis/onet"
-	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/simul/monitor"
-	"github.com/dedis/onet/simul/platform"
+	"gopkg.in/dedis/onet.v2"
+	"gopkg.in/dedis/onet.v2/log"
+	"gopkg.in/dedis/onet.v2/simul/monitor"
+	"gopkg.in/dedis/onet.v2/simul/platform"
 )
 
 var kill = false

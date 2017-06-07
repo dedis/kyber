@@ -15,7 +15,7 @@ import (
 	"sync"
 
 	"github.com/BurntSushi/toml"
-	"github.com/dedis/onet/log"
+	"gopkg.in/dedis/onet.v2/log"
 )
 
 // Platform interface that has to be implemented to add another simulation-
