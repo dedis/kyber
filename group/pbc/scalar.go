@@ -7,8 +7,10 @@ import (
 
 	"gopkg.in/dedis/kyber.v1/util/random"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/marshalling"
+	"dfinity/crypto/bls"
+
+	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/util/marshalling"
 )
 
 type scalar struct {
@@ -32,17 +34,11 @@ func (s *scalar) One() kyber.Scalar {
 }
 
 func (s *scalar) Equal(s2 kyber.Scalar) bool {
-	return s.fe.IsEqual(s2.(*scalar).fe)
+	return s.fe.IsEqual(&s2.(*scalar).fe)
 }
 
 func (s *scalar) Neg(s2 kyber.Scalar) kyber.Scalar {
 	bls.FrNeg(&s.fe, &s2.(*scalar).fe)
-	return s
-}
-
-func (s *scalar) Div(s2 kyber.Scalar) kyber.Scalar {
-	sc := s2.(*scalar)
-	bls.FrInv(&s.fe, &sc.fe)
 	return s
 }
 
@@ -74,11 +70,14 @@ func (s *scalar) Div(s1, s2 kyber.Scalar) kyber.Scalar {
 	return s
 }
 
+func (s *scalar) Inv(s2 kyber.Scalar) kyber.Scalar {
+	sc2 := s2.(*scalar)
+	bls.FrInv(&s.fe, &sc2.fe)
+	return s
+}
+
 func (s *scalar) SetInt64(i int64) kyber.Scalar {
-	if int(i) != i {
-		panic("current mcl version on supports int format")
-	}
-	s.fe.SetInt(int(i))
+	s.fe.SetInt64(i)
 	return s
 }
 
@@ -101,7 +100,7 @@ func (s *scalar) MarshalBinary() (buff []byte, err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			buff = nil
-			err = e
+			err = e.(error)
 		}
 	}()
 
@@ -140,6 +139,11 @@ func (s *scalar) Bytes() []byte {
 
 func (s *scalar) Pick(rand cipher.Stream) kyber.Scalar {
 	buff := random.NonZeroBytes(s.MarshalSize(), rand)
+	err := s.fe.SetLittleEndian(buff)
+	if err != nil {
+		panic(err)
+	}
+	return s
 }
 
 func (s *scalar) String() string {
@@ -149,5 +153,5 @@ func (s *scalar) String() string {
 
 // clearScalar frees the memory allocated by the C library.
 func clearScalar(s *scalar) {
-	fe.Clear()
+	s.fe.Clear()
 }
