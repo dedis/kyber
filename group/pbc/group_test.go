@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"testing"
 
+	"gopkg.in/dedis/kyber.v1/util/test"
+
 	"github.com/stretchr/testify/require"
 )
 
-/*var p1 = NewPairingFp382_1()*/
-/*var p2 = NewPairingFp382_2()*/
-
 func TestPrintConstants(t *testing.T) {
+	t.Skip("test generating the generators")
 	var p0 = NewPairingFp254BNb()
 	p0g1 := p0.G1().Point().(*PointG1)
 	printSeed(Fp254_G1_Base_Seed, &p0g1.g, t)
@@ -44,20 +44,23 @@ func printSeed(name string, h hashmap, t *testing.T) {
 	fmt.Println(name + " : " + h.GetString(16))
 }
 
-/*func TestP0(t *testing.T) {*/
-//test.TestGroup(p0.G1())
-//test.TestGroup(p0.G2())
-//test.TestGroup(p0.GT())
-//}
+func TestP0(t *testing.T) {
+	//var p0 = NewPairingFp254BNb()
+	//test.TestGroup(p0.G1())
+	//test.TestGroup(p0.G2())
+	//test.TestGroup(p0.GT())
+}
 
-/*func TestP1(t *testing.T) {*/
-//test.TestGroup(p1.G1())
-//test.TestGroup(p1.G2())
-//test.TestGroup(p1.GT())
-//}
+func TestP1(t *testing.T) {
+	/*var p1 = NewPairingFp382_1()*/
+	//test.TestGroup(p1.G1())
+	/*test.TestGroup(p1.G2())*/
+	//test.TestGroup(p1.GT())
+}
 
-//func TestP2(t *testing.T) {
-//test.TestGroup(p2.G1())
-//test.TestGroup(p2.G2())
-//test.TestGroup(p2.GT())
-/*}*/
+func TestP2(t *testing.T) {
+	var p2 = NewPairingFp382_2()
+	test.TestGroup(p2.G1())
+	test.TestGroup(p2.G2())
+	//test.TestGroup(p2.GT())
+}

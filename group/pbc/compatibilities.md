@@ -25,9 +25,10 @@
 
 ## Second round
 
-+ C.blsInit(curve) is global variable. this can be problematic.
++ C.blsInit(curve) is global variable. this can be problematic. Can't
+  instantiate multiple suites at the same time ?
 + GetCurveOrder(): 
     - comments saying returns order of G1, what about G2 ?
     - do you know if they are prime order or not ? Otherwise I'll run a long primality test, but I prefer to ask first ;)
-+ Any difference between FrAdd and Secretkey.Add() ? From what I gather it's the same thing but want to make sure with you. Since we're using `Fr` as a "key" ..
-+ I'm using `HashAndMapTo` for G1 and G2. Is it possible to get it for GT too ?
++ Any difference between FrAdd and Secretkey.Add() ? From what I gather it's the same thing but want to make sure with you. Since in our library, we'll be using `Fr` as a "key" ..
++ I'm using `HashAndMapTo` for constructing G1 and G2's bases. Is it possible to get it for GT too ? 

@@ -104,7 +104,7 @@ func (g *g1group) Point() kyber.Point {
 
 func (g *g1group) PrimeOrder() bool {
 	// XXX use bls.GetCurveOrder() and test primality ??
-	panic("not implemented yet")
+	return true
 }
 
 func (g *g1group) NewKey(rand cipher.Stream) kyber.Scalar {
@@ -133,7 +133,7 @@ func (g *g2group) Point() kyber.Point {
 
 func (g *g2group) PrimeOrder() bool {
 	// XXX use bls.GetCurveOrder() and test primality ??
-	panic("not implemented yet")
+	return true
 }
 
 func (g *g2group) NewKey(rand cipher.Stream) kyber.Scalar {

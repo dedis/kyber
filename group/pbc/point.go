@@ -61,6 +61,9 @@ func (p *PointG1) Neg(p1 kyber.Point) kyber.Point {
 }
 
 func (p *PointG1) Mul(s kyber.Scalar, p1 kyber.Point) kyber.Point {
+	if p1 == nil {
+		p1 = newPointG1(p.generator).Base()
+	}
 	sc := s.(*scalar)
 	pg1 := p1.(*PointG1)
 	bls.G1Mul(&p.g, &pg1.g, &sc.fe)
@@ -98,7 +101,7 @@ func (p *PointG1) Pick(rand cipher.Stream) kyber.Point {
 
 func (p *PointG1) EmbedLen() int {
 	// 8 bits for the randomness and 8 bits for the size of the message
-	return (p.MarshalSize() - 8 - 8) / 8
+	return (bls.GetOpUnitSize() * 8) - 1 - 1
 }
 
 func (p *PointG1) Embed(data []byte, rand cipher.Stream) kyber.Point {
@@ -169,6 +172,9 @@ func (p *PointG2) Neg(p1 kyber.Point) kyber.Point {
 }
 
 func (p *PointG2) Mul(s kyber.Scalar, p1 kyber.Point) kyber.Point {
+	if p1 == nil {
+		p1 = newPointG2(p.generator).Base()
+	}
 	sc := s.(*scalar)
 	pg1 := p1.(*PointG2)
 	bls.G2Mul(&p.g, &pg1.g, &sc.fe)
@@ -206,7 +212,7 @@ func (p *PointG2) Pick(rand cipher.Stream) kyber.Point {
 
 func (p *PointG2) EmbedLen() int {
 	// 8 bits for the randomness and 8 bits for the size of the message
-	return (p.MarshalSize() - 8 - 8) / 8
+	return (bls.GetOpUnitSize() * 8 * 2) - 1 - 1
 }
 
 func (p *PointG2) Embed(data []byte, rand cipher.Stream) kyber.Point {
@@ -281,6 +287,9 @@ func (p *PointGT) Neg(p1 kyber.Point) kyber.Point {
 }
 
 func (p *PointGT) Mul(s kyber.Scalar, p1 kyber.Point) kyber.Point {
+	if p1 == nil {
+		p1 = newPointGT(p.generator).Base()
+	}
 	sc := s.(*scalar)
 	pg1 := p1.(*PointGT)
 	bls.GTPow(&p.g, &pg1.g, &sc.fe)
@@ -318,7 +327,7 @@ func (p *PointGT) Pick(rand cipher.Stream) kyber.Point {
 
 func (p *PointGT) EmbedLen() int {
 	// 8 bits for the randomness and 8 bits for the size of the message
-	return (p.MarshalSize() - 8 - 8) / 8
+	return (bls.GetOpUnitSize() * 8 * 12) - 1 - 1
 }
 
 func (p *PointGT) Embed(data []byte, rand cipher.Stream) kyber.Point {
