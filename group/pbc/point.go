@@ -87,8 +87,7 @@ func (p *PointG1) UnmarshalFrom(r io.Reader) (int, error) {
 }
 
 func (p *PointG1) MarshalSize() int {
-	buff, _ := p.MarshalBinary()
-	return len(buff)
+	return bls.GetOpUnitSize() * 8
 }
 
 func (p *PointG1) String() string {
@@ -198,8 +197,7 @@ func (p *PointG2) UnmarshalFrom(r io.Reader) (int, error) {
 }
 
 func (p *PointG2) MarshalSize() int {
-	buff, _ := p.MarshalBinary()
-	return len(buff)
+	return bls.GetOpUnitSize() * 8 * 2
 }
 
 func (p *PointG2) String() string {
@@ -207,7 +205,13 @@ func (p *PointG2) String() string {
 }
 
 func (p *PointG2) Pick(rand cipher.Stream) kyber.Point {
-	return p.Embed(nil, rand)
+	buff := random.NonZeroBytes(32, rand)
+	if err := p.g.HashAndMapTo(buff); err != nil {
+		panic(err)
+	}
+	return p
+
+	//return p.Embed(nil, rand)
 }
 
 func (p *PointG2) EmbedLen() int {
@@ -235,12 +239,12 @@ func (p *PointG2) Set(p2 kyber.Point) kyber.Point {
 }
 
 type PointGT struct {
-	g         bls.GT
-	generator string
+	g bls.GT
+	p *Pairing
 }
 
-func newPointGT(gen string) *PointGT {
-	pg := &PointGT{g: bls.GT{}, generator: gen}
+func newPointGT(p *Pairing) *PointGT {
+	pg := &PointGT{g: bls.GT{}, p: p}
 	runtime.SetFinalizer(&pg.g, clear)
 	return pg
 }
@@ -262,8 +266,14 @@ func (p *PointGT) Null() kyber.Point {
 	return p
 }
 
+// Base point for GT is the point computed using the pairing operation
+// over the base point of G1 and G2.
+// XXX Is this desirable ? A fixed pre-computed point would be nicer.
+// TODO precompute the pairing for each suite...
 func (p *PointGT) Base() kyber.Point {
-	panic("not implemented yet")
+	g1 := p.p.G1().Point().Base()
+	g2 := p.p.G2().Point().Base()
+	return p.Pairing(g1, g2)
 }
 
 func (p *PointGT) Add(p1, p2 kyber.Point) kyber.Point {
@@ -313,8 +323,7 @@ func (p *PointGT) UnmarshalFrom(r io.Reader) (int, error) {
 }
 
 func (p *PointGT) MarshalSize() int {
-	buff, _ := p.MarshalBinary()
-	return len(buff)
+	return bls.GetOpUnitSize() * 8 * 12
 }
 
 func (p *PointGT) String() string {
@@ -397,10 +406,7 @@ func embed(p pbcPoint, data []byte, rand cipher.Stream) {
 			continue
 		}
 
-		// XXX make sure there's no verification to be done here,i.e. is it a
-		// prime order curve ?
-		//
-		// All ok.
+		// Points live in a prime order curve so no cofactor-thing needed. All ok.
 		return
 	}
 }

@@ -95,7 +95,7 @@ func (g *g1group) Scalar() kyber.Scalar {
 }
 
 func (g *g1group) PointLen() int {
-	return bls.GetOpUnitSize() * 8
+	return g.Point().MarshalSize()
 }
 
 func (g *g1group) Point() kyber.Point {
@@ -103,7 +103,6 @@ func (g *g1group) Point() kyber.Point {
 }
 
 func (g *g1group) PrimeOrder() bool {
-	// XXX use bls.GetCurveOrder() and test primality ??
 	return true
 }
 
@@ -124,7 +123,7 @@ func (g *g2group) Scalar() kyber.Scalar {
 }
 
 func (g *g2group) PointLen() int {
-	return bls.GetOpUnitSize() * 8 * 2
+	return g.Point().MarshalSize()
 }
 
 func (g *g2group) Point() kyber.Point {
@@ -132,7 +131,6 @@ func (g *g2group) Point() kyber.Point {
 }
 
 func (g *g2group) PrimeOrder() bool {
-	// XXX use bls.GetCurveOrder() and test primality ??
 	return true
 }
 
@@ -153,7 +151,7 @@ func (g *gtgroup) Scalar() kyber.Scalar {
 }
 
 func (g *gtgroup) PointLen() int {
-	return bls.GetOpUnitSize() * 8 * 12
+	return g.Point().MarshalSize()
 }
 
 func (g *gtgroup) Point() kyber.Point {
@@ -165,7 +163,6 @@ func (g *gtgroup) PairingPoint() PairingPoint {
 }
 
 func (g *gtgroup) PrimeOrder() bool {
-	// XXX use bls.GetCurveOrder() and test primality ??
 	panic("not implemented yet")
 }
 
