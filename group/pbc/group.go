@@ -155,7 +155,7 @@ func (g *gtgroup) PointLen() int {
 }
 
 func (g *gtgroup) Point() kyber.Point {
-	return newPointGT(generator(g.p.curve, 3))
+	return newPointGT(g.p)
 }
 
 func (g *gtgroup) PairingPoint() PairingPoint {

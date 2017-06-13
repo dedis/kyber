@@ -3,7 +3,6 @@ package test
 import (
 	"bytes"
 	"crypto/cipher"
-	"fmt"
 	"hash"
 
 	"gopkg.in/dedis/kyber.v1"
@@ -233,10 +232,6 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 			panic("Pick() not producing unique points")
 		}
 		last = rgen
-		ptmpBuff := ptmp.String()
-		rgenBuff := rgen.String()
-		fmt.Println("ptmp: " + ptmpBuff)
-		fmt.Println("rgen: " + rgenBuff)
 
 		ptmp.Mul(stmp.SetInt64(-1), rgen).Add(ptmp, rgen)
 		if !ptmp.Equal(pzero) {

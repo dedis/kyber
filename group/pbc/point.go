@@ -298,7 +298,7 @@ func (p *PointGT) Neg(p1 kyber.Point) kyber.Point {
 
 func (p *PointGT) Mul(s kyber.Scalar, p1 kyber.Point) kyber.Point {
 	if p1 == nil {
-		p1 = newPointGT(p.generator).Base()
+		p1 = newPointGT(p.p).Base()
 	}
 	sc := s.(*scalar)
 	pg1 := p1.(*PointGT)
@@ -345,7 +345,7 @@ func (p *PointGT) Embed(data []byte, rand cipher.Stream) kyber.Point {
 }
 
 func (p *PointGT) Clone() kyber.Point {
-	p2 := clone(p, newPointGT(p.generator))
+	p2 := clone(p, newPointGT(p.p))
 	return p2.(kyber.Point)
 }
 
