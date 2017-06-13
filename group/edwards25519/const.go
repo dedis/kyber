@@ -15,6 +15,13 @@ var prime, _ = new(big.Int).SetString("57896044618658097711785492504343953926634
 // XXX this should probably just be a big.Int
 var primeOrder, _ = new(big.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989", 10)
 
+// `l_minus_2` is the order of base point minus two, i.e. 2^252 +
+// 27742317777372353535851937790883648493 - 2, in little-endian form
+// This is needed to compute constant time modular inversion of scalars.
+var l_minus_2_big, _ = new(big.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250987", 10)
+
+//var l_minus_2, _ = hex.DecodeString("1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3eb")
+
 // cofactor of the curve, as a ModInt
 var cofactor = new(big.Int).SetInt64(8)
 

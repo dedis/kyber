@@ -5,17 +5,17 @@
 package edwards25519
 
 import (
-	"io"
-	"errors"
 	"crypto/cipher"
+	"errors"
+	"io"
 	"math/big"
 
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/group/mod"
 	"gopkg.in/dedis/kyber.v1/util/bytes"
-	"gopkg.in/dedis/kyber.v1/util/subtle"
 	"gopkg.in/dedis/kyber.v1/util/marshalling"
 	"gopkg.in/dedis/kyber.v1/util/random"
+	"gopkg.in/dedis/kyber.v1/util/subtle"
 )
 
 // This code is a port of the public domain, "ref10" implementation of ed25519
@@ -23,9 +23,8 @@ import (
 
 // The scalars are GF(2^252 + 27742317777372353535851937790883648493).
 
-
 type scalar struct {
-	v [32]byte
+	v       [32]byte
 	varTime bool
 }
 
@@ -33,7 +32,7 @@ type scalar struct {
 func (s *scalar) Equal(s2 kyber.Scalar) bool {
 	v1 := s.v[:]
 	v2 := s2.(*scalar).v[:]
-	return subtle.ConstantTimeCompare(v1,v2) != 0
+	return subtle.ConstantTimeCompare(v1, v2) != 0
 }
 
 // Set equal to another Scalar a
@@ -101,7 +100,6 @@ func (s *scalar) Mul(a, b kyber.Scalar) kyber.Scalar {
 }
 
 // Set to the modular division of scalar a by scalar b
-// XXX not yet constant-time implementation; should be fixed
 func (s *scalar) Div(a, b kyber.Scalar) kyber.Scalar {
 	var i scalar
 	i.Inv(b)
@@ -110,11 +108,27 @@ func (s *scalar) Div(a, b kyber.Scalar) kyber.Scalar {
 }
 
 // Set to the modular inverse of scalar a
-// XXX not yet constant-time implementation; should be fixed
 func (s *scalar) Inv(a kyber.Scalar) kyber.Scalar {
-	i := a.(*scalar).toInt()
-	i.Inv(i)
-	return s.setInt(i)
+	var res scalar
+	res.One()
+	ac := a.(*scalar)
+	// Modular inversion in a multiplicative group is a^(phi(m)-1) = a^-1 mod m
+	// Since m is prime, phi(m) = m - 1 => a^(m-2) = a^-1 mod m.
+	// The inverse is computed  using the exponentation-and-square algorithm.
+	// Implementation is constant time regarding the value a, it only depends on
+	// the modulo.
+	for i := 255; i >= 0; i-- {
+		//var bit = b & (1 << uint(8-i))
+		bit := l_minus_2_big.Bit(i)
+		// square step
+		scMul(&res.v, &res.v, &res.v)
+		if bit == 1 {
+			// multiply step
+			scMul(&res.v, &res.v, &ac.v)
+		}
+	}
+	s.v = res.v
+	return s
 }
 
 // Set to a fresh random or pseudo-random scalar
@@ -183,7 +197,6 @@ func newScalarInt(i *big.Int) *scalar {
 	s.setInt(mod.NewInt(i, fullOrder))
 	return &s
 }
-
 
 // Input:
 //   a[0]+256*a[1]+...+256^31*a[31] = a
