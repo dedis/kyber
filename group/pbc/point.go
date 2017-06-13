@@ -279,20 +279,20 @@ func (p *PointGT) Base() kyber.Point {
 func (p *PointGT) Add(p1, p2 kyber.Point) kyber.Point {
 	pg1 := p1.(*PointGT)
 	pg2 := p2.(*PointGT)
-	bls.GTAdd(&p.g, &pg1.g, &pg2.g)
+	bls.GTMul(&p.g, &pg1.g, &pg2.g)
 	return p
 }
 
 func (p *PointGT) Sub(p1, p2 kyber.Point) kyber.Point {
 	pg1 := p1.(*PointGT)
 	pg2 := p2.(*PointGT)
-	bls.GTSub(&p.g, &pg1.g, &pg2.g)
+	bls.GTDiv(&p.g, &pg1.g, &pg2.g)
 	return p
 }
 
 func (p *PointGT) Neg(p1 kyber.Point) kyber.Point {
 	pg1 := p1.(*PointGT)
-	bls.GTNeg(&p.g, &pg1.g)
+	bls.GTInv(&p.g, &pg1.g)
 	return p
 }
 

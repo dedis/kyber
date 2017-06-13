@@ -79,7 +79,7 @@ func TestP1(t *testing.T) {
 
 func TestP2(t *testing.T) {
 	var p2 = NewPairingFp382_2()
-	test.TestGroup(p2.G2())
-	test.TestGroup(p2.G1())
-	//test.TestGroup(p2.GT())
+	//test.TestGroup(p2.G2())
+	//test.TestGroup(p2.G1())
+	test.TestGroup(p2.GT())
 }

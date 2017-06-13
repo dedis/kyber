@@ -2,9 +2,12 @@ package pbc
 
 import (
 	"crypto/cipher"
+	"crypto/sha256"
 	"dfinity/crypto/bls"
+	"hash"
 
 	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/cipher/sha3"
 )
 
 // Group interface extension to create pairing-capable points.
@@ -163,11 +166,35 @@ func (g *gtgroup) PairingPoint() PairingPoint {
 }
 
 func (g *gtgroup) PrimeOrder() bool {
-	panic("not implemented yet")
+	return true
 }
 
 func (g *gtgroup) NewKey(rand cipher.Stream) kyber.Scalar {
 	return NewScalar().Pick(rand)
+}
+
+func (g *gtgroup) Cipher(key []byte, options ...interface{}) kyber.Cipher {
+	return sha3.NewShakeCipher128(key, options...)
+}
+
+func (g *gtgroup) Hash() hash.Hash {
+	return sha256.New()
+}
+
+func (g *g1group) Cipher(key []byte, options ...interface{}) kyber.Cipher {
+	return sha3.NewShakeCipher128(key, options...)
+}
+
+func (g *g1group) Hash() hash.Hash {
+	return sha256.New()
+}
+
+func (g *g2group) Cipher(key []byte, options ...interface{}) kyber.Cipher {
+	return sha3.NewShakeCipher128(key, options...)
+}
+
+func (g *g2group) Hash() hash.Hash {
+	return sha256.New()
 }
 
 func curveName(curve int) string {
