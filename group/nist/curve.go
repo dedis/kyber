@@ -1,3 +1,5 @@
+// +build vartime
+
 package nist
 
 import (
@@ -216,7 +218,6 @@ func (p *curvePoint) UnmarshalFrom(r io.Reader) (int, error) {
 func (P *curvePoint) SetVarTime(varTime bool) bool {
 	return true
 }
-
 
 // interface for curve-specifc mathematical functions
 type curveOps interface {

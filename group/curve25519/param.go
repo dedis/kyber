@@ -12,6 +12,9 @@
 // For details see Bernstein et al, "Twisted Edwards Curves",
 // http://eprint.iacr.org/2008/013.pdf
 //
+
+// +build vartime
+
 package curve25519
 
 import (

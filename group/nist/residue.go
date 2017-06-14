@@ -1,3 +1,5 @@
+// +build vartime
+
 package nist
 
 import (
@@ -168,8 +170,6 @@ func (p *residuePoint) UnmarshalFrom(r io.Reader) (int, error) {
 func (P *residuePoint) SetVarTime(varTime bool) bool {
 	return true
 }
-
-
 
 /*
 A ResidueGroup represents a DSA-style modular integer arithmetic group,

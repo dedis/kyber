@@ -1,3 +1,5 @@
+// +build vartime
+
 package curve25519
 
 import (
@@ -271,7 +273,6 @@ func (P *extPoint) Mul(s kyber.Scalar, G kyber.Point) kyber.Point {
 func (P *extPoint) SetVarTime(varTime bool) bool {
 	return true
 }
-
 
 // ExtendedCurve implements Twisted Edwards curves
 // using projective coordinate representation (X:Y:Z),

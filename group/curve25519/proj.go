@@ -1,3 +1,5 @@
+// +build vartime
+
 package curve25519
 
 import (
@@ -250,7 +252,6 @@ func (P *projPoint) Mul(s kyber.Scalar, G kyber.Point) kyber.Point {
 func (P *projPoint) SetVarTime(varTime bool) bool {
 	return true
 }
-
 
 // ProjectiveCurve implements Twisted Edwards curves
 // using projective coordinate representation (X:Y:Z),
