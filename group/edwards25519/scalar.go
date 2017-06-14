@@ -118,7 +118,6 @@ func (s *scalar) Inv(a kyber.Scalar) kyber.Scalar {
 	// Implementation is constant time regarding the value a, it only depends on
 	// the modulo.
 	for i := 255; i >= 0; i-- {
-		//var bit = b & (1 << uint(8-i))
 		bit := l_minus_2_big.Bit(i)
 		// square step
 		scMul(&res.v, &res.v, &res.v)
