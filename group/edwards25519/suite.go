@@ -1,6 +1,7 @@
 package edwards25519
 
 import (
+	"crypto/cipher"
 	"crypto/sha256"
 	"hash"
 	"io"
@@ -34,6 +35,10 @@ func (s *SuiteEd25519) Write(w io.Writer, objs ...interface{}) error {
 
 func (s *SuiteEd25519) New(t reflect.Type) interface{} {
 	return kyber.SuiteNew(s, t)
+}
+
+func (s *SuiteEd25519) NewKey(r cipher.Stream) kyber.Scalar {
+	return s.Curve.Scalar().Pick(r)
 }
 
 // Ciphersuite based on AES-128, SHA-256, and the Ed25519 curve.
