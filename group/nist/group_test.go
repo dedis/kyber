@@ -1,4 +1,4 @@
-// build vartime
+// +build vartime
 
 package nist
 
