@@ -86,6 +86,12 @@ func (P *basicPoint) Set(P2 kyber.Point) kyber.Point {
 	return P
 }
 
+func (P *basicPoint) Clone() kyber.Point {
+	p2 := new(basicPoint)
+	p2.Set(P)
+	return p2
+}
+
 // Set to the neutral element, which is (0,1) for twisted Edwards curves.
 func (P *basicPoint) Null() kyber.Point {
 	P.Set(&P.c.null)
@@ -98,17 +104,26 @@ func (P *basicPoint) Base() kyber.Point {
 	return P
 }
 
-func (P *basicPoint) PickLen() int {
-	return P.c.pickLen()
+func (P *basicPoint) EmbedLen() int {
+	return P.c.embedLen()
 }
 
-func (P *basicPoint) Pick(data []byte, rand cipher.Stream) (kyber.Point, []byte) {
-	return P, P.c.pickPoint(P, data, rand)
+func (P *basicPoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
+	P.c.embed(P, data, rand)
+	return P
+}
+
+func (P *basicPoint) Pick(rand cipher.Stream) kyber.Point {
+	return P.Embed(nil, rand)
 }
 
 // Extract embedded data from a point group element
 func (P *basicPoint) Data() ([]byte, error) {
 	return P.c.data(&P.x, &P.y)
+}
+
+func (P *basicPoint) SetVarTime(varTime bool) bool {
+	return true
 }
 
 // Add two points using the basic unified addition laws for Edwards curves:
@@ -167,7 +182,7 @@ func (P *basicPoint) Neg(A kyber.Point) kyber.Point {
 func (P *basicPoint) Mul(s kyber.Scalar, G kyber.Point) kyber.Point {
 	v := s.(*mod.Int).V
 	if G == nil {
-		return P.Base().Mul(P, s)
+		return P.Base().Mul(s, P)
 	}
 	T := P
 	if G == P { // Must use temporary in case G == P
@@ -204,6 +219,10 @@ func (c *BasicCurve) Point() kyber.Point {
 	P.c = c
 	P.Set(&c.null)
 	return P
+}
+
+func (c *BasicCurve) NewKey(r cipher.Stream) kyber.Scalar {
+	return c.Scalar().Pick(r)
 }
 
 // Initialize the curve with given parameters.

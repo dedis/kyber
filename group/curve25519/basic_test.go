@@ -24,7 +24,7 @@ func TestCompareBasicProjective25519(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode.")
 	} else {
-		test.TestCompareGroups(testSuite,
+		test.TestCompareGroups(testSuite.Cipher,
 			new(BasicCurve).Init(Param25519(), false),
 			new(ProjectiveCurve).Init(Param25519(), false))
 	}
@@ -34,7 +34,7 @@ func TestCompareBasicProjectiveE382(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode.")
 	} else {
-		test.TestCompareGroups(testSuite,
+		test.TestCompareGroups(testSuite.Cipher,
 			new(BasicCurve).Init(ParamE382(), false),
 			new(ProjectiveCurve).Init(ParamE382(), false))
 	}
@@ -44,7 +44,7 @@ func TestCompareBasicProjective41417(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode.")
 	} else {
-		test.TestCompareGroups(testSuite,
+		test.TestCompareGroups(testSuite.Cipher,
 			new(BasicCurve).Init(Param41417(), false),
 			new(ProjectiveCurve).Init(Param41417(), false))
 	}
@@ -54,7 +54,7 @@ func TestCompareBasicProjectiveE521(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode.")
 	} else {
-		test.TestCompareGroups(testSuite,
+		test.TestCompareGroups(testSuite.Cipher,
 			new(BasicCurve).Init(ParamE521(), false),
 			new(ProjectiveCurve).Init(ParamE521(), false))
 	}
