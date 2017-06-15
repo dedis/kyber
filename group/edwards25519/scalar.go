@@ -24,8 +24,7 @@ import (
 // The scalars are GF(2^252 + 27742317777372353535851937790883648493).
 
 type scalar struct {
-	v       [32]byte
-	varTime bool
+	v [32]byte
 }
 
 // Equality test for two Scalars derived from the same Group
@@ -183,12 +182,6 @@ func (s *scalar) MarshalTo(w io.Writer) (int, error) {
 
 func (s *scalar) UnmarshalFrom(r io.Reader) (int, error) {
 	return marshalling.ScalarUnmarshalFrom(s, r)
-}
-
-func (s *scalar) SetVarTime(varTime bool) bool {
-	old := s.varTime
-	s.varTime = varTime
-	return old
 }
 
 func newScalarInt(i *big.Int) *scalar {

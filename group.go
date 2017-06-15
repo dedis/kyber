@@ -59,12 +59,6 @@ type Scalar interface {
 
 	// Bytes returns a big-Endian representation of the scalar
 	Bytes() []byte
-
-	// Allow or disallow use of faster variable-time implementations
-	// of operations on this Point, returning the old flag value.
-	// This flag always defaults to false (constant-time only)
-	// in implementations that can provide constant-time operations.
-	SetVarTime(varTime bool) bool
 }
 
 /*
