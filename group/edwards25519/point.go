@@ -25,7 +25,7 @@ import (
 )
 
 type point struct {
-	ge extendedGroupElement
+	ge      extendedGroupElement
 	varTime bool
 }
 
@@ -212,17 +212,8 @@ func (P *point) Neg(A kyber.Point) kyber.Point {
 }
 
 // Multiply point p by scalar s using the repeated doubling method.
-// XXX This is vartime; for our general-purpose Mul operator
-// it would be far preferable for security to do this constant-time.
 func (P *point) Mul(s kyber.Scalar, A kyber.Point) kyber.Point {
 
-	// Convert the scalar to fixed-length little-endian form.
-	//sb := s.(*mod.Int).V.Bytes()
-	//shi := len(sb) - 1
-	//var a [32]byte
-	//for i := range sb {
-	//	a[shi-i] = sb[i]
-	//}
 	a := &s.(*scalar).v
 
 	if A == nil {
@@ -243,4 +234,3 @@ func (P *point) SetVarTime(varTime bool) bool {
 	P.varTime = varTime
 	return old
 }
-
