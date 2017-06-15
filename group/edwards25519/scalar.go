@@ -140,6 +140,10 @@ func (s *scalar) SetBytes(b []byte) kyber.Scalar {
 	return s.setInt(mod.NewIntBytes(b, primeOrder, mod.LittleEndian))
 }
 
+func (s *scalar) SetVarTime(varTime bool) bool {
+	return false
+}
+
 // Bytes returns a big-Endian representation of the scalar
 func (s *scalar) Bytes() []byte {
 	var buf = s.v
