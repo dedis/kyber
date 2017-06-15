@@ -14,7 +14,6 @@ import (
 	"crypto/subtle"
 	"encoding/binary"
 	"errors"
-	"hash"
 	"strings"
 
 	"gopkg.in/dedis/kyber.v1"
@@ -23,7 +22,7 @@ import (
 // Suite defines the capabilities required by the share/ package.
 type Suite interface {
 	kyber.Group
-	Hash() hash.Hash
+	kyber.HashFactory
 }
 
 // Some error definitions

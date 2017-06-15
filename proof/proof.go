@@ -7,22 +7,14 @@ package proof
 
 import (
 	"errors"
-	"hash"
 
 	"gopkg.in/dedis/kyber.v1"
 )
 
-// NOTE This suite is the same as the global one. Writing it is not an easy when you
-// don't know what methods you want to have (i.e.  the same set of methods that
-// edwards25519 implements etc).
-// dleq.go uses this interface while it does not need it all of it, so we're back to same
-// problem as before. Solution is to move it out to an external package, and
-// that brings an additional amount of work for "giving out to a package only
-// what it needs".
 type Suite interface {
 	kyber.Group
-	Hash() hash.Hash
-	Cipher(key []byte, options ...interface{}) kyber.Cipher
+	kyber.HashFactory
+	kyber.CipherFactory
 	kyber.Encoding
 }
 

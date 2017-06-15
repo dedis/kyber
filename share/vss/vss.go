@@ -34,7 +34,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"hash"
 	"reflect"
 
 	"github.com/dedis/protobuf"
@@ -47,8 +46,8 @@ import (
 // Suite defines the capabilities required by the vss package.
 type Suite interface {
 	kyber.Group
-	Cipher(key []byte, options ...interface{}) kyber.Cipher
-	Hash() hash.Hash
+	kyber.CipherFactory
+	kyber.HashFactory
 }
 
 // Dealer encapsulates for creating and distributing the shares and for

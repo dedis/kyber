@@ -15,7 +15,6 @@ package pvss
 
 import (
 	"errors"
-	"hash"
 
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/proof/dleq"
@@ -25,8 +24,8 @@ import (
 
 type Suite interface {
 	kyber.Group
-	Hash() hash.Hash
-	Cipher(key []byte, options ...interface{}) kyber.Cipher
+	kyber.HashFactory
+	kyber.CipherFactory
 	kyber.Encoding
 }
 
