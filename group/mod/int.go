@@ -2,6 +2,7 @@ package mod
 
 import (
 	"crypto/cipher"
+	"encoding/hex"
 	"errors"
 	"io"
 	"math/big"
@@ -87,7 +88,6 @@ func (i *Int) Init64(v int64, m *big.Int) *Int {
 }
 
 // Initialize to a number represented in a big-endian byte string.
-// XXX either delete or add an endianness parameter
 func (i *Int) InitBytes(a []byte, m *big.Int, byteOrder ByteOrder) *Int {
 	i.M = m
 	i.BO = byteOrder
@@ -108,8 +108,8 @@ func (i *Int) InitString(n, d string, base int, m *big.Int) *Int {
 
 // Return the Int's integer value in decimal string representation.
 func (i *Int) String() string {
-	return i.V.String()
-	//return hex.EncodeToString(i.V.Bytes())
+	//return i.V.String()
+	return hex.EncodeToString(i.V.Bytes())
 }
 
 // Set value to a rational fraction n/d represented by a pair of strings.
@@ -481,4 +481,3 @@ func (i *Int) HideDecode(buf []byte) {
 func (i *Int) SetVarTime(varTime bool) bool {
 	return true
 }
-
