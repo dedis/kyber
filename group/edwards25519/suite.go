@@ -9,6 +9,7 @@ import (
 
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/cipher/sha3"
+	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
 type SuiteEd25519 struct {
@@ -38,6 +39,9 @@ func (s *SuiteEd25519) New(t reflect.Type) interface{} {
 }
 
 func (s *SuiteEd25519) NewKey(r cipher.Stream) kyber.Scalar {
+	if r == nil {
+		r = random.Stream
+	}
 	return s.Curve.Scalar().Pick(r)
 }
 

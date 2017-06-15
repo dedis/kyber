@@ -1,7 +1,7 @@
 package examples
 
 import (
-	"gopkg.in/dedis/kyber.v1/group/nist"
+	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
@@ -15,7 +15,7 @@ simply by changing the first line that picks the suite.
 func Example_diffieHellman() {
 
 	// Crypto setup: NIST-standardized P256 curve with AES-128 and SHA-256
-	suite := nist.NewAES128SHA256P256()
+	suite := edwards25519.NewAES128SHA256Ed25519(false)
 
 	// Alice's public/private keypair
 	a := suite.Scalar().Pick(random.Stream) // Alice's private key

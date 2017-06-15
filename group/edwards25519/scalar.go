@@ -135,10 +135,9 @@ func (s *scalar) Pick(rand cipher.Stream) kyber.Scalar {
 	return s.setInt(i)
 }
 
-// SetBytes sets the scalar from a big-endian byte-slice
 func (s *scalar) SetBytes(b []byte) kyber.Scalar {
 	// XXX handle simple and scReduce cases appropriately
-	return s.setInt(mod.NewIntBytes(b, primeOrder, mod.BigEndian))
+	return s.setInt(mod.NewIntBytes(b, primeOrder, mod.LittleEndian))
 }
 
 // Bytes returns a big-Endian representation of the scalar
@@ -164,8 +163,9 @@ func (s *scalar) MarshalSize() int {
 }
 
 func (s *scalar) MarshalBinary() ([]byte, error) {
-	buf := s.v
-	return buf[:], nil
+	return s.toInt().MarshalBinary()
+	//buf := s.v
+	//return buf[:], nil
 }
 
 func (s *scalar) UnmarshalBinary(buf []byte) error {

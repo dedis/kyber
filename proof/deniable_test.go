@@ -5,11 +5,11 @@ import (
 	"testing"
 	//"encoding/hex"
 	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/group/nist"
+	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
-var testSuite = nist.NewAES128SHA256P256()
+var testSuite = edwards25519.NewAES128SHA256Ed25519(false)
 
 type node struct {
 	i    int
