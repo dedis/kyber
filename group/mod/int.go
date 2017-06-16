@@ -479,5 +479,8 @@ func (i *Int) HideDecode(buf []byte) {
 // This implementation unfortunately provices only variable-time operations,
 // so the flag is hard-coded to true.
 func (i *Int) SetVarTime(varTime bool) bool {
+	if !varTime {
+		panic("mod.Int: support only variable time arithmetic operations")
+	}
 	return true
 }
