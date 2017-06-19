@@ -199,7 +199,7 @@ func newMessageProxyStore(disp network.Dispatcher, proc network.Processor) *mess
 		io := newIO()
 		pstore.protos = append(pstore.protos, io)
 		disp.RegisterProcessor(proc, io.PacketType())
-		log.Lvl2("Instantiating MessageProxy", name, "at position", len(pstore.protos))
+		log.Lvl3("Instantiating MessageProxy", name, "at position", len(pstore.protos))
 	}
 	return pstore
 }
