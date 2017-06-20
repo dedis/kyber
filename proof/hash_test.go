@@ -10,7 +10,7 @@ import (
 
 // This example shows how to build classic ElGamal-style digital signatures
 // using the Camenisch/Stadler proof framework and HashProver.
-func ExampleHashProve_1() {
+func Example_hashProve1() {
 
 	// Crypto setup
 	suite := edwards25519.NewAES128SHA256Ed25519(false)
@@ -74,7 +74,7 @@ func ExampleHashProve_1() {
 // because it uses the generic HashProver for Fiat-Shamir noninteractivity
 // instead of Liu/Wei/Wong's customized hash-ring structure.
 //
-func ExampleHashProve_2() {
+func Example_hashProve2() {
 
 	// Crypto setup
 	suite := edwards25519.NewAES128SHA256Ed25519(false)

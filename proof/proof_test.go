@@ -71,7 +71,7 @@ func TestRep(t *testing.T) {
 // with respect to some base B: i.e., X=x*B.
 // If we take X as a public key and x as its corresponding private key,
 // then this constitutes a "proof of ownership" of the public key X.
-func ExampleRep_1() {
+func Example_rep1() {
 	pred := Rep("X", "x", "B")
 	fmt.Println(pred.String())
 	// Output: X=x*B
@@ -80,7 +80,7 @@ func ExampleRep_1() {
 // This example shows how to generate and verify noninteractive proofs
 // of the statement in the example above, i.e.,
 // a proof of ownership of public key X.
-func ExampleRep_2() {
+func Example_rep2() {
 	pred := Rep("X", "x", "B")
 	fmt.Println(pred.String())
 
@@ -139,7 +139,7 @@ func ExampleRep_2() {
 // then X does not serve as a useful commitment:
 // the prover can trivially compute the x1 corresponding to an arbitrary x2.
 //
-func ExampleRep_3() {
+func Example_rep3() {
 	pred := Rep("X", "x1", "B1", "x2", "B2")
 	fmt.Println(pred.String())
 	// Output: X=x1*B1+x2*B2
@@ -151,7 +151,7 @@ func ExampleRep_3() {
 // and point Y is equal to y*B.
 // This predicate might be used to prove knowledge of
 // the private keys corresponding to two public keys X and Y, for example.
-func ExampleAnd_1() {
+func Example_and1() {
 	pred := And(Rep("X", "x", "B"), Rep("Y", "y", "B"))
 	fmt.Println(pred.String())
 	// Output: X=x*B && Y=y*B
@@ -164,7 +164,7 @@ func ExampleAnd_1() {
 // Thus, the prover not only proves knowledge of the discrete logarithm
 // of X1 with respect to B1 and of X2 with respect to B2,
 // but also proves that those two discrete logarithms are equal.
-func ExampleAnd_2() {
+func Example_and2() {
 	pred := And(Rep("X1", "x", "B1"), Rep("X2", "x", "B2"))
 	fmt.Println(pred.String())
 	// Output: X1=x*B1 && X2=x*B2
@@ -176,7 +176,7 @@ func ExampleAnd_2() {
 // This predicate in essence proves knowledge of the private key
 // for one of two public keys X or Y,
 // without revealing which key the prover owns.
-func ExampleOr_1() {
+func Example_or1() {
 	pred := Or(Rep("X", "x", "B"), Rep("Y", "y", "B"))
 	fmt.Println(pred.String())
 	// Output: X=x*B || Y=y*B
@@ -190,7 +190,7 @@ func ExampleOr_1() {
 // instead of generating it by scalar multiplication.
 // (And if the group is cryptographically secure
 // we won't find be able to find such a y.)
-func ExampleOr_2() {
+func Example_or2() {
 	// Create an Or predicate.
 	pred := Or(Rep("X", "x", "B"), Rep("Y", "y", "B"))
 	fmt.Println("Predicate: " + pred.String())

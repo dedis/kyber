@@ -13,7 +13,7 @@ import (
 // equal the result from PublicKeyToCurve25519.
 func PrivateKeyToCurve25519(curve25519Private *[32]byte, privateKey *[64]byte) {
 	h := sha512.New()
-	h.Write(privateKey[:32])
+	_, _ = h.Write(privateKey[:32])
 	digest := h.Sum(nil)
 
 	digest[0] &= 248

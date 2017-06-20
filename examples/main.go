@@ -1,4 +1,4 @@
-// This package provides a suite of tests showing how to use the different
+// Package examples provides a suite of tests showing how to use the different
 // abstraction and protocols provided by the dedis/kyber library. To run the
 // tests, simply do `go test -v`.
 //

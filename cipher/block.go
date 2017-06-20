@@ -7,7 +7,7 @@ import (
 	"gopkg.in/dedis/kyber.v1"
 )
 
-// Construct a general message Cipher
+// FromBlock constructs  a general message Cipher
 // from a Block cipher and a cryptographic Hash.
 func FromBlock(newCipher func(key []byte) (cipher.Block, error),
 	newHash func() hash.Hash, blockLen, keyLen, hashLen int,

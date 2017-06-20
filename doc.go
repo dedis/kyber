@@ -1,5 +1,5 @@
 /*
-Package crypto provides a toolbox of advanced cryptographic primitives,
+Package kyber provides a toolbox of advanced cryptographic primitives,
 for applications that need more than straightforward signing and encryption.
 The cornerstone of this toolbox is the 'kyber. sub-package,
 which defines kyber.interfaces to cryptographic primitives

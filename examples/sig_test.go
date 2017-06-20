@@ -54,7 +54,7 @@ func SchnorrSign(suite Suite, random cipher.Stream, message []byte,
 	// And check that hashElgamal for T and the message == c
 	buf := bytes.Buffer{}
 	sig := basicSig{c, r}
-	suite.Write(&buf, &sig)
+	_ = suite.Write(&buf, &sig)
 	return buf.Bytes()
 }
 
@@ -87,7 +87,7 @@ func SchnorrVerify(suite Suite, message []byte, publicKey kyber.Point,
 }
 
 // Example of using Schnorr
-func ExampleSchnorr() {
+func Example_schnorr() {
 	// Crypto setup
 	group := edwards25519.NewAES128SHA256Ed25519(false)
 	rand := group.Cipher([]byte("example"))

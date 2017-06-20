@@ -20,6 +20,7 @@ type cipherBlockSize interface {
 	BlockSize() int
 }
 
+// NewHash returns a new cipher-based hash
 func NewHash(cipher func(key []byte, options ...interface{}) kyber.Cipher, size int) hash.Hash {
 	ch := &cipherHash{}
 	ch.cipher = cipher

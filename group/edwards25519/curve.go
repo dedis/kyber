@@ -19,6 +19,7 @@ type Curve struct {
 	//	FullGroup bool
 }
 
+// PrimeOrder implements the kyber.Group interface.
 func (c *Curve) PrimeOrder() bool {
 	return true
 }
@@ -28,12 +29,13 @@ func (c *Curve) String() string {
 	return "Ed25519"
 }
 
-// Returns 32, the size in bytes of an encoded Scalar for the Ed25519 curve.
+// ScalarLen returns 32, the size in bytes of an encoded Scalar
+// for the Ed25519 curve.
 func (c *Curve) ScalarLen() int {
 	return 32
 }
 
-// Create a new Scalar for the prime-order subgroup of the Ed25519 curve.
+// Scalar creates a new Scalar for the prime-order subgroup of the Ed25519 curve.
 func (c *Curve) Scalar() kyber.Scalar {
 	//i := mod.NewInt64(0, primeOrder)
 	//i.BO = mod.LittleEndian
@@ -42,12 +44,12 @@ func (c *Curve) Scalar() kyber.Scalar {
 	return &scalar{}
 }
 
-// Returns 32, the size in bytes of an encoded Point on the Ed25519 curve.
+// PointLen returns 32, the size in bytes of an encoded Point on the Ed25519 curve.
 func (c *Curve) PointLen() int {
 	return 32
 }
 
-// Create a new Point on the Ed25519 curve.
+// Point creates a new Point on the Ed25519 curve.
 func (c *Curve) Point() kyber.Point {
 	P := new(point)
 	//P.c = c
@@ -56,7 +58,7 @@ func (c *Curve) Point() kyber.Point {
 
 // NewKey returns a formatted Ed25519 key (avoiding subgroup attack by requiring
 // it to be a multiple of 8)
-func (s *Curve) NewKey(stream cipher.Stream) kyber.Scalar {
+func (c *Curve) NewKey(stream cipher.Stream) kyber.Scalar {
 	if stream == nil {
 		stream = random.Stream
 	}
@@ -66,7 +68,6 @@ func (s *Curve) NewKey(stream cipher.Stream) kyber.Scalar {
 	scalar[31] &= 0x3f
 	scalar[31] |= 0x40
 
-	secret := s.Scalar().SetBytes(scalar[:32])
+	secret := c.Scalar().SetBytes(scalar[:32])
 	return secret
 }
-

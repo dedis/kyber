@@ -101,7 +101,6 @@ func NonZeroBytes(n int, rand cipher.Stream) []byte {
 			}
 		}
 	}
-	return randoms
 }
 
 type randstream struct {

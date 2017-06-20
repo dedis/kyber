@@ -117,7 +117,7 @@ func (s *scalar) Inv(a kyber.Scalar) kyber.Scalar {
 	// Implementation is constant time regarding the value a, it only depends on
 	// the modulo.
 	for i := 255; i >= 0; i-- {
-		bit := l_minus_2_big.Bit(i)
+		bit := lMinus2.Bit(i)
 		// square step
 		scMul(&res.v, &res.v, &res.v)
 		if bit == 1 {
@@ -168,8 +168,6 @@ func (s *scalar) MarshalSize() int {
 
 func (s *scalar) MarshalBinary() ([]byte, error) {
 	return s.toInt().MarshalBinary()
-	//buf := s.v
-	//return buf[:], nil
 }
 
 func (s *scalar) UnmarshalBinary(buf []byte) error {

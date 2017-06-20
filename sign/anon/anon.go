@@ -11,8 +11,8 @@ type Set []kyber.Point
 
 // A private key representing a member of an anonymity set
 type PriKey struct {
-	Set                // Public key-set
-	Mine int           // Index of the public key I own
+	Set               // Public key-set
+	Mine int          // Index of the public key I own
 	Pri  kyber.Scalar // Private key for that public key
 }
 

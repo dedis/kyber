@@ -130,7 +130,7 @@ type Point interface {
 }
 
 /*
-This interface represents an kyber.cryptographic group
+Group interface represents an kyber.cryptographic group
 usable for Diffie-Hellman key exchange, ElGamal encryption,
 and the related body of public-key cryptographic algorithms
 and zero-knowledge proof methods.

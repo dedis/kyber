@@ -4,7 +4,6 @@ import (
 	"crypto/cipher"
 	"encoding"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -143,7 +142,7 @@ type decoder struct {
 	r io.Reader
 }
 
-var int32Type reflect.Type = reflect.TypeOf(int32(0))
+var int32Type = reflect.TypeOf(int32(0))
 
 // Read a series of binary objects from an io.Reader.
 // The objs must be a list of pointers.
@@ -217,7 +216,7 @@ func (de *decoder) value(v reflect.Value, depth int) error {
 		var i int32
 		err := binary.Read(de.r, binary.BigEndian, &i)
 		if err != nil {
-			return errors.New(fmt.Sprintf("Error converting int to int32 ( %v )", err))
+			return fmt.Errorf("Error converting int to int32 ( %v )", err)
 		}
 		v.SetInt(int64(i))
 		return err
@@ -314,7 +313,7 @@ func (en *encoder) value(obj interface{}, depth int) error {
 	return nil
 }
 
-// Default implementation of reflective constructor for ciphersuites
+// SuiteNew is the Default implementation of reflective constructor for ciphersuites
 func SuiteNew(g Group, t reflect.Type) interface{} {
 	switch t {
 	case tScalar:
@@ -325,12 +324,12 @@ func SuiteNew(g Group, t reflect.Type) interface{} {
 	return nil
 }
 
-// Default implementation of Encoding interface Read for ciphersuites
+// SuiteRead is the default implementation of Encoding interface Read for ciphersuites
 func SuiteRead(s Constructor, r io.Reader, objs ...interface{}) error {
 	return BinaryEncoding{Constructor: s}.Read(r, objs)
 }
 
-// Default implementation of Encoding interface Write for ciphersuites
+// SuiteWrite is the default implementation of Encoding interface Write for ciphersuites
 func SuiteWrite(s Constructor, w io.Writer, objs ...interface{}) error {
 	return BinaryEncoding{Constructor: s}.Write(w, objs)
 }

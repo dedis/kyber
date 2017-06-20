@@ -125,7 +125,7 @@ func HashProve(suite Suite, protocolName string,
 	return ctx.Proof(), nil
 }
 
-// Verifies a hash-based noninteractive proof generated with HashProve.
+// HashVerify computes a hash-based noninteractive proof generated with HashProve.
 // The suite and protocolName must be the same as those given to HashProve.
 // Returns nil if the proof checks out, or an error on any failure.
 func HashVerify(suite Suite, protocolName string,

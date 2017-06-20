@@ -108,7 +108,6 @@ func (i *Int) InitString(n, d string, base int, m *big.Int) *Int {
 
 // Return the Int's integer value in decimal string representation.
 func (i *Int) String() string {
-	//return i.V.String()
 	return hex.EncodeToString(i.V.Bytes())
 }
 

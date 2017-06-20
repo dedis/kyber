@@ -17,7 +17,7 @@ import (
 // producing traditional ElGamal signatures:
 // the resulting signatures are exactly the same length
 // and represent essentially the same computational cost.
-func ExampleSign_1() {
+func Example_sign1() {
 
 	// Crypto setup
 	suite := edwards25519.NewAES128SHA256Ed25519(false)

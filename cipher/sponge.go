@@ -65,7 +65,7 @@ type spongeCipher struct {
 	pos int
 }
 
-// SpongeCipher builds a general message Cipher from a Sponge function.
+// FromSponge builds a general message Cipher from a Sponge function.
 func FromSponge(sponge Sponge, key []byte, options ...interface{}) kyber.Cipher {
 	sc := spongeCipher{}
 	sc.sponge = sponge
@@ -87,7 +87,7 @@ func FromSponge(sponge Sponge, key []byte, options ...interface{}) kyber.Cipher 
 	// Setup normal-case domain-separation byte used for message payloads
 	sc.setDomain(domainPayload, 0)
 
-	return kyber.Cipher{&sc}
+	return kyber.Cipher{CipherState: &sc}
 }
 
 func (sc *spongeCipher) parseOptions(options []interface{}) bool {

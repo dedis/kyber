@@ -10,7 +10,7 @@ import (
 	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 )
 
-func ExampleEncrypt_1() {
+func Example_encrypt1() {
 
 	// Crypto setup
 	suite := edwards25519.NewAES128SHA256Ed25519(false)

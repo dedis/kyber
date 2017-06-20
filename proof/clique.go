@@ -1,3 +1,5 @@
+package proof
+
 // A clique protocol is an kyber.on for a cryptographic protocol
 // in which every participant knows about and interacts directly
 // in lock-step with every other participant in the clique.
@@ -7,7 +9,6 @@
 // The basic clique protocol
 // assumes that nodes are always "live" and never go offline,
 // but we can achieve availability via threshold kyber.
-package proof
 
 import "gopkg.in/dedis/kyber.v1"
 
