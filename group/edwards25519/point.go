@@ -1,4 +1,4 @@
-// Package edwards25519  provides an optimized Go implementation of a
+// Package ed25519 provides an optimized Go implementation of a
 // Twisted Edwards curve that is isomorphic to Curve25519. For details see:
 // http://ed25519.cr.yp.to/.
 //

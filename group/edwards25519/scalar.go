@@ -19,7 +19,7 @@ import (
 )
 
 // This code is a port of the public domain, "ref10" implementation of ed25519
-// from SUPERCOP.
+// from SUPERCOP. More information at https://bench.cr.yp.to/supercop.html.
 
 // The scalars are GF(2^252 + 27742317777372353535851937790883648493).
 
@@ -40,6 +40,7 @@ func (s *scalar) Set(a kyber.Scalar) kyber.Scalar {
 	return s
 }
 
+// Clone returns a duplicate of the scalar s.
 func (s *scalar) Clone() kyber.Scalar {
 	s2 := *s
 	return &s2
@@ -51,7 +52,7 @@ func (s *scalar) setInt(i *mod.Int) kyber.Scalar {
 	return s
 }
 
-// Set to a small integer value
+// SetInt64 sets the scalar to a small integer value.
 func (s *scalar) SetInt64(v int64) kyber.Scalar {
 	return s.setInt(mod.NewInt64(v, primeOrder))
 }
@@ -140,6 +141,8 @@ func (s *scalar) SetBytes(b []byte) kyber.Scalar {
 	return s.setInt(mod.NewIntBytes(b, primeOrder, mod.LittleEndian))
 }
 
+// SetVarTime returns always false since no variable time implementation is
+// available for this scalar.
 func (s *scalar) SetVarTime(varTime bool) bool {
 	return false
 }
@@ -157,6 +160,7 @@ func (s *scalar) Bytes() []byte {
 	return buf[i:]
 }
 
+// String returns the string representation of this scalar.
 func (s *scalar) String() string {
 	return s.toInt().String()
 }
@@ -166,10 +170,12 @@ func (s *scalar) MarshalSize() int {
 	return 32
 }
 
+// MarshalBinary returns the binary representation of this scalar.
 func (s *scalar) MarshalBinary() ([]byte, error) {
 	return s.toInt().MarshalBinary()
 }
 
+// UnmarshalBinary reads the binary representation of a scalar.
 func (s *scalar) UnmarshalBinary(buf []byte) error {
 	if len(buf) != 32 {
 		return errors.New("wrong size buffer")
@@ -178,10 +184,14 @@ func (s *scalar) UnmarshalBinary(buf []byte) error {
 	return nil
 }
 
+// MarshalTo writes the binary representation of this scalar to the given
+// writer.
 func (s *scalar) MarshalTo(w io.Writer) (int, error) {
 	return marshalling.ScalarMarshalTo(s, w)
 }
 
+// UnmarshalFrom reads the binary representation of a scalar from the given
+// reader.
 func (s *scalar) UnmarshalFrom(r io.Reader) (int, error) {
 	return marshalling.ScalarUnmarshalFrom(s, r)
 }

@@ -13,10 +13,6 @@ import (
 // There are no parameters and no initialization is required
 // because it supports only this one specific curve.
 type Curve struct {
-
-	// Set to true to use the full group of order 8Q,
-	// or false to use the prime-order subgroup of order Q.
-	//	FullGroup bool
 }
 
 // PrimeOrder implements the kyber.Group interface.
@@ -37,10 +33,6 @@ func (c *Curve) ScalarLen() int {
 
 // Scalar creates a new Scalar for the prime-order subgroup of the Ed25519 curve.
 func (c *Curve) Scalar() kyber.Scalar {
-	//i := mod.NewInt64(0, primeOrder)
-	//i.BO = mod.LittleEndian
-	//return i
-
 	return &scalar{}
 }
 
@@ -52,7 +44,6 @@ func (c *Curve) PointLen() int {
 // Point creates a new Point on the Ed25519 curve.
 func (c *Curve) Point() kyber.Point {
 	P := new(point)
-	//P.c = c
 	return P
 }
 

@@ -271,6 +271,9 @@ func (P *extPoint) Mul(s kyber.Scalar, G kyber.Point) kyber.Point {
 
 // This implementation only supports variable-time operations
 func (P *extPoint) SetVarTime(varTime bool) bool {
+	if !vartime {
+		panic("constant time implementation not available")
+	}
 	return true
 }
 
