@@ -3,8 +3,8 @@ package shuffle
 import (
 	//"fmt"
 	//"encoding/hex"
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/proof"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/proof"
 )
 
 func TestShuffle(suite abstract.Suite, k int, N int) {

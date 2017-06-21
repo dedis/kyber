@@ -15,7 +15,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/kyber/abstract"
 )
 
 type Entry struct {

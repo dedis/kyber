@@ -6,10 +6,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/base64"
-	"github.com/dedis/crypto/random"
-	"github.com/dedis/crypto/util"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/base64"
+	"github.com/dedis/kyber/random"
+	"github.com/dedis/kyber/util"
 )
 
 // KeyPair represents a public/private keypair

@@ -8,7 +8,7 @@ package proof
 import (
 	"errors"
 
-	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/kyber/abstract"
 )
 
 // XXX simplify using the reflection API?

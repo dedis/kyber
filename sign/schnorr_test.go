@@ -3,9 +3,9 @@ package sign
 import (
 	"testing"
 
-	"github.com/dedis/crypto/config"
-	"github.com/dedis/crypto/ed25519"
-	"github.com/dedis/crypto/eddsa"
+	"github.com/dedis/kyber/config"
+	"github.com/dedis/kyber/ed25519"
+	"github.com/dedis/kyber/eddsa"
 	"github.com/stretchr/testify/assert"
 )
 

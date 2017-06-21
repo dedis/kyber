@@ -42,10 +42,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/share"
-	"github.com/dedis/crypto/share/vss"
-	"github.com/dedis/crypto/sign"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/share"
+	"github.com/dedis/kyber/share/vss"
+	"github.com/dedis/kyber/sign"
 )
 
 // DistKeyShare holds the share of a distributed key for a participant.

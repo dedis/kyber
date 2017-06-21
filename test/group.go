@@ -1,8 +1,8 @@
 package test
 
 import (
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/random"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/random"
 )
 
 // A generic benchmark suite for abstract groups.

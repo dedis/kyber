@@ -3,10 +3,10 @@ package edwards
 import (
 	"testing"
 	//"encoding/hex"
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/ed25519"
-	"github.com/dedis/crypto/random"
-	"github.com/dedis/crypto/test"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/ed25519"
+	"github.com/dedis/kyber/random"
+	"github.com/dedis/kyber/test"
 )
 
 var testSuite = NewAES128SHA256Ed25519(false)

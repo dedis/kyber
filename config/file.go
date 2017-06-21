@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
-	"github.com/dedis/crypto/util"
+	"github.com/dedis/kyber/util"
 )
 
 // XXX it wouldn't be hard to parameterize the file format parser

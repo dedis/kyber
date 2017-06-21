@@ -3,9 +3,9 @@ package share
 import (
 	"testing"
 
-	"github.com/dedis/crypto/ed25519"
-	"github.com/dedis/crypto/edwards"
-	"github.com/dedis/crypto/random"
+	"github.com/dedis/kyber/ed25519"
+	"github.com/dedis/kyber/edwards"
+	"github.com/dedis/kyber/random"
 	"github.com/stretchr/testify/assert"
 )
 

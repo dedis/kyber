@@ -1,9 +1,9 @@
 package shuffle
 
 import (
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/proof"
-	"github.com/dedis/crypto/random"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/proof"
+	"github.com/dedis/kyber/random"
 )
 
 func bifflePred() proof.Predicate {

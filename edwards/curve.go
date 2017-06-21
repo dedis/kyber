@@ -7,9 +7,9 @@ import (
 	//"encoding/hex"
 	"crypto/cipher"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/nist"
-	"github.com/dedis/crypto/util"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/nist"
+	"github.com/dedis/kyber/util"
 )
 
 var zero = big.NewInt(0)

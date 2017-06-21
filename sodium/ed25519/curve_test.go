@@ -5,7 +5,7 @@ package ed25519
 import (
 	"testing"
 
-	"github.com/dedis/crypto/test"
+	"github.com/dedis/kyber/test"
 )
 
 var testSuite = NewAES128SHA256Ed25519()

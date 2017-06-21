@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/edwards"
-	"github.com/dedis/crypto/random"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/edwards"
+	"github.com/dedis/kyber/random"
 )
 
 // Simple harness to create lots of fake ciphersuites out of a few real ones,

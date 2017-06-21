@@ -23,9 +23,9 @@ import (
 	"crypto/cipher"
 	"errors"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/proof"
-	"github.com/dedis/crypto/random"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/proof"
+	"github.com/dedis/kyber/random"
 )
 
 // XX these could all be inlined into PairShuffleProof; do we want to?

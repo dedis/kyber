@@ -7,7 +7,7 @@ package ed25519
 import (
 	"math/big"
 
-	"github.com/dedis/crypto/nist"
+	"github.com/dedis/kyber/nist"
 )
 
 // prime modulus of underlying field = 2^255 - 19

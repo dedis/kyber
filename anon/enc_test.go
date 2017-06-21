@@ -6,8 +6,8 @@ import (
 	//"testing"
 	"encoding/hex"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/nist"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/nist"
 )
 
 func ExampleEncrypt_1() {

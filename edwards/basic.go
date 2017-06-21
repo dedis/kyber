@@ -7,9 +7,9 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/group"
-	"github.com/dedis/crypto/nist"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/group"
+	"github.com/dedis/kyber/nist"
 )
 
 type basicPoint struct {

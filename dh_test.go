@@ -1,8 +1,8 @@
 package crypto
 
 import (
-	"github.com/dedis/crypto/nist"
-	"github.com/dedis/crypto/random"
+	"github.com/dedis/kyber/nist"
+	"github.com/dedis/kyber/random"
 )
 
 /*

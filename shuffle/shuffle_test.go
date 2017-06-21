@@ -3,8 +3,8 @@ package shuffle
 import (
 	"testing"
 
-	"github.com/dedis/crypto/edwards"
-	"github.com/dedis/crypto/nist"
+	"github.com/dedis/kyber/edwards"
+	"github.com/dedis/kyber/nist"
 )
 
 func TestBiffle(t *testing.T) {

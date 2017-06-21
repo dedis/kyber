@@ -1,9 +1,9 @@
 package crypto
 
 import (
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/nist"
-	"github.com/dedis/crypto/random"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/nist"
+	"github.com/dedis/kyber/random"
 )
 
 func ElGamalEncrypt(suite abstract.Suite, pubkey abstract.Point, message []byte) (
