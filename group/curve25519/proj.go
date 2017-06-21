@@ -249,7 +249,7 @@ func (P *projPoint) Mul(s kyber.Scalar, G kyber.Point) kyber.Point {
 	return P
 }
 
-// This implementation only supports variable-time operations
+// SetVarTime returns an error if we request constant-time operations.
 func (P *projPoint) SetVarTime(varTime bool) error {
 	if !varTime {
 		return errors.New("curve25519: no constant time implementation available")
