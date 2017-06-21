@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"testing"
 	//"encoding/hex"
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/clique"
-	"github.com/dedis/crypto/nist"
-	"github.com/dedis/crypto/random"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/clique"
+	"github.com/dedis/kyber/nist"
+	"github.com/dedis/kyber/random"
 )
 
 var testSuite = nist.NewAES128SHA256P256()

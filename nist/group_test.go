@@ -3,7 +3,7 @@ package nist
 import (
 	"testing"
 
-	"github.com/dedis/crypto/test"
+	"github.com/dedis/kyber/test"
 )
 
 var testQR512 = NewAES128SHA256QR512()

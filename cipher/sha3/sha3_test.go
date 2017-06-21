@@ -20,7 +20,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dedis/crypto/cipher"
+	"github.com/dedis/kyber/cipher"
 )
 
 const (

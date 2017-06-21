@@ -4,12 +4,12 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/ed25519"
-	"github.com/dedis/crypto/random"
-	"github.com/dedis/crypto/share"
-	"github.com/dedis/crypto/share/vss"
-	"github.com/dedis/crypto/sign"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/ed25519"
+	"github.com/dedis/kyber/random"
+	"github.com/dedis/kyber/share"
+	"github.com/dedis/kyber/share/vss"
+	"github.com/dedis/kyber/sign"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

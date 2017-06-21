@@ -49,11 +49,11 @@ import (
 	"encoding/hex"
 	"math/big"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/group"
-	"github.com/dedis/crypto/nist"
-	"github.com/dedis/crypto/random"
-	"github.com/dedis/crypto/sha3"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/group"
+	"github.com/dedis/kyber/nist"
+	"github.com/dedis/kyber/random"
+	"github.com/dedis/kyber/sha3"
 )
 
 // prime order of base point = 2^252 + 27742317777372353535851937790883648493

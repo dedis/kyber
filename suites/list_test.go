@@ -3,7 +3,7 @@ package suites
 import (
 	"testing"
 
-	"github.com/dedis/crypto/test"
+	"github.com/dedis/kyber/test"
 )
 
 func TestSuites(t *testing.T) {

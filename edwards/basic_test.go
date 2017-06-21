@@ -5,7 +5,7 @@ package edwards
 import (
 	"testing"
 
-	"github.com/dedis/crypto/test"
+	"github.com/dedis/kyber/test"
 )
 
 // Test the basic implementation of the Ed25519 curve.

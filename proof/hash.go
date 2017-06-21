@@ -3,7 +3,7 @@ package proof
 import (
 	"bytes"
 
-	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/kyber/abstract"
 )
 
 // Hash-based noninteractive Sigma-protocol prover context

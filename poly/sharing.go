@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/random"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/random"
 )
 
 // Clique protocol outline:

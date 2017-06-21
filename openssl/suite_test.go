@@ -5,7 +5,7 @@ package openssl
 import (
 	"testing"
 
-	"github.com/dedis/crypto/test"
+	"github.com/dedis/kyber/test"
 )
 
 func BenchmarkAES128(b *testing.B) {

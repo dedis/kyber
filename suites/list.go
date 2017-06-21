@@ -5,10 +5,10 @@ package suites
 import (
 	"fmt"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/ed25519"
-	"github.com/dedis/crypto/edwards"
-	"github.com/dedis/crypto/nist"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/ed25519"
+	"github.com/dedis/kyber/edwards"
+	"github.com/dedis/kyber/nist"
 )
 
 // Suites represents a map from ciphersuite name to ciphersuite.

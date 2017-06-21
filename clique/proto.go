@@ -10,7 +10,7 @@
 package clique
 
 import (
-	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/kyber/abstract"
 )
 
 // Protocol represents the role of a participant in a clique protocol.

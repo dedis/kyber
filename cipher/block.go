@@ -4,7 +4,7 @@ import (
 	"crypto/cipher"
 	"hash"
 
-	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/kyber/abstract"
 )
 
 // Construct a general message Cipher

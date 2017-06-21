@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/ed25519"
-	"github.com/dedis/crypto/random"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/ed25519"
+	"github.com/dedis/kyber/random"
 )
 
 var suite = ed25519.NewAES128SHA256Ed25519(false)

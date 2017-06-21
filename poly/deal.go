@@ -128,11 +128,11 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/anon"
-	"github.com/dedis/crypto/config"
-	"github.com/dedis/crypto/proof"
-	"github.com/dedis/crypto/random"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/anon"
+	"github.com/dedis/kyber/config"
+	"github.com/dedis/kyber/proof"
+	"github.com/dedis/kyber/random"
 )
 
 // Used mostly in marshalling code, this is the size of a uint32

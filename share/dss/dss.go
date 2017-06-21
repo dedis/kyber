@@ -20,11 +20,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/eddsa"
-	"github.com/dedis/crypto/share"
-	"github.com/dedis/crypto/share/dkg"
-	"github.com/dedis/crypto/sign"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/eddsa"
+	"github.com/dedis/kyber/share"
+	"github.com/dedis/kyber/share/dkg"
+	"github.com/dedis/kyber/sign"
 )
 
 // DSS holds the information used to issue partial signatures as well as to

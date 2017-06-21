@@ -3,8 +3,8 @@ package abstract
 import (
 	"errors"
 
-	"github.com/dedis/crypto/subtle"
-	"github.com/dedis/crypto/util"
+	"github.com/dedis/kyber/subtle"
+	"github.com/dedis/kyber/util"
 )
 
 // CipherState defines an interface to an abstract symmetric message cipher.

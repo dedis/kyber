@@ -26,8 +26,8 @@ import (
 	"runtime"
 	"unsafe"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/group"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/group"
 )
 
 type point struct {

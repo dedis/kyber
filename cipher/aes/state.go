@@ -10,9 +10,9 @@ import (
 	"crypto/aes"
 	"crypto/hmac"
 	"crypto/sha256"
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/cipher"
-	"github.com/dedis/crypto/cipher/generic"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/cipher"
+	"github.com/dedis/kyber/cipher/generic"
 )
 
 

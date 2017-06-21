@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	_ "github.com/dedis/crypto/abstract"
+	_ "github.com/dedis/kyber/abstract"
 )
 
 /////// TESTING ///////

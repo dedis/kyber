@@ -16,7 +16,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/kyber/abstract"
 )
 
 // Some error definitions

@@ -7,11 +7,11 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/group"
-	"github.com/dedis/crypto/math"
-	"github.com/dedis/crypto/random"
-	"github.com/dedis/crypto/util"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/group"
+	"github.com/dedis/kyber/math"
+	"github.com/dedis/kyber/random"
+	"github.com/dedis/kyber/util"
 )
 
 var one = big.NewInt(1)

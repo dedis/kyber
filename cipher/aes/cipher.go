@@ -7,8 +7,8 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/cipher"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/cipher"
 )
 
 // NewBlockCipher creates a conventional AES block cipher.

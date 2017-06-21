@@ -8,9 +8,9 @@ import (
 	"io"
 	"math/big"
 	//"encoding/hex"
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/group"
-	"github.com/dedis/crypto/random"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/group"
+	"github.com/dedis/kyber/random"
 )
 
 type residuePoint struct {

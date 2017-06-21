@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/config"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/config"
 )
 
 // This package provides  a dealer-less distributed verifiable secret sharing

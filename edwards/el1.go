@@ -5,8 +5,8 @@ import (
 	//"encoding/hex"
 	"crypto/cipher"
 
-	"github.com/dedis/crypto/math"
-	"github.com/dedis/crypto/nist"
+	"github.com/dedis/kyber/math"
+	"github.com/dedis/kyber/nist"
 )
 
 func chi(r, v *nist.Int) {

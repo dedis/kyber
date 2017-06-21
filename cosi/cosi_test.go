@@ -6,9 +6,9 @@ import (
 
 	xEd25519 "github.com/bford/golang-x-crypto/ed25519"
 	"github.com/bford/golang-x-crypto/ed25519/cosi"
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/config"
-	"github.com/dedis/crypto/ed25519"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/config"
+	"github.com/dedis/kyber/ed25519"
 	"github.com/stretchr/testify/assert"
 )
 

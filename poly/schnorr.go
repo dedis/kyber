@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"hash"
 
-	"github.com/dedis/crypto/abstract"
+	"github.com/dedis/kyber/abstract"
 )
 
 // This file describes the Distributed Threshold Schnorr Signature

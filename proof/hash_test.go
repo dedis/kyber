@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/dedis/crypto/abstract"
-	"github.com/dedis/crypto/nist"
+	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/nist"
 )
 
 // This example shows how to build classic ElGamal-style digital signatures
