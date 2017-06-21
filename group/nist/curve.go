@@ -215,8 +215,11 @@ func (p *curvePoint) UnmarshalFrom(r io.Reader) (int, error) {
 }
 
 // This implementation only supports variable-time operations
-func (P *curvePoint) SetVarTime(varTime bool) bool {
-	return true
+func (P *curvePoint) SetVarTime(varTime bool) error {
+	if !varTime {
+		return errors.New("nist: nist curve point do not provide constant time implementations")
+	}
+	return nil
 }
 
 // interface for curve-specifc mathematical functions

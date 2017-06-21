@@ -229,8 +229,7 @@ func (P *point) Mul(s kyber.Scalar, A kyber.Point) kyber.Point {
 	return P
 }
 
-func (P *point) SetVarTime(varTime bool) bool {
-	old := P.varTime
+func (P *point) SetVarTime(varTime bool) error {
 	P.varTime = varTime
-	return old
+	return nil
 }

@@ -167,8 +167,11 @@ func (p *residuePoint) UnmarshalFrom(r io.Reader) (int, error) {
 }
 
 // This implementation only supports variable-time operations
-func (P *residuePoint) SetVarTime(varTime bool) bool {
-	return true
+func (P *residuePoint) SetVarTime(varTime bool) error {
+	if !varTime {
+		return errors.New("nist: curve point do not provide constant time operations")
+	}
+	return nil
 }
 
 /*

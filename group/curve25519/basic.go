@@ -4,6 +4,7 @@ package curve25519
 
 import (
 	"crypto/cipher"
+	"errors"
 	"io"
 	"math/big"
 
@@ -122,8 +123,11 @@ func (P *basicPoint) Data() ([]byte, error) {
 	return P.c.data(&P.x, &P.y)
 }
 
-func (P *basicPoint) SetVarTime(varTime bool) bool {
-	return true
+func (P *basicPoint) SetVarTime(varTime bool) error {
+	if !varTime {
+		return errors.New("curve25519: no constant time implementation available")
+	}
+	return nil
 }
 
 // Add two points using the basic unified addition laws for Edwards curves:

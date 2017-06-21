@@ -143,8 +143,11 @@ func (s *scalar) SetBytes(b []byte) kyber.Scalar {
 
 // SetVarTime returns always false since no variable time implementation is
 // available for this scalar.
-func (s *scalar) SetVarTime(varTime bool) bool {
-	return false
+func (s *scalar) SetVarTime(varTime bool) error {
+	if varTime {
+		return errors.New("ed25519: no vartime scalar implementation available")
+	}
+	return nil
 }
 
 // Bytes returns a big-Endian representation of the scalar
