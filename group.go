@@ -60,7 +60,7 @@ type Scalar interface {
 	// Bytes returns a big-Endian representation of the scalar
 	Bytes() []byte
 
-	// Allow or disallow use of faster variable-time implementations
+	// SetVarTime allows or disallows use of faster variable-time implementations
 	// of operations on this Point. It returns an error if the desired
 	// implementation is not available for the concrete implementation.
 	// This flag always defaults to false (constant-time only)
@@ -123,7 +123,7 @@ type Point interface {
 	// If p == nil, multiply with the standard base point Base().
 	Mul(s Scalar, p Point) Point
 
-	// Allow or disallow use of faster variable-time implementations
+	// SetVarTime allows or disallows use of faster variable-time implementations
 	// of operations on this Point. It returns an error if the desired
 	// implementation is not available.
 	// This flag always defaults to false (constant-time only)

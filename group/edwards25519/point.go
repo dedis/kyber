@@ -204,14 +204,14 @@ func (P *point) Sub(P1, P2 kyber.Point) kyber.Point {
 	return P
 }
 
-// Find the negative of point A.
+// Neg finds the negative of point A.
 // For Edwards curves, the negative of (x,y) is (-x,y).
 func (P *point) Neg(A kyber.Point) kyber.Point {
 	P.ge.Neg(&A.(*point).ge)
 	return P
 }
 
-// Multiply point p by scalar s using the repeated doubling method.
+// Mul multiplies point p by scalar s using the repeated doubling method.
 func (P *point) Mul(s kyber.Scalar, A kyber.Point) kyber.Point {
 
 	a := &s.(*scalar).v
@@ -229,6 +229,7 @@ func (P *point) Mul(s kyber.Scalar, A kyber.Point) kyber.Point {
 	return P
 }
 
+// SetVarTime allows for optimized, non-constant time implementation.
 func (P *point) SetVarTime(varTime bool) error {
 	P.varTime = varTime
 	return nil
