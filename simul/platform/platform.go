@@ -14,7 +14,10 @@ import (
 
 	"sync"
 
+	"os/exec"
+
 	"github.com/BurntSushi/toml"
+	"github.com/dedis/onet/app"
 	"github.com/dedis/onet/log"
 )
 
@@ -59,6 +62,21 @@ func NewPlatform(t string) Platform {
 		p = &Localhost{}
 	case mininet:
 		p = &MiniNet{}
+		path := os.Getenv("GOPATH") + "/src/github.com/dedis/onet/simul/platform/mininet/"
+		var command string
+		if app.InputYN(true, "Do you want to run mininet on ICCluster?") {
+			command = path + "setup_iccluster.sh"
+		} else {
+			command = path + "setup_servers.sh"
+		}
+		names := app.Input("server1 server2 server3", "Please enter the space separated names of the servers")
+		split := strings.Split(names, " ")
+		cmd := exec.Command(command, split...)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			log.Error(err)
+		}
+		log.Lvl1(string(out))
 	}
 	return p
 }
