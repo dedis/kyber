@@ -112,9 +112,15 @@ func (c *Server) Address() network.Address {
 	return c.ServerIdentity.Address
 }
 
-// GetService returns the service with the given name.
-func (c *Server) GetService(name string) Service {
+// Service returns the service with the given name.
+func (c *Server) Service(name string) Service {
 	return c.serviceManager.service(name)
+}
+
+// GetService is kept for backward-compatibility.
+func (c *Server) GetService(name string) Service {
+	log.Warn("This method is deprecated - use `Server.Service` instead")
+	return c.Service(name)
 }
 
 // ProtocolRegister will sign up a new protocol to this Server.

@@ -27,7 +27,7 @@ func TestServer_ProtocolRegisterName(t *testing.T) {
 func TestServer_GetService(t *testing.T) {
 	c := NewLocalServer(0)
 	defer c.Close()
-	s := c.GetService("nil")
+	s := c.Service("nil")
 	require.Nil(t, s)
 }
 
