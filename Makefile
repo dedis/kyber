@@ -36,7 +36,7 @@ test_playground:
 	done;
 
 test_verbose:
-	go test -v -race -short ./...
+	go test -p=1 -v -race -short ./...
 
 test_go:
 	./coveralls.sh

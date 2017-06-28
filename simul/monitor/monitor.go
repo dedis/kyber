@@ -114,8 +114,8 @@ func (m *Monitor) Listen() error {
 			m.update(measure)
 		// end of a peer conn
 		case peer := <-m.done:
-			log.Lvl3("Connections left:", len(m.conns))
 			m.mutexConn.Lock()
+			log.Lvl3("Connections left:", len(m.conns))
 			delete(m.conns, peer)
 			// end of monitoring,
 			if len(m.conns) == 0 {
