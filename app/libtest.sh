@@ -144,9 +144,9 @@ dbgRun(){
         OUT=/dev/null
     fi
     if [ "$OUTFILE" ]; then
-        $@ 2>&1 | tee $OUTFILE > $OUT
+        "$@" 2>&1 | tee $OUTFILE > $OUT
     else
-        $@ 2>&1 > $OUT
+        "$@" 2>&1 > $OUT
     fi
 }
 
@@ -174,7 +174,7 @@ fail(){
 }
 
 backg(){
-    ( $@ 2>&1 & )
+    ( "$@" 2>&1 & )
 }
 
 build(){
@@ -242,7 +242,7 @@ setupConode(){
 }
 
 runCoBG(){
-    for nb in $@; do
+    for nb in "$@"; do
     	testOut "starting conode-server #$nb"
     	( ./conode -d $DBG_SRV -c co$nb/private.toml | tee $COLOG$nb.log & )
     done
@@ -252,7 +252,7 @@ runCo(){
     local nb=$1
     shift
     testOut "starting conode-server #$nb"
-    dbgRun ./conode -d $DBG_SRV -c co$nb/private.toml $@
+    dbgRun ./conode -d $DBG_SRV -c co$nb/private.toml "$@"
 }
 
 cleanup(){
