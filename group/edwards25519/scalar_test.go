@@ -176,7 +176,7 @@ func BenchmarkCTScalarSimpleSub(b *testing.B) { benchScalarSub(b, newSimpleCTSca
 
 func BenchmarkCTScalarFactoredSub(b *testing.B) { benchScalarSub(b, newFactoredScalar) }
 
-func do_carry_uncentered(limbs [24]int64, i int) {
+func doCarryUncentered(limbs [24]int64, i int) {
 	carry := limbs[i] >> 21
 	limbs[i+1] += carry
 	limbs[i] -= carry << 21
@@ -184,13 +184,13 @@ func do_carry_uncentered(limbs [24]int64, i int) {
 
 // Carry excess from the `i`-th limb into the `(i+1)`-th limb.
 // Postcondition: `-2^20 <= limbs[i] < 2^20`.
-func do_carry_centered(limbs [24]int64, i int) {
+func doCarryCentered(limbs [24]int64, i int) {
 	carry := (limbs[i] + (1 << 20)) >> 21
 	limbs[i+1] += carry
 	limbs[i] -= carry << 21
 }
 
-func do_reduction(limbs [24]int64, i int) {
+func doReduction(limbs [24]int64, i int) {
 	limbs[i-12] += limbs[i] * 666643
 	limbs[i-11] += limbs[i] * 470296
 	limbs[i-10] += limbs[i] * 654183
@@ -203,57 +203,57 @@ func do_reduction(limbs [24]int64, i int) {
 func scReduceLimbs(limbs [24]int64) {
 	//for i in 0..23 {
 	for i := 0; i < 23; i++ {
-		do_carry_centered(limbs, i)
+		doCarryCentered(limbs, i)
 	}
 	//for i in (0..23).filter(|x| x % 2 == 1) {
 	for i := 1; i < 23; i += 2 {
-		do_carry_centered(limbs, i)
+		doCarryCentered(limbs, i)
 	}
 
-	do_reduction(limbs, 23)
-	do_reduction(limbs, 22)
-	do_reduction(limbs, 21)
-	do_reduction(limbs, 20)
-	do_reduction(limbs, 19)
-	do_reduction(limbs, 18)
+	doReduction(limbs, 23)
+	doReduction(limbs, 22)
+	doReduction(limbs, 21)
+	doReduction(limbs, 20)
+	doReduction(limbs, 19)
+	doReduction(limbs, 18)
 
 	//for i in (6..18).filter(|x| x % 2 == 0) {
 	for i := 6; i < 18; i += 2 {
-		do_carry_centered(limbs, i)
+		doCarryCentered(limbs, i)
 	}
 
 	//  for i in (6..16).filter(|x| x % 2 == 1) {
 	for i := 7; i < 16; i += 2 {
-		do_carry_centered(limbs, i)
+		doCarryCentered(limbs, i)
 	}
-	do_reduction(limbs, 17)
-	do_reduction(limbs, 16)
-	do_reduction(limbs, 15)
-	do_reduction(limbs, 14)
-	do_reduction(limbs, 13)
-	do_reduction(limbs, 12)
+	doReduction(limbs, 17)
+	doReduction(limbs, 16)
+	doReduction(limbs, 15)
+	doReduction(limbs, 14)
+	doReduction(limbs, 13)
+	doReduction(limbs, 12)
 
 	//for i in (0..12).filter(|x| x % 2 == 0) {
 	for i := 0; i < 12; i += 2 {
-		do_carry_centered(limbs, i)
+		doCarryCentered(limbs, i)
 	}
 	//for i in (0..12).filter(|x| x % 2 == 1) {
 	for i := 1; i < 12; i += 2 {
-		do_carry_centered(limbs, i)
+		doCarryCentered(limbs, i)
 	}
 
-	do_reduction(limbs, 12)
+	doReduction(limbs, 12)
 
 	//for i in 0..12 {
 	for i := 0; i < 12; i++ {
-		do_carry_uncentered(limbs, i)
+		doCarryUncentered(limbs, i)
 	}
 
-	do_reduction(limbs, 12)
+	doReduction(limbs, 12)
 
 	//for i in 0..11 {
 	for i := 0; i < 11; i++ {
-		do_carry_uncentered(limbs, i)
+		doCarryUncentered(limbs, i)
 	}
 }
 

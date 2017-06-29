@@ -148,8 +148,8 @@ func TestCosiSignatureWithMask(t *testing.T) {
 
 }
 
-func genKeyPair(nb int) ([]*key.KeyPair, []kyber.Point) {
-	var kps []*key.KeyPair
+func genKeyPair(nb int) ([]*key.Pair, []kyber.Point) {
+	var kps []*key.Pair
 	var publics []kyber.Point
 	for i := 0; i < nb; i++ {
 		kp := key.NewKeyPair(testSuite)

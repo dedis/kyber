@@ -9,7 +9,7 @@ import (
 var testSuite = NewAES128SHA256Ed25519(false)
 var groupBench = test.NewGroupBench(testSuite)
 
-func TestSuite(t *testing.T) { test.TestSuite(testSuite) }
+func TestSuite(t *testing.T) { test.SuiteTest(testSuite) }
 
 func BenchmarkScalarAdd(b *testing.B)    { groupBench.ScalarAdd(b.N) }
 func BenchmarkScalarSub(b *testing.B)    { groupBench.ScalarSub(b.N) }

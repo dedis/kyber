@@ -1,4 +1,4 @@
-// Package NORX implements the experimental NORX cipher.
+// Package norx implements the experimental NORX cipher.
 // For details on the NORX cipher see https://norx.io
 // This package is very experimental and NOT for use in prodution systems.
 //

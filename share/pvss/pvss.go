@@ -40,7 +40,7 @@ var errorDecVerification = errors.New("verification of decrypted share failed")
 // PubVerShare is a public verifiable share.
 type PubVerShare struct {
 	S share.PubShare // Share
-	P dleq.DLEQProof // Proof
+	P dleq.Proof     // Proof
 }
 
 // EncShares creates a list of encrypted publicly verifiable PVSS shares for

@@ -1,4 +1,4 @@
-// DSS implements the Distributed Schnorr Signature protocol from the
+// Package dss implements the Distributed Schnorr Signature protocol from the
 // paper "Provably Secure Distributed Schnorr Signatures and a (t, n)
 // Threshold Scheme for Implicit Certificates".
 // https://dl.acm.org/citation.cfm?id=678297
@@ -27,6 +27,7 @@ import (
 	"gopkg.in/dedis/kyber.v1/sign/schnorr"
 )
 
+// Suite represents the functionalities needed by the dss package
 type Suite interface {
 	kyber.Group
 	kyber.HashFactory
@@ -179,7 +180,7 @@ func (d *DSS) EnoughPartialSig() bool {
 // alrogithm.
 func (d *DSS) Signature() ([]byte, error) {
 	if !d.EnoughPartialSig() {
-		return nil, errors.New("dkg: not enough partial signatures to sign.")
+		return nil, errors.New("dkg: not enough partial signatures to sign")
 	}
 	gamma, err := share.RecoverSecret(d.suite, d.partials, d.T, len(d.participants))
 	if err != nil {
@@ -188,8 +189,8 @@ func (d *DSS) Signature() ([]byte, error) {
 	}
 	// RandomPublic || gamma
 	var buff bytes.Buffer
-	d.random.Public().MarshalTo(&buff)
-	gamma.MarshalTo(&buff)
+	_, _ = d.random.Public().MarshalTo(&buff)
+	_, _ = gamma.MarshalTo(&buff)
 	return buff.Bytes(), nil
 }
 
@@ -199,9 +200,9 @@ func (d *DSS) hashSig() kyber.Scalar {
 	//  * A = distributed public key
 	//  * msg = msg to sign
 	h := sha512.New()
-	d.random.Public().MarshalTo(h)
-	d.long.Public().MarshalTo(h)
-	h.Write(d.msg)
+	_, _ = d.random.Public().MarshalTo(h)
+	_, _ = d.long.Public().MarshalTo(h)
+	_, _ = h.Write(d.msg)
 	return d.suite.Scalar().SetBytes(h.Sum(nil))
 }
 
@@ -215,8 +216,8 @@ func Verify(public kyber.Point, msg, sig []byte) error {
 // signature.
 func (ps *PartialSig) Hash(s Suite) []byte {
 	h := s.Hash()
-	h.Write(ps.Partial.Hash(s))
-	h.Write(ps.SessionID)
+	_, _ = h.Write(ps.Partial.Hash(s))
+	_, _ = h.Write(ps.SessionID)
 	return h.Sum(nil)
 }
 
@@ -232,11 +233,11 @@ func findPub(list []kyber.Point, i int) (kyber.Point, bool) {
 func sessionID(s Suite, a, b *dkg.DistKeyShare) []byte {
 	h := s.Hash()
 	for _, p := range a.Commits {
-		p.MarshalTo(h)
+		_, _ = p.MarshalTo(h)
 	}
 
 	for _, p := range b.Commits {
-		p.MarshalTo(h)
+		_, _ = p.MarshalTo(h)
 	}
 
 	return h.Sum(nil)
