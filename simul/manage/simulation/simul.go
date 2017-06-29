@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/BurntSushi/toml"
+	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 	"gopkg.in/dedis/onet.v2"
 	"gopkg.in/dedis/onet.v2/log"
 	"gopkg.in/dedis/onet.v2/simul"
@@ -15,6 +16,8 @@ import (
 /*
 Defines the simulation for the count-protocol
 */
+
+var suite = edwards25519.NewAES128SHA256Ed25519(false)
 
 func init() {
 	onet.SimulationRegister("Count", NewSimulation)
@@ -40,7 +43,7 @@ func NewSimulation(config string) (onet.Simulation, error) {
 func (e *simulation) Setup(dir string, hosts []string) (
 	*onet.SimulationConfig, error) {
 	sc := &onet.SimulationConfig{}
-	e.CreateRoster(sc, hosts, 2000)
+	e.CreateRoster(sc, hosts, 2000, suite)
 	err := e.CreateTree(sc)
 	if err != nil {
 		return nil, err
@@ -72,5 +75,5 @@ func (e *simulation) Run(config *onet.SimulationConfig) error {
 }
 
 func main() {
-	simul.Start()
+	simul.Start(suite)
 }

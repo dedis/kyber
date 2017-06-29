@@ -14,17 +14,20 @@ import (
 	"strconv"
 	"strings"
 
-	"gopkg.in/dedis/onet.v2"
-	"gopkg.in/dedis/onet.v2/log"
-	"gopkg.in/dedis/onet.v2/network"
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/util/encoding"
 	"gopkg.in/dedis/kyber.v1/util/key"
+	"gopkg.in/dedis/onet.v2"
+	"gopkg.in/dedis/onet.v2/log"
+	"gopkg.in/dedis/onet.v2/network"
 
 	"github.com/shirou/gopsutil/mem"
 	// CoSi-protocol is not part of the cothority.
 	// For the moment, the server only serves CoSi requests
 )
+
+// Suite wraps the functionalities needed by this package
+type Suite key.Suite
 
 // DefaultServerConfig is the default server configuration file-name.
 const DefaultServerConfig = "private.toml"
@@ -47,7 +50,7 @@ const whatsMyIP = "http://www.whatsmyip.org/"
 // no public IP can be configured, localhost will be used.
 // If everything is OK, the configuration-files will be written.
 // In case of an error this method Fatals.
-func InteractiveConfig(binaryName string, suite network.Suite) {
+func InteractiveConfig(binaryName string, suite Suite) {
 	log.Info("Setting up a cothority-server.")
 	checkAvailableMemory()
 	str := Inputf(strconv.Itoa(DefaultPort), "Please enter the [address:]PORT for incoming requests")
@@ -200,7 +203,7 @@ func checkOverwrite(file string) bool {
 }
 
 // createKeyPair returns the private and public key in hexadecimal representation.
-func createKeyPair(suite network.Suite) (string, string) {
+func createKeyPair(suite Suite) (string, string) {
 	log.Info("Creating ed25519 private and public keys.")
 	kp := key.NewKeyPair(suite)
 	privStr, err := encoding.ScalarToStringHex(suite, kp.Secret)
@@ -209,7 +212,7 @@ func createKeyPair(suite network.Suite) (string, string) {
 	}
 	var point kyber.Point
 	// use the transformation for EdDSA signatures
-	//point = cosi.Ed25519Public(network.Suite, kp.Secret)
+	//point = cosi.Ed25519Public(Suite, kp.Secret)
 	point = kp.Public
 	pubStr, err := encoding.PointToStringHex(suite, point)
 	if err != nil {
@@ -376,7 +379,7 @@ func checkAvailableMemory() {
 
 // RunServer starts a cothority server with the given config file name. It can
 // be used by different apps (like CoSi, for example)
-func RunServer(configFilename string, suite network.Suite) {
+func RunServer(configFilename string, suite Suite) {
 	if _, err := os.Stat(configFilename); os.IsNotExist(err) {
 		log.Fatalf("[-] Configuration file does not exists. %s", configFilename)
 	}

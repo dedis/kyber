@@ -4,23 +4,19 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"hash"
 	"reflect"
 	"sync"
 
-	"gopkg.in/dedis/onet.v2/log"
 	"github.com/dedis/protobuf"
 	"github.com/satori/go.uuid"
 	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/onet.v2/log"
 )
 
 /// Encoding part ///
 
 // Suite functionalities used globally by the network library.
-type Suite interface {
-	kyber.Group
-	Hash() hash.Hash
-}
+type Suite kyber.Group
 
 // Message is a type for any message that the user wants to send
 type Message interface{}

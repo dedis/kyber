@@ -6,11 +6,11 @@ import (
 
 	"math/rand"
 
-	"github.com/dedis/kyber/group/edwards25519"
-	"gopkg.in/dedis/onet.v2/log"
-	"gopkg.in/dedis/onet.v2/network"
 	"github.com/satori/go.uuid"
 	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/group/edwards25519"
+	"gopkg.in/dedis/onet.v2/log"
+	"gopkg.in/dedis/onet.v2/network"
 )
 
 // In this file we define the main structures used for a running protocol

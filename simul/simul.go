@@ -15,6 +15,7 @@ import (
 	"flag"
 	"os"
 
+	onet "gopkg.in/dedis/onet.v2"
 	"gopkg.in/dedis/onet.v2/log"
 	"gopkg.in/dedis/onet.v2/simul/platform"
 )
@@ -44,14 +45,14 @@ func init() {
 // simulation to run.
 // If given an array of rcs, each element will be interpreted as a .toml-file
 // to load and simulate.
-func Start(rcs ...string) {
+func Start(s onet.SimulSuite, rcs ...string) {
 	wd, err := os.Getwd()
 	if len(rcs) > 0 {
 		log.ErrFatal(err)
 		for _, rc := range rcs {
 			log.Lvl1("Running toml-file:", rc)
 			os.Args = []string{os.Args[0], rc}
-			Start()
+			Start(s)
 		}
 		return
 	}
@@ -59,7 +60,7 @@ func Start(rcs ...string) {
 	if simul == "" {
 		startBuild()
 	} else {
-		err := platform.Simulate(serverAddress, simul, monitorAddress)
+		err := platform.Simulate(serverAddress, simul, monitorAddress, s)
 		log.ErrFatal(err)
 	}
 	os.Chdir(wd)
