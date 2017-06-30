@@ -1,3 +1,5 @@
+// +build vartime
+
 package curve25519
 
 import (

@@ -40,4 +40,4 @@ test_verbose:
 test_goverall:
 	${GOPATH}/bin/goveralls -service=travis-ci
 
-test: test_goverall
+test: test_fmt test_lint test_goverall

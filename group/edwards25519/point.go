@@ -1,4 +1,4 @@
-// Package ed25519 provides an optimized Go implementation of a
+// Package edwards25519 provides an optimized Go implementation of a
 // Twisted Edwards curve that is isomorphic to Curve25519. For details see:
 // http://ed25519.cr.yp.to/.
 //
@@ -16,19 +16,17 @@ package edwards25519
 
 import (
 	"crypto/cipher"
-	"crypto/sha512"
 	"encoding/hex"
 	"errors"
 	"io"
 
 	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/group/mod"
 	"gopkg.in/dedis/kyber.v1/util/marshalling"
-	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
 type point struct {
-	ge extendedGroupElement
+	ge      extendedGroupElement
+	varTime bool
 }
 
 func (P *point) String() string {
@@ -140,7 +138,7 @@ func (P *point) Embed(data []byte, rand cipher.Stream) kyber.Point {
 		// we can convert our point into one in the subgroup
 		// simply by multiplying it by the cofactor.
 		if data == nil {
-			P.Mul(cofactor, P) // multiply by cofactor
+			P.Mul(cofactorScalar, P) // multiply by cofactor
 			if P.Equal(nullPoint) {
 				continue // unlucky; try again
 			}
@@ -151,7 +149,7 @@ func (P *point) Embed(data []byte, rand cipher.Stream) kyber.Point {
 		// we must simply check if the point is in the subgroup
 		// and retry point generation until it is.
 		var Q point
-		Q.Mul(primeOrder, P)
+		Q.Mul(primeOrderScalar, P)
 		if Q.Equal(nullPoint) {
 			return P // success
 		}
@@ -206,100 +204,33 @@ func (P *point) Sub(P1, P2 kyber.Point) kyber.Point {
 	return P
 }
 
-// Find the negative of point A.
+// Neg finds the negative of point A.
 // For Edwards curves, the negative of (x,y) is (-x,y).
 func (P *point) Neg(A kyber.Point) kyber.Point {
 	P.ge.Neg(&A.(*point).ge)
 	return P
 }
 
-// Multiply point p by scalar s using the repeated doubling method.
-// XXX This is vartime; for our general-purpose Mul operator
-// it would be far preferable for security to do this constant-time.
+// Mul multiplies point p by scalar s using the repeated doubling method.
 func (P *point) Mul(s kyber.Scalar, A kyber.Point) kyber.Point {
 
-	// Convert the scalar to fixed-length little-endian form.
-	sb := s.(*mod.Int).V.Bytes()
-	shi := len(sb) - 1
-	var a [32]byte
-	for i := range sb {
-		a[shi-i] = sb[i]
-	}
+	a := &s.(*scalar).v
 
 	if A == nil {
-		geScalarMultBase(&P.ge, &a)
+		geScalarMultBase(&P.ge, a)
 	} else {
-		geScalarMult(&P.ge, &a, &A.(*point).ge)
-		//geScalarMultVartime(&P.ge, &a, &A.(*point).ge)
+		if P.varTime {
+			geScalarMultVartime(&P.ge, a, &A.(*point).ge)
+		} else {
+			geScalarMult(&P.ge, a, &A.(*point).ge)
+		}
 	}
 
 	return P
 }
 
-// Curve represents an Ed25519.
-// There are no parameters and no initialization is required
-// because it supports only this one specific curve.
-type Curve struct {
-
-	// Set to true to use the full group of order 8Q,
-	// or false to use the prime-order subgroup of order Q.
-	//	FullGroup bool
+// SetVarTime allows for optimized, non-constant time implementation.
+func (P *point) SetVarTime(varTime bool) error {
+	P.varTime = varTime
+	return nil
 }
-
-func (c *Curve) PrimeOrder() bool {
-	return true
-}
-
-// Return the name of the curve, "Ed25519".
-func (c *Curve) String() string {
-	return "Ed25519"
-}
-
-// Returns 32, the size in bytes of an encoded Scalar for the Ed25519 curve.
-func (c *Curve) ScalarLen() int {
-	return 32
-}
-
-// Create a new Scalar for the Ed25519 curve.
-func (c *Curve) Scalar() kyber.Scalar {
-	//	if c.FullGroup {
-	//		return mod.NewInt(0, fullOrder)
-	//	} else {
-	i := mod.NewInt64(0, &primeOrder.V)
-	i.BO = mod.LittleEndian
-	return i
-	//	}
-}
-
-// Returns 32, the size in bytes of an encoded Point on the Ed25519 curve.
-func (c *Curve) PointLen() int {
-	return 32
-}
-
-// Create a new Point on the Ed25519 curve.
-func (c *Curve) Point() kyber.Point {
-	P := new(point)
-	//P.c = c
-	return P
-}
-
-// NewKey returns a formatted Ed25519 key (avoiding subgroup attack by requiring
-// it to be a multiple of 8)
-func (s *Curve) NewKey(stream cipher.Stream) kyber.Scalar {
-	if stream == nil {
-		stream = random.Stream
-	}
-	buffer := random.NonZeroBytes(32, stream)
-	scalar := sha512.Sum512(buffer)
-	scalar[0] &= 0xf8
-	scalar[31] &= 0x3f
-	scalar[31] |= 0x40
-
-	secret := s.Scalar().SetBytes(scalar[:32])
-	return secret
-}
-
-// Initialize the curve.
-//func (c *Curve) Init(fullGroup bool) {
-//	c.FullGroup = fullGroup
-//}

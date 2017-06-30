@@ -166,17 +166,17 @@ func (p *extendedGroupElement) String() string {
 
 // completedGroupElement methods
 
-func (p *completedGroupElement) ToProjective(r *projectiveGroupElement) {
-	feMul(&r.X, &p.X, &p.T)
-	feMul(&r.Y, &p.Y, &p.Z)
-	feMul(&r.Z, &p.Z, &p.T)
+func (c *completedGroupElement) ToProjective(r *projectiveGroupElement) {
+	feMul(&r.X, &c.X, &c.T)
+	feMul(&r.Y, &c.Y, &c.Z)
+	feMul(&r.Z, &c.Z, &c.T)
 }
 
-func (p *completedGroupElement) ToExtended(r *extendedGroupElement) {
-	feMul(&r.X, &p.X, &p.T)
-	feMul(&r.Y, &p.Y, &p.Z)
-	feMul(&r.Z, &p.Z, &p.T)
-	feMul(&r.T, &p.X, &p.Y)
+func (c *completedGroupElement) ToExtended(r *extendedGroupElement) {
+	feMul(&r.X, &c.X, &c.T)
+	feMul(&r.Y, &c.Y, &c.Z)
+	feMul(&r.Z, &c.Z, &c.T)
+	feMul(&r.T, &c.X, &c.Y)
 }
 
 func (p *preComputedGroupElement) Zero() {
@@ -185,82 +185,82 @@ func (p *preComputedGroupElement) Zero() {
 	feZero(&p.xy2d)
 }
 
-func (r *completedGroupElement) Add(p *extendedGroupElement, q *cachedGroupElement) {
+func (c *completedGroupElement) Add(p *extendedGroupElement, q *cachedGroupElement) {
 	var t0 fieldElement
 
-	feAdd(&r.X, &p.Y, &p.X)
-	feSub(&r.Y, &p.Y, &p.X)
-	feMul(&r.Z, &r.X, &q.yPlusX)
-	feMul(&r.Y, &r.Y, &q.yMinusX)
-	feMul(&r.T, &q.T2d, &p.T)
-	feMul(&r.X, &p.Z, &q.Z)
-	feAdd(&t0, &r.X, &r.X)
-	feSub(&r.X, &r.Z, &r.Y)
-	feAdd(&r.Y, &r.Z, &r.Y)
-	feAdd(&r.Z, &t0, &r.T)
-	feSub(&r.T, &t0, &r.T)
+	feAdd(&c.X, &p.Y, &p.X)
+	feSub(&c.Y, &p.Y, &p.X)
+	feMul(&c.Z, &c.X, &q.yPlusX)
+	feMul(&c.Y, &c.Y, &q.yMinusX)
+	feMul(&c.T, &q.T2d, &p.T)
+	feMul(&c.X, &p.Z, &q.Z)
+	feAdd(&t0, &c.X, &c.X)
+	feSub(&c.X, &c.Z, &c.Y)
+	feAdd(&c.Y, &c.Z, &c.Y)
+	feAdd(&c.Z, &t0, &c.T)
+	feSub(&c.T, &t0, &c.T)
 }
 
-func (r *completedGroupElement) Sub(p *extendedGroupElement, q *cachedGroupElement) {
+func (c *completedGroupElement) Sub(p *extendedGroupElement, q *cachedGroupElement) {
 	var t0 fieldElement
 
-	feAdd(&r.X, &p.Y, &p.X)
-	feSub(&r.Y, &p.Y, &p.X)
-	feMul(&r.Z, &r.X, &q.yMinusX)
-	feMul(&r.Y, &r.Y, &q.yPlusX)
-	feMul(&r.T, &q.T2d, &p.T)
-	feMul(&r.X, &p.Z, &q.Z)
-	feAdd(&t0, &r.X, &r.X)
-	feSub(&r.X, &r.Z, &r.Y)
-	feAdd(&r.Y, &r.Z, &r.Y)
-	feSub(&r.Z, &t0, &r.T)
-	feAdd(&r.T, &t0, &r.T)
+	feAdd(&c.X, &p.Y, &p.X)
+	feSub(&c.Y, &p.Y, &p.X)
+	feMul(&c.Z, &c.X, &q.yMinusX)
+	feMul(&c.Y, &c.Y, &q.yPlusX)
+	feMul(&c.T, &q.T2d, &p.T)
+	feMul(&c.X, &p.Z, &q.Z)
+	feAdd(&t0, &c.X, &c.X)
+	feSub(&c.X, &c.Z, &c.Y)
+	feAdd(&c.Y, &c.Z, &c.Y)
+	feSub(&c.Z, &t0, &c.T)
+	feAdd(&c.T, &t0, &c.T)
 }
 
-func (r *completedGroupElement) MixedAdd(p *extendedGroupElement, q *preComputedGroupElement) {
+func (c *completedGroupElement) MixedAdd(p *extendedGroupElement, q *preComputedGroupElement) {
 	var t0 fieldElement
 
-	feAdd(&r.X, &p.Y, &p.X)
-	feSub(&r.Y, &p.Y, &p.X)
-	feMul(&r.Z, &r.X, &q.yPlusX)
-	feMul(&r.Y, &r.Y, &q.yMinusX)
-	feMul(&r.T, &q.xy2d, &p.T)
+	feAdd(&c.X, &p.Y, &p.X)
+	feSub(&c.Y, &p.Y, &p.X)
+	feMul(&c.Z, &c.X, &q.yPlusX)
+	feMul(&c.Y, &c.Y, &q.yMinusX)
+	feMul(&c.T, &q.xy2d, &p.T)
 	feAdd(&t0, &p.Z, &p.Z)
-	feSub(&r.X, &r.Z, &r.Y)
-	feAdd(&r.Y, &r.Z, &r.Y)
-	feAdd(&r.Z, &t0, &r.T)
-	feSub(&r.T, &t0, &r.T)
+	feSub(&c.X, &c.Z, &c.Y)
+	feAdd(&c.Y, &c.Z, &c.Y)
+	feAdd(&c.Z, &t0, &c.T)
+	feSub(&c.T, &t0, &c.T)
 }
 
-func (r *completedGroupElement) MixedSub(p *extendedGroupElement, q *preComputedGroupElement) {
+func (c *completedGroupElement) MixedSub(p *extendedGroupElement, q *preComputedGroupElement) {
 	var t0 fieldElement
 
-	feAdd(&r.X, &p.Y, &p.X)
-	feSub(&r.Y, &p.Y, &p.X)
-	feMul(&r.Z, &r.X, &q.yMinusX)
-	feMul(&r.Y, &r.Y, &q.yPlusX)
-	feMul(&r.T, &q.xy2d, &p.T)
+	feAdd(&c.X, &p.Y, &p.X)
+	feSub(&c.Y, &p.Y, &p.X)
+	feMul(&c.Z, &c.X, &q.yMinusX)
+	feMul(&c.Y, &c.Y, &q.yPlusX)
+	feMul(&c.T, &q.xy2d, &p.T)
 	feAdd(&t0, &p.Z, &p.Z)
-	feSub(&r.X, &r.Z, &r.Y)
-	feAdd(&r.Y, &r.Z, &r.Y)
-	feSub(&r.Z, &t0, &r.T)
-	feAdd(&r.T, &t0, &r.T)
+	feSub(&c.X, &c.Z, &c.Y)
+	feAdd(&c.Y, &c.Z, &c.Y)
+	feSub(&c.Z, &t0, &c.T)
+	feAdd(&c.T, &t0, &c.T)
 }
 
 // preComputedGroupElement methods
 
 // Set to u conditionally based on b
-func (t *preComputedGroupElement) CMove(u *preComputedGroupElement, b int32) {
-	feCMove(&t.yPlusX, &u.yPlusX, b)
-	feCMove(&t.yMinusX, &u.yMinusX, b)
-	feCMove(&t.xy2d, &u.xy2d, b)
+func (p *preComputedGroupElement) CMove(u *preComputedGroupElement, b int32) {
+	feCMove(&p.yPlusX, &u.yPlusX, b)
+	feCMove(&p.yMinusX, &u.yMinusX, b)
+	feCMove(&p.xy2d, &u.xy2d, b)
 }
 
 // Set to negative of t
-func (r *preComputedGroupElement) Neg(t *preComputedGroupElement) {
-	feCopy(&r.yPlusX, &t.yMinusX)
-	feCopy(&r.yMinusX, &t.yPlusX)
-	feNeg(&r.xy2d, &t.xy2d)
+func (p *preComputedGroupElement) Neg(t *preComputedGroupElement) {
+	feCopy(&p.yPlusX, &t.yMinusX)
+	feCopy(&p.yMinusX, &t.yPlusX)
+	feNeg(&p.xy2d, &t.xy2d)
 }
 
 // cachedGroupElement methods
@@ -273,11 +273,11 @@ func (r *cachedGroupElement) Zero() {
 }
 
 // Set to u conditionally based on b
-func (t *cachedGroupElement) CMove(u *cachedGroupElement, b int32) {
-	feCMove(&t.yPlusX, &u.yPlusX, b)
-	feCMove(&t.yMinusX, &u.yMinusX, b)
-	feCMove(&t.Z, &u.Z, b)
-	feCMove(&t.T2d, &u.T2d, b)
+func (r *cachedGroupElement) CMove(u *cachedGroupElement, b int32) {
+	feCMove(&r.yPlusX, &u.yPlusX, b)
+	feCMove(&r.yMinusX, &u.yMinusX, b)
+	feCMove(&r.Z, &u.Z, b)
+	feCMove(&r.T2d, &u.T2d, b)
 }
 
 // Set to negative of t

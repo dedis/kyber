@@ -2,7 +2,7 @@ package examples
 
 import (
 	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/group/nist"
+	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
@@ -58,7 +58,7 @@ see for example anon.Encrypt, which encrypts a message for
 one of several possible receivers forming an explicit anonymity set.
 */
 func Example_elGamalEncryption() {
-	group := nist.NewAES128SHA256P256()
+	group := edwards25519.NewAES128SHA256Ed25519(false)
 
 	// Create a public/private keypair
 	a := group.Scalar().Pick(random.Stream) // Alice's private key

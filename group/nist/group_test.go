@@ -1,3 +1,5 @@
+// +build vartime
+
 package nist
 
 import (
@@ -8,12 +10,12 @@ import (
 
 var testQR512 = NewAES128SHA256QR512()
 
-func TestQR512(t *testing.T) { test.TestSuite(testQR512) }
+func TestQR512(t *testing.T) { test.SuiteTest(testQR512) }
 
 var testP256 = NewAES128SHA256P256()
 var benchP256 = test.NewGroupBench(testP256)
 
-func TestP256(t *testing.T) { test.TestSuite(testP256) }
+func TestP256(t *testing.T) { test.SuiteTest(testP256) }
 
 func BenchmarkScalarAdd(b *testing.B)    { benchP256.ScalarAdd(b.N) }
 func BenchmarkScalarSub(b *testing.B)    { benchP256.ScalarSub(b.N) }

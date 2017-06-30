@@ -132,11 +132,13 @@ type option struct{ name string }
 
 func (o *option) String() string { return o.name }
 
-// Pass NoKey to a Cipher constructor to create an unkeyed Cipher.
+// NoKey is given to a Cipher constructor to create an unkeyed
+// Cipher.
 var NoKey = []byte{}
 
-// Pass RandomKey to a Cipher constructor to create a randomly seeded Cipher.
-var RandomKey []byte = nil
+// RandomKey is given to a Cipher constructor to create a
+// randomly seeded Cipher.
+var RandomKey []byte
 
 // Cipher represents a general-purpose symmetric message cipher.
 // A Cipher instance embodies a scalar that may be used to encrypt/decrypt data

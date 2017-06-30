@@ -25,9 +25,9 @@ func signH1pre(suite Suite, linkScope []byte, linkTag kyber.Point,
 	message []byte) kyber.Cipher {
 	H1pre := suite.Cipher(message) // m
 	if linkScope != nil {
-		H1pre.Write(linkScope) // L
+		_, _ = H1pre.Write(linkScope) // L
 		tag, _ := linkTag.MarshalBinary()
-		H1pre.Write(tag) // ~y
+		_, _ = H1pre.Write(tag) // ~y
 	}
 	return H1pre
 }
@@ -35,10 +35,10 @@ func signH1pre(suite Suite, linkScope []byte, linkTag kyber.Point,
 func signH1(suite Suite, H1pre kyber.Cipher, PG, PH kyber.Point) kyber.Scalar {
 	H1 := H1pre.Clone()
 	PGb, _ := PG.MarshalBinary()
-	H1.Write(PGb)
+	_, _ = H1.Write(PGb)
 	if PH != nil {
 		PHb, _ := PH.MarshalBinary()
-		H1.Write(PHb)
+		_, _ = H1.Write(PHb)
 	}
 	H1.Message(nil, nil, nil) // finish message absorption
 	return suite.Scalar().Pick(H1)
@@ -176,10 +176,10 @@ func Sign(suite Suite, random cipher.Stream, message []byte,
 	buf := bytes.Buffer{}
 	if linkScope != nil { // linkable ring signature
 		sig := lSig{c[0], s, linkTag}
-		suite.Write(&buf, &sig)
+		_ = suite.Write(&buf, &sig)
 	} else { // unlinkable ring signature
 		sig := uSig{c[0], s}
-		suite.Write(&buf, &sig)
+		_ = suite.Write(&buf, &sig)
 	}
 	return buf.Bytes()
 }
@@ -248,7 +248,6 @@ func Verify(suite Suite, message []byte, anonymitySet Set,
 	if linkScope != nil {
 		tag, _ := linkTag.MarshalBinary()
 		return tag, nil
-	} else {
-		return []byte{}, nil
 	}
+	return []byte{}, nil
 }

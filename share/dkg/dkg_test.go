@@ -489,7 +489,7 @@ func TestDKGReconstructCommits(t *testing.T) {
 		require.Error(t, dkg2.ProcessReconstructCommits(rc))
 		rc.SessionID = goodSID
 
-		dkg2.ProcessReconstructCommits(rc)
+		_ = dkg2.ProcessReconstructCommits(rc)
 	}
 	assert.True(t, dkg2.reconstructed[uint32(0)])
 	com := dkg2.commitments[uint32(0)]
@@ -596,7 +596,7 @@ func genPair() (kyber.Scalar, kyber.Point) {
 
 func randomBytes(n int) []byte {
 	var buff = make([]byte, n)
-	rand.Read(buff[:])
+	_, _ = rand.Read(buff[:])
 	return buff
 }
 func checkDks(dks1, dks2 *DistKeyShare) bool {

@@ -7,7 +7,7 @@ import (
 	"gopkg.in/dedis/kyber.v1"
 )
 
-// Create a Protocol implementing an interactive Sigma-protocol
+// DeniableProver is a Protocol implementing an interactive Sigma-protocol
 // to prove a particular statement to the other participants.
 // Optionally the Protocol participant can also verify
 // the Sigma-protocol proofs of any or all of the other participants.
@@ -105,7 +105,7 @@ func (dp *deniableProver) initStep() {
 
 	keylen := dp.prirand.KeySize()
 	key := make([]byte, keylen) // secret random key
-	dp.prirand.Read(key)
+	_, _ = dp.prirand.Read(key)
 	dp.key = key
 
 	msg := make([]byte, keylen) // send commitment to it

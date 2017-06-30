@@ -11,19 +11,20 @@ import (
 	"gopkg.in/dedis/kyber.v1/util/subtle"
 )
 
+// HashBench performs a benchmark on a hash function
 func HashBench(b *testing.B, hash func() hash.Hash) {
 	b.SetBytes(1024 * 1024)
 	data := make([]byte, 1024)
 	for i := 0; i < b.N; i++ {
 		h := hash()
 		for j := 0; j < 1024; j++ {
-			h.Write(data)
+			_, _ = h.Write(data)
 		}
 		h.Sum(nil)
 	}
 }
 
-// Benchmark a stream cipher.
+// StreamCipherBench performs a benchmark on a stream cipher.
 func StreamCipherBench(b *testing.B, keylen int,
 	cipher func([]byte) cipher.Stream) {
 	key := make([]byte, keylen)
@@ -37,7 +38,7 @@ func StreamCipherBench(b *testing.B, keylen int,
 	}
 }
 
-// Benchmark a block cipher operating in counter mode.
+// BlockCipherBench performs a benchmark on a block cipher operating in counter mode.
 func BlockCipherBench(b *testing.B, keylen int,
 	bcipher func([]byte) cipher.Block) {
 	StreamCipherBench(b, keylen, func(key []byte) cipher.Stream {
@@ -47,7 +48,7 @@ func BlockCipherBench(b *testing.B, keylen int,
 	})
 }
 
-// Compares the bits between two arrays returning the fraction
+// BitDiff compares the bits between two arrays returning the fraction
 // of differences. If the two arrays are not of the same length
 // no comparison is made and a -1 is returned.
 func BitDiff(a, b []byte) float64 {
@@ -65,7 +66,7 @@ func BitDiff(a, b []byte) float64 {
 	return float64(count) / float64(len(a)*8)
 }
 
-// Tests a Cipher can encrypt and decrypt
+// CipherHelloWorldHelper test if a Cipher can encrypt and decrypt.
 func CipherHelloWorldHelper(t *testing.T,
 	newCipher func([]byte, ...interface{}) kyber.Cipher,
 	n int, bitdiff float64) {
@@ -80,7 +81,7 @@ func CipherHelloWorldHelper(t *testing.T,
 
 	for i := range nkeys {
 		nkeys[i] = make([]byte, keysize)
-		rand.Read(nkeys[i])
+		_, _ = rand.Read(nkeys[i])
 		bc = newCipher(nkeys[i])
 		ncrypts[i] = make([]byte, cryptsize)
 		bc.Message(ncrypts[i], text, ncrypts[i])
@@ -110,12 +111,12 @@ func CipherHelloWorldHelper(t *testing.T,
 	}
 }
 
-// Tests a Cipher:
-// 1) Encryption / decryption work
+// AuthenticateAndEncrypt tests a Cipher if:
+// 1) Encryption / decryption works
 // 2) Encryption / decryption with different key don't work
 // 3) Changing a bit in the ciphertext or mac results in failed mac check
 // 4) Different keys produce sufficiently random output
-func TestAuthenticateAndEncrypt(t *testing.T,
+func AuthenticateAndEncrypt(t *testing.T,
 	newCipher func([]byte, ...interface{}) kyber.Cipher,
 	n int, bitdiff float64, text []byte) {
 	cryptsize := len(text)
@@ -133,7 +134,7 @@ func TestAuthenticateAndEncrypt(t *testing.T,
 	// Encrypt / decrypt / mac test
 	for i := range nkeys {
 		nkeys[i] = make([]byte, keysize)
-		rand.Read(nkeys[i])
+		_, _ = rand.Read(nkeys[i])
 		bc = newCipher(nkeys[i])
 		ncrypts[i] = make([]byte, cryptsize)
 		bc.Message(ncrypts[i], text, ncrypts[i])
@@ -222,28 +223,29 @@ func TestAuthenticateAndEncrypt(t *testing.T,
 	}
 }
 
-// Iterate through various sized messages and verify
+// CipherAuthenticatedEncryptionHelper iterates through various sized messages and verify
 // that encryption and authentication work
 func CipherAuthenticatedEncryptionHelper(t *testing.T,
 	newCipher func([]byte, ...interface{}) kyber.Cipher,
 	n int, bitdiff float64) {
 	//	AuthenticateAndEncrypt(t, newCipher, n, bitdiff, []byte{})
-	TestAuthenticateAndEncrypt(t, newCipher, n, bitdiff, []byte{'a'})
-	TestAuthenticateAndEncrypt(t, newCipher, n, bitdiff, []byte("Hello, World"))
+	AuthenticateAndEncrypt(t, newCipher, n, bitdiff, []byte{'a'})
+	AuthenticateAndEncrypt(t, newCipher, n, bitdiff, []byte("Hello, World"))
 
 	kb := make([]byte, 2^10)
 	for i := 0; i < len(kb); i++ {
 		kb[i] = byte(i & 256)
 	}
-	TestAuthenticateAndEncrypt(t, newCipher, n, bitdiff, kb)
+	AuthenticateAndEncrypt(t, newCipher, n, bitdiff, kb)
 
 	mb := make([]byte, 2^20)
 	for i := 0; i < len(mb); i++ {
 		mb[i] = byte(i & 256)
 	}
-	TestAuthenticateAndEncrypt(t, newCipher, n, bitdiff, mb)
+	AuthenticateAndEncrypt(t, newCipher, n, bitdiff, mb)
 }
 
+// CipherTest test a Cipher functionalities.
 func CipherTest(t *testing.T,
 	newCipher func([]byte, ...interface{}) kyber.Cipher) {
 	n := 5

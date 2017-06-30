@@ -6,21 +6,28 @@ package edwards25519
 
 import (
 	"math/big"
-
-	"gopkg.in/dedis/kyber.v1/group/mod"
 )
 
 // prime modulus of underlying field = 2^255 - 19
 var prime, _ = new(big.Int).SetString("57896044618658097711785492504343953926634992332820282019728792003956564819949", 10)
 
 // prime order of base point = 2^252 + 27742317777372353535851937790883648493
-var primeOrder, _ = new(mod.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989", "", 10)
+var primeOrder, _ = new(big.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989", 10)
+
+// `l_minus_2` is the order of base point minus two, i.e. 2^252 +
+// 27742317777372353535851937790883648493 - 2, in little-endian form
+// This is needed to compute constant time modular inversion of scalars.
+var lMinus2, _ = new(big.Int).SetString("7237005577332262213973186563042994240857116359379907606001950938285454250987", 10)
 
 // cofactor of the curve, as a ModInt
-var cofactor = mod.NewInt64(8, &primeOrder.V)
+var cofactor = new(big.Int).SetInt64(8)
 
-// order of the full curve including the cofactor
-var fullOrder = new(big.Int).Mul(&primeOrder.V, &cofactor.V)
+// order of the full group including the cofactor
+var fullOrder = new(big.Int).Mul(primeOrder, cofactor)
+
+// scalar versions of these, usable for multiplication
+var primeOrderScalar = newScalarInt(primeOrder)
+var cofactorScalar = newScalarInt(cofactor)
 
 // identity point
 var nullPoint = new(point).Null()

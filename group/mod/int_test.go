@@ -59,7 +59,7 @@ func TestIntEndianBytes(t *testing.T) {
 	v, err := hex.DecodeString("10")
 	assert.Nil(t, err)
 
-	i := new(Int).InitBytes(v, moduloI)
+	i := new(Int).InitBytes(v, moduloI, BigEndian)
 
 	assert.Equal(t, 2, i.MarshalSize())
 	assert.NotPanics(t, func() { i.LittleEndian(2, 2) })
@@ -69,7 +69,7 @@ func TestInits(t *testing.T) {
 	i1 := NewInt64(int64(65500), big.NewInt(65535))
 	i2 := NewInt(&i1.V, i1.M)
 	assert.True(t, i1.Equal(i2))
-	i3 := NewIntBytes(i1.Bytes(), i1.M)
+	i3 := NewIntBytes(i1.Bytes(), i1.M, BigEndian)
 	assert.True(t, i1.Equal(i3))
 	i4 := NewIntString(i1.String(), "", 16, i1.M)
 	assert.True(t, i1.Equal(i4))
@@ -77,7 +77,7 @@ func TestInits(t *testing.T) {
 
 func TestIntClone(t *testing.T) {
 	moduloI := new(big.Int).SetBytes([]byte{0x10, 0})
-	base := new(Int).InitBytes([]byte{0x10}, moduloI)
+	base := new(Int).InitBytes([]byte{0x10}, moduloI, BigEndian)
 
 	clone := base.Clone()
 	clone.Add(clone, clone)

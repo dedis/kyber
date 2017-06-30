@@ -1,5 +1,5 @@
 /*
-The schnorr packages implements the vanilla Schnorr signature scheme.
+Package schnorr implements the vanilla Schnorr signature scheme.
 See https://en.wikipedia.org/wiki/Schnorr_signature.
 
 The only difference regarding the vanilla reference is the computation of

@@ -1,4 +1,4 @@
-// EdDSA implements the EdDSA signature algorithm according to
+// Package eddsa implements the EdDSA signature algorithm according to
 // the RFC https://tools.ietf.org/html/draft-josefsson-eddsa-ed25519-02
 package eddsa
 
@@ -90,8 +90,8 @@ func (e *EdDSA) UnmarshalBinary(buff []byte) error {
 // https://tools.ietf.org/html/draft-josefsson-eddsa-ed25519-02
 func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 	hash := sha512.New()
-	hash.Write(e.prefix)
-	hash.Write(msg)
+	_, _ = hash.Write(e.prefix)
+	_, _ = hash.Write(msg)
 
 	// deterministic random secret and its commit
 	r := group.Scalar().SetBytes(hash.Sum(nil))
@@ -109,9 +109,9 @@ func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	hash.Write(Rbuff)
-	hash.Write(Abuff)
-	hash.Write(msg)
+	_, _ = hash.Write(Rbuff)
+	_, _ = hash.Write(Abuff)
+	_, _ = hash.Write(msg)
 
 	h := group.Scalar().SetBytes(hash.Sum(nil))
 
@@ -150,7 +150,9 @@ func Verify(public kyber.Point, msg, sig []byte) error {
 	}
 
 	s := group.Scalar()
-	s.UnmarshalBinary(sig[32:])
+	if err := s.UnmarshalBinary(sig[32:]); err != nil {
+		return fmt.Errorf("schnorr: s invalid scalar %s", err)
+	}
 
 	// reconstruct h = H(R || Public || Msg)
 	Pbuff, err := public.MarshalBinary()
@@ -158,9 +160,9 @@ func Verify(public kyber.Point, msg, sig []byte) error {
 		return err
 	}
 	hash := sha512.New()
-	hash.Write(sig[:32])
-	hash.Write(Pbuff)
-	hash.Write(msg)
+	_, _ = hash.Write(sig[:32])
+	_, _ = hash.Write(Pbuff)
+	_, _ = hash.Write(msg)
 
 	h := group.Scalar().SetBytes(hash.Sum(nil))
 	// reconstruct S == k*A + R

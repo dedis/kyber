@@ -5,15 +5,15 @@ import (
 	"fmt"
 
 	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/group/nist"
+	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 )
 
 // This example shows how to build classic ElGamal-style digital signatures
 // using the Camenisch/Stadler proof framework and HashProver.
-func ExampleHashProve_1() {
+func Example_hashProve1() {
 
 	// Crypto setup
-	suite := nist.NewAES128SHA256P256()
+	suite := edwards25519.NewAES128SHA256Ed25519(false)
 	rand := suite.Cipher([]byte("example"))
 	B := suite.Point().Base() // standard base point
 
@@ -46,13 +46,10 @@ func ExampleHashProve_1() {
 
 	// Output:
 	// Signature:
-	// 00000000  04 23 62 b1 f9 cb f4 a2  6d 7f 3e 69 cb b6 77 ab  |.#b.....m.>i..w.|
-	// 00000010  90 fc 7c db a0 c6 e8 12  f2 0a d4 40 a4 b6 c4 de  |..|........@....|
-	// 00000020  9e e8 61 88 5e 50 fd 03  a9 ff 9c a3 c4 29 f7 18  |..a.^P.......)..|
-	// 00000030  49 ad 31 0e f9 17 15 1e  3b 8d 0e 2f b2 c4 28 32  |I.1.....;../..(2|
-	// 00000040  4a 5c 64 ca 04 eb 33 db  a9 75 9b 01 6b 12 01 ae  |J\d...3..u..k...|
-	// 00000050  4e de 7c 6b 53 85 f8 a5  76 ba eb 7e 2e 61 2c a5  |N.|kS...v..~.a,.|
-	// 00000060  e8                                                |.|
+	// 00000000  27 fd 13 c3 6e e6 df a5  00 aa 0c 93 a7 b8 21 4b  |'...n.........!K|
+	// 00000010  a5 cf 26 c2 a0 99 68 b0  a0 36 9d 7a de 92 95 7a  |..&...h..6.z...z|
+	// 00000020  1f 46 d8 67 4a 71 49 c9  7c d2 8f 2b 75 8c cc 83  |.F.gJqI.|..+u...|
+	// 00000030  b4 31 0c 6f 6c 2e 75 70  cd 8b 8e 04 b0 54 4f 07  |.1.ol.up.....TO.|
 	// Signature verified against correct message M.
 	// Signature verify against wrong message: invalid proof: commit mismatch
 }
@@ -77,10 +74,10 @@ func ExampleHashProve_1() {
 // because it uses the generic HashProver for Fiat-Shamir noninteractivity
 // instead of Liu/Wei/Wong's customized hash-ring structure.
 //
-func ExampleHashProve_2() {
+func Example_hashProve2() {
 
 	// Crypto setup
-	suite := nist.NewAES128SHA256P256()
+	suite := edwards25519.NewAES128SHA256Ed25519(false)
 	rand := suite.Cipher([]byte("example"))
 	B := suite.Point().Base() // standard base point
 
@@ -115,7 +112,7 @@ func ExampleHashProve_2() {
 		preds[i] = And(Rep(name, "x", "B"), Rep("T", "x", "BT"))
 	}
 	pred := Or(preds...) // make a big Or predicate
-	fmt.Printf("Linkable Ring Signature Predicate:\n\t%s\n", pred.String())
+	fmt.Printf("Linkable Ring Signature Predicate:\n%s\n", pred.String())
 
 	// The prover needs to know which Or branch (mine) is actually true.
 	choice := make(map[Predicate]int)
@@ -137,44 +134,31 @@ func ExampleHashProve_2() {
 
 	// Output:
 	// Linkable Ring Signature Predicate:
-	// 	(X[0]=x*B && T=x*BT) || (X[1]=x*B && T=x*BT) || (X[2]=x*B && T=x*BT)
+	// (X[0]=x*B && T=x*BT) || (X[1]=x*B && T=x*BT) || (X[2]=x*B && T=x*BT)
 	// Linkable Ring Signature:
-	// 00000000  04 56 81 70 79 e2 f6 ea  5b 06 a5 f5 72 5d f5 e0  |.V.py...[...r]..|
-	// 00000010  b6 e6 d3 90 52 af 84 7a  b1 78 a9 03 f3 29 1e a2  |....R..z.x...)..|
-	// 00000020  1a 59 50 28 9b 6c d7 ca  72 25 83 67 2d fe f7 f0  |.YP(.l..r%.g-...|
-	// 00000030  96 e9 ae 9b 9e a0 eb 76  7f 74 6d bc 42 18 a1 d1  |.......v.tm.B...|
-	// 00000040  0e 04 d8 28 10 ae b9 25  87 e9 a1 c4 fa 1b ff 88  |...(...%........|
-	// 00000050  96 bd da 4a 7f 58 c9 b5  57 57 7f 8b ee 4e 00 40  |...J.X..WW...N.@|
-	// 00000060  fa 2c 6a 49 74 41 9a c6  7d ac 78 fa 58 35 84 40  |.,jItA..}.x.X5.@|
-	// 00000070  2a 95 62 8c 05 5c 75 57  4e 74 22 a9 5f 78 48 22  |*.b..\uWNt"._xH"|
-	// 00000080  1f 97 04 f7 a8 0d ec 81  39 31 fb 8b 8b 12 09 74  |........91.....t|
-	// 00000090  46 9f 46 22 e9 69 cc 25  c5 b6 23 5b 2a 4b 3d 4c  |F.F".i.%..#[*K=L|
-	// 000000a0  10 f7 73 e0 22 00 f3 99  28 be ad 07 8c ef 44 a6  |..s."...(.....D.|
-	// 000000b0  d8 e0 ee 5e 04 c7 d1 60  b4 f0 8d e3 bd b3 31 8e  |...^...`......1.|
-	// 000000c0  19 9a 56 04 9f da 0c 05  3f 04 42 e4 d3 e3 78 00  |..V.....?.B...x.|
-	// 000000d0  d8 bc 31 c2 00 fd 29 64  63 65 e5 9a 1c 5f b4 01  |..1...)dce..._..|
-	// 000000e0  ca 14 c5 48 bc 73 60 31  9e 18 7d 93 c8 69 cc c9  |...H.s`1..}..i..|
-	// 000000f0  a4 c7 72 e0 c2 a8 2e 47  f5 fa e8 1f de c0 14 52  |..r....G.......R|
-	// 00000100  9f 7a a7 5b 04 2e b4 bb  d5 a1 8a 80 4e 48 1e 07  |.z.[........NH..|
-	// 00000110  20 e0 f8 9a 6a 9c 5a b7  8b 08 9c 6d c7 0e 9c 9f  | ...j.Z....m....|
-	// 00000120  3f 6b d3 34 7e 50 91 6b  87 03 d5 54 b6 87 f1 2d  |?k.4~P.k...T...-|
-	// 00000130  4c d6 9e df fe 1b 7f 07  be 5e d5 88 7f 2b b0 58  |L........^...+.X|
-	// 00000140  e2 12 62 15 00 04 d8 45  d5 c4 91 77 0c 74 5c 54  |..b....E...w.t\T|
-	// 00000150  89 e9 cd 75 9b c5 20 67  26 d8 e4 e8 ed 68 96 51  |...u.. g&....h.Q|
-	// 00000160  6f 39 e5 62 e5 c5 24 15  5e 45 69 91 c0 83 2c 6b  |o9.b..$.^Ei...,k|
-	// 00000170  33 fe af 75 c2 23 ca 88  b2 a8 c8 be f2 4f f0 e9  |3..u.#.......O..|
-	// 00000180  65 af e6 b1 7e e6 eb 40  46 de 61 2f 08 8d 9a 04  |e...~..@F.a/....|
-	// 00000190  09 d7 a1 62 83 48 e3 cc  09 af 64 26 df df da d6  |...b.H....d&....|
-	// 000001a0  51 62 5d e6 2b 56 b2 b5  3a e1 c8 8c f7 29 8a 13  |Qb].+V..:....)..|
-	// 000001b0  75 59 98 ea ce f4 6d d5  d0 62 85 51 8e fe d9 4a  |uY....m..b.Q...J|
-	// 000001c0  02 1f 35 03 33 d3 0e 4e  6b b8 fc f9 c9 92 4d e9  |..5.3..Nk.....M.|
-	// 000001d0  c3 1c 35 ec 19 43 7c 25  1b b4 70 09 30 08 e3 a1  |..5..C|%..p.0...|
-	// 000001e0  e1 42 ed 92 0d 82 63 d3  5a 0e 97 78 e6 74 ce a0  |.B....c.Z..x.t..|
-	// 000001f0  24 34 c1 66 7d af 32 9e  59 22 f2 9a 67 3c ea e5  |$4.f}.2.Y"..g<..|
-	// 00000200  4f 54 6d 3e 07 f1 1e 6d  18 7f 8b 95 e3 c4 b9 33  |OTm>...m.......3|
-	// 00000210  ad 94 69 b5 b4 13 b8 51  2f 24 a7 98 e4 06 f4 b2  |..i....Q/$......|
-	// 00000220  f3 ee e8 73 de 78 d1 ab  ff 11 e3 6e df 3d a8 b5  |...s.x.....n.=..|
-	// 00000230  13 86 b6 a5 86 f9 a6 ef  ca 77 46 df 8d 3b eb fb  |.........wF..;..|
-	// 00000240  00 c8 61 cc fd 7a                                 |..a..z|
+	// 00000000  45 85 60 73 be bc 55 10  0e 40 44 59 99 ce 5c 76  |E.`s..U..@DY..\v|
+	// 00000010  f5 ac 0e 6c e6 00 b0 93  01 41 5b e9 9c 39 fe d0  |...l.....A[..9..|
+	// 00000020  65 71 9c 31 f7 b9 ce 81  57 b3 6b 47 41 54 2b d7  |eq.1....W.kGAT+.|
+	// 00000030  f8 15 b6 a2 bc 2d b3 e0  fe c2 77 09 6d 93 b4 69  |.....-....w.m..i|
+	// 00000040  2f ab 85 4d 65 b1 b6 eb  d8 16 96 5f ae 47 38 1d  |/..Me......_.G8.|
+	// 00000050  a7 69 cf 0e 24 04 ff 0a  ec 54 24 4e 09 c0 ec d5  |.i..$....T$N....|
+	// 00000060  c7 e9 cd 3c 93 2b 52 f7  f6 ba bc 89 03 0e bd 2d  |...<.+R........-|
+	// 00000070  bc be 3a d9 b0 5f cf ba  a8 f7 a7 38 57 e3 67 d0  |..:.._.....8W.g.|
+	// 00000080  ef de 78 87 05 20 9a d2  43 2a ff 77 36 62 6a 1a  |..x.. ..C*.w6bj.|
+	// 00000090  53 07 d4 34 a9 d5 b4 39  7d 0b 99 c8 23 76 2e b9  |S..4...9}...#v..|
+	// 000000a0  48 e3 19 0e 76 69 14 0e  9a 6a ef 6c be 4a df af  |H...vi...j.l.J..|
+	// 000000b0  7c 6b 00 8c 7d a0 e4 33  b2 91 cc b4 18 69 ca c0  ||k..}..3.....i..|
+	// 000000c0  fd 83 93 4f ca fa ed 2f  b6 43 27 e3 a5 4b a1 0c  |...O.../.C'..K..|
+	// 000000d0  b3 fb 4b 2c 82 2e 32 a0  83 12 34 f6 c6 8b 93 03  |..K,..2...4.....|
+	// 000000e0  ee f3 b2 f4 06 e4 98 a7  24 2f 51 b8 13 b4 b5 69  |........$/Q....i|
+	// 000000f0  94 ad 33 b9 c4 e3 95 8b  7f 18 6d 1e f1 07 3e 0d  |..3.......m...>.|
+	// 00000100  c3 86 a1 24 1b 3e e1 59  d5 bd 70 a1 ff f9 7c 07  |...$.>.Y..p...|.|
+	// 00000110  8c 9c 52 f7 47 34 46 c9  1a 05 4b 68 57 49 c7 0e  |..R.G4F...KhWI..|
+	// 00000120  31 68 8d ca 3f 6a 85 a1  0d f1 cf 9d 21 05 83 f2  |1h..?j......!...|
+	// 00000130  35 63 b0 65 a8 50 a5 ee  ec 95 f8 fd 78 de 73 08  |5c.e.P......x.s.|
+	// 00000140  35 e7 59 fa 2b 41 20 f8  b6 48 43 62 91 f1 c6 99  |5.Y.+A ..HCb....|
+	// 00000150  0e 64 9c 2c 06 fe 84 75  4f ca 03 7f 28 b5 6d 0c  |.d.,...uO...(.m.|
+	// 00000160  1d 63 e5 73 26 c4 9f 61  62 5b 5c 34 70 66 d0 e4  |.c.s&..ab[\4pf..|
+	// 00000170  ec ca b8 ee 9a 50 07 6b  0c 75 5a a6 77 b3 20 0f  |.....P.k.uZ.w. .|
 	// Linkable Ring Signature verified.
 }

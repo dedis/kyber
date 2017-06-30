@@ -22,6 +22,8 @@ import (
 	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
+// Suite describes the functionalities needed by this package in order to
+// function correctly.
 type Suite interface {
 	kyber.Group
 	kyber.HashFactory
@@ -38,7 +40,7 @@ var errorDecVerification = errors.New("verification of decrypted share failed")
 // PubVerShare is a public verifiable share.
 type PubVerShare struct {
 	S share.PubShare // Share
-	P dleq.DLEQProof // Proof
+	P dleq.Proof     // Proof
 }
 
 // EncShares creates a list of encrypted publicly verifiable PVSS shares for
@@ -75,7 +77,7 @@ func EncShares(suite Suite, H kyber.Point, X []kyber.Point, secret kyber.Scalar,
 	}
 
 	for i := 0; i < n; i++ {
-		ps := &share.PubShare{indices[i], sX[i]}
+		ps := &share.PubShare{I: indices[i], V: sX[i]}
 		encShares[i] = &PubVerShare{*ps, *proofs[i]}
 	}
 
@@ -119,7 +121,7 @@ func DecShare(suite Suite, H kyber.Point, X kyber.Point, sH kyber.Point, x kyber
 	}
 	G := suite.Point().Base()
 	V := suite.Point().Mul(suite.Scalar().Inv(x), encShare.S.V) // decryption: x^{-1} * (xS)
-	ps := &share.PubShare{encShare.S.I, V}
+	ps := &share.PubShare{I: encShare.S.I, V: V}
 	P, _, _, err := dleq.NewDLEQProof(suite, G, V, x)
 	if err != nil {
 		return nil, err

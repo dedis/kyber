@@ -1,4 +1,4 @@
-// Package dissent/math contains big.Int arithmetic functions
+// Package mod contains big.Int arithmetic functions
 // that probably belong in Go's math/big package.
 package mod
 
@@ -8,7 +8,7 @@ import (
 
 var zero = big.NewInt(0)
 
-// Set z to one of the square roots of a modulo p if a square root exists.
+// Sqrt sets z to one of the square roots of a modulo p if a square root exists.
 // The modulus p must be an odd prime.
 // Returns true on success, false if input a is not a square modulo p.
 func Sqrt(z *big.Int, a *big.Int, p *big.Int) bool {

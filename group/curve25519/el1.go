@@ -1,3 +1,5 @@
+// +build vartime
+
 package curve25519
 
 import (
@@ -89,7 +91,7 @@ func (el *el1param) HideDecode(P point, rep []byte) {
 	b := make([]byte, l)
 	copy(b, rep)
 	b[0] &^= el.padmask() // mask off the padding bits
-	t.InitBytes(b, &ec.P)
+	t.InitBytes(b, &ec.P, mod.BigEndian)
 
 	// u = (1-t)/(1+t)
 	u.Div(t1.Sub(&ec.one, &t), t2.Add(&ec.one, &t))

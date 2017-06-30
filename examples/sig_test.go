@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/group/nist"
+	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 )
 
 type Suite interface {
@@ -54,7 +54,7 @@ func SchnorrSign(suite Suite, random cipher.Stream, message []byte,
 	// And check that hashElgamal for T and the message == c
 	buf := bytes.Buffer{}
 	sig := basicSig{c, r}
-	suite.Write(&buf, &sig)
+	_ = suite.Write(&buf, &sig)
 	return buf.Bytes()
 }
 
@@ -87,9 +87,9 @@ func SchnorrVerify(suite Suite, message []byte, publicKey kyber.Point,
 }
 
 // Example of using Schnorr
-func ExampleSchnorr() {
+func Example_schnorr() {
 	// Crypto setup
-	group := nist.NewAES128SHA256P256()
+	group := edwards25519.NewAES128SHA256Ed25519(false)
 	rand := group.Cipher([]byte("example"))
 
 	// Create a public/private keypair (X,x)
@@ -110,9 +110,9 @@ func ExampleSchnorr() {
 
 	// Output:
 	// Signature:
-	// 00000000  c1 7a 91 74 06 48 5d 53  d4 92 27 71 58 07 eb d5  |.z.t.H]S..'qX...|
-	// 00000010  75 a5 89 92 78 67 fc b1  eb 36 55 63 d1 32 12 20  |u...xg...6Uc.2. |
-	// 00000020  2c 78 84 81 04 0d 2a a8  fa 80 d0 e8 c3 14 65 e3  |,x....*.......e.|
-	// 00000030  7f f2 7c 55 c5 d2 c6 70  51 89 40 cd 63 50 bf c6  |..|U...pQ.@.cP..|
+	// 00000000  d4 64 bd ac 8a 06 d9 71  f4 ae a1 da e1 c5 55 d5  |.d.....q......U.|
+	// 00000010  f7 89 50 10 a5 d9 99 52  b0 c4 f2 ba f9 37 67 02  |..P....R.....7g.|
+	// 00000020  35 3e 9b ac e6 dd d1 98  f6 19 88 37 4d e3 4f 5c  |5>.........7M.O\|
+	// 00000030  36 de a7 bf b9 f0 06 2b  72 6f 81 b7 59 19 c6 00  |6......+ro..Y...|
 	// Signature verified against correct message.
 }

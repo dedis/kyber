@@ -1,9 +1,10 @@
-// +build experimental
+// +build experimental vartime
 
 package curve25519
 
 import (
 	"crypto/cipher"
+	"errors"
 	"io"
 	"math/big"
 
@@ -31,7 +32,7 @@ func (P *basicPoint) String() string {
 	return P.c.pointString(&P.x, &P.y)
 }
 
-// Create a new ModInt representing a coordinate on this curve,
+// coord creates a new ModInt representing a coordinate on this curve,
 // with a given int64 integer value for constant-initialization convenience.
 func (P *basicPoint) coord(v int64) *mod.Int {
 	return mod.NewInt64(v, &P.c.P)
@@ -41,12 +42,12 @@ func (P *basicPoint) MarshalSize() int {
 	return (P.y.M.BitLen() + 7 + 1) / 8
 }
 
-// Encode an Edwards curve point.
+// MarshalBinary encodew an Edwards curve point.
 func (P *basicPoint) MarshalBinary() ([]byte, error) {
 	return P.c.encodePoint(&P.x, &P.y), nil
 }
 
-// Decode an Edwards curve point.
+// UnmarshalBinary decodes an Edwards curve point.
 func (P *basicPoint) UnmarshalBinary(b []byte) error {
 	return P.c.decodePoint(b, &P.x, &P.y)
 }
@@ -71,7 +72,7 @@ func (P *basicPoint) HideDecode(rep []byte) {
 	P.c.hide.HideDecode(P, rep)
 }
 
-// Equality test for two Points on the same curve
+// Equal tests for two Points on the same curve
 func (P *basicPoint) Equal(P2 kyber.Point) bool {
 	E2 := P2.(*basicPoint)
 	return P.x.Equal(&E2.x) && P.y.Equal(&E2.y)
@@ -86,29 +87,49 @@ func (P *basicPoint) Set(P2 kyber.Point) kyber.Point {
 	return P
 }
 
-// Set to the neutral element, which is (0,1) for twisted Edwards curves.
+// Clone returns the given point
+func (P *basicPoint) Clone() kyber.Point {
+	p2 := new(basicPoint)
+	p2.Set(P)
+	return p2
+}
+
+// Null sets to the neutral element, which is (0,1) for twisted Edwards curves.
 func (P *basicPoint) Null() kyber.Point {
 	P.Set(&P.c.null)
 	return P
 }
 
-// Set to the standard base point for this curve
+// Base sets to the standard base point for this curve
 func (P *basicPoint) Base() kyber.Point {
 	P.Set(&P.c.base)
 	return P
 }
 
-func (P *basicPoint) PickLen() int {
-	return P.c.pickLen()
+func (P *basicPoint) EmbedLen() int {
+	return P.c.embedLen()
 }
 
-func (P *basicPoint) Pick(data []byte, rand cipher.Stream) (kyber.Point, []byte) {
-	return P, P.c.pickPoint(P, data, rand)
+func (P *basicPoint) Embed(data []byte, rand cipher.Stream) kyber.Point {
+	P.c.embed(P, data, rand)
+	return P
 }
 
-// Extract embedded data from a point group element
+func (P *basicPoint) Pick(rand cipher.Stream) kyber.Point {
+	return P.Embed(nil, rand)
+}
+
+// Data extracts embedded data from a point group element
 func (P *basicPoint) Data() ([]byte, error) {
 	return P.c.data(&P.x, &P.y)
+}
+
+// SetVarTime returns an error if we ask for constant-time implementation.
+func (P *basicPoint) SetVarTime(varTime bool) error {
+	if !varTime {
+		return errors.New("curve25519: no constant time implementation available")
+	}
+	return nil
 }
 
 // Add two points using the basic unified addition laws for Edwards curves:
@@ -167,7 +188,7 @@ func (P *basicPoint) Neg(A kyber.Point) kyber.Point {
 func (P *basicPoint) Mul(s kyber.Scalar, G kyber.Point) kyber.Point {
 	v := s.(*mod.Int).V
 	if G == nil {
-		return P.Base().Mul(P, s)
+		return P.Base().Mul(s, P)
 	}
 	T := P
 	if G == P { // Must use temporary in case G == P
@@ -204,6 +225,10 @@ func (c *BasicCurve) Point() kyber.Point {
 	P.c = c
 	P.Set(&c.null)
 	return P
+}
+
+func (c *BasicCurve) NewKey(r cipher.Stream) kyber.Scalar {
+	return c.Scalar().Pick(r)
 }
 
 // Initialize the curve with given parameters.

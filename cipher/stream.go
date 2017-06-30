@@ -27,7 +27,7 @@ const bufLen = 1024
 
 var zeroBytes = make([]byte, bufLen)
 
-// Construct a general message Cipher
+// FromStream constructs a general message Cipher
 // from a Stream cipher and a cryptographic Hash.
 func FromStream(newStream func(key []byte) cipher.Stream,
 	newHash func() hash.Hash, blockLen, keyLen, hashLen int,
@@ -52,7 +52,7 @@ func FromStream(newStream func(key []byte) cipher.Stream,
 		panic("no FromStream options supported yet")
 	}
 
-	return kyber.Cipher{&sc}
+	return kyber.Cipher{CipherState: &sc}
 }
 
 func (sc *streamCipher) Partial(dst, src, key []byte) {
@@ -80,10 +80,10 @@ func (sc *streamCipher) Partial(dst, src, key []byte) {
 	// absorb cryptographic input (which may overlap with dst)
 	if key != nil {
 		nkey := ints.Min(n, len(key)) // # key bytes available
-		sc.h.Write(key[:nkey])
+		_, _ = sc.h.Write(key[:nkey])
 		if n > nkey {
 			buf := make([]byte, n-nkey)
-			sc.h.Write(buf)
+			_, _ = sc.h.Write(buf)
 		}
 	}
 }

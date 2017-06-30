@@ -42,11 +42,11 @@ func newAEAD(fn func() hash.Hash, preSharedKey kyber.Point, context []byte) (cip
 // context returns the context slice to be used when encrypting a share
 func context(suite Suite, dealer kyber.Point, verifiers []kyber.Point) []byte {
 	h := suite.Hash()
-	h.Write([]byte("vss-dealer"))
-	dealer.MarshalTo(h)
-	h.Write([]byte("vss-verifiers"))
+	_, _ = h.Write([]byte("vss-dealer"))
+	_, _ = dealer.MarshalTo(h)
+	_, _ = h.Write([]byte("vss-verifiers"))
 	for _, v := range verifiers {
-		v.MarshalTo(h)
+		_, _ = v.MarshalTo(h)
 	}
 	return h.Sum(nil)
 }

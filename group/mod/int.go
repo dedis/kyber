@@ -16,11 +16,14 @@ import (
 var one = big.NewInt(1)
 var two = big.NewInt(2)
 
+// ByteOrder denotes what is the endianness used to represent an Int.
 type ByteOrder bool
 
 const (
+	// LittleEndian endianness
 	LittleEndian ByteOrder = true
-	BigEndian    ByteOrder = false
+	// BigEndian endianness
+	BigEndian ByteOrder = false
 )
 
 // Int is a generic implementation of finite field arithmetic
@@ -60,8 +63,8 @@ func NewInt64(v int64, M *big.Int) *Int {
 
 // NewIntBytes creates a new Int with a given slice of bytes and a big.Int
 // modulus.
-func NewIntBytes(a []byte, m *big.Int) *Int {
-	return new(Int).InitBytes(a, m)
+func NewIntBytes(a []byte, m *big.Int, byteOrder ByteOrder) *Int {
+	return new(Int).InitBytes(a, m, byteOrder)
 }
 
 // NewIntString creates a new Int with a given string and a big.Int modulus.
@@ -70,7 +73,7 @@ func NewIntString(n, d string, base int, m *big.Int) *Int {
 	return new(Int).InitString(n, d, base, m)
 }
 
-// Initialize a Int with a given big.Int value and modulus pointer.
+// Init a Int with a given big.Int value and modulus pointer.
 // Note that the value is copied; the modulus is not.
 func (i *Int) Init(V *big.Int, m *big.Int) *Int {
 	i.M = m
@@ -79,7 +82,7 @@ func (i *Int) Init(V *big.Int, m *big.Int) *Int {
 	return i
 }
 
-// Initialize a Int with an int64 value and big.Int modulus.
+// Init64 creates an Int with an int64 value and big.Int modulus.
 func (i *Int) Init64(v int64, m *big.Int) *Int {
 	i.M = m
 	i.BO = BigEndian
@@ -87,15 +90,15 @@ func (i *Int) Init64(v int64, m *big.Int) *Int {
 	return i
 }
 
-// Initialize to a number represented in a big-endian byte string.
-func (i *Int) InitBytes(a []byte, m *big.Int) *Int {
+// InitBytes init the Int to a number represented in a big-endian byte string.
+func (i *Int) InitBytes(a []byte, m *big.Int, byteOrder ByteOrder) *Int {
 	i.M = m
-	i.BO = BigEndian
-	i.V.SetBytes(a).Mod(&i.V, i.M)
+	i.BO = byteOrder
+	i.SetBytes(a)
 	return i
 }
 
-// Initialize a Int to a rational fraction n/d
+// InitString inits the Int to a rational fraction n/d
 // specified with a pair of strings in a given base.
 func (i *Int) InitString(n, d string, base int, m *big.Int) *Int {
 	i.M = m
@@ -111,7 +114,7 @@ func (i *Int) String() string {
 	return hex.EncodeToString(i.V.Bytes())
 }
 
-// Set value to a rational fraction n/d represented by a pair of strings.
+// SetString sets the Int to a rational fraction n/d represented by a pair of strings.
 // If d == "", then the denominator is taken to be 1.
 // Returns (i,true) on success, or
 // (nil,false) if either string fails to parse.
@@ -130,17 +133,17 @@ func (i *Int) SetString(n, d string, base int) (*Int, bool) {
 	return i, true
 }
 
-// Compare two Ints for equality or inequality
+// Cmp compares two Ints for equality or inequality
 func (i *Int) Cmp(s2 kyber.Scalar) int {
 	return i.V.Cmp(&s2.(*Int).V)
 }
 
-// Test two Ints for equality
+// Equal returns true if the two Ints are equal
 func (i *Int) Equal(s2 kyber.Scalar) bool {
 	return i.V.Cmp(&s2.(*Int).V) == 0
 }
 
-// Returns true if the integer value is nonzero.
+// Nonzero returns true if the integer value is nonzero.
 func (i *Int) Nonzero() bool {
 	return i.V.Sign() != 0
 }
@@ -155,51 +158,52 @@ func (i *Int) Set(a kyber.Scalar) kyber.Scalar {
 	return i
 }
 
+// Clone returns a separate duplicate of this Int.
 func (i *Int) Clone() kyber.Scalar {
 	ni := new(Int).Init(&i.V, i.M)
 	ni.BO = i.BO
 	return ni
 }
 
-// Set to the value 0.  The modulus must already be initialized.
+// Zero set the Int to the value 0.  The modulus must already be initialized.
 func (i *Int) Zero() kyber.Scalar {
 	i.V.SetInt64(0)
 	return i
 }
 
-// Set to the value 1.  The modulus must already be initialized.
+// One sets the Int to the value 1.  The modulus must already be initialized.
 func (i *Int) One() kyber.Scalar {
 	i.V.SetInt64(1)
 	return i
 }
 
-// Set to an arbitrary 64-bit "small integer" value.
+// SetInt64 sets the Int to an arbitrary 64-bit "small integer" value.
 // The modulus must already be initialized.
 func (i *Int) SetInt64(v int64) kyber.Scalar {
 	i.V.SetInt64(v).Mod(&i.V, i.M)
 	return i
 }
 
-// Return the int64 representation of the value.
+// Int64 returns the int64 representation of the value.
 // If the value is not representable in an int64 the result is undefined.
 func (i *Int) Int64() int64 {
 	return i.V.Int64()
 }
 
-// Set to an arbitrary uint64 value.
+// SetUint64 sets the Int to an arbitrary uint64 value.
 // The modulus must already be initialized.
 func (i *Int) SetUint64(v uint64) kyber.Scalar {
 	i.V.SetUint64(v).Mod(&i.V, i.M)
 	return i
 }
 
-// Return the uint64 representation of the value.
+// Uint64 returns the uint64 representation of the value.
 // If the value is not representable in an uint64 the result is undefined.
 func (i *Int) Uint64() uint64 {
 	return i.V.Uint64()
 }
 
-// Set target to a + b mod M, where M is a's modulus..
+// Add sets the target to a + b mod M, where M is a's modulus..
 func (i *Int) Add(a, b kyber.Scalar) kyber.Scalar {
 	ai := a.(*Int)
 	bi := b.(*Int)
@@ -208,7 +212,7 @@ func (i *Int) Add(a, b kyber.Scalar) kyber.Scalar {
 	return i
 }
 
-// Set target to a - b mod M.
+// Sub sets the target to a - b mod M.
 // Target receives a's modulus.
 func (i *Int) Sub(a, b kyber.Scalar) kyber.Scalar {
 	ai := a.(*Int)
@@ -218,7 +222,7 @@ func (i *Int) Sub(a, b kyber.Scalar) kyber.Scalar {
 	return i
 }
 
-// Set to -a mod M.
+// Neg sets the target to -a mod M.
 func (i *Int) Neg(a kyber.Scalar) kyber.Scalar {
 	ai := a.(*Int)
 	i.M = ai.M
@@ -230,7 +234,7 @@ func (i *Int) Neg(a kyber.Scalar) kyber.Scalar {
 	return i
 }
 
-// Set to a * b mod M.
+// Mul sets the target to a * b mod M.
 // Target receives a's modulus.
 func (i *Int) Mul(a, b kyber.Scalar) kyber.Scalar {
 	ai := a.(*Int)
@@ -240,7 +244,7 @@ func (i *Int) Mul(a, b kyber.Scalar) kyber.Scalar {
 	return i
 }
 
-// Set to a * b^-1 mod M, where b^-1 is the modular inverse of b.
+// Div sets the target to a * b^-1 mod M, where b^-1 is the modular inverse of b.
 func (i *Int) Div(a, b kyber.Scalar) kyber.Scalar {
 	ai := a.(*Int)
 	bi := b.(*Int)
@@ -251,7 +255,7 @@ func (i *Int) Div(a, b kyber.Scalar) kyber.Scalar {
 	return i
 }
 
-// Set to the modular inverse of a with respect to modulus M.
+// Inv sets the target to the modular inverse of a with respect to modulus M.
 func (i *Int) Inv(a kyber.Scalar) kyber.Scalar {
 	ai := a.(*Int)
 	i.M = ai.M
@@ -259,7 +263,7 @@ func (i *Int) Inv(a kyber.Scalar) kyber.Scalar {
 	return i
 }
 
-// Set to a^e mod M,
+// Exp sets the target to a^e mod M,
 // where e is an arbitrary big.Int exponent (not necessarily 0 <= e < M).
 func (i *Int) Exp(a kyber.Scalar, e *big.Int) kyber.Scalar {
 	ai := a.(*Int)
@@ -281,7 +285,7 @@ func (i *Int) legendre() int {
 	return v.Sign()
 }
 
-// Set to the Jacobi symbol of (a/M), which indicates whether a is
+// Jacobi computes the Jacobi symbol of (a/M), which indicates whether a is
 // zero (0), a positive square in M (1), or a non-square in M (-1).
 func (i *Int) Jacobi(as kyber.Scalar) kyber.Scalar {
 	ai := as.(*Int)
@@ -290,7 +294,7 @@ func (i *Int) Jacobi(as kyber.Scalar) kyber.Scalar {
 	return i
 }
 
-// Compute some square root of a mod M of one exists.
+// Sqrt computes some square root of a mod M of one exists.
 // Assumes the modulus M is an odd prime.
 // Returns true on success, false if input a is not a square.
 // (This really should be part of Go's big.Int library.)
@@ -307,7 +311,7 @@ func (i *Int) Pick(rand cipher.Stream) kyber.Scalar {
 	return i
 }
 
-// Return the length in bytes of encoded integers with modulus M.
+// MarshalSize returns the length in bytes of encoded integers with modulus M.
 // The length of encoded Ints depends only on the size of the modulus,
 // and not on the the value of the encoded integer,
 // making the encoding is fixed-length for simplicity and security.
@@ -315,7 +319,7 @@ func (i *Int) MarshalSize() int {
 	return (i.M.BitLen() + 7) / 8
 }
 
-// Encode the value of this Int into a byte-slice exactly Len() bytes long.
+// MarshalBinary encodes the value of this Int into a byte-slice exactly Len() bytes long.
 func (i *Int) MarshalBinary() ([]byte, error) {
 	l := i.MarshalSize()
 	b := i.V.Bytes() // may be shorter than l
@@ -333,7 +337,7 @@ func (i *Int) MarshalBinary() ([]byte, error) {
 	return b, nil
 }
 
-// Attempt to decode a Int from a byte-slice buffer.
+// UnmarshalBinary tries to decode a Int from a byte-slice buffer.
 // Returns an error if the buffer is not exactly Len() bytes long
 // or if the contents of the buffer represents an out-of-range integer.
 func (i *Int) UnmarshalBinary(buf []byte) error {
@@ -351,15 +355,17 @@ func (i *Int) UnmarshalBinary(buf []byte) error {
 	return nil
 }
 
+// MarshalTo encodes this Int to the given Writer.
 func (i *Int) MarshalTo(w io.Writer) (int, error) {
 	return marshalling.ScalarMarshalTo(i, w)
 }
 
+// UnmarshalFrom tries to decode an Int from the given Reader.
 func (i *Int) UnmarshalFrom(r io.Reader) (int, error) {
 	return marshalling.ScalarUnmarshalFrom(i, r)
 }
 
-// Encode the value of this Int into a big-endian byte-slice
+// BigEndian encodes the value of this Int into a big-endian byte-slice
 // at least min bytes but no more than max bytes long.
 // Panics if max != 0 and the Int cannot be represented in max bytes.
 func (i *Int) BigEndian(min, max int) []byte {
@@ -398,7 +404,7 @@ func (i *Int) Bytes() []byte {
 	return buff
 }
 
-// Encode the value of this Int into a little-endian byte-slice
+// LittleEndian encodes the value of this Int into a little-endian byte-slice
 // at least min bytes but no more than max bytes long.
 // Panics if max != 0 and the Int cannot be represented in max bytes.
 func (i *Int) LittleEndian(min, max int) []byte {
@@ -420,7 +426,7 @@ func (i *Int) LittleEndian(min, max int) []byte {
 	return buf
 }
 
-// Return the length in bytes of a uniform byte-string encoding of this Int,
+// HideLen returns the length in bytes of a uniform byte-string encoding of this Int,
 // satisfying the requirements of the Hiding interface.
 // For a Int this is always the same length as the normal encoding.
 func (i *Int) HideLen() int {
@@ -472,4 +478,12 @@ func (i *Int) HideDecode(buf []byte) {
 	}
 	i.V.SetBytes(buf)
 	i.V.Mod(&i.V, i.M)
+}
+
+// SetVarTime returns an error if we request constant time.
+func (i *Int) SetVarTime(varTime bool) error {
+	if !varTime {
+		return errors.New("mod.Int: support only variable time arithmetic operations")
+	}
+	return nil
 }

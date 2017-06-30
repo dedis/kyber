@@ -53,11 +53,19 @@ type Scalar interface {
 	// Set to a fresh random or pseudo-random scalar
 	Pick(rand cipher.Stream) Scalar
 
-	// SetBytes will take bytes and create a scalar out of it
+	// SetBytes sets the scalar from a big-endian byte-slice,
+	// reducing if necessary to the appropriate modulus.
 	SetBytes([]byte) Scalar
 
-	// Bytes returns the raw internal representation
+	// Bytes returns a big-Endian representation of the scalar
 	Bytes() []byte
+
+	// SetVarTime allows or disallows use of faster variable-time implementations
+	// of operations on this Point. It returns an error if the desired
+	// implementation is not available for the concrete implementation.
+	// This flag always defaults to false (constant-time only)
+	// in implementations that can provide constant-time operations.
+	SetVarTime(varTime bool) error
 }
 
 /*
@@ -111,13 +119,20 @@ type Point interface {
 	// Set to the negation of point a
 	Neg(a Point) Point
 
-	// Encrypt point p by multiplying with scalar s.
-	// If p == nil, encrypt the standard base point Base().
+	// Multiply point p by the scalar s.
+	// If p == nil, multiply with the standard base point Base().
 	Mul(s Scalar, p Point) Point
+
+	// SetVarTime allows or disallows use of faster variable-time implementations
+	// of operations on this Point. It returns an error if the desired
+	// implementation is not available.
+	// This flag always defaults to false (constant-time only)
+	// in implementations that can provide constant-time operations.
+	SetVarTime(varTime bool) error
 }
 
 /*
-This interface represents an kyber.cryptographic group
+Group interface represents an kyber.cryptographic group
 usable for Diffie-Hellman key exchange, ElGamal encryption,
 and the related body of public-key cryptographic algorithms
 and zero-knowledge proof methods.

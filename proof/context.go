@@ -39,7 +39,7 @@ type ProverContext interface {
 	PriRand(message ...interface{})       // Get private randomness
 }
 
-// ProverContext represents the kyber.environment
+// VerifierContext represents the kyber.environment
 // required by the verifier in a Sigma protocol.
 //
 // The verifier calls Get() to obtain the prover's message data,

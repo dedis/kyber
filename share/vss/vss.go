@@ -195,6 +195,7 @@ func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Poi
 	return d, nil
 }
 
+// PlaintextDeal returns the plaintext version of the deal destined for peer i.
 func (d *Dealer) PlaintextDeal(i int) (*Deal, error) {
 	if i >= len(d.deals) {
 		return nil, errors.New("dealer: PlaintextDeal given wrong index")
@@ -665,10 +666,10 @@ func validT(t int, verifiers []kyber.Point) bool {
 func deriveH(suite Suite, verifiers []kyber.Point) kyber.Point {
 	var b bytes.Buffer
 	for _, v := range verifiers {
-		v.MarshalTo(&b)
+		_, _ = v.MarshalTo(&b)
 	}
 	h := suite.Hash()
-	h.Write(b.Bytes())
+	_, _ = h.Write(b.Bytes())
 	digest := h.Sum(nil)
 	base := suite.Point().Pick(suite.Cipher(digest))
 	return base
@@ -684,16 +685,16 @@ func findPub(verifiers []kyber.Point, idx uint32) (kyber.Point, bool) {
 
 func sessionID(suite Suite, dealer kyber.Point, verifiers, commitments []kyber.Point, t int) ([]byte, error) {
 	h := suite.Hash()
-	dealer.MarshalTo(h)
+	_, _ = dealer.MarshalTo(h)
 
 	for _, v := range verifiers {
-		v.MarshalTo(h)
+		_, _ = v.MarshalTo(h)
 	}
 
 	for _, c := range commitments {
-		c.MarshalTo(h)
+		_, _ = c.MarshalTo(h)
 	}
-	binary.Write(h, binary.LittleEndian, uint32(t))
+	_ = binary.Write(h, binary.LittleEndian, uint32(t))
 
 	return h.Sum(nil), nil
 }
@@ -701,10 +702,10 @@ func sessionID(suite Suite, dealer kyber.Point, verifiers, commitments []kyber.P
 // Hash returns the Hash representation of the Response
 func (r *Response) Hash(s Suite) []byte {
 	h := s.Hash()
-	h.Write([]byte("response"))
-	h.Write(r.SessionID)
-	binary.Write(h, binary.LittleEndian, r.Index)
-	binary.Write(h, binary.LittleEndian, r.Status)
+	_, _ = h.Write([]byte("response"))
+	_, _ = h.Write(r.SessionID)
+	_ = binary.Write(h, binary.LittleEndian, r.Index)
+	_ = binary.Write(h, binary.LittleEndian, r.Status)
 	return h.Sum(nil)
 }
 
@@ -727,10 +728,10 @@ func (d *Deal) UnmarshalBinary(s Suite, buff []byte) error {
 // Hash returns the hash of a Justification.
 func (j *Justification) Hash(s Suite) []byte {
 	h := s.Hash()
-	h.Write([]byte("justification"))
-	h.Write(j.SessionID)
-	binary.Write(h, binary.LittleEndian, j.Index)
+	_, _ = h.Write([]byte("justification"))
+	_, _ = h.Write(j.SessionID)
+	_ = binary.Write(h, binary.LittleEndian, j.Index)
 	buff, _ := j.Deal.MarshalBinary()
-	h.Write(buff)
+	_, _ = h.Write(buff)
 	return h.Sum(nil)
 }

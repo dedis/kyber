@@ -1,8 +1,11 @@
+// +build vartime
+
 package curve25519
 
 import (
 	"crypto/cipher"
 	"encoding/hex"
+	"errors"
 	"io"
 	"math/big"
 
@@ -102,13 +105,13 @@ func (P *extPoint) Set(CP2 kyber.Point) kyber.Point {
 }
 
 func (P *extPoint) Clone() kyber.Point {
-	return &extPoint{
-		c: P.c,
-		X: P.X,
-		Y: P.Y,
-		Z: P.Z,
-		T: P.T,
-	}
+	P2 := extPoint{}
+	P2.c = P.c
+	P2.X.Set(&P.X)
+	P2.Y.Set(&P.Y)
+	P2.Z.Set(&P.Z)
+	P2.T.Set(&P.T)
+	return &P2
 }
 
 func (P *extPoint) Null() kyber.Point {
@@ -265,6 +268,14 @@ func (P *extPoint) Mul(s kyber.Scalar, G kyber.Point) kyber.Point {
 		P.Set(T)
 	}
 	return P
+}
+
+// SetVarTime returns an error if we require constant time operations.
+func (P *extPoint) SetVarTime(varTime bool) error {
+	if !varTime {
+		return errors.New("curve25519: constant time implementation not available")
+	}
+	return nil
 }
 
 // ExtendedCurve implements Twisted Edwards curves

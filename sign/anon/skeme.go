@@ -10,7 +10,7 @@ import (
 	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
-// Pairwise anonymous key agreement for point-to-point interactions.
+// SKEME is a pairwise anonymous key agreement for point-to-point interactions.
 // We use the encryption-based SKEME authenticated key exchange protocol,
 // with the anonymity-set encryption, to authenticate a Diffie-Hellman secret.
 // The result is a private two-party communication channel,
@@ -37,7 +37,7 @@ type SKEME struct {
 	lml, rml int    // local,remote message lengths
 }
 
-// Initialize...
+// Init the SKEME
 func (sk *SKEME) Init(suite Suite, rand cipher.Stream,
 	lpri PriKey, rpub Set, hide bool) {
 	sk.suite = suite
@@ -55,11 +55,13 @@ func (sk *SKEME) Init(suite Suite, rand cipher.Stream,
 	sk.lm = Encrypt(suite, rand, sk.lXb, rpub, hide)
 }
 
-// Return the current message that should be sent (retransmitting if needed)
+// ToSend returns the current message that should be sent (retransmitting if needed)
 func (sk *SKEME) ToSend() []byte {
 	return sk.lm
 }
 
+// Recv decrypts the message. It returns false if the SKEME expects more data,
+// an error if any checks or decryption is invalid, and true otherwise.
 func (sk *SKEME) Recv(rm []byte) (bool, error) {
 
 	M, err := Decrypt(sk.suite, rm, sk.lpri.Set, sk.lpri.Mine, sk.lpri.Pri,
@@ -112,8 +114,8 @@ func (sk *SKEME) Recv(rm []byte) (bool, error) {
 func (sk *SKEME) mkmac(masterkey, Xb1, Xb2 []byte) (cipher.Stream, []byte) {
 	keylen := sk.ms.KeySize()
 	hmac := hmac.New(sk.suite.Hash, masterkey)
-	hmac.Write(Xb1)
-	hmac.Write(Xb2)
+	_, _ = hmac.Write(Xb1)
+	_, _ = hmac.Write(Xb2)
 	key := hmac.Sum(nil)[:keylen]
 
 	stream := sk.suite.Cipher(key)

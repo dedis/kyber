@@ -222,6 +222,6 @@ func genPair() (kyber.Scalar, kyber.Point) {
 
 func randomBytes(n int) []byte {
 	var buff = make([]byte, n)
-	rand.Read(buff[:])
+	_, _ = rand.Read(buff[:])
 	return buff
 }

@@ -4,7 +4,7 @@ import (
 	"math/big"
 )
 
-// Compute the Jacobi symbol of (x/y) using Euclid's algorithm.
+// Jacobi computes the Jacobi symbol of (x/y) using Euclid's algorithm.
 // This is usually much faster modular multiplication via Euler's criterion.
 func Jacobi(x, y *big.Int) int {
 

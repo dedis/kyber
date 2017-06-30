@@ -49,6 +49,7 @@ import (
 	"gopkg.in/dedis/kyber.v1/share/vss"
 )
 
+// Suite wraps the functionalities needed by the dkg package
 type Suite vss.Suite
 
 // DistKeyShare holds the share of a distributed key for a participant.
@@ -626,10 +627,10 @@ func (d *DistKeyGenerator) DistKeyShare() (*DistKeyShare, error) {
 // Hash returns the hash value of this struct used in the signature process.
 func (sc *SecretCommits) Hash(s Suite) []byte {
 	h := s.Hash()
-	h.Write([]byte("secretcommits"))
-	binary.Write(h, binary.LittleEndian, sc.Index)
+	_, _ = h.Write([]byte("secretcommits"))
+	_ = binary.Write(h, binary.LittleEndian, sc.Index)
 	for _, p := range sc.Commitments {
-		p.MarshalTo(h)
+		_, _ = p.MarshalTo(h)
 	}
 	return h.Sum(nil)
 }
@@ -637,21 +638,21 @@ func (sc *SecretCommits) Hash(s Suite) []byte {
 // Hash returns the hash value of this struct used in the signature process.
 func (cc *ComplaintCommits) Hash(s Suite) []byte {
 	h := s.Hash()
-	h.Write([]byte("commitcomplaint"))
-	binary.Write(h, binary.LittleEndian, cc.Index)
-	binary.Write(h, binary.LittleEndian, cc.DealerIndex)
+	_, _ = h.Write([]byte("commitcomplaint"))
+	_ = binary.Write(h, binary.LittleEndian, cc.Index)
+	_ = binary.Write(h, binary.LittleEndian, cc.DealerIndex)
 	buff, _ := cc.Deal.MarshalBinary()
-	h.Write(buff)
+	_, _ = h.Write(buff)
 	return h.Sum(nil)
 }
 
 // Hash returns the hash value of this struct used in the signature process.
 func (rc *ReconstructCommits) Hash(s Suite) []byte {
 	h := s.Hash()
-	h.Write([]byte("reconstructcommits"))
-	binary.Write(h, binary.LittleEndian, rc.Index)
-	binary.Write(h, binary.LittleEndian, rc.DealerIndex)
-	h.Write(rc.Share.Hash(s))
+	_, _ = h.Write([]byte("reconstructcommits"))
+	_ = binary.Write(h, binary.LittleEndian, rc.Index)
+	_ = binary.Write(h, binary.LittleEndian, rc.DealerIndex)
+	_, _ = h.Write(rc.Share.Hash(s))
 	return h.Sum(nil)
 }
 

@@ -11,6 +11,9 @@ import (
 	"gopkg.in/dedis/kyber.v1"
 )
 
+// Suite defines the functionalities needed for this package to operate
+// correctly. It provides a general abstraction to easily change the underlying
+// implementations.
 type Suite interface {
 	kyber.Group
 	kyber.HashFactory
@@ -330,7 +333,7 @@ func (rp *repPred) Verifier(suite Suite,
 
 type andPred []Predicate
 
-// An And predicate states that all of the constituent sub-predicates are true.
+// And predicate states that all of the constituent sub-predicates are true.
 // And predicates may contain Rep predicates and/or other And predicates.
 func And(sub ...Predicate) Predicate {
 	and := andPred(sub)
@@ -440,10 +443,9 @@ func (ap *andPred) Verifier(suite Suite,
 
 type orPred []Predicate
 
-// An Or predicate states that the prover knows
+// Or predicate states that the prover knows
 // at least one of the sub-predicates to be true,
 // but the proof does not reveal any information about which.
-
 func Or(sub ...Predicate) Predicate {
 	or := orPred(sub)
 	return &or

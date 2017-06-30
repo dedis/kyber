@@ -35,10 +35,11 @@ type PriShare struct {
 	V kyber.Scalar // Value of the private share
 }
 
+// Hash returns the hash representation of this share
 func (p *PriShare) Hash(s Suite) []byte {
 	h := s.Hash()
-	p.V.MarshalTo(h)
-	binary.Write(h, binary.LittleEndian, p.I)
+	_, _ = p.V.MarshalTo(h)
+	_ = binary.Write(h, binary.LittleEndian, p.I)
 	return h.Sum(nil)
 }
 
@@ -67,7 +68,7 @@ func (p *PriPoly) Threshold() int {
 	return len(p.coeffs)
 }
 
-// GetSecret returns the shared secret p(0), i.e., the constant term of the polynomial.
+// Secret returns the shared secret p(0), i.e., the constant term of the polynomial.
 func (p *PriPoly) Secret() kyber.Scalar {
 	return p.coeffs[0]
 }
@@ -274,10 +275,11 @@ type PubShare struct {
 	V kyber.Point // Value of the public share
 }
 
+// Hash returns the hash representation of this share.
 func (p *PubShare) Hash(s Suite) []byte {
 	h := s.Hash()
-	p.V.MarshalTo(h)
-	binary.Write(h, binary.LittleEndian, p.I)
+	_, _ = p.V.MarshalTo(h)
+	_ = binary.Write(h, binary.LittleEndian, p.I)
 	return h.Sum(nil)
 }
 

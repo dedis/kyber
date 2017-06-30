@@ -7,13 +7,15 @@ import (
 	"path/filepath"
 )
 
+// Replacer provides functionalities to replace a file in a safe concurrent way.
+// Operations are not carried out until Close is called.
 type Replacer struct {
 	Name string      // Name of the file being replaced
 	Info os.FileInfo // Timestamp of target file before replacement
 	File *os.File    // Temporary file used for writing
 }
 
-var raceErr = errors.New("File was concurrently modified")
+var errRace = errors.New("File was concurrently modified")
 
 // Open a file to replace an existing file as safely as possible,
 // attempting to avoid corruption on crash or concurrent writers.
@@ -58,7 +60,7 @@ func (r *Replacer) Open(filename string) error {
 	return nil
 }
 
-// Attempt to commit the temporary replacement file to the target.
+// Commit attempts to commit the temporary replacement file to the target.
 // On success, Close()s the temporary file and atomically renames it
 // to the target filename saved in the Name field.
 //
@@ -82,7 +84,7 @@ func (r *Replacer) Commit() error {
 		if info.Name() != r.Info.Name() ||
 			info.Size() != r.Info.Size() ||
 			info.ModTime() != r.Info.ModTime() {
-			return raceErr
+			return errRace
 		}
 	}
 
@@ -101,7 +103,7 @@ func (r *Replacer) Commit() error {
 	return nil
 }
 
-// Commit the temporary replacement file
+// ForceCommit the temporary replacement file
 // without checking for concurrent modifications in the meantime.
 func (r *Replacer) ForceCommit() error {
 	r.Info = nil
@@ -115,15 +117,15 @@ func (r *Replacer) ForceCommit() error {
 func (r *Replacer) Abort() {
 	if r.File != nil {
 		tmpname := r.File.Name()
-		r.File.Close()
+		_ = r.File.Close()
 		r.File = nil
-		os.Remove(tmpname)
+		_ = os.Remove(tmpname)
 	}
 }
 
-// Returns true if an error returned by Commit() indicates
+// IsRace returns true if an error returned by Commit() indicates
 // that the commit failed because a concurrent write was detected
 // and the force flag was not specified.
 func IsRace(err error) bool {
-	return err == raceErr
+	return err == errRace
 }

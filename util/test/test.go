@@ -3,16 +3,16 @@ package test
 import (
 	"bytes"
 	"crypto/cipher"
-	"hash"
 
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
+// Suite represents the functionalities that this package can test
 type Suite interface {
 	kyber.Group
-	Hash() hash.Hash
-	Cipher(key []byte, options ...interface{}) kyber.Cipher
+	kyber.HashFactory
+	kyber.CipherFactory
 }
 
 func testEmbed(g kyber.Group, rand cipher.Stream, points *[]kyber.Point,
@@ -140,6 +140,19 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 	gen := g.Point().Base()
 	points = append(points, gen)
 
+	// Sanity-check relationship between addition and multiplication
+	p1 := g.Point().Add(gen, gen)
+	p2 := g.Point().Mul(stmp.SetInt64(2), nil)
+	if !p1.Equal(p2) {
+		panic("oops, multiply by two doesn't work")
+	}
+	p1.Add(p1, p1)
+	p2.Mul(stmp.SetInt64(4), nil)
+	if !p1.Equal(p2) {
+		panic("oops, multiply by four doesn't work")
+	}
+	points = append(points, p1)
+
 	// Verify additive and multiplicative identities of the generator.
 	ptmp.Mul(stmp.SetInt64(-1), nil).Add(ptmp, gen)
 	if !ptmp.Equal(pzero) {
@@ -152,8 +165,8 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 		}
 	}
 
-	p1 := g.Point().Mul(s1, gen)
-	p2 := g.Point().Mul(s2, gen)
+	p1.Mul(s1, gen)
+	p2.Mul(s2, gen)
 	if p1.Equal(p2) {
 		panic("uh-oh, encryption isn't producing unique points!")
 	}
@@ -299,14 +312,14 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 	return points
 }
 
-// Apply a generic set of validation tests to a cryptographic Group.
-func TestGroup(g kyber.Group) {
+// GroupTest applies a generic set of validation tests to a cryptographic Group.
+func GroupTest(g kyber.Group) {
 	testGroup(g, random.Stream)
 }
 
-// Test two group implementations that are supposed to be equivalent,
+// CompareGroups tests two group implementations that are supposed to be equivalent,
 // and compare their results.
-func TestCompareGroups(fn func(key []byte, options ...interface{}) kyber.Cipher, g1, g2 kyber.Group) {
+func CompareGroups(fn func(key []byte, options ...interface{}) kyber.Cipher, g1, g2 kyber.Group) {
 
 	// Produce test results from the same pseudorandom seed
 	r1 := testGroup(g1, fn(kyber.NoKey))
@@ -325,14 +338,14 @@ func TestCompareGroups(fn func(key []byte, options ...interface{}) kyber.Cipher,
 	}
 }
 
-// Apply a standard set of validation tests to a ciphersuite.
-func TestSuite(suite Suite) {
+// SuiteTest tests a standard set of validation tests to a ciphersuite.
+func SuiteTest(suite Suite) {
 
 	// Try hashing something
 	h := suite.Hash()
 	l := h.Size()
 	//println("HashLen: ",l)
-	h.Write([]byte("abc"))
+	_, _ = h.Write([]byte("abc"))
 	hb := h.Sum(nil)
 	//println("Hash:")
 	//println(hex.Dump(hb))
@@ -372,5 +385,5 @@ func TestSuite(suite Suite) {
 	}
 
 	// Test the public-key group arithmetic
-	TestGroup(suite)
+	GroupTest(suite)
 }

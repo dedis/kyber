@@ -8,7 +8,6 @@ import (
 
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/group/edwards25519"
-	"gopkg.in/dedis/kyber.v1/group/nist"
 	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
@@ -18,10 +17,10 @@ import (
 // producing traditional ElGamal signatures:
 // the resulting signatures are exactly the same length
 // and represent essentially the same computational cost.
-func ExampleSign_1() {
+func Example_sign1() {
 
 	// Crypto setup
-	suite := nist.NewAES128SHA256P256()
+	suite := edwards25519.NewAES128SHA256Ed25519(false)
 	rand := suite.Cipher([]byte("example"))
 
 	// Create a public/private keypair (X[mine],x)
@@ -55,10 +54,10 @@ func ExampleSign_1() {
 
 	// Output:
 	// Signature:
-	// 00000000  0d 3a d5 66 4d cd 8a bc  ee ae 4a 92 12 e7 63 68  |.:.fM.....J...ch|
-	// 00000010  c3 61 9f b0 65 ce f1 d9  83 a7 40 4f e0 7b 58 f5  |.a..e.....@O.{X.|
-	// 00000020  5c 64 ca 04 eb 33 db a9  75 9b 01 6b 12 01 ae 4e  |\d...3..u..k...N|
-	// 00000030  de 7c 6b 53 85 f8 a5 76  ba eb 7e 2e 61 2c a5 e8  |.|kS...v..~.a,..|
+	// 00000000  be db 1a 8e 63 21 a2 96  68 17 85 05 e7 aa dc fd  |....c!..h.......|
+	// 00000010  09 d8 36 e6 00 39 f8 98  69 4a 70 dc 4e a2 07 07  |..6..9..iJp.N...|
+	// 00000020  1f 46 d8 67 4a 71 49 c9  7c d2 8f 2b 75 8c cc 83  |.F.gJqI.|..+u...|
+	// 00000030  b4 31 0c 6f 6c 2e 75 70  cd 8b 8e 04 b0 54 4f 07  |.1.ol.up.....TO.|
 	// Signature verified against correct message.
 	// Verifying against wrong message: invalid signature
 }
@@ -69,7 +68,7 @@ func ExampleSign_1() {
 func ExampleSign_anonSet() {
 
 	// Crypto setup
-	suite := nist.NewAES128SHA256P256()
+	suite := edwards25519.NewAES128SHA256Ed25519(false)
 	rand := suite.Cipher([]byte("example"))
 
 	// Create an anonymity set of random "public keys"
@@ -108,14 +107,14 @@ func ExampleSign_anonSet() {
 
 	// Output:
 	// Signature:
-	// 00000000  eb 16 0d c9 1e 19 f5 da  f7 9b 77 7d 52 0b f1 82  |..........w}R...|
-	// 00000010  4b e3 dd 6c 44 f3 6f fe  c3 c1 1a 6e 1f a8 43 26  |K..lD.o....n..C&|
-	// 00000020  63 d3 5a 0e 97 78 e6 74  ce a0 24 34 c1 66 7d af  |c.Z..x.t..$4.f}.|
-	// 00000030  32 9e 59 22 f2 9a 67 3c  ea e5 4f 54 6d 3e 07 f1  |2.Y"..g<..OTm>..|
-	// 00000040  63 10 77 96 09 a3 c1 e4  85 f8 d9 97 0c 47 dc 73  |c.w..........G.s|
-	// 00000050  da 6c d8 11 8a 2e 00 a7  f2 01 45 e0 91 4e 28 d6  |.l........E..N(.|
-	// 00000060  b2 b5 3a e1 c8 8c f7 29  8a 13 75 59 98 ea ce f4  |..:....)..uY....|
-	// 00000070  6d d5 d0 62 85 51 8e fe  d9 4a 02 1f 35 03 33 d3  |m..b.Q...J..5.3.|
+	// 00000000  a4 00 4d 45 a6 cd f6 b4  1b e0 d1 12 54 49 ee c3  |..ME........TI..|
+	// 00000010  d6 8a bd c5 7d 16 b4 a8  ec 6e b2 ce 51 5c fc 0a  |....}....n..Q\..|
+	// 00000020  31 68 8d ca 3f 6a 85 a1  0d f1 cf 9d 21 05 83 f2  |1h..?j......!...|
+	// 00000030  35 63 b0 65 a8 50 a5 ee  ec 95 f8 fd 78 de 73 08  |5c.e.P......x.s.|
+	// 00000040  a7 89 3b ae 4d cb 44 c0  19 49 11 63 25 21 13 ce  |..;.M.D..I.c%!..|
+	// 00000050  0e d3 d3 e3 89 af db cd  23 8f 3f 60 06 1b a1 0e  |........#.?`....|
+	// 00000060  ee f3 b2 f4 06 e4 98 a7  24 2f 51 b8 13 b4 b5 69  |........$/Q....i|
+	// 00000070  94 ad 33 b9 c4 e3 95 8b  7f 18 6d 1e f1 07 3e 0d  |..3.......m...>.|
 	// Signature verified against correct message.
 	// Verifying against wrong message: invalid signature
 }
@@ -128,7 +127,7 @@ func ExampleSign_anonSet() {
 func ExampleSign_linkable() {
 
 	// Crypto setup
-	suite := nist.NewAES128SHA256P256()
+	suite := edwards25519.NewAES128SHA256Ed25519(false)
 	rand := suite.Cipher([]byte("example"))
 
 	// Create an anonymity set of random "public keys"
@@ -185,65 +184,54 @@ func ExampleSign_linkable() {
 
 	// Output:
 	// Signature 0:
-	// 00000000  c6 e9 27 a5 00 5d 22 40  d2 a2 5d 08 44 2b ec 2e  |..'..]"@..].D+..|
-	// 00000010  e2 01 a6 85 70 70 b4 73  2c 18 24 f1 46 44 22 09  |....pp.s,.$.FD".|
-	// 00000020  1e 6d 18 7f 8b 95 e3 c4  b9 33 ad 94 69 b5 b4 13  |.m.......3..i...|
-	// 00000030  b8 51 2f 24 a7 98 e4 06  f4 b2 f3 ee e8 73 de 78  |.Q/$.........s.x|
-	// 00000040  a3 9d 4b 1c 74 6f 3a 50  89 c9 10 cc bb b0 5c a7  |..K.to:P......\.|
-	// 00000050  09 a9 23 47 0f 36 08 a4  f3 46 ad 14 2d f0 9d c1  |..#G.6...F..-...|
-	// 00000060  63 d3 5a 0e 97 78 e6 74  ce a0 24 34 c1 66 7d af  |c.Z..x.t..$4.f}.|
-	// 00000070  32 9e 59 22 f2 9a 67 3c  ea e5 4f 54 6d 3e 07 f1  |2.Y"..g<..OTm>..|
-	// 00000080  04 00 33 42 ee 88 9f 5d  fa 2e be 6a 72 fd 67 22  |..3B...]...jr.g"|
-	// 00000090  c1 e0 ed 35 69 d7 e4 67  df 92 e7 ca 75 2f e6 72  |...5i..g....u/.r|
-	// 000000a0  79 3a 32 e2 8b 45 61 e8  7d e5 95 5b 0a 30 35 e9  |y:2..Ea.}..[.05.|
-	// 000000b0  af 3c 41 48 59 d9 e2 73  68 77 31 f3 36 cc ee 78  |.<AHY..shw1.6..x|
-	// 000000c0  ab                                                |.|
+	// 00000000  63 39 d4 fb ed 5c 93 83  14 1f 97 0d a6 7c 9f 19  |c9...\.......|..|
+	// 00000010  d1 ed 1b 66 85 4d 3c 9a  96 b9 bd af 63 50 77 01  |...f.M<.....cPw.|
+	// 00000020  35 e7 59 fa 2b 41 20 f8  b6 48 43 62 91 f1 c6 99  |5.Y.+A ..HCb....|
+	// 00000030  0e 64 9c 2c 06 fe 84 75  4f ca 03 7f 28 b5 6d 0c  |.d.,...uO...(.m.|
+	// 00000040  b2 52 04 d2 ed 23 4a cd  98 5e bc 26 af 05 5f 32  |.R...#J..^.&.._2|
+	// 00000050  f4 d8 fa ce b5 b7 84 d0  38 ea 3e 82 5c e4 93 04  |........8.>.\...|
+	// 00000060  31 68 8d ca 3f 6a 85 a1  0d f1 cf 9d 21 05 83 f2  |1h..?j......!...|
+	// 00000070  35 63 b0 65 a8 50 a5 ee  ec 95 f8 fd 78 de 73 08  |5c.e.P......x.s.|
+	// 00000080  7e 2d ef 97 ca b0 fb e5  69 ce 41 59 e0 2d 8c 0b  |~-......i.AY.-..|
+	// 00000090  0e 12 b2 9d bb 24 ca 03  d3 98 ea ff 30 3e a6 c9  |.....$......0>..|
 	// Signature 1:
-	// 00000000  69 4c 29 32 cb 9c f6 ca  80 72 f6 25 e0 ef 44 0b  |iL)2.....r.%..D.|
-	// 00000010  f2 0b e3 ab 98 c4 62 a3  10 13 09 02 9a f1 f1 00  |......b.........|
-	// 00000020  7f 03 ca 4f 75 84 fe 06  2c 9c 64 0e 99 c6 f1 91  |...Ou...,.d.....|
-	// 00000030  62 43 48 b6 f8 20 41 2b  fa 59 e7 35 be f8 4c 1b  |bCH.. A+.Y.5..L.|
-	// 00000040  f0 d8 af 83 ad 9a 87 55  ca be 46 f9 42 a2 dd 18  |.......U..F.B...|
-	// 00000050  18 83 f1 f5 6d 82 e5 38  49 bf 24 9e 80 a4 12 eb  |....m..8I.$.....|
-	// 00000060  56 c5 3f 08 bb 99 6d 7d  0a f8 ac c5 29 e8 94 54  |V.?...m}....)..T|
-	// 00000070  3e 4d fb ca b5 1d 9a 29  56 a0 09 f9 ec 6d b5 28  |>M.....)V....m.(|
-	// 00000080  04 00 33 42 ee 88 9f 5d  fa 2e be 6a 72 fd 67 22  |..3B...]...jr.g"|
-	// 00000090  c1 e0 ed 35 69 d7 e4 67  df 92 e7 ca 75 2f e6 72  |...5i..g....u/.r|
-	// 000000a0  79 3a 32 e2 8b 45 61 e8  7d e5 95 5b 0a 30 35 e9  |y:2..Ea.}..[.05.|
-	// 000000b0  af 3c 41 48 59 d9 e2 73  68 77 31 f3 36 cc ee 78  |.<AHY..shw1.6..x|
-	// 000000c0  ab                                                |.|
+	// 00000000  7b cf d3 b3 bd b0 c3 6e  f0 f1 c4 70 35 aa 35 5c  |{......n...p5.5\|
+	// 00000010  61 1c 20 a9 11 3a 7d cf  22 ec 97 b4 7d 21 bf 07  |a. ..:}."...}!..|
+	// 00000020  67 70 bb 6e d1 b1 c6 16  2c ea b7 59 4f 1d 13 f8  |gp.n....,..YO...|
+	// 00000030  87 6f a8 74 f6 a8 f2 35  38 0a 67 e4 a9 26 3e 02  |.o.t...58.g..&>.|
+	// 00000040  fa 2d e2 ef c0 67 ff 24  14 aa a5 99 01 ab de 14  |.-...g.$........|
+	// 00000050  1b 12 c3 d2 8c 9e 4f e7  b5 f8 b9 49 2f de e2 0b  |......O....I/...|
+	// 00000060  fe e8 5c 0c 56 18 63 19  e2 f4 4d 6f b4 5d 1c ea  |..\.V.c...Mo.]..|
+	// 00000070  5d 37 8b 13 9b 2c 7f c6  64 21 5e 38 93 27 f4 06  |]7...,..d!^8.'..|
+	// 00000080  7e 2d ef 97 ca b0 fb e5  69 ce 41 59 e0 2d 8c 0b  |~-......i.AY.-..|
+	// 00000090  0e 12 b2 9d bb 24 ca 03  d3 98 ea ff 30 3e a6 c9  |.....$......0>..|
 	// Signature 2:
-	// 00000000  94 d0 51 98 05 a1 79 6c  16 4e 7f f2 58 c8 09 b8  |..Q...yl.N..X...|
-	// 00000010  32 12 a5 dc be f3 cf 08  a8 77 8f 7e a7 32 dd 2b  |2........w.~.2.+|
-	// 00000020  8b 48 7e 5a 4f eb 1d 1f  c8 6c 96 e6 38 86 a9 50  |.H~ZO....l..8..P|
-	// 00000030  dc 69 e8 2d c9 ed 41 51  38 9d 5c 5f 9b e6 93 aa  |.i.-..AQ8.\_....|
-	// 00000040  1c f7 7d 2f d1 ad 5c cd  4d ab 3a ed 2f 29 08 81  |..}/..\.M.:./)..|
-	// 00000050  55 61 40 8d 86 88 cd e6  62 be 28 b4 90 9c ae 69  |Ua@.....b.(....i|
-	// 00000060  54 1a 20 09 f3 84 ad 29  dc a8 64 cf c6 ec 92 f0  |T. ....)..d.....|
-	// 00000070  76 0f 36 28 66 88 81 2b  59 43 0c 69 6f f2 7a 8e  |v.6(f..+YC.io.z.|
-	// 00000080  04 80 18 09 20 80 e9 9b  39 bc 17 47 55 13 8f c9  |.... ...9..GU...|
-	// 00000090  b4 9d 11 78 7b 56 0f f6  db 38 5f b4 f1 4f 3f 93  |...x{V...8_..O?.|
-	// 000000a0  63 9c 33 ea 86 f6 e1 54  79 c9 14 9f 45 b6 88 59  |c.3....Ty...E..Y|
-	// 000000b0  49 b6 76 99 c7 0c 84 6d  1a 9e 05 b0 30 c1 48 f2  |I.v....m....0.H.|
-	// 000000c0  9a                                                |.|
+	// 00000000  37 26 60 71 58 f7 87 ec  c3 fa aa 36 e8 04 fe cf  |7&`qX......6....|
+	// 00000010  f5 3f f9 34 0d 6f 2a 5c  4b 28 43 dd 31 8a 72 02  |.?.4.o*\K(C.1.r.|
+	// 00000020  58 c9 50 76 f9 f8 e5 7b  54 fc dd 89 5c 64 54 7c  |X.Pv...{T...\dT||
+	// 00000030  52 21 d9 30 0d b5 9b 13  3d 4b 5e d4 c4 fe f5 06  |R!.0....=K^.....|
+	// 00000040  1e 91 e3 7b 4b 6a 9d f8  82 d3 42 19 1a bf 94 80  |...{Kj....B.....|
+	// 00000050  33 92 bd 73 47 09 71 38  0f 06 23 d7 9e 8e 96 0b  |3..sG.q8..#.....|
+	// 00000060  b3 e7 76 d6 ed 60 37 a7  98 38 87 9d 59 bc 7b 82  |..v..`7..8..Y.{.|
+	// 00000070  f7 c5 79 f9 1d aa c3 17  5a 13 95 59 de 44 95 02  |..y.....Z..Y.D..|
+	// 00000080  30 54 cf 20 49 73 89 56  22 e5 e3 1f b8 27 e2 72  |0T. Is.V"....'.r|
+	// 00000090  06 c7 38 48 98 ee 03 1d  f4 7b c7 7e 2c d8 a7 0a  |..8H.....{.~,...|
 	// Signature 3:
-	// 00000000  1a 64 49 4a ff 66 bc 88  93 54 30 e9 96 89 34 76  |.dIJ.f...T0...4v|
-	// 00000010  f6 95 e0 a9 84 8a a2 6e  f4 5e 7f db 58 d9 8a 48  |.......n.^..X..H|
-	// 00000020  84 bd 96 a9 6b 6e c2 47  03 9f 18 33 73 a5 2b ee  |....kn.G...3s.+.|
-	// 00000030  11 e1 99 36 bf 44 42 26  5e f8 cc 25 1e 8a 97 2b  |...6.DB&^..%...+|
-	// 00000040  7f 57 93 33 c5 fb 27 9f  24 e9 d4 3f 1c 16 67 4c  |.W.3..'.$..?..gL|
-	// 00000050  50 0b d1 0b 08 9b 0f 3f  cb ac 96 e8 92 3c a5 3d  |P......?.....<.=|
-	// 00000060  d4 83 2c dd c6 6d e4 68  67 b7 dc 39 68 77 de 3d  |..,..m.hg..9hw.=|
-	// 00000070  8c 83 0d b2 24 4b d6 17  e4 ce 78 7a 63 b7 f0 bb  |....$K....xzc...|
-	// 00000080  04 80 18 09 20 80 e9 9b  39 bc 17 47 55 13 8f c9  |.... ...9..GU...|
-	// 00000090  b4 9d 11 78 7b 56 0f f6  db 38 5f b4 f1 4f 3f 93  |...x{V...8_..O?.|
-	// 000000a0  63 9c 33 ea 86 f6 e1 54  79 c9 14 9f 45 b6 88 59  |c.3....Ty...E..Y|
-	// 000000b0  49 b6 76 99 c7 0c 84 6d  1a 9e 05 b0 30 c1 48 f2  |I.v....m....0.H.|
-	// 000000c0  9a                                                |.|
-	// Sig0 tag: 04003342ee889f5dfa2ebe6a72fd6722c1e0ed3569d7e467df92e7ca752fe672793a32e28b4561e87de5955b0a3035e9af3c414859d9e273687731f336ccee78ab
-	// Sig1 tag: 04003342ee889f5dfa2ebe6a72fd6722c1e0ed3569d7e467df92e7ca752fe672793a32e28b4561e87de5955b0a3035e9af3c414859d9e273687731f336ccee78ab
-	// Sig2 tag: 048018092080e99b39bc174755138fc9b49d11787b560ff6db385fb4f14f3f93639c33ea86f6e15479c9149f45b6885949b67699c70c846d1a9e05b030c148f29a
-	// Sig3 tag: 048018092080e99b39bc174755138fc9b49d11787b560ff6db385fb4f14f3f93639c33ea86f6e15479c9149f45b6885949b67699c70c846d1a9e05b030c148f29a
+	// 00000000  ce 35 b2 a9 19 c9 e7 92  25 4a 9b ae c0 c7 85 19  |.5......%J......|
+	// 00000010  e6 04 1a 72 42 e3 c7 85  1b b6 a1 df d7 bd 88 0b  |...rB...........|
+	// 00000020  45 a7 41 99 c3 ef 1f db  80 40 47 1a 19 b1 57 cd  |E.A......@G...W.|
+	// 00000030  19 df c9 a2 db 38 bb 14  b6 1d 64 3f 3e e2 36 03  |.....8....d?>.6.|
+	// 00000040  55 66 b1 9c a7 5b ca 61  ba c8 c6 5c 9e 04 80 85  |Uf...[.a...\....|
+	// 00000050  e4 64 7f 81 e7 38 6d 97  92 83 65 02 e7 a4 81 05  |.d...8m...e.....|
+	// 00000060  f9 aa 40 fd 37 04 ab b7  e3 5d 84 79 4f 45 3b 1f  |..@.7....].yOE;.|
+	// 00000070  2b 8a d3 74 9b 91 8c 9a  8d dd f4 4a 44 a0 ea 08  |+..t.......JD...|
+	// 00000080  30 54 cf 20 49 73 89 56  22 e5 e3 1f b8 27 e2 72  |0T. Is.V"....'.r|
+	// 00000090  06 c7 38 48 98 ee 03 1d  f4 7b c7 7e 2c d8 a7 0a  |..8H.....{.~,...|
+	// Sig0 tag: 7e2def97cab0fbe569ce4159e02d8c0b0e12b29dbb24ca03d398eaff303ea6c9
+	// Sig1 tag: 7e2def97cab0fbe569ce4159e02d8c0b0e12b29dbb24ca03d398eaff303ea6c9
+	// Sig2 tag: 3054cf204973895622e5e31fb827e27206c7384898ee031df47bc77e2cd8a70a
+	// Sig3 tag: 3054cf204973895622e5e31fb827e27206c7384898ee031df47bc77e2cd8a70a
+
 }
 
 var benchMessage = []byte("Hello World!")
@@ -277,10 +265,10 @@ func benchGenKeys(g kyber.Group,
 }
 
 func benchGenKeysOpenSSL(nkeys int) ([]kyber.Point, kyber.Scalar) {
-	return benchGenKeys(nist.NewAES128SHA256P256(), nkeys)
+	return benchGenKeys(edwards25519.NewAES128SHA256Ed25519(false), nkeys)
 }
 func benchGenSigOpenSSL(nkeys int) []byte {
-	suite := nist.NewAES128SHA256P256()
+	suite := edwards25519.NewAES128SHA256Ed25519(false)
 	rand := suite.Cipher([]byte("example"))
 	return Sign(suite, rand, benchMessage,
 		Set(benchPubOpenSSL[:nkeys]), nil,
@@ -317,28 +305,28 @@ func benchVerify(suite Suite, pub []kyber.Point,
 }
 
 func BenchmarkSign1OpenSSL(b *testing.B) {
-	benchSign(nist.NewAES128SHA256P256(),
+	benchSign(edwards25519.NewAES128SHA256Ed25519(false),
 		benchPubOpenSSL[:1], benchPriOpenSSL, b.N)
 }
 func BenchmarkSign10OpenSSL(b *testing.B) {
-	benchSign(nist.NewAES128SHA256P256(),
+	benchSign(edwards25519.NewAES128SHA256Ed25519(false),
 		benchPubOpenSSL[:10], benchPriOpenSSL, b.N)
 }
 func BenchmarkSign100OpenSSL(b *testing.B) {
-	benchSign(nist.NewAES128SHA256P256(),
+	benchSign(edwards25519.NewAES128SHA256Ed25519(false),
 		benchPubOpenSSL[:100], benchPriOpenSSL, b.N)
 }
 
 func BenchmarkVerify1OpenSSL(b *testing.B) {
-	benchVerify(nist.NewAES128SHA256P256(),
+	benchVerify(edwards25519.NewAES128SHA256Ed25519(false),
 		benchPubOpenSSL[:1], benchSig1OpenSSL, b.N)
 }
 func BenchmarkVerify10OpenSSL(b *testing.B) {
-	benchVerify(nist.NewAES128SHA256P256(),
+	benchVerify(edwards25519.NewAES128SHA256Ed25519(false),
 		benchPubOpenSSL[:10], benchSig10OpenSSL, b.N)
 }
 func BenchmarkVerify100OpenSSL(b *testing.B) {
-	benchVerify(nist.NewAES128SHA256P256(),
+	benchVerify(edwards25519.NewAES128SHA256Ed25519(false),
 		benchPubOpenSSL[:100], benchSig100OpenSSL, b.N)
 }
 

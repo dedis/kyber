@@ -1,3 +1,5 @@
+// +build vartime
+
 package nist
 
 import (
@@ -210,6 +212,14 @@ func (p *curvePoint) MarshalTo(w io.Writer) (int, error) {
 
 func (p *curvePoint) UnmarshalFrom(r io.Reader) (int, error) {
 	return marshalling.PointUnmarshalFrom(p, r)
+}
+
+// SetVarTime returns an error if we request constant-var operations.
+func (P *curvePoint) SetVarTime(varTime bool) error {
+	if !varTime {
+		return errors.New("nist: nist curve point do not provide constant time implementations")
+	}
+	return nil
 }
 
 // interface for curve-specifc mathematical functions
