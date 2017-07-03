@@ -83,7 +83,7 @@ changes, so only minor changes are required.
 + Many utility functions have been moved to `util/`. For example, the `subtle`
   package in now in `util/subtle/`.
 
-Please, read the CHANGELOG for a more in-depth list of changes.
+Please, read the CHANGELOG for an exhaustive list of changes.
 
 Issues
 ------
