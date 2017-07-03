@@ -14,7 +14,7 @@ func TestBasic25519(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode.")
 	} else {
-		test.Group(new(BasicCurve).Init(Param25519(), false))
+		test.GroupTest(new(BasicCurve).Init(Param25519(), false))
 	}
 }
 

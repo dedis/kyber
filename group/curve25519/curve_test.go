@@ -108,7 +108,7 @@ func TestCompareEd25519(t *testing.T) {
 
 // Test point hiding functionality
 
-func testHiding(g kyber.GroupTest, k int) {
+func testHiding(g kyber.Group, k int) {
 	rand := random.Stream
 
 	// Test conversion from random strings to points and back
