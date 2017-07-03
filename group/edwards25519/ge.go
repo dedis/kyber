@@ -129,8 +129,6 @@ func (p *extendedGroupElement) FromBytes(s []byte) bool {
 	feMul(&p.X, &p.X, &v3)
 	feMul(&p.X, &p.X, &u) // x = uv^3(uv^7)^((q-5)/8)
 
-	var tmpX, tmp2 [32]byte
-
 	feSquare(&vxx, &p.X)
 	feMul(&vxx, &vxx, &v)
 	feSub(&check, &vxx, &u) // vx^2-u
@@ -140,12 +138,6 @@ func (p *extendedGroupElement) FromBytes(s []byte) bool {
 			return false
 		}
 		feMul(&p.X, &p.X, &sqrtM1)
-
-		// XXX what's this?  looks like dead code? -baf
-		feToBytes(&tmpX, &p.X)
-		for i, v := range tmpX {
-			tmp2[31-i] = v
-		}
 	}
 
 	if feIsNegative(&p.X) != (s[31] >> 7) {

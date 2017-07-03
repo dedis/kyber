@@ -18,7 +18,7 @@ type Marshaling interface {
 	encoding.BinaryMarshaler
 	encoding.BinaryUnmarshaler
 
-	// XXX This may go away from the interface.
+	// String returns the human readable string representation of the object
 	String() string
 
 	// Encoded length of this object in bytes.
