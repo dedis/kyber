@@ -38,6 +38,8 @@ type ssa4 struct {
 	Zalpha []kyber.Scalar
 }
 
+// SimpleShuffle is the "Simple k-shuffle" defined in section 3 of
+// Neff, "Verifiable Mixing (Shuffling) of ElGamal Pairs", 2004.
 type SimpleShuffle struct {
 	grp kyber.Group
 	p0  ssa0
@@ -69,6 +71,8 @@ func thenc(grp kyber.Group, G kyber.Point,
 	return grp.Point().Mul(ab.Sub(ab, cd), G)
 }
 
+// Init initializes the simple shuffle with the given group and the k parameter
+// from the paper.
 func (ss *SimpleShuffle) Init(grp kyber.Group, k int) *SimpleShuffle {
 	ss.grp = grp
 	ss.p0.X = make([]kyber.Point, k)
@@ -78,7 +82,7 @@ func (ss *SimpleShuffle) Init(grp kyber.Group, k int) *SimpleShuffle {
 	return ss
 }
 
-// The "Simple k-shuffle" defined in section 3 of
+// Prove the  "Simple k-shuffle" defined in section 3 of
 // Neff, "Verifiable Mixing (Shuffling) of ElGamal Pairs", 2004.
 // The Scalar vector y must be a permutation of Scalar vector x
 // but with all elements multiplied by common Scalar gamma.
@@ -120,12 +124,12 @@ func (ss *SimpleShuffle) Prove(G kyber.Point, gamma kyber.Scalar,
 	t := ss.v1.Zt
 
 	// P step 2
-	gamma_t := grp.Scalar().Mul(gamma, t)
+	gammaT := grp.Scalar().Mul(gamma, t)
 	xhat := make([]kyber.Scalar, k)
 	yhat := make([]kyber.Scalar, k)
 	for i := 0; i < k; i++ { // (5) and (6) xhat,yhat vectors
 		xhat[i] = grp.Scalar().Sub(x[i], t)
-		yhat[i] = grp.Scalar().Sub(y[i], gamma_t)
+		yhat[i] = grp.Scalar().Sub(y[i], gammaT)
 	}
 	thlen := 2*k - 1 // (7) theta and Theta vectors
 	theta := make([]kyber.Scalar, thlen)
@@ -184,7 +188,7 @@ func thver(A, B, T, P, Q kyber.Point, a, b, s kyber.Scalar) bool {
 	return P.Equal(T)
 }
 
-// Verifier for Neff simple k-shuffle proofs.
+// Verify for Neff simple k-shuffle proofs.
 func (ss *SimpleShuffle) Verify(G, Gamma kyber.Point,
 	ctx proof.VerifierContext) error {
 

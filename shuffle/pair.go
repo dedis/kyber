@@ -96,7 +96,7 @@ type PairShuffle struct {
 	pv6 SimpleShuffle
 }
 
-// Create a new PairShuffleProof instance for a k-element ElGamal pair shuffle.
+// Init creates a new PairShuffleProof instance for a k-element ElGamal pair shuffle.
 // This protocol follows the ElGamal Pair Shuffle defined in section 4 of
 // Andrew Neff, "Verifiable Mixing (Shuffling) of ElGamal Pairs", 2004.
 func (ps *PairShuffle) Init(grp kyber.Group, k int) *PairShuffle {
@@ -120,6 +120,7 @@ func (ps *PairShuffle) Init(grp kyber.Group, k int) *PairShuffle {
 	return ps
 }
 
+// Prove returns an error if the shuffle is not correct.
 func (ps *PairShuffle) Prove(
 	pi []int, g, h kyber.Point, beta []kyber.Scalar,
 	X, Y []kyber.Point, rand cipher.Stream,
@@ -226,7 +227,7 @@ func (ps *PairShuffle) Prove(
 	return ps.pv6.Prove(g, gamma, r, s, rand, ctx)
 }
 
-// Verifier for ElGamal Pair Shuffle proofs.
+// Verify ElGamal Pair Shuffle proofs.
 func (ps *PairShuffle) Verify(
 	g, h kyber.Point, X, Y, Xbar, Ybar []kyber.Point,
 	ctx proof.VerifierContext) error {
@@ -307,7 +308,7 @@ func (ps *PairShuffle) Verify(
 	return nil
 }
 
-// Randomly shuffle and re-randomize a set of ElGamal pairs,
+// Shuffle randomly shuffles and re-randomizes a set of ElGamal pairs,
 // producing a correctness proof in the process.
 // Returns (Xbar,Ybar), the shuffled and randomized pairs.
 // If g or h is nil, the standard base point is used.
@@ -358,7 +359,7 @@ func Shuffle(group kyber.Group, g, h kyber.Point, X, Y []kyber.Point,
 	return Xbar, Ybar, prover
 }
 
-// Produce a Sigma-protocol verifier to check the correctness of a shuffle.
+// Verifier produces a Sigma-protocol verifier to check the correctness of a shuffle.
 func Verifier(group kyber.Group, g, h kyber.Point,
 	X, Y, Xbar, Ybar []kyber.Point) proof.Verifier {
 

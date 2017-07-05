@@ -1,31 +1,58 @@
 package shuffle
 
 import (
-	"testing"
+	//"fmt"
+	//"encoding/hex"
 
-	"gopkg.in/dedis/kyber.v1/group/edwards25519"
+	kyber "gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/proof"
 )
 
-func TestBiffle(t *testing.T) {
-	BiffleTest(edwards25519.NewAES128SHA256Ed25519(false), 1)
-}
+func TestShuffle(suite Suite, k int, N int) {
 
-func TestPairShuffle(t *testing.T) {
-	TestShuffle(edwards25519.NewAES128SHA256Ed25519(false), 10, 1)
-}
+	rand := suite.Cipher(kyber.RandomKey)
 
-func BenchmarkBiffleEd25519(b *testing.B) {
-	BiffleTest(edwards25519.NewAES128SHA256Ed25519(false), b.N)
-}
+	// Create a "server" private/public keypair
+	h := suite.Scalar().Pick(rand)
+	H := suite.Point().Mul(h, nil)
 
-func Benchmark2PairShuffleEd25519(b *testing.B) {
-	TestShuffle(edwards25519.NewAES128SHA256Ed25519(false), 2, b.N)
-}
+	// Create a set of ephemeral "client" keypairs to shuffle
+	c := make([]kyber.Scalar, k)
+	C := make([]kyber.Point, k)
+	//	fmt.Println("\nclient keys:")
+	for i := 0; i < k; i++ {
+		c[i] = suite.Scalar().Pick(rand)
+		C[i] = suite.Point().Mul(c[i], nil)
+		//		fmt.Println(" "+C[i].String())
+	}
 
-func Benchmark10PairShuffleEd25519(b *testing.B) {
-	TestShuffle(edwards25519.NewAES128SHA256Ed25519(false), 10, b.N)
-}
+	// ElGamal-encrypt all these keypairs with the "server" key
+	X := make([]kyber.Point, k)
+	Y := make([]kyber.Point, k)
+	r := suite.Scalar() // temporary
+	for i := 0; i < k; i++ {
+		r.Pick(rand)
+		X[i] = suite.Point().Mul(r, nil)
+		Y[i] = suite.Point().Mul(r, H) // ElGamal blinding factor
+		Y[i].Add(Y[i], C[i])           // Encrypted client public key
+	}
 
-func Benchmark100PairShuffleEd25519(b *testing.B) {
-	TestShuffle(edwards25519.NewAES128SHA256Ed25519(false), 100, b.N)
+	// Repeat only the actual shuffle portion for test purposes.
+	for i := 0; i < N; i++ {
+
+		// Do a key-shuffle
+		Xbar, Ybar, prover := Shuffle(suite, nil, H, X, Y, rand)
+		prf, err := proof.HashProve(suite, "PairShuffle", rand, prover)
+		if err != nil {
+			panic("Shuffle proof failed: " + err.Error())
+		}
+		//fmt.Printf("proof:\n%s\n",hex.Dump(prf))
+
+		// Check it
+		verifier := Verifier(suite, nil, H, X, Y, Xbar, Ybar)
+		err = proof.HashVerify(suite, "PairShuffle", verifier, prf)
+		if err != nil {
+			panic("Shuffle verify failed: " + err.Error())
+		}
+	}
 }

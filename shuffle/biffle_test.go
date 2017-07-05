@@ -1,14 +1,11 @@
 package shuffle
 
 import (
-	//"fmt"
-	//"encoding/hex"
-
+	"github.com/dedis/kyber/proof"
 	kyber "gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/proof"
 )
 
-func TestShuffle(suite Suite, k int, N int) {
+func BiffleTest(suite Suite, N int) {
 
 	rand := suite.Cipher(kyber.RandomKey)
 
@@ -17,20 +14,19 @@ func TestShuffle(suite Suite, k int, N int) {
 	H := suite.Point().Mul(h, nil)
 
 	// Create a set of ephemeral "client" keypairs to shuffle
-	c := make([]kyber.Scalar, k)
-	C := make([]kyber.Point, k)
+	var c [2]kyber.Scalar
+	var C [2]kyber.Point
 	//	fmt.Println("\nclient keys:")
-	for i := 0; i < k; i++ {
+	for i := 0; i < 2; i++ {
 		c[i] = suite.Scalar().Pick(rand)
 		C[i] = suite.Point().Mul(c[i], nil)
 		//		fmt.Println(" "+C[i].String())
 	}
 
 	// ElGamal-encrypt all these keypairs with the "server" key
-	X := make([]kyber.Point, k)
-	Y := make([]kyber.Point, k)
+	var X, Y [2]kyber.Point
 	r := suite.Scalar() // temporary
-	for i := 0; i < k; i++ {
+	for i := 0; i < 2; i++ {
 		r.Pick(rand)
 		X[i] = suite.Point().Mul(r, nil)
 		Y[i] = suite.Point().Mul(r, H) // ElGamal blinding factor
@@ -41,18 +37,18 @@ func TestShuffle(suite Suite, k int, N int) {
 	for i := 0; i < N; i++ {
 
 		// Do a key-shuffle
-		Xbar, Ybar, prover := Shuffle(suite, nil, H, X, Y, rand)
-		prf, err := proof.HashProve(suite, "PairShuffle", rand, prover)
+		Xbar, Ybar, prover := Biffle(suite, nil, H, X, Y, rand)
+		prf, err := proof.HashProve(suite, "Biffle", rand, prover)
 		if err != nil {
-			panic("Shuffle proof failed: " + err.Error())
+			panic("Biffle proof failed: " + err.Error())
 		}
 		//fmt.Printf("proof:\n%s\n",hex.Dump(prf))
 
 		// Check it
-		verifier := Verifier(suite, nil, H, X, Y, Xbar, Ybar)
-		err = proof.HashVerify(suite, "PairShuffle", verifier, prf)
+		verifier := BiffleVerifier(suite, nil, H, X, Y, Xbar, Ybar)
+		err = proof.HashVerify(suite, "Biffle", verifier, prf)
 		if err != nil {
-			panic("Shuffle verify failed: " + err.Error())
+			panic("Biffle verify failed: " + err.Error())
 		}
 	}
 }
