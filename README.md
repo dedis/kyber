@@ -1,3 +1,4 @@
+[![Docs](https://img.shields.io/badge/docs-current-brightgreen.svg)](https://godoc.org/gopkg.in/dedis/kyber.v1)
 [![Build Status](https://travis-ci.org/dedis/kyber.svg?branch=v1)](https://travis-ci.org/dedis/kyber)
 
 DeDiS Advanced Crypto Library for Go
