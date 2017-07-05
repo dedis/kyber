@@ -1,11 +1,17 @@
 package shuffle
 
 import (
-	"github.com/dedis/kyber/proof"
+	"testing"
+
 	kyber "gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/proof"
 )
 
-func BiffleTest(suite Suite, N int) {
+func TestBiffle(t *testing.T) {
+	biffleTest(suite, N)
+}
+
+func biffleTest(suite Suite, N int) {
 
 	rand := suite.Cipher(kyber.RandomKey)
 

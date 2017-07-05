@@ -4,12 +4,22 @@ import (
 	//"fmt"
 	//"encoding/hex"
 
+	"testing"
+
 	kyber "gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 	"gopkg.in/dedis/kyber.v1/proof"
 )
 
-func TestShuffle(suite Suite, k int, N int) {
+var suite = edwards25519.NewAES128SHA256Ed25519(false)
+var k = 5
+var N = 10
 
+func TestShuffle(t *testing.T) {
+	shuffleTest(suite, k, N)
+}
+
+func shuffleTest(suite Suite, k, N int) {
 	rand := suite.Cipher(kyber.RandomKey)
 
 	// Create a "server" private/public keypair
