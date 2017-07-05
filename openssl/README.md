@@ -10,7 +10,7 @@ Problems with the OpenSSL package include:
 brew install openssl && brew unlink openssl && brew link openssl --overwrite --force
 ```
 
-and then change in `dedis/crypto/openssl/aes.go` the macro
+and then change in `dedis/kyber/openssl/aes.go` the macro
 
 ```
 // #cgo CFLAGS: -Wno-deprecated

@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/dedis/crypto.svg?branch=master)](https://travis-ci.org/dedis/crypto)
+[![Build Status](https://travis-ci.org/dedis/kyber.svg?branch=master)](https://travis-ci.org/dedis/kyber)
 
 DeDiS Advanced Crypto Library for Go
 ====================================
@@ -7,7 +7,7 @@ This package provides a toolbox of advanced cryptographic primitives for Go,
 targeting applications like [Dissent](http://dedis.cs.yale.edu/dissent/)
 that need more than straightforward signing and encryption.
 Please see the
-[GoDoc documentation for this package](http://godoc.org/github.com/DeDiS/crypto)
+[GoDoc documentation for this package](http://godoc.org/github.com/DeDiS/kyber)
 for details on the library's purpose and API functionality.
 
 Installing
@@ -20,13 +20,13 @@ The basic crypto library requires only Go and a few
 third-party Go-language dependencies that can be installed automatically
 as follows:
 
-	go get github.com/dedis/crypto
-	cd $GOPATH/src/github.com/dedis/crypto
+	go get github.com/dedis/kyber
+	cd $GOPATH/src/github.com/dedis/kyber
 	go get ./... # install 3rd-party dependencies
 
 You should then be able to test its basic function as follows:
 
-	cd $GOPATH/src/github.com/dedis/crypto
+	cd $GOPATH/src/github.com/dedis/kyber
 	go test -v
 
 You can recursively test all the packages in the library as follows,
