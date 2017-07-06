@@ -16,9 +16,9 @@ import (
 
 	"fmt"
 
+	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/onet.v2/log"
 	"gopkg.in/dedis/onet.v2/network"
-	"gopkg.in/dedis/kyber.v1"
 )
 
 // Server connects the Router, the Overlay, and the Services together. It sets

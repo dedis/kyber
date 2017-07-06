@@ -13,10 +13,10 @@ import (
 
 	"sync"
 
-	"gopkg.in/dedis/onet.v2/log"
-	"gopkg.in/dedis/onet.v2/network"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/dedis/crypto.v0/random"
+	"gopkg.in/dedis/onet.v2/log"
+	"gopkg.in/dedis/onet.v2/network"
 )
 
 type ContextData struct {

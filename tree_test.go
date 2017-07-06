@@ -8,10 +8,10 @@ import (
 
 	"strings"
 
-	"gopkg.in/dedis/onet.v2/log"
-	"gopkg.in/dedis/onet.v2/network"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/dedis/kyber.v1/util/key"
+	"gopkg.in/dedis/onet.v2/log"
+	"gopkg.in/dedis/onet.v2/network"
 )
 
 var tSuite = network.S

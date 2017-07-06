@@ -12,8 +12,8 @@ import (
 
 	"errors"
 
-	"gopkg.in/dedis/onet.v2/log"
 	"github.com/montanaflynn/stats"
+	"gopkg.in/dedis/onet.v2/log"
 )
 
 // Stats contains all structures that are related to the computations of stats

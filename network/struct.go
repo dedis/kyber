@@ -7,11 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/dedis/onet.v2/log"
 	"github.com/dedis/protobuf"
 	"github.com/satori/go.uuid"
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/util/encoding"
+	"gopkg.in/dedis/onet.v2/log"
 )
 
 // MaxRetryConnect defines how many times we should try to connect.

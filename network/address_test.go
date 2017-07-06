@@ -3,8 +3,8 @@ package network
 import (
 	"testing"
 
-	"gopkg.in/dedis/onet.v2/log"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/dedis/onet.v2/log"
 )
 
 func TestConnType(t *testing.T) {
