@@ -42,6 +42,10 @@ type Service interface {
 	network.Processor
 }
 
+// NewServiceFunc is the type of a function that is used to instantiate a given Service
+// A service is initialized with a Server (to send messages to someone).
+type NewServiceFunc func(c *Context, suite interface{}) (Service, error)
+
 // ServiceID is a type to represent a uuid for a Service
 type ServiceID uuid.UUID
 
@@ -62,10 +66,6 @@ func (s ServiceID) IsNil() bool {
 
 // NilServiceID is the empty ServiceID
 var NilServiceID = ServiceID(uuid.Nil)
-
-// NewServiceFunc is the type of a function that is used to instantiate a given Service
-// A service is initialized with a Server (to send messages to someone).
-type NewServiceFunc func(c *Context, suite interface{}) (Service, error)
 
 // GenericConfig is a config that can withhold any type of specific configs for
 // protocols. It is passed down to the service NewProtocol function.
