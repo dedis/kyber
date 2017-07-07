@@ -361,7 +361,7 @@ func NewClientError(e error) ClientError {
 	str := e.Error()
 	if strings.HasPrefix(str, wsPrefix) {
 		str = str[len(wsPrefix):]
-		errMsg := strings.Split(str, ":")
+		errMsg := strings.SplitN(str, ":", 2)
 		if len(errMsg) > 1 && len(errMsg[1]) > 0 {
 			errMsg[1] = errMsg[1][1:]
 		} else {
