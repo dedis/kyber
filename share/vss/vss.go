@@ -36,11 +36,11 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/dedis/protobuf"
 	"gopkg.in/dedis/crypto.v0/abstract"
 	"gopkg.in/dedis/crypto.v0/random"
 	"gopkg.in/dedis/crypto.v0/share"
 	"gopkg.in/dedis/crypto.v0/sign"
-	"github.com/dedis/protobuf"
 )
 
 // Dealer encapsulates for creating and distributing the shares and for
@@ -188,6 +188,7 @@ func NewDealer(suite abstract.Suite, longterm, secret abstract.Scalar, verifiers
 	return d, nil
 }
 
+// PlaintextDeal ...
 func (d *Dealer) PlaintextDeal(i int) (*Deal, error) {
 	if i >= len(d.deals) {
 		return nil, errors.New("dealer: PlaintextDeal given wrong index")
