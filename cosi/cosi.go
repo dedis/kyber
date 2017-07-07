@@ -188,6 +188,8 @@ func (c *CoSi) Response(responses []abstract.Scalar) (abstract.Scalar, error) {
 // root knows the aggregate response.
 func (c *CoSi) Signature() []byte {
 	// Sig = C || R || bitmask
+	lenC := c.suite.PointLen()
+	lenSig := lenC + c.suite.ScalarLen()
 	sigC, err := c.aggregateCommitment.MarshalBinary()
 	if err != nil {
 		panic("Can't marshal Commitment")
@@ -196,10 +198,10 @@ func (c *CoSi) Signature() []byte {
 	if err != nil {
 		panic("Can't generate signature !")
 	}
-	final := make([]byte, 64+c.mask.MaskLen())
+	final := make([]byte, lenSig+c.mask.MaskLen())
 	copy(final[:], sigC)
-	copy(final[32:64], sigR)
-	copy(final[64:], c.mask.mask)
+	copy(final[lenC:lenSig], sigR)
+	copy(final[lenSig:], c.mask.mask)
 	return final
 }
 
@@ -230,14 +232,16 @@ func (c *CoSi) VerifyResponses(aggregatedPublic abstract.Point) error {
 // signature will take care of removing the indivual public keys that did not
 // participate
 func VerifySignature(suite abstract.Suite, publics []abstract.Point, message, sig []byte) error {
-	aggCommitBuff := sig[:32]
+	lenC := suite.PointLen()
+	lenSig := lenC + suite.ScalarLen()
+	aggCommitBuff := sig[:lenC]
 	aggCommit := suite.Point()
 	if err := aggCommit.UnmarshalBinary(aggCommitBuff); err != nil {
 		panic(err)
 	}
-	sigBuff := sig[32:64]
+	sigBuff := sig[lenC:lenSig]
 	sigInt := suite.Scalar().SetBytes(sigBuff)
-	maskBuff := sig[64:]
+	maskBuff := sig[lenSig:]
 	mask := newMask(suite, publics)
 	mask.SetMask(maskBuff)
 	aggPublic := mask.Aggregate()
