@@ -260,7 +260,7 @@ func (c *Client) SendProtobuf(dst *network.ServerIdentity, msg interface{}, ret 
 	path := strings.Split(reflect.TypeOf(msg).String(), ".")[1]
 	reply, cerr := c.Send(dst, path, buf)
 	if cerr != nil {
-		return NewClientError(cerr)
+		return cerr
 	}
 	if ret != nil {
 		err := protobuf.DecodeWithConstructors(reply, ret,
