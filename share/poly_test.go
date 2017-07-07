@@ -3,10 +3,10 @@ package share
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"gopkg.in/dedis/crypto.v0/ed25519"
 	"gopkg.in/dedis/crypto.v0/edwards"
 	"gopkg.in/dedis/crypto.v0/random"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestSecretRecovery(test *testing.T) {

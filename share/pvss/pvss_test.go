@@ -3,10 +3,10 @@ package pvss
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"gopkg.in/dedis/crypto.v0/abstract"
 	"gopkg.in/dedis/crypto.v0/edwards"
 	"gopkg.in/dedis/crypto.v0/random"
-	"github.com/stretchr/testify/require"
 )
 
 func TestPVSS(test *testing.T) {
