@@ -1,35 +1,39 @@
 /*
-Package cosi is the Collective Signing implementation according to the paper of
-Bryan Ford: http://arxiv.org/pdf/1503.08768v1.pdf .
+Package cosi implements the collective signing (CoSi) algorithm as presented in the
+paper "Keeping Authorities 'Honest or Bust' with Decentralized Witness
+Cosigning" by Ewa Syta et al., see https://arxiv.org/abs/1503.08768.
 
-Stages of CoSi
+The CoSi protocol has four phases between a list of participants P having a
+protocol leader (index i = 0) and a list of other nodes (index i > 0). The
+secret key of node i is denoted by a_i and the public key by A_i = [a_i]G
+(where G is the base point of the underlying group and [...] denotes scalar
+multiplication). The aggregate public key is given as A = \sum{i ∈ P}(A_i).
+The communication can happen via a star topology (with the leader at the
+center) or a tree (with the leader at the root). For simplicity we use the star
+topology here and refer to the above paper for further details on exception
+mechanisms and signature verification policies.
 
-The CoSi-protocol has 4 stages:
+1. Announcement: The leader broadcasts an announcement to the other nodes
+optionally including the message M to be signed. Upon receiving an announcement
+message, a node starts its commitment phase.
 
-1. Announcement: The leader multicasts an announcement
-of the start of this round down through the spanning tree,
-optionally including the statement S to be signed.
+2. Commitment: Each node i picks a random scalar v_i, computes its commitment
+V_i = [v_i]G and sends V_i back to the leader. The leader waits until it has
+received enough replies (according to some policy) from the other nodes or a
+timer has run out. Let P' be the nodes that sent their commitments. Afterwards
+the leader computes an aggregate commitment V from all commitments he has
+received, i.e., V = \sum{j ∈ P'}(V_j) and starts the challenge phase.
 
-2. Commitment: Each node i picks a random scalar vi and
-computes its individual commit Vi = Gvi . In a bottom-up
-process, each node i waits for an aggregate commit Vˆj from
-each immediate child j, if any. Node i then computes its
-own aggregate commit Vˆi = Vi \prod{j ∈ Cj}{Vˆj}, where Ci is the
-set of i’s immediate children. Finally, i passes Vi up to its
-parent, unless i is the leader (node 0).
+3. Challenge: The leader computes the collective challenge c = H(V || A || M)
+using a cryptographic hash function H (here: SHA512) and broadcasts it to the
+other nodes along with the message M if it was not sent in phase 1. Upon
+receiving a challenge message, a node starts its response phase.
 
-3. Challenge: The leader computes a collective challenge
-c = H( Aggregate Commit ∥ Aggregate Public key || Message ),
-then multicasts c down through the tree, along
-with the statement S to be signed if it was not already
-announced in phase 1.
-
-4. Response: In a final bottom-up phase, each node i waits
-to receive a partial aggregate response rˆj from each of
-its immediate children j ∈ Ci. Node i now computes its
-individual response ri = vi + cxi, and its partial aggregate
-response rˆi = ri + \sum{j ∈ Cj}{rˆj} . Node i finally passes rˆi
-up to its parent, unless i is the root.
+4. Response: Each node i computes its response r_i = v_i - c*a_i and sends it
+back to the leader. The leader waits until he has received replies from all
+nodes in P' or a timer has run out. If he has not enough replies he aborts.
+Finally, the leader computes the aggregate response r = \sum{j ∈ P'}(r_j) and
+publishes (V,r) as the signature for the message M.
 */
 package cosi
 
@@ -376,11 +380,11 @@ func (cm *mask) SetMask(mask []byte) error {
 		byt := i >> 3
 		msk := byte(1) << uint(i&7)
 		if (cm.mask[byt]&msk) == 0 && ((mask[byt] & msk) != 0) {
-			cm.mask[byt] |= msk // set bit from 0 to 1
+			cm.mask[byt] ^= msk // flip bit in mask from 0 to 1
 			cm.aggPublic.Add(cm.aggPublic, cm.publics[i])
 		}
 		if (cm.mask[byt]&msk) != 0 && ((mask[byt] & msk) == 0) {
-			cm.mask[byt] ^= msk // set bit from 1 to 0
+			cm.mask[byt] ^= msk // flip bit in mask from 1 to 0
 			cm.aggPublic.Sub(cm.aggPublic, cm.publics[i])
 		}
 	}
@@ -401,11 +405,11 @@ func (cm *mask) SetMaskBit(signer int, enable bool) {
 	byt := signer >> 3
 	msk := byte(1) << uint(signer&7)
 	if enable && ((cm.mask[byt] & msk) == 0) {
-		cm.mask[byt] |= msk // set bit from 0 to 1
+		cm.mask[byt] ^= msk // flip bit in mask from 0 to 1
 		cm.aggPublic.Add(cm.aggPublic, cm.publics[signer])
 	}
 	if !enable && ((cm.mask[byt] & msk) != 0) {
-		cm.mask[byt] ^= msk // set bit from 1 to 0
+		cm.mask[byt] ^= msk // flip bit in mask from 1 to 0
 		cm.aggPublic.Sub(cm.aggPublic, cm.publics[signer])
 	}
 }
