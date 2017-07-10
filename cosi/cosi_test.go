@@ -111,12 +111,12 @@ func TestCoSigning(t *testing.T) {
 
 }
 
-func TestCoSigningMaskHW(t *testing.T) {
+func TestCoSigningMaskEnabled(t *testing.T) {
 	n := 8
 	for f := 0; f < n; f++ {
 		cosigner, _ := genCoSigner(n, f)
-		if cosigner[0].MaskHW() != n-f {
-			t.Fatal("Mismatch in number of cosigners: %v vs %v", cosigner[0].MaskHW(), n-f)
+		if cosigner[0].MaskEnabled() != n-f {
+			t.Fatal("Mismatch in number of cosigners: %v vs %v", cosigner[0].MaskEnabled(), n-f)
 		}
 
 	}
