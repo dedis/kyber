@@ -483,7 +483,7 @@ func (cm *mask) MaskHW() int {
 	hw := 0
 	for i := range cm.publics {
 		if cm.MaskBit(i) {
-			hw += 1
+			hw++
 		}
 	}
 	return hw
