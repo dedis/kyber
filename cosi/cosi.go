@@ -340,7 +340,8 @@ type mask struct {
 	suite     abstract.Suite
 }
 
-// newMask returns a new participation bit mask for cosigning where all cosigners are enabled by default.
+// newMask returns a new participation bit mask for cosigning where all
+// cosigners are enabled by default.
 func newMask(suite abstract.Suite, publics []abstract.Point) *mask {
 	cm := &mask{
 		publics: publics,
@@ -396,7 +397,7 @@ func (cm *mask) MaskLen() int {
 	return (len(cm.publics) + 7) >> 3
 }
 
-// SetMaskBit activates (enable: true) or deactivates (enable: false) the bit
+// SetMaskBit enables (enable: true) or disables (enable: false) the bit
 // in the participation mask of the given cosigner.
 func (cm *mask) SetMaskBit(signer int, enable bool) {
 	if signer > len(cm.publics) {
@@ -415,7 +416,7 @@ func (cm *mask) SetMaskBit(signer int, enable bool) {
 }
 
 // MaskBit returns a boolean value indicating whether the given signer is
-// activated (true) or deactivated (false).
+// enabled (true) or disabled (false).
 func (cm *mask) MaskBit(signer int) bool {
 	if signer > len(cm.publics) {
 		panic("MaskBit index out of range")
@@ -425,8 +426,9 @@ func (cm *mask) MaskBit(signer int) bool {
 	return (cm.mask[byt] & msk) != 0
 }
 
-// MaskHW returns the hamming weight of the CoSi participation mask.
-func (cm *mask) MaskHW() int {
+// MaskEnabled returns the number of enabled nodes in the CoSi participation
+// mask, i.e., it returns the hamming weight of the mask.
+func (cm *mask) MaskEnabled() int {
 	hw := 0
 	for i := range cm.publics {
 		if cm.MaskBit(i) {
