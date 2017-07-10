@@ -365,42 +365,6 @@ func (cm *mask) Mask() []byte {
 	return clone
 }
 
-// Set the entire participation bitmask according to the provided
-// packed byte-slice interpreted in little-endian byte-order.
-// That is, bits 0-7 of the first byte correspond to cosigners 0-7,
-// bits 0-7 of the next byte correspond to cosigners 8-15, etc.
-// Each bit is set to indicate the corresponding cosigner is disabled,
-// or cleared to indicate the cosigner is enabled.
-//
-// If the mask provided is too short (or nil),
-// SetMask conservatively interprets the bits of the missing bytes
-// to be 0, or Enabled.
-func (cm *mask) SetMaskOld(mask []byte) error {
-	if cm.MaskLen() != len(mask) {
-		err := fmt.Errorf("CoSiMask.MaskLen() is %d but is given %d bytes)", cm.MaskLen(), len(mask))
-		return err
-	}
-	masklen := len(mask)
-	for i := range cm.publics {
-		byt := i >> 3
-		bit := byte(1) << uint(i&7)
-		if (byt < masklen) && (mask[byt]&bit != 0) {
-			// Participant i disabled in new mask.
-			if cm.mask[byt]&bit == 0 {
-				cm.mask[byt] |= bit // disable it
-				cm.aggPublic.Sub(cm.aggPublic, cm.publics[i])
-			}
-		} else {
-			// Participant i enabled in new mask.
-			if cm.mask[byt]&bit != 0 {
-				cm.mask[byt] &^= bit // enable it
-				cm.aggPublic.Add(cm.aggPublic, cm.publics[i])
-			}
-		}
-	}
-	return nil
-}
-
 // SetMask sets the participation bit mask according to the given byte slice
 // interpreted in little-endian order, i.e., bits 0-7 of byte 0 correspond to
 // cosigners 0-7, bits 0-7 of byte 1 correspond to cosigners 8-15, etc.
@@ -444,26 +408,6 @@ func (cm *mask) SetMaskBit(signer int, enable bool) {
 	if !enable && ((cm.mask[byt] & msk) != 0) {
 		cm.mask[byt] ^= msk // set bit from 1 to 0
 		cm.aggPublic.Sub(cm.aggPublic, cm.publics[signer])
-	}
-}
-
-// SetMaskBit enables or disables the mask bit for an individual cosigner.
-func (cm *mask) SetMaskBitOld(signer int, enabled bool) {
-	if signer > len(cm.publics) {
-		panic("SetMaskBit range out of index")
-	}
-	byt := signer >> 3
-	bit := byte(1) << uint(signer&7)
-	if !enabled {
-		if cm.mask[byt]&bit == 0 { // was enabled
-			cm.mask[byt] |= bit // disable it
-			cm.aggPublic.Sub(cm.aggPublic, cm.publics[signer])
-		}
-	} else { // enable
-		if cm.mask[byt]&bit != 0 { // was disabled
-			cm.mask[byt] &^= bit
-			cm.aggPublic.Add(cm.aggPublic, cm.publics[signer])
-		}
 	}
 }
 

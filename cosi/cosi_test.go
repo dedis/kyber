@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	xEd25519 "github.com/bford/golang-x-crypto/ed25519"
+	"github.com/bford/golang-x-crypto/ed25519/cosi"
 	"github.com/dedis/kyber/abstract"
 	"github.com/dedis/kyber/config"
 	"github.com/dedis/kyber/ed25519"
@@ -83,29 +85,6 @@ func TestCoSiResponse(t *testing.T) {
 	}
 }
 
-//func TestMask(t *testing.T) {
-//
-//	n := 5
-//	cosigner, _ := genCoSigner(n, 0)
-//	//fmt.Printf("%x\n", cosigner[0].mask.bytes())
-//	//fmt.Printf("%x\n", cosigner[1].mask.bytes())
-//	//fmt.Printf("%x\n", cosigner[2].mask.bytes())
-//	//fmt.Printf("%x\n", cosigner[3].mask.bytes())
-//	//fmt.Printf("%x\n", cosigner[4].mask.bytes())
-//
-//	fmt.Printf("%v\n", cosigner[0].mask.MaskBit(0))
-//	cosigner[0].mask.SetMaskBit(0, false)
-//	fmt.Printf("%v\n", cosigner[0].mask.MaskBit(0))
-//	cosigner[0].mask.SetMaskBit(0, true)
-//	fmt.Printf("%v\n", cosigner[0].mask.MaskBit(0))
-//	fmt.Printf("%x\n", cosigner[0].Bytes())
-//	//fmt.Printf("%v\n", cosigner[1].mask.MaskBit(0))
-//	//fmt.Printf("%v\n", cosigner[2].mask.MaskBit(0))
-//	//fmt.Printf("%v\n", cosigner[3].mask.MaskBit(0))
-//	//fmt.Printf("%v\n", cosigner[4].mask.MaskBit(0))
-//
-//}
-
 func TestCoSigning(t *testing.T) {
 	msg := []byte("Hello World CoSi")
 	cosigner, publics := genCoSigner(3, 0)
@@ -113,6 +92,11 @@ func TestCoSigning(t *testing.T) {
 	sig := cosigner[0].Signature()
 	if err := VerifySignature(testSuite, publics, msg, sig); err != nil {
 		t.Fatal("Error verifying co-signature:", err)
+	}
+
+	// flip bits of participation mask to maintain compatibility to Bryan's code
+	for i := 64; i < len(sig); i++ {
+		sig[i] ^= 0xff
 	}
 
 	var Ed25519Publics []xEd25519.PublicKey
@@ -148,19 +132,24 @@ func TestCoSigningWithFailures(t *testing.T) {
 		t.Fatal("Error verifying co-signature:", err)
 	}
 
-	//	var Ed25519Publics []xEd25519.PublicKey
-	//	for _, p := range publics {
-	//		buff, err := p.MarshalBinary()
-	//		assert.Nil(t, err)
-	//		Ed25519Publics = append(Ed25519Publics, xEd25519.PublicKey(buff))
-	//	}
-	//
-	//	//if !cosi.Verify(Ed25519Publics, cosi.ThresholdPolicy(3), msg, sig) {
-	//	//	t.Error("github.com/bford/golang-x-crypto/ed25519/cosi fork can't verify")
-	//	//}
-	//	//if cosi.Verify(Ed25519Publics, cosi.ThresholdPolicy(4), msg, sig) {
-	//	//	t.Error("github.com/bford/golang-x-crypto/ed25519/cosi fork can't verify")
-	//	//}
+	// flip bits of participation mask to maintain compatibility to Bryan's code
+	for i := 64; i < len(sig); i++ {
+		sig[i] ^= 0xff
+	}
+
+	var Ed25519Publics []xEd25519.PublicKey
+	for _, p := range publics {
+		buff, err := p.MarshalBinary()
+		assert.Nil(t, err)
+		Ed25519Publics = append(Ed25519Publics, xEd25519.PublicKey(buff))
+	}
+
+	if !cosi.Verify(Ed25519Publics, cosi.ThresholdPolicy(3), msg, sig) {
+		t.Error("github.com/bford/golang-x-crypto/ed25519/cosi fork can't verify")
+	}
+	if cosi.Verify(Ed25519Publics, cosi.ThresholdPolicy(4), msg, sig) {
+		t.Error("github.com/bford/golang-x-crypto/ed25519/cosi fork can't verify")
+	}
 
 }
 
