@@ -14,57 +14,56 @@ import (
 
 var testSuite = ed25519.NewAES128SHA256Ed25519(false)
 
-// TestCoSiCommitment test if the commitment generation is correct
+// TestCoSiCommitment tests correctness of commitment generation.
 func TestCoSiCommitment(t *testing.T) {
-	var length = 5
-	cosigner, _ := genCoSigner(length, 0)
+	cosigner, _ := genCoSigner(5, 0)
 	// gen commitments from children
 	commitments := genCommitments(cosigner[1:])
 	root := cosigner[0]
 	root.Commit(nil, commitments)
-	// compute the aggregate commitment ourself...
+	// compute the aggregate commitment manually
 	aggCommit := testSuite.Point().Null()
-	// add commitment of children
+	// add commitments of children
 	for _, com := range commitments {
 		aggCommit = aggCommit.Add(aggCommit, com)
 	}
 	// add commitment of root
 	aggCommit = aggCommit.Add(aggCommit, root.commitment)
 	if !aggCommit.Equal(root.aggregateCommitment) {
-		t.Fatal("Aggregate Commitment are not equal")
+		t.Fatal("Aggregate commitments are not equal")
 	}
 }
 
+// TestCoSiChallenge tests correctness of challenge generation.
 func TestCoSiChallenge(t *testing.T) {
+	msg := []byte("Hello World CoSi")
 	cosigner, _ := genCoSigner(5, 0)
 	genPostCommitmentPhaseCoSi(cosigner)
 	root, children := cosigner[0], cosigner[1:]
-	msg := []byte("Hello World CoSi\n")
 	chal, err := root.CreateChallenge(msg)
 	if err != nil {
-		t.Fatal("Error during challenge generation")
+		t.Fatal("Error creating challenge:", err)
 	}
 	for _, child := range children {
 		child.Challenge(chal)
 		if !child.challenge.Equal(chal) {
-			t.Fatal("Error during challenge on children")
+			t.Fatal("Error creating challenge at children")
 		}
 	}
 }
 
-// TestCoSiResponse will test wether the response generation is correct or not
+// TestCoSiResponse tests correctness of response generation.
 func TestCoSiResponse(t *testing.T) {
 	msg := []byte("Hello World CoSi")
-	// go to the challenge phase
 	cosigner, _ := genCoSigner(5, 0)
+	// go to the challenge phase
 	genPostChallengePhaseCoSi(cosigner, msg)
 	root, children := cosigner[0], cosigner[1:]
 	var responses []abstract.Scalar
 
-	// for verification later
 	aggResponse := testSuite.Scalar().Zero()
 	for _, ch := range children {
-		// generate the response of each children
+		// generate response for each children
 		r, err := ch.CreateResponse()
 		if err != nil {
 			t.Fatal("Error creating response:", err)
@@ -81,7 +80,7 @@ func TestCoSiResponse(t *testing.T) {
 	// verify it
 	aggResponse = aggResponse.Add(aggResponse, root.response)
 	if !aggResponse.Equal(root.aggregateResponse) {
-		t.Fatal("Responses aggregated not equal")
+		t.Fatal("Aggregate responses are not equal")
 	}
 }
 
@@ -91,7 +90,7 @@ func TestCoSigning(t *testing.T) {
 	genFinalCoSi(cosigner, msg)
 	sig := cosigner[0].Signature()
 	if err := VerifySignature(testSuite, publics, msg, sig); err != nil {
-		t.Fatal("Error verifying co-signature:", err)
+		t.Fatal("Error verifying cosignature:", err)
 	}
 
 	// flip bits of participation mask to maintain compatibility to Bryan's code
@@ -107,7 +106,7 @@ func TestCoSigning(t *testing.T) {
 	}
 
 	if !cosi.Verify(Ed25519Publics, nil, msg, sig) {
-		t.Error("Error verifying co-signature against github.com/bford/golang-x-crypto/ed25519/cosi")
+		t.Error("Error verifying cosignature against github.com/bford/golang-x-crypto/ed25519/cosi")
 	}
 
 }
@@ -129,7 +128,7 @@ func TestCoSigningWithFailures(t *testing.T) {
 	genFinalCoSi(cosigner, msg)
 	sig := cosigner[0].Signature()
 	if err := VerifySignature(testSuite, publics, msg, sig); err != nil {
-		t.Fatal("Error verifying co-signature:", err)
+		t.Fatal("Error verifying cosignature:", err)
 	}
 
 	// flip bits of participation mask to maintain compatibility to Bryan's code
@@ -145,10 +144,10 @@ func TestCoSigningWithFailures(t *testing.T) {
 	}
 
 	if !cosi.Verify(Ed25519Publics, cosi.ThresholdPolicy(3), msg, sig) {
-		t.Error("github.com/bford/golang-x-crypto/ed25519/cosi fork can't verify")
+		t.Error("Error verifying cosignature against github.com/bford/golang-x-crypto/ed25519/cosi")
 	}
 	if cosi.Verify(Ed25519Publics, cosi.ThresholdPolicy(4), msg, sig) {
-		t.Error("github.com/bford/golang-x-crypto/ed25519/cosi fork can't verify")
+		t.Error("Error verifying cosignature against github.com/bford/golang-x-crypto/ed25519/cosi")
 	}
 
 }
@@ -185,8 +184,6 @@ func genCommitments(cosigner []*CoSi) []abstract.Point {
 	return commitments
 }
 
-// genPostCommitmentPhaseCoSi returns the Root and its Children CoSi. They have
-// already made the Commitment phase.
 func genPostCommitmentPhaseCoSi(cosigner []*CoSi) {
 	commitments := genCommitments(cosigner[1:])
 	root := cosigner[0]
@@ -217,7 +214,7 @@ func genFinalCoSi(cosigner []*CoSi, msg []byte) error {
 	// pass them up to the root
 	_, err := root.Response(responses)
 	if err != nil {
-		return fmt.Errorf("Response phase failed:%v", err)
+		return fmt.Errorf("Response phase failed:", err)
 	}
 	return nil
 }

@@ -370,8 +370,7 @@ func (cm *mask) Mask() []byte {
 // cosigners 0-7, bits 0-7 of byte 1 correspond to cosigners 8-15, etc.
 func (cm *mask) SetMask(mask []byte) error {
 	if cm.MaskLen() != len(mask) {
-		err := fmt.Errorf("Mask length mismatch: local %d vs given %d", cm.MaskLen(), len(mask))
-		return err
+		return fmt.Errorf("Mask length mismatch: %d vs %d", cm.MaskLen(), len(mask))
 	}
 	for i := range cm.publics {
 		byt := i >> 3
@@ -394,7 +393,7 @@ func (cm *mask) MaskLen() int {
 }
 
 // SetMaskBit activates (enable: true) or deactivates (enable: false) the bit
-// in the CoSi mask of the given cosigner.
+// in the participation mask of the given cosigner.
 func (cm *mask) SetMaskBit(signer int, enable bool) {
 	if signer > len(cm.publics) {
 		panic("SetMaskBit index out of range")
@@ -415,14 +414,14 @@ func (cm *mask) SetMaskBit(signer int, enable bool) {
 // activated (true) or deactivated (false).
 func (cm *mask) MaskBit(signer int) bool {
 	if signer > len(cm.publics) {
-		panic("MaskBit given index out of range")
+		panic("MaskBit index out of range")
 	}
 	byt := signer >> 3
 	msk := byte(1) << uint(signer&7)
 	return (cm.mask[byt] & msk) != 0
 }
 
-// MaskHW returns the hamming weight of the CoSi mask.
+// MaskHW returns the hamming weight of the CoSi participation mask.
 func (cm *mask) MaskHW() int {
 	hw := 0
 	for i := range cm.publics {
@@ -433,7 +432,7 @@ func (cm *mask) MaskHW() int {
 	return hw
 }
 
-// Aggregate returns the aggregate public key of all *participating* signers
+// Aggregate returns the aggregate public key of all *participating* signers.
 func (cm *mask) Aggregate() abstract.Point {
 	return cm.aggPublic
 }
