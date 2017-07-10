@@ -3,6 +3,7 @@ package edwards25519
 import (
 	"crypto/cipher"
 	"crypto/sha256"
+	"crypto/sha512"
 	"hash"
 	"io"
 	"reflect"
@@ -42,11 +43,18 @@ func (s *SuiteEd25519) New(t reflect.Type) interface{} {
 }
 
 // NewKey implements the kyber.Group interface.
-func (s *SuiteEd25519) NewKey(r cipher.Stream) kyber.Scalar {
-	if r == nil {
-		r = random.Stream
+func (s *SuiteEd25519) NewKey(stream cipher.Stream) kyber.Scalar {
+	if stream == nil {
+		stream = random.Stream
 	}
-	return s.Curve.Scalar().Pick(r)
+	buffer := random.NonZeroBytes(32, stream)
+	scalar := sha512.Sum512(buffer)
+	scalar[0] &= 0xf8
+	scalar[31] &= 0x3f
+	scalar[31] |= 0x40
+
+	secret := s.Scalar().SetBytes(scalar[:32])
+	return secret
 }
 
 // NewAES128SHA256Ed25519 returns a cipher suite based on AES-128, SHA-256, and
