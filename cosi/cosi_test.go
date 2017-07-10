@@ -7,6 +7,7 @@ import (
 	"github.com/dedis/kyber/abstract"
 	"github.com/dedis/kyber/config"
 	"github.com/dedis/kyber/ed25519"
+	"github.com/stretchr/testify/assert"
 )
 
 var testSuite = ed25519.NewAES128SHA256Ed25519(false)
@@ -114,16 +115,16 @@ func TestCoSigning(t *testing.T) {
 		t.Fatal("Error verifying co-signature:", err)
 	}
 
-	//var Ed25519Publics []xEd25519.PublicKey
-	//for _, p := range publics {
-	//	buff, err := p.MarshalBinary()
-	//	assert.Nil(t, err)
-	//	Ed25519Publics = append(Ed25519Publics, xEd25519.PublicKey(buff))
-	//}
+	var Ed25519Publics []xEd25519.PublicKey
+	for _, p := range publics {
+		buff, err := p.MarshalBinary()
+		assert.Nil(t, err)
+		Ed25519Publics = append(Ed25519Publics, xEd25519.PublicKey(buff))
+	}
 
-	//if !cosi.Verify(Ed25519Publics, nil, msg, sig) {
-	//	t.Error("Error verifying co-signature against github.com/bford/golang-x-crypto/ed25519/cosi")
-	//}
+	if !cosi.Verify(Ed25519Publics, nil, msg, sig) {
+		t.Error("Error verifying co-signature against github.com/bford/golang-x-crypto/ed25519/cosi")
+	}
 
 }
 
