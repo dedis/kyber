@@ -1,35 +1,39 @@
 /*
-Package cosi is the Collective Signing implementation according to the paper of
-Bryan Ford: http://arxiv.org/pdf/1503.08768v1.pdf .
+Package cosi implements the collective signing (CoSi) algorithm as presented in the
+paper "Keeping Authorities 'Honest or Bust' with Decentralized Witness
+Cosigning" by Ewa Syta et al., see https://arxiv.org/abs/1503.08768.
 
-Stages of CoSi
+The CoSi protocol has four phases between a list of participants P having a
+protocol leader (index i = 0) and a list of other nodes (index i > 0). The
+secret key of node i is denoted by a_i and the public key by A_i = [a_i]G
+(where G is the base point of the underlying group and [...] denotes scalar
+multiplication). The aggregate public key is given as A = \sum{i ∈ P}(A_i).
+The communication can happen via a star topology (with the leader at the
+center) or a tree (with the leader at the root). For simplicity we use the star
+topology here and refer to the above paper for further details on exception
+mechanisms and signature verification policies.
 
-The CoSi-protocol has 4 stages:
+1. Announcement: The leader broadcasts an announcement to the other nodes
+optionally including the message M to be signed. Upon receiving an announcement
+message, a node starts its commitment phase.
 
-1. Announcement: The leader multicasts an announcement
-of the start of this round down through the spanning tree,
-optionally including the statement S to be signed.
+2. Commitment: Each node i picks a random scalar v_i, computes its commitment
+V_i = [v_i]G and sends V_i back to the leader. The leader waits until it has
+received enough replies (according to some policy) from the other nodes or a
+timer has run out. Let P' be the nodes that sent their commitments. Afterwards
+the leader computes an aggregate commitment V from all commitments he has
+received, i.e., V = \sum{j ∈ P'}(V_j) and starts the challenge phase.
 
-2. Commitment: Each node i picks a random scalar vi and
-computes its individual commit Vi = Gvi . In a bottom-up
-process, each node i waits for an aggregate commit Vˆj from
-each immediate child j, if any. Node i then computes its
-own aggregate commit Vˆi = Vi \prod{j ∈ Cj}{Vˆj}, where Ci is the
-set of i’s immediate children. Finally, i passes Vi up to its
-parent, unless i is the leader (node 0).
+3. Challenge: The leader computes the collective challenge c = H(V || A || M)
+using a cryptographic hash function H (here: SHA512) and broadcasts it to the
+other nodes along with the message M if it was not sent in phase 1. Upon
+receiving a challenge message, a node starts its response phase.
 
-3. Challenge: The leader computes a collective challenge
-c = H( Aggregate Commit ∥ Aggregate Public key || Message ),
-then multicasts c down through the tree, along
-with the statement S to be signed if it was not already
-announced in phase 1.
-
-4. Response: In a final bottom-up phase, each node i waits
-to receive a partial aggregate response rˆj from each of
-its immediate children j ∈ Ci. Node i now computes its
-individual response ri = vi + cxi, and its partial aggregate
-response rˆi = ri + \sum{j ∈ Cj}{rˆj} . Node i finally passes rˆi
-up to its parent, unless i is the root.
+4. Response: Each node i computes its response r_i = v_i - c*a_i and sends it
+back to the leader. The leader waits until he has received replies from all
+nodes in P' or a timer has run out. If he has not enough replies he aborts.
+Finally, the leader computes the aggregate response r = \sum{j ∈ P'}(r_j) and
+publishes (V,r) as the signature for the message M.
 */
 package cosi
 
@@ -93,20 +97,22 @@ type CoSi struct {
 	response abstract.Scalar
 	// aggregateResponses is the aggregated response from the children + our own
 	aggregateResponse abstract.Scalar
+	// policy is a cosigning policy
+	policy Policy
 }
 
-// NewCosi returns a new Cosi struct given the suite, the longterm secret, and
+// NewCoSi returns a new CoSi struct given the suite, the longterm secret, and
 // the list of public keys. If some signers were not to be participating, you
 // have to set the mask using `SetMask` method. By default, all participants are
 // designated as participating. If you wish to specify which co-signers are
-// participating, use NewCosiWithMask
-func NewCosi(suite abstract.Suite, private abstract.Scalar, publics []abstract.Point) *CoSi {
+// participating, use NewCoSiWithMask
+func NewCoSi(suite abstract.Suite, private abstract.Scalar, publics []abstract.Point) *CoSi {
 	cosi := &CoSi{
 		suite:   suite,
 		private: private,
 	}
-	// Start with an all-disabled participation mask, then set it correctly
 	cosi.mask = newMask(suite, publics)
+	cosi.SetPolicy(nil)
 	return cosi
 }
 
@@ -192,11 +198,11 @@ func (c *CoSi) Signature() []byte {
 	lenSig := lenC + c.suite.ScalarLen()
 	sigC, err := c.aggregateCommitment.MarshalBinary()
 	if err != nil {
-		panic("Can't marshal Commitment")
+		panic("failed to marshal commitment")
 	}
 	sigR, err := c.aggregateResponse.MarshalBinary()
 	if err != nil {
-		panic("Can't generate signature !")
+		panic("failed to generate signature")
 	}
 	final := make([]byte, lenSig+c.mask.MaskLen())
 	copy(final[:], sigC)
@@ -221,80 +227,97 @@ func (c *CoSi) VerifyResponses(aggregatedPublic abstract.Point) error {
 	left := c.suite.Point().Add(kA, sB)
 
 	if !left.Equal(c.aggregateCommitment) {
-		return errors.New("recreated commitment is not equal to one given")
+		return errors.New("recreated commitment is not equal to the given one")
 	}
 
 	return nil
 }
 
-// VerifySignature is the method to call to verify a signature issued by a Cosi
-// struct. Publics is the WHOLE list of publics keys, the mask at the end of the
-// signature will take care of removing the indivual public keys that did not
-// participate
+// Verify checks the given cosignature using the provided signing policy.
+func Verify(suite abstract.Suite, publics []abstract.Point, policy Policy, message, sig []byte) error {
+	cosi := NewCoSi(suite, nil, publics)
+	cosi.SetPolicy(policy)
+	return cosi.verify(message, sig)
+}
+
+// VerifySignature checks the given cosignature using the complete signing policy.
+// NOTE: This method is deprecated and is kept for compatibility reasons only for now.
 func VerifySignature(suite abstract.Suite, publics []abstract.Point, message, sig []byte) error {
-	lenC := suite.PointLen()
-	lenSig := lenC + suite.ScalarLen()
-	aggCommitBuff := sig[:lenC]
-	aggCommit := suite.Point()
-	if err := aggCommit.UnmarshalBinary(aggCommitBuff); err != nil {
+	return Verify(suite, publics, nil, message, sig)
+}
+
+// verify implements the actual cosignature and policy verification.
+func (c *CoSi) verify(message, sig []byte) error {
+
+	// Unpack the aggregate commit
+	lenCom := c.suite.PointLen()
+	VBuff := sig[:lenCom]
+	V := c.suite.Point()
+	if err := V.UnmarshalBinary(VBuff); err != nil {
 		panic(err)
 	}
-	sigBuff := sig[lenC:lenSig]
-	sigInt := suite.Scalar().SetBytes(sigBuff)
-	maskBuff := sig[lenSig:]
-	mask := newMask(suite, publics)
-	mask.SetMask(maskBuff)
-	aggPublic := mask.Aggregate()
-	aggPublicMarshal, err := aggPublic.MarshalBinary()
+
+	// Unpack the aggregate response
+	lenRes := lenCom + c.suite.ScalarLen()
+	rBuff := sig[lenCom:lenRes]
+	r := c.suite.Scalar().SetBytes(rBuff)
+
+	// Unpack the participation mask and get the aggregate public key
+	maskBuff := sig[lenRes:]
+	c.SetMask(maskBuff)
+	A := c.Aggregate()
+	ABuff, err := A.MarshalBinary()
 	if err != nil {
 		return err
 	}
 
+	// Recompute the challenge
 	hash := sha512.New()
-	hash.Write(aggCommitBuff)
-	hash.Write(aggPublicMarshal)
+	hash.Write(VBuff)
+	hash.Write(ABuff)
 	hash.Write(message)
 	buff := hash.Sum(nil)
-	k := suite.Scalar().SetBytes(buff)
+	k := c.suite.Scalar().SetBytes(buff)
 
 	// k * -aggPublic + s * B = k*-A + s*B
 	// from s = k * a + r => s * B = k * a * B + r * B <=> s*B = k*A + r*B
 	// <=> s*B + k*-A = r*B
-	minusPublic := suite.Point().Neg(aggPublic)
-	kA := suite.Point().Mul(minusPublic, k)
-	sB := suite.Point().Mul(nil, sigInt)
-	left := suite.Point().Add(kA, sB)
+	minusPublic := c.suite.Point().Neg(A)
+	kA := c.suite.Point().Mul(minusPublic, k)
+	sB := c.suite.Point().Mul(nil, r)
+	left := c.suite.Point().Add(kA, sB)
 
-	if !left.Equal(aggCommit) {
-		return errors.New("Signature invalid")
+	// TODO: do constant time comparison
+	if !left.Equal(V) || !c.policy.Check(c) {
+		return errors.New("signature invalid")
 	}
 
 	return nil
 }
 
-// AggregateResponse returns the aggregated response that this cosi has
-// accumulated.
+// AggregateResponse returns the aggregated response that this CoSi instance
+// has accumulated.
 func (c *CoSi) AggregateResponse() abstract.Scalar {
 	return c.aggregateResponse
 }
 
-// GetChallenge returns the challenge that were passed down to this cosi.
+// GetChallenge returns the challenge that was sent to this CoSi instance.
 func (c *CoSi) GetChallenge() abstract.Scalar {
 	return c.challenge
 }
 
-// GetCommitment returns the commitment generated by this CoSi (not aggregated).
+// GetCommitment returns the individual commitment generated by this CoSi instance.
 func (c *CoSi) GetCommitment() abstract.Point {
 	return c.commitment
 }
 
-// GetResponse returns the individual response generated by this CoSi
+// GetResponse returns the individual response generated by this CoSi instance.
 func (c *CoSi) GetResponse() abstract.Scalar {
 	return c.response
 }
 
-// genCommit generates a random scalar vi and computes its individual commit
-// Vi = G^vi
+// genCommit generates a random scalar v_i and computes the commitment
+// V_i = [v_i]G.
 func (c *CoSi) genCommit(s cipher.Stream) {
 	var stream = s
 	if s == nil {
@@ -305,16 +328,16 @@ func (c *CoSi) genCommit(s cipher.Stream) {
 	c.aggregateCommitment = c.commitment
 }
 
-// genResponse creates the response
+// genResponse creates the response.
 func (c *CoSi) genResponse() error {
 	if c.private == nil {
-		return errors.New("No private key given in this cosi")
+		return errors.New("no private key in this CoSi instance")
 	}
 	if c.random == nil {
-		return errors.New("No random scalar computed in this cosi")
+		return errors.New("no random scalar in this CoSi instance")
 	}
 	if c.challenge == nil {
-		return errors.New("No challenge computed in this cosi")
+		return errors.New("no challenge in this CoSi instance")
 	}
 
 	// resp = random - challenge * privatekey
@@ -328,7 +351,7 @@ func (c *CoSi) genResponse() error {
 	return nil
 }
 
-// mask holds the mask utilities
+// mask represents a cosigning participation bit mask.
 type mask struct {
 	mask      []byte
 	publics   []abstract.Point
@@ -336,115 +359,154 @@ type mask struct {
 	suite     abstract.Suite
 }
 
-// newMask returns a new mask to use with the cosigning with all cosigners enabled
+// newMask returns a new participation bit mask for cosigning where all
+// cosigners are enabled by default.
 func newMask(suite abstract.Suite, publics []abstract.Point) *mask {
-	// Start with an all-disabled participation mask, then set it correctly
 	cm := &mask{
 		publics: publics,
 		suite:   suite,
 	}
 	cm.mask = make([]byte, cm.MaskLen())
-	cm.aggPublic = cm.suite.Point().Null()
-	cm.allEnabled()
+	cm.enableAll()
 	return cm
-
 }
 
-// AllEnabled sets the pariticipation bit mask accordingly to make all
-// signers participating.
-func (cm *mask) allEnabled() {
-	for i := range cm.mask {
-		cm.mask[i] = 0xff // all disabled
+// enableAll sets the participation bit mask to all-1, i.e., to indicate that
+// all signers participate.
+func (cm *mask) enableAll() {
+	cm.aggPublic = cm.suite.Point().Null()
+	for i := range cm.publics {
+		cm.mask[i>>3] |= byte(1) << uint(i&7)
+		cm.aggPublic.Add(cm.aggPublic, cm.publics[i])
 	}
-	cm.SetMask(make([]byte, len(cm.mask)))
 }
 
-// Set the entire participation bitmask according to the provided
-// packed byte-slice interpreted in little-endian byte-order.
-// That is, bits 0-7 of the first byte correspond to cosigners 0-7,
-// bits 0-7 of the next byte correspond to cosigners 8-15, etc.
-// Each bit is set to indicate the corresponding cosigner is disabled,
-// or cleared to indicate the cosigner is enabled.
-//
-// If the mask provided is too short (or nil),
-// SetMask conservatively interprets the bits of the missing bytes
-// to be 0, or Enabled.
+// Mask returns a copy of the byte representation of the participation bit mask.
+func (cm *mask) Mask() []byte {
+	clone := make([]byte, len(cm.mask))
+	copy(clone[:], cm.mask)
+	return clone
+}
+
+// SetMask sets the participation bit mask according to the given byte slice
+// interpreted in little-endian order, i.e., bits 0-7 of byte 0 correspond to
+// cosigners 0-7, bits 0-7 of byte 1 correspond to cosigners 8-15, etc.
 func (cm *mask) SetMask(mask []byte) error {
 	if cm.MaskLen() != len(mask) {
-		err := fmt.Errorf("CosiMask.MaskLen() is %d but is given %d bytes)", cm.MaskLen(), len(mask))
-		return err
+		return fmt.Errorf("Mask length mismatch: %d vs %d", cm.MaskLen(), len(mask))
 	}
-	masklen := len(mask)
 	for i := range cm.publics {
 		byt := i >> 3
-		bit := byte(1) << uint(i&7)
-		if (byt < masklen) && (mask[byt]&bit != 0) {
-			// Participant i disabled in new mask.
-			if cm.mask[byt]&bit == 0 {
-				cm.mask[byt] |= bit // disable it
-				cm.aggPublic.Sub(cm.aggPublic, cm.publics[i])
-			}
-		} else {
-			// Participant i enabled in new mask.
-			if cm.mask[byt]&bit != 0 {
-				cm.mask[byt] &^= bit // enable it
-				cm.aggPublic.Add(cm.aggPublic, cm.publics[i])
-			}
+		msk := byte(1) << uint(i&7)
+		if ((cm.mask[byt] & msk) == 0) && ((mask[byt] & msk) != 0) {
+			cm.mask[byt] ^= msk // flip bit in mask from 0 to 1
+			cm.aggPublic.Add(cm.aggPublic, cm.publics[i])
+		}
+		if ((cm.mask[byt] & msk) != 0) && ((mask[byt] & msk) == 0) {
+			cm.mask[byt] ^= msk // flip bit in mask from 1 to 0
+			cm.aggPublic.Sub(cm.aggPublic, cm.publics[i])
 		}
 	}
 	return nil
 }
 
-// MaskLen returns the length in bytes
-// of a complete disable-mask for this cosigner list.
+// MaskLen returns the mask length in bytes.
 func (cm *mask) MaskLen() int {
 	return (len(cm.publics) + 7) >> 3
 }
 
-// SetMaskBit enables or disables the mask bit for an individual cosigner.
-func (cm *mask) SetMaskBit(signer int, enabled bool) {
+// SetMaskBit enables (enable: true) or disables (enable: false) the bit
+// in the participation mask of the given cosigner.
+func (cm *mask) SetMaskBit(signer int, enable bool) {
 	if signer > len(cm.publics) {
-		panic("SetMaskBit range out of index")
+		panic("SetMaskBit index out of range")
 	}
 	byt := signer >> 3
-	bit := byte(1) << uint(signer&7)
-	if !enabled {
-		if cm.mask[byt]&bit == 0 { // was enabled
-			cm.mask[byt] |= bit // disable it
-			cm.aggPublic.Sub(cm.aggPublic, cm.publics[signer])
-		}
-	} else { // enable
-		if cm.mask[byt]&bit != 0 { // was disabled
-			cm.mask[byt] &^= bit
-			cm.aggPublic.Add(cm.aggPublic, cm.publics[signer])
-		}
+	msk := byte(1) << uint(signer&7)
+	if ((cm.mask[byt] & msk) == 0) && enable {
+		cm.mask[byt] ^= msk // flip bit in mask from 0 to 1
+		cm.aggPublic.Add(cm.aggPublic, cm.publics[signer])
+	}
+	if ((cm.mask[byt] & msk) != 0) && !enable {
+		cm.mask[byt] ^= msk // flip bit in mask from 1 to 0
+		cm.aggPublic.Sub(cm.aggPublic, cm.publics[signer])
 	}
 }
 
-// MaskBit returns a boolean value indicating whether
-// the indicated signer is enabled (true) or disabled (false)
+// MaskBit returns a boolean value indicating whether the given signer is
+// enabled (true) or disabled (false).
 func (cm *mask) MaskBit(signer int) bool {
 	if signer > len(cm.publics) {
-		panic("MaskBit given index out of range")
+		panic("MaskBit index out of range")
 	}
 	byt := signer >> 3
-	bit := byte(1) << uint(signer&7)
-	return (cm.mask[byt] & bit) != 0
+	msk := byte(1) << uint(signer&7)
+	return (cm.mask[byt] & msk) != 0
 }
 
-// bytes returns the byte representation of the mask
-// The bits that are left are set to a default value (1) for
-// non malleability.
-func (cm *mask) bytes() []byte {
-	clone := make([]byte, len(cm.mask))
-	for i := range clone {
-		clone[i] = 0xff
+// CountEnabled returns the number of enabled nodes in the CoSi participation
+// mask, i.e., it returns the hamming weight of the mask.
+func (cm *mask) CountEnabled() int {
+	hw := 0
+	for i := range cm.publics {
+		if cm.MaskBit(i) {
+			hw++
+		}
 	}
-	copy(clone[:], cm.mask)
-	return clone
+	return hw
 }
 
-// Aggregate returns the aggregate public key of all *participating* signers
+// CountTotal returns the total number of nodes this CoSi instance knows.
+func (cm *mask) CountTotal() int {
+	return len(cm.publics)
+}
+
+// Aggregate returns the aggregate public key of all *participating* signers.
 func (cm *mask) Aggregate() abstract.Point {
 	return cm.aggPublic
+}
+
+// Policy represents a fully customizable cosigning policy deciding what
+// cosigner sets are and aren't sufficient for a collective signature to be
+// considered acceptable to a verifier. The Check method may inspect the set of
+// participants that cosigned by invoking cosi.Mask and/or cosi.MaskBit, and may
+// use any other relevant contextual information (e.g., how security-critical
+// the operation relying on the collective signature is) in determining whether
+// the collective signature was produced by an acceptable set of cosigners.
+type Policy interface {
+	Check(c *CoSi) bool
+}
+
+// CompletePolicy is the default policy requiring that all participants have
+// cosigned to make a collective signature valid.
+type CompletePolicy struct {
+}
+
+// Check verifies that all participants have contributed to a collective
+// signature.
+func (p CompletePolicy) Check(c *CoSi) bool {
+	return c.CountEnabled() == c.CountTotal()
+}
+
+// ThresholdPolicy allows to specify a simple t-of-n policy requring that at
+// least the given threshold number of participants have cosigned to make a
+// collective signature valid.
+type ThresholdPolicy struct {
+	t int
+}
+
+// Check verifies that at least a threshold number of participants have
+// contributed to a collective signature.
+func (p ThresholdPolicy) Check(c *CoSi) bool {
+	return c.CountEnabled() >= p.t
+}
+
+// SetPolicy allows to set a new policy for the given CoSi instance. By default
+// it uses the complete policy.
+func (c *CoSi) SetPolicy(policy Policy) {
+	if policy == nil {
+		c.policy = CompletePolicy{}
+	} else {
+		c.policy = policy
+	}
 }
