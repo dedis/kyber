@@ -89,7 +89,7 @@ func TestCoSigning(t *testing.T) {
 	cosigner, publics := genCoSigner(3, 0)
 	genFinalCoSi(cosigner, msg)
 	sig := cosigner[0].Signature()
-	if err := VerifySignature(testSuite, publics, msg, sig); err != nil {
+	if err := Verify(testSuite, publics, nil, msg, sig); err != nil {
 		t.Fatal("Error verifying cosignature:", err)
 	}
 
@@ -111,12 +111,12 @@ func TestCoSigning(t *testing.T) {
 
 }
 
-func TestCoSigningMaskEnabled(t *testing.T) {
+func TestCoSigningCountEnabled(t *testing.T) {
 	n := 8
 	for f := 0; f < n; f++ {
 		cosigner, _ := genCoSigner(n, f)
-		if cosigner[0].MaskEnabled() != n-f {
-			t.Fatal("Mismatch in number of cosigners: %v vs %v", cosigner[0].MaskEnabled(), n-f)
+		if cosigner[0].CountEnabled() != n-f {
+			t.Fatal("Mismatch in number of cosigners: %v vs %v", cosigner[0].CountEnabled(), n-f)
 		}
 
 	}
@@ -124,10 +124,12 @@ func TestCoSigningMaskEnabled(t *testing.T) {
 
 func TestCoSigningWithFailures(t *testing.T) {
 	msg := []byte("Hello World CoSi")
-	cosigner, publics := genCoSigner(5, 2)
+	n := 5
+	f := 2
+	cosigner, publics := genCoSigner(n, f)
 	genFinalCoSi(cosigner, msg)
 	sig := cosigner[0].Signature()
-	if err := VerifySignature(testSuite, publics, msg, sig); err != nil {
+	if err := Verify(testSuite, publics, &ThresholdPolicy{n - f}, msg, sig); err != nil {
 		t.Fatal("Error verifying cosignature:", err)
 	}
 
