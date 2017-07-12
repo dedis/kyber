@@ -2,42 +2,102 @@ package cosi
 
 import (
 	"crypto/cipher"
+	"crypto/sha512"
+	"errors"
 
 	"github.com/dedis/kyber/abstract"
 )
 
-func Commit(suite abstract.Suite, s cipher.Stream) (abstract.Scalar, abstract.Point) {
-	// compute random scalar
-	// compute commitment
-	// return both
+func Commit(suite abstract.Suite, s cipher.Stream) (random abstract.Scalar, commitment abstract.Point) {
+	var stream = s
+	if s == nil {
+		stream = random.Stream
+	}
+	random := suite.Scalar().Pick(stream)
+	commitment := suite.Point().Mul(nil, random)
+	return random, commitment
 }
 
-func AggregateCommitments(suite abstract.Suite, commitments []abstract.Point, mask *Mask) (abstract.Point, *Mask) {
-	// sum up all commitments
-	// update mask
-	// return both
+func AggregateCommitments(suite abstract.Suite, commitments []abstract.Point, masks []*Mask) (abstract.Point, *Mask, error) {
+
+	if len(commitments) != len(masks) {
+		return nil, nil, errors.New("length mismatch")
+	}
+	// TODO: check for empty value
+
+	c := commitments[0]
+	m := masks[0]
+	for i := 1; i < len(commitments); i++ {
+		c = suite.Point().Add(c, commitments[i])
+		m.AggregateMasks(masks[i])
+	}
+	return c, m
 }
 
-func Challenge(suite abstract.Suite, commitment abstract.Point, pubkey abstract.Point, mask, message []byte) abstract.Scalar {
+func Challenge(suite abstract.Suite, commitment abstract.Point, mask *Mask, message []byte) (abstract.Scalar, error) {
 	// return H(commitment || pubkey || mask || message)
+	hash := sha512.New()
+	if _, err := commitment.MarshalTo(hash); err != nil {
+		return nil, err
+	}
+	if _, err := mask.AggregatePublic().MarshalTo(hash); err != nil {
+		return nil, err
+	}
+	hash.Write(mask.mask)
+	hash.Write(message)
+	return suite.Scalar().SetBytes(hash.Sum(nil)), nil
 }
 
-func Response(suite abstract.Suite, random abstract.Scalar, challenge abstract.Scalar, prikey abstract.Scalar) {
+func Response(suite abstract.Suite, random abstract.Scalar, challenge abstract.Scalar, prikey abstract.Scalar) (abstract.Scalar, error) {
 	// return random - challenge * prikey
+
+	if private == nil {
+		return errors.New("no private key")
+	}
+	if random == nil {
+		return errors.New("no random scalar")
+	}
+	if challenge == nil {
+		return errors.New("no challenge")
+	}
+
+	ca := suite.Scalar().Mul(prikey, challenge)
+	return r.Add(random, ca)
 }
 
 func AggregateResponses(suite abstract.Suite, responses []abstract.Scalar) abstract.Scalar {
 	// sum up all responses and return the result
+	if responses == nil {
+		return errors.New("empty list of responses")
+	}
+
+	r := responses[0]
+	for i := 1; i < len(responses); i++ {
+		r = suite.Scalar().Add(r, responses[i])
+	}
+	return r
 }
 
-func Sign(suite abstract.Suite, commitment abstract.Point, response abstract.Scalar, mask *Mask) []byte {
-	// marshal commitment
-	// marshal response
-	// put those two with the byte mask into a slice of bytes
-	// return the latter as a signature
+func Sign(suite abstract.Suite, commitment abstract.Point, response abstract.Scalar, mask *Mask) ([]byte, error) {
+	// sig = V || R || bitmask
+	lenV := c.suite.PointLen()
+	lenSig := lenV + suite.ScalarLen()
+	VB, err := commitment.MarshalBinary()
+	if err != nil {
+		return nil, errors.New("marshalling commitment failed")
+	}
+	RB, err := response.MarshalBinary()
+	if err != nil {
+		return nil, errors.New("marshalling signature failed")
+	}
+	sig := make([]byte, lenSig+mask.MaskLen())
+	copy(sig[:], VB)
+	copy(sig[lenV:lenSig], VR)
+	copy(sig[lenSig:], mask.mask)
+	return sig
 }
 
-func Verify(suite abstract.Suite, pubkey abstract.Point, message, sig []byte, policy Policy) error {
+func Verify(suite abstract.Suite, pubkeys []abstract.Point, message, sig []byte, policy Policy) error {
 	// verify sig on message
 	// verify sig vs policy
 }
