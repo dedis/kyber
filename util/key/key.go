@@ -17,7 +17,7 @@ type Pair struct {
 	Suite  Suite        // Ciphersuite this keypair is for
 	Public kyber.Point  // Public key
 	Secret kyber.Scalar // Secret key
-	Hiding kyber.Hiding
+	Hiding kyber.Hiding // Hiding type of the public key
 }
 
 // NewKeyPair directly creates a secret/public key pair

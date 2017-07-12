@@ -10,8 +10,11 @@ import (
 	"math/big"
 	"reflect"
 
+	"github.com/dedis/fixbuf"
+
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/cipher/sha3"
+	"gopkg.in/dedis/kyber.v1/util/marshalling"
 	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
@@ -30,15 +33,15 @@ func (s QrSuite) Cipher(key []byte, options ...interface{}) kyber.Cipher {
 }
 
 func (s *QrSuite) Read(r io.Reader, objs ...interface{}) error {
-	return kyber.SuiteRead(s, r, objs)
+	return fixbuf.Read(r, s, objs)
 }
 
 func (s *QrSuite) Write(w io.Writer, objs ...interface{}) error {
-	return kyber.SuiteWrite(s, w, objs)
+	return fixbuf.Write(w, objs)
 }
 
 func (s *QrSuite) New(t reflect.Type) interface{} {
-	return kyber.SuiteNew(s, t)
+	return marshalling.GroupNew(s, t)
 }
 
 func (s *QrSuite) NewKey(rand cipher.Stream) kyber.Scalar {

@@ -4,6 +4,8 @@ import (
 	"crypto/cipher"
 	"errors"
 
+	"gopkg.in/dedis/kyber.v1/util/key"
+
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/util/subtle"
 )
@@ -35,11 +37,12 @@ func encryptKey(suite Suite, rand cipher.Stream,
 	anonymitySet Set, hide bool) (k, c []byte) {
 
 	// Choose a keypair and encode its representation
-	X, x, Xb := keyPair(suite, rand, hide)
-	xb, _ := x.MarshalBinary()
-
+	kp := new(key.Pair)
+	kp.GenHiding(suite, rand)
+	xb, _ := kp.Secret.MarshalBinary()
+	Xb := kp.Hiding.HideEncode(rand)
 	// Generate the ciphertext header
-	return xb, header(suite, X, x, Xb, xb, anonymitySet)
+	return xb, header(suite, kp.Public, kp.Secret, Xb, xb, anonymitySet)
 }
 
 // Decrypt and verify a key encrypted via encryptKey.

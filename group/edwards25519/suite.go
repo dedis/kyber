@@ -8,8 +8,11 @@ import (
 	"io"
 	"reflect"
 
+	"github.com/dedis/fixbuf"
+
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/cipher/sha3"
+	"gopkg.in/dedis/kyber.v1/util/marshalling"
 	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
@@ -30,16 +33,16 @@ func (s *SuiteEd25519) Cipher(key []byte, options ...interface{}) kyber.Cipher {
 }
 
 func (s *SuiteEd25519) Read(r io.Reader, objs ...interface{}) error {
-	return kyber.SuiteRead(s, r, objs)
+	return fixbuf.Read(r, s, objs...)
 }
 
 func (s *SuiteEd25519) Write(w io.Writer, objs ...interface{}) error {
-	return kyber.SuiteWrite(s, w, objs)
+	return fixbuf.Write(w, objs)
 }
 
 // New implements the kyber.Encoding interface
 func (s *SuiteEd25519) New(t reflect.Type) interface{} {
-	return kyber.SuiteNew(s, t)
+	return marshalling.GroupNew(s, t)
 }
 
 // NewKey implements the kyber.Group interface.

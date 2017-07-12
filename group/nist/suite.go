@@ -9,8 +9,11 @@ import (
 	"io"
 	"reflect"
 
+	"github.com/dedis/fixbuf"
+
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/cipher/sha3"
+	"gopkg.in/dedis/kyber.v1/util/marshalling"
 	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
@@ -29,15 +32,15 @@ func (s *Suite128) Cipher(key []byte, options ...interface{}) kyber.Cipher {
 }
 
 func (s *Suite128) Read(r io.Reader, objs ...interface{}) error {
-	return kyber.SuiteRead(s, r, objs)
+	return fixbuf.Read(r, s, objs)
 }
 
 func (s *Suite128) Write(w io.Writer, objs ...interface{}) error {
-	return kyber.SuiteWrite(s, w, objs)
+	return fixbuf.Write(w, objs)
 }
 
 func (s *Suite128) New(t reflect.Type) interface{} {
-	return kyber.SuiteNew(s, t)
+	return marshalling.GroupNew(s, t)
 }
 
 func (s *Suite128) NewKey(rand cipher.Stream) kyber.Scalar {
