@@ -264,8 +264,6 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 	testEmbed(g, rand, &points, "The quick brown fox jumps over the lazy dog")
 
 	// Test verifiable secret sharing
-	// XXX re-enable when we move this into 'test' sub-package
-	//testSharing(g)
 
 	// Test encoding and decoding
 	buf := new(bytes.Buffer)

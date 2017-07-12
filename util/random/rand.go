@@ -1,8 +1,5 @@
 // Package random provides facilities for generating
 // random or pseudorandom cryptographic objects.
-//
-// XXX this package might go away and get subsumed by the
-// currently equivalent kyber.Stream type.
 package random
 
 import (
@@ -90,7 +87,7 @@ func Bytes(n int, rand cipher.Stream) []byte {
 // This is needed when using suite.Cipher(kyber.NoKey)
 // because the first 6 iterations returns 0000...000 as
 // bytes for edwards & ed25519 cipher.
-// XXX Issue reported in https://gopkg.in/dedis/kyber.v1/issues/70
+// Issue reported in https://gopkg.in/dedis/kyber.v1/issues/70
 func NonZeroBytes(n int, rand cipher.Stream) []byte {
 	var randoms []byte
 	for {

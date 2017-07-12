@@ -22,8 +22,6 @@ type SuiteEd25519 struct {
 	ProjectiveCurve
 }
 
-// XXX non-NIST ciphers?
-
 // SHA256 hash function
 func (s *SuiteEd25519) Hash() hash.Hash {
 	return sha256.New()

@@ -96,7 +96,7 @@ func BenchmarkNORX_1K(b *testing.B) {
 
 // 1M messages
 
-/* XXX 1MB buffers cause some kind of super-slowdown here??
+/*
 func BenchmarkAes128_1M(b *testing.B) {
 	benchmarkCipher(b, aes.NewCipher128(kyber.NoKey), 1024*1024)
 }

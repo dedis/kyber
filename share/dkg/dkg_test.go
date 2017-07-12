@@ -194,8 +194,6 @@ func TestDKGProcessResponse(t *testing.T) {
 	require.Nil(t, err)
 
 	// give it to the first peer
-	// XXX Should we let peers know about approval/complaint for non-received
-	// deal yet ?
 	// process dealer 2's deal
 	r, err := dkg.ProcessDeal(deals2[0])
 	assert.Nil(t, err)

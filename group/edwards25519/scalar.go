@@ -137,7 +137,6 @@ func (s *scalar) Pick(rand cipher.Stream) kyber.Scalar {
 }
 
 func (s *scalar) SetBytes(b []byte) kyber.Scalar {
-	// XXX handle simple and scReduce cases appropriately
 	return s.setInt(mod.NewIntBytes(b, primeOrder, mod.LittleEndian))
 }
 

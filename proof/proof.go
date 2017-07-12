@@ -21,9 +21,6 @@ type Suite interface {
 	kyber.Encoding
 }
 
-// XXX simplify using the reflection API?
-// just pass a 'struct' with the Point and Scalar variables?
-
 /*
 A Predicate is a composable logic expression in a knowledge proof system,
 representing a "knowledge specification set" in Camenisch/Stadler terminology.

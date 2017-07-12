@@ -163,7 +163,6 @@ Any implementation is also expected to satisfy
 the standard homomorphism properties that Diffie-Hellman
 and the associated body of public-key cryptography are based on.
 
-XXX should probably delete the somewhat redundant ...Len() methods.
 */
 type Group interface {
 	String() string

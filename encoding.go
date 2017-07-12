@@ -244,8 +244,6 @@ type encoder struct {
 // basic fixed-length data types supported by encoding/binary/Write(),
 // and structs, arrays, and slices containing all of these types.
 //
-// XXX should this perhaps become a Suite method?
-//
 // XXX now this code could/should be moved into a separate package
 // relatively independent from this crypto code.
 func (e BinaryEncoding) Write(w io.Writer, objs ...interface{}) error {

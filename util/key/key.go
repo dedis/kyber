@@ -3,19 +3,13 @@ package key
 
 import (
 	"crypto/cipher"
-	"encoding/base64"
 
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
 // Suite represents the list of functionalities needed by this package.
-// XXX HashFactory might be removed in the future, it's only needed to generate
-// the PubId.
-type Suite interface {
-	kyber.Group
-	kyber.HashFactory
-}
+type Suite kyber.Group
 
 // Pair represents a public/private keypair
 // together with the ciphersuite the key was generated from.
@@ -23,12 +17,19 @@ type Pair struct {
 	Suite  Suite        // Ciphersuite this keypair is for
 	Public kyber.Point  // Public key
 	Secret kyber.Scalar // Secret key
+	Hiding kyber.Hiding
 }
 
 // NewKeyPair directly creates a secret/public key pair
 func NewKeyPair(suite Suite) *Pair {
 	kp := new(Pair)
 	kp.Gen(suite, random.Stream)
+	return kp
+}
+
+func NewHidingKeyPair(suite Suite) *Pair {
+	kp := new(Pair)
+	kp.GenHiding(suite, random.Stream)
 	return kp
 }
 
@@ -40,10 +41,15 @@ func (p *Pair) Gen(suite Suite, random cipher.Stream) {
 	p.Public = suite.Point().Mul(p.Secret, nil)
 }
 
-// PubID returns the base64-encoded HashId for this Pair's public key.
-func (p *Pair) PubID() string {
-	buf, _ := p.Public.MarshalBinary()
-	hash := p.Suite.Hash()
-	_, _ = hash.Write(buf)
-	return base64.RawURLEncoding.EncodeToString(hash.Sum(nil))
+func (p *Pair) GenHiding(suite Suite, rand cipher.Stream) {
+	p.Gen(suite, rand)
+	Xh := p.Public.(kyber.Hiding)
+	for {
+		Xb := Xh.HideEncode(rand) // try to encode as uniform blob
+		if Xb != nil {
+			p.Hiding = Xh
+			return // success
+		}
+		p.Gen(suite, rand)
+	}
 }

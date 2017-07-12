@@ -8,27 +8,6 @@ import (
 	"gopkg.in/dedis/kyber.v1/util/subtle"
 )
 
-// XXX belongs in crypto package?
-func keyPair(suite Suite, rand cipher.Stream,
-	hide bool) (kyber.Point, kyber.Scalar, []byte) {
-
-	x := suite.Scalar().Pick(rand)
-	X := suite.Point().Mul(x, nil)
-	if !hide {
-		Xb, _ := X.MarshalBinary()
-		return X, x, Xb
-	}
-	Xh := X.(kyber.Hiding)
-	for {
-		Xb := Xh.HideEncode(rand) // try to encode as uniform blob
-		if Xb != nil {
-			return X, x, Xb // success
-		}
-		x.Pick(rand) // try again with a new key
-		X.Mul(x, nil)
-	}
-}
-
 func header(suite Suite, X kyber.Point, x kyber.Scalar,
 	Xb, xb []byte, anonymitySet Set) []byte {
 

@@ -152,7 +152,6 @@ func (c *curve) init(self kyber.Group, p *Param, fullGroup bool,
 		} else if p.Elligator2u.Sign() != 0 {
 			c.hide = new(el2param).init(c, &p.Elligator2u)
 		}
-		// XXX Elligator Squared
 	}
 
 	// Sanity checks

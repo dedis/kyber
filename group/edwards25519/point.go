@@ -63,8 +63,6 @@ func (P *point) UnmarshalFrom(r io.Reader) (int, error) {
 // Equality test for two Points on the same curve
 func (P *point) Equal(P2 kyber.Point) bool {
 
-	// XXX better to test equality without normalizing extended coords
-
 	var b1, b2 [32]byte
 	P.ge.ToBytes(&b1)
 	P2.(*point).ge.ToBytes(&b2)
@@ -183,8 +181,6 @@ func (P *point) Add(P1, P2 kyber.Point) kyber.Point {
 	r.Add(&E1.ge, &t2)
 	r.ToExtended(&P.ge)
 
-	// XXX in this case better just to use general addition formula?
-
 	return P
 }
 
@@ -198,8 +194,6 @@ func (P *point) Sub(P1, P2 kyber.Point) kyber.Point {
 	E2.ge.ToCached(&t2)
 	r.Sub(&E1.ge, &t2)
 	r.ToExtended(&P.ge)
-
-	// XXX in this case better just to use general addition formula?
 
 	return P
 }

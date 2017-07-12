@@ -18,7 +18,6 @@ import "gopkg.in/dedis/kyber.v1"
 // and finally returns once the protocol has concluded for all participants.
 // Returns a slice of success/error indicators, one for each participant.
 //
-// XXX this interface should probably move to a "protocol" module of some kind.
 type Protocol func(ctx Context) []error
 
 // Context represents an kyber.context for running a clique protocol.

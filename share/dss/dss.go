@@ -221,8 +221,6 @@ func (ps *PartialSig) Hash(s Suite) []byte {
 	return h.Sum(nil)
 }
 
-// XXX: maybe put that as internal package for vss & dkg since they both use the
-// same function
 func findPub(list []kyber.Point, i int) (kyber.Point, bool) {
 	if i >= len(list) {
 		return nil, false

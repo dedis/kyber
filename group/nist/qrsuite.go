@@ -68,7 +68,7 @@ func NewAES128SHA256QR512() *QrSuite {
 // 1024-bit DSA-style groups may no longer be secure.
 func newAES128SHA256QR1024() *QrSuite {
 	suite := new(QrSuite)
-	suite.QuadraticResidueGroup(1024, random.Stream) // XXX
+	suite.QuadraticResidueGroup(1024, random.Stream)
 	return suite
 }
 
@@ -76,6 +76,6 @@ func newAES128SHA256QR1024() *QrSuite {
 // and a residue group of quadratic residues modulo a 1024-bit prime.
 func newAES128SHA256QR2048() *QrSuite {
 	suite := new(QrSuite)
-	suite.QuadraticResidueGroup(2048, random.Stream) // XXX
+	suite.QuadraticResidueGroup(2048, random.Stream)
 	return suite
 }

@@ -15,5 +15,3 @@ type PriKey struct {
 	Mine int          // Index of the public key I own
 	Pri  kyber.Scalar // Private key for that public key
 }
-
-// XXX name PubSet, PriSet?

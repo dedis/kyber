@@ -151,7 +151,6 @@ func (p *curvePoint) Sub(a, b kyber.Point) kyber.Point {
 	ca := a.(*curvePoint)
 	cb := b.(*curvePoint)
 
-	// XXX a pretty non-optimal implementation of point subtraction...
 	cbn := p.c.Point().Neg(cb).(*curvePoint)
 	p.x, p.y = p.c.Add(ca.x, ca.y, cbn.x, cbn.y)
 	return p
@@ -159,7 +158,6 @@ func (p *curvePoint) Sub(a, b kyber.Point) kyber.Point {
 
 func (p *curvePoint) Neg(a kyber.Point) kyber.Point {
 
-	// XXX a pretty non-optimal implementation of point negation...
 	s := p.c.Scalar().One()
 	s.Neg(s)
 	return p.Mul(s, a).(*curvePoint)
@@ -178,7 +176,7 @@ func (p *curvePoint) Mul(s kyber.Scalar, b kyber.Point) kyber.Point {
 
 func (p *curvePoint) MarshalSize() int {
 	coordlen := (p.c.Params().BitSize + 7) >> 3
-	return 1 + 2*coordlen // uncompressed ANSI X9.62 representation (XXX)
+	return 1 + 2*coordlen // uncompressed ANSI X9.62 representation
 }
 
 func (p *curvePoint) MarshalBinary() ([]byte, error) {
