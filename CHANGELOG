@@ -19,7 +19,8 @@ v0 to v1:
         - test/ inside util/test
         - clique/clique.go to proof/clique.go 
         - proof/dleq.go -> proof/dleq/dleq.go
-    
+        - anon/keypair() hiding -> util/key/GenHiding() 
+
     - removed:
         - abstract
         - base64
