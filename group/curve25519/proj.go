@@ -10,7 +10,7 @@ import (
 
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/group/mod"
-	"gopkg.in/dedis/kyber.v1/util/marshalling"
+	"gopkg.in/dedis/kyber.v1/group/internal/marshalling"
 	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
