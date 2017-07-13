@@ -8,8 +8,8 @@ import (
 	"math/big"
 
 	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/group/internal/marshalling"
 	"gopkg.in/dedis/kyber.v1/util/bytes"
-	"gopkg.in/dedis/kyber.v1/util/marshalling"
 	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
