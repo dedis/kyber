@@ -22,7 +22,6 @@ import (
 
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/share"
-	"gopkg.in/dedis/kyber.v1/share/dkg"
 	"gopkg.in/dedis/kyber.v1/sign/eddsa"
 	"gopkg.in/dedis/kyber.v1/sign/schnorr"
 )
@@ -31,6 +30,14 @@ import (
 type Suite interface {
 	kyber.Group
 	kyber.HashFactory
+}
+
+// DistKeyShare is an abstraction to allow one to use disttributed key share
+// from different shcemes easily into this distributed threshold schnorr
+// signature framework.
+type DistKeyShare interface {
+	PriShare() *share.PriShare
+	Commitments() []kyber.Point
 }
 
 // DSS holds the information used to issue partial signatures as well as to
@@ -42,8 +49,8 @@ type DSS struct {
 	index        int
 	participants []kyber.Point
 	T            int
-	long         *dkg.DistKeyShare
-	random       *dkg.DistKeyShare
+	long         DistKeyShare
+	random       DistKeyShare
 	longPoly     *share.PubPoly
 	randomPoly   *share.PubPoly
 	msg          []byte
@@ -67,7 +74,7 @@ type PartialSig struct {
 // threshold. It returns an error if the public key of the secret can't be found
 // in the list of participants.
 func NewDSS(suite Suite, secret kyber.Scalar, participants []kyber.Point,
-	long, random *dkg.DistKeyShare, msg []byte, T int) (*DSS, error) {
+	long, random DistKeyShare, msg []byte, T int) (*DSS, error) {
 	public := suite.Point().Mul(secret, nil)
 	var i int
 	var found bool
@@ -88,9 +95,9 @@ func NewDSS(suite Suite, secret kyber.Scalar, participants []kyber.Point,
 		index:        i,
 		participants: participants,
 		long:         long,
-		longPoly:     share.NewPubPoly(suite, suite.Point().Base(), long.Commits),
+		longPoly:     share.NewPubPoly(suite, suite.Point().Base(), long.Commitments()),
 		random:       random,
-		randomPoly:   share.NewPubPoly(suite, suite.Point().Base(), random.Commits),
+		randomPoly:   share.NewPubPoly(suite, suite.Point().Base(), random.Commitments()),
 		msg:          msg,
 		T:            T,
 		partialsIdx:  make(map[int]bool),
@@ -107,8 +114,8 @@ func NewDSS(suite Suite, secret kyber.Scalar, participants []kyber.Point,
 // signature.
 func (d *DSS) PartialSig() (*PartialSig, error) {
 	// following the notations from the paper
-	alpha := d.long.Share.V
-	beta := d.random.Share.V
+	alpha := d.long.PriShare().V
+	beta := d.random.PriShare().V
 	hash := d.hashSig()
 	right := d.suite.Scalar().Mul(hash, alpha)
 	ps := &PartialSig{
@@ -189,7 +196,7 @@ func (d *DSS) Signature() ([]byte, error) {
 	}
 	// RandomPublic || gamma
 	var buff bytes.Buffer
-	_, _ = d.random.Public().MarshalTo(&buff)
+	_, _ = d.random.Commitments()[0].MarshalTo(&buff)
 	_, _ = gamma.MarshalTo(&buff)
 	return buff.Bytes(), nil
 }
@@ -200,8 +207,8 @@ func (d *DSS) hashSig() kyber.Scalar {
 	//  * A = distributed public key
 	//  * msg = msg to sign
 	h := sha512.New()
-	_, _ = d.random.Public().MarshalTo(h)
-	_, _ = d.long.Public().MarshalTo(h)
+	_, _ = d.random.Commitments()[0].MarshalTo(h)
+	_, _ = d.long.Commitments()[0].MarshalTo(h)
 	_, _ = h.Write(d.msg)
 	return d.suite.Scalar().SetBytes(h.Sum(nil))
 }
@@ -228,13 +235,13 @@ func findPub(list []kyber.Point, i int) (kyber.Point, bool) {
 	return list[i], true
 }
 
-func sessionID(s Suite, a, b *dkg.DistKeyShare) []byte {
+func sessionID(s Suite, a, b DistKeyShare) []byte {
 	h := s.Hash()
-	for _, p := range a.Commits {
+	for _, p := range a.Commitments() {
 		_, _ = p.MarshalTo(h)
 	}
 
-	for _, p := range b.Commits {
+	for _, p := range b.Commitments() {
 		_, _ = p.MarshalTo(h)
 	}
 

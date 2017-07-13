@@ -46,7 +46,7 @@ import (
 	"gopkg.in/dedis/kyber.v1/sign/schnorr"
 
 	"gopkg.in/dedis/kyber.v1/share"
-	"gopkg.in/dedis/kyber.v1/share/vss"
+	"gopkg.in/dedis/kyber.v1/share/rabin/vss"
 )
 
 // Suite wraps the functionalities needed by the dkg package
@@ -63,6 +63,14 @@ type DistKeyShare struct {
 // Public returns the public key associated with the distributed private key.
 func (d *DistKeyShare) Public() kyber.Point {
 	return d.Commits[0]
+}
+
+func (d *DistKeyShare) PriShare() *share.PriShare {
+	return d.Share
+}
+
+func (d *DistKeyShare) Commitments() []kyber.Point {
+	return d.Commits
 }
 
 // Deal holds the Deal for one participant as well as the index of the issuing
