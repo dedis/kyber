@@ -51,7 +51,7 @@ func TestCoSi(t *testing.T) {
 
 	// Set aggregate mask in nodes
 	for i := 0; i < n; i++ {
-		masks[i].SetMask(aggMask.mask)
+		masks[i].SetMask(aggMask)
 	}
 
 	// Compute challenge
@@ -74,7 +74,7 @@ func TestCoSi(t *testing.T) {
 	}
 
 	// Sign
-	sig, err := Sign(testSuite, aggV, aggr, aggMask)
+	sig, err := Sign(testSuite, aggV, aggr, masks[0])
 	if err != nil {
 		t.Fatal(err)
 	}

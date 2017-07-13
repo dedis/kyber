@@ -20,16 +20,21 @@ func Commit(suite abstract.Suite, s cipher.Stream) (abstract.Scalar, abstract.Po
 	return random, commitment
 }
 
-func AggregateCommitments(suite abstract.Suite, commitments []abstract.Point, publics []abstract.Point, masks [][]byte) (abstract.Point, *Mask, error) {
+func AggregateCommitments(suite abstract.Suite, commitments []abstract.Point, publics []abstract.Point, masks [][]byte) (abstract.Point, []byte, error) {
 	if len(commitments) != len(masks) {
 		return nil, nil, errors.New("length mismatch")
 	}
+	// TODO: check that all masks have the same length
 	// TODO: check for empty value
 	aggCom := suite.Point().Null()
-	aggMask := NewMask(suite, publics)
+	aggMask := make([]byte, len(masks[0]))
+	var err error
 	for i := 0; i < len(commitments); i++ {
 		aggCom = suite.Point().Add(aggCom, commitments[i])
-		aggMask.AggregateMasks(masks[i])
+		aggMask, err = AggregateMasks(aggMask, masks[i])
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 	return aggCom, aggMask, nil
 }
@@ -243,18 +248,27 @@ func (m *Mask) AggregatePublic() abstract.Point {
 	return m.aggPublic
 }
 
-func (m *Mask) AggregateMasks(other []byte) {
+func AggregateMasks(a, b []byte) ([]byte, error) {
 
-	// TODO: check that masks have the same length
+	if len(a) != len(b) {
+		return nil, errors.New("length mismatch")
+	}
+
+	m := make([]byte, len(a))
+	for i := range m {
+		m[i] = a[i] | b[i]
+	}
+	return m, nil
 
 	// merge the other mask into m.mask
-	for i := range m.publics {
-		byt := i >> 3
-		msk := byte(1) << uint(i&7)
-		if (other[byt] & msk) != 0 {
-			m.SetMaskBit(i, true)
-		}
-	}
+	//for i := range m.publics {
+	//	byt := i >> 3
+	//	msk := byte(1) << uint(i&7)
+	//	if (other[byt] & msk) != 0 {
+	//		m.SetMaskBit(i, true)
+	//	}
+	//}
+	//return nil
 }
 
 // Policy represents a fully customizable cosigning policy deciding what
