@@ -55,15 +55,19 @@ func TestCoSi(t *testing.T) {
 	}
 
 	// Compute challenge
-	c, err := Challenge(testSuite, aggV, masks[0], message)
-	if err != nil {
-		t.Fatal(err)
+	var c []abstract.Scalar
+	for i := 0; i < n; i++ {
+		ci, err := Challenge(testSuite, aggV, masks[i], message)
+		if err != nil {
+			t.Fatal(err)
+		}
+		c = append(c, ci)
 	}
 
 	// Compute responses
 	var r []abstract.Scalar
 	for i := 0; i < n; i++ {
-		ri, _ := Response(testSuite, v[i], c, privates[i])
+		ri, _ := Response(testSuite, v[i], c[i], privates[i])
 		r = append(r, ri)
 	}
 
@@ -73,15 +77,16 @@ func TestCoSi(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Sign
-	sig, err := Sign(testSuite, aggV, aggr, masks[0])
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Verify
-	if err := Verify(testSuite, publics, message, sig, CompletePolicy{}); err != nil {
-		t.Fatal(err)
+	for i := 0; i < n; i++ {
+		// Sign
+		sig, err := Sign(testSuite, aggV, aggr, masks[i])
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Verify
+		if err := Verify(testSuite, publics, message, sig, CompletePolicy{}); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 }
