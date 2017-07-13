@@ -38,9 +38,15 @@ func encryptKey(suite Suite, rand cipher.Stream,
 
 	// Choose a keypair and encode its representation
 	kp := new(key.Pair)
-	kp.GenHiding(suite, rand)
+	var Xb []byte
+	if hide {
+		kp.GenHiding(suite, rand)
+		Xb = kp.Hiding.HideEncode(rand)
+	} else {
+		kp.Gen(suite, rand)
+		Xb, _ = kp.Public.MarshalBinary()
+	}
 	xb, _ := kp.Secret.MarshalBinary()
-	Xb := kp.Hiding.HideEncode(rand)
 	// Generate the ciphertext header
 	return xb, header(suite, kp.Public, kp.Secret, Xb, xb, anonymitySet)
 }
