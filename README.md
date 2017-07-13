@@ -35,7 +35,7 @@ if certain dependencies are satisfied as described below:
 
 	go test -v ./...
 
-Variable Time Implementation
+Constant Time Implementation
 ----------------------------
 
 By default, this package builds groups that implements constant time arithmetic
