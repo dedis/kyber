@@ -44,7 +44,7 @@ func TestCoSi(t *testing.T) {
 	}
 
 	// Aggregate commitments
-	aggV, aggMask, err := AggregateCommitments(testSuite, V, publics, byteMasks)
+	aggV, aggMask, err := AggregateCommitments(testSuite, V, byteMasks)
 	if err != nil {
 		t.Fatal(err)
 	}

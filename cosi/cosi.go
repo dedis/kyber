@@ -20,7 +20,7 @@ func Commit(suite abstract.Suite, s cipher.Stream) (abstract.Scalar, abstract.Po
 	return random, commitment
 }
 
-func AggregateCommitments(suite abstract.Suite, commitments []abstract.Point, publics []abstract.Point, masks [][]byte) (abstract.Point, []byte, error) {
+func AggregateCommitments(suite abstract.Suite, commitments []abstract.Point, masks [][]byte) (abstract.Point, []byte, error) {
 	if len(commitments) != len(masks) {
 		return nil, nil, errors.New("length mismatch")
 	}
