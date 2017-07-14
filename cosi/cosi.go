@@ -109,7 +109,10 @@ func Verify(suite abstract.Suite, publics []abstract.Point, message, sig []byte,
 	r := suite.Scalar().SetBytes(rBuff)
 
 	// Unpack the participation mask and get the aggregate public key
-	mask := NewMask(suite, publics)
+	mask, err := NewMask(suite, publics, nil)
+	if err != nil {
+		return err
+	}
 	mask.SetMask(sig[lenRes:])
 	A := mask.AggregatePublic()
 	ABuff, err := A.MarshalBinary()
@@ -152,14 +155,30 @@ type Mask struct {
 
 // NewMask returns a new participation bit mask for cosigning where all
 // cosigners are disabled by default.
-func NewMask(suite abstract.Suite, publics []abstract.Point) *Mask {
+func NewMask(suite abstract.Suite, publics []abstract.Point, myKey abstract.Point) (*Mask, error) {
+
 	m := &Mask{
 		publics: publics,
 		suite:   suite,
 	}
 	m.mask = make([]byte, m.MaskLen())
 	m.aggPublic = m.suite.Point().Null()
-	return m
+
+	if myKey != nil {
+		found := false
+		for i, key := range publics {
+			if key.Equal(myKey) {
+				m.SetMaskBit(i, true)
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, errors.New("key not found")
+		}
+	}
+
+	return m, nil
 }
 
 // Mask returns a copy of the participation bit mask.

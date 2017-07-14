@@ -29,8 +29,11 @@ func TestCoSi(t *testing.T) {
 	var masks []*Mask
 	var byteMasks [][]byte
 	for i := 0; i < n; i++ {
-		masks = append(masks, NewMask(testSuite, publics))
-		masks[i].SetMaskBit(i, true) // TODO: this has to go into the mask initialization somehow
+		m, err := NewMask(testSuite, publics, publics[i])
+		if err != nil {
+			t.Fatal(err)
+		}
+		masks = append(masks, m)
 		byteMasks = append(byteMasks, masks[i].mask)
 	}
 
