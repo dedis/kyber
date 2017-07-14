@@ -96,6 +96,11 @@ func Sign(suite abstract.Suite, commitment abstract.Point, response abstract.Sca
 }
 
 func Verify(suite abstract.Suite, publics []abstract.Point, message, sig []byte, policy Policy) error {
+
+	if policy == nil {
+		policy = CompletePolicy{}
+	}
+
 	lenCom := suite.PointLen()
 	VBuff := sig[:lenCom]
 	V := suite.Point()
