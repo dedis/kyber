@@ -161,14 +161,12 @@ type Mask struct {
 // NewMask returns a new participation bit mask for cosigning where all
 // cosigners are disabled by default.
 func NewMask(suite abstract.Suite, publics []abstract.Point, myKey abstract.Point) (*Mask, error) {
-
 	m := &Mask{
 		publics: publics,
 		suite:   suite,
 	}
 	m.mask = make([]byte, m.MaskLen())
 	m.aggPublic = m.suite.Point().Null()
-
 	if myKey != nil {
 		found := false
 		for i, key := range publics {
@@ -182,7 +180,6 @@ func NewMask(suite abstract.Suite, publics []abstract.Point, myKey abstract.Poin
 			return nil, errors.New("key not found")
 		}
 	}
-
 	return m, nil
 }
 
@@ -273,26 +270,14 @@ func (m *Mask) AggregatePublic() abstract.Point {
 }
 
 func AggregateMasks(a, b []byte) ([]byte, error) {
-
 	if len(a) != len(b) {
 		return nil, errors.New("length mismatch")
 	}
-
 	m := make([]byte, len(a))
 	for i := range m {
 		m[i] = a[i] | b[i]
 	}
 	return m, nil
-
-	// merge the other mask into m.mask
-	//for i := range m.publics {
-	//	byt := i >> 3
-	//	msk := byte(1) << uint(i&7)
-	//	if (other[byt] & msk) != 0 {
-	//		m.SetMaskBit(i, true)
-	//	}
-	//}
-	//return nil
 }
 
 // Policy represents a fully customizable cosigning policy deciding what
