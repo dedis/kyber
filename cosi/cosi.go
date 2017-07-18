@@ -50,8 +50,8 @@ import (
 	"github.com/dedis/kyber/random"
 )
 
-// Commit returns a random scalar and a corresponding commitment from the given
-// cipher stream.
+// Commit returns a random scalar, generated from the given cipher stream, and
+// a corresponding commitment.
 func Commit(suite abstract.Suite, s cipher.Stream) (abstract.Scalar, abstract.Point) {
 	var stream = s
 	if s == nil {
@@ -85,6 +85,15 @@ func AggregateCommitments(suite abstract.Suite, commitments []abstract.Point, ma
 // commitment V, aggregate public key A, mask Z, and message M, i.e., it
 // returns c = H(V || A || Z || M).
 func Challenge(suite abstract.Suite, commitment abstract.Point, mask *Mask, message []byte) (abstract.Scalar, error) {
+	if commitment == nil {
+		return nil, errors.New("no commitment provided")
+	}
+	if mask == nil {
+		return nil, errors.New("no mask provided")
+	}
+	if message == nil {
+		return nil, errors.New("no message provided")
+	}
 	hash := sha512.New()
 	if _, err := commitment.MarshalTo(hash); err != nil {
 		return nil, err
@@ -116,7 +125,7 @@ func Response(suite abstract.Suite, random abstract.Scalar, challenge abstract.S
 // AggregateResponses returns the sum of given responses.
 func AggregateResponses(suite abstract.Suite, responses []abstract.Scalar) (abstract.Scalar, error) {
 	if responses == nil {
-		return nil, errors.New("empty list of responses")
+		return nil, errors.New("no responses provided")
 	}
 	r := responses[0]
 	for i := 1; i < len(responses); i++ {
@@ -129,6 +138,15 @@ func AggregateResponses(suite abstract.Suite, responses []abstract.Scalar) (abst
 // V, (aggregate) response r, and participation bitmask Z using the EdDSA
 // format, i.e., the signature is V || r || Z.
 func Sign(suite abstract.Suite, commitment abstract.Point, response abstract.Scalar, mask *Mask) ([]byte, error) {
+	if commitment == nil {
+		return nil, errors.New("no commitment provided")
+	}
+	if response == nil {
+		return nil, errors.New("no response provided")
+	}
+	if mask == nil {
+		return nil, errors.New("no mask provided")
+	}
 	lenV := suite.PointLen()
 	lenSig := lenV + suite.ScalarLen()
 	VB, err := commitment.MarshalBinary()
@@ -149,7 +167,15 @@ func Sign(suite abstract.Suite, commitment abstract.Point, response abstract.Sca
 // Verify checks the given cosignature on the provided message using the list
 // of public keys and cosigning policy.
 func Verify(suite abstract.Suite, publics []abstract.Point, message, sig []byte, policy Policy) error {
-
+	if publics == nil {
+		return errors.New("no public keys provided")
+	}
+	if message == nil {
+		return errors.New("no message provided")
+	}
+	if sig == nil {
+		return errors.New("no signature provided")
+	}
 	if policy == nil {
 		policy = CompletePolicy{}
 	}
@@ -158,7 +184,7 @@ func Verify(suite abstract.Suite, publics []abstract.Point, message, sig []byte,
 	VBuff := sig[:lenCom]
 	V := suite.Point()
 	if err := V.UnmarshalBinary(VBuff); err != nil {
-		panic(err)
+		return errors.New("unmarshalling of commitment failed")
 	}
 
 	// Unpack the aggregate response
@@ -175,7 +201,7 @@ func Verify(suite abstract.Suite, publics []abstract.Point, message, sig []byte,
 	A := mask.AggregatePublic
 	ABuff, err := A.MarshalBinary()
 	if err != nil {
-		return err
+		return errors.New("marshalling of aggregate public key failed")
 	}
 
 	// Recompute the challenge
@@ -204,7 +230,7 @@ func Verify(suite abstract.Suite, publics []abstract.Point, message, sig []byte,
 		return err
 	}
 	if subtle.ConstantTimeCompare(x, y) == 0 || !policy.Check(mask) {
-		return errors.New("signature invalid")
+		return errors.New("invalid signature")
 	}
 	return nil
 }
