@@ -65,7 +65,7 @@ func Commit(suite abstract.Suite, s cipher.Stream) (abstract.Scalar, abstract.Po
 // bitwise OR of the given masks.
 func AggregateCommitments(suite abstract.Suite, commitments []abstract.Point, masks [][]byte) (abstract.Point, []byte, error) {
 	if len(commitments) != len(masks) {
-		return nil, nil, errors.New("length mismatch")
+		return nil, nil, errors.New("mismatching lengths of commitment and mask slices")
 	}
 	aggCom := suite.Point().Null()
 	aggMask := make([]byte, len(masks[0]))
@@ -100,13 +100,13 @@ func Challenge(suite abstract.Suite, commitment abstract.Point, mask *Mask, mess
 // challenge c, and private key a, i.e., it returns r = v + c*a.
 func Response(suite abstract.Suite, random abstract.Scalar, challenge abstract.Scalar, private abstract.Scalar) (abstract.Scalar, error) {
 	if private == nil {
-		return nil, errors.New("no private key")
+		return nil, errors.New("no private key provided")
 	}
 	if random == nil {
-		return nil, errors.New("no random scalar")
+		return nil, errors.New("no random scalar provided")
 	}
 	if challenge == nil {
-		return nil, errors.New("no challenge")
+		return nil, errors.New("no challenge provided")
 	}
 	ca := suite.Scalar().Mul(private, challenge)
 	return ca.Add(random, ca), nil
@@ -132,11 +132,11 @@ func Sign(suite abstract.Suite, commitment abstract.Point, response abstract.Sca
 	lenSig := lenV + suite.ScalarLen()
 	VB, err := commitment.MarshalBinary()
 	if err != nil {
-		return nil, errors.New("marshalling commitment failed")
+		return nil, errors.New("marshalling of commitment failed")
 	}
 	RB, err := response.MarshalBinary()
 	if err != nil {
-		return nil, errors.New("marshalling signature failed")
+		return nil, errors.New("marshalling of signature failed")
 	}
 	sig := make([]byte, lenSig+mask.MaskLen())
 	copy(sig[:], VB)
@@ -247,7 +247,7 @@ func (m *Mask) Mask() []byte {
 // cosigners 0-7, bits 0-7 of byte 1 correspond to cosigners 8-15, etc.
 func (m *Mask) SetMask(mask []byte) error {
 	if m.MaskLen() != len(mask) {
-		return fmt.Errorf("Mask length mismatch: %d vs %d", m.MaskLen(), len(mask))
+		return fmt.Errorf("mismatching mask lengths")
 	}
 	for i := range m.publics {
 		byt := i >> 3
@@ -273,7 +273,7 @@ func (m *Mask) MaskLen() int {
 // in the participation mask of the given cosigner.
 func (m *Mask) SetMaskBit(signer int, enable bool) error {
 	if signer > len(m.publics) {
-		return errors.New("SetMaskBit index out of range")
+		return errors.New("index out of range")
 	}
 	byt := signer >> 3
 	msk := byte(1) << uint(signer&7)
@@ -319,7 +319,7 @@ func (m *Mask) CountTotal() int {
 // AggregateMasks computes the bitwise OR of the two given participation masks.
 func AggregateMasks(a, b []byte) ([]byte, error) {
 	if len(a) != len(b) {
-		return nil, errors.New("non matching mask lengths")
+		return nil, errors.New("mismatching mask lengths")
 	}
 	m := make([]byte, len(a))
 	for i := range m {
