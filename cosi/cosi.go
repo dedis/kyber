@@ -139,7 +139,7 @@ func Sign(suite abstract.Suite, commitment abstract.Point, response abstract.Sca
 	if err != nil {
 		return nil, errors.New("marshalling of signature failed")
 	}
-	sig := make([]byte, lenSig+mask.MaskLen())
+	sig := make([]byte, lenSig+mask.Len())
 	copy(sig[:], VB)
 	copy(sig[lenV:lenSig], RB)
 	copy(sig[lenSig:], mask.mask)
@@ -224,13 +224,13 @@ func NewMask(suite abstract.Suite, publics []abstract.Point, myKey abstract.Poin
 	m := &Mask{
 		publics: publics,
 	}
-	m.mask = make([]byte, m.MaskLen())
+	m.mask = make([]byte, m.Len())
 	m.AggregatePublic = suite.Point().Null()
 	if myKey != nil {
 		found := false
 		for i, key := range publics {
 			if key.Equal(myKey) {
-				m.SetMaskBit(i, true)
+				m.SetBit(i, true)
 				found = true
 				break
 			}
@@ -253,7 +253,7 @@ func (m *Mask) Mask() []byte {
 // interpreted in little-endian order, i.e., bits 0-7 of byte 0 correspond to
 // cosigners 0-7, bits 0-7 of byte 1 correspond to cosigners 8-15, etc.
 func (m *Mask) SetMask(mask []byte) error {
-	if m.MaskLen() != len(mask) {
+	if m.Len() != len(mask) {
 		return fmt.Errorf("mismatching mask lengths")
 	}
 	for i := range m.publics {
@@ -271,14 +271,14 @@ func (m *Mask) SetMask(mask []byte) error {
 	return nil
 }
 
-// MaskLen returns the mask length in bytes.
-func (m *Mask) MaskLen() int {
+// Len returns the mask length in bytes.
+func (m *Mask) Len() int {
 	return (len(m.publics) + 7) >> 3
 }
 
-// SetMaskBit enables (enable: true) or disables (enable: false) the bit
+// SetBit enables (enable: true) or disables (enable: false) the bit
 // in the participation mask of the given cosigner.
-func (m *Mask) SetMaskBit(signer int, enable bool) error {
+func (m *Mask) SetBit(signer int, enable bool) error {
 	if signer > len(m.publics) {
 		return errors.New("index out of range")
 	}
@@ -295,15 +295,15 @@ func (m *Mask) SetMaskBit(signer int, enable bool) error {
 	return nil
 }
 
-// MaskBit returns a boolean value indicating whether the given signer is
+// Bit returns a boolean value indicating whether the given signer is
 // enabled (true) or disabled (false).
-func (m *Mask) MaskBit(signer int) bool {
+func (m *Mask) Bit(signer int) (bool, error) {
 	if signer > len(m.publics) {
-		return false // TODO: should this throw an error? It was a panic before.
+		return false, errors.New("index out of range")
 	}
 	byt := signer >> 3
 	msk := byte(1) << uint(signer&7)
-	return (m.mask[byt] & msk) != 0
+	return (m.mask[byt] & msk) != 0, nil
 }
 
 // CountEnabled returns the number of enabled nodes in the CoSi participation
@@ -311,7 +311,9 @@ func (m *Mask) MaskBit(signer int) bool {
 func (m *Mask) CountEnabled() int {
 	hw := 0
 	for i := range m.publics {
-		if m.MaskBit(i) {
+		byt := i >> 3
+		msk := byte(1) << uint(i&7)
+		if (m.mask[byt] & msk) != 0 {
 			hw++
 		}
 	}
