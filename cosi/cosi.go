@@ -1,3 +1,43 @@
+/*
+Package cosi implements the collective signing (CoSi) algorithm as presented in
+the paper "Keeping Authorities 'Honest or Bust' with Decentralized Witness
+Cosigning" by Ewa Syta et al., see https://arxiv.org/abs/1503.08768.  This
+package **only** provides the functionality for the cryptographic operations of
+CoSi. All network-related operations have to be handled elsewhere.  Below we
+describe a high-level overview of the CoSi protocol (using a star communication
+topology). We refer to the research paper for further details on communication
+over trees, exception mechanisms and signature verification policies.
+
+The CoSi protocol has four phases executed between a list of participants P
+having a protocol leader (index i = 0) and a list of other nodes (index i > 0).
+The secret key of node i is denoted by a_i and the public key by A_i = [a_i]G
+(where G is the base point of the underlying group and [...] denotes scalar
+multiplication). The aggregate public key is given as A = \sum{i ∈ P}(A_i).
+
+1. Announcement: The leader broadcasts an announcement to the other nodes
+optionally including the message M to be signed. Upon receiving an announcement
+message, a node starts its commitment phase.
+
+2. Commitment: Each node i picks a random scalar v_i, computes its commitment
+V_i = [v_i]G and sends V_i back to the leader. The leader waits until it has
+received enough commitments (according to some policy) from the other nodes or
+a timer has run out. Let P' be the nodes that have sent their commitments. The
+leader computes an aggregate commitment V from all commitments he has received,
+i.e., V = \sum{j ∈ P'}(V_j) and creates a participation bitmask Z. The leader
+then broadcasts V and Z to the other participations together with the message M
+if it was not sent in phase 1. Upon receiving a commitment message, a node
+starts the challenge phase.
+
+3. Challenge: Each node i computes the collective challenge c = H(V || A || Z
+|| M) using a cryptographic hash function H (here: SHA512), computes its
+response r_i = v_i + c*a_i and sends it back to the leader.
+
+4. Response: The leader waits until he has received replies from all nodes in
+P' or a timer has run out. If he has not enough replies he aborts. Finally,
+the leader computes the aggregate response r = \sum{j ∈ P'}(r_j) and publishes
+(V,r,Z) as the signature for the message M.
+*/
+
 package cosi
 
 import (
@@ -10,6 +50,8 @@ import (
 	"github.com/dedis/kyber/random"
 )
 
+// Commit returns a random scalar and a corresponding commitment from the given
+// cipher stream.
 func Commit(suite abstract.Suite, s cipher.Stream) (abstract.Scalar, abstract.Point) {
 	var stream = s
 	if s == nil {
@@ -20,12 +62,12 @@ func Commit(suite abstract.Suite, s cipher.Stream) (abstract.Scalar, abstract.Po
 	return random, commitment
 }
 
+// AggregateCommitments returns the sum of the given commitments and the
+// bitwise OR of the given masks.
 func AggregateCommitments(suite abstract.Suite, commitments []abstract.Point, masks [][]byte) (abstract.Point, []byte, error) {
 	if len(commitments) != len(masks) {
 		return nil, nil, errors.New("length mismatch")
 	}
-	// TODO: check that all masks have the same length
-	// TODO: check for empty value
 	aggCom := suite.Point().Null()
 	aggMask := make([]byte, len(masks[0]))
 	var err error
@@ -39,12 +81,15 @@ func AggregateCommitments(suite abstract.Suite, commitments []abstract.Point, ma
 	return aggCom, aggMask, nil
 }
 
+// Challenge creates the collective challenge from the given aggregate
+// commitment V, aggregate public key A, mask Z, and message M, i.e., it
+// returns c = H(V || A || Z || M).
 func Challenge(suite abstract.Suite, commitment abstract.Point, mask *Mask, message []byte) (abstract.Scalar, error) {
 	hash := sha512.New()
 	if _, err := commitment.MarshalTo(hash); err != nil {
 		return nil, err
 	}
-	if _, err := mask.AggregatePublic().MarshalTo(hash); err != nil {
+	if _, err := mask.AggregatePublic.MarshalTo(hash); err != nil {
 		return nil, err
 	}
 	hash.Write(mask.mask)
@@ -52,6 +97,8 @@ func Challenge(suite abstract.Suite, commitment abstract.Point, mask *Mask, mess
 	return suite.Scalar().SetBytes(hash.Sum(nil)), nil
 }
 
+// Response creates the response from the given random scalar v, (collective)
+// challenge c, and private key a, i.e., it returns r = v + c*a.
 func Response(suite abstract.Suite, random abstract.Scalar, challenge abstract.Scalar, private abstract.Scalar) (abstract.Scalar, error) {
 	if private == nil {
 		return nil, errors.New("no private key")
@@ -66,6 +113,7 @@ func Response(suite abstract.Suite, random abstract.Scalar, challenge abstract.S
 	return ca.Add(random, ca), nil
 }
 
+// AggregateResponses returns the sum of given responses.
 func AggregateResponses(suite abstract.Suite, responses []abstract.Scalar) (abstract.Scalar, error) {
 	if responses == nil {
 		return nil, errors.New("empty list of responses")
@@ -77,6 +125,9 @@ func AggregateResponses(suite abstract.Suite, responses []abstract.Scalar) (abst
 	return r, nil
 }
 
+// Sign returns the collective signature from the given (aggregate) commitment
+// V, (aggregate) response r, and participation bitmask Z using the EdDSA
+// format, i.e., the signature is V || r || Z.
 func Sign(suite abstract.Suite, commitment abstract.Point, response abstract.Scalar, mask *Mask) ([]byte, error) {
 	lenV := suite.PointLen()
 	lenSig := lenV + suite.ScalarLen()
@@ -95,6 +146,8 @@ func Sign(suite abstract.Suite, commitment abstract.Point, response abstract.Sca
 	return sig, nil
 }
 
+// Verify checks the given cosignature on the provided message using the list
+// of public keys and cosigning policy.
 func Verify(suite abstract.Suite, publics []abstract.Point, message, sig []byte, policy Policy) error {
 
 	if policy == nil {
@@ -119,7 +172,7 @@ func Verify(suite abstract.Suite, publics []abstract.Point, message, sig []byte,
 		return err
 	}
 	mask.SetMask(sig[lenRes:])
-	A := mask.AggregatePublic()
+	A := mask.AggregatePublic
 	ABuff, err := A.MarshalBinary()
 	if err != nil {
 		return err
@@ -150,23 +203,23 @@ func Verify(suite abstract.Suite, publics []abstract.Point, message, sig []byte,
 	return nil
 }
 
-// mask represents a cosigning participation bit mask.
+// Mask represents a cosigning participation bitmask.
 type Mask struct {
-	mask      []byte
-	publics   []abstract.Point
-	aggPublic abstract.Point
-	suite     abstract.Suite
+	mask            []byte
+	publics         []abstract.Point
+	AggregatePublic abstract.Point
 }
 
-// NewMask returns a new participation bit mask for cosigning where all
-// cosigners are disabled by default.
+// NewMask returns a new participation bitmask for cosigning where all
+// cosigners are disabled by default. If a public key is given it verifies that
+// it is present in the list of keys and sets the corresponding index in the
+// bitmask to 1 (enabled).
 func NewMask(suite abstract.Suite, publics []abstract.Point, myKey abstract.Point) (*Mask, error) {
 	m := &Mask{
 		publics: publics,
-		suite:   suite,
 	}
 	m.mask = make([]byte, m.MaskLen())
-	m.aggPublic = m.suite.Point().Null()
+	m.AggregatePublic = suite.Point().Null()
 	if myKey != nil {
 		found := false
 		for i, key := range publics {
@@ -183,14 +236,14 @@ func NewMask(suite abstract.Suite, publics []abstract.Point, myKey abstract.Poin
 	return m, nil
 }
 
-// Mask returns a copy of the participation bit mask.
+// Mask returns a copy of the participation bitmask.
 func (m *Mask) Mask() []byte {
 	clone := make([]byte, len(m.mask))
 	copy(clone[:], m.mask)
 	return clone
 }
 
-// SetMask sets the participation bit mask according to the given byte slice
+// SetMask sets the participation bitmask according to the given byte slice
 // interpreted in little-endian order, i.e., bits 0-7 of byte 0 correspond to
 // cosigners 0-7, bits 0-7 of byte 1 correspond to cosigners 8-15, etc.
 func (m *Mask) SetMask(mask []byte) error {
@@ -202,11 +255,11 @@ func (m *Mask) SetMask(mask []byte) error {
 		msk := byte(1) << uint(i&7)
 		if ((m.mask[byt] & msk) == 0) && ((mask[byt] & msk) != 0) {
 			m.mask[byt] ^= msk // flip bit in mask from 0 to 1
-			m.aggPublic.Add(m.aggPublic, m.publics[i])
+			m.AggregatePublic.Add(m.AggregatePublic, m.publics[i])
 		}
 		if ((m.mask[byt] & msk) != 0) && ((mask[byt] & msk) == 0) {
 			m.mask[byt] ^= msk // flip bit in mask from 1 to 0
-			m.aggPublic.Sub(m.aggPublic, m.publics[i])
+			m.AggregatePublic.Sub(m.AggregatePublic, m.publics[i])
 		}
 	}
 	return nil
@@ -227,11 +280,11 @@ func (m *Mask) SetMaskBit(signer int, enable bool) error {
 	msk := byte(1) << uint(signer&7)
 	if ((m.mask[byt] & msk) == 0) && enable {
 		m.mask[byt] ^= msk // flip bit in mask from 0 to 1
-		m.aggPublic.Add(m.aggPublic, m.publics[signer])
+		m.AggregatePublic.Add(m.AggregatePublic, m.publics[signer])
 	}
 	if ((m.mask[byt] & msk) != 0) && !enable {
 		m.mask[byt] ^= msk // flip bit in mask from 1 to 0
-		m.aggPublic.Sub(m.aggPublic, m.publics[signer])
+		m.AggregatePublic.Sub(m.AggregatePublic, m.publics[signer])
 	}
 	return nil
 }
@@ -240,7 +293,7 @@ func (m *Mask) SetMaskBit(signer int, enable bool) error {
 // enabled (true) or disabled (false).
 func (m *Mask) MaskBit(signer int) bool {
 	if signer > len(m.publics) {
-		return false // TODO: should this thrown an error? It was a panic before
+		return false // TODO: should this throw an error? It was a panic before.
 	}
 	byt := signer >> 3
 	msk := byte(1) << uint(signer&7)
@@ -264,14 +317,10 @@ func (m *Mask) CountTotal() int {
 	return len(m.publics)
 }
 
-// Aggregate returns the aggregate public key of all *participating* signers.
-func (m *Mask) AggregatePublic() abstract.Point {
-	return m.aggPublic
-}
-
+// AggregateMasks computes the bitwise OR of the two given participation masks.
 func AggregateMasks(a, b []byte) ([]byte, error) {
 	if len(a) != len(b) {
-		return nil, errors.New("length mismatch")
+		return nil, errors.New("non matching mask lengths")
 	}
 	m := make([]byte, len(a))
 	for i := range m {
