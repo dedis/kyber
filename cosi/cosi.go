@@ -37,7 +37,6 @@ P' or a timer has run out. If he has not enough replies he aborts. Finally,
 the leader computes the aggregate response r = \sum{j ∈ P'}(r_j) and publishes
 (V,r,Z) as the signature for the message M.
 */
-
 package cosi
 
 import (
