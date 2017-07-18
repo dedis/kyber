@@ -42,6 +42,7 @@ package cosi
 import (
 	"crypto/cipher"
 	"crypto/sha512"
+	"crypto/subtle"
 	"errors"
 	"fmt"
 
@@ -194,11 +195,17 @@ func Verify(suite abstract.Suite, publics []abstract.Point, message, sig []byte,
 	sB := suite.Point().Mul(nil, r)
 	left := suite.Point().Add(kA, sB)
 
-	// TODO: do constant time comparison
-	if !left.Equal(V) || !policy.Check(mask) {
+	x, err := left.MarshalBinary()
+	if err != nil {
+		return err
+	}
+	y, err := V.MarshalBinary()
+	if err != nil {
+		return err
+	}
+	if subtle.ConstantTimeCompare(x, y) == 0 || !policy.Check(mask) {
 		return errors.New("signature invalid")
 	}
-
 	return nil
 }
 
