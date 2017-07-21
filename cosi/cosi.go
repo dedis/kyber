@@ -50,8 +50,8 @@ import (
 	"github.com/dedis/kyber/random"
 )
 
-// Commit returns a random scalar, generated from the given cipher stream, and
-// a corresponding commitment.
+// Commit returns a random scalar v, generated from the given cipher stream, and
+// a corresponding commitment V = [v]G.
 func Commit(suite abstract.Suite, s cipher.Stream) (abstract.Scalar, abstract.Point) {
 	var stream = s
 	if s == nil {
@@ -63,7 +63,7 @@ func Commit(suite abstract.Suite, s cipher.Stream) (abstract.Scalar, abstract.Po
 }
 
 // AggregateCommitments returns the sum of the given commitments and the
-// bitwise OR of the given masks.
+// bitwise OR of the corresponding masks.
 func AggregateCommitments(suite abstract.Suite, commitments []abstract.Point, masks [][]byte) (abstract.Point, []byte, error) {
 	if len(commitments) != len(masks) {
 		return nil, nil, errors.New("mismatching lengths of commitment and mask slices")
