@@ -18,15 +18,15 @@ multiplication). The aggregate public key is given as A = \sum{i ∈ P}(A_i).
 optionally including the message M to be signed. Upon receiving an announcement
 message, a node starts its commitment phase.
 
-2. Commitment: Each node i picks a random scalar v_i, computes its commitment
-V_i = [v_i]G and sends V_i back to the leader. The leader waits until it has
-received enough commitments (according to some policy) from the other nodes or
-a timer has run out. Let P' be the nodes that have sent their commitments. The
-leader computes an aggregate commitment V from all commitments he has received,
-i.e., V = \sum{j ∈ P'}(V_j) and creates a participation bitmask Z. The leader
-then broadcasts V and Z to the other participations together with the message M
-if it was not sent in phase 1. Upon receiving a commitment message, a node
-starts the challenge phase.
+2. Commitment: Each node i (including the leader) picks a random scalar v_i,
+computes its commitment V_i = [v_i]G and sends V_i back to the leader. The
+leader waits until it has received enough commitments (according to some
+policy) from the other nodes or a timer has run out. Let P' be the nodes that
+have sent their commitments. The leader computes an aggregate commitment V from
+all commitments he has received, i.e., V = \sum{j ∈ P'}(V_j) and creates a
+participation bitmask Z. The leader then broadcasts V and Z to the other
+participations together with the message M if it was not sent in phase 1. Upon
+receiving a commitment message, a node starts the challenge phase.
 
 3. Challenge: Each node i computes the collective challenge c = H(V || A || Z
 || M) using a cryptographic hash function H (here: SHA512), computes its
@@ -50,14 +50,14 @@ import (
 	"github.com/dedis/kyber/random"
 )
 
-// Commit returns a random scalar v, generated from the given cipher stream, and
-// a corresponding commitment V = [v]G.
+// Commit returns a random scalar v, generated from the given cipher stream,
+// and a corresponding commitment V = [v]G. If the given cipher stream is nil,
+// a random stream is used.
 func Commit(suite abstract.Suite, s cipher.Stream) (abstract.Scalar, abstract.Point) {
-	var stream = s
 	if s == nil {
-		stream = random.Stream
+		s = random.Stream
 	}
-	random := suite.Scalar().Pick(stream)
+	random := suite.Scalar().Pick(s)
 	commitment := suite.Point().Mul(nil, random)
 	return random, commitment
 }
@@ -71,7 +71,7 @@ func AggregateCommitments(suite abstract.Suite, commitments []abstract.Point, ma
 	aggCom := suite.Point().Null()
 	aggMask := make([]byte, len(masks[0]))
 	var err error
-	for i := 0; i < len(commitments); i++ {
+	for i := range commitments {
 		aggCom = suite.Point().Add(aggCom, commitments[i])
 		aggMask, err = AggregateMasks(aggMask, masks[i])
 		if err != nil {
@@ -127,9 +127,9 @@ func AggregateResponses(suite abstract.Suite, responses []abstract.Scalar) (abst
 	if responses == nil {
 		return nil, errors.New("no responses provided")
 	}
-	r := responses[0]
-	for i := 1; i < len(responses); i++ {
-		r = suite.Scalar().Add(r, responses[i])
+	r := suite.Scalar().Zero()
+	for i := range responses {
+		r = r.Add(r, responses[i])
 	}
 	return r, nil
 }
@@ -305,7 +305,7 @@ func (m *Mask) Len() int {
 // SetBit enables (enable: true) or disables (enable: false) the bit
 // in the participation mask of the given cosigner.
 func (m *Mask) SetBit(signer int, enable bool) error {
-	if signer > len(m.publics) {
+	if signer >= len(m.publics) {
 		return errors.New("index out of range")
 	}
 	byt := signer >> 3
@@ -324,7 +324,7 @@ func (m *Mask) SetBit(signer int, enable bool) error {
 // Bit returns a boolean value indicating whether the given signer is
 // enabled (true) or disabled (false).
 func (m *Mask) Bit(signer int) (bool, error) {
-	if signer > len(m.publics) {
+	if signer >= len(m.publics) {
 		return false, errors.New("index out of range")
 	}
 	byt := signer >> 3
