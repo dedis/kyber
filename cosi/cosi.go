@@ -275,6 +275,11 @@ func (m *Mask) Mask() []byte {
 	return clone
 }
 
+// Len returns the mask length in bytes.
+func (m *Mask) Len() int {
+	return (len(m.publics) + 7) >> 3
+}
+
 // SetMask sets the participation bitmask according to the given byte slice
 // interpreted in little-endian order, i.e., bits 0-7 of byte 0 correspond to
 // cosigners 0-7, bits 0-7 of byte 1 correspond to cosigners 8-15, etc.
@@ -297,39 +302,23 @@ func (m *Mask) SetMask(mask []byte) error {
 	return nil
 }
 
-// Len returns the mask length in bytes.
-func (m *Mask) Len() int {
-	return (len(m.publics) + 7) >> 3
-}
-
 // SetBit enables (enable: true) or disables (enable: false) the bit
 // in the participation mask of the given cosigner.
-func (m *Mask) SetBit(signer int, enable bool) error {
-	if signer >= len(m.publics) {
+func (m *Mask) SetBit(i int, enable bool) error {
+	if i >= len(m.publics) {
 		return errors.New("index out of range")
 	}
-	byt := signer >> 3
-	msk := byte(1) << uint(signer&7)
+	byt := i >> 3
+	msk := byte(1) << uint(i&7)
 	if ((m.mask[byt] & msk) == 0) && enable {
 		m.mask[byt] ^= msk // flip bit in mask from 0 to 1
-		m.AggregatePublic.Add(m.AggregatePublic, m.publics[signer])
+		m.AggregatePublic.Add(m.AggregatePublic, m.publics[i])
 	}
 	if ((m.mask[byt] & msk) != 0) && !enable {
 		m.mask[byt] ^= msk // flip bit in mask from 1 to 0
-		m.AggregatePublic.Sub(m.AggregatePublic, m.publics[signer])
+		m.AggregatePublic.Sub(m.AggregatePublic, m.publics[i])
 	}
 	return nil
-}
-
-// Bit returns a boolean value indicating whether the given signer is
-// enabled (true) or disabled (false).
-func (m *Mask) Bit(signer int) (bool, error) {
-	if signer >= len(m.publics) {
-		return false, errors.New("index out of range")
-	}
-	byt := signer >> 3
-	msk := byte(1) << uint(signer&7)
-	return (m.mask[byt] & msk) != 0, nil
 }
 
 // CountEnabled returns the number of enabled nodes in the CoSi participation
@@ -386,7 +375,7 @@ func (p CompletePolicy) Check(m *Mask) bool {
 }
 
 // ThresholdPolicy allows to specify a simple t-of-n policy requring that at
-// least the given threshold number of participants have cosigned to make a
+// least the given threshold number of participants t have cosigned to make a
 // collective signature valid.
 type ThresholdPolicy struct {
 	t int

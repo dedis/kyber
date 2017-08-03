@@ -86,7 +86,7 @@ func TestCoSi(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		// Verify
+		// Verify (using default policy)
 		if err := Verify(testSuite, publics, message, sig, nil); err != nil {
 			t.Fatal(err)
 		}
