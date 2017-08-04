@@ -79,8 +79,8 @@ type Response struct {
 	SessionID []byte
 	// Index of the verifier issuing this Response
 	Index uint32
-	// 0 = NO APPROVAL == Complaint , 1 = APPROVAL
-	Status byte
+	// false = NO APPROVAL == Complaint , true = APPROVAL
+	Status bool
 	// Signature over the whole packet
 	Signature []byte
 }
@@ -88,12 +88,10 @@ type Response struct {
 const (
 	// StatusComplaint is a constant value meaning that a verifier issues
 	// a Complaint against its Dealer.
-	StatusComplaint byte = iota
+	StatusComplaint bool = false
 	// StatusApproval is a constant value meaning that a verifier agrees with
 	// the share it received.
-	StatusApproval
-	// special status when a complaint has been justified
-	statusJustified
+	StatusApproval bool = true
 )
 
 // Justification is a message that is broadcasted by the Dealer in response to
@@ -565,7 +563,7 @@ func (a *aggregator) verifyJustification(j *Justification) error {
 		a.badDealer = true
 		return err
 	}
-	r.Status = statusJustified
+	r.Status = StatusApproval
 	return nil
 }
 
