@@ -61,6 +61,7 @@ func NewTCPConn(addr Address, suite Suite) (conn *TCPConn, err error) {
 			conn = &TCPConn{
 				endpoint: addr,
 				conn:     c,
+				suite:    suite,
 			}
 			return
 		}
@@ -317,6 +318,7 @@ func (t *TCPListener) listen(fn func(Conn)) error {
 		c := TCPConn{
 			endpoint: NewTCPAddress(conn.RemoteAddr().String()),
 			conn:     conn,
+			suite:    t.suite,
 		}
 		fn(&c)
 	}
