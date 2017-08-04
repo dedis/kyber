@@ -137,7 +137,17 @@ func Unmarshal(buf []byte, suite Suite) (MessageTypeID, Message, error) {
 	}
 	ptrVal := reflect.New(typ)
 	ptr := ptrVal.Interface()
-	constructors := DefaultConstructors(suite)
+	/* constructors := DefaultConstructors(suite)*/
+	//var point kyber.Point
+	//fmt.Println("1" + constructors.String())
+	/*fmt.Println(constructors[reflect.TypeOf(&point).Elem()]())*/
+	constructors := make(protobuf.Constructors)
+	var point kyber.Point
+	var secret kyber.Scalar
+	constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return suite.Point() }
+	constructors[reflect.TypeOf(&secret).Elem()] = func() interface{} { return suite.Scalar() }
+	fmt.Println(constructors[reflect.TypeOf(&point).Elem()]())
+
 	if err := protobuf.DecodeWithConstructors(b.Bytes(), ptr, constructors); err != nil {
 		return ErrorType, nil, err
 	}

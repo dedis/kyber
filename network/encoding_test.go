@@ -35,7 +35,7 @@ func TestUnmarshalRegister(t *testing.T) {
 	buff, err := Marshal(&TestRegisterS{10})
 	require.Nil(t, err)
 
-	ty, b, err := Unmarshal(buff)
+	ty, b, err := Unmarshal(buff, testSuite)
 	assert.Nil(t, err)
 	assert.Equal(t, trType, ty)
 	assert.Equal(t, 10, b.(*TestRegisterS).I)
@@ -43,7 +43,7 @@ func TestUnmarshalRegister(t *testing.T) {
 	var randType [16]byte
 	rand.Read(randType[:])
 	buff = append(randType[:], buff[16:]...)
-	ty, b, err = Unmarshal(buff)
+	ty, b, err = Unmarshal(buff, testSuite)
 	assert.NotNil(t, err)
 	assert.Equal(t, ErrorType, ty)
 }

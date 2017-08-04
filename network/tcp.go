@@ -78,12 +78,12 @@ func NewTCPConn(addr Address, suite Suite) (conn *TCPConn, err error) {
 // It returns the Envelope containing the message,
 // or EmptyEnvelope and an error if something wrong happened.
 func (c *TCPConn) Receive() (env *Envelope, e error) {
-	defer func() {
-		if err := recover(); err != nil {
-			e = fmt.Errorf("Error Received message: %v\n%s", err, log.Stack())
-			env = nil
-		}
-	}()
+	/*defer func() {*/
+	//if err := recover(); err != nil {
+	//e = fmt.Errorf("Error Received message: %v\n%s", err, log.Stack())
+	//env = nil
+	//}
+	//}()
 
 	buff, err := c.receiveRaw()
 	if err != nil {

@@ -26,7 +26,7 @@ func init() {
 }
 
 func TestNodeChannelCreateSlice(t *testing.T) {
-	local := NewLocalTest()
+	local := NewLocalTest(suite)
 	_, _, tree := local.GenTree(2, true)
 	defer local.CloseAll()
 
@@ -47,7 +47,7 @@ func TestNodeChannelCreateSlice(t *testing.T) {
 }
 
 func TestNodeChannelCreate(t *testing.T) {
-	local := NewLocalTest()
+	local := NewLocalTest(suite)
 	_, _, tree := local.GenTree(2, true)
 	defer local.CloseAll()
 
@@ -82,7 +82,7 @@ func TestNodeChannelCreate(t *testing.T) {
 }
 
 func TestNodeChannel(t *testing.T) {
-	local := NewLocalTest()
+	local := NewLocalTest(suite)
 	_, _, tree := local.GenTree(2, true)
 	defer local.CloseAll()
 
@@ -118,7 +118,7 @@ func TestNodeChannel(t *testing.T) {
 
 // Test instantiation of Node
 func TestNodeNew(t *testing.T) {
-	local := NewLocalTest()
+	local := NewLocalTest(suite)
 	defer local.CloseAll()
 
 	hosts, _, tree := local.GenTree(2, true)
@@ -140,7 +140,7 @@ func TestNodeNew(t *testing.T) {
 }
 
 func TestTreeNodeProtocolHandlers(t *testing.T) {
-	local := NewLocalTest()
+	local := NewLocalTest(suite)
 	_, _, tree := local.GenTree(3, true)
 	defer local.CloseAll()
 	log.Lvl2("Sending to children")
@@ -174,7 +174,7 @@ func TestTreeNodeProtocolHandlers(t *testing.T) {
 }
 
 func TestTreeNodeMsgAggregation(t *testing.T) {
-	local := NewLocalTest()
+	local := NewLocalTest(suite)
 	_, _, tree := local.GenTree(3, true)
 	defer local.CloseAll()
 	root, err := local.StartProtocol(ProtocolChannelsName, tree)
@@ -213,7 +213,7 @@ func TestTreeNodeMsgAggregation(t *testing.T) {
 
 func TestTreeNodeFlags(t *testing.T) {
 	testType := network.MessageTypeID(uuid.Nil)
-	local := NewLocalTest()
+	local := NewLocalTest(suite)
 	_, _, tree := local.GenTree(3, true)
 	defer local.CloseAll()
 	p, err := local.CreateProtocol(ProtocolChannelsName, tree)
@@ -366,7 +366,7 @@ func (p *ProtocolHandlers) Release() {
 }
 
 func TestNodeBlocking(t *testing.T) {
-	l := NewLocalTest()
+	l := NewLocalTest(suite)
 	_, _, tree := l.GenTree(2, true)
 	defer l.CloseAll()
 

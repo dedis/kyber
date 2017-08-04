@@ -138,7 +138,7 @@ func TestProtocolAutomaticInstantiation(t *testing.T) {
 	}
 
 	GlobalProtocolRegister(simpleProto, fn)
-	local := NewLocalTest()
+	local := NewLocalTest(suite)
 	defer local.CloseAll()
 	h, _, tree := local.GenTree(2, true)
 	h1 := h[0]
@@ -178,7 +178,7 @@ func TestProtocolError(t *testing.T) {
 	}
 
 	GlobalProtocolRegister(simpleProto, fn)
-	local := NewLocalTest()
+	local := NewLocalTest(suite)
 	h, _, tree := local.GenTree(2, true)
 	h1 := h[0]
 
@@ -232,7 +232,7 @@ func TestMessageProxyFactory(t *testing.T) {
 
 func TestMessageProxyStore(t *testing.T) {
 	defer eraseAllMessageProxy()
-	local := NewLocalTest()
+	local := NewLocalTest(suite)
 	defer local.CloseAll()
 
 	RegisterMessageProxy(NewTestMessageProxy)

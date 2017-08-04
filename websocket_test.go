@@ -23,7 +23,7 @@ func init() {
 }
 
 func TestNewWebSocket(t *testing.T) {
-	c := NewTCPServer(0)
+	c := NewTCPServer(0, suite)
 	defer c.Close()
 	require.Equal(t, len(c.serviceManager.services), len(c.websocket.services))
 	require.NotEmpty(t, c.websocket.services[serviceWebSocket])
@@ -61,14 +61,14 @@ func TestGetWebHost(t *testing.T) {
 }
 
 func TestClient_Send(t *testing.T) {
-	local := NewTCPTest()
+	local := NewTCPTest(suite)
 	defer local.CloseAll()
 
 	// register service
-	RegisterNewService(backForthServiceName, func(c *Context) Service {
+	RegisterNewService(backForthServiceName, func(c *Context, suite interface{}) (Service, error) {
 		return &simpleService{
 			ctx: c,
-		}
+		}, nil
 	})
 	defer ServiceFactory.Unregister(backForthServiceName)
 
@@ -93,14 +93,14 @@ func TestClient_Send(t *testing.T) {
 func TestClient_Parallel(t *testing.T) {
 	nbrNodes := 4
 	nbrParallel := 20
-	local := NewTCPTest()
+	local := NewTCPTest(suite)
 	defer local.CloseAll()
 
 	// register service
-	RegisterNewService(backForthServiceName, func(c *Context) Service {
+	RegisterNewService(backForthServiceName, func(c *Context, suite interface{}) (Service, error) {
 		return &simpleService{
 			ctx: c,
-		}
+		}, nil
 	})
 	defer ServiceFactory.Unregister(backForthServiceName)
 
@@ -145,7 +145,7 @@ func TestNewClientError(t *testing.T) {
 }
 
 func TestNewClientKeep(t *testing.T) {
-	c := NewClientKeep(serviceWebSocket)
+	c := NewClientKeep(serviceWebSocket, suite)
 	assert.True(t, c.keep)
 }
 
@@ -159,10 +159,10 @@ func (i *ServiceWebSocket) SimpleResponse(msg *SimpleResponse) (network.Message,
 	return &SimpleResponse{msg.Val + 1}, nil
 }
 
-func newServiceWebSocket(c *Context) Service {
+func newServiceWebSocket(c *Context, suite interface{}) (Service, error) {
 	s := &ServiceWebSocket{
-		ServiceProcessor: NewServiceProcessor(c),
+		ServiceProcessor: NewServiceProcessor(c, suite.(network.Suite)),
 	}
 	log.ErrFatal(s.RegisterHandler(s.SimpleResponse))
-	return s
+	return s, nil
 }

@@ -105,8 +105,8 @@ func (l *LocalTest) CreateProtocol(name string, t *Tree) (ProtocolInstance, erro
 }
 
 // GenServers returns n Servers with a localRouter
-func (l *LocalTest) GenServers(n int, s network.Suite) []*Server {
-	servers := l.genLocalHosts(n, s)
+func (l *LocalTest) GenServers(n int) []*Server {
+	servers := l.genLocalHosts(n)
 	for _, server := range servers {
 		l.Servers[server.ServerIdentity.ID] = server
 		l.Overlays[server.ServerIdentity.ID] = server.overlay
@@ -118,8 +118,8 @@ func (l *LocalTest) GenServers(n int, s network.Suite) []*Server {
 
 // GenTree will create a tree of n servers with a localRouter, and returns the
 // list of servers and the associated roster / tree.
-func (l *LocalTest) GenTree(n int, register bool, s network.Suite) ([]*Server, *Roster, *Tree) {
-	servers := l.GenServers(n, s)
+func (l *LocalTest) GenTree(n int, register bool) ([]*Server, *Roster, *Tree) {
+	servers := l.GenServers(n)
 
 	list := l.GenRosterFromHost(servers...)
 	tree := list.GenerateBinaryTree()
@@ -138,8 +138,8 @@ func (l *LocalTest) GenTree(n int, register bool, s network.Suite) ([]*Server, *
 // 'nbrTreeNodes' is how many TreeNodes are created
 // nbrServers can be smaller than nbrTreeNodes, in which case a given server will
 // be used more than once in the tree.
-func (l *LocalTest) GenBigTree(nbrTreeNodes, nbrServers, bf int, register bool, s network.Suite) ([]*Server, *Roster, *Tree) {
-	servers := l.GenServers(nbrServers, s)
+func (l *LocalTest) GenBigTree(nbrTreeNodes, nbrServers, bf int, register bool) ([]*Server, *Roster, *Tree) {
+	servers := l.GenServers(nbrServers)
 
 	list := l.GenRosterFromHost(servers...)
 	tree := list.GenerateBigNaryTree(bf, nbrTreeNodes)
@@ -284,7 +284,7 @@ func (l *LocalTest) GetServices(servers []*Server, sid ServiceID) []Service {
 // returns the Service object of the first servers in the list having sid as a
 // ServiceID.
 func (l *LocalTest) MakeHELS(nbr int, sid ServiceID, s network.Suite) ([]*Server, *Roster, Service) {
-	servers := l.GenServers(nbr, s)
+	servers := l.GenServers(nbr)
 	el := l.GenRosterFromHost(servers...)
 	return servers, el, l.Services[servers[0].ServerIdentity.ID][sid]
 }
@@ -367,11 +367,11 @@ func (l *LocalTest) NewClient(serviceName string) *Client {
 }
 
 // genLocalHosts returns n servers created with a localRouter
-func (l *LocalTest) genLocalHosts(n int, s network.Suite) []*Server {
+func (l *LocalTest) genLocalHosts(n int) []*Server {
 	servers := make([]*Server, n)
 	for i := 0; i < n; i++ {
 		port := 2000 + i*10
-		servers[i] = l.NewServer(port, s)
+		servers[i] = l.NewServer(port, l.Suite)
 	}
 	return servers
 }

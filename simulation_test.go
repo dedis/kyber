@@ -69,7 +69,7 @@ func TestSimulationLoadSave(t *testing.T) {
 	log.ErrFatal(err)
 	defer os.RemoveAll(dir)
 	sc.Save(dir)
-	sc2, err := LoadSimulationConfig(dir, sc.Roster.List[0].Address.NetworkAddress())
+	sc2, err := LoadSimulationConfig(dir, sc.Roster.List[0].Address.NetworkAddress(), suite)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestSimulationMultipleInstances(t *testing.T) {
 	log.ErrFatal(err)
 	defer os.RemoveAll(dir)
 	sc.Save(dir)
-	sc2, err := LoadSimulationConfig(dir, sc.Roster.List[0].Address.Host())
+	sc2, err := LoadSimulationConfig(dir, sc.Roster.List[0].Address.Host(), suite)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +120,7 @@ func createBFTree(hosts, bf int, addresses []string) (*SimulationConfig, *Simula
 		Hosts: hosts,
 		BF:    bf,
 	}
-	sb.CreateRoster(sc, addresses, 2000)
+	sb.CreateRoster(sc, addresses, 2000, suite)
 	if len(sc.Roster.List) != hosts {
 		return nil, nil, errors.New("Didn't get correct number of entities")
 	}

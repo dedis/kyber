@@ -14,7 +14,7 @@ import (
 	"gopkg.in/dedis/onet.v2/network"
 )
 
-var tSuite = network.S
+var tSuite = suite
 var prefix = "127.0.0.1:"
 
 // test the ID generation
@@ -489,7 +489,7 @@ func BenchmarkUnmarshalRegisteredType(b *testing.B) {
 	buf, _ := tree.BinaryMarshaler()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _, _ = network.Unmarshal(buf)
+		_, _, _ = network.Unmarshal(buf, suite)
 	}
 }
 
