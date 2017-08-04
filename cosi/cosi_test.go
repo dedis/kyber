@@ -92,3 +92,87 @@ func TestCoSi(t *testing.T) {
 		}
 	}
 }
+
+func TestCoSiThreshold(t *testing.T) {
+	n := 5
+	f := 2
+	message := []byte("Hello World Cosi")
+
+	// Generate key pairs
+	var kps []*config.KeyPair
+	var privates []abstract.Scalar
+	var publics []abstract.Point
+	for i := 0; i < n; i++ {
+		kp := config.NewKeyPair(testSuite)
+		kps = append(kps, kp)
+		privates = append(privates, kp.Secret)
+		publics = append(publics, kp.Public)
+	}
+
+	// Init masks
+	var masks []*Mask
+	var byteMasks [][]byte
+	for i := 0; i < n-f; i++ {
+		m, err := NewMask(testSuite, publics, publics[i])
+		if err != nil {
+			t.Fatal(err)
+		}
+		masks = append(masks, m)
+		byteMasks = append(byteMasks, masks[i].Mask())
+	}
+
+	// Compute commitments
+	var v []abstract.Scalar // random
+	var V []abstract.Point  // commitment
+	for i := 0; i < n-f; i++ {
+		x, X := Commit(testSuite, nil)
+		v = append(v, x)
+		V = append(V, X)
+	}
+
+	// Aggregate commitments
+	aggV, aggMask, err := AggregateCommitments(testSuite, V, byteMasks)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Set aggregate mask in nodes
+	for i := 0; i < n-f; i++ {
+		masks[i].SetMask(aggMask)
+	}
+
+	// Compute challenge
+	var c []abstract.Scalar
+	for i := 0; i < n-f; i++ {
+		ci, err := Challenge(testSuite, aggV, masks[i], message)
+		if err != nil {
+			t.Fatal(err)
+		}
+		c = append(c, ci)
+	}
+
+	// Compute responses
+	var r []abstract.Scalar
+	for i := 0; i < n-f; i++ {
+		ri, _ := Response(testSuite, v[i], c[i], privates[i])
+		r = append(r, ri)
+	}
+
+	// Aggregate responses
+	aggr, err := AggregateResponses(testSuite, r)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i := 0; i < n-f; i++ {
+		// Sign
+		sig, err := Sign(testSuite, aggV, aggr, masks[i])
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Verify (using threshold policy)
+		if err := Verify(testSuite, publics, message, sig, &ThresholdPolicy{n - f}); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
