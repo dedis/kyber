@@ -13,7 +13,7 @@ import (
 func Example_hashProve1() {
 
 	// Crypto setup
-	suite := edwards25519.NewAES128SHA256Ed25519(false)
+	suite := edwards25519.NewAES128SHA256Ed25519()
 	rand := suite.Cipher([]byte("example"))
 	B := suite.Point().Base() // standard base point
 
@@ -77,7 +77,7 @@ func Example_hashProve1() {
 func Example_hashProve2() {
 
 	// Crypto setup
-	suite := edwards25519.NewAES128SHA256Ed25519(false)
+	suite := edwards25519.NewAES128SHA256Ed25519()
 	rand := suite.Cipher([]byte("example"))
 	B := suite.Point().Base() // standard base point
 

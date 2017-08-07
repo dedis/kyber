@@ -9,7 +9,7 @@ import (
 	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
-var testSuite = edwards25519.NewAES128SHA256Ed25519(false)
+var testSuite = edwards25519.NewAES128SHA256Ed25519()
 
 type node struct {
 	i    int

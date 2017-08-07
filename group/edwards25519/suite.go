@@ -62,7 +62,7 @@ func (s *SuiteEd25519) NewKey(stream cipher.Stream) kyber.Scalar {
 
 // NewAES128SHA256Ed25519 returns a cipher suite based on AES-128, SHA-256, and
 // the Ed25519 curve.
-func NewAES128SHA256Ed25519(fullGroup bool) *SuiteEd25519 {
+func NewAES128SHA256Ed25519() *SuiteEd25519 {
 	suite := new(SuiteEd25519)
 	return suite
 }

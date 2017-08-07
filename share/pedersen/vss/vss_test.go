@@ -11,7 +11,7 @@ import (
 	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
-var suite = edwards25519.NewAES128SHA256Ed25519(false)
+var suite = edwards25519.NewAES128SHA256Ed25519()
 
 var reader = random.Stream
 

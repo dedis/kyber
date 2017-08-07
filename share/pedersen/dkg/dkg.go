@@ -28,11 +28,14 @@ func (d *DistKeyShare) Public() kyber.Point {
 	return d.Commits[0]
 }
 
+// PriShare implements the dss.DistKeyShare interface so either pedersen or
+// rabin dkg can be used with dss.
 func (d *DistKeyShare) PriShare() *share.PriShare {
 	return d.Share
 }
 
-// Commitments
+// Commitments implements the dss.DistKeyShare interface so either pedersen or
+// rabin dkg can be used with dss.
 func (d *DistKeyShare) Commitments() []kyber.Point {
 	return d.Commits
 }

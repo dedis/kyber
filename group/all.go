@@ -18,7 +18,7 @@ import (
 var suites = map[string]interface{}{}
 
 func init() {
-	ed25519 := edwards25519.NewAES128SHA256Ed25519(false)
+	ed25519 := edwards25519.NewAES128SHA256Ed25519()
 	suites[ed25519.String()] = ed25519
 }
 

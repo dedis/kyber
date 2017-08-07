@@ -12,7 +12,7 @@ import (
 	"gopkg.in/dedis/kyber.v1/util/key"
 )
 
-var testSuite = edwards25519.NewAES128SHA256Ed25519(false)
+var testSuite = edwards25519.NewAES128SHA256Ed25519()
 
 // TestCosiCommitment test if the commitment generation is correct
 func TestCosiCommitment(t *testing.T) {

@@ -10,7 +10,7 @@ import (
 )
 
 func TestDLEQProof(t *testing.T) {
-	suite := edwards25519.NewAES128SHA256Ed25519(false)
+	suite := edwards25519.NewAES128SHA256Ed25519()
 	n := 10
 	for i := 0; i < n; i++ {
 		// Create some random secrets and base points
@@ -24,7 +24,7 @@ func TestDLEQProof(t *testing.T) {
 }
 
 func TestDLEQProofBatch(t *testing.T) {
-	suite := edwards25519.NewAES128SHA256Ed25519(false)
+	suite := edwards25519.NewAES128SHA256Ed25519()
 	n := 10
 	x := make([]kyber.Scalar, n)
 	g := make([]kyber.Point, n)
@@ -42,7 +42,7 @@ func TestDLEQProofBatch(t *testing.T) {
 }
 
 func TestDLEQLengths(t *testing.T) {
-	suite := edwards25519.NewAES128SHA256Ed25519(false)
+	suite := edwards25519.NewAES128SHA256Ed25519()
 	n := 10
 	x := make([]kyber.Scalar, n)
 	g := make([]kyber.Point, n)

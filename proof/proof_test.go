@@ -10,7 +10,7 @@ import (
 )
 
 func TestRep(t *testing.T) {
-	suite := edwards25519.NewAES128SHA256Ed25519(false)
+	suite := edwards25519.NewAES128SHA256Ed25519()
 	rand := suite.Cipher(kyber.RandomKey)
 
 	x := suite.Scalar().Pick(rand)
@@ -85,7 +85,7 @@ func Example_rep2() {
 	fmt.Println(pred.String())
 
 	// Crypto setup
-	suite := edwards25519.NewAES128SHA256Ed25519(false)
+	suite := edwards25519.NewAES128SHA256Ed25519()
 	rand := suite.Cipher([]byte("example"))
 	B := suite.Point().Base() // standard base point
 
@@ -196,7 +196,7 @@ func Example_or2() {
 	fmt.Println("Predicate: " + pred.String())
 
 	// Crypto setup
-	suite := edwards25519.NewAES128SHA256Ed25519(false)
+	suite := edwards25519.NewAES128SHA256Ed25519()
 	rand := suite.Cipher([]byte("example"))
 	B := suite.Point().Base() // standard base point
 

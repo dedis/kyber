@@ -20,7 +20,7 @@ import (
 func Example_sign1() {
 
 	// Crypto setup
-	suite := edwards25519.NewAES128SHA256Ed25519(false)
+	suite := edwards25519.NewAES128SHA256Ed25519()
 	rand := suite.Cipher([]byte("example"))
 
 	// Create a public/private keypair (X[mine],x)
@@ -68,7 +68,7 @@ func Example_sign1() {
 func ExampleSign_anonSet() {
 
 	// Crypto setup
-	suite := edwards25519.NewAES128SHA256Ed25519(false)
+	suite := edwards25519.NewAES128SHA256Ed25519()
 	rand := suite.Cipher([]byte("example"))
 
 	// Create an anonymity set of random "public keys"
@@ -127,7 +127,7 @@ func ExampleSign_anonSet() {
 func ExampleSign_linkable() {
 
 	// Crypto setup
-	suite := edwards25519.NewAES128SHA256Ed25519(false)
+	suite := edwards25519.NewAES128SHA256Ed25519()
 	rand := suite.Cipher([]byte("example"))
 
 	// Create an anonymity set of random "public keys"
@@ -265,10 +265,10 @@ func benchGenKeys(g kyber.Group,
 }
 
 func benchGenKeysOpenSSL(nkeys int) ([]kyber.Point, kyber.Scalar) {
-	return benchGenKeys(edwards25519.NewAES128SHA256Ed25519(false), nkeys)
+	return benchGenKeys(edwards25519.NewAES128SHA256Ed25519(), nkeys)
 }
 func benchGenSigOpenSSL(nkeys int) []byte {
-	suite := edwards25519.NewAES128SHA256Ed25519(false)
+	suite := edwards25519.NewAES128SHA256Ed25519()
 	rand := suite.Cipher([]byte("example"))
 	return Sign(suite, rand, benchMessage,
 		Set(benchPubOpenSSL[:nkeys]), nil,
@@ -276,10 +276,10 @@ func benchGenSigOpenSSL(nkeys int) []byte {
 }
 
 func benchGenKeysEd25519(nkeys int) ([]kyber.Point, kyber.Scalar) {
-	return benchGenKeys(edwards25519.NewAES128SHA256Ed25519(false), nkeys)
+	return benchGenKeys(edwards25519.NewAES128SHA256Ed25519(), nkeys)
 }
 func benchGenSigEd25519(nkeys int) []byte {
-	suite := edwards25519.NewAES128SHA256Ed25519(false)
+	suite := edwards25519.NewAES128SHA256Ed25519()
 	rand := suite.Cipher([]byte("example"))
 	return Sign(suite, rand, benchMessage,
 		Set(benchPubEd25519[:nkeys]), nil,
@@ -305,53 +305,53 @@ func benchVerify(suite Suite, pub []kyber.Point,
 }
 
 func BenchmarkSign1OpenSSL(b *testing.B) {
-	benchSign(edwards25519.NewAES128SHA256Ed25519(false),
+	benchSign(edwards25519.NewAES128SHA256Ed25519(),
 		benchPubOpenSSL[:1], benchPriOpenSSL, b.N)
 }
 func BenchmarkSign10OpenSSL(b *testing.B) {
-	benchSign(edwards25519.NewAES128SHA256Ed25519(false),
+	benchSign(edwards25519.NewAES128SHA256Ed25519(),
 		benchPubOpenSSL[:10], benchPriOpenSSL, b.N)
 }
 func BenchmarkSign100OpenSSL(b *testing.B) {
-	benchSign(edwards25519.NewAES128SHA256Ed25519(false),
+	benchSign(edwards25519.NewAES128SHA256Ed25519(),
 		benchPubOpenSSL[:100], benchPriOpenSSL, b.N)
 }
 
 func BenchmarkVerify1OpenSSL(b *testing.B) {
-	benchVerify(edwards25519.NewAES128SHA256Ed25519(false),
+	benchVerify(edwards25519.NewAES128SHA256Ed25519(),
 		benchPubOpenSSL[:1], benchSig1OpenSSL, b.N)
 }
 func BenchmarkVerify10OpenSSL(b *testing.B) {
-	benchVerify(edwards25519.NewAES128SHA256Ed25519(false),
+	benchVerify(edwards25519.NewAES128SHA256Ed25519(),
 		benchPubOpenSSL[:10], benchSig10OpenSSL, b.N)
 }
 func BenchmarkVerify100OpenSSL(b *testing.B) {
-	benchVerify(edwards25519.NewAES128SHA256Ed25519(false),
+	benchVerify(edwards25519.NewAES128SHA256Ed25519(),
 		benchPubOpenSSL[:100], benchSig100OpenSSL, b.N)
 }
 
 func BenchmarkSign1Ed25519(b *testing.B) {
-	benchSign(edwards25519.NewAES128SHA256Ed25519(false),
+	benchSign(edwards25519.NewAES128SHA256Ed25519(),
 		benchPubEd25519[:1], benchPriEd25519, b.N)
 }
 func BenchmarkSign10Ed25519(b *testing.B) {
-	benchSign(edwards25519.NewAES128SHA256Ed25519(false),
+	benchSign(edwards25519.NewAES128SHA256Ed25519(),
 		benchPubEd25519[:10], benchPriEd25519, b.N)
 }
 func BenchmarkSign100Ed25519(b *testing.B) {
-	benchSign(edwards25519.NewAES128SHA256Ed25519(false),
+	benchSign(edwards25519.NewAES128SHA256Ed25519(),
 		benchPubEd25519[:100], benchPriEd25519, b.N)
 }
 
 func BenchmarkVerify1Ed25519(b *testing.B) {
-	benchVerify(edwards25519.NewAES128SHA256Ed25519(false),
+	benchVerify(edwards25519.NewAES128SHA256Ed25519(),
 		benchPubEd25519[:1], benchSig1Ed25519, b.N)
 }
 func BenchmarkVerify10Ed25519(b *testing.B) {
-	benchVerify(edwards25519.NewAES128SHA256Ed25519(false),
+	benchVerify(edwards25519.NewAES128SHA256Ed25519(),
 		benchPubEd25519[:10], benchSig10Ed25519, b.N)
 }
 func BenchmarkVerify100Ed25519(b *testing.B) {
-	benchVerify(edwards25519.NewAES128SHA256Ed25519(false),
+	benchVerify(edwards25519.NewAES128SHA256Ed25519(),
 		benchPubEd25519[:100], benchSig100Ed25519, b.N)
 }

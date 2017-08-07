@@ -27,6 +27,8 @@ func NewKeyPair(suite Suite) *Pair {
 	return kp
 }
 
+// NewHidingKeyPair creates a secret/public key pair and makes sure the
+// the public key is hiding-encodable under the field keypair.Hiding.
 func NewHidingKeyPair(suite Suite) *Pair {
 	kp := new(Pair)
 	kp.GenHiding(suite, random.Stream)
@@ -41,6 +43,8 @@ func (p *Pair) Gen(suite Suite, random cipher.Stream) {
 	p.Public = suite.Point().Mul(p.Secret, nil)
 }
 
+// GenHiding tries to generate private / public key pair as long as the public
+// key is not hiding-encodable.
 func (p *Pair) GenHiding(suite Suite, rand cipher.Stream) {
 	p.Gen(suite, rand)
 	Xh := p.Public.(kyber.Hiding)

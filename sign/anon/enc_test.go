@@ -13,7 +13,7 @@ import (
 func Example_encrypt1() {
 
 	// Crypto setup
-	suite := edwards25519.NewAES128SHA256Ed25519(false)
+	suite := edwards25519.NewAES128SHA256Ed25519()
 	rand := suite.Cipher([]byte("example"))
 
 	// Create a public/private keypair (X[mine],x)
@@ -51,7 +51,7 @@ func Example_encrypt1() {
 func ExampleEncrypt_anonSet() {
 
 	// Crypto setup
-	suite := edwards25519.NewAES128SHA256Ed25519(false)
+	suite := edwards25519.NewAES128SHA256Ed25519()
 	rand := suite.Cipher([]byte("example"))
 
 	// Create an anonymity set of random "public keys"

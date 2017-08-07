@@ -11,7 +11,7 @@ import (
 
 func TestSchnorrSignature(t *testing.T) {
 	msg := []byte("Hello Schnorr")
-	suite := edwards25519.NewAES128SHA256Ed25519(false)
+	suite := edwards25519.NewAES128SHA256Ed25519()
 	kp := key.NewKeyPair(suite)
 
 	s, err := Sign(suite, kp.Secret, msg)
@@ -49,7 +49,7 @@ func TestSchnorrSignature(t *testing.T) {
 
 func TestEdDSACompatibility(t *testing.T) {
 	msg := []byte("Hello Schnorr")
-	suite := edwards25519.NewAES128SHA256Ed25519(false)
+	suite := edwards25519.NewAES128SHA256Ed25519()
 	kp := key.NewKeyPair(suite)
 
 	s, err := Sign(suite, kp.Secret, msg)

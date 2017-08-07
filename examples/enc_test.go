@@ -58,7 +58,7 @@ see for example anon.Encrypt, which encrypts a message for
 one of several possible receivers forming an explicit anonymity set.
 */
 func Example_elGamalEncryption() {
-	group := edwards25519.NewAES128SHA256Ed25519(false)
+	group := edwards25519.NewAES128SHA256Ed25519()
 
 	// Create a public/private keypair
 	a := group.Scalar().Pick(random.Stream) // Alice's private key

@@ -6,7 +6,7 @@ import (
 	"gopkg.in/dedis/kyber.v1/util/test"
 )
 
-var testSuite = NewAES128SHA256Ed25519(false)
+var testSuite = NewAES128SHA256Ed25519()
 var groupBench = test.NewGroupBench(testSuite)
 
 func TestSuite(t *testing.T) { test.SuiteTest(testSuite) }

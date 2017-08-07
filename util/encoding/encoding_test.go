@@ -9,7 +9,7 @@ import (
 	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
-var s = edwards25519.NewAES128SHA256Ed25519(false)
+var s = edwards25519.NewAES128SHA256Ed25519()
 
 func ErrFatal(err error) {
 	if err == nil {

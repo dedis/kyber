@@ -11,7 +11,7 @@ import (
 	"gopkg.in/dedis/kyber.v1/proof"
 )
 
-var suite = edwards25519.NewAES128SHA256Ed25519(false)
+var suite = edwards25519.NewAES128SHA256Ed25519()
 var k = 5
 var N = 10
 

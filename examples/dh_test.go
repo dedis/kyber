@@ -15,7 +15,7 @@ simply by changing the first line that picks the suite.
 func Example_diffieHellman() {
 
 	// Crypto setup: NIST-standardized P256 curve with AES-128 and SHA-256
-	suite := edwards25519.NewAES128SHA256Ed25519(false)
+	suite := edwards25519.NewAES128SHA256Ed25519()
 
 	// Alice's public/private keypair
 	a := suite.Scalar().Pick(random.Stream) // Alice's private key
