@@ -40,6 +40,9 @@ type Platform interface {
 // Config is passed to Platform.Config and prepares the platform for
 // specific system-wide configurations
 type Config struct {
+	// string denoting the group used for simulations
+	// XXX find ways to remove that "one suite" assumption
+	Suite       string
 	MonitorPort int
 	Debug       int
 }

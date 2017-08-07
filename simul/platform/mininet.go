@@ -80,6 +80,8 @@ type MiniNet struct {
 	Delay int
 	// Bandwidth in Mbps of the network connection
 	Bandwidth int
+	// Suite used for the simulation
+	Suite string
 }
 
 // Configure implements the Platform-interface. It is called once to set up
@@ -93,6 +95,7 @@ func (m *MiniNet) Configure(pc *Config) {
 		log.Fatal("Couldn't get my path")
 	}
 	var err error
+	m.Suite = pc.Suite
 	m.mininetDir, err = filepath.Abs(path.Dir(filename))
 	log.ErrFatal(err)
 	m.mininetDir = filepath.Join(m.mininetDir, "mininet")

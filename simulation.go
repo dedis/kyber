@@ -24,12 +24,6 @@ var simulationRegistered map[string]simulationCreate
 // simulation config.
 const SimulationFileName = "simulation.bin"
 
-// SimulSuite wraps the functionalities needed by the simulation framework
-type SimulSuite interface {
-	network.Suite
-	kyber.HashFactory
-}
-
 // Simulation is an interface needed by every protocol that wants to be available
 // to be used in a simulation.
 type Simulation interface {
@@ -82,7 +76,7 @@ type SimulationConfigFile struct {
 
 // LoadSimulationConfig gets all configuration from dir + SimulationFileName and instantiates the
 // corresponding host 'ca'.
-func LoadSimulationConfig(dir, ca string, s SimulSuite) ([]*SimulationConfig, error) {
+func LoadSimulationConfig(dir, ca string, s network.Suite) ([]*SimulationConfig, error) {
 	network.RegisterMessage(SimulationConfigFile{})
 	bin, err := ioutil.ReadFile(dir + "/" + SimulationFileName)
 	if err != nil {
@@ -207,7 +201,7 @@ type SimulationBFTree struct {
 // CreateRoster creates an Roster with the host-names in 'addresses'.
 // It creates 's.Hosts' entries, starting from 'port' for each round through
 // 'addresses'. The network.Address(es) created are of type PlainTCP.
-func (s *SimulationBFTree) CreateRoster(sc *SimulationConfig, addresses []string, port int, suite SimulSuite) {
+func (s *SimulationBFTree) CreateRoster(sc *SimulationConfig, addresses []string, port int, suite network.Suite) {
 	start := time.Now()
 	nbrAddr := len(addresses)
 	if sc.PrivateKeys == nil {

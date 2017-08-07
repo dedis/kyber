@@ -3,16 +3,19 @@ package manage
 import (
 	"testing"
 
+	"gopkg.in/dedis/kyber.v1/group/edwards25519"
+
 	"time"
 
 	"gopkg.in/dedis/onet.v2"
-	"gopkg.in/dedis/onet.v2/log"
 )
+
+var suite = edwards25519.NewAES128SHA256Ed25519()
 
 // Tests a 2-node system
 func TestCloseAll(t *testing.T) {
-	local := onet.NewLocalTest()
-	defer log.AfterTest(t)
+	local := onet.NewLocalTest(suite)
+	//defer log.AfterTest(t)
 	nbrNodes := 2
 	_, _, tree := local.GenTree(nbrNodes, true)
 	defer local.CloseAll()

@@ -16,8 +16,8 @@ type simulInit struct{}
 type simulInitDone struct{}
 
 // Simulate starts the server and will setup the protocol.
-func Simulate(serverAddress, simul, monitorAddress string, suite onet.SimulSuite) error {
-	log.Lvl3("Flags are:", serverAddress, simul, log.DebugVisible(), monitorAddress)
+func Simulate(serverAddress, simul, monitorAddress string, suite network.Suite) error {
+	log.LLvl3("Flags are:", serverAddress, simul, log.DebugVisible(), monitorAddress, suite)
 
 	scs, err := onet.LoadSimulationConfig(".", serverAddress, suite)
 	if err != nil {

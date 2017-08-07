@@ -12,8 +12,10 @@ import (
 
 	"time"
 
+	"gopkg.in/dedis/kyber.v1/group"
 	"gopkg.in/dedis/onet.v2"
 	"gopkg.in/dedis/onet.v2/log"
+	"gopkg.in/dedis/onet.v2/network"
 	"gopkg.in/dedis/onet.v2/simul/monitor"
 )
 
@@ -22,7 +24,6 @@ import (
 
 // Localhost is the platform for launching thee apps locally
 type Localhost struct {
-	suite onet.SimulSuite
 	// Address of the logger (can be local or not)
 	logger string
 
@@ -57,6 +58,9 @@ type Localhost struct {
 	// Listening monitor port
 	monitorPort int
 
+	// Suite used for the simulation
+	Suite string
+
 	// SimulationConfig holds all things necessary for the run
 	sc *onet.SimulationConfig
 }
@@ -67,6 +71,7 @@ func (d *Localhost) Configure(pc *Config) {
 	d.runDir = pwd + "/build"
 	os.RemoveAll(d.runDir)
 	log.ErrFatal(os.Mkdir(d.runDir, 0770))
+	d.Suite = pc.Suite
 	d.localDir = pwd
 	d.debug = pc.Debug
 	d.running = false
@@ -146,12 +151,13 @@ func (d *Localhost) Start(args ...string) error {
 	log.Lvl1("Starting", d.servers, "applications of", ex)
 	time.Sleep(100 * time.Millisecond)
 	log.ErrFatal(monitor.ConnectSink("localhost:" + strconv.Itoa(d.monitorPort)))
+	s := group.Suite(d.Suite)
 	for index := 0; index < d.servers; index++ {
 		log.Lvl3("Starting", index)
 		host := "127.0.0." + strconv.Itoa(index)
 		go func(i int, h string) {
 			log.Lvl3("Localhost: will start host", i, h)
-			err := Simulate(host, d.Simulation, "", d.suite)
+			err := Simulate(host, d.Simulation, "", s.(network.Suite))
 			if err != nil {
 				log.Error("Error running localhost", h, ":", err)
 				d.errChan <- err

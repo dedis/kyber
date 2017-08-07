@@ -137,6 +137,7 @@ func Unmarshal(buf []byte, suite Suite) (MessageTypeID, Message, error) {
 	}
 	ptrVal := reflect.New(typ)
 	ptr := ptrVal.Interface()
+	fmt.Println(suite)
 	constructors := DefaultConstructors(suite)
 	if err := protobuf.DecodeWithConstructors(b.Bytes(), ptr, constructors); err != nil {
 		return ErrorType, nil, err

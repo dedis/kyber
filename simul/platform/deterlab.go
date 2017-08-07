@@ -91,6 +91,8 @@ type Deterlab struct {
 	Debug int
 	// RunWait for long simulations
 	RunWait int
+	// suite used for the simulation
+	Suite string
 }
 
 var simulConfig *onet.SimulationConfig
@@ -100,6 +102,7 @@ var simulConfig *onet.SimulationConfig
 func (d *Deterlab) Configure(pc *Config) {
 	// Directory setup - would also be possible in /tmp
 	pwd, _ := os.Getwd()
+	d.Suite = pc.Suite
 	d.simulDir = pwd
 	d.deployDir = pwd + "/deploy"
 	d.buildDir = pwd + "/build"
@@ -307,7 +310,7 @@ func (d *Deterlab) Start(args ...string) error {
 	}
 	log.Lvl3("Setup remote port forwarding", cmd)
 	go func() {
-		err := SSHRunStdout(d.Login, d.Host, "cd remote; GOMAXPROCS=8 ./users")
+		err := SSHRunStdout(d.Login, d.Host, "cd remote; GOMAXPROCS=8 ./users --suite="+d.Suite)
 		if err != nil {
 			log.Lvl3(err)
 		}
