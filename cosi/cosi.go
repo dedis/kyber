@@ -28,8 +28,8 @@ participation bitmask Z. The leader then broadcasts V and Z to the other
 participations together with the message M if it was not sent in phase 1. Upon
 receiving a commitment message, a node starts the challenge phase.
 
-3. Challenge: Each node i computes the collective challenge c = H(V || A || Z
-|| M) using a cryptographic hash function H (here: SHA512), computes its
+3. Challenge: Each node i computes the collective challenge c = H(V || A || M)
+using a cryptographic hash function H (here: SHA512), computes its
 response r_i = v_i + c*a_i and sends it back to the leader.
 
 4. Response: The leader waits until he has received replies from all nodes in
@@ -82,14 +82,11 @@ func AggregateCommitments(suite abstract.Suite, commitments []abstract.Point, ma
 }
 
 // Challenge creates the collective challenge from the given aggregate
-// commitment V, aggregate public key A, mask Z, and message M, i.e., it
-// returns c = H(V || A || Z || M).
-func Challenge(suite abstract.Suite, commitment abstract.Point, mask *Mask, message []byte) (abstract.Scalar, error) {
+// commitment V, aggregate public key A, and message M, i.e., it returns
+// c = H(V || A || M).
+func Challenge(suite abstract.Suite, commitment, public abstract.Point, message []byte) (abstract.Scalar, error) {
 	if commitment == nil {
 		return nil, errors.New("no commitment provided")
-	}
-	if mask == nil {
-		return nil, errors.New("no mask provided")
 	}
 	if message == nil {
 		return nil, errors.New("no message provided")
@@ -98,17 +95,16 @@ func Challenge(suite abstract.Suite, commitment abstract.Point, mask *Mask, mess
 	if _, err := commitment.MarshalTo(hash); err != nil {
 		return nil, err
 	}
-	if _, err := mask.AggregatePublic.MarshalTo(hash); err != nil {
+	if _, err := public.MarshalTo(hash); err != nil {
 		return nil, err
 	}
-	hash.Write(mask.mask)
 	hash.Write(message)
 	return suite.Scalar().SetBytes(hash.Sum(nil)), nil
 }
 
 // Response creates the response from the given random scalar v, (collective)
 // challenge c, and private key a, i.e., it returns r = v + c*a.
-func Response(suite abstract.Suite, random abstract.Scalar, challenge abstract.Scalar, private abstract.Scalar) (abstract.Scalar, error) {
+func Response(suite abstract.Suite, private, random, challenge abstract.Scalar) (abstract.Scalar, error) {
 	if private == nil {
 		return nil, errors.New("no private key provided")
 	}
@@ -208,7 +204,6 @@ func Verify(suite abstract.Suite, publics []abstract.Point, message, sig []byte,
 	hash := sha512.New()
 	hash.Write(VBuff)
 	hash.Write(ABuff)
-	hash.Write(mask.mask)
 	hash.Write(message)
 	buff := hash.Sum(nil)
 	k := suite.Scalar().SetBytes(buff)

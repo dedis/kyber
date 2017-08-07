@@ -60,7 +60,7 @@ func TestCoSi(t *testing.T) {
 	// Compute challenge
 	var c []abstract.Scalar
 	for i := 0; i < n; i++ {
-		ci, err := Challenge(testSuite, aggV, masks[i], message)
+		ci, err := Challenge(testSuite, aggV, masks[i].AggregatePublic, message)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -70,7 +70,7 @@ func TestCoSi(t *testing.T) {
 	// Compute responses
 	var r []abstract.Scalar
 	for i := 0; i < n; i++ {
-		ri, _ := Response(testSuite, v[i], c[i], privates[i])
+		ri, _ := Response(testSuite, privates[i], v[i], c[i])
 		r = append(r, ri)
 	}
 
@@ -144,7 +144,7 @@ func TestCoSiThreshold(t *testing.T) {
 	// Compute challenge
 	var c []abstract.Scalar
 	for i := 0; i < n-f; i++ {
-		ci, err := Challenge(testSuite, aggV, masks[i], message)
+		ci, err := Challenge(testSuite, aggV, masks[i].AggregatePublic, message)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -154,7 +154,7 @@ func TestCoSiThreshold(t *testing.T) {
 	// Compute responses
 	var r []abstract.Scalar
 	for i := 0; i < n-f; i++ {
-		ri, _ := Response(testSuite, v[i], c[i], privates[i])
+		ri, _ := Response(testSuite, privates[i], v[i], c[i])
 		r = append(r, ri)
 	}
 
