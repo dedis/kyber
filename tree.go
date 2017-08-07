@@ -369,7 +369,8 @@ func (elId RosterID) IsNil() bool {
 var RosterTypeID = network.RegisterMessage(Roster{})
 
 // RosterSuite is a hack waiting to be removed.
-var RosterSuite = edwards25519.NewAES128SHA256Ed25519(false)
+// XXX TODO
+var RosterSuite = edwards25519.NewAES128SHA256Ed25519()
 
 // NewRoster creates a new ServerIdentity from a list of entities. It also
 // adds a UUID which is randomly chosen.

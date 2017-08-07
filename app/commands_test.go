@@ -10,8 +10,11 @@ import (
 	"io"
 
 	"github.com/stretchr/testify/require"
+	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 	"gopkg.in/dedis/onet.v2/log"
 )
+
+var suite = edwards25519.NewAES128SHA256Ed25519()
 
 func TestCothority(t *testing.T) {
 	origStdout := os.Stdout
@@ -29,7 +32,7 @@ func TestCothority(t *testing.T) {
 	}()
 
 	os.Args = []string{os.Args[0], "help"}
-	Server()
+	Server(suite)
 	// back to normal state
 	log.ErrFatal(w.Close())
 	require.Contains(t, <-outC, "Serve a cothority")

@@ -7,7 +7,7 @@ import (
 	"gopkg.in/dedis/onet.v2/log"
 )
 
-var suite = edwards25519.NewAES128SHA256Ed25519(false)
+var suite = edwards25519.NewAES128SHA256Ed25519()
 
 // To avoid setting up testing-verbosity in all tests
 func TestMain(m *testing.M) {

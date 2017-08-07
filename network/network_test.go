@@ -8,7 +8,7 @@ import (
 	"gopkg.in/dedis/onet.v2/log"
 )
 
-var testSuite = edwards25519.NewAES128SHA256Ed25519(false)
+var testSuite = edwards25519.NewAES128SHA256Ed25519()
 
 func TestMain(m *testing.M) {
 	log.MainTest(m)
