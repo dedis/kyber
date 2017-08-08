@@ -1,4 +1,5 @@
 // +build pbc
+
 package pbc
 
 import "github.com/dfinity/go-dfinity-crypto/bls"
