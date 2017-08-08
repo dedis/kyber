@@ -94,7 +94,7 @@ func LoadSimulationConfig(dir, ca string, s network.Suite) ([]*SimulationConfig,
 		PrivateKeys: scf.PrivateKeys,
 		Config:      scf.Config,
 	}
-	sc.Tree, err = scf.TreeMarshal.MakeTree(sc.Roster)
+	sc.Tree, err = scf.TreeMarshal.MakeTree(sc.Roster, s)
 	if err != nil {
 		return nil, err
 	}
@@ -277,7 +277,7 @@ func (s *SimulationBFTree) CreateRoster(sc *SimulationConfig, addresses []string
 		}
 	}
 
-	sc.Roster = NewRoster(entities)
+	sc.Roster = NewRoster(suite, entities)
 	log.Lvl3("Creating entity List took: " + time.Now().Sub(start).String())
 }
 

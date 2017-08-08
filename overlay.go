@@ -221,7 +221,7 @@ func (o *Overlay) checkPendingTreeMarshal(el *Roster) {
 		return
 	}
 	for _, tm := range sl {
-		tree, err := tm.MakeTree(el)
+		tree, err := tm.MakeTree(el, o.suite())
 		if err != nil {
 			log.Error("Tree from Roster failed")
 			continue
@@ -378,7 +378,7 @@ func (o *Overlay) handleSendTree(si *network.ServerIdentity, tm *TreeMarshal, io
 		return
 	}
 
-	tree, err := tm.MakeTree(roster)
+	tree, err := tm.MakeTree(roster, o.suite())
 	if err != nil {
 		log.Error("Couldn't create tree:", err)
 		return

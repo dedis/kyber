@@ -8,7 +8,6 @@ import (
 
 	"github.com/satori/go.uuid"
 	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 	"gopkg.in/dedis/onet.v2/log"
 	"gopkg.in/dedis/onet.v2/network"
 )
@@ -57,7 +56,7 @@ func (tId TreeID) IsNil() bool {
 
 // NewTree creates a new tree using the entityList and the root-node. It
 // also generates the id.
-func NewTree(el *Roster, r *TreeNode) *Tree {
+func NewTree(el *Roster, r *TreeNode, s network.Suite) *Tree {
 	url := network.NamespaceURL + "tree/" + el.ID.String() + r.ID.String()
 	t := &Tree{
 		Roster: el,
@@ -66,22 +65,22 @@ func NewTree(el *Roster, r *TreeNode) *Tree {
 	}
 	// network.Suite used for the moment => explicit mark that something is
 	// wrong and that needs to be changed !
-	t.computeSubtreeAggregate(RosterSuite, r)
+	t.computeSubtreeAggregate(s, r)
 	return t
 }
 
 // NewTreeFromMarshal takes a slice of bytes and an Roster to re-create
 // the original tree
-func NewTreeFromMarshal(buf []byte, el *Roster) (*Tree, error) {
-	tp, pm, err := network.Unmarshal(buf, RosterSuite)
+func NewTreeFromMarshal(buf []byte, el *Roster, s network.Suite) (*Tree, error) {
+	tp, pm, err := network.Unmarshal(buf, s)
 	if err != nil {
 		return nil, err
 	}
 	if !tp.Equal(TreeMarshalTypeID) {
 		return nil, errors.New("Didn't receive TreeMarshal-struct")
 	}
-	t, err := pm.(*TreeMarshal).MakeTree(el)
-	t.computeSubtreeAggregate(RosterSuite, t.Root)
+	t, err := pm.(*TreeMarshal).MakeTree(el, s)
+	t.computeSubtreeAggregate(s, t.Root)
 	return t, err
 }
 
@@ -130,13 +129,13 @@ func (t *Tree) BinaryMarshaler() ([]byte, error) {
 }
 
 // BinaryUnmarshaler takes a TreeMarshal and stores it in the tree
-func (t *Tree) BinaryUnmarshaler(b []byte) error {
-	_, m, err := network.Unmarshal(b, RosterSuite)
+func (t *Tree) BinaryUnmarshaler(b []byte, s network.Suite) error {
+	_, m, err := network.Unmarshal(b, s)
 	tbm, ok := m.(*tbmStruct)
 	if !ok {
 		return errors.New("Didn't find TBMstruct")
 	}
-	tree, err := NewTreeFromMarshal(tbm.T, tbm.EL)
+	tree, err := NewTreeFromMarshal(tbm.T, tbm.EL, s)
 	if err != nil {
 		return err
 	}
@@ -306,7 +305,7 @@ func TreeMarshalCopyTree(tr *TreeNode) *TreeMarshal {
 }
 
 // MakeTree creates a tree given an Roster
-func (tm TreeMarshal) MakeTree(el *Roster) (*Tree, error) {
+func (tm TreeMarshal) MakeTree(el *Roster, s network.Suite) (*Tree, error) {
 	if !el.ID.Equal(tm.RosterID) {
 		return nil, errors.New("Not correct Roster-Id")
 	}
@@ -315,7 +314,7 @@ func (tm TreeMarshal) MakeTree(el *Roster) (*Tree, error) {
 		Roster: el,
 	}
 	tree.Root = tm.Children[0].MakeTreeFromList(nil, el)
-	tree.computeSubtreeAggregate(RosterSuite, tree.Root)
+	tree.computeSubtreeAggregate(s, tree.Root)
 	return tree, nil
 }
 
@@ -368,15 +367,11 @@ func (elId RosterID) IsNil() bool {
 // RosterTypeID of Roster message as registered in network
 var RosterTypeID = network.RegisterMessage(Roster{})
 
-// RosterSuite is a hack waiting to be removed.
-// XXX TODO
-var RosterSuite = edwards25519.NewAES128SHA256Ed25519()
-
 // NewRoster creates a new ServerIdentity from a list of entities. It also
 // adds a UUID which is randomly chosen.
-func NewRoster(ids []*network.ServerIdentity) *Roster {
+func NewRoster(s network.Suite, ids []*network.ServerIdentity) *Roster {
 	// compute the aggregate key already
-	agg := RosterSuite.Point().Null()
+	agg := s.Point().Null()
 	for _, e := range ids {
 		agg = agg.Add(agg, e.Public)
 	}
@@ -427,7 +422,7 @@ func (el *Roster) Publics() []kyber.Point {
 // However, for some configurations it is impossible to use all ServerIdentities from
 // the Roster and still avoid having a parent and a child from the same
 // host. In this case use-all has preference over not-the-same-host.
-func (el *Roster) GenerateBigNaryTree(N, nodes int) *Tree {
+func (el *Roster) GenerateBigNaryTree(N, nodes int, suite network.Suite) *Tree {
 	// list of which hosts are already used
 	used := make([]bool, len(el.List))
 	ilLen := len(el.List)
@@ -486,7 +481,7 @@ func (el *Roster) GenerateBigNaryTree(N, nodes int) *Tree {
 		}
 		levelNodes = newLevelNodes[:newLevelNodesCounter]
 	}
-	return NewTree(el, root)
+	return NewTree(el, root, suite)
 }
 
 // GenerateNaryTreeWithRoot creates a tree where each node has N children.

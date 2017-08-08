@@ -158,7 +158,7 @@ func (l *LocalTest) GenRosterFromHost(servers ...*Server) *Roster {
 	for i := range servers {
 		entities = append(entities, servers[i].ServerIdentity)
 	}
-	list := NewRoster(entities)
+	list := NewRoster(l.Suite, entities)
 	l.Rosters[list.ID] = list
 	return list
 }
@@ -291,9 +291,9 @@ func (l *LocalTest) MakeHELS(nbr int, sid ServiceID, s network.Suite) ([]*Server
 
 // NewPrivIdentity returns a secret + ServerIdentity. The SI will have
 // "localserver:+port as first address.
-func NewPrivIdentity(port int) (kyber.Scalar, *network.ServerIdentity) {
+func NewPrivIdentity(suite network.Suite, port int) (kyber.Scalar, *network.ServerIdentity) {
 	address := network.NewLocalAddress("127.0.0.1:" + strconv.Itoa(port))
-	priv, pub := PrivPub()
+	priv, pub := PrivPub(suite)
 	id := network.NewServerIdentity(pub, address)
 	return priv, id
 }
@@ -301,7 +301,7 @@ func NewPrivIdentity(port int) (kyber.Scalar, *network.ServerIdentity) {
 // NewTCPServer creates a new server with a tcpRouter with "localserver:"+port as an
 // address.
 func NewTCPServer(port int, s network.Suite) *Server {
-	priv, id := NewPrivIdentity(port)
+	priv, id := NewPrivIdentity(s, port)
 	addr := network.NewTCPAddress(id.Address.NetworkAddress())
 	var tcpHost *network.TCPHost
 	// For the websocket we need a port at the address one higher than the
@@ -341,7 +341,7 @@ func NewTCPServer(port int, s network.Suite) *Server {
 // At the return of this function, the router is already Run()ing in a go
 // routine.
 func NewLocalServer(port int, s network.Suite) *Server {
-	priv, id := NewPrivIdentity(port)
+	priv, id := NewPrivIdentity(s, port)
 	localRouter, err := network.NewLocalRouter(id, s)
 	if err != nil {
 		panic(err)
@@ -403,7 +403,7 @@ func (l *LocalTest) NewTCPServer(s network.Suite) *Server {
 // NewLocalServer returns a fresh Host using local connections within the context
 // of this LocalTest
 func (l *LocalTest) NewLocalServer(port int, s network.Suite) *Server {
-	priv, id := NewPrivIdentity(port)
+	priv, id := NewPrivIdentity(s, port)
 	localRouter, err := network.NewLocalRouterWithManager(l.ctx, id, s)
 	if err != nil {
 		panic(err)
@@ -422,7 +422,7 @@ func (l *LocalTest) NewLocalServer(port int, s network.Suite) *Server {
 }
 
 // PrivPub creates a private/public key pair.
-func PrivPub() (kyber.Scalar, kyber.Point) {
-	keypair := key.NewKeyPair(RosterSuite)
+func PrivPub(s network.Suite) (kyber.Scalar, kyber.Point) {
+	keypair := key.NewKeyPair(s)
 	return keypair.Secret, keypair.Public
 }
