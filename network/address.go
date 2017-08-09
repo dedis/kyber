@@ -239,12 +239,12 @@ func (a Address) Port() string {
 // Public returns true if the address is a public and valid one
 // or false otherwise.
 // Specifically it checks if it is a private address by checking
-// 192.168.**,10.***,127.***,172.16-31.**,169.254.**
+// 192.168.**,10.***,127.***,172.16-31.**,169.254.**,^::1,^fd.{0,2}:
 func (a Address) Public() bool {
 	private, err := regexp.MatchString("(^127\\.)|(^10\\.)|"+
 		"(^172\\.1[6-9]\\.)|(^172\\.2[0-9]\\.)|"+
 		"(^172\\.3[0-1]\\.)|(^192\\.168\\.)|(^169\\.254)|"+
-		"(^\\[::\\])", a.NetworkAddressResolved())
+		"(^\\[::1\\])|(^\\[fd.{0,2}:)", a.NetworkAddressResolved())
 	if err != nil {
 		return false
 	}
