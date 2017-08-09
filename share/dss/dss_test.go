@@ -9,7 +9,6 @@ import (
 	"github.com/dedis/kyber/eddsa"
 	"github.com/dedis/kyber/random"
 	"github.com/dedis/kyber/share/dkg"
-	"github.com/dedis/kyber/share/vss"
 	"github.com/dedis/kyber/sign"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -167,7 +166,7 @@ func genDistSecret() []*dkg.DistKeyShare {
 			if err != nil {
 				panic(err)
 			}
-			if vss.StatusApproval != resp.Response.Status {
+			if !resp.Response.Approved {
 				panic("wrong approval")
 			}
 			resps = append(resps, resp)
