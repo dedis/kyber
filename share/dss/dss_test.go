@@ -11,7 +11,6 @@ import (
 	"gopkg.in/dedis/crypto.v0/eddsa"
 	"gopkg.in/dedis/crypto.v0/random"
 	"gopkg.in/dedis/crypto.v0/share/dkg"
-	"gopkg.in/dedis/crypto.v0/share/vss"
 	"gopkg.in/dedis/crypto.v0/sign"
 )
 
@@ -167,7 +166,7 @@ func genDistSecret() []*dkg.DistKeyShare {
 			if err != nil {
 				panic(err)
 			}
-			if vss.StatusApproval != resp.Response.Status {
+			if !resp.Response.Approved {
 				panic("wrong approval")
 			}
 			resps = append(resps, resp)
