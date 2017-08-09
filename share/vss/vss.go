@@ -100,22 +100,11 @@ type Response struct {
 	SessionID []byte
 	// Index of the verifier issuing this Response
 	Index uint32
-	// 0 = NO APPROVAL == Complaint , 1 = APPROVAL
-	Status byte
+	// Approved is true if the Response is valid
+	Approved bool
 	// Signature over the whole packet
 	Signature []byte
 }
-
-const (
-	// StatusComplaint is a constant value meaning that a verifier issues
-	// a Complaint against its Dealer.
-	StatusComplaint byte = iota
-	// StatusApproval is a constant value meaning that a verifier agrees with
-	// the share it received.
-	StatusApproval
-	// special status when a complaint has been justified
-	statusJustified
-)
 
 // Justification is a message that is broadcasted by the Dealer in response to
 // a Complaint. It contains the original Complaint as well as the shares
@@ -260,7 +249,7 @@ func (d *Dealer) ProcessResponse(r *Response) (*Justification, error) {
 	if err := d.verifyResponse(r); err != nil {
 		return nil, err
 	}
-	if r.Status == StatusApproval {
+	if r.Approved {
 		return nil, nil
 	}
 
@@ -389,10 +378,10 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
 	r := &Response{
 		SessionID: sid,
 		Index:     uint32(v.index),
-		Status:    StatusApproval,
+		Approved:  true,
 	}
 	if err = v.VerifyDeal(d, true); err != nil {
-		r.Status = StatusComplaint
+		r.Approved = false
 	}
 
 	if err == errDealAlreadyProcessed {
@@ -593,7 +582,7 @@ func (a *aggregator) verifyJustification(j *Justification) error {
 	if !ok {
 		return errors.New("vss: no complaints received for this justification")
 	}
-	if r.Status != StatusComplaint {
+	if r.Approved {
 		return errors.New("vss: justification received for an approval")
 	}
 
@@ -602,7 +591,7 @@ func (a *aggregator) verifyJustification(j *Justification) error {
 		a.badDealer = true
 		return err
 	}
-	r.Status = statusJustified
+	r.Approved = true
 	return nil
 }
 
@@ -622,7 +611,7 @@ func (a *aggregator) addResponse(r *Response) error {
 func (a *aggregator) EnoughApprovals() bool {
 	var app int
 	for _, r := range a.responses {
-		if r.Status == StatusApproval {
+		if r.Approved {
 			app++
 		}
 	}
@@ -634,7 +623,7 @@ func (a *aggregator) EnoughApprovals() bool {
 func (a *aggregator) DealCertified() bool {
 	var comps int
 	for _, r := range a.responses {
-		if r.Status == StatusComplaint {
+		if !r.Approved {
 			comps++
 		}
 	}
@@ -697,7 +686,7 @@ func (r *Response) Hash(s abstract.Suite) []byte {
 	h.Write([]byte("response"))
 	h.Write(r.SessionID)
 	binary.Write(h, binary.LittleEndian, r.Index)
-	binary.Write(h, binary.LittleEndian, r.Status)
+	binary.Write(h, binary.LittleEndian, r.Approved)
 	return h.Sum(nil)
 }
 

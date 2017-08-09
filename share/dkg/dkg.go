@@ -229,7 +229,7 @@ func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 			}
 			if resp, err := d.ProcessDeal(distd); err != nil {
 				panic(err)
-			} else if resp.Response.Status != vss.StatusApproval {
+			} else if !resp.Response.Approved {
 				panic("dkg: own deal gave a complaint")
 			}
 			continue
