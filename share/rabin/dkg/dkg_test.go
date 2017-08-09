@@ -93,7 +93,7 @@ func TestDKGProcessDeal(t *testing.T) {
 	// good deal
 	resp, err = rec.ProcessDeal(deal)
 	assert.NotNil(t, resp)
-	assert.Equal(t, vss.StatusApproval, resp.Response.Status)
+	assert.Equal(t, true, resp.Response.Approved)
 	assert.Nil(t, err)
 	_, ok := rec.verifiers[deal.Index]
 	require.True(t, ok)
@@ -143,7 +143,7 @@ func TestDKGProcessResponse(t *testing.T) {
 	resp, err := rec.ProcessDeal(encD)
 	assert.Nil(t, err)
 	require.NotNil(t, resp)
-	assert.Equal(t, vss.StatusComplaint, resp.Response.Status)
+	assert.Equal(t, false, resp.Response.Approved)
 	deal.RndShare.V = goodSecret
 	dd, _ = dkg.Deals()
 	encD = dd[idxRec]
@@ -187,7 +187,7 @@ func TestDKGProcessResponse(t *testing.T) {
 
 	resp12, err := rec.ProcessDeal(deals2[idxRec])
 	assert.NotNil(t, resp)
-	assert.Equal(t, vss.StatusComplaint, resp12.Response.Status)
+	assert.Equal(t, false, resp12.Response.Approved)
 
 	deal21.RndShare.V = goodRnd21
 	deals2, err = dkg2.Deals()
@@ -212,7 +212,7 @@ func TestDKGProcessResponse(t *testing.T) {
 
 	// hack because all is local, and resp has been modified locally by dkg2's
 	// dealer, the status has became "justified"
-	resp12.Response.Status = vss.StatusComplaint
+	resp12.Response.Approved = false
 	err = dkg.ProcessJustification(j)
 	assert.Nil(t, err)
 
@@ -620,7 +620,7 @@ func fullExchange(t *testing.T) {
 		for i, d := range deals {
 			resp, err := dkgs[i].ProcessDeal(d)
 			require.Nil(t, err)
-			require.Equal(t, vss.StatusApproval, resp.Response.Status)
+			require.Equal(t, true, resp.Response.Approved)
 			resps = append(resps, resp)
 		}
 	}

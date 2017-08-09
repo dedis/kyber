@@ -9,7 +9,6 @@ import (
 	"gopkg.in/dedis/kyber.v1"
 	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 	"gopkg.in/dedis/kyber.v1/share/rabin/dkg"
-	"gopkg.in/dedis/kyber.v1/share/rabin/vss"
 	"gopkg.in/dedis/kyber.v1/sign/eddsa"
 	"gopkg.in/dedis/kyber.v1/sign/schnorr"
 	"gopkg.in/dedis/kyber.v1/util/random"
@@ -167,7 +166,7 @@ func genDistSecret() []*dkg.DistKeyShare {
 			if err != nil {
 				panic(err)
 			}
-			if vss.StatusApproval != resp.Response.Status {
+			if !resp.Response.Approved {
 				panic("wrong approval")
 			}
 			resps = append(resps, resp)
