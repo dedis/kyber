@@ -645,6 +645,11 @@ func (o *Overlay) RegisterProtocolInstance(pi ProtocolInstance) error {
 	return nil
 }
 
+// RegisterMessageProxy registers a message proxy only for this overlay
+func (o *Overlay) RegisterMessageProxy(m MessageProxy) {
+	o.protoIO.RegisterMessageProxy(m)
+}
+
 // pendingMsg is used to store messages destined for ProtocolInstances but when
 // the tree designated is not known to the Overlay. When the tree is sent to the
 // overlay, then the pendingMsg that are relying on this tree will get

@@ -151,13 +151,18 @@ type messageProxyFactoryStruct struct {
 	factories []NewMessageProxy
 }
 
+// RegisterMessageProxy stores the message proxy creation function
+func (mpfs *messageProxyFactoryStruct) RegisterMessageProxy(n NewMessageProxy) {
+	mpfs.factories = append(mpfs.factories, n)
+}
+
 var messageProxyFactory = messageProxyFactoryStruct{}
 
 // RegisterMessageProxy saves a new NewMessageProxy under its name.
 // When a Server is instantiated, all MessageProxys will be generated and stored
 // for this Server.
 func RegisterMessageProxy(n NewMessageProxy) {
-	messageProxyFactory.factories = append(messageProxyFactory.factories, n)
+	messageProxyFactory.RegisterMessageProxy(n)
 }
 
 // messageProxyStore contains all created MessageProxys. It contains the default
@@ -166,6 +171,17 @@ type messageProxyStore struct {
 	sync.Mutex
 	protos    []MessageProxy
 	defaultIO MessageProxy
+}
+
+// RegisterMessageProxy saves directly the given MessageProxy. It's useful if
+// one wants different message proxy per server/overlay.
+func (p *messageProxyStore) RegisterMessageProxy(mp MessageProxy) {
+	if p.getByName(mp.Name()) == p.defaultIO {
+		return
+	}
+	p.Lock()
+	defer p.Unlock()
+	p.protos = append(p.protos, mp)
 }
 
 func (p *messageProxyStore) getByName(name string) MessageProxy {
