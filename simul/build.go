@@ -242,7 +242,7 @@ func CheckHosts(rc *platform.RunConfig) {
 		if depth == 0 || hosts == 0 {
 			log.Fatal("No BF and no Depth or hosts given - stopping")
 		}
-		bf = 2
+		bf = 1
 		for calcHosts(bf, depth) < hosts {
 			bf++
 		}
@@ -264,6 +264,13 @@ func CheckHosts(rc *platform.RunConfig) {
 // 3rd level: bf^3
 // So total: sum(level=0..depth)(bf^level)
 func calcHosts(bf, depth int) int {
+	if bf <= 0 {
+		log.Fatal("illegal branching-factor")
+	} else if depth <= 0 {
+		log.Fatal("illegal depth")
+	} else if bf == 1 {
+		return depth + 1
+	}
 	return int((1 - math.Pow(float64(bf), float64(depth+1))) /
 		float64(1-bf))
 }

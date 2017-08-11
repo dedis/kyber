@@ -12,6 +12,7 @@ func TestBuild(t *testing.T) {
 
 func TestDepth(t *testing.T) {
 	testStruct := []struct{ BF, depth, hosts int }{
+		{1, 1, 2},
 		{2, 1, 3},
 		{3, 1, 4},
 		{3, 2, 13},
