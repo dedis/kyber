@@ -8,14 +8,14 @@ or switching to alternative algorithms for experimentation purposes.
 
 Abstract Groups
 
-This toolkit's public-key crypto API includes an kyber.Group interface
-generically supporting a broad class of group-based public-key primitives
+This toolkits public-key crypto API includes a kyber.Group interface
+supporting a broad class of group-based public-key primitives
 including DSA-style integer residue groups and elliptic curve groups.  Users of
-this API can thus write higher-level crypto algorithms such as zero-knowledge
+this API can write higher-level crypto algorithms such as zero-knowledge
 proofs without knowing or caring exactly what kind of group, let alone which
-precise security parameters or elliptic curves, are being used.  The kyber.Group
+precise security parameters or elliptic curves, are being used. The kyber.Group
 interface supports the standard algebraic operations on group elements and
-scalars that nontrivial public-key algorithms tend to rely on.  The interface
+scalars that nontrivial public-key algorithms tend to rely on. The interface
 uses additive group terminology typical for elliptic curves, such that point
 addition is homomorphically equivalent to adding their (potentially secret)
 scalar multipliers.  But the API and its operations apply equally well to
@@ -23,13 +23,14 @@ DSA-style integer groups.
 
 As a trivial example, generating a public/private keypair is as simple as:
 
+    group := edwards25519.Curve{}			// Use the edwards25519-curve
 	a := group.Scalar().Pick(random.Stream) // Alice's private key
 	A := group.Point().Mul(nil, a)          // Alice's public key
 
 The first statement picks a private key (Scalar) from a specified source of
 cryptographic random or pseudo-random bits, while the second performs elliptic
 curve scalar multiplication of the curve's standard base point (indicated by the
-'nil' argument to Mul) by the scalar private key 'a'.  Similarly, computing a
+'nil' argument to Mul) by the scalar private key 'a'. Similarly, computing a
 Diffie-Hellman shared secret using Alice's private key 'a' and Bob's public key
 'B' can be done via:
 
@@ -76,7 +77,7 @@ or even which branch of the "or" clause is true.
 - sign/anon provides anonymous and pseudonymous public-key encryption and signing,
 where the sender of a signed message or the receiver of an encrypted message
 is defined as an explicit anonymity set containing several public keys
-rather than just one.  For example, a member of an organization's board of trustees
+rather than just one. For example, a member of an organization's board of trustees
 might prove to be a member of the board without revealing which member she is.
 
 - sign/cosi provides collective signature algorithm, where a bunch of signers create a
@@ -89,18 +90,19 @@ unique, compact and efficiently verifiable signature using the Schnorr signature
 - shuffle: Verifiable cryptographic shuffles of ElGamal ciphertexts,
 which can be used to implement (for example) voting or auction schemes
 that keep the sources of individual votes or bids private
-without anyone having to trust the shuffler(s) to shuffle votes/bids honestly.
+without anyone having to trust more than one of the shuffler(s) to shuffle
+votes/bids honestly.
 
 Disclaimer
 
 For now this library should currently be considered experimental: it will
 definitely be changing in non-backward-compatible ways, and it will need
 independent security review before it should be considered ready for use in
-security-critical applications.  However, we intend to bring the library closer
+security-critical applications. However, we intend to bring the library closer
 to stability and real-world usability as quickly as development resources
 permit, and as interest and application demand dictates.
 
-As should be obvious, this library is intended the use of developers who are at
+As should be obvious, this library is intended to be used by developers who are at
 least moderately knowledgeable about kyber.  If you want a crypto library that
 makes it easy to implement "basic crypto" functionality correctly - i.e., plain
 public-key encryption and signing - then the NaCl/Sodium pursues this worthy

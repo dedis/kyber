@@ -13,7 +13,7 @@ type cipherAEAD struct {
 	kyber.Cipher
 }
 
-// NewAEAD wraps an kyber.message Cipher to implement
+// NewAEAD wraps a kyber.message Cipher to implement
 // the Authenticated Encryption with Associated Data (AEAD) interface.
 func NewAEAD(c kyber.Cipher) cipher.AEAD {
 	return &cipherAEAD{c}
