@@ -200,6 +200,11 @@ func NewDistKeyGenerator(suite abstract.Suite, longterm abstract.Scalar, partici
 	}, nil
 }
 
+// Index returns the index of this generator amongst the list of participants
+func (d *DistKeyGenerator) Index() int {
+	return int(d.index)
+}
+
 // Deals returns all the deals that must be broadcasted to all
 // participants. The deal corresponding to this DKG is already added
 // to this DKG and is ommitted from the returned map. To know
