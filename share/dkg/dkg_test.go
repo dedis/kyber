@@ -66,7 +66,7 @@ func TestDKGDeal(t *testing.T) {
 		assert.Equal(t, uint32(0), deals[i].Index)
 	}
 
-	v, ok := dkg.verifiers[dkg.index]
+	v, ok := dkg.verifiers[dkg.Index]
 	assert.True(t, ok)
 	assert.NotNil(t, v)
 }
@@ -80,7 +80,7 @@ func TestDKGProcessDeal(t *testing.T) {
 	rec := dkgs[1]
 	deal := deals[1]
 	assert.Equal(t, int(deal.Index), 0)
-	assert.Equal(t, uint32(1), rec.index)
+	assert.Equal(t, uint32(1), rec.Index)
 
 	// verifier don't find itself
 	goodP := rec.participants
@@ -104,7 +104,7 @@ func TestDKGProcessDeal(t *testing.T) {
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 
-	// wrong index
+	// wrong Index
 	goodIdx := deal.Index
 	deal.Index = uint32(nbParticipants + 1)
 	resp, err = rec.ProcessDeal(deal)
@@ -238,7 +238,7 @@ func TestDKGSecretCommits(t *testing.T) {
 	assert.Nil(t, sign.VerifySchnorr(suite, dkg.pub, msg, sc.Signature))
 
 	dkg2 := dkgs[1]
-	// wrong index
+	// wrong Index
 	goodIdx := sc.Index
 	sc.Index = uint32(nbParticipants + 1)
 	cc, err := dkg2.ProcessSecretCommits(sc)
@@ -324,7 +324,7 @@ func TestDKGComplaintCommits(t *testing.T) {
 	assert.NotNil(t, cc)
 
 	dkg2 := dkgs[2]
-	// ComplaintCommits: wrong index
+	// ComplaintCommits: wrong Index
 	goodIndex := cc.Index
 	cc.Index = uint32(nbParticipants)
 	rc, err := dkg2.ProcessComplaintCommits(cc)
@@ -444,7 +444,7 @@ func TestDKGReconstructCommits(t *testing.T) {
 	assert.Error(t, dkg2.ProcessReconstructCommits(rc))
 	delete(dkg2.commitments, uint32(0))
 
-	// invalid index
+	// invalid Index
 	goodI := rc.Index
 	rc.Index = uint32(nbParticipants)
 	assert.Error(t, dkg2.ProcessReconstructCommits(rc))
@@ -473,7 +473,7 @@ func TestDKGReconstructCommits(t *testing.T) {
 	for _, dkg := range dkgs[2:] {
 		rc = &ReconstructCommits{
 			SessionID:   dkg.verifiers[uint32(0)].Deal().SessionID,
-			Index:       dkg.index,
+			Index:       dkg.Index,
 			DealerIndex: 0,
 			Share:       dkg.verifiers[uint32(0)].Deal().SecShare,
 		}
@@ -561,7 +561,7 @@ func TestDistKeyShare(t *testing.T) {
 		require.NotNil(t, dks)
 		assert.Nil(t, err)
 		dkss[i] = dks
-		assert.Equal(t, dkg.index, uint32(dks.Share.I))
+		assert.Equal(t, dkg.Index, uint32(dks.Share.I))
 	}
 
 	shares := make([]*share.PriShare, nbParticipants)
@@ -630,7 +630,7 @@ func fullExchange(t *testing.T) {
 	for _, resp := range resps {
 		for _, dkg := range dkgs {
 			// ignore all messages from ourself
-			if resp.Response.Index == dkg.index {
+			if resp.Response.Index == dkg.Index {
 				continue
 			}
 			j, err := dkg.ProcessResponse(resp)
@@ -641,7 +641,7 @@ func fullExchange(t *testing.T) {
 	// 3. make sure everyone has the same QUAL set
 	for _, dkg := range dkgs {
 		for _, dkg2 := range dkgs {
-			require.True(t, dkg.isInQUAL(dkg2.index))
+			require.True(t, dkg.isInQUAL(dkg2.Index))
 		}
 	}
 
