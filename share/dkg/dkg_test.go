@@ -39,6 +39,8 @@ func TestDKGNewDistKeyGenerator(t *testing.T) {
 	dkg, err := NewDistKeyGenerator(suite, long, partPubs, random.Stream, nbParticipants/2+1)
 	assert.Nil(t, err)
 	assert.NotNil(t, dkg.dealer)
+	require.Equal(t, 0, dkg.Index())
+
 	// quick testing here; easier.
 	scs, err := dkg.SecretCommits()
 	assert.Nil(t, scs)
