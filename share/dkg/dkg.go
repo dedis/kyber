@@ -61,7 +61,7 @@ func (d *DistKeyShare) Public() abstract.Point {
 	return d.Commits[0]
 }
 
-// Deal holds the Deal for one participant as well as the index of the issuing
+// Deal holds the Deal for one participant as well as the Index of the issuing
 // Dealer.
 //  NOTE: Doing that in vss.go would be possible but then the Dealer is always
 //  assumed to be a member of the participants. It's only the case here.
@@ -72,7 +72,7 @@ type Deal struct {
 	Deal *vss.EncryptedDeal
 }
 
-// Response holds the Response from another participant as well as the index of
+// Response holds the Response from another participant as well as the Index of
 // the target Dealer.
 type Response struct {
 	// Index of the Dealer for which this response is for
@@ -81,7 +81,7 @@ type Response struct {
 	Response *vss.Response
 }
 
-// Justification holds the Justification from a Dealer as well as the index of
+// Justification holds the Justification from a Dealer as well as the Index of
 // the Dealer in question.
 type Justification struct {
 	// Index of the Dealer who answered with this Justification
@@ -108,7 +108,7 @@ type SecretCommits struct {
 type ComplaintCommits struct {
 	// Index of the Verifier _issuing_ the ComplaintCommit
 	Index uint32
-	// DealerIndex being the index of the Dealer who issued the SecretCommits
+	// DealerIndex being the Index of the Dealer who issued the SecretCommits
 	DealerIndex uint32
 	// Deal that has been given from the Dealer (at DealerIndex) to this node
 	// (at Index)
@@ -124,7 +124,7 @@ type ReconstructCommits struct {
 	SessionID []byte
 	// Index of the verifier who received the deal
 	Index uint32
-	// DealerIndex is the index of the dealer who issued the Deal
+	// DealerIndex is the Index of the dealer who issued the Deal
 	DealerIndex uint32
 	// Share contained in the Deal
 	Share *share.PriShare
@@ -136,7 +136,7 @@ type ReconstructCommits struct {
 type DistKeyGenerator struct {
 	suite abstract.Suite
 
-	index uint32
+	Index uint32 // Index is the index of this node.
 	long  abstract.Scalar
 	pub   abstract.Point
 
@@ -151,7 +151,7 @@ type DistKeyGenerator struct {
 	commitments map[uint32]*share.PubPoly
 
 	// Map of deals collected to reconstruct the full polynomial of a dealer.
-	// The key is index of the dealer. Once there are enough ReconstructCommits
+	// The key is Index of the dealer. Once there are enough ReconstructCommits
 	// struct, this dkg will re-construct the polynomial and stores it into the
 	// list of commitments.
 	pendingReconstruct map[uint32][]*ReconstructCommits
@@ -164,7 +164,7 @@ type DistKeyGenerator struct {
 // can't be found in the list of participants.
 func NewDistKeyGenerator(suite abstract.Suite, longterm abstract.Scalar, participants []abstract.Point, r cipher.Stream, t int) (*DistKeyGenerator, error) {
 	pub := suite.Point().Mul(nil, longterm)
-	// find our index
+	// find our Index
 	var found bool
 	var index uint32
 	for i, p := range participants {
@@ -196,7 +196,7 @@ func NewDistKeyGenerator(suite abstract.Suite, longterm abstract.Scalar, partici
 		long:               longterm,
 		pub:                pub,
 		participants:       participants,
-		index:              index,
+		Index:              index,
 	}, nil
 }
 
@@ -219,11 +219,11 @@ func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 	dd := make(map[int]*Deal)
 	for i := range d.participants {
 		distd := &Deal{
-			Index: d.index,
+			Index: d.Index,
 			Deal:  deals[i],
 		}
-		if i == int(d.index) {
-			if _, ok := d.verifiers[d.index]; ok {
+		if i == int(d.Index) {
+			if _, ok := d.verifiers[d.Index]; ok {
 				// already processed our own deal
 				continue
 			}
@@ -247,11 +247,11 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 	// public key of the dealer
 	pub, ok := findPub(d.participants, dd.Index)
 	if !ok {
-		return nil, errors.New("dkg: dist deal out of bounds index")
+		return nil, errors.New("dkg: dist deal out of bounds Index")
 	}
 
 	if _, ok := d.verifiers[dd.Index]; ok {
-		return nil, errors.New("dkg: already received dist deal from same index")
+		return nil, errors.New("dkg: already received dist deal from same Index")
 	}
 
 	// verifier receiving the dealer's deal
@@ -283,7 +283,7 @@ func (d *DistKeyGenerator) ProcessResponse(resp *Response) (*Justification, erro
 		return nil, err
 	}
 
-	if resp.Index != uint32(d.index) {
+	if resp.Index != uint32(d.Index) {
 		return nil, nil
 	}
 
@@ -300,7 +300,7 @@ func (d *DistKeyGenerator) ProcessResponse(resp *Response) (*Justification, erro
 	}
 
 	return &Justification{
-		Index:         d.index,
+		Index:         d.Index,
 		Justification: j,
 	}, nil
 }
@@ -322,7 +322,7 @@ func (d *DistKeyGenerator) Certified() bool {
 	return len(d.QUAL()) >= d.t
 }
 
-// QUAL returns the index in the list of participants that forms the QUALIFIED
+// QUAL returns the Index in the list of participants that forms the QUALIFIED
 // set as described in the "New-DKG" protocol by Rabin. Basically, it consists
 // of all participants that are not disqualified after having  exchanged all
 // deals, responses and justification. This is the set that is used to extract
@@ -370,7 +370,7 @@ func (d *DistKeyGenerator) SecretCommits() (*SecretCommits, error) {
 	}
 	sc := &SecretCommits{
 		Commitments: d.dealer.Commits(),
-		Index:       uint32(d.index),
+		Index:       uint32(d.Index),
 		SessionID:   d.dealer.SessionID(),
 	}
 	msg := sc.Hash(d.suite)
@@ -380,7 +380,7 @@ func (d *DistKeyGenerator) SecretCommits() (*SecretCommits, error) {
 	}
 	sc.Signature = sig
 	// adding our own commitments
-	d.commitments[uint32(d.index)] = share.NewPubPoly(d.suite, d.suite.Point().Base(), sc.Commitments)
+	d.commitments[uint32(d.Index)] = share.NewPubPoly(d.suite, d.suite.Point().Base(), sc.Commitments)
 	return sc, err
 }
 
@@ -392,7 +392,7 @@ func (d *DistKeyGenerator) SecretCommits() (*SecretCommits, error) {
 func (d *DistKeyGenerator) ProcessSecretCommits(sc *SecretCommits) (*ComplaintCommits, error) {
 	pub, ok := findPub(d.participants, sc.Index)
 	if !ok {
-		return nil, errors.New("dkg: secretcommits received with index out of bounds")
+		return nil, errors.New("dkg: secretcommits received with Index out of bounds")
 	}
 
 	if !d.isInQUAL(sc.Index) {
@@ -415,7 +415,7 @@ func (d *DistKeyGenerator) ProcessSecretCommits(sc *SecretCommits) (*ComplaintCo
 	poly := share.NewPubPoly(d.suite, d.suite.Point().Base(), sc.Commitments)
 	if !poly.Check(deal.SecShare) {
 		cc := &ComplaintCommits{
-			Index:       uint32(d.index),
+			Index:       uint32(d.Index),
 			DealerIndex: sc.Index,
 			Deal:        deal,
 		}
@@ -479,7 +479,7 @@ func (d *DistKeyGenerator) ProcessComplaintCommits(cc *ComplaintCommits) (*Recon
 	delete(d.commitments, cc.DealerIndex)
 	rc := &ReconstructCommits{
 		SessionID:   cc.Deal.SessionID,
-		Index:       d.index,
+		Index:       d.Index,
 		DealerIndex: cc.DealerIndex,
 		Share:       deal.SecShare,
 	}
@@ -510,7 +510,7 @@ func (d *DistKeyGenerator) ProcessReconstructCommits(rs *ReconstructCommits) err
 
 	pub, ok := findPub(d.participants, rs.Index)
 	if !ok {
-		return errors.New("dkg: reconstruct commits with invalid verifier index")
+		return errors.New("dkg: reconstruct commits with invalid verifier Index")
 	}
 
 	msg := rs.Hash(d.suite)
@@ -614,7 +614,7 @@ func (d *DistKeyGenerator) DistKeyShare() (*DistKeyShare, error) {
 	return &DistKeyShare{
 		Commits: commits,
 		Share: &share.PriShare{
-			I: int(d.index),
+			I: int(d.Index),
 			V: sh,
 		},
 	}, nil
