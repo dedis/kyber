@@ -622,7 +622,7 @@ func (a *aggregator) EnoughApprovals() bool {
 // DealCertified returns true if there has been less than t complaints, all
 // Justifications were correct and if EnoughApprovals() returns true.
 func (a *aggregator) DealCertified() bool {
-	if a == nil{
+	if a == nil {
 		return false
 	}
 	var comps int
