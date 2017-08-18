@@ -5,6 +5,7 @@ package dkg
 import (
 	"crypto/cipher"
 	"errors"
+	"fmt"
 
 	"gopkg.in/dedis/kyber.v1"
 
@@ -175,7 +176,7 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 	}
 
 	if _, ok := d.verifiers[dd.Index]; ok {
-		return nil, errors.New("dkg: already received dist deal from same index")
+		fmt.Println("Already received Deal from same index. Check your protocol!")
 	}
 
 	// verifier receiving the dealer's deal

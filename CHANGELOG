@@ -45,3 +45,4 @@ v0 to v1:
         + Removed abstract.Suite, only taking kyber.Group now
     - new package group/internal/marshalling for `{Read,Write}{Scalar,Point}` used by all
       suite implementations.
+    - changed ed25519 new curve function so there's no fullGroup boolean anymore.

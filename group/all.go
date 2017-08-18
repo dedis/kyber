@@ -9,9 +9,12 @@
 //
 //   go build -tags vartime
 //
+// Note that all suite and groups references are case insensitive.
 package group
 
 import (
+	"strings"
+
 	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 )
 
@@ -19,14 +22,14 @@ var suites = map[string]interface{}{}
 
 func init() {
 	ed25519 := edwards25519.NewAES128SHA256Ed25519()
-	suites[ed25519.String()] = ed25519
+	suites[strings.ToLower(ed25519.String())] = ed25519
 }
 
 // Suite return
 func Suite(name string) interface{} {
-	s, ok := suites[name]
+	s, ok := suites[strings.ToLower(name)]
 	if !ok {
-		panic("group has no suite named " + name + ". Abort.")
+		panic("group has no suite named " + name)
 	}
 	return s
 }

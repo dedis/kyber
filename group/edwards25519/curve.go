@@ -5,7 +5,6 @@ import (
 	"crypto/sha512"
 
 	"gopkg.in/dedis/kyber.v1"
-	//"gopkg.in/dedis/kyber.v1/group/mod"
 	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
