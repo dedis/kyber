@@ -2,9 +2,9 @@ package test
 
 import (
 	"bytes"
-	"crypto/cipher"
 
 	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/cipher"
 	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
@@ -320,8 +320,8 @@ func GroupTest(g kyber.Group) {
 func CompareGroups(fn func(key []byte, options ...interface{}) kyber.Cipher, g1, g2 kyber.Group) {
 
 	// Produce test results from the same pseudorandom seed
-	r1 := testGroup(g1, fn(kyber.NoKey))
-	r2 := testGroup(g2, fn(kyber.NoKey))
+	r1 := testGroup(g1, fn(cipher.NoKey))
+	r2 := testGroup(g2, fn(cipher.NoKey))
 
 	// Compare resulting Points
 	for i := range r1 {

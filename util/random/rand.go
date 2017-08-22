@@ -84,7 +84,7 @@ func Bytes(n int, rand cipher.Stream) []byte {
 }
 
 // NonZeroBytes calls Bytes as long as it gets a slice full of '0's.
-// This is needed when using suite.Cipher(kyber.NoKey)
+// This is needed when using suite.Cipher(cipher.NoKey)
 // because the first 6 iterations returns 0000...000 as
 // bytes for edwards & ed25519 cipher.
 // Issue reported in https://gopkg.in/dedis/kyber.v1/issues/70

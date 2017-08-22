@@ -74,7 +74,7 @@ func (s *shake) Clone() ShakeHash {
 }
 
 func (s *shake) Reset() {
-	s.cipher = cipher.FromSponge(s.sponge(), kyber.NoKey,
+	s.cipher = cipher.FromSponge(s.sponge(), cipher.NoKey,
 		cipher.Padding(0x1f))
 	s.squeezing = false
 }

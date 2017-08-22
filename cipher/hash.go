@@ -24,7 +24,7 @@ type cipherBlockSize interface {
 func NewHash(cipher func(key []byte, options ...interface{}) kyber.Cipher, size int) hash.Hash {
 	ch := &cipherHash{}
 	ch.cipher = cipher
-	ch.cur = cipher(kyber.NoKey)
+	ch.cur = cipher(NoKey)
 	ch.size = size
 	return ch
 }
@@ -47,7 +47,7 @@ func (ch *cipherHash) Sum(buf []byte) []byte {
 }
 
 func (ch *cipherHash) Reset() {
-	ch.cur = ch.cipher(kyber.NoKey)
+	ch.cur = ch.cipher(NoKey)
 }
 
 func (ch *cipherHash) Size() int {

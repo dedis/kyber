@@ -6,12 +6,13 @@ import (
 	"testing"
 
 	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/cipher"
 	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 )
 
 func TestRep(t *testing.T) {
 	suite := edwards25519.NewAES128SHA256Ed25519()
-	rand := suite.Cipher(kyber.RandomKey)
+	rand := suite.Cipher(cipher.RandomKey)
 
 	x := suite.Scalar().Pick(rand)
 	y := suite.Scalar().Pick(rand)

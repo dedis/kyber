@@ -5,6 +5,7 @@ import (
 	"testing"
 	//"encoding/hex"
 	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/cipher"
 	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 	"gopkg.in/dedis/kyber.v1/util/random"
 )
@@ -31,7 +32,7 @@ func (n *node) Step(msg []byte) ([][]byte, error) {
 }
 
 func (n *node) Random() kyber.Cipher {
-	return testSuite.Cipher(kyber.RandomKey)
+	return testSuite.Cipher(cipher.RandomKey)
 }
 
 func runNode(n *node) {

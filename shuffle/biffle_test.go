@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	kyber "gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/cipher"
 	"gopkg.in/dedis/kyber.v1/proof"
 )
 
@@ -13,7 +14,7 @@ func TestBiffle(t *testing.T) {
 
 func biffleTest(suite Suite, N int) {
 
-	rand := suite.Cipher(kyber.RandomKey)
+	rand := suite.Cipher(cipher.RandomKey)
 
 	// Create a "server" private/public keypair
 	h := suite.Scalar().Pick(rand)
