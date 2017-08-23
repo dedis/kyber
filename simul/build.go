@@ -32,10 +32,6 @@ var race = false
 var runWait = 180
 var experimentWait = 0
 
-// suite to use during the simulation
-// XXX TODO find a way to avoid having "one suite" for onet
-var suite string
-
 func init() {
 	flag.StringVar(&platformDst, "platform", platformDst, "platform to deploy to [deterlab,localhost]")
 	flag.BoolVar(&nobuild, "nobuild", false, "Don't rebuild all helpers")
@@ -47,7 +43,6 @@ func init() {
 	flag.StringVar(&simRange, "range", simRange, "Range of simulations to run. 0: or 3:4 or :4")
 	flag.IntVar(&runWait, "runwait", runWait, "How long to wait for each simulation to finish - overwrites .toml-value")
 	flag.IntVar(&experimentWait, "experimentwait", experimentWait, "How long to wait for the whole experiment to finish")
-	flag.StringVar(&suite, "suite", "ed25519", "suite to use")
 	log.RegisterFlags()
 }
 

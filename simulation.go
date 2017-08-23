@@ -11,6 +11,8 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"gopkg.in/dedis/kyber.v1"
+	"gopkg.in/dedis/kyber.v1/group"
+	"gopkg.in/dedis/kyber.v1/group/edwards25519"
 	"gopkg.in/dedis/kyber.v1/util/key"
 	"gopkg.in/dedis/onet.v2/log"
 	"gopkg.in/dedis/onet.v2/network"
@@ -94,7 +96,7 @@ func LoadSimulationConfig(dir, ca string, s network.Suite) ([]*SimulationConfig,
 		PrivateKeys: scf.PrivateKeys,
 		Config:      scf.Config,
 	}
-	sc.Tree, err = scf.TreeMarshal.MakeTree(sc.Roster, s)
+	sc.Tree, err = scf.TreeMarshal.MakeTree(s, sc.Roster)
 	if err != nil {
 		return nil, err
 	}
@@ -196,6 +198,7 @@ type SimulationBFTree struct {
 	Hosts      int
 	SingleHost bool
 	Depth      int
+	Suite      string
 }
 
 // CreateRoster creates an Roster with the host-names in 'addresses'.
@@ -289,7 +292,7 @@ func (s *SimulationBFTree) CreateTree(sc *SimulationConfig) error {
 	if sc.Roster == nil {
 		return errors.New("Empty Roster")
 	}
-	sc.Tree = sc.Roster.GenerateBigNaryTree(s.BF, s.Hosts)
+	sc.Tree = sc.Roster.GenerateBigNaryTree(s.GetSuite(), s.BF, s.Hosts)
 	log.Lvl3("Creating tree took: " + time.Now().Sub(start).String())
 	return nil
 }
@@ -300,6 +303,21 @@ func (s *SimulationBFTree) Node(sc *SimulationConfig) error {
 	sc.Overlay.RegisterRoster(sc.Roster)
 	sc.Overlay.RegisterTree(sc.Tree)
 	return nil
+}
+
+func (s *SimulationBFTree) GetSuite() (ns network.Suite) {
+	ns = edwards25519.NewAES128SHA256Ed25519()
+	if s.Suite == "" {
+		return
+	}
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+	si := group.Suite(s.Suite)
+	ns = si.(network.Suite)
+	return
 }
 
 // GetSingleHost returns the 'SingleHost'-flag

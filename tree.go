@@ -56,7 +56,7 @@ func (tId TreeID) IsNil() bool {
 
 // NewTree creates a new tree using the entityList and the root-node. It
 // also generates the id.
-func NewTree(el *Roster, r *TreeNode, s network.Suite) *Tree {
+func NewTree(s network.Suite, el *Roster, r *TreeNode) *Tree {
 	url := network.NamespaceURL + "tree/" + el.ID.String() + r.ID.String()
 	t := &Tree{
 		Roster: el,
@@ -71,7 +71,7 @@ func NewTree(el *Roster, r *TreeNode, s network.Suite) *Tree {
 
 // NewTreeFromMarshal takes a slice of bytes and an Roster to re-create
 // the original tree
-func NewTreeFromMarshal(buf []byte, el *Roster, s network.Suite) (*Tree, error) {
+func NewTreeFromMarshal(s network.Suite, buf []byte, el *Roster) (*Tree, error) {
 	tp, pm, err := network.Unmarshal(buf, s)
 	if err != nil {
 		return nil, err
@@ -79,7 +79,7 @@ func NewTreeFromMarshal(buf []byte, el *Roster, s network.Suite) (*Tree, error) 
 	if !tp.Equal(TreeMarshalTypeID) {
 		return nil, errors.New("Didn't receive TreeMarshal-struct")
 	}
-	t, err := pm.(*TreeMarshal).MakeTree(el, s)
+	t, err := pm.(*TreeMarshal).MakeTree(s, el)
 	t.computeSubtreeAggregate(s, t.Root)
 	return t, err
 }
@@ -129,13 +129,13 @@ func (t *Tree) BinaryMarshaler() ([]byte, error) {
 }
 
 // BinaryUnmarshaler takes a TreeMarshal and stores it in the tree
-func (t *Tree) BinaryUnmarshaler(b []byte, s network.Suite) error {
+func (t *Tree) BinaryUnmarshaler(s network.Suite, b []byte) error {
 	_, m, err := network.Unmarshal(b, s)
 	tbm, ok := m.(*tbmStruct)
 	if !ok {
 		return errors.New("Didn't find TBMstruct")
 	}
-	tree, err := NewTreeFromMarshal(tbm.T, tbm.EL, s)
+	tree, err := NewTreeFromMarshal(s, tbm.T, tbm.EL)
 	if err != nil {
 		return err
 	}
@@ -305,7 +305,7 @@ func TreeMarshalCopyTree(tr *TreeNode) *TreeMarshal {
 }
 
 // MakeTree creates a tree given an Roster
-func (tm TreeMarshal) MakeTree(el *Roster, s network.Suite) (*Tree, error) {
+func (tm TreeMarshal) MakeTree(s network.Suite, el *Roster) (*Tree, error) {
 	if !el.ID.Equal(tm.RosterID) {
 		return nil, errors.New("Not correct Roster-Id")
 	}
@@ -313,22 +313,23 @@ func (tm TreeMarshal) MakeTree(el *Roster, s network.Suite) (*Tree, error) {
 		ID:     tm.TreeID,
 		Roster: el,
 	}
-	tree.Root = tm.Children[0].MakeTreeFromList(nil, el)
+	tree.Root = tm.Children[0].MakeTreeFromList(s, nil, el)
 	tree.computeSubtreeAggregate(s, tree.Root)
 	return tree, nil
 }
 
 // MakeTreeFromList creates a sub-tree given an Roster
-func (tm *TreeMarshal) MakeTreeFromList(parent *TreeNode, el *Roster) *TreeNode {
+func (tm *TreeMarshal) MakeTreeFromList(s network.Suite, parent *TreeNode, el *Roster) *TreeNode {
 	idx, ent := el.Search(tm.ServerIdentityID)
 	tn := &TreeNode{
+
 		Parent:         parent,
 		ID:             tm.TreeNodeID,
 		ServerIdentity: ent,
 		RosterIndex:    idx,
 	}
 	for _, c := range tm.Children {
-		tn.Children = append(tn.Children, c.MakeTreeFromList(tn, el))
+		tn.Children = append(tn.Children, c.MakeTreeFromList(s, tn, el))
 	}
 	return tn
 }
@@ -422,7 +423,7 @@ func (el *Roster) Publics() []kyber.Point {
 // However, for some configurations it is impossible to use all ServerIdentities from
 // the Roster and still avoid having a parent and a child from the same
 // host. In this case use-all has preference over not-the-same-host.
-func (el *Roster) GenerateBigNaryTree(N, nodes int, suite network.Suite) *Tree {
+func (el *Roster) GenerateBigNaryTree(suite network.Suite, N, nodes int) *Tree {
 	// list of which hosts are already used
 	used := make([]bool, len(el.List))
 	ilLen := len(el.List)
@@ -481,13 +482,13 @@ func (el *Roster) GenerateBigNaryTree(N, nodes int, suite network.Suite) *Tree {
 		}
 		levelNodes = newLevelNodes[:newLevelNodesCounter]
 	}
-	return NewTree(el, root, suite)
+	return NewTree(suite, el, root)
 }
 
 // GenerateNaryTreeWithRoot creates a tree where each node has N children.
 // The root is given as an ServerIdentity. If root doesn't exist in the
 // roster, `nil` will be returned.
-func (el *Roster) GenerateNaryTreeWithRoot(N int, root *network.ServerIdentity) *Tree {
+func (el *Roster) GenerateNaryTreeWithRoot(s network.Suite, N int, root *network.ServerIdentity) *Tree {
 	rootIndex, _ := el.Search(root.ID)
 	if rootIndex < 0 {
 		log.Lvl2("Asked for non-existing root:", root, el.List)
@@ -499,20 +500,20 @@ func (el *Roster) GenerateNaryTreeWithRoot(N int, root *network.ServerIdentity) 
 	afterRoot := cList[rootIndex+1:]
 	list := append(onlyRoot, uptoRoot...)
 	list = append(list, afterRoot...)
-	return NewRoster(list).GenerateNaryTree(N)
+	return NewRoster(s, list).GenerateNaryTree(s, N)
 }
 
 // GenerateNaryTree creates a tree where each node has N children.
 // The first element of the Roster will be the root element.
-func (el *Roster) GenerateNaryTree(N int) *Tree {
+func (el *Roster) GenerateNaryTree(s network.Suite, N int) *Tree {
 	root := el.addNary(nil, N, 0, len(el.List)-1)
-	return NewTree(el, root)
+	return NewTree(s, el, root)
 }
 
 // GenerateBinaryTree creates a binary tree out of the Roster
 // out of it. The first element of the Roster will be the root element.
-func (el *Roster) GenerateBinaryTree() *Tree {
-	return el.GenerateNaryTree(2)
+func (el *Roster) GenerateBinaryTree(s network.Suite) *Tree {
+	return el.GenerateNaryTree(s, 2)
 }
 
 // RandomServerIdentity returns a random element of the Roster.
@@ -680,8 +681,8 @@ func (t *TreeNode) SubtreeCount() int {
 
 // AggregatePublic will return the aggregate public key of the TreeNode
 // and all it's children
-func (t *TreeNode) AggregatePublic() kyber.Point {
-	agg := RosterSuite.Point().Null()
+func (t *TreeNode) AggregatePublic(s network.Suite) kyber.Point {
+	agg := s.Point().Null()
 	t.Visit(0, func(i int, tn *TreeNode) {
 		agg.Add(agg, tn.ServerIdentity.Public)
 	})

@@ -121,8 +121,8 @@ func TestServiceRequestNewProtocol(t *testing.T) {
 	client := local.NewClient(dummyServiceName)
 	defer local.CloseAll()
 	// create the entityList and tree
-	el := NewRoster([]*network.ServerIdentity{server.ServerIdentity})
-	tree := el.GenerateBinaryTree()
+	el := NewRoster(suite, []*network.ServerIdentity{server.ServerIdentity})
+	tree := el.GenerateBinaryTree(suite)
 	// give it to the service
 	ds.fakeTree = tree
 
@@ -182,8 +182,8 @@ func TestServiceNewProtocol(t *testing.T) {
 	log.Lvl1("Host created and listening")
 
 	// create the entityList and tree
-	el := NewRoster([]*network.ServerIdentity{server1.ServerIdentity, server2.ServerIdentity})
-	tree := el.GenerateBinaryTree()
+	el := NewRoster(suite, []*network.ServerIdentity{server1.ServerIdentity, server2.ServerIdentity})
+	tree := el.GenerateBinaryTree(suite)
 	// give it to the service
 	ds1.fakeTree = tree
 
@@ -435,7 +435,7 @@ func (s *simpleService) ProcessClientRequest(path string, buf []byte) ([]byte, C
 	if err != nil {
 		return nil, NewClientErrorCode(WebSocketErrorProtobufDecode, "")
 	}
-	tree := msg.ServerIdentities.GenerateBinaryTree()
+	tree := msg.ServerIdentities.GenerateBinaryTree(suite)
 	tni := s.ctx.NewTreeNodeInstance(tree, tree.Root, backForthServiceName)
 	ret := make(chan int)
 	proto, err := newBackForthProtocolRoot(tni, msg.Val, func(n int) {
