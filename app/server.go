@@ -1,18 +1,17 @@
 package app
 
 import (
-	"bytes"
 	"errors"
 	"io/ioutil"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"os/user"
 	"path"
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/crypto"
@@ -21,9 +20,8 @@ import (
 
 	"github.com/shirou/gopsutil/mem"
 
-	// CoSi-protocol is not part of the cothority.
+	"fmt"
 
-	// For the moment, the server only serves CoSi requests
 	"gopkg.in/dedis/crypto.v0/abstract"
 	crypconf "gopkg.in/dedis/crypto.v0/config"
 )
@@ -42,10 +40,10 @@ const DefaultPort = 6879
 const DefaultAddress = "127.0.0.1"
 
 // Service used to get the public IP-address.
-const whatsMyIP = "http://www.whatsmyip.org/"
+const portscan = "https://dedis.ch/portscan.php"
 
 // InteractiveConfig uses stdin to get the [address:]PORT of the server.
-// If no address is given, whatsMyIP is used to find the public IP. In case
+// If no address is given, portscan is used to find the public IP. In case
 // no public IP can be configured, localhost will be used.
 // If everything is OK, the configuration-files will be written.
 // In case of an error this method Fatals.
@@ -93,7 +91,7 @@ func InteractiveConfig(binaryName string) {
 	var failedPublic bool
 	// if IP was not provided then let's get the public IP address
 	if !ipProvided {
-		resp, err := http.Get("http://myexternalip.com/raw")
+		resp, err := http.Get(portscan)
 		// cant get the public ip then ask the user for a reachable one
 		if err != nil {
 			log.Error("Could not get your public IP address")
@@ -117,9 +115,9 @@ func InteractiveConfig(binaryName string) {
 		publicAddress = askReachableAddress(portStr)
 	} else {
 		if publicAddress.Public() {
-			// try  to connect to ipfound:portgiven
+			// trying to connect to ipfound:portgiven
 			tryIP := publicAddress
-			log.Info("Check if the address", tryIP, "is reachable from Internet...")
+			log.Info("Check if the address", tryIP, "is reachable from Internet by binding to", serverBinding, ".")
 			if err := tryConnect(tryIP, serverBinding); err != nil {
 				log.Error("Could not connect to your public IP")
 				publicAddress = askReachableAddress(portStr)
@@ -304,55 +302,55 @@ func tryConnect(ip, binding network.Address) error {
 			return
 		}
 		listening <- true
-		con, _ := ln.Accept()
+		con, err := ln.Accept()
+		if err != nil {
+			log.Error("Error while accepting connections: ", err.Error())
+			return
+		}
 		<-stopCh
 		con.Close()
 	}()
 	defer func() { stopCh <- true }()
-	<-listening
+	select {
+	case <-listening:
+	case <-time.After(2 * time.Second):
+		return errors.New("timeout while listening on " + binding.NetworkAddress())
+	}
 	conn, err := net.Dial("tcp", ip.NetworkAddress())
-	log.ErrFatal(err, "Could not connect itself to public address. This is most"+
-		" probably an error in your system-setup. Please make sure this conode "+
-		"can connect to", ip.NetworkAddress())
+	log.ErrFatal(err, "Could not connect itself to public address.\n"+
+		"This is most probably an error in your system-setup.\n"+
+		"Please make sure this conode can connect to ", ip.NetworkAddress())
 
-	log.Info("Succesfully connected istelf to port")
+	log.Info("Successfully connected to our own port")
 	conn.Close()
 
-	_, port, err := net.SplitHostPort(ip.NetworkAddress())
+	_, portStr, err := net.SplitHostPort(ip.NetworkAddress())
 	if err != nil {
 		return err
 	}
-	values := url.Values{}
-	values.Set("port", port)
-	values.Set("timeout", "default")
+
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		return err
+	}
 
 	// ask the check
-	url := whatsMyIP + "port-scanner/scan.php"
-	req, err := http.NewRequest("POST", url, bytes.NewBufferString(values.Encode()))
+	url := fmt.Sprintf("%s?port=%d", portscan, port)
+	resp, err := http.Get(url)
+	// can't get the public ip then ask the user for a reachable one
 	if err != nil {
-		return err
+		return errors.New("Could not get your public IP address")
 	}
-	req.Header.Set("Host", "www.whatsmyip.org")
-	req.Header.Set("Referer", "http://www.whatsmyip.org/port-scanner/")
-	req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:46.0) Gecko/20100101 Firefox/46.0")
-	req.Header.Set("Accept", "*/*")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
-	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	buff, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
 	if err != nil {
 		return err
 	}
 
-	buffer, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	if !bytes.Contains(buffer, []byte("1")) {
-		return errors.New("Address unreachable")
+	res := string(buff)
+	if res != "Open" {
+		return fmt.Errorf("Portscan returned: %s", res)
 	}
 	return nil
 }
