@@ -61,6 +61,14 @@ func (d *DistKeyShare) Public() abstract.Point {
 	return d.Commits[0]
 }
 
+func (d *DistKeyShare) Commitments() []abstract.Point {
+	return d.Commits
+}
+
+func (d *DistKeyShare) PriShare() *share.PriShare {
+	return d.Share
+}
+
 // Deal holds the Deal for one participant as well as the index of the issuing
 // Dealer.
 //  NOTE: Doing that in vss.go would be possible but then the Dealer is always
