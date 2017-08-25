@@ -1,4 +1,10 @@
 .
+cipher
+cipher/aes
+cipher/bench
+cipher/norx
+cipher/norx/check
+cipher/sha3
 examples
 group
 group/curve25519
