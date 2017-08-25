@@ -14,10 +14,10 @@ import (
 
 	"github.com/dedis/fixbuf"
 
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/cipher/sha3"
-	"gopkg.in/dedis/kyber.v1/group/internal/marshalling"
-	"gopkg.in/dedis/kyber.v1/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/cipher/sha3"
+	"github.com/dedis/kyber/group/internal/marshalling"
+	"github.com/dedis/kyber/util/random"
 )
 
 type SuiteEd25519 struct {

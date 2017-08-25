@@ -7,8 +7,8 @@ import (
 	"hash"
 	"testing"
 
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/util/subtle"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/subtle"
 )
 
 // HashBench performs a benchmark on a hash function

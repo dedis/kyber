@@ -5,14 +5,14 @@ import (
 	"crypto/rc4"
 	"testing"
 
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/cipher"
+	"github.com/dedis/kyber/cipher/aes"
+	"github.com/dedis/kyber/cipher/norx"
+	"github.com/dedis/kyber/cipher/sha3"
 	"golang.org/x/crypto/blowfish"
 	"golang.org/x/crypto/salsa20"
 	"golang.org/x/crypto/twofish"
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/cipher"
-	"gopkg.in/dedis/kyber.v1/cipher/aes"
-	"gopkg.in/dedis/kyber.v1/cipher/norx"
-	"gopkg.in/dedis/kyber.v1/cipher/sha3"
 )
 
 var buf = make([]byte, 1024*1024)

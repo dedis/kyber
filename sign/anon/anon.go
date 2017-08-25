@@ -2,7 +2,7 @@
 package anon
 
 import (
-	"gopkg.in/dedis/kyber.v1"
+	"github.com/dedis/kyber"
 )
 
 // Set represents an explicit anonymity set

@@ -10,9 +10,9 @@ import (
 	"crypto/aes"
 	"crypto/hmac"
 	"crypto/sha256"
-	"gopkg.in/dedis/kyber.v1
-	"gopkg.in/dedis/kyber.v1/cipher"
-	"gopkg.in/dedis/kyber.v1/cipher/generic"
+	"github.com/dedis/kyber
+	"github.com/dedis/kyber/cipher"
+	"github.com/dedis/kyber/cipher/generic"
 )
 
 

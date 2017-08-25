@@ -9,11 +9,11 @@ import (
 	"io"
 	"math/big"
 
-	"gopkg.in/dedis/kyber.v1/util/random"
+	"github.com/dedis/kyber/util/random"
 
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/group/mod"
-	"gopkg.in/dedis/kyber.v1/group/internal/marshalling"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/internal/marshalling"
+	"github.com/dedis/kyber/group/mod"
 )
 
 type extPoint struct {

@@ -3,10 +3,10 @@ package pvss
 import (
 	"testing"
 
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/edwards25519"
+	"github.com/dedis/kyber/util/random"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/group/edwards25519"
-	"gopkg.in/dedis/kyber.v1/util/random"
 )
 
 func TestPVSS(test *testing.T) {

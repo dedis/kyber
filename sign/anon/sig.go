@@ -5,7 +5,7 @@ import (
 	"crypto/cipher"
 	"errors"
 
-	"gopkg.in/dedis/kyber.v1"
+	"github.com/dedis/kyber"
 )
 
 // unlinkable ring signature

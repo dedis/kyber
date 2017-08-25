@@ -3,8 +3,8 @@ package cipher
 import (
 	"hash"
 
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/util/bytes"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/bytes"
 )
 
 // Wrapper to use a generic mesage Cipher as a Hash

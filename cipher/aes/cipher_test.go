@@ -3,7 +3,7 @@ package aes
 import (
 	"testing"
 
-	"gopkg.in/dedis/kyber.v1/util/test"
+	"github.com/dedis/kyber/util/test"
 )
 
 func TestAES(t *testing.T) {

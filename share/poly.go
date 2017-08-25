@@ -16,7 +16,7 @@ import (
 	"errors"
 	"strings"
 
-	"gopkg.in/dedis/kyber.v1"
+	"github.com/dedis/kyber"
 )
 
 // Suite defines the capabilities required by the share/ package.

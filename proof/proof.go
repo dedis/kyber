@@ -8,7 +8,7 @@ package proof
 import (
 	"errors"
 
-	"gopkg.in/dedis/kyber.v1"
+	"github.com/dedis/kyber"
 )
 
 // Suite defines the functionalities needed for this package to operate

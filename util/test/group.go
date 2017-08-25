@@ -1,8 +1,8 @@
 package test
 
 import (
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/random"
 )
 
 // GroupBench is a generic benchmark suite for kyber.groups.

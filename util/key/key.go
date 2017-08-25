@@ -4,8 +4,8 @@ package key
 import (
 	"crypto/cipher"
 
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/random"
 )
 
 // Suite represents the list of functionalities needed by this package.

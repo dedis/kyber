@@ -3,8 +3,8 @@
 package group
 
 import (
-	"gopkg.in/dedis/kyber.v1/group/curve25519"
-	"gopkg.in/dedis/kyber.v1/group/nist"
+	"github.com/dedis/kyber/group/curve25519"
+	"github.com/dedis/kyber/group/nist"
 )
 
 func init() {

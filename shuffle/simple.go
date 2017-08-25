@@ -4,8 +4,8 @@ import (
 	"crypto/cipher"
 	"errors"
 
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/proof"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/proof"
 )
 
 // XX the Zs in front of some field names are a kludge to make them

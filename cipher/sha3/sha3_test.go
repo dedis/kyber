@@ -20,7 +20,7 @@ import (
 	"strings"
 	"testing"
 
-	"gopkg.in/dedis/kyber.v1/cipher"
+	"github.com/dedis/kyber/cipher"
 )
 
 const (

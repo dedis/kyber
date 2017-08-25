@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/group/edwards25519"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/edwards25519"
 )
 
 type Suite interface {

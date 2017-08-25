@@ -42,11 +42,11 @@ import (
 	"errors"
 	"fmt"
 
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/sign/schnorr"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/sign/schnorr"
 
-	"gopkg.in/dedis/kyber.v1/share"
-	"gopkg.in/dedis/kyber.v1/share/rabin/vss"
+	"github.com/dedis/kyber/share"
+	"github.com/dedis/kyber/share/rabin/vss"
 )
 
 // Suite wraps the functionalities needed by the dkg package

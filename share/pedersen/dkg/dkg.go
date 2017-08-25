@@ -7,10 +7,10 @@ import (
 	"errors"
 	"fmt"
 
-	"gopkg.in/dedis/kyber.v1"
+	"github.com/dedis/kyber"
 
-	"gopkg.in/dedis/kyber.v1/share"
-	"gopkg.in/dedis/kyber.v1/share/pedersen/vss"
+	"github.com/dedis/kyber/share"
+	"github.com/dedis/kyber/share/pedersen/vss"
 )
 
 // Suite wraps the functionalities needed by the dkg package

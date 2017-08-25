@@ -3,9 +3,9 @@ package edwards25519
 import (
 	"testing"
 
-	"gopkg.in/dedis/kyber.v1/util/random"
+	"github.com/dedis/kyber/util/random"
 
-	kyber "gopkg.in/dedis/kyber.v1"
+	kyber "github.com/dedis/kyber"
 )
 
 // SimpleCTScalar implements the scalar operations only using `ScMulAdd` by

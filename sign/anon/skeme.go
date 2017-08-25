@@ -6,8 +6,8 @@ import (
 	"crypto/subtle"
 	"errors"
 
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/random"
 )
 
 // SKEME is a pairwise anonymous key agreement for point-to-point interactions.

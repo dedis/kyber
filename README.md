@@ -11,8 +11,8 @@ Please see the
 [GoDoc documentation for this package](http://godoc.org/gopkg.in/dedis/kyber.v1)
 for details on the library's purpose and API functionality.
 
-Versioning
-----------
+Versioning - Development
+------------------------
 
 With the new interface in the kyber-library we use the following development
 model:
@@ -24,6 +24,8 @@ model:
 So if you depend on the master-branch, you can expect breakages from time
 to time. If you need something that doesn't change in a backward-compatible
 way, use kyber.v0.
+
+This is the _development_ version of kyber. And it will break.
 
 Installing
 ----------

@@ -3,16 +3,15 @@ package test
 import (
 	"bytes"
 
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/cipher"
-	"gopkg.in/dedis/kyber.v1/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/cipher"
+	"github.com/dedis/kyber/util/random"
 )
 
 // Suite represents the functionalities that this package can test
 type Suite interface {
 	kyber.Group
 	kyber.HashFactory
-	kyber.CipherFactory
 }
 
 func testEmbed(g kyber.Group, rand cipher.Stream, points *[]kyber.Point,
@@ -352,9 +351,9 @@ func SuiteTest(suite Suite) {
 	}
 
 	// Generate some pseudorandom bits
-	s := suite.Cipher(hb)
-	sb := make([]byte, 128)
-	s.XORKeyStream(sb, sb)
+	//s := suite.Cipher(hb)
+	//sb := make([]byte, 128)
+	//s.XORKeyStream(sb, sb)
 	//println("Stream:")
 	//println(hex.Dump(sb))
 
@@ -366,13 +365,13 @@ func SuiteTest(suite Suite) {
 	}
 
 	// Test if it creates the same with the same seed
-	st1 := suite.Cipher(hb)
-	st2 := suite.Cipher(hb)
-	s3 := suite.NewKey(st1)
-	s4 := suite.NewKey(st2)
-	if !s3.Equal(s4) {
-		panic("NewKey returns two different keys given same stream")
-	}
+	//st1 := suite.Cipher(hb)
+	//st2 := suite.Cipher(hb)
+	//s3 := suite.NewKey(st1)
+	//s4 := suite.NewKey(st2)
+	//if !s3.Equal(s4) {
+	//	panic("NewKey returns two different keys given same stream")
+	//}
 
 	// Test if it creates two different with random stream
 	stream := random.Stream

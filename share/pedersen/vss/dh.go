@@ -5,7 +5,7 @@ import (
 	"crypto/cipher"
 	"hash"
 
-	"gopkg.in/dedis/kyber.v1"
+	"github.com/dedis/kyber"
 
 	"golang.org/x/crypto/hkdf"
 )

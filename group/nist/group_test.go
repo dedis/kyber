@@ -5,7 +5,7 @@ package nist
 import (
 	"testing"
 
-	"gopkg.in/dedis/kyber.v1/util/test"
+	"github.com/dedis/kyber/util/test"
 )
 
 var testQR512 = NewAES128SHA256QR512()

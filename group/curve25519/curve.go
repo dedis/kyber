@@ -9,9 +9,9 @@ import (
 	//"encoding/hex"
 	"crypto/cipher"
 
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/group/mod"
-	"gopkg.in/dedis/kyber.v1/util/bytes"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/mod"
+	"github.com/dedis/kyber/util/bytes"
 )
 
 var zero = big.NewInt(0)

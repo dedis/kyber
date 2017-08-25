@@ -11,8 +11,8 @@ package sha3
 import (
 	"io"
 
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/cipher"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/cipher"
 )
 
 // ShakeHash defines the interface to hash functions that

@@ -10,12 +10,12 @@ import (
 	"io"
 	"math/big"
 
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/group/internal/marshalling"
-	"gopkg.in/dedis/kyber.v1/group/mod"
-	"gopkg.in/dedis/kyber.v1/util/bytes"
-	"gopkg.in/dedis/kyber.v1/util/random"
-	"gopkg.in/dedis/kyber.v1/util/subtle"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/internal/marshalling"
+	"github.com/dedis/kyber/group/mod"
+	"github.com/dedis/kyber/util/bytes"
+	"github.com/dedis/kyber/util/random"
+	"github.com/dedis/kyber/util/subtle"
 )
 
 // This code is a port of the public domain, "ref10" implementation of ed25519

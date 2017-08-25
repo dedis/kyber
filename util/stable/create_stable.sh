@@ -7,11 +7,25 @@ main(){
     prepare_repo
     copy_stable
     copy_repo
+    remove_files
+    update_imports
+}
+
+show_help(){
+    echo "
+Syntax is: $0 [-ohv] stable_repo
+
+Gets all stable code and puts it in a new repo.
+
+    -h      help
+    -v      verbose
+    -o      overwrite
+"
+    exit 1
 }
 
 parse_args(){
     OPTIND=1
-    # Initialize our own variables:
     overwrite=""
     verbose=0
 
@@ -36,8 +50,7 @@ parse_args(){
 
 prepare_repo(){
     if [ ! "$REPO" ]; then
-        echo "Syntax is: $0 [-ohv] stable_repo"
-        exit 1
+        show_help
     fi
 
     REPOPATH="$GOPATH/src/$REPO"
@@ -54,6 +67,11 @@ prepare_repo(){
 }
 
 copy_stable(){
+    if [ ! -f directories ]; then
+        echo "Didn't find file 'directories' - so I don't know what to do."
+        exit 1
+    fi
+
     mkdir -p "$REPOPATH"
     local kyber=$( cd ../..; pwd )
     for d in $( cat directories ); do
@@ -71,10 +89,19 @@ copy_stable(){
 }
 
 copy_repo(){
-    if [ -d "./$REPO" ]; then
-        echo "Also copying files from '$REPO'"
-        cp -av "$REPO"/* "$REPOPATH"
-    fi
+    cp -av overwrite/* "$REPOPATH"
+}
+
+remove_files(){
+    for f in $( cat remove_files ); do
+        rm "$REPOPATH"/$f
+    done
+}
+
+update_imports(){
+    echo "updating imports"
+    find "$REPOPATH" -name "*go" -exec perl -pi -e "s:github.com/dedis/kyber:$REPO:" "{}"
+    find "$REPOPATH" -name "*go" -exec goimports -w "{}"
 }
 
 main $@

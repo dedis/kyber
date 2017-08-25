@@ -1,9 +1,9 @@
 package shuffle
 
 import (
-	kyber "gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/proof"
-	"gopkg.in/dedis/kyber.v1/util/random"
+	kyber "github.com/dedis/kyber"
+	"github.com/dedis/kyber/proof"
+	"github.com/dedis/kyber/util/random"
 )
 
 func bifflePred() proof.Predicate {

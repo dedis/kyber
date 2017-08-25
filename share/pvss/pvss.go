@@ -16,10 +16,10 @@ package pvss
 import (
 	"errors"
 
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/proof/dleq"
-	"gopkg.in/dedis/kyber.v1/share"
-	"gopkg.in/dedis/kyber.v1/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/proof/dleq"
+	"github.com/dedis/kyber/share"
+	"github.com/dedis/kyber/util/random"
 )
 
 // Suite describes the functionalities needed by this package in order to

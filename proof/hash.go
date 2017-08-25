@@ -3,7 +3,7 @@ package proof
 import (
 	"bytes"
 
-	"gopkg.in/dedis/kyber.v1"
+	"github.com/dedis/kyber"
 )
 
 // Hash-based noninteractive Sigma-protocol prover context

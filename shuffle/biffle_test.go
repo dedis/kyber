@@ -3,9 +3,9 @@ package shuffle
 import (
 	"testing"
 
-	kyber "gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/cipher"
-	"gopkg.in/dedis/kyber.v1/proof"
+	kyber "github.com/dedis/kyber"
+	"github.com/dedis/kyber/cipher"
+	"github.com/dedis/kyber/proof"
 )
 
 func TestBiffle(t *testing.T) {

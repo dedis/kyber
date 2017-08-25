@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 
-	"gopkg.in/dedis/kyber.v1"
+	"github.com/dedis/kyber"
 )
 
 // DeniableProver is a Protocol implementing an interactive Sigma-protocol

@@ -6,10 +6,10 @@ import (
 
 	xEd25519 "github.com/bford/golang-x-crypto/ed25519"
 	"github.com/bford/golang-x-crypto/ed25519/cosi"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/edwards25519"
+	"github.com/dedis/kyber/util/key"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/group/edwards25519"
-	"gopkg.in/dedis/kyber.v1/util/key"
 )
 
 var testSuite = edwards25519.NewAES128SHA256Ed25519()

@@ -3,10 +3,10 @@ package schnorr
 import (
 	"testing"
 
+	"github.com/dedis/kyber/group/edwards25519"
+	"github.com/dedis/kyber/sign/eddsa"
+	"github.com/dedis/kyber/util/key"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/dedis/kyber.v1/group/edwards25519"
-	"gopkg.in/dedis/kyber.v1/sign/eddsa"
-	"gopkg.in/dedis/kyber.v1/util/key"
 )
 
 func TestSchnorrSignature(t *testing.T) {

@@ -15,7 +15,7 @@ package group
 import (
 	"strings"
 
-	"gopkg.in/dedis/kyber.v1/group/edwards25519"
+	"github.com/dedis/kyber/group/edwards25519"
 )
 
 var suites = map[string]interface{}{}

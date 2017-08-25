@@ -5,9 +5,9 @@ import (
 	"crypto/hmac"
 	"hash"
 
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/util/ints"
-	"gopkg.in/dedis/kyber.v1/util/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/ints"
+	"github.com/dedis/kyber/util/random"
 )
 
 type streamCipher struct {
