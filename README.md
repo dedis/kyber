@@ -11,19 +11,33 @@ Please see the
 [GoDoc documentation for this package](http://godoc.org/gopkg.in/dedis/kyber.v1)
 for details on the library's purpose and API functionality.
 
+Versioning
+----------
+
+With the new interface in the kyber-library we use the following development
+model:
+
+* kyber.v0 (crypto.v0) is the previous semi-stable version
+* master-branch of kyber is the development version
+* kyber.v1 will be a subset of the master-branch and be stable
+
+So if you depend on the master-branch, you can expect breakages from time
+to time. If you need something that doesn't change in a backward-compatible
+way, use kyber.v0.
+
 Installing
 ----------
 
 First make sure you have [Go](https://golang.org)
-version 1.3 or newer installed.
+version 1.7 or newer installed.
 
 The basic crypto library requires only Go and a few
 third-party Go-language dependencies that can be installed automatically
 as follows:
 
-	go get gopkg.in/dedis/kyber.v1
-	cd $GOPATH/src/gopkg.in/dedis/kyber.v1
-	go get ./... # install 3rd-party dependencies
+	go get github.com/dedis/kyber
+	cd $GOPATH/src/github.com/dedis/kyber
+	go get -t ./... # install 3rd-party dependencies
 
 You should then be able to test its basic function as follows:
 
@@ -53,7 +67,7 @@ And you can test the vartime packages with:
 Migration from v0
 -----------------
 
-The v1 is essentially a large clean up of the v0 version, with only a few API
+The current master is essentially a large clean up of the v0 version, with only a few API
 changes, so only minor changes are required.  
 
 + All references to `abstract.XXX` are now moved up to the top level
