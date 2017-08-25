@@ -3,7 +3,7 @@
 set -e
 
 main(){
-    parse_args
+    parse_args $@
     prepare_repo
     copy_stable
     copy_repo
@@ -45,7 +45,7 @@ prepare_repo(){
     if [ -e "$REPOPATH" ]; then
         if [ "$overwrite" ]; then
             echo "Going to overwrite '$REPOPATH'"
-            rm -rf "$REPOPATH"
+            rm -rf "$REPOPATH"/*
         else
             echo "'$REPOPATH' exists - either delete it or use '-o'"
             exit 1
@@ -76,3 +76,5 @@ copy_repo(){
         cp -av "$REPO"/* "$REPOPATH"
     fi
 }
+
+main $@
