@@ -31,7 +31,7 @@ var runWait = 180
 var experimentWait = 0
 
 func init() {
-	flag.StringVar(&platformDst, "platform", platformDst, "platform to deploy to [deterlab,localhost]")
+	flag.StringVar(&platformDst, "platform", platformDst, "platform to deploy to [localhost,mininet,deterlab]")
 	flag.BoolVar(&nobuild, "nobuild", false, "Don't rebuild all helpers")
 	flag.BoolVar(&clean, "clean", false, "Only clean platform")
 	flag.StringVar(&build, "build", "", "List of packages to build")

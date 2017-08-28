@@ -38,6 +38,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/dedis/onet"
+	"github.com/dedis/onet/app"
 	"github.com/dedis/onet/log"
 )
 
@@ -91,6 +92,8 @@ type Deterlab struct {
 	Debug int
 	// RunWait for long simulations
 	RunWait int
+	// PreScript defines a script that is run before the simulation
+	PreScript string
 }
 
 var simulConfig *onet.SimulationConfig
@@ -232,6 +235,19 @@ func (d *Deterlab) Deploy(rc *RunConfig) error {
 	if err := os.Mkdir(d.deployDir, 0777); err != nil {
 		return err
 	}
+
+	// Check for PreScript and copy it to the deploy-dir
+	d.PreScript = rc.Get("PreScript")
+	if d.PreScript != "" {
+		_, err := os.Stat(d.PreScript)
+		if !os.IsNotExist(err) {
+			if err := app.Copy(d.deployDir, d.PreScript); err != nil {
+				return err
+			}
+		}
+	}
+
+	// deploy will get rsync to /remote on the NFS
 
 	log.Lvl2("Localhost: Deploying and writing config-files")
 	sim, err := onet.NewSimulation(d.Simulation, string(rc.Toml()))

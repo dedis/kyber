@@ -125,6 +125,14 @@ func main() {
 			monitorAddr := deter.MonitorAddress + ":" + strconv.Itoa(deter.MonitorPort)
 			log.Lvl4("Starting servers on physical machine ", internal, "with monitor = ",
 				monitorAddr)
+
+			// If PreScript is defined, run the appropriate script _before_ the simulation.
+			if deter.PreScript != "" {
+				err := platform.SSHRunStdout("", phys, "cd remote; sudo ./"+deter.PreScript+" deterlab")
+				if err != nil {
+					log.Fatal("error deploying PreScript: ", err)
+				}
+			}
 			args := " -address=" + internal +
 				" -simul=" + deter.Simulation +
 				" -monitor=" + monitorAddr +

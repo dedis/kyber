@@ -196,6 +196,7 @@ type SimulationBFTree struct {
 	Hosts      int
 	SingleHost bool
 	Depth      int
+	PreScript  string // executable script to run before the simulation on each machine
 }
 
 // CreateRoster creates an Roster with the host-names in 'addresses'.

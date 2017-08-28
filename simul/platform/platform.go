@@ -69,7 +69,7 @@ func NewPlatform(t string) Platform {
 		} else {
 			command = path + "setup_servers.sh"
 		}
-		names := app.Input("server1 server2 server3", "Please enter the space separated names of the servers")
+		names := app.Input("server1 server2 server3", "Please enter the space separated numbers of the servers")
 		split := strings.Split(names, " ")
 		cmd := exec.Command(command, split...)
 		out, err := cmd.CombinedOutput()

@@ -189,7 +189,7 @@ def GetNetworks(filename):
     It returns the first server encountered, our network if our ip is found
     in the list and the other networks."""
 
-    global simulation, bandwidth, delay, socatDirect, debugLvl, debugStr
+    global simulation, bandwidth, delay, socatDirect, debugLvl, debugStr, preScript
 
     process = Popen(["ip", "a"], stdout=PIPE)
     (ips, err) = process.communicate()
@@ -209,6 +209,7 @@ def GetNetworks(filename):
         debugStr = "DEBUG_TIME=true "
     if dbgColor == "true":
         debugStr += "DEBUG_COLOR=true"
+    preScript = content.pop(0).rstrip().split(' ')[0]
 
     list = []
     for line in content:
@@ -231,13 +232,19 @@ def GetNetworks(filename):
         dbg(0, "Redirection output through local gateway")
         socatDirect = False
 
+    if preScript != "":
+        dbg(0, "Running PreScript " + preScript)
+        call("./%s mininet" % preScript, shell=True)
+
     return list[0][0], myNet, otherNets
+
 
 def rm_file(file):
     try:
         os.remove(file)
     except OSError:
         pass
+
 
 def call_other(server, list_file):
     dbg( 3, "Calling remote server with", server, list_file )

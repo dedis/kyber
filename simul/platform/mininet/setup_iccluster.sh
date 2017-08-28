@@ -9,7 +9,7 @@ fi
 
 ICCLUSTERS=""
 for s in $@; do
-  SERVER="iccluster0${s}.iccluster.epfl.ch"
+  SERVER="iccluster$(printf '%03d' $s).iccluster.epfl.ch"
   ICCLUSTERS="$ICCLUSTERS $SERVER"
 done
 

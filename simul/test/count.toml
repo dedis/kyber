@@ -1,0 +1,11 @@
+Servers = 16
+Simulation = "CountTest"
+BF = 2
+Rounds = 4
+PreScript = "show_date.sh"
+
+Hosts
+3
+7
+15
+31

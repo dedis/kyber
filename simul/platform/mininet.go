@@ -80,6 +80,8 @@ type MiniNet struct {
 	Delay int
 	// Bandwidth in Mbps of the network connection
 	Bandwidth int
+	// PreScript defines a script that is run before the simulation
+	PreScript string
 }
 
 // Configure implements the Platform-interface. It is called once to set up
@@ -175,6 +177,17 @@ func (m *MiniNet) Deploy(rc *RunConfig) error {
 	sim, err := onet.NewSimulation(m.Simulation, string(rc.Toml()))
 	if err != nil {
 		return err
+	}
+
+	// Check for PreScript and copy it to the deploy-dir
+	m.PreScript = rc.Get("PreScript")
+	if m.PreScript != "" {
+		_, err := os.Stat(m.PreScript)
+		if !os.IsNotExist(err) {
+			if err := app.Copy(m.deployDir, m.PreScript); err != nil {
+				return err
+			}
+		}
 	}
 
 	// Initialize the mininet-struct with our current structure (for debug-levels
@@ -393,8 +406,8 @@ func (m *MiniNet) getHostList(rc *RunConfig) (hosts []string, list string, err e
 	if d, err := rc.GetInt("Delay"); err == nil {
 		delay = d
 	}
-	list = fmt.Sprintf("%s %d %d\n%d %t %t\n", m.Simulation, bandwidth, delay,
-		m.Debug, m.DebugTime, m.DebugColor)
+	list = fmt.Sprintf("%s %d %d\n%d %t %t\n%s\n", m.Simulation, bandwidth, delay,
+		m.Debug, m.DebugTime, m.DebugColor, m.PreScript)
 
 	// Add descriptions for `start.py` to know which mininet-network it has to
 	// run on what physical server with how many hosts.
