@@ -4,29 +4,28 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/dedis/kyber/abstract"
-	"github.com/dedis/kyber/clique"
+	"github.com/dedis/kyber"
 )
 
-// Create a clique.Protocol implementing an interactive Sigma-protocol
+// DeniableProver is a Protocol implementing an interactive Sigma-protocol
 // to prove a particular statement to the other participants.
-// Optionally the clique.Protocol participant can also verify
+// Optionally the Protocol participant can also verify
 // the Sigma-protocol proofs of any or all of the other participants.
 // Different participants may produce different proofs of varying sizes,
 // and may even consist of different numbers of steps.
-func DeniableProver(suite abstract.Suite, self int, prover Prover,
-	verifiers []Verifier) clique.Protocol {
+func DeniableProver(suite Suite, self int, prover Prover,
+	verifiers []Verifier) Protocol {
 
-	return clique.Protocol(func(ctx clique.Context) []error {
+	return Protocol(func(ctx Context) []error {
 		dp := deniableProver{}
 		return dp.run(suite, self, prover, verifiers, ctx)
 	})
 }
 
 type deniableProver struct {
-	suite abstract.Suite // Agreed-on ciphersuite for protocol
-	self  int            // Our own node number
-	sc    clique.Context // Clique protocol context
+	suite Suite   // Agreed-on ciphersuite for protocol
+	self  int     // Our own node number
+	sc    Context // Clique protocol context
 
 	// verifiers for other nodes' proofs
 	dv []*deniableVerifier
@@ -36,15 +35,15 @@ type deniableProver struct {
 	msg  *bytes.Buffer // Buffer in which to build prover msg
 	msgs [][]byte      // All messages from last proof step
 
-	pubrand abstract.Cipher
-	prirand abstract.Cipher
+	pubrand kyber.Cipher
+	prirand kyber.Cipher
 
 	// Error/success indicators for all participants
 	err []error
 }
 
-func (dp *deniableProver) run(suite abstract.Suite, self int, prv Prover,
-	vrf []Verifier, sc clique.Context) []error {
+func (dp *deniableProver) run(suite Suite, self int, prv Prover,
+	vrf []Verifier, sc Context) []error {
 	dp.suite = suite
 	dp.self = self
 	dp.sc = sc
@@ -106,7 +105,7 @@ func (dp *deniableProver) initStep() {
 
 	keylen := dp.prirand.KeySize()
 	key := make([]byte, keylen) // secret random key
-	dp.prirand.Read(key)
+	_, _ = dp.prirand.Read(key)
 	dp.key = key
 
 	msg := make([]byte, keylen) // send commitment to it
@@ -235,7 +234,7 @@ func (dp *deniableProver) PriRand(data ...interface{}) {
 // Interactive Sigma-protocol verifier context.
 // Acts as a slave to a deniableProver instance.
 type deniableVerifier struct {
-	suite abstract.Suite
+	suite Suite
 
 	inbox chan []byte   // Channel for receiving proofs and challenges
 	prbuf *bytes.Buffer // Buffer with which to read proof messages
@@ -243,10 +242,10 @@ type deniableVerifier struct {
 	done chan bool // Channel for sending done status indicators
 	err  error     // When done indicates verify error if non-nil
 
-	pubrand abstract.Cipher
+	pubrand kyber.Cipher
 }
 
-func (dv *deniableVerifier) start(suite abstract.Suite, vrf Verifier) {
+func (dv *deniableVerifier) start(suite Suite, vrf Verifier) {
 	dv.suite = suite
 	dv.inbox = make(chan []byte)
 	dv.done = make(chan bool)

@@ -4,23 +4,23 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/dedis/kyber/abstract"
-	"github.com/dedis/kyber/ed25519"
-	"github.com/dedis/kyber/eddsa"
-	"github.com/dedis/kyber/random"
-	"github.com/dedis/kyber/share/dkg"
-	"github.com/dedis/kyber/sign"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group/edwards25519"
+	"github.com/dedis/kyber/share/rabin/dkg"
+	"github.com/dedis/kyber/sign/eddsa"
+	"github.com/dedis/kyber/sign/schnorr"
+	"github.com/dedis/kyber/util/random"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var suite = ed25519.NewAES128SHA256Ed25519(false)
+var suite = edwards25519.NewAES128SHA256Ed25519()
 
 var nbParticipants = 7
 var t = nbParticipants/2 + 1
 
-var partPubs []abstract.Point
-var partSec []abstract.Scalar
+var partPubs []kyber.Point
+var partSec []kyber.Scalar
 
 var longterms []*dkg.DistKeyShare
 var randoms []*dkg.DistKeyShare
@@ -28,8 +28,8 @@ var randoms []*dkg.DistKeyShare
 var dss []*DSS
 
 func init() {
-	partPubs = make([]abstract.Point, nbParticipants)
-	partSec = make([]abstract.Scalar, nbParticipants)
+	partPubs = make([]kyber.Point, nbParticipants)
+	partSec = make([]kyber.Scalar, nbParticipants)
 	for i := 0; i < nbParticipants; i++ {
 		sec, pub := genPair()
 		partPubs[i] = pub
@@ -77,7 +77,7 @@ func TestDSSPartialSigs(t *testing.T) {
 	// invalid partial sig
 	goodV := ps0.Partial.V
 	ps0.Partial.V = suite.Scalar().Zero()
-	ps0.Signature, err = sign.Schnorr(suite, dss0.secret, ps0.Hash(suite))
+	ps0.Signature, err = schnorr.Sign(suite, dss0.secret, ps0.Hash(suite))
 	require.Nil(t, err)
 	err = dss1.ProcessPartialSig(ps0)
 	assert.Error(t, err)
@@ -214,13 +214,13 @@ func genDistSecret() []*dkg.DistKeyShare {
 	return dkss
 
 }
-func genPair() (abstract.Scalar, abstract.Point) {
+func genPair() (kyber.Scalar, kyber.Point) {
 	sc := suite.Scalar().Pick(random.Stream)
-	return sc, suite.Point().Mul(nil, sc)
+	return sc, suite.Point().Mul(sc, nil)
 }
 
 func randomBytes(n int) []byte {
 	var buff = make([]byte, n)
-	rand.Read(buff[:])
+	_, _ = rand.Read(buff[:])
 	return buff
 }

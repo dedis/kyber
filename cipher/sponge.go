@@ -3,12 +3,13 @@ package cipher
 import (
 	"fmt"
 	"log"
+
+	"github.com/dedis/kyber/util/ints"
 	//"encoding/hex"
 	"encoding/binary"
 
-	"github.com/dedis/kyber/abstract"
-	"github.com/dedis/kyber/ints"
-	"github.com/dedis/kyber/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/random"
 )
 
 // Sponge is an interface representing a primitive sponge function.
@@ -64,8 +65,8 @@ type spongeCipher struct {
 	pos int
 }
 
-// SpongeCipher builds a general message Cipher from a Sponge function.
-func FromSponge(sponge Sponge, key []byte, options ...interface{}) abstract.Cipher {
+// FromSponge builds a general message Cipher from a Sponge function.
+func FromSponge(sponge Sponge, key []byte, options ...interface{}) kyber.Cipher {
 	sc := spongeCipher{}
 	sc.sponge = sponge
 	sc.rate = sponge.Rate()
@@ -86,7 +87,7 @@ func FromSponge(sponge Sponge, key []byte, options ...interface{}) abstract.Ciph
 	// Setup normal-case domain-separation byte used for message payloads
 	sc.setDomain(domainPayload, 0)
 
-	return abstract.Cipher{&sc}
+	return kyber.Cipher{CipherState: &sc}
 }
 
 func (sc *spongeCipher) parseOptions(options []interface{}) bool {
@@ -197,46 +198,6 @@ func (sc *spongeCipher) special(domain byte, index int) {
 	sc.setDomain(domainPayload, 0)
 }
 
-/*
-// XXX move to abstract.Cipher?
-func (sc *spongeCipher) Fork(nsubs int) []abstract.CipherState {
-
-	subs := make([]abstract.Cipher, nsubs)
-	for i := range subs {
-		sub := sc.clone()
-		sub.special(domainFork, 1+i) // reserve 0 for parent
-		subs[i] = sub
-	}
-
-	// ensure the parent is separated from all its children
-	sc.special(domainFork, 0)
-
-	return subs
-}
-
-func xorBytes(dst, src []byte) {
-	for i := range dst {
-		dst[i] ^= src[i]
-	}
-}
-
-// XXX move to abstract.Cipher?
-func (sc *spongeCipher) Join(subs ...abstract.CipherState) {
-
-	// mark the join transformation in the parent first
-	sc.special(domainJoin, 0)
-
-	// now transform and mix in all the children
-	buf := sc.buf
-	for i := range subs {
-		sub := subs[i].(*spongeCipher)
-		sub.special(domainJoin, 1+i) // reserve 0 for parent
-		xorBytes(buf, sub.buf)       // XOR sub's state into parent's
-		sub.buf = nil                // make joined sub unusable
-	}
-}
-*/
-
 func (sc *spongeCipher) clone() *spongeCipher {
 	nsc := *sc
 	nsc.sponge = sc.sponge.Clone()
@@ -245,7 +206,7 @@ func (sc *spongeCipher) clone() *spongeCipher {
 	return &nsc
 }
 
-func (sc *spongeCipher) Clone() abstract.CipherState {
+func (sc *spongeCipher) Clone() kyber.CipherState {
 	return sc.clone()
 }
 

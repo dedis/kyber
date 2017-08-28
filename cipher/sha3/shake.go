@@ -11,7 +11,7 @@ package sha3
 import (
 	"io"
 
-	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/cipher"
 )
 
@@ -38,7 +38,7 @@ type ShakeHash interface {
 // as a special-case use of the Message Cipher interface.
 type shake struct {
 	sponge    func() cipher.Sponge
-	cipher    abstract.Cipher
+	cipher    kyber.Cipher
 	squeezing bool
 }
 
@@ -74,7 +74,7 @@ func (s *shake) Clone() ShakeHash {
 }
 
 func (s *shake) Reset() {
-	s.cipher = cipher.FromSponge(s.sponge(), abstract.NoKey,
+	s.cipher = cipher.FromSponge(s.sponge(), cipher.NoKey,
 		cipher.Padding(0x1f))
 	s.squeezing = false
 }
@@ -83,14 +83,14 @@ var shakeOpts = []interface{}{cipher.Padding(0x1f)}
 
 // NewShakeCipher128 creates a Cipher implementing the SHAKE128 algorithm,
 // which provides 128-bit security against all known attacks.
-func NewShakeCipher128(key []byte, options ...interface{}) abstract.Cipher {
+func NewShakeCipher128(key []byte, options ...interface{}) kyber.Cipher {
 	return cipher.FromSponge(newKeccak256(), key,
 		append(shakeOpts, options...)...)
 }
 
 // NewShakeCipher256 creates a Cipher implementing the SHAKE256 algorithm,
 // which provides 256-bit security against all known attacks.
-func NewShakeCipher256(key []byte, options ...interface{}) abstract.Cipher {
+func NewShakeCipher256(key []byte, options ...interface{}) kyber.Cipher {
 	return cipher.FromSponge(newKeccak512(), key,
 		append(shakeOpts, options...)...)
 }

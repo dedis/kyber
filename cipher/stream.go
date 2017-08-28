@@ -5,9 +5,9 @@ import (
 	"crypto/hmac"
 	"hash"
 
-	"github.com/dedis/kyber/abstract"
-	"github.com/dedis/kyber/ints"
-	"github.com/dedis/kyber/random"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/ints"
+	"github.com/dedis/kyber/util/random"
 )
 
 type streamCipher struct {
@@ -27,11 +27,11 @@ const bufLen = 1024
 
 var zeroBytes = make([]byte, bufLen)
 
-// Construct a general message Cipher
+// FromStream constructs a general message Cipher
 // from a Stream cipher and a cryptographic Hash.
 func FromStream(newStream func(key []byte) cipher.Stream,
 	newHash func() hash.Hash, blockLen, keyLen, hashLen int,
-	key []byte, options ...interface{}) abstract.Cipher {
+	key []byte, options ...interface{}) kyber.Cipher {
 
 	sc := streamCipher{}
 	sc.newStream = newStream
@@ -52,7 +52,7 @@ func FromStream(newStream func(key []byte) cipher.Stream,
 		panic("no FromStream options supported yet")
 	}
 
-	return abstract.Cipher{&sc}
+	return kyber.Cipher{CipherState: &sc}
 }
 
 func (sc *streamCipher) Partial(dst, src, key []byte) {
@@ -80,10 +80,10 @@ func (sc *streamCipher) Partial(dst, src, key []byte) {
 	// absorb cryptographic input (which may overlap with dst)
 	if key != nil {
 		nkey := ints.Min(n, len(key)) // # key bytes available
-		sc.h.Write(key[:nkey])
+		_, _ = sc.h.Write(key[:nkey])
 		if n > nkey {
 			buf := make([]byte, n-nkey)
-			sc.h.Write(buf)
+			_, _ = sc.h.Write(buf)
 		}
 	}
 }
@@ -108,7 +108,7 @@ func (sc *streamCipher) BlockSize() int {
 	return sc.blockLen
 }
 
-func (sc *streamCipher) Clone() abstract.CipherState {
+func (sc *streamCipher) Clone() kyber.CipherState {
 	if sc.s != nil {
 		panic("cannot clone cipher state mid-message")
 	}

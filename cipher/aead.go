@@ -4,18 +4,18 @@ import (
 	"crypto/cipher"
 	"errors"
 
-	"github.com/dedis/kyber/abstract"
-	"github.com/dedis/kyber/subtle"
-	"github.com/dedis/kyber/util"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/bytes"
+	"github.com/dedis/kyber/util/subtle"
 )
 
 type cipherAEAD struct {
-	abstract.Cipher
+	kyber.Cipher
 }
 
-// Wrap an abstract message Cipher to implement
+// NewAEAD wraps an kyber.message Cipher to implement
 // the Authenticated Encryption with Associated Data (AEAD) interface.
-func NewAEAD(c abstract.Cipher) cipher.AEAD {
+func NewAEAD(c kyber.Cipher) cipher.AEAD {
 	return &cipherAEAD{c}
 }
 
@@ -34,11 +34,11 @@ func (ca *cipherAEAD) Seal(dst, nonce, plaintext, data []byte) []byte {
 	ct.Message(nil, nil, nonce)
 
 	// Encrypt the plaintext and update the temporary Cipher state
-	dst, ciphertext := util.Grow(dst, len(plaintext))
+	dst, ciphertext := bytes.Grow(dst, len(plaintext))
 	ct.Message(ciphertext, plaintext, ciphertext)
 
 	// Compute and append the authenticator based on post-encryption state
-	dst, auth := util.Grow(dst, ct.KeySize())
+	dst, auth := bytes.Grow(dst, ct.KeySize())
 	ct.Message(auth, nil, nil)
 
 	return dst
@@ -60,7 +60,7 @@ func (ca *cipherAEAD) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) 
 	ciphertext = ciphertext[:plainl]
 
 	// Decrypt the plaintext and update the temporary Cipher state
-	dst, plaintext := util.Grow(dst, plainl)
+	dst, plaintext := bytes.Grow(dst, plainl)
 	ct.Message(plaintext, ciphertext, ciphertext)
 
 	// Compute and check the authenticator based on post-encryption state

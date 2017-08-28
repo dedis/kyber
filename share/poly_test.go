@@ -3,14 +3,13 @@ package share
 import (
 	"testing"
 
-	"github.com/dedis/kyber/ed25519"
-	"github.com/dedis/kyber/edwards"
-	"github.com/dedis/kyber/random"
+	"github.com/dedis/kyber/group/edwards25519"
+	"github.com/dedis/kyber/util/random"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSecretRecovery(test *testing.T) {
-	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	g := edwards25519.NewAES128SHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 	poly := NewPriPoly(g, t, nil, random.Stream)
@@ -27,7 +26,7 @@ func TestSecretRecovery(test *testing.T) {
 }
 
 func TestSecretRecoveryDelete(test *testing.T) {
-	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	g := edwards25519.NewAES128SHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 	poly := NewPriPoly(g, t, nil, random.Stream)
@@ -50,7 +49,7 @@ func TestSecretRecoveryDelete(test *testing.T) {
 }
 
 func TestSecretRecoveryDeleteFail(test *testing.T) {
-	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	g := edwards25519.NewAES128SHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 
@@ -71,7 +70,7 @@ func TestSecretRecoveryDeleteFail(test *testing.T) {
 }
 
 func TestSecretPolyEqual(test *testing.T) {
-	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	g := edwards25519.NewAES128SHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 
@@ -91,7 +90,7 @@ func TestSecretPolyEqual(test *testing.T) {
 }
 
 func TestPublicCheck(test *testing.T) {
-	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	g := edwards25519.NewAES128SHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 
@@ -107,7 +106,7 @@ func TestPublicCheck(test *testing.T) {
 }
 
 func TestPublicRecovery(test *testing.T) {
-	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	g := edwards25519.NewAES128SHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 
@@ -126,7 +125,7 @@ func TestPublicRecovery(test *testing.T) {
 }
 
 func TestPublicRecoveryDelete(test *testing.T) {
-	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	g := edwards25519.NewAES128SHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 
@@ -151,7 +150,7 @@ func TestPublicRecoveryDelete(test *testing.T) {
 }
 
 func TestPublicRecoveryDeleteFail(test *testing.T) {
-	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	g := edwards25519.NewAES128SHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 
@@ -173,7 +172,7 @@ func TestPublicRecoveryDeleteFail(test *testing.T) {
 }
 
 func TestPrivateAdd(test *testing.T) {
-	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	g := edwards25519.NewAES128SHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 
@@ -195,12 +194,12 @@ func TestPrivateAdd(test *testing.T) {
 }
 
 func TestPublicAdd(test *testing.T) {
-	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	g := edwards25519.NewAES128SHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 
-	G, _ := g.Point().Pick([]byte("G"), random.Stream)
-	H, _ := g.Point().Pick([]byte("H"), random.Stream)
+	G := g.Point().Pick(random.Stream)
+	H := g.Point().Pick(random.Stream)
 
 	p := NewPriPoly(g, t, nil, random.Stream)
 	q := NewPriPoly(g, t, nil, random.Stream)
@@ -229,11 +228,11 @@ func TestPublicAdd(test *testing.T) {
 }
 
 func TestPublicPolyEqual(test *testing.T) {
-	g := new(edwards.ExtendedCurve).Init(edwards.Param25519(), false)
+	g := edwards25519.NewAES128SHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 
-	G, _ := g.Point().Pick([]byte("G"), random.Stream)
+	G := g.Point().Pick(random.Stream)
 
 	p1 := NewPriPoly(g, t, nil, random.Stream)
 	p2 := NewPriPoly(g, t, nil, random.Stream)
@@ -255,7 +254,7 @@ func TestPublicPolyEqual(test *testing.T) {
 }
 
 func TestPriPolyMul(test *testing.T) {
-	suite := ed25519.NewAES128SHA256Ed25519(false)
+	suite := edwards25519.NewAES128SHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 	a := NewPriPoly(suite, t, nil, random.Stream)
@@ -282,7 +281,7 @@ func TestPriPolyMul(test *testing.T) {
 }
 
 func TestRecoverPriPoly(test *testing.T) {
-	suite := ed25519.NewAES128SHA256Ed25519(false)
+	suite := edwards25519.NewAES128SHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 	a := NewPriPoly(suite, t, nil, random.Stream)

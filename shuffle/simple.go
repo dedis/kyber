@@ -4,7 +4,7 @@ import (
 	"crypto/cipher"
 	"errors"
 
-	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/proof"
 )
 
@@ -14,32 +14,34 @@ import (
 
 // P (Prover) step 0: public inputs to the simple k-shuffle.
 type ssa0 struct {
-	X []abstract.Point
-	Y []abstract.Point
+	X []kyber.Point
+	Y []kyber.Point
 }
 
 // V (Verifier) step 1: random challenge t
 type ssa1 struct {
-	Zt abstract.Scalar
+	Zt kyber.Scalar
 }
 
 // P step 2: Theta vectors
 type ssa2 struct {
-	Theta []abstract.Point
+	Theta []kyber.Point
 }
 
 // V step 3: random challenge c
 type ssa3 struct {
-	Zc abstract.Scalar
+	Zc kyber.Scalar
 }
 
 // P step 4: alpha vector
 type ssa4 struct {
-	Zalpha []abstract.Scalar
+	Zalpha []kyber.Scalar
 }
 
+// SimpleShuffle is the "Simple k-shuffle" defined in section 3 of
+// Neff, "Verifiable Mixing (Shuffling) of ElGamal Pairs", 2004.
 type SimpleShuffle struct {
-	grp abstract.Group
+	grp kyber.Group
 	p0  ssa0
 	v1  ssa1
 	p2  ssa2
@@ -48,10 +50,10 @@ type SimpleShuffle struct {
 }
 
 // Simple helper to compute G^{ab-cd} for Theta vector computation.
-func thenc(grp abstract.Group, G abstract.Point,
-	a, b, c, d abstract.Scalar) abstract.Point {
+func thenc(grp kyber.Group, G kyber.Point,
+	a, b, c, d kyber.Scalar) kyber.Point {
 
-	var ab, cd abstract.Scalar
+	var ab, cd kyber.Scalar
 	if a != nil {
 		ab = grp.Scalar().Mul(a, b)
 	} else {
@@ -66,24 +68,26 @@ func thenc(grp abstract.Group, G abstract.Point,
 	} else {
 		cd = grp.Scalar().Zero()
 	}
-	return grp.Point().Mul(G, ab.Sub(ab, cd))
+	return grp.Point().Mul(ab.Sub(ab, cd), G)
 }
 
-func (ss *SimpleShuffle) Init(grp abstract.Group, k int) *SimpleShuffle {
+// Init initializes the simple shuffle with the given group and the k parameter
+// from the paper.
+func (ss *SimpleShuffle) Init(grp kyber.Group, k int) *SimpleShuffle {
 	ss.grp = grp
-	ss.p0.X = make([]abstract.Point, k)
-	ss.p0.Y = make([]abstract.Point, k)
-	ss.p2.Theta = make([]abstract.Point, 2*k)
-	ss.p4.Zalpha = make([]abstract.Scalar, 2*k-1)
+	ss.p0.X = make([]kyber.Point, k)
+	ss.p0.Y = make([]kyber.Point, k)
+	ss.p2.Theta = make([]kyber.Point, 2*k)
+	ss.p4.Zalpha = make([]kyber.Scalar, 2*k-1)
 	return ss
 }
 
-// The "Simple k-shuffle" defined in section 3 of
+// Prove the  "Simple k-shuffle" defined in section 3 of
 // Neff, "Verifiable Mixing (Shuffling) of ElGamal Pairs", 2004.
 // The Scalar vector y must be a permutation of Scalar vector x
 // but with all elements multiplied by common Scalar gamma.
-func (ss *SimpleShuffle) Prove(G abstract.Point, gamma abstract.Scalar,
-	x, y []abstract.Scalar, rand cipher.Stream,
+func (ss *SimpleShuffle) Prove(G kyber.Point, gamma kyber.Scalar,
+	x, y []kyber.Scalar, rand cipher.Stream,
 	ctx proof.ProverContext) error {
 
 	grp := ss.grp
@@ -106,8 +110,8 @@ func (ss *SimpleShuffle) Prove(G abstract.Point, gamma abstract.Scalar,
 
 	// Step 0: inputs
 	for i := 0; i < k; i++ { // (4)
-		ss.p0.X[i] = grp.Point().Mul(G, x[i])
-		ss.p0.Y[i] = grp.Point().Mul(G, y[i])
+		ss.p0.X[i] = grp.Point().Mul(x[i], G)
+		ss.p0.Y[i] = grp.Point().Mul(y[i], G)
 	}
 	if err := ctx.Put(ss.p0); err != nil {
 		return err
@@ -120,17 +124,17 @@ func (ss *SimpleShuffle) Prove(G abstract.Point, gamma abstract.Scalar,
 	t := ss.v1.Zt
 
 	// P step 2
-	gamma_t := grp.Scalar().Mul(gamma, t)
-	xhat := make([]abstract.Scalar, k)
-	yhat := make([]abstract.Scalar, k)
+	gammaT := grp.Scalar().Mul(gamma, t)
+	xhat := make([]kyber.Scalar, k)
+	yhat := make([]kyber.Scalar, k)
 	for i := 0; i < k; i++ { // (5) and (6) xhat,yhat vectors
 		xhat[i] = grp.Scalar().Sub(x[i], t)
-		yhat[i] = grp.Scalar().Sub(y[i], gamma_t)
+		yhat[i] = grp.Scalar().Sub(y[i], gammaT)
 	}
 	thlen := 2*k - 1 // (7) theta and Theta vectors
-	theta := make([]abstract.Scalar, thlen)
+	theta := make([]kyber.Scalar, thlen)
 	ctx.PriRand(theta)
-	Theta := make([]abstract.Point, thlen+1)
+	Theta := make([]kyber.Point, thlen+1)
 	Theta[0] = thenc(grp, G, nil, nil, theta[0], yhat[0])
 	for i := 1; i < k; i++ {
 		Theta[i] = thenc(grp, G, theta[i-1], xhat[i],
@@ -153,7 +157,7 @@ func (ss *SimpleShuffle) Prove(G abstract.Point, gamma abstract.Scalar,
 	c := ss.v3.Zc
 
 	// P step 4
-	alpha := make([]abstract.Scalar, thlen)
+	alpha := make([]kyber.Scalar, thlen)
 	runprod := grp.Scalar().Set(c)
 	for i := 0; i < k; i++ { // (8)
 		runprod.Mul(runprod, xhat[i])
@@ -176,16 +180,16 @@ func (ss *SimpleShuffle) Prove(G abstract.Point, gamma abstract.Scalar,
 
 // Simple helper to verify Theta elements,
 // by checking whether A^a*B^-b = T.
-// P,Q,s are simply "scratch" abstract.Point/Scalars reused for efficiency.
-func thver(A, B, T, P, Q abstract.Point, a, b, s abstract.Scalar) bool {
-	P.Mul(A, a)
-	Q.Mul(B, s.Neg(b))
+// P,Q,s are simply "scratch" kyber.Point/Scalars reused for efficiency.
+func thver(A, B, T, P, Q kyber.Point, a, b, s kyber.Scalar) bool {
+	P.Mul(a, A)
+	Q.Mul(s.Neg(b), B)
 	P.Add(P, Q)
 	return P.Equal(T)
 }
 
-// Verifier for Neff simple k-shuffle proofs.
-func (ss *SimpleShuffle) Verify(G, Gamma abstract.Point,
+// Verify for Neff simple k-shuffle proofs.
+func (ss *SimpleShuffle) Verify(G, Gamma kyber.Point,
 	ctx proof.VerifierContext) error {
 
 	grp := ss.grp
@@ -225,10 +229,10 @@ func (ss *SimpleShuffle) Verify(G, Gamma abstract.Point,
 
 	// Verifier step 5
 	negt := grp.Scalar().Neg(t)
-	U := grp.Point().Mul(G, negt)
-	W := grp.Point().Mul(Gamma, negt)
-	Xhat := make([]abstract.Point, k)
-	Yhat := make([]abstract.Point, k)
+	U := grp.Point().Mul(negt, G)
+	W := grp.Point().Mul(negt, Gamma)
+	Xhat := make([]kyber.Point, k)
+	Yhat := make([]kyber.Point, k)
 	for i := 0; i < k; i++ {
 		Xhat[i] = grp.Point().Add(X[i], U)
 		Yhat[i] = grp.Point().Add(Y[i], W)

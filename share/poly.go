@@ -16,8 +16,14 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber"
 )
+
+// Suite defines the capabilities required by the share/ package.
+type Suite interface {
+	kyber.Group
+	kyber.HashFactory
+}
 
 // Some error definitions
 var errorGroups = errors.New("non-matching groups")
@@ -25,27 +31,28 @@ var errorCoeffs = errors.New("different number of coefficients")
 
 // PriShare represents a private share.
 type PriShare struct {
-	I int             // Index of the private share
-	V abstract.Scalar // Value of the private share
+	I int          // Index of the private share
+	V kyber.Scalar // Value of the private share
 }
 
-func (p *PriShare) Hash(s abstract.Suite) []byte {
+// Hash returns the hash representation of this share
+func (p *PriShare) Hash(s Suite) []byte {
 	h := s.Hash()
-	p.V.MarshalTo(h)
-	binary.Write(h, binary.LittleEndian, p.I)
+	_, _ = p.V.MarshalTo(h)
+	_ = binary.Write(h, binary.LittleEndian, p.I)
 	return h.Sum(nil)
 }
 
 // PriPoly represents a secret sharing polynomial.
 type PriPoly struct {
-	g      abstract.Group    // Cryptographic group
-	coeffs []abstract.Scalar // Coefficients of the polynomial
+	g      kyber.Group    // Cryptographic group
+	coeffs []kyber.Scalar // Coefficients of the polynomial
 }
 
 // NewPriPoly creates a new secret sharing polynomial for the cryptographic
 // group g, the secret sharing threshold t, and the secret to be shared s.
-func NewPriPoly(g abstract.Group, t int, s abstract.Scalar, rand cipher.Stream) *PriPoly {
-	coeffs := make([]abstract.Scalar, t)
+func NewPriPoly(g kyber.Group, t int, s kyber.Scalar, rand cipher.Stream) *PriPoly {
+	coeffs := make([]kyber.Scalar, t)
 	coeffs[0] = s
 	if coeffs[0] == nil {
 		coeffs[0] = g.Scalar().Pick(rand)
@@ -61,8 +68,8 @@ func (p *PriPoly) Threshold() int {
 	return len(p.coeffs)
 }
 
-// GetSecret returns the shared secret p(0), i.e., the constant term of the polynomial.
-func (p *PriPoly) Secret() abstract.Scalar {
+// Secret returns the shared secret p(0), i.e., the constant term of the polynomial.
+func (p *PriPoly) Secret() kyber.Scalar {
 	return p.coeffs[0]
 }
 
@@ -95,7 +102,7 @@ func (p *PriPoly) Add(q *PriPoly) (*PriPoly, error) {
 	if p.Threshold() != q.Threshold() {
 		return nil, errorCoeffs
 	}
-	coeffs := make([]abstract.Scalar, p.Threshold())
+	coeffs := make([]kyber.Scalar, p.Threshold())
 	for i := range coeffs {
 		coeffs[i] = p.g.Scalar().Add(p.coeffs[i], q.coeffs[i])
 	}
@@ -121,10 +128,10 @@ func (p *PriPoly) Equal(q *PriPoly) bool {
 
 // Commit creates a public commitment polynomial for the given base point b or
 // the standard base if b == nil.
-func (p *PriPoly) Commit(b abstract.Point) *PubPoly {
-	commits := make([]abstract.Point, p.Threshold())
+func (p *PriPoly) Commit(b kyber.Point) *PubPoly {
+	commits := make([]kyber.Point, p.Threshold())
 	for i := range commits {
-		commits[i] = p.g.Point().Mul(b, p.coeffs[i])
+		commits[i] = p.g.Point().Mul(p.coeffs[i], b)
 	}
 	return &PubPoly{p.g, b, commits}
 }
@@ -138,7 +145,7 @@ func (p *PriPoly) Mul(q *PriPoly) *PriPoly {
 	d1 := len(p.coeffs) - 1
 	d2 := len(q.coeffs) - 1
 	newDegree := d1 + d2
-	coeffs := make([]abstract.Scalar, newDegree+1)
+	coeffs := make([]kyber.Scalar, newDegree+1)
 	for i := range coeffs {
 		coeffs[i] = p.g.Scalar().Zero()
 	}
@@ -153,7 +160,7 @@ func (p *PriPoly) Mul(q *PriPoly) *PriPoly {
 
 // RecoverSecret reconstructs the shared secret p(0) from a list of private
 // shares using Lagrange interpolation.
-func RecoverSecret(g abstract.Group, shares []*PriShare, t, n int) (abstract.Scalar, error) {
+func RecoverSecret(g kyber.Group, shares []*PriShare, t, n int) (kyber.Scalar, error) {
 	x := xScalar(g, shares, t, n)
 
 	if len(x) < t {
@@ -181,8 +188,8 @@ func RecoverSecret(g abstract.Group, shares []*PriShare, t, n int) (abstract.Sca
 	return acc, nil
 }
 
-func xScalar(g abstract.Group, shares []*PriShare, t, n int) map[int]abstract.Scalar {
-	x := make(map[int]abstract.Scalar)
+func xScalar(g kyber.Group, shares []*PriShare, t, n int) map[int]kyber.Scalar {
+	x := make(map[int]kyber.Scalar)
 	for i, s := range shares {
 		if s == nil || s.V == nil || s.I < 0 || n <= s.I {
 			continue
@@ -195,11 +202,11 @@ func xScalar(g abstract.Group, shares []*PriShare, t, n int) map[int]abstract.Sc
 	return x
 }
 
-func xMinusConst(g abstract.Group, c abstract.Scalar) *PriPoly {
+func xMinusConst(g kyber.Group, c kyber.Scalar) *PriPoly {
 	neg := g.Scalar().Neg(c)
 	return &PriPoly{
 		g:      g,
-		coeffs: []abstract.Scalar{neg, g.Scalar().One()},
+		coeffs: []kyber.Scalar{neg, g.Scalar().One()},
 	}
 }
 
@@ -207,7 +214,7 @@ func xMinusConst(g abstract.Group, c abstract.Scalar) *PriPoly {
 // reconstruct the secret polynomial completely, i.e., all private coefficients.
 // It is up to the caller to make sure there are enough shares to correctly
 // re-construct the polynomial. There must be at least t shares.
-func RecoverPriPoly(g abstract.Group, shares []*PriShare, t, n int) (*PriPoly, error) {
+func RecoverPriPoly(g kyber.Group, shares []*PriShare, t, n int) (*PriPoly, error) {
 	x := xScalar(g, shares, t, n)
 	if len(x) != t {
 		return nil, errors.New("share: not enough shares to recove private polynomial")
@@ -221,7 +228,7 @@ func RecoverPriPoly(g abstract.Group, shares []*PriShare, t, n int) (*PriPoly, e
 	for j, xj := range x {
 		var basis = &PriPoly{
 			g:      g,
-			coeffs: []abstract.Scalar{g.Scalar().One()},
+			coeffs: []kyber.Scalar{g.Scalar().One()},
 		}
 		var acc = g.Scalar().Set(shares[j].V)
 		// compute lagrange basis l_j
@@ -264,31 +271,32 @@ func (p *PriPoly) String() string {
 
 // PubShare represents a public share.
 type PubShare struct {
-	I int            // Index of the public share
-	V abstract.Point // Value of the public share
+	I int         // Index of the public share
+	V kyber.Point // Value of the public share
 }
 
-func (p *PubShare) Hash(s abstract.Suite) []byte {
+// Hash returns the hash representation of this share.
+func (p *PubShare) Hash(s Suite) []byte {
 	h := s.Hash()
-	p.V.MarshalTo(h)
-	binary.Write(h, binary.LittleEndian, p.I)
+	_, _ = p.V.MarshalTo(h)
+	_ = binary.Write(h, binary.LittleEndian, p.I)
 	return h.Sum(nil)
 }
 
 // PubPoly represents a public commitment polynomial to a secret sharing polynomial.
 type PubPoly struct {
-	g       abstract.Group   // Cryptographic group
-	b       abstract.Point   // Base point, nil for standard base
-	commits []abstract.Point // Commitments to coefficients of the secret sharing polynomial
+	g       kyber.Group   // Cryptographic group
+	b       kyber.Point   // Base point, nil for standard base
+	commits []kyber.Point // Commitments to coefficients of the secret sharing polynomial
 }
 
 // NewPubPoly creates a new public commitment polynomial.
-func NewPubPoly(g abstract.Group, b abstract.Point, commits []abstract.Point) *PubPoly {
+func NewPubPoly(g kyber.Group, b kyber.Point, commits []kyber.Point) *PubPoly {
 	return &PubPoly{g, b, commits}
 }
 
 // Info returns the base point and the commitments to the polynomial coefficients.
-func (p *PubPoly) Info() (abstract.Point, []abstract.Point) {
+func (p *PubPoly) Info() (kyber.Point, []kyber.Point) {
 	return p.b, p.commits
 }
 
@@ -298,7 +306,7 @@ func (p *PubPoly) Threshold() int {
 }
 
 // Commit returns the secret commitment p(0), i.e., the constant term of the polynomial.
-func (p *PubPoly) Commit() abstract.Point {
+func (p *PubPoly) Commit() kyber.Point {
 	return p.commits[0]
 }
 
@@ -307,7 +315,7 @@ func (p *PubPoly) Eval(i int) *PubShare {
 	xi := p.g.Scalar().SetInt64(1 + int64(i)) // x-coordinate of this share
 	v := p.g.Point().Null()
 	for j := p.Threshold() - 1; j >= 0; j-- {
-		v.Mul(v, xi)
+		v.Mul(xi, v)
 		v.Add(v, p.commits[j])
 	}
 	return &PubShare{i, v}
@@ -337,7 +345,7 @@ func (p *PubPoly) Add(q *PubPoly) (*PubPoly, error) {
 		return nil, errorCoeffs
 	}
 
-	commits := make([]abstract.Point, p.Threshold())
+	commits := make([]kyber.Point, p.Threshold())
 	for i := range commits {
 		commits[i] = p.g.Point().Add(p.commits[i], q.commits[i])
 	}
@@ -362,14 +370,14 @@ func (p *PubPoly) Equal(q *PubPoly) bool {
 // Check a private share against a public commitment polynomial.
 func (p *PubPoly) Check(s *PriShare) bool {
 	pv := p.Eval(s.I)
-	ps := p.g.Point().Mul(p.b, s.V)
+	ps := p.g.Point().Mul(s.V, p.b)
 	return pv.V.Equal(ps)
 }
 
 // RecoverCommit reconstructs the secret commitment p(0) from a list of public
 // shares using Lagrange interpolation.
-func RecoverCommit(g abstract.Group, shares []*PubShare, t, n int) (abstract.Point, error) {
-	x := make(map[int]abstract.Scalar)
+func RecoverCommit(g kyber.Group, shares []*PubShare, t, n int) (kyber.Point, error) {
+	x := make(map[int]kyber.Scalar)
 	for i, s := range shares {
 		if s == nil || s.V == nil || s.I < 0 || n <= s.I {
 			continue
@@ -397,7 +405,7 @@ func RecoverCommit(g abstract.Group, shares []*PubShare, t, n int) (abstract.Poi
 			num.Mul(num, xj)
 			den.Mul(den, tmp.Sub(xj, xi))
 		}
-		Tmp.Mul(shares[i].V, num.Div(num, den))
+		Tmp.Mul(num.Div(num, den), shares[i].V)
 		Acc.Add(Acc, Tmp)
 	}
 

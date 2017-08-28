@@ -4,14 +4,14 @@ import (
 	"crypto/cipher"
 	"hash"
 
-	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber"
 )
 
-// Construct a general message Cipher
+// FromBlock constructs  a general message Cipher
 // from a Block cipher and a cryptographic Hash.
 func FromBlock(newCipher func(key []byte) (cipher.Block, error),
 	newHash func() hash.Hash, blockLen, keyLen, hashLen int,
-	key []byte, options ...interface{}) abstract.Cipher {
+	key []byte, options ...interface{}) kyber.Cipher {
 
 	newStream := func(key []byte) cipher.Stream {
 		b, err := newCipher(key)

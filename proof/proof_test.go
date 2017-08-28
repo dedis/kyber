@@ -5,19 +5,20 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dedis/kyber/abstract"
-	"github.com/dedis/kyber/nist"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/cipher"
+	"github.com/dedis/kyber/group/edwards25519"
 )
 
 func TestRep(t *testing.T) {
-	suite := nist.NewAES128SHA256P256()
-	rand := suite.Cipher(abstract.RandomKey)
+	suite := edwards25519.NewAES128SHA256Ed25519()
+	rand := suite.Cipher(cipher.RandomKey)
 
 	x := suite.Scalar().Pick(rand)
 	y := suite.Scalar().Pick(rand)
 	B := suite.Point().Base()
-	X := suite.Point().Mul(nil, x)
-	Y := suite.Point().Mul(X, y)
+	X := suite.Point().Mul(x, nil)
+	Y := suite.Point().Mul(y, X)
 	R := suite.Point().Add(X, Y)
 
 	choice := make(map[Predicate]int)
@@ -51,8 +52,8 @@ func TestRep(t *testing.T) {
 	pred := Or(or1x, or2x)
 	choice[pred] = 0
 
-	sval := map[string]abstract.Scalar{"x": x, "y": y}
-	pval := map[string]abstract.Point{"B": B, "X": X, "Y": Y, "R": R}
+	sval := map[string]kyber.Scalar{"x": x, "y": y}
+	pval := map[string]kyber.Point{"B": B, "X": X, "Y": Y, "R": R}
 	prover := pred.Prover(suite, sval, pval, choice)
 	proof, err := HashProve(suite, "TEST", rand, prover)
 	if err != nil {
@@ -71,7 +72,7 @@ func TestRep(t *testing.T) {
 // with respect to some base B: i.e., X=x*B.
 // If we take X as a public key and x as its corresponding private key,
 // then this constitutes a "proof of ownership" of the public key X.
-func ExampleRep_1() {
+func Example_rep1() {
 	pred := Rep("X", "x", "B")
 	fmt.Println(pred.String())
 	// Output: X=x*B
@@ -80,22 +81,22 @@ func ExampleRep_1() {
 // This example shows how to generate and verify noninteractive proofs
 // of the statement in the example above, i.e.,
 // a proof of ownership of public key X.
-func ExampleRep_2() {
+func Example_rep2() {
 	pred := Rep("X", "x", "B")
 	fmt.Println(pred.String())
 
 	// Crypto setup
-	suite := nist.NewAES128SHA256P256()
+	suite := edwards25519.NewAES128SHA256Ed25519()
 	rand := suite.Cipher([]byte("example"))
 	B := suite.Point().Base() // standard base point
 
 	// Create a public/private keypair (X,x)
 	x := suite.Scalar().Pick(rand) // create a private key x
-	X := suite.Point().Mul(nil, x) // corresponding public key X
+	X := suite.Point().Mul(x, nil) // corresponding public key X
 
 	// Generate a proof that we know the discrete logarithm of X.
-	sval := map[string]abstract.Scalar{"x": x}
-	pval := map[string]abstract.Point{"B": B, "X": X}
+	sval := map[string]kyber.Scalar{"x": x}
+	pval := map[string]kyber.Point{"B": B, "X": X}
 	prover := pred.Prover(suite, sval, pval, nil)
 	proof, _ := HashProve(suite, "TEST", rand, prover)
 	fmt.Print("Proof:\n" + hex.Dump(proof))
@@ -111,13 +112,10 @@ func ExampleRep_2() {
 	// Output:
 	// X=x*B
 	// Proof:
-	// 00000000  04 23 62 b1 f9 cb f4 a2  6d 7f 3e 69 cb b6 77 ab  |.#b.....m.>i..w.|
-	// 00000010  90 fc 7c db a0 c6 e8 12  f2 0a d4 40 a4 b6 c4 de  |..|........@....|
-	// 00000020  9e e8 61 88 5e 50 fd 03  a9 ff 9c a3 c4 29 f7 18  |..a.^P.......)..|
-	// 00000030  49 ad 31 0e f9 17 15 1e  3b 8d 0e 2f b2 c4 28 32  |I.1.....;../..(2|
-	// 00000040  4a 20 ba b2 9d 3a 40 ae  0f 28 16 a2 ad 44 76 d2  |J ...:@..(...Dv.|
-	// 00000050  83 f2 09 4d b8 a5 d0 f6  5e 5d ff 6e b7 9a 0f 1b  |...M....^].n....|
-	// 00000060  9a                                                |.|
+	// 00000000  27 fd 13 c3 6e e6 df a5  00 aa 0c 93 a7 b8 21 4b  |'...n.........!K|
+	// 00000010  a5 cf 26 c2 a0 99 68 b0  a0 36 9d 7a de 92 95 7a  |..&...h..6.z...z|
+	// 00000020  c2 f0 69 05 69 f1 14 15  b1 38 3d 9c 49 bd c5 89  |..i.i....8=.I...|
+	// 00000030  55 05 56 9a 44 31 52 12  c2 37 77 5d 37 13 fa 05  |U.V.D1R..7w]7...|
 	// Proof verified.
 }
 
@@ -142,7 +140,7 @@ func ExampleRep_2() {
 // then X does not serve as a useful commitment:
 // the prover can trivially compute the x1 corresponding to an arbitrary x2.
 //
-func ExampleRep_3() {
+func Example_rep3() {
 	pred := Rep("X", "x1", "B1", "x2", "B2")
 	fmt.Println(pred.String())
 	// Output: X=x1*B1+x2*B2
@@ -154,7 +152,7 @@ func ExampleRep_3() {
 // and point Y is equal to y*B.
 // This predicate might be used to prove knowledge of
 // the private keys corresponding to two public keys X and Y, for example.
-func ExampleAnd_1() {
+func Example_and1() {
 	pred := And(Rep("X", "x", "B"), Rep("Y", "y", "B"))
 	fmt.Println(pred.String())
 	// Output: X=x*B && Y=y*B
@@ -167,7 +165,7 @@ func ExampleAnd_1() {
 // Thus, the prover not only proves knowledge of the discrete logarithm
 // of X1 with respect to B1 and of X2 with respect to B2,
 // but also proves that those two discrete logarithms are equal.
-func ExampleAnd_2() {
+func Example_and2() {
 	pred := And(Rep("X1", "x", "B1"), Rep("X2", "x", "B2"))
 	fmt.Println(pred.String())
 	// Output: X1=x*B1 && X2=x*B2
@@ -179,7 +177,7 @@ func ExampleAnd_2() {
 // This predicate in essence proves knowledge of the private key
 // for one of two public keys X or Y,
 // without revealing which key the prover owns.
-func ExampleOr_1() {
+func Example_or1() {
 	pred := Or(Rep("X", "x", "B"), Rep("Y", "y", "B"))
 	fmt.Println(pred.String())
 	// Output: X=x*B || Y=y*B
@@ -193,20 +191,20 @@ func ExampleOr_1() {
 // instead of generating it by scalar multiplication.
 // (And if the group is cryptographically secure
 // we won't find be able to find such a y.)
-func ExampleOr_2() {
+func Example_or2() {
 	// Create an Or predicate.
 	pred := Or(Rep("X", "x", "B"), Rep("Y", "y", "B"))
 	fmt.Println("Predicate: " + pred.String())
 
 	// Crypto setup
-	suite := nist.NewAES128SHA256P256()
+	suite := edwards25519.NewAES128SHA256Ed25519()
 	rand := suite.Cipher([]byte("example"))
 	B := suite.Point().Base() // standard base point
 
 	// Create a public/private keypair (X,x) and a random point Y
-	x := suite.Scalar().Pick(rand)        // create a private key x
-	X := suite.Point().Mul(nil, x)        // corresponding public key X
-	Y, _ := suite.Point().Pick(nil, rand) // pick a random point Y
+	x := suite.Scalar().Pick(rand) // create a private key x
+	X := suite.Point().Mul(x, nil) // corresponding public key X
+	Y := suite.Point().Pick(rand)  // pick a random point Y
 
 	// We'll need to tell the prover which Or clause is actually true.
 	// In this case clause 0, the first sub-predicate, is true:
@@ -215,8 +213,8 @@ func ExampleOr_2() {
 	choice[pred] = 0
 
 	// Generate a proof that we know the discrete logarithm of X or Y.
-	sval := map[string]abstract.Scalar{"x": x}
-	pval := map[string]abstract.Point{"B": B, "X": X, "Y": Y}
+	sval := map[string]kyber.Scalar{"x": x}
+	pval := map[string]kyber.Point{"B": B, "X": X, "Y": Y}
 	prover := pred.Prover(suite, sval, pval, choice)
 	proof, _ := HashProve(suite, "TEST", rand, prover)
 	fmt.Print("Proof:\n" + hex.Dump(proof))
@@ -233,22 +231,17 @@ func ExampleOr_2() {
 	// Output:
 	// Predicate: X=x*B || Y=y*B
 	// Proof:
-	// 00000000  04 af 84 ed e5 86 04 cf  81 e4 18 17 84 0c 39 ab  |..............9.|
-	// 00000010  fe 5c bc cc 00 85 e0 a2  ee aa d5 22 18 dd c4 a1  |.\........."....|
-	// 00000020  5b 85 52 d4 dd 72 9b d2  2b e2 02 d2 5f 6f cb 10  |[.R..r..+..._o..|
-	// 00000030  b5 1b 18 c3 02 1e 2f dd  50 54 9d 4c 19 aa 30 80  |....../.PT.L..0.|
-	// 00000040  4a 04 f8 26 2f 55 ed b3  00 ad 38 ba f9 0f d6 fb  |J..&/U....8.....|
-	// 00000050  0a d1 0e 56 be dd 71 7d  1d a9 36 2f 1f 20 b8 98  |...V..q}..6/. ..|
-	// 00000060  a6 3f d0 fa dc 52 ca 57  8d 7e 37 aa ac e5 8c 4c  |.?...R.W.~7....L|
-	// 00000070  2a eb d9 5c 0c 68 c8 e8  ac 99 7f b4 96 56 cf 59  |*..\.h.......V.Y|
-	// 00000080  79 6f c5 c2 0a 9f 1f 3b  34 61 0f 9b b7 50 00 b7  |yo.....;4a...P..|
-	// 00000090  29 02 8e d5 41 9a 92 95  6b 4e 18 5b 89 a5 93 1e  |)...A...kN.[....|
-	// 000000a0  42 cd 32 17 7d 53 c5 e4  48 79 49 b2 3e 1e e2 62  |B.2.}S..HyI.>..b|
-	// 000000b0  39 08 13 d5 2e f8 c5 e9  c1 28 09 91 7a 95 c9 12  |9........(..z...|
-	// 000000c0  17 85 49 9e b0 3c fe fc  5d 5b 73 b1 d2 bf f9 59  |..I..<..][s....Y|
-	// 000000d0  5b 5f 10 12 cb 9c d0 c6  bc 2c 75 fb 52 9c 66 c5  |[_.......,u.R.f.|
-	// 000000e0  17 cb 93 8b c6 f6 34 12  83 a0 32 2e 82 2c 4b fb  |......4...2..,K.|
-	// 000000f0  b3 0c a1 4b a5 e3 27 43  b6 2f ed fa ca 4f 93 83  |...K..'C./...O..|
-	// 00000100  fd 56                                             |.V|
+	// 00000000  b6 8f 24 dc d3 c0 86 67  42 1d c3 c8 5a 28 62 4d  |..$....gB...Z(bM|
+	// 00000010  86 3b c9 69 7c 88 7f 52  9e b3 93 25 2d e6 58 0e  |.;.i|..R...%-.X.|
+	// 00000020  2e 49 39 eb a7 6d a0 65  9e 45 f7 c8 98 e9 bd db  |.I9..m.e.E......|
+	// 00000030  af 83 ac 80 ed 21 7c c9  ce d1 2d 45 43 05 3e 55  |.....!|...-EC.>U|
+	// 00000040  95 3f 7d f5 a8 a4 48 2d  9a 2c 40 27 1c 2c d5 75  |.?}...H-.,@'.,.u|
+	// 00000050  f6 57 a9 03 b2 bf ec 8d  e1 8c 59 5b 56 af 59 00  |.W........Y[V.Y.|
+	// 00000060  2d 17 6e d0 98 15 24 7e  c6 9e ad c2 55 9e ba 0e  |-.n...$~....U...|
+	// 00000070  1f a9 fe 92 47 24 31 a2  a0 88 72 9a 16 2f ab 05  |....G$1...r../..|
+	// 00000080  b4 9c 73 96 b3 03 44 c9  3c 8f 6b dd fa 15 d0 dc  |..s...D.<.k.....|
+	// 00000090  76 28 8d 01 33 0a 3f 70  e2 72 4d e1 86 d8 07 00  |v(..3.?p.rM.....|
+	// 000000a0  ee f3 b2 f4 06 e4 98 a7  24 2f 51 b8 13 b4 b5 69  |........$/Q....i|
+	// 000000b0  94 ad 33 b9 c4 e3 95 8b  7f 18 6d 1e f1 07 3e 0d  |..3.......m...>.|
 	// Proof verified.
 }
