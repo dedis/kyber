@@ -38,6 +38,6 @@ test_verbose:
 	go test -v -race -short ./...
 
 test_goverall:
-	${GOPATH}/bin/goveralls -service=travis-ci
+	${GOPATH}/bin/goveralls -service=travis-ci -ignore="experimental/**"
 
 test: test_fmt test_lint test_goverall

@@ -15,7 +15,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/dedis/kyber/abstract"
+	"github.com/dedis/kyber/experimental/abstract"
 )
 
 type Entry struct {
@@ -370,7 +370,7 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 		var buf []byte
 		for {
 			pri.Pick(rand)    // pick fresh secret
-			pub.Mul(nil, pri) // get DH public key
+			pub.Mul(pri, nil) // get DH public key
 			buf = pub.(abstract.Hiding).HideEncode(rand)
 			if buf != nil {
 				break
@@ -396,7 +396,7 @@ func (w *Writer) Write(rand cipher.Stream) []byte {
 		hi := lo + len(e.Data)
 
 		// Form the shared secret with this keyholder.
-		dhkey := si.ste.Point().Mul(e.PubKey, si.pri)
+		dhkey := si.ste.Point().Mul(si.pri, e.PubKey)
 
 		// Encrypt the entrypoint data with it.
 		buf, _ := dhkey.MarshalBinary()
