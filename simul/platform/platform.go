@@ -16,6 +16,8 @@ import (
 
 	"os/exec"
 
+	"io/ioutil"
+
 	"github.com/BurntSushi/toml"
 	"github.com/dedis/onet/app"
 	"github.com/dedis/onet/log"
@@ -62,21 +64,32 @@ func NewPlatform(t string) Platform {
 		p = &Localhost{}
 	case mininet:
 		p = &MiniNet{}
-		path := os.Getenv("GOPATH") + "/src/github.com/dedis/onet/simul/platform/mininet/"
-		var command string
-		if app.InputYN(true, "Do you want to run mininet on ICCluster?") {
-			command = path + "setup_iccluster.sh"
+		_, err := os.Stat("server_list")
+		if os.IsNotExist(err) {
+			path := os.Getenv("GOPATH") + "/src/github.com/dedis/onet/simul/platform/mininet/"
+			var command string
+			if app.InputYN(true, "Do you want to run mininet on ICCluster?") {
+				command = path + "setup_iccluster.sh"
+			} else {
+				command = path + "setup_servers.sh"
+			}
+			numbers := app.Input("server1 server2 server3", "Please enter the space separated numbers of the servers")
+			split := strings.Split(numbers, " ")
+			cmd := exec.Command(command, split...)
+			out, err := cmd.CombinedOutput()
+			if err != nil {
+				log.Error(err)
+			}
+			log.Lvl1(string(out))
 		} else {
-			command = path + "setup_servers.sh"
+			log.Lvl1("Using existing 'server_list'-file")
+			if log.DebugVisible() > 1 {
+				sl, err := ioutil.ReadFile("server_list")
+				log.ErrFatal(err)
+				servers := strings.Replace(string(sl), "\n", " ", -1)
+				log.Lvl2("Server_list is: ", servers)
+			}
 		}
-		names := app.Input("server1 server2 server3", "Please enter the space separated numbers of the servers")
-		split := strings.Split(names, " ")
-		cmd := exec.Command(command, split...)
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			log.Error(err)
-		}
-		log.Lvl1(string(out))
 	}
 	return p
 }
