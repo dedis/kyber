@@ -3,7 +3,7 @@ package nego
 import (
 	"fmt"
 
-	"github.com/dedis/kyber/random"
+	"github.com/dedis/kyber/util/random"
 )
 
 // Pick a uint32 uniformly at random

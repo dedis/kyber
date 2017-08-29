@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dedis/kyber/abstract"
-	"github.com/dedis/kyber/edwards"
-	"github.com/dedis/kyber/random"
+	"github.com/dedis/kyber/experimental/abstract"
+	"github.com/dedis/kyber/group/edwards25519"
+	"github.com/dedis/kyber/util/random"
 )
 
 // Simple harness to create lots of fake ciphersuites out of a few real ones,
@@ -23,7 +23,7 @@ func (f *fakeSuite) String() string {
 func TestNego(t *testing.T) {
 
 	realSuites := []abstract.Suite{
-		edwards.NewAES128SHA256Ed25519(true),
+		edwards25519.NewAES128SHA256Ed25519(),
 	}
 
 	fakery := 10
@@ -49,7 +49,7 @@ func TestNego(t *testing.T) {
 		s := suites[i]
 		for j := 0; j < nentries; j++ {
 			pri := s.Scalar().Pick(random.Stream)
-			pub := s.Point().Mul(nil, pri)
+			pub := s.Point().Mul(pri, nil)
 			data := make([]byte, datalen)
 			entries = append(entries, Entry{s, pub, data})
 		}
