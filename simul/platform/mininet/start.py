@@ -18,11 +18,12 @@ from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.cli import CLI
 from mininet.log import lg, setLogLevel
-from mininet.node import Node, Host
+from mininet.node import Node, Host, OVSController
 from mininet.util import netParse, ipAdd, irange
 from mininet.nodelib import NAT
 from mininet.link import TCLink
 from subprocess import Popen, PIPE, call
+from mininet.node import OVSController
 
 # What debugging-level to use
 debugLvl = 1
@@ -154,7 +155,8 @@ def RunNet():
     dbg( 2, "Creating network", myNet )
     topo = InternetTopo(myNet=myNet, rootLog=rootLog)
     dbg( 3, "Starting on", myNet )
-    net = Mininet(topo=topo, link=TCLink)
+
+    net = Mininet(topo=topo, link=TCLink, controller = OVSController)
     net.start()
 
     for host in net.hosts[1:]:
