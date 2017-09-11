@@ -42,7 +42,7 @@ test_verbose:
 	go test -v -race -short ./...
 
 test_goverall:
-	${GOPATH}/bin/goveralls -service=travis-ci
+	${GOPATH}/bin/goveralls -service=travis-ci -race
 
 test_stable_build:
 	$(CREATE_STABLE) $(PKG_TEST)
