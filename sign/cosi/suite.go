@@ -12,6 +12,7 @@ type Suite struct {
 	*edwards25519.SuiteEd25519
 }
 
+// Hash returns an instance of the SHA512 hash function.
 func (s *Suite) Hash() hash.Hash {
 	return sha512.New()
 }
