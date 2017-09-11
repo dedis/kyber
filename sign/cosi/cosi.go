@@ -41,7 +41,6 @@ package cosi
 
 import (
 	"crypto/cipher"
-	"crypto/sha512"
 	"crypto/subtle"
 	"errors"
 	"fmt"
@@ -53,26 +52,26 @@ import (
 // Commit returns a random scalar v, generated from the given cipher stream,
 // and a corresponding commitment V = [v]G. If the given cipher stream is nil,
 // a random stream is used.
-func Commit(group kyber.Group, s cipher.Stream) (kyber.Scalar, kyber.Point) {
+func Commit(suite Suite, s cipher.Stream) (kyber.Scalar, kyber.Point) {
 	if s == nil {
 		s = random.Stream
 	}
-	random := group.Scalar().Pick(s)
-	commitment := group.Point().Mul(random, nil)
+	random := suite.Scalar().Pick(s)
+	commitment := suite.Point().Mul(random, nil)
 	return random, commitment
 }
 
 // AggregateCommitments returns the sum of the given commitments and the
 // bitwise OR of the corresponding masks.
-func AggregateCommitments(group kyber.Group, commitments []kyber.Point, masks [][]byte) (kyber.Point, []byte, error) {
+func AggregateCommitments(suite Suite, commitments []kyber.Point, masks [][]byte) (kyber.Point, []byte, error) {
 	if len(commitments) != len(masks) {
 		return nil, nil, errors.New("mismatching lengths of commitment and mask slices")
 	}
-	aggCom := group.Point().Null()
+	aggCom := suite.Point().Null()
 	aggMask := make([]byte, len(masks[0]))
 	var err error
 	for i := range commitments {
-		aggCom = group.Point().Add(aggCom, commitments[i])
+		aggCom = suite.Point().Add(aggCom, commitments[i])
 		aggMask, err = AggregateMasks(aggMask, masks[i])
 		if err != nil {
 			return nil, nil, err
@@ -84,14 +83,14 @@ func AggregateCommitments(group kyber.Group, commitments []kyber.Point, masks []
 // Challenge creates the collective challenge from the given aggregate
 // commitment V, aggregate public key A, and message M, i.e., it returns
 // c = H(V || A || M).
-func Challenge(group kyber.Group, commitment, public kyber.Point, message []byte) (kyber.Scalar, error) {
+func Challenge(suite Suite, commitment, public kyber.Point, message []byte) (kyber.Scalar, error) {
 	if commitment == nil {
 		return nil, errors.New("no commitment provided")
 	}
 	if message == nil {
 		return nil, errors.New("no message provided")
 	}
-	hash := sha512.New()
+	hash := suite.Hash()
 	if _, err := commitment.MarshalTo(hash); err != nil {
 		return nil, err
 	}
@@ -99,12 +98,12 @@ func Challenge(group kyber.Group, commitment, public kyber.Point, message []byte
 		return nil, err
 	}
 	hash.Write(message)
-	return group.Scalar().SetBytes(hash.Sum(nil)), nil
+	return suite.Scalar().SetBytes(hash.Sum(nil)), nil
 }
 
 // Response creates the response from the given random scalar v, (collective)
 // challenge c, and private key a, i.e., it returns r = v + c*a.
-func Response(group kyber.Group, private, random, challenge kyber.Scalar) (kyber.Scalar, error) {
+func Response(suite Suite, private, random, challenge kyber.Scalar) (kyber.Scalar, error) {
 	if private == nil {
 		return nil, errors.New("no private key provided")
 	}
@@ -114,16 +113,16 @@ func Response(group kyber.Group, private, random, challenge kyber.Scalar) (kyber
 	if challenge == nil {
 		return nil, errors.New("no challenge provided")
 	}
-	ca := group.Scalar().Mul(private, challenge)
+	ca := suite.Scalar().Mul(private, challenge)
 	return ca.Add(random, ca), nil
 }
 
 // AggregateResponses returns the sum of given responses.
-func AggregateResponses(group kyber.Group, responses []kyber.Scalar) (kyber.Scalar, error) {
+func AggregateResponses(suite Suite, responses []kyber.Scalar) (kyber.Scalar, error) {
 	if responses == nil {
 		return nil, errors.New("no responses provided")
 	}
-	r := group.Scalar().Zero()
+	r := suite.Scalar().Zero()
 	for i := range responses {
 		r = r.Add(r, responses[i])
 	}
@@ -133,7 +132,7 @@ func AggregateResponses(group kyber.Group, responses []kyber.Scalar) (kyber.Scal
 // Sign returns the collective signature from the given (aggregate) commitment
 // V, (aggregate) response r, and participation bitmask Z using the EdDSA
 // format, i.e., the signature is V || r || Z.
-func Sign(group kyber.Group, commitment kyber.Point, response kyber.Scalar, mask *Mask) ([]byte, error) {
+func Sign(suite Suite, commitment kyber.Point, response kyber.Scalar, mask *Mask) ([]byte, error) {
 	if commitment == nil {
 		return nil, errors.New("no commitment provided")
 	}
@@ -143,8 +142,8 @@ func Sign(group kyber.Group, commitment kyber.Point, response kyber.Scalar, mask
 	if mask == nil {
 		return nil, errors.New("no mask provided")
 	}
-	lenV := group.PointLen()
-	lenSig := lenV + group.ScalarLen()
+	lenV := suite.PointLen()
+	lenSig := lenV + suite.ScalarLen()
 	VB, err := commitment.MarshalBinary()
 	if err != nil {
 		return nil, errors.New("marshalling of commitment failed")
@@ -162,7 +161,7 @@ func Sign(group kyber.Group, commitment kyber.Point, response kyber.Scalar, mask
 
 // Verify checks the given cosignature on the provided message using the list
 // of public keys and cosigning policy.
-func Verify(group kyber.Group, publics []kyber.Point, message, sig []byte, policy Policy) error {
+func Verify(suite Suite, publics []kyber.Point, message, sig []byte, policy Policy) error {
 	if publics == nil {
 		return errors.New("no public keys provided")
 	}
@@ -176,20 +175,20 @@ func Verify(group kyber.Group, publics []kyber.Point, message, sig []byte, polic
 		policy = CompletePolicy{}
 	}
 
-	lenCom := group.PointLen()
+	lenCom := suite.PointLen()
 	VBuff := sig[:lenCom]
-	V := group.Point()
+	V := suite.Point()
 	if err := V.UnmarshalBinary(VBuff); err != nil {
 		return errors.New("unmarshalling of commitment failed")
 	}
 
 	// Unpack the aggregate response
-	lenRes := lenCom + group.ScalarLen()
+	lenRes := lenCom + suite.ScalarLen()
 	rBuff := sig[lenCom:lenRes]
-	r := group.Scalar().SetBytes(rBuff)
+	r := suite.Scalar().SetBytes(rBuff)
 
 	// Unpack the participation mask and get the aggregate public key
-	mask, err := NewMask(group, publics, nil)
+	mask, err := NewMask(suite, publics, nil)
 	if err != nil {
 		return err
 	}
@@ -201,20 +200,20 @@ func Verify(group kyber.Group, publics []kyber.Point, message, sig []byte, polic
 	}
 
 	// Recompute the challenge
-	hash := sha512.New()
+	hash := suite.Hash()
 	hash.Write(VBuff)
 	hash.Write(ABuff)
 	hash.Write(message)
 	buff := hash.Sum(nil)
-	k := group.Scalar().SetBytes(buff)
+	k := suite.Scalar().SetBytes(buff)
 
 	// k * -aggPublic + s * B = k*-A + s*B
 	// from s = k * a + r => s * B = k * a * B + r * B <=> s*B = k*A + r*B
 	// <=> s*B + k*-A = r*B
-	minusPublic := group.Point().Neg(A)
-	kA := group.Point().Mul(k, minusPublic)
-	sB := group.Point().Mul(r, nil)
-	left := group.Point().Add(kA, sB)
+	minusPublic := suite.Point().Neg(A)
+	kA := suite.Point().Mul(k, minusPublic)
+	sB := suite.Point().Mul(r, nil)
+	left := suite.Point().Add(kA, sB)
 
 	x, err := left.MarshalBinary()
 	if err != nil {
@@ -241,12 +240,12 @@ type Mask struct {
 // cosigners are disabled by default. If a public key is given it verifies that
 // it is present in the list of keys and sets the corresponding index in the
 // bitmask to 1 (enabled).
-func NewMask(group kyber.Group, publics []kyber.Point, myKey kyber.Point) (*Mask, error) {
+func NewMask(suite Suite, publics []kyber.Point, myKey kyber.Point) (*Mask, error) {
 	m := &Mask{
 		publics: publics,
 	}
 	m.mask = make([]byte, m.Len())
-	m.AggregatePublic = group.Point().Null()
+	m.AggregatePublic = suite.Point().Null()
 	if myKey != nil {
 		found := false
 		for i, key := range publics {

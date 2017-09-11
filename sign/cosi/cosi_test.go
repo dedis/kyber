@@ -8,7 +8,9 @@ import (
 	"github.com/dedis/kyber/util/key"
 )
 
-var testGroup = edwards25519.NewAES128SHA256Ed25519()
+var testSuite = Suite{
+	edwards25519.NewAES128SHA256Ed25519(),
+}
 
 func TestCoSi(t *testing.T) {
 	n := 5
@@ -19,7 +21,7 @@ func TestCoSi(t *testing.T) {
 	var privates []kyber.Scalar
 	var publics []kyber.Point
 	for i := 0; i < n; i++ {
-		kp := key.NewKeyPair(testGroup)
+		kp := key.NewKeyPair(testSuite)
 		kps = append(kps, kp)
 		privates = append(privates, kp.Secret)
 		publics = append(publics, kp.Public)
@@ -29,7 +31,7 @@ func TestCoSi(t *testing.T) {
 	var masks []*Mask
 	var byteMasks [][]byte
 	for i := 0; i < n; i++ {
-		m, err := NewMask(testGroup, publics, publics[i])
+		m, err := NewMask(testSuite, publics, publics[i])
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -41,13 +43,13 @@ func TestCoSi(t *testing.T) {
 	var v []kyber.Scalar // random
 	var V []kyber.Point  // commitment
 	for i := 0; i < n; i++ {
-		x, X := Commit(testGroup, nil)
+		x, X := Commit(testSuite, nil)
 		v = append(v, x)
 		V = append(V, X)
 	}
 
 	// Aggregate commitments
-	aggV, aggMask, err := AggregateCommitments(testGroup, V, byteMasks)
+	aggV, aggMask, err := AggregateCommitments(testSuite, V, byteMasks)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +62,7 @@ func TestCoSi(t *testing.T) {
 	// Compute challenge
 	var c []kyber.Scalar
 	for i := 0; i < n; i++ {
-		ci, err := Challenge(testGroup, aggV, masks[i].AggregatePublic, message)
+		ci, err := Challenge(testSuite, aggV, masks[i].AggregatePublic, message)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -70,24 +72,24 @@ func TestCoSi(t *testing.T) {
 	// Compute responses
 	var r []kyber.Scalar
 	for i := 0; i < n; i++ {
-		ri, _ := Response(testGroup, privates[i], v[i], c[i])
+		ri, _ := Response(testSuite, privates[i], v[i], c[i])
 		r = append(r, ri)
 	}
 
 	// Aggregate responses
-	aggr, err := AggregateResponses(testGroup, r)
+	aggr, err := AggregateResponses(testSuite, r)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	for i := 0; i < n; i++ {
 		// Sign
-		sig, err := Sign(testGroup, aggV, aggr, masks[i])
+		sig, err := Sign(testSuite, aggV, aggr, masks[i])
 		if err != nil {
 			t.Fatal(err)
 		}
 		// Verify (using default policy)
-		if err := Verify(testGroup, publics, message, sig, nil); err != nil {
+		if err := Verify(testSuite, publics, message, sig, nil); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -103,7 +105,7 @@ func TestCoSiThreshold(t *testing.T) {
 	var privates []kyber.Scalar
 	var publics []kyber.Point
 	for i := 0; i < n; i++ {
-		kp := key.NewKeyPair(testGroup)
+		kp := key.NewKeyPair(testSuite)
 		kps = append(kps, kp)
 		privates = append(privates, kp.Secret)
 		publics = append(publics, kp.Public)
@@ -113,7 +115,7 @@ func TestCoSiThreshold(t *testing.T) {
 	var masks []*Mask
 	var byteMasks [][]byte
 	for i := 0; i < n-f; i++ {
-		m, err := NewMask(testGroup, publics, publics[i])
+		m, err := NewMask(testSuite, publics, publics[i])
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -125,13 +127,13 @@ func TestCoSiThreshold(t *testing.T) {
 	var v []kyber.Scalar // random
 	var V []kyber.Point  // commitment
 	for i := 0; i < n-f; i++ {
-		x, X := Commit(testGroup, nil)
+		x, X := Commit(testSuite, nil)
 		v = append(v, x)
 		V = append(V, X)
 	}
 
 	// Aggregate commitments
-	aggV, aggMask, err := AggregateCommitments(testGroup, V, byteMasks)
+	aggV, aggMask, err := AggregateCommitments(testSuite, V, byteMasks)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +146,7 @@ func TestCoSiThreshold(t *testing.T) {
 	// Compute challenge
 	var c []kyber.Scalar
 	for i := 0; i < n-f; i++ {
-		ci, err := Challenge(testGroup, aggV, masks[i].AggregatePublic, message)
+		ci, err := Challenge(testSuite, aggV, masks[i].AggregatePublic, message)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -154,24 +156,24 @@ func TestCoSiThreshold(t *testing.T) {
 	// Compute responses
 	var r []kyber.Scalar
 	for i := 0; i < n-f; i++ {
-		ri, _ := Response(testGroup, privates[i], v[i], c[i])
+		ri, _ := Response(testSuite, privates[i], v[i], c[i])
 		r = append(r, ri)
 	}
 
 	// Aggregate responses
-	aggr, err := AggregateResponses(testGroup, r)
+	aggr, err := AggregateResponses(testSuite, r)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	for i := 0; i < n-f; i++ {
 		// Sign
-		sig, err := Sign(testGroup, aggV, aggr, masks[i])
+		sig, err := Sign(testSuite, aggV, aggr, masks[i])
 		if err != nil {
 			t.Fatal(err)
 		}
 		// Verify (using threshold policy)
-		if err := Verify(testGroup, publics, message, sig, &ThresholdPolicy{n - f}); err != nil {
+		if err := Verify(testSuite, publics, message, sig, &ThresholdPolicy{n - f}); err != nil {
 			t.Fatal(err)
 		}
 	}
