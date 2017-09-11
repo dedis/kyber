@@ -1,6 +1,8 @@
 package cosi
 
 import (
+	"crypto/sha512"
+	"hash"
 	"testing"
 
 	"github.com/dedis/kyber"
@@ -8,9 +10,16 @@ import (
 	"github.com/dedis/kyber/util/key"
 )
 
-var testSuite = Suite{
-	edwards25519.NewAES128SHA256Ed25519(),
+// Specify cipher suite using AES-128, SHA512, and the Edwards25519 curve.
+type cosiSuite struct {
+	Suite
 }
+
+func (m *cosiSuite) Hash() hash.Hash {
+	return sha512.New()
+}
+
+var testSuite = &cosiSuite{edwards25519.NewAES128SHA256Ed25519()}
 
 func TestCoSi(t *testing.T) {
 	n := 5
