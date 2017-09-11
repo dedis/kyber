@@ -1,3 +1,5 @@
+// +build experimental
+
 /* This package implements the Deal cryptographic primitive, which is based
  * on poly/sharing.go
  *

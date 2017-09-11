@@ -1,3 +1,5 @@
+// +build experimental
+
 // Package poly implements polynomial commitments, openings,
 // and verifiable Shamir secret sharing.
 package poly

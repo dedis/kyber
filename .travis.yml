@@ -1,18 +1,16 @@
 language: go
 
 go:
-  - tip
-
-go_import_path: gopkg.in/dedis/kyber.v1
+  - 1.7
 
 install:
   - go get -t ./...
+  - go get github.com/dedis/Coding || true
   - go get golang.org/x/tools/cmd/cover
-  - go get github.com/mattn/goveralls
-
+  - go get github.com/dedis/goveralls
 
 script:
   - make test
 
 notifications:
-      email: false
+  email: false

@@ -1,3 +1,5 @@
+// +build experimental
+
 package nego
 
 // Simple reservation byte-mask layout
