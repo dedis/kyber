@@ -1,3 +1,4 @@
+// +build experimental
 // +build sodium
 
 // Package ed25519 implements Go wrappers for

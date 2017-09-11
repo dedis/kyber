@@ -1,3 +1,5 @@
+// +build experimental
+
 // +build sodium
 
 package ed25519

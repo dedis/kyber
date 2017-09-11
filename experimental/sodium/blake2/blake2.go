@@ -1,3 +1,4 @@
+// +build experimental
 // +build sodium
 
 // This package implements the BLAKE2b cryptographic hash function,

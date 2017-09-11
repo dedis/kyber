@@ -1,3 +1,5 @@
+// +build experimental
+
 // XXX currently this is dead code;
 // keeping for now only in case I find another use for this tree impl
 // in the near future.

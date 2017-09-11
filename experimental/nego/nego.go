@@ -1,3 +1,5 @@
+// +build experimental
+
 // Package nego implements cryptographic negotiation
 // and secret entrypoint finding.
 package nego
