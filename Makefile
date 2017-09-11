@@ -41,8 +41,8 @@ test_playground:
 test_verbose:
 	go test -v -race -short ./...
 
-test_goverall:
-	${GOPATH}/bin/goveralls -service=travis-ci -race
+test_goveralls:
+	${GOPATH}/bin/goveralls -service=travis-ci -race -show
 
 test_stable_build:
 	$(CREATE_STABLE) $(PKG_TEST)
@@ -52,7 +52,7 @@ test_stable:
 	$(CREATE_STABLE) $(PKG_TEST)
 	cd $$GOPATH/src/$(PKG_TEST); make test
 
-test: test_fmt test_lint test_goverall test_stable_build
+test: test_fmt test_lint test_goveralls test_stable_build
 
 create_stable:
 	$(CREATE_STABLE) $(PKG_STABLE)
