@@ -176,17 +176,23 @@ func TestTCPConnReceiveRaw(t *testing.T) {
 		check <- true
 	}
 
-	go func() {
+	fn_bad := func(c net.Conn) {
+		// send the size first
+		binary.Write(c, globalOrder, Size(maxPacketSize+1))
+	}
+
+	listen := func(f func(c net.Conn)) {
 		ln, err := net.Listen("tcp", "127.0.0.1:0")
 		require.Nil(t, err)
 		addr <- ln.Addr().String()
 		c, err := ln.Accept()
 		require.Nil(t, err)
-		fn(c)
+		f(c)
 		<-done
 		require.Nil(t, ln.Close())
 		done <- true
-	}()
+	}
+	go listen(fn)
 
 	// get addr
 	listeningAddr := <-addr
@@ -200,6 +206,20 @@ func TestTCPConnReceiveRaw(t *testing.T) {
 	} else if err != nil {
 		t.Error(err)
 	}
+
+	// tell the listener to close
+	done <- true
+	// wait until it is closed
+	<-done
+
+	go listen(fn_bad)
+
+	listeningAddr = <-addr
+	c, err = NewTCPConn(NewTCPAddress(listeningAddr))
+	require.Nil(t, err)
+
+	_, err = c.receiveRaw()
+	require.NotNil(t, err)
 
 	require.Nil(t, c.Close())
 	// tell the listener to close
