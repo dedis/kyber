@@ -41,7 +41,6 @@ package cosi
 
 import (
 	"crypto/cipher"
-	"crypto/subtle"
 	"errors"
 	"fmt"
 
@@ -215,17 +214,10 @@ func Verify(suite Suite, publics []kyber.Point, message, sig []byte, policy Poli
 	sB := suite.Point().Mul(r, nil)
 	left := suite.Point().Add(kA, sB)
 
-	x, err := left.MarshalBinary()
-	if err != nil {
-		return err
-	}
-	y, err := V.MarshalBinary()
-	if err != nil {
-		return err
-	}
-	if subtle.ConstantTimeCompare(x, y) == 0 || !policy.Check(mask) {
+	if !left.Equal(V) || !policy.Check(mask) {
 		return errors.New("invalid signature")
 	}
+
 	return nil
 }
 
