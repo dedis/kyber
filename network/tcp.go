@@ -18,7 +18,10 @@ import (
 // sent.
 var readTimeout = 1 * time.Minute
 
-const maxPacketSize = 10 * 1024 * 1024
+// MaxPacketSize limits the amount of memory that is allocated before a packet
+// is checked and thrown away if it's not legit. If you need more than 10MB
+// packets, increase this value.
+var MaxPacketSize = Size(10 * 1024 * 1024)
 
 // NewTCPRouter returns a new Router using TCPHost as the underlying Host.
 func NewTCPRouter(sid *ServerIdentity) (*Router, error) {
@@ -110,7 +113,7 @@ func (c *TCPConn) receiveRaw() ([]byte, error) {
 	if err := binary.Read(c.conn, globalOrder, &total); err != nil {
 		return nil, handleError(err)
 	}
-	if total > maxPacketSize {
+	if total > MaxPacketSize {
 		return nil, errors.New(c.endpoint.String() + " sends too big packet")
 	}
 

@@ -178,7 +178,7 @@ func TestTCPConnReceiveRaw(t *testing.T) {
 
 	fn_bad := func(c net.Conn) {
 		// send the size first
-		binary.Write(c, globalOrder, Size(maxPacketSize+1))
+		binary.Write(c, globalOrder, Size(MaxPacketSize+1))
 	}
 
 	listen := func(f func(c net.Conn)) {
