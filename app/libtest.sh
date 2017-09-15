@@ -17,7 +17,7 @@ APP=${APP:-$(basename $APPDIR)}
 # Name of conode-log
 COLOG=conode
 
-RUNOUT=/tmp/run.out
+RUNOUT=$( mktemp )
 
 startTest(){
     set +m
