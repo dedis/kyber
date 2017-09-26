@@ -7,6 +7,7 @@ import (
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func init() {
@@ -99,6 +100,33 @@ func TestConfigPropagation(t *testing.T) {
 
 }
 
+func TestTreeNodeInstance_RegisterChannel(t *testing.T) {
+	local := NewLocalTest()
+	defer local.CloseAll()
+
+	_, _, tree := local.GenTree(3, true)
+	ri, err := local.NewTreeNodeInstance(tree.Root, spawnName)
+	log.ErrFatal(err)
+
+	var c chan spawnMsg
+	log.ErrFatal(ri.RegisterChannel(&c))
+
+	m := &ProtocolMsg{
+		MsgType: network.RegisterMessage(&spawn{}),
+		From: &Token{
+			TreeNodeID: ri.treeNode.ID,
+		},
+		Msg: &spawn{I: 10},
+	}
+	msg := []*ProtocolMsg{}
+	for i := 0; i < 101; i++ {
+		msg = append(msg, m)
+	}
+	require.NotNil(t, ri.dispatchChannel(msg))
+	log.ErrFatal(ri.RegisterChannelLength(&c, 200))
+	log.ErrFatal(ri.dispatchChannel(msg))
+}
+
 // spawnCh is used to dispatch information from a spawnProto to the test
 var spawnCh = make(chan bool)
 
@@ -130,9 +158,13 @@ func (s *spawnProto) Start() error {
 	return nil
 }
 
+type spawn struct {
+	I int
+}
+
 type spawnMsg struct {
 	*TreeNode
-	I int
+	M spawn
 }
 
 // Invalid handler

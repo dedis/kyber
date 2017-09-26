@@ -44,6 +44,12 @@ func (tId TreeID) Equal(tID2 TreeID) bool {
 	return uuid.Equal(uuid.UUID(tId), uuid.UUID(tID2))
 }
 
+// Equals will be removed!
+func (tId TreeID) Equals(tID2 TreeID) bool {
+	log.Warn("Deprecated: TreeID.Equals will be removed in onet.v2")
+	return tId.Equal(tID2)
+}
+
 // String returns a canonical representation of the TreeID.
 func (tId TreeID) String() string {
 	return uuid.UUID(tId).String()

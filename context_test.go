@@ -16,7 +16,7 @@ import (
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/dedis/crypto.v0/random"
+	"gopkg.in/dedis/crypto.v0/config"
 )
 
 type ContextData struct {
@@ -60,6 +60,7 @@ func TestContextSaveLoad(t *testing.T) {
 	require.False(t, files[0].IsDir())
 	require.True(t, files[0].Mode().IsRegular())
 	require.True(t, strings.HasSuffix(files[0].Name(), ".bin"))
+	setContextDataPath("")
 }
 
 func testLoadSave(t *testing.T, first bool, c *Context) {
@@ -67,7 +68,7 @@ func testLoadSave(t *testing.T, first bool, c *Context) {
 	cd := &ContextData{42, "meaning of life"}
 	if first {
 		if c.Save(file, cd) == nil {
-			log.Fatal("should not save", log.Stack())
+			log.Fatal("should not save")
 		}
 		network.RegisterMessage(ContextData{})
 	}
@@ -123,11 +124,12 @@ func TestContext_DataAvailable(t *testing.T) {
 	log.ErrFatal(c.Save("test", &CD2{42}))
 	require.True(t, c.DataAvailable("test"))
 	os.RemoveAll(tmpdir)
+	setContextDataPath("")
 }
 
 func createContext() *Context {
-	pub, _ := network.Suite.Point().Pick(nil, random.Stream)
-	si := network.NewServerIdentity(pub,
+	kp := config.NewKeyPair(network.Suite)
+	si := network.NewServerIdentity(kp.Public,
 		network.NewAddress(network.Local, "localhost:0"))
 	cn := &Server{
 		Router: &network.Router{

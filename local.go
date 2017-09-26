@@ -326,6 +326,7 @@ func NewTCPServer(port int) *Server {
 		}
 		log.Lvl2("Found closed port:", addr)
 	}
+	id.Address = network.NewAddress(id.Address.ConnType(), "127.0.0.1:"+id.Address.Port())
 	router := network.NewRouter(id, tcpHost)
 	h := NewServer(router, priv)
 	go h.Start()

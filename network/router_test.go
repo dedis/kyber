@@ -458,7 +458,8 @@ func TestRouterRxTx(t *testing.T) {
 	log.ErrFatal(err)
 	go router1.Start()
 	go router2.Start()
-	si1 := NewServerIdentity(Suite.Point().Null(), router1.address)
+	addr := NewAddress(router1.address.ConnType(), "127.0.0.1:"+router1.address.Port())
+	si1 := NewServerIdentity(Suite.Point().Null(), addr)
 	log.ErrFatal(router2.Send(si1, si1))
 
 	// Wait for the message to be sent and received

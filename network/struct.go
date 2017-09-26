@@ -157,7 +157,7 @@ func (si *ServerIdentityToml) ServerIdentity(suite abstract.Suite) *ServerIdenti
 func GlobalBind(address string) (string, error) {
 	addr := strings.Split(address, ":")
 	if len(addr) != 2 {
-		return "", errors.New("Not a host:port address")
+		return "", errors.New("not a host:port address")
 	}
 	return "0.0.0.0:" + addr[1], nil
 }

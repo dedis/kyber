@@ -163,6 +163,7 @@ func (c *Context) Save(id string, data interface{}) error {
 		testContextData.Unlock()
 		return nil
 	}
+
 	return ioutil.WriteFile(fname, buf, 0640)
 }
 
@@ -181,7 +182,7 @@ func (c *Context) Load(id string) (interface{}, error) {
 		buf, ok = testContextData.service[c.absFilename(id)]
 		testContextData.Unlock()
 		if !ok {
-			return nil, errors.New("This entry doesn't exist")
+			return nil, errors.New("this entry doesn't exist")
 		}
 	} else {
 		var err error
