@@ -119,7 +119,7 @@ func PointToStringHex(suite abstract.Suite, point abstract.Point) (string, error
 
 // PubToStringHex is deprecated - please use PointToStringHex
 func PubToStringHex(suite abstract.Suite, point abstract.Point) (string, error) {
-	log.Warn("Deprecated - please use WriteHexPoint")
+	log.Warn("Deprecated - please use PointToStringHex")
 	return PointToStringHex(suite, point)
 }
 
@@ -131,7 +131,7 @@ func StringHexToPoint(suite abstract.Suite, s string) (abstract.Point, error) {
 
 // StringHexToPub is deprecated - please use StringHexToPoint
 func StringHexToPub(suite abstract.Suite, s string) (abstract.Point, error) {
-	log.Warn("Deprecated - please use WriteHexPoint")
+	log.Warn("Deprecated - please use StringHexToPoint")
 	return StringHexToPoint(suite, s)
 }
 
@@ -143,8 +143,8 @@ func PointToString64(suite abstract.Suite, point abstract.Point) (string, error)
 
 // PubToString64 is deprecated - please use PointToStringHex
 func PubToString64(suite abstract.Suite, point abstract.Point) (string, error) {
-	log.Warn("Deprecated - please use WriteHexPoint")
-	return PointToStringHex(suite, point)
+	log.Warn("Deprecated - please use PointToString64")
+	return PointToString64(suite, point)
 }
 
 // String64ToPoint reads a base64 representation of a point and converts it
@@ -155,7 +155,7 @@ func String64ToPoint(suite abstract.Suite, s string) (abstract.Point, error) {
 
 // String64ToPub is deprecated - please use String64ToPoint
 func String64ToPub(suite abstract.Suite, s string) (abstract.Point, error) {
-	log.Warn("Deprecated - please use Write64Point")
+	log.Warn("Deprecated - please use String64ToPoint")
 	return String64ToPoint(suite, s)
 }
 
