@@ -307,6 +307,27 @@ func (m *Mask) SetBit(i int, enable bool) error {
 	return nil
 }
 
+// IndexEnabled checks whether the given index is enabled in the mask or not.
+func (m *Mask) IndexEnabled(i int) (bool, error) {
+	if i >= len(m.publics) {
+		return false, errors.New("index out of range")
+	}
+	byt := i >> 3
+	msk := byte(1) << uint(i&7)
+	return ((m.mask[byt] & msk) != 0), nil
+}
+
+// KeyEnabled checks whether the index, corresponding to the given key, is
+// enabled in the mask or not.
+func (m *Mask) KeyEnabled(public kyber.Point) (bool, error) {
+	for i, key := range m.publics {
+		if key.Equal(public) {
+			return m.IndexEnabled(i)
+		}
+	}
+	return false, errors.New("key not found")
+}
+
 // CountEnabled returns the number of enabled nodes in the CoSi participation
 // mask, i.e., it returns the hamming weight of the mask.
 func (m *Mask) CountEnabled() int {
