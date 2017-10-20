@@ -190,7 +190,7 @@ func TestCoSiThreshold(t *testing.T) {
 }
 
 func TestMask(t *testing.T) {
-	n := 5
+	n := 17
 
 	// Generate key pairs
 	var kps []*key.Pair
