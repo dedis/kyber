@@ -171,11 +171,7 @@ func (ss *SimpleShuffle) Prove(G kyber.Point, gamma kyber.Scalar,
 		alpha[thlen-i] = grp.Scalar().Add(theta[thlen-i], rungamma)
 	}
 	ss.p4.Zalpha = alpha
-	if err := ctx.Put(ss.p4); err != nil {
-		return err
-	}
-
-	return nil
+	return ctx.Put(ss.p4)
 }
 
 // Simple helper to verify Theta elements,

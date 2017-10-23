@@ -2,6 +2,7 @@ package cosi
 
 import (
 	"crypto/sha512"
+	"errors"
 	"hash"
 	"testing"
 
@@ -184,6 +185,64 @@ func TestCoSiThreshold(t *testing.T) {
 		// Verify (using threshold policy)
 		if err := Verify(testSuite, publics, message, sig, &ThresholdPolicy{n - f}); err != nil {
 			t.Fatal(err)
+		}
+	}
+}
+
+func TestMask(t *testing.T) {
+	n := 17
+
+	// Generate key pairs
+	var kps []*key.Pair
+	var privates []kyber.Scalar
+	var publics []kyber.Point
+	for i := 0; i < n; i++ {
+		kp := key.NewKeyPair(testSuite)
+		kps = append(kps, kp)
+		privates = append(privates, kp.Secret)
+		publics = append(publics, kp.Public)
+	}
+
+	// Init masks and aggregate them
+	var masks []*Mask
+	var aggr []byte
+	for i := 0; i < n; i++ {
+		m, err := NewMask(testSuite, publics, publics[i])
+		if err != nil {
+			t.Fatal(err)
+		}
+		masks = append(masks, m)
+
+		if i == 0 {
+			aggr = masks[i].Mask()
+		} else {
+			aggr, err = AggregateMasks(aggr, masks[i].Mask())
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	// Set and check aggregate mask
+	if err := masks[0].SetMask(aggr); err != nil {
+		t.Fatal(err)
+	}
+
+	if masks[0].CountEnabled() != n {
+		t.Fatal(errors.New("unexpected number of active indices"))
+	}
+
+	if _, err := masks[0].KeyEnabled(masks[0].AggregatePublic); err == nil {
+		t.Fatal(err)
+	}
+
+	for i := 0; i < n; i++ {
+		b, err := masks[0].KeyEnabled(publics[i])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !b {
+			t.Fatal(errors.New("mask bit not properly set"))
 		}
 	}
 }
