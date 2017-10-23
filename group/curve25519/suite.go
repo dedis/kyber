@@ -21,7 +21,6 @@ import (
 )
 
 type SuiteEd25519 struct {
-	//ed25519.Curve
 	ProjectiveCurve
 }
 

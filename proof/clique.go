@@ -1,6 +1,6 @@
 package proof
 
-// A clique protocol is an kyber.on for a cryptographic protocol
+// A clique protocol is a kyber.on for a cryptographic protocol
 // in which every participant knows about and interacts directly
 // in lock-step with every other participant in the clique.
 // Clique protocols are suitable for small-scale groups,
@@ -20,7 +20,7 @@ import "github.com/dedis/kyber"
 //
 type Protocol func(ctx Context) []error
 
-// Context represents an kyber.context for running a clique protocol.
+// Context represents a kyber.context for running a clique protocol.
 // A clique protocol is initiated by a leader
 // but incorporates a variable number of followers,
 // all of whom operate in lock-step under the leader's direction.
