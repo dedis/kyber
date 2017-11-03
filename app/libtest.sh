@@ -21,10 +21,10 @@ RUNOUT=$( mktemp )
 
 startTest(){
     set +m
-	if [ "$CLEANBUILD" ]; then
-		rm -f conode $APP
-	fi
-	build $APPDIR
+    if [ "$CLEANBUILD" ]; then
+	rm -f conode $APP
+    fi
+    build $APPDIR
 }
 
 test(){
@@ -61,11 +61,11 @@ testNFile(){
 }
 
 testFileGrep(){
-	local G="$1" F="$2"
-	testFile "$F"
-	if ! pcregrep -M -q "$G" $F; then
-		fail "Didn't find '$G' in file '$F': $(cat $F)"
-	fi
+    local G="$1" F="$2"
+    testFile "$F"
+    if ! pcregrep -M -q "$G" $F; then
+	fail "Didn't find '$G' in file '$F': $(cat $F)"
+    fi
 }
 
 testGrep(){
@@ -91,7 +91,7 @@ testNGrep(){
 }
 
 testReGrep(){
-	G="$1"
+    G="$1"
     testOut "Assert grepping again '$G' in same output as before"
     doGrep "$G"
     if [ ! "$EGREP" ]; then
@@ -100,7 +100,7 @@ testReGrep(){
 }
 
 testReNGrep(){
-	G="$1"
+    G="$1"
     testOut "Assert grepping again NOT '$G' in same output as before"
     doGrep "$G"
     if [ "$EGREP" ]; then
@@ -151,7 +151,7 @@ dbgRun(){
 }
 
 runGrepSed(){
-	GREP="$1"
+    GREP="$1"
     SED="$2"
     shift 2
     runOutFile "$@"
@@ -178,8 +178,8 @@ backg(){
 }
 
 build(){
-	local builddir=$1
-	local app=$( basename $builddir )
+    local builddir=$1
+    local app=$( basename $builddir )
     if [ ! -e $app -o "$CLEANBUILD" ]; then
     	testOut "Building $app"
         if ! go build -o $app $builddir/*.go; then
@@ -197,14 +197,22 @@ buildDir(){
 }
 
 buildConode(){
-	local incl="$@"
-    local pkg=$( realpath $BUILDDIR | sed -e "s:$GOPATH/src/::" )
+    local incl="$@"
+    if [ -z "$incl" ]; then
+	echo "buildConode: No import paths provided. Searching."
+	for i in service ../service
+        do
+	    if [ -d $APPDIR/$i ]; then
+		local pkg=$( realpath $APPDIR/$i | sed -e "s:$GOPATH/src/::" )
+		incl="$incl $pkg"
+	    fi
+	done
+	echo "Found: $incl"
+    fi
+    
     local cotdir=$( mktemp -d )/conode
     mkdir -p $cotdir
-    if [ ! "$incl" ]; then
-    	incl=${APPDIR#$GOPATH/src/}/service
-    fi
-
+    
     ( echo -e "package main\nimport ("
     for i in $incl; do
     	echo -e "\t_ \"$i\""
@@ -219,25 +227,25 @@ func main(){
 	app.Server()
 }
 EOF
-	build $cotdir
-	rm -rf $cotdir
-	setupConode
+    build $cotdir
+    rm -rf $cotdir
+    setupConode
 }
 
 setupConode(){
-	# Don't show any setup messages
+    # Don't show any setup messages
     DBG_OLD=$DBG_TEST
     DBG_TEST=0
-	rm -f public.toml
+    rm -f public.toml
     for n in $( seq $NBR_SERVERS ); do
         co=co$n
         rm -f $co/*
-		mkdir -p $co
+	mkdir -p $co
     	echo -e "127.0.0.1:200$(( 2 * $n ))\nCot-$n\n$co\n" | dbgRun runCo $n setup
     	if [ $n -le $NBR_SERVERS_GROUP ]; then
-		    cat $co/public.toml >> public.toml
-		fi
-	done
+	    cat $co/public.toml >> public.toml
+	fi
+    done
     DBG_TEST=$DBG_OLD
 }
 
@@ -273,37 +281,37 @@ stopTest(){
 }
 
 if ! which pcregrep > /dev/null; then
-	echo "*** WARNING ***"
-	echo "Most probably you're missing pcregrep which might be used here..."
-	echo "On mac you can install it with"
-	echo -e "\n  brew install pcre\n"
-	echo "Not aborting because it might work anyway."
-	echo
+    echo "*** WARNING ***"
+    echo "Most probably you're missing pcregrep which might be used here..."
+    echo "On mac you can install it with"
+    echo -e "\n  brew install pcre\n"
+    echo "Not aborting because it might work anyway."
+    echo
 fi
 
 if ! which realpath > /dev/null; then
-	echo "*** WARNING ***"
-	echo "Most probably you're missing realpath which might be used here..."
-	echo "On mac you can install it with"
-	echo -e "\n  brew install coreutils\n"
-	echo "Not aborting because it might work anyway."
-	echo
-	realpath() {
+    echo "*** WARNING ***"
+    echo "Most probably you're missing realpath which might be used here..."
+    echo "On mac you can install it with"
+    echo -e "\n  brew install coreutils\n"
+    echo "Not aborting because it might work anyway."
+    echo
+    realpath() {
     	[[ $1 = /* ]] && echo "$1" || echo "$PWD/${1#./}"
-	}
+    }
 fi
 
 for i in "$@"; do
-case $i in
-    -b|--build)
-    CLEANBUILD=yes
-    shift # past argument=value
-    ;;
-    -nt|--notemp)
-	BUILDDIR=$(pwd)/build
-    shift # past argument=value
-    ;;
-esac
+    case $i in
+	-b|--build)
+	    CLEANBUILD=yes
+	    shift # past argument=value
+	    ;;
+	-nt|--notemp)
+	    BUILDDIR=$(pwd)/build
+	    shift # past argument=value
+	    ;;
+    esac
 done
 buildDir
 
