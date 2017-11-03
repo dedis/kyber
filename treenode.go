@@ -222,10 +222,11 @@ func (n *TreeNodeInstance) RegisterChannels(channels ...interface{}) error {
 // RegisterHandler takes a function which takes a struct as argument that contains two
 // elements: a TreeNode and a message. It will send every message that are the
 // same type to this channel.
-// This function handles also
-// - registration of the message-type
-// - aggregation or not of messages: if you give a channel of slices, the
-//   messages will be aggregated, else they will come one-by-one
+//
+// This function also handles:
+//     - registration of the message-type
+//     - aggregation or not of messages: if you give a channel of slices, the
+//       messages will be aggregated, otherwise they will come one by one
 func (n *TreeNodeInstance) RegisterHandler(c interface{}) error {
 	flags := uint32(0)
 	cr := reflect.TypeOf(c)
@@ -677,8 +678,9 @@ func (n *TreeNodeInstance) CreateProtocol(name string, t *Tree) (ProtocolInstanc
 }
 
 // Host returns the underlying Host of this node.
+//
 // WARNING: you should not play with that feature unless you know what you are
-// doing. This feature is mean to access the low level parts of the API. For
+// doing. This feature is meant to access the low level parts of the API. For
 // example it is used to add a new tree config / new entity list to the Server.
 func (n *TreeNodeInstance) Host() *Server {
 	return n.overlay.server
