@@ -402,6 +402,10 @@ func (v *Verifier) decryptDeal(e *EncryptedDeal) (*Deal, error) {
 	return deal, err
 }
 
+// ErrNoDealBeforeResponse is an error happening if the verifiers receives a
+// deal before having received any responses. For the moment, the caller must
+// take care of having dispatched a deal before. In DKG, this happens
+// automatically.
 var ErrNoDealBeforeResponse = errors.New("verfier: need to receive deal before response")
 
 // ProcessResponse analyzes the given response. If it's a valid complaint, the
