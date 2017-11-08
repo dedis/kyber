@@ -445,6 +445,14 @@ func (v *Verifier) SessionID() []byte {
 	return v.sid
 }
 
+
+// setTimeOut tells this verifier to consider this moment the maximum time limit.
+// it calls cleanVerifiers which will take care of all Verifiers who have not
+// responded until now.
+func (v *Verifier) setTimeOut() error {
+    return v.aggregator.cleanVerifiers()
+}
+
 // RecoverSecret recovers the secret shared by a Dealer by gathering at least t
 // Deals from the verifiers. It returns an error if there is not enough Deals or
 // if all Deals don't have the same SessionID.
@@ -460,6 +468,8 @@ func RecoverSecret(suite Suite, deals []*Deal, n, t int) (kyber.Scalar, error) {
 	}
 	return share.RecoverSecret(suite, shares, t, n)
 }
+
+
 
 // aggregator is used to collect all deals, and responses for one protocol run.
 // It brings common functionalities for both Dealer and Verifier structs.
@@ -527,6 +537,21 @@ func (a *aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 		return errors.New("vss: share does not verify against commitments in Deal")
 	}
 	return nil
+}
+
+// cleanVerifiers checks the aggregator's response array and creates a StatusComplaint 
+// response for all verifiers who have no response in the array.
+func (a *aggregator) cleanVerifiers() error {
+    for i, _ := range a.verifiers {
+        if _, ok := a.responses[uint32(i)]; !ok {
+            a.responses[uint32(i)] = &Response {
+                SessionID: a.sid,
+                Index: uint32(i),
+                Status: StatusComplaint,
+            }
+        }
+    }
+    return nil
 }
 
 func (a *aggregator) verifyResponse(r *Response) error {
