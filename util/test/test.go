@@ -158,7 +158,7 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 	type canCheckPrimeOrder interface {
 		IsPrimeOrder() bool
 	}
-	primeOrder := false
+	primeOrder := true
 	if gpo, ok := g.(canCheckPrimeOrder); ok {
 		primeOrder = gpo.IsPrimeOrder()
 	}
