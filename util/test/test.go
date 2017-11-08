@@ -5,6 +5,7 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/cipher"
+	"github.com/dedis/kyber/util/key"
 	"github.com/dedis/kyber/util/random"
 )
 
@@ -12,6 +13,7 @@ import (
 type Suite interface {
 	kyber.Group
 	kyber.HashFactory
+	kyber.CipherFactory
 }
 
 func testEmbed(g kyber.Group, rand cipher.Stream, points *[]kyber.Point,
@@ -341,7 +343,8 @@ func SuiteTest(suite Suite) {
 	// Try hashing something
 	h := suite.Hash()
 	l := h.Size()
-	//println("HashLen: ",l)
+	//println("HashLen: ", l)
+
 	_, _ = h.Write([]byte("abc"))
 	hb := h.Sum(nil)
 	//println("Hash:")
@@ -357,28 +360,20 @@ func SuiteTest(suite Suite) {
 	//println("Stream:")
 	//println(hex.Dump(sb))
 
-	// Test if it generates two fresh keys with nil cipher
-	s1 := suite.NewKey(nil)
-	s2 := suite.NewKey(nil)
-	if s1.Equal(s2) {
-		panic("NewKey returns twice the same key given nil")
+	// Test if it generates two fresh keys
+	p1 := key.NewKeyPair(suite)
+	p2 := key.NewKeyPair(suite)
+	if p1.Secret.Equal(p2.Secret) {
+		panic("NewKeyPair returns the same secret key twice")
 	}
 
 	// Test if it creates the same with the same seed
-	//st1 := suite.Cipher(hb)
-	//st2 := suite.Cipher(hb)
-	//s3 := suite.NewKey(st1)
-	//s4 := suite.NewKey(st2)
-	//if !s3.Equal(s4) {
-	//	panic("NewKey returns two different keys given same stream")
-	//}
-
-	// Test if it creates two different with random stream
-	stream := random.Stream
-	s5 := suite.NewKey(stream)
-	s6 := suite.NewKey(stream)
-	if s5.Equal(s6) {
-		panic("NewKey returns same key given random stream")
+	p1 = new(key.Pair)
+	p1.Gen(suite, suite.Cipher(hb))
+	p2 = new(key.Pair)
+	p2.Gen(suite, suite.Cipher(hb))
+	if !p1.Secret.Equal(p2.Secret) {
+		panic("NewKeyPair returns different keys for same seed")
 	}
 
 	// Test the public-key group arithmetic

@@ -9,8 +9,6 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/dedis/kyber/util/random"
-
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/internal/marshalling"
 	"github.com/dedis/kyber/group/mod"
@@ -304,14 +302,7 @@ type ExtendedCurve struct {
 	base  extPoint // Standard base point
 }
 
-func (p *ExtendedCurve) NewKey(rand cipher.Stream) kyber.Scalar {
-	if rand == nil {
-		rand = random.Stream
-	}
-	return p.Scalar().Pick(rand)
-}
-
-// Create a new Point on this curve.
+// Point creates a new Point on this curve.
 func (c *ExtendedCurve) Point() kyber.Point {
 	P := new(extPoint)
 	P.c = c

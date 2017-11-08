@@ -227,10 +227,6 @@ func (c *BasicCurve) Point() kyber.Point {
 	return P
 }
 
-func (c *BasicCurve) NewKey(r cipher.Stream) kyber.Scalar {
-	return c.Scalar().Pick(r)
-}
-
 // Initialize the curve with given parameters.
 func (c *BasicCurve) Init(p *Param, fullGroup bool) *BasicCurve {
 	c.curve.init(c, p, fullGroup, &c.null, &c.base)
