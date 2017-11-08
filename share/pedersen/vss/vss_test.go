@@ -42,6 +42,7 @@ func TestVSSWhole(t *testing.T) {
 	encDeals, err := dealer.EncryptedDeals()
 	require.Nil(t, err)
 	for i, d := range encDeals {
+		require.Equal(t, ErrNoDealBeforeResponse, verifiers[i].ProcessResponse(nil))
 		resp, err := verifiers[i].ProcessEncryptedDeal(d)
 		require.Nil(t, err)
 		resps[i] = resp
