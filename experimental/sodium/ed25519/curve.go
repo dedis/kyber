@@ -281,10 +281,6 @@ func (c *curve) Order() *big.Int {
 	return new(big.Int) // XXX
 }
 
-func (c *curve) PrimeOrder() bool {
-	return true
-}
-
 func NewCurve25519() abstract.Group {
 	return new(curve)
 }
