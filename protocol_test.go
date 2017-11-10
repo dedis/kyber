@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/network"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/network"
 )
 
 var testProto = "test"
@@ -138,7 +138,7 @@ func TestProtocolAutomaticInstantiation(t *testing.T) {
 	}
 
 	GlobalProtocolRegister(simpleProto, fn)
-	local := NewLocalTest(suite)
+	local := NewLocalTest(tSuite)
 	defer local.CloseAll()
 	h, _, tree := local.GenTree(2, true)
 	h1 := h[0]
@@ -178,7 +178,7 @@ func TestProtocolError(t *testing.T) {
 	}
 
 	GlobalProtocolRegister(simpleProto, fn)
-	local := NewLocalTest(suite)
+	local := NewLocalTest(tSuite)
 	h, _, tree := local.GenTree(2, true)
 	h1 := h[0]
 
@@ -232,7 +232,7 @@ func TestMessageProxyFactory(t *testing.T) {
 
 func TestMessageProxyStore(t *testing.T) {
 	defer eraseAllMessageProxy()
-	local := NewLocalTest(suite)
+	local := NewLocalTest(tSuite)
 	defer local.CloseAll()
 
 	RegisterMessageProxy(NewTestMessageProxy)

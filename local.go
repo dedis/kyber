@@ -10,11 +10,11 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/satori/go.uuid"
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/util/key"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
+	"github.com/satori/go.uuid"
 )
 
 // LocalTest represents all that is needed for a local test-run
@@ -158,7 +158,7 @@ func (l *LocalTest) GenRosterFromHost(servers ...*Server) *Roster {
 	for i := range servers {
 		entities = append(entities, servers[i].ServerIdentity)
 	}
-	list := NewRoster(l.Suite, entities)
+	list := NewRoster(entities)
 	l.Rosters[list.ID] = list
 	return list
 }

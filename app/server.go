@@ -27,7 +27,7 @@ import (
 )
 
 // Suite wraps the functionalities needed by this package
-type Suite key.Suite
+type Suite kyber.Group
 
 // DefaultServerConfig is the default server configuration file-name.
 const DefaultServerConfig = "private.toml"

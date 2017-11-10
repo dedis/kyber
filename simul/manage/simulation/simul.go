@@ -38,10 +38,10 @@ func NewSimulation(config string) (onet.Simulation, error) {
 }
 
 // Setup creates the tree used for that simulation
-func (e *simulation) Setup(dir string, hosts []string, s network.Suite) (
+func (e *simulation) Setup(dir string, hosts []string) (
 	*onet.SimulationConfig, error) {
 	sc := &onet.SimulationConfig{}
-	e.CreateRoster(sc, hosts, 2000, suite)
+	e.CreateRoster(sc, hosts, 2000, network.DefaultSuite())
 	err := e.CreateTree(sc)
 	if err != nil {
 		return nil, err

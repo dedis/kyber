@@ -6,10 +6,10 @@ import (
 
 	"math/rand"
 
-	"github.com/satori/go.uuid"
 	"github.com/dedis/kyber"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
+	"github.com/satori/go.uuid"
 )
 
 // In this file we define the main structures used for a running protocol
@@ -334,16 +334,12 @@ func (tm *TreeMarshal) MakeTreeFromList(s network.Suite, parent *TreeNode, el *R
 	return tn
 }
 
-// An Roster is a list of ServerIdentity we choose to run  some tree on it ( and
-// therefor some protocols)
+// A Roster is a list of ServerIdentity we choose to run some tree on it ( and
+// therefor some protocols). Access is not safe from multiple goroutines.
 type Roster struct {
 	ID RosterID
-	// TODO make that a map so search is O(1)
-	// List is the List of actual "entities"
-	// Be careful if you access it in go-routines (not safe by default)
+	// List is the list of actual entities.
 	List []*network.ServerIdentity
-	// Aggregate public key
-	Aggregate kyber.Point
 }
 
 // RosterID uniquely identifies an Roster
@@ -370,16 +366,10 @@ var RosterTypeID = network.RegisterMessage(Roster{})
 
 // NewRoster creates a new ServerIdentity from a list of entities. It also
 // adds a UUID which is randomly chosen.
-func NewRoster(s network.Suite, ids []*network.ServerIdentity) *Roster {
-	// compute the aggregate key already
-	agg := s.Point().Null()
-	for _, e := range ids {
-		agg = agg.Add(agg, e.Public)
-	}
+func NewRoster(ids []*network.ServerIdentity) *Roster {
 	return &Roster{
-		List:      ids,
-		Aggregate: agg,
-		ID:        RosterID(uuid.NewV4()),
+		List: ids,
+		ID:   RosterID(uuid.NewV4()),
 	}
 }
 
@@ -392,6 +382,16 @@ func (el *Roster) Search(eID network.ServerIdentityID) (int, *network.ServerIden
 		}
 	}
 	return -1, nil
+}
+
+// GetAggregate returns the
+func (el *Roster) GetAggregate() kyber.Point {
+	// compute the aggregate key already
+	agg := network.DefaultSuite().Point().Null()
+	for _, e := range el.List {
+		agg = agg.Add(agg, e.Public)
+	}
+	return agg
 }
 
 // Get simply returns the entity that is stored at that index in the entitylist
@@ -500,7 +500,7 @@ func (el *Roster) GenerateNaryTreeWithRoot(s network.Suite, N int, root *network
 	afterRoot := cList[rootIndex+1:]
 	list := append(onlyRoot, uptoRoot...)
 	list = append(list, afterRoot...)
-	return NewRoster(s, list).GenerateNaryTree(s, N)
+	return NewRoster(list).GenerateNaryTree(s, N)
 }
 
 // GenerateNaryTree creates a tree where each node has N children.

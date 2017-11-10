@@ -7,11 +7,11 @@ import (
 
 	"sync"
 
+	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/network"
 	"github.com/dedis/protobuf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/network"
 )
 
 const dummyServiceName = "dummyService"
@@ -65,7 +65,7 @@ func TestServiceNew(t *testing.T) {
 	})
 	defer UnregisterService(dummyServiceName)
 	go func() {
-		local := NewLocalTest(suite)
+		local := NewLocalTest(tSuite)
 		local.GenServers(1)
 		defer local.CloseAll()
 	}()
@@ -85,13 +85,13 @@ func TestServiceProcessRequest(t *testing.T) {
 	log.ErrFatal(err)
 	defer UnregisterService(dummyServiceName)
 
-	local := NewTCPTest(suite)
+	local := NewTCPTest(tSuite)
 	hs := local.GenServers(2)
 	server := hs[0]
 	log.Lvl1("Host created and listening")
 	defer local.CloseAll()
 	// Send a request to the service
-	client := NewClient(dummyServiceName, suite)
+	client := NewClient(dummyServiceName, tSuite)
 	log.Lvl1("Sending request to service...")
 	_, cerr := client.Send(server.ServerIdentity, "nil", []byte("a"))
 	log.Lvl2("Got reply")
@@ -115,14 +115,14 @@ func TestServiceRequestNewProtocol(t *testing.T) {
 	})
 
 	defer UnregisterService(dummyServiceName)
-	local := NewTCPTest(suite)
+	local := NewTCPTest(tSuite)
 	hs := local.GenServers(2)
 	server := hs[0]
 	client := local.NewClient(dummyServiceName)
 	defer local.CloseAll()
 	// create the entityList and tree
-	el := NewRoster(suite, []*network.ServerIdentity{server.ServerIdentity})
-	tree := el.GenerateBinaryTree(suite)
+	el := NewRoster([]*network.ServerIdentity{server.ServerIdentity})
+	tree := el.GenerateBinaryTree(tSuite)
 	// give it to the service
 	ds.fakeTree = tree
 
@@ -174,7 +174,7 @@ func TestServiceNewProtocol(t *testing.T) {
 	})
 
 	defer UnregisterService(dummyServiceName)
-	local := NewTCPTest(suite)
+	local := NewTCPTest(tSuite)
 	defer local.CloseAll()
 	hs := local.GenServers(3)
 	server1, server2 := hs[0], hs[1]
@@ -182,8 +182,8 @@ func TestServiceNewProtocol(t *testing.T) {
 	log.Lvl1("Host created and listening")
 
 	// create the entityList and tree
-	el := NewRoster(suite, []*network.ServerIdentity{server1.ServerIdentity, server2.ServerIdentity})
-	tree := el.GenerateBinaryTree(suite)
+	el := NewRoster([]*network.ServerIdentity{server1.ServerIdentity, server2.ServerIdentity})
+	tree := el.GenerateBinaryTree(tSuite)
 	// give it to the service
 	ds1.fakeTree = tree
 
@@ -218,7 +218,7 @@ func TestServiceProcessor(t *testing.T) {
 		c.RegisterProcessor(s, dummyMsgType)
 		return s, nil
 	})
-	local := NewLocalTest(suite)
+	local := NewLocalTest(tSuite)
 	defer local.CloseAll()
 	hs := local.GenServers(2)
 	server1, server2 := hs[0], hs[1]
@@ -235,7 +235,7 @@ func TestServiceProcessor(t *testing.T) {
 }
 
 func TestServiceBackForthProtocol(t *testing.T) {
-	local := NewTCPTest(suite)
+	local := NewTCPTest(tSuite)
 	defer local.CloseAll()
 
 	// register service
@@ -265,7 +265,7 @@ func TestServiceBackForthProtocol(t *testing.T) {
 }
 
 func TestServiceManager_Service(t *testing.T) {
-	local := NewLocalTest(suite)
+	local := NewLocalTest(tSuite)
 	defer local.CloseAll()
 	servers, _, _ := local.GenTree(2, true)
 
@@ -277,7 +277,7 @@ func TestServiceManager_Service(t *testing.T) {
 }
 
 func TestServiceMessages(t *testing.T) {
-	local := NewLocalTest(suite)
+	local := NewLocalTest(tSuite)
 	defer local.CloseAll()
 	servers, _, _ := local.GenTree(2, true)
 
@@ -289,7 +289,7 @@ func TestServiceMessages(t *testing.T) {
 }
 
 func TestServiceGenericConfig(t *testing.T) {
-	local := NewLocalTest(suite)
+	local := NewLocalTest(tSuite)
 	defer local.CloseAll()
 	servers, _, tree := local.GenTree(2, true)
 
@@ -431,11 +431,11 @@ type simpleService struct {
 
 func (s *simpleService) ProcessClientRequest(path string, buf []byte) ([]byte, ClientError) {
 	msg := &SimpleRequest{}
-	err := protobuf.DecodeWithConstructors(buf, msg, network.DefaultConstructors(suite))
+	err := protobuf.DecodeWithConstructors(buf, msg, network.DefaultConstructors(tSuite))
 	if err != nil {
 		return nil, NewClientErrorCode(WebSocketErrorProtobufDecode, "")
 	}
-	tree := msg.ServerIdentities.GenerateBinaryTree(suite)
+	tree := msg.ServerIdentities.GenerateBinaryTree(tSuite)
 	tni := s.ctx.NewTreeNodeInstance(tree, tree.Root, backForthServiceName)
 	ret := make(chan int)
 	proto, err := newBackForthProtocolRoot(tni, msg.Val, func(n int) {

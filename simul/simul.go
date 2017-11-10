@@ -17,8 +17,6 @@ import (
 
 	"github.com/dedis/onet/network"
 
-	"github.com/dedis/kyber/group"
-
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/simul/platform"
 )
@@ -49,7 +47,7 @@ func init() {
 // If given an array of rcs, each element will be interpreted as a .toml-file
 // to load and simulate.
 func Start(rcs ...string) {
-	simulSuite := group.Suite(suite).(network.Suite)
+	simulSuite := network.DefaultSuite()
 	wd, err := os.Getwd()
 	if len(rcs) > 0 {
 		log.ErrFatal(err)

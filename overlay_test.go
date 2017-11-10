@@ -3,10 +3,10 @@ package onet
 import (
 	"testing"
 
+	"github.com/dedis/onet/network"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/dedis/onet/network"
 )
 
 type ProtocolOverlay struct {
@@ -37,7 +37,7 @@ func TestOverlayDone(t *testing.T) {
 		return &ps, nil
 	}
 	GlobalProtocolRegister("ProtocolOverlay", fn)
-	local := NewLocalTest(suite)
+	local := NewLocalTest(tSuite)
 	defer local.CloseAll()
 	h, _, tree := local.GenTree(1, true)
 	h1 := h[0]
@@ -69,7 +69,7 @@ func TestOverlayDone(t *testing.T) {
 // Test when a peer receives a New Roster, it can create the trees that are
 // waiting on this specific entitiy list, to be constructed.
 func TestOverlayPendingTreeMarshal(t *testing.T) {
-	local := NewLocalTest(suite)
+	local := NewLocalTest(tSuite)
 	hosts, el, tree := local.GenTree(2, false)
 	defer local.CloseAll()
 	h1 := hosts[0]
@@ -120,7 +120,7 @@ func (op *overlayProc) Types() []network.MessageTypeID {
 
 // Test propagation of roster - both known and unknown
 func TestOverlayRosterPropagation(t *testing.T) {
-	local := NewLocalTest(suite)
+	local := NewLocalTest(tSuite)
 	hosts, el, _ := local.GenTree(2, false)
 	defer local.CloseAll()
 	h1 := hosts[0]
@@ -169,7 +169,7 @@ func TestOverlayRosterPropagation(t *testing.T) {
 
 // Test propagation of tree - both known and unknown
 func TestOverlayTreePropagation(t *testing.T) {
-	local := NewLocalTest(suite)
+	local := NewLocalTest(tSuite)
 	hosts, el, tree := local.GenTree(2, false)
 	defer local.CloseAll()
 	h1 := hosts[0]
@@ -227,7 +227,7 @@ func TestOverlayTreePropagation(t *testing.T) {
 // h1 ask for the entitylist (because it dont know)
 // h2 respond with the entitylist
 func TestOverlayRosterTreePropagation(t *testing.T) {
-	local := NewLocalTest(suite)
+	local := NewLocalTest(tSuite)
 	hosts, el, tree := local.GenTree(2, false)
 	defer local.CloseAll()
 	h1 := hosts[0]

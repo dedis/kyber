@@ -5,11 +5,11 @@ import (
 
 	"reflect"
 
+	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/network"
 	"github.com/dedis/protobuf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/network"
 )
 
 const testServiceName = "testService"
@@ -21,9 +21,9 @@ func init() {
 }
 
 func TestProcessor_AddMessage(t *testing.T) {
-	h1 := NewLocalServer(2000, suite)
+	h1 := NewLocalServer(2000, tSuite)
 	defer h1.Close()
-	p := NewServiceProcessor(&Context{server: h1}, suite)
+	p := NewServiceProcessor(&Context{server: h1}, tSuite)
 	log.ErrFatal(p.RegisterHandler(procMsg))
 	if len(p.handlers) != 1 {
 		t.Fatal("Should have registered one function")
@@ -50,17 +50,17 @@ func TestProcessor_AddMessage(t *testing.T) {
 }
 
 func TestProcessor_RegisterMessages(t *testing.T) {
-	h1 := NewLocalServer(2000, suite)
+	h1 := NewLocalServer(2000, tSuite)
 	defer h1.Close()
-	p := NewServiceProcessor(&Context{server: h1}, suite)
+	p := NewServiceProcessor(&Context{server: h1}, tSuite)
 	log.ErrFatal(p.RegisterHandlers(procMsg, procMsg2, procMsg3, procMsg4))
 	assert.Error(t, p.RegisterHandlers(procMsg3, procMsgWrong4))
 }
 
 func TestServiceProcessor_ProcessClientRequest(t *testing.T) {
-	h1 := NewLocalServer(2000, suite)
+	h1 := NewLocalServer(2000, tSuite)
 	defer h1.Close()
-	p := NewServiceProcessor(&Context{server: h1}, suite)
+	p := NewServiceProcessor(&Context{server: h1}, tSuite)
 	log.ErrFatal(p.RegisterHandler(procMsg))
 
 	buf, err := protobuf.Encode(&testMsg{11})
@@ -81,7 +81,7 @@ func TestServiceProcessor_ProcessClientRequest(t *testing.T) {
 }
 
 func TestProcessor_ProcessClientRequest(t *testing.T) {
-	local := NewTCPTest(suite)
+	local := NewTCPTest(tSuite)
 
 	// generate 5 hosts,
 	h := local.GenServers(1)[0]

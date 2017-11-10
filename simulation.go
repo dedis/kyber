@@ -280,7 +280,7 @@ func (s *SimulationBFTree) CreateRoster(sc *SimulationConfig, addresses []string
 		}
 	}
 
-	sc.Roster = NewRoster(suite, entities)
+	sc.Roster = NewRoster(entities)
 	log.Lvl3("Creating entity List took: " + time.Now().Sub(start).String())
 }
 

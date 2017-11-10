@@ -9,13 +9,13 @@ import (
 
 	"sync"
 
+	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/network"
 	"github.com/dedis/protobuf"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/websocket"
-	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/network"
 )
 
 func init() {
@@ -23,7 +23,7 @@ func init() {
 }
 
 func TestNewWebSocket(t *testing.T) {
-	c := NewTCPServer(0, suite)
+	c := NewTCPServer(0, tSuite)
 	defer c.Close()
 	require.Equal(t, len(c.serviceManager.services), len(c.websocket.services))
 	require.NotEmpty(t, c.websocket.services[serviceWebSocket])
@@ -61,7 +61,7 @@ func TestGetWebHost(t *testing.T) {
 }
 
 func TestClient_Send(t *testing.T) {
-	local := NewTCPTest(suite)
+	local := NewTCPTest(tSuite)
 	defer local.CloseAll()
 
 	// register service
@@ -93,7 +93,7 @@ func TestClient_Send(t *testing.T) {
 func TestClient_Parallel(t *testing.T) {
 	nbrNodes := 4
 	nbrParallel := 20
-	local := NewTCPTest(suite)
+	local := NewTCPTest(tSuite)
 	defer local.CloseAll()
 
 	// register service
@@ -145,7 +145,7 @@ func TestNewClientError(t *testing.T) {
 }
 
 func TestNewClientKeep(t *testing.T) {
-	c := NewClientKeep(serviceWebSocket, suite)
+	c := NewClientKeep(serviceWebSocket, tSuite)
 	assert.True(t, c.keep)
 }
 

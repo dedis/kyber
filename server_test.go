@@ -3,13 +3,13 @@ package onet
 import (
 	"testing"
 
+	"github.com/dedis/onet/log"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
-	"github.com/dedis/onet/log"
 )
 
 func TestServer_ProtocolRegisterName(t *testing.T) {
-	c := NewLocalServer(0, suite)
+	c := NewLocalServer(0, tSuite)
 	defer c.Close()
 	plen := len(c.protocols.instantiators)
 	require.True(t, plen > 0)
@@ -25,7 +25,7 @@ func TestServer_ProtocolRegisterName(t *testing.T) {
 }
 
 func TestServer_GetService(t *testing.T) {
-	c := NewLocalServer(0, suite)
+	c := NewLocalServer(0, tSuite)
 	defer c.Close()
 	s := c.GetService("nil")
 	require.Nil(t, s)

@@ -126,7 +126,7 @@ func TestContext_DataAvailable(t *testing.T) {
 }
 
 func createContext() *Context {
-	pub := suite.Point().Pick(random.Stream)
+	pub := tSuite.Point().Pick(random.Stream)
 	si := network.NewServerIdentity(pub,
 		network.NewAddress(network.Local, "localhost:0"))
 	cn := &Server{

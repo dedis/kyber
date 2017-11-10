@@ -7,6 +7,8 @@ import (
 	"github.com/dedis/onet/network"
 )
 
+var tSuite = network.DefaultSuite()
+
 const clientServiceName = "ClientService"
 
 func init() {
@@ -14,7 +16,7 @@ func init() {
 }
 
 func TestGenLocalHost(t *testing.T) {
-	l := NewLocalTest(suite)
+	l := NewLocalTest(tSuite)
 	hosts := l.genLocalHosts(2)
 	defer l.CloseAll()
 
@@ -27,11 +29,11 @@ func TestGenLocalHost(t *testing.T) {
 // This tests the client-connection in the case of a non-garbage-collected
 // client that stays in the service.
 func TestNewTCPTest(t *testing.T) {
-	l := NewTCPTest(suite)
+	l := NewTCPTest(tSuite)
 	_, el, _ := l.GenTree(3, true)
 	defer l.CloseAll()
 
-	c1 := NewClient(clientServiceName, suite)
+	c1 := NewClient(clientServiceName, tSuite)
 	cerr := c1.SendProtobuf(el.List[0], &SimpleMessage{}, nil)
 	log.ErrFatal(cerr)
 }
