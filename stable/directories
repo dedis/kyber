@@ -16,11 +16,11 @@ proof
 proof/dleq
 share
 share/dss
-share/pedersen/dkg
-share/pedersen/vss
 share/pvss
-share/rabin/dkg
-share/rabin/vss
+share/dkg/pedersen
+share/dkg/rabin
+share/vss/rabin
+share/vss/pedersen
 shuffle
 sign/anon
 sign/cosi
