@@ -114,7 +114,7 @@ func (s *scalar) Inv(a kyber.Scalar) kyber.Scalar {
 	ac := a.(*scalar)
 	// Modular inversion in a multiplicative group is a^(phi(m)-1) = a^-1 mod m
 	// Since m is prime, phi(m) = m - 1 => a^(m-2) = a^-1 mod m.
-	// The inverse is computed  using the exponentation-and-square algorithm.
+	// The inverse is computed using the exponentation-and-square algorithm.
 	// Implementation is constant time regarding the value a, it only depends on
 	// the modulo.
 	for i := 255; i >= 0; i-- {

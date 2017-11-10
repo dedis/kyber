@@ -3,7 +3,6 @@
 package nist
 
 import (
-	"crypto/cipher"
 	"crypto/sha256"
 	"hash"
 	"io"
@@ -42,13 +41,6 @@ func (s *QrSuite) Write(w io.Writer, objs ...interface{}) error {
 
 func (s *QrSuite) New(t reflect.Type) interface{} {
 	return marshalling.GroupNew(s, t)
-}
-
-func (s *QrSuite) NewKey(rand cipher.Stream) kyber.Scalar {
-	if rand == nil {
-		rand = random.Stream
-	}
-	return s.Scalar().Pick(rand)
 }
 
 // Ciphersuite based on AES-128, SHA-256,
