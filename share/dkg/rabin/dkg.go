@@ -46,7 +46,7 @@ import (
 	"github.com/dedis/kyber/sign/schnorr"
 
 	"github.com/dedis/kyber/share"
-	"github.com/dedis/kyber/share/rabin/vss"
+	vss "github.com/dedis/kyber/share/vss/rabin"
 )
 
 // Suite wraps the functionalities needed by the dkg package
