@@ -11,7 +11,6 @@ import (
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/internal/marshalling"
 	"github.com/dedis/kyber/group/mod"
-	"github.com/dedis/kyber/util/random"
 )
 
 type projPoint struct {
@@ -269,13 +268,6 @@ type ProjectiveCurve struct {
 	curve           // generic Edwards curve functionality
 	null  projPoint // Constant identity/null point (0,1)
 	base  projPoint // Standard base point
-}
-
-func (p *ProjectiveCurve) NewKey(rand cipher.Stream) kyber.Scalar {
-	if rand == nil {
-		rand = random.Stream
-	}
-	return p.Scalar().Pick(rand)
 }
 
 // Create a new Point on this curve.

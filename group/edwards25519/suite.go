@@ -1,9 +1,7 @@
 package edwards25519
 
 import (
-	"crypto/cipher"
 	"crypto/sha256"
-	"crypto/sha512"
 	"hash"
 	"io"
 	"reflect"
@@ -13,7 +11,6 @@ import (
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/cipher/sha3"
 	"github.com/dedis/kyber/group/internal/marshalling"
-	"github.com/dedis/kyber/util/random"
 )
 
 // SuiteEd25519 implements some basic functionalities such as Group, HashFactory
@@ -43,21 +40,6 @@ func (s *SuiteEd25519) Write(w io.Writer, objs ...interface{}) error {
 // New implements the kyber.Encoding interface
 func (s *SuiteEd25519) New(t reflect.Type) interface{} {
 	return marshalling.GroupNew(s, t)
-}
-
-// NewKey implements the kyber.Group interface.
-func (s *SuiteEd25519) NewKey(stream cipher.Stream) kyber.Scalar {
-	if stream == nil {
-		stream = random.Stream
-	}
-	buffer := random.NonZeroBytes(32, stream)
-	scalar := sha512.Sum512(buffer)
-	scalar[0] &= 0xf8
-	scalar[31] &= 0x3f
-	scalar[31] |= 0x40
-
-	secret := s.Scalar().SetBytes(scalar[:32])
-	return secret
 }
 
 // NewAES128SHA256Ed25519 returns a cipher suite based on AES-128, SHA-256, and
