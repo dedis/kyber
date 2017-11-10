@@ -51,7 +51,7 @@ func BlockCipherBench(b *testing.B, keylen int,
 // BitDiff compares the bits between two arrays returning the fraction
 // of differences. If the two arrays are not of the same length
 // no comparison is made and a -1 is returned.
-func BitDiff(a, b []byte) float64 {
+func bitDiff(a, b []byte) float64 {
 	if len(a) != len(b) {
 		return -1
 	}
@@ -69,7 +69,7 @@ func BitDiff(a, b []byte) float64 {
 // CipherHelloWorldHelper test if a Cipher can encrypt and decrypt.
 func CipherHelloWorldHelper(t *testing.T,
 	newCipher func([]byte, ...interface{}) kyber.Cipher,
-	n int, bitdiff float64) {
+	n int, maxDiff float64) {
 	text := []byte("Hello, World")
 	cryptsize := len(text)
 
@@ -102,9 +102,9 @@ func CipherHelloWorldHelper(t *testing.T,
 				t.FailNow()
 			}
 
-			res := BitDiff(ncrypts[i], ncrypts[j])
-			if res < bitdiff {
-				t.Log("Encryptions not sufficiently different:", res)
+			diff := bitDiff(ncrypts[i], ncrypts[j])
+			if diff < maxDiff {
+				t.Log("round", i, j, ": Encryptions not sufficiently different", diff)
 				t.FailNow()
 			}
 		}
@@ -118,7 +118,7 @@ func CipherHelloWorldHelper(t *testing.T,
 // 4) Different keys produce sufficiently random output
 func AuthenticateAndEncrypt(t *testing.T,
 	newCipher func([]byte, ...interface{}) kyber.Cipher,
-	n int, bitdiff float64, text []byte) {
+	n int, minDiff float64, text []byte) {
 	cryptsize := len(text)
 	decrypted := make([]byte, len(text))
 
@@ -179,9 +179,9 @@ func AuthenticateAndEncrypt(t *testing.T,
 	// Bit difference test
 	for i := range ncrypts {
 		for j := i + 1; j < len(ncrypts); j++ {
-			res := BitDiff(ncrypts[i], ncrypts[j])
-			if res < bitdiff {
-				t.Log("Encryptions not sufficiently different", res)
+			diff := bitDiff(ncrypts[i], ncrypts[j])
+			if diff < minDiff {
+				t.Log("round", i, j, ": Encryptions not sufficiently different", diff)
 				t.FailNow()
 			}
 		}
@@ -227,29 +227,28 @@ func AuthenticateAndEncrypt(t *testing.T,
 // that encryption and authentication work
 func CipherAuthenticatedEncryptionHelper(t *testing.T,
 	newCipher func([]byte, ...interface{}) kyber.Cipher,
-	n int, bitdiff float64) {
-	//	AuthenticateAndEncrypt(t, newCipher, n, bitdiff, []byte{})
-	AuthenticateAndEncrypt(t, newCipher, n, bitdiff, []byte{'a'})
-	AuthenticateAndEncrypt(t, newCipher, n, bitdiff, []byte("Hello, World"))
+	n int, minDiff float64) {
+	AuthenticateAndEncrypt(t, newCipher, n, minDiff, []byte{'a'})
+	AuthenticateAndEncrypt(t, newCipher, n, minDiff, []byte("Hello, World"))
 
 	kb := make([]byte, 2^10)
 	for i := 0; i < len(kb); i++ {
 		kb[i] = byte(i & 256)
 	}
-	AuthenticateAndEncrypt(t, newCipher, n, bitdiff, kb)
+	AuthenticateAndEncrypt(t, newCipher, n, minDiff, kb)
 
 	mb := make([]byte, 2^20)
 	for i := 0; i < len(mb); i++ {
 		mb[i] = byte(i & 256)
 	}
-	AuthenticateAndEncrypt(t, newCipher, n, bitdiff, mb)
+	AuthenticateAndEncrypt(t, newCipher, n, minDiff, mb)
 }
 
 // CipherTest test a Cipher functionalities.
 func CipherTest(t *testing.T,
 	newCipher func([]byte, ...interface{}) kyber.Cipher) {
-	n := 5
-	bitdiff := .30
-	CipherHelloWorldHelper(t, newCipher, n, bitdiff)
-	CipherAuthenticatedEncryptionHelper(t, newCipher, n, bitdiff)
+	n := 100
+	minDiff := 0.1
+	CipherHelloWorldHelper(t, newCipher, n, minDiff)
+	CipherAuthenticatedEncryptionHelper(t, newCipher, n, minDiff)
 }
