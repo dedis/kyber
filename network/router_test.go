@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dedis/onet/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/dedis/onet/log"
 )
 
 func NewTestRouterTCP(port int) (*Router, error) {
@@ -415,7 +415,7 @@ func TestRouterExchange(t *testing.T) {
 	}()
 	<-done
 	// try correctly
-	c, err := NewTCPConn(router1.ServerIdentity.Address, testSuite)
+	c, err := NewTCPConn(router1.ServerIdentity.Address, tSuite)
 	if err != nil {
 		t.Fatal("Couldn't connect to host1:", err)
 	}
@@ -430,7 +430,7 @@ func TestRouterExchange(t *testing.T) {
 	c.Close()
 
 	// try messing with the connections here
-	c, err = NewTCPConn(router1.ServerIdentity.Address, testSuite)
+	c, err = NewTCPConn(router1.ServerIdentity.Address, tSuite)
 	if err != nil {
 		t.Fatal("Couldn't connect to host1:", err)
 	}
@@ -458,7 +458,7 @@ func TestRouterRxTx(t *testing.T) {
 	log.ErrFatal(err)
 	go router1.Start()
 	go router2.Start()
-	si1 := NewServerIdentity(testSuite.Point().Null(), router1.address)
+	si1 := NewServerIdentity(tSuite.Point().Null(), router1.address)
 	log.ErrFatal(router2.Send(si1, si1))
 
 	// Wait for the message to be sent and received

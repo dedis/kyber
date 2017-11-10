@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/dedis/kyber/util/key"
 	"github.com/dedis/onet/log"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func init() {
@@ -190,7 +190,7 @@ func TestTCPConnReceiveRaw(t *testing.T) {
 
 	// get addr
 	listeningAddr := <-addr
-	c, err := NewTCPConn(NewTCPAddress(listeningAddr), testSuite)
+	c, err := NewTCPConn(NewTCPAddress(listeningAddr), tSuite)
 	require.Nil(t, err)
 
 	buffRaw, err := c.receiveRaw()
@@ -215,7 +215,7 @@ func TestTCPConn(t *testing.T) {
 	addr := make(chan string)
 	done := make(chan bool)
 
-	_, err := NewTCPConn(NewTCPAddress("127.0.0.1:7878"), testSuite)
+	_, err := NewTCPConn(NewTCPAddress("127.0.0.1:7878"), tSuite)
 	if err == nil {
 		t.Fatal("Should not be able to connect here")
 	}
@@ -233,7 +233,7 @@ func TestTCPConn(t *testing.T) {
 
 	// get addr
 	listeningAddr := <-addr
-	c, err := NewTCPConn(NewTCPAddress(listeningAddr), testSuite)
+	c, err := NewTCPConn(NewTCPAddress(listeningAddr), tSuite)
 	require.Nil(t, err)
 	require.Equal(t, c.Local().NetworkAddress(), c.conn.LocalAddr().String())
 	require.Equal(t, c.Type(), PlainTCP)
@@ -250,7 +250,7 @@ func TestTCPConnTimeout(t *testing.T) {
 	defer func() { readTimeout = tmp }()
 
 	addr := NewTCPAddress("127.0.0.1:5678")
-	ln, err := NewTCPListener(addr, testSuite)
+	ln, err := NewTCPListener(addr, tSuite)
 	if err != nil {
 		t.Fatal("error setup listener", err)
 	}
@@ -272,7 +272,7 @@ func TestTCPConnTimeout(t *testing.T) {
 	}()
 
 	<-ready
-	c, err := NewTCPConn(addr, testSuite)
+	c, err := NewTCPConn(addr, tSuite)
 	require.Nil(t, err, "Could not open connection")
 	// Test bandwitdth measurements also
 	require.Nil(t, c.Send(&SimpleMessage{3}))
@@ -296,7 +296,7 @@ func TestTCPConnTimeout(t *testing.T) {
 
 func TestTCPConnWithListener(t *testing.T) {
 	addr := NewTCPAddress("127.0.0.1:5678")
-	ln, err := NewTCPListener(addr, testSuite)
+	ln, err := NewTCPListener(addr, tSuite)
 	if err != nil {
 		t.Fatal("error setup listener", err)
 	}
@@ -317,7 +317,7 @@ func TestTCPConnWithListener(t *testing.T) {
 	}()
 
 	<-ready
-	c, err := NewTCPConn(addr, testSuite)
+	c, err := NewTCPConn(addr, tSuite)
 	require.Nil(t, err, "Could not open connection")
 	// Test bandwitdth measurements also
 	rx1 := <-connStat
@@ -342,7 +342,7 @@ func TestTCPConnWithListener(t *testing.T) {
 // will create a TCPListener & open a golang net.TCPConn to it
 func TestTCPListener(t *testing.T) {
 	addr := NewTCPAddress("127.0.0.1:5678")
-	ln, err := NewTCPListener(addr, testSuite)
+	ln, err := NewTCPListener(addr, tSuite)
 	if err != nil {
 		t.Fatal("Error setup listener:", err)
 	}
@@ -377,17 +377,17 @@ func TestTCPListener(t *testing.T) {
 
 func TestTCPRouter(t *testing.T) {
 	wrongAddr := &ServerIdentity{Address: NewLocalAddress("127.0.0.1:2000")}
-	_, err := NewTCPRouter(wrongAddr, testSuite)
+	_, err := NewTCPRouter(wrongAddr, tSuite)
 	if err == nil {
 		t.Fatal("Should not setup Router with local address")
 	}
 	addr := &ServerIdentity{Address: NewTCPAddress("127.0.0.1:2000")}
-	h1, err := NewTCPRouter(addr, testSuite)
+	h1, err := NewTCPRouter(addr, tSuite)
 	if err != nil {
 		t.Fatal("Could not setup host")
 	}
 	defer h1.Stop()
-	_, err = NewTCPRouter(addr, testSuite)
+	_, err = NewTCPRouter(addr, tSuite)
 	if err == nil {
 		t.Fatal("Should not succeed with same port")
 	}
@@ -472,12 +472,12 @@ func TestHandleError(t *testing.T) {
 
 func NewTestTCPHost(port int) (*TCPHost, error) {
 	addr := NewTCPAddress("127.0.0.1:" + strconv.Itoa(port))
-	return NewTCPHost(addr, testSuite)
+	return NewTCPHost(addr, tSuite)
 }
 
 // Returns a ServerIdentity out of the address
 func NewTestServerIdentity(address Address) *ServerIdentity {
-	kp := key.NewKeyPair(testSuite)
+	kp := key.NewKeyPair(tSuite)
 	e := NewServerIdentity(kp.Public, address)
 	return e
 }

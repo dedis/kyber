@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/satori/go.uuid"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
+	"github.com/satori/go.uuid"
 )
 
 // ProtocolID uniquely identifies a protocol

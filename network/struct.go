@@ -7,11 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dedis/protobuf"
-	"github.com/satori/go.uuid"
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/util/encoding"
 	"github.com/dedis/onet/log"
+	"github.com/dedis/protobuf"
+	"github.com/satori/go.uuid"
 )
 
 // MaxRetryConnect defines how many times we should try to connect.

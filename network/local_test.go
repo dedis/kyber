@@ -13,11 +13,11 @@ import (
 func TestLocalRouter(t *testing.T) {
 	addr := &ServerIdentity{Address: NewLocalAddress("127.0.0.1:2000")}
 	wrongAddr1 := &ServerIdentity{Address: NewAddress(PlainTCP, addr.Address.NetworkAddress())}
-	_, err := NewLocalRouter(wrongAddr1, testSuite)
+	_, err := NewLocalRouter(wrongAddr1, tSuite)
 	if err == nil {
 		t.Error("Should have returned something..")
 	}
-	_, err = NewLocalRouter(addr, testSuite)
+	_, err = NewLocalRouter(addr, tSuite)
 	if err != nil {
 		t.Error("Should not have returned something")
 	}
@@ -27,18 +27,18 @@ func TestLocalRouter(t *testing.T) {
 func TestLocalListener(t *testing.T) {
 	addr := NewLocalAddress("127.0.0.1:2000")
 	wrongAddr1 := NewAddress(PlainTCP, addr.NetworkAddress())
-	listener, err := NewLocalListener(wrongAddr1, testSuite)
+	listener, err := NewLocalListener(wrongAddr1, tSuite)
 	if err == nil {
 		t.Error("Create listener with wrong address should fail")
 	}
 	defaultLocalManager.setListening(addr, func(c Conn) {})
-	listener, err = NewLocalListener(addr, testSuite)
+	listener, err = NewLocalListener(addr, tSuite)
 	if err == nil {
 		t.Error("Create listener with already binded address should fail")
 	}
 	LocalReset()
 
-	listener, err = NewLocalListener(addr, testSuite)
+	listener, err = NewLocalListener(addr, tSuite)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +69,7 @@ func TestLocalListener(t *testing.T) {
 // Test whether a call to a conn.Close() will stop the remote Receive() call
 func TestLocalConnCloseReceive(t *testing.T) {
 	addr := NewLocalAddress("127.0.0.1:2000")
-	listener, err := NewLocalListener(addr, testSuite)
+	listener, err := NewLocalListener(addr, tSuite)
 	if err != nil {
 		t.Fatal("Could not listen", err)
 	}
@@ -85,7 +85,7 @@ func TestLocalConnCloseReceive(t *testing.T) {
 	}()
 	<-ready
 
-	outgoing, err := NewLocalConn(addr, addr, testSuite)
+	outgoing, err := NewLocalConn(addr, addr, tSuite)
 	if err != nil {
 		t.Fatal("erro NewLocalConn:", err)
 	}
@@ -137,7 +137,7 @@ func TestLocalContext(t *testing.T) {
 // launch a listener, then a Conn and communicate their own address + individual
 // val
 func testConnListener(ctx *LocalManager, done chan error, listenA, connA *ServerIdentity, secret int) {
-	listener, err := NewLocalListenerWithManager(ctx, listenA.Address, testSuite)
+	listener, err := NewLocalListenerWithManager(ctx, listenA.Address, tSuite)
 	if err != nil {
 		done <- err
 		return
@@ -181,7 +181,7 @@ func testConnListener(ctx *LocalManager, done chan error, listenA, connA *Server
 
 	// trick to use host because it already tries multiple times to connect if
 	// the listening routine is not up yet.
-	h, err := NewLocalHostWithManager(ctx, connA.Address, testSuite)
+	h, err := NewLocalHostWithManager(ctx, connA.Address, tSuite)
 	if err != nil {
 		done <- err
 		return
@@ -226,7 +226,7 @@ func testLocalConn(t *testing.T, a1, a2 Address) {
 	addr1 := a1
 	addr2 := a2
 
-	listener, err := NewLocalListener(addr1, testSuite)
+	listener, err := NewLocalListener(addr1, tSuite)
 	if err != nil {
 		t.Fatal("Could not listen", err)
 	}
@@ -257,7 +257,7 @@ func testLocalConn(t *testing.T, a1, a2 Address) {
 	}()
 	<-ready
 
-	outgoing, err := NewLocalConn(addr2, addr1, testSuite)
+	outgoing, err := NewLocalConn(addr2, addr1, tSuite)
 	if err != nil {
 		t.Fatal("erro NewLocalConn:", err)
 	}
@@ -289,7 +289,7 @@ func testLocalConn(t *testing.T, a1, a2 Address) {
 func TestLocalManyConn(t *testing.T) {
 	nbrConn := 3
 	addr := NewLocalAddress("127.0.0.1:2000")
-	listener, err := NewLocalListener(addr, testSuite)
+	listener, err := NewLocalListener(addr, tSuite)
 	if err != nil {
 		t.Fatal("Could not setup listener:", err)
 	}
@@ -310,7 +310,7 @@ func TestLocalManyConn(t *testing.T) {
 	for i := 1; i <= nbrConn; i++ {
 		go func(j int) {
 			a := NewLocalAddress("127.0.0.1:" + strconv.Itoa(2000+j))
-			c, err := NewLocalConn(a, addr, testSuite)
+			c, err := NewLocalConn(a, addr, tSuite)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -346,7 +346,7 @@ func waitListeningUp(addr Address) bool {
 
 func NewTestLocalHost(port int) (*LocalHost, error) {
 	addr := NewLocalAddress("127.0.0.1:" + strconv.Itoa(port))
-	return NewLocalHost(addr, testSuite)
+	return NewLocalHost(addr, tSuite)
 }
 
 type AddressTest struct {

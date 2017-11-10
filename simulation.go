@@ -3,16 +3,14 @@ package onet
 import (
 	"errors"
 	"io/ioutil"
+	"net"
 	"strconv"
 	"strings"
 	"time"
 
-	"net"
-
 	"github.com/BurntSushi/toml"
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group"
-	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/util/key"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
@@ -306,7 +304,7 @@ func (s *SimulationBFTree) Node(sc *SimulationConfig) error {
 }
 
 func (s *SimulationBFTree) GetSuite() (ns network.Suite) {
-	ns = edwards25519.NewAES128SHA256Ed25519()
+	ns = network.DefaultSuite()
 	if s.Suite == "" {
 		return
 	}

@@ -9,9 +9,9 @@ import (
 
 	"os"
 
+	"github.com/dedis/onet/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/dedis/onet/log"
 )
 
 func TestInput(t *testing.T) {

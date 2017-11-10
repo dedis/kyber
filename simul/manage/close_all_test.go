@@ -2,20 +2,17 @@ package manage
 
 import (
 	"testing"
-
-	"github.com/dedis/kyber/group/edwards25519"
-
 	"time"
 
 	"github.com/dedis/onet"
+	"github.com/dedis/onet/network"
 )
 
-var suite = edwards25519.NewAES128SHA256Ed25519()
+var tSuite = network.DefaultSuite()
 
 // Tests a 2-node system
 func TestCloseAll(t *testing.T) {
-	local := onet.NewLocalTest(suite)
-	//defer log.AfterTest(t)
+	local := onet.NewLocalTest(tSuite)
 	nbrNodes := 2
 	_, _, tree := local.GenTree(nbrNodes, true)
 	defer local.CloseAll()

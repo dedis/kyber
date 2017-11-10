@@ -6,9 +6,9 @@ import (
 
 	"strings"
 
-	"github.com/dedis/protobuf"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
+	"github.com/dedis/protobuf"
 )
 
 // ServiceProcessor allows for an easy integration of external messages

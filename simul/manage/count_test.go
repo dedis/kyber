@@ -11,7 +11,7 @@ import (
 
 // Tests a 2-node system
 func TestCount(t *testing.T) {
-	local := onet.NewLocalTest(suite)
+	local := onet.NewLocalTest(tSuite)
 	nbrNodes := 2
 	_, _, tree := local.GenTree(nbrNodes, true)
 	defer local.CloseAll()

@@ -4,19 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 	"strconv"
-
+	"strings"
+	"sync"
 	"time"
 
-	"reflect"
-	"strings"
-
-	"sync"
-
-	"github.com/dedis/protobuf"
-	"github.com/gorilla/websocket"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
+	"github.com/dedis/protobuf"
+	"github.com/gorilla/websocket"
 	"gopkg.in/tylerb/graceful.v1"
 )
 

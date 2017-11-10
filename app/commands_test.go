@@ -9,12 +9,12 @@ import (
 
 	"io"
 
-	"github.com/stretchr/testify/require"
-	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/network"
+	"github.com/stretchr/testify/require"
 )
 
-var suite = edwards25519.NewAES128SHA256Ed25519()
+var suite = network.DefaultSuite()
 
 func TestCothority(t *testing.T) {
 	origStdout := os.Stdout

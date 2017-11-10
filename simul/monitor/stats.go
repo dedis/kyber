@@ -1,6 +1,7 @@
 package monitor
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -10,10 +11,8 @@ import (
 	"strings"
 	"sync"
 
-	"errors"
-
-	"github.com/montanaflynn/stats"
 	"github.com/dedis/onet/log"
+	"github.com/montanaflynn/stats"
 )
 
 // Stats contains all structures that are related to the computations of stats
