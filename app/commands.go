@@ -3,8 +3,8 @@ package app
 import (
 	"os"
 
-	"gopkg.in/dedis/onet.v2"
-	"gopkg.in/dedis/onet.v2/log"
+	"github.com/dedis/onet"
+	"github.com/dedis/onet/log"
 	"gopkg.in/urfave/cli.v1"
 )
 

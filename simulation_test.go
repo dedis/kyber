@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/dedis/onet.v2/log"
+	"github.com/dedis/onet/log"
 )
 
 func TestSimulationBF(t *testing.T) {

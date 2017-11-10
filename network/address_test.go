@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/dedis/onet.v2/log"
+	"github.com/dedis/onet/log"
 )
 
 func TestConnType(t *testing.T) {

@@ -15,12 +15,12 @@ import (
 	"flag"
 	"os"
 
-	"gopkg.in/dedis/onet.v2/network"
+	"github.com/dedis/onet/network"
 
-	"gopkg.in/dedis/kyber.v1/group"
+	"github.com/dedis/kyber/group"
 
-	"gopkg.in/dedis/onet.v2/log"
-	"gopkg.in/dedis/onet.v2/simul/platform"
+	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/simul/platform"
 )
 
 // The address of this server - if there is only one server in the config

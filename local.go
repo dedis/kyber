@@ -11,10 +11,10 @@ import (
 	"net"
 
 	"github.com/satori/go.uuid"
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/util/key"
-	"gopkg.in/dedis/onet.v2/log"
-	"gopkg.in/dedis/onet.v2/network"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/key"
+	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/network"
 )
 
 // LocalTest represents all that is needed for a local test-run

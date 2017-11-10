@@ -13,10 +13,10 @@ import (
 
 	"sync"
 
+	"github.com/dedis/kyber/util/random"
+	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/network"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/dedis/crypto.v0/random"
-	"gopkg.in/dedis/onet.v2/log"
-	"gopkg.in/dedis/onet.v2/network"
 )
 
 type ContextData struct {
@@ -45,7 +45,7 @@ func TestContextSaveLoad(t *testing.T) {
 	tmp, err := ioutil.TempDir("", "conode")
 	log.ErrFatal(err)
 	defer os.RemoveAll(tmp)
-	os.Setenv(ENVServiceData, tmp)
+	os.Setenv("CONODE_SERVICE_PATH", tmp)
 	initContextDataPath()
 	wg.Add(nbr)
 	for i := range c {
@@ -95,7 +95,7 @@ func TestContext_Path(t *testing.T) {
 	tmp, err := ioutil.TempDir("", "conode")
 	log.ErrFatal(err)
 	defer os.RemoveAll(tmp)
-	os.Setenv(ENVServiceData, tmp)
+	os.Setenv("CONODE_SERVICE_PATH", tmp)
 	initContextDataPath()
 	require.Equal(t, tmp, contextDataPath)
 	_, err = os.Stat(tmp)

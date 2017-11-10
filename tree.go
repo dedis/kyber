@@ -7,9 +7,9 @@ import (
 	"math/rand"
 
 	"github.com/satori/go.uuid"
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/onet.v2/log"
-	"gopkg.in/dedis/onet.v2/network"
+	"github.com/dedis/kyber"
+	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/network"
 )
 
 // In this file we define the main structures used for a running protocol

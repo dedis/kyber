@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"gopkg.in/dedis/onet.v2/log"
+	"github.com/dedis/onet/log"
 )
 
 func TestInteractiveConfig(t *testing.T) {

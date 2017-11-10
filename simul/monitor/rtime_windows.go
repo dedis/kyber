@@ -5,7 +5,7 @@ package monitor
 import (
 	"syscall"
 
-	"gopkg.in/dedis/onet.v2/dbg"
+	"github.com/dedis/onet/dbg"
 )
 
 // Returns the system and the user CPU time used by the current process so far.

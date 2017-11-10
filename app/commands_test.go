@@ -10,8 +10,8 @@ import (
 	"io"
 
 	"github.com/stretchr/testify/require"
-	"gopkg.in/dedis/kyber.v1/group/edwards25519"
-	"gopkg.in/dedis/onet.v2/log"
+	"github.com/dedis/kyber/group/edwards25519"
+	"github.com/dedis/onet/log"
 )
 
 var suite = edwards25519.NewAES128SHA256Ed25519()

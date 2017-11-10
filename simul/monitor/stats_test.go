@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/dedis/onet.v2/log"
+	"github.com/dedis/onet/log"
 )
 
 func TestNewDataFilter(t *testing.T) {

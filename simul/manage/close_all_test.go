@@ -3,11 +3,11 @@ package manage
 import (
 	"testing"
 
-	"gopkg.in/dedis/kyber.v1/group/edwards25519"
+	"github.com/dedis/kyber/group/edwards25519"
 
 	"time"
 
-	"gopkg.in/dedis/onet.v2"
+	"github.com/dedis/onet"
 )
 
 var suite = edwards25519.NewAES128SHA256Ed25519()

@@ -9,9 +9,9 @@ import (
 
 	"github.com/dedis/protobuf"
 	"github.com/satori/go.uuid"
-	"gopkg.in/dedis/kyber.v1"
-	"gopkg.in/dedis/kyber.v1/util/encoding"
-	"gopkg.in/dedis/onet.v2/log"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/encoding"
+	"github.com/dedis/onet/log"
 )
 
 // MaxRetryConnect defines how many times we should try to connect.

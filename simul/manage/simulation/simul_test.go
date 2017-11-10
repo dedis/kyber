@@ -8,9 +8,9 @@ import (
 
 	"strings"
 
+	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/simul"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/dedis/onet.v1/log"
-	"gopkg.in/dedis/onet.v2/simul"
 )
 
 func TestSimulation(t *testing.T) {

@@ -5,12 +5,12 @@ import (
 	"strconv"
 
 	"github.com/BurntSushi/toml"
-	"gopkg.in/dedis/onet.v2"
-	"gopkg.in/dedis/onet.v2/log"
-	"gopkg.in/dedis/onet.v2/network"
-	"gopkg.in/dedis/onet.v2/simul"
-	"gopkg.in/dedis/onet.v2/simul/manage"
-	"gopkg.in/dedis/onet.v2/simul/monitor"
+	"github.com/dedis/onet"
+	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/network"
+	"github.com/dedis/onet/simul"
+	"github.com/dedis/onet/simul/manage"
+	"github.com/dedis/onet/simul/monitor"
 )
 
 /*

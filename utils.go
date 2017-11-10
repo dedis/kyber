@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
-	"gopkg.in/dedis/onet.v2/log"
+	"github.com/dedis/onet/log"
 )
 
 // WriteTomlConfig write  any structure to a toml-file

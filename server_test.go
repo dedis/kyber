@@ -5,7 +5,7 @@ import (
 
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/dedis/onet.v2/log"
+	"github.com/dedis/onet/log"
 )
 
 func TestServer_ProtocolRegisterName(t *testing.T) {

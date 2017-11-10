@@ -6,7 +6,7 @@ import (
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/dedis/onet.v2/network"
+	"github.com/dedis/onet/network"
 )
 
 type ProtocolOverlay struct {

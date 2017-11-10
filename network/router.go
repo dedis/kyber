@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"gopkg.in/dedis/onet.v2/log"
+	"github.com/dedis/onet/log"
 )
 
 // Router handles all networking operations such as:
