@@ -154,12 +154,24 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 	}
 	points = append(points, p1)
 
+	// Find out if this curve has a prime order:
+	// if the curve does not offer a method IsPrimeOrder,
+	// then assume that it is.
+	type canCheckPrimeOrder interface {
+		IsPrimeOrder() bool
+	}
+	primeOrder := true
+	if gpo, ok := g.(canCheckPrimeOrder); ok {
+		primeOrder = gpo.IsPrimeOrder()
+	}
+
 	// Verify additive and multiplicative identities of the generator.
 	ptmp.Mul(stmp.SetInt64(-1), nil).Add(ptmp, gen)
 	if !ptmp.Equal(pzero) {
 		panic("oops, generator additive identity doesn't work")
 	}
-	if g.PrimeOrder() { // secret.Inv works only in prime-order groups
+	// secret.Inv works only in prime-order groups
+	if primeOrder {
 		ptmp.Mul(stmp.SetInt64(2), nil).Mul(stmp.Inv(stmp), ptmp)
 		if !ptmp.Equal(gen) {
 			panic("oops, generator multiplicative identity doesn't work")
@@ -182,7 +194,7 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 	//println("shared secret = ",dh1.String())
 
 	// Test secret inverse to get from dh1 back to p1
-	if g.PrimeOrder() {
+	if primeOrder {
 		ptmp.Mul(g.Scalar().Inv(s2), dh1)
 		if !ptmp.Equal(p1) {
 			panic("Scalar inverse didn't work")
@@ -226,7 +238,7 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 	if !ptmp.Mul(stmp, gen).Equal(dh1) {
 		panic("Multiplicative homomorphism doesn't work")
 	}
-	if g.PrimeOrder() {
+	if primeOrder {
 		st2.Inv(s2)
 		st2.Mul(st2, stmp)
 		if !st2.Equal(s1) {
@@ -251,7 +263,7 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 		if !ptmp.Equal(pzero) {
 			panic("random generator fails additive identity")
 		}
-		if g.PrimeOrder() {
+		if primeOrder {
 			ptmp.Mul(stmp.SetInt64(2), rgen).Mul(stmp.Inv(stmp), ptmp)
 			if !ptmp.Equal(rgen) {
 				panic("random generator fails multiplicative identity")

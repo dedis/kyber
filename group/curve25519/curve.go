@@ -51,7 +51,7 @@ type curve struct {
 	hide hiding // Uniform point encoding method
 }
 
-func (c *curve) PrimeOrder() bool {
+func (c *curve) IsPrimeOrder() bool {
 	return !c.full
 }
 

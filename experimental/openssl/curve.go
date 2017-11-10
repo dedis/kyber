@@ -256,10 +256,6 @@ func (c *curve) String() string {
 	return c.name
 }
 
-func (c *curve) PrimeOrder() bool {
-	return true // we only support the NIST prime-order curves
-}
-
 func (c *curve) ScalarLen() int {
 	return c.nlen
 }
