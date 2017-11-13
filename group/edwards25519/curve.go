@@ -14,11 +14,6 @@ import (
 type Curve struct {
 }
 
-// PrimeOrder implements the kyber.Group interface.
-func (c *Curve) PrimeOrder() bool {
-	return true
-}
-
 // Return the name of the curve, "Ed25519".
 func (c *Curve) String() string {
 	return "Ed25519"
