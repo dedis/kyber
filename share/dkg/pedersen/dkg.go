@@ -9,7 +9,7 @@ import (
 	"github.com/dedis/kyber"
 
 	"github.com/dedis/kyber/share"
-	"github.com/dedis/kyber/share/pedersen/vss"
+	vss "github.com/dedis/kyber/share/vss/pedersen"
 )
 
 // Suite wraps the functionalities needed by the dkg package

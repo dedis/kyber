@@ -7,7 +7,7 @@ import (
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/share"
-	"github.com/dedis/kyber/share/rabin/vss"
+	vss "github.com/dedis/kyber/share/vss/rabin"
 	"github.com/dedis/kyber/sign/schnorr"
 	"github.com/dedis/kyber/util/random"
 	"github.com/stretchr/testify/assert"
