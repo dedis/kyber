@@ -593,7 +593,7 @@ func (n *TreeNodeInstance) Index() int {
 // Broadcast sends a given message from the calling node directly to all other TreeNodes
 func (n *TreeNodeInstance) Broadcast(msg interface{}) error {
 	for _, node := range n.List() {
-		if node != n.TreeNode() {
+		if !node.Equal(n.TreeNode()) {
 			if err := n.SendTo(node, msg); err != nil {
 				return err
 			}
