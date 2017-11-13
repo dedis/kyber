@@ -151,7 +151,10 @@ func (d *Localhost) Start(args ...string) error {
 	log.Lvl1("Starting", d.servers, "applications of", ex)
 	time.Sleep(100 * time.Millisecond)
 	log.ErrFatal(monitor.ConnectSink("localhost:" + strconv.Itoa(d.monitorPort)))
-	s := group.Suite(d.Suite)
+	s, err := group.Suite(d.Suite)
+	if err != nil {
+		return err
+	}
 	for index := 0; index < d.servers; index++ {
 		log.Lvl3("Starting", index)
 		host := "127.0.0." + strconv.Itoa(index)

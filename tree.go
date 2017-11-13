@@ -56,7 +56,7 @@ func (tId TreeID) IsNil() bool {
 
 // NewTree creates a new tree using the entityList and the root-node. It
 // also generates the id.
-func NewTree(s network.Suite, el *Roster, r *TreeNode) *Tree {
+func NewTree(el *Roster, r *TreeNode) *Tree {
 	url := network.NamespaceURL + "tree/" + el.ID.String() + r.ID.String()
 	t := &Tree{
 		Roster: el,
@@ -65,7 +65,7 @@ func NewTree(s network.Suite, el *Roster, r *TreeNode) *Tree {
 	}
 	// network.Suite used for the moment => explicit mark that something is
 	// wrong and that needs to be changed !
-	t.computeSubtreeAggregate(s, r)
+	t.computeSubtreeAggregate(r)
 	return t
 }
 
@@ -79,8 +79,8 @@ func NewTreeFromMarshal(s network.Suite, buf []byte, el *Roster) (*Tree, error) 
 	if !tp.Equal(TreeMarshalTypeID) {
 		return nil, errors.New("Didn't receive TreeMarshal-struct")
 	}
-	t, err := pm.(*TreeMarshal).MakeTree(s, el)
-	t.computeSubtreeAggregate(s, t.Root)
+	t, err := pm.(*TreeMarshal).MakeTree(el)
+	t.computeSubtreeAggregate(t.Root)
 	return t, err
 }
 
@@ -250,16 +250,19 @@ func (t *Tree) UsesList() bool {
 // recursive function so it will go down to the leaves then go up to the root
 // Return the aggregate sub tree public key for this root (and compute each sub
 // aggregate public key for each of the children).
-func (t *Tree) computeSubtreeAggregate(suite network.Suite, root *TreeNode) kyber.Point {
-	aggregate := suite.Point().Add(suite.Point().Null(), root.ServerIdentity.Public)
+func (t *Tree) computeSubtreeAggregate(root *TreeNode) kyber.Point {
+	// Cloning the root public key does two things for us. First, it
+	// gets agg set to the right kind of kyber.Group for this tree.
+	// Second, it is the first component of the aggregate. The rest
+	// of the subtree aggregates are added via the DFS.
+	agg := root.ServerIdentity.Public.Clone()
+
 	// DFS search
 	for _, ch := range root.Children {
-		aggregate = aggregate.Add(aggregate, t.computeSubtreeAggregate(suite, ch))
+		agg = agg.Add(agg, t.computeSubtreeAggregate(ch))
 	}
-
-	// sets the field
-	root.PublicAggregateSubTree = aggregate
-	return aggregate
+	root.PublicAggregateSubTree = agg
+	return agg
 }
 
 // TreeMarshal is used to send and receive a tree-structure without having
@@ -305,7 +308,7 @@ func TreeMarshalCopyTree(tr *TreeNode) *TreeMarshal {
 }
 
 // MakeTree creates a tree given an Roster
-func (tm TreeMarshal) MakeTree(s network.Suite, el *Roster) (*Tree, error) {
+func (tm TreeMarshal) MakeTree(el *Roster) (*Tree, error) {
 	if !el.ID.Equal(tm.RosterID) {
 		return nil, errors.New("Not correct Roster-Id")
 	}
@@ -313,13 +316,13 @@ func (tm TreeMarshal) MakeTree(s network.Suite, el *Roster) (*Tree, error) {
 		ID:     tm.TreeID,
 		Roster: el,
 	}
-	tree.Root = tm.Children[0].MakeTreeFromList(s, nil, el)
-	tree.computeSubtreeAggregate(s, tree.Root)
+	tree.Root = tm.Children[0].MakeTreeFromList(nil, el)
+	tree.computeSubtreeAggregate(tree.Root)
 	return tree, nil
 }
 
 // MakeTreeFromList creates a sub-tree given an Roster
-func (tm *TreeMarshal) MakeTreeFromList(s network.Suite, parent *TreeNode, el *Roster) *TreeNode {
+func (tm *TreeMarshal) MakeTreeFromList(parent *TreeNode, el *Roster) *TreeNode {
 	idx, ent := el.Search(tm.ServerIdentityID)
 	tn := &TreeNode{
 
@@ -329,7 +332,7 @@ func (tm *TreeMarshal) MakeTreeFromList(s network.Suite, parent *TreeNode, el *R
 		RosterIndex:    idx,
 	}
 	for _, c := range tm.Children {
-		tn.Children = append(tn.Children, c.MakeTreeFromList(s, tn, el))
+		tn.Children = append(tn.Children, c.MakeTreeFromList(tn, el))
 	}
 	return tn
 }
@@ -339,7 +342,8 @@ func (tm *TreeMarshal) MakeTreeFromList(s network.Suite, parent *TreeNode, el *R
 type Roster struct {
 	ID RosterID
 	// List is the list of actual entities.
-	List []*network.ServerIdentity
+	List      []*network.ServerIdentity
+	Aggregate kyber.Point
 }
 
 // RosterID uniquely identifies an Roster
@@ -367,10 +371,22 @@ var RosterTypeID = network.RegisterMessage(Roster{})
 // NewRoster creates a new ServerIdentity from a list of entities. It also
 // adds a UUID which is randomly chosen.
 func NewRoster(ids []*network.ServerIdentity) *Roster {
-	return &Roster{
+	r := &Roster{
 		List: ids,
 		ID:   RosterID(uuid.NewV4()),
 	}
+	if len(ids) != 0 {
+		// compute the aggregate key, using the first server's
+		// public key to discover which kyber.Group we should be
+		// using.
+		agg := ids[0].Public.Clone()
+		agg.Null()
+		for _, e := range ids {
+			agg = agg.Add(agg, e.Public)
+		}
+		r.Aggregate = agg
+	}
+	return r
 }
 
 // Search searches the Roster for the given ServerIdentityID and returns the
@@ -382,16 +398,6 @@ func (el *Roster) Search(eID network.ServerIdentityID) (int, *network.ServerIden
 		}
 	}
 	return -1, nil
-}
-
-// GetAggregate returns the
-func (el *Roster) GetAggregate() kyber.Point {
-	// compute the aggregate key already
-	agg := network.DefaultSuite().Point().Null()
-	for _, e := range el.List {
-		agg = agg.Add(agg, e.Public)
-	}
-	return agg
 }
 
 // Get simply returns the entity that is stored at that index in the entitylist
@@ -423,7 +429,11 @@ func (el *Roster) Publics() []kyber.Point {
 // However, for some configurations it is impossible to use all ServerIdentities from
 // the Roster and still avoid having a parent and a child from the same
 // host. In this case use-all has preference over not-the-same-host.
-func (el *Roster) GenerateBigNaryTree(suite network.Suite, N, nodes int) *Tree {
+func (el *Roster) GenerateBigNaryTree(N, nodes int) *Tree {
+	if len(el.List) == 0 {
+		panic("empty roster")
+	}
+
 	// list of which hosts are already used
 	used := make([]bool, len(el.List))
 	ilLen := len(el.List)
@@ -482,13 +492,13 @@ func (el *Roster) GenerateBigNaryTree(suite network.Suite, N, nodes int) *Tree {
 		}
 		levelNodes = newLevelNodes[:newLevelNodesCounter]
 	}
-	return NewTree(suite, el, root)
+	return NewTree(el, root)
 }
 
 // GenerateNaryTreeWithRoot creates a tree where each node has N children.
 // The root is given as an ServerIdentity. If root doesn't exist in the
 // roster, `nil` will be returned.
-func (el *Roster) GenerateNaryTreeWithRoot(s network.Suite, N int, root *network.ServerIdentity) *Tree {
+func (el *Roster) GenerateNaryTreeWithRoot(N int, root *network.ServerIdentity) *Tree {
 	rootIndex, _ := el.Search(root.ID)
 	if rootIndex < 0 {
 		log.Lvl2("Asked for non-existing root:", root, el.List)
@@ -500,20 +510,20 @@ func (el *Roster) GenerateNaryTreeWithRoot(s network.Suite, N int, root *network
 	afterRoot := cList[rootIndex+1:]
 	list := append(onlyRoot, uptoRoot...)
 	list = append(list, afterRoot...)
-	return NewRoster(list).GenerateNaryTree(s, N)
+	return NewRoster(list).GenerateNaryTree(N)
 }
 
 // GenerateNaryTree creates a tree where each node has N children.
 // The first element of the Roster will be the root element.
-func (el *Roster) GenerateNaryTree(s network.Suite, N int) *Tree {
+func (el *Roster) GenerateNaryTree(N int) *Tree {
 	root := el.addNary(nil, N, 0, len(el.List)-1)
-	return NewTree(s, el, root)
+	return NewTree(el, root)
 }
 
 // GenerateBinaryTree creates a binary tree out of the Roster
 // out of it. The first element of the Roster will be the root element.
-func (el *Roster) GenerateBinaryTree(s network.Suite) *Tree {
-	return el.GenerateNaryTree(s, 2)
+func (el *Roster) GenerateBinaryTree() *Tree {
+	return el.GenerateNaryTree(2)
 }
 
 // RandomServerIdentity returns a random element of the Roster.

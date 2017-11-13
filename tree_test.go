@@ -21,7 +21,7 @@ func TestTreeId(t *testing.T) {
 	names := genLocalhostPeerNames(3, 0)
 	idsList := genRoster(tSuite, names)
 	// Generate two example topology
-	tree := idsList.GenerateBinaryTree(tSuite)
+	tree := idsList.GenerateBinaryTree()
 	/*
 			TODO: re-calculate the uuid
 		root, _ := ExampleGenerateTreeFromRoster(idsList)
@@ -44,7 +44,7 @@ func TestTreeConnectedTo(t *testing.T) {
 	names := genLocalhostPeerNames(3, 0)
 	peerList := genRoster(tSuite, names)
 	// Generate two example topology
-	tree := peerList.GenerateBinaryTree(tSuite)
+	tree := peerList.GenerateBinaryTree()
 	// Generate the network
 	if !tree.Root.IsConnectedTo(peerList.List[1]) {
 		t.Fatal("Root should be connected to child (localhost:2001)")
@@ -113,7 +113,7 @@ func TestTreeParent(t *testing.T) {
 	names := genLocalhostPeerNames(3, 2000)
 	peerList := genRoster(tSuite, names)
 	// Generate two example topology
-	tree := peerList.GenerateBinaryTree(tSuite)
+	tree := peerList.GenerateBinaryTree()
 	child := tree.Root.Children[0]
 	if !child.Parent.ID.Equal(tree.Root.ID) {
 		t.Fatal("Parent of child of root is not the root...")
@@ -125,7 +125,7 @@ func TestTreeChildren(t *testing.T) {
 	names := genLocalhostPeerNames(2, 2000)
 	peerList := genRoster(tSuite, names)
 	// Generate two example topology
-	tree := peerList.GenerateBinaryTree(tSuite)
+	tree := peerList.GenerateBinaryTree()
 	child := tree.Root.Children[0]
 	if !child.ServerIdentity.ID.Equal(peerList.List[1].ID) {
 		t.Fatal("Parent of child of root is not the root...")
@@ -137,7 +137,7 @@ func TestUnMarshalTree(t *testing.T) {
 	names := genLocalhostPeerNames(10, 2000)
 	peerList := genRoster(tSuite, names)
 	// Generate two example topology
-	tree := peerList.GenerateBinaryTree(tSuite)
+	tree := peerList.GenerateBinaryTree()
 	treeBinary, err := tree.Marshal()
 
 	if err != nil {
@@ -187,7 +187,7 @@ func TestBinaryTree(t *testing.T) {
 func TestTreeNodeServerIdentityIndex(t *testing.T) {
 	names := genLocalhostPeerNames(13, 2000)
 	peerList := genRoster(tSuite, names)
-	tree := peerList.GenerateNaryTree(tSuite, 3)
+	tree := peerList.GenerateNaryTree(3)
 
 	ln := tree.List()
 	for _, node := range ln {
@@ -212,7 +212,7 @@ func TestTreeNodeServerIdentityIndex(t *testing.T) {
 func TestNaryTree(t *testing.T) {
 	names := genLocalhostPeerNames(13, 2000)
 	peerList := genRoster(tSuite, names)
-	tree := peerList.GenerateNaryTree(tSuite, 3)
+	tree := peerList.GenerateNaryTree(3)
 	root := tree.Root
 	if len(root.Children) != 3 {
 		t.Fatal("Not three children from root")
@@ -232,7 +232,7 @@ func TestNaryTree(t *testing.T) {
 
 	names = genLocalhostPeerNames(14, 0)
 	peerList = genRoster(tSuite, names)
-	tree = peerList.GenerateNaryTree(tSuite, 3)
+	tree = peerList.GenerateNaryTree(3)
 	root = tree.Root
 	if len(root.Children) != 3 {
 		t.Fatal("Not three children from root")
@@ -251,7 +251,7 @@ func TestNaryTree(t *testing.T) {
 func TestBigNaryTree(t *testing.T) {
 	names := genLocalDiffPeerNames(3, 2000)
 	peerList := genRoster(tSuite, names)
-	tree := peerList.GenerateBigNaryTree(tSuite, 3, 13)
+	tree := peerList.GenerateBigNaryTree(3, 13)
 	root := tree.Root
 	log.Lvl2(tree.Dump())
 	if !tree.IsNary(root, 3) {
@@ -272,7 +272,7 @@ func TestBigNaryTree(t *testing.T) {
 func TestTreeIsColored(t *testing.T) {
 	names := genLocalPeerName(2, 2)
 	peerList := genRoster(tSuite, names)
-	tree := peerList.GenerateBigNaryTree(tSuite, 3, 13)
+	tree := peerList.GenerateBigNaryTree(3, 13)
 	root := tree.Root
 	rootHost := root.ServerIdentity.Address.Host()
 	for _, child := range root.Children {
@@ -315,7 +315,7 @@ func TestRosterIsUsed(t *testing.T) {
 
 		}
 		peerList := genRoster(tSuite, names)
-		tree := peerList.GenerateBigNaryTree(tSuite, 2, hosts)
+		tree := peerList.GenerateBigNaryTree(2, hosts)
 		if !tree.UsesList() {
 			t.Fatal("Didn't find all ServerIdentities in tree", tree.Dump())
 		}
@@ -328,7 +328,7 @@ func TestTreeComputeSubtreeAggregate(t *testing.T) {
 	entities := genRoster(tSuite, names)
 
 	// create tree
-	tree := entities.GenerateBinaryTree(tSuite)
+	tree := entities.GenerateBinaryTree()
 
 	// manual check for 2nd level of tree (left part)
 	lchild := tree.Root.Children[0]
@@ -392,7 +392,7 @@ func TestTreeNode_SubtreeCount(t *testing.T) {
 func TestRoster_GenerateNaryTree(t *testing.T) {
 	names := genLocalhostPeerNames(10, 2000)
 	peerList := genRoster(tSuite, names)
-	peerList.GenerateNaryTree(tSuite, 4)
+	peerList.GenerateNaryTree(4)
 	for i := 0; i <= 9; i++ {
 		if !strings.Contains(peerList.List[i].Address.String(),
 			strconv.Itoa(2000+i)) {
@@ -404,10 +404,10 @@ func TestRoster_GenerateNaryTree(t *testing.T) {
 func TestRoster_GenerateNaryTreeWithRoot(t *testing.T) {
 	names := genLocalhostPeerNames(10, 2000)
 	peerList := genRoster(tSuite, names)
-	tree := NewRoster(peerList.List[1:10]).GenerateNaryTreeWithRoot(tSuite, 2, peerList.List[0])
+	tree := NewRoster(peerList.List[1:10]).GenerateNaryTreeWithRoot(2, peerList.List[0])
 	assert.Nil(t, tree)
 	for _, e := range peerList.List {
-		tree := peerList.GenerateNaryTreeWithRoot(tSuite, 4, e)
+		tree := peerList.GenerateNaryTreeWithRoot(4, e)
 		for i := 0; i <= 9; i++ {
 			if !strings.Contains(peerList.List[i].Address.String(),
 				strconv.Itoa(2000+i)) {
@@ -443,7 +443,7 @@ func TestRoster_Publics(t *testing.T) {
 
 func TestTreeNode_AggregatePublic(t *testing.T) {
 	tree, el := genLocalTree(7, 2000)
-	agg := el.GetAggregate()
+	agg := el.Aggregate
 	root := tree.Root
 	aggRoot := root.AggregatePublic(tSuite)
 	assert.True(t, aggRoot.Equal(agg))
@@ -478,7 +478,7 @@ func BenchmarkMakeTree(b *testing.B) {
 	T := tree.MakeTreeMarshal()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		T.MakeTree(tSuite, el)
+		T.MakeTree(el)
 	}
 }
 
@@ -546,6 +546,6 @@ func genRoster(suite network.Suite, names []network.Address) *Roster {
 func genLocalTree(count, port int) (*Tree, *Roster) {
 	names := genLocalhostPeerNames(count, port)
 	peerList := genRoster(tSuite, names)
-	tree := peerList.GenerateBinaryTree(tSuite)
+	tree := peerList.GenerateBinaryTree()
 	return tree, peerList
 }

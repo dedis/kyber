@@ -4,12 +4,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"os"
 	"reflect"
 	"sync"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/protobuf"
 	"github.com/satori/go.uuid"
@@ -19,18 +17,6 @@ import (
 
 // Suite functionalities used globally by the network library.
 type Suite kyber.Group
-
-// DefaultSuite returns the default network.Suite. It defaults to
-// the suite from kyber/group/edwards25519.NewAES128SHA256Ed25519().
-//
-// You can select a different suite by setting environment
-// variable ONET_SUITE.
-func DefaultSuite() Suite {
-	if suiteName := os.Getenv("ONET_SUITE"); suiteName != "" {
-		panic("suite-by-name not implemented yet")
-	}
-	return edwards25519.NewAES128SHA256Ed25519()
-}
 
 // Message is a type for any message that the user wants to send
 type Message interface{}

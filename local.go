@@ -122,7 +122,7 @@ func (l *LocalTest) GenTree(n int, register bool) ([]*Server, *Roster, *Tree) {
 	servers := l.GenServers(n)
 
 	list := l.GenRosterFromHost(servers...)
-	tree := list.GenerateBinaryTree(l.Suite)
+	tree := list.GenerateBinaryTree()
 	l.Trees[tree.ID] = tree
 	if register {
 		servers[0].overlay.RegisterRoster(list)
@@ -142,7 +142,7 @@ func (l *LocalTest) GenBigTree(nbrTreeNodes, nbrServers, bf int, register bool) 
 	servers := l.GenServers(nbrServers)
 
 	list := l.GenRosterFromHost(servers...)
-	tree := list.GenerateBigNaryTree(l.Suite, bf, nbrTreeNodes)
+	tree := list.GenerateBigNaryTree(bf, nbrTreeNodes)
 	l.Trees[tree.ID] = tree
 	if register {
 		servers[0].overlay.RegisterRoster(list)

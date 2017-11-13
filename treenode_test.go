@@ -119,7 +119,7 @@ func newSpawnProto(tn *TreeNodeInstance) (ProtocolInstance, error) {
 
 func (s *spawnProto) Start() error {
 	r := s.Roster()
-	tree := r.GenerateBinaryTree(tSuite)
+	tree := r.GenerateBinaryTree()
 	spawnCh <- true
 	if !s.spawn {
 		return nil

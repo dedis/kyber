@@ -7,7 +7,6 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/network"
 	"github.com/dedis/onet/simul"
 	"github.com/dedis/onet/simul/manage"
 	"github.com/dedis/onet/simul/monitor"
@@ -30,6 +29,9 @@ type simulation struct {
 // initialised using the config-file
 func NewSimulation(config string) (onet.Simulation, error) {
 	es := &simulation{}
+	// Set defaults before toml.Decode
+	es.Suite = "Ed25519"
+
 	_, err := toml.Decode(config, es)
 	if err != nil {
 		return nil, err
@@ -41,7 +43,7 @@ func NewSimulation(config string) (onet.Simulation, error) {
 func (e *simulation) Setup(dir string, hosts []string) (
 	*onet.SimulationConfig, error) {
 	sc := &onet.SimulationConfig{}
-	e.CreateRoster(sc, hosts, 2000, network.DefaultSuite())
+	e.CreateRoster(sc, hosts, 2000)
 	err := e.CreateTree(sc)
 	if err != nil {
 		return nil, err

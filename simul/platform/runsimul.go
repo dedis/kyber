@@ -157,7 +157,7 @@ func Simulate(serverAddress, simul, monitorAddress string, suite network.Suite) 
 			// entity at different TreeNodes, which makes it difficult to
 			// correctly close everything.
 			log.Lvl2("Making new root-tree for SingleHost config")
-			closeTree = rootSC.Roster.GenerateBinaryTree(network.DefaultSuite())
+			closeTree = rootSC.Roster.GenerateBinaryTree()
 			rootSC.Overlay.RegisterTree(closeTree)
 		}
 		pi, err := rootSC.Overlay.CreateProtocol("CloseAll", closeTree, onet.NilServiceID)

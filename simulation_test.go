@@ -119,8 +119,9 @@ func createBFTree(hosts, bf int, addresses []string) (*SimulationConfig, *Simula
 	sb := &SimulationBFTree{
 		Hosts: hosts,
 		BF:    bf,
+		Suite: "Ed25519",
 	}
-	sb.CreateRoster(sc, addresses, 2000, tSuite)
+	sb.CreateRoster(sc, addresses, 2000)
 	if len(sc.Roster.List) != hosts {
 		return nil, nil, errors.New("Didn't get correct number of entities")
 	}

@@ -9,12 +9,17 @@ import (
 
 	"io"
 
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group"
 	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/network"
 	"github.com/stretchr/testify/require"
 )
 
-var suite = network.DefaultSuite()
+var tSuite kyber.Group
+
+func init() {
+	tSuite, _ = group.Suite("Ed25519")
+}
 
 func TestCothority(t *testing.T) {
 	origStdout := os.Stdout
@@ -32,7 +37,7 @@ func TestCothority(t *testing.T) {
 	}()
 
 	os.Args = []string{os.Args[0], "help"}
-	Server(suite)
+	Server(tSuite)
 	// back to normal state
 	log.ErrFatal(w.Close())
 	require.Contains(t, <-outC, "Serve a cothority")

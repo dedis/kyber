@@ -8,12 +8,9 @@ import (
 	"strings"
 
 	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/network"
 	"github.com/dedis/onet/simul"
 	"github.com/stretchr/testify/assert"
 )
-
-var tSuite = network.DefaultSuite()
 
 func TestSimulation(t *testing.T) {
 	simul.Start("count.toml", "csv1.toml", "csv2.toml")

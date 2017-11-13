@@ -7,9 +7,6 @@ import (
 	"github.com/dedis/onet/simul/platform"
 )
 
-func TestBuild(t *testing.T) {
-}
-
 func TestDepth(t *testing.T) {
 	testStruct := []struct{ BF, depth, hosts int }{
 		{2, 1, 3},

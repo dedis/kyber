@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group"
 	"github.com/dedis/kyber/util/encoding"
 	"github.com/dedis/kyber/util/key"
 	"github.com/dedis/onet"
@@ -50,7 +51,7 @@ const whatsMyIP = "http://www.whatsmyip.org/"
 // no public IP can be configured, localhost will be used.
 // If everything is OK, the configuration-files will be written.
 // In case of an error this method Fatals.
-func InteractiveConfig(binaryName string, suite Suite) {
+func InteractiveConfig(binaryName string) {
 	log.Info("Setting up a cothority-server.")
 	checkAvailableMemory()
 	str := Inputf(strconv.Itoa(DefaultPort), "Please enter the [address:]PORT for incoming requests")
@@ -136,6 +137,7 @@ func InteractiveConfig(binaryName string, suite Suite) {
 	}
 
 	// create the keys
+	suite, _ := group.Suite("Ed25519")
 	privStr, pubStr := createKeyPair(suite)
 	conf := &CothorityConfig{
 		Public:  pubStr,

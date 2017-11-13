@@ -94,7 +94,7 @@ func LoadSimulationConfig(dir, ca string, s network.Suite) ([]*SimulationConfig,
 		PrivateKeys: scf.PrivateKeys,
 		Config:      scf.Config,
 	}
-	sc.Tree, err = scf.TreeMarshal.MakeTree(s, sc.Roster)
+	sc.Tree, err = scf.TreeMarshal.MakeTree(sc.Roster)
 	if err != nil {
 		return nil, err
 	}
@@ -202,8 +202,9 @@ type SimulationBFTree struct {
 // CreateRoster creates an Roster with the host-names in 'addresses'.
 // It creates 's.Hosts' entries, starting from 'port' for each round through
 // 'addresses'. The network.Address(es) created are of type PlainTCP.
-func (s *SimulationBFTree) CreateRoster(sc *SimulationConfig, addresses []string, port int, suite network.Suite) {
+func (s *SimulationBFTree) CreateRoster(sc *SimulationConfig, addresses []string, port int) {
 	start := time.Now()
+	suite, _ := group.Suite(s.Suite)
 	nbrAddr := len(addresses)
 	if sc.PrivateKeys == nil {
 		sc.PrivateKeys = make(map[network.Address]kyber.Scalar)
@@ -290,7 +291,7 @@ func (s *SimulationBFTree) CreateTree(sc *SimulationConfig) error {
 	if sc.Roster == nil {
 		return errors.New("Empty Roster")
 	}
-	sc.Tree = sc.Roster.GenerateBigNaryTree(s.GetSuite(), s.BF, s.Hosts)
+	sc.Tree = sc.Roster.GenerateBigNaryTree(s.BF, s.Hosts)
 	log.Lvl3("Creating tree took: " + time.Now().Sub(start).String())
 	return nil
 }
@@ -301,21 +302,6 @@ func (s *SimulationBFTree) Node(sc *SimulationConfig) error {
 	sc.Overlay.RegisterRoster(sc.Roster)
 	sc.Overlay.RegisterTree(sc.Tree)
 	return nil
-}
-
-func (s *SimulationBFTree) GetSuite() (ns network.Suite) {
-	ns = network.DefaultSuite()
-	if s.Suite == "" {
-		return
-	}
-	defer func() {
-		if err := recover(); err != nil {
-			return
-		}
-	}()
-	si := group.Suite(s.Suite)
-	ns = si.(network.Suite)
-	return
 }
 
 // GetSingleHost returns the 'SingleHost'-flag

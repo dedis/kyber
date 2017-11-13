@@ -4,7 +4,6 @@ import (
 	"os"
 
 	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/network"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -18,7 +17,7 @@ var CmdSetup = cli.Command{
 	Aliases: []string{"s"},
 	Usage:   "Setup the configuration for the server (interactive)",
 	Action: func(c *cli.Context) error {
-		InteractiveConfig("cothority", network.DefaultSuite())
+		InteractiveConfig("cothority")
 		return nil
 	},
 }
