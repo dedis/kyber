@@ -48,7 +48,7 @@ func BlockCipherBench(b *testing.B, keylen int,
 	})
 }
 
-// BitDiff compares the bits between two arrays returning the fraction
+// bitDiff compares the bits between two arrays returning the fraction
 // of differences. If the two arrays are not of the same length
 // no comparison is made and a -1 is returned.
 func bitDiff(a, b []byte) float64 {
