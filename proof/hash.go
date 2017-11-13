@@ -2,6 +2,7 @@ package proof
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/dedis/kyber"
 )
@@ -48,10 +49,11 @@ func (c *hashProver) PubRand(data ...interface{}) error {
 }
 
 // Get private randomness
-func (c *hashProver) PriRand(data ...interface{}) {
+func (c *hashProver) PriRand(data ...interface{}) error {
 	if err := c.suite.Read(c.prirand, data...); err != nil {
-		panic("error reading random stream: " + err.Error())
+		return fmt.Errorf("error reading random stream: %v", err.Error())
 	}
+	return nil
 }
 
 // Obtain the encoded proof once the Sigma protocol is complete.
@@ -69,15 +71,15 @@ type hashVerifier struct {
 }
 
 func newHashVerifier(suite Suite, protoName string,
-	proof []byte) *hashVerifier {
+	proof []byte) (*hashVerifier, error) {
 	var c hashVerifier
 	if _, err := c.proof.Write(proof); err != nil {
-		panic("Buffer.Write failed")
+		return nil, err
 	}
 	c.suite = suite
 	c.prbuf = c.proof.Bytes()
 	c.pubrand = suite.Cipher([]byte(protoName))
-	return &c
+	return &c, nil
 }
 
 func (c *hashVerifier) consumeMsg() {
@@ -130,6 +132,9 @@ func HashProve(suite Suite, protocolName string,
 // Returns nil if the proof checks out, or an error on any failure.
 func HashVerify(suite Suite, protocolName string,
 	verifier Verifier, proof []byte) error {
-	ctx := newHashVerifier(suite, protocolName, proof)
+	ctx, err := newHashVerifier(suite, protocolName, proof)
+	if err != nil {
+		return err
+	}
 	return (func(VerifierContext) error)(verifier)(ctx)
 }

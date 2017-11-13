@@ -13,23 +13,31 @@
 package group
 
 import (
+	"errors"
 	"strings"
 
+	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
 )
 
-var suites = map[string]interface{}{}
+var suites = map[string]kyber.Group{}
 
-func init() {
-	ed25519 := edwards25519.NewAES128SHA256Ed25519()
-	suites[strings.ToLower(ed25519.String())] = ed25519
+func register(g kyber.Group) {
+	suites[strings.ToLower(g.String())] = g
 }
 
+func init() {
+	register(edwards25519.NewAES128SHA256Ed25519())
+}
+
+// ErrUnknownSuite indicates that the suite was not one of the
+// registered suites.
+var ErrUnknownSuite = errors.New("unknown suite")
+
 // Suite return
-func Suite(name string) interface{} {
-	s, ok := suites[strings.ToLower(name)]
-	if !ok {
-		panic("group has no suite named " + name)
+func Suite(name string) (kyber.Group, error) {
+	if s, ok := suites[strings.ToLower(name)]; ok {
+		return s, nil
 	}
-	return s
+	return nil, ErrUnknownSuite
 }

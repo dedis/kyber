@@ -36,7 +36,7 @@ type Verifier func(ctx VerifierContext) error
 type ProverContext interface {
 	Put(message interface{}) error        // Send message to verifier
 	PubRand(message ...interface{}) error // Get public randomness
-	PriRand(message ...interface{})       // Get private randomness
+	PriRand(message ...interface{}) error // Get private randomness
 }
 
 // VerifierContext represents the kyber.environment
