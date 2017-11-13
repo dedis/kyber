@@ -209,10 +209,6 @@ func (g *ResidueGroup) String() string {
 	return fmt.Sprintf("Residue%d", g.P.BitLen())
 }
 
-func (g *ResidueGroup) PrimeOrder() bool {
-	return true
-}
-
 // Return the number of bytes in the encoding of a Scalar
 // for this Residue group.
 func (g *ResidueGroup) ScalarLen() int { return (g.Q.BitLen() + 7) / 8 }
