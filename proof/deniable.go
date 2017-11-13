@@ -3,6 +3,7 @@ package proof
 import (
 	"bytes"
 	"errors"
+	"fmt"
 
 	"github.com/dedis/kyber"
 )
@@ -51,7 +52,7 @@ func (dp *deniableProver) run(suite Suite, self int, prv Prover,
 
 	nnodes := len(vrf)
 	if self < 0 || self >= nnodes {
-		panic("out-of-range self node")
+		return []error{errors.New("out-of-range self node")}
 	}
 
 	// Initialize error slice entries to a default error indicator,
@@ -225,10 +226,11 @@ func (dp *deniableProver) PubRand(data ...interface{}) error {
 }
 
 // Get private randomness
-func (dp *deniableProver) PriRand(data ...interface{}) {
+func (dp *deniableProver) PriRand(data ...interface{}) error {
 	if err := dp.suite.Read(dp.prirand, data...); err != nil {
-		panic("error reading random stream: " + err.Error())
+		return fmt.Errorf("error reading random stream: %v", err.Error())
 	}
+	return nil
 }
 
 // Interactive Sigma-protocol verifier context.

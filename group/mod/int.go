@@ -29,7 +29,7 @@ const (
 // Int is a generic implementation of finite field arithmetic
 // on integer finite fields with a given constant modulus,
 // built using Go's built-in big.Int package.
-// Int satisfies the kyber.kyber.Scalar interface,
+// Int satisfies the kyber.Scalar interface,
 // and hence serves as a basic implementation of kyber.Scalar,
 // e.g., representing discrete-log exponents of Schnorr groups
 // or scalar multipliers for elliptic curves.

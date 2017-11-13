@@ -3,11 +3,10 @@
 package curve25519
 
 import (
+	"crypto/cipher"
 	"errors"
 	"fmt"
 	"math/big"
-	//"encoding/hex"
-	"crypto/cipher"
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/mod"
@@ -49,6 +48,13 @@ type curve struct {
 	null kyber.Point // Identity point for this group
 
 	hide hiding // Uniform point encoding method
+}
+
+func (c *curve) String() string {
+	if c.full {
+		return c.Param.String() + "-full"
+	}
+	return c.Param.String()
 }
 
 func (c *curve) IsPrimeOrder() bool {
