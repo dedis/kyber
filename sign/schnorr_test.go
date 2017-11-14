@@ -63,7 +63,12 @@ func TestEdDSACompatibility(t *testing.T) {
 	}
 }
 
-func TestSchnorrSignature2(t *testing.T) {
+// TestSchnorrSignatureStatic can be used to verify that
+// an implementation of the schnorr-signature is correct
+// by verifying it against these static values.
+// Because the creation of the schnorr-signature involves
+// a random value, there is no static example given.
+func TestSchnorrSignatureStatic(t *testing.T) {
 	suite := ed25519.NewAES128SHA256Ed25519(false)
 	msg := []byte("Hello Schnorr")
 	sigStr := "b95fc52a5fd2e18aa7ace5b2250c2a25e368f75c148ea3403c8f32b5f100781b" +
