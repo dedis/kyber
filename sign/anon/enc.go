@@ -23,9 +23,10 @@ func header(suite Suite, X kyber.Point, x kyber.Scalar,
 		Y := anonymitySet[i]
 		S.Mul(x, Y) // compute DH shared secret
 		seed, _ := S.MarshalBinary()
-		cipher := suite.Cipher(seed)
+		xof := suite.Xof()
+		xof.Absorb(seed)
 		xc := make([]byte, len(xb))
-		cipher.Partial(xc, xb, nil)
+		xof.XORKeyStream(xc, xb)
 		hdr = append(hdr, xc...)
 	}
 	return hdr

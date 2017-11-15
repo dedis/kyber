@@ -12,25 +12,23 @@ import (
 )
 
 const (
-	// maxRate is the maximum size of the internal buffer. SHAKE-256
-	// currently needs the largest buffer.
-	maxRate = 168
-
-	// stateLen is the total state length of SHA3 rate+capacity.
-	stateLen = 200
+	// stateBits is the total state length of the sponge, in bits
+	stateBits = 1600
+	// stateBytes is the total state length of the sponge, in bytes
+	stateBytes = 1600 / 8
 )
 
 type sponge struct {
 	// Generic sponge components.
-	a    [25]uint64 // main state of the sponge
-	rate int        // number of state bytes to use for data
+	a    [stateBits / 64]uint64 // main state of the sponge
+	rate int                    // number of state bytes to use for data
 }
 
 // Rate returns the sponge's data block size (rate).
 func (d *sponge) Rate() int { return d.rate }
 
 // Capacity returns the sponge's secret state capacity.
-func (d *sponge) Capacity() int { return stateLen - d.rate }
+func (d *sponge) Capacity() int { return stateBytes - d.rate }
 
 // Clone the sponge state
 func (d *sponge) Clone() cipher.Sponge {
@@ -76,3 +74,4 @@ func newKeccak768() cipher.Sponge { return &sponge{rate: 104} }
 
 // Create a Keccak sponge primitive with 1024-bit capacity.
 func newKeccak1024() cipher.Sponge { return &sponge{rate: 72} }
+func NewKeccak1024() cipher.Sponge { return &sponge{rate: 72} }

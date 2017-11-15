@@ -10,4 +10,5 @@ type Suite interface {
 	kyber.CipherFactory
 	kyber.HashFactory
 	kyber.Encoding
+	kyber.XofFactory
 }

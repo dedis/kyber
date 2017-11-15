@@ -42,12 +42,14 @@ func (s *state_t) Transform(dst, src []byte) {
 	}
 }
 
-func newSponge() cipher.Sponge {
+func newSponge() *state_t {
 	var zeros [32]uint8
 	s := &state_t{}
 	setup(s, zeros[:], zeros[:]) // XXX initialize via options
 	return s
 }
+
+func NewSponge() *state_t { return newSponge() }
 
 // NewCipher creates a Cipher implementing the 64-4-1 mode of NORX.
 func NewCipher(key []byte, options ...interface{}) kyber.Cipher {

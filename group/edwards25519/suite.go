@@ -29,6 +29,10 @@ func (s *SuiteEd25519) Cipher(key []byte, options ...interface{}) kyber.Cipher {
 	return sha3.NewShakeCipher128(key, options...)
 }
 
+func (s *SuiteEd25519) Xof(key []byte, options ...interface{}) kyber.Cipher {
+	return sha3.NewShake128(key, options...)
+}
+
 func (s *SuiteEd25519) Read(r io.Reader, objs ...interface{}) error {
 	return fixbuf.Read(r, s, objs...)
 }
