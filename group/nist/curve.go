@@ -233,11 +233,6 @@ type curve struct {
 	p *elliptic.CurveParams
 }
 
-// All the NIST curves we support are prime-order.
-func (g *curve) PrimeOrder() bool {
-	return true
-}
-
 // Return the number of bytes in the encoding of a Scalar for this curve.
 func (c *curve) ScalarLen() int { return (c.p.N.BitLen() + 7) / 8 }
 

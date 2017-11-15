@@ -14,11 +14,6 @@ import (
 type Curve struct {
 }
 
-// PrimeOrder implements the kyber.Group interface.
-func (c *Curve) PrimeOrder() bool {
-	return true
-}
-
 // Return the name of the curve, "Ed25519".
 func (c *Curve) String() string {
 	return "Ed25519"
@@ -47,7 +42,8 @@ func (c *Curve) Point() kyber.Point {
 }
 
 // NewKey returns a formatted Ed25519 key (avoiding subgroup attack by requiring
-// it to be a multiple of 8)
+// it to be a multiple of 8).
+// NewKey implements the kyber/util/key.Generator interface.
 func (c *Curve) NewKey(stream cipher.Stream) kyber.Scalar {
 	if stream == nil {
 		stream = random.Stream

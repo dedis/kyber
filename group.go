@@ -165,8 +165,4 @@ type Group interface {
 
 	PointLen() int // Max length of point in bytes
 	Point() Point  // Create new point
-
-	PrimeOrder() bool // Returns true if group is prime-order
-
-	NewKey(cipher.Stream) Scalar
 }

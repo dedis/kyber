@@ -15,12 +15,12 @@ group/nist
 proof
 proof/dleq
 share
+share/dkg/rabin
+share/dkg/pedersen
 share/dss
-share/pedersen/dkg
-share/pedersen/vss
 share/pvss
-share/rabin/dkg
-share/rabin/vss
+share/vss/rabin
+share/vss/pedersen
 shuffle
 sign/anon
 sign/cosi

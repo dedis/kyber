@@ -5,6 +5,7 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/cipher"
+	"github.com/dedis/kyber/util/key"
 	"github.com/dedis/kyber/util/random"
 )
 
@@ -12,6 +13,7 @@ import (
 type Suite interface {
 	kyber.Group
 	kyber.HashFactory
+	kyber.CipherFactory
 }
 
 func testEmbed(g kyber.Group, rand cipher.Stream, points *[]kyber.Point,
@@ -152,12 +154,24 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 	}
 	points = append(points, p1)
 
+	// Find out if this curve has a prime order:
+	// if the curve does not offer a method IsPrimeOrder,
+	// then assume that it is.
+	type canCheckPrimeOrder interface {
+		IsPrimeOrder() bool
+	}
+	primeOrder := true
+	if gpo, ok := g.(canCheckPrimeOrder); ok {
+		primeOrder = gpo.IsPrimeOrder()
+	}
+
 	// Verify additive and multiplicative identities of the generator.
 	ptmp.Mul(stmp.SetInt64(-1), nil).Add(ptmp, gen)
 	if !ptmp.Equal(pzero) {
 		panic("oops, generator additive identity doesn't work")
 	}
-	if g.PrimeOrder() { // secret.Inv works only in prime-order groups
+	// secret.Inv works only in prime-order groups
+	if primeOrder {
 		ptmp.Mul(stmp.SetInt64(2), nil).Mul(stmp.Inv(stmp), ptmp)
 		if !ptmp.Equal(gen) {
 			panic("oops, generator multiplicative identity doesn't work")
@@ -180,7 +194,7 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 	//println("shared secret = ",dh1.String())
 
 	// Test secret inverse to get from dh1 back to p1
-	if g.PrimeOrder() {
+	if primeOrder {
 		ptmp.Mul(g.Scalar().Inv(s2), dh1)
 		if !ptmp.Equal(p1) {
 			panic("Scalar inverse didn't work")
@@ -224,7 +238,7 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 	if !ptmp.Mul(stmp, gen).Equal(dh1) {
 		panic("Multiplicative homomorphism doesn't work")
 	}
-	if g.PrimeOrder() {
+	if primeOrder {
 		st2.Inv(s2)
 		st2.Mul(st2, stmp)
 		if !st2.Equal(s1) {
@@ -249,7 +263,7 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 		if !ptmp.Equal(pzero) {
 			panic("random generator fails additive identity")
 		}
-		if g.PrimeOrder() {
+		if primeOrder {
 			ptmp.Mul(stmp.SetInt64(2), rgen).Mul(stmp.Inv(stmp), ptmp)
 			if !ptmp.Equal(rgen) {
 				panic("random generator fails multiplicative identity")
@@ -341,7 +355,8 @@ func SuiteTest(suite Suite) {
 	// Try hashing something
 	h := suite.Hash()
 	l := h.Size()
-	//println("HashLen: ",l)
+	//println("HashLen: ", l)
+
 	_, _ = h.Write([]byte("abc"))
 	hb := h.Sum(nil)
 	//println("Hash:")
@@ -357,28 +372,20 @@ func SuiteTest(suite Suite) {
 	//println("Stream:")
 	//println(hex.Dump(sb))
 
-	// Test if it generates two fresh keys with nil cipher
-	s1 := suite.NewKey(nil)
-	s2 := suite.NewKey(nil)
-	if s1.Equal(s2) {
-		panic("NewKey returns twice the same key given nil")
+	// Test if it generates two fresh keys
+	p1 := key.NewKeyPair(suite)
+	p2 := key.NewKeyPair(suite)
+	if p1.Secret.Equal(p2.Secret) {
+		panic("NewKeyPair returns the same secret key twice")
 	}
 
 	// Test if it creates the same with the same seed
-	//st1 := suite.Cipher(hb)
-	//st2 := suite.Cipher(hb)
-	//s3 := suite.NewKey(st1)
-	//s4 := suite.NewKey(st2)
-	//if !s3.Equal(s4) {
-	//	panic("NewKey returns two different keys given same stream")
-	//}
-
-	// Test if it creates two different with random stream
-	stream := random.Stream
-	s5 := suite.NewKey(stream)
-	s6 := suite.NewKey(stream)
-	if s5.Equal(s6) {
-		panic("NewKey returns same key given random stream")
+	p1 = new(key.Pair)
+	p1.Gen(suite, suite.Cipher(hb))
+	p2 = new(key.Pair)
+	p2.Gen(suite, suite.Cipher(hb))
+	if !p1.Secret.Equal(p2.Secret) {
+		panic("NewKeyPair returns different keys for same seed")
 	}
 
 	// Test the public-key group arithmetic
