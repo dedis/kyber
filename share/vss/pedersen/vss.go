@@ -265,6 +265,13 @@ func (d *Dealer) Commits() []kyber.Point {
 	return d.secretCommits
 }
 
+// setTimeOut tells this dealer to consider this moment the maximum time limit.
+// it calls cleanVerifiers which will take care of all Verifiers who have not
+// responded until now.
+func (d *Dealer) setTimeOut() error {
+    return d.aggregator.cleanVerifiers()
+}
+
 // Key returns the longterm key pair used by this Dealer.
 func (d *Dealer) Key() (kyber.Scalar, kyber.Point) {
 	return d.long, d.pub
@@ -626,18 +633,23 @@ func (a *aggregator) EnoughApprovals() bool {
 // DealCertified returns true if there has been less than t complaints, all
 // Justifications were correct and if EnoughApprovals() returns true.
 func (a *aggregator) DealCertified() bool {
-	var comps int
+	var verifiersUnstable int
+    
 	// XXX currently it can still happen that an aggregator has not been set,
 	// because it did not receive any deals yet or responses.
 	if a == nil {
 		return false
 	}
-	for _, r := range a.responses {
-		if r.Status == StatusComplaint {
-			comps++
-		}
-	}
-	tooMuchComplaints := comps >= a.t || a.badDealer
+
+    // Check either a StatusApproval or StatusComplaint for all known verifiers
+    // i.e. make sure all verifiers are either timed-out or OK.
+    for i, _ := range a.verifiers {
+        if _, ok := a.responses[uint32(i)]; !ok {
+            verifiersUnstable++
+        }
+    }
+
+	tooMuchComplaints := verifiersUnstable > 0 || a.badDealer
 	return a.EnoughApprovals() && !tooMuchComplaints
 }
 
