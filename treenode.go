@@ -669,11 +669,13 @@ func (n *TreeNodeInstance) SendToChildrenInParallel(msg interface{}) error {
 	return collectErrors("Error while sending to %s: %s\n", errs)
 }
 
-// CreateProtocol makes onet instantiates a new protocol of name "name" and
-// returns it with any error that might have happened during the creation. This
-// protocol is only handled by onet, no service are "attached" to it.
+// CreateProtocol instantiates a new protocol of name "name" and
+// returns it with any error that might have happened during the creation. If
+// the TreeNodeInstance calling this is attached to a service, the new protocol
+// will also be attached to this same service. Else the new protocol will only
+// be handled by onet.
 func (n *TreeNodeInstance) CreateProtocol(name string, t *Tree) (ProtocolInstance, error) {
-	pi, err := n.overlay.CreateProtocol(name, t, NilServiceID)
+	pi, err := n.overlay.CreateProtocol(name, t, n.Token().ServiceID)
 	return pi, err
 }
 
