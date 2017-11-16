@@ -18,6 +18,7 @@ const dummyServiceName = "dummyService"
 const dummyService2Name = "dummyService2"
 const ismServiceName = "ismService"
 const backForthServiceName = "backForth"
+const dummyProtocolName = "DummyProtocol2"
 
 func init() {
 	network.RegisterMessage(SimpleMessageForth{})
@@ -26,7 +27,7 @@ func init() {
 	dummyMsgType = network.RegisterMessage(DummyMsg{})
 	RegisterNewService(ismServiceName, newServiceMessages)
 	RegisterNewService(dummyService2Name, newDummyService2)
-	GlobalProtocolRegister("DummyProtocol2,", newDummyProtocol2)
+	GlobalProtocolRegister(dummyProtocolName, newDummyProtocol2)
 }
 
 func TestServiceRegistration(t *testing.T) {
@@ -288,6 +289,27 @@ func TestServiceMessages(t *testing.T) {
 	require.True(t, <-ism.GotResponse, "Didn't get response")
 }
 
+func TestServiceProtocolInstantiation(t *testing.T) {
+	local := NewLocalTest()
+	defer local.CloseAll()
+	servers, _, tree := local.GenTree(2, true)
+
+	s1 := servers[0].serviceManager.service(dummyService2Name)
+	s2 := servers[1].serviceManager.service(dummyService2Name)
+
+	ds1 := s1.(*dummyService2)
+	ds2 := s2.(*dummyService2)
+
+	link := make(chan bool)
+	ds1.link = link
+	ds2.link = link
+
+	go ds1.launchProtoStart(tree, false, true)
+	waitOrFatal(link, t)
+	waitOrFatal(link, t)
+	waitOrFatal(link, t)
+}
+
 func TestServiceGenericConfig(t *testing.T) {
 	local := NewLocalTest()
 	defer local.CloseAll()
@@ -444,7 +466,7 @@ func (s *simpleService) ProcessClientRequest(path string, buf []byte) ([]byte, C
 	if err != nil {
 		return nil, NewClientErrorCode(4100, "")
 	}
-	if err := s.ctx.RegisterProtocolInstance(proto); err != nil {
+	if err = s.ctx.RegisterProtocolInstance(proto); err != nil {
 		return nil, NewClientErrorCode(4101, "")
 	}
 	proto.Start()
@@ -534,7 +556,9 @@ func (ds *DummyService) ProcessClientRequest(path string, buf []byte) ([]byte, C
 		return nil, NewClientErrorCode(4101, "")
 	}
 	log.Lvl2("Starting protocol")
-	go dp.Start()
+	go func() {
+		log.ErrFatal(dp.Start())
+	}()
 	return nil, nil
 }
 
@@ -599,20 +623,28 @@ func (ds *dummyService2) Process(env *network.Envelope) {
 }
 
 func (ds *dummyService2) launchProto(t *Tree, config bool) {
+	ds.launchProtoStart(t, config, false)
+}
+
+func (ds *dummyService2) launchProtoStart(t *Tree, config, startNew bool) {
 	tni := ds.NewTreeNodeInstance(t, t.Root, dummyService2Name)
 	pi, err := newDummyProtocol2(tni)
+	pi.(*DummyProtocol2).startNewProtocol = startNew
 	err2 := ds.RegisterProtocolInstance(pi)
 	ds.link <- err == nil && err2 == nil
 
 	if config {
 		tni.SetConfig(&GenericConfig{serviceConfig})
 	}
-	go pi.Start()
+	go func() {
+		log.ErrFatal(pi.Start())
+	}()
 }
 
 type DummyProtocol2 struct {
 	*TreeNodeInstance
-	c chan WrapDummyMsg
+	c                chan WrapDummyMsg
+	startNewProtocol bool
 }
 
 type WrapDummyMsg struct {
@@ -628,6 +660,14 @@ func newDummyProtocol2(n *TreeNodeInstance) (ProtocolInstance, error) {
 }
 
 func (dp2 *DummyProtocol2) Start() error {
+	if dp2.startNewProtocol {
+		pi, err := dp2.CreateProtocol(dummyProtocolName, dp2.Tree())
+		if err != nil {
+			log.Error(err)
+			return err
+		}
+		go pi.Start()
+	}
 	return dp2.SendToChildren(&DummyMsg{20})
 }
 
