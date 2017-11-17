@@ -30,10 +30,12 @@ func Example_encrypt1() {
 	// Decrypt the ciphertext with the private key
 	MM, err := Decrypt(suite, C, Set(X), mine, x, false)
 	if err != nil {
-		panic(err.Error())
+		fmt.Println(err.Error())
+		return
 	}
 	if !bytes.Equal(M, MM) {
-		panic("Decryption failed to reproduce message")
+		fmt.Println("Decryption failed to reproduce message")
+		return
 	}
 	fmt.Printf("Decrypted: '%s'\n", string(MM))
 
@@ -73,10 +75,12 @@ func ExampleEncrypt_anonSet() {
 	// Decrypt the ciphertext with the known private key
 	MM, err := Decrypt(suite, C, Set(X), mine, x, false)
 	if err != nil {
-		panic(err.Error())
+		fmt.Println(err.Error())
+		return
 	}
 	if !bytes.Equal(M, MM) {
-		panic("Decryption failed to reproduce message")
+		fmt.Println("Decryption failed to reproduce message")
+		return
 	}
 	fmt.Printf("Decrypted: '%s'\n", string(MM))
 

@@ -9,6 +9,7 @@ import (
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/util/random"
+	"github.com/dedis/kyber/xof"
 )
 
 // This example demonstrates signing and signature verification
@@ -37,10 +38,12 @@ func Example_sign1() {
 	// Verify the signature against the correct message
 	tag, err := Verify(suite, M, Set(X), nil, sig)
 	if err != nil {
-		panic(err.Error())
+		fmt.Println(err.Error())
+		return
 	}
 	if tag == nil || len(tag) != 0 {
-		panic("Verify returned wrong tag")
+		fmt.Println("Verify returned wrong tag")
+		return
 	}
 	fmt.Println("Signature verified against correct message.")
 
@@ -48,16 +51,17 @@ func Example_sign1() {
 	BAD := []byte("Goodbye world!")
 	tag, err = Verify(suite, BAD, Set(X), nil, sig)
 	if err == nil || tag != nil {
-		panic("Signature verified against wrong message!?")
+		fmt.Println("Signature verified against wrong message!?")
+		return
 	}
 	fmt.Println("Verifying against wrong message: " + err.Error())
 
 	// Output:
 	// Signature:
-	// 00000000  be db 1a 8e 63 21 a2 96  68 17 85 05 e7 aa dc fd  |....c!..h.......|
-	// 00000010  09 d8 36 e6 00 39 f8 98  69 4a 70 dc 4e a2 07 07  |..6..9..iJp.N...|
-	// 00000020  1f 46 d8 67 4a 71 49 c9  7c d2 8f 2b 75 8c cc 83  |.F.gJqI.|..+u...|
-	// 00000030  b4 31 0c 6f 6c 2e 75 70  cd 8b 8e 04 b0 54 4f 07  |.1.ol.up.....TO.|
+	// 00000000  53 3f 7d 30 a9 4d e5 83  c5 19 da 6e df e5 bf e1  |S?}0.M.....n....|
+	// 00000010  db e7 7a 9e 4b 14 46 69  18 79 e9 69 b5 a0 47 0e  |..z.K.Fi.y.i..G.|
+	// 00000020  30 ea 70 24 34 68 58 f9  86 de 5a 32 8f c6 07 de  |0.p$4hX...Z2....|
+	// 00000030  5e 58 32 6a 20 8b 85 11  bc 18 34 52 2d e4 03 0f  |^X2j .....4R-...|
 	// Signature verified against correct message.
 	// Verifying against wrong message: invalid signature
 }
@@ -90,10 +94,12 @@ func ExampleSign_anonSet() {
 	// Verify the signature against the correct message
 	tag, err := Verify(suite, M, Set(X), nil, sig)
 	if err != nil {
-		panic(err.Error())
+		fmt.Println(err.Error())
+		return
 	}
 	if tag == nil || len(tag) != 0 {
-		panic("Verify returned wrong tag")
+		fmt.Println("Verify returned wrong tag")
+		return
 	}
 	fmt.Println("Signature verified against correct message.")
 
@@ -101,7 +107,7 @@ func ExampleSign_anonSet() {
 	BAD := []byte("Goodbye world!")
 	tag, err = Verify(suite, BAD, Set(X), nil, sig)
 	if err == nil || tag != nil {
-		panic("Signature verified against wrong message!?")
+		fmt.Println("Signature verified against wrong message!?")
 	}
 	fmt.Println("Verifying against wrong message: " + err.Error())
 
@@ -161,11 +167,13 @@ func ExampleSign_linkable() {
 	for i := range sig {
 		goodtag, err := Verify(suite, M, Set(X), S, sig[i])
 		if err != nil {
-			panic(err.Error())
+			fmt.Println(err.Error())
+			return
 		}
 		tag[i] = goodtag
 		if tag[i] == nil || len(tag[i]) != suite.PointLen() {
-			panic("Verify returned invalid tag")
+			fmt.Println("Verify returned invalid tag")
+			return
 		}
 		fmt.Printf("Sig%d tag: %s\n", i,
 			hex.EncodeToString(tag[i]))
@@ -174,12 +182,14 @@ func ExampleSign_linkable() {
 		BAD := []byte("Goodbye world!")
 		badtag, err := Verify(suite, BAD, Set(X), S, sig[i])
 		if err == nil || badtag != nil {
-			panic("Signature verified against wrong message!?")
+			fmt.Println("Signature verified against wrong message!?")
+			return
 		}
 	}
 	if !bytes.Equal(tag[0], tag[1]) || !bytes.Equal(tag[2], tag[3]) ||
 		bytes.Equal(tag[0], tag[2]) {
-		panic("tags aren't coming out right!")
+		fmt.Println("tags aren't coming out right!")
+		return
 	}
 
 	// Output:
@@ -287,71 +297,72 @@ func benchGenSigEd25519(nkeys int) []byte {
 }
 
 func benchSign(suite Suite, pub []kyber.Point, pri kyber.Scalar,
-	niter int) {
-	rand := suite.Cipher([]byte("example"))
-	for i := 0; i < niter; i++ {
+	b *testing.B) {
+	rand := xof.New()
+	rand.Absorb([]byte("example"))
+	for i := 0; i < b.N; i++ {
 		Sign(suite, rand, benchMessage, Set(pub), nil, 0, pri)
 	}
 }
 
 func benchVerify(suite Suite, pub []kyber.Point,
-	sig []byte, niter int) {
-	for i := 0; i < niter; i++ {
+	sig []byte, b *testing.B) {
+	for i := 0; i < b.N; i++ {
 		tag, err := Verify(suite, benchMessage, Set(pub), nil, sig)
 		if tag == nil || err != nil {
-			panic("benchVerify failed")
+			b.Fatal("benchVerify failed")
 		}
 	}
 }
 
 func BenchmarkSign1OpenSSL(b *testing.B) {
 	benchSign(edwards25519.NewAES128SHA256Ed25519(),
-		benchPubOpenSSL[:1], benchPriOpenSSL, b.N)
+		benchPubOpenSSL[:1], benchPriOpenSSL, b)
 }
 func BenchmarkSign10OpenSSL(b *testing.B) {
 	benchSign(edwards25519.NewAES128SHA256Ed25519(),
-		benchPubOpenSSL[:10], benchPriOpenSSL, b.N)
+		benchPubOpenSSL[:10], benchPriOpenSSL, b)
 }
 func BenchmarkSign100OpenSSL(b *testing.B) {
 	benchSign(edwards25519.NewAES128SHA256Ed25519(),
-		benchPubOpenSSL[:100], benchPriOpenSSL, b.N)
+		benchPubOpenSSL[:100], benchPriOpenSSL, b)
 }
 
 func BenchmarkVerify1OpenSSL(b *testing.B) {
 	benchVerify(edwards25519.NewAES128SHA256Ed25519(),
-		benchPubOpenSSL[:1], benchSig1OpenSSL, b.N)
+		benchPubOpenSSL[:1], benchSig1OpenSSL, b)
 }
 func BenchmarkVerify10OpenSSL(b *testing.B) {
 	benchVerify(edwards25519.NewAES128SHA256Ed25519(),
-		benchPubOpenSSL[:10], benchSig10OpenSSL, b.N)
+		benchPubOpenSSL[:10], benchSig10OpenSSL, b)
 }
 func BenchmarkVerify100OpenSSL(b *testing.B) {
 	benchVerify(edwards25519.NewAES128SHA256Ed25519(),
-		benchPubOpenSSL[:100], benchSig100OpenSSL, b.N)
+		benchPubOpenSSL[:100], benchSig100OpenSSL, b)
 }
 
 func BenchmarkSign1Ed25519(b *testing.B) {
 	benchSign(edwards25519.NewAES128SHA256Ed25519(),
-		benchPubEd25519[:1], benchPriEd25519, b.N)
+		benchPubEd25519[:1], benchPriEd25519, b)
 }
 func BenchmarkSign10Ed25519(b *testing.B) {
 	benchSign(edwards25519.NewAES128SHA256Ed25519(),
-		benchPubEd25519[:10], benchPriEd25519, b.N)
+		benchPubEd25519[:10], benchPriEd25519, b)
 }
 func BenchmarkSign100Ed25519(b *testing.B) {
 	benchSign(edwards25519.NewAES128SHA256Ed25519(),
-		benchPubEd25519[:100], benchPriEd25519, b.N)
+		benchPubEd25519[:100], benchPriEd25519, b)
 }
 
 func BenchmarkVerify1Ed25519(b *testing.B) {
 	benchVerify(edwards25519.NewAES128SHA256Ed25519(),
-		benchPubEd25519[:1], benchSig1Ed25519, b.N)
+		benchPubEd25519[:1], benchSig1Ed25519, b)
 }
 func BenchmarkVerify10Ed25519(b *testing.B) {
 	benchVerify(edwards25519.NewAES128SHA256Ed25519(),
-		benchPubEd25519[:10], benchSig10Ed25519, b.N)
+		benchPubEd25519[:10], benchSig10Ed25519, b)
 }
 func BenchmarkVerify100Ed25519(b *testing.B) {
 	benchVerify(edwards25519.NewAES128SHA256Ed25519(),
-		benchPubEd25519[:100], benchSig100Ed25519, b.N)
+		benchPubEd25519[:100], benchSig100Ed25519, b)
 }
