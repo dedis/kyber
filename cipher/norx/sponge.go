@@ -42,7 +42,7 @@ func (s *state_t) Transform(dst, src []byte) {
 	}
 }
 
-func newSponge() cipher.Sponge {
+func newSponge() *state_t {
 	var zeros [32]uint8
 	s := &state_t{}
 	setup(s, zeros[:], zeros[:]) // XXX initialize via options

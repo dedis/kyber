@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/xof"
 )
 
 // unlinkable ring signature
@@ -22,25 +23,31 @@ type lSig struct {
 }
 
 func signH1pre(suite Suite, linkScope []byte, linkTag kyber.Point,
-	message []byte) kyber.Cipher {
-	H1pre := suite.Cipher(message) // m
+	message []byte) kyber.Xof {
+	H1pre := xof.New().Absorb(message)
+
+	buf := &bytes.Buffer{}
 	if linkScope != nil {
-		_, _ = H1pre.Write(linkScope) // L
+		buf.Write(linkScope) // L
 		tag, _ := linkTag.MarshalBinary()
-		_, _ = H1pre.Write(tag) // ~y
+		buf.Write(tag) // ~y
 	}
+	H1pre.Absorb(buf.Bytes())
+
 	return H1pre
 }
 
-func signH1(suite Suite, H1pre kyber.Cipher, PG, PH kyber.Point) kyber.Scalar {
+func signH1(suite Suite, H1pre kyber.Xof, PG, PH kyber.Point) kyber.Scalar {
 	H1 := H1pre.Clone()
 	PGb, _ := PG.MarshalBinary()
-	_, _ = H1.Write(PGb)
+	buf := &bytes.Buffer{}
+	buf.Write(PGb)
 	if PH != nil {
 		PHb, _ := PH.MarshalBinary()
-		_, _ = H1.Write(PHb)
+		buf.Write(PHb)
 	}
-	H1.Message(nil, nil, nil) // finish message absorption
+	H1.Absorb(buf.Bytes())
+
 	return suite.Scalar().Pick(H1)
 }
 
@@ -131,7 +138,7 @@ func Sign(suite Suite, random cipher.Stream, message []byte,
 	// but there are others, so we parameterize this choice.
 	var linkBase, linkTag kyber.Point
 	if linkScope != nil {
-		linkStream := suite.Cipher(linkScope)
+		linkStream := xof.New().Absorb(linkScope)
 		linkBase = suite.Point().Pick(linkStream)
 		linkTag = suite.Point().Mul(privateKey, linkBase)
 	}
@@ -209,7 +216,7 @@ func Verify(suite Suite, message []byte, anonymitySet Set,
 		if err := suite.Read(buf, &sig); err != nil {
 			return nil, err
 		}
-		linkStream := suite.Cipher(linkScope)
+		linkStream := xof.New().Absorb(linkScope)
 		linkBase = suite.Point().Pick(linkStream)
 		linkTag = sig.Tag
 	} else { // unlinkable ring signature

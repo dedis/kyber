@@ -5,6 +5,9 @@ cipher/bench
 cipher/norx
 cipher/norx/check
 cipher/sha3
+xof
+xof/norx
+xof/keccak
 examples
 group
 group/curve25519

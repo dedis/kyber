@@ -84,6 +84,8 @@ var shakeOpts = []interface{}{cipher.Padding(0x1f)}
 // NewShakeCipher128 creates a Cipher implementing the SHAKE128 algorithm,
 // which provides 128-bit security against all known attacks.
 func NewShakeCipher128(key []byte, options ...interface{}) kyber.Cipher {
+	// BUG: append writes onto the end of the global shakeOpts here, which
+	// not what we want. (below too)
 	return cipher.FromSponge(newKeccak256(), key,
 		append(shakeOpts, options...)...)
 }
