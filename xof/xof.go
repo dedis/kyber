@@ -1,46 +1,9 @@
 package xof
 
-import (
-	"crypto/cipher"
-
-	"github.com/dedis/kyber/util/ints"
-)
-
-// Sponge is an interface representing a primitive sponge function.
-type Sponge interface {
-
-	// XOR src data into sponge's internal state,
-	// transform its state, and copy resulting state into dst.
-	// Buffers must be either Rate or Rate+Capacity bytes long.
-	Transform(dst, src []byte)
-
-	// Return the number of data bytes the sponge can aborb in one block.
-	Rate() int
-
-	// Return the sponge's secret state capacity in bytes.
-	Capacity() int
-}
-
-// Xof is an interface for extendable-output functions.
-// The Xof is not suffiently keyed until Rate() bytes have been
-// Absorb()ed.
-// TODO: better explanation when I understand it better
-type Xof interface {
-	cipher.Stream
-	Absorb(key []byte)
-	Extract(dst []byte)
-	// Rate returns the rate of the underlying sponge.
-	Rate() int
-}
+import "github.com/dedis/kyber"
 
 type xofSponge struct {
-	// Configuration state
-	sponge Sponge
-
-	//rate   int  // Bytes absorbed and squeezed per block
-	//cap    int  // Bytes of secret internal state
-	//pad    byte // padding byte to append to last block in message
-
+	sponge kyber.Sponge
 	// Combined input/output buffer:
 	// buf[:pos] contains data bytes to be absorbed;
 	// buf[pos:rate] contains as-yet-unused cipherstream bytes.
@@ -49,11 +12,21 @@ type xofSponge struct {
 	pos int
 }
 
-func FromSponge(sponge Sponge, options ...interface{}) Xof {
+// NewFromSponge makes a new Xof based on the given sponge implementation.
+func NewFromSponge(sponge kyber.Sponge) kyber.Xof {
 	x := &xofSponge{sponge: sponge}
 	x.buf = make([]byte, x.sponge.Rate()+x.sponge.Capacity())
-	// TODO: options
 	return x
+}
+
+// NewByName makes a new Xof with the named sponge. If the sponge is unknown, it panics.
+func NewByName(name string) kyber.Xof {
+	return NewFromSponge(sponges[name]())
+}
+
+// New makes a new Xof using the default sponge type.
+func New() kyber.Xof {
+	return NewFromSponge(sponges[defaultSponge]())
 }
 
 func (x *xofSponge) Rate() int { return x.sponge.Rate() }
@@ -71,32 +44,35 @@ func (x *xofSponge) XORKeyStream(dst, src []byte) {
 		if x.pos == x.sponge.Rate() {
 			x.sponge.Transform(x.buf, x.buf[:x.sponge.Rate()])
 			x.pos = 0
-			println("xform, pos", x.pos)
 		}
 
 		// Sub-slice src to indicate the next block we are doing
-		n := ints.Min(x.sponge.Rate()-x.pos, len(src))
-		println("n", n)
+		n := min(x.sponge.Rate()-x.pos, len(src))
 		src2 := src[:n]
 		for i := range src2 { // XOR-encrypt from src2 to dst
 			dst[i] = src2[i] ^ x.buf[x.pos+i]
 		}
 		x.pos += n
-		println("pos", x.pos)
-		// mark those bytes consumed
+		// mark those bytes consumed/produced
 		src = src[n:]
+		dst = dst[n:]
 	}
 }
 
 func (x *xofSponge) Absorb(key []byte) {
 	for len(key) > 0 {
-		n := ints.Min(x.sponge.Rate()-x.pos, len(key))
+		if x.pos == x.sponge.Rate() {
+			x.sponge.Transform(x.buf, x.buf[:x.sponge.Rate()])
+			x.pos = 0
+		}
+		n := min(x.sponge.Rate()-x.pos, len(key))
 		copy(x.buf[x.pos:], key[0:n])
 		key = key[n:]
 		x.pos += n
-		if x.pos == x.sponge.Rate() {
-			x.sponge.Transform(x.buf, x.buf[:x.sponge.Rate()])
-		}
+	}
+	// Pad with zeros until pos == x.sponge.Rate()
+	for ; x.pos < x.sponge.Rate(); x.pos++ {
+		x.buf[x.pos] = 0
 	}
 }
 
@@ -104,4 +80,17 @@ func (x *xofSponge) Extract(dst []byte) {
 	b := make([]byte, len(dst))
 	x.XORKeyStream(b, b)
 	copy(dst, b)
+}
+
+func (x *xofSponge) Clone() kyber.Xof {
+	var xx = *x
+	xx.sponge = x.sponge.Clone()
+	return &xx
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
