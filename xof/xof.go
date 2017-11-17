@@ -1,6 +1,8 @@
 package xof
 
-import "github.com/dedis/kyber"
+import (
+	"github.com/dedis/kyber"
+)
 
 type xofSponge struct {
 	sponge kyber.Sponge
@@ -82,10 +84,12 @@ func (x *xofSponge) Extract(dst []byte) {
 	copy(dst, b)
 }
 
-func (x *xofSponge) Clone() kyber.Xof {
-	var xx = *x
-	xx.sponge = x.sponge.Clone()
-	return &xx
+func (x0 *xofSponge) Clone() kyber.Xof {
+	var x1 = *x0
+	x1.sponge = x0.sponge.Clone()
+	x1.buf = make([]byte, len(x0.buf))
+	copy(x1.buf, x0.buf)
+	return &x1
 }
 
 func min(a, b int) int {

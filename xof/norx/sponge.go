@@ -16,28 +16,28 @@ import (
 // uppercase otherwise, so that we remain more faithful to the C reference
 // version.
 const (
-	_NORX_W            = 64                                     // wordsize
-	_NORX_R            = 4                                      // number of rounds
-	_NORX_A            = _NORX_W * 4                            // tag size
-	_NORX_D            = 1                                      // parallelism degree
+	_w                 = 64                                     // wordsize
+	_r                 = 4                                      // number of rounds
+	_a                 = _w * 4                                 // tag size
+	_d                 = 1                                      // parallelism degree
 	_R0, _R1, _R2, _R3 = 8, 19, 40, 63                          // rotation offsets
 	_U0, _U1           = 0x243F6A8885A308D3, 0x13198A2E03707344 // initialisation constants
 	_U2, _U3           = 0xA4093822299F31D0, 0x082EFA98EC4E6C89 // ...
 	_U4, _U5           = 0xAE8858DC339325A1, 0x670A134EE52D7FA6 // ...
 	_U6, _U7           = 0xC4316D80CD967541, 0xD21DFBF8B630B762 // ...
 	_U8, _U9           = 0x375A18D261E7F892, 0x343D1F187D92285B // ...
-	_WORDS_RATE        = 10                                     // number of words in the rate
-	_WORDS_STATE       = 16                                     // ... in the state
-	_BYTES_WORD        = _NORX_W / 8                            // byte size of a word
-	_BYTES_RATE        = _WORDS_RATE * _BYTES_WORD              // ... of the rate
+	wordsRate          = 10                                     // number of words in the rate
+	wordsState         = 16                                     // ... in the state
+	bytesWord          = _w / 8                                 // byte size of a word
+	bytesRate          = wordsRate * bytesWord                  // ... of the rate
 )
 
-type state_t struct {
-	s [_WORDS_STATE]uint64
+type state struct {
+	s [wordsState]uint64
 }
 
 func rotr(x, c uint64) uint64 {
-	return (x>>c | x<<(_NORX_W-c))
+	return (x>>c | x<<(_w-c))
 }
 
 func h(x, y uint64) uint64 {
@@ -71,10 +71,10 @@ func f(s []uint64) {
 	s[3], s[4], s[9], s[14] = g(s[3], s[4], s[9], s[14])
 }
 
-func permute(state *state_t) {
+func permute(state *state) {
 
 	var s = state.s[:]
-	for i := 0; i < _NORX_R; i++ {
+	for i := 0; i < _r; i++ {
 		f(s)
 	}
 }
@@ -90,7 +90,7 @@ func load64(x []uint8) uint64 {
 		(uint64(x[7]) << 56)
 }
 
-func setup(state *state_t, k []uint8, n []uint8) {
+func setup(state *state, k []uint8, n []uint8) {
 
 	var s = state.s[:]
 
@@ -114,22 +114,22 @@ func setup(state *state_t, k []uint8, n []uint8) {
 	s[14] = _U8
 	s[15] = _U9
 
-	s[14] ^= (_NORX_R << 26) | (_NORX_D << 18) | (_NORX_W << 10) | _NORX_A
+	s[14] ^= (_r << 26) | (_d << 18) | (_w << 10) | _a
 	permute(state)
 }
 
-func (s *state_t) Rate() int { return _BYTES_RATE }
+func (s *state) Rate() int { return bytesRate }
 
-func (s *state_t) Capacity() int {
-	return (_WORDS_STATE - _WORDS_RATE) * _BYTES_WORD
+func (s *state) Capacity() int {
+	return (wordsState - wordsRate) * bytesWord
 }
 
-func (s *state_t) Clone() kyber.Sponge {
+func (s *state) Clone() kyber.Sponge {
 	var ss = *s
 	return &ss
 }
 
-func (s *state_t) Transform(dst, src []byte) {
+func (s *state) Transform(dst, src []byte) {
 
 	a := s.s[:]
 	for len(src) > 0 {
@@ -148,9 +148,10 @@ func (s *state_t) Transform(dst, src []byte) {
 	}
 }
 
+// NewSponge returns a new sponge.
 func NewSponge() kyber.Sponge {
 	var zeros [32]uint8
-	s := &state_t{}
+	s := &state{}
 	setup(s, zeros[:], zeros[:])
 	return s
 }

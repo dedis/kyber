@@ -74,4 +74,3 @@ func newKeccak768() cipher.Sponge { return &sponge{rate: 104} }
 
 // Create a Keccak sponge primitive with 1024-bit capacity.
 func newKeccak1024() cipher.Sponge { return &sponge{rate: 72} }
-func NewKeccak1024() cipher.Sponge { return &sponge{rate: 72} }

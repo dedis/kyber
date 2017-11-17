@@ -27,23 +27,28 @@ func signH1pre(suite Suite, linkScope []byte, linkTag kyber.Point,
 	H1pre := xof.New()
 	H1pre.Absorb(message)
 
+	buf := &bytes.Buffer{}
 	if linkScope != nil {
-		H1pre.Absorb(linkScope) // L
+		buf.Write(linkScope) // L
 		tag, _ := linkTag.MarshalBinary()
-		H1pre.Absorb(tag) // ~y
+		buf.Write(tag) // ~y
 	}
+	H1pre.Absorb(buf.Bytes())
+
 	return H1pre
 }
 
 func signH1(suite Suite, H1pre kyber.Xof, PG, PH kyber.Point) kyber.Scalar {
 	H1 := H1pre.Clone()
 	PGb, _ := PG.MarshalBinary()
-	H1.Absorb(PGb)
+	buf := &bytes.Buffer{}
+	buf.Write(PGb)
 	if PH != nil {
 		PHb, _ := PH.MarshalBinary()
-		H1.Absorb(PHb)
+		buf.Write(PHb)
 	}
-	// TODO: figure out what message(nil. nil, nil) did here
+	H1.Absorb(buf.Bytes())
+
 	return suite.Scalar().Pick(H1)
 }
 

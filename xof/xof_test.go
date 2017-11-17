@@ -25,6 +25,19 @@ func TestEncDec(t *testing.T) {
 	}
 }
 
+func TestClone(t *testing.T) {
+	x := New()
+	x.Absorb([]byte("a key"))
+	y := x.Clone()
+	out1 := make([]byte, 100)
+	out2 := make([]byte, 100)
+	x.Extract(out1)
+	y.Extract(out2)
+	if !bytes.Equal(out1, out2) {
+		t.Fatal("two outputs from cloned xof's are not equal", out1, out2)
+	}
+}
+
 func testEncDec(t *testing.T, name string, msg []byte) {
 	// Test round trip of encrypt/decrypt
 	key1 := []byte("key")

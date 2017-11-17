@@ -13,24 +13,24 @@ const (
 	stateBytes = 1600 / 8
 )
 
-type Sponge struct {
+type sponge struct {
 	// Generic sponge components.
 	a    [stateBits / 64]uint64 // main state of the sponge
 	rate int                    // number of state bytes to use for data
 }
 
 // Rate returns the sponge's data block size (rate).
-func (d *Sponge) Rate() int { return d.rate }
+func (d *sponge) Rate() int { return d.rate }
 
 // Capacity returns the sponge's secret state capacity.
-func (d *Sponge) Capacity() int { return stateBytes - d.rate }
+func (d *sponge) Capacity() int { return stateBytes - d.rate }
 
-func (d *Sponge) Clone() kyber.Sponge {
+func (d *sponge) Clone() kyber.Sponge {
 	var dd = *d
 	return &dd
 }
 
-func (d *Sponge) Transform(dst, src []byte) {
+func (d *sponge) Transform(dst, src []byte) {
 	a := d.a[:]
 	for len(src) > 0 {
 		a[0] ^= binary.LittleEndian.Uint64(src)
@@ -49,4 +49,4 @@ func (d *Sponge) Transform(dst, src []byte) {
 }
 
 // NewKeccak1024 creates a Keccak sponge primitive with 1024-bit capacity.
-func NewKeccak1024() kyber.Sponge { return &Sponge{rate: 72} }
+func NewKeccak1024() kyber.Sponge { return &sponge{rate: 72} }

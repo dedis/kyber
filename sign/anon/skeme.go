@@ -7,7 +7,6 @@ import (
 	"errors"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/random"
 	"github.com/dedis/kyber/xof"
 )
 
@@ -88,9 +87,12 @@ func (sk *SKEME) Recv(rm []byte) (bool, error) {
 		// Compute the shared secret and the key-confirmation MACs
 		DH := sk.suite.Point().Mul(sk.lx, rX)
 		seed, _ := DH.MarshalBinary()
+
 		sk.ms = xof.New()
 		sk.ms.Absorb(seed)
-		mkey := random.Bytes(sk.ms.Rate(), sk.ms)
+		mkey := make([]byte, sk.ms.Rate())
+		sk.ms.Extract(mkey)
+
 		sk.ls, sk.lmac = sk.mkmac(mkey, sk.lXb, sk.rXb)
 		sk.rs, sk.rmac = sk.mkmac(mkey, sk.rXb, sk.lXb)
 
@@ -122,6 +124,8 @@ func (sk *SKEME) mkmac(masterkey, Xb1, Xb2 []byte) (cipher.Stream, []byte) {
 
 	stream := xof.New()
 	stream.Absorb(key)
-	mac := random.Bytes(keylen, stream)
+	mac := make([]byte, keylen)
+	stream.Extract(mac)
+
 	return stream, mac
 }
