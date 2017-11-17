@@ -269,7 +269,7 @@ func (d *Dealer) Commits() []kyber.Point {
 // it calls cleanVerifiers which will take care of all Verifiers who have not
 // responded until now.
 func (d *Dealer) setTimeOut() {
-    d.aggregator.cleanVerifiers()
+	d.aggregator.cleanVerifiers()
 }
 
 // Key returns the longterm key pair used by this Dealer.
@@ -460,12 +460,11 @@ func (v *Verifier) SessionID() []byte {
 	return v.sid
 }
 
-
 // setTimeOut tells this verifier to consider this moment the maximum time limit.
 // it calls cleanVerifiers which will take care of all Verifiers who have not
 // responded until now.
 func (v *Verifier) setTimeOut() {
-    v.aggregator.cleanVerifiers()
+	v.aggregator.cleanVerifiers()
 }
 
 // RecoverSecret recovers the secret shared by a Dealer by gathering at least t
@@ -483,8 +482,6 @@ func RecoverSecret(suite Suite, deals []*Deal, n, t int) (kyber.Scalar, error) {
 	}
 	return share.RecoverSecret(suite, shares, t, n)
 }
-
-
 
 // aggregator is used to collect all deals, and responses for one protocol run.
 // It brings common functionalities for both Dealer and Verifier structs.
@@ -554,18 +551,18 @@ func (a *aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 	return nil
 }
 
-// cleanVerifiers checks the aggregator's response array and creates a StatusComplaint 
+// cleanVerifiers checks the aggregator's response array and creates a StatusComplaint
 // response for all verifiers who have no response in the array.
 func (a *aggregator) cleanVerifiers() {
-    for i := range a.verifiers {
-        if _, ok := a.responses[uint32(i)]; !ok {
-            a.responses[uint32(i)] = &Response {
-                SessionID: a.sid,
-                Index: uint32(i),
-                Status: StatusComplaint,
-            }
-        }
-    }
+	for i := range a.verifiers {
+		if _, ok := a.responses[uint32(i)]; !ok {
+			a.responses[uint32(i)] = &Response{
+				SessionID: a.sid,
+				Index:     uint32(i),
+				Status:    StatusComplaint,
+			}
+		}
+	}
 }
 
 func (a *aggregator) verifyResponse(r *Response) error {
@@ -640,13 +637,13 @@ func (a *aggregator) DealCertified() bool {
 		return false
 	}
 
-    // Check either a StatusApproval or StatusComplaint for all known verifiers
-    // i.e. make sure all verifiers are either timed-out or OK.
-    for i := range a.verifiers {
-        if _, ok := a.responses[uint32(i)]; !ok {
-            verifiersUnstable++
-        }
-    }
+	// Check either a StatusApproval or StatusComplaint for all known verifiers
+	// i.e. make sure all verifiers are either timed-out or OK.
+	for i := range a.verifiers {
+		if _, ok := a.responses[uint32(i)]; !ok {
+			verifiersUnstable++
+		}
+	}
 
 	tooMuchComplaints := verifiersUnstable > 0 || a.badDealer
 	return a.EnoughApprovals() && !tooMuchComplaints
