@@ -268,8 +268,8 @@ func (d *Dealer) Commits() []kyber.Point {
 // setTimeOut tells this dealer to consider this moment the maximum time limit.
 // it calls cleanVerifiers which will take care of all Verifiers who have not
 // responded until now.
-func (d *Dealer) setTimeOut() error {
-    return d.aggregator.cleanVerifiers()
+func (d *Dealer) setTimeOut() {
+    d.aggregator.cleanVerifiers()
 }
 
 // Key returns the longterm key pair used by this Dealer.
@@ -464,8 +464,8 @@ func (v *Verifier) SessionID() []byte {
 // setTimeOut tells this verifier to consider this moment the maximum time limit.
 // it calls cleanVerifiers which will take care of all Verifiers who have not
 // responded until now.
-func (v *Verifier) setTimeOut() error {
-    return v.aggregator.cleanVerifiers()
+func (v *Verifier) setTimeOut() {
+    v.aggregator.cleanVerifiers()
 }
 
 // RecoverSecret recovers the secret shared by a Dealer by gathering at least t
@@ -556,8 +556,8 @@ func (a *aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 
 // cleanVerifiers checks the aggregator's response array and creates a StatusComplaint 
 // response for all verifiers who have no response in the array.
-func (a *aggregator) cleanVerifiers() error {
-    for i, _ := range a.verifiers {
+func (a *aggregator) cleanVerifiers() {
+    for i := range a.verifiers {
         if _, ok := a.responses[uint32(i)]; !ok {
             a.responses[uint32(i)] = &Response {
                 SessionID: a.sid,
@@ -566,7 +566,6 @@ func (a *aggregator) cleanVerifiers() error {
             }
         }
     }
-    return nil
 }
 
 func (a *aggregator) verifyResponse(r *Response) error {
@@ -634,7 +633,7 @@ func (a *aggregator) EnoughApprovals() bool {
 // Justifications were correct and if EnoughApprovals() returns true.
 func (a *aggregator) DealCertified() bool {
 	var verifiersUnstable int
-    
+
 	// XXX currently it can still happen that an aggregator has not been set,
 	// because it did not receive any deals yet or responses.
 	if a == nil {
@@ -643,7 +642,7 @@ func (a *aggregator) DealCertified() bool {
 
     // Check either a StatusApproval or StatusComplaint for all known verifiers
     // i.e. make sure all verifiers are either timed-out or OK.
-    for i, _ := range a.verifiers {
+    for i := range a.verifiers {
         if _, ok := a.responses[uint32(i)]; !ok {
             verifiersUnstable++
         }

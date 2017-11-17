@@ -103,79 +103,91 @@ func TestVSSVerifierNew(t *testing.T) {
     assert.Error(t, err)
 }
 
-////No longer works after timeout changes.
-// func TestVSSShare(t *testing.T) {
-//     dealer, verifiers := genAll()
-//     ver := verifiers[0]
-//     deal, err := dealer.EncryptedDeal(0)
-//     require.Nil(t, err)
+func TestVSSShare(t *testing.T) {
+    dealer, verifiers := genAll()
+    ver := verifiers[0]
+    deal, err := dealer.EncryptedDeal(0)
+    require.Nil(t, err)
 
-//     resp, err := ver.ProcessEncryptedDeal(deal)
-//     require.NotNil(t, resp)
-//     require.Equal(t, StatusApproval, resp.Status)
-//     require.Nil(t, err)
+    resp, err := ver.ProcessEncryptedDeal(deal)
+    require.NotNil(t, resp)
+    require.Equal(t, StatusApproval, resp.Status)
+    require.Nil(t, err)
 
-//     aggr := ver.aggregator
+    aggr := ver.aggregator
 
-//     for i := 1; i < aggr.t-1; i++ {
-//         aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
-//     }
-//     // not enough approvals
-//     assert.Nil(t, ver.Deal())
-//     aggr.responses[uint32(aggr.t)] = &Response{Status: StatusApproval}
-//     // deal not certified
-//     aggr.badDealer = true
-//     assert.Nil(t, ver.Deal())
-//     aggr.badDealer = false
+    for i := 1; i < aggr.t-1; i++ {
+        aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
+    }
+    // not enough approvals
+    assert.Nil(t, ver.Deal())
 
-//     assert.NotNil(t, ver.Deal())
+    aggr.responses[uint32(aggr.t)] = &Response{Status: StatusApproval}
 
-// }
+    // TimeOut all other (i>t) verifiers
+    ver.setTimeOut()
 
-// Won't work with timeout changes
-// func TestVSSAggregatorEnoughApprovals(t *testing.T) {
-//     dealer := genDealer()
-//     aggr := dealer.aggregator
-//     // just below
-//     for i := 0; i < aggr.t-1; i++ {
-//         aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
-//     }
-//     assert.False(t, aggr.EnoughApprovals())
-//     assert.Nil(t, dealer.SecretCommit())
+    // deal not certified
+    aggr.badDealer = true
+    assert.Nil(t, ver.Deal())
+    aggr.badDealer = false
 
-//     aggr.responses[uint32(aggr.t)] = &Response{Status: StatusApproval}
-//     assert.True(t, aggr.EnoughApprovals())
+    assert.NotNil(t, ver.Deal())
 
-//     for i := aggr.t + 1; i < nbVerifiers; i++ {
-//         aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
-//     }
-//     assert.True(t, aggr.EnoughApprovals())
-//     assert.Equal(t, suite.Point().Mul(secret, nil), dealer.SecretCommit())
-// }
+}
 
-// 
-// Won't work, since all aggr.responses[(i > t)] are not set. Timeout check prevents this
-// func TestVSSAggregatorDealCertified(t *testing.T) {
-//     dealer := genDealer()
-//     aggr := dealer.aggregator
+func TestVSSAggregatorEnoughApprovals(t *testing.T) {
+    dealer := genDealer()
+    aggr := dealer.aggregator
+    // just below
+    for i := 0; i < aggr.t-1; i++ {
+        aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
+    }
+    assert.False(t, aggr.EnoughApprovals())
+    assert.Nil(t, dealer.SecretCommit())
 
-//     for i := 0; i < aggr.t; i++ {
-//         aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
-//     }
+    aggr.responses[uint32(aggr.t)] = &Response{Status: StatusApproval}
+    assert.True(t, aggr.EnoughApprovals())
 
-//     assert.True(t, aggr.DealCertified())
-//     assert.Equal(t, suite.Point().Mul(secret, nil), dealer.SecretCommit())
-//     // bad dealer response
-//     aggr.badDealer = true
-//     assert.False(t, aggr.DealCertified())
-//     assert.Nil(t, dealer.SecretCommit())
-//     // inconsistent state on purpose
-//     // too much complaints
-//     for i := 0; i < aggr.t; i++ {
-//         aggr.responses[uint32(i)] = &Response{Status: StatusComplaint}
-//     }
-//     assert.False(t, aggr.DealCertified())
-// }
+    for i := aggr.t + 1; i < nbVerifiers; i++ {
+        aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
+    }
+
+    // mark remaning verifiers as timed out
+    dealer.setTimeOut()
+
+    assert.True(t, aggr.EnoughApprovals())
+    assert.Equal(t, suite.Point().Mul(secret, nil), dealer.SecretCommit())
+}
+
+func TestVSSAggregatorDealCertified(t *testing.T) {
+    dealer := genDealer()
+    aggr := dealer.aggregator
+
+    for i := 0; i < aggr.t; i++ {
+        aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
+    }
+
+    // Mark remaining verifiers as timed-out
+    dealer.setTimeOut()
+
+    assert.True(t, aggr.DealCertified())
+    assert.Equal(t, suite.Point().Mul(secret, nil), dealer.SecretCommit())
+    // bad dealer response
+    aggr.badDealer = true
+    assert.False(t, aggr.DealCertified())
+    assert.Nil(t, dealer.SecretCommit())
+
+    // reset dealer status
+    aggr.badDealer = false
+
+    // inconsistent state on purpose
+    // too much complaints
+    for i := 0; i < aggr.t; i++ {
+        aggr.responses[uint32(i)] = &Response{Status: StatusComplaint}
+    }
+    assert.False(t, aggr.DealCertified())
+}
 
 func TestVSSVerifierDecryptDeal(t *testing.T) {
     dealer, verifiers := genAll()
@@ -476,52 +488,51 @@ func TestVSSVerifierTimeOut(t *testing.T) {
     assert.NotNil(t, v.Deal())
 }
 
+func TestVSSAggregatorVerifyDeal(t *testing.T) {
+    dealer := genDealer()
+    aggr := dealer.aggregator
+    deals := dealer.deals
 
-// func TestVSSAggregatorVerifyDeal(t *testing.T) {
-//     dealer := genDealer()
-//     aggr := dealer.aggregator
-//     deals := dealer.deals
+    // OK
+    deal := deals[0]
+    err := aggr.VerifyDeal(deal, true)
+    assert.NoError(t, err)
+    assert.NotNil(t, aggr.deal)
 
-//     // OK
-//     deal := deals[0]
-//     err := aggr.VerifyDeal(deal, true)
-//     assert.NoError(t, err)
-//     assert.NotNil(t, aggr.deal)
+    // already received deal
+    err = aggr.VerifyDeal(deal, true)
+    assert.Error(t, err)
 
-//     // already received deal
-//     err = aggr.VerifyDeal(deal, true)
-//     assert.Error(t, err)
+    // wrong T
+    wrongT := uint32(1)
+    goodT := deal.T
+    deal.T = wrongT
+    assert.Error(t, aggr.VerifyDeal(deal, false))
+    deal.T = goodT
 
-//     // wrong T
-//     wrongT := uint32(1)
-//     goodT := deal.T
-//     deal.T = wrongT
-//     assert.Error(t, aggr.VerifyDeal(deal, false))
-//     deal.T = goodT
+    // wrong SessionID
+    goodSid := deal.SessionID
+    deal.SessionID = make([]byte, 32)
+    assert.Error(t, aggr.VerifyDeal(deal, false))
+    deal.SessionID = goodSid
 
-//     // wrong SessionID
-//     goodSid := deal.SessionID
-//     deal.SessionID = make([]byte, 32)
-//     assert.Error(t, aggr.VerifyDeal(deal, false))
-//     deal.SessionID = goodSid
+    // index different in one share
+    goodI := deal.SecShare.I
+    deal.SecShare.I = goodI + 1
+    assert.Error(t, aggr.VerifyDeal(deal, false))
+    deal.SecShare.I = goodI
 
-//     // index different in one share
-//     goodI := deal.RndShare.I
-//     deal.RndShare.I = goodI + 1
-//     assert.Error(t, aggr.VerifyDeal(deal, false))
-//     deal.RndShare.I = goodI
+    // index not in bounds
+    deal.SecShare.I = -1
+    assert.Error(t, aggr.VerifyDeal(deal, false))
+    deal.SecShare.I = len(verifiersPub)
+    assert.Error(t, aggr.VerifyDeal(deal, false))
 
-//     // index not in bounds
-//     deal.SecShare.I = -1
-//     assert.Error(t, aggr.VerifyDeal(deal, false))
-//     deal.SecShare.I = len(verifiersPub)
-//     assert.Error(t, aggr.VerifyDeal(deal, false))
-
-//     // shares invalid in respect to the commitments
-//     wrongSec, _ := genPair()
-//     deal.SecShare.V = wrongSec
-//     assert.Error(t, aggr.VerifyDeal(deal, false))
-// }
+    // shares invalid in respect to the commitments
+    wrongSec, _ := genPair()
+    deal.SecShare.V = wrongSec
+    assert.Error(t, aggr.VerifyDeal(deal, false))
+}
 
 func TestVSSAggregatorAddComplaint(t *testing.T) {
     dealer := genDealer()
