@@ -1,3 +1,4 @@
+// Package keccak implements a cryptographic sponge using the Keccak permutation.
 package keccak
 
 import (

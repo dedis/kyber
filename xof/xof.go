@@ -1,3 +1,4 @@
+// Package xof implements Extendable Output Functions (XOFs).
 package xof
 
 import (
@@ -61,7 +62,7 @@ func (x *xofSponge) XORKeyStream(dst, src []byte) {
 	}
 }
 
-func (x *xofSponge) Absorb(key []byte) {
+func (x *xofSponge) Absorb(key []byte) kyber.Xof {
 	for len(key) > 0 {
 		if x.pos == x.sponge.Rate() {
 			x.sponge.Transform(x.buf, x.buf[:x.sponge.Rate()])
@@ -76,6 +77,7 @@ func (x *xofSponge) Absorb(key []byte) {
 	for ; x.pos < x.sponge.Rate(); x.pos++ {
 		x.buf[x.pos] = 0
 	}
+	return x
 }
 
 func (x *xofSponge) Extract(dst []byte) {
@@ -84,12 +86,12 @@ func (x *xofSponge) Extract(dst []byte) {
 	copy(dst, b)
 }
 
-func (x0 *xofSponge) Clone() kyber.Xof {
-	var x1 = *x0
-	x1.sponge = x0.sponge.Clone()
-	x1.buf = make([]byte, len(x0.buf))
-	copy(x1.buf, x0.buf)
-	return &x1
+func (x *xofSponge) Clone() kyber.Xof {
+	var xNew = *x
+	xNew.sponge = x.sponge.Clone()
+	xNew.buf = make([]byte, len(x.buf))
+	copy(xNew.buf, x.buf)
+	return &xNew
 }
 
 func min(a, b int) int {

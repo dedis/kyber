@@ -24,8 +24,7 @@ type lSig struct {
 
 func signH1pre(suite Suite, linkScope []byte, linkTag kyber.Point,
 	message []byte) kyber.Xof {
-	H1pre := xof.New()
-	H1pre.Absorb(message)
+	H1pre := xof.New().Absorb(message)
 
 	buf := &bytes.Buffer{}
 	if linkScope != nil {
@@ -139,8 +138,7 @@ func Sign(suite Suite, random cipher.Stream, message []byte,
 	// but there are others, so we parameterize this choice.
 	var linkBase, linkTag kyber.Point
 	if linkScope != nil {
-		linkStream := xof.New()
-		linkStream.Absorb(linkScope)
+		linkStream := xof.New().Absorb(linkScope)
 		linkBase = suite.Point().Pick(linkStream)
 		linkTag = suite.Point().Mul(privateKey, linkBase)
 	}
@@ -218,8 +216,7 @@ func Verify(suite Suite, message []byte, anonymitySet Set,
 		if err := suite.Read(buf, &sig); err != nil {
 			return nil, err
 		}
-		linkStream := xof.New()
-		linkStream.Absorb(linkScope)
+		linkStream := xof.New().Absorb(linkScope)
 		linkBase = suite.Point().Pick(linkStream)
 		linkTag = sig.Tag
 	} else { // unlinkable ring signature

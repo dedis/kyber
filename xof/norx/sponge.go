@@ -1,5 +1,7 @@
-// Package norx implements the experimental NORX cipher.
-// For details on the NORX cipher see https://norx.io
+// Package norx implements a cryptographic sponge based on the experimental NORX cipher.
+//
+// For details on the NORX cipher see: https://norx.io
+//
 // This package is very experimental and NOT for use in prodution systems.
 //
 // This is a fork of the NORX implementation in Go by Philipp Jovanovic,

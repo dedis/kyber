@@ -97,8 +97,7 @@ func decryptKey(suite Suite, ciphertext []byte, anonymitySet Set,
 	seed, _ := S.MarshalBinary()
 	xb := make([]byte, seclen)
 	secofs := Xblen + seclen*mine
-	xof := xof.New()
-	xof.Absorb(seed)
+	xof := xof.New().Absorb(seed)
 	xof.XORKeyStream(xb, ciphertext[secofs:secofs+seclen])
 	x := suite.Scalar()
 	if err := x.UnmarshalBinary(xb); err != nil {
@@ -141,8 +140,7 @@ func Encrypt(suite Suite, rand cipher.Stream, message []byte,
 	anonymitySet Set, hide bool) []byte {
 
 	xb, hdr := encryptKey(suite, rand, anonymitySet, hide)
-	xof := xof.New()
-	xof.Absorb(xb)
+	xof := xof.New().Absorb(xb)
 
 	// We now know the ciphertext layout
 	hdrhi := 0 + len(hdr)
@@ -188,8 +186,7 @@ func Decrypt(suite Suite, ciphertext []byte, anonymitySet Set,
 	}
 
 	// Determine the message layout
-	xof := xof.New()
-	xof.Absorb(xb)
+	xof := xof.New().Absorb(xb)
 
 	maclen := xof.Rate()
 	if len(ciphertext) < hdrlen+maclen {
