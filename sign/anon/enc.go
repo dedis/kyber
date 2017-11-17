@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/dedis/kyber/util/key"
+	"github.com/dedis/kyber/xof"
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/util/subtle"
@@ -23,9 +24,12 @@ func header(suite Suite, X kyber.Point, x kyber.Scalar,
 		Y := anonymitySet[i]
 		S.Mul(x, Y) // compute DH shared secret
 		seed, _ := S.MarshalBinary()
-		cipher := suite.Cipher(seed)
+
+		xof := xof.New()
+		xof.Absorb(seed)
+
 		xc := make([]byte, len(xb))
-		cipher.Partial(xc, xb, nil)
+		xof.XORKeyStream(xc, xb)
 		hdr = append(hdr, xc...)
 	}
 	return hdr
@@ -83,7 +87,7 @@ func decryptKey(suite Suite, ciphertext []byte, anonymitySet Set,
 	// Decode the (supposed) master secret with our private key
 	nkeys := len(anonymitySet)
 	if mine < 0 || mine >= nkeys {
-		panic("private-key index out of range")
+		return nil, 0, errors.New("private-key index out of range")
 	}
 	seclen := suite.ScalarLen()
 	if len(ciphertext) < Xblen+seclen*nkeys {
@@ -91,10 +95,11 @@ func decryptKey(suite Suite, ciphertext []byte, anonymitySet Set,
 	}
 	S := suite.Point().Mul(privateKey, X)
 	seed, _ := S.MarshalBinary()
-	cipher := suite.Cipher(seed)
 	xb := make([]byte, seclen)
 	secofs := Xblen + seclen*mine
-	cipher.Partial(xb, ciphertext[secofs:secofs+seclen], nil)
+	xof := xof.New()
+	xof.Absorb(seed)
+	xof.XORKeyStream(xb, ciphertext[secofs:secofs+seclen])
 	x := suite.Scalar()
 	if err := x.UnmarshalBinary(xb); err != nil {
 		return nil, 0, err
@@ -111,7 +116,7 @@ func decryptKey(suite Suite, ciphertext []byte, anonymitySet Set,
 	hdr := header(suite, X, x, Xb, xb, anonymitySet)
 	hdrlen := len(hdr)
 	if hdrlen != Xblen+seclen*nkeys {
-		panic("wrong header size")
+		return nil, 0, errors.New("wrong header size")
 	}
 	if subtle.ConstantTimeCompare(hdr, ciphertext[:hdrlen]) == 0 {
 		return nil, 0, errors.New("invalid ciphertext")
@@ -136,20 +141,24 @@ func Encrypt(suite Suite, rand cipher.Stream, message []byte,
 	anonymitySet Set, hide bool) []byte {
 
 	xb, hdr := encryptKey(suite, rand, anonymitySet, hide)
-	cipher := suite.Cipher(xb)
+	xof := xof.New()
+	xof.Absorb(xb)
 
 	// We now know the ciphertext layout
 	hdrhi := 0 + len(hdr)
 	msghi := hdrhi + len(message)
-	machi := msghi + cipher.KeySize()
+	machi := msghi + xof.Rate()
 	ciphertext := make([]byte, machi)
 	copy(ciphertext, hdr)
 
 	// Now encrypt and MAC the message based on the master secret
 	ctx := ciphertext[hdrhi:msghi]
 	mac := ciphertext[msghi:machi]
-	cipher.Message(ctx, message, ctx)
-	cipher.Partial(mac, nil, nil)
+	xof.XORKeyStream(ctx, message)
+	xof.Absorb(ctx)
+	// TODO: understand if this is correct:
+	xof.Extract(mac)
+
 	return ciphertext
 }
 
@@ -179,8 +188,10 @@ func Decrypt(suite Suite, ciphertext []byte, anonymitySet Set,
 	}
 
 	// Determine the message layout
-	cipher := suite.Cipher(xb)
-	maclen := cipher.KeySize()
+	xof := xof.New()
+	xof.Absorb(xb)
+
+	maclen := xof.Rate()
 	if len(ciphertext) < hdrlen+maclen {
 		return nil, errors.New("ciphertext too short")
 	}
@@ -191,8 +202,10 @@ func Decrypt(suite Suite, ciphertext []byte, anonymitySet Set,
 	ctx := ciphertext[hdrhi:msghi]
 	mac := ciphertext[msghi:]
 	msg := make([]byte, len(ctx))
-	cipher.Message(msg, ctx, ctx)
-	cipher.Partial(mac, mac, nil)
+	xof.XORKeyStream(msg, ctx)
+	xof.Absorb(ctx)
+	xof.XORKeyStream(mac, mac)
+
 	if subtle.ConstantTimeAllEq(mac, 0) == 0 {
 		return nil, errors.New("invalid ciphertext: failed MAC check")
 	}
