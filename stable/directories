@@ -7,7 +7,7 @@ cipher/norx/check
 cipher/sha3
 xof
 xof/norx
-xof/sha3
+xof/keccak
 examples
 group
 group/curve25519
