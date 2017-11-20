@@ -103,6 +103,12 @@ func (c *Context) RegisterProcessorFunc(msgType network.MessageTypeID, fn func(*
 	c.manager.registerProcessorFunc(msgType, fn)
 }
 
+// RegisterMessageProxy registers a message proxy only for this server /
+// overlay
+func (c *Context) RegisterMessageProxy(m MessageProxy) {
+	c.overlay.RegisterMessageProxy(m)
+}
+
 // Service returns the corresponding service.
 func (c *Context) Service(name string) Service {
 	return c.manager.service(name)
@@ -143,6 +149,7 @@ func (c *Context) Save(id string, data interface{}) error {
 		testContextData.Unlock()
 		return nil
 	}
+
 	return ioutil.WriteFile(fname, buf, 0640)
 }
 
@@ -158,7 +165,7 @@ func (c *Context) Load(id string) (interface{}, error) {
 		buf, ok = testContextData.service[c.absFilename(id)]
 		testContextData.Unlock()
 		if !ok {
-			return nil, errors.New("This entry doesn't exist")
+			return nil, errors.New("this entry doesn't exist")
 		}
 	} else {
 		var err error

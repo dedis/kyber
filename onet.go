@@ -6,11 +6,10 @@ easy deploying to Localhost, Deterlab or a real-system.
 
 ONet is based on the following pieces:
 
-- Local* - offers the user-interface to the API for deploying your protocol
-locally and for testing
-- Node / ProtocolInstance - gives an interface to define your protocol
-- Server - hold states for the different parts of Onet
-- network - uses secured connections between hosts
+    - Local* - offers the user-interface to the API for deploying your protocol locally and for testing
+    - Node / ProtocolInstance - gives an interface to define your protocol
+    - Server - hold states for the different parts of Onet
+    - network - uses secured connections between hosts
 
 If you just want to use an existing protocol, usually the ONet-part is enough.
 If you want to create your own protocol, you have to learn how to use the
@@ -19,4 +18,4 @@ ProtocolInstance.
 package onet
 
 // Version of onet.
-const Version = "1.0"
+const Version = "1.2"

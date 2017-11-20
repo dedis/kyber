@@ -17,10 +17,12 @@ import (
 // someone, a server over the internet, mainly tied by its public key.
 // The tree contains the peerId which is the ID given to a an ServerIdentity / server
 // during one protocol instance. A server can have many peerId in one tree.
+//
 // ProtocolInstance needs to know:
-// - which Roster we are using ( a selection of proper servers )
-// - which Tree we are using.
-// - The overlay network: a mapping from PeerId
+//   - which Roster we are using ( a selection of proper servers )
+//   - which Tree we are using
+//   - The overlay network: a mapping from PeerId
+//
 // It contains the PeerId of the parent and the sub tree of the children.
 
 func init() {
@@ -28,7 +30,7 @@ func init() {
 	network.RegisterMessage(tbmStruct{})
 }
 
-// Tree is a topology to be used by any network layer/host layer
+// Tree is a topology to be used by any network layer/host layer.
 // It contains the peer list we use, and the tree we use
 type Tree struct {
 	ID     TreeID
@@ -44,6 +46,12 @@ func (tId TreeID) Equal(tID2 TreeID) bool {
 	return uuid.Equal(uuid.UUID(tId), uuid.UUID(tID2))
 }
 
+// Equals will be removed!
+func (tId TreeID) Equals(tID2 TreeID) bool {
+	log.Warn("Deprecated: TreeID.Equals will be removed in onet.v2")
+	return tId.Equal(tID2)
+}
+
 // String returns a canonical representation of the TreeID.
 func (tId TreeID) String() string {
 	return uuid.UUID(tId).String()
@@ -54,18 +62,16 @@ func (tId TreeID) IsNil() bool {
 	return tId.Equal(TreeID(uuid.Nil))
 }
 
-// NewTree creates a new tree using the entityList and the root-node. It
+// NewTree creates a new tree using the given roster and root. It
 // also generates the id.
-func NewTree(el *Roster, r *TreeNode) *Tree {
-	url := network.NamespaceURL + "tree/" + el.ID.String() + r.ID.String()
+func NewTree(roster *Roster, root *TreeNode) *Tree {
+	url := network.NamespaceURL + "tree/" + roster.ID.String() + root.ID.String()
 	t := &Tree{
-		Roster: el,
-		Root:   r,
+		Roster: roster,
+		Root:   root,
 		ID:     TreeID(uuid.NewV5(uuid.NamespaceURL, url)),
 	}
-	// network.Suite used for the moment => explicit mark that something is
-	// wrong and that needs to be changed !
-	t.computeSubtreeAggregate(r)
+	t.computeSubtreeAggregate(root)
 	return t
 }
 
@@ -85,7 +91,7 @@ func NewTreeFromMarshal(s network.Suite, buf []byte, el *Roster) (*Tree, error) 
 }
 
 // MakeTreeMarshal creates a replacement-tree that is safe to send: no
-// parent (creates loops), only sends ids (not send the entityList again)
+// parent (creates loops), only sends ids (not send the roster again)
 func (t *Tree) MakeTreeMarshal() *TreeMarshal {
 	if t.Roster == nil {
 		return &TreeMarshal{}
@@ -706,7 +712,7 @@ type RosterToml struct {
 	List []*network.ServerIdentityToml
 }
 
-// Toml returns the toml-writable version of this entityList
+// Toml returns the toml-writable version of this roster.
 func (el *Roster) Toml(suite network.Suite) *RosterToml {
 	ids := make([]*network.ServerIdentityToml, len(el.List))
 	for i := range el.List {

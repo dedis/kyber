@@ -13,6 +13,7 @@ import (
 func init() {
 	outputLines = false
 	SetUseColors(false)
+	clearEnv()
 }
 
 func TestTime(t *testing.T) {
@@ -41,9 +42,7 @@ func TestFlags(t *testing.T) {
 	color := UseColors()
 	SetDebugVisible(1)
 
-	os.Setenv("DEBUG_LVL", "")
-	os.Setenv("DEBUG_TIME", "")
-	os.Setenv("DEBUG_COLOR", "")
+	clearEnv()
 	ParseEnv()
 	if DebugVisible() != 1 {
 		t.Fatal("Debugvisible should be 1")
@@ -190,4 +189,10 @@ func ExampleLvl3() {
 	// 1 : (log.ExampleLvl3:   0) - Before
 	// 1 : (log.thisIsAVeryLongFunctionNameThatWillOverflow:   0) - Overflow
 	// 1 : (log.ExampleLvl3:   0) - After
+}
+
+func clearEnv() {
+	os.Setenv("DEBUG_LVL", "")
+	os.Setenv("DEBUG_TIME", "")
+	os.Setenv("DEBUG_COLOR", "")
 }

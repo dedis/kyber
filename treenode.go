@@ -56,11 +56,14 @@ type TreeNodeInstance struct {
 	configMut sync.Mutex
 }
 
-// aggregateMessages (if set) tells to aggregate messages from all children
-// before sending to the (parent) Node
-// https://golang.org/ref/spec#Iota
 const (
-	AggregateMessages = 1 << iota
+	// AggregateMessages (if set) tells to aggregate messages from all children
+	// before sending to the (parent) Node
+	AggregateMessages = 1
+
+	// DefaultChannelLength is the default number of messages that can wait
+	// in a channel.
+	DefaultChannelLength = 100
 )
 
 // MsgHandler is called upon reception of a certain message-type
@@ -153,19 +156,26 @@ func (n *TreeNodeInstance) Suite() network.Suite {
 	return n.overlay.suite()
 }
 
-// RegisterChannel takes a channel with a struct that contains two
-// elements: a TreeNode and a message. It will send every message that are the
+// RegisterChannel is a compatibility-method for RegisterChannelLength
+// and setting up a channel with length 100.
+func (n *TreeNodeInstance) RegisterChannel(c interface{}) error {
+	return n.RegisterChannelLength(c, DefaultChannelLength)
+}
+
+// RegisterChannelLength takes a channel with a struct that contains two
+// elements: a TreeNode and a message. The second argument is the length of
+// the channel. It will send every message that are the
 // same type to this channel.
 // This function handles also
 // - registration of the message-type
 // - aggregation or not of messages: if you give a channel of slices, the
 //   messages will be aggregated, else they will come one-by-one
-func (n *TreeNodeInstance) RegisterChannel(c interface{}) error {
+func (n *TreeNodeInstance) RegisterChannelLength(c interface{}, length int) error {
 	flags := uint32(0)
 	cr := reflect.TypeOf(c)
 	if cr.Kind() == reflect.Ptr {
 		val := reflect.ValueOf(c).Elem()
-		val.Set(reflect.MakeChan(val.Type(), 100))
+		val.Set(reflect.MakeChan(val.Type(), length))
 		//val.Set(reflect.MakeChan(reflect.Indirect(cr), 1))
 		return n.RegisterChannel(reflect.Indirect(val).Interface())
 	} else if reflect.ValueOf(c).IsNil() {
@@ -212,10 +222,11 @@ func (n *TreeNodeInstance) RegisterChannels(channels ...interface{}) error {
 // RegisterHandler takes a function which takes a struct as argument that contains two
 // elements: a TreeNode and a message. It will send every message that are the
 // same type to this channel.
-// This function handles also
-// - registration of the message-type
-// - aggregation or not of messages: if you give a channel of slices, the
-//   messages will be aggregated, else they will come one-by-one
+//
+// This function also handles:
+//     - registration of the message-type
+//     - aggregation or not of messages: if you give a channel of slices, the
+//       messages will be aggregated, otherwise they will come one by one
 func (n *TreeNodeInstance) RegisterHandler(c interface{}) error {
 	flags := uint32(0)
 	cr := reflect.TypeOf(c)
@@ -342,8 +353,8 @@ func (n *TreeNodeInstance) reflectCreate(t reflect.Type, msg *ProtocolMsg) refle
 	return m
 }
 
-// DispatchChannel takes a message and sends it to a channel
-func (n *TreeNodeInstance) DispatchChannel(msgSlice []*ProtocolMsg) error {
+// dispatchChannel takes a message and sends it to a channel
+func (n *TreeNodeInstance) dispatchChannel(msgSlice []*ProtocolMsg) error {
 	mt := msgSlice[0].MsgType
 	to := reflect.TypeOf(n.channels[mt])
 	if n.hasFlag(mt, AggregateMessages) {
@@ -368,10 +379,16 @@ func (n *TreeNodeInstance) DispatchChannel(msgSlice []*ProtocolMsg) error {
 		reflect.ValueOf(n.channels[mt]).Send(out)
 	} else {
 		for _, msg := range msgSlice {
-			out := n.channels[mt]
+			out := reflect.ValueOf(n.channels[mt])
 			m := n.reflectCreate(to.Elem(), msg)
 			log.Lvl4(n.Name(), "Dispatching msg type", mt, " to", to, " :", m.Field(1).Interface())
-			reflect.ValueOf(out).Send(m)
+			if out.Len() < out.Cap() {
+				out.Send(m)
+			} else {
+				return fmt.Errorf("channel too small for msg %s in %s: "+
+					"please use RegisterChannelLength()",
+					mt, n.ProtocolName())
+			}
 		}
 	}
 	return nil
@@ -433,12 +450,12 @@ func (n *TreeNodeInstance) dispatchMsgToProtocol(onetMsg *ProtocolMsg) error {
 	switch {
 	case n.channels[msgType] != nil:
 		log.Lvl4(n.Name(), "Dispatching to channel")
-		err = n.DispatchChannel(msgs)
+		err = n.dispatchChannel(msgs)
 	case n.handlers[msgType] != nil:
 		log.Lvl4("Dispatching to handler", n.ServerIdentity().Address)
 		err = n.dispatchHandler(msgs)
 	default:
-		return fmt.Errorf("message-type not handled the protocol: %s", reflect.TypeOf(onetMsg.Msg))
+		return fmt.Errorf("message-type not handled by the protocol: %s", reflect.TypeOf(onetMsg.Msg))
 	}
 	return err
 }
@@ -576,7 +593,7 @@ func (n *TreeNodeInstance) Index() int {
 // Broadcast sends a given message from the calling node directly to all other TreeNodes
 func (n *TreeNodeInstance) Broadcast(msg interface{}) error {
 	for _, node := range n.List() {
-		if node != n.TreeNode() {
+		if !node.Equal(n.TreeNode()) {
 			if err := n.SendTo(node, msg); err != nil {
 				return err
 			}
@@ -652,17 +669,20 @@ func (n *TreeNodeInstance) SendToChildrenInParallel(msg interface{}) error {
 	return collectErrors("Error while sending to %s: %s\n", errs)
 }
 
-// CreateProtocol makes onet instantiates a new protocol of name "name" and
-// returns it with any error that might have happened during the creation. This
-// protocol is only handled by onet, no service are "attached" to it.
+// CreateProtocol instantiates a new protocol of name "name" and
+// returns it with any error that might have happened during the creation. If
+// the TreeNodeInstance calling this is attached to a service, the new protocol
+// will also be attached to this same service. Else the new protocol will only
+// be handled by onet.
 func (n *TreeNodeInstance) CreateProtocol(name string, t *Tree) (ProtocolInstance, error) {
-	pi, err := n.overlay.CreateProtocol(name, t, NilServiceID)
+	pi, err := n.overlay.CreateProtocol(name, t, n.Token().ServiceID)
 	return pi, err
 }
 
 // Host returns the underlying Host of this node.
+//
 // WARNING: you should not play with that feature unless you know what you are
-// doing. This feature is mean to access the low level parts of the API. For
+// doing. This feature is meant to access the low level parts of the API. For
 // example it is used to add a new tree config / new entity list to the Server.
 func (n *TreeNodeInstance) Host() *Server {
 	return n.overlay.server

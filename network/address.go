@@ -18,6 +18,8 @@ type ConnType string
 // It doesn't support IPv6 yet.
 type Address string
 
+var lookupHost = net.LookupHost
+
 const (
 	// PlainTCP is an unencrypted TCP connection.
 	PlainTCP ConnType = "tcp"
@@ -59,15 +61,105 @@ func (a Address) ConnType() ConnType {
 	return connType(vals[0])
 }
 
+// IsHostname returns true if the address is defined by a VALID DNS name
+func (a Address) IsHostname() bool {
+	host := a.Host()
+
+	// validHostname(host) would be enough with the current implementation.
+	// However, if we will include IDNs as valid hostnames, an IP address in the form
+	// *.*.*.* would be a valid hostname too. This is why ParseIP is used as well.
+	return validHostname(host) && net.ParseIP(host) == nil
+}
+
 // NetworkAddress returns the network address part of the address, which is
-// the IP address and the port joined by a colon.
-// It returns an empty string if the a.Valid() returns false.
+// the host and the port joined by a colon.
+// It returns an empty string the address is not valid
 func (a Address) NetworkAddress() string {
 	if !a.Valid() {
 		return ""
 	}
 	vals := strings.Split(string(a), typeAddressSep)
 	return vals[1]
+}
+
+// NetworkAddressResolved returns the network address of the address, but resolved.
+// That is: the hostname resolved and the port joined by a colon.
+// It returns an empty string if the address is not valid.
+func (a Address) NetworkAddressResolved() string {
+	if !a.Valid() {
+		return ""
+	}
+	ipAddress := a.Resolve()
+	port := a.Port()
+	return net.JoinHostPort(ipAddress, port)
+}
+
+// Resolve returns the IP address associated to the hostname that represents the address a.
+// If a is defined by an IP address (*.*.*.*) or if the hostname is not valid, the empty string
+// is returned
+func (a Address) Resolve() string {
+	if !a.Valid() {
+		return ""
+	}
+	host := a.Host()
+	// Ipv6 not handled properly yet
+	if host == "[::]" {
+		return "::"
+	}
+	// If the address is defined by an IP address, return it
+	if net.ParseIP(host) != nil {
+		return host
+	}
+
+	if !a.IsHostname() {
+		return ""
+	}
+
+	ipAddress, err := lookupHost(host)
+	if err != nil {
+		return ""
+	}
+
+	return ipAddress[0]
+}
+
+// validHostname returns true if the hostname is well formed or false otherwise.
+// A hostname is well formed if the following conditions are met:
+//	- each label contains from 1 to 63 characters
+//	- the entire hostname (including the delimiting dots, but not a trailing dot)
+// 		has a maximum of 253 ASCII characters
+//	- labels have only ASCII letters 'a' through 'z' (case-insensitive), the digits
+//		'0' through '9', and the hyphen (-). No other symbol is permitted
+//	- labels cannot start with a hyphen
+//	- labels cannot end with a hyphen
+//	- the last label is alphabetic
+//	More information about the definition of the TLD (the last label of a hostname) on:
+//		https://github.com/dedis/cothority/issues/620
+// This method assumes that only the host part is passed as parameter
+// This function is integrated in the Valid() function
+func validHostname(s string) bool {
+	s = strings.ToLower(s)
+
+	maxLength := 253
+	if s[len(s)-1] == '.' {
+		maxLength = 254
+		s = s[:len(s)-1] // remove the last dot --> easier computations
+	}
+
+	if len(s) > maxLength {
+		return false
+	}
+
+	labels := strings.Split(s, ".")
+
+	for _, element := range labels {
+		if len(element) < 1 || len(element) > 63 {
+			return false
+		}
+	}
+
+	valid, _ := regexp.MatchString("^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z]+)$", s)
+	return valid
 }
 
 // Valid returns true if the address is well formed or false otherwise.
@@ -96,11 +188,10 @@ func (a Address) Valid() bool {
 		return false
 	}
 
-	if ip == "localhost" {
-		// localhost is not recognized by net.ParseIP ?
-		return true
-	} else if net.ParseIP(ip) == nil {
-		return false
+	if net.ParseIP(ip) == nil {
+		// if the Host is NOT in the form of *.*.*.* , check whether it has a valid DNS name
+		// This includes "localhost", which is NOT recognized by net.ParseIP
+		return validHostname(ip)
 	}
 	return true
 }
@@ -148,12 +239,12 @@ func (a Address) Port() string {
 // Public returns true if the address is a public and valid one
 // or false otherwise.
 // Specifically it checks if it is a private address by checking
-// 192.168.**,10.***,127.***,172.16-31.**,169.254.**
+// 192.168.**,10.***,127.***,172.16-31.**,169.254.**,^::1,^fd.{0,2}:
 func (a Address) Public() bool {
 	private, err := regexp.MatchString("(^127\\.)|(^10\\.)|"+
 		"(^172\\.1[6-9]\\.)|(^172\\.2[0-9]\\.)|"+
 		"(^172\\.3[0-1]\\.)|(^192\\.168\\.)|(^169\\.254)|"+
-		"(^\\[::\\])", a.NetworkAddress())
+		"(^\\[::1\\])|(^\\[fd.{0,2}:)", a.NetworkAddressResolved())
 	if err != nil {
 		return false
 	}

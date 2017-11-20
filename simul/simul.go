@@ -15,7 +15,6 @@ import (
 	"flag"
 	"os"
 
-	"github.com/dedis/kyber/group"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/simul/platform"
 )
@@ -46,11 +45,6 @@ func init() {
 // If given an array of rcs, each element will be interpreted as a .toml-file
 // to load and simulate.
 func Start(rcs ...string) {
-	simulSuite, err := group.Suite("Ed25519")
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	wd, err := os.Getwd()
 	if len(rcs) > 0 {
 		log.ErrFatal(err)
@@ -63,9 +57,9 @@ func Start(rcs ...string) {
 	}
 	flag.Parse()
 	if simul == "" {
-		startBuild(simulSuite)
+		startBuild()
 	} else {
-		err := platform.Simulate(serverAddress, simul, monitorAddress, simulSuite)
+		err := platform.Simulate(serverAddress, simul, monitorAddress)
 		log.ErrFatal(err)
 	}
 	os.Chdir(wd)

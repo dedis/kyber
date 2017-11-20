@@ -149,6 +149,30 @@ func TestNewClientKeep(t *testing.T) {
 	assert.True(t, c.keep)
 }
 
+func TestMultiplePath(t *testing.T) {
+	_, err := RegisterNewService(dummyService3Name, func(c *Context, suite interface{}) (Service, error) {
+		ds := &DummyService3{}
+		return ds, nil
+	})
+	log.ErrFatal(err)
+	defer UnregisterService(dummyService3Name)
+
+	local := NewTCPTest(tSuite)
+	hs := local.GenServers(2)
+	server := hs[0]
+	defer local.CloseAll()
+	client := NewClientKeep(dummyService3Name, tSuite)
+	msg, err := protobuf.Encode(&DummyMsg{})
+	require.Equal(t, nil, err)
+	path1, path2 := "path1", "path2"
+	resp, cerr := client.Send(server.ServerIdentity, path1, msg)
+	require.Equal(t, nil, cerr)
+	require.Equal(t, path1, string(resp))
+	resp, cerr = client.Send(server.ServerIdentity, path2, msg)
+	require.Equal(t, nil, cerr)
+	require.Equal(t, path2, string(resp))
+}
+
 const serviceWebSocket = "WebSocket"
 
 type ServiceWebSocket struct {
@@ -165,4 +189,21 @@ func newServiceWebSocket(c *Context, suite interface{}) (Service, error) {
 	}
 	log.ErrFatal(s.RegisterHandler(s.SimpleResponse))
 	return s, nil
+}
+
+const dummyService3Name = "dummyService3"
+
+type DummyService3 struct {
+}
+
+func (ds *DummyService3) ProcessClientRequest(path string, buf []byte) ([]byte, ClientError) {
+	log.Lvl2("Got called with path", path, buf)
+	return []byte(path), nil
+}
+
+func (ds *DummyService3) NewProtocol(tn *TreeNodeInstance, conf *GenericConfig) (ProtocolInstance, error) {
+	return nil, nil
+}
+
+func (ds *DummyService3) Process(env *network.Envelope) {
 }

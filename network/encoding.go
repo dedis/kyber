@@ -73,6 +73,18 @@ func RegisterMessage(msg Message) MessageTypeID {
 	return msgType
 }
 
+// RegisterMessages is a convenience function to register multiple messages
+// together. It returns the MessageTypeIDs of the registered messages. If you
+// give the same message more than once, it will register it only once, but return
+// it's id as many times as it appears in the arguments.
+func RegisterMessages(msg ...Message) []MessageTypeID {
+	var ret []MessageTypeID
+	for _, m := range msg {
+		ret = append(ret, RegisterMessage(m))
+	}
+	return ret
+}
+
 func computeMessageType(msg Message) MessageTypeID {
 	val := reflect.ValueOf(msg)
 	if val.Kind() == reflect.Ptr {
@@ -154,10 +166,12 @@ func DumpTypes() {
 // DefaultConstructors gives a default constructor for protobuf out of the global suite
 func DefaultConstructors(suite Suite) protobuf.Constructors {
 	constructors := make(protobuf.Constructors)
-	var point kyber.Point
-	var secret kyber.Scalar
-	constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return suite.Point() }
-	constructors[reflect.TypeOf(&secret).Elem()] = func() interface{} { return suite.Scalar() }
+	if suite != nil {
+		var point kyber.Point
+		var secret kyber.Scalar
+		constructors[reflect.TypeOf(&point).Elem()] = func() interface{} { return suite.Point() }
+		constructors[reflect.TypeOf(&secret).Elem()] = func() interface{} { return suite.Scalar() }
+	}
 	return constructors
 }
 

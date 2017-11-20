@@ -18,11 +18,12 @@ from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.cli import CLI
 from mininet.log import lg, setLogLevel
-from mininet.node import Node, Host
+from mininet.node import Node, Host, OVSController
 from mininet.util import netParse, ipAdd, irange
 from mininet.nodelib import NAT
 from mininet.link import TCLink
 from subprocess import Popen, PIPE, call
+from mininet.node import OVSController
 
 # What debugging-level to use
 debugLvl = 1
@@ -154,7 +155,8 @@ def RunNet():
     dbg( 2, "Creating network", myNet )
     topo = InternetTopo(myNet=myNet, rootLog=rootLog)
     dbg( 3, "Starting on", myNet )
-    net = Mininet(topo=topo, link=TCLink)
+
+    net = Mininet(topo=topo, link=TCLink, controller = OVSController)
     net.start()
 
     for host in net.hosts[1:]:
@@ -189,7 +191,7 @@ def GetNetworks(filename):
     It returns the first server encountered, our network if our ip is found
     in the list and the other networks."""
 
-    global simulation, bandwidth, delay, socatDirect, debugLvl, debugStr
+    global simulation, bandwidth, delay, socatDirect, debugLvl, debugStr, preScript
 
     process = Popen(["ip", "a"], stdout=PIPE)
     (ips, err) = process.communicate()
@@ -209,6 +211,7 @@ def GetNetworks(filename):
         debugStr = "DEBUG_TIME=true "
     if dbgColor == "true":
         debugStr += "DEBUG_COLOR=true"
+    preScript = content.pop(0).rstrip().split(' ')[0]
 
     list = []
     for line in content:
@@ -231,13 +234,19 @@ def GetNetworks(filename):
         dbg(0, "Redirection output through local gateway")
         socatDirect = False
 
+    if preScript != "":
+        dbg(0, "Running PreScript " + preScript)
+        call("./%s mininet" % preScript, shell=True)
+
     return list[0][0], myNet, otherNets
+
 
 def rm_file(file):
     try:
         os.remove(file)
     except OSError:
         pass
+
 
 def call_other(server, list_file):
     dbg( 3, "Calling remote server with", server, list_file )

@@ -12,10 +12,9 @@ import (
 
 	"time"
 
-	"github.com/dedis/kyber/group"
 	"github.com/dedis/onet"
+	"github.com/dedis/onet/app"
 	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/network"
 	"github.com/dedis/onet/simul/monitor"
 )
 
@@ -63,6 +62,9 @@ type Localhost struct {
 
 	// SimulationConfig holds all things necessary for the run
 	sc *onet.SimulationConfig
+
+	// PreScript is run before the simulation is started
+	PreScript string
 }
 
 // Configure various internal variables
@@ -113,6 +115,17 @@ func (d *Localhost) Deploy(rc *RunConfig) error {
 		}
 	}
 
+	// Check for PreScript and copy it to the deploy-dir
+	d.PreScript = rc.Get("PreScript")
+	if d.PreScript != "" {
+		_, err := os.Stat(d.PreScript)
+		if !os.IsNotExist(err) {
+			if err := app.Copy(d.runDir, d.PreScript); err != nil {
+				return err
+			}
+		}
+	}
+
 	d.servers, _ = strconv.Atoi(rc.Get("servers"))
 	log.Lvl2("Localhost: Deploying and writing config-files for", d.servers, "servers")
 	sim, err := onet.NewSimulation(d.Simulation, string(rc.Toml()))
@@ -150,17 +163,25 @@ func (d *Localhost) Start(args ...string) error {
 	d.running = true
 	log.Lvl1("Starting", d.servers, "applications of", ex)
 	time.Sleep(100 * time.Millisecond)
-	log.ErrFatal(monitor.ConnectSink("localhost:" + strconv.Itoa(d.monitorPort)))
-	s, err := group.Suite(d.Suite)
-	if err != nil {
-		return err
+
+	// If PreScript is defined, run the appropriate script _before_ the simulation.
+	if d.PreScript != "" {
+		out, err := exec.Command("sh", "-c", "./"+d.PreScript+" localhost").CombinedOutput()
+		outStr := strings.TrimRight(string(out), "\n")
+		if err != nil {
+			log.Fatal("error deploying PreScript: ", err, outStr)
+		}
+		log.Lvl1(outStr)
 	}
+
+	log.ErrFatal(monitor.ConnectSink("localhost:" + strconv.Itoa(d.monitorPort)))
+
 	for index := 0; index < d.servers; index++ {
 		log.Lvl3("Starting", index)
 		host := "127.0.0." + strconv.Itoa(index)
 		go func(i int, h string) {
 			log.Lvl3("Localhost: will start host", i, h)
-			err := Simulate(host, d.Simulation, "", s.(network.Suite))
+			err := Simulate(host, d.Simulation, "")
 			if err != nil {
 				log.Error("Error running localhost", h, ":", err)
 				d.errChan <- err

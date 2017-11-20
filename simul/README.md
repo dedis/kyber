@@ -51,6 +51,16 @@ Two timeout variables are available:
 - ExperimentWait - how many seconds to wait for the while experiment to finish
     (default: RunWait * #Runs)
 
+### PreScript
+
+If you need to run a script before the simulation is started (like installing
+a missing library), you can define
+
+- PreScript - a shell-script that is run _before_ the simulation is started
+  on each machine.
+  It receives a single argument: the platform this simulation runs:
+  [localhost,mininet,deterlab]
+
 ### Experimental
 
 - SingleHost - which will reduce the tree to use only one host per server, and

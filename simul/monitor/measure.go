@@ -7,21 +7,22 @@ import (
 	"net"
 	"time"
 
+	"sync"
+
 	"github.com/dedis/onet/log"
 )
 
-// Sink is the server address where all measures are transmitted to for
-// further analysis.
-var sink string
+var global struct {
+	// Sink is the server address where all measures are transmitted to for
+	// further analysis.
+	sink string
 
-// Structs are encoded through a json encoder.
-var encoder *json.Encoder
-var connection net.Conn
+	// Structs are encoded through a json encoder.
+	encoder    *json.Encoder
+	connection net.Conn
 
-// Keeps track if a measure is enabled (true) or not (false). If disabled,
-// measures are not sent to the monitor. Use EnableMeasure(bool) to toggle
-// this variable.
-var enabled = true
+	sync.Mutex
+}
 
 // Measure is an interface for measurements
 // Usage:
@@ -65,8 +66,10 @@ type TimeMeasure struct {
 // encoder. It can be the address of a proxy or a monitoring process.
 // Returns an error if it could not connect to the endpoint.
 func ConnectSink(addr string) error {
-	if encoder != nil {
-		return nil
+	global.Lock()
+	defer global.Unlock()
+	if global.connection != nil {
+		return errors.New("Already connected to an endpoint")
 	}
 	log.Lvl3("Connecting to:", addr)
 	conn, err := net.Dial("tcp", addr)
@@ -74,9 +77,9 @@ func ConnectSink(addr string) error {
 		return err
 	}
 	log.Lvl3("Connected to sink:", addr)
-	sink = addr
-	connection = conn
-	encoder = json.NewEncoder(conn)
+	global.sink = addr
+	global.connection = conn
+	global.encoder = json.NewEncoder(conn)
 	return nil
 }
 
@@ -190,11 +193,10 @@ func (cm *CounterIOMeasure) Record() {
 
 // Send transmits the given struct over the network.
 func send(v interface{}) error {
-	if encoder == nil {
+	global.Lock()
+	defer global.Unlock()
+	if global.connection == nil {
 		return fmt.Errorf("monitor's sink connection not initialized")
-	}
-	if !enabled {
-		return nil
 	}
 	// For a large number of clients (˜10'000), the connection phase
 	// can take some time. This is a linear backoff to enable connection
@@ -202,7 +204,7 @@ func send(v interface{}) error {
 	var ok bool
 	var err error
 	for wait := 500; wait < 1000; wait += 100 {
-		if err = encoder.Encode(v); err == nil {
+		if err = global.encoder.Encode(v); err == nil {
 			ok = true
 			break
 		}
@@ -221,26 +223,17 @@ func EndAndCleanup() {
 	if err := send(newSingleMeasure("end", 0)); err != nil {
 		log.Error("Error while sending 'end' message:", err)
 	}
-	if err := connection.Close(); err != nil {
+	global.Lock()
+	defer global.Unlock()
+	if err := global.connection.Close(); err != nil {
 		// at least tell that we could not close the connection:
-		log.Error("Could not close connecttion:", err)
+		log.Error("Could not close connection:", err)
 	}
-	encoder = nil
+	global.connection = nil
 }
 
 // Returns the difference of the given system- and user-time.
 func getDiffRTime(tSys, tUsr float64) (tDiffSys, tDiffUsr float64) {
 	nowSys, nowUsr := getRTime()
 	return nowSys - tSys, nowUsr - tUsr
-}
-
-// EnableMeasure will actually allow the sending of the measures if given true.
-// Otherwise all measures won't be sent at all.
-func EnableMeasure(b bool) {
-	if b {
-		log.Lvl3("Monitor: Measure enabled")
-	} else {
-		log.Lvl3("Monitor: Measure disabled")
-	}
-	enabled = b
 }

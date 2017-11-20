@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -185,14 +186,22 @@ func TestStatsString(t *testing.T) {
 	rs := NewStats(rc)
 	m := NewMonitor(rs)
 
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
 		if err := m.Listen(); err != nil {
 			log.Fatal("Could not Listen():", err)
 		}
+		wg.Done()
 	}()
-	defer EndAndCleanup()
+
+	defer func() {
+		EndAndCleanup()
+		wg.Wait()
+	}()
+
 	time.Sleep(100 * time.Millisecond)
-	ConnectSink("localhost:" + strconv.Itoa(DefaultSinkPort))
+	log.ErrFatal(ConnectSink("localhost:" + strconv.Itoa(DefaultSinkPort)))
 	measure := NewTimeMeasure("test")
 	time.Sleep(time.Millisecond * 100)
 	measure.Record()

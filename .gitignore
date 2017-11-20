@@ -28,3 +28,5 @@ _testmain.go
 config/
 build/
 test_data/
+test/
+deploy/

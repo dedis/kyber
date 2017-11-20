@@ -30,14 +30,16 @@ for s in $SERVERS; do
 	ssh-copy-id -f -i $SSH_ID $login &> /dev/null
 	ssh $login "test ! -f .ssh/id_rsa && echo -e '\n\n\n\n' | ssh-keygen > /dev/null" || true
 	ssh $login cat .ssh/id_rsa.pub >> $KEYS
-	if ! ssh $login "egrep -q '(14.04|Debian GNU/Linux 8)' /etc/issue"; then
+	if ! ssh $login "egrep -q '(14.04|16.04|Debian GNU/Linux 8)' /etc/issue"; then
 		clear
-		echo "$s does not have Ubuntu 14.04 or Debian 8 installed - aborting"
+		echo "$s does not have Ubuntu 14.04, 16.04 or Debian 8 installed - aborting"
 		exit 1
 	fi
 	scp $mininet/install_mininet.sh $login: > /dev/null
 	if ! ssh $login which mn; then
-		ssh -f $login "./install_mininet.sh &> /dev/null"
+		ssh -f $login "apt-get update"
+		ssh -f $login "apt-get install -y psmisc"
+		ssh -f $login "./install_mininet.sh > /dev/null" &
 	else
 		echo "Mininet already installed on $login"
 	fi

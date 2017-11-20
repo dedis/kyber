@@ -366,8 +366,11 @@ func TestRouterSendMsgDuplexLocal(t *testing.T) {
 func testRouterSendMsgDuplex(t *testing.T, fac routerFactory) {
 	h1, err1 := fac(2011)
 	h2, err2 := fac(2012)
-	if err1 != nil || err2 != nil {
-		t.Fatal("Could not setup hosts")
+	if err1 != nil {
+		t.Fatal("Could not setup hosts: ", err1)
+	}
+	if err2 != nil {
+		t.Fatal("Could not setup hosts: ", err2)
 	}
 	go h1.Start()
 	go h2.Start()
@@ -458,7 +461,10 @@ func TestRouterRxTx(t *testing.T) {
 	log.ErrFatal(err)
 	go router1.Start()
 	go router2.Start()
-	si1 := NewServerIdentity(tSuite.Point().Null(), router1.address)
+
+	addr := NewAddress(router1.address.ConnType(), "127.0.0.1:"+router1.address.Port())
+	si1 := NewServerIdentity(Suite.Point(tSuite).Null(), addr)
+
 	log.ErrFatal(router2.Send(si1, si1))
 
 	// Wait for the message to be sent and received

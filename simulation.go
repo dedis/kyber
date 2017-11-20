@@ -76,13 +76,19 @@ type SimulationConfigFile struct {
 
 // LoadSimulationConfig gets all configuration from dir + SimulationFileName and instantiates the
 // corresponding host 'ca'.
-func LoadSimulationConfig(dir, ca string, s network.Suite) ([]*SimulationConfig, error) {
+func LoadSimulationConfig(dir, ca string) ([]*SimulationConfig, error) {
+	// TODO: Figure this out from the incoming simulation file somehow
+	suite, err := group.Suite("Ed25519")
+	if err != nil {
+		panic("should not happen")
+	}
+
 	network.RegisterMessage(SimulationConfigFile{})
 	bin, err := ioutil.ReadFile(dir + "/" + SimulationFileName)
 	if err != nil {
 		return nil, err
 	}
-	_, msg, err := network.Unmarshal(bin, s)
+	_, msg, err := network.Unmarshal(bin, suite)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +114,7 @@ func LoadSimulationConfig(dir, ca string, s network.Suite) ([]*SimulationConfig,
 		}
 		for _, e := range sc.Roster.List {
 			if strings.Contains(e.Address.String(), ca) {
-				server := NewServerTCP(e, scf.PrivateKeys[e.Address], s)
+				server := NewServerTCP(e, scf.PrivateKeys[e.Address], suite)
 				scNew := *sc
 				scNew.Server = server
 				scNew.Overlay = server.overlay
@@ -122,7 +128,7 @@ func LoadSimulationConfig(dir, ca string, s network.Suite) ([]*SimulationConfig,
 		ret = append(ret, sc)
 	}
 	addr := string(sc.Roster.List[0].Address)
-	if strings.Contains(addr, "127.0.0.") /*|| strings.Contains(addr, "localhost") */ {
+	if strings.Contains(addr, "127.0.0.") {
 		// Now strip all superfluous numbers of localhost
 		for i := range sc.Roster.List {
 			_, port, _ := net.SplitHostPort(sc.Roster.List[i].Address.NetworkAddress())
@@ -197,6 +203,7 @@ type SimulationBFTree struct {
 	SingleHost bool
 	Depth      int
 	Suite      string
+	PreScript  string // executable script to run before the simulation on each machine
 }
 
 // CreateRoster creates an Roster with the host-names in 'addresses'.
@@ -204,7 +211,10 @@ type SimulationBFTree struct {
 // 'addresses'. The network.Address(es) created are of type PlainTCP.
 func (s *SimulationBFTree) CreateRoster(sc *SimulationConfig, addresses []string, port int) {
 	start := time.Now()
-	suite, _ := group.Suite(s.Suite)
+	suite, err := group.Suite(s.Suite)
+	if err != nil {
+		log.Fatal(err)
+	}
 	nbrAddr := len(addresses)
 	if sc.PrivateKeys == nil {
 		sc.PrivateKeys = make(map[network.Address]kyber.Scalar)
@@ -222,7 +232,7 @@ func (s *SimulationBFTree) CreateRoster(sc *SimulationConfig, addresses []string
 	localhosts := false
 	listeners := make([]net.Listener, hosts)
 	services := make([]net.Listener, hosts)
-	if /*strings.Contains(addresses[0], "localhost") || */ strings.Contains(addresses[0], "127.0.0.") {
+	if strings.Contains(addresses[0], "127.0.0.") {
 		localhosts = true
 	}
 	entities := make([]*network.ServerIdentity, hosts)

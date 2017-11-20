@@ -8,13 +8,19 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"go/build"
 	"os"
 	"strconv"
 	"strings"
 
 	"sync"
 
+	"os/exec"
+
+	"io/ioutil"
+
 	"github.com/BurntSushi/toml"
+	"github.com/dedis/onet/app"
 	"github.com/dedis/onet/log"
 )
 
@@ -62,6 +68,32 @@ func NewPlatform(t string) Platform {
 		p = &Localhost{}
 	case mininet:
 		p = &MiniNet{}
+		_, err := os.Stat("server_list")
+		if os.IsNotExist(err) {
+			path := build.Default.GOPATH + "/src/github.com/dedis/onet/simul/platform/mininet/"
+			var command string
+			if app.InputYN(true, "Do you want to run mininet on ICCluster?") {
+				command = path + "setup_iccluster.sh"
+			} else {
+				command = path + "setup_servers.sh"
+			}
+			numbers := app.Input("server1 server2 server3", "Please enter the space separated numbers of the servers")
+			split := strings.Split(numbers, " ")
+			cmd := exec.Command(command, split...)
+			out, err := cmd.CombinedOutput()
+			if err != nil {
+				log.Error(err)
+			}
+			log.Lvl1(string(out))
+		} else {
+			log.Lvl1("Using existing 'server_list'-file")
+			if log.DebugVisible() > 1 {
+				sl, err := ioutil.ReadFile("server_list")
+				log.ErrFatal(err)
+				servers := strings.Replace(string(sl), "\n", " ", -1)
+				log.Lvl2("Server_list is: ", servers)
+			}
+		}
 	}
 	return p
 }
@@ -229,7 +261,7 @@ func (r *RunConfig) Clone() *RunConfig {
 func (r *RunConfig) String() string {
 	r.RLock()
 	defer r.RUnlock()
-	fields := []string{"simulation", "servers", "hosts", "bf", "depth", "rounds"}
+	fields := []string{"simulation", "servers", "hosts", "bf", "depth", "rounds", "suite"}
 	var ret string
 	for _, f := range fields {
 		v := r.Get(f)

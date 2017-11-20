@@ -158,13 +158,18 @@ func (t wsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		time.Now().Add(time.Millisecond*500))
 }
 
+type destination struct {
+	si   *network.ServerIdentity
+	path string
+}
+
 // Client is a struct used to communicate with a remote Service running on a
 // onet.Server. Using Send it can connect to multiple remote Servers.
 type Client struct {
-	service string
-	si      *network.ServerIdentity
-	conn    *websocket.Conn
-	suite   network.Suite
+	service     string
+	connections map[destination]*websocket.Conn
+	suite       network.Suite
+
 	// whether to keep the connection
 	keep bool
 	rx   uint64
@@ -176,8 +181,9 @@ type Client struct {
 // connection will be started, until Close is called.
 func NewClient(s string, suite network.Suite) *Client {
 	return &Client{
-		service: s,
-		suite:   suite,
+		service:     s,
+		connections: make(map[destination]*websocket.Conn),
+		suite:       suite,
 	}
 }
 
@@ -185,9 +191,10 @@ func NewClient(s string, suite network.Suite) *Client {
 // two messages if it's the same server.
 func NewClientKeep(s string, suite network.Suite) *Client {
 	return &Client{
-		service: s,
-		keep:    true,
-		suite:   suite,
+		service:     s,
+		keep:        true,
+		connections: make(map[destination]*websocket.Conn),
+		suite:       suite,
 	}
 }
 
@@ -195,12 +202,9 @@ func NewClientKeep(s string, suite network.Suite) *Client {
 func (c *Client) Send(dst *network.ServerIdentity, path string, buf []byte) ([]byte, ClientError) {
 	c.Lock()
 	defer c.Unlock()
-	if c.keep &&
-		(c.si != nil && !c.si.ID.Equal(dst.ID)) {
-		// We already have a connection, but to another ServerIdentity
-		c.Close()
-	}
-	if c.si == nil {
+	dest := destination{dst, path}
+	conn, ok := c.connections[dest]
+	if !ok {
 		// Open connection to service.
 		url, err := getWebAddress(dst, false)
 		if err != nil {
@@ -210,7 +214,7 @@ func (c *Client) Send(dst *network.ServerIdentity, path string, buf []byte) ([]b
 		d := &websocket.Dialer{}
 		// Re-try to connect in case the websocket is just about to start
 		for a := 0; a < network.MaxRetryConnect; a++ {
-			c.conn, _, err = d.Dial(fmt.Sprintf("ws://%s/%s/%s", url, c.service, path),
+			conn, _, err = d.Dial(fmt.Sprintf("ws://%s/%s/%s", url, c.service, path),
 				http.Header{"Origin": []string{"http://" + url}})
 			if err == nil {
 				break
@@ -220,18 +224,20 @@ func (c *Client) Send(dst *network.ServerIdentity, path string, buf []byte) ([]b
 		if err != nil {
 			return nil, NewClientError(err)
 		}
-		c.si = dst
+		c.connections[dest] = conn
 	}
 	defer func() {
 		if !c.keep {
-			c.Close()
+			if err := c.closeConn(dest); err != nil {
+				log.Errorf("error while closing the connection to %v : %v\n", dest, err)
+			}
 		}
 	}()
-	if err := c.conn.WriteMessage(websocket.BinaryMessage, buf); err != nil {
+	if err := conn.WriteMessage(websocket.BinaryMessage, buf); err != nil {
 		return nil, NewClientError(err)
 	}
 	c.tx += uint64(len(buf))
-	_, rcv, err := c.conn.ReadMessage()
+	_, rcv, err := conn.ReadMessage()
 	if err != nil {
 		return nil, NewClientError(err)
 	}
@@ -255,7 +261,7 @@ func (c *Client) SendProtobuf(dst *network.ServerIdentity, msg interface{}, ret 
 	path := strings.Split(reflect.TypeOf(msg).String(), ".")[1]
 	reply, cerr := c.Send(dst, path, buf)
 	if cerr != nil {
-		return NewClientError(cerr)
+		return cerr
 	}
 	if ret != nil {
 		err := protobuf.DecodeWithConstructors(reply, ret,
@@ -284,13 +290,31 @@ func (c *Client) SendToAll(dst *Roster, path string, buf []byte) ([][]byte, Clie
 	return msgs, NewClientError(err)
 }
 
-// Close sends a close-command to the connection.
+// Close sends a close-command to all open connections and returns nil if no
+// errors occurred or all errors encountered concatenated together as a string.
 func (c *Client) Close() error {
-	if c.si != nil && c.conn != nil {
-		c.si = nil
-		c.conn.WriteMessage(websocket.CloseMessage,
-			nil)
-		return c.conn.Close()
+	c.Lock()
+	defer c.Unlock()
+	var errstrs []string
+	for dest := range c.connections {
+		if err := c.closeConn(dest); err != nil {
+			errstrs = append(errstrs, err.Error())
+		}
+	}
+	var err error
+	if len(errstrs) > 0 {
+		err = errors.New(strings.Join(errstrs, "\n"))
+	}
+	return err
+}
+
+// closeConn sends a close-command to the connection.
+func (c *Client) closeConn(dst destination) error {
+	conn, ok := c.connections[dst]
+	if ok {
+		delete(c.connections, dst)
+		conn.WriteMessage(websocket.CloseMessage, nil)
+		return conn.Close()
 	}
 	return nil
 }
@@ -338,7 +362,7 @@ func NewClientError(e error) ClientError {
 	str := e.Error()
 	if strings.HasPrefix(str, wsPrefix) {
 		str = str[len(wsPrefix):]
-		errMsg := strings.Split(str, ":")
+		errMsg := strings.SplitN(str, ":", 2)
 		if len(errMsg) > 1 && len(errMsg[1]) > 0 {
 			errMsg[1] = errMsg[1][1:]
 		} else {

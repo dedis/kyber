@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dedis/kyber"
-
 	"errors"
 	"math"
 	"time"
@@ -33,7 +31,7 @@ var runWait = 180
 var experimentWait = 0
 
 func init() {
-	flag.StringVar(&platformDst, "platform", platformDst, "platform to deploy to [deterlab,localhost]")
+	flag.StringVar(&platformDst, "platform", platformDst, "platform to deploy to [localhost,mininet,deterlab]")
 	flag.BoolVar(&nobuild, "nobuild", false, "Don't rebuild all helpers")
 	flag.BoolVar(&clean, "clean", false, "Only clean platform")
 	flag.StringVar(&build, "build", "", "List of packages to build")
@@ -47,7 +45,7 @@ func init() {
 }
 
 // Reads in the platform that we want to use and prepares for the tests
-func startBuild(group kyber.Group) {
+func startBuild() {
 	flag.Parse()
 	deployP = platform.NewPlatform(platformDst)
 	if deployP == nil {
@@ -67,7 +65,6 @@ func startBuild(group kyber.Group) {
 			log.Fatal("No tests found in", simulation)
 		}
 		deployP.Configure(&platform.Config{
-			Suite:       group.String(),
 			MonitorPort: monitorPort,
 			Debug:       log.DebugVisible(),
 		})
@@ -144,14 +141,12 @@ func RunTests(name string, runconfigs []*platform.RunConfig) {
 			log.Lvl2("Skipping", rc, "because of range")
 			continue
 		}
-		// Waiting for the document-branch to be merged, then uncomment this
-		//log.Lvl1("Starting run with parameters -", t.String())
 
 		// run test t nTimes times
 		// take the average of all successful runs
 		stats, err := RunTest(rc)
 		if err != nil {
-			log.Error("Error running test, trying again:", err)
+			log.Error("Error running test:", err)
 			continue
 		}
 
@@ -245,7 +240,7 @@ func CheckHosts(rc *platform.RunConfig) {
 		if depth == 0 || hosts == 0 {
 			log.Fatal("No BF and no Depth or hosts given - stopping")
 		}
-		bf = 2
+		bf = 1
 		for calcHosts(bf, depth) < hosts {
 			bf++
 		}
@@ -267,6 +262,13 @@ func CheckHosts(rc *platform.RunConfig) {
 // 3rd level: bf^3
 // So total: sum(level=0..depth)(bf^level)
 func calcHosts(bf, depth int) int {
+	if bf <= 0 {
+		log.Fatal("illegal branching-factor")
+	} else if depth <= 0 {
+		log.Fatal("illegal depth")
+	} else if bf == 1 {
+		return depth + 1
+	}
 	return int((1 - math.Pow(float64(bf), float64(depth+1))) /
 		float64(1-bf))
 }
