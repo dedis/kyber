@@ -7,7 +7,6 @@ import (
 	"errors"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/random"
 )
 
 // SKEME is a pairwise anonymous key agreement for point-to-point interactions.
@@ -29,7 +28,7 @@ type SKEME struct {
 	lX, rX   kyber.Point  // local,remote Diffie-Hellman pubkeys
 	lXb, rXb []byte       // local,remote DH pubkeys byte-encoded
 
-	ms         kyber.Cipher  // master symmetric shared stream
+	ms         kyber.XOF     // master symmetric shared stream
 	ls, rs     cipher.Stream // local->remote,remote->local streams
 	lmac, rmac []byte        // local,remote key-confirmation MACs
 
@@ -87,8 +86,9 @@ func (sk *SKEME) Recv(rm []byte) (bool, error) {
 		// Compute the shared secret and the key-confirmation MACs
 		DH := sk.suite.Point().Mul(sk.lx, rX)
 		seed, _ := DH.MarshalBinary()
-		sk.ms = sk.suite.Cipher(seed)
-		mkey := random.Bytes(sk.ms.KeySize(), sk.ms)
+		sk.ms = sk.suite.XOF(seed)
+		mkey := make([]byte, sk.ms.KeySize())
+		sk.ms.Read(mkey)
 		sk.ls, sk.lmac = sk.mkmac(mkey, sk.lXb, sk.rXb)
 		sk.rs, sk.rmac = sk.mkmac(mkey, sk.rXb, sk.lXb)
 
@@ -118,7 +118,8 @@ func (sk *SKEME) mkmac(masterkey, Xb1, Xb2 []byte) (cipher.Stream, []byte) {
 	_, _ = hmac.Write(Xb2)
 	key := hmac.Sum(nil)[:keylen]
 
-	stream := sk.suite.Cipher(key)
-	mac := random.Bytes(keylen, stream)
-	return stream, mac
+	mac := make([]byte, keylen)
+	xof := sk.suite.XOF(key)
+	xof.Read(mac)
+	return xof, mac
 }

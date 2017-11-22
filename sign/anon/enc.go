@@ -23,9 +23,9 @@ func header(suite Suite, X kyber.Point, x kyber.Scalar,
 		Y := anonymitySet[i]
 		S.Mul(x, Y) // compute DH shared secret
 		seed, _ := S.MarshalBinary()
-		cipher := suite.Cipher(seed)
+		xof := suite.XOF(seed)
 		xc := make([]byte, len(xb))
-		cipher.Partial(xc, xb, nil)
+		xof.XORKeyStream(xc, xb)
 		hdr = append(hdr, xc...)
 	}
 	return hdr
@@ -91,10 +91,10 @@ func decryptKey(suite Suite, ciphertext []byte, anonymitySet Set,
 	}
 	S := suite.Point().Mul(privateKey, X)
 	seed, _ := S.MarshalBinary()
-	cipher := suite.Cipher(seed)
+	xof := suite.XOF(seed)
 	xb := make([]byte, seclen)
 	secofs := Xblen + seclen*mine
-	cipher.Partial(xb, ciphertext[secofs:secofs+seclen], nil)
+	xof.XORKeyStream(xb, ciphertext[secofs:secofs+seclen])
 	x := suite.Scalar()
 	if err := x.UnmarshalBinary(xb); err != nil {
 		return nil, 0, err
@@ -136,20 +136,23 @@ func Encrypt(suite Suite, rand cipher.Stream, message []byte,
 	anonymitySet Set, hide bool) []byte {
 
 	xb, hdr := encryptKey(suite, rand, anonymitySet, hide)
-	cipher := suite.Cipher(xb)
+	xof := suite.XOF(xb)
 
 	// We now know the ciphertext layout
 	hdrhi := 0 + len(hdr)
 	msghi := hdrhi + len(message)
-	machi := msghi + cipher.KeySize()
+	machi := msghi + xof.KeySize()
 	ciphertext := make([]byte, machi)
 	copy(ciphertext, hdr)
 
 	// Now encrypt and MAC the message based on the master secret
 	ctx := ciphertext[hdrhi:msghi]
 	mac := ciphertext[msghi:machi]
-	cipher.Message(ctx, message, ctx)
-	cipher.Partial(mac, nil, nil)
+
+	xof.XORKeyStream(ctx, message)
+	xof = suite.XOF(ctx)
+	xof.Read(mac)
+
 	return ciphertext
 }
 
@@ -179,8 +182,8 @@ func Decrypt(suite Suite, ciphertext []byte, anonymitySet Set,
 	}
 
 	// Determine the message layout
-	cipher := suite.Cipher(xb)
-	maclen := cipher.KeySize()
+	xof := suite.XOF(xb)
+	maclen := xof.KeySize()
 	if len(ciphertext) < hdrlen+maclen {
 		return nil, errors.New("ciphertext too short")
 	}
@@ -191,8 +194,9 @@ func Decrypt(suite Suite, ciphertext []byte, anonymitySet Set,
 	ctx := ciphertext[hdrhi:msghi]
 	mac := ciphertext[msghi:]
 	msg := make([]byte, len(ctx))
-	cipher.Message(msg, ctx, ctx)
-	cipher.Partial(mac, mac, nil)
+	xof.XORKeyStream(msg, ctx)
+	xof = suite.XOF(ctx)
+	xof.XORKeyStream(mac, mac)
 	if subtle.ConstantTimeAllEq(mac, 0) == 0 {
 		return nil, errors.New("invalid ciphertext: failed MAC check")
 	}
