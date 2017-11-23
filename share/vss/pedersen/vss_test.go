@@ -125,7 +125,7 @@ func TestVSSShare(t *testing.T) {
 	aggr.responses[uint32(aggr.t)] = &Response{Status: StatusApproval}
 
 	// TimeOut all other (i>t) verifiers
-	ver.setTimeOut()
+	ver.SetTimeOut()
 
 	// deal not certified
 	aggr.badDealer = true
@@ -154,7 +154,7 @@ func TestVSSAggregatorEnoughApprovals(t *testing.T) {
 	}
 
 	// mark remaning verifiers as timed out
-	dealer.setTimeOut()
+	dealer.SetTimeOut()
 
 	assert.True(t, aggr.EnoughApprovals())
 	assert.Equal(t, suite.Point().Mul(secret, nil), dealer.SecretCommit())
@@ -169,7 +169,7 @@ func TestVSSAggregatorDealCertified(t *testing.T) {
 	}
 
 	// Mark remaining verifiers as timed-out
-	dealer.setTimeOut()
+	dealer.SetTimeOut()
 
 	assert.True(t, aggr.DealCertified())
 	assert.Equal(t, suite.Point().Mul(secret, nil), dealer.SecretCommit())
@@ -448,7 +448,7 @@ func TestVSSDealerTimeOut(t *testing.T) {
 	assert.False(t, aggr.DealCertified())
 
 	// Tell dealer to consider other verifiers timed-out
-	dealer.setTimeOut()
+	dealer.SetTimeOut()
 
 	// Deal should be certified
 	assert.True(t, aggr.DealCertified())
@@ -481,7 +481,7 @@ func TestVSSVerifierTimeOut(t *testing.T) {
 
 	// Trigger time out, thus adding StatusComplaint to all
 	// remaining verifiers
-	v.setTimeOut()
+	v.SetTimeOut()
 
 	// Deal must be certified now
 	assert.True(t, aggr.DealCertified())

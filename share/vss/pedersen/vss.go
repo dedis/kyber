@@ -265,10 +265,10 @@ func (d *Dealer) Commits() []kyber.Point {
 	return d.secretCommits
 }
 
-// setTimeOut tells this dealer to consider this moment the maximum time limit.
+// SetTimeOut tells this dealer to consider this moment the maximum time limit.
 // it calls cleanVerifiers which will take care of all Verifiers who have not
 // responded until now.
-func (d *Dealer) setTimeOut() {
+func (d *Dealer) SetTimeOut() {
 	d.aggregator.cleanVerifiers()
 }
 
@@ -460,10 +460,10 @@ func (v *Verifier) SessionID() []byte {
 	return v.sid
 }
 
-// setTimeOut tells this verifier to consider this moment the maximum time limit.
+// SetTimeOut tells this verifier to consider this moment the maximum time limit.
 // it calls cleanVerifiers which will take care of all Verifiers who have not
 // responded until now.
-func (v *Verifier) setTimeOut() {
+func (v *Verifier) SetTimeOut() {
 	v.aggregator.cleanVerifiers()
 }
 
@@ -641,6 +641,7 @@ func (a *aggregator) DealCertified() bool {
 	// i.e. make sure all verifiers are either timed-out or OK.
 	for i := range a.verifiers {
 		if _, ok := a.responses[uint32(i)]; !ok {
+            fmt.Printf("Index of verifier: %d\n", i)
 			verifiersUnstable++
 		}
 	}
