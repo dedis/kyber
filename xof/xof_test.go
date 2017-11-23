@@ -94,20 +94,25 @@ func testClone(t *testing.T, s factory) {
 	}
 }
 
-func TestWriteReadWrite(t *testing.T) {
+func TestErrors(t *testing.T) {
 	for _, i := range impls {
-		testWriteReadWrite(t, i)
+		testErrors(t, i)
 	}
 }
 
-func testWriteReadWrite(t *testing.T, s factory) {
+func testErrors(t *testing.T, s factory) {
 	t.Logf("implementation %T", s)
+
+	// Write-after-read: panic
 	key := []byte("key")
 	s1 := s.XOF(key)
 	src := []byte("hello")
 	dst := make([]byte, 100)
 	s1.XORKeyStream(dst, src)
 	require.Panics(t, func() { s1.Write(src) })
+
+	// Dst too short: panic
+	require.Panics(t, func() { s1.XORKeyStream(dst[0:len(src)-1], src) })
 }
 
 func TestRandom(t *testing.T) {
@@ -160,4 +165,25 @@ func bitDiff(a, b []byte) float64 {
 	}
 
 	return float64(count) / float64(len(a)*8)
+}
+
+func TestNoSeed(t *testing.T) {
+	for _, i := range impls {
+		testNoSeed(t, i)
+	}
+}
+
+func testNoSeed(t *testing.T, s factory) {
+	t.Logf("implementation %T", s)
+
+	xof1 := s.XOF(nil)
+	dst1 := make([]byte, 1024)
+	xof1.Read(dst1)
+
+	xof2 := s.XOF([]byte{})
+	dst2 := make([]byte, 1024)
+	xof2.Read(dst2)
+	if !bytes.Equal(dst1, dst2) {
+		t.Fatal("hash with two flavors of zero seed not same")
+	}
 }
