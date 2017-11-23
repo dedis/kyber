@@ -5,11 +5,12 @@ package dkg
 import (
 	"crypto/cipher"
 	"errors"
+    "fmt"
 
 	"github.com/dedis/kyber"
 
 	"github.com/dedis/kyber/share"
-	vss "github.com/dedis/kyber/share/vss/pedersen"
+	vss "github.com/CedricCook/kyber/share/vss/pedersen"
 )
 
 // Suite wraps the functionalities needed by the dkg package
@@ -279,6 +280,7 @@ func (d *DistKeyGenerator) qualIter(fn func(idx uint32, v *vss.Verifier) bool) {
 	for i, v := range d.verifiers {
 		if v.DealCertified() {
 			if !fn(i, v) {
+                fmt.Printf("%d", i)
 				break
 			}
 		}

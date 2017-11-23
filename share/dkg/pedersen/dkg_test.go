@@ -3,11 +3,12 @@ package dkg
 import (
 	"crypto/rand"
 	"testing"
+    "fmt"
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/share"
-	vss "github.com/dedis/kyber/share/vss/pedersen"
+	vss "github.com/CedricCook/kyber/share/vss/pedersen"
 	"github.com/dedis/kyber/util/random"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -585,6 +586,7 @@ func fullExchange(t *testing.T) {
 	// 3. make sure everyone has the same QUAL set
 	for _, dkg := range dkgs {
 		for _, dkg2 := range dkgs {
+            fmt.Printf("DKG index: %d\n", dkg.index)
 			require.True(t, dkg.isInQUAL(dkg2.index))
 		}
 	}
