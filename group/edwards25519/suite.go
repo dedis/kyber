@@ -14,8 +14,8 @@ import (
 	"github.com/dedis/kyber/xof/blake"
 )
 
-// SuiteEd25519 implements some basic functionalities such as Group, HashFactory
-// and CipherFactory.
+// SuiteEd25519 implements some basic functionalities such as Group, HashFactory,
+// CipherFactory and XOFFactory.
 type SuiteEd25519 struct {
 	Curve
 }

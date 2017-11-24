@@ -500,7 +500,7 @@ func TestVSSDHExchange(t *testing.T) {
 
 func TestVSSContext(t *testing.T) {
 	c := context(suite, dealerPub, verifiersPub)
-	assert.Len(t, c, suite.Hash().Size())
+	assert.Len(t, c, suite.XOF(nil).KeySize())
 }
 
 func genPair() (kyber.Scalar, kyber.Point) {
