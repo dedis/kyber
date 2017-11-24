@@ -20,7 +20,7 @@ func TestTime(t *testing.T) {
 	SetDebugVisible(1)
 	GetStdOut()
 	Lvl1("No time")
-	assert.True(t, ContainsStdOut("1 : ("))
+	assert.True(t, containsStdOut("1 : ("))
 	SetShowTime(true)
 	defer func() { SetShowTime(false) }()
 	Lvl1("With time")
