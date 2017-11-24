@@ -43,6 +43,7 @@ type XOFFactory interface {
 	XOF(seed []byte) XOF
 }
 
+// A HashFactory factors hashes. (Tempory comment to make travis happy. Hash is disappearing soon.)
 type HashFactory interface {
 	Hash() hash.Hash
 }
