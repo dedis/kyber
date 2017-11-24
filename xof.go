@@ -18,10 +18,10 @@ type XOF interface {
 	// has been reached.
 	io.Reader
 
+	// An XOF implements cipher.Stream, so that callers can use XORKeyStream
+	// to encrypt/decrypt data. The key stream is read from the XOF using
+	// the io.Reader interface.
 	cipher.Stream
-
-	// Clone returns a copy of the XOF in its current state.
-	Clone() XOF
 
 	// KeySize is the number of bytes that must be written to the XOF before
 	// it is ready to give secure output.
@@ -29,9 +29,15 @@ type XOF interface {
 
 	// Reseed makes an XOF writeable again after it has been read from.
 	Reseed()
+
+	// Clone returns a copy of the XOF in its current state.
+	Clone() XOF
 }
 
 // An XOFFactory is an interface that can be mixed in to local suite definitions.
 type XOFFactory interface {
-	XOF([]byte) XOF
+	// XOF creates a new XOF, feeding seed to it via it's Write method. If seed
+	// is nil or []byte{}, the XOF is unseeded and will always produce the same
+	// bytes from Read.
+	XOF(seed []byte) XOF
 }
