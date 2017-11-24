@@ -6,13 +6,12 @@ import (
 	"testing"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/cipher"
 	"github.com/dedis/kyber/group/edwards25519"
 )
 
 func TestRep(t *testing.T) {
 	suite := edwards25519.NewAES128SHA256Ed25519()
-	rand := suite.Cipher(cipher.RandomKey)
+	rand := suite.XOF([]byte("seed"))
 
 	x := suite.Scalar().Pick(rand)
 	y := suite.Scalar().Pick(rand)
@@ -57,12 +56,12 @@ func TestRep(t *testing.T) {
 	prover := pred.Prover(suite, sval, pval, choice)
 	proof, err := HashProve(suite, "TEST", rand, prover)
 	if err != nil {
-		panic("prover: " + err.Error())
+		t.Fatal("prover: " + err.Error())
 	}
 
 	verifier := pred.Verifier(suite, pval)
 	if err := HashVerify(suite, "TEST", verifier, proof); err != nil {
-		panic("verify: " + err.Error())
+		t.Fatal("verify: " + err.Error())
 	}
 }
 
@@ -87,7 +86,7 @@ func Example_rep2() {
 
 	// Crypto setup
 	suite := edwards25519.NewAES128SHA256Ed25519()
-	rand := suite.Cipher([]byte("example"))
+	rand := suite.XOF([]byte("example"))
 	B := suite.Point().Base() // standard base point
 
 	// Create a public/private keypair (X,x)
@@ -105,17 +104,18 @@ func Example_rep2() {
 	verifier := pred.Verifier(suite, pval)
 	err := HashVerify(suite, "TEST", verifier, proof)
 	if err != nil {
-		panic("proof failed to verify!")
+		fmt.Println("Proof failed to verify: ", err)
+		return
 	}
 	fmt.Println("Proof verified.")
 
 	// Output:
 	// X=x*B
 	// Proof:
-	// 00000000  27 fd 13 c3 6e e6 df a5  00 aa 0c 93 a7 b8 21 4b  |'...n.........!K|
-	// 00000010  a5 cf 26 c2 a0 99 68 b0  a0 36 9d 7a de 92 95 7a  |..&...h..6.z...z|
-	// 00000020  c2 f0 69 05 69 f1 14 15  b1 38 3d 9c 49 bd c5 89  |..i.i....8=.I...|
-	// 00000030  55 05 56 9a 44 31 52 12  c2 37 77 5d 37 13 fa 05  |U.V.D1R..7w]7...|
+	// 00000000  e9 a2 da f4 9d 7c e2 25  35 be 0a 15 78 9c ea ca  |.....|.%5...x...|
+	// 00000010  a7 1e 6e d6 26 c3 40 ed  0d 3d 71 d4 a9 ef 55 3b  |..n.&.@..=q...U;|
+	// 00000020  c1 84 20 a6 b7 79 86 9c  f8 dd 09 82 1e 48 a9 00  |.. ..y.......H..|
+	// 00000030  3e f3 68 66 3f a0 58 f9  88 df b4 35 1b 2f 72 0d  |>.hf?.X....5./r.|
 	// Proof verified.
 }
 
@@ -198,7 +198,7 @@ func Example_or2() {
 
 	// Crypto setup
 	suite := edwards25519.NewAES128SHA256Ed25519()
-	rand := suite.Cipher([]byte("example"))
+	rand := suite.XOF([]byte("example"))
 	B := suite.Point().Base() // standard base point
 
 	// Create a public/private keypair (X,x) and a random point Y
@@ -224,24 +224,24 @@ func Example_or2() {
 	verifier := pred.Verifier(suite, pval)
 	err := HashVerify(suite, "TEST", verifier, proof)
 	if err != nil {
-		panic("proof failed to verify!")
+		fmt.Println("Proof failed to verify: " + err.Error())
 	}
 	fmt.Println("Proof verified.")
 
 	// Output:
 	// Predicate: X=x*B || Y=y*B
 	// Proof:
-	// 00000000  b6 8f 24 dc d3 c0 86 67  42 1d c3 c8 5a 28 62 4d  |..$....gB...Z(bM|
-	// 00000010  86 3b c9 69 7c 88 7f 52  9e b3 93 25 2d e6 58 0e  |.;.i|..R...%-.X.|
-	// 00000020  2e 49 39 eb a7 6d a0 65  9e 45 f7 c8 98 e9 bd db  |.I9..m.e.E......|
-	// 00000030  af 83 ac 80 ed 21 7c c9  ce d1 2d 45 43 05 3e 55  |.....!|...-EC.>U|
-	// 00000040  95 3f 7d f5 a8 a4 48 2d  9a 2c 40 27 1c 2c d5 75  |.?}...H-.,@'.,.u|
-	// 00000050  f6 57 a9 03 b2 bf ec 8d  e1 8c 59 5b 56 af 59 00  |.W........Y[V.Y.|
-	// 00000060  2d 17 6e d0 98 15 24 7e  c6 9e ad c2 55 9e ba 0e  |-.n...$~....U...|
-	// 00000070  1f a9 fe 92 47 24 31 a2  a0 88 72 9a 16 2f ab 05  |....G$1...r../..|
-	// 00000080  b4 9c 73 96 b3 03 44 c9  3c 8f 6b dd fa 15 d0 dc  |..s...D.<.k.....|
-	// 00000090  76 28 8d 01 33 0a 3f 70  e2 72 4d e1 86 d8 07 00  |v(..3.?p.rM.....|
-	// 000000a0  ee f3 b2 f4 06 e4 98 a7  24 2f 51 b8 13 b4 b5 69  |........$/Q....i|
-	// 000000b0  94 ad 33 b9 c4 e3 95 8b  7f 18 6d 1e f1 07 3e 0d  |..3.......m...>.|
+	// 00000000  44 bb 0f bb 2b 06 29 a6  73 59 0f c1 5a ca de 36  |D...+.).sY..Z..6|
+	// 00000010  4c c8 15 ed b1 eb 50 d3  d9 d2 9b 31 6c d3 0f 6b  |L.....P....1l..k|
+	// 00000020  a2 a9 bc d2 8c 6d d0 5e  9a 8e d1 8e 04 fb 88 af  |.....m.^........|
+	// 00000030  fb 90 8a 2a 71 ac 34 08  f9 bc 07 78 08 44 40 07  |...*q.4....x.D@.|
+	// 00000040  ab 1f 36 7e 7b db 50 7d  49 38 34 75 69 07 67 4b  |..6~{.P}I84ui.gK|
+	// 00000050  55 cb 28 f2 50 ad d1 4b  24 d2 d1 44 fe 44 b0 0e  |U.(.P..K$..D.D..|
+	// 00000060  00 e8 d3 8b 37 76 4f 47  d1 4a 93 0c cd df 20 08  |....7vOG.J.... .|
+	// 00000070  fc 0f ad f9 01 6c 30 c0  02 d4 fa 1b 1f 1c fa 04  |.....l0.........|
+	// 00000080  6d 2a a7 d8 8e 67 72 87  51 0e 16 72 51 87 99 83  |m*...gr.Q..rQ...|
+	// 00000090  2e c9 4e a1 ca 20 7d 64  33 04 f5 66 9b d3 74 03  |..N.. }d3..f..t.|
+	// 000000a0  2b e0 be 8d 56 55 1a d1  6e 11 21 fc 20 3e 0f 5f  |+...VU..n.!. >._|
+	// 000000b0  4d 97 a9 bf 1a 28 27 6d  3b 71 04 e1 c0 86 96 08  |M....('m;q......|
 	// Proof verified.
 }

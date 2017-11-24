@@ -12,7 +12,23 @@ type xof struct {
 
 // New creates a new XOF using the Blake2b hash.
 func New(seed []byte) kyber.XOF {
-	b, _ := blake2b.NewXOF(blake2b.OutputLengthUnknown, seed)
+	seed1 := seed
+	var seed2 []byte
+	if len(seed) > blake2b.Size {
+		seed1 = seed[0:blake2b.Size]
+		seed2 = seed[blake2b.Size:]
+	}
+	b, err := blake2b.NewXOF(blake2b.OutputLengthUnknown, seed1)
+	if err != nil {
+		panic("blake2b.NewXOF should not return error: " + err.Error())
+	}
+
+	if seed2 != nil {
+		_, err := b.Write(seed2)
+		if err != nil {
+			panic("blake2b.XOF.Write should not return error: " + err.Error())
+		}
+	}
 	return &xof{impl: b}
 }
 
@@ -30,6 +46,16 @@ func (x *xof) Read(dst []byte) (int, error) {
 
 func (x *xof) Write(src []byte) (int, error) {
 	return x.impl.Write(src)
+}
+
+func (x *xof) Reseed() {
+	// Use New to create a new one seeded with output from the old one.
+	key := make([]byte, x.KeySize())
+	x.Read(key)
+	y := New(key)
+	// Steal the XOF implementation, and put it inside of x.
+	x.impl = y.(*xof).impl
+	return
 }
 
 func (x *xof) XORKeyStream(dst, src []byte) {

@@ -36,8 +36,8 @@ type deniableProver struct {
 	msg  *bytes.Buffer // Buffer in which to build prover msg
 	msgs [][]byte      // All messages from last proof step
 
-	pubrand kyber.Cipher
-	prirand kyber.Cipher
+	pubrand kyber.XOF
+	prirand kyber.XOF
 
 	// Error/success indicators for all participants
 	err []error
@@ -110,7 +110,8 @@ func (dp *deniableProver) initStep() {
 	dp.key = key
 
 	msg := make([]byte, keylen) // send commitment to it
-	dp.suite.Cipher(key).XORKeyStream(msg, msg)
+	xof := dp.suite.XOF(key)
+	xof.Read(msg)
 	dp.msg = bytes.NewBuffer(msg)
 
 	// The Sigma-Prover will now append its proof content to dp.msg...
@@ -179,7 +180,7 @@ func (dp *deniableProver) challengeStep() error {
 			continue // ignore participants who dropped out
 		}
 		chk := make([]byte, keylen)
-		dp.suite.Cipher(key).XORKeyStream(chk, chk)
+		dp.suite.XOF(key).Read(chk)
 		if !bytes.Equal(com, chk) {
 			return errors.New("wrong key for commit")
 		}
@@ -192,7 +193,7 @@ func (dp *deniableProver) challengeStep() error {
 	}
 
 	// Use the mix to produce the public randomness needed by the prover
-	dp.pubrand = dp.suite.Cipher(mix)
+	dp.pubrand = dp.suite.XOF(mix)
 
 	// Distribute the master challenge to any verifiers waiting for it
 	for i := range dp.dv {
@@ -244,7 +245,7 @@ type deniableVerifier struct {
 	done chan bool // Channel for sending done status indicators
 	err  error     // When done indicates verify error if non-nil
 
-	pubrand kyber.Cipher
+	pubrand kyber.XOF
 }
 
 func (dv *deniableVerifier) start(suite Suite, vrf Verifier) {
@@ -254,8 +255,6 @@ func (dv *deniableVerifier) start(suite Suite, vrf Verifier) {
 
 	// Launch a concurrent goroutine to run this verifier
 	go func() {
-		//req := deniableVerifierRequest{}
-
 		// Await the prover's first message
 		dv.getProof()
 
@@ -268,7 +267,6 @@ func (dv *deniableVerifier) start(suite Suite, vrf Verifier) {
 }
 
 func (dv *deniableVerifier) getProof() {
-
 	// Get the next message from the prover
 	prbuf := <-dv.inbox
 	dv.prbuf = bytes.NewBuffer(prbuf)
@@ -289,7 +287,7 @@ func (dv *deniableVerifier) PubRand(data ...interface{}) error {
 	chal := <-dv.inbox
 
 	// Produce the appropriate publicly random stream
-	dv.pubrand = dv.suite.Cipher(chal)
+	dv.pubrand = dv.suite.XOF(chal)
 	if err := dv.suite.Read(dv.pubrand, data...); err != nil {
 		return err
 	}

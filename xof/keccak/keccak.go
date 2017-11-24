@@ -26,6 +26,14 @@ func (x *xof) Clone() kyber.XOF {
 	return &xof{sh: x.sh.Clone()}
 }
 
+func (x *xof) Reseed() {
+	key := make([]byte, x.KeySize())
+	x.Read(key)
+	x.sh = sha3.NewShake256()
+	x.sh.Write(key)
+	return
+}
+
 func (x *xof) Read(dst []byte) (int, error) {
 	return x.sh.Read(dst)
 }

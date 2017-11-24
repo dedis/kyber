@@ -187,3 +187,32 @@ func testNoSeed(t *testing.T, s factory) {
 		t.Fatal("hash with two flavors of zero seed not same")
 	}
 }
+
+func TestReseed(t *testing.T) {
+	for _, i := range impls {
+		testReseed(t, i)
+	}
+}
+
+func testReseed(t *testing.T, s factory) {
+	t.Logf("implementation %T", s)
+	seed := []byte("seed")
+
+	xof1 := s.XOF(seed)
+	dst1 := make([]byte, 1024)
+	xof1.Read(dst1)
+	// Without Reseed: panic.
+	require.Panics(t, func() { xof1.Write(seed) })
+	// After Reseed, does not panic.
+	xof1.Reseed()
+	xof2 := xof1.Clone()
+	require.NotPanics(t, func() { xof1.Write(seed) })
+
+	dst2 := make([]byte, 1024)
+	xof2.Read(dst2)
+
+	d := bitDiff(dst1, dst2)
+	if math.Abs(d-0.50) > 0.1 {
+		t.Fatalf("reseed bitDiff %v", d)
+	}
+}
