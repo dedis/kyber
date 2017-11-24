@@ -9,7 +9,6 @@ import (
 	"github.com/dedis/fixbuf"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/cipher/sha3"
 	"github.com/dedis/kyber/group/internal/marshalling"
 	"github.com/dedis/kyber/xof/blake"
 )
@@ -23,11 +22,6 @@ type SuiteEd25519 struct {
 // Hash return a newly instanciated sha256 hash function.
 func (s *SuiteEd25519) Hash() hash.Hash {
 	return sha256.New()
-}
-
-// Cipher returns the SHA3/SHAKE128 Sponge Cipher.
-func (s *SuiteEd25519) Cipher(key []byte, options ...interface{}) kyber.Cipher {
-	return sha3.NewShakeCipher128(key, options...)
 }
 
 // XOF returns an XOF which is implemented via the Blake2b hash.

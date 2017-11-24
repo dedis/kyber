@@ -13,8 +13,8 @@ import (
 
 type Suite interface {
 	kyber.Group
-	Cipher(key []byte, options ...interface{}) kyber.Cipher
 	kyber.Encoding
+	kyber.XOFFactory
 }
 
 // A basic, verifiable signature
@@ -26,8 +26,8 @@ type basicSig struct {
 // Returns a secret that depends on on a message and a point
 func hashSchnorr(suite Suite, message []byte, p kyber.Point) kyber.Scalar {
 	pb, _ := p.MarshalBinary()
-	c := suite.Cipher(pb)
-	c.Message(nil, nil, message)
+	c := suite.XOF(pb)
+	c.Write(message)
 	return suite.Scalar().Pick(c)
 }
 
@@ -89,20 +89,20 @@ func SchnorrVerify(suite Suite, message []byte, publicKey kyber.Point,
 // Example of using Schnorr
 func Example_schnorr() {
 	// Crypto setup
-	group := edwards25519.NewAES128SHA256Ed25519()
-	rand := group.Cipher([]byte("example"))
+	suite := edwards25519.NewAES128SHA256Ed25519()
+	rand := suite.XOF([]byte("example"))
 
 	// Create a public/private keypair (X,x)
-	x := group.Scalar().Pick(rand) // create a private key x
-	X := group.Point().Mul(x, nil) // corresponding public key X
+	x := suite.Scalar().Pick(rand) // create a private key x
+	X := suite.Point().Mul(x, nil) // corresponding public key X
 
 	// Generate the signature
 	M := []byte("Hello World!") // message we want to sign
-	sig := SchnorrSign(group, rand, M, x)
+	sig := SchnorrSign(suite, rand, M, x)
 	fmt.Print("Signature:\n" + hex.Dump(sig))
 
 	// Verify the signature against the correct message
-	err := SchnorrVerify(group, M, X, sig)
+	err := SchnorrVerify(suite, M, X, sig)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -110,9 +110,9 @@ func Example_schnorr() {
 
 	// Output:
 	// Signature:
-	// 00000000  d4 64 bd ac 8a 06 d9 71  f4 ae a1 da e1 c5 55 d5  |.d.....q......U.|
-	// 00000010  f7 89 50 10 a5 d9 99 52  b0 c4 f2 ba f9 37 67 02  |..P....R.....7g.|
-	// 00000020  35 3e 9b ac e6 dd d1 98  f6 19 88 37 4d e3 4f 5c  |5>.........7M.O\|
-	// 00000030  36 de a7 bf b9 f0 06 2b  72 6f 81 b7 59 19 c6 00  |6......+ro..Y...|
+	// 00000000  67 3f 25 fe d1 51 5d 1e  64 3a f7 79 2f 55 53 7c  |g?%..Q].d:.y/US||
+	// 00000010  f6 8a 5a 73 d5 c7 db f4  07 58 37 cc 1c b8 bf 02  |..Zs.....X7.....|
+	// 00000020  5f 0b a0 ef 0e 3e 9d 2e  08 10 69 b9 82 5f 65 b3  |_....>....i.._e.|
+	// 00000030  51 f8 b8 59 9b 72 d1 d0  12 f0 c6 ac 00 2a 09 0f  |Q..Y.r.......*..|
 	// Signature verified against correct message.
 }

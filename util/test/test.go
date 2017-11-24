@@ -2,9 +2,9 @@ package test
 
 import (
 	"bytes"
+	"crypto/cipher"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/cipher"
 	"github.com/dedis/kyber/util/key"
 	"github.com/dedis/kyber/util/random"
 )
@@ -13,7 +13,7 @@ import (
 type Suite interface {
 	kyber.Group
 	kyber.HashFactory
-	kyber.CipherFactory
+	kyber.XOFFactory
 }
 
 func testEmbed(g kyber.Group, rand cipher.Stream, points *[]kyber.Point,
@@ -330,11 +330,11 @@ func GroupTest(g kyber.Group) {
 
 // CompareGroups tests two group implementations that are supposed to be equivalent,
 // and compare their results.
-func CompareGroups(fn func(key []byte, options ...interface{}) kyber.Cipher, g1, g2 kyber.Group) {
+func CompareGroups(fn func(key []byte) kyber.XOF, g1, g2 kyber.Group) {
 
 	// Produce test results from the same pseudorandom seed
-	r1 := testGroup(g1, fn(cipher.NoKey))
-	r2 := testGroup(g2, fn(cipher.NoKey))
+	r1 := testGroup(g1, fn(nil))
+	r2 := testGroup(g2, fn(nil))
 
 	// Compare resulting Points
 	for i := range r1 {
@@ -366,11 +366,11 @@ func SuiteTest(suite Suite) {
 	}
 
 	// Generate some pseudorandom bits
-	//s := suite.Cipher(hb)
-	//sb := make([]byte, 128)
-	//s.XORKeyStream(sb, sb)
-	//println("Stream:")
-	//println(hex.Dump(sb))
+	x := suite.XOF(hb)
+	sb := make([]byte, 128)
+	x.Read(sb)
+	//fmt.Println("Stream:")
+	//fmt.Println(hex.Dump(sb))
 
 	// Test if it generates two fresh keys
 	p1 := key.NewKeyPair(suite)
@@ -381,9 +381,9 @@ func SuiteTest(suite Suite) {
 
 	// Test if it creates the same with the same seed
 	p1 = new(key.Pair)
-	p1.Gen(suite, suite.Cipher(hb))
+	p1.Gen(suite, suite.XOF(hb))
 	p2 = new(key.Pair)
-	p2.Gen(suite, suite.Cipher(hb))
+	p2.Gen(suite, suite.XOF(hb))
 	if !p1.Secret.Equal(p2.Secret) {
 		panic("NewKeyPair returns different keys for same seed")
 	}

@@ -2,6 +2,7 @@ package kyber
 
 import (
 	"crypto/cipher"
+	"hash"
 	"io"
 )
 
@@ -40,4 +41,8 @@ type XOFFactory interface {
 	// is nil or []byte{}, the XOF is unseeded and will always produce the same
 	// bytes from Read.
 	XOF(seed []byte) XOF
+}
+
+type HashFactory interface {
+	Hash() hash.Hash
 }

@@ -14,7 +14,7 @@ func Example_encrypt1() {
 
 	// Crypto setup
 	suite := edwards25519.NewAES128SHA256Ed25519()
-	rand := suite.Cipher([]byte("example"))
+	rand := suite.XOF([]byte("example"))
 
 	// Create a public/private keypair (X[mine],x)
 	X := make([]kyber.Point, 1)
@@ -39,19 +39,19 @@ func Example_encrypt1() {
 
 	// Output:
 	// Encryption of 'Hello World!':
-	// 00000000  f9 d1 d4 75 7b 0d 76 68  95 08 71 74 9a 87 5f 1e  |...u{.vh..qt.._.|
-	// 00000010  0a 22 23 34 bd d1 5b f6  e7 21 3c f3 c9 92 6f bd  |."#4..[..!<...o.|
-	// 00000020  13 59 48 86 0b ef 97 ae  c4 7f 5c 32 1e 7c 9e 66  |.YH.......\2.|.f|
-	// 00000030  6c 72 72 22 2e 82 c8 70  ec f1 83 7b 13 83 ef 17  |lrr"...p...{....|
-	// 00000040  09 dc 5f 08 4e a1 38 64  bb 90 59 6e d0 80 b6 f4  |.._.N.8d..Yn....|
-	// 00000050  2d 4f a8 1b 48 00 f5 0d  8c 82 a6 36 71 0f c0 eb  |-O..H......6q...|
-	// 00000060  6f 77 c4 61 a8 66 59 22  ea 56 75 15 8c f3 bc 5c  |ow.a.fY".Vu....\|
-	// 00000070  ca 94 10 5f e8 bb 56 48  b2 2f 95 4e c6 92 ae 20  |..._..VH./.N... |
-	// 00000080  81 56 69 dc ea e5 ff 03  fd 28 b4 d9 6b c7 f7 c7  |.Vi......(..k...|
-	// 00000090  35 ca d5 17 de da 37 28  82 5d c6 fb 7b 3f 07 cd  |5.....7(.]..{?..|
-	// 000000a0  f4 1a b5 4d b9 41 95 8a  f0 22 06 1f 5d 1a b1 2d  |...M.A..."..]..-|
-	// 000000b0  2c a1 d5 38 af 13 fe 1e  b5 a0 19 37 c9 58 2d f5  |,..8.......7.X-.|
-	// 000000c0  b8 1a cd c1 21 ae 84 02  88 9d d9 45              |....!......E|
+	// 00000000  de 9d f9 35 68 ed 79 28  19 0e 1e fb 0b 02 50 1b  |...5h.y(......P.|
+	// 00000010  2a 18 4d 86 3a 49 a2 c7  95 38 9e 89 d4 11 06 5c  |*.M.:I...8.....\|
+	// 00000020  ac 09 42 42 4a 23 1a 4b  68 92 12 21 4d f2 d3 da  |..BBJ#.Kh..!M...|
+	// 00000030  03 c8 a9 37 1d 7b 5f 71  d2 8b 31 28 ea e7 cd 9e  |...7.{_q..1(....|
+	// 00000040  d4 e2 20 7b eb 05 43 95  b6 8d 28 6d 4b 9c a6 f2  |.. {..C...(mK...|
+	// 00000050  1c cb 68 8c 73 f8 81 15  53 16 c0 a9 9d a6 62 c2  |..h.s...S.....b.|
+	// 00000060  c1 62 ca e1 d5 16 d1 94  ef c0 b5 00 33 09 91 bb  |.b..........3...|
+	// 00000070  32 d5 16 ef ae ec d8 f0  26 69 51 27 4d e4 32 bc  |2.......&iQ'M.2.|
+	// 00000080  bf aa 7b 97 14 c7 8e 53  9d c9 d1 6a 41 1f 86 53  |..{....S...jA..S|
+	// 00000090  0b a6 55 b4 bf 86 c1 68  69 42 c4 fa c4 bf bf 10  |..U....hiB......|
+	// 000000a0  87 c2 19 0a 8f 08 05 cf  d9 c1 37 e9 81 a6 65 f4  |..........7...e.|
+	// 000000b0  98 72 3e 24 e9 fe 8d 2a  c9 7e 9d 64 96 4d f2 df  |.r>$...*.~.d.M..|
+	// 000000c0  ff 46 d7 af 3c c6 95 a4  d9 04 6b bd              |.F..<.....k.|
 	// Decrypted: 'Hello World!'
 }
 
@@ -59,7 +59,7 @@ func ExampleEncrypt_anonSet() {
 
 	// Crypto setup
 	suite := edwards25519.NewAES128SHA256Ed25519()
-	rand := suite.Cipher([]byte("example"))
+	rand := suite.XOF([]byte("example"))
 
 	// Create an anonymity set of random "public keys"
 	X := make([]kyber.Point, 3)
@@ -89,22 +89,22 @@ func ExampleEncrypt_anonSet() {
 
 	// Output:
 	// Encryption of 'Hello World!':
-	// 00000000  3c 2e 26 55 5e 9c 59 55  68 91 5c 68 19 e3 10 6a  |<.&U^.YUh.\h...j|
-	// 00000010  be 1d 8c fc 52 b1 85 98  31 a9 81 08 24 bb f0 d0  |....R...1...$...|
-	// 00000020  93 91 98 a5 e9 62 40 f9  8f f4 4c 59 a5 90 1e 97  |.....b@...LY....|
-	// 00000030  c8 5b 89 41 35 8f 17 ef  26 e4 bf 0f 83 2d a4 d4  |.[.A5...&....-..|
-	// 00000040  a8 98 a5 8e d2 85 73 37  22 e4 0b 61 c6 f5 d3 2c  |......s7"..a...,|
-	// 00000050  fd 43 3b fa a5 3f c9 97  b4 8b c2 6b 8d ec 1b 2c  |.C;..?.....k...,|
-	// 00000060  8b b2 94 e1 df e5 91 ad  3f 94 a5 24 73 c2 43 86  |........?..$s.C.|
-	// 00000070  1f 58 93 18 a5 bd fa bb  5e 48 7c 2d 3e 98 d8 60  |.X......^H|->..`|
-	// 00000080  29 fa 47 7d 97 19 c6 ee  e0 68 7a 04 ba 02 3b da  |).G}.....hz...;.|
-	// 00000090  1b 8b 87 df 47 b3 40 ed  60 c1 78 16 50 27 90 5a  |....G.@.`.x.P'.Z|
-	// 000000a0  ee 8b 74 2c 00 ba 07 8b  bf 8e 72 08 a2 12 62 e8  |..t,......r...b.|
-	// 000000b0  3c f5 e5 a8 bb b2 1c 27  d5 91 39 3a 24 e4 7e 55  |<......'..9:$.~U|
-	// 000000c0  ef ae db d6 63 13 6b 11  1a 79 b0 de b4 19 58 ad  |....c.k..y....X.|
-	// 000000d0  a9 70 8c 8b 86 35 88 fd  51 fe ea f0 cb dc 3a 00  |.p...5..Q.....:.|
-	// 000000e0  31 2c 99 ba a5 f2 4b 3d  0d 7f 5c e8 c3 bf 59 fe  |1,....K=..\...Y.|
-	// 000000f0  62 b1 30 84 b1 0f 06 61  0b ef 33 48 2b f6 81 a0  |b.0....a..3H+...|
-	// 00000100  d6 78 fa b1 c8 53 d0 91  52 34 21 4c              |.x...S..R4!L|
+	// 00000000  1d 94 9b 66 98 f7 66 ec  2c 66 7f 00 1a aa 90 59  |...f..f.,f.....Y|
+	// 00000010  21 02 09 01 89 ae 67 a0  7e 72 46 31 5b 05 70 58  |!.....g.~rF1[.pX|
+	// 00000020  d9 8a 34 f5 2d 79 d8 fc  01 44 0f 01 65 8a 4d 06  |..4.-y...D..e.M.|
+	// 00000030  3e e0 45 eb f9 53 14 77  af f6 82 3c 47 13 11 02  |>.E..S.w...<G...|
+	// 00000040  14 b1 ea 48 0d ad da 53  71 51 3c 99 99 f3 6e 08  |...H...SqQ<...n.|
+	// 00000050  5a 4f 74 de f3 b7 25 a5  bd 00 b7 ad 15 b4 e8 a2  |ZOt...%.........|
+	// 00000060  fd 71 c1 c0 50 53 54 45  ad e0 d1 b0 31 99 41 45  |.q..PSTE....1.AE|
+	// 00000070  5b ec a8 25 b0 2c dd 39  18 e6 66 76 4a ca b3 a8  |[..%.,.9..fvJ...|
+	// 00000080  3a 0d 2c 6f 62 2b 5f 44  9d 1d b7 cc 75 28 38 ed  |:.,ob+_D....u(8.|
+	// 00000090  b6 28 ca 7d 71 bb 3a f5  d8 ab e8 1d a3 e5 1c d4  |.(.}q.:.........|
+	// 000000a0  5f aa cd 96 2d 6a c6 46  39 d1 d3 df a5 06 80 41  |_...-j.F9......A|
+	// 000000b0  06 0c 0e 2e 6f 0e cd 13  f2 57 66 66 df bf 5f d1  |....o....Wff.._.|
+	// 000000c0  7c e4 16 94 ff 13 64 d6  80 98 63 bc 6f bc c1 90  ||.....d...c.o...|
+	// 000000d0  15 be d0 eb 80 ca 4f e0  c4 ed 97 2f 8e 46 94 ce  |......O..../.F..|
+	// 000000e0  c8 63 13 48 3c 32 bf 53  fb f8 bd 17 74 2c 93 93  |.c.H<2.S....t,..|
+	// 000000f0  28 11 10 75 5d 69 a1 17  fe 01 90 88 1d 1d c6 44  |(..u]i.........D|
+	// 00000100  46 e9 3b e0 7c f8 c8 f4  55 f0 ab c0              |F.;.|...U...|
 	// Decrypted: 'Hello World!'
 }

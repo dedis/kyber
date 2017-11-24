@@ -24,7 +24,7 @@ type Marshaling interface {
 	MarshalTo(w io.Writer) (int, error)
 
 	// Decode the content of this object by reading from an io.Reader.
-	// If r is a Cipher, uses it to pick a valid object pseudo-randomly,
+	// If r is an XOF, it uses r to pick a valid object pseudo-randomly,
 	// which may entail reading more than Len bytes due to retries.
 	UnmarshalFrom(r io.Reader) (int, error)
 }

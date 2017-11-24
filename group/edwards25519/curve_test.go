@@ -6,10 +6,10 @@ import (
 	"github.com/dedis/kyber/util/test"
 )
 
-var testSuite = NewAES128SHA256Ed25519()
-var groupBench = test.NewGroupBench(testSuite)
+var tSuite = NewAES128SHA256Ed25519()
+var groupBench = test.NewGroupBench(tSuite)
 
-func TestSuite(t *testing.T) { test.SuiteTest(testSuite) }
+func TestSuite(t *testing.T) { test.SuiteTest(tSuite) }
 
 func BenchmarkScalarAdd(b *testing.B)    { groupBench.ScalarAdd(b.N) }
 func BenchmarkScalarSub(b *testing.B)    { groupBench.ScalarSub(b.N) }

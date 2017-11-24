@@ -12,10 +12,10 @@ import (
 	"reflect"
 
 	"github.com/dedis/fixbuf"
-
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/cipher/sha3"
+
 	"github.com/dedis/kyber/group/internal/marshalling"
+	"github.com/dedis/kyber/xof/blake"
 )
 
 type SuiteEd25519 struct {
@@ -27,9 +27,8 @@ func (s *SuiteEd25519) Hash() hash.Hash {
 	return sha256.New()
 }
 
-// SHA3/SHAKE128 Sponge Cipher
-func (s *SuiteEd25519) Cipher(key []byte, options ...interface{}) kyber.Cipher {
-	return sha3.NewShakeCipher128(key, options...)
+func (s *SuiteEd25519) XOF(seed []byte) kyber.XOF {
+	return blake.New(seed)
 }
 
 func (s *SuiteEd25519) Read(r io.Reader, objs ...interface{}) error {

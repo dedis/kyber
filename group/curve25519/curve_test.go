@@ -5,7 +5,6 @@ package curve25519
 import (
 	"testing"
 
-	//"encoding/hex"
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/util/random"
@@ -76,32 +75,32 @@ func TestFullOrderE521(t *testing.T) {
 // Test ExtendedCurve versus ProjectiveCurve implementations
 
 func TestCompareProjectiveExtended25519(t *testing.T) {
-	test.CompareGroups(testSuite.Cipher,
+	test.CompareGroups(testSuite.XOF,
 		new(ProjectiveCurve).Init(Param25519(), false),
 		new(ExtendedCurve).Init(Param25519(), false))
 }
 
 func TestCompareProjectiveExtendedE382(t *testing.T) {
-	test.CompareGroups(testSuite.Cipher,
+	test.CompareGroups(testSuite.XOF,
 		new(ProjectiveCurve).Init(ParamE382(), false),
 		new(ExtendedCurve).Init(ParamE382(), false))
 }
 
 func TestCompareProjectiveExtended41417(t *testing.T) {
-	test.CompareGroups(testSuite.Cipher,
+	test.CompareGroups(testSuite.XOF,
 		new(ProjectiveCurve).Init(Param41417(), false),
 		new(ExtendedCurve).Init(Param41417(), false))
 }
 
 func TestCompareProjectiveExtendedE521(t *testing.T) {
-	test.CompareGroups(testSuite.Cipher,
+	test.CompareGroups(testSuite.XOF,
 		new(ProjectiveCurve).Init(ParamE521(), false),
 		new(ExtendedCurve).Init(ParamE521(), false))
 }
 
 // Test Ed25519 versus ExtendedCurve implementations of Curve25519.
 func TestCompareEd25519(t *testing.T) {
-	test.CompareGroups(testSuite.Cipher,
+	test.CompareGroups(testSuite.XOF,
 		new(ExtendedCurve).Init(Param25519(), false),
 		new(edwards25519.Curve))
 }
