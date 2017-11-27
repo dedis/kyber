@@ -2,7 +2,6 @@ package kyber
 
 import (
 	"crypto/cipher"
-	"hash"
 	"io"
 )
 
@@ -12,7 +11,8 @@ import (
 // state of the XOF.
 type XOF interface {
 	// Write absorbs more data into the hash's state. It panics if called
-	// after Read. Use Reseed() to
+	// after Read. Use Reseed() return an XOF into a state where more data
+	// can be absorbed via Write.
 	io.Writer
 
 	// Read reads more output from the hash. It returns io.EOF if the limit
@@ -41,9 +41,4 @@ type XOFFactory interface {
 	// is nil or []byte{}, the XOF is unseeded and will always produce the same
 	// bytes from Read.
 	XOF(seed []byte) XOF
-}
-
-// A HashFactory factors hashes. (Tempory comment to make travis happy. Hash is disappearing soon.)
-type HashFactory interface {
-	Hash() hash.Hash
 }

@@ -1,3 +1,5 @@
+// Package keccak provides an implementation of kyber.XOF based on the
+// Shake256 hash.
 package keccak
 
 import (

@@ -1,3 +1,5 @@
+// Package blake provides an implementation of kyber.XOF based on the
+// Blake2bx construction.
 package blake
 
 import (
