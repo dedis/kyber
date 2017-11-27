@@ -495,26 +495,49 @@ func (ro *Roster) GenerateBigNaryTree(N, nodes int) *Tree {
 // GenerateNaryTreeWithRoot creates a tree where each node has N children.
 // The root is given as an ServerIdentity. If root doesn't exist in the
 // roster, `nil` will be returned.
+// The generation of the tree is done in a simple for-loop, so that the
+// original roster can be used for tree creation.
+// If root == nil, the first element of the roster will be taken as root.
 func (ro *Roster) GenerateNaryTreeWithRoot(N int, root *network.ServerIdentity) *Tree {
-	rootIndex, _ := ro.Search(root.ID)
-	if rootIndex < 0 {
-		log.Lvl2("Asked for non-existing root:", root, ro.List)
-		return nil
+	// Fetch the root node, set to the first element of the roster if
+	// root == nil.
+	rootIndex := 0
+	if root != nil {
+		rootIndex, _ = ro.Search(root.ID)
+		if rootIndex < 0 {
+			log.Lvl2("Asked for non-existing root:", root, ro.List)
+			return nil
+		}
+	} else {
+		root = ro.List[0]
 	}
-	cList := ro.List
-	onlyRoot := []*network.ServerIdentity{cList[rootIndex]}
-	uptoRoot := cList[:rootIndex]
-	afterRoot := cList[rootIndex+1:]
-	list := append(onlyRoot, uptoRoot...)
-	list = append(list, afterRoot...)
-	return NewRoster(list).GenerateNaryTree(N)
+	rootNode := NewTreeNode(rootIndex, root)
+	parents := []*TreeNode{rootNode}
+	children := []*TreeNode{}
+	for i := 1; i < len(ro.List); i++ {
+		index := (i + rootIndex) % len(ro.List)
+		// If a parent is full, remove it from the list.
+		if parents[0].SubtreeCount() == N {
+			parents = parents[1:]
+		}
+		// If there are no parents, pass all children to the parents, and
+		// continue
+		if len(parents) == 0 {
+			parents = children
+			children = []*TreeNode{}
+		}
+		// Create the new child and add it to the parent node.
+		newChild := NewTreeNode(index, ro.List[index])
+		children = append(children, newChild)
+		parents[0].AddChild(newChild)
+	}
+	return NewTree(ro, rootNode)
 }
 
 // GenerateNaryTree creates a tree where each node has N children.
 // The first element of the Roster will be the root element.
 func (ro *Roster) GenerateNaryTree(N int) *Tree {
-	root := ro.addNary(nil, N, 0, len(ro.List)-1)
-	return NewTree(ro, root)
+	return ro.GenerateNaryTreeWithRoot(N, nil)
 }
 
 // GenerateBinaryTree creates a binary tree out of the Roster
