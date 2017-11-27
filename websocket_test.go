@@ -65,7 +65,7 @@ func TestClient_Send(t *testing.T) {
 	defer local.CloseAll()
 
 	// register service
-	RegisterNewService(backForthServiceName, func(c *Context, suite interface{}) (Service, error) {
+	RegisterNewService(backForthServiceName, func(c *Context) (Service, error) {
 		return &simpleService{
 			ctx: c,
 		}, nil
@@ -97,7 +97,7 @@ func TestClient_Parallel(t *testing.T) {
 	defer local.CloseAll()
 
 	// register service
-	RegisterNewService(backForthServiceName, func(c *Context, suite interface{}) (Service, error) {
+	RegisterNewService(backForthServiceName, func(c *Context) (Service, error) {
 		return &simpleService{
 			ctx: c,
 		}, nil
@@ -150,7 +150,7 @@ func TestNewClientKeep(t *testing.T) {
 }
 
 func TestMultiplePath(t *testing.T) {
-	_, err := RegisterNewService(dummyService3Name, func(c *Context, suite interface{}) (Service, error) {
+	_, err := RegisterNewService(dummyService3Name, func(c *Context) (Service, error) {
 		ds := &DummyService3{}
 		return ds, nil
 	})
@@ -183,9 +183,9 @@ func (i *ServiceWebSocket) SimpleResponse(msg *SimpleResponse) (network.Message,
 	return &SimpleResponse{msg.Val + 1}, nil
 }
 
-func newServiceWebSocket(c *Context, suite interface{}) (Service, error) {
+func newServiceWebSocket(c *Context) (Service, error) {
 	s := &ServiceWebSocket{
-		ServiceProcessor: NewServiceProcessor(c, suite.(network.Suite)),
+		ServiceProcessor: NewServiceProcessor(c),
 	}
 	log.ErrFatal(s.RegisterHandler(s.SimpleResponse))
 	return s, nil

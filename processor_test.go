@@ -23,7 +23,7 @@ func init() {
 func TestProcessor_AddMessage(t *testing.T) {
 	h1 := NewLocalServer(2000, tSuite)
 	defer h1.Close()
-	p := NewServiceProcessor(&Context{server: h1}, tSuite)
+	p := NewServiceProcessor(&Context{server: h1})
 	log.ErrFatal(p.RegisterHandler(procMsg))
 	if len(p.handlers) != 1 {
 		t.Fatal("Should have registered one function")
@@ -52,7 +52,7 @@ func TestProcessor_AddMessage(t *testing.T) {
 func TestProcessor_RegisterMessages(t *testing.T) {
 	h1 := NewLocalServer(2000, tSuite)
 	defer h1.Close()
-	p := NewServiceProcessor(&Context{server: h1}, tSuite)
+	p := NewServiceProcessor(&Context{server: h1})
 	log.ErrFatal(p.RegisterHandlers(procMsg, procMsg2, procMsg3, procMsg4))
 	assert.Error(t, p.RegisterHandlers(procMsg3, procMsgWrong4))
 }
@@ -60,7 +60,7 @@ func TestProcessor_RegisterMessages(t *testing.T) {
 func TestServiceProcessor_ProcessClientRequest(t *testing.T) {
 	h1 := NewLocalServer(2000, tSuite)
 	defer h1.Close()
-	p := NewServiceProcessor(&Context{server: h1}, tSuite)
+	p := NewServiceProcessor(&Context{server: h1})
 	log.ErrFatal(p.RegisterHandler(procMsg))
 
 	buf, err := protobuf.Encode(&testMsg{11})
@@ -158,9 +158,9 @@ type testService struct {
 	Msg interface{}
 }
 
-func newTestService(c *Context, suite interface{}) (Service, error) {
+func newTestService(c *Context) (Service, error) {
 	ts := &testService{
-		ServiceProcessor: NewServiceProcessor(c, suite.(network.Suite)),
+		ServiceProcessor: NewServiceProcessor(c),
 	}
 	log.ErrFatal(ts.RegisterHandler(ts.ProcessMsg))
 	return ts, nil

@@ -57,7 +57,7 @@ func NewServer(r *network.Router, pkey kyber.Scalar, s network.Suite) *Server {
 	}
 	c.overlay = NewOverlay(c)
 	c.websocket = NewWebSocket(r.ServerIdentity)
-	c.serviceManager = newServiceManager(c, c.overlay, s)
+	c.serviceManager = newServiceManager(c, c.overlay)
 	c.statusReporterStruct.RegisterStatusReporter("Status", c)
 	for name, inst := range protocols.instantiators {
 		log.Lvl4("Registering global protocol", name)

@@ -56,6 +56,11 @@ func (c *Context) ServerIdentity() *network.ServerIdentity {
 	return c.server.ServerIdentity
 }
 
+// Suite returns the suite for the context's associated server.
+func (c *Context) Suite() network.Suite {
+	return c.server.Suite()
+}
+
 // ServiceID returns the service-id.
 func (c *Context) ServiceID() ServiceID {
 	return c.serviceID

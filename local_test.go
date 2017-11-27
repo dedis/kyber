@@ -62,10 +62,10 @@ func (c *clientService) SimpleMessage2(msg *SimpleMessage2) (network.Message, Cl
 	return nil, nil
 }
 
-func newClientService(c *Context, suite interface{}) (Service, error) {
+func newClientService(c *Context) (Service, error) {
 	s := &clientService{
-		ServiceProcessor: NewServiceProcessor(c, suite.(network.Suite)),
-		cl:               NewClient(clientServiceName, suite.(network.Suite)),
+		ServiceProcessor: NewServiceProcessor(c),
+		cl:               NewClient(clientServiceName, c.server.Suite()),
 	}
 	log.ErrFatal(s.RegisterHandlers(s.SimpleMessage, s.SimpleMessage2))
 	return s, nil

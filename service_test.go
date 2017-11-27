@@ -32,7 +32,7 @@ func init() {
 
 func TestServiceRegistration(t *testing.T) {
 	var name = "dummy"
-	RegisterNewService(name, func(c *Context, suite interface{}) (Service, error) {
+	RegisterNewService(name, func(c *Context) (Service, error) {
 		return &DummyService{}, nil
 	})
 
@@ -59,7 +59,7 @@ func TestServiceNew(t *testing.T) {
 	ds := &DummyService{
 		link: make(chan bool),
 	}
-	RegisterNewService(dummyServiceName, func(c *Context, suite interface{}) (Service, error) {
+	RegisterNewService(dummyServiceName, func(c *Context) (Service, error) {
 		ds.c = c
 		ds.link <- true
 		return ds, nil
@@ -76,7 +76,7 @@ func TestServiceNew(t *testing.T) {
 
 func TestServiceProcessRequest(t *testing.T) {
 	link := make(chan bool, 1)
-	_, err := RegisterNewService(dummyServiceName, func(c *Context, suite interface{}) (Service, error) {
+	_, err := RegisterNewService(dummyServiceName, func(c *Context) (Service, error) {
 		ds := &DummyService{
 			link: link,
 			c:    c,
@@ -110,7 +110,7 @@ func TestServiceRequestNewProtocol(t *testing.T) {
 	ds := &DummyService{
 		link: make(chan bool, 1),
 	}
-	RegisterNewService(dummyServiceName, func(c *Context, suite interface{}) (Service, error) {
+	RegisterNewService(dummyServiceName, func(c *Context) (Service, error) {
 		ds.c = c
 		return ds, nil
 	})
@@ -154,7 +154,7 @@ func TestServiceNewProtocol(t *testing.T) {
 	}
 	var count int
 	countMutex := sync.Mutex{}
-	RegisterNewService(dummyServiceName, func(c *Context, suite interface{}) (Service, error) {
+	RegisterNewService(dummyServiceName, func(c *Context) (Service, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		log.Lvl2("Creating service", count)
@@ -208,7 +208,7 @@ func TestServiceProcessor(t *testing.T) {
 		link: make(chan bool),
 	}
 	var count int
-	RegisterNewService(dummyServiceName, func(c *Context, suite interface{}) (Service, error) {
+	RegisterNewService(dummyServiceName, func(c *Context) (Service, error) {
 		var s *DummyService
 		if count == 0 {
 			s = ds1
@@ -240,7 +240,7 @@ func TestServiceBackForthProtocol(t *testing.T) {
 	defer local.CloseAll()
 
 	// register service
-	_, err := RegisterNewService(backForthServiceName, func(c *Context, suite interface{}) (Service, error) {
+	_, err := RegisterNewService(backForthServiceName, func(c *Context) (Service, error) {
 		return &simpleService{
 			ctx: c,
 		}, nil
@@ -589,9 +589,9 @@ func (i *ServiceMessages) SimpleResponse(env *network.Envelope) {
 	i.GotResponse <- true
 }
 
-func newServiceMessages(c *Context, suite interface{}) (Service, error) {
+func newServiceMessages(c *Context) (Service, error) {
 	s := &ServiceMessages{
-		ServiceProcessor: NewServiceProcessor(c, suite.(network.Suite)),
+		ServiceProcessor: NewServiceProcessor(c),
 		GotResponse:      make(chan bool),
 	}
 	c.RegisterProcessorFunc(SimpleResponseType, s.SimpleResponse)
@@ -603,7 +603,7 @@ type dummyService2 struct {
 	link chan bool
 }
 
-func newDummyService2(c *Context, suite interface{}) (Service, error) {
+func newDummyService2(c *Context) (Service, error) {
 	return &dummyService2{Context: c}, nil
 }
 
