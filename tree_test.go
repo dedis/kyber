@@ -424,7 +424,7 @@ func TestRoster_GenerateNaryTreeWithRoot(t *testing.T) {
 			t.Fatal("Not all elements are in the tree")
 		}
 		if tree.Roster.ID != peerList.ID {
-			t.Fatal("Generated tree should be associated the receiver roster")
+			t.Fatal("Generated tree should be associated with the receiver roster")
 		}
 	}
 }

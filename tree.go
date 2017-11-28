@@ -141,7 +141,7 @@ func (t *Tree) BinaryUnmarshaler(s network.Suite, b []byte) error {
 	if !ok {
 		return errors.New("Didn't find TBMstruct")
 	}
-	tree, err := NewTreeFromMarshal(s, tbm.T, tbm.EL)
+	tree, err := NewTreeFromMarshal(s, tbm.T, tbm.Ro)
 	if err != nil {
 		return err
 	}
@@ -322,7 +322,7 @@ func (tm TreeMarshal) MakeTree(ro *Roster) (*Tree, error) {
 		ID:     tm.TreeID,
 		Roster: ro,
 	}
-	tree.Root = tm.Children[0].MakeTreeFromList(nil, el)
+	tree.Root = tm.Children[0].MakeTreeFromList(nil, ro)
 	tree.computeSubtreeAggregate(tree.Root)
 	return tree, nil
 }
@@ -417,9 +417,9 @@ func (ro *Roster) Get(idx int) *network.ServerIdentity {
 
 // Publics returns the public-keys of the underlying Roster. It won't modify
 // the underlying list.
-func (el *Roster) Publics() []kyber.Point {
-	res := make([]kyber.Point, len(el.List))
-	for i, p := range el.List {
+func (ro *Roster) Publics() []kyber.Point {
+	res := make([]kyber.Point, len(ro.List))
+	for i, p := range ro.List {
 		res[i] = p.Public
 	}
 	return res
@@ -435,8 +435,8 @@ func (el *Roster) Publics() []kyber.Point {
 // However, for some configurations it is impossible to use all ServerIdentities from
 // the Roster and still avoid having a parent and a child from the same
 // host. In this case use-all has preference over not-the-same-host.
-func (el *Roster) GenerateBigNaryTree(N, nodes int) *Tree {
-	if len(el.List) == 0 {
+func (ro *Roster) GenerateBigNaryTree(N, nodes int) *Tree {
+	if len(ro.List) == 0 {
 		panic("empty roster")
 	}
 
@@ -736,10 +736,10 @@ type RosterToml struct {
 }
 
 // Toml returns the toml-writable version of this roster.
-func (el *Roster) Toml(suite network.Suite) *RosterToml {
-	ids := make([]*network.ServerIdentityToml, len(el.List))
-	for i := range el.List {
-		ids[i] = el.List[i].Toml(suite)
+func (ro *Roster) Toml(suite network.Suite) *RosterToml {
+	ids := make([]*network.ServerIdentityToml, len(ro.List))
+	for i := range ro.List {
+		ids[i] = ro.List[i].Toml(suite)
 	}
 	return &RosterToml{
 		ID:   ro.ID,
@@ -748,10 +748,10 @@ func (el *Roster) Toml(suite network.Suite) *RosterToml {
 }
 
 // Roster returns the Id list from this toml read struct
-func (elt *RosterToml) Roster(suite network.Suite) *Roster {
-	ids := make([]*network.ServerIdentity, len(elt.List))
-	for i := range elt.List {
-		ids[i] = elt.List[i].ServerIdentity(suite)
+func (rot *RosterToml) Roster(suite network.Suite) *Roster {
+	ids := make([]*network.ServerIdentity, len(rot.List))
+	for i := range rot.List {
+		ids[i] = rot.List[i].ServerIdentity(suite)
 	}
 	return &Roster{
 		ID:   rot.ID,
