@@ -8,7 +8,7 @@ install:
   - go get golang.org/x/tools/cmd/cover
   - go get github.com/dedis/goveralls
 
-go_import_path: gopkg.in/dedis/cothority.v1
+go_import_path: gopkg.in/dedis/onet.v1
 
 script:
   - make test
