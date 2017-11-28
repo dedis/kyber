@@ -23,7 +23,6 @@ import (
 
 // Localhost is the platform for launching thee apps locally
 type Localhost struct {
-
 	// Address of the logger (can be local or not)
 	logger string
 
@@ -58,6 +57,9 @@ type Localhost struct {
 	// Listening monitor port
 	monitorPort int
 
+	// Suite used for the simulation
+	Suite string
+
 	// SimulationConfig holds all things necessary for the run
 	sc *onet.SimulationConfig
 
@@ -71,6 +73,7 @@ func (d *Localhost) Configure(pc *Config) {
 	d.runDir = pwd + "/build"
 	os.RemoveAll(d.runDir)
 	log.ErrFatal(os.Mkdir(d.runDir, 0770))
+	d.Suite = pc.Suite
 	d.localDir = pwd
 	d.debug = pc.Debug
 	d.running = false
@@ -172,6 +175,7 @@ func (d *Localhost) Start(args ...string) error {
 	}
 
 	log.ErrFatal(monitor.ConnectSink("localhost:" + strconv.Itoa(d.monitorPort)))
+
 	for index := 0; index < d.servers; index++ {
 		log.Lvl3("Starting", index)
 		host := "127.0.0." + strconv.Itoa(index)

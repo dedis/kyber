@@ -3,9 +3,17 @@ package onet
 import (
 	"testing"
 
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 )
+
+var tSuite kyber.Group
+
+func init() {
+	tSuite, _ = group.Suite("Ed25519")
+}
 
 const clientServiceName = "ClientService"
 
@@ -14,7 +22,7 @@ func init() {
 }
 
 func TestGenLocalHost(t *testing.T) {
-	l := NewLocalTest()
+	l := NewLocalTest(tSuite)
 	hosts := l.genLocalHosts(2)
 	defer l.CloseAll()
 
@@ -27,11 +35,11 @@ func TestGenLocalHost(t *testing.T) {
 // This tests the client-connection in the case of a non-garbage-collected
 // client that stays in the service.
 func TestNewTCPTest(t *testing.T) {
-	l := NewTCPTest()
+	l := NewTCPTest(tSuite)
 	_, el, _ := l.GenTree(3, true)
 	defer l.CloseAll()
 
-	c1 := NewClient(clientServiceName)
+	c1 := NewClient(clientServiceName, tSuite)
 	cerr := c1.SendProtobuf(el.List[0], &SimpleMessage{}, nil)
 	log.ErrFatal(cerr)
 }
@@ -54,11 +62,11 @@ func (c *clientService) SimpleMessage2(msg *SimpleMessage2) (network.Message, Cl
 	return nil, nil
 }
 
-func newClientService(c *Context) Service {
+func newClientService(c *Context) (Service, error) {
 	s := &clientService{
 		ServiceProcessor: NewServiceProcessor(c),
-		cl:               NewClient(clientServiceName),
+		cl:               NewClient(clientServiceName, c.server.Suite()),
 	}
 	log.ErrFatal(s.RegisterHandlers(s.SimpleMessage, s.SimpleMessage2))
-	return s
+	return s, nil
 }

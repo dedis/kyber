@@ -16,19 +16,23 @@ func TestProxy(t *testing.T) {
 	// First set up monitor listening
 	monitor := NewMonitor(stat)
 	monitor.SinkPort = 8000
-	done := make(chan bool)
+	done := make(chan bool, 2)
 	go func() {
 		monitor.Listen()
 		done <- true
 	}()
-	time.Sleep(100 * time.Millisecond)
+
 	// Then setup proxy
 	// change port so the proxy does not listen to the same
 	// than the original monitor
 
 	// proxy listens to 0.0.0.0:8000 & redirects to
 	// localhost:10000 (DefaultSinkPort)
-	go Proxy("localhost:" + strconv.Itoa(DefaultSinkPort))
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		Proxy("localhost:" + strconv.Itoa(DefaultSinkPort))
+		done <- true
+	}()
 
 	time.Sleep(100 * time.Millisecond)
 	// Then measure
@@ -45,15 +49,22 @@ func TestProxy(t *testing.T) {
 	meas.Record()
 
 	EndAndCleanup()
+	close(proxyDone)
 
 	select {
 	case <-done:
-		s := monitor.stats
-		s.Collect()
-		if s.String() == fresh {
-			t.Error("stats not updated?")
+		select {
+		case <-done:
+			// Second read for checking proxy exited.
+			s := monitor.stats
+			s.Collect()
+			if s.String() == fresh {
+				t.Error("stats not updated?")
+			}
+			return
+		case <-time.After(2 * time.Second):
+			t.Error("Proxy not finished")
 		}
-		return
 	case <-time.After(2 * time.Second):
 		t.Error("Monitor not finished")
 	}

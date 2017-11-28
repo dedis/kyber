@@ -46,7 +46,6 @@ import (
 	"bytes"
 	"io"
 	"os"
-	"strings"
 )
 
 // For testing we can change the output-writer
@@ -95,16 +94,4 @@ func GetStdErr() string {
 	ret := bufStdErr.String()
 	bufStdErr.Reset()
 	return ret
-}
-
-// ContainsStdErr will look for str in StdErr and flush the output-buffer.
-// If you need to look at multiple strings, use GetStdErr.
-func ContainsStdErr(str string) bool {
-	return strings.Contains(GetStdErr(), str)
-}
-
-// ContainsStdOut will look for str in StdOut and flush the output-buffer.
-// If you need to look at multiple strings, use GetStdOut.
-func ContainsStdOut(str string) bool {
-	return strings.Contains(GetStdOut(), str)
 }

@@ -29,6 +29,9 @@ type simulation struct {
 // initialised using the config-file
 func NewSimulation(config string) (onet.Simulation, error) {
 	es := &simulation{}
+	// Set defaults before toml.Decode
+	es.Suite = "Ed25519"
+
 	_, err := toml.Decode(config, es)
 	if err != nil {
 		return nil, err

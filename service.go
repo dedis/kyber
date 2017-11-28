@@ -42,6 +42,10 @@ type Service interface {
 	network.Processor
 }
 
+// NewServiceFunc is the type of a function that is used to instantiate a given Service
+// A service is initialized with a Server (to send messages to someone).
+type NewServiceFunc func(c *Context) (Service, error)
+
 // ServiceID is a type to represent a uuid for a Service
 type ServiceID uuid.UUID
 
@@ -62,10 +66,6 @@ func (s ServiceID) IsNil() bool {
 
 // NilServiceID is the empty ServiceID
 var NilServiceID = ServiceID(uuid.Nil)
-
-// NewServiceFunc is the type of a function that is used to instantiate a given Service
-// A service is initialized with a Server (to send messages to someone).
-type NewServiceFunc func(c *Context) Service
 
 // GenericConfig is a config that can withhold any type of specific configs for
 // protocols. It is passed down to the service NewProtocol function.
@@ -188,7 +188,7 @@ func (s *serviceFactory) start(name string, con *Context) (Service, error) {
 	defer s.mutex.RUnlock()
 	for _, c := range s.constructors {
 		if name == c.name {
-			return c.constructor(con), nil
+			return c.constructor(con)
 		}
 	}
 	return nil, errors.New("Didn't find service " + name)
@@ -207,7 +207,7 @@ type serviceManager struct {
 
 const configFolder = "config"
 
-// newServiceStore will create a serviceStore out of all the registered Service
+// newServiceManager will create a serviceStore out of all the registered Service
 func newServiceManager(c *Server, o *Overlay) *serviceManager {
 	services := make(map[ServiceID]Service)
 	s := &serviceManager{services, c, network.NewRoutineDispatcher()}
@@ -218,7 +218,7 @@ func newServiceManager(c *Server, o *Overlay) *serviceManager {
 		cont := newContext(c, o, id, s)
 		s, err := ServiceFactory.start(name, cont)
 		if err != nil {
-			log.Error("Trying to instantiate service:", err)
+			log.Panic("Trying to instantiate service", name, ":", err)
 		}
 		log.Lvl3("Started Service", name)
 		services[id] = s

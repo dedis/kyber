@@ -8,14 +8,12 @@ import (
 
 	"strings"
 
+	"github.com/dedis/kyber/util/key"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/config"
 )
 
-var tSuite = network.Suite
 var prefix = "127.0.0.1:"
 
 // test the ID generation
@@ -149,7 +147,7 @@ func TestUnMarshalTree(t *testing.T) {
 		t.Fatal("Marshaled tree is empty")
 	}
 
-	tree2, err := NewTreeFromMarshal(treeBinary, peerList)
+	tree2, err := NewTreeFromMarshal(tSuite, treeBinary, peerList)
 	if err != nil {
 		t.Fatal("Error while unmarshaling:", err)
 	}
@@ -364,7 +362,7 @@ func TestTree_BinaryMarshaler(t *testing.T) {
 	b, err := tree.BinaryMarshaler()
 	log.ErrFatal(err)
 	tree2 := &Tree{}
-	log.ErrFatal(tree2.BinaryUnmarshaler(b))
+	log.ErrFatal(tree2.BinaryUnmarshaler(tSuite, b))
 	if !tree.Equal(tree2) {
 		t.Fatal("Unmarshalled tree is not equal")
 	}
@@ -426,7 +424,7 @@ func TestRoster_GenerateNaryTreeWithRoot(t *testing.T) {
 			t.Fatal("Not all elements are in the tree")
 		}
 		if tree.Roster.ID != peerList.ID {
-			t.Fatal("Generated tree should be associated the receiver roster")
+			t.Fatal("Generated tree should be associated with the receiver roster")
 		}
 	}
 }
@@ -450,19 +448,19 @@ func TestTreeNode_AggregatePublic(t *testing.T) {
 	tree, el := genLocalTree(7, 2000)
 	agg := el.Aggregate
 	root := tree.Root
-	aggRoot := root.AggregatePublic()
+	aggRoot := root.AggregatePublic(tSuite)
 	assert.True(t, aggRoot.Equal(agg))
 
 	rootPub := tree.Root.ServerIdentity.Public
-	aggChild1 := tree.Root.Children[0].AggregatePublic()
-	aggChild2 := tree.Root.Children[1].AggregatePublic()
+	aggChild1 := tree.Root.Children[0].AggregatePublic(tSuite)
+	aggChild2 := tree.Root.Children[1].AggregatePublic(tSuite)
 
 	assert.True(t, aggChild1.Add(aggChild1, aggChild2).
 		Add(aggChild1, rootPub).Equal(aggRoot))
 
 	for i := 0; i < 4; i++ {
 		leaf := tree.Root.Children[i%2].Children[i/2]
-		assert.True(t, leaf.AggregatePublic().Equal(leaf.ServerIdentity.Public))
+		assert.True(t, leaf.AggregatePublic(tSuite).Equal(leaf.ServerIdentity.Public))
 	}
 }
 
@@ -472,7 +470,7 @@ func BenchmarkTreeMarshal(b *testing.B) {
 	t, _ := tree.BinaryMarshaler()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		tree.BinaryUnmarshaler(t)
+		tree.BinaryUnmarshaler(tSuite, t)
 	}
 }
 
@@ -493,7 +491,7 @@ func BenchmarkUnmarshalRegisteredType(b *testing.B) {
 	buf, _ := tree.BinaryMarshaler()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _, _ = network.Unmarshal(buf)
+		_, _, _ = network.Unmarshal(buf, tSuite)
 	}
 }
 
@@ -539,10 +537,10 @@ func genLocalPeerName(nbrLocal, nbrPort int) []network.Address {
 }
 
 // genRoster generates a Roster out of names
-func genRoster(suite abstract.Suite, names []network.Address) *Roster {
+func genRoster(suite network.Suite, names []network.Address) *Roster {
 	var ids []*network.ServerIdentity
 	for _, n := range names {
-		kp := config.NewKeyPair(suite)
+		kp := key.NewKeyPair(suite)
 		ids = append(ids, network.NewServerIdentity(kp.Public, n))
 	}
 	return NewRoster(ids)

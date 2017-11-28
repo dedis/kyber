@@ -32,8 +32,8 @@ func init() {
 
 func TestServiceRegistration(t *testing.T) {
 	var name = "dummy"
-	RegisterNewService(name, func(c *Context) Service {
-		return &DummyService{}
+	RegisterNewService(name, func(c *Context) (Service, error) {
+		return &DummyService{}, nil
 	})
 
 	names := ServiceFactory.RegisteredServiceNames()
@@ -59,14 +59,14 @@ func TestServiceNew(t *testing.T) {
 	ds := &DummyService{
 		link: make(chan bool),
 	}
-	RegisterNewService(dummyServiceName, func(c *Context) Service {
+	RegisterNewService(dummyServiceName, func(c *Context) (Service, error) {
 		ds.c = c
 		ds.link <- true
-		return ds
+		return ds, nil
 	})
 	defer UnregisterService(dummyServiceName)
 	go func() {
-		local := NewLocalTest()
+		local := NewLocalTest(tSuite)
 		local.GenServers(1)
 		defer local.CloseAll()
 	}()
@@ -76,23 +76,23 @@ func TestServiceNew(t *testing.T) {
 
 func TestServiceProcessRequest(t *testing.T) {
 	link := make(chan bool, 1)
-	_, err := RegisterNewService(dummyServiceName, func(c *Context) Service {
+	_, err := RegisterNewService(dummyServiceName, func(c *Context) (Service, error) {
 		ds := &DummyService{
 			link: link,
 			c:    c,
 		}
-		return ds
+		return ds, nil
 	})
 	log.ErrFatal(err)
 	defer UnregisterService(dummyServiceName)
 
-	local := NewTCPTest()
+	local := NewTCPTest(tSuite)
 	hs := local.GenServers(2)
 	server := hs[0]
 	log.Lvl1("Host created and listening")
 	defer local.CloseAll()
 	// Send a request to the service
-	client := NewClient(dummyServiceName)
+	client := NewClient(dummyServiceName, tSuite)
 	log.Lvl1("Sending request to service...")
 	_, cerr := client.Send(server.ServerIdentity, "nil", []byte("a"))
 	log.Lvl2("Got reply")
@@ -110,13 +110,13 @@ func TestServiceRequestNewProtocol(t *testing.T) {
 	ds := &DummyService{
 		link: make(chan bool, 1),
 	}
-	RegisterNewService(dummyServiceName, func(c *Context) Service {
+	RegisterNewService(dummyServiceName, func(c *Context) (Service, error) {
 		ds.c = c
-		return ds
+		return ds, nil
 	})
 
 	defer UnregisterService(dummyServiceName)
-	local := NewTCPTest()
+	local := NewTCPTest(tSuite)
 	hs := local.GenServers(2)
 	server := hs[0]
 	client := local.NewClient(dummyServiceName)
@@ -154,7 +154,7 @@ func TestServiceNewProtocol(t *testing.T) {
 	}
 	var count int
 	countMutex := sync.Mutex{}
-	RegisterNewService(dummyServiceName, func(c *Context) Service {
+	RegisterNewService(dummyServiceName, func(c *Context) (Service, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		log.Lvl2("Creating service", count)
@@ -162,7 +162,7 @@ func TestServiceNewProtocol(t *testing.T) {
 		switch count {
 		case 2:
 			// the client does not need a Service
-			return &DummyService{link: make(chan bool)}
+			return &DummyService{link: make(chan bool)}, nil
 		case 1: // children
 			localDs = ds2
 		case 0: // root
@@ -171,11 +171,11 @@ func TestServiceNewProtocol(t *testing.T) {
 		localDs.c = c
 
 		count++
-		return localDs
+		return localDs, nil
 	})
 
 	defer UnregisterService(dummyServiceName)
-	local := NewTCPTest()
+	local := NewTCPTest(tSuite)
 	defer local.CloseAll()
 	hs := local.GenServers(3)
 	server1, server2 := hs[0], hs[1]
@@ -208,7 +208,7 @@ func TestServiceProcessor(t *testing.T) {
 		link: make(chan bool),
 	}
 	var count int
-	RegisterNewService(dummyServiceName, func(c *Context) Service {
+	RegisterNewService(dummyServiceName, func(c *Context) (Service, error) {
 		var s *DummyService
 		if count == 0 {
 			s = ds1
@@ -217,9 +217,9 @@ func TestServiceProcessor(t *testing.T) {
 		}
 		s.c = c
 		c.RegisterProcessor(s, dummyMsgType)
-		return s
+		return s, nil
 	})
-	local := NewLocalTest()
+	local := NewLocalTest(tSuite)
 	defer local.CloseAll()
 	hs := local.GenServers(2)
 	server1, server2 := hs[0], hs[1]
@@ -236,14 +236,14 @@ func TestServiceProcessor(t *testing.T) {
 }
 
 func TestServiceBackForthProtocol(t *testing.T) {
-	local := NewTCPTest()
+	local := NewTCPTest(tSuite)
 	defer local.CloseAll()
 
 	// register service
-	_, err := RegisterNewService(backForthServiceName, func(c *Context) Service {
+	_, err := RegisterNewService(backForthServiceName, func(c *Context) (Service, error) {
 		return &simpleService{
 			ctx: c,
-		}
+		}, nil
 	})
 	log.ErrFatal(err)
 	defer ServiceFactory.Unregister(backForthServiceName)
@@ -266,7 +266,7 @@ func TestServiceBackForthProtocol(t *testing.T) {
 }
 
 func TestServiceManager_Service(t *testing.T) {
-	local := NewLocalTest()
+	local := NewLocalTest(tSuite)
 	defer local.CloseAll()
 	servers, _, _ := local.GenTree(2, true)
 
@@ -278,7 +278,7 @@ func TestServiceManager_Service(t *testing.T) {
 }
 
 func TestServiceMessages(t *testing.T) {
-	local := NewLocalTest()
+	local := NewLocalTest(tSuite)
 	defer local.CloseAll()
 	servers, _, _ := local.GenTree(2, true)
 
@@ -290,7 +290,7 @@ func TestServiceMessages(t *testing.T) {
 }
 
 func TestServiceProtocolInstantiation(t *testing.T) {
-	local := NewLocalTest()
+	local := NewLocalTest(tSuite)
 	defer local.CloseAll()
 	servers, _, tree := local.GenTree(2, true)
 
@@ -311,7 +311,7 @@ func TestServiceProtocolInstantiation(t *testing.T) {
 }
 
 func TestServiceGenericConfig(t *testing.T) {
-	local := NewLocalTest()
+	local := NewLocalTest(tSuite)
 	defer local.CloseAll()
 	servers, _, tree := local.GenTree(2, true)
 
@@ -453,7 +453,7 @@ type simpleService struct {
 
 func (s *simpleService) ProcessClientRequest(path string, buf []byte) ([]byte, ClientError) {
 	msg := &SimpleRequest{}
-	err := protobuf.DecodeWithConstructors(buf, msg, network.DefaultConstructors(network.Suite))
+	err := protobuf.DecodeWithConstructors(buf, msg, network.DefaultConstructors(tSuite))
 	if err != nil {
 		return nil, NewClientErrorCode(WebSocketErrorProtobufDecode, "")
 	}
@@ -589,13 +589,13 @@ func (i *ServiceMessages) SimpleResponse(env *network.Envelope) {
 	i.GotResponse <- true
 }
 
-func newServiceMessages(c *Context) Service {
+func newServiceMessages(c *Context) (Service, error) {
 	s := &ServiceMessages{
 		ServiceProcessor: NewServiceProcessor(c),
 		GotResponse:      make(chan bool),
 	}
 	c.RegisterProcessorFunc(SimpleResponseType, s.SimpleResponse)
-	return s
+	return s, nil
 }
 
 type dummyService2 struct {
@@ -603,8 +603,8 @@ type dummyService2 struct {
 	link chan bool
 }
 
-func newDummyService2(c *Context) Service {
-	return &dummyService2{Context: c}
+func newDummyService2(c *Context) (Service, error) {
+	return &dummyService2{Context: c}, nil
 }
 
 func (ds *dummyService2) ProcessClientRequest(path string, buf []byte) ([]byte, ClientError) {

@@ -9,9 +9,17 @@ import (
 
 	"io"
 
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group"
 	"github.com/dedis/onet/log"
 	"github.com/stretchr/testify/require"
 )
+
+var tSuite kyber.Group
+
+func init() {
+	tSuite, _ = group.Suite("Ed25519")
+}
 
 func TestCothority(t *testing.T) {
 	origStdout := os.Stdout
@@ -29,7 +37,7 @@ func TestCothority(t *testing.T) {
 	}()
 
 	os.Args = []string{os.Args[0], "help"}
-	Server()
+	Server(tSuite)
 	// back to normal state
 	log.ErrFatal(w.Close())
 	require.Contains(t, <-outC, "Serve a cothority")

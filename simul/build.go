@@ -141,14 +141,12 @@ func RunTests(name string, runconfigs []*platform.RunConfig) {
 			log.Lvl2("Skipping", rc, "because of range")
 			continue
 		}
-		// Waiting for the document-branch to be merged, then uncomment this
-		//log.Lvl1("Starting run with parameters -", t.String())
 
 		// run test t nTimes times
 		// take the average of all successful runs
 		stats, err := RunTest(rc)
 		if err != nil {
-			log.Error("Error running test, trying again:", err)
+			log.Error("Error running test:", err)
 			continue
 		}
 

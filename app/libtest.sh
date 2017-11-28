@@ -198,12 +198,13 @@ buildDir(){
 
 buildConode(){
     local incl="$@"
+    gopath=`go env GOPATH`
     if [ -z "$incl" ]; then
 	echo "buildConode: No import paths provided. Searching."
 	for i in service ../service
         do
 	    if [ -d $APPDIR/$i ]; then
-		local pkg=$( realpath $APPDIR/$i | sed -e "s:$GOPATH/src/::" )
+		local pkg=$( realpath $APPDIR/$i | sed -e "s:$gopath/src/::" )
 		incl="$incl $pkg"
 	    fi
 	done

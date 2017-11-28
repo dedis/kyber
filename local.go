@@ -10,11 +10,11 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/key"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 	"github.com/satori/go.uuid"
-	"gopkg.in/dedis/crypto.v0/abstract"
-	"gopkg.in/dedis/crypto.v0/config"
 )
 
 // LocalTest represents all that is needed for a local test-run
@@ -35,7 +35,8 @@ type LocalTest struct {
 	mode string
 	// the context for the local connections
 	// it enables to have multiple local test running simultaneously
-	ctx *network.LocalManager
+	ctx   *network.LocalManager
+	Suite network.Suite
 }
 
 const (
@@ -47,7 +48,7 @@ const (
 
 // NewLocalTest creates a new Local handler that can be used to test protocols
 // locally
-func NewLocalTest() *LocalTest {
+func NewLocalTest(s network.Suite) *LocalTest {
 	if s, err := os.Stat("config"); err == nil && s.IsDir() {
 		log.Lvl4("Removing config-dir")
 		os.RemoveAll("config")
@@ -62,13 +63,14 @@ func NewLocalTest() *LocalTest {
 		Nodes:    make([]*TreeNodeInstance, 0, 1),
 		mode:     Local,
 		ctx:      network.NewLocalManager(),
+		Suite:    s,
 	}
 }
 
 // NewTCPTest returns a LocalTest but using a TCPRouter as the underlying
 // communication layer.
-func NewTCPTest() *LocalTest {
-	t := NewLocalTest()
+func NewTCPTest(s network.Suite) *LocalTest {
+	t := NewLocalTest(s)
 	t.mode = TCP
 	setContextDataPath("")
 	return t
@@ -264,7 +266,7 @@ func (l *LocalTest) checkPendingTreeMarshal(c *Server, el *Roster) {
 }
 
 // GetPrivate returns the private key of a server
-func (l *LocalTest) GetPrivate(c *Server) abstract.Scalar {
+func (l *LocalTest) GetPrivate(c *Server) kyber.Scalar {
 	return c.private
 }
 
@@ -281,7 +283,7 @@ func (l *LocalTest) GetServices(servers []*Server, sid ServiceID) []Service {
 // MakeHELS creates nbr servers, and will return the associated roster. It also
 // returns the Service object of the first servers in the list having sid as a
 // ServiceID.
-func (l *LocalTest) MakeHELS(nbr int, sid ServiceID) ([]*Server, *Roster, Service) {
+func (l *LocalTest) MakeHELS(nbr int, sid ServiceID, s network.Suite) ([]*Server, *Roster, Service) {
 	servers := l.GenServers(nbr)
 	el := l.GenRosterFromHost(servers...)
 	return servers, el, l.Services[servers[0].ServerIdentity.ID][sid]
@@ -289,17 +291,17 @@ func (l *LocalTest) MakeHELS(nbr int, sid ServiceID) ([]*Server, *Roster, Servic
 
 // NewPrivIdentity returns a secret + ServerIdentity. The SI will have
 // "localserver:+port as first address.
-func NewPrivIdentity(port int) (abstract.Scalar, *network.ServerIdentity) {
+func NewPrivIdentity(suite network.Suite, port int) (kyber.Scalar, *network.ServerIdentity) {
 	address := network.NewLocalAddress("127.0.0.1:" + strconv.Itoa(port))
-	priv, pub := PrivPub()
+	priv, pub := PrivPub(suite)
 	id := network.NewServerIdentity(pub, address)
 	return priv, id
 }
 
 // NewTCPServer creates a new server with a tcpRouter with "localserver:"+port as an
 // address.
-func NewTCPServer(port int) *Server {
-	priv, id := NewPrivIdentity(port)
+func NewTCPServer(port int, s network.Suite) *Server {
+	priv, id := NewPrivIdentity(s, port)
 	addr := network.NewTCPAddress(id.Address.NetworkAddress())
 	var tcpHost *network.TCPHost
 	// For the websocket we need a port at the address one higher than the
@@ -307,7 +309,7 @@ func NewTCPServer(port int) *Server {
 	// available. Else redo the search.
 	for {
 		var err error
-		tcpHost, err = network.NewTCPHost(addr)
+		tcpHost, err = network.NewTCPHost(addr, s)
 		if err != nil {
 			panic(err)
 		}
@@ -328,7 +330,7 @@ func NewTCPServer(port int) *Server {
 	}
 	id.Address = network.NewAddress(id.Address.ConnType(), "127.0.0.1:"+id.Address.Port())
 	router := network.NewRouter(id, tcpHost)
-	h := NewServer(router, priv)
+	h := NewServer(router, priv, s)
 	go h.Start()
 	for !h.Listening() {
 		time.Sleep(10 * time.Millisecond)
@@ -339,13 +341,13 @@ func NewTCPServer(port int) *Server {
 // NewLocalServer returns a new server using a LocalRouter (channels) to communicate.
 // At the return of this function, the router is already Run()ing in a go
 // routine.
-func NewLocalServer(port int) *Server {
-	priv, id := NewPrivIdentity(port)
-	localRouter, err := network.NewLocalRouter(id)
+func NewLocalServer(port int, s network.Suite) *Server {
+	priv, id := NewPrivIdentity(s, port)
+	localRouter, err := network.NewLocalRouter(id, s)
 	if err != nil {
 		panic(err)
 	}
-	h := NewServer(localRouter, priv)
+	h := NewServer(localRouter, priv, s)
 	go h.Start()
 	for !h.Listening() {
 		time.Sleep(10 * time.Millisecond)
@@ -358,7 +360,7 @@ func NewLocalServer(port int) *Server {
 func (l *LocalTest) NewClient(serviceName string) *Client {
 	switch l.mode {
 	case TCP:
-		return NewClient(serviceName)
+		return NewClient(serviceName, l.Suite)
 	default:
 		log.Fatal("Can't make local client")
 		return nil
@@ -370,7 +372,7 @@ func (l *LocalTest) genLocalHosts(n int) []*Server {
 	servers := make([]*Server, n)
 	for i := 0; i < n; i++ {
 		port := 2000 + i*10
-		servers[i] = l.NewServer(port)
+		servers[i] = l.NewServer(port, l.Suite)
 	}
 	return servers
 }
@@ -378,20 +380,20 @@ func (l *LocalTest) genLocalHosts(n int) []*Server {
 // NewServer returns a new server which type is determined by the local mode:
 // TCP or Local. If it's TCP, then an available port is used, otherwise, the
 // port given in argument is used.
-func (l *LocalTest) NewServer(port int) *Server {
+func (l *LocalTest) NewServer(port int, s network.Suite) *Server {
 	var server *Server
 	switch l.mode {
 	case TCP:
-		server = l.NewTCPServer()
+		server = l.NewTCPServer(s)
 	default:
-		server = l.NewLocalServer(port)
+		server = l.NewLocalServer(port, s)
 	}
 	return server
 }
 
 // NewTCPServer returns a new TCP Server attached to this LocalTest.
-func (l *LocalTest) NewTCPServer() *Server {
-	server := NewTCPServer(0)
+func (l *LocalTest) NewTCPServer(s network.Suite) *Server {
+	server := NewTCPServer(0, s)
 	l.Servers[server.ServerIdentity.ID] = server
 	l.Overlays[server.ServerIdentity.ID] = server.overlay
 	l.Services[server.ServerIdentity.ID] = server.serviceManager.services
@@ -401,13 +403,13 @@ func (l *LocalTest) NewTCPServer() *Server {
 
 // NewLocalServer returns a fresh Host using local connections within the context
 // of this LocalTest
-func (l *LocalTest) NewLocalServer(port int) *Server {
-	priv, id := NewPrivIdentity(port)
-	localRouter, err := network.NewLocalRouterWithManager(l.ctx, id)
+func (l *LocalTest) NewLocalServer(port int, s network.Suite) *Server {
+	priv, id := NewPrivIdentity(s, port)
+	localRouter, err := network.NewLocalRouterWithManager(l.ctx, id, s)
 	if err != nil {
 		panic(err)
 	}
-	server := NewServer(localRouter, priv)
+	server := NewServer(localRouter, priv, s)
 	go server.Start()
 	for !server.Listening() {
 		time.Sleep(10 * time.Millisecond)
@@ -421,7 +423,7 @@ func (l *LocalTest) NewLocalServer(port int) *Server {
 }
 
 // PrivPub creates a private/public key pair.
-func PrivPub() (abstract.Scalar, abstract.Point) {
-	keypair := config.NewKeyPair(network.Suite)
+func PrivPub(s network.Suite) (kyber.Scalar, kyber.Point) {
+	keypair := key.NewKeyPair(s)
 	return keypair.Secret, keypair.Public
 }

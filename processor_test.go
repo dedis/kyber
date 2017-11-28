@@ -21,7 +21,7 @@ func init() {
 }
 
 func TestProcessor_AddMessage(t *testing.T) {
-	h1 := NewLocalServer(2000)
+	h1 := NewLocalServer(2000, tSuite)
 	defer h1.Close()
 	p := NewServiceProcessor(&Context{server: h1})
 	log.ErrFatal(p.RegisterHandler(procMsg))
@@ -50,7 +50,7 @@ func TestProcessor_AddMessage(t *testing.T) {
 }
 
 func TestProcessor_RegisterMessages(t *testing.T) {
-	h1 := NewLocalServer(2000)
+	h1 := NewLocalServer(2000, tSuite)
 	defer h1.Close()
 	p := NewServiceProcessor(&Context{server: h1})
 	log.ErrFatal(p.RegisterHandlers(procMsg, procMsg2, procMsg3, procMsg4))
@@ -58,7 +58,7 @@ func TestProcessor_RegisterMessages(t *testing.T) {
 }
 
 func TestServiceProcessor_ProcessClientRequest(t *testing.T) {
-	h1 := NewLocalServer(2000)
+	h1 := NewLocalServer(2000, tSuite)
 	defer h1.Close()
 	p := NewServiceProcessor(&Context{server: h1})
 	log.ErrFatal(p.RegisterHandler(procMsg))
@@ -81,7 +81,7 @@ func TestServiceProcessor_ProcessClientRequest(t *testing.T) {
 }
 
 func TestProcessor_ProcessClientRequest(t *testing.T) {
-	local := NewTCPTest()
+	local := NewTCPTest(tSuite)
 
 	// generate 5 hosts,
 	h := local.GenServers(1)[0]
@@ -158,12 +158,12 @@ type testService struct {
 	Msg interface{}
 }
 
-func newTestService(c *Context) Service {
+func newTestService(c *Context) (Service, error) {
 	ts := &testService{
 		ServiceProcessor: NewServiceProcessor(c),
 	}
 	log.ErrFatal(ts.RegisterHandler(ts.ProcessMsg))
-	return ts
+	return ts, nil
 }
 
 func (ts *testService) NewProtocol(tn *TreeNodeInstance, conf *GenericConfig) (ProtocolInstance, error) {

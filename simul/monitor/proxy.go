@@ -112,6 +112,19 @@ func Proxy(redirection string) error {
 			}
 		}
 	}()
+
+	// Sleep on proxyDone channel, when it is closed then close ewverything
+	// in order to make the two goroutines above exit.
+	//
+	// TODO: Proxy should be an struct with a Stop() method on it.
+	go func() {
+		<-proxyDone
+		ln.Close()
+		finished = true
+		close(newConn)
+		close(closeConn)
+	}()
+
 	return nil
 }
 

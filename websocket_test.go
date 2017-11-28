@@ -23,7 +23,7 @@ func init() {
 }
 
 func TestNewWebSocket(t *testing.T) {
-	c := NewTCPServer(0)
+	c := NewTCPServer(0, tSuite)
 	defer c.Close()
 	require.Equal(t, len(c.serviceManager.services), len(c.websocket.services))
 	require.NotEmpty(t, c.websocket.services[serviceWebSocket])
@@ -61,14 +61,14 @@ func TestGetWebHost(t *testing.T) {
 }
 
 func TestClient_Send(t *testing.T) {
-	local := NewTCPTest()
+	local := NewTCPTest(tSuite)
 	defer local.CloseAll()
 
 	// register service
-	RegisterNewService(backForthServiceName, func(c *Context) Service {
+	RegisterNewService(backForthServiceName, func(c *Context) (Service, error) {
 		return &simpleService{
 			ctx: c,
-		}
+		}, nil
 	})
 	defer ServiceFactory.Unregister(backForthServiceName)
 
@@ -93,14 +93,14 @@ func TestClient_Send(t *testing.T) {
 func TestClient_Parallel(t *testing.T) {
 	nbrNodes := 4
 	nbrParallel := 20
-	local := NewTCPTest()
+	local := NewTCPTest(tSuite)
 	defer local.CloseAll()
 
 	// register service
-	RegisterNewService(backForthServiceName, func(c *Context) Service {
+	RegisterNewService(backForthServiceName, func(c *Context) (Service, error) {
 		return &simpleService{
 			ctx: c,
-		}
+		}, nil
 	})
 	defer ServiceFactory.Unregister(backForthServiceName)
 
@@ -145,23 +145,23 @@ func TestNewClientError(t *testing.T) {
 }
 
 func TestNewClientKeep(t *testing.T) {
-	c := NewClientKeep(serviceWebSocket)
+	c := NewClientKeep(serviceWebSocket, tSuite)
 	assert.True(t, c.keep)
 }
 
 func TestMultiplePath(t *testing.T) {
-	_, err := RegisterNewService(dummyService3Name, func(c *Context) Service {
+	_, err := RegisterNewService(dummyService3Name, func(c *Context) (Service, error) {
 		ds := &DummyService3{}
-		return ds
+		return ds, nil
 	})
 	log.ErrFatal(err)
 	defer UnregisterService(dummyService3Name)
 
-	local := NewTCPTest()
+	local := NewTCPTest(tSuite)
 	hs := local.GenServers(2)
 	server := hs[0]
 	defer local.CloseAll()
-	client := NewClientKeep(dummyService3Name)
+	client := NewClientKeep(dummyService3Name, tSuite)
 	msg, err := protobuf.Encode(&DummyMsg{})
 	require.Equal(t, nil, err)
 	path1, path2 := "path1", "path2"
@@ -183,12 +183,12 @@ func (i *ServiceWebSocket) SimpleResponse(msg *SimpleResponse) (network.Message,
 	return &SimpleResponse{msg.Val + 1}, nil
 }
 
-func newServiceWebSocket(c *Context) Service {
+func newServiceWebSocket(c *Context) (Service, error) {
 	s := &ServiceWebSocket{
 		ServiceProcessor: NewServiceProcessor(c),
 	}
 	log.ErrFatal(s.RegisterHandler(s.SimpleResponse))
-	return s
+	return s, nil
 }
 
 const dummyService3Name = "dummyService3"

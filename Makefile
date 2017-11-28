@@ -2,7 +2,7 @@ all: test
 
 # It's most easy to update if we use v1, even for v1.2, v1.3...
 PKG_STABLE = gopkg.in/dedis/onet.v1
-include $(GOPATH)/src/github.com/dedis/Coding/bin/Makefile.base
+include $(shell go env GOPATH)/src/github.com/dedis/Coding/bin/Makefile.base
 
 # You can use `test_playground` to run any test or part of cothority
 # for more than once in Travis. Change `make test` in .travis.yml

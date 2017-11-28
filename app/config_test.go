@@ -29,7 +29,7 @@ Public = "apIWOKSt6JcOvNnjcVcPCNcaJJh/kPEjkbn2xSW+W+Q="
 Description = "Ismail's server"`
 
 func TestReadGroupDescToml(t *testing.T) {
-	group, err := ReadGroupDescToml(strings.NewReader(serverGroup))
+	group, err := ReadGroupDescToml(strings.NewReader(serverGroup), tSuite)
 	log.ErrFatal(err)
 
 	if len(group.Roster.List) != 2 {

@@ -13,6 +13,6 @@ test_verbose:
 	go test -v -race -short ./...
 
 test_goveralls:
-	${GOPATH}/bin/goveralls -service=travis-ci -race -show
+	$(shell go env GOPATH)/bin/goveralls -service=travis-ci -race -show
 
 test: test_goveralls

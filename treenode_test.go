@@ -15,7 +15,7 @@ func init() {
 }
 
 func TestTreeNodeCreateProtocol(t *testing.T) {
-	local := NewLocalTest()
+	local := NewLocalTest(tSuite)
 	defer local.CloseAll()
 
 	hosts, _, tree := local.GenTree(1, true)
@@ -32,7 +32,7 @@ func TestTreeNodeCreateProtocol(t *testing.T) {
 }
 
 func TestHandlerReturn(t *testing.T) {
-	local := NewLocalTest()
+	local := NewLocalTest(tSuite)
 	defer local.CloseAll()
 
 	hosts, _, tree := local.GenTree(1, true)
@@ -62,7 +62,7 @@ func (p *configProcessor) Process(env *network.Envelope) {
 }
 
 func TestConfigPropagation(t *testing.T) {
-	local := NewLocalTest()
+	local := NewLocalTest(tSuite)
 	defer local.CloseAll()
 	const treeSize = 3
 	var serviceConfig = []byte{0x01, 0x02, 0x03, 0x04}
@@ -101,7 +101,7 @@ func TestConfigPropagation(t *testing.T) {
 }
 
 func TestTreeNodeInstance_RegisterChannel(t *testing.T) {
-	local := NewLocalTest()
+	local := NewLocalTest(tSuite)
 	defer local.CloseAll()
 
 	_, _, tree := local.GenTree(3, true)

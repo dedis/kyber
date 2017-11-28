@@ -2,12 +2,19 @@ package manage
 
 import (
 	"testing"
-
 	"time"
 
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 )
+
+var tSuite kyber.Group
+
+func init() {
+	tSuite, _ = group.Suite("Ed25519")
+}
 
 func TestMain(m *testing.M) {
 	log.MainTest(m)
@@ -15,7 +22,7 @@ func TestMain(m *testing.M) {
 
 // Tests a 2-node system
 func TestCloseAll(t *testing.T) {
-	local := onet.NewLocalTest()
+	local := onet.NewLocalTest(tSuite)
 	nbrNodes := 2
 	_, _, tree := local.GenTree(nbrNodes, true)
 	defer local.CloseAll()

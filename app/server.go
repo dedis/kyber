@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -13,18 +14,21 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/group"
+	"github.com/dedis/kyber/util/encoding"
+	"github.com/dedis/kyber/util/key"
 	"github.com/dedis/onet"
-	"github.com/dedis/onet/crypto"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 
 	"github.com/shirou/gopsutil/mem"
-
-	"fmt"
-
-	"gopkg.in/dedis/crypto.v0/abstract"
-	crypconf "gopkg.in/dedis/crypto.v0/config"
+	// CoSi-protocol is not part of the cothority.
+	// For the moment, the server only serves CoSi requests
 )
+
+// Suite wraps the functionalities needed by this package
+type Suite kyber.Group
 
 // DefaultServerConfig is the default server configuration file-name.
 const DefaultServerConfig = "private.toml"
@@ -133,7 +137,8 @@ func InteractiveConfig(binaryName string) {
 	}
 
 	// create the keys
-	privStr, pubStr := createKeyPair()
+	suite, _ := group.Suite("Ed25519")
+	privStr, pubStr := createKeyPair(suite)
 	conf := &CothorityConfig{
 		Public:  pubStr,
 		Private: privStr,
@@ -167,12 +172,12 @@ func InteractiveConfig(binaryName string) {
 		}
 	}
 
-	public, err := crypto.StringHexToPoint(network.Suite, pubStr)
+	public, err := encoding.StringHexToPoint(suite, pubStr)
 	if err != nil {
 		log.Fatal("Impossible to parse public key:", err)
 	}
 
-	server := NewServerToml(network.Suite, public, publicAddress, conf.Description)
+	server := NewServerToml(suite, public, publicAddress, conf.Description)
 	group := NewGroupToml(server)
 
 	saveFiles(conf, configFile, group, groupFile)
@@ -181,8 +186,8 @@ func InteractiveConfig(binaryName string) {
 
 // entityListToPublics returns a slice of Points of all elements
 // of the roster.
-func entityListToPublics(el *onet.Roster) []abstract.Point {
-	publics := make([]abstract.Point, len(el.List))
+func entityListToPublics(el *onet.Roster) []kyber.Point {
+	publics := make([]kyber.Point, len(el.List))
 	for i, e := range el.List {
 		publics[i] = e.Public
 	}
@@ -200,18 +205,18 @@ func checkOverwrite(file string) bool {
 }
 
 // createKeyPair returns the private and public key in hexadecimal representation.
-func createKeyPair() (string, string) {
+func createKeyPair(suite Suite) (string, string) {
 	log.Info("Creating ed25519 private and public keys.")
-	kp := crypconf.NewKeyPair(network.Suite)
-	privStr, err := crypto.ScalarToStringHex(network.Suite, kp.Secret)
+	kp := key.NewKeyPair(suite)
+	privStr, err := encoding.ScalarToStringHex(suite, kp.Secret)
 	if err != nil {
 		log.Fatal("Error formating private key to hexadecimal. Abort.")
 	}
-	var point abstract.Point
+	var point kyber.Point
 	// use the transformation for EdDSA signatures
-	//point = cosi.Ed25519Public(network.Suite, kp.Secret)
+	//point = cosi.Ed25519Public(Suite, kp.Secret)
 	point = kp.Public
-	pubStr, err := crypto.PointToStringHex(network.Suite, point)
+	pubStr, err := encoding.PointToStringHex(suite, point)
 	if err != nil {
 		log.Fatal("Could not parse public key. Abort.")
 	}
@@ -376,12 +381,12 @@ func checkAvailableMemory() {
 
 // RunServer starts a cothority server with the given config file name. It can
 // be used by different apps (like CoSi, for example)
-func RunServer(configFilename string) {
+func RunServer(configFilename string, suite Suite) {
 	if _, err := os.Stat(configFilename); os.IsNotExist(err) {
 		log.Fatalf("[-] Configuration file does not exists. %s", configFilename)
 	}
 	// Let's read the config
-	_, server, err := ParseCothority(configFilename)
+	_, server, err := ParseCothority(configFilename, suite)
 	if err != nil {
 		log.Fatal("Couldn't parse config:", err)
 	}

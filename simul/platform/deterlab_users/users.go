@@ -19,9 +19,11 @@ import (
 )
 
 var kill = false
+var suite string
 
 func init() {
 	flag.BoolVar(&kill, "kill", false, "kill everything (and don't start anything)")
+	flag.StringVar(&suite, "suite", "ed25519", "suite used for simulation")
 }
 
 // DeterlabUsers is called on the users.deterlab.net-server and will:
@@ -136,7 +138,8 @@ func main() {
 			args := " -address=" + internal +
 				" -simul=" + deter.Simulation +
 				" -monitor=" + monitorAddr +
-				" -debug=" + strconv.Itoa(log.DebugVisible())
+				" -debug=" + strconv.Itoa(log.DebugVisible()) +
+				" -suite=" + suite
 			log.Lvl3("Args is", args)
 			err := platform.SSHRunStdout("", phys, "cd remote; sudo ./simul "+
 				args)

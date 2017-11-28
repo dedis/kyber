@@ -8,7 +8,6 @@ import (
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 	"github.com/satori/go.uuid"
-	"gopkg.in/dedis/crypto.v0/abstract"
 )
 
 // Overlay keeps all trees and entity-lists for a given Server. It creates
@@ -65,7 +64,7 @@ func NewOverlay(c *Server) *Overlay {
 		pendingTreeMarshal: make(map[RosterID][]*TreeMarshal),
 		pendingConfigs:     make(map[TokenID]*GenericConfig),
 	}
-	o.protoIO = newMessageProxyStore(c, o)
+	o.protoIO = newMessageProxyStore(c, o, c.suite)
 	// messages going to protocol instances
 	c.RegisterProcessor(o,
 		ProtocolMsgID,      // protocol instance's messages
@@ -512,7 +511,7 @@ func (o *Overlay) nodeDelete(tok *Token) {
 	o.instancesInfo[tok.ID()] = true
 }
 
-func (o *Overlay) suite() abstract.Suite {
+func (o *Overlay) suite() network.Suite {
 	return o.server.Suite()
 }
 
@@ -724,7 +723,9 @@ func (tnc *TreeNodeCache) GetFromToken(tok *Token) *TreeNode {
 
 // defaultProtoIO implements the ProtocoIO interface but using the "regular/old"
 // wire format protocol,i.e. it wraps a message into a ProtocolMessage
-type defaultProtoIO struct{}
+type defaultProtoIO struct {
+	suite network.Suite
+}
 
 // Wrap implements the MessageProxy interface for the Overlay.
 func (d *defaultProtoIO) Wrap(msg interface{}, info *OverlayMsg) (interface{}, error) {
@@ -768,7 +769,7 @@ func (d *defaultProtoIO) Unwrap(msg interface{}) (interface{}, *OverlayMsg, erro
 	case *ProtocolMsg:
 		onetMsg := inner
 		var err error
-		_, protoMsg, err := network.Unmarshal(onetMsg.MsgSlice)
+		_, protoMsg, err := network.Unmarshal(onetMsg.MsgSlice, d.suite)
 		if err != nil {
 			return nil, nil, err
 		}

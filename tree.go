@@ -6,10 +6,10 @@ import (
 
 	"math/rand"
 
+	"github.com/dedis/kyber"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 	"github.com/satori/go.uuid"
-	"gopkg.in/dedis/crypto.v0/abstract"
 )
 
 // In this file we define the main structures used for a running protocol
@@ -71,24 +71,22 @@ func NewTree(roster *Roster, root *TreeNode) *Tree {
 		Root:   root,
 		ID:     TreeID(uuid.NewV5(uuid.NamespaceURL, url)),
 	}
-	// network.Suite used for the moment => explicit mark that something is
-	// wrong and that needs to be changed !
-	t.computeSubtreeAggregate(network.Suite, root)
+	t.computeSubtreeAggregate(root)
 	return t
 }
 
 // NewTreeFromMarshal takes a slice of bytes and an Roster to re-create
 // the original tree
-func NewTreeFromMarshal(buf []byte, ro *Roster) (*Tree, error) {
-	tp, pm, err := network.Unmarshal(buf)
+func NewTreeFromMarshal(s network.Suite, buf []byte, el *Roster) (*Tree, error) {
+	tp, pm, err := network.Unmarshal(buf, s)
 	if err != nil {
 		return nil, err
 	}
 	if !tp.Equal(TreeMarshalTypeID) {
 		return nil, errors.New("Didn't receive TreeMarshal-struct")
 	}
-	t, err := pm.(*TreeMarshal).MakeTree(ro)
-	t.computeSubtreeAggregate(network.Suite, t.Root)
+	t, err := pm.(*TreeMarshal).MakeTree(el)
+	t.computeSubtreeAggregate(t.Root)
 	return t, err
 }
 
@@ -137,13 +135,13 @@ func (t *Tree) BinaryMarshaler() ([]byte, error) {
 }
 
 // BinaryUnmarshaler takes a TreeMarshal and stores it in the tree
-func (t *Tree) BinaryUnmarshaler(b []byte) error {
-	_, m, err := network.Unmarshal(b)
+func (t *Tree) BinaryUnmarshaler(s network.Suite, b []byte) error {
+	_, m, err := network.Unmarshal(b, s)
 	tbm, ok := m.(*tbmStruct)
 	if !ok {
 		return errors.New("Didn't find TBMstruct")
 	}
-	tree, err := NewTreeFromMarshal(tbm.T, tbm.Ro)
+	tree, err := NewTreeFromMarshal(s, tbm.T, tbm.Ro)
 	if err != nil {
 		return err
 	}
@@ -258,16 +256,19 @@ func (t *Tree) UsesList() bool {
 // recursive function so it will go down to the leaves then go up to the root
 // Return the aggregate sub tree public key for this root (and compute each sub
 // aggregate public key for each of the children).
-func (t *Tree) computeSubtreeAggregate(suite abstract.Suite, root *TreeNode) abstract.Point {
-	aggregate := suite.Point().Add(suite.Point().Null(), root.ServerIdentity.Public)
+func (t *Tree) computeSubtreeAggregate(root *TreeNode) kyber.Point {
+	// Cloning the root public key does two things for us. First, it
+	// gets agg set to the right kind of kyber.Group for this tree.
+	// Second, it is the first component of the aggregate. The rest
+	// of the subtree aggregates are added via the DFS.
+	agg := root.ServerIdentity.Public.Clone()
+
 	// DFS search
 	for _, ch := range root.Children {
-		aggregate = aggregate.Add(aggregate, t.computeSubtreeAggregate(suite, ch))
+		agg = agg.Add(agg, t.computeSubtreeAggregate(ch))
 	}
-
-	// sets the field
-	root.PublicAggregateSubTree = aggregate
-	return aggregate
+	root.PublicAggregateSubTree = agg
+	return agg
 }
 
 // TreeMarshal is used to send and receive a tree-structure without having
@@ -322,7 +323,7 @@ func (tm TreeMarshal) MakeTree(ro *Roster) (*Tree, error) {
 		Roster: ro,
 	}
 	tree.Root = tm.Children[0].MakeTreeFromList(nil, ro)
-	tree.computeSubtreeAggregate(network.Suite, tree.Root)
+	tree.computeSubtreeAggregate(tree.Root)
 	return tree, nil
 }
 
@@ -330,6 +331,7 @@ func (tm TreeMarshal) MakeTree(ro *Roster) (*Tree, error) {
 func (tm *TreeMarshal) MakeTreeFromList(parent *TreeNode, ro *Roster) *TreeNode {
 	idx, ent := ro.Search(tm.ServerIdentityID)
 	tn := &TreeNode{
+
 		Parent:         parent,
 		ID:             tm.TreeNodeID,
 		ServerIdentity: ent,
@@ -341,16 +343,13 @@ func (tm *TreeMarshal) MakeTreeFromList(parent *TreeNode, ro *Roster) *TreeNode 
 	return tn
 }
 
-// An Roster is a list of ServerIdentity we choose to run  some tree on it ( and
-// therefor some protocols)
+// A Roster is a list of ServerIdentity we choose to run some tree on it ( and
+// therefor some protocols). Access is not safe from multiple goroutines.
 type Roster struct {
 	ID RosterID
-	// TODO make that a map so search is O(1)
-	// List is the List of actual "entities"
-	// Be careful if you access it in go-routines (not safe by default)
-	List []*network.ServerIdentity
-	// Aggregate public key
-	Aggregate abstract.Point
+	// List is the list of actual entities.
+	List      []*network.ServerIdentity
+	Aggregate kyber.Point
 }
 
 // RosterID uniquely identifies an Roster
@@ -378,16 +377,22 @@ var RosterTypeID = network.RegisterMessage(Roster{})
 // NewRoster creates a new ServerIdentity from a list of entities. It also
 // adds a UUID which is randomly chosen.
 func NewRoster(ids []*network.ServerIdentity) *Roster {
-	// compute the aggregate key already
-	agg := network.Suite.Point().Null()
-	for _, e := range ids {
-		agg = agg.Add(agg, e.Public)
+	r := &Roster{
+		List: ids,
+		ID:   RosterID(uuid.NewV4()),
 	}
-	return &Roster{
-		List:      ids,
-		Aggregate: agg,
-		ID:        RosterID(uuid.NewV4()),
+	if len(ids) != 0 {
+		// compute the aggregate key, using the first server's
+		// public key to discover which kyber.Group we should be
+		// using.
+		agg := ids[0].Public.Clone()
+		agg.Null()
+		for _, e := range ids {
+			agg = agg.Add(agg, e.Public)
+		}
+		r.Aggregate = agg
 	}
+	return r
 }
 
 // Search searches the Roster for the given ServerIdentityID and returns the
@@ -412,8 +417,8 @@ func (ro *Roster) Get(idx int) *network.ServerIdentity {
 
 // Publics returns the public-keys of the underlying Roster. It won't modify
 // the underlying list.
-func (ro *Roster) Publics() []abstract.Point {
-	res := make([]abstract.Point, len(ro.List))
+func (ro *Roster) Publics() []kyber.Point {
+	res := make([]kyber.Point, len(ro.List))
 	for i, p := range ro.List {
 		res[i] = p.Public
 	}
@@ -431,6 +436,10 @@ func (ro *Roster) Publics() []abstract.Point {
 // the Roster and still avoid having a parent and a child from the same
 // host. In this case use-all has preference over not-the-same-host.
 func (ro *Roster) GenerateBigNaryTree(N, nodes int) *Tree {
+	if len(ro.List) == 0 {
+		panic("empty roster")
+	}
+
 	// list of which hosts are already used
 	used := make([]bool, len(ro.List))
 	ilLen := len(ro.List)
@@ -588,7 +597,7 @@ type TreeNode struct {
 	Children []*TreeNode
 	// Aggregate public key for *this* subtree,i.e. this node's public key + the
 	// aggregate of all its children's aggregate public key
-	PublicAggregateSubTree abstract.Point
+	PublicAggregateSubTree kyber.Point
 }
 
 // TreeNodeID identifies a given TreeNode struct in the onet framework.
@@ -711,8 +720,8 @@ func (t *TreeNode) SubtreeCount() int {
 
 // AggregatePublic will return the aggregate public key of the TreeNode
 // and all it's children
-func (t *TreeNode) AggregatePublic() abstract.Point {
-	agg := network.Suite.Point().Null()
+func (t *TreeNode) AggregatePublic(s network.Suite) kyber.Point {
+	agg := s.Point().Null()
 	t.Visit(0, func(i int, tn *TreeNode) {
 		agg.Add(agg, tn.ServerIdentity.Public)
 	})
@@ -727,7 +736,7 @@ type RosterToml struct {
 }
 
 // Toml returns the toml-writable version of this roster.
-func (ro *Roster) Toml(suite abstract.Suite) *RosterToml {
+func (ro *Roster) Toml(suite network.Suite) *RosterToml {
 	ids := make([]*network.ServerIdentityToml, len(ro.List))
 	for i := range ro.List {
 		ids[i] = ro.List[i].Toml(suite)
@@ -739,7 +748,7 @@ func (ro *Roster) Toml(suite abstract.Suite) *RosterToml {
 }
 
 // Roster returns the Id list from this toml read struct
-func (rot *RosterToml) Roster(suite abstract.Suite) *Roster {
+func (rot *RosterToml) Roster(suite network.Suite) *Roster {
 	ids := make([]*network.ServerIdentity, len(rot.List))
 	for i := range rot.List {
 		ids[i] = rot.List[i].ServerIdentity(suite)

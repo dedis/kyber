@@ -2,6 +2,7 @@ Servers = 16
 Simulation = "CountTest"
 BF = 2
 Rounds = 4
+Suite = "Ed25519"
 PreScript = "show_date.sh"
 
 Hosts

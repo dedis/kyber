@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"go/build"
 	"os"
 	"strconv"
 	"strings"
@@ -45,6 +46,9 @@ type Platform interface {
 // Config is passed to Platform.Config and prepares the platform for
 // specific system-wide configurations
 type Config struct {
+	// string denoting the group used for simulations
+	// XXX find ways to remove that "one suite" assumption
+	Suite       string
 	MonitorPort int
 	Debug       int
 }
@@ -66,7 +70,7 @@ func NewPlatform(t string) Platform {
 		p = &MiniNet{}
 		_, err := os.Stat("server_list")
 		if os.IsNotExist(err) {
-			path := os.Getenv("GOPATH") + "/src/github.com/dedis/onet/simul/platform/mininet/"
+			path := build.Default.GOPATH + "/src/github.com/dedis/onet/simul/platform/mininet/"
 			var command string
 			if app.InputYN(true, "Do you want to run mininet on ICCluster?") {
 				command = path + "setup_iccluster.sh"
@@ -257,7 +261,7 @@ func (r *RunConfig) Clone() *RunConfig {
 func (r *RunConfig) String() string {
 	r.RLock()
 	defer r.RUnlock()
-	fields := []string{"simulation", "servers", "hosts", "bf", "depth", "rounds"}
+	fields := []string{"simulation", "servers", "hosts", "bf", "depth", "rounds", "suite"}
 	var ret string
 	for _, f := range fields {
 		v := r.Get(f)

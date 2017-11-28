@@ -110,15 +110,13 @@ var tokenMutex sync.Mutex
 
 // ID returns the TokenID which can be used to identify by token in map
 func (t *Token) ID() TokenID {
-	tokenMutex.Lock()
-	defer tokenMutex.Unlock()
-	if t.cacheID.IsNil() {
-		url := network.NamespaceURL + "token/" + t.RosterID.String() +
-			t.RoundID.String() + t.ServiceID.String() + t.ProtoID.String() + t.TreeID.String() +
-			t.TreeNodeID.String()
-		t.cacheID = TokenID(uuid.NewV5(uuid.NamespaceURL, url))
-	}
-	return t.cacheID
+	// TODO: This used to have a caching mechanism, but it caused data races.
+	// See issue #239. When tuning performance, if this shows up as a hot path,
+	// we need to add caching back in (safely, this time).
+	url := network.NamespaceURL + "token/" + t.RosterID.String() +
+		t.RoundID.String() + t.ServiceID.String() + t.ProtoID.String() + t.TreeID.String() +
+		t.TreeNodeID.String()
+	return TokenID(uuid.NewV5(uuid.NamespaceURL, url))
 }
 
 // Clone returns a new token out of this one
@@ -130,11 +128,8 @@ func (t *Token) Clone() *Token {
 // ChangeTreeNodeID return a new Token containing a reference to the given
 // TreeNode
 func (t *Token) ChangeTreeNodeID(newid TreeNodeID) *Token {
-	tokenMutex.Lock()
-	defer tokenMutex.Unlock()
 	tOther := *t
 	tOther.TreeNodeID = newid
-	tOther.cacheID = TokenID(uuid.Nil)
 	return &tOther
 }
 

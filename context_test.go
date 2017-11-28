@@ -1,22 +1,17 @@
 package onet
 
 import (
+	"io/ioutil"
+	"os"
+	"path"
+	"strings"
+	"sync"
 	"testing"
 
-	"path"
-
-	"os"
-
-	"io/ioutil"
-
-	"strings"
-
-	"sync"
-
+	"github.com/dedis/kyber/util/key"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/dedis/crypto.v0/config"
 )
 
 type ContextData struct {
@@ -45,7 +40,7 @@ func TestContextSaveLoad(t *testing.T) {
 	tmp, err := ioutil.TempDir("", "conode")
 	log.ErrFatal(err)
 	defer os.RemoveAll(tmp)
-	os.Setenv(ENVServiceData, tmp)
+	os.Setenv("CONODE_SERVICE_PATH", tmp)
 	initContextDataPath()
 	wg.Add(nbr)
 	for i := range c {
@@ -96,7 +91,7 @@ func TestContext_Path(t *testing.T) {
 	tmp, err := ioutil.TempDir("", "conode")
 	log.ErrFatal(err)
 	defer os.RemoveAll(tmp)
-	os.Setenv(ENVServiceData, tmp)
+	os.Setenv("CONODE_SERVICE_PATH", tmp)
 	initContextDataPath()
 	require.Equal(t, tmp, contextDataPath)
 	_, err = os.Stat(tmp)
@@ -128,7 +123,7 @@ func TestContext_DataAvailable(t *testing.T) {
 }
 
 func createContext() *Context {
-	kp := config.NewKeyPair(network.Suite)
+	kp := key.NewKeyPair(tSuite)
 	si := network.NewServerIdentity(kp.Public,
 		network.NewAddress(network.Local, "localhost:0"))
 	cn := &Server{

@@ -8,9 +8,9 @@ import (
 
 	"strings"
 
+	"github.com/dedis/kyber"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
-	"gopkg.in/dedis/crypto.v0/abstract"
 )
 
 // TreeNodeInstance represents a protocol-instance in a given TreeNode. It embeds an
@@ -152,7 +152,7 @@ func (n *TreeNodeInstance) Roster() *Roster {
 
 // Suite can be used to get the current abstract.Suite (currently hardcoded into
 // the network library).
-func (n *TreeNodeInstance) Suite() abstract.Suite {
+func (n *TreeNodeInstance) Suite() network.Suite {
 	return n.overlay.suite()
 }
 
@@ -535,12 +535,12 @@ func (n *TreeNodeInstance) OnDoneCallback(fn func() bool) {
 }
 
 // Private returns the private key of the entity
-func (n *TreeNodeInstance) Private() abstract.Scalar {
+func (n *TreeNodeInstance) Private() kyber.Scalar {
 	return n.Host().private
 }
 
 // Public returns the public key of the entity
-func (n *TreeNodeInstance) Public() abstract.Point {
+func (n *TreeNodeInstance) Public() kyber.Point {
 	return n.ServerIdentity().Public
 }
 

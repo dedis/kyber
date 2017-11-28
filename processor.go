@@ -120,7 +120,7 @@ func (p *ServiceProcessor) ProcessClientRequest(path string, buf []byte) ([]byte
 		}
 		msg := reflect.New(mh.msgType).Interface()
 		err := protobuf.DecodeWithConstructors(buf, msg,
-			network.DefaultConstructors(network.Suite))
+			network.DefaultConstructors(p.Context.server.Suite()))
 		if err != nil {
 			return nil, NewClientErrorCode(WebSocketErrorProtobufDecode, err.Error())
 		}

@@ -4,14 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
-
-	"time"
-
 	"reflect"
+	"strconv"
 	"strings"
-
 	"sync"
+	"time"
 
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
@@ -171,6 +168,8 @@ type destination struct {
 type Client struct {
 	service     string
 	connections map[destination]*websocket.Conn
+	suite       network.Suite
+
 	// whether to keep the connection
 	keep bool
 	rx   uint64
@@ -180,20 +179,22 @@ type Client struct {
 
 // NewClient returns a client using the service s. On the first Send, the
 // connection will be started, until Close is called.
-func NewClient(s string) *Client {
+func NewClient(s string, suite network.Suite) *Client {
 	return &Client{
 		service:     s,
 		connections: make(map[destination]*websocket.Conn),
+		suite:       suite,
 	}
 }
 
 // NewClientKeep returns a Client that doesn't close the connection between
 // two messages if it's the same server.
-func NewClientKeep(s string) *Client {
+func NewClientKeep(s string, suite network.Suite) *Client {
 	return &Client{
 		service:     s,
 		keep:        true,
 		connections: make(map[destination]*websocket.Conn),
+		suite:       suite,
 	}
 }
 
@@ -264,7 +265,7 @@ func (c *Client) SendProtobuf(dst *network.ServerIdentity, msg interface{}, ret 
 	}
 	if ret != nil {
 		err := protobuf.DecodeWithConstructors(reply, ret,
-			network.DefaultConstructors(network.Suite))
+			network.DefaultConstructors(c.suite))
 		return NewClientError(err)
 	}
 	return nil
