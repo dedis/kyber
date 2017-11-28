@@ -585,8 +585,9 @@ func fullExchange(t *testing.T) {
 	}
 	// 3. make sure everyone has the same QUAL set
 	for _, dkg := range dkgs {
+        fmt.Println("DKG1 ID: ", dkg.index)
 		for _, dkg2 := range dkgs {
-            fmt.Printf("DKG index: %d\n", dkg.index)
+            fmt.Println("DKG2 ID: ", dkg2.index)
 			require.True(t, dkg.isInQUAL(dkg2.index))
 		}
 	}

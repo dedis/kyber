@@ -467,6 +467,18 @@ func (v *Verifier) SetTimeOut() {
 	v.aggregator.cleanVerifiers()
 }
 
+// UnsafeSetResponseDKG is an UNSAFE bypass method to allow DKG to use VSS
+// that works on basis of approval only.
+func (v *Verifier) UnsafeSetResponseDKG(idx uint32, approval bool) {
+    r := &Response{
+        SessionID: v.aggregator.sid,
+        Index:     uint32(idx),
+        Status:    approval,
+    }
+
+    v.aggregator.addResponse(r)
+}
+
 // RecoverSecret recovers the secret shared by a Dealer by gathering at least t
 // Deals from the verifiers. It returns an error if there is not enough Deals or
 // if all Deals don't have the same SessionID.
@@ -641,7 +653,7 @@ func (a *aggregator) DealCertified() bool {
 	// i.e. make sure all verifiers are either timed-out or OK.
 	for i := range a.verifiers {
 		if _, ok := a.responses[uint32(i)]; !ok {
-            fmt.Printf("Index of verifier: %d\n", i)
+            fmt.Println("DealCertified: no response for verifier ", i)
 			verifiersUnstable++
 		}
 	}

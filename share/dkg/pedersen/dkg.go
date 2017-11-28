@@ -5,8 +5,7 @@ package dkg
 import (
 	"crypto/cipher"
 	"errors"
-    "fmt"
-
+    
 	"github.com/dedis/kyber"
 
 	"github.com/dedis/kyber/share"
@@ -280,7 +279,6 @@ func (d *DistKeyGenerator) qualIter(fn func(idx uint32, v *vss.Verifier) bool) {
 	for i, v := range d.verifiers {
 		if v.DealCertified() {
 			if !fn(i, v) {
-                fmt.Printf("%d", i)
 				break
 			}
 		}
