@@ -358,18 +358,18 @@ type RosterID uuid.UUID
 
 // String returns the default representation of the ID (wrapper around
 // uuid.UUID.String()
-func (roId RosterID) String() string {
-	return uuid.UUID(roId).String()
+func (roID RosterID) String() string {
+	return uuid.UUID(roID).String()
 }
 
-// Equal returns true if and only if roId2 equals this RosterID.
-func (roId RosterID) Equal(roId2 RosterID) bool {
-	return uuid.Equal(uuid.UUID(roId), uuid.UUID(roId2))
+// Equal returns true if and only if roID2 equals this RosterID.
+func (roID RosterID) Equal(roID2 RosterID) bool {
+	return uuid.Equal(uuid.UUID(roID), uuid.UUID(roID2))
 }
 
 // IsNil returns true iff the RosterID is Nil
-func (roId RosterID) IsNil() bool {
-	return roId.Equal(RosterID(uuid.Nil))
+func (roID RosterID) IsNil() bool {
+	return roID.Equal(RosterID(uuid.Nil))
 }
 
 // RosterTypeID of Roster message as registered in network
