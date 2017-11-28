@@ -22,7 +22,8 @@ type XOF interface {
 
 	// An XOF implements cipher.Stream, so that callers can use XORKeyStream
 	// to encrypt/decrypt data. The key stream is read from the XOF using
-	// the io.Reader interface.
+	// the io.Reader interface. If Read returns an error, then XORKeyStream
+	// will panic.
 	cipher.Stream
 
 	// KeySize is the number of bytes that must be written to the XOF before

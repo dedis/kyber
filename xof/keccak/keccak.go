@@ -8,7 +8,9 @@ import (
 )
 
 type xof struct {
-	sh  sha3.ShakeHash
+	sh sha3.ShakeHash
+	// key is here not make excess garbage during repeated calls
+	// to XORKeyStream.
 	key []byte
 }
 
@@ -59,11 +61,11 @@ func (x *xof) XORKeyStream(dst, src []byte) {
 		x.key = make([]byte, len(src))
 	}
 
-	n, err := x.Read(x.key)
+	n, err := x.Read(x.key[0:len(src)])
 	if err != nil {
 		panic("xof error getting key: " + err.Error())
 	}
-	if n != len(x.key) {
+	if n != len(src) {
 		panic("short read on key")
 	}
 

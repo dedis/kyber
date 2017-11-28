@@ -217,6 +217,30 @@ func testReseed(t *testing.T, s factory) {
 	}
 }
 
+func TestEncDecMismatch(t *testing.T) {
+	for _, i := range impls {
+		testEncDecMismatch(t, i)
+	}
+}
+
+func testEncDecMismatch(t *testing.T, s factory) {
+	t.Logf("implementation %T", s)
+	seed := []byte("seed")
+	x1 := s.XOF(seed)
+	x2 := s.XOF(seed)
+	msg := []byte("hello world")
+	enc := make([]byte, len(msg))
+	dec := make([]byte, len(msg))
+	x1.XORKeyStream(enc[0:3], msg[0:3])
+	x1.XORKeyStream(enc[3:4], msg[3:4])
+	x1.XORKeyStream(enc[4:], msg[4:])
+	x2.XORKeyStream(dec[0:5], enc[0:5])
+	x2.XORKeyStream(dec[5:], enc[5:])
+	if !bytes.Equal(msg, dec) {
+		t.Fatal("wrong decode")
+	}
+}
+
 //
 // TODO: port this test to XOF
 
