@@ -9,7 +9,7 @@ import (
 )
 
 func TestNewKeyPair(t *testing.T) {
-	suite := edwards25519.NewAES128SHA256Ed25519()
+	suite := edwards25519.NewBlakeSHA256Ed25519()
 	keypair := NewKeyPair(suite)
 	pub := suite.Point().Mul(keypair.Secret, nil)
 	if !pub.Equal(keypair.Public) {

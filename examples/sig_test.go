@@ -89,7 +89,7 @@ func SchnorrVerify(suite Suite, message []byte, publicKey kyber.Point,
 // Example of using Schnorr
 func Example_schnorr() {
 	// Crypto setup
-	suite := edwards25519.NewAES128SHA256Ed25519()
+	suite := edwards25519.NewBlakeSHA256Ed25519()
 	rand := suite.XOF([]byte("example"))
 
 	// Create a public/private keypair (X,x)

@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var s = edwards25519.NewAES128SHA256Ed25519()
+var s = edwards25519.NewBlakeSHA256Ed25519()
 
 func ErrFatal(err error) {
 	if err == nil {

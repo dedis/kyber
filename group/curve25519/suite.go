@@ -43,8 +43,11 @@ func (s *SuiteEd25519) New(t reflect.Type) interface{} {
 	return marshalling.GroupNew(s, t)
 }
 
-// Ciphersuite based on AES-128, SHA-256, and the Ed25519 curve.
-func NewAES128SHA256Ed25519(fullGroup bool) *SuiteEd25519 {
+// NewBlakeSHA256Curve25519 returns a cipher suite based on package
+// github.com/dedis/kyber/xof/blake, SHA-256, and Curve25519.
+//
+// If fullGroup is false, then the group is the prime-order subgroup.
+func NewBlakeSHA256Curve25519(fullGroup bool) *SuiteEd25519 {
 	suite := new(SuiteEd25519)
 	suite.Init(Param25519(), fullGroup)
 	return suite

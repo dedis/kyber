@@ -11,7 +11,7 @@ import (
 	"github.com/dedis/kyber/util/test"
 )
 
-var testSuite = NewAES128SHA256Ed25519(false)
+var testSuite = NewBlakeSHA256Curve25519(false)
 
 // Test each curve implementation of the Ed25519 curve.
 

@@ -24,6 +24,13 @@ func (x *xof) KeySize() int {
 	return 136
 }
 
+func (x *xof) Size() int {
+	// "The SHAKE-256 and -128 functions have a generic security
+	// strength of 256 and 128 bits against all attacks, provided
+	// that at least 2x bits of their output is used."
+	return 256 * 2 / 8
+}
+
 func (x *xof) Clone() kyber.XOF {
 	return &xof{sh: x.sh.Clone()}
 }

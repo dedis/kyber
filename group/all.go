@@ -24,7 +24,7 @@ func register(g kyber.Group) {
 }
 
 func init() {
-	register(edwards25519.NewAES128SHA256Ed25519())
+	register(edwards25519.NewBlakeSHA256Ed25519())
 }
 
 // ErrUnknownSuite indicates that the suite was not one of the

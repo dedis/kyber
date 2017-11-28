@@ -13,7 +13,7 @@ import (
 func Example_encrypt1() {
 
 	// Crypto setup
-	suite := edwards25519.NewAES128SHA256Ed25519()
+	suite := edwards25519.NewBlakeSHA256Ed25519()
 	rand := suite.XOF([]byte("example"))
 
 	// Create a public/private keypair (X[mine],x)
@@ -47,18 +47,14 @@ func Example_encrypt1() {
 	// 00000050  1c cb 68 8c 73 f8 81 15  53 16 c0 a9 9d a6 62 c2  |..h.s...S.....b.|
 	// 00000060  c1 62 ca e1 d5 16 d1 94  ef c0 b5 00 33 09 91 bb  |.b..........3...|
 	// 00000070  32 d5 16 ef ae ec d8 f0  26 69 51 27 4d e4 32 bc  |2.......&iQ'M.2.|
-	// 00000080  bf aa 7b 97 14 c7 8e 53  9d c9 d1 6a 41 1f 86 53  |..{....S...jA..S|
-	// 00000090  0b a6 55 b4 bf 86 c1 68  69 42 c4 fa c4 bf bf 10  |..U....hiB......|
-	// 000000a0  87 c2 19 0a 8f 08 05 cf  d9 c1 37 e9 81 a6 65 f4  |..........7...e.|
-	// 000000b0  98 72 3e 24 e9 fe 8d 2a  c9 7e 9d 64 96 4d f2 df  |.r>$...*.~.d.M..|
-	// 000000c0  ff 46 d7 af 3c c6 95 a4  d9 04 6b bd              |.F..<.....k.|
+	// 00000080  bf aa 7b 97 14 c7 8e 53  9d c9 d1 6a              |..{....S...j|
 	// Decrypted: 'Hello World!'
 }
 
 func ExampleEncrypt_anonSet() {
 
 	// Crypto setup
-	suite := edwards25519.NewAES128SHA256Ed25519()
+	suite := edwards25519.NewBlakeSHA256Ed25519()
 	rand := suite.XOF([]byte("example"))
 
 	// Create an anonymity set of random "public keys"
@@ -101,10 +97,6 @@ func ExampleEncrypt_anonSet() {
 	// 00000090  b6 28 ca 7d 71 bb 3a f5  d8 ab e8 1d a3 e5 1c d4  |.(.}q.:.........|
 	// 000000a0  5f aa cd 96 2d 6a c6 46  39 d1 d3 df a5 06 80 41  |_...-j.F9......A|
 	// 000000b0  06 0c 0e 2e 6f 0e cd 13  f2 57 66 66 df bf 5f d1  |....o....Wff.._.|
-	// 000000c0  7c e4 16 94 ff 13 64 d6  80 98 63 bc 6f bc c1 90  ||.....d...c.o...|
-	// 000000d0  15 be d0 eb 80 ca 4f e0  c4 ed 97 2f 8e 46 94 ce  |......O..../.F..|
-	// 000000e0  c8 63 13 48 3c 32 bf 53  fb f8 bd 17 74 2c 93 93  |.c.H<2.S....t,..|
-	// 000000f0  28 11 10 75 5d 69 a1 17  fe 01 90 88 1d 1d c6 44  |(..u]i.........D|
-	// 00000100  46 e9 3b e0 7c f8 c8 f4  55 f0 ab c0              |F.;.|...U...|
+	// 000000c0  7c e4 16 94 ff 13 64 d6  80 98 63 bc              ||.....d...c.|
 	// Decrypted: 'Hello World!'
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/dedis/kyber/util/test"
 )
 
-var tSuite = NewAES128SHA256Ed25519()
+var tSuite = NewBlakeSHA256Ed25519()
 var groupBench = test.NewGroupBench(tSuite)
 
 func TestSuite(t *testing.T) { test.SuiteTest(tSuite) }

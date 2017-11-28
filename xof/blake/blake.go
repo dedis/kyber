@@ -38,6 +38,10 @@ func (x *xof) KeySize() int {
 	return blake2b.BlockSize
 }
 
+func (x *xof) Size() int {
+	return blake2b.Size
+}
+
 func (x *xof) Clone() kyber.XOF {
 	return &xof{impl: x.impl.Clone()}
 }

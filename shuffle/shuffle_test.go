@@ -11,7 +11,7 @@ import (
 	"github.com/dedis/kyber/proof"
 )
 
-var tSuite = edwards25519.NewAES128SHA256Ed25519()
+var tSuite = edwards25519.NewBlakeSHA256Ed25519()
 var k = 5
 var N = 10
 

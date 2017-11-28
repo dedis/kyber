@@ -40,8 +40,10 @@ func (s *Suite128) New(t reflect.Type) interface{} {
 	return marshalling.GroupNew(s, t)
 }
 
-// Ciphersuite based on AES-128, SHA-256, and the NIST P-256 elliptic curve.
-func NewAES128SHA256P256() *Suite128 {
+// NewBlakeSHA256P256 returns a cipher suite based on package
+// github.com/dedis/kyber/xof/blake, SHA-256, and the NIST P-256
+// elliptic curve.
+func NewBlakeSHA256P256() *Suite128 {
 	suite := new(Suite128)
 	suite.p256.Init()
 	return suite

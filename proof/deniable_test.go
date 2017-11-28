@@ -10,7 +10,7 @@ import (
 	"github.com/dedis/kyber/util/random"
 )
 
-var testSuite = edwards25519.NewAES128SHA256Ed25519()
+var testSuite = edwards25519.NewBlakeSHA256Ed25519()
 
 type node struct {
 	i    int

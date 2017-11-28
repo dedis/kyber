@@ -4,9 +4,8 @@ import (
 	"crypto/cipher"
 	"errors"
 
-	"github.com/dedis/kyber/util/key"
-
 	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/key"
 	"github.com/dedis/kyber/util/subtle"
 )
 
@@ -141,7 +140,7 @@ func Encrypt(suite Suite, rand cipher.Stream, message []byte,
 	// We now know the ciphertext layout
 	hdrhi := 0 + len(hdr)
 	msghi := hdrhi + len(message)
-	machi := msghi + xof.KeySize()
+	machi := msghi + xof.Size()
 	ciphertext := make([]byte, machi)
 	copy(ciphertext, hdr)
 
@@ -183,7 +182,7 @@ func Decrypt(suite Suite, ciphertext []byte, anonymitySet Set,
 
 	// Determine the message layout
 	xof := suite.XOF(xb)
-	maclen := xof.KeySize()
+	maclen := xof.Size()
 	if len(ciphertext) < hdrlen+maclen {
 		return nil, errors.New("ciphertext too short")
 	}
