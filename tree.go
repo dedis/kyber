@@ -79,7 +79,7 @@ func NewTree(roster *Roster, root *TreeNode) *Tree {
 
 // NewTreeFromMarshal takes a slice of bytes and an Roster to re-create
 // the original tree
-func NewTreeFromMarshal(buf []byte, el *Roster) (*Tree, error) {
+func NewTreeFromMarshal(buf []byte, ro *Roster) (*Tree, error) {
 	tp, pm, err := network.Unmarshal(buf)
 	if err != nil {
 		return nil, err
@@ -87,7 +87,7 @@ func NewTreeFromMarshal(buf []byte, el *Roster) (*Tree, error) {
 	if !tp.Equal(TreeMarshalTypeID) {
 		return nil, errors.New("Didn't receive TreeMarshal-struct")
 	}
-	t, err := pm.(*TreeMarshal).MakeTree(el)
+	t, err := pm.(*TreeMarshal).MakeTree(ro)
 	t.computeSubtreeAggregate(network.Suite, t.Root)
 	return t, err
 }
@@ -116,7 +116,7 @@ func (t *Tree) Marshal() ([]byte, error) {
 
 type tbmStruct struct {
 	T  []byte
-	EL *Roster
+	Ro *Roster
 }
 
 // BinaryMarshaler does the same as Marshal
@@ -127,7 +127,7 @@ func (t *Tree) BinaryMarshaler() ([]byte, error) {
 	}
 	tbm := &tbmStruct{
 		T:  bt,
-		EL: t.Roster,
+		Ro: t.Roster,
 	}
 	b, err := network.Marshal(tbm)
 	if err != nil {
@@ -143,11 +143,11 @@ func (t *Tree) BinaryUnmarshaler(b []byte) error {
 	if !ok {
 		return errors.New("Didn't find TBMstruct")
 	}
-	tree, err := NewTreeFromMarshal(tbm.T, tbm.EL)
+	tree, err := NewTreeFromMarshal(tbm.T, tbm.Ro)
 	if err != nil {
 		return err
 	}
-	t.Roster = tbm.EL
+	t.Roster = tbm.Ro
 	t.ID = tree.ID
 	t.Root = tree.Root
 	return nil
@@ -440,7 +440,7 @@ func (ro *Roster) GenerateBigNaryTree(N, nodes int) *Tree {
 	used[0] = true
 	levelNodes := []*TreeNode{root}
 	totalNodes := 1
-	elIndex := 1 % ilLen
+	roIndex := 1 % ilLen
 	for totalNodes < nodes {
 		newLevelNodes := make([]*TreeNode, len(levelNodes)*N)
 		newLevelNodesCounter := 0
@@ -454,17 +454,17 @@ func (ro *Roster) GenerateBigNaryTree(N, nodes int) *Tree {
 			for n := 0; n < children; n++ {
 				// Check on host-address, so that no child is
 				// on the same host as the parent.
-				childHost := ro.List[elIndex].Address.Host()
-				elIndexFirst := elIndex
+				childHost := ro.List[roIndex].Address.Host()
+				roIndexFirst := roIndex
 				notSameHost := true
 				for (notSameHost && childHost == parentHost && ilLen > 1) ||
-					(useAll && used[elIndex]) {
-					elIndex = (elIndex + 1) % ilLen
-					if useAll && used[elIndex] {
+					(useAll && used[roIndex]) {
+					roIndex = (roIndex + 1) % ilLen
+					if useAll && used[roIndex] {
 						// In case we searched all ServerIdentities,
 						// give up on finding another host, but
 						// keep using all ServerIdentities
-						if elIndex == elIndexFirst {
+						if roIndex == roIndexFirst {
 							notSameHost = false
 						}
 						continue
@@ -472,14 +472,14 @@ func (ro *Roster) GenerateBigNaryTree(N, nodes int) *Tree {
 					// If we tried all hosts, it means we're using
 					// just one hostname, as we didn't find any
 					// other name
-					if elIndex == elIndexFirst {
+					if roIndex == roIndexFirst {
 						break
 					}
-					childHost = ro.List[elIndex].Address.Host()
+					childHost = ro.List[roIndex].Address.Host()
 				}
-				child := NewTreeNode(elIndex, ro.List[elIndex])
-				used[elIndex] = true
-				elIndex = (elIndex + 1) % ilLen
+				child := NewTreeNode(roIndex, ro.List[roIndex])
+				used[roIndex] = true
+				roIndex = (roIndex + 1) % ilLen
 				totalNodes++
 				parent.Children[n] = child
 				child.Parent = parent
@@ -495,13 +495,13 @@ func (ro *Roster) GenerateBigNaryTree(N, nodes int) *Tree {
 // GenerateNaryTreeWithRoot creates a tree where each node has N children.
 // The root is given as an ServerIdentity. If root doesn't exist in the
 // roster, `nil` will be returned.
-func (el *Roster) GenerateNaryTreeWithRoot(N int, root *network.ServerIdentity) *Tree {
-	rootIndex, _ := el.Search(root.ID)
+func (ro *Roster) GenerateNaryTreeWithRoot(N int, root *network.ServerIdentity) *Tree {
+	rootIndex, _ := ro.Search(root.ID)
 	if rootIndex < 0 {
-		log.Lvl2("Asked for non-existing root:", root, el.List)
+		log.Lvl2("Asked for non-existing root:", root, ro.List)
 		return nil
 	}
-	cList := el.List
+	cList := ro.List
 	onlyRoot := []*network.ServerIdentity{cList[rootIndex]}
 	uptoRoot := cList[:rootIndex]
 	afterRoot := cList[rootIndex+1:]
