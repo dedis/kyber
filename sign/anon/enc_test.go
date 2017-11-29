@@ -44,10 +44,7 @@ func Example_encrypt1() {
 	// 00000020  ac 09 42 42 4a 23 1a 4b  68 92 12 21 4d f2 d3 da  |..BBJ#.Kh..!M...|
 	// 00000030  03 c8 a9 37 1d 7b 5f 71  d2 8b 31 28 ea e7 cd 9e  |...7.{_q..1(....|
 	// 00000040  d4 e2 20 7b eb 05 43 95  b6 8d 28 6d 4b 9c a6 f2  |.. {..C...(mK...|
-	// 00000050  1c cb 68 8c 73 f8 81 15  53 16 c0 a9 9d a6 62 c2  |..h.s...S.....b.|
-	// 00000060  c1 62 ca e1 d5 16 d1 94  ef c0 b5 00 33 09 91 bb  |.b..........3...|
-	// 00000070  32 d5 16 ef ae ec d8 f0  26 69 51 27 4d e4 32 bc  |2.......&iQ'M.2.|
-	// 00000080  bf aa 7b 97 14 c7 8e 53  9d c9 d1 6a              |..{....S...j|
+	// 00000050  1c cb 68 8c 73 f8 81 15  53 16 c0 a9              |..h.s...S...|
 	// Decrypted: 'Hello World!'
 }
 
@@ -94,9 +91,6 @@ func ExampleEncrypt_anonSet() {
 	// 00000060  fd 71 c1 c0 50 53 54 45  ad e0 d1 b0 31 99 41 45  |.q..PSTE....1.AE|
 	// 00000070  5b ec a8 25 b0 2c dd 39  18 e6 66 76 4a ca b3 a8  |[..%.,.9..fvJ...|
 	// 00000080  3a 0d 2c 6f 62 2b 5f 44  9d 1d b7 cc 75 28 38 ed  |:.,ob+_D....u(8.|
-	// 00000090  b6 28 ca 7d 71 bb 3a f5  d8 ab e8 1d a3 e5 1c d4  |.(.}q.:.........|
-	// 000000a0  5f aa cd 96 2d 6a c6 46  39 d1 d3 df a5 06 80 41  |_...-j.F9......A|
-	// 000000b0  06 0c 0e 2e 6f 0e cd 13  f2 57 66 66 df bf 5f d1  |....o....Wff.._.|
-	// 000000c0  7c e4 16 94 ff 13 64 d6  80 98 63 bc              ||.....d...c.|
+	// 00000090  b6 28 ca 7d 71 bb 3a f5  d8 ab e8 1d              |.(.}q.:.....|
 	// Decrypted: 'Hello World!'
 }

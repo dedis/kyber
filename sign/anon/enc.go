@@ -119,6 +119,10 @@ func decryptKey(suite Suite, ciphertext []byte, anonymitySet Set,
 	return xb, hdrlen, nil
 }
 
+// macSize is how long the hashes are that we extract from the XOF.
+// This constant of 16 is taken from the previous implementation's behavior.
+const macSize = 16
+
 // Encrypt a message for reading by any member of an explit anonymity set.
 // The caller supplies one or more keys representing the anonymity set.
 // If the provided set contains only one public key,
@@ -140,7 +144,7 @@ func Encrypt(suite Suite, rand cipher.Stream, message []byte,
 	// We now know the ciphertext layout
 	hdrhi := 0 + len(hdr)
 	msghi := hdrhi + len(message)
-	machi := msghi + xof.Size()
+	machi := msghi + macSize
 	ciphertext := make([]byte, machi)
 	copy(ciphertext, hdr)
 
@@ -182,12 +186,11 @@ func Decrypt(suite Suite, ciphertext []byte, anonymitySet Set,
 
 	// Determine the message layout
 	xof := suite.XOF(xb)
-	maclen := xof.Size()
-	if len(ciphertext) < hdrlen+maclen {
+	if len(ciphertext) < hdrlen+macSize {
 		return nil, errors.New("ciphertext too short")
 	}
 	hdrhi := hdrlen
-	msghi := len(ciphertext) - maclen
+	msghi := len(ciphertext) - macSize
 
 	// Decrypt the message and check the MAC
 	ctx := ciphertext[hdrhi:msghi]

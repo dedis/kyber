@@ -30,11 +30,6 @@ type XOF interface {
 	// it is ready to give secure output.
 	KeySize() int
 
-	// Size is the minimum number of bytes that should be read from the XOF to
-	// result in a secure hash. It is typically passed through from the underlying
-	// hash's Size method.
-	Size() int
-
 	// Reseed makes an XOF writeable again after it has been read from.
 	Reseed()
 
