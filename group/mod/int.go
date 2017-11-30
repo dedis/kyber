@@ -479,11 +479,3 @@ func (i *Int) HideDecode(buf []byte) {
 	i.V.SetBytes(buf)
 	i.V.Mod(&i.V, i.M)
 }
-
-// SetVarTime returns an error if we request constant time.
-func (i *Int) SetVarTime(varTime bool) error {
-	if !varTime {
-		return errors.New("mod.Int: support only variable time arithmetic operations")
-	}
-	return nil
-}

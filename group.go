@@ -57,13 +57,6 @@ type Scalar interface {
 
 	// Bytes returns a big-Endian representation of the scalar
 	Bytes() []byte
-
-	// SetVarTime allows or disallows use of faster variable-time implementations
-	// of operations on this Point. It returns an error if the desired
-	// implementation is not available for the concrete implementation.
-	// This flag always defaults to false (constant-time only)
-	// in implementations that can provide constant-time operations.
-	SetVarTime(varTime bool) error
 }
 
 // A Point kyber.y represents an element of a public-key cryptographic Group.
@@ -118,13 +111,18 @@ type Point interface {
 	// Multiply point p by the scalar s.
 	// If p == nil, multiply with the standard base point Base().
 	Mul(s Scalar, p Point) Point
+}
 
-	// SetVarTime allows or disallows use of faster variable-time implementations
-	// of operations on this Point. It returns an error if the desired
-	// implementation is not available.
-	// This flag always defaults to false (constant-time only)
-	// in implementations that can provide constant-time operations.
-	SetVarTime(varTime bool) error
+// Interface AllowsVarTime allows callers to determine if a given
+// kyber.Scalar or kyber.Point supports opting in to variable
+// time operations. If an object implements AllowsVarTime, then the
+// caller can use AllowVarTime(true) in order to allow variable
+// time operations on that object. Variable time operations may be
+// faster, but also risk leaking information via a timing side channel.
+// Thus they are only safe to use on public Scalars and Points, never
+// on secret ones.
+type AllowsVarTime interface {
+	AllowVarTime(bool)
 }
 
 // Group interface represents a kyber.cryptographic group

@@ -166,14 +166,6 @@ func (p *residuePoint) UnmarshalFrom(r io.Reader) (int, error) {
 	return marshalling.PointUnmarshalFrom(p, r)
 }
 
-// SetVarTime returns an error if we request constant-time operations.
-func (P *residuePoint) SetVarTime(varTime bool) error {
-	if !varTime {
-		return errors.New("nist: curve point do not provide constant time operations")
-	}
-	return nil
-}
-
 /*
 A ResidueGroup represents a DSA-style modular integer arithmetic group,
 defined by two primes P and Q and an integer R, such that P = Q*R+1.
