@@ -21,17 +21,12 @@ func New(seed []byte) kyber.XOF {
 	return &xof{sh: sh}
 }
 
-func (x *xof) KeySize() int {
-	// From https://github.com/golang/crypto/blob/1b32d8b50a20d8fb3f40d1d50cb9d75cd0135bc8/sha3/shake.go#L46
-	return 136
-}
-
 func (x *xof) Clone() kyber.XOF {
 	return &xof{sh: x.sh.Clone()}
 }
 
 func (x *xof) Reseed() {
-	key := make([]byte, x.KeySize())
+	key := make([]byte, 128)
 	x.Read(key)
 	x.sh = sha3.NewShake256()
 	x.sh.Write(key)

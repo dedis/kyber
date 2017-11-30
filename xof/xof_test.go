@@ -11,9 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type factory interface {
-	XOF(seed []byte) kyber.XOF
-}
 type blakeF struct{}
 
 func (b *blakeF) XOF(seed []byte) kyber.XOF { return blake.New(seed) }
@@ -22,7 +19,7 @@ type keccakF struct{}
 
 func (b *keccakF) XOF(seed []byte) kyber.XOF { return keccak.New(seed) }
 
-var impls = []factory{&blakeF{}, &keccakF{}}
+var impls = []kyber.XOFFactory{&blakeF{}, &keccakF{}}
 
 func TestEncDec(t *testing.T) {
 	lengths := []int{0, 1, 16, 1024, 8192}
@@ -34,7 +31,7 @@ func TestEncDec(t *testing.T) {
 	}
 }
 
-func testEncDec(t *testing.T, s factory, size int) {
+func testEncDec(t *testing.T, s kyber.XOFFactory, size int) {
 	t.Logf("implementation %T sz %v", s, size)
 	key := []byte("key")
 
@@ -68,7 +65,7 @@ func TestClone(t *testing.T) {
 	}
 }
 
-func testClone(t *testing.T, s factory) {
+func testClone(t *testing.T, s kyber.XOFFactory) {
 	t.Logf("implementation %T", s)
 	key := []byte("key")
 
@@ -100,7 +97,7 @@ func TestErrors(t *testing.T) {
 	}
 }
 
-func testErrors(t *testing.T, s factory) {
+func testErrors(t *testing.T, s kyber.XOFFactory) {
 	t.Logf("implementation %T", s)
 
 	// Write-after-read: panic
@@ -121,7 +118,7 @@ func TestRandom(t *testing.T) {
 	}
 }
 
-func testRandom(t *testing.T, s factory) {
+func testRandom(t *testing.T, s kyber.XOFFactory) {
 	t.Logf("implementation %T", s)
 	xof1 := s.XOF(nil)
 
@@ -173,7 +170,7 @@ func TestNoSeed(t *testing.T) {
 	}
 }
 
-func testNoSeed(t *testing.T, s factory) {
+func testNoSeed(t *testing.T, s kyber.XOFFactory) {
 	t.Logf("implementation %T", s)
 
 	xof1 := s.XOF(nil)
@@ -194,7 +191,7 @@ func TestReseed(t *testing.T) {
 	}
 }
 
-func testReseed(t *testing.T, s factory) {
+func testReseed(t *testing.T, s kyber.XOFFactory) {
 	t.Logf("implementation %T", s)
 	seed := []byte("seed")
 
@@ -223,7 +220,7 @@ func TestEncDecMismatch(t *testing.T) {
 	}
 }
 
-func testEncDecMismatch(t *testing.T, s factory) {
+func testEncDecMismatch(t *testing.T, s kyber.XOFFactory) {
 	t.Logf("implementation %T", s)
 	seed := []byte("seed")
 	x1 := s.XOF(seed)

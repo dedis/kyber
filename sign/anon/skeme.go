@@ -59,6 +59,9 @@ func (sk *SKEME) ToSend() []byte {
 	return sk.lm
 }
 
+// keySize is arbitrary, make it the same as it was with cipher, before
+const keySize = 16
+
 // Recv decrypts the message. It returns false if the SKEME expects more data,
 // an error if any checks or decryption is invalid, and true otherwise.
 func (sk *SKEME) Recv(rm []byte) (bool, error) {
@@ -87,7 +90,7 @@ func (sk *SKEME) Recv(rm []byte) (bool, error) {
 		DH := sk.suite.Point().Mul(sk.lx, rX)
 		seed, _ := DH.MarshalBinary()
 		sk.ms = sk.suite.XOF(seed)
-		mkey := make([]byte, sk.ms.KeySize())
+		mkey := make([]byte, keySize)
 		sk.ms.Read(mkey)
 		sk.ls, sk.lmac = sk.mkmac(mkey, sk.lXb, sk.rXb)
 		sk.rs, sk.rmac = sk.mkmac(mkey, sk.rXb, sk.lXb)
@@ -98,7 +101,7 @@ func (sk *SKEME) Recv(rm []byte) (bool, error) {
 
 	// Decode and check the remote key-confirmation MAC if present
 	maclo := ptlen
-	machi := maclo + sk.ms.KeySize()
+	machi := maclo + keySize
 	if len(M) < machi {
 		return false, nil // not an error, just not done yet
 	}
@@ -112,13 +115,12 @@ func (sk *SKEME) Recv(rm []byte) (bool, error) {
 }
 
 func (sk *SKEME) mkmac(masterkey, Xb1, Xb2 []byte) (cipher.Stream, []byte) {
-	keylen := sk.ms.KeySize()
-	hmac := hmac.New(sk.suite.Hash, masterkey)
+	hmac := hmac.New(sk.suite.(kyber.HashFactory).Hash, masterkey)
 	_, _ = hmac.Write(Xb1)
 	_, _ = hmac.Write(Xb2)
-	key := hmac.Sum(nil)[:keylen]
+	key := hmac.Sum(nil)[:keySize]
 
-	mac := make([]byte, keylen)
+	mac := make([]byte, keySize)
 	xof := sk.suite.XOF(key)
 	xof.Read(mac)
 	return xof, mac

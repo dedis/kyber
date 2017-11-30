@@ -26,10 +26,6 @@ type XOF interface {
 	// will panic.
 	cipher.Stream
 
-	// KeySize is the number of bytes that must be written to the XOF before
-	// it is ready to give secure output.
-	KeySize() int
-
 	// Reseed makes an XOF writeable again after it has been read from.
 	Reseed()
 

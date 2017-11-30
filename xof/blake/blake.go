@@ -36,10 +36,6 @@ func New(seed []byte) kyber.XOF {
 	return &xof{impl: b}
 }
 
-func (x *xof) KeySize() int {
-	return blake2b.BlockSize
-}
-
 func (x *xof) Clone() kyber.XOF {
 	return &xof{impl: x.impl.Clone()}
 }
@@ -54,7 +50,7 @@ func (x *xof) Write(src []byte) (int, error) {
 
 func (x *xof) Reseed() {
 	// Use New to create a new one seeded with output from the old one.
-	key := make([]byte, x.KeySize())
+	key := make([]byte, 128)
 	x.Read(key)
 	y := New(key)
 	// Steal the XOF implementation, and put it inside of x.

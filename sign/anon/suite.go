@@ -8,6 +8,5 @@ import (
 type Suite interface {
 	kyber.Group
 	kyber.Encoding
-	kyber.HashFactory
-	XOF(seed []byte) kyber.XOF
+	kyber.XOFFactory
 }

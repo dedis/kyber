@@ -101,15 +101,16 @@ func (dp *deniableProver) run(suite Suite, self int, prv Prover,
 	return dp.err
 }
 
+// keySize is arbitrary, make it long enough to seed the XOF
+const keySize = 128
+
 // Start the message buffer off in each step with a randomness commitment
 func (dp *deniableProver) initStep() {
-
-	keylen := dp.prirand.KeySize()
-	key := make([]byte, keylen) // secret random key
+	key := make([]byte, keySize) // secret random key
 	_, _ = dp.prirand.Read(key)
 	dp.key = key
 
-	msg := make([]byte, keylen) // send commitment to it
+	msg := make([]byte, keySize) // send commitment to it
 	xof := dp.suite.XOF(key)
 	xof.Read(msg)
 	dp.msg = bytes.NewBuffer(msg)
@@ -133,11 +134,10 @@ func (dp *deniableProver) proofStep() (bool, error) {
 	// Distribute this step's prover messages
 	// to the relevant verifiers as well,
 	// waking them up in the process so they can proceed.
-	keylen := dp.prirand.KeySize()
 	for i := range dp.dv {
 		dv := dp.dv[i]
 		if dv != nil && i < len(msgs) {
-			dv.inbox <- msgs[i][keylen:] // send to verifier
+			dv.inbox <- msgs[i][keySize:] // send to verifier
 		}
 	}
 
@@ -171,20 +171,19 @@ func (dp *deniableProver) challengeStep() error {
 	// check them against the respective commits,
 	// and ensure ours is included to ensure deniability
 	// (even if all others turn out to be maliciously generated).
-	keylen := dp.prirand.KeySize()
-	mix := make([]byte, keylen)
+	mix := make([]byte, keySize)
 	for i := range keys {
-		com := dp.msgs[i][:keylen] // node i's randomness commitment
-		key := keys[i]             // node i's committed random key
-		if len(com) < keylen || len(key) < keylen {
+		com := dp.msgs[i][:keySize] // node i's randomness commitment
+		key := keys[i]              // node i's committed random key
+		if len(com) < keySize || len(key) < keySize {
 			continue // ignore participants who dropped out
 		}
-		chk := make([]byte, keylen)
+		chk := make([]byte, keySize)
 		dp.suite.XOF(key).Read(chk)
 		if !bytes.Equal(com, chk) {
 			return errors.New("wrong key for commit")
 		}
-		for j := 0; j < keylen; j++ { // mix in this key
+		for j := 0; j < keySize; j++ { // mix in this key
 			mix[j] ^= key[j]
 		}
 	}
