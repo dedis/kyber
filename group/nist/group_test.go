@@ -8,11 +8,11 @@ import (
 	"github.com/dedis/kyber/util/test"
 )
 
-var testQR512 = NewAES128SHA256QR512()
+var testQR512 = NewBlakeSHA256QR512()
 
 func TestQR512(t *testing.T) { test.SuiteTest(testQR512) }
 
-var testP256 = NewAES128SHA256P256()
+var testP256 = NewBlakeSHA256P256()
 
 func TestP256(t *testing.T) { test.SuiteTest(testP256) }
 

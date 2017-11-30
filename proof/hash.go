@@ -12,15 +12,15 @@ type hashProver struct {
 	suite   Suite
 	proof   bytes.Buffer
 	msg     bytes.Buffer
-	pubrand kyber.Cipher
-	prirand kyber.Cipher
+	pubrand kyber.XOF
+	prirand kyber.XOF
 }
 
 func newHashProver(suite Suite, protoName string,
-	rand kyber.Cipher) *hashProver {
+	rand kyber.XOF) *hashProver {
 	var sc hashProver
 	sc.suite = suite
-	sc.pubrand = suite.Cipher([]byte(protoName))
+	sc.pubrand = suite.XOF([]byte(protoName))
 	sc.prirand = rand
 	return &sc
 }
@@ -34,7 +34,8 @@ func (c *hashProver) consumeMsg() {
 
 		// Stir the message into the public randomness pool
 		buf := c.msg.Bytes()
-		c.pubrand.Message(nil, nil, buf)
+		c.pubrand.Reseed()
+		c.pubrand.Write(buf)
 
 		// Append the current message data to the proof
 		c.proof.Write(buf)
@@ -67,7 +68,7 @@ type hashVerifier struct {
 	suite   Suite
 	proof   bytes.Buffer // Buffer with which to read the proof
 	prbuf   []byte       // Byte-slice underlying proof buffer
-	pubrand kyber.Cipher
+	pubrand kyber.XOF
 }
 
 func newHashVerifier(suite Suite, protoName string,
@@ -78,7 +79,7 @@ func newHashVerifier(suite Suite, protoName string,
 	}
 	c.suite = suite
 	c.prbuf = c.proof.Bytes()
-	c.pubrand = suite.Cipher([]byte(protoName))
+	c.pubrand = suite.XOF([]byte(protoName))
 	return &c, nil
 }
 
@@ -87,7 +88,8 @@ func (c *hashVerifier) consumeMsg() {
 	if l > 0 {
 		// Stir consumed bytes into the public randomness pool
 		buf := c.prbuf[:l]
-		c.pubrand.Message(nil, nil, buf)
+		c.pubrand.Reseed()
+		c.pubrand.Write(buf)
 
 		c.prbuf = c.proof.Bytes() // Reset to remaining bytes
 	}
@@ -119,7 +121,7 @@ func (c *hashVerifier) PubRand(data ...interface{}) error {
 // to create deterministically reproducible proofs.
 //
 func HashProve(suite Suite, protocolName string,
-	random kyber.Cipher, prover Prover) ([]byte, error) {
+	random kyber.XOF, prover Prover) ([]byte, error) {
 	ctx := newHashProver(suite, protocolName, random)
 	if e := (func(ProverContext) error)(prover)(ctx); e != nil {
 		return nil, e

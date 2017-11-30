@@ -114,7 +114,7 @@ func testSimple(t *testing.T, new func() kyber.Scalar) {
 }
 
 func benchScalarAdd(b *testing.B, new func() kyber.Scalar) {
-	var seed = testSuite.Cipher([]byte("hello world"))
+	var seed = tSuite.XOF([]byte("hello world"))
 	s1 := new()
 	s2 := new()
 	s3 := new()
@@ -127,7 +127,7 @@ func benchScalarAdd(b *testing.B, new func() kyber.Scalar) {
 }
 
 func benchScalarMul(b *testing.B, new func() kyber.Scalar) {
-	var seed = testSuite.Cipher([]byte("hello world"))
+	var seed = tSuite.XOF([]byte("hello world"))
 	s1 := new()
 	s2 := new()
 	s3 := new()
@@ -140,7 +140,7 @@ func benchScalarMul(b *testing.B, new func() kyber.Scalar) {
 }
 
 func benchScalarSub(b *testing.B, new func() kyber.Scalar) {
-	var seed = testSuite.Cipher([]byte("hello world"))
+	var seed = tSuite.XOF([]byte("hello world"))
 	s1 := new()
 	s2 := new()
 	s3 := new()
@@ -154,7 +154,7 @@ func benchScalarSub(b *testing.B, new func() kyber.Scalar) {
 
 // addition
 
-func BenchmarkCTScalarAdd(b *testing.B) { benchScalarAdd(b, testSuite.Scalar) }
+func BenchmarkCTScalarAdd(b *testing.B) { benchScalarAdd(b, tSuite.Scalar) }
 
 func BenchmarkCTScalarSimpleAdd(b *testing.B) { benchScalarAdd(b, newSimpleCTScalar) }
 
@@ -162,7 +162,7 @@ func BenchmarkCTScalarFactoredAdd(b *testing.B) { benchScalarAdd(b, newFactoredS
 
 // multiplication
 
-func BenchmarkCTScalarMul(b *testing.B) { benchScalarMul(b, testSuite.Scalar) }
+func BenchmarkCTScalarMul(b *testing.B) { benchScalarMul(b, tSuite.Scalar) }
 
 func BenchmarkCTScalarSimpleMul(b *testing.B) { benchScalarMul(b, newSimpleCTScalar) }
 
@@ -170,7 +170,7 @@ func BenchmarkCTScalarFactoredMul(b *testing.B) { benchScalarMul(b, newFactoredS
 
 // substraction
 
-func BenchmarkCTScalarSub(b *testing.B) { benchScalarSub(b, testSuite.Scalar) }
+func BenchmarkCTScalarSub(b *testing.B) { benchScalarSub(b, tSuite.Scalar) }
 
 func BenchmarkCTScalarSimpleSub(b *testing.B) { benchScalarSub(b, newSimpleCTScalar) }
 

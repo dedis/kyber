@@ -10,9 +10,9 @@ import (
 )
 
 func TestPVSS(test *testing.T) {
-	suite := edwards25519.NewAES128SHA256Ed25519()
+	suite := edwards25519.NewBlakeSHA256Ed25519()
 	G := suite.Point().Base()
-	H := suite.Point().Pick(suite.Cipher([]byte("H")))
+	H := suite.Point().Pick(suite.XOF([]byte("H")))
 	n := 10
 	t := 2*n/3 + 1
 	x := make([]kyber.Scalar, n) // trustee private keys
@@ -54,9 +54,9 @@ func TestPVSS(test *testing.T) {
 }
 
 func TestPVSSDelete(test *testing.T) {
-	suite := edwards25519.NewAES128SHA256Ed25519()
+	suite := edwards25519.NewBlakeSHA256Ed25519()
 	G := suite.Point().Base()
-	H := suite.Point().Pick(suite.Cipher([]byte("H")))
+	H := suite.Point().Pick(suite.XOF([]byte("H")))
 	n := 10
 	t := 2*n/3 + 1
 	x := make([]kyber.Scalar, n) // trustee private keys
@@ -105,9 +105,9 @@ func TestPVSSDelete(test *testing.T) {
 }
 
 func TestPVSSDeleteFail(test *testing.T) {
-	suite := edwards25519.NewAES128SHA256Ed25519()
+	suite := edwards25519.NewBlakeSHA256Ed25519()
 	G := suite.Point().Base()
-	H := suite.Point().Pick(suite.Cipher([]byte("H")))
+	H := suite.Point().Pick(suite.XOF([]byte("H")))
 	n := 10
 	t := 2*n/3 + 1
 	x := make([]kyber.Scalar, n) // trustee private keys
@@ -156,9 +156,9 @@ func TestPVSSDeleteFail(test *testing.T) {
 }
 
 func TestPVSSBatch(test *testing.T) {
-	suite := edwards25519.NewAES128SHA256Ed25519()
+	suite := edwards25519.NewBlakeSHA256Ed25519()
 	G := suite.Point().Base()
-	H := suite.Point().Pick(suite.Cipher([]byte("H")))
+	H := suite.Point().Pick(suite.XOF([]byte("H")))
 	n := 5
 	t := 2*n/3 + 1
 	x := make([]kyber.Scalar, n) // trustee private keys

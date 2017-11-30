@@ -7,21 +7,20 @@ import (
 	"testing"
 
 	kyber "github.com/dedis/kyber"
-	"github.com/dedis/kyber/cipher"
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/proof"
 )
 
-var suite = edwards25519.NewAES128SHA256Ed25519()
+var tSuite = edwards25519.NewBlakeSHA256Ed25519()
 var k = 5
 var N = 10
 
 func TestShuffle(t *testing.T) {
-	shuffleTest(suite, k, N)
+	shuffleTest(tSuite, k, N)
 }
 
 func shuffleTest(suite Suite, k, N int) {
-	rand := suite.Cipher(cipher.RandomKey)
+	rand := suite.XOF(nil)
 
 	// Create a "server" private/public keypair
 	h := suite.Scalar().Pick(rand)
