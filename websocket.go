@@ -198,6 +198,11 @@ func NewClientKeep(s string, suite network.Suite) *Client {
 	}
 }
 
+// Suite returns the cryptographic suite in use on this connection.
+func (c *Client) Suite() network.Suite {
+	return c.suite
+}
+
 // Send will marshal the message into a ClientRequest message and send it.
 func (c *Client) Send(dst *network.ServerIdentity, path string, buf []byte) ([]byte, ClientError) {
 	c.Lock()
