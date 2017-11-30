@@ -113,14 +113,14 @@ type Point interface {
 	Mul(s Scalar, p Point) Point
 }
 
-// Interface AllowsVarTime allows callers to determine if a given
-// kyber.Scalar or kyber.Point supports opting in to variable
-// time operations. If an object implements AllowsVarTime, then the
-// caller can use AllowVarTime(true) in order to allow variable
-// time operations on that object. Variable time operations may be
-// faster, but also risk leaking information via a timing side channel.
-// Thus they are only safe to use on public Scalars and Points, never
-// on secret ones.
+// AllowsVarTime allows callers to determine if a given kyber.Scalar
+// or kyber.Point supports opting-in to variable time operations. If
+// an object implements AllowsVarTime, then the caller can use
+// AllowVarTime(true) in order to allow variable time operations on
+// that object until AllowVarTime(false) is called. Variable time
+// operations may be faster, but also risk leaking information via a
+// timing side channel. Thus they are only safe to use on public
+// Scalars and Points, never on secret ones.
 type AllowsVarTime interface {
 	AllowVarTime(bool)
 }
