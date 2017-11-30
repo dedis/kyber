@@ -17,8 +17,8 @@ import (
 type Suite interface {
 	kyber.Group
 	kyber.HashFactory
-	kyber.CipherFactory
 	kyber.Encoding
+	kyber.XOFFactory
 }
 
 /*
@@ -475,7 +475,7 @@ func (op *orPred) enumVars(prf *proof) {
 func (op *orPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 	sub := []Predicate(*op)
 	if pv != nil { // only happens within an AND expression
-		panic("can't have OR predicates within AND predicates")
+		return errors.New("can't have OR predicates within AND predicates")
 	}
 
 	// Create per-predicate prover state
@@ -489,7 +489,7 @@ func (op *orPred) commit(prf *proof, w kyber.Scalar, pv []kyber.Scalar) error {
 		// choose random pre-challenges for only non-obligated subs.
 		choice, ok := prf.choice[op]
 		if !ok || choice < 0 || choice >= len(sub) {
-			panic("no choice of proof branch for OR-predicate " +
+			return errors.New("no choice of proof branch for OR-predicate " +
 				op.String())
 		}
 		for i := 0; i < len(sub); i++ {
@@ -527,7 +527,7 @@ func (op *orPred) respond(prf *proof, c kyber.Scalar, pr []kyber.Scalar) error {
 	sub := []Predicate(*op)
 	pp := prf.pp[op]
 	if pr != nil {
-		panic("OR predicates can't be nested in anything else")
+		return errors.New("OR predicates can't be nested in anything else")
 	}
 
 	ci := pp.wi
@@ -574,7 +574,7 @@ func (op *orPred) getCommits(prf *proof, pr []kyber.Scalar) error {
 func (op *orPred) verify(prf *proof, c kyber.Scalar, pr []kyber.Scalar) error {
 	sub := []Predicate(*op)
 	if pr != nil {
-		panic("OR predicates can't be in anything else")
+		return errors.New("OR predicates can't be in anything else")
 	}
 
 	// Get the prover's sub-challenges

@@ -1,6 +1,8 @@
 package shuffle
 
 import (
+	"crypto/cipher"
+
 	kyber "github.com/dedis/kyber"
 	"github.com/dedis/kyber/proof"
 	"github.com/dedis/kyber/util/random"
@@ -45,7 +47,7 @@ func bifflePoints(suite Suite, G, H kyber.Point,
 
 // Biffle is a binary shuffle ("biffle") for 2 ciphertexts based on general ZKPs.
 func Biffle(suite Suite, G, H kyber.Point,
-	X, Y [2]kyber.Point, rand kyber.Cipher) (
+	X, Y [2]kyber.Point, rand cipher.Stream) (
 	Xbar, Ybar [2]kyber.Point, prover proof.Prover) {
 
 	// Pick the single-bit permutation.

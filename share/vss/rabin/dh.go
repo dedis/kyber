@@ -39,14 +39,18 @@ func newAEAD(fn func() hash.Hash, preSharedKey kyber.Point, context []byte) (cip
 	return gcm, nil
 }
 
+// keySize is arbitrary, make it long enough to seed the XOF
+const keySize = 128
+
 // context returns the context slice to be used when encrypting a share
 func context(suite Suite, dealer kyber.Point, verifiers []kyber.Point) []byte {
-	h := suite.Hash()
-	_, _ = h.Write([]byte("vss-dealer"))
+	h := suite.XOF([]byte("vss-dealer"))
 	_, _ = dealer.MarshalTo(h)
 	_, _ = h.Write([]byte("vss-verifiers"))
 	for _, v := range verifiers {
 		_, _ = v.MarshalTo(h)
 	}
-	return h.Sum(nil)
+	sum := make([]byte, keySize)
+	h.Read(sum)
+	return sum
 }

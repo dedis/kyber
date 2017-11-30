@@ -20,8 +20,8 @@ import (
 // Suite defines the capabilities required by the vss package.
 type Suite interface {
 	kyber.Group
-	kyber.CipherFactory
 	kyber.HashFactory
+	kyber.XOFFactory
 }
 
 // Dealer encapsulates for creating and distributing the shares and for
@@ -634,10 +634,7 @@ func deriveH(suite Suite, verifiers []kyber.Point) kyber.Point {
 	for _, v := range verifiers {
 		_, _ = v.MarshalTo(&b)
 	}
-	h := suite.Hash()
-	_, _ = h.Write(b.Bytes())
-	digest := h.Sum(nil)
-	base := suite.Point().Pick(suite.Cipher(digest))
+	base := suite.Point().Pick(suite.XOF(b.Bytes()))
 	return base
 }
 

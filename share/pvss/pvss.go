@@ -27,8 +27,8 @@ import (
 type Suite interface {
 	kyber.Group
 	kyber.HashFactory
-	kyber.CipherFactory
 	kyber.Encoding
+	kyber.XOFFactory
 }
 
 // Some error definitions.
