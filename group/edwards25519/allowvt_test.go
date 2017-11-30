@@ -9,7 +9,7 @@ import (
 )
 
 func TestVartime(t *testing.T) {
-	p := testSuite.Point()
+	p := tSuite.Point()
 	if pvt, ok := p.(kyber.AllowsVarTime); ok {
 		// Try both settings
 		pvt.AllowVarTime(false)
