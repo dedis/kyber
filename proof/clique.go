@@ -41,5 +41,5 @@ type Context interface {
 	Step(msg []byte) ([][]byte, error)
 
 	// Get a source of private cryptographic randomness.
-	Random() kyber.Cipher
+	Random() kyber.XOF
 }

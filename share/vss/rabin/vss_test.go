@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var suite = edwards25519.NewAES128SHA256Ed25519()
+var suite = edwards25519.NewBlakeSHA256Ed25519()
 
 var reader = random.Stream
 
@@ -500,7 +500,7 @@ func TestVSSDHExchange(t *testing.T) {
 
 func TestVSSContext(t *testing.T) {
 	c := context(suite, dealerPub, verifiersPub)
-	assert.Len(t, c, suite.Hash().Size())
+	assert.Len(t, c, keySize)
 }
 
 func genPair() (kyber.Scalar, kyber.Point) {

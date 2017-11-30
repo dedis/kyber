@@ -9,7 +9,7 @@ import (
 )
 
 func TestSecretRecovery(test *testing.T) {
-	g := edwards25519.NewAES128SHA256Ed25519()
+	g := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 	poly := NewPriPoly(g, t, nil, random.Stream)
@@ -26,7 +26,7 @@ func TestSecretRecovery(test *testing.T) {
 }
 
 func TestSecretRecoveryDelete(test *testing.T) {
-	g := edwards25519.NewAES128SHA256Ed25519()
+	g := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 	poly := NewPriPoly(g, t, nil, random.Stream)
@@ -49,7 +49,7 @@ func TestSecretRecoveryDelete(test *testing.T) {
 }
 
 func TestSecretRecoveryDeleteFail(test *testing.T) {
-	g := edwards25519.NewAES128SHA256Ed25519()
+	g := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 
@@ -70,7 +70,7 @@ func TestSecretRecoveryDeleteFail(test *testing.T) {
 }
 
 func TestSecretPolyEqual(test *testing.T) {
-	g := edwards25519.NewAES128SHA256Ed25519()
+	g := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 
@@ -90,7 +90,7 @@ func TestSecretPolyEqual(test *testing.T) {
 }
 
 func TestPublicCheck(test *testing.T) {
-	g := edwards25519.NewAES128SHA256Ed25519()
+	g := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 
@@ -106,7 +106,7 @@ func TestPublicCheck(test *testing.T) {
 }
 
 func TestPublicRecovery(test *testing.T) {
-	g := edwards25519.NewAES128SHA256Ed25519()
+	g := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 
@@ -125,7 +125,7 @@ func TestPublicRecovery(test *testing.T) {
 }
 
 func TestPublicRecoveryDelete(test *testing.T) {
-	g := edwards25519.NewAES128SHA256Ed25519()
+	g := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 
@@ -150,7 +150,7 @@ func TestPublicRecoveryDelete(test *testing.T) {
 }
 
 func TestPublicRecoveryDeleteFail(test *testing.T) {
-	g := edwards25519.NewAES128SHA256Ed25519()
+	g := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 
@@ -172,7 +172,7 @@ func TestPublicRecoveryDeleteFail(test *testing.T) {
 }
 
 func TestPrivateAdd(test *testing.T) {
-	g := edwards25519.NewAES128SHA256Ed25519()
+	g := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 
@@ -194,7 +194,7 @@ func TestPrivateAdd(test *testing.T) {
 }
 
 func TestPublicAdd(test *testing.T) {
-	g := edwards25519.NewAES128SHA256Ed25519()
+	g := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 
@@ -228,7 +228,7 @@ func TestPublicAdd(test *testing.T) {
 }
 
 func TestPublicPolyEqual(test *testing.T) {
-	g := edwards25519.NewAES128SHA256Ed25519()
+	g := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 
@@ -254,7 +254,7 @@ func TestPublicPolyEqual(test *testing.T) {
 }
 
 func TestPriPolyMul(test *testing.T) {
-	suite := edwards25519.NewAES128SHA256Ed25519()
+	suite := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 	a := NewPriPoly(suite, t, nil, random.Stream)
@@ -281,7 +281,7 @@ func TestPriPolyMul(test *testing.T) {
 }
 
 func TestRecoverPriPoly(test *testing.T) {
-	suite := edwards25519.NewAES128SHA256Ed25519()
+	suite := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
 	t := n/2 + 1
 	a := NewPriPoly(suite, t, nil, random.Stream)

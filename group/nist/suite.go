@@ -11,8 +11,8 @@ import (
 	"github.com/dedis/fixbuf"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/cipher/sha3"
 	"github.com/dedis/kyber/group/internal/marshalling"
+	"github.com/dedis/kyber/xof/blake"
 )
 
 type Suite128 struct {
@@ -24,9 +24,8 @@ func (s *Suite128) Hash() hash.Hash {
 	return sha256.New()
 }
 
-// SHA3/SHAKE128 Sponge Cipher
-func (s *Suite128) Cipher(key []byte, options ...interface{}) kyber.Cipher {
-	return sha3.NewShakeCipher128(key, options...)
+func (s *Suite128) XOF(key []byte) kyber.XOF {
+	return blake.New(key)
 }
 
 func (s *Suite128) Read(r io.Reader, objs ...interface{}) error {
@@ -41,8 +40,10 @@ func (s *Suite128) New(t reflect.Type) interface{} {
 	return marshalling.GroupNew(s, t)
 }
 
-// Ciphersuite based on AES-128, SHA-256, and the NIST P-256 elliptic curve.
-func NewAES128SHA256P256() *Suite128 {
+// NewBlakeSHA256P256 returns a cipher suite based on package
+// github.com/dedis/kyber/xof/blake, SHA-256, and the NIST P-256
+// elliptic curve.
+func NewBlakeSHA256P256() *Suite128 {
 	suite := new(Suite128)
 	suite.p256.Init()
 	return suite

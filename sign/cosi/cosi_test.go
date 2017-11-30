@@ -20,7 +20,7 @@ func (m *cosiSuite) Hash() hash.Hash {
 	return sha512.New()
 }
 
-var testSuite = &cosiSuite{edwards25519.NewAES128SHA256Ed25519()}
+var testSuite = &cosiSuite{edwards25519.NewBlakeSHA256Ed25519()}
 
 func TestCoSi(t *testing.T) {
 	n := 5

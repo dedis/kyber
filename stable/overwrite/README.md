@@ -82,12 +82,10 @@ changes, so only minor changes are required.
       // Suite defines the capabilities required by the vss package.
       type Suite interface {
           kyber.Group
-          kyber.CipherFactory
-          kyber.HashFactory
+          kyber.XOFFactory
       }
   ```
-+ `Cipher(key []byte. opts ...interface{}) Cipher` is now `kyber.CipherFactory`.
-+ `Hash() hash.Hash` is now `kyber.HashFactory`.
++ Cipher and Hash are subsumed by suite.XOF(seed []byte).
 + The order of arguments for `Point.Mul()` has changed. It now follows the
   mathematical additive notation with the scalar in front:
   `Mul(kyber.Scalar, kyber.Point) kyber.Point`

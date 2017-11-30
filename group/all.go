@@ -1,15 +1,12 @@
-// Package group holds a reference to all kyber.Group and to all cipher suites
-// defined. It provides a quick access to one specific suite using the
+// Package group holds a reference to all kyber.Group and to all
+// cipher suites defined. It provides access to suites by name,
+// case-insensitively.
 //
-//  Suite("ed25519")
-//
-// method. Currently, only the "ed25519" suite is available by default. To have
-// access to the "curve25519" and all nist/ suites, one needs to build the
-// kyber library with the tag "vartime", such as:
+// Currently, only the "ed25519" suite is available by default. To
+// have access to the "curve25519" and all nist/ suites, one needs to
+// build the kyber library with the tag "vartime", such as:
 //
 //   go build -tags vartime
-//
-// Note that all suite and groups references are case insensitive.
 package group
 
 import (
@@ -27,17 +24,26 @@ func register(g kyber.Group) {
 }
 
 func init() {
-	register(edwards25519.NewAES128SHA256Ed25519())
+	register(edwards25519.NewBlakeSHA256Ed25519())
 }
 
 // ErrUnknownSuite indicates that the suite was not one of the
 // registered suites.
 var ErrUnknownSuite = errors.New("unknown suite")
 
-// Suite return
+// Suite looks up a suite by name.
 func Suite(name string) (kyber.Group, error) {
 	if s, ok := suites[strings.ToLower(name)]; ok {
 		return s, nil
 	}
 	return nil, ErrUnknownSuite
+}
+
+// MustSuite looks up a suite by name and panics if it is not found.
+func MustSuite(name string) kyber.Group {
+	s, err := Suite(name)
+	if err != nil {
+		panic("Suite " + name + " not found.")
+	}
+	return s
 }

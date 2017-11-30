@@ -7,7 +7,6 @@ import (
 	"errors"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/random"
 )
 
 // SKEME is a pairwise anonymous key agreement for point-to-point interactions.
@@ -29,7 +28,7 @@ type SKEME struct {
 	lX, rX   kyber.Point  // local,remote Diffie-Hellman pubkeys
 	lXb, rXb []byte       // local,remote DH pubkeys byte-encoded
 
-	ms         kyber.Cipher  // master symmetric shared stream
+	ms         kyber.XOF     // master symmetric shared stream
 	ls, rs     cipher.Stream // local->remote,remote->local streams
 	lmac, rmac []byte        // local,remote key-confirmation MACs
 
@@ -60,6 +59,9 @@ func (sk *SKEME) ToSend() []byte {
 	return sk.lm
 }
 
+// keySize is arbitrary, make it the same as it was with cipher, before
+const keySize = 16
+
 // Recv decrypts the message. It returns false if the SKEME expects more data,
 // an error if any checks or decryption is invalid, and true otherwise.
 func (sk *SKEME) Recv(rm []byte) (bool, error) {
@@ -87,8 +89,9 @@ func (sk *SKEME) Recv(rm []byte) (bool, error) {
 		// Compute the shared secret and the key-confirmation MACs
 		DH := sk.suite.Point().Mul(sk.lx, rX)
 		seed, _ := DH.MarshalBinary()
-		sk.ms = sk.suite.Cipher(seed)
-		mkey := random.Bytes(sk.ms.KeySize(), sk.ms)
+		sk.ms = sk.suite.XOF(seed)
+		mkey := make([]byte, keySize)
+		sk.ms.Read(mkey)
 		sk.ls, sk.lmac = sk.mkmac(mkey, sk.lXb, sk.rXb)
 		sk.rs, sk.rmac = sk.mkmac(mkey, sk.rXb, sk.lXb)
 
@@ -98,7 +101,7 @@ func (sk *SKEME) Recv(rm []byte) (bool, error) {
 
 	// Decode and check the remote key-confirmation MAC if present
 	maclo := ptlen
-	machi := maclo + sk.ms.KeySize()
+	machi := maclo + keySize
 	if len(M) < machi {
 		return false, nil // not an error, just not done yet
 	}
@@ -112,13 +115,13 @@ func (sk *SKEME) Recv(rm []byte) (bool, error) {
 }
 
 func (sk *SKEME) mkmac(masterkey, Xb1, Xb2 []byte) (cipher.Stream, []byte) {
-	keylen := sk.ms.KeySize()
-	hmac := hmac.New(sk.suite.Hash, masterkey)
+	hmac := hmac.New(sk.suite.(kyber.HashFactory).Hash, masterkey)
 	_, _ = hmac.Write(Xb1)
 	_, _ = hmac.Write(Xb2)
-	key := hmac.Sum(nil)[:keylen]
+	key := hmac.Sum(nil)[:keySize]
 
-	stream := sk.suite.Cipher(key)
-	mac := random.Bytes(keylen, stream)
-	return stream, mac
+	mac := make([]byte, keySize)
+	xof := sk.suite.XOF(key)
+	xof.Read(mac)
+	return xof, mac
 }

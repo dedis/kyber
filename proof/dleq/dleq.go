@@ -9,7 +9,7 @@ import (
 	"errors"
 
 	"github.com/dedis/kyber"
-	h "github.com/dedis/kyber/util/hash"
+	"github.com/dedis/kyber/util/hash"
 	"github.com/dedis/kyber/util/random"
 )
 
@@ -17,7 +17,7 @@ import (
 type Suite interface {
 	kyber.Group
 	kyber.HashFactory
-	kyber.CipherFactory
+	kyber.XOFFactory
 }
 
 var errorDifferentLengths = errors.New("inputs of different lengths")
@@ -47,11 +47,11 @@ func NewDLEQProof(suite Suite, G kyber.Point, H kyber.Point, x kyber.Scalar) (pr
 	vH := suite.Point().Mul(v, H)
 
 	// Challenge
-	cb, err := h.Structures(suite.Hash(), xG, xH, vG, vH)
+	cb, err := hash.Structures(suite.Hash(), xG, xH, vG, vH)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	c := suite.Scalar().Pick(suite.Cipher(cb))
+	c := suite.Scalar().Pick(suite.XOF(cb))
 
 	// Response
 	r := suite.Scalar()
@@ -88,11 +88,11 @@ func NewDLEQProofBatch(suite Suite, G []kyber.Point, H []kyber.Point, secrets []
 	}
 
 	// Collective challenge
-	cb, err := h.Structures(suite.Hash(), xG, xH, vG, vH)
+	cb, err := hash.Structures(suite.Hash(), xG, xH, vG, vH)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	c := suite.Scalar().Pick(suite.Cipher(cb))
+	c := suite.Scalar().Pick(suite.XOF(cb))
 
 	// Responses
 	for i, x := range secrets {

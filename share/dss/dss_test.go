@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var suite = edwards25519.NewAES128SHA256Ed25519()
+var suite = edwards25519.NewBlakeSHA256Ed25519()
 
 var nbParticipants = 7
 var t = nbParticipants/2 + 1

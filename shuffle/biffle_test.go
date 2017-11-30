@@ -4,17 +4,15 @@ import (
 	"testing"
 
 	kyber "github.com/dedis/kyber"
-	"github.com/dedis/kyber/cipher"
 	"github.com/dedis/kyber/proof"
 )
 
 func TestBiffle(t *testing.T) {
-	biffleTest(suite, N)
+	biffleTest(tSuite, N)
 }
 
 func biffleTest(suite Suite, N int) {
-
-	rand := suite.Cipher(cipher.RandomKey)
+	rand := suite.XOF(nil)
 
 	// Create a "server" private/public keypair
 	h := suite.Scalar().Pick(rand)

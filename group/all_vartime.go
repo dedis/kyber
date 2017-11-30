@@ -8,8 +8,8 @@ import (
 )
 
 func init() {
-	register(curve25519.NewAES128SHA256Ed25519(false))
-	register(curve25519.NewAES128SHA256Ed25519(true))
-	register(nist.NewAES128SHA256P256())
-	register(nist.NewAES128SHA256QR512())
+	register(curve25519.NewBlakeSHA256Curve25519(false))
+	register(curve25519.NewBlakeSHA256Curve25519(true))
+	register(nist.NewBlakeSHA256P256())
+	register(nist.NewBlakeSHA256QR512())
 }
