@@ -265,6 +265,13 @@ func (d *Dealer) Commits() []kyber.Point {
 	return d.secretCommits
 }
 
+// SetTimeOut tells this dealer to consider this moment the maximum time limit.
+// it calls cleanVerifiers which will take care of all Verifiers who have not
+// responded until now.
+func (d *Dealer) SetTimeOut() {
+	d.aggregator.cleanVerifiers()
+}
+
 // Key returns the longterm key pair used by this Dealer.
 func (d *Dealer) Key() (kyber.Scalar, kyber.Point) {
 	return d.long, d.pub
@@ -453,6 +460,25 @@ func (v *Verifier) SessionID() []byte {
 	return v.sid
 }
 
+// SetTimeOut tells this verifier to consider this moment the maximum time limit.
+// it calls cleanVerifiers which will take care of all Verifiers who have not
+// responded until now.
+func (v *Verifier) SetTimeOut() {
+	v.aggregator.cleanVerifiers()
+}
+
+// UnsafeSetResponseDKG is an UNSAFE bypass method to allow DKG to use VSS
+// that works on basis of approval only.
+func (v *Verifier) UnsafeSetResponseDKG(idx uint32, approval bool) {
+    r := &Response{
+        SessionID: v.aggregator.sid,
+        Index:     uint32(idx),
+        Status:    approval,
+    }
+
+    v.aggregator.addResponse(r)
+}
+
 // RecoverSecret recovers the secret shared by a Dealer by gathering at least t
 // Deals from the verifiers. It returns an error if there is not enough Deals or
 // if all Deals don't have the same SessionID.
@@ -537,6 +563,20 @@ func (a *aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 	return nil
 }
 
+// cleanVerifiers checks the aggregator's response array and creates a StatusComplaint
+// response for all verifiers who have no response in the array.
+func (a *aggregator) cleanVerifiers() {
+	for i := range a.verifiers {
+		if _, ok := a.responses[uint32(i)]; !ok {
+			a.responses[uint32(i)] = &Response{
+				SessionID: a.sid,
+				Index:     uint32(i),
+				Status:    StatusComplaint,
+			}
+		}
+	}
+}
+
 func (a *aggregator) verifyResponse(r *Response) error {
 	if !bytes.Equal(r.SessionID, a.sid) {
 		return errors.New("vss: receiving inconsistent sessionID in response")
@@ -601,18 +641,23 @@ func (a *aggregator) EnoughApprovals() bool {
 // DealCertified returns true if there has been less than t complaints, all
 // Justifications were correct and if EnoughApprovals() returns true.
 func (a *aggregator) DealCertified() bool {
-	var comps int
+	var verifiersUnstable int
+
 	// XXX currently it can still happen that an aggregator has not been set,
 	// because it did not receive any deals yet or responses.
 	if a == nil {
 		return false
 	}
-	for _, r := range a.responses {
-		if r.Status == StatusComplaint {
-			comps++
+
+	// Check either a StatusApproval or StatusComplaint for all known verifiers
+	// i.e. make sure all verifiers are either timed-out or OK.
+	for i := range a.verifiers {
+		if _, ok := a.responses[uint32(i)]; !ok {
+			verifiersUnstable++
 		}
 	}
-	tooMuchComplaints := comps >= a.t || a.badDealer
+
+	tooMuchComplaints := verifiersUnstable > 0 || a.badDealer
 	return a.EnoughApprovals() && !tooMuchComplaints
 }
 
