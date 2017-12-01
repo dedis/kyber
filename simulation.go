@@ -213,7 +213,7 @@ func (s *SimulationBFTree) CreateRoster(sc *SimulationConfig, addresses []string
 	start := time.Now()
 	suite, err := group.Suite(s.Suite)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Could not look up suite \"%v\": %v", s.Suite, err.Error())
 	}
 	nbrAddr := len(addresses)
 	if sc.PrivateKeys == nil {
