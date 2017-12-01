@@ -7,6 +7,8 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"math/big"
+
+	"github.com/dedis/kyber/xof/blake"
 )
 
 // Bits chooses a uniform random BigInt with a given maximum BitLen.
@@ -125,4 +127,16 @@ func (r *randstream) XORKeyStream(dst, src []byte) {
 
 // Stream is the standard virtual "stream cipher" that just generates
 // fresh cryptographically strong random bits.
-var Stream cipher.Stream = new(randstream)
+var Stream cipher.Stream
+
+// testableRand is for debugging only: it will cause random.Stream to return
+// the same sequence every time. NOT FOR PRODUCTION USE!
+const testableRand = false
+
+func init() {
+	if testableRand {
+		Stream = blake.New(nil)
+	} else {
+		Stream = new(randstream)
+	}
+}
