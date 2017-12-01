@@ -653,7 +653,6 @@ func (a *aggregator) DealCertified() bool {
 	// i.e. make sure all verifiers are either timed-out or OK.
 	for i := range a.verifiers {
 		if _, ok := a.responses[uint32(i)]; !ok {
-            fmt.Println("DealCertified: no response for verifier ", i)
 			verifiersUnstable++
 		}
 	}
