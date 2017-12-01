@@ -5,11 +5,11 @@ package dkg
 import (
 	"crypto/cipher"
 	"errors"
-    
+
 	"github.com/dedis/kyber"
 
-	"github.com/dedis/kyber/share"
 	vss "github.com/CedricCook/kyber/share/vss/pedersen"
+	"github.com/dedis/kyber/share"
 )
 
 // Suite wraps the functionalities needed by the dkg package
@@ -230,6 +230,13 @@ func (d *DistKeyGenerator) ProcessResponse(resp *Response) (*Justification, erro
 		Index:         d.index,
 		Justification: j,
 	}, nil
+}
+
+// VerifierSetOwnResponse sets an approval response for the indicated Verifier
+// This is used to set an approval for Verifier(i) in DKG(j) because DKG(j)
+// will never broadcast it's own response
+func (d *DistKeyGenerator) VerifierSetOwnResponse(i uint32) {
+	d.verifiers[i].UnsafeSetResponseDKG(i, vss.StatusApproval)
 }
 
 // ProcessJustification takes a justification and validates it. It returns an

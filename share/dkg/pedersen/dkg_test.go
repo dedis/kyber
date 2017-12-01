@@ -3,12 +3,11 @@ package dkg
 import (
 	"crypto/rand"
 	"testing"
-    "fmt"
 
+	vss "github.com/CedricCook/kyber/share/vss/pedersen"
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/share"
-	vss "github.com/CedricCook/kyber/share/vss/pedersen"
 	"github.com/dedis/kyber/util/random"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -574,8 +573,10 @@ func fullExchange(t *testing.T) {
 	// 2. Broadcast responses
 	for _, resp := range resps {
 		for _, dkg := range dkgs {
-			// ignore all messages from ourself
+			// For all responses about us, set the response in our
+			// corresponding verifier.
 			if resp.Response.Index == dkg.index {
+				dkg.VerifierSetOwnResponse(resp.Index)
 				continue
 			}
 			j, err := dkg.ProcessResponse(resp)
@@ -583,11 +584,10 @@ func fullExchange(t *testing.T) {
 			require.Nil(t, j)
 		}
 	}
+
 	// 3. make sure everyone has the same QUAL set
 	for _, dkg := range dkgs {
-        fmt.Println("DKG1 ID: ", dkg.index)
 		for _, dkg2 := range dkgs {
-            fmt.Println("DKG2 ID: ", dkg2.index)
 			require.True(t, dkg.isInQUAL(dkg2.index))
 		}
 	}
