@@ -280,18 +280,18 @@ func (i *Int) Exp(a kyber.Scalar, e *big.Int) kyber.Scalar {
 func (i *Int) Jacobi(as kyber.Scalar) kyber.Scalar {
 	ai := as.(*Int)
 	i.M = ai.M
-	i.V.SetInt64(int64(Jacobi(&ai.V, i.M)))
+	i.V.SetInt64(int64(big.Jacobi(&ai.V, i.M)))
 	return i
 }
 
 // Sqrt computes some square root of a mod M of one exists.
 // Assumes the modulus M is an odd prime.
 // Returns true on success, false if input a is not a square.
-// (This really should be part of Go's big.Int library.)
 func (i *Int) Sqrt(as kyber.Scalar) bool {
 	ai := as.(*Int)
+	out := i.V.ModSqrt(&ai.V, ai.M)
 	i.M = ai.M
-	return Sqrt(&i.V, &ai.V, ai.M)
+	return out != nil
 }
 
 // Pick a [pseudo-]random integer modulo M
