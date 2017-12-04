@@ -23,10 +23,8 @@ sign/schnorr
 util/bytes
 util/encoding
 util/hash
-util/ints
 util/key
 util/random
-util/subtle
 util/test
 xof
 xof/blake
