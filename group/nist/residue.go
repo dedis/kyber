@@ -134,7 +134,10 @@ func (p *residuePoint) Mul(s kyber.Scalar, b kyber.Point) kyber.Point {
 	if b == nil {
 		return p.Base().Mul(s, p)
 	}
-	p.Int.Exp(&b.(*residuePoint).Int, &s.(*mod.Int).V, p.g.P)
+	// to protect against golang/go#22830
+	var tmp big.Int
+	tmp.Exp(&b.(*residuePoint).Int, &s.(*mod.Int).V, p.g.P)
+	p.Int = tmp
 	return p
 }
 
