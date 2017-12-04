@@ -5,7 +5,6 @@ import (
 	"crypto/cipher"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/random"
 )
 
 // Generator is a type that needs to implement a special case in order
@@ -26,18 +25,20 @@ type Pair struct {
 	Hiding kyber.Hiding // Hidden encoding of the public key
 }
 
-// NewKeyPair directly creates a secret/public key pair
-func NewKeyPair(suite Suite) *Pair {
+// NewKeyPair directly creates a secret/public key pair, using rand as a source
+// of crypto randomness.
+func NewKeyPair(suite Suite, rand cipher.Stream) *Pair {
 	kp := new(Pair)
-	kp.Gen(suite, random.Stream)
+	kp.Gen(suite, rand)
 	return kp
 }
 
 // NewHidingKeyPair creates a secret/public key pair and makes sure the
-// the public key is hiding-encodable.
-func NewHidingKeyPair(suite Suite) *Pair {
+// the public key is hiding-encodable, using rand as a source of crypto
+// randomness.
+func NewHidingKeyPair(suite Suite, rand cipher.Stream) *Pair {
 	kp := new(Pair)
-	kp.GenHiding(suite, random.Stream)
+	kp.GenHiding(suite, rand)
 	return kp
 }
 

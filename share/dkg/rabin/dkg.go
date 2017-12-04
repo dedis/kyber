@@ -151,6 +151,7 @@ type ReconstructCommits struct {
 // DistKeyGenerator is the struct that runs the DKG protocol.
 type DistKeyGenerator struct {
 	suite Suite
+	rand  cipher.Stream
 
 	index uint32
 	long  kyber.Scalar
@@ -213,6 +214,7 @@ func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kybe
 		pub:                pub,
 		participants:       participants,
 		index:              index,
+		rand:               r,
 	}, nil
 }
 
@@ -271,7 +273,7 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 	}
 
 	// verifier receiving the dealer's deal
-	ver, err := vss.NewVerifier(d.suite, d.long, pub, d.participants)
+	ver, err := vss.NewVerifier(d.suite, d.rand, d.long, pub, d.participants)
 	if err != nil {
 		return nil, err
 	}
@@ -394,7 +396,7 @@ func (d *DistKeyGenerator) SecretCommits() (*SecretCommits, error) {
 		SessionID:   d.dealer.SessionID(),
 	}
 	msg := sc.Hash(d.suite)
-	sig, err := schnorr.Sign(d.suite, d.long, msg)
+	sig, err := schnorr.Sign(d.suite, d.rand, d.long, msg)
 	if err != nil {
 		return nil, err
 	}
@@ -441,7 +443,7 @@ func (d *DistKeyGenerator) ProcessSecretCommits(sc *SecretCommits) (*ComplaintCo
 		}
 		var err error
 		msg := cc.Hash(d.suite)
-		if cc.Signature, err = schnorr.Sign(d.suite, d.long, msg); err != nil {
+		if cc.Signature, err = schnorr.Sign(d.suite, d.rand, d.long, msg); err != nil {
 			return nil, err
 		}
 		return cc, nil
@@ -506,7 +508,7 @@ func (d *DistKeyGenerator) ProcessComplaintCommits(cc *ComplaintCommits) (*Recon
 
 	msg := rc.Hash(d.suite)
 	var err error
-	rc.Signature, err = schnorr.Sign(d.suite, d.long, msg)
+	rc.Signature, err = schnorr.Sign(d.suite, d.rand, d.long, msg)
 	if err != nil {
 		return nil, err
 	}

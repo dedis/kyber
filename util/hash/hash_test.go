@@ -16,6 +16,7 @@ import (
 )
 
 var suite = edwards25519.NewBlakeSHA256Ed25519()
+var rng = random.New()
 
 func TestBytes(t *testing.T) {
 	b1 := []byte("Hello")
@@ -66,10 +67,10 @@ func TestFile(t *testing.T) {
 }
 
 func TestStructures(t *testing.T) {
-	x := suite.Scalar().Pick(random.Stream)
-	y := suite.Scalar().Pick(random.Stream)
-	X := suite.Point().Pick(random.Stream)
-	Y := suite.Point().Pick(random.Stream)
+	x := suite.Scalar().Pick(rng)
+	y := suite.Scalar().Pick(rng)
+	X := suite.Point().Pick(rng)
+	Y := suite.Point().Pick(rng)
 
 	h1, err := hash.Structures(suite.Hash(), x, y)
 	require.Nil(t, err)

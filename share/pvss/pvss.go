@@ -14,12 +14,12 @@
 package pvss
 
 import (
+	"crypto/cipher"
 	"errors"
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/proof/dleq"
 	"github.com/dedis/kyber/share"
-	"github.com/dedis/kyber/util/random"
 )
 
 // Suite describes the functionalities needed by this package in order to
@@ -43,16 +43,17 @@ type PubVerShare struct {
 	P dleq.Proof     // Proof
 }
 
-// EncShares creates a list of encrypted publicly verifiable PVSS shares for
-// the given secret and the list of public keys X using the sharing threshold
-// t and the base point H. The function returns the list of shares and the
-// public commitment polynomial.
-func EncShares(suite Suite, H kyber.Point, X []kyber.Point, secret kyber.Scalar, t int) ([]*PubVerShare, *share.PubPoly, error) {
+// EncShares creates a list of encrypted publicly verifiable PVSS
+// shares for the given secret and the list of public keys X using the
+// sharing threshold t and the base point H, using rand for crypto
+// randomness. The function returns the list of shares and the public
+// commitment polynomial.
+func EncShares(suite Suite, rand cipher.Stream, H kyber.Point, X []kyber.Point, secret kyber.Scalar, t int) ([]*PubVerShare, *share.PubPoly, error) {
 	n := len(X)
 	encShares := make([]*PubVerShare, n)
 
 	// Create secret sharing polynomial
-	priPoly := share.NewPriPoly(suite, t, secret, random.Stream)
+	priPoly := share.NewPriPoly(suite, t, secret, rand)
 
 	// Create secret set of shares
 	priShares := priPoly.Shares(n)
@@ -71,7 +72,7 @@ func EncShares(suite Suite, H kyber.Point, X []kyber.Point, secret kyber.Scalar,
 	}
 
 	// Create NIZK discrete-logarithm equality proofs
-	proofs, _, sX, err := dleq.NewDLEQProofBatch(suite, HS, X, values)
+	proofs, _, sX, err := dleq.NewDLEQProofBatch(suite, rand, HS, X, values)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -114,15 +115,15 @@ func VerifyEncShareBatch(suite Suite, H kyber.Point, X []kyber.Point, sH []kyber
 
 // DecShare first verifies the encrypted share against the encryption
 // consistency proof and, if valid, decrypts it and creates a decryption
-// consistency proof.
-func DecShare(suite Suite, H kyber.Point, X kyber.Point, sH kyber.Point, x kyber.Scalar, encShare *PubVerShare) (*PubVerShare, error) {
+// consistency proof. It uses rand for crypto randomness.
+func DecShare(suite Suite, rand cipher.Stream, H kyber.Point, X kyber.Point, sH kyber.Point, x kyber.Scalar, encShare *PubVerShare) (*PubVerShare, error) {
 	if err := VerifyEncShare(suite, H, X, sH, encShare); err != nil {
 		return nil, err
 	}
 	G := suite.Point().Base()
 	V := suite.Point().Mul(suite.Scalar().Inv(x), encShare.S.V) // decryption: x^{-1} * (xS)
 	ps := &share.PubShare{I: encShare.S.I, V: V}
-	P, _, _, err := dleq.NewDLEQProof(suite, G, V, x)
+	P, _, _, err := dleq.NewDLEQProof(suite, rand, G, V, x)
 	if err != nil {
 		return nil, err
 	}
@@ -131,8 +132,8 @@ func DecShare(suite Suite, H kyber.Point, X kyber.Point, sH kyber.Point, x kyber
 
 // DecShareBatch provides the same functionality as DecShare but for slices of
 // encrypted shares. The function returns the valid encrypted and decrypted
-// shares as well as the corresponding public keys.
-func DecShareBatch(suite Suite, H kyber.Point, X []kyber.Point, sH []kyber.Point, x kyber.Scalar, encShares []*PubVerShare) ([]kyber.Point, []*PubVerShare, []*PubVerShare, error) {
+// shares as well as the corresponding public keys. It uses rand for crypto randomness.
+func DecShareBatch(suite Suite, rand cipher.Stream, H kyber.Point, X []kyber.Point, sH []kyber.Point, x kyber.Scalar, encShares []*PubVerShare) ([]kyber.Point, []*PubVerShare, []*PubVerShare, error) {
 	if len(X) != len(sH) || len(sH) != len(encShares) {
 		return nil, nil, nil, errorDifferentLengths
 	}
@@ -140,7 +141,7 @@ func DecShareBatch(suite Suite, H kyber.Point, X []kyber.Point, sH []kyber.Point
 	var E []*PubVerShare // good encrypted shares
 	var D []*PubVerShare // good decrypted shares
 	for i := 0; i < len(encShares); i++ {
-		if ds, err := DecShare(suite, H, X[i], sH[i], x, encShares[i]); err == nil {
+		if ds, err := DecShare(suite, rand, H, X[i], sH[i], x, encShares[i]); err == nil {
 			K = append(K, X[i])
 			E = append(E, encShares[i])
 			D = append(D, ds)

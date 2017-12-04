@@ -6,14 +6,14 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
+	"github.com/dedis/kyber/util/key"
 	"github.com/dedis/kyber/util/random"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var suite = edwards25519.NewBlakeSHA256Ed25519()
-
-var reader = random.Stream
+var rng = random.New()
 
 var nbVerifiers = 7
 
@@ -504,9 +504,8 @@ func TestVSSWhole(t *testing.T) {
 //}
 
 func genPair() (kyber.Scalar, kyber.Point) {
-	secret := suite.Scalar().Pick(reader)
-	public := suite.Point().Mul(secret, nil)
-	return secret, public
+	kp := key.NewKeyPair(suite, rng)
+	return kp.Secret, kp.Public
 }
 
 func genCommits(n int) ([]kyber.Scalar, []kyber.Point) {
@@ -519,7 +518,7 @@ func genCommits(n int) ([]kyber.Scalar, []kyber.Point) {
 }
 
 func genDealer() *Dealer {
-	d, _ := NewDealer(suite, dealerSec, secret, verifiersPub, reader, vssThreshold)
+	d, _ := NewDealer(suite, dealerSec, secret, verifiersPub, rng, vssThreshold)
 	return d
 }
 
@@ -527,7 +526,7 @@ func genAll() (*Dealer, []*Verifier) {
 	dealer := genDealer()
 	var verifiers = make([]*Verifier, nbVerifiers)
 	for i := 0; i < nbVerifiers; i++ {
-		v, _ := NewVerifier(suite, verifiersSec[i], dealerPub, verifiersPub)
+		v, _ := NewVerifier(suite, rng, verifiersSec[i], dealerPub, verifiersPub)
 		verifiers[i] = v
 	}
 	return dealer, verifiers

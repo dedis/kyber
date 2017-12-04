@@ -13,8 +13,7 @@ import (
 )
 
 var suite = edwards25519.NewBlakeSHA256Ed25519()
-
-var reader = random.Stream
+var rng = random.New()
 
 var nbVerifiers = 7
 
@@ -82,23 +81,23 @@ func TestVSSWhole(t *testing.T) {
 
 func TestVSSDealerNew(t *testing.T) {
 	goodT := MinimumT(nbVerifiers)
-	_, err := NewDealer(suite, dealerSec, secret, verifiersPub, reader, goodT)
+	_, err := NewDealer(suite, dealerSec, secret, verifiersPub, rng, goodT)
 	assert.NoError(t, err)
 
 	for _, badT := range []int{0, 1, -4} {
-		_, err = NewDealer(suite, dealerSec, secret, verifiersPub, reader, badT)
+		_, err = NewDealer(suite, dealerSec, secret, verifiersPub, rng, badT)
 		assert.Error(t, err)
 	}
 }
 
 func TestVSSVerifierNew(t *testing.T) {
 	randIdx := rand.Int() % len(verifiersPub)
-	v, err := NewVerifier(suite, verifiersSec[randIdx], dealerPub, verifiersPub)
+	v, err := NewVerifier(suite, rng, verifiersSec[randIdx], dealerPub, verifiersPub)
 	assert.NoError(t, err)
 	assert.Equal(t, randIdx, v.index)
 
-	wrongKey := suite.Scalar().Pick(reader)
-	_, err = NewVerifier(suite, wrongKey, dealerPub, verifiersPub)
+	wrongKey := suite.Scalar().Pick(rng)
+	_, err = NewVerifier(suite, rng, wrongKey, dealerPub, verifiersPub)
 	assert.Error(t, err)
 }
 
@@ -247,7 +246,7 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 
 	// wrong commitments
 	goodCommit := d.Commitments[0]
-	d.Commitments[0] = suite.Point().Pick(random.Stream)
+	d.Commitments[0] = suite.Point().Pick(rng)
 	encD, _ = dealer.EncryptedDeal(0)
 	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.Error(t, err)
@@ -262,7 +261,7 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 
 	// approval already existing from same origin, should never happen right ?
 	v.aggregator.responses[uint32(v.index)] = &Response{Approved: true}
-	d.Commitments[0] = suite.Point().Pick(random.Stream)
+	d.Commitments[0] = suite.Point().Pick(rng)
 	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
@@ -283,7 +282,7 @@ func TestVSSAggregatorVerifyJustification(t *testing.T) {
 	v := verifiers[0]
 	d := dealer.deals[0]
 
-	wrongV := suite.Scalar().Pick(random.Stream)
+	wrongV := suite.Scalar().Pick(rng)
 	goodV := d.SecShare.V
 	d.SecShare.V = wrongV
 	encD, _ := dealer.EncryptedDeal(0)
@@ -380,7 +379,7 @@ func TestVSSAggregatorVerifyResponse(t *testing.T) {
 
 	// wrong index
 	resp.Index = uint32(len(verifiersPub))
-	sig, err := schnorr.Sign(suite, v.longterm, resp.Hash(suite))
+	sig, err := schnorr.Sign(suite, rng, v.longterm, resp.Hash(suite))
 	resp.Signature = sig
 	assert.Error(t, aggr.verifyResponse(resp))
 	resp.Index = 0
@@ -465,7 +464,7 @@ func TestVSSAggregatorAddComplaint(t *testing.T) {
 }
 
 func TestVSSSessionID(t *testing.T) {
-	dealer, _ := NewDealer(suite, dealerSec, secret, verifiersPub, reader, vssThreshold)
+	dealer, _ := NewDealer(suite, dealerSec, secret, verifiersPub, rng, vssThreshold)
 	commitments := dealer.deals[0].Commitments
 	sid, err := sessionID(suite, dealerPub, verifiersPub, commitments, dealer.t)
 	assert.NoError(t, err)
@@ -493,7 +492,7 @@ func TestVSSFindPub(t *testing.T) {
 
 func TestVSSDHExchange(t *testing.T) {
 	pub := suite.Point().Base()
-	priv := suite.Scalar().Pick(random.Stream)
+	priv := suite.Scalar().Pick(rng)
 	point := dhExchange(suite, priv, pub)
 	assert.Equal(t, pub.Mul(priv, nil).String(), point.String())
 }
@@ -504,7 +503,7 @@ func TestVSSContext(t *testing.T) {
 }
 
 func genPair() (kyber.Scalar, kyber.Point) {
-	secret := suite.Scalar().Pick(reader)
+	secret := suite.Scalar().Pick(rng)
 	public := suite.Point().Mul(secret, nil)
 	return secret, public
 }
@@ -519,7 +518,7 @@ func genCommits(n int) ([]kyber.Scalar, []kyber.Point) {
 }
 
 func genDealer() *Dealer {
-	d, _ := NewDealer(suite, dealerSec, secret, verifiersPub, reader, vssThreshold)
+	d, _ := NewDealer(suite, dealerSec, secret, verifiersPub, rng, vssThreshold)
 	return d
 }
 
@@ -527,7 +526,7 @@ func genAll() (*Dealer, []*Verifier) {
 	dealer := genDealer()
 	var verifiers = make([]*Verifier, nbVerifiers)
 	for i := 0; i < nbVerifiers; i++ {
-		v, _ := NewVerifier(suite, verifiersSec[i], dealerPub, verifiersPub)
+		v, _ := NewVerifier(suite, rng, verifiersSec[i], dealerPub, verifiersPub)
 		verifiers[i] = v
 	}
 	return dealer, verifiers

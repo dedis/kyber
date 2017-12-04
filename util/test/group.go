@@ -1,6 +1,8 @@
 package test
 
 import (
+	"crypto/cipher"
+
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/util/random"
 )
@@ -14,17 +16,20 @@ type GroupBench struct {
 	X, Y kyber.Point
 	xe   []byte // encoded Scalar
 	Xe   []byte // encoded Point
+	r    cipher.Stream
 }
 
 // NewGroupBench returns a new GroupBench.
 func NewGroupBench(g kyber.Group) *GroupBench {
 	var gb GroupBench
+	gb.r = random.New()
+
 	gb.g = g
-	gb.x = g.Scalar().Pick(random.Stream)
-	gb.y = g.Scalar().Pick(random.Stream)
+	gb.x = g.Scalar().Pick(gb.r)
+	gb.y = g.Scalar().Pick(gb.r)
 	gb.xe, _ = gb.x.MarshalBinary()
-	gb.X = g.Point().Pick(random.Stream)
-	gb.Y = g.Point().Pick(random.Stream)
+	gb.X = g.Point().Pick(gb.r)
+	gb.Y = g.Point().Pick(gb.r)
 	gb.Xe, _ = gb.X.MarshalBinary()
 	return &gb
 }
@@ -74,7 +79,7 @@ func (gb GroupBench) ScalarInv(iters int) {
 // ScalarPick benchmarks the Pick operation for scalars
 func (gb GroupBench) ScalarPick(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.x.Pick(random.Stream)
+		gb.x.Pick(gb.r)
 	}
 }
 
@@ -130,7 +135,7 @@ func (gb GroupBench) PointBaseMul(iters int) {
 // PointPick benchmarks the pick-ing operation for points
 func (gb GroupBench) PointPick(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.X.Pick(random.Stream)
+		gb.X.Pick(gb.r)
 	}
 }
 

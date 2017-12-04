@@ -13,20 +13,21 @@ package schnorr
 
 import (
 	"bytes"
+	"crypto/cipher"
 	"crypto/sha512"
 	"errors"
 	"fmt"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/random"
 )
 
-// Sign creates a Sign signature from a msg and a private key. This
-// signature can be verified with VerifySchnorr. It's also a valid EdDSA
-// signature when using the edwards25519 Group.
-func Sign(g kyber.Group, private kyber.Scalar, msg []byte) ([]byte, error) {
+// Sign creates a Sign signature from a msg and a private key, using
+// rand as a source of crypto randomness. This signature can be
+// verified with VerifySchnorr. It's also a valid EdDSA signature when
+// using the edwards25519 Group.
+func Sign(g kyber.Group, rand cipher.Stream, private kyber.Scalar, msg []byte) ([]byte, error) {
 	// create random secret k and public point commitment R
-	k := g.Scalar().Pick(random.Stream)
+	k := g.Scalar().Pick(rand)
 	R := g.Point().Mul(k, nil)
 
 	// create hash(public || R || message)

@@ -8,11 +8,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var rng = random.New()
+
 func TestSecretRecovery(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
 	t := n/2 + 1
-	poly := NewPriPoly(g, t, nil, random.Stream)
+	poly := NewPriPoly(g, t, nil, rng)
 	shares := poly.Shares(n)
 
 	recovered, err := RecoverSecret(g, shares, t, n)
@@ -29,7 +31,7 @@ func TestSecretRecoveryDelete(test *testing.T) {
 	g := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
 	t := n/2 + 1
-	poly := NewPriPoly(g, t, nil, random.Stream)
+	poly := NewPriPoly(g, t, nil, rng)
 	shares := poly.Shares(n)
 
 	// Corrupt a few shares
@@ -53,7 +55,7 @@ func TestSecretRecoveryDeleteFail(test *testing.T) {
 	n := 10
 	t := n/2 + 1
 
-	poly := NewPriPoly(g, t, nil, random.Stream)
+	poly := NewPriPoly(g, t, nil, rng)
 	shares := poly.Shares(n)
 
 	// Corrupt one more share than acceptable
@@ -74,9 +76,9 @@ func TestSecretPolyEqual(test *testing.T) {
 	n := 10
 	t := n/2 + 1
 
-	p1 := NewPriPoly(g, t, nil, random.Stream)
-	p2 := NewPriPoly(g, t, nil, random.Stream)
-	p3 := NewPriPoly(g, t, nil, random.Stream)
+	p1 := NewPriPoly(g, t, nil, rng)
+	p2 := NewPriPoly(g, t, nil, rng)
+	p3 := NewPriPoly(g, t, nil, rng)
 
 	p12, _ := p1.Add(p2)
 	p13, _ := p1.Add(p3)
@@ -94,7 +96,7 @@ func TestPublicCheck(test *testing.T) {
 	n := 10
 	t := n/2 + 1
 
-	priPoly := NewPriPoly(g, t, nil, random.Stream)
+	priPoly := NewPriPoly(g, t, nil, rng)
 	priShares := priPoly.Shares(n)
 	pubPoly := priPoly.Commit(nil)
 
@@ -110,7 +112,7 @@ func TestPublicRecovery(test *testing.T) {
 	n := 10
 	t := n/2 + 1
 
-	priPoly := NewPriPoly(g, t, nil, random.Stream)
+	priPoly := NewPriPoly(g, t, nil, rng)
 	pubPoly := priPoly.Commit(nil)
 	pubShares := pubPoly.Shares(n)
 
@@ -129,7 +131,7 @@ func TestPublicRecoveryDelete(test *testing.T) {
 	n := 10
 	t := n/2 + 1
 
-	priPoly := NewPriPoly(g, t, nil, random.Stream)
+	priPoly := NewPriPoly(g, t, nil, rng)
 	pubPoly := priPoly.Commit(nil)
 	shares := pubPoly.Shares(n)
 
@@ -154,7 +156,7 @@ func TestPublicRecoveryDeleteFail(test *testing.T) {
 	n := 10
 	t := n/2 + 1
 
-	priPoly := NewPriPoly(g, t, nil, random.Stream)
+	priPoly := NewPriPoly(g, t, nil, rng)
 	pubPoly := priPoly.Commit(nil)
 	shares := pubPoly.Shares(n)
 
@@ -176,8 +178,8 @@ func TestPrivateAdd(test *testing.T) {
 	n := 10
 	t := n/2 + 1
 
-	p := NewPriPoly(g, t, nil, random.Stream)
-	q := NewPriPoly(g, t, nil, random.Stream)
+	p := NewPriPoly(g, t, nil, rng)
+	q := NewPriPoly(g, t, nil, rng)
 
 	r, err := p.Add(q)
 	if err != nil {
@@ -198,11 +200,11 @@ func TestPublicAdd(test *testing.T) {
 	n := 10
 	t := n/2 + 1
 
-	G := g.Point().Pick(random.Stream)
-	H := g.Point().Pick(random.Stream)
+	G := g.Point().Pick(rng)
+	H := g.Point().Pick(rng)
 
-	p := NewPriPoly(g, t, nil, random.Stream)
-	q := NewPriPoly(g, t, nil, random.Stream)
+	p := NewPriPoly(g, t, nil, rng)
+	q := NewPriPoly(g, t, nil, rng)
 
 	P := p.Commit(G)
 	Q := q.Commit(H)
@@ -232,11 +234,11 @@ func TestPublicPolyEqual(test *testing.T) {
 	n := 10
 	t := n/2 + 1
 
-	G := g.Point().Pick(random.Stream)
+	G := g.Point().Pick(rng)
 
-	p1 := NewPriPoly(g, t, nil, random.Stream)
-	p2 := NewPriPoly(g, t, nil, random.Stream)
-	p3 := NewPriPoly(g, t, nil, random.Stream)
+	p1 := NewPriPoly(g, t, nil, rng)
+	p2 := NewPriPoly(g, t, nil, rng)
+	p3 := NewPriPoly(g, t, nil, rng)
 
 	P1 := p1.Commit(G)
 	P2 := p2.Commit(G)
@@ -257,8 +259,8 @@ func TestPriPolyMul(test *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
 	t := n/2 + 1
-	a := NewPriPoly(suite, t, nil, random.Stream)
-	b := NewPriPoly(suite, t, nil, random.Stream)
+	a := NewPriPoly(suite, t, nil, rng)
+	b := NewPriPoly(suite, t, nil, rng)
 
 	c := a.Mul(b)
 	assert.Equal(test, len(a.coeffs)+len(b.coeffs)-1, len(c.coeffs))
@@ -284,7 +286,7 @@ func TestRecoverPriPoly(test *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	n := 10
 	t := n/2 + 1
-	a := NewPriPoly(suite, t, nil, random.Stream)
+	a := NewPriPoly(suite, t, nil, rng)
 
 	shares := a.Shares(n)
 	reverses := make([]*PriShare, len(shares))

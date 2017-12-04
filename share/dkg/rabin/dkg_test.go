@@ -35,8 +35,10 @@ func init() {
 }
 
 func TestDKGNewDistKeyGenerator(t *testing.T) {
+	r := random.New()
+
 	long := partSec[0]
-	dkg, err := NewDistKeyGenerator(suite, long, partPubs, random.Stream, nbParticipants/2+1)
+	dkg, err := NewDistKeyGenerator(suite, long, partPubs, r, nbParticipants/2+1)
 	assert.Nil(t, err)
 	assert.NotNil(t, dkg.dealer)
 	// quick testing here; easier.
@@ -45,7 +47,7 @@ func TestDKGNewDistKeyGenerator(t *testing.T) {
 	assert.Error(t, err)
 
 	sec, _ := genPair()
-	_, err = NewDistKeyGenerator(suite, sec, partPubs, random.Stream, nbParticipants/2+1)
+	_, err = NewDistKeyGenerator(suite, sec, partPubs, r, nbParticipants/2+1)
 	assert.Error(t, err)
 
 }
@@ -271,7 +273,7 @@ func TestDKGSecretCommits(t *testing.T) {
 	goodPoint := sc.Commitments[0]
 	sc.Commitments[0] = suite.Point().Null()
 	msg = sc.Hash(suite)
-	sig, err := schnorr.Sign(suite, dkg.long, msg)
+	sig, err := schnorr.Sign(suite, random.New(), dkg.long, msg)
 	require.Nil(t, err)
 	goodSig = sc.Signature
 	sc.Signature = sig
@@ -314,7 +316,7 @@ func TestDKGComplaintCommits(t *testing.T) {
 	//goodScCommit := scs[0].Commitments[0]
 	wrongSc.Commitments[0] = suite.Point().Null()
 	msg := wrongSc.Hash(suite)
-	wrongSc.Signature, _ = schnorr.Sign(suite, dkgs[0].long, msg)
+	wrongSc.Signature, _ = schnorr.Sign(suite, random.New(), dkgs[0].long, msg)
 
 	dkg := dkgs[1]
 	cc, err := dkg.ProcessSecretCommits(wrongSc)
@@ -430,7 +432,7 @@ func TestDKGReconstructCommits(t *testing.T) {
 		SessionID:   dkgs[uint32(1)].verifiers[uint32(0)].Deal().SessionID,
 	}
 	msg := rc.Hash(suite)
-	rc.Signature, _ = schnorr.Sign(suite, dkgs[1].long, msg)
+	rc.Signature, _ = schnorr.Sign(suite, random.New(), dkgs[1].long, msg)
 
 	dkg2 := dkgs[2]
 	// reconstructed already set
@@ -476,7 +478,7 @@ func TestDKGReconstructCommits(t *testing.T) {
 			Share:       dkg.verifiers[uint32(0)].Deal().SecShare,
 		}
 		msg := rc.Hash(suite)
-		rc.Signature, _ = schnorr.Sign(suite, dkg.long, msg)
+		rc.Signature, _ = schnorr.Sign(suite, random.New(), dkg.long, msg)
 
 		if dkg2.reconstructed[uint32(0)] {
 			break
@@ -578,7 +580,7 @@ func TestDistKeyShare(t *testing.T) {
 func dkgGen() []*DistKeyGenerator {
 	dkgs := make([]*DistKeyGenerator, nbParticipants)
 	for i := 0; i < nbParticipants; i++ {
-		dkg, err := NewDistKeyGenerator(suite, partSec[i], partPubs, random.Stream, nbParticipants/2+1)
+		dkg, err := NewDistKeyGenerator(suite, partSec[i], partPubs, random.New(), nbParticipants/2+1)
 		if err != nil {
 			panic(err)
 		}
@@ -588,7 +590,7 @@ func dkgGen() []*DistKeyGenerator {
 }
 
 func genPair() (kyber.Scalar, kyber.Point) {
-	sc := suite.Scalar().Pick(random.Stream)
+	sc := suite.Scalar().Pick(random.New())
 	return sc, suite.Point().Mul(sc, nil)
 }
 

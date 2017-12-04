@@ -325,7 +325,8 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 
 // GroupTest applies a generic set of validation tests to a cryptographic Group.
 func GroupTest(g kyber.Group) {
-	testGroup(g, random.Stream)
+	r := random.New()
+	testGroup(g, r)
 }
 
 // CompareGroups tests two group implementations that are supposed to be equivalent,
@@ -373,8 +374,8 @@ func SuiteTest(suite Suite) {
 	//fmt.Println(hex.Dump(sb))
 
 	// Test if it generates two fresh keys
-	p1 := key.NewKeyPair(suite)
-	p2 := key.NewKeyPair(suite)
+	p1 := key.NewKeyPair(suite, x)
+	p2 := key.NewKeyPair(suite, x)
 	if p1.Secret.Equal(p2.Secret) {
 		panic("NewKeyPair returns the same secret key twice")
 	}

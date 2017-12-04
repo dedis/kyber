@@ -6,11 +6,12 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
+	"github.com/dedis/kyber/util/random"
 )
 
 func TestNewKeyPair(t *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
-	keypair := NewKeyPair(suite)
+	keypair := NewKeyPair(suite, random.New())
 	pub := suite.Point().Mul(keypair.Secret, nil)
 	if !pub.Equal(keypair.Public) {
 		t.Fatal("Public and private-key don't match")
@@ -26,7 +27,7 @@ func (s *fixedPrivSuiteEd25519) NewKey(stream cipher.Stream) kyber.Scalar {
 
 func TestNewKeyPairGen(t *testing.T) {
 	suite := &fixedPrivSuiteEd25519{}
-	key := NewKeyPair(suite)
+	key := NewKeyPair(suite, random.New())
 
 	scalar33 := suite.Scalar().SetInt64(33)
 	if !key.Secret.Equal(scalar33) {
