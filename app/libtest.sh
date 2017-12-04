@@ -210,10 +210,10 @@ buildConode(){
 	done
 	echo "Found: $incl"
     fi
-    
+
     local cotdir=$( mktemp -d )/conode
     mkdir -p $cotdir
-    
+
     ( echo -e "package main\nimport ("
     for i in $incl; do
     	echo -e "\t_ \"$i\""
@@ -222,10 +222,13 @@ buildConode(){
     cat - > $cotdir/main.go << EOF
 package main
 
-import "github.com/dedis/onet/app"
+import (
+  "github.com/dedis/onet/app"
+  "github.com/dedis/kyber/group"
+)
 
 func main(){
-	app.Server()
+	app.Server(group.MustSuite("Ed25519"))
 }
 EOF
     build $cotdir
