@@ -539,7 +539,12 @@ func (o *Overlay) CreateProtocol(name string, t *Tree, sid ServiceID) (ProtocolI
 	if err = o.RegisterProtocolInstance(pi); err != nil {
 		return nil, err
 	}
-	go pi.Dispatch()
+	go func() {
+		err := pi.Dispatch()
+		if err != nil {
+			log.Error(err)
+		}
+	}()
 	return pi, err
 }
 

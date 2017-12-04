@@ -1,8 +1,10 @@
 package onet
 
 import (
+	"errors"
 	"testing"
 
+	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -11,7 +13,9 @@ import (
 
 type ProtocolOverlay struct {
 	*TreeNodeInstance
-	done bool
+	done         bool
+	failDispatch bool
+	failChan     chan bool
 }
 
 func (po *ProtocolOverlay) Start() error {
@@ -20,12 +24,51 @@ func (po *ProtocolOverlay) Start() error {
 }
 
 func (po *ProtocolOverlay) Dispatch() error {
+	if po.failDispatch {
+		go func() {
+			// hopefully we write to channel after `Dispatch` returns
+			po.failChan <- true
+		}()
+		return errors.New("Dispatch failed")
+	}
 	return nil
 }
 
 func (po *ProtocolOverlay) Release() {
 	// call the Done function
 	po.Done()
+}
+
+func TestOverlayDispatchFailure(t *testing.T) {
+	log.OutputToBuf()
+	// setup
+	failChan := make(chan bool, 1)
+	fn := func(n *TreeNodeInstance) (ProtocolInstance, error) {
+		ps := ProtocolOverlay{
+			TreeNodeInstance: n,
+			failDispatch:     true,
+			failChan:         failChan,
+		}
+		return &ps, nil
+	}
+	GlobalProtocolRegister("ProtocolOverlay", fn)
+	local := NewLocalTest(tSuite)
+	defer local.CloseAll()
+	h, _, tree := local.GenTree(1, true)
+	h1 := h[0]
+	_, err := h1.CreateProtocol("ProtocolOverlay", tree)
+	if err != nil {
+		t.Fatal("error starting new node", err)
+	}
+
+	// wait for the dispatch goroutine in CreateProtocol to start
+	<-failChan
+
+	// when using `go test -v`, the error string goes into the stderr buffer
+	// but with `go test`, it goes into the stdout buffer, so we check both
+	assert.Contains(t, log.GetStdOut()+log.GetStdErr(), "Dispatch failed")
+
+	log.OutputToOs()
 }
 
 func TestOverlayDone(t *testing.T) {
