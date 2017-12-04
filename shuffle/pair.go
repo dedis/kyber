@@ -32,9 +32,9 @@ import (
 // same functionatlities needed by the proof/ package.
 type Suite proof.Suite
 
-// XX these could all be inlined into PairShuffleProof; do we want to?
+// XXX these could all be inlined into PairShuffleProof; do we want to?
 
-// XX the Zs in front of some field names are a kludge to make them
+// XXX the Zs in front of some field names are a kludge to make them
 // accessible via the reflection API,
 // which refuses to touch unexported fields in a struct.
 

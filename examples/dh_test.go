@@ -1,8 +1,9 @@
 package examples
 
 import (
+	"fmt"
+
 	"github.com/dedis/kyber/group/edwards25519"
-	"github.com/dedis/kyber/util/random"
 )
 
 /*
@@ -18,12 +19,13 @@ func Example_diffieHellman() {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 
 	// Alice's public/private keypair
-	a := suite.Scalar().Pick(random.Stream) // Alice's private key
-	A := suite.Point().Mul(a, nil)          // Alice's public key
+	r := suite.XOF([]byte("a fixed seed"))
+	a := suite.Scalar().Pick(r)    // Alice's private key
+	A := suite.Point().Mul(a, nil) // Alice's public key
 
 	// Bob's public/private keypair
-	b := suite.Scalar().Pick(random.Stream) // Alice's private key
-	B := suite.Point().Mul(b, nil)          // Alice's public key
+	b := suite.Scalar().Pick(r)    // Alice's private key
+	B := suite.Point().Mul(b, nil) // Alice's public key
 
 	// Assume Alice and Bob have securely obtained each other's public keys.
 
@@ -37,7 +39,8 @@ func Example_diffieHellman() {
 	if !SA.Equal(SB) {
 		panic("Diffie-Hellman key exchange didn't work")
 	}
-	println("Shared secret: " + SA.String())
+	fmt.Println("Shared secret: " + SA.String())
 
 	// Output:
+	// Shared secret: aecd7737d39256da7fb678fb075bf66881258b84415dcbc819cf2f020232db77
 }

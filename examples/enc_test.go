@@ -1,6 +1,8 @@
 package examples
 
 import (
+	"fmt"
+
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/util/random"
@@ -61,8 +63,9 @@ func Example_elGamalEncryption() {
 	group := edwards25519.NewBlakeSHA256Ed25519()
 
 	// Create a public/private keypair
-	a := group.Scalar().Pick(random.Stream) // Alice's private key
-	A := group.Point().Mul(a, nil)          // Alice's public key
+	r := group.XOF([]byte("a fixed seed"))
+	a := group.Scalar().Pick(r)    // Alice's private key
+	A := group.Point().Mul(a, nil) // Alice's public key
 
 	// ElGamal-encrypt a message using the public key.
 	m := []byte("The quick brown fox")
@@ -78,7 +81,8 @@ func Example_elGamalEncryption() {
 	if string(mm) != string(m) {
 		panic("decryption produced wrong output: " + string(mm))
 	}
-	println("Decryption succeeded: " + string(mm))
+	fmt.Println("Decryption succeeded: " + string(mm))
 
 	// Output:
+	// Decryption succeeded: The quick brown fox
 }

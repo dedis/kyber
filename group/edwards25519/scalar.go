@@ -6,6 +6,7 @@ package edwards25519
 
 import (
 	"crypto/cipher"
+	"crypto/subtle"
 	"errors"
 	"io"
 	"math/big"
@@ -15,7 +16,6 @@ import (
 	"github.com/dedis/kyber/group/mod"
 	"github.com/dedis/kyber/util/bytes"
 	"github.com/dedis/kyber/util/random"
-	"github.com/dedis/kyber/util/subtle"
 )
 
 // This code is a port of the public domain, "ref10" implementation of ed25519

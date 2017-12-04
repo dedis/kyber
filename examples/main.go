@@ -1,5 +1,5 @@
 // Package examples provides a suite of tests showing how to use the different
-// abstraction and protocols provided by the dedis/kyber library. To run the
+// abstraction and protocols provided by the kyber library. To run the
 // tests, simply do `go test -v`.
 //
 // dh_test shows how to perform a simple Diffie Hellman key exchange.

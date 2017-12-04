@@ -331,7 +331,6 @@ func GroupTest(g kyber.Group) {
 // CompareGroups tests two group implementations that are supposed to be equivalent,
 // and compare their results.
 func CompareGroups(fn func(key []byte) kyber.XOF, g1, g2 kyber.Group) {
-
 	// Produce test results from the same pseudorandom seed
 	r1 := testGroup(g1, fn(nil))
 	r2 := testGroup(g2, fn(nil))
