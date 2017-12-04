@@ -4,7 +4,6 @@ package curve25519
 
 import (
 	"crypto/cipher"
-	"errors"
 	"io"
 	"math/big"
 
@@ -122,14 +121,6 @@ func (P *basicPoint) Pick(rand cipher.Stream) kyber.Point {
 // Data extracts embedded data from a point group element
 func (P *basicPoint) Data() ([]byte, error) {
 	return P.c.data(&P.x, &P.y)
-}
-
-// SetVarTime returns an error if we ask for constant-time implementation.
-func (P *basicPoint) SetVarTime(varTime bool) error {
-	if !varTime {
-		return errors.New("curve25519: no constant time implementation available")
-	}
-	return nil
 }
 
 // Add two points using the basic unified addition laws for Edwards curves:

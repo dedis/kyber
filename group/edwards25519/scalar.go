@@ -140,14 +140,6 @@ func (s *scalar) SetBytes(b []byte) kyber.Scalar {
 	return s.setInt(mod.NewIntBytes(b, primeOrder, mod.LittleEndian))
 }
 
-// SetVarTime returns an error if we request constant-time operations.
-func (s *scalar) SetVarTime(varTime bool) error {
-	if varTime {
-		return errors.New("ed25519: no vartime scalar implementation available")
-	}
-	return nil
-}
-
 // Bytes returns a big-Endian representation of the scalar
 func (s *scalar) Bytes() []byte {
 	var buf = s.v
