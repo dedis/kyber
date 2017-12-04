@@ -118,6 +118,9 @@ func TestVSSShare(t *testing.T) {
 	for i := 1; i < aggr.t-1; i++ {
 		aggr.responses[uint32(i)] = &Response{Approved: true}
 	}
+
+    ver.SetTimeout()
+
 	// not enough approvals
 	assert.Nil(t, ver.Deal())
 	aggr.responses[uint32(aggr.t)] = &Response{Approved: true}
@@ -137,6 +140,9 @@ func TestVSSAggregatorEnoughApprovals(t *testing.T) {
 	for i := 0; i < aggr.t-1; i++ {
 		aggr.responses[uint32(i)] = &Response{Approved: true}
 	}
+
+    dealer.SetTimeout()
+
 	assert.False(t, aggr.EnoughApprovals())
 	assert.Nil(t, dealer.SecretCommit())
 
@@ -157,6 +163,9 @@ func TestVSSAggregatorDealCertified(t *testing.T) {
 	for i := 0; i < aggr.t; i++ {
 		aggr.responses[uint32(i)] = &Response{Approved: true}
 	}
+
+    dealer.SetTimeout()
+
 	assert.True(t, aggr.DealCertified())
 	assert.Equal(t, suite.Point().Mul(secret, nil), dealer.SecretCommit())
 	// bad dealer response
@@ -462,6 +471,65 @@ func TestVSSAggregatorAddComplaint(t *testing.T) {
 	assert.Error(t, aggr.addResponse(c))
 	delete(aggr.responses, idx)
 
+}
+
+func TestVSSAggregatorCleanVerifiers(t *testing.T) {
+    dealer := genDealer()
+    aggr := dealer.aggregator
+
+    for i := 0; i < aggr.t; i++ {
+        aggr.responses[uint32(i)] = &Response{Approved: true}
+    }
+
+    assert.True(t, aggr.EnoughApprovals())
+    assert.False(t, aggr.DealCertified())
+
+    aggr.cleanVerifiers()
+
+    assert.True(t, aggr.DealCertified())
+}
+
+func TestVSSDealerSetTimeout(t *testing.T) {
+    dealer := genDealer()
+    aggr := dealer.aggregator
+
+    for i := 0; i < aggr.t; i++ {
+        aggr.responses[uint32(i)] = &Response{Approved: true}
+    }
+
+    assert.True(t, aggr.EnoughApprovals())
+    assert.False(t, aggr.DealCertified())
+
+    dealer.SetTimeout()
+
+    assert.True(t, aggr.DealCertified())
+}
+
+func TestVSSVerifierSetTimeout(t *testing.T) {
+    dealer, verifiers := genAll()
+    ver := verifiers[0]
+
+    encD, err := dealer.EncryptedDeal(0)
+
+    require.Nil(t, err)
+
+    resp, err := ver.ProcessEncryptedDeal(encD)
+
+    require.Nil(t, err)
+    require.NotNil(t, resp)
+
+    aggr := ver.aggregator
+
+    for i := 0; i < aggr.t; i++ {
+        aggr.responses[uint32(i)] = &Response{Approved: true}
+    }
+
+    assert.True(t, aggr.EnoughApprovals())
+    assert.False(t, aggr.DealCertified())
+
+    ver.SetTimeout()
+
+    assert.True(t, aggr.DealCertified())
 }
 
 func TestVSSSessionID(t *testing.T) {
