@@ -5,7 +5,6 @@ package curve25519
 import (
 	"crypto/cipher"
 	"encoding/hex"
-	"errors"
 	"io"
 	"math/big"
 
@@ -266,14 +265,6 @@ func (P *extPoint) Mul(s kyber.Scalar, G kyber.Point) kyber.Point {
 		P.Set(T)
 	}
 	return P
-}
-
-// SetVarTime returns an error if we require constant time operations.
-func (P *extPoint) SetVarTime(varTime bool) error {
-	if !varTime {
-		return errors.New("curve25519: constant time implementation not available")
-	}
-	return nil
 }
 
 // ExtendedCurve implements Twisted Edwards curves

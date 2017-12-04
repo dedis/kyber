@@ -212,14 +212,6 @@ func (p *curvePoint) UnmarshalFrom(r io.Reader) (int, error) {
 	return marshalling.PointUnmarshalFrom(p, r)
 }
 
-// SetVarTime returns an error if we request constant-var operations.
-func (P *curvePoint) SetVarTime(varTime bool) error {
-	if !varTime {
-		return errors.New("nist: nist curve point do not provide constant time implementations")
-	}
-	return nil
-}
-
 // interface for curve-specifc mathematical functions
 type curveOps interface {
 	sqrt(y *big.Int) *big.Int

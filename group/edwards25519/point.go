@@ -222,9 +222,3 @@ func (P *point) Mul(s kyber.Scalar, A kyber.Point) kyber.Point {
 
 	return P
 }
-
-// SetVarTime allows for optimized, non-constant time implementation.
-func (P *point) SetVarTime(varTime bool) error {
-	P.varTime = varTime
-	return nil
-}
