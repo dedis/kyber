@@ -276,9 +276,9 @@ func (d *Dealer) SessionID() []byte {
 	return d.sessionID
 }
 
-// SetTimeout tells this dealer to consider this moment the maximum time limit.
-// it calls cleanVerifiers which will take care of all Verifiers who have not
-// responded until now.
+// SetTimeout marks the end of a round, invalidating any missing (or future) response
+// for this DKG protocol round. The caller is expected to call this after a long timeout
+// so each DKG node can still compute its share if enough Deals are valid.
 func (d *Dealer) SetTimeout() {
 	d.aggregator.cleanVerifiers()
 }
@@ -476,9 +476,9 @@ func RecoverSecret(suite Suite, deals []*Deal, n, t int) (kyber.Scalar, error) {
 	return share.RecoverSecret(suite, shares, t, n)
 }
 
-// SetTimeout tells this verifier to consider this moment the maximum time limit.
-// it calls cleanVerifiers which will take care of all Verifiers who have not
-// responded until now.
+// SetTimeout marks the end of a round, invalidating any missing (or future) response
+// for this DKG protocol round. The caller is expected to call this after a long timeout
+// so each DKG node can still compute its share if enough Deals are valid.
 func (v *Verifier) SetTimeout() {
 	v.aggregator.cleanVerifiers()
 }
@@ -564,7 +564,7 @@ func (a *aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 }
 
 // cleanVerifiers checks the aggregator's response array and creates a StatusComplaint
-// response for all verifiers who have no response in the array.
+// response for all verifiers that did not respond to the Deal.
 func (a *aggregator) cleanVerifiers() {
 	for i := range a.verifiers {
 		if _, ok := a.responses[uint32(i)]; !ok {
