@@ -282,6 +282,10 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 		return nil, err
 	}
 
+    // Set StatusApproval for the verifier that represents the participant
+    // that distibuted the Deal
+    d.verifiers[dd.Index].UnsafeSetResponseDKG(dd.Index, true)
+
 	return &Response{
 		Index:    dd.Index,
 		Response: resp,

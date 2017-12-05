@@ -504,6 +504,19 @@ func (v *Verifier) SetTimeout() {
     v.aggregator.cleanVerifiers()
 }
 
+// UnsafeSetResponseDKG is an UNSAFE bypass method to allow DKG to use VSS
+// that works on basis of approval only.
+func (v *Verifier) UnsafeSetResponseDKG(idx uint32, approval bool) {
+  r := &Response{
+      SessionID: v.aggregator.sid,
+      Index: uint32(idx),
+      Approved: approval,
+  }
+
+  v.aggregator.addResponse(r)
+}
+
+
 // aggregator is used to collect all deals, and responses for one protocol run.
 // It brings common functionalities for both Dealer and Verifier structs.
 type aggregator struct {
@@ -668,6 +681,7 @@ func (a *aggregator) DealCertified() bool {
     for i := range a.verifiers {
     	if _, ok := a.responses[uint32(i)]; !ok {
             verifiersUnstable++
+            fmt.Println("Verifier ", i, " unstable")
         }
     }
 
