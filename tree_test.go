@@ -423,6 +423,34 @@ func TestRoster_GenerateNaryTreeWithRoot(t *testing.T) {
 		if !tree.UsesList() {
 			t.Fatal("Not all elements are in the tree")
 		}
+		if tree.Roster.ID == peerList.ID {
+			t.Fatal("Generated tree should not be associated the receiver roster")
+		}
+	}
+}
+
+func TestRoster_GenerateNaryTreeWithRootOnCurrent(t *testing.T) {
+	names := genLocalhostPeerNames(10, 2000)
+	peerList := genRoster(tSuite, names)
+	tree := NewRoster(peerList.List[1:10]).GenerateNaryTreeWithRoot(2, peerList.List[0])
+	assert.Nil(t, tree)
+	for _, e := range peerList.List {
+		tree := peerList.GenerateNaryTreeWithRootOnCurrent(4, e)
+		for i := 0; i <= 9; i++ {
+			if !strings.Contains(peerList.List[i].Address.String(),
+				strconv.Itoa(2000+i)) {
+				t.Fatal("Missing port:", 2000+i, peerList.List)
+			}
+		}
+		if !tree.Root.ServerIdentity.ID.Equal(e.ID) {
+			t.Fatal("ServerIdentity", e, "is not root", tree.Dump())
+		}
+		if len(tree.List()) != 10 {
+			t.Fatal("Missing nodes")
+		}
+		if !tree.UsesList() {
+			t.Fatal("Not all elements are in the tree")
+		}
 		if tree.Roster.ID != peerList.ID {
 			t.Fatal("Generated tree should be associated with the receiver roster")
 		}

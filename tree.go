@@ -504,10 +504,31 @@ func (ro *Roster) GenerateBigNaryTree(N, nodes int) *Tree {
 // GenerateNaryTreeWithRoot creates a tree where each node has N children.
 // The root is given as an ServerIdentity. If root doesn't exist in the
 // roster, `nil` will be returned.
-// The generation of the tree is done in a simple for-loop, so that the
-// original roster can be used for tree creation.
+// This method creates a new roster and puts the indicated root at
+// the first position.
 // If root == nil, the first element of the roster will be taken as root.
 func (ro *Roster) GenerateNaryTreeWithRoot(N int, root *network.ServerIdentity) *Tree {
+	list := make([]*network.ServerIdentity, len(ro.List))
+	copy(list, ro.List)
+	roster := NewRoster(list)
+	if root != nil {
+		rootIndex, _ := roster.Search(root.ID)
+		if rootIndex < 0 {
+			return nil
+		}
+		roster.List[0], roster.List[rootIndex] = roster.List[rootIndex], roster.List[0]
+	}
+	return roster.GenerateNaryTreeWithRootOnCurrent(N, root)
+}
+
+// GenerateNaryTreeWithRootOnCurrent creates a tree where each node has N children.
+// The root is given as an ServerIdentity. If root doesn't exist in the
+// roster, `nil` will be returned.
+// The generation of the tree is done in a simple for-loop, so that the
+// original roster can be used for tree creation, even if the root is not
+// at position 0.
+// If root == nil, the first element of the roster will be taken as root.
+func (ro *Roster) GenerateNaryTreeWithRootOnCurrent(N int, root *network.ServerIdentity) *Tree {
 	// Fetch the root node, set to the first element of the roster if
 	// root == nil.
 	rootIndex := 0
@@ -546,7 +567,7 @@ func (ro *Roster) GenerateNaryTreeWithRoot(N int, root *network.ServerIdentity) 
 // GenerateNaryTree creates a tree where each node has N children.
 // The first element of the Roster will be the root element.
 func (ro *Roster) GenerateNaryTree(N int) *Tree {
-	return ro.GenerateNaryTreeWithRoot(N, nil)
+	return ro.GenerateNaryTreeWithRootOnCurrent(N, nil)
 }
 
 // GenerateBinaryTree creates a binary tree out of the Roster
