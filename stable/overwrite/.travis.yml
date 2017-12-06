@@ -8,7 +8,6 @@ go_import_path: gopkg.in/dedis/kyber.v1
 install:
   - go get -t ./...
   - go get github.com/dedis/Coding || true
-  - go get golang.org/x/tools/cmd/cover
 
 script:
   - make test
