@@ -187,7 +187,7 @@ func TestCoSiThreshold(t *testing.T) {
 			t.Fatal(err)
 		}
 		// Verify (using threshold policy)
-		if err := Verify(testSuite, publics, message, sig, &ThresholdPolicy{n - f}); err != nil {
+		if err := Verify(testSuite, publics, message, sig, NewThresholdPolicy(n-f)); err != nil {
 			t.Fatal(err)
 		}
 	}
