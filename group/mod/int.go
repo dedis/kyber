@@ -268,21 +268,11 @@ func (i *Int) Inv(a kyber.Scalar) kyber.Scalar {
 func (i *Int) Exp(a kyber.Scalar, e *big.Int) kyber.Scalar {
 	ai := a.(*Int)
 	i.M = ai.M
-	i.V.Exp(&ai.V, e, i.M)
+	// to protect against golang/go#22830
+	var tmp big.Int
+	tmp.Exp(&ai.V, e, i.M)
+	i.V = tmp
 	return i
-}
-
-// Compute the Legendre symbol of i, if modulus M is prime,
-// using the Euler criterion (which involves exponentiation).
-func (i *Int) legendre() int {
-	var Pm1, v big.Int
-	Pm1.Sub(i.M, one)
-	v.Div(&Pm1, two)
-	v.Exp(&i.V, &v, i.M)
-	if v.Cmp(&Pm1) == 0 {
-		return -1
-	}
-	return v.Sign()
 }
 
 // Jacobi computes the Jacobi symbol of (a/M), which indicates whether a is
@@ -290,18 +280,18 @@ func (i *Int) legendre() int {
 func (i *Int) Jacobi(as kyber.Scalar) kyber.Scalar {
 	ai := as.(*Int)
 	i.M = ai.M
-	i.V.SetInt64(int64(Jacobi(&ai.V, i.M)))
+	i.V.SetInt64(int64(big.Jacobi(&ai.V, i.M)))
 	return i
 }
 
 // Sqrt computes some square root of a mod M of one exists.
 // Assumes the modulus M is an odd prime.
 // Returns true on success, false if input a is not a square.
-// (This really should be part of Go's big.Int library.)
 func (i *Int) Sqrt(as kyber.Scalar) bool {
 	ai := as.(*Int)
+	out := i.V.ModSqrt(&ai.V, ai.M)
 	i.M = ai.M
-	return Sqrt(&i.V, &ai.V, ai.M)
+	return out != nil
 }
 
 // Pick a [pseudo-]random integer modulo M
@@ -478,12 +468,4 @@ func (i *Int) HideDecode(buf []byte) {
 	}
 	i.V.SetBytes(buf)
 	i.V.Mod(&i.V, i.M)
-}
-
-// SetVarTime returns an error if we request constant time.
-func (i *Int) SetVarTime(varTime bool) error {
-	if !varTime {
-		return errors.New("mod.Int: support only variable time arithmetic operations")
-	}
-	return nil
 }

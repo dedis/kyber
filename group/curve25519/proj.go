@@ -4,7 +4,6 @@ package curve25519
 
 import (
 	"crypto/cipher"
-	"errors"
 	"io"
 	"math/big"
 
@@ -246,14 +245,6 @@ func (P *projPoint) Mul(s kyber.Scalar, G kyber.Point) kyber.Point {
 		P.Set(T)
 	}
 	return P
-}
-
-// SetVarTime returns an error if we request constant-time operations.
-func (P *projPoint) SetVarTime(varTime bool) error {
-	if !varTime {
-		return errors.New("curve25519: no constant time implementation available")
-	}
-	return nil
 }
 
 // ProjectiveCurve implements Twisted Edwards curves
