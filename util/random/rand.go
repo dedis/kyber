@@ -5,7 +5,6 @@ package random
 import (
 	"crypto/cipher"
 	"crypto/rand"
-	"encoding/binary"
 	"math/big"
 )
 
@@ -28,43 +27,7 @@ func Bits(bitlen uint, exact bool, rand cipher.Stream) []byte {
 	return b
 }
 
-// Bool chooses a uniform random boolean
-func Bool(rand cipher.Stream) bool {
-	b := Bits(8, false, rand)
-	return b[0]&1 != 0
-}
-
-// Byte chooses a uniform random byte
-func Byte(rand cipher.Stream) byte {
-	b := Bits(8, false, rand)
-	return b[0]
-}
-
-// Uint8 chooses a uniform random uint8
-func Uint8(rand cipher.Stream) uint8 {
-	b := Bits(8, false, rand)
-	return uint8(b[0])
-}
-
-// Uint16 chooses a uniform random uint16
-func Uint16(rand cipher.Stream) uint16 {
-	b := Bits(16, false, rand)
-	return binary.BigEndian.Uint16(b)
-}
-
-// Uint32 chooses a uniform random uint32
-func Uint32(rand cipher.Stream) uint32 {
-	b := Bits(32, false, rand)
-	return binary.BigEndian.Uint32(b)
-}
-
-// Uint64 chooses a uniform random uint64
-func Uint64(rand cipher.Stream) uint64 {
-	b := Bits(64, false, rand)
-	return binary.BigEndian.Uint64(b)
-}
-
-// Int choose a uniform random big.Int less than a given modulus
+// Int chooses a uniform random big.Int less than a given modulus
 func Int(mod *big.Int, rand cipher.Stream) *big.Int {
 	bitlen := uint(mod.BitLen())
 	i := new(big.Int)
@@ -76,11 +39,9 @@ func Int(mod *big.Int, rand cipher.Stream) *big.Int {
 	}
 }
 
-// Bytes chooses a random n-byte slice
-func Bytes(n int, rand cipher.Stream) []byte {
-	b := make([]byte, n)
+// Bytes fills a slice with random bytes from rand.
+func Bytes(b []byte, rand cipher.Stream) {
 	rand.XORKeyStream(b, b)
-	return b
 }
 
 type randstream struct {

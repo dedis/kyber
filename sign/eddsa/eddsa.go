@@ -32,15 +32,16 @@ func NewEdDSA(stream cipher.Stream) *EdDSA {
 	if stream == nil {
 		panic("stream is required")
 	}
-	buffer := random.Bytes(32, stream)
+	var buffer [32]byte
+	random.Bytes(buffer[:], stream)
 
-	scalar := hashSeed(buffer)
+	scalar := hashSeed(buffer[:])
 
 	secret := group.Scalar().SetBytes(scalar[:32])
 	public := group.Point().Mul(secret, nil)
 
 	return &EdDSA{
-		seed:   buffer,
+		seed:   buffer[:],
 		prefix: scalar[32:],
 		Secret: secret,
 		Public: public,
