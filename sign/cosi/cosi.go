@@ -40,22 +40,17 @@ the leader computes the aggregate response r = \sum{j ∈ P'}(r_j) and publishes
 package cosi
 
 import (
-	"crypto/cipher"
 	"errors"
 	"fmt"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/random"
 )
 
-// Commit returns a random scalar v, generated from the given cipher stream,
+// Commit returns a random scalar v, generated from the given suite,
 // and a corresponding commitment V = [v]G. If the given cipher stream is nil,
 // a random stream is used.
-func Commit(suite Suite, s cipher.Stream) (kyber.Scalar, kyber.Point) {
-	if s == nil {
-		s = random.Stream
-	}
-	random := suite.Scalar().Pick(s)
+func Commit(suite Suite) (kyber.Scalar, kyber.Point) {
+	random := suite.Scalar().Pick(suite.RandomStream())
 	commitment := suite.Point().Mul(random, nil)
 	return random, commitment
 }

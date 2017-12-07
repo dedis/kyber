@@ -28,12 +28,11 @@ type EdDSA struct {
 
 // NewEdDSA will return a freshly generated key pair to use for generating
 // EdDSA signatures.
-// If stream == nil, it will take the random.Stream.
 func NewEdDSA(stream cipher.Stream) *EdDSA {
 	if stream == nil {
-		stream = random.Stream
+		panic("stream is required")
 	}
-	buffer := random.NonZeroBytes(32, stream)
+	buffer := random.Bytes(32, stream)
 
 	scalar := hashSeed(buffer)
 

@@ -7,8 +7,6 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"math/big"
-
-	"github.com/dedis/kyber/xof/blake"
 )
 
 // Bits chooses a uniform random BigInt with a given maximum BitLen.
@@ -85,27 +83,14 @@ func Bytes(n int, rand cipher.Stream) []byte {
 	return b
 }
 
-// NonZeroBytes calls Bytes as long as it gets a slice full of '0's.
-// This is needed when using suite.Cipher(cipher.NoKey)
-// because the first 6 iterations returns 0000...000 as
-// bytes for edwards & ed25519 cipher.
-// Issue reported in https://github.com/dedis/kyber/issues/70
-func NonZeroBytes(n int, rand cipher.Stream) []byte {
-	var randoms []byte
-	for {
-		randoms = Bytes(n, rand)
-		for _, b := range randoms {
-			if b != 0x00 {
-				return randoms
-			}
-		}
-	}
-}
-
 type randstream struct {
 }
 
 func (r *randstream) XORKeyStream(dst, src []byte) {
+	// This function works only on local data, so it is
+	// safe against race conditions, as long as crypto/rand
+	// is as well. (It is.)
+
 	l := len(dst)
 	if len(src) != l {
 		panic("XORKeyStream: mismatched buffer lengths")
@@ -125,18 +110,8 @@ func (r *randstream) XORKeyStream(dst, src []byte) {
 	}
 }
 
-// Stream is the standard virtual "stream cipher" that just generates
-// fresh cryptographically strong random bits.
-var Stream cipher.Stream
-
-// testableRand is for debugging only: it will cause random.Stream to return
-// the same sequence every time. NOT FOR PRODUCTION USE!
-const testableRand = false
-
-func init() {
-	if testableRand {
-		Stream = blake.New(nil)
-	} else {
-		Stream = new(randstream)
-	}
+// New returns a new cipher.Stream that gets random data from Go's crypto/rand package.
+// The resulting cipher.Stream can be used in multiple threads.
+func New() cipher.Stream {
+	return &randstream{}
 }

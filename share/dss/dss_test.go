@@ -9,7 +9,6 @@ import (
 	dkg "github.com/dedis/kyber/share/dkg/rabin"
 	"github.com/dedis/kyber/sign/eddsa"
 	"github.com/dedis/kyber/sign/schnorr"
-	"github.com/dedis/kyber/util/random"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -147,7 +146,7 @@ func getDSS(i int) *DSS {
 func genDistSecret() []*dkg.DistKeyShare {
 	dkgs := make([]*dkg.DistKeyGenerator, nbParticipants)
 	for i := 0; i < nbParticipants; i++ {
-		dkg, err := dkg.NewDistKeyGenerator(suite, partSec[i], partPubs, random.Stream, nbParticipants/2+1)
+		dkg, err := dkg.NewDistKeyGenerator(suite, partSec[i], partPubs, nbParticipants/2+1)
 		if err != nil {
 			panic(err)
 		}
@@ -215,7 +214,7 @@ func genDistSecret() []*dkg.DistKeyShare {
 
 }
 func genPair() (kyber.Scalar, kyber.Point) {
-	sc := suite.Scalar().Pick(random.Stream)
+	sc := suite.Scalar().Pick(suite.RandomStream())
 	return sc, suite.Point().Mul(sc, nil)
 }
 

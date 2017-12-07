@@ -10,7 +10,6 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/util/hash"
-	"github.com/dedis/kyber/util/random"
 )
 
 // Suite wraps the functionalities needed by the dleq package.
@@ -18,6 +17,7 @@ type Suite interface {
 	kyber.Group
 	kyber.HashFactory
 	kyber.XOFFactory
+	kyber.Random
 }
 
 var errorDifferentLengths = errors.New("inputs of different lengths")
@@ -42,7 +42,7 @@ func NewDLEQProof(suite Suite, G kyber.Point, H kyber.Point, x kyber.Scalar) (pr
 	xH = suite.Point().Mul(x, H)
 
 	// Commitment
-	v := suite.Scalar().Pick(random.Stream)
+	v := suite.Scalar().Pick(suite.RandomStream())
 	vG := suite.Point().Mul(v, G)
 	vH := suite.Point().Mul(v, H)
 
@@ -82,7 +82,7 @@ func NewDLEQProofBatch(suite Suite, G []kyber.Point, H []kyber.Point, secrets []
 		xH[i] = suite.Point().Mul(x, H[i])
 
 		// Commitments
-		v[i] = suite.Scalar().Pick(random.Stream)
+		v[i] = suite.Scalar().Pick(suite.RandomStream())
 		vG[i] = suite.Point().Mul(v[i], G[i])
 		vH[i] = suite.Point().Mul(v[i], H[i])
 	}

@@ -5,7 +5,6 @@ import (
 	"crypto/cipher"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/random"
 )
 
 // Generator is a type that needs to implement a special case in order
@@ -15,7 +14,10 @@ type Generator interface {
 }
 
 // Suite represents the list of functionalities needed by this package.
-type Suite kyber.Group
+type Suite interface {
+	kyber.Group
+	kyber.Random
+}
 
 // Pair represents a public/private keypair together with the
 // ciphersuite the key was generated from.
@@ -29,7 +31,7 @@ type Pair struct {
 // NewKeyPair directly creates a secret/public key pair
 func NewKeyPair(suite Suite) *Pair {
 	kp := new(Pair)
-	kp.Gen(suite, random.Stream)
+	kp.Gen(suite)
 	return kp
 }
 
@@ -37,7 +39,7 @@ func NewKeyPair(suite Suite) *Pair {
 // the public key is hiding-encodable.
 func NewHidingKeyPair(suite Suite) *Pair {
 	kp := new(Pair)
-	kp.GenHiding(suite, random.Stream)
+	kp.GenHiding(suite)
 	return kp
 }
 
@@ -46,8 +48,9 @@ func NewHidingKeyPair(suite Suite) *Pair {
 // suite implements key.Generator, then suite.NewKey is called
 // to generate the private key, otherwise the normal technique
 // of choosing a random scalar from the group is used.
-func (p *Pair) Gen(suite Suite, random cipher.Stream) {
+func (p *Pair) Gen(suite Suite) {
 	p.Suite = suite
+	random := suite.RandomStream()
 	if g, ok := suite.(Generator); ok {
 		p.Secret = g.NewKey(random)
 	} else {
@@ -58,8 +61,9 @@ func (p *Pair) Gen(suite Suite, random cipher.Stream) {
 
 // GenHiding will generate key pairs repeatedly until one is found where the
 // public key has the property that it can be hidden.
-func (p *Pair) GenHiding(suite Suite, rand cipher.Stream) {
-	p.Gen(suite, rand)
+func (p *Pair) GenHiding(suite Suite) {
+	rand := suite.RandomStream()
+	p.Gen(suite)
 	Xh := p.Public.(kyber.Hiding)
 	for {
 		Xb := Xh.HideEncode(rand) // try to encode as uniform blob
@@ -67,6 +71,6 @@ func (p *Pair) GenHiding(suite Suite, rand cipher.Stream) {
 			p.Hiding = Xh
 			return // success
 		}
-		p.Gen(suite, rand)
+		p.Gen(suite)
 	}
 }

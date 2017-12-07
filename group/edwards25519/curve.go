@@ -45,10 +45,7 @@ func (c *Curve) Point() kyber.Point {
 // it to be a multiple of 8).
 // NewKey implements the kyber/util/key.Generator interface.
 func (c *Curve) NewKey(stream cipher.Stream) kyber.Scalar {
-	if stream == nil {
-		stream = random.Stream
-	}
-	buffer := random.NonZeroBytes(32, stream)
+	buffer := random.Bytes(32, stream)
 	scalar := sha512.Sum512(buffer)
 	scalar[0] &= 0xf8
 	scalar[31] &= 0x3f

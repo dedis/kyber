@@ -6,14 +6,11 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
-	"github.com/dedis/kyber/util/random"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var suite = edwards25519.NewBlakeSHA256Ed25519()
-
-var reader = random.Stream
 
 var nbVerifiers = 7
 
@@ -504,7 +501,7 @@ func TestVSSWhole(t *testing.T) {
 //}
 
 func genPair() (kyber.Scalar, kyber.Point) {
-	secret := suite.Scalar().Pick(reader)
+	secret := suite.Scalar().Pick(suite.RandomStream())
 	public := suite.Point().Mul(secret, nil)
 	return secret, public
 }
@@ -519,7 +516,7 @@ func genCommits(n int) ([]kyber.Scalar, []kyber.Point) {
 }
 
 func genDealer() *Dealer {
-	d, _ := NewDealer(suite, dealerSec, secret, verifiersPub, reader, vssThreshold)
+	d, _ := NewDealer(suite, dealerSec, secret, verifiersPub, vssThreshold)
 	return d
 }
 

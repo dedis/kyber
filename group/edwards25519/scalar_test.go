@@ -103,7 +103,7 @@ func testSimple(t *testing.T, new func() kyber.Scalar) {
 	s2 := new()
 	s3 := new()
 	s1.SetInt64(2)
-	s2.Pick(random.Stream)
+	s2.Pick(random.New())
 
 	s22 := new().Add(s2, s2)
 

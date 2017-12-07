@@ -3,6 +3,7 @@
 package nist
 
 import (
+	"crypto/cipher"
 	"crypto/sha256"
 	"hash"
 	"io"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/internal/marshalling"
+	"github.com/dedis/kyber/util/random"
 	"github.com/dedis/kyber/xof/blake"
 )
 
@@ -27,6 +29,10 @@ func (s QrSuite) Hash() hash.Hash {
 
 func (s QrSuite) XOF(key []byte) kyber.XOF {
 	return blake.New(key)
+}
+
+func (s QrSuite) RandomStream() cipher.Stream {
+	return random.New()
 }
 
 func (s *QrSuite) Read(r io.Reader, objs ...interface{}) error {
