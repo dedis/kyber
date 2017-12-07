@@ -243,7 +243,7 @@ var benchSig100Ed25519 = benchGenSigEd25519(100)
 func benchGenKeys(g kyber.Group,
 	nkeys int) ([]kyber.Point, kyber.Scalar) {
 
-	rand := random.Stream
+	rand := random.New()
 
 	// Create an anonymity set of random "public keys"
 	X := make([]kyber.Point, nkeys)

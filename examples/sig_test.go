@@ -90,6 +90,8 @@ func SchnorrVerify(suite Suite, message []byte, publicKey kyber.Point,
 func Example_schnorr() {
 	// Crypto setup
 	suite := edwards25519.NewBlakeSHA256Ed25519()
+	// A pseudo RNG which makes this code repeatable for testing.
+	// Use random.New() in production code.
 	rand := suite.XOF([]byte("example"))
 
 	// Create a public/private keypair (X,x)

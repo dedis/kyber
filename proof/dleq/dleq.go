@@ -6,11 +6,11 @@
 package dleq
 
 import (
+	"crypto/cipher"
 	"errors"
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/util/hash"
-	"github.com/dedis/kyber/util/random"
 )
 
 // Suite wraps the functionalities needed by the dleq package.
@@ -31,18 +31,19 @@ type Proof struct {
 	VH kyber.Point  // public commitment with respect to base point H
 }
 
-// NewDLEQProof computes a new NIZK dlog-equality proof for the scalar x with
-// respect to base points G and H. It therefore randomly selects a commitment v
-// and then computes the challenge c = H(xG,xH,vG,vH) and response r = v - cx.
-// Besides the proof, this function also returns the encrypted base points xG
-// and xH.
-func NewDLEQProof(suite Suite, G kyber.Point, H kyber.Point, x kyber.Scalar) (proof *Proof, xG kyber.Point, xH kyber.Point, err error) {
+// NewDLEQProof computes a new NIZK dlog-equality proof for the scalar
+// x with respect to base points G and H, using rand as a source of
+// crypto randomness. It therefore randomly selects a commitment v and
+// then computes the challenge c = H(xG,xH,vG,vH) and response r = v -
+// cx.  Besides the proof, this function also returns the encrypted
+// base points xG and xH.
+func NewDLEQProof(suite Suite, rand cipher.Stream, G kyber.Point, H kyber.Point, x kyber.Scalar) (proof *Proof, xG kyber.Point, xH kyber.Point, err error) {
 	// Encrypt base points with secret
 	xG = suite.Point().Mul(x, G)
 	xH = suite.Point().Mul(x, H)
 
 	// Commitment
-	v := suite.Scalar().Pick(random.Stream)
+	v := suite.Scalar().Pick(rand)
 	vG := suite.Point().Mul(v, G)
 	vH := suite.Point().Mul(v, H)
 
@@ -60,10 +61,11 @@ func NewDLEQProof(suite Suite, G kyber.Point, H kyber.Point, x kyber.Scalar) (pr
 	return &Proof{c, r, vG, vH}, xG, xH, nil
 }
 
-// NewDLEQProofBatch computes lists of NIZK dlog-equality proofs and of
-// encrypted base points xG and xH. Note that the challenge is computed over all
+// NewDLEQProofBatch computes lists of NIZK dlog-equality proofs and
+// of encrypted base points xG and xH, using rand as a source of
+// crypto randomness. Note that the challenge is computed over all
 // input values.
-func NewDLEQProofBatch(suite Suite, G []kyber.Point, H []kyber.Point, secrets []kyber.Scalar) (proof []*Proof, xG []kyber.Point, xH []kyber.Point, err error) {
+func NewDLEQProofBatch(suite Suite, rand cipher.Stream, G []kyber.Point, H []kyber.Point, secrets []kyber.Scalar) (proof []*Proof, xG []kyber.Point, xH []kyber.Point, err error) {
 	if len(G) != len(H) || len(H) != len(secrets) {
 		return nil, nil, nil, errorDifferentLengths
 	}
@@ -82,7 +84,7 @@ func NewDLEQProofBatch(suite Suite, G []kyber.Point, H []kyber.Point, secrets []
 		xH[i] = suite.Point().Mul(x, H[i])
 
 		// Commitments
-		v[i] = suite.Scalar().Pick(random.Stream)
+		v[i] = suite.Scalar().Pick(rand)
 		vG[i] = suite.Point().Mul(v[i], G[i])
 		vH[i] = suite.Point().Mul(v[i], H[i])
 	}

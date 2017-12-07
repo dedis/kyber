@@ -13,7 +13,6 @@ import (
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/share"
 	"github.com/dedis/kyber/sign/schnorr"
-	"github.com/dedis/kyber/util/random"
 	"github.com/dedis/protobuf"
 )
 
@@ -27,8 +26,8 @@ type Suite interface {
 // Dealer encapsulates for creating and distributing the shares and for
 // replying to any Responses.
 type Dealer struct {
-	suite  Suite
-	reader cipher.Stream
+	suite Suite
+	r     cipher.Stream
 	// long is the longterm key of the Dealer
 	long          kyber.Scalar
 	pub           kyber.Point
@@ -120,6 +119,7 @@ func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Poi
 		long:      longterm,
 		secret:    secret,
 		verifiers: verifiers,
+		r:         r,
 	}
 	if !validT(t, verifiers) {
 		return nil, fmt.Errorf("dealer: t %d invalid", t)
@@ -176,11 +176,11 @@ func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
 		return nil, errors.New("dealer: wrong index to generate encrypted deal")
 	}
 	// gen ephemeral key
-	dhSecret := d.suite.Scalar().Pick(random.Stream)
+	dhSecret := d.suite.Scalar().Pick(d.r)
 	dhPublic := d.suite.Point().Mul(dhSecret, nil)
 	// signs the public key
 	dhPublicBuff, _ := dhPublic.MarshalBinary()
-	signature, err := schnorr.Sign(d.suite, d.long, dhPublicBuff)
+	signature, err := schnorr.Sign(d.suite, d.r, d.long, dhPublicBuff)
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +238,7 @@ func (d *Dealer) ProcessResponse(r *Response) (*Justification, error) {
 		Index: r.Index,
 		Deal:  d.deals[int(r.Index)],
 	}
-	sig, err := schnorr.Sign(d.suite, d.long, j.Hash(d.suite))
+	sig, err := schnorr.Sign(d.suite, d.r, d.long, j.Hash(d.suite))
 	if err != nil {
 		return nil, err
 	}
@@ -280,6 +280,7 @@ func (d *Dealer) SessionID() []byte {
 // collaborate with other Verifiers to reconstruct a secret.
 type Verifier struct {
 	suite       Suite
+	r           cipher.Stream
 	longterm    kyber.Scalar
 	pub         kyber.Point
 	dealer      kyber.Point
@@ -290,6 +291,7 @@ type Verifier struct {
 }
 
 // NewVerifier returns a Verifier out of:
+// - the suite and a source of crypto random numbers
 // - its longterm secret key
 // - the longterm dealer public key
 // - the list of public key of verifiers. The list MUST include the public key
@@ -297,7 +299,7 @@ type Verifier struct {
 // The security parameter t of the secret sharing scheme is automatically set to
 // a default safe value. If a different t value is required, it is possible to set
 // it with `verifier.SetT()`.
-func NewVerifier(suite Suite, longterm kyber.Scalar, dealerKey kyber.Point,
+func NewVerifier(suite Suite, rand cipher.Stream, longterm kyber.Scalar, dealerKey kyber.Point,
 	verifiers []kyber.Point) (*Verifier, error) {
 
 	pub := suite.Point().Mul(longterm, nil)
@@ -315,6 +317,7 @@ func NewVerifier(suite Suite, longterm kyber.Scalar, dealerKey kyber.Point,
 	}
 	v := &Verifier{
 		suite:       suite,
+		r:           rand,
 		longterm:    longterm,
 		dealer:      dealerKey,
 		verifiers:   verifiers,
@@ -367,7 +370,7 @@ func (v *Verifier) ProcessEncryptedDeal(e *EncryptedDeal) (*Response, error) {
 		return nil, err
 	}
 
-	if r.Signature, err = schnorr.Sign(v.suite, v.longterm, r.Hash(v.suite)); err != nil {
+	if r.Signature, err = schnorr.Sign(v.suite, v.r, v.longterm, r.Hash(v.suite)); err != nil {
 		return nil, err
 	}
 

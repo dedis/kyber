@@ -15,6 +15,7 @@ import (
 )
 
 var suite = edwards25519.NewBlakeSHA256Ed25519()
+var rng = random.New()
 
 var nbParticipants = 7
 var t = nbParticipants/2 + 1
@@ -40,11 +41,11 @@ func init() {
 }
 
 func TestDSSNew(t *testing.T) {
-	dss, err := NewDSS(suite, partSec[0], partPubs, longterms[0], randoms[0], []byte("hello"), 4)
+	dss, err := NewDSS(suite, rng, partSec[0], partPubs, longterms[0], randoms[0], []byte("hello"), 4)
 	assert.NotNil(t, dss)
 	assert.Nil(t, err)
 
-	dss, err = NewDSS(suite, suite.Scalar().Zero(), partPubs, longterms[0], randoms[0], []byte("hello"), 4)
+	dss, err = NewDSS(suite, rng, suite.Scalar().Zero(), partPubs, longterms[0], randoms[0], []byte("hello"), 4)
 	assert.Nil(t, dss)
 	assert.Error(t, err)
 }
@@ -77,7 +78,7 @@ func TestDSSPartialSigs(t *testing.T) {
 	// invalid partial sig
 	goodV := ps0.Partial.V
 	ps0.Partial.V = suite.Scalar().Zero()
-	ps0.Signature, err = schnorr.Sign(suite, dss0.secret, ps0.Hash(suite))
+	ps0.Signature, err = schnorr.Sign(suite, rng, dss0.secret, ps0.Hash(suite))
 	require.Nil(t, err)
 	err = dss1.ProcessPartialSig(ps0)
 	assert.Error(t, err)
@@ -137,7 +138,7 @@ func TestDSSSignature(t *testing.T) {
 }
 
 func getDSS(i int) *DSS {
-	dss, err := NewDSS(suite, partSec[i], partPubs, longterms[i], randoms[i], []byte("hello"), t)
+	dss, err := NewDSS(suite, rng, partSec[i], partPubs, longterms[i], randoms[i], []byte("hello"), t)
 	if dss == nil || err != nil {
 		panic("nil dss")
 	}
@@ -147,7 +148,7 @@ func getDSS(i int) *DSS {
 func genDistSecret() []*dkg.DistKeyShare {
 	dkgs := make([]*dkg.DistKeyGenerator, nbParticipants)
 	for i := 0; i < nbParticipants; i++ {
-		dkg, err := dkg.NewDistKeyGenerator(suite, partSec[i], partPubs, random.Stream, nbParticipants/2+1)
+		dkg, err := dkg.NewDistKeyGenerator(suite, partSec[i], partPubs, rng, nbParticipants/2+1)
 		if err != nil {
 			panic(err)
 		}
@@ -215,7 +216,7 @@ func genDistSecret() []*dkg.DistKeyShare {
 
 }
 func genPair() (kyber.Scalar, kyber.Point) {
-	sc := suite.Scalar().Pick(random.Stream)
+	sc := suite.Scalar().Pick(rng)
 	return sc, suite.Point().Mul(sc, nil)
 }
 

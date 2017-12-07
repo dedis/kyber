@@ -6,15 +6,18 @@ import (
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/sign/eddsa"
 	"github.com/dedis/kyber/util/key"
+	"github.com/dedis/kyber/util/random"
 	"github.com/stretchr/testify/assert"
 )
+
+var rng = random.New()
 
 func TestSchnorrSignature(t *testing.T) {
 	msg := []byte("Hello Schnorr")
 	suite := edwards25519.NewBlakeSHA256Ed25519()
-	kp := key.NewKeyPair(suite)
+	kp := key.NewKeyPair(suite, rng)
 
-	s, err := Sign(suite, kp.Secret, msg)
+	s, err := Sign(suite, rng, kp.Secret, msg)
 	if err != nil {
 		t.Fatalf("Couldn't sign msg: %s: %v", msg, err)
 	}
@@ -43,16 +46,17 @@ func TestSchnorrSignature(t *testing.T) {
 	assert.Error(t, Verify(suite, kp.Public, msg, wrResp))
 
 	// wrong public key
-	wrKp := key.NewKeyPair(suite)
+	wrKp := key.NewKeyPair(suite, rng)
 	assert.Error(t, Verify(suite, wrKp.Public, msg, s))
 }
 
 func TestEdDSACompatibility(t *testing.T) {
 	msg := []byte("Hello Schnorr")
 	suite := edwards25519.NewBlakeSHA256Ed25519()
-	kp := key.NewKeyPair(suite)
+	kp := key.NewKeyPair(suite, rng)
 
-	s, err := Sign(suite, kp.Secret, msg)
+	s, err := Sign(suite, rng,
+		kp.Secret, msg)
 	if err != nil {
 		t.Fatalf("Couldn't sign msg: %s: %v", msg, err)
 	}

@@ -30,10 +30,7 @@ type EdDSA struct {
 // EdDSA signatures.
 // If stream == nil, it will take the random.Stream.
 func NewEdDSA(stream cipher.Stream) *EdDSA {
-	if stream == nil {
-		stream = random.Stream
-	}
-	buffer := random.NonZeroBytes(32, stream)
+	buffer := random.Bytes(32, stream)
 
 	scalar := hashSeed(buffer)
 

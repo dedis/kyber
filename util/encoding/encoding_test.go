@@ -10,6 +10,7 @@ import (
 )
 
 var s = edwards25519.NewBlakeSHA256Ed25519()
+var rng = random.New()
 
 func ErrFatal(err error) {
 	if err == nil {
@@ -20,7 +21,7 @@ func ErrFatal(err error) {
 
 func TestPub64(t *testing.T) {
 	b := &bytes.Buffer{}
-	p := s.Point().Pick(random.Stream)
+	p := s.Point().Pick(rng)
 	ErrFatal(Write64Point(s, b, p))
 	ErrFatal(Write64Point(s, b, p))
 	p2, err := Read64Point(s, b)
@@ -34,7 +35,7 @@ func TestPub64(t *testing.T) {
 
 func TestScalar64(t *testing.T) {
 	b := &bytes.Buffer{}
-	sc := s.Scalar().Pick(random.Stream)
+	sc := s.Scalar().Pick(rng)
 	ErrFatal(Write64Scalar(s, b, sc))
 	ErrFatal(Write64Scalar(s, b, sc))
 	s2, err := Read64Scalar(s, b)
@@ -47,7 +48,7 @@ func TestScalar64(t *testing.T) {
 
 func TestPubHexStream(t *testing.T) {
 	b := &bytes.Buffer{}
-	p := s.Point().Pick(random.Stream)
+	p := s.Point().Pick(rng)
 	ErrFatal(WriteHexPoint(s, b, p))
 	ErrFatal(WriteHexPoint(s, b, p))
 	p2, err := ReadHexPoint(s, b)
@@ -60,7 +61,7 @@ func TestPubHexStream(t *testing.T) {
 
 func TestScalarHexStream(t *testing.T) {
 	b := &bytes.Buffer{}
-	sc := s.Scalar().Pick(random.Stream)
+	sc := s.Scalar().Pick(rng)
 	ErrFatal(WriteHexScalar(s, b, sc))
 	ErrFatal(WriteHexScalar(s, b, sc))
 	s2, err := ReadHexScalar(s, b)
@@ -72,7 +73,7 @@ func TestScalarHexStream(t *testing.T) {
 }
 
 func TestPubHexString(t *testing.T) {
-	p := s.Point().Pick(random.Stream)
+	p := s.Point().Pick(rng)
 	pstr, err := PointToStringHex(s, p)
 	ErrFatal(err)
 	p2, err := StringHexToPoint(s, pstr)
@@ -81,7 +82,7 @@ func TestPubHexString(t *testing.T) {
 }
 
 func TestPub64String(t *testing.T) {
-	p := s.Point().Pick(random.Stream)
+	p := s.Point().Pick(rng)
 	pstr, err := PointToString64(s, p)
 	ErrFatal(err)
 	p2, err := String64ToPoint(s, pstr)
@@ -90,7 +91,7 @@ func TestPub64String(t *testing.T) {
 }
 
 func TestScalarHexString(t *testing.T) {
-	sc := s.Scalar().Pick(random.Stream)
+	sc := s.Scalar().Pick(rng)
 	scstr, err := ScalarToStringHex(s, sc)
 	ErrFatal(err)
 	s2, err := StringHexToScalar(s, scstr)
@@ -99,7 +100,7 @@ func TestScalarHexString(t *testing.T) {
 }
 
 func TestScalar64String(t *testing.T) {
-	sc := s.Scalar().Pick(random.Stream)
+	sc := s.Scalar().Pick(rng)
 	scstr, err := ScalarToString64(s, sc)
 	ErrFatal(err)
 	s2, err := String64ToScalar(s, scstr)

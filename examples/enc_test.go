@@ -1,26 +1,28 @@
 package examples
 
 import (
+	"crypto/cipher"
+	"fmt"
+
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
-	"github.com/dedis/kyber/util/random"
 )
 
-func ElGamalEncrypt(group kyber.Group, pubkey kyber.Point, message []byte) (
+func ElGamalEncrypt(group kyber.Group, rng cipher.Stream, pubkey kyber.Point, message []byte) (
 	K, C kyber.Point, remainder []byte) {
 
 	// Embed the message (or as much of it as will fit) into a curve point.
-	M := group.Point().Embed(message, random.Stream)
+	M := group.Point().Embed(message, rng)
 	max := group.Point().EmbedLen()
 	if max > len(message) {
 		max = len(message)
 	}
 	remainder = message[max:]
 	// ElGamal-encrypt the point to produce ciphertext (K,C).
-	k := group.Scalar().Pick(random.Stream) // ephemeral private key
-	K = group.Point().Mul(k, nil)           // ephemeral DH public key
-	S := group.Point().Mul(k, pubkey)       // ephemeral DH shared secret
-	C = S.Add(S, M)                         // message blinded with secret
+	k := group.Scalar().Pick(rng)     // ephemeral private key
+	K = group.Point().Mul(k, nil)     // ephemeral DH public key
+	S := group.Point().Mul(k, pubkey) // ephemeral DH shared secret
+	C = S.Add(S, M)                   // message blinded with secret
 	return
 }
 
@@ -58,18 +60,22 @@ see for example anon.Encrypt, which encrypts a message for
 one of several possible receivers forming an explicit anonymity set.
 */
 func Example_elGamalEncryption() {
-	group := edwards25519.NewBlakeSHA256Ed25519()
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+
+	// A pseudo RNG which makes this code repeatable for testing.
+	// Use random.New() in production code.
+	rng := suite.XOF(nil)
 
 	// Create a public/private keypair
-	a := group.Scalar().Pick(random.Stream) // Alice's private key
-	A := group.Point().Mul(a, nil)          // Alice's public key
+	a := suite.Scalar().Pick(rng)  // Alice's private key
+	A := suite.Point().Mul(a, nil) // Alice's public key
 
 	// ElGamal-encrypt a message using the public key.
 	m := []byte("The quick brown fox")
-	K, C, _ := ElGamalEncrypt(group, A, m)
+	K, C, _ := ElGamalEncrypt(suite, rng, A, m)
 
 	// Decrypt it using the corresponding private key.
-	mm, err := ElGamalDecrypt(group, a, K, C)
+	mm, err := ElGamalDecrypt(suite, a, K, C)
 
 	// Make sure it worked!
 	if err != nil {
@@ -78,7 +84,8 @@ func Example_elGamalEncryption() {
 	if string(mm) != string(m) {
 		panic("decryption produced wrong output: " + string(mm))
 	}
-	println("Decryption succeeded: " + string(mm))
+	fmt.Println("Decryption succeeded: " + string(mm))
 
 	// Output:
+	// Decryption succeeded: The quick brown fox
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/util/key"
+	"github.com/dedis/kyber/util/random"
 )
 
 // Specify cipher suite using AES-128, SHA512, and the Edwards25519 curve.
@@ -21,6 +22,7 @@ func (m *cosiSuite) Hash() hash.Hash {
 }
 
 var testSuite = &cosiSuite{edwards25519.NewBlakeSHA256Ed25519()}
+var rng = random.New()
 
 func TestCoSi(t *testing.T) {
 	n := 5
@@ -31,7 +33,7 @@ func TestCoSi(t *testing.T) {
 	var privates []kyber.Scalar
 	var publics []kyber.Point
 	for i := 0; i < n; i++ {
-		kp := key.NewKeyPair(testSuite)
+		kp := key.NewKeyPair(testSuite, rng)
 		kps = append(kps, kp)
 		privates = append(privates, kp.Secret)
 		publics = append(publics, kp.Public)
@@ -53,7 +55,7 @@ func TestCoSi(t *testing.T) {
 	var v []kyber.Scalar // random
 	var V []kyber.Point  // commitment
 	for i := 0; i < n; i++ {
-		x, X := Commit(testSuite, nil)
+		x, X := Commit(testSuite, rng)
 		v = append(v, x)
 		V = append(V, X)
 	}
@@ -115,7 +117,7 @@ func TestCoSiThreshold(t *testing.T) {
 	var privates []kyber.Scalar
 	var publics []kyber.Point
 	for i := 0; i < n; i++ {
-		kp := key.NewKeyPair(testSuite)
+		kp := key.NewKeyPair(testSuite, rng)
 		kps = append(kps, kp)
 		privates = append(privates, kp.Secret)
 		publics = append(publics, kp.Public)
@@ -137,7 +139,7 @@ func TestCoSiThreshold(t *testing.T) {
 	var v []kyber.Scalar // random
 	var V []kyber.Point  // commitment
 	for i := 0; i < n-f; i++ {
-		x, X := Commit(testSuite, nil)
+		x, X := Commit(testSuite, rng)
 		v = append(v, x)
 		V = append(V, X)
 	}
@@ -197,7 +199,7 @@ func TestMask(t *testing.T) {
 	var privates []kyber.Scalar
 	var publics []kyber.Point
 	for i := 0; i < n; i++ {
-		kp := key.NewKeyPair(testSuite)
+		kp := key.NewKeyPair(testSuite, rng)
 		kps = append(kps, kp)
 		privates = append(privates, kp.Secret)
 		publics = append(publics, kp.Public)

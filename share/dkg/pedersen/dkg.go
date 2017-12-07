@@ -72,6 +72,7 @@ type Justification struct {
 // DistKeyGenerator is the struct that runs the DKG protocol.
 type DistKeyGenerator struct {
 	suite Suite
+	rand  cipher.Stream
 
 	index uint32
 	long  kyber.Scalar
@@ -117,6 +118,7 @@ func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kybe
 		verifiers:    make(map[uint32]*vss.Verifier),
 		t:            t,
 		suite:        suite,
+		rand:         r,
 		long:         longterm,
 		pub:          pub,
 		participants: participants,
@@ -179,7 +181,7 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 	}
 
 	// verifier receiving the dealer's deal
-	ver, err := vss.NewVerifier(d.suite, d.long, pub, d.participants)
+	ver, err := vss.NewVerifier(d.suite, d.rand, d.long, pub, d.participants)
 	if err != nil {
 		return nil, err
 	}

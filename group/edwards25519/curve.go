@@ -42,13 +42,13 @@ func (c *Curve) Point() kyber.Point {
 }
 
 // NewKey returns a formatted Ed25519 key (avoiding subgroup attack by requiring
-// it to be a multiple of 8).
-// NewKey implements the kyber/util/key.Generator interface.
-func (c *Curve) NewKey(stream cipher.Stream) kyber.Scalar {
-	if stream == nil {
-		stream = random.Stream
+// it to be a multiple of 8), using rand as a source of crypto randomness. If rand is
+// nil, NewKey panics. NewKey implements the kyber/util/key.Generator interface.
+func (c *Curve) NewKey(rand cipher.Stream) kyber.Scalar {
+	if rand == nil {
+		panic("must have a source of random data")
 	}
-	buffer := random.NonZeroBytes(32, stream)
+	buffer := random.Bytes(32, rand)
 	scalar := sha512.Sum512(buffer)
 	scalar[0] &= 0xf8
 	scalar[31] &= 0x3f

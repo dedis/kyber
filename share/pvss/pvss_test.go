@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var rng = random.New()
+
 func TestPVSS(test *testing.T) {
 	suite := edwards25519.NewBlakeSHA256Ed25519()
 	G := suite.Point().Base()
@@ -18,15 +20,15 @@ func TestPVSS(test *testing.T) {
 	x := make([]kyber.Scalar, n) // trustee private keys
 	X := make([]kyber.Point, n)  // trustee public keys
 	for i := 0; i < n; i++ {
-		x[i] = suite.Scalar().Pick(random.Stream)
+		x[i] = suite.Scalar().Pick(rng)
 		X[i] = suite.Point().Mul(x[i], nil)
 	}
 
 	// Scalar of shared secret
-	secret := suite.Scalar().Pick(random.Stream)
+	secret := suite.Scalar().Pick(rng)
 
 	// (1) Share distribution (dealer)
-	encShares, pubPoly, err := EncShares(suite, H, X, secret, t)
+	encShares, pubPoly, err := EncShares(suite, rng, H, X, secret, t)
 	require.Equal(test, err, nil)
 
 	// (2) Share decryption (trustees)
@@ -40,7 +42,7 @@ func TestPVSS(test *testing.T) {
 	var D []*PubVerShare // good decrypted shares
 
 	for i := 0; i < n; i++ {
-		if ds, err := DecShare(suite, H, X[i], sH[i], x[i], encShares[i]); err == nil {
+		if ds, err := DecShare(suite, rng, H, X[i], sH[i], x[i], encShares[i]); err == nil {
 			K = append(K, X[i])
 			E = append(E, encShares[i])
 			D = append(D, ds)
@@ -62,15 +64,15 @@ func TestPVSSDelete(test *testing.T) {
 	x := make([]kyber.Scalar, n) // trustee private keys
 	X := make([]kyber.Point, n)  // trustee public keys
 	for i := 0; i < n; i++ {
-		x[i] = suite.Scalar().Pick(random.Stream)
+		x[i] = suite.Scalar().Pick(rng)
 		X[i] = suite.Point().Mul(x[i], nil)
 	}
 
 	// Scalar of shared secret
-	secret := suite.Scalar().Pick(random.Stream)
+	secret := suite.Scalar().Pick(rng)
 
 	// (1) Share distribution (dealer)
-	encShares, pubPoly, err := EncShares(suite, H, X, secret, t)
+	encShares, pubPoly, err := EncShares(suite, rng, H, X, secret, t)
 	require.Equal(test, err, nil)
 
 	// Corrupt some of the encrypted shares
@@ -88,7 +90,7 @@ func TestPVSSDelete(test *testing.T) {
 	var D []*PubVerShare // good decrypted shares
 
 	for i := 0; i < n; i++ {
-		if ds, err := DecShare(suite, H, X[i], sH[i], x[i], encShares[i]); err == nil {
+		if ds, err := DecShare(suite, rng, H, X[i], sH[i], x[i], encShares[i]); err == nil {
 			K = append(K, X[i])
 			E = append(E, encShares[i])
 			D = append(D, ds)
@@ -113,15 +115,15 @@ func TestPVSSDeleteFail(test *testing.T) {
 	x := make([]kyber.Scalar, n) // trustee private keys
 	X := make([]kyber.Point, n)  // trustee public keys
 	for i := 0; i < n; i++ {
-		x[i] = suite.Scalar().Pick(random.Stream)
+		x[i] = suite.Scalar().Pick(rng)
 		X[i] = suite.Point().Mul(x[i], nil)
 	}
 
 	// Scalar of shared secret
-	secret := suite.Scalar().Pick(random.Stream)
+	secret := suite.Scalar().Pick(rng)
 
 	// (1) Share distribution (dealer)
-	encShares, pubPoly, err := EncShares(suite, H, X, secret, t)
+	encShares, pubPoly, err := EncShares(suite, rng, H, X, secret, t)
 	require.Equal(test, err, nil)
 
 	// Corrupt some of the encrypted shares
@@ -139,7 +141,7 @@ func TestPVSSDeleteFail(test *testing.T) {
 	var D []*PubVerShare // good decrypted shares
 
 	for i := 0; i < n; i++ {
-		if ds, err := DecShare(suite, H, X[i], sH[i], x[i], encShares[i]); err == nil {
+		if ds, err := DecShare(suite, rng, H, X[i], sH[i], x[i], encShares[i]); err == nil {
 			K = append(K, X[i])
 			E = append(E, encShares[i])
 			D = append(D, ds)
@@ -164,21 +166,21 @@ func TestPVSSBatch(test *testing.T) {
 	x := make([]kyber.Scalar, n) // trustee private keys
 	X := make([]kyber.Point, n)  // trustee public keys
 	for i := 0; i < n; i++ {
-		x[i] = suite.Scalar().Pick(random.Stream)
+		x[i] = suite.Scalar().Pick(rng)
 		X[i] = suite.Point().Mul(x[i], nil)
 	}
 
 	// (1) Share distribution (multiple dealers)
-	s0 := suite.Scalar().Pick(random.Stream)
-	e0, p0, err := EncShares(suite, H, X, s0, t)
+	s0 := suite.Scalar().Pick(rng)
+	e0, p0, err := EncShares(suite, rng, H, X, s0, t)
 	require.Equal(test, err, nil)
 
-	s1 := suite.Scalar().Pick(random.Stream)
-	e1, p1, err := EncShares(suite, H, X, s1, t)
+	s1 := suite.Scalar().Pick(rng)
+	e1, p1, err := EncShares(suite, rng, H, X, s1, t)
 	require.Equal(test, err, nil)
 
-	s2 := suite.Scalar().Pick(random.Stream)
-	e2, p2, err := EncShares(suite, H, X, s2, t)
+	s2 := suite.Scalar().Pick(rng)
+	e2, p2, err := EncShares(suite, rng, H, X, s2, t)
 	require.Equal(test, err, nil)
 
 	sH0 := make([]kyber.Point, n)
@@ -217,16 +219,16 @@ func TestPVSSBatch(test *testing.T) {
 	Z3 := []*PubVerShare{E0[3], E1[3], E2[3]}
 
 	// (2) Share batch decryption (trustees)
-	KD0, ED0, DD0, err := DecShareBatch(suite, H, Y0, P0, x[0], Z0)
+	KD0, ED0, DD0, err := DecShareBatch(suite, rng, H, Y0, P0, x[0], Z0)
 	require.Equal(test, err, nil)
 
-	KD1, ED1, DD1, err := DecShareBatch(suite, H, Y1, P1, x[1], Z1)
+	KD1, ED1, DD1, err := DecShareBatch(suite, rng, H, Y1, P1, x[1], Z1)
 	require.Equal(test, err, nil)
 
-	KD2, ED2, DD2, err := DecShareBatch(suite, H, Y2, P2, x[2], Z2)
+	KD2, ED2, DD2, err := DecShareBatch(suite, rng, H, Y2, P2, x[2], Z2)
 	require.Equal(test, err, nil)
 
-	KD3, ED3, DD3, err := DecShareBatch(suite, H, Y3, P3, x[3], Z3)
+	KD3, ED3, DD3, err := DecShareBatch(suite, rng, H, Y3, P3, x[3], Z3)
 	require.Equal(test, err, nil)
 
 	// Re-establish order
