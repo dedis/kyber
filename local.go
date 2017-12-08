@@ -134,15 +134,15 @@ func (l *LocalTest) GenTree(n int, register bool) ([]*Server, *Roster, *Tree) {
 
 // GenBigTree will create a tree of n servers.
 // If register is true, the Roster and Tree will be registered with the overlay.
-// 'nbrServers' is how many servers are created
-// 'nbrTreeNodes' is how many TreeNodes are created
-// nbrServers can be smaller than nbrTreeNodes, in which case a given server will
+// 'nServers' is how many servers are created
+// 'nTreeNodes' is how many TreeNodes are created
+// nServers can be smaller than nTreeNodes, in which case a given server will
 // be used more than once in the tree.
-func (l *LocalTest) GenBigTree(nbrTreeNodes, nbrServers, bf int, register bool) ([]*Server, *Roster, *Tree) {
-	servers := l.GenServers(nbrServers)
+func (l *LocalTest) GenBigTree(nTreeNodes, nServers, bf int, register bool) ([]*Server, *Roster, *Tree) {
+	servers := l.GenServers(nServers)
 
 	list := l.GenRosterFromHost(servers...)
-	tree := list.GenerateBigNaryTree(bf, nbrTreeNodes)
+	tree := list.GenerateBigNaryTree(bf, nTreeNodes)
 	l.Trees[tree.ID] = tree
 	if register {
 		servers[0].overlay.RegisterRoster(list)
@@ -280,11 +280,11 @@ func (l *LocalTest) GetServices(servers []*Server, sid ServiceID) []Service {
 	return services
 }
 
-// MakeHELS creates nbr servers, and will return the associated roster. It also
+// MakeHELS creates n servers, and will return the associated roster. It also
 // returns the Service object of the first servers in the list having sid as a
 // ServiceID.
-func (l *LocalTest) MakeHELS(nbr int, sid ServiceID, s network.Suite) ([]*Server, *Roster, Service) {
-	servers := l.GenServers(nbr)
+func (l *LocalTest) MakeHELS(n int, sid ServiceID, s network.Suite) ([]*Server, *Roster, Service) {
+	servers := l.GenServers(n)
 	el := l.GenRosterFromHost(servers...)
 	return servers, el, l.Services[servers[0].ServerIdentity.ID][sid]
 }

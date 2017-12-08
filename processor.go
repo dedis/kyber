@@ -109,6 +109,11 @@ func (p *ServiceProcessor) NewProtocol(tn *TreeNodeInstance, conf *GenericConfig
 	return nil, nil
 }
 
+// Close is a stub for services that don't need to reclaim resources, e.g. database handler
+func (p *ServiceProcessor) Close() error {
+	return p.CloseDatabase()
+}
+
 // ProcessClientRequest takes a request from a client, calculates the reply
 // and sends it back. It uses the path to find the appropriate handler-
 // function. It implements the Server interface.

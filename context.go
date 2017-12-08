@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"sync"
 
+	bolt "github.com/coreos/bbolt"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 )
@@ -20,6 +21,7 @@ type Context struct {
 	server    *Server
 	serviceID ServiceID
 	manager   *serviceManager
+	database  *bolt.DB
 	network.Dispatcher
 }
 
@@ -31,6 +33,7 @@ func newContext(c *Server, o *Overlay, servID ServiceID, manager *serviceManager
 		server:     c,
 		serviceID:  servID,
 		manager:    manager,
+		database:   nil,
 		Dispatcher: network.NewBlockingDispatcher(),
 	}
 }
@@ -200,9 +203,50 @@ func (c *Context) DataAvailable(id string) bool {
 // The file is chosen as "#{ServerIdentity.Public}_#{ServiceName}_#{id}.bin",
 // so no service and no server share the same file.
 func (c *Context) absFilename(id string) string {
+	return c.absFilenameWithSuffix(id, ".bin")
+}
+
+func (c *Context) absDbFilename() string {
+	return c.absFilenameWithSuffix("bolt", ".db")
+}
+
+func (c *Context) absFilenameWithSuffix(id string, suffix string) string {
 	pub, _ := c.ServerIdentity().Public.MarshalBinary()
-	return path.Join(getContextDataPath(), fmt.Sprintf("%x_%s_%s.bin", pub,
-		ServiceFactory.Name(c.ServiceID()), id))
+	return path.Join(getContextDataPath(), fmt.Sprintf("%x_%s_%s%s", pub,
+		ServiceFactory.Name(c.ServiceID()), id, suffix))
+}
+
+// NewDatabase opens the bbolt database in the file
+// "#{ServerIdentity.Public}_#{ServiceName}_bolt.db.
+// If it does not exist, it creates it.
+// The caller is responsible for creating buckets for use in the database.
+func (c *Context) NewDatabase() (*bolt.DB, error) {
+	db, err := bolt.Open(c.absDbFilename(), 0600, nil)
+	if err != nil {
+		return nil, err
+	}
+	c.database = db
+	return c.database, nil
+}
+
+// CloseDatabase closes the database if it's open.
+// It will also delete the database file if we're in test mode.
+func (c *Context) CloseDatabase() error {
+	if c.database != nil {
+		err := c.database.Close()
+		if err != nil {
+			return err
+		}
+
+		// delete the database if we're in a test
+		if getContextDataPath() == "" {
+			err = os.Remove(c.absDbFilename())
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // Returns the path to the file for storage/retrieval of the service-state.

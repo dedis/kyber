@@ -1,20 +1,14 @@
 package onet
 
 import (
-	"runtime"
-	"sync"
-
-	"strings"
-
-	"sort"
-
 	"errors"
-
-	"strconv"
-
-	"time"
-
 	"fmt"
+	"runtime"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/onet/log"
@@ -104,10 +98,18 @@ func (c *Server) GetStatus() *Status {
 func (c *Server) Close() error {
 	c.websocket.stop()
 	c.overlay.Close()
+
+	for _, s := range c.serviceManager.services {
+		err := s.Close()
+		// continue even if there's error
+		if err != nil {
+			log.Error("Failed to close server with error: " + err.Error())
+		}
+	}
+
 	err := c.Router.Stop()
 	log.Lvl3("Host Close ", c.ServerIdentity.Address, "listening?", c.Router.Listening())
 	return err
-
 }
 
 // Address returns the address used by the Router.
