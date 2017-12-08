@@ -144,14 +144,14 @@ func write64(wc io.WriteCloser, data ...kyber.Marshaling) error {
 	return wc.Close()
 }
 
-func getHex(r io.Reader, len int) ([]byte, error) {
-	bufHex := make([]byte, len*2)
-	bufByte := make([]byte, len)
-	l, err := r.Read(bufHex)
+func getHex(r io.Reader, l int) ([]byte, error) {
+	bufHex := make([]byte, l*2)
+	bufByte := make([]byte, l)
+	n, err := r.Read(bufHex)
 	if err != nil {
 		return nil, err
 	}
-	if l < len {
+	if n < len(bufHex) {
 		return nil, errors.New("didn't get enough bytes from stream")
 	}
 	_, err = hex.Decode(bufByte, bufHex)
