@@ -486,6 +486,10 @@ func (s *simpleService) Process(env *network.Envelope) {
 	return
 }
 
+func (s *simpleService) Close() error {
+	return s.ctx.CloseDatabase()
+}
+
 type DummyProtocol struct {
 	*TreeNodeInstance
 	link   chan bool
@@ -580,6 +584,10 @@ func (ds *DummyService) Process(env *network.Envelope) {
 	ds.link <- true
 }
 
+func (ds *DummyService) Close() error {
+	return ds.c.CloseDatabase()
+}
+
 type ServiceMessages struct {
 	*ServiceProcessor
 	GotResponse chan bool
@@ -620,6 +628,10 @@ func (ds *dummyService2) NewProtocol(tn *TreeNodeInstance, conf *GenericConfig) 
 
 func (ds *dummyService2) Process(env *network.Envelope) {
 	panic("should not be called")
+}
+
+func (ds *dummyService2) Close() error {
+	return ds.CloseDatabase()
 }
 
 func (ds *dummyService2) launchProto(t *Tree, config bool) {

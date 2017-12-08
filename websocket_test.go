@@ -207,3 +207,7 @@ func (ds *DummyService3) NewProtocol(tn *TreeNodeInstance, conf *GenericConfig) 
 
 func (ds *DummyService3) Process(env *network.Envelope) {
 }
+
+func (ds *DummyService3) Close() error {
+	return nil
+}
