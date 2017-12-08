@@ -100,10 +100,12 @@ func (c *Server) Close() error {
 	c.overlay.Close()
 
 	for _, s := range c.serviceManager.services {
-		err := s.Close()
-		// continue even if there's error
-		if err != nil {
-			log.Error("Failed to close server with error: " + err.Error())
+		if s != nil {
+			err := s.Close()
+			// continue even if there's error
+			if err != nil {
+				log.Error("Failed to close server with error: " + err.Error())
+			}
 		}
 	}
 

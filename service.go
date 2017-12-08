@@ -33,7 +33,9 @@ type Service interface {
 	// sent back to the client. The returned ClientError is either nil
 	// or any errorCode between 4100 and 4999.
 	ProcessClientRequest(handler string, msg []byte) (reply []byte, err ClientError)
-	// Close is called...
+	// Close is only called by Server.Close() by default.
+	// The default behaviour is to close the database handler in Context if it exsits.
+	// Additional resources that must be freed should be implemented here.
 	Close() error
 	// Processor makes a Service being able to handle any kind of packets
 	// directly from the network. It is used for inter service communications,
