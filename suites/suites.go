@@ -16,6 +16,7 @@ import (
 
 // Suite is the sum of all suites mix-ins in Kyber.
 type Suite interface {
+	kyber.Encoding
 	kyber.Group
 	kyber.HashFactory
 	kyber.XOFFactory
