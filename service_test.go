@@ -487,9 +487,6 @@ func (s *simpleService) Process(env *network.Envelope) {
 }
 
 func (s *simpleService) Close() error {
-	if s.ctx != nil {
-		return s.ctx.CloseDatabase()
-	}
 	return nil
 }
 

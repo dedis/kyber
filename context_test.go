@@ -139,7 +139,6 @@ func TestContext_Database(t *testing.T) {
 	c := createContext()
 
 	require.Nil(t, c.database)
-	require.Nil(t, c.CloseDatabase())
 
 	db, err := c.NewDatabase()
 	require.Nil(t, err)
