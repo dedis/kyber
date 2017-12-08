@@ -585,7 +585,10 @@ func (ds *DummyService) Process(env *network.Envelope) {
 }
 
 func (ds *DummyService) Close() error {
-	return ds.c.CloseDatabase()
+	if ds.c != nil {
+		return ds.c.CloseDatabase()
+	}
+	return nil
 }
 
 type ServiceMessages struct {
