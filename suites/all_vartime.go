@@ -1,6 +1,6 @@
 // +build vartime
 
-package group
+package suites
 
 import (
 	"github.com/dedis/kyber/group/curve25519"
