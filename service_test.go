@@ -487,7 +487,10 @@ func (s *simpleService) Process(env *network.Envelope) {
 }
 
 func (s *simpleService) Close() error {
-	return s.ctx.CloseDatabase()
+	if s.ctx != nil {
+		return s.ctx.CloseDatabase()
+	}
+	return nil
 }
 
 type DummyProtocol struct {
@@ -585,9 +588,6 @@ func (ds *DummyService) Process(env *network.Envelope) {
 }
 
 func (ds *DummyService) Close() error {
-	if ds.c != nil {
-		return ds.c.CloseDatabase()
-	}
 	return nil
 }
 
@@ -634,7 +634,7 @@ func (ds *dummyService2) Process(env *network.Envelope) {
 }
 
 func (ds *dummyService2) Close() error {
-	return ds.CloseDatabase()
+	return nil
 }
 
 func (ds *dummyService2) launchProto(t *Tree, config bool) {

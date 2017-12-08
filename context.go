@@ -232,18 +232,16 @@ func (c *Context) NewDatabase() (*bolt.DB, error) {
 // CloseDatabase closes the database if it's open.
 // It will also delete the database file if we're in test mode.
 func (c *Context) CloseDatabase() error {
-	if c.database != nil {
-		err := c.database.Close()
+	err := c.database.Close()
+	if err != nil {
+		return err
+	}
+
+	// delete the database if we're in a test
+	if getContextDataPath() == "" {
+		err = os.Remove(c.absDbFilename())
 		if err != nil {
 			return err
-		}
-
-		// delete the database if we're in a test
-		if getContextDataPath() == "" {
-			err = os.Remove(c.absDbFilename())
-			if err != nil {
-				return err
-			}
 		}
 	}
 	return nil
