@@ -98,6 +98,16 @@ func TestSimpleCTScalar(t *testing.T) {
 	testSimple(t, newSimpleCTScalar)
 }
 
+func TestString(t *testing.T) {
+	// Create a scalar that would trigger #262.
+	s := new(scalar)
+	s.SetInt64(0x100)
+	s.Add(s, one)
+	if s.String() != "0101000000000000000000000000000000000000000000000000000000000000" {
+		t.Fatal("unexepcted result from String():", s.String())
+	}
+}
+
 func testSimple(t *testing.T, new func() kyber.Scalar) {
 	s1 := new()
 	s2 := new()
