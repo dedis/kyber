@@ -21,7 +21,6 @@ type Context struct {
 	server    *Server
 	serviceID ServiceID
 	manager   *serviceManager
-	database  *bolt.DB
 	network.Dispatcher
 }
 
@@ -33,7 +32,6 @@ func newContext(c *Server, o *Overlay, servID ServiceID, manager *serviceManager
 		server:     c,
 		serviceID:  servID,
 		manager:    manager,
-		database:   nil,
 		Dispatcher: network.NewBlockingDispatcher(),
 	}
 }
@@ -216,39 +214,10 @@ func (c *Context) absFilenameWithSuffix(id string, suffix string) string {
 		ServiceFactory.Name(c.ServiceID()), id, suffix))
 }
 
-// NewDatabase opens the bbolt database in the file
-// "#{ServerIdentity.Public}_#{ServiceName}_bolt.db if it does not already exist.
-// If it does not exist, it creates it.
-// The caller is responsible for creating buckets for use in the database.
-func (c *Context) NewDatabase() (*bolt.DB, error) {
-	if c.database != nil {
-		return c.database, nil
-	}
-	db, err := bolt.Open(c.absDbFilename(), 0600, nil)
-	if err != nil {
-		return nil, err
-	}
-	c.database = db
-	return c.database, nil
-}
-
-// CloseDatabase closes the database if it's open.
-// It will also delete the database file if we're in test mode.
-func (c *Context) CloseDatabase() error {
-	err := c.database.Close()
-	c.database = nil
-	if err != nil {
-		return err
-	}
-
-	// delete the database if we're in a test
-	if getContextDataPath() == "" {
-		err = os.Remove(c.absDbFilename())
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+// GetDatabaseAndBucket returns the DB handler and the bucket name of the service
+func (c *Context) GetDatabaseAndBucket() (*bolt.DB, string) {
+	bucketName := ServiceFactory.Name(c.ServiceID())
+	return c.manager.db, bucketName
 }
 
 // Returns the path to the file for storage/retrieval of the service-state.

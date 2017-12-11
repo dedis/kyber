@@ -3,9 +3,11 @@ package onet
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	"sync"
 
+	bolt "github.com/coreos/bbolt"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 	"github.com/satori/go.uuid"
@@ -33,10 +35,6 @@ type Service interface {
 	// sent back to the client. The returned ClientError is either nil
 	// or any errorCode between 4100 and 4999.
 	ProcessClientRequest(handler string, msg []byte) (reply []byte, err ClientError)
-	// Close is only called by Server.Close() by default.
-	// The default behaviour is to close the database handler in Context if it exsits.
-	// Additional resources that must be freed should be implemented here.
-	Close() error
 	// Processor makes a Service being able to handle any kind of packets
 	// directly from the network. It is used for inter service communications,
 	// which are mostly single packets with no or little interactions needed. If
@@ -205,6 +203,8 @@ type serviceManager struct {
 	services map[ServiceID]Service
 	// the onet host
 	server *Server
+	// a bbolt database for all services
+	db *bolt.DB
 	// the dispatcher can take registration of Processors
 	network.Dispatcher
 }
@@ -213,12 +213,23 @@ const configFolder = "config"
 
 // newServiceManager will create a serviceStore out of all the registered Service
 func newServiceManager(c *Server, o *Overlay) *serviceManager {
+	db, err := newDatabase(c.dbFileName())
+	if err != nil {
+		log.Panic("Failed to create new database: " + err.Error())
+	}
+
 	services := make(map[ServiceID]Service)
-	s := &serviceManager{services, c, network.NewRoutineDispatcher()}
+	s := &serviceManager{services, c, db, network.NewRoutineDispatcher()}
 	ids := ServiceFactory.registeredServiceIDs()
 	for _, id := range ids {
 		name := ServiceFactory.Name(id)
 		log.Lvl3("Starting service", name)
+
+		err = createBucketForService(s.db, name)
+		if err != nil {
+			log.Panic("Failed to create bucket: " + err.Error())
+		}
+
 		cont := newContext(c, o, id, s)
 		s, err := ServiceFactory.start(name, cont)
 		if err != nil {
@@ -232,11 +243,45 @@ func newServiceManager(c *Server, o *Overlay) *serviceManager {
 	return s
 }
 
+func newDatabase(path string) (*bolt.DB, error) {
+	db, err := bolt.Open(path, 0600, nil)
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
+}
+
+func createBucketForService(db *bolt.DB, bucketName string) error {
+	return db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte(bucketName))
+		return err
+	})
+}
+
 // Process implements the Processor interface: service manager will relay
 // messages to the right Service.
 func (s *serviceManager) Process(env *network.Envelope) {
 	// will launch a go routine for that message
 	s.Dispatch(env)
+}
+
+// CloseDatabase closes the database
+func (s *serviceManager) closeDatabase() error {
+	if s.db != nil {
+		err := s.db.Close()
+		if err != nil {
+			log.Error("Close database failed with: " + err.Error())
+		}
+		s.db = nil
+	}
+
+	if getContextDataPath() == "" {
+		err := os.Remove(s.server.dbFileName())
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // registerProcessor the processor to the service manager and tells the host to dispatch

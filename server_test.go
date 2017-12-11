@@ -3,12 +3,14 @@ package onet
 import (
 	"testing"
 
+	"github.com/coreos/bbolt"
 	"github.com/dedis/onet/log"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 )
 
 func TestServer_ProtocolRegisterName(t *testing.T) {
+	setContextDataPath("")
 	c := NewLocalServer(0, tSuite)
 	defer c.Close()
 	plen := len(c.protocols.instantiators)
@@ -25,10 +27,26 @@ func TestServer_ProtocolRegisterName(t *testing.T) {
 }
 
 func TestServer_GetService(t *testing.T) {
+	setContextDataPath("")
 	c := NewLocalServer(0, tSuite)
 	defer c.Close()
 	s := c.Service("nil")
 	require.Nil(t, s)
+}
+
+func TestServer_Database(t *testing.T) {
+	setContextDataPath("")
+	c := NewLocalServer(0, tSuite)
+	require.NotNil(t, c.serviceManager.db)
+
+	for _, s := range c.serviceManager.availableServices() {
+		c.serviceManager.db.Update(func(tx *bolt.Tx) error {
+			b := tx.Bucket([]byte(s))
+			require.NotNil(t, b)
+			return nil
+		})
+	}
+	c.Close()
 }
 
 type ServerProtocol struct {

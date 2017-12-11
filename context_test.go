@@ -133,20 +133,3 @@ func createContext() *Context {
 	}
 	return newContext(cn, nil, NilServiceID, nil)
 }
-
-func TestContext_Database(t *testing.T) {
-	setContextDataPath("")
-	c := createContext()
-
-	require.Nil(t, c.database)
-
-	db, err := c.NewDatabase()
-	require.Nil(t, err)
-	require.NotNil(t, db)
-
-	db2, err := c.NewDatabase()
-	require.Nil(t, err)
-	require.Equal(t, db, db2)
-
-	require.Nil(t, c.CloseDatabase())
-}

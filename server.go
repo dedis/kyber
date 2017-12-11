@@ -3,6 +3,7 @@ package onet
 import (
 	"errors"
 	"fmt"
+	"path"
 	"runtime"
 	"sort"
 	"strconv"
@@ -98,18 +99,11 @@ func (c *Server) GetStatus() *Status {
 func (c *Server) Close() error {
 	c.websocket.stop()
 	c.overlay.Close()
-
-	for _, s := range c.serviceManager.services {
-		if s != nil {
-			err := s.Close()
-			// continue even if there's error
-			if err != nil {
-				log.Error("Failed to close server with error: " + err.Error())
-			}
-		}
+	err := c.serviceManager.closeDatabase()
+	if err != nil {
+		log.Lvl3("Error closing database: " + err.Error())
 	}
-
-	err := c.Router.Stop()
+	err = c.Router.Stop()
 	log.Lvl3("Host Close ", c.ServerIdentity.Address, "listening?", c.Router.Listening())
 	return err
 }
@@ -150,4 +144,9 @@ func (c *Server) protocolInstantiate(protoID ProtocolID, tni *TreeNodeInstance) 
 func (c *Server) Start() {
 	go c.Router.Start()
 	c.websocket.start()
+}
+
+func (c *Server) dbFileName() string {
+	pub, _ := c.ServerIdentity.Public.MarshalBinary()
+	return path.Join(getContextDataPath(), fmt.Sprintf("%x.db", pub))
 }
