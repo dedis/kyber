@@ -2236,9 +2236,8 @@ func scReduce(out *[32]byte, s *[64]byte) {
 // dst and src may be the same slice but otherwise must not overlap.
 func reverse(dst, src []byte) []byte {
 	l := len(dst)
-	for i, j := 0, l-1; i < (l+1)/2; {
+	for i, j := 0, l-1; i < (l+1)/2; i++ {
 		dst[i], dst[j] = src[j], src[i]
-		i++
 		j--
 	}
 	return dst
