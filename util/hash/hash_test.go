@@ -11,7 +11,6 @@ import (
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/util/hash"
-	"github.com/dedis/kyber/util/random"
 	"github.com/stretchr/testify/require"
 )
 
@@ -66,10 +65,10 @@ func TestFile(t *testing.T) {
 }
 
 func TestStructures(t *testing.T) {
-	x := suite.Scalar().Pick(random.Stream)
-	y := suite.Scalar().Pick(random.Stream)
-	X := suite.Point().Pick(random.Stream)
-	Y := suite.Point().Pick(random.Stream)
+	x := suite.Scalar().Pick(suite.RandomStream())
+	y := suite.Scalar().Pick(suite.RandomStream())
+	X := suite.Point().Pick(suite.RandomStream())
+	Y := suite.Point().Pick(suite.RandomStream())
 
 	h1, err := hash.Structures(suite.Hash(), x, y)
 	require.Nil(t, err)

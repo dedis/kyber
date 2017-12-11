@@ -20,10 +20,8 @@ sign/anon
 sign/cosi
 sign/eddsa
 sign/schnorr
-util/bytes
 util/encoding
 util/hash
-util/ints
 util/key
 util/random
 util/subtle

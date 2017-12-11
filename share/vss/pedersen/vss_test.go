@@ -7,14 +7,14 @@ import (
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/sign/schnorr"
-	"github.com/dedis/kyber/util/random"
+	"github.com/dedis/kyber/xof/blake"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var suite = edwards25519.NewBlakeSHA256Ed25519()
+var rng = blake.New(nil)
 
-var reader = random.Stream
+var suite = edwards25519.NewBlakeSHA256Ed25519WithRand(rng)
 
 var nbVerifiers = 7
 
@@ -83,11 +83,11 @@ func TestVSSWhole(t *testing.T) {
 
 func TestVSSDealerNew(t *testing.T) {
 	goodT := MinimumT(nbVerifiers)
-	_, err := NewDealer(suite, dealerSec, secret, verifiersPub, reader, goodT)
+	_, err := NewDealer(suite, dealerSec, secret, verifiersPub, goodT)
 	assert.NoError(t, err)
 
 	for _, badT := range []int{0, 1, -4} {
-		_, err = NewDealer(suite, dealerSec, secret, verifiersPub, reader, badT)
+		_, err = NewDealer(suite, dealerSec, secret, verifiersPub, badT)
 		assert.Error(t, err)
 	}
 }
@@ -98,7 +98,7 @@ func TestVSSVerifierNew(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, randIdx, v.index)
 
-	wrongKey := suite.Scalar().Pick(reader)
+	wrongKey := suite.Scalar().Pick(rng)
 	_, err = NewVerifier(suite, wrongKey, dealerPub, verifiersPub)
 	assert.Error(t, err)
 }
@@ -265,7 +265,7 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 
 	// wrong commitments
 	goodCommit := d.Commitments[0]
-	d.Commitments[0] = suite.Point().Pick(random.Stream)
+	d.Commitments[0] = suite.Point().Pick(rng)
 	encD, _ = dealer.EncryptedDeal(0)
 	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.Error(t, err)
@@ -280,7 +280,7 @@ func TestVSSVerifierReceiveDeal(t *testing.T) {
 
 	// approval already existing from same origin, should never happen right ?
 	v.aggregator.responses[uint32(v.index)] = &Response{Status: StatusApproval}
-	d.Commitments[0] = suite.Point().Pick(random.Stream)
+	d.Commitments[0] = suite.Point().Pick(rng)
 	resp, err = v.ProcessEncryptedDeal(encD)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
@@ -301,7 +301,7 @@ func TestVSSAggregatorVerifyJustification(t *testing.T) {
 	v := verifiers[0]
 	d := dealer.deals[0]
 
-	wrongV := suite.Scalar().Pick(random.Stream)
+	wrongV := suite.Scalar().Pick(rng)
 	goodV := d.SecShare.V
 	d.SecShare.V = wrongV
 	encD, _ := dealer.EncryptedDeal(0)
@@ -554,7 +554,7 @@ func TestVSSAggregatorAddComplaint(t *testing.T) {
 }
 
 func TestVSSSessionID(t *testing.T) {
-	dealer, _ := NewDealer(suite, dealerSec, secret, verifiersPub, reader, vssThreshold)
+	dealer, _ := NewDealer(suite, dealerSec, secret, verifiersPub, vssThreshold)
 	commitments := dealer.deals[0].Commitments
 	sid, err := sessionID(suite, dealerPub, verifiersPub, commitments, dealer.t)
 	assert.NoError(t, err)
@@ -582,7 +582,7 @@ func TestVSSFindPub(t *testing.T) {
 
 func TestVSSDHExchange(t *testing.T) {
 	pub := suite.Point().Base()
-	priv := suite.Scalar().Pick(random.Stream)
+	priv := suite.Scalar().Pick(rng)
 	point := dhExchange(suite, priv, pub)
 	assert.Equal(t, pub.Mul(priv, nil).String(), point.String())
 }
@@ -593,7 +593,7 @@ func TestVSSContext(t *testing.T) {
 }
 
 func genPair() (kyber.Scalar, kyber.Point) {
-	secret := suite.Scalar().Pick(reader)
+	secret := suite.Scalar().Pick(suite.RandomStream())
 	public := suite.Point().Mul(secret, nil)
 	return secret, public
 }
@@ -608,7 +608,7 @@ func genCommits(n int) ([]kyber.Scalar, []kyber.Point) {
 }
 
 func genDealer() *Dealer {
-	d, _ := NewDealer(suite, dealerSec, secret, verifiersPub, reader, vssThreshold)
+	d, _ := NewDealer(suite, dealerSec, secret, verifiersPub, vssThreshold)
 	return d
 }
 

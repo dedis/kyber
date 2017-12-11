@@ -18,15 +18,20 @@ import (
 	"fmt"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/random"
 )
+
+type suite interface {
+	kyber.Group
+	kyber.Random
+}
 
 // Sign creates a Sign signature from a msg and a private key. This
 // signature can be verified with VerifySchnorr. It's also a valid EdDSA
 // signature when using the edwards25519 Group.
-func Sign(g kyber.Group, private kyber.Scalar, msg []byte) ([]byte, error) {
+func Sign(s suite, private kyber.Scalar, msg []byte) ([]byte, error) {
+	var g kyber.Group = s
 	// create random secret k and public point commitment R
-	k := g.Scalar().Pick(random.Stream)
+	k := g.Scalar().Pick(s.RandomStream())
 	R := g.Point().Mul(k, nil)
 
 	// create hash(public || R || message)
@@ -38,14 +43,14 @@ func Sign(g kyber.Group, private kyber.Scalar, msg []byte) ([]byte, error) {
 
 	// compute response s = k + x*h
 	xh := g.Scalar().Mul(private, h)
-	s := g.Scalar().Add(k, xh)
+	S := g.Scalar().Add(k, xh)
 
 	// return R || s
 	var b bytes.Buffer
 	if _, err := R.MarshalTo(&b); err != nil {
 		return nil, err
 	}
-	if _, err := s.MarshalTo(&b); err != nil {
+	if _, err := S.MarshalTo(&b); err != nil {
 		return nil, err
 	}
 	return b.Bytes(), nil

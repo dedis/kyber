@@ -1,8 +1,10 @@
 package examples
 
 import (
+	"fmt"
+
 	"github.com/dedis/kyber/group/edwards25519"
-	"github.com/dedis/kyber/util/random"
+	"github.com/dedis/kyber/xof/blake"
 )
 
 /*
@@ -13,17 +15,20 @@ Any other suitable elliptic curve or other cryptographic group may be used
 simply by changing the first line that picks the suite.
 */
 func Example_diffieHellman() {
+	// A pseudo RNG which makes this code repeatable for testing.
+	rng := blake.New(nil)
 
 	// Crypto setup: NIST-standardized P256 curve with AES-128 and SHA-256
-	suite := edwards25519.NewBlakeSHA256Ed25519()
+	// For production code, simply use edwards25519.NewBlakeSHA256Ed25519().
+	suite := edwards25519.NewBlakeSHA256Ed25519WithRand(rng)
 
 	// Alice's public/private keypair
-	a := suite.Scalar().Pick(random.Stream) // Alice's private key
-	A := suite.Point().Mul(a, nil)          // Alice's public key
+	a := suite.Scalar().Pick(rng)  // Alice's private key
+	A := suite.Point().Mul(a, nil) // Alice's public key
 
 	// Bob's public/private keypair
-	b := suite.Scalar().Pick(random.Stream) // Alice's private key
-	B := suite.Point().Mul(b, nil)          // Alice's public key
+	b := suite.Scalar().Pick(rng)  // Alice's private key
+	B := suite.Point().Mul(b, nil) // Alice's public key
 
 	// Assume Alice and Bob have securely obtained each other's public keys.
 
@@ -37,7 +42,8 @@ func Example_diffieHellman() {
 	if !SA.Equal(SB) {
 		panic("Diffie-Hellman key exchange didn't work")
 	}
-	println("Shared secret: " + SA.String())
+	fmt.Println("Shared secret: " + SA.String())
 
 	// Output:
+	// Shared secret: 80ea238cacfdab279626970bba18c69083c7751865dec4c6434bff4351282847
 }

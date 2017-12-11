@@ -3,7 +3,6 @@
 package dkg
 
 import (
-	"crypto/cipher"
 	"errors"
 
 	"github.com/dedis/kyber"
@@ -85,11 +84,11 @@ type DistKeyGenerator struct {
 	verifiers map[uint32]*vss.Verifier
 }
 
-// NewDistKeyGenerator returns a DistKeyGenerator out of the suite, the longterm
-// secret key, the list of participants, the random stream to use and the
-// threshold t parameter. It returns an error if the secret key's commitment
-// can't be found in the list of participants.
-func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, r cipher.Stream, t int) (*DistKeyGenerator, error) {
+// NewDistKeyGenerator returns a DistKeyGenerator out of the suite,
+// the longterm secret key, the list of participants, and the
+// threshold t parameter. It returns an error if the secret key's
+// commitment can't be found in the list of participants.
+func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
 	pub := suite.Point().Mul(longterm, nil)
 	// find our index
 	var found bool
@@ -106,8 +105,8 @@ func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kybe
 	}
 	var err error
 	// generate our dealer / deal
-	ownSec := suite.Scalar().Pick(r)
-	dealer, err := vss.NewDealer(suite, longterm, ownSec, participants, r, t)
+	ownSec := suite.Scalar().Pick(suite.RandomStream())
+	dealer, err := vss.NewDealer(suite, longterm, ownSec, participants, t)
 	if err != nil {
 		return nil, err
 	}

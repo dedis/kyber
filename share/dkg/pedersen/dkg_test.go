@@ -8,7 +8,6 @@ import (
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/kyber/share"
 	vss "github.com/dedis/kyber/share/vss/pedersen"
-	"github.com/dedis/kyber/util/random"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -35,12 +34,12 @@ func init() {
 
 func TestDKGNewDistKeyGenerator(t *testing.T) {
 	long := partSec[0]
-	dkg, err := NewDistKeyGenerator(suite, long, partPubs, random.Stream, nbParticipants/2+1)
+	dkg, err := NewDistKeyGenerator(suite, long, partPubs, nbParticipants/2+1)
 	assert.Nil(t, err)
 	assert.NotNil(t, dkg.dealer)
 
 	sec, _ := genPair()
-	_, err = NewDistKeyGenerator(suite, sec, partPubs, random.Stream, nbParticipants/2+1)
+	_, err = NewDistKeyGenerator(suite, sec, partPubs, nbParticipants/2+1)
 	assert.Error(t, err)
 
 }
@@ -573,7 +572,7 @@ func TestDistKeyShare(t *testing.T) {
 func dkgGen() []*DistKeyGenerator {
 	dkgs := make([]*DistKeyGenerator, nbParticipants)
 	for i := 0; i < nbParticipants; i++ {
-		dkg, err := NewDistKeyGenerator(suite, partSec[i], partPubs, random.Stream, nbParticipants/2+1)
+		dkg, err := NewDistKeyGenerator(suite, partSec[i], partPubs, nbParticipants/2+1)
 		if err != nil {
 			panic(err)
 		}
@@ -583,7 +582,7 @@ func dkgGen() []*DistKeyGenerator {
 }
 
 func genPair() (kyber.Scalar, kyber.Point) {
-	sc := suite.Scalar().Pick(random.Stream)
+	sc := suite.Scalar().Pick(suite.RandomStream())
 	return sc, suite.Point().Mul(sc, nil)
 }
 
