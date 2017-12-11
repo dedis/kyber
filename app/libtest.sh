@@ -224,11 +224,11 @@ package main
 
 import (
   "github.com/dedis/onet/app"
-  "github.com/dedis/kyber/group"
+  "github.com/dedis/kyber/suites"
 )
 
 func main(){
-	app.Server(group.MustSuite("Ed25519"))
+	app.Server(suites.MustFind("Ed25519"))
 }
 EOF
     build $cotdir
