@@ -57,7 +57,8 @@ type Monitor struct {
 	// send the name of the connection when finishd
 	done chan string
 
-	SinkPort int
+	SinkPort     uint16
+	sinkPortChan chan uint16
 }
 
 // NewMonitor returns a new monitor given the stats
@@ -69,6 +70,7 @@ func NewMonitor(stats *Stats) *Monitor {
 		measures:     make(chan *singleMeasure),
 		done:         make(chan string),
 		listenerLock: new(sync.Mutex),
+		sinkPortChan: make(chan uint16, 1),
 	}
 }
 
@@ -76,9 +78,15 @@ func NewMonitor(stats *Stats) *Monitor {
 // It needs the stats struct pointer to update when measures come
 // Return an error if something went wrong during the connection setup
 func (m *Monitor) Listen() error {
-	ln, err := net.Listen("tcp", Sink+":"+strconv.Itoa(m.SinkPort))
+	ln, err := net.Listen("tcp", Sink+":"+strconv.Itoa(int(m.SinkPort)))
 	if err != nil {
 		return fmt.Errorf("Error while monitor is binding address: %v", err)
+	}
+	if m.SinkPort == 0 {
+		_, p, _ := net.SplitHostPort(ln.Addr().String())
+		var p2 uint16
+		fmt.Sscanf(p, "%d", &p2)
+		m.sinkPortChan <- p2
 	}
 	m.listenerLock.Lock()
 	m.listener = ln

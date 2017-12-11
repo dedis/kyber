@@ -16,7 +16,10 @@ import (
 /// Encoding part ///
 
 // Suite functionalities used globally by the network library.
-type Suite kyber.Group
+type Suite interface {
+	kyber.Group
+	kyber.Random
+}
 
 // Message is a type for any message that the user wants to send
 type Message interface{}

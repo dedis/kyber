@@ -82,7 +82,7 @@ func setupMonitor(t *testing.T) (*Monitor, *Stats) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Then measure
-	err := ConnectSink("localhost:" + strconv.Itoa(mon.SinkPort))
+	err := ConnectSink("localhost:" + strconv.Itoa(int(mon.SinkPort)))
 	if err != nil {
 		t.Fatal(fmt.Sprintf("Error starting monitor: %s", err))
 	}

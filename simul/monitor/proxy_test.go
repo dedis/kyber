@@ -1,7 +1,7 @@
 package monitor
 
 import (
-	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -15,41 +15,47 @@ func TestProxy(t *testing.T) {
 	fresh := stat.String()
 	// First set up monitor listening
 	monitor := NewMonitor(stat)
-	monitor.SinkPort = 8000
+	monitor.SinkPort = 0
 	done := make(chan bool, 2)
 	go func() {
-		monitor.Listen()
+		// See dedis/onet#262 for ideas on a proper fix for all this hard-coding of ports.
+		err := monitor.Listen()
+		if err != nil {
+			panic("monitor.Listen failed")
+		}
 		done <- true
 	}()
 
-	// Then setup proxy
-	// change port so the proxy does not listen to the same
-	// than the original monitor
+	sp := <-monitor.sinkPortChan
+	prox, err := NewProxy(sp, "localhost", 0)
 
-	// proxy listens to 0.0.0.0:8000 & redirects to
-	// localhost:10000 (DefaultSinkPort)
+	if err != nil {
+		t.Fatal("new proxy", err)
+	}
 	go func() {
-		time.Sleep(100 * time.Millisecond)
-		Proxy("localhost:" + strconv.Itoa(DefaultSinkPort))
+		err := prox.Run()
+		if err != nil && !strings.Contains(err.Error(), "use of closed") {
+			panic("Proxy failed: " + err.Error())
+		}
 		done <- true
 	}()
 
 	time.Sleep(100 * time.Millisecond)
-	// Then measure
-	proxyAddr := "localhost:" + strconv.Itoa(monitor.SinkPort)
-	err := ConnectSink(proxyAddr)
+	err = ConnectSink(prox.Listener.Addr().String())
 	if err != nil {
 		t.Errorf("Can not connect to proxy : %s", err)
 		return
 	}
+	println("here")
 
 	meas := NewTimeMeasure("setup")
 	meas.Record()
 	time.Sleep(100 * time.Millisecond)
 	meas.Record()
 
+	prox.Listener.Close()
+	prox.Stop()
 	EndAndCleanup()
-	close(proxyDone)
 
 	select {
 	case <-done:

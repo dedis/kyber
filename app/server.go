@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group"
+	"github.com/dedis/kyber/suites"
 	"github.com/dedis/kyber/util/encoding"
 	"github.com/dedis/kyber/util/key"
 	"github.com/dedis/onet"
@@ -26,9 +26,6 @@ import (
 	// CoSi-protocol is not part of the cothority.
 	// For the moment, the server only serves CoSi requests
 )
-
-// Suite wraps the functionalities needed by this package
-type Suite kyber.Group
 
 // DefaultServerConfig is the default server configuration file-name.
 const DefaultServerConfig = "private.toml"
@@ -137,7 +134,7 @@ func InteractiveConfig(binaryName string) {
 	}
 
 	// create the keys
-	suite, _ := group.Suite("Ed25519")
+	suite := suites.MustFind("Ed25519")
 	privStr, pubStr := createKeyPair(suite)
 	conf := &CothorityConfig{
 		Public:  pubStr,
@@ -205,18 +202,14 @@ func checkOverwrite(file string) bool {
 }
 
 // createKeyPair returns the private and public key in hexadecimal representation.
-func createKeyPair(suite Suite) (string, string) {
+func createKeyPair(suite network.Suite) (string, string) {
 	log.Info("Creating ed25519 private and public keys.")
 	kp := key.NewKeyPair(suite)
 	privStr, err := encoding.ScalarToStringHex(suite, kp.Secret)
 	if err != nil {
 		log.Fatal("Error formating private key to hexadecimal. Abort.")
 	}
-	var point kyber.Point
-	// use the transformation for EdDSA signatures
-	//point = cosi.Ed25519Public(Suite, kp.Secret)
-	point = kp.Public
-	pubStr, err := encoding.PointToStringHex(suite, point)
+	pubStr, err := encoding.PointToStringHex(suite, kp.Public)
 	if err != nil {
 		log.Fatal("Could not parse public key. Abort.")
 	}
@@ -381,7 +374,7 @@ func checkAvailableMemory() {
 
 // RunServer starts a cothority server with the given config file name. It can
 // be used by different apps (like CoSi, for example)
-func RunServer(configFilename string, suite Suite) {
+func RunServer(configFilename string, suite network.Suite) {
 	if _, err := os.Stat(configFilename); os.IsNotExist(err) {
 		log.Fatalf("[-] Configuration file does not exists. %s", configFilename)
 	}

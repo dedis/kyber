@@ -3,17 +3,12 @@ package onet
 import (
 	"testing"
 
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group"
+	"github.com/dedis/kyber/suites"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 )
 
-var tSuite kyber.Group
-
-func init() {
-	tSuite, _ = group.Suite("Ed25519")
-}
+var tSuite = suites.MustFind("Ed25519")
 
 const clientServiceName = "ClientService"
 

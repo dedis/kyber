@@ -10,7 +10,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/group"
+	"github.com/dedis/kyber/suites"
 	"github.com/dedis/kyber/util/key"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
@@ -78,10 +78,7 @@ type SimulationConfigFile struct {
 // corresponding host 'ca'.
 func LoadSimulationConfig(dir, ca string) ([]*SimulationConfig, error) {
 	// TODO: Figure this out from the incoming simulation file somehow
-	suite, err := group.Suite("Ed25519")
-	if err != nil {
-		panic("should not happen")
-	}
+	suite := suites.MustFind("Ed25519")
 
 	network.RegisterMessage(SimulationConfigFile{})
 	bin, err := ioutil.ReadFile(dir + "/" + SimulationFileName)
@@ -211,7 +208,7 @@ type SimulationBFTree struct {
 // 'addresses'. The network.Address(es) created are of type PlainTCP.
 func (s *SimulationBFTree) CreateRoster(sc *SimulationConfig, addresses []string, port int) {
 	start := time.Now()
-	suite, err := group.Suite(s.Suite)
+	suite, err := suites.Find(s.Suite)
 	if err != nil {
 		log.Fatalf("Could not look up suite \"%v\": %v", s.Suite, err.Error())
 	}

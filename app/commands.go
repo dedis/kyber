@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/network"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -53,7 +54,7 @@ var FlagConfig = cli.StringFlag{
 }
 
 // Server runs a stand-alone server with all imported services
-func Server(suite Suite) {
+func Server(suite network.Suite) {
 	cliApp := cli.NewApp()
 	cliApp.Name = "Cothority server"
 	cliApp.Usage = "Serve a cothority"
@@ -88,7 +89,7 @@ func Server(suite Suite) {
 }
 
 // RunServer starts the server
-func runServer(ctx *cli.Context, suite Suite) {
+func runServer(ctx *cli.Context, suite network.Suite) {
 	// first check the options
 	config := ctx.String("config")
 	RunServer(config, suite)

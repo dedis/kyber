@@ -109,12 +109,13 @@ func main() {
 	// Proxy will listen on Sink:SinkPort and redirect every packet to
 	// RedirectionAddress:SinkPort-1. With remote tunnel forwarding it will
 	// be forwarded to the real sink
-	proxyAddress := deter.ProxyAddress + ":" + strconv.Itoa(deter.MonitorPort+1)
-	log.Lvl2("Launching proxy redirecting to", proxyAddress)
-	err = monitor.Proxy(proxyAddress)
+	addr, port := deter.ProxyAddress, uint16(deter.MonitorPort+1)
+	log.Lvl2("Launching proxy redirecting to", addr, ":", port)
+	prox, err := monitor.NewProxy(uint16(deter.MonitorPort), addr, port)
 	if err != nil {
 		log.Fatal("Couldn't start proxy:", err)
 	}
+	go prox.Run()
 
 	log.Lvl1("starting", deter.Servers, "cothorities for a total of", deter.Hosts, "processes.")
 	killing := false
@@ -157,6 +158,7 @@ func main() {
 
 	// wait for the servers to finish before stopping
 	wg.Wait()
+	prox.Stop()
 }
 
 // Reads in the deterlab-config and drops out if there is an error

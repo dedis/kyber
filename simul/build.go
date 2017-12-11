@@ -179,12 +179,12 @@ func RunTest(rc *platform.RunConfig) (*monitor.Stats, error) {
 		return rs, err
 	}
 
-	monitor.SinkPort = monitorPort
+	monitor.SinkPort = uint16(monitorPort)
 	if err := deployP.Cleanup(); err != nil {
 		log.Error(err)
 		return rs, err
 	}
-	monitor.SinkPort = monitorPort
+	monitor.SinkPort = uint16(monitorPort)
 	done := make(chan error)
 	go func() {
 		done <- monitor.Listen()
