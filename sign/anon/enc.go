@@ -1,11 +1,11 @@
 package anon
 
 import (
+	"crypto/subtle"
 	"errors"
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/util/key"
-	"github.com/dedis/kyber/util/subtle"
 )
 
 func header(suite Suite, X kyber.Point, x kyber.Scalar,
@@ -116,6 +116,17 @@ func decryptKey(suite Suite, ciphertext []byte, anonymitySet Set,
 	return xb, hdrlen, nil
 }
 
+// constantTimeAllEq returns 1 iff all bytes in slice x have the value y.
+// The time taken is a function of the length of the slices
+// and is independent of the contents.
+func constantTimeAllEq(x []byte, y byte) int {
+	var z byte
+	for _, b := range x {
+		z |= b ^ y
+	}
+	return subtle.ConstantTimeByteEq(z, 0)
+}
+
 // macSize is how long the hashes are that we extract from the XOF.
 // This constant of 16 is taken from the previous implementation's behavior.
 const macSize = 16
@@ -196,7 +207,7 @@ func Decrypt(suite Suite, ciphertext []byte, anonymitySet Set,
 	xof.XORKeyStream(msg, ctx)
 	xof = suite.XOF(ctx)
 	xof.XORKeyStream(mac, mac)
-	if subtle.ConstantTimeAllEq(mac, 0) == 0 {
+	if constantTimeAllEq(mac, 0) == 0 {
 		return nil, errors.New("invalid ciphertext: failed MAC check")
 	}
 	return msg, nil
