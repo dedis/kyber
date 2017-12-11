@@ -40,22 +40,17 @@ the leader computes the aggregate response r = \sum{j ∈ P'}(r_j) and publishes
 package cosi
 
 import (
-	"crypto/cipher"
 	"errors"
 	"fmt"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/random"
 )
 
-// Commit returns a random scalar v, generated from the given cipher stream,
+// Commit returns a random scalar v, generated from the given suite,
 // and a corresponding commitment V = [v]G. If the given cipher stream is nil,
 // a random stream is used.
-func Commit(suite Suite, s cipher.Stream) (kyber.Scalar, kyber.Point) {
-	if s == nil {
-		s = random.Stream
-	}
-	random := suite.Scalar().Pick(s)
+func Commit(suite Suite) (kyber.Scalar, kyber.Point) {
+	random := suite.Scalar().Pick(suite.RandomStream())
 	commitment := suite.Point().Mul(random, nil)
 	return random, commitment
 }
@@ -385,11 +380,16 @@ func (p CompletePolicy) Check(m *Mask) bool {
 // least the given threshold number of participants t have cosigned to make a
 // collective signature valid.
 type ThresholdPolicy struct {
-	t int
+	thold int
+}
+
+// NewThresholdPolicy returns a new ThresholdPolicy with the given threshold.
+func NewThresholdPolicy(thold int) *ThresholdPolicy {
+	return &ThresholdPolicy{thold: thold}
 }
 
 // Check verifies that at least a threshold number of participants have
 // contributed to a collective signature.
 func (p ThresholdPolicy) Check(m *Mask) bool {
-	return m.CountEnabled() >= p.t
+	return m.CountEnabled() >= p.thold
 }

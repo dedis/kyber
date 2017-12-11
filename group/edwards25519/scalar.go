@@ -6,6 +6,7 @@ package edwards25519
 
 import (
 	"crypto/cipher"
+	"encoding/hex"
 	"errors"
 	"io"
 	"math/big"
@@ -13,7 +14,6 @@ import (
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/internal/marshalling"
 	"github.com/dedis/kyber/group/mod"
-	"github.com/dedis/kyber/util/bytes"
 	"github.com/dedis/kyber/util/random"
 	"github.com/dedis/kyber/util/subtle"
 )
@@ -136,14 +136,15 @@ func (s *scalar) Pick(rand cipher.Stream) kyber.Scalar {
 	return s.setInt(i)
 }
 
+// SetBytes s to b, interpreted as a little endian integer.
 func (s *scalar) SetBytes(b []byte) kyber.Scalar {
 	return s.setInt(mod.NewIntBytes(b, primeOrder, mod.LittleEndian))
 }
 
-// Bytes returns a big-Endian representation of the scalar
+// Bytes returns a big-endian representation of the scalar
 func (s *scalar) Bytes() []byte {
 	var buf = s.v
-	bytes.Reverse(buf[:], buf[:])
+	reverse(buf[:], buf[:])
 	var i int
 	for i = 0; i < 32; i++ {
 		if buf[i] != 0 {
@@ -153,9 +154,13 @@ func (s *scalar) Bytes() []byte {
 	return buf[i:]
 }
 
-// String returns the string representation of this scalar.
+// String returns the string representation of this scalar (fixed length of 32 bytes, little endian).
 func (s *scalar) String() string {
-	return s.toInt().String()
+	b, _ := s.toInt().MarshalBinary()
+	for len(b) < 32 {
+		b = append(b, 0)
+	}
+	return hex.EncodeToString(b)
 }
 
 // Encoded length of this object in bytes.
@@ -2230,4 +2235,16 @@ func scReduce(out *[32]byte, s *[64]byte) {
 	out[29] = byte(s11 >> 1)
 	out[30] = byte(s11 >> 9)
 	out[31] = byte(s11 >> 17)
+}
+
+// reverse copies src into dst in byte-reversed order and returns dst,
+// such that src[0] goes into dst[len-1] and vice versa.
+// dst and src may be the same slice but otherwise must not overlap.
+func reverse(dst, src []byte) []byte {
+	l := len(dst)
+	for i, j := 0, l-1; i < (l+1)/2; i++ {
+		dst[i], dst[j] = src[j], src[i]
+		j--
+	}
+	return dst
 }

@@ -9,7 +9,6 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/internal/marshalling"
-	"github.com/dedis/kyber/util/bytes"
 	"github.com/dedis/kyber/util/random"
 )
 
@@ -44,11 +43,10 @@ const (
 // target objects, and receive the modulus of the first operand.
 // For efficiency the modulus field M is a pointer,
 // whose target is assumed never to change.
-//
 type Int struct {
 	V  big.Int   // Integer value from 0 through M-1
 	M  *big.Int  // Modulus for finite field arithmetic
-	BO ByteOrder // Endianness considered for this int
+	BO ByteOrder // Endianness which will be used on input and output
 }
 
 // NewInt creaters a new Int with a given big.Int and a big.Int modulus.
@@ -109,7 +107,7 @@ func (i *Int) InitString(n, d string, base int, m *big.Int) *Int {
 	return i
 }
 
-// Return the Int's integer value in decimal string representation.
+// Return the Int's integer value in hexadecimal string representation.
 func (i *Int) String() string {
 	return hex.EncodeToString(i.V.Bytes())
 }
@@ -268,21 +266,11 @@ func (i *Int) Inv(a kyber.Scalar) kyber.Scalar {
 func (i *Int) Exp(a kyber.Scalar, e *big.Int) kyber.Scalar {
 	ai := a.(*Int)
 	i.M = ai.M
-	i.V.Exp(&ai.V, e, i.M)
+	// to protect against golang/go#22830
+	var tmp big.Int
+	tmp.Exp(&ai.V, e, i.M)
+	i.V = tmp
 	return i
-}
-
-// Compute the Legendre symbol of i, if modulus M is prime,
-// using the Euler criterion (which involves exponentiation).
-func (i *Int) legendre() int {
-	var Pm1, v big.Int
-	Pm1.Sub(i.M, one)
-	v.Div(&Pm1, two)
-	v.Exp(&i.V, &v, i.M)
-	if v.Cmp(&Pm1) == 0 {
-		return -1
-	}
-	return v.Sign()
 }
 
 // Jacobi computes the Jacobi symbol of (a/M), which indicates whether a is
@@ -346,7 +334,7 @@ func (i *Int) UnmarshalBinary(buf []byte) error {
 	}
 	// Still needed here because of the comparison with the modulo
 	if i.BO == LittleEndian {
-		buf = bytes.Reverse(nil, buf)
+		buf = reverse(nil, buf)
 	}
 	i.V.SetBytes(buf)
 	if i.V.Cmp(i.M) >= 0 {
@@ -388,7 +376,7 @@ func (i *Int) BigEndian(min, max int) []byte {
 func (i *Int) SetBytes(a []byte) kyber.Scalar {
 	var buff = a
 	if i.BO == LittleEndian {
-		buff = bytes.Reverse(nil, a)
+		buff = reverse(nil, a)
 	}
 	i.V.SetBytes(buff).Mod(&i.V, i.M)
 	return i
@@ -399,7 +387,7 @@ func (i *Int) SetBytes(a []byte) kyber.Scalar {
 func (i *Int) Bytes() []byte {
 	buff := i.V.Bytes()
 	if i.BO == LittleEndian {
-		buff = bytes.Reverse(buff, buff)
+		reverse(buff, buff)
 	}
 	return buff
 }
@@ -422,7 +410,7 @@ func (i *Int) LittleEndian(min, max int) []byte {
 		panic("Int not representable in max bytes")
 	}
 	buf := make([]byte, pad)
-	bytes.Reverse(buf[:act], vBytes)
+	reverse(buf[:act], vBytes)
 	return buf
 }
 
@@ -478,4 +466,20 @@ func (i *Int) HideDecode(buf []byte) {
 	}
 	i.V.SetBytes(buf)
 	i.V.Mod(&i.V, i.M)
+}
+
+// reverse copies src into dst in byte-reversed order and returns dst,
+// such that src[0] goes into dst[len-1] and vice versa.
+// dst and src may be the same slice but otherwise must not overlap.
+func reverse(dst, src []byte) []byte {
+	if dst == nil {
+		dst = make([]byte, len(src))
+	}
+	l := len(dst)
+	for i, j := 0, l-1; i < (l+1)/2; {
+		dst[i], dst[j] = src[j], src[i]
+		i++
+		j--
+	}
+	return dst
 }

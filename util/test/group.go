@@ -19,12 +19,13 @@ type GroupBench struct {
 // NewGroupBench returns a new GroupBench.
 func NewGroupBench(g kyber.Group) *GroupBench {
 	var gb GroupBench
+	rng := random.New()
 	gb.g = g
-	gb.x = g.Scalar().Pick(random.Stream)
-	gb.y = g.Scalar().Pick(random.Stream)
+	gb.x = g.Scalar().Pick(rng)
+	gb.y = g.Scalar().Pick(rng)
 	gb.xe, _ = gb.x.MarshalBinary()
-	gb.X = g.Point().Pick(random.Stream)
-	gb.Y = g.Point().Pick(random.Stream)
+	gb.X = g.Point().Pick(rng)
+	gb.Y = g.Point().Pick(rng)
 	gb.Xe, _ = gb.X.MarshalBinary()
 	return &gb
 }
@@ -74,7 +75,7 @@ func (gb GroupBench) ScalarInv(iters int) {
 // ScalarPick benchmarks the Pick operation for scalars
 func (gb GroupBench) ScalarPick(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.x.Pick(random.Stream)
+		gb.x.Pick(random.New())
 	}
 }
 
@@ -130,7 +131,7 @@ func (gb GroupBench) PointBaseMul(iters int) {
 // PointPick benchmarks the pick-ing operation for points
 func (gb GroupBench) PointPick(iters int) {
 	for i := 1; i < iters; i++ {
-		gb.X.Pick(random.Stream)
+		gb.X.Pick(random.New())
 	}
 }
 

@@ -3,7 +3,6 @@
 package dkg
 
 import (
-	"crypto/cipher"
 	"errors"
 
 	"github.com/dedis/kyber"
@@ -85,11 +84,11 @@ type DistKeyGenerator struct {
 	verifiers map[uint32]*vss.Verifier
 }
 
-// NewDistKeyGenerator returns a DistKeyGenerator out of the suite, the longterm
-// secret key, the list of participants, the random stream to use and the
-// threshold t parameter. It returns an error if the secret key's commitment
-// can't be found in the list of participants.
-func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, r cipher.Stream, t int) (*DistKeyGenerator, error) {
+// NewDistKeyGenerator returns a DistKeyGenerator out of the suite,
+// the longterm secret key, the list of participants, and the
+// threshold t parameter. It returns an error if the secret key's
+// commitment can't be found in the list of participants.
+func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kyber.Point, t int) (*DistKeyGenerator, error) {
 	pub := suite.Point().Mul(longterm, nil)
 	// find our index
 	var found bool
@@ -106,8 +105,8 @@ func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kybe
 	}
 	var err error
 	// generate our dealer / deal
-	ownSec := suite.Scalar().Pick(r)
-	dealer, err := vss.NewDealer(suite, longterm, ownSec, participants, r, t)
+	ownSec := suite.Scalar().Pick(suite.RandomStream())
+	dealer, err := vss.NewDealer(suite, longterm, ownSec, participants, t)
 	if err != nil {
 		return nil, err
 	}
@@ -189,6 +188,11 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Set StatusApproval for the verifier that represents the participant
+	// // that distibuted the Deal
+	d.verifiers[dd.Index].UnsafeSetResponseDKG(dd.Index, vss.StatusApproval)
+
 	return &Response{
 		Index:    dd.Index,
 		Response: resp,
@@ -240,6 +244,14 @@ func (d *DistKeyGenerator) ProcessJustification(j *Justification) error {
 		return errors.New("dkg: Justification received but no deal for it")
 	}
 	return v.ProcessJustification(j.Justification)
+}
+
+// SetTimeout triggers the timeout on all verifiers, and thus makes sure
+// all verifiers have either responded, or have a StatusComplaint response.
+func (d *DistKeyGenerator) SetTimeout() {
+	for _, v := range d.verifiers {
+		v.SetTimeout()
+	}
 }
 
 // Certified returns true if at least t deals are certified (see

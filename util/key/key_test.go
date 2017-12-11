@@ -13,8 +13,9 @@ func TestNewKeyPair(t *testing.T) {
 	keypair := NewKeyPair(suite)
 	pub := suite.Point().Mul(keypair.Secret, nil)
 	if !pub.Equal(keypair.Public) {
-		t.Fatal("Public and private-key don't match")
+		t.Fatal("Public and private keys don't match")
 	}
+	t.Log(pub)
 }
 
 // A type to test interface Generator by intentionally creating a fixed private key.
@@ -23,6 +24,9 @@ type fixedPrivSuiteEd25519 edwards25519.SuiteEd25519
 func (s *fixedPrivSuiteEd25519) NewKey(stream cipher.Stream) kyber.Scalar {
 	return s.Scalar().SetInt64(33)
 }
+
+// This is never called anyway, so it doesn't matter what it returns.
+func (s *fixedPrivSuiteEd25519) RandomStream() cipher.Stream { return nil }
 
 func TestNewKeyPairGen(t *testing.T) {
 	suite := &fixedPrivSuiteEd25519{}

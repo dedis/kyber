@@ -19,7 +19,6 @@ import (
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/proof/dleq"
 	"github.com/dedis/kyber/share"
-	"github.com/dedis/kyber/util/random"
 )
 
 // Suite describes the functionalities needed by this package in order to
@@ -29,6 +28,7 @@ type Suite interface {
 	kyber.HashFactory
 	kyber.Encoding
 	kyber.XOFFactory
+	kyber.Random
 }
 
 // Some error definitions.
@@ -52,7 +52,7 @@ func EncShares(suite Suite, H kyber.Point, X []kyber.Point, secret kyber.Scalar,
 	encShares := make([]*PubVerShare, n)
 
 	// Create secret sharing polynomial
-	priPoly := share.NewPriPoly(suite, t, secret, random.Stream)
+	priPoly := share.NewPriPoly(suite, t, secret)
 
 	// Create secret set of shares
 	priShares := priPoly.Shares(n)

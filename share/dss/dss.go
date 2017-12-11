@@ -30,6 +30,7 @@ import (
 type Suite interface {
 	kyber.Group
 	kyber.HashFactory
+	kyber.Random
 }
 
 // DistKeyShare is an abstraction to allow one to use disttributed key share

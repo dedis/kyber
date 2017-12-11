@@ -10,10 +10,27 @@ import (
 )
 
 // Suite represents the functionalities that this package can test
-type Suite interface {
+type suite interface {
 	kyber.Group
 	kyber.HashFactory
 	kyber.XOFFactory
+	kyber.Random
+}
+
+type suiteStable struct {
+	suite
+	xof kyber.XOF
+}
+
+func newSuiteStable(s suite) *suiteStable {
+	return &suiteStable{
+		suite: s,
+		xof:   s.XOF(nil),
+	}
+}
+
+func (ss *suiteStable) RandomStream() cipher.Stream {
+	return ss.xof
 }
 
 func testEmbed(g kyber.Group, rand cipher.Stream, points *[]kyber.Point,
@@ -325,7 +342,7 @@ func testGroup(g kyber.Group, rand cipher.Stream) []kyber.Point {
 
 // GroupTest applies a generic set of validation tests to a cryptographic Group.
 func GroupTest(g kyber.Group) {
-	testGroup(g, random.Stream)
+	testGroup(g, random.New())
 }
 
 // CompareGroups tests two group implementations that are supposed to be equivalent,
@@ -350,7 +367,7 @@ func CompareGroups(fn func(key []byte) kyber.XOF, g1, g2 kyber.Group) {
 }
 
 // SuiteTest tests a standard set of validation tests to a ciphersuite.
-func SuiteTest(suite Suite) {
+func SuiteTest(suite suite) {
 
 	// Try hashing something
 	h := suite.Hash()
@@ -379,11 +396,12 @@ func SuiteTest(suite Suite) {
 		panic("NewKeyPair returns the same secret key twice")
 	}
 
-	// Test if it creates the same with the same seed
+	// Test if it creates the same key with the same seed
 	p1 = new(key.Pair)
-	p1.Gen(suite, suite.XOF(hb))
 	p2 = new(key.Pair)
-	p2.Gen(suite, suite.XOF(hb))
+
+	p1.Gen(newSuiteStable(suite))
+	p2.Gen(newSuiteStable(suite))
 	if !p1.Secret.Equal(p2.Secret) {
 		panic("NewKeyPair returns different keys for same seed")
 	}

@@ -13,7 +13,6 @@ import (
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/share"
 	"github.com/dedis/kyber/sign/schnorr"
-	"github.com/dedis/kyber/util/random"
 	"github.com/dedis/protobuf"
 )
 
@@ -22,6 +21,7 @@ type Suite interface {
 	kyber.Group
 	kyber.HashFactory
 	kyber.XOFFactory
+	kyber.Random
 }
 
 // Dealer encapsulates for creating and distributing the shares and for
@@ -114,7 +114,7 @@ type Justification struct {
 // RECOMMENDED to use a threshold higher or equal than what the method
 // MinimumT() returns, otherwise it breaks the security assumptions of the whole
 // scheme. It returns an error if the t is inferior or equal to 2.
-func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Point, r cipher.Stream, t int) (*Dealer, error) {
+func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Point, t int) (*Dealer, error) {
 	d := &Dealer{
 		suite:     suite,
 		long:      longterm,
@@ -126,7 +126,7 @@ func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Poi
 	}
 	d.t = t
 
-	f := share.NewPriPoly(d.suite, d.t, d.secret, r)
+	f := share.NewPriPoly(d.suite, d.t, d.secret)
 	d.pub = d.suite.Point().Mul(d.long, nil)
 
 	// Compute public polynomial coefficients
@@ -176,7 +176,7 @@ func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
 		return nil, errors.New("dealer: wrong index to generate encrypted deal")
 	}
 	// gen ephemeral key
-	dhSecret := d.suite.Scalar().Pick(random.Stream)
+	dhSecret := d.suite.Scalar().Pick(d.suite.RandomStream())
 	dhPublic := d.suite.Point().Mul(dhSecret, nil)
 	// signs the public key
 	dhPublicBuff, _ := dhPublic.MarshalBinary()
@@ -274,6 +274,13 @@ func (d *Dealer) Key() (kyber.Scalar, kyber.Point) {
 // protocol run.
 func (d *Dealer) SessionID() []byte {
 	return d.sessionID
+}
+
+// SetTimeout marks the end of a round, invalidating any missing (or future) response
+// for this DKG protocol round. The caller is expected to call this after a long timeout
+// so each DKG node can still compute its share if enough Deals are valid.
+func (d *Dealer) SetTimeout() {
+	d.aggregator.cleanVerifiers()
 }
 
 // Verifier receives a Deal from a Dealer, can reply with a Complaint, and can
@@ -469,6 +476,25 @@ func RecoverSecret(suite Suite, deals []*Deal, n, t int) (kyber.Scalar, error) {
 	return share.RecoverSecret(suite, shares, t, n)
 }
 
+// SetTimeout marks the end of a round, invalidating any missing (or future) response
+// for this DKG protocol round. The caller is expected to call this after a long timeout
+// so each DKG node can still compute its share if enough Deals are valid.
+func (v *Verifier) SetTimeout() {
+	v.aggregator.cleanVerifiers()
+}
+
+// UnsafeSetResponseDKG is an UNSAFE bypass method to allow DKG to use VSS
+// that works on basis of approval only.
+func (v *Verifier) UnsafeSetResponseDKG(idx uint32, approval bool) {
+	r := &Response{
+		SessionID: v.aggregator.sid,
+		Index:     uint32(idx),
+		Status:    approval,
+	}
+
+	v.aggregator.addResponse(r)
+}
+
 // aggregator is used to collect all deals, and responses for one protocol run.
 // It brings common functionalities for both Dealer and Verifier structs.
 type aggregator struct {
@@ -537,6 +563,20 @@ func (a *aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 	return nil
 }
 
+// cleanVerifiers checks the aggregator's response array and creates a StatusComplaint
+// response for all verifiers that did not respond to the Deal.
+func (a *aggregator) cleanVerifiers() {
+	for i := range a.verifiers {
+		if _, ok := a.responses[uint32(i)]; !ok {
+			a.responses[uint32(i)] = &Response{
+				SessionID: a.sid,
+				Index:     uint32(i),
+				Status:    StatusComplaint,
+			}
+		}
+	}
+}
+
 func (a *aggregator) verifyResponse(r *Response) error {
 	if !bytes.Equal(r.SessionID, a.sid) {
 		return errors.New("vss: receiving inconsistent sessionID in response")
@@ -601,18 +641,23 @@ func (a *aggregator) EnoughApprovals() bool {
 // DealCertified returns true if there has been less than t complaints, all
 // Justifications were correct and if EnoughApprovals() returns true.
 func (a *aggregator) DealCertified() bool {
-	var comps int
+	var verifiersUnstable int
+
 	// XXX currently it can still happen that an aggregator has not been set,
 	// because it did not receive any deals yet or responses.
 	if a == nil {
 		return false
 	}
-	for _, r := range a.responses {
-		if r.Status == StatusComplaint {
-			comps++
+
+	// Check either a StatusApproval or StatusComplaint for all known verifiers
+	// i.e. make sure all verifiers are either timed-out or OK.
+	for i := range a.verifiers {
+		if _, ok := a.responses[uint32(i)]; !ok {
+			verifiersUnstable++
 		}
 	}
-	tooMuchComplaints := comps >= a.t || a.badDealer
+
+	tooMuchComplaints := verifiersUnstable > 0 || a.badDealer
 	return a.EnoughApprovals() && !tooMuchComplaints
 }
 
