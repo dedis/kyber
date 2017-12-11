@@ -44,11 +44,10 @@ const (
 // target objects, and receive the modulus of the first operand.
 // For efficiency the modulus field M is a pointer,
 // whose target is assumed never to change.
-//
 type Int struct {
 	V  big.Int   // Integer value from 0 through M-1
 	M  *big.Int  // Modulus for finite field arithmetic
-	BO ByteOrder // Endianness considered for this int
+	BO ByteOrder // Endianness which will be used on input and output
 }
 
 // NewInt creaters a new Int with a given big.Int and a big.Int modulus.
@@ -109,7 +108,7 @@ func (i *Int) InitString(n, d string, base int, m *big.Int) *Int {
 	return i
 }
 
-// Return the Int's integer value in decimal string representation.
+// Return the Int's integer value in hexadecimal string representation.
 func (i *Int) String() string {
 	return hex.EncodeToString(i.V.Bytes())
 }
