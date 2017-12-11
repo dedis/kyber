@@ -1,7 +1,6 @@
 package anon
 
 import (
-	"crypto/cipher"
 	"errors"
 
 	"github.com/dedis/kyber"
@@ -32,17 +31,15 @@ func header(suite Suite, X kyber.Point, x kyber.Scalar,
 
 // Create and encrypt a fresh key decryptable only by the given receivers.
 // Returns the secret key and the ciphertext.
-func encryptKey(suite Suite, rand cipher.Stream,
-	anonymitySet Set, hide bool) (k, c []byte) {
-
+func encryptKey(suite Suite, anonymitySet Set, hide bool) (k, c []byte) {
 	// Choose a keypair and encode its representation
 	kp := new(key.Pair)
 	var Xb []byte
 	if hide {
-		kp.GenHiding(suite, rand)
-		Xb = kp.Hiding.HideEncode(rand)
+		kp.GenHiding(suite)
+		Xb = kp.Hiding.HideEncode(suite.RandomStream())
 	} else {
-		kp.Gen(suite, rand)
+		kp.Gen(suite)
 		Xb, _ = kp.Public.MarshalBinary()
 	}
 	xb, _ := kp.Secret.MarshalBinary()
@@ -135,10 +132,10 @@ const macSize = 16
 // The provided kyber.Suite must support
 // uniform-representation encoding of public keys for this to work.
 //
-func Encrypt(suite Suite, rand cipher.Stream, message []byte,
+func Encrypt(suite Suite, message []byte,
 	anonymitySet Set, hide bool) []byte {
 
-	xb, hdr := encryptKey(suite, rand, anonymitySet, hide)
+	xb, hdr := encryptKey(suite, anonymitySet, hide)
 	xof := suite.XOF(xb)
 
 	// We now know the ciphertext layout

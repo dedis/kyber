@@ -51,7 +51,7 @@ func (sk *SKEME) Init(suite Suite, rand cipher.Stream,
 	// Encrypt and send the DH key to the receiver.
 	// This is a deviation from SKEME, to protect message metadata
 	// and further harden messages against tampering or active MITM DoS.
-	sk.lm = Encrypt(suite, rand, sk.lXb, rpub, hide)
+	sk.lm = Encrypt(suite, sk.lXb, rpub, hide)
 }
 
 // ToSend returns the current message that should be sent (retransmitting if needed)

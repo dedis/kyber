@@ -5,7 +5,6 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
-	"github.com/dedis/kyber/util/random"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,12 +17,12 @@ func TestPVSS(test *testing.T) {
 	x := make([]kyber.Scalar, n) // trustee private keys
 	X := make([]kyber.Point, n)  // trustee public keys
 	for i := 0; i < n; i++ {
-		x[i] = suite.Scalar().Pick(random.Stream)
+		x[i] = suite.Scalar().Pick(suite.RandomStream())
 		X[i] = suite.Point().Mul(x[i], nil)
 	}
 
 	// Scalar of shared secret
-	secret := suite.Scalar().Pick(random.Stream)
+	secret := suite.Scalar().Pick(suite.RandomStream())
 
 	// (1) Share distribution (dealer)
 	encShares, pubPoly, err := EncShares(suite, H, X, secret, t)
@@ -62,12 +61,12 @@ func TestPVSSDelete(test *testing.T) {
 	x := make([]kyber.Scalar, n) // trustee private keys
 	X := make([]kyber.Point, n)  // trustee public keys
 	for i := 0; i < n; i++ {
-		x[i] = suite.Scalar().Pick(random.Stream)
+		x[i] = suite.Scalar().Pick(suite.RandomStream())
 		X[i] = suite.Point().Mul(x[i], nil)
 	}
 
 	// Scalar of shared secret
-	secret := suite.Scalar().Pick(random.Stream)
+	secret := suite.Scalar().Pick(suite.RandomStream())
 
 	// (1) Share distribution (dealer)
 	encShares, pubPoly, err := EncShares(suite, H, X, secret, t)
@@ -113,12 +112,12 @@ func TestPVSSDeleteFail(test *testing.T) {
 	x := make([]kyber.Scalar, n) // trustee private keys
 	X := make([]kyber.Point, n)  // trustee public keys
 	for i := 0; i < n; i++ {
-		x[i] = suite.Scalar().Pick(random.Stream)
+		x[i] = suite.Scalar().Pick(suite.RandomStream())
 		X[i] = suite.Point().Mul(x[i], nil)
 	}
 
 	// Scalar of shared secret
-	secret := suite.Scalar().Pick(random.Stream)
+	secret := suite.Scalar().Pick(suite.RandomStream())
 
 	// (1) Share distribution (dealer)
 	encShares, pubPoly, err := EncShares(suite, H, X, secret, t)
@@ -164,20 +163,20 @@ func TestPVSSBatch(test *testing.T) {
 	x := make([]kyber.Scalar, n) // trustee private keys
 	X := make([]kyber.Point, n)  // trustee public keys
 	for i := 0; i < n; i++ {
-		x[i] = suite.Scalar().Pick(random.Stream)
+		x[i] = suite.Scalar().Pick(suite.RandomStream())
 		X[i] = suite.Point().Mul(x[i], nil)
 	}
 
 	// (1) Share distribution (multiple dealers)
-	s0 := suite.Scalar().Pick(random.Stream)
+	s0 := suite.Scalar().Pick(suite.RandomStream())
 	e0, p0, err := EncShares(suite, H, X, s0, t)
 	require.Equal(test, err, nil)
 
-	s1 := suite.Scalar().Pick(random.Stream)
+	s1 := suite.Scalar().Pick(suite.RandomStream())
 	e1, p1, err := EncShares(suite, H, X, s1, t)
 	require.Equal(test, err, nil)
 
-	s2 := suite.Scalar().Pick(random.Stream)
+	s2 := suite.Scalar().Pick(suite.RandomStream())
 	e2, p2, err := EncShares(suite, H, X, s2, t)
 	require.Equal(test, err, nil)
 

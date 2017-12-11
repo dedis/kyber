@@ -9,4 +9,5 @@ type Suite interface {
 	kyber.Group
 	kyber.Encoding
 	kyber.XOFFactory
+	kyber.Random
 }

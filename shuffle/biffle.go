@@ -51,7 +51,9 @@ func Biffle(suite Suite, G, H kyber.Point,
 	Xbar, Ybar [2]kyber.Point, prover proof.Prover) {
 
 	// Pick the single-bit permutation.
-	bit := int(random.Byte(rand) & 1)
+	var buf [1]byte
+	random.Bytes(buf[:], rand)
+	bit := int(buf[0] & 1)
 
 	// Pick a fresh ElGamal blinding factor for each pair
 	var beta [2]kyber.Scalar

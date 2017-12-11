@@ -6,6 +6,7 @@
 package curve25519
 
 import (
+	"crypto/cipher"
 	"crypto/sha256"
 	"hash"
 	"io"
@@ -15,6 +16,7 @@ import (
 	"github.com/dedis/kyber"
 
 	"github.com/dedis/kyber/group/internal/marshalling"
+	"github.com/dedis/kyber/util/random"
 	"github.com/dedis/kyber/xof/blake"
 )
 
@@ -41,6 +43,10 @@ func (s *SuiteEd25519) Write(w io.Writer, objs ...interface{}) error {
 
 func (s *SuiteEd25519) New(t reflect.Type) interface{} {
 	return marshalling.GroupNew(s, t)
+}
+
+func (s *SuiteEd25519) RandomStream() cipher.Stream {
+	return random.New()
 }
 
 // NewBlakeSHA256Curve25519 returns a cipher suite based on package

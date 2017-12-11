@@ -2,7 +2,6 @@ package anon
 
 import (
 	"bytes"
-	"crypto/cipher"
 	"errors"
 
 	"github.com/dedis/kyber"
@@ -106,7 +105,7 @@ func signH1(suite Suite, H1pre kyber.XOF, PG, PH kyber.Point) kyber.Scalar {
 // or that members may be persuaded or coerced into revealing whether or not
 // they produced a signature of interest.
 //
-func Sign(suite Suite, random cipher.Stream, message []byte,
+func Sign(suite Suite, message []byte,
 	anonymitySet Set, linkScope []byte, mine int, privateKey kyber.Scalar) []byte {
 
 	// Note that Rivest's original ring construction directly supports
@@ -141,7 +140,7 @@ func Sign(suite Suite, random cipher.Stream, message []byte,
 	H1pre := signH1pre(suite, linkScope, linkTag, message)
 
 	// Pick a random commit for my ring position
-	u := suite.Scalar().Pick(random)
+	u := suite.Scalar().Pick(suite.RandomStream())
 	var UB, UL kyber.Point
 	UB = suite.Point().Mul(u, nil)
 	if linkScope != nil {
@@ -159,7 +158,7 @@ func Sign(suite Suite, random cipher.Stream, message []byte,
 		PH = suite.Point()
 	}
 	for i := (pi + 1) % n; i != pi; i = (i + 1) % n {
-		s[i] = suite.Scalar().Pick(random)
+		s[i] = suite.Scalar().Pick(suite.RandomStream())
 		PG.Add(PG.Mul(s[i], nil), P.Mul(c[i], L[i]))
 		if linkScope != nil {
 			PH.Add(PH.Mul(s[i], linkBase), P.Mul(c[i], linkTag))

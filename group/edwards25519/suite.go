@@ -1,6 +1,7 @@
 package edwards25519
 
 import (
+	"crypto/cipher"
 	"crypto/sha256"
 	"hash"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"github.com/dedis/fixbuf"
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/internal/marshalling"
+	"github.com/dedis/kyber/util/random"
 	"github.com/dedis/kyber/xof/blake"
 )
 
@@ -16,6 +18,7 @@ import (
 // and XOFFactory.
 type SuiteEd25519 struct {
 	Curve
+	r cipher.Stream
 }
 
 // Hash returns a newly instanciated sha256 hash function.
@@ -41,9 +44,28 @@ func (s *SuiteEd25519) New(t reflect.Type) interface{} {
 	return marshalling.GroupNew(s, t)
 }
 
+// RandomStream returns a cipher.Stream that returns a key stream
+// from crypto/rand.
+func (s *SuiteEd25519) RandomStream() cipher.Stream {
+	if s.r != nil {
+		return s.r
+	}
+	return random.New()
+}
+
 // NewBlakeSHA256Ed25519 returns a cipher suite based on package
 // github.com/dedis/kyber/xof/blake, SHA-256, and the Ed25519 curve.
+// It produces cryptographically random numbers via package crypto/rand.
 func NewBlakeSHA256Ed25519() *SuiteEd25519 {
 	suite := new(SuiteEd25519)
+	return suite
+}
+
+// NewBlakeSHA256Ed25519WithRand returns a cipher suite based on package
+// github.com/dedis/kyber/xof/blake, SHA-256, and the Ed25519 curve.
+// It produces cryptographically random numbers via the provided stream r.
+func NewBlakeSHA256Ed25519WithRand(r cipher.Stream) *SuiteEd25519 {
+	suite := new(SuiteEd25519)
+	suite.r = r
 	return suite
 }

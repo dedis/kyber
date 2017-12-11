@@ -57,7 +57,7 @@ func TestDeniable(t *testing.T) {
 	nnodes := 5
 
 	suite := testSuite
-	rand := random.Stream
+	rand := random.New()
 	B := suite.Point().Base()
 
 	// Make some keypairs

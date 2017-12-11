@@ -21,6 +21,7 @@ package shuffle
 
 import (
 	"crypto/cipher"
+	"encoding/binary"
 	"errors"
 
 	kyber "github.com/dedis/kyber"
@@ -329,7 +330,7 @@ func Shuffle(group kyber.Group, g, h kyber.Point, X, Y []kyber.Point,
 		pi[i] = i
 	}
 	for i := k - 1; i > 0; i-- { // Shuffle by random swaps
-		j := int(random.Uint64(rand) % uint64(i+1))
+		j := int(randUint64(rand) % uint64(i+1))
 		if j != i {
 			t := pi[j]
 			pi[j] = pi[i]
@@ -357,6 +358,12 @@ func Shuffle(group kyber.Group, g, h kyber.Point, X, Y []kyber.Point,
 		return ps.Prove(pi, g, h, beta, X, Y, rand, ctx)
 	}
 	return Xbar, Ybar, prover
+}
+
+// randUint64 chooses a uniform random uint64
+func randUint64(rand cipher.Stream) uint64 {
+	b := random.Bits(64, false, rand)
+	return binary.BigEndian.Uint64(b)
 }
 
 // Verifier produces a Sigma-protocol verifier to check the correctness of a shuffle.

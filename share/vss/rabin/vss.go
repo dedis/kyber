@@ -39,7 +39,6 @@ import (
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/share"
 	"github.com/dedis/kyber/sign/schnorr"
-	"github.com/dedis/kyber/util/random"
 	"github.com/dedis/protobuf"
 )
 
@@ -48,6 +47,7 @@ type Suite interface {
 	kyber.Group
 	kyber.HashFactory
 	kyber.XOFFactory
+	kyber.Random
 }
 
 // Dealer encapsulates for creating and distributing the shares and for
@@ -133,7 +133,7 @@ type Justification struct {
 // RECOMMENDED to use a threshold higher or equal than what the method
 // MinimumT() returns, otherwise it breaks the security assumptions of the whole
 // scheme. It returns an error if the t is inferior or equal to 2.
-func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Point, r cipher.Stream, t int) (*Dealer, error) {
+func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Point, t int) (*Dealer, error) {
 	d := &Dealer{
 		suite:     suite,
 		long:      longterm,
@@ -146,8 +146,8 @@ func NewDealer(suite Suite, longterm, secret kyber.Scalar, verifiers []kyber.Poi
 	d.t = t
 
 	H := deriveH(d.suite, d.verifiers)
-	f := share.NewPriPoly(d.suite, d.t, d.secret, r)
-	g := share.NewPriPoly(d.suite, d.t, nil, r)
+	f := share.NewPriPoly(d.suite, d.t, d.secret)
+	g := share.NewPriPoly(d.suite, d.t, nil)
 	d.pub = d.suite.Point().Mul(d.long, nil)
 
 	// Compute public polynomial coefficients
@@ -205,7 +205,7 @@ func (d *Dealer) EncryptedDeal(i int) (*EncryptedDeal, error) {
 		return nil, errors.New("dealer: wrong index to generate encrypted deal")
 	}
 	// gen ephemeral key
-	dhSecret := d.suite.Scalar().Pick(random.Stream)
+	dhSecret := d.suite.Scalar().Pick(d.suite.RandomStream())
 	dhPublic := d.suite.Point().Mul(dhSecret, nil)
 	// signs the public key
 	dhPublicBuff, _ := dhPublic.MarshalBinary()
