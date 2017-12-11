@@ -344,6 +344,14 @@ func (d *DistKeyGenerator) ProcessJustification(j *Justification) error {
 	return v.ProcessJustification(j.Justification)
 }
 
+// SetTimeout triggers the timeout on all verifiers, and thus makes sure
+// all verifiers have either responded, or have a StatusComplaint response.
+func (d *DistKeyGenerator) SetTimeout() {
+	for _, v := range d.verifiers {
+		v.SetTimeout()
+	}
+}
+
 // Certified returns true if at least t deals are certified (see
 // vss.Verifier.DealCertified()). If the distribution is certified, the protocol
 // can continue using d.SecretCommits().

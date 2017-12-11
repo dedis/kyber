@@ -496,6 +496,56 @@ func TestDKGReconstructCommits(t *testing.T) {
 	assert.True(t, dkg2.Finished())
 }
 
+func TestSetTimeout(t *testing.T) {
+	dkgs = dkgGen()
+	// full secret sharing exchange
+	// 1. broadcast deals
+	resps := make([]*Response, 0, nbParticipants*nbParticipants)
+	for _, dkg := range dkgs {
+		deals, err := dkg.Deals()
+		require.Nil(t, err)
+		for i, d := range deals {
+			resp, err := dkgs[i].ProcessDeal(d)
+			require.Nil(t, err)
+			require.True(t, resp.Response.Approved)
+			resps = append(resps, resp)
+		}
+	}
+
+	// 2. Broadcast responses
+	for _, resp := range resps {
+		for _, dkg := range dkgs {
+			if !dkg.verifiers[resp.Index].EnoughApprovals() {
+				// ignore messages about ourself
+				if resp.Response.Index == dkg.index {
+					continue
+				}
+				j, err := dkg.ProcessResponse(resp)
+				require.Nil(t, err)
+				require.Nil(t, j)
+			}
+		}
+	}
+
+	// 3. make sure everyone has the same QUAL set
+	for _, dkg := range dkgs {
+		for _, dkg2 := range dkgs {
+			require.False(t, dkg.isInQUAL(dkg2.index))
+		}
+	}
+
+	for _, dkg := range dkgs {
+		dkg.SetTimeout()
+	}
+
+	for _, dkg := range dkgs {
+		for _, dkg2 := range dkgs {
+			require.True(t, dkg.isInQUAL(dkg2.index))
+		}
+	}
+
+}
+
 func TestDistKeyShare(t *testing.T) {
 	fullExchange(t)
 
