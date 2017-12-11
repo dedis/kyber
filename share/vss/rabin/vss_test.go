@@ -116,7 +116,7 @@ func TestVSSShare(t *testing.T) {
 		aggr.responses[uint32(i)] = &Response{Approved: true}
 	}
 
-    ver.SetTimeout()
+	ver.SetTimeout()
 
 	// not enough approvals
 	assert.Nil(t, ver.Deal())
@@ -138,7 +138,7 @@ func TestVSSAggregatorEnoughApprovals(t *testing.T) {
 		aggr.responses[uint32(i)] = &Response{Approved: true}
 	}
 
-    dealer.SetTimeout()
+	dealer.SetTimeout()
 
 	assert.False(t, aggr.EnoughApprovals())
 	assert.Nil(t, dealer.SecretCommit())
@@ -161,7 +161,7 @@ func TestVSSAggregatorDealCertified(t *testing.T) {
 		aggr.responses[uint32(i)] = &Response{Approved: true}
 	}
 
-    dealer.SetTimeout()
+	dealer.SetTimeout()
 
 	assert.True(t, aggr.DealCertified())
 	assert.Equal(t, suite.Point().Mul(secret, nil), dealer.SecretCommit())
@@ -471,62 +471,62 @@ func TestVSSAggregatorAddComplaint(t *testing.T) {
 }
 
 func TestVSSAggregatorCleanVerifiers(t *testing.T) {
-    dealer := genDealer()
-    aggr := dealer.aggregator
+	dealer := genDealer()
+	aggr := dealer.aggregator
 
-    for i := 0; i < aggr.t; i++ {
-        aggr.responses[uint32(i)] = &Response{Approved: true}
-    }
+	for i := 0; i < aggr.t; i++ {
+		aggr.responses[uint32(i)] = &Response{Approved: true}
+	}
 
-    assert.True(t, aggr.EnoughApprovals())
-    assert.False(t, aggr.DealCertified())
+	assert.True(t, aggr.EnoughApprovals())
+	assert.False(t, aggr.DealCertified())
 
-    aggr.cleanVerifiers()
+	aggr.cleanVerifiers()
 
-    assert.True(t, aggr.DealCertified())
+	assert.True(t, aggr.DealCertified())
 }
 
 func TestVSSDealerSetTimeout(t *testing.T) {
-    dealer := genDealer()
-    aggr := dealer.aggregator
+	dealer := genDealer()
+	aggr := dealer.aggregator
 
-    for i := 0; i < aggr.t; i++ {
-        aggr.responses[uint32(i)] = &Response{Approved: true}
-    }
+	for i := 0; i < aggr.t; i++ {
+		aggr.responses[uint32(i)] = &Response{Approved: true}
+	}
 
-    assert.True(t, aggr.EnoughApprovals())
-    assert.False(t, aggr.DealCertified())
+	assert.True(t, aggr.EnoughApprovals())
+	assert.False(t, aggr.DealCertified())
 
-    dealer.SetTimeout()
+	dealer.SetTimeout()
 
-    assert.True(t, aggr.DealCertified())
+	assert.True(t, aggr.DealCertified())
 }
 
 func TestVSSVerifierSetTimeout(t *testing.T) {
-    dealer, verifiers := genAll()
-    ver := verifiers[0]
+	dealer, verifiers := genAll()
+	ver := verifiers[0]
 
-    encD, err := dealer.EncryptedDeal(0)
+	encD, err := dealer.EncryptedDeal(0)
 
-    require.Nil(t, err)
+	require.Nil(t, err)
 
-    resp, err := ver.ProcessEncryptedDeal(encD)
+	resp, err := ver.ProcessEncryptedDeal(encD)
 
-    require.Nil(t, err)
-    require.NotNil(t, resp)
+	require.Nil(t, err)
+	require.NotNil(t, resp)
 
-    aggr := ver.aggregator
+	aggr := ver.aggregator
 
-    for i := 0; i < aggr.t; i++ {
-        aggr.responses[uint32(i)] = &Response{Approved: true}
-    }
+	for i := 0; i < aggr.t; i++ {
+		aggr.responses[uint32(i)] = &Response{Approved: true}
+	}
 
-    assert.True(t, aggr.EnoughApprovals())
-    assert.False(t, aggr.DealCertified())
+	assert.True(t, aggr.EnoughApprovals())
+	assert.False(t, aggr.DealCertified())
 
-    ver.SetTimeout()
+	ver.SetTimeout()
 
-    assert.True(t, aggr.DealCertified())
+	assert.True(t, aggr.DealCertified())
 }
 
 func TestVSSSessionID(t *testing.T) {

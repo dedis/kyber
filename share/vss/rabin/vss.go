@@ -275,6 +275,18 @@ func (d *Dealer) ProcessResponse(r *Response) (*Justification, error) {
 	return j, nil
 }
 
+// UnsafeSetResponseDKG is an UNSAFE bypass method to allow DKG to use VSS
+// that works on basis of approval only.
+func (d *Dealer) UnsafeSetResponseDKG(idx uint32, approval bool) {
+	r := &Response{
+		SessionID: d.aggregator.sid,
+		Index:     uint32(idx),
+		Approved:  approval,
+	}
+
+	d.aggregator.addResponse(r)
+}
+
 // SecretCommit returns the commitment of the secret being shared by this
 // dealer. This function is only to be called once the deal has enough approvals
 // and is verified otherwise it returns nil.
@@ -309,7 +321,7 @@ func (d *Dealer) SessionID() []byte {
 // it calls cleanVerifiers which will take care of all Verifiers who have not
 // responded until now.
 func (d *Dealer) SetTimeout() {
-    d.aggregator.cleanVerifiers()
+	d.aggregator.cleanVerifiers()
 }
 
 // Verifier receives a Deal from a Dealer, can reply with a Complaint, and can
@@ -501,21 +513,20 @@ func RecoverSecret(suite Suite, deals []*Deal, n, t int) (kyber.Scalar, error) {
 // it calls cleanVerifiers which will take care of all Verifiers who have not
 // responded until now.
 func (v *Verifier) SetTimeout() {
-    v.aggregator.cleanVerifiers()
+	v.aggregator.cleanVerifiers()
 }
 
 // UnsafeSetResponseDKG is an UNSAFE bypass method to allow DKG to use VSS
 // that works on basis of approval only.
 func (v *Verifier) UnsafeSetResponseDKG(idx uint32, approval bool) {
-  r := &Response{
-      SessionID: v.aggregator.sid,
-      Index: uint32(idx),
-      Approved: approval,
-  }
+	r := &Response{
+		SessionID: v.aggregator.sid,
+		Index:     uint32(idx),
+		Approved:  approval,
+	}
 
-  v.aggregator.addResponse(r)
+	v.aggregator.addResponse(r)
 }
-
 
 // aggregator is used to collect all deals, and responses for one protocol run.
 // It brings common functionalities for both Dealer and Verifier structs.
@@ -595,16 +606,16 @@ func (a *aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 // cleanVerifiers checks the aggregator's response array and creates a StatusComplaint
 // response for all verifiers who have no response in the array.
 func (a *aggregator) cleanVerifiers() {
-  for i := range a.verifiers {
-      if _, ok := a.responses[uint32(i)]; !ok {
-          a.responses[uint32(i)] = &Response{
-              SessionID: a.sid,
-              Index: uint32(i),
-              Approved: false,
-          }
-      }
-   }
- }
+	for i := range a.verifiers {
+		if _, ok := a.responses[uint32(i)]; !ok {
+			a.responses[uint32(i)] = &Response{
+				SessionID: a.sid,
+				Index:     uint32(i),
+				Approved:  false,
+			}
+		}
+	}
+}
 
 func (a *aggregator) verifyResponse(r *Response) error {
 	if !bytes.Equal(r.SessionID, a.sid) {
@@ -676,14 +687,13 @@ func (a *aggregator) DealCertified() bool {
 	}
 
 	var verifiersUnstable int
-    // Check either a StatusApproval or StatusComplaint for all known verifiers
-    // i.e. make sure all verifiers are either timed-out or OK.
-    for i := range a.verifiers {
-    	if _, ok := a.responses[uint32(i)]; !ok {
-            verifiersUnstable++
-            fmt.Println("Verifier ", i, " unstable")
-        }
-    }
+	// Check either a StatusApproval or StatusComplaint for all known verifiers
+	// i.e. make sure all verifiers are either timed-out or OK.
+	for i := range a.verifiers {
+		if _, ok := a.responses[uint32(i)]; !ok {
+			verifiersUnstable++
+		}
+	}
 
 	tooMuchComplaints := verifiersUnstable > 0 || a.badDealer
 	return a.EnoughApprovals() && !tooMuchComplaints
