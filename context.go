@@ -217,10 +217,13 @@ func (c *Context) absFilenameWithSuffix(id string, suffix string) string {
 }
 
 // NewDatabase opens the bbolt database in the file
-// "#{ServerIdentity.Public}_#{ServiceName}_bolt.db.
+// "#{ServerIdentity.Public}_#{ServiceName}_bolt.db if it does not already exist.
 // If it does not exist, it creates it.
 // The caller is responsible for creating buckets for use in the database.
 func (c *Context) NewDatabase() (*bolt.DB, error) {
+	if c.database != nil {
+		return c.database, nil
+	}
 	db, err := bolt.Open(c.absDbFilename(), 0600, nil)
 	if err != nil {
 		return nil, err
@@ -233,6 +236,7 @@ func (c *Context) NewDatabase() (*bolt.DB, error) {
 // It will also delete the database file if we're in test mode.
 func (c *Context) CloseDatabase() error {
 	err := c.database.Close()
+	c.database = nil
 	if err != nil {
 		return err
 	}

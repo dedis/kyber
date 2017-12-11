@@ -144,5 +144,9 @@ func TestContext_Database(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, db)
 
+	db2, err := c.NewDatabase()
+	require.Nil(t, err)
+	require.Equal(t, db, db2)
+
 	require.Nil(t, c.CloseDatabase())
 }
