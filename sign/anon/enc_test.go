@@ -10,7 +10,7 @@ import (
 	"github.com/dedis/kyber/xof/blake"
 )
 
-func Example_encrypt1() {
+func ExampleEncrypt_one() {
 	// Crypto setup: Get a suite which returns a predictable
 	// random number stream for this example.
 	// In production, simply use edwards25519.NewBlakeSHA256Ed25519()
@@ -23,7 +23,7 @@ func Example_encrypt1() {
 	X[mine] = suite.Point().Mul(x, nil)            // corresponding public key X
 
 	// Encrypt a message with the public key
-	M := []byte("Hello World!") // message to encrypt
+	M := []byte("Hello World!")
 	C := Encrypt(suite, M, Set(X), false)
 	fmt.Printf("Encryption of '%s':\n%s", string(M), hex.Dump(C))
 

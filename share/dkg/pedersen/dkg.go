@@ -1,5 +1,5 @@
-// Package dkg implements the protocol described in
-// TODO
+// Package dkg implements the protocol described in "A threshold cryptosystem without a trusted party"
+// by Torben Pryds Pedersen. https://dl.acm.org/citation.cfm?id=1754929.
 package dkg
 
 import (
@@ -41,8 +41,6 @@ func (d *DistKeyShare) Commitments() []kyber.Point {
 
 // Deal holds the Deal for one participant as well as the index of the issuing
 // Dealer.
-//  NOTE: Doing that in vss.go would be possible but then the Dealer is always
-//  assumed to be a member of the participants. It's only the case here.
 type Deal struct {
 	// Index of the Dealer in the list of participants
 	Index uint32
@@ -125,15 +123,17 @@ func NewDistKeyGenerator(suite Suite, longterm kyber.Scalar, participants []kybe
 
 // Deals returns all the deals that must be broadcasted to all
 // participants. The deal corresponding to this DKG is already added
-// to this DKG and is ommitted from the returned map. To know
-// to which participant a deal belongs to, loop over the keys as indices in
-// the list of participants:
+// to this DKG and is ommitted from the returned map. To know which
+// participant a deal belongs to, loop over the keys as indices in the
+// list of participants:
 //
 //   for i,dd := range distDeals {
 //      sendTo(participants[i],dd)
 //   }
 //
-// This method panics if it can't process its own deal.
+// If this method cannot process its own Deal, that indicates a
+// sever problem with the configuration or implementation and
+// results in a panic.
 func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 	deals, err := d.dealer.EncryptedDeals()
 	if err != nil {
@@ -151,7 +151,7 @@ func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 				continue
 			}
 			if resp, err := d.ProcessDeal(distd); err != nil {
-				panic(err)
+				panic("dkg: cannot process own deal: " + err.Error())
 			} else if resp.Response.Status != vss.StatusApproval {
 				panic("dkg: own deal gave a complaint")
 			}
@@ -163,9 +163,9 @@ func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 }
 
 // ProcessDeal takes a Deal created by Deals() and stores and verifies it. It
-// returns a Response to broadcast to every other participants. It returns an
+// returns a Response to broadcast to every other participant. It returns an
 // error in case the deal has already been stored, or if the deal is incorrect
-// (see `vss.Verifier.ProcessEncryptedDeal()`).
+// (see vss.Verifier.ProcessEncryptedDeal).
 func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 	// public key of the dealer
 	pub, ok := findPub(d.participants, dd.Index)
@@ -190,7 +190,7 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 	}
 
 	// Set StatusApproval for the verifier that represents the participant
-	// // that distibuted the Deal
+	// that distibuted the Deal
 	d.verifiers[dd.Index].UnsafeSetResponseDKG(dd.Index, vss.StatusApproval)
 
 	return &Response{
@@ -200,7 +200,7 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 }
 
 // ProcessResponse takes a response from every other peer.  If the response
-// designates the deal of another participants than this dkg, this dkg stores it
+// designates the deal of another participant than this dkg, this dkg stores it
 // and returns nil with a possible error regarding the validity of the response.
 // If the response designates a deal this dkg has issued, then the dkg will process
 // the response, and returns a justification.
@@ -297,7 +297,7 @@ func (d *DistKeyGenerator) qualIter(fn func(idx uint32, v *vss.Verifier) bool) {
 	}
 }
 
-// DistKeyShare generates the distributed key relative to this receiver
+// DistKeyShare generates the distributed key relative to this receiver.
 // It throws an error if something is wrong such as not enough deals received.
 // The shared secret can be computed when all deals have been sent and
 // basically consists of a public point and a share. The public point is the sum

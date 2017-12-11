@@ -10,7 +10,6 @@
 //  3. Once a threshold of decrypted shares has been released, anyone can
 //     verify them and, if enough shares are valid, recover the shared secret
 //     using RecoverSecret().
-// For concrete examples see pvss_test.go.
 package pvss
 
 import (
@@ -47,7 +46,7 @@ type PubVerShare struct {
 // the given secret and the list of public keys X using the sharing threshold
 // t and the base point H. The function returns the list of shares and the
 // public commitment polynomial.
-func EncShares(suite Suite, H kyber.Point, X []kyber.Point, secret kyber.Scalar, t int) ([]*PubVerShare, *share.PubPoly, error) {
+func EncShares(suite Suite, H kyber.Point, X []kyber.Point, secret kyber.Scalar, t int) (shares []*PubVerShare, commit *share.PubPoly, err error) {
 	n := len(X)
 	encShares := make([]*PubVerShare, n)
 

@@ -1,8 +1,5 @@
 // Package encoding package provides many methods to encode/decode a Point/Scalar in
 // base64 or hexadecimal.
-//
-// This package is useful when dealing with custom encoding that are not able to process
-// any interfaces such as Point. It is first needed to encode a Point in its string equivalent.
 package encoding
 
 import (
@@ -15,7 +12,7 @@ import (
 	"github.com/dedis/kyber"
 )
 
-// Read64Point reads a point from a base64 representation
+// Read64Point reads a point from r in Base64 format.
 func Read64Point(group kyber.Group, r io.Reader) (kyber.Point, error) {
 	point := group.Point()
 	dec := base64.NewDecoder(base64.StdEncoding, r)
@@ -23,14 +20,13 @@ func Read64Point(group kyber.Group, r io.Reader) (kyber.Point, error) {
 	return point, err
 }
 
-// Write64Point writes a point to a base64 representation
+// Write64Point writes a point to w in Base64 format.
 func Write64Point(group kyber.Group, w io.Writer, point kyber.Point) error {
 	enc := base64.NewEncoder(base64.StdEncoding, w)
 	return write64(enc, point)
 }
 
-// Read64Scalar takes a Base64-encoded scalar and returns that scalar,
-// optionally an error
+// Read64Scalar reads a Base64-encoded scalar from r and returns that scalar.
 func Read64Scalar(group kyber.Group, r io.Reader) (kyber.Scalar, error) {
 	s := group.Scalar()
 	dec := base64.NewDecoder(base64.StdEncoding, r)
@@ -38,13 +34,13 @@ func Read64Scalar(group kyber.Group, r io.Reader) (kyber.Scalar, error) {
 	return s, err
 }
 
-// Write64Scalar converts a scalar key to a Base64-string
+// Write64Scalar write a scalar to w in Base64 format.
 func Write64Scalar(group kyber.Group, w io.Writer, scalar kyber.Scalar) error {
 	enc := base64.NewEncoder(base64.StdEncoding, w)
 	return write64(enc, scalar)
 }
 
-// ReadHexPoint reads a point from a hex representation
+// ReadHexPoint reads a point from r in hex representation.
 func ReadHexPoint(group kyber.Group, r io.Reader) (kyber.Point, error) {
 	point := group.Point()
 	buf, err := getHex(r, point.MarshalSize())
@@ -55,7 +51,7 @@ func ReadHexPoint(group kyber.Group, r io.Reader) (kyber.Point, error) {
 	return point, err
 }
 
-// WriteHexPoint writes a point to a hex representation
+// WriteHexPoint writes a point in hex representation to w.
 func WriteHexPoint(group kyber.Group, w io.Writer, point kyber.Point) error {
 	buf, err := point.MarshalBinary()
 	if err != nil {
@@ -95,13 +91,12 @@ func PointToStringHex(group kyber.Group, point kyber.Point) (string, error) {
 	return hex.EncodeToString(pbuf), err
 }
 
-// StringHexToPoint reads a hexadecimal representation of a point and convert it to the
-// right struct
+// StringHexToPoint reads a hexadecimal representation of a point from a string.
 func StringHexToPoint(group kyber.Group, s string) (kyber.Point, error) {
 	return ReadHexPoint(group, strings.NewReader(s))
 }
 
-// PointToString64 converts a point to a base64 representation
+// PointToString64 converts a point to a Base64 representation.
 func PointToString64(group kyber.Group, point kyber.Point) (string, error) {
 	pbuf, err := point.MarshalBinary()
 	return base64.StdEncoding.EncodeToString(pbuf), err
@@ -113,7 +108,7 @@ func String64ToPoint(group kyber.Group, s string) (kyber.Point, error) {
 	return Read64Point(group, strings.NewReader(s))
 }
 
-// ScalarToStringHex encodes a scalar to hexadecimal
+// ScalarToStringHex encodes a scalar to hexadecimal.
 func ScalarToStringHex(group kyber.Group, scalar kyber.Scalar) (string, error) {
 	sbuf, err := scalar.MarshalBinary()
 	return hex.EncodeToString(sbuf), err
@@ -124,13 +119,13 @@ func StringHexToScalar(group kyber.Group, str string) (kyber.Scalar, error) {
 	return ReadHexScalar(group, strings.NewReader(str))
 }
 
-// ScalarToString64 encodes a scalar to a base64
+// ScalarToString64 encodes a scalar to a Base64
 func ScalarToString64(group kyber.Group, scalar kyber.Scalar) (string, error) {
 	sbuf, err := scalar.MarshalBinary()
 	return base64.StdEncoding.EncodeToString(sbuf), err
 }
 
-// String64ToScalar reads a scalar in base64 from a string
+// String64ToScalar reads a scalar in Base64 from a string
 func String64ToScalar(group kyber.Group, str string) (kyber.Scalar, error) {
 	return Read64Scalar(group, strings.NewReader(str))
 }
