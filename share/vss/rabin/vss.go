@@ -275,18 +275,6 @@ func (d *Dealer) ProcessResponse(r *Response) (*Justification, error) {
 	return j, nil
 }
 
-// UnsafeSetResponseDKG is an UNSAFE bypass method to allow DKG to use VSS
-// that works on basis of approval only.
-func (d *Dealer) UnsafeSetResponseDKG(idx uint32, approval bool) {
-	r := &Response{
-		SessionID: d.aggregator.sid,
-		Index:     uint32(idx),
-		Approved:  approval,
-	}
-
-	d.aggregator.addResponse(r)
-}
-
 // SecretCommit returns the commitment of the secret being shared by this
 // dealer. This function is only to be called once the deal has enough approvals
 // and is verified otherwise it returns nil.
@@ -516,18 +504,6 @@ func (v *Verifier) SetTimeout() {
 	v.aggregator.cleanVerifiers()
 }
 
-// UnsafeSetResponseDKG is an UNSAFE bypass method to allow DKG to use VSS
-// that works on basis of approval only.
-func (v *Verifier) UnsafeSetResponseDKG(idx uint32, approval bool) {
-	r := &Response{
-		SessionID: v.aggregator.sid,
-		Index:     uint32(idx),
-		Approved:  approval,
-	}
-
-	v.aggregator.addResponse(r)
-}
-
 // aggregator is used to collect all deals, and responses for one protocol run.
 // It brings common functionalities for both Dealer and Verifier structs.
 type aggregator struct {
@@ -697,6 +673,18 @@ func (a *aggregator) DealCertified() bool {
 
 	tooMuchComplaints := verifiersUnstable > 0 || a.badDealer
 	return a.EnoughApprovals() && !tooMuchComplaints
+}
+
+// UnsafeSetResponseDKG is an UNSAFE bypass method to allow DKG to use VSS
+// that works on basis of approval only.
+func (a *aggregator) UnsafeSetResponseDKG(idx uint32, approval bool) {
+	r := &Response{
+		SessionID: a.sid,
+		Index:     uint32(idx),
+		Approved:  approval,
+	}
+
+	a.addResponse(r)
 }
 
 // MinimumT returns the minimum safe T that is proven to be secure with this
