@@ -44,7 +44,6 @@ func TestContextSaveLoad(t *testing.T) {
 		}(i)
 	}
 	wg.Wait()
-	log.Print(tmp)
 	files, err := ioutil.ReadDir(tmp)
 	log.ErrFatal(err)
 	require.False(t, files[0].IsDir())
