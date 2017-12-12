@@ -244,6 +244,7 @@ func newServiceManager(c *Server, o *Overlay) *serviceManager {
 }
 
 // openDb opens a database at `path`. It creates the database if it does not exist.
+// The caller must ensure that all parent directories exist.
 func openDb(path string) (*bolt.DB, error) {
 	db, err := bolt.Open(path, 0600, nil)
 	if err != nil {
@@ -267,8 +268,8 @@ func (s *serviceManager) Process(env *network.Envelope) {
 	s.Dispatch(env)
 }
 
-// CloseDatabase closes the database. It also removes the database file if
-// contestDataPath is set to "".
+// closeDatabase closes the database.
+// It also removes the database file if contextDataPath is set to "".
 func (s *serviceManager) closeDatabase() error {
 	if s.db != nil {
 		err := s.db.Close()

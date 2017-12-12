@@ -57,14 +57,14 @@ func testLoadSave(t *testing.T, c *Context) {
 	key := "test"
 	cd := &ContextData{42, "meaning of life"}
 	network.RegisterMessage(ContextData{})
-	log.ErrFatal(c.Save(key, cd))
+	require.Nil(t, c.Save(key, cd))
 
-	_, err := c.Load(key + "_")
-	if err == nil {
+	msg, err := c.Load(key + "_")
+	if err != nil || msg != nil {
 		log.Fatal("this should not exist")
 	}
 	cdInt, err := c.Load(key)
-	log.ErrFatal(err)
+	require.Nil(t, err)
 	cd2, ok := cdInt.(*ContextData)
 	if !ok {
 		log.Fatal("contextData should exist")
@@ -93,6 +93,7 @@ func TestContext_Path(t *testing.T) {
 	os.Remove(dbPath)
 
 	tmp, err := ioutil.TempDir("", "conode")
+	log.ErrFatal(err)
 	defer os.RemoveAll(tmp)
 	os.Setenv("CONODE_SERVICE_PATH", tmp)
 	initContextDataPath()
@@ -103,25 +104,6 @@ func TestContext_Path(t *testing.T) {
 	pub, _ = c.ServerIdentity().Public.MarshalBinary()
 	_, err = os.Stat(path.Join(tmp, fmt.Sprintf("%x.db", pub)))
 	log.ErrFatal(err)
-}
-
-type CD2 struct {
-	I int
-}
-
-func TestContext_DataAvailable(t *testing.T) {
-	tmpdir, err := ioutil.TempDir("", "test")
-	log.ErrFatal(err)
-	setContextDataPath(tmpdir)
-
-	network.RegisterMessage(CD2{})
-	c := createContext(t)
-
-	require.False(t, c.DataAvailable("test"))
-	log.ErrFatal(c.Save("test", &CD2{42}))
-	require.True(t, c.DataAvailable("test"))
-
-	os.RemoveAll(tmpdir)
 }
 
 // createContext creates the minimum number of things required for the test

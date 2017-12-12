@@ -1,7 +1,6 @@
 package onet
 
 import (
-	"errors"
 	"os"
 	"os/user"
 	"path"
@@ -15,10 +14,11 @@ import (
 
 // Context represents the methods that are available to a service.
 type Context struct {
-	overlay   *Overlay
-	server    *Server
-	serviceID ServiceID
-	manager   *serviceManager
+	overlay    *Overlay
+	server     *Server
+	serviceID  ServiceID
+	manager    *serviceManager
+	bucketName string
 	network.Dispatcher
 }
 
@@ -30,6 +30,7 @@ func newContext(c *Server, o *Overlay, servID ServiceID, manager *serviceManager
 		server:     c,
 		serviceID:  servID,
 		manager:    manager,
+		bucketName: ServiceFactory.Name(servID),
 		Dispatcher: network.NewBlockingDispatcher(),
 	}
 }
@@ -128,65 +129,59 @@ var testContextData = struct {
 	sync.Mutex
 }{service: make(map[string][]byte, 0)}
 
-// Save takes an identifier and an interface. The interface will be network.Marshaled
+// Save takes a key and an interface. The interface will be network.Marshal'ed
 // and saved in the database under the bucket named after the service name.
 // The database must be created by the server prior to using this function.
-func (c *Context) Save(id string, data interface{}) error {
+func (c *Context) Save(key string, data interface{}) error {
 	buf, err := network.Marshal(data)
 	if err != nil {
 		return err
 	}
-	bucketName := ServiceFactory.Name(c.ServiceID())
 	return c.manager.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(bucketName))
-		return b.Put([]byte(id), buf)
+		b := tx.Bucket([]byte(c.bucketName))
+		return b.Put([]byte(key), buf)
 	})
 }
 
-// Load takes an id and returns the network.Unmarshaled data. If an error
-// occurs, the data is nil. If no data is found, it returns an error.
-func (c *Context) Load(id string) (interface{}, error) {
+// Load takes an key and returns the network.Unmarshaled data.
+// Returns a nil value if the key does not exist.
+func (c *Context) Load(key string) (interface{}, error) {
 	var buf []byte
-	bucketName := ServiceFactory.Name(c.ServiceID())
 	c.manager.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(bucketName))
-		v := b.Get([]byte(id))
+		v := tx.Bucket([]byte(c.bucketName)).Get([]byte(key))
+		if v == nil {
+			return nil
+		}
+
 		buf = make([]byte, len(v))
 		copy(buf, v)
 		return nil
 	})
 
-	if len(buf) == 0 {
-		return nil, errors.New("Key does not exist: " + id)
+	if buf == nil {
+		return nil, nil
 	}
 
 	_, ret, err := network.Unmarshal(buf, c.server.suite)
 	return ret, err
 }
 
-// DataAvailable checks if any data exists under the key `id`
-func (c *Context) DataAvailable(id string) bool {
-	available := false
-	bucketName := ServiceFactory.Name(c.ServiceID())
-	c.manager.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(bucketName))
-		v := b.Get([]byte(id))
-		if v != nil {
-			available = true
-		}
-		return nil
-	})
-	return available
-}
-
-// GetDbAndBucket returns the DB handler and the bucket name of the service
+// GetDbAndBucket returns the DB handler and the bucket name of the service.
 // The server should have created the database before calling this function.
 func (c *Context) GetDbAndBucket() (*bolt.DB, string) {
-	bucketName := ServiceFactory.Name(c.ServiceID())
-	return c.manager.db, bucketName
+	return c.manager.db, c.bucketName
 }
 
 // Returns the path to the file for storage/retrieval of the service-state.
+//
+// The path to the file is chosen as follows:
+//   Mac: ~/Library/Conode/Services
+//   Other Unix: ~/.local/share/conode
+//   Windows: $HOME$\AppData\Local\Conode
+// If the directory doesn't exist, it will be created using rwxr-x---
+// permissions (0750).
+//
+// The path can be overridden with the environmental variable "CONODE_SERVICE_PATH".
 func initContextDataPath() {
 	p := os.Getenv("CONODE_SERVICE_PATH")
 	if p == "" {
