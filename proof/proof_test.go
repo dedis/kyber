@@ -1,3 +1,5 @@
+// +build experimental
+
 package proof
 
 import (
@@ -7,11 +9,12 @@ import (
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/group/edwards25519"
+	"github.com/dedis/kyber/xof/blake"
 )
 
 func TestRep(t *testing.T) {
-	suite := edwards25519.NewBlakeSHA256Ed25519()
-	rand := suite.XOF([]byte("seed"))
+	rand := blake.New([]byte("seed"))
+	suite := edwards25519.NewBlakeSHA256Ed25519WithRand(rand)
 
 	x := suite.Scalar().Pick(rand)
 	y := suite.Scalar().Pick(rand)
@@ -54,7 +57,7 @@ func TestRep(t *testing.T) {
 	sval := map[string]kyber.Scalar{"x": x, "y": y}
 	pval := map[string]kyber.Point{"B": B, "X": X, "Y": Y, "R": R}
 	prover := pred.Prover(suite, sval, pval, choice)
-	proof, err := HashProve(suite, "TEST", rand, prover)
+	proof, err := HashProve(suite, "TEST", prover)
 	if err != nil {
 		t.Fatal("prover: " + err.Error())
 	}
@@ -85,8 +88,8 @@ func Example_rep2() {
 	fmt.Println(pred.String())
 
 	// Crypto setup
-	suite := edwards25519.NewBlakeSHA256Ed25519()
-	rand := suite.XOF([]byte("example"))
+	rand := blake.New([]byte("example"))
+	suite := edwards25519.NewBlakeSHA256Ed25519WithRand(rand)
 	B := suite.Point().Base() // standard base point
 
 	// Create a public/private keypair (X,x)
@@ -97,7 +100,7 @@ func Example_rep2() {
 	sval := map[string]kyber.Scalar{"x": x}
 	pval := map[string]kyber.Point{"B": B, "X": X}
 	prover := pred.Prover(suite, sval, pval, nil)
-	proof, _ := HashProve(suite, "TEST", rand, prover)
+	proof, _ := HashProve(suite, "TEST", prover)
 	fmt.Print("Proof:\n" + hex.Dump(proof))
 
 	// Verify this knowledge proof.
@@ -197,8 +200,8 @@ func Example_or2() {
 	fmt.Println("Predicate: " + pred.String())
 
 	// Crypto setup
-	suite := edwards25519.NewBlakeSHA256Ed25519()
-	rand := suite.XOF([]byte("example"))
+	rand := blake.New([]byte("example"))
+	suite := edwards25519.NewBlakeSHA256Ed25519WithRand(rand)
 	B := suite.Point().Base() // standard base point
 
 	// Create a public/private keypair (X,x) and a random point Y
@@ -216,7 +219,7 @@ func Example_or2() {
 	sval := map[string]kyber.Scalar{"x": x}
 	pval := map[string]kyber.Point{"B": B, "X": X, "Y": Y}
 	prover := pred.Prover(suite, sval, pval, choice)
-	proof, _ := HashProve(suite, "TEST", rand, prover)
+	proof, _ := HashProve(suite, "TEST", prover)
 	fmt.Print("Proof:\n" + hex.Dump(proof))
 
 	// Verify this knowledge proof.

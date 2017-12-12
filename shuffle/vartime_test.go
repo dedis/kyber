@@ -1,4 +1,4 @@
-// +build vartime
+// +build experimental,vartime
 
 package shuffle
 

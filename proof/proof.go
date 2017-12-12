@@ -1,3 +1,5 @@
+// +build experimental
+
 // Package proof implements generic support for Sigma-protocols
 // and discrete logarithm proofs in the Camenisch/Stadler framework.
 // For the cryptographic foundations of this framework see
@@ -19,6 +21,7 @@ type Suite interface {
 	kyber.HashFactory
 	kyber.Encoding
 	kyber.XOFFactory
+	kyber.Random
 }
 
 /*

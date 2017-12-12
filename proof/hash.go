@@ -1,3 +1,5 @@
+// +build experimental
+
 package proof
 
 import (
@@ -16,12 +18,11 @@ type hashProver struct {
 	prirand kyber.XOF
 }
 
-func newHashProver(suite Suite, protoName string,
-	rand kyber.XOF) *hashProver {
+func newHashProver(suite Suite, protoName string) *hashProver {
 	var sc hashProver
 	sc.suite = suite
 	sc.pubrand = suite.XOF([]byte(protoName))
-	sc.prirand = rand
+	sc.prirand = suite.RandomStream().(kyber.XOF)
 	return &sc
 }
 
@@ -120,9 +121,8 @@ func (c *hashVerifier) PubRand(data ...interface{}) error {
 // or a pseudorandom stream based on a secret seed
 // to create deterministically reproducible proofs.
 //
-func HashProve(suite Suite, protocolName string,
-	random kyber.XOF, prover Prover) ([]byte, error) {
-	ctx := newHashProver(suite, protocolName, random)
+func HashProve(suite Suite, protocolName string, prover Prover) ([]byte, error) {
+	ctx := newHashProver(suite, protocolName)
 	if e := (func(ProverContext) error)(prover)(ctx); e != nil {
 		return nil, e
 	}
