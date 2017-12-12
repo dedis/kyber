@@ -213,7 +213,7 @@ const configFolder = "config"
 
 // newServiceManager will create a serviceStore out of all the registered Service
 func newServiceManager(c *Server, o *Overlay) *serviceManager {
-	db, err := newDatabase(c.dbFileName())
+	db, err := openDb(c.dbFileName())
 	if err != nil {
 		log.Panic("Failed to create new database: " + err.Error())
 	}
@@ -243,7 +243,8 @@ func newServiceManager(c *Server, o *Overlay) *serviceManager {
 	return s
 }
 
-func newDatabase(path string) (*bolt.DB, error) {
+// openDb opens a database at `path`. It creates the database if it does not exist.
+func openDb(path string) (*bolt.DB, error) {
 	db, err := bolt.Open(path, 0600, nil)
 	if err != nil {
 		return nil, err
@@ -251,6 +252,7 @@ func newDatabase(path string) (*bolt.DB, error) {
 	return db, nil
 }
 
+// createBucketForService creates a bucket in the database `db` named `bucketName`.
 func createBucketForService(db *bolt.DB, bucketName string) error {
 	return db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(bucketName))
