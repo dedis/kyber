@@ -140,7 +140,7 @@ func createContext(t *testing.T) *Context {
 		return nil, nil
 	})
 
-	db, err := newDatabase(cn.dbFileName())
+	db, err := openDb(cn.dbFileName())
 	require.Nil(t, err)
 
 	err = db.Update(func(tx *bolt.Tx) error {
