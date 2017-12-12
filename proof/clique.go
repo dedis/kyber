@@ -1,3 +1,5 @@
+// +build experimental
+
 package proof
 
 // A clique protocol is a kyber.on for a cryptographic protocol

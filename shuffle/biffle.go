@@ -1,9 +1,11 @@
+// +build experimental
+
 package shuffle
 
 import (
 	"crypto/cipher"
 
-	kyber "github.com/dedis/kyber"
+	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/proof"
 	"github.com/dedis/kyber/util/random"
 )
