@@ -265,7 +265,8 @@ func (s *serviceManager) Process(env *network.Envelope) {
 	s.Dispatch(env)
 }
 
-// CloseDatabase closes the database
+// CloseDatabase closes the database. It also removes the database file if
+// contestDataPath is set to "".
 func (s *serviceManager) closeDatabase() error {
 	if s.db != nil {
 		err := s.db.Close()

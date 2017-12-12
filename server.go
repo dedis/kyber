@@ -146,6 +146,8 @@ func (c *Server) Start() {
 	c.websocket.start()
 }
 
+// dbFileName returns the database file name. The exact file name depends on how
+// contextDataPath is initialised, see `initContextDataPath()`.
 func (c *Server) dbFileName() string {
 	pub, _ := c.ServerIdentity.Public.MarshalBinary()
 	return path.Join(getContextDataPath(), fmt.Sprintf("%x.db", pub))

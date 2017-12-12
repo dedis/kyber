@@ -129,18 +129,8 @@ var testContextData = struct {
 }{service: make(map[string][]byte, 0)}
 
 // Save takes an identifier and an interface. The interface will be network.Marshaled
-// and saved under a filename based on the identifier. An eventual error will be returned.
-// If contextDataPath is non-empty, the destination is a file: it will be created
-// with rw-r----- permissions (0640). If the file already exists, it will be overwritten.
-//
-// The path to the file is chosen as follows:
-//   Mac: ~/Library/Conode/Services
-//   Other Unix: ~/.local/share/conode
-//   Windows: $HOME$\AppData\Local\Conode
-// If the directory doesn't exist, it will be created using rwxr-x---
-// permissions (0750).
-//
-// The path can be overridden with the environmental variable "CONODE_SERVICE_PATH".
+// and saved in the database under the bucket named after the service name.
+// The database must be created by the server prior to using this function.
 func (c *Context) Save(id string, data interface{}) error {
 	buf, err := network.Marshal(data)
 	if err != nil {
@@ -154,9 +144,7 @@ func (c *Context) Save(id string, data interface{}) error {
 }
 
 // Load takes an id and returns the network.Unmarshaled data. If an error
-// occurs, the data is nil. See Save() for where the files are saved.
-//
-// If no data is found, it returns an error.
+// occurs, the data is nil. If no data is found, it returns an error.
 func (c *Context) Load(id string) (interface{}, error) {
 	var buf []byte
 	bucketName := ServiceFactory.Name(c.ServiceID())
@@ -176,8 +164,7 @@ func (c *Context) Load(id string) (interface{}, error) {
 	return ret, err
 }
 
-// DataAvailable checks if any data is stored either in a file or in the
-// contextData map.
+// DataAvailable checks if any data exists under the key `id`
 func (c *Context) DataAvailable(id string) bool {
 	available := false
 	bucketName := ServiceFactory.Name(c.ServiceID())
@@ -193,6 +180,7 @@ func (c *Context) DataAvailable(id string) bool {
 }
 
 // GetDbAndBucket returns the DB handler and the bucket name of the service
+// The server should have created the database before calling this function.
 func (c *Context) GetDbAndBucket() (*bolt.DB, string) {
 	bucketName := ServiceFactory.Name(c.ServiceID())
 	return c.manager.db, bucketName
