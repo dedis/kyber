@@ -192,7 +192,7 @@ func (c *Context) DataAvailable(id string) bool {
 	return available
 }
 
-// GetDatabaseAndBucket returns the DB handler and the bucket name of the service
+// GetDbAndBucket returns the DB handler and the bucket name of the service
 func (c *Context) GetDbAndBucket() (*bolt.DB, string) {
 	bucketName := ServiceFactory.Name(c.ServiceID())
 	return c.manager.db, bucketName
