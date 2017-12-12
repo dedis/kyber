@@ -2,8 +2,6 @@ package onet
 
 import (
 	"errors"
-	"fmt"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"path"
@@ -148,15 +146,11 @@ func (c *Context) Save(id string, data interface{}) error {
 	if err != nil {
 		return err
 	}
-	fname := c.absFilename(id)
-	if getContextDataPath() == "" {
-		testContextData.Lock()
-		testContextData.service[fname] = buf
-		testContextData.Unlock()
-		return nil
-	}
-
-	return ioutil.WriteFile(fname, buf, 0640)
+	bucketName := ServiceFactory.Name(c.ServiceID())
+	return c.manager.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(bucketName))
+		return b.Put([]byte(id), buf)
+	})
 }
 
 // Load takes an id and returns the network.Unmarshaled data. If an error
@@ -165,21 +159,19 @@ func (c *Context) Save(id string, data interface{}) error {
 // If no data is found, it returns an error.
 func (c *Context) Load(id string) (interface{}, error) {
 	var buf []byte
-	if getContextDataPath() == "" {
-		var ok bool
-		testContextData.Lock()
-		buf, ok = testContextData.service[c.absFilename(id)]
-		testContextData.Unlock()
-		if !ok {
-			return nil, errors.New("this entry doesn't exist")
-		}
-	} else {
-		var err error
-		buf, err = ioutil.ReadFile(c.absFilename(id))
-		if err != nil {
-			return nil, err
-		}
+	bucketName := ServiceFactory.Name(c.ServiceID())
+	c.manager.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(bucketName))
+		v := b.Get([]byte(id))
+		buf = make([]byte, len(v))
+		copy(buf, v)
+		return nil
+	})
+
+	if len(buf) == 0 {
+		return nil, errors.New("Key does not exist: " + id)
 	}
+
 	_, ret, err := network.Unmarshal(buf, c.server.suite)
 	return ret, err
 }
@@ -187,35 +179,21 @@ func (c *Context) Load(id string) (interface{}, error) {
 // DataAvailable checks if any data is stored either in a file or in the
 // contextData map.
 func (c *Context) DataAvailable(id string) bool {
-	if getContextDataPath() == "" {
-		testContextData.Lock()
-		_, ok := testContextData.service[c.absFilename(id)]
-		testContextData.Unlock()
-		return ok
-	}
-	_, err := os.Stat(c.absFilename(id))
-	return !os.IsNotExist(err)
-}
-
-// absFilename returns the absolute path to load and save the configuration.
-// The file is chosen as "#{ServerIdentity.Public}_#{ServiceName}_#{id}.bin",
-// so no service and no server share the same file.
-func (c *Context) absFilename(id string) string {
-	return c.absFilenameWithSuffix(id, ".bin")
-}
-
-func (c *Context) absDbFilename() string {
-	return c.absFilenameWithSuffix("bolt", ".db")
-}
-
-func (c *Context) absFilenameWithSuffix(id string, suffix string) string {
-	pub, _ := c.ServerIdentity().Public.MarshalBinary()
-	return path.Join(getContextDataPath(), fmt.Sprintf("%x_%s_%s%s", pub,
-		ServiceFactory.Name(c.ServiceID()), id, suffix))
+	available := false
+	bucketName := ServiceFactory.Name(c.ServiceID())
+	c.manager.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(bucketName))
+		v := b.Get([]byte(id))
+		if v != nil {
+			available = true
+		}
+		return nil
+	})
+	return available
 }
 
 // GetDatabaseAndBucket returns the DB handler and the bucket name of the service
-func (c *Context) GetDatabaseAndBucket() (*bolt.DB, string) {
+func (c *Context) GetDbAndBucket() (*bolt.DB, string) {
 	bucketName := ServiceFactory.Name(c.ServiceID())
 	return c.manager.db, bucketName
 }
