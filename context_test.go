@@ -1,6 +1,7 @@
 package onet
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -8,6 +9,7 @@ import (
 	"sync"
 	"testing"
 
+	bolt "github.com/coreos/bbolt"
 	"github.com/dedis/kyber/util/key"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
@@ -20,32 +22,24 @@ type ContextData struct {
 }
 
 func TestContextSaveLoad(t *testing.T) {
-	setContextDataPath("")
-	nbr := 10
-	c := make([]*Context, nbr)
-	for i := range c {
-		c[i] = createContext()
-	}
-	var wg sync.WaitGroup
-	wg.Add(nbr)
-	testLoadSave(t, true, c[0])
-	for i := range c {
-		go func(i int) {
-			testLoadSave(t, false, c[i])
-			wg.Done()
-		}(i)
-	}
-	wg.Wait()
-
 	tmp, err := ioutil.TempDir("", "conode")
-	log.ErrFatal(err)
 	defer os.RemoveAll(tmp)
 	os.Setenv("CONODE_SERVICE_PATH", tmp)
 	initContextDataPath()
+
+	nbr := 10
+	c := make([]*Context, nbr)
+	for i := range c {
+		c[i] = createContext(t)
+	}
+
+	testSaveFailure(t, c[0])
+
+	var wg sync.WaitGroup
 	wg.Add(nbr)
 	for i := range c {
 		go func(i int) {
-			testLoadSave(t, false, c[i])
+			testLoadSave(t, c[i])
 			wg.Done()
 		}(i)
 	}
@@ -54,27 +48,22 @@ func TestContextSaveLoad(t *testing.T) {
 	log.ErrFatal(err)
 	require.False(t, files[0].IsDir())
 	require.True(t, files[0].Mode().IsRegular())
-	require.True(t, strings.HasSuffix(files[0].Name(), ".bin"))
+	require.True(t, strings.HasSuffix(files[0].Name(), ".db"))
 	setContextDataPath("")
 }
 
-func testLoadSave(t *testing.T, first bool, c *Context) {
-	file := "test"
+func testLoadSave(t *testing.T, c *Context) {
+	key := "test"
 	cd := &ContextData{42, "meaning of life"}
-	if first {
-		if c.Save(file, cd) == nil {
-			log.Fatal("should not save")
-		}
-		network.RegisterMessage(ContextData{})
-	}
-	log.ErrFatal(c.Save(file, cd))
+	network.RegisterMessage(ContextData{})
+	require.Nil(t, c.Save(key, cd))
 
-	_, err := c.Load(file + "_")
-	if err == nil {
+	msg, err := c.Load(key + "_")
+	if err != nil || msg != nil {
 		log.Fatal("this should not exist")
 	}
-	cdInt, err := c.Load(file)
-	log.ErrFatal(err)
+	cdInt, err := c.Load(key)
+	require.Nil(t, err)
 	cd2, ok := cdInt.(*ContextData)
 	if !ok {
 		log.Fatal("contextData should exist")
@@ -84,45 +73,40 @@ func testLoadSave(t *testing.T, first bool, c *Context) {
 	}
 }
 
+func testSaveFailure(t *testing.T, c *Context) {
+	key := "test"
+	cd := &ContextData{42, "meaning of life"}
+	// should fail because ContextData is not registered
+	if c.Save(key, cd) == nil {
+		log.Fatal("Save should fail")
+	}
+}
+
 func TestContext_Path(t *testing.T) {
 	setContextDataPath("")
-	c := createContext()
-	base := c.absFilename("test")
+	c := createContext(t)
+	pub, _ := c.ServerIdentity().Public.MarshalBinary()
+	dbPath := path.Join("", fmt.Sprintf("%x.db", pub))
+	_, err := os.Stat(dbPath)
+	log.ErrFatal(err)
+	os.Remove(dbPath)
+
 	tmp, err := ioutil.TempDir("", "conode")
 	log.ErrFatal(err)
 	defer os.RemoveAll(tmp)
 	os.Setenv("CONODE_SERVICE_PATH", tmp)
 	initContextDataPath()
+	c = createContext(t)
 	require.Equal(t, tmp, contextDataPath)
 	_, err = os.Stat(tmp)
 	log.ErrFatal(err)
-	require.Equal(t, path.Join(tmp, base), c.absFilename("test"))
-}
-
-type CD2 struct {
-	I int
-}
-
-func TestContext_DataAvailable(t *testing.T) {
-	setContextDataPath("")
-	network.RegisterMessage(CD2{})
-	c := createContext()
-
-	require.False(t, c.DataAvailable("test"))
-	log.ErrFatal(c.Save("test", &CD2{42}))
-	require.True(t, c.DataAvailable("test"))
-
-	tmpdir, err := ioutil.TempDir("", "test")
+	pub, _ = c.ServerIdentity().Public.MarshalBinary()
+	_, err = os.Stat(path.Join(tmp, fmt.Sprintf("%x.db", pub)))
 	log.ErrFatal(err)
-	setContextDataPath(tmpdir)
-	require.False(t, c.DataAvailable("test"))
-	log.ErrFatal(c.Save("test", &CD2{42}))
-	require.True(t, c.DataAvailable("test"))
-	os.RemoveAll(tmpdir)
-	setContextDataPath("")
 }
 
-func createContext() *Context {
+// createContext creates the minimum number of things required for the test
+func createContext(t *testing.T) *Context {
 	kp := key.NewKeyPair(tSuite)
 	si := network.NewServerIdentity(kp.Public,
 		network.NewAddress(network.Local, "localhost:0"))
@@ -131,5 +115,24 @@ func createContext() *Context {
 			ServerIdentity: si,
 		},
 	}
-	return newContext(cn, nil, NilServiceID, nil)
+
+	name := "testService"
+	RegisterNewService(name, func(c *Context) (Service, error) {
+		return nil, nil
+	})
+
+	db, err := openDb(cn.dbFileName())
+	require.Nil(t, err)
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucket([]byte(name))
+		return err
+	})
+	require.Nil(t, err)
+
+	sm := &serviceManager{
+		server: cn,
+		db:     db,
+	}
+	return newContext(cn, nil, ServiceFactory.ServiceID(name), sm)
 }

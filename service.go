@@ -3,9 +3,11 @@ package onet
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	"sync"
 
+	bolt "github.com/coreos/bbolt"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 	"github.com/satori/go.uuid"
@@ -201,6 +203,8 @@ type serviceManager struct {
 	services map[ServiceID]Service
 	// the onet host
 	server *Server
+	// a bbolt database for all services
+	db *bolt.DB
 	// the dispatcher can take registration of Processors
 	network.Dispatcher
 }
@@ -209,12 +213,23 @@ const configFolder = "config"
 
 // newServiceManager will create a serviceStore out of all the registered Service
 func newServiceManager(c *Server, o *Overlay) *serviceManager {
+	db, err := openDb(c.dbFileName())
+	if err != nil {
+		log.Panic("Failed to create new database: " + err.Error())
+	}
+
 	services := make(map[ServiceID]Service)
-	s := &serviceManager{services, c, network.NewRoutineDispatcher()}
+	s := &serviceManager{services, c, db, network.NewRoutineDispatcher()}
 	ids := ServiceFactory.registeredServiceIDs()
 	for _, id := range ids {
 		name := ServiceFactory.Name(id)
 		log.Lvl3("Starting service", name)
+
+		err = createBucketForService(s.db, name)
+		if err != nil {
+			log.Panic("Failed to create bucket: " + err.Error())
+		}
+
 		cont := newContext(c, o, id, s)
 		s, err := ServiceFactory.start(name, cont)
 		if err != nil {
@@ -228,11 +243,49 @@ func newServiceManager(c *Server, o *Overlay) *serviceManager {
 	return s
 }
 
+// openDb opens a database at `path`. It creates the database if it does not exist.
+// The caller must ensure that all parent directories exist.
+func openDb(path string) (*bolt.DB, error) {
+	db, err := bolt.Open(path, 0600, nil)
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
+}
+
+// createBucketForService creates a bucket in the database `db` named `bucketName`.
+func createBucketForService(db *bolt.DB, bucketName string) error {
+	return db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte(bucketName))
+		return err
+	})
+}
+
 // Process implements the Processor interface: service manager will relay
 // messages to the right Service.
 func (s *serviceManager) Process(env *network.Envelope) {
 	// will launch a go routine for that message
 	s.Dispatch(env)
+}
+
+// closeDatabase closes the database.
+// It also removes the database file if contextDataPath is set to "".
+func (s *serviceManager) closeDatabase() error {
+	if s.db != nil {
+		err := s.db.Close()
+		if err != nil {
+			log.Error("Close database failed with: " + err.Error())
+		}
+		s.db = nil
+	}
+
+	if getContextDataPath() == "" {
+		err := os.Remove(s.server.dbFileName())
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // registerProcessor the processor to the service manager and tells the host to dispatch

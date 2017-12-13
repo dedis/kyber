@@ -1,20 +1,15 @@
 package onet
 
 import (
-	"runtime"
-	"sync"
-
-	"strings"
-
-	"sort"
-
 	"errors"
-
-	"strconv"
-
-	"time"
-
 	"fmt"
+	"path"
+	"runtime"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
 
 	"github.com/dedis/kyber"
 	"github.com/dedis/onet/log"
@@ -104,10 +99,13 @@ func (c *Server) GetStatus() *Status {
 func (c *Server) Close() error {
 	c.websocket.stop()
 	c.overlay.Close()
-	err := c.Router.Stop()
+	err := c.serviceManager.closeDatabase()
+	if err != nil {
+		log.Lvl3("Error closing database: " + err.Error())
+	}
+	err = c.Router.Stop()
 	log.Lvl3("Host Close ", c.ServerIdentity.Address, "listening?", c.Router.Listening())
 	return err
-
 }
 
 // Address returns the address used by the Router.
@@ -146,4 +144,11 @@ func (c *Server) protocolInstantiate(protoID ProtocolID, tni *TreeNodeInstance) 
 func (c *Server) Start() {
 	go c.Router.Start()
 	c.websocket.start()
+}
+
+// dbFileName returns the database file name. The exact file name depends on how
+// contextDataPath is initialised, see `initContextDataPath()`.
+func (c *Server) dbFileName() string {
+	pub, _ := c.ServerIdentity.Public.MarshalBinary()
+	return path.Join(getContextDataPath(), fmt.Sprintf("%x.db", pub))
 }

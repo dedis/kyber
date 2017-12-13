@@ -1,25 +1,24 @@
 package onet
 
 import (
-	"errors"
-	"fmt"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"path"
 	"runtime"
 	"sync"
 
+	bolt "github.com/coreos/bbolt"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
 )
 
 // Context represents the methods that are available to a service.
 type Context struct {
-	overlay   *Overlay
-	server    *Server
-	serviceID ServiceID
-	manager   *serviceManager
+	overlay    *Overlay
+	server     *Server
+	serviceID  ServiceID
+	manager    *serviceManager
+	bucketName string
 	network.Dispatcher
 }
 
@@ -31,6 +30,7 @@ func newContext(c *Server, o *Overlay, servID ServiceID, manager *serviceManager
 		server:     c,
 		serviceID:  servID,
 		manager:    manager,
+		bucketName: ServiceFactory.Name(servID),
 		Dispatcher: network.NewBlockingDispatcher(),
 	}
 }
@@ -129,10 +129,50 @@ var testContextData = struct {
 	sync.Mutex
 }{service: make(map[string][]byte, 0)}
 
-// Save takes an identifier and an interface. The interface will be network.Marshaled
-// and saved under a filename based on the identifier. An eventual error will be returned.
-// If contextDataPath is non-empty, the destination is a file: it will be created
-// with rw-r----- permissions (0640). If the file already exists, it will be overwritten.
+// Save takes a key and an interface. The interface will be network.Marshal'ed
+// and saved in the database under the bucket named after the service name.
+// The database must be created by the server prior to using this function.
+func (c *Context) Save(key string, data interface{}) error {
+	buf, err := network.Marshal(data)
+	if err != nil {
+		return err
+	}
+	return c.manager.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(c.bucketName))
+		return b.Put([]byte(key), buf)
+	})
+}
+
+// Load takes an key and returns the network.Unmarshaled data.
+// Returns a nil value if the key does not exist.
+func (c *Context) Load(key string) (interface{}, error) {
+	var buf []byte
+	c.manager.db.View(func(tx *bolt.Tx) error {
+		v := tx.Bucket([]byte(c.bucketName)).Get([]byte(key))
+		if v == nil {
+			return nil
+		}
+
+		buf = make([]byte, len(v))
+		copy(buf, v)
+		return nil
+	})
+
+	if buf == nil {
+		return nil, nil
+	}
+
+	_, ret, err := network.Unmarshal(buf, c.server.suite)
+	return ret, err
+}
+
+// GetDbAndBucket returns the DB handler and the bucket name of the service.
+// The server should have created the database before calling this function.
+func (c *Context) GetDbAndBucket() (*bolt.DB, string) {
+	return c.manager.db, c.bucketName
+}
+
+// Returns the path to the file for storage/retrieval of the service-state.
 //
 // The path to the file is chosen as follows:
 //   Mac: ~/Library/Conode/Services
@@ -142,70 +182,6 @@ var testContextData = struct {
 // permissions (0750).
 //
 // The path can be overridden with the environmental variable "CONODE_SERVICE_PATH".
-func (c *Context) Save(id string, data interface{}) error {
-	buf, err := network.Marshal(data)
-	if err != nil {
-		return err
-	}
-	fname := c.absFilename(id)
-	if getContextDataPath() == "" {
-		testContextData.Lock()
-		testContextData.service[fname] = buf
-		testContextData.Unlock()
-		return nil
-	}
-
-	return ioutil.WriteFile(fname, buf, 0640)
-}
-
-// Load takes an id and returns the network.Unmarshaled data. If an error
-// occurs, the data is nil. See Save() for where the files are saved.
-//
-// If no data is found, it returns an error.
-func (c *Context) Load(id string) (interface{}, error) {
-	var buf []byte
-	if getContextDataPath() == "" {
-		var ok bool
-		testContextData.Lock()
-		buf, ok = testContextData.service[c.absFilename(id)]
-		testContextData.Unlock()
-		if !ok {
-			return nil, errors.New("this entry doesn't exist")
-		}
-	} else {
-		var err error
-		buf, err = ioutil.ReadFile(c.absFilename(id))
-		if err != nil {
-			return nil, err
-		}
-	}
-	_, ret, err := network.Unmarshal(buf, c.server.suite)
-	return ret, err
-}
-
-// DataAvailable checks if any data is stored either in a file or in the
-// contextData map.
-func (c *Context) DataAvailable(id string) bool {
-	if getContextDataPath() == "" {
-		testContextData.Lock()
-		_, ok := testContextData.service[c.absFilename(id)]
-		testContextData.Unlock()
-		return ok
-	}
-	_, err := os.Stat(c.absFilename(id))
-	return !os.IsNotExist(err)
-}
-
-// absFilename returns the absolute path to load and save the configuration.
-// The file is chosen as "#{ServerIdentity.Public}_#{ServiceName}_#{id}.bin",
-// so no service and no server share the same file.
-func (c *Context) absFilename(id string) string {
-	pub, _ := c.ServerIdentity().Public.MarshalBinary()
-	return path.Join(getContextDataPath(), fmt.Sprintf("%x_%s_%s.bin", pub,
-		ServiceFactory.Name(c.ServiceID()), id))
-}
-
-// Returns the path to the file for storage/retrieval of the service-state.
 func initContextDataPath() {
 	p := os.Getenv("CONODE_SERVICE_PATH")
 	if p == "" {
