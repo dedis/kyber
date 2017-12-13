@@ -1,5 +1,5 @@
 // Package eddsa implements the EdDSA signature algorithm according to
-// the RFC https://tools.ietf.org/html/draft-josefsson-eddsa-ed25519-02
+// RFC8032.
 package eddsa
 
 import (
@@ -15,15 +15,14 @@ import (
 
 var group = new(edwards25519.Curve)
 
-// EdDSA implements the EdDSA signature algorithm according to
-// the RFC https://tools.ietf.org/html/draft-josefsson-eddsa-ed25519-02
 type EdDSA struct {
-	seed   []byte
-	prefix []byte
 	// Secret being already hashed + bit tweaked
 	Secret kyber.Scalar
 	// Public is the corresponding public key
 	Public kyber.Point
+
+	seed   []byte
+	prefix []byte
 }
 
 // NewEdDSA will return a freshly generated key pair to use for generating
@@ -48,17 +47,8 @@ func NewEdDSA(stream cipher.Stream) *EdDSA {
 	}
 }
 
-// Prefix returns the Prefix as being the right part of
-// the hashed seed
-func (e *EdDSA) Prefix() []byte {
-	c := make([]byte, len(e.prefix))
-	copy(c, e.prefix)
-	return c
-}
-
-// MarshalBinary will return the representation used by
-// the reference implementation of SUPERCOP ref10
-// Namely seed || Public
+// MarshalBinary will return the representation used by the reference
+// implementation of SUPERCOP ref10, which is "seed || Public".
 func (e *EdDSA) MarshalBinary() ([]byte, error) {
 	pBuff, err := e.Public.MarshalBinary()
 	if err != nil {
@@ -71,7 +61,7 @@ func (e *EdDSA) MarshalBinary() ([]byte, error) {
 	return eddsa, nil
 }
 
-//UnmarshalBinary transforms a slice of bytes into a EdDSA signature
+// UnmarshalBinary transforms a slice of bytes into a EdDSA signature.
 func (e *EdDSA) UnmarshalBinary(buff []byte) error {
 	if len(buff) != 64 {
 		return errors.New("wrong length for decoding EdDSA private")
@@ -86,8 +76,6 @@ func (e *EdDSA) UnmarshalBinary(buff []byte) error {
 }
 
 // Sign will return a EdDSA signature of the message msg using Ed25519.
-// NOTE: Code taken from the Python implementation from the RFC
-// https://tools.ietf.org/html/draft-josefsson-eddsa-ed25519-02
 func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 	hash := sha512.New()
 	_, _ = hash.Write(e.prefix)
@@ -133,12 +121,8 @@ func (e *EdDSA) Sign(msg []byte) ([]byte, error) {
 	return sig[:], nil
 }
 
-// Verify takes a signature issued by EdDSA.Sign and
-// return nil if it is a valid signature, or an error otherwise
-// Takes:
-//  - public key used in signing
-//  - msg is the message to sign
-//  - sig is the signature return by EdDSA.Sign
+// Verify uses a public key, a message and a signature. It will return nil if
+// sig is a valid signature for msg created by key public, or an error otherwise.
 func Verify(public kyber.Point, msg, sig []byte) error {
 	if len(sig) != 64 {
 		return errors.New("signature length invalid")
