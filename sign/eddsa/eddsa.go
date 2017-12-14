@@ -15,6 +15,8 @@ import (
 
 var group = new(edwards25519.Curve)
 
+// EdDSA is a structure holding the data necessary to make a series of
+// EdDSA signatures.
 type EdDSA struct {
 	// Secret being already hashed + bit tweaked
 	Secret kyber.Scalar
