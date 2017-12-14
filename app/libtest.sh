@@ -273,6 +273,7 @@ cleanup(){
     sleep .5
     rm -f co*/*bin
     rm -f cl*/*bin
+    rm -rf service_storage
 }
 
 stopTest(){
