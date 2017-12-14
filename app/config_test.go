@@ -19,18 +19,20 @@ func TestMain(m *testing.M) {
 var serverGroup string = `Description = "Default Dedis Cosi servers"
 
 [[servers]]
-Address = "tcp://5.135.161.91:2000"
-Public = "lLglU3nhHfUWe4p647hffn618TiUq+6FvTGzJw8eTGU="
-Description = "Nikkolasg's server: spreading the love of signing"
+  Address = "tcp://5.135.161.91:2000"
+  Public = "94b8255379e11df5167b8a7ae3b85f7e7eb5f13894abee85bd31b3270f1e4c65"
+  Description = "Nikkolasg's server: spreading the love of signing"
 
 [[servers]]
-Address = "tcp://185.26.156.40:61117"
-Public = "apIWOKSt6JcOvNnjcVcPCNcaJJh/kPEjkbn2xSW+W+Q="
-Description = "Ismail's server"`
+  Address = "tcp://185.26.156.40:61117"
+  Public = "6a921638a4ade8970ebcd9e371570f08d71a24987f90f12391b9f6c525be5be4"
+  Description = "Ismail's server"`
 
 func TestReadGroupDescToml(t *testing.T) {
 	group, err := ReadGroupDescToml(strings.NewReader(serverGroup), tSuite)
-	log.ErrFatal(err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if len(group.Roster.List) != 2 {
 		t.Fatal("Should have 2 ServerIdentities")
