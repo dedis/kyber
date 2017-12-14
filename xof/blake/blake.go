@@ -9,7 +9,7 @@ import (
 
 type xof struct {
 	impl blake2b.XOF
-	// key is here not make excess garbage during repeated calls
+	// key is here to not make excess garbage during repeated calls
 	// to XORKeyStream.
 	key []byte
 }
@@ -50,9 +50,13 @@ func (x *xof) Write(src []byte) (int, error) {
 
 func (x *xof) Reseed() {
 	// Use New to create a new one seeded with output from the old one.
-	key := make([]byte, 128)
-	x.Read(key)
-	y := New(key)
+	if len(x.key) < 128 {
+		x.key = make([]byte, 128)
+	} else {
+		x.key = x.key[0:128]
+	}
+	x.Read(x.key)
+	y := New(x.key)
 	// Steal the XOF implementation, and put it inside of x.
 	x.impl = y.(*xof).impl
 	return
@@ -64,9 +68,11 @@ func (x *xof) XORKeyStream(dst, src []byte) {
 	}
 	if len(x.key) < len(src) {
 		x.key = make([]byte, len(src))
+	} else {
+		x.key = x.key[0:len(src)]
 	}
 
-	n, err := x.Read(x.key[0:len(src)])
+	n, err := x.Read(x.key)
 	if err != nil {
 		panic("blake xof error: " + err.Error())
 	}
