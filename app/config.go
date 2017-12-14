@@ -163,7 +163,7 @@ func (gt *GroupToml) String() string {
 // toServerIdentity converts this ServerToml struct to a ServerIdentity.
 func (s *ServerToml) toServerIdentity(suite network.Suite) (*network.ServerIdentity, error) {
 	pubR := strings.NewReader(s.Public)
-	public, err := encoding.Read64Point(suite, pubR)
+	public, err := encoding.ReadHexPoint(suite, pubR)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +177,7 @@ func (s *ServerToml) toServerIdentity(suite network.Suite) (*network.ServerIdent
 func NewServerToml(suite network.Suite, public kyber.Point, addr network.Address,
 	desc string) *ServerToml {
 	var buff bytes.Buffer
-	if err := encoding.Write64Point(suite, &buff, public); err != nil {
+	if err := encoding.WriteHexPoint(suite, &buff, public); err != nil {
 		log.Error("Error writing public key")
 		return nil
 	}
