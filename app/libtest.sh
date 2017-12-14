@@ -273,7 +273,7 @@ cleanup(){
     sleep .5
     rm -f co*/*bin
     rm -f cl*/*bin
-    rm -rf service_storage
+    rm -rf $CONODE_SERVICE_PATH
 }
 
 stopTest(){
