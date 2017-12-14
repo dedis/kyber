@@ -17,33 +17,6 @@ func ErrFatal(err error) {
 	panic(err)
 }
 
-func TestPub64(t *testing.T) {
-	b := &bytes.Buffer{}
-	p := s.Point().Pick(s.RandomStream())
-	ErrFatal(Write64Point(s, b, p))
-	ErrFatal(Write64Point(s, b, p))
-	p2, err := Read64Point(s, b)
-	ErrFatal(err)
-	require.EqualValues(t, p.String(), p2.String())
-
-	p2, err = Read64Point(s, b)
-	ErrFatal(err)
-	require.Equal(t, p.String(), p2.String())
-}
-
-func TestScalar64(t *testing.T) {
-	b := &bytes.Buffer{}
-	sc := s.Scalar().Pick(s.RandomStream())
-	ErrFatal(Write64Scalar(s, b, sc))
-	ErrFatal(Write64Scalar(s, b, sc))
-	s2, err := Read64Scalar(s, b)
-	ErrFatal(err)
-	require.True(t, sc.Equal(s2))
-	s2, err = Read64Scalar(s, b)
-	ErrFatal(err)
-	require.True(t, sc.Equal(s2))
-}
-
 func TestPubHexStream(t *testing.T) {
 	b := &bytes.Buffer{}
 	p := s.Point().Pick(s.RandomStream())
@@ -79,29 +52,11 @@ func TestPubHexString(t *testing.T) {
 	require.Equal(t, p.String(), p2.String())
 }
 
-func TestPub64String(t *testing.T) {
-	p := s.Point().Pick(s.RandomStream())
-	pstr, err := PointToString64(s, p)
-	ErrFatal(err)
-	p2, err := String64ToPoint(s, pstr)
-	ErrFatal(err)
-	require.Equal(t, p.String(), p2.String())
-}
-
 func TestScalarHexString(t *testing.T) {
 	sc := s.Scalar().Pick(s.RandomStream())
 	scstr, err := ScalarToStringHex(s, sc)
 	ErrFatal(err)
 	s2, err := StringHexToScalar(s, scstr)
-	ErrFatal(err)
-	require.True(t, sc.Equal(s2))
-}
-
-func TestScalar64String(t *testing.T) {
-	sc := s.Scalar().Pick(s.RandomStream())
-	scstr, err := ScalarToString64(s, sc)
-	ErrFatal(err)
-	s2, err := String64ToScalar(s, scstr)
 	ErrFatal(err)
 	require.True(t, sc.Equal(s2))
 }
