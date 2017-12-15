@@ -82,6 +82,22 @@ func testSaveFailure(t *testing.T, c *Context) {
 	}
 }
 
+func TestContext_GetAdditionalBucket(t *testing.T) {
+	tmp, err := ioutil.TempDir("", "conode")
+	log.ErrFatal(err)
+	defer os.RemoveAll(tmp)
+	os.Setenv("CONODE_SERVICE_PATH", tmp)
+	initContextDataPath()
+	c := createContext(t)
+	db, name := c.GetAdditionalBucket("new")
+	require.NotNil(t, db)
+	require.Equal(t, "testService_new", name)
+	// Need to accept a second run with an existing bucket
+	db, name = c.GetAdditionalBucket("new")
+	require.NotNil(t, db)
+	require.Equal(t, "testService_new", name)
+}
+
 func TestContext_Path(t *testing.T) {
 	setContextDataPath("")
 	c := createContext(t)

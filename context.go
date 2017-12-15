@@ -1,6 +1,7 @@
 package onet
 
 import (
+	"fmt"
 	"os"
 	"os/user"
 	"path"
@@ -166,10 +167,22 @@ func (c *Context) Load(key string) (interface{}, error) {
 	return ret, err
 }
 
-// GetDbAndBucket returns the DB handler and the bucket name of the service.
-// The server should have created the database before calling this function.
-func (c *Context) GetDbAndBucket() (*bolt.DB, string) {
-	return c.manager.db, c.bucketName
+// GetAdditionalBucket makes sure that a bucket with the given name
+// exists, by eventually creating it, and returns the created bucket name,
+// which is the servicename + the given name.
+func (c *Context) GetAdditionalBucket(name string) (*bolt.DB, string) {
+	fullName := c.bucketName + "_" + name
+	err := c.manager.db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte(fullName))
+		if err != nil {
+			return fmt.Errorf("create bucket: %s", err)
+		}
+		return nil
+	})
+	if err != nil {
+		panic(err)
+	}
+	return c.manager.db, fullName
 }
 
 // Returns the path to the file for storage/retrieval of the service-state.
