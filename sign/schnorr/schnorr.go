@@ -3,8 +3,8 @@ Package schnorr implements the vanilla Schnorr signature scheme.
 See https://en.wikipedia.org/wiki/Schnorr_signature.
 
 The only difference regarding the vanilla reference is the computation of
-the response. This implementation adds the the random component with the
-challenge times private key while the wikipedia article substracts them.
+the response. This implementation adds the random component with the
+challenge times private key while the Wikipedia article substracts them.
 
 The resulting signature is compatible with EdDSA verification algorithm
 when using the edwards25519 group, and by extension the CoSi verification algorithm.
@@ -20,7 +20,8 @@ import (
 	"github.com/dedis/kyber"
 )
 
-type suite interface {
+// Suite represents the set of functionalities needed by the package schnorr.
+type Suite interface {
 	kyber.Group
 	kyber.Random
 }
@@ -28,7 +29,7 @@ type suite interface {
 // Sign creates a Sign signature from a msg and a private key. This
 // signature can be verified with VerifySchnorr. It's also a valid EdDSA
 // signature when using the edwards25519 Group.
-func Sign(s suite, private kyber.Scalar, msg []byte) ([]byte, error) {
+func Sign(s Suite, private kyber.Scalar, msg []byte) ([]byte, error) {
 	var g kyber.Group = s
 	// create random secret k and public point commitment R
 	k := g.Scalar().Pick(s.RandomStream())

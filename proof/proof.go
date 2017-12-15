@@ -5,6 +5,8 @@
 // For the cryptographic foundations of this framework see
 // "Proof Systems for General Statements about Discrete Logarithms" at
 // ftp://ftp.inf.ethz.ch/pub/crypto/publications/CamSta97b.pdf.
+//
+// Package shuffle requires build tag "experimental".
 package proof
 
 import (

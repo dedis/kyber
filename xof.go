@@ -10,6 +10,11 @@ import (
 // function does, and then create a stream of output, up to a limit
 // determined by the size of the internal state of the hash function
 // the underlies the XOF.
+//
+// When XORKeyStream is called with zeros for the source, an XOF
+// also acts as a PRNG. If it is seeded with an appropriate amount
+// of keying material, it is a cryptographically secure source of random
+// bits.
 type XOF interface {
 	// Write absorbs more data into the hash's state. It panics if called
 	// after Read. Use Reseed() to reset the XOF into a state where more data
@@ -26,7 +31,9 @@ type XOF interface {
 	// will panic.
 	cipher.Stream
 
-	// Reseed makes an XOF writeable again after it has been read from.
+	// Reseed makes an XOF writeable again after it has been read from
+	// by sampling a key from it's output and initializing a fresh XOF implementation
+	// with that key.
 	Reseed()
 
 	// Clone returns a copy of the XOF in its current state.
@@ -36,7 +43,8 @@ type XOF interface {
 // An XOFFactory is an interface that can be mixed in to local suite definitions.
 type XOFFactory interface {
 	// XOF creates a new XOF, feeding seed to it via it's Write method. If seed
-	// is nil or []byte{}, the XOF is unseeded and will always produce the same
-	// bytes from Read.
+	// is nil or []byte{}, the XOF is left unseeded, it will produce a fixed, predictable
+	// stream of bits (Caution: this behavior is useful for testing but fatal for
+	// production use).
 	XOF(seed []byte) XOF
 }

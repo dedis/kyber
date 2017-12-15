@@ -51,7 +51,7 @@ func (s *QrSuite) New(t reflect.Type) interface{} {
 // github.com/dedis/kyber/xof/blake, SHA-256, and a residue group of
 // quadratic residues modulo a 512-bit prime.
 //
-// This group size should be used only for testing and experimentation
+// This group size should be used only for testing and experimentation.
 // 512-bit DSA-style groups are no longer considered secure.
 func NewBlakeSHA256QR512() *QrSuite {
 	p, _ := new(big.Int).SetString("10198267722357351868598076141027380280417188309231803909918464305012113541414604537422741096561285049775792035177041672305646773132014126091142862443826263", 10)

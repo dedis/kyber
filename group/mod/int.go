@@ -1,3 +1,5 @@
+// Package mod contains a generic implementation of finite field arithmetic
+// on integer fields with a constant modulus.
 package mod
 
 import (
@@ -15,7 +17,7 @@ import (
 var one = big.NewInt(1)
 var two = big.NewInt(2)
 
-// ByteOrder denotes what is the endianness used to represent an Int.
+// ByteOrder denotes the endianness of the operation.
 type ByteOrder bool
 
 const (
@@ -308,6 +310,7 @@ func (i *Int) MarshalSize() int {
 }
 
 // MarshalBinary encodes the value of this Int into a byte-slice exactly Len() bytes long.
+// It uses i's ByteOrder to determine which byte order to output.
 func (i *Int) MarshalBinary() ([]byte, error) {
 	l := i.MarshalSize()
 	b := i.V.Bytes() // may be shorter than l
@@ -330,7 +333,7 @@ func (i *Int) MarshalBinary() ([]byte, error) {
 // or if the contents of the buffer represents an out-of-range integer.
 func (i *Int) UnmarshalBinary(buf []byte) error {
 	if len(buf) != i.MarshalSize() {
-		return errors.New("Int.Decode: wrong size buffer")
+		return errors.New("UnmarshalBinary: wrong size buffer")
 	}
 	// Still needed here because of the comparison with the modulo
 	if i.BO == LittleEndian {
@@ -338,7 +341,7 @@ func (i *Int) UnmarshalBinary(buf []byte) error {
 	}
 	i.V.SetBytes(buf)
 	if i.V.Cmp(i.M) >= 0 {
-		return errors.New("Int.Decode: value out of range")
+		return errors.New("UnmarshalBinary: value out of range")
 	}
 	return nil
 }

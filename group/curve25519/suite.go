@@ -1,6 +1,3 @@
-// Since that package does not implement constant time arithmetic operations
-// yet, it must be compiled with the "vartime" compilation flag.
-
 // +build vartime
 
 package curve25519

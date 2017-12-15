@@ -188,8 +188,7 @@ which depend on Point.Mul() and homomorphic properties.
 However, residue groups with large R are less suitable for
 public-key cryptographic techniques that require choosing Points
 pseudo-randomly or to contain embedded data,
-as required by ElGamal encryption for example, or by Dissent's
-hash-generator construction for verifiable DC-nets.
+as required by ElGamal encryption for example.
 For such purposes quadratic residue groups are more suitable -
 representing the special case where R=2 and hence P=2Q+1.
 As a result, the Point.Pick() method should be expected to work efficiently

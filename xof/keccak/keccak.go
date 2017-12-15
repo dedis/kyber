@@ -9,7 +9,7 @@ import (
 
 type xof struct {
 	sh sha3.ShakeHash
-	// key is here not make excess garbage during repeated calls
+	// key is here to not make excess garbage during repeated calls
 	// to XORKeyStream.
 	key []byte
 }
@@ -26,10 +26,14 @@ func (x *xof) Clone() kyber.XOF {
 }
 
 func (x *xof) Reseed() {
-	key := make([]byte, 128)
-	x.Read(key)
+	if len(x.key) < 128 {
+		x.key = make([]byte, 128)
+	} else {
+		x.key = x.key[0:128]
+	}
+	x.Read(x.key)
 	x.sh = sha3.NewShake256()
-	x.sh.Write(key)
+	x.sh.Write(x.key)
 	return
 }
 
@@ -47,9 +51,11 @@ func (x *xof) XORKeyStream(dst, src []byte) {
 	}
 	if len(x.key) < len(src) {
 		x.key = make([]byte, len(src))
+	} else {
+		x.key = x.key[0:len(src)]
 	}
 
-	n, err := x.Read(x.key[0:len(src)])
+	n, err := x.Read(x.key)
 	if err != nil {
 		panic("xof error getting key: " + err.Error())
 	}

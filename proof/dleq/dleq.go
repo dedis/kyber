@@ -9,7 +9,6 @@ import (
 	"errors"
 
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/hash"
 )
 
 // Suite wraps the functionalities needed by the dleq package.
@@ -47,10 +46,12 @@ func NewDLEQProof(suite Suite, G kyber.Point, H kyber.Point, x kyber.Scalar) (pr
 	vH := suite.Point().Mul(v, H)
 
 	// Challenge
-	cb, err := hash.Structures(suite.Hash(), xG, xH, vG, vH)
-	if err != nil {
-		return nil, nil, nil, err
-	}
+	h := suite.Hash()
+	xG.MarshalTo(h)
+	xH.MarshalTo(h)
+	vG.MarshalTo(h)
+	vH.MarshalTo(h)
+	cb := h.Sum(nil)
 	c := suite.Scalar().Pick(suite.XOF(cb))
 
 	// Response
@@ -88,10 +89,21 @@ func NewDLEQProofBatch(suite Suite, G []kyber.Point, H []kyber.Point, secrets []
 	}
 
 	// Collective challenge
-	cb, err := hash.Structures(suite.Hash(), xG, xH, vG, vH)
-	if err != nil {
-		return nil, nil, nil, err
+	h := suite.Hash()
+	for _, x := range xG {
+		x.MarshalTo(h)
 	}
+	for _, x := range xH {
+		x.MarshalTo(h)
+	}
+	for _, x := range vG {
+		x.MarshalTo(h)
+	}
+	for _, x := range vH {
+		x.MarshalTo(h)
+	}
+	cb := h.Sum(nil)
+
 	c := suite.Scalar().Pick(suite.XOF(cb))
 
 	// Responses

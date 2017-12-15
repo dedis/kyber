@@ -19,6 +19,8 @@
 // The general PairShuffle builds on this SimpleShuffle scheme,
 // but SimpleShuffle may also be used by itself in situations
 // that satisfy its assumptions, and is more efficient.
+//
+// Package shuffle requires build tag "experimental".
 package shuffle
 
 import (
