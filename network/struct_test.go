@@ -35,7 +35,7 @@ func TestServerIdentity(t *testing.T) {
 	}
 	t1.Public = ""
 	si12 := t1.ServerIdentity(tSuite)
-	if si12.Public.Equal(si1.Public) {
+	if si12.Public != nil && si12.Public.Equal(si1.Public) {
 		t.Error("stg wrong with wrong toml -> wrong si")
 	}
 

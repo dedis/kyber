@@ -214,7 +214,7 @@ func createKeyPair(suite network.Suite) (string, string) {
 		log.Fatal("Could not parse public key. Abort.")
 	}
 
-	log.Info("Public key: ", pubStr, "\n")
+	log.Info("Public key:", pubStr, "\n")
 	return privStr, pubStr
 }
 
@@ -231,8 +231,8 @@ func saveFiles(conf *CothorityConfig, fileConf string, group *GroupToml, fileGro
 		log.Fatal("Could not write your group file snippet:", err)
 	}
 
-	log.Info("Saved a group definition snippet for your server at", fileGroup,
-		group.String())
+	log.Info("Saved a group definition snippet for your server at", fileGroup)
+	log.Info(group.String())
 
 }
 
@@ -376,7 +376,7 @@ func checkAvailableMemory() {
 // be used by different apps (like CoSi, for example)
 func RunServer(configFilename string, suite network.Suite) {
 	if _, err := os.Stat(configFilename); os.IsNotExist(err) {
-		log.Fatalf("[-] Configuration file does not exists. %s", configFilename)
+		log.Fatalf("[-] Configuration file does not exist. %s", configFilename)
 	}
 	// Let's read the config
 	_, server, err := ParseCothority(configFilename, suite)

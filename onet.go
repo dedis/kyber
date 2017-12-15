@@ -18,4 +18,9 @@ ProtocolInstance.
 package onet
 
 // Version of onet.
-const Version = "1.2"
+const Version = "2.0"
+
+// Version history notes:
+// 1.2 (no comment)
+// 2.0 first version where no base64 is allowed in {public,private}.toml files. Cothority's
+//     run_conode.sh migrates from 1.2->2.0 format files.

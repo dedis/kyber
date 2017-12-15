@@ -131,7 +131,7 @@ func (si *ServerIdentity) Equal(e2 *ServerIdentity) bool {
 // Toml converts an ServerIdentity to a Toml-structure
 func (si *ServerIdentity) Toml(suite Suite) *ServerIdentityToml {
 	var buf bytes.Buffer
-	if err := encoding.Write64Point(suite, &buf, si.Public); err != nil {
+	if err := encoding.WriteHexPoint(suite, &buf, si.Public); err != nil {
 		log.Error("Error while writing public key:", err)
 	}
 	return &ServerIdentityToml{
@@ -142,7 +142,7 @@ func (si *ServerIdentity) Toml(suite Suite) *ServerIdentityToml {
 
 // ServerIdentity converts an ServerIdentityToml structure back to an ServerIdentity
 func (si *ServerIdentityToml) ServerIdentity(suite Suite) *ServerIdentity {
-	pub, err := encoding.Read64Point(suite, strings.NewReader(si.Public))
+	pub, err := encoding.ReadHexPoint(suite, strings.NewReader(si.Public))
 	if err != nil {
 		log.Error("Error while reading public key:", err)
 	}

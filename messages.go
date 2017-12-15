@@ -1,8 +1,6 @@
 package onet
 
 import (
-	"sync"
-
 	"github.com/dedis/onet/network"
 	"github.com/satori/go.uuid"
 )
@@ -101,12 +99,7 @@ type Token struct {
 	RoundID   RoundID
 	// TreeNodeID is defined by the
 	TreeNodeID TreeNodeID
-	cacheID    TokenID
 }
-
-// Global mutex when we're working on Tokens. Needed because we
-// copy Tokens in ChangeTreeNodeID.
-var tokenMutex sync.Mutex
 
 // ID returns the TokenID which can be used to identify by token in map
 func (t *Token) ID() TokenID {
