@@ -91,11 +91,11 @@ func TestContext_GetAdditionalBucket(t *testing.T) {
 	c := createContext(t)
 	db, name := c.GetAdditionalBucket("new")
 	require.NotNil(t, db)
-	require.Equal(t, "testServicenew", name)
+	require.Equal(t, "testService_new", name)
 	// Need to accept a second run with an existing bucket
 	db, name = c.GetAdditionalBucket("new")
 	require.NotNil(t, db)
-	require.Equal(t, "testServicenew", name)
+	require.Equal(t, "testService_new", name)
 }
 
 func TestContext_Path(t *testing.T) {
