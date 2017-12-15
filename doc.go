@@ -103,13 +103,13 @@ permit, and as interest and application demand dictates.
 
 As should be obvious, this library is intended to be used by
 developers who are at least moderately knowledgeable about
-cryptography.  If you want a crypto library that makes it easy to
+cryptography. If you want a crypto library that makes it easy to
 implement "basic crypto" functionality correctly - i.e., plain
 public-key encryption and signing - then
 [NaCl secretbox](https://godoc.org/golang.org/x/crypto/nacl/secretbox)
 may be a better choice. This toolkit's purpose is to make it possible
 - and preferably easy - to do slightly more interesting things that
-most current crypto libraries don't support effectively.  The one
+most current crypto libraries don't support effectively. The one
 existing crypto library that this toolkit is probably most comparable
 to is the Charm rapid prototyping library for Python
 (https://charm-crypto.com/category/charm).

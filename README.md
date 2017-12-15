@@ -40,7 +40,7 @@ third-party Go-language dependencies that can be installed automatically
 as follows:
 
 	go get github.com/dedis/kyber
-	cd $(go env GOPATH)/src/github.com/dedis/kyber
+	cd "$(go env GOPATH)/src/github.com/dedis/kyber"
 	go get -t ./... # install 3rd-party dependencies
 
 You should then be able to test its basic function as follows:

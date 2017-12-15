@@ -11,24 +11,19 @@ Please see the
 [Godoc documentation for this package](http://godoc.org/gopkg.in/dedis/kyber.v1)
 for details on the library's purpose and API functionality.
 
-Versioning - Development
-------------------------
+How to Get the Stable Version
+-----------------------------
 
-With the new interface in the kyber-library we use the following development
-model:
-
-* crypto.v0 was the previous semi-stable version. See
-  [migration notes](https://github.com/dedis/kyber/wiki/Migration-from-gopkg.in-dedis-crypto.v0).
-* kyber.v1 is the stable version
-* the master branch of kyber is the development version
-
-So if you depend on the master branch, you can expect breakages from time
-to time. If you need something that doesn't change in a backward-compatible
-way you should do:
+The stable version of Kyber should be imported using:
 
 ```
    import "gopkg.in/dedis/kyber.v1"
 ```
+
+Other versions:
+* gopkg.in/dedis/crypto.v0 was the previous semi-stable version. See
+  [migration notes](https://github.com/dedis/kyber/wiki/Migration-from-gopkg.in-dedis-crypto.v0).
+* the master branch of kyber is the development version
 
 Installing
 ----------
@@ -39,8 +34,8 @@ The basic crypto library requires only Go and a few
 third-party Go-language dependencies that can be installed automatically
 as follows:
 
-	go get github.com/dedis/kyber
-	cd $(go env GOPATH)/src/github.com/dedis/kyber
+	go get gopkg.in/dedis/kyber.v1
+	cd $(go env GOPATH)/src/gopkg.in/dedis/kyber.v1
 	go get -t ./... # install 3rd-party dependencies
 
 You should then be able to test its basic function as follows:

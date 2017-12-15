@@ -13,7 +13,7 @@ import (
 //
 // When XORKeyStream is called with zeros for the source, an XOF
 // also acts as a PRNG. If it is seeded with an appropriate amount
-// of keying material, it is cryptographically secure source of random
+// of keying material, it is a cryptographically secure source of random
 // bits.
 type XOF interface {
 	// Write absorbs more data into the hash's state. It panics if called
@@ -43,8 +43,8 @@ type XOF interface {
 // An XOFFactory is an interface that can be mixed in to local suite definitions.
 type XOFFactory interface {
 	// XOF creates a new XOF, feeding seed to it via it's Write method. If seed
-	// is nil or []byte{}, the XOF is left unseeded will produce a fixed, predictable
-	// stream of bits (Caution: this behavior is useful for testing and fatal for
+	// is nil or []byte{}, the XOF is left unseeded, it will produce a fixed, predictable
+	// stream of bits (Caution: this behavior is useful for testing but fatal for
 	// production use).
 	XOF(seed []byte) XOF
 }
