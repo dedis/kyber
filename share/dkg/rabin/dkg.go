@@ -242,11 +242,17 @@ func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 				// already processed our own deal
 				continue
 			}
-			if resp, err := d.ProcessDeal(distd); err != nil {
+
+			resp, err := d.ProcessDeal(distd)
+			if err != nil {
 				panic(err)
 			} else if !resp.Response.Approved {
 				panic("dkg: own deal gave a complaint")
 			}
+
+			// If processed own deal correctly, set positive response in this
+			// DKG's dealer's own verifier
+			d.dealer.UnsafeSetResponseDKG(d.index, true)
 			continue
 		}
 		dd[i] = distd
@@ -280,6 +286,10 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Set StatusApproval for the verifier that represents the participant
+	// that distibuted the Deal
+	d.verifiers[dd.Index].UnsafeSetResponseDKG(dd.Index, true)
 
 	return &Response{
 		Index:    dd.Index,
@@ -332,6 +342,14 @@ func (d *DistKeyGenerator) ProcessJustification(j *Justification) error {
 		return errors.New("dkg: Justification received but no deal for it")
 	}
 	return v.ProcessJustification(j.Justification)
+}
+
+// SetTimeout triggers the timeout on all verifiers, and thus makes sure
+// all verifiers have either responded, or have a StatusComplaint response.
+func (d *DistKeyGenerator) SetTimeout() {
+	for _, v := range d.verifiers {
+		v.SetTimeout()
+	}
 }
 
 // Certified returns true if at least t deals are certified (see

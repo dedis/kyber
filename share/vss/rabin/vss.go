@@ -306,6 +306,13 @@ func (d *Dealer) SessionID() []byte {
 	return d.sessionID
 }
 
+// SetTimeout tells this dealer to consider this moment the maximum time limit.
+// it calls cleanVerifiers which will take care of all Verifiers who have not
+// responded until now.
+func (d *Dealer) SetTimeout() {
+	d.aggregator.cleanVerifiers()
+}
+
 // Verifier receives a Deal from a Dealer, can reply with a Complaint, and can
 // collaborate with other Verifiers to reconstruct a secret.
 type Verifier struct {
@@ -491,6 +498,13 @@ func RecoverSecret(suite Suite, deals []*Deal, n, t int) (kyber.Scalar, error) {
 	return share.RecoverSecret(suite, shares, t, n)
 }
 
+// SetTimeout tells this verifier to consider this moment the maximum time limit.
+// it calls cleanVerifiers which will take care of all Verifiers who have not
+// responded until now.
+func (v *Verifier) SetTimeout() {
+	v.aggregator.cleanVerifiers()
+}
+
 // aggregator is used to collect all deals, and responses for one protocol run.
 // It brings common functionalities for both Dealer and Verifier structs.
 type aggregator struct {
@@ -566,6 +580,20 @@ func (a *aggregator) VerifyDeal(d *Deal, inclusion bool) error {
 	return nil
 }
 
+// cleanVerifiers checks the aggregator's response array and creates a StatusComplaint
+// response for all verifiers who have no response in the array.
+func (a *aggregator) cleanVerifiers() {
+	for i := range a.verifiers {
+		if _, ok := a.responses[uint32(i)]; !ok {
+			a.responses[uint32(i)] = &Response{
+				SessionID: a.sid,
+				Index:     uint32(i),
+				Approved:  false,
+			}
+		}
+	}
+}
+
 func (a *aggregator) verifyResponse(r *Response) error {
 	if !bytes.Equal(r.SessionID, a.sid) {
 		return errors.New("vss: receiving inconsistent sessionID in response")
@@ -634,14 +662,30 @@ func (a *aggregator) DealCertified() bool {
 	if a == nil {
 		return false
 	}
-	var comps int
-	for _, r := range a.responses {
-		if !r.Approved {
-			comps++
+
+	var verifiersUnstable int
+	// Check either a StatusApproval or StatusComplaint for all known verifiers
+	// i.e. make sure all verifiers are either timed-out or OK.
+	for i := range a.verifiers {
+		if _, ok := a.responses[uint32(i)]; !ok {
+			verifiersUnstable++
 		}
 	}
-	tooMuchComplaints := comps >= a.t || a.badDealer
+
+	tooMuchComplaints := verifiersUnstable > 0 || a.badDealer
 	return a.EnoughApprovals() && !tooMuchComplaints
+}
+
+// UnsafeSetResponseDKG is an UNSAFE bypass method to allow DKG to use VSS
+// that works on basis of approval only.
+func (a *aggregator) UnsafeSetResponseDKG(idx uint32, approval bool) {
+	r := &Response{
+		SessionID: a.sid,
+		Index:     uint32(idx),
+		Approved:  approval,
+	}
+
+	a.addResponse(r)
 }
 
 // MinimumT returns the minimum safe T that is proven to be secure with this
